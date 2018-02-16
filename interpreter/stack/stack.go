@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	. "github.com/FactomProject/electiontesting/interpreter/common"
+	. "github.com/FactomProject/electiontesting/interpreter/names"
 )
 
 type Stack struct {
@@ -55,7 +56,8 @@ func (s *Stack) Peek() interface{}       { return s.Data[s.Ptr-1] }           //
 func (s *Stack) PeekN(n int) interface{} { return s.Data[s.Ptr-1-n] }         // Todo: underflow ?
 func (s *Stack) PopBool() bool           { return s.Data[s.pdec()].(bool) }   // Todo: underflow ?
 func (s *Stack) PopInt() int             { return s.Data[s.pdec()].(int) }    // Todo: underflow ?
+func (s *Stack) PopName() Name           { return s.Data[s.pdec()].(Name) }   // Todo: underflow ?
 func (s *Stack) PopString() string       { return s.Data[s.pdec()].(string) } // Todo: underflow ?
 func (s *Stack) PopArray() Array         { return s.Data[s.pdec()].(Array) }  // Todo: underflow ?
 
-func (s *Stack) PopN(n int)              { s.Ptr -= n }                       // Todo: underflow ?
+func (s *Stack) PopN(n int) { s.Ptr -= n } // Todo: underflow ?

@@ -1,15 +1,16 @@
 package interpreter
 
 import (
-	. "github.com/FactomProject/electiontesting/interpreter/common"
-	. "github.com/FactomProject/electiontesting/interpreter/dictionary"
-	. "github.com/FactomProject/electiontesting/interpreter/stack"
-	//	. "github.com/FactomProject/electiontesting/interpreter/names"
 	"bufio"
 	"fmt"
 	"io"
 	"strconv"
 	"strings"
+
+	. "github.com/FactomProject/electiontesting/interpreter/common"
+	. "github.com/FactomProject/electiontesting/interpreter/dictionary"
+	. "github.com/FactomProject/electiontesting/interpreter/names"
+	. "github.com/FactomProject/electiontesting/interpreter/stack"
 )
 
 type Interpreter struct {
@@ -19,7 +20,7 @@ type Interpreter struct {
 	DictStack []Dictionary
 	Input     *bufio.Reader
 	Line      string
-	//	NameManager
+	NameManager
 }
 
 func NewInterpreter() Interpreter {
@@ -27,20 +28,14 @@ func NewInterpreter() Interpreter {
 	i.Stack = NewStack()
 	i.C = NewStack()
 	i.DictStack = make([]Dictionary, 0)
+	i.NameManager = NewNameManager()
 	return i
 }
 
+// Convert a string to a name
 func (i *Interpreter) Lookup(s string) interface{} {
-	//	n := i.GetName(s)
-	// find the name in the dict stack
-	for _, d := range i.DictStack {
-		e, ok := d[s]
-		if ok {
-			return e
-		}
-	}
-	panic("Undefined " + s)
-	return nil
+	n := i.GetName(s)
+	return n
 }
 
 // Push a dictionary on the stack
@@ -52,8 +47,8 @@ func (i *Interpreter) DictionaryPop() { i.DictStack = i.DictStack[1:] }
 func (i *Interpreter) Exec3(x interface{}) {
 	var flags FlagsStruct // assume its not immediate and not executable
 
-//	fmt.Printf("Exec3(%v) ", x)
-//	i.PStack()
+	//	fmt.Printf("Exec3(%v) ", x)
+	//	i.PStack()
 
 	// check for thing with no flags and create flags for them
 	f, ok := x.(func()) // is it a raw Go Function? Then it's executable but not immediate
@@ -63,17 +58,14 @@ func (i *Interpreter) Exec3(x interface{}) {
 	} else {
 		immediateFunc, ok := x.(ImmediateFunc) // Should not have to manually check this!!!
 		if ok {
-			flags.Immediate = true
-			flags.Executable = true
 			immediateFunc.Func()
 			return
-		} else {
-			flagSrc, ok := x.(HasFlags) // Does it have flags (Array et.al.)?
-			if ok {
-				flags = flagSrc.GetFlags() // get them so we know what to do...
-
-			}
 		}
+	}
+
+	_, ok = x.(HasFlags)
+	if ok {
+		flags = x.(HasFlags).GetFlags()
 	}
 
 	if flags.Immediate || (flags.Executable && i.Compiling == 0) {
@@ -90,6 +82,16 @@ func (i *Interpreter) Exec3(x interface{}) {
 			} // for all elements of the executable array
 		case func():
 			f() // execute the primitive
+		case Name:
+			// find the name in the dict stack
+			for _, d := range i.DictStack {
+				e, ok := d[x.(Name)]
+				if ok {
+					i.Exec3(e)
+				}
+			}
+			panic("Undefined " + i.GetString(x.(Name)))
+
 		default:
 			i.Push(x) // Maybe should panic here but ...
 		} // switch on type
@@ -101,8 +103,8 @@ func (i *Interpreter) Exec3(x interface{}) {
 }
 
 // execute one thing
-func (i *Interpreter) ExecString(s string) {
-	//	fmt.Printf("Exec2(\"%s\")\n", s)
+func (i *Interpreter) InterpretString(s string) {
+	fmt.Printf("Exec2(\"%s\")\n", s)
 	if ii, err := strconv.Atoi(s); err == nil {
 		i.Exec3(ii)
 	} else if b, err := strconv.ParseBool(s); err == nil {
@@ -120,7 +122,7 @@ func (i *Interpreter) ExecString(s string) {
 	}
 }
 
-func (i *Interpreter) Interpret2(line string) {
+func (i *Interpreter) InterpretLine(line string) {
 	//	fmt.Printf("Interpret(\"%s\")\n", line)
 	defer func() { i.Line = i.Line }()
 	i.Line = line
@@ -135,7 +137,7 @@ func (i *Interpreter) Interpret2(line string) {
 			line = line[len(s):] // Trim off the string and the ws following
 			i.Line = line
 			if s != "" {
-				i.ExecString(s) // execute the string
+				i.InterpretString(s) // execute the string
 			}
 		}
 		if i.Line == "" {
@@ -174,6 +176,6 @@ func (i *Interpreter) Interpret(source io.Reader) {
 				break
 			}
 		} // Until we get a whole line
-		i.Interpret2(line)
+		i.InterpretLine(line)
 	}
 }

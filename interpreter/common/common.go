@@ -1,28 +1,35 @@
 package common
 
 type FlagsStruct struct {
-	Traced bool	// Object is being traced in the debugger
-	Immediate bool // Objects executed even when compiling
+	Traced     bool // Object is being traced in the debugger
+	Immediate  bool // Objects executed even when compiling
 	Executable bool // Object is executable
 }
 
+func (f FlagsStruct) SetExecutable(b bool) FlagsStruct { f.Executable = b; return f }
+func (f FlagsStruct) SetImmediate(b bool) FlagsStruct  { f.Immediate = b; return f }
+func (f FlagsStruct) SetTraced(b bool) FlagsStruct     { f.Traced = b; return f }
+
 type HasFlags interface {
 	GetFlags() FlagsStruct
+	SetFlags(FlagsStruct)
 }
 
 type Func func()
 
 type ImmediateFunc struct {
-	Flags FlagsStruct
+	FlagsStruct
 	Func
 }
-func (a ImmediateFunc) GetFlags() FlagsStruct { return a.Flags }
+
+func (a ImmediateFunc) GetFlags() FlagsStruct  { return a.FlagsStruct }
+func (a ImmediateFunc) SetFlags(f FlagsStruct) { a.FlagsStruct = f }
 
 type Mark struct{} // Used to mark a spot on the stack for executable arrays
 
 type Array struct {
 	Data []interface{}
-	Flags FlagsStruct
+	FlagsStruct
 }
 
 func NewArray() Array {
@@ -30,14 +37,8 @@ func NewArray() Array {
 	a.Data = make([]interface{}, 0)
 	return a
 }
-func(a *Array)len()int{return len(a.Data)}
-func(a *Array)cap()int{return cap(a.Data)}
-func (a Array) GetFlags() FlagsStruct { return a.Flags }
+func (a *Array) len() int              { return len(a.Data) }
+func (a *Array) cap() int              { return cap(a.Data) }
+func (a Array) GetFlags() FlagsStruct  { return a.FlagsStruct }
+func (a Array) SetFlags(f FlagsStruct) { a.FlagsStruct = f }
 
-type Name struct {
-	n string
-	flags FlagsStruct
-	d interface{}
-}
-
-func (a Name) GetFlags() FlagsStruct { return a.flags }

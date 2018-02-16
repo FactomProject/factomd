@@ -8,72 +8,89 @@ import (
 	. "github.com/FactomProject/electiontesting/interpreter/common"
 	. "github.com/FactomProject/electiontesting/interpreter/dictionary"
 	. "github.com/FactomProject/electiontesting/interpreter/interpreter"
+	. "github.com/FactomProject/electiontesting/interpreter/names"
 )
 
 type Primitives struct {
 	Interpreter
+	// Hmm used to be more stuff here but it's all migrated away... guess this is really all on interpreter
+}
+
+var executable FlagsStruct = FlagsStruct{Traced: false, Immediate: false, Executable: true}
+var immediate FlagsStruct = FlagsStruct{Traced: false, Immediate: true, Executable: true}
+
+func (p *Primitives) AddPrim(dict Dictionary, name string, x interface{}) Name {
+	n := p.GetName(name)
+	dict.Add(n, x)
+	n.SetFlags(executable)
+	return n
 }
 
 func NewPrimitives() *Primitives {
 	p := new(Primitives)
-	dict := NewDictionary()
-	p.DictionaryPush(dict)            // Primitives Dictionary
-	p.DictionaryPush(NewDictionary()) // User Dictionary
+	p.Interpreter = NewInterpreter()
 
-	dict.Add("+", func() { p.Push(p.PopInt() + p.PopInt()) }) // ToDo: Handle float too
-	dict.Add("-", func() {
-		a := p.PopInt()
-		p.Push(p.PopInt() - a)
-	}) // ToDo: Handle float too
-	dict.Add("*", func() { p.Push(p.PopInt() * p.PopInt()) }) // ToDo: Handle float too
-	dict.Add("/", func() { p.Push(p.PopInt() / p.PopInt()) }) // ToDo: Handle float too
-	dict.Add("&", func() { p.Push(p.PopInt() & p.PopInt()) })
-	dict.Add("|", func() { p.Push(p.PopInt() | p.PopInt()) })
-	dict.Add("^", func() { p.Push(p.PopInt() ^ p.PopInt()) })
-	dict.Add("~", func() { p.Push(p.PopInt() ^ -1) })
-	dict.Add("&&", func() { p.Push(p.PopBool() && p.PopBool()) })
-	dict.Add("||", func() { p.Push(p.PopBool() || p.PopBool()) })
-	dict.Add("!", func() { p.Push(!p.PopBool()) })
-	dict.Add(".", func() { fmt.Printf("%v\n", p.Pop()) })
-	dict.Add("<", func() { p.Push(p.PopInt() < p.PopInt()) })
-	dict.Add("=", func() { p.Push(p.PopInt() == p.PopInt()) })
-	dict.Add("!=", func() { p.Push(p.PopInt() != p.PopInt()) })
-	dict.Add(">", func() { p.Push(p.PopInt() > p.PopInt()) })
-	dict.Add("0=", func() { p.Push(p.PopInt() > 0) })
-	dict.Add("?dup", func() {
+	primitives := NewDictionary()
+	p.DictionaryPush(primitives) // Primitives Dictionary
+
+	p.AddPrim(primitives, "primitives", primitives)
+
+	p.AddPrim(primitives, "+", func() { p.Push(p.PopInt() + p.PopInt()) })  // ToDo: Handle float too
+	p.AddPrim(primitives, "-", func() { p.Push(-p.PopInt() + p.PopInt()) }) // ToDo: Handle float too
+	p.AddPrim(primitives, "*", func() { p.Push(p.PopInt() * p.PopInt()) })  // ToDo: Handle float too
+	p.AddPrim(primitives, "/", func() { p.Push(p.PopInt() / p.PopInt()) })  // ToDo: Handle float too
+	p.AddPrim(primitives, "&", func() { p.Push(p.PopInt() & p.PopInt()) })
+	p.AddPrim(primitives, "|", func() { p.Push(p.PopInt() | p.PopInt()) })
+	p.AddPrim(primitives, "^", func() { p.Push(p.PopInt() ^ p.PopInt()) })
+	p.AddPrim(primitives, "~", func() { p.Push(p.PopInt() ^ -1) })
+	p.AddPrim(primitives, "&&", func() { p.Push(p.PopBool() && p.PopBool()) })
+	p.AddPrim(primitives, "||", func() { p.Push(p.PopBool() || p.PopBool()) })
+	p.AddPrim(primitives, "!", func() { p.Push(!p.PopBool()) })
+	p.AddPrim(primitives, ".", func() { fmt.Printf("%v\n", p.Pop()) })
+	p.AddPrim(primitives, "<", func() { p.Push(p.PopInt() < p.PopInt()) })
+	p.AddPrim(primitives, "=", func() { p.Push(p.PopInt() == p.PopInt()) })
+	p.AddPrim(primitives, "!=", func() { p.Push(p.PopInt() != p.PopInt()) })
+	p.AddPrim(primitives, ">", func() { p.Push(p.PopInt() > p.PopInt()) })
+	p.AddPrim(primitives, "0=", func() { p.Push(p.PopInt() > 0) })
+	p.AddPrim(primitives, "?dup", func() {
 		x := p.Peek().(int)
 		if x != 0 {
 			p.Push(x)
 		}
 	})
-	dict.Add("dup", func() { p.Push(p.Peek()) })
-	dict.Add("pick", func() { p.Push(p.PeekN(p.PopInt())) })
-	dict.Add("drop", func() { p.Pop() })
-	dict.Add(".s", func() { p.PStack() })
-	dict.Add("swap", func() {
+	p.AddPrim(primitives, "dup", func() { p.Push(p.Peek()) })
+	p.AddPrim(primitives, "pick", func() { p.Push(p.PeekN(p.PopInt())) })
+	p.AddPrim(primitives, "drop", func() { p.Pop() })
+	p.AddPrim(primitives, ".s", func() { p.PStack() })
+	p.AddPrim(primitives, "swap", func() {
 		x := p.Pop()
 		y := p.Pop()
 		p.Push(y, x)
 	})
 
-	dict.Add("\"", func() { p.Quote() })
+	p.AddPrim(primitives, "\"", func() { p.Quote() })
 
-	// executable array
-	dict.Add("{", ImmediateFunc{FlagsStruct{Immediate: true, Executable: true}, func() { p.StartArray() }})
-	dict.Add("}", ImmediateFunc{FlagsStruct{Immediate: true, Executable: true}, func() { p.EndXArray() }})
-	dict.Add("[", ImmediateFunc{FlagsStruct{Immediate: true, Executable: true}, func() { p.StartArray() }})
-	dict.Add("]", ImmediateFunc{FlagsStruct{Immediate: true, Executable: true}, func() { p.EndArray() }})
-	dict.Add("exec", func() { p.Exec() })
-	dict.Add("def", func() { p.Def() })
+	// arrays
+	p.AddPrim(primitives, "{", func() { p.StartArray() }).SetFlags(immediate)
+	p.AddPrim(primitives, "}", func() { p.EndXArray() }).SetFlags(immediate)
+	p.AddPrim(primitives, "[", func() { p.StartArray() }).SetFlags(immediate)
+	p.AddPrim(primitives, "]", func() { p.EndArray() }).SetFlags(immediate)
+
+	p.AddPrim(primitives, "exec", func() { p.Exec() })
+	p.AddPrim(primitives, "def", func() { p.Def() })
 
 	// Control Structures
-	dict.Add("repeat", func() { p.Repeat() })
-	dict.Add("forall", func() { p.ForAll() })
-	dict.Add("for", func() { p.For() })
-	dict.Add("I", func() { p.I() })
-	dict.Add("J", func() { p.J() })
-	dict.Add("K", func() { p.K() })
-	dict.Add("if", func() { p.If() })
+	p.AddPrim(primitives, "repeat", func() { p.Repeat() })
+	p.AddPrim(primitives, "forall", func() { p.ForAll() })
+	p.AddPrim(primitives, "for", func() { p.For() })
+	p.AddPrim(primitives, "I", func() { p.I() })
+	p.AddPrim(primitives, "J", func() { p.J() })
+	p.AddPrim(primitives, "K", func() { p.K() })
+	p.AddPrim(primitives, "if", func() { p.If() })
+
+	userDictionary := NewDictionary()
+	p.AddPrim(primitives, "userdict", userDictionary)
+	p.DictionaryPush(userDictionary) // User Dictionary
 
 	return p
 }
@@ -169,12 +186,12 @@ func (p *Primitives) EndArray() {
 func (p *Primitives) EndXArray() {
 	p.EndArray()
 	a := p.Pop().(Array)
-	a.Flags.Executable = true
+	a.Executable = true
 	p.Push(a)
 }
 
 func (p *Primitives) Def() {
-	name := p.PopString()
+	name := p.PopName()
 	body := p.Pop()
 	p.DictStack[0].Add(name, body)
 }
