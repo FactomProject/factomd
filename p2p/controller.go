@@ -221,7 +221,7 @@ func (c *Controller) DialSpecialPeersString(peersString string) {
 	peerAddresses := strings.FieldsFunc(peersString, parseFunc)
 	for _, peerAddress := range peerAddresses {
 		address, port, err := net.SplitHostPort(peerAddress)
-		if err != nil{
+		if err != nil {
 			logerror("Controller", "DialSpecialPeersString: %s is not a valid peer (%v), use format: 127.0.0.1:8999", peersString, err)
 		} else {
 			peer := new(Peer).Init(address, port, 0, SpecialPeer, 0)
