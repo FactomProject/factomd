@@ -6,10 +6,10 @@ package engine
 
 import (
 	"fmt"
-	"runtime"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/state"
+	"runtime"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -44,4 +44,3 @@ func Factomd(params *FactomParams, listenToStdin bool) interfaces.IState {
 	go NetStart(state0, params, listenToStdin)
 	return state0
 }
-

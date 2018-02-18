@@ -913,7 +913,9 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 	TotalHoldingQueueInputs.Inc()
 
 	if s.Commits.Get(m.GetMsgHash().Fixed()) != nil {
-		m.SendOut(s, m)
+		if m.Validate(s) == 1 {
+			m.SendOut(s, m)
+		}
 	}
 
 	s.Holding[m.GetMsgHash().Fixed()] = m
@@ -1096,7 +1098,9 @@ func (s *State) LeaderExecuteCommitEntry(m interfaces.IMsg) {
 	re := s.Holding[ce.CommitEntry.EntryHash.Fixed()]
 	if re != nil {
 		s.XReview = append(s.XReview, re)
-		re.SendOut(s, re)
+		if re.Validate(s) == 1 {
+			re.SendOut(s, re)
+		}
 	}
 }
 
@@ -1235,7 +1239,7 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 		h := c.CommitEntry.EntryHash
 		s.PutCommit(h, c)
 		entry := s.Holding[h.Fixed()]
-		if entry != nil {
+		if entry != nil && entry.Validate(s) == 1 {
 			entry.FollowerExecute(s)
 			entry.SendOut(s, entry)
 			TotalXReviewQueueInputs.Inc()

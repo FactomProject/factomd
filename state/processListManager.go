@@ -93,44 +93,36 @@ func (lists *ProcessLists) GetSafe(dbheight uint32) (pl *ProcessList) {
 	return nil
 }
 
-func (lists *ProcessLists) Get(dbheight uint32) (pl *ProcessList) {
-	var i int
-
-	getindex := func() bool {
-		i = int(dbheight) - int(lists.DBHeightBase)
-
-		if i < 0 {
-			return false
-		}
-		for len(lists.Lists) <= i {
-			lists.Lists = append(lists.Lists, nil)
-		}
-		return true
+func (lists *ProcessLists) Get(dbheight uint32) *ProcessList {
+	if dbheight < lists.DBHeightBase {
+		return nil
 	}
 
-	if !getindex() {
-		return
+	i := int(dbheight) - int(lists.DBHeightBase)
+
+	for len(lists.Lists) <= i {
+		lists.Lists = append(lists.Lists, nil)
 	}
-	pl = lists.Lists[i]
+
+	// Only allocate a pl I have a hope of using. If too high, ignore.
+	if dbheight >= lists.State.GetHighestCompletedBlk()+200 {
+		return nil
+	}
+
+	pl := lists.Lists[i]
 
 	var prev *ProcessList
 
-	if dbheight > 0 {
-		prev = lists.Get(dbheight - 1)
-		if !getindex() {
-			return
+	if pl == nil {
+		if dbheight == 0 {
+			prev = nil
+		} else {
+			prev = lists.Get(dbheight - 1)
 		}
-		pl = lists.Lists[i]
-	}
-	// Only allocate a pl I have a hope of using.  If too high, ignore.
-	if pl == nil && dbheight < lists.State.GetHighestCompletedBlk()+200 {
 		pl = NewProcessList(lists.State, prev, dbheight)
-		if !getindex() {
-			pl = nil
-			return
-		}
 		lists.Lists[i] = pl
 	}
+
 	return pl
 }
 
