@@ -95,7 +95,7 @@ func (a *Election) Copy() *Election {
 	return b
 }
 
-func (e *Election) NormalizedString() string {
+func (e *Election) NormalizedString() []byte {
 	vc := e.NormalizedVCDataset()
 	c := e.CurrentVote
 	votes := e.NormalizedVotes()
@@ -123,7 +123,7 @@ func (e *Election) NormalizedString() string {
 	}
 	votestr += "\n"
 
-	return str + vcstr + votestr
+	return []byte(str + vcstr + votestr)
 }
 
 func (e *Election) NormalizedVotes() []int {
