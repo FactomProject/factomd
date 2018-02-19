@@ -120,30 +120,6 @@ func (a *Election) Copy() *Election {
 	return b
 }
 
-// Returns false if it finds a similarity that we don't want
-func (a *Election) IsDifferent(b *Election) bool {
-	if fmt.Sprintf("%p", a.MsgListIn) == fmt.Sprintf("%p", b.MsgListIn) {
-		if len(a.MsgListIn)+len(b.MsgListIn) != 0 {
-			return false
-		}
-	}
-
-	if fmt.Sprintf("%p", a.MsgListOut) == fmt.Sprintf("%p", b.MsgListOut) {
-		if len(a.MsgListOut)+len(b.MsgListOut) != 0 {
-			return false
-		}
-	}
-
-	return true
-}
-
-// AddDisplay takes a global tracker. Send nil if you don't care about
-// a global state
-func (e *Election) AddDisplay(global *Display) *Display {
-	e.Display = NewDisplay(e, global)
-	return e.Display
-}
-
 // updateCurrentVote is called every time we send out a different vote
 func (e *Election) updateCurrentVote(new messages.LeaderLevelMessage) {
 	if new.VolunteerPriority == e.CurrentVote.VolunteerPriority {
@@ -155,18 +131,6 @@ func (e *Election) updateCurrentVote(new messages.LeaderLevelMessage) {
 	}
 	e.CommitmentTally = 1
 	e.CurrentVote = new
-}
-
-func (e *Election) PrintMessages() string {
-	str := fmt.Sprintf("-- In -- (%p)\n", e.MsgListIn)
-	for i, m := range e.MsgListIn {
-		str += fmt.Sprintf("%d %s\n", i, e.Display.FormatMessage(m))
-	}
-	str += fmt.Sprintf("-- Out -- (%p)\n", e.MsgListOut)
-	for i, m := range e.MsgListOut {
-		str += fmt.Sprintf("%d %s\n", i, e.Display.FormatMessage(m))
-	}
-	return str
 }
 
 func (e *Election) Execute(msg imessage.IMessage) (imessage.IMessage, bool) {
@@ -409,6 +373,24 @@ func (e *Election) commitIfLast(msg *messages.LeaderLevelMessage) *messages.Lead
 	return msg
 }
 
+// ***************
+//
+//  Display Stuff
+//
+// ***************
+
+func (e *Election) PrintMessages() string {
+	str := fmt.Sprintf("-- In -- (%p)\n", e.MsgListIn)
+	for i, m := range e.MsgListIn {
+		str += fmt.Sprintf("%d %s\n", i, e.Display.FormatMessage(m))
+	}
+	str += fmt.Sprintf("-- Out -- (%p)\n", e.MsgListOut)
+	for i, m := range e.MsgListOut {
+		str += fmt.Sprintf("%d %s\n", i, e.Display.FormatMessage(m))
+	}
+	return str
+}
+
 func (e *Election) VolunteerControlString() string {
 	str := "VolunteerControls\n"
 	if e.Display == nil {
@@ -439,4 +421,11 @@ func (e *Election) VolunteerControlString() string {
 	}
 
 	return str
+}
+
+// AddDisplay takes a global tracker. Send nil if you don't care about
+// a global state
+func (e *Election) AddDisplay(global *Display) *Display {
+	e.Display = NewDisplay(e, global)
+	return e.Display
 }
