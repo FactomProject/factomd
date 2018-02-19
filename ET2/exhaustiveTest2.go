@@ -230,18 +230,6 @@ func LoopingDetected(global *election.Display) int {
 	return global.DetectLoops()
 }
 
-// UniqueLeaders returns true if all leaders are unique and copied correctly
-func UniqueLeaders(leaders []*election.Election) bool {
-	for i := 0; i < len(leaders); i++ {
-		for j := i + 1; j < len(leaders); j++ {
-			if !leaders[i].IsDifferent(leaders[j]) {
-				return false
-			}
-		}
-	}
-	return true
-}
-
 func init() {
 	buff := new(bytes.Buffer)
 	enc = gob.NewEncoder(buff)

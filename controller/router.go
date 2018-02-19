@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+
 	"github.com/FactomProject/electiontesting/election"
 	"github.com/FactomProject/electiontesting/imessage"
 )
@@ -17,12 +18,12 @@ type Router struct {
 	Generated      []int
 	ElectionQueues []chan imessage.IMessage
 	RepeatedFilter []map[imessage.IMessage]struct{}
-	Elections      []*election.Election
+	Elections      []*election.RoutingElection
 
 	Printing bool
 }
 
-func NewRouter(elections []*election.Election) *Router {
+func NewRouter(elections []*election.RoutingElection) *Router {
 	r := new(Router)
 	r.Elections = elections
 	r.ElectionQueues = make([]chan imessage.IMessage, len(elections))

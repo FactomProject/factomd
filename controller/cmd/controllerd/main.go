@@ -8,30 +8,39 @@ import (
 
 func main() {
 	con := NewController(3, 3)
-	all := []int{0, 1, 2, 1, 0}
-	con.SendOutputsToRouter(true)
-	con.RouteVolunteerMessage(0, all)
+	all := []int{0, 1, 2}
+	left := []int{0, 1}
+	right := []int{1, 2}
+	mid := []int{1}
+	fright := []int{2} // far right
+
+	// <setup>
 	con.RouteVolunteerMessage(1, all)
 	con.RouteVolunteerMessage(2, all)
 
-	con.RouteLeaderSetVoteMessage(all, 0, all)
-	con.RouteLeaderSetVoteMessage(all, 1, all)
-	con.RouteLeaderSetVoteMessage(all, 2, all)
+	con.RouteLeaderSetVoteMessage(left, 1, left)
+	con.RouteLeaderSetVoteMessage(right, 2, right)
+	con.RouteLeaderSetLevelMessage(left, 1, left)
+	con.RouteLeaderSetLevelMessage(mid, 2, right)
+	con.RouteLeaderSetLevelMessage(fright, 1, mid)
 
-	con.RouteLeaderSetLevelMessage(all, 1, all)
-	con.RouteLeaderSetLevelMessage(all, 2, all)
-	con.RouteLeaderSetLevelMessage(all, 3, all)
+	// </setup>
 
-	con.RouteLeaderSetLevelMessage(all, 4, all)
-	con.RouteLeaderSetLevelMessage(all, 5, all)
-	con.RouteLeaderSetLevelMessage(all, 6, all)
+	// <resolve>
+	con.SendOutputsToRouter(true)
+
+	con.RouteLeaderLevelMessage(2, 1, []int{0})
+	con.RouteLeaderLevelMessage(1, 2, []int{0})
+	con.RouteLeaderLevelMessage(1, 4, []int{0})
+
+	con.RouteLeaderLevelMessage(2, 2, []int{0})
+
+	con.Shell()
+
+	con.AddLeaderSetLevelMessageToRouter(all, 2)
+	con.AddLeaderSetLevelMessageToRouter(all, 3)
+	con.AddLeaderSetLevelMessageToRouter(all, 4)
 	con.AddLeaderSetLevelMessageToRouter(all, 5)
-	con.AddLeaderSetLevelMessageToRouter(all, 6)
-
-	//t.Log(con.ElectionStatus(-1))
-	//t.Log(con.ElectionStatus(0))
-	//t.Log(con.ElectionStatus(1))
-	//t.Log(con.ElectionStatus(2))
 
 	con.Shell()
 

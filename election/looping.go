@@ -1,9 +1,10 @@
 package election
 
 import (
-	"github.com/FactomProject/electiontesting/primitives"
 	"strconv"
 	"strings"
+
+	"github.com/FactomProject/electiontesting/primitives"
 )
 
 // Detecting Looping
@@ -64,13 +65,13 @@ func (d *Display) getLeaderVotes(leader primitives.Identity) (myvotes []string) 
 	return
 }
 
-func parseVote(vote string) (int, int) {
+func parseVote(vote string) (rank int, vol int) {
 	strs := strings.Split(vote, ".")
 	if len(strs) != 2 {
 		return -1, -1
 	}
 
-	rank, _ := strconv.Atoi(strs[0])
-	vol, _ := strconv.Atoi(strs[1])
+	rank, _ = strconv.Atoi(strs[0])
+	vol, _ = strconv.Atoi(strs[1])
 	return rank, vol
 }

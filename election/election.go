@@ -11,39 +11,12 @@ import (
 
 var _ = fmt.Println
 
-// RoutingElection is just an election that returns msgs for broadcasting
-type RoutingElection struct {
-	*Election
-}
-
-func NewRoutingElection(e *Election) *RoutingElection {
-	r := new(RoutingElection)
-	r.Election = e
-
-	return r
-}
-
-func (r *RoutingElection) Execute(msg imessage.IMessage) (imessage.IMessage, bool) {
-	resp, ch := r.Election.execute(msg)
-	if resp == nil && ch {
-		return msg, ch
-	}
-
-	if resp == nil && r.Election.CurrentVote.Level > 0 {
-		return &r.Election.CurrentVote, false
-	}
-
-	return resp, ch
-}
-
 type Election struct {
 	// Level 0 volunteer votes map[vol]map[leader]msg
 	VolunteerVotes map[Identity]map[Identity]*messages.VoteMessage
 
 	// Indexed by volunteer
 	VolunteerControls map[Identity]*volunteercontrol.VolunteerControl
-
-	CommitmentIndicator *DiamondShop
 
 	CurrentLevel int
 	CurrentVote  messages.LeaderLevelMessage
@@ -80,8 +53,6 @@ func NewElection(self Identity, authset AuthSet, loc ProcessListLocation) *Elect
 
 	// Used to determine volunteer priority
 	e.ProcessListLocation = loc
-
-	e.CommitmentIndicator = NewDiamondShop(e.Self, e.AuthSet)
 	return e
 }
 
@@ -101,7 +72,6 @@ func (a *Election) Copy() *Election {
 		b.VolunteerControls[k] = v.Copy()
 	}
 
-	b.CommitmentIndicator = a.CommitmentIndicator.Copy()
 	b.CurrentLevel = a.CurrentLevel
 	b.CurrentVote = *(a.CurrentVote.Copy())
 	if a.Display == nil {
@@ -125,52 +95,100 @@ func (a *Election) Copy() *Election {
 	return b
 }
 
-// Returns false if it finds a similarity that we don't want
-func (a *Election) IsDifferent(b *Election) bool {
-	if fmt.Sprintf("%p", a.MsgListIn) == fmt.Sprintf("%p", b.MsgListIn) {
-		if len(a.MsgListIn)+len(b.MsgListIn) != 0 {
-			return false
+func (e *Election) NormalizedString() []byte {
+	vc := e.NormalizedVCDataset()
+	c := e.CurrentVote
+	votes := e.NormalizedVotes()
+
+	// Combine into a string
+	str := fmt.Sprintf("Current: (%d)%d.%d\n",
+		c.Level, c.Rank, c.VolunteerPriority)
+
+	vcstr := ""
+	for vol, v := range vc {
+		vcstr += fmt.Sprintf("%d->", vol)
+		sep := ""
+		for _, l := range v {
+			vcstr += sep + fmt.Sprintf("(%d)%d.%d", l.Level, l.Rank, l.VolunteerPriority)
+			sep = ","
 		}
+		vcstr += "\n"
 	}
 
-	if fmt.Sprintf("%p", a.MsgListOut) == fmt.Sprintf("%p", b.MsgListOut) {
-		if len(a.MsgListOut)+len(b.MsgListOut) != 0 {
-			return false
+	votestr := ""
+	sep := ""
+	for vol, v := range votes {
+		votestr += sep + fmt.Sprintf(" %d:%d", vol, v)
+		sep = ","
+	}
+	votestr += "\n"
+
+	return []byte(str + vcstr + votestr)
+}
+
+func (e *Election) NormalizedVotes() []int {
+	var votearr []int
+	votearr = make([]int, len(e.GetAuds()))
+	for vol, votes := range e.VolunteerVotes {
+		votearr[e.getVolunteerPriority(vol)] = len(votes)
+	}
+	return votearr
+}
+
+func (e *Election) NormalizedVCDataset() [][]*messages.LeaderLevelMessage {
+	// Loop through volunteers, and record only those that are above current vote
+
+	var vcarray [][]*messages.LeaderLevelMessage
+	vcarray = make([][]*messages.LeaderLevelMessage, len(e.GetAuds()))
+
+	for vol, m := range e.VolunteerControls {
+		var volarray []*messages.LeaderLevelMessage
+		// vol is the volunteer
+		for _, vote := range m.Votes {
+			if e.CurrentVote.Level > 0 && e.CurrentVote.Rank > vote.Level {
+				continue
+			}
+			volarray = append(volarray, vote)
 		}
+
+		vcarray[e.getVolunteerPriority(vol)] = bubbleSortLeaderLevelMsg(volarray)
 	}
 
-	return true
+	return vcarray
 }
 
-// AddDisplay takes a global tracker. Send nil if you don't care about
-// a global state
-func (e *Election) AddDisplay(global *Display) *Display {
-	e.Display = NewDisplay(e, global)
-	return e.Display
+func bubbleSortLeaderLevelMsg(arr []*messages.LeaderLevelMessage) []*messages.LeaderLevelMessage {
+	for i := 1; i < len(arr); i++ {
+		for j := 0; j < len(arr)-i; j++ {
+			if arr[j].Rank > arr[j+1].Rank {
+				arr[j], arr[j+1] = arr[j+1], arr[j]
+			}
+		}
+	}
+	return arr
 }
 
+// updateCurrentVote is called every time we send out a different vote
 func (e *Election) updateCurrentVote(new messages.LeaderLevelMessage) {
+	//if e.CurrentVote.Rank == 0 {
+	//	e.CommitmentTally = 0
+	//	return
+	//}
 	if new.VolunteerPriority == e.CurrentVote.VolunteerPriority {
 		if e.CurrentVote.Rank+1 == new.Rank {
 			e.CommitmentTally++
 			e.CurrentVote = new
+			if new.Rank == 0 {
+				e.CommitmentTally = 0
+			}
 			return
 		}
 	}
 	e.CommitmentTally = 1
+	if new.Rank == 0 {
+		e.CommitmentTally = 0
+	}
 	e.CurrentVote = new
-}
-
-func (e *Election) PrintMessages() string {
-	str := fmt.Sprintf("-- In -- (%p)\n", e.MsgListIn)
-	for i, m := range e.MsgListIn {
-		str += fmt.Sprintf("%d %s\n", i, e.Display.FormatMessage(m))
-	}
-	str += fmt.Sprintf("-- Out -- (%p)\n", e.MsgListOut)
-	for i, m := range e.MsgListOut {
-		str += fmt.Sprintf("%d %s\n", i, e.Display.FormatMessage(m))
-	}
-	return str
 }
 
 func (e *Election) Execute(msg imessage.IMessage) (imessage.IMessage, bool) {
@@ -194,6 +212,7 @@ func (e *Election) execute(msg imessage.IMessage) (imessage.IMessage, bool) {
 	case *messages.LeaderLevelMessage:
 		return e.executeLeaderLevelMessage(msg.(*messages.LeaderLevelMessage))
 	case *messages.VolunteerMessage:
+		// Return a vote for this volunteer if we have not already
 		vol := msg.(*messages.VolunteerMessage)
 		if e.VolunteerVotes[vol.Signer] == nil {
 			e.VolunteerVotes[vol.Signer] = make(map[Identity]*messages.VoteMessage)
@@ -201,7 +220,6 @@ func (e *Election) execute(msg imessage.IMessage) (imessage.IMessage, bool) {
 
 		// already voted
 		if _, ok := e.VolunteerVotes[vol.Signer][e.Self]; ok {
-			fmt.Println("Votes!")
 			return nil, false
 		}
 
@@ -216,6 +234,7 @@ func (e *Election) execute(msg imessage.IMessage) (imessage.IMessage, bool) {
 			return ll, true
 		}
 
+		e.Display.Execute(&vote)
 		return &vote, true
 	case *messages.VoteMessage:
 		// Colecting these allows us to issue out 0.#
@@ -225,6 +244,12 @@ func (e *Election) execute(msg imessage.IMessage) (imessage.IMessage, bool) {
 		if e.VolunteerVotes[vol] == nil {
 			e.VolunteerVotes[vol] = make(map[Identity]*messages.VoteMessage)
 		}
+
+		// Already seen this vote
+		if _, ok := e.VolunteerVotes[vol][vote.Signer]; ok {
+			return nil, false
+		}
+
 		e.VolunteerVotes[vol][vote.Signer] = vote
 		e.executeDisplay(vote)
 		if len(e.VolunteerVotes[vote.Volunteer.Signer]) >= e.Majority() {
@@ -272,10 +297,6 @@ func (e *Election) execute(msg imessage.IMessage) (imessage.IMessage, bool) {
 	return nil, false
 }
 
-func (e *Election) stack(msg imessage.IMessage) {
-
-}
-
 func (e *Election) getVolunteerPriority(vol Identity) int {
 	return e.GetVolunteerPriority(vol, e.ProcessListLocation)
 }
@@ -287,14 +308,26 @@ func (e *Election) executeDisplay(msg imessage.IMessage) {
 }
 
 func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) (imessage.IMessage, bool) {
+	// Volunteer Control keeps the highest votes for each volunteer for each leader
 	if e.VolunteerControls[msg.VolunteerMessage.Signer] == nil {
 		e.VolunteerControls[msg.VolunteerMessage.Signer] = volunteercontrol.NewVolunteerControl(e.Self, e.AuthSet)
 	}
 
+	// Used for debugging
 	e.MsgListIn = append(e.MsgListIn, msg)
 
 	if msg.Level <= 0 {
 		panic("level <= 0 should never happen")
+	}
+
+	// We need to add the justifications to our display
+	if e.Display != nil {
+		for _, jl := range msg.Justification {
+			e.Display.Execute(jl)
+		}
+		for _, jv := range msg.VoteMessages {
+			e.Display.Execute(jv)
+		}
 	}
 
 	// We may actually get a majority vote at rank 0 from this. We need to account for that
@@ -317,7 +350,7 @@ func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) (
 		}
 	}
 
-	// Add their info to our map
+	// Add their info to our map of votes
 
 	// All responses if not nil is a message created by us
 	res, change := e.VolunteerControls[msg.VolunteerMessage.Signer].Execute(msg)
@@ -343,7 +376,7 @@ func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) (
 		if e.CurrentVote.Less(ll) {
 			// This vote is better than our current, let's pass it out.
 			if ll.Rank >= e.CurrentLevel {
-				// We cannot issue a rank 2 on level 2. It has to be on level 3
+				// We cannot issue a rank n on level n. It has to be on level n+1
 				ll.Level = ll.Rank + 1
 				e.CurrentLevel = ll.Rank + 2
 			} else {
@@ -379,7 +412,7 @@ func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) (
 	}
 
 	if rank0Vote != nil {
-		return nil, voteChange || change
+		return rank0Vote, voteChange || change
 	}
 
 	// No msg generated
@@ -396,6 +429,24 @@ func (e *Election) commitIfLast(msg *messages.LeaderLevelMessage) *messages.Lead
 		return msg
 	}
 	return msg
+}
+
+// ***************
+//
+//  Display Stuff
+//
+// ***************
+
+func (e *Election) PrintMessages() string {
+	str := fmt.Sprintf("-- In -- (%p)\n", e.MsgListIn)
+	for i, m := range e.MsgListIn {
+		str += fmt.Sprintf("%d %s\n", i, e.Display.FormatMessage(m))
+	}
+	str += fmt.Sprintf("-- Out -- (%p)\n", e.MsgListOut)
+	for i, m := range e.MsgListOut {
+		str += fmt.Sprintf("%d %s\n", i, e.Display.FormatMessage(m))
+	}
+	return str
 }
 
 func (e *Election) VolunteerControlString() string {
@@ -428,4 +479,11 @@ func (e *Election) VolunteerControlString() string {
 	}
 
 	return str
+}
+
+// AddDisplay takes a global tracker. Send nil if you don't care about
+// a global state
+func (e *Election) AddDisplay(global *Display) *Display {
+	e.Display = NewDisplay(e, global)
+	return e.Display
 }

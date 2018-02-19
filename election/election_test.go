@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"fmt"
+
 	. "github.com/FactomProject/electiontesting/election"
 	"github.com/FactomProject/electiontesting/messages"
 	"github.com/FactomProject/electiontesting/primitives"
@@ -45,11 +46,11 @@ func TestElectionCopy(t *testing.T) {
 	binp := fmt.Sprintf("%p", b.MsgListIn)
 	boutp := fmt.Sprintf("%p", b.MsgListOut)
 
-	if ainp == binp {
+	if ainp == binp && len(a.MsgListIn) > 0 {
 		t.Errorf("Same pointer for msgin")
 	}
 
-	if aoutp == boutp {
+	if aoutp == boutp && len(a.MsgListOut) > 0 {
 		t.Errorf("Same pointer for msg out")
 	}
 }
