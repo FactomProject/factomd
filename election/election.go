@@ -43,8 +43,6 @@ type Election struct {
 	// Indexed by volunteer
 	VolunteerControls map[Identity]*volunteercontrol.VolunteerControl
 
-	CommitmentIndicator *DiamondShop
-
 	CurrentLevel int
 	CurrentVote  messages.LeaderLevelMessage
 	Self         Identity
@@ -80,8 +78,6 @@ func NewElection(self Identity, authset AuthSet, loc ProcessListLocation) *Elect
 
 	// Used to determine volunteer priority
 	e.ProcessListLocation = loc
-
-	e.CommitmentIndicator = NewDiamondShop(e.Self, e.AuthSet)
 	return e
 }
 
@@ -101,7 +97,6 @@ func (a *Election) Copy() *Election {
 		b.VolunteerControls[k] = v.Copy()
 	}
 
-	b.CommitmentIndicator = a.CommitmentIndicator.Copy()
 	b.CurrentLevel = a.CurrentLevel
 	b.CurrentVote = *(a.CurrentVote.Copy())
 	if a.Display == nil {
