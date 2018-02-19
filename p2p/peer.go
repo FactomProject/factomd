@@ -9,6 +9,8 @@ import (
 	"math/rand"
 	"net"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // Data structures and functions related to peers (eg other nodes in the network)
@@ -25,6 +27,9 @@ type Peer struct {
 	Connections  int                  // Number of successful connections.
 	LastContact  time.Time            // Keep track of how long ago we talked to the peer.
 	Source       map[string]time.Time // source where we heard from the peer.
+
+	// logging
+	logger *log.Entry
 }
 
 const ( // iota is reset to 0
@@ -34,10 +39,16 @@ const ( // iota is reset to 0
 
 func (p *Peer) Init(address string, port string, quality int32, peerType uint8, connections int) *Peer {
 
+	p.logger = packageLogger.WithFields(log.Fields{
+		"subpack":  "peer",
+		"address":  address,
+		"port":     port,
+		"peerType": peerType,
+	})
 	if net.ParseIP(address) == nil {
 		ipAddress, err := net.LookupHost(address)
 		if err != nil {
-			verbose("peer", "Init: LookupHost(%v) failed. %v ", address, err)
+			p.logger.Errorf("Init: LookupHost(%v) failed. %v ", address, err)
 			// is there a way to abandon this peer at this point? -- clay
 		} else {
 			address = ipAddress[0]
@@ -91,9 +102,9 @@ func (p *Peer) LocationFromAddress() (location uint32) {
 	if ip == nil {
 		ipAddress, err := net.LookupHost(p.Address)
 		if err != nil {
-			verbose("peer", "LocationFromAddress(%v) failed. %v ", p.Address, err)
-			silence("peer", "Invalid Peer Address: %v", p.Address)
-			verbose("peer", "Peer: %s has Location: %d", p.Hash, location)
+			p.logger.Debugf("LocationFromAddress(%v) failed. %v ", p.Address, err)
+			p.logger.Debugf("Invalid Peer Address: %v", p.Address)
+			p.logger.Debugf("Peer: %s has Location: %d", p.Hash, location)
 			return 0 // We use location on 0 to say invalid
 		}
 		p.Address = ipAddress[0]
@@ -107,7 +118,7 @@ func (p *Peer) LocationFromAddress() (location uint32) {
 	location += uint32(ip[1]) << 16
 	location += uint32(ip[2]) << 8
 	location += uint32(ip[3])
-	verbose("peer", "Peer: %s has Location: %d", p.Hash, location)
+	p.logger.Debugf("peer", "Peer: %s has Location: %d", p.Hash, location)
 	return location
 }
 
