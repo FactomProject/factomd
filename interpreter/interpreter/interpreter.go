@@ -1,15 +1,16 @@
 package interpreter
 
 import (
-	. "github.com/FactomProject/electiontesting/interpreter/common"
-	. "github.com/FactomProject/electiontesting/interpreter/dictionary"
-	. "github.com/FactomProject/electiontesting/interpreter/stack"
-	//	. "github.com/FactomProject/electiontesting/interpreter/names"
 	"bufio"
 	"fmt"
 	"io"
 	"strconv"
 	"strings"
+
+	. "github.com/FactomProject/electiontesting/interpreter/common"
+	. "github.com/FactomProject/electiontesting/interpreter/dictionary"
+	. "github.com/FactomProject/electiontesting/interpreter/names"
+	. "github.com/FactomProject/electiontesting/interpreter/stack"
 )
 
 type Interpreter struct {
@@ -19,7 +20,7 @@ type Interpreter struct {
 	DictStack []Dictionary
 	Input     *bufio.Reader
 	Line      string
-	//	NameManager
+	NameManager
 }
 
 func NewInterpreter() Interpreter {
@@ -27,20 +28,14 @@ func NewInterpreter() Interpreter {
 	i.Stack = NewStack()
 	i.C = NewStack()
 	i.DictStack = make([]Dictionary, 0)
+	i.NameManager = NewNameManager()
 	return i
 }
 
-func (i *Interpreter) Lookup(s string) interface{} {
-	//	n := i.GetName(s)
-	// find the name in the dict stack
-	for _, d := range i.DictStack {
-		e, ok := d[s]
-		if ok {
-			return e
-		}
-	}
-	panic("Undefined " + s)
-	return nil
+// Convert a string to a name
+func (i *Interpreter) Lookup(s string) Name {
+	n := i.GetName(s)
+	return n
 }
 
 // Push a dictionary on the stack
@@ -49,59 +44,112 @@ func (i *Interpreter) DictionaryPush(d Dictionary) {
 }
 func (i *Interpreter) DictionaryPop() { i.DictStack = i.DictStack[1:] }
 
-func (i *Interpreter) Exec3(x interface{}) {
-	var flags FlagsStruct // assume its not immediate and not executable
+func (p *Interpreter) String(x interface{}) (s string) {
+	switch x.(type) {
+	case Mark:
+		s = "MARK"
+	case Name:
+		s = p.GetString(x.(Name))
+	case Array:
+		s = "{ "
+		for _, y := range x.(Array).Data {
+			s += p.String(y) + " "
 
-//	fmt.Printf("Exec3(%v) ", x)
-//	i.PStack()
+		} // for all elements of the executable array
+		s += "}"
+	default:
+		s = fmt.Sprintf("%v", x)
+	}
+	return s
+}
 
-	// check for thing with no flags and create flags for them
-	f, ok := x.(func()) // is it a raw Go Function? Then it's executable but not immediate
-	if ok {
-		flags.Immediate = false
-		flags.Executable = true
+func (p *Interpreter) Print(x interface{}) { fmt.Print(p.String(x) + " ") }
+
+func (p *Interpreter) PStack() {
+	fmt.Print("-TOS- ")
+	for i := 0; i < p.Ptr; i++ {
+		p.Print(p.PeekN(i))
+	}
+	fmt.Println("|\n")
+}
+
+func (i *Interpreter) executeArray(a Array) {
+	flags := a.GetFlags()
+	if flags.Immediate || (flags.Executable && i.Compiling == 0) {
+		for _, y := range a.Data {
+			switch y.(type) {
+			case Array:
+				i.Push(y)
+			default:
+				i.Exec3(y)
+			}
+		} // for all elements of the executable array
 	} else {
-		immediateFunc, ok := x.(ImmediateFunc) // Should not have to manually check this!!!
-		if ok {
-			flags.Immediate = true
-			flags.Executable = true
-			immediateFunc.Func()
-			return
-		} else {
-			flagSrc, ok := x.(HasFlags) // Does it have flags (Array et.al.)?
-			if ok {
-				flags = flagSrc.GetFlags() // get them so we know what to do...
+		i.Push(a)
+	}
+} // executeArray(){...}
 
+func (i *Interpreter) findInDictStack(n Name) (*DictionaryEnrty, bool) {
+	// find the name in the dict stack
+	for _, d := range i.DictStack {
+		e, ok := d[n.GetRawName()]
+		if ok {
+			return &e, ok
+		}
+	}
+	return nil, false
+}
+
+func (i *Interpreter) executeName(n Name) {
+	s := i.GetString(n)
+	_ = s
+	if n.IsExecutable() {
+		dictEntry, ok := i.findInDictStack(n)
+
+		if !ok {
+			panic("executeName(): Undefined " + i.GetString(n))
+		}
+
+		if dictEntry.Immediate || (dictEntry.Executable && i.Compiling == 0) {
+			switch dictEntry.E.(type) {
+			case func():
+				dictEntry.E.(func())()
+				return
+			case Array:
+				i.executeArray(dictEntry.E.(Array))
+				return
+			default:
+				i.Push(dictEntry.E)
+				return
 			}
 		}
 	}
+	// if not executing the name push then it
+	i.Push(n)
+} // executeName90{...}
 
-	if flags.Immediate || (flags.Executable && i.Compiling == 0) {
-		// Got an executable thing
-		switch x.(type) {
-		case Array:
-			for _, y := range x.(Array).Data {
-				switch y.(type) {
-				case Array:
-					i.Push(y)
-				default:
-					i.Exec3(y)
-				}
-			} // for all elements of the executable array
-		case func():
-			f() // execute the primitive
-		default:
-			i.Push(x) // Maybe should panic here but ...
-		} // switch on type
+func (i *Interpreter) Exec3(x interface{}) {
 
-	} else {
+//	fmt.Printf("Exec3(%v) ", i.String(x))
+//	i.PStack()
+
+	// Got an executable thing and I want to execute it
+	switch x.(type) {
+	case Array:
+		i.executeArray(x.(Array))
+		return
+	case func():
+		panic("primitive in exec3()")
+	case Name:
+		i.executeName(x.(Name))
+		return
+	default:
 		i.Push(x)
-	}
-
+	} // switch on type
 }
 
 // execute one thing
-func (i *Interpreter) ExecString(s string) {
+func (i *Interpreter) InterpretString(s string) {
 	//	fmt.Printf("Exec2(\"%s\")\n", s)
 	if ii, err := strconv.Atoi(s); err == nil {
 		i.Exec3(ii)
@@ -120,8 +168,8 @@ func (i *Interpreter) ExecString(s string) {
 	}
 }
 
-func (i *Interpreter) Interpret2(line string) {
-	//	fmt.Printf("Interpret(\"%s\")\n", line)
+func (i *Interpreter) InterpretLine(line string) {
+	fmt.Printf("Interpret(\"%s\")\n", line)
 	defer func() { i.Line = i.Line }()
 	i.Line = line
 
@@ -135,7 +183,7 @@ func (i *Interpreter) Interpret2(line string) {
 			line = line[len(s):] // Trim off the string and the ws following
 			i.Line = line
 			if s != "" {
-				i.ExecString(s) // execute the string
+				i.InterpretString(s) // execute the string
 			}
 		}
 		if i.Line == "" {
@@ -148,6 +196,7 @@ func (i *Interpreter) Interpret2(line string) {
 			panic(err)
 		}
 	} // Until we have done all the strings on the line
+	fmt.Println()
 } // till EOF or error
 
 func (i *Interpreter) Interpret(source io.Reader) {
@@ -174,6 +223,6 @@ func (i *Interpreter) Interpret(source io.Reader) {
 				break
 			}
 		} // Until we get a whole line
-		i.Interpret2(line)
+		i.InterpretLine(line)
 	}
 }
