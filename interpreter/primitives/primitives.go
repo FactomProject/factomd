@@ -24,7 +24,7 @@ func NewPrimitives() *Primitives {
 	dict.Add("-", func() {
 		a := p.PopInt()
 		p.Push(p.PopInt() - a)
-	})                                                        // ToDo: Handle float too
+	}) // ToDo: Handle float too
 	dict.Add("*", func() { p.Push(p.PopInt() * p.PopInt()) }) // ToDo: Handle float too
 	dict.Add("/", func() { p.Push(p.PopInt() / p.PopInt()) }) // ToDo: Handle float too
 	dict.Add("&", func() { p.Push(p.PopInt() & p.PopInt()) })
@@ -59,15 +59,16 @@ func NewPrimitives() *Primitives {
 	dict.Add("\"", func() { p.Quote() })
 
 	// executable array
-	dict.Add("{", ImmediateFunc{FlagsStruct{Immediate: true, Executable: true}, func() { p.StartXArray() }})
+	dict.Add("{", ImmediateFunc{FlagsStruct{Immediate: true, Executable: true}, func() { p.StartArray() }})
 	dict.Add("}", ImmediateFunc{FlagsStruct{Immediate: true, Executable: true}, func() { p.EndXArray() }})
-	dict.Add("exec", func() {
-		p.Exec3(p.Pop())
-	})
+	dict.Add("[", ImmediateFunc{FlagsStruct{Immediate: true, Executable: true}, func() { p.StartArray() }})
+	dict.Add("]", ImmediateFunc{FlagsStruct{Immediate: true, Executable: true}, func() { p.EndArray() }})
+	dict.Add("exec", func() { p.Exec() })
 	dict.Add("def", func() { p.Def() })
 
 	// Control Structures
 	dict.Add("repeat", func() { p.Repeat() })
+	dict.Add("forall", func() { p.ForAll() })
 	dict.Add("for", func() { p.For() })
 	dict.Add("I", func() { p.I() })
 	dict.Add("J", func() { p.J() })
@@ -84,6 +85,8 @@ func NewPrimitives() *Primitives {
 
 var mark Mark
 
+func (p *Primitives) Exec() { p.Exec3(p.Pop()) }
+
 func (p *Primitives) If() {
 	cond := p.Pop()
 	x := p.Pop()
@@ -99,12 +102,19 @@ func (p *Primitives) If() {
 	}
 }
 
-
-
 func (p *Primitives) Repeat() {
 	count := p.PopInt()
 	x := p.Pop()
 	for i := 0; i < count; i++ {
+		p.Exec3(x)
+	}
+}
+
+func (p *Primitives) ForAll() {
+	x := p.Pop()
+	y := p.PopArray()
+	for _, z := range y.Data {
+		p.Push(z)
 		p.Exec3(x)
 	}
 }
@@ -126,14 +136,14 @@ func (p *Primitives) I() { p.Push(p.C.Peek()) }   // Copy I to data stack
 func (p *Primitives) J() { p.Push(p.C.PeekN(1)) } // Copy J to data stack
 func (p *Primitives) K() { p.Push(p.C.PeekN(2)) } // Copy K to data stack
 
-// executable arrays
-func (p *Primitives) StartXArray() {
+// arrays
+func (p *Primitives) StartArray() {
 	p.Compiling++
 	p.Push(mark)
 }
 
-func (p *Primitives) EndXArray() {
-	//	fmt.Print("EndXArray ")
+func (p *Primitives) EndArray() {
+	//	fmt.Print("EndArray ")
 	//	p.PStack()
 	p.Compiling--
 
@@ -153,6 +163,12 @@ func (p *Primitives) EndXArray() {
 	a.Data = append(a.Data, p.Data[start:p.Ptr]...)
 
 	p.PopN(i + 1) // drop everything to the mark
+	p.Push(a)
+}
+
+func (p *Primitives) EndXArray() {
+	p.EndArray()
+	a := p.Pop().(Array)
 	a.Flags.Executable = true
 	p.Push(a)
 }
@@ -165,13 +181,14 @@ func (p *Primitives) Def() {
 
 // Strings
 func (p *Primitives) Quote() {
-	n := strings.IndexByte(p.Line, []byte("\"")[0])
+	line := p.Line[1:] // remove space after leading quote
+	n := strings.IndexByte(line, []byte("\"")[0])
 	if n == -1 {
 		panic("No closing \"")
 	}
-	s := p.Line[:n]       // exclude the  "
-	p.Line = p.Line[n+2:] // remove the scanned string and quote and ws
-	p.Push(s)             // Push the string
+	s := line[:n]       // exclude the leading whitespace and the trailing "
+	p.Line = line[n+1:] // remove the scanned string and quote
+	p.Push(s)           // Push the string
 }
 
 /*
