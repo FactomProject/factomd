@@ -9,10 +9,12 @@ import (
 	"github.com/FactomProject/electiontesting/election"
 	"github.com/FactomProject/electiontesting/imessage"
 
+	"crypto/sha256"
 	"reflect"
 )
 
 var _ = reflect.DeepEqual
+var mirrors map[[32]byte][]byte
 
 //================ main =================
 func main() {
@@ -68,9 +70,11 @@ type mymsg struct {
 var solutions = 0
 var breadth = 0
 var loops = 0
+var mirrorcnt = 0
 var depths []int
 var cuts []int
 var hitlimit int
+var maxdepth int
 
 var globalRunNumber = 0
 
@@ -93,6 +97,9 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 		return
 	}
 
+	if depth > maxdepth {
+		maxdepth = depth
+	}
 	if LoopingDetected(leaders[0].Display.Global) == len(leaders) {
 		// TODO: Paul you can move this check wherever you need
 		incCuts(depth)
@@ -101,7 +108,9 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 	}
 
 	fmt.Println("=============== ",
-		" Depth=", depth,
+		" Depth=", depth, "/", maxdepth,
+		" MsgQ=", len(msgs),
+		", Mirrors=", mirrorcnt, len(mirrors),
 		", Hit the Limits=", hitlimit,
 		" Breadth=", breadth,
 		", solutions so far =", solutions,
@@ -173,6 +182,39 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 		msg, changed := leaders[v.leaderIdx].Execute(v.msg)
 
 		if changed {
+
+			// Look for mirrors, but only after we have been going a bit.
+			if depth > 12 {
+				var hashes [][32]byte
+				for _, ldr := range leaders {
+					bits := ldr.NormalizedString()
+					if bits != nil {
+						h := Sha(bits)
+						hashes = append(hashes, h)
+					} else {
+						panic("shouldn't happen")
+					}
+				}
+				for i := 0; i < len(hashes)-1; i++ {
+					for j := 0; j < len(hashes)-1-i; j++ {
+						if bytes.Compare(hashes[j][:], hashes[j+1][:]) > 0 {
+							hashes[j], hashes[j+1] = hashes[j+1], hashes[j+1]
+						}
+					}
+				}
+				var all []byte
+				for _, h := range hashes {
+					all = append(all, h[:]...)
+				}
+				mh := Sha(all)
+				if mirrors[mh] != nil {
+					mirrorcnt++
+					breadth++
+					return
+				}
+				mirrors[mh] = mh[:]
+			}
+
 			if msg != nil {
 				for i, _ := range leaders {
 					if i != v.leaderIdx {
@@ -234,6 +276,7 @@ func init() {
 	buff := new(bytes.Buffer)
 	enc = gob.NewEncoder(buff)
 	dec = gob.NewDecoder(buff)
+	mirrors = make(map[[32]byte][]byte, 10000)
 }
 
 func CloneElection(src *election.Election) *election.Election {
@@ -248,4 +291,10 @@ func CloneElection(src *election.Election) *election.Election {
 		panic(err)
 	}
 	return dst
+}
+
+// Create a Sha256 Hash from a byte array
+func Sha(p []byte) [32]byte {
+	b := sha256.Sum256(p)
+	return b
 }
