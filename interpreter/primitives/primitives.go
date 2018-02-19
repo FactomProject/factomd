@@ -1,8 +1,6 @@
 package primitives
 
 import (
-	"fmt"
-
 	"strings"
 
 	. "github.com/FactomProject/electiontesting/interpreter/common"
@@ -19,11 +17,9 @@ type Primitives struct {
 var executable FlagsStruct = FlagsStruct{Traced: false, Immediate: false, Executable: true}
 var immediate FlagsStruct = FlagsStruct{Traced: false, Immediate: true, Executable: true}
 
-func (p *Primitives) AddPrim(dict Dictionary, name string, x interface{}) Name {
+func (p *Primitives) AddPrim(dict Dictionary, name string, x interface{}, f FlagsStruct) {
 	n := p.GetName(name)
-	dict.Add(n, x)
-	n.SetFlags(executable)
-	return n
+	dict.Add(n.GetRawName(), DictionaryEnrty{n.GetRawName(), f, x})
 }
 
 func NewPrimitives() *Primitives {
@@ -33,63 +29,65 @@ func NewPrimitives() *Primitives {
 	primitives := NewDictionary()
 	p.DictionaryPush(primitives) // Primitives Dictionary
 
-	p.AddPrim(primitives, "primitives", primitives)
+	p.AddPrim(primitives, "primitives", primitives, executable)
 
-	p.AddPrim(primitives, "+", func() { p.Push(p.PopInt() + p.PopInt()) })  // ToDo: Handle float too
-	p.AddPrim(primitives, "-", func() { p.Push(-p.PopInt() + p.PopInt()) }) // ToDo: Handle float too
-	p.AddPrim(primitives, "*", func() { p.Push(p.PopInt() * p.PopInt()) })  // ToDo: Handle float too
-	p.AddPrim(primitives, "/", func() { p.Push(p.PopInt() / p.PopInt()) })  // ToDo: Handle float too
-	p.AddPrim(primitives, "&", func() { p.Push(p.PopInt() & p.PopInt()) })
-	p.AddPrim(primitives, "|", func() { p.Push(p.PopInt() | p.PopInt()) })
-	p.AddPrim(primitives, "^", func() { p.Push(p.PopInt() ^ p.PopInt()) })
-	p.AddPrim(primitives, "~", func() { p.Push(p.PopInt() ^ -1) })
-	p.AddPrim(primitives, "&&", func() { p.Push(p.PopBool() && p.PopBool()) })
-	p.AddPrim(primitives, "||", func() { p.Push(p.PopBool() || p.PopBool()) })
-	p.AddPrim(primitives, "!", func() { p.Push(!p.PopBool()) })
-	p.AddPrim(primitives, ".", func() { fmt.Printf("%v\n", p.Pop()) })
-	p.AddPrim(primitives, "<", func() { p.Push(p.PopInt() < p.PopInt()) })
-	p.AddPrim(primitives, "=", func() { p.Push(p.PopInt() == p.PopInt()) })
-	p.AddPrim(primitives, "!=", func() { p.Push(p.PopInt() != p.PopInt()) })
-	p.AddPrim(primitives, ">", func() { p.Push(p.PopInt() > p.PopInt()) })
-	p.AddPrim(primitives, "0=", func() { p.Push(p.PopInt() > 0) })
-	p.AddPrim(primitives, "?dup", func() {
-		x := p.Peek().(int)
-		if x != 0 {
-			p.Push(x)
-		}
-	})
-	p.AddPrim(primitives, "dup", func() { p.Push(p.Peek()) })
-	p.AddPrim(primitives, "pick", func() { p.Push(p.PeekN(p.PopInt())) })
-	p.AddPrim(primitives, "drop", func() { p.Pop() })
-	p.AddPrim(primitives, ".s", func() { p.PStack() })
-	p.AddPrim(primitives, "swap", func() {
-		x := p.Pop()
-		y := p.Pop()
-		p.Push(y, x)
-	})
+	p.AddPrim(primitives, "+", func() { p.Push(p.PopInt() + p.PopInt()) }, executable)  // ToDo: Handle float too
+	p.AddPrim(primitives, "-", func() { p.Push(-p.PopInt() + p.PopInt()) }, executable) // ToDo: Handle float too
+	p.AddPrim(primitives, "*", func() { p.Push(p.PopInt() * p.PopInt()) }, executable)  // ToDo: Handle float too
+	p.AddPrim(primitives, "/", func() { p.Push(p.PopInt() / p.PopInt()) }, executable)  // ToDo: Handle float too
+	p.AddPrim(primitives, "&", func() { p.Push(p.PopInt() & p.PopInt()) }, executable)
+	p.AddPrim(primitives, "|", func() { p.Push(p.PopInt() | p.PopInt()) }, executable)
+	p.AddPrim(primitives, "^", func() { p.Push(p.PopInt() ^ p.PopInt()) }, executable)
+	p.AddPrim(primitives, "~", func() { p.Push(p.PopInt() ^ -1) }, executable)
+	p.AddPrim(primitives, "&&", func() { p.Push(p.PopBool() && p.PopBool()) }, executable)
+	p.AddPrim(primitives, "||", func() { p.Push(p.PopBool() || p.PopBool()) }, executable)
+	p.AddPrim(primitives, "!", func() { p.Push(!p.PopBool()) }, executable)
+	p.AddPrim(primitives, ".", func() { p.Print(p.Pop()) }, executable)
+	p.AddPrim(primitives, "<", func() { p.Push(p.PopInt() < p.PopInt()) }, executable)
+	p.AddPrim(primitives, "=", func() { p.Push(p.PopInt() == p.PopInt()) }, executable)
+	p.AddPrim(primitives, "!=", func() { p.Push(p.PopInt() != p.PopInt()) }, executable)
+	p.AddPrim(primitives, ">", func() { p.Push(p.PopInt() > p.PopInt()) }, executable)
+	p.AddPrim(primitives, "0=", func() { p.Push(p.PopInt() > 0) }, executable)
+	p.AddPrim(primitives, "?dup",
+		func() {
+			x := p.Peek().(int)
+			if x != 0 {
+				p.Push(x)
+			}
+		}, executable)
 
-	p.AddPrim(primitives, "\"", func() { p.Quote() })
+	p.AddPrim(primitives, "dup", func() { p.Push(p.Peek()) }, executable)
+	p.AddPrim(primitives, "pick", func() { p.Push(p.PeekN(p.PopInt())) }, executable)
+	p.AddPrim(primitives, "drop", func() { p.Pop() }, executable)
+	p.AddPrim(primitives, ".s", func() { p.PStack() }, executable)
+	p.AddPrim(primitives, "swap",
+		func() {
+			x := p.Pop()
+			p.Push(p.Pop(), x)
+		}, executable)
+
+	p.AddPrim(primitives, "\"", func() { p.Quote() }, immediate)
 
 	// arrays
-	p.AddPrim(primitives, "{", func() { p.StartArray() }).SetFlags(immediate)
-	p.AddPrim(primitives, "}", func() { p.EndXArray() }).SetFlags(immediate)
-	p.AddPrim(primitives, "[", func() { p.StartArray() }).SetFlags(immediate)
-	p.AddPrim(primitives, "]", func() { p.EndArray() }).SetFlags(immediate)
+	p.AddPrim(primitives, "{", func() { p.StartArray() }, immediate)
+	p.AddPrim(primitives, "}", func() { p.EndXArray() }, immediate)
+	p.AddPrim(primitives, "[", func() { p.StartArray() }, immediate)
+	p.AddPrim(primitives, "]", func() { p.EndArray() }, immediate)
 
-	p.AddPrim(primitives, "exec", func() { p.Exec() })
-	p.AddPrim(primitives, "def", func() { p.Def() })
+	p.AddPrim(primitives, "exec", func() { p.Exec() }, executable)
+	p.AddPrim(primitives, "def", func() { p.Def() }, executable)
 
 	// Control Structures
-	p.AddPrim(primitives, "repeat", func() { p.Repeat() })
-	p.AddPrim(primitives, "forall", func() { p.ForAll() })
-	p.AddPrim(primitives, "for", func() { p.For() })
-	p.AddPrim(primitives, "I", func() { p.I() })
-	p.AddPrim(primitives, "J", func() { p.J() })
-	p.AddPrim(primitives, "K", func() { p.K() })
-	p.AddPrim(primitives, "if", func() { p.If() })
+	p.AddPrim(primitives, "repeat", func() { p.Repeat() }, executable)
+	p.AddPrim(primitives, "forall", func() { p.ForAll() }, executable)
+	p.AddPrim(primitives, "for", func() { p.For() }, executable)
+	p.AddPrim(primitives, "I", func() { p.I() }, executable)
+	p.AddPrim(primitives, "J", func() { p.J() }, executable)
+	p.AddPrim(primitives, "K", func() { p.K() }, executable)
+	p.AddPrim(primitives, "if", func() { p.If() }, executable)
 
 	userDictionary := NewDictionary()
-	p.AddPrim(primitives, "userdict", userDictionary)
+	p.AddPrim(primitives, "userdict", userDictionary, executable)
 	p.DictionaryPush(userDictionary) // User Dictionary
 
 	return p
@@ -191,9 +189,18 @@ func (p *Primitives) EndXArray() {
 }
 
 func (p *Primitives) Def() {
+	var flags FlagsStruct
 	name := p.PopName()
 	body := p.Pop()
-	p.DictStack[0].Add(name, body)
+	switch body.(type) {
+	case Array:
+		flags = body.(Array).GetFlags()
+	case DictionaryEnrty:
+		flags = body.(DictionaryEnrty).FlagsStruct
+	case Name:
+		flags.Executable = body.(Name).IsExecutable()
+	}
+	p.DictStack[0].Add(name, DictionaryEnrty{name, flags, body})
 }
 
 // Strings

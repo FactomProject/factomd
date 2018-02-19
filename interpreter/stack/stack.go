@@ -1,8 +1,6 @@
 package stack
 
 import (
-	"fmt"
-
 	. "github.com/FactomProject/electiontesting/interpreter/common"
 	. "github.com/FactomProject/electiontesting/interpreter/names"
 )
@@ -28,14 +26,6 @@ func (s *Stack) pinc() int {
 	p := s.Ptr
 	s.Ptr++
 	return p
-}
-
-func (s *Stack) PStack() {
-	fmt.Print("-TOS- ")
-	for i := 0; i < s.Ptr; i++ {
-		fmt.Printf("%v ", s.PeekN(i))
-	}
-	fmt.Println("| ")
 }
 
 func (s *Stack) Push(values ...interface{}) {
