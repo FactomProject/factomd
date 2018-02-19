@@ -8,9 +8,11 @@ import (
 	"bytes"
 	"fmt"
 	"hash/crc32"
-	"strconv"
-	"time"
+
+	log "github.com/sirupsen/logrus"
 )
+
+var parcelLogger = packageLogger.WithFields(log.Fields{"subpack": "connection"})
 
 // Parcel is the atomic level of communication for the p2p network.  It contains within it the necessary info for
 // the networking protocol, plus the message that the Application is sending.
@@ -141,47 +143,22 @@ func (p *Parcel) UpdateHeader() {
 	p.Header.Length = uint32(len(p.Payload))
 }
 
-func (p *Parcel) Trace(location string, sequence string) {
-	if 10 < CurrentLoggingLevel { // lower level means more severe. "Silence" level always printed, overriding silence.
-		time := time.Now().Unix()
-		fmt.Printf("\nParcelTrace, %s, %s, %s, %s, %s, %d \n", p.Header.AppHash, sequence, p.Header.AppType, CommandStrings[p.Header.Type], location, time)
-	}
-}
-
-func (p *ParcelHeader) Print() {
-	// debug( true, "\t Cookie: \t%+v", string(p.Cookie))
-	debug("parcel", "\t Network:\t%+v", p.Network.String())
-	debug("parcel", "\t Version:\t%+v", p.Version)
-	debug("parcel", "\t Type:   \t%+v", CommandStrings[p.Type])
-	debug("parcel", "\t Length:\t%d", p.Length)
-	debug("parcel", "\t TargetPeer:\t%s", p.TargetPeer)
-	debug("parcel", "\t CRC32:\t%d", p.Crc32)
-	debug("parcel", "\t NodeID:\t%d", p.NodeID)
-}
-
-func (p *Parcel) Print() {
-	debug("parcel", "Pretty Printing Parcel:")
-	p.Header.Print()
-	s := strconv.Quote(string(p.Payload))
-	debug("parcel", "\t\tPayload: %s", s)
+func (p *Parcel) LogEntry() *log.Entry {
+	return parcelLogger.WithFields(log.Fields{
+		"network":     p.Header.Network.String(),
+		"version":     p.Header.Version,
+		"app_hash":    p.Header.AppHash,
+		"app_type":    p.Header.AppType,
+		"command":     CommandStrings[p.Header.Type],
+		"length":      p.Header.Length,
+		"target_peer": p.Header.TargetPeer,
+		"crc32":       p.Header.Crc32,
+		"node_id":     p.Header.NodeID,
+		"part_no":     p.Header.PartNo,
+		"parts_total": p.Header.PartsTotal,
+	})
 }
 
 func (p *Parcel) MessageType() string {
 	return (fmt.Sprintf("[%s]", CommandStrings[p.Header.Type]))
-}
-
-func (p *Parcel) String() string {
-	var output string
-	s := strconv.Quote(string(p.Payload))
-	output = fmt.Sprintf("%s\t Network:\t%+v\n", output, p.Header.Network.String())
-	output = fmt.Sprintf("%s\t Version:\t%+v\n", output, p.Header.Version)
-	output = fmt.Sprintf("%s\t Type:   \t%+v\n", output, CommandStrings[p.Header.Type])
-	output = fmt.Sprintf("%s\t Length:\t%d\n", output, p.Header.Length)
-	output = fmt.Sprintf("%s\t TargetPeer:\t%s\n", output, p.Header.TargetPeer)
-	output = fmt.Sprintf("%s\t CRC32:\t%d\n", output, p.Header.Crc32)
-	output = fmt.Sprintf("%s\t PartNo:\t%d\n", output, p.Header.PartNo)
-	output = fmt.Sprintf("%s\t PartsTotal:\t%d\n", output, p.Header.PartsTotal)
-	output = fmt.Sprintf("%s\t NodeID:\t%d\n", output, p.Header.NodeID)
-	output = fmt.Sprintf("%s\t Payload: %s\n", output, s)
-	return output
 }

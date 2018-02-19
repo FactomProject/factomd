@@ -539,20 +539,19 @@ func (c *Connection) handleParcel(parcel Parcel) {
 	validity := c.parcelValidity(parcel)
 	switch validity {
 	case InvalidDisconnectPeer:
-		parcel.Trace("Connection.handleParcel()-InvalidDisconnectPeer", "I")
+		parcel.LogEntry().Debug("Connection.handleParcel()-InvalidDisconnectPeer")
 		c.logger.Debugf("Connection.handleParcel() Disconnecting peer: %s", c.peer.PeerIdent())
 		c.attempts = MaxNumberOfRedialAttempts + 50 // so we don't redial invalid Peer
 		c.logger.Infof("Connection(%s) shutting down due to InvalidDisconnectPeer result from parcel. Previous notes: %s.", c.peer.AddressPort(), c.notes)
 		c.goShutdown()
 		return
 	case InvalidPeerDemerit:
-		parcel.Trace("Connection.handleParcel()-InvalidPeerDemerit", "I")
+		parcel.LogEntry().Debug("Connection.handleParcel()-InvalidPeerDemerit")
 		c.logger.Debug("Connection.handleParcel() got invalid message")
-		parcel.Print()
 		c.peer.demerit()
 		return
 	case ParcelValid:
-		parcel.Trace("Connection.handleParcel()-ParcelValid", "I")
+		parcel.LogEntry().Debug("Connection.handleParcel()-ParcelValid")
 		c.peer.LastContact = time.Now() // We only update for valid messages (incluidng pings and heartbeats)
 		c.attempts = 0                  // reset since we are clearly in touch now.
 		c.peer.merit()                  // Increase peer quality score.
@@ -560,7 +559,7 @@ func (c *Connection) handleParcel(parcel Parcel) {
 		c.handleParcelTypes(parcel) // handles both network commands and application messages
 		return
 	default:
-		parcel.Trace("Connection.handleParcel()-fatal", "I")
+		parcel.LogEntry().Debug("Connection.handleParcel()-fatal")
 		c.logger.Errorf("handleParcel() unknown parcelValidity?: %+v ", validity)
 		return
 	}
@@ -578,28 +577,28 @@ func (c *Connection) parcelValidity(parcel Parcel) uint8 {
 	crc := crc32.Checksum(parcel.Payload, CRCKoopmanTable)
 	switch {
 	case parcel.Header.NodeID == NodeID: // We are talking to ourselves!
-		parcel.Trace("Connection.isValidParcel()-loopback", "H")
+		parcel.LogEntry().Debug("Connection.isValidParcel()-loopback")
 		c.logger.Warnf("Connection.isValidParcel(), failed due to loopback!: %+v", parcel.Header)
 		c.peer.QualityScore = MinumumQualityScore - 50 // Ban ourselves for a week
 		return InvalidDisconnectPeer
 	case parcel.Header.Network != CurrentNetwork:
-		parcel.Trace("Connection.isValidParcel()-network", "H")
+		parcel.LogEntry().Debug("Connection.isValidParcel()-network")
 		c.logger.Warnf("Connection.isValidParcel(), failed due to wrong network. Remote: %0x Us: %0x", parcel.Header.Network, CurrentNetwork)
 		return InvalidDisconnectPeer
 	case parcel.Header.Version < ProtocolVersionMinimum:
-		parcel.Trace("Connection.isValidParcel()-version", "H")
+		parcel.LogEntry().Debug("Connection.isValidParcel()-version")
 		c.logger.Warnf("Connection.isValidParcel(), failed due to wrong version: %+v", parcel.Header)
 		return InvalidDisconnectPeer
 	case parcel.Header.Length != uint32(len(parcel.Payload)):
-		parcel.Trace("Connection.isValidParcel()-length", "H")
+		parcel.LogEntry().Debug("Connection.isValidParcel()-length")
 		c.logger.Warnf("Connection.isValidParcel(), failed due to wrong length: %+v", parcel.Header)
 		return InvalidPeerDemerit
 	case parcel.Header.Crc32 != crc:
-		parcel.Trace("Connection.isValidParcel()-checksum", "H")
+		parcel.LogEntry().Debug("Connection.isValidParcel()-checksum")
 		c.logger.Warnf("Connection.isValidParcel(), failed due to bad checksum: %+v", parcel.Header)
 		return InvalidPeerDemerit
 	default:
-		parcel.Trace("Connection.isValidParcel()-ParcelValid", "H")
+		parcel.LogEntry().Debug("Connection.isValidParcel()-ParcelValid")
 		return ParcelValid
 	}
 }
