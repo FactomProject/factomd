@@ -11,31 +11,6 @@ import (
 
 var _ = fmt.Println
 
-// RoutingElection is just an election that returns msgs for broadcasting
-type RoutingElection struct {
-	*Election
-}
-
-func NewRoutingElection(e *Election) *RoutingElection {
-	r := new(RoutingElection)
-	r.Election = e
-
-	return r
-}
-
-func (r *RoutingElection) Execute(msg imessage.IMessage) (imessage.IMessage, bool) {
-	resp, ch := r.Election.execute(msg)
-	if resp == nil && ch {
-		return msg, ch
-	}
-
-	if resp == nil && r.Election.CurrentVote.Level > 0 {
-		return &r.Election.CurrentVote, false
-	}
-
-	return resp, ch
-}
-
 type Election struct {
 	// Level 0 volunteer votes map[vol]map[leader]msg
 	VolunteerVotes map[Identity]map[Identity]*messages.VoteMessage
@@ -118,6 +93,79 @@ func (a *Election) Copy() *Election {
 	}
 
 	return b
+}
+
+func (e *Election) NormalizedString() string {
+	vc := e.NormalizedVCDataset()
+	c := e.CurrentVote
+	votes := e.NormalizedVotes()
+
+	// Combine into a string
+	str := fmt.Sprintf("Current: (%d)%d.%d\n",
+		c.Level, c.Rank, c.VolunteerPriority)
+
+	vcstr := ""
+	for vol, v := range vc {
+		vcstr += fmt.Sprintf("%d->", vol)
+		sep := ""
+		for _, l := range v {
+			vcstr += sep + fmt.Sprintf("(%d)%d.%d", l.Level, l.Rank, l.VolunteerPriority)
+			sep = ","
+		}
+		vcstr += "\n"
+	}
+
+	votestr := ""
+	sep := ""
+	for vol, v := range votes {
+		votestr += sep + fmt.Sprintf(" %d:%d", vol, v)
+		sep = ","
+	}
+	votestr += "\n"
+
+	return str + vcstr + votestr
+}
+
+func (e *Election) NormalizedVotes() []int {
+	var votearr []int
+	votearr = make([]int, len(e.GetAuds()))
+	for vol, votes := range e.VolunteerVotes {
+		votearr[e.getVolunteerPriority(vol)] = len(votes)
+	}
+	return votearr
+}
+
+func (e *Election) NormalizedVCDataset() [][]*messages.LeaderLevelMessage {
+	// Loop through volunteers, and record only those that are above current vote
+
+	var vcarray [][]*messages.LeaderLevelMessage
+	vcarray = make([][]*messages.LeaderLevelMessage, len(e.GetAuds()))
+
+	for vol, m := range e.VolunteerControls {
+		var volarray []*messages.LeaderLevelMessage
+		// vol is the volunteer
+		for _, vote := range m.Votes {
+			if e.CurrentVote.Level > 0 && e.CurrentVote.Rank > vote.Level {
+				continue
+			}
+			volarray = append(volarray, vote)
+		}
+
+		vcarray[e.getVolunteerPriority(vol)] = bubbleSortLeaderLevelMsg(volarray)
+	}
+
+	return vcarray
+}
+
+func bubbleSortLeaderLevelMsg(arr []*messages.LeaderLevelMessage) []*messages.LeaderLevelMessage {
+	for i := 1; i < len(arr); i++ {
+		for j := 0; j < len(arr)-i; j++ {
+			if arr[j].Rank > arr[j+1].Rank {
+				arr[j], arr[j+1] = arr[j+1], arr[j]
+			}
+		}
+	}
+	return arr
 }
 
 // updateCurrentVote is called every time we send out a different vote
