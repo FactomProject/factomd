@@ -59,7 +59,6 @@ func TestElectionSimpleScenario(t *testing.T) {
 }
 
 func TestFlipFlop(t *testing.T) {
-	return
 	StartUnitTestErrorHandling(t)
 
 	con := NewController(3, 3)
@@ -69,7 +68,7 @@ func TestFlipFlop(t *testing.T) {
 	mid := []int{1}
 	fright := []int{2} // far right
 
-	con.SendOutputsToRouter(true)
+	// <setup>
 	con.RouteVolunteerMessage(1, all)
 	con.RouteVolunteerMessage(2, all)
 
@@ -154,7 +153,21 @@ func TestFlipFlop(t *testing.T) {
 
 	con.RouteLeaderSetLevelMessage(mid, 2, right)
 	con.RouteLeaderSetLevelMessage(fright, 1, mid)
+	// </setup>
 
+	con.SendOutputsToRouter(true)
+
+	// <resolve>
+	con.RouteLeaderLevelMessage(2, 1, []int{0})
+	con.RouteLeaderLevelMessage(1, 2, []int{0})
+	con.RouteLeaderLevelMessage(1, 4, []int{0})
+
+	con.RouteLeaderLevelMessage(2, 2, []int{0})
+	// </resolve>
+
+	con.AddLeaderSetLevelMessageToRouter(all, 2)
+	con.AddLeaderSetLevelMessageToRouter(all, 3)
+	con.AddLeaderSetLevelMessageToRouter(all, 4)
 	runToComplete(con, t)
 }
 
@@ -227,10 +240,10 @@ func getVerticalFlipFlop(t *testing.T) *Controller {
 }
 
 func TestVerticalFlipFlop(t *testing.T) {
-	return
 	all := []int{0, 1, 2, 1, 0}
 	con := getVerticalFlipFlop(t)
 	con.RouteLeaderSetLevelMessage(all, 2, all)
+	con.AddLeaderSetLevelMessageToRouter(all, 7)
 	runToComplete(con, t)
 }
 

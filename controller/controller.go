@@ -5,13 +5,14 @@ import (
 	"strconv"
 
 	"bufio"
+	"os"
+	"strings"
+
 	"github.com/FactomProject/electiontesting/election"
 	"github.com/FactomProject/electiontesting/imessage"
 	"github.com/FactomProject/electiontesting/messages"
 	"github.com/FactomProject/electiontesting/primitives"
 	"github.com/FactomProject/electiontesting/testhelper"
-	"os"
-	"strings"
 )
 
 var _ = fmt.Println
@@ -67,7 +68,7 @@ func NewController(feds, auds int) *Controller {
 	c.feds = fedlist
 	c.auds = audlist
 
-	c.Router = NewRouter(c.Elections)
+	c.Router = NewRouter(c.RoutingElections)
 	return c
 }
 

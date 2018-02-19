@@ -170,14 +170,24 @@ func bubbleSortLeaderLevelMsg(arr []*messages.LeaderLevelMessage) []*messages.Le
 
 // updateCurrentVote is called every time we send out a different vote
 func (e *Election) updateCurrentVote(new messages.LeaderLevelMessage) {
+	//if e.CurrentVote.Rank == 0 {
+	//	e.CommitmentTally = 0
+	//	return
+	//}
 	if new.VolunteerPriority == e.CurrentVote.VolunteerPriority {
 		if e.CurrentVote.Rank+1 == new.Rank {
 			e.CommitmentTally++
 			e.CurrentVote = new
+			if new.Rank == 0 {
+				e.CommitmentTally = 0
+			}
 			return
 		}
 	}
 	e.CommitmentTally = 1
+	if new.Rank == 0 {
+		e.CommitmentTally = 0
+	}
 	e.CurrentVote = new
 }
 
