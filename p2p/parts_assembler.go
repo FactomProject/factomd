@@ -7,7 +7,11 @@ package p2p
 import (
 	"fmt"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
+
+var partsLogger = packageLogger.WithFields(log.Fields{"subpack": "parts_assembler"})
 
 // maximum time we wait for a partial message to arrive, old entries are cleaned up only when new part arrives
 const MaxTimeWaitingForReassembly time.Duration = time.Second * 60 * 10
@@ -21,6 +25,9 @@ type PartialMessage struct {
 // PartsAssembler is responsible for assembling message parts into full messages
 type PartsAssembler struct {
 	messages map[string]*PartialMessage // a map of app hashes to partial messages
+
+	// logging
+	logger *log.Entry
 }
 
 // Initializes the assembler
@@ -31,12 +38,12 @@ func (assembler *PartsAssembler) Init() *PartsAssembler {
 
 // Handles a single message part, returns either a fully assembled message or nil
 func (assembler *PartsAssembler) handlePart(parcel Parcel) *Parcel {
-	debug("PartsAssembler", "Handling message part %s %d/%d", parcel.Header.AppHash, parcel.Header.PartNo, parcel.Header.PartsTotal)
+	assembler.logger.Debugf("Handling message part %s %d/%d", parcel.Header.AppHash, parcel.Header.PartNo, parcel.Header.PartsTotal)
 	partial, exists := assembler.messages[parcel.Header.AppHash]
 
 	valid, err := validateParcelPart(parcel, partial)
 	if !valid {
-		significant("PartsAssembler", "Detected invalid parcel: %s, dropping", err.Error())
+		assembler.logger.Warnf("Detected invalid parcel: %s, dropping", err.Error())
 		return nil
 	}
 
@@ -52,7 +59,7 @@ func (assembler *PartsAssembler) handlePart(parcel Parcel) *Parcel {
 	fullParcel := tryReassemblingMessage(partial)
 	if fullParcel != nil {
 		delete(assembler.messages, parcel.Header.AppHash)
-		debug("PartsAssembler", "Fully assembled %s", parcel.Header.AppHash)
+		assembler.logger.Debugf("Fully assembled %s", parcel.Header.AppHash)
 	}
 
 	// go through all partial messages and removes the old ones
@@ -102,7 +109,7 @@ func (assembler *PartsAssembler) cleanupOldPartialMessages() {
 		timeSinceFirst := time.Since(partial.firstPartReceived)
 		if timeWaiting > MaxTimeWaitingForReassembly {
 			delete(assembler.messages, appHash)
-			note("PartsAssembler", "Dropping message %d after %s secs, time since first part: %s secs",
+			assembler.logger.Debugf("Dropping message %d after %s secs, time since first part: %s secs",
 				appHash, timeWaiting/time.Second, timeSinceFirst/time.Second)
 		}
 	}
