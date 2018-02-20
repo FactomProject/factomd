@@ -4,11 +4,21 @@ import (
 	"strconv"
 	"strings"
 
+	"fmt"
+
 	"github.com/FactomProject/electiontesting/primitives"
 )
 
-// Detecting Looping
+func (d *Display) DetectIllegalVotes() (loops int) {
+	for _, f := range d.GetFeds() {
+		if d.DetectIllegalVote(f) {
+			loops++
+		}
+	}
+	return
+}
 
+// Detecting Looping
 func (d *Display) DetectLoops() (loops int) {
 	for _, f := range d.GetFeds() {
 		if d.DetectLoopForLeader(f) {
@@ -16,6 +26,35 @@ func (d *Display) DetectLoops() (loops int) {
 		}
 	}
 	return
+}
+
+// DetectIllegalVote will detect if the vote sequence is valid
+//		true ==> Illegal vote
+func (d *Display) DetectIllegalVote(leader primitives.Identity) bool {
+	myVotes := d.getLeaderVotes(leader)
+	rnk, vol := 0, 0
+	for i, v := range myVotes {
+		nxtrnk, nxtvol := parseVote(v)
+		if nxtrnk == -1 {
+			continue
+		}
+		if i > 0 {
+			if nxtrnk < rnk {
+				fmt.Println("r", nxtrnk, rnk)
+				return true
+			}
+			if nxtrnk == rnk {
+				if nxtvol < vol {
+					fmt.Println(nxtvol, vol)
+					return true
+				}
+			}
+		}
+		vol = nxtvol
+		rnk = nxtrnk
+	}
+
+	return false
 }
 
 func (d *Display) DetectLoopForLeader(leader primitives.Identity) bool {
