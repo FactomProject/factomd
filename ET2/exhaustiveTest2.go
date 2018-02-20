@@ -18,7 +18,7 @@ var mirrors map[[32]byte][]byte
 
 //================ main =================
 func main() {
-	recurse(2, 5, 2000)
+	recurse(1, 5, 2000)
 }
 
 // newElections will return an array of elections (1 per leader) and an array
@@ -218,7 +218,8 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 		//	os.Exit(0)
 		//}
 
-		msg, changed := leaders[v.leaderIdx].Execute(v.msg)
+		msg, changed := leaders[v.leaderIdx].Execute(v.msg, depth)
+		fmt.Println(">>>>>>>>", d, depth, len(msgs), leaders[v.leaderIdx].Display.FormatMessage(v.msg), "->", v.leaderIdx, changed)
 
 		if changed {
 
@@ -247,6 +248,21 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 		}
 		leaders[v.leaderIdx] = cl
 	}
+}
+
+func complete(leaders []*election.Election) (bool, error) {
+	tally := 0
+	vol := -1
+	for _, v := range leaders {
+		if v.Committed {
+			tally++
+			if vol != -1 && vol != v.CurrentVote.VolunteerPriority {
+				return false, fmt.Errorf("This state has 2 leaders committed to different volunteers")
+			}
+			vol = v.CurrentVote.VolunteerPriority
+		}
+	}
+	return tally > len(leaders)/2+1, nil
 }
 
 func incCuts(depth int) {
