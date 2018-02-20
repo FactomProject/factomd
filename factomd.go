@@ -7,21 +7,25 @@ package main
 import (
 	"os"
 
-	"fmt"
-	. "github.com/FactomProject/factomd/engine"
-	log "github.com/sirupsen/logrus"
-	"runtime"
-	"time"
 	"bufio"
+	"fmt"
 	"io"
 	"net"
 	"os/exec"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
+	"time"
+
+	. "github.com/FactomProject/factomd/engine"
+	log "github.com/sirupsen/logrus"
 )
 
 func main() {
+
+	//	runtime.SetMutexProfileFraction(5) // Enable mutex profiling
+
 	// uncomment StartProfiler() to run the pprof tool (for testing)
 	params := ParseCmdLine(os.Args[1:])
 
@@ -160,20 +164,20 @@ func launchDebugServer(service string) {
 		}
 	}() // stderr redirect func
 	/*
-	wait.Add(1)
-	go func() {
+		wait.Add(1)
+		go func() {
 
-		r, w, _ := os.Pipe() // Can't use the writer directly as os.Stderr so make a pipe
-		oldStdout := os.Stdout
-		os.Stdout = w
-		defer oldStdout.Close()                  // since I'm taking this away from  OS I need to close it when the time comes
-		defer time.Sleep(100 * time.Millisecond) // let the output all complete
-		wait.Done()
-		if _, err := io.Copy(io.MultiWriter(oldStdout, debugConsole_w), r); err != nil { // copy till EOF
-			panic(err)
-		}
-	}() // stderr redirect func
-*/
+			r, w, _ := os.Pipe() // Can't use the writer directly as os.Stderr so make a pipe
+			oldStdout := os.Stdout
+			os.Stdout = w
+			defer oldStdout.Close()                  // since I'm taking this away from  OS I need to close it when the time comes
+			defer time.Sleep(100 * time.Millisecond) // let the output all complete
+			wait.Done()
+			if _, err := io.Copy(io.MultiWriter(oldStdout, debugConsole_w), r); err != nil { // copy till EOF
+				panic(err)
+			}
+		}() // stderr redirect func
+	*/
 	wait.Wait() // Let the redirection become active ...
 
 	host, port := "localhost", "8093" // defaults

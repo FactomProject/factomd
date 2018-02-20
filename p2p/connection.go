@@ -53,7 +53,7 @@ type Connection struct {
 	Logger          *log.Entry
 }
 
-// Each connection is a simple state machine.  The state is managed by a single goroutine which also does netowrking.
+// Each connection is a simple state machine.  The state is managed by a single goroutine which also does networking.
 // The flow is this:  Connection gets initialized, and either has a peer or a net connection (From an accept())
 // If no network connection, the Connection dials.  If the dial is successful, it moves to the Online state
 // If not, it moves to the Shutdown state-- we only dial out once when initialized with a peer.
@@ -61,6 +61,7 @@ type Connection struct {
 // a period defined in protocol.go.  IF successful, we go back Online.  If too many attempts are made, we go to
 // The ConnectionShutdown state, and exit the runloop.  In the Shutdown state we notify the controller so that we can be
 // cleaned up.
+
 const (
 	ConnectionInitialized  uint8 = iota //Structure created, have peer info. Dial command moves us to Online or Shutdown (depending)
 	ConnectionOnline                    // We're connected to the other side.  Normal state
@@ -120,14 +121,8 @@ type ConnectionCommand struct {
 	Metrics ConnectionMetrics
 }
 
-func (e *ConnectionCommand) JSONByte() ([]byte, error) {
-	return primitives.EncodeJSON(e)
-}
-
-func (e *ConnectionCommand) JSONString() (string, error) {
-	return primitives.EncodeJSONString(e)
-}
-
+func (e *ConnectionCommand) JSONByte() ([]byte, error)   { return primitives.EncodeJSON(e) }
+func (e *ConnectionCommand) JSONString() (string, error) { return primitives.EncodeJSONString(e) }
 func (e *ConnectionCommand) String() string {
 	str, _ := e.JSONString()
 	return str
@@ -140,7 +135,7 @@ const (
 	ConnectionUpdatingPeer
 	ConnectionAdjustPeerQuality
 	ConnectionUpdateMetrics
-	ConnectionGoOffline          // Notifies the connection it should go offinline (eg from another goroutine)
+	ConnectionGoOffline          // Notifies the connection it should go offline (eg from another goroutine)
 )
 
 //////////////////////////////
@@ -153,7 +148,7 @@ const (
 func (c *Connection) InitWithConn(conn net.Conn, peer Peer) *Connection {
 	c.mu.Lock()
 	c.conn = conn
-	c.isOutGoing = false // InitWithConn is called by controller's accept() loop
+	c.isOutGoing = false
 	c.isPersistent = false
 	c.mu.Unlock()
 	c.commonInit(peer)
@@ -170,6 +165,18 @@ func (c *Connection) Init(peer Peer, persistent bool) *Connection {
 	c.mu.Unlock()
 	c.commonInit(peer)
 	return c
+}
+
+func (c *Connection) QualityScore() int32 {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.peer.QualityScore
+}
+
+func (c *Connection) State() uint8 {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.state
 }
 
 func (c *Connection) IsOutGoing() bool {
@@ -232,16 +239,16 @@ func (c *Connection) commonInit(peer Peer) {
 	c.SendChannel = make(chan interface{}, StandardChannelSize)
 	c.ReceiveChannel = make(chan interface{}, StandardChannelSize)
 	c.ReceiveParcel = make(chan *Parcel, StandardChannelSize)
-	c.metricsMutex.Lock()
-	c.metrics = ConnectionMetrics{MomentConnected: time.Now()} // L
-	c.metricsMutex.Unlock()
 	now := time.Now()
 	c.timeLastMetrics = now
 	c.timeLastAttempt = now
 	c.timeLastStatus = now
 	c.Logger = conLogger.WithField("peer", c.peer.PeerFixedIdent())
 	c.mu.Unlock()
-	c.setNotes("commonInit()") // needs top be unlocked before setNotes()
+	c.metricsMutex.Lock()
+	c.metrics = ConnectionMetrics{MomentConnected: now} // L
+	c.metricsMutex.Unlock()
+	c.setNotes("commonInit()") // needs to be unlocked before setNotes()
 }
 
 func (c *Connection) Start() {
@@ -256,7 +263,7 @@ func (c *Connection) runLoop() {
 	p2pConnectionsRunLoop.Inc()
 	defer p2pConnectionsRunLoop.Dec()
 
-	for ConnectionClosed != c.state { // loop exits when we hit shutdown state
+	for ConnectionClosed != c.State() { // loop exits when we hit shutdown state
 		time.Sleep(100 * time.Millisecond)
 		// time.Sleep(time.Second * 1) // This can be a tight loop, don't want to starve the application
 		c.updateStats() // Update controller with metrics
@@ -281,10 +288,10 @@ func (c *Connection) runLoop() {
 			}
 		}
 
-		switch c.state {
+		switch c.State() {
 		case ConnectionInitialized:
 			p2pConnectionRunLoopInitalized.Inc()
-			if MinimumQualityScore > c.peer.QualityScore && !c.isPersistent {
+			if MinimumQualityScore > c.QualityScore() && !c.IsPersistent() {
 				c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.
 				c.goShutdown()
 			} else {
@@ -297,7 +304,7 @@ func (c *Connection) runLoop() {
 				c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.
 			}
 
-			if MinimumQualityScore > c.peer.QualityScore && !c.isPersistent {
+			if MinimumQualityScore > c.QualityScore() && !c.IsPersistent() {
 				c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.
 				c.goShutdown()
 			}
@@ -326,8 +333,9 @@ func (c *Connection) runLoop() {
 
 // assumes it is called with c.mu already locked
 func (c *Connection) setNotes(format string, v ...interface{}) {
+	note := fmt.Sprintf(format, v...)
 	c.mu.Lock()
-	c.notes = fmt.Sprintf(format, v...)
+	c.notes = note
 	c.mu.Unlock()
 	significant(c.peer.PeerIdent(), c.notes)
 
@@ -347,7 +355,7 @@ func (c *Connection) dialLoop() {
 		}
 		switch {
 		case c.isPersistent:
-		case ConnectionOffline == c.state: // We were online with the peer at one point.
+		case ConnectionOffline == c.State(): // We were online with the peer at one point.
 			c.attempts++
 			if MaxNumberOfRedialAttempts < c.attempts {
 				c.goShutdown()
@@ -367,7 +375,9 @@ func (c *Connection) dial() bool {
 	// conn, err := net.Dial("tcp", c.peer.Address)
 	conn, err := net.DialTimeout("tcp", address, time.Second*10)
 	if nil == err {
+		c.mu.Lock()
 		c.conn = conn
+		c.mu.Unlock()
 		return true
 	}
 	return false
@@ -434,16 +444,18 @@ func (c *Connection) processSends() {
 	}()
 
 	c.mu.Lock()                  // lock so I can read the state
-	state := c.state             // L
 	sendChannel := c.SendChannel // L
-	decoder := c.decoder         // L
 	commands := c.Commands       // L
-	conn := c.conn               // L
+	errors := c.Errors
 	c.mu.Unlock()
-	for ConnectionClosed != state && state != ConnectionShuttingDown {
+	for ConnectionClosed != c.State() && c.State() != ConnectionShuttingDown {
 		// note(c.peer.PeerIdent(), "Connection.processSends() called. Items in send channel: %d State: %s", len(c.SendChannel), c.ConnectionState())
-		if nil != decoder && nil != conn { // Skip this is  the connection is not generally valid
-			for ConnectionOnline == state && len(sendChannel) > 0 {
+		c.mu.Lock()          // lock so I can read the state
+		encoder := c.encoder // L
+		conn := c.conn       // L
+		c.mu.Unlock()
+		if nil != encoder && nil != conn { // Skip this if the connection is not generally valid
+			for ConnectionOnline == c.State() && len(sendChannel) > 0 {
 				// This was blocking. By checking the length of the channel before entering, this does not block.
 				// The problem was this routine was blocked on a closed connection. Ideally we do want to block
 				// on a 0 length channel, and this is still possible if use a select and close the channel when we
@@ -452,85 +464,24 @@ func (c *Connection) processSends() {
 				switch message.(type) {
 				case ConnectionParcel:
 					parameters := message.(ConnectionParcel)
-					c.sendParcel(parameters.Parcel)
+					c.sendParcel(parameters.Parcel, encoder, conn, errors)
 				case ConnectionCommand:
 					parameters := message.(ConnectionCommand)
 					commands <- &parameters
 				default:
 				}
-				c.mu.Lock()                 // lock so I can read the state
-				state = c.state             // L // Update the state
-				sendChannel = c.SendChannel // L // Can any of these really change?
-				decoder = c.decoder         // L
-				commands = c.Commands       // L
-				conn = c.conn               // L
-				c.mu.Unlock()
 			}
 			time.Sleep(100 * time.Millisecond)
-
 		}
-		c.mu.Lock()                 // lock so I can read the state
-		state = c.state             // L
-		sendChannel = c.SendChannel // L
-		decoder = c.decoder         // L
-		commands = c.Commands       // L
-		conn = c.conn               // L
-		c.mu.Unlock()
 	}
 }
 
-func (c *Connection) handleCommand() {
-	select {
-	case command := <-c.Commands:
-
-		switch command.Command {
-		case ConnectionShutdownNow:
-			c.setNotes(fmt.Sprintf("Connection(%s) shutting down due to ConnectionShutdownNow message.", c.peer.AddressPort()))
-			c.goShutdown()
-		case ConnectionUpdatingPeer: // at this level we're only updating the quality score, to pass on application level demerits
-			debug(c.peer.PeerIdent(), "handleCommand() ConnectionUpdatingPeer")
-			peer := command.Peer
-			if peer.QualityScore < c.peer.QualityScore {
-				c.peer.QualityScore = peer.QualityScore
-			}
-		case ConnectionAdjustPeerQuality:
-			delta := command.Delta
-			note(c.peer.PeerIdent(), "handleCommand() ConnectionAdjustPeerQuality: Current Score: %d Delta: %d", c.peer.QualityScore, delta)
-			c.peer.QualityScore = c.peer.QualityScore + delta
-			if MinimumQualityScore > c.peer.QualityScore {
-				debug(c.peer.PeerIdent(), "handleCommand() disconnecting peer: %s for quality score: %d", c.peer.PeerIdent(), c.peer.QualityScore)
-				c.updatePeer()
-				c.setNotes(fmt.Sprintf("Connection(%s) shutting down due to QualityScore %d being below MinimumQualityScore: %d.", c.peer.AddressPort(), c.peer.QualityScore, MinimumQualityScore))
-				c.goShutdown()
-			}
-		case ConnectionGoOffline:
-			debug(c.peer.PeerIdent(), "handleCommand() disconnecting peer: %s goOffline command received", c.peer.PeerIdent())
-			c.goOffline()
-		default:
-			logfatal(c.peer.PeerIdent(), "handleCommand() unknown command?: %+v ", command)
-		}
-	default:
-	}
-}
-
-// assume c.mu is locked before we get here
-func (c *Connection) sendParcel(parcel Parcel) {
+func (c *Connection) sendParcel(parcel Parcel, encoder *gob.Encoder, conn net.Conn, errors chan error) {
 
 	parcel.Header.NodeID = NodeID // Send it out with our ID for loopback detection.
-	c.mu.Lock()
-	encode := c.encoder
-	conn := c.conn
-	c.mu.Unlock()
 
-	conn.SetWriteDeadline(time.Now().Add(NetworkDeadline * 500))
-
-	//deadline := time.Now().Add(NetworkDeadline)
-	//if len(parcel.Payload) > 1000*10 {
-	//	ms := (len(parcel.Payload) * NetworkDeadline.Seconds())/1000
-	//	deadline = time.Now().Add(time.Duration(ms)*time.Millisecond)
-	//}
-	//c.conn.SetWriteDeadline(deadline)
-	err := encode.Encode(parcel)
+	conn.SetWriteDeadline(time.Now().Add(NetworkDeadline * 500)) // So really no deadline ....
+	err := encoder.Encode(parcel)
 	switch {
 	case nil == err:
 		c.metricsMutex.Lock()
@@ -538,10 +489,7 @@ func (c *Connection) sendParcel(parcel Parcel) {
 		c.metrics.MessagesSent += 1                 //L
 		c.metricsMutex.Unlock()
 	default:
-		c.mu.Lock()
-		errorChan := c.Errors // L
-		c.mu.Unlock()
-		errorChan <- err
+		errors <- err
 	}
 }
 
@@ -561,12 +509,8 @@ func (c *Connection) processReceives() {
 		}
 	}()
 
-	c.mu.Lock() // lock it so we can get the state
-	state := c.state
-	c.mu.Unlock()
-
-	for ConnectionClosed != state && state != ConnectionShuttingDown {
-		for state == ConnectionOnline {
+	for ConnectionClosed != c.State() && c.State() != ConnectionShuttingDown {
+		for c.State() == ConnectionOnline {
 			var message Parcel
 
 			c.mu.Lock()
@@ -590,20 +534,53 @@ func (c *Connection) processReceives() {
 					receiveParcel <- &message // U
 				default:
 					c.mu.Lock()
-					c.Errors <- err
+					errorsChan := c.Errors
 					c.mu.Unlock()
+					errorsChan <- err
+
 				}
 			}
 		}
 		// If not online, give some time up to handle states that are not online, closed, or shuttingdown.
 		time.Sleep(1 * time.Second) // clay -- seems a bit long
-		c.mu.Lock()                 // lock it so we can get the state
-		state = c.state
-		c.mu.Unlock()
 	}
-	c.mu.Lock() // lock it so we can get the state
-	state = c.state
-	c.mu.Unlock()
+}
+
+func (c *Connection) handleCommand() {
+	select {
+	case command := <-c.Commands:
+
+		switch command.Command {
+		case ConnectionShutdownNow:
+			c.setNotes(fmt.Sprintf("Connection(%s) shutting down due to ConnectionShutdownNow message.", c.peer.AddressPort()))
+			c.goShutdown()
+		case ConnectionUpdatingPeer: // at this level we're only updating the quality score, to pass on application level demerits
+			debug(c.peer.PeerIdent(), "handleCommand() ConnectionUpdatingPeer")
+			peer := command.Peer
+			if peer.QualityScore < c.QualityScore() {
+				c.mu.Lock()
+				c.peer.QualityScore = peer.QualityScore
+				c.mu.Unlock()
+			}
+		case ConnectionAdjustPeerQuality:
+			delta := command.Delta
+			note(c.peer.PeerIdent(), "handleCommand() ConnectionAdjustPeerQuality: Current Score: %d Delta: %d", c.peer.QualityScore, delta)
+			c.peer.QualityScore = c.peer.QualityScore + delta
+			if MinimumQualityScore > c.QualityScore() {
+				debug(c.peer.PeerIdent(), "handleCommand() disconnecting peer: %s for quality score: %d", c.peer.PeerIdent(), c.QualityScore())
+				c.updatePeer()
+				c.setNotes(fmt.Sprintf("Connection(%s) shutting down due to QualityScore %d being below MinimumQualityScore: %d.",
+					c.peer.AddressPort(), c.QualityScore(), MinimumQualityScore))
+				c.goShutdown()
+			}
+		case ConnectionGoOffline:
+			debug(c.peer.PeerIdent(), "handleCommand() disconnecting peer: %s goOffline command received", c.peer.PeerIdent())
+			c.goOffline()
+		default:
+			logfatal(c.peer.PeerIdent(), "handleCommand() unknown command?: %+v ", command)
+		}
+	default:
+	}
 }
 
 //handleNetErrors Reacts to errors we get from encoder or decoder
@@ -696,7 +673,7 @@ func (c *Connection) parcelValidity(parcel Parcel) uint8 {
 	switch {
 	case parcel.Header.NodeID == NodeID: // We are talking to ourselves!
 		parcel.Trace("Connection.isValidParcel()-loopback", "H")
-		c.setNotes(fmt.Sprintf("Connection.isValidParcel(), failed due to loopback!: %+v", parcel.Header))
+		c.setNotes("Connection.isValidParcel(), failed due to loopback!: %+v", parcel.Header)
 		c.peer.QualityScore = MinimumQualityScore - 50 // Ban ourselves for a week
 		return InvalidDisconnectPeer
 	case parcel.Header.Network != CurrentNetwork:
@@ -824,7 +801,7 @@ func (c *Connection) connectionStatusReport() {
 		address := c.peer.AddressPort()
 		status := c.StatusString()
 
-		// TODO: No need to do locking on the copy ... But eth copy has it's own locks so it just wasted time ... -- clay
+		// TODO: No need to do locking on the copy ... But the copy has it's own locks so it just wasted time ... -- clay
 		cm := metrics.MessagesReceived + metrics.MessagesSent
 		bm := metrics.BytesSent + metrics.BytesReceived
 

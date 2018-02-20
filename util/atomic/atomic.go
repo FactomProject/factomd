@@ -52,6 +52,10 @@ func (a *AtomicInt) Store(x int) {
 	atomic.StoreInt64((*int64)(a), int64(x))
 }
 
+func (a *AtomicInt) Add(x int) {
+	atomic.AddInt64((*int64)(a), int64(x))
+}
+
 func (a *AtomicInt) Load() int {
 	return int(atomic.LoadInt64((*int64)(a)))
 }
@@ -60,6 +64,10 @@ type AtomicInt64 int64
 
 func (a *AtomicInt64) Store(x int64) {
 	atomic.StoreInt64((*int64)(a), x)
+}
+
+func (a *AtomicInt64) Add(x int64) {
+	atomic.AddInt64((*int64)(a), x)
 }
 
 func (a *AtomicInt64) Load() int64 {
@@ -126,11 +134,12 @@ type DebugMutex struct {
 	lock     int32         // lock for debug lock functionality
 	mu       sync.Mutex    // lock for not trusting the debug lock functionality or for traditional locking
 	lockBool AtomicBool    // lock for detecting starvation when not trusting the debug lock functionality
+	waiting  AtomicInt      // Count of routines waiting on this lock
 	owner    AtomicString  // owner of the lock at the moment
 	done     chan struct{} // Channel to signal success to starvation detector
 }
 
-var yeaOfLittleFaith AtomicBool = AtomicBool(0) // true means mutex lock instead of CAS lock
+var yeaOfLittleFaith AtomicBool = AtomicBool(1) // true means mutex lock instead of CAS lock
 var enableStarvationDetection AtomicBool = AtomicBool(1)
 var enableAlreadyLockedDetection AtomicBool = AtomicBool(0)
 var enableOwnerTracking AtomicBool = AtomicBool(1 & enableStarvationDetection) // no point in tracking owners if not detecting starvation
@@ -218,12 +227,14 @@ func (c *DebugMutex) Lock() {
 			WhereAmI2(c.name.Load()+":Already Locked", 2)
 		}
 	}
+	c.waiting.Add(1) // Add me to the waiting count
 	// actually do the locking()
 	if yeaOfLittleFaith.Load() {
 		c.lockMutex()
 	} else {
 		c.lockCAS()
 	}
+	c.waiting.Add(-1) // I am no longer waiting
 
 	if c.name.Load() == "" {
 		c.name.Store("DebugMutex " + WhereAmIString(1))
@@ -240,8 +251,8 @@ func (c *DebugMutex) Unlock() {
 	} else {
 		c.unlockCAS()
 	}
-	if enableOwnerTracking.Load() {
-		c.owner.Store("unlocked")
+	if enableOwnerTracking.Load() && c.waiting.Load() == 0 {
+		c.owner.Store("unlocked") // only set unlocked if no one is waiting
 	}
 }
 
