@@ -597,7 +597,7 @@ func (c *Controller) handleCommand(command interface{}) {
 			BlockFreeChannelSend(connection.SendChannel, ConnectionCommand{Command: ConnectionShutdownNow})
 		}
 	default:
-		logfatal("ctrlr", "Unkown p2p.Controller command received: %+v", commandType)
+		logfatal("ctrlr", "Unknown p2p.Controller command received: %+v", commandType)
 	}
 }
 
@@ -650,7 +650,7 @@ func (c *Controller) managePeers() {
 }
 
 func (c *Controller) updateConnectionCounts() {
-	// If we are low on outgoing onnections, attempt to connect to some more.
+	// If we are low on outgoing connections, attempt to connect to some more.
 	// If the connection is not online, we don't count it as connected.
 	c.numberOutgoingConnections = 0
 	c.numberIncomingConnections = 0

@@ -71,7 +71,7 @@ func (p *Peer) PeerFixedIdent() string {
 //     IPv6Int.SetBytes(IPv6Addr)
 //     return IPv6Int
 // }
-// Problem is we're working wiht string addresses, may never have made a connection.
+// Problem is we're working with string addresses, may never have made a connection.
 // TODO - we might have a DNS address, not iP address and need to resolve it!
 // locationFromAddress converts the peers address into a uint32 "location" numeric
 func (p *Peer) LocationFromAddress() (location uint32) {

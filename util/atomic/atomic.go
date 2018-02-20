@@ -85,6 +85,16 @@ func (a *AtomicString) Load() string {
 
 // Hacky debugging stuff... probably not a great home for it
 
+var prefix int // index to trim the file paths to just the interesting parts
+func init() {
+	_, fn, _, _ := runtime.Caller(0)
+	end := strings.Index(fn,"factomd/") + len("factomd")
+	s := fn[0:end]
+	_ = s
+	prefix = end
+}
+
+
 func Goid() string {
 	var buf [64]byte
 	n := runtime.Stack(buf[:], false)
@@ -95,6 +105,7 @@ func Goid() string {
 
 func WhereAmIString(depth int) string {
 	_, fn, line, _ := runtime.Caller(depth + 1)
+	fn = fn[prefix:]
 	return fmt.Sprintf("%v-%s:%d", Goid(), fn, line)
 }
 
@@ -125,17 +136,21 @@ var enableAlreadyLockedDetection AtomicBool = AtomicBool(0)
 var enableOwnerTracking AtomicBool = AtomicBool(1 & enableStarvationDetection) // no point in tracking owners if not detecting starvation
 
 func (c *DebugMutex) timeStarvation(whereAmI string) {
+	var owner string
 	for {
 		for i := 0; i < 1000; i++ {
 			select {
 			case <-c.done:
 				return
 			default:
-				time.Sleep(3 * time.Millisecond)
+				if enableOwnerTracking.Load() && owner == "" {
+					owner = c.owner.Load()
+				}
+					time.Sleep(3 * time.Millisecond)
 			}
 		}
 		if enableOwnerTracking.Load() {
-			fmt.Printf("%s:Lock starving waiting for [%s] at %s\n", c.name.Load(), c.owner.Load(), whereAmI)
+			fmt.Printf("%s:Lock starving waiting for [%s] at %s\n", c.name.Load(), owner, whereAmI)
 		} else {
 			fmt.Printf("%s:Lock starving at %s\n", c.name.Load(), whereAmI)
 		}
