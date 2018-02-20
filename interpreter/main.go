@@ -7,12 +7,12 @@ import (
 	"strings"
 
 	//"github.com/FactomProject/electiontesting/interpreter/interpreter"
-	"github.com/FactomProject/electiontesting/interpreter/primitives"
+	"github.com/FactomProject/electiontesting/controller"
 )
 
 func main() {
-	i := primitives.NewPrimitives()
-	Shell(i)
+	c := controller.NewController(3, 3)
+	Shell(c)
 }
 
 func grabInput(in *bufio.Reader) string {
@@ -24,7 +24,7 @@ func grabInput(in *bufio.Reader) string {
 	return strings.TrimRight(input, "\n")
 }
 
-func Shell(i *primitives.Primitives) {
+func Shell(i *controller.Controller) {
 	in := bufio.NewReader(os.Stdin)
 	for {
 		fmt.Print("> ")
