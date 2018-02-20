@@ -18,7 +18,7 @@ var mirrors map[[32]byte][]byte
 
 //================ main =================
 func main() {
-	recurse(3, 3, 2000)
+	recurse(2, 5, 2000)
 }
 
 // newElections will return an array of elections (1 per leader) and an array
@@ -79,7 +79,7 @@ var maxdepth int
 var globalRunNumber = 0
 
 var extraPrints = true
-var insanePrints = false
+var insanePrints = true
 
 func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 	incDepths(depth)
@@ -164,6 +164,45 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 		return
 	}
 
+	// Look for mirrors, but only after we have been going a bit.
+	if depth > 70 {
+		var hashes [][32]byte
+		var strings []string
+		for _, ldr := range leaders {
+			bits := ldr.NormalizedString()
+			if bits != nil {
+				strings = append(strings, string(bits))
+				h := Sha(bits)
+				hashes = append(hashes, h)
+			} else {
+				panic("shouldn't happen")
+			}
+		}
+		for i := 0; i < len(hashes)-1; i++ {
+			for j := 0; j < len(hashes)-1-i; j++ {
+				if bytes.Compare(hashes[j][:], hashes[j+1][:]) > 0 {
+					hashes[j], hashes[j+1] = hashes[j+1], hashes[j+1]
+					strings[j], strings[j+1] = strings[j+1], strings[j]
+				}
+			}
+		}
+		var all []byte
+		var alls string
+		for i, h := range hashes {
+			all = append(all, h[:]...)
+			alls += strings[i]
+		}
+		mh := Sha(all)
+		if mirrors[mh] != nil {
+			mirrorcnt++
+			breadth++
+			incCuts(depth)
+			return
+		}
+		fmt.Println("All State: ", alls)
+		mirrors[mh] = mh[:]
+	}
+
 	for d, v := range msgs {
 		var msgs2 []*mymsg
 		msgs2 = append(msgs2, msgs[0:d]...)
@@ -182,38 +221,6 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 		msg, changed := leaders[v.leaderIdx].Execute(v.msg)
 
 		if changed {
-
-			// Look for mirrors, but only after we have been going a bit.
-			if depth > 12 {
-				var hashes [][32]byte
-				for _, ldr := range leaders {
-					bits := ldr.NormalizedString()
-					if bits != nil {
-						h := Sha(bits)
-						hashes = append(hashes, h)
-					} else {
-						panic("shouldn't happen")
-					}
-				}
-				for i := 0; i < len(hashes)-1; i++ {
-					for j := 0; j < len(hashes)-1-i; j++ {
-						if bytes.Compare(hashes[j][:], hashes[j+1][:]) > 0 {
-							hashes[j], hashes[j+1] = hashes[j+1], hashes[j+1]
-						}
-					}
-				}
-				var all []byte
-				for _, h := range hashes {
-					all = append(all, h[:]...)
-				}
-				mh := Sha(all)
-				if mirrors[mh] != nil {
-					mirrorcnt++
-					breadth++
-					return
-				}
-				mirrors[mh] = mh[:]
-			}
 
 			if msg != nil {
 				for i, _ := range leaders {
