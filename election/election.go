@@ -3,6 +3,8 @@ package election
 import (
 	"fmt"
 
+	"math"
+
 	"github.com/FactomProject/electiontesting/imessage"
 	"github.com/FactomProject/electiontesting/messages"
 	. "github.com/FactomProject/electiontesting/primitives"
@@ -122,21 +124,25 @@ func (a *Election) Copy() *Election {
 	return b
 }
 
-func (e *Election) NormalizedString() []byte {
-	vc := e.NormalizedVCDataset()
+func (e *Election) StateString() []byte {
+	return e.stateString(0)
+}
+
+func (e *Election) stateString(decrement int) []byte {
+	vc := e.StateVCDataset()
 	c := e.CurrentVote
-	votes := e.NormalizedVotes()
+	votes := e.StateVotes()
 
 	// Combine into a string
 	str := fmt.Sprintf("Current: (%d)%d.%d\n",
-		c.Level, c.Rank, c.VolunteerPriority)
+		c.Level-decrement, c.Rank-decrement, c.VolunteerPriority)
 
 	vcstr := ""
 	for vol, v := range vc {
 		vcstr += fmt.Sprintf("%d->", vol)
 		sep := ""
 		for _, l := range v {
-			vcstr += sep + fmt.Sprintf("(%d)%d.%d", l.Level, l.Rank, l.VolunteerPriority)
+			vcstr += sep + fmt.Sprintf("(%d)%d.%d", l.Level-decrement, l.Rank-decrement, l.VolunteerPriority)
 			sep = ","
 		}
 		vcstr += "\n"
@@ -153,7 +159,21 @@ func (e *Election) NormalizedString() []byte {
 	return []byte(str + vcstr + votestr)
 }
 
-func (e *Election) NormalizedVotes() []int {
+func (e *Election) NormalizedString() []byte {
+	vc := e.StateVCDataset()
+	lowest := math.MaxInt32
+	for _, v := range vc {
+		for _, v2 := range v {
+			if v2.Rank < lowest {
+				lowest = v2.Rank
+			}
+		}
+	}
+	decrement := (lowest - 1)
+	return e.stateString(decrement)
+}
+
+func (e *Election) StateVotes() []int {
 	var votearr []int
 	votearr = make([]int, len(e.GetAuds()))
 	for vol, votes := range e.VolunteerVotes {
@@ -162,7 +182,7 @@ func (e *Election) NormalizedVotes() []int {
 	return votearr
 }
 
-func (e *Election) NormalizedVCDataset() [][]*messages.LeaderLevelMessage {
+func (e *Election) StateVCDataset() [][]*messages.LeaderLevelMessage {
 	// Loop through volunteers, and record only those that are above current vote
 
 	var vcarray [][]*messages.LeaderLevelMessage
