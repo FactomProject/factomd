@@ -166,40 +166,13 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 
 	// Look for mirrors, but only after we have been going a bit.
 	if depth > 70 {
-		var hashes [][32]byte
-		var strings []string
-		for _, ldr := range leaders {
-			bits := ldr.NormalizedString()
-			if bits != nil {
-				strings = append(strings, string(bits))
-				h := Sha(bits)
-				hashes = append(hashes, h)
-			} else {
-				panic("shouldn't happen")
-			}
-		}
-		for i := 0; i < len(hashes)-1; i++ {
-			for j := 0; j < len(hashes)-1-i; j++ {
-				if bytes.Compare(hashes[j][:], hashes[j+1][:]) > 0 {
-					hashes[j], hashes[j+1] = hashes[j+1], hashes[j+1]
-					strings[j], strings[j+1] = strings[j+1], strings[j]
-				}
-			}
-		}
-		var all []byte
-		var alls string
-		for i, h := range hashes {
-			all = append(all, h[:]...)
-			alls += strings[i]
-		}
-		mh := Sha(all)
+		mh := mirrorHash(leaders)
 		if mirrors[mh] != nil {
 			mirrorcnt++
 			breadth++
 			incCuts(depth)
 			return
 		}
-		fmt.Println("All State: ", alls)
 		mirrors[mh] = mh[:]
 	}
 
@@ -248,6 +221,39 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 		}
 		leaders[v.leaderIdx] = cl
 	}
+}
+
+func mirrorHash(leaders []*election.Election) [32]byte {
+	var hashes [][32]byte
+	var strings []string
+
+	for _, ldr := range leaders {
+		bits := ldr.NormalizedString()
+		if bits != nil {
+			strings = append(strings, string(bits))
+			h := Sha(bits)
+			hashes = append(hashes, h)
+		} else {
+			panic("shouldn't happen")
+		}
+	}
+	for i := 0; i < len(hashes)-1; i++ {
+		for j := 0; j < len(hashes)-1-i; j++ {
+			if bytes.Compare(hashes[j][:], hashes[j+1][:]) > 0 {
+				hashes[j], hashes[j+1] = hashes[j+1], hashes[j+1]
+				strings[j], strings[j+1] = strings[j+1], strings[j]
+			}
+		}
+	}
+	var all []byte
+	var alls string
+	for i, h := range hashes {
+		all = append(all, h[:]...)
+		alls += strings[i]
+	}
+	mh := Sha(all)
+	fmt.Println("All State: ", alls)
+	return mh
 }
 
 func complete(leaders []*election.Election) (bool, error) {
