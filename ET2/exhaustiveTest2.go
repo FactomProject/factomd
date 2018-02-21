@@ -24,6 +24,7 @@ var depths []int
 var solutionsAt []int
 var mirrorsAt []int
 var deadMessagesAt []int
+var failuresAt []int
 var hitlimit int
 var maxdepth int
 var failure int
@@ -114,7 +115,7 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int, msg
 		extraPrints = true
 	}
 
-	if extraPrints {
+	printState := func() {
 		fmt.Println("=============== ",
 			" Depth=", depth, "/", maxdepth,
 			", Failures=", humanize.Comma(int64(failure)),
@@ -141,6 +142,7 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int, msg
 		prt(deadMessagesAt, "Dead Messages")
 		prt(mirrorsAt, "Mirrors")
 		prt(solutionsAt, "Solutions")
+		prt(failuresAt, "Failures")
 		prt(depths, "Depths")
 		fmt.Println()
 
@@ -162,6 +164,10 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int, msg
 				fmt.Println(leaders[2].PrintMessages())
 			}
 		}
+	}
+
+	if extraPrints {
+		printState()
 	}
 
 	done := 0
@@ -220,6 +226,7 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int, msg
 	}
 
 	for d, v := range msgs {
+
 		var msgs2 []*mymsg
 		msgs2 = append(msgs2, msgs[0:d]...)
 		msgs2 = append(msgs2, msgs[d+1:]...)
@@ -270,13 +277,31 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int, msg
 		leaders[v.leaderIdx] = cl
 	}
 
-	if depth == limit-40 && limitHit {
-		if seeSuccess {
-			loops++
-		} else {
-			failure++
+	if limitHit {
+		if depth == limit-40 {
+
+			if seeSuccess {
+				loops++
+			} else {
+				failure++
+			}
+			limitHit = false
 		}
-		limitHit = false
+	} else {
+		if !seeSuccess {
+			incCounter(failuresAt, depth)
+			failure++
+			seeSuccess = true
+		}
+		for i, v := range msgPath {
+			fmt.Println(i, v.leaderIdx, "<==", leaders[0].Display.FormatMessage(v.msg))
+		}
+		for i, v := range msgs {
+			fmt.Println(i, v.leaderIdx, "<==", leaders[0].Display.FormatMessage(v.msg))
+		}
+
+		fmt.Println("************ Fail ************")
+		printState()
 	}
 
 	return limitHit, seeSuccess
