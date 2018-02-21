@@ -7,6 +7,7 @@ import (
 	. "github.com/FactomProject/electiontesting/interpreter/dictionary"
 	. "github.com/FactomProject/electiontesting/interpreter/interpreter"
 	. "github.com/FactomProject/electiontesting/interpreter/names"
+	"fmt"
 )
 
 type Primitives struct {
@@ -114,12 +115,18 @@ var mark Mark
 func (p *Primitives) Exec() { p.Exec3(p.Pop()) }
 
 func (p *Primitives) SetExecutable() {
-	x := p.Peek()
-	y, ok := x.(HasFlags)
-	if ok {
-		x.(HasFlags).SetFlags(y.GetFlags().SetExecutable(true))
+	x := p.Pop()
+	switch x.(type) {
+	case Name:
+		p.Push(x.(Name).MakeExecutable())
+	case Array:
+		a:= x.(Array)
+		a.Executable = true
+		p.Push(a)
+	default:
+		fmt.Printf("Can't make %T %v executable",x,x)
+		p.Push(x)
 	}
-
 }
 func (p *Primitives) SetImmediate() {
 	x := p.Peek()
@@ -239,6 +246,7 @@ func (p *Primitives) EndArray() {
 }
 
 func (p *Primitives) EndXArray() {
+	p.Compiling--
 	p.EndArray()
 	a := p.Pop().(Array)
 	a.Executable = true

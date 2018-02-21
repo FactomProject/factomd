@@ -32,6 +32,7 @@ func (n Name) SetFlags(f FlagsStruct) {
 	return
 }
 
+func (n Name) IsImmediate() bool { return (int(n) & (1 << 1)) != 0 }
 func (n Name) IsExecutable() bool { return (int(n) & (1 << 0)) != 0 }
 
 func (n Name) MakeExecutable() Name { return Name(int(n) | 1) }
@@ -52,10 +53,10 @@ func (nm *NameManager) GetRawName(n Name) Name {
 	return Name(int(n) & bitMask)
 }
 
-func (nm *NameManager) GetString(n Name) string {
+func (nm *NameManager) Name2String(n Name) string {
 	s, ok := nm.n2s[n.GetRawName()] // Mask the executable and trace bits
 	if !ok {
-		panic("GetString(): undefined name " + s)
+		panic("String(): undefined name " + s)
 	}
 	if int(n)&1 != 0 {
 		return s

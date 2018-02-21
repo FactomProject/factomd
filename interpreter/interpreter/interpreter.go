@@ -50,7 +50,7 @@ func (p *Interpreter) String(x interface{}) (s string) {
 	case Mark:
 		s = "MARK"
 	case Name:
-		s = p.GetString(x.(Name))
+		s = p.Name2String(x.(Name))
 	case Array:
 		if x.(Array).Executable {
 			s = "{ "
@@ -111,16 +111,16 @@ func (i *Interpreter) findInDictStack(n Name) (*DictionaryEnrty, bool) {
 }
 
 func (i *Interpreter) executeName(n Name) {
-	s := i.GetString(n)
+	s := i.String(n)
 	_ = s
-	if n.IsExecutable() {
+	if (n.IsExecutable()){
 		dictEntry, ok := i.findInDictStack(n)
 
 		if !ok {
-			panic("executeName(): Undefined " + i.GetString(n))
+			panic("executeName(): Undefined " + i.String(n))
 		}
 
-		if dictEntry.Immediate || (dictEntry.Executable && i.Compiling == 0) {
+		if dictEntry.Immediate || (dictEntry.Executable && i.Compiling==0) {
 			switch dictEntry.E.(type) {
 			case func():
 				dictEntry.E.(func())()
@@ -133,7 +133,11 @@ func (i *Interpreter) executeName(n Name) {
 				return
 			}
 		} else {
-			i.Push(dictEntry.E)
+			if(i.Compiling != 0) {
+				i.Push(n)
+			} else {
+				i.Push(dictEntry.E)
+			}
 			return
 		}
 	}
