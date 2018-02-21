@@ -11,6 +11,8 @@ import (
 
 	"crypto/sha256"
 
+	"github.com/FactomProject/electiontesting/messages"
+	"github.com/FactomProject/electiontesting/primitives"
 	"github.com/dustin/go-humanize"
 )
 
@@ -30,6 +32,9 @@ var maxdepth int
 var failure int
 
 var globalRunNumber = 0
+
+var leadersMap = make(map[primitives.Identity]int)
+var audsMap = make(map[primitives.Identity]int)
 
 var extraPrints = true
 var insanePrints = false
@@ -75,6 +80,14 @@ func newElections(feds, auds int, noDisplay bool) (*controller.Controller, []*el
 	for i, ldr := range con.Elections {
 		con.Elections[i] = CloneElection(ldr)
 		con.Elections[i].Display.Global = global
+	}
+
+	for _, l := range con.Elections {
+		leadersMap[l.Self] = con.Elections[0].FedIDtoIndex(l.Self)
+	}
+
+	for _, a := range con.AuthSet.GetAuds() {
+		audsMap[a] = con.Elections[0].GetVolunteerPriority(a, con.Elections[0].ProcessListLocation)
 	}
 
 	return con, con.Elections, msgs
@@ -295,8 +308,10 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int, msg
 			failure++
 			leaf = false
 		}
+		fmt.Printf("%d %d setcon\n", len(leadersMap), len(audsMap))
 		for i, v := range msgPath {
-			fmt.Println(i, v.leaderIdx, "<==", leaders[0].Display.FormatMessage(v.msg))
+
+			fmt.Println(formatForInterpreter(v), "#", i, v.leaderIdx, "<==", leaders[0].Display.FormatMessage(v.msg))
 		}
 		for i, v := range msgs {
 			fmt.Println(i, v.leaderIdx, "<==", leaders[0].Display.FormatMessage(v.msg))
@@ -307,6 +322,29 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int, msg
 	}
 
 	return limitHit, leaf, seeSuccess
+}
+
+func formatForInterpreter(my *mymsg) string {
+	msg := my.msg
+	switch msg.(type) {
+	case *messages.LeaderLevelMessage:
+		l := msg.(*messages.LeaderLevelMessage)
+		from := leadersMap[l.Signer]
+
+		return fmt.Sprintf("{ %d } %d { %d } <-l", from, l.Level, my.leaderIdx)
+	case *messages.VolunteerMessage:
+		a := msg.(*messages.VolunteerMessage)
+		from := audsMap[a.Signer]
+
+		return fmt.Sprintf("%d { %d } <-v", from, my.leaderIdx)
+	case *messages.VoteMessage:
+		l := msg.(*messages.VoteMessage)
+		from := leadersMap[l.Signer]
+		vol := audsMap[l.Volunteer.Signer]
+
+		return fmt.Sprintf("{ %d } %d { %d } <-o", from, vol, my.leaderIdx)
+	}
+	return "NA"
 }
 
 func incCounter(counter []int, depth int) []int {
