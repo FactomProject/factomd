@@ -238,6 +238,7 @@ func (e *Election) updateCurrentVote(new *messages.LeaderLevelMessage) {
 	if e.CurrentVote.Rank >= 0 {
 		new.Justification = append(new.Justification, &e.CurrentVote)
 	}
+	new.Justification = []*messages.LeaderLevelMessage{}
 	e.CurrentVote = *new
 }
 
