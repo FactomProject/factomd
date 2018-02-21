@@ -216,7 +216,7 @@ func bubbleSortLeaderLevelMsg(arr []*messages.LeaderLevelMessage) []*messages.Le
 }
 
 // updateCurrentVote is called every time we send out a different vote
-func (e *Election) updateCurrentVote(new messages.LeaderLevelMessage) {
+func (e *Election) updateCurrentVote(new *messages.LeaderLevelMessage) {
 	//if e.CurrentVote.Rank == 0 {
 	//	e.CommitmentTally = 0
 	//	return
@@ -224,7 +224,7 @@ func (e *Election) updateCurrentVote(new messages.LeaderLevelMessage) {
 	if new.VolunteerPriority == e.CurrentVote.VolunteerPriority {
 		if e.CurrentVote.Rank+1 == new.Rank {
 			e.CommitmentTally++
-			e.CurrentVote = new
+			e.CurrentVote = *new
 			if new.Rank == 0 {
 				e.CommitmentTally = 0
 			}
@@ -235,7 +235,11 @@ func (e *Election) updateCurrentVote(new messages.LeaderLevelMessage) {
 	if new.Rank == 0 {
 		e.CommitmentTally = 0
 	}
-	e.CurrentVote = new
+	if e.CurrentVote.Rank >= 0 {
+		new.Justification = append(new.Justification, &e.CurrentVote)
+	}
+	new.Justification = []*messages.LeaderLevelMessage{}
+	e.CurrentVote = *new
 }
 
 func (e *Election) Execute(msg imessage.IMessage, depth int) (imessage.IMessage, bool) {
@@ -342,20 +346,21 @@ func (e *Election) execute(msg imessage.IMessage) (imessage.IMessage, bool) {
 			}
 
 			e.CurrentLevel++
-			e.updateCurrentVote(ll)
+			myvote := &ll
+			e.updateCurrentVote(myvote)
 
 			//e.executeDisplay(&ll)
-			ret, _ := e.execute(&ll)
+			ret, _ := e.execute(myvote)
 			// The response could be a better vote. If it is, send that out instead
 			if ret != nil {
 				if l, ok := ret.(*messages.LeaderLevelMessage); ok {
-					if (&ll).Less(l) {
+					if (myvote).Less(l) {
 						return l, true
 					}
 				}
 			}
 
-			return &ll, true
+			return myvote, true
 		}
 		return nil, true
 	}
@@ -449,7 +454,7 @@ func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) (
 
 			// This vote may change our next vote. First we need to check
 			// if this is our LAST vote
-			e.updateCurrentVote(*ll)
+			e.updateCurrentVote(ll)
 
 			e.commitIfLast(ll)
 			if e.Committed {

@@ -3,6 +3,8 @@ package controller
 import (
 	"fmt"
 
+	"strings"
+
 	. "github.com/FactomProject/electiontesting/interpreter/common"
 	. "github.com/FactomProject/electiontesting/interpreter/dictionary"
 	priminterpreter "github.com/FactomProject/electiontesting/interpreter/primitives"
@@ -48,7 +50,7 @@ func (c *Controller) RunScenario() {
 		return
 	}
 
-	c.InterpretLine(scene)
+	c.Interpret(strings.NewReader(scene))
 }
 
 func (c *Controller) PrimRouteStep() {
