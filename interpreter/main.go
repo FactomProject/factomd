@@ -10,8 +10,14 @@ import (
 	"github.com/FactomProject/electiontesting/controller"
 )
 
+type TopLevelInterpreter struct {
+	*controller.Controller
+}
+
 func main() {
 	c := controller.NewController(3, 3)
+	//t := new(TopLevelInterpreter)
+	//t.Controller = c
 	Shell(c)
 }
 

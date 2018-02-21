@@ -306,6 +306,7 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int, msg
 			failure++
 			seeSuccess = true
 		}
+		fmt.Printf("%d %d setcon\n", len(leadersMap), len(audsMap))
 		for i, v := range msgPath {
 
 			fmt.Println(formatForInterpreter(v), "#", i, v.leaderIdx, "<==", leaders[0].Display.FormatMessage(v.msg))

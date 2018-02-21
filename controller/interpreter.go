@@ -39,7 +39,21 @@ func (c *Controller) InitInterpreter() {
 	//  Pull Scenarios
 	c.AddPrim(conprimitives, "runscene", c.RunScenario, executable)
 
+	// Crazy
+	c.AddPrim(conprimitives, "reset", c.Reset, executable)
+	c.AddPrim(conprimitives, "setcon", c.SetController, executable)
+
 	//return p
+}
+
+func (c *Controller) SetController() {
+	a := c.PopInt()
+	f := c.PopInt()
+	*c = *NewController(f, a)
+}
+
+func (c *Controller) Reset() {
+	*c = *NewController(len(c.AuthSet.GetFeds()), len(c.AuthSet.GetAuds()))
 }
 
 func (c *Controller) RunScenario() {
