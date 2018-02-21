@@ -41,7 +41,7 @@ var insanePrints = false
 
 //================ main =================
 func main() {
-	recurse(5, 3, 125)
+	recurse(1, 3, 125)
 }
 
 // newElections will return an array of elections (1 per leader) and an array

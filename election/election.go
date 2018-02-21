@@ -299,7 +299,12 @@ func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) (
 			vote.Level = e.CurrentLevel
 			e.CurrentLevel++
 		} else {
-			e.CurrentLevel = vote.Level + 1
+			if e.CurrentLevel <= vote.Rank {
+				vote.Level = vote.Rank + 1
+				e.CurrentLevel = vote.Rank + 2
+			} else {
+				e.CurrentLevel = vote.Level + 1
+			}
 		}
 
 		e.updateCurrentVote(vote)
