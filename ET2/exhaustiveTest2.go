@@ -35,7 +35,7 @@ var insanePrints = false
 
 //================ main =================
 func main() {
-	recurse(5, 3, 2000)
+	recurse(5, 3, 125)
 }
 
 // newElections will return an array of elections (1 per leader) and an array
@@ -270,7 +270,7 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int, msg
 		leaders[v.leaderIdx] = cl
 	}
 
-	if depth == limit-50 && limitHit {
+	if depth == limit-40 && limitHit {
 		if seeSuccess {
 			loops++
 		} else {
