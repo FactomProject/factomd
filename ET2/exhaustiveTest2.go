@@ -10,6 +10,8 @@ import (
 	"github.com/FactomProject/electiontesting/imessage"
 
 	"crypto/sha256"
+
+	"github.com/dustin/go-humanize"
 )
 
 var mirrorMap map[[32]byte][]byte
@@ -33,7 +35,7 @@ var insanePrints = false
 
 //================ main =================
 func main() {
-	recurse(2, 5, 100)
+	recurse(5, 3, 2000)
 }
 
 // newElections will return an array of elections (1 per leader) and an array
@@ -82,6 +84,8 @@ type mymsg struct {
 	msg       imessage.IMessage
 }
 
+var cnt = 0
+
 // dive
 // Pass a list of messages to process, to a set of leaders, at a current depth, with a particular limit.
 // Provided a msgPath, and updated for recording purposes.
@@ -104,41 +108,42 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int, msg
 		maxdepth = depth
 	}
 
-	fmt.Println("=============== ",
-		" Depth=", depth, "/", maxdepth,
-		" Failures=", failure,
-		" MsgQ=", len(msgs),
-		", Mirrors=", mirrors, len(mirrorMap),
-		", Hit the Limits=", hitlimit,
-		" Breadth=", breadth,
-		", solutions so far =", solutions,
-		", global count= ", globalRunNumber,
-		", loops detected=", loops)
-	fmt.Printf("\n%20s", "Dead Messages")
-	for i, v := range deadMessagesAt {
-		if i%16 == 0 {
-			fmt.Println()
-		}
-		fmt.Printf("%3d/%12d ", i, v)
+	extraPrints = false
+	cnt++
+	if cnt < 10000 || cnt%50000 == 0 {
+		extraPrints = true
 	}
-	fmt.Printf("\n%20s ", "Mirrors")
-	fmt.Print("Mirrors       ", depth)
-	for i, v := range mirrorsAt {
-		fmt.Printf("%d/%d ", i, v)
-	}
-	fmt.Printf("\n%20s ", "Solutions")
-	fmt.Print("Solutions     ", depth)
-	for i, v := range solutionsAt {
-		fmt.Printf("%d/%d ", i, v)
-	}
-	fmt.Printf("\n%20s ", "Depths")
-	fmt.Print("Depths        ", depth)
-	for i, v := range depths {
-		fmt.Printf("%d/%d ", i, v)
-	}
-	fmt.Println()
 
 	if extraPrints {
+		fmt.Println("=============== ",
+			" Depth=", depth, "/", maxdepth,
+			", Failures=", humanize.Comma(int64(failure)),
+			", MsgQ=", len(msgs),
+			", Mirrors=", humanize.Comma(int64(mirrors)), humanize.Comma(int64(len(mirrorMap))),
+			", Hit the Limits=", humanize.Comma(int64(hitlimit)),
+			", Breadth=", humanize.Comma(int64(breadth)),
+			", solutions so far =", humanize.Comma(int64(solutions)),
+			", global count= ", humanize.Comma(int64(globalRunNumber)),
+			", loops detected=", humanize.Comma(int64(loops)))
+
+		prt := func(counter []int, msg string) {
+			fmt.Printf("\n%20s", msg)
+			if len(counter) == 0 {
+				fmt.Println("\n     None Found")
+			}
+			for i, v := range counter {
+				if i%16 == 0 {
+					fmt.Println()
+				}
+				fmt.Printf("%4d=>%12s ", i, humanize.Comma(int64(v)))
+			}
+		}
+		prt(deadMessagesAt, "Dead Messages")
+		prt(mirrorsAt, "Mirrors")
+		prt(solutionsAt, "Solutions")
+		prt(depths, "Depths")
+		fmt.Println()
+
 		// Lots of printing... Not necessary....
 		fmt.Println(leaders[0].Display.Global.String())
 
@@ -177,7 +182,7 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int, msg
 	}
 
 	// Look for mirrorMap, but only after we have been going a bit.
-	if depth > 70 {
+	if depth > 2 {
 		var hashes [][32]byte
 		var strings []string
 		for _, ldr := range leaders {
@@ -211,7 +216,6 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int, msg
 			mirrorsAt = incCounter(mirrorsAt, depth)
 			return false, false
 		}
-		fmt.Println("All State: ", alls)
 		mirrorMap[mh] = mh[:]
 	}
 
