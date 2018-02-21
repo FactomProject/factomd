@@ -41,6 +41,7 @@ func (s *Stack) Push(values ...interface{}) {
 	}
 }
 
+func (s *Stack) Clear()                  { s.Ptr = 0 }                        // clear datastack
 func (s *Stack) Pop() interface{}        { return s.Data[s.pdec()] }          // Todo: underflow ?
 func (s *Stack) Peek() interface{}       { return s.Data[s.Ptr-1] }           // Todo: underflow ?
 func (s *Stack) PeekN(n int) interface{} { return s.Data[s.Ptr-1-n] }         // Todo: underflow ?

@@ -12,6 +12,7 @@ func TestPrimitives(t *testing.T) {
 	// TODO: Need to make this so it actually checks the result instead of printing it :-)
 	p := NewPrimitives()
 	p.Interpret(strings.NewReader("1 0 + ."))
+	p.Interpret(strings.NewReader("1 0 7 8 clear .s"))
 	p.Interpret(strings.NewReader("{ 1 1 + . } exec "))
 	p.Interpret(strings.NewReader("3 1 5 { I . } for 5 ."))
 	p.Interpret(strings.NewReader(`" six" .`))
