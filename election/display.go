@@ -127,6 +127,9 @@ func (d *Display) getVolunteerPriority(id primitives.Identity) int {
 }
 
 func (d *Display) insertLeaderLevelMessage(msg *messages.LeaderLevelMessage) {
+	if msg == nil {
+		return
+	}
 	col := d.getColumn(msg.Signer)
 	if col == -1 {
 		// Error?

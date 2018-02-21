@@ -36,7 +36,8 @@ func TestElectionCopy(t *testing.T) {
 
 	vol := messages.NewVolunteerMessage(messages.NewEomMessage(a.GetAuds()[0], loc), a.GetAuds()[0])
 	l := messages.NewLeaderLevelMessage(0, 0, 0, vol)
-	a.MsgListIn = append(a.MsgListIn, &l)
+
+	a.MsgListIn = append(a.MsgListIn, NewDepthLeaderLevel(&l, 1))
 	var _ = l
 	b := a.Copy()
 
@@ -52,5 +53,45 @@ func TestElectionCopy(t *testing.T) {
 
 	if aoutp == boutp && len(a.MsgListOut) > 0 {
 		t.Errorf("Same pointer for msg out")
+	}
+}
+
+func TestLeaderLevelMsgSort(t *testing.T) {
+	ls := make([]*messages.LeaderLevelMessage, 10)
+	for i := range ls {
+		ls[i] = new(messages.LeaderLevelMessage)
+	}
+
+	ls[2].Rank = 1
+	ls[2].VolunteerPriority = 1
+
+	ls[3].Rank = 2
+	ls[3].VolunteerPriority = 1
+
+	ls[5].Rank = 1
+	ls[5].VolunteerPriority = 2
+
+	ls[6].Rank = 7
+	ls[6].VolunteerPriority = 2
+
+	ls[7].Rank = 5
+	ls[7].VolunteerPriority = 2
+
+	ls[8].Rank = 0
+	ls[8].VolunteerPriority = 2
+
+	BubbleSortLeaderLevelMsg(ls)
+
+	for i := range ls {
+		fmt.Println(ls[i].Rank, ".", ls[i].VolunteerPriority)
+	}
+	fmt.Println()
+
+	for i := range ls[:len(ls)-1] {
+		j := i + 1
+
+		if ls[j-1].Less(ls[j]) {
+			t.Errorf("Leader sort bad")
+		}
 	}
 }

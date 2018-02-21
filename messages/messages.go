@@ -3,11 +3,12 @@ package messages
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
+	"strings"
+
 	. "github.com/FactomProject/electiontesting/errorhandling"
 	"github.com/FactomProject/electiontesting/imessage"
 	. "github.com/FactomProject/electiontesting/primitives"
-	"regexp"
-	"strings"
 )
 
 var Nothing NoMessage
@@ -161,6 +162,9 @@ type LeaderLevelMessage struct {
 	VolunteerMessage
 	SignedMessage
 
+	// Every vote also includes their previous
+	PreviousVote *LeaderLevelMessage
+
 	// For the rank 0 case
 	VoteMessages []*VoteMessage
 
@@ -171,12 +175,12 @@ type LeaderLevelMessage struct {
 
 func (a *LeaderLevelMessage) Less(b *LeaderLevelMessage) bool {
 	// Committed is trump. People won't even issue after that
-	if a.Committed {
-		return true
-	}
-	if b.Committed {
-		return false
-	}
+	//if a.Committed {
+	//	return true
+	//}
+	//if b.Committed {
+	//	return false
+	//}
 
 	if a.Rank == b.Rank {
 		return a.VolunteerPriority < b.VolunteerPriority
@@ -189,6 +193,10 @@ func (a *LeaderLevelMessage) Copy() *LeaderLevelMessage {
 	b.Justification = make([]*LeaderLevelMessage, len(a.Justification))
 	for i, v := range a.Justification {
 		b.Justification[i] = v.Copy()
+	}
+
+	if a.PreviousVote != nil {
+		b.PreviousVote = a.PreviousVote.Copy()
 	}
 
 	b.VoteMessages = make([]*VoteMessage, len(a.VoteMessages))
