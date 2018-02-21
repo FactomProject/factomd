@@ -85,144 +85,32 @@ func NewElection(self Identity, authset AuthSet, loc ProcessListLocation) *Elect
 	return e
 }
 
-func (a *Election) Copy() *Election {
-	b := NewElection(a.Self, a.AuthSet.Copy(), a.ProcessListLocation)
-	b.TotalMessages = a.TotalMessages
-	b.CommitmentTally = a.CommitmentTally
-
-	for k, _ := range a.VolunteerVotes {
-		b.VolunteerVotes[k] = make(map[Identity]*messages.VoteMessage)
-		for k2, v2 := range a.VolunteerVotes[k] {
-			b.VolunteerVotes[k][k2] = v2.Copy()
-		}
+func (e *Election) Execute(msg imessage.IMessage, depth int) (imessage.IMessage, bool) {
+	//  ** Msg In Debug **
+	if l, ok := msg.(*messages.LeaderLevelMessage); ok {
+		e.MsgListIn = append(e.MsgListIn, NewDepthLeaderLevel(l, depth))
 	}
 
-	for k, v := range a.VolunteerControls {
-		b.VolunteerControls[k] = v.Copy()
+	if v, ok := msg.(*messages.VoteMessage); ok {
+		d := NewDepthLeaderLevel(nil, depth)
+		d.VoteMsg = v
+		e.MsgListIn = append(e.MsgListIn, d)
 	}
 
-	b.CurrentLevel = a.CurrentLevel
-	b.CurrentVote = *(a.CurrentVote.Copy())
-	if a.Display == nil {
-		b.Display = nil
-	} else {
-		b.Display = a.Display.Copy(b)
-		b.Display.Global = a.Display.Global.Copy(b)
-	}
-	b.Committed = a.Committed
-	b.MsgListIn = make([]*DepthLeaderLevel, len(a.MsgListIn))
+	resp, c := e.execute(msg)
 
-	for i, v := range a.MsgListIn {
-		b.MsgListIn[i] = v.Copy()
+	//  ** Msg Out Debug **
+	if l, ok := resp.(*messages.LeaderLevelMessage); ok {
+		e.MsgListOut = append(e.MsgListOut, NewDepthLeaderLevel(l, depth))
 	}
 
-	b.MsgListOut = make([]*DepthLeaderLevel, len(a.MsgListOut))
-	for i, v := range a.MsgListOut {
-		b.MsgListOut[i] = v.Copy()
+	if v, ok := resp.(*messages.VoteMessage); ok {
+		d := NewDepthLeaderLevel(nil, depth)
+		d.VoteMsg = v
+		e.MsgListOut = append(e.MsgListOut, d)
 	}
 
-	return b
-}
-
-func (e *Election) StateString() []byte {
-	return e.stateString(0)
-}
-
-func (e *Election) stateString(decrement int) []byte {
-	vc := e.StateVCDataset()
-	c := e.CurrentVote
-	votes := e.StateVotes()
-
-	// Combine into a string
-	str := fmt.Sprintf("Current: (%d)%d.%d\n",
-		c.Level-decrement, c.Rank-decrement, c.VolunteerPriority)
-
-	vcstr := ""
-	for vol, v := range vc {
-		vcstr += fmt.Sprintf("%d->", vol)
-		sep := ""
-		for _, l := range v {
-			vcstr += sep + fmt.Sprintf("(%d)%d.%d", l.Level-decrement, l.Rank-decrement, l.VolunteerPriority)
-			sep = ","
-		}
-		vcstr += "\n"
-	}
-
-	votestr := ""
-	sep := ""
-	for vol, v := range votes {
-		votestr += sep + fmt.Sprintf(" %d:%d", vol, v)
-		sep = ","
-	}
-	votestr += "\n"
-
-	return []byte(str + vcstr + votestr)
-}
-
-func (e *Election) NormalizedString() []byte {
-	vc := e.StateVCDataset()
-	lowest := math.MaxInt32
-	for _, v := range vc {
-		for _, v2 := range v {
-			if v2.Rank < lowest {
-				lowest = v2.Rank
-			}
-		}
-	}
-	decrement := (lowest - 1)
-	return e.stateString(decrement)
-}
-
-func (e *Election) StateVotes() []int {
-	var votearr []int
-	votearr = make([]int, len(e.GetAuds()))
-	for vol, votes := range e.VolunteerVotes {
-		votearr[e.getVolunteerPriority(vol)] = len(votes)
-	}
-	return votearr
-}
-
-func (e *Election) StateVCDataset() [][]*messages.LeaderLevelMessage {
-	// Loop through volunteers, and record only those that are above current vote
-
-	var vcarray [][]*messages.LeaderLevelMessage
-	vcarray = make([][]*messages.LeaderLevelMessage, len(e.GetAuds()))
-
-	for vol, m := range e.VolunteerControls {
-		var volarray []*messages.LeaderLevelMessage
-		// vol is the volunteer
-		for _, vote := range m.Votes {
-			if e.CurrentVote.Level > 0 && e.CurrentVote.Rank > vote.Level {
-				continue
-			}
-			volarray = append(volarray, vote)
-		}
-
-		vcarray[e.getVolunteerPriority(vol)] = bubbleSortLeaderLevelMsgByRank(volarray)
-	}
-
-	return vcarray
-}
-
-func BubbleSortLeaderLevelMsg(arr []*messages.LeaderLevelMessage) {
-	for i := 1; i < len(arr); i++ {
-		for j := 0; j < len(arr)-i; j++ {
-			if arr[j].Less(arr[j+1]) {
-				arr[j], arr[j+1] = arr[j+1], arr[j]
-			}
-		}
-	}
-}
-
-func bubbleSortLeaderLevelMsgByRank(arr []*messages.LeaderLevelMessage) []*messages.LeaderLevelMessage {
-	for i := 1; i < len(arr); i++ {
-		for j := 0; j < len(arr)-i; j++ {
-			if arr[j].Rank > arr[j+1].Rank {
-				arr[j], arr[j+1] = arr[j+1], arr[j]
-			}
-		}
-	}
-	return arr
+	return resp, c
 }
 
 // updateCurrentVote is called every time we send out a different vote
@@ -253,60 +141,6 @@ func (e *Election) updateCurrentVote(new *messages.LeaderLevelMessage) {
 	}
 	e.CurrentVote = *new
 	e.Display.Execute(new)
-}
-
-func (e *Election) Execute(msg imessage.IMessage, depth int) (imessage.IMessage, bool) {
-	// Used for debugging
-
-	if l, ok := msg.(*messages.LeaderLevelMessage); ok {
-		e.MsgListIn = append(e.MsgListIn, NewDepthLeaderLevel(l, depth))
-	}
-
-	if v, ok := msg.(*messages.VoteMessage); ok {
-		d := NewDepthLeaderLevel(nil, depth)
-		d.VoteMsg = v
-		e.MsgListIn = append(e.MsgListIn, d)
-	}
-
-	/**** Execution ****/
-	change := false
-	newVote := false
-	// When we get a leaderlevelmsg, it contains a lot of previous votes that we should process first.
-	if l, ok := msg.(*messages.LeaderLevelMessage); ok {
-		if l.PreviousVote != nil {
-			vote, ch := e.execute(l.PreviousVote)
-			if vote != nil {
-				newVote = true
-			}
-			change = ch || change
-		}
-		for _, j := range l.Justification {
-			if j.PreviousVote != nil {
-				vote, ch := e.execute(j.PreviousVote)
-				change = ch || change
-				if vote != nil {
-					newVote = true
-				}
-			}
-		}
-	}
-	/****          ****/
-
-	resp, c := e.execute(msg)
-	if l, ok := resp.(*messages.LeaderLevelMessage); ok {
-		e.MsgListOut = append(e.MsgListOut, NewDepthLeaderLevel(l, depth))
-	}
-	if v, ok := resp.(*messages.VoteMessage); ok {
-		d := NewDepthLeaderLevel(nil, depth)
-		d.VoteMsg = v
-		e.MsgListOut = append(e.MsgListOut, d)
-	}
-
-	if resp == nil && newVote {
-		resp = &e.CurrentVote
-	}
-
-	return resp, c || change
 }
 
 func (e *Election) execute(msg imessage.IMessage) (imessage.IMessage, bool) {
@@ -582,4 +416,144 @@ func (e *Election) VolunteerControlString() string {
 func (e *Election) AddDisplay(global *Display) *Display {
 	e.Display = NewDisplay(e, global)
 	return e.Display
+}
+
+func (a *Election) Copy() *Election {
+	b := NewElection(a.Self, a.AuthSet.Copy(), a.ProcessListLocation)
+	b.TotalMessages = a.TotalMessages
+	b.CommitmentTally = a.CommitmentTally
+
+	for k, _ := range a.VolunteerVotes {
+		b.VolunteerVotes[k] = make(map[Identity]*messages.VoteMessage)
+		for k2, v2 := range a.VolunteerVotes[k] {
+			b.VolunteerVotes[k][k2] = v2.Copy()
+		}
+	}
+
+	for k, v := range a.VolunteerControls {
+		b.VolunteerControls[k] = v.Copy()
+	}
+
+	b.CurrentLevel = a.CurrentLevel
+	b.CurrentVote = *(a.CurrentVote.Copy())
+	if a.Display == nil {
+		b.Display = nil
+	} else {
+		b.Display = a.Display.Copy(b)
+		b.Display.Global = a.Display.Global.Copy(b)
+	}
+	b.Committed = a.Committed
+	b.MsgListIn = make([]*DepthLeaderLevel, len(a.MsgListIn))
+
+	for i, v := range a.MsgListIn {
+		b.MsgListIn[i] = v.Copy()
+	}
+
+	b.MsgListOut = make([]*DepthLeaderLevel, len(a.MsgListOut))
+	for i, v := range a.MsgListOut {
+		b.MsgListOut[i] = v.Copy()
+	}
+
+	return b
+}
+
+func (e *Election) StateString() []byte {
+	return e.stateString(0)
+}
+
+func (e *Election) stateString(decrement int) []byte {
+	vc := e.StateVCDataset()
+	c := e.CurrentVote
+	votes := e.StateVotes()
+
+	// Combine into a string
+	str := fmt.Sprintf("Current: (%d)%d.%d\n",
+		c.Level-decrement, c.Rank-decrement, c.VolunteerPriority)
+
+	vcstr := ""
+	for vol, v := range vc {
+		vcstr += fmt.Sprintf("%d->", vol)
+		sep := ""
+		for _, l := range v {
+			vcstr += sep + fmt.Sprintf("(%d)%d.%d", l.Level-decrement, l.Rank-decrement, l.VolunteerPriority)
+			sep = ","
+		}
+		vcstr += "\n"
+	}
+
+	votestr := ""
+	sep := ""
+	for vol, v := range votes {
+		votestr += sep + fmt.Sprintf(" %d:%d", vol, v)
+		sep = ","
+	}
+	votestr += "\n"
+
+	return []byte(str + vcstr + votestr)
+}
+
+func (e *Election) NormalizedString() []byte {
+	vc := e.StateVCDataset()
+	lowest := math.MaxInt32
+	for _, v := range vc {
+		for _, v2 := range v {
+			if v2.Rank < lowest {
+				lowest = v2.Rank
+			}
+		}
+	}
+	decrement := (lowest - 1)
+	return e.stateString(decrement)
+}
+
+func (e *Election) StateVotes() []int {
+	var votearr []int
+	votearr = make([]int, len(e.GetAuds()))
+	for vol, votes := range e.VolunteerVotes {
+		votearr[e.getVolunteerPriority(vol)] = len(votes)
+	}
+	return votearr
+}
+
+func (e *Election) StateVCDataset() [][]*messages.LeaderLevelMessage {
+	// Loop through volunteers, and record only those that are above current vote
+
+	var vcarray [][]*messages.LeaderLevelMessage
+	vcarray = make([][]*messages.LeaderLevelMessage, len(e.GetAuds()))
+
+	for vol, m := range e.VolunteerControls {
+		var volarray []*messages.LeaderLevelMessage
+		// vol is the volunteer
+		for _, vote := range m.Votes {
+			if e.CurrentVote.Level > 0 && e.CurrentVote.Rank > vote.Level {
+				continue
+			}
+			volarray = append(volarray, vote)
+		}
+
+		vcarray[e.getVolunteerPriority(vol)] = bubbleSortLeaderLevelMsgByRank(volarray)
+	}
+
+	return vcarray
+}
+
+func BubbleSortLeaderLevelMsg(arr []*messages.LeaderLevelMessage) {
+	for i := 1; i < len(arr); i++ {
+		for j := 0; j < len(arr)-i; j++ {
+			if arr[j].Less(arr[j+1]) {
+				arr[j], arr[j+1] = arr[j+1], arr[j]
+			}
+		}
+	}
+}
+
+func bubbleSortLeaderLevelMsgByRank(arr []*messages.LeaderLevelMessage) []*messages.LeaderLevelMessage {
+	for i := 1; i < len(arr); i++ {
+		for j := 0; j < len(arr)-i; j++ {
+			if arr[j].Rank > arr[j+1].Rank {
+				arr[j], arr[j+1] = arr[j+1], arr[j]
+			}
+		}
+	}
+	return arr
 }
