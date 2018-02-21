@@ -313,7 +313,7 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int, msg
 
 			fmt.Println(formatForInterpreter(v), "#", i, v.leaderIdx, "<==", leaders[0].Display.FormatMessage(v.msg))
 		}
-		fmt.Println("Pending:")
+		fmt.Println("# Pending:")
 		for i, v := range msgs {
 			fmt.Println(formatForInterpreter(v), "#", i, v.leaderIdx, "<==", leaders[0].Display.FormatMessage(v.msg))
 		}
