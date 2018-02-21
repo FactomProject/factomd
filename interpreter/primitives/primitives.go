@@ -3,11 +3,12 @@ package primitives
 import (
 	"strings"
 
+	"fmt"
+
 	. "github.com/FactomProject/electiontesting/interpreter/common"
 	. "github.com/FactomProject/electiontesting/interpreter/dictionary"
 	. "github.com/FactomProject/electiontesting/interpreter/interpreter"
 	. "github.com/FactomProject/electiontesting/interpreter/names"
-	"fmt"
 )
 
 type Primitives struct {
@@ -58,6 +59,7 @@ func NewPrimitives() *Primitives {
 		}, executable)
 
 	p.AddPrim(primitives, "dup", func() { p.Push(p.Peek()) }, executable)
+	p.AddPrim(primitives, "clear", func() { p.Clear() }, executable)
 	p.AddPrim(primitives, "pick", func() { p.Push(p.PeekN(p.PopInt())) }, executable)
 	p.AddPrim(primitives, "drop", func() { p.Pop() }, executable)
 	p.AddPrim(primitives, ".s", func() { p.PStack() }, executable)
@@ -120,11 +122,11 @@ func (p *Primitives) SetExecutable() {
 	case Name:
 		p.Push(x.(Name).MakeExecutable())
 	case Array:
-		a:= x.(Array)
+		a := x.(Array)
 		a.Executable = true
 		p.Push(a)
 	default:
-		fmt.Printf("Can't make %T %v executable",x,x)
+		fmt.Printf("Can't make %T %v executable", x, x)
 		p.Push(x)
 	}
 }
@@ -162,7 +164,7 @@ func (p *Primitives) If() {
 func (p *Primitives) IfElse() {
 	cond := p.Pop()
 	x := p.Pop()
-	y:= p.Pop()
+	y := p.Pop()
 	switch cond.(type) {
 	case bool:
 		if cond.(bool) {
@@ -173,7 +175,7 @@ func (p *Primitives) IfElse() {
 	case int:
 		if cond.(int) != 0 {
 			p.Exec3(x)
-		}else {
+		} else {
 			p.Exec3(y)
 		}
 	}

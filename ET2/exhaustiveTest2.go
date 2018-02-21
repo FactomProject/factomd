@@ -103,19 +103,20 @@ var cnt = 0
 // dive
 // Pass a list of messages to process, to a set of leaders, at a current depth, with a particular limit.
 // Provided a msgPath, and updated for recording purposes.
-// Return success if we actually settled on a solution
-// Have seen a success is useful for declaring a loop has been detected.
-//
+// Returns
+// limitHit -- path hit the limit, and recursed.  Can happen on loops
+// leaf -- All messages were processed, and no message resulted in a change of state.
+// seeSuccess -- Some path below this dive produced a solution
 // Note that we actually dive 100 levels beyond our limit, and declare seeSuccess past our limit as proof we are
 // in a loop.
 // Hitting the limit and seeSuccess is proof of a loop that none the less can resolve.
-func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int, msgPath []*mymsg) (limitHit bool, seeSuccess bool) {
+func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int, msgPath []*mymsg) (limitHit bool, leaf bool, seeSuccess bool) {
 	depths = incCounter(depths, depth)
 	depth++
 	if depth > limit {
 		breadth++
 		hitlimit++
-		return true, false
+		return true, false, false
 	}
 
 	if depth > maxdepth {
@@ -196,7 +197,7 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int, msg
 		}
 		breadth++
 		solutions++
-		return false, true
+		return false, true, true
 
 	}
 
@@ -233,11 +234,12 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int, msg
 			mirrors++
 			breadth++
 			mirrorsAt = incCounter(mirrorsAt, depth)
-			return false, false
+			return false, false, true
 		}
 		mirrorMap[mh] = mh[:]
 	}
 
+	leaf = true
 	for d, v := range msgs {
 
 		var msgs2 []*mymsg
@@ -260,7 +262,7 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int, msg
 		msgPath2 := append(msgPath, v)
 
 		if changed {
-
+			leaf = false
 			if msg != nil {
 				for i, _ := range leaders {
 					if i != v.leaderIdx {
@@ -276,7 +278,7 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int, msg
 				ldr.Display.Global = gl
 			}
 			// Recursive Dive
-			lim, ss := dive(msgs2, leaders, depth, limit, msgPath2)
+			lim, _, ss := dive(msgs2, leaders, depth, limit, msgPath2)
 			_ = lim || ss
 			seeSuccess = seeSuccess || ss
 			limitHit = limitHit || lim
@@ -301,25 +303,26 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int, msg
 			limitHit = false
 		}
 	} else {
-		if !seeSuccess {
+		if leaf {
 			incCounter(failuresAt, depth)
 			failure++
-			seeSuccess = true
+			leaf = false
 		}
 		fmt.Printf("%d %d setcon\n", len(leadersMap), len(audsMap))
 		for i, v := range msgPath {
 
 			fmt.Println(formatForInterpreter(v), "#", i, v.leaderIdx, "<==", leaders[0].Display.FormatMessage(v.msg))
 		}
+		fmt.Println("Pending:")
 		for i, v := range msgs {
-			fmt.Println(i, v.leaderIdx, "<==", leaders[0].Display.FormatMessage(v.msg))
+			fmt.Println(formatForInterpreter(v), "#", i, v.leaderIdx, "<==", leaders[0].Display.FormatMessage(v.msg))
 		}
 
 		fmt.Println("************ Fail ************")
 		printState()
 	}
 
-	return limitHit, seeSuccess
+	return limitHit, leaf, seeSuccess
 }
 
 func formatForInterpreter(my *mymsg) string {
