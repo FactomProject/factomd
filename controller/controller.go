@@ -42,6 +42,9 @@ type Controller struct {
 	*priminterpreter.Primitives
 
 	PrintingTrace bool
+
+	LinesBuffered []string
+	LineIndex     int
 }
 
 // NewController creates all the elections and initial volunteer messages

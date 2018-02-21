@@ -10,14 +10,41 @@ import (
 	"github.com/FactomProject/electiontesting/controller"
 )
 
+import (
+	"flag"
+	"io/ioutil"
+)
+
 type TopLevelInterpreter struct {
 	*controller.Controller
 }
 
 func main() {
-	c := controller.NewController(3, 3)
+	c := controller.NewController(3, 5)
 	//t := new(TopLevelInterpreter)
 	//t.Controller = c
+
+	var (
+		filename = flag.String("d", "in.txt", "File to read from")
+		usefile  = flag.Bool("f", false, "Use in file as buffer to pull from")
+	)
+	flag.Parse()
+
+	if *usefile {
+		file, err := os.Open(*filename)
+		if err != nil {
+			panic(err)
+		}
+		data, err := ioutil.ReadAll(file)
+		if err != nil {
+			panic(err)
+		}
+
+		buffer := strings.Split(string(data), "\n")
+		fmt.Printf("Found %d lines\n", len(buffer))
+		c.LinesBuffered = buffer
+	}
+
 	Shell(c)
 }
 

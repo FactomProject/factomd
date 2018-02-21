@@ -105,7 +105,7 @@ func (v *VolunteerControl) AddVote(msg *messages.LeaderLevelMessage) bool {
 	}
 
 	// New Vote
-	if len(v.Votes) >= v.Majority() {
+	if len(v.Votes) > v.Majority() {
 		// Delete the lowest one, we don't need it
 		lowest := math.MaxInt32
 		remove := Identity(-1)
