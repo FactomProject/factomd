@@ -3,6 +3,8 @@ package election
 import (
 	"fmt"
 
+	"math"
+
 	"github.com/FactomProject/electiontesting/imessage"
 	"github.com/FactomProject/electiontesting/messages"
 	. "github.com/FactomProject/electiontesting/primitives"
@@ -10,6 +12,33 @@ import (
 )
 
 var _ = fmt.Println
+
+type DepthLeaderLevel struct {
+	Msg     *messages.LeaderLevelMessage
+	VoteMsg *messages.VoteMessage
+	Depth   int
+}
+
+func NewDepthLeaderLevel(ll *messages.LeaderLevelMessage, depth int) *DepthLeaderLevel {
+	d := new(DepthLeaderLevel)
+	d.Msg = ll
+	d.Depth = depth
+
+	return d
+}
+
+func (d *DepthLeaderLevel) Copy() *DepthLeaderLevel {
+	b := new(DepthLeaderLevel)
+	if d.Msg != nil {
+		b.Msg = d.Msg.Copy()
+	}
+	if d.VoteMsg != nil {
+		b.VoteMsg = d.VoteMsg.Copy()
+	}
+	b.Depth = d.Depth
+
+	return b
+}
 
 type Election struct {
 	// Level 0 volunteer votes map[vol]map[leader]msg
@@ -24,8 +53,8 @@ type Election struct {
 	AuthSet
 	ProcessListLocation
 
-	MsgListIn  []*messages.LeaderLevelMessage
-	MsgListOut []*messages.LeaderLevelMessage
+	MsgListIn  []*DepthLeaderLevel
+	MsgListOut []*DepthLeaderLevel
 
 	Display *Display
 	// If I have committed to an answer and found enough to finish Election
@@ -48,8 +77,8 @@ func NewElection(self Identity, authset AuthSet, loc ProcessListLocation) *Elect
 	e.CurrentLevel = 1
 	e.CurrentVote.Rank = -1
 	e.CurrentVote.VolunteerPriority = -1
-	e.MsgListIn = make([]*messages.LeaderLevelMessage, 0)
-	e.MsgListOut = make([]*messages.LeaderLevelMessage, 0)
+	e.MsgListIn = make([]*DepthLeaderLevel, 0)
+	e.MsgListOut = make([]*DepthLeaderLevel, 0)
 
 	// Used to determine volunteer priority
 	e.ProcessListLocation = loc
@@ -81,13 +110,13 @@ func (a *Election) Copy() *Election {
 		b.Display.Global = a.Display.Global.Copy(b)
 	}
 	b.Committed = a.Committed
-	b.MsgListIn = make([]*messages.LeaderLevelMessage, len(a.MsgListIn))
+	b.MsgListIn = make([]*DepthLeaderLevel, len(a.MsgListIn))
 
 	for i, v := range a.MsgListIn {
 		b.MsgListIn[i] = v.Copy()
 	}
 
-	b.MsgListOut = make([]*messages.LeaderLevelMessage, len(a.MsgListOut))
+	b.MsgListOut = make([]*DepthLeaderLevel, len(a.MsgListOut))
 	for i, v := range a.MsgListOut {
 		b.MsgListOut[i] = v.Copy()
 	}
@@ -95,21 +124,25 @@ func (a *Election) Copy() *Election {
 	return b
 }
 
-func (e *Election) NormalizedString() []byte {
-	vc := e.NormalizedVCDataset()
+func (e *Election) StateString() []byte {
+	return e.stateString(0)
+}
+
+func (e *Election) stateString(decrement int) []byte {
+	vc := e.StateVCDataset()
 	c := e.CurrentVote
-	votes := e.NormalizedVotes()
+	votes := e.StateVotes()
 
 	// Combine into a string
 	str := fmt.Sprintf("Current: (%d)%d.%d\n",
-		c.Level, c.Rank, c.VolunteerPriority)
+		c.Level-decrement, c.Rank-decrement, c.VolunteerPriority)
 
 	vcstr := ""
 	for vol, v := range vc {
 		vcstr += fmt.Sprintf("%d->", vol)
 		sep := ""
 		for _, l := range v {
-			vcstr += sep + fmt.Sprintf("(%d)%d.%d", l.Level, l.Rank, l.VolunteerPriority)
+			vcstr += sep + fmt.Sprintf("(%d)%d.%d", l.Level-decrement, l.Rank-decrement, l.VolunteerPriority)
 			sep = ","
 		}
 		vcstr += "\n"
@@ -126,7 +159,21 @@ func (e *Election) NormalizedString() []byte {
 	return []byte(str + vcstr + votestr)
 }
 
-func (e *Election) NormalizedVotes() []int {
+func (e *Election) NormalizedString() []byte {
+	vc := e.StateVCDataset()
+	lowest := math.MaxInt32
+	for _, v := range vc {
+		for _, v2 := range v {
+			if v2.Rank < lowest {
+				lowest = v2.Rank
+			}
+		}
+	}
+	decrement := (lowest - 1)
+	return e.stateString(decrement)
+}
+
+func (e *Election) StateVotes() []int {
 	var votearr []int
 	votearr = make([]int, len(e.GetAuds()))
 	for vol, votes := range e.VolunteerVotes {
@@ -135,7 +182,7 @@ func (e *Election) NormalizedVotes() []int {
 	return votearr
 }
 
-func (e *Election) NormalizedVCDataset() [][]*messages.LeaderLevelMessage {
+func (e *Election) StateVCDataset() [][]*messages.LeaderLevelMessage {
 	// Loop through volunteers, and record only those that are above current vote
 
 	var vcarray [][]*messages.LeaderLevelMessage
@@ -191,10 +238,27 @@ func (e *Election) updateCurrentVote(new messages.LeaderLevelMessage) {
 	e.CurrentVote = new
 }
 
-func (e *Election) Execute(msg imessage.IMessage) (imessage.IMessage, bool) {
-	resp, c := e.execute(msg)
+func (e *Election) Execute(msg imessage.IMessage, depth int) (imessage.IMessage, bool) {
+	// Used for debugging
+
 	if l, ok := msg.(*messages.LeaderLevelMessage); ok {
-		e.MsgListOut = append(e.MsgListOut, l)
+		e.MsgListIn = append(e.MsgListIn, NewDepthLeaderLevel(l, depth))
+	}
+
+	if v, ok := msg.(*messages.VoteMessage); ok {
+		d := NewDepthLeaderLevel(nil, depth)
+		d.VoteMsg = v
+		e.MsgListIn = append(e.MsgListIn, d)
+	}
+
+	resp, c := e.execute(msg)
+	if l, ok := resp.(*messages.LeaderLevelMessage); ok {
+		e.MsgListOut = append(e.MsgListOut, NewDepthLeaderLevel(l, depth))
+	}
+	if v, ok := resp.(*messages.VoteMessage); ok {
+		d := NewDepthLeaderLevel(nil, depth)
+		d.VoteMsg = v
+		e.MsgListOut = append(e.MsgListOut, d)
 	}
 	return resp, c
 }
@@ -226,7 +290,7 @@ func (e *Election) execute(msg imessage.IMessage) (imessage.IMessage, bool) {
 		vote := messages.NewVoteMessage(*vol, e.Self)
 		e.VolunteerVotes[vol.Signer][e.Self] = &vote
 
-		msg, _ := e.Execute(&vote)
+		msg, _ := e.execute(&vote)
 		if ll, ok := msg.(*messages.LeaderLevelMessage); ok {
 			for _, v := range e.VolunteerVotes[vol.Signer] {
 				ll.VoteMessages = append(ll.VoteMessages, v)
@@ -281,7 +345,7 @@ func (e *Election) execute(msg imessage.IMessage) (imessage.IMessage, bool) {
 			e.updateCurrentVote(ll)
 
 			//e.executeDisplay(&ll)
-			ret, _ := e.Execute(&ll)
+			ret, _ := e.execute(&ll)
 			// The response could be a better vote. If it is, send that out instead
 			if ret != nil {
 				if l, ok := ret.(*messages.LeaderLevelMessage); ok {
@@ -293,6 +357,7 @@ func (e *Election) execute(msg imessage.IMessage) (imessage.IMessage, bool) {
 
 			return &ll, true
 		}
+		return nil, true
 	}
 	return nil, false
 }
@@ -312,9 +377,6 @@ func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) (
 	if e.VolunteerControls[msg.VolunteerMessage.Signer] == nil {
 		e.VolunteerControls[msg.VolunteerMessage.Signer] = volunteercontrol.NewVolunteerControl(e.Self, e.AuthSet)
 	}
-
-	// Used for debugging
-	e.MsgListIn = append(e.MsgListIn, msg)
 
 	if msg.Level <= 0 {
 		panic("level <= 0 should never happen")
@@ -339,7 +401,7 @@ func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) (
 		// If we get a new current vote from this, we will get a vote change. In which case we will
 		// send out our current vote if nothing is better
 		for _, v := range msg.VoteMessages {
-			resp, v := e.Execute(v)
+			resp, v := e.execute(v)
 			if resp != nil && rank0Vote != nil {
 				vl, castok := resp.(*messages.LeaderLevelMessage)
 				if castok {
@@ -395,7 +457,7 @@ func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) (
 			}
 
 			// This is not our last vote, let's check if it triggers a new vote
-			msg, _ := e.Execute(ll)
+			msg, _ := e.execute(ll)
 			if msg != nil {
 				if l2, ok := msg.(*messages.LeaderLevelMessage); ok {
 					return e.commitIfLast(l2), true
@@ -440,11 +502,19 @@ func (e *Election) commitIfLast(msg *messages.LeaderLevelMessage) *messages.Lead
 func (e *Election) PrintMessages() string {
 	str := fmt.Sprintf("-- In -- (%p)\n", e.MsgListIn)
 	for i, m := range e.MsgListIn {
-		str += fmt.Sprintf("%d %s\n", i, e.Display.FormatMessage(m))
+		if m.Msg != nil {
+			str += fmt.Sprintf("%d Depth:%d %s\n", i, m.Depth, e.Display.FormatMessage(m.Msg))
+		} else if m.VoteMsg != nil {
+			str += fmt.Sprintf("%d Depth:%d %s\n", i, m.Depth, e.Display.FormatMessage(m.VoteMsg))
+		}
 	}
 	str += fmt.Sprintf("-- Out -- (%p)\n", e.MsgListOut)
 	for i, m := range e.MsgListOut {
-		str += fmt.Sprintf("%d %s\n", i, e.Display.FormatMessage(m))
+		if m.Msg != nil {
+			str += fmt.Sprintf("%d Depth:%d %s\n", i, m.Depth, e.Display.FormatMessage(m.Msg))
+		} else if m.VoteMsg != nil {
+			str += fmt.Sprintf("%d Depth:%d %s\n", i, m.Depth, e.Display.FormatMessage(m.VoteMsg))
+		}
 	}
 	return str
 }

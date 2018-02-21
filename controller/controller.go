@@ -10,6 +10,7 @@ import (
 
 	"github.com/FactomProject/electiontesting/election"
 	"github.com/FactomProject/electiontesting/imessage"
+	priminterpreter "github.com/FactomProject/electiontesting/interpreter/primitives"
 	"github.com/FactomProject/electiontesting/messages"
 	"github.com/FactomProject/electiontesting/primitives"
 	"github.com/FactomProject/electiontesting/testhelper"
@@ -37,6 +38,8 @@ type Controller struct {
 
 	Router          *Router
 	OutputsToRouter bool
+
+	*priminterpreter.Primitives
 }
 
 // NewController creates all the elections and initial volunteer messages
@@ -69,6 +72,7 @@ func NewController(feds, auds int) *Controller {
 	c.auds = audlist
 
 	c.Router = NewRouter(c.RoutingElections)
+	c.InitInterpreter()
 	return c
 }
 

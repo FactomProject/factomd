@@ -9,14 +9,31 @@ import (
 	"github.com/FactomProject/electiontesting/election"
 	"github.com/FactomProject/electiontesting/imessage"
 
-	"reflect"
+	"crypto/sha256"
 )
 
-var _ = reflect.DeepEqual
+var mirrorMap map[[32]byte][]byte
+
+var solutions = 0
+var breadth = 0
+var loops = 0
+var mirrors = 0
+var depths []int
+var solutionsAt []int
+var mirrorsAt []int
+var deadMessagesAt []int
+var hitlimit int
+var maxdepth int
+var failure int
+
+var globalRunNumber = 0
+
+var extraPrints = true
+var insanePrints = false
 
 //================ main =================
 func main() {
-	recurse(3, 3, 2000)
+	recurse(2, 5, 100)
 }
 
 // newElections will return an array of elections (1 per leader) and an array
@@ -65,56 +82,59 @@ type mymsg struct {
 	msg       imessage.IMessage
 }
 
-var solutions = 0
-var breadth = 0
-var loops = 0
-var depths []int
-var cuts []int
-var hitlimit int
-
-var globalRunNumber = 0
-
-var extraPrints = true
-var insanePrints = false
-
-func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
-	incDepths(depth)
+// dive
+// Pass a list of messages to process, to a set of leaders, at a current depth, with a particular limit.
+// Provided a msgPath, and updated for recording purposes.
+// Return success if we actually settled on a solution
+// Have seen a success is useful for declaring a loop has been detected.
+//
+// Note that we actually dive 100 levels beyond our limit, and declare seeSuccess past our limit as proof we are
+// in a loop.
+// Hitting the limit and seeSuccess is proof of a loop that none the less can resolve.
+func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int, msgPath []*mymsg) (limitHit bool, seeSuccess bool) {
+	depths = incCounter(depths, depth)
 	depth++
 	if depth > limit {
-		if extraPrints {
-			fmt.Print("Loop/solution/limit at ", depth)
-			for _, v := range cuts {
-				fmt.Print(v, " ")
-			}
-			fmt.Println()
-		}
 		breadth++
 		hitlimit++
-		return
+		return true, false
 	}
 
-	if LoopingDetected(leaders[0].Display.Global) == len(leaders) {
-		// TODO: Paul you can move this check wherever you need
-		incCuts(depth)
-		loops++
-		return
+	if depth > maxdepth {
+		maxdepth = depth
 	}
 
 	fmt.Println("=============== ",
-		" Depth=", depth,
+		" Depth=", depth, "/", maxdepth,
+		" Failures=", failure,
+		" MsgQ=", len(msgs),
+		", Mirrors=", mirrors, len(mirrorMap),
 		", Hit the Limits=", hitlimit,
 		" Breadth=", breadth,
 		", solutions so far =", solutions,
 		", global count= ", globalRunNumber,
 		", loops detected=", loops)
-	fmt.Print("Loop/solution/limit at ", depth)
-	for _, v := range cuts {
-		fmt.Print(v, " ")
+	fmt.Printf("\n%20s", "Dead Messages")
+	for i, v := range deadMessagesAt {
+		if i%16 == 0 {
+			fmt.Println()
+		}
+		fmt.Printf("%3d/%12d ", i, v)
 	}
-	fmt.Println()
-	fmt.Print("Working at depth: ", depth)
-	for _, v := range depths {
-		fmt.Print(v, " ")
+	fmt.Printf("\n%20s ", "Mirrors")
+	fmt.Print("Mirrors       ", depth)
+	for i, v := range mirrorsAt {
+		fmt.Printf("%d/%d ", i, v)
+	}
+	fmt.Printf("\n%20s ", "Solutions")
+	fmt.Print("Solutions     ", depth)
+	for i, v := range solutionsAt {
+		fmt.Printf("%d/%d ", i, v)
+	}
+	fmt.Printf("\n%20s ", "Depths")
+	fmt.Print("Depths        ", depth)
+	for i, v := range depths {
+		fmt.Printf("%d/%d ", i, v)
 	}
 	fmt.Println()
 
@@ -146,13 +166,53 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 		}
 	}
 	if done == len(leaders)/2+1 {
-		incCuts(depth)
+		solutionsAt = incCounter(solutionsAt, depth)
 		if extraPrints {
 			fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>>>> Solution Found @ ", depth)
 		}
 		breadth++
 		solutions++
-		return
+		return false, true
+
+	}
+
+	// Look for mirrorMap, but only after we have been going a bit.
+	if depth > 70 {
+		var hashes [][32]byte
+		var strings []string
+		for _, ldr := range leaders {
+			bits := ldr.NormalizedString()
+			if bits != nil {
+				strings = append(strings, string(bits))
+				h := Sha(bits)
+				hashes = append(hashes, h)
+			} else {
+				panic("shouldn't happen")
+			}
+		}
+		for i := 0; i < len(hashes)-1; i++ {
+			for j := 0; j < len(hashes)-1-i; j++ {
+				if bytes.Compare(hashes[j][:], hashes[j+1][:]) > 0 {
+					hashes[j], hashes[j+1] = hashes[j+1], hashes[j+1]
+					strings[j], strings[j+1] = strings[j+1], strings[j]
+				}
+			}
+		}
+		var all []byte
+		var alls string
+		for i, h := range hashes {
+			all = append(all, h[:]...)
+			alls += strings[i]
+		}
+		mh := Sha(all)
+		if mirrorMap[mh] != nil {
+			mirrors++
+			breadth++
+			mirrorsAt = incCounter(mirrorsAt, depth)
+			return false, false
+		}
+		fmt.Println("All State: ", alls)
+		mirrorMap[mh] = mh[:]
 	}
 
 	for d, v := range msgs {
@@ -160,6 +220,7 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 		msgs2 = append(msgs2, msgs[0:d]...)
 		msgs2 = append(msgs2, msgs[d+1:]...)
 		ml2 := len(msgs2)
+
 		globalRunNumber++
 
 		cl := CloneElection(leaders[v.leaderIdx])
@@ -170,9 +231,12 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 		//	os.Exit(0)
 		//}
 
-		msg, changed := leaders[v.leaderIdx].Execute(v.msg)
+		msg, changed := leaders[v.leaderIdx].Execute(v.msg, depth)
+
+		msgPath2 := append(msgPath, v)
 
 		if changed {
+
 			if msg != nil {
 				for i, _ := range leaders {
 					if i != v.leaderIdx {
@@ -188,37 +252,45 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 				ldr.Display.Global = gl
 			}
 			// Recursive Dive
-			dive(msgs2, leaders, depth, limit)
+			lim, ss := dive(msgs2, leaders, depth, limit, msgPath2)
+			_ = lim || ss
+			seeSuccess = seeSuccess || ss
+			limitHit = limitHit || lim
 			for _, ldr := range leaders {
 				ldr.Display.Global = cl.Display.Global
 			}
 			msgs2 = msgs2[:ml2]
 		} else {
-			incCuts(depth)
+			deadMessagesAt = incCounter(deadMessagesAt, depth)
 		}
 		leaders[v.leaderIdx] = cl
 	}
+
+	if depth == limit-50 && limitHit {
+		if seeSuccess {
+			loops++
+		} else {
+			failure++
+		}
+		limitHit = false
+	}
+
+	return limitHit, seeSuccess
 }
 
-func incCuts(depth int) {
-	for len(cuts) <= depth {
-		cuts = append(cuts, 0)
+func incCounter(counter []int, depth int) []int {
+	for len(counter) <= depth {
+		counter = append(counter, 0)
 	}
-	cuts[depth]++
-}
-
-func incDepths(depth int) {
-	for len(depths) <= depth {
-		depths = append(depths, 0)
-	}
-	depths[depth]++
+	counter[depth]++
+	return counter
 }
 
 func recurse(auds int, feds int, limit int) {
 
 	_, leaders, msgs := newElections(feds, auds, false)
-
-	dive(msgs, leaders, 0, limit)
+	var msgpath []*mymsg
+	dive(msgs, leaders, 0, limit, msgpath)
 }
 
 // reuse encoder/decoder so we don't recompile the struct definition
@@ -234,6 +306,7 @@ func init() {
 	buff := new(bytes.Buffer)
 	enc = gob.NewEncoder(buff)
 	dec = gob.NewDecoder(buff)
+	mirrorMap = make(map[[32]byte][]byte, 10000)
 }
 
 func CloneElection(src *election.Election) *election.Election {
@@ -248,4 +321,10 @@ func CloneElection(src *election.Election) *election.Election {
 		panic(err)
 	}
 	return dst
+}
+
+// Create a Sha256 Hash from a byte array
+func Sha(p []byte) [32]byte {
+	b := sha256.Sum256(p)
+	return b
 }

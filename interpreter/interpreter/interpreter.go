@@ -139,8 +139,8 @@ func (i *Interpreter) executeName(n Name) {
 
 func (i *Interpreter) Exec3(x interface{}) {
 
-//	fmt.Printf("Exec3(%v) ", i.String(x))
-//	i.PStack()
+	//	fmt.Printf("Exec3(%v) ", i.String(x))
+	//	i.PStack()
 
 	// Got an executable thing and I want to execute it
 	switch x.(type) {
@@ -178,10 +178,11 @@ func (i *Interpreter) InterpretString(s string) {
 }
 
 func (i *Interpreter) InterpretLine(line string) {
-	fmt.Printf("Interpret(\"%s\")\n", line)
+	//fmt.Printf("Interpret(\"%s\")\n", line)
 	defer func() { i.Line = i.Line }()
 	i.Line = line
 
+	comment := false
 	var s string
 	for {
 		// Scan a string from the current line (possible modified by execution)
@@ -192,6 +193,18 @@ func (i *Interpreter) InterpretLine(line string) {
 			line = line[len(s):] // Trim off the string and the ws following
 			i.Line = line
 			if s != "" {
+				// # is a comment
+				if s == "/*" {
+					comment = true
+					continue
+				}
+				if s == "*/" {
+					comment = false
+					continue
+				}
+				if comment {
+					continue
+				}
 				i.InterpretString(s) // execute the string
 			}
 		}
@@ -213,6 +226,7 @@ func (i *Interpreter) Interpret(source io.Reader) {
 	defer func() {
 		if r := recover(); r != nil {
 			fmt.Println("Error:", r)
+			i.Compiling = 0
 		}
 	}()
 
