@@ -13,21 +13,22 @@ func (n Name) GetRawName() Name {
 
 func (n Name) GetFlags() FlagsStruct {
 	var f FlagsStruct
-	f.Executable = (int(n) & (1 << 0) ) != 0
-	f.Immediate = (int(n) & (1 << 1) ) != 0
-	f.Traced = (int(n) & (1 << 2) ) != 0
-    return f
+	f.Executable = (int(n) & (1 << 0)) != 0
+	f.Immediate = (int(n) & (1 << 1)) != 0
+	f.Traced = (int(n) & (1 << 2)) != 0
+	return f
 }
 
-func (n Name) SetFlags(f FlagsStruct) {
+func (n *Name) SetFlags(f FlagsStruct) {
+
 	if f.Executable {
-		n = Name(int(n) | (1 << 0))
+		*n |= 1 << 0
 	}
 	if f.Immediate {
-		n = Name(int(n) | (1 << 1))
+		*n |= 1 << 1
 	}
 	if f.Traced {
-		n = Name(int(n) | (1 << 2))
+		*n |= 1 << 2
 	}
 	return
 }
