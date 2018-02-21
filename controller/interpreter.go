@@ -50,60 +50,20 @@ func (c *Controller) InitInterpreter() {
 	c.AddPrim(conprimitives, "reset", c.Reset, executable)
 	c.AddPrim(conprimitives, "setcon", c.SetController, executable)
 
-	// Help tools
-	c.AddPrim(conprimitives, "next", c.PrimNextBuffer, executable)
-
 	//return p
 }
 
 func (c *Controller) SetController() {
-	lines := c.LinesBuffered
-	i := c.LineIndex
-	c.setController()
-	c.LinesBuffered = lines
-	c.LineIndex = i
-}
-
-func (c *Controller) Reset() {
-	lines := c.LinesBuffered
-	i := c.LineIndex
-	c.reset()
-	c.LinesBuffered = lines
-	c.LineIndex = i
-
-}
-
-func (c *Controller) setController() {
-	lines := c.LinesBuffered
 	a := c.PopInt()
 	f := c.PopInt()
 	newc := NewController(f, a)
-	newc.LinesBuffered = lines
-	newc.LineIndex = c.LineIndex
 
 	*c = *newc
 }
 
-func (c *Controller) reset() {
-	lines := c.LinesBuffered
+func (c *Controller) Reset() {
 	newc := NewController(len(c.AuthSet.GetFeds()), len(c.AuthSet.GetAuds()))
-	newc.LinesBuffered = lines
-	newc.LineIndex = c.LineIndex
 	*c = *newc
-}
-
-func (c *Controller) PrimNextBuffer() {
-	tot := c.PopInt()
-	for i := 0; i < tot; i++ {
-		if c.LineIndex == len(c.LinesBuffered)-1 {
-			fmt.Println("Out of lines")
-			return
-		}
-		line := c.LinesBuffered[c.LineIndex]
-		fmt.Printf("%d) Pulled: %s\n", c.LineIndex, line)
-		c.Interpret(strings.NewReader(line))
-		c.LineIndex++
-	}
 }
 
 func (c *Controller) RunScenario() {
