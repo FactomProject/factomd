@@ -17,7 +17,7 @@ type Interpreter struct {
 	Stack     // Data stack is integral
 	C         Stack
 	Compiling int
-	Tracing int
+	Tracing   int
 	DictStack []Dictionary
 	Input     *bufio.Reader
 	Line      string
@@ -155,7 +155,6 @@ func (i *Interpreter) Exec3(x interface{}) {
 		i.PStack()
 	}
 
-
 	// Got an executable thing and I want to execute it
 	switch x.(type) {
 	case Array:
@@ -203,7 +202,6 @@ func (i *Interpreter) InterpretLine(line string) {
 	defer func() { i.Line = i.Line }()
 	i.Line = line
 
-	comment := false
 	var s string
 	for {
 		// Scan a string from the current line (possible modified by execution)
@@ -215,16 +213,8 @@ func (i *Interpreter) InterpretLine(line string) {
 			i.Line = line
 			if s != "" {
 				// # is a comment
-				if s == "/*" {
-					comment = true
-					continue
-				}
-				if s == "*/" {
-					comment = false
-					continue
-				}
-				if comment {
-					continue
+				if s == "#" {
+					return
 				}
 				i.InterpretString(s) // execute the string
 			}
@@ -249,8 +239,12 @@ func (i *Interpreter) Interpret(source io.Reader) {
 			fmt.Println("Error:", r)
 			i.Compiling = 0
 			i.Tracing = 0
-			if i.Ptr < 0 {i.Ptr=0}
-			if i.C.Ptr <0 {i.C.Ptr=0}
+			if i.Ptr < 0 {
+				i.Ptr = 0
+			}
+			if i.C.Ptr < 0 {
+				i.C.Ptr = 0
+			}
 		}
 	}()
 

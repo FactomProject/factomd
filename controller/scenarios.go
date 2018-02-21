@@ -21,29 +21,29 @@ func init() {
 // " flipfloph" runscene
 
 var HorizontalFlipflop string = `
-/* Setup some variables */
+# Setup some variables
 { [ 0 1 2 ] } /all def
 { [ 0 1 ] }   /left def
 { [ 1 2 ] }   /right def
 { [ 1 ] }     /mid def
 { [ 2 ] }     /fright def
 
-/* Pass around volunteer 1 */
+# Pass around volunteer 1
 1 all <-v
 
-/* Pass around volunteer 2 */
+# Pass around volunteer 2
 2 all <-v
 
-/* Voting time */
+# Voting time
 left 1 left <-o
 right 2 right <-o
 
-/* levels */
+# /* levels */
 left 1 left <-l
 mid 2 right <-l
 fright 1 mid <-l
 
-/* Turn on routing  */
+# Turn on routing
 <r>
 
 { 2 } 1 { 0 } <-l
