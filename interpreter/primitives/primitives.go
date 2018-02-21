@@ -69,10 +69,11 @@ func NewPrimitives() *Primitives {
 	p.AddPrim(primitives, "\"", func() { p.Quote() }, immediate)
 
 	// arrays
-	p.AddPrim(primitives, "{", func() { p.StartArray() }, immediate)
+	p.AddPrim(primitives, "{", func() { p.StartXArray() }, immediate)
 	p.AddPrim(primitives, "}", func() { p.EndXArray() }, immediate)
-	p.AddPrim(primitives, "[", func() { p.StartArray() }, immediate)
-	p.AddPrim(primitives, "]", func() { p.EndArray() }, immediate)
+
+	p.AddPrim(primitives, "[", func() { p.StartArray() }, executable)
+	p.AddPrim(primitives, "]", func() { p.EndArray() }, executable)
 
 	p.AddPrim(primitives, "exec", func() { p.Exec() }, executable)
 	p.AddPrim(primitives, "def", func() { p.Def() }, executable)
@@ -85,6 +86,16 @@ func NewPrimitives() *Primitives {
 	p.AddPrim(primitives, "J", func() { p.J() }, executable)
 	p.AddPrim(primitives, "K", func() { p.K() }, executable)
 	p.AddPrim(primitives, "if", func() { p.If() }, executable)
+	p.AddPrim(primitives, "ifelse", func() { p.IfElse() }, executable)
+
+	// Control debug
+	p.AddPrim(primitives, "traceon", func() { p.Tracing++ }, executable)
+	p.AddPrim(primitives, "traceoff", func() { p.Tracing = 0 }, executable)
+
+	// Control object flags
+	p.AddPrim(primitives, "immediate", func() { p.SetImmediate() }, executable)
+	p.AddPrim(primitives, "executable", func() { p.SetExecutable() }, executable)
+	p.AddPrim(primitives, "trace", func() { p.SetTrace() }, executable)
 
 	userDictionary := NewDictionary()
 	p.AddPrim(primitives, "userdict", userDictionary, executable)
@@ -102,6 +113,31 @@ var mark Mark
 
 func (p *Primitives) Exec() { p.Exec3(p.Pop()) }
 
+func (p *Primitives) SetExecutable() {
+	x := p.Peek()
+	y, ok := x.(HasFlags)
+	if ok {
+		x.(HasFlags).SetFlags(y.GetFlags().SetExecutable(true))
+	}
+
+}
+func (p *Primitives) SetImmediate() {
+	x := p.Peek()
+	y, ok := x.(HasFlags)
+	if ok {
+		x.(HasFlags).SetFlags(y.GetFlags().SetImmediate(true))
+	}
+
+}
+func (p *Primitives) SetTrace() {
+	x := p.Peek()
+	y, ok := x.(HasFlags)
+	if ok {
+		x.(HasFlags).SetFlags(y.GetFlags().SetTraced(true))
+	}
+
+}
+
 func (p *Primitives) If() {
 	cond := p.Pop()
 	x := p.Pop()
@@ -113,6 +149,25 @@ func (p *Primitives) If() {
 	case int:
 		if cond.(int) != 0 {
 			p.Exec3(x)
+		}
+	}
+}
+func (p *Primitives) IfElse() {
+	cond := p.Pop()
+	x := p.Pop()
+	y:= p.Pop()
+	switch cond.(type) {
+	case bool:
+		if cond.(bool) {
+			p.Exec3(x)
+		} else {
+			p.Exec3(y)
+		}
+	case int:
+		if cond.(int) != 0 {
+			p.Exec3(x)
+		}else {
+			p.Exec3(y)
 		}
 	}
 }
@@ -152,16 +207,18 @@ func (p *Primitives) J() { p.Push(p.C.PeekN(1)) } // Copy J to data stack
 func (p *Primitives) K() { p.Push(p.C.PeekN(2)) } // Copy K to data stack
 
 // arrays
-func (p *Primitives) StartArray() {
+func (p *Primitives) StartXArray() {
 	p.Compiling++
+	p.Push(mark)
+}
+
+func (p *Primitives) StartArray() {
 	p.Push(mark)
 }
 
 func (p *Primitives) EndArray() {
 	//	fmt.Print("EndArray ")
 	//	p.PStack()
-	p.Compiling--
-
 	var a Array = NewArray()
 	// count how far down the stack my mark is
 	var i int = 0

@@ -1,12 +1,35 @@
 package names
 
+import . "github.com/FactomProject/electiontesting/interpreter/common"
+
 type Name uint32
 
-const bitFlags = 1
+const bitFlags = 3
 const bitMask = (-1 << bitFlags)
 
 func (n Name) GetRawName() Name {
 	return Name(int(n) & bitMask)
+}
+
+func (n Name) GetFlags() FlagsStruct {
+	var f FlagsStruct
+	f.Executable = (int(n) & (1 << 0) ) != 0
+	f.Immediate = (int(n) & (1 << 1) ) != 0
+	f.Traced = (int(n) & (1 << 2) ) != 0
+    return f
+}
+
+func (n Name) SetFlags(f FlagsStruct) {
+	if f.Executable {
+		n = Name(int(n) | (1 << 0))
+	}
+	if f.Immediate {
+		n = Name(int(n) | (1 << 1))
+	}
+	if f.Traced {
+		n = Name(int(n) | (1 << 2))
+	}
+	return
 }
 
 func (n Name) IsExecutable() bool { return (int(n) & (1 << 0)) != 0 }

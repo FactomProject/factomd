@@ -17,14 +17,6 @@ type HasFlags interface {
 
 type Func func()
 
-type ImmediateFunc struct {
-	FlagsStruct
-	Func
-}
-
-func (a ImmediateFunc) GetFlags() FlagsStruct  { return a.FlagsStruct }
-func (a ImmediateFunc) SetFlags(f FlagsStruct) { a.FlagsStruct = f }
-
 type Mark struct{} // Used to mark a spot on the stack for executable arrays
 
 type Array struct {

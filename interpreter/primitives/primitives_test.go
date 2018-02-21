@@ -9,6 +9,7 @@ import (
 
 func TestPrimitives(t *testing.T) {
 
+	// TODO: Need to make this so it actually checks the result instead of printing it :-)
 	p := NewPrimitives()
 	//p.Interpret(strings.NewReader("1 0 + ."))
 	//p.Interpret(strings.NewReader("{ 1 1 + . } exec "))
@@ -19,5 +20,8 @@ func TestPrimitives(t *testing.T) {
 	//p.Interpret(strings.NewReader("12 { dup . 1 + } 3 repeat drop"))
 	//p.Interpret(strings.NewReader(`[ 1 2 3 4 5 ] { . } forall`))
 	//p.Interpret(strings.NewReader(`{ " thirteen" } exec .`))
-	p.Interpret(strings.NewReader(`0 [ 1 6 7 ] dup . /+ forall . `))
+	//p.Interpret(strings.NewReader(`0 [ 1 6 7 ] dup . { + } forall . `))
+	//p.Interpret(strings.NewReader(`traceon [ 15 ] /foo def foo . `))
+	p.Interpret(strings.NewReader(`traceon [ 1 5 5 5 /+ executable  dup dup ] executable exec + .  `))
+
 }

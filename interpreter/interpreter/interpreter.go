@@ -17,6 +17,7 @@ type Interpreter struct {
 	Stack     // Data stack is integral
 	C         Stack
 	Compiling int
+	Tracing int
 	DictStack []Dictionary
 	Input     *bufio.Reader
 	Line      string
@@ -131,6 +132,9 @@ func (i *Interpreter) executeName(n Name) {
 				i.Push(dictEntry.E)
 				return
 			}
+		} else {
+			i.Push(dictEntry.E)
+			return
 		}
 	}
 	// if not executing the name push then it
@@ -139,8 +143,18 @@ func (i *Interpreter) executeName(n Name) {
 
 func (i *Interpreter) Exec3(x interface{}) {
 
-	//	fmt.Printf("Exec3(%v) ", i.String(x))
-	//	i.PStack()
+	t, ok := x.(HasFlags)
+	if ok {
+		if t.GetFlags().Traced {
+			i.Tracing++
+		}
+	}
+
+	if i.Tracing > 0 {
+		fmt.Printf("Exec3(%v) ", i.String(x))
+		i.PStack()
+	}
+
 
 	// Got an executable thing and I want to execute it
 	switch x.(type) {
@@ -155,6 +169,13 @@ func (i *Interpreter) Exec3(x interface{}) {
 	default:
 		i.Push(x)
 	} // switch on type
+
+	if ok {
+		if t.GetFlags().Traced {
+			i.Tracing--
+		}
+	}
+
 }
 
 // execute one thing
@@ -178,7 +199,7 @@ func (i *Interpreter) InterpretString(s string) {
 }
 
 func (i *Interpreter) InterpretLine(line string) {
-	//fmt.Printf("Interpret(\"%s\")\n", line)
+	fmt.Printf("Interpret(\"%s\")\n", line)
 	defer func() { i.Line = i.Line }()
 	i.Line = line
 
@@ -227,6 +248,9 @@ func (i *Interpreter) Interpret(source io.Reader) {
 		if r := recover(); r != nil {
 			fmt.Println("Error:", r)
 			i.Compiling = 0
+			i.Tracing = 0
+			if i.Ptr < 0 {i.Ptr=0}
+			if i.C.Ptr <0 {i.C.Ptr=0}
 		}
 	}()
 
