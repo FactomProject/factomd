@@ -51,12 +51,21 @@ func (p *Interpreter) String(x interface{}) (s string) {
 	case Name:
 		s = p.GetString(x.(Name))
 	case Array:
-		s = "{ "
-		for _, y := range x.(Array).Data {
-			s += p.String(y) + " "
+		if x.(Array).Executable {
+			s = "{ "
+			for _, y := range x.(Array).Data {
+				s += p.String(y) + " "
 
-		} // for all elements of the executable array
-		s += "}"
+			} // for all elements of the executable array
+			s += "}"
+		} else {
+			s = "[ "
+			for _, y := range x.(Array).Data {
+				s += p.String(y) + " "
+
+			} // for all elements of the executable array
+			s += "]"
+		}
 	default:
 		s = fmt.Sprintf("%v", x)
 	}
