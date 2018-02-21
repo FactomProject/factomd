@@ -40,6 +40,8 @@ type Controller struct {
 	OutputsToRouter bool
 
 	*priminterpreter.Primitives
+
+	PrintingTrace bool
 }
 
 // NewController creates all the elections and initial volunteer messages
@@ -221,7 +223,12 @@ func (c *Controller) RouteMessage(msg imessage.IMessage, nodes []int) {
 }
 
 func (c *Controller) routeSingleNode(msg imessage.IMessage, node int) {
-	resp, _ := c.RoutingElections[node].Execute(msg)
+	var resp imessage.IMessage = nil
+	if c.OutputsToRouter {
+		resp, _ = c.RoutingElections[node].Execute(msg)
+	} else {
+		resp, _ = c.Elections[node].Execute(msg, 0)
+	}
 
 	if c.OutputsToRouter {
 		// Outputs get sent to Router so we can hit "run"
@@ -230,6 +237,13 @@ func (c *Controller) routeSingleNode(msg imessage.IMessage, node int) {
 		c.Router.route(node, msg)
 	}
 	c.Buffer.Add(resp)
+
+	if c.PrintingTrace {
+		str := fmt.Sprintf("L%d: ", node)
+		str += fmt.Sprintf(" Consumed(%s)", c.Elections[node].Display.FormatMessage(msg))
+		str += fmt.Sprintf(" Generated(%s)", c.Elections[node].Display.FormatMessage(resp))
+		fmt.Println(str)
+	}
 }
 
 func (c *Controller) routeToRouter(msg imessage.IMessage, node int) {

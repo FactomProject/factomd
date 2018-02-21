@@ -99,22 +99,24 @@ func (v *VolunteerControl) AddVote(msg *messages.LeaderLevelMessage) bool {
 			msg.Justification = nil
 			v.Votes[msg.Signer] = msg
 			return true
+		} else {
+			return false
 		}
 	}
 
 	// New Vote
-	if len(v.Votes) >= v.Majority() {
-		// Delete the lowest one, we don't need it
-		lowest := math.MaxInt32
-		remove := Identity(-1)
-		for k, v := range v.Votes {
-			if v.Level < lowest {
-				lowest = v.Level
-				remove = k
-			}
-		}
-		delete(v.Votes, remove)
-	}
+	//if len(v.Votes) >= v.Majority() {
+	//	// Delete the lowest one, we don't need it
+	//	lowest := math.MaxInt32
+	//	remove := Identity(-1)
+	//	for k, v := range v.Votes {
+	//		if v.Level < lowest {
+	//			lowest = v.Level
+	//			remove = k
+	//		}
+	//	}
+	//	delete(v.Votes, remove)
+	//}
 	v.Votes[msg.Signer] = msg
 
 	return true

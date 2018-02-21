@@ -23,10 +23,17 @@ func (c *Controller) InitInterpreter() {
 
 	// Add custom functions
 	//	Debug/Printing
+	c.AddPrim(conprimitives, ".m", c.PrimPrintMessages, executable)
+	c.AddPrim(conprimitives, ".ma", c.PrimPrintMessagesAll, executable)
+	c.AddPrim(conprimitives, ".n", c.PrimPrintNodeStack, executable)
+	c.AddPrim(conprimitives, ".na", c.PrimPrintNodeStackAll, executable)
 	c.AddPrim(conprimitives, ".c", c.PrimPrintState, executable)
 	c.AddPrim(conprimitives, ".ca", c.PrimPrintStateAll, executable)
+	c.AddPrim(conprimitives, ".v", c.PrimPrintVoteState, executable)
+	c.AddPrim(conprimitives, ".va", c.PrimPrintVoteStateAll, executable)
 	c.AddPrim(conprimitives, ".r", c.PrimPrintRoutingInfo, executable)
 	c.AddPrim(conprimitives, ".rp", c.PrimToggleRouterPrinting, executable)
+	c.AddPrim(conprimitives, ".cp", c.PrimToggleControllerPrinting, executable)
 
 	//	Message routing
 	c.AddPrim(conprimitives, "<-v", c.PrimRouteVolunteerMessage, executable)
@@ -75,6 +82,37 @@ func (c *Controller) PrimRouteStepN() {
 	c.Router.StepN(c.PopInt())
 }
 
+func (c *Controller) PrimPrintRoutingInfo() {
+	fmt.Println(c.Router.Status())
+}
+
+func (c *Controller) PrimPrintMessages() {
+	f := c.PopInt()
+	fmt.Println("Node", f)
+	fmt.Println(c.Elections[f].PrintMessages())
+}
+
+func (c *Controller) PrimPrintMessagesAll() {
+	for i := 0; i < len(c.feds); i++ {
+		fmt.Println("Node", i)
+		fmt.Println(c.Elections[i].PrintMessages())
+	}
+}
+
+func (c *Controller) PrimPrintNodeStack() {
+	fmt.Println(c.Router.NodeStack(c.PopInt()))
+}
+
+func (c *Controller) PrimPrintNodeStackAll() {
+	for i := 0; i < len(c.feds); i++ {
+		fmt.Println(c.Router.NodeStack(i))
+	}
+}
+
+func (c *Controller) PrimPrintState() {
+	fmt.Println(c.ElectionStatus(c.PopInt()))
+}
+
 func (c *Controller) PrimPrintStateAll() {
 	fmt.Println(c.ElectionStatus(-1))
 	for i := 0; i < len(c.feds); i++ {
@@ -82,12 +120,15 @@ func (c *Controller) PrimPrintStateAll() {
 	}
 }
 
-func (c *Controller) PrimPrintRoutingInfo() {
-	fmt.Println(c.Router.Status())
+func (c *Controller) PrimPrintVoteState() {
+	fmt.Println(string(c.Elections[c.PopInt()].StateString()))
 }
 
-func (c *Controller) PrimPrintState() {
-	fmt.Println(c.ElectionStatus(c.PopInt()))
+func (c *Controller) PrimPrintVoteStateAll() {
+	for i := 0; i < len(c.feds); i++ {
+		fmt.Printf("Node %d\n", i)
+		fmt.Println(string(c.Elections[i].StateString()))
+	}
 }
 
 // Vol  To
@@ -120,6 +161,10 @@ func (c *Controller) PrimRouteLevelMessage() {
 	c.RouteLeaderSetLevelMessage(from, vote, to)
 }
 
+func (c *Controller) PrimToggleControllerPrinting() {
+	c.PrintingTrace = !c.PrintingTrace
+	fmt.Printf("Printing: %t", c.PrintingTrace)
+}
 func (c *Controller) PrimToggleRouterPrinting() {
 	c.Router.PrintMode(!c.Router.Printing)
 	fmt.Printf("Printing: %t", c.Router.Printing)

@@ -192,6 +192,7 @@ func (e *Election) execute(msg imessage.IMessage) (imessage.IMessage, bool) {
 			if newll != nil {
 				e.updateCurrentVote(newll)
 			}
+			e.addLeaderLevelMessage(newll)
 			return newll, change
 		}
 		return nil, change
@@ -302,7 +303,17 @@ func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) (
 		}
 
 		e.updateCurrentVote(vote)
-		return e.commitIfLast(vote), true
+
+		vote = e.commitIfLast(vote)
+		e.addLeaderLevelMessage(vote)
+		if !e.Committed {
+			resp, _ := e.execute(vote)
+			if resp != nil {
+				return resp, true
+			}
+		}
+
+		return vote, true
 	}
 
 	// No best vote? Can we do a rank 0 with the new votes?

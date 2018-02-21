@@ -113,14 +113,14 @@ func (i *Interpreter) findInDictStack(n Name) (*DictionaryEnrty, bool) {
 func (i *Interpreter) executeName(n Name) {
 	s := i.String(n)
 	_ = s
-	if (n.IsExecutable()){
+	if n.IsExecutable() {
 		dictEntry, ok := i.findInDictStack(n)
 
 		if !ok {
 			panic("executeName(): Undefined " + i.String(n))
 		}
 
-		if dictEntry.Immediate || (dictEntry.Executable && i.Compiling==0) {
+		if dictEntry.Immediate || (dictEntry.Executable && i.Compiling == 0) {
 			switch dictEntry.E.(type) {
 			case func():
 				dictEntry.E.(func())()
@@ -133,7 +133,7 @@ func (i *Interpreter) executeName(n Name) {
 				return
 			}
 		} else {
-			if(i.Compiling != 0) {
+			if i.Compiling != 0 {
 				i.Push(n)
 			} else {
 				i.Push(dictEntry.E)
@@ -202,7 +202,7 @@ func (i *Interpreter) InterpretString(s string) {
 }
 
 func (i *Interpreter) InterpretLine(line string) {
-	fmt.Printf("Interpret(\"%s\")\n", line)
+	//fmt.Printf("Interpret(\"%s\")\n", line)
 	defer func() { i.Line = i.Line }()
 	i.Line = line
 
