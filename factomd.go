@@ -24,7 +24,7 @@ import (
 
 func main() {
 
-	//	runtime.SetMutexProfileFraction(5) // Enable mutex profiling
+	runtime.SetMutexProfileFraction(5) // Enable mutex profiling
 
 	// uncomment StartProfiler() to run the pprof tool (for testing)
 	params := ParseCmdLine(os.Args[1:])

@@ -22,7 +22,6 @@ import (
 
 var _ = fmt.Print
 
-
 func LoadDatabase(s *State) {
 
 	var blkCnt uint32
@@ -57,7 +56,7 @@ func LoadDatabase(s *State) {
 				// We hold off EOM and other processing (s.Runleader) till the last DBStateMsg is executed.
 				if i == int(blkCnt) {
 					// last block, flag it.
-					dbstate,_ := msg.(*messages.DBStateMsg)
+					dbstate, _ := msg.(*messages.DBStateMsg)
 					dbstate.IsLast = true // this is the last DBState in this load
 					// this will cause s.DBFinished to go true
 				}
@@ -74,7 +73,6 @@ func LoadDatabase(s *State) {
 			}
 		}
 
-
 		s.Print("\r", "\\|/-"[i%4:i%4+1])
 	}
 
@@ -86,6 +84,7 @@ func LoadDatabase(s *State) {
 		dblk, ablk, fblk, ecblk := GenerateGenesisBlocks(s.GetNetworkID())
 
 		msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk, nil, nil, nil)
+		s.DBFinished.Store(true)
 		s.InMsgQueue().Enqueue(msg)
 	}
 	s.Println(fmt.Sprintf("Loaded %d directory blocks on %s", blkCnt, s.FactomNodeName))

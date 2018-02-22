@@ -138,10 +138,9 @@ type DebugMutex struct {
 	done     chan struct{} // Channel to signal success to starvation detector
 }
 
-var yeaOfLittleFaith AtomicBool = AtomicBool(1) // true means mutex lock instead of CAS lock
-var enableStarvationDetection AtomicBool = AtomicBool(1)
-var enableAlreadyLockedDetection AtomicBool = AtomicBool(0)
-var enableOwnerTracking AtomicBool = AtomicBool(1 & enableStarvationDetection) // no point in tracking owners if not detecting starvation
+const yeaOfLittleFaith = true // true means mutex lock instead of CAS lock
+const enableStarvationDetection = true
+const enableOwnerTracking = true && enableStarvationDetection // no point in tracking owners if not detecting starvation
 
 func (c *DebugMutex) timeStarvation(whereAmI string) {
 	var owner string
@@ -151,13 +150,13 @@ func (c *DebugMutex) timeStarvation(whereAmI string) {
 			case <-c.done:
 				return
 			default:
-				if enableOwnerTracking.Load() && owner == "" {
+				if enableOwnerTracking && owner == "" {
 					owner = c.owner.Load()
 				}
 				time.Sleep(3 * time.Millisecond)
 			}
 		}
-		if enableOwnerTracking.Load() {
+		if enableOwnerTracking {
 			fmt.Printf("%s:Lock starving waiting for [%s] at %s\n", c.name.Load(), owner, whereAmI)
 		} else {
 			fmt.Printf("%s:Lock starving at %s\n", c.name.Load(), whereAmI)
@@ -168,7 +167,7 @@ func (c *DebugMutex) timeStarvation(whereAmI string) {
 func (c *DebugMutex) lockCAS() {
 	b := atomic.CompareAndSwapInt32(&c.lock, 0, 1) // set lock to 1 iff it is 0
 	if !b {
-		if enableStarvationDetection.Load() {
+		if enableStarvationDetection {
 			// Make a timer to whine if I am starving!
 			if c.done == nil {
 				c.done = make(chan struct{})
@@ -181,7 +180,8 @@ func (c *DebugMutex) lockCAS() {
 			if b {
 				break // Yea! we got the lock
 			}
-			time.Sleep(3 * time.Millisecond) // sit and spin
+			runtime.Gosched() // sit and spin
+			//time.Sleep(3 * time.Millisecond) // sit and spin
 		}
 	}
 }
@@ -197,10 +197,10 @@ func (c *DebugMutex) unlockCAS() {
 
 // try and detect bad behaviors using a traditional lock
 func (c *DebugMutex) lockMutex() {
-	if enableStarvationDetection.Load() && c.lockBool.Load() {
+	if enableStarvationDetection && c.lockBool.Load() {
 		// Make a timer to whine if I am starving!
 		if c.done == nil {
-			c.done = make(chan struct{},1)
+			c.done = make(chan struct{}, 1)
 		}
 		go c.timeStarvation(WhereAmIString(2))
 		defer func() { c.done <- struct{}{} }() // End the timer when I get the lock
@@ -219,16 +219,11 @@ func (c *DebugMutex) unlockMutex() {
 	c.mu.Unlock()
 }
 
-// Pick your posion ...
+// Pick your poison ...
 func (c *DebugMutex) Lock() {
-	if c.lockBool.Load() {
-		if enableAlreadyLockedDetection.Load() {
-			WhereAmI2(c.name.Load()+":Already Locked", 2)
-		}
-	}
 	c.waiting.Add(1) // Add me to the waiting count
 	// actually do the locking()
-	if yeaOfLittleFaith.Load() {
+	if yeaOfLittleFaith {
 		c.lockMutex()
 	} else {
 		c.lockCAS()
@@ -238,61 +233,19 @@ func (c *DebugMutex) Lock() {
 	if c.name.Load() == "" {
 		c.name.Store("DebugMutex " + WhereAmIString(1))
 	}
-	if enableOwnerTracking.Load() {
+	if enableOwnerTracking {
 		c.owner.Store(WhereAmIString(1))
 	}
 	//time.Sleep(20 * time.Millisecond) // Hog the lock -- debug -- clay
 }
 
 func (c *DebugMutex) Unlock() {
-	if yeaOfLittleFaith.Load() {
+	if yeaOfLittleFaith {
 		c.unlockMutex()
 	} else {
 		c.unlockCAS()
 	}
-	if enableOwnerTracking.Load() && c.waiting.Load() == 0 {
+	if enableOwnerTracking && c.waiting.Load() == 0 {
 		c.owner.Store("unlocked") // only set unlocked if no one is waiting
 	}
 }
-
-/*
-func main() {
-	fmt.Println("Begin Main")
-
-	var l DebugMutex
-
-	// try all eight flavors
-	for i := 0; i < 4; i++ {
-		enableStarvationDetection.Store(i&(1<<0) != 0)
-		yeaOfLittleFaith.Store(i&(1<<1) != 0)
-
-		timeUnit := 1000 * time.Millisecond
-
-		go func() {
-			//		fmt.Println("Start 1")
-			fmt.Println("Timer started")
-			for i := 0; i < 10; i++ {
-				l.Lock()
-				fmt.Printf("[%d]", i)
-				l.Unlock()
-				time.Sleep(4 * timeUnit) // must be > 3 second to see starvation
-			}
-			fmt.Println("Timer done")
-		}()
-
-		fmt.Printf("Start test faith1 = %v,  starvationDetection = %v\n", yeaOfLittleFaith, enableStarvationDetection)
-		for i := 0; i < 20; i++ {
-			fmt.Printf("<%d>", i)
-			if i == 5 {
-				l.Lock()
-			}
-			if i == 10 {
-				l.Unlock()
-			}
-			time.Sleep((40 * 2) / 20 * timeUnit)
-		}
-		time.Sleep(3 * time.Second) // make sure the test finishes
-		fmt.Println("\nMain loop done")
-	}
-}
-*/

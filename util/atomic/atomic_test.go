@@ -36,6 +36,7 @@ import (
 	// "time"
 
 	. "github.com/FactomProject/factomd/util/atomic"
+	"time"
 )
 
 var _ = fmt.Sprint
@@ -64,7 +65,7 @@ func TestDebugMutex(t *testing.T) {
 }
 
 // We fail the fairness unless yeaOfLittleFaith2 is 1
-/*func TestDebugMutexFairness(t *testing.T) {
+func TestDebugMutexFairness(t *testing.T) {
 	var mu DebugMutex
 	stop := make(chan bool)
 	defer close(stop)
@@ -94,7 +95,7 @@ func TestDebugMutex(t *testing.T) {
 	case <-time.After(10 * time.Second):
 		t.Fatalf("can't acquire Mutex in 10 seconds")
 	}
-}*/
+}
 
 func BenchmarkMutexSimple(b *testing.B) {
 	var m sync.Mutex
