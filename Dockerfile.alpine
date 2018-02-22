@@ -28,7 +28,7 @@ RUN mkdir -p /root/.factom/m2
 COPY factomd.conf /root/.factom/m2/factomd.conf
 
 # Now squash everything
-FROM alpine:3.6
+FROM alpine:3.7
 
 # Get git
 RUN apk add --no-cache ca-certificates curl git
