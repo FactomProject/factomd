@@ -18,7 +18,7 @@ func NewRoutingElection(e *Election) *RoutingElection {
 }
 
 func (r *RoutingElection) Execute(msg imessage.IMessage) (imessage.IMessage, bool) {
-	resp, ch := r.Election.execute(msg)
+	resp, ch := r.Election.Execute(msg, 0)
 	if resp == nil && ch {
 		return msg, ch
 	}

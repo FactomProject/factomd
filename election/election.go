@@ -192,6 +192,7 @@ func (e *Election) execute(msg imessage.IMessage) (imessage.IMessage, bool) {
 			if newll != nil {
 				e.updateCurrentVote(newll)
 			}
+			e.addLeaderLevelMessage(newll)
 			return newll, change
 		}
 		return nil, change
@@ -273,7 +274,7 @@ func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) (
 	// Add all messages to display and volunteer controllers. Then choose our best vote
 	change := e.addLeaderLevelMessage(msg)
 	for _, j := range msg.Justification {
-		change = change || e.addLeaderLevelMessage(j)
+		change = e.addLeaderLevelMessage(j) || change
 	}
 
 	// Best vote
@@ -298,11 +299,26 @@ func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) (
 			vote.Level = e.CurrentLevel
 			e.CurrentLevel++
 		} else {
-			e.CurrentLevel = vote.Level + 1
+			if e.CurrentLevel <= vote.Rank {
+				vote.Level = vote.Rank + 1
+				e.CurrentLevel = vote.Rank + 2
+			} else {
+				e.CurrentLevel = vote.Level + 1
+			}
 		}
 
 		e.updateCurrentVote(vote)
-		return e.commitIfLast(vote), true
+
+		vote = e.commitIfLast(vote)
+		e.addLeaderLevelMessage(vote)
+		if !e.Committed {
+			resp, _ := e.execute(vote)
+			if resp != nil {
+				return resp, true
+			}
+		}
+
+		return vote, true
 	}
 
 	// No best vote? Can we do a rank 0 with the new votes?
@@ -326,14 +342,14 @@ func (e *Election) addLeaderLevelMessage(msg *messages.LeaderLevelMessage) bool 
 	}
 
 	e.Display.Execute(msg)
-	change = change || e.VolunteerControls[msg.VolunteerMessage.Signer].AddVote(msg)
+	change = e.VolunteerControls[msg.VolunteerMessage.Signer].AddVote(msg) || change
 
 	voteChange := false
 	// Votes exist, so we can add these to our vote map
 	if len(msg.VoteMessages) > 0 {
 		for _, v := range msg.VoteMessages {
 			// Add vote to maps and display
-			voteChange = voteChange || e.addVote(v)
+			voteChange = e.addVote(v) || voteChange
 			e.Display.Execute(v)
 		}
 	}
