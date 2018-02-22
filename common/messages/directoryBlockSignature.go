@@ -144,6 +144,9 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 	raw, _ := m.MarshalBinary()
 	if m.DBHeight <= state.GetHighestSavedBlk() {
 		vlog("[1] Validate Fail %s -- RAW: %x", m.String(), raw)
+		logName := state.GetFactomNodeName() + "_executeMsg" + ".txt"
+		LogPrintf(logName, "DirectoryBlockSignature.Validate Fail dbstate ht: %v < dbht: %v  %s\n  [%s] RAW: %x", m.DBHeight, state.GetHighestSavedBlk(), m.String(), m.GetMsgHash().String(), raw)
+
 		// state.Logf("error", "DirectoryBlockSignature: Fail dbstate ht: %v < dbht: %v  %s\n  [%s] RAW: %x", m.DBHeight, state.GetHighestSavedBlk(), m.String(), m.GetMsgHash().String(), raw)
 		return -1
 	}
@@ -180,6 +183,11 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 		vlog("Fail to Verify Sig (not from a Fed Server) %s -- RAW: %x", m.String(), raw)
 		//state.Logf("error", "DirectoryBlockSignature: Fail to Verify Sig (not from a Fed Server) dbht: %v %s\n  [%s] RAW: %x", state.GetLLeaderHeight(), m.String(), m.GetMsgHash().String(), raw)
 		// state.AddStatus(fmt.Sprintf("DirectoryBlockSignature: Fail to Verify Sig (not from a Fed Server) dbht: %v %s", state.GetLLeaderHeight(), m.String()))
+
+		logName := state.GetFactomNodeName() + "_executeMsg" + ".txt"
+		LogPrintf(logName, "DirectoryBlockSignature.Validate fail Signature Key Invalid dbht: %v %s\n  [%s] RAW: %x", state.GetLLeaderHeight(), m.String(), m.GetMsgHash().String(), raw)
+
+
 		return authorityLevel
 	}
 

@@ -22,13 +22,8 @@ import (
 
 var _ = fmt.Print
 
-func SetDBFinished(s *State) {
-	s.DBFinished.Store(true)
-}
 
 func LoadDatabase(s *State) {
-
-	defer SetDBFinished(s)
 
 	var blkCnt uint32
 
@@ -59,6 +54,13 @@ func LoadDatabase(s *State) {
 			break
 		} else {
 			if msg != nil {
+				// We hold off EOM and other processing (s.Runleader) till the last DBStateMsg is executed.
+				if i == int(blkCnt) {
+					// last block, flag it.
+					dbstate,_ := msg.(*messages.DBStateMsg)
+					dbstate.IsLast = true // this is the last DBState in this load
+					// this will cause s.DBFinished to go true
+				}
 				s.InMsgQueue().Enqueue(msg)
 				msg.SetLocal(true)
 				if s.InMsgQueue().Length() > 500 {

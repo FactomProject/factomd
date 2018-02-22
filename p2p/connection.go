@@ -8,11 +8,12 @@ package p2p
 import (
 	"encoding/gob"
 	"fmt"
-	"github.com/FactomProject/factomd/common/primitives"
 	"hash/crc32"
 	"net"
 	"os"
 	"time"
+
+	"github.com/FactomProject/factomd/common/primitives"
 
 	atomic2 "github.com/FactomProject/factomd/util/atomic"
 	log "github.com/sirupsen/logrus"
@@ -130,12 +131,12 @@ func (e *ConnectionCommand) String() string {
 
 // These are the commands that connections can send/receive
 const (
-	ConnectionIsClosed          uint8 = iota // Notifies the controller that we are shut down and can be released
+	ConnectionIsClosed uint8 = iota // Notifies the controller that we are shut down and can be released
 	ConnectionShutdownNow
 	ConnectionUpdatingPeer
 	ConnectionAdjustPeerQuality
 	ConnectionUpdateMetrics
-	ConnectionGoOffline          // Notifies the connection it should go offline (eg from another goroutine)
+	ConnectionGoOffline // Notifies the connection it should go offline (eg from another goroutine)
 )
 
 //////////////////////////////
@@ -552,7 +553,7 @@ func (c *Connection) handleCommand() {
 
 		switch command.Command {
 		case ConnectionShutdownNow:
-			c.setNotes(fmt.Sprintf("Connection(%s) shutting down due to ConnectionShutdownNow message.", c.peer.AddressPort()))
+			c.setNotes("Connection(%s) shutting down due to ConnectionShutdownNow message.", c.peer.AddressPort())
 			c.goShutdown()
 		case ConnectionUpdatingPeer: // at this level we're only updating the quality score, to pass on application level demerits
 			debug(c.peer.PeerIdent(), "handleCommand() ConnectionUpdatingPeer")
@@ -569,8 +570,8 @@ func (c *Connection) handleCommand() {
 			if MinimumQualityScore > c.QualityScore() {
 				debug(c.peer.PeerIdent(), "handleCommand() disconnecting peer: %s for quality score: %d", c.peer.PeerIdent(), c.QualityScore())
 				c.updatePeer()
-				c.setNotes(fmt.Sprintf("Connection(%s) shutting down due to QualityScore %d being below MinimumQualityScore: %d.",
-					c.peer.AddressPort(), c.QualityScore(), MinimumQualityScore))
+				c.setNotes("Connection(%s) shutting down due to QualityScore %d being below MinimumQualityScore: %d.",
+					c.peer.AddressPort(), c.QualityScore(), MinimumQualityScore)
 				c.goShutdown()
 			}
 		case ConnectionGoOffline:
@@ -633,7 +634,7 @@ func (c *Connection) handleParcel(parcel Parcel) {
 		parcel.Trace("Connection.handleParcel()-InvalidDisconnectPeer", "I")
 		debug(c.peer.PeerIdent(), "Connection.handleParcel() Disconnecting peer: %s", c.peer.PeerIdent())
 		c.attempts = MaxNumberOfRedialAttempts + 50 // so we don't redial invalid Peer
-		c.setNotes(fmt.Sprintf("Connection(%s) shutting down due to InvalidDisconnectPeer result from parcel. Previous notes: %s.", c.peer.AddressPort(), c.notes))
+		c.setNotes("Connection(%s) shutting down due to InvalidDisconnectPeer result from parcel. Previous notes: %s.", c.peer.AddressPort(), c.notes)
 		c.goShutdown()
 		return
 	case InvalidPeerDemerit:
@@ -663,8 +664,8 @@ func (c *Connection) handleParcel(parcel Parcel) {
 // These constants support the multiple penalties and responses for Parcel validation
 const (
 	ParcelValid           uint8 = iota
-	InvalidPeerDemerit     // The peer sent an invalid message
-	InvalidDisconnectPeer  // Eg they are on the wrong network or wrong version of the software
+	InvalidPeerDemerit          // The peer sent an invalid message
+	InvalidDisconnectPeer       // Eg they are on the wrong network or wrong version of the software
 )
 
 func (c *Connection) parcelValidity(parcel Parcel) uint8 {
@@ -678,11 +679,11 @@ func (c *Connection) parcelValidity(parcel Parcel) uint8 {
 		return InvalidDisconnectPeer
 	case parcel.Header.Network != CurrentNetwork:
 		parcel.Trace("Connection.isValidParcel()-network", "H")
-		c.setNotes(fmt.Sprintf("Connection.isValidParcel(), failed due to wrong network. Remote: %0x Us: %0x", parcel.Header.Network, CurrentNetwork))
+		c.setNotes("Connection.isValidParcel(), failed due to wrong network. Remote: %0x Us: %0x", parcel.Header.Network, CurrentNetwork)
 		return InvalidDisconnectPeer
 	case parcel.Header.Version < ProtocolVersionMinimum:
 		parcel.Trace("Connection.isValidParcel()-version", "H")
-		c.setNotes(fmt.Sprintf("Connection.isValidParcel(), failed due to wrong version: %+v", parcel.Header))
+		c.setNotes("Connection.isValidParcel(), failed due to wrong version: %+v", parcel.Header)
 		return InvalidDisconnectPeer
 	case parcel.Header.Length != uint32(len(parcel.Payload)):
 		parcel.Trace("Connection.isValidParcel()-length", "H")

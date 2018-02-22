@@ -96,12 +96,11 @@ func (a *AtomicString) Load() string {
 var prefix int // index to trim the file paths to just the interesting parts
 func init() {
 	_, fn, _, _ := runtime.Caller(0)
-	end := strings.Index(fn,"factomd/") + len("factomd")
+	end := strings.Index(fn, "factomd/") + len("factomd")
 	s := fn[0:end]
 	_ = s
 	prefix = end
 }
-
 
 func Goid() string {
 	var buf [64]byte
@@ -134,7 +133,7 @@ type DebugMutex struct {
 	lock     int32         // lock for debug lock functionality
 	mu       sync.Mutex    // lock for not trusting the debug lock functionality or for traditional locking
 	lockBool AtomicBool    // lock for detecting starvation when not trusting the debug lock functionality
-	waiting  AtomicInt      // Count of routines waiting on this lock
+	waiting  AtomicInt     // Count of routines waiting on this lock
 	owner    AtomicString  // owner of the lock at the moment
 	done     chan struct{} // Channel to signal success to starvation detector
 }
@@ -155,7 +154,7 @@ func (c *DebugMutex) timeStarvation(whereAmI string) {
 				if enableOwnerTracking.Load() && owner == "" {
 					owner = c.owner.Load()
 				}
-					time.Sleep(3 * time.Millisecond)
+				time.Sleep(3 * time.Millisecond)
 			}
 		}
 		if enableOwnerTracking.Load() {
@@ -201,7 +200,7 @@ func (c *DebugMutex) lockMutex() {
 	if enableStarvationDetection.Load() && c.lockBool.Load() {
 		// Make a timer to whine if I am starving!
 		if c.done == nil {
-			c.done = make(chan struct{})
+			c.done = make(chan struct{},1)
 		}
 		go c.timeStarvation(WhereAmIString(2))
 		defer func() { c.done <- struct{}{} }() // End the timer when I get the lock

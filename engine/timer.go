@@ -61,9 +61,7 @@ func Timer(state interfaces.IState, wg *sync.WaitGroup) {
 
 			// Delay some number of milliseconds.
 			time.Sleep(time.Duration(state.GetTimeOffset().GetTimeMilli()) * time.Millisecond)
-
 			state.TickerQueue() <- i
-
 			period = int64(state.GetDirectoryBlockInSeconds()) * billion
 			tenthPeriod = period / 10
 

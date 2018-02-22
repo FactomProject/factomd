@@ -18,7 +18,6 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/util"
-	"github.com/FactomProject/factomd/util/atomic"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -30,102 +29,105 @@ var consenLogger = packageLogger.WithFields(log.Fields{"subpack": "consensus"})
 var _ = fmt.Print
 var _ = (*hash.Hash32)(nil)
 
+func (s *State) debugExec() bool {
+	return true //  && (s.FactomNodeName == "xFNode0" || s.FactomNodeName == "FNode0")
+}
+
 //***************************************************************
 // Process Loop for Consensus
 //
 // Returns true if some message was processed.
 //***************************************************************
-var executeMsg_debug bool = false
 
 func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
-	preExecuteMsgTime := time.Now()
-	hash := msg.GetRepeatHash().Fixed()
-	index, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, hash, msg.GetTimestamp(), s.GetTimestamp())
-	if executeMsg_debug {
-		fmt.Printf(">%7s:%14s executeMsg( vm=%12p, msg:%T:%p) valid=%v, index=%v [%x]\n", s.FactomNodeName, atomic.Goid(), vm, msg, msg, ok, index, hash)
-	}
-	_ = index
 
+	logName := s.FactomNodeName + "_executeMsg" + ".txt"
+
+	preExecuteMsgTime := time.Now()
+	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
 	if !ok {
-		consenLogger.WithFields(msg.LogFields()).Debug("ExecuteMsg (Replay Invalid)")
+		consenLogger.WithFields(msg.LogFields()).Debug(" drop ReplayInvalid")
+
+		if s.debugExec() {
+			messages.LogMessage(logName, "replayInvalid", msg)
+		}
+
 		return
 	}
 	s.SetString()
 	msg.ComputeVMIndex(s)
 
-	if s.IgnoreMissing {
+	// never ignore DBState messages
+	if s.IgnoreMissing && msg.Type() != constants.DBSTATE_MSG {
 		now := s.GetTimestamp().GetTimeSeconds()
 		if now-msg.GetTimestamp().GetTimeSeconds() > 60*15 {
+			if s.debugExec() {
+				messages.LogMessage(logName, "ignoreMissing", msg)
+			}
 			return
 		}
 	}
-	valid := msg.Validate(s)
-	if executeMsg_debug && false {
-		fmt.Printf("> s.RunLeader=%v &&", s.RunLeader)
-		fmt.Printf("s.Leader=%v && ", s.Leader)
-		fmt.Printf("!s.Saving=%v && ", !s.Saving)
-		fmt.Printf("(vm != nil)==%v && ", vm != nil)
-		if vm != nil {
-			fmt.Printf("(int(vm.Height)=%v == ", int(vm.Height))
-			fmt.Printf("len(vm.List)=%v && )", len(vm.List))
-			fmt.Printf("!s.Syncing=%v || ", !s.Syncing)
-			fmt.Printf("(!vm.Synced=%v) &&  ", !vm.Synced)
-			fmt.Printf("(msg.IsLocal()=%v || ", msg.IsLocal())
-			fmt.Printf("(msg.GetVMIndex()=%v) == ", msg.GetVMIndex())
-			fmt.Printf("(s.LeaderVMIndex=%v) && ", s.LeaderVMIndex)
-			fmt.Printf("(s.LeaderPL.DBHeight=%v+1) >= ", s.LeaderPL.DBHeight)
-			fmt.Printf("(s.GetHighestKnownBlock()=%v)\n", s.GetHighestKnownBlock())
-		} else {
-			fmt.Printf((" NIL!!!\n"))
-		}
-	}
 
+	valid := msg.Validate(s)
 	switch valid {
 	case 1:
-		if executeMsg_debug {
-			fmt.Printf(">%7s:%14s executeMsg() case 1:        msg:%T:%p [%x]\n", s.FactomNodeName, atomic.Goid(), msg, msg, hash)
-		}
-		// Should comment this as to why each consideration is interesting-- clay
-		if s.RunLeader && s.Leader && !s.Saving && vm != nil && int(vm.Height) == len(vm.List) && (!s.Syncing || !vm.Synced) &&
-			(msg.IsLocal() || msg.GetVMIndex() == s.LeaderVMIndex) && s.LeaderPL.DBHeight+1 >= s.GetHighestKnownBlock() {
-			if len(vm.List) == 0 && s.GetHighestKnownBlock() != 0 {
-				if executeMsg_debug {
-					fmt.Printf(">%7s:%14s executeMsg() Review:        msg:%T:%p [%x]\n", s.FactomNodeName, atomic.Goid(), msg, msg, hash)
-				}
+		if s.RunLeader &&
+			s.Leader &&
+			vm != nil && int(vm.Height) == len(vm.List) {
+			if len(vm.List) == 0 {
 				s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex)
 				TotalXReviewQueueInputs.Inc()
-				s.XReviewMutex.Lock()
-				s.XReview = append(s.XReview, msg) //L
-				s.XReviewMutex.Unlock()
-			} else {
-				if executeMsg_debug {
-					fmt.Printf(">%7s:%14s executeMsg() LeaderExec:    msg:%T:%p [%x]\n", s.FactomNodeName, atomic.Goid(), msg, msg, hash)
+				if s.debugExec() {
+					messages.LogMessage(logName, "XReview", msg)
+				}
+				s.XReview = append(s.XReview, msg)
+			}
+
+			if !s.Saving &&
+				(!s.Syncing || !vm.Synced) &&
+				(msg.IsLocal() || msg.GetVMIndex() == s.LeaderVMIndex) &&
+				s.LeaderPL.DBHeight+1 >= s.GetHighestKnownBlock() {
+				if s.debugExec() {
+					messages.LogMessage(logName, "LeaderExecute", msg)
 				}
 				msg.LeaderExecute(s)
+
+			} else {
+				if s.debugExec() {
+					messages.LogMessage(logName, "FollowerExecute1", msg)
+				}
+				msg.FollowerExecute(s)
 			}
+
 		} else {
-			if executeMsg_debug {
-				fmt.Printf(">%7s:%14s executeMsg() FollowerExec:  msg:%T:%p [%x]\n", s.FactomNodeName, atomic.Goid(), msg, msg, hash)
+			if s.debugExec() {
+				messages.LogMessage(logName, "FollowerExecute2", msg)
 			}
 			msg.FollowerExecute(s)
 		}
 		ret = true
+
 	case 0:
-		if executeMsg_debug {
-			fmt.Printf(">%7s:%14s executeMsg() Case 0:        msg:%T:%p [%x]\n", s.FactomNodeName, atomic.Goid(), msg, msg, hash)
-		}
 		TotalHoldingQueueInputs.Inc()
 		TotalHoldingQueueRecycles.Inc()
+		if s.debugExec() {
+			messages.LogMessage(logName, "Holding1", msg)
+		}
 		s.Holding[msg.GetMsgHash().Fixed()] = msg
+
 	default:
-		if executeMsg_debug {
-			fmt.Printf(">%7s:%14s executeMsg() default:       msg:%T:%p [%x]\n", s.FactomNodeName, atomic.Goid(), msg, msg, hash)
-		}
 		TotalHoldingQueueInputs.Inc()
 		TotalHoldingQueueRecycles.Inc()
+		if s.debugExec() {
+			messages.LogMessage(logName, "Holding2", msg)
+		}
 		s.Holding[msg.GetMsgHash().Fixed()] = msg
+
 		if !msg.SentInvalid() {
 			msg.MarkSentInvalid(true)
+			if s.debugExec() {
+				messages.LogMessage(logName, "InvalidMsg", msg)
+			}
 			s.networkInvalidMsgQueue <- msg
 		}
 	}
@@ -138,6 +140,8 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 }
 
 func (s *State) Process() (progress bool) {
+	xLogName := s.FactomNodeName + "_executeMsg" + ".txt"
+	ackLogName := s.FactomNodeName + "_ackQueue_o" + ".txt"
 
 	if s.ResetRequest {
 		s.ResetRequest = false
@@ -148,10 +152,20 @@ func (s *State) Process() (progress bool) {
 	// If we are not running the leader, then look to see if we have waited long enough to
 	// start running the leader.  If we are, start the clock on Ignoring Missing Messages.  This
 	// is so we don't conflict with past version of the network if we have to reboot the network.
+	if s.CurrentMinute > 9 {
+		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(9, s.IdentityChainID)
+	} else {
+		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
+	}
+
 	if !s.RunLeader {
 		now := s.GetTimestamp().GetTimeMilli() // Timestamps are in milliseconds, so wait 20
 		if now-s.StartDelay > s.StartDelayLimit {
-			if s.DBFinished.Load() {
+			if s.DBFinished.Load() == true {
+
+				logName := s.FactomNodeName + "_executeMsg" + ".txt"
+				messages.LogPrint(logName, "s.RunLeader = true")
+
 				s.RunLeader = true
 				if !s.IgnoreDone {
 					s.StartDelay = now // Reset StartDelay for Ignore Missing
@@ -160,18 +174,9 @@ func (s *State) Process() (progress bool) {
 			}
 		}
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
-		if s.CurrentMinute > 9 {
-			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(9, s.IdentityChainID)
-		} else {
-			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
-		}
+
 	} else if s.IgnoreMissing {
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
-		if s.CurrentMinute > 9 {
-			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(9, s.IdentityChainID)
-		} else {
-			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
-		}
 		now := s.GetTimestamp().GetTimeMilli() // Timestamps are in milliseconds, so wait 20
 		if now-s.StartDelay > s.StartDelayLimit {
 			s.IgnoreMissing = false
@@ -209,18 +214,32 @@ func (s *State) Process() (progress bool) {
 	preAckLoopTime := time.Now()
 	// Process acknowledgements if we have some.
 ackLoop:
-	for room() {
+	for {
 		select {
 		case ack := <-s.ackQueue:
 			a := ack.(*messages.Ack)
-			if a.DBHeight >= s.LLeaderHeight && ack.Validate(s) == 1 {
+			if ack.Validate(s) == 1 { // took out a.DBHeight >= s.LLeaderHeight &&
 				if s.IgnoreMissing {
 					now := s.GetTimestamp().GetTimeSeconds()
 					if now-a.GetTimestamp().GetTimeSeconds() < 60*15 {
+						if s.debugExec() {
+							messages.LogMessage(xLogName, "Execute from ackLoop", ack)
+						}
 						s.executeMsg(vm, ack)
+					} else {
+						if s.debugExec() {
+							messages.LogMessage(ackLogName, "Drop too old", ack)
+						}
 					}
 				} else {
+					if s.debugExec() {
+						messages.LogMessage(xLogName, "Execute from ackLoop2", ack)
+					}
 					s.executeMsg(vm, ack)
+				}
+			} else {
+				if s.debugExec() {
+					messages.LogMessage(ackLogName, "Drop Invalid Ack", ack)
 				}
 			}
 			progress = true
@@ -236,11 +255,14 @@ ackLoop:
 
 	// Process inbound messages
 emptyLoop:
-	for room() {
+	for {
 		select {
 		case msg := <-s.msgQueue:
-
-			if s.executeMsg(vm, msg) && !msg.IsPeer2Peer() {
+			if s.debugExec() {
+				messages.LogMessage(xLogName, "Execute from emptyLoop", msg)
+			}
+			ok := s.executeMsg(vm, msg)
+			if ok && !msg.IsPeer2Peer() {
 				msg.SendOut(s, msg)
 			}
 		default:
@@ -253,34 +275,37 @@ emptyLoop:
 	preProcessXReviewTime := time.Now()
 	// Reprocess any stalled messages, but not so much compared inbound messages
 	// Process last first
-	s.XReviewMutex.Lock()
 skipreview:
 	for {
-		for _, msg := range s.XReview { //L
+		for _, msg := range s.XReview {
 			if !room() {
 				break skipreview
 			}
 			if msg == nil {
 				continue
 			}
-			process <- msg
-			s.XReviewMutex.Unlock()
-			progress = s.executeMsg(vm, msg) || progress //U
-			s.XReviewMutex.Lock()
+			process <- msg // TODO: Can we only add the msg to the process chan if the execute fails instead of always?
+			if s.debugExec() {
+				messages.LogMessage(xLogName, "Execute from skipreview", msg)
+			}
+			//			progress = s.executeMsg(vm, msg) || progress
 		}
-		s.XReview = s.XReview[:0] //L
+		s.XReview = s.XReview[:0]
 		break
-	}
-	s.XReviewMutex.Unlock()
-
+	} // skip review
 	processXReviewTime := time.Since(preProcessXReviewTime)
 	TotalProcessXReviewTime.Add(float64(processXReviewTime.Nanoseconds()))
 
 	preProcessProcChanTime := time.Now()
-	for len(process) > 0 {
+	for len(process) > 0 { //todo: Make this a select thing  -- clay
 		msg := <-process
-		s.executeMsg(vm, msg)
-		s.UpdateState()
+		if s.debugExec() {
+			messages.LogMessage(xLogName, "Execute from skipreview2", msg)
+		}
+		//todo: Why does this not set progress? Why are we executing the messages again? -- clay
+		//		s.executeMsg(vm, msg)
+		progress = s.executeMsg(vm, msg) || progress
+		s.UpdateState() // TODO: Why do we have to UpdateState() every message here and not else where? -- clay
 	}
 
 	processProcChanTime := time.Since(preProcessProcChanTime)
@@ -313,10 +338,7 @@ func CheckDBKeyMR(s *State, ht uint32, hash string) error {
 // responsibility
 func (s *State) ReviewHolding() {
 	preReviewHoldingTime := time.Now()
-	s.XReviewMutex.Lock()
-	l := len(s.XReview) //L
-	defer s.XReviewMutex.Unlock()
-	if l > 0 {
+	if len(s.XReview) > 0 {
 		return
 	}
 
@@ -336,8 +358,7 @@ func (s *State) ReviewHolding() {
 
 	s.ResendHolding = now
 	// Anything we are holding, we need to reprocess.
-	s.XReview = make([]interfaces.IMsg, 0) //L
-	//	s.XReviewMutex.Unlock()
+	s.XReview = make([]interfaces.IMsg, 0)
 
 	highest := s.GetHighestKnownBlock()
 	saved := s.GetHighestSavedBlk()
@@ -423,9 +444,7 @@ func (s *State) ReviewHolding() {
 			continue
 		}
 		TotalXReviewQueueInputs.Inc()
-		//		s.XReviewMutex.Lock()
-		s.XReview = append(s.XReview, v) //L
-		//		s.XReviewMutex.Unlock()
+		s.XReview = append(s.XReview, v)
 		TotalHoldingQueueOutputs.Inc()
 	}
 	reviewHoldingTime := time.Since(preReviewHoldingTime)
@@ -554,13 +573,18 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 
 	pl := s.ProcessLists.Get(ack.DBHeight)
 	if pl == nil {
+		// Does this mean it's from the future?
+		// TODO: Should we put the ack back on the inMsgQueue queue here instead of dropping it? -- clay
 		return
 	}
 	list := pl.VMs[ack.VMIndex].List
 	if len(list) > int(ack.Height) && list[ack.Height] != nil {
+		// This means we haven't seen the matching message yet?
+		// TODO: Should we put the ack back on the inMsgQueue queue here instead of dropping it? -- clay
 		return
 	}
 
+	// We have an ack  and a matching message go execute the message!
 	TotalAcksInputs.Inc()
 	s.Acks[ack.GetHash().Fixed()] = ack
 	m, _ := s.Holding[ack.GetHash().Fixed()]
@@ -584,7 +608,7 @@ func (s *State) ExecuteEntriesInDBState(dbmsg *messages.DBStateMsg) {
 	dblock, err := s.DB.FetchDBlockByHeight(height)
 	if err != nil || dblock == nil {
 		consenLogger.WithFields(log.Fields{"func": "ExecuteEntriesInDBState", "height": height}).Warnf("Dblock fetched is nil")
-		return // This is a werid case
+		return // This is a weird case
 	}
 
 	if !dbmsg.DirectoryBlock.GetHash().IsSameAs(dblock.GetHash()) {
@@ -654,7 +678,14 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		//s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): DBState is invalid at ht %d", dbheight))
 		// Do nothing because this dbstate looks to be invalid
 		cntFail()
+		if dbstatemsg.IsLast { // this is the last DBState in this load
+			s.DBFinished.Store(true) // Just in case we toss the last one for some reason
+		}
 		return
+	}
+
+	if dbstatemsg.IsLast { // this is the last DBState in this load
+		s.DBFinished.Store(true) // Normal case
 	}
 
 	/**************************
@@ -776,9 +807,21 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 }
 
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
+	logName := s.FactomNodeName + "_executeMsg" + ".txt"
 
 	// Just ignore missing messages for a period after going off line or starting up.
 	if s.IgnoreMissing || s.inMsgQueue.Length() > constants.INMSGQUEUE_HIGH {
+		//TODO: Log here -- clay
+		if s.IgnoreMissing {
+			if s.debugExec() {
+				messages.LogMessage(logName, "Drop IgnoreMissing", m)
+			}
+		}
+		if s.inMsgQueue.Length() > constants.INMSGQUEUE_HIGH {
+			if s.debugExec() {
+				messages.LogMessage(logName, "Drop INMSGQUEUE_HIGH", m)
+			}
+		}
 		return
 	}
 
@@ -794,18 +837,14 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 
 				if okff {
 					TotalXReviewQueueInputs.Inc()
-					s.XReviewMutex.Lock()
-					s.XReview = append(s.XReview, fullFault) //L
-					s.XReviewMutex.Unlock()
+					s.XReview = append(s.XReview, fullFault)
 				} else {
 					pl.AddToSystemList(fullFault)
 				}
 				s.MissingResponseAppliedCnt++
 			} else if pl != nil && int(fullFault.Height) >= pl.System.Height {
 				TotalXReviewQueueInputs.Inc()
-				s.XReviewMutex.Lock()
-				s.XReview = append(s.XReview, fullFault) //L
-				s.XReviewMutex.Unlock()
+				s.XReview = append(s.XReview, fullFault)
 				s.MissingResponseAppliedCnt++
 			}
 
@@ -819,6 +858,7 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 
 	// If we don't need this message, we don't have to do everything else.
 	if !ok || ack.Validate(s) == -1 {
+		messages.LogMessage(logName, "Drop noAck", m)
 		return
 	}
 
@@ -826,12 +866,14 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 	msg := mmr.MsgResponse
 
 	if msg == nil {
+		messages.LogMessage(logName, "Drop nil message", m)
 		return
 	}
 
 	pl := s.ProcessLists.Get(ack.DBHeight)
 
 	if pl == nil {
+		messages.LogMessage(logName, "Drop No Processlist", m)
 		return
 	}
 	_, okm := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
@@ -839,9 +881,15 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 	TotalAcksInputs.Inc()
 
 	if okm {
+		if s.debugExec() {
+			messages.LogMessage(logName, "FollowerExecute3", msg)
+		}
 		msg.FollowerExecute(s)
 	}
 
+	if s.debugExec() {
+		messages.LogMessage(logName, "FollowerExecute4", ack)
+	}
 	ack.FollowerExecute(s)
 
 	s.MissingResponseAppliedCnt++
@@ -899,6 +947,7 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 }
 
 func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
+
 	// Don't respond to missing messages if we are behind.
 	if s.inMsgQueue.Length() > constants.INMSGQUEUE_LOW {
 		return
@@ -991,7 +1040,7 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 		// The message might not have gone in.  Make sure it did.  Get the list where it goes
 		list := s.ProcessLists.Get(ack.DBHeight).VMs[ack.VMIndex].List
 		// Check to make sure the list isn't empty.  If it is, then it didn't go in.
-		if int(ack.Height) < len(list) || list[ack.Height] == nil {
+		if int(ack.Height) >= len(list) || (int(ack.Height) < len(list) && list[ack.Height] == nil) {
 			return
 		}
 
@@ -1140,9 +1189,7 @@ func (s *State) LeaderExecuteCommitChain(m interfaces.IMsg) {
 	re := s.Holding[cc.CommitChain.EntryHash.Fixed()]
 	if re != nil {
 		TotalXReviewQueueInputs.Inc()
-		s.XReviewMutex.Lock()
-		s.XReview = append(s.XReview, re) //L
-		s.XReviewMutex.Unlock()
+		s.XReview = append(s.XReview, re)
 		re.SendOut(s, re)
 	}
 }
@@ -1152,9 +1199,7 @@ func (s *State) LeaderExecuteCommitEntry(m interfaces.IMsg) {
 	ce := m.(*messages.CommitEntryMsg)
 	re := s.Holding[ce.CommitEntry.EntryHash.Fixed()]
 	if re != nil {
-		s.XReviewMutex.Lock()
-		s.XReview = append(s.XReview, re) //L
-		s.XReviewMutex.Unlock()
+		s.XReview = append(s.XReview, re)
 		re.SendOut(s, re)
 	}
 }
@@ -1273,9 +1318,7 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 			entry.FollowerExecute(s)
 			entry.SendOut(s, entry)
 			TotalXReviewQueueInputs.Inc()
-			s.XReviewMutex.Lock()
-			s.XReview = append(s.XReview, entry) //L
-			s.XReviewMutex.Unlock()
+			s.XReview = append(s.XReview, entry)
 			TotalHoldingQueueOutputs.Inc()
 			delete(s.Holding, h.Fixed())
 		}
@@ -1292,7 +1335,7 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 	pl := s.ProcessLists.Get(dbheight)
 	pl.EntryCreditBlock.GetBody().AddEntry(c.CommitEntry)
 	if e := s.GetFactoidState().UpdateECTransaction(true, c.CommitEntry); e == nil {
-		// save the Commit to match against the Reveal later
+		// save the Commit to match agains the Reveal later
 		h := c.CommitEntry.EntryHash
 		s.PutCommit(h, c)
 		entry := s.Holding[h.Fixed()]
@@ -1300,9 +1343,7 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 			entry.FollowerExecute(s)
 			entry.SendOut(s, entry)
 			TotalXReviewQueueInputs.Inc()
-			s.XReviewMutex.Lock()
-			s.XReview = append(s.XReview, entry) //L
-			s.XReviewMutex.Unlock()
+			s.XReview = append(s.XReview, entry)
 			TotalHoldingQueueOutputs.Inc()
 			delete(s.Holding, h.Fixed())
 		}
@@ -1557,6 +1598,10 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		case s.CurrentMinute < 10:
 			if s.CurrentMinute == 1 {
 				dbstate := s.GetDBState(dbheight - 1)
+				// Panic had arose when leaders would reboot and the follower was on a future minute
+				if dbstate == nil {
+					return false
+				}
 				if !dbstate.Saved {
 					dbstate.ReadyToSave = true
 				}
@@ -1598,7 +1643,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			// Note about dbsigs.... If we processed the previous minute, then we generate the DBSig for the next block.
 			// But if we didn't process the previous block, like we start from scratch, or we had to reset the entire
 			// network, then no dbsig exists.  This code doesn't execute, and so we have no dbsig.  In that case, on
-			// the next EOM, we see the block hasn't been signed, and we sign the block (That is the call to SendDBSig()
+			// the next EOM, we see the block hasn't been signed, and we sign the block (Thats the call to SendDBSig()
 			// above).
 			pldbs := s.ProcessLists.Get(s.LLeaderHeight)
 			if s.Leader && !pldbs.DBSigAlreadySent {

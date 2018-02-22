@@ -8,7 +8,6 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
-	"github.com/FactomProject/factomd/util/atomic"
 	"math/rand"
 	"net/http"
 	"os"
@@ -16,6 +15,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/FactomProject/factomd/util/atomic"
 )
 
 type Discovery struct {
@@ -298,7 +299,7 @@ func (d *Discovery) getPeerSelection() []byte {
 
 	json, err := json.Marshal(selectedPeers)
 	if nil != err {
-		logerror("discovery", "Discovery.getPeerSelection got an error marshalling json. error: %+v selectedPeers: %+v", err, selectedPeers)
+		logerror("discovery", "Discovery.getPeerSelection got an error marshalling json. error: %+v selectedPeers: %+v\n", err, selectedPeers)
 	}
 	note("discovery", "peers we are sharing: %+v", string(json))
 	return json
@@ -308,7 +309,7 @@ func (d *Discovery) getPeerSelection() []byte {
 func (d *Discovery) DiscoverPeersFromSeed() {
 	resp, err := http.Get(d.seedURL)
 	if nil != err {
-		logerror("discovery", "DiscoverPeersFromSeed getting peers from %s produced error %+v", d.seedURL, err)
+		logerror("discovery", "DiscoverPeersFromSeed getting peers from %s produced error %+v\n", d.seedURL, err)
 		return
 	}
 	defer resp.Body.Close()

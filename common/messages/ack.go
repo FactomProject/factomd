@@ -79,14 +79,18 @@ func (m *Ack) VerifySignature() (bool, error) {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *Ack) Validate(state interfaces.IState) int {
+	// ackloop in stateConsensus.go only checks for a 1 return so the 0 return in an unhandled case -- clay
 	// If too old, it isn't valid.
-	if m.DBHeight <= state.GetHighestSavedBlk() {
+	h := state.GetHighestSavedBlk()
+	if m.DBHeight <= h {
+		//		LogMessage(logName, fmt.Sprintf("drop height(%d)<saved(%d)",m.DBHeight,h),m)
 		return -1
 	}
 
 	// Only new acks are valid. Of course, the VMIndex has to be valid too.
 	msg, _ := state.GetMsg(m.VMIndex, int(m.DBHeight), int(m.Height))
 	if msg != nil {
+		//		LogMessage(logName, "drop NoMessage",m)
 		return -1
 	}
 
@@ -95,6 +99,7 @@ func (m *Ack) Validate(state interfaces.IState) int {
 		bytes, err := m.MarshalForSignature()
 		if err != nil {
 			//fmt.Println("Err is not nil on Ack sig check: ", err)
+			//			LogMessage(logName, "drop BadAuth",m)
 			return -1
 		}
 		sig := m.Signature.GetSignature()
@@ -103,6 +108,7 @@ func (m *Ack) Validate(state interfaces.IState) int {
 		//ackSigned, err := m.VerifySignature()
 		if err != nil {
 			//fmt.Println("Err is not nil on Ack sig check: ", err)
+			//			LogMessage(logName, "drop BadSig:"+err.Error(),m)
 			return -1
 		}
 		if ackSigned <= 0 {
@@ -266,18 +272,21 @@ func (m *Ack) MarshalForSignature() ([]byte, error) {
 
 	data, err = m.MessageHash.MarshalBinary()
 	if err != nil {
+		fmt.Printf("Error from MarshalBinary %v\n", err)
 		return nil, err
 	}
 	buf.Write(data)
 
 	data, err = m.GetFullMsgHash().MarshalBinary()
 	if err != nil {
+		fmt.Printf("Error from MarshalBinary %v\n", err)
 		return nil, err
 	}
 	buf.Write(data)
 
 	data, err = m.LeaderChainID.MarshalBinary()
 	if err != nil {
+		fmt.Printf("Error from MarshalBinary %v\n", err)
 		return nil, err
 	}
 	buf.Write(data)
@@ -288,6 +297,7 @@ func (m *Ack) MarshalForSignature() ([]byte, error) {
 
 	data, err = m.SerialHash.MarshalBinary()
 	if err != nil {
+		fmt.Printf("Error from MarshalBinary %v\n", err)
 		return nil, err
 	}
 	buf.Write(data)

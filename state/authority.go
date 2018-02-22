@@ -12,6 +12,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
 )
@@ -25,7 +26,6 @@ func (st *State) VerifyAuthoritySignature(msg []byte, sig *[constants.SIGNATURE_
 	if feds == nil {
 		return -1, fmt.Errorf("Federated Servers are unknown at directory block height %d", dbheight)
 	}
-	auds := st.GetAuditServers(dbheight)
 
 	for _, fed := range feds {
 		auth, _ := st.GetAuthority(fed.GetChainID())
@@ -36,6 +36,11 @@ func (st *State) VerifyAuthoritySignature(msg []byte, sig *[constants.SIGNATURE_
 		if err == nil && valid {
 			return 1, nil
 		}
+	}
+
+	auds := st.GetAuditServers(dbheight)
+	if auds == nil {
+		return -1, fmt.Errorf("Audit Servers are unknown at directory block height %d", dbheight)
 	}
 
 	for _, aud := range auds {
@@ -50,6 +55,11 @@ func (st *State) VerifyAuthoritySignature(msg []byte, sig *[constants.SIGNATURE_
 	}
 	//fmt.Println("WARNING: A signature failed to validate.")
 
+	logName := st.FactomNodeName + "_executeMsg" + ".txt"
+	messages.LogPrintf(logName, "VerifyAuthoritySignature fail Signature Key Invalid or not Federated Server Key [%x][%x]\n", string(msg), string(sig[:]))
+	messages.LogPrintf(logName, "feds %+v\n", feds)
+	messages.LogPrintf(logName, "auds %+v\n", auds)
+
 	return -1, fmt.Errorf("%s", "Signature Key Invalid or not Federated Server Key")
 }
 
@@ -60,7 +70,7 @@ func (st *State) VerifyAuthoritySignature(msg []byte, sig *[constants.SIGNATURE_
 func (st *State) FastVerifyAuthoritySignature(msg []byte, sig interfaces.IFullSignature, dbheight uint32) (int, error) {
 	feds := st.GetFedServers(dbheight)
 	if feds == nil {
-		return 0, fmt.Errorf("Federated Servers are unknown at directory block hieght %d", dbheight)
+		return 0, fmt.Errorf("Federated Servers are unknown at directory block height %d", dbheight)
 	}
 	auds := st.GetAuditServers(dbheight)
 

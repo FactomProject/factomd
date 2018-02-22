@@ -152,6 +152,14 @@ func MessageName(Type byte) string {
 		return "Bounce Message"
 	case constants.BOUNCEREPLY_MSG:
 		return "Bounce Reply Message"
+
+	case constants.ADDSERVER_MSG:
+		return "ADDSERVER_MSG" // 22
+	case constants.CHANGESERVER_KEY_MSG:
+		return "CHANGESERVER_KEY_MS" // 23
+	case constants.REMOVESERVER_MSG:
+		return "REMOVESERVER_MSG" // 24
+
 	default:
 		return "Unknown:" + fmt.Sprintf(" %d", Type)
 	}
