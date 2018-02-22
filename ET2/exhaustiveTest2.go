@@ -38,11 +38,12 @@ var audsMap = make(map[primitives.Identity]int)
 
 var extraPrints = true
 var extraPrints1 = true
+var extraPrints2 = true
 var insanePrints = false
 
 //================ main =================
 func main() {
-	recurse(5, 3, 125)
+	recurse(3, 3, 25)
 }
 
 // newElections will return an array of elections (1 per leader) and an array
@@ -114,21 +115,12 @@ var cnt = 0
 func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int, msgPath []*mymsg) (limitHit bool, leaf bool, seeSuccess bool) {
 	depths = incCounter(depths, depth)
 	depth++
-	if depth > limit {
-		breadth++
-		hitlimit++
-		return true, false, false
-	}
 
-	if depth > maxdepth {
-		maxdepth = depth
-	}
-
-	extraPrints = false
 	cnt++
-	if cnt < 10000 || cnt%50000 == 0 {
+	if cnt < 1000 || cnt%200000 == 0 {
 		extraPrints = true
 		extraPrints1 = true
+		extraPrints2 = true
 	}
 
 	printState := func() {
@@ -152,7 +144,9 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int, msg
 				if i%16 == 0 {
 					fmt.Println()
 				}
-				fmt.Printf("%4d=>%12s ", i, humanize.Comma(int64(v)))
+
+				str := fmt.Sprintf("%s[%3d] ", humanize.Comma(int64(v)), i)
+				fmt.Printf("%18s ", str)
 			}
 		}
 		prt(deadMessagesAt, "Dead Messages")
@@ -182,7 +176,22 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int, msg
 		}
 	}
 
-	if extraPrints {
+	if depth > limit {
+		if extraPrints {
+			fmt.Println(">>>>>>>>>>>>>>>>>> Hit Limit <<<<<<<<<<<<<<<<<")
+			printState()
+			extraPrints = false
+		}
+		breadth++
+		hitlimit++
+		return true, false, false
+	}
+
+	if depth > maxdepth {
+		maxdepth = depth
+	}
+
+	if depth < 4 {
 		printState()
 	}
 
@@ -192,19 +201,24 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int, msg
 			done++
 		}
 	}
-	if done == len(leaders)/2+1 {
+	if done == len(leaders) {
 		solutionsAt = incCounter(solutionsAt, depth)
 		if extraPrints {
 			fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>>>> Solution Found @ ", depth)
 		}
 		breadth++
 		solutions++
+		if extraPrints2 {
+			fmt.Println("!!!!!!!!!!!!!!!!!!  Success!")
+			printState()
+			extraPrints2 = false
+		}
 		return false, true, true
 
 	}
 
 	// Look for mirrorMap, but only after we have been going a bit.
-	if depth > 2 {
+	if depth > 0 {
 		var hashes [][32]byte
 		var strings []string
 		for _, ldr := range leaders {
@@ -295,12 +309,10 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int, msg
 	}
 
 	if limitHit {
-		if depth == limit-40 {
+		if depth == limit/2 {
 
 			if seeSuccess {
 				loops++
-			} else {
-				failure++
 			}
 			limitHit = false
 		}
@@ -309,14 +321,23 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int, msg
 			incCounter(failuresAt, depth)
 			failure++
 			leaf = false
-		}
-		if extraPrints1 {
-			extraPrints1 = false
-			fmt.Printf("%d %d setcon\n", len(leadersMap), len(audsMap))
-			for i, v := range msgPath {
 
-				fmt.Println(formatForInterpreter(v), "#", i, v.leaderIdx, "<==", leaders[0].Display.FormatMessage(v.msg))
+			if extraPrints1 {
+				extraPrints1 = false
+				fmt.Printf("%d %d setcon\n", len(leadersMap), len(audsMap))
+				for i, v := range msgPath {
+
+					fmt.Println(formatForInterpreter(v), "#", i, v.leaderIdx, "<==", leaders[0].Display.FormatMessage(v.msg))
+				}
+				fmt.Println("Pending:")
+				for i, v := range msgs {
+					fmt.Println(formatForInterpreter(v), "#", i, v.leaderIdx, "<==", leaders[0].Display.FormatMessage(v.msg))
+				}
+
+				fmt.Println("************ Fail ************")
+				printState()
 			}
+
 			fmt.Println("Pending:")
 			for i, v := range msgs {
 				fmt.Println(formatForInterpreter(v), "#", i, v.leaderIdx, "<==", leaders[0].Display.FormatMessage(v.msg))
@@ -325,13 +346,6 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int, msg
 			fmt.Println("************ Fail ************")
 			printState()
 		}
-		fmt.Println("Pending:")
-		for i, v := range msgs {
-			fmt.Println(formatForInterpreter(v), "#", i, v.leaderIdx, "<==", leaders[0].Display.FormatMessage(v.msg))
-		}
-
-		fmt.Println("************ Fail ************")
-		printState()
 	}
 
 	return limitHit, leaf, seeSuccess
