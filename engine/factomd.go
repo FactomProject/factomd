@@ -6,14 +6,10 @@ package engine
 
 import (
 	"fmt"
-	"os"
-	"runtime"
-	"strings"
-	"time"
-
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/state"
+	"runtime"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -37,54 +33,14 @@ var Build string
 var FactomdVersion string = "BuiltWithoutVersion"
 
 func Factomd(params *FactomParams, listenToStdin bool) interfaces.IState {
-	log.Print("//////////////////////// Copyright 2017 Factom Foundation")
-	log.Print("//////////////////////// Use of this source code is governed by the MIT")
-	log.Print("//////////////////////// license that can be found in the LICENSE file.")
 	log.Printf("Go compiler version: %s\n", runtime.Version())
 	log.Printf("Using build: %s\n", Build)
 	log.Printf("Version: %s\n", FactomdVersion)
 
-	if !isCompilerVersionOK() {
-		for i := 0; i < 30; i++ {
-			log.Println("!!! !!! !!! ERROR: unsupported compiler version !!! !!! !!!")
-		}
-		time.Sleep(3 * time.Second)
-		os.Exit(1)
-	}
-
-	//  Go Optimizations...
-	runtime.GOMAXPROCS(runtime.NumCPU())
-
 	state0 := new(state.State)
 	state0.IsRunning = true
 	state0.SetLeaderTimestamp(primitives.NewTimestampFromMilliseconds(0))
-	fmt.Println("len(Args)", len(os.Args))
 
 	go NetStart(state0, params, listenToStdin)
 	return state0
-}
-
-func isCompilerVersionOK() bool {
-	goodenough := false
-
-	if strings.Contains(runtime.Version(), "1.5") {
-		goodenough = true
-	}
-
-	if strings.Contains(runtime.Version(), "1.6") {
-		goodenough = true
-	}
-
-	if strings.Contains(runtime.Version(), "1.7") {
-		goodenough = true
-	}
-
-	if strings.Contains(runtime.Version(), "1.8") {
-		goodenough = true
-	}
-
-	if strings.Contains(runtime.Version(), "1.9") {
-		goodenough = true
-	}
-	return goodenough
 }

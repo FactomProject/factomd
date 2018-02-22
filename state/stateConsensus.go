@@ -169,7 +169,7 @@ ackLoop:
 		select {
 		case ack := <-s.ackQueue:
 			a := ack.(*messages.Ack)
-			if a.DBHeight >= s.LLeaderHeight && ack.Validate(s) == 1 {
+			if ack.Validate(s) == 1 {
 				if s.IgnoreMissing {
 					now := s.GetTimestamp().GetTimeSeconds()
 					if now-a.GetTimestamp().GetTimeSeconds() < 60*15 {
@@ -909,7 +909,9 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 	TotalHoldingQueueInputs.Inc()
 
 	if s.Commits.Get(m.GetMsgHash().Fixed()) != nil {
-		m.SendOut(s, m)
+		if m.Validate(s) == 1 {
+			m.SendOut(s, m)
+		}
 	}
 
 	s.Holding[m.GetMsgHash().Fixed()] = m
@@ -932,7 +934,7 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 		// The message might not have gone in.  Make sure it did.  Get the list where it goes
 		list := s.ProcessLists.Get(ack.DBHeight).VMs[ack.VMIndex].List
 		// Check to make sure the list isn't empty.  If it is, then it didn't go in.
-		if int(ack.Height) < len(list) || list[ack.Height] == nil {
+		if (int(ack.Height) >= len(list)) || (list[ack.Height] == nil) {
 			return
 		}
 
@@ -1092,7 +1094,9 @@ func (s *State) LeaderExecuteCommitEntry(m interfaces.IMsg) {
 	re := s.Holding[ce.CommitEntry.EntryHash.Fixed()]
 	if re != nil {
 		s.XReview = append(s.XReview, re)
-		re.SendOut(s, re)
+		if re.Validate(s) == 1 {
+			re.SendOut(s, re)
+		}
 	}
 }
 
@@ -1231,7 +1235,7 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 		h := c.CommitEntry.EntryHash
 		s.PutCommit(h, c)
 		entry := s.Holding[h.Fixed()]
-		if entry != nil {
+		if entry != nil && entry.Validate(s) == 1 {
 			entry.FollowerExecute(s)
 			entry.SendOut(s, entry)
 			TotalXReviewQueueInputs.Inc()
