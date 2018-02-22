@@ -277,6 +277,11 @@ func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) (
 		change = e.addLeaderLevelMessage(j) || change
 	}
 
+	// Will not change my state, so why look at it
+	if msg.Level < e.CurrentVote.Rank {
+		return nil, false
+	}
+
 	// Best vote
 	possibleVotes := []*messages.LeaderLevelMessage{}
 	for _, vc := range e.VolunteerControls {
