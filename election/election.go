@@ -120,7 +120,7 @@ func (e *Election) updateCurrentVote(new *messages.LeaderLevelMessage) {
 	//	return
 	//}
 	if new.VolunteerPriority == e.CurrentVote.VolunteerPriority {
-		if e.CurrentVote.Rank+1 == new.Rank {
+		if e.CurrentVote.Rank+1 == new.Rank && e.CurrentVote.Level+1 == new.Level {
 			e.CommitmentTally++
 			e.CurrentVote = *new
 			if new.Rank == 0 {
@@ -276,6 +276,11 @@ func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) (
 	for _, j := range msg.Justification {
 		change = e.addLeaderLevelMessage(j) || change
 	}
+
+	// Will not change my state, so why look at it
+	//if msg.Level < e.CurrentVote.Rank {
+	//	return nil, false
+	//}
 
 	// Best vote
 	possibleVotes := []*messages.LeaderLevelMessage{}

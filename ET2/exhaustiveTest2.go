@@ -30,6 +30,7 @@ var failuresAt []int
 var hitlimit int
 var maxdepth int
 var failure int
+var errConclusions int
 
 var globalRunNumber = 0
 
@@ -126,6 +127,7 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int, msg
 	printState := func() {
 		fmt.Println("=============== ",
 			" Depth=", depth, "/", maxdepth,
+			", Multiple Conclusions", humanize.Comma(int64(errConclusions)),
 			", Failures=", humanize.Comma(int64(failure)),
 			", MsgQ=", len(msgs),
 			", Mirrors=", humanize.Comma(int64(mirrors)), humanize.Comma(int64(len(mirrorMap))),
@@ -144,9 +146,7 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int, msg
 				if i%16 == 0 {
 					fmt.Println()
 				}
-
-				str := fmt.Sprintf("%s[%3d] ", humanize.Comma(int64(v)), i)
-				fmt.Printf("%18s ", str)
+				fmt.Printf("%4d=>%12s ", i, humanize.Comma(int64(v)))
 			}
 		}
 		prt(deadMessagesAt, "Dead Messages")
@@ -195,13 +195,13 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int, msg
 		printState()
 	}
 
-	done := 0
-	for _, ldr := range leaders {
-		if ldr.Committed {
-			done++
-		}
-	}
-	if done == len(leaders) {
+	//done := 0
+	//for _, ldr := range leaders {
+	//	if ldr.Committed {
+	//		done++
+	//	}
+	//}
+	if complete, err := nodesCompleted(leaders); complete { // done == len(leaders)/2+1 {
 		solutionsAt = incCounter(solutionsAt, depth)
 		if extraPrints {
 			fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>>>> Solution Found @ ", depth)
@@ -215,6 +215,19 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int, msg
 		}
 		return false, true, true
 
+	} else if err != nil {
+		// Bad! This means the algorithm is broken
+
+		printState()
+		fmt.Printf("%d %d setcon\n", len(leadersMap), len(audsMap))
+		for i, v := range msgPath {
+			fmt.Println(formatForInterpreter(v), "#", i, v.leaderIdx, "<==", leaders[0].Display.FormatMessage(v.msg))
+		}
+		fmt.Println("Pending:")
+		for i, v := range msgs {
+			fmt.Println(formatForInterpreter(v), "#", i, v.leaderIdx, "<==", leaders[0].Display.FormatMessage(v.msg))
+		}
+		panic(err)
 	}
 
 	// Look for mirrorMap, but only after we have been going a bit.
@@ -313,6 +326,8 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int, msg
 
 			if seeSuccess {
 				loops++
+			} else {
+				failure++
 			}
 			limitHit = false
 		}
@@ -324,6 +339,7 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int, msg
 
 			if extraPrints1 {
 				extraPrints1 = false
+				fmt.Println("/////////////// Fail //////////////////////")
 				fmt.Printf("%d %d setcon\n", len(leadersMap), len(audsMap))
 				for i, v := range msgPath {
 
@@ -334,21 +350,29 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int, msg
 					fmt.Println(formatForInterpreter(v), "#", i, v.leaderIdx, "<==", leaders[0].Display.FormatMessage(v.msg))
 				}
 
-				fmt.Println("************ Fail ************")
 				printState()
 			}
 
-			fmt.Println("Pending:")
-			for i, v := range msgs {
-				fmt.Println(formatForInterpreter(v), "#", i, v.leaderIdx, "<==", leaders[0].Display.FormatMessage(v.msg))
-			}
-
-			fmt.Println("************ Fail ************")
-			printState()
 		}
 	}
 
 	return limitHit, leaf, seeSuccess
+}
+
+func nodesCompleted(nodes []*election.Election) (bool, error) {
+	done := 0
+	prev := -1
+	for _, n := range nodes {
+		if n.Committed {
+			done++
+			if prev != -1 && n.CurrentVote.VolunteerPriority != prev {
+				return false, fmt.Errorf("2 nodes committed on different results. %d and %d", prev, n.CurrentVote.VolunteerPriority)
+			}
+			prev = n.CurrentVote.VolunteerPriority
+		}
+	}
+
+	return done >= (len(nodes)/2)+1, nil
 }
 
 func formatForInterpreter(my *mymsg) string {
@@ -410,11 +434,11 @@ func CloneElection(src *election.Election) *election.Election {
 	dst := new(election.Election)
 	err := enc.Encode(src)
 	if err != nil {
-		panic(err)
+		errConclusions++
 	}
 	err = dec.Decode(dst)
 	if err != nil {
-		panic(err)
+		errConclusions++
 	}
 	return dst
 }
