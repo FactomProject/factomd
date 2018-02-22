@@ -12,7 +12,7 @@ jobs:
 
       - restore_cache:
           keys:
-            - v1-factomd-go-build-cache-{{ checksum "glide.lock" }}
+            - v2-factomd-go-build-cache-{{ checksum "glide.lock" }}
 
       - run:
           name: Get glide
@@ -37,7 +37,7 @@ jobs:
           command: go install -v
 
       - save_cache:
-          key: v1-factomd-go-build-cache-{{ checksum "glide.lock" }}
+          key: v2-factomd-go-build-cache-{{ checksum "glide.lock" }}
           paths:
             - vendor
 
@@ -51,7 +51,7 @@ jobs:
 
       - restore_cache:
           keys:
-            - v1-factomd-go-build-cache-{{ checksum "glide.lock" }}
+            - v2-factomd-go-build-cache-{{ checksum "glide.lock" }}
 
       - run:
           name: Get glide
@@ -82,7 +82,7 @@ jobs:
 
 
       - save_cache:
-          key: v1-factomd-go-build-cache-{{ checksum "glide.lock" }}
+          key: v2-factomd-go-build-cache-{{ checksum "glide.lock" }}
           paths:
             - vendor
 
@@ -96,7 +96,7 @@ jobs:
 
       - restore_cache:
           keys:
-            - v1-factomd-go-build-cache-{{ checksum "glide.lock" }}
+            - v2-factomd-go-build-cache-{{ checksum "glide.lock" }}
 
       - run:
           name: Get glide
@@ -127,7 +127,7 @@ jobs:
 
 
       - save_cache:
-          key: v1-factomd-go-build-cache-{{ checksum "glide.lock" }}
+          key: v2-factomd-go-build-cache-{{ checksum "glide.lock" }}
           paths:
             - vendor
 
@@ -149,7 +149,7 @@ jobs:
       #   Hence, checksumming glide.lock
       - restore_cache:
           keys:
-            - v5-factomd-cache-{{ checksum "glide.lock" }}
+            - v6-factomd-cache-{{ checksum "glide.lock" }}
 
       # Load the images if the cache hit
       - run:
@@ -244,7 +244,7 @@ jobs:
             docker save -o /images/factomd.tar factomd $(docker history -q factomd |grep -v missing | grep -v none)
 
       - save_cache:
-          key: v5-factomd-cache-{{ checksum "glide.lock" }}
+          key: v6-factomd-cache-{{ checksum "glide.lock" }}
           paths:
             - /images
 
