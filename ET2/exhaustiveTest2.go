@@ -37,6 +37,7 @@ var leadersMap = make(map[primitives.Identity]int)
 var audsMap = make(map[primitives.Identity]int)
 
 var extraPrints = true
+var extraPrints1 = true
 var insanePrints = false
 
 //================ main =================
@@ -127,6 +128,7 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int, msg
 	cnt++
 	if cnt < 10000 || cnt%50000 == 0 {
 		extraPrints = true
+		extraPrints1 = true
 	}
 
 	printState := func() {
@@ -308,18 +310,21 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int, msg
 			failure++
 			leaf = false
 		}
-		fmt.Printf("%d %d setcon\n", len(leadersMap), len(audsMap))
-		for i, v := range msgPath {
+		if extraPrints1 {
+			extraPrints1 = false
+			fmt.Printf("%d %d setcon\n", len(leadersMap), len(audsMap))
+			for i, v := range msgPath {
 
-			fmt.Println(formatForInterpreter(v), "#", i, v.leaderIdx, "<==", leaders[0].Display.FormatMessage(v.msg))
-		}
-		fmt.Println("Pending:")
-		for i, v := range msgs {
-			fmt.Println(formatForInterpreter(v), "#", i, v.leaderIdx, "<==", leaders[0].Display.FormatMessage(v.msg))
-		}
+				fmt.Println(formatForInterpreter(v), "#", i, v.leaderIdx, "<==", leaders[0].Display.FormatMessage(v.msg))
+			}
+			fmt.Println("Pending:")
+			for i, v := range msgs {
+				fmt.Println(formatForInterpreter(v), "#", i, v.leaderIdx, "<==", leaders[0].Display.FormatMessage(v.msg))
+			}
 
-		fmt.Println("************ Fail ************")
-		printState()
+			fmt.Println("************ Fail ************")
+			printState()
+		}
 	}
 
 	return limitHit, leaf, seeSuccess
