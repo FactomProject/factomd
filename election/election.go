@@ -278,9 +278,9 @@ func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) (
 	}
 
 	// Will not change my state, so why look at it
-	if msg.Level < e.CurrentVote.Rank {
-		return nil, false
-	}
+	//if msg.Level < e.CurrentVote.Rank {
+	//	return nil, false
+	//}
 
 	// Best vote
 	possibleVotes := []*messages.LeaderLevelMessage{}
