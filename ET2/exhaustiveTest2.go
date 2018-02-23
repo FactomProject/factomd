@@ -44,7 +44,7 @@ var insanePrints = false
 
 //================ main =================
 func main() {
-	recurse(3, 3, 25)
+	recurse(2, 5, 100)
 }
 
 // newElections will return an array of elections (1 per leader) and an array
@@ -117,36 +117,37 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int, msg
 	depths = incCounter(depths, depth)
 	depth++
 
-	cnt++
-	if cnt < 1000 || cnt%200000 == 0 {
+	if globalRunNumber < 1000 || globalRunNumber%50000 == 0 {
 		extraPrints = true
 		extraPrints1 = true
 		extraPrints2 = true
 	}
 
 	printState := func() {
-		fmt.Println("=============== ",
+		fmt.Printf("%s%s%4d%s%4d %s %12s %s%12s %s%3d %s%12s %12s  %s %12s %s %12s %s %12s %s %12s %s %12s", "=============== ",
 			" Depth=", depth, "/", maxdepth,
-			", Multiple Conclusions", humanize.Comma(int64(errConclusions)),
-			", Failures=", humanize.Comma(int64(failure)),
-			", MsgQ=", len(msgs),
-			", Mirrors=", humanize.Comma(int64(mirrors)), humanize.Comma(int64(len(mirrorMap))),
-			", Hit the Limits=", humanize.Comma(int64(hitlimit)),
-			", Breadth=", humanize.Comma(int64(breadth)),
-			", solutions so far =", humanize.Comma(int64(solutions)),
-			", global count= ", humanize.Comma(int64(globalRunNumber)),
-			", loops detected=", humanize.Comma(int64(loops)))
+			"| Multiple Conclusions", humanize.Comma(int64(errConclusions)),
+			"| Failures=", humanize.Comma(int64(failure)),
+			"| MsgQ=", len(msgs),
+			"| Mirrors=", humanize.Comma(int64(mirrors)), humanize.Comma(int64(len(mirrorMap))),
+			"| Hit the Limits=", humanize.Comma(int64(hitlimit)),
+			"| Breadth=", humanize.Comma(int64(breadth)),
+			"| solutions so far =", humanize.Comma(int64(solutions)),
+			"| global count= ", humanize.Comma(int64(globalRunNumber)),
+			"| loops detected=", humanize.Comma(int64(loops)))
 
 		prt := func(counter []int, msg string) {
-			fmt.Printf("\n%20s", msg)
+			fmt.Printf("\n=%20s", msg)
 			if len(counter) == 0 {
-				fmt.Println("\n     None Found")
+				fmt.Println("\n=     None Found\n=")
 			}
 			for i, v := range counter {
 				if i%16 == 0 {
-					fmt.Println()
+					fmt.Println("")
+					fmt.Print("=")
 				}
-				fmt.Printf("%4d=>%12s ", i, humanize.Comma(int64(v)))
+				str := fmt.Sprintf("%s[%3d]", humanize.Comma(int64(v)), i)
+				fmt.Printf("%12s ", str)
 			}
 		}
 		prt(deadMessagesAt, "Dead Messages")
@@ -174,6 +175,15 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int, msg
 				fmt.Println(leaders[2].PrintMessages())
 			}
 		}
+		fmt.Printf("%d %d setcon\n", len(leadersMap), len(audsMap))
+		for i, v := range msgPath {
+			fmt.Println(formatForInterpreter(v), "#", i, v.leaderIdx, "<==", leaders[0].Display.FormatMessage(v.msg))
+		}
+		fmt.Println("Pending:")
+		for i, v := range msgs {
+			fmt.Println(formatForInterpreter(v), "#", i, v.leaderIdx, "<==", leaders[0].Display.FormatMessage(v.msg))
+		}
+
 	}
 
 	if depth > limit {
@@ -192,6 +202,7 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int, msg
 	}
 
 	if depth < 4 {
+		fmt.Println("==================== Depth %d ====================")
 		printState()
 	}
 
@@ -217,17 +228,10 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int, msg
 
 	} else if err != nil {
 		// Bad! This means the algorithm is broken
-
+		errConclusions++
+		fmt.Println("^&**(^%$& Broken! @ depth:", depth)
+		fmt.Println(err.Error())
 		printState()
-		fmt.Printf("%d %d setcon\n", len(leadersMap), len(audsMap))
-		for i, v := range msgPath {
-			fmt.Println(formatForInterpreter(v), "#", i, v.leaderIdx, "<==", leaders[0].Display.FormatMessage(v.msg))
-		}
-		fmt.Println("Pending:")
-		for i, v := range msgs {
-			fmt.Println(formatForInterpreter(v), "#", i, v.leaderIdx, "<==", leaders[0].Display.FormatMessage(v.msg))
-		}
-		panic(err)
 	}
 
 	// Look for mirrorMap, but only after we have been going a bit.
@@ -269,7 +273,13 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int, msg
 	}
 
 	leaf = true
-	for d, v := range msgs {
+	d := 3
+	for range msgs {
+
+		d += 3
+		d = d % len(msgs)
+
+		v := msgs[d]
 
 		var msgs2 []*mymsg
 		msgs2 = append(msgs2, msgs[0:d]...)
@@ -320,14 +330,22 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int, msg
 		}
 		leaders[v.leaderIdx] = cl
 	}
-
 	if limitHit {
-		if depth == limit/2 {
+		leaf = false
+	}
+	if limitHit {
+		if depth == 9 {
 
 			if seeSuccess {
 				loops++
 			} else {
 				failure++
+				if extraPrints1 {
+					extraPrints1 = false
+					fmt.Println("/////////////// Loops Fail //////////////////////")
+					fmt.Printf("%d %d setcon\n", len(leadersMap), len(audsMap))
+					printState()
+				}
 			}
 			limitHit = false
 		}
@@ -341,15 +359,6 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int, msg
 				extraPrints1 = false
 				fmt.Println("/////////////// Fail //////////////////////")
 				fmt.Printf("%d %d setcon\n", len(leadersMap), len(audsMap))
-				for i, v := range msgPath {
-
-					fmt.Println(formatForInterpreter(v), "#", i, v.leaderIdx, "<==", leaders[0].Display.FormatMessage(v.msg))
-				}
-				fmt.Println("Pending:")
-				for i, v := range msgs {
-					fmt.Println(formatForInterpreter(v), "#", i, v.leaderIdx, "<==", leaders[0].Display.FormatMessage(v.msg))
-				}
-
 				printState()
 			}
 
