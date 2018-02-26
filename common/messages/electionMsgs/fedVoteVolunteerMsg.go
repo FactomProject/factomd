@@ -34,7 +34,6 @@ type FedVoteVolunteerMsg struct {
 	ServerIdx  uint32           // Index of Server replacing
 	ServerID   interfaces.IHash // Volunteer Server ChainID
 	ServerName string           // Volunteer Name
-	Weight     interfaces.IHash // Computed Weight at this DBHeight, Minute, Round
 	Missing    interfaces.IMsg  // The Missing DBSig or EOM
 	Ack        interfaces.IMsg  // The acknowledgement for the missing message
 
@@ -115,13 +114,7 @@ func (a *FedVoteVolunteerMsg) IsSameAs(msg interfaces.IMsg) bool {
 	if a.FedID.Fixed() != b.FedID.Fixed() {
 		return false
 	}
-	if a.Weight.Fixed() != b.Weight.Fixed() {
-		return false
-	}
 	if a.VMIndex != b.VMIndex {
-		return false
-	}
-	if a.Round != b.Round {
 		return false
 	}
 	if a.Minute != b.Minute {
@@ -239,16 +232,10 @@ func (m *FedVoteVolunteerMsg) UnmarshalBinaryData(data []byte) (newData []byte, 
 	if m.FedID, err = buf.PopIHash(); err != nil {
 		return newData, err
 	}
-	if m.Weight, err = buf.PopIHash(); err != nil {
-		return newData, err
-	}
 	if m.DBHeight, err = buf.PopUInt32(); err != nil {
 		return newData, err
 	}
 	if m.VMIndex, err = buf.PopInt(); err != nil {
-		return newData, err
-	}
-	if m.Round, err = buf.PopInt(); err != nil {
 		return newData, err
 	}
 	if m.Minute, err = buf.PopByte(); err != nil {
@@ -299,18 +286,13 @@ func (m *FedVoteVolunteerMsg) MarshalBinary() (data []byte, err error) {
 	if e := buf.PushIHash(m.FedID); e != nil {
 		return nil, e
 	}
-	if e := buf.PushIHash(m.Weight); e != nil {
-		return nil, e
-	}
 	if e := buf.PushUInt32(m.DBHeight); e != nil {
 		return nil, e
 	}
 	if e := buf.PushInt(m.VMIndex); e != nil {
 		return nil, e
 	}
-	if e := buf.PushInt(m.Round); e != nil {
-		return nil, e
-	}
+
 	if e := buf.PushByte(m.Minute); e != nil {
 		return nil, e
 	}
@@ -328,15 +310,15 @@ func (m *FedVoteVolunteerMsg) String() string {
 	if m.LeaderChainID == nil {
 		m.LeaderChainID = primitives.NewZeroHash()
 	}
-	return fmt.Sprintf("%19s %20s %20s ID: %x WT: %x serverIdx: %d vmIdx: %d round: %d dbheight: %d minute: %d ",
+	return fmt.Sprintf("%19s %20s %20s ID: %x serverIdx: %d vmIdx: %d dbheight: %d minute: %d ",
 		m.Name,
 		"Volunteer Audit",
 		m.TS.String(),
 		m.ServerID.Bytes()[2:5],
-		m.Weight.Bytes()[2:5],
+		//m.Weight.Bytes()[2:5],
 		m.ServerIdx,
 		m.VMIndex,
-		m.Round,
+		//m.Round,
 		m.DBHeight,
 		m.Minute)
 }

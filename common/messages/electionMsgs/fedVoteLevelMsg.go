@@ -26,16 +26,7 @@ type FedVoteLevelMsg struct {
 	Signer interfaces.IHash
 
 	// Volunteer fields
-	EOM        bool             // True if an EOM, false if a DBSig
-	Name       string           // Server name
-	FedIdx     uint32           // Server faulting
-	FedID      interfaces.IHash // Server faulting
-	ServerIdx  uint32           // Index of Server replacing
-	ServerID   interfaces.IHash // Volunteer Server ChainID
-	ServerName string           // Volunteer Name
-	Weight     interfaces.IHash // Computed Weight at this DBHeight, Minute, Round
-	Missing    interfaces.IMsg  // The Missing DBSig or EOM
-	Ack        interfaces.IMsg  // The acknowledgement for the missing message
+	Volunteer FedVoteVolunteerMsg
 
 	Committed bool
 	// Information about the vote for comparing
@@ -43,7 +34,7 @@ type FedVoteLevelMsg struct {
 	Rank  uint32
 
 	// Need a majority of these to justify our vote
-	Justification []FedVoteLevelMsg
+	Justification []interfaces.IMsg
 
 	messageHash interfaces.IHash
 }
@@ -51,8 +42,10 @@ type FedVoteLevelMsg struct {
 var _ interfaces.IMsg = (*FedVoteVolunteerMsg)(nil)
 var _ interfaces.IElectionMsg = (*FedVoteVolunteerMsg)(nil)
 
-func NewFedVoteLevelMessage() *FedVoteLevelMsg {
+func NewFedVoteLevelMessage(signer interfaces.IHash, vol FedVoteVolunteerMsg) *FedVoteLevelMsg {
 	f := new(FedVoteLevelMsg)
+	f.Volunteer = vol
+	f.Signer = signer
 
 	return f
 }
@@ -69,11 +62,11 @@ func (a *FedVoteLevelMsg) IsSameAs(msg interfaces.IMsg) bool {
 }
 
 func (m *FedVoteLevelMsg) GetServerID() interfaces.IHash {
-	return m.ServerID
+	return m.Signer
 }
 
 func (m *FedVoteLevelMsg) LogFields() log.Fields {
-	return log.Fields{"category": "message", "messagetype": "FedVoteVolunteerMsg", "dbheight": m.DBHeight, "newleader": m.ServerID.String()[4:12]}
+	return log.Fields{"category": "message", "messagetype": "FedVoteVolunteerMsg", "dbheight": m.DBHeight, "newleader": m.Signer.String()[4:12]}
 }
 
 func (m *FedVoteLevelMsg) GetRepeatHash() interfaces.IHash {

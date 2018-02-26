@@ -24,22 +24,21 @@ type FedVoteProposalMsg struct {
 	Signer interfaces.IHash
 
 	// Volunteer fields
-	EOM        bool             // True if an EOM, false if a DBSig
-	Name       string           // Server name
-	FedIdx     uint32           // Server faulting
-	FedID      interfaces.IHash // Server faulting
-	ServerIdx  uint32           // Index of Server replacing
-	ServerID   interfaces.IHash // Volunteer Server ChainID
-	ServerName string           // Volunteer Name
-	Weight     interfaces.IHash // Computed Weight at this DBHeight, Minute, Round
-	Missing    interfaces.IMsg  // The Missing DBSig or EOM
-	Ack        interfaces.IMsg  // The acknowledgement for the missing message
+	Volunteer FedVoteVolunteerMsg
 
 	messageHash interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*FedVoteVolunteerMsg)(nil)
 var _ interfaces.IElectionMsg = (*FedVoteVolunteerMsg)(nil)
+
+func NewFedProposalMsg(signer interfaces.IHash, vol FedVoteVolunteerMsg) *FedVoteProposalMsg {
+	p := new(FedVoteProposalMsg)
+	p.Volunteer = vol
+	p.Signer = signer
+
+	return p
+}
 
 func (m *FedVoteProposalMsg) ElectionProcess(is interfaces.IState, elect interfaces.IElections) {
 
@@ -53,11 +52,11 @@ func (a *FedVoteProposalMsg) IsSameAs(msg interfaces.IMsg) bool {
 }
 
 func (m *FedVoteProposalMsg) GetServerID() interfaces.IHash {
-	return m.ServerID
+	return m.Signer
 }
 
 func (m *FedVoteProposalMsg) LogFields() log.Fields {
-	return log.Fields{"category": "message", "messagetype": "FedVoteVolunteerMsg", "dbheight": m.DBHeight, "newleader": m.ServerID.String()[4:12]}
+	return log.Fields{"category": "message", "messagetype": "FedVoteVolunteerMsg", "dbheight": m.DBHeight, "newleader": m.Signer.String()[4:12]}
 }
 
 func (m *FedVoteProposalMsg) GetRepeatHash() interfaces.IHash {

@@ -15,6 +15,7 @@ import (
 	"github.com/FactomProject/goleveldb/leveldb/errors"
 	log "github.com/sirupsen/logrus"
 	//"github.com/FactomProject/factomd/state"
+	"github.com/FactomProject/factomd/elections"
 )
 
 var _ = fmt.Print
@@ -29,8 +30,14 @@ type FedVoteMsg struct {
 	TypeMsg  byte                 // Can be either a Volunteer from an Audit Server, or End of round
 	DBHeight uint32               // Directory Block Height that owns this ack
 	Minute   byte                 // Minute (-1 for dbsig)
-	Round    int                  // Voting Round
-	Sigs     []interfaces.IHash   // Federated Server signatures.
+}
+
+func (m *FedVoteMsg) InitFields(elect interfaces.IElections) {
+	election := elect.(*elections.Elections)
+	m.TS = primitives.NewTimestampNow()
+	m.DBHeight = uint32(election.DBHeight)
+	m.Minute = byte(election.Minute)
+	// You need to init the type
 }
 
 func (m *FedVoteMsg) ElectionProcess(is interfaces.IState, elect interfaces.IElections) {
@@ -51,9 +58,6 @@ func (a *FedVoteMsg) IsSameAs(msg interfaces.IMsg) bool {
 		return false
 	}
 	if a.VMIndex != b.VMIndex {
-		return false
-	}
-	if a.Round != b.Round {
 		return false
 	}
 	if a.Minute != b.Minute {
@@ -154,9 +158,6 @@ func (m *FedVoteMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error
 	if m.VMIndex, err = buf.PopInt(); err != nil {
 		return nil, err
 	}
-	if m.Round, err = buf.PopInt(); err != nil {
-		return nil, err
-	}
 	if m.Minute, err = buf.PopByte(); err != nil {
 		return nil, err
 	}
@@ -182,9 +183,6 @@ func (m *FedVoteMsg) MarshalBinary() (data []byte, err error) {
 		return nil, e
 	}
 	if e := buf.PushInt(m.VMIndex); e != nil {
-		return nil, e
-	}
-	if e := buf.PushInt(m.Round); e != nil {
 		return nil, e
 	}
 	if e := buf.PushByte(m.Minute); e != nil {

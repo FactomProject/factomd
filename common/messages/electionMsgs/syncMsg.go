@@ -163,10 +163,10 @@ func (m *SyncMsg) FollowerExecute(is interfaces.IState) {
 	va.VMIndex = m.VMIndex
 	va.TS = primitives.NewTimestampNow()
 	va.Name = m.Name
-	va.Weight = m.Weight
+	//va.Weight = m.Weight
 	va.DBHeight = m.DBHeight
 	va.Minute = m.Minute
-	va.Round = m.Round
+	//va.Round = m.Round
 
 	va.SendOut(is, va)
 	is.ElectionsQueue().Enqueue(va)
