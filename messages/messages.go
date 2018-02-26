@@ -61,6 +61,20 @@ func jsonUnmarshal(r interface{}, jsonData string) {
 	}
 }
 
+// A tagged message has a tag to recall it later. Optional
+type TaggedMessage struct {
+	tag [32]byte
+}
+
+func (r *TaggedMessage) Tag() [32]byte {
+	return r.tag
+}
+func (r *TaggedMessage) String() string      { return jsonMarshal(r) }
+func (r *TaggedMessage) ReadString(s string) { jsonUnmarshal(r, s) }
+func (r *TaggedMessage) TagMessage(tag [32]byte) {
+	r.tag = tag
+}
+
 type SignedMessage struct {
 	Signer Identity
 }
@@ -135,12 +149,19 @@ type VolunteerMessage struct {
 	Eom EomMessage
 	FaultMsg
 	SignedMessage
+	TaggedMessage
 }
 
 var _ imessage.IMessage = (*VolunteerMessage)(nil)
 
 func (r *VolunteerMessage) String() string      { return jsonMarshal(r) }
 func (r *VolunteerMessage) ReadString(s string) { jsonUnmarshal(r, s) }
+
+func NewVolunteerMessageWithoutEOM(identity Identity) VolunteerMessage {
+	var v VolunteerMessage
+	v.Signer = identity
+	return v
+}
 
 func NewVolunteerMessage(e EomMessage, identity Identity) VolunteerMessage {
 	var v VolunteerMessage
@@ -161,6 +182,7 @@ type LeaderLevelMessage struct {
 
 	VolunteerMessage
 	SignedMessage
+	TaggedMessage
 
 	// Every vote also includes their previous
 	PreviousVote *LeaderLevelMessage
@@ -227,6 +249,7 @@ type VoteMessage struct {
 	// pass them along
 	OtherVotes map[Identity]SignedMessage
 	SignedMessage
+	TaggedMessage
 }
 
 func (a *VoteMessage) Copy() *VoteMessage {
