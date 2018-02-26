@@ -45,24 +45,21 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 	s.SetString()
 	msg.ComputeVMIndex(s)
 
-	if s.IgnoreMissing {
+	// never ignore DBState messages
+	if s.IgnoreMissing && msg.Type() != constants.DBSTATE_MSG {
 		now := s.GetTimestamp().GetTimeSeconds()
 		if now-msg.GetTimestamp().GetTimeSeconds() > 60*15 {
 			return
 		}
 	}
 
-	g := msg.GetVMIndex()
-	t := s.GetLeaderVM()
-	if g == t {
-		_ = 1 /// TODO: Why are entry commits recirculated from the holding queue? They are only removed by ack never execute.
-	}
-	switch msg.Validate(s) {
+	valid := msg.Validate(s)
+	switch valid {
 	case 1:
 		if s.RunLeader &&
 			s.Leader &&
 			!s.Saving &&
-			vm != nil && int(vm.Height) == len(vm.List) && //TODO:  My case len(vm.list) > vm.height so the commit did not execute?
+			vm != nil && int(vm.Height) == len(vm.List) &&
 			(!s.Syncing || !vm.Synced) &&
 			(msg.IsLocal() || msg.GetVMIndex() == s.LeaderVMIndex) &&
 			s.LeaderPL.DBHeight+1 >= s.GetHighestKnownBlock() {
@@ -109,6 +106,11 @@ func (s *State) Process() (progress bool) {
 	// If we are not running the leader, then look to see if we have waited long enough to
 	// start running the leader.  If we are, start the clock on Ignoring Missing Messages.  This
 	// is so we don't conflict with past version of the network if we have to reboot the network.
+	if s.CurrentMinute > 9 {
+		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(9, s.IdentityChainID)
+	} else {
+		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
+	}
 	if !s.RunLeader {
 		now := s.GetTimestamp().GetTimeMilli() // Timestamps are in milliseconds, so wait 20
 		if now-s.StartDelay > s.StartDelayLimit {
@@ -121,18 +123,8 @@ func (s *State) Process() (progress bool) {
 			}
 		}
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
-		if s.CurrentMinute > 9 {
-			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(9, s.IdentityChainID)
-		} else {
-			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
-		}
 	} else if s.IgnoreMissing {
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
-		if s.CurrentMinute > 9 {
-			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(9, s.IdentityChainID)
-		} else {
-			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
-		}
 		now := s.GetTimestamp().GetTimeMilli() // Timestamps are in milliseconds, so wait 20
 		if now-s.StartDelay > s.StartDelayLimit {
 			s.IgnoreMissing = false
@@ -354,6 +346,30 @@ func (s *State) ReviewHolding() {
 			continue
 		}
 
+		// If it is an entryCommit and it has a duplicate hash to an existing entry throw it away here
+		{
+			ce, ok := v.(*messages.CommitEntryMsg)
+			if ok {
+				x := s.NoEntryYet(ce.CommitEntry.EntryHash, ce.CommitEntry.GetTimestamp())
+				if !x {
+					TotalHoldingQueueOutputs.Inc()
+					delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
+					continue
+				}
+			}
+		}
+		// If it is an chainCommit and it has a duplicate hash to an existing entry throw it away here
+		{
+			ce, ok := v.(*messages.CommitChainMsg)
+			if ok {
+				x := s.NoEntryYet(ce.CommitChain.EntryHash, ce.CommitChain.GetTimestamp())
+				if !x {
+					TotalHoldingQueueOutputs.Inc()
+					delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
+					continue
+				}
+			}
+		}
 		if v.Expire(s) {
 			s.ExpireCnt++
 			TotalHoldingQueueOutputs.Inc()
@@ -534,7 +550,7 @@ func (s *State) ExecuteEntriesInDBState(dbmsg *messages.DBStateMsg) {
 	dblock, err := s.DB.FetchDBlockByHeight(height)
 	if err != nil || dblock == nil {
 		consenLogger.WithFields(log.Fields{"func": "ExecuteEntriesInDBState", "height": height}).Warnf("Dblock fetched is nil")
-		return // This is a werid case
+		return // This is a weird case
 	}
 
 	if !dbmsg.DirectoryBlock.GetHash().IsSameAs(dblock.GetHash()) {
@@ -906,9 +922,13 @@ func (s *State) FollowerExecuteCommitChain(m interfaces.IMsg) {
 }
 
 func (s *State) FollowerExecuteCommitEntry(m interfaces.IMsg) {
+	ce := m.(*messages.CommitEntryMsg)
+	if !s.NoEntryYet(ce.CommitEntry.EntryHash, ce.CommitEntry.GetTimestamp()) {
+		return //ToDo: Think this never happens -- clay
+	}
+
 	FollowerExecutions.Inc()
 	s.FollowerExecuteMsg(m)
-	ce := m.(*messages.CommitEntryMsg)
 	re := s.Holding[ce.CommitEntry.EntryHash.Fixed()]
 	if re != nil {
 		re.SendOut(s, re)
@@ -945,7 +965,7 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 		// The message might not have gone in.  Make sure it did.  Get the list where it goes
 		list := s.ProcessLists.Get(ack.DBHeight).VMs[ack.VMIndex].List
 		// Check to make sure the list isn't empty.  If it is, then it didn't go in.
-		if (int(ack.Height) >= len(list)) || (list[ack.Height] == nil) {
+		if int(ack.Height) >= len(list) || (int(ack.Height) < len(list) && list[ack.Height] == nil) {
 			return
 		}
 
@@ -1505,6 +1525,10 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		case s.CurrentMinute < 10:
 			if s.CurrentMinute == 1 {
 				dbstate := s.GetDBState(dbheight - 1)
+				// Panic had arose when leaders would reboot and the follower was on a future minute
+				if dbstate == nil {
+					return false
+				}
 				if !dbstate.Saved {
 					dbstate.ReadyToSave = true
 				}
@@ -1544,7 +1568,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			s.DBSigProcessed = 0
 
 			// Note about dbsigs.... If we processed the previous minute, then we generate the DBSig for the next block.
-			// But if we didn't process the preivious block, like we start from scratch, or we had to reset the entire
+			// But if we didn't process the previous block, like we start from scratch, or we had to reset the entire
 			// network, then no dbsig exists.  This code doesn't execute, and so we have no dbsig.  In that case, on
 			// the next EOM, we see the block hasn't been signed, and we sign the block (Thats the call to SendDBSig()
 			// above).
