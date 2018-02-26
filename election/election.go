@@ -304,7 +304,7 @@ func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) (
 			vote.Level = e.CurrentLevel
 			e.CurrentLevel++
 		} else {
-			if e.CurrentLevel <= vote.Rank {
+			if e.CurrentLevel < vote.Rank {
 				vote.Level = vote.Rank + 1
 				e.CurrentLevel = vote.Rank + 2
 			} else {
@@ -365,7 +365,7 @@ func (e *Election) addLeaderLevelMessage(msg *messages.LeaderLevelMessage) bool 
 func (e *Election) commitIfLast(msg *messages.LeaderLevelMessage) *messages.LeaderLevelMessage {
 	// If commit is true, then we are done. Return the EOM
 	// commit := e.CommitmentIndicator.ShouldICommit(msg)
-	if e.CommitmentTally > 2 { //commit {
+	if e.CommitmentTally > 3 { //commit {
 		e.Committed = true
 		msg.Committed = true
 		e.Display.Execute(msg)
