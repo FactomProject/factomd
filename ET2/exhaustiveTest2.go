@@ -90,7 +90,7 @@ func newElections(feds, auds int, noDisplay bool) (*controller.Controller, []*el
 	}
 
 	for _, a := range con.AuthSet.GetAuds() {
-		audsMap[a] = con.Elections[0].GetVolunteerPriority(a, con.Elections[0].ProcessListLocation)
+		audsMap[a] = con.Elections[0].GetVolunteerPriority(a)
 	}
 
 	return con, con.Elections, msgs
