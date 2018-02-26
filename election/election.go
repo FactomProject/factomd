@@ -51,7 +51,6 @@ type Election struct {
 	CurrentVote  messages.LeaderLevelMessage
 	Self         Identity
 	AuthSet
-	ProcessListLocation
 
 	MsgListIn  []*DepthLeaderLevel
 	MsgListOut []*DepthLeaderLevel
@@ -67,7 +66,7 @@ type Election struct {
 	CommitmentTally int
 }
 
-func NewElection(self Identity, authset AuthSet, loc ProcessListLocation) *Election {
+func NewElection(self Identity, authset AuthSet) *Election {
 	e := new(Election)
 	e.VolunteerVotes = make(map[Identity]map[Identity]*messages.VoteMessage)
 	e.VolunteerControls = make(map[Identity]*volunteercontrol.VolunteerControl)
@@ -80,8 +79,6 @@ func NewElection(self Identity, authset AuthSet, loc ProcessListLocation) *Elect
 	e.MsgListIn = make([]*DepthLeaderLevel, 0)
 	e.MsgListOut = make([]*DepthLeaderLevel, 0)
 
-	// Used to determine volunteer priority
-	e.ProcessListLocation = loc
 	return e
 }
 
@@ -262,7 +259,7 @@ func (e *Election) getRank0Vote() *messages.LeaderLevelMessage {
 }
 
 func (e *Election) getVolunteerPriority(vol Identity) int {
-	return e.GetVolunteerPriority(vol, e.ProcessListLocation)
+	return e.GetVolunteerPriority(vol)
 }
 
 func (e *Election) executeDisplay(msg imessage.IMessage) {
@@ -441,7 +438,7 @@ func (e *Election) AddDisplay(global *Display) *Display {
 }
 
 func (a *Election) Copy() *Election {
-	b := NewElection(a.Self, a.AuthSet.Copy(), a.ProcessListLocation)
+	b := NewElection(a.Self, a.AuthSet.Copy())
 	b.TotalMessages = a.TotalMessages
 	b.CommitmentTally = a.CommitmentTally
 

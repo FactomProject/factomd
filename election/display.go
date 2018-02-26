@@ -15,8 +15,6 @@ type Display struct {
 
 	Votes [][]string
 
-	primitives.ProcessListLocation
-
 	FedList []primitives.Identity
 
 	primitives.AuthSet
@@ -30,7 +28,6 @@ func NewDisplay(ele *Election, global *Display) *Display {
 	d.AuthSet = ele.AuthSet
 	d.FedList = d.GetFeds()
 	d.Global = global
-	d.ProcessListLocation = ele.ProcessListLocation
 
 	d.Identifier = fmt.Sprintf("Leader %d, ID: %x", d.getColumn(ele.Self), ele.Self[:8])
 
@@ -123,7 +120,7 @@ func (d *Display) insertVote0Message(msg *messages.VoteMessage) {
 }
 
 func (d *Display) getVolunteerPriority(id primitives.Identity) int {
-	return d.AuthSet.GetVolunteerPriority(id, d.ProcessListLocation)
+	return d.AuthSet.GetVolunteerPriority(id)
 }
 
 func (d *Display) insertLeaderLevelMessage(msg *messages.LeaderLevelMessage) {

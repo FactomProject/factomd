@@ -281,5 +281,5 @@ func (c *Controller) newVolunteer(id primitives.Identity) *messages.VolunteerMes
 }
 
 func (c *Controller) newElection(id primitives.Identity) *election.Election {
-	return election.NewElection(id, c.AuthSet.GetAuthSet(), c.ProcessListLocation)
+	return election.NewElection(id, c.AuthSet.GetAuthSet())
 }

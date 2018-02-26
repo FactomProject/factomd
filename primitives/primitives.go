@@ -10,6 +10,7 @@ import (
 	"bytes"
 
 	. "github.com/FactomProject/electiontesting/errorhandling"
+	"github.com/FactomProject/factomd/common/interfaces"
 )
 
 var hashRegEx *regexp.Regexp
@@ -158,14 +159,17 @@ func (a *AuthSet) New() {
 	a.IdentityMap = make(map[Identity]int)
 }
 
+func (a *AuthSet) AddHash(id interfaces.IHash, status int) int {
+	return a.Add(Identity(id.Fixed()), status)
+}
+
 func (a *AuthSet) Add(id Identity, status int) int {
 	index := len(a.IdentityList)
 	a.IdentityMap[id] = index
 	a.IdentityList = append(a.IdentityList, id)
 	a.StatusArray = append(a.StatusArray, status)
-	a.Sort()
+	// a.Sort()
 
-	// TODO: It should return the index right?
 	return index
 }
 
@@ -205,8 +209,7 @@ func (a *AuthSet) FedIDtoIndex(id Identity) int {
 	return -1
 }
 
-func (a *AuthSet) GetVolunteerPriority(vol Identity, loc ProcessListLocation) int {
-	// TODO: Use processlist location
+func (a *AuthSet) GetVolunteerPriority(vol Identity) int {
 	auds := a.GetAuds()
 	for i, a := range auds {
 		if a == vol {

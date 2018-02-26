@@ -14,8 +14,7 @@ import (
 // TestElectionConstructor is dumb. I just have it for imports and test copy setup
 func TestElectionConstructor(t *testing.T) {
 	a := testhelper.NewAuthSetHelper(5, 5)
-	var loc primitives.ProcessListLocation
-	e := NewElection(a.GetFeds()[0], a.GetAuthSet(), loc)
+	e := NewElection(a.GetFeds()[0], a.GetAuthSet())
 
 	var _ = e
 }
@@ -23,7 +22,7 @@ func TestElectionConstructor(t *testing.T) {
 func TestElectionRanks(t *testing.T) {
 	a := testhelper.NewAuthSetHelper(5, 5)
 	var loc primitives.ProcessListLocation
-	e := NewElection(a.GetFeds()[0], a.GetAuthSet(), loc)
+	e := NewElection(a.GetFeds()[0], a.GetAuthSet())
 
 	var _ = e
 	messages.NewVolunteerMessage(messages.NewEomMessage(a.GetAuds()[0], loc), a.GetAuds()[0])
@@ -32,7 +31,7 @@ func TestElectionRanks(t *testing.T) {
 func TestElectionCopy(t *testing.T) {
 	var loc primitives.ProcessListLocation
 	au := testhelper.NewAuthSetHelper(5, 5)
-	a := NewElection(au.GetFeds()[0], au.GetAuthSet(), loc)
+	a := NewElection(au.GetFeds()[0], au.GetAuthSet())
 
 	vol := messages.NewVolunteerMessage(messages.NewEomMessage(a.GetAuds()[0], loc), a.GetAuds()[0])
 	l := messages.NewLeaderLevelMessage(0, 0, 0, vol)
