@@ -97,7 +97,6 @@ echo "Making entries into chain $i"
 echo "---------------------------------"
 d=`date +%y%m%d%H%M%S`
 echo $d $i-$j | factom-cli addentry -f -c ${ChainID[i]} ${ec[i]} 
-echo $d $i-$j | factom-cli addentry -f -c ${ChainID[i]} ${ec[i]} 
 echo "---------------------------------"
 done
 sleep 1s
