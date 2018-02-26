@@ -56,14 +56,21 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 	valid := msg.Validate(s)
 	switch valid {
 	case 1:
+		// The highest block for which we have received a message.  Sometimes the same as
+
+		vml := len(vm.List)
+		local := msg.IsLocal()
+		vmi := msg.GetVMIndex()
+		hkb := s.GetHighestKnownBlock()
+
 		if s.RunLeader &&
 			s.Leader &&
 			!s.Saving &&
-			vm != nil && int(vm.Height) == len(vm.List) &&
+			vm != nil && int(vm.Height) == vml &&
 			(!s.Syncing || !vm.Synced) &&
-			(msg.IsLocal() || msg.GetVMIndex() == s.LeaderVMIndex) &&
-			s.LeaderPL.DBHeight+1 >= s.GetHighestKnownBlock() {
-			if len(vm.List) == 0 {
+			(local || vmi == s.LeaderVMIndex) &&
+			s.LeaderPL.DBHeight+1 >= hkb {
+			if vml == 0 {
 				s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex)
 				TotalXReviewQueueInputs.Inc()
 				s.XReview = append(s.XReview, msg)
@@ -125,7 +132,7 @@ func (s *State) Process() (progress bool) {
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 	} else if s.IgnoreMissing {
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
-		
+
 		now := s.GetTimestamp().GetTimeMilli() // Timestamps are in milliseconds, so wait 20
 		if now-s.StartDelay > s.StartDelayLimit {
 			s.IgnoreMissing = false
@@ -226,7 +233,7 @@ skipreview:
 	TotalProcessXReviewTime.Add(float64(processXReviewTime.Nanoseconds()))
 
 	preProcessProcChanTime := time.Now()
-        processLoop:
+processLoop:
 	for {
 		select {
 		case msg := <-process:
@@ -235,7 +242,7 @@ skipreview:
 		default:
 			break processLoop
 		}
-	}// processLoop for{...}
+	} // processLoop for{...}
 
 	processProcChanTime := time.Since(preProcessProcChanTime)
 	TotalProcessProcChanTime.Add(float64(processProcChanTime.Nanoseconds()))
@@ -607,9 +614,15 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		//s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): DBState is invalid at ht %d", dbheight))
 		// Do nothing because this dbstate looks to be invalid
 		cntFail()
+		if dbstatemsg.IsLast { // this is the last DBState in this load
+			s.DBFinished = true // Just in case we toss the last one for some reason
+		}
 		return
 	}
 
+	if dbstatemsg.IsLast { // this is the last DBState in this load
+		s.DBFinished = true // Normal case
+	}
 	/**************************
 	for int(s.ProcessLists.DBHeightBase)+len(s.ProcessLists.Lists) > int(dbheight+1) {
 		s.ProcessLists.Lists[len(s.ProcessLists.Lists)-1].Clear()
