@@ -69,7 +69,7 @@ func (ea *ElectionAdapter) Execute(msg interfaces.IMsg) interfaces.IMsg {
 func (ea *ElectionAdapter) expandMyMessage(msg imessage.IMessage) interfaces.IMsg {
 	switch msg.(type) {
 	case *messages.VoteMessage:
-		// TODO: Expand vote messages
+		// TODO: Expand vote messages as FedVoteProposalMsg
 	case *messages.LeaderLevelMessage:
 		l := NewFedVoteLevelMessage()
 		sim := msg.(*messages.LeaderLevelMessage)
@@ -161,8 +161,8 @@ func (ea *ElectionAdapter) adaptMessage(msg interfaces.IMsg) imessage.IMessage {
 	switch msg.(type) {
 	case *FedVoteVolunteerMsg:
 		return ea.adaptVolunteerMessage(msg.(*FedVoteVolunteerMsg))
-		//case *electionMsgs.FedVoteMsg:
-		//	return ea.adaptVoteMessage(msg.(*electionMsgs.FedVoteLevelMsg))
+	case *FedVoteProposalMsg:
+		return ea.adaptVoteMessage(msg.(*FedVoteProposalMsg))
 	case *FedVoteLevelMsg:
 		return ea.adaptLevelMessage(msg.(*FedVoteLevelMsg), false)
 	}
@@ -180,16 +180,16 @@ func (ea *ElectionAdapter) adaptVolunteerMessage(msg *FedVoteVolunteerMsg) *mess
 	return &volmsg
 }
 
-//func (ea *ElectionAdapter) adaptVoteMessage(msg *electionMsgs.FedVoteLevelMsg) *messages.VoteMessage {
-//	ea.tagMessage(msg)
-//
-//	vol := msg.ServerID.Fixed()
-//	volid := primitives.Identity(vol)
-//	volmsg := messages.NewVolunteerMessageWithoutEOM(volid)
-//	vote := messages.NewVoteMessage(volmsg, primitives.Identity(msg.Signer.Fixed()))
-//	vote.TagMessage(msg.MsgHash.Fixed())
-//	return &vote
-//}
+func (ea *ElectionAdapter) adaptVoteMessage(msg *FedVoteProposalMsg) *messages.VoteMessage {
+	ea.tagMessage(msg)
+
+	vol := msg.ServerID.Fixed()
+	volid := primitives.Identity(vol)
+	volmsg := messages.NewVolunteerMessageWithoutEOM(volid)
+	vote := messages.NewVoteMessage(volmsg, primitives.Identity(msg.Signer.Fixed()))
+	vote.TagMessage(msg.MsgHash.Fixed())
+	return &vote
+}
 
 // adaptLevelMessage
 // To stop possible infinite recursive behavior, only adapt the first level of justifications
