@@ -160,7 +160,7 @@ func (v *VolunteerControl) CheckVoteCount() *messages.LeaderLevelMessage {
 		}
 	}
 
-	llmsg := messages.NewLeaderLevelMessage(v.Self, rank, highestlevel+1, *v.Volunteer)
+	llmsg := messages.NewLeaderLevelMessage(v.Self, rank, highestlevel, *v.Volunteer)
 	llmsg.Justification = justification
 
 	return &llmsg
