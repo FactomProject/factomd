@@ -5,17 +5,13 @@
 package electionMsgs
 
 import (
-	"bytes"
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/elections"
-	"github.com/FactomProject/goleveldb/leveldb/errors"
 	log "github.com/sirupsen/logrus"
 	//"github.com/FactomProject/factomd/state"
-	"time"
 )
 
 var _ = fmt.Print
@@ -49,14 +45,17 @@ type FedVoteLevelMsg struct {
 	// Need a majority of these to justify our vote
 	Justification []FedVoteLevelMsg
 
-	// Previous Vote is used to help spread around information
-	PreviousVote FedVoteLevelMsg
-
 	messageHash interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*FedVoteVolunteerMsg)(nil)
 var _ interfaces.IElectionMsg = (*FedVoteVolunteerMsg)(nil)
+
+func NewFedVoteLevelMessage() *FedVoteLevelMsg {
+	f := new(FedVoteLevelMsg)
+
+	return f
+}
 
 func (m *FedVoteLevelMsg) ElectionProcess(is interfaces.IState, elect interfaces.IElections) {
 
