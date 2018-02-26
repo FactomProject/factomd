@@ -78,7 +78,7 @@ jobs:
       - run:
           name: Run tests!
           no_output_timeout: 2400
-          command: go test -v $(glide nv)
+          command: go test -v -vet=off $(glide nv)
 
 
       - save_cache:
