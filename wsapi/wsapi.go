@@ -123,8 +123,10 @@ func SetState(state interfaces.IState) {
 		ServersMutex.Lock()
 		defer ServersMutex.Unlock()
 
-		for Servers == nil && Servers[state.GetPort()] != nil {
+		for Servers == nil && Servers[state.GetPort()] != nil && Servers[state.GetPort()].Env != nil {
+			ServersMutex.Unlock()
 			time.Sleep(10 * time.Millisecond)
+			ServersMutex.Lock()
 		}
 		Servers[state.GetPort()].Env["state"] = state
 	}
