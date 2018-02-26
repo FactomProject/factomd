@@ -225,14 +225,15 @@ func (e *Election) getRank0Vote() *messages.LeaderLevelMessage {
 		return nil
 	}
 
+	// Assume sorted
 	auds := e.GetAuds()
-	for i := 1; i < len(auds); i++ {
-		for j := 0; j < len(auds)-i; j++ {
-			if auds[j] < auds[j+1] {
-				auds[j], auds[j+1] = auds[j+1], auds[j]
-			}
-		}
-	}
+	//for i := 1; i < len(auds); i++ {
+	//	for j := 0; j < len(auds)-i; j++ {
+	//		if auds[j] < auds[j+1] {
+	//			auds[j], auds[j+1] = auds[j+1], auds[j]
+	//		}
+	//	}
+	//}
 
 	// currentVote is -1. Updates when we get a rank 0
 	for _, vol := range auds {

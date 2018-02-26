@@ -31,7 +31,7 @@ func NewAuthSetHelper(feds, auds int) *AuthSetHelper {
 
 func (a *AuthSetHelper) NextIdentity() Identity {
 	a.sequenceCounter++
-	return Identity(a.sequenceCounter)
+	return NewIdentityFromInt(a.sequenceCounter)
 }
 
 func (a *AuthSetHelper) AddFed() Identity {

@@ -5,8 +5,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	. "github.com/FactomProject/electiontesting/errorhandling"
 	"regexp"
+
+	"bytes"
+
+	. "github.com/FactomProject/electiontesting/errorhandling"
 )
 
 var hashRegEx *regexp.Regexp
@@ -223,10 +226,17 @@ func (a *AuthSet) GetVolunteerPriority(vol Identity, loc ProcessListLocation) in
 	//return v
 }
 
-type Identity int
+type Identity [32]byte
+
+func NewIdentityFromInt(u int) Identity {
+	v := Uint32ToBytes(uint32(u))
+	var i Identity
+	copy(i[:4], v)
+	return i
+}
 
 func (a Identity) less(b Identity) bool {
-	return a < b
+	return bytes.Compare(a[:], b[:]) < 0
 }
 
 func (i *Identity) String() string {

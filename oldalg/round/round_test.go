@@ -1,13 +1,14 @@
 package round_test
 
 import (
+	"math/rand"
+	"testing"
+
 	. "github.com/FactomProject/electiontesting/errorhandling"
 	"github.com/FactomProject/electiontesting/imessage"
 	"github.com/FactomProject/electiontesting/messages"
 	. "github.com/FactomProject/electiontesting/primitives"
 	. "github.com/FactomProject/electiontesting/round"
-	"math/rand"
-	"testing"
 )
 
 var authSet AuthSet
@@ -17,7 +18,7 @@ func init() {
 	// add three leaders and two audit servers
 	for i := 0; i < 5; i++ {
 		id := rand.Int()
-		authSet.Add(Identity(id), i%2)
+		authSet.Add(NewIdentityFromInt(id), i%2)
 	}
 
 }

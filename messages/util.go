@@ -14,7 +14,7 @@ func GetSigner(msg interface{}) primitives.Identity {
 		v := msg.(*LeaderLevelMessage)
 		return v.Signer
 	}
-	return primitives.Identity(-1)
+	return primitives.NewIdentityFromInt(-1)
 }
 
 // GetVolunteerMsg gets the volunteer message from an election message, used to determine round
