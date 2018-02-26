@@ -28,7 +28,7 @@ type DBStateMsg struct {
 	MessageBase
 	Timestamp interfaces.Timestamp
 
-	//TODO: handle misformed DBStates!
+	//TODO: handle malformed DBStates!
 	DirectoryBlock   interfaces.IDirectoryBlock
 	AdminBlock       interfaces.IAdminBlock
 	FactoidBlock     interfaces.IFBlock
@@ -43,6 +43,7 @@ type DBStateMsg struct {
 	IgnoreSigs bool
 	Sent       interfaces.Timestamp
 	IsInDB     bool
+	IsLast     bool // Flag from state.LoadDatabase() that this is the last saved block loaded at boot.
 }
 
 var _ interfaces.IMsg = (*DBStateMsg)(nil)

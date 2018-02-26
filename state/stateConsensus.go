@@ -52,12 +52,17 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 		}
 	}
 
+	g := msg.GetVMIndex()
+	t := s.GetLeaderVM()
+	if g == t {
+		_ = 1 /// TODO: Why are entry commits recirculated from the holding queue? They are only removed by ack never execute.
+	}
 	switch msg.Validate(s) {
 	case 1:
 		if s.RunLeader &&
 			s.Leader &&
 			!s.Saving &&
-			vm != nil && int(vm.Height) == len(vm.List) &&
+			vm != nil && int(vm.Height) == len(vm.List) && //TODO:  My case len(vm.list) > vm.height so the commit did not execute?
 			(!s.Syncing || !vm.Synced) &&
 			(msg.IsLocal() || msg.GetVMIndex() == s.LeaderVMIndex) &&
 			s.LeaderPL.DBHeight+1 >= s.GetHighestKnownBlock() {
@@ -599,9 +604,15 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		//s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): DBState is invalid at ht %d", dbheight))
 		// Do nothing because this dbstate looks to be invalid
 		cntFail()
+		if dbstatemsg.IsLast { // this is the last DBState in this load
+			s.DBFinished = true // Just in case we toss the last one for some reason
+		}
 		return
 	}
 
+	if dbstatemsg.IsLast { // this is the last DBState in this load
+		s.DBFinished = true // Normal case
+	}
 	/**************************
 	for int(s.ProcessLists.DBHeightBase)+len(s.ProcessLists.Lists) > int(dbheight+1) {
 		s.ProcessLists.Lists[len(s.ProcessLists.Lists)-1].Clear()
