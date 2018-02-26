@@ -25,6 +25,10 @@ var _ = fmt.Print
 // level. Only 1 vote per level can be issued per leader.
 type FedVoteLevelMsg struct {
 	FedVoteMsg
+
+	// Signer of the message
+	Signer interfaces.IHash
+
 	// Volunteer fields
 	EOM        bool             // True if an EOM, false if a DBSig
 	Name       string           // Server name
