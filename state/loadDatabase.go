@@ -93,6 +93,7 @@ func LoadDatabase(s *State) {
 		dbstate, _ := msg.(*messages.DBStateMsg)
 		dbstate.IsLast = true // this is the last DBState in this load
 		// this will cause s.DBFinished to go true
+		s.DBFinished = true
 		s.InMsgQueue().Enqueue(msg)
 	}
 	s.Println(fmt.Sprintf("Loaded %d directory blocks on %s", blkCnt, s.FactomNodeName))

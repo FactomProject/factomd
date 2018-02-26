@@ -57,8 +57,12 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 	switch valid {
 	case 1:
 		// The highest block for which we have received a message.  Sometimes the same as
-
-		vml := len(vm.List)
+		var vml int
+		if vm == nil || vm.List == nil {
+			vml = 0
+		} else {
+			vml = len(vm.List)
+		}
 		local := msg.IsLocal()
 		vmi := msg.GetVMIndex()
 		hkb := s.GetHighestKnownBlock()
