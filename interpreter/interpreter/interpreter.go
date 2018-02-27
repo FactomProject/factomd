@@ -154,7 +154,7 @@ func (i *Interpreter) Exec3(x interface{}) {
 		}
 	}
 
-	if i.Tracing > 0 {
+	if i.Tracing > 1 {
 		fmt.Printf("Exec3(%v) ", i.String(x))
 		i.PStack()
 	}

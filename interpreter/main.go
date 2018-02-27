@@ -17,7 +17,7 @@ type TopLevelInterpreter struct {
 }
 
 func main() {
-	c := controller.NewController(3, 5)
+	c := controller.NewControllerInterpreter(3, 5)
 	//t := new(TopLevelInterpreter)
 	//t.Controller = c
 
@@ -36,7 +36,7 @@ func grabInput(in *bufio.Reader) string {
 	return strings.TrimRight(input, "\n")
 }
 
-func Shell(i *controller.Controller) {
+func Shell(i *controller.ControllerInterpreter) {
 	in := bufio.NewReader(os.Stdin)
 	for {
 		fmt.Print("> ")
