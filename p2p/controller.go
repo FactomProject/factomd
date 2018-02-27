@@ -166,8 +166,7 @@ func (c *Controller) Init(ci ControllerInit) *Controller {
 		"node":    ci.NodeName,
 		"port":    ci.Port,
 		"network": fmt.Sprintf("%#x", ci.Network)})
-	c.logger.Info("Initializing network controller")
-	c.logger.Debugf("ControllerInit: %+v", ci)
+	c.logger.WithField("controller_init", ci).Debugf("Initializing network controller")
 	RandomGenerator = rand.New(rand.NewSource(time.Now().UnixNano()))
 	NodeID = uint64(RandomGenerator.Int63()) // This is a global used by all connections
 	c.keepRunning = true
@@ -269,7 +268,7 @@ func (c *Controller) GetNumberConnections() int {
 
 func (c *Controller) listen() {
 	address := fmt.Sprintf(":%s", c.listenPort)
-	c.logger.Debugf("Controller.listen(%s) got address %s", c.listenPort, address)
+	c.logger.WithFields(log.Fields{"address": address, "port": c.listenPort}).Infof("Listening for new connections")
 	listener, err := net.Listen("tcp", address)
 	if nil != err {
 		c.logger.Errorf("Controller.listen() Error: %+v", err)
@@ -281,7 +280,7 @@ func (c *Controller) listen() {
 // Since this runs in its own goroutine we need to send a command when
 // when we get a new connection.
 func (c *Controller) acceptLoop(listener net.Listener) {
-	c.logger.Info("Controller.acceptLoop() starting up")
+	c.logger.Debug("Controller.acceptLoop() starting up")
 	for {
 		conn, err := listener.Accept()
 		switch err {
@@ -289,9 +288,11 @@ func (c *Controller) acceptLoop(listener net.Listener) {
 			switch {
 			case c.numberIncommingConnections < MaxNumberIncommingConnections:
 				c.AddPeer(conn) // Sends command to add the peer to the peers list
-				c.logger.Infof("Controller.acceptLoop() new peer: %+v", conn)
+				c.logger.WithField("remote_address", conn.RemoteAddr()).Infof("Accepting new incoming connection")
 			default:
-				c.logger.Infof("Controller.acceptLoop() new peer, but too many incomming connections. %d", c.numberIncommingConnections)
+				c.logger.WithFields(log.Fields{
+					"remote_address": conn.RemoteAddr(),
+					"num_conns":      c.numberIncommingConnections}).Infof("Got new connection request, but too many incomming connections.")
 				conn.Close()
 			}
 		default:
