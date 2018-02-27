@@ -923,10 +923,6 @@ func (s *State) FollowerExecuteCommitChain(m interfaces.IMsg) {
 
 func (s *State) FollowerExecuteCommitEntry(m interfaces.IMsg) {
 	ce := m.(*messages.CommitEntryMsg)
-	if !s.NoEntryYet(ce.CommitEntry.EntryHash, ce.CommitEntry.GetTimestamp()) {
-		return //ToDo: Think this never happens -- clay
-	}
-
 	FollowerExecutions.Inc()
 	s.FollowerExecuteMsg(m)
 	re := s.Holding[ce.CommitEntry.EntryHash.Fixed()]
@@ -965,7 +961,7 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 		// The message might not have gone in.  Make sure it did.  Get the list where it goes
 		list := s.ProcessLists.Get(ack.DBHeight).VMs[ack.VMIndex].List
 		// Check to make sure the list isn't empty.  If it is, then it didn't go in.
-		if int(ack.Height) >= len(list) || (int(ack.Height) < len(list) && list[ack.Height] == nil) {
+		if int(ack.Height) >= len(list) || list[ack.Height] == nil {
 			return
 		}
 
