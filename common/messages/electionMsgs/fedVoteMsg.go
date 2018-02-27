@@ -12,10 +12,10 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/elections"
+	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/goleveldb/leveldb/errors"
 	log "github.com/sirupsen/logrus"
-	//"github.com/FactomProject/factomd/state"
-	"github.com/FactomProject/factomd/elections"
 )
 
 var _ = fmt.Print
@@ -106,7 +106,27 @@ func (m *FedVoteMsg) Type() byte {
 	return constants.INVALID_MSG
 }
 
-func (m *FedVoteMsg) Validate(state interfaces.IState) int {
+// InitiateElectionAdapter will create a new election adapter if needed for the election message
+func (m *FedVoteMsg) InitiateElectionAdapter(st interfaces.IState) {
+	s := st.(*state.State)
+	e := s.Elections.(*elections.Elections)
+
+	if e.Adapter == nil || e.Adapter.GetDBHeight() < int(m.DBHeight) || e.Adapter.GetMinute() < int(m.Minute) {
+		// TODO: Is cancelling an old election ALWAYS the best way? Should we have some cleanup? Maybe validate
+		// TODO: the new election is valid and the old one has concluded
+		e.Adapter = NewElectionAdapter(e)
+	}
+}
+
+func (m *FedVoteMsg) Validate(st interfaces.IState) int {
+	s := st.(*state.State)
+	e := s.Elections.(*elections.Elections)
+
+	// Ignore all elections messages from the past
+	if int(m.DBHeight) < e.DBHeight || int(m.Minute) < e.Minute {
+		return -1
+	}
+
 	return 1
 }
 

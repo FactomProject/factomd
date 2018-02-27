@@ -11,6 +11,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/elections"
 	log "github.com/sirupsen/logrus"
 	//"github.com/FactomProject/factomd/state"
 )
@@ -43,7 +44,18 @@ func NewFedProposalMsg(signer interfaces.IHash, vol FedVoteVolunteerMsg) *FedVot
 }
 
 func (m *FedVoteProposalMsg) ElectionProcess(is interfaces.IState, elect interfaces.IElections) {
+	e := elect.(*elections.Elections)
 
+	/******  Election Adapter Control   ******/
+	/**	Controlling the inner election state**/
+	m.InitiateElectionAdapter(is)
+
+	resp := e.Adapter.Execute(m)
+	if resp == nil {
+		return
+	}
+	resp.SendOut(is, resp)
+	/*_____ End Election Adapter Control  _____*/
 }
 
 var _ interfaces.IMsg = (*FedVoteVolunteerMsg)(nil)
@@ -102,6 +114,10 @@ func (m *FedVoteProposalMsg) Type() byte {
 }
 
 func (m *FedVoteProposalMsg) Validate(state interfaces.IState) int {
+	baseMsg := m.FedVoteMsg.Validate(state)
+	if baseMsg == -1 {
+		return -1
+	}
 	return 1
 }
 

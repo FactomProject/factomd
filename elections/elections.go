@@ -36,6 +36,8 @@ type Elections struct {
 	Sigs      [][]interfaces.IHash // Signatures from the Federated Servers for a given round.
 	KillRound [][]interfaces.IHash // Signatures from the Federated Servers to kill a given round.
 
+	Adapter interfaces.IElectionAdapter
+
 	Timeout time.Duration
 }
 

@@ -17,6 +17,12 @@ import (
 type ElectionAdapter struct {
 	Election *elections.Elections
 
+	Electing int
+	DBHeight int
+	Minute   int
+
+	Committed bool
+
 	// All messages we adapt so we can expand them
 	tagedMessages map[[32]byte]interfaces.IMsg
 
@@ -31,6 +37,9 @@ func NewElectionAdapter(e *elections.Elections) *ElectionAdapter {
 	ea.tagedMessages = make(map[[32]byte]interfaces.IMsg)
 	ea.Volunteers = make(map[[32]byte]*FedVoteVolunteerMsg)
 
+	ea.DBHeight = e.DBHeight
+	ea.Minute = e.Minute
+	ea.Electing = e.Electing
 	ea.Election = e
 	// Build the authset
 	// TODO: Check the order!
@@ -123,6 +132,10 @@ func (ea *ElectionAdapter) expandMyMessage(msg imessage.IMessage) interfaces.IMs
 
 		// TODO: Set Message type
 		l.TypeMsg = 0x00
+
+		if l.Committed {
+			ea.Committed = true
+		}
 
 		return l
 	}
@@ -251,4 +264,15 @@ func (ea *ElectionAdapter) saveVolunteer(msg interfaces.IMsg) {
 			ea.Volunteers[raw.Volunteer.ServerID.Fixed()] = &raw.Volunteer
 		}
 	}
+}
+
+func (ea *ElectionAdapter) GetDBHeight() int {
+	return ea.DBHeight
+}
+func (ea *ElectionAdapter) GetMinute() int {
+	return ea.Minute
+}
+
+func (ea *ElectionAdapter) GetElecting() int {
+	return ea.Electing
 }

@@ -12,6 +12,9 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	log "github.com/sirupsen/logrus"
 	//"github.com/FactomProject/factomd/state"
+	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/elections"
+	"github.com/FactomProject/factomd/state"
 )
 
 var _ = fmt.Print
@@ -51,7 +54,27 @@ func NewFedVoteLevelMessage(signer interfaces.IHash, vol FedVoteVolunteerMsg) *F
 }
 
 func (m *FedVoteLevelMsg) ElectionProcess(is interfaces.IState, elect interfaces.IElections) {
+	e := elect.(*elections.Elections)
 
+	/******  Election Adapter Control   ******/
+	/**	Controlling the inner election state**/
+	m.InitiateElectionAdapter(is)
+
+	resp := e.Adapter.Execute(m)
+	if resp == nil {
+		return
+	}
+
+	resp.SendOut(is, resp)
+	// We also need to check if we should change our state if the eletion resolved
+	if vote, ok := resp.(*FedVoteLevelMsg); ok {
+		if vote.Committed {
+			vote.SetLocal(true)
+			is.InMsgQueue().Enqueue(vote)
+		}
+	}
+
+	/*_____ End Election Adapter Control  _____*/
 }
 
 var _ interfaces.IMsg = (*FedVoteVolunteerMsg)(nil)
@@ -95,10 +118,14 @@ func (m *FedVoteLevelMsg) GetMsgHash() interfaces.IHash {
 }
 
 func (m *FedVoteLevelMsg) Type() byte {
-	return constants.VOLUNTEERAUDIT
+	return constants.VOLUNTEERLEVELVOTE
 }
 
 func (m *FedVoteLevelMsg) Validate(state interfaces.IState) int {
+	baseMsg := m.FedVoteMsg.Validate(state)
+	if baseMsg == -1 {
+		return -1
+	}
 	return 1
 }
 
@@ -113,8 +140,18 @@ func (m *FedVoteLevelMsg) LeaderExecute(state interfaces.IState) {
 	m.FollowerExecute(state)
 }
 
-func (m *FedVoteLevelMsg) FollowerExecute(state interfaces.IState) {
-	state.ElectionsQueue().Enqueue(m)
+func (m *FedVoteLevelMsg) FollowerExecute(is interfaces.IState) {
+	if !m.Committed {
+		is.ElectionsQueue().Enqueue(m)
+		return
+	}
+
+	s := is.(*state.State)
+	pl := s.ProcessLists.Get(m.DBHeight)
+	pl.FedServers[m.Volunteer.FedIdx], pl.AuditServers[m.Volunteer.ServerIdx] =
+		pl.AuditServers[m.Volunteer.ServerIdx], pl.FedServers[m.Volunteer.FedIdx]
+
+	pl.AddToProcessList(m.Volunteer.Ack.(*messages.Ack), m.Volunteer.Missing)
 }
 
 // Acknowledgements do not go into the process list.

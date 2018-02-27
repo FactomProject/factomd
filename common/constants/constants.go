@@ -54,6 +54,7 @@ const (
 
 	VOLUNTEERAUDIT
 	VOLUNTEERPROPOSAL
+	VOLUNTEERLEVELVOTE
 	SYNC_MSG
 
 	NUM_MESSAGES // Not used, just a counter for the number of messages.

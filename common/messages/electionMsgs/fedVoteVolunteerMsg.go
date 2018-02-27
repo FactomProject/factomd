@@ -79,6 +79,18 @@ func (m *FedVoteVolunteerMsg) ElectionProcess(is interfaces.IState, elect interf
 	e.Msg = m.Missing
 	e.Ack = m.Ack
 	e.VName = m.ServerName
+
+	/******  Election Adapter Control   ******/
+	/**	Controlling the inner election state**/
+	m.InitiateElectionAdapter(is)
+
+	resp := e.Adapter.Execute(m)
+	if resp == nil {
+		return
+	}
+	resp.SendOut(is, resp)
+	/*_____ End Election Adapter Control  _____*/
+
 }
 
 var _ interfaces.IMsg = (*FedVoteVolunteerMsg)(nil)
@@ -162,6 +174,11 @@ func (m *FedVoteVolunteerMsg) Type() byte {
 }
 
 func (m *FedVoteVolunteerMsg) Validate(state interfaces.IState) int {
+	baseMsg := m.FedVoteMsg.Validate(state)
+	if baseMsg == -1 {
+		return -1
+	}
+
 	return 1
 }
 
