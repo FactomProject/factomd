@@ -52,17 +52,12 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 		}
 	}
 
-	g := msg.GetVMIndex()
-	t := s.GetLeaderVM()
-	if g == t {
-		_ = 1 /// TODO: Why are entry commits recirculated from the holding queue? They are only removed by ack never execute.
-	}
 	switch msg.Validate(s) {
 	case 1:
 		if s.RunLeader &&
 			s.Leader &&
 			!s.Saving &&
-			vm != nil && int(vm.Height) == len(vm.List) && //TODO:  My case len(vm.list) > vm.height so the commit did not execute?
+			vm != nil && int(vm.Height) == len(vm.List) &&
 			(!s.Syncing || !vm.Synced) &&
 			(msg.IsLocal() || msg.GetVMIndex() == s.LeaderVMIndex) &&
 			s.LeaderPL.DBHeight+1 >= s.GetHighestKnownBlock() {
