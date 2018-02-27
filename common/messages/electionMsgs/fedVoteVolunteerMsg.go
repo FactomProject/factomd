@@ -48,10 +48,6 @@ func delayVol(is interfaces.IState, e *elections.Elections, m *FedVoteVolunteerM
 	is.ElectionsQueue().Enqueue(m)
 }
 
-func NewFedVoteVolunteerMsg() {
-
-}
-
 func (m *FedVoteVolunteerMsg) ElectionProcess(is interfaces.IState, elect interfaces.IElections) {
 	//s := is.(*state.State)
 	e := elect.(*elections.Elections)

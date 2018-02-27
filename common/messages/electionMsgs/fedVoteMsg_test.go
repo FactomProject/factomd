@@ -70,7 +70,7 @@ func TestMarshalUnmarshalAck(t *testing.T) {
 	va.Name = "bob"
 	va.DBHeight = 10
 	va.ServerID = primitives.Sha([]byte("leader"))
-	va.Weight = primitives.Sha([]byte("Weight"))
+	//va.Weight = primitives.Sha([]byte("Weight"))
 	va.ServerIdx = 3
 	va.Missing = new(messages.EOM)
 	eom := va.Missing.(*messages.EOM)
@@ -85,5 +85,7 @@ func TestMarshalUnmarshalAck(t *testing.T) {
 	ack.MessageHash = primitives.NewHash([]byte("msg"))
 	ack.SerialHash = primitives.NewHash([]byte("serial"))
 	va.TS = primitives.NewTimestampNow()
+
+	va.FedID = primitives.RandomHash()
 	test(va, "1")
 }
