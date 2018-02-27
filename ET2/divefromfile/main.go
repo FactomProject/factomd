@@ -25,12 +25,7 @@ func main() {
 	}
 	con.InitInterpreter()
 	con.Interpret(strings.NewReader(string(data)))
-	//con.Interpret(file)
-	var _ = data
-	var _ = file
 
-	//fmt.Printf("%v\n", con.BufferedMessages)
-	//Shell(con)
 	dive.Dive(con.BufferedMessages, con.Elections, 0, 10, []*controller.DirectedMsg{})
 }
 
