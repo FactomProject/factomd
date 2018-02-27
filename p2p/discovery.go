@@ -20,6 +20,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+var discoLogger = packageLogger.WithField("subpack", "discovery")
+
 type Discovery struct {
 	knownPeers map[string]Peer // peers we know about indexed by hash
 
@@ -41,7 +43,7 @@ var UpdateKnownPeers sync.Mutex
 // This ensures that all shared memory is accessed from that goroutine.
 
 func (d *Discovery) Init(peersFile string, seed string) *Discovery {
-	d.logger = packageLogger.WithFields(log.Fields{"logger": "discovery"})
+	d.logger = discoLogger
 	UpdateKnownPeers.Lock()
 	d.knownPeers = map[string]Peer{}
 	UpdateKnownPeers.Unlock()

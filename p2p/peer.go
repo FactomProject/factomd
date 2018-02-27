@@ -13,6 +13,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+var peerLogger = packageLogger.WithField("subpack", "peer")
+
 // Data structures and functions related to peers (eg other nodes in the network)
 
 type Peer struct {
@@ -39,8 +41,7 @@ const ( // iota is reset to 0
 
 func (p *Peer) Init(address string, port string, quality int32, peerType uint8, connections int) *Peer {
 
-	p.logger = packageLogger.WithFields(log.Fields{
-		"subpack":  "peer",
+	p.logger = peerLogger.WithFields(log.Fields{
 		"address":  address,
 		"port":     port,
 		"peerType": peerType,

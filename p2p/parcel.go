@@ -12,7 +12,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var parcelLogger = packageLogger.WithFields(log.Fields{"subpack": "connection"})
+var parcelLogger = packageLogger.WithField("subpack", "connection")
 
 // Parcel is the atomic level of communication for the p2p network.  It contains within it the necessary info for
 // the networking protocol, plus the message that the Application is sending.

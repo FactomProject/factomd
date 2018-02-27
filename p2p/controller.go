@@ -29,6 +29,8 @@ var packageLogger = log.WithFields(log.Fields{
 	"package":   "p2p",
 	"component": "networking"})
 
+var controllerLogger = packageLogger.WithField("subpack", "controller")
+
 // Controller manages the peer to peer network.
 type Controller struct {
 	keepRunning bool // Indicates its time to shut down when false.
@@ -160,7 +162,7 @@ func (e *CommandDisconnect) String() string {
 //////////////////////////////////////////////////////////////////////
 
 func (c *Controller) Init(ci ControllerInit) *Controller {
-	c.logger = packageLogger.WithFields(log.Fields{
+	c.logger = controllerLogger.WithFields(log.Fields{
 		"node":    ci.NodeName,
 		"port":    ci.Port,
 		"network": fmt.Sprintf("%#x", ci.Network)})
@@ -213,7 +215,7 @@ func (c *Controller) DialSpecialPeersString(peersString string) {
 	for _, peerAddress := range peerAddresses {
 		address, port, err := net.SplitHostPort(peerAddress)
 		if err != nil {
-			c.logger.Error("DialSpecialPeersString: %s is not a valid peer (%v), use format: 127.0.0.1:8999", peersString, err)
+			c.logger.Errorf("DialSpecialPeersString: %s is not a valid peer (%v), use format: 127.0.0.1:8999", peersString, err)
 		} else {
 			peer := new(Peer).Init(address, port, 0, SpecialPeer, 0)
 			peer.Source["Local-Configuration"] = time.Now()
@@ -481,7 +483,7 @@ func (c *Controller) handleConnectionCommand(command ConnectionCommand, connecti
 	case ConnectionUpdatingPeer:
 		c.discovery.updatePeer(command.Peer)
 	default:
-		c.logger.Error("handleParcelReceive() unknown command.command?: %+v ", command.Command)
+		c.logger.Errorf("handleParcelReceive() unknown command.command?: %+v ", command.Command)
 	}
 }
 

@@ -19,7 +19,7 @@ import (
 
 // conLogger is the general logger for all connection related logs. You can add additional fields,
 // or create more context loggers off of this
-var conLogger = packageLogger.WithFields(log.Fields{"subpack": "connection"})
+var conLogger = packageLogger.WithField("subpack", "connection")
 
 // Connection represents a single connection to another peer over the network. It communicates with the application
 // via two channels, send and recieve.  These channels take structs of type ConnectionCommand or ConnectionParcel
@@ -47,7 +47,9 @@ type Connection struct {
 	isPersistent    bool              // Persistent connections we always redail.
 	notes           string            // Notes about the connection, for debugging (eg: error)
 	metrics         ConnectionMetrics // Metrics about this connection
-	logger          *log.Entry
+
+	// logging
+	logger *log.Entry
 }
 
 // Each connection is a simple state machine.  The state is managed by a single goroutine which also does netowrking.

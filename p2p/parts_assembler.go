@@ -11,7 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var partsLogger = packageLogger.WithFields(log.Fields{"subpack": "parts_assembler"})
+var partsLogger = packageLogger.WithField("subpack", "parts_assembler")
 
 // maximum time we wait for a partial message to arrive, old entries are cleaned up only when new part arrives
 const MaxTimeWaitingForReassembly time.Duration = time.Second * 60 * 10
