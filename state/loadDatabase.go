@@ -22,13 +22,7 @@ import (
 
 var _ = fmt.Print
 
-func SetDBFinished(s *State) {
-	s.DBFinished = true
-}
-
 func LoadDatabase(s *State) {
-	defer SetDBFinished(s)
-
 	var blkCnt uint32
 
 	head, err := s.DB.FetchDBlockHead()

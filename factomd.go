@@ -8,10 +8,11 @@ import (
 	"os"
 
 	"fmt"
-	. "github.com/FactomProject/factomd/engine"
-	log "github.com/sirupsen/logrus"
 	"runtime"
 	"time"
+
+	. "github.com/FactomProject/factomd/engine"
+	log "github.com/sirupsen/logrus"
 
 	"bufio"
 	"io"
@@ -23,6 +24,7 @@ import (
 )
 
 func main() {
+	runtime.SetMutexProfileFraction(5)
 	// uncomment StartProfiler() to run the pprof tool (for testing)
 	params := ParseCmdLine(os.Args[1:])
 
