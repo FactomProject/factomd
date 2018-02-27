@@ -32,6 +32,7 @@ type PartsAssembler struct {
 
 // Initializes the assembler
 func (assembler *PartsAssembler) Init() *PartsAssembler {
+	assembler.logger = partsLogger
 	assembler.messages = make(map[string]*PartialMessage)
 	return assembler
 }
