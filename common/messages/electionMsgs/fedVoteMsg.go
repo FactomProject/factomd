@@ -161,7 +161,7 @@ func (m *FedVoteMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error
 	if m.Minute, err = buf.PopByte(); err != nil {
 		return nil, err
 	}
-	newData, err = buf.PopBytes()
+	newData = buf.DeepCopyBytes()
 	return
 }
 

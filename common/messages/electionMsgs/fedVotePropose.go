@@ -5,6 +5,7 @@
 package electionMsgs
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -36,6 +37,7 @@ func NewFedProposalMsg(signer interfaces.IHash, vol FedVoteVolunteerMsg) *FedVot
 	p := new(FedVoteProposalMsg)
 	p.Volunteer = vol
 	p.Signer = signer
+	p.FedVoteMsg.TS = primitives.NewTimestampNow()
 
 	return p
 }
@@ -47,7 +49,18 @@ func (m *FedVoteProposalMsg) ElectionProcess(is interfaces.IState, elect interfa
 var _ interfaces.IMsg = (*FedVoteVolunteerMsg)(nil)
 
 func (a *FedVoteProposalMsg) IsSameAs(msg interfaces.IMsg) bool {
-
+	if b, ok := msg.(*FedVoteProposalMsg); ok {
+		if !a.FedVoteMsg.IsSameAs(&b.FedVoteMsg) {
+			return false
+		}
+		if !a.Signer.IsSameAs(b.Signer) {
+			return false
+		}
+		if !a.Volunteer.IsSameAs(&b.Volunteer) {
+			return false
+		}
+		return true
+	}
 	return false
 }
 
@@ -85,7 +98,7 @@ func (m *FedVoteProposalMsg) GetMsgHash() interfaces.IHash {
 }
 
 func (m *FedVoteProposalMsg) Type() byte {
-	return constants.VOLUNTEERAUDIT
+	return constants.VOLUNTEERPROPOSAL
 }
 
 func (m *FedVoteProposalMsg) Validate(state interfaces.IState) int {
@@ -121,7 +134,34 @@ func (e *FedVoteProposalMsg) JSONString() (string, error) {
 }
 
 func (m *FedVoteProposalMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+	//defer func() {
+	//	if r := recover(); r != nil {
+	//		err = fmt.Errorf("Error unmarshalling: %v", r)
+	//	}
+	//}()
 
+	buf := primitives.NewBuffer(data)
+	if t, e := buf.PopByte(); e != nil || t != constants.VOLUNTEERPROPOSAL {
+		return nil, errors.New("Not a Volunteer Proposal type")
+	}
+
+	err = buf.PopBinaryMarshallable(&m.FedVoteMsg)
+	if err != nil {
+		return
+	}
+
+	m.Signer = new(primitives.Hash)
+	err = buf.PopBinaryMarshallable(m.Signer)
+	if err != nil {
+		return
+	}
+
+	err = buf.PopBinaryMarshallable(&m.Volunteer)
+	if err != nil {
+		return
+	}
+
+	newData = buf.DeepCopyBytes()
 	return
 }
 
@@ -132,6 +172,25 @@ func (m *FedVoteProposalMsg) UnmarshalBinary(data []byte) error {
 
 func (m *FedVoteProposalMsg) MarshalBinary() (data []byte, err error) {
 	var buf primitives.Buffer
+
+	if err = buf.PushByte(constants.VOLUNTEERPROPOSAL); err != nil {
+		return nil, err
+	}
+
+	err = buf.PushBinaryMarshallable(&m.FedVoteMsg)
+	if err != nil {
+		return nil, err
+	}
+
+	err = buf.PushBinaryMarshallable(m.Signer)
+	if err != nil {
+		return nil, err
+	}
+
+	err = buf.PushBinaryMarshallable(&m.Volunteer)
+	if err != nil {
+		return nil, err
+	}
 
 	data = buf.DeepCopyBytes()
 	return data, nil
