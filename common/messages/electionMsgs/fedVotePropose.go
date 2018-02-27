@@ -109,7 +109,7 @@ func (m *FedVoteProposalMsg) FollowerExecute(state interfaces.IState) {
 
 // Acknowledgements do not go into the process list.
 func (e *FedVoteProposalMsg) Process(dbheight uint32, state interfaces.IState) bool {
-	panic("Ack object should never have its Process() method called")
+	panic("Election object should never have its Process() method called")
 }
 
 func (e *FedVoteProposalMsg) JSONByte() ([]byte, error) {

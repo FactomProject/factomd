@@ -7,6 +7,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	. "github.com/FactomProject/factomd/common/messages/electionMsgs"
+	"github.com/FactomProject/factomd/common/messages/electionMsgs/electionMsgTesting"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/state"
@@ -14,6 +15,25 @@ import (
 )
 
 var _ = CreateAndPopulateTestDatabaseOverlay
+
+func TestElectionAdapterMajority(t *testing.T) {
+	c := electionMsgTesting.NewController(3, 3)
+	all := []int{0, 1, 2, 1, 0}
+	c.RouteVolunteerMessage(0, all)
+	c.RouteLeaderSetVoteMessage(all, 0, all)
+	c.RouteLeaderVoteMessage(1, 0, []int{0})
+
+	c.RouteLeaderSetLevelMessage(all, 0, all)
+	c.RouteLeaderSetLevelMessage(all, 1, all)
+	c.RouteLeaderSetLevelMessage(all, 2, all)
+	c.RouteLeaderSetLevelMessage(all, 3, all)
+	c.RouteLeaderSetLevelMessage(all, 4, all)
+
+	if !c.ElectionAdapters[0].SimulatedElection.Committed {
+		t.Errorf("Should be committed , %v", c.GlobalDisplay.String())
+	}
+
+}
 
 func TestElectionAdapterSimple(t *testing.T) {
 	e := NewTestElection()
@@ -29,7 +49,6 @@ func TestElectionAdapterSimple(t *testing.T) {
 	} else {
 		t.Errorf("Expected a proposal, but did not get one")
 	}
-
 }
 
 func NewTestElection() *elections.Elections {
@@ -60,27 +79,10 @@ func NewTestElection() *elections.Elections {
 		e.Audit[i] = &s
 	}
 
+	// Need a majority, so need 2 elections
+
 	return e
 }
-
-/*
-type FedVoteVolunteerMsg struct {
-	FedVoteMsg
-	// Volunteer fields
-	EOM        bool             // True if an EOM, false if a DBSig
-	Name       string           // Server name
-	FedIdx     uint32           // Server faulting
-	FedID      interfaces.IHash // Server faulting
-	ServerIdx  uint32           // Index of Server replacing
-	ServerID   interfaces.IHash // Volunteer Server ChainID
-	ServerName string           // Volunteer Name
-	Missing    interfaces.IMsg  // The Missing DBSig or EOM
-	Ack        interfaces.IMsg  // The acknowledgement for the missing message
-
-	messageHash interfaces.IHash
-}
-
-*/
 
 func NewTestVolunteerMessage(ele *elections.Elections, f, a int) *FedVoteVolunteerMsg {
 	v := new(FedVoteVolunteerMsg)
