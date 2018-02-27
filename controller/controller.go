@@ -18,6 +18,11 @@ import (
 
 var _ = fmt.Println
 
+type DirectedMsg struct {
+	LeaderIdx int
+	Msg       imessage.IMessage
+}
+
 // Controller will be able to route messages to a set of nodes and control various
 // communication patterns
 type Controller struct {
@@ -38,6 +43,9 @@ type Controller struct {
 
 	Router          *Router
 	OutputsToRouter bool
+
+	BufferingMessages bool
+	BufferedMessages  []*DirectedMsg
 
 	*priminterpreter.Primitives
 
@@ -225,6 +233,16 @@ func (c *Controller) RouteMessage(msg imessage.IMessage, nodes []int) {
 }
 
 func (c *Controller) routeSingleNode(msg imessage.IMessage, node int) {
+	if c.BufferingMessages {
+		c.BufferedMessages = append(c.BufferedMessages, &DirectedMsg{node, msg})
+		if c.PrintingTrace {
+			str := fmt.Sprintf("L%d: ", node)
+			str += fmt.Sprintf(" Buffered(%s)", c.Elections[node].Display.FormatMessage(msg))
+			fmt.Println(str)
+		}
+		return
+	}
+
 	var resp imessage.IMessage = nil
 	var statechange bool = false
 	if c.OutputsToRouter {

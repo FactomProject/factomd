@@ -40,6 +40,7 @@ func (c *Controller) InitInterpreter() {
 	c.AddPrim(conprimitives, "<-o", c.PrimRouteVoteMessage, executable)
 	c.AddPrim(conprimitives, "<-l", c.PrimRouteLevelMessage, executable)
 	c.AddPrim(conprimitives, "<r>", c.PrimToggleRouting, executable)
+	c.AddPrim(conprimitives, "<b>", c.PrimToggleBuffering, executable)
 	c.AddPrim(conprimitives, "s1", c.PrimRouteStep, executable)
 	c.AddPrim(conprimitives, "s", c.PrimRouteStepN, executable)
 
@@ -176,6 +177,11 @@ func (c *Controller) PrimToggleRouterPrinting() {
 func (c *Controller) PrimToggleRouting() {
 	c.SendOutputsToRouter(!c.OutputsToRouter)
 	fmt.Printf("Routing: %t", c.OutputsToRouter)
+}
+
+func (c *Controller) PrimToggleBuffering() {
+	c.BufferingMessages = !c.BufferingMessages
+	fmt.Printf("Buffering Messages: %t", c.BufferingMessages)
 }
 
 //
