@@ -19,14 +19,14 @@ jobs:
           command: |
             go get -v github.com/Masterminds/glide
             cd $GOPATH/src/github.com/Masterminds/glide
-            git checkout tags/v0.12.3
+            git checkout tags/v0.13.1
             go install
       - run:
           name: Get goveralls
           command: |
             go get github.com/mattn/goveralls
             cd $GOPATH/src/github.com/Masterminds/glide
-            git checkout tags/v0.12.3
+            git checkout tags/v0.13.1
             go install
       - run:
           name: Get the dependencies
@@ -58,14 +58,14 @@ jobs:
           command: |
             go get -v github.com/Masterminds/glide
             cd $GOPATH/src/github.com/Masterminds/glide
-            git checkout tags/v0.12.3
+            git checkout tags/v0.13.1
             go install
       - run:
           name: Get goveralls
           command: |
             go get github.com/mattn/goveralls
             cd $GOPATH/src/github.com/Masterminds/glide
-            git checkout tags/v0.12.3
+            git checkout tags/v0.13.1
             go install
       - run:
           name: Get the dependencies
@@ -103,14 +103,14 @@ jobs:
           command: |
             go get -v github.com/Masterminds/glide
             cd $GOPATH/src/github.com/Masterminds/glide
-            git checkout tags/v0.12.3
+            git checkout tags/v0.13.1
             go install
       - run:
           name: Get goveralls
           command: |
             go get github.com/mattn/goveralls
             cd $GOPATH/src/github.com/Masterminds/glide
-            git checkout tags/v0.12.3
+            git checkout tags/v0.13.1
             go install
       - run:
           name: Get the dependencies
