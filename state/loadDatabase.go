@@ -84,7 +84,11 @@ func LoadDatabase(s *State) {
 		dblk, ablk, fblk, ecblk := GenerateGenesisBlocks(s.GetNetworkID())
 
 		msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk, nil, nil, nil)
-		s.DBFinished.Store(true)
+		// last block, flag it.
+		dbstate, _ := msg.(*messages.DBStateMsg)
+		dbstate.IsLast = true // this is the last DBState in this load
+		// this will cause s.DBFinished to go true
+		//		s.DBFinished.Store(true)
 		s.InMsgQueue().Enqueue(msg)
 	}
 	s.Println(fmt.Sprintf("Loaded %d directory blocks on %s", blkCnt, s.FactomNodeName))

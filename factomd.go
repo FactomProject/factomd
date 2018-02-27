@@ -9,6 +9,8 @@ import (
 
 	"bufio"
 	"fmt"
+	. "github.com/FactomProject/factomd/engine"
+	log "github.com/sirupsen/logrus"
 	"io"
 	"net"
 	"os/exec"
@@ -17,15 +19,10 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	. "github.com/FactomProject/factomd/engine"
-	log "github.com/sirupsen/logrus"
 )
 
 func main() {
-
 	runtime.SetMutexProfileFraction(5) // Enable mutex profiling
-
 	// uncomment StartProfiler() to run the pprof tool (for testing)
 	params := ParseCmdLine(os.Args[1:])
 

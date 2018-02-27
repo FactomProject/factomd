@@ -9,11 +9,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"math/rand"
+	"net"
 	"net/http"
 	"os"
 	"sort"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/FactomProject/factomd/util/atomic"
@@ -129,7 +129,7 @@ func (d *Discovery) SavePeers() {
 	UpdateKnownPeers.Unlock()
 	encoder.Encode(qualityPeers)
 	writer.Flush()
-	note("discovery", "SavePeers() saved %d peers in peers.json.\n They were: %+v", len(qualityPeers), qualityPeers)
+	note("discovery", "SavePeers() saved %d peers in peers.json. \n They were: %+v", len(qualityPeers), qualityPeers)
 }
 
 // LearnPeers receive a set of peers from other hosts
@@ -278,7 +278,7 @@ func (d *Discovery) getPeerSelection() []byte {
 	// we check by location to keep from sharing special peers when they dial into us (in which case we wouldn't realize
 	// they were special by the flag.)
 	for _, peer := range peerPool {
-		if peer.Type == SpecialPeer {
+		if peer.Type == SpecialPeer && peer.Location != 0 { // only include special peers that have IP address
 			specialPeersByLocation[peer.Location] = peer
 		}
 	}
@@ -318,16 +318,20 @@ func (d *Discovery) DiscoverPeersFromSeed() {
 	for scanner.Scan() {
 		lines = append(lines, scanner.Text())
 	}
+	bad := 0
 	for _, line := range lines {
-		ipAndPort := strings.Split(line, ":")
-		if 2 == len(ipAndPort) {
-			peerp := new(Peer).Init(ipAndPort[0], ipAndPort[1], 0, RegularPeer, 0)
+		address, port, err := net.SplitHostPort(line)
+		if err == nil {
+			peerp := new(Peer).Init(address, port, 0, RegularPeer, 0)
 			peer := *peerp
 			peer.LastContact = time.Now()
 			d.updatePeer(d.updatePeerSource(peer, "DNS-Seed"))
+		} else {
+			bad++
+			logerror("discovery", "Bad peer in "+d.seedURL+" ["+line+"]")
 		}
 	}
-	note("discovery", "DiscoverPeers got peers: %+v", lines)
+	note("discovery", "DiscoverPeersFromSeed got peers: %+v", lines)
 }
 
 // PrintPeers Print details about the known peers

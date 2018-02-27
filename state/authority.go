@@ -12,7 +12,6 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
 )
@@ -42,7 +41,6 @@ func (st *State) VerifyAuthoritySignature(msg []byte, sig *[constants.SIGNATURE_
 	if auds == nil {
 		return -1, fmt.Errorf("Audit Servers are unknown at directory block height %d", dbheight)
 	}
-
 	for _, aud := range auds {
 		auth, _ := st.GetAuthority(aud.GetChainID())
 		if auth == nil {
@@ -54,11 +52,6 @@ func (st *State) VerifyAuthoritySignature(msg []byte, sig *[constants.SIGNATURE_
 		}
 	}
 	//fmt.Println("WARNING: A signature failed to validate.")
-
-	logName := st.FactomNodeName + "_executeMsg" + ".txt"
-	messages.LogPrintf(logName, "VerifyAuthoritySignature fail Signature Key Invalid or not Federated Server Key [%x][%x]\n", string(msg), string(sig[:]))
-	messages.LogPrintf(logName, "feds %+v\n", feds)
-	messages.LogPrintf(logName, "auds %+v\n", auds)
 
 	return -1, fmt.Errorf("%s", "Signature Key Invalid or not Federated Server Key")
 }

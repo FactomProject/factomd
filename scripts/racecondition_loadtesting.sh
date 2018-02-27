@@ -47,6 +47,7 @@ ec[19]=EC3hNsEBBzFvf58pw1omVgrBobA6S4kEE4656uqdfk4ex7811vwr
 #transfer funds to each of the entry credit address
 for ((i=0; i < 20; i++)); do
 echo $i
+factom-cli rmtx t1
 factom-cli newtx t1
 factom-cli addtxinput t1 FA3EPZYqodgyEGXNMbiZKE5TS2x2J9wF8J9MvPZb52iGR78xMgCb 1
 factom-cli addtxecoutput t1 ${ec[i]} 1
@@ -54,7 +55,7 @@ factom-cli addtxfee t1 FA3EPZYqodgyEGXNMbiZKE5TS2x2J9wF8J9MvPZb52iGR78xMgCb
 factom-cli signtx t1
 factom-cli sendtx t1
 factom-cli listaddresses
-sleep 1s
+#sleep 1s
 done
 
 
@@ -62,10 +63,9 @@ done
 for i in $(seq 20); do
 echo ${ec[i]}
 echo "hello world" | factom-cli addchain -n testing$i -n factom ${ec[i]}
-sleep 1s
 done
 
-sleep 60s
+sleep 1s
 
 #assign chainid to variables
 ChainID[1]=5132d9a8895a3b07d9ee61b856d860029f95947f8b504a1065c90bfdf5de133d
@@ -95,8 +95,8 @@ for j in $(seq 10000); do
 for ((i=1; i < 20; i++)); do
 echo "Making entries into chain $i" 
 echo "---------------------------------"
-echo $i-$j | factom-cli addentry -f -c ${ChainID[i]} ${ec[i]} 
-echo $i-$j | factom-cli addentry -f -c ${ChainID[i]} ${ec[i]} 
+d=`date +%y%m%d%H%M%S`
+echo $d $i-$j | factom-cli addentry -f -c ${ChainID[i]} ${ec[i]} 
 echo "---------------------------------"
 done
 sleep 1s
