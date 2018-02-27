@@ -29,8 +29,9 @@ func main() {
 	var _ = data
 	var _ = file
 
+	//fmt.Printf("%v\n", con.BufferedMessages)
 	//Shell(con)
-	dive.Dive(con.BufferedMessages, con.Elections, 0, 0, []*controller.DirectedMsg{})
+	dive.Dive(con.BufferedMessages, con.Elections, 0, 10, []*controller.DirectedMsg{})
 }
 
 func grabInput(in *bufio.Reader) string {
