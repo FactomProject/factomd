@@ -9,7 +9,6 @@ import (
 
 	"fmt"
 	. "github.com/FactomProject/factomd/engine"
-	log "github.com/sirupsen/logrus"
 	"runtime"
 	"time"
 
@@ -23,19 +22,18 @@ import (
 )
 
 func main() {
-	// uncomment StartProfiler() to run the pprof tool (for testing)
 	params := ParseCmdLine(os.Args[1:])
 
 	if params.StdoutLog != "" || params.StderrLog != "" {
 		handleLogfiles(params.StdoutLog, params.StderrLog)
 	}
 
-	log.Print("//////////////////////// Copyright 2017 Factom Foundation")
-	log.Print("//////////////////////// Use of this source code is governed by the MIT")
-	log.Print("//////////////////////// license that can be found in the LICENSE file.")
+	fmt.Print("//////////////////////// Copyright 2017 Factom Foundation\n")
+	fmt.Print("//////////////////////// Use of this source code is governed by the MIT\n")
+	fmt.Print("//////////////////////// license that can be found in the LICENSE file.\n")
 
 	if !isCompilerVersionOK() {
-		log.Println("!!! !!! !!! ERROR: unsupported compiler version !!! !!! !!!")
+		fmt.Println("!!! !!! !!! ERROR: unsupported compiler version !!! !!! !!!")
 		time.Sleep(3 * time.Second)
 		os.Exit(1)
 	}
