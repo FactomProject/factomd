@@ -9,12 +9,13 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"math"
 	"os"
 	"sync"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/identity"
@@ -168,6 +169,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	AddInterruptHandler(func() {
 		fmt.Print("<Break>\n")
 		fmt.Print("Gracefully shutting down the server...\n")
+
 		fnodesMu.Lock()
 		for _, fnode := range fnodes {
 			fmt.Print("Shutting Down: ", fnode.State.FactomNodeName, "\r\n")
@@ -286,7 +288,9 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	//************************************************
 	// Actually setup the Network
 	//************************************************
+	fmt.Printf("NetStart Locking FNODES!\n")
 	fnodesMu.Lock()
+	defer fmt.Printf("NetStart Unlocking FNODES!\n")
 	defer fnodesMu.Unlock()
 
 	// Make p.cnt Factom nodes
@@ -521,10 +525,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 
 	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelChannel, fnodes[0].State, connectionMetricsChannel, p2pNetwork, Build)
 
-	fnodesMu.Unlock()
-	SimControl(p.ListenTo, listenToStdin)
-	fnodesMu.Lock() // lok it so the deferred Unlock is good
-
+	go SimControl(p.ListenTo, listenToStdin)
 }
 
 //**********************************************************************
@@ -538,7 +539,7 @@ func makeServer(s *state.State) *FactomNode {
 	// fnodesMu is already locked...
 	if len(fnodes) > 0 {
 		newState = s.Clone(len(fnodes)).(*state.State)
-//		time.Sleep(10 * time.Millisecond)
+		//		time.Sleep(10 * time.Millisecond)
 		newState.Init()
 	}
 

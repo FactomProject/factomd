@@ -6,6 +6,7 @@ package engine
 
 import (
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/util/atomic"
@@ -52,9 +53,12 @@ func (m *MsgLog) Init(enable bool, nodecnt int) {
 }
 
 func (m *MsgLog) Add2(fnode *FactomNode, out bool, peer string, where string, valid bool, msg interfaces.IMsg) {
+	if m.Enable == false {
+		return
+	}
+	now := fnode.State.GetTimestamp()
 	m.sem.Lock()
 	defer m.sem.Unlock()
-	now := fnode.State.GetTimestamp()
 	if m.start == nil {
 		m.start = fnode.State.GetTimestamp()
 		m.Last = m.start // last is start
@@ -97,6 +101,9 @@ func (m *MsgLog) Add2(fnode *FactomNode, out bool, peer string, where string, va
 }
 
 func (m *MsgLog) PrtMsgs(state interfaces.IState) {
+	if m.Enable == false {
+		return
+	}
 	m.sem.Lock()
 	defer m.sem.Unlock()
 
