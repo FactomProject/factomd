@@ -101,7 +101,7 @@ func (f *FactomParams) Init() { // maybe used by test code
 	f.memProfileRate = 512 * 1024
 	f.fast = true
 	f.fastLocation = ""
-	f.loglvl = "node"
+	f.loglvl = "none"
 	f.logjson = false
 	f.svm = false
 	f.pluginPath = ""
