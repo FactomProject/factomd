@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"time"
 
+	"os"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/util/atomic"
-	"os"
 )
 
-func printSummary(summary *int, value int, listenTo *int, wsapiNode *atomic.AtomicInt) {
+func printSummary(summary *int, value int, lt *atomic.AtomicInt, wn *atomic.AtomicInt) {
 
 	defer func() {
 		if false {
@@ -18,27 +19,32 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *atomic.Atom
 				os.Stderr.WriteString(fmt.Sprintf("Error in printSummary: %v\n", r))
 				time.Sleep(1 * time.Second)
 				// Restart the print on an error.
-				printSummary(summary, value, listenTo, wsapiNode)
+				printSummary(summary, value, lt, wn)
 			}
 		}
 	}()
 
 	out := ""
 
-	if *listenTo < 0 || *listenTo >= len(fnodes) {
-		return
-	}
-
 	for *summary == value {
+		listenTo := lt.Load()
+		wsapiNode := wn.Load()
+
+		if listenTo < 0 || listenTo >= len(fnodes) {
+			time.Sleep(1 * time.Second)
+			continue
+		}
+		// It's ok is wsapi is out of bound, it is never used as an index.
+
 		prt := "===SummaryStart===\n\n"
 		prt = fmt.Sprintf("%sTime: %d\n", prt, time.Now().Unix())
 
-		for i, f := range fnodes {
+		for i, f := range fnodes { // Why do we do this over and over instead of during setup? -- Clay
 			f.Index = i
 		}
 
 		var pnodes []*FactomNode
-		pnodes = append(pnodes, fnodes...)
+		pnodes = append(pnodes, fnodes...) // this is so not safe...
 		if sortByID {
 			for i := 0; i < len(pnodes)-1; i++ {
 				for j := 0; j < len(pnodes)-1-i; j++ {
@@ -64,40 +70,39 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *atomic.Atom
 		for i, f := range pnodes {
 			in := ""
 			api := ""
-			if f.Index == *listenTo {
+			if f.Index == listenTo {
 				in = "f"
 			}
-			if f.Index == wsapiNode.Load() {
+			if f.Index == wsapiNode {
 				api = "w"
 			}
 
 			prt = prt + fmt.Sprintf("%3d %1s%1s %s \n", i, in, api, f.State.ShortString())
 		}
-
-		if *listenTo < len(fnodes) {
-			f := fnodes[*listenTo]
+		if listenTo >= 0 && listenTo < len(fnodes) {
+			f := fnodes[listenTo]
 			prt = fmt.Sprintf("%s EB Complete %d EB Processing %d Entries Complete %d Faults %d\n", prt, f.State.EntryBlockDBHeightComplete, f.State.EntryBlockDBHeightProcessing, f.State.EntryDBHeightComplete, totalServerFaults)
-		}
 
-		sumOut := 0
-		sumIn := 0
-		f := fnodes[*listenTo]
-		cnt := len(f.Peers)
-		for _, p := range f.Peers {
-			peer, ok := p.(*SimPeer)
-			if ok && peer != nil {
-				sumOut += peer.BytesOut() * 8
-				sumIn += peer.BytesIn() * 8
+			sumOut := 0
+			sumIn := 0
+			cnt := len(f.Peers)
+			for _, p := range f.Peers {
+				peer, ok := p.(*SimPeer)
+				if ok && peer != nil {
+					sumOut += peer.BytesOut() * 8
+					sumIn += peer.BytesIn() * 8
+				}
 			}
-		}
-		if cnt > 0 {
-			prt = prt + fmt.Sprintf(" #Peers: %d            Avg/Total in Kbps:   Out: %d.%03d/%d.%03d     In: %d.%03d/%d.%03d\n",
-				cnt,
-				sumOut/cnt/1000, sumOut/cnt%1000,
-				sumOut/1000, sumOut%1000,
-				sumIn/cnt/1000, sumIn/cnt%1000,
-				sumIn/1000, sumIn%1000)
-		}
+
+			if cnt > 0 {
+				prt = prt + fmt.Sprintf(" #Peers: %d            Avg/Total in Kbps:   Out: %d.%03d/%d.%03d     In: %d.%03d/%d.%03d\n",
+					cnt,
+					sumOut/cnt/1000, sumOut/cnt%1000,
+					sumOut/1000, sumOut%1000,
+					sumIn/cnt/1000, sumIn/cnt%1000,
+					sumIn/1000, sumIn%1000)
+			}
+		} // End stuff dependant on listenTo being in range
 
 		for _, f := range pnodes {
 			fctSubmits += f.State.FCTSubmits
@@ -224,24 +229,26 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *atomic.Atom
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "WriteEntry", list)
 
-		if f.State.MessageTally {
-			prt = prt + "\nType:"
-			for i := 0; i < constants.NUM_MESSAGES; i++ {
-				prt = prt + fmt.Sprintf("%5d ", i)
-			}
-			prt = prt + "\nRecd:"
+		if listenTo >= 0 && listenTo < len(fnodes) {
+			f := fnodes[listenTo]
+			if f.State.MessageTally {
+				prt = prt + "\nType:"
+				for i := 0; i < constants.NUM_MESSAGES; i++ {
+					prt = prt + fmt.Sprintf("%5d ", i)
+				}
+				prt = prt + "\nRecd:"
 
-			for i := 0; i < constants.NUM_MESSAGES; i++ {
-				prt = prt + fmt.Sprintf("%5d ", f.State.GetMessageTalliesReceived(i))
-			}
-			prt = prt + "\nSent:"
-			for i := 0; i < constants.NUM_MESSAGES; i++ {
-				prt = prt + fmt.Sprintf("%5d ", f.State.GetMessageTalliesSent(i))
-			}
+				for i := 0; i < constants.NUM_MESSAGES; i++ {
+					prt = prt + fmt.Sprintf("%5d ", f.State.GetMessageTalliesReceived(i))
+				}
+				prt = prt + "\nSent:"
+				for i := 0; i < constants.NUM_MESSAGES; i++ {
+					prt = prt + fmt.Sprintf("%5d ", f.State.GetMessageTalliesSent(i))
+				}
 
+			}
+			prt = prt + "\n" + systemFaults(fnodes[listenTo])
 		}
-		prt = prt + "\n" + systemFaults(fnodes[*listenTo])
-
 		prt = prt + faultSummary()
 
 		lastdiff := ""
