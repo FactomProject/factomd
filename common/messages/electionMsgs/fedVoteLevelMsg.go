@@ -5,6 +5,7 @@
 package electionMsgs
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -12,6 +13,8 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	log "github.com/sirupsen/logrus"
 	//"github.com/FactomProject/factomd/state"
+	"bytes"
+
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/state"
@@ -80,8 +83,56 @@ func (m *FedVoteLevelMsg) ElectionProcess(is interfaces.IState, elect interfaces
 var _ interfaces.IMsg = (*FedVoteVolunteerMsg)(nil)
 
 func (a *FedVoteLevelMsg) IsSameAs(msg interfaces.IMsg) bool {
+	b, ok := msg.(*FedVoteLevelMsg)
+	if !ok {
+		return false
+	}
 
-	return false
+	if !a.FedVoteMsg.IsSameAs(&b.FedVoteMsg) {
+		return false
+	}
+
+	if !a.Signer.IsSameAs(b.Signer) {
+		return false
+	}
+
+	if a.Committed != b.Committed {
+		return false
+	}
+
+	if a.Level != b.Level {
+		return false
+	}
+
+	if a.Rank != b.Rank {
+		return false
+	}
+
+	if !a.Volunteer.IsSameAs(&b.Volunteer) {
+		return false
+	}
+
+	if len(a.Justification) != len(b.Justification) {
+		return false
+	}
+
+	for i := range a.Justification {
+		data, err := a.Justification[i].MarshalBinary()
+		if err != nil {
+			return false
+		}
+
+		datab, err := b.Justification[i].MarshalBinary()
+		if err != nil {
+			return false
+		}
+
+		if bytes.Compare(data, datab) != 0 {
+			return false
+		}
+	}
+
+	return true
 }
 
 func (m *FedVoteLevelMsg) GetServerID() interfaces.IHash {
@@ -168,8 +219,50 @@ func (e *FedVoteLevelMsg) JSONString() (string, error) {
 }
 
 func (m *FedVoteLevelMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+	var buf primitives.Buffer
+	buf.Write(data)
 
-	return
+	if t, e := buf.PopByte(); e != nil || t != constants.VOLUNTEERLEVELVOTE {
+		return nil, errors.New("Not a Volunteer Level type")
+	}
+
+	err = buf.PopBinaryMarshallable(&m.FedVoteMsg)
+	if err != nil {
+		return
+	}
+
+	m.Signer, err = buf.PopIHash()
+	if err != nil {
+		return
+	}
+
+	err = buf.PopBinaryMarshallable(&m.Volunteer)
+	if err != nil {
+		return
+	}
+
+	m.Committed, err = buf.PopBool()
+	if err != nil {
+		return
+	}
+
+	m.Level, err = buf.PopUInt32()
+	if err != nil {
+		return
+	}
+
+	m.Rank, err = buf.PopUInt32()
+	if err != nil {
+		return
+	}
+
+	m.Justification, err = buf.PopBinaryMarshallableMsgArray()
+	if err != nil {
+		return
+	}
+
+	data = buf.DeepCopyBytes()
+	return data, nil
 }
 
 func (m *FedVoteLevelMsg) UnmarshalBinary(data []byte) error {
@@ -179,6 +272,45 @@ func (m *FedVoteLevelMsg) UnmarshalBinary(data []byte) error {
 
 func (m *FedVoteLevelMsg) MarshalBinary() (data []byte, err error) {
 	var buf primitives.Buffer
+
+	if err = buf.PushByte(constants.VOLUNTEERLEVELVOTE); err != nil {
+		return nil, err
+	}
+
+	err = buf.PushBinaryMarshallable(&m.FedVoteMsg)
+	if err != nil {
+		return
+	}
+
+	err = buf.PushIHash(m.Signer)
+	if err != nil {
+		return
+	}
+
+	err = buf.PushBinaryMarshallable(&m.Volunteer)
+	if err != nil {
+		return
+	}
+
+	err = buf.PushBool(m.Committed)
+	if err != nil {
+		return
+	}
+
+	err = buf.PushUInt32(m.Level)
+	if err != nil {
+		return
+	}
+
+	err = buf.PushUInt32(m.Rank)
+	if err != nil {
+		return
+	}
+
+	err = buf.PushBinaryMarshallableMsgArray(m.Justification)
+	if err != nil {
+		return
+	}
 
 	data = buf.DeepCopyBytes()
 	return data, nil

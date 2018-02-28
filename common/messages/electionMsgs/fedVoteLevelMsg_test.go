@@ -12,8 +12,11 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-func TestMarshalUnmarshalFedVoteProposal(t *testing.T) {
-	test := func(va *FedVoteProposalMsg, num string) {
+func TestMarshalUnmarshalFedVoteLevel(t *testing.T) {
+	messages.General = new(msgsupport.GeneralFactory)
+	primitives.General = messages.General
+
+	test := func(va *FedVoteLevelMsg, num string) {
 		vas, err := va.JSONString()
 		if err != nil {
 			t.Error(err)
@@ -30,7 +33,7 @@ func TestMarshalUnmarshalFedVoteProposal(t *testing.T) {
 			t.FailNow()
 		}
 
-		if va2.Type() != constants.VOLUNTEERPROPOSAL {
+		if va2.Type() != constants.VOLUNTEERLEVELVOTE {
 			t.Error(num + " Invalid message type unmarshalled")
 		}
 
@@ -49,12 +52,13 @@ func TestMarshalUnmarshalFedVoteProposal(t *testing.T) {
 
 	// Have volunteer
 	for i := 0; i < 20; i++ {
-		p := NewFedProposalMsg(primitives.RandomHash(), *randomVol())
-		test(p, fmt.Sprintf("%d", i))
+		l := NewFedVoteLevelMessage(primitives.RandomHash(), *randomVol())
+		l.TS = primitives.NewTimestampNow()
+		test(l, fmt.Sprintf("%d", i))
 	}
 }
 
-func randomVol() *FedVoteVolunteerMsg {
+func randomVol2() *FedVoteVolunteerMsg {
 	va := new(FedVoteVolunteerMsg)
 	va.Minute = 5
 	va.Name = "bob"

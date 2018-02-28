@@ -75,6 +75,8 @@ func CreateMsg(messageType byte) interfaces.IMsg {
 		return new(electionMsgs.FedVoteVolunteerMsg)
 	case constants.VOLUNTEERPROPOSAL:
 		return new(electionMsgs.FedVoteProposalMsg)
+	case constants.VOLUNTEERLEVELVOTE:
+		return new(electionMsgs.FedVoteLevelMsg)
 	default:
 		return nil
 	}
@@ -158,6 +160,8 @@ func MessageName(Type byte) string {
 		return "Volunteer Audit"
 	case constants.VOLUNTEERPROPOSAL:
 		return "Volunteer Proposal"
+	case constants.VOLUNTEERLEVELVOTE:
+		return "Volunteer Level Vote"
 	default:
 		return "Unknown:" + fmt.Sprintf(" %d", Type)
 	}

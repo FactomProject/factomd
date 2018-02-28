@@ -260,7 +260,7 @@ func (m *FedVoteVolunteerMsg) UnmarshalBinaryData(data []byte) (newData []byte, 
 	if m.Missing, err = buf.PopMsg(); err != nil {
 		return newData, err
 	}
-	newData, err = buf.PopBytes()
+	newData = buf.Bytes()
 	return
 }
 
