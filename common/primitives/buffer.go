@@ -41,6 +41,21 @@ func (b *Buffer) PeekByte() (byte, error) {
 	return by, nil
 }
 
+func (b *Buffer) PushBinaryMarshallableMsgArray(bm []interfaces.IMsg) error {
+	err := b.PushInt(len(bm))
+	if err != nil {
+		return err
+	}
+
+	for _, v := range bm {
+		err = b.PushMsg(v)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (b *Buffer) PushBinaryMarshallable(bm interfaces.BinaryMarshallable) error {
 	if bm == nil {
 		return fmt.Errorf("BinaryMarshallable is nil")
@@ -286,6 +301,25 @@ func (b *Buffer) PopBinaryMarshallable(dst interfaces.BinaryMarshallable) error 
 		return err
 	}
 	return nil
+}
+
+func (b *Buffer) PopBinaryMarshallableMsgArray() ([]interfaces.IMsg, error) {
+	l, err := b.PopInt()
+	if err != nil {
+		return nil, err
+	}
+
+	var msgs []interfaces.IMsg
+	for i := 0; i < l; i++ {
+		var msg interfaces.IMsg
+		msg, err = b.PopMsg()
+		if err != nil {
+			return nil, err
+		}
+		msgs = append(msgs, msg)
+	}
+
+	return msgs, nil
 }
 
 var General interfaces.IGeneralMsg
