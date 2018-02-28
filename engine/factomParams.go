@@ -61,6 +61,7 @@ type FactomParams struct {
 	DebugConsole             string
 	StdoutLog                string
 	StderrLog                string
+	MutexProfile             bool
 }
 
 func (f *FactomParams) Init() { // maybe used by test code
@@ -187,6 +188,8 @@ func ParseCmdLine(args []string) *FactomParams {
 	StdoutLogPtr := flag.String("stdoutlog", "", "Log stdout to a file")
 	StderrLogPtr := flag.String("stderrlog", "", "Log stderr to a file, optionally the same file as stdout")
 
+	MutexProfilePtr := flag.Bool("mutexprofile", false, "Enable Mutex Profile")
+
 	flag.CommandLine.Parse(args)
 
 	p.AckbalanceHash = *ackBalanceHashPtr
@@ -241,9 +244,12 @@ func ParseCmdLine(args []string) *FactomParams {
 	p.logstashURL = *logstashURL
 
 	p.Sync2 = *sync2Ptr
+
+	// Factom main flags (not used by individual simulations)
 	p.DebugConsole = *DebugConsolePtr
 	p.StdoutLog = *StdoutLogPtr
 	p.StderrLog = *StderrLogPtr
+	p.MutexProfile = *MutexProfilePtr
 
 	if *factomHomePtr != "" {
 		os.Setenv("FACTOM_HOME", *factomHomePtr)

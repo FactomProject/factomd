@@ -67,7 +67,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	messages.AckBalanceHash = p.AckbalanceHash
 	// Must add the prefix before loading the configuration.
 	s.AddPrefix(p.prefix)
-	FactomConfigFilename := util.GetConfigFilename("m2")
+	FactomConfigFilename := util.GetConfigFilename("m2", s.Prefix)
 	fmt.Println(fmt.Sprintf("factom config: %s", FactomConfigFilename))
 	s.LoadConfig(FactomConfigFilename, p.NetworkName)
 	s.OneLeader = p.rotate
@@ -288,9 +288,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	//************************************************
 	// Actually setup the Network
 	//************************************************
-	fmt.Printf("NetStart Locking FNODES!\n")
 	fnodesMu.Lock()
-	defer fmt.Printf("NetStart Unlocking FNODES!\n")
 	defer fnodesMu.Unlock()
 
 	// Make p.cnt Factom nodes

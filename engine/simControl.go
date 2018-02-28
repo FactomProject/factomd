@@ -15,6 +15,9 @@ import (
 	"time"
 	"unicode"
 
+	"runtime"
+	"sync"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -22,8 +25,6 @@ import (
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/util/atomic"
 	"github.com/FactomProject/factomd/wsapi"
-	"runtime"
-	"sync"
 )
 
 var _ = fmt.Print
@@ -131,6 +132,8 @@ func SimControl(listenTo int, listenStdin bool) {
 			go controlPanel.ServeControlPanel(fnodes[ListenTo].State.ControlPanelChannel, fnodes[ListenTo].State, connectionMetricsChannel, p2pNetwork, Build)
 		} else {
 			switch {
+			case '\x03' == b[0]:
+				interruptChannel <- os.Interrupt // send a ctrl-C equivalent
 			case '!' == b[0]:
 				if ListenTo < 0 || ListenTo > len(fnodes) {
 					break

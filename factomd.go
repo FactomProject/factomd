@@ -19,16 +19,25 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"github.com/pkg/profile"
 )
 
 func main() {
-	runtime.SetMutexProfileFraction(5) // Enable mutex profiling
+
 	// uncomment StartProfiler() to run the pprof tool (for testing)
 	params := ParseCmdLine(os.Args[1:])
 
 	if params.StdoutLog != "" || params.StderrLog != "" {
 		handleLogfiles(params.StdoutLog, params.StderrLog)
 	}
+
+	if params.MutexProfile {
+		runtime.SetMutexProfileFraction(5)
+		path := os.Getenv("HOME") + "/go/src/github.com/FactomProject/factomd"
+		fmt.Println("Profile path:" + path)
+		defer profile.Start(profile.MutexProfile, profile.ProfilePath(path)).Stop()
+	}
+
 
 	log.Print("//////////////////////// Copyright 2017 Factom Foundation")
 	log.Print("//////////////////////// Use of this source code is governed by the MIT")

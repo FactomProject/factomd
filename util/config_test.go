@@ -187,5 +187,5 @@ func TestReadConfig(t *testing.T) {
 		t.Error("Empty string ReadConfig() should result in a non-nil config")
 	}
 	fconfig.String()
-	GetConfigFilename("")
+	GetConfigFilename("","")
 }

@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"encoding/binary"
+
 	ed "github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factom"
 	"github.com/FactomProject/factomd/common/entryBlock"

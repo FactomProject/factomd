@@ -256,8 +256,8 @@ func ConfigFilename() string {
 	return GetHomeDir() + "/.factom/m2/factomd.conf"
 }
 
-func GetConfigFilename(dir string) string {
-	return GetHomeDir() + "/.factom/" + dir + "/factomd.conf"
+func GetConfigFilename(dir string, prefix string) string {
+	return GetHomeDir() + "/.factom/" + dir + "/" + prefix+ "factomd.conf"
 }
 
 func GetChangeAcksHeight(filename string) (change uint32, err error) {
