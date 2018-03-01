@@ -184,8 +184,6 @@ func (e *Election) execute(msg imessage.IMessage) (imessage.IMessage, bool) {
 		change := e.addVote(vote)
 		newll := e.getRank0Vote()
 		if newll != nil {
-			newll.Level = e.CurrentLevel
-			e.CurrentLevel++
 			if newll != nil {
 				e.updateCurrentVote(newll)
 			}
@@ -249,6 +247,8 @@ func (e *Election) getRank0Vote() *messages.LeaderLevelMessage {
 			}
 
 			if e.CurrentVote.Less(&ll) {
+				ll.Level = e.CurrentLevel
+				e.CurrentLevel++
 				return &ll
 			} else {
 				return nil

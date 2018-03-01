@@ -50,7 +50,7 @@ var last time.Time
 
 //================ main =================
 func Main() {
-	recurse(5, 4, 90)
+	recurse(5, 7, 90)
 }
 
 // newElections will return an array of elections (1 per leader) and an array
@@ -394,7 +394,7 @@ func printState(depth int, msgs []*mymsg, leaders []*election.Election, msgPath 
 	for i, v := range msgPath {
 		fmt.Println(formatForInterpreter(v), "#", i, v.leaderIdx, "<==", leaders[0].Display.FormatMessage(v.msg))
 	}
-	fmt.Println("Pending:")
+	fmt.Println("<b> # Pending:")
 	for i, v := range msgs {
 		fmt.Println(formatForInterpreter(v), "#", i, v.leaderIdx, "<==", leaders[0].Display.FormatMessage(v.msg))
 	}
