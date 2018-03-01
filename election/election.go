@@ -143,6 +143,7 @@ func (e *Election) execute(msg imessage.IMessage) (imessage.IMessage, bool) {
 
 // updateCurrentVote is called every time we send out a different vote
 func (e *Election) updateCurrentVote(new *messages.LeaderLevelMessage) {
+	new.VolunteerPriority = e.GetVolunteerPriority(new.VolunteerMessage.Signer)
 	// Add to display, add the previous vote
 	e.executeDisplay(new)
 	if e.CurrentVote.Rank >= 0 {
@@ -150,7 +151,6 @@ func (e *Election) updateCurrentVote(new *messages.LeaderLevelMessage) {
 		prev.Justification = []*messages.LeaderLevelMessage{}
 		new.PreviousVote = &prev
 	}
-	e.CurrentVote = *new
 
 	/**** Commitment checking ****/
 	// Check if this is sequential
@@ -161,6 +161,7 @@ func (e *Election) updateCurrentVote(new *messages.LeaderLevelMessage) {
 				// We use -1 as a 'nil', and 0 doesn't count. Set to 0
 				e.CommitmentTally = 0
 			}
+			e.CurrentVote = *new
 			return
 		}
 	}
@@ -171,6 +172,8 @@ func (e *Election) updateCurrentVote(new *messages.LeaderLevelMessage) {
 		// Rank 0 doesn't count towards the tally
 		e.CommitmentTally = 0
 	}
+	e.CurrentVote = *new
+
 }
 
 // addVote adds the proposal vote without acting upon it.
