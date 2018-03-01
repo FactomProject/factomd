@@ -11,6 +11,7 @@ type IElectionAdapter interface {
 
 	MessageLists() string
 	Status() string
+	VolunteerControlsStatus() string
 }
 
 type IElectionMsg interface {

@@ -15,13 +15,14 @@ import (
 	"time"
 	"unicode"
 
+	"runtime"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/controlPanel"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/wsapi"
-	"runtime"
 )
 
 var _ = fmt.Print
@@ -78,6 +79,7 @@ func SimControl(listenTo int, listenStdin bool) {
 	var _ = time.Sleep
 	var summary int
 	var elections int
+	var simelections int
 	var watchPL int
 	var watchMessages int
 	var rotate int
@@ -258,7 +260,14 @@ func SimControl(listenTo int, listenStdin bool) {
 				} else {
 					os.Stderr.WriteString("--Print Elections Off--\n")
 				}
-
+			case 'F' == b[0]:
+				simelections++
+				if simelections%2 == 1 {
+					os.Stderr.WriteString("--Print SimElections On--\n")
+					go printSimElections(&elections, elections, &ListenTo, &wsapiNode)
+				} else {
+					os.Stderr.WriteString("--Print SimElections Off--\n")
+				}
 			case 'p' == b[0]:
 				if len(b) > 1 {
 					ht, err := strconv.Atoi(string(b[1:]))

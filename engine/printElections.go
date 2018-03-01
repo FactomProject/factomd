@@ -18,6 +18,49 @@ func lookup(id interfaces.IHash) *state.State {
 	return nil
 }
 
+func printSimElections(elects *int, value int, listenTo *int, wsapiNode *int) {
+	out := ""
+
+	if *listenTo < 0 || *listenTo >= len(fnodes) {
+		return
+	}
+
+	for *elects == value {
+		prt := "===SimElectionsStart===\n\n"
+		if len(fnodes) == 0 {
+			return
+		}
+
+		//s := fnodes[*listenTo].State
+		//eo := s.Elections.(*elections.Elections)
+
+		prt = prt + "\n"
+		for _, fn := range fnodes {
+			s := fn.State
+			e := s.Elections.(*elections.Elections)
+			if e.Adapter != nil {
+				prt += e.Adapter.Status()
+				prt += "\n"
+				prt += e.Adapter.VolunteerControlsStatus()
+				prt += "\n"
+				prt += e.Adapter.MessageLists()
+				prt += "\n"
+			} else {
+				prt += fmt.Sprintf("%s has no simelection\n", fn.State.GetFactomNodeName())
+			}
+		}
+
+		prt = prt + "===SimElectionsEnd===\n"
+
+		if prt != out {
+			fmt.Println(prt)
+			out = prt
+		}
+
+		time.Sleep(time.Second)
+	}
+}
+
 func printElections(elects *int, value int, listenTo *int, wsapiNode *int) {
 	out := ""
 
@@ -65,12 +108,6 @@ func printElections(elects *int, value int, listenTo *int, wsapiNode *int) {
 			prt = prt + s.Election1 + s.Election2 + "\n"
 		}
 
-		if eo.Adapter != nil {
-			prt += "\n"
-			prt += eo.Adapter.Status()
-			prt += "\n"
-			prt += eo.Adapter.MessageLists()
-		}
 		prt = prt + "===ElectionsEnd===\n"
 
 		if prt != out {

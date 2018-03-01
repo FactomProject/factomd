@@ -34,6 +34,10 @@ type ElectionAdapter struct {
 	SimulatedElection *election.Election
 }
 
+func (ea *ElectionAdapter) VolunteerControlsStatus() string {
+	return ea.SimulatedElection.VolunteerControlString()
+}
+
 func (ea *ElectionAdapter) MessageLists() string {
 	return fmt.Sprintf("Election-  DBHeight: %d, Minut: %d, Messages %d\n%s", ea.DBHeight, ea.Minute, ea.Electing, ea.SimulatedElection.PrintMessages())
 }
