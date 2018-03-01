@@ -267,27 +267,26 @@ func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) (
 
 	// Sort the votes such that the highest ranked vote is first
 	if len(possibleVotes) > 0 {
+		// TODO: Use select/scan
 		BubbleSortLeaderLevelMsg(possibleVotes)
 		// New Vote!
 		vote := possibleVotes[0]
-		// If our current vote is equal or greate, then don't cast it
+		// If our current vote is equal or greater, then don't cast it
 		if !e.CurrentVote.Less(vote) {
 			return nil, change
 		}
 
+		if vote.Rank > vote.Level {
+			panic(fmt.Sprintf("Vote rank should never be greater than level: %v", vote))
+		}
+
 		// Set the level on the vote
-		if e.CurrentLevel > vote.Level {
+		if e.CurrentLevel >= vote.Level {
 			vote.Level = e.CurrentLevel
 			e.CurrentLevel++
 		} else {
-			// If our level is below the rank, we need to bump our level up to rank +1 for the msg, and then
-			// add 1 for the next message (+2)
-			if e.CurrentLevel < vote.Rank {
-				vote.Level = vote.Rank + 1
-				e.CurrentLevel = vote.Rank + 2
-			} else {
-				e.CurrentLevel = vote.Level + 1
-			}
+			e.CurrentLevel = vote.Level
+			e.CurrentLevel = vote.Level + 1
 		}
 
 		// Update our last vote
@@ -339,15 +338,13 @@ func (e *Election) addLeaderLevelMessage(msg *messages.LeaderLevelMessage) bool 
 	}
 
 	e.executeDisplay(msg)
-	change = e.VolunteerControls[msg.VolunteerMessage.Signer].AddVote(msg) || change
+	change = e.VolunteerControls[msg.VolunteerMessage.Signer].AddVote(*msg) || change
 
 	voteChange := false
 	// Votes exist, so we can add these to our vote map
-	if len(msg.VoteMessages) > 0 {
-		for _, v := range msg.VoteMessages {
-			// Add vote to maps and display
-			voteChange = e.addVote(v) || voteChange
-		}
+	for _, v := range msg.VoteMessages {
+		// Add vote to maps and display
+		voteChange = e.addVote(v) || voteChange
 	}
 
 	return change || voteChange
@@ -361,7 +358,6 @@ func (e *Election) commitIfLast(msg *messages.LeaderLevelMessage) *messages.Lead
 		e.Committed = true
 		msg.Committed = true
 		e.executeDisplay(msg)
-		return msg
 	}
 	return msg
 }

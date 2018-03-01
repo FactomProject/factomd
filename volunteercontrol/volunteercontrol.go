@@ -19,12 +19,12 @@ type VolunteerControl struct {
 	Self      Identity
 	Volunteer *messages.VolunteerMessage
 
-	Votes map[Identity]*messages.LeaderLevelMessage
+	Votes map[Identity]messages.LeaderLevelMessage
 }
 
 func NewVolunteerControl(self Identity, authset AuthSet) *VolunteerControl {
 	v := new(VolunteerControl)
-	v.Votes = make(map[Identity]*messages.LeaderLevelMessage)
+	v.Votes = make(map[Identity]messages.LeaderLevelMessage)
 	v.Self = self
 	v.AuthSet = authset
 
@@ -32,11 +32,7 @@ func NewVolunteerControl(self Identity, authset AuthSet) *VolunteerControl {
 }
 
 // addVote just adds the vote to the vote map, and will not act upon it
-func (v *VolunteerControl) AddVote(msg *messages.LeaderLevelMessage) bool {
-	if msg == nil {
-		return false
-	}
-
+func (v *VolunteerControl) AddVote(msg messages.LeaderLevelMessage) bool {
 	if v.Volunteer == nil {
 		v.Volunteer = &msg.VolunteerMessage
 	}
@@ -100,7 +96,7 @@ func (v *VolunteerControl) CheckVoteCount() *messages.LeaderLevelMessage {
 		if vote.Level > highestlevel {
 			highestlevel = vote.Level
 		}
-		justification = append(justification, vote)
+		justification = append(justification, &vote)
 	}
 
 	// Now we have the lowest level, any message at that level can no longer help us.
