@@ -41,6 +41,13 @@ type Elections struct {
 	Timeout time.Duration
 }
 
+func (e *Elections) AdapterStatus() string {
+	if e.Adapter != nil {
+		return e.Adapter.Status()
+	}
+	return ""
+}
+
 // Add the given sig list to the list of signatures for the given round.
 func (e *Elections) AddSigs(round int, sigs []interfaces.IHash) {
 	for len(e.Sigs) <= round {

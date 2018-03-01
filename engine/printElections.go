@@ -2,10 +2,11 @@ package engine
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/state"
-	"time"
 )
 
 func lookup(id interfaces.IHash) *state.State {
@@ -62,6 +63,13 @@ func printElections(elects *int, value int, listenTo *int, wsapiNode *int) {
 		for _, fn := range fnodes {
 			s := fn.State
 			prt = prt + s.Election1 + s.Election2 + "\n"
+		}
+
+		if eo.Adapter != nil {
+			prt += "\n"
+			prt += eo.Adapter.Status()
+			prt += "\n"
+			prt += eo.Adapter.MessageLists()
 		}
 		prt = prt + "===ElectionsEnd===\n"
 

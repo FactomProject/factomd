@@ -61,6 +61,9 @@ func (m *FedVoteLevelMsg) ElectionProcess(is interfaces.IState, elect interfaces
 
 	/******  Election Adapter Control   ******/
 	/**	Controlling the inner election state**/
+	if !is.IsLeader() {
+		return
+	}
 	m.InitiateElectionAdapter(is)
 
 	resp := e.Adapter.Execute(m)

@@ -34,8 +34,10 @@ type FedVoteVolunteerMsg struct {
 	ServerIdx  uint32           // Index of Server replacing
 	ServerID   interfaces.IHash // Volunteer Server ChainID
 	ServerName string           // Volunteer Name
-	Missing    interfaces.IMsg  // The Missing DBSig or EOM
-	Ack        interfaces.IMsg  // The acknowledgement for the missing message
+	Weight     interfaces.IHash
+	Missing    interfaces.IMsg // The Missing DBSig or EOM
+	Ack        interfaces.IMsg // The acknowledgement for the missing message
+	Round      int
 
 	messageHash interfaces.IHash
 }
@@ -82,6 +84,9 @@ func (m *FedVoteVolunteerMsg) ElectionProcess(is interfaces.IState, elect interf
 
 	/******  Election Adapter Control   ******/
 	/**	Controlling the inner election state**/
+	if !is.IsLeader() {
+		return
+	}
 	m.InitiateElectionAdapter(is)
 
 	resp := e.Adapter.Execute(m)
@@ -254,10 +259,16 @@ func (m *FedVoteVolunteerMsg) UnmarshalBinaryData(data []byte) (newData []byte, 
 	if m.Minute, err = buf.PopByte(); err != nil {
 		return newData, err
 	}
+	if m.Weight, err = buf.PopIHash(); err != nil {
+		return newData, err
+	}
 	if m.Ack, err = buf.PopMsg(); err != nil {
 		return newData, err
 	}
 	if m.Missing, err = buf.PopMsg(); err != nil {
+		return newData, err
+	}
+	if m.Round, err = buf.PopInt(); err != nil {
 		return newData, err
 	}
 	newData = buf.Bytes()
@@ -309,10 +320,16 @@ func (m *FedVoteVolunteerMsg) MarshalBinary() (data []byte, err error) {
 	if e := buf.PushByte(m.Minute); e != nil {
 		return nil, e
 	}
+	if e := buf.PushIHash(m.Weight); e != nil {
+		return nil, e
+	}
 	if e := buf.PushMsg(m.Ack); e != nil {
 		return nil, e
 	}
 	if e := buf.PushMsg(m.Missing); e != nil {
+		return nil, e
+	}
+	if e := buf.PushInt(m.Round); e != nil {
 		return nil, e
 	}
 	data = buf.DeepCopyBytes()
@@ -328,10 +345,10 @@ func (m *FedVoteVolunteerMsg) String() string {
 		"Volunteer Audit",
 		m.TS.String(),
 		m.ServerID.Bytes()[2:5],
-		//m.Weight.Bytes()[2:5],
+		m.Weight.Bytes()[2:5],
 		m.ServerIdx,
 		m.VMIndex,
-		//m.Round,
+		m.Round,
 		m.DBHeight,
 		m.Minute)
 }

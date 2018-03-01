@@ -51,7 +51,7 @@ func GetFnodes() []*FactomNode {
 	return fnodes
 }
 
-func Init() {
+func init() {
 	messages.General = new(msgsupport.GeneralFactory)
 	primitives.General = messages.General
 }

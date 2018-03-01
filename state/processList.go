@@ -1179,6 +1179,7 @@ func (p *ProcessList) String() string {
 }
 
 func (p *ProcessList) Reset() bool {
+	return true
 	previous := p.State.ProcessLists.Get(p.DBHeight - 1)
 
 	if previous == nil {

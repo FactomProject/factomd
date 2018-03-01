@@ -8,6 +8,9 @@ type IElectionAdapter interface {
 	GetDBHeight() int
 	GetMinute() int
 	GetElecting() int
+
+	MessageLists() string
+	Status() string
 }
 
 type IElectionMsg interface {

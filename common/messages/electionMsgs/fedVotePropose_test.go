@@ -60,7 +60,7 @@ func randomVol() *FedVoteVolunteerMsg {
 	va.Name = "bob"
 	va.DBHeight = 10
 	va.ServerID = primitives.RandomHash() // primitives.Sha([]byte("leader"))
-	//va.Weight = primitives.Sha([]byte("Weight"))
+	va.Weight = primitives.Sha([]byte("Weight"))
 	va.ServerIdx = 3
 	va.Missing = new(messages.EOM)
 	eom := va.Missing.(*messages.EOM)

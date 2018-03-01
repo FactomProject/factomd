@@ -9,6 +9,8 @@ import (
 	"github.com/FactomProject/factomd/elections"
 	//"github.com/FactomProject/factomd/state"
 
+	"fmt"
+
 	"github.com/FactomProject/electiontesting/messages"
 )
 
@@ -30,6 +32,14 @@ type ElectionAdapter struct {
 	Volunteers map[[32]byte]*FedVoteVolunteerMsg
 
 	SimulatedElection *election.Election
+}
+
+func (ea *ElectionAdapter) MessageLists() string {
+	return fmt.Sprintf("Election-  DBHeight: %d, Minut: %d, Messages %d\n%s", ea.DBHeight, ea.Minute, ea.Electing, ea.SimulatedElection.PrintMessages())
+}
+
+func (ea *ElectionAdapter) Status() string {
+	return fmt.Sprintf("Election-  DBHeight: %d, Minut: %d, Electing %d\n%s", ea.DBHeight, ea.Minute, ea.Electing, ea.SimulatedElection.Display.String())
 }
 
 func NewElectionAdapter(e *elections.Elections) *ElectionAdapter {
@@ -217,6 +227,7 @@ func (ea *ElectionAdapter) adaptLevelMessage(msg *FedVoteLevelMsg, single bool) 
 	volmsg := messages.NewVolunteerMessageWithoutEOM(volid)
 	ll := messages.NewLeaderLevelMessage(primitives.Identity(msg.Signer.Fixed()), int(msg.Rank), int(msg.Level), volmsg)
 	ll.TagMessage(msg.MsgHash.Fixed())
+	ll.VolunteerPriority = ea.SimulatedElection.GetVolunteerPriority(volmsg.Signer)
 
 	if !single {
 		for _, m := range msg.Justification {
