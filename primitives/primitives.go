@@ -202,7 +202,7 @@ func (a *AuthSet) Hash() Hash {
 
 func (a *AuthSet) FedIDtoIndex(id Identity) int {
 	for i, f := range a.GetFeds() {
-		if f == id {
+		if bytes.Compare(f[:], id[:]) == 0 {
 			return i
 		}
 	}
@@ -213,7 +213,7 @@ func (a *AuthSet) GetVolunteerPriority(vol Identity) int {
 	auds := a.GetAuds()
 	for i, a := range auds {
 		if a == vol {
-			return i
+			return len(auds) - i - 1
 		}
 	}
 	return -1

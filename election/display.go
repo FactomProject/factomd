@@ -170,7 +170,7 @@ func (d *Display) FormatLeaderLevelMsg(msg *messages.LeaderLevelMessage) string 
 
 func (d *Display) FormatLeaderLevelMsgShort(msg *messages.LeaderLevelMessage) string {
 	if msg.Committed {
-		return "EOM"
+		return fmt.Sprintf("EOM%d", msg.VolunteerPriority)
 	}
 	return fmt.Sprintf("%d.%d", msg.Rank, msg.VolunteerPriority)
 }
