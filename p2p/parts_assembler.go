@@ -39,7 +39,7 @@ func (assembler *PartsAssembler) Init() *PartsAssembler {
 
 // Handles a single message part, returns either a fully assembled message or nil
 func (assembler *PartsAssembler) handlePart(parcel Parcel) *Parcel {
-	assembler.logger.Debugf("Handling message part %s %d/%d", parcel.Header.AppHash, parcel.Header.PartNo, parcel.Header.PartsTotal)
+	assembler.logger.Debugf("Handling message part %s %d/%d", parcel.Header.AppHash, parcel.Header.PartNo+1, parcel.Header.PartsTotal)
 	partial, exists := assembler.messages[parcel.Header.AppHash]
 
 	valid, err := validateParcelPart(parcel, partial)

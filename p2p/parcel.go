@@ -154,7 +154,7 @@ func (p *Parcel) LogEntry() *log.Entry {
 		"target_peer": p.Header.TargetPeer,
 		"crc32":       p.Header.Crc32,
 		"node_id":     p.Header.NodeID,
-		"part_no":     p.Header.PartNo,
+		"part_no":     p.Header.PartNo + 1,
 		"parts_total": p.Header.PartsTotal,
 	})
 }
