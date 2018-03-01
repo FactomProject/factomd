@@ -10,14 +10,14 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/state"
 	log "github.com/sirupsen/logrus"
 	//"github.com/FactomProject/factomd/state"
 	"bytes"
 
-	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/elections"
-	"github.com/FactomProject/factomd/state"
 )
 
 var _ = fmt.Print
@@ -81,6 +81,33 @@ func (m *FedVoteLevelMsg) ElectionProcess(is interfaces.IState, elect interfaces
 	}
 
 	/*_____ End Election Adapter Control  _____*/
+}
+
+// Execute the leader functions of the given message
+// Leader, follower, do the same thing.
+func (m *FedVoteLevelMsg) LeaderExecute(state interfaces.IState) {
+	m.FollowerExecute(state)
+}
+
+func (m *FedVoteLevelMsg) FollowerExecute(is interfaces.IState) {
+	if !m.Committed {
+		is.ElectionsQueue().Enqueue(m)
+		return
+	}
+
+	s := is.(*state.State)
+	pl := s.ProcessLists.Get(m.DBHeight)
+	pl.FedServers[m.Volunteer.FedIdx], pl.AuditServers[m.Volunteer.ServerIdx] =
+		pl.AuditServers[m.Volunteer.ServerIdx], pl.FedServers[m.Volunteer.FedIdx]
+
+	pl.AddToProcessList(m.Volunteer.Ack.(*messages.Ack), m.Volunteer.Missing)
+	is.ElectionsQueue().Enqueue(m) // Enqueue it to trigger the last vote
+
+	// Should set the adapter to committed and allow for the next election
+
+	//elect := is.(*state.State).Elections.(*elections.Elections)
+	//ad := elect.Adapter.(*ElectionAdapter)
+	//ad.Committed = true
 }
 
 var _ interfaces.IMsg = (*FedVoteVolunteerMsg)(nil)
@@ -186,26 +213,6 @@ func (m *FedVoteLevelMsg) Validate(state interfaces.IState) int {
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *FedVoteLevelMsg) ComputeVMIndex(state interfaces.IState) {
-}
-
-// Execute the leader functions of the given message
-// Leader, follower, do the same thing.
-func (m *FedVoteLevelMsg) LeaderExecute(state interfaces.IState) {
-	m.FollowerExecute(state)
-}
-
-func (m *FedVoteLevelMsg) FollowerExecute(is interfaces.IState) {
-	if !m.Committed {
-		is.ElectionsQueue().Enqueue(m)
-		return
-	}
-
-	s := is.(*state.State)
-	pl := s.ProcessLists.Get(m.DBHeight)
-	pl.FedServers[m.Volunteer.FedIdx], pl.AuditServers[m.Volunteer.ServerIdx] =
-		pl.AuditServers[m.Volunteer.ServerIdx], pl.FedServers[m.Volunteer.FedIdx]
-
-	pl.AddToProcessList(m.Volunteer.Ack.(*messages.Ack), m.Volunteer.Missing)
 }
 
 // Acknowledgements do not go into the process list.
