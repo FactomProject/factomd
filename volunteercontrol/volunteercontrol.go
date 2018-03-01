@@ -5,7 +5,6 @@ import (
 
 	"fmt"
 
-	"github.com/FactomProject/electiontesting/imessage"
 	"github.com/FactomProject/electiontesting/messages"
 	. "github.com/FactomProject/electiontesting/primitives"
 )
@@ -30,35 +29,6 @@ func NewVolunteerControl(self Identity, authset AuthSet) *VolunteerControl {
 	v.AuthSet = authset
 
 	return v
-}
-
-func (v *VolunteerControl) Execute(msg imessage.IMessage) (imessage.IMessage, bool) {
-	// When we get a vote, we need to add it to our map
-	ll, ok := msg.(*messages.LeaderLevelMessage)
-	if !ok { // Can only take leaderlevel messages
-		return nil, false
-	}
-
-	if v.Volunteer == nil { // Used for making our votes
-		v.Volunteer = &ll.VolunteerMessage
-	}
-
-	change := false
-
-	// Add votes from justification, prev, and then the msg itself
-	if ll.Justification != nil {
-		for _, j := range ll.Justification {
-			change = v.AddVote(j) || change
-		}
-	}
-
-	change = v.AddVote(ll.PreviousVote) || change
-	change = v.AddVote(ll) || change
-
-	// Can we cast a vote?
-	resp := v.CheckVoteCount()
-	// If change is true or the response is not nil
-	return resp, resp != nil || change
 }
 
 // addVote just adds the vote to the vote map, and will not act upon it

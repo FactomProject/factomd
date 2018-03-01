@@ -350,7 +350,7 @@ func (e *Election) addLeaderLevelMessage(msg *messages.LeaderLevelMessage) bool 
 		}
 	}
 
-	return change
+	return change || voteChange
 }
 
 // commitIfLast will mark the messages as committed if the correct criteria are met
