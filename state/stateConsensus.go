@@ -136,7 +136,6 @@ func (s *State) Process() (progress bool) {
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 	} else if s.IgnoreMissing {
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
-
 		now := s.GetTimestamp().GetTimeMilli() // Timestamps are in milliseconds, so wait 20
 		if now-s.StartDelay > s.StartDelayLimit {
 			s.IgnoreMissing = false
@@ -363,6 +362,30 @@ func (s *State) ReviewHolding() {
 			continue
 		}
 
+		// If it is an entryCommit and it has a duplicate hash to an existing entry throw it away here
+		{
+			ce, ok := v.(*messages.CommitEntryMsg)
+			if ok {
+				x := s.NoEntryYet(ce.CommitEntry.EntryHash, ce.CommitEntry.GetTimestamp())
+				if !x {
+					TotalHoldingQueueOutputs.Inc()
+					delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
+					continue
+				}
+			}
+		}
+		// If it is an chainCommit and it has a duplicate hash to an existing entry throw it away here
+		{
+			ce, ok := v.(*messages.CommitChainMsg)
+			if ok {
+				x := s.NoEntryYet(ce.CommitChain.EntryHash, ce.CommitChain.GetTimestamp())
+				if !x {
+					TotalHoldingQueueOutputs.Inc()
+					delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
+					continue
+				}
+			}
+		}
 		if v.Expire(s) {
 			s.ExpireCnt++
 			TotalHoldingQueueOutputs.Inc()
@@ -920,9 +943,9 @@ func (s *State) FollowerExecuteCommitChain(m interfaces.IMsg) {
 }
 
 func (s *State) FollowerExecuteCommitEntry(m interfaces.IMsg) {
+	ce := m.(*messages.CommitEntryMsg)
 	FollowerExecutions.Inc()
 	s.FollowerExecuteMsg(m)
-	ce := m.(*messages.CommitEntryMsg)
 	re := s.Holding[ce.CommitEntry.EntryHash.Fixed()]
 	if re != nil {
 		re.SendOut(s, re)
