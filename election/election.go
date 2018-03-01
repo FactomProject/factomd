@@ -354,11 +354,10 @@ func (e *Election) addLeaderLevelMessage(msg *messages.LeaderLevelMessage) bool 
 		for _, v := range msg.VoteMessages {
 			// Add vote to maps and display
 			voteChange = e.addVote(v) || voteChange
-			e.executeDisplay(v)
 		}
 	}
 
-	return change
+	return change || voteChange
 }
 
 // commitIfLast will mark the messages as committed if the correct criteria are met
