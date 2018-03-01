@@ -32,59 +32,43 @@ func NewVolunteerControl(self Identity, authset AuthSet) *VolunteerControl {
 	return v
 }
 
-func (a *VolunteerControl) Copy() *VolunteerControl {
-	b := NewVolunteerControl(a.Self, a.AuthSet.Copy())
-	if a.Volunteer != nil {
-		v := *a.Volunteer
-		b.Volunteer = &v
-	}
-
-	for k, v := range a.Votes {
-		b.Votes[k] = v.Copy()
-	}
-
-	return b
-}
-
 func (v *VolunteerControl) Execute(msg imessage.IMessage) (imessage.IMessage, bool) {
 	// When we get a vote, we need to add it to our map
 	ll, ok := msg.(*messages.LeaderLevelMessage)
-	if !ok {
+	if !ok { // Can only take leaderlevel messages
 		return nil, false
 	}
 
-	if v.Volunteer == nil {
+	if v.Volunteer == nil { // Used for making our votes
 		v.Volunteer = &ll.VolunteerMessage
 	}
 
-	statechange := false
+	change := false
 
+	// Add votes from justification, prev, and then the msg itself
 	if ll.Justification != nil {
 		for _, j := range ll.Justification {
-			change := v.AddVote(j)
-			if change {
-				statechange = change
-			}
+			change = v.AddVote(j) || change
 		}
 	}
 
-	change := v.AddVote(ll)
-	if change {
-		statechange = change
-	}
+	change = v.AddVote(ll.PreviousVote) || change
+	change = v.AddVote(ll) || change
 
+	// Can we cast a vote?
 	resp := v.CheckVoteCount()
-	return resp, resp != nil || statechange
+	// If change is true or the response is not nil
+	return resp, resp != nil || change
 }
 
-// addVote just adds the vote to the vote map
+// addVote just adds the vote to the vote map, and will not act upon it
 func (v *VolunteerControl) AddVote(msg *messages.LeaderLevelMessage) bool {
-	if v.Volunteer == nil {
-		v.Volunteer = &msg.VolunteerMessage
-	}
-
 	if msg == nil {
 		return false
+	}
+
+	if v.Volunteer == nil {
+		v.Volunteer = &msg.VolunteerMessage
 	}
 
 	// If we already have a vote from that leader for this audit, then we only replace ours if this is better
@@ -95,7 +79,7 @@ func (v *VolunteerControl) AddVote(msg *messages.LeaderLevelMessage) bool {
 		}
 
 		if msg.Rank > cur.Rank {
-			// Greater rank is always better.
+			// Greater rank is always better. Replace their current with the new
 			msg.Justification = nil
 			v.Votes[msg.Signer] = msg
 			return true
@@ -104,7 +88,8 @@ func (v *VolunteerControl) AddVote(msg *messages.LeaderLevelMessage) bool {
 		}
 	}
 
-	// New Vote
+	// New Vote, if we have more than a majority, delete the lowest vote
+	// to keep the majority the best majority possible
 	if len(v.Votes) > v.Majority() {
 		// Delete the lowest one, we don't need it
 		lowest := math.MaxInt32
@@ -125,24 +110,20 @@ func (v *VolunteerControl) AddVote(msg *messages.LeaderLevelMessage) bool {
 // checkVoteCount will check to see if we have enough votes to issue a ranked message. We will not add
 // that message to our votemap, as we may have not chosen to actually send that vote. If we decide to send that
 // vote, we will get it sent back to us
-// 		Returns a LeaderLevelMessage WITHOUT the level set. Don't forget to set it if you send it!
+// 		Returns a LeaderLevelMessage with the level set, however it may need adjusting! (Can only adjust it up)
 func (v *VolunteerControl) CheckVoteCount() *messages.LeaderLevelMessage {
-	// No majority, no bueno. Forward the msg that we got though
+	// No majority, no bueno.
 	if len(v.Votes) < v.Majority() {
 		return nil
 	}
 
-	m := v.Majority()
-	l := len(v.Votes)
-
-	var _, _ = m, l
-
 	var justification []*messages.LeaderLevelMessage
 
-	// Majority votes exist, we need to find the lowest level, and issue back that level message
+	// Majority votes exist, we need to find the lowest level, and use it for our rank.
 	rank := math.MaxInt32
 	highestlevel := 0
 	for _, vote := range v.Votes {
+		// If vote level is less than current rank, bring down our rank
 		if vote.Level < rank {
 			rank = vote.Level
 		}
@@ -164,4 +145,18 @@ func (v *VolunteerControl) CheckVoteCount() *messages.LeaderLevelMessage {
 	llmsg.Justification = justification
 
 	return &llmsg
+}
+
+func (a *VolunteerControl) Copy() *VolunteerControl {
+	b := NewVolunteerControl(a.Self, a.AuthSet.Copy())
+	if a.Volunteer != nil {
+		v := *a.Volunteer
+		b.Volunteer = &v
+	}
+
+	for k, v := range a.Votes {
+		b.Votes[k] = v.Copy()
+	}
+
+	return b
 }
