@@ -50,7 +50,7 @@ var last time.Time
 
 //================ main =================
 func Main() {
-	recurse(5, 4, 90)
+	recurse(5, 7, 10000)
 }
 
 // newElections will return an array of elections (1 per leader) and an array
