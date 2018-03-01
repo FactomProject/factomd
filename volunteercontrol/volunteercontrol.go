@@ -121,7 +121,7 @@ func (a *VolunteerControl) Copy() *VolunteerControl {
 	}
 
 	for k, v := range a.Votes {
-		b.Votes[k] = v.Copy()
+		b.Votes[k] = *v.Copy()
 	}
 
 	return b

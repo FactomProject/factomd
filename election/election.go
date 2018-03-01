@@ -404,7 +404,7 @@ func (e *Election) VolunteerControlString() string {
 			votes := ""
 			sep := ""
 			for _, vo := range v.Votes {
-				votes += sep + e.Display.FormatMessage(vo)
+				votes += sep + e.Display.FormatMessage(&vo)
 				sep = ","
 			}
 			line += votes
@@ -537,7 +537,7 @@ func (e *Election) StateVCDataset() [][]*messages.LeaderLevelMessage {
 			if e.CurrentVote.Level > 0 && e.CurrentVote.Rank > vote.Level {
 				continue
 			}
-			volarray = append(volarray, vote)
+			volarray = append(volarray, &vote)
 		}
 
 		vcarray[e.getVolunteerPriority(vol)] = bubbleSortLeaderLevelMsgByRank(volarray)
