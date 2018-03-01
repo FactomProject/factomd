@@ -137,7 +137,7 @@ func (e *Election) updateCurrentVote(new *messages.LeaderLevelMessage) {
 		new.PreviousVote = &prev
 	}
 	e.CurrentVote = *new
-	e.Display.Execute(new)
+	e.executeDisplay(new)
 }
 
 func (e *Election) execute(msg imessage.IMessage) (imessage.IMessage, bool) {
@@ -175,7 +175,7 @@ func (e *Election) execute(msg imessage.IMessage) (imessage.IMessage, bool) {
 			return ll, true
 		}
 
-		e.Display.Execute(&vote)
+		e.executeDisplay(&vote)
 		return &vote, true
 	case *messages.VoteMessage:
 		// Colecting these allows us to issue out 0.#
@@ -342,9 +342,10 @@ func (e *Election) addLeaderLevelMessage(msg *messages.LeaderLevelMessage) bool 
 	change := false
 	if msg.PreviousVote != nil {
 		change = e.addLeaderLevelMessage(msg.PreviousVote)
+		e.executeDisplay(msg.PreviousVote)
 	}
 
-	e.Display.Execute(msg)
+	e.executeDisplay(msg)
 	change = e.VolunteerControls[msg.VolunteerMessage.Signer].AddVote(msg) || change
 
 	voteChange := false
@@ -353,7 +354,7 @@ func (e *Election) addLeaderLevelMessage(msg *messages.LeaderLevelMessage) bool 
 		for _, v := range msg.VoteMessages {
 			// Add vote to maps and display
 			voteChange = e.addVote(v) || voteChange
-			e.Display.Execute(v)
+			e.executeDisplay(v)
 		}
 	}
 
@@ -366,7 +367,7 @@ func (e *Election) commitIfLast(msg *messages.LeaderLevelMessage) *messages.Lead
 	if e.CommitmentTally > 3 { //commit {
 		e.Committed = true
 		msg.Committed = true
-		e.Display.Execute(msg)
+		e.executeDisplay(msg)
 		return msg
 	}
 	return msg

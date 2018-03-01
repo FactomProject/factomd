@@ -213,7 +213,7 @@ func (a *AuthSet) GetVolunteerPriority(vol Identity) int {
 	auds := a.GetAuds()
 	for i, a := range auds {
 		if a == vol {
-			return len(auds) - i - 1
+			return i //len(auds) - i - 1
 		}
 	}
 	return -1
