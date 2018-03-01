@@ -84,6 +84,28 @@ func (p *Peer) PeerFixedIdent() string {
 	return p.Hash[0:12] + "-" + address + ":" + p.Port
 }
 
+func (p *Peer) PeerLogFields() log.Fields {
+	return log.Fields{
+		"address":   p.Address,
+		"port":      p.Port,
+		"peer_type": p.peerTypeString(),
+	}
+}
+
+// gets the last source where this peer was seen
+func (p *Peer) LastSource() (result string) {
+	var maxTime time.Time
+
+	for source, lastSeen := range p.Source {
+		if lastSeen.After(maxTime) {
+			maxTime = lastSeen
+			result = source
+		}
+	}
+
+	return
+}
+
 // TODO Hadn't considered IPV6 address support.
 // TODO Need to audit all the net code to check IPv6 addresses
 // Here's an IPv6 conversion:
@@ -134,6 +156,17 @@ func (p *Peer) merit() {
 func (p *Peer) demerit() {
 	if -2147483000 < p.QualityScore {
 		//p.QualityScore--
+	}
+}
+
+func (p *Peer) peerTypeString() string {
+	switch p.Type {
+	case RegularPeer:
+		return "regular"
+	case SpecialPeer:
+		return "special"
+	default:
+		return "unknown"
 	}
 }
 

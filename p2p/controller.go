@@ -543,7 +543,7 @@ func (c *Controller) managePeers() {
 	managementDuration := time.Since(c.lastPeerManagement)
 	if PeerSaveInterval < managementDuration {
 		c.lastPeerManagement = time.Now()
-		c.logger.Infof("managePeers() time since last peer management: %s", managementDuration.String())
+		c.logger.Debugf("managePeers() time since last peer management: %s", managementDuration.String())
 		// If it's been awhile, update peers from the DNS seed.
 		discoveryDuration := time.Since(c.lastDiscoveryRequest)
 		if PeerDiscoveryInterval < discoveryDuration {

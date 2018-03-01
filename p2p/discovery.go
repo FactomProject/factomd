@@ -62,6 +62,14 @@ func (d *Discovery) Init(peersFile string, seed string) *Discovery {
 func (d *Discovery) updatePeer(peer Peer) {
 	d.logger.Debugf("Updating peer: %v", peer)
 	UpdateKnownPeers.Lock()
+
+	_, ok := d.knownPeers[peer.Address]
+	if !ok {
+		d.logger.WithFields(log.Fields{
+			"address":     peer.Address,
+			"last_source": peer.LastSource()}).Infof("Discovered new peer")
+	}
+
 	d.knownPeers[peer.Address] = peer
 	UpdateKnownPeers.Unlock()
 }
@@ -314,6 +322,7 @@ func (d *Discovery) getPeerSelection() []byte {
 
 // DiscoverPeers gets a set of peers from a DNS Seed
 func (d *Discovery) DiscoverPeersFromSeed() {
+	d.logger.Info("Contacting seed URL to get peers")
 	resp, err := http.Get(d.seedURL)
 	if nil != err {
 		d.logger.Errorf("DiscoverPeersFromSeed getting peers from %s produced error %+v", d.seedURL, err)
