@@ -325,11 +325,14 @@ func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) (
 	}
 
 	// No best vote? Can we do a rank 0 with the new votes?
-
 	rank0 := e.getRank0Vote()
 	if rank0 != nil {
 		e.updateCurrentVote(rank0)
 		e.addLeaderLevelMessage(rank0)
+		better, _ := e.execute(rank0)
+		if better != nil {
+			return better, true
+		}
 		return rank0, true
 	}
 	return nil, change
