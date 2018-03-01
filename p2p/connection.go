@@ -196,8 +196,8 @@ func (c *Connection) commonInit(peer Peer) {
 	p2pConnectionCommonInit.Inc() // Prometheus
 	c.state = ConnectionInitialized
 	c.peer = peer
-	c.logger = conLogger.WithField("peer", c.peer.PeerFixedIdent())
-	c.logger.Info("Initializing connection")
+	c.logger = conLogger.WithFields(c.peer.PeerLogFields())
+	c.logger.Debug("Initializing connection")
 	c.Errors = make(chan error, StandardChannelSize)
 	c.Commands = make(chan *ConnectionCommand, StandardChannelSize)
 	c.SendChannel = make(chan interface{}, StandardChannelSize)
@@ -207,7 +207,6 @@ func (c *Connection) commonInit(peer Peer) {
 	c.timeLastMetrics = time.Now()
 	c.timeLastAttempt = time.Now()
 	c.timeLastStatus = time.Now()
-
 }
 
 func (c *Connection) Start() {
@@ -226,9 +225,10 @@ func (c *Connection) runLoop() {
 	for ConnectionClosed != c.state { // loop exits when we hit shutdown state
 		time.Sleep(100 * time.Millisecond) // This can be a tight loop, don't want to starve the application
 		c.updateStats()                    // Update controller with metrics
-		c.logger.Debugf("Connection.runloop() STATE IS: %s", connectionStateStrings[c.state])
 		c.handleNetErrors(false)
 		c.handleCommand()
+
+		var stateLogger = c.logger.WithField("current_state", connectionStateStrings[c.state])
 
 	parcelloop:
 		for {
@@ -246,6 +246,7 @@ func (c *Connection) runLoop() {
 		case ConnectionInitialized:
 			p2pConnectionRunLoopInitalized.Inc()
 			if MinumumQualityScore > c.peer.QualityScore && !c.isPersistent {
+				stateLogger.WithField("quality_score", c.peer.QualityScore).Info("Shutting down connection due to not reaching minimum quality score")
 				c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.
 				c.goShutdown()
 			} else {
@@ -259,6 +260,7 @@ func (c *Connection) runLoop() {
 			}
 
 			if MinumumQualityScore > c.peer.QualityScore && !c.isPersistent {
+				stateLogger.WithField("quality_score", c.peer.QualityScore).Info("Shutting down connection due to not reaching minimum quality score")
 				c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.
 				c.goShutdown()
 			}
@@ -267,20 +269,21 @@ func (c *Connection) runLoop() {
 			p2pConnectionRunLoopOffline.Inc()
 			switch {
 			case c.isOutGoing:
+				stateLogger.Info("Connection offline, attempting redial")
 				c.dialLoop() // dialLoop dials until it connects or shuts down.
 			default: // the connection dialed us, so we shutdown
 				c.goShutdown()
 			}
 		case ConnectionShuttingDown:
 			p2pConnectionRunLoopShutdown.Inc()
+			stateLogger.Debug("Connection is shutting down")
 			c.state = ConnectionClosed
 			BlockFreeChannelSend(c.ReceiveChannel, ConnectionCommand{Command: ConnectionIsClosed})
 			return // ending runloop() goroutine
 		default:
-			c.logger.Errorf("runLoop() unknown state?: %s ", connectionStateStrings[c.state])
+			stateLogger.Error("runLoop() unknown state?")
 		}
 	}
-	c.logger.Debugf("runLoop() Connection runloop() exiting %+v", c)
 }
 
 // dialLoop:  dials the connection until giving up. Called in offline or initializing states.
@@ -300,6 +303,7 @@ func (c *Connection) dialLoop() {
 		case ConnectionOffline == c.state: // We were online with the peer at one point.
 			c.attempts++
 			if MaxNumberOfRedialAttempts < c.attempts {
+				c.logger.Info("Cannot contact peer, shutting down")
 				c.goShutdown()
 				return
 			}
@@ -326,6 +330,7 @@ func (c *Connection) dial() bool {
 
 // Called when we are online and connected to the peer.
 func (c *Connection) goOnline() {
+	c.logger.Info("Connected to a remote peer")
 	p2pConnectionOnlineCall.Inc()
 	now := time.Now()
 	c.encoder = gob.NewEncoder(c.conn)
@@ -349,6 +354,7 @@ func (c *Connection) goOnline() {
 }
 
 func (c *Connection) goOffline() {
+	c.logger.Debug("Going offline")
 	p2pConnectionOfflineCall.Inc()
 	c.state = ConnectionOffline
 	c.attempts = 0
@@ -356,6 +362,7 @@ func (c *Connection) goOffline() {
 }
 
 func (c *Connection) goShutdown() {
+	c.logger.Debug("Connection shutting down")
 	c.goOffline()
 	c.updatePeer()
 	if nil != c.conn {
@@ -513,7 +520,7 @@ func (c *Connection) handleNetErrors(toss bool) {
 				// Only go offline once per handleNetErrors call
 				if !toss && !done {
 					if err != nil {
-						c.logger.WithField("func", "HandleNetErrors").Errorf("Going offline due to -- %s", err.Error())
+						c.logger.WithField("func", "HandleNetErrors").Warnf("Going offline due to -- %s", err.Error())
 					}
 					c.goOffline()
 				}
