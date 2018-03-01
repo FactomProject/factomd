@@ -116,8 +116,8 @@ func (e *Election) execute(msg imessage.IMessage) (imessage.IMessage, bool) {
 
 		// We might be able to get a better vote from this, execute and look for response
 		resp, _ := e.execute(&vote)
-		if ll, ok := resp.(*messages.LeaderLevelMessage); ok {
-			return ll, true
+		if resp != nil {
+			return resp, true
 		}
 
 		return &vote, true
@@ -154,20 +154,14 @@ func (e *Election) updateCurrentVote(new *messages.LeaderLevelMessage) {
 
 	/**** Commitment checking ****/
 	// Check if this is sequential
-	if new.VolunteerPriority == e.CurrentVote.VolunteerPriority {
-		if e.CurrentVote.Rank+1 == new.Rank && e.CurrentVote.Level+1 == new.Level {
-			e.CommitmentTally++
-			if new.Rank == 0 {
-				// We use -1 as a 'nil', and 0 doesn't count. Set to 0
-				e.CommitmentTally = 0
-			}
-			e.CurrentVote = *new
-			return
-		}
+	if new.VolunteerPriority == e.CurrentVote.VolunteerPriority &&
+		(e.CurrentVote.Rank+1 == new.Rank && e.CurrentVote.Level+1 == new.Level) {
+		e.CommitmentTally++
+	} else {
+		// Resetting the tally
+		e.CommitmentTally = 1
 	}
 
-	// Resetting the tally
-	e.CommitmentTally = 1
 	if new.Rank == 0 {
 		// Rank 0 doesn't count towards the tally
 		e.CommitmentTally = 0
@@ -342,7 +336,6 @@ func (e *Election) addLeaderLevelMessage(msg *messages.LeaderLevelMessage) bool 
 	change := false
 	if msg.PreviousVote != nil {
 		change = e.addLeaderLevelMessage(msg.PreviousVote)
-		e.executeDisplay(msg.PreviousVote)
 	}
 
 	e.executeDisplay(msg)
@@ -354,7 +347,6 @@ func (e *Election) addLeaderLevelMessage(msg *messages.LeaderLevelMessage) bool 
 		for _, v := range msg.VoteMessages {
 			// Add vote to maps and display
 			voteChange = e.addVote(v) || voteChange
-			e.executeDisplay(v)
 		}
 	}
 
