@@ -232,6 +232,7 @@ func (ea *ElectionAdapter) adaptLevelMessage(msg *FedVoteLevelMsg, single bool) 
 	ll := messages.NewLeaderLevelMessage(primitives.Identity(msg.Signer.Fixed()), int(msg.Rank), int(msg.Level), volmsg)
 	ll.TagMessage(msg.MsgHash.Fixed())
 	ll.VolunteerPriority = ea.SimulatedElection.GetVolunteerPriority(volmsg.Signer)
+	ll.Committed = msg.Committed
 
 	if !single {
 		for _, m := range msg.Justification {
