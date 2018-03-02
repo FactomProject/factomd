@@ -57,6 +57,7 @@ func NewElection(self Identity, authset AuthSet) *Election {
 }
 
 func (e *Election) Execute(msg imessage.IMessage, depth int) (imessage.IMessage, bool) {
+
 	//  ** Msg In Debug **
 	if l, ok := msg.(*messages.LeaderLevelMessage); ok {
 		e.MsgListIn = append(e.MsgListIn, NewDepthLeaderLevel(l, depth))
@@ -148,7 +149,7 @@ func (e *Election) updateCurrentVote(new *messages.LeaderLevelMessage) {
 	e.executeDisplay(new)
 	if e.CurrentVote.Rank >= 0 {
 		prev := e.CurrentVote
-		prev.Justification = []*messages.LeaderLevelMessage{}
+		prev.Justification = []messages.LeaderLevelMessage{}
 		new.PreviousVote = &prev
 	}
 
@@ -247,7 +248,7 @@ func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) (
 	// Add all messages to display and volunteer controllers. Then choose our best vote
 	change := e.addLeaderLevelMessage(msg)
 	for _, j := range msg.Justification {
-		change = e.addLeaderLevelMessage(j) || change
+		change = e.addLeaderLevelMessage(&j) || change
 	}
 
 	// Will not change my state, so why look at it

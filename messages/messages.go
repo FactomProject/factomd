@@ -191,7 +191,7 @@ type LeaderLevelMessage struct {
 	VoteMessages []*VoteMessage
 
 	// messages used to justify
-	Justification []*LeaderLevelMessage
+	Justification []LeaderLevelMessage
 	Committed     bool
 }
 
@@ -212,9 +212,9 @@ func (a *LeaderLevelMessage) Less(b *LeaderLevelMessage) bool {
 
 func (a *LeaderLevelMessage) Copy() *LeaderLevelMessage {
 	b := NewLeaderLevelMessage(a.Signer, a.Rank, a.Level, a.VolunteerMessage)
-	b.Justification = make([]*LeaderLevelMessage, len(a.Justification))
+	b.Justification = make([]LeaderLevelMessage, len(a.Justification))
 	for i, v := range a.Justification {
-		b.Justification[i] = v.Copy()
+		b.Justification[i] = *v.Copy()
 	}
 
 	if a.PreviousVote != nil {
@@ -247,7 +247,7 @@ type VoteMessage struct {
 	Volunteer VolunteerMessage
 	// Other votes you may have seen. Help
 	// pass them along
-	OtherVotes map[Identity]SignedMessage
+	// OtherVotes map[Identity]SignedMessage
 	SignedMessage
 	TaggedMessage
 }
@@ -255,10 +255,10 @@ type VoteMessage struct {
 func (a *VoteMessage) Copy() *VoteMessage {
 	b := new(VoteMessage)
 	b.Volunteer = a.Volunteer
-	b.OtherVotes = make(map[Identity]SignedMessage)
-	for k, v := range a.OtherVotes {
-		b.OtherVotes[k] = v
-	}
+	// b.OtherVotes = make(map[Identity]SignedMessage)
+	// for k, v := range a.OtherVotes {
+	// 	b.OtherVotes[k] = v
+	// }
 	b.SignedMessage = a.SignedMessage
 
 	return b
@@ -270,7 +270,7 @@ func NewVoteMessage(vol VolunteerMessage, self Identity) VoteMessage {
 	var vote VoteMessage
 	vote.Volunteer = vol
 	vote.Signer = self
-	vote.OtherVotes = make(map[Identity]SignedMessage)
+	// vote.OtherVotes = make(map[Identity]SignedMessage)
 
 	return vote
 }

@@ -54,6 +54,8 @@ func (v *VolunteerControl) AddVote(msg messages.LeaderLevelMessage) bool {
 		}
 	}
 
+	v.Votes[msg.Signer] = msg
+
 	// New Vote, if we have more than a majority, delete the lowest vote
 	// to keep the majority the best majority possible
 	if len(v.Votes) > v.Majority() {
@@ -69,7 +71,6 @@ func (v *VolunteerControl) AddVote(msg messages.LeaderLevelMessage) bool {
 
 		delete(v.Votes, remove)
 	}
-	v.Votes[msg.Signer] = msg
 
 	return true
 }
@@ -84,7 +85,7 @@ func (v *VolunteerControl) CheckVoteCount() *messages.LeaderLevelMessage {
 		return nil
 	}
 
-	var justification []*messages.LeaderLevelMessage
+	var justification []messages.LeaderLevelMessage
 
 	// Majority votes exist, we need to find the lowest level, and use it for our rank.
 	rank := math.MaxInt32
@@ -97,7 +98,7 @@ func (v *VolunteerControl) CheckVoteCount() *messages.LeaderLevelMessage {
 		if vote.Level > highestlevel {
 			highestlevel = vote.Level
 		}
-		justification = append(justification, vote.Copy())
+		justification = append(justification, vote)
 	}
 
 	// Now we have the lowest level, any message at that level can no longer help us.
