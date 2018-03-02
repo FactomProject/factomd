@@ -1,21 +1,19 @@
-package main
+package divefromfile
 
 import (
 	"bufio"
 	"fmt"
 	"os"
-
 	"io/ioutil"
-
 	"strings"
 
 	"github.com/FactomProject/electiontesting/ET2/dive"
 	"github.com/FactomProject/electiontesting/controller"
 )
 
-func main() {
+func DiveFromFile(name string) {
 	con := controller.NewControllerInterpreter(1, 1)
-	file, err := os.OpenFile("input.txt", os.O_RDONLY, 0777)
+	file, err := os.Open(name)
 	if err != nil {
 		panic(err)
 	}

@@ -13,10 +13,11 @@ import (
 
 	"github.com/FactomProject/electiontesting/messages"
 	"github.com/FactomProject/electiontesting/primitives"
+	. "github.com/FactomProject/electiontesting/ET2/mirrors"
 	"github.com/dustin/go-humanize"
 )
 
-var mirrorMap map[[32]byte][]byte
+var mirrorMap Mirrors
 
 var solutions = 0
 var breadth = 0
@@ -129,7 +130,7 @@ func Dive(msgs []*controller.DirectedMsg, leaders []*election.Election, depth in
 			"| Multiple Conclusions", humanize.Comma(int64(errConclusions)),
 			"| Failures=", humanize.Comma(int64(failure)),
 			"| MsgQ=", len(msgs),
-			"| Mirrors=", humanize.Comma(int64(mirrors)), humanize.Comma(int64(len(mirrorMap))),
+			"| Mirrors=", humanize.Comma(int64(mirrors)), humanize.Comma(int64(mirrorMap.Len())),
 			"| Hit the Limits=", humanize.Comma(int64(hitlimit)),
 			"| Breadth=", humanize.Comma(int64(breadth)),
 			"| solutions so far =", humanize.Comma(int64(solutions)),
@@ -165,7 +166,7 @@ func Dive(msgs []*controller.DirectedMsg, leaders []*election.Election, depth in
 		}
 
 		if insanePrints {
-			// Example of a run that has a werid msg state
+			// Example of a run that has a weird msg state
 			if globalRunNumber > -1 {
 				fmt.Println("Leader 0")
 				fmt.Println(leaders[0].PrintMessages())
@@ -236,40 +237,13 @@ func Dive(msgs []*controller.DirectedMsg, leaders []*election.Election, depth in
 
 	// Look for mirrorMap, but only after we have been going a bit.
 	if depth > 0 {
-		var hashes [][32]byte
-		var strings []string
-		for _, ldr := range leaders {
-			bits := ldr.NormalizedString()
-			if bits != nil {
-				strings = append(strings, string(bits))
-				h := Sha(bits)
-				hashes = append(hashes, h)
-			} else {
-				panic("shouldn't happen")
-			}
-		}
-		for i := 0; i < len(hashes)-1; i++ {
-			for j := 0; j < len(hashes)-1-i; j++ {
-				if bytes.Compare(hashes[j][:], hashes[j+1][:]) > 0 {
-					hashes[j], hashes[j+1] = hashes[j+1], hashes[j+1]
-					strings[j], strings[j+1] = strings[j+1], strings[j]
-				}
-			}
-		}
-		var all []byte
-		var alls string
-		for i, h := range hashes {
-			all = append(all, h[:]...)
-			alls += strings[i]
-		}
-		mh := Sha(all)
-		if mirrorMap[mh] != nil {
+		mh := GetStateHash(leaders)
+		if !mirrorMap.IsMirror(mh) {
 			mirrors++
 			breadth++
 			mirrorsAt = incCounter(mirrorsAt, depth)
 			return false, false, true
 		}
-		mirrorMap[mh] = mh[:]
 	}
 
 	leaf = true
@@ -368,6 +342,37 @@ func Dive(msgs []*controller.DirectedMsg, leaders []*election.Election, depth in
 	return limitHit, leaf, seeSuccess
 }
 
+func GetStateHash(leaders []*election.Election) [32]byte {
+	var hashes [][32]byte
+	var strings []string
+	for _, ldr := range leaders {
+		bits := ldr.NormalizedString()
+		if bits != nil {
+			strings = append(strings, string(bits))
+			h := Sha(bits)
+			hashes = append(hashes, h)
+		} else {
+			panic("shouldn't happen")
+		}
+	}
+	for i := 0; i < len(hashes)-1; i++ {
+		for j := 0; j < len(hashes)-1-i; j++ {
+			if bytes.Compare(hashes[j][:], hashes[j+1][:]) > 0 {
+				hashes[j], hashes[j+1] = hashes[j+1], hashes[j+1]
+				strings[j], strings[j+1] = strings[j+1], strings[j]
+			}
+		}
+	}
+	var all []byte
+	var alls string
+	for i, h := range hashes {
+		all = append(all, h[:]...)
+		alls += strings[i]
+	}
+	mh := Sha(all)
+	return mh
+}
+
 func nodesCompleted(nodes []*election.Election) (bool, error) {
 	done := 0
 	prev := -1
@@ -435,7 +440,7 @@ func init() {
 	buff := new(bytes.Buffer)
 	enc = gob.NewEncoder(buff)
 	dec = gob.NewDecoder(buff)
-	mirrorMap = make(map[[32]byte][]byte, 10000)
+	mirrorMap.Init("dive")
 }
 
 func CloneElection(src *election.Election) *election.Election {
