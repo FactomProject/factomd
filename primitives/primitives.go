@@ -59,11 +59,16 @@ type AuthSet struct {
 	IdentityList []Identity
 	StatusArray  []int
 	IdentityMap  map[Identity]int
+
+	PriorityMap           map[Identity]int
+	PriorityToIdentityMap map[int]Identity
 }
 
 func (a AuthSet) Copy() AuthSet {
 	b := new(AuthSet)
 	b.IdentityMap = make(map[Identity]int)
+	b.PriorityMap = make(map[Identity]int)
+	b.PriorityToIdentityMap = make(map[int]Identity)
 	b.IdentityList = make([]Identity, len(a.IdentityList))
 	b.StatusArray = make([]int, len(a.StatusArray))
 
@@ -77,6 +82,14 @@ func (a AuthSet) Copy() AuthSet {
 
 	for i, v := range a.StatusArray {
 		b.StatusArray[i] = v
+	}
+
+	for k, v := range a.PriorityMap {
+		b.PriorityMap[k] = v
+	}
+
+	for k, v := range a.PriorityToIdentityMap {
+		b.PriorityToIdentityMap[k] = v
 	}
 
 	return *b
@@ -157,6 +170,8 @@ func (a *AuthSet) New() {
 	a.IdentityList = make([]Identity, 0)
 	a.StatusArray = make([]int, 0)
 	a.IdentityMap = make(map[Identity]int)
+	a.PriorityMap = make(map[Identity]int)
+	a.PriorityToIdentityMap = make(map[int]Identity)
 }
 
 func (a *AuthSet) AddHash(id interfaces.IHash, status int) int {
@@ -169,6 +184,13 @@ func (a *AuthSet) Add(id Identity, status int) int {
 	a.IdentityList = append(a.IdentityList, id)
 	a.StatusArray = append(a.StatusArray, status)
 	// a.Sort()
+
+	a.PriorityMap = make(map[Identity]int)
+	auds := a.GetAuds()
+	for i, aud := range auds {
+		a.PriorityMap[aud] = len(auds) - i - 1
+		a.PriorityToIdentityMap[len(auds)-i-1] = aud
+	}
 
 	return index
 }
@@ -210,13 +232,7 @@ func (a *AuthSet) FedIDtoIndex(id Identity) int {
 }
 
 func (a *AuthSet) GetVolunteerPriority(vol Identity) int {
-	auds := a.GetAuds()
-	for i, a := range auds {
-		if a == vol {
-			return len(auds) - i - 1
-		}
-	}
-	return -1
+	return a.PriorityMap[vol]
 
 	// Reverse logic
 	//l := len(auds)

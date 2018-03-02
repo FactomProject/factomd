@@ -11,6 +11,9 @@ import (
 
 	"crypto/sha256"
 
+	"time"
+
+	"flag"
 	"github.com/FactomProject/electiontesting/messages"
 	"github.com/FactomProject/electiontesting/primitives"
 	. "github.com/FactomProject/electiontesting/ET2/mirrors"
@@ -31,7 +34,8 @@ var failuresAt []int
 var hitlimit int
 var maxdepth int
 var failure int
-var errConclusions int
+var errCollision int
+var winners []int
 
 var globalRunNumber = 0
 
@@ -41,11 +45,60 @@ var audsMap = make(map[primitives.Identity]int)
 var extraPrints = true
 var extraPrints1 = true
 var extraPrints2 = true
+var extraPrints3 = true
 var insanePrints = false
 
+var last time.Time
+var global int
+var primelist = []int{101399, 101411, 101419, 101429, 101449, 101467, 101477, 101483, 101489, 101501,
+	101503, 101513, 101527, 101531, 101533, 101537, 101561, 101573, 101581, 101599,
+	101603, 101611, 101627, 101641, 101653, 101663, 101681, 101693, 101701, 101719,
+	101723, 101737, 101741, 101747, 101749, 101771, 101789, 101797, 101807, 101833,
+	101837, 101839, 101863, 101869, 101873, 101879, 101891, 101917, 101921, 101929,
+	101939, 101957, 101963, 101977, 101987, 101999, 102001, 102013, 102019, 102023,
+	102031, 102043, 102059, 102061, 102071, 102077, 102079, 102101, 102103, 102107,
+	102121, 102139, 102149, 102161, 102181, 102191, 102197, 102199, 102203, 102217,
+	102229, 102233, 102241, 102251, 102253, 102259, 102293, 102299, 102301, 102317,
+	102329, 102337, 102359, 102367, 102397, 102407, 102409, 102433, 102437, 102451,
+	102461, 102481, 102497, 102499, 102503, 102523, 102533, 102539, 102547, 102551,
+	102559, 102563, 102587, 102593, 102607, 102611, 102643, 102647, 102653, 102667,
+	102673, 102677, 102679, 102701, 102761, 102763, 102769, 102793, 102797, 102811,
+	102829, 102841, 102859, 102871, 102877, 102881, 102911, 102913, 102929, 102931,
+	102953, 102967, 102983, 103001, 103007, 103043, 103049, 103067, 103069, 103079,
+	103087, 103091, 103093, 103099, 103123, 103141, 103171, 103177, 103183, 103217,
+	103231, 103237, 103289, 103291, 103307, 103319, 103333, 103349, 103357, 103387,
+	103391, 103393, 103399, 103409, 103421, 103423, 103451, 103457, 103471, 103483,
+	103511, 103529, 103549, 103553, 103561, 103567, 103573, 103577, 103583, 103591,
+	103613, 103619, 103643, 103651, 103657, 103669, 103681, 103687, 103699, 103703,
+	103723, 103769, 103787, 103801, 103811, 103813, 103837, 103841, 103843, 103867,
+	103889, 103903, 103913, 103919, 103951, 103963, 103967, 103969, 103979, 103981,
+	103991, 103993, 103997, 104003, 104009, 104021, 104033, 104047, 104053, 104059,
+	104087, 104089, 104107, 104113, 104119, 104123, 104147, 104149, 104161, 104173,
+	104179, 104183, 104207, 104231, 104233, 104239, 104243, 104281, 104287, 104297,
+	104309, 104311, 104323, 104327, 104347, 104369, 104381, 104383, 104393, 104399,
+	104417, 104459, 104471, 104473, 104479, 104491, 104513, 104527, 104537, 104543,
+	104549, 104551, 104561, 104579, 104593, 104597, 104623, 104639, 104651, 104659,
+	104677, 104681, 104683, 104693, 104701, 104707, 104711, 104717, 104723, 104729}
+
+var primeIdx int
 //================ main =================
 func Main() {
-	recurse(2, 5, 100)
+	audits := flag.Int("a", 2, "Number of audit servers")
+	feds := flag.Int("f", 3, "Number of federated servers")
+	recursions := flag.Int("r", 1000, "Number of recursions allowed")
+	randomFactor := flag.Int("p", 1, "Pick a starting prime")
+	globalptr := flag.Int("g", 1000, "How many global nodes between prints")
+	flag.Parse()
+
+	primeIdx = *randomFactor
+	global = *globalptr
+	fmt.Println("Settings:")
+	fmt.Println("  a Audits:       ", audits)
+	fmt.Println("  f Feds:         ", feds)
+	fmt.Println("  r Recursions:   ", recursions)
+	fmt.Println("  p PrimeFactor:  ", randomFactor)
+	fmt.Println("  g Global int:   ", global)
+	recurse(*audits, *feds, *recursions)
 }
 
 // newElections will return an array of elections (1 per leader) and an array
@@ -59,7 +112,7 @@ func Main() {
 //			controller *Controller  This can used for debugging (Printing votes)
 //			elections []*election   Nodes you can execute on (returns msg, statchange)
 //			volmsgs   []*VoluntMsg	Volunteer msgs you can start things with
-func newElections(feds, auds int, noDisplay bool) (*controller.Controller, []*election.Election, []*controller.DirectedMsg) {
+func newElections(feds, auds int, noDisplay bool) (*controller.Controller, []*election.Election, []*mymsg) {
 	con := controller.NewController(feds, auds)
 
 	if noDisplay {
@@ -68,24 +121,26 @@ func newElections(feds, auds int, noDisplay bool) (*controller.Controller, []*el
 		}
 		con.GlobalDisplay = nil
 	}
-	var msgs []*controller.DirectedMsg
+	var msgs []*mymsg
 	fmt.Println("Starting")
 	for _, v := range con.Volunteers {
 		for i, _ := range con.Elections {
-			my := new(controller.DirectedMsg)
-			my.LeaderIdx = i
-			my.Msg = v
+			my := new(mymsg)
+			my.leaderIdx = i
+			my.msg = v
 			msgs = append(msgs, my)
-			fmt.Println(my.Msg.String(), my.LeaderIdx)
+			fmt.Println(my.msg.String(), my.leaderIdx)
 		}
 	}
 
+	{
 	global := con.Elections[0].Display.Global
 	for i, ldr := range con.Elections {
 		con.Elections[i] = CloneElection(ldr)
 		con.Elections[i].Display.Global = global
 	}
 
+	}
 	for _, l := range con.Elections {
 		leadersMap[l.Self] = con.Elections[0].FedIDtoIndex(l.Self)
 	}
@@ -104,7 +159,7 @@ type mymsg struct {
 
 var cnt = 0
 
-// Dive
+// dive
 // Pass a list of messages to process, to a set of leaders, at a current depth, with a particular limit.
 // Provided a msgPath, and updated for recording purposes.
 // Returns
@@ -114,11 +169,15 @@ var cnt = 0
 // Note that we actually dive 100 levels beyond our limit, and declare seeSuccess past our limit as proof we are
 // in a loop.
 // Hitting the limit and seeSuccess is proof of a loop that none the less can resolve.
-func Dive(msgs []*controller.DirectedMsg, leaders []*election.Election, depth int, limit int, msgPath []*controller.DirectedMsg) (limitHit bool, leaf bool, seeSuccess bool) {
+func dive(mList []*mymsg, leaders []*election.Election, depth int, limit int, msgPath []*mymsg) (limitHit bool, leaf bool, seeSuccess bool) {
 	depths = incCounter(depths, depth)
 	depth++
 
-	if globalRunNumber < 1000 || globalRunNumber%50000 == 0 {
+	now := time.Now()
+
+	globalRunNumber++
+	if globalRunNumber%global == 0 {
+		//printState(depth, mList, leaders, msgPath)
 		extraPrints = true
 		extraPrints1 = true
 		extraPrints2 = true
@@ -166,7 +225,7 @@ func Dive(msgs []*controller.DirectedMsg, leaders []*election.Election, depth in
 		}
 
 		if insanePrints {
-			// Example of a run that has a weird msg state
+			// Example of a run that has a werid msg state
 			if globalRunNumber > -1 {
 				fmt.Println("Leader 0")
 				fmt.Println(leaders[0].PrintMessages())
@@ -189,8 +248,8 @@ func Dive(msgs []*controller.DirectedMsg, leaders []*election.Election, depth in
 
 	if depth > limit {
 		if extraPrints {
-			fmt.Println(">>>>>>>>>>>>>>>>>> Hit Limit <<<<<<<<<<<<<<<<<")
-			printState()
+			fmt.Println("////////>>>>>>>>> Hit Limit <<<<<<<<<<<<<<<<<")
+			printState(depth, mList, leaders, msgPath)
 			extraPrints = false
 		}
 		breadth++
@@ -202,9 +261,9 @@ func Dive(msgs []*controller.DirectedMsg, leaders []*election.Election, depth in
 		maxdepth = depth
 	}
 
-	if depth < 4 {
-		fmt.Println("==================== Depth %d ====================")
-		printState()
+	if depth < 2 {
+		fmt.Println("////////========== Depth %d ====================")
+		printState(depth, mList, leaders, msgPath)
 	}
 
 	//done := 0
@@ -216,29 +275,68 @@ func Dive(msgs []*controller.DirectedMsg, leaders []*election.Election, depth in
 	if complete, err := nodesCompleted(leaders); complete { // done == len(leaders)/2+1 {
 		solutionsAt = incCounter(solutionsAt, depth)
 		if extraPrints {
-			fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>>>> Solution Found @ ", depth)
+			//			fmt.Println(">>>>>>>>>>>>>>>>>>>>> Solution Found @ ", depth)
+		}
+		for _, ldr := range leaders {
+			if ldr.Committed {
+				win := int(ldr.CurrentVote.VolunteerPriority)
+				for len(winners) <= win {
+					winners = append(winners, 0)
+				}
+				winners[win]++
+				break
+			}
 		}
 		breadth++
 		solutions++
 		if extraPrints2 {
-			fmt.Println("!!!!!!!!!!!!!!!!!!  Success!")
-			printState()
+			fmt.Println("////////!!!!!!!  Success!")
+			printState(depth, mList, leaders, msgPath)
 			extraPrints2 = false
 		}
 		return false, true, true
 
 	} else if err != nil {
 		// Bad! This means the algorithm is broken
-		errConclusions++
-		fmt.Println("^&**(^%$& Broken! @ depth:", depth)
+		errCollision++
+		if extraPrints3 {
+			extraPrints3 = false
+			fmt.Println("// Fail with collision @ depth:", depth)
 		fmt.Println(err.Error())
-		printState()
+			printState(depth, mList, leaders, msgPath)
+		}
 	}
 
 	// Look for mirrorMap, but only after we have been going a bit.
-	if depth > 0 {
-		mh := GetStateHash(leaders)
-		if !mirrorMap.IsMirror(mh) {
+	if depth > 4 {
+		var hashes [][32]byte
+		var strings []string
+		for _, ldr := range leaders {
+			bits := ldr.NormalizedString()
+			if bits != nil {
+				strings = append(strings, string(bits))
+				h := Sha(bits)
+				hashes = append(hashes, h)
+			} else {
+				panic("shouldn't happen")
+			}
+		}
+		for i := 0; i < len(hashes)-1; i++ {
+			for j := 0; j < len(hashes)-1-i; j++ {
+				if bytes.Compare(hashes[j][:], hashes[j+1][:]) > 0 {
+					hashes[j], hashes[j+1] = hashes[j+1], hashes[j+1]
+					strings[j], strings[j+1] = strings[j+1], strings[j]
+				}
+			}
+		}
+		var all []byte
+		var alls string
+		for i, h := range hashes {
+			all = append(all, h[:]...)
+			alls += strings[i]
+		}
+		mh := Sha(all)
+		if mirrorMap[mh] != nil {
 			mirrors++
 			breadth++
 			mirrorsAt = incCounter(mirrorsAt, depth)
@@ -247,22 +345,27 @@ func Dive(msgs []*controller.DirectedMsg, leaders []*election.Election, depth in
 	}
 
 	leaf = true
-	d := 3
-	for range msgs {
 
-		d += 3
-		d = d % len(msgs)
+	shuffle := make([]*mymsg, len(mList))
+	copy(shuffle, mList)
 
-		v := msgs[d]
+	i := primeIdx % len(shuffle)
+	d := primelist[primeIdx%len(primelist)]
+	primeIdx += d
+	j := d % len(shuffle)
+	shuffle[i], shuffle[j] = shuffle[j], shuffle[i]
+	didx := primelist[primeIdx%len(primelist)]
+	didi := primeIdx
+	for _, v := range shuffle {
+		d := didi % len(shuffle)
+		didi += didx
 
-		var msgs2 []*controller.DirectedMsg
-		msgs2 = append(msgs2, msgs[0:d]...)
-		msgs2 = append(msgs2, msgs[d+1:]...)
+		var msgs2 []*mymsg
+		msgs2 = append(msgs2, shuffle[0:d]...)
+		msgs2 = append(msgs2, shuffle[d+1:]...)
 		ml2 := len(msgs2)
 
-		globalRunNumber++
-
-		cl := CloneElection(leaders[v.LeaderIdx])
+		cl := CloneElection(leaders[v.leaderIdx])
 
 		//if !spewSame(cl, leaders[v.leaderIdx]) {
 		//	fmt.Println("Clone Failed")
@@ -270,7 +373,32 @@ func Dive(msgs []*controller.DirectedMsg, leaders []*election.Election, depth in
 		//	os.Exit(0)
 		//}
 
-		msg, changed := leaders[v.LeaderIdx].Execute(v.Msg, depth)
+		if leaders[v.leaderIdx].Committed {
+			continue
+		}
+
+		msg, changed := leaders[v.leaderIdx].Execute(v.msg, depth)
+		hprime := leaders[v.leaderIdx].StateString()
+		for i := 0; i < 10; i++ {
+
+			c2 := CloneElection(cl)
+			c2.Execute(v.msg, depth)
+			hclone := c2.StateString()
+
+			if bytes.Compare(hprime, hclone) != 0 {
+				fmt.Println("\nsending: ", formatForInterpreter(v))
+				fmt.Println("-----------------------")
+				fmt.Println(cl.Display.String())
+				fmt.Println(len(hprime), string(hprime))
+				fmt.Println(c2.Display.String())
+				fmt.Println(len(hclone), string(hclone))
+				printState(depth, msgs2, leaders, msgPath)
+				time.Sleep(2 * time.Second)
+				panic("Ekk")
+			} else {
+				//fmt.Print("+")
+			}
+		}
 
 		msgPath2 := append(msgPath, v)
 
@@ -278,20 +406,20 @@ func Dive(msgs []*controller.DirectedMsg, leaders []*election.Election, depth in
 			leaf = false
 			if msg != nil {
 				for i, _ := range leaders {
-					if i != v.LeaderIdx {
-						my := new(controller.DirectedMsg)
-						my.LeaderIdx = i
-						my.Msg = msg
+					if i != v.leaderIdx {
+						my := new(mymsg)
+						my.leaderIdx = i
+						my.msg = msg
 						msgs2 = append(msgs2, my)
 					}
 				}
 			}
-			gl := leaders[v.LeaderIdx].Display.Global
+			gl := leaders[v.leaderIdx].Display.Global
 			for _, ldr := range leaders {
 				ldr.Display.Global = gl
 			}
 			// Recursive Dive
-			lim, _, ss := Dive(msgs2, leaders, depth, limit, msgPath2)
+			lim, _, ss := dive(msgs2, leaders, depth, limit, msgPath2)
 			_ = lim || ss
 			seeSuccess = seeSuccess || ss
 			limitHit = limitHit || lim
@@ -302,7 +430,7 @@ func Dive(msgs []*controller.DirectedMsg, leaders []*election.Election, depth in
 		} else {
 			deadMessagesAt = incCounter(deadMessagesAt, depth)
 		}
-		leaders[v.LeaderIdx] = cl
+		leaders[v.leaderIdx] = cl
 	}
 	if limitHit {
 		leaf = false
@@ -316,9 +444,9 @@ func Dive(msgs []*controller.DirectedMsg, leaders []*election.Election, depth in
 				failure++
 				if extraPrints1 {
 					extraPrints1 = false
-					fmt.Println("/////////////// Loops Fail //////////////////////")
+					fmt.Println("////////>>>>>>>/// Loops Fail //////////////////////")
 					fmt.Printf("%d %d setcon\n", len(leadersMap), len(audsMap))
-					printState()
+					printState(depth, shuffle, leaders, msgPath)
 				}
 			}
 			limitHit = false
@@ -333,44 +461,13 @@ func Dive(msgs []*controller.DirectedMsg, leaders []*election.Election, depth in
 				extraPrints1 = false
 				fmt.Println("/////////////// Fail //////////////////////")
 				fmt.Printf("%d %d setcon\n", len(leadersMap), len(audsMap))
-				printState()
+				printState(depth, shuffle, leaders, msgPath)
 			}
 
 		}
 	}
 
 	return limitHit, leaf, seeSuccess
-}
-
-func GetStateHash(leaders []*election.Election) [32]byte {
-	var hashes [][32]byte
-	var strings []string
-	for _, ldr := range leaders {
-		bits := ldr.NormalizedString()
-		if bits != nil {
-			strings = append(strings, string(bits))
-			h := Sha(bits)
-			hashes = append(hashes, h)
-		} else {
-			panic("shouldn't happen")
-		}
-	}
-	for i := 0; i < len(hashes)-1; i++ {
-		for j := 0; j < len(hashes)-1-i; j++ {
-			if bytes.Compare(hashes[j][:], hashes[j+1][:]) > 0 {
-				hashes[j], hashes[j+1] = hashes[j+1], hashes[j+1]
-				strings[j], strings[j+1] = strings[j+1], strings[j]
-			}
-		}
-	}
-	var all []byte
-	var alls string
-	for i, h := range hashes {
-		all = append(all, h[:]...)
-		alls += strings[i]
-	}
-	mh := Sha(all)
-	return mh
 }
 
 func nodesCompleted(nodes []*election.Election) (bool, error) {
@@ -386,28 +483,28 @@ func nodesCompleted(nodes []*election.Election) (bool, error) {
 		}
 	}
 
-	return done >= (len(nodes)/2)+1, nil
+	return done >= len(nodes)/2+1, nil
 }
 
-func formatForInterpreter(my *controller.DirectedMsg) string {
-	msg := my.Msg
+func formatForInterpreter(my *mymsg) string {
+	msg := my.msg
 	switch msg.(type) {
 	case *messages.LeaderLevelMessage:
 		l := msg.(*messages.LeaderLevelMessage)
 		from := leadersMap[l.Signer]
 
-		return fmt.Sprintf("{ %d } %d { %d } <-l", from, l.Level, my.LeaderIdx)
+		return fmt.Sprintf("{ %d } %d { %d } <-l", from, l.Level, my.leaderIdx)
 	case *messages.VolunteerMessage:
 		a := msg.(*messages.VolunteerMessage)
 		from := audsMap[a.Signer]
 
-		return fmt.Sprintf("%d { %d } <-v", from, my.LeaderIdx)
+		return fmt.Sprintf("%d { %d } <-v", from, my.leaderIdx)
 	case *messages.VoteMessage:
 		l := msg.(*messages.VoteMessage)
 		from := leadersMap[l.Signer]
 		vol := audsMap[l.Volunteer.Signer]
 
-		return fmt.Sprintf("{ %d } %d { %d } <-o", from, vol, my.LeaderIdx)
+		return fmt.Sprintf("{ %d } %d { %d } <-o", from, vol, my.leaderIdx)
 	}
 	return "NA"
 }
@@ -423,8 +520,8 @@ func incCounter(counter []int, depth int) []int {
 func recurse(auds int, feds int, limit int) {
 
 	_, leaders, msgs := newElections(feds, auds, false)
-	var msgpath []*controller.DirectedMsg
-	Dive(msgs, leaders, 0, limit, msgpath)
+	var msgpath []*mymsg
+	dive(msgs, leaders, 0, limit, msgpath)
 }
 
 // reuse encoder/decoder so we don't recompile the struct definition
@@ -440,7 +537,7 @@ func init() {
 	buff := new(bytes.Buffer)
 	enc = gob.NewEncoder(buff)
 	dec = gob.NewDecoder(buff)
-	mirrorMap.Init("dive")
+	mirrorMap = make(map[[32]byte][]byte, 10000)
 }
 
 func CloneElection(src *election.Election) *election.Election {
@@ -448,11 +545,11 @@ func CloneElection(src *election.Election) *election.Election {
 	dst := new(election.Election)
 	err := enc.Encode(src)
 	if err != nil {
-		errConclusions++
+		errCollision++
 	}
 	err = dec.Decode(dst)
 	if err != nil {
-		errConclusions++
+		errCollision++
 	}
 	return dst
 }

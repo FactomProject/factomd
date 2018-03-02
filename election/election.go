@@ -13,33 +13,6 @@ import (
 
 var _ = fmt.Println
 
-type DepthLeaderLevel struct {
-	Msg     *messages.LeaderLevelMessage
-	VoteMsg *messages.VoteMessage
-	Depth   int
-}
-
-func NewDepthLeaderLevel(ll *messages.LeaderLevelMessage, depth int) *DepthLeaderLevel {
-	d := new(DepthLeaderLevel)
-	d.Msg = ll
-	d.Depth = depth
-
-	return d
-}
-
-func (d *DepthLeaderLevel) Copy() *DepthLeaderLevel {
-	b := new(DepthLeaderLevel)
-	if d.Msg != nil {
-		b.Msg = d.Msg.Copy()
-	}
-	if d.VoteMsg != nil {
-		b.VoteMsg = d.VoteMsg.Copy()
-	}
-	b.Depth = d.Depth
-
-	return b
-}
-
 type Election struct {
 	// Level 0 volunteer votes map[vol]map[leader]msg
 	VolunteerVotes map[Identity]map[Identity]*messages.VoteMessage
@@ -52,6 +25,7 @@ type Election struct {
 	Self         Identity
 	AuthSet
 
+	// Used for debugging and seeing history
 	MsgListIn  []*DepthLeaderLevel
 	MsgListOut []*DepthLeaderLevel
 
@@ -83,6 +57,7 @@ func NewElection(self Identity, authset AuthSet) *Election {
 }
 
 func (e *Election) Execute(msg imessage.IMessage, depth int) (imessage.IMessage, bool) {
+
 	//  ** Msg In Debug **
 	if l, ok := msg.(*messages.LeaderLevelMessage); ok {
 		e.MsgListIn = append(e.MsgListIn, NewDepthLeaderLevel(l, depth))
@@ -94,7 +69,7 @@ func (e *Election) Execute(msg imessage.IMessage, depth int) (imessage.IMessage,
 		e.MsgListIn = append(e.MsgListIn, d)
 	}
 
-	resp, c := e.execute(msg)
+	resp, c := e.execute(msg) // <-- The only non-debug code in this function
 
 	//  ** Msg Out Debug **
 	if l, ok := resp.(*messages.LeaderLevelMessage); ok {
@@ -108,36 +83,6 @@ func (e *Election) Execute(msg imessage.IMessage, depth int) (imessage.IMessage,
 	}
 
 	return resp, c
-}
-
-// updateCurrentVote is called every time we send out a different vote
-func (e *Election) updateCurrentVote(new *messages.LeaderLevelMessage) {
-	//if e.CurrentVote.Rank == 0 {
-	//	e.CommitmentTally = 0
-	//	return
-	//}
-	if new.VolunteerPriority == e.CurrentVote.VolunteerPriority {
-		if e.CurrentVote.Rank+1 == new.Rank && e.CurrentVote.Level+1 == new.Level {
-			e.CommitmentTally++
-			e.CurrentVote = *new
-			if new.Rank == 0 {
-				e.CommitmentTally = 0
-			}
-			return
-		}
-	}
-	e.CommitmentTally = 1
-	if new.Rank == 0 {
-		e.CommitmentTally = 0
-	}
-
-	if e.CurrentVote.Rank >= 0 {
-		prev := e.CurrentVote
-		prev.Justification = []*messages.LeaderLevelMessage{}
-		new.PreviousVote = &prev
-	}
-	e.CurrentVote = *new
-	e.Display.Execute(new)
 }
 
 func (e *Election) execute(msg imessage.IMessage) (imessage.IMessage, bool) {
@@ -155,27 +100,27 @@ func (e *Election) execute(msg imessage.IMessage) (imessage.IMessage, bool) {
 	case *messages.VolunteerMessage:
 		// Return a vote for this volunteer if we have not already
 		vol := msg.(*messages.VolunteerMessage)
-		if e.VolunteerVotes[vol.Signer] == nil {
+		if e.VolunteerVotes[vol.Signer] == nil { // Making sure no nil's in map when we are using it
 			e.VolunteerVotes[vol.Signer] = make(map[Identity]*messages.VoteMessage)
 		}
 
-		// already voted
+		// already voted, no need to vote again
 		if _, ok := e.VolunteerVotes[vol.Signer][e.Self]; ok {
 			return nil, false
 		}
 
+		// Cast our vote, this is at level 0, so we can cast as many as there are volunteers
 		vote := messages.NewVoteMessage(*vol, e.Self)
 		e.VolunteerVotes[vol.Signer][e.Self] = &vote
 
-		msg, _ := e.execute(&vote)
-		if ll, ok := msg.(*messages.LeaderLevelMessage); ok {
-			for _, v := range e.VolunteerVotes[vol.Signer] {
-				ll.VoteMessages = append(ll.VoteMessages, v)
-			}
-			return ll, true
+		e.executeDisplay(&vote) // Update display
+
+		// We might be able to get a better vote from this, execute and look for response
+		resp, _ := e.execute(&vote)
+		if resp != nil {
+			return resp, true
 		}
 
-		e.Display.Execute(&vote)
 		return &vote, true
 	case *messages.VoteMessage:
 		// Colecting these allows us to issue out 0.#
@@ -183,24 +128,58 @@ func (e *Election) execute(msg imessage.IMessage) (imessage.IMessage, bool) {
 
 		change := e.addVote(vote)
 		newll := e.getRank0Vote()
-		if newll != nil {
-			newll.Level = e.CurrentLevel
-			e.CurrentLevel++
-			if newll != nil {
-				e.updateCurrentVote(newll)
+		if newll != nil { // got a rank0 vote. Check if we can get anything better first
+			e.updateCurrentVote(newll)
+			resp, _ := e.execute(newll)
+			if resp != nil {
+				return resp, true
 			}
-			e.addLeaderLevelMessage(newll)
-			return newll, change
+			// Rank0 is best
+			return newll, true
 		}
 		return nil, change
 	}
 	return nil, false
 }
 
+// updateCurrentVote is called every time we send out a different vote
+func (e *Election) updateCurrentVote(new *messages.LeaderLevelMessage) {
+	new.VolunteerPriority = e.GetVolunteerPriority(new.VolunteerMessage.Signer)
+	// Add to display, add the previous vote
+	e.executeDisplay(new)
+	if e.CurrentVote.Rank >= 0 {
+		prev := e.CurrentVote.Copy()
+		prev.Justification = []messages.LeaderLevelMessage{}
+		prev.PreviousVote = nil
+		new.PreviousVote = prev
+	}
+
+	/**** Commitment checking ****/
+	// Check if this is sequential
+	if new.VolunteerPriority == e.CurrentVote.VolunteerPriority &&
+		(e.CurrentVote.Rank+1 == new.Rank && e.CurrentVote.Level+1 == new.Level) {
+		e.CommitmentTally++
+	} else {
+		// Resetting the tally
+		e.CommitmentTally = 1
+	}
+
+	if new.Rank == 0 {
+		// Rank 0 doesn't count towards the tally
+		e.CommitmentTally = 0
+	}
+	e.CurrentVote = *new
+
+}
+
+// addVote adds the proposal vote without acting upon it.
+//		Returns true if it is new
 func (e *Election) addVote(vote *messages.VoteMessage) bool {
 	if vote == nil {
+		// Can never be too sure
 		return false
 	}
+
 	vol := vote.Volunteer.Signer
 	if e.VolunteerVotes[vol] == nil {
 		e.VolunteerVotes[vol] = make(map[Identity]*messages.VoteMessage)
@@ -216,6 +195,7 @@ func (e *Election) addVote(vote *messages.VoteMessage) bool {
 	return true
 }
 
+// getRank0Vote will return a rank 0 vote if one can be cast and is better than the current
 func (e *Election) getRank0Vote() *messages.LeaderLevelMessage {
 	// If we have a rank 1+, we will not issue a rank 0
 	if e.CurrentVote.Rank > 0 {
@@ -224,13 +204,6 @@ func (e *Election) getRank0Vote() *messages.LeaderLevelMessage {
 
 	// Assume sorted
 	auds := e.GetAuds()
-	//for i := 1; i < len(auds); i++ {
-	//	for j := 0; j < len(auds)-i; j++ {
-	//		if auds[j] < auds[j+1] {
-	//			auds[j], auds[j+1] = auds[j+1], auds[j]
-	//		}
-	//	}
-	//}
 
 	// currentVote is -1. Updates when we get a rank 0
 	for _, vol := range auds {
@@ -249,6 +222,7 @@ func (e *Election) getRank0Vote() *messages.LeaderLevelMessage {
 			}
 
 			if e.CurrentVote.Less(&ll) {
+				e.CurrentLevel++
 				return &ll
 			} else {
 				return nil
@@ -262,25 +236,40 @@ func (e *Election) getVolunteerPriority(vol Identity) int {
 	return e.GetVolunteerPriority(vol)
 }
 
+// executeDisplay will add to the display if the display is not nil
 func (e *Election) executeDisplay(msg imessage.IMessage) {
 	if e.Display != nil {
 		e.Display.Execute(msg)
 	}
 }
 
+// executeLeaderLevelMessage will add all the messages contained, then act upon the messge and come up
+// with a response
 func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) (imessage.IMessage, bool) {
 	// Add all messages to display and volunteer controllers. Then choose our best vote
 	change := e.addLeaderLevelMessage(msg)
 	for _, j := range msg.Justification {
-		change = e.addLeaderLevelMessage(j) || change
+		change = e.addLeaderLevelMessage(&j) || change
 	}
 
-	// Will not change my state, so why look at it
-	//if msg.Level < e.CurrentVote.Rank {
-	//	return nil, false
-	//}
+	// Special case. If the msg we get is an EOM, we can immediately issue an EOM and say we are done
+	if msg.Committed {
+		ll := messages.NewLeaderLevelMessage(e.Self, msg.Rank, e.CurrentLevel, msg.VolunteerMessage)
+		skipped := &ll
 
-	// Best vote
+		skipped.Level = e.CurrentLevel
+		e.CurrentLevel++
+		e.updateCurrentVote(skipped)
+		e.CommitmentTally = 4 // We can commit
+		skipped = e.commitIfLast(skipped)
+		skipped.EOMFrom = msg.Signer
+		// We need to set the EOMFrom and update display
+		e.executeDisplay(skipped)
+
+		return skipped, true
+	}
+
+	// All possible votes that we can choose from
 	possibleVotes := []*messages.LeaderLevelMessage{}
 	for _, vc := range e.VolunteerControls {
 		vote := vc.CheckVoteCount()
@@ -290,31 +279,39 @@ func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) (
 		}
 	}
 
+	// Sort the votes such that the highest ranked vote is first
 	if len(possibleVotes) > 0 {
+		// TODO: Use select/scan
 		BubbleSortLeaderLevelMsg(possibleVotes)
 		// New Vote!
 		vote := possibleVotes[0]
+		// If our current vote is equal or greater, then don't cast it
 		if !e.CurrentVote.Less(vote) {
 			return nil, change
 		}
 
-		if e.CurrentLevel > vote.Level {
+		if vote.Rank > vote.Level {
+			panic(fmt.Sprintf("Vote rank should never be greater than level: %v", vote))
+		}
+
+		// Set the level on the vote
+		if e.CurrentLevel >= vote.Level {
 			vote.Level = e.CurrentLevel
 			e.CurrentLevel++
 		} else {
-			if e.CurrentLevel < vote.Rank {
-				vote.Level = vote.Rank + 1
-				e.CurrentLevel = vote.Rank + 2
-			} else {
-				e.CurrentLevel = vote.Level + 1
-			}
+			e.CurrentLevel = vote.Level
+			e.CurrentLevel = vote.Level + 1
 		}
 
+		// Update our last vote
 		e.updateCurrentVote(vote)
 
+		// If it's the last vote, we are done
 		vote = e.commitIfLast(vote)
 		e.addLeaderLevelMessage(vote)
 		if !e.Committed {
+			// Not the last vote means we might be able to make a better
+			// vote off of our current. Execute it and see if there is a response, meaning something better.
 			resp, _ := e.execute(vote)
 			if resp != nil {
 				return resp, true
@@ -325,10 +322,20 @@ func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) (
 	}
 
 	// No best vote? Can we do a rank 0 with the new votes?
-
+	rank0 := e.getRank0Vote()
+	if rank0 != nil {
+		e.updateCurrentVote(rank0)
+		e.addLeaderLevelMessage(rank0)
+		better, _ := e.execute(rank0)
+		if better != nil {
+			return better, true
+		}
+		return rank0, true
+	}
 	return nil, change
 }
 
+// addLeaderLevelMessage will add the msg to our lists, but not act upon it.
 func (e *Election) addLeaderLevelMessage(msg *messages.LeaderLevelMessage) bool {
 	if msg.Level <= 0 {
 		panic("level <= 0 should never happen")
@@ -344,37 +351,35 @@ func (e *Election) addLeaderLevelMessage(msg *messages.LeaderLevelMessage) bool 
 		change = e.addLeaderLevelMessage(msg.PreviousVote)
 	}
 
-	e.Display.Execute(msg)
-	change = e.VolunteerControls[msg.VolunteerMessage.Signer].AddVote(msg) || change
+	e.executeDisplay(msg)
+	change = e.VolunteerControls[msg.VolunteerMessage.Signer].AddVote(*msg) || change
 
 	voteChange := false
 	// Votes exist, so we can add these to our vote map
-	if len(msg.VoteMessages) > 0 {
-		for _, v := range msg.VoteMessages {
-			// Add vote to maps and display
-			voteChange = e.addVote(v) || voteChange
-			e.Display.Execute(v)
-		}
+	for _, v := range msg.VoteMessages {
+		// Add vote to maps and display
+		voteChange = e.addVote(v) || voteChange
 	}
 
-	return change
+	return change || voteChange
 }
 
+// commitIfLast will mark the messages as committed if the correct criteria are met
 func (e *Election) commitIfLast(msg *messages.LeaderLevelMessage) *messages.LeaderLevelMessage {
 	// If commit is true, then we are done. Return the EOM
 	// commit := e.CommitmentIndicator.ShouldICommit(msg)
 	if e.CommitmentTally > 3 { //commit {
 		e.Committed = true
 		msg.Committed = true
-		e.Display.Execute(msg)
-		return msg
+		msg.EOMFrom = e.Self
+		e.executeDisplay(msg)
 	}
 	return msg
 }
 
 // ***************
 //
-//  Display Stuff
+//  Display & Normalization Stuff
 //
 // ***************
 
@@ -414,7 +419,7 @@ func (e *Election) VolunteerControlString() string {
 			votes := ""
 			sep := ""
 			for _, vo := range v.Votes {
-				votes += sep + e.Display.FormatMessage(vo)
+				votes += sep + e.Display.FormatMessage(&vo)
 				sep = ","
 			}
 			line += votes
@@ -534,14 +539,14 @@ func (e *Election) StateVotes() []int {
 	return votearr
 }
 
-func (e *Election) StateVCDataset() [][]*messages.LeaderLevelMessage {
+func (e *Election) StateVCDataset() [][]messages.LeaderLevelMessage {
 	// Loop through volunteers, and record only those that are above current vote
 
-	var vcarray [][]*messages.LeaderLevelMessage
-	vcarray = make([][]*messages.LeaderLevelMessage, len(e.GetAuds()))
+	var vcarray [][]messages.LeaderLevelMessage
+	vcarray = make([][]messages.LeaderLevelMessage, len(e.GetAuds()))
 
 	for vol, m := range e.VolunteerControls {
-		var volarray []*messages.LeaderLevelMessage
+		var volarray []messages.LeaderLevelMessage
 		// vol is the volunteer
 		for _, vote := range m.Votes {
 			if e.CurrentVote.Level > 0 && e.CurrentVote.Rank > vote.Level {
@@ -549,12 +554,14 @@ func (e *Election) StateVCDataset() [][]*messages.LeaderLevelMessage {
 			}
 			volarray = append(volarray, vote)
 		}
-
-		vcarray[e.getVolunteerPriority(vol)] = bubbleSortLeaderLevelMsgByRank(volarray)
+		vcarray[e.getVolunteerPriority(vol)] = bubbleSortLeaderLevelMsgWithLevel(volarray)
 	}
 
 	return vcarray
 }
+
+/****************
+ ****************/
 
 func BubbleSortLeaderLevelMsg(arr []*messages.LeaderLevelMessage) {
 	for i := 1; i < len(arr); i++ {
@@ -566,7 +573,25 @@ func BubbleSortLeaderLevelMsg(arr []*messages.LeaderLevelMessage) {
 	}
 }
 
-func bubbleSortLeaderLevelMsgByRank(arr []*messages.LeaderLevelMessage) []*messages.LeaderLevelMessage {
+func levelMessageLessWithLevel(a messages.LeaderLevelMessage, b messages.LeaderLevelMessage) bool {
+	if a.Level == b.Level {
+		return a.Less(&b)
+	}
+	return a.Level < b.Level
+}
+
+func bubbleSortLeaderLevelMsgWithLevel(arr []messages.LeaderLevelMessage) []messages.LeaderLevelMessage {
+	for i := 1; i < len(arr); i++ {
+		for j := 0; j < len(arr)-i; j++ {
+			if levelMessageLessWithLevel(arr[j], (arr[j+1])) {
+				arr[j], arr[j+1] = arr[j+1], arr[j]
+			}
+		}
+	}
+	return arr
+}
+
+func bubbleSortLeaderLevelMsgByRank(arr []messages.LeaderLevelMessage) []messages.LeaderLevelMessage {
 	for i := 1; i < len(arr); i++ {
 		for j := 0; j < len(arr)-i; j++ {
 			if arr[j].Rank > arr[j+1].Rank {
@@ -575,4 +600,31 @@ func bubbleSortLeaderLevelMsgByRank(arr []*messages.LeaderLevelMessage) []*messa
 		}
 	}
 	return arr
+}
+
+type DepthLeaderLevel struct {
+	Msg     *messages.LeaderLevelMessage
+	VoteMsg *messages.VoteMessage
+	Depth   int
+}
+
+func NewDepthLeaderLevel(ll *messages.LeaderLevelMessage, depth int) *DepthLeaderLevel {
+	d := new(DepthLeaderLevel)
+	d.Msg = ll
+	d.Depth = depth
+
+	return d
+}
+
+func (d *DepthLeaderLevel) Copy() *DepthLeaderLevel {
+	b := new(DepthLeaderLevel)
+	if d.Msg != nil {
+		b.Msg = d.Msg.Copy()
+	}
+	if d.VoteMsg != nil {
+		b.VoteMsg = d.VoteMsg.Copy()
+	}
+	b.Depth = d.Depth
+
+	return b
 }
