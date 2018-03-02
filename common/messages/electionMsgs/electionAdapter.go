@@ -81,7 +81,8 @@ func (ea *ElectionAdapter) Execute(msg interfaces.IMsg) interfaces.IMsg {
 	simmessage := ea.adaptMessage(msg)
 	if simmessage == nil {
 		// TODO: Handle error case
-		return nil
+		panic("Simessage is nil")
+		//return nil
 	}
 
 	// The second arg does not matter for our purposes
@@ -101,8 +102,7 @@ func (ea *ElectionAdapter) expandMyMessage(msg imessage.IMessage) interfaces.IMs
 		sim := msg.(*messages.VoteMessage)
 		vol, ok := ea.Volunteers[sim.Volunteer.Signer]
 		if !ok {
-			// TODO: Handle error
-			return nil
+			panic("We should always have the volunteer message here")
 		}
 
 		p := NewFedProposalMsg(ea.Election.FedID, *vol)
@@ -116,8 +116,7 @@ func (ea *ElectionAdapter) expandMyMessage(msg imessage.IMessage) interfaces.IMs
 		sim := msg.(*messages.LeaderLevelMessage)
 		vol, ok := ea.Volunteers[sim.VolunteerMessage.Signer]
 		if !ok {
-			// TODO: Handle error
-			return nil
+			panic("We should always have the volunteer message here")
 		}
 
 		l := NewFedVoteLevelMessage(ea.Election.FedID, *vol)
@@ -127,7 +126,7 @@ func (ea *ElectionAdapter) expandMyMessage(msg imessage.IMessage) interfaces.IMs
 		l.Committed = sim.Committed
 
 		for _, j := range sim.Justification {
-			just := ea.expandGeneral(j)
+			just := ea.expandGeneral(&j)
 			if just != nil {
 				// TODO: Clear level to ensure just 1 level deep?
 				l.Justification = append(l.Justification, just)
@@ -154,7 +153,8 @@ func (ea *ElectionAdapter) expandMyMessage(msg imessage.IMessage) interfaces.IMs
 		return l
 	}
 	// TODO: Handle error
-	return nil
+	panic("All messages should be handled")
+	//return nil
 }
 
 /***
@@ -244,7 +244,7 @@ func (ea *ElectionAdapter) adaptLevelMessage(msg *FedVoteLevelMsg, single bool) 
 			case *FedVoteLevelMsg:
 				l := ea.adaptLevelMessage(m.(*FedVoteLevelMsg), true)
 				if l != nil {
-					ll.Justification = append(ll.Justification, l)
+					ll.Justification = append(ll.Justification, *l)
 				}
 			}
 		}
