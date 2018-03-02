@@ -24,7 +24,6 @@ import (
 )
 
 func main() {
-	runtime.SetMutexProfileFraction(5)
 	// uncomment StartProfiler() to run the pprof tool (for testing)
 	params := ParseCmdLine(os.Args[1:])
 
