@@ -150,6 +150,7 @@ func (e *Election) updateCurrentVote(new *messages.LeaderLevelMessage) {
 	if e.CurrentVote.Rank >= 0 {
 		prev := e.CurrentVote
 		prev.Justification = []messages.LeaderLevelMessage{}
+		prev.PreviousVote = nil
 		new.PreviousVote = &prev
 	}
 
@@ -251,10 +252,22 @@ func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) (
 		change = e.addLeaderLevelMessage(&j) || change
 	}
 
-	// Will not change my state, so why look at it
-	//if msg.Level < e.CurrentVote.Rank {
-	//	return nil, false
-	//}
+	// Special case. If the msg we get is an EOM, we can immediately issue an EOM and say we are done
+	if msg.Committed {
+		ll := messages.NewLeaderLevelMessage(e.Self, msg.Rank, e.CurrentLevel, msg.VolunteerMessage)
+		skipped := &ll
+
+		skipped.Level = e.CurrentLevel
+		e.CurrentLevel++
+		e.updateCurrentVote(skipped)
+		e.CommitmentTally = 4 // We can commit
+		skipped = e.commitIfLast(skipped)
+		skipped.EOMFrom = msg.Signer
+		// We need to set the EOMFrom and update display
+		e.executeDisplay(skipped)
+
+		return skipped, true
+	}
 
 	// All possible votes that we can choose from
 	possibleVotes := []*messages.LeaderLevelMessage{}
@@ -358,6 +371,7 @@ func (e *Election) commitIfLast(msg *messages.LeaderLevelMessage) *messages.Lead
 	if e.CommitmentTally > 3 { //commit {
 		e.Committed = true
 		msg.Committed = true
+		msg.EOMFrom = e.Self
 		e.executeDisplay(msg)
 	}
 	return msg

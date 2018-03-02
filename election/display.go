@@ -95,8 +95,11 @@ func (d *Display) String() string {
 	return str
 }
 
+//var w = 18
+
 func center(str string) string {
-	return fmt.Sprintf("%-6s", fmt.Sprintf("%6s", str))
+	//return fmt.Sprintf(fmt.Sprintf("%%-%ds", w/2), fmt.Sprintf(fmt.Sprintf("%%%ds", w/2), str))
+	return fmt.Sprintf("%-10s", fmt.Sprintf("%10s", str))
 }
 
 func (d *Display) insertVote0Message(msg *messages.VoteMessage) {
@@ -170,7 +173,10 @@ func (d *Display) FormatLeaderLevelMsg(msg *messages.LeaderLevelMessage) string 
 
 func (d *Display) FormatLeaderLevelMsgShort(msg *messages.LeaderLevelMessage) string {
 	if msg.Committed {
-		return fmt.Sprintf("EOM%d", msg.VolunteerPriority)
+		if msg.EOMFrom == msg.Signer {
+			return fmt.Sprintf("S-EOM%d", msg.VolunteerPriority)
+		}
+		return fmt.Sprintf("%d-EOM%d", d.FedIDtoIndex(msg.EOMFrom), msg.VolunteerPriority)
 	}
 	return fmt.Sprintf("%d.%d", msg.Rank, msg.VolunteerPriority)
 }

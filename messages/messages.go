@@ -193,6 +193,10 @@ type LeaderLevelMessage struct {
 	// messages used to justify
 	Justification []LeaderLevelMessage
 	Committed     bool
+
+	// 		Used internally
+	// If you skip to EOM, set this so we know who you skipped from
+	EOMFrom Identity
 }
 
 func (a *LeaderLevelMessage) Less(b *LeaderLevelMessage) bool {
@@ -227,6 +231,7 @@ func (a *LeaderLevelMessage) Copy() *LeaderLevelMessage {
 	}
 	b.Committed = a.Committed
 	b.VolunteerPriority = a.VolunteerPriority
+	b.EOMFrom = a.EOMFrom
 	return &b
 }
 
