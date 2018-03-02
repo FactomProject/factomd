@@ -1,0 +1,51 @@
+handleCommand:c.Commands c.setNotes c.peer.AddressPort c.goShutdown c.peer.PeerIdent c.QualityScore c.mu.Lock
+               c.peer.QualityScore c.mu.Unlock c.peer.PeerIdent c.peer.QualityScore c.peer.QualityScore c.peer.QualityScore
+               c.QualityScore c.peer.PeerIdent c.peer.PeerIdent c.QualityScore c.updatePeer c.setNotes c.peer.AddressPort
+               c.QualityScore c.goShutdown c.peer.PeerIdent c.peer.PeerIdent c.goOffline c.peer.PeerIdent
+StatusString: c.mu.Lock c.state c.mu.Unlock
+handleParcel: c.peer.demerit c.peer.PeerFixedIdent c.peer.Port c.parcelValidity c.peer.PeerIdent c.peer.PeerIdent 
+               c.attempts c.setNotes c.peer.AddressPort c.notes c.goShutdown c.peer.PeerIdent c.peer.demerit c.peer.LastContact
+               c.attempts c.peer.merit c.peer.PeerIdent c.handleParcelTypes c.peer.PeerIdent
+dial:         c.peer.AddressPort c.peer.Address c.mu.Lock c.conn c.mu.Unlock
+updatePeer:   c.mu.Lock c.timeLastUpdate c.ReceiveChannel c.peer c.mu.Unlock
+connectionStatusReport: c.mu.Lock c.timeLastStatus c.mu.Unlock c.metricsMutex.Lock c.metrics c.metricsMutex.Unlock c.mu.Lock
+                        c.peer.Hash c.ReceiveChannel c.SendChannel c.timeLastAttempt c.mu.Unlock c.IsPersistent c.IsOutGoing
+                        c.Notes c.peer.AddressPort c.StatusString
+pingPeer: c.peer.LastContact c.timeLastPing c.attempts c.goOffline c.timeLastPing c.attempts c.SendChannel
+runLoop: c.processSends c.processReceives c.State c.updateStats c.connectionStatusReport c.peer.PeerFixedIdent c.StatusString
+          c.handleNetErrors c.handleCommand c.ReceiveParcel c.mu.Lock c.TimeLastPacket c.mu.Unlock c.handleParcel c.State
+          c.QualityScore c.IsPersistent c.updatePeer c.goShutdown c.dialLoop c.pingPeer c.timeLastUpdate c.updatePeer
+          c.QualityScore c.IsPersistent c.updatePeer c.goShutdown c.isOutGoing c.dialLoop c.goShutdown c.mu.Lock c.state
+          c.mu.Unlock c.ReceiveChannel c.peer.PeerIdent c.StatusString c.peer.PeerIdent c.mu
+processReceives: c.State c.State c.State c.mu.Lock c.conn.SetReadDeadline c.decoder c.ReceiveParcel c.mu.Unlock
+                  c.metricsMutex.Lock c.metrics.BytesReceived c.metrics.MessagesReceived c.metricsMutex.Unlock c.mu.Lock
+                  c.peer.Address c.TimeLastPacket c.mu.Unlock c.mu.Lock c.Errors c.mu.Unlock
+Start: c.runLoop
+IsOutGoing: c.mu.Lock c.mu.Unlock c.isOutGoing
+State: c.mu.Lock c.mu.Unlock c.state
+setNotes:  c.mu.Lock c.notes c.mu.Unlock c.peer.PeerIdent c.notes
+Init:  c.mu.Lock  c.conn c.isOutGoing c.isPersistent c.mu.Unlock c.commonInit
+parcelValidity:  c.peer.PeerIdent c.setNotes c.peer.QualityScore c.setNotes c.setNotes c.peer.PeerIdent c.peer.PeerIdent
+IsOnline:  c.mu.Lock c.mu.Unlock c.state
+InitWithConn:  c.mu.Lock c.conn c.isOutGoing c.isPersistent c.mu.Unlock c.commonInit c.goOnline
+handleNetErrors:  c.mu.Lock c.Errors c.mu.Unlock c.mu.Unlock c.Logger.WithField c.goOffline c.mu.Lock c.mu.Unlock
+sendParcel:  c.metricsMutex.Lock c.metrics.BytesSent c.metrics.MessagesSent c.metricsMutex.Unlock
+processSends:  c.mu.Lock c.SendChannel c.Commands c.Errors c.mu.Unlock c.State c.State c.peer.PeerIdent c.SendChannel
+               c.ConnectionState c.mu.Lock c.encoder c.conn c.mu.Unlock c.State c.sendParcel
+dialLoop:  c.timeLastAttempt c.dial c.goOnline c.isPersistent c.State c.attempts c.attempts c.goShutdown c.goShutdown
+IsPersistent:  c.mu.Lock c.mu.Unlock c.isPersistent
+QualityScore:  c.mu.Lock c.mu.Unlock c.peer.QualityScore
+updateStats:  c.metricsMutex.Lock c.timeLastMetrics c.metricsMutex.Unlock c.StatusString c.Notes c.metricsMutex.Lock
+              c.timeLastMetrics c.metrics.PeerAddress c.peer.Address c.metrics.PeerQuality c.peer.QualityScore
+              c.metrics.ConnectionState c.metrics.ConnectionNotes c.metrics.BytesSent c.metrics.BytesReceived c.metrics
+              c.metricsMutex.Unlock c.ReceiveChannel c.peer.PeerIdent
+goShutdown:  c.goOffline c.updatePeer c.mu.Lock c.mu.Unlock c.conn c.conn.Close c.decoder c.encoder c.state
+goOffline:  c.mu.Lock c.mu.Unlock c.state c.attempts c.peer.demerit
+goOnline:  c.mu.Lock c.encoder c.conn c.decoder c.conn c.attempts c.timeLastPing c.timeLastAttempt c.timeLastUpdate c.peer.LastContact c.state c.mu.Unlock c.handleNetErrors c.metrics c.SendChannel
+commonInit:  c.mu.Lock c.state c.peer c.Errors c.Commands c.SendChannel c.ReceiveChannel c.ReceiveParcel c.timeLastMetrics
+             c.timeLastAttempt c.timeLastStatus c.Logger c.peer.PeerFixedIdent c.mu.Unlock c.metricsMutex.Lock c.metrics
+             c.metricsMutex.Unlock c.setNotes
+Notes:       c.mu.Lock c.mu.Unlock c.notes
+String:
+
+
