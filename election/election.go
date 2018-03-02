@@ -524,22 +524,21 @@ func (e *Election) StateVotes() []int {
 	return votearr
 }
 
-func (e *Election) StateVCDataset() [][]*messages.LeaderLevelMessage {
+func (e *Election) StateVCDataset() [][]messages.LeaderLevelMessage {
 	// Loop through volunteers, and record only those that are above current vote
 
-	var vcarray [][]*messages.LeaderLevelMessage
-	vcarray = make([][]*messages.LeaderLevelMessage, len(e.GetAuds()))
+	var vcarray [][]messages.LeaderLevelMessage
+	vcarray = make([][]messages.LeaderLevelMessage, len(e.GetAuds()))
 
 	for vol, m := range e.VolunteerControls {
-		var volarray []*messages.LeaderLevelMessage
+		var volarray []messages.LeaderLevelMessage
 		// vol is the volunteer
 		for _, vote := range m.Votes {
 			if e.CurrentVote.Level > 0 && e.CurrentVote.Rank > vote.Level {
 				continue
 			}
-			volarray = append(volarray, &vote)
+			volarray = append(volarray, vote)
 		}
-
 		vcarray[e.getVolunteerPriority(vol)] = bubbleSortLeaderLevelMsgByRank(volarray)
 	}
 
@@ -559,7 +558,7 @@ func BubbleSortLeaderLevelMsg(arr []*messages.LeaderLevelMessage) {
 	}
 }
 
-func bubbleSortLeaderLevelMsgByRank(arr []*messages.LeaderLevelMessage) []*messages.LeaderLevelMessage {
+func bubbleSortLeaderLevelMsgByRank(arr []messages.LeaderLevelMessage) []messages.LeaderLevelMessage {
 	for i := 1; i < len(arr); i++ {
 		for j := 0; j < len(arr)-i; j++ {
 			if arr[j].Rank > arr[j+1].Rank {

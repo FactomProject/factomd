@@ -66,6 +66,7 @@ func (v *VolunteerControl) AddVote(msg messages.LeaderLevelMessage) bool {
 				remove = k
 			}
 		}
+
 		delete(v.Votes, remove)
 	}
 	v.Votes[msg.Signer] = msg
@@ -96,7 +97,7 @@ func (v *VolunteerControl) CheckVoteCount() *messages.LeaderLevelMessage {
 		if vote.Level > highestlevel {
 			highestlevel = vote.Level
 		}
-		justification = append(justification, &vote)
+		justification = append(justification, vote.Copy())
 	}
 
 	// Now we have the lowest level, any message at that level can no longer help us.
