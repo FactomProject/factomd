@@ -82,8 +82,8 @@ func NewController(feds, auds int) *Controller {
 	audlist := c.AuthSet.GetAuds()
 	c.Volunteers = make([]*messages.VolunteerMessage, len(audlist))
 
-	for i, a := range audlist {
-		c.Volunteers[i] = c.newVolunteer(a)
+	for _, a := range audlist {
+		c.Volunteers[c.Elections[0].GetVolunteerPriority(a)] = c.newVolunteer(a)
 	}
 
 	c.Buffer = NewMessageBuffer()
@@ -221,7 +221,7 @@ func (c *Controller) routeToRouter(msg imessage.IMessage, node int) {
 // indexToAudID will take the human legible "Audit 1" and get the correct identity.
 func (c *Controller) indexToAudID(index int) primitives.Identity {
 	// TODO: Actually implement some logic if this changes
-	return c.auds[index]
+	return c.AuthSet.PriorityToIdentityMap[index]
 
 }
 
