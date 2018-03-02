@@ -48,6 +48,18 @@ type FedVoteLevelMsg struct {
 var _ interfaces.IMsg = (*FedVoteVolunteerMsg)(nil)
 var _ interfaces.IElectionMsg = (*FedVoteVolunteerMsg)(nil)
 
+func (m *FedVoteLevelMsg) String() string {
+	return fmt.Sprintf("%s DBHeight %d Minute %d Signer %x Volunteer %s Committed %v Level %d Rank %d",
+		"Fed VoteLevelMsg",
+		m.DBHeight,
+		m.Minute,
+		m.Signer.Bytes()[3:9],
+		m.Volunteer.ServerName,
+		m.Committed,
+		m.Level,
+		m.Rank)
+}
+
 func NewFedVoteLevelMessage(signer interfaces.IHash, vol FedVoteVolunteerMsg) *FedVoteLevelMsg {
 	f := new(FedVoteLevelMsg)
 	f.Volunteer = vol
@@ -94,7 +106,10 @@ func (m *FedVoteLevelMsg) FollowerExecute(is interfaces.IState) {
 		is.ElectionsQueue().Enqueue(m)
 		return
 	}
-
+	var a int
+	if is.GetFactomNodeName() == "FNode03" {
+		a++
+	}
 	s := is.(*state.State)
 	pl := s.ProcessLists.Get(m.DBHeight)
 	pl.FedServers[m.Volunteer.FedIdx], pl.AuditServers[m.Volunteer.ServerIdx] =
@@ -271,7 +286,7 @@ func (m *FedVoteLevelMsg) UnmarshalBinaryData(data []byte) (newData []byte, err 
 		return
 	}
 
-	data = buf.DeepCopyBytes()
+	data = buf.Bytes()
 	return data, nil
 }
 
@@ -324,8 +339,4 @@ func (m *FedVoteLevelMsg) MarshalBinary() (data []byte, err error) {
 
 	data = buf.DeepCopyBytes()
 	return data, nil
-}
-
-func (m *FedVoteLevelMsg) String() string {
-	return ""
 }

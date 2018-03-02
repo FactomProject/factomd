@@ -8,6 +8,8 @@ import (
 	"bytes"
 	"fmt"
 
+	"os"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages/msgbase"
@@ -124,7 +126,7 @@ func (m *FedVoteMsg) Validate(st interfaces.IState) int {
 
 	// Ignore all elections messages from the past
 	if int(m.DBHeight) < e.DBHeight || int(m.Minute) < e.Minute {
-		return -1
+		//	return -1
 	}
 
 	return 1
@@ -161,6 +163,7 @@ func (e *FedVoteMsg) JSONString() (string, error) {
 func (m *FedVoteMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
+			os.Stderr.WriteString("Error UnmashalBinaryData FedVoteMsg")
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
@@ -216,5 +219,5 @@ func (m *FedVoteMsg) String() string {
 	if m.LeaderChainID == nil {
 		m.LeaderChainID = primitives.NewZeroHash()
 	}
-	return ""
+	return fmt.Sprintf("%s DBHeight %d Minute %d","FedVoteMsg ",m.DBHeight,m.Minute)
 }

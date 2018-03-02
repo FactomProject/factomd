@@ -216,5 +216,5 @@ func (m *FedVoteProposalMsg) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *FedVoteProposalMsg) String() string {
-	return ""
+	return "Fed Vote Proposal " + m.Volunteer.String()
 }
