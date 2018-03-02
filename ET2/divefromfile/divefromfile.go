@@ -13,7 +13,11 @@ import (
 	. "github.com/FactomProject/electiontesting/ET2/directedmessage"
 )
 
-func DiveFromFile(name string, listen string, connect string, load string,  recursions int, randomFactor int, primeIdx int, global int) {
+func DiveFromFile(name string, listen string, connect string, load string, recursions int, randomFactor int, primeIdx int, global int) {
+
+	fmt.Printf("DiveFromFile(name %s, listen <%s>, connect <%s>, load <%s>,  recursions %d, randomFactor %d, primeIdx %d, global %d)\n",
+		name, listen, connect, load, recursions, randomFactor, primeIdx, global)
+
 	con := controller.NewControllerInterpreter(1, 1)
 	file, err := os.Open(name)
 	if err != nil {
@@ -30,6 +34,7 @@ func DiveFromFile(name string, listen string, connect string, load string,  recu
 
 	if load != "" {
 		dive.MirrorMap.Load(load)
+		defer dive.MirrorMap.Save(load)
 	}
 	if connect != "" {
 		dive.MirrorMap.Connect(connect)
@@ -38,8 +43,8 @@ func DiveFromFile(name string, listen string, connect string, load string,  recu
 		dive.MirrorMap.Listen(listen)
 	}
 
-//	func Dive(mList []*mymsg, leaders []*election.Election, depth int, limit int, msgPath []*mymsg) (limitHit bool, leaf bool, seeSuccess bool) {
-    dive.SetGlobals(recursions, randomFactor, primeIdx, global)
+	//	func Dive(mList []*mymsg, leaders []*election.Election, depth int, limit int, msgPath []*mymsg) (limitHit bool, leaf bool, seeSuccess bool) {
+	dive.SetGlobals(recursions, randomFactor, primeIdx, global)
 	dive.Dive(con.BufferedMessages, con.Elections, 0, 10, []*DirectedMessage{})
 }
 

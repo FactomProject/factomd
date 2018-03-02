@@ -50,12 +50,12 @@ func init() {
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
-	rootCmd.Flags().StringVar(&listen, "l,listen", "", "Listen for mirrors on port")
-	rootCmd.Flags().StringVar(&connect, "c,connect", "", "Connect to other dives to share mirrors")
-	rootCmd.Flags().StringVar(&load, "m,mirrors", "", "File name to load initial mirrors")
-	rootCmd.Flags().IntVar(&recursions, "r,recursionlimit", 1000, "Number of recursions allowed")
-	rootCmd.Flags().IntVar(&randomFactor, "p,primeindex", 1, "Pick a starting prime")
-	rootCmd.Flags().IntVar(&global, "g,reportfrequency", 1000, "How many global nodes between prints")
+	rootCmd.Flags().StringVarP(&listen, "listen","l", "", "Listen for mirrors on port")
+	rootCmd.Flags().StringVarP(&connect, "connect","c", "", "Connect to other dives to share mirrors")
+	rootCmd.Flags().StringVarP(&load, "load","m", "", "File name to load initial mirrors")
+	rootCmd.Flags().IntVarP(&recursions, "recursionlimit","r", 1000, "Number of recursions allowed")
+	rootCmd.Flags().IntVarP(&randomFactor, "primeindex","p" , 0, "Pick a starting prime")
+	rootCmd.Flags().IntVarP(&global, "reportfrequency","g", 1000, "How many global nodes between prints")
 }
 
 // initConfig reads in config file and ENV variables if set.
