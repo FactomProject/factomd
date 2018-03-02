@@ -65,16 +65,11 @@ func (v *VolunteerControl) AddVote(msg messages.LeaderLevelMessage) bool {
 		lowestvote.Rank = math.MaxInt32
 		remove := NewIdentityFromInt(-1)
 		for k, v := range v.Votes {
-			if v.Level < lowest {
+			if v.Level < lowest || (v.Level == lowest && !v.Less(&lowestvote)) {
+				// If level is lower OR equal and less
 				lowest = v.Level
 				remove = k
 				lowestvote = v
-			} else if v.Level == lowest {
-				if v.Less(&lowestvote) {
-					lowest = v.Level
-					remove = k
-					lowestvote = v
-				}
 			}
 		}
 
