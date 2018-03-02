@@ -43,8 +43,8 @@ func printSimElections(elects *int, value int, listenTo *int, wsapiNode *int) {
 				prt += "\n"
 				prt += e.Adapter.VolunteerControlsStatus()
 				prt += "\n"
-				prt += e.Adapter.MessageLists()
-				prt += "\n"
+				//prt += e.Adapter.MessageLists()
+				//prt += "\n"
 			} else {
 				prt += fmt.Sprintf("%s has no simelection\n", fn.State.GetFactomNodeName())
 			}
