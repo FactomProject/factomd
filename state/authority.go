@@ -23,9 +23,8 @@ import (
 func (st *State) VerifyAuthoritySignature(msg []byte, sig *[constants.SIGNATURE_LENGTH]byte, dbheight uint32) (int, error) {
 	feds := st.GetFedServers(dbheight)
 	if feds == nil {
-		return -1, fmt.Errorf("Federated Servers are unknown at directory block hieght %d", dbheight)
+		return -1, fmt.Errorf("Federated Servers are unknown at directory block height %d", dbheight)
 	}
-	auds := st.GetAuditServers(dbheight)
 
 	for _, fed := range feds {
 		auth, _ := st.GetAuthority(fed.GetChainID())
@@ -38,6 +37,10 @@ func (st *State) VerifyAuthoritySignature(msg []byte, sig *[constants.SIGNATURE_
 		}
 	}
 
+	auds := st.GetAuditServers(dbheight)
+	if auds == nil {
+		return -1, fmt.Errorf("Audit Servers are unknown at directory block height %d", dbheight)
+	}
 	for _, aud := range auds {
 		auth, _ := st.GetAuthority(aud.GetChainID())
 		if auth == nil {
