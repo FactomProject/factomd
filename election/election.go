@@ -148,10 +148,10 @@ func (e *Election) updateCurrentVote(new *messages.LeaderLevelMessage) {
 	// Add to display, add the previous vote
 	e.executeDisplay(new)
 	if e.CurrentVote.Rank >= 0 {
-		prev := e.CurrentVote
+		prev := e.CurrentVote.Copy()
 		prev.Justification = []messages.LeaderLevelMessage{}
 		prev.PreviousVote = nil
-		new.PreviousVote = &prev
+		new.PreviousVote = prev
 	}
 
 	/**** Commitment checking ****/
