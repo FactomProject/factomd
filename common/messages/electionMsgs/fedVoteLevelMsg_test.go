@@ -54,6 +54,9 @@ func TestMarshalUnmarshalFedVoteLevel(t *testing.T) {
 	for i := 0; i < 20; i++ {
 		l := NewFedVoteLevelMessage(primitives.RandomHash(), *randomVol())
 		l.TS = primitives.NewTimestampNow()
+		if i%2 == 0 {
+			l.Committed = true
+		}
 		test(l, fmt.Sprintf("%d", i))
 	}
 }
