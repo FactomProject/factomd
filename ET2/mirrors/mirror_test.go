@@ -6,6 +6,7 @@ import (
 	"time"
 	"io/ioutil"
 	"os"
+	"fmt"
 )
 
 func makeH(s string) [32]byte {
@@ -175,4 +176,20 @@ func TestMirrors5(t *testing.T) {
 
 	m1.Done()
 	m2.Done()
+}
+
+func TestPrimeWalk(t *testing.T) {
+	var visited [119]bool
+	const prime = 7907
+	i:=0
+	for j:=0;j<len(visited);j++{
+		i = (i+prime)%len(visited)
+		fmt.Printf("%d ", i)
+		if visited[i] {
+			t.Errorf(`Found issue %d %d`,i,j)
+		}
+		visited[i]=true
+	}
+
+
 }
