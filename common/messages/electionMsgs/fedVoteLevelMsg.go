@@ -75,7 +75,7 @@ func (m *FedVoteLevelMsg) ElectionProcess(is interfaces.IState, elect interfaces
 	// We also need to check if we should change our state if the eletion resolved
 	if vote, ok := resp.(*FedVoteLevelMsg); ok {
 		if vote.Committed {
-			vote.SetLocal(true)
+			// vote.SetLocal(true)
 			is.InMsgQueue().Enqueue(vote)
 		}
 	}
