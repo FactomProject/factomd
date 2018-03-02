@@ -176,11 +176,11 @@ func dive(mList []*mymsg, leaders []*election.Election, depth int, limit int, ms
 
 	globalRunNumber++
 	if globalRunNumber%global == 0 {
-		printState(depth, mList, leaders, msgPath)
+		//printState(depth, mList, leaders, msgPath)
 		extraPrints = true
-		//		extraPrints1 = true
-		//		extraPrints2 = true
-		//		extraPrints3 = true
+		extraPrints1 = true
+		extraPrints2 = true
+		extraPrints3 = true
 		last = now
 	}
 
@@ -287,17 +287,17 @@ func dive(mList []*mymsg, leaders []*election.Election, depth int, limit int, ms
 
 	shuffle := make([]*mymsg, len(mList))
 	copy(shuffle, mList)
-	/*
-		d := 17
-			pcnt := primeIdx % primelist[0]
-			for a := 0; a < primeIdx; a++ {
-				d += primelist[(pcnt+primeIdx)%len(primelist)]
-				i := a % len(shuffle)
-				j := d % len(shuffle)
-				shuffle[i], shuffle[j] = shuffle[j], shuffle[i]
-			}
-	*/
-	for d, v := range shuffle {
+
+	i := primeIdx % len(shuffle)
+	d := primelist[primeIdx%len(primelist)]
+	primeIdx += d
+	j := d % len(shuffle)
+	shuffle[i], shuffle[j] = shuffle[j], shuffle[i]
+	didx := primelist[primeIdx%len(primelist)]
+	didi := primeIdx
+	for _, v := range shuffle {
+		d := didi % len(shuffle)
+		didi += didx
 
 		var msgs2 []*mymsg
 		msgs2 = append(msgs2, shuffle[0:d]...)
@@ -335,7 +335,7 @@ func dive(mList []*mymsg, leaders []*election.Election, depth int, limit int, ms
 				time.Sleep(2 * time.Second)
 				panic("Ekk")
 			} else {
-				fmt.Print("+")
+				//fmt.Print("+")
 			}
 		}
 
