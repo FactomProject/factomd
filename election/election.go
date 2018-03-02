@@ -540,7 +540,7 @@ func (e *Election) StateVCDataset() [][]messages.LeaderLevelMessage {
 			}
 			volarray = append(volarray, vote)
 		}
-		vcarray[e.getVolunteerPriority(vol)] = bubbleSortLeaderLevelMsgByRank(volarray)
+		vcarray[e.getVolunteerPriority(vol)] = bubbleSortLeaderLevelMsgWithLevel(volarray)
 	}
 
 	return vcarray
@@ -557,6 +557,24 @@ func BubbleSortLeaderLevelMsg(arr []*messages.LeaderLevelMessage) {
 			}
 		}
 	}
+}
+
+func levelMessageLessWithLevel(a messages.LeaderLevelMessage, b messages.LeaderLevelMessage) bool {
+	if a.Level == b.Level {
+		return a.Less(&b)
+	}
+	return a.Level < b.Level
+}
+
+func bubbleSortLeaderLevelMsgWithLevel(arr []messages.LeaderLevelMessage) []messages.LeaderLevelMessage {
+	for i := 1; i < len(arr); i++ {
+		for j := 0; j < len(arr)-i; j++ {
+			if levelMessageLessWithLevel(arr[j], (arr[j+1])) {
+				arr[j], arr[j+1] = arr[j+1], arr[j]
+			}
+		}
+	}
+	return arr
 }
 
 func bubbleSortLeaderLevelMsgByRank(arr []messages.LeaderLevelMessage) []messages.LeaderLevelMessage {
