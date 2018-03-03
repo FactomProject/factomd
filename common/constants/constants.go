@@ -5,13 +5,13 @@
 package constants
 
 import (
-	"time"
 	"fmt"
+	"time"
 )
 
 // Messages
 const (
-	INVALID_MSG                   byte = iota
+	INVALID_MSG byte = iota
 	EOM_MSG
 	ACK_MSG
 	FED_SERVER_FAULT_MSG
@@ -40,8 +40,8 @@ const (
 	CHANGESERVER_KEY_MSG
 	REMOVESERVER_MSG
 
-	BOUNCE_MSG       //	test message
-	BOUNCEREPLY_MSG  // 	test message
+	BOUNCE_MSG      //	test message
+	BOUNCEREPLY_MSG // 	test message
 
 	MISSING_ENTRY_BLOCKS
 	ENTRY_BLOCK_RESPONSE
@@ -58,7 +58,7 @@ const (
 	VOLUNTEERLEVELVOTE
 	SYNC_MSG
 
-	NUM_MESSAGES  // Not used, just a counter for the number of messages.
+	NUM_MESSAGES // Not used, just a counter for the number of messages.
 )
 
 func MessageName(Type byte) string {
