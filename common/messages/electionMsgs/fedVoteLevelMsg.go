@@ -116,6 +116,7 @@ func (m *FedVoteLevelMsg) processIfCommitted(is interfaces.IState, elect interfa
 
 	// do not do it twice
 	if !e.Adapter.IsElectionProcessed() {
+		fmt.Println("LeaderSwapElection", is.GetFactomNodeName(), m.DBHeight, m.Minute)
 		e.Federated[m.Volunteer.FedIdx], e.Audit[m.Volunteer.ServerIdx] =
 			e.Audit[m.Volunteer.ServerIdx], e.Federated[m.Volunteer.FedIdx]
 		e.Adapter.SetElectionProcessed(true)
@@ -143,7 +144,7 @@ func (m *FedVoteLevelMsg) FollowerExecute(is interfaces.IState) {
 	//		ProcessInState is not marshalled, so only we can pass this to ourselves
 	//		allowing the election adapter to ensure only once behavior
 	if m.ProcessInState {
-		//fmt.Println("LeaderSwap", s.GetFactomNodeName(), m.DBHeight, m.Minute)
+		fmt.Println("LeaderSwapState", s.GetFactomNodeName(), m.DBHeight, m.Minute)
 		pl.FedServers[m.Volunteer.FedIdx], pl.AuditServers[m.Volunteer.ServerIdx] =
 			pl.AuditServers[m.Volunteer.ServerIdx], pl.FedServers[m.Volunteer.FedIdx]
 
@@ -256,8 +257,8 @@ func (m *FedVoteLevelMsg) Type() byte {
 
 func (m *FedVoteLevelMsg) Validate(state interfaces.IState) int {
 	baseMsg := m.FedVoteMsg.Validate(state)
-	if baseMsg == -1 {
-		return -1
+	if baseMsg != 1 {
+		return baseMsg
 	}
 	return 1
 }
