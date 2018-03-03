@@ -115,7 +115,7 @@ func (GeneralFactory) CreateMsg(messageType byte) interfaces.IMsg {
 }
 
 func (GeneralFactory) MessageName(Type byte) string {
-	return MessageName(Type)
+	return constants.MessageName(Type)
 }
 
 func (GeneralFactory) UnmarshalMessageData(data []byte) (newdata []byte, msg interfaces.IMsg, err error) {

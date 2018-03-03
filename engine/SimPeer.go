@@ -7,10 +7,12 @@ package engine
 import (
 	"bytes"
 	"fmt"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/messages/msgsupport"
 	"math/rand"
 	"time"
+
+	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages/msgsupport"
 )
 
 var _ = fmt.Print
@@ -153,7 +155,7 @@ func (f *SimPeer) Recieve() (interfaces.IMsg, error) {
 		f.Delayed = nil
 		msg, err := msgsupport.UnmarshalMessage(data)
 		if err != nil {
-			fmt.Printf("SimPeer ERROR: %s %x %s\n", err.Error(), data[:8], msgsupport.MessageName(data[0]))
+			fmt.Printf("SimPeer ERROR: %s %x %s\n", err.Error(), data[:8], constants.MessageName(data[0]))
 		}
 
 		f.bytesIn += len(data)

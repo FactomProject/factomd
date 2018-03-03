@@ -108,30 +108,17 @@ func (m *FedVoteMsg) Type() byte {
 	return constants.INVALID_MSG
 }
 
-// InitiateElectionAdapter will create a new election adapter if needed for the election message
-func (m *FedVoteMsg) InitiateElectionAdapter(st interfaces.IState) {
-	s := st.(*state.State)
-	e := s.Elections.(*elections.Elections)
-
-	if e.Adapter == nil || e.Adapter.GetDBHeight() < int(m.DBHeight) || e.Adapter.GetMinute() < int(m.Minute) {
-		// TODO: Is cancelling an old election ALWAYS the best way? Should we have some cleanup? Maybe validate
-		// TODO: the new election is valid and the old one has concluded
-		e.Adapter = NewElectionAdapter(e)
-		e.Adapter.SetObserver(!s.IsLeader())
-	}
-}
-
 func (m *FedVoteMsg) Validate(st interfaces.IState) int {
 	s := st.(*state.State)
 	e := s.Elections.(*elections.Elections)
 
 	// Ignore all elections messages from the past
-	if int(m.DBHeight) < e.DBHeight || int(m.Minute) < e.Minute {
+	if int(m.DBHeight) < e.DBHeight {
 		return -1
 	}
 
 	// Is from the future, probably from Marty McFly
-	if int(m.DBHeight) > e.DBHeight || int(m.Minute) < e.Minute {
+	if int(m.DBHeight) > e.DBHeight {
 		return 0
 	}
 

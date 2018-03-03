@@ -12,6 +12,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/elections"
+	"github.com/FactomProject/factomd/state"
 	log "github.com/sirupsen/logrus"
 	//"github.com/FactomProject/factomd/state"
 )
@@ -48,7 +49,6 @@ func (m *FedVoteProposalMsg) ElectionProcess(is interfaces.IState, elect interfa
 
 	/******  Election Adapter Control   ******/
 	/**	Controlling the inner election state**/
-	m.InitiateElectionAdapter(is)
 
 	// Response from non-leader is nil
 	resp := e.Adapter.Execute(m)
@@ -133,8 +133,12 @@ func (m *FedVoteProposalMsg) LeaderExecute(state interfaces.IState) {
 	m.FollowerExecute(state)
 }
 
-func (m *FedVoteProposalMsg) FollowerExecute(state interfaces.IState) {
-	state.ElectionsQueue().Enqueue(m)
+func (m *FedVoteProposalMsg) FollowerExecute(is interfaces.IState) {
+	s := is.(*state.State)
+	if s.Elections.(*elections.Elections).Adapter == nil {
+		s.Holding[m.GetMsgHash().Fixed()] = m
+	}
+	is.ElectionsQueue().Enqueue(m)
 }
 
 // Acknowledgements do not go into the process list.

@@ -16,6 +16,8 @@ import (
 	log "github.com/sirupsen/logrus"
 	//"github.com/FactomProject/factomd/state"
 	"time"
+
+	"github.com/FactomProject/factomd/state"
 )
 
 var _ = fmt.Print
@@ -84,8 +86,6 @@ func (m *FedVoteVolunteerMsg) ElectionProcess(is interfaces.IState, elect interf
 
 	/******  Election Adapter Control   ******/
 	/**	Controlling the inner election state**/
-	m.InitiateElectionAdapter(is)
-
 	// Response from non-fed is nil.
 	resp := e.Adapter.Execute(m)
 	if resp == nil {
@@ -196,8 +196,12 @@ func (m *FedVoteVolunteerMsg) LeaderExecute(state interfaces.IState) {
 	m.FollowerExecute(state)
 }
 
-func (m *FedVoteVolunteerMsg) FollowerExecute(state interfaces.IState) {
-	state.ElectionsQueue().Enqueue(m)
+func (m *FedVoteVolunteerMsg) FollowerExecute(is interfaces.IState) {
+	s := is.(*state.State)
+	if s.Elections.(*elections.Elections).Adapter == nil {
+		s.Holding[m.GetMsgHash().Fixed()] = m
+	}
+	is.ElectionsQueue().Enqueue(m)
 }
 
 // Acknowledgements do not go into the process list.

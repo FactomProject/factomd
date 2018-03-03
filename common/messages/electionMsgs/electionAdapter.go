@@ -22,6 +22,7 @@ type ElectionAdapter struct {
 	Electing int
 	DBHeight int
 	Minute   int
+	VMIndex  int
 
 	// Processed indicates the election completed and was processed
 	// AKA leader was swapper
@@ -58,6 +59,7 @@ func NewElectionAdapter(e *elections.Elections) *ElectionAdapter {
 	ea.Minute = e.Minute
 	ea.Electing = e.Electing
 	ea.Election = e
+	ea.VMIndex = e.VMIndex
 	// Build the authset
 	// TODO: Check the order!
 	authset := primitives.NewAuthSet()
@@ -286,6 +288,11 @@ func (ea *ElectionAdapter) saveVolunteer(msg interfaces.IMsg) {
 func (ea *ElectionAdapter) GetDBHeight() int {
 	return ea.DBHeight
 }
+
+func (ea *ElectionAdapter) GetVMIndex() int {
+	return ea.VMIndex
+}
+
 func (ea *ElectionAdapter) GetMinute() int {
 	return ea.Minute
 }

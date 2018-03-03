@@ -79,7 +79,6 @@ func (m *FedVoteLevelMsg) ElectionProcess(is interfaces.IState, elect interfaces
 	/******  Election Adapter Control   ******/
 	/**	Controlling the inner election state**/
 	m.processIfCommitted(is, elect)
-	m.InitiateElectionAdapter(is)
 
 	resp := e.Adapter.Execute(m)
 	if resp == nil {
@@ -124,6 +123,7 @@ func (m *FedVoteLevelMsg) processIfCommitted(is interfaces.IState, elect interfa
 		m.SetValid()
 		// Send for the state to do the swap
 		is.InMsgQueue().Enqueue(m)
+		e.Adapter = nil // Finished the election!
 	}
 }
 
@@ -136,7 +136,7 @@ func (m *FedVoteLevelMsg) LeaderExecute(state interfaces.IState) {
 func (m *FedVoteLevelMsg) FollowerExecute(is interfaces.IState) {
 	s := is.(*state.State)
 	pl := s.ProcessLists.Get(m.DBHeight)
-	if pl == nil {
+	if pl == nil || s.Elections.(*elections.Elections).Adapter == nil {
 		s.Holding[m.GetMsgHash().Fixed()] = m
 	}
 
