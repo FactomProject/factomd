@@ -5,6 +5,7 @@
 package constants
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -59,6 +60,82 @@ const (
 
 	NUM_MESSAGES // Not used, just a counter for the number of messages.
 )
+
+func MessageName(Type byte) string {
+	switch Type {
+	case EOM_MSG:
+		return "EOM"
+	case ACK_MSG:
+		return "Ack"
+	case AUDIT_SERVER_FAULT_MSG:
+		return "Audit Server Fault"
+	case FED_SERVER_FAULT_MSG:
+		return "Fed Server Fault"
+	case FULL_SERVER_FAULT_MSG:
+		return "Full Server Fault"
+	case COMMIT_CHAIN_MSG:
+		return "Commit Chain"
+	case COMMIT_ENTRY_MSG:
+		return "Commit Entry"
+	case DIRECTORY_BLOCK_SIGNATURE_MSG:
+		return "Directory Block Signature"
+	case EOM_TIMEOUT_MSG:
+		return "EOM Timeout"
+	case FACTOID_TRANSACTION_MSG:
+		return "Factoid Transaction"
+	case HEARTBEAT_MSG:
+		return "HeartBeat"
+	case INVALID_ACK_MSG:
+		return "Invalid Ack"
+	case INVALID_DIRECTORY_BLOCK_MSG:
+		return "Invalid Directory Block"
+	case MISSING_MSG:
+		return "Missing Msg"
+	case MISSING_MSG_RESPONSE:
+		return "Missing Msg Response"
+	case MISSING_DATA:
+		return "Missing Data"
+	case DATA_RESPONSE:
+		return "Data Response"
+	case REVEAL_ENTRY_MSG:
+		return "Reveal Entry"
+	case REQUEST_BLOCK_MSG:
+		return "Request Block"
+	case SIGNATURE_TIMEOUT_MSG:
+		return "Signature Timeout"
+	case DBSTATE_MISSING_MSG:
+		return "DBState Missing"
+	case DBSTATE_MSG:
+		return "DBState"
+	case BOUNCE_MSG:
+		return "Bounce Message"
+	case BOUNCEREPLY_MSG:
+		return "Bounce Reply Message"
+	case SYNC_MSG:
+		return "Sync Msg"
+	case VOLUNTEERAUDIT:
+		return "Volunteer Audit"
+	case VOLUNTEERPROPOSAL:
+		return "Volunteer Proposal"
+	case VOLUNTEERLEVELVOTE:
+		return "Volunteer Level Vote"
+	case INTERNALADDLEADER:
+		return "INTERNALADDLEADER"
+	case INTERNALREMOVELEADER:
+		return "INTERNALREMOVELEADER"
+	case INTERNALADDAUDIT:
+		return "INTERNALADDAUDIT"
+	case INTERNALREMOVEAUDIT:
+		return "INTERNALREMOVEAUDIT"
+	case INTERNALTIMEOUT:
+		return "INTERNALTIMEOUT"
+	case INTERNALSIG:
+		return "INTERNALSIG"
+
+	default:
+		return "Unknown:" + fmt.Sprintf(" %d", Type)
+	}
+}
 
 const (
 	// Limits for keeping inputs from flooding our execution
