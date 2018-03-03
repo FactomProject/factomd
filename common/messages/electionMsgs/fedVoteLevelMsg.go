@@ -35,6 +35,8 @@ type FedVoteLevelMsg struct {
 	Volunteer FedVoteVolunteerMsg
 
 	Committed bool
+	EOMFrom   interfaces.IHash
+
 	// Information about the vote for comparing
 	Level uint32
 	Rank  uint32
@@ -67,6 +69,7 @@ func NewFedVoteLevelMessage(signer interfaces.IHash, vol FedVoteVolunteerMsg) *F
 	f := new(FedVoteLevelMsg)
 	f.Volunteer = vol
 	f.Signer = signer
+	f.EOMFrom = new(primitives.Hash)
 
 	return f
 }
@@ -86,6 +89,17 @@ func (m *FedVoteLevelMsg) ElectionProcess(is interfaces.IState, elect interfaces
 	resp.SendOut(is, resp)
 	// We also need to check if we should change our state if the eletion resolved
 	if vote, ok := resp.(*FedVoteLevelMsg); ok {
+		// Debug check
+		c := -1
+		for i, f := range e.Adapter.(*ElectionAdapter).SimulatedElection.GetFeds() {
+			if f == vote.Signer.Fixed() {
+				c = i
+			}
+		}
+		if c == -1 {
+			panic(fmt.Sprintf("Non fed signed a message: %x", vote.Signer))
+		}
+
 		vote.processIfCommitted(is, elect)
 	}
 
@@ -154,6 +168,10 @@ func (a *FedVoteLevelMsg) IsSameAs(msg interfaces.IMsg) bool {
 	}
 
 	if !a.Signer.IsSameAs(b.Signer) {
+		return false
+	}
+
+	if !a.EOMFrom.IsSameAs(b.EOMFrom) {
 		return false
 	}
 
@@ -282,6 +300,11 @@ func (m *FedVoteLevelMsg) UnmarshalBinaryData(data []byte) (newData []byte, err 
 		return
 	}
 
+	m.EOMFrom, err = buf.PopIHash()
+	if err != nil {
+		return
+	}
+
 	m.Committed, err = buf.PopBool()
 	if err != nil {
 		return
@@ -329,6 +352,11 @@ func (m *FedVoteLevelMsg) MarshalBinary() (data []byte, err error) {
 	}
 
 	err = buf.PushBinaryMarshallable(&m.Volunteer)
+	if err != nil {
+		return
+	}
+
+	err = buf.PushIHash(m.EOMFrom)
 	if err != nil {
 		return
 	}
