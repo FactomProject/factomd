@@ -1033,7 +1033,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	}
 
 	if ack.DBHeight != p.DBHeight {
-		panic(fmt.Sprintf("Ack is wrong height.  Expected: %d Ack: ", p.DBHeight))
+		// panic(fmt.Sprintf("Ack is wrong height.  Expected: %d Ack: ", p.DBHeight))
 		return
 	}
 
@@ -1212,6 +1212,7 @@ func (p *ProcessList) Reset() bool {
 	p.SortFedServers()
 	p.SortAuditServers()
 
+	// empty my maps --
 	p.OldMsgs = make(map[[32]byte]interfaces.IMsg)
 	p.OldAcks = make(map[[32]byte]interfaces.IMsg)
 

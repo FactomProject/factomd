@@ -11,6 +11,7 @@ import (
 	. "github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/go-spew/spew"
+	"time"
 )
 
 var _ = fmt.Sprint("testing")
@@ -32,6 +33,38 @@ func TestUnmarshalNilECBlock(t *testing.T) {
 	if err == nil {
 		t.Errorf("Error is nil when it shouldn't be")
 	}
+}
+
+// A test of speed
+func TestUnmarshalLarge(t *testing.T) {
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("Panic caught during the test - %v", r)
+		}
+	}()
+	start := time.Now()
+
+	ecb := createECBlockWithNum(10000)
+	data, err := ecb.MarshalBinary()
+	if err != nil {
+		t.Error(err)
+	}
+
+	a := new(ECBlock)
+	err = a.UnmarshalBinary(data)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if len(a.GetEntries()) < 10000 {
+		t.Errorf("Should have > 30000 entries, found %d", len(a.GetEntries()))
+	}
+
+	took := time.Since(start).Seconds()
+	if took > 20 {
+		t.Errorf("It took too long. Took %fs, should be < 10", took)
+	}
+
 }
 
 type TestECBlock struct {
@@ -141,6 +174,10 @@ func TestECBlockHashingConsistency(t *testing.T) {
 }
 
 func createECBlock() *ECBlock {
+	return createECBlockWithNum(1)
+}
+
+func createECBlockWithNum(ccount int) *ECBlock {
 	ecb1 := NewECBlock().(*ECBlock)
 
 	// build a CommitChain for testing
@@ -169,7 +206,9 @@ func createECBlock() *ECBlock {
 	ecb1.Header.(*ECBlockHeader).ObjectCount = 0
 
 	// add the CommitChain to the ECBlock
-	ecb1.AddEntry(cc)
+	for i := 0; i < ccount; i++ {
+		ecb1.AddEntry(cc)
+	}
 
 	m1 := NewMinuteNumber(0x01)
 	ecb1.AddEntry(m1)

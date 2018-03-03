@@ -12,6 +12,16 @@ type IElectionAdapter interface {
 	MessageLists() string
 	Status() string
 	VolunteerControlsStatus() string
+
+	// An observer does not participate in election voting
+	IsObserver() bool
+	SetObserver(o bool)
+
+	// Processed indicates the election swap happened
+	IsElectionProcessed() bool
+	SetElectionProcessed(swapped bool)
+	IsStateProcessed() bool
+	SetStateProcessed(swapped bool)
 }
 
 type IElectionMsg interface {
@@ -25,8 +35,8 @@ type IElectionsFactory interface {
 	NewAddAuditInternal(name string, dbheight uint32, serverID IHash) IMsg
 	NewRemoveLeaderInternal(name string, dbheight uint32, serverID IHash) IMsg
 	NewRemoveAuditInternal(name string, dbheight uint32, serverID IHash) IMsg
-	NewEomSigInternal(name string, dbheight uint32, minute uint32, height uint32, serverID IHash) IMsg
-	NewDBSigSigInternal(name string, dbheight uint32, minute uint32, height uint32, serverID IHash) IMsg
+	NewEomSigInternal(name string, dbheight uint32, minute uint32, vmIndex int, height uint32, serverID IHash) IMsg
+	NewDBSigSigInternal(name string, dbheight uint32, minute uint32, vmIndex int, height uint32, serverID IHash) IMsg
 
 	//
 	NewElectionAdapter(el IElections) IElectionAdapter

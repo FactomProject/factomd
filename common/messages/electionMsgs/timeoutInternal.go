@@ -26,7 +26,6 @@ type TimeoutInternal struct {
 	Name        string
 	SigType     bool // True for EOM, false for DBSig
 	DBHeight    int
-	Minute      int
 	Round       int
 	MessageHash interfaces.IHash
 }
@@ -46,7 +45,7 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 
 	// We have advanced, so do nothing.  We can't reset anything because there
 	// can be a timeout process that started before we got here (with short minutes)
-	if e.DBHeight > m.DBHeight || e.Minute > m.Minute {
+	if e.DBHeight > m.DBHeight || e.Minute > int(m.Minute) {
 		return
 	}
 
@@ -75,7 +74,7 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 	e.Round[e.Electing]++
 
 	// If we don't have all our sync messages, we will have to come back around and see if all is well.
-	go Fault(e, int(m.DBHeight), int(m.Minute), e.Round[e.Electing])
+	go Fault(e, int(m.DBHeight), int(m.Minute), m.VMIndex, e.Round[e.Electing])
 
 	// Can we see a majority of the federated servers?
 	if cnt >= (len(e.Federated)+1)/2 {
@@ -222,7 +221,7 @@ func newRound(e *elections.Elections, dbheight int, minute int, round int) {
 	}
 
 	timeout := new(TimeoutInternal)
-	timeout.Minute = minute
+	timeout.Minute = byte(minute)
 	timeout.DBHeight = dbheight
 	timeout.Round = round
 	e.Input.Enqueue(timeout)

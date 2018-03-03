@@ -104,7 +104,6 @@ func UnmarshalMessageData(data []byte) (newdata []byte, msg interfaces.IMsg, err
 
 }
 
-
 // GeneralFactory is used to get around package import loops.
 type GeneralFactory struct {
 }

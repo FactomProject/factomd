@@ -41,21 +41,23 @@ func (e *ElectionsFactory) NewRemoveAuditInternal(name string, dbheight uint32, 
 	msg.ServerID = serverID
 	return msg
 }
-func (e *ElectionsFactory) NewEomSigInternal(name string, dbheight uint32, minute uint32, height uint32, serverID interfaces.IHash) interfaces.IMsg {
+func (e *ElectionsFactory) NewEomSigInternal(name string, dbheight uint32, minute uint32, vmIndex int, height uint32, serverID interfaces.IHash) interfaces.IMsg {
 	msg := new(EomSigInternal)
 	msg.SigType = true
 	msg.NName = name
 	msg.DBHeight = dbheight
 	msg.Minute = minute
+	msg.VMIndex = vmIndex
 	msg.ServerID = serverID
 	return msg
 }
-func (e *ElectionsFactory) NewDBSigSigInternal(name string, dbheight uint32, minute uint32, height uint32, serverID interfaces.IHash) interfaces.IMsg {
+func (e *ElectionsFactory) NewDBSigSigInternal(name string, dbheight uint32, minute uint32, vmIndex int, height uint32, serverID interfaces.IHash) interfaces.IMsg {
 	msg := new(EomSigInternal)
 	msg.SigType = false
 	msg.NName = name
 	msg.DBHeight = dbheight
 	msg.Minute = minute
+	msg.VMIndex = vmIndex
 	msg.ServerID = serverID
 	return msg
 }

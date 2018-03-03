@@ -37,7 +37,7 @@ var _ = (*hash.Hash32)(nil)
 
 func (s *State) debugExec() (ret bool) {
 	ret = s.FactomNodeName == "FNode0"
-	return false && ret
+	return  ret
 }
 
 func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
@@ -58,7 +58,8 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 	s.SetString()
 	msg.ComputeVMIndex(s)
 
-	if s.IgnoreMissing {
+	// never ignore DBState messages
+	if s.IgnoreMissing && msg.Type() != constants.DBSTATE_MSG {
 		now := s.GetTimestamp().GetTimeSeconds()
 		if now-msg.GetTimestamp().GetTimeSeconds() > 60*15 {
 			if s.debugExec() {
@@ -98,7 +99,6 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 				}
 				msg.FollowerExecute(s)
 			}
-
 		} else {
 			if s.debugExec() {
 				messages.LogMessage(logName, "FollowerExecute2", msg)
@@ -106,7 +106,6 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 			msg.FollowerExecute(s)
 		}
 		ret = true
-
 	case 0:
 		TotalHoldingQueueInputs.Inc()
 		TotalHoldingQueueRecycles.Inc()
@@ -168,7 +167,6 @@ func (s *State) Process() (progress bool) {
 			}
 		}
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
-
 	} else if s.IgnoreMissing {
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 		now := s.GetTimestamp().GetTimeMilli() // Timestamps are in milliseconds, so wait 20
@@ -1064,11 +1062,54 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 		return
 	}
 
-	eom, ack := s.CreateEOM(false, m, s.LeaderVMIndex)
+	// The zero based minute for the message is equal to
+	// the one based "LastMinute".  This way we know we are
+	// generating minutes in order.
 
-	if eom == nil {
+	eom := m.(*messages.EOM)
+	pl := s.ProcessLists.Get(s.LLeaderHeight)
+	vm := pl.VMs[s.LeaderVMIndex]
+
+	// Put the System Height and Serial Hash into the EOM
+	eom.SysHeight = uint32(pl.System.Height)
+	if pl.System.Height > 1 {
+		ff, ok := pl.System.List[pl.System.Height-1].(*messages.FullServerFault)
+		if ok {
+			eom.SysHash = ff.GetSerialHash()
+		}
+	}
+
+	if s.Syncing && vm.Synced {
+		return
+	} else if !s.Syncing {
+		s.Syncing = true
+		//fmt.Println(fmt.Sprintf("EOM PROCESS: %10s LeaderExecuteEOM: !s.EOM(%v)", s.FactomNodeName, s.EOM))
+		s.EOM = true
+		s.EOMsyncing = true
+		s.EOMProcessed = 0
+		for _, vm := range pl.VMs {
+			vm.Synced = false
+		}
+		s.EOMLimit = len(pl.FedServers)
+		s.EOMMinute = int(s.CurrentMinute)
+	}
+
+	if vm.EomMinuteIssued >= s.CurrentMinute+1 {
+		//os.Stderr.WriteString(fmt.Sprintf("Bump detected %s minute %2d\n", s.FactomNodeName, s.CurrentMinute))
 		return
 	}
+
+	//_, vmindex := pl.GetVirtualServers(s.EOMMinute, s.IdentityChainID)
+
+	eom.DBHeight = s.LLeaderHeight
+	eom.VMIndex = s.LeaderVMIndex
+	// eom.Minute is zerobased, while LeaderMinute is 1 based.  So
+	// a simple assignment works.
+	eom.Minute = byte(s.CurrentMinute)
+	vm.EomMinuteIssued = s.CurrentMinute + 1
+	eom.Sign(s)
+	eom.MsgHash = nil
+	ack := s.NewAck(m, nil).(*messages.Ack)
 
 	TotalAcksInputs.Inc()
 	s.Acks[eom.GetMsgHash().Fixed()] = ack
@@ -1492,15 +1533,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	// What I do for each EOM
 	if !vm.Synced {
 
-		InMsg := s.EFactory.NewEomSigInternal(
-			s.FactomNodeName,
-			e.DBHeight,
-			uint32(e.Minute),
-			uint32(vm.Height),
-			e.ChainID,
-		)
-		s.electionsQueue.Enqueue(InMsg)
-
 		//fmt.Println(fmt.Sprintf("EOM PROCESS: %10s vm %2d Process Once: !e.Processed(%v) EOM: %s", s.FactomNodeName, e.VMIndex, e.Processed, e.String()))
 		vm.LeaderMinute++
 		s.EOMProcessed++
@@ -1787,15 +1819,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		s.DBSigProcessed++
 		//fmt.Println(fmt.Sprintf("Process DBSig %10s vm %2v DBSigProcessed++ (%2d)", s.FactomNodeName, dbs.VMIndex, s.DBSigProcessed))
 		vm.Synced = true
-
-		InMsg := s.EFactory.NewDBSigSigInternal(
-			s.FactomNodeName,
-			dbs.DBHeight,
-			uint32(0),
-			uint32(vm.Height),
-			dbs.LeaderChainID,
-		)
-		s.electionsQueue.Enqueue(InMsg)
 	}
 
 	allfaults := s.LeaderPL.System.Height >= s.LeaderPL.SysHighest

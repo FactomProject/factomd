@@ -23,7 +23,10 @@ type ElectionAdapter struct {
 	DBHeight int
 	Minute   int
 
-	Committed bool
+	// Processed indicates the election completed and was processed
+	// AKA leader was swapper
+	ElectionProcessed bool // On Election
+	StateProcessed    bool // On State
 
 	// All messages we adapt so we can expand them
 	tagedMessages map[[32]byte]interfaces.IMsg
@@ -62,8 +65,8 @@ func NewElectionAdapter(e *elections.Elections) *ElectionAdapter {
 		authset.AddHash(f.GetChainID(), 1)
 	}
 
-	for _, f := range ea.Election.Audit {
-		authset.AddHash(f.GetChainID(), 0)
+	for _, a := range ea.Election.Audit {
+		authset.AddHash(a.GetChainID(), 0)
 	}
 
 	ea.SimulatedElection = election.NewElection(primitives.Identity(ea.Election.FedID.Fixed()), *authset)
@@ -124,6 +127,7 @@ func (ea *ElectionAdapter) expandMyMessage(msg imessage.IMessage) interfaces.IMs
 		l.Level = uint32(sim.Level)
 		l.Rank = uint32(sim.Rank)
 		l.Committed = sim.Committed
+		l.EOMFrom.SetBytes(sim.EOMFrom[:])
 
 		for _, j := range sim.Justification {
 			just := ea.expandGeneral(&j)
@@ -145,10 +149,6 @@ func (ea *ElectionAdapter) expandMyMessage(msg imessage.IMessage) interfaces.IMs
 
 		// TODO: Set Message type
 		l.TypeMsg = 0x00
-
-		if l.Committed {
-			ea.Committed = true
-		}
 
 		return l
 	}
@@ -233,6 +233,7 @@ func (ea *ElectionAdapter) adaptLevelMessage(msg *FedVoteLevelMsg, single bool) 
 	ll.TagMessage(msg.MsgHash.Fixed())
 	ll.VolunteerPriority = ea.SimulatedElection.GetVolunteerPriority(volmsg.Signer)
 	ll.Committed = msg.Committed
+	ll.EOMFrom = msg.EOMFrom.Fixed()
 
 	if !single {
 		for _, m := range msg.Justification {
@@ -291,4 +292,28 @@ func (ea *ElectionAdapter) GetMinute() int {
 
 func (ea *ElectionAdapter) GetElecting() int {
 	return ea.Electing
+}
+
+func (ea *ElectionAdapter) IsObserver() bool {
+	return ea.SimulatedElection.Observer
+}
+
+func (ea *ElectionAdapter) SetObserver(o bool) {
+	ea.SimulatedElection.Observer = o
+}
+
+func (ea *ElectionAdapter) IsElectionProcessed() bool {
+	return ea.ElectionProcessed
+}
+
+func (ea *ElectionAdapter) SetElectionProcessed(swapped bool) {
+	ea.ElectionProcessed = swapped
+}
+
+func (ea *ElectionAdapter) IsStateProcessed() bool {
+	return ea.StateProcessed
+}
+
+func (ea *ElectionAdapter) SetStateProcessed(swapped bool) {
+	ea.StateProcessed = swapped
 }

@@ -264,7 +264,7 @@ func SimControl(listenTo int, listenStdin bool) {
 				simelections++
 				if simelections%2 == 1 {
 					os.Stderr.WriteString("--Print SimElections On--\n")
-					go printSimElections(&elections, elections, &ListenTo, &wsapiNode)
+					go printSimElections(&simelections, simelections, &ListenTo, &wsapiNode)
 				} else {
 					os.Stderr.WriteString("--Print SimElections Off--\n")
 				}

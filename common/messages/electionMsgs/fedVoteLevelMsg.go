@@ -35,12 +35,17 @@ type FedVoteLevelMsg struct {
 	Volunteer FedVoteVolunteerMsg
 
 	Committed bool
+	EOMFrom   interfaces.IHash
+
 	// Information about the vote for comparing
 	Level uint32
 	Rank  uint32
 
 	// Need a majority of these to justify our vote
 	Justification []interfaces.IMsg
+
+	// Tells the state to process it
+	ProcessInState bool
 
 	messageHash interfaces.IHash
 }
@@ -64,32 +69,39 @@ func NewFedVoteLevelMessage(signer interfaces.IHash, vol FedVoteVolunteerMsg) *F
 	f := new(FedVoteLevelMsg)
 	f.Volunteer = vol
 	f.Signer = signer
+	f.EOMFrom = new(primitives.Hash)
 
 	return f
 }
 
 func (m *FedVoteLevelMsg) ElectionProcess(is interfaces.IState, elect interfaces.IElections) {
 	e := elect.(*elections.Elections)
-
 	/******  Election Adapter Control   ******/
 	/**	Controlling the inner election state**/
-	if !is.IsLeader() {
-		// If we are not a leader, we will not generate a response to process. So process
-		// this message if committed
-		m.processIfCommitted(is, elect)
-		return
-	}
+	m.processIfCommitted(is, elect)
 	m.InitiateElectionAdapter(is)
 
 	resp := e.Adapter.Execute(m)
-	if resp != nil {
-		resp.SendOut(is, resp)
+	if resp == nil {
+		return
 	}
 
-	// We also need to check if we should change our state if the election resolved
+	resp.SendOut(is, resp)
+	// We also need to check if we should change our state if the eletion resolved
 	if vote, ok := resp.(*FedVoteLevelMsg); ok {
+		// Debug check
+		c := -1
+		for i, f := range e.Adapter.(*ElectionAdapter).SimulatedElection.GetFeds() {
+			if f == vote.Signer.Fixed() {
+				c = i
+			}
+		}
+		if c == -1 {
+			return // Not an authority anymore?
+			//panic(fmt.Sprintf("Non fed signed a message: %x", vote.Signer))
+		}
+
 		vote.processIfCommitted(is, elect)
-		is.InMsgQueue().Enqueue(vote)
 	}
 
 	/*_____ End Election Adapter Control  _____*/
@@ -103,9 +115,15 @@ func (m *FedVoteLevelMsg) processIfCommitted(is interfaces.IState, elect interfa
 	e := elect.(*elections.Elections)
 
 	// do not do it twice
-	if !e.Federated[m.Volunteer.FedIdx].GetChainID().IsSameAs(m.Volunteer.FedID) {
+	if !e.Adapter.IsElectionProcessed() {
+		fmt.Println("LeaderSwapElection", is.GetFactomNodeName(), m.DBHeight, m.Minute)
 		e.Federated[m.Volunteer.FedIdx], e.Audit[m.Volunteer.ServerIdx] =
 			e.Audit[m.Volunteer.ServerIdx], e.Federated[m.Volunteer.FedIdx]
+		e.Adapter.SetElectionProcessed(true)
+		m.ProcessInState = true
+		m.SetValid()
+		// Send for the state to do the swap
+		is.InMsgQueue().Enqueue(m)
 	}
 }
 
@@ -122,25 +140,23 @@ func (m *FedVoteLevelMsg) FollowerExecute(is interfaces.IState) {
 		s.Holding[m.GetMsgHash().Fixed()] = m
 	}
 
-	if !m.Committed {
-		is.ElectionsQueue().Enqueue(m)
-		return
-	}
-
-	// Committed should only be processed once
-	if !pl.FedServers[m.Volunteer.FedIdx].GetChainID().IsSameAs(m.Volunteer.FedID) {
+	// Committed should only be processed once.
+	//		ProcessInState is not marshalled, so only we can pass this to ourselves
+	//		allowing the election adapter to ensure only once behavior
+	if m.ProcessInState {
+		fmt.Println("LeaderSwapState", s.GetFactomNodeName(), m.DBHeight, m.Minute)
 		pl.FedServers[m.Volunteer.FedIdx], pl.AuditServers[m.Volunteer.ServerIdx] =
 			pl.AuditServers[m.Volunteer.ServerIdx], pl.FedServers[m.Volunteer.FedIdx]
 
 		pl.AddToProcessList(m.Volunteer.Ack.(*messages.Ack), m.Volunteer.Missing)
-		is.ElectionsQueue().Enqueue(m) // Enqueue it to trigger the last vote
+		pl.SortAuditServers()
+		pl.SortFedServers()
+	} else {
+		is.ElectionsQueue().Enqueue(m)
 	}
 
-	// Should set the adapter to committed and allow for the next election
-
-	//elect := is.(*state.State).Elections.(*elections.Elections)
-	//ad := elect.Adapter.(*ElectionAdapter)
-	//ad.Committed = true
+	// reset my leader variables, cause maybe we changed...
+	s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(int(m.Minute), s.IdentityChainID)
 }
 
 var _ interfaces.IMsg = (*FedVoteVolunteerMsg)(nil)
@@ -156,6 +172,10 @@ func (a *FedVoteLevelMsg) IsSameAs(msg interfaces.IMsg) bool {
 	}
 
 	if !a.Signer.IsSameAs(b.Signer) {
+		return false
+	}
+
+	if !a.EOMFrom.IsSameAs(b.EOMFrom) {
 		return false
 	}
 
@@ -237,8 +257,8 @@ func (m *FedVoteLevelMsg) Type() byte {
 
 func (m *FedVoteLevelMsg) Validate(state interfaces.IState) int {
 	baseMsg := m.FedVoteMsg.Validate(state)
-	if baseMsg == -1 {
-		return -1
+	if baseMsg != 1 {
+		return baseMsg
 	}
 	return 1
 }
@@ -280,6 +300,11 @@ func (m *FedVoteLevelMsg) UnmarshalBinaryData(data []byte) (newData []byte, err 
 	}
 
 	err = buf.PopBinaryMarshallable(&m.Volunteer)
+	if err != nil {
+		return
+	}
+
+	m.EOMFrom, err = buf.PopIHash()
 	if err != nil {
 		return
 	}
@@ -331,6 +356,11 @@ func (m *FedVoteLevelMsg) MarshalBinary() (data []byte, err error) {
 	}
 
 	err = buf.PushBinaryMarshallable(&m.Volunteer)
+	if err != nil {
+		return
+	}
+
+	err = buf.PushIHash(m.EOMFrom)
 	if err != nil {
 		return
 	}

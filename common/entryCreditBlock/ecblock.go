@@ -289,58 +289,68 @@ func (e *ECBlock) marshalBodyBinary() ([]byte, error) {
 }
 
 func (e *ECBlock) unmarshalBodyBinaryData(data []byte) ([]byte, error) {
+	var err error
 	e.Init()
-	buf := primitives.NewBuffer(data)
+	// No longer use buffers due to the lots of copying of the same data
 
+	//buf := primitives.NewBuffer(data)
+	newData := data
+
+	allentries := make([]interfaces.IECBlockEntry, e.GetHeader().GetObjectCount())
 	for i := uint64(0); i < e.GetHeader().GetObjectCount(); i++ {
-		id, err := buf.PopByte()
-		if err != nil {
-			return nil, err
-		}
+		id := newData[0]
+		newData = newData[1:]
 
 		switch id {
 		case ECIDServerIndexNumber:
 			s := NewServerIndexNumber()
-			err = buf.PopBinaryMarshallable(s)
+			newData, err = s.UnmarshalBinaryData(newData)
 			if err != nil {
 				return nil, err
 			}
-			e.GetBody().AddEntry(s)
+			allentries[i] = s
 		case ECIDMinuteNumber:
 			m := NewMinuteNumber(0)
-			err = buf.PopBinaryMarshallable(m)
+			_, err = m.UnmarshalBinaryData(newData[:1])
 			if err != nil {
 				return nil, err
 			}
-			e.GetBody().AddEntry(m)
+			allentries[i] = m
+			newData = newData[1:]
 		case ECIDChainCommit:
 			c := NewCommitChain()
-			err = buf.PopBinaryMarshallable(c)
+			_, err = c.UnmarshalBinaryData(newData[:200])
 			if err != nil {
 				return nil, err
 			}
-			e.GetBody().AddEntry(c)
+			allentries[i] = c
+			newData = newData[200:]
 		case ECIDEntryCommit:
 			c := NewCommitEntry()
-			err = buf.PopBinaryMarshallable(c)
+			_, err = c.UnmarshalBinaryData(newData[:136])
 			if err != nil {
 				return nil, err
 			}
-			e.GetBody().AddEntry(c)
+			allentries[i] = c
+			newData = newData[136:]
 		case ECIDBalanceIncrease:
 			c := NewIncreaseBalance()
-			err = buf.PopBinaryMarshallable(c)
+			newData, err = c.UnmarshalBinaryData(newData)
 			if err != nil {
 				return nil, err
 			}
-			e.GetBody().AddEntry(c)
+			allentries[i] = c
 		default:
 			err = fmt.Errorf("Unsupported ECID: %x\n", id)
 			return nil, err
 		}
 	}
 
-	return buf.DeepCopyBytes(), nil
+	e.Body.SetEntries(allentries)
+
+	//buf.Reset()
+	//buf.Write(newData)
+	return newData, nil
 }
 
 func (b *ECBlock) unmarshalBodyBinary(data []byte) (err error) {
