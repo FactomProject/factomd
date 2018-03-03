@@ -80,6 +80,18 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 		return
 	}
 
+	// Check db heights and leave if done
+	e.VMIndex = -1
+	pl := s.ProcessLists.Get(uint32(e.DBHeight))
+	for i, vm := range pl.VMs {
+		if !vm.Synced {
+			e.VMIndex = i
+		}
+	}
+	if e.VMIndex < 0 {
+		return
+	}
+
 	// Begin a new Election for a specific vm/min/height
 	initiated := m.InitiateElectionAdapter(is)
 	if !initiated {

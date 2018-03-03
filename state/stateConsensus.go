@@ -37,7 +37,7 @@ var _ = (*hash.Hash32)(nil)
 
 func (s *State) debugExec() (ret bool) {
 	ret = s.FactomNodeName == "FNode0"
-	return  ret
+	return ret
 }
 
 func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
@@ -1533,6 +1533,16 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	// What I do for each EOM
 	if !vm.Synced {
 
+		InMsg := s.EFactory.NewEomSigInternal(
+			s.FactomNodeName,
+			e.DBHeight,
+			uint32(e.Minute),
+			int(msg.GetVMIndex()),
+			uint32(vm.Height),
+			e.ChainID,
+		)
+		s.electionsQueue.Enqueue(InMsg)
+
 		//fmt.Println(fmt.Sprintf("EOM PROCESS: %10s vm %2d Process Once: !e.Processed(%v) EOM: %s", s.FactomNodeName, e.VMIndex, e.Processed, e.String()))
 		vm.LeaderMinute++
 		s.EOMProcessed++
@@ -1819,6 +1829,16 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		s.DBSigProcessed++
 		//fmt.Println(fmt.Sprintf("Process DBSig %10s vm %2v DBSigProcessed++ (%2d)", s.FactomNodeName, dbs.VMIndex, s.DBSigProcessed))
 		vm.Synced = true
+
+		InMsg := s.EFactory.NewDBSigSigInternal(
+			s.FactomNodeName,
+			dbs.DBHeight,
+			uint32(0),
+			msg.GetVMIndex(),
+			uint32(vm.Height),
+			dbs.LeaderChainID,
+		)
+		s.electionsQueue.Enqueue(InMsg)
 	}
 
 	allfaults := s.LeaderPL.System.Height >= s.LeaderPL.SysHighest
