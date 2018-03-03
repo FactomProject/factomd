@@ -122,13 +122,24 @@ func SetState(state interfaces.IState) {
 	wait := func() {
 		ServersMutex.Lock()
 		defer ServersMutex.Unlock()
-
-		for Servers == nil || Servers[state.GetPort()] == nil {
+		//todo: Should wait() instead of sleep but that requires plumbing a wait group....
+		for Servers == nil && Servers[state.GetPort()] != nil && Servers[state.GetPort()].Env != nil {
 			ServersMutex.Unlock()
 			time.Sleep(10 * time.Millisecond)
 			ServersMutex.Lock()
 		}
-		Servers[state.GetPort()].Env["state"] = state
+		gp := state.GetPort()
+		if Servers == nil {
+			fmt.Println("Got here early need syncronization")
+		}
+		if Servers[gp] == nil {
+			fmt.Println("Got here early need syncronization")
+		}
+		if Servers[gp].Env == nil {
+			fmt.Println("Got here early need syncronization")
+		}
+
+		Servers[gp].Env["state"] = state
 	}
 	go wait()
 }

@@ -45,38 +45,46 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 	s.SetString()
 	msg.ComputeVMIndex(s)
 
-	if s.IgnoreMissing {
+	// never ignore DBState messages
+	if s.IgnoreMissing && msg.Type() != constants.DBSTATE_MSG {
 		now := s.GetTimestamp().GetTimeSeconds()
 		if now-msg.GetTimestamp().GetTimeSeconds() > 60*15 {
 			return
 		}
 	}
 
-	switch msg.Validate(s) {
+	valid := msg.Validate(s)
+	switch valid {
 	case 1:
+		// The highest block for which we have received a message.  Sometimes the same as
+		var vml int
+		if vm == nil || vm.List == nil {
+			vml = 0
+		} else {
+			vml = len(vm.List)
+		}
+		local := msg.IsLocal()
+		vmi := msg.GetVMIndex()
+		hkb := s.GetHighestKnownBlock()
+
 		if s.RunLeader &&
 			s.Leader &&
-			vm != nil && int(vm.Height) == len(vm.List) {
-			if len(vm.List) == 0 {
+			!s.Saving &&
+			vm != nil && int(vm.Height) == vml &&
+			(!s.Syncing || !vm.Synced) &&
+			(local || vmi == s.LeaderVMIndex) &&
+			s.LeaderPL.DBHeight+1 >= hkb {
+			if vml == 0 {
 				s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex)
 				TotalXReviewQueueInputs.Inc()
 				s.XReview = append(s.XReview, msg)
-			}
-
-			if !s.Saving &&
-				(!s.Syncing || !vm.Synced) &&
-				(msg.IsLocal() || msg.GetVMIndex() == s.LeaderVMIndex) &&
-				s.LeaderPL.DBHeight+1 >= s.GetHighestKnownBlock() {
-				msg.LeaderExecute(s)
 			} else {
-				msg.FollowerExecute(s)
+				msg.LeaderExecute(s)
 			}
-
 		} else {
 			msg.FollowerExecute(s)
 		}
 		ret = true
-
 	case 0:
 		TotalHoldingQueueInputs.Inc()
 		TotalHoldingQueueRecycles.Inc()
@@ -109,12 +117,6 @@ func (s *State) Process() (progress bool) {
 	// If we are not running the leader, then look to see if we have waited long enough to
 	// start running the leader.  If we are, start the clock on Ignoring Missing Messages.  This
 	// is so we don't conflict with past version of the network if we have to reboot the network.
-	if s.CurrentMinute > 9 {
-		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(9, s.IdentityChainID)
-	} else {
-		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
-	}
-
 	if !s.RunLeader {
 		now := s.GetTimestamp().GetTimeMilli() // Timestamps are in milliseconds, so wait 20
 		if now-s.StartDelay > s.StartDelayLimit {
@@ -127,9 +129,18 @@ func (s *State) Process() (progress bool) {
 			}
 		}
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
-
+		if s.CurrentMinute > 9 {
+			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(9, s.IdentityChainID)
+		} else {
+			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
+		}
 	} else if s.IgnoreMissing {
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
+		if s.CurrentMinute > 9 {
+			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(9, s.IdentityChainID)
+		} else {
+			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
+		}
 		now := s.GetTimestamp().GetTimeMilli() // Timestamps are in milliseconds, so wait 20
 		if now-s.StartDelay > s.StartDelayLimit {
 			s.IgnoreMissing = false
@@ -142,7 +153,7 @@ func (s *State) Process() (progress bool) {
 	var vm *VM
 	if s.Leader {
 		vm = s.LeaderPL.VMs[s.LeaderVMIndex]
-		if vm.Height == 0 && s.RunLeader { // Shouldn't send DBSigs out until we have fully loaded our db
+		if vm.Height == 0 {
 			s.SendDBSig(s.LeaderPL.DBHeight, s.LeaderVMIndex)
 		}
 	}
@@ -911,9 +922,7 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 	TotalHoldingQueueInputs.Inc()
 
 	if s.Commits.Get(m.GetMsgHash().Fixed()) != nil {
-		if m.Validate(s) == 1 {
-			m.SendOut(s, m)
-		}
+		m.SendOut(s, m)
 	}
 
 	s.Holding[m.GetMsgHash().Fixed()] = m
@@ -977,11 +986,54 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 		return
 	}
 
-	eom, ack := s.CreateEOM(false, m, s.LeaderVMIndex)
+	// The zero based minute for the message is equal to
+	// the one based "LastMinute".  This way we know we are
+	// generating minutes in order.
 
-	if eom == nil {
+	eom := m.(*messages.EOM)
+	pl := s.ProcessLists.Get(s.LLeaderHeight)
+	vm := pl.VMs[s.LeaderVMIndex]
+
+	// Put the System Height and Serial Hash into the EOM
+	eom.SysHeight = uint32(pl.System.Height)
+	if pl.System.Height > 1 {
+		ff, ok := pl.System.List[pl.System.Height-1].(*messages.FullServerFault)
+		if ok {
+			eom.SysHash = ff.GetSerialHash()
+		}
+	}
+
+	if s.Syncing && vm.Synced {
+		return
+	} else if !s.Syncing {
+		s.Syncing = true
+		//fmt.Println(fmt.Sprintf("EOM PROCESS: %10s LeaderExecuteEOM: !s.EOM(%v)", s.FactomNodeName, s.EOM))
+		s.EOM = true
+		s.EOMsyncing = true
+		s.EOMProcessed = 0
+		for _, vm := range pl.VMs {
+			vm.Synced = false
+		}
+		s.EOMLimit = len(pl.FedServers)
+		s.EOMMinute = int(s.CurrentMinute)
+	}
+
+	if vm.EomMinuteIssued >= s.CurrentMinute+1 {
+		//os.Stderr.WriteString(fmt.Sprintf("Bump detected %s minute %2d\n", s.FactomNodeName, s.CurrentMinute))
 		return
 	}
+
+	//_, vmindex := pl.GetVirtualServers(s.EOMMinute, s.IdentityChainID)
+
+	eom.DBHeight = s.LLeaderHeight
+	eom.VMIndex = s.LeaderVMIndex
+	// eom.Minute is zerobased, while LeaderMinute is 1 based.  So
+	// a simple assignment works.
+	eom.Minute = byte(s.CurrentMinute)
+	vm.EomMinuteIssued = s.CurrentMinute + 1
+	eom.Sign(s)
+	eom.MsgHash = nil
+	ack := s.NewAck(m, nil).(*messages.Ack)
 
 	TotalAcksInputs.Inc()
 	s.Acks[eom.GetMsgHash().Fixed()] = ack
@@ -1053,9 +1105,7 @@ func (s *State) LeaderExecuteCommitEntry(m interfaces.IMsg) {
 	re := s.Holding[ce.CommitEntry.EntryHash.Fixed()]
 	if re != nil {
 		s.XReview = append(s.XReview, re)
-		if re.Validate(s) == 1 {
-			re.SendOut(s, re)
-		}
+		re.SendOut(s, re)
 	}
 }
 
@@ -1194,7 +1244,7 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 		h := c.CommitEntry.EntryHash
 		s.PutCommit(h, c)
 		entry := s.Holding[h.Fixed()]
-		if entry != nil && entry.Validate(s) == 1 {
+		if entry != nil {
 			entry.FollowerExecute(s)
 			entry.SendOut(s, entry)
 			TotalXReviewQueueInputs.Inc()
@@ -1404,16 +1454,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// What I do for each EOM
 	if !vm.Synced {
-
-		InMsg := s.EFactory.NewEomSigInternal(
-			s.FactomNodeName,
-			e.DBHeight,
-			uint32(e.Minute),
-			msg.GetVMIndex(),
-			uint32(vm.Height),
-			e.ChainID,
-		)
-		s.electionsQueue.Enqueue(InMsg)
 
 		//fmt.Println(fmt.Sprintf("EOM PROCESS: %10s vm %2d Process Once: !e.Processed(%v) EOM: %s", s.FactomNodeName, e.VMIndex, e.Processed, e.String()))
 		vm.LeaderMinute++
@@ -1697,16 +1737,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		s.DBSigProcessed++
 		//fmt.Println(fmt.Sprintf("Process DBSig %10s vm %2v DBSigProcessed++ (%2d)", s.FactomNodeName, dbs.VMIndex, s.DBSigProcessed))
 		vm.Synced = true
-
-		InMsg := s.EFactory.NewDBSigSigInternal(
-			s.FactomNodeName,
-			dbs.DBHeight,
-			uint32(0),
-			msg.GetVMIndex(),
-			uint32(vm.Height),
-			dbs.LeaderChainID,
-		)
-		s.electionsQueue.Enqueue(InMsg)
 	}
 
 	allfaults := s.LeaderPL.System.Height >= s.LeaderPL.SysHighest
@@ -1876,7 +1906,7 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 				}
 				// Any updates required to the state as established by the AdminBlock are applied here.
 				pl.State.SetAuthoritySetString(authoritiesString)
-				authorityDeltaString := fmt.Sprintf("FULL FAULT SUCCESSFULLY PROCESSED DBHt: %d SysHt: %d FedID %s AuditServerID %s",
+				authorityDeltaString := fmt.Sprintf("FULL FAULT SUCCESSFULLY PROCESSED DBHt: %d SysHt: %d ServerID %s AuditServerID %s",
 					fullFault.DBHeight,
 					fullFault.SystemHeight,
 					fullFault.ServerID.String()[4:12],
