@@ -404,7 +404,14 @@ func (e *Election) PrintMessages() string {
 }
 
 func (e *Election) VolunteerControlString() string {
-	str := "VolunteerControls\n"
+	str := ""
+	str += "Leaders\n"
+	for i, l := range e.GetFeds() {
+		str += fmt.Sprintf("%d: [%x]\n", i, l[:8])
+	}
+
+	str += "\n"
+	str += "VolunteerControls\n"
 	if e.Display == nil {
 		return "No display\n"
 	}
@@ -412,13 +419,21 @@ func (e *Election) VolunteerControlString() string {
 	vcs := make([]string, 0)
 
 	for i, v := range e.VolunteerControls {
-		line := fmt.Sprintf("(%d) ", e.getVolunteerPriority(i))
+		line := fmt.Sprintf("[%x](%d) ", i[:8], e.getVolunteerPriority(i))
 		if e.VolunteerControls[i] == nil {
 			line += "nil"
 		} else {
 			votes := ""
 			sep := ""
+			arr := make([]messages.LeaderLevelMessage, len(v.Votes))
+			i := 0
 			for _, vo := range v.Votes {
+				arr[i] = vo
+				i++
+			}
+			arr = bubbleSortLeaderLevelMsgWithLevel(arr)
+
+			for _, vo := range arr {
 				votes += sep + e.Display.FormatMessage(&vo)
 				sep = ","
 			}
