@@ -178,8 +178,8 @@ func (m *FedVoteVolunteerMsg) Type() byte {
 
 func (m *FedVoteVolunteerMsg) Validate(state interfaces.IState) int {
 	baseMsg := m.FedVoteMsg.Validate(state)
-	if baseMsg == -1 {
-		return -1
+	if baseMsg != 1 {
+		return baseMsg
 	}
 
 	return 1
