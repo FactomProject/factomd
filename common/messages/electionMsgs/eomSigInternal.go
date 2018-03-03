@@ -25,7 +25,7 @@ type EomSigInternal struct {
 	SigType     bool             // True of EOM, False if DBSig
 	ServerID    interfaces.IHash // Hash of message acknowledged
 	DBHeight    uint32           // Directory Block Height that owns this ack
-	Minute      uint32
+	Minute      uint32			 // Minute of the issue
 	Height      uint32 // Height of this ack in this process list
 	MessageHash interfaces.IHash
 }
@@ -42,12 +42,13 @@ func Title() string {
 		"E:Min")
 }
 
-func Fault(e *elections.Elections, dbheight int, minute int, round int) {
+func Fault(e *elections.Elections, dbheight int, minute int, vmIndex int, round int) {
 
 	time.Sleep(e.Timeout)
 	timeout := new(TimeoutInternal)
-	timeout.Minute = minute
+	timeout.Minute = byte(minute)
 	timeout.DBHeight = dbheight
+	timeout.VMIndex = vmIndex
 	timeout.Round = round
 	e.Input.Enqueue(timeout)
 
@@ -72,7 +73,7 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 		s.Election0 = Title()
 
 		// Start our timer to timeout this sync
-		go Fault(e, int(m.DBHeight), int(m.Minute), 0)
+		go Fault(e, int(m.DBHeight), int(m.Minute), m.VMIndex, 0)
 		t := "EOM"
 		if !m.SigType {
 			t = "DBSig"

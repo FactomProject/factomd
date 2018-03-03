@@ -97,7 +97,8 @@ func (m *FedVoteLevelMsg) ElectionProcess(is interfaces.IState, elect interfaces
 			}
 		}
 		if c == -1 {
-			panic(fmt.Sprintf("Non fed signed a message: %x", vote.Signer))
+			return // Not an authority anymore?
+			//panic(fmt.Sprintf("Non fed signed a message: %x", vote.Signer))
 		}
 
 		vote.processIfCommitted(is, elect)

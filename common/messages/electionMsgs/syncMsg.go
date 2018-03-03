@@ -39,7 +39,6 @@ type SyncMsg struct {
 
 	Weight      interfaces.IHash // Computed Weight at this DBHeight, Minute, Round
 	DBHeight    uint32           // Directory Block Height that owns this ack
-	Minute      byte             // Minute (-1 for dbsig)
 	Round       int              // Voting Round
 	messageHash interfaces.IHash
 }
