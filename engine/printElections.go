@@ -27,6 +27,7 @@ func printSimElections(elects *int, value int, listenTo *int, wsapiNode *int) {
 
 	for *elects == value {
 		prt := "===SimElectionsStart===\n\n"
+		prt += "-------------------------\n"
 		if len(fnodes) == 0 {
 			return
 		}

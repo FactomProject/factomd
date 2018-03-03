@@ -82,11 +82,12 @@ func (m *FedVoteLevelMsg) ElectionProcess(is interfaces.IState, elect interfaces
 	m.InitiateElectionAdapter(is)
 
 	resp := e.Adapter.Execute(m)
-	if resp != nil {
-		resp.SendOut(is, resp)
+	if resp == nil {
+		return
 	}
 
-	// We also need to check if we should change our state if the election resolved
+	resp.SendOut(is, resp)
+	// We also need to check if we should change our state if the eletion resolved
 	if vote, ok := resp.(*FedVoteLevelMsg); ok {
 		vote.processIfCommitted(is, elect)
 		is.InMsgQueue().Enqueue(vote)
@@ -135,8 +136,6 @@ func (m *FedVoteLevelMsg) FollowerExecute(is interfaces.IState) {
 		pl.AddToProcessList(m.Volunteer.Ack.(*messages.Ack), m.Volunteer.Missing)
 		is.ElectionsQueue().Enqueue(m) // Enqueue it to trigger the last vote
 	}
-
-	pl.AddToProcessList(m.Volunteer.Ack.(*messages.Ack), m.Volunteer.Missing)
 
 	// reset my leader variables, cause maybe we changed...
 	s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(int(m.Minute), s.IdentityChainID)
