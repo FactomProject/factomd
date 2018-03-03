@@ -62,25 +62,39 @@ func (m *FedVoteLevelMsg) ElectionProcess(is interfaces.IState, elect interfaces
 	/******  Election Adapter Control   ******/
 	/**	Controlling the inner election state**/
 	if !is.IsLeader() {
+		// If we are not a leader, we will not generate a response to process. So process
+		// this message if committed
+		m.processIfCommitted(is, elect)
 		return
 	}
 	m.InitiateElectionAdapter(is)
 
 	resp := e.Adapter.Execute(m)
-	if resp == nil {
-		return
+	if resp != nil {
+		resp.SendOut(is, resp)
 	}
 
-	resp.SendOut(is, resp)
-	// We also need to check if we should change our state if the eletion resolved
+	// We also need to check if we should change our state if the election resolved
 	if vote, ok := resp.(*FedVoteLevelMsg); ok {
-		if vote.Committed {
-			// vote.SetLocal(true)
-			is.InMsgQueue().Enqueue(vote)
-		}
+		vote.processIfCommitted(is, elect)
+		is.InMsgQueue().Enqueue(vote)
 	}
 
 	/*_____ End Election Adapter Control  _____*/
+}
+
+// processCommitted will process a message that has it's committed flag
+func (m *FedVoteLevelMsg) processIfCommitted(is interfaces.IState, elect interfaces.IElections) {
+	if !m.Committed {
+		return
+	}
+	e := elect.(*elections.Elections)
+
+	// do not do it twice
+	if !e.Federated[m.Volunteer.FedIdx].GetChainID().IsSameAs(m.Volunteer.FedID) {
+		e.Federated[m.Volunteer.FedIdx], e.Audit[m.Volunteer.ServerIdx] =
+			e.Audit[m.Volunteer.ServerIdx], e.Federated[m.Volunteer.FedIdx]
+	}
 }
 
 // Execute the leader functions of the given message
@@ -90,18 +104,25 @@ func (m *FedVoteLevelMsg) LeaderExecute(state interfaces.IState) {
 }
 
 func (m *FedVoteLevelMsg) FollowerExecute(is interfaces.IState) {
+	s := is.(*state.State)
+	pl := s.ProcessLists.Get(m.DBHeight)
+	if pl == nil {
+		s.Holding[m.GetMsgHash().Fixed()] = m
+	}
+
 	if !m.Committed {
 		is.ElectionsQueue().Enqueue(m)
 		return
 	}
 
-	s := is.(*state.State)
-	pl := s.ProcessLists.Get(m.DBHeight)
-	pl.FedServers[m.Volunteer.FedIdx], pl.AuditServers[m.Volunteer.ServerIdx] =
-		pl.AuditServers[m.Volunteer.ServerIdx], pl.FedServers[m.Volunteer.FedIdx]
+	// Committed should only be processed once
+	if !pl.FedServers[m.Volunteer.FedIdx].GetChainID().IsSameAs(m.Volunteer.FedID) {
+		pl.FedServers[m.Volunteer.FedIdx], pl.AuditServers[m.Volunteer.ServerIdx] =
+			pl.AuditServers[m.Volunteer.ServerIdx], pl.FedServers[m.Volunteer.FedIdx]
 
-	pl.AddToProcessList(m.Volunteer.Ack.(*messages.Ack), m.Volunteer.Missing)
-	is.ElectionsQueue().Enqueue(m) // Enqueue it to trigger the last vote
+		pl.AddToProcessList(m.Volunteer.Ack.(*messages.Ack), m.Volunteer.Missing)
+		is.ElectionsQueue().Enqueue(m) // Enqueue it to trigger the last vote
+	}
 
 	// Should set the adapter to committed and allow for the next election
 
