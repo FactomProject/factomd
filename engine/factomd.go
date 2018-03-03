@@ -6,11 +6,10 @@ package engine
 
 import (
 	"fmt"
-	"runtime"
-
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/state"
+	"runtime"
 
 	log "github.com/sirupsen/logrus"
 )

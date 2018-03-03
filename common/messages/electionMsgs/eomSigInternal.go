@@ -25,8 +25,8 @@ type EomSigInternal struct {
 	SigType     bool             // True of EOM, False if DBSig
 	ServerID    interfaces.IHash // Hash of message acknowledged
 	DBHeight    uint32           // Directory Block Height that owns this ack
-	Minute      uint32			 // Minute of the issue
-	Height      uint32 // Height of this ack in this process list
+	Minute      uint32           // Minute of the issue
+	Height      uint32           // Height of this ack in this process list
 	MessageHash interfaces.IHash
 }
 
