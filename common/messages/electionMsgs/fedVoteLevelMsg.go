@@ -102,10 +102,11 @@ func (m *FedVoteLevelMsg) LeaderExecute(state interfaces.IState) {
 }
 
 func (m *FedVoteLevelMsg) FollowerExecute(is interfaces.IState) {
+	is.ElectionsQueue().Enqueue(m) // Enqueue it to trigger the last vote
 	if !m.Committed {
-		is.ElectionsQueue().Enqueue(m)
 		return
 	}
+
 	var a int
 	if is.GetFactomNodeName() == "FNode03" {
 		a++
@@ -116,9 +117,9 @@ func (m *FedVoteLevelMsg) FollowerExecute(is interfaces.IState) {
 		pl.AuditServers[m.Volunteer.ServerIdx], pl.FedServers[m.Volunteer.FedIdx]
 
 	pl.AddToProcessList(m.Volunteer.Ack.(*messages.Ack), m.Volunteer.Missing)
-	is.ElectionsQueue().Enqueue(m) // Enqueue it to trigger the last vote
 
-	// Should set the adapter to committed and allow for the next election
+	// reset my leader variables, cause maybe we changed...
+	s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(int(m.Minute), s.IdentityChainID)
 
 	//elect := is.(*state.State).Elections.(*elections.Elections)
 	//ad := elect.Adapter.(*ElectionAdapter)
