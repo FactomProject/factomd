@@ -38,6 +38,9 @@ type Election struct {
 
 	// Each time I vote for the same vol in the next level
 	CommitmentTally int
+
+	// An observer never participates in an election, but can watch (audit or follower)
+	Observer bool
 }
 
 func NewElection(self Identity, authset AuthSet) *Election {
@@ -57,6 +60,10 @@ func NewElection(self Identity, authset AuthSet) *Election {
 }
 
 func (e *Election) Execute(msg imessage.IMessage, depth int) (imessage.IMessage, bool) {
+	if e.Observer {
+		e.executeObserver(msg)
+		return nil, false
+	}
 
 	//  ** Msg In Debug **
 	if l, ok := msg.(*messages.LeaderLevelMessage); ok {
@@ -83,6 +90,18 @@ func (e *Election) Execute(msg imessage.IMessage, depth int) (imessage.IMessage,
 	}
 
 	return resp, c
+}
+
+func (e *Election) executeObserver(msg imessage.IMessage) {
+	e.TotalMessages++
+	e.executeDisplay(msg)
+	switch msg.(type) {
+	case *messages.LeaderLevelMessage:
+		e.addLeaderLevelMessage(msg.(*messages.LeaderLevelMessage))
+	case *messages.VolunteerMessage:
+	case *messages.VoteMessage:
+		e.addVote(msg.(*messages.VoteMessage))
+	}
 }
 
 func (e *Election) execute(msg imessage.IMessage) (imessage.IMessage, bool) {
