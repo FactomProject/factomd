@@ -148,6 +148,8 @@ func (m *FedVoteLevelMsg) FollowerExecute(is interfaces.IState) {
 			pl.AuditServers[m.Volunteer.ServerIdx], pl.FedServers[m.Volunteer.FedIdx]
 
 		pl.AddToProcessList(m.Volunteer.Ack.(*messages.Ack), m.Volunteer.Missing)
+		pl.SortAuditServers()
+		pl.SortFedServers()
 	} else {
 		is.ElectionsQueue().Enqueue(m)
 	}
