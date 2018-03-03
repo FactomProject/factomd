@@ -127,6 +127,7 @@ func (ea *ElectionAdapter) expandMyMessage(msg imessage.IMessage) interfaces.IMs
 		l.Level = uint32(sim.Level)
 		l.Rank = uint32(sim.Rank)
 		l.Committed = sim.Committed
+		l.EOMFrom.SetBytes(sim.EOMFrom[:])
 
 		for _, j := range sim.Justification {
 			just := ea.expandGeneral(&j)
@@ -232,6 +233,7 @@ func (ea *ElectionAdapter) adaptLevelMessage(msg *FedVoteLevelMsg, single bool) 
 	ll.TagMessage(msg.MsgHash.Fixed())
 	ll.VolunteerPriority = ea.SimulatedElection.GetVolunteerPriority(volmsg.Signer)
 	ll.Committed = msg.Committed
+	ll.EOMFrom = msg.EOMFrom.Fixed()
 
 	if !single {
 		for _, m := range msg.Justification {

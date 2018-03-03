@@ -106,10 +106,14 @@ func printElections(elects *int, value int, listenTo *int, wsapiNode *int) {
 		prt = prt + "\n"
 		for _, fn := range fnodes {
 			s := fn.State
-			if s.Elections.(*elections.Elections).Adapter != nil && s.Elections.(*elections.Elections).Adapter.IsObserver() {
-				prt += "O " // Observer
+			if s.Elections.(*elections.Elections).Adapter != nil {
+				if s.Elections.(*elections.Elections).Adapter.IsObserver() {
+					prt += "O " // Observer
+				} else {
+					prt += "A " // Active
+				}
 			} else {
-				prt += "A " // Active
+				prt += "_ " // Active
 			}
 			prt = prt + s.Election1 + s.Election2 + "\n"
 		}
