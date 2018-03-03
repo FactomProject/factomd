@@ -5,13 +5,13 @@
 package constants
 
 import (
-	"fmt"
 	"time"
+	"fmt"
 )
 
 // Messages
 const (
-	INVALID_MSG byte = iota
+	INVALID_MSG                   byte = iota
 	EOM_MSG
 	ACK_MSG
 	FED_SERVER_FAULT_MSG
@@ -40,8 +40,8 @@ const (
 	CHANGESERVER_KEY_MSG
 	REMOVESERVER_MSG
 
-	BOUNCE_MSG      //	test message
-	BOUNCEREPLY_MSG // 	test message
+	BOUNCE_MSG       //	test message
+	BOUNCEREPLY_MSG  // 	test message
 
 	MISSING_ENTRY_BLOCKS
 	ENTRY_BLOCK_RESPONSE
@@ -58,7 +58,7 @@ const (
 	VOLUNTEERLEVELVOTE
 	SYNC_MSG
 
-	NUM_MESSAGES // Not used, just a counter for the number of messages.
+	NUM_MESSAGES  // Not used, just a counter for the number of messages.
 )
 
 func MessageName(Type byte) string {
@@ -105,6 +105,12 @@ func MessageName(Type byte) string {
 		return "Signature Timeout"
 	case DBSTATE_MISSING_MSG:
 		return "DBState Missing"
+	case ADDSERVER_MSG:
+		return "ADDSERVER"
+	case CHANGESERVER_KEY_MSG:
+		return "CHANGESERVER_KEY"
+	case REMOVESERVER_MSG:
+		return "REMOVESERVER"
 	case DBSTATE_MSG:
 		return "DBState"
 	case BOUNCE_MSG:

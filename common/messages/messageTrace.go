@@ -8,7 +8,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 )
-
+//TODO: Cache message hash to message string with age out...
 var (
 	traceMutex sync.Mutex
 	files      map[string]*os.File
