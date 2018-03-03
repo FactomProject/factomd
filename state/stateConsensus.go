@@ -35,11 +35,24 @@ var _ = (*hash.Hash32)(nil)
 // Returns true if some message was processed.
 //***************************************************************
 
+func (s *State) debugExec() (ret bool) {
+	ret = s.FactomNodeName == "FNode0"
+	return false && ret
+}
+
 func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
+
+	logName := s.FactomNodeName + "_executeMsg" + ".txt"
+
 	preExecuteMsgTime := time.Now()
 	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
 	if !ok {
-		consenLogger.WithFields(msg.LogFields()).Debug("ExecuteMsg (Replay Invalid)")
+		consenLogger.WithFields(msg.LogFields()).Debug(" drop ReplayInvalid")
+
+		if s.debugExec() {
+			messages.LogMessage(logName, "replayInvalid", msg)
+		}
+
 		return
 	}
 	s.SetString()
@@ -48,11 +61,15 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 	if s.IgnoreMissing {
 		now := s.GetTimestamp().GetTimeSeconds()
 		if now-msg.GetTimestamp().GetTimeSeconds() > 60*15 {
+			if s.debugExec() {
+				messages.LogMessage(logName, "ignoreMissing", msg)
+			}
 			return
 		}
 	}
 
-	switch msg.Validate(s) {
+	valid := msg.Validate(s)
+	switch valid {
 	case 1:
 		if s.RunLeader &&
 			s.Leader &&
@@ -60,6 +77,9 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 			if len(vm.List) == 0 {
 				s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex)
 				TotalXReviewQueueInputs.Inc()
+				if s.debugExec() {
+					messages.LogMessage(logName, "XReview", msg)
+				}
 				s.XReview = append(s.XReview, msg)
 			}
 
@@ -67,12 +87,22 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 				(!s.Syncing || !vm.Synced) &&
 				(msg.IsLocal() || msg.GetVMIndex() == s.LeaderVMIndex) &&
 				s.LeaderPL.DBHeight+1 >= s.GetHighestKnownBlock() {
+				if s.debugExec() {
+					messages.LogMessage(logName, "LeaderExecute", msg)
+				}
 				msg.LeaderExecute(s)
+
 			} else {
+				if s.debugExec() {
+					messages.LogMessage(logName, "FollowerExecute1", msg)
+				}
 				msg.FollowerExecute(s)
 			}
 
 		} else {
+			if s.debugExec() {
+				messages.LogMessage(logName, "FollowerExecute2", msg)
+			}
 			msg.FollowerExecute(s)
 		}
 		ret = true
@@ -80,13 +110,24 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 	case 0:
 		TotalHoldingQueueInputs.Inc()
 		TotalHoldingQueueRecycles.Inc()
+		if s.debugExec() {
+			messages.LogMessage(logName, "Holding1", msg)
+		}
 		s.Holding[msg.GetMsgHash().Fixed()] = msg
+
 	default:
 		TotalHoldingQueueInputs.Inc()
 		TotalHoldingQueueRecycles.Inc()
+		if s.debugExec() {
+			messages.LogMessage(logName, "Holding2", msg)
+		}
 		s.Holding[msg.GetMsgHash().Fixed()] = msg
+
 		if !msg.SentInvalid() {
 			msg.MarkSentInvalid(true)
+			if s.debugExec() {
+				messages.LogMessage(logName, "InvalidMsg", msg)
+			}
 			s.networkInvalidMsgQueue <- msg
 		}
 	}
@@ -175,11 +216,22 @@ ackLoop:
 				if s.IgnoreMissing {
 					now := s.GetTimestamp().GetTimeSeconds()
 					if now-a.GetTimestamp().GetTimeSeconds() < 60*15 {
+						if s.debugExec() {
+							messages.LogMessage(s.FactomNodeName+"_ackQueue_o"+".txt", "Execute", ack)
+						}
 						s.executeMsg(vm, ack)
+					} else {
+						if s.debugExec() {
+							messages.LogMessage(s.FactomNodeName+"_ackQueue_o"+".txt", "Drop Too Old", ack)
+						}
 					}
 				} else {
 					s.executeMsg(vm, ack)
 				}
+			} else {
+				if s.debugExec() {
+					messages.LogMessage(s.FactomNodeName+"_ackQueue_o"+".txt", "Drop Invalid", ack)
+				} // Maybe put it back in the ask queue ? -- clay
 			}
 			progress = true
 		default:
@@ -197,7 +249,9 @@ emptyLoop:
 	for room() {
 		select {
 		case msg := <-s.msgQueue:
-
+			if s.debugExec() {
+				messages.LogMessage(s.FactomNodeName+"_msgQueue_o"+".txt", "Execute", msg)
+			}
 			if s.executeMsg(vm, msg) && !msg.IsPeer2Peer() {
 				msg.SendOut(s, msg)
 			}
@@ -221,7 +275,7 @@ skipreview:
 				continue
 			}
 			process <- msg
-			progress = s.executeMsg(vm, msg) || progress
+
 		}
 		s.XReview = s.XReview[:0]
 		break
@@ -232,7 +286,10 @@ skipreview:
 	preProcessProcChanTime := time.Now()
 	for len(process) > 0 {
 		msg := <-process
-		s.executeMsg(vm, msg)
+		if s.debugExec() {
+			messages.LogMessage(s.FactomNodeName+"_executeMsg"+".txt", "From processq", msg)
+		}
+		progress = s.executeMsg(vm, msg) || progress
 		s.UpdateState()
 	}
 
@@ -501,13 +558,18 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 
 	pl := s.ProcessLists.Get(ack.DBHeight)
 	if pl == nil {
+		// Does this mean it's from the future?
+		// TODO: Should we put the ack back on the inMsgQueue queue here instead of dropping it? -- clay
 		return
 	}
 	list := pl.VMs[ack.VMIndex].List
 	if len(list) > int(ack.Height) && list[ack.Height] != nil {
+		// This means we haven't seen the matching message yet?
+		// TODO: Should we put the ack back on the inMsgQueue queue here instead of dropping it? -- clay
 		return
 	}
 
+	// We have an ack  and a matching message go execute the message!
 	TotalAcksInputs.Inc()
 	s.Acks[ack.GetHash().Fixed()] = ack
 	m, _ := s.Holding[ack.GetHash().Fixed()]
@@ -531,7 +593,7 @@ func (s *State) ExecuteEntriesInDBState(dbmsg *messages.DBStateMsg) {
 	dblock, err := s.DB.FetchDBlockByHeight(height)
 	if err != nil || dblock == nil {
 		consenLogger.WithFields(log.Fields{"func": "ExecuteEntriesInDBState", "height": height}).Warnf("Dblock fetched is nil")
-		return // This is a werid case
+		return // This is a weird case
 	}
 
 	if !dbmsg.DirectoryBlock.GetHash().IsSameAs(dblock.GetHash()) {
@@ -701,7 +763,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	s.Saving = true
 	s.Syncing = false
 
-	// Hurry up our next ask.  When we get to where we have the data we aksed for, then go ahead and ask for the next set.
+	// Hurry up our next ask.  When we get to where we have the data we asked for, then go ahead and ask for the next set.
 	if s.DBStates.LastEnd < int(dbheight) {
 		s.DBStates.Catchup(true)
 	}
@@ -723,9 +785,21 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 }
 
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
+	logName := s.FactomNodeName + "_executeMsg" + ".txt"
 
 	// Just ignore missing messages for a period after going off line or starting up.
 	if s.IgnoreMissing || s.inMsgQueue.Length() > constants.INMSGQUEUE_HIGH {
+		//TODO: Log here -- clay
+		if s.IgnoreMissing {
+			if s.debugExec() {
+				messages.LogMessage(logName, "Drop IgnoreMissing", m)
+			}
+		}
+		if s.inMsgQueue.Length() > constants.INMSGQUEUE_HIGH {
+			if s.debugExec() {
+				messages.LogMessage(logName, "Drop INMSGQUEUE_HIGH", m)
+			}
+		}
 		return
 	}
 
@@ -762,6 +836,7 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 
 	// If we don't need this message, we don't have to do everything else.
 	if !ok || ack.Validate(s) == -1 {
+		messages.LogMessage(logName, "Drop noAck", m)
 		return
 	}
 
@@ -769,12 +844,14 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 	msg := mmr.MsgResponse
 
 	if msg == nil {
+		messages.LogMessage(logName, "Drop nil message", m)
 		return
 	}
 
 	pl := s.ProcessLists.Get(ack.DBHeight)
 
 	if pl == nil {
+		messages.LogMessage(logName, "Drop No Processlist", m)
 		return
 	}
 	_, okm := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
@@ -782,9 +859,15 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 	TotalAcksInputs.Inc()
 
 	if okm {
+		if s.debugExec() {
+			messages.LogMessage(logName, "FollowerExecute3", msg)
+		}
 		msg.FollowerExecute(s)
 	}
 
+	if s.debugExec() {
+		messages.LogMessage(logName, "FollowerExecute4", ack)
+	}
 	ack.FollowerExecute(s)
 
 	s.MissingResponseAppliedCnt++
@@ -842,6 +925,7 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 }
 
 func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
+
 	// Don't respond to missing messages if we are behind.
 	if s.inMsgQueue.Length() > constants.INMSGQUEUE_LOW {
 		return
@@ -960,6 +1044,9 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 	if !ok {
 		TotalHoldingQueueOutputs.Inc()
 		delete(s.Holding, m.GetMsgHash().Fixed())
+		if s.debugExec() {
+			messages.LogMessage(s.FactomNodeName+"_executeMsg"+".txt", "Drop replay", m)
+		}
 		return
 	}
 
@@ -1462,6 +1549,10 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		case s.CurrentMinute < 10:
 			if s.CurrentMinute == 1 {
 				dbstate := s.GetDBState(dbheight - 1)
+				// Panic had arose when leaders would reboot and the follower was on a future minute
+				if dbstate == nil {
+					return false
+				}
 				if !dbstate.Saved {
 					dbstate.ReadyToSave = true
 				}
@@ -1501,7 +1592,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			s.DBSigProcessed = 0
 
 			// Note about dbsigs.... If we processed the previous minute, then we generate the DBSig for the next block.
-			// But if we didn't process the preivious block, like we start from scratch, or we had to reset the entire
+			// But if we didn't process the previous block, like we start from scratch, or we had to reset the entire
 			// network, then no dbsig exists.  This code doesn't execute, and so we have no dbsig.  In that case, on
 			// the next EOM, we see the block hasn't been signed, and we sign the block (Thats the call to SendDBSig()
 			// above).

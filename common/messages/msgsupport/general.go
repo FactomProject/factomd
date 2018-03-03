@@ -104,68 +104,6 @@ func UnmarshalMessageData(data []byte) (newdata []byte, msg interfaces.IMsg, err
 
 }
 
-func MessageName(Type byte) string {
-	switch Type {
-	case constants.EOM_MSG:
-		return "EOM"
-	case constants.ACK_MSG:
-		return "Ack"
-	case constants.AUDIT_SERVER_FAULT_MSG:
-		return "Audit Server Fault"
-	case constants.FED_SERVER_FAULT_MSG:
-		return "Fed Server Fault"
-	case constants.FULL_SERVER_FAULT_MSG:
-		return "Full Server Fault"
-	case constants.COMMIT_CHAIN_MSG:
-		return "Commit Chain"
-	case constants.COMMIT_ENTRY_MSG:
-		return "Commit Entry"
-	case constants.DIRECTORY_BLOCK_SIGNATURE_MSG:
-		return "Directory Block Signature"
-	case constants.EOM_TIMEOUT_MSG:
-		return "EOM Timeout"
-	case constants.FACTOID_TRANSACTION_MSG:
-		return "Factoid Transaction"
-	case constants.HEARTBEAT_MSG:
-		return "HeartBeat"
-	case constants.INVALID_ACK_MSG:
-		return "Invalid Ack"
-	case constants.INVALID_DIRECTORY_BLOCK_MSG:
-		return "Invalid Directory Block"
-	case constants.MISSING_MSG:
-		return "Missing Msg"
-	case constants.MISSING_MSG_RESPONSE:
-		return "Missing Msg Response"
-	case constants.MISSING_DATA:
-		return "Missing Data"
-	case constants.DATA_RESPONSE:
-		return "Data Response"
-	case constants.REVEAL_ENTRY_MSG:
-		return "Reveal Entry"
-	case constants.REQUEST_BLOCK_MSG:
-		return "Request Block"
-	case constants.SIGNATURE_TIMEOUT_MSG:
-		return "Signature Timeout"
-	case constants.DBSTATE_MISSING_MSG:
-		return "DBState Missing"
-	case constants.DBSTATE_MSG:
-		return "DBState"
-	case constants.BOUNCE_MSG:
-		return "Bounce Message"
-	case constants.BOUNCEREPLY_MSG:
-		return "Bounce Reply Message"
-	case constants.SYNC_MSG:
-		return "Sync Msg"
-	case constants.VOLUNTEERAUDIT:
-		return "Volunteer Audit"
-	case constants.VOLUNTEERPROPOSAL:
-		return "Volunteer Proposal"
-	case constants.VOLUNTEERLEVELVOTE:
-		return "Volunteer Level Vote"
-	default:
-		return "Unknown:" + fmt.Sprintf(" %d", Type)
-	}
-}
 
 // GeneralFactory is used to get around package import loops.
 type GeneralFactory struct {
@@ -178,7 +116,7 @@ func (GeneralFactory) CreateMsg(messageType byte) interfaces.IMsg {
 }
 
 func (GeneralFactory) MessageName(Type byte) string {
-	return MessageName(Type)
+	return constants.MessageName(Type)
 }
 
 func (GeneralFactory) UnmarshalMessageData(data []byte) (newdata []byte, msg interfaces.IMsg, err error) {
