@@ -48,11 +48,9 @@ func (m *FedVoteProposalMsg) ElectionProcess(is interfaces.IState, elect interfa
 
 	/******  Election Adapter Control   ******/
 	/**	Controlling the inner election state**/
-	if !is.IsLeader() {
-		return
-	}
 	m.InitiateElectionAdapter(is)
 
+	// Response from non-leader is nil
 	resp := e.Adapter.Execute(m)
 	if resp == nil {
 		return

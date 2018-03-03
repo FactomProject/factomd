@@ -117,6 +117,7 @@ func (m *FedVoteMsg) InitiateElectionAdapter(st interfaces.IState) {
 		// TODO: Is cancelling an old election ALWAYS the best way? Should we have some cleanup? Maybe validate
 		// TODO: the new election is valid and the old one has concluded
 		e.Adapter = NewElectionAdapter(e)
+		e.Adapter.SetObserver(!s.IsLeader())
 	}
 }
 
@@ -126,7 +127,12 @@ func (m *FedVoteMsg) Validate(st interfaces.IState) int {
 
 	// Ignore all elections messages from the past
 	if int(m.DBHeight) < e.DBHeight || int(m.Minute) < e.Minute {
-		//	return -1
+		return -1
+	}
+
+	// Is from the future, probably from Marty McFly
+	if int(m.DBHeight) > e.DBHeight || int(m.Minute) < e.Minute {
+		return 0
 	}
 
 	return 1
@@ -219,5 +225,5 @@ func (m *FedVoteMsg) String() string {
 	if m.LeaderChainID == nil {
 		m.LeaderChainID = primitives.NewZeroHash()
 	}
-	return fmt.Sprintf("%s DBHeight %d Minute %d","FedVoteMsg ",m.DBHeight,m.Minute)
+	return fmt.Sprintf("%s DBHeight %d Minute %d", "FedVoteMsg ", m.DBHeight, m.Minute)
 }

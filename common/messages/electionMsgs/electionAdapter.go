@@ -23,7 +23,10 @@ type ElectionAdapter struct {
 	DBHeight int
 	Minute   int
 
-	Committed bool
+	// Processed indicates the election completed and was processed
+	// AKA leader was swapper
+	ElectionProcessed bool // On Election
+	StateProcessed    bool // On State
 
 	// All messages we adapt so we can expand them
 	tagedMessages map[[32]byte]interfaces.IMsg
@@ -145,10 +148,6 @@ func (ea *ElectionAdapter) expandMyMessage(msg imessage.IMessage) interfaces.IMs
 
 		// TODO: Set Message type
 		l.TypeMsg = 0x00
-
-		if l.Committed {
-			ea.Committed = true
-		}
 
 		return l
 	}
@@ -291,4 +290,28 @@ func (ea *ElectionAdapter) GetMinute() int {
 
 func (ea *ElectionAdapter) GetElecting() int {
 	return ea.Electing
+}
+
+func (ea *ElectionAdapter) IsObserver() bool {
+	return ea.SimulatedElection.Observer
+}
+
+func (ea *ElectionAdapter) SetObserver(o bool) {
+	ea.SimulatedElection.Observer = o
+}
+
+func (ea *ElectionAdapter) IsElectionProcessed() bool {
+	return ea.ElectionProcessed
+}
+
+func (ea *ElectionAdapter) SetElectionProcessed(swapped bool) {
+	ea.ElectionProcessed = swapped
+}
+
+func (ea *ElectionAdapter) IsStateProcessed() bool {
+	return ea.StateProcessed
+}
+
+func (ea *ElectionAdapter) SetStateProcessed(swapped bool) {
+	ea.StateProcessed = swapped
 }

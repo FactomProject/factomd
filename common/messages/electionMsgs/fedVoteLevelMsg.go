@@ -42,6 +42,9 @@ type FedVoteLevelMsg struct {
 	// Need a majority of these to justify our vote
 	Justification []interfaces.IMsg
 
+	// Tells the state to process it
+	ProcessInState bool
+
 	messageHash interfaces.IHash
 }
 
@@ -70,15 +73,9 @@ func NewFedVoteLevelMessage(signer interfaces.IHash, vol FedVoteVolunteerMsg) *F
 
 func (m *FedVoteLevelMsg) ElectionProcess(is interfaces.IState, elect interfaces.IElections) {
 	e := elect.(*elections.Elections)
-
 	/******  Election Adapter Control   ******/
 	/**	Controlling the inner election state**/
-	if !is.IsLeader() {
-		// If we are not a leader, we will not generate a response to process. So process
-		// this message if committed
-		m.processIfCommitted(is, elect)
-		return
-	}
+	m.processIfCommitted(is, elect)
 	m.InitiateElectionAdapter(is)
 
 	resp := e.Adapter.Execute(m)
@@ -90,7 +87,6 @@ func (m *FedVoteLevelMsg) ElectionProcess(is interfaces.IState, elect interfaces
 	// We also need to check if we should change our state if the eletion resolved
 	if vote, ok := resp.(*FedVoteLevelMsg); ok {
 		vote.processIfCommitted(is, elect)
-		is.InMsgQueue().Enqueue(vote)
 	}
 
 	/*_____ End Election Adapter Control  _____*/
@@ -104,9 +100,14 @@ func (m *FedVoteLevelMsg) processIfCommitted(is interfaces.IState, elect interfa
 	e := elect.(*elections.Elections)
 
 	// do not do it twice
-	if !e.Federated[m.Volunteer.FedIdx].GetChainID().IsSameAs(m.Volunteer.FedID) {
+	if !e.Adapter.IsElectionProcessed() {
 		e.Federated[m.Volunteer.FedIdx], e.Audit[m.Volunteer.ServerIdx] =
 			e.Audit[m.Volunteer.ServerIdx], e.Federated[m.Volunteer.FedIdx]
+		e.Adapter.SetElectionProcessed(true)
+		m.ProcessInState = true
+		m.SetValid()
+		// Send for the state to do the swap
+		is.InMsgQueue().Enqueue(m)
 	}
 }
 
@@ -123,26 +124,21 @@ func (m *FedVoteLevelMsg) FollowerExecute(is interfaces.IState) {
 		s.Holding[m.GetMsgHash().Fixed()] = m
 	}
 
-	if !m.Committed {
-		is.ElectionsQueue().Enqueue(m)
-		return
-	}
-
-	// Committed should only be processed once
-	if !pl.FedServers[m.Volunteer.FedIdx].GetChainID().IsSameAs(m.Volunteer.FedID) {
+	// Committed should only be processed once.
+	//		ProcessInState is not marshalled, so only we can pass this to ourselves
+	//		allowing the election adapter to ensure only once behavior
+	if m.ProcessInState {
+		//fmt.Println("LeaderSwap", s.GetFactomNodeName(), m.DBHeight, m.Minute)
 		pl.FedServers[m.Volunteer.FedIdx], pl.AuditServers[m.Volunteer.ServerIdx] =
 			pl.AuditServers[m.Volunteer.ServerIdx], pl.FedServers[m.Volunteer.FedIdx]
 
 		pl.AddToProcessList(m.Volunteer.Ack.(*messages.Ack), m.Volunteer.Missing)
-		is.ElectionsQueue().Enqueue(m) // Enqueue it to trigger the last vote
+	} else {
+		is.ElectionsQueue().Enqueue(m)
 	}
 
 	// reset my leader variables, cause maybe we changed...
 	s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(int(m.Minute), s.IdentityChainID)
-
-	//elect := is.(*state.State).Elections.(*elections.Elections)
-	//ad := elect.Adapter.(*ElectionAdapter)
-	//ad.Committed = true
 }
 
 var _ interfaces.IMsg = (*FedVoteVolunteerMsg)(nil)

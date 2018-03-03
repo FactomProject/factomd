@@ -12,6 +12,16 @@ type IElectionAdapter interface {
 	MessageLists() string
 	Status() string
 	VolunteerControlsStatus() string
+
+	// An observer does not participate in election voting
+	IsObserver() bool
+	SetObserver(o bool)
+
+	// Processed indicates the election swap happened
+	IsElectionProcessed() bool
+	SetElectionProcessed(swapped bool)
+	IsStateProcessed() bool
+	SetStateProcessed(swapped bool)
 }
 
 type IElectionMsg interface {
