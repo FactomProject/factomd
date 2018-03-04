@@ -108,19 +108,38 @@ func (m *FedVoteMsg) Type() byte {
 	return constants.INVALID_MSG
 }
 
-func (m *FedVoteMsg) Validate(st interfaces.IState) int {
+func (m *FedVoteMsg) ElectionValidate(st interfaces.IState) int {
 	s := st.(*state.State)
 	e := s.Elections.(*elections.Elections)
+
+	// TODO: Correct this
+	if e.Adapter == nil {
+		return 0
+	}
+
+	// TODO: Check all the cases
 
 	// Ignore all elections messages from the past
 	if int(m.DBHeight) < e.DBHeight {
 		return -1
 	}
 
+	if int(m.DBHeight) == e.DBHeight {
+		if int(m.Minute) < e.Minute {
+			return -1
+		}
+	}
+
 	// Is from the future, probably from Marty McFly
 	if int(m.DBHeight) > e.DBHeight {
 		return 0
 	}
+
+	return 1
+
+}
+
+func (m *FedVoteMsg) Validate(st interfaces.IState) int {
 
 	return 1
 }

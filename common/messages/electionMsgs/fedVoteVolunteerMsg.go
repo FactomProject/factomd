@@ -52,7 +52,15 @@ func delayVol(is interfaces.IState, e *elections.Elections, m *FedVoteVolunteerM
 }
 
 func (m *FedVoteVolunteerMsg) ElectionProcess(is interfaces.IState, elect interfaces.IElections) {
-	//s := is.(*state.State)
+	valid := m.FedVoteMsg.ElectionValidate(is)
+	switch valid {
+	case -1:
+		return
+	case 0:
+		is.ElectionsQueue().Enqueue(m)
+		return
+	}
+
 	e := elect.(*elections.Elections)
 
 	if e.DBHeight > int(m.DBHeight) || e.Minute > int(m.Minute) {

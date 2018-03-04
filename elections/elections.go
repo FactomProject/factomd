@@ -19,9 +19,10 @@ type Elections struct {
 	Audit     []interfaces.IServer
 	FPriority []interfaces.IHash
 	APriority []interfaces.IHash
-	DBHeight  int // Height of this election
-	Minute    int // Minute of this election (-1 for a DBSig)
-	VMIndex   int // VMIndex of this election
+	DBHeight  int               // Height of this election
+	Minute    int               // Minute of this election (-1 for a DBSig)
+	VMIndex   int               // VMIndex of this election
+	Msgs      []interfaces.IMsg // Messages we are collecting in this election.  Look here for what's missing.
 	Input     interfaces.IQueue
 	Output    interfaces.IQueue
 	Round     []int
@@ -29,8 +30,8 @@ type Elections struct {
 	State     interfaces.IState
 	feedback  []string
 	VName     string
-	Msg       interfaces.IMsg
-	Ack       interfaces.IMsg
+	Msg       interfaces.IMsg // The missing message as supplied by the volunteer
+	Ack       interfaces.IMsg // The missing ack for the message as supplied by the volunteer
 
 	IKill     bool                 // This server has killed the round
 	ISync     bool                 // This server has synced; Can't kill and Sync both

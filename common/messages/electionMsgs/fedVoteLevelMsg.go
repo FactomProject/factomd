@@ -75,6 +75,15 @@ func NewFedVoteLevelMessage(signer interfaces.IHash, vol FedVoteVolunteerMsg) *F
 }
 
 func (m *FedVoteLevelMsg) ElectionProcess(is interfaces.IState, elect interfaces.IElections) {
+	valid := m.FedVoteMsg.ElectionValidate(is)
+	switch valid {
+	case -1:
+		return
+	case 0:
+		is.ElectionsQueue().Enqueue(m)
+		return
+	}
+
 	e := elect.(*elections.Elections)
 	/******  Election Adapter Control   ******/
 	/**	Controlling the inner election state**/
@@ -123,8 +132,6 @@ func (m *FedVoteLevelMsg) processIfCommitted(is interfaces.IState, elect interfa
 		m.SetValid()
 		// Send for the state to do the swap
 		is.InMsgQueue().Enqueue(m)
-		e.Adapter = nil // Finished the election!
-		e.VMIndex = -1
 		e.Electing = -1
 	}
 }

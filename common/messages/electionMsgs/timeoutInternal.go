@@ -80,34 +80,35 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 		return
 	}
 
-	// Start an election if we can
+	// No election running, is there one we should start?
 	if e.Electing == -1 {
-		// ------------------
-		// Not in an election
-
-		// Check db heights and leave if done
-		e.VMIndex = -1
-		pl := s.ProcessLists.Get(uint32(e.DBHeight))
-	FindFaultingVM:
-		for vmi, vm := range pl.VMs { // Find faulting VM
-			if !vm.Synced {
-				e.VMIndex = vmi
-				var all []int
-				for i, f := range e.Federated { // Corrolate to leader index
-					all = append(all, pl.VMIndexFor(f.GetChainID().Bytes()))
-					if pl.VMIndexFor(f.GetChainID().Bytes()) == vmi {
-						e.Electing = i
-						break FindFaultingVM
-					}
-				}
-				panic("Should always be a fed for the vm index")
+		nfeds := len(s.ProcessLists.Get(uint32(e.DBHeight)).FedServers)
+		VMscollected := make([]bool, nfeds, nfeds)
+		for _, im := range e.Msgs {
+			msg := im.(interfaces.IMsgAck)
+			if int(msg.GetDBHeight()) == m.DBHeight {
+				VMscollected[msg.GetVMIndex()] = true
 			}
 		}
 
-		// No fault
-		if e.VMIndex < 0 {
+		found := false
+		for i, b := range VMscollected {
+			if !b {
+				e.VMIndex = i
+				found = true
+				break
+			}
+		}
+
+		if !found {
 			return
 		}
+
+		e.Electing = state.MakeMap(nfeds, uint32(m.DBHeight))[e.Minute][e.VMIndex]
+		e.FedID = e.Federated[e.Electing].GetChainID()
+
+		// ------------------
+		// Not in an election
 
 		// Begin a new Election for a specific vm/min/height
 		initiated := m.InitiateElectionAdapter(is)

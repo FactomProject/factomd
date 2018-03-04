@@ -392,6 +392,7 @@ func (p *ProcessList) GetAuditServerIndexHash(identityChainID interfaces.IHash) 
 
 // This function will be replaced by a calculation from the Matryoshka hashes from the servers
 // but for now, we are just going to make it a function of the dbheight.
+// serverMap[minute][vmIndex] => Index of the Federated Server responsible for that minute
 func MakeMap(numberFedServers int, dbheight uint32) (serverMap [10][64]int) {
 	if numberFedServers > 0 {
 		indx := int(dbheight*131) % numberFedServers

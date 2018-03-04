@@ -119,3 +119,8 @@ type IMsgInternal interface {
 	IMsg
 	ProcessElections(IState, IElectionMsg)
 }
+
+type IMsgAck interface {
+	IMsg
+	GetDBHeight() uint32
+}
