@@ -97,18 +97,6 @@ func (m *FedVoteLevelMsg) ElectionProcess(is interfaces.IState, elect interfaces
 	resp.SendOut(is, resp)
 	// We also need to check if we should change our state if the eletion resolved
 	if vote, ok := resp.(*FedVoteLevelMsg); ok {
-		// Debug check
-		c := -1
-		for i, f := range e.Adapter.(*ElectionAdapter).SimulatedElection.GetFeds() {
-			if f == vote.Signer.Fixed() {
-				c = i
-			}
-		}
-		if c == -1 {
-			return // Not an authority anymore?
-			//panic(fmt.Sprintf("Non fed signed a message: %x", vote.Signer))
-		}
-
 		vote.processIfCommitted(is, elect)
 	}
 
