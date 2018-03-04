@@ -92,11 +92,16 @@ func UnmarshalMessageData(data []byte) (newdata []byte, msg interfaces.IMsg, err
 	messageType := data[0]
 	msg = CreateMsg(messageType)
 	if msg == nil {
+		fmt.Printf("***** Marshal Failed to create message for %d %s", messageType, constants.MessageName(messageType))
 		return data, nil, fmt.Errorf("Unknown message type %d %x", messageType, data[0])
 	}
 
 	newdata, err = msg.UnmarshalBinaryData(data[:])
 	if err != nil {
+		fmt.Printf("***** Marshal Failed to unmarshal %d %s %x",
+			messageType,
+			constants.MessageName(messageType),
+			data)
 		return data, nil, err
 	}
 

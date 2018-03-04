@@ -66,7 +66,7 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 
 		e.DBHeight = int(m.DBHeight)
 		e.Minute = int(m.Minute)
-		e.Msgs = append(e.Msgs, m)
+		e.Msgs = append(e.Msgs[:0], m)
 		e.Sync = make([]bool, len(e.Federated))
 		// Set the title in the state
 		s.Election0 = Title()

@@ -82,6 +82,7 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 
 	// No election running, is there one we should start?
 	if e.Electing == -1 {
+
 		nfeds := len(s.ProcessLists.Get(uint32(e.DBHeight)).FedServers)
 		VMscollected := make([]bool, nfeds, nfeds)
 		for _, im := range e.Msgs {
