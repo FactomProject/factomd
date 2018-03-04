@@ -153,10 +153,10 @@ func (ea *ElectionAdapter) expandMyMessage(msg imessage.IMessage) interfaces.IMs
 		}
 
 		// Just throw prev in here for now
-		prev := ea.expandGeneral(sim.PreviousVote)
-		if prev != nil {
-			l.Justification = append(l.Justification, ea.expandGeneral(sim.PreviousVote))
-		}
+		//prev := ea.expandGeneral(sim.PreviousVote)
+		//if prev != nil {
+		//	l.Justification = append(l.Justification, ea.expandGeneral(sim.PreviousVote))
+		//}
 
 		for _, j := range sim.VoteMessages {
 			just := ea.expandGeneral(j)
