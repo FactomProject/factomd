@@ -84,6 +84,8 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 			m.Minute,
 			e.DBHeight,
 			e.Minute)
+	} else {
+		e.Msgs = append(e.Msgs, m)
 	}
 	idx := e.LeaderIndex(m.ServerID)
 	s.Election2 = e.FeedBackStr("m", true, idx)
