@@ -19,10 +19,10 @@ type Elections struct {
 	Audit     []interfaces.IServer
 	FPriority []interfaces.IHash
 	APriority []interfaces.IHash
-	DBHeight  int // Height of this election
-	Minute    int // Minute of this election (-1 for a DBSig)
-	VMIndex   int // VMIndex of this election
-	Msgs      [] interfaces.IMsg	// Messages we are collecting in this election.  Look here for what's missing.
+	DBHeight  int               // Height of this election
+	Minute    int               // Minute of this election (-1 for a DBSig)
+	VMIndex   int               // VMIndex of this election
+	Msgs      []interfaces.IMsg // Messages we are collecting in this election.  Look here for what's missing.
 	Input     interfaces.IQueue
 	Output    interfaces.IQueue
 	Round     []int
