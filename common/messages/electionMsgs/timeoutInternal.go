@@ -79,13 +79,22 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 	if e.DBHeight > m.DBHeight || e.Minute > int(m.Minute) {
 		return
 	}
-	/*
-		nfeds := len(s.ProcessLists.Get(uint32(e.DBHeight)).FedServers)
-		collected := make([]bool, nfeds, nfeds)
-		for _, m := range e.Msgs {
-			msg := m.()
+
+	nfeds := len(s.ProcessLists.Get(uint32(e.DBHeight)).FedServers)
+	VMscollected := make([]bool, nfeds, nfeds)
+	for _, m := range e.Msgs {
+		msg := m.(interfaces.IMsgAck)
+		VMscollected[msg.GetVMIndex()] = true
+	}
+	for i, b := range VMscollected {
+		if !b {
+			e.VMIndex = i
+			break
 		}
-	*/
+	}
+	e.Electing = state.MakeMap(nfeds, uint32(m.DBHeight))[e.Minute][e.VMIndex]
+	e.FedID = e.Federated[e.Electing].GetChainID()
+
 	// Check db heights and leave if done
 	e.VMIndex = -1
 	pl := s.ProcessLists.Get(uint32(e.DBHeight))
