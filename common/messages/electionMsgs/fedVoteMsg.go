@@ -31,7 +31,6 @@ type FedVoteMsg struct {
 	TS       interfaces.Timestamp // Message Timestamp
 	TypeMsg  byte                 // Can be either a Volunteer from an Audit Server, or End of round
 	DBHeight uint32               // Directory Block Height that owns this ack
-	Minute   byte                 // Minute (-1 for dbsig)
 }
 
 func (m *FedVoteMsg) InitFields(elect interfaces.IElections) {
@@ -121,11 +120,13 @@ func (m *FedVoteMsg) ElectionValidate(st interfaces.IState) int {
 
 	// Ignore all elections messages from the past
 	if int(m.DBHeight) < e.DBHeight {
+		fmt.Println("Message is invalid--", m.String())
 		return -1
 	}
 
 	if int(m.DBHeight) == e.DBHeight {
 		if int(m.Minute) < e.Minute {
+			fmt.Println("Message is invalid--", m.String())
 			return -1
 		}
 	}
@@ -140,7 +141,6 @@ func (m *FedVoteMsg) ElectionValidate(st interfaces.IState) int {
 }
 
 func (m *FedVoteMsg) Validate(st interfaces.IState) int {
-
 	return 1
 }
 
