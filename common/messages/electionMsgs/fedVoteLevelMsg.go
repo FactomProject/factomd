@@ -135,6 +135,7 @@ func (m *FedVoteLevelMsg) FollowerExecute(is interfaces.IState) {
 	pl := s.ProcessLists.Get(m.DBHeight)
 	if pl == nil || s.Elections.(*elections.Elections).Adapter == nil {
 		s.Holding[m.GetMsgHash().Fixed()] = m
+		return
 	}
 
 	// Committed should only be processed once.
