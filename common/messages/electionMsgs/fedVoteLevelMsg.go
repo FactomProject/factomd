@@ -18,6 +18,7 @@ import (
 	"bytes"
 
 	"github.com/FactomProject/factomd/elections"
+	"golang.org/x/net/html/atom"
 )
 
 var _ = fmt.Print
@@ -112,7 +113,12 @@ func (m *FedVoteLevelMsg) processIfCommitted(is interfaces.IState, elect interfa
 
 	// do not do it twice
 	if !e.Adapter.IsElectionProcessed() {
-		fmt.Println("LeaderSwapElection", is.GetFactomNodeName(), m.DBHeight, m.Minute)
+		fmt.Println("**** LeaderSwapElection\n", is.GetFactomNodeName(), m.DBHeight, m.Minute)
+
+		fmt.Printf("**** Swaping %d(%x) %d(%x)\n",
+			m.Volunteer.FedIdx, m.Volunteer.FedID.Bytes()[3:6],
+			m.Volunteer.ServerIdx, m.Volunteer.ServerID.Bytes()[3:6atom.Address])
+
 		e.Federated[m.Volunteer.FedIdx], e.Audit[m.Volunteer.ServerIdx] =
 			e.Audit[m.Volunteer.ServerIdx], e.Federated[m.Volunteer.FedIdx]
 		e.Adapter.SetElectionProcessed(true)
