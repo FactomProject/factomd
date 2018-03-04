@@ -46,7 +46,7 @@ func (e *ElectionsFactory) NewEomSigInternal(name string, dbheight uint32, minut
 	msg.SigType = true
 	msg.NName = name
 	msg.DBHeight = dbheight
-	msg.Minute = minute
+	msg.Minute = byte(minute)
 	msg.VMIndex = vmIndex
 	msg.ServerID = serverID
 	return msg
@@ -56,7 +56,7 @@ func (e *ElectionsFactory) NewDBSigSigInternal(name string, dbheight uint32, min
 	msg.SigType = false
 	msg.NName = name
 	msg.DBHeight = dbheight
-	msg.Minute = minute
+	msg.Minute = byte(minute)
 	msg.VMIndex = vmIndex
 	msg.ServerID = serverID
 	return msg

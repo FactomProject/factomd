@@ -53,7 +53,7 @@ func (m *TimeoutInternal) InitiateElectionAdapter(st interfaces.IState) bool {
 
 	// The adapter is not nil, but it might be the same as what we want
 	if e.Adapter.GetMinute() == int(m.Minute) && e.Adapter.GetDBHeight() == m.DBHeight && m.VMIndex == e.Adapter.GetVMIndex() {
-		panic("Should not get here")
+		// panic("Should not get here")
 		//return true
 		// TODO: Uncomment the `return true`
 	}
@@ -87,11 +87,10 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 		VMscollected := make([]bool, nfeds, nfeds)
 		for _, im := range e.Msgs {
 			msg := im.(interfaces.IMsgAck)
-			if int(msg.GetDBHeight()) == m.DBHeight {
+			if int(msg.GetDBHeight()) == m.DBHeight && int(m.Minute) == int(msg.GetMinute()) {
 				VMscollected[msg.GetVMIndex()] = true
 			}
 		}
-
 		found := false
 		for i, b := range VMscollected {
 			if !b {

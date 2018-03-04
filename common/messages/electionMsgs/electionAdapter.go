@@ -71,7 +71,7 @@ func NewElectionAdapter(e *elections.Elections) *ElectionAdapter {
 		authset.AddHash(a.GetChainID(), 0)
 	}
 
-	ea.SimulatedElection = election.NewElection(primitives.Identity(ea.Election.FedID.Fixed()), *authset)
+	ea.SimulatedElection = election.NewElection(primitives.Identity(e.State.GetIdentityChainID().Fixed()), *authset)
 	ea.SimulatedElection.AddDisplay(nil)
 
 	return ea

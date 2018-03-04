@@ -329,6 +329,10 @@ func (m *FedVoteVolunteerMsg) MarshalBinary() (data []byte, err error) {
 	if e := buf.PushByte(m.Minute); e != nil {
 		return nil, e
 	}
+
+	if m.Weight == nil {
+		m.Weight = primitives.NewZeroHash()
+	}
 	if e := buf.PushIHash(m.Weight); e != nil {
 		return nil, e
 	}
