@@ -60,14 +60,14 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 
 	// We only do this once, as we transition into a sync event.
 	// Either the height has incremented, or the minute has incremented.
-	mv := e.VMIndex != m.VMIndex && (int(m.DBHeight) > e.DBHeight || int(m.Minute) > e.Minute)
+	mv :=  int(m.DBHeight) > e.DBHeight || int(m.Minute) > e.Minute
 	if mv {
 		// Set our Identity Chain (Just in case it has changed.)
 		e.FedID = s.IdentityChainID
 
 		e.DBHeight = int(m.DBHeight)
 		e.Minute = int(m.Minute)
-		e.VMIndex = m.VMIndex
+		e.Msgs = append(e.Msgs,m)
 		e.Sync = make([]bool, len(e.Federated))
 		// Set the title in the state
 		s.Election0 = Title()

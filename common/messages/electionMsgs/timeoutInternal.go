@@ -80,6 +80,11 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 		return
 	}
 
+	nfeds := len(s.ProcessLists.Get(uint32(e.DBHeight)).FedServers)
+	collected := make([]bool, nfeds, nfeds)
+	for _, m := range e.Msgs {
+		msg := m.(imsgack)
+	}
 	// Check db heights and leave if done
 	e.VMIndex = -1
 	pl := s.ProcessLists.Get(uint32(e.DBHeight))
