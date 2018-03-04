@@ -18,7 +18,6 @@ import (
 	"bytes"
 
 	"github.com/FactomProject/factomd/elections"
-	"golang.org/x/net/html/atom"
 )
 
 var _ = fmt.Print
@@ -117,7 +116,7 @@ func (m *FedVoteLevelMsg) processIfCommitted(is interfaces.IState, elect interfa
 
 		fmt.Printf("**** Swaping %d(%x) %d(%x)\n",
 			m.Volunteer.FedIdx, m.Volunteer.FedID.Bytes()[3:6],
-			m.Volunteer.ServerIdx, m.Volunteer.ServerID.Bytes()[3:6atom.Address])
+			m.Volunteer.ServerIdx, m.Volunteer.ServerID.Bytes()[3:6])
 
 		e.Federated[m.Volunteer.FedIdx], e.Audit[m.Volunteer.ServerIdx] =
 			e.Audit[m.Volunteer.ServerIdx], e.Federated[m.Volunteer.FedIdx]
@@ -141,7 +140,6 @@ func (m *FedVoteLevelMsg) FollowerExecute(is interfaces.IState) {
 	pl := s.ProcessLists.Get(m.DBHeight)
 	if pl == nil || s.Elections.(*elections.Elections).Adapter == nil {
 		s.Holding[m.GetMsgHash().Fixed()] = m
-		return
 	}
 
 	// Committed should only be processed once.
