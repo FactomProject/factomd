@@ -84,11 +84,17 @@ func printElections(elects *int, value int, listenTo *int, wsapiNode *int) {
 			aud := ""
 			if i < len(eo.Federated) {
 				id := eo.Federated[i].GetChainID()
-				fed = lookup(id).FactomNodeName
+				f := lookup(id)
+				if f != nil {
+					fed = f.FactomNodeName
+				}
 			}
 			if i < len(eo.Audit) {
 				id := eo.Audit[i].GetChainID()
-				aud = lookup(id).FactomNodeName
+				a := lookup(id)
+				if a != nil {
+					aud = a.FactomNodeName
+				}
 			}
 			if fed == "" && aud == "" {
 				break
