@@ -435,6 +435,7 @@ func (p *ProcessList) PrintMap() string {
 // Add the given serverChain to this processlist as a Federated Server, and return
 // the server index number of the added server
 func (p *ProcessList) AddFedServer(identityChainID interfaces.IHash) int {
+	p.SortFedServers()
 	found, i := p.GetFedServerIndexHash(identityChainID)
 	if found {
 		//p.State.AddStatus(fmt.Sprintf("ProcessList.AddFedServer Server already there %x at height %d", identityChainID.Bytes()[2:6], p.DBHeight))

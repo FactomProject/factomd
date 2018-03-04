@@ -35,24 +35,11 @@ var _ = (*hash.Hash32)(nil)
 // Returns true if some message was processed.
 //***************************************************************
 
-func (s *State) debugExec() (ret bool) {
-	ret = s.FactomNodeName == "FNode0"
-	return ret
-}
-
 func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
-
-	logName := s.FactomNodeName + "_executeMsg" + ".txt"
-
 	preExecuteMsgTime := time.Now()
 	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
 	if !ok {
-		consenLogger.WithFields(msg.LogFields()).Debug(" drop ReplayInvalid")
-
-		if s.debugExec() {
-			messages.LogMessage(logName, "replayInvalid", msg)
-		}
-
+		consenLogger.WithFields(msg.LogFields()).Debug("ExecuteMsg (Replay Invalid)")
 		return
 	}
 	s.SetString()
@@ -62,9 +49,6 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 	if s.IgnoreMissing && msg.Type() != constants.DBSTATE_MSG {
 		now := s.GetTimestamp().GetTimeSeconds()
 		if now-msg.GetTimestamp().GetTimeSeconds() > 60*15 {
-			if s.debugExec() {
-				messages.LogMessage(logName, "ignoreMissing", msg)
-			}
 			return
 		}
 	}
@@ -72,61 +56,45 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 	valid := msg.Validate(s)
 	switch valid {
 	case 1:
+		// The highest block for which we have received a message.  Sometimes the same as
+		var vml int
+		if vm == nil || vm.List == nil {
+			vml = 0
+		} else {
+			vml = len(vm.List)
+		}
+		local := msg.IsLocal()
+		vmi := msg.GetVMIndex()
+		hkb := s.GetHighestKnownBlock()
+
 		if s.RunLeader &&
 			s.Leader &&
-			vm != nil && int(vm.Height) == len(vm.List) {
-			if len(vm.List) == 0 {
+			!s.Saving &&
+			vm != nil && int(vm.Height) == vml &&
+			(!s.Syncing || !vm.Synced) &&
+			(local || vmi == s.LeaderVMIndex) &&
+			s.LeaderPL.DBHeight+1 >= hkb {
+			if vml == 0 {
 				s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex)
 				TotalXReviewQueueInputs.Inc()
-				if s.debugExec() {
-					messages.LogMessage(logName, "XReview", msg)
-				}
 				s.XReview = append(s.XReview, msg)
-			}
-
-			if !s.Saving &&
-				(!s.Syncing || !vm.Synced) &&
-				(msg.IsLocal() || msg.GetVMIndex() == s.LeaderVMIndex) &&
-				s.LeaderPL.DBHeight+1 >= s.GetHighestKnownBlock() {
-				if s.debugExec() {
-					messages.LogMessage(logName, "LeaderExecute", msg)
-				}
-				msg.LeaderExecute(s)
-
 			} else {
-				if s.debugExec() {
-					messages.LogMessage(logName, "FollowerExecute1", msg)
-				}
-				msg.FollowerExecute(s)
+				msg.LeaderExecute(s)
 			}
 		} else {
-			if s.debugExec() {
-				messages.LogMessage(logName, "FollowerExecute2", msg)
-			}
 			msg.FollowerExecute(s)
 		}
 		ret = true
 	case 0:
 		TotalHoldingQueueInputs.Inc()
 		TotalHoldingQueueRecycles.Inc()
-		if s.debugExec() {
-			messages.LogMessage(logName, "Holding1", msg)
-		}
 		s.Holding[msg.GetMsgHash().Fixed()] = msg
-
 	default:
 		TotalHoldingQueueInputs.Inc()
 		TotalHoldingQueueRecycles.Inc()
-		if s.debugExec() {
-			messages.LogMessage(logName, "Holding2", msg)
-		}
 		s.Holding[msg.GetMsgHash().Fixed()] = msg
-
 		if !msg.SentInvalid() {
 			msg.MarkSentInvalid(true)
-			if s.debugExec() {
-				messages.LogMessage(logName, "InvalidMsg", msg)
-			}
 			s.networkInvalidMsgQueue <- msg
 		}
 	}
@@ -154,7 +122,6 @@ func (s *State) Process() (progress bool) {
 	} else {
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
 	}
-
 	if !s.RunLeader {
 		now := s.GetTimestamp().GetTimeMilli() // Timestamps are in milliseconds, so wait 20
 		if now-s.StartDelay > s.StartDelayLimit {
@@ -206,30 +173,19 @@ func (s *State) Process() (progress bool) {
 	preAckLoopTime := time.Now()
 	// Process acknowledgements if we have some.
 ackLoop:
-	for room() {
+	for {
 		select {
 		case ack := <-s.ackQueue:
 			a := ack.(*messages.Ack)
-			if ack.Validate(s) == 1 {
+			if ack.Validate(s) == 1 { // took out a.DBHeight >= s.LLeaderHeight &&
 				if s.IgnoreMissing {
 					now := s.GetTimestamp().GetTimeSeconds()
 					if now-a.GetTimestamp().GetTimeSeconds() < 60*15 {
-						if s.debugExec() {
-							messages.LogMessage(s.FactomNodeName+"_ackQueue_o"+".txt", "Execute", ack)
-						}
 						s.executeMsg(vm, ack)
-					} else {
-						if s.debugExec() {
-							messages.LogMessage(s.FactomNodeName+"_ackQueue_o"+".txt", "Drop Too Old", ack)
-						}
 					}
 				} else {
 					s.executeMsg(vm, ack)
 				}
-			} else {
-				if s.debugExec() {
-					messages.LogMessage(s.FactomNodeName+"_ackQueue_o"+".txt", "Drop Invalid", ack)
-				} // Maybe put it back in the ask queue ? -- clay
 			}
 			progress = true
 		default:
@@ -244,12 +200,10 @@ ackLoop:
 
 	// Process inbound messages
 emptyLoop:
-	for room() {
+	for {
 		select {
 		case msg := <-s.msgQueue:
-			if s.debugExec() {
-				messages.LogMessage(s.FactomNodeName+"_msgQueue_o"+".txt", "Execute", msg)
-			}
+
 			if s.executeMsg(vm, msg) && !msg.IsPeer2Peer() {
 				msg.SendOut(s, msg)
 			}
@@ -277,19 +231,21 @@ skipreview:
 		}
 		s.XReview = s.XReview[:0]
 		break
-	}
+	} // skip review
 	processXReviewTime := time.Since(preProcessXReviewTime)
 	TotalProcessXReviewTime.Add(float64(processXReviewTime.Nanoseconds()))
 
 	preProcessProcChanTime := time.Now()
-	for len(process) > 0 {
-		msg := <-process
-		if s.debugExec() {
-			messages.LogMessage(s.FactomNodeName+"_executeMsg"+".txt", "From processq", msg)
+processLoop:
+	for {
+		select {
+		case msg := <-process:
+			progress = s.executeMsg(vm, msg) || progress
+			s.UpdateState()
+		default:
+			break processLoop
 		}
-		progress = s.executeMsg(vm, msg) || progress
-		s.UpdateState()
-	}
+	} // processLoop for{...}
 
 	processProcChanTime := time.Since(preProcessProcChanTime)
 	TotalProcessProcChanTime.Add(float64(processProcChanTime.Nanoseconds()))
@@ -406,6 +362,30 @@ func (s *State) ReviewHolding() {
 			continue
 		}
 
+		// If it is an entryCommit and it has a duplicate hash to an existing entry throw it away here
+		{
+			ce, ok := v.(*messages.CommitEntryMsg)
+			if ok {
+				x := s.NoEntryYet(ce.CommitEntry.EntryHash, ce.CommitEntry.GetTimestamp())
+				if !x {
+					TotalHoldingQueueOutputs.Inc()
+					delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
+					continue
+				}
+			}
+		}
+		// If it is an chainCommit and it has a duplicate hash to an existing entry throw it away here
+		{
+			ce, ok := v.(*messages.CommitChainMsg)
+			if ok {
+				x := s.NoEntryYet(ce.CommitChain.EntryHash, ce.CommitChain.GetTimestamp())
+				if !x {
+					TotalHoldingQueueOutputs.Inc()
+					delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
+					continue
+				}
+			}
+		}
 		if v.Expire(s) {
 			s.ExpireCnt++
 			TotalHoldingQueueOutputs.Inc()
@@ -661,9 +641,15 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		//s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): DBState is invalid at ht %d", dbheight))
 		// Do nothing because this dbstate looks to be invalid
 		cntFail()
+		if dbstatemsg.IsLast { // this is the last DBState in this load
+			s.DBFinished = true // Just in case we toss the last one for some reason
+		}
 		return
 	}
 
+	if dbstatemsg.IsLast { // this is the last DBState in this load
+		s.DBFinished = true // Normal case
+	}
 	/**************************
 	for int(s.ProcessLists.DBHeightBase)+len(s.ProcessLists.Lists) > int(dbheight+1) {
 		s.ProcessLists.Lists[len(s.ProcessLists.Lists)-1].Clear()
@@ -761,7 +747,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	s.Saving = true
 	s.Syncing = false
 
-	// Hurry up our next ask.  When we get to where we have the data we asked for, then go ahead and ask for the next set.
+	// Hurry up our next ask.  When we get to where we have the data we aksed for, then go ahead and ask for the next set.
 	if s.DBStates.LastEnd < int(dbheight) {
 		s.DBStates.Catchup(true)
 	}
@@ -783,21 +769,9 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 }
 
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
-	logName := s.FactomNodeName + "_executeMsg" + ".txt"
 
 	// Just ignore missing messages for a period after going off line or starting up.
 	if s.IgnoreMissing || s.inMsgQueue.Length() > constants.INMSGQUEUE_HIGH {
-		//TODO: Log here -- clay
-		if s.IgnoreMissing {
-			if s.debugExec() {
-				messages.LogMessage(logName, "Drop IgnoreMissing", m)
-			}
-		}
-		if s.inMsgQueue.Length() > constants.INMSGQUEUE_HIGH {
-			if s.debugExec() {
-				messages.LogMessage(logName, "Drop INMSGQUEUE_HIGH", m)
-			}
-		}
 		return
 	}
 
@@ -834,7 +808,6 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 
 	// If we don't need this message, we don't have to do everything else.
 	if !ok || ack.Validate(s) == -1 {
-		messages.LogMessage(logName, "Drop noAck", m)
 		return
 	}
 
@@ -842,14 +815,12 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 	msg := mmr.MsgResponse
 
 	if msg == nil {
-		messages.LogMessage(logName, "Drop nil message", m)
 		return
 	}
 
 	pl := s.ProcessLists.Get(ack.DBHeight)
 
 	if pl == nil {
-		messages.LogMessage(logName, "Drop No Processlist", m)
 		return
 	}
 	_, okm := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
@@ -857,15 +828,9 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 	TotalAcksInputs.Inc()
 
 	if okm {
-		if s.debugExec() {
-			messages.LogMessage(logName, "FollowerExecute3", msg)
-		}
 		msg.FollowerExecute(s)
 	}
 
-	if s.debugExec() {
-		messages.LogMessage(logName, "FollowerExecute4", ack)
-	}
 	ack.FollowerExecute(s)
 
 	s.MissingResponseAppliedCnt++
@@ -979,9 +944,9 @@ func (s *State) FollowerExecuteCommitChain(m interfaces.IMsg) {
 }
 
 func (s *State) FollowerExecuteCommitEntry(m interfaces.IMsg) {
+	ce := m.(*messages.CommitEntryMsg)
 	FollowerExecutions.Inc()
 	s.FollowerExecuteMsg(m)
-	ce := m.(*messages.CommitEntryMsg)
 	re := s.Holding[ce.CommitEntry.EntryHash.Fixed()]
 	if re != nil {
 		re.SendOut(s, re)
@@ -1018,7 +983,7 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 		// The message might not have gone in.  Make sure it did.  Get the list where it goes
 		list := s.ProcessLists.Get(ack.DBHeight).VMs[ack.VMIndex].List
 		// Check to make sure the list isn't empty.  If it is, then it didn't go in.
-		if (int(ack.Height) >= len(list)) || (list[ack.Height] == nil) {
+		if int(ack.Height) >= len(list) || list[ack.Height] == nil {
 			return
 		}
 
@@ -1042,9 +1007,6 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 	if !ok {
 		TotalHoldingQueueOutputs.Inc()
 		delete(s.Holding, m.GetMsgHash().Fixed())
-		if s.debugExec() {
-			messages.LogMessage(s.FactomNodeName+"_executeMsg"+".txt", "Drop replay", m)
-		}
 		return
 	}
 
