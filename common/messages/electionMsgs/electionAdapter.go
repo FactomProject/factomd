@@ -235,10 +235,8 @@ func (ea *ElectionAdapter) adaptVolunteerMessage(msg *FedVoteVolunteerMsg) *mess
 func (ea *ElectionAdapter) adaptVoteMessage(msg *FedVoteProposalMsg) *messages.VoteMessage {
 	ea.tagMessage(msg)
 
-	vol := msg.Volunteer.ServerID.Fixed()
-	volid := primitives.Identity(vol)
-	volmsg := messages.NewVolunteerMessageWithoutEOM(volid)
-	vote := messages.NewVoteMessage(volmsg, primitives.Identity(msg.Signer.Fixed()))
+	volmsg := ea.adaptVolunteerMessage(&msg.Volunteer)
+	vote := messages.NewVoteMessage(*volmsg, primitives.Identity(msg.Signer.Fixed()))
 	vote.TagMessage(msg.MsgHash.Fixed())
 	return &vote
 }
@@ -248,10 +246,8 @@ func (ea *ElectionAdapter) adaptVoteMessage(msg *FedVoteProposalMsg) *messages.V
 func (ea *ElectionAdapter) adaptLevelMessage(msg *FedVoteLevelMsg, single bool) *messages.LeaderLevelMessage {
 	ea.tagMessage(msg)
 
-	vol := msg.Volunteer.ServerID.Fixed()
-	volid := primitives.Identity(vol)
-	volmsg := messages.NewVolunteerMessageWithoutEOM(volid)
-	ll := messages.NewLeaderLevelMessage(primitives.Identity(msg.Signer.Fixed()), int(msg.Rank), int(msg.Level), volmsg)
+	volmsg := ea.adaptVolunteerMessage(&msg.Volunteer)
+	ll := messages.NewLeaderLevelMessage(primitives.Identity(msg.Signer.Fixed()), int(msg.Rank), int(msg.Level), *volmsg)
 	ll.TagMessage(msg.MsgHash.Fixed())
 	ll.VolunteerPriority = ea.SimulatedElection.GetVolunteerPriority(volmsg.Signer)
 	ll.Committed = msg.Committed
