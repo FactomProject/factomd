@@ -59,6 +59,11 @@ func NewElection(self Identity, authset AuthSet) *Election {
 	return e
 }
 
+func (e *Election) SetObserver(o bool) {
+	e.Observer = o
+	e.Display.ResetIdentifier(e)
+}
+
 func (e *Election) Execute(msg imessage.IMessage, depth int) (imessage.IMessage, bool) {
 	if e.Observer {
 		e.executeObserver(msg)
