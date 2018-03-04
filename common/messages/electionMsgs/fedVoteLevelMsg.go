@@ -124,6 +124,8 @@ func (m *FedVoteLevelMsg) processIfCommitted(is interfaces.IState, elect interfa
 		// Send for the state to do the swap
 		is.InMsgQueue().Enqueue(m)
 		e.Adapter = nil // Finished the election!
+		e.VMIndex = -1
+		e.Electing = -1
 	}
 }
 

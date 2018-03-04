@@ -53,7 +53,7 @@ func (m *TimeoutInternal) InitiateElectionAdapter(st interfaces.IState) bool {
 
 	// The adapter is not nil, but it might be the same as what we want
 	if e.Adapter.GetMinute() == int(m.Minute) && e.Adapter.GetDBHeight() == m.DBHeight && m.VMIndex == e.Adapter.GetVMIndex() {
-		//panic("Should not get here")
+		panic("Should not get here")
 		//return true
 		// TODO: Uncomment the `return true`
 	}
@@ -80,45 +80,50 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 		return
 	}
 
-	// Check db heights and leave if done
-	e.VMIndex = -1
-	pl := s.ProcessLists.Get(uint32(e.DBHeight))
-	for i, vm := range pl.VMs {
-		if !vm.Synced {
-			e.VMIndex = i
-		}
-	}
-	if e.VMIndex < 0 {
-		return
-	}
+	// Start an election if we can
+	if e.Electing == -1 {
+		// ------------------
+		// Not in an election
 
-	// Begin a new Election for a specific vm/min/height
-	initiated := m.InitiateElectionAdapter(is)
-	if !initiated {
-		// The election cannot start because one is currently happening. We have to wait
-		// TODO: Clean this up?
-		//fmt.Printf("Election failed to start %s HT:%d Min:%d VM:%d\n", s.GetFactomNodeName(), m.DBHeight, int(m.Minute), m.VMIndex)
-		//go func(msg interfaces.IMsg, s interfaces.IState) {
-		//	time.Sleep(5 * time.Second)
-		//	s.InMsgQueue().Enqueue(msg)
-		//}(m, is)
-		//return
-	} // <-- Election Started
-
-	cnt := 0
-	e.Electing = -1
-	for i, b := range e.Sync {
-		if !b {
-			cnt++
-			if e.Electing < 0 {
-				e.Electing = i
+		// Check db heights and leave if done
+		e.VMIndex = -1
+		pl := s.ProcessLists.Get(uint32(e.DBHeight))
+	FindFaultingVM:
+		for vmi, vm := range pl.VMs { // Find faulting VM
+			if !vm.Synced {
+				e.VMIndex = vmi
+				var all []int
+				for i, f := range e.Federated { // Corrolate to leader index
+					all = append(all, pl.VMIndexFor(f.GetChainID().Bytes()))
+					if pl.VMIndexFor(f.GetChainID().Bytes()) == vmi {
+						e.Electing = i
+						break FindFaultingVM
+					}
+				}
+				panic("Should always be a fed for the vm index")
 			}
 		}
+
+		// No fault
+		if e.VMIndex < 0 {
+			return
+		}
+
+		// Begin a new Election for a specific vm/min/height
+		initiated := m.InitiateElectionAdapter(is)
+		if !initiated {
+			// The election cannot start because one is currently happening. We have to wait
+			// TODO: Clean this up?
+			//fmt.Printf("Election failed to start %s HT:%d Min:%d VM:%d\n", s.GetFactomNodeName(), m.DBHeight, int(m.Minute), m.VMIndex)
+			//go func(msg interfaces.IMsg, s interfaces.IState) {
+			//	time.Sleep(5 * time.Second)
+			//	s.InMsgQueue().Enqueue(msg)
+			//}(m, is)
+			//return
+		} // <-- Election Started
 	}
-	// Hey, if all is well, then continue.
-	if e.Electing < 0 {
-		return
-	}
+
+	// Operate in existing election
 
 	e.State.(*state.State).Election2 = e.FeedBackStr("E", true, e.Electing)
 
@@ -131,12 +136,6 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 
 	// If we don't have all our sync messages, we will have to come back around and see if all is well.
 	go Fault(e, int(m.DBHeight), int(m.Minute), m.VMIndex, e.Round[e.Electing])
-
-	// Can we see a majority of the federated servers?
-	if cnt >= (len(e.Federated)+1)/2 {
-		// Reset the timeout and give up if we can't see a majority.
-		return
-	}
 
 	auditIdx := e.AuditPriority()
 

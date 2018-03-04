@@ -144,6 +144,7 @@ func Run(s *state.State) {
 	e.Name = s.FactomNodeName
 	e.Input = s.ElectionsQueue()
 	e.Output = s.InMsgQueue()
+	e.Electing = -1
 
 	e.Timeout = 10 * time.Second
 

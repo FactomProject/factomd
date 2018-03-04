@@ -12,12 +12,11 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/elections"
+	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/goleveldb/leveldb/errors"
 	log "github.com/sirupsen/logrus"
 	//"github.com/FactomProject/factomd/state"
 	"time"
-
-	"github.com/FactomProject/factomd/state"
 )
 
 var _ = fmt.Print
@@ -94,6 +93,20 @@ func (m *FedVoteVolunteerMsg) ElectionProcess(is interfaces.IState, elect interf
 	resp.SendOut(is, resp)
 	/*_____ End Election Adapter Control  _____*/
 
+}
+
+// Execute the leader functions of the given message
+// Leader, follower, do the same thing.
+func (m *FedVoteVolunteerMsg) LeaderExecute(state interfaces.IState) {
+	m.FollowerExecute(state)
+}
+
+func (m *FedVoteVolunteerMsg) FollowerExecute(is interfaces.IState) {
+	s := is.(*state.State)
+	if s.Elections.(*elections.Elections).Adapter == nil {
+		s.Holding[m.GetMsgHash().Fixed()] = m
+	}
+	is.ElectionsQueue().Enqueue(m)
 }
 
 var _ interfaces.IMsg = (*FedVoteVolunteerMsg)(nil)
@@ -188,20 +201,6 @@ func (m *FedVoteVolunteerMsg) Validate(state interfaces.IState) int {
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *FedVoteVolunteerMsg) ComputeVMIndex(state interfaces.IState) {
-}
-
-// Execute the leader functions of the given message
-// Leader, follower, do the same thing.
-func (m *FedVoteVolunteerMsg) LeaderExecute(state interfaces.IState) {
-	m.FollowerExecute(state)
-}
-
-func (m *FedVoteVolunteerMsg) FollowerExecute(is interfaces.IState) {
-	s := is.(*state.State)
-	if s.Elections.(*elections.Elections).Adapter == nil {
-		s.Holding[m.GetMsgHash().Fixed()] = m
-	}
-	is.ElectionsQueue().Enqueue(m)
 }
 
 // Acknowledgements do not go into the process list.
