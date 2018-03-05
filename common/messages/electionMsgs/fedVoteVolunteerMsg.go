@@ -57,14 +57,20 @@ func (m *FedVoteVolunteerMsg) ElectionProcess(is interfaces.IState, elect interf
 	case -1:
 		return
 	case 0:
-		is.ElectionsQueue().Enqueue(m)
+		// Not ready yet, try again in a bit
+		go func() {
+			time.Sleep(10 * time.Millisecond)
+			is.ElectionsQueue().Enqueue(m)
+		}()
+
 		return
 	}
 
 	e := elect.(*elections.Elections)
 
+	// checked in validate ? no need.
 	if e.DBHeight > int(m.DBHeight) || e.Minute > int(m.Minute) {
-		return
+		return // Expired ...
 	}
 
 	// If we don't have a timeout ourselves, then wait on this for a bit and try again.

@@ -98,7 +98,7 @@ func (m *SyncMsg) GetRepeatHash() interfaces.IHash {
 	return m.GetMsgHash()
 }
 
-// We have to return the haswh of the underlying message.
+// We have to return the hash of the underlying message.
 func (m *SyncMsg) GetHash() interfaces.IHash {
 	return m.GetMsgHash()
 }
@@ -144,9 +144,9 @@ func (m *SyncMsg) FollowerExecute(is interfaces.IState) {
 	eom := messages.General.CreateMsg(constants.EOM_MSG)
 	eom, ack := s.CreateEOM(true, eom, m.VMIndex)
 
-	if eom == nil {
+	if eom == nil { // TODO: What dos this mean? -- clay
 		is.(*state.State).Holding[m.GetMsgHash().Fixed()] = m
-		return
+		return // May we are not yet prepared to create an EOM...
 	}
 	va := new(FedVoteVolunteerMsg)
 	va.Missing = eom

@@ -33,10 +33,7 @@ type Elections struct {
 	Msg       interfaces.IMsg // The missing message as supplied by the volunteer
 	Ack       interfaces.IMsg // The missing ack for the message as supplied by the volunteer
 
-	IKill     bool                 // This server has killed the round
-	ISync     bool                 // This server has synced; Can't kill and Sync both
-	Sigs      [][]interfaces.IHash // Signatures from the Federated Servers for a given round.
-	KillRound [][]interfaces.IHash // Signatures from the Federated Servers to kill a given round.
+	Sigs [][]interfaces.IHash // Signatures from the Federated Servers for a given round.
 
 	Adapter interfaces.IElectionAdapter
 
@@ -132,7 +129,6 @@ func (e *Elections) AuditPriority() int {
 		e.Round = append(e.Round, 0)
 	}
 	e.APriority = Order(e.Audit, e.DBHeight, e.Minute, e.Electing, e.Round[e.Electing])
-
 	auditIdx := MaxIdx(e.APriority)
 	return auditIdx
 }

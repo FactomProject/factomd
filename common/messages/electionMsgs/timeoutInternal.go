@@ -70,9 +70,6 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 		panic("Invalid elections object")
 	}
 
-	// This server's possible identity as an audit server. -1 means we are not an audit server.
-	aidx := e.AuditIndex(is.GetIdentityChainID())
-
 	// We have advanced, so do nothing.  We can't reset anything because there
 	// can be a timeout process that started before we got here (with short minutes)
 	if e.DBHeight > m.DBHeight || e.Minute > int(m.Minute) {
@@ -100,6 +97,7 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 		}
 
 		if !found {
+			// TODO: Set Electing to -1?
 			return
 		}
 
@@ -133,12 +131,15 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 	go Fault(e, int(m.DBHeight), int(m.Minute), m.VMIndex, e.Round[e.Electing])
 
 	auditIdx := e.AuditPriority()
+	// This server's possible identity as an audit server. -1 means we are not an audit server.
+	aidx := e.AuditIndex(is.GetIdentityChainID())
 
 	if aidx >= 0 {
 		serverMap := state.MakeMap(len(e.Federated), uint32(e.DBHeight))
 		vm := state.FedServerVM(serverMap, len(e.Federated), e.Minute, e.Electing)
 
 		if aidx == auditIdx {
+			// Make consensus generate a volunteer message
 			Sync := new(SyncMsg)
 			Sync.SetLocal(true)
 			Sync.VMIndex = vm
@@ -179,7 +180,7 @@ func (m *TimeoutInternal) GetRepeatHash() interfaces.IHash {
 	return m.GetMsgHash()
 }
 
-// We have to return the haswh of the underlying message.
+// We have to return the hash of the underlying message.
 func (m *TimeoutInternal) GetHash() interfaces.IHash {
 	return m.MessageHash
 }

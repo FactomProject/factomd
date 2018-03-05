@@ -17,6 +17,8 @@ import (
 	//"github.com/FactomProject/factomd/state"
 	"bytes"
 
+	"time"
+
 	"github.com/FactomProject/factomd/elections"
 )
 
@@ -86,7 +88,11 @@ func (m *FedVoteLevelMsg) ElectionProcess(is interfaces.IState, elect interfaces
 		// We might want to have some sort of "holding map", so we don't have
 		// starvation. Also make this validate --> holding thing generic and not copy-paste
 		// code for election messages
-		is.ElectionsQueue().Enqueue(m)
+		// Wait a bit and then try again
+		go func() {
+			time.Sleep(10 * time.Millisecond)
+			is.ElectionsQueue().Enqueue(m)
+		}()
 		return
 	}
 
@@ -101,7 +107,7 @@ func (m *FedVoteLevelMsg) ElectionProcess(is interfaces.IState, elect interfaces
 	}
 
 	resp.SendOut(is, resp)
-	// We also need to check if we should change our state if the eletion resolved
+	// We also need to check if we should change our state if the election resolved
 	if vote, ok := resp.(*FedVoteLevelMsg); ok {
 		vote.processIfCommitted(is, elect)
 	}
@@ -150,6 +156,7 @@ func (m *FedVoteLevelMsg) FollowerExecute(is interfaces.IState) {
 	pl := s.ProcessLists.Get(m.DBHeight)
 	if pl == nil || s.Elections.(*elections.Elections).Adapter == nil {
 		s.Holding[m.GetMsgHash().Fixed()] = m
+		return
 	}
 
 	// Committed should only be processed once.

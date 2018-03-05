@@ -45,7 +45,8 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 	s.SetString()
 	msg.ComputeVMIndex(s)
 
-	if s.IgnoreMissing {
+	// never ignore DBState messages
+	if s.IgnoreMissing && msg.Type() != constants.DBSTATE_MSG {
 		now := s.GetTimestamp().GetTimeSeconds()
 		if now-msg.GetTimestamp().GetTimeSeconds() > 60*15 {
 			return
@@ -61,9 +62,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 				s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex)
 				TotalXReviewQueueInputs.Inc()
 				s.XReview = append(s.XReview, msg)
-			}
-
-			if !s.Saving &&
+			} else if !s.Saving &&
 				(!s.Syncing || !vm.Synced) &&
 				(msg.IsLocal() || msg.GetVMIndex() == s.LeaderVMIndex) &&
 				s.LeaderPL.DBHeight+1 >= s.GetHighestKnownBlock() {
@@ -71,7 +70,6 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 			} else {
 				msg.FollowerExecute(s)
 			}
-
 		} else {
 			msg.FollowerExecute(s)
 		}
@@ -167,7 +165,7 @@ func (s *State) Process() (progress bool) {
 	preAckLoopTime := time.Now()
 	// Process acknowledgements if we have some.
 ackLoop:
-	for room() {
+	for {
 		select {
 		case ack := <-s.ackQueue:
 			a := ack.(*messages.Ack)
@@ -194,7 +192,7 @@ ackLoop:
 
 	// Process inbound messages
 emptyLoop:
-	for room() {
+	for {
 		select {
 		case msg := <-s.msgQueue:
 
@@ -221,20 +219,24 @@ skipreview:
 				continue
 			}
 			process <- msg
-			progress = s.executeMsg(vm, msg) || progress
 		}
 		s.XReview = s.XReview[:0]
 		break
-	}
+	} // skip review
 	processXReviewTime := time.Since(preProcessXReviewTime)
 	TotalProcessXReviewTime.Add(float64(processXReviewTime.Nanoseconds()))
 
 	preProcessProcChanTime := time.Now()
-	for len(process) > 0 {
-		msg := <-process
-		s.executeMsg(vm, msg)
+processLoop:
+	for {
+		select {
+		case msg := <-process:
+			progress = s.executeMsg(vm, msg) || progress
 		s.UpdateState()
+		default:
+			break processLoop
 	}
+	} // processLoop for{...}
 
 	processProcChanTime := time.Since(preProcessProcChanTime)
 	TotalProcessProcChanTime.Add(float64(processProcChanTime.Nanoseconds()))
@@ -1584,7 +1586,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			s.DBSigProcessed = 0
 
 			// Note about dbsigs.... If we processed the previous minute, then we generate the DBSig for the next block.
-			// But if we didn't process the preivious block, like we start from scratch, or we had to reset the entire
+			// But if we didn't process the previous block, like we start from scratch, or we had to reset the entire
 			// network, then no dbsig exists.  This code doesn't execute, and so we have no dbsig.  In that case, on
 			// the next EOM, we see the block hasn't been signed, and we sign the block (Thats the call to SendDBSig()
 			// above).
