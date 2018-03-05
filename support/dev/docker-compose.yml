@@ -1,4 +1,4 @@
-version: "2"
+version: "2.1"
 
 services:
 
@@ -15,6 +15,12 @@ services:
             ES_JAVA_OPTS: "-Xmx256m -Xms256m"
         networks:
             - support
+        healthcheck:
+            test: ["CMD", "curl", "-f", "localhost:9200/_cluster/health?wait_for_status=yellow&timeout=1s"]
+            interval: 30s
+            timeout: 10s
+            retries: 5
+
 
     logstash:
         container_name: logstash
@@ -30,7 +36,8 @@ services:
         networks:
             - support
         depends_on:
-            - elasticsearch
+            elasticsearch:
+                condition: service_healthy
 
     kibana:
         container_name: kibana
@@ -43,7 +50,8 @@ services:
         networks:
             - support
         depends_on:
-            - elasticsearch
+            elasticsearch:
+                condition: service_healthy
 
     prometheus:
         container_name: prometheus
