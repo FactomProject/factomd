@@ -112,9 +112,8 @@ func (m *FedVoteLevelMsg) processIfCommitted(is interfaces.IState, elect interfa
 
 	// do not do it twice
 	if !e.Adapter.IsElectionProcessed() {
-		fmt.Println("**** LeaderSwapElection\n", is.GetFactomNodeName(), m.DBHeight, m.Minute)
-
-		fmt.Printf("**** Swaping %d(%x) %d(%x)\n",
+		fmt.Printf("**** FedVoteLevelMsg %12s Swaping Fed: %d(%x) Audit: %d(%x)\n",
+			is.GetFactomNodeName(),
 			m.Volunteer.FedIdx, m.Volunteer.FedID.Bytes()[3:6],
 			m.Volunteer.ServerIdx, m.Volunteer.ServerID.Bytes()[3:6])
 
@@ -126,6 +125,8 @@ func (m *FedVoteLevelMsg) processIfCommitted(is interfaces.IState, elect interfa
 		// Send for the state to do the swap
 		is.InMsgQueue().Enqueue(m)
 		e.Electing = -1
+		elections.Sort(e.Federated)
+		elections.Sort(e.Audit)
 	}
 }
 
