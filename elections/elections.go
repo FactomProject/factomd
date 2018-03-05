@@ -148,6 +148,7 @@ func Run(s *state.State) {
 	// Actually run the elections
 	for {
 		msg := e.Input.BlockingDequeue().(interfaces.IElectionMsg)
+		s.LogMessage("Election", "exec", msg.(interfaces.IMsg))
 		msg.ElectionProcess(s, e)
 	}
 }

@@ -101,7 +101,9 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 			return
 		}
 
+		// TODO: What the heck is this? makeMap does not return an int?
 		e.Electing = state.MakeMap(nfeds, uint32(m.DBHeight))[e.Minute][e.VMIndex]
+		// TODO: Got here with a 3 when the e.Federated[] was only 3 long running TestSetupANetwork()
 		e.FedID = e.Federated[e.Electing].GetChainID()
 
 		// ------------------

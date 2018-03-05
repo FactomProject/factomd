@@ -54,7 +54,10 @@ func LogMessage(name string, note string, msg interfaces.IMsg) {
 		embeddedHash = fmt.Sprintf(" EmbeddedMsg %26v[%2v]:%v", constants.MessageName(m.Type()), m.Type(), m.GetHash().String()[:8])
 	}
 
-	myfile.WriteString(fmt.Sprintf("%5v %20s %v %26s[%2v]:%v%v {%v}\n", seq, note, msg.GetMsgHash().String()[:8], constants.MessageName(byte(t)), t,
+	// work around message that don't have hashes yet ...
+	hash := msg.GetMsgHash().String()[:8]
+
+	myfile.WriteString(fmt.Sprintf("%5v %20s %v %26s[%2v]:%v%v {%v}\n", seq, note, hash, constants.MessageName(byte(t)), t,
 		msg.GetHash().String()[:8], embeddedHash, msg.String()))
 }
 

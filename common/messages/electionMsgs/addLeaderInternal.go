@@ -19,11 +19,11 @@ import (
 //General acknowledge message
 type AddLeaderInternal struct {
 	msgbase.MessageBase
-	NName       string
-	ServerID    interfaces.IHash // Hash of message acknowledged
-	DBHeight    uint32           // Directory Block Height that owns this ack
-	Height      uint32           // Height of this ack in this process list
-	MessageHash interfaces.IHash
+	NName    string
+	ServerID interfaces.IHash // Hash of message acknowledged
+	DBHeight uint32           // Directory Block Height that owns this ack
+	Height   uint32           // Height of this ack in this process list
+	//	MessageHash interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*AddLeaderInternal)(nil)
@@ -52,9 +52,9 @@ func (m *AddLeaderInternal) GetRepeatHash() interfaces.IHash {
 	return m.GetMsgHash()
 }
 
-// We have to return the haswh of the underlying message.
+// We have to return the hash of the underlying message.
 func (m *AddLeaderInternal) GetHash() interfaces.IHash {
-	return m.MessageHash
+	return m.GetMsgHash()
 }
 
 func (m *AddLeaderInternal) GetTimestamp() interfaces.Timestamp {
@@ -63,6 +63,7 @@ func (m *AddLeaderInternal) GetTimestamp() interfaces.Timestamp {
 
 func (m *AddLeaderInternal) GetMsgHash() interfaces.IHash {
 	if m.MsgHash == nil {
+		m.MsgHash = primitives.ZeroHash
 	}
 	return m.MsgHash
 }

@@ -25,6 +25,8 @@ var _ interfaces.IHash = (*Hash)(nil)
 var _ interfaces.BinaryMarshallableAndCopyable = (*Hash)(nil)
 var _ encoding.TextMarshaler = (*Hash)(nil)
 
+var ZeroHash interfaces.IHash = NewHash(constants.ZERO_HASH)
+
 func RandomHash() interfaces.IHash {
 	h := random.RandByteSliceOfLen(constants.HASH_LENGTH)
 	answer := new(Hash)
