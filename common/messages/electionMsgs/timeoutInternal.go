@@ -53,9 +53,8 @@ func (m *TimeoutInternal) InitiateElectionAdapter(st interfaces.IState) bool {
 
 	// The adapter is not nil, but it might be the same as what we want
 	if e.Adapter.GetMinute() == int(m.Minute) && e.Adapter.GetDBHeight() == m.DBHeight && m.VMIndex == e.Adapter.GetVMIndex() {
-		// panic("Should not get here")
-		//return true
-		// TODO: Uncomment the `return true`
+		// This means the election we want is already going.
+		return true
 	}
 
 	// This should be nil if a new election should actually take place. If not, we need to hold off until
@@ -113,14 +112,9 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 		// Begin a new Election for a specific vm/min/height
 		initiated := m.InitiateElectionAdapter(is)
 		if !initiated {
-			// The election cannot start because one is currently happening. We have to wait
-			// TODO: Clean this up?
-			//fmt.Printf("Election failed to start %s HT:%d Min:%d VM:%d\n", s.GetFactomNodeName(), m.DBHeight, int(m.Minute), m.VMIndex)
-			//go func(msg interfaces.IMsg, s interfaces.IState) {
-			//	time.Sleep(5 * time.Second)
-			//	s.InMsgQueue().Enqueue(msg)
-			//}(m, is)
-			//return
+			// True means the election is started or already going. False means it did not
+			// start.
+			// TODO: We should never get a false, so should we do something if it is?
 		} // <-- Election Started
 	}
 

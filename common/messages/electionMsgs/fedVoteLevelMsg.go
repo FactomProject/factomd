@@ -75,11 +75,17 @@ func NewFedVoteLevelMessage(signer interfaces.IHash, vol FedVoteVolunteerMsg) *F
 }
 
 func (m *FedVoteLevelMsg) ElectionProcess(is interfaces.IState, elect interfaces.IElections) {
+	// Some validation cannot be done in FollowerExecute as it needs access to election
+	// variables in this thread
 	valid := m.FedVoteMsg.ElectionValidate(is)
 	switch valid {
 	case -1:
 		return
 	case 0:
+		// TODO:
+		// We might want to have some sort of "holding map", so we don't have
+		// starvation. Also make this validate --> holding thing generic and not copy-paste
+		// code for election messages
 		is.ElectionsQueue().Enqueue(m)
 		return
 	}
@@ -87,7 +93,7 @@ func (m *FedVoteLevelMsg) ElectionProcess(is interfaces.IState, elect interfaces
 	e := elect.(*elections.Elections)
 	/******  Election Adapter Control   ******/
 	/**	Controlling the inner election state**/
-	m.processIfCommitted(is, elect)
+	m.processIfCommitted(is, elect) // This will end the election if it's over
 
 	resp := e.Adapter.Execute(m)
 	if resp == nil {
@@ -103,14 +109,15 @@ func (m *FedVoteLevelMsg) ElectionProcess(is interfaces.IState, elect interfaces
 	/*_____ End Election Adapter Control  _____*/
 }
 
-// processCommitted will process a message that has it's committed flag
+// processCommitted will process a message that has it's committed flag. It will only
+// process 1 commit message for 1 election. If you give it another, it will just toss it
 func (m *FedVoteLevelMsg) processIfCommitted(is interfaces.IState, elect interfaces.IElections) {
 	if !m.Committed {
 		return
 	}
 	e := elect.(*elections.Elections)
 
-	// do not do it twice
+	// This block of code is only called ONCE per election
 	if !e.Adapter.IsElectionProcessed() {
 		fmt.Printf("**** FedVoteLevelMsg %12s Swaping Fed: %d(%x) Audit: %d(%x)\n",
 			is.GetFactomNodeName(),
@@ -122,8 +129,10 @@ func (m *FedVoteLevelMsg) processIfCommitted(is interfaces.IState, elect interfa
 		e.Adapter.SetElectionProcessed(true)
 		m.ProcessInState = true
 		m.SetValid()
-		// Send for the state to do the swap
+		// Send for the state to do the swap. It will only be sent with this
+		// flag ONCE
 		is.InMsgQueue().Enqueue(m)
+		// End the election by setting this to '-1'
 		e.Electing = -1
 		elections.Sort(e.Federated)
 		elections.Sort(e.Audit)
