@@ -1,59 +1,6 @@
 version: "2"
 
 services:
-    factomd_1:
-        container_name: factomd_1
-        build: ../../
-        depends_on:
-            - logstash
-            - nginx
-        expose:
-            - "8088"
-            - "8110"
-        ports:
-            - "8090:8090"
-        volumes:
-            - ./factom/factomd_1.conf:/root/.factom/m2/factomd.conf:ro
-        command: -sim_stdin=false -customnet=net -network=CUSTOM -startdelay=10 -logstash -logurl=logstash:8345
-        networks:
-            factomd:
-                ipv4_address: 10.7.0.1
-
-    factomd_2:
-        container_name: factomd_2
-        build: ../../
-        depends_on:
-            - logstash
-            - nginx
-        expose:
-            - "8088"
-            - "8110"
-        ports:
-            - "8190:8090"
-        volumes:
-            - ./factom/factomd_2.conf:/root/.factom/m2/factomd.conf:ro
-        command: -sim_stdin=false -customnet=net -network=CUSTOM -startdelay=10 -logstash -logurl=logstash:8345
-        networks:
-            factomd:
-                ipv4_address: 10.7.0.2
-
-    factomd_3:
-        container_name: factomd_3
-        build: ../../
-        depends_on:
-            - logstash
-            - nginx
-        expose:
-            - "8088"
-            - "8110"
-        ports:
-            - "8290:8090"
-        volumes:
-            - ./factom/factomd_3.conf:/root/.factom/m2/factomd.conf:ro
-        command: -sim_stdin=false -customnet=net -network=CUSTOM -startdelay=10 -logstash -logurl=logstash:8345
-        networks:
-            factomd:
-                ipv4_address: 10.7.0.3
 
     elasticsearch:
         container_name: elasticsearch
@@ -67,7 +14,7 @@ services:
         environment:
             ES_JAVA_OPTS: "-Xmx256m -Xms256m"
         networks:
-            - elk
+            - support
 
     logstash:
         container_name: logstash
@@ -81,8 +28,7 @@ services:
         environment:
             LS_JAVA_OPTS: "-Xmx256m -Xms256m"
         networks:
-            - elk
-            - factomd
+            - support
         depends_on:
             - elasticsearch
 
@@ -95,7 +41,7 @@ services:
         ports:
             - "5601:5601"
         networks:
-            - elk
+            - support
         depends_on:
             - elasticsearch
 
@@ -110,31 +56,8 @@ services:
         command:
             - '--config.file=/etc/prometheus/prometheus.yml'
         networks:
-            - factomd
-        depends_on:
-            - factomd_1
-            - factomd_2
-            - factomd_3
-
-    nginx:
-        container_name: nginx
-        build:
-            context: nginx/
-        volumes:
-            - ./nginx/html/:/usr/share/nginx/html/:ro
-        expose:
-            - "80"
-        networks:
-            - factomd
+            - support
 
 networks:
-    factomd:
-        driver: bridge
-        ipam:
-            driver: default
-            config:
-                - subnet: 10.7.0.0/16
-                  gateway: 10.7.1.1
-                  ip_range: 10.7.1.0/24
-    elk:
+    support:
         driver: bridge
