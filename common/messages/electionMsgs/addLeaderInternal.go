@@ -28,6 +28,42 @@ type AddLeaderInternal struct {
 
 var _ interfaces.IMsg = (*AddLeaderInternal)(nil)
 
+func (m *AddLeaderInternal) MarshalBinary() (data []byte, err error) {
+	var buf primitives.Buffer
+
+	if err = buf.PushByte(100); err != nil {
+		return nil, err
+	}
+	if e := buf.PushString(m.NName); e != nil {
+		return nil, e
+	}
+	if e := buf.PushIHash(m.ServerID); e != nil {
+		return nil, e
+	}
+	if e := buf.PushInt(int(m.DBHeight)); e != nil {
+		return nil, e
+	}
+	if e := buf.PushByte(m.Minute); e != nil {
+		return nil, e
+	}
+	if e := buf.PushByte(m.Minute); e != nil {
+		return nil, e
+	}
+	data = buf.Bytes()
+	return data, nil
+}
+
+func (m *AddLeaderInternal) GetMsgHash() interfaces.IHash {
+	if m.MsgHash == nil {
+		data, err := m.MarshalBinary()
+		if err != nil {
+			return nil
+		}
+		m.MsgHash = primitives.Sha(data)
+	}
+	return m.MsgHash
+}
+
 func (m *AddLeaderInternal) ElectionProcess(s interfaces.IState, elect interfaces.IElections) {
 	e, ok := elect.(*elections.Elections)
 	if !ok {
@@ -59,13 +95,6 @@ func (m *AddLeaderInternal) GetHash() interfaces.IHash {
 
 func (m *AddLeaderInternal) GetTimestamp() interfaces.Timestamp {
 	return primitives.NewTimestampNow()
-}
-
-func (m *AddLeaderInternal) GetMsgHash() interfaces.IHash {
-	if m.MsgHash == nil {
-		m.MsgHash = primitives.ZeroHash
-	}
-	return m.MsgHash
 }
 
 func (m *AddLeaderInternal) Type() byte {
@@ -116,10 +145,6 @@ func (m *AddLeaderInternal) UnmarshalBinaryData(data []byte) (newData []byte, er
 func (m *AddLeaderInternal) UnmarshalBinary(data []byte) error {
 	_, err := m.UnmarshalBinaryData(data)
 	return err
-}
-
-func (m *AddLeaderInternal) MarshalBinary() (data []byte, err error) {
-	return
 }
 
 func (m *AddLeaderInternal) String() string {

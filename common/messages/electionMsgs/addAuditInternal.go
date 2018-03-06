@@ -23,11 +23,46 @@ type AddAuditInternal struct {
 	ServerID interfaces.IHash // Hash of message acknowledged
 	DBHeight uint32           // Directory Block Height that owns this ack
 	Height   uint32           // Height of this ack in this process list
-	//	MessageHash interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*AddAuditInternal)(nil)
 var _ interfaces.IElectionMsg = (*AddAuditInternal)(nil)
+
+func (m *AddAuditInternal) MarshalBinary() (data []byte, err error) {
+	var buf primitives.Buffer
+
+	if err = buf.PushByte(0); err != nil {
+		return nil, err
+	}
+	if e := buf.PushString(m.NName); e != nil {
+		return nil, e
+	}
+	if e := buf.PushIHash(m.ServerID); e != nil {
+		return nil, e
+	}
+	if e := buf.PushInt(int(m.DBHeight)); e != nil {
+		return nil, e
+	}
+	if e := buf.PushByte(m.Minute); e != nil {
+		return nil, e
+	}
+	if e := buf.PushByte(m.Minute); e != nil {
+		return nil, e
+	}
+	data = buf.Bytes()
+	return data, nil
+}
+
+func (m *AddAuditInternal) GetMsgHash() interfaces.IHash {
+	if m.MsgHash == nil {
+		data, err := m.MarshalBinary()
+		if err != nil {
+			return nil
+		}
+		m.MsgHash = primitives.Sha(data)
+	}
+	return m.MsgHash
+}
 
 func (m *AddAuditInternal) ElectionProcess(is interfaces.IState, elect interfaces.IElections) {
 	e, ok := elect.(*elections.Elections)
@@ -55,13 +90,6 @@ func (m *AddAuditInternal) GetHash() interfaces.IHash {
 
 func (m *AddAuditInternal) GetTimestamp() interfaces.Timestamp {
 	return primitives.NewTimestampNow()
-}
-
-func (m *AddAuditInternal) GetMsgHash() interfaces.IHash {
-	if m.MsgHash == nil {
-		m.MsgHash = primitives.ZeroHash
-	}
-	return m.MsgHash
 }
 
 func (m *AddAuditInternal) Type() byte {
@@ -112,10 +140,6 @@ func (m *AddAuditInternal) UnmarshalBinaryData(data []byte) (newData []byte, err
 func (m *AddAuditInternal) UnmarshalBinary(data []byte) error {
 	_, err := m.UnmarshalBinaryData(data)
 	return err
-}
-
-func (m *AddAuditInternal) MarshalBinary() (data []byte, err error) {
-	return
 }
 
 func (m *AddAuditInternal) String() string {

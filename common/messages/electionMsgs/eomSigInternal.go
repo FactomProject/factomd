@@ -41,6 +41,43 @@ func Title() string {
 		"E:Min")
 }
 
+
+func (m *EomSigInternal) MarshalBinary() (data []byte, err error) {
+	var buf primitives.Buffer
+
+	if err = buf.PushByte(200); err != nil {
+		return nil, err
+	}
+	if e := buf.PushString(m.NName); e != nil {
+		return nil, e
+	}
+	if e := buf.PushIHash(m.ServerID); e != nil {
+		return nil, e
+	}
+	if e := buf.PushInt(int(m.DBHeight)); e != nil {
+		return nil, e
+	}
+	if e := buf.PushByte(m.Minute); e != nil {
+		return nil, e
+	}
+	if e := buf.PushByte(m.Minute); e != nil {
+		return nil, e
+	}
+	data = buf.Bytes()
+	return data, nil
+}
+
+func (m *EomSigInternal) GetMsgHash() interfaces.IHash {
+	if m.MsgHash == nil {
+		data, err := m.MarshalBinary()
+		if err != nil {
+			return nil
+		}
+		m.MsgHash = primitives.Sha(data)
+	}
+	return m.MsgHash
+}
+
 func Fault(e *elections.Elections, dbheight int, minute int, vmIndex int, round int) {
 
 	time.Sleep(e.Timeout)
@@ -128,11 +165,7 @@ func (m *EomSigInternal) GetTimestamp() interfaces.Timestamp {
 	return primitives.NewTimestampNow()
 }
 
-func (m *EomSigInternal) GetMsgHash() interfaces.IHash {
-	if m.MsgHash == nil {
-	}
-	return m.MsgHash
-}
+
 
 func (m *EomSigInternal) Type() byte {
 	return constants.INTERNALSIG
@@ -184,9 +217,6 @@ func (m *EomSigInternal) UnmarshalBinary(data []byte) error {
 	return err
 }
 
-func (m *EomSigInternal) MarshalBinary() (data []byte, err error) {
-	return
-}
 
 func (m *EomSigInternal) String() string {
 	if m.ServerID == nil {

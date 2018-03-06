@@ -32,6 +32,39 @@ type TimeoutInternal struct {
 
 var _ interfaces.IMsg = (*TimeoutInternal)(nil)
 
+func (m *TimeoutInternal) MarshalBinary() (data []byte, err error) {
+	var buf primitives.Buffer
+
+	if err = buf.PushByte(60); err != nil {
+		return nil, err
+	}
+	if e := buf.PushString(m.Name); e != nil {
+		return nil, e
+	}
+	if e := buf.PushInt(int(m.DBHeight)); e != nil {
+		return nil, e
+	}
+	if e := buf.PushByte(m.Minute); e != nil {
+		return nil, e
+	}
+	if e := buf.PushByte(m.Minute); e != nil {
+		return nil, e
+	}
+	data = buf.Bytes()
+	return data, nil
+}
+
+func (m *TimeoutInternal) GetMsgHash() interfaces.IHash {
+	if m.MsgHash == nil {
+		data, err := m.MarshalBinary()
+		if err != nil {
+			return nil
+		}
+		m.MsgHash = primitives.Sha(data)
+	}
+	return m.MsgHash
+}
+
 // InitiateElectionAdapter will create a new election adapter if needed for the election message
 func (m *TimeoutInternal) InitiateElectionAdapter(st interfaces.IState) bool {
 	s := st.(*state.State)
@@ -191,12 +224,6 @@ func (m *TimeoutInternal) GetTimestamp() interfaces.Timestamp {
 	return primitives.NewTimestampNow()
 }
 
-func (m *TimeoutInternal) GetMsgHash() interfaces.IHash {
-	if m.MsgHash == nil {
-	}
-	return m.MsgHash
-}
-
 func (m *TimeoutInternal) Type() byte {
 	return constants.INTERNALTIMEOUT
 }
@@ -245,10 +272,6 @@ func (m *TimeoutInternal) UnmarshalBinaryData(data []byte) (newData []byte, err 
 func (m *TimeoutInternal) UnmarshalBinary(data []byte) error {
 	_, err := m.UnmarshalBinaryData(data)
 	return err
-}
-
-func (m *TimeoutInternal) MarshalBinary() (data []byte, err error) {
-	return
 }
 
 func (m *TimeoutInternal) String() string {
