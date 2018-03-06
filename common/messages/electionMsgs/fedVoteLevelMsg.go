@@ -249,7 +249,7 @@ func (m *FedVoteLevelMsg) GetRepeatHash() interfaces.IHash {
 	return m.GetMsgHash()
 }
 
-// We have to return the haswh of the underlying message.
+// We have to return the hash of the underlying message.
 
 func (m *FedVoteLevelMsg) GetHash() interfaces.IHash {
 	return m.GetMsgHash()

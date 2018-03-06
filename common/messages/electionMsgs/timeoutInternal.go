@@ -79,7 +79,8 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 	// No election running, is there one we should start?
 	if e.Electing == -1 {
 
-		nfeds := len(s.ProcessLists.Get(uint32(e.DBHeight)).FedServers)
+		servers := s.ProcessLists.Get(uint32(e.DBHeight)).FedServers
+		nfeds := len(servers)
 		VMscollected := make([]bool, nfeds, nfeds)
 		for _, im := range e.Msgs {
 			msg := im.(interfaces.IMsgAck)
@@ -101,7 +102,6 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 			return
 		}
 
-		// TODO: What the heck is this? makeMap does not return an int?
 		e.Electing = state.MakeMap(nfeds, uint32(m.DBHeight))[e.Minute][e.VMIndex]
 		// TODO: Got here with a 3 when the e.Federated[] was only 3 long running TestSetupANetwork()
 		e.FedID = e.Federated[e.Electing].GetChainID()
@@ -130,7 +130,12 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 	e.Round[e.Electing]++
 
 	// If we don't have all our sync messages, we will have to come back around and see if all is well.
-	go Fault(e, int(m.DBHeight), int(m.Minute), m.VMIndex, e.Round[e.Electing])
+	// Start our timer to timeout this sync
+	round := e.Round[e.Electing] // probably not but ...
+
+	this := elections.FaultId{int(m.DBHeight), int(m.Minute), round}
+	go Fault(e, this, e.EndFault)
+	e.PrevElection = this
 
 	auditIdx := e.AuditPriority()
 	// This server's possible identity as an audit server. -1 means we are not an audit server.

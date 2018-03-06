@@ -37,7 +37,7 @@ var _ = (*hash.Hash32)(nil)
 
 func (s *State) debugExec() (ret bool) {
 	ret = s.FactomNodeName == "FNode0"
-	return false && ret
+	return true || ret
 }
 
 func (s *State) LogMessage(logName string, comment string, msg interfaces.IMsg) {

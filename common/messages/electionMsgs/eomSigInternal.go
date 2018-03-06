@@ -5,8 +5,8 @@
 package electionMsgs
 
 import (
+	"errors"
 	"fmt"
-
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -41,16 +41,26 @@ func Title() string {
 		"E:Min")
 }
 
-func Fault(e *elections.Elections, dbheight int, minute int, vmIndex int, round int) {
+func Fault(e *elections.Elections, this elections.FaultId, end chan elections.FaultId) {
+	fmt.Printf("Start timeout for %v\n", this)
 
 	time.Sleep(e.Timeout)
-	timeout := new(TimeoutInternal)
-	timeout.Minute = byte(minute)
-	timeout.DBHeight = dbheight
-	timeout.VMIndex = vmIndex
-	timeout.Round = round
-	e.Input.Enqueue(timeout)
+	select {
+	case fault := <-end:
+		fmt.Printf("Cancel timeout for %v\n", this)
 
+		if fault != this {
+			panic(errors.New(fmt.Sprintf("Expected fault %v got fault %v", this, fault)))
+		}
+		return
+	default:
+		fmt.Printf("Timeout for %v\n", this)
+		timeout := new(TimeoutInternal)
+		timeout.DBHeight = this.Dbheight
+		timeout.Minute = byte(this.Minute)
+		timeout.Round = this.Round
+		e.Input.Enqueue(timeout)
+	}
 }
 
 func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.IElections) {
@@ -61,6 +71,7 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 	// Either the height has incremented, or the minute has incremented.
 	mv := int(m.DBHeight) > e.DBHeight || int(m.Minute) > e.Minute
 	if mv {
+
 		// Set our Identity Chain (Just in case it has changed.)
 		e.FedID = s.IdentityChainID
 
@@ -68,11 +79,21 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 		e.Minute = int(m.Minute)
 		e.Msgs = append(e.Msgs[:0], m)
 		e.Sync = make([]bool, len(e.Federated))
+		e.EndFault = make(chan elections.FaultId) // Silly to make all this every time around
+
 		// Set the title in the state
 		s.Election0 = Title()
 
 		// Start our timer to timeout this sync
-		go Fault(e, int(m.DBHeight), int(m.Minute), m.VMIndex, 0)
+		round := 0
+		this := elections.FaultId{int(m.DBHeight), int(m.Minute), round}
+		if e.EndFault != nil && e.PrevElection != new(elections.FaultId)
+		{
+			e.EndFault <- e.PrevElection // Cancel the outstanding fault
+		}
+		go Fault(e, this, e.EndFault)
+		e.PrevElection = this
+
 		t := "EOM"
 		if !m.SigType {
 			t = "DBSig"
@@ -119,7 +140,7 @@ func (m *EomSigInternal) GetRepeatHash() interfaces.IHash {
 	return m.GetMsgHash()
 }
 
-// We have to return the haswh of the underlying message.
+// We have to return the hash of the underlying message.
 func (m *EomSigInternal) GetHash() interfaces.IHash {
 	return m.MessageHash
 }

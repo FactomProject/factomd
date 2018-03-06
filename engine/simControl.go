@@ -45,7 +45,7 @@ func GetLine(listenToStdin bool) string {
 	if listenToStdin {
 		line := make([]byte, 100)
 		var err error
-		// When running as a detatched process, this routine becomes a very tight loop and starves other goroutines.
+		// When running as a detached process, this routine becomes a very tight loop and starves other goroutines.
 		// So, we will sleep before letting it check to see if Stdin has been reconnected
 		for {
 			if _, err = os.Stdin.Read(line); err == nil {
@@ -1021,7 +1021,7 @@ func SimControl(listenTo int, listenStdin bool) {
 			case 'S' == b[0]:
 				nnn, err := strconv.Atoi(string(b[1:]))
 				if err != nil || nnn < 0 || nnn > 999 {
-					os.Stderr.WriteString("Specifiy a drop amount between 0 and 1000\n")
+					os.Stderr.WriteString("Specify a drop amount between 0 and 1000\n")
 					break
 				}
 				for _, fn := range fnodes {

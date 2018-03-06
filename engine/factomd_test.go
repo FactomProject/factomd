@@ -1,10 +1,11 @@
 package engine_test
 
 import (
-	"io/ioutil"
 	"os"
 	"testing"
 	"time"
+
+	"fmt"
 
 	. "github.com/FactomProject/factomd/engine"
 	"github.com/FactomProject/factomd/state"
@@ -14,15 +15,18 @@ var _ = Factomd
 
 // Wait so many blocks
 func WaitBlocks(s *state.State, blks int) {
-	currentHeight := int(s.LLeaderHeight)
-	for int(s.LLeaderHeight) < currentHeight+blks {
+	fmt.Printf("WaitBlocks(%d)\n", blks)
+	newBlock := int(s.LLeaderHeight) + blks
+	for int(s.LLeaderHeight) < newBlock {
 		time.Sleep(time.Second)
 	}
 }
 
 // Wait to a given minute.  If we are == to the minute or greater, then
 // we first wait to the start of the next block.
-func WaitMinutes(s *state.State, min int) {
+func WaitForMinute(s *state.State, min int) {
+	fmt.Printf("WaitForMinute(%d)\n", min)
+
 	if s.CurrentMinute >= min {
 		for s.CurrentMinute > 0 {
 			time.Sleep(100 * time.Millisecond)
@@ -34,30 +38,23 @@ func WaitMinutes(s *state.State, min int) {
 	}
 }
 
+// Wait some number of minutes
+func WaitMinutes(s *state.State, min int) {
+	fmt.Printf("WaitMinutes(%d)\n", min)
+	newMinute := (s.CurrentMinute + min) % 10
+	for s.CurrentMinute != newMinute {
+		time.Sleep(100 * time.Millisecond)
+	}
+}
+
 func TestSetupANetwork(t *testing.T) {
 
-	rescueStdout := os.Stdout
-	r, w, _ := os.Pipe()
-
-	startCap := func() {
-		rescueStdout = os.Stdout
-		r, w, _ = os.Pipe()
-		os.Stdout = w
-	}
-	endCap := func() string {
-		<-ProcessChan
-		w.Close()
-		out, _ := ioutil.ReadAll(r)
-		os.Stdout = rescueStdout
-		return string(out)
-	}
-
-	runCmd := func(cmd string) string {
+	runCmd := func(cmd string) {
 		os.Stderr.WriteString("Executing: " + cmd + "\n")
-		startCap()
 		InputChan <- cmd
-		v := endCap()
-		return v
+		time.Sleep(100 * time.Millisecond)
+		<-ProcessChan
+		return
 	}
 
 	args := append([]string{},
@@ -72,7 +69,7 @@ func TestSetupANetwork(t *testing.T) {
 		"-ControlPanelPort=37002",
 		"-networkPort=37003",
 		"-startdelay=1",
-		"faulttimeout=15")
+		"-faulttimeout=15")
 
 	params := ParseCmdLine(args)
 	state0 := Factomd(params, false).(*state.State)
@@ -96,7 +93,7 @@ func TestSetupANetwork(t *testing.T) {
 	runCmd("g10")
 	WaitBlocks(state0, 3)
 	// Allocate 4 leaders
-	WaitMinutes(state0, 3)
+	WaitForMinute(state0, 3)
 
 	runCmd("1")
 	runCmd("l")
@@ -109,7 +106,7 @@ func TestSetupANetwork(t *testing.T) {
 	runCmd("")
 
 	WaitBlocks(state0, 1)
-	WaitMinutes(state0, 1)
+	WaitForMinute(state0, 1)
 
 	leadercnt := 0
 	auditcnt := 0
@@ -132,7 +129,7 @@ func TestSetupANetwork(t *testing.T) {
 		t.Fatalf("found %d audit servers, expected 3", auditcnt)
 		t.Fail()
 	}
-	WaitMinutes(state0, 2)
+	WaitForMinute(state0, 2)
 	runCmd("F100")
 	runCmd("S10")
 	runCmd("g10")
@@ -142,19 +139,19 @@ func TestSetupANetwork(t *testing.T) {
 		t.Fatalf("Expected FNode07, but got %s", fn1.State.FactomNodeName)
 	}
 	runCmd("g1")
-	WaitMinutes(state0, 3)
+	WaitForMinute(state0, 3)
 	runCmd("g1")
-	WaitMinutes(state0, 4)
+	WaitForMinute(state0, 4)
 	runCmd("g1")
-	WaitMinutes(state0, 5)
+	WaitForMinute(state0, 5)
 	runCmd("g1")
-	WaitMinutes(state0, 6)
+	WaitForMinute(state0, 6)
 	WaitBlocks(state0, 1)
-	WaitMinutes(state0, 1)
+	WaitForMinute(state0, 1)
 	runCmd("g1")
-	WaitMinutes(state0, 2)
+	WaitForMinute(state0, 2)
 	runCmd("g1")
-	WaitMinutes(state0, 3)
+	WaitForMinute(state0, 3)
 	runCmd("g20")
 	WaitBlocks(state0, 1)
 	runCmd("9")
@@ -193,14 +190,132 @@ func TestSetupANetwork(t *testing.T) {
 	runCmd("yh")
 	runCmd("yc")
 	runCmd("r")
-	WaitMinutes(state0, 1)
+	WaitForMinute(state0, 1)
 	runCmd("g1")
 	runCmd("2")
 	runCmd("x")
-	WaitMinutes(state0, 1)
+	WaitForMinute(state0, 3)
 	runCmd("x")
 	runCmd("g3")
 	WaitBlocks(fn1.State, 1)
+
+	t.Log("Shutting down the network")
+	for _, fn := range GetFnodes() {
+		fn.State.ShutdownChan <- 1
+	}
+
+	time.Sleep(10 * time.Second)
+	if state0.LLeaderHeight > 13 {
+		t.Fatal("Failed to shut down factomd via ShutdownChan")
+	}
+}
+
+func TestAnElection(t *testing.T) {
+
+	var (
+		leaders   int = 3
+		audits    int = 2
+		followers int = 1
+		nodes     int = leaders + audits + followers
+	)
+
+	runCmd := func(cmd string) {
+		os.Stderr.WriteString("Executing: " + cmd + "\n")
+		InputChan <- cmd
+		time.Sleep(100 * time.Millisecond)
+		<-ProcessChan
+		return
+	}
+
+	args := append([]string{},
+		"-db=Map",
+		"-network=LOCAL",
+		"-net=alot+",
+		"-enablenet=true",
+		"-blktime=10",
+		fmt.Sprintf("-count=%d", nodes),
+		"-logPort=37000",
+		"-port=37001",
+		"-ControlPanelPort=37002",
+		"-networkPort=37003",
+		"-startdelay=1",
+		"-faulttimeout=999999",
+		"-stdoutlog=out.txt",
+		"-stderrlog=out.txt",
+	)
+	HandleLogfiles("out.txt", "out.txt")
+	params := ParseCmdLine(args)
+	state0 := Factomd(params, false).(*state.State)
+	state0.MessageTally = true
+	time.Sleep(5 * time.Second) // wait till the simulation is setup
+
+	t.Log(fmt.Sprintf("Allocated %d nodes", nodes))
+	fnodes := GetFnodes()
+	if len(fnodes) != nodes {
+		t.Fatalf("Should have allocated %d nodes", nodes)
+		t.Fail()
+	}
+
+	PrintOneStatus(0, 0)
+
+	//	WaitBlocks(state0, 1)
+	runCmd("g10")
+	WaitBlocks(state0, 1)
+	PrintOneStatus(0, 0)
+	WaitMinutes(state0, 2)
+
+	// Allocate leaders
+	runCmd("1")
+	for i := 0; i < leaders-1; i++ {
+		runCmd("l")
+	}
+
+	// Allocate audit servers
+	for i := 0; i < audits; i++ {
+		runCmd("o")
+	}
+
+	WaitBlocks(state0, 1)
+	PrintOneStatus(0, 0)
+	WaitMinutes(state0, 1)
+	PrintOneStatus(0, 0)
+
+	leadercnt := 0
+	auditcnt := 0
+	for _, fn := range GetFnodes() {
+		s := fn.State
+		if s.Leader {
+			leadercnt++
+		}
+		list := s.ProcessLists.Get(s.LLeaderHeight)
+		if foundAudit, _ := list.GetAuditServerIndexHash(s.GetIdentityChainID()); foundAudit {
+			auditcnt++
+		}
+	}
+
+	if leadercnt != leaders {
+		t.Fatalf("found %d leaders, expected %d", leaders, leadercnt)
+	}
+
+	if auditcnt != audits {
+		t.Fatalf("found %d audit servers, expected %d", audits, auditcnt)
+		t.Fail()
+	}
+
+	runCmd(fmt.Sprintf("%d", leaders-1))
+	PrintOneStatus(0, 0)
+	runCmd("x")
+	PrintOneStatus(0, 0)
+	WaitBlocks(state0, 1)
+	PrintOneStatus(0, 0)
+	WaitMinutes(state0, 2)
+	PrintOneStatus(0, 0)
+	runCmd("x")
+	PrintOneStatus(0, 0)
+
+	WaitBlocks(state0, 1)
+	WaitMinutes(state0, 2)
+	PrintOneStatus(0, 0)
 
 	t.Log("Shutting down the network")
 	for _, fn := range GetFnodes() {

@@ -11,6 +11,12 @@ import (
 var _ = fmt.Print
 var _ = time.Tick
 
+type FaultId struct {
+	Dbheight int
+	Minute   int
+	Round    int
+}
+
 type Elections struct {
 	FedID     interfaces.IHash
 	Name      string
@@ -38,6 +44,8 @@ type Elections struct {
 	Adapter interfaces.IElectionAdapter
 
 	Timeout time.Duration
+	EndFault chan FaultId
+	PrevElection FaultId
 }
 
 func (e *Elections) AdapterStatus() string {
