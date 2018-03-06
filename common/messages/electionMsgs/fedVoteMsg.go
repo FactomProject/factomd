@@ -7,7 +7,6 @@ package electionMsgs
 import (
 	"bytes"
 	"fmt"
-
 	"os"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -118,26 +117,22 @@ func (m *FedVoteMsg) ElectionValidate(st interfaces.IState) int {
 
 	// TODO: Check all the cases
 
+	if int(m.DBHeight) == e.DBHeight && e.Minute == int(m.Minute) {
+		return 1 // This is our election!
+	}
+
 	// Ignore all elections messages from the past
-	if int(m.DBHeight) < e.DBHeight {
-		fmt.Println("Message is invalid--", m.String())
+	if int(m.DBHeight) < e.DBHeight || (int(m.DBHeight) == e.DBHeight && int(m.Minute) < e.Minute) {
+		fmt.Println("Message is invalid (past)--", m.String())
 		return -1
 	}
 
-	if int(m.DBHeight) == e.DBHeight {
-		if int(m.Minute) < e.Minute {
-			fmt.Println("Message is invalid--", m.String())
-			return -1
-		}
-	}
-
 	// Is from the future, probably from Marty McFly
-	if int(m.DBHeight) > e.DBHeight {
+	if int(m.DBHeight) > e.DBHeight || (int(m.DBHeight) == e.DBHeight && int(m.Minute) > e.Minute) {
 		return 0
 	}
 
-	return 1
-
+	panic(errors.New("Though I covered all the cases"))
 }
 
 func (m *FedVoteMsg) Validate(st interfaces.IState) int {

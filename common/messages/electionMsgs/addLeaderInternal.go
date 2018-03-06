@@ -69,6 +69,7 @@ func (m *AddLeaderInternal) ElectionProcess(s interfaces.IState, elect interface
 	if e.LeaderIndex(m.ServerID) < 0 {
 		e.Federated = append(e.Federated, &state.Server{ChainID: m.ServerID, Online: true})
 		e.Round = append(e.Round, 0)
+		// TODO: If we reorder Federated[] do we need to reorder Round[]?
 		elections.Sort(e.Federated)
 	}
 }

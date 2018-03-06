@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"hash"
+	"runtime"
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -47,7 +48,15 @@ func (s *State) LogMessage(logName string, comment string, msg interfaces.IMsg) 
 	}
 }
 
+func (s *State) LogPrintf(logName string, format string, more ...interface{}) {
+	if s.debugExec() {
+		logFileName := s.FactomNodeName + "_" + logName + ".txt"
+		messages.LogPrintf(logFileName, format, more...)
+	}
+}
 func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
+	runtime.Gosched() // Make sure all the simulation progress...
+
 	preExecuteMsgTime := time.Now()
 	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
 	if !ok {
@@ -260,7 +269,7 @@ processLoop:
 	for {
 		select {
 		case msg := <-process:
-			s.LogMessage("executeMsg"+".txt", "From processq", msg)
+			s.LogMessage("executeMsg", "From processq", msg)
 			progress = s.executeMsg(vm, msg) || progress
 			s.UpdateState()
 		default:
@@ -1897,6 +1906,8 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 	// If we are here, this means that the FullFault message is complete
 	// and we can execute it as such (replacing the faulted Leader with
 	// the nominated Audit server)
+
+	panic(errors.New("Started Old Faulting Process... very bad thing"))
 
 	fullFault, ok := msg.(*messages.FullServerFault)
 	if !ok {

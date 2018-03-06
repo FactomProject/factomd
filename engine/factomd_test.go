@@ -259,7 +259,7 @@ func TestAnElection(t *testing.T) {
 	PrintOneStatus(0, 0)
 
 	//	WaitBlocks(state0, 1)
-	runCmd("g10")
+	runCmd("g5")
 	WaitBlocks(state0, 1)
 	PrintOneStatus(0, 0)
 	WaitMinutes(state0, 2)
@@ -275,7 +275,7 @@ func TestAnElection(t *testing.T) {
 		runCmd("o")
 	}
 
-	WaitBlocks(state0, 1)
+	WaitBlocks(state0, 2)
 	PrintOneStatus(0, 0)
 	WaitMinutes(state0, 1)
 	PrintOneStatus(0, 0)
@@ -307,7 +307,7 @@ func TestAnElection(t *testing.T) {
 	runCmd("x")
 	for i := 0; i < 20; i++ {
 		PrintOneStatus(0, 0)
-		time.Second(1 * time.Second)
+		time.Sleep(1 * time.Second)
 	}
 	WaitBlocks(state0, 1)
 	PrintOneStatus(0, 0)
@@ -320,7 +320,15 @@ func TestAnElection(t *testing.T) {
 	WaitMinutes(state0, 2)
 	for i := 0; i < 20; i++ {
 		PrintOneStatus(0, 0)
-		time.Second(1 * time.Second)
+		time.Sleep(1 * time.Second)
+	}
+	WaitMinutes(state0, 2)
+	runCmd("x")
+	PrintOneStatus(0, 0)
+	WaitMinutes(state0, 2)
+	for i := 0; i < 20; i++ {
+		PrintOneStatus(0, 0)
+		time.Sleep(1 * time.Second)
 	}
 
 	t.Log("Shutting down the network")

@@ -6,7 +6,6 @@ package electionMsgs
 
 import (
 	"fmt"
-
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -133,8 +132,13 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 		}
 
 		e.Electing = state.MakeMap(nfeds, uint32(m.DBHeight))[e.Minute][e.VMIndex]
+
+		elections.CheckAuthSetsMatch("TimeoutInternal.ElectionProcess", e, s)
+
 		// TODO: Got here with a 3 when the e.Federated[] was only 3 long running TestSetupANetwork()
 		e.FedID = e.Federated[e.Electing].GetChainID()
+
+		e.LogPrintf("election", "**** Start an Election for %d[%x] ****", e.Electing, e.FedID.Bytes()[3:6])
 
 		// ------------------
 		// Not in an election
@@ -161,9 +165,9 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 
 	// If we don't have all our sync messages, we will have to come back around and see if all is well.
 	// Start our timer to timeout this sync
-	round := e.Round[e.Electing] // probably not but ...
 
-	go Fault(e, e.DBHeight, e.Minute, round)
+	e.FaultId.Store(e.FaultId.Load() + 1) // increment the timeout counter
+	go Fault(e, e.DBHeight, e.Minute, e.Round[e.Electing], e.FaultId.Load(), &e.FaultId)
 
 	auditIdx := e.AuditPriority()
 	// This server's possible identity as an audit server. -1 means we are not an audit server.

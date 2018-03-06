@@ -118,8 +118,15 @@ func PrintOneStatus(listenTo int, wsapiNode int) {
 	}
 	prt = prt + fmt.Sprintf(fmtstr, "Commits", list)
 	list = ""
+	// Nil pointer exception at start up -- clay
 	for _, f := range pnodes {
-		list = list + fmt.Sprintf(" %3d", len(f.State.LeaderPL.NewEBlocks))
+		var i int
+		if f.State.LeaderPL.NewEBlocks != nil {
+			i = len(f.State.LeaderPL.NewEBlocks)
+		} else {
+			i = 0
+		}
+		list = list + fmt.Sprintf(" %3d", i)
 	}
 	prt = prt + fmt.Sprintf(fmtstr, "Pending EBs", list)
 	list = ""
@@ -317,7 +324,7 @@ func faultSummary() string {
 						if ff.PledgeDone {
 							pledgeDoneString = "Y"
 						}
-						prt = prt + fmt.Sprintf(" %x/%x:%d/%d/%d(%s)", ff.ServerID.Bytes()[3:6], ff.AuditServerID.Bytes()[2:5], len(ff.LocalVoteMap), ff.SignatureList.Length, ff.SigTally(fnode.State), pledgeDoneString)
+						prt = prt + fmt.Sprintf(" %x/%x:%d/%d/%d(%s)", ff.ServerID.Bytes()[:8], ff.AuditServerID.Bytes()[:8], len(ff.LocalVoteMap), ff.SignatureList.Length, ff.SigTally(fnode.State), pledgeDoneString)
 					}
 
 					prt = prt + fmt.Sprintf("| Watch VM: ")

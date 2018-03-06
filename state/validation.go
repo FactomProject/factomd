@@ -56,6 +56,12 @@ func (state *State) ValidatorLoop() {
 				}
 
 				msg = state.InMsgQueue().Dequeue()
+
+				// This doesn't block so it intentionally returns nil, don't log nils
+				if msg != nil {
+					state.LogMessage("InMsgQueue", "dequeue", msg)
+				}
+
 				if msg != nil {
 					state.JournalMessage(msg)
 					break loop
