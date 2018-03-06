@@ -305,7 +305,10 @@ func TestAnElection(t *testing.T) {
 	runCmd(fmt.Sprintf("%d", leaders-1))
 	PrintOneStatus(0, 0)
 	runCmd("x")
-	PrintOneStatus(0, 0)
+	for i := 0; i < 20; i++ {
+		PrintOneStatus(0, 0)
+		time.Second(1 * time.Second)
+	}
 	WaitBlocks(state0, 1)
 	PrintOneStatus(0, 0)
 	WaitMinutes(state0, 2)
@@ -315,7 +318,10 @@ func TestAnElection(t *testing.T) {
 
 	WaitBlocks(state0, 1)
 	WaitMinutes(state0, 2)
-	PrintOneStatus(0, 0)
+	for i := 0; i < 20; i++ {
+		PrintOneStatus(0, 0)
+		time.Second(1 * time.Second)
+	}
 
 	t.Log("Shutting down the network")
 	for _, fn := range GetFnodes() {

@@ -32,6 +32,36 @@ type TimeoutInternal struct {
 
 var _ interfaces.IMsg = (*TimeoutInternal)(nil)
 
+func (m *TimeoutInternal) MarshalBinary() (data []byte, err error) {
+	var buf primitives.Buffer
+
+	if err = buf.PushByte(constants.INTERNALTIMEOUT); err != nil {
+		return nil, err
+	}
+	if e := buf.PushInt(int(m.DBHeight)); e != nil {
+		return nil, e
+	}
+	if e := buf.PushByte(m.Minute); e != nil {
+		return nil, e
+	}
+	if e := buf.PushByte(m.Minute); e != nil {
+		return nil, e
+	}
+	data = buf.Bytes()
+	return data, nil
+}
+
+func (m *TimeoutInternal) GetMsgHash() interfaces.IHash {
+	if m.MsgHash == nil {
+		data, err := m.MarshalBinary()
+		if err != nil {
+			return nil
+		}
+		m.MsgHash = primitives.Sha(data)
+	}
+	return m.MsgHash
+}
+
 // InitiateElectionAdapter will create a new election adapter if needed for the election message
 func (m *TimeoutInternal) InitiateElectionAdapter(st interfaces.IState) bool {
 	s := st.(*state.State)
@@ -133,9 +163,7 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 	// Start our timer to timeout this sync
 	round := e.Round[e.Electing] // probably not but ...
 
-	this := elections.FaultId{int(m.DBHeight), int(m.Minute), round}
-	go Fault(e, this, e.EndFault)
-	e.PrevElection = this
+	go Fault(e, e.DBHeight, e.Minute, round)
 
 	auditIdx := e.AuditPriority()
 	// This server's possible identity as an audit server. -1 means we are not an audit server.
@@ -196,12 +224,6 @@ func (m *TimeoutInternal) GetTimestamp() interfaces.Timestamp {
 	return primitives.NewTimestampNow()
 }
 
-func (m *TimeoutInternal) GetMsgHash() interfaces.IHash {
-	if m.MsgHash == nil {
-	}
-	return m.MsgHash
-}
-
 func (m *TimeoutInternal) Type() byte {
 	return constants.INTERNALTIMEOUT
 }
@@ -250,10 +272,6 @@ func (m *TimeoutInternal) UnmarshalBinaryData(data []byte) (newData []byte, err 
 func (m *TimeoutInternal) UnmarshalBinary(data []byte) error {
 	_, err := m.UnmarshalBinaryData(data)
 	return err
-}
-
-func (m *TimeoutInternal) MarshalBinary() (data []byte, err error) {
-	return
 }
 
 func (m *TimeoutInternal) String() string {

@@ -27,6 +27,39 @@ type RemoveAuditInternal struct {
 
 var _ interfaces.IMsg = (*RemoveAuditInternal)(nil)
 
+func (m *RemoveAuditInternal) MarshalBinary() (data []byte, err error) {
+	var buf primitives.Buffer
+
+	if err = buf.PushByte(constants.INTERNALREMOVEAUDIT); err != nil {
+		return nil, err
+	}
+	if e := buf.PushIHash(m.ServerID); e != nil {
+		return nil, e
+	}
+	if e := buf.PushInt(int(m.DBHeight)); e != nil {
+		return nil, e
+	}
+	if e := buf.PushByte(m.Minute); e != nil {
+		return nil, e
+	}
+	if e := buf.PushByte(m.Minute); e != nil {
+		return nil, e
+	}
+	data = buf.Bytes()
+	return data, nil
+}
+
+func (m *RemoveAuditInternal) GetMsgHash() interfaces.IHash {
+	if m.MsgHash == nil {
+		data, err := m.MarshalBinary()
+		if err != nil {
+			return nil
+		}
+		m.MsgHash = primitives.Sha(data)
+	}
+	return m.MsgHash
+}
+
 func (m *RemoveAuditInternal) ElectionProcess(state interfaces.IState, elect interfaces.IElections) {
 	e, ok := elect.(*elections.Elections)
 	if !ok {
@@ -63,12 +96,6 @@ func (m *RemoveAuditInternal) GetHash() interfaces.IHash {
 
 func (m *RemoveAuditInternal) GetTimestamp() interfaces.Timestamp {
 	return primitives.NewTimestampNow()
-}
-
-func (m *RemoveAuditInternal) GetMsgHash() interfaces.IHash {
-	if m.MsgHash == nil {
-	}
-	return m.MsgHash
 }
 
 func (m *RemoveAuditInternal) Type() byte {
@@ -119,10 +146,6 @@ func (m *RemoveAuditInternal) UnmarshalBinaryData(data []byte) (newData []byte, 
 func (m *RemoveAuditInternal) UnmarshalBinary(data []byte) error {
 	_, err := m.UnmarshalBinaryData(data)
 	return err
-}
-
-func (m *RemoveAuditInternal) MarshalBinary() (data []byte, err error) {
-	return
 }
 
 func (m *RemoveAuditInternal) String() string {

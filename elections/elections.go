@@ -6,6 +6,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/state"
+	"github.com/FactomProject/factomd/util/atomic"
 )
 
 var _ = fmt.Print
@@ -44,8 +45,8 @@ type Elections struct {
 	Adapter interfaces.IElectionAdapter
 
 	Timeout time.Duration
-	EndFault chan FaultId
-	PrevElection FaultId
+
+	currentElection atomic.AtomicInt
 }
 
 func (e *Elections) AdapterStatus() string {

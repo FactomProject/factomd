@@ -5,8 +5,8 @@
 package electionMsgs
 
 import (
-	"errors"
 	"fmt"
+
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -41,26 +41,48 @@ func Title() string {
 		"E:Min")
 }
 
-func Fault(e *elections.Elections, this elections.FaultId, end chan elections.FaultId) {
-	fmt.Printf("Start timeout for %v\n", this)
+func (m *EomSigInternal) MarshalBinary() (data []byte, err error) {
+	var buf primitives.Buffer
+
+	if err = buf.PushByte(constants.INTERNALEOMSIG); err != nil {
+		return nil, err
+	}
+	if e := buf.PushIHash(m.ServerID); e != nil {
+		return nil, e
+	}
+	if e := buf.PushInt(int(m.DBHeight)); e != nil {
+		return nil, e
+	}
+	if e := buf.PushByte(m.Minute); e != nil {
+		return nil, e
+	}
+	if e := buf.PushByte(m.Minute); e != nil {
+		return nil, e
+	}
+	data = buf.Bytes()
+	return data, nil
+}
+
+func (m *EomSigInternal) GetMsgHash() interfaces.IHash {
+	if m.MsgHash == nil {
+		data, err := m.MarshalBinary()
+		if err != nil {
+			return nil
+		}
+		m.MsgHash = primitives.Sha(data)
+	}
+	return m.MsgHash
+}
+func Fault(e *elections.Elections, dbheight int, minute int, round int) {
 
 	time.Sleep(e.Timeout)
-	select {
-	case fault := <-end:
-		fmt.Printf("Cancel timeout for %v\n", this)
 
-		if fault != this {
-			panic(errors.New(fmt.Sprintf("Expected fault %v got fault %v", this, fault)))
-		}
-		return
-	default:
-		fmt.Printf("Timeout for %v\n", this)
-		timeout := new(TimeoutInternal)
-		timeout.DBHeight = this.Dbheight
-		timeout.Minute = byte(this.Minute)
-		timeout.Round = this.Round
-		e.Input.Enqueue(timeout)
-	}
+	timeout := new(TimeoutInternal)
+	timeout.DBHeight = dbheight
+	timeout.Minute = byte(minute)
+	timeout.Round = round
+	e.Input.Enqueue(timeout)
+
 }
 
 func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.IElections) {
@@ -71,7 +93,6 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 	// Either the height has incremented, or the minute has incremented.
 	mv := int(m.DBHeight) > e.DBHeight || int(m.Minute) > e.Minute
 	if mv {
-
 		// Set our Identity Chain (Just in case it has changed.)
 		e.FedID = s.IdentityChainID
 
@@ -79,20 +100,13 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 		e.Minute = int(m.Minute)
 		e.Msgs = append(e.Msgs[:0], m)
 		e.Sync = make([]bool, len(e.Federated))
-		e.EndFault = make(chan elections.FaultId) // Silly to make all this every time around
-
 		// Set the title in the state
 		s.Election0 = Title()
 
 		// Start our timer to timeout this sync
 		round := 0
-		this := elections.FaultId{int(m.DBHeight), int(m.Minute), round}
-		if e.EndFault != nil && e.PrevElection != new(elections.FaultId)
-		{
-			e.EndFault <- e.PrevElection // Cancel the outstanding fault
-		}
-		go Fault(e, this, e.EndFault)
-		e.PrevElection = this
+
+		go Fault(e, e.DBHeight, e.Minute, round)
 
 		t := "EOM"
 		if !m.SigType {
@@ -149,14 +163,8 @@ func (m *EomSigInternal) GetTimestamp() interfaces.Timestamp {
 	return primitives.NewTimestampNow()
 }
 
-func (m *EomSigInternal) GetMsgHash() interfaces.IHash {
-	if m.MsgHash == nil {
-	}
-	return m.MsgHash
-}
-
 func (m *EomSigInternal) Type() byte {
-	return constants.INTERNALSIG
+	return constants.INTERNALEOMSIG
 }
 
 func (m *EomSigInternal) Validate(state interfaces.IState) int {
@@ -203,10 +211,6 @@ func (m *EomSigInternal) UnmarshalBinaryData(data []byte) (newData []byte, err e
 func (m *EomSigInternal) UnmarshalBinary(data []byte) error {
 	_, err := m.UnmarshalBinaryData(data)
 	return err
-}
-
-func (m *EomSigInternal) MarshalBinary() (data []byte, err error) {
-	return
 }
 
 func (m *EomSigInternal) String() string {
