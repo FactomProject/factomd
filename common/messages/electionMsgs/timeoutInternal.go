@@ -160,7 +160,7 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 	e.Round[e.Electing]++
 
 	// If we don't have all our sync messages, we will have to come back around and see if all is well.
-	go Fault(e, int(m.DBHeight), int(m.Minute), m.VMIndex, e.Round[e.Electing])
+	go Fault(e, int(m.DBHeight), int(m.Minute), e.Round[e.Electing])
 
 	auditIdx := e.AuditPriority()
 	// This server's possible identity as an audit server. -1 means we are not an audit server.

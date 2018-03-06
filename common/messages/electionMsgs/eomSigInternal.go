@@ -41,7 +41,6 @@ func Title() string {
 		"E:Min")
 }
 
-
 func (m *EomSigInternal) MarshalBinary() (data []byte, err error) {
 	var buf primitives.Buffer
 
@@ -75,13 +74,12 @@ func (m *EomSigInternal) GetMsgHash() interfaces.IHash {
 	return m.MsgHash
 }
 
-func Fault(e *elections.Elections, dbheight int, minute int, vmIndex int, round int) {
+func Fault(e *elections.Elections, dbheight int, minute int, round int) {
 
 	time.Sleep(e.Timeout)
 	timeout := new(TimeoutInternal)
 	timeout.Minute = byte(minute)
 	timeout.DBHeight = dbheight
-	timeout.VMIndex = vmIndex
 	timeout.Round = round
 	e.Input.Enqueue(timeout)
 
@@ -106,7 +104,7 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 		s.Election0 = Title()
 
 		// Start our timer to timeout this sync
-		go Fault(e, int(m.DBHeight), int(m.Minute), m.VMIndex, 0)
+		go Fault(e, int(m.DBHeight), int(m.Minute), 0)
 		t := "EOM"
 		if !m.SigType {
 			t = "DBSig"
@@ -162,8 +160,6 @@ func (m *EomSigInternal) GetTimestamp() interfaces.Timestamp {
 	return primitives.NewTimestampNow()
 }
 
-
-
 func (m *EomSigInternal) Type() byte {
 	return constants.INTERNALEOMSIG
 }
@@ -213,7 +209,6 @@ func (m *EomSigInternal) UnmarshalBinary(data []byte) error {
 	_, err := m.UnmarshalBinaryData(data)
 	return err
 }
-
 
 func (m *EomSigInternal) String() string {
 	if m.ServerID == nil {
