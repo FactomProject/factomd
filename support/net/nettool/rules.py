@@ -7,7 +7,7 @@ from enum import Enum
 from ipaddress import ip_network
 import re
 
-from nettool import log
+from nettool import log, services
 
 
 # Custom chain that we inject rules to
@@ -43,20 +43,23 @@ FLUSH_CUSTOM_CHAIN = \
     "iptables -F " + IPTABLES_CHAIN
 
 
-class Iptables(object):
+class Rules(object):
     """
     Allows managing iptables rules via the gateway container.
     """
     env = None
 
-    def __init__(self, gateway, cfg):
-        self.gateway = gateway
-        self.rules = [Rule.from_cfg(rule) for rule in cfg.rules]
+    def __init__(self, docker, config, network, testnet):
+        self.network = network
+        self.testnet = testnet
+        self.gateway = services.Gateway(docker)
+        self.rules = [Rule.from_cfg(rule) for rule in config.rules]
 
     def print_info(self):
         """
         Prints the information about the status of iptables rules.
         """
+        self.gateway.print_info()
         parsed, unparsed = self._parse_rules()
 
         if parsed:
@@ -69,79 +72,91 @@ class Iptables(object):
             for rule in unparsed:
                 log.info("  ", rule)
 
-    def up(self):
+    def up(self, build=False):
         """
         Creates the custom chain and adds all the initial rules.
         """
+        if build:
+            services.Gateway.rebuild_image()
+        self.gateway.up(restart=build)
         with log.step("Creating iptables rules"):
-            self._run(CREATE_CUSTOM_CHAIN)
-            result = self._run(CHECK_FORWARD_TO_CUSTOM_CHAIN)
+            self.gateway.run(CREATE_CUSTOM_CHAIN)
+            result = self.gateway.run(CHECK_FORWARD_TO_CUSTOM_CHAIN)
             if result:
-                self._run(CREATE_FORWARD_TO_CUSTOM_CHAIN)
-            self._run(FLUSH_CUSTOM_CHAIN)
+                self.gateway.run(CREATE_FORWARD_TO_CUSTOM_CHAIN)
+            self.gateway.run(FLUSH_CUSTOM_CHAIN)
             for rule in self.rules:
-                rule_exists = not self._run(rule.check_cmd())
+                rule_exists = not self.gateway.run(
+                    rule.check_cmd(self.network)
+                )
                 if not rule_exists:
-                    self._run(rule.append_cmd())
+                    self.gateway.run(rule.append_cmd(self.network))
 
-    def down(self):
+    def down(self, destroy=False):
         """
         Destroys the custom chain and all its rules.
         """
         with log.step("Deleting iptables rules"):
-            self._run(FLUSH_CUSTOM_CHAIN)
-            self._run(DELETE_FORWARD_TO_CUSTOM_CHAIN)
-            self._run(DELETE_CUSTOM_CHAIN)
+            self.gateway.run(FLUSH_CUSTOM_CHAIN)
+            self.gateway.run(DELETE_FORWARD_TO_CUSTOM_CHAIN)
+            self.gateway.run(DELETE_CUSTOM_CHAIN)
+            self.gateway.down(destroy=destroy)
 
-    def ins_rule(self, source, target, action):
+    def insert(self, source, target, action, one_way):
         """
         Insert a rule at the beginning of the custom chain.
         """
+        self._ensure_gateway()
         action = RuleAction.from_cfg(action)
         rule = Rule(source, target, action)
         # iptables result empty -> rule exists
-        rule_exists = not self._run(rule.check_cmd())
+        rule_exists = not self.gateway.run(rule.check_cmd(self.network))
         if rule_exists:
             log.info("Rule", repr(rule), "already exists")
         else:
-            self._run(rule.insert_cmd())
+            self.gateway.run(rule.insert_cmd(self.network))
             log.info("Inserted new rule:", repr(rule))
 
-    def add_rule(self, source, target, action):
+    def append(self, source, target, action, one_way):
         """
         Adds a rule to the custom chain.
         """
+        self._ensure_gateway()
         action = RuleAction.from_cfg(action)
         rule = Rule(source, target, action)
         # iptables result empty -> rule exists
-        rule_exists = not self._run(rule.check_cmd())
+        rule_exists = not self.gateway.run(rule.check_cmd(self.network))
         if rule_exists:
             log.info("Rule", repr(rule), "already exists")
         else:
-            self._run(rule.append_cmd())
+            self.gateway.run(rule.append_cmd(self.network))
             log.info("Appended new rule:", repr(rule))
 
-    def del_rule(self, source, target, action):
+    def delete(self, source, target, action, one_way):
         """
         Deletes the rule from the custom chain.
         """
+        self._ensure_gateway()
         action = RuleAction.from_cfg(action)
         rule = Rule(source, target, action)
-        rule_exists = not self._run(rule.check_cmd())
+        rule_exists = not self.gateway.run(rule.check_cmd(self.network))
         if rule_exists:    # iptables result empty -> rule exists
-            self._run(rule.delete_cmd())
+            self.gateway.run(rule.delete_cmd(self.network))
             log.info("Deleted rule:", repr(rule))
         else:
             log.info("Rule", repr(rule), "not found")
 
     def _parse_rules(self):
-        lines = self._run(LIST_CUSTOM_RULES).splitlines()
+        if not self.gateway.is_running:
+            return None, None
+
+        lines = self.gateway.run(LIST_CUSTOM_RULES).splitlines()
 
         parsed = []
         unparsed = []
 
         for line in lines[1:]:  # skip chain creation rule
-            rule = Rule.parse(line)
+            rule = Rule.parse(line, self.network)
             if isinstance(rule, Rule):
                 parsed.append(rule)
             else:
@@ -149,8 +164,9 @@ class Iptables(object):
 
         return parsed, unparsed
 
-    def _run(self, cmd):
-        return self.gateway.exec_run(cmd)
+    def _ensure_gateway(self):
+        if not self.gateway.is_running:
+            log.fatal("Gateway container must be up to change rules")
 
 
 class RuleAction(Enum):
@@ -194,7 +210,7 @@ class Rule(object):
         return Rule(cfg.source, cfg.target, action)
 
     @staticmethod
-    def parse(line):
+    def parse(line, network):
         """
         Attempts to parse an iptables output line into a rule, returns the rule
         if parsing was successful, otherwise returns the original line.
@@ -207,8 +223,8 @@ class Rule(object):
         ip_target = match.group('target')
         ip_action = match.group('action')
 
-        source = _parse_network_address(ip_source)
-        target = _parse_network_address(ip_target)
+        source = _parse_network_address(ip_source, network)
+        target = _parse_network_address(ip_target, network)
 
         return Rule(source, target, RuleAction(ip_action))
 
@@ -217,45 +233,45 @@ class Rule(object):
         self.target = target
         self.action = action
 
-    def insert_cmd(self):
+    def insert_cmd(self, network):
         """
         Returns an insert command for the current rule.
         """
-        ip_source = _name_to_ip(self.source)
-        ip_target = _name_to_ip(self.target)
+        ip_source = _name_to_ip(self.source, network)
+        ip_target = _name_to_ip(self.target, network)
         return "iptables -I " + IPTABLES_CHAIN + \
             " -s " + ip_source + \
             " -d " + ip_target + \
             " -j " + self.action.value
 
-    def append_cmd(self):
+    def append_cmd(self, network):
         """
         Returns a create command for the current rule.
         """
-        ip_source = _name_to_ip(self.source)
-        ip_target = _name_to_ip(self.target)
+        ip_source = _name_to_ip(self.source, network)
+        ip_target = _name_to_ip(self.target, network)
         return "iptables -A " + IPTABLES_CHAIN + \
             " -s " + ip_source + \
             " -d " + ip_target + \
             " -j " + self.action.value
 
-    def check_cmd(self):
+    def check_cmd(self, network):
         """
         Returns a check command for the current rule.
         """
-        ip_source = _name_to_ip(self.source)
-        ip_target = _name_to_ip(self.target)
+        ip_source = _name_to_ip(self.source, network)
+        ip_target = _name_to_ip(self.target, network)
         return "iptables -C " + IPTABLES_CHAIN + \
             " -s " + ip_source + \
             " -d " + ip_target + \
             " -j " + self.action.value
 
-    def delete_cmd(self):
+    def delete_cmd(self, network):
         """
         Returns a delete command for the current rule.
         """
-        ip_source = _name_to_ip(self.source)
-        ip_target = _name_to_ip(self.target)
+        ip_source = _name_to_ip(self.source, network)
+        ip_target = _name_to_ip(self.target, network)
         return "iptables -D " + IPTABLES_CHAIN + \
             " -s " + ip_source + \
             " -d " + ip_target + \
@@ -271,27 +287,25 @@ class Rule(object):
         ])
 
 
-def _parse_network_address(string):
-    env = Iptables.env
-    network = ip_network(string)
-    if network.num_addresses == 1:  # "/32"
-        ip = str(network.network_address)
-        name = env.network.ip_pool.get_container_name_for_ip(ip)
+def _parse_network_address(string, network):
+    net = ip_network(string)
+    if net.num_addresses == 1:  # "/32"
+        ip = str(net.network_address)
+        name = network.ip_pool.get_container_name_for_ip(ip)
         if name:
             return name
         return ip
 
-    if network == env.network.address:
+    if net == network.address:
         return "*"
 
-    return str(network)
+    return str(net)
 
 
-def _name_to_ip(name):
-    env = Iptables.env
+def _name_to_ip(name, network):
     if name == "*":
-        return str(env.network.address)
-    container_ip = env.network.ip_pool.get_ip_for_container_name(name)
+        return str(network.address)
+    container_ip = network.ip_pool.get_ip_for_container_name(name)
     if container_ip:
         return str(container_ip)
 

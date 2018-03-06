@@ -7,10 +7,17 @@ import docker as docker_lib
 
 from nettool import log
 
-
+# docker network name
 NETWORK_NAME = "nettool"
+
+# range of addresses that will be used to assign IPs to containers
 NETWORK_SUBNET = "10.12.0.0/24"
+
+# the IP of the network gateway for the subnet above
 NETWORK_GATEWAY = "10.12.0.254"
+
+# the range of addresses that docker internal DHCP can use, should be different
+# from the subnet above
 NETWORK_IPRANGE = "10.12.1.0/24"
 
 
@@ -21,13 +28,11 @@ class Network(object):
     """
     env = None
 
-    def __init__(self, containers):
+    def __init__(self, docker):
         self.name = NETWORK_NAME
+        self.docker = docker
         self.docker_network = None
         self.ip_pool = IPPool()
-
-        self.containers = []
-        self._assign_ips(containers)
 
     @property
     def address(self):
@@ -36,12 +41,13 @@ class Network(object):
         """
         return ip_network(NETWORK_SUBNET)
 
-    def print_info(self):
+    def add(self, service):
         """
-        Print information about the network.
+        Adds a container to the containers managed by the network.
         """
-        log.section("Network")
-        log.info("Name:", self.name)
+        ip = self.ip_pool.add(service.container)
+        service.container.assigned_ip = ip
+        service.container.network = self
 
     def is_up(self):
         """
@@ -50,23 +56,26 @@ class Network(object):
         self._refresh_network_status()
         return self.docker_network is not None
 
-    def up(self):
+    def up(self, build=False):
         """
         Ensures that the network is running.
         """
+        if build:
+            self.down(destroy=True)
+
         if self.is_up():
             return
 
         with log.step("Creating network"):
             ipam_pool = docker_lib.types.IPAMPool(
-                subnet=self.ip_pool.get_subnet(),
-                gateway=self.ip_pool.get_network_gateway(),
-                iprange=self.ip_pool.get_iprange()
+                subnet=str(self.ip_pool.subnet),
+                gateway=str(self.ip_pool.gateway),
+                iprange=str(self.ip_pool.iprange)
             )
             ipam_config = docker_lib.types.IPAMConfig(
                 pool_configs=[ipam_pool]
             )
-            self.docker_network = self.env.docker.networks.create(
+            self.docker_network = self.docker.networks.create(
                 self.name,
                 driver='bridge',
                 ipam=ipam_config
@@ -83,16 +92,9 @@ class Network(object):
 
     def _refresh_network_status(self):
         try:
-            self.docker_network = self.env.docker.networks.get(self.name)
+            self.docker_network = self.docker.networks.get(self.name)
         except docker_lib.errors.NotFound:
             self.docker_network = None
-
-    def _assign_ips(self, containers):
-        for container in containers:
-            if container.in_network:
-                self.containers.append(container)
-                ip = self.ip_pool.add(container)
-                container.ip_address = ip
 
 
 class IPPool(object):
@@ -111,29 +113,10 @@ class IPPool(object):
         Adds the container to the pool, returns a string representation of the
         assigned IP address.
         """
-        name = container.instance_name
         address = self._get_next_free_ip()
-        self.name_to_ip[name] = address
-        self.ip_to_name[address] = name
+        self.name_to_ip[container.name] = address
+        self.ip_to_name[address] = container.name
         return str(address)
-
-    def get_subnet(self):
-        """
-        Get the string representation of the subnet.
-        """
-        return str(self.subnet)
-
-    def get_network_gateway(self):
-        """
-        Get the string representation of the IP address of the network gateway.
-        """
-        return str(self.gateway)
-
-    def get_iprange(self):
-        """
-        Get the string representation of the IP range.
-        """
-        return str(self.iprange)
 
     def get_ip_for_container_name(self, name):
         """

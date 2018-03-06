@@ -34,7 +34,7 @@ Options:
 """
 from docopt import docopt
 
-from nettool import config, docker_client, environment, log
+from nettool import config, environment, log
 
 
 def main(args):
@@ -95,32 +95,23 @@ def _environment_down(config_file, destroy_mode):
 
 def _environment_ins(config_file, source, target, action, one_way):
     env = _environment_from_file(config_file)
-
-    env.ins_rule(source, target, action)
-    if not one_way:
-        env.ins_rule(target, source, action)
+    env.rules.insert(source, target, action, one_way)
 
 
 def _environment_add(config_file, source, target, action, one_way):
     env = _environment_from_file(config_file)
-
-    env.add_rule(source, target, action)
-    if not one_way:
-        env.add_rule(target, source, action)
+    env.rules.append(source, target, action, one_way)
 
 
 def _environment_del(config_file, source, target, action, one_way):
     env = _environment_from_file(config_file)
-    env.del_rule(source, target, action)
-    if not one_way:
-        env.del_rule(target, source, action)
+    env.rules.delete(source, target, action, one_way)
 
 
 def _environment_from_file(config_file):
-    docker = docker_client.create()
     log.info("Reading config from:", config_file)
     cfg = config.read_file(config_file)
-    return environment.Environment(cfg, docker)
+    return environment.Environment(cfg)
 
 
 if __name__ == "__main__":

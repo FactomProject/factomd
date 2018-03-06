@@ -1,15 +1,57 @@
 """
-Provides classes that describe services used in the network setup. Each service
-class corresponds to a single docker image and each instance of the class to
-a docker container.
+Definitions of various services run in the environment.
 """
 import os.path
 
 from nettool import log
-from nettool.container import Container
+from nettool.docker_client import Image, Container
 
 
-class Gateway(Container):
+class Service(object):
+    """
+    Base class for all services.
+    """
+    image = None
+    container = None
+
+    @classmethod
+    def rebuild_image(cls):
+        """
+        Rebuild the image for this service.
+        """
+        cls.image.build(rebuild=True)
+
+    @classmethod
+    def destroy_image(cls):
+        """
+        Destroy the image for this service.
+        """
+        cls.image.destroy()
+
+    @property
+    def is_running(self):
+        """
+        Check if the service is currently running.
+        """
+        return self.container.is_running
+
+    def up(self, restart=False):
+        """
+        Bring the service up, if "restart" is True, the service container is
+        restarted.
+        """
+        self.__class__.image.build()
+        self.container.up(restart=restart)
+
+    def down(self, destroy=False):
+        """
+        Shuts the service down, if "destroy" is True, removes the service
+        container.
+        """
+        self.container.down(destroy=destroy)
+
+
+class Gateway(Service):
     """
     A gateway is a special container that runs in the privileged mode and
     allows access to the host iptables configuration and the list of processes.
@@ -18,93 +60,76 @@ class Gateway(Container):
     inside the Docker for Mac / Windows environment, where the user has no
     direct access to the host VM.
     """
-    NAME = "gateway"
-    IMAGE_TAG = "nettool_gateway"
-    CTX_PATH = "docker/gateway"
-
-    def __init__(self):
+    def __init__(self, docker):
         super().__init__()
-        self.in_network = False
-
-    @classmethod
-    def _build_image(cls):
-        return cls.env.docker.images.build(
-            path=cls.CTX_PATH,
-            tag=cls.IMAGE_TAG,
-            rm=True
+        self.__class__.image = Image(
+            docker,
+            tag="nettool_gateway",
+            path="docker/gateway"
         )
-
-    def _create_container(self):
-        return self.env.docker.containers.create(
-            self.IMAGE_TAG,
-            name=self.instance_name,
-            hostname=self.instance_name,
-            network_mode="host",
-            pid_mode="host",
-            ipc_mode="host",
-            privileged=True,
-            stdin_open=True,
-            tty=True,
-            detach=True
+        self.container = Container(
+            docker,
+            image=self.image,
+            name="gateway",
+            extra_args={
+                "network_mode": "host",
+                "pid_mode": "host",
+                "ipc_mode": "host",
+                "privileged": True,
+                "stdin_open": True,
+                "tty": True,
+            }
         )
 
     def print_info(self):
+        """
+        Print info for the gateway.
+        """
         log.section("Gateway")
-        self.print_container_info()
+        self.container.print_info()
 
-    def exec_run(self, cmd):
+    def run(self, cmd):
         """
         Execute a custom command on the gateway.
         """
-        if not self.is_running:
-            return ""
-
-        return self.container.exec_run(cmd).decode("ascii")
+        if self.container.is_running:
+            return self.container.docker_container.exec_run(cmd).decode("ascii")
 
 
-class SeedServer(Container):
+class SeedServer(Service):
     """
     The seeds server is a container that runs an nginx instance and serves the
     list of factomd nodes for discovery.
     """
-    NAME = "seeds_server"
-    IMAGE_TAG = "nettool_nginx"
-    CTX_PATH = "docker/seeds"
     SEEDS_FILE_LOCAL = "docker/seeds/seeds"
     SEEDS_FILE_REMOTE = "/usr/share/nginx/html/seeds"
 
-    @classmethod
-    def _build_image(cls):
-        return cls.env.docker.images.build(
-            path=cls.CTX_PATH,
-            tag=cls.IMAGE_TAG,
-            rm=True
-        )
-
-    def __init__(self, nodes):
+    def __init__(self, docker, seed_nodes):
         super().__init__()
-        self.seed_nodes = [node for node in nodes if node.is_seed]
-
-    def _create_container(self):
-        return self.env.docker.containers.create(
-            self.IMAGE_TAG,
-            name=self.instance_name,
-            hostname=self.instance_name,
-            network=self.env.network.name,
-
-            volumes={
-                os.path.abspath(self.SEEDS_FILE_LOCAL): {
-                    'bind': self.SEEDS_FILE_REMOTE,
-                    'mode': 'ro'
-                }
-            },
-            detach=True
+        self.__class__.image = Image(
+            docker,
+            tag="nettool_seeds",
+            path="docker/seeds"
         )
+        self.container = Container(
+            docker,
+            image=self.image,
+            name="seeds_server",
+            extra_args={
+                "volumes": {
+                    os.path.abspath(self.SEEDS_FILE_LOCAL): {
+                        'bind': self.SEEDS_FILE_REMOTE,
+                        'mode': 'ro'
+                    }
+                }
+            }
+        )
+        self.seed_nodes = seed_nodes
 
     def print_info(self):
         log.section("Seeds server")
 
-        self.print_container_info()
+        self.container.print_info()
         log.info()
 
         if not self.seed_nodes:
@@ -130,24 +155,22 @@ class SeedServer(Container):
             seed_file.writelines(entries)
 
 
-class Factomd(Container):
+class Factomd(Service):
     """
     A factomd instance.
     """
-    NAME = "factomd"
-    IMAGE_TAG = "nettool_factomd"
-    CTX_PATH = "../../"
-
-    @classmethod
-    def _build_image(cls):
-        return cls.env.docker.images.build(
-            path=cls.CTX_PATH,
-            tag=cls.IMAGE_TAG,
-            rm=True
-        )
-
-    def __init__(self, config):
+    def __init__(self, docker, config):
         super().__init__()
+        self.__class__.image = Image(
+            docker,
+            tag="nettool_factomd",
+            path="../.."
+        )
+        self.container = Container(
+            docker,
+            image=self.image,
+            name=config.name
+        )
         self.config = config
 
     @property
@@ -162,6 +185,12 @@ class Factomd(Container):
         return self.config.seed
 
     @property
+    def is_leader(self):
+        """
+        If True, this node will be promoted to a leader.
+        """
+
+    @property
     def server_port(self):
         """
         Gets the port for communication between servers.
@@ -173,17 +202,8 @@ class Factomd(Container):
         """
         Gets a string for an entry in the seed list for this node.
         """
-        return f"{self.ip_address}:8110"
-
-    def _create_container(self):
-        return self.env.docker.containers.create(
-            self.IMAGE_TAG,
-            name=self.instance_name,
-            hostname=self.instance_name,
-            network=self.env.network.name,
-            detach=True
-        )
+        return f"{self.container.assigned_ip}:8110"
 
     def print_info(self):
         log.section("Node", self.config.name)
-        self.print_container_info()
+        self.container.print_info()
