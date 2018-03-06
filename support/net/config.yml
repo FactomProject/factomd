@@ -35,7 +35,7 @@ network:
         - action: deny    # allow or deny
           source: node2   # a node name or "*" for the whole network
           target: "*"     # a node name or "*" for the whole network
-          one-way: false  # if true, the rule is applied one-way (source ->
+          one-way: true   # if true, the rule is applied one-way (source ->
                           # target), if false, the rule is applied both ways
                           # (source <-> target), default: false
         - action: deny

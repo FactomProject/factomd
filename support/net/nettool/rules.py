@@ -86,10 +86,7 @@ class Rules(object):
                 self.gateway.run(CREATE_FORWARD_TO_CUSTOM_CHAIN)
             self.gateway.run(FLUSH_CUSTOM_CHAIN)
             for rule in self.rules:
-                rule_exists = not self.gateway.run(
-                    rule.check_cmd(self.network)
-                )
-                if not rule_exists:
+                if not self._rule_exists(rule):
                     self.gateway.run(rule.append_cmd(self.network))
 
     def down(self, destroy=False):
@@ -108,14 +105,9 @@ class Rules(object):
         """
         self._ensure_gateway()
         action = RuleAction.from_cfg(action)
-        rule = Rule(source, target, action)
-        # iptables result empty -> rule exists
-        rule_exists = not self.gateway.run(rule.check_cmd(self.network))
-        if rule_exists:
-            log.info("Rule", repr(rule), "already exists")
-        else:
-            self.gateway.run(rule.insert_cmd(self.network))
-            log.info("Inserted new rule:", repr(rule))
+        self._insert_rule(Rule(source, target, action))
+        if not one_way:
+            self._insert_rule(Rule(target, source, action))
 
     def append(self, source, target, action, one_way):
         """
@@ -123,14 +115,9 @@ class Rules(object):
         """
         self._ensure_gateway()
         action = RuleAction.from_cfg(action)
-        rule = Rule(source, target, action)
-        # iptables result empty -> rule exists
-        rule_exists = not self.gateway.run(rule.check_cmd(self.network))
-        if rule_exists:
-            log.info("Rule", repr(rule), "already exists")
-        else:
-            self.gateway.run(rule.append_cmd(self.network))
-            log.info("Appended new rule:", repr(rule))
+        self._append_rule(Rule(source, target, action))
+        if not one_way:
+            self._append_rule(Rule(target, source, action))
 
     def delete(self, source, target, action, one_way):
         """
@@ -138,13 +125,34 @@ class Rules(object):
         """
         self._ensure_gateway()
         action = RuleAction.from_cfg(action)
-        rule = Rule(source, target, action)
-        rule_exists = not self.gateway.run(rule.check_cmd(self.network))
-        if rule_exists:    # iptables result empty -> rule exists
+        self._delete_rule(Rule(source, target, action))
+        if not one_way:
+            self._delete_rule(Rule(target, source, action))
+
+    def _insert_rule(self, rule):
+        if self._rule_exists(rule):
+            log.info("Rule", repr(rule), "already exists")
+        else:
+            self.gateway.run(rule.insert_cmd(self.network))
+            log.info("Inserted new rule:", repr(rule))
+
+    def _append_rule(self, rule):
+        if self._rule_exists(rule):
+            log.info("Rule", repr(rule), "already exists")
+        else:
+            self.gateway.run(rule.append_cmd(self.network))
+            log.info("Appended new rule:", repr(rule))
+
+    def _delete_rule(self, rule):
+        if self._rule_exists(rule):
             self.gateway.run(rule.delete_cmd(self.network))
             log.info("Deleted rule:", repr(rule))
         else:
             log.info("Rule", repr(rule), "not found")
+
+    def _rule_exists(self, rule):
+        # iptables result empty -> rule exists
+        return not self.gateway.run(rule.check_cmd(self.network))
 
     def _parse_rules(self):
         if not self.gateway.is_running:
