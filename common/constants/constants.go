@@ -51,7 +51,7 @@ const (
 	INTERNALADDAUDIT
 	INTERNALREMOVEAUDIT
 	INTERNALTIMEOUT
-	INTERNALSIG
+	INTERNALEOMSIG
 
 	VOLUNTEERAUDIT
 	VOLUNTEERPROPOSAL
@@ -135,8 +135,8 @@ func MessageName(Type byte) string {
 		return "INTERNALREMOVEAUDIT"
 	case INTERNALTIMEOUT:
 		return "INTERNALTIMEOUT"
-	case INTERNALSIG:
-		return "INTERNALSIG"
+	case INTERNALEOMSIG:
+		return "INTERNALEOMSIG"
 
 	default:
 		return "Unknown:" + fmt.Sprintf(" %d", Type)

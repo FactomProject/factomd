@@ -35,11 +35,8 @@ var _ interfaces.IMsg = (*TimeoutInternal)(nil)
 func (m *TimeoutInternal) MarshalBinary() (data []byte, err error) {
 	var buf primitives.Buffer
 
-	if err = buf.PushByte(60); err != nil {
+	if err = buf.PushByte(constants.INTERNALTIMEOUT); err != nil {
 		return nil, err
-	}
-	if e := buf.PushString(m.Name); e != nil {
-		return nil, e
 	}
 	if e := buf.PushInt(int(m.DBHeight)); e != nil {
 		return nil, e

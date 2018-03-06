@@ -30,11 +30,8 @@ var _ interfaces.IMsg = (*RemoveAuditInternal)(nil)
 func (m *RemoveAuditInternal) MarshalBinary() (data []byte, err error) {
 	var buf primitives.Buffer
 
-	if err = buf.PushByte(40); err != nil {
+	if err = buf.PushByte(constants.INTERNALREMOVEAUDIT); err != nil {
 		return nil, err
-	}
-	if e := buf.PushString(m.NName); e != nil {
-		return nil, e
 	}
 	if e := buf.PushIHash(m.ServerID); e != nil {
 		return nil, e
