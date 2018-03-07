@@ -92,8 +92,9 @@ class Gateway(Service):
         """
         Execute a custom command on the gateway.
         """
-        if self.container.is_running:
-            return self.container.docker_container.exec_run(cmd).decode("ascii")
+        if not self.container.is_running:
+            return None
+        return self.container.docker_container.exec_run(cmd).decode("ascii")
 
 
 class SeedServer(Service):
@@ -127,6 +128,9 @@ class SeedServer(Service):
         self.seed_nodes = seed_nodes
 
     def print_info(self):
+        """
+        Prints the current status of the server.
+        """
         log.section("Seeds server")
 
         self.container.print_info()
@@ -175,6 +179,9 @@ class Factomd(Service):
 
     @property
     def instance_name(self):
+        """
+        Returns the name of the instance.
+        """
         return self.config.name
 
     @property
@@ -206,5 +213,8 @@ class Factomd(Service):
         return f"{self.container.assigned_ip}:8110"
 
     def print_info(self):
+        """
+        Prints the current status of the node.
+        """
         log.section("Node", self.config.name)
         self.container.print_info()
