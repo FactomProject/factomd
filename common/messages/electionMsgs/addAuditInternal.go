@@ -80,7 +80,7 @@ func (m *AddAuditInternal) GetRepeatHash() interfaces.IHash {
 	return m.GetMsgHash()
 }
 
-// We have to return the haswh of the underlying message.
+// We have to return the hash of the underlying message.
 func (m *AddAuditInternal) GetHash() interfaces.IHash {
 	return m.GetMsgHash()
 }

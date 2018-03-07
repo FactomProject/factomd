@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"hash"
+	"runtime"
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -37,7 +38,7 @@ var _ = (*hash.Hash32)(nil)
 
 func (s *State) debugExec() (ret bool) {
 	ret = s.FactomNodeName == "FNode0"
-	return false && ret
+	return true || ret
 }
 
 func (s *State) LogMessage(logName string, comment string, msg interfaces.IMsg) {
@@ -47,7 +48,15 @@ func (s *State) LogMessage(logName string, comment string, msg interfaces.IMsg) 
 	}
 }
 
+func (s *State) LogPrintf(logName string, format string, more ...interface{}) {
+	if s.debugExec() {
+		logFileName := s.FactomNodeName + "_" + logName + ".txt"
+		messages.LogPrintf(logFileName, format, more...)
+	}
+}
 func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
+	runtime.Gosched() // Make sure all the simulation progress...
+
 	preExecuteMsgTime := time.Now()
 	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
 	if !ok {
@@ -99,11 +108,8 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 		TotalHoldingQueueRecycles.Inc()
 		s.LogMessage("executeMsg", "Holding1", msg)
 		s.Holding[msg.GetMsgHash().Fixed()] = msg
+
 	default:
-		TotalHoldingQueueInputs.Inc()
-		TotalHoldingQueueRecycles.Inc()
-		s.LogMessage("executeMsg", "Holding2", msg)
-		s.Holding[msg.GetMsgHash().Fixed()] = msg
 		if !msg.SentInvalid() {
 			msg.MarkSentInvalid(true)
 			s.LogMessage("executeMsg", "InvalidMsg", msg)
@@ -195,17 +201,17 @@ ackLoop:
 				if s.IgnoreMissing {
 					now := s.GetTimestamp().GetTimeSeconds()
 					if now-a.GetTimestamp().GetTimeSeconds() < 60*15 {
-						s.LogMessage("ackQueue_o"+".txt", "Execute", ack)
+						s.LogMessage("ackQueue_o", "Execute", ack)
 						s.executeMsg(vm, ack)
 					} else {
-						s.LogMessage("ackQueue_o"+".txt", "Drop Too Old", ack)
+						s.LogMessage("ackQueue_o", "Drop Too Old", ack)
 					}
 				} else {
-					s.LogMessage("ackQueue_o"+".txt", "Execute2", ack)
+					s.LogMessage("ackQueue_o", "Execute2", ack)
 					s.executeMsg(vm, ack)
 				}
 			} else {
-				s.LogMessage("ackQueue_o"+".txt", "Drop Invalid", ack) // Maybe put it back in the ask queue ? -- clay
+				s.LogMessage("ackQueue_o", "Drop Invalid", ack) // Maybe put it back in the ask queue ? -- clay
 			}
 			progress = true
 		default:
@@ -224,7 +230,7 @@ emptyLoop:
 		select {
 		case msg := <-s.msgQueue:
 
-			s.LogMessage("msgQueue_o"+".txt", "Execute", msg)
+			s.LogMessage("msgQueue_o", "Execute", msg)
 			if s.executeMsg(vm, msg) && !msg.IsPeer2Peer() {
 				msg.SendOut(s, msg)
 			}
@@ -260,7 +266,7 @@ processLoop:
 	for {
 		select {
 		case msg := <-process:
-			s.LogMessage("executeMsg"+".txt", "From processq", msg)
+			s.LogMessage("executeMsg", "From processq", msg)
 			progress = s.executeMsg(vm, msg) || progress
 			s.UpdateState()
 		default:
@@ -1895,6 +1901,8 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 	// If we are here, this means that the FullFault message is complete
 	// and we can execute it as such (replacing the faulted Leader with
 	// the nominated Audit server)
+
+	panic(errors.New("Started Old Faulting Process... very bad thing"))
 
 	fullFault, ok := msg.(*messages.FullServerFault)
 	if !ok {

@@ -6,7 +6,6 @@ package electionMsgs
 
 import (
 	"fmt"
-
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -109,7 +108,8 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 	// No election running, is there one we should start?
 	if e.Electing == -1 {
 
-		nfeds := len(s.ProcessLists.Get(uint32(e.DBHeight)).FedServers)
+		servers := s.ProcessLists.Get(uint32(e.DBHeight)).FedServers
+		nfeds := len(servers)
 		VMscollected := make([]bool, nfeds, nfeds)
 		for _, im := range e.Msgs {
 			msg := im.(interfaces.IMsgAck)
@@ -131,10 +131,14 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 			return
 		}
 
-		// TODO: What the heck is this? makeMap does not return an int?
 		e.Electing = state.MakeMap(nfeds, uint32(m.DBHeight))[e.Minute][e.VMIndex]
+
+		elections.CheckAuthSetsMatch("TimeoutInternal.ElectionProcess", e, s)
+
 		// TODO: Got here with a 3 when the e.Federated[] was only 3 long running TestSetupANetwork()
 		e.FedID = e.Federated[e.Electing].GetChainID()
+
+		e.LogPrintf("election", "**** Start an Election for %d[%x] ****", e.Electing, e.FedID.Bytes()[3:6])
 
 		// ------------------
 		// Not in an election
@@ -160,7 +164,10 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 	e.Round[e.Electing]++
 
 	// If we don't have all our sync messages, we will have to come back around and see if all is well.
-	go Fault(e, int(m.DBHeight), int(m.Minute), e.Round[e.Electing])
+	// Start our timer to timeout this sync
+
+	e.FaultId.Store(e.FaultId.Load() + 1) // increment the timeout counter
+	go Fault(e, e.DBHeight, e.Minute, e.Round[e.Electing], e.FaultId.Load(), &e.FaultId)
 
 	auditIdx := e.AuditPriority()
 	// This server's possible identity as an audit server. -1 means we are not an audit server.

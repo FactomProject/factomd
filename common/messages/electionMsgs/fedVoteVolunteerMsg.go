@@ -7,6 +7,8 @@ package electionMsgs
 import (
 	"bytes"
 	"fmt"
+	//"github.com/FactomProject/factomd/state"
+	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -15,8 +17,6 @@ import (
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/goleveldb/leveldb/errors"
 	log "github.com/sirupsen/logrus"
-	//"github.com/FactomProject/factomd/state"
-	"time"
 )
 
 var _ = fmt.Print
@@ -41,20 +41,21 @@ type FedVoteVolunteerMsg struct {
 	Round      int
 
 	messageHash interfaces.IHash
+
+	// Non-marshaled fields
+	// The authority set to be used in this election
+	AuditServers []interfaces.IServer // List of Audit Servers
+	FedServers   []interfaces.IServer // List of Federated Servers
 }
 
 var _ interfaces.IMsg = (*FedVoteVolunteerMsg)(nil)
 var _ interfaces.IElectionMsg = (*FedVoteVolunteerMsg)(nil)
 
-func delayVol(is interfaces.IState, e *elections.Elections, m *FedVoteVolunteerMsg) {
-	time.Sleep(100 * time.Millisecond)
-	is.ElectionsQueue().Enqueue(m)
-}
-
 func (m *FedVoteVolunteerMsg) ElectionProcess(is interfaces.IState, elect interfaces.IElections) {
 	valid := m.FedVoteMsg.ElectionValidate(is)
 	switch valid {
 	case -1:
+		// Drop the volunteer message as invalid
 		return
 	case 0:
 		// Not ready yet, try again in a bit
@@ -62,35 +63,41 @@ func (m *FedVoteVolunteerMsg) ElectionProcess(is interfaces.IState, elect interf
 			time.Sleep(10 * time.Millisecond)
 			is.ElectionsQueue().Enqueue(m)
 		}()
-
 		return
+	case 1:
+		break // Do the work if it's valid
+	default:
+		panic(errors.New("Unexpected"))
 	}
 
 	e := elect.(*elections.Elections)
 
-	// checked in validate ? no need.
-	if e.DBHeight > int(m.DBHeight) || e.Minute > int(m.Minute) {
-		return // Expired ...
-	}
-
-	// If we don't have a timeout ourselves, then wait on this for a bit and try again.
+	// If we haven't detected a fault  ourselves(no timeout), then wait on this for a bit and try again.
 	if e.Electing < 0 {
-		go delayVol(is, e, m)
+		go func() {
+			time.Sleep(100 * time.Millisecond)
+			is.ElectionsQueue().Enqueue(m)
+		}()
 		return
 	}
+
+	// This message picked up the authority set for the affected processlist in state before arriving here
+
+	e.Audit = m.AuditServers
+	e.Federated = m.FedServers
 
 	idx := e.LeaderIndex(is.GetIdentityChainID())
 	aidx := e.AuditIndex(is.GetIdentityChainID())
 
-	//if m.DBHeight < uint32(e.DBHeight) || m.Minute < byte(e.Minute) || m.Round < e.Round[m.ServerIdx] {
-	//	return
-	//}
+	// Really this seems like a bad plan. We scramble the audit server order for each volunteer instead of once at the start of an election.
+	// TODO -- revisit this It can nominate the same audit server in different rounds.
+
 	auditIdx := e.AuditPriority()
-	if aidx >= 0 && auditIdx == aidx {
+	if aidx >= 0 && auditIdx == aidx { // If I am an audit server and I am the volunteer ...
 		e.FeedBackStr(fmt.Sprintf("V%d", m.ServerIdx), false, aidx)
-	} else if idx >= 0 {
+	} else if idx >= 0 { // else if I am a leader ...
 		e.FeedBackStr(fmt.Sprintf("V%d", m.ServerIdx), true, idx)
-	} else if aidx >= 0 {
+	} else if aidx >= 0 { // else if I am an audit server but not the volunteer
 		e.FeedBackStr(fmt.Sprintf("*%d", m.ServerIdx), false, aidx)
 	}
 	e.Msg = m.Missing
@@ -104,6 +111,7 @@ func (m *FedVoteVolunteerMsg) ElectionProcess(is interfaces.IState, elect interf
 	if resp == nil {
 		return
 	}
+
 	resp.SendOut(is, resp)
 	/*_____ End Election Adapter Control  _____*/
 
@@ -117,10 +125,30 @@ func (m *FedVoteVolunteerMsg) LeaderExecute(state interfaces.IState) {
 
 func (m *FedVoteVolunteerMsg) FollowerExecute(is interfaces.IState) {
 	s := is.(*state.State)
-	if s.Elections.(*elections.Elections).Adapter == nil {
+	e:= s.Elections.(*elections.Elections)
+	if e.Adapter == nil {
 		s.Holding[m.GetMsgHash().Fixed()] = m
 		return
 	}
+
+
+	elections.CheckAuthSetsMatch("FedVoteVolunteerMsg.FollowerExecute", e, s)
+
+	// Add the authority set this election involves from the process list
+	// may this should live in the election adapter? It's life mirrors the election ...
+	s_fservers := s.ProcessLists.Get(uint32(m.DBHeight)).FedServers
+	s_aservers := s.ProcessLists.Get(uint32(m.DBHeight)).AuditServers
+
+	m.FedServers = nil
+	m.AuditServers = nil
+
+	for _, s := range s_fservers {
+		m.FedServers = append(m.FedServers, s) // Append the federated servers
+	}
+	for _, s := range s_aservers {
+		m.AuditServers = append(m.AuditServers, s) // Append the audit servers
+	}
+	// these will be sorted to priority order in the election.
 	is.ElectionsQueue().Enqueue(m)
 }
 
@@ -179,7 +207,7 @@ func (m *FedVoteVolunteerMsg) GetRepeatHash() interfaces.IHash {
 	return m.GetMsgHash()
 }
 
-// We have to return the haswh of the underlying message.
+// We have to return the hash of the underlying message.
 
 func (m *FedVoteVolunteerMsg) GetHash() interfaces.IHash {
 	return m.GetMsgHash()
@@ -204,10 +232,16 @@ func (m *FedVoteVolunteerMsg) Type() byte {
 	return constants.VOLUNTEERAUDIT
 }
 
-func (m *FedVoteVolunteerMsg) Validate(state interfaces.IState) int {
-	baseMsg := m.FedVoteMsg.Validate(state)
+func (m *FedVoteVolunteerMsg) Validate(is interfaces.IState) int {
+
+	//e := is.(*state.State).Elections.(*elections.Elections)
+	//if is.GetIdentityChainID().IsSameAs(e.FedID){
+	//	e.LogMessage("election", "Won't vote against myself",m)
+	//	return -1
+	//}
+	baseMsg := m.FedVoteMsg.Validate(is)
 	if baseMsg != 1 {
-		return baseMsg
+		return baseMsg // a bit odd.. isn't this the same as always returning baseMsg
 	}
 
 	return 1

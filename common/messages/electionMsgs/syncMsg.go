@@ -144,9 +144,9 @@ func (m *SyncMsg) FollowerExecute(is interfaces.IState) {
 	eom := messages.General.CreateMsg(constants.EOM_MSG)
 	eom, ack := s.CreateEOM(true, eom, m.VMIndex)
 
-	if eom == nil { // TODO: What dos this mean? -- clay
+	if eom == nil { // TODO: What does this mean? -- clay
 		is.(*state.State).Holding[m.GetMsgHash().Fixed()] = m
-		return // May we are not yet prepared to create an EOM...
+		return // Maybe we are not yet prepared to create an EOM...
 	}
 	va := new(FedVoteVolunteerMsg)
 	va.Missing = eom
@@ -168,7 +168,7 @@ func (m *SyncMsg) FollowerExecute(is interfaces.IState) {
 	va.Round = m.Round
 
 	va.SendOut(is, va)
-	is.ElectionsQueue().Enqueue(va)
+	va.FollowerExecute(is)
 }
 
 // Acknowledgements do not go into the process list.

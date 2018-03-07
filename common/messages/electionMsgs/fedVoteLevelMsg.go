@@ -97,6 +97,9 @@ func (m *FedVoteLevelMsg) ElectionProcess(is interfaces.IState, elect interfaces
 	}
 
 	e := elect.(*elections.Elections)
+
+	elections.CheckAuthSetsMatch("FedVoteLevelMsg.ElectionProcess()", e, e.State.(*state.State))
+
 	/******  Election Adapter Control   ******/
 	/**	Controlling the inner election state**/
 	m.processIfCommitted(is, elect) // This will end the election if it's over
@@ -107,6 +110,7 @@ func (m *FedVoteLevelMsg) ElectionProcess(is interfaces.IState, elect interfaces
 	}
 
 	resp.SendOut(is, resp)
+
 	// We also need to check if we should change our state if the election resolved
 	if vote, ok := resp.(*FedVoteLevelMsg); ok {
 		vote.processIfCommitted(is, elect)
@@ -123,12 +127,23 @@ func (m *FedVoteLevelMsg) processIfCommitted(is interfaces.IState, elect interfa
 	}
 	e := elect.(*elections.Elections)
 
+	elections.CheckAuthSetsMatch("processIfCommitted()", e, e.State.(*state.State))
+
 	// This block of code is only called ONCE per election
 	if !e.Adapter.IsElectionProcessed() {
 		fmt.Printf("**** FedVoteLevelMsg %12s Swaping Fed: %d(%x) Audit: %d(%x)\n",
 			is.GetFactomNodeName(),
 			m.Volunteer.FedIdx, m.Volunteer.FedID.Bytes()[3:6],
 			m.Volunteer.ServerIdx, m.Volunteer.ServerID.Bytes()[3:6])
+
+		e.LogPrintf("election", "**** FedVoteLevelMsg %12s Swapping Fed: %d(%x) Audit: %d(%x)",
+			is.GetFactomNodeName(),
+			m.Volunteer.FedIdx, m.Volunteer.FedID.Bytes()[3:6],
+			m.Volunteer.ServerIdx, m.Volunteer.ServerID.Bytes()[3:6])
+
+		e.LogPrintf("election", "LeaderSwapState %d/%d/%d", m.VMIndex, m.DBHeight, m.Minute)
+		e.LogPrintf("election", "Demote  %x", e.Federated[m.Volunteer.FedIdx].GetChainID().Bytes()[3:6])
+		e.LogPrintf("election", "Promote %x", e.Audit[m.Volunteer.ServerIdx].GetChainID().Bytes()[3:6])
 
 		e.Federated[m.Volunteer.FedIdx], e.Audit[m.Volunteer.ServerIdx] =
 			e.Audit[m.Volunteer.ServerIdx], e.Federated[m.Volunteer.FedIdx]
@@ -140,6 +155,8 @@ func (m *FedVoteLevelMsg) processIfCommitted(is interfaces.IState, elect interfa
 		is.InMsgQueue().Enqueue(m)
 		// End the election by setting this to '-1'
 		e.Electing = -1
+		e.LogPrintf("election", "**** Election is over. Elected %d[%x] ****", m.Volunteer.ServerIdx, m.Volunteer.ServerID.Bytes()[3:6])
+
 		elections.Sort(e.Federated)
 		elections.Sort(e.Audit)
 	}
@@ -154,7 +171,8 @@ func (m *FedVoteLevelMsg) LeaderExecute(state interfaces.IState) {
 func (m *FedVoteLevelMsg) FollowerExecute(is interfaces.IState) {
 	s := is.(*state.State)
 	pl := s.ProcessLists.Get(m.DBHeight)
-	if pl == nil || s.Elections.(*elections.Elections).Adapter == nil {
+	e := s.Elections.(*elections.Elections)
+	if pl == nil || e.Adapter == nil {
 		s.Holding[m.GetMsgHash().Fixed()] = m
 		return
 	}
@@ -163,7 +181,19 @@ func (m *FedVoteLevelMsg) FollowerExecute(is interfaces.IState) {
 	//		ProcessInState is not marshalled, so only we can pass this to ourselves
 	//		allowing the election adapter to ensure only once behavior
 	if m.ProcessInState {
+		elections.CheckAuthSetsMatch("FedVoteLevelMsg.FollowerExecute", e, s)
+
 		fmt.Println("LeaderSwapState", s.GetFactomNodeName(), m.DBHeight, m.Minute)
+
+		s.LogPrintf("election", "**** FedVoteLevelMsg %12s Swapping Fed: %d(%x) Audit: %d(%x)\n",
+			s.GetFactomNodeName(),
+			m.Volunteer.FedIdx, m.Volunteer.FedID.Bytes()[3:6],
+			m.Volunteer.ServerIdx, m.Volunteer.ServerID.Bytes()[3:6])
+
+		s.LogPrintf("executeMsg", "LeaderSwapState %d/%d/%d", m.VMIndex, m.DBHeight, m.Minute)
+		s.LogPrintf("executeMsg", "Demote  %x", pl.FedServers[m.Volunteer.FedIdx].GetChainID().Bytes()[3:6])
+		s.LogPrintf("executeMsg", "Promote %x", pl.AuditServers[m.Volunteer.ServerIdx].GetChainID().Bytes()[3:6])
+
 		pl.FedServers[m.Volunteer.FedIdx], pl.AuditServers[m.Volunteer.ServerIdx] =
 			pl.AuditServers[m.Volunteer.ServerIdx], pl.FedServers[m.Volunteer.FedIdx]
 
@@ -249,7 +279,7 @@ func (m *FedVoteLevelMsg) GetRepeatHash() interfaces.IHash {
 	return m.GetMsgHash()
 }
 
-// We have to return the haswh of the underlying message.
+// We have to return the hash of the underlying message.
 
 func (m *FedVoteLevelMsg) GetHash() interfaces.IHash {
 	return m.GetMsgHash()

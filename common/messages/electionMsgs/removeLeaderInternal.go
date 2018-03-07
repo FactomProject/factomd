@@ -65,14 +65,15 @@ func (m *RemoveLeaderInternal) ElectionProcess(state interfaces.IState, elect in
 	if !ok {
 		panic("Invalid elections object")
 	}
-	idx := 0
+	idx := -1
 	for i, s := range e.Federated {
-		idx = i
+
 		if s.GetChainID().IsSameAs(m.GetServerID()) {
+			idx = i
 			break
 		}
 	}
-	if idx < len(e.Federated) {
+	if idx !=-1 {
 		e.Federated = append(e.Federated[:idx], e.Federated[idx+1:]...)
 	}
 }
@@ -89,7 +90,7 @@ func (m *RemoveLeaderInternal) GetRepeatHash() interfaces.IHash {
 	return m.GetMsgHash()
 }
 
-// We have to return the haswh of the underlying message.
+// We have to return the hash of the underlying message.
 func (m *RemoveLeaderInternal) GetHash() interfaces.IHash {
 	return m.MessageHash
 }

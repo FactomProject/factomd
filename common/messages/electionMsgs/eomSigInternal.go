@@ -5,6 +5,7 @@
 package electionMsgs
 
 import (
+	"errors"
 	"fmt"
 
 	"time"
@@ -15,6 +16,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/state"
+	"github.com/FactomProject/factomd/util/atomic"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -73,25 +75,37 @@ func (m *EomSigInternal) GetMsgHash() interfaces.IHash {
 	}
 	return m.MsgHash
 }
-
-func Fault(e *elections.Elections, dbheight int, minute int, round int) {
-
+func Fault(e *elections.Elections, dbheight int, minute int, round int, timeOutId int, currentTimeoutId *atomic.AtomicInt) {
+//	e.LogPrintf("election", "Start Timeout %d", timeOutId)
 	time.Sleep(e.Timeout)
-	timeout := new(TimeoutInternal)
-	timeout.Minute = byte(minute)
-	timeout.DBHeight = dbheight
-	timeout.Round = round
-	e.Input.Enqueue(timeout)
 
+	if currentTimeoutId.Load() == timeOutId {
+//		e.LogPrintf("election", "Timeout %d", timeOutId)
+		/* we have NOT moved on so no timeout */
+		timeout := new(TimeoutInternal)
+		timeout.DBHeight = dbheight
+		timeout.Minute = byte(minute)
+		timeout.Round = round
+		e.Input.Enqueue(timeout)
+	} else {
+//		e.LogPrintf("election", "Cancel Timeout %d", timeOutId)
+
+	}
 }
 
 func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.IElections) {
 	e := elect.(*elections.Elections) // Could check, but a nil pointer error is just as good.
 	s := is.(*state.State)            // Same here.
 
+	idx := e.LeaderIndex(m.ServerID)
+	if idx == -1 {
+		return // EOM but not from a server, just ignore it.
+	}
+
 	// We only do this once, as we transition into a sync event.
 	// Either the height has incremented, or the minute has incremented.
 	mv := int(m.DBHeight) > e.DBHeight || int(m.Minute) > e.Minute
+
 	if mv {
 		// Set our Identity Chain (Just in case it has changed.)
 		e.FedID = s.IdentityChainID
@@ -104,7 +118,11 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 		s.Election0 = Title()
 
 		// Start our timer to timeout this sync
-		go Fault(e, int(m.DBHeight), int(m.Minute), 0)
+		round := 0
+
+		e.FaultId.Store(e.FaultId.Load() + 1) // increment the timeout counter
+		go Fault(e, e.DBHeight, e.Minute, round, e.FaultId.Load(), &e.FaultId)
+
 		t := "EOM"
 		if !m.SigType {
 			t = "DBSig"
@@ -119,16 +137,13 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 	} else {
 		e.Msgs = append(e.Msgs, m)
 	}
-	idx := e.LeaderIndex(m.ServerID)
+
 	s.Election2 = e.FeedBackStr("m", true, idx)
-	if idx >= 0 {
-		for len(e.Sync) <= idx {
-			e.Sync = append(e.Sync, false)
-		}
-		e.Sync[idx] = true // Mark the leader at idx as synced.
-	} else {
-		return // Not a server, just ignore the while thing.
+	if len(e.Sync) <= idx {
+		panic(errors.New("e.sync too short"))
 	}
+
+	e.Sync[idx] = true // Mark the leader at idx as synced.
 	for _, b := range e.Sync {
 		if !b {
 			return // If any leader is not yet synced, then return.
@@ -151,7 +166,7 @@ func (m *EomSigInternal) GetRepeatHash() interfaces.IHash {
 	return m.GetMsgHash()
 }
 
-// We have to return the haswh of the underlying message.
+// We have to return the hash of the underlying message.
 func (m *EomSigInternal) GetHash() interfaces.IHash {
 	return m.MessageHash
 }

@@ -888,7 +888,7 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	// Correcting Server Lists (Caused by Server Faults)
 	for _, cf := range currentFeds {
 		if !containsServer(previousFeds, cf) {
-			fmt.Printf("******* FUL: %12s %12s  Server %x\n", "Promote", list.State.FactomNodeName, cf.GetChainID().Bytes()[3:6])
+			fmt.Printf("******* FUL: %12s %12s  Server %x\n", "Promote", list.State.FactomNodeName, cf.GetChainID().Bytes()[3:5])
 			// Promote to federated
 			//index := list.State.isIdentityChain(cf.GetChainID())
 			/*if index == -1 || !(list.State.Identities[index].Status == constants.IDENTITY_PENDING_FEDERATED_SERVER ||
@@ -914,7 +914,7 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 			if containsServer(currentAuds, pf) {
 				demoteEntry := adminBlock.NewAddAuditServer(pf.GetChainID(), currentDBHeight+1)
 				d.AdminBlock.AddFirstABEntry(demoteEntry)
-				fmt.Printf("******* FUL: %12s %12s  Server %x\n", "Demote", list.State.FactomNodeName, pf.GetChainID().Bytes()[3:6])
+				fmt.Printf("******* FUL: %12s %12s  Server %x\n", "Demote", list.State.FactomNodeName, pf.GetChainID().Bytes()[3:5])
 			}
 			_ = currentAuds
 		}
