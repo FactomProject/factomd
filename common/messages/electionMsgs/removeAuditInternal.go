@@ -65,14 +65,14 @@ func (m *RemoveAuditInternal) ElectionProcess(state interfaces.IState, elect int
 	if !ok {
 		panic("Invalid elections object")
 	}
-	idx := 0
+	idx := -1
 	for i, s := range e.Audit {
-		idx = i
 		if s.GetChainID().IsSameAs(m.GetServerID()) {
+			idx = i
 			break
 		}
 	}
-	if idx < len(e.Audit) {
+	if idx !=-1 {
 		e.Audit = append(e.Audit[:idx], e.Audit[idx+1:]...)
 	}
 }

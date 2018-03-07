@@ -9,6 +9,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util/atomic"
+	"github.com/FactomProject/factomd/common/constants"
 )
 
 var _ = fmt.Print
@@ -172,7 +173,7 @@ func CheckAuthSetsMatch(caller string, e *Elections, s *state.State) {
 	e_aservers := e.Audit
 
 	printAll := func(format string, more ...interface{}) {
-		fmt.Printf(caller+":"+format+"\n", more...)
+		fmt.Printf(s.FactomNodeName+":"+caller+":"+format+"\n", more...)
 		e.LogPrintf("election", caller+":"+format, more...)
 		s.LogPrintf("executeMsg", caller+":"+format, more...)
 	}
@@ -204,7 +205,7 @@ func CheckAuthSetsMatch(caller string, e *Elections, s *state.State) {
 		}
 
 	}
-	if true || mismatch1 {
+	if  mismatch1 {
 		printAll("Federated %d", len(s_fservers))
 		printAll("idx election process")
 		for i, _ := range s_fservers {
@@ -221,7 +222,7 @@ func CheckAuthSetsMatch(caller string, e *Elections, s *state.State) {
 		}
 
 	}
-	if true || mismatch2 {
+	if  mismatch2 {
 		printAll("Audit %d", len(s_aservers))
 		printAll("idx election process")
 		for i, _ := range s_aservers {
@@ -252,6 +253,9 @@ func Run(s *state.State) {
 		msg := e.Input.BlockingDequeue().(interfaces.IElectionMsg)
 		e.LogMessage("election", fmt.Sprintf("exec %d", e.Electing), msg.(interfaces.IMsg))
 		msg.ElectionProcess(s, e)
-		CheckAuthSetsMatch("election.Run", e, s)
+
+		if  msg.(interfaces.IMsg).Type() != constants.INTERNALEOMSIG { // If it's not an EOM check the authority set
+			CheckAuthSetsMatch("election.Run", e, s)
+		}
 	}
 }

@@ -13,38 +13,57 @@ import (
 
 var _ = Factomd
 
+func TimeNow(s *state.State) {
+	fmt.Printf("%s:%d/%d\n", s.FactomNodeName, int(s.LLeaderHeight), s.CurrentMinute)
+}
+
+// print the status for every minute for a state
+func StatusEveryMinute(s *state.State) {
+	go func() {
+		for {
+			WaitMinutes(s, 1)
+			PrintOneStatus(0, 0)
+		}
+	}()
+}
+
 // Wait so many blocks
 func WaitBlocks(s *state.State, blks int) {
 	fmt.Printf("WaitBlocks(%d)\n", blks)
+	TimeNow(s)
 	newBlock := int(s.LLeaderHeight) + blks
 	for int(s.LLeaderHeight) < newBlock {
 		time.Sleep(time.Second)
 	}
+	TimeNow(s)
 }
 
 // Wait to a given minute.  If we are == to the minute or greater, then
 // we first wait to the start of the next block.
 func WaitForMinute(s *state.State, min int) {
 	fmt.Printf("WaitForMinute(%d)\n", min)
-
+	TimeNow(s)
 	if s.CurrentMinute >= min {
 		for s.CurrentMinute > 0 {
-			time.Sleep(100 * time.Millisecond)
+			time.Sleep(500 * time.Millisecond)
 		}
 	}
 
 	for min > s.CurrentMinute {
 		time.Sleep(100 * time.Millisecond)
 	}
+	TimeNow(s)
 }
 
 // Wait some number of minutes
 func WaitMinutes(s *state.State, min int) {
 	fmt.Printf("WaitMinutes(%d)\n", min)
+	TimeNow(s)
 	newMinute := (s.CurrentMinute + min) % 10
 	for s.CurrentMinute != newMinute {
 		time.Sleep(100 * time.Millisecond)
 	}
+	TimeNow(s)
 }
 
 func TestSetupANetwork(t *testing.T) {
@@ -240,8 +259,6 @@ func TestAnElection(t *testing.T) {
 		"-networkPort=37003",
 		"-startdelay=1",
 		"-faulttimeout=999999",
-		"-stdoutlog=out.txt",
-		"-stderrlog=out.txt",
 	)
 	HandleLogfiles("out.txt", "out.txt")
 	params := ParseCmdLine(args)
@@ -256,12 +273,10 @@ func TestAnElection(t *testing.T) {
 		t.Fail()
 	}
 
-	PrintOneStatus(0, 0)
 
 	//	WaitBlocks(state0, 1)
 	runCmd("g5")
 	WaitBlocks(state0, 1)
-	PrintOneStatus(0, 0)
 	WaitMinutes(state0, 2)
 
 	// Allocate leaders
@@ -276,10 +291,46 @@ func TestAnElection(t *testing.T) {
 	}
 
 	WaitBlocks(state0, 2)
-	PrintOneStatus(0, 0)
 	WaitMinutes(state0, 1)
 	PrintOneStatus(0, 0)
 
+	CheckAuthoritySet(leaders, audits, t)
+
+	runCmd(fmt.Sprintf("%d", leaders-1))
+	runCmd("x")
+	WaitBlocks(state0, 1)
+	WaitMinutes(state0, 2)
+	runCmd("x")
+
+	WaitBlocks(state0, 1)
+	WaitMinutes(state0, 2)
+
+	PrintOneStatus(0, 0)
+	if GetFnodes()[leaders-1].State.Leader {
+		t.Fatalf("Node %d should not be a leader", leaders-1)
+	}
+	if !GetFnodes()[leaders].State.Leader {
+		t.Fatalf("Node %d should be a leader", leaders)
+	}
+
+	CheckAuthoritySet(leaders, audits, t)
+
+	// Now swap back...
+	WaitBlocks(state0, 1)
+
+	t.Log("Shutting down the network")
+	for _, fn := range GetFnodes() {
+		fn.State.ShutdownChan <- 1
+	}
+
+	// Sleep one block
+	time.Sleep(time.Duration(state0.DirectoryBlockInSeconds) * time.Second)
+	if state0.LLeaderHeight > 9 {
+		t.Fatal("Failed to shut down factomd via ShutdownChan")
+	}
+}
+
+func CheckAuthoritySet(leaders int, audits int, t *testing.T) {
 	leadercnt := 0
 	auditcnt := 0
 	for _, fn := range GetFnodes() {
@@ -292,52 +343,11 @@ func TestAnElection(t *testing.T) {
 			auditcnt++
 		}
 	}
-
 	if leadercnt != leaders {
 		t.Fatalf("found %d leaders, expected %d", leaders, leadercnt)
 	}
-
 	if auditcnt != audits {
 		t.Fatalf("found %d audit servers, expected %d", audits, auditcnt)
 		t.Fail()
-	}
-
-	runCmd(fmt.Sprintf("%d", leaders-1))
-	PrintOneStatus(0, 0)
-	runCmd("x")
-	for i := 0; i < 20; i++ {
-		PrintOneStatus(0, 0)
-		time.Sleep(1 * time.Second)
-	}
-	WaitBlocks(state0, 1)
-	PrintOneStatus(0, 0)
-	WaitMinutes(state0, 2)
-	PrintOneStatus(0, 0)
-	runCmd("x")
-	PrintOneStatus(0, 0)
-
-	WaitBlocks(state0, 1)
-	WaitMinutes(state0, 2)
-	for i := 0; i < 20; i++ {
-		PrintOneStatus(0, 0)
-		time.Sleep(1 * time.Second)
-	}
-	WaitMinutes(state0, 2)
-	runCmd("x")
-	PrintOneStatus(0, 0)
-	WaitMinutes(state0, 2)
-	for i := 0; i < 20; i++ {
-		PrintOneStatus(0, 0)
-		time.Sleep(1 * time.Second)
-	}
-
-	t.Log("Shutting down the network")
-	for _, fn := range GetFnodes() {
-		fn.State.ShutdownChan <- 1
-	}
-
-	time.Sleep(10 * time.Second)
-	if state0.LLeaderHeight > 13 {
-		t.Fatal("Failed to shut down factomd via ShutdownChan")
 	}
 }

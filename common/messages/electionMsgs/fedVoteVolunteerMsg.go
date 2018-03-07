@@ -232,10 +232,16 @@ func (m *FedVoteVolunteerMsg) Type() byte {
 	return constants.VOLUNTEERAUDIT
 }
 
-func (m *FedVoteVolunteerMsg) Validate(state interfaces.IState) int {
-	baseMsg := m.FedVoteMsg.Validate(state)
+func (m *FedVoteVolunteerMsg) Validate(is interfaces.IState) int {
+
+	e := is.(*state.State).Elections.(*elections.Elections)
+	if is.GetIdentityChainID().IsSameAs(e.FedID){
+		e.LogMessage("election", "Won't vote against myself",m)
+		return -1
+	}
+	baseMsg := m.FedVoteMsg.Validate(is)
 	if baseMsg != 1 {
-		return baseMsg
+		return baseMsg // a bit odd.. isn't this the same as always returning baseMsg
 	}
 
 	return 1
