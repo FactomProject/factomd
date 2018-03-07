@@ -543,8 +543,11 @@ func (s *State) GetNetStateOff() bool { //	If true, all network communications a
 }
 
 func (s *State) SetNetStateOff(net bool) {
-	s.LogPrintf("executeMsg", "State) SetNetStateOff(%v)", net)
-	s.LogPrintf("election", "State) SetNetStateOff(%v)", net)
+	//flag this in everyone!
+	s.LogPrintf("executeMsg", "State.SetNetStateOff(%v)", net)
+	s.LogPrintf("election", "State.SetNetStateOff(%v)", net)
+	s.LogPrintf("InMsgQueue", "State.SetNetStateOff(%v)", net)
+	s.LogPrintf("NetworkInputs", "State.SetNetStateOff(%v)", net)
 	s.NetStateOff = net
 }
 

@@ -20,7 +20,7 @@ type MessageBase struct {
 	Origin        int    // Set and examined on a server, not marshaled with the message
 	NetworkOrigin string // Hash of the network peer/connection where the message is from
 	Peer2Peer     bool   // The nature of this message type, not marshaled with the message
-	LocalOnly     bool   // This message is only a local message, is not broadcasted and may skip verification
+	LocalOnly     bool   // This message is only a local message, is not broadcast and may skip verification
 
 	NoResend  bool // Don't resend this message if true.
 	ResendCnt int  // Put a limit on resends
@@ -39,19 +39,22 @@ type MessageBase struct {
 	Sigvalid    bool
 }
 
-func (m *MessageBase) Resend_(state interfaces.IState, msg interfaces.IMsg, cnt int, delay int) {
+func (m *MessageBase) Resend_(s interfaces.IState, msg interfaces.IMsg, cnt int, delay int) {
 	for i := 0; i < cnt; i++ {
-		state.NetworkOutMsgQueue().Enqueue(msg)
-		time.Sleep(time.Duration(delay) * time.Second)
-		if m.NoResend {
+		s.LogMessage("NetworkOutputs", "Enqueue", msg)
+
+		s.NetworkOutMsgQueue().Enqueue(msg)
+		if m.NoResend || i == cnt {
 			return
 		}
+		time.Sleep(time.Duration(delay) * time.Second)
 	}
 }
 
-func (m *MessageBase) SendOut(state interfaces.IState, msg interfaces.IMsg) {
-	// Dont' resend if we are behind
-	if m.ResendCnt > 1 && state.GetHighestKnownBlock()-state.GetHighestSavedBlk() > 4 {
+func (m *MessageBase) SendOut(s interfaces.IState, msg interfaces.IMsg) {
+	// Don't resend if we are behind
+	if m.ResendCnt > 1 && s.GetHighestKnownBlock()-s.GetHighestSavedBlk() > 4 {
+		s.LogMessage("NetworkOutputs", "Drop to busy", msg)
 		return
 	}
 
@@ -62,13 +65,13 @@ func (m *MessageBase) SendOut(state interfaces.IState, msg interfaces.IMsg) {
 
 	switch msg.Type() {
 	//case ServerFault:
-	//	go resend(state, msg, 20, 1)
+	//	go resend(s, msg, 20, 1)
 	case constants.FULL_SERVER_FAULT_MSG:
-		go m.Resend_(state, msg, 2, 5)
+		go m.Resend_(s, msg, 2, 5)
 	case constants.FED_SERVER_FAULT_MSG:
-		go m.Resend_(state, msg, 2, 5)
+		go m.Resend_(s, msg, 2, 5)
 	default:
-		go m.Resend_(state, msg, 1, 0)
+		m.Resend_(s, msg, 1, 0)
 	}
 }
 
@@ -146,7 +149,7 @@ func (m *MessageBase) GetOrigin() int {
 	return m.Origin
 }
 
-func (m *MessageBase) SetOrigin(o int) {
+func (m *MessageBase) SetOrigin(o int) { // Origin is one based but peers is 0 based.
 	m.Origin = o
 }
 

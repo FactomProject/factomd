@@ -201,17 +201,17 @@ ackLoop:
 				if s.IgnoreMissing {
 					now := s.GetTimestamp().GetTimeSeconds()
 					if now-a.GetTimestamp().GetTimeSeconds() < 60*15 {
-						s.LogMessage("ackQueue_o", "Execute", ack)
+						s.LogMessage("ackQueue", "Execute", ack)
 						s.executeMsg(vm, ack)
 					} else {
-						s.LogMessage("ackQueue_o", "Drop Too Old", ack)
+						s.LogMessage("ackQueue", "Drop Too Old", ack)
 					}
 				} else {
-					s.LogMessage("ackQueue_o", "Execute2", ack)
+					s.LogMessage("ackQueue", "Execute2", ack)
 					s.executeMsg(vm, ack)
 				}
 			} else {
-				s.LogMessage("ackQueue_o", "Drop Invalid", ack) // Maybe put it back in the ask queue ? -- clay
+				s.LogMessage("ackQueue", "Drop Invalid", ack) // Maybe put it back in the ask queue ? -- clay
 			}
 			progress = true
 		default:
