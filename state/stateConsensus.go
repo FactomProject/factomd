@@ -200,17 +200,17 @@ ackLoop:
 				if s.IgnoreMissing {
 					now := s.GetTimestamp().GetTimeSeconds()
 					if now-a.GetTimestamp().GetTimeSeconds() < 60*15 {
-						s.LogMessage("ackQueue_o"+".txt", "Execute", ack)
+						s.LogMessage("ackQueue_o", "Execute", ack)
 						s.executeMsg(vm, ack)
 					} else {
-						s.LogMessage("ackQueue_o"+".txt", "Drop Too Old", ack)
+						s.LogMessage("ackQueue_o", "Drop Too Old", ack)
 					}
 				} else {
-					s.LogMessage("ackQueue_o"+".txt", "Execute2", ack)
+					s.LogMessage("ackQueue_o", "Execute2", ack)
 					s.executeMsg(vm, ack)
 				}
 			} else {
-				s.LogMessage("ackQueue_o"+".txt", "Drop Invalid", ack) // Maybe put it back in the ask queue ? -- clay
+				s.LogMessage("ackQueue_o", "Drop Invalid", ack) // Maybe put it back in the ask queue ? -- clay
 			}
 			progress = true
 		default:
@@ -229,7 +229,7 @@ emptyLoop:
 		select {
 		case msg := <-s.msgQueue:
 
-			s.LogMessage("msgQueue_o"+".txt", "Execute", msg)
+			s.LogMessage("msgQueue_o", "Execute", msg)
 			if s.executeMsg(vm, msg) && !msg.IsPeer2Peer() {
 				msg.SendOut(s, msg)
 			}
@@ -795,20 +795,15 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 }
 
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
-	logName := s.FactomNodeName + "_executeMsg" + ".txt"
 
 	// Just ignore missing messages for a period after going off line or starting up.
 	if s.IgnoreMissing || s.inMsgQueue.Length() > constants.INMSGQUEUE_HIGH {
 		//TODO: Log here -- clay
 		if s.IgnoreMissing {
-			if s.debugExec() {
-				messages.LogMessage(logName, "Drop IgnoreMissing", m)
-			}
+			s.LogMessage("executeMsg", "Drop IgnoreMissing", m)
 		}
 		if s.inMsgQueue.Length() > constants.INMSGQUEUE_HIGH {
-			if s.debugExec() {
-				messages.LogMessage(logName, "Drop INMSGQUEUE_HIGH", m)
-			}
+			s.LogMessage("executeMsg", "Drop INMSGQUEUE_HIGH", m)
 		}
 		return
 	}
@@ -846,9 +841,7 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 
 	// If we don't need this message, we don't have to do everything else.
 	if !ok || ack.Validate(s) == -1 {
-		if s.debugExec() {
-			messages.LogMessage(logName, "Drop noAck", m)
-		}
+		s.LogMessage("executeMsg", "Drop noAck", m)
 		return
 	}
 
@@ -856,18 +849,14 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 	msg := mmr.MsgResponse
 
 	if msg == nil {
-		if s.debugExec() {
-			messages.LogMessage(logName, "Drop nil message", m)
-		}
+		s.LogMessage("executeMsg", "Drop nil message", m)
 		return
 	}
 
 	pl := s.ProcessLists.Get(ack.DBHeight)
 
 	if pl == nil {
-		if s.debugExec() {
-			messages.LogMessage(logName, "Drop No Processlist", m)
-		}
+		s.LogMessage("executeMsg", "Drop No Processlist", m)
 		return
 	}
 	_, okm := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
@@ -875,13 +864,11 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 	TotalAcksInputs.Inc()
 
 	if okm {
-		s.LogMessage(logName, "FollowerExecute3", msg)
+		s.LogMessage("executeMsg", "FollowerExecute3", msg)
 		msg.FollowerExecute(s)
 	}
 
-	if s.debugExec() {
-		messages.LogMessage(logName, "FollowerExecute4", ack)
-	}
+	s.LogMessage("executeMsg", "FollowerExecute4", ack)
 	ack.FollowerExecute(s)
 
 	s.MissingResponseAppliedCnt++
