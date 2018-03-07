@@ -2,6 +2,7 @@
 Manages the network of factomd nodes.
 """
 from nettool import services
+from nettool.docker_client import Image
 
 
 class Testnet(object):
@@ -11,6 +12,13 @@ class Testnet(object):
     """
     def __init__(self, docker, config, network):
         self.network = network
+
+        self.base_factomd_image = Image(
+            docker,
+            tag="nettool_factomd_base",
+            path="../../"
+        )
+
         self.nodes = [services.Factomd(docker, cfg) for cfg in config]
         self.seeds = services.SeedServer(docker, self.nodes)
 
@@ -32,6 +40,8 @@ class Testnet(object):
         """
         Brings the testnet up.
         """
+        self.base_factomd_image.build(rebuild=build)
+
         if build:
             services.SeedServer.rebuild_image()
             services.Factomd.rebuild_image()
@@ -54,3 +64,4 @@ class Testnet(object):
         if destroy:
             services.Factomd.destroy_image()
             services.SeedServer.destroy_image()
+            self.base_factomd_image.destroy()

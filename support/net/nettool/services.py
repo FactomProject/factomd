@@ -168,7 +168,7 @@ class Factomd(Service):
         self.__class__.image = Image(
             docker,
             tag="nettool_factomd",
-            path="../.."
+            path="docker/node"
         )
         self.container = Container(
             docker,
