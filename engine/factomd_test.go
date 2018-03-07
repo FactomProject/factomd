@@ -309,8 +309,8 @@ func TestAnElection(t *testing.T) {
 	if GetFnodes()[leaders-1].State.Leader {
 		t.Fatalf("Node %d should not be a leader", leaders-1)
 	}
-	if !GetFnodes()[leaders].State.Leader {
-		t.Fatalf("Node %d should be a leader", leaders)
+	if !GetFnodes()[leaders].State.Leader && !GetFnodes()[leaders+1].State.Leader {
+		t.Fatalf("Node %d or %d should be a leader", leaders, leaders+1)
 	}
 
 	CheckAuthoritySet(leaders, audits, t)

@@ -136,11 +136,11 @@ func (m *FedVoteMsg) ElectionValidate(st interfaces.IState) int {
 }
 
 func (m *FedVoteMsg) Validate(st interfaces.IState) int {
-	e := st.(*state.State).Elections.(*elections.Elections)
-	if st.GetIdentityChainID().IsSameAs(e.FedID){
-		e.LogMessage("election", "Won't vote against myself",m)
-		return -1
-	}
+	//e := st.(*state.State).Elections.(*elections.Elections)
+	//if st.GetIdentityChainID().IsSameAs(e.FedID){
+	//	e.LogMessage("election", "Won't vote against myself",m)
+	//	return -1
+	//}
 	// Vote is only as valid as the election
 	return m.ElectionValidate(st)
 }
