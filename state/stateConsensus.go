@@ -1540,6 +1540,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			s.FactomNodeName,
 			e.DBHeight,
 			uint32(e.Minute),
+			msg.GetVMIndex(),
 			uint32(vm.Height),
 			e.ChainID,
 		)
@@ -1836,6 +1837,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			s.FactomNodeName,
 			dbs.DBHeight,
 			uint32(0),
+			msg.GetVMIndex(),
 			uint32(vm.Height),
 			dbs.LeaderChainID,
 		)
