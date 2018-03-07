@@ -109,10 +109,6 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 		s.LogMessage("executeMsg", "Holding1", msg)
 		s.Holding[msg.GetMsgHash().Fixed()] = msg
 	default:
-		TotalHoldingQueueInputs.Inc()
-		TotalHoldingQueueRecycles.Inc()
-		s.LogMessage("executeMsg", "Holding2", msg)
-		s.Holding[msg.GetMsgHash().Fixed()] = msg
 		if !msg.SentInvalid() {
 			msg.MarkSentInvalid(true)
 			s.LogMessage("executeMsg", "InvalidMsg", msg)
