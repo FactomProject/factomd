@@ -605,7 +605,7 @@ func SimControl(listenTo int, listenStdin bool) {
 
 				if ListenTo >= 0 && ListenTo < len(fnodes) {
 					f := fnodes[ListenTo]
-					v := f.State.GetNetStateOff()
+					v := f.State.GetNetStateOff() // Toggle his network on/off state
 					if v {
 						os.Stderr.WriteString("Bring " + f.State.FactomNodeName + " Back onto the network\n")
 					} else {
