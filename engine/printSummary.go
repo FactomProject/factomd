@@ -292,7 +292,7 @@ func faultSummary() string {
 	currentlyFaulted := "."
 
 	for i, fnode := range fnodes {
-		if verboseFaultOutput || !fnode.State.GetNetStateOff() {
+		if verboseFaultOutput || !fnode.State.GetNetStateOff() { // Don't show fault info for nodes that are off
 			b := fnode.State.GetHighestSavedBlk()
 			pl := fnode.State.ProcessLists.Get(b + 1)
 			if pl == nil {

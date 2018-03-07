@@ -125,12 +125,12 @@ func Peers(fnode *FactomNode) {
 
 				preReceiveTime := time.Now()
 
-				if !fnode.State.GetNetStateOff() {
+				if !fnode.State.GetNetStateOff() { // Don't receive message if he is off
 					msg, err = peer.Recieve()
 				}
 
 				if msg == nil {
-					// Recieve is not blocking; nothing to do, we get a nil.
+					// Receive is not blocking; nothing to do, we get a nil.
 					break
 				}
 
@@ -230,7 +230,7 @@ func NetworkOutputs(fnode *FactomNode) {
 							p = rand.Int() % len(fnode.Peers)
 						}
 						fnode.MLog.Add2(fnode, true, fnode.Peers[p].GetNameTo(), "P2P out", true, msg)
-						if !fnode.State.GetNetStateOff() {
+						if !fnode.State.GetNetStateOff() { // don't Send p2p messages if he is OFF
 							preSendTime := time.Now()
 							fnode.Peers[p].Send(msg)
 							sendTime := time.Since(preSendTime)
@@ -250,7 +250,7 @@ func NetworkOutputs(fnode *FactomNode) {
 						if i != p || wt > 1 {
 							bco := fmt.Sprintf("%s/%d/%d", "BCast", p, i)
 							fnode.MLog.Add2(fnode, true, peer.GetNameTo(), bco, true, msg)
-							if !fnode.State.GetNetStateOff() {
+							if !fnode.State.GetNetStateOff() { // Don't send him broadcast message if he is off
 								preSendTime := time.Now()
 								peer.Send(msg)
 								sendTime := time.Since(preSendTime)
