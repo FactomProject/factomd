@@ -10,7 +10,8 @@ from nettool import log
 
 NODE = Schema({
     "name": str,
-    Optional("seed"): bool
+    Optional("seed"): bool,
+    Optional("leader"): bool
 })
 
 
@@ -32,7 +33,7 @@ CONFIG = Schema({
 
 Environment = namedtuple("Environment", "nodes, network")
 
-Node = namedtuple("Node", "name, seed")
+Node = namedtuple("Node", "name, seed, leader")
 
 Network = namedtuple("Network", "rules")
 
@@ -68,7 +69,10 @@ def _parse_env_config(cfg):
 
 
 def _parse_node(cfg):
-    return Node(name=cfg["name"], seed=cfg.get("seed", False))
+    return Node(
+        name=cfg["name"],
+        seed=cfg.get("seed", False),
+        leader=cfg.get("leader", False))
 
 
 def _parse_network(cfg):

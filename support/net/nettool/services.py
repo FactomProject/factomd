@@ -189,6 +189,7 @@ class Factomd(Service):
         """
         If True, this node will be promoted to a leader.
         """
+        return self.config.leader
 
     @property
     def server_port(self):
