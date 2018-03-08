@@ -97,7 +97,8 @@ class Rules(object):
             self.gateway.run(FLUSH_CUSTOM_CHAIN)
             self.gateway.run(DELETE_FORWARD_TO_CUSTOM_CHAIN)
             self.gateway.run(DELETE_CUSTOM_CHAIN)
-            self.gateway.down(destroy=destroy)
+
+        self.gateway.down(destroy=destroy)
 
     def insert(self, source, target, action, one_way):
         """
