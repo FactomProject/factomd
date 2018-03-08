@@ -181,12 +181,12 @@ func (r *Replay) Valid(mask int, hash [32]byte, timestamp interfaces.Timestamp, 
 		return -1, false
 	}
 
-	r.Mutex.Lock()
-	defer r.Mutex.Unlock()
-
 	if mask == constants.TIME_TEST {
 		return -1, true
 	}
+
+	r.Mutex.Lock()
+	defer r.Mutex.Unlock()
 
 	// We don't let the system clock go backwards.  likely an attack if it does.
 	// Move the current time up to r.center if it is in the past.

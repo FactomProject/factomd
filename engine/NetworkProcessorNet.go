@@ -173,12 +173,14 @@ func Peers(fnode *FactomNode) {
 					msg.GetTimestamp(),
 					fnode.State.GetTimestamp())
 
-				if bv && fnode.State.Replay.IsTSValid_(constants.NETWORK_REPLAY,
+				tsv := fnode.State.Replay.IsTSValid_(constants.NETWORK_REPLAY,
 					msg.GetRepeatHash().Fixed(),
 					msg.GetTimestamp(),
-					fnode.State.GetTimestamp()) {
+					fnode.State.GetTimestamp())
+
+				if bv && tsv  {
 					//if state.GetOut() {
-					//	fnode.State.Println("In Comming!! ",msg)
+					//	fnode.State.Println("In Coming!! ",msg)
 					//}
 					in := "PeerIn"
 					if msg.IsPeer2Peer() {
@@ -198,6 +200,8 @@ func Peers(fnode *FactomNode) {
 				} else {
 					if !bv {
 						fnode.State.LogMessage("NetworkInputs", "from peer Drop replayValid", msg)
+					} else if !tsv {
+						fnode.State.LogMessage("NetworkInputs", "from peer TS, invalid", msg)
 					}
 					RepeatMsgs.Inc()
 					//fnode.MLog.add2(fnode, false, peer.GetNameTo(), "PeerIn", false, msg)

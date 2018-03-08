@@ -39,13 +39,15 @@ type MessageBase struct {
 	Sigvalid    bool
 }
 
-func (m *MessageBase) Resend_(state interfaces.IState, msg interfaces.IMsg, cnt int, delay int) {
+func (m *MessageBase) Resend_(s interfaces.IState, msg interfaces.IMsg, cnt int, delay int) {
 	for i := 0; i < cnt; i++ {
-		state.NetworkOutMsgQueue().Enqueue(msg)
-		time.Sleep(time.Duration(delay) * time.Second)
-		if m.NoResend {
+		s.LogMessage("NetworkOutputs", "Enqueue", msg)
+
+		s.NetworkOutMsgQueue().Enqueue(msg)
+		if m.NoResend || i == cnt {
 			return
 		}
+		time.Sleep(time.Duration(delay) * time.Second)
 	}
 }
 
@@ -69,7 +71,7 @@ func (m *MessageBase) SendOut(s interfaces.IState, msg interfaces.IMsg) {
 	case constants.FED_SERVER_FAULT_MSG:
 		go m.Resend_(s, msg, 2, 5)
 	default:
-		go m.Resend_(s, msg, 1, 0)
+		m.Resend_(s, msg, 1, 0)
 	}
 }
 
