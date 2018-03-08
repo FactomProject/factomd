@@ -241,7 +241,7 @@ func TestAnElection(t *testing.T) {
 	runCmd := func(cmd string) {
 		os.Stderr.WriteString("Executing: " + cmd + "\n")
 		InputChan <- cmd
-		time.Sleep(100 * time.Millisecond)
+		//		time.Sleep(100 * time.Millisecond)
 		<-ProcessChan
 		return
 	}
@@ -269,12 +269,10 @@ func TestAnElection(t *testing.T) {
 		t.Fatalf("Should have allocated %d nodes", nodes)
 		t.Fail()
 	}
-	runCmd("2")
-	runCmd("w") // point the control panel at 2
 
-	//	time.Sleep(10 * time.Second)
+	time.Sleep(1000 * time.Second)
 	runCmd("g5")
-	WaitBlocks(state0, 2)
+	WaitBlocks(state0, 1)
 	WaitMinutes(state0, 2)
 
 	// Allocate leaders

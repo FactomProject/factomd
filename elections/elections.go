@@ -166,8 +166,16 @@ func (e *Elections) LogPrintf(logName string, format string, more ...interface{}
 
 // Check that the process list and Election Authority Sets match
 func CheckAuthSetsMatch(caller string, e *Elections, s *state.State) {
-	s_fservers := s.ProcessLists.Get(uint32(e.DBHeight)).FedServers
-	s_aservers := s.ProcessLists.Get(uint32(e.DBHeight)).AuditServers
+
+	pl := s.ProcessLists.Get(uint32(e.DBHeight))
+	var s_fservers, s_aservers []interfaces.IServer
+	if pl == nil {
+		s_fservers = make([]interfaces.IServer, 0)
+		s_aservers = make([]interfaces.IServer, 0)
+	} else {
+		s_fservers = pl.FedServers
+		s_aservers = pl.AuditServers
+	}
 
 	e_fservers := e.Federated
 	e_aservers := e.Audit
