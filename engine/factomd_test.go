@@ -251,7 +251,7 @@ func TestAnElection(t *testing.T) {
 		"-network=LOCAL",
 		"-net=alot+",
 		"-enablenet=true",
-		"-blktime=5",
+		"-blktime=8",
 		fmt.Sprintf("-count=%d", nodes),
 		"-logPort=37000",
 		"-port=37001",
