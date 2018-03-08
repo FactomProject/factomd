@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util/atomic"
-	"github.com/FactomProject/factomd/common/constants"
 )
 
 var _ = fmt.Print
@@ -205,7 +205,7 @@ func CheckAuthSetsMatch(caller string, e *Elections, s *state.State) {
 		}
 
 	}
-	if  mismatch1 {
+	if mismatch1 {
 		printAll("Federated %d", len(s_fservers))
 		printAll("idx election process")
 		for i, _ := range s_fservers {
@@ -222,7 +222,7 @@ func CheckAuthSetsMatch(caller string, e *Elections, s *state.State) {
 		}
 
 	}
-	if  mismatch2 {
+	if mismatch2 {
 		printAll("Audit %d", len(s_aservers))
 		printAll("idx election process")
 		for i, _ := range s_aservers {
@@ -246,7 +246,7 @@ func Run(s *state.State) {
 	e.Output = s.InMsgQueue()
 	e.Electing = -1
 
-	e.Timeout = 30 * time.Second
+	e.Timeout = 10 * time.Second
 
 	// Actually run the elections
 	for {
@@ -254,7 +254,7 @@ func Run(s *state.State) {
 		e.LogMessage("election", fmt.Sprintf("exec %d", e.Electing), msg.(interfaces.IMsg))
 		msg.ElectionProcess(s, e)
 
-		if  msg.(interfaces.IMsg).Type() != constants.INTERNALEOMSIG { // If it's not an EOM check the authority set
+		if msg.(interfaces.IMsg).Type() != constants.INTERNALEOMSIG { // If it's not an EOM check the authority set
 			CheckAuthSetsMatch("election.Run", e, s)
 		}
 	}

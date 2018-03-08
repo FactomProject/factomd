@@ -17,7 +17,7 @@ import (
 )
 
 const Range = 60                // Double this for the period we protect, i.e. 120 means +/- 120 minutes
-const numBuckets = Range*2 + 60 // Cover the rage in the future and in the past, with an hour buffer.
+const numBuckets = Range*2 + 60 // Cover the range in the future and in the past, with an hour buffer.
 
 var _ = time.Now()
 var _ = fmt.Print
@@ -181,12 +181,12 @@ func (r *Replay) Valid(mask int, hash [32]byte, timestamp interfaces.Timestamp, 
 		return -1, false
 	}
 
-	r.Mutex.Lock()
-	defer r.Mutex.Unlock()
-
 	if mask == constants.TIME_TEST {
 		return -1, true
 	}
+
+	r.Mutex.Lock()
+	defer r.Mutex.Unlock()
 
 	// We don't let the system clock go backwards.  likely an attack if it does.
 	// Move the current time up to r.center if it is in the past.

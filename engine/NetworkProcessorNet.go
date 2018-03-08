@@ -90,6 +90,12 @@ func Peers(fnode *FactomNode) {
 			if msg == nil {
 				continue
 			}
+
+			if fnode.State.GetNetStateOff() {
+				fnode.State.LogMessage("NetworkInputs", "Drop from API, X'd by simCtrl", msg)
+				continue
+			}
+
 			repeatHash := msg.GetRepeatHash()
 			if repeatHash == nil {
 				fnode.State.LogMessage("NetworkInputs", "from API drop, Hash Error", msg)
@@ -140,6 +146,10 @@ func Peers(fnode *FactomNode) {
 					break // move to next peer
 				}
 
+				if fnode.State.GetNetStateOff() { // drop received message if he is off
+					fnode.State.LogMessage("NetworkInputs", "Drop, X'd by simCtrl", msg)
+					break // move to next peer
+				}
 				receiveTime := time.Since(preReceiveTime)
 				TotalReceiveTime.Add(float64(receiveTime.Nanoseconds()))
 
@@ -169,7 +179,7 @@ func Peers(fnode *FactomNode) {
 					msg.GetTimestamp(),
 					fnode.State.GetTimestamp())
 
-				if bv && tsv && !fnode.State.GetNetStateOff() {
+				if bv && tsv  {
 					//if state.GetOut() {
 					//	fnode.State.Println("In Coming!! ",msg)
 					//}
@@ -235,6 +245,7 @@ func NetworkOutputs(fnode *FactomNode) {
 
 				_, ok := msg.(*messages.Ack)
 				if ok {
+					// Add the ack to our replay filter
 					fnode.State.Replay.IsTSValid_(
 						constants.NETWORK_REPLAY,
 						msg.GetRepeatHash().Fixed(),

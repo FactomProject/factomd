@@ -273,7 +273,6 @@ func TestAnElection(t *testing.T) {
 		t.Fail()
 	}
 
-
 	//	WaitBlocks(state0, 1)
 	runCmd("g5")
 	WaitBlocks(state0, 1)
@@ -291,7 +290,7 @@ func TestAnElection(t *testing.T) {
 	}
 
 	WaitBlocks(state0, 2)
-	WaitMinutes(state0, 1)
+	WaitMinutes(state0, 2)
 	PrintOneStatus(0, 0)
 
 	CheckAuthoritySet(leaders, audits, t)
@@ -302,7 +301,7 @@ func TestAnElection(t *testing.T) {
 	WaitMinutes(state0, 2)
 	runCmd("x")
 
-	WaitBlocks(state0, 1)
+	WaitBlocks(state0, 2)
 	WaitMinutes(state0, 2)
 
 	PrintOneStatus(0, 0)
@@ -344,10 +343,10 @@ func CheckAuthoritySet(leaders int, audits int, t *testing.T) {
 		}
 	}
 	if leadercnt != leaders {
-		t.Fatalf("found %d leaders, expected %d", leaders, leadercnt)
+		t.Fatalf("found %d leaders, expected %d", leadercnt, leaders)
 	}
 	if auditcnt != audits {
-		t.Fatalf("found %d audit servers, expected %d", audits, auditcnt)
+		t.Fatalf("found %d audit servers, expected %d", auditcnt, audits)
 		t.Fail()
 	}
 }
