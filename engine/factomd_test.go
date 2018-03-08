@@ -251,7 +251,7 @@ func TestAnElection(t *testing.T) {
 		"-network=LOCAL",
 		"-net=alot+",
 		"-enablenet=true",
-		"-blktime=10",
+		"-blktime=5",
 		fmt.Sprintf("-count=%d", nodes),
 		"-logPort=37000",
 		"-port=37001",
@@ -272,7 +272,6 @@ func TestAnElection(t *testing.T) {
 		t.Fatalf("Should have allocated %d nodes", nodes)
 		t.Fail()
 	}
-
 
 	//	WaitBlocks(state0, 1)
 	runCmd("g5")
