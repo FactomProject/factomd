@@ -5,22 +5,14 @@
 package main
 
 import (
-	"os"
-
 	"fmt"
+	"os"
 	"runtime"
+	"strings"
 	"time"
 
 	. "github.com/FactomProject/factomd/engine"
 	log "github.com/sirupsen/logrus"
-
-	"bufio"
-	"io"
-	"net"
-	"os/exec"
-	"strconv"
-	"strings"
-	"sync"
 )
 
 func main() {

@@ -253,10 +253,6 @@ func TestAnElection(t *testing.T) {
 		"-enablenet=true",
 		"-blktime=10",
 		fmt.Sprintf("-count=%d", nodes),
-		"-logPort=37000",
-		"-port=37001",
-		"-ControlPanelPort=37002",
-		"-networkPort=37003",
 		"-startdelay=1",
 		"-faulttimeout=999999",
 	)
@@ -265,6 +261,7 @@ func TestAnElection(t *testing.T) {
 	state0 := Factomd(params, false).(*state.State)
 	state0.MessageTally = true
 	time.Sleep(5 * time.Second) // wait till the simulation is setup
+	LaunchDebugServer("localhost")
 
 	t.Log(fmt.Sprintf("Allocated %d nodes", nodes))
 	fnodes := GetFnodes()
@@ -272,10 +269,12 @@ func TestAnElection(t *testing.T) {
 		t.Fatalf("Should have allocated %d nodes", nodes)
 		t.Fail()
 	}
+	runCmd("2")
+	runCmd("w") // point the control panel at 2
 
-	//	WaitBlocks(state0, 1)
+	//	time.Sleep(10 * time.Second)
 	runCmd("g5")
-	WaitBlocks(state0, 1)
+	WaitBlocks(state0, 2)
 	WaitMinutes(state0, 2)
 
 	// Allocate leaders
@@ -301,7 +300,7 @@ func TestAnElection(t *testing.T) {
 	WaitMinutes(state0, 2)
 	runCmd("x")
 
-	WaitBlocks(state0, 30)
+	WaitBlocks(state0, 300)
 	WaitMinutes(state0, 2)
 
 	PrintOneStatus(0, 0)
