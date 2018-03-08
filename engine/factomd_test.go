@@ -301,7 +301,7 @@ func TestAnElection(t *testing.T) {
 	WaitMinutes(state0, 2)
 	runCmd("x")
 
-	WaitBlocks(state0, 2)
+	WaitBlocks(state0, 30)
 	WaitMinutes(state0, 2)
 
 	PrintOneStatus(0, 0)

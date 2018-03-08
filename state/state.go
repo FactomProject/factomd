@@ -819,7 +819,12 @@ func (s *State) Init() {
 	}
 	// Set up struct to stop replay attacks
 	s.Replay = new(Replay)
+	s.Replay.s = s
+	s.Replay.name = "Replay"
+
 	s.FReplay = new(Replay)
+	s.FReplay.s = s
+	s.FReplay.name = "FReplay"
 
 	// Set up maps for the followers
 	s.Holding = make(map[[32]byte]interfaces.IMsg)

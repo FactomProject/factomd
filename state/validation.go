@@ -80,9 +80,11 @@ func (state *State) ValidatorLoop() {
 				state.ReplayTimestamp = msg.GetTimestamp()
 			}
 			if _, ok := msg.(*messages.Ack); ok {
-				state.ackQueue <- msg
+				state.LogMessage("ackQueue", "enqueue", msg)
+				state.ackQueue <- msg //
 			} else {
-				state.msgQueue <- msg
+				state.LogMessage("msgQueue", "enqueue", msg)
+				state.msgQueue <- msg //
 			}
 		}
 	}
