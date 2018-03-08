@@ -196,7 +196,21 @@ class Factomd(Service):
         """
         If True, this node will be promoted to a leader.
         """
-        return self.config.leader
+        return self.config.role == "leader"
+
+    @property
+    def is_audit(self):
+        """
+        If True, this node will be promoted to an audit server.
+        """
+        return self.config.role == "audit"
+
+    @property
+    def is_follower(self):
+        """
+        If True, this node will remain a follower.
+        """
+        return self.config.role == "follower"
 
     @property
     def server_port(self):
@@ -217,4 +231,5 @@ class Factomd(Service):
         Prints the current status of the node.
         """
         log.section("Node", self.config.name)
+        log.info("Role:", self.config.role)
         self.container.print_info()

@@ -11,7 +11,7 @@ from nettool import log
 NODE = Schema({
     "name": str,
     Optional("seed"): bool,
-    Optional("leader"): bool
+    Optional("role"): Or("follower", "leader", "audit")
 })
 
 
@@ -33,7 +33,7 @@ CONFIG = Schema({
 
 Environment = namedtuple("Environment", "nodes, network")
 
-Node = namedtuple("Node", "name, seed, leader")
+Node = namedtuple("Node", "name, seed, role")
 
 Network = namedtuple("Network", "rules")
 
@@ -72,7 +72,7 @@ def _parse_node(cfg):
     return Node(
         name=cfg["name"],
         seed=cfg.get("seed", False),
-        leader=cfg.get("leader", False))
+        role=cfg.get("role", "follower"))
 
 
 def _parse_network(cfg):
