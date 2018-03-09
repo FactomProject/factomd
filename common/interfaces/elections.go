@@ -1,6 +1,7 @@
 package interfaces
 
 type IElections interface {
+	String() string
 }
 
 type IElectionAdapter interface {
