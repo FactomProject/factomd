@@ -3,6 +3,7 @@ package messages
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"sync"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -13,8 +14,18 @@ import (
 var (
 	traceMutex sync.Mutex
 	files      map[string]*os.File
+	enabled    map[string] bool
+	TestRegex  regexp.Regexp
 	sequence   int
 )
+
+
+func checkFileName() {
+	if TestRegex == nil {
+
+	}
+}
+
 
 // assumes traceMutex is locked already
 func getTraceFile(name string) (f *os.File) {
