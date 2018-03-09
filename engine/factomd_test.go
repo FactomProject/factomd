@@ -270,10 +270,14 @@ func TestAnElection(t *testing.T) {
 		t.Fatalf("Should have allocated %d nodes", nodes)
 		t.Fail()
 	}
-	//	runCmd("2")
-	//	runCmd("w") // point the control panel at 2
 
-	//	time.Sleep(10 * time.Second)
+	StatusEveryMinute(state0)
+
+	runCmd("2")
+	runCmd("w") // point the control panel at 2
+
+	time.Sleep(10 * time.Second)
+
 	runCmd("g5")
 	WaitBlocks(state0, 4)
 	WaitMinutes(state0, 1)
@@ -304,7 +308,7 @@ func TestAnElection(t *testing.T) {
 	WaitBlocks(state0, 2)
 	WaitMinutes(state0, 2)
 
-	PrintOneStatus(0, 0)
+	// PrintOneStatus(0, 0)
 	if GetFnodes()[leaders-1].State.Leader {
 		t.Fatalf("Node %d should not be a leader", leaders-1)
 	}
