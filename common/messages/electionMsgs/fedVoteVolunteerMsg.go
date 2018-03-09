@@ -89,7 +89,8 @@ func (m *FedVoteVolunteerMsg) ElectionProcess(is interfaces.IState, elect interf
 	idx := e.LeaderIndex(is.GetIdentityChainID())
 	aidx := e.AuditIndex(is.GetIdentityChainID())
 
-	// Really this seems like a bad plan. We scramble the audit server order for each volunteer instead of once at the start of an election.
+	// Really this seems like a bad plan. We scramble the audit server order for each volunteer instead of once at the
+	// start of an election.
 	// TODO -- revisit this It can nominate the same audit server in different rounds.
 
 	auditIdx := e.AuditPriority()
@@ -125,12 +126,11 @@ func (m *FedVoteVolunteerMsg) LeaderExecute(state interfaces.IState) {
 
 func (m *FedVoteVolunteerMsg) FollowerExecute(is interfaces.IState) {
 	s := is.(*state.State)
-	e:= s.Elections.(*elections.Elections)
+	e := s.Elections.(*elections.Elections)
 	if e.Adapter == nil {
 		s.Holding[m.GetMsgHash().Fixed()] = m
 		return
 	}
-
 
 	elections.CheckAuthSetsMatch("FedVoteVolunteerMsg.FollowerExecute", e, s)
 

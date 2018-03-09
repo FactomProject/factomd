@@ -725,7 +725,7 @@ func SimControl(listenTo int, listenStdin bool) {
 					}
 					err = msg.(*messages.AddServerMsg).Sign(priv)
 					if err != nil {
-						os.Stderr.WriteString(fmt.Sprintln("Could not make a audit server,", err.Error()))
+						os.Stderr.WriteString(fmt.Sprintln("Could not make an audit server,", err.Error()))
 						break
 					}
 					fnodes[ListenTo].State.InMsgQueue().Enqueue(msg)

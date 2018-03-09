@@ -25,7 +25,6 @@ func NetworkProcessorNet(fnode *FactomNode) {
 }
 
 func Peers(fnode *FactomNode) {
-	cnt := 0
 
 	// ackHeight is used in ignoreMsg to determine if we should ignore an acknowledgment
 	ackHeight := uint32(0)
@@ -81,58 +80,69 @@ func Peers(fnode *FactomNode) {
 			}
 		}
 		return false
-	}
+	} // func ignoreMsg(){...}
 
 	for {
+		cnt := 0
+		now := fnode.State.GetTimestamp()
 		for i := 0; i < 100 && fnode.State.APIQueue().Length() > 0; i++ {
 			msg := fnode.State.APIQueue().Dequeue()
 
 			if msg == nil {
 				continue
 			}
+			// TODO: Is this as intended for 'x' command? -- clay
+			if fnode.State.GetNetStateOff() { // drop received message if he is off
+				fnode.State.LogMessage("NetworkInputs", "API drop, X'd by simCtrl", msg)
+				continue // Toss any inputs from API
+			}
+
+			if fnode.State.InMsgQueue().Length() > fnode.State.InMsgQueue().Cap()*9/10 {
+				fnode.State.LogMessage("NetworkInputs", "API Drop, Too Full", msg)
+				continue
+			}
 
 			if fnode.State.GetNetStateOff() {
-				fnode.State.LogMessage("NetworkInputs", "Drop from API, X'd by simCtrl", msg)
+				fnode.State.LogMessage("NetworkInputs", "API drop, X'd by simCtrl", msg)
 				continue
 			}
 
 			repeatHash := msg.GetRepeatHash()
 			if repeatHash == nil {
-				fnode.State.LogMessage("NetworkInputs", "from API drop, Hash Error", msg)
-
+				fnode.State.LogMessage("NetworkInputs", "API drop, Hash Error", msg)
 				fmt.Println("dddd ERROR!", msg.String())
 				continue
 			}
+
 			cnt++
 			msg.SetOrigin(0)
+			timestamp := msg.GetTimestamp()
+			repeatHashFixed := repeatHash.Fixed()
 
 			// Make sure message isn't a FCT transaction in a block
-			_, bv := fnode.State.Replay.Valid(constants.BLOCK_REPLAY,
-				msg.GetRepeatHash().Fixed(),
-				msg.GetTimestamp(),
-				fnode.State.GetTimestamp())
-
-			if bv && fnode.State.Replay.IsTSValid_(constants.NETWORK_REPLAY,
-				repeatHash.Fixed(),
-				msg.GetTimestamp(),
-				fnode.State.GetTimestamp()) {
-				//fnode.MLog.add2(fnode, false, fnode.State.FactomNodeName, "API", true, msg)
-				if fnode.State.InMsgQueue().Length() < 9000 {
-					fnode.State.LogMessage("NetworkInputs", "from API, Enqueue", msg)
-
-					fnode.State.InMsgQueue().Enqueue(msg)
-				} else {
-					fnode.State.LogMessage("NetworkInputs", "from API Drop, too full", msg)
-
-				}
-			} else {
-				fnode.State.LogMessage("NetworkInputs", "from API Drop, as dup", msg)
+			_, BRValid := fnode.State.FReplay.Valid(constants.BLOCK_REPLAY, repeatHashFixed, timestamp, now)
+			if !BRValid {
+				fnode.State.LogMessage("NetworkInputs", "API Drop, BLOCK_REPLAY", msg)
 				RepeatMsgs.Inc()
+				continue
 			}
-		}
+
+			// Make sure the message isn't a duplicate
+			NRValid := fnode.State.Replay.IsTSValid_(constants.NETWORK_REPLAY, repeatHashFixed, timestamp, now)
+			if !NRValid {
+				fnode.State.LogMessage("NetworkInputs", "API Drop, NETWORK_REPLAY", msg)
+				RepeatMsgs.Inc()
+				continue
+			}
+
+			//fnode.MLog.add2(fnode, false, fnode.State.FactomNodeName, "API", true, msg)
+			fnode.State.LogMessage("NetworkInputs", "from API, Enqueue", msg)
+			fnode.State.InMsgQueue().Enqueue(msg)
+		} // for the api queue read up to 100 messages {...}
 
 		// Put any broadcasts from our peers into our BroadcastIn queue
 		for i, peer := range fnode.Peers {
+			fromPeer := fmt.Sprintf("peer-%d", i)
 			for j := 0; j < 100; j++ {
 				var msg interfaces.IMsg
 				var err error
@@ -140,83 +150,96 @@ func Peers(fnode *FactomNode) {
 				preReceiveTime := time.Now()
 
 				msg, err = peer.Recieve()
-
 				if msg == nil {
 					// Receive is not blocking; nothing to do, we get a nil.
 					break // move to next peer
 				}
 
-				if fnode.State.GetNetStateOff() { // drop received message if he is off
-					fnode.State.LogMessage("NetworkInputs", "Drop, X'd by simCtrl", msg)
-					break // move to next peer
-				}
-				receiveTime := time.Since(preReceiveTime)
-				TotalReceiveTime.Add(float64(receiveTime.Nanoseconds()))
-
-				cnt++
-
-				if fnode.State.MessageTally {
-					fnode.State.TallyReceived(int(msg.Type()))
-				}
-
 				if err != nil {
 					fnode.State.LogPrintf("NetworkInputs", "error on receive from %v: %v", peer.GetNameFrom(), err)
 					fmt.Println("ERROR recieving message on", fnode.State.FactomNodeName+":", err)
-					// TODO: Maybe we should check the error type and/or count an change status to offline?
+					// TODO: Maybe we should check the error type and/or count errors and change status to offline?
 					break // move to next peer
 				}
 
+				receiveTime := time.Since(preReceiveTime)
+				TotalReceiveTime.Add(float64(receiveTime.Nanoseconds()))
+				cnt++
+
+				if fnode.State.MessageTally {
+					fnode.State.TallyReceived(int(msg.Type())) //TODO: Do we want to count dropped message?
+				}
+
+				if fnode.State.GetNetStateOff() { // drop received message if he is off
+					fnode.State.LogMessage("NetworkInputs", fromPeer+" Drop, X'd by simCtrl", msg)
+					continue // Toss any inputs from this peer
+				}
+
+				if fnode.State.InMsgQueue().Length() > fnode.State.InMsgQueue().Cap()*9/10 {
+					fnode.State.LogMessage("NetworkInputs", fromPeer+" Drop, Too Full", msg)
+					continue
+				}
+
+				repeatHash := msg.GetRepeatHash()
+				if repeatHash == nil {
+					fnode.State.LogMessage("NetworkInputs", fromPeer+" Drop, Hash Error", msg)
+					continue
+				}
+
 				msg.SetOrigin(i + 1) // Origin is 1 based but peer list is zero based.
+				hash := repeatHash.Fixed()
+				timestamp := msg.GetTimestamp()
+
+				tsv := fnode.State.Replay.IsTSValid_(constants.TIME_TEST, hash, timestamp, now)
+				if !tsv {
+					fnode.State.LogMessage("NetworkInputs", fromPeer+" Drop, TS invalid", msg)
+					continue
+				}
+
+				ignore := ignoreMsg(msg)
+				if ignore {
+					fnode.State.LogMessage("NetworkInputs", fromPeer+" Drop, ignoreMsg()", msg)
+					continue
+				}
 
 				// Make sure message isn't a FCT transaction in a block
-				_, bv := fnode.State.Replay.Valid(constants.BLOCK_REPLAY,
-					msg.GetRepeatHash().Fixed(),
-					msg.GetTimestamp(),
-					fnode.State.GetTimestamp())
-
-				tsv := fnode.State.Replay.IsTSValid_(constants.NETWORK_REPLAY,
-					msg.GetRepeatHash().Fixed(),
-					msg.GetTimestamp(),
-					fnode.State.GetTimestamp())
-
-				if bv && tsv  {
-					//if state.GetOut() {
-					//	fnode.State.Println("In Coming!! ",msg)
-					//}
-					in := "PeerIn"
-					if msg.IsPeer2Peer() {
-						in = "P2P In"
-					}
-					nme := fmt.Sprintf("%s %d", in, i+1)
-
-					fnode.MLog.Add2(fnode, false, peer.GetNameTo(), nme, true, msg)
-
-					// Ignore messages if there are too many.
-					if fnode.State.InMsgQueue().Length() < 9000 && !ignoreMsg(msg) {
-						fnode.State.LogMessage("NetworkInputs", "from peer, enqueue", msg)
-						fnode.State.InMsgQueue().Enqueue(msg)
-					} else {
-						fnode.State.LogMessage("NetworkInputs", "from peer Drop, too full", msg)
-					}
-				} else {
-					if !bv {
-						fnode.State.LogMessage("NetworkInputs", "from peer Drop, as dup", msg)
-					} else if !tsv {
-						fnode.State.LogMessage("NetworkInputs", "from peer TS, invalid", msg)
-					} else if !fnode.State.GetNetStateOff() { // drop received message if he is off
-						fnode.State.LogMessage("NetworkInputs", "Drop, X'd by simCtrl", msg)
-						break // move to next peer
-					}
+				_, bv := fnode.State.FReplay.Valid(constants.BLOCK_REPLAY, hash, timestamp, now)
+				if !bv {
+					fnode.State.LogMessage("NetworkInputs", fromPeer+" Drop, BLOCK_REPLAY", msg)
 					RepeatMsgs.Inc()
 					//fnode.MLog.add2(fnode, false, peer.GetNameTo(), "PeerIn", false, msg)
+					continue
 				}
-			}
-		}
+
+				rv := fnode.State.Replay.IsTSValid_(constants.NETWORK_REPLAY, hash, timestamp, now)
+				if !rv {
+					fnode.State.LogMessage("NetworkInputs", fromPeer+" Drop, NETWORK_REPLAY", msg)
+					RepeatMsgs.Inc()
+					//fnode.MLog.add2(fnode, false, peer.GetNameTo(), "PeerIn", false, msg)
+					continue
+				}
+
+				//if state.GetOut() {
+				//	fnode.State.Println("In Coming!! ",msg)
+				//}
+
+				var in string
+				if msg.IsPeer2Peer() {
+					in = "P2P In"
+				} else {
+					in = "PeerIn"
+				}
+				fnode.MLog.Add2(fnode, false, peer.GetNameTo(), fmt.Sprintf("%s %d", in, i+1), true, msg)
+
+				// Ignore messages if there are too many.
+				fnode.State.LogMessage("NetworkInputs", fromPeer+", enqueue", msg)
+				fnode.State.InMsgQueue().Enqueue(msg)
+			} // For a peer read up to 100 messages {...}
+		} // for each peer {...}
 		if cnt == 0 {
 			time.Sleep(50 * time.Millisecond) // handled no message, sleep a bit
 		}
-		cnt = 0
-	}
+	} // forever {...}
 }
 
 func NetworkOutputs(fnode *FactomNode) {

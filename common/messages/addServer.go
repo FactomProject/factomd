@@ -214,7 +214,7 @@ func (m *AddServerMsg) String() string {
 	}
 	return fmt.Sprintf("AddServer (%s): ChainID: %x Time: %x Msg Hash %x ",
 		stype,
-		m.ServerChainID.Bytes()[:3],
+		m.ServerChainID.Bytes()[3:6],
 		&m.Timestamp,
 		m.GetMsgHash().Bytes()[:3])
 

@@ -199,7 +199,7 @@ ackLoop:
 			a := ack.(*messages.Ack)
 			if ack.Validate(s) == 1 {
 				if s.IgnoreMissing {
-					now := s.GetTimestamp().GetTimeSeconds()
+					now := s.GetTimestamp().GetTimeSeconds() //todo: Do we really need to do this every loop?
 					if now-a.GetTimestamp().GetTimeSeconds() < 60*15 {
 						s.LogMessage("ackQueue", "Execute", ack)
 						s.executeMsg(vm, ack)
@@ -229,8 +229,7 @@ emptyLoop:
 	for {
 		select {
 		case msg := <-s.msgQueue:
-
-			s.LogMessage("msgQueue_o", "Execute", msg)
+			s.LogMessage("msgQueue", "Execute", msg)
 			if s.executeMsg(vm, msg) && !msg.IsPeer2Peer() {
 				msg.SendOut(s, msg)
 			}
@@ -267,7 +266,7 @@ processLoop:
 		select {
 		case msg := <-process:
 			s.LogMessage("executeMsg", "From processq", msg)
-			progress = s.executeMsg(vm, msg) || progress
+			progress = s.executeMsg(vm, msg) || progress //
 			s.UpdateState()
 		default:
 			break processLoop

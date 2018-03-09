@@ -43,10 +43,11 @@ func LogMessage(name string, note string, msg interfaces.IMsg) {
 	sequence++
 	seq := sequence
 	var t byte
-	var hash, msgString string
+	var rhash, hash, msgString string
 	if msg == nil {
 		t = 0
 		hash = "????????"
+		rhash = "????????"
 		msgString = "-nil-"
 	} else {
 		t = msg.Type()
@@ -57,6 +58,12 @@ func LogMessage(name string, note string, msg interfaces.IMsg) {
 			hash = "????????"
 		} else {
 			hash = h.String()[:8]
+		}
+		h = msg.GetRepeatHash()
+		if h == nil {
+			rhash = "????????"
+		} else {
+			rhash = h.String()[:8]
 		}
 	}
 	embeddedHash := ""
@@ -70,7 +77,7 @@ func LogMessage(name string, note string, msg interfaces.IMsg) {
 		embeddedHash = fmt.Sprintf(" EmbeddedMsg %26v[%2v]:%v", constants.MessageName(m.Type()), m.Type(), m.GetHash().String()[:8])
 	}
 
-	myfile.WriteString(fmt.Sprintf("%5v %20s %v %26s[%2v]:%v {%v}\n", seq, note, hash, constants.MessageName(byte(t)), t,
+	myfile.WriteString(fmt.Sprintf("%5v %20s M-%v|R-%v %26s[%2v]:%v {%v}\n", seq, note, hash, rhash, constants.MessageName(byte(t)), t,
 		embeddedHash, msgString))
 }
 
