@@ -76,11 +76,11 @@ func (m *EomSigInternal) GetMsgHash() interfaces.IHash {
 	return m.MsgHash
 }
 func Fault(e *elections.Elections, dbheight int, minute int, round int, timeOutId int, currentTimeoutId *atomic.AtomicInt) {
-//	e.LogPrintf("election", "Start Timeout %d", timeOutId)
+	//	e.LogPrintf("election", "Start Timeout %d", timeOutId)
 	time.Sleep(e.Timeout)
 
 	if currentTimeoutId.Load() == timeOutId {
-//		e.LogPrintf("election", "Timeout %d", timeOutId)
+		//		e.LogPrintf("election", "Timeout %d", timeOutId)
 		/* we have NOT moved on so no timeout */
 		timeout := new(TimeoutInternal)
 		timeout.DBHeight = dbheight
@@ -88,7 +88,7 @@ func Fault(e *elections.Elections, dbheight int, minute int, round int, timeOutI
 		timeout.Round = round
 		e.Input.Enqueue(timeout)
 	} else {
-//		e.LogPrintf("election", "Cancel Timeout %d", timeOutId)
+		//		e.LogPrintf("election", "Cancel Timeout %d", timeOutId)
 
 	}
 }

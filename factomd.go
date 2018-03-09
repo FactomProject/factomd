@@ -14,13 +14,7 @@ import (
 	. "github.com/FactomProject/factomd/engine"
 	log "github.com/sirupsen/logrus"
 
-	"bufio"
-	"io"
-	"net"
-	"os/exec"
-	"strconv"
 	"strings"
-	"sync"
 )
 
 func main() {
@@ -86,4 +80,3 @@ func isCompilerVersionOK() bool {
 
 	return goodenough
 }
-

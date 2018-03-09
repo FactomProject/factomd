@@ -125,12 +125,11 @@ func (m *FedVoteVolunteerMsg) LeaderExecute(state interfaces.IState) {
 
 func (m *FedVoteVolunteerMsg) FollowerExecute(is interfaces.IState) {
 	s := is.(*state.State)
-	e:= s.Elections.(*elections.Elections)
+	e := s.Elections.(*elections.Elections)
 	if e.Adapter == nil {
 		s.Holding[m.GetMsgHash().Fixed()] = m
 		return
 	}
-
 
 	elections.CheckAuthSetsMatch("FedVoteVolunteerMsg.FollowerExecute", e, s)
 

@@ -260,7 +260,7 @@ func SimControl(listenTo int, listenStdin bool) {
 				} else {
 					os.Stderr.WriteString("--Print Elections Off--\n")
 				}
-			case 'F' == b[0]:
+			case 'F' == b[0] && len(b) == 1:
 				simelections++
 				if simelections%2 == 1 {
 					os.Stderr.WriteString("--Print SimElections On--\n")

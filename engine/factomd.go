@@ -11,16 +11,16 @@ import (
 	"github.com/FactomProject/factomd/state"
 	"runtime"
 
-	log "github.com/sirupsen/logrus"
 	"bufio"
+	log "github.com/sirupsen/logrus"
 	"io"
-	"os/exec"
-	"os"
-	"time"
-	"sync"
-	"strings"
 	"net"
+	"os"
+	"os/exec"
 	"strconv"
+	"strings"
+	"sync"
+	"time"
 )
 
 var _ = fmt.Print
