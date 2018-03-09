@@ -44,6 +44,7 @@ func checkFileName(name string) bool {
 	return flag
 }
 
+
 // assumes traceMutex is locked already
 func getTraceFile(name string) (f *os.File) {
 	//traceMutex.Lock()	defer traceMutex.Unlock()
@@ -119,6 +120,9 @@ func LogPrintf(name string, format string, more ...interface{}) {
 	traceMutex.Lock()
 	defer traceMutex.Unlock()
 	myfile := getTraceFile(name)
+	if myfile == nil {
+		return
+	}
 	seq := sequence
 	myfile.WriteString(fmt.Sprintf("%5v %s\n", seq, fmt.Sprintf(format, more...)))
 }
@@ -128,6 +132,9 @@ func LogParcel(name string, note string, msg string) {
 	traceMutex.Lock()
 	defer traceMutex.Unlock()
 	myfile := getTraceFile(name)
+	if myfile == nil {
+		return
+	}
 	sequence++
 	seq := sequence
 
