@@ -277,8 +277,8 @@ func (e *ServerFault) String() string {
 	str := fmt.Sprintf("    E: %35s -- DBheight %ds FedID %8x AuditServer %8x, #sigs %d, VMIndex %d",
 		"EntryServerFault",
 		e.DBHeight,
-		e.ServerID.Bytes()[3:5],
-		e.AuditServerID.Bytes()[3:5],
+		e.ServerID.Bytes()[3:6],
+		e.AuditServerID.Bytes()[3:6],
 		len(e.SignatureList.List), e.VMIndex)
 	return str
 }
