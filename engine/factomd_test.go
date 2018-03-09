@@ -241,7 +241,7 @@ func TestAnElection(t *testing.T) {
 	runCmd := func(cmd string) {
 		os.Stderr.WriteString("Executing: " + cmd + "\n")
 		InputChan <- cmd
-		//		time.Sleep(100 * time.Millisecond)
+		time.Sleep(100 * time.Millisecond)
 		<-ProcessChan
 		return
 	}
@@ -258,6 +258,7 @@ func TestAnElection(t *testing.T) {
 	)
 	HandleLogfiles("out.txt", "out.txt")
 	params := ParseCmdLine(args)
+	time.Sleep(5 * time.Second) // wait till the control panel is setup
 	state0 := Factomd(params, false).(*state.State)
 	state0.MessageTally = true
 	time.Sleep(5 * time.Second) // wait till the simulation is setup
@@ -269,11 +270,13 @@ func TestAnElection(t *testing.T) {
 		t.Fatalf("Should have allocated %d nodes", nodes)
 		t.Fail()
 	}
+	//	runCmd("2")
+	//	runCmd("w") // point the control panel at 2
 
-	time.Sleep(1000 * time.Second)
+	//	time.Sleep(10 * time.Second)
 	runCmd("g5")
-	WaitBlocks(state0, 1)
-	WaitMinutes(state0, 2)
+	WaitBlocks(state0, 4)
+	WaitMinutes(state0, 1)
 
 	// Allocate leaders
 	runCmd("1")
@@ -286,7 +289,7 @@ func TestAnElection(t *testing.T) {
 		runCmd("o")
 	}
 
-	WaitBlocks(state0, 2)
+	WaitBlocks(state0, 1)
 	WaitMinutes(state0, 2)
 	PrintOneStatus(0, 0)
 

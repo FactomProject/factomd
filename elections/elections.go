@@ -254,7 +254,7 @@ func Run(s *state.State) {
 	e.Output = s.InMsgQueue()
 	e.Electing = -1
 
-	e.Timeout = 10 * time.Second
+	e.Timeout = 20 * time.Second
 
 	// Actually run the elections
 	for {

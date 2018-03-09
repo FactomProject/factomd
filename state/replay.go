@@ -244,23 +244,21 @@ func (r *Replay) IsTSValid(mask int, hash interfaces.IHash, timestamp interfaces
 // To make the function testable, the logic accepts the current time
 // as a parameter.  This way, the test code can manipulate the clock
 // at will.
-func (r *Replay) IsTSValid_(mask int, hash [32]byte, timestamp interfaces.Timestamp, systemtime interfaces.Timestamp) (rval bool) {
-	//var added bool
-	r.Mutex.Lock()
-	if index, ok := r.validate(mask, hash, timestamp, systemtime); ok {
+func (r *Replay) IsTSValid_(mask int, hash [32]byte, timestamp interfaces.Timestamp, now interfaces.Timestamp) bool {
+
+	//TODO: There is a race that the index could go stale while the replay is unlocked. -- clay
+	if index, ok := r.Valid(mask, hash, timestamp, now); ok {
 		// Mark this hash as seen
 		if mask != constants.TIME_TEST {
+			r.Mutex.Lock()
 			r.Buckets[index][hash] = r.Buckets[index][hash] | mask
+			r.Mutex.Unlock()
+			//			r.s.LogPrintf(r.name, "AddHash1 %x from %s", hash[:4], atomic.WhereAmIString(1))
 		}
-		rval = true
-	} else {
-		rval = false
+		return true
 	}
-	r.Mutex.Unlock()
-	//if added {
-	//	r.s.LogPrintf(r.name, "AddHash1 %x from %s", hash[:4], atomic.WhereAmIString(1))
-	//}
-	return rval
+
+	return false
 }
 
 // Returns True if there is no record of this hash in the Replay structures.
