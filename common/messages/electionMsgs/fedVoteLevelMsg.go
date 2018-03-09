@@ -5,8 +5,11 @@
 package electionMsgs
 
 import (
+	//"github.com/FactomProject/factomd/state"
+	"bytes"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -14,10 +17,6 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/state"
 	log "github.com/sirupsen/logrus"
-	//"github.com/FactomProject/factomd/state"
-	"bytes"
-
-	"time"
 
 	"github.com/FactomProject/factomd/elections"
 )
@@ -142,11 +141,11 @@ func (m *FedVoteLevelMsg) processIfCommitted(is interfaces.IState, elect interfa
 			m.Volunteer.ServerIdx, m.Volunteer.ServerID.Bytes()[3:6])
 
 		e.LogPrintf("election", "LeaderSwapState %d/%d/%d", m.VMIndex, m.DBHeight, m.Minute)
-		e.LogPrintf("election", "Demote  %x", e.Federated[m.Volunteer.FedIdx].GetChainID().Bytes()[3:6])
-		e.LogPrintf("election", "Promote %x", e.Audit[m.Volunteer.ServerIdx].GetChainID().Bytes()[3:6])
+		e.LogPrintf("election", "Demote  %x", m.Volunteer.FedID.Bytes()[3:6])
+		e.LogPrintf("election", "Promote %x", m.Volunteer.ServerID.Bytes()[3:6])
 
-		e.Federated[m.Volunteer.FedIdx], e.Audit[m.Volunteer.ServerIdx] =
-			e.Audit[m.Volunteer.ServerIdx], e.Federated[m.Volunteer.FedIdx]
+		DoSwap(e, m)
+
 		e.Adapter.SetElectionProcessed(true)
 		m.ProcessInState = true
 		m.SetValid()
@@ -160,6 +159,32 @@ func (m *FedVoteLevelMsg) processIfCommitted(is interfaces.IState, elect interfa
 		elections.Sort(e.Federated)
 		elections.Sort(e.Audit)
 	}
+}
+func DoSwap(e *elections.Elections, m *FedVoteLevelMsg) {
+	var dummy state.Server = state.Server{primitives.ZeroHash, "dummy", false, primitives.ZeroHash}
+	// Hack code to make broken authority sets not segfault
+	// Force the lists to be the same size by adding Dummy
+	// len()-1 < index to make index be valid [0:index] is index+1==len()
+	if len(e.Audit)-1 < int(m.Volunteer.ServerIdx) {
+		e.LogPrintf("election", "Adding spots to election.Audit to make index %d work", m.Volunteer.ServerIdx)
+		for len(e.Audit)-1 < int(m.Volunteer.ServerIdx) {
+			e.Audit = append(e.Audit, &dummy)
+		}
+	}
+	if len(e.Federated)-1 < int(m.Volunteer.FedIdx) {
+		e.LogPrintf("election", "Adding spots to election.Federated to make index %d work", m.Volunteer.FedIdx)
+		for len(e.Federated)-1 < int(m.Volunteer.FedIdx) {
+			e.Federated = append(e.Federated, &dummy)
+		}
+	}
+	if bytes.Compare(m.Volunteer.ServerID.Bytes(), e.Audit[int(m.Volunteer.ServerIdx)].GetChainID().Bytes()) != 0 {
+		e.LogPrintf("election", "Audit List Index mismatch", m.Volunteer.ServerIdx)
+	}
+	if bytes.Compare(m.Volunteer.FedID.Bytes(), e.Federated[int(m.Volunteer.FedIdx)].GetChainID().Bytes()) == 0 {
+		e.LogPrintf("election", "Audit List Index mismatch", m.Volunteer.ServerIdx)
+	}
+	e.Federated[m.Volunteer.FedIdx], e.Audit[m.Volunteer.ServerIdx] =
+		e.Audit[m.Volunteer.ServerIdx], e.Federated[m.Volunteer.FedIdx]
 }
 
 // Execute the leader functions of the given message

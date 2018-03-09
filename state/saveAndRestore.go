@@ -409,14 +409,14 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 	return
 }
 
-func (ss *SaveState) TrimBack(state *State, d *DBState) {
+func (ss *SaveState) TrimBack(s *State, d *DBState) {
 	pdbstate := d
-	d = state.DBStates.Get(int(ss.DBHeight + 1))
+	d = s.DBStates.Get(int(ss.DBHeight + 1))
 	if pdbstate == nil {
 		return
 	}
 	// Don't do anything until we are within the current day
-	if state.GetHighestKnownBlock()-state.GetHighestSavedBlk() > 144 {
+	if s.GetHighestKnownBlock()-s.GetHighestSavedBlk() > 144 {
 		return
 	}
 
@@ -424,11 +424,11 @@ func (ss *SaveState) TrimBack(state *State, d *DBState) {
 	if pss == nil {
 		return
 	}
-	ppl := state.ProcessLists.Get(ss.DBHeight)
+	ppl := s.ProcessLists.Get(ss.DBHeight)
 	if ppl == nil {
 		return
 	}
-	pl := state.ProcessLists.Get(ss.DBHeight + 1)
+	pl := s.ProcessLists.Get(ss.DBHeight + 1)
 	if pl == nil {
 		return
 	}
@@ -449,115 +449,118 @@ func (ss *SaveState) TrimBack(state *State, d *DBState) {
 		}
 	}
 
-	ss.EOMsyncing = state.EOMsyncing
+	ss.EOMsyncing = s.EOMsyncing
 
-	state.EOM = pss.EOM
-	state.EOMLimit = pss.EOMLimit
-	state.EOMProcessed = pss.EOMProcessed
-	state.EOMDone = pss.EOMDone
-	state.EOMMinute = pss.EOMMinute
-	state.EOMSys = pss.EOMSys
-	state.DBSig = pss.DBSig
-	state.DBSigLimit = pss.DBSigLimit
-	state.DBSigProcessed = pss.DBSigProcessed
-	state.DBSigDone = pss.DBSigDone
-	state.DBSigSys = pss.DBSigSys
-	state.Saving = pss.Saving
-	state.Syncing = pss.Syncing
+	s.EOM = pss.EOM
+	s.EOMLimit = pss.EOMLimit
+	s.EOMProcessed = pss.EOMProcessed
+	s.EOMDone = pss.EOMDone
+	s.EOMMinute = pss.EOMMinute
+	s.EOMSys = pss.EOMSys
+	s.DBSig = pss.DBSig
+	s.DBSigLimit = pss.DBSigLimit
+	s.DBSigProcessed = pss.DBSigProcessed
+	s.DBSigDone = pss.DBSigDone
+	s.DBSigSys = pss.DBSigSys
+	s.Saving = pss.Saving
+	s.Syncing = pss.Syncing
 
-	state.Replay = pss.Replay.Save()
+	s.Replay = pss.Replay.Save()
+	s.Replay.s = s
+	s.Replay.name = "Replay"
+
 
 	return
 	/*
 		pl.FedServers = append(pl.FedServers[0:], ppl.FedServers...)
 		pl.AuditServers = append(pl.AuditServers[0:], ppl.AuditServers...)
 
-		//state.Identities = append(state.Identities[:0], pss.Identities...)
-		//state.Authorities = append(state.Authorities[:0], pss.Authorities...)
-		//state.AuthorityServerCount = pss.AuthorityServerCount
+		//s.Identities = append(s.Identities[:0], pss.Identities...)
+		//s.Authorities = append(s.Authorities[:0], pss.Authorities...)
+		//s.AuthorityServerCount = pss.AuthorityServerCount
 
-		state.Holding = make(map[[32]byte]interfaces.IMsg)
+		s.Holding = make(map[[32]byte]interfaces.IMsg)
 		for k := range ss.Holding {
-			state.Holding[k] = pss.Holding[k]
+			s.Holding[k] = pss.Holding[k]
 		}
-		state.XReview = append(state.XReview[:0], pss.XReview...)
+		s.XReview = append(s.XReview[:0], pss.XReview...)
 	*/
 
 	/**
-	ss.EOMsyncing = state.EOMsyncing
+	ss.EOMsyncing = s.EOMsyncing
 
-	state.EOM = pss.EOM
-	state.EOMLimit = pss.EOMLimit
-	state.EOMProcessed = pss.EOMProcessed
-	state.EOMDone = pss.EOMDone
-	state.EOMMinute = pss.EOMMinute
-	state.EOMSys = pss.EOMSys
-	state.DBSig = pss.DBSig
-	state.DBSigLimit = pss.DBSigLimit
-	state.DBSigProcessed = pss.DBSigProcessed
-	state.DBSigDone = pss.DBSigDone
-	state.DBSigSys = pss.DBSigSys
-	state.Newblk = pss.Newblk
-	state.Saving = pss.Saving
-	state.Syncing = pss.Syncing
+	s.EOM = pss.EOM
+	s.EOMLimit = pss.EOMLimit
+	s.EOMProcessed = pss.EOMProcessed
+	s.EOMDone = pss.EOMDone
+	s.EOMMinute = pss.EOMMinute
+	s.EOMSys = pss.EOMSys
+	s.DBSig = pss.DBSig
+	s.DBSigLimit = pss.DBSigLimit
+	s.DBSigProcessed = pss.DBSigProcessed
+	s.DBSigDone = pss.DBSigDone
+	s.DBSigSys = pss.DBSigSys
+	s.Newblk = pss.Newblk
+	s.Saving = pss.Saving
+	s.Syncing = pss.Syncing
 
-	state.Holding = make(map[[32]byte]interfaces.IMsg)
+	s.Holding = make(map[[32]byte]interfaces.IMsg)
 	for k := range ss.Holding {
-		state.Holding[k] = pss.Holding[k]
+		s.Holding[k] = pss.Holding[k]
 	}
-	state.XReview = append(state.XReview[:0], pss.XReview...)
+	s.XReview = append(s.XReview[:0], pss.XReview...)
 
-	state.Acks = make(map[[32]byte]interfaces.IMsg)
+	s.Acks = make(map[[32]byte]interfaces.IMsg)
 	for k := range pss.Acks {
-		state.Acks[k] = pss.Acks[k]
+		s.Acks[k] = pss.Acks[k]
 	}
 
-	state.Commits = make(map[[32]byte][]interfaces.IMsg)
+	s.Commits = make(map[[32]byte][]interfaces.IMsg)
 	for k := range pss.Commits {
 		var c []interfaces.IMsg
-		state.Commits[k] = append(c, pss.Commits[k]...)
+		s.Commits[k] = append(c, pss.Commits[k]...)
 	}
 
-	state.InvalidMessages = make(map[[32]byte]interfaces.IMsg)
+	s.InvalidMessages = make(map[[32]byte]interfaces.IMsg)
 	for k := range pss.InvalidMessages {
-		state.InvalidMessages[k] = pss.InvalidMessages[k]
+		s.InvalidMessages[k] = pss.InvalidMessages[k]
 	}
 
 	// DBlock Height at which node has a complete set of eblocks+entries
-	state.EntryBlockDBHeightComplete = pss.EntryBlockDBHeightComplete
-	state.EntryBlockDBHeightProcessing = pss.EntryBlockDBHeightProcessing
-	state.MissingEntryBlocks = append(state.MissingEntryBlocks[:0], pss.MissingEntryBlocks...)
+	s.EntryBlockDBHeightComplete = pss.EntryBlockDBHeightComplete
+	s.EntryBlockDBHeightProcessing = pss.EntryBlockDBHeightProcessing
+	s.MissingEntryBlocks = append(s.MissingEntryBlocks[:0], pss.MissingEntryBlocks...)
 
-	state.EntryBlockDBHeightComplete = pss.EntryDBHeightComplete
-	state.EntryDBHeightComplete = pss.EntryDBHeightComplete
-	state.EntryHeightComplete = pss.EntryHeightComplete
-	state.EntryDBHeightProcessing = pss.EntryBlockDBHeightProcessing
-	state.MissingEntries = append(state.MissingEntries[:0], pss.MissingEntries...)
+	s.EntryBlockDBHeightComplete = pss.EntryDBHeightComplete
+	s.EntryDBHeightComplete = pss.EntryDBHeightComplete
+	s.EntryHeightComplete = pss.EntryHeightComplete
+	s.EntryDBHeightProcessing = pss.EntryBlockDBHeightProcessing
+	s.MissingEntries = append(s.MissingEntries[:0], pss.MissingEntries...)
 
-	state.FactoshisPerEC = pss.FactoshisPerEC
-	state.FERChainId = pss.FERChainId
-	state.ExchangeRateAuthorityAddress = pss.ExchangeRateAuthorityAddress
+	s.FactoshisPerEC = pss.FactoshisPerEC
+	s.FERChainId = pss.FERChainId
+	s.ExchangeRateAuthorityAddress = pss.ExchangeRateAuthorityAddress
 
-	state.FERChangeHeight = pss.FERChangeHeight
-	state.FERChangePrice = pss.FERChangePrice
-	state.FERPriority = pss.FERPriority
-	state.FERPrioritySetHeight = pss.FERPrioritySetHeight
+	s.FERChangeHeight = pss.FERChangeHeight
+	s.FERChangePrice = pss.FERChangePrice
+	s.FERPriority = pss.FERPriority
+	s.FERPrioritySetHeight = pss.FERPrioritySetHeight
 
 	**/
 }
 
-func (ss *SaveState) RestoreFactomdState(state *State) { //, d *DBState) {
+func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 	// We trim away the ProcessList under construction (and any others) so we can
 	// rebuild afresh.
-	index := int(state.ProcessLists.DBHeightBase) - int(ss.DBHeight)
+	index := int(s.ProcessLists.DBHeightBase) - int(ss.DBHeight)
 	if index < 0 {
 		index = 0
 	} else {
-		fmt.Println(state.ProcessLists.String())
+		fmt.Println(s.ProcessLists.String())
 
-		if len(state.ProcessLists.Lists) > index+1 {
-			state.ProcessLists.Lists = state.ProcessLists.Lists[:index+2]
-			pln := state.ProcessLists.Lists[index+1]
+		if len(s.ProcessLists.Lists) > index+1 {
+			s.ProcessLists.Lists = s.ProcessLists.Lists[:index+2]
+			pln := s.ProcessLists.Lists[index+1]
 			for _, vm := range pln.VMs {
 				vm.LeaderMinute = 0
 				if vm.Height > 0 {
@@ -575,92 +578,95 @@ func (ss *SaveState) RestoreFactomdState(state *State) { //, d *DBState) {
 			}
 		}
 	}
-	pl := state.ProcessLists.Get(ss.DBHeight)
+	pl := s.ProcessLists.Get(ss.DBHeight)
 
-	// state.AddStatus(fmt.Sprintln("Index: ", index, "dbht:", ss.DBHeight, "lleaderheight", state.LLeaderHeight))
+	// s.AddStatus(fmt.Sprintln("Index: ", index, "dbht:", ss.DBHeight, "lleaderheight", s.LLeaderHeight))
 
-	dindex := ss.DBHeight - state.DBStates.Base
-	state.DBStates.DBStates = state.DBStates.DBStates[:dindex]
-	//state.AddStatus(fmt.Sprintf("SAVESTATE Restoring the State to dbht: %d", ss.DBHeight))
+	dindex := ss.DBHeight - s.DBStates.Base
+	s.DBStates.DBStates = s.DBStates.DBStates[:dindex]
+	//s.AddStatus(fmt.Sprintf("SAVESTATE Restoring the State to dbht: %d", ss.DBHeight))
 
-	state.Replay = ss.Replay.Save()
-	state.LeaderTimestamp = ss.LeaderTimestamp
+	s.Replay = ss.Replay.Save()
+	s.Replay.s = s
+	s.Replay.name = "Replay"
+
+	s.LeaderTimestamp = ss.LeaderTimestamp
 
 	pl.FedServers = []interfaces.IServer{}
 	pl.AuditServers = []interfaces.IServer{}
 	pl.FedServers = append(pl.FedServers, ss.FedServers...)
 	pl.AuditServers = append(pl.AuditServers, ss.AuditServers...)
 
-	state.FactoidBalancesPMutex.Lock()
-	state.FactoidBalancesP = make(map[[32]byte]int64, 0)
+	s.FactoidBalancesPMutex.Lock()
+	s.FactoidBalancesP = make(map[[32]byte]int64, 0)
 	for k := range ss.FactoidBalancesP {
-		state.FactoidBalancesP[k] = ss.FactoidBalancesP[k]
+		s.FactoidBalancesP[k] = ss.FactoidBalancesP[k]
 	}
-	state.FactoidBalancesPMutex.Unlock()
+	s.FactoidBalancesPMutex.Unlock()
 
-	state.ECBalancesPMutex.Lock()
-	state.ECBalancesP = make(map[[32]byte]int64, 0)
+	s.ECBalancesPMutex.Lock()
+	s.ECBalancesP = make(map[[32]byte]int64, 0)
 	for k := range ss.ECBalancesP {
-		state.ECBalancesP[k] = ss.ECBalancesP[k]
+		s.ECBalancesP[k] = ss.ECBalancesP[k]
 	}
-	state.ECBalancesPMutex.Unlock()
+	s.ECBalancesPMutex.Unlock()
 
-	state.Identities = append(state.Identities[:0], ss.Identities...)
-	state.Authorities = append(state.Authorities[:0], ss.Authorities...)
-	state.AuthorityServerCount = ss.AuthorityServerCount
+	s.Identities = append(s.Identities[:0], ss.Identities...)
+	s.Authorities = append(s.Authorities[:0], ss.Authorities...)
+	s.AuthorityServerCount = ss.AuthorityServerCount
 
-	state.LLeaderHeight = ss.LLeaderHeight
-	state.Leader = ss.Leader
-	state.LeaderVMIndex = ss.LeaderVMIndex
-	state.LeaderPL = ss.LeaderPL
-	state.CurrentMinute = ss.CurrentMinute
+	s.LLeaderHeight = ss.LLeaderHeight
+	s.Leader = ss.Leader
+	s.LeaderVMIndex = ss.LeaderVMIndex
+	s.LeaderPL = ss.LeaderPL
+	s.CurrentMinute = ss.CurrentMinute
 
-	ss.EOMsyncing = state.EOMsyncing
+	ss.EOMsyncing = s.EOMsyncing
 
-	state.EOM = false
-	state.EOMLimit = ss.EOMLimit
-	state.EOMProcessed = ss.EOMProcessed
-	state.EOMDone = ss.EOMDone
-	state.EOMMinute = ss.EOMMinute
-	state.EOMSys = ss.EOMSys
-	state.DBSig = false
-	state.DBSigLimit = ss.DBSigLimit
-	state.DBSigProcessed = ss.DBSigProcessed
-	state.DBSigDone = ss.DBSigDone
-	state.DBSigSys = ss.DBSigSys
-	state.Saving = true
-	state.Syncing = false
-	state.HighestAck = ss.DBHeight + 1
-	state.HighestKnown = ss.DBHeight + 2
-	state.Holding = make(map[[32]byte]interfaces.IMsg)
+	s.EOM = false
+	s.EOMLimit = ss.EOMLimit
+	s.EOMProcessed = ss.EOMProcessed
+	s.EOMDone = ss.EOMDone
+	s.EOMMinute = ss.EOMMinute
+	s.EOMSys = ss.EOMSys
+	s.DBSig = false
+	s.DBSigLimit = ss.DBSigLimit
+	s.DBSigProcessed = ss.DBSigProcessed
+	s.DBSigDone = ss.DBSigDone
+	s.DBSigSys = ss.DBSigSys
+	s.Saving = true
+	s.Syncing = false
+	s.HighestAck = ss.DBHeight + 1
+	s.HighestKnown = ss.DBHeight + 2
+	s.Holding = make(map[[32]byte]interfaces.IMsg)
 	for k := range ss.Holding {
-		state.Holding[k] = ss.Holding[k]
+		s.Holding[k] = ss.Holding[k]
 	}
-	state.XReview = append(state.XReview[:0], ss.XReview...)
+	s.XReview = append(s.XReview[:0], ss.XReview...)
 
-	state.Acks = make(map[[32]byte]interfaces.IMsg)
+	s.Acks = make(map[[32]byte]interfaces.IMsg)
 	for k := range ss.Acks {
-		state.Acks[k] = ss.Acks[k]
+		s.Acks[k] = ss.Acks[k]
 	}
 
-	state.Commits = ss.Commits.Copy() // make(map[[32]byte]interfaces.IMsg)
+	s.Commits = ss.Commits.Copy() // make(map[[32]byte]interfaces.IMsg)
 	// for k, c := range ss.Commits {
-	// 	state.Commits[k] = c
+	// 	s.Commits[k] = c
 	// }
 
-	state.InvalidMessages = make(map[[32]byte]interfaces.IMsg)
+	s.InvalidMessages = make(map[[32]byte]interfaces.IMsg)
 	for k := range ss.InvalidMessages {
-		state.InvalidMessages[k] = ss.InvalidMessages[k]
+		s.InvalidMessages[k] = ss.InvalidMessages[k]
 	}
 
-	state.FactoshisPerEC = ss.FactoshisPerEC
-	state.FERChainId = ss.FERChainId
-	state.ExchangeRateAuthorityPublicKey = ss.ExchangeRateAuthorityPublicKey
+	s.FactoshisPerEC = ss.FactoshisPerEC
+	s.FERChainId = ss.FERChainId
+	s.ExchangeRateAuthorityPublicKey = ss.ExchangeRateAuthorityPublicKey
 
-	state.FERChangeHeight = ss.FERChangeHeight
-	state.FERChangePrice = ss.FERChangePrice
-	state.FERPriority = ss.FERPriority
-	state.FERPrioritySetHeight = ss.FERPrioritySetHeight
+	s.FERChangeHeight = ss.FERChangeHeight
+	s.FERChangePrice = ss.FERChangePrice
+	s.FERPriority = ss.FERPriority
+	s.FERPrioritySetHeight = ss.FERPrioritySetHeight
 }
 
 func (ss *SaveState) MarshalBinary() ([]byte, error) {

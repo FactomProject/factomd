@@ -158,9 +158,10 @@ const (
 	TIME_TEST       = 4 // Checks the time_stamp;  Don't put actual hashes into the map with this.
 	REVEAL_REPLAY   = 8 // Checks for Reveal Entry Replays ... No duplicate Entries within our 4 hours!
 
-	// FReplay -- Block based Replay filter consttructed by processing the blocks, from the database
+	// FReplay -- Block based Replay filter constructed by processing the blocks, from the database
 	//            then from blocks either passed to a node, or constructed by messages.
-	BLOCK_REPLAY = 1 // Ensures we don't add the same transaction to multiple blocks.
+	BLOCK_REPLAY = 16 // Ensures we don't add the same transaction to multiple blocks.
+	//todo: Clay -- I changed this to not match in an experiment
 
 	ADDRESS_LENGTH = 32 // Length of an Address or a Hash or Public Key
 	// length of a Private Key
@@ -179,7 +180,7 @@ const (
 
 	// Block
 	//==================
-	MARKER                  = 0x00                       // Byte used to mark minute boundries in Factoid blocks
+	MARKER                  = 0x00                       // Byte used to mark minute boundaries in Factoid blocks
 	TRANSACTION_PRIOR_LIMIT = int64(12 * 60 * 60 * 1000) // Transactions prior to 12hrs before a block are invalid
 	TRANSACTION_POST_LIMIT  = int64(12 * 60 * 60 * 1000) // Transactions after 12hrs following a block are invalid
 

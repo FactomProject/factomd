@@ -5,16 +5,14 @@
 package main
 
 import (
-	"os"
-
 	"fmt"
+	"os"
 	"runtime"
+	"strings"
 	"time"
 
 	. "github.com/FactomProject/factomd/engine"
 	log "github.com/sirupsen/logrus"
-
-	"strings"
 )
 
 func main() {
@@ -80,3 +78,4 @@ func isCompilerVersionOK() bool {
 
 	return goodenough
 }
+

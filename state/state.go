@@ -819,7 +819,12 @@ func (s *State) Init() {
 	}
 	// Set up struct to stop replay attacks
 	s.Replay = new(Replay)
+	s.Replay.s = s
+	s.Replay.name = "Replay"
+
 	s.FReplay = new(Replay)
+	s.FReplay.s = s
+	s.FReplay.name = "FReplay"
 
 	// Set up maps for the followers
 	s.Holding = make(map[[32]byte]interfaces.IMsg)
@@ -1779,6 +1784,7 @@ func (s *State) AddDBSig(dbheight uint32, chainID interfaces.IHash, sig interfac
 
 func (s *State) AddFedServer(dbheight uint32, hash interfaces.IHash) int {
 	//s.AddStatus(fmt.Sprintf("AddFedServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
+	s.LogPrintf("executeMsg", "AddServer (Federated): ChainID: %x at dbht: %d", hash.Bytes()[3:6], dbheight)
 	return s.ProcessLists.Get(dbheight).AddFedServer(hash)
 }
 
@@ -1788,16 +1794,19 @@ func (s *State) TrimVMList(dbheight uint32, height uint32, vmIndex int) {
 
 func (s *State) RemoveFedServer(dbheight uint32, hash interfaces.IHash) {
 	//s.AddStatus(fmt.Sprintf("RemoveFedServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
+	s.LogPrintf("executeMsg", "RemoveServer (Federated): ChainID: %x at dbht: %d", hash.Bytes()[3:6], dbheight)
 	s.ProcessLists.Get(dbheight).RemoveFedServerHash(hash)
 }
 
 func (s *State) AddAuditServer(dbheight uint32, hash interfaces.IHash) int {
 	//s.AddStatus(fmt.Sprintf("AddAuditServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
+	s.LogPrintf("executeMsg", "AddServer (Audit): ChainID: %x at dbht: %d", hash.Bytes()[3:6], dbheight)
 	return s.ProcessLists.Get(dbheight).AddAuditServer(hash)
 }
 
 func (s *State) RemoveAuditServer(dbheight uint32, hash interfaces.IHash) {
 	//s.AddStatus(fmt.Sprintf("RemoveAuditServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
+	s.LogPrintf("executeMsg", "RemoveServer (Audit): ChainID: %x at dbht: %d", hash.Bytes()[3:6], dbheight)
 	s.ProcessLists.Get(dbheight).RemoveAuditServerHash(hash)
 }
 

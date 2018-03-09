@@ -253,18 +253,16 @@ func TestAnElection(t *testing.T) {
 		"-enablenet=true",
 		"-blktime=10",
 		fmt.Sprintf("-count=%d", nodes),
-		"-logPort=37000",
-		"-port=37001",
-		"-ControlPanelPort=37002",
-		"-networkPort=37003",
 		"-startdelay=1",
 		"-faulttimeout=999999",
 	)
 	HandleLogfiles("out.txt", "out.txt")
 	params := ParseCmdLine(args)
+	time.Sleep(5 * time.Second) // wait till the control panel is setup
 	state0 := Factomd(params, false).(*state.State)
 	state0.MessageTally = true
 	time.Sleep(5 * time.Second) // wait till the simulation is setup
+	LaunchDebugServer("localhost")
 
 	t.Log(fmt.Sprintf("Allocated %d nodes", nodes))
 	fnodes := GetFnodes()
@@ -273,10 +271,16 @@ func TestAnElection(t *testing.T) {
 		t.Fail()
 	}
 
-	//	WaitBlocks(state0, 1)
+	StatusEveryMinute(state0)
+
+	runCmd("2")
+	runCmd("w") // point the control panel at 2
+
+	time.Sleep(10 * time.Second)
+
 	runCmd("g5")
-	WaitBlocks(state0, 1)
-	WaitMinutes(state0, 2)
+	WaitBlocks(state0, 4)
+	WaitMinutes(state0, 1)
 
 	// Allocate leaders
 	runCmd("1")
@@ -289,7 +293,7 @@ func TestAnElection(t *testing.T) {
 		runCmd("o")
 	}
 
-	WaitBlocks(state0, 2)
+	WaitBlocks(state0, 1)
 	WaitMinutes(state0, 2)
 	PrintOneStatus(0, 0)
 
@@ -304,7 +308,7 @@ func TestAnElection(t *testing.T) {
 	WaitBlocks(state0, 2)
 	WaitMinutes(state0, 2)
 
-	PrintOneStatus(0, 0)
+	// PrintOneStatus(0, 0)
 	if GetFnodes()[leaders-1].State.Leader {
 		t.Fatalf("Node %d should not be a leader", leaders-1)
 	}

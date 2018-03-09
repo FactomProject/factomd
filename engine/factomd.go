@@ -11,16 +11,16 @@ import (
 	"github.com/FactomProject/factomd/state"
 	"runtime"
 
-	"bufio"
 	log "github.com/sirupsen/logrus"
+	"bufio"
 	"io"
-	"net"
-	"os"
 	"os/exec"
-	"strconv"
-	"strings"
-	"sync"
+	"os"
 	"time"
+	"sync"
+	"strings"
+	"net"
+	"strconv"
 )
 
 var _ = fmt.Print
@@ -118,7 +118,7 @@ func LaunchDebugServer(service string) {
 	// start a go routine to tee stderr to the debug console
 	debugConsole_r, debugConsole_w, _ := os.Pipe() // Can't use the writer directly as os.Stdout so make a pipe
 	var wait sync.WaitGroup
-	wait.Add(2)
+	wait.Add(1)
 	go func() {
 
 		r, w, _ := os.Pipe() // Can't use the writer directly as os.Stderr so make a pipe
@@ -131,18 +131,20 @@ func LaunchDebugServer(service string) {
 			panic(err)
 		}
 	}() // stderr redirect func
-	go func() {
 
-		r, w, _ := os.Pipe() // Can't use the writer directly as os.Stderr so make a pipe
-		oldStdout := os.Stdout
-		os.Stdout = w
-		defer oldStdout.Close()                  // since I'm taking this away from  OS I need to close it when the time comes
-		defer time.Sleep(100 * time.Millisecond) // let the output all complete
-		wait.Done()
-		if _, err := io.Copy(io.MultiWriter(oldStdout, debugConsole_w), r); err != nil { // copy till EOF
-			panic(err)
-		}
-	}() // stderr redirect func
+	//wait.Add(1)
+	//go func() {
+	//
+	//	r, w, _ := os.Pipe() // Can't use the writer directly as os.Stderr so make a pipe
+	//	oldStdout := os.Stdout
+	//	os.Stdout = w
+	//	defer oldStdout.Close()                  // since I'm taking this away from  OS I need to close it when the time comes
+	//	defer time.Sleep(100 * time.Millisecond) // let the output all complete
+	//	wait.Done()
+	//	if _, err := io.Copy(io.MultiWriter(oldStdout, debugConsole_w), r); err != nil { // copy till EOF
+	//		panic(err)
+	//	}
+	//}() // stdout redirect func
 
 	wait.Wait() // Let the redirection become active ...
 

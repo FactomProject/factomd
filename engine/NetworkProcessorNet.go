@@ -202,15 +202,6 @@ func Peers(fnode *FactomNode) {
 					continue
 				}
 
-				//debug ...
-				if msg.Type() == constants.DIRECTORY_BLOCK_SIGNATURE_MSG {
-					x := msg.(*messages.DirectoryBlockSignature)
-					h := x.DBHeight
-					if h == 6 {
-						fmt.Printf("Found it\n")
-					}
-				}
-
 				// Make sure message isn't a FCT transaction in a block
 				_, bv := fnode.State.FReplay.Valid(constants.BLOCK_REPLAY, hash, timestamp, now)
 				if !bv {
