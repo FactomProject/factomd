@@ -34,7 +34,8 @@ type EomSigInternal struct {
 var _ interfaces.IMsg = (*EomSigInternal)(nil)
 
 func Title() string {
-	return fmt.Sprintf("%6s %10s %8s %8s %8s %8s",
+	return fmt.Sprintf("%5s%6s %10s %8s %8s %8s %8s",
+		"", // Spacer
 		"Type",
 		"Node",
 		"M:DBHt",

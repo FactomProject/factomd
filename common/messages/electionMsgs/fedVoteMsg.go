@@ -111,7 +111,7 @@ func (m *FedVoteMsg) ElectionValidate(st interfaces.IState) int {
 	e := s.Elections.(*elections.Elections)
 
 	// TODO: Correct this
-	if e.Adapter == nil {
+	if e.Adapter == nil || e.Electing == -1 {
 		return 0
 	}
 
@@ -142,7 +142,7 @@ func (m *FedVoteMsg) Validate(st interfaces.IState) int {
 	//	return -1
 	//}
 	// Vote is only as valid as the election
-	return m.ElectionValidate(st)
+	return 1
 }
 
 // Returns true if this is a message for this server to execute as

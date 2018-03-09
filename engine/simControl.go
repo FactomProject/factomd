@@ -21,6 +21,7 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/controlPanel"
+	elections2 "github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/wsapi"
 )
@@ -268,6 +269,7 @@ func SimControl(listenTo int, listenStdin bool) {
 				} else {
 					os.Stderr.WriteString("--Print SimElections Off--\n")
 				}
+
 			case 'p' == b[0]:
 				if len(b) > 1 {
 					ht, err := strconv.Atoi(string(b[1:]))
@@ -1074,7 +1076,45 @@ func SimControl(listenTo int, listenStdin bool) {
 						}
 					}
 				}
-
+			case 'J' == b[0]:
+				elect := fnodes[listenTo].State.Elections.(*elections2.Elections)
+				flist := elect.Federated
+				alist := elect.Audit
+				os.Stderr.WriteString(fmt.Sprintf(fnodes[listenTo].State.Elections.String()))
+				for _, n := range fnodes {
+					founddif := false
+					str := "\n - " + n.State.GetFactomNodeName()
+					ele2 := n.State.Elections.(*elections2.Elections)
+					flist2 := ele2.Federated
+					alist2 := ele2.Audit
+					if len(flist2) != len(flist) {
+						str += fmt.Sprintf("\n   /FedList different length: Exp %d vs %d", len(flist), len(flist2))
+						founddif = true
+					} else {
+						for i := range flist {
+							if !flist[i].GetChainID().IsSameAs(flist2[i].GetChainID()) {
+								str += fmt.Sprintf("\n   /FedList[%d] different. Exp %x vs %x",
+									i, flist[i].GetChainID().Bytes()[:8], flist2[i].GetChainID().Bytes()[:8])
+								founddif = true
+							}
+						}
+					}
+					if len(alist2) != len(alist) {
+						str += fmt.Sprintf("\n   /AudList different length: Exp %d vs %d", len(alist), len(alist2))
+						founddif = true
+					} else {
+						for i := range alist {
+							if !alist[i].GetChainID().IsSameAs(alist2[i].GetChainID()) {
+								str += fmt.Sprintf("\n   /AudList[%d] different. Exp %x vs %x",
+									i, alist[i].GetChainID().Bytes()[:8], alist2[i].GetChainID().Bytes()[:8])
+								founddif = true
+							}
+						}
+					}
+					if founddif {
+						os.Stderr.WriteString(str)
+					}
+				}
 			case 'D' == b[0]:
 				if ListenTo < 0 || ListenTo > len(fnodes) {
 					os.Stderr.WriteString("No Factom Node selected\n")

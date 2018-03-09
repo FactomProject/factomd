@@ -136,6 +136,7 @@ func (m *FedVoteLevelMsg) processIfCommitted(is interfaces.IState, elect interfa
 			m.Volunteer.ServerIdx, m.Volunteer.ServerID.Bytes()[3:6])
 
 		e.LogPrintf("election", "**** FedVoteLevelMsg %12s Swapping Fed: %d(%x) Audit: %d(%x)",
+
 			is.GetFactomNodeName(),
 			m.Volunteer.FedIdx, m.Volunteer.FedID.Bytes()[3:6],
 			m.Volunteer.ServerIdx, m.Volunteer.ServerID.Bytes()[3:6])
@@ -149,6 +150,18 @@ func (m *FedVoteLevelMsg) processIfCommitted(is interfaces.IState, elect interfa
 		e.Adapter.SetElectionProcessed(true)
 		m.ProcessInState = true
 		m.SetValid()
+
+		// Ensure we don't start another election for this server
+		se := new(EomSigInternal)
+		se.SigType = m.Volunteer.EOM
+		se.NName = m.Volunteer.Name
+		se.DBHeight = m.Volunteer.DBHeight
+		se.Minute = m.Volunteer.Minute
+		se.VMIndex = m.Volunteer.VMIndex
+		se.ServerID = m.Volunteer.ServerID
+
+		e.Msgs = append(e.Msgs, se)
+
 		// Send for the state to do the swap. It will only be sent with this
 		// flag ONCE
 		is.InMsgQueue().Enqueue(m)
