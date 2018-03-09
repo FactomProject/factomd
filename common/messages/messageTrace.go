@@ -44,7 +44,6 @@ func checkFileName(name string) bool {
 	return flag
 }
 
-
 // assumes traceMutex is locked already
 func getTraceFile(name string) (f *os.File) {
 	//traceMutex.Lock()	defer traceMutex.Unlock()

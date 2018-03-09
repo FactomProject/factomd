@@ -162,8 +162,10 @@ func (ea *ElectionAdapter) expandMyMessage(msg imessage.IMessage) interfaces.IMs
 		for _, j := range sim.Justification {
 			just := ea.expandGeneral(&j)
 			if just != nil {
-				// TODO: Clear level to ensure just 1 level deep?
-				l.Justification = append(l.Justification, just)
+				// Only keep one level, so clear the justification before I include it.
+				llm := just.(*FedVoteLevelMsg)
+				llm.Justification = llm.Justification[:0]
+				l.Justification = append(l.Justification, llm)
 			}
 		}
 
