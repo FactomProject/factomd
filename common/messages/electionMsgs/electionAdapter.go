@@ -65,7 +65,6 @@ func NewElectionAdapter(e *elections.Elections) *ElectionAdapter {
 	// Build the authset
 	// TODO: Check the order!
 
-
 	e.LogPrintf("election", "NewElectionAdapter")
 	elections.CheckAuthSetsMatch("NewElectionAdapter", e, e.State.(*state.State))
 
@@ -92,9 +91,8 @@ func NewElectionAdapter(e *elections.Elections) *ElectionAdapter {
 func (ea *ElectionAdapter) Execute(msg interfaces.IMsg) interfaces.IMsg {
 
 	if ea.ElectionProcessed {
-		return nil				// If that election is complete, just return
+		return nil // If that election is complete, just return
 	}
-
 
 	simmessage := ea.adaptMessage(msg)
 	if simmessage == nil {

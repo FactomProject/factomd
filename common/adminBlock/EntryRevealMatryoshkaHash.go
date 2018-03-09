@@ -107,7 +107,7 @@ func (e *RevealMatryoshkaHash) String() string {
 	e.Init()
 	str := fmt.Sprintf("    E: %35s -- %17s %8x %12s %x",
 		"RevealMatryoshkaHash",
-		"IdentityChainID", e.IdentityChainID.Bytes()[3:5],
+		"IdentityChainID", e.IdentityChainID.Bytes()[3:6],
 		"Hash", e.MHash.Bytes()[:5])
 	return str
 }

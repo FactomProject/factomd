@@ -301,7 +301,7 @@ func TestAnElection(t *testing.T) {
 
 	runCmd(fmt.Sprintf("%d", leaders-1))
 	runCmd("x")
-	WaitBlocks(state0, 1)
+	WaitBlocks(state0, 2)
 	WaitMinutes(state0, 2)
 	runCmd("x")
 

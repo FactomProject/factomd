@@ -78,4 +78,3 @@ func isCompilerVersionOK() bool {
 
 	return goodenough
 }
-
