@@ -14,7 +14,7 @@ import (
 var (
 	traceMutex sync.Mutex
 	files      map[string]*os.File
-	enabled    map[string] bool
+	enabled    map[string]bool
 	TestRegex  *regexp.Regexp
 	sequence   int
 )
@@ -30,11 +30,11 @@ func checkFileName(name string) bool {
 		theRegex, err := regexp.Compile(DebugLogRegEx)
 		if err != nil {
 			panic(err)
-	}
+		}
 		files = make(map[string]*os.File)
 		enabled = make(map[string]bool)
 		TestRegex = theRegex
-}
+	}
 
 	flag, old := enabled[name]
 	if !old {
