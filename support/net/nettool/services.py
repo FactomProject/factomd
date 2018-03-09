@@ -165,10 +165,22 @@ class Factomd(Service):
     """
     def __init__(self, docker, config):
         super().__init__()
+
+        id_chain = "888888367795422bb2b15bae1af83396a94efa1cecab8cd171197eabd4b4bf9b"
+        priv_key = "5319e64e156893ed32e0a863b2622821d2d59ce7cf644fdbe93bf5a065af52fc"
+        pub_key = "ad6f634018389a29da51586ef69f747bb4608d29e19c40242f1b1c3bd4cede16"
+
         self.__class__.image = Image(
             docker,
             tag="nettool_factomd",
-            path="docker/node"
+            path="docker/node",
+            extra_args={
+                "buildargs": {
+                    "ID_CHAIN": id_chain,
+                    "PRIV_KEY": priv_key,
+                    "PUB_KEY": pub_key
+                }
+            }
         )
         self.container = Container(
             docker,
@@ -211,13 +223,6 @@ class Factomd(Service):
         If True, this node will remain a follower.
         """
         return self.config.role == "follower"
-
-    @property
-    def server_port(self):
-        """
-        Gets the port for communication between servers.
-        """
-        return self.config.server_port
 
     @property
     def seed_entry(self):

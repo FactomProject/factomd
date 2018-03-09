@@ -60,11 +60,12 @@ class Image(object):
     """
     A wrapper for the docker image.
     """
-    def __init__(self, docker, *, tag, path):
+    def __init__(self, docker, *, tag, path, extra_args=None):
         self.docker = docker
         self.tag = tag
         self.path = path
         self.docker_image = None
+        self.extra_args = extra_args or {}
 
     @property
     def is_built(self):
@@ -86,11 +87,11 @@ class Image(object):
         """
         if not self.is_built or rebuild:
             with log.step("Building image", self.tag):
-                self.docker_image = self.docker.images.build(
-                    path=self.path,
-                    tag=self.tag,
-                    rm=True
-                )
+                kwargs = self.extra_args.copy()
+                kwargs["path"] = self.path
+                kwargs["tag"] = self.tag
+                kwargs["rm"] = True
+                self.docker_image = self.docker.images.build(**kwargs)
 
     def destroy(self):
         """
