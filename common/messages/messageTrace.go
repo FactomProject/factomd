@@ -14,7 +14,7 @@ import (
 var (
 	traceMutex sync.Mutex
 	files      map[string]*os.File
-	enabled    map[string] bool
+	enabled    map[string]bool
 	TestRegex  *regexp.Regexp
 	sequence   int
 )
@@ -30,11 +30,11 @@ func checkFileName(name string) bool {
 		theRegex, err := regexp.Compile(DebugLogRegEx)
 		if err != nil {
 			panic(err)
-	}
+		}
 		files = make(map[string]*os.File)
 		enabled = make(map[string]bool)
 		TestRegex = theRegex
-}
+	}
 
 	flag, old := enabled[name]
 	if !old {
@@ -119,6 +119,9 @@ func LogPrintf(name string, format string, more ...interface{}) {
 	traceMutex.Lock()
 	defer traceMutex.Unlock()
 	myfile := getTraceFile(name)
+	if myfile == nil {
+		return
+	}
 	seq := sequence
 	myfile.WriteString(fmt.Sprintf("%5v %s\n", seq, fmt.Sprintf(format, more...)))
 }
@@ -128,6 +131,9 @@ func LogParcel(name string, note string, msg string) {
 	traceMutex.Lock()
 	defer traceMutex.Unlock()
 	myfile := getTraceFile(name)
+	if myfile == nil {
+		return
+	}
 	sequence++
 	seq := sequence
 
