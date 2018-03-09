@@ -31,7 +31,7 @@ func (e *RemoveFederatedServer) String() string {
 	out.WriteString(fmt.Sprintf("    E: %35s -- %17s %8x %12s %8d",
 		"Remove Federated Server",
 		"IdentityChainID",
-		e.IdentityChainID.Bytes()[3:5],
+		e.IdentityChainID.Bytes()[3:6],
 		"DBHeight",
 		e.DBHeight))
 	return (string)(out.DeepCopyBytes())

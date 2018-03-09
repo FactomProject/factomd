@@ -14,22 +14,40 @@ import (
 var (
 	traceMutex sync.Mutex
 	files      map[string]*os.File
-	enabled    map[string] bool
-	TestRegex  regexp.Regexp
+	enabled    map[string]bool
+	TestRegex  *regexp.Regexp
 	sequence   int
 )
 
+var DebugLogRegEx string // Set by commandline parsing
 
-func checkFileName() {
+// Check a filename and see if logging is on for that filename
+// If it never ben see then check with the regex. If it has been seen then just look it up in the map
+// assumes traceMutex is locked already
+func checkFileName(name string) bool {
 	if TestRegex == nil {
-
+		theRegex, err := regexp.Compile(DebugLogRegEx)
+		if err != nil {
+			panic(err)
+		}
+		files = make(map[string]*os.File)
+		enabled = make(map[string]bool)
+		TestRegex = theRegex
 	}
+	flag, old := enabled[name]
+	if !old {
+		flag = TestRegex.Match([]byte(name))
+		enabled[name] = flag
+	}
+	return flag
 }
-
 
 // assumes traceMutex is locked already
 func getTraceFile(name string) (f *os.File) {
 	//traceMutex.Lock()	defer traceMutex.Unlock()
+	if !checkFileName(name) {
+		return nil
+	}
 	if files == nil {
 		files = make(map[string]*os.File)
 	}
@@ -47,10 +65,12 @@ func getTraceFile(name string) (f *os.File) {
 }
 
 func LogMessage(name string, note string, msg interfaces.IMsg) {
-
 	traceMutex.Lock()
 	defer traceMutex.Unlock()
 	myfile := getTraceFile(name)
+	if myfile == nil {
+		return
+	}
 	sequence++
 	seq := sequence
 	var t byte

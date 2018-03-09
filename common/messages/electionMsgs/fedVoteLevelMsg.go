@@ -135,16 +135,7 @@ func (m *FedVoteLevelMsg) processIfCommitted(is interfaces.IState, elect interfa
 			m.Volunteer.FedIdx, m.Volunteer.FedID.Bytes()[3:6],
 			m.Volunteer.ServerIdx, m.Volunteer.ServerID.Bytes()[3:6])
 
-		e.LogPrintf("election", "**** FedVoteLevelMsg %12s Swapping Fed: %d(%x) Audit: %d(%x)",
-			is.GetFactomNodeName(),
-			m.Volunteer.FedIdx, m.Volunteer.FedID.Bytes()[3:6],
-			m.Volunteer.ServerIdx, m.Volunteer.ServerID.Bytes()[3:6])
-
-		e.LogPrintf("election", "LeaderSwapState %d/%d/%d", m.VMIndex, m.DBHeight, m.Minute)
-		e.LogPrintf("election", "Demote  %x", m.Volunteer.FedID.Bytes()[3:6])
-		e.LogPrintf("election", "Promote %x", m.Volunteer.ServerID.Bytes()[3:6])
-
-		DoSwap(e, m)
+		DoElectionSwap(e, m)
 
 		e.Adapter.SetElectionProcessed(true)
 		m.ProcessInState = true
@@ -160,31 +151,53 @@ func (m *FedVoteLevelMsg) processIfCommitted(is interfaces.IState, elect interfa
 		elections.Sort(e.Audit)
 	}
 }
-func DoSwap(e *elections.Elections, m *FedVoteLevelMsg) {
-	var dummy state.Server = state.Server{primitives.ZeroHash, "dummy", false, primitives.ZeroHash}
-	// Hack code to make broken authority sets not segfault
-	// Force the lists to be the same size by adding Dummy
-	// len()-1 < index to make index be valid [0:index] is index+1==len()
-	if len(e.Audit)-1 < int(m.Volunteer.ServerIdx) {
-		e.LogPrintf("election", "Adding spots to election.Audit to make index %d work", m.Volunteer.ServerIdx)
-		for len(e.Audit)-1 < int(m.Volunteer.ServerIdx) {
-			e.Audit = append(e.Audit, &dummy)
+func DoElectionSwap(e *elections.Elections, m *FedVoteLevelMsg) {
+	e.LogPrintf("election", "**** FedVoteLevelMsg %12s Swapping Fed: %d(%x) Audit: %d(%x)",
+		e.State.GetFactomNodeName(),
+		m.Volunteer.FedIdx, m.Volunteer.FedID.Bytes()[3:6],
+		m.Volunteer.ServerIdx, m.Volunteer.ServerID.Bytes()[3:6])
+
+	vId := m.Volunteer.ServerID
+	fId := m.Volunteer.FedID
+	vIndex := int(m.Volunteer.ServerIdx)
+	fIndex := int(m.Volunteer.FedIdx)
+	fIndex2 := e.LeaderIndex(fId)
+	vIndex2 := e.AuditIndex(vId)
+
+	{
+		// Hack code to make broken authority sets not segfault
+		// Force the lists to be the same size by adding Dummy
+		// len()-1 < index to make index be valid [0:index] is index+1==len()
+
+		if fIndex2 == -1 {
+			e.LogPrintf("election", "Federated Server Missing from election.Federated", m.Volunteer.ServerIdx)
+			// Should I just append it and live?
+			panic(errors.New("Federated Server Missing from list"))
+		}
+
+		if vIndex2 == -1 {
+			e.LogPrintf("election", "Federated Server Missing from election.Federated", m.Volunteer.ServerIdx)
+			// Should I just append it and live?
+			panic(errors.New("Audit Server Missing from list"))
+		}
+
+		if fIndex2 != fIndex {
+			e.LogPrintf("election", "Bad fIndex %d, changed to %d", fIndex, fIndex2)
+			fIndex = fIndex2
+		}
+
+		if vIndex2 != vIndex {
+			e.LogPrintf("election", "Bad vIndex %d, changed to %d", vIndex, vIndex2)
+			vIndex = vIndex2
 		}
 	}
-	if len(e.Federated)-1 < int(m.Volunteer.FedIdx) {
-		e.LogPrintf("election", "Adding spots to election.Federated to make index %d work", m.Volunteer.FedIdx)
-		for len(e.Federated)-1 < int(m.Volunteer.FedIdx) {
-			e.Federated = append(e.Federated, &dummy)
-		}
-	}
-	if bytes.Compare(m.Volunteer.ServerID.Bytes(), e.Audit[int(m.Volunteer.ServerIdx)].GetChainID().Bytes()) != 0 {
-		e.LogPrintf("election", "Audit List Index mismatch", m.Volunteer.ServerIdx)
-	}
-	if bytes.Compare(m.Volunteer.FedID.Bytes(), e.Federated[int(m.Volunteer.FedIdx)].GetChainID().Bytes()) == 0 {
-		e.LogPrintf("election", "Audit List Index mismatch", m.Volunteer.ServerIdx)
-	}
-	e.Federated[m.Volunteer.FedIdx], e.Audit[m.Volunteer.ServerIdx] =
-		e.Audit[m.Volunteer.ServerIdx], e.Federated[m.Volunteer.FedIdx]
+	e.LogPrintf("election", "LeaderSwapState %d/%d/%d", m.VMIndex, m.DBHeight, m.Minute)
+	e.LogPrintf("election", "Demote  %x", fId.Bytes()[3:6])
+	e.LogPrintf("election", "Promote %x", vId.Bytes()[3:6])
+
+	// actually do the swap using go magic dual assignment
+	e.Federated[fIndex], e.Audit[vIndex] =
+		e.Audit[vIndex], e.Federated[fIndex]
 }
 
 // Execute the leader functions of the given message
@@ -210,17 +223,48 @@ func (m *FedVoteLevelMsg) FollowerExecute(is interfaces.IState) {
 
 		fmt.Println("LeaderSwapState", s.GetFactomNodeName(), m.DBHeight, m.Minute)
 
-		s.LogPrintf("election", "**** FedVoteLevelMsg %12s Swapping Fed: %d(%x) Audit: %d(%x)\n",
+		fIndex := int(m.Volunteer.FedIdx)
+		vIndex := int(m.Volunteer.ServerIdx)
+		fId := m.Volunteer.FedID
+		vId := m.Volunteer.ServerID
+
+		s.LogPrintf("executeMsg", "**** FedVoteLevelMsg %12s Swapping Fed: %d(%x) Audit: %d(%x)\n",
 			s.GetFactomNodeName(),
-			m.Volunteer.FedIdx, m.Volunteer.FedID.Bytes()[3:6],
-			m.Volunteer.ServerIdx, m.Volunteer.ServerID.Bytes()[3:6])
+			fIndex, fId.Bytes()[3:6],
+			vIndex, vId.Bytes()[3:6])
 
+		// Hack code to make broken authority sets not segfault
+		// Force the lists to be the same size by adding Dummy
+		// len()-1 < index to make index be valid [0:index] is index+1==len()
+		{
+			ok, fIndex2 := pl.GetFedServerIndexHash(fId)
+			if !ok {
+				// Should I just append it and live?
+				panic(errors.New("Federated Server Missing from list"))
+			}
+
+			ok, vIndex2 := pl.GetAuditServerIndexHash(vId)
+			if !ok {
+				// Should I just append it and live?
+				panic(errors.New("Audit Server Missing from list"))
+			}
+
+			if fIndex2 != fIndex {
+				s.LogPrintf("executeMsg", "Bad fIndex %d, changed to %d", fIndex, fIndex2)
+				fIndex = fIndex2
+			}
+			if vIndex2 != vIndex {
+				e.LogPrintf("executeMsg", "Bad vIndex %d, changed to %d", vIndex, vIndex2)
+				vIndex = vIndex2
+			}
+		}
 		s.LogPrintf("executeMsg", "LeaderSwapState %d/%d/%d", m.VMIndex, m.DBHeight, m.Minute)
-		s.LogPrintf("executeMsg", "Demote  %x", pl.FedServers[m.Volunteer.FedIdx].GetChainID().Bytes()[3:6])
-		s.LogPrintf("executeMsg", "Promote %x", pl.AuditServers[m.Volunteer.ServerIdx].GetChainID().Bytes()[3:6])
+		s.LogPrintf("executeMsg", "Demote  %x", fId.Bytes()[3:6])
+		s.LogPrintf("executeMsg", "Promote %x", vId.Bytes()[3:6])
 
-		pl.FedServers[m.Volunteer.FedIdx], pl.AuditServers[m.Volunteer.ServerIdx] =
-			pl.AuditServers[m.Volunteer.ServerIdx], pl.FedServers[m.Volunteer.FedIdx]
+		// actually do the swap using go magic dual assignment
+		pl.FedServers[fIndex], pl.AuditServers[vIndex] =
+			pl.AuditServers[vIndex], pl.FedServers[fIndex]
 
 		pl.AddToProcessList(m.Volunteer.Ack.(*messages.Ack), m.Volunteer.Missing)
 		pl.SortAuditServers()
