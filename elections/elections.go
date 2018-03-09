@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -254,7 +253,7 @@ func Run(s *state.State) {
 	e.Output = s.InMsgQueue()
 	e.Electing = -1
 
-	e.Timeout = 20 * time.Second
+	e.Timeout = 30 * time.Second
 
 	// Actually run the elections
 	for {
@@ -262,8 +261,8 @@ func Run(s *state.State) {
 		e.LogMessage("election", fmt.Sprintf("exec %d", e.Electing), msg.(interfaces.IMsg))
 		msg.ElectionProcess(s, e)
 
-		if msg.(interfaces.IMsg).Type() != constants.INTERNALEOMSIG { // If it's not an EOM check the authority set
-			CheckAuthSetsMatch("election.Run", e, s)
-		}
+		//if msg.(interfaces.IMsg).Type() != constants.INTERNALEOMSIG { // If it's not an EOM check the authority set
+		//	CheckAuthSetsMatch("election.Run", e, s)
+		//}
 	}
 }
