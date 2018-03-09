@@ -2,6 +2,7 @@
 Definitions of various services run in the environment.
 """
 import os.path
+import time
 
 from nettool import log
 from nettool.docker_client import Image, Container
@@ -94,7 +95,7 @@ class Gateway(Service):
         """
         if not self.container.is_running:
             return None
-        return self.container.docker_container.exec_run(cmd).decode("ascii")
+        return self.container.docker_container.exec_run(cmd)
 
 
 class SeedServer(Service):
@@ -163,12 +164,14 @@ class Factomd(Service):
     """
     A factomd instance.
     """
+    WAIT_FOR_V2_TIMEOUT_SECS = 120
+
     def __init__(self, docker, config):
         super().__init__()
 
-        id_chain = "888888367795422bb2b15bae1af83396a94efa1cecab8cd171197eabd4b4bf9b"
-        priv_key = "5319e64e156893ed32e0a863b2622821d2d59ce7cf644fdbe93bf5a065af52fc"
-        pub_key = "ad6f634018389a29da51586ef69f747bb4608d29e19c40242f1b1c3bd4cede16"
+        self.id_chain = "888888367795422bb2b15bae1af83396a94efa1cecab8cd171197eabd4b4bf9b"
+        self.priv_key = "5319e64e156893ed32e0a863b2622821d2d59ce7cf644fdbe93bf5a065af52fc"
+        self.pub_key = "ad6f634018389a29da51586ef69f747bb4608d29e19c40242f1b1c3bd4cede16"
 
         self.__class__.image = Image(
             docker,
@@ -176,9 +179,9 @@ class Factomd(Service):
             path="docker/node",
             extra_args={
                 "buildargs": {
-                    "ID_CHAIN": id_chain,
-                    "PRIV_KEY": priv_key,
-                    "PUB_KEY": pub_key
+                    "ID_CHAIN": self.id_chain,
+                    "PRIV_KEY": self.priv_key,
+                    "PUB_KEY": self.pub_key
                 }
             }
         )
@@ -231,6 +234,17 @@ class Factomd(Service):
         """
         return f"{self.container.assigned_ip}:8110"
 
+    def up(self, restart=False):
+        """
+        Bring the service up, if "restart" is True, the service container is
+        restarted.
+        """
+        super().up(restart=restart)
+
+        if self.is_leader or self.is_audit:
+            self._wait_for_api()
+            self._promote()
+
     def print_info(self):
         """
         Prints the current status of the node.
@@ -238,3 +252,34 @@ class Factomd(Service):
         log.section("Node", self.config.name)
         log.info("Role:", self.config.role)
         self.container.print_info()
+
+    def _wait_for_api(self):
+        cmd = f"wait_for_port.sh 8088 {self.WAIT_FOR_V2_TIMEOUT_SECS}"
+        with log.step(f"Waiting for {self.instance_name} API"):
+            result, output = self._run(cmd)
+            if result != 0:
+                log.fatal("Failed:", output)
+
+    def _promote(self):
+        if self.is_leader:
+            server_type = "f"
+        elif self.is_audit:
+            server_type = "a"
+        else:
+            log.fatal("Unknown server role")
+
+        cmd = " ".join([
+            "addservermessage",
+            "-host=localhost:8088",
+            "send",
+            server_type,
+            self.id_chain,
+            self.priv_key
+        ])
+
+        result, output = self._run(cmd)
+        if result != 0:
+            log.fatal("Failed to promote", self.instance_name, output)
+
+    def _run(self, cmd):
+        return self.container.docker_container.exec_run(cmd)
