@@ -165,31 +165,27 @@ func DoElectionSwap(e *elections.Elections, m *FedVoteLevelMsg) {
 	vIndex2 := e.AuditIndex(vId)
 
 	{
-		// Hack code to make broken authority sets not segfault
-		// Force the lists to be the same size by adding Dummy
-		// len()-1 < index to make index be valid [0:index] is index+1==len()
-
+	// Hack code to make broken authority sets not segfault
+	// Force the lists to be the same size by adding Dummy
+	// len()-1 < index to make index be valid [0:index] is index+1==len()
 		if fIndex2 == -1 {
 			e.LogPrintf("election", "Federated Server Missing from election.Federated", m.Volunteer.ServerIdx)
 			// Should I just append it and live?
 			panic(errors.New("Federated Server Missing from list"))
 		}
-
 		if vIndex2 == -1 {
 			e.LogPrintf("election", "Federated Server Missing from election.Federated", m.Volunteer.ServerIdx)
 			// Should I just append it and live?
 			panic(errors.New("Audit Server Missing from list"))
-		}
-
+	}
 		if fIndex2 != fIndex {
 			e.LogPrintf("election", "Bad fIndex %d, changed to %d", fIndex, fIndex2)
 			fIndex = fIndex2
 		}
-
 		if vIndex2 != vIndex {
 			e.LogPrintf("election", "Bad vIndex %d, changed to %d", vIndex, vIndex2)
 			vIndex = vIndex2
-		}
+	}
 	}
 	e.LogPrintf("election", "LeaderSwapState %d/%d/%d", m.VMIndex, m.DBHeight, m.Minute)
 	e.LogPrintf("election", "Demote  %x", fId.Bytes()[3:6])

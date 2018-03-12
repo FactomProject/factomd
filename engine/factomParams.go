@@ -138,7 +138,7 @@ func ParseCmdLine(args []string) *FactomParams {
 	networkNamePtr := flag.String("network", "", "Network to join: MAIN, TEST or LOCAL")
 	peersPtr := flag.String("peers", "", "Array of peer addresses. ")
 	blkTimePtr := flag.Int("blktime", 0, "Seconds per block.  Production is 600.")
-	faultTimeoutPtr := flag.Int("faulttimeout", 60, "Seconds before considering Federated servers at-fault. Default is 60.")
+	faultTimeoutPtr := flag.Int("faulttimeout", 99999999, "Seconds before considering Federated servers at-fault. Default is 60.")
 	runtimeLogPtr := flag.Bool("runtimeLog", false, "If true, maintain runtime logs of messages passed.")
 	netdebugPtr := flag.Int("netdebug", 0, "0-5: 0 = quiet, >0 = increasing levels of logging")
 	exclusivePtr := flag.Bool("exclusive", false, "If true, we only dial out to special/trusted peers.")
@@ -187,7 +187,6 @@ func ParseCmdLine(args []string) *FactomParams {
 
 	StdoutLogPtr := flag.String("stdoutlog", "", "Log stdout to a file")
 	StderrLogPtr := flag.String("stderrlog", "", "Log stderr to a file, optionally the same file as stdout")
-
 	flag.StringVar(&messages.DebugLogRegEx, "debuglog", "off", "regex to pick which logs to save")
 
 	flag.CommandLine.Parse(args)

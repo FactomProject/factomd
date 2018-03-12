@@ -65,7 +65,6 @@ func NewElectionAdapter(e *elections.Elections) *ElectionAdapter {
 	// Build the authset
 	// TODO: Check the order!
 
-
 	e.LogPrintf("election", "NewElectionAdapter")
 	elections.CheckAuthSetsMatch("NewElectionAdapter", e, e.State.(*state.State))
 
@@ -92,9 +91,8 @@ func NewElectionAdapter(e *elections.Elections) *ElectionAdapter {
 func (ea *ElectionAdapter) Execute(msg interfaces.IMsg) interfaces.IMsg {
 
 	if ea.ElectionProcessed {
-		return nil				// If that election is complete, just return
+		return nil // If that election is complete, just return
 	}
-
 
 	simmessage := ea.adaptMessage(msg)
 	if simmessage == nil {
@@ -164,8 +162,10 @@ func (ea *ElectionAdapter) expandMyMessage(msg imessage.IMessage) interfaces.IMs
 		for _, j := range sim.Justification {
 			just := ea.expandGeneral(&j)
 			if just != nil {
-				// TODO: Clear level to ensure just 1 level deep?
-				l.Justification = append(l.Justification, just)
+				// Only keep one level, so clear the justification before I include it.
+				llm := just.(*FedVoteLevelMsg)
+				llm.Justification = llm.Justification[:0]
+				l.Justification = append(l.Justification, llm)
 			}
 		}
 

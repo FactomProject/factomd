@@ -32,7 +32,6 @@ func TestElectionAdapterMajority(t *testing.T) {
 	if !c.ElectionAdapters[0].SimulatedElection.Committed {
 		t.Errorf("Should be committed , %v", c.GlobalDisplay.String())
 	}
-
 }
 
 func TestElectionAdapterSimple(t *testing.T) {

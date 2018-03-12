@@ -73,7 +73,7 @@ func (m *RemoveLeaderInternal) ElectionProcess(state interfaces.IState, elect in
 			break
 		}
 	}
-	if idx !=-1 {
+	if idx != -1 {
 		e.Federated = append(e.Federated[:idx], e.Federated[idx+1:]...)
 	}
 }
@@ -98,7 +98,6 @@ func (m *RemoveLeaderInternal) GetHash() interfaces.IHash {
 func (m *RemoveLeaderInternal) GetTimestamp() interfaces.Timestamp {
 	return primitives.NewTimestampNow()
 }
-
 
 func (m *RemoveLeaderInternal) Type() byte {
 	return constants.INTERNALREMOVELEADER
@@ -149,7 +148,6 @@ func (m *RemoveLeaderInternal) UnmarshalBinary(data []byte) error {
 	_, err := m.UnmarshalBinaryData(data)
 	return err
 }
-
 
 func (m *RemoveLeaderInternal) String() string {
 	if m.LeaderChainID == nil {

@@ -480,6 +480,10 @@ func (s *State) Reset() {
 
 // Set to reprocess all messages and states
 func (s *State) DoReset() {
+
+	if s.ResetTryCnt > 0 {
+		return
+	}
 	s.ResetTryCnt++
 	//s.AddStatus(fmt.Sprintf("RESET: Trying to Reset for the %d time", s.ResetTryCnt))
 	index := len(s.DBStates.DBStates) - 1
@@ -513,6 +517,7 @@ func (s *State) DoReset() {
 
 	plToReset := s.ProcessLists.Get(s.DBStates.Base + uint32(index) + 1)
 	plToReset.Reset()
+
 	s.DBStates.Complete--
 	//s.StartDelay = s.GetTimestamp().GetTimeMilli() // We cant start as a leader until we know we are upto date
 	//s.RunLeader = false
