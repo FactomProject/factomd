@@ -159,7 +159,8 @@ class Rules(object):
         if not self.gateway.is_running:
             return None, None
 
-        lines = self.gateway.run(LIST_CUSTOM_RULES).splitlines()
+        _, output = self.gateway.run(LIST_CUSTOM_RULES)
+        lines = output.decode("ascii").splitlines()
 
         parsed = []
         unparsed = []
