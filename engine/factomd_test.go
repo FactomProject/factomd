@@ -88,7 +88,7 @@ func TestSetupANetwork(t *testing.T) {
 		"-ControlPanelPort=37002",
 		"-networkPort=37003",
 		"-startdelay=1",
-		"-faulttimeout=999999")
+		)
 
 	params := ParseCmdLine(args)
 	state0 := Factomd(params, false).(*state.State)
@@ -254,7 +254,7 @@ func TestAnElection(t *testing.T) {
 		"-blktime=10",
 		fmt.Sprintf("-count=%d", nodes),
 		"-startdelay=1",
-		"-faulttimeout=999999",
+
 	)
 	HandleLogfiles("out.txt", "out.txt")
 	params := ParseCmdLine(args)

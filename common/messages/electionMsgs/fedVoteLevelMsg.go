@@ -165,9 +165,6 @@ func DoElectionSwap(e *elections.Elections, m *FedVoteLevelMsg) {
 	vIndex2 := e.AuditIndex(vId)
 
 	{
-	// Hack code to make broken authority sets not segfault
-	// Force the lists to be the same size by adding Dummy
-	// len()-1 < index to make index be valid [0:index] is index+1==len()
 		if fIndex2 == -1 {
 			e.LogPrintf("election", "Federated Server Missing from election.Federated", m.Volunteer.ServerIdx)
 			// Should I just append it and live?
@@ -177,7 +174,7 @@ func DoElectionSwap(e *elections.Elections, m *FedVoteLevelMsg) {
 			e.LogPrintf("election", "Federated Server Missing from election.Federated", m.Volunteer.ServerIdx)
 			// Should I just append it and live?
 			panic(errors.New("Audit Server Missing from list"))
-	}
+		}
 		if fIndex2 != fIndex {
 			e.LogPrintf("election", "Bad fIndex %d, changed to %d", fIndex, fIndex2)
 			fIndex = fIndex2
@@ -185,7 +182,7 @@ func DoElectionSwap(e *elections.Elections, m *FedVoteLevelMsg) {
 		if vIndex2 != vIndex {
 			e.LogPrintf("election", "Bad vIndex %d, changed to %d", vIndex, vIndex2)
 			vIndex = vIndex2
-	}
+		}
 	}
 	e.LogPrintf("election", "LeaderSwapState %d/%d/%d", m.VMIndex, m.DBHeight, m.Minute)
 	e.LogPrintf("election", "Demote  %x", fId.Bytes()[3:6])
@@ -219,48 +216,12 @@ func (m *FedVoteLevelMsg) FollowerExecute(is interfaces.IState) {
 
 		fmt.Println("LeaderSwapState", s.GetFactomNodeName(), m.DBHeight, m.Minute)
 
-		fIndex := int(m.Volunteer.FedIdx)
-		vIndex := int(m.Volunteer.ServerIdx)
-		fId := m.Volunteer.FedID
-		vId := m.Volunteer.ServerID
-
 		s.LogPrintf("executeMsg", "**** FedVoteLevelMsg %12s Swapping Fed: %d(%x) Audit: %d(%x)\n",
 			s.GetFactomNodeName(),
-			fIndex, fId.Bytes()[3:6],
-			vIndex, vId.Bytes()[3:6])
+			m.Volunteer.FedIdx, m.Volunteer.FedID.Bytes()[3:6],
+			m.Volunteer.ServerIdx, m.Volunteer.ServerID.Bytes()[3:6])
 
-		// Hack code to make broken authority sets not segfault
-		// Force the lists to be the same size by adding Dummy
-		// len()-1 < index to make index be valid [0:index] is index+1==len()
-		{
-			ok, fIndex2 := pl.GetFedServerIndexHash(fId)
-			if !ok {
-				// Should I just append it and live?
-				panic(errors.New("Federated Server Missing from list"))
-			}
-
-			ok, vIndex2 := pl.GetAuditServerIndexHash(vId)
-			if !ok {
-				// Should I just append it and live?
-				panic(errors.New("Audit Server Missing from list"))
-			}
-
-			if fIndex2 != fIndex {
-				s.LogPrintf("executeMsg", "Bad fIndex %d, changed to %d", fIndex, fIndex2)
-				fIndex = fIndex2
-			}
-			if vIndex2 != vIndex {
-				e.LogPrintf("executeMsg", "Bad vIndex %d, changed to %d", vIndex, vIndex2)
-				vIndex = vIndex2
-			}
-		}
-		s.LogPrintf("executeMsg", "LeaderSwapState %d/%d/%d", m.VMIndex, m.DBHeight, m.Minute)
-		s.LogPrintf("executeMsg", "Demote  %x", fId.Bytes()[3:6])
-		s.LogPrintf("executeMsg", "Promote %x", vId.Bytes()[3:6])
-
-		// actually do the swap using go magic dual assignment
-		pl.FedServers[fIndex], pl.AuditServers[vIndex] =
-			pl.AuditServers[vIndex], pl.FedServers[fIndex]
+		DoStateSwap(pl, m)
 
 		pl.AddToProcessList(m.Volunteer.Ack.(*messages.Ack), m.Volunteer.Missing)
 		pl.SortAuditServers()
@@ -271,6 +232,42 @@ func (m *FedVoteLevelMsg) FollowerExecute(is interfaces.IState) {
 
 	// reset my leader variables, cause maybe we changed...
 	s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(int(m.Minute), s.IdentityChainID)
+}
+func DoStateSwap(pl *state.ProcessList, m *FedVoteLevelMsg) {
+
+	fIndex := int(m.Volunteer.FedIdx)
+	vIndex := int(m.Volunteer.ServerIdx)
+	fId := m.Volunteer.FedID
+	vId := m.Volunteer.ServerID
+
+	ok, fIndex2 := pl.GetFedServerIndexHash(fId)
+	if !ok {
+		// Should I just append it and live?
+		panic(errors.New("Federated Server Missing from list"))
+	}
+
+	ok, vIndex2 := pl.GetAuditServerIndexHash(vId)
+	if !ok {
+		// Should I just append it and live?
+		panic(errors.New("Audit Server Missing from list"))
+	}
+
+	if fIndex2 != fIndex {
+		pl.State.LogPrintf("executeMsg", "Bad fIndex %d, changed to %d", fIndex, fIndex2)
+		fIndex = fIndex2
+	}
+	if vIndex2 != vIndex {
+		pl.State.LogPrintf("executeMsg", "Bad vIndex %d, changed to %d", vIndex, vIndex2)
+		vIndex = vIndex2
+	}
+
+	pl.State.LogPrintf("executeMsg", "LeaderSwapState %d/%d/%d", m.VMIndex, m.DBHeight, m.Minute)
+	pl.State.LogPrintf("executeMsg", "Demote  %x", fId.Bytes()[3:6])
+	pl.State.LogPrintf("executeMsg", "Promote %x", vId.Bytes()[3:6])
+
+	// actually do the swap using go magic dual assignment
+	pl.FedServers[fIndex], pl.AuditServers[vIndex] =
+		pl.AuditServers[vIndex], pl.FedServers[fIndex]
 }
 
 var _ interfaces.IMsg = (*FedVoteVolunteerMsg)(nil)

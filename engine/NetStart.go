@@ -116,7 +116,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		p.BlkTime = s.DirectoryBlockInSeconds
 	}
 
-	s.FaultTimeout = p.FaultTimeout
+	s.FaultTimeout = 9999999 //todo: Old Faulr Mechanism -- remove
 
 	if p.Follower {
 		p.Leader = false
@@ -257,7 +257,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%d\"\n", "netdebug", p.Netdebug))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%t\"\n", "exclusive", p.Exclusive))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "block time", p.BlkTime))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "faultTimeout", p.FaultTimeout))
+	//os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "faultTimeout", p.FaultTimeout)) // TODO old fault timeout mechanism to be removed
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "runtimeLog", p.RuntimeLog))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "rotate", p.rotate))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "timeOffset", p.timeOffset))
@@ -270,6 +270,8 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "selfaddr", s.FactomdLocations))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "rpcuser", s.RpcUser))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "Start 2nd Sync at ht", s.EntryDBHeightComplete))
+
+	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "faultTimeout", elections.FaultTimeout))
 
 	if "" == s.RpcPass {
 		os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "rpcpass", "is blank"))

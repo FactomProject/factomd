@@ -14,6 +14,8 @@ import (
 var _ = fmt.Print
 var _ = time.Tick
 
+var FaultTimeout int = 60 // This value only lasts till the command line is parse which will set it.
+
 type FaultId struct {
 	Dbheight int
 	Minute   int
@@ -253,7 +255,7 @@ func Run(s *state.State) {
 	e.Output = s.InMsgQueue()
 	e.Electing = -1
 
-	e.Timeout = 30 * time.Second
+	e.Timeout = time.Duration(FaultTimeout) * time.Second
 
 	// Actually run the elections
 	for {

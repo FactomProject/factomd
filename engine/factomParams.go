@@ -6,6 +6,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/elections"
 )
 
 type FactomParams struct {
@@ -86,7 +87,7 @@ func (f *FactomParams) Init() { // maybe used by test code
 	f.ControlPanelPortOverride = 0
 	f.LogPort = "6060"
 	f.BlkTime = 0
-	f.FaultTimeout = 60
+	f.FaultTimeout = 99999 //TODO: REMOVE  Old Fault Mechanism
 	f.RuntimeLog = false
 	f.Netdebug = 0
 	f.Exclusive = false
@@ -138,7 +139,8 @@ func ParseCmdLine(args []string) *FactomParams {
 	networkNamePtr := flag.String("network", "", "Network to join: MAIN, TEST or LOCAL")
 	peersPtr := flag.String("peers", "", "Array of peer addresses. ")
 	blkTimePtr := flag.Int("blktime", 0, "Seconds per block.  Production is 600.")
-	faultTimeoutPtr := flag.Int("faulttimeout", 99999999, "Seconds before considering Federated servers at-fault. Default is 60.")
+	// TODO: Old fault mechanism -- remove
+	//	faultTimeoutPtr := flag.Int("faulttimeout", 99999, "Seconds before considering Federated servers at-fault. Default is 30.")
 	runtimeLogPtr := flag.Bool("runtimeLog", false, "If true, maintain runtime logs of messages passed.")
 	netdebugPtr := flag.Int("netdebug", 0, "0-5: 0 = quiet, >0 = increasing levels of logging")
 	exclusivePtr := flag.Bool("exclusive", false, "If true, we only dial out to special/trusted peers.")
@@ -188,6 +190,7 @@ func ParseCmdLine(args []string) *FactomParams {
 	StdoutLogPtr := flag.String("stdoutlog", "", "Log stdout to a file")
 	StderrLogPtr := flag.String("stderrlog", "", "Log stderr to a file, optionally the same file as stdout")
 	flag.StringVar(&messages.DebugLogRegEx, "debuglog", "off", "regex to pick which logs to save")
+	flag.IntVar(&elections.FaultTimeout, "faulttimeout", 30, "Seconds before considering Federated servers at-fault. Default is 30.")
 
 	flag.CommandLine.Parse(args)
 
@@ -212,7 +215,7 @@ func ParseCmdLine(args []string) *FactomParams {
 	p.ControlPanelPortOverride = *ControlPanelPortOverridePtr
 	p.LogPort = *logportPtr
 	p.BlkTime = *blkTimePtr
-	p.FaultTimeout = *faultTimeoutPtr
+//	p.FaultTimeout = *faultTimeoutPtr
 	p.RuntimeLog = *runtimeLogPtr
 	p.Netdebug = *netdebugPtr
 	p.Exclusive = *exclusivePtr
