@@ -431,10 +431,6 @@ func (c *Controller) route() {
 			} else if clen < num {
 				num = clen
 			}
-			quarter := clen / 4
-			if quarter > num {
-				num = quarter
-			}
 
 			// So at this point num <= clen, and we are going to send num sequentinial connections our message.
 			// Note that if we run over the end of the connections, we wrap back to the start.  We don't assume
