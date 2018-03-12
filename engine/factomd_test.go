@@ -7,6 +7,7 @@ import (
 
 	"fmt"
 
+	"github.com/FactomProject/factomd/common/globals"
 	. "github.com/FactomProject/factomd/engine"
 	"github.com/FactomProject/factomd/state"
 )
@@ -255,9 +256,14 @@ func TestAnElection(t *testing.T) {
 		fmt.Sprintf("-count=%d", nodes),
 		"-startdelay=1",
 		"-faulttimeout=999999",
+		"-debuglog=F.*",
 	)
+
 	HandleLogfiles("out.txt", "out.txt")
 	params := ParseCmdLine(args)
+
+	globals.DebugLogRegEx = ".*"
+
 	time.Sleep(5 * time.Second) // wait till the control panel is setup
 	state0 := Factomd(params, false).(*state.State)
 	state0.MessageTally = true

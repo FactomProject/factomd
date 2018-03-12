@@ -41,6 +41,7 @@ type FactomNode struct {
 }
 
 var fnodes []*FactomNode
+
 var networkpattern string
 var mLog = new(MsgLog)
 var p2pProxy *P2PProxy
@@ -298,7 +299,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		fnodes[i].State.IntiateNetworkSkeletonIdentity()
 	}
 
-	// Start the P2P netowork
+	// Start the P2P network
 	var networkID p2p.NetworkID
 	var seedURL, networkPort, specialPeers string
 	switch s.Network {
