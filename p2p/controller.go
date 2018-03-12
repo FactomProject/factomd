@@ -480,9 +480,7 @@ func (c *Controller) route() {
 				for key := range c.connections {
 					if i == guess {
 						connection := c.connections[key]
-						connection.metricsMutex.Lock()
 						bytes := connection.metrics.BytesReceived
-						connection.metricsMutex.Unlock()
 						if bytes > 0 {
 							bestKey = key
 							break search

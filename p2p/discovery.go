@@ -119,8 +119,8 @@ func (d *Discovery) SavePeers() {
 		case time.Since(peer.LastContact) > time.Hour*168:
 			note("discovery", "SavePeers() DID NOT SAVE peer in peers.json. Last Contact greater than 168 hours. Peer: %+v", peer)
 			break
-		case MinimumQualityScore > peer.QualityScore:
-			note("discovery", "SavePeers() DID NOT SAVE peer in peers.json. MinimumQualityScore: %d > Peer quality score.  Peer: %+v", MinimumQualityScore, peer)
+		case MinumumQualityScore > peer.QualityScore:
+			note("discovery", "SavePeers() DID NOT SAVE peer in peers.json. MinumumQualityScore: %d > Peer quality score.  Peer: %+v", MinumumQualityScore, peer)
 			break
 		default:
 			qualityPeers[peer.AddressPort()] = peer
