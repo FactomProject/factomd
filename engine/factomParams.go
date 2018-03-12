@@ -4,7 +4,7 @@ import (
 	"flag"
 	"os"
 
-	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/elections"
 )
@@ -189,9 +189,8 @@ func ParseCmdLine(args []string) *FactomParams {
 
 	StdoutLogPtr := flag.String("stdoutlog", "", "Log stdout to a file")
 	StderrLogPtr := flag.String("stderrlog", "", "Log stderr to a file, optionally the same file as stdout")
-	flag.StringVar(&messages.DebugLogRegEx, "debuglog", "off", "regex to pick which logs to save")
+	flag.StringVar(&globals.DebugLogRegEx, "debuglog", "off", "regex to pick which logs to save")
 	flag.IntVar(&elections.FaultTimeout, "faulttimeout", 30, "Seconds before considering Federated servers at-fault. Default is 30.")
-
 	flag.CommandLine.Parse(args)
 
 	p.AckbalanceHash = *ackBalanceHashPtr

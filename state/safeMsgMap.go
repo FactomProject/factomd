@@ -44,6 +44,8 @@ func (m *SafeMsgMap) Delete(key [32]byte) (msg interfaces.IMsg, found bool) {
 }
 
 func (m *SafeMsgMap) Len() int {
+	m.Lock()
+	defer m.Unlock()
 	return len(m.msgmap)
 }
 

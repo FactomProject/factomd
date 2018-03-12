@@ -212,7 +212,6 @@ func CheckAuthSetsMatch(caller string, e *Elections, s *state.State) {
 			printAll("Process List FedSet is not the same as Election FedSet at %d", i)
 			mismatch1 = true
 		}
-
 	}
 	if mismatch1 {
 		printAll("Federated %d", len(s_fservers))
@@ -229,7 +228,6 @@ func CheckAuthSetsMatch(caller string, e *Elections, s *state.State) {
 			printAll("Process List AudSet is not the same as Election AudSet at %d", i)
 			mismatch2 = true
 		}
-
 	}
 	if mismatch2 {
 		printAll("Audit %d", len(s_aservers))
@@ -240,9 +238,9 @@ func CheckAuthSetsMatch(caller string, e *Elections, s *state.State) {
 		printAll("")
 	}
 
-	if !mismatch1 && !mismatch2 {
-		printAll("AuthSet Matched!")
-	}
+	//if !mismatch1 && !mismatch2 {
+	//	printAll("AuthSet Matched!")
+	//}
 }
 
 // Runs the main loop for elections for this instance of factomd

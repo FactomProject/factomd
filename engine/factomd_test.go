@@ -7,6 +7,7 @@ import (
 
 	"fmt"
 
+	"github.com/FactomProject/factomd/common/globals"
 	. "github.com/FactomProject/factomd/engine"
 	"github.com/FactomProject/factomd/state"
 )
@@ -254,10 +255,11 @@ func TestAnElection(t *testing.T) {
 		"-blktime=10",
 		fmt.Sprintf("-count=%d", nodes),
 		"-startdelay=1",
-
+                "-debuglog=F.*",
 	)
 	HandleLogfiles("out.txt", "out.txt")
 	params := ParseCmdLine(args)
+	globals.DebugLogRegEx = ".*"
 	time.Sleep(5 * time.Second) // wait till the control panel is setup
 	state0 := Factomd(params, false).(*state.State)
 	state0.MessageTally = true
@@ -273,15 +275,22 @@ func TestAnElection(t *testing.T) {
 
 	StatusEveryMinute(state0)
 
-	runCmd("2")
-	runCmd("w") // point the control panel at 2
-
-	time.Sleep(10 * time.Second)
-
-	runCmd("g5")
-	WaitBlocks(state0, 4)
+	runCmd("g6")
+	WaitBlocks(state0, 1)
 	WaitMinutes(state0, 1)
 
+	for {
+		pendingCommits := 0
+		for _, s := range fnodes {
+			pendingCommits += s.State.Commits.Len()
+		}
+		if pendingCommits == 0 {
+			break
+		}
+		fmt.Printf("Waiting for G5 to complete\n")
+	WaitMinutes(state0, 1)
+
+	}
 	// Allocate leaders
 	runCmd("1")
 	for i := 0; i < leaders-1; i++ {
@@ -296,13 +305,14 @@ func TestAnElection(t *testing.T) {
 	WaitBlocks(state0, 1)
 	WaitMinutes(state0, 2)
 	PrintOneStatus(0, 0)
+	runCmd("2")
+	runCmd("w") // point the control panel at 2
 
 	CheckAuthoritySet(leaders, audits, t)
 
 	runCmd(fmt.Sprintf("%d", leaders-1))
 	runCmd("x")
-	WaitBlocks(state0, 2)
-	WaitMinutes(state0, 2)
+	WaitBlocks(state0, 3)
 	runCmd("x")
 
 	WaitBlocks(state0, 2)
