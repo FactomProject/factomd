@@ -1,16 +1,13 @@
 # Dev environment setup guide
 
 The *docker-compose* setup included here allows creating a development
-environment with all supporting services (for logging, monitoring etc.) running
+environment for all supporting services (for logging, monitoring etc.) running
 in docker containers on the local machine.
 
 Starts the following:
- - a network of 3 *factomd* nodes connected into a single custom network
  - a full ELK (*Elasticsearch* + *Logstash* + *Kibana*) stack that gathers logs
    from the network
  - a *Prometheus* instance for gathering metrics from the nodes
- - an *nginx* instance to serve a list of peers so that the *factomd* instaces
-   can find each other
 
 > Warning: This setup is for development environment only and should not be
 > used in production. Specifically the data for all services are not persisted
@@ -18,9 +15,9 @@ Starts the following:
 
 ## Basic usage
 
-This setup uses *docker* and *docker-compose* to run the factomd network and
-all supporting services in docker containers. For more details about the usage,
-consult with [docker](https://docs.docker.com/) and
+This setup uses *docker* and *docker-compose* to run all supporting services in
+docker containers. For more details about the usage, consult with
+[docker](https://docs.docker.com/) and
 [*docker-compose*](https://docs.docker.com/compose/) documentation.
 
 ### Prerequisites
@@ -29,11 +26,7 @@ To create the environment install the following components first:
  - [docker](https://www.docker.com/community-edition)
  - [docker-compose](https://docs.docker.com/compose/install/)
 
-Additionally the setup assumes the following:
- - the code for building a `factomd` node is taken from the current code in
-   this `factomd` repository
- - the current `Dockerfile` in the `factomd` repository is used
- - all commands below assume the current directory is `<REPO_ROOT>/support/dev`
+All commands below assume the current directory is `<REPO_ROOT>/support/dev`.
 
 ### Creating the environment
 
@@ -83,20 +76,37 @@ This command:
 ## Using services
 
 Once the environment is properly built and started you can start using it for
-monitoring the running factomd network.
-
-### Factomd instances
-
-The Control Panel web UI for all 3 instances are mapped to the ports on the
-host machine, so they are available at the following addresses:
- * *factomd_1* - http://localhost:8090
- * *factomd_2* - http://localhost:8190
- * *factomd_3* - http://localhost:8290
+monitoring a factomd on your local machine.
 
 ### Logging
 
-All the factomd instances are set up to log to the created *Logstash* instance
-and can be explored in *Kibana*.
+Logging is set up to use the ELK (*Elasticsearch* + *Logstash* + *Kibana*) stack
+for gathering and searching the logs:
+ - a *factomd* instance sends its log entries to *Logstash*
+ - *Logstash* transforms the log entries and forwards them to the
+   *Elasticsearch* database for searching
+ - a *Kibana* instance connects to the same *Elasticsearch* instance and allows
+   you to search the logs.
+
+#### Setting up factomd
+
+The node needs to be instructed to use Logstash as its log target (multiple
+nodes should use the same Logstash instance). Use the following startup
+parameters:
+
+```
+factomd -loglvl info -logstash -logurl=localhost:8345
+```
+
+ - `loglvl info` - enables logging via the logging framework (by default the log
+   level is set to `none`)
+ - `logstash` - enables sending logs to a *Logstash* instance (by default it
+   logs to *stdout*)
+ - `logurl` - sets the location of the *Logstash* instance, since the docker
+   container exposes port 8345 to the local machine, you can use `localhost` as
+   the target.
+
+Once *factomd* is started it will immediately start sending the logs.
 
 #### Setting up Kibana
 
@@ -125,15 +135,6 @@ list of logs created by all *factomd* nodes in the network ordered by the
  * The search box allows filtering the entries by the content using the
    *Lucene* query syntax, e.g. entering `NOT eom` will filter out all messages
    the contain the string `eom` in the log message.
-
-#### Stdout output
-
-Additionally you can view the *stdout* output for all the services using
-*docker* and *docker-compose* commands, e.g.:
-
-```
-docker logs factomd_1
-```
 
 ### Metrics
 

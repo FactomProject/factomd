@@ -16,7 +16,8 @@ services:
         networks:
             - support
         healthcheck:
-            test: ["CMD", "curl", "-f", "localhost:9200/_cluster/health?wait_for_status=yellow&timeout=1s"]
+            # wait for at least the yellow status without the timeout, so that we instantly know if the service is down
+            test: ["CMD", "curl", "-f", "localhost:9200/_cluster/health?wait_for_status=yellow&timeout=0s"]
             interval: 30s
             timeout: 10s
             retries: 5
