@@ -72,7 +72,7 @@ func (m *RemoveAuditInternal) ElectionProcess(state interfaces.IState, elect int
 			break
 		}
 	}
-	if idx !=-1 {
+	if idx != -1 {
 		e.Audit = append(e.Audit[:idx], e.Audit[idx+1:]...)
 	}
 }

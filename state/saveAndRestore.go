@@ -469,7 +469,6 @@ func (ss *SaveState) TrimBack(s *State, d *DBState) {
 	s.Replay.s = s
 	s.Replay.name = "Replay"
 
-
 	return
 	/*
 		pl.FedServers = append(pl.FedServers[0:], ppl.FedServers...)

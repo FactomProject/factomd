@@ -72,7 +72,7 @@ func (m *TimeoutInternal) InitiateElectionAdapter(st interfaces.IState) bool {
 	//		2. We passed the previous election in height <-- Should we?
 	//		3. We passed the previous elections in minutes <-- Should we?
 	if e.Adapter == nil || (e.DBHeight > e.Adapter.GetDBHeight() || e.Minute > e.Adapter.GetMinute()) {
-		fmt.Printf("!!!LeaderInit Adapter %s HT:%d Min:%d VM:%d\n", s.GetFactomNodeName(), m.DBHeight, int(m.Minute), m.VMIndex)
+		fmt.Printf("!!!LeaderInit Adapter %s HT:%d Min:%d VM:%d L:%t\n", s.GetFactomNodeName(), m.DBHeight, int(m.Minute), m.VMIndex, s.IsLeader())
 		// TODO: Is cancelling an old election ALWAYS the best way? Should we have some cleanup? Maybe validate
 		// TODO: the new election is valid and the old one has concluded
 		e.Adapter = NewElectionAdapter(e)

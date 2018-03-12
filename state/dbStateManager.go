@@ -972,6 +972,7 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 
 	progress = true
 	d.IsNew = false
+	list.State.ResetTryCnt = 0
 	return
 }
 
