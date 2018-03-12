@@ -5,11 +5,8 @@
 package electionMsgs
 
 import (
-	//"github.com/FactomProject/factomd/state"
-	"bytes"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -17,6 +14,10 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/state"
 	log "github.com/sirupsen/logrus"
+	//"github.com/FactomProject/factomd/state"
+	"bytes"
+
+	"time"
 
 	"github.com/FactomProject/factomd/elections"
 )
@@ -135,8 +136,17 @@ func (m *FedVoteLevelMsg) processIfCommitted(is interfaces.IState, elect interfa
 			m.Volunteer.FedIdx, m.Volunteer.FedID.Bytes()[3:6],
 			m.Volunteer.ServerIdx, m.Volunteer.ServerID.Bytes()[3:6])
 
-		DoElectionSwap(e, m)
+		e.LogPrintf("election", "**** FedVoteLevelMsg %12s Swapping Fed: %d(%x) Audit: %d(%x)",
+			is.GetFactomNodeName(),
+			m.Volunteer.FedIdx, m.Volunteer.FedID.Bytes()[3:6],
+			m.Volunteer.ServerIdx, m.Volunteer.ServerID.Bytes()[3:6])
 
+		e.LogPrintf("election", "LeaderSwapState %d/%d/%d", m.VMIndex, m.DBHeight, m.Minute)
+		e.LogPrintf("election", "Demote  %x", e.Federated[m.Volunteer.FedIdx].GetChainID().Bytes()[3:6])
+		e.LogPrintf("election", "Promote %x", e.Audit[m.Volunteer.ServerIdx].GetChainID().Bytes()[3:6])
+
+		e.Federated[m.Volunteer.FedIdx], e.Audit[m.Volunteer.ServerIdx] =
+			e.Audit[m.Volunteer.ServerIdx], e.Federated[m.Volunteer.FedIdx]
 		e.Adapter.SetElectionProcessed(true)
 		m.ProcessInState = true
 		m.SetValid()
@@ -150,47 +160,6 @@ func (m *FedVoteLevelMsg) processIfCommitted(is interfaces.IState, elect interfa
 		elections.Sort(e.Federated)
 		elections.Sort(e.Audit)
 	}
-}
-func DoElectionSwap(e *elections.Elections, m *FedVoteLevelMsg) {
-	e.LogPrintf("election", "**** FedVoteLevelMsg %12s Swapping Fed: %d(%x) Audit: %d(%x)",
-		e.State.GetFactomNodeName(),
-		m.Volunteer.FedIdx, m.Volunteer.FedID.Bytes()[3:6],
-		m.Volunteer.ServerIdx, m.Volunteer.ServerID.Bytes()[3:6])
-
-	vId := m.Volunteer.ServerID
-	fId := m.Volunteer.FedID
-	vIndex := int(m.Volunteer.ServerIdx)
-	fIndex := int(m.Volunteer.FedIdx)
-	fIndex2 := e.LeaderIndex(fId)
-	vIndex2 := e.AuditIndex(vId)
-
-	{
-		if fIndex2 == -1 {
-			e.LogPrintf("election", "Federated Server Missing from election.Federated", m.Volunteer.ServerIdx)
-			// Should I just append it and live?
-			panic(errors.New("Federated Server Missing from list"))
-		}
-		if vIndex2 == -1 {
-			e.LogPrintf("election", "Federated Server Missing from election.Federated", m.Volunteer.ServerIdx)
-			// Should I just append it and live?
-			panic(errors.New("Audit Server Missing from list"))
-		}
-		if fIndex2 != fIndex {
-			e.LogPrintf("election", "Bad fIndex %d, changed to %d", fIndex, fIndex2)
-			fIndex = fIndex2
-		}
-		if vIndex2 != vIndex {
-			e.LogPrintf("election", "Bad vIndex %d, changed to %d", vIndex, vIndex2)
-			vIndex = vIndex2
-		}
-	}
-	e.LogPrintf("election", "LeaderSwapState %d/%d/%d", m.VMIndex, m.DBHeight, m.Minute)
-	e.LogPrintf("election", "Demote  %x", fId.Bytes()[3:6])
-	e.LogPrintf("election", "Promote %x", vId.Bytes()[3:6])
-
-	// actually do the swap using go magic dual assignment
-	e.Federated[fIndex], e.Audit[vIndex] =
-		e.Audit[vIndex], e.Federated[fIndex]
 }
 
 // Execute the leader functions of the given message
@@ -216,12 +185,17 @@ func (m *FedVoteLevelMsg) FollowerExecute(is interfaces.IState) {
 
 		fmt.Println("LeaderSwapState", s.GetFactomNodeName(), m.DBHeight, m.Minute)
 
-		s.LogPrintf("executeMsg", "**** FedVoteLevelMsg %12s Swapping Fed: %d(%x) Audit: %d(%x)\n",
+		s.LogPrintf("election", "**** FedVoteLevelMsg %12s Swapping Fed: %d(%x) Audit: %d(%x)\n",
 			s.GetFactomNodeName(),
 			m.Volunteer.FedIdx, m.Volunteer.FedID.Bytes()[3:6],
 			m.Volunteer.ServerIdx, m.Volunteer.ServerID.Bytes()[3:6])
 
-		DoStateSwap(pl, m)
+		s.LogPrintf("executeMsg", "LeaderSwapState %d/%d/%d", m.VMIndex, m.DBHeight, m.Minute)
+		s.LogPrintf("executeMsg", "Demote  %x", pl.FedServers[m.Volunteer.FedIdx].GetChainID().Bytes()[3:6])
+		s.LogPrintf("executeMsg", "Promote %x", pl.AuditServers[m.Volunteer.ServerIdx].GetChainID().Bytes()[3:6])
+
+		pl.FedServers[m.Volunteer.FedIdx], pl.AuditServers[m.Volunteer.ServerIdx] =
+			pl.AuditServers[m.Volunteer.ServerIdx], pl.FedServers[m.Volunteer.FedIdx]
 
 		pl.AddToProcessList(m.Volunteer.Ack.(*messages.Ack), m.Volunteer.Missing)
 		pl.SortAuditServers()
@@ -232,42 +206,6 @@ func (m *FedVoteLevelMsg) FollowerExecute(is interfaces.IState) {
 
 	// reset my leader variables, cause maybe we changed...
 	s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(int(m.Minute), s.IdentityChainID)
-}
-func DoStateSwap(pl *state.ProcessList, m *FedVoteLevelMsg) {
-
-	fIndex := int(m.Volunteer.FedIdx)
-	vIndex := int(m.Volunteer.ServerIdx)
-	fId := m.Volunteer.FedID
-	vId := m.Volunteer.ServerID
-
-	ok, fIndex2 := pl.GetFedServerIndexHash(fId)
-	if !ok {
-		// Should I just append it and live?
-		panic(errors.New("Federated Server Missing from list"))
-	}
-
-	ok, vIndex2 := pl.GetAuditServerIndexHash(vId)
-	if !ok {
-		// Should I just append it and live?
-		panic(errors.New("Audit Server Missing from list"))
-	}
-
-	if fIndex2 != fIndex {
-		pl.State.LogPrintf("executeMsg", "Bad fIndex %d, changed to %d", fIndex, fIndex2)
-		fIndex = fIndex2
-	}
-	if vIndex2 != vIndex {
-		pl.State.LogPrintf("executeMsg", "Bad vIndex %d, changed to %d", vIndex, vIndex2)
-		vIndex = vIndex2
-	}
-
-	pl.State.LogPrintf("executeMsg", "LeaderSwapState %d/%d/%d", m.VMIndex, m.DBHeight, m.Minute)
-	pl.State.LogPrintf("executeMsg", "Demote  %x", fId.Bytes()[3:6])
-	pl.State.LogPrintf("executeMsg", "Promote %x", vId.Bytes()[3:6])
-
-	// actually do the swap using go magic dual assignment
-	pl.FedServers[fIndex], pl.AuditServers[vIndex] =
-		pl.AuditServers[vIndex], pl.FedServers[fIndex]
 }
 
 var _ interfaces.IMsg = (*FedVoteVolunteerMsg)(nil)
