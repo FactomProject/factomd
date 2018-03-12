@@ -157,7 +157,7 @@ class SeedServer(Service):
         """
         entries = [n.seed_entry for n in self.seed_nodes]
         with open(self.SEEDS_FILE_LOCAL, "w") as seed_file:
-            seed_file.writelines(entries)
+            seed_file.write("\n".join(entries))
 
 
 class Factomd(Service):
