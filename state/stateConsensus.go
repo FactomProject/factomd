@@ -302,6 +302,7 @@ func CheckDBKeyMR(s *State, ht uint32, hash string) error {
 // review if this is a leader, and those messages are that leader's
 // responsibility
 func (s *State) ReviewHolding() {
+
 	preReviewHoldingTime := time.Now()
 	if len(s.XReview) > 0 {
 		return
@@ -389,29 +390,29 @@ func (s *State) ReviewHolding() {
 		}
 
 		// If it is an entryCommit and it has a duplicate hash to an existing entry throw it away here
-		{
-			ce, ok := v.(*messages.CommitEntryMsg)
-			if ok {
-				x := s.NoEntryYet(ce.CommitEntry.EntryHash, ce.CommitEntry.GetTimestamp())
-				if !x {
-					TotalHoldingQueueOutputs.Inc()
-					delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
-					continue
-				}
+
+		ce, ceok := v.(*messages.CommitEntryMsg)
+		if ceok {
+			x := s.NoEntryYet(ce.CommitEntry.EntryHash, ce.CommitEntry.GetTimestamp())
+			if !x {
+				TotalHoldingQueueOutputs.Inc()
+				delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
+				continue
 			}
 		}
+
 		// If it is an chainCommit and it has a duplicate hash to an existing entry throw it away here
-		{
-			ce, ok := v.(*messages.CommitChainMsg)
-			if ok {
-				x := s.NoEntryYet(ce.CommitChain.EntryHash, ce.CommitChain.GetTimestamp())
-				if !x {
-					TotalHoldingQueueOutputs.Inc()
-					delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
-					continue
-				}
+
+		cc, ccok := v.(*messages.CommitChainMsg)
+		if ccok {
+			x := s.NoEntryYet(cc.CommitChain.EntryHash, cc.CommitChain.GetTimestamp())
+			if !x {
+				TotalHoldingQueueOutputs.Inc()
+				delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
+				continue
 			}
 		}
+
 		if v.Expire(s) {
 			s.ExpireCnt++
 			TotalHoldingQueueOutputs.Inc()
@@ -432,6 +433,18 @@ func (s *State) ReviewHolding() {
 			delete(s.Holding, k)
 			continue
 		}
+
+		_, fok := v.(*messages.FactoidTransaction)
+		if !ceok && !ccok && !fok {
+			if !s.Leader {
+				continue
+			}
+
+			if v.GetVMIndex() != s.LeaderVMIndex {
+				continue
+			}
+		}
+
 		TotalXReviewQueueInputs.Inc()
 		s.XReview = append(s.XReview, v)
 		TotalHoldingQueueOutputs.Inc()
@@ -1890,8 +1903,9 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 	// and we can execute it as such (replacing the faulted Leader with
 	// the nominated Audit server)
 
-	panic(errors.New("Started Old Faulting Process... very bad thing"))
-
+	if true {
+		panic(errors.New("Started Old Faulting Process... very bad thing"))
+	}
 	fullFault, ok := msg.(*messages.FullServerFault)
 	if !ok {
 		return false

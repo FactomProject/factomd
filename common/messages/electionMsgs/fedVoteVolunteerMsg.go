@@ -136,8 +136,12 @@ func (m *FedVoteVolunteerMsg) FollowerExecute(is interfaces.IState) {
 
 	// Add the authority set this election involves from the process list
 	// may this should live in the election adapter? It's life mirrors the election ...
-	s_fservers := s.ProcessLists.Get(uint32(m.DBHeight)).FedServers
-	s_aservers := s.ProcessLists.Get(uint32(m.DBHeight)).AuditServers
+	pl := s.ProcessLists.Get(uint32(m.DBHeight))
+	if pl == nil {
+		return
+	}
+	s_fservers := pl.FedServers
+	s_aservers := pl.AuditServers
 
 	m.FedServers = nil
 	m.AuditServers = nil
