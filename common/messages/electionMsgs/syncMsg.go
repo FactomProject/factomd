@@ -167,6 +167,8 @@ func (m *SyncMsg) FollowerExecute(is interfaces.IState) {
 	va.Minute = m.Minute
 	va.Round = m.Round
 
+	va.Sign(is)
+
 	va.SendOut(is, va)
 	va.FollowerExecute(is)
 }

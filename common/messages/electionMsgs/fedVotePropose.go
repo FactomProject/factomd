@@ -15,6 +15,7 @@ import (
 	"github.com/FactomProject/factomd/state"
 	log "github.com/sirupsen/logrus"
 	//"github.com/FactomProject/factomd/state"
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 )
 
 var _ = fmt.Print
@@ -28,6 +29,8 @@ type FedVoteProposalMsg struct {
 
 	// Volunteer fields
 	Volunteer FedVoteVolunteerMsg
+
+	Signature interfaces.IFullSignature
 
 	messageHash interfaces.IHash
 }
@@ -191,6 +194,12 @@ func (m *FedVoteProposalMsg) UnmarshalBinaryData(data []byte) (newData []byte, e
 		return
 	}
 
+	m.Signature = new(primitives.Signature)
+	err = buf.PopBinaryMarshallable(m.Signature)
+	if err != nil {
+		return nil, err
+	}
+
 	newData = buf.DeepCopyBytes()
 	return
 }
@@ -200,7 +209,37 @@ func (m *FedVoteProposalMsg) UnmarshalBinary(data []byte) error {
 	return err
 }
 
-func (m *FedVoteProposalMsg) MarshalBinary() (data []byte, err error) {
+func (m *FedVoteProposalMsg) Sign(key interfaces.Signer) error {
+	signature, err := msgbase.SignSignable(m, key)
+	if err != nil {
+		return err
+	}
+	m.Signature = signature
+	return nil
+}
+
+func (m *FedVoteProposalMsg) GetSignature() interfaces.IFullSignature {
+	return m.Signature
+}
+
+func (m *FedVoteProposalMsg) MarshalBinary() ([]byte, error) {
+	var buf primitives.Buffer
+
+	data, err := m.MarshalForSignature()
+	if err != nil {
+		return nil, err
+	}
+	buf.Write(data)
+
+	err = buf.PushBinaryMarshallable(m.Signature)
+	if err != nil {
+		return nil, err
+	}
+
+	return buf.DeepCopyBytes(), nil
+}
+
+func (m *FedVoteProposalMsg) MarshalForSignature() (data []byte, err error) {
 	var buf primitives.Buffer
 
 	if err = buf.PushByte(constants.VOLUNTEERPROPOSAL); err != nil {

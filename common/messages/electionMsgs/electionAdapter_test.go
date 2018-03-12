@@ -34,6 +34,21 @@ func TestElectionAdapterMajority(t *testing.T) {
 	}
 }
 
+func TestSimpleSigning(t *testing.T) {
+	s := CreateAndPopulateTestState()
+	e := NewTestElection()
+	v1 := NewTestVolunteerMessage(e, 2, 0)
+	err := v1.Sign(s)
+	if err != nil {
+		t.Error(err)
+	}
+
+	data, _ := v1.MarshalForSignature()
+	if !v1.Signature.Verify(data) {
+		t.Error("Sig did not verify")
+	}
+}
+
 func TestElectionAdapterSimple(t *testing.T) {
 	e := NewTestElection()
 

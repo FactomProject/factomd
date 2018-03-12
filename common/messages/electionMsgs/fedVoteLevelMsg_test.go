@@ -6,15 +6,18 @@ import (
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	. "github.com/FactomProject/factomd/common/messages/electionMsgs"
 	"github.com/FactomProject/factomd/common/messages/msgsupport"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/testHelper"
 )
 
 func TestMarshalUnmarshalFedVoteLevel(t *testing.T) {
 	messages.General = new(msgsupport.GeneralFactory)
 	primitives.General = messages.General
+	s := testHelper.CreateAndPopulateTestState()
 
 	test := func(va *FedVoteLevelMsg, num string) {
 		vas, err := va.JSONString()
@@ -50,14 +53,25 @@ func TestMarshalUnmarshalFedVoteLevel(t *testing.T) {
 		}
 	}
 
+	var msgs []interfaces.IMsg
+
 	// Have volunteer
 	for i := 0; i < 20; i++ {
-		l := NewFedVoteLevelMessage(primitives.RandomHash(), *randomVol())
+		v := randomVol()
+		v.Sign(s)
+		l := NewFedVoteLevelMessage(primitives.RandomHash(), *v)
 		l.TS = primitives.NewTimestampNow()
 		if i%2 == 0 {
 			l.Committed = true
 		}
+		l.Justification = msgs
+		err := l.Sign(s)
+		if err != nil {
+			t.Error(err)
+		}
 		test(l, fmt.Sprintf("%d", i))
+		l.Justification = []interfaces.IMsg{}
+		msgs = append(msgs, l)
 	}
 }
 

@@ -122,7 +122,14 @@ func (ea *ElectionAdapter) Execute(msg interfaces.IMsg) interfaces.IMsg {
 		ea.Election.LogMessage("election", fmt.Sprintf("return %d", ea.Electing), msg.(interfaces.IMsg))
 
 		fmt.Printf("SimExecute Out :: %s -> %s BY %x\n", ea.Election.State.GetFactomNodeName(), ea.SimulatedElection.Display.FormatMessage(resp), ea.Election.State.GetIdentityChainID().Fixed())
-		return ea.expandMyMessage(resp)
+		expandedResp := ea.expandMyMessage(resp).(interfaces.Signable)
+		// Sign it!
+		err := expandedResp.Sign(ea.Election.State)
+		if err != nil {
+			// TODO: Panic?
+			panic(err)
+		}
+		return expandedResp.(interfaces.IMsg)
 	}
 
 	return nil

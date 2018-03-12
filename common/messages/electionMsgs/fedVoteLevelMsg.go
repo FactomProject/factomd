@@ -18,6 +18,7 @@ import (
 	"github.com/FactomProject/factomd/state"
 	log "github.com/sirupsen/logrus"
 
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/elections"
 )
 
@@ -41,6 +42,8 @@ type FedVoteLevelMsg struct {
 	// Information about the vote for comparing
 	Level uint32
 	Rank  uint32
+
+	Signature interfaces.IFullSignature
 
 	// Need a majority of these to justify our vote
 	Justification []interfaces.IMsg
@@ -174,7 +177,7 @@ func (m *FedVoteLevelMsg) processIfCommitted(is interfaces.IState, elect interfa
 	}
 }
 func DoSwap(e *elections.Elections, m *FedVoteLevelMsg) {
-	var dummy state.Server = state.Server{primitives.ZeroHash, "dummy", false, primitives.ZeroHash}
+	var dummy = state.Server{ChainID: primitives.ZeroHash, Name: "dummy", Online: false, Replace: primitives.ZeroHash}
 	// Hack code to make broken authority sets not segfault
 	// Force the lists to be the same size by adding Dummy
 	// len()-1 < index to make index be valid [0:index] is index+1==len()
@@ -302,6 +305,10 @@ func (a *FedVoteLevelMsg) IsSameAs(msg interfaces.IMsg) bool {
 		}
 	}
 
+	if !a.Signature.IsSameAs(b.Signature) {
+		return false
+	}
+
 	return true
 }
 
@@ -347,6 +354,17 @@ func (m *FedVoteLevelMsg) Validate(state interfaces.IState) int {
 	if baseMsg != 1 {
 		return baseMsg
 	}
+
+	signed, err := m.MarshalForSignature()
+	if err != nil {
+		return -1
+	}
+
+	valid, err := state.VerifyAuthoritySignature(signed, m.GetSignature().GetSignature(), m.DBHeight)
+	if err != nil || valid < 0 {
+		return -1
+	}
+
 	return 1
 }
 
@@ -416,6 +434,14 @@ func (m *FedVoteLevelMsg) UnmarshalBinaryData(data []byte) (newData []byte, err 
 		return
 	}
 
+	if buf.Len() > 32 {
+		m.Signature = new(primitives.Signature)
+		err = buf.PopBinaryMarshallable(m.Signature)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	data = buf.Bytes()
 	return data, nil
 }
@@ -425,7 +451,44 @@ func (m *FedVoteLevelMsg) UnmarshalBinary(data []byte) error {
 	return err
 }
 
-func (m *FedVoteLevelMsg) MarshalBinary() (data []byte, err error) {
+func (m *FedVoteLevelMsg) Sign(key interfaces.Signer) error {
+	signature, err := msgbase.SignSignable(m, key)
+	if err != nil {
+		return err
+	}
+	m.Signature = signature
+	return nil
+}
+
+func (m *FedVoteLevelMsg) GetSignature() interfaces.IFullSignature {
+	return m.Signature
+}
+
+func (m *FedVoteLevelMsg) MarshalBinary() ([]byte, error) {
+	var buf primitives.Buffer
+
+	data, err := m.MarshalForSignature()
+	if err != nil {
+		return nil, err
+	}
+	buf.Write(data)
+
+	err = buf.PushBinaryMarshallableMsgArray(m.Justification)
+	if err != nil {
+		return nil, err
+	}
+
+	if m.Signature != nil {
+		err = buf.PushBinaryMarshallable(m.Signature)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return buf.DeepCopyBytes(), nil
+}
+
+func (m *FedVoteLevelMsg) MarshalForSignature() (data []byte, err error) {
 	var buf primitives.Buffer
 
 	if err = buf.PushByte(constants.VOLUNTEERLEVELVOTE); err != nil {
@@ -463,11 +526,6 @@ func (m *FedVoteLevelMsg) MarshalBinary() (data []byte, err error) {
 	}
 
 	err = buf.PushUInt32(m.Rank)
-	if err != nil {
-		return
-	}
-
-	err = buf.PushBinaryMarshallableMsgArray(m.Justification)
 	if err != nil {
 		return
 	}
