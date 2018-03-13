@@ -49,15 +49,6 @@ func NewFedProposalMsg(signer interfaces.IHash, vol FedVoteVolunteerMsg) *FedVot
 
 func (m *FedVoteProposalMsg) ElectionProcess(is interfaces.IState, elect interfaces.IElections) {
 	e := elect.(*elections.Elections)
-	valid := m.FedVoteMsg.ElectionValidate(elect)
-	switch valid {
-	case -1:
-		return
-	case 0:
-		is.ElectionsQueue().Enqueue(m)
-		return
-	}
-
 	/******  Election Adapter Control   ******/
 	/**	Controlling the inner election state**/
 

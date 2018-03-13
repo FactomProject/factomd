@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -80,25 +79,6 @@ func NewFedVoteLevelMessage(signer interfaces.IHash, vol FedVoteVolunteerMsg) *F
 }
 
 func (m *FedVoteLevelMsg) ElectionProcess(is interfaces.IState, elect interfaces.IElections) {
-	// Some validation cannot be done in FollowerExecute as it needs access to election
-	// variables in this thread
-	valid := m.FedVoteMsg.ElectionValidate(elect)
-	switch valid {
-	case -1:
-		return
-	case 0:
-		// TODO:
-		// We might want to have some sort of "holding map", so we don't have
-		// starvation. Also make this validate --> holding thing generic and not copy-paste
-		// code for election messages
-		// Wait a bit and then try again
-		go func() {
-			time.Sleep(10 * time.Millisecond)
-			is.ElectionsQueue().Enqueue(m)
-		}()
-		return
-	}
-
 	e := elect.(*elections.Elections)
 
 	elections.CheckAuthSetsMatch("FedVoteLevelMsg.ElectionProcess()", e, e.State.(*state.State))

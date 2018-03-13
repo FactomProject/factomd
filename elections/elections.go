@@ -259,6 +259,20 @@ func Run(s *state.State) {
 	for {
 		msg := e.Input.BlockingDequeue().(interfaces.IElectionMsg)
 		e.LogMessage("election", fmt.Sprintf("exec %d", e.Electing), msg.(interfaces.IMsg))
+
+		valid := msg.ElectionValidate(e)
+		switch valid {
+		case -1:
+			// Do not process
+			continue
+		case 0:
+			// Not valid, try again later
+			go func() {
+				time.Sleep(10 * time.Millisecond)
+				e.Input.Enqueue(msg)
+			}()
+			continue
+		}
 		msg.ElectionProcess(s, e)
 
 		//if msg.(interfaces.IMsg).Type() != constants.INTERNALEOMSIG { // If it's not an EOM check the authority set

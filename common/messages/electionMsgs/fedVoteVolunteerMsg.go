@@ -55,24 +55,6 @@ var _ interfaces.IMsg = (*FedVoteVolunteerMsg)(nil)
 var _ interfaces.IElectionMsg = (*FedVoteVolunteerMsg)(nil)
 
 func (m *FedVoteVolunteerMsg) ElectionProcess(is interfaces.IState, elect interfaces.IElections) {
-	valid := m.FedVoteMsg.ElectionValidate(elect)
-	switch valid {
-	case -1:
-		// Drop the volunteer message as invalid
-		return
-	case 0:
-		// Not ready yet, try again in a bit
-		go func() {
-			time.Sleep(10 * time.Millisecond)
-			is.ElectionsQueue().Enqueue(m)
-		}()
-		return
-	case 1:
-		break // Do the work if it's valid
-	default:
-		panic(errors.New("Unexpected"))
-	}
-
 	e := elect.(*elections.Elections)
 
 	// If we haven't detected a fault  ourselves(no timeout), then wait on this for a bit and try again.
