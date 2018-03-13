@@ -11,6 +11,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/elections"
@@ -30,6 +31,16 @@ type FedVoteMsg struct {
 	TS       interfaces.Timestamp // Message Timestamp
 	TypeMsg  byte                 // Can be either a Volunteer from an Audit Server, or End of round
 	DBHeight uint32               // Directory Block Height that owns this ack
+
+	// NOT MARSHALED
+	Super ElectionMessage
+}
+
+type ElectionMessage interface {
+	interfaces.Signable
+	interfaces.IMsg
+
+	GetVolunteerMessage() FedVoteVolunteerMsg
 }
 
 func (m *FedVoteMsg) InitFields(elect interfaces.IElections) {
@@ -135,13 +146,59 @@ func (m *FedVoteMsg) ElectionValidate(st interfaces.IState) int {
 	panic(errors.New("Though I covered all the cases"))
 }
 
-func (m *FedVoteMsg) Validate(st interfaces.IState) int {
-	//e := st.(*state.State).Elections.(*elections.Elections)
-	//if st.GetIdentityChainID().IsSameAs(e.FedID){
-	//	e.LogMessage("election", "Won't vote against myself",m)
-	//	return -1
-	//}
-	// Vote is only as valid as the election
+// ValidateVolunteer validates if the volunteer has their process list at the correct height
+// If the volunteer is too low, it is invalid. If it is too high, then we return 0.
+func (m *FedVoteMsg) ValidateVolunteer(v FedVoteVolunteerMsg, is interfaces.IState) int {
+	s := is.(*state.State)
+
+	pl := s.ProcessLists.Get(m.DBHeight)
+	if pl == nil {
+		return 0
+	}
+
+	if m.VMIndex >= len(pl.VMs) || m.VMIndex < 0 {
+		return -1
+	}
+
+	vm := pl.VMs[m.VMIndex]
+
+	ack := v.Ack.(*messages.Ack)
+	if vm.Height < int(ack.Height) {
+		return 0
+	} else if vm.Height > int(ack.Height) {
+		return -1
+	}
+
+	return 1
+}
+
+func (m *FedVoteMsg) Validate(is interfaces.IState) int {
+	s := is.(*state.State)
+	if m.DBHeight < s.GetLeaderHeight() {
+		return -1
+	}
+	sm := m.Super
+
+	// Check to make sure the volunteer message can be put in our process list
+	if validVolunteer := m.ValidateVolunteer(sm.GetVolunteerMessage(), is); validVolunteer != 1 {
+		if validVolunteer == -1 {
+			return -1
+		}
+
+		// Volunteer is not valid because the volunteer has a higher process list height
+		return 0
+	}
+
+	signed, err := sm.MarshalForSignature()
+	if err != nil {
+		return -1
+	}
+
+	valid, err := is.VerifyAuthoritySignature(signed, sm.GetSignature().GetSignature(), m.DBHeight)
+	if err != nil || valid < 0 {
+		return -1
+	}
+
 	return 1
 }
 

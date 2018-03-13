@@ -125,12 +125,14 @@ func (m *FedVoteProposalMsg) Type() byte {
 	return constants.VOLUNTEERPROPOSAL
 }
 
-func (m *FedVoteProposalMsg) Validate(state interfaces.IState) int {
-	baseMsg := m.FedVoteMsg.Validate(state)
-	if baseMsg != 1 {
-		return baseMsg
-	}
-	return 1
+func (m *FedVoteProposalMsg) GetVolunteerMessage() FedVoteVolunteerMsg {
+	return m.Volunteer
+}
+
+func (m *FedVoteProposalMsg) Validate(is interfaces.IState) int {
+	// Set the super and let the base validate
+	m.FedVoteMsg.Super = m
+	return m.FedVoteMsg.Validate(is)
 }
 
 // Returns true if this is a message for this server to execute as

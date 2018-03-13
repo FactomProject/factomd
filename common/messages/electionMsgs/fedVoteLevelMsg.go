@@ -350,23 +350,14 @@ func (m *FedVoteLevelMsg) Type() byte {
 	return constants.VOLUNTEERLEVELVOTE
 }
 
-func (m *FedVoteLevelMsg) Validate(state interfaces.IState) int {
-	baseMsg := m.FedVoteMsg.Validate(state)
-	if baseMsg != 1 {
-		return baseMsg
-	}
+func (m *FedVoteLevelMsg) GetVolunteerMessage() FedVoteVolunteerMsg {
+	return m.Volunteer
+}
 
-	signed, err := m.MarshalForSignature()
-	if err != nil {
-		return -1
-	}
-
-	valid, err := state.VerifyAuthoritySignature(signed, m.GetSignature().GetSignature(), m.DBHeight)
-	if err != nil || valid < 0 {
-		return -1
-	}
-
-	return 1
+func (m *FedVoteLevelMsg) Validate(is interfaces.IState) int {
+	// Set the super and let the base validate
+	m.FedVoteMsg.Super = m
+	return m.FedVoteMsg.Validate(is)
 }
 
 // Returns true if this is a message for this server to execute as
