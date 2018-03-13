@@ -73,42 +73,30 @@ This command:
  - removes all service containers
  - removes all created networks
 
-## Using services
-
-Once the environment is properly built and started you can start using it for
-monitoring a factomd on your local machine.
-
-### Logging
+## Logging
 
 Logging is set up to use the ELK (*Elasticsearch* + *Logstash* + *Kibana*) stack
 for gathering and searching the logs:
  - a *factomd* instance sends its log entries to *Logstash*
- - *Logstash* transforms the log entries and forwards them to the
-   *Elasticsearch* database for searching
+ - *Logstash* transforms the log entries and forwards them to
+   *Elasticsearch* database
  - a *Kibana* instance connects to the same *Elasticsearch* instance and allows
    you to search the logs.
 
-#### Setting up factomd
+### Setting up factomd
 
-The node needs to be instructed to use Logstash as its log target (multiple
-nodes should use the same Logstash instance). Use the following startup
-parameters:
+The node needs to be instructed to use Logstash as its log target. Use the
+following startup parameters:
 
 ```
 factomd -loglvl info -logstash -logurl=localhost:8345
 ```
 
- - `loglvl info` - enables logging via the logging framework (by default the log
-   level is set to `none`)
- - `logstash` - enables sending logs to a *Logstash* instance (by default it
-   logs to *stdout*)
- - `logurl` - sets the location of the *Logstash* instance, since the docker
-   container exposes port 8345 to the local machine, you can use `localhost` as
-   the target.
+Once *factomd* is started it will immediately start sending the logs. Note that
+you need to start the *docker-compose* first, otherwise *factomd* will refuse to
+start.
 
-Once *factomd* is started it will immediately start sending the logs.
-
-#### Setting up Kibana
+### Setting up Kibana
 
 To open the *Kibana UI*, go to the following address in your browser:
 http://localhost:5601/. The first time you do this after rebuilding the
@@ -122,7 +110,7 @@ Once the index pattern is set up, go to the *Discover* tab. You should see the
 list of logs created by all *factomd* nodes in the network ordered by the
 `@timestamp` field.
 
-#### Filtering the logs
+### Filtering the logs
 
 *Kibana* comes with some powerful tools for filtering the logs, some examples:
 
@@ -136,107 +124,156 @@ list of logs created by all *factomd* nodes in the network ordered by the
    *Lucene* query syntax, e.g. entering `NOT eom` will filter out all messages
    the contain the string `eom` in the log message.
 
-### Metrics
+### Details
 
-Metrics are pulled from *factomd* instances into *Prometheus*. To view the
-collected metrics open the *Prometheus* web UI at: http://localhost:9090/,
-select one of the metrics from the dropdown and hit the *Execute* button. The
-metrics for all instances are labeled using the hostname/port that was used for
-scraping the metrics, e.g. `instance=factomd_1:9876`.
+#### Factomd
 
-### Networking
+*Factomd* is instrumented using the
+[logrus](https://github.com/sirupsen/logrus) library for logging, but it is not
+enabled by default, the following parameters enable logging and start sending
+the logs to `localhost:8345`:
 
-The current setup allows manipulating the connectivity between containers to
-test e.g. various network conditions by inserting and removing *iptables*
-rules. In addition to the commands described here, please consult the
-*iptables* and *docker* documentation.
+ - `-loglvl info` - enables logging via the logging framework (by default the
+   log level is set to `none`)
+ - `-logstash` - enables sending logs to a *Logstash* instance (by default it
+   logs to *stdout*)
+ - `-logurl` - sets the location of the *Logstash* instance, since the docker
+   container exposes port 8345 to the local machine, you can use `localhost` as
+   the target.
 
-#### Linux
+See `factomd -h` output for more information about these parameters.
 
-When hosting the setup on Linux, you should be able to manipulate the
-*iptables* directly from your host machine, note however that you will most
-likely need to run all the commands as root.
+#### Logstash
 
-#### Mac OS / Windows
+*Logstash* serves as a target for *factomd* to log to, it also allows
+performing transformations on log entries. The provided configuration creates
+a single pipeline (see [logstash.conf](./logstash/pipeline/logstash.conf))
+that listens on port 8345 (this port is mapped from the container to the same
+port on host) and forwards entries to *Elasticsearch*.
 
-When hosting the setup on Mac or Windows (using *Docker for Mac* or *Docker for
-Windows* respectively), you need to take into account that the docker engine is
-running inside a Linux VM, so on the host machine you will not have access e.g.
-the list of running processes or *iptables* setup.
+Ports:
+ - `8345` - port to sends logs to.
 
-On Mac OS you can attach to the VM shell using this command:
+Configs:
+ - `./logstash/config/logstash.yml` - main *Logstash* configuration
+ - `./logstash/pipeline/logstash.yml` - the pipeline for *factomd*
 
-```
-screen ~/Library/Containers/com.docker.docker/Data/com.docker.driver.amd64-linux/tty
-```
+##### Multiple factomd instances
 
-To detach: `CTRL-a CTRL-\` and hit `y`.
+All the entries received by *Logstash* automatically have the `host` field which
+contains the IP address of the node that sent the logs, this is however not very
+helpful if you're running multiple nodes on the same machine. There are multiple
+ways to fix this, one would be to have different instances connect to different
+ports and tag the entries based on the port it connects to.
 
-Alternatively on both Windows and Mac OS you can start a priviledged container
-that will give you access to the host, see this article:
-https://blog.jongallant.com/2017/11/ssh-into-docker-vm-windows/.
+Example:
 
-#### Viewing the iptable rules
+ - modify the pipeline configuration file to allow multiple ports:
+   ```
+   input {
+       tcp {
+           port => 8345
+           tags => ["factomd_1"]
+       }
 
-To view all tables and rules:
+       tcp {
+           port => 8346
+           tags => ["factomd_2"]
+       }
+   }
+   ```
+ - in `docker-compose.yml`, add a new port to map it to the port on the host:
+   ```
+   logstash:
+       ports:
+           - "8345:8345"
+           - "8346:8346"
+   ```
+ - start different *factomd* instances with different ports:
 
-```
-iptables -L
-```
+   ```
+   factomd -loglvl info -logstash -logurl=localhost:8345
+   ```
+   ```
+   factomd -loglvl info -logstash -logurl=localhost:8346
+   ```
 
-This will show all currently set up *iptables* rules. If everything is set up
-correctly, you should see entries created by docker in the `DOCKER` chain,
-e.g.:
+The entries from different nodes will now be tagged with the instance name.
 
-```
-Chain DOCKER (3 references)
+#### Elasticsearch
 
-...
+The environment creates an *Elasticsearch* instance that is used for
+storing and searching logs generated by the network.
 
-ACCEPT     tcp  --  anywhere             10.7.0.3             tcp dpt:8090
-ACCEPT     tcp  --  anywhere             10.7.0.2             tcp dpt:8090
-ACCEPT     tcp  --  anywhere             10.7.0.1             tcp dpt:8090
-```
+A single *Elasticseach* node container is started, since you should not need to
+connect to it directly, the ports are not mapped to the host, but are available
+to other containers.
 
-#### Dropping connections
+Configs:
+ - `./elasticsearch/config/elasticsearch.yml` - main *Elasticsearch* configuration
 
-To drop the connections between two containers, get their IP addresses first
-(see commands below) and add the following rule:
+#### Kibana
 
-```
-iptables -I FORWARD 1 -s 10.7.0.1 -d 10.7.0.2 -j DROP
-```
+A single *Kibana* node with a default configuration is created and connected to
+the same *Elasticsearch* instance that *Logstash* forwards to, so that you can
+use it to analyze the logs. Note that we're not creating any default mappings
+for the log entries, so you won't see the fields used in the log entries
+directly, but they will be available in the `message` field.
 
-This will drop all connections from `10.7.0.1` (`factomd_1`) to `10.7.0.2`
-(`factomd_2`). It is important to use `-I`, so that the rule gets inserted
-first and it will match a given network packet before it is matched by rules
-created by docker.
+Ports:
+ - `5601` - the *Kibana* Web UI
 
-#### Restoring connections
+Configs:
+ - `./kibana/config/kibana.yml` - main *Kibana* configuration
 
-To restore the connectivity, remove the previously added rule. To do this you
-need to first obtain the current number of the added rule
+## Metrics
 
-```
-iptables -L --line-numbers
-```
+All *factomd* nodes have a built-in mechanism that gather various metrics about
+the node using
+[prometheus/client_golang](https://github.com/prometheus/client_golang). The
+*Prometheus* instance periodically runs a scrape job that pull the metrics
+exposed by *factomd* and stores it in a database.
 
-```
-...
+### Setting up Prometheus
 
-Chain FORWARD (policy DROP)
-num  target     prot opt source               destination
-1    DROP       all  --  10.7.0.1             10.7.0.2
+*Factomd* supports collecting metrics out-of-the-box, so no additional setup is
+necessary. *Factomd* listens on port 9876 for *Prometheus* connections and
+exposes them using the default `/metrics` path.
 
-...
-```
+### Viewing collected metrics
+To view the collected metrics open the *Prometheus* web UI at:
+http://localhost:9090/, select one of the metrics from the dropdown and hit the
+*Execute* button. If everything works, you should see lots of `factomd_*`
+metrics in the dropdown. The metrics for all instances are labeled using the
+hostname/port that was used for scraping the metrics, e.g.
+`instance=factomd_1:9876`.
 
-The previously added rule has number 1 in the `FORWARD` chain, so we can drop
-it with:
+### Details
 
-```
-iptables -R FORWARD 1
-```
+*Prometheus* container is currently configured to get the list of services to
+monitor from a list of instances in the
+[instances.json](./prometheus/config/instances.json) file. This file is mapped
+to the container and watched by the *Prometheus* instance, so whenever you
+change its contents, *Prometheus* should pick this up and start monitoring
+a new node without restarting.
+
+Since *Prometheus* connects to an instance of *factomd* from its container, the
+solution differs depending on the your host system:
+ - on Linux - the *factomd* instance is available at `localhost:9876`
+ - on Docker for Mac/Windows - there is a special DNS entry that allows you to
+   connect to the host from within the container, so your instance is available
+   at e.g. `docker.for.mac.host.internal:9876`.
+
+Note that both of these are added by default in `instances.json` to allow it to
+work out-of-the-box, so without changes you might see *Prometheus* reporting
+that one of the instances is down (see `up` metric).
+
+Ports:
+ - `9090` - *Prometheus* Web UI
+
+Configs:
+ - `./prometheus/config/prometheus.yml` - main *Prometheus* config
+ - `./prometheus/config/instances.json` - list of factomd instances to connect to
 
 ## Useful commands
 
@@ -289,15 +326,6 @@ To kill the container:
 docker kill <container_name>
 ```
 
-### Getting IP addresses
-
-Display all containers with all networks they belong to and their static /
-assigned IP addresses in a network:
-
-```
-docker inspect -f '{{.Name}} - {{range $name, $net := .NetworkSettings.Networks}}{{$name}}:{{$net.IPAddress}} {{end}}' $(docker ps -aq)
-```
-
 ## Service setup details
 
 The environment is created using *docker* containers that are put together
@@ -313,77 +341,6 @@ restarting the container.
 Services are currently not set up to restart automatically in case of failure,
 so they will need to be started manually.
 
-### Factom network
-
-The created *factomd* network is using 3 *factomd* instances that are set up as
-peers in a custom *factomd* network. The configuration files for all the
-instances are located in the `factom` directory. Note that each of the
-instances has a different identity set up in the config file, so that all nodes
-can be used as leaders in the network (see `IdentityChainID`,
-`LocalServerPrivKey`, `LocalServerPublicKey` in `factom/factomd_*.conf`).
-
-All the nodes are set up to log to the provided *Logstash* instances by adding
-the command line parameters: `-logstash -logurl=logstash:8345` (see the
-`command` section in the `docker-compose.yml` file.
-
-All the instances have static IP addresses assigned to them. When each of the
-instances start, they connect to an *nginx* instance provided as one of the
-services, which serves the list of IP addresses for all the nodes, so that all
-instances connect to each other.
-
-The default assignment of IP addresses for *factomd* instances:
- * *factomd_1* - `10.7.0.1`
- * *factomd_2* - `10.7.0.2`
- * *factomd_3* - `10.7.0.3`
-
-All other services present in the `factomd` docker network have their IPs
-assigned automatically in `10.7.1.0/24`.
-
-### ELK stack
-
-The ELK (*Elasticsearch* + *Logstash* + *Kibana*) stack is used to gather logs
-from multiple nodes that are running in the network. The logs are sent to the
-*Logstash* instances which stores it in *Elasticsearch* and can later be
-explored in *Kibana*.
-
-#### Elasticsearch
-
-The environment creates a single *Elasticsearch* instance that is used for
-storing and searching logs generated by the network.
-
-The configuration for the *Elasticsearch* instance is copied from
-`elasticsearch/config/elasticsearch.yml`.
-
-#### Logstash
-
-*Logstash* collects the logs from factomd instances and forwards it to
-*Elasticsearch*. The connections to the *Logstash* instance are using port 500,
-this port is also mapped to the same port on the local machine, so that you can
-use the same setup to log from *factomd* instances that you run outside of
-docker containers. The *Logstash* configuration files and the pipeline
-definition for *factomd* are located in the `logstash` directory.
-
-#### Kibana
-
-Kibana allows exploring, searching and visualizing logs created by factomd
-network. The web UI is mapped to the local port 5601.
-
-The configuration for *Kibana* is copied during the build from
-`kibana/config/kibana.yml`.
-
-### Prometheus
-
-*Prometheus* periodically gathers metrics from a all *factomd* instances. The
-built-in web UI is exposed to the local host using port `9090`.
-
-Note that *Prometheus* is pull-based, so it fetches metrics from *factomd*
-instances, not the other way around, so to add monitoring for your local nodes,
-you'll need to modify its configuration and rebuild the container.
-
-The configuration for *Prometheus* is copied during the build from
-`prometheus/config/prometheus.yml`. Currently it pull metrics from all 3
-instances and labels them using the instance name.
-
 ## Known issues
 
 * If you are running this setup in a *Docker for Mac* or a *Docker for Windows*
@@ -396,19 +353,3 @@ instances and labels them using the instance name.
   ```
   COMPOSE_HTTP_TIMEOUT=120 docker-compose up
   ```
-
-* The `factomd` instances sometimes exit after the first build, another
-  `docker-compose up` command should bring start them correctly.
-
-* There is an issue when using the environment on Mac OS:
-
-  ```
-  ERROR: for kibana  Cannot start service kibana: driver failed programming
-  external connectivity on endpoint kibana
-  (7e6b3eaddf72eb60f384edff6d5c0bbac759af0cf5c24cfaff646ec558815cd5): Timed out
-  proxy starting the userland proxy
-  ```
-
-  Unfortunately this is an unresolved *Docker for Mac* issue for which there is
-  no good solution (restarting does not help), you'll need to retry until it
-  succeeds.

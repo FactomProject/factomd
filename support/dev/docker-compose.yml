@@ -30,8 +30,9 @@ services:
         volumes:
             - ./logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
             - ./logstash/pipeline:/usr/share/logstash/pipeline:ro
+        expose:
+            - "5000"
         ports:
-            - "5000:5000"
             - "8345:8345"
         environment:
             LS_JAVA_OPTS: "-Xmx256m -Xms256m"
@@ -39,6 +40,7 @@ services:
             - support
         depends_on:
             elasticsearch:
+                # wait for the healthcheck to pass
                 condition: service_healthy
 
     kibana:
@@ -53,6 +55,7 @@ services:
             - support
         depends_on:
             elasticsearch:
+                # wait for the healthcheck to pass
                 condition: service_healthy
 
     prometheus:
