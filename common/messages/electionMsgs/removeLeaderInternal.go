@@ -26,6 +26,7 @@ type RemoveLeaderInternal struct {
 }
 
 var _ interfaces.IMsg = (*RemoveLeaderInternal)(nil)
+var _ interfaces.IElectionMsg = (*RemoveLeaderInternal)(nil)
 
 func (m *RemoveLeaderInternal) MarshalBinary() (data []byte, err error) {
 	var buf primitives.Buffer
@@ -101,6 +102,10 @@ func (m *RemoveLeaderInternal) GetTimestamp() interfaces.Timestamp {
 
 func (m *RemoveLeaderInternal) Type() byte {
 	return constants.INTERNALREMOVELEADER
+}
+
+func (m *RemoveLeaderInternal) ElectionValidate(ie interfaces.IElections) int {
+	return 1
 }
 
 func (m *RemoveLeaderInternal) Validate(state interfaces.IState) int {

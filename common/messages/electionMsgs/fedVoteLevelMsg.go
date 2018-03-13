@@ -82,7 +82,7 @@ func NewFedVoteLevelMessage(signer interfaces.IHash, vol FedVoteVolunteerMsg) *F
 func (m *FedVoteLevelMsg) ElectionProcess(is interfaces.IState, elect interfaces.IElections) {
 	// Some validation cannot be done in FollowerExecute as it needs access to election
 	// variables in this thread
-	valid := m.FedVoteMsg.ElectionValidate(is)
+	valid := m.FedVoteMsg.ElectionValidate(elect)
 	switch valid {
 	case -1:
 		return
@@ -350,8 +350,8 @@ func (m *FedVoteLevelMsg) Type() byte {
 	return constants.VOLUNTEERLEVELVOTE
 }
 
-func (m *FedVoteLevelMsg) GetVolunteerMessage() FedVoteVolunteerMsg {
-	return m.Volunteer
+func (m *FedVoteLevelMsg) GetVolunteerMessage() interfaces.ISignableElectionMsg {
+	return &m.Volunteer
 }
 
 func (m *FedVoteLevelMsg) Validate(is interfaces.IState) int {

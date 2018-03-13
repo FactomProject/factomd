@@ -32,6 +32,7 @@ type EomSigInternal struct {
 }
 
 var _ interfaces.IMsg = (*EomSigInternal)(nil)
+var _ interfaces.IElectionMsg = (*EomSigInternal)(nil)
 
 func Title() string {
 	return fmt.Sprintf("%5s%6s %10s %8s %8s %8s %8s",
@@ -181,6 +182,10 @@ func (m *EomSigInternal) Type() byte {
 }
 
 func (m *EomSigInternal) Validate(state interfaces.IState) int {
+	return 1
+}
+
+func (m *EomSigInternal) ElectionValidate(ie interfaces.IElections) int {
 	return 1
 }
 

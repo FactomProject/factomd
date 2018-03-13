@@ -55,7 +55,7 @@ var _ interfaces.IMsg = (*FedVoteVolunteerMsg)(nil)
 var _ interfaces.IElectionMsg = (*FedVoteVolunteerMsg)(nil)
 
 func (m *FedVoteVolunteerMsg) ElectionProcess(is interfaces.IState, elect interfaces.IElections) {
-	valid := m.FedVoteMsg.ElectionValidate(is)
+	valid := m.FedVoteMsg.ElectionValidate(elect)
 	switch valid {
 	case -1:
 		// Drop the volunteer message as invalid
@@ -239,8 +239,8 @@ func (m *FedVoteVolunteerMsg) Type() byte {
 	return constants.VOLUNTEERAUDIT
 }
 
-func (m *FedVoteVolunteerMsg) GetVolunteerMessage() FedVoteVolunteerMsg {
-	return *m
+func (m *FedVoteVolunteerMsg) GetVolunteerMessage() interfaces.ISignableElectionMsg {
+	return m
 }
 
 func (m *FedVoteVolunteerMsg) Validate(is interfaces.IState) int {

@@ -27,8 +27,15 @@ type IElectionAdapter interface {
 }
 
 type IElectionMsg interface {
+	IMsg
 	ElectionProcess(IState, IElections)
-	String() string
+	ElectionValidate(IElections) int
+}
+
+type ISignableElectionMsg interface {
+	IElectionMsg
+	Signable
+	GetVolunteerMessage() ISignableElectionMsg
 }
 
 type IElectionsFactory interface {

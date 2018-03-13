@@ -47,6 +47,7 @@ func (m *SyncMsg) ElectionProcess(is interfaces.IState, elect interfaces.IElecti
 }
 
 var _ interfaces.IMsg = (*SyncMsg)(nil)
+var _ interfaces.IElectionMsg = (*SyncMsg)(nil)
 
 func (a *SyncMsg) IsSameAs(msg interfaces.IMsg) bool {
 	b, ok := msg.(*SyncMsg)
@@ -123,6 +124,11 @@ func (m *SyncMsg) Type() byte {
 }
 
 func (m *SyncMsg) Validate(state interfaces.IState) int {
+	//TODO: Must be validated
+	return 1
+}
+
+func (m *SyncMsg) ElectionValidate(ie interfaces.IElections) int {
 	//TODO: Must be validated
 	return 1
 }

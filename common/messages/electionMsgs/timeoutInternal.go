@@ -30,6 +30,7 @@ type TimeoutInternal struct {
 }
 
 var _ interfaces.IMsg = (*TimeoutInternal)(nil)
+var _ interfaces.IElectionMsg = (*TimeoutInternal)(nil)
 
 func (m *TimeoutInternal) MarshalBinary() (data []byte, err error) {
 	var buf primitives.Buffer
@@ -233,6 +234,10 @@ func (m *TimeoutInternal) Type() byte {
 }
 
 func (m *TimeoutInternal) Validate(state interfaces.IState) int {
+	return 1
+}
+
+func (m *TimeoutInternal) ElectionValidate(ie interfaces.IElections) int {
 	return 1
 }
 

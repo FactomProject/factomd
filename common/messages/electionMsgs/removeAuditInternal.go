@@ -26,6 +26,7 @@ type RemoveAuditInternal struct {
 }
 
 var _ interfaces.IMsg = (*RemoveAuditInternal)(nil)
+var _ interfaces.IElectionMsg = (*RemoveAuditInternal)(nil)
 
 func (m *RemoveAuditInternal) MarshalBinary() (data []byte, err error) {
 	var buf primitives.Buffer
@@ -103,6 +104,10 @@ func (m *RemoveAuditInternal) Type() byte {
 }
 
 func (m *RemoveAuditInternal) Validate(state interfaces.IState) int {
+	return 1
+}
+
+func (m *RemoveAuditInternal) ElectionValidate(ie interfaces.IElections) int {
 	return 1
 }
 

@@ -93,6 +93,10 @@ func (m *AddAuditInternal) Type() byte {
 	return constants.INTERNALADDAUDIT
 }
 
+func (m *AddAuditInternal) ElectionValidate(ie interfaces.IElections) int {
+	return 1
+}
+
 func (m *AddAuditInternal) Validate(state interfaces.IState) int {
 	return 1
 }

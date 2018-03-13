@@ -49,7 +49,7 @@ func NewFedProposalMsg(signer interfaces.IHash, vol FedVoteVolunteerMsg) *FedVot
 
 func (m *FedVoteProposalMsg) ElectionProcess(is interfaces.IState, elect interfaces.IElections) {
 	e := elect.(*elections.Elections)
-	valid := m.FedVoteMsg.ElectionValidate(is)
+	valid := m.FedVoteMsg.ElectionValidate(elect)
 	switch valid {
 	case -1:
 		return
@@ -125,8 +125,8 @@ func (m *FedVoteProposalMsg) Type() byte {
 	return constants.VOLUNTEERPROPOSAL
 }
 
-func (m *FedVoteProposalMsg) GetVolunteerMessage() FedVoteVolunteerMsg {
-	return m.Volunteer
+func (m *FedVoteProposalMsg) GetVolunteerMessage() interfaces.ISignableElectionMsg {
+	return &m.Volunteer
 }
 
 func (m *FedVoteProposalMsg) Validate(is interfaces.IState) int {

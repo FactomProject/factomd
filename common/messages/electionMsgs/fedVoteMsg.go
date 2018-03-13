@@ -33,14 +33,7 @@ type FedVoteMsg struct {
 	DBHeight uint32               // Directory Block Height that owns this ack
 
 	// NOT MARSHALED
-	Super ElectionMessage
-}
-
-type ElectionMessage interface {
-	interfaces.Signable
-	interfaces.IMsg
-
-	GetVolunteerMessage() FedVoteVolunteerMsg
+	Super interfaces.ISignableElectionMsg
 }
 
 func (m *FedVoteMsg) InitFields(elect interfaces.IElections) {
@@ -117,9 +110,8 @@ func (m *FedVoteMsg) Type() byte {
 	return constants.INVALID_MSG
 }
 
-func (m *FedVoteMsg) ElectionValidate(st interfaces.IState) int {
-	s := st.(*state.State)
-	e := s.Elections.(*elections.Elections)
+func (m *FedVoteMsg) ElectionValidate(ie interfaces.IElections) int {
+	e := ie.(*elections.Elections)
 
 	// TODO: Correct this
 	if e.Adapter == nil || e.Electing == -1 {
@@ -178,9 +170,10 @@ func (m *FedVoteMsg) Validate(is interfaces.IState) int {
 		return -1
 	}
 	sm := m.Super
+	vol := sm.GetVolunteerMessage().(*FedVoteVolunteerMsg)
 
 	// Check to make sure the volunteer message can be put in our process list
-	if validVolunteer := m.ValidateVolunteer(sm.GetVolunteerMessage(), is); validVolunteer != 1 {
+	if validVolunteer := m.ValidateVolunteer(*vol, is); validVolunteer != 1 {
 		if validVolunteer == -1 {
 			return -1
 		}
