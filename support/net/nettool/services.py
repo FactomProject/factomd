@@ -185,10 +185,17 @@ class Factomd(Service):
                 }
             }
         )
+        args = {}
+
+        if config.ui_port:
+            args["ports"] = {}
+            args["ports"]["8090"] = config.ui_port
+
         self.container = Container(
             docker,
             image=self.image,
-            name=config.name
+            name=config.name,
+            extra_args=args
         )
         self.config = config
 
