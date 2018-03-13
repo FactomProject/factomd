@@ -7,16 +7,15 @@ package state
 import (
 	"bufio"
 	"bytes"
+	"crypto/rand"
+	"encoding/binary"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
-	"time"
-
 	"sync"
-
-	"crypto/rand"
-	"encoding/binary"
+	"time"
 
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
@@ -30,10 +29,9 @@ import (
 	"github.com/FactomProject/factomd/database/mapdb"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/util"
+	"github.com/FactomProject/factomd/util/atomic"
 	"github.com/FactomProject/factomd/wsapi"
 	"github.com/FactomProject/logrustash"
-
-	"errors"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -1784,7 +1782,7 @@ func (s *State) AddDBSig(dbheight uint32, chainID interfaces.IHash, sig interfac
 
 func (s *State) AddFedServer(dbheight uint32, hash interfaces.IHash) int {
 	//s.AddStatus(fmt.Sprintf("AddFedServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
-	s.LogPrintf("executeMsg", "AddServer (Federated): ChainID: %x at dbht: %d", hash.Bytes()[3:6], dbheight)
+	s.LogPrintf("executeMsg", "AddServer (Federated): ChainID: %x at dbht: %d From %s", hash.Bytes()[3:6], dbheight, atomic.WhereAmIString(1))
 	return s.ProcessLists.Get(dbheight).AddFedServer(hash)
 }
 

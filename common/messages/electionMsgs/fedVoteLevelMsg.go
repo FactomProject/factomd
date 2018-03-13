@@ -17,6 +17,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/state"
 	log "github.com/sirupsen/logrus"
+	//"github.com/FactomProject/factomd/state"
 
 	"github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/elections"
@@ -145,11 +146,11 @@ func (m *FedVoteLevelMsg) processIfCommitted(is interfaces.IState, elect interfa
 			m.Volunteer.ServerIdx, m.Volunteer.ServerID.Bytes()[3:6])
 
 		e.LogPrintf("election", "LeaderSwapState %d/%d/%d", m.VMIndex, m.DBHeight, m.Minute)
-		e.LogPrintf("election", "Demote  %x", m.Volunteer.FedID.Bytes()[3:6])
-		e.LogPrintf("election", "Promote %x", m.Volunteer.ServerID.Bytes()[3:6])
+		e.LogPrintf("election", "Demote  %x", e.Federated[m.Volunteer.FedIdx].GetChainID().Bytes()[3:6])
+		e.LogPrintf("election", "Promote %x", e.Audit[m.Volunteer.ServerIdx].GetChainID().Bytes()[3:6])
 
-		DoSwap(e, m)
-
+		e.Federated[m.Volunteer.FedIdx], e.Audit[m.Volunteer.ServerIdx] =
+			e.Audit[m.Volunteer.ServerIdx], e.Federated[m.Volunteer.FedIdx]
 		e.Adapter.SetElectionProcessed(true)
 		m.ProcessInState = true
 		m.SetValid()
@@ -177,7 +178,7 @@ func (m *FedVoteLevelMsg) processIfCommitted(is interfaces.IState, elect interfa
 	}
 }
 func DoSwap(e *elections.Elections, m *FedVoteLevelMsg) {
-	var dummy = state.Server{ChainID: primitives.ZeroHash, Name: "dummy", Online: false, Replace: primitives.ZeroHash}
+	var dummy state.Server = state.Server{primitives.ZeroHash, "dummy", false, primitives.ZeroHash}
 	// Hack code to make broken authority sets not segfault
 	// Force the lists to be the same size by adding Dummy
 	// len()-1 < index to make index be valid [0:index] is index+1==len()
@@ -434,12 +435,10 @@ func (m *FedVoteLevelMsg) UnmarshalBinaryData(data []byte) (newData []byte, err 
 		return
 	}
 
-	if buf.Len() > 32 {
-		m.Signature = new(primitives.Signature)
-		err = buf.PopBinaryMarshallable(m.Signature)
-		if err != nil {
-			return nil, err
-		}
+	m.Signature = new(primitives.Signature)
+	err = buf.PopBinaryMarshallable(m.Signature)
+	if err != nil {
+		return nil, err
 	}
 
 	data = buf.Bytes()

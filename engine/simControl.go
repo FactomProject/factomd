@@ -130,7 +130,7 @@ func SimControl(listenTo int, listenStdin bool) {
 
 			case 'b' == b[0]:
 				if len(b) == 1 {
-					os.Stderr.WriteString("specifivy how long a block will be recorded (in nanoseconds).  1 records all blocks.\n")
+					os.Stderr.WriteString("specifically how long a block will be recorded (in nanoseconds).  1 records all blocks.\n")
 					break
 				}
 				delay, err := strconv.Atoi(string(b[1:]))
