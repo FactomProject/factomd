@@ -1,0 +1,64 @@
+---
+
+# A factomd network of 5 leaders, initially partitioned into 2 segments: 3 + 2.
+# To heal the partition after the network was started, insert an allow all rule
+# at the beginning:
+# ./nettool.py -f 3+2.yml ins \* \* allow
+
+nodes:
+    - name: node1
+      seed: true
+      role: leader
+      ui_port: 8190
+
+    - name: node2
+      seed: true
+      role: leader
+      ui_port: 8290
+
+    - name: node3
+      seed: true
+      role: leader
+      ui_port: 8390
+
+    - name: node4
+      seed: true
+      role: leader
+      ui_port: 8490
+
+    - name: node5
+      seed: true
+      role: leader
+      ui_port: 8590
+
+
+network:
+    rules:
+          # allow all nodes to connect to the seeds server
+        - action: allow
+          target: seeds_server
+
+          # disconnect groups: (node1, node2, node3) and (node4, node5)
+        - action: deny
+          source: node1
+          target: node4
+
+        - action: deny
+          source: node1
+          target: node5
+
+        - action: deny
+          source: node2
+          target: node4
+
+        - action: deny
+          source: node2
+          target: node5
+
+        - action: deny
+          source: node3
+          target: node4
+
+        - action: deny
+          source: node3
+          target: node5
