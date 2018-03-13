@@ -51,7 +51,7 @@ var (
 	BroadcastFlag                                    = "<BROADCAST>"
 	RandomPeerFlag                                   = "<RANDOMPEER>"
 	NodeID                       uint64              = 0           // Random number used for loopback protection
-	MinumumQualityScore          int32               = -200        // if a peer's score is less than this we ignore them.
+	MinimumQualityScore          int32               = -200        // if a peer's score is less than this we ignore them.
 	BannedQualityScore           int32               = -2147000000 // Used to ban a peer
 	MinimumSharingQualityScore   int32               = 20          // if a peer's score is less than this we don't share them.
 	OnlySpecialPeers                                 = false

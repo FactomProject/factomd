@@ -246,7 +246,7 @@ func (c *Connection) runLoop() {
 		switch c.state {
 		case ConnectionInitialized:
 			p2pConnectionRunLoopInitalized.Inc()
-			if MinumumQualityScore > c.peer.QualityScore && !c.isPersistent {
+			if MinimumQualityScore > c.peer.QualityScore && !c.isPersistent {
 				c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.
 				c.goShutdown()
 			} else {
@@ -259,7 +259,7 @@ func (c *Connection) runLoop() {
 				c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.
 			}
 
-			if MinumumQualityScore > c.peer.QualityScore && !c.isPersistent {
+			if MinimumQualityScore > c.peer.QualityScore && !c.isPersistent {
 				c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.
 				c.goShutdown()
 			}
@@ -429,10 +429,10 @@ func (c *Connection) handleCommand() {
 			delta := command.Delta
 			note(c.peer.PeerIdent(), "handleCommand() ConnectionAdjustPeerQuality: Current Score: %d Delta: %d", c.peer.QualityScore, delta)
 			c.peer.QualityScore = c.peer.QualityScore + delta
-			if MinumumQualityScore > c.peer.QualityScore {
+			if MinimumQualityScore > c.peer.QualityScore {
 				debug(c.peer.PeerIdent(), "handleCommand() disconnecting peer: %s for quality score: %d", c.peer.PeerIdent(), c.peer.QualityScore)
 				c.updatePeer()
-				c.setNotes(fmt.Sprintf("Connection(%s) shutting down due to QualityScore %d being below MinumumQualityScore: %d.", c.peer.AddressPort(), c.peer.QualityScore, MinumumQualityScore))
+				c.setNotes(fmt.Sprintf("Connection(%s) shutting down due to QualityScore %d being below MinimumQualityScore: %d.", c.peer.AddressPort(), c.peer.QualityScore, MinimumQualityScore))
 				c.goShutdown()
 			}
 		case ConnectionGoOffline:
@@ -591,7 +591,7 @@ func (c *Connection) parcelValidity(parcel Parcel) uint8 {
 	case parcel.Header.NodeID == NodeID: // We are talking to ourselves!
 		parcel.Trace("Connection.isValidParcel()-loopback", "H")
 		c.setNotes(fmt.Sprintf("Connection.isValidParcel(), failed due to loopback!: %+v", parcel.Header))
-		c.peer.QualityScore = MinumumQualityScore - 50 // Ban ourselves for a week
+		c.peer.QualityScore = MinimumQualityScore - 50 // Ban ourselves for a week
 		return InvalidDisconnectPeer
 	case parcel.Header.Network != CurrentNetwork:
 		parcel.Trace("Connection.isValidParcel()-network", "H")
