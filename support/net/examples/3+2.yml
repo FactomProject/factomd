@@ -5,6 +5,8 @@
 # at the beginning:
 # ./nettool.py -f 3+2.yml ins \* \* allow
 
+flags: -sim_stdin=false
+
 nodes:
     - name: node1
       seed: true

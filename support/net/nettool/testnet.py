@@ -11,7 +11,7 @@ class Testnet(object):
     Represents a factomd testnet running a set of factomd node and a seeds
     server.
     """
-    def __init__(self, docker, config, network):
+    def __init__(self, docker, config, flags, network):
         self.network = network
 
         self.base_factomd_image = Image(
@@ -25,7 +25,7 @@ class Testnet(object):
 
         for cfg in config:
             identity = self.identity_pool.assign_next(cfg.name)
-            node = services.Factomd(docker, cfg, identity)
+            node = services.Factomd(docker, cfg, identity, cfg.flags or flags)
             self.nodes.append(node)
 
         self.seeds = services.SeedServer(docker, self.nodes)

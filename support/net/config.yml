@@ -3,6 +3,10 @@
 # otherwise the tool may lose track of the containers or assign IP addresses in
 # a different order and it may interfere with tests.
 
+# command-line flags that are passed to factomd during startup, you can
+# specify a common value here and override it for particular nodes
+flags: -sim_stdin=false
+
 # List of factom nodes
 nodes:
       # the name of the node, should be unique in the environment
@@ -19,6 +23,9 @@ nodes:
       # port on the host machine where the API for this node is exposed,
       # requires rebuilding images
       api_port: 8088
+
+      # override flags specified above for this node
+      flags: -sim_stdin=false -loglvl=info
 
     - name: node2
       role: audit

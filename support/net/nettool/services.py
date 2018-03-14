@@ -166,7 +166,7 @@ class Factomd(Service):
     """
     WAIT_FOR_V2_API_TIMEOUT_SECS = 120
 
-    def __init__(self, docker, config, identity):
+    def __init__(self, docker, config, identity, flags):
         super().__init__()
 
         self.identity = identity
@@ -191,6 +191,9 @@ class Factomd(Service):
 
         if config.api_port:
             extra_args["ports"]["8088"] = config.api_port
+
+        if flags:
+            extra_args["environment"]["FLAGS"] = flags
 
         self.container = Container(
             docker,
@@ -290,4 +293,6 @@ class Factomd(Service):
             log.fatal("Failed to promote", self.instance_name, output)
 
     def _run(self, cmd):
+        if not self.container.is_running:
+            log.fatal("Container startup failed")
         return self.container.docker_container.exec_run(cmd)

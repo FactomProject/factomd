@@ -13,7 +13,8 @@ NODE = Schema({
     Optional("seed"): bool,
     Optional("role"): Or("follower", "leader", "audit"),
     Optional("ui_port"): int,
-    Optional("api_port"): int
+    Optional("api_port"): int,
+    Optional("flags"): str
 })
 
 
@@ -30,12 +31,13 @@ CONFIG = Schema({
     "network": {
         "rules": [RULE]
     },
+    Optional("flags"): str
 })
 
 
-Environment = namedtuple("Environment", "nodes, network")
+Environment = namedtuple("Environment", "flags, nodes, network")
 
-Node = namedtuple("Node", "name, seed, role, ui_port, api_port")
+Node = namedtuple("Node", "name, seed, role, ui_port, api_port, flags")
 
 Network = namedtuple("Network", "rules")
 
@@ -66,7 +68,8 @@ def _validate_schema(cfg):
 def _parse_env_config(cfg):
     return Environment(
         nodes=[_parse_node(node) for node in cfg["nodes"]],
-        network=_parse_network(cfg["network"])
+        network=_parse_network(cfg["network"]),
+        flags=cfg.get("flags", None)
     )
 
 
@@ -76,7 +79,8 @@ def _parse_node(cfg):
         seed=cfg.get("seed", False),
         role=cfg.get("role", "follower"),
         ui_port=cfg.get("ui_port", None),
-        api_port=cfg.get("api_port", None))
+        api_port=cfg.get("api_port", None),
+        flags=cfg.get("flags", None))
 
 
 def _parse_network(cfg):

@@ -15,6 +15,7 @@ class Environment(object):
         self.testnet = testnet.Testnet(
             docker,
             config.nodes,
+            config.flags,
             self.network
         )
         self.rules = rules.Rules(
