@@ -85,11 +85,16 @@ func (s *State) CopyStateToControlPanel() error {
 	}
 	s.ControlPanelDataRequest = false
 	if len(s.ControlPanelChannel) < ControlPanelAllowedSize {
-		ds, err := DeepStateDisplayCopy(s)
+		ds, err := DeepStateDisplayCopyDifference(s, s.LastDisplayState)
 		if err != nil {
 			return err
 		}
 		s.ControlPanelChannel <- *ds
+		prev := s.LastDisplayState
+		s.LastDisplayState = ds
+		if ds.LastDirectoryBlock == nil {
+			s.LastDisplayState.LastDirectoryBlock = prev.LastDirectoryBlock
+		}
 		return nil
 	} else {
 		return fmt.Errorf("DisplayState Error: Control Panel channel has been filled to maximum allowed size.")
@@ -97,7 +102,7 @@ func (s *State) CopyStateToControlPanel() error {
 	return fmt.Errorf("DisplayState Error: Reached unreachable code. Impressive")
 }
 
-func DeepStateDisplayCopy(s *State) (*DisplayState, error) {
+func DeepStateDisplayCopyDifference(s *State, prev *DisplayState) (*DisplayState, error) {
 	ds := NewDisplayState()
 
 	ds.NodeName = s.GetFactomNodeName()
@@ -109,22 +114,9 @@ func DeepStateDisplayCopy(s *State) (*DisplayState, error) {
 	ds.CurrentLeaderHeight = s.GetLeaderHeight()
 	ds.CurrentEBDBHeight = s.EntryDBHeightComplete
 	ds.LeaderHeight = s.GetTrueLeaderHeight()
-	dir := s.GetDirectoryBlockByHeight(s.GetLeaderHeight())
-	if dir == nil {
-		dir = s.GetDirectoryBlockByHeight(s.GetLeaderHeight() - 1)
-	}
-	if dir != nil {
-		data, err := dir.MarshalBinary()
-		if err != nil || dir == nil {
-		} else {
-			newDBlock, err := directoryBlock.UnmarshalDBlock(data)
-			if err != nil {
-				ds.LastDirectoryBlock = nil
-			} else {
-				ds.LastDirectoryBlock = newDBlock
-			}
-		}
-	}
+
+	// Only copies the directory block if it is new
+	ds.CopyDirectoryBlock(s, prev, s.GetLLeaderHeight())
 
 	// Identities
 	ds.IdentityChainID = s.GetIdentityChainID().Copy()
@@ -148,31 +140,14 @@ func DeepStateDisplayCopy(s *State) (*DisplayState, error) {
 			}
 			switch msg.Type() {
 			case constants.REVEAL_ENTRY_MSG:
-				data, err := msg.MarshalBinary()
-				if err != nil {
-					continue
-				}
-				rev := new(messages.RevealEntryMsg)
-				err = rev.UnmarshalBinary(data)
-				if rev.Entry == nil || err != nil {
-					continue
-				}
-
+				rev := msg.(*messages.RevealEntryMsg)
 				var entry EntryTransaction
 				entry.ChainID = "Processing..."
 				entry.EntryHash = rev.Entry.GetHash().String()
 
 				ds.PLEntry = append(ds.PLEntry, entry)
 			case constants.FACTOID_TRANSACTION_MSG:
-				data, err := msg.MarshalBinary()
-				if err != nil {
-					continue
-				}
-				transMsg := new(messages.FactoidTransaction)
-				err = transMsg.UnmarshalBinary(data)
-				if transMsg.Transaction == nil || err != nil {
-					continue
-				}
+				transMsg := msg.(*messages.FactoidTransaction)
 				trans := transMsg.Transaction
 				input, err := trans.TotalInputs()
 				if err != nil {
@@ -241,6 +216,33 @@ func DeepStateDisplayCopy(s *State) (*DisplayState, error) {
 	}
 
 	return ds, nil
+}
+
+func (ds *DisplayState) CopyDirectoryBlock(s *State, prev *DisplayState, height uint32) {
+	if prev == nil || prev.LastDirectoryBlock.GetDatabaseHeight() != height {
+		dir := s.GetDirectoryBlockByHeight(height)
+		if dir == nil {
+			dir = s.GetDirectoryBlockByHeight(height - 1)
+		}
+		if dir != nil {
+			data, err := dir.MarshalBinary()
+			if err != nil || dir == nil {
+			} else {
+				newDBlock, err := directoryBlock.UnmarshalDBlock(data)
+				if err != nil {
+					ds.LastDirectoryBlock = nil
+				} else {
+					ds.LastDirectoryBlock = newDBlock
+				}
+			}
+		}
+	} else {
+		ds.LastDirectoryBlock = nil
+	}
+}
+
+func DeepStateDisplayCopy(s *State) (*DisplayState, error) {
+	return DeepStateDisplayCopyDifference(s, nil)
 }
 
 // Used for display dump. Allows a clone of the display state to be made
