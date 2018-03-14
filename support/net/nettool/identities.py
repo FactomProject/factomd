@@ -22,7 +22,7 @@ class IdentityPool(object):
         self.identities = list(_load_identities_from_file())
         self.assigned = {}
 
-    def assign_next_identity(self, node_name):
+    def assign_next(self, node_name):
         """
         Assign an identity to a node identitified by its name.
         """

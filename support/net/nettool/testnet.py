@@ -3,6 +3,7 @@ Manages the network of factomd nodes.
 """
 from nettool import services
 from nettool.docker_client import Image
+from nettool.identities import IdentityPool
 
 
 class Testnet(object):
@@ -19,7 +20,14 @@ class Testnet(object):
             path="../../"
         )
 
-        self.nodes = [services.Factomd(docker, cfg) for cfg in config]
+        self.identity_pool = IdentityPool()
+        self.nodes = []
+
+        for cfg in config:
+            identity = self.identity_pool.assign_next(cfg.name)
+            node = services.Factomd(docker, cfg, identity)
+            self.nodes.append(node)
+
         self.seeds = services.SeedServer(docker, self.nodes)
 
         for node in self.nodes:

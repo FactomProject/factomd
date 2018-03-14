@@ -164,38 +164,36 @@ class Factomd(Service):
     """
     A factomd instance.
     """
-    WAIT_FOR_V2_TIMEOUT_SECS = 120
+    WAIT_FOR_V2_API_TIMEOUT_SECS = 120
 
-    def __init__(self, docker, config):
+    def __init__(self, docker, config, identity):
         super().__init__()
 
-        self.id_chain = "888888367795422bb2b15bae1af83396a94efa1cecab8cd171197eabd4b4bf9b"
-        self.priv_key = "5319e64e156893ed32e0a863b2622821d2d59ce7cf644fdbe93bf5a065af52fc"
-        self.pub_key = "ad6f634018389a29da51586ef69f747bb4608d29e19c40242f1b1c3bd4cede16"
+        self.identity = identity
 
         self.__class__.image = Image(
             docker,
             tag="nettool_factomd",
             path="docker/node",
-            extra_args={
-                "buildargs": {
-                    "ID_CHAIN": self.id_chain,
-                    "PRIV_KEY": self.priv_key,
-                    "PUB_KEY": self.pub_key
-                }
-            }
         )
-        args = {}
+
+        extra_args = {
+            "environment": {
+                "ID_CHAIN": self.identity.chain_id,
+                "PRIV_KEY": self.identity.priv_key,
+                "PUB_KEY": self.identity.pub_key
+            },
+            "ports": {}
+        }
 
         if config.ui_port:
-            args["ports"] = {}
-            args["ports"]["8090"] = config.ui_port
+            extra_args["ports"]["8090"] = config.ui_port
 
         self.container = Container(
             docker,
             image=self.image,
             name=config.name,
-            extra_args=args
+            extra_args=extra_args
         )
         self.config = config
 
@@ -261,7 +259,7 @@ class Factomd(Service):
         self.container.print_info()
 
     def _wait_for_api(self):
-        cmd = f"wait_for_port.sh 8088 {self.WAIT_FOR_V2_TIMEOUT_SECS}"
+        cmd = f"wait_for_port.sh 8088 {self.WAIT_FOR_V2_API_TIMEOUT_SECS}"
         with log.step(f"Waiting for {self.instance_name} API"):
             result, output = self._run(cmd)
             if result != 0:
@@ -280,8 +278,8 @@ class Factomd(Service):
             "-host=localhost:8088",
             "send",
             server_type,
-            self.id_chain,
-            self.priv_key
+            self.identity.chain_id,
+            self.identity.priv_key
         ])
 
         result, output = self._run(cmd)
