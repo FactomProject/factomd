@@ -92,7 +92,7 @@ func (s *State) CopyStateToControlPanel() error {
 		s.ControlPanelChannel <- *ds
 		prev := s.LastDisplayState
 		s.LastDisplayState = ds
-		if ds.LastDirectoryBlock == nil {
+		if ds.LastDirectoryBlock == nil && prev != nil && prev.LastDirectoryBlock != nil {
 			s.LastDisplayState.LastDirectoryBlock = prev.LastDirectoryBlock
 		}
 		return nil
