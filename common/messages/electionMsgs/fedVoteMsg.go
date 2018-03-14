@@ -121,6 +121,13 @@ func (m *FedVoteMsg) ElectionValidate(ie interfaces.IElections) int {
 	// TODO: Check all the cases
 
 	if int(m.DBHeight) == e.DBHeight && e.Minute == int(m.Minute) {
+		sm := m.Super
+		vol := sm.GetVolunteerMessage().(*FedVoteVolunteerMsg)
+		if !vol.ServerID.IsSameAs(e.Audit[vol.ServerIdx].GetChainID()) ||
+			!vol.FedID.IsSameAs(e.Federated[vol.FedIdx].GetChainID()) {
+			return -1
+		}
+
 		return 1 // This is our election!
 	}
 

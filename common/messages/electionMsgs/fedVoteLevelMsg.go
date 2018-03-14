@@ -334,6 +334,12 @@ func (m *FedVoteLevelMsg) GetVolunteerMessage() interfaces.ISignableElectionMsg 
 	return &m.Volunteer
 }
 
+func (m *FedVoteLevelMsg) ElectionValidate(ie interfaces.IElections) int {
+	// Set the super and let the base validate
+	m.FedVoteMsg.Super = m
+	return m.FedVoteMsg.ElectionValidate(ie)
+}
+
 func (m *FedVoteLevelMsg) Validate(is interfaces.IState) int {
 	// Set the super and let the base validate
 	m.FedVoteMsg.Super = m
