@@ -434,15 +434,13 @@ func (s *State) ReviewHolding() {
 			continue
 		}
 
-		_, fok := v.(*messages.FactoidTransaction)
-		if !ceok && !ccok && !fok {
-			if !s.Leader {
-				continue
-			}
+		// Don't review messages if you are not a leader or its not your message.
+		if !s.Leader {
+			continue
+		}
 
-			if v.GetVMIndex() != s.LeaderVMIndex {
-				continue
-			}
+		if v.GetVMIndex() != s.LeaderVMIndex {
+			continue
 		}
 
 		TotalXReviewQueueInputs.Inc()
@@ -479,7 +477,7 @@ func (s *State) AddDBState(isNew bool,
 
 	if ht > s.LLeaderHeight {
 		s.Syncing = false
-		//fmt.Println(fmt.Sprintf("EOM PROCESS: %10s Add DBState: s.EOM(%v)", s.FactomNodeName, s.EOM))
+		//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s Add DBState: s.SigType(%v)", s.FactomNodeName, s.SigType))
 		s.EOM = false
 		s.DBSig = false
 		s.LLeaderHeight = ht
@@ -776,7 +774,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		dbstate.Locked = false
 	}
 
-	//fmt.Println(fmt.Sprintf("EOM PROCESS: %10s Clear EOM follower execute DBState:  !s.EOM(%v)", s.FactomNodeName, s.EOM))
+	//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s Clear SigType follower execute DBState:  !s.SigType(%v)", s.FactomNodeName, s.SigType))
 	s.EOM = false
 	s.EOMDone = false
 	s.EOMSys = false
@@ -1098,7 +1096,7 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 		return
 	} else if !s.Syncing {
 		s.Syncing = true
-		//fmt.Println(fmt.Sprintf("EOM PROCESS: %10s LeaderExecuteEOM: !s.EOM(%v)", s.FactomNodeName, s.EOM))
+		//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s LeaderExecuteEOM: !s.SigType(%v)", s.FactomNodeName, s.SigType))
 		s.EOM = true
 		s.EOMsyncing = true
 		s.EOMProcessed = 0
@@ -1419,6 +1417,29 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 	return true
 }
 
+func (s *State) CreateDBSig(dbheight uint32, vmIndex int) (interfaces.IMsg, interfaces.IMsg) {
+	dbstate := s.DBStates.Get(int(dbheight - 1))
+	if dbstate == nil && dbheight > 0 {
+		return nil, nil
+	}
+	dbs := new(messages.DirectoryBlockSignature)
+	dbs.DirectoryBlockHeader = dbstate.DirectoryBlock.GetHeader()
+	//dbs.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
+	dbs.ServerIdentityChainID = s.GetIdentityChainID()
+	dbs.DBHeight = dbheight
+	dbs.Timestamp = s.GetTimestamp()
+	dbs.SetVMHash(nil)
+	dbs.SetVMIndex(vmIndex)
+	dbs.SetLocal(true)
+	dbs.Sign(s)
+	err := dbs.Sign(s)
+	if err != nil {
+		panic(err)
+	}
+	ack := s.NewAck(dbs, s.Balancehash).(*messages.Ack)
+	return dbs, ack
+}
+
 // dbheight is the height of the process list, and vmIndex is the vm
 // that is missing the DBSig.  If the DBSig isn't our responsiblity, then
 // this call will do nothing.  Assumes the state for the leader is set properly
@@ -1440,26 +1461,13 @@ func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
 	}
 
 	if !vm.Signed {
-		dbstate := s.DBStates.Get(int(dbheight - 1))
-		if dbstate == nil && dbheight > 0 {
-			s.SendDBSig(dbheight-1, vmIndex)
-			return
-		}
+
 		if lvm == vmIndex {
 			if !pl.DBSigAlreadySent {
-				dbs := new(messages.DirectoryBlockSignature)
-				dbs.DirectoryBlockHeader = dbstate.DirectoryBlock.GetHeader()
-				//dbs.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
-				dbs.ServerIdentityChainID = s.GetIdentityChainID()
-				dbs.DBHeight = dbheight
-				dbs.Timestamp = s.GetTimestamp()
-				dbs.SetVMHash(nil)
-				dbs.SetVMIndex(vmIndex)
-				dbs.SetLocal(true)
-				dbs.Sign(s)
-				err := dbs.Sign(s)
-				if err != nil {
-					panic(err)
+
+				dbs, _ := s.CreateDBSig(dbheight, vmIndex)
+				if dbs == nil {
+					return
 				}
 
 				dbslog.WithFields(dbs.LogFields()).WithFields(log.Fields{"lheight": s.GetLeaderHeight(), "node-name": s.GetFactomNodeName()}).Infof("Generate DBSig")
@@ -1480,16 +1488,16 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	// plog := consenLogger.WithFields(log.Fields{"func": "ProcessEOM", "msgheight": e.DBHeight, "lheight": s.GetLeaderHeight(), "min", e.Minute})
 
 	if s.Syncing && !s.EOM {
-		//fmt.Println(fmt.Sprintf("EOM PROCESS: %10s vm %2d Will Not Process: return on s.Syncing(%v) && !s.EOM(%v)", s.FactomNodeName, e.VMIndex, s.Syncing, s.EOM))
+		//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s vm %2d Will Not Process: return on s.Syncing(%v) && !s.SigType(%v)", s.FactomNodeName, e.VMIndex, s.Syncing, s.SigType))
 		return false
 	}
 
 	if s.EOM && e.DBHeight != dbheight {
-		//fmt.Println(fmt.Sprintf("EOM PROCESS: %10s vm %2d Invalid EOM s.EOM(%v) && e.DBHeight(%v) != dbheight(%v)", s.FactomNodeName, e.VMIndex, s.EOM, e.DBHeight, dbheight))
+		//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s vm %2d Invalid SigType s.SigType(%v) && e.DBHeight(%v) != dbheight(%v)", s.FactomNodeName, e.VMIndex, s.SigType, e.DBHeight, dbheight))
 	}
 
 	if s.EOM && int(e.Minute) > s.EOMMinute {
-		//fmt.Println(fmt.Sprintf("EOM PROCESS: %10s vm %2d Will Not Process: return on s.EOM(%v) && int(e.Minute(%v)) > s.EOMMinute(%v)", s.FactomNodeName, e.VMIndex, s.EOM, e.Minute, s.EOMMinute))
+		//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s vm %2d Will Not Process: return on s.SigType(%v) && int(e.Minute(%v)) > s.EOMMinute(%v)", s.FactomNodeName, e.VMIndex, s.SigType, e.Minute, s.EOMMinute))
 		return false
 	}
 
@@ -1505,11 +1513,11 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	if s.EOMDone && s.EOMSys {
 		dbstate := s.GetDBState(dbheight - 1)
 		if dbstate == nil {
-			//fmt.Println(fmt.Sprintf("EOM PROCESS: %10s vm %2d DBState == nil: return on s.EOM(%v) && int(e.Minute(%v)) > s.EOMMinute(%v)", s.FactomNodeName, e.VMIndex, s.EOM, e.Minute, s.EOMMinute))
+			//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s vm %2d DBState == nil: return on s.SigType(%v) && int(e.Minute(%v)) > s.EOMMinute(%v)", s.FactomNodeName, e.VMIndex, s.SigType, e.Minute, s.EOMMinute))
 			return false
 		}
 		if !dbstate.Saved {
-			//fmt.Println(fmt.Sprintf("EOM PROCESS: %10s vm %2d DBState not saved: return on s.EOM(%v) && int(e.Minute(%v)) > s.EOMMinute(%v)", s.FactomNodeName, e.VMIndex, s.EOM, e.Minute, s.EOMMinute))
+			//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s vm %2d DBState not saved: return on s.SigType(%v) && int(e.Minute(%v)) > s.EOMMinute(%v)", s.FactomNodeName, e.VMIndex, s.SigType, e.Minute, s.EOMMinute))
 			return false
 		}
 
@@ -1529,7 +1537,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// What I do once  for all VMs at the beginning of processing a particular EOM
 	if !s.EOM {
-		//fmt.Println(fmt.Sprintf("EOM PROCESS: %10s vm %2d Start EOM Processing: !s.EOM(%v) EOM: %s", s.FactomNodeName, e.VMIndex, s.EOM, e.String()))
+		//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s vm %2d Start SigType Processing: !s.SigType(%v) SigType: %s", s.FactomNodeName, e.VMIndex, s.SigType, e.String()))
 		s.EOMSys = false
 		s.Syncing = true
 		s.EOM = true
@@ -1541,7 +1549,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		for _, vm := range pl.VMs {
 			vm.Synced = false
 		}
-		//fmt.Println(fmt.Sprintf("EOM PROCESS: %10s vm  %2d First EOM processed: return on s.EOM(%v) && int(e.Minute(%v)) > s.EOMMinute(%v)", s.FactomNodeName, e.VMIndex, s.EOM, e.Minute, s.EOMMinute))
+		//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s vm  %2d First SigType processed: return on s.SigType(%v) && int(e.Minute(%v)) > s.EOMMinute(%v)", s.FactomNodeName, e.VMIndex, s.SigType, e.Minute, s.EOMMinute))
 		return false
 	}
 
@@ -1558,7 +1566,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		)
 		s.electionsQueue.Enqueue(InMsg)
 
-		//fmt.Println(fmt.Sprintf("EOM PROCESS: %10s vm %2d Process Once: !e.Processed(%v) EOM: %s", s.FactomNodeName, e.VMIndex, e.Processed, e.String()))
+		//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s vm %2d Process Once: !e.Processed(%v) SigType: %s", s.FactomNodeName, e.VMIndex, e.Processed, e.String()))
 		vm.LeaderMinute++
 		s.EOMProcessed++
 		//fmt.Println(fmt.Sprintf("EOM PROCESS: %10s vm %2d EOMProcessed++ (%2d)", s.FactomNodeName, e.VMIndex, s.EOMProcessed))
@@ -1567,7 +1575,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		if s.LeaderPL.SysHighest < int(e.SysHeight) {
 			s.LeaderPL.SysHighest = int(e.SysHeight)
 		}
-		//fmt.Println(fmt.Sprintf("EOM PROCESS: %10s vm %2d Process this EOM: return on s.EOM(%v) && int(e.Minute(%v)) > s.EOMMinute(%v)", s.FactomNodeName, e.VMIndex, s.EOM, e.Minute, s.EOMMinute))
+		//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s vm %2d Process this SigType: return on s.SigType(%v) && int(e.Minute(%v)) > s.EOMMinute(%v)", s.FactomNodeName, e.VMIndex, s.SigType, e.Minute, s.EOMMinute))
 		return false
 	}
 
@@ -1579,7 +1587,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	// After all EOM markers are processed, Claim we are done.  Now we can unwind
 	if allfaults && s.EOMProcessed == s.EOMLimit && !s.EOMDone {
 
-		//fmt.Println(fmt.Sprintf("EOM PROCESS: EOM Complete: %10s vm %2d allfaults(%v) && s.EOMProcessed(%v) == s.EOMLimit(%v) && !s.EOMDone(%v)",
+		//fmt.Println(fmt.Sprintf("SigType PROCESS: SigType Complete: %10s vm %2d allfaults(%v) && s.EOMProcessed(%v) == s.EOMLimit(%v) && !s.EOMDone(%v)",
 		//	s.FactomNodeName,
 		//	e.VMIndex, allfaults, s.EOMProcessed, s.EOMLimit, s.EOMDone))
 
@@ -1698,9 +1706,9 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 				delete(s.Acks, k)
 			}
 		}
-		//fmt.Println(fmt.Sprintf("EOM PROCESS: %10s vm %2d Saving: return on s.EOM(%v) && int(e.Minute(%v)) > s.EOMMinute(%v)", s.FactomNodeName, e.VMIndex, s.EOM, e.Minute, s.EOMMinute))
+		//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s vm %2d Saving: return on s.SigType(%v) && int(e.Minute(%v)) > s.EOMMinute(%v)", s.FactomNodeName, e.VMIndex, s.SigType, e.Minute, s.EOMMinute))
 	} else {
-		//fmt.Println(fmt.Sprintf("EOM PROCESS: %10s vm %2d Do nothing: return on s.EOM(%v) && int(e.Minute(%v)) > s.EOMMinute(%v)", s.FactomNodeName, e.VMIndex, s.EOM, e.Minute, s.EOMMinute))
+		//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s vm %2d Do nothing: return on s.SigType(%v) && int(e.Minute(%v)) > s.EOMMinute(%v)", s.FactomNodeName, e.VMIndex, s.SigType, e.Minute, s.EOMMinute))
 	}
 
 	return false

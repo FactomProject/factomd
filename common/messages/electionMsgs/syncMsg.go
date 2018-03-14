@@ -24,9 +24,9 @@ var _ = fmt.Print
 // need to replace, and 2) the audit server that we will replace it with.
 type SyncMsg struct {
 	msgbase.MessageBase
-	TS   interfaces.Timestamp // Message Timestamp
-	EOM  bool                 // True if EOM message, false if DBSig
-	Name string               // Server name
+	TS      interfaces.Timestamp // Message Timestamp
+	SigType bool                 // True if SigType message, false if DBSig
+	Name    string               // Server name
 
 	// Server that is faulting
 	FedIdx uint32           // Server faulting
@@ -60,7 +60,7 @@ func (a *SyncMsg) IsSameAs(msg interfaces.IMsg) bool {
 	if a.Name != b.Name {
 		return false
 	}
-	if a.EOM != b.EOM {
+	if a.SigType != b.SigType {
 		return false
 	}
 	if a.ServerIdx != b.ServerIdx {
@@ -147,15 +147,20 @@ func (m *SyncMsg) LeaderExecute(state interfaces.IState) {
 func (m *SyncMsg) FollowerExecute(is interfaces.IState) {
 	s := is.(*state.State)
 
-	eom := messages.General.CreateMsg(constants.EOM_MSG)
-	eom, ack := s.CreateEOM(true, eom, m.VMIndex)
-
-	if eom == nil { // TODO: What does this mean? -- clay
+	var msg interfaces.IMsg
+	var ack interfaces.IMsg
+	if m.SigType {
+		msg = messages.General.CreateMsg(constants.EOM_MSG)
+		ack, ack = s.CreateEOM(true, msg, m.VMIndex)
+	} else {
+		msg, ack = s.CreateDBSig(m.DBHeight, m.VMIndex)
+	}
+	if msg == nil { // TODO: What does this mean? -- clay
 		is.(*state.State).Holding[m.GetMsgHash().Fixed()] = m
-		return // Maybe we are not yet prepared to create an EOM...
+		return // Maybe we are not yet prepared to create an SigType...
 	}
 	va := new(FedVoteVolunteerMsg)
-	va.Missing = eom
+	va.Missing = msg
 	va.Ack = ack
 
 	va.FedIdx = m.FedIdx
@@ -172,6 +177,7 @@ func (m *SyncMsg) FollowerExecute(is interfaces.IState) {
 	va.DBHeight = m.DBHeight
 	va.Minute = m.Minute
 	va.Round = m.Round
+	va.EOM = m.SigType
 
 	va.Sign(is)
 
@@ -207,7 +213,7 @@ func (m *SyncMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	if m.TS, err = buf.PopTimestamp(); err != nil {
 		return nil, err
 	}
-	if m.EOM, err = buf.PopBool(); err != nil {
+	if m.SigType, err = buf.PopBool(); err != nil {
 		return nil, err
 	}
 	if m.Name, err = buf.PopString(); err != nil {
@@ -234,7 +240,7 @@ func (m *SyncMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	if m.Minute, err = buf.PopByte(); err != nil {
 		return nil, err
 	}
-	return buf.PopBytes()
+	return buf.Bytes(), err
 }
 
 func (m *SyncMsg) UnmarshalBinary(data []byte) error {
@@ -252,7 +258,7 @@ func (m *SyncMsg) MarshalBinary() (data []byte, err error) {
 	if e := buf.PushTimestamp(m.TS); e != nil {
 		return nil, e
 	}
-	if e := buf.PushBool(m.EOM); e != nil {
+	if e := buf.PushBool(m.SigType); e != nil {
 		return nil, e
 	}
 	if e := buf.PushString(m.Name); e != nil {
@@ -279,7 +285,7 @@ func (m *SyncMsg) MarshalBinary() (data []byte, err error) {
 	if e := buf.PushByte(m.Minute); e != nil {
 		return nil, e
 	}
-	return buf.DeepCopyBytes(), nil
+	return buf.Bytes(), nil
 }
 
 func (m *SyncMsg) String() string {
