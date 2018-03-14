@@ -189,6 +189,9 @@ class Factomd(Service):
         if config.ui_port:
             extra_args["ports"]["8090"] = config.ui_port
 
+        if config.api_port:
+            extra_args["ports"]["8088"] = config.api_port
+
         self.container = Container(
             docker,
             image=self.image,

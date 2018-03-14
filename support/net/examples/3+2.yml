@@ -10,26 +10,31 @@ nodes:
       seed: true
       role: leader
       ui_port: 8190
+      api_port: 8188
 
     - name: node2
       seed: true
       role: leader
       ui_port: 8290
+      api_port: 8288
 
     - name: node3
       seed: true
       role: leader
       ui_port: 8390
+      api_port: 8388
 
     - name: node4
       seed: true
       role: leader
       ui_port: 8490
+      api_port: 8488
 
     - name: node5
       seed: true
       role: leader
       ui_port: 8590
+      api_port: 8588
 
 
 network:

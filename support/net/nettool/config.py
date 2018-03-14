@@ -12,7 +12,8 @@ NODE = Schema({
     "name": str,
     Optional("seed"): bool,
     Optional("role"): Or("follower", "leader", "audit"),
-    Optional("ui_port"): int
+    Optional("ui_port"): int,
+    Optional("api_port"): int
 })
 
 
@@ -34,7 +35,7 @@ CONFIG = Schema({
 
 Environment = namedtuple("Environment", "nodes, network")
 
-Node = namedtuple("Node", "name, seed, role, ui_port")
+Node = namedtuple("Node", "name, seed, role, ui_port, api_port")
 
 Network = namedtuple("Network", "rules")
 
@@ -74,7 +75,8 @@ def _parse_node(cfg):
         name=cfg["name"],
         seed=cfg.get("seed", False),
         role=cfg.get("role", "follower"),
-        ui_port=cfg.get("ui_port", None))
+        ui_port=cfg.get("ui_port", None),
+        api_port=cfg.get("api_port", None))
 
 
 def _parse_network(cfg):

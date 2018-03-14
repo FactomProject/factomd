@@ -13,8 +13,12 @@ nodes:
       # set a role for the node, by default each node is a
       # follower, but can be changed to leader or audit
       role: leader
-      # port on the host machine where the UI for this node is exposed
+      # port on the host machine where the UI for this node is exposed,
+      # requires rebuilding images
       ui_port: 8090
+      # port on the host machine where the API for this node is exposed,
+      # requires rebuilding images
+      api_port: 8088
 
     - name: node2
       role: audit
