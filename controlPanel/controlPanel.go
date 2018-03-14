@@ -541,7 +541,6 @@ func getRecentTransactions(time.Time) {
 		}
 
 		last, err = directoryBlock.UnmarshalDBlock(data)
-		err = last.UnmarshalBinary(data)
 		if err != nil {
 			return
 		}
