@@ -13,11 +13,13 @@ import (
 	"time"
 
 	"flag"
+	"math/rand"
+
+	. "github.com/FactomProject/electiontesting/ET2/directedmessage"
+	. "github.com/FactomProject/electiontesting/ET2/mirrors"
 	"github.com/FactomProject/electiontesting/messages"
 	"github.com/FactomProject/electiontesting/primitives"
 	"github.com/dustin/go-humanize"
-	. "github.com/FactomProject/electiontesting/ET2/mirrors"
-	. "github.com/FactomProject/electiontesting/ET2/directedmessage"
 )
 
 var MirrorMap Mirrors
@@ -80,6 +82,9 @@ var primelist = []int{101399, 101411, 101419, 101429, 101449, 101467, 101477, 10
 	104677, 104681, 104683, 104693, 104701, 104707, 104711, 104717, 104723, 104729}
 
 var recursions, randomFactor, primeIdx, global int
+
+var didx, didi int
+
 //================ main =================
 func Main() {
 	audits := flag.Int("a", 2, "Number of audit servers")
@@ -99,6 +104,12 @@ func Main() {
 	fmt.Println("  r Recursions:   ", recursions)
 	fmt.Println("  p PrimeFactor:  ", randomFactor)
 	fmt.Println("  g Global int:   ", global)
+
+	rand.Seed(int64(primeIdx))
+	didx = primelist[rand.Int()%len(primelist)]
+	didx *= primelist[rand.Int()%len(primelist)]
+	didi = rand.Int() + didx
+
 	recurse(*audits, *feds, recursions)
 }
 
@@ -260,22 +271,14 @@ func Dive(mList []*DirectedMessage, leaders []*election.Election, depth int, lim
 		}
 	}
 
-
 	// Now start the work ....
 	leaf = true
-	shuffle := make([]*DirectedMessage, len(mList))
-	copy(shuffle, mList)
+	shuffle := mList
 
-	i := primeIdx % len(shuffle)
-	d := primelist[primeIdx%len(primelist)]
-	primeIdx += d
-	j := d % len(shuffle)
-	shuffle[i], shuffle[j] = shuffle[j], shuffle[i]
-	didx := primelist[primeIdx%len(primelist)]
-	didi := primeIdx
-	for _, v := range shuffle {
-		d := didi % len(shuffle)// D is the index of the message we are consuming in this iteration
+	for range shuffle {
+		d := didi % len(shuffle) // D is the index of the message we are consuming in this iteration
 		didi += didx
+		v := shuffle[d]
 
 		var msgs2 []*DirectedMessage // Make a new list of messages excluding shuffle [d]
 		msgs2 = append(msgs2, shuffle[0:d]...)
@@ -295,29 +298,6 @@ func Dive(mList []*DirectedMessage, leaders []*election.Election, depth int, lim
 		}
 
 		msg, changed := leaders[v.LeaderIdx].Execute(v.Msg, depth)
-
-		hprime := leaders[v.LeaderIdx].StateString()
-
-		for i := 0; i < 10; i++ { // Why 10 ? is this debug code to check cloning?
-
-			c2 := CloneElection(cl)
-			c2.Execute(v.Msg, depth)
-			hclone := c2.StateString()
-
-			if bytes.Compare(hprime, hclone) != 0 {
-				fmt.Println("\nsending: ", formatForInterpreter(v))
-				fmt.Println("-----------------------")
-				fmt.Println(cl.Display.String())
-				fmt.Println(len(hprime), string(hprime))
-				fmt.Println(c2.Display.String())
-				fmt.Println(len(hclone), string(hclone))
-				printState(depth, msgs2, leaders, msgPath)
-				time.Sleep(2 * time.Second)
-				panic("Ekk")
-			} else {
-				//fmt.Print("+")
-			}
-		}
 
 		msgPath2 := append(msgPath, v)
 
