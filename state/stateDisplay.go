@@ -219,7 +219,7 @@ func DeepStateDisplayCopyDifference(s *State, prev *DisplayState) (*DisplayState
 }
 
 func (ds *DisplayState) CopyDirectoryBlock(s *State, prev *DisplayState, height uint32) {
-	if prev == nil || prev.LastDirectoryBlock.GetDatabaseHeight() != height {
+	if prev == nil || prev.LastDirectoryBlock == nil || prev.LastDirectoryBlock.GetDatabaseHeight() != height {
 		dir := s.GetDirectoryBlockByHeight(height)
 		if dir == nil {
 			dir = s.GetDirectoryBlockByHeight(height - 1)
