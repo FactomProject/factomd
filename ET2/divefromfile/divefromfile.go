@@ -45,7 +45,7 @@ func DiveFromFile(name string, listen string, connect string, load string, recur
 
 	//	func Dive(mList []*mymsg, leaders []*election.Election, depth int, limit int, msgPath []*mymsg) (limitHit bool, leaf bool, seeSuccess bool) {
 	dive.SetGlobals(recursions, randomFactor, primeIdx, global)
-	dive.Dive(con.BufferedMessages, con.Elections, 0, 10, []*DirectedMessage{})
+	dive.Dive(con.BufferedMessages, con.Elections, 0, recursions, []*DirectedMessage{})
 }
 
 func grabInput(in *bufio.Reader) string {

@@ -13,6 +13,7 @@ import (
 
 var _ = fmt.Println
 
+
 type Election struct {
 	// Level 0 volunteer votes map[vol]map[leader]msg
 	VolunteerVotes map[Identity]map[Identity]*messages.VoteMessage
@@ -38,6 +39,8 @@ type Election struct {
 
 	// Each time I vote for the same vol in the next level
 	CommitmentTally int
+	// An observer never participates in an election, but can watch (audit or follower)
+	Observer bool
 }
 
 func NewElection(self Identity, authset AuthSet) *Election {
@@ -56,7 +59,16 @@ func NewElection(self Identity, authset AuthSet) *Election {
 	return e
 }
 
+func (e *Election) SetObserver(o bool) {
+	e.Observer = o
+	e.Display.ResetIdentifier(e)
+}
+
 func (e *Election) Execute(msg imessage.IMessage, depth int) (imessage.IMessage, bool) {
+	if e.Observer {
+		e.executeObserver(msg)
+		return nil, false
+	}
 
 	//  ** Msg In Debug **
 	if l, ok := msg.(*messages.LeaderLevelMessage); ok {
@@ -83,6 +95,18 @@ func (e *Election) Execute(msg imessage.IMessage, depth int) (imessage.IMessage,
 	}
 
 	return resp, c
+}
+
+func (e *Election) executeObserver(msg imessage.IMessage) {
+	e.TotalMessages++
+	e.executeDisplay(msg)
+	switch msg.(type) {
+	case *messages.LeaderLevelMessage:
+		e.addLeaderLevelMessage(msg.(*messages.LeaderLevelMessage))
+	case *messages.VolunteerMessage:
+	case *messages.VoteMessage:
+		e.addVote(msg.(*messages.VoteMessage))
+	}
 }
 
 func (e *Election) execute(msg imessage.IMessage) (imessage.IMessage, bool) {
@@ -123,13 +147,13 @@ func (e *Election) execute(msg imessage.IMessage) (imessage.IMessage, bool) {
 
 		return &vote, true
 	case *messages.VoteMessage:
-		// Colecting these allows us to issue out 0.#
+		// Collecting these allows us to issue out 0.#
 		vote := msg.(*messages.VoteMessage)
 
 		change := e.addVote(vote)
 		newll := e.getRank0Vote()
 		if newll != nil { // got a rank0 vote. Check if we can get anything better first
-			e.updateCurrentVote(newll)
+				e.updateCurrentVote(newll)
 			resp, _ := e.execute(newll)
 			if resp != nil {
 				return resp, true
@@ -179,7 +203,6 @@ func (e *Election) addVote(vote *messages.VoteMessage) bool {
 		// Can never be too sure
 		return false
 	}
-
 	vol := vote.Volunteer.Signer
 	if e.VolunteerVotes[vol] == nil {
 		e.VolunteerVotes[vol] = make(map[Identity]*messages.VoteMessage)
@@ -300,8 +323,8 @@ func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) (
 			e.CurrentLevel++
 		} else {
 			e.CurrentLevel = vote.Level
-			e.CurrentLevel = vote.Level + 1
-		}
+				e.CurrentLevel = vote.Level + 1
+			}
 
 		// Update our last vote
 		e.updateCurrentVote(vote)
@@ -322,6 +345,7 @@ func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) (
 	}
 
 	// No best vote? Can we do a rank 0 with the new votes?
+
 	rank0 := e.getRank0Vote()
 	if rank0 != nil {
 		e.updateCurrentVote(rank0)
@@ -356,9 +380,9 @@ func (e *Election) addLeaderLevelMessage(msg *messages.LeaderLevelMessage) bool 
 
 	voteChange := false
 	// Votes exist, so we can add these to our vote map
-	for _, v := range msg.VoteMessages {
-		// Add vote to maps and display
-		voteChange = e.addVote(v) || voteChange
+		for _, v := range msg.VoteMessages {
+			// Add vote to maps and display
+			voteChange = e.addVote(v) || voteChange
 	}
 
 	return change || voteChange
@@ -404,7 +428,14 @@ func (e *Election) PrintMessages() string {
 }
 
 func (e *Election) VolunteerControlString() string {
-	str := "VolunteerControls\n"
+	str := ""
+	str += "Leaders\n"
+	for i, l := range e.GetFeds() {
+		str += fmt.Sprintf("%d: [%x]\n", i, l[:8])
+	}
+
+	str += "\n"
+	str += "VolunteerControls\n"
 	if e.Display == nil {
 		return "No display\n"
 	}
@@ -412,13 +443,21 @@ func (e *Election) VolunteerControlString() string {
 	vcs := make([]string, 0)
 
 	for i, v := range e.VolunteerControls {
-		line := fmt.Sprintf("(%d) ", e.getVolunteerPriority(i))
+		line := fmt.Sprintf("[%x](%d) ", i[:8], e.getVolunteerPriority(i))
 		if e.VolunteerControls[i] == nil {
 			line += "nil"
 		} else {
 			votes := ""
 			sep := ""
+			arr := make([]messages.LeaderLevelMessage, len(v.Votes))
+			i := 0
 			for _, vo := range v.Votes {
+				arr[i] = vo
+				i++
+			}
+			arr = bubbleSortLeaderLevelMsgWithLevel(arr)
+
+			for _, vo := range arr {
 				votes += sep + e.Display.FormatMessage(&vo)
 				sep = ","
 			}
@@ -554,6 +593,7 @@ func (e *Election) StateVCDataset() [][]messages.LeaderLevelMessage {
 			}
 			volarray = append(volarray, vote)
 		}
+
 		vcarray[e.getVolunteerPriority(vol)] = bubbleSortLeaderLevelMsgWithLevel(volarray)
 	}
 
@@ -562,7 +602,6 @@ func (e *Election) StateVCDataset() [][]messages.LeaderLevelMessage {
 
 /****************
  ****************/
-
 func BubbleSortLeaderLevelMsg(arr []*messages.LeaderLevelMessage) {
 	for i := 1; i < len(arr); i++ {
 		for j := 0; j < len(arr)-i; j++ {

@@ -7,12 +7,12 @@ import (
 
 	"github.com/FactomProject/electiontesting/controller"
 	"github.com/FactomProject/electiontesting/election"
+
 	"crypto/sha256"
 
 	"time"
 
 	"flag"
-
 	"github.com/FactomProject/electiontesting/messages"
 	"github.com/FactomProject/electiontesting/primitives"
 	"github.com/dustin/go-humanize"
@@ -80,7 +80,6 @@ var primelist = []int{101399, 101411, 101419, 101429, 101449, 101467, 101477, 10
 	104677, 104681, 104683, 104693, 104701, 104707, 104711, 104717, 104723, 104729}
 
 var recursions, randomFactor, primeIdx, global int
-
 //================ main =================
 func Main() {
 	audits := flag.Int("a", 2, "Number of audit servers")
@@ -138,12 +137,14 @@ func newElections(feds, auds int, noDisplay bool) (*controller.Controller, []*el
 			fmt.Println(my.Msg.String(), my.LeaderIdx)
 		}
 	}
+
 	{
 		global := con.Elections[0].Display.Global
 		for i, ldr := range con.Elections {
 			con.Elections[i] = CloneElection(ldr)
 			con.Elections[i].Display.Global = global
 		}
+
 	}
 	for _, l := range con.Elections {
 		leadersMap[l.Self] = con.Elections[0].FedIDtoIndex(l.Self)
@@ -196,7 +197,7 @@ func Dive(mList []*DirectedMessage, leaders []*election.Election, depth int, lim
 	}
 
 	if depth > maxdepth {
-		maxdepth = depth
+		maxdepth = depth // keep track of the max depth we have ever seen... isn't this always eventually going to be limit?
 	}
 
 	if depth < 2 {
@@ -210,6 +211,8 @@ func Dive(mList []*DirectedMessage, leaders []*election.Election, depth int, lim
 	//		done++
 	//	}
 	//}
+
+	// Check if we are already at solution -- shouldn't you do this after to do the work so you avoid an extra recursion on every path?
 	if complete, err := nodesCompleted(leaders); complete { // done == len(leaders)/2+1 {
 		solutionsAt = incCounter(solutionsAt, depth)
 		if extraPrints {
@@ -234,7 +237,7 @@ func Dive(mList []*DirectedMessage, leaders []*election.Election, depth int, lim
 		}
 		return false, true, true
 
-	} else if err != nil {
+	} else if err != nil { //The if returns so no else needed? also if nodesCompleted returned complete you'd never check the error?
 		// Bad! This means the algorithm is broken
 		errCollision++
 		if extraPrints3 {
@@ -245,35 +248,10 @@ func Dive(mList []*DirectedMessage, leaders []*election.Election, depth int, lim
 		}
 	}
 
-	// Look for MirrorMap, but only after we have been going a bit.
-	if depth > 4 {
-		var hashes [][32]byte
-		var strings []string
-		for _, ldr := range leaders {
-			bits := ldr.NormalizedString()
-			if bits != nil {
-				strings = append(strings, string(bits))
-				h := Sha(bits)
-				hashes = append(hashes, h)
-			} else {
-				panic("shouldn't happen")
-			}
-		}
-		for i := 0; i < len(hashes)-1; i++ {
-			for j := 0; j < len(hashes)-1-i; j++ {
-				if bytes.Compare(hashes[j][:], hashes[j+1][:]) > 0 {
-					hashes[j], hashes[j+1] = hashes[j+1], hashes[j+1]
-					strings[j], strings[j+1] = strings[j+1], strings[j]
-				}
-			}
-		}
-		var all []byte
-		var alls string
-		for i, h := range hashes {
-			all = append(all, h[:]...)
-			alls += strings[i]
-		}
-		mh := Sha(all)
+	// Look for mirrorMap, but only after we have been going a bit.
+	if depth > 0 {
+		mh := computeMirrorState(leaders)
+
 		if MirrorMap.IsMirror(mh) {
 			mirrors++
 			breadth++
@@ -282,8 +260,9 @@ func Dive(mList []*DirectedMessage, leaders []*election.Election, depth int, lim
 		}
 	}
 
-	leaf = true
 
+	// Now start the work ....
+	leaf = true
 	shuffle := make([]*DirectedMessage, len(mList))
 	copy(shuffle, mList)
 
@@ -295,10 +274,10 @@ func Dive(mList []*DirectedMessage, leaders []*election.Election, depth int, lim
 	didx := primelist[primeIdx%len(primelist)]
 	didi := primeIdx
 	for _, v := range shuffle {
-		d := didi % len(shuffle)
+		d := didi % len(shuffle)// D is the index of the message we are consuming in this iteration
 		didi += didx
 
-		var msgs2 []*DirectedMessage
+		var msgs2 []*DirectedMessage // Make a new list of messages excluding shuffle [d]
 		msgs2 = append(msgs2, shuffle[0:d]...)
 		msgs2 = append(msgs2, shuffle[d+1:]...)
 		ml2 := len(msgs2)
@@ -312,12 +291,14 @@ func Dive(mList []*DirectedMessage, leaders []*election.Election, depth int, lim
 		//}
 
 		if leaders[v.LeaderIdx].Committed {
-			continue
+			continue // if the leader we are about to send a message to is already committed it's pointless
 		}
 
 		msg, changed := leaders[v.LeaderIdx].Execute(v.Msg, depth)
+
 		hprime := leaders[v.LeaderIdx].StateString()
-		for i := 0; i < 10; i++ {
+
+		for i := 0; i < 10; i++ { // Why 10 ? is this debug code to check cloning?
 
 			c2 := CloneElection(cl)
 			c2.Execute(v.Msg, depth)
@@ -407,6 +388,37 @@ func Dive(mList []*DirectedMessage, leaders []*election.Election, depth int, lim
 
 	return limitHit, leaf, seeSuccess
 }
+func computeMirrorState(leaders []*election.Election) [32]byte {
+	var hashes [][32]byte
+	var strings []string
+	for _, ldr := range leaders {
+		bits := ldr.NormalizedString()
+		if bits != nil {
+			strings = append(strings, string(bits))
+			h := Sha(bits)
+			hashes = append(hashes, h) // hash each leaders state
+		} else {
+			panic("shouldn't happen")
+		}
+	}
+	// Sort the hashed states
+	for i := 0; i < len(hashes)-1; i++ {
+		for j := 0; j < len(hashes)-1-i; j++ {
+			if bytes.Compare(hashes[j][:], hashes[j+1][:]) > 0 {
+				hashes[j], hashes[j+1] = hashes[j+1], hashes[j+1]
+				strings[j], strings[j+1] = strings[j+1], strings[j]
+			}
+		}
+	}
+	var all []byte
+	var alls string
+	for i, h := range hashes {
+		all = append(all, h[:]...)
+		alls += strings[i]
+	}
+	mh := Sha(all)
+	return mh
+}
 
 func printState(depth int, msgs []*DirectedMessage, leaders []*election.Election, msgPath []*DirectedMessage) {
 	fmt.Printf("%s%s%4d%s%4d %s %12s %s%12s %s%5d %s%12s %12s  %s %12s %s %12s %s %12s %s %12s %s %12s", "=============== ",
@@ -472,7 +484,6 @@ func printState(depth int, msgs []*DirectedMessage, leaders []*election.Election
 	}
 
 }
-
 func nodesCompleted(nodes []*election.Election) (bool, error) {
 	done := 0
 	prev := -1

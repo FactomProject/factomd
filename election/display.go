@@ -30,8 +30,18 @@ func NewDisplay(ele *Election, global *Display) *Display {
 	d.Global = global
 
 	d.Identifier = fmt.Sprintf("Leader %d, ID: %x", d.getColumn(ele.Self), ele.Self[:8])
+	if ele.Observer {
+		d.Identifier = fmt.Sprintf("Observer ID: %x", ele.Self[:8])
+	}
 
 	return d
+}
+
+func (d *Display) ResetIdentifier(ele *Election) {
+	d.Identifier = fmt.Sprintf("Leader %d, ID: %x", d.getColumn(ele.Self), ele.Self[:8])
+	if ele.Observer {
+		d.Identifier = fmt.Sprintf("Observer ID: %x", ele.Self[:8])
+	}
 }
 
 func (a *Display) Copy(be *Election) *Display {
