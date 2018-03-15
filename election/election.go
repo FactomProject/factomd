@@ -13,6 +13,7 @@ import (
 
 var _ = fmt.Println
 
+
 type Election struct {
 	// Level 0 volunteer votes map[vol]map[leader]msg
 	VolunteerVotes map[Identity]map[Identity]*messages.VoteMessage
@@ -38,7 +39,6 @@ type Election struct {
 
 	// Each time I vote for the same vol in the next level
 	CommitmentTally int
-
 	// An observer never participates in an election, but can watch (audit or follower)
 	Observer bool
 }
@@ -147,13 +147,13 @@ func (e *Election) execute(msg imessage.IMessage) (imessage.IMessage, bool) {
 
 		return &vote, true
 	case *messages.VoteMessage:
-		// Colecting these allows us to issue out 0.#
+		// Collecting these allows us to issue out 0.#
 		vote := msg.(*messages.VoteMessage)
 
 		change := e.addVote(vote)
 		newll := e.getRank0Vote()
 		if newll != nil { // got a rank0 vote. Check if we can get anything better first
-			e.updateCurrentVote(newll)
+				e.updateCurrentVote(newll)
 			resp, _ := e.execute(newll)
 			if resp != nil {
 				return resp, true
@@ -203,7 +203,6 @@ func (e *Election) addVote(vote *messages.VoteMessage) bool {
 		// Can never be too sure
 		return false
 	}
-
 	vol := vote.Volunteer.Signer
 	if e.VolunteerVotes[vol] == nil {
 		e.VolunteerVotes[vol] = make(map[Identity]*messages.VoteMessage)
@@ -324,8 +323,8 @@ func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) (
 			e.CurrentLevel++
 		} else {
 			e.CurrentLevel = vote.Level
-			e.CurrentLevel = vote.Level + 1
-		}
+				e.CurrentLevel = vote.Level + 1
+			}
 
 		// Update our last vote
 		e.updateCurrentVote(vote)
@@ -346,6 +345,7 @@ func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) (
 	}
 
 	// No best vote? Can we do a rank 0 with the new votes?
+
 	rank0 := e.getRank0Vote()
 	if rank0 != nil {
 		e.updateCurrentVote(rank0)
@@ -380,9 +380,9 @@ func (e *Election) addLeaderLevelMessage(msg *messages.LeaderLevelMessage) bool 
 
 	voteChange := false
 	// Votes exist, so we can add these to our vote map
-	for _, v := range msg.VoteMessages {
-		// Add vote to maps and display
-		voteChange = e.addVote(v) || voteChange
+		for _, v := range msg.VoteMessages {
+			// Add vote to maps and display
+			voteChange = e.addVote(v) || voteChange
 	}
 
 	return change || voteChange
@@ -593,6 +593,7 @@ func (e *Election) StateVCDataset() [][]messages.LeaderLevelMessage {
 			}
 			volarray = append(volarray, vote)
 		}
+
 		vcarray[e.getVolunteerPriority(vol)] = bubbleSortLeaderLevelMsgWithLevel(volarray)
 	}
 
@@ -601,7 +602,6 @@ func (e *Election) StateVCDataset() [][]messages.LeaderLevelMessage {
 
 /****************
  ****************/
-
 func BubbleSortLeaderLevelMsg(arr []*messages.LeaderLevelMessage) {
 	for i := 1; i < len(arr); i++ {
 		for j := 0; j < len(arr)-i; j++ {

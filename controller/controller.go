@@ -9,14 +9,12 @@ import (
 	"github.com/FactomProject/electiontesting/messages"
 	"github.com/FactomProject/electiontesting/primitives"
 	"github.com/FactomProject/electiontesting/testhelper"
+	. "github.com/FactomProject/electiontesting/ET2/directedmessage"
 )
 
 var _ = fmt.Println
 
-type DirectedMsg struct {
-	LeaderIdx int
-	Msg       imessage.IMessage
-}
+
 
 type ControllerInterpreter struct {
 	*Controller
@@ -46,7 +44,7 @@ type Controller struct {
 	OutputsToRouter bool
 
 	BufferingMessages bool
-	BufferedMessages  []*DirectedMsg
+	BufferedMessages  []*DirectedMessage
 
 	PrintingTrace bool
 
@@ -181,7 +179,7 @@ func (c *Controller) RouteMessage(msg imessage.IMessage, nodes []int) {
 
 func (c *Controller) routeSingleNode(msg imessage.IMessage, node int) {
 	if c.BufferingMessages {
-		c.BufferedMessages = append(c.BufferedMessages, &DirectedMsg{node, msg})
+		c.BufferedMessages = append(c.BufferedMessages, &DirectedMessage{node, msg})
 		if c.PrintingTrace {
 			str := fmt.Sprintf("L%d: ", node)
 			str += fmt.Sprintf(" Buffered(%s)", c.Elections[node].Display.FormatMessage(msg))

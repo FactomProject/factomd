@@ -7,20 +7,22 @@ import (
 
 	"github.com/FactomProject/electiontesting/controller"
 	"github.com/FactomProject/electiontesting/election"
-	"github.com/FactomProject/electiontesting/imessage"
 
 	"crypto/sha256"
 
 	"time"
 
 	"flag"
+	"math/rand"
 
+	. "github.com/FactomProject/electiontesting/ET2/directedmessage"
+	. "github.com/FactomProject/electiontesting/ET2/mirrors"
 	"github.com/FactomProject/electiontesting/messages"
 	"github.com/FactomProject/electiontesting/primitives"
 	"github.com/dustin/go-humanize"
 )
 
-var mirrorMap map[[32]byte][]byte
+var MirrorMap Mirrors
 
 var solutions = 0
 var breadth = 0
@@ -49,7 +51,6 @@ var extraPrints3 = true
 var insanePrints = false
 
 var last time.Time
-var global int
 var primelist = []int{101399, 101411, 101419, 101429, 101449, 101467, 101477, 101483, 101489, 101501,
 	101503, 101513, 101527, 101531, 101533, 101537, 101561, 101573, 101581, 101599,
 	101603, 101611, 101627, 101641, 101653, 101663, 101681, 101693, 101701, 101719,
@@ -80,26 +81,40 @@ var primelist = []int{101399, 101411, 101419, 101429, 101449, 101467, 101477, 10
 	104549, 104551, 104561, 104579, 104593, 104597, 104623, 104639, 104651, 104659,
 	104677, 104681, 104683, 104693, 104701, 104707, 104711, 104717, 104723, 104729}
 
-var primeIdx int
+var recursions, randomFactor, primeIdx, global int
+
+var didx, didi int
 
 //================ main =================
 func Main() {
 	audits := flag.Int("a", 2, "Number of audit servers")
 	feds := flag.Int("f", 3, "Number of federated servers")
-	recursions := flag.Int("r", 1000, "Number of recursions allowed")
-	randomFactor := flag.Int("p", 1, "Pick a starting prime")
-	globalptr := flag.Int("g", 1000, "How many global nodes between prints")
+	recursionsPtr := flag.Int("r", 1000, "Number of recursions allowed")
+	randomFactorPtr := flag.Int("p", 1, "Pick a starting prime")
+	globalPtr := flag.Int("g", 1000, "How many global nodes between prints")
 	flag.Parse()
 
-	primeIdx = *randomFactor
-	global = *globalptr
+	primeIdx = *randomFactorPtr
+	global = *globalPtr
+	recursions = *recursionsPtr
+
 	fmt.Println("Settings:")
 	fmt.Println("  a Audits:       ", audits)
 	fmt.Println("  f Feds:         ", feds)
 	fmt.Println("  r Recursions:   ", recursions)
 	fmt.Println("  p PrimeFactor:  ", randomFactor)
 	fmt.Println("  g Global int:   ", global)
-	recurse(*audits, *feds, *recursions)
+
+	rand.Seed(int64(primeIdx))
+	didx = primelist[rand.Int()%len(primelist)]
+	didx *= primelist[rand.Int()%len(primelist)]
+	didi = rand.Int() + didx
+
+	recurse(*audits, *feds, recursions)
+}
+
+func SetGlobals(r int, rf int, p int, g int) {
+	recursions, randomFactor, primeIdx, global = r, rf, p, g
 }
 
 // newElections will return an array of elections (1 per leader) and an array
@@ -113,7 +128,7 @@ func Main() {
 //			controller *Controller  This can used for debugging (Printing votes)
 //			elections []*election   Nodes you can execute on (returns msg, statchange)
 //			volmsgs   []*VoluntMsg	Volunteer msgs you can start things with
-func newElections(feds, auds int, noDisplay bool) (*controller.Controller, []*election.Election, []*mymsg) {
+func newElections(feds, auds int, noDisplay bool) (*controller.Controller, []*election.Election, []*DirectedMessage) {
 	con := controller.NewController(feds, auds)
 
 	if noDisplay {
@@ -122,23 +137,25 @@ func newElections(feds, auds int, noDisplay bool) (*controller.Controller, []*el
 		}
 		con.GlobalDisplay = nil
 	}
-	var msgs []*mymsg
+	var msgs []*DirectedMessage
 	fmt.Println("Starting")
 	for _, v := range con.Volunteers {
 		for i, _ := range con.Elections {
-			my := new(mymsg)
-			my.leaderIdx = i
-			my.msg = v
+			my := new(DirectedMessage)
+			my.LeaderIdx = i
+			my.Msg = v
 			msgs = append(msgs, my)
-			fmt.Println(my.msg.String(), my.leaderIdx)
+			fmt.Println(my.Msg.String(), my.LeaderIdx)
 		}
 	}
+
 	{
 		global := con.Elections[0].Display.Global
 		for i, ldr := range con.Elections {
 			con.Elections[i] = CloneElection(ldr)
 			con.Elections[i].Display.Global = global
 		}
+
 	}
 	for _, l := range con.Elections {
 		leadersMap[l.Self] = con.Elections[0].FedIDtoIndex(l.Self)
@@ -149,11 +166,6 @@ func newElections(feds, auds int, noDisplay bool) (*controller.Controller, []*el
 	}
 
 	return con, con.Elections, msgs
-}
-
-type mymsg struct {
-	leaderIdx int
-	msg       imessage.IMessage
 }
 
 var cnt = 0
@@ -168,7 +180,7 @@ var cnt = 0
 // Note that we actually dive 100 levels beyond our limit, and declare seeSuccess past our limit as proof we are
 // in a loop.
 // Hitting the limit and seeSuccess is proof of a loop that none the less can resolve.
-func dive(mList []*mymsg, leaders []*election.Election, depth int, limit int, msgPath []*mymsg) (limitHit bool, leaf bool, seeSuccess bool) {
+func Dive(mList []*DirectedMessage, leaders []*election.Election, depth int, limit int, msgPath []*DirectedMessage) (limitHit bool, leaf bool, seeSuccess bool) {
 	depths = incCounter(depths, depth)
 	depth++
 
@@ -196,7 +208,7 @@ func dive(mList []*mymsg, leaders []*election.Election, depth int, limit int, ms
 	}
 
 	if depth > maxdepth {
-		maxdepth = depth
+		maxdepth = depth // keep track of the max depth we have ever seen... isn't this always eventually going to be limit?
 	}
 
 	if depth < 2 {
@@ -210,6 +222,8 @@ func dive(mList []*mymsg, leaders []*election.Election, depth int, limit int, ms
 	//		done++
 	//	}
 	//}
+
+	// Check if we are already at solution -- shouldn't you do this after to do the work so you avoid an extra recursion on every path?
 	if complete, err := nodesCompleted(leaders); complete { // done == len(leaders)/2+1 {
 		solutionsAt = incCounter(solutionsAt, depth)
 		if extraPrints {
@@ -234,7 +248,7 @@ func dive(mList []*mymsg, leaders []*election.Election, depth int, limit int, ms
 		}
 		return false, true, true
 
-	} else if err != nil {
+	} else if err != nil { //The if returns so no else needed? also if nodesCompleted returned complete you'd never check the error?
 		// Bad! This means the algorithm is broken
 		errCollision++
 		if extraPrints3 {
@@ -246,98 +260,44 @@ func dive(mList []*mymsg, leaders []*election.Election, depth int, limit int, ms
 	}
 
 	// Look for mirrorMap, but only after we have been going a bit.
-	if depth > 4 {
-		var hashes [][32]byte
-		var strings []string
-		for _, ldr := range leaders {
-			bits := ldr.NormalizedString()
-			if bits != nil {
-				strings = append(strings, string(bits))
-				h := Sha(bits)
-				hashes = append(hashes, h)
-			} else {
-				panic("shouldn't happen")
-			}
-		}
-		for i := 0; i < len(hashes)-1; i++ {
-			for j := 0; j < len(hashes)-1-i; j++ {
-				if bytes.Compare(hashes[j][:], hashes[j+1][:]) > 0 {
-					hashes[j], hashes[j+1] = hashes[j+1], hashes[j+1]
-					strings[j], strings[j+1] = strings[j+1], strings[j]
-				}
-			}
-		}
-		var all []byte
-		var alls string
-		for i, h := range hashes {
-			all = append(all, h[:]...)
-			alls += strings[i]
-		}
-		mh := Sha(all)
-		if mirrorMap[mh] != nil {
+	if depth > 0 {
+		mh := computeMirrorState(leaders)
+
+		if MirrorMap.IsMirror(mh) {
 			mirrors++
 			breadth++
 			mirrorsAt = incCounter(mirrorsAt, depth)
 			return false, false, true
 		}
-		mirrorMap[mh] = mh[:]
 	}
 
+	// Now start the work ....
 	leaf = true
+	shuffle := mList
 
-	shuffle := make([]*mymsg, len(mList))
-	copy(shuffle, mList)
-
-	i := primeIdx % len(shuffle)
-	d := primelist[primeIdx%len(primelist)]
-	primeIdx += d
-	j := d % len(shuffle)
-	shuffle[i], shuffle[j] = shuffle[j], shuffle[i]
-	didx := primelist[primeIdx%len(primelist)]
-	didi := primeIdx
-	for _, v := range shuffle {
-		d := didi % len(shuffle)
+	for range shuffle {
+		d := didi % len(shuffle) // D is the index of the message we are consuming in this iteration
 		didi += didx
+		v := shuffle[d]
 
-		var msgs2 []*mymsg
+		var msgs2 []*DirectedMessage // Make a new list of messages excluding shuffle [d]
 		msgs2 = append(msgs2, shuffle[0:d]...)
 		msgs2 = append(msgs2, shuffle[d+1:]...)
 		ml2 := len(msgs2)
 
-		cl := CloneElection(leaders[v.leaderIdx])
+		cl := CloneElection(leaders[v.LeaderIdx])
 
-		//if !spewSame(cl, leaders[v.leaderIdx]) {
+		//if !spewSame(cl, leaders[v.LeaderIdx]) {
 		//	fmt.Println("Clone Failed")
-		//	debugClone(cl, leaders[v.leaderIdx])
+		//	debugClone(cl, leaders[v.LeaderIdx])
 		//	os.Exit(0)
 		//}
 
-		if leaders[v.leaderIdx].Committed {
-			continue
+		if leaders[v.LeaderIdx].Committed {
+			continue // if the leader we are about to send a message to is already committed it's pointless
 		}
 
-		msg, changed := leaders[v.leaderIdx].Execute(v.msg, depth)
-		hprime := leaders[v.leaderIdx].StateString()
-		for i := 0; i < 10; i++ {
-
-			c2 := CloneElection(cl)
-			c2.Execute(v.msg, depth)
-			hclone := c2.StateString()
-
-			if bytes.Compare(hprime, hclone) != 0 {
-				fmt.Println("\nsending: ", formatForInterpreter(v))
-				fmt.Println("-----------------------")
-				fmt.Println(cl.Display.String())
-				fmt.Println(len(hprime), string(hprime))
-				fmt.Println(c2.Display.String())
-				fmt.Println(len(hclone), string(hclone))
-				printState(depth, msgs2, leaders, msgPath)
-				time.Sleep(2 * time.Second)
-				panic("Ekk")
-			} else {
-				//fmt.Print("+")
-			}
-		}
+		msg, changed := leaders[v.LeaderIdx].Execute(v.Msg, depth)
 
 		msgPath2 := append(msgPath, v)
 
@@ -345,20 +305,20 @@ func dive(mList []*mymsg, leaders []*election.Election, depth int, limit int, ms
 			leaf = false
 			if msg != nil {
 				for i, _ := range leaders {
-					if i != v.leaderIdx {
-						my := new(mymsg)
-						my.leaderIdx = i
-						my.msg = msg
+					if i != v.LeaderIdx {
+						my := new(DirectedMessage)
+						my.LeaderIdx = i
+						my.Msg = msg
 						msgs2 = append(msgs2, my)
 					}
 				}
 			}
-			gl := leaders[v.leaderIdx].Display.Global
+			gl := leaders[v.LeaderIdx].Display.Global
 			for _, ldr := range leaders {
 				ldr.Display.Global = gl
 			}
 			// Recursive Dive
-			lim, _, ss := dive(msgs2, leaders, depth, limit, msgPath2)
+			lim, _, ss := Dive(msgs2, leaders, depth, limit, msgPath2)
 			_ = lim || ss
 			seeSuccess = seeSuccess || ss
 			limitHit = limitHit || lim
@@ -369,7 +329,7 @@ func dive(mList []*mymsg, leaders []*election.Election, depth int, limit int, ms
 		} else {
 			deadMessagesAt = incCounter(deadMessagesAt, depth)
 		}
-		leaders[v.leaderIdx] = cl
+		leaders[v.LeaderIdx] = cl
 	}
 	if limitHit {
 		leaf = false
@@ -408,14 +368,45 @@ func dive(mList []*mymsg, leaders []*election.Election, depth int, limit int, ms
 
 	return limitHit, leaf, seeSuccess
 }
+func computeMirrorState(leaders []*election.Election) [32]byte {
+	var hashes [][32]byte
+	var strings []string
+	for _, ldr := range leaders {
+		bits := ldr.NormalizedString()
+		if bits != nil {
+			strings = append(strings, string(bits))
+			h := Sha(bits)
+			hashes = append(hashes, h) // hash each leaders state
+		} else {
+			panic("shouldn't happen")
+		}
+	}
+	// Sort the hashed states
+	for i := 0; i < len(hashes)-1; i++ {
+		for j := 0; j < len(hashes)-1-i; j++ {
+			if bytes.Compare(hashes[j][:], hashes[j+1][:]) > 0 {
+				hashes[j], hashes[j+1] = hashes[j+1], hashes[j+1]
+				strings[j], strings[j+1] = strings[j+1], strings[j]
+			}
+		}
+	}
+	var all []byte
+	var alls string
+	for i, h := range hashes {
+		all = append(all, h[:]...)
+		alls += strings[i]
+	}
+	mh := Sha(all)
+	return mh
+}
 
-func printState(depth int, msgs []*mymsg, leaders []*election.Election, msgPath []*mymsg) {
+func printState(depth int, msgs []*DirectedMessage, leaders []*election.Election, msgPath []*DirectedMessage) {
 	fmt.Printf("%s%s%4d%s%4d %s %12s %s%12s %s%5d %s%12s %12s  %s %12s %s %12s %s %12s %s %12s %s %12s", "=============== ",
 		" Depth=", depth, "/", maxdepth,
 		"| Multiple Collision", humanize.Comma(int64(errCollision)),
 		"| Failures=", humanize.Comma(int64(failure)),
 		"| MsgQ=", len(msgs),
-		"| Mirrors=", humanize.Comma(int64(mirrors)), humanize.Comma(int64(len(mirrorMap))),
+		"| Mirrors=", humanize.Comma(int64(mirrors)), humanize.Comma(int64(MirrorMap.Len())),
 		"| Hit the Limits=", humanize.Comma(int64(hitlimit)),
 		"| Breadth=", humanize.Comma(int64(breadth)),
 		"| solutions so far =", humanize.Comma(int64(solutions)),
@@ -465,15 +456,14 @@ func printState(depth int, msgs []*mymsg, leaders []*election.Election, msgPath 
 	}
 	fmt.Printf("%d %d setcon\n", len(leadersMap), len(audsMap))
 	for i, v := range msgPath {
-		fmt.Println(formatForInterpreter(v), "#", i, v.leaderIdx, "<==", leaders[0].Display.FormatMessage(v.msg))
+		fmt.Println(formatForInterpreter(v), "#", i, v.LeaderIdx, "<==", leaders[0].Display.FormatMessage(v.Msg))
 	}
 	fmt.Println("<b> # Pending:")
 	for i, v := range msgs {
-		fmt.Println(formatForInterpreter(v), "#", i, v.leaderIdx, "<==", leaders[0].Display.FormatMessage(v.msg))
+		fmt.Println(formatForInterpreter(v), "#", i, v.LeaderIdx, "<==", leaders[0].Display.FormatMessage(v.Msg))
 	}
 
 }
-
 func nodesCompleted(nodes []*election.Election) (bool, error) {
 	done := 0
 	prev := -1
@@ -490,25 +480,25 @@ func nodesCompleted(nodes []*election.Election) (bool, error) {
 	return done >= len(nodes)/2+1, nil
 }
 
-func formatForInterpreter(my *mymsg) string {
-	msg := my.msg
+func formatForInterpreter(my *DirectedMessage) string {
+	msg := my.Msg
 	switch msg.(type) {
 	case *messages.LeaderLevelMessage:
 		l := msg.(*messages.LeaderLevelMessage)
 		from := leadersMap[l.Signer]
 
-		return fmt.Sprintf("{ %d } %d { %d } <-l", from, l.Level, my.leaderIdx)
+		return fmt.Sprintf("{ %d } %d { %d } <-l", from, l.Level, my.LeaderIdx)
 	case *messages.VolunteerMessage:
 		a := msg.(*messages.VolunteerMessage)
 		from := audsMap[a.Signer]
 
-		return fmt.Sprintf("%d { %d } <-v", from, my.leaderIdx)
+		return fmt.Sprintf("%d { %d } <-v", from, my.LeaderIdx)
 	case *messages.VoteMessage:
 		l := msg.(*messages.VoteMessage)
 		from := leadersMap[l.Signer]
 		vol := audsMap[l.Volunteer.Signer]
 
-		return fmt.Sprintf("{ %d } %d { %d } <-o", from, vol, my.leaderIdx)
+		return fmt.Sprintf("{ %d } %d { %d } <-o", from, vol, my.LeaderIdx)
 	}
 	return "NA"
 }
@@ -524,8 +514,8 @@ func incCounter(counter []int, depth int) []int {
 func recurse(auds int, feds int, limit int) {
 
 	_, leaders, msgs := newElections(feds, auds, false)
-	var msgpath []*mymsg
-	dive(msgs, leaders, 0, limit, msgpath)
+	var msgpath []*DirectedMessage
+	Dive(msgs, leaders, 0, limit, msgpath)
 }
 
 // reuse encoder/decoder so we don't recompile the struct definition
@@ -541,7 +531,7 @@ func init() {
 	buff := new(bytes.Buffer)
 	enc = gob.NewEncoder(buff)
 	dec = gob.NewDecoder(buff)
-	mirrorMap = make(map[[32]byte][]byte, 10000)
+	MirrorMap.Init("dive")
 }
 
 func CloneElection(src *election.Election) *election.Election {
