@@ -83,18 +83,19 @@ func (e *DBEntry) MarshalBinary() ([]byte, error) {
 
 func (e *DBEntry) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	e.Init()
-	buf := primitives.NewBuffer(data)
+	newData := data
+	var err error
 
-	err := buf.PopBinaryMarshallable(e.ChainID)
+	newData, err = e.ChainID.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
 	}
-	err = buf.PopBinaryMarshallable(e.KeyMR)
+	newData, err = e.KeyMR.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
 	}
 
-	return buf.DeepCopyBytes(), nil
+	return newData, nil
 }
 
 func (e *DBEntry) UnmarshalBinary(data []byte) (err error) {
