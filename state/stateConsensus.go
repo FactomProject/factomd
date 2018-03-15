@@ -45,38 +45,46 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 	s.SetString()
 	msg.ComputeVMIndex(s)
 
-	if s.IgnoreMissing {
+	// never ignore DBState messages
+	if s.IgnoreMissing && msg.Type() != constants.DBSTATE_MSG {
 		now := s.GetTimestamp().GetTimeSeconds()
 		if now-msg.GetTimestamp().GetTimeSeconds() > 60*15 {
 			return
 		}
 	}
 
-	switch msg.Validate(s) {
+	valid := msg.Validate(s)
+	switch valid {
 	case 1:
+		// The highest block for which we have received a message.  Sometimes the same as
+		var vml int
+		if vm == nil || vm.List == nil {
+			vml = 0
+		} else {
+			vml = len(vm.List)
+		}
+		local := msg.IsLocal()
+		vmi := msg.GetVMIndex()
+		hkb := s.GetHighestKnownBlock()
+
 		if s.RunLeader &&
 			s.Leader &&
-			vm != nil && int(vm.Height) == len(vm.List) {
-			if len(vm.List) == 0 {
+			!s.Saving &&
+			vm != nil && int(vm.Height) == vml &&
+			(!s.Syncing || !vm.Synced) &&
+			(local || vmi == s.LeaderVMIndex) &&
+			s.LeaderPL.DBHeight+1 >= hkb {
+			if vml == 0 {
 				s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex)
 				TotalXReviewQueueInputs.Inc()
 				s.XReview = append(s.XReview, msg)
-			}
-
-			if !s.Saving &&
-				(!s.Syncing || !vm.Synced) &&
-				(msg.IsLocal() || msg.GetVMIndex() == s.LeaderVMIndex) &&
-				s.LeaderPL.DBHeight+1 >= s.GetHighestKnownBlock() {
-				msg.LeaderExecute(s)
 			} else {
-				msg.FollowerExecute(s)
+				msg.LeaderExecute(s)
 			}
-
 		} else {
 			msg.FollowerExecute(s)
 		}
 		ret = true
-
 	case 0:
 		TotalHoldingQueueInputs.Inc()
 		TotalHoldingQueueRecycles.Inc()
@@ -99,6 +107,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 }
 
 func (s *State) Process() (progress bool) {
+
 	if s.ResetRequest {
 		s.ResetRequest = false
 		s.DoReset()
@@ -126,7 +135,6 @@ func (s *State) Process() (progress bool) {
 			}
 		}
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
-
 	} else if s.IgnoreMissing {
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 		now := s.GetTimestamp().GetTimeMilli() // Timestamps are in milliseconds, so wait 20
@@ -166,11 +174,11 @@ func (s *State) Process() (progress bool) {
 	preAckLoopTime := time.Now()
 	// Process acknowledgements if we have some.
 ackLoop:
-	for room() {
+	for {
 		select {
 		case ack := <-s.ackQueue:
 			a := ack.(*messages.Ack)
-			if ack.Validate(s) == 1 {
+			if ack.Validate(s) == 1 { // took out a.DBHeight >= s.LLeaderHeight &&
 				if s.IgnoreMissing {
 					now := s.GetTimestamp().GetTimeSeconds()
 					if now-a.GetTimestamp().GetTimeSeconds() < 60*15 {
@@ -193,7 +201,7 @@ ackLoop:
 
 	// Process inbound messages
 emptyLoop:
-	for room() {
+	for {
 		select {
 		case msg := <-s.msgQueue:
 
@@ -220,20 +228,25 @@ skipreview:
 				continue
 			}
 			process <- msg
-			progress = s.executeMsg(vm, msg) || progress
+
 		}
 		s.XReview = s.XReview[:0]
 		break
-	}
+	} // skip review
 	processXReviewTime := time.Since(preProcessXReviewTime)
 	TotalProcessXReviewTime.Add(float64(processXReviewTime.Nanoseconds()))
 
 	preProcessProcChanTime := time.Now()
-	for len(process) > 0 {
-		msg := <-process
-		s.executeMsg(vm, msg)
-		s.UpdateState()
-	}
+processLoop:
+	for {
+		select {
+		case msg := <-process:
+			progress = s.executeMsg(vm, msg) || progress
+			s.UpdateState()
+		default:
+			break processLoop
+		}
+	} // processLoop for{...}
 
 	processProcChanTime := time.Since(preProcessProcChanTime)
 	TotalProcessProcChanTime.Add(float64(processProcChanTime.Nanoseconds()))
@@ -350,6 +363,30 @@ func (s *State) ReviewHolding() {
 			continue
 		}
 
+		// If it is an entryCommit and it has a duplicate hash to an existing entry throw it away here
+		{
+			ce, ok := v.(*messages.CommitEntryMsg)
+			if ok {
+				x := s.NoEntryYet(ce.CommitEntry.EntryHash, ce.CommitEntry.GetTimestamp())
+				if !x {
+					TotalHoldingQueueOutputs.Inc()
+					delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
+					continue
+				}
+			}
+		}
+		// If it is an chainCommit and it has a duplicate hash to an existing entry throw it away here
+		{
+			ce, ok := v.(*messages.CommitChainMsg)
+			if ok {
+				x := s.NoEntryYet(ce.CommitChain.EntryHash, ce.CommitChain.GetTimestamp())
+				if !x {
+					TotalHoldingQueueOutputs.Inc()
+					delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
+					continue
+				}
+			}
+		}
 		if v.Expire(s) {
 			s.ExpireCnt++
 			TotalHoldingQueueOutputs.Inc()
@@ -503,13 +540,18 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 
 	pl := s.ProcessLists.Get(ack.DBHeight)
 	if pl == nil {
+		// Does this mean it's from the future?
+		// TODO: Should we put the ack back on the inMsgQueue queue here instead of dropping it? -- clay
 		return
 	}
 	list := pl.VMs[ack.VMIndex].List
 	if len(list) > int(ack.Height) && list[ack.Height] != nil {
+		// This means we haven't seen the matching message yet?
+		// TODO: Should we put the ack back on the inMsgQueue queue here instead of dropping it? -- clay
 		return
 	}
 
+	// We have an ack  and a matching message go execute the message!
 	TotalAcksInputs.Inc()
 	s.Acks[ack.GetHash().Fixed()] = ack
 	m, _ := s.Holding[ack.GetHash().Fixed()]
@@ -533,7 +575,7 @@ func (s *State) ExecuteEntriesInDBState(dbmsg *messages.DBStateMsg) {
 	dblock, err := s.DB.FetchDBlockByHeight(height)
 	if err != nil || dblock == nil {
 		consenLogger.WithFields(log.Fields{"func": "ExecuteEntriesInDBState", "height": height}).Warnf("Dblock fetched is nil")
-		return // This is a werid case
+		return // This is a weird case
 	}
 
 	if !dbmsg.DirectoryBlock.GetHash().IsSameAs(dblock.GetHash()) {
@@ -603,9 +645,15 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		//s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): DBState is invalid at ht %d", dbheight))
 		// Do nothing because this dbstate looks to be invalid
 		cntFail()
+		if dbstatemsg.IsLast { // this is the last DBState in this load
+			s.DBFinished = true // Just in case we toss the last one for some reason
+		}
 		return
 	}
 
+	if dbstatemsg.IsLast { // this is the last DBState in this load
+		s.DBFinished = true // Normal case
+	}
 	/**************************
 	for int(s.ProcessLists.DBHeightBase)+len(s.ProcessLists.Lists) > int(dbheight+1) {
 		s.ProcessLists.Lists[len(s.ProcessLists.Lists)-1].Clear()
@@ -899,9 +947,9 @@ func (s *State) FollowerExecuteCommitChain(m interfaces.IMsg) {
 }
 
 func (s *State) FollowerExecuteCommitEntry(m interfaces.IMsg) {
+	ce := m.(*messages.CommitEntryMsg)
 	FollowerExecutions.Inc()
 	s.FollowerExecuteMsg(m)
-	ce := m.(*messages.CommitEntryMsg)
 	re := s.Holding[ce.CommitEntry.EntryHash.Fixed()]
 	if re != nil {
 		re.SendOut(s, re)
@@ -938,7 +986,7 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 		// The message might not have gone in.  Make sure it did.  Get the list where it goes
 		list := s.ProcessLists.Get(ack.DBHeight).VMs[ack.VMIndex].List
 		// Check to make sure the list isn't empty.  If it is, then it didn't go in.
-		if (int(ack.Height) >= len(list)) || (list[ack.Height] == nil) {
+		if int(ack.Height) >= len(list) || list[ack.Height] == nil {
 			return
 		}
 
@@ -1358,6 +1406,7 @@ func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
 				dbs.SetVMHash(nil)
 				dbs.SetVMIndex(vmIndex)
 				dbs.SetLocal(true)
+				dbs.Sign(s)
 				err := dbs.Sign(s)
 				if err != nil {
 					panic(err)
@@ -1424,6 +1473,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			s.TempBalanceHash = s.FactoidState.GetBalanceHash(true)
 		}
 		s.SendHeartBeat()
+
 		return true
 	}
 
@@ -1539,7 +1589,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			s.DBSigProcessed = 0
 
 			// Note about dbsigs.... If we processed the previous minute, then we generate the DBSig for the next block.
-			// But if we didn't process the preivious block, like we start from scratch, or we had to reset the entire
+			// But if we didn't process the previous block, like we start from scratch, or we had to reset the entire
 			// network, then no dbsig exists.  This code doesn't execute, and so we have no dbsig.  In that case, on
 			// the next EOM, we see the block hasn't been signed, and we sign the block (Thats the call to SendDBSig()
 			// above).
@@ -1654,7 +1704,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		}
 		vm.Signed = true
 		//s.LeaderPL.AdminBlock
-
 		return true
 	}
 
