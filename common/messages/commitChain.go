@@ -135,7 +135,7 @@ func (m *CommitChainMsg) LeaderExecute(state interfaces.IState) {
 }
 
 func (m *CommitChainMsg) FollowerExecute(state interfaces.IState) {
-	state.FollowerExecuteMsg(m)
+	state.FollowerExecuteCommitChain(m)
 }
 
 func (e *CommitChainMsg) JSONByte() ([]byte, error) {
