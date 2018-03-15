@@ -57,8 +57,15 @@ class Testnet(object):
         self.seeds.generate_seeds_file()
         self.seeds.up(restart=build)
 
-        for node in self.nodes:
+        first = self.nodes[0]
+        first.up(restart=build)
+        first.load_identities(len(self.nodes))
+
+        for node in self.nodes[1:]:
             node.up(restart=build)
+
+        for node in self.nodes:
+            node.promote()
 
     def down(self, destroy=False):
         """

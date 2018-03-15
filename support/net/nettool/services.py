@@ -245,17 +245,6 @@ class Factomd(Service):
         """
         return f"{self.container.assigned_ip}:8110"
 
-    def up(self, restart=False):
-        """
-        Bring the service up, if "restart" is True, the service container is
-        restarted.
-        """
-        super().up(restart=restart)
-
-        if self.is_leader or self.is_audit:
-            self._wait_for_api()
-            self._promote()
-
     def print_info(self):
         """
         Prints the current status of the node.
@@ -264,20 +253,37 @@ class Factomd(Service):
         log.info("Role:", self.config.role)
         self.container.print_info()
 
-    def _wait_for_api(self):
-        cmd = f"wait_for_port.sh 8088 {self.WAIT_FOR_V2_API_TIMEOUT_SECS}"
-        with log.step(f"Waiting for {self.instance_name} API"):
-            result, output = self._run(cmd)
-            if result != 0:
-                log.fatal("Failed:", output)
+    def load_identities(self, no_of_identities):
+        """
+        Run addToBlockchainNetwork on this node to load identites.
+        """
+        self._wait_for_api()
 
-    def _promote(self):
+        cmd = " ".join([
+            "addToBlockchainNetwork",
+            "localhost:8088",
+            str(no_of_identities),
+            "1000",
+            "false"
+        ])
+
+        result, output = self._run(cmd)
+        if result != 0:
+            log.fatal("Failed to add identities", self.instance_name, output)
+
+    def promote(self):
+        """
+        If role of the node is federated or audit server, run addservermessage
+        to promote it.
+        """
+        self._wait_for_api()
+
         if self.is_leader:
             server_type = "f"
         elif self.is_audit:
             server_type = "a"
         else:
-            log.fatal("Unknown server role")
+            return
 
         cmd = " ".join([
             "addservermessage",
@@ -291,6 +297,13 @@ class Factomd(Service):
         result, output = self._run(cmd)
         if result != 0:
             log.fatal("Failed to promote", self.instance_name, output)
+
+    def _wait_for_api(self):
+        cmd = f"wait_for_port.sh 8088 {self.WAIT_FOR_V2_API_TIMEOUT_SECS}"
+        with log.step(f"Waiting for {self.instance_name} API"):
+            result, output = self._run(cmd)
+            if result != 0:
+                log.fatal("Failed:", output)
 
     def _run(self, cmd):
         if not self.container.is_running:

@@ -9,7 +9,6 @@ RUN glide install -v
 
 RUN go install
 
-
 # overwrite the default config
 COPY factomd.conf /root/.factom/m2/factomd.conf
 
@@ -19,6 +18,11 @@ RUN chmod a+x /usr/local/bin/wait_for_port.sh
 
 # restore factomd workdir
 WORKDIR $GOPATH/src/github.com/FactomProject/factomd
+
+
+# copy addToBlockchainNetwork
+COPY addToBlockchainNetwork /usr/local/bin/addToBlockchainNetwork
+RUN chmod a+x /usr/local/bin/addToBlockchainNetwork
 
 # prepare the startup script
 COPY startup.sh /
