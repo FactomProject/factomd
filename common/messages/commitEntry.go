@@ -148,7 +148,7 @@ func (m *CommitEntryMsg) UnmarshalBinaryData(data []byte) (newData []byte, err e
 		}
 	}
 
-	m.marshalCache = data[:len(data)-len(newData)]
+	m.marshalCache = append(m.marshalCache, data[:len(data)-len(newData)]...)
 
 	return newData, nil
 }
@@ -248,7 +248,7 @@ func (m *CommitEntryMsg) LeaderExecute(state interfaces.IState) {
 }
 
 func (m *CommitEntryMsg) FollowerExecute(state interfaces.IState) {
-	state.FollowerExecuteMsg(m)
+	state.FollowerExecuteCommitEntry(m)
 }
 
 func (e *CommitEntryMsg) JSONByte() ([]byte, error) {
