@@ -406,6 +406,17 @@ func (s *State) ReviewHolding() {
 			delete(s.Holding, k)
 			continue
 		}
+
+		// We don't reprocess if we are not a leader
+		if !s.Leader {
+			continue
+		}
+
+		// We don't reprocess messages if we are a leader, but it ain't ours!
+		if s.LeaderVMIndex != v.GetVMIndex() {
+			continue
+		}
+
 		TotalXReviewQueueInputs.Inc()
 		s.XReview = append(s.XReview, v)
 		TotalHoldingQueueOutputs.Inc()
@@ -938,6 +949,7 @@ func (s *State) FollowerExecuteCommitChain(m interfaces.IMsg) {
 	cc := m.(*messages.CommitChainMsg)
 	re := s.Holding[cc.CommitChain.EntryHash.Fixed()]
 	if re != nil {
+		re.FollowerExecute(s)
 		re.SendOut(s, re)
 	}
 }
@@ -948,6 +960,7 @@ func (s *State) FollowerExecuteCommitEntry(m interfaces.IMsg) {
 	s.FollowerExecuteMsg(m)
 	re := s.Holding[ce.CommitEntry.EntryHash.Fixed()]
 	if re != nil {
+		re.FollowerExecute(s)
 		re.SendOut(s, re)
 	}
 }
