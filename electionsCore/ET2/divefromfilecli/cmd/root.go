@@ -7,7 +7,7 @@ import (
 	"os"
 	"errors"
 	"github.com/spf13/cobra"
-	. "github.com/FactomProject/electiontesting/ET2/divefromfile"
+	. "github.com/FactomProject/factomd/electionsCore/ET2/divefromfile"
 )
 
 var listen, connect, load string

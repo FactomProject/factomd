@@ -3,8 +3,8 @@ package controller
 import (
 	"fmt"
 
-	"github.com/FactomProject/electiontesting/election"
-	"github.com/FactomProject/electiontesting/imessage"
+	"github.com/FactomProject/factomd/electionsCore/election"
+	"github.com/FactomProject/factomd/electionsCore/imessage"
 )
 
 var _ = fmt.Println

@@ -5,10 +5,10 @@ import (
 
 	"fmt"
 
-	. "github.com/FactomProject/electiontesting/election"
-	"github.com/FactomProject/electiontesting/messages"
-	"github.com/FactomProject/electiontesting/primitives"
-	"github.com/FactomProject/electiontesting/testhelper"
+	. "github.com/FactomProject/factomd/electionsCore/election"
+	"github.com/FactomProject/factomd/electionsCore/messages"
+	"github.com/FactomProject/factomd/electionsCore/primitives"
+	"github.com/FactomProject/factomd/electionsCore/testhelper"
 )
 
 // TestElectionConstructor is dumb. I just have it for imports and test copy setup

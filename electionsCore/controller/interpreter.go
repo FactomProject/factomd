@@ -5,9 +5,9 @@ import (
 
 	"strings"
 
-	. "github.com/FactomProject/electiontesting/interpreter/common"
-	. "github.com/FactomProject/electiontesting/interpreter/dictionary"
-	priminterpreter "github.com/FactomProject/electiontesting/interpreter/primitives"
+	. "github.com/FactomProject/factomd/electionsCore/interpreter/common"
+	. "github.com/FactomProject/factomd/electionsCore/interpreter/dictionary"
+	priminterpreter "github.com/FactomProject/factomd/electionsCore/interpreter/primitives"
 )
 
 var executable FlagsStruct = FlagsStruct{Traced: false, Immediate: false, Executable: true}

@@ -3,13 +3,13 @@ package controller
 import (
 	"fmt"
 
-	"github.com/FactomProject/electiontesting/election"
-	"github.com/FactomProject/electiontesting/imessage"
-	priminterpreter "github.com/FactomProject/electiontesting/interpreter/primitives"
-	"github.com/FactomProject/electiontesting/messages"
-	"github.com/FactomProject/electiontesting/primitives"
-	"github.com/FactomProject/electiontesting/testhelper"
-	. "github.com/FactomProject/electiontesting/ET2/directedmessage"
+	"github.com/FactomProject/factomd/electionsCore/election"
+	"github.com/FactomProject/factomd/electionsCore/imessage"
+	priminterpreter "github.com/FactomProject/factomd/electionsCore/interpreter/primitives"
+	"github.com/FactomProject/factomd/electionsCore/messages"
+	"github.com/FactomProject/factomd/electionsCore/primitives"
+	"github.com/FactomProject/factomd/electionsCore/testhelper"
+	. "github.com/FactomProject/factomd/electionsCore/ET2/directedmessage"
 )
 
 var _ = fmt.Println

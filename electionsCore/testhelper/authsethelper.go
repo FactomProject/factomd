@@ -1,8 +1,8 @@
 package testhelper
 
 import (
-	. "github.com/FactomProject/electiontesting/messages"
-	. "github.com/FactomProject/electiontesting/primitives"
+	. "github.com/FactomProject/factomd/electionsCore/messages"
+	. "github.com/FactomProject/factomd/electionsCore/primitives"
 )
 
 // AuthSetHelper will help testing authority sets. Add whatever functions you need to help you

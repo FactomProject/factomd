@@ -1,8 +1,8 @@
 package messages
 
 import (
-	. "github.com/FactomProject/electiontesting/errorhandling"
-	. "github.com/FactomProject/electiontesting/primitives"
+	. "github.com/FactomProject/factomd/electionsCore/errorhandling"
+	. "github.com/FactomProject/factomd/electionsCore/primitives"
 	"testing"
 )
 

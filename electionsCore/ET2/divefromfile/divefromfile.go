@@ -7,10 +7,10 @@ import (
 	"io/ioutil"
 	"strings"
 
-	//	"github.com/FactomProject/electiontesting/ET2/dive"
-	"github.com/FactomProject/electiontesting/controller"
-	"github.com/FactomProject/electiontesting/ET2/dive"
-	. "github.com/FactomProject/electiontesting/ET2/directedmessage"
+	//	"github.com/FactomProject/factomd/electionsCore/ET2/dive"
+	"github.com/FactomProject/factomd/electionsCore/controller"
+	"github.com/FactomProject/factomd/electionsCore/ET2/dive"
+	. "github.com/FactomProject/factomd/electionsCore/ET2/directedmessage"
 )
 
 func DiveFromFile(name string, listen string, connect string, load string, recursions int, randomFactor int, primeIdx int, global int) {

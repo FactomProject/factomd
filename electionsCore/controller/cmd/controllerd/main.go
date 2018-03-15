@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	. "github.com/FactomProject/electiontesting/controller"
+	. "github.com/FactomProject/factomd/electionsCore/controller"
 )
 
 func main() {

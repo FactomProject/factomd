@@ -1,8 +1,8 @@
 package election
 
 import (
-	"github.com/FactomProject/electiontesting/imessage"
-	"github.com/FactomProject/electiontesting/messages"
+	"github.com/FactomProject/factomd/electionsCore/imessage"
+	"github.com/FactomProject/factomd/electionsCore/messages"
 )
 
 // RoutingElection is just an election that returns msgs for broadcasting

@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/FactomProject/electiontesting/messages"
-	"github.com/FactomProject/electiontesting/primitives"
-	. "github.com/FactomProject/electiontesting/testhelper"
+	"github.com/FactomProject/factomd/electionsCore/messages"
+	"github.com/FactomProject/factomd/electionsCore/primitives"
+	. "github.com/FactomProject/factomd/electionsCore/testhelper"
 )
 
 var _ = fmt.Println

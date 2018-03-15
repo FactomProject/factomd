@@ -2,7 +2,7 @@ package primitives_test
 
 import (
 	"fmt"
-	. "github.com/FactomProject/electiontesting/primitives"
+	. "github.com/FactomProject/factomd/electionsCore/primitives"
 	"testing"
 )
 

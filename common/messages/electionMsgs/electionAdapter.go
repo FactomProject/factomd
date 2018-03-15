@@ -1,10 +1,10 @@
 package electionMsgs
 
 import (
-	"github.com/FactomProject/electiontesting/election"
-	"github.com/FactomProject/electiontesting/imessage"
-	"github.com/FactomProject/electiontesting/primitives"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/electionsCore/election"
+	"github.com/FactomProject/factomd/electionsCore/imessage"
+	"github.com/FactomProject/factomd/electionsCore/primitives"
 	"github.com/FactomProject/factomd/state"
 
 	// "github.com/FactomProject/factomd/common/messages/electionMsgs"
@@ -13,7 +13,7 @@ import (
 
 	"fmt"
 
-	"github.com/FactomProject/electiontesting/messages"
+	"github.com/FactomProject/factomd/electionsCore/messages"
 )
 
 // ElectionAdapter is used to drive the election package, abstracting away factomd

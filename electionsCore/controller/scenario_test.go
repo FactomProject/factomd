@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	. "github.com/FactomProject/electiontesting/controller"
-	. "github.com/FactomProject/electiontesting/errorhandling"
+	. "github.com/FactomProject/factomd/electionsCore/controller"
+	. "github.com/FactomProject/factomd/electionsCore/errorhandling"
 )
 
 var _ = fmt.Println

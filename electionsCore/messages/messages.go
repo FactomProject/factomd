@@ -6,9 +6,9 @@ import (
 	"regexp"
 	"strings"
 
-	. "github.com/FactomProject/electiontesting/errorhandling"
-	"github.com/FactomProject/electiontesting/imessage"
-	. "github.com/FactomProject/electiontesting/primitives"
+	. "github.com/FactomProject/factomd/electionsCore/errorhandling"
+	"github.com/FactomProject/factomd/electionsCore/imessage"
+	. "github.com/FactomProject/factomd/electionsCore/primitives"
 )
 
 var Nothing NoMessage

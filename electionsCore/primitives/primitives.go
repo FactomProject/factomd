@@ -9,7 +9,7 @@ import (
 
 	"bytes"
 
-	. "github.com/FactomProject/electiontesting/errorhandling"
+	. "github.com/FactomProject/factomd/electionsCore/errorhandling"
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 

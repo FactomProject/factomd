@@ -2,7 +2,7 @@ package mirrors_test
 
 import (
 	"testing"
-	. "github.com/FactomProject/electiontesting/ET2/mirrors"
+	. "github.com/FactomProject/factomd/electionsCore/ET2/mirrors"
 	"time"
 	"io/ioutil"
 	"os"

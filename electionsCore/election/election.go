@@ -5,10 +5,10 @@ import (
 
 	"math"
 
-	"github.com/FactomProject/electiontesting/election/volunteercontrol"
-	"github.com/FactomProject/electiontesting/imessage"
-	"github.com/FactomProject/electiontesting/messages"
-	. "github.com/FactomProject/electiontesting/primitives"
+	"github.com/FactomProject/factomd/electionsCore/election/volunteercontrol"
+	"github.com/FactomProject/factomd/electionsCore/imessage"
+	"github.com/FactomProject/factomd/electionsCore/messages"
+	. "github.com/FactomProject/factomd/electionsCore/primitives"
 )
 
 var _ = fmt.Println
