@@ -115,6 +115,7 @@ type IState interface {
 	InMsgQueue() IQueue  // Read by Validate
 	AckQueue() chan IMsg // Leader Queue
 	MsgQueue() chan IMsg // Follower Queue
+	ElectionsQueue() IQueue
 
 	// Lists and Maps
 	// =====
@@ -173,8 +174,7 @@ type IState interface {
 	GetAnchor() IAnchor
 
 	// Database
-	GetAndLockDB() DBOverlaySimple
-	UnlockDB()
+	GetDB() DBOverlaySimple
 
 	// Web Services
 	// ============
@@ -318,4 +318,6 @@ type IState interface {
 	// Plugins
 	UsingTorrent() bool
 	GetMissingDBState(height uint32) error
+
+	LogMessage(logName string, comment string, msg IMsg)
 }

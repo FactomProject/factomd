@@ -1,13 +1,11 @@
-// Copyright 2017 Factom Foundation
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package messages_test
+package msgbase
 
 import (
 	"testing"
 
-	. "github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/primitives/random"
 )
@@ -56,7 +54,7 @@ func TestMessageBase(t *testing.T) {
 
 func TestPutAndGetAck(t *testing.T) {
 	eom := newEOM()
-	ack := newAck()
+	ack := NewAck()
 	eom.PutAck(ack)
 	if eom.Ack == nil {
 		t.Error("Ack is nil after PutAck called")

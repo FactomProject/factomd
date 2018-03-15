@@ -16,13 +16,15 @@ import (
 	"time"
 	"unicode"
 
+	"runtime"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/controlPanel"
+	elections2 "github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/wsapi"
-	"runtime"
 )
 
 var _ = fmt.Print
@@ -45,7 +47,7 @@ func GetLine(listenToStdin bool) string {
 	if listenToStdin {
 		line := make([]byte, 100)
 		var err error
-		// When running as a detatched process, this routine becomes a very tight loop and starves other goroutines.
+		// When running as a detached process, this routine becomes a very tight loop and starves other goroutines.
 		// So, we will sleep before letting it check to see if Stdin has been reconnected
 		for {
 			if _, err = os.Stdin.Read(line); err == nil {
@@ -78,6 +80,8 @@ func GetFocus() *FactomNode {
 func SimControl(listenTo int, listenStdin bool) {
 	var _ = time.Sleep
 	var summary int
+	var elections int
+	var simelections int
 	var watchPL int
 	var watchMessages int
 	var rotate int
@@ -127,7 +131,7 @@ func SimControl(listenTo int, listenStdin bool) {
 
 			case 'b' == b[0]:
 				if len(b) == 1 {
-					os.Stderr.WriteString("specifivy how long a block will be recorded (in nanoseconds).  1 records all blocks.\n")
+					os.Stderr.WriteString("specifically how long a block will be recorded (in nanoseconds).  1 records all blocks.\n")
 					break
 				}
 				delay, err := strconv.Atoi(string(b[1:]))
@@ -250,6 +254,23 @@ func SimControl(listenTo int, listenStdin bool) {
 				} else {
 					os.Stderr.WriteString("--Print Summary Off--\n")
 				}
+			case 'E' == b[0]:
+				elections++
+				if elections%2 == 1 {
+					os.Stderr.WriteString("--Print Elections On--\n")
+					go printElections(&elections, elections, &ListenTo, &wsapiNode)
+				} else {
+					os.Stderr.WriteString("--Print Elections Off--\n")
+				}
+			case 'F' == b[0] && len(b) == 1:
+				simelections++
+				if simelections%2 == 1 {
+					os.Stderr.WriteString("--Print SimElections On--\n")
+					go printSimElections(&simelections, simelections, &ListenTo, &wsapiNode)
+				} else {
+					os.Stderr.WriteString("--Print SimElections Off--\n")
+				}
+
 			case 'p' == b[0]:
 				if len(b) > 1 {
 					ht, err := strconv.Atoi(string(b[1:]))
@@ -587,7 +608,7 @@ func SimControl(listenTo int, listenStdin bool) {
 
 				if ListenTo >= 0 && ListenTo < len(fnodes) {
 					f := fnodes[ListenTo]
-					v := f.State.GetNetStateOff()
+					v := f.State.GetNetStateOff() // Toggle his network on/off state
 					if v {
 						os.Stderr.WriteString("Bring " + f.State.FactomNodeName + " Back onto the network\n")
 					} else {
@@ -707,7 +728,7 @@ func SimControl(listenTo int, listenStdin bool) {
 					}
 					err = msg.(*messages.AddServerMsg).Sign(priv)
 					if err != nil {
-						os.Stderr.WriteString(fmt.Sprintln("Could not make a audit server,", err.Error()))
+						os.Stderr.WriteString(fmt.Sprintln("Could not make an audit server,", err.Error()))
 						break
 					}
 					fnodes[ListenTo].State.InMsgQueue().Enqueue(msg)
@@ -1009,7 +1030,7 @@ func SimControl(listenTo int, listenStdin bool) {
 			case 'S' == b[0]:
 				nnn, err := strconv.Atoi(string(b[1:]))
 				if err != nil || nnn < 0 || nnn > 999 {
-					os.Stderr.WriteString("Specifiy a drop amount between 0 and 1000\n")
+					os.Stderr.WriteString("Specify a drop amount between 0 and 1000\n")
 					break
 				}
 				for _, fn := range fnodes {
@@ -1062,7 +1083,45 @@ func SimControl(listenTo int, listenStdin bool) {
 						}
 					}
 				}
-
+			case 'J' == b[0]:
+				elect := fnodes[listenTo].State.Elections.(*elections2.Elections)
+				flist := elect.Federated
+				alist := elect.Audit
+				os.Stderr.WriteString(fmt.Sprintf(fnodes[listenTo].State.Elections.String()))
+				for _, n := range fnodes {
+					founddif := false
+					str := "\n - " + n.State.GetFactomNodeName()
+					ele2 := n.State.Elections.(*elections2.Elections)
+					flist2 := ele2.Federated
+					alist2 := ele2.Audit
+					if len(flist2) != len(flist) {
+						str += fmt.Sprintf("\n   /FedList different length: Exp %d vs %d", len(flist), len(flist2))
+						founddif = true
+					} else {
+						for i := range flist {
+							if !flist[i].GetChainID().IsSameAs(flist2[i].GetChainID()) {
+								str += fmt.Sprintf("\n   /FedList[%d] different. Exp %x vs %x",
+									i, flist[i].GetChainID().Bytes()[:8], flist2[i].GetChainID().Bytes()[:8])
+								founddif = true
+							}
+						}
+					}
+					if len(alist2) != len(alist) {
+						str += fmt.Sprintf("\n   /AudList different length: Exp %d vs %d", len(alist), len(alist2))
+						founddif = true
+					} else {
+						for i := range alist {
+							if !alist[i].GetChainID().IsSameAs(alist2[i].GetChainID()) {
+								str += fmt.Sprintf("\n   /AudList[%d] different. Exp %x vs %x",
+									i, alist[i].GetChainID().Bytes()[:8], alist2[i].GetChainID().Bytes()[:8])
+								founddif = true
+							}
+						}
+					}
+					if founddif {
+						os.Stderr.WriteString(str)
+					}
+				}
 			case 'D' == b[0]:
 				if ListenTo < 0 || ListenTo > len(fnodes) {
 					os.Stderr.WriteString("No Factom Node selected\n")

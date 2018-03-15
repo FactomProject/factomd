@@ -47,3 +47,47 @@ func (q InMsgMSGQueue) BlockingDequeue() interfaces.IMsg {
 	measureMessage(CurrentMessageQueueInMsgGeneralVec, v, false)
 	return v
 }
+
+// ElectionQueue counts incoming and outgoing messages for inmsg queue
+type ElectionQueue chan interfaces.IMsg
+
+func NewElectionQueue(capacity int) ElectionQueue {
+	channel := make(chan interfaces.IMsg, capacity)
+	return channel
+}
+
+// Length of underlying channel
+func (q ElectionQueue) Length() int {
+	return len(chan interfaces.IMsg(q))
+}
+
+// Cap of underlying channel
+func (q ElectionQueue) Cap() int {
+	return cap(chan interfaces.IMsg(q))
+}
+
+// Enqueue adds item to channel and instruments based on type
+func (q ElectionQueue) Enqueue(m interfaces.IMsg) {
+	//measureMessage(TotalMessageQueueInMsgGeneralVec, m, true)
+	//measureMessage(CurrentMessageQueueInMsgGeneralVec, m, true)
+	q <- m
+}
+
+// Dequeue removes an item from channel and instruments based on type. Returns nil if nothing in
+// queue
+func (q ElectionQueue) Dequeue() interfaces.IMsg {
+	select {
+	case v := <-q:
+		// measureMessage(CurrentMessageQueueInMsgGeneralVec, v, false)
+		return v
+	default:
+		return nil
+	}
+}
+
+// BlockingDequeue will block until it retrieves from queue
+func (q ElectionQueue) BlockingDequeue() interfaces.IMsg {
+	v := <-q
+	//measureMessage(CurrentMessageQueueInMsgGeneralVec, v, false)
+	return v
+}

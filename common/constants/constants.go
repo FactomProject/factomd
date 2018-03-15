@@ -5,111 +5,143 @@
 package constants
 
 import (
+	"fmt"
 	"time"
 )
 
 // Messages
 const (
-	EOM_MSG                       byte = iota // 0
-	ACK_MSG                                   // 1
-	FED_SERVER_FAULT_MSG                      // 2
-	AUDIT_SERVER_FAULT_MSG                    // 3
-	FULL_SERVER_FAULT_MSG                     // 4
-	COMMIT_CHAIN_MSG                          // 5
-	COMMIT_ENTRY_MSG                          // 6
-	DIRECTORY_BLOCK_SIGNATURE_MSG             // 7
-	EOM_TIMEOUT_MSG                           // 8
-	FACTOID_TRANSACTION_MSG                   // 9
-	HEARTBEAT_MSG                             // 10
-	INVALID_ACK_MSG                           // 11
-	INVALID_DIRECTORY_BLOCK_MSG               // 12
+	INVALID_MSG byte = iota
+	EOM_MSG
+	ACK_MSG
+	FED_SERVER_FAULT_MSG
+	AUDIT_SERVER_FAULT_MSG
+	FULL_SERVER_FAULT_MSG
+	COMMIT_CHAIN_MSG
+	COMMIT_ENTRY_MSG
+	DIRECTORY_BLOCK_SIGNATURE_MSG
+	EOM_TIMEOUT_MSG
+	FACTOID_TRANSACTION_MSG
+	HEARTBEAT_MSG
+	INVALID_ACK_MSG
+	INVALID_DIRECTORY_BLOCK_MSG
 
-	REVEAL_ENTRY_MSG      // 13
-	REQUEST_BLOCK_MSG     // 14
-	SIGNATURE_TIMEOUT_MSG // 15
-	MISSING_MSG           // 16
-	MISSING_DATA          // 17
-	DATA_RESPONSE         // 18
-	MISSING_MSG_RESPONSE  //19
+	REVEAL_ENTRY_MSG
+	REQUEST_BLOCK_MSG
+	SIGNATURE_TIMEOUT_MSG
+	MISSING_MSG
+	MISSING_DATA
+	DATA_RESPONSE
+	MISSING_MSG_RESPONSE
 
-	DBSTATE_MSG          // 20
-	DBSTATE_MISSING_MSG  // 21
-	ADDSERVER_MSG        // 22
-	CHANGESERVER_KEY_MSG // 23
-	REMOVESERVER_MSG     // 24
+	DBSTATE_MSG
+	DBSTATE_MISSING_MSG
+	ADDSERVER_MSG
+	CHANGESERVER_KEY_MSG
+	REMOVESERVER_MSG
 
-	BOUNCE_MSG      // 25	test message
-	BOUNCEREPLY_MSG // 26	test message
+	BOUNCE_MSG      //	test message
+	BOUNCEREPLY_MSG // 	test message
 
-	MISSING_ENTRY_BLOCKS //27
-	ENTRY_BLOCK_RESPONSE //28
+	MISSING_ENTRY_BLOCKS
+	ENTRY_BLOCK_RESPONSE
+
+	INTERNALADDLEADER
+	INTERNALREMOVELEADER
+	INTERNALADDAUDIT
+	INTERNALREMOVEAUDIT
+	INTERNALTIMEOUT
+	INTERNALEOMSIG
+
+	VOLUNTEERAUDIT
+	VOLUNTEERPROPOSAL
+	VOLUNTEERLEVELVOTE
+	SYNC_MSG
+
+	NUM_MESSAGES // Not used, just a counter for the number of messages.
 )
 
-func MsgTypeToString(t byte) string {
-	switch t {
+func MessageName(Type byte) string {
+	switch Type {
 	case EOM_MSG:
-		return "EOM_MSG"
+		return "EOM"
 	case ACK_MSG:
-		return "ACK_MSG"
-	case FED_SERVER_FAULT_MSG:
-		return "FED_SERVER_FAULT_MSG"
+		return "Ack"
 	case AUDIT_SERVER_FAULT_MSG:
-		return "AUDIT_SERVER_FAULT_MSG"
+		return "Audit Server Fault"
+	case FED_SERVER_FAULT_MSG:
+		return "Fed Server Fault"
 	case FULL_SERVER_FAULT_MSG:
-		return "FULL_SERVER_FAULT_MSG"
+		return "Full Server Fault"
 	case COMMIT_CHAIN_MSG:
-		return "COMMIT_CHAIN_MSG"
+		return "Commit Chain"
 	case COMMIT_ENTRY_MSG:
-		return "COMMIT_ENTRY_MSG"
+		return "Commit Entry"
 	case DIRECTORY_BLOCK_SIGNATURE_MSG:
-		return "DIRECTORY_BLOCK_SIGNATURE_MSG"
+		return "Directory Block Signature"
 	case EOM_TIMEOUT_MSG:
-		return "EOM_TIMEOUT_MSG"
+		return "EOM Timeout"
 	case FACTOID_TRANSACTION_MSG:
-		return "FACTOID_TRANSACTION_MSG"
+		return "Factoid Transaction"
 	case HEARTBEAT_MSG:
-		return "HEARTBEAT_MSG"
+		return "HeartBeat"
 	case INVALID_ACK_MSG:
-		return "INVALID_ACK_MSG"
+		return "Invalid Ack"
 	case INVALID_DIRECTORY_BLOCK_MSG:
-		return "INVALID_DIRECTORY_BLOCK_MSG"
-	case REVEAL_ENTRY_MSG:
-		return "REVEAL_ENTRY_MSG"
-	case REQUEST_BLOCK_MSG:
-		return "REQUEST_BLOCK_MSG"
-	case SIGNATURE_TIMEOUT_MSG:
-		return "SIGNATURE_TIMEOUT_MSG"
+		return "Invalid Directory Block"
 	case MISSING_MSG:
-		return "MISSING_MSG"
-	case MISSING_DATA:
-		return "MISSING_DATA"
-	case DATA_RESPONSE:
-		return "DATA_RESPONSE"
+		return "Missing Msg"
 	case MISSING_MSG_RESPONSE:
-		return "MISSING_MSG_RESPONSE"
-	case DBSTATE_MSG:
-		return "DBSTATE_MSG"
+		return "Missing Msg Response"
+	case MISSING_DATA:
+		return "Missing Data"
+	case DATA_RESPONSE:
+		return "Data Response"
+	case REVEAL_ENTRY_MSG:
+		return "Reveal Entry"
+	case REQUEST_BLOCK_MSG:
+		return "Request Block"
+	case SIGNATURE_TIMEOUT_MSG:
+		return "Signature Timeout"
 	case DBSTATE_MISSING_MSG:
-		return "DBSTATE_MISSING_MSG"
+		return "DBState Missing"
 	case ADDSERVER_MSG:
-		return "ADDSERVER_MSG"
+		return "ADDSERVER"
 	case CHANGESERVER_KEY_MSG:
-		return "CHANGESERVER_KEY_MSG"
+		return "CHANGESERVER_KEY"
 	case REMOVESERVER_MSG:
-		return "REMOVESERVER_MSG"
+		return "REMOVESERVER"
+	case DBSTATE_MSG:
+		return "DBState"
 	case BOUNCE_MSG:
-		return "BOUNCE_MSG"
+		return "Bounce Message"
 	case BOUNCEREPLY_MSG:
-		return "BOUNCEREPLY_MSG"
-	case MISSING_ENTRY_BLOCKS:
-		return "MISSING_ENTRY_BLOCKS"
-	case ENTRY_BLOCK_RESPONSE:
-		return "ENTRY_BLOCK_RESPONSE"
-	}
-	return "Message type not found"
-}
+		return "Bounce Reply Message"
+	case SYNC_MSG:
+		return "Sync Msg"
+	case VOLUNTEERAUDIT:
+		return "Volunteer Audit"
+	case VOLUNTEERPROPOSAL:
+		return "Volunteer Proposal"
+	case VOLUNTEERLEVELVOTE:
+		return "Volunteer Level Vote"
+	case INTERNALADDLEADER:
+		return "INTERNALADDLEADER"
+	case INTERNALREMOVELEADER:
+		return "INTERNALREMOVELEADER"
+	case INTERNALADDAUDIT:
+		return "INTERNALADDAUDIT"
+	case INTERNALREMOVEAUDIT:
+		return "INTERNALREMOVEAUDIT"
+	case INTERNALTIMEOUT:
+		return "INTERNALTIMEOUT"
+	case INTERNALEOMSIG:
+		return "INTERNALEOMSIG"
 
-const NUM_MESSAGES = 29
+	default:
+		return "Unknown:" + fmt.Sprintf(" %d", Type)
+	}
+}
 
 const (
 	// Limits for keeping inputs from flooding our execution
@@ -126,9 +158,10 @@ const (
 	TIME_TEST       = 4 // Checks the time_stamp;  Don't put actual hashes into the map with this.
 	REVEAL_REPLAY   = 8 // Checks for Reveal Entry Replays ... No duplicate Entries within our 4 hours!
 
-	// FReplay -- Block based Replay filter consttructed by processing the blocks, from the database
+	// FReplay -- Block based Replay filter constructed by processing the blocks, from the database
 	//            then from blocks either passed to a node, or constructed by messages.
-	BLOCK_REPLAY = 1 // Ensures we don't add the same transaction to multiple blocks.
+	BLOCK_REPLAY = 16 // Ensures we don't add the same transaction to multiple blocks.
+	//todo: Clay -- I changed this to not match in an experiment
 
 	ADDRESS_LENGTH = 32 // Length of an Address or a Hash or Public Key
 	// length of a Private Key
@@ -152,7 +185,7 @@ const (
 
 	// Block
 	//==================
-	MARKER                  = 0x00                       // Byte used to mark minute boundries in Factoid blocks
+	MARKER                  = 0x00                       // Byte used to mark minute boundaries in Factoid blocks
 	TRANSACTION_PRIOR_LIMIT = int64(12 * 60 * 60 * 1000) // Transactions prior to 12hrs before a block are invalid
 	TRANSACTION_POST_LIMIT  = int64(12 * 60 * 60 * 1000) // Transactions after 12hrs following a block are invalid
 

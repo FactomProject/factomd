@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"hash"
+	"runtime"
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -35,11 +36,32 @@ var _ = (*hash.Hash32)(nil)
 // Returns true if some message was processed.
 //***************************************************************
 
+func (s *State) debugExec() (ret bool) {
+	ret = s.FactomNodeName == "FNode0"
+	return true || ret
+}
+
+func (s *State) LogMessage(logName string, comment string, msg interfaces.IMsg) {
+	if s.debugExec() {
+		logFileName := s.FactomNodeName + "_" + logName + ".txt"
+		messages.LogMessage(logFileName, comment, msg)
+	}
+}
+
+func (s *State) LogPrintf(logName string, format string, more ...interface{}) {
+	if s.debugExec() {
+		logFileName := s.FactomNodeName + "_" + logName + ".txt"
+		messages.LogPrintf(logFileName, format, more...)
+	}
+}
 func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
+	runtime.Gosched() // Make sure all the simulation progress...
+
 	preExecuteMsgTime := time.Now()
 	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
 	if !ok {
 		consenLogger.WithFields(msg.LogFields()).Debug("ExecuteMsg (Replay Invalid)")
+		s.LogMessage("executeMsg", "replayInvalid", msg)
 		return
 	}
 	s.SetString()
@@ -49,6 +71,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 	if s.IgnoreMissing && msg.Type() != constants.DBSTATE_MSG {
 		now := s.GetTimestamp().GetTimeSeconds()
 		if now-msg.GetTimestamp().GetTimeSeconds() > 60*15 {
+			s.LogMessage("executeMsg", "ignoreMissing", msg)
 			return
 		}
 	}
@@ -56,45 +79,40 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 	valid := msg.Validate(s)
 	switch valid {
 	case 1:
-		// The highest block for which we have received a message.  Sometimes the same as
-		var vml int
-		if vm == nil || vm.List == nil {
-			vml = 0
-		} else {
-			vml = len(vm.List)
-		}
-		local := msg.IsLocal()
-		vmi := msg.GetVMIndex()
-		hkb := s.GetHighestKnownBlock()
-
 		if s.RunLeader &&
 			s.Leader &&
-			!s.Saving &&
-			vm != nil && int(vm.Height) == vml &&
-			(!s.Syncing || !vm.Synced) &&
-			(local || vmi == s.LeaderVMIndex) &&
-			s.LeaderPL.DBHeight+1 >= hkb {
-			if vml == 0 {
+			vm != nil && int(vm.Height) == len(vm.List) {
+			if len(vm.List) == 0 {
 				s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex)
 				TotalXReviewQueueInputs.Inc()
+				s.LogMessage("executeMsg", "XReview", msg)
 				s.XReview = append(s.XReview, msg)
-			} else {
+			} else if !s.Saving &&
+				(!s.Syncing || !vm.Synced) &&
+				(msg.IsLocal() || msg.GetVMIndex() == s.LeaderVMIndex) &&
+				s.LeaderPL.DBHeight+1 >= s.GetHighestKnownBlock() {
+				s.LogMessage("executeMsg", "LeaderExecute", msg)
 				msg.LeaderExecute(s)
+			} else {
+				s.LogMessage("executeMsg", "FollowerExecute1", msg)
+				msg.FollowerExecute(s)
 			}
 		} else {
+			s.LogMessage("executeMsg", "FollowerExecute2", msg)
 			msg.FollowerExecute(s)
 		}
 		ret = true
+
 	case 0:
 		TotalHoldingQueueInputs.Inc()
 		TotalHoldingQueueRecycles.Inc()
+		s.LogMessage("executeMsg", "Holding1", msg)
 		s.Holding[msg.GetMsgHash().Fixed()] = msg
+
 	default:
-		TotalHoldingQueueInputs.Inc()
-		TotalHoldingQueueRecycles.Inc()
-		s.Holding[msg.GetMsgHash().Fixed()] = msg
 		if !msg.SentInvalid() {
 			msg.MarkSentInvalid(true)
+			s.LogMessage("executeMsg", "InvalidMsg", msg)
 			s.networkInvalidMsgQueue <- msg
 		}
 	}
@@ -135,6 +153,7 @@ func (s *State) Process() (progress bool) {
 			}
 		}
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
+
 	} else if s.IgnoreMissing {
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 		now := s.GetTimestamp().GetTimeMilli() // Timestamps are in milliseconds, so wait 20
@@ -149,7 +168,7 @@ func (s *State) Process() (progress bool) {
 	var vm *VM
 	if s.Leader {
 		vm = s.LeaderPL.VMs[s.LeaderVMIndex]
-		if vm.Height == 0 {
+		if vm.Height == 0 && s.RunLeader { // Shouldn't send DBSigs out until we have fully loaded our db
 			s.SendDBSig(s.LeaderPL.DBHeight, s.LeaderVMIndex)
 		}
 	}
@@ -178,15 +197,21 @@ ackLoop:
 		select {
 		case ack := <-s.ackQueue:
 			a := ack.(*messages.Ack)
-			if ack.Validate(s) == 1 { // took out a.DBHeight >= s.LLeaderHeight &&
+			if ack.Validate(s) == 1 {
 				if s.IgnoreMissing {
-					now := s.GetTimestamp().GetTimeSeconds()
+					now := s.GetTimestamp().GetTimeSeconds() //todo: Do we really need to do this every loop?
 					if now-a.GetTimestamp().GetTimeSeconds() < 60*15 {
+						s.LogMessage("ackQueue", "Execute", ack)
 						s.executeMsg(vm, ack)
+					} else {
+						s.LogMessage("ackQueue", "Drop Too Old", ack)
 					}
 				} else {
+					s.LogMessage("ackQueue", "Execute2", ack)
 					s.executeMsg(vm, ack)
 				}
+			} else {
+				s.LogMessage("ackQueue", "Drop Invalid", ack) // Maybe put it back in the ask queue ? -- clay
 			}
 			progress = true
 		default:
@@ -204,7 +229,7 @@ emptyLoop:
 	for {
 		select {
 		case msg := <-s.msgQueue:
-
+			s.LogMessage("msgQueue", "Execute", msg)
 			if s.executeMsg(vm, msg) && !msg.IsPeer2Peer() {
 				msg.SendOut(s, msg)
 			}
@@ -228,7 +253,6 @@ skipreview:
 				continue
 			}
 			process <- msg
-
 		}
 		s.XReview = s.XReview[:0]
 		break
@@ -241,7 +265,8 @@ processLoop:
 	for {
 		select {
 		case msg := <-process:
-			progress = s.executeMsg(vm, msg) || progress
+			s.LogMessage("executeMsg", "From processq", msg)
+			progress = s.executeMsg(vm, msg) || progress //
 			s.UpdateState()
 		default:
 			break processLoop
@@ -277,6 +302,7 @@ func CheckDBKeyMR(s *State, ht uint32, hash string) error {
 // review if this is a leader, and those messages are that leader's
 // responsibility
 func (s *State) ReviewHolding() {
+
 	preReviewHoldingTime := time.Now()
 	if len(s.XReview) > 0 {
 		return
@@ -364,29 +390,29 @@ func (s *State) ReviewHolding() {
 		}
 
 		// If it is an entryCommit and it has a duplicate hash to an existing entry throw it away here
-		{
-			ce, ok := v.(*messages.CommitEntryMsg)
-			if ok {
-				x := s.NoEntryYet(ce.CommitEntry.EntryHash, ce.CommitEntry.GetTimestamp())
-				if !x {
-					TotalHoldingQueueOutputs.Inc()
-					delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
-					continue
-				}
+
+		ce, ceok := v.(*messages.CommitEntryMsg)
+		if ceok {
+			x := s.NoEntryYet(ce.CommitEntry.EntryHash, ce.CommitEntry.GetTimestamp())
+			if !x {
+				TotalHoldingQueueOutputs.Inc()
+				delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
+				continue
 			}
 		}
+
 		// If it is an chainCommit and it has a duplicate hash to an existing entry throw it away here
-		{
-			ce, ok := v.(*messages.CommitChainMsg)
-			if ok {
-				x := s.NoEntryYet(ce.CommitChain.EntryHash, ce.CommitChain.GetTimestamp())
-				if !x {
-					TotalHoldingQueueOutputs.Inc()
-					delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
-					continue
-				}
+
+		cc, ccok := v.(*messages.CommitChainMsg)
+		if ccok {
+			x := s.NoEntryYet(cc.CommitChain.EntryHash, cc.CommitChain.GetTimestamp())
+			if !x {
+				TotalHoldingQueueOutputs.Inc()
+				delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
+				continue
 			}
 		}
+
 		if v.Expire(s) {
 			s.ExpireCnt++
 			TotalHoldingQueueOutputs.Inc()
@@ -407,6 +433,18 @@ func (s *State) ReviewHolding() {
 			delete(s.Holding, k)
 			continue
 		}
+
+		_, fok := v.(*messages.FactoidTransaction)
+		if !ceok && !ccok && !fok {
+			if !s.Leader {
+				continue
+			}
+
+			if v.GetVMIndex() != s.LeaderVMIndex {
+				continue
+			}
+		}
+
 		TotalXReviewQueueInputs.Inc()
 		s.XReview = append(s.XReview, v)
 		TotalHoldingQueueOutputs.Inc()
@@ -751,7 +789,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	s.Saving = true
 	s.Syncing = false
 
-	// Hurry up our next ask.  When we get to where we have the data we aksed for, then go ahead and ask for the next set.
+	// Hurry up our next ask.  When we get to where we have the data we asked for, then go ahead and ask for the next set.
 	if s.DBStates.LastEnd < int(dbheight) {
 		s.DBStates.Catchup(true)
 	}
@@ -776,6 +814,13 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 
 	// Just ignore missing messages for a period after going off line or starting up.
 	if s.IgnoreMissing || s.inMsgQueue.Length() > constants.INMSGQUEUE_HIGH {
+		//TODO: Log here -- clay
+		if s.IgnoreMissing {
+			s.LogMessage("executeMsg", "Drop IgnoreMissing", m)
+		}
+		if s.inMsgQueue.Length() > constants.INMSGQUEUE_HIGH {
+			s.LogMessage("executeMsg", "Drop INMSGQUEUE_HIGH", m)
+		}
 		return
 	}
 
@@ -812,6 +857,7 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 
 	// If we don't need this message, we don't have to do everything else.
 	if !ok || ack.Validate(s) == -1 {
+		s.LogMessage("executeMsg", "Drop noAck", m)
 		return
 	}
 
@@ -819,12 +865,14 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 	msg := mmr.MsgResponse
 
 	if msg == nil {
+		s.LogMessage("executeMsg", "Drop nil message", m)
 		return
 	}
 
 	pl := s.ProcessLists.Get(ack.DBHeight)
 
 	if pl == nil {
+		s.LogMessage("executeMsg", "Drop No Processlist", m)
 		return
 	}
 	_, okm := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
@@ -832,9 +880,11 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 	TotalAcksInputs.Inc()
 
 	if okm {
+		s.LogMessage("executeMsg", "FollowerExecute3", msg)
 		msg.FollowerExecute(s)
 	}
 
+	s.LogMessage("executeMsg", "FollowerExecute4", ack)
 	ack.FollowerExecute(s)
 
 	s.MissingResponseAppliedCnt++
@@ -1010,6 +1060,9 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 	if !ok {
 		TotalHoldingQueueOutputs.Inc()
 		delete(s.Holding, m.GetMsgHash().Fixed())
+		if s.debugExec() {
+			s.LogMessage("executeMsg", "Drop replay", m)
+		}
 		return
 	}
 
@@ -1283,7 +1336,7 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 	pl := s.ProcessLists.Get(dbheight)
 	pl.EntryCreditBlock.GetBody().AddEntry(c.CommitEntry)
 	if e := s.GetFactoidState().UpdateECTransaction(true, c.CommitEntry); e == nil {
-		// save the Commit to match agains the Reveal later
+		// save the Commit to match against the Reveal later
 		h := c.CommitEntry.EntryHash
 		s.PutCommit(h, c)
 		entry := s.Holding[h.Fixed()]
@@ -1497,6 +1550,16 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// What I do for each EOM
 	if !vm.Synced {
+
+		InMsg := s.EFactory.NewEomSigInternal(
+			s.FactomNodeName,
+			e.DBHeight,
+			uint32(e.Minute),
+			msg.GetVMIndex(),
+			uint32(vm.Height),
+			e.ChainID,
+		)
+		s.electionsQueue.Enqueue(InMsg)
 
 		//fmt.Println(fmt.Sprintf("EOM PROCESS: %10s vm %2d Process Once: !e.Processed(%v) EOM: %s", s.FactomNodeName, e.VMIndex, e.Processed, e.String()))
 		vm.LeaderMinute++
@@ -1784,6 +1847,16 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		s.DBSigProcessed++
 		//fmt.Println(fmt.Sprintf("Process DBSig %10s vm %2v DBSigProcessed++ (%2d)", s.FactomNodeName, dbs.VMIndex, s.DBSigProcessed))
 		vm.Synced = true
+
+		InMsg := s.EFactory.NewDBSigSigInternal(
+			s.FactomNodeName,
+			dbs.DBHeight,
+			uint32(0),
+			msg.GetVMIndex(),
+			uint32(vm.Height),
+			dbs.LeaderChainID,
+		)
+		s.electionsQueue.Enqueue(InMsg)
 	}
 
 	allfaults := s.LeaderPL.System.Height >= s.LeaderPL.SysHighest
@@ -1833,6 +1906,9 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 	// and we can execute it as such (replacing the faulted Leader with
 	// the nominated Audit server)
 
+	if true {
+		panic(errors.New("Started Old Faulting Process... very bad thing"))
+	}
 	fullFault, ok := msg.(*messages.FullServerFault)
 	if !ok {
 		return false
@@ -1953,7 +2029,7 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 				}
 				// Any updates required to the state as established by the AdminBlock are applied here.
 				pl.State.SetAuthoritySetString(authoritiesString)
-				authorityDeltaString := fmt.Sprintf("FULL FAULT SUCCESSFULLY PROCESSED DBHt: %d SysHt: %d ServerID %s AuditServerID %s",
+				authorityDeltaString := fmt.Sprintf("FULL FAULT SUCCESSFULLY PROCESSED DBHt: %d SysHt: %d FedID %s AuditServerID %s",
 					fullFault.DBHeight,
 					fullFault.SystemHeight,
 					fullFault.ServerID.String()[4:12],

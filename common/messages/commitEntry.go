@@ -13,12 +13,13 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 	log "github.com/sirupsen/logrus"
 )
 
 //A placeholder structure for messages
 type CommitEntryMsg struct {
-	MessageBase
+	msgbase.MessageBase
 
 	CommitEntry *entryCreditBlock.CommitEntry
 
@@ -34,7 +35,7 @@ type CommitEntryMsg struct {
 }
 
 var _ interfaces.IMsg = (*CommitEntryMsg)(nil)
-var _ Signable = (*CommitEntryMsg)(nil)
+var _ interfaces.Signable = (*CommitEntryMsg)(nil)
 
 func (a *CommitEntryMsg) IsSameAs(b *CommitEntryMsg) bool {
 	if a == nil || b == nil {
@@ -105,7 +106,7 @@ func (m *CommitEntryMsg) Type() byte {
 }
 
 func (m *CommitEntryMsg) Sign(key interfaces.Signer) error {
-	signature, err := SignSignable(m, key)
+	signature, err := msgbase.SignSignable(m, key)
 	if err != nil {
 		return err
 	}
@@ -118,7 +119,7 @@ func (m *CommitEntryMsg) GetSignature() interfaces.IFullSignature {
 }
 
 func (m *CommitEntryMsg) VerifySignature() (bool, error) {
-	return VerifyMessage(m)
+	return msgbase.VerifyMessage(m)
 }
 
 func (m *CommitEntryMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
@@ -148,7 +149,7 @@ func (m *CommitEntryMsg) UnmarshalBinaryData(data []byte) (newData []byte, err e
 		}
 	}
 
-	m.marshalCache = data[:len(data)-len(newData)]
+	m.marshalCache = append(m.marshalCache, data[:len(data)-len(newData)]...)
 
 	return newData, nil
 }

@@ -7,16 +7,15 @@ package state
 import (
 	"bufio"
 	"bytes"
+	"crypto/rand"
+	"encoding/binary"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
-	"time"
-
 	"sync"
-
-	"crypto/rand"
-	"encoding/binary"
+	"time"
 
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
@@ -30,10 +29,9 @@ import (
 	"github.com/FactomProject/factomd/database/mapdb"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/util"
+	"github.com/FactomProject/factomd/util/atomic"
 	"github.com/FactomProject/factomd/wsapi"
 	"github.com/FactomProject/logrustash"
-
-	"errors"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -109,7 +107,7 @@ type State struct {
 	Authorities          []*Authority     // Identities of all servers in management chain
 	AuthorityServerCount int              // number of federated or audit servers allowed
 
-	// Just to print (so debugging doesn't drive functionaility)
+	// Just to print (so debugging doesn't drive functionality)
 	Status      int // Return a status (0 do nothing, 1 provide queues, 2 provide consensus data)
 	serverPrt   string
 	StatusMutex sync.Mutex
@@ -126,6 +124,13 @@ type State struct {
 	HoldingMutex sync.RWMutex
 	HoldingLast  int64
 	HoldingMap   map[[32]byte]interfaces.IMsg
+
+	// Elections are managed through the Elections Structure
+	EFactory  interfaces.IElectionsFactory
+	Elections interfaces.IElections
+	Election0 string // Title
+	Election1 string // Election state for display
+	Election2 string // Election state for display
 
 	//  pending entry/transaction api calls for the ack queue do not have proper scope
 	//  This is used to create a temporary, correctly scoped ackqueue snapshot for the calls on demand
@@ -153,6 +158,7 @@ type State struct {
 	networkOutMsgQueue     NetOutMsgQueue
 	networkInvalidMsgQueue chan interfaces.IMsg
 	inMsgQueue             InMsgMSGQueue
+	electionsQueue         ElectionQueue
 	apiQueue               APIMSGQueue
 	ackQueue               chan interfaces.IMsg
 	msgQueue               chan interfaces.IMsg
@@ -542,6 +548,11 @@ func (s *State) GetNetStateOff() bool { //	If true, all network communications a
 }
 
 func (s *State) SetNetStateOff(net bool) {
+	//flag this in everyone!
+	s.LogPrintf("executeMsg", "State.SetNetStateOff(%v)", net)
+	s.LogPrintf("election", "State.SetNetStateOff(%v)", net)
+	s.LogPrintf("InMsgQueue", "State.SetNetStateOff(%v)", net)
+	s.LogPrintf("NetworkInputs", "State.SetNetStateOff(%v)", net)
 	s.NetStateOff = net
 }
 
@@ -797,6 +808,7 @@ func (s *State) Init() {
 	s.InvalidMessages = make(map[[32]byte]interfaces.IMsg, 0)
 	s.networkOutMsgQueue = NewNetOutMsgQueue(1000)      //Messages to be broadcast to the network
 	s.inMsgQueue = NewInMsgQueue(10000)                 //incoming message queue for factom application messages
+	s.electionsQueue = NewElectionQueue(10000)          //incoming message queue for factom application messages
 	s.apiQueue = NewAPIQueue(100)                       //incoming message queue from the API
 	s.ackQueue = make(chan interfaces.IMsg, 100)        //queue of Leadership messages
 	s.msgQueue = make(chan interfaces.IMsg, 400)        //queue of Follower messages
@@ -815,7 +827,12 @@ func (s *State) Init() {
 	}
 	// Set up struct to stop replay attacks
 	s.Replay = new(Replay)
+	s.Replay.s = s
+	s.Replay.name = "Replay"
+
 	s.FReplay = new(Replay)
+	s.FReplay.s = s
+	s.FReplay.name = "FReplay"
 
 	// Set up maps for the followers
 	s.Holding = make(map[[32]byte]interfaces.IMsg)
@@ -1024,11 +1041,8 @@ func (s *State) GetEBlockKeyMRFromEntryHash(entryHash interfaces.IHash) interfac
 	return nil
 }
 
-func (s *State) GetAndLockDB() interfaces.DBOverlaySimple {
+func (s *State) GetDB() interfaces.DBOverlaySimple {
 	return s.DB
-}
-
-func (s *State) UnlockDB() {
 }
 
 // Checks ChainIDs to determine if we need their entries to process entries and transactions.
@@ -1786,6 +1800,7 @@ func (s *State) AddDBSig(dbheight uint32, chainID interfaces.IHash, sig interfac
 
 func (s *State) AddFedServer(dbheight uint32, hash interfaces.IHash) int {
 	//s.AddStatus(fmt.Sprintf("AddFedServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
+	s.LogPrintf("executeMsg", "AddServer (Federated): ChainID: %x at dbht: %d From %s", hash.Bytes()[3:6], dbheight, atomic.WhereAmIString(1))
 	return s.ProcessLists.Get(dbheight).AddFedServer(hash)
 }
 
@@ -1795,16 +1810,19 @@ func (s *State) TrimVMList(dbheight uint32, height uint32, vmIndex int) {
 
 func (s *State) RemoveFedServer(dbheight uint32, hash interfaces.IHash) {
 	//s.AddStatus(fmt.Sprintf("RemoveFedServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
+	s.LogPrintf("executeMsg", "RemoveServer (Federated): ChainID: %x at dbht: %d", hash.Bytes()[3:6], dbheight)
 	s.ProcessLists.Get(dbheight).RemoveFedServerHash(hash)
 }
 
 func (s *State) AddAuditServer(dbheight uint32, hash interfaces.IHash) int {
 	//s.AddStatus(fmt.Sprintf("AddAuditServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
+	s.LogPrintf("executeMsg", "AddServer (Audit): ChainID: %x at dbht: %d", hash.Bytes()[3:6], dbheight)
 	return s.ProcessLists.Get(dbheight).AddAuditServer(hash)
 }
 
 func (s *State) RemoveAuditServer(dbheight uint32, hash interfaces.IHash) {
 	//s.AddStatus(fmt.Sprintf("RemoveAuditServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
+	s.LogPrintf("executeMsg", "RemoveServer (Audit): ChainID: %x at dbht: %d", hash.Bytes()[3:6], dbheight)
 	s.ProcessLists.Get(dbheight).RemoveAuditServerHash(hash)
 }
 
@@ -1999,6 +2017,10 @@ func (s *State) NetworkOutMsgQueue() interfaces.IQueue {
 
 func (s *State) InMsgQueue() interfaces.IQueue {
 	return s.inMsgQueue
+}
+
+func (s *State) ElectionsQueue() interfaces.IQueue {
+	return s.electionsQueue
 }
 
 func (s *State) APIQueue() interfaces.IQueue {
@@ -2364,7 +2386,7 @@ func (s *State) SetStringQueues() {
 
 	str := fmt.Sprintf("%10s[%6x] %4s%4s %2d/%2d %2d.%01d%% %2d.%03d",
 		s.FactomNodeName,
-		s.IdentityChainID.Bytes()[2:5],
+		s.IdentityChainID.Bytes()[3:6],
 		stype,
 		vmIndex,
 		s.ResetTryCnt,

@@ -56,6 +56,12 @@ func (state *State) ValidatorLoop() {
 				}
 
 				msg = state.InMsgQueue().Dequeue()
+
+				// This doesn't block so it intentionally returns nil, don't log nils
+				if msg != nil {
+					state.LogMessage("InMsgQueue", "dequeue", msg)
+				}
+
 				if msg != nil {
 					state.JournalMessage(msg)
 					break loop
@@ -74,9 +80,11 @@ func (state *State) ValidatorLoop() {
 				state.ReplayTimestamp = msg.GetTimestamp()
 			}
 			if _, ok := msg.(*messages.Ack); ok {
-				state.ackQueue <- msg
+				state.LogMessage("ackQueue", "enqueue", msg)
+				state.ackQueue <- msg //
 			} else {
-				state.msgQueue <- msg
+				state.LogMessage("msgQueue", "enqueue", msg)
+				state.msgQueue <- msg //
 			}
 		}
 	}

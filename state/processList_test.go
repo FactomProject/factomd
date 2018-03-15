@@ -63,3 +63,32 @@ func TestProcessListMisc(t *testing.T) {
 
 	pl.TrimVMList(0, 0)
 }
+
+func TestServerMap(t *testing.T) {
+	// The string function is called in some unit tests, and lines that show offline nodes is sometimes hit. This
+	// ensures coverage is consistent, despite it just being a String() call
+	state := testHelper.CreateEmptyTestState()
+	pl := NewProcessList(state, nil, 1)
+	pl.FedServers = append(pl.FedServers, nil)
+	pl.FedServers = append(pl.FedServers, nil)
+	pl.FedServers = append(pl.FedServers, nil)
+	pl.FedServers = append(pl.FedServers, nil)
+	pl.FedServers = append(pl.FedServers, nil)
+	pl.FedServers = append(pl.FedServers, nil)
+	pl.FedServers = append(pl.FedServers, nil)
+	pl.FedServers = append(pl.FedServers, nil)
+	pl.FedServers = append(pl.FedServers, nil)
+	pl.FedServers = append(pl.FedServers, nil)
+	pl.FedServers = append(pl.FedServers, nil)
+	pl.FedServers = append(pl.FedServers, nil)
+
+	pl.DBHeight = 100000
+	pl.MakeMap()
+	pl.PrintMap()
+
+	vmIdx := FedServerVM(pl.ServerMap, len(pl.FedServers), 3, 10)
+	//fmt.Println("VM Index", vmIdx)
+	if vmIdx != 2 {
+		t.Error("Unexpected VM index in ServerMap")
+	}
+}

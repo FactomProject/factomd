@@ -14,12 +14,13 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 	log "github.com/sirupsen/logrus"
 )
 
 //A placeholder structure for messages
 type RevealEntryMsg struct {
-	MessageBase
+	msgbase.MessageBase
 	Timestamp interfaces.Timestamp
 	Entry     interfaces.IEntry
 
@@ -132,7 +133,7 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 		}
 
 		// Make sure we have a chain.  If we don't, then bad things happen.
-		db := state.GetAndLockDB()
+		db := state.GetDB()
 		dbheight := state.GetLeaderHeight()
 		eb := state.GetNewEBlocks(dbheight, m.Entry.GetChainID())
 		if eb == nil {
@@ -221,7 +222,7 @@ func (m *RevealEntryMsg) UnmarshalBinaryData(data []byte) (newData []byte, err e
 	}
 	m.Entry = e
 
-	m.marshalCache = data[:len(data)-len(newData)]
+	m.marshalCache = append(m.marshalCache, data[:len(data)-len(newData)]...)
 
 	return newData, nil
 }

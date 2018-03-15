@@ -13,13 +13,14 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 	log "github.com/sirupsen/logrus"
 )
 
 //Requests entry blocks from a range of DBlocks
 
 type EntryBlockResponse struct {
-	MessageBase
+	msgbase.MessageBase
 	Timestamp interfaces.Timestamp
 
 	EBlockCount uint32
@@ -114,8 +115,7 @@ func (m *EntryBlockResponse) FollowerExecute(state interfaces.IState) {
 		return
 	}
 
-	db := state.GetAndLockDB()
-	defer state.UnlockDB()
+	db := state.GetDB()
 
 	db.StartMultiBatch()
 	for _, v := range m.EBlocks {

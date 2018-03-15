@@ -195,8 +195,7 @@ func HandleV2DBlockByHeight(state interfaces.IState, params interface{}) (interf
 		return nil, NewInvalidParamsError()
 	}
 
-	dbase := state.GetAndLockDB()
-	defer state.UnlockDB()
+	dbase := state.GetDB()
 
 	block, err := dbase.FetchDBlockByHeight(uint32(heightRequest.Height))
 	if err != nil {
@@ -237,8 +236,7 @@ func HandleV2EntryCreditBlock(state interfaces.IState, params interface{}) (inte
 		return nil, NewInvalidHashError()
 	}
 
-	dbase := state.GetAndLockDB()
-	defer state.UnlockDB()
+	dbase := state.GetDB()
 
 	block, err := dbase.FetchECBlock(h)
 	if err != nil {
@@ -261,8 +259,7 @@ func HandleV2ECBlockByHeight(state interfaces.IState, params interface{}) (inter
 		return nil, NewInvalidParamsError()
 	}
 
-	dbase := state.GetAndLockDB()
-	defer state.UnlockDB()
+	dbase := state.GetDB()
 
 	block, err := dbase.FetchECBlockByHeight(uint32(heightRequest.Height))
 	if err != nil {
@@ -317,8 +314,7 @@ func HandleV2FactoidBlock(state interfaces.IState, params interface{}) (interfac
 		return nil, NewInvalidHashError()
 	}
 
-	dbase := state.GetAndLockDB()
-	defer state.UnlockDB()
+	dbase := state.GetDB()
 
 	block, err := dbase.FetchFBlock(h)
 	if err != nil {
@@ -353,8 +349,7 @@ func HandleV2FBlockByHeight(state interfaces.IState, params interface{}) (interf
 		}
 	}
 
-	dbase := state.GetAndLockDB()
-	defer state.UnlockDB()
+	dbase := state.GetDB()
 
 	block, err := dbase.FetchFBlockByHeight(uint32(heightRequest.Height))
 	if err != nil {
@@ -428,8 +423,7 @@ func HandleV2AdminBlock(state interfaces.IState, params interface{}) (interface{
 		return nil, NewInvalidHashError()
 	}
 
-	dbase := state.GetAndLockDB()
-	defer state.UnlockDB()
+	dbase := state.GetDB()
 
 	block, err := dbase.FetchABlock(h)
 	if err != nil {
@@ -452,8 +446,7 @@ func HandleV2ABlockByHeight(state interfaces.IState, params interface{}) (interf
 		return nil, NewInvalidParamsError()
 	}
 
-	dbase := state.GetAndLockDB()
-	defer state.UnlockDB()
+	dbase := state.GetDB()
 
 	block, err := dbase.FetchABlockByHeight(uint32(heightRequest.Height))
 	if err != nil {
@@ -698,8 +691,7 @@ func HandleV2RawData(state interfaces.IState, params interface{}) (interface{}, 
 	}
 
 	if b == nil {
-		dbase := state.GetAndLockDB()
-		defer state.UnlockDB()
+		dbase := state.GetDB()
 
 		// try to find the block data in db and return the first one found
 		if block, _ = dbase.FetchFBlock(h); block != nil {
@@ -741,8 +733,7 @@ func HandleV2Receipt(state interfaces.IState, params interface{}) (interface{}, 
 		return nil, NewInvalidHashError()
 	}
 
-	dbase := state.GetAndLockDB()
-	defer state.UnlockDB()
+	dbase := state.GetDB()
 
 	receipt, err := receipts.CreateFullReceipt(dbase, h)
 	if err != nil {
@@ -769,8 +760,7 @@ func HandleV2DirectoryBlock(state interfaces.IState, params interface{}) (interf
 		return nil, NewInvalidHashError()
 	}
 
-	dbase := state.GetAndLockDB()
-	defer state.UnlockDB()
+	dbase := state.GetDB()
 
 	block, err := dbase.FetchDBlock(h)
 	if err != nil {
@@ -810,8 +800,7 @@ func HandleV2EntryBlock(state interfaces.IState, params interface{}) (interface{
 		return nil, NewInvalidHashError()
 	}
 
-	dbase := state.GetAndLockDB()
-	defer state.UnlockDB()
+	dbase := state.GetDB()
 
 	block, err := dbase.FetchEBlock(h)
 	if err != nil {
@@ -887,8 +876,7 @@ func HandleV2Entry(state interfaces.IState, params interface{}) (interface{}, *p
 		return nil, NewInternalError()
 	}
 	if entry == nil {
-		dbase := state.GetAndLockDB()
-		defer state.UnlockDB()
+		dbase := state.GetDB()
 
 		entry, err = dbase.FetchEntry(h)
 		if err != nil {
@@ -922,8 +910,7 @@ func HandleV2ChainHead(state interfaces.IState, params interface{}) (interface{}
 		return nil, NewInvalidHashError()
 	}
 
-	dbase := state.GetAndLockDB()
-	defer state.UnlockDB()
+	dbase := state.GetDB()
 
 	c := new(ChainHeadResponse)
 
@@ -1154,7 +1141,7 @@ func HandleV2SendRawMessage(state interfaces.IState, params interface{}) (interf
 		return nil, NewInvalidParamsError()
 	}
 
-	_, msg, err := messages.UnmarshalMessageData(data)
+	_, msg, err := messages.General.UnmarshalMessageData(data)
 	if err != nil {
 		return nil, NewInvalidParamsError()
 	}
@@ -1200,8 +1187,7 @@ func HandleV2GetTranasction(state interfaces.IState, params interface{}) (interf
 		return nil, NewInternalError()
 	}
 
-	dbase := state.GetAndLockDB()
-	defer state.UnlockDB()
+	dbase := state.GetDB()
 
 	if fTx == nil {
 		fTx, err = dbase.FetchFactoidTransaction(h)

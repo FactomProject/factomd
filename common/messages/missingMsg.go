@@ -12,12 +12,13 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 	log "github.com/sirupsen/logrus"
 )
 
 //Structure to request missing messages in a node's process list
 type MissingMsg struct {
-	MessageBase
+	msgbase.MessageBase
 
 	Timestamp         interfaces.Timestamp
 	Asking            interfaces.IHash

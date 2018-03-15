@@ -9,6 +9,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/messages/msgsupport"
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
@@ -40,7 +41,7 @@ func TestMarshalUnmarshalEOM(t *testing.T) {
 	}
 	t.Logf("Marshalled - %x", hex)
 
-	msg2, err := UnmarshalMessage(hex)
+	msg2, err := msgsupport.UnmarshalMessage(hex)
 	if err != nil {
 		t.Error(err)
 	}
@@ -90,7 +91,7 @@ func TestSignAndVerifyEOM(t *testing.T) {
 		t.Error("Signature is not valid")
 	}
 
-	msg2, err := UnmarshalMessage(hex)
+	msg2, err := msgsupport.UnmarshalMessage(hex)
 	if err != nil {
 		t.Error(err)
 	}

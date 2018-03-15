@@ -500,8 +500,7 @@ func (s *State) FetchECTransactionByHash(hash interfaces.IHash) (interfaces.IECB
 		}
 	}
 
-	dbase := s.GetAndLockDB()
-	defer s.UnlockDB()
+	dbase := s.GetDB()
 
 	return dbase.FetchECTransaction(hash)
 }
@@ -558,8 +557,7 @@ func (s *State) FetchFactoidTransactionByHash(hash interfaces.IHash) (interfaces
 		}
 	}
 
-	dbase := s.GetAndLockDB()
-	defer s.UnlockDB()
+	dbase := s.GetDB()
 
 	return dbase.FetchFactoidTransaction(hash)
 }
@@ -587,8 +585,7 @@ func (s *State) FetchPaidFor(hash interfaces.IHash) (interfaces.IHash, error) {
 			}
 		}
 	}
-	dbase := s.GetAndLockDB()
-	defer s.UnlockDB()
+	dbase := s.GetDB()
 
 	return dbase.FetchPaidFor(hash)
 }
@@ -633,8 +630,7 @@ func (s *State) FetchEntryByHash(hash interfaces.IHash) (interfaces.IEBEntry, er
 		}
 	}
 
-	dbase := s.GetAndLockDB()
-	defer s.UnlockDB()
+	dbase := s.GetDB()
 
 	return dbase.FetchEntry(hash)
 }

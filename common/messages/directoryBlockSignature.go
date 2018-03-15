@@ -13,6 +13,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -20,7 +21,7 @@ import (
 var dLogger = packageLogger.WithFields(log.Fields{"message": "DirectoryBlockSignature"})
 
 type DirectoryBlockSignature struct {
-	MessageBase
+	msgbase.MessageBase
 	Timestamp interfaces.Timestamp
 	DBHeight  uint32
 	//DirectoryBlockKeyMR   interfaces.IHash
@@ -35,14 +36,14 @@ type DirectoryBlockSignature struct {
 	SysHeight   uint32
 	SysHash     interfaces.IHash
 
-	//Not marshalled
+	//Not marshaled
 	Matches      bool
 	hash         interfaces.IHash
 	marshalCache []byte
 }
 
 var _ interfaces.IMsg = (*DirectoryBlockSignature)(nil)
-var _ Signable = (*DirectoryBlockSignature)(nil)
+var _ interfaces.Signable = (*DirectoryBlockSignature)(nil)
 
 func (a *DirectoryBlockSignature) IsSameAs(b *DirectoryBlockSignature) bool {
 	if b == nil {
@@ -153,7 +154,7 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 	if found == false {
 		state.AddStatus(fmt.Sprintf("DirectoryBlockSignature: Fail dbht: %v Server not found %x %s",
 			state.GetLLeaderHeight(),
-			m.ServerIdentityChainID.Bytes()[3:5],
+			m.ServerIdentityChainID.Bytes()[3:6],
 			m.String()))
 		return 0
 	}
@@ -210,7 +211,7 @@ func (m *DirectoryBlockSignature) Sign(key interfaces.Signer) error {
 		return err
 	}
 
-	signature, err := SignSignable(m, key)
+	signature, err := msgbase.SignSignable(m, key)
 	if err != nil {
 		return err
 	}
@@ -232,7 +233,7 @@ func (m *DirectoryBlockSignature) GetSignature() interfaces.IFullSignature {
 }
 
 func (m *DirectoryBlockSignature) VerifySignature() (bool, error) {
-	return VerifyMessage(m)
+	return msgbase.VerifyMessage(m)
 }
 
 func (m *DirectoryBlockSignature) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
@@ -298,7 +299,7 @@ func (m *DirectoryBlockSignature) UnmarshalBinaryData(data []byte) (newData []by
 		m.Signature = sig
 	}
 
-	m.marshalCache = data[:len(data)-len(newData)]
+	m.marshalCache = append(m.marshalCache, data[:len(data)-len(newData)]...)
 
 	return nil, nil
 }

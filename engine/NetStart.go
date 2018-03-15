@@ -16,7 +16,6 @@ import (
 
 	"github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/controlPanel"
 	"github.com/FactomProject/factomd/database/leveldb"
@@ -25,6 +24,10 @@ import (
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
 
+	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/messages/electionMsgs"
+	"github.com/FactomProject/factomd/common/messages/msgsupport"
+	"github.com/FactomProject/factomd/elections"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -38,6 +41,8 @@ type FactomNode struct {
 }
 
 var fnodes []*FactomNode
+
+var networkpattern string
 var mLog = new(MsgLog)
 var p2pProxy *P2PProxy
 var p2pNetwork *p2p.Controller
@@ -45,6 +50,11 @@ var logPort string
 
 func GetFnodes() []*FactomNode {
 	return fnodes
+}
+
+func init() {
+	messages.General = new(msgsupport.GeneralFactory)
+	primitives.General = messages.General
 }
 
 func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
@@ -107,7 +117,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		p.BlkTime = s.DirectoryBlockInSeconds
 	}
 
-	s.FaultTimeout = p.FaultTimeout
+	s.FaultTimeout = 9999999 //todo: Old Faulr Mechanism -- remove
 
 	if p.Follower {
 		p.Leader = false
@@ -248,7 +258,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%d\"\n", "netdebug", p.Netdebug))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%t\"\n", "exclusive", p.Exclusive))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "block time", p.BlkTime))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "faultTimeout", p.FaultTimeout))
+	//os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "faultTimeout", p.FaultTimeout)) // TODO old fault timeout mechanism to be removed
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "runtimeLog", p.RuntimeLog))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "rotate", p.rotate))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "timeOffset", p.timeOffset))
@@ -261,6 +271,8 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "selfaddr", s.FactomdLocations))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "rpcuser", s.RpcUser))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "Start 2nd Sync at ht", s.EntryDBHeightComplete))
+
+	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "faultTimeout", elections.FaultTimeout))
 
 	if "" == s.RpcPass {
 		os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "rpcpass", "is blank"))
@@ -289,7 +301,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		fnodes[i].State.IntiateNetworkSkeletonIdentity()
 	}
 
-	// Start the P2P netowork
+	// Start the P2P network
 	var networkID p2p.NetworkID
 	var seedURL, networkPort, specialPeers string
 	switch s.Network {
@@ -363,6 +375,8 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 
 		go networkHousekeeping() // This goroutine executes once a second to keep the proxy apprised of the network status.
 	}
+
+	networkpattern = p.Net
 
 	switch p.Net {
 	case "file":
@@ -493,7 +507,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	}
 
 	// Start the webserver
-	go wsapi.Start(fnodes[0].State)
+	wsapi.Start(fnodes[0].State)
 
 	// Start prometheus on port
 	launchPrometheus(9876)
@@ -537,6 +551,7 @@ func startServers(load bool) {
 		if i > 0 {
 			fnode.State.Init()
 		}
+		fnode.State.EFactory = new(electionMsgs.ElectionsFactory)
 		go NetworkProcessorNet(fnode)
 		if load {
 			go state.LoadDatabase(fnode.State)
@@ -544,6 +559,7 @@ func startServers(load bool) {
 		go fnode.State.GoSyncEntries()
 		go Timer(fnode.State)
 		go fnode.State.ValidatorLoop()
+		go elections.Run(fnode.State)
 	}
 }
 

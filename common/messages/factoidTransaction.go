@@ -12,12 +12,13 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 	log "github.com/sirupsen/logrus"
 )
 
 //A placeholder structure for messages
 type FactoidTransaction struct {
-	MessageBase
+	msgbase.MessageBase
 	Transaction interfaces.ITransaction
 
 	//No signature!
@@ -133,7 +134,6 @@ func (m *FactoidTransaction) Process(dbheight uint32, state interfaces.IState) b
 	m.processed = true
 	err := state.GetFactoidState().AddTransaction(1, m.Transaction)
 	if err != nil {
-		fmt.Println(err)
 		return false
 	}
 
@@ -175,7 +175,7 @@ func (m *FactoidTransaction) UnmarshalBinaryData(data []byte) (newData []byte, e
 	m.Transaction = new(factoid.Transaction)
 	newData, err = m.Transaction.UnmarshalBinaryData(newData)
 
-	m.marshalCache = data[:len(data)-len(newData)]
+	m.marshalCache = append(m.marshalCache, data[:len(data)-len(newData)]...)
 
 	return newData, err
 }

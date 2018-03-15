@@ -12,12 +12,13 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 	log "github.com/sirupsen/logrus"
 )
 
 //A placeholder structure for messages
 type ServerFault struct {
-	MessageBase
+	msgbase.MessageBase
 
 	// The following 5 fields represent the "Core" of the message
 	// This should match the Core of FullServerFault messages
@@ -36,7 +37,7 @@ type ServerFault struct {
 }
 
 var _ interfaces.IMsg = (*ServerFault)(nil)
-var _ Signable = (*ServerFault)(nil)
+var _ interfaces.Signable = (*ServerFault)(nil)
 
 func (m *ServerFault) Process(uint32, interfaces.IState) bool { return true }
 
@@ -220,11 +221,11 @@ func (m *ServerFault) GetSignature() interfaces.IFullSignature {
 }
 
 func (m *ServerFault) VerifySignature() (bool, error) {
-	return VerifyMessage(m)
+	return msgbase.VerifyMessage(m)
 }
 
 func (m *ServerFault) Sign(key interfaces.Signer) error {
-	signature, err := SignSignable(m, key)
+	signature, err := msgbase.SignSignable(m, key)
 	if err != nil {
 		return err
 	}

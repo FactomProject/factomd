@@ -13,7 +13,7 @@ import (
 	// "github.com/FactomProject/factomd/common/constants"
 
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/messages/msgsupport"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/p2p"
 
@@ -151,7 +151,7 @@ func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
 			case FactomMessage:
 				fmessage := data.(FactomMessage)
 				f.trace(fmessage.AppHash, fmessage.AppType, "P2PProxy.Recieve()", "N")
-				msg, err := messages.UnmarshalMessage(fmessage.Message)
+				msg, err := msgsupport.UnmarshalMessage(fmessage.Message)
 
 				if err != nil {
 					proxyLogger.WithField("receive-error", err).Error()

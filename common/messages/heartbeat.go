@@ -12,12 +12,13 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 	log "github.com/sirupsen/logrus"
 )
 
 //A placeholder structure for messages
 type Heartbeat struct {
-	MessageBase
+	msgbase.MessageBase
 	Timestamp       interfaces.Timestamp
 	SecretNumber    uint32
 	DBHeight        uint32
@@ -33,7 +34,7 @@ type Heartbeat struct {
 }
 
 var _ interfaces.IMsg = (*Heartbeat)(nil)
-var _ Signable = (*Heartbeat)(nil)
+var _ interfaces.Signable = (*Heartbeat)(nil)
 
 func (a *Heartbeat) IsSameAs(b *Heartbeat) bool {
 	if b == nil {
@@ -157,7 +158,7 @@ func (m *Heartbeat) UnmarshalBinaryData(data []byte) (newData []byte, err error)
 		m.Signature = sig
 	}
 
-	m.marshalCache = data[:len(data)-len(newData)]
+	m.marshalCache = append(m.marshalCache, data[:len(data)-len(newData)]...)
 
 	return nil, nil
 }
@@ -220,7 +221,7 @@ func (m *Heartbeat) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *Heartbeat) String() string {
-	return fmt.Sprintf("HeartBeat ID[%x] dbht %d ts %d", m.IdentityChainID.Bytes()[3:5], m.DBHeight, m.Timestamp.GetTimeSeconds())
+	return fmt.Sprintf("HeartBeat ID[%x] dbht %d ts %d", m.IdentityChainID.Bytes()[3:6], m.DBHeight, m.Timestamp.GetTimeSeconds())
 }
 
 func (m *Heartbeat) LogFields() log.Fields {
@@ -310,7 +311,7 @@ func (e *Heartbeat) JSONString() (string, error) {
 }
 
 func (m *Heartbeat) Sign(key interfaces.Signer) error {
-	signature, err := SignSignable(m, key)
+	signature, err := msgbase.SignSignable(m, key)
 	if err != nil {
 		return err
 	}
@@ -323,5 +324,5 @@ func (m *Heartbeat) GetSignature() interfaces.IFullSignature {
 }
 
 func (m *Heartbeat) VerifySignature() (bool, error) {
-	return VerifyMessage(m)
+	return msgbase.VerifyMessage(m)
 }

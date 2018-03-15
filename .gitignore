@@ -19,6 +19,7 @@ peers.json
 *.csv
 *.gz
 *.swp
+out
 
 # Folders
 _obj

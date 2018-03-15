@@ -96,9 +96,9 @@ func (st *State) AddIdentityFromChainID(cid interfaces.IHash) error {
 	}
 
 	managementChain, _ := primitives.HexToHash(MAIN_FACTOM_IDENTITY_LIST)
-	dbase := st.GetAndLockDB()
+	dbase := st.GetDB()
 	ents, err := dbase.FetchAllEntriesByChainID(managementChain)
-	st.UnlockDB()
+
 	if err != nil {
 		return err
 	}
@@ -539,9 +539,8 @@ func RegisterBlockSigningKey(entry interfaces.IEBEntry, initial bool, height uin
 				return errors.New("New Block Signing key for identity [" + chainID.String()[:10] + "] is invalid length")
 			}
 
-			dbase := st.GetAndLockDB()
+			dbase := st.GetDB()
 			dblk, err := dbase.FetchDBlockByHeight(height)
-			st.UnlockDB()
 
 			if err == nil && dblk != nil && dblk.GetHeader().GetTimestamp().GetTimeSeconds() != 0 {
 				if !CheckTimestamp(extIDs[4], dblk.GetHeader().GetTimestamp().GetTimeSeconds()) {
@@ -610,9 +609,9 @@ func UpdateMatryoshkaHash(entry interfaces.IEBEntry, initial bool, height uint32
 				return errors.New("New Matryoshka Hash for identity [" + chainID.String()[:10] + "] is invalid length")
 			}
 
-			dbase := st.GetAndLockDB()
+			dbase := st.GetDB()
 			dblk, err := dbase.FetchDBlockByHeight(height)
-			st.UnlockDB()
+
 			if err == nil && dblk != nil && dblk.GetHeader().GetTimestamp().GetTimeSeconds() != 0 {
 				if !CheckTimestamp(extIDs[4], dblk.GetHeader().GetTimestamp().GetTimeSeconds()) {
 					return errors.New("New Matryoshka Hash for identity  [" + chainID.String()[:10] + "] timestamp is too old")
@@ -702,9 +701,9 @@ func RegisterAnchorSigningKey(entry interfaces.IEBEntry, initial bool, height ui
 				return errors.New("New Anchor key for identity [" + chainID.String()[:10] + "] is invalid length")
 			}
 
-			dbase := st.GetAndLockDB()
+			dbase := st.GetDB()
 			dblk, err := dbase.FetchDBlockByHeight(height)
-			st.UnlockDB()
+
 			if err == nil && dblk != nil && dblk.GetHeader().GetTimestamp().GetTimeSeconds() != 0 {
 				if !CheckTimestamp(extIDs[6], dblk.GetHeader().GetTimestamp().GetTimeSeconds()) {
 					return errors.New("New Anchor key for identity [" + chainID.String()[:10] + "] timestamp is too old")

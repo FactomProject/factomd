@@ -10,14 +10,19 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/common/primitives"
 
 	log "github.com/sirupsen/logrus"
 )
 
+// packageLogger is the general logger for all message related logs. You can add additional fields,
+// or create more context loggers off of this
+var packageLogger = log.WithFields(log.Fields{"package": "messages"})
+
 //General acknowledge message
 type Ack struct {
-	MessageBase
+	msgbase.MessageBase
 	Timestamp   interfaces.Timestamp // Timestamp of Ack by Leader
 	Salt        [8]byte              // Eight bytes of the salt
 	SaltNumber  uint32               // Secret Number used to detect multiple servers with the same ID
@@ -39,14 +44,14 @@ type Ack struct {
 }
 
 var _ interfaces.IMsg = (*Ack)(nil)
-var _ Signable = (*Ack)(nil)
+var _ interfaces.Signable = (*Ack)(nil)
 var AckBalanceHash = true
 
 func (m *Ack) GetRepeatHash() interfaces.IHash {
 	return m.GetMsgHash()
 }
 
-// We have to return the haswh of the underlying message.
+// We have to return the hash of the underlying message.
 func (m *Ack) GetHash() interfaces.IHash {
 	return m.MessageHash
 }
@@ -71,7 +76,7 @@ func (m *Ack) GetTimestamp() interfaces.Timestamp {
 }
 
 func (m *Ack) VerifySignature() (bool, error) {
-	return VerifyMessage(m)
+	return msgbase.VerifyMessage(m)
 }
 
 // Validate the message, given the state.  Three possible results:
@@ -84,7 +89,7 @@ func (m *Ack) Validate(state interfaces.IState) int {
 		return -1
 	}
 
-	// Only new acks are valid. Of course, the VMIndex has to be valid too.
+	// Only new acks are valid. Of course, the VMIndG2ex has to be valid too.
 	msg, _ := state.GetMsg(m.VMIndex, int(m.DBHeight), int(m.Height))
 	if msg != nil {
 		return -1
@@ -143,7 +148,7 @@ func (e *Ack) JSONString() (string, error) {
 }
 
 func (m *Ack) Sign(key interfaces.Signer) error {
-	signature, err := SignSignable(m, key)
+	signature, err := msgbase.SignSignable(m, key)
 	if err != nil {
 		return err
 	}
@@ -230,7 +235,9 @@ func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 		}
 	}
 
-	if len(newData) > 0 {
+	b, newData := newData[0], newData[1:]
+
+	if b > 0 {
 		m.Signature = new(primitives.Signature)
 		newData, err = m.Signature.UnmarshalBinaryData(newData)
 		if err != nil {
@@ -238,7 +245,7 @@ func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 		}
 	}
 
-	m.marshalCache = data[:len(data)-len(newData)]
+	m.marshalCache = append(m.marshalCache, data[:len(data)-len(newData)]...)
 
 	return
 }
@@ -327,22 +334,25 @@ func (m *Ack) MarshalBinary() (data []byte, err error) {
 	sig := m.GetSignature()
 
 	if sig != nil {
+		resp = append(resp, 1)
 		sigBytes, err := sig.MarshalBinary()
 		if err != nil {
 			return nil, err
 		}
 		return append(resp, sigBytes...), nil
+	} else {
+		resp = append(resp, 0)
 	}
 	return resp, nil
 }
 
 func (m *Ack) String() string {
-	return fmt.Sprintf("%6s-VM%3d: PL:%5d DBHt:%5d -- Leader[:3]=%x hash[:3]=%x",
+	return fmt.Sprintf("%6s-VM%3d: PL:%5d DBHt:%5d -- Leader[3:5]=%x hash[:3]=%x",
 		"ACK",
 		m.VMIndex,
 		m.Height,
 		m.DBHeight,
-		m.LeaderChainID.Bytes()[:3],
+		m.LeaderChainID.Bytes()[3:5],
 		m.GetHash().Bytes()[:3])
 
 }

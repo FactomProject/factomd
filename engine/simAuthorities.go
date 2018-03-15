@@ -3,6 +3,7 @@ package engine
 import (
 	"bytes"
 	"crypto/sha256"
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -14,11 +15,11 @@ import (
 	"strings"
 	"time"
 
-	"encoding/binary"
 	ed "github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factom"
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/factoid"
+	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/state"
@@ -691,6 +692,9 @@ func modifyLoadIdentities() {
 	if len(list) == 0 {
 		fmt.Println("Error when loading up identities for fnodes")
 	}
+	// 0 is not modified here
+	addFnodeName(0)
+
 	for i := 1; i < len(fnodes); i++ {
 		if i-1 >= len(list) {
 			break
@@ -709,6 +713,8 @@ func modifyLoadIdentities() {
 			}
 
 			fnodes[i].State.IdentityChainID = list[index]
+			// Build table of identities to names
+			addFnodeName(i)
 
 			buf := new(bytes.Buffer)
 			buf.WriteString(list[index].String())
@@ -726,6 +732,14 @@ func modifyLoadIdentities() {
 			fnodes[i].State.SimSetNewKeys(privkey)
 		}
 	}
+}
+
+func addFnodeName(i int) {
+	// full name
+	globals.FnodeNames[fnodes[i].State.IdentityChainID.String()] = fnodes[i].State.FactomNodeName
+	// common short set
+	globals.FnodeNames[fmt.Sprintf("%x", fnodes[i].State.IdentityChainID.Bytes()[3:6])] = fnodes[i].State.FactomNodeName
+	globals.FnodeNames[fmt.Sprintf("%x", fnodes[i].State.IdentityChainID.Bytes()[:5])] = fnodes[i].State.FactomNodeName
 }
 
 func shad(data []byte) []byte {

@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/messages/msgsupport"
 )
 
 func LoadJournal(s interfaces.IState, journal string) {
@@ -75,7 +75,7 @@ func LoadJournalFromReader(s interfaces.IState, r *bufio.Reader) {
 		}
 
 		// Unmarshal the message.
-		msg, err := messages.UnmarshalMessage(binary)
+		msg, err := msgsupport.UnmarshalMessage(binary)
 		if err != nil {
 			fmt.Println(err)
 			return

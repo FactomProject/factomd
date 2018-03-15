@@ -30,7 +30,7 @@ func (e *AddFederatedServer) String() string {
 	var out primitives.Buffer
 	out.WriteString(fmt.Sprintf("    E: %35s -- %17s %8x %12s %8d",
 		"AddFedServer",
-		"IdentityChainID", e.IdentityChainID.Bytes()[3:5],
+		"IdentityChainID", e.IdentityChainID.Bytes()[3:6],
 		"DBHeight",
 		e.DBHeight))
 	return (string)(out.DeepCopyBytes())

@@ -229,9 +229,8 @@ func getEcTransaction(hash string) interfaces.IECBlockEntry {
 		return nil
 	}
 
-	dbase := StatePointer.GetAndLockDB()
+	dbase := StatePointer.GetDB()
 	trans, err := dbase.FetchECTransaction(mr)
-	StatePointer.UnlockDB()
 
 	if trans == nil || err != nil {
 		return nil
@@ -248,9 +247,8 @@ func getFactTransaction(hash string) interfaces.ITransaction {
 		return nil
 	}
 
-	dbase := StatePointer.GetAndLockDB()
+	dbase := StatePointer.GetDB()
 	trans, err := dbase.FetchFactoidTransaction(mr)
-	StatePointer.UnlockDB()
 
 	if trans == nil || err != nil {
 		return nil
@@ -313,9 +311,8 @@ func getECblock(hash string) *ECBlockHolder {
 		return nil
 	}
 
-	dbase := StatePointer.GetAndLockDB()
+	dbase := StatePointer.GetDB()
 	ecblk, err := dbase.FetchECBlock(mr)
-	StatePointer.UnlockDB()
 
 	if ecblk == nil || err != nil {
 		return nil
@@ -349,9 +346,8 @@ func getFblock(hash string) *FBlockHolder {
 		return nil
 	}
 
-	dbase := StatePointer.GetAndLockDB()
+	dbase := StatePointer.GetDB()
 	fblk, err := dbase.FetchFBlock(mr)
-	StatePointer.UnlockDB()
 
 	if fblk == nil || err != nil {
 		return nil
@@ -402,12 +398,11 @@ func getAblock(hash string) *AblockHolder {
 
 	holder := new(AblockHolder)
 
-	dbase := StatePointer.GetAndLockDB()
+	dbase := StatePointer.GetDB()
 	ablk, err := dbase.FetchABlock(mr)
-	StatePointer.UnlockDB()
 
 	if ablk == nil || err != nil {
-		StatePointer.UnlockDB()
+
 		return nil
 	}
 	bytes, err := ablk.JSONByte()
@@ -542,9 +537,8 @@ func getEblock(hash string) *EblockHolder {
 	}
 	holder := new(EblockHolder)
 
-	dbase := StatePointer.GetAndLockDB()
+	dbase := StatePointer.GetDB()
 	eblk, err := dbase.FetchEBlock(mr)
-	StatePointer.UnlockDB()
 
 	if eblk == nil || err != nil {
 		return nil
@@ -640,9 +634,8 @@ func getDblock(hash string) *DblockHolder {
 	}
 	holder := new(DblockHolder)
 
-	dbase := StatePointer.GetAndLockDB()
+	dbase := StatePointer.GetDB()
 	dblk, err := dbase.FetchDBlock(mr)
-	StatePointer.UnlockDB()
 
 	if dblk == nil || err != nil {
 		return nil
@@ -709,9 +702,8 @@ func getEntry(hash string) *EntryHolder {
 	if err != nil {
 		return nil
 	}
-	dbase := StatePointer.GetAndLockDB()
+	dbase := StatePointer.GetDB()
 	entry, err := dbase.FetchEntry(entryHash)
-	StatePointer.UnlockDB()
 
 	if err != nil {
 		return nil
@@ -771,9 +763,8 @@ func getAllChainEntries(chainIDString string) []SearchedStruct {
 	s.Type = "chainhead"
 	s.Input = chainID.String()
 
-	dbase := StatePointer.GetAndLockDB()
+	dbase := StatePointer.GetDB()
 	mr, err := dbase.FetchHeadIndexByChainID(chainID)
-	StatePointer.UnlockDB()
 
 	if err != nil || mr == nil {
 		return nil
@@ -786,10 +777,10 @@ func getAllChainEntries(chainIDString string) []SearchedStruct {
 
 	entries := make([]interfaces.IEBEntry, 0)
 
-	dbase = StatePointer.GetAndLockDB()
+	dbase = StatePointer.GetDB()
 	eblks, err := dbase.FetchAllEBlocksByChain(chainID)
 	if err != nil {
-		StatePointer.UnlockDB()
+
 		return nil
 	}
 
@@ -804,7 +795,7 @@ func getAllChainEntries(chainIDString string) []SearchedStruct {
 		}
 	}
 	//entries, err := dbase.FetchAllEntriesByChainID(chainID)
-	StatePointer.UnlockDB()
+
 	if err != nil {
 		return nil
 	}

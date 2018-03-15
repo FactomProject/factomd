@@ -728,8 +728,8 @@ func (list *DBStateList) String() string {
 			if ds.DirectoryBlock != nil {
 				rec = "x"
 
-				dblk, _ := list.State.GetAndLockDB().FetchDBlock(ds.DirectoryBlock.GetKeyMR())
-				defer list.State.UnlockDB()
+				dblk, _ := list.State.GetDB().FetchDBlock(ds.DirectoryBlock.GetKeyMR())
+
 				if dblk != nil {
 					rec = "s"
 				}
@@ -875,12 +875,8 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	//list.State.AddStatus(fmt.Sprintf("FIXUPLINKS: Adding the first %d dbsigs",
 	//	majority))
 
-	for i, sig := range list.State.ProcessLists.Get(currentDBHeight).DBSignatures {
-		if i < majority {
-			d.AdminBlock.AddDBSig(sig.ChainID, sig.Signature)
-		} else {
-			break
-		}
+	for _, sig := range list.State.ProcessLists.Get(currentDBHeight).DBSignatures {
+		d.AdminBlock.AddDBSig(sig.ChainID, sig.Signature)
 	}
 
 	//list.State.AddStatus("FIXUPLINKS: Adding the deltas to the Admin Block, if necessary")
@@ -888,6 +884,7 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	// Correcting Server Lists (Caused by Server Faults)
 	for _, cf := range currentFeds {
 		if !containsServer(previousFeds, cf) {
+			fmt.Printf("******* FUL: %12s %12s  Server %x\n", "Promote", list.State.FactomNodeName, cf.GetChainID().Bytes()[3:6])
 			// Promote to federated
 			//index := list.State.isIdentityChain(cf.GetChainID())
 			/*if index == -1 || !(list.State.Identities[index].Status == constants.IDENTITY_PENDING_FEDERATED_SERVER ||
@@ -913,6 +910,7 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 			if containsServer(currentAuds, pf) {
 				demoteEntry := adminBlock.NewAddAuditServer(pf.GetChainID(), currentDBHeight+1)
 				d.AdminBlock.AddFirstABEntry(demoteEntry)
+				fmt.Printf("******* FUL: %12s %12s  Server %x\n", "Demote", list.State.FactomNodeName, pf.GetChainID().Bytes()[3:6])
 			}
 			_ = currentAuds
 		}
@@ -970,6 +968,7 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 
 	progress = true
 	d.IsNew = false
+	list.State.ResetTryCnt = 0
 	return
 }
 
@@ -1026,11 +1025,11 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		out.WriteString(fmt.Sprintf("%19s %20s (%4d)", list.State.FactomNodeName, lable, pl.DBHeight))
 		out.WriteString("Fed: ")
 		for _, f := range pl.FedServers {
-			out.WriteString(fmt.Sprintf("%x ", f.GetChainID().Bytes()[3:5]))
+			out.WriteString(fmt.Sprintf("%x ", f.GetChainID().Bytes()[3:6]))
 		}
 		out.WriteString("---Audit: ")
 		for _, f := range pl.AuditServers {
-			out.WriteString(fmt.Sprintf("%x ", f.GetChainID().Bytes()[3:5]))
+			out.WriteString(fmt.Sprintf("%x ", f.GetChainID().Bytes()[3:6]))
 		}
 		out.WriteString("\n")
 	}

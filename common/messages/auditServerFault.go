@@ -6,17 +6,17 @@ package messages
 
 import (
 	"fmt"
-
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 	log "github.com/sirupsen/logrus"
 )
 
 //A placeholder structure for messages
 type AuditServerFault struct {
-	MessageBase
+	msgbase.MessageBase
 	Timestamp interfaces.Timestamp
 
 	Signature interfaces.IFullSignature
@@ -26,7 +26,7 @@ type AuditServerFault struct {
 }
 
 var _ interfaces.IMsg = (*AuditServerFault)(nil)
-var _ Signable = (*AuditServerFault)(nil)
+var _ interfaces.Signable = (*AuditServerFault)(nil)
 
 func (m *AuditServerFault) GetRepeatHash() interfaces.IHash {
 	return m.GetMsgHash()
@@ -55,7 +55,7 @@ func (a *AuditServerFault) IsSameAs(b *AuditServerFault) bool {
 }
 
 func (m *AuditServerFault) Sign(key interfaces.Signer) error {
-	signature, err := SignSignable(m, key)
+	signature, err := msgbase.SignSignable(m, key)
 	if err != nil {
 		return err
 	}
@@ -68,7 +68,7 @@ func (m *AuditServerFault) GetSignature() interfaces.IFullSignature {
 }
 
 func (m *AuditServerFault) VerifySignature() (bool, error) {
-	return VerifyMessage(m)
+	return msgbase.VerifyMessage(m)
 }
 
 func (e *AuditServerFault) Process(uint32, interfaces.IState) bool {

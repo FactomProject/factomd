@@ -327,6 +327,15 @@ func (p *ProcessList) FedServerFor(minute int, hash []byte) interfaces.IServer {
 	return p.FedServers[fedIndex]
 }
 
+func FedServerVM(serverMap [10][64]int, numberOfFedServers int, minute int, fedIndex int) int {
+	for i := 0; i < numberOfFedServers; i++ {
+		if serverMap[minute][i] == fedIndex {
+			return i
+		}
+	}
+	return -1
+}
+
 func (p *ProcessList) GetVirtualServers(minute int, identityChainID interfaces.IHash) (found bool, index int) {
 	found, fedIndex := p.GetFedServerIndexHash(identityChainID)
 	if !found {
@@ -351,8 +360,6 @@ func (p *ProcessList) GetFedServerIndexHash(identityChainID interfaces.IHash) (b
 		return false, 0
 	}
 
-	p.SortFedServers()
-
 	scid := identityChainID.Bytes()
 
 	for i, fs := range p.FedServers {
@@ -372,8 +379,6 @@ func (p *ProcessList) GetAuditServerIndexHash(identityChainID interfaces.IHash) 
 		return false, 0
 	}
 
-	p.SortAuditServers()
-
 	scid := identityChainID.Bytes()
 
 	for i, fs := range p.AuditServers {
@@ -387,19 +392,23 @@ func (p *ProcessList) GetAuditServerIndexHash(identityChainID interfaces.IHash) 
 
 // This function will be replaced by a calculation from the Matryoshka hashes from the servers
 // but for now, we are just going to make it a function of the dbheight.
-func (p *ProcessList) MakeMap() {
-	n := len(p.FedServers)
-	if n > 0 {
-		indx := int(p.DBHeight*131) % n
-
+// serverMap[minute][vmIndex] => Index of the Federated Server responsible for that minute
+func MakeMap(numberFedServers int, dbheight uint32) (serverMap [10][64]int) {
+	if numberFedServers > 0 {
+		indx := int(dbheight*131) % numberFedServers
 		for i := 0; i < 10; i++ {
-			indx = (indx + 1) % n
-			for j := 0; j < len(p.FedServers); j++ {
-				p.ServerMap[i][j] = indx
-				indx = (indx + 1) % n
+			indx = (indx + 1) % numberFedServers
+			for j := 0; j < numberFedServers; j++ {
+				serverMap[i][j] = indx
+				indx = (indx + 1) % numberFedServers
 			}
 		}
 	}
+	return
+}
+
+func (p *ProcessList) MakeMap() {
+	p.ServerMap = MakeMap(len(p.FedServers), p.DBHeight)
 }
 
 // This function will be replaced by a calculation from the Matryoshka hashes from the servers
@@ -442,6 +451,15 @@ func (p *ProcessList) AddFedServer(identityChainID interfaces.IHash) int {
 		//p.State.AddStatus(fmt.Sprintf("ProcessList.AddFedServer Server %x was an audit server at height %d", identityChainID.Bytes()[2:6], p.DBHeight))
 		p.RemoveAuditServerHash(identityChainID)
 	}
+
+	// Inform Elections of a new leader
+	InMsg := p.State.EFactory.NewAddLeaderInternal(
+		p.State.FactomNodeName,
+		p.DBHeight,
+		identityChainID,
+	)
+	p.State.electionsQueue.Enqueue(InMsg)
+
 	p.FedServers = append(p.FedServers, nil)
 	copy(p.FedServers[i+1:], p.FedServers[i:])
 	p.FedServers[i] = &Server{ChainID: identityChainID, Online: true}
@@ -466,6 +484,14 @@ func (p *ProcessList) AddAuditServer(identityChainID interfaces.IHash) int {
 		//p.State.AddStatus(fmt.Sprintf("ProcessList.AddAuditServer Server %x was a fed server at height %d", identityChainID.Bytes()[2:6], p.DBHeight))
 		p.RemoveFedServerHash(identityChainID)
 	}
+
+	InMsg := p.State.EFactory.NewAddAuditInternal(
+		p.State.FactomNodeName,
+		p.DBHeight,
+		identityChainID,
+	)
+	p.State.electionsQueue.Enqueue(InMsg)
+
 	p.AuditServers = append(p.AuditServers, nil)
 	copy(p.AuditServers[i+1:], p.AuditServers[i:])
 	p.AuditServers[i] = &Server{ChainID: identityChainID, Online: true}
@@ -481,6 +507,14 @@ func (p *ProcessList) RemoveFedServerHash(identityChainID interfaces.IHash) {
 		p.RemoveAuditServerHash(identityChainID) // SOF-201
 		return
 	}
+
+	InMsg := p.State.EFactory.NewRemoveLeaderInternal(
+		p.State.FactomNodeName,
+		p.DBHeight,
+		identityChainID,
+	)
+	p.State.electionsQueue.Enqueue(InMsg)
+
 	p.FedServers = append(p.FedServers[:i], p.FedServers[i+1:]...)
 	p.MakeMap()
 	//p.State.AddStatus(fmt.Sprintf("PROCESSLIST.RemoveFedServer: Removing Server %x", identityChainID.Bytes()[3:8]))
@@ -492,6 +526,14 @@ func (p *ProcessList) RemoveAuditServerHash(identityChainID interfaces.IHash) {
 	if !found {
 		return
 	}
+
+	InMsg := p.State.EFactory.NewRemoveAuditInternal(
+		p.State.FactomNodeName,
+		p.DBHeight,
+		identityChainID,
+	)
+	p.State.electionsQueue.Enqueue(InMsg)
+
 	p.AuditServers = append(p.AuditServers[:i], p.AuditServers[i+1:]...)
 	//p.State.AddStatus(fmt.Sprintf("PROCESSLIST.RemoveAuditServer: Removing Audit Server %x", identityChainID.Bytes()[3:8]))
 }
@@ -950,7 +992,6 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	}
 
 	TotalAcksInputs.Inc()
-	m.PutAck(ack)
 
 	// If this is us, make sure we ignore (if old or in the ignore period) or die because two instances are running.
 	//
@@ -994,7 +1035,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	}
 
 	if ack.DBHeight != p.DBHeight {
-		panic(fmt.Sprintf("Ack is wrong height.  Expected: %d Ack: ", p.DBHeight))
+		// panic(fmt.Sprintf("Ack is wrong height.  Expected: %d Ack: ", p.DBHeight))
 		return
 	}
 
@@ -1140,6 +1181,7 @@ func (p *ProcessList) String() string {
 }
 
 func (p *ProcessList) Reset() bool {
+	return true
 	previous := p.State.ProcessLists.Get(p.DBHeight - 1)
 
 	if previous == nil {

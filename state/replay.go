@@ -17,7 +17,7 @@ import (
 )
 
 const Range = 60                // Double this for the period we protect, i.e. 120 means +/- 120 minutes
-const numBuckets = Range*2 + 60 // Cover the rage in the future and in the past, with an hour buffer.
+const numBuckets = Range*2 + 60 // Cover the range in the future and in the past, with an hour buffer.
 
 var _ = time.Now()
 var _ = fmt.Print
@@ -27,6 +27,9 @@ type Replay struct {
 	Buckets  [numBuckets]map[[32]byte]int
 	Basetime int // hours since 1970
 	Center   int // Hour of the current time.
+	// debug
+	s    *State
+	name string
 }
 
 var _ interfaces.BinaryMarshallable = (*Replay)(nil)
@@ -169,7 +172,7 @@ func Minutes(unix int64) int {
 // Returns false if the hash is too old, or is already a
 // member of the set.  Timestamp is in seconds.
 // Does not add the hash to the buckets!
-func (r *Replay) Valid(mask int, hash [32]byte, timestamp interfaces.Timestamp, systemtime interfaces.Timestamp) (index int, valid bool) {
+func (r *Replay) validate(mask int, hash [32]byte, timestamp interfaces.Timestamp, systemtime interfaces.Timestamp) (index int, valid bool) {
 	now := Minutes(systemtime.GetTimeSeconds())
 	t := Minutes(timestamp.GetTimeSeconds())
 
@@ -180,9 +183,6 @@ func (r *Replay) Valid(mask int, hash [32]byte, timestamp interfaces.Timestamp, 
 		//fmt.Println("Time in hours, range:", hours(timeSeconds-systemTimeSeconds), HourRange)
 		return -1, false
 	}
-
-	r.Mutex.Lock()
-	defer r.Mutex.Unlock()
 
 	if mask == constants.TIME_TEST {
 		return -1, true
@@ -218,12 +218,18 @@ func (r *Replay) Valid(mask int, hash [32]byte, timestamp interfaces.Timestamp, 
 	if r.Buckets[index] == nil {
 		r.Buckets[index] = make(map[[32]byte]int)
 	} else {
-		v, _ := r.Buckets[index][hash]
+		v, ok := r.Buckets[index][hash]
+		_ = ok
 		if v&mask > 0 {
 			return index, false
 		}
 	}
 	return index, true
+}
+func (r *Replay) Valid(mask int, hash [32]byte, timestamp interfaces.Timestamp, systemtime interfaces.Timestamp) (index int, valid bool) {
+	r.Mutex.Lock()
+	defer r.Mutex.Unlock()
+	return r.validate(mask, hash, timestamp, systemtime)
 }
 
 // Checks if the timestamp is valid.  If the timestamp is too old or
@@ -239,12 +245,15 @@ func (r *Replay) IsTSValid(mask int, hash interfaces.IHash, timestamp interfaces
 // as a parameter.  This way, the test code can manipulate the clock
 // at will.
 func (r *Replay) IsTSValid_(mask int, hash [32]byte, timestamp interfaces.Timestamp, now interfaces.Timestamp) bool {
+
+	//TODO: There is a race that the index could go stale while the replay is unlocked. -- clay
 	if index, ok := r.Valid(mask, hash, timestamp, now); ok {
-		r.Mutex.Lock()
-		defer r.Mutex.Unlock()
 		// Mark this hash as seen
 		if mask != constants.TIME_TEST {
+			r.Mutex.Lock()
 			r.Buckets[index][hash] = r.Buckets[index][hash] | mask
+			r.Mutex.Unlock()
+			//			r.s.LogPrintf(r.name, "AddHash1 %x from %s", hash[:4], atomic.WhereAmIString(1))
 		}
 		return true
 	}
@@ -274,12 +283,12 @@ func (r *Replay) SetHashNow(mask int, hash [32]byte, now interfaces.Timestamp) {
 		}
 
 		r.Mutex.Lock()
-		defer r.Mutex.Unlock()
-
 		if r.Buckets[index] == nil {
 			r.Buckets[index] = make(map[[32]byte]int)
 		}
 		r.Buckets[index][hash] = mask | r.Buckets[index][hash]
+		r.Mutex.Unlock()
+		//		r.s.LogPrintf(r.name, "AddHash2 %x from %s", hash[:4], atomic.WhereAmIString(1))
 	}
 }
 

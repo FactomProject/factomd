@@ -18,9 +18,6 @@ type IMsg interface {
 	Printable
 	BinaryMarshallable
 
-	GetAck() IMsg
-	PutAck(IMsg)
-
 	// Returns a byte indicating the type of message.
 	Type() byte
 
@@ -115,4 +112,15 @@ type IMsg interface {
 
 	// Equivalent to String() for logging
 	LogFields() log.Fields
+}
+
+// Internal Messaging supporting Elections
+type IMsgInternal interface {
+	IMsg
+	ProcessElections(IState, IElectionMsg)
+}
+
+type IMsgAck interface {
+	IMsg
+	GetDBHeight() uint32
 }

@@ -10,6 +10,7 @@ import (
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/goleveldb/leveldb/errors"
 )
 
 type Buffer struct {
@@ -40,6 +41,21 @@ func (b *Buffer) PeekByte() (byte, error) {
 	return by, nil
 }
 
+func (b *Buffer) PushBinaryMarshallableMsgArray(bm []interfaces.IMsg) error {
+	err := b.PushInt(len(bm))
+	if err != nil {
+		return err
+	}
+
+	for _, v := range bm {
+		err = b.PushMsg(v)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (b *Buffer) PushBinaryMarshallable(bm interfaces.BinaryMarshallable) error {
 	if bm == nil {
 		return fmt.Errorf("BinaryMarshallable is nil")
@@ -55,11 +71,16 @@ func (b *Buffer) PushBinaryMarshallable(bm interfaces.BinaryMarshallable) error 
 	return nil
 }
 
+func (b *Buffer) PushMsg(msg interfaces.IMsg) error {
+	return b.PushBinaryMarshallable(msg)
+}
+
 func (b *Buffer) PushString(s string) error {
 	return b.PushBytes([]byte(s))
 }
 
 func (b *Buffer) PushBytes(h []byte) error {
+
 	l := uint64(len(h))
 	err := EncodeVarInt(b, l)
 	if err != nil {
@@ -72,6 +93,10 @@ func (b *Buffer) PushBytes(h []byte) error {
 	}
 
 	return nil
+}
+
+func (b *Buffer) PushIHash(h interfaces.IHash) error {
+	return b.PushBytes(h.Bytes())
 }
 
 func (b *Buffer) Push(h []byte) error {
@@ -98,6 +123,10 @@ func (b *Buffer) PushBool(boo bool) error {
 		_, err = b.Write([]byte{0x00})
 	}
 	return err
+}
+
+func (b *Buffer) PushTimestamp(ts interfaces.Timestamp) error {
+	return b.PushInt64(ts.GetTimeMilli())
 }
 
 func (b *Buffer) PushVarInt(vi uint64) error {
@@ -198,6 +227,14 @@ func (b *Buffer) PopBool() (bool, error) {
 	return boo > 0, nil
 }
 
+func (b *Buffer) PopTimestamp() (interfaces.Timestamp, error) {
+	ts, err := b.PopInt64()
+	if err != nil {
+		return nil, err
+	}
+	return NewTimestampFromMilliseconds(uint64(ts)), nil
+}
+
 func (b *Buffer) PopString() (string, error) {
 	h, err := b.PopBytes()
 	if err != nil {
@@ -207,22 +244,28 @@ func (b *Buffer) PopString() (string, error) {
 }
 
 func (b *Buffer) PopBytes() ([]byte, error) {
-	h := b.DeepCopyBytes()
-	l, rest := DecodeVarInt(h)
-
-	if int(l) > len(rest) {
-		return nil, fmt.Errorf("End of buffer")
-	}
-	answer := make([]byte, int(l))
-	copy(answer, rest)
-	remainder := rest[int(l):]
-
-	b.Reset()
-	_, err := b.Write(remainder)
+	l, err := b.PopVarInt()
 	if err != nil {
 		return nil, err
 	}
+
+	answer := make([]byte, int(l))
+	if b.Len() < int(l) {
+		return nil, errors.New(fmt.Sprintf("End of Buffer Looking for %d but only have %d", l, b.Len()))
+	}
+	al, err := b.Read(answer)
+	if al != int(l) {
+		return nil, errors.New("2End of Buffer")
+	}
 	return answer, nil
+}
+
+func (b *Buffer) PopIHash() (interfaces.IHash, error) {
+	bb, err := b.PopBytes()
+	if err != nil {
+		return nil, err
+	}
+	return NewHash(bb), nil
 }
 
 func (b *Buffer) PopLen(l int) ([]byte, error) {
@@ -258,4 +301,39 @@ func (b *Buffer) PopBinaryMarshallable(dst interfaces.BinaryMarshallable) error 
 		return err
 	}
 	return nil
+}
+
+func (b *Buffer) PopBinaryMarshallableMsgArray() ([]interfaces.IMsg, error) {
+	l, err := b.PopInt()
+	if err != nil {
+		return nil, err
+	}
+
+	var msgs []interfaces.IMsg
+	for i := 0; i < l; i++ {
+		var msg interfaces.IMsg
+		msg, err = b.PopMsg()
+		if err != nil {
+			return nil, err
+		}
+		msgs = append(msgs, msg)
+	}
+
+	return msgs, nil
+}
+
+var General interfaces.IGeneralMsg
+
+func (b *Buffer) PopMsg() (msg interfaces.IMsg, err error) {
+	h := b.DeepCopyBytes()
+	rest, msg, err := General.UnmarshalMessageData(h)
+	if err != nil {
+		return nil, err
+	}
+	used := len(h) - len(rest)
+	_, err = b.Write(h[used:])
+	if err != nil {
+		return nil, err
+	}
+	return msg, err
 }

@@ -14,6 +14,7 @@ import (
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/messages/msgsupport"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/primitives/random"
 	statepkg "github.com/FactomProject/factomd/state"
@@ -49,7 +50,7 @@ func TestMarshalUnmarshalDBStateMsg(t *testing.T) {
 	}
 	//t.Logf("Marshalled - %x", hex)
 
-	msg2, err := UnmarshalMessage(hex)
+	msg2, err := msgsupport.UnmarshalMessage(hex)
 	if err != nil {
 		t.Error(err)
 	}

@@ -217,7 +217,7 @@ func (im *IdentityManager) ApplyNewBitcoinKeyStructure(bnk *NewBitcoinKeyStructu
 	/*
 		dbase := st.GetAndLockDB()
 		dblk, err := dbase.FetchDBlockByHeight(height)
-		st.UnlockDB()
+
 		if err == nil && dblk != nil && dblk.GetHeader().GetTimestamp().GetTimeSeconds() != 0 {
 			if !CheckTimestamp(extIDs[6], dblk.GetHeader().GetTimestamp().GetTimeSeconds()) {
 				return errors.New("New Anchor key for identity [" + chainID.String()[:10] + "] timestamp is too old")
@@ -286,7 +286,7 @@ func (im *IdentityManager) ApplyNewBlockSigningKeyStruct(nbsk *NewBlockSigningKe
 
 		dbase := st.GetAndLockDB()
 		dblk, err := dbase.FetchDBlockByHeight(height)
-		st.UnlockDB()
+
 
 		if err == nil && dblk != nil && dblk.GetHeader().GetTimestamp().GetTimeSeconds() != 0 {
 			if !CheckTimestamp(extIDs[4], dblk.GetHeader().GetTimestamp().GetTimeSeconds()) {

@@ -14,12 +14,13 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 	log "github.com/sirupsen/logrus"
 )
 
 //A placeholder structure for messages
 type FullServerFault struct {
-	MessageBase
+	msgbase.MessageBase
 	Timestamp interfaces.Timestamp
 
 	ClearFault bool
@@ -56,7 +57,7 @@ type SigList struct {
 }
 
 var _ interfaces.IMsg = (*FullServerFault)(nil)
-var _ Signable = (*FullServerFault)(nil)
+var _ interfaces.Signable = (*FullServerFault)(nil)
 
 func (m *FullServerFault) GetAmINegotiator() bool {
 	return m.AmINegotiator
@@ -444,11 +445,11 @@ func (m *FullServerFault) GetSignature() interfaces.IFullSignature {
 }
 
 func (m *FullServerFault) VerifySignature() (bool, error) {
-	return VerifyMessage(m)
+	return msgbase.VerifyMessage(m)
 }
 
 func (m *FullServerFault) Sign(key interfaces.Signer) error {
-	signature, err := SignSignable(m, key)
+	signature, err := msgbase.SignSignable(m, key)
 	if err != nil {
 		return err
 	}
