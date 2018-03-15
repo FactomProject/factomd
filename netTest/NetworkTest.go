@@ -47,7 +47,6 @@ func InitNetwork() {
 	networkPortOverridePtr := flag.String("networkPort", "8108", "Address for p2p network to listen on.")
 	logportPtr := flag.String("logPort", "6060", "Port for the profiler")
 	peersPtr := flag.String("peers", "", "Array of peer addresses. ")
-	netdebugPtr := flag.Int("netdebug", 0, "0-5: 0 = quiet, >0 = increasing levels of logging")
 	exclusivePtr := flag.Bool("exclusive", false, "If true, we only dial out to special/trusted peers.")
 	deadlinePtr := flag.Int64("deadline", 1, "Deadline for Reads and Writes to conn.")
 	p2pPtr := flag.Bool("p2p", false, "Test p2p messages (default to false)")
@@ -62,7 +61,6 @@ func InitNetwork() {
 	name = *namePtr
 	port := *networkPortOverridePtr
 	peers := *peersPtr
-	netdebug := *netdebugPtr
 	exclusive := *exclusivePtr
 	logPort = *logportPtr
 	p2p.NetworkDeadline = time.Duration(*deadlinePtr) * time.Millisecond
@@ -78,7 +76,6 @@ func InitNetwork() {
 	os.Stderr.WriteString(fmt.Sprintf("%20s -- %s\n", "name", name))
 	os.Stderr.WriteString(fmt.Sprintf("%20s -- %s\n", "networkPort", port))
 	os.Stderr.WriteString(fmt.Sprintf("%20s -- %s\n", "peers", peers))
-	os.Stderr.WriteString(fmt.Sprintf("%20s -- %d\n", "netdebug", netdebug))
 	os.Stderr.WriteString(fmt.Sprintf("%20s -- %v\n", "exclusive", exclusive))
 	os.Stderr.WriteString(fmt.Sprintf("%20s -- %v\n", "deadline", p2p.NetworkDeadline.Seconds()))
 	os.Stderr.WriteString(fmt.Sprintf("%20s -- %v\n", "p2p", isp2p))
@@ -100,13 +97,7 @@ func InitNetwork() {
 	p2pProxy = new(engine.P2PProxy).Init("testnode", "P2P Network").(*engine.P2PProxy)
 	p2pProxy.FromNetwork = p2pNetwork.FromNetwork
 	p2pProxy.ToNetwork = p2pNetwork.ToNetwork
-	p2pProxy.SetDebugMode(netdebug)
 
-	if netdebug > 0 {
-		p2pNetwork.StartLogging(uint8(netdebug))
-	} else {
-		p2pNetwork.StartLogging(uint8(0))
-	}
 	p2pProxy.StartProxy()
 	// Command line peers lets us manually set special peers
 	p2pNetwork.DialSpecialPeersString("")

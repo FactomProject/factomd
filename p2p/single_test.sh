@@ -7,7 +7,7 @@ go install -a
 if [ $? -eq 0 ]; then
     pkill factomd
     echo "Running single node"
-    factomd -count=2 -folder="test1-" -network="TEST" -networkPort=8118 -peers="127.0.0.1:8121" -netdebug=4 -db=Map & node0=$!
+    factomd -count=2 -folder="test1-" -network="TEST" -networkPort=8118 -peers="127.0.0.1:8121" -db=Map & node0=$!
     echo
     sleep 480
     echo
