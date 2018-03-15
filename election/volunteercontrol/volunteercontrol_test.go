@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	. "github.com/FactomProject/electiontesting/volunteercontrol"
+	. "github.com/FactomProject/electiontesting/election/volunteercontrol"
 )
 
 var _ = NewVolunteerControl

@@ -5,14 +5,13 @@ import (
 
 	"math"
 
+	"github.com/FactomProject/electiontesting/election/volunteercontrol"
 	"github.com/FactomProject/electiontesting/imessage"
 	"github.com/FactomProject/electiontesting/messages"
 	. "github.com/FactomProject/electiontesting/primitives"
-	"github.com/FactomProject/electiontesting/volunteercontrol"
 )
 
 var _ = fmt.Println
-
 
 type Election struct {
 	// Level 0 volunteer votes map[vol]map[leader]msg
@@ -153,7 +152,7 @@ func (e *Election) execute(msg imessage.IMessage) (imessage.IMessage, bool) {
 		change := e.addVote(vote)
 		newll := e.getRank0Vote()
 		if newll != nil { // got a rank0 vote. Check if we can get anything better first
-				e.updateCurrentVote(newll)
+			e.updateCurrentVote(newll)
 			resp, _ := e.execute(newll)
 			if resp != nil {
 				return resp, true
@@ -323,8 +322,8 @@ func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) (
 			e.CurrentLevel++
 		} else {
 			e.CurrentLevel = vote.Level
-				e.CurrentLevel = vote.Level + 1
-			}
+			e.CurrentLevel = vote.Level + 1
+		}
 
 		// Update our last vote
 		e.updateCurrentVote(vote)
@@ -380,9 +379,9 @@ func (e *Election) addLeaderLevelMessage(msg *messages.LeaderLevelMessage) bool 
 
 	voteChange := false
 	// Votes exist, so we can add these to our vote map
-		for _, v := range msg.VoteMessages {
-			// Add vote to maps and display
-			voteChange = e.addVote(v) || voteChange
+	for _, v := range msg.VoteMessages {
+		// Add vote to maps and display
+		voteChange = e.addVote(v) || voteChange
 	}
 
 	return change || voteChange
