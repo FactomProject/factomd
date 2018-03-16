@@ -86,7 +86,7 @@ func (m *CommitEntryMsg) GetRepeatHash() interfaces.IHash {
 }
 
 func (m *CommitEntryMsg) GetHash() interfaces.IHash {
-	return m.GetMsgHash()
+	return m.CommitEntry.EntryHash
 }
 
 func (m *CommitEntryMsg) GetMsgHash() interfaces.IHash {
