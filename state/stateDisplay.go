@@ -51,6 +51,8 @@ type DisplayState struct {
 	ProcessList0 string
 	ProcessList  string
 	ProcessList2 string
+	Election     string
+	SimElection  string
 }
 
 type FactoidTransaction struct {
@@ -95,7 +97,7 @@ func (s *State) CopyStateToControlPanel() error {
 	} else {
 		return fmt.Errorf("DisplayState Error: Control Panel channel has been filled to maximum allowed size.")
 	}
-	return fmt.Errorf("DisplayState Error: Reached unreachable code. Impressive")
+	// 	return fmt.Errorf("DisplayState Error: Reached unreachable code. Impressive")
 }
 
 func DeepStateDisplayCopy(s *State) (*DisplayState, error) {
@@ -245,6 +247,22 @@ func DeepStateDisplayCopy(s *State) (*DisplayState, error) {
 		ds.ProcessList2 = pl2.String()
 	}
 
+	prt = ""
+	prt = prt + "\n" + s.Election0
+	for i, _ := range pl.FedServers {
+		prt = prt + fmt.Sprintf("%4d ", i)
+	}
+	for i, _ := range pl.AuditServers {
+		prt = prt + fmt.Sprintf("%4d ", i)
+	}
+	prt = prt + "\n"
+	prt += "__ _ " // Active
+	prt = prt + s.Election1 + s.Election2 + "\n"
+
+	ds.Election = prt
+
+	ds.SimElection = s.Elections.AdapterStatus()
+
 	return ds, nil
 }
 
@@ -280,6 +298,9 @@ func (d *DisplayState) Clone() *DisplayState {
 	ds.ProcessList = d.ProcessList
 	ds.ProcessList2 = d.ProcessList2
 	ds.ProcessList0 = d.ProcessList0
+	ds.Election = d.Election
+
+	ds.SimElection = d.SimElection
 
 	return ds
 }

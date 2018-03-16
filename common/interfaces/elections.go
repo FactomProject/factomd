@@ -2,6 +2,7 @@ package interfaces
 
 type IElections interface {
 	String() string
+	AdapterStatus() string
 }
 
 type IElectionAdapter interface {

@@ -29,6 +29,10 @@ type DataDump struct {
 		RawDump    string
 		SortedDump string
 	}
+	ElectionDataDump struct {
+		Elections         string
+		SimulatedElection string
+	}
 }
 
 func GetDataDumps() []byte {
@@ -52,6 +56,9 @@ func GetDataDumps() []byte {
 
 	holder.DataDump5.RawDump = AllConnectionsString()
 	holder.DataDump5.SortedDump = SortedConnectionString()
+
+	holder.ElectionDataDump.Elections = DsCopy.Election
+	holder.ElectionDataDump.SimulatedElection = DsCopy.SimElection
 
 	ret, err := json.Marshal(holder)
 	if err != nil {

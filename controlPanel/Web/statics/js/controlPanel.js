@@ -105,6 +105,9 @@ function updataDataDumps() {
 
     $("#dump5 #dumpConRaw").text(obj.DataDump5.RawDump)
     $("#dump5 #dumpSort").text(obj.DataDump5.SortedDump)
+
+    $("#dump6 #dumpElections").text(obj.ElectionDataDump.Elections)
+    $("#dump6 #dumpSimulatedElections").text(obj.ElectionDataDump.SimulatedElection)
   })
 }
 
