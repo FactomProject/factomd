@@ -123,7 +123,7 @@ func printElections(elects *int, value int, listenTo *int, wsapiNode *int) {
 			} else {
 				prt += "__ _ " // Active
 			}
-			prt = prt + s.Election1 + "\n" + s.Election2 + "\n"
+			prt = prt + s.Election1 + s.Election2 + "\n"
 		}
 
 		prt = prt + "===ElectionsEnd===\n"
