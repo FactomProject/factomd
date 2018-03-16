@@ -1,6 +1,6 @@
 package names
 
-import . "github.com/FactomProject/electiontesting/interpreter/common"
+import . "github.com/FactomProject/factomd/electionsCore/interpreter/common"
 
 type Name uint32
 

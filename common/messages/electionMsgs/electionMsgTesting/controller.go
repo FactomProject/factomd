@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"FactomProject/factomd/electionsCore"
-	priminterpreter "github.com/FactomProject/electiontesting/interpreter/primitives"
+	priminterpreter "github.com/FactomProject/factomd/electionsCore/interpreter/primitives"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/messages/electionMsgs"

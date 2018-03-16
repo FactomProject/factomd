@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// set via -ldflags "-X github.com/FactomProject/electiontesting/errorhandling.ErrorMode=debug" on the build line
+// set via -ldflags "-X github.com/FactomProject/factomd/electionsCore/errorhandling.ErrorMode=debug" on the build line
 var ErrorMode string // "" is production, "testing" is running a go test, "debug" is development
 var T *testing.T     // Should be set by all tests first
 

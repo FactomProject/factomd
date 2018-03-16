@@ -1,8 +1,8 @@
 package stack
 
 import (
-	. "github.com/FactomProject/electiontesting/interpreter/common"
-	. "github.com/FactomProject/electiontesting/interpreter/names"
+	. "github.com/FactomProject/factomd/electionsCore/interpreter/common"
+	. "github.com/FactomProject/factomd/electionsCore/interpreter/names"
 )
 
 type Stack struct {

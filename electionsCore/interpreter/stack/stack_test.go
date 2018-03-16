@@ -1,7 +1,7 @@
 package stack_test
 
 import (
-	. "github.com/FactomProject/electiontesting/interpreter/stack"
+	. "github.com/FactomProject/factomd/electionsCore/interpreter/stack"
 	"testing"
 )
 
