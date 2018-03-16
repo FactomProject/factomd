@@ -107,7 +107,7 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 	}
 
 	// No election running, is there one we should start?
-	if e.Electing == -1 {
+	if e.Electing == -1 || m.DBHeight > e.DBHeight || int(m.Minute) > e.Minute {
 
 		servers := s.ProcessLists.Get(uint32(e.DBHeight)).FedServers
 		nfeds := len(servers)
