@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"sync"
+
 	"github.com/FactomProject/factomd/electionsCore/imessage"
 	"github.com/FactomProject/factomd/electionsCore/messages"
 	"github.com/FactomProject/factomd/electionsCore/primitives"
@@ -20,6 +22,9 @@ type Display struct {
 	primitives.AuthSet
 
 	Global *Display
+
+	// Used to control display locking
+	lock sync.RWMutex
 }
 
 func NewDisplay(ele *Election, global *Display) *Display {
@@ -84,7 +89,7 @@ func (d *Display) stringHeader() string {
 	str := fmt.Sprintf("(%s)\n", d.Identifier)
 	// 3 spaces | L# centered 4 slots
 	str += fmt.Sprintf(" %3s", "Lvl")
-	for f, _ := range d.FedList {
+	for f := range d.FedList {
 		headerVal := fmt.Sprintf("L%d", f)
 		str += center(headerVal)
 	}
@@ -92,6 +97,8 @@ func (d *Display) stringHeader() string {
 }
 
 func (d *Display) String() string {
+	d.RLock()
+	defer d.RUnlock()
 	str := d.stringHeader() + "\n"
 
 	for r := range d.Votes {
@@ -120,6 +127,8 @@ func (d *Display) insertVote0Message(msg *messages.VoteMessage) {
 	}
 	row := 0
 
+	d.Lock()
+	defer d.Unlock()
 	// Make row will just ensure the row exists
 	d.makeRow(row)
 
@@ -147,10 +156,12 @@ func (d *Display) insertLeaderLevelMessage(msg *messages.LeaderLevelMessage) {
 	}
 	row := msg.Level
 
+	d.Lock()
 	// Make row will just ensure the row exists
 	d.makeRow(row)
 
 	d.Votes[row][col] = d.FormatLeaderLevelMsgShort(msg)
+	d.Unlock()
 }
 
 func (d *Display) FormatMessage(msg imessage.IMessage) string {
@@ -212,4 +223,22 @@ func (d *Display) getColumn(id primitives.Identity) int {
 		}
 	}
 	return -1
+}
+
+// Lock functions (Put here so we can control the lock actions in 1 place)
+
+func (d *Display) Lock() {
+	d.lock.Lock()
+}
+
+func (d *Display) Unlock() {
+	d.lock.Unlock()
+}
+
+func (d *Display) RLock() {
+	d.lock.RLock()
+}
+
+func (d *Display) RUnlock() {
+	d.lock.RUnlock()
 }
