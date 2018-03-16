@@ -6,17 +6,18 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/engine"
-	"github.com/FactomProject/factomd/p2p"
 	"math/rand"
 	"net/http"
 	"os"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/engine"
+	"github.com/FactomProject/factomd/p2p"
 )
 
 var p2pProxy *engine.P2PProxy

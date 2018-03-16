@@ -1,10 +1,11 @@
 package databaseOverlay
 
 import (
+	"sort"
+
 	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/util"
-	"sort"
 )
 
 // ProcessDirBlockInfoBatch inserts the dirblock info block

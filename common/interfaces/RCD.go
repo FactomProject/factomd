@@ -4,8 +4,6 @@
 
 package interfaces
 
-import ()
-
 /**************************
  * IRCD  Interface for Redeem Condition Datastructures (RCD)
  *

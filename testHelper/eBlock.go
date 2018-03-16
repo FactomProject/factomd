@@ -4,6 +4,7 @@ package testHelper
 
 import (
 	"fmt"
+
 	"github.com/FactomProject/factomd/anchor"
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/entryBlock"

@@ -4,8 +4,6 @@
 
 package interfaces
 
-import ()
-
 type IFBlock interface {
 	BinaryMarshallable
 	Printable

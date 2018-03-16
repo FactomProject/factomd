@@ -4,8 +4,6 @@
 
 package interfaces
 
-import ()
-
 // The wallet interface uses bytes.  This is because we want to
 // handle fixed length values in our maps and the   If
 // we try to use strings, then the lengths vary based on encoding

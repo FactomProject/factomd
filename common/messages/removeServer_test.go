@@ -4,8 +4,6 @@
 
 package messages_test
 
-import (
 //"testing"
 
 //. "github.com/FactomProject/factomd/common/messages"
-)

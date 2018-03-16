@@ -5,9 +5,10 @@
 package databaseOverlay_test
 
 import (
+	"testing"
+
 	"github.com/FactomProject/factomd/anchor"
 	"github.com/FactomProject/factomd/testHelper"
-	"testing"
 )
 
 func TestRebuildDirBlockInfo(t *testing.T) {

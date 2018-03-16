@@ -4,8 +4,6 @@
 
 package interfaces
 
-import ()
-
 type IEBEntry interface {
 	DatabaseBatchable
 	Printable

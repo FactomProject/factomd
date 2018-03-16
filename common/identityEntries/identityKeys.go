@@ -1,7 +1,5 @@
 package identityEntries
 
-import ()
-
 //https://github.com/FactomProject/FactomDocs/blob/master/Identity.md
 
 //TODO:

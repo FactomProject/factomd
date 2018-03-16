@@ -4,8 +4,6 @@
 
 package interfaces
 
-import ()
-
 // The Peer interface allows Factom to connect to any implementation of a p2p network.
 // The simulator uses an implementation of IPeer to simulate various networks
 type IPeer interface {

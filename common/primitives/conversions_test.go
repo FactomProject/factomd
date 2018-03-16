@@ -6,9 +6,10 @@ package primitives_test
 
 import (
 	"fmt"
+	"testing"
+
 	. "github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/go-bip39"
-	"testing"
 )
 
 /*

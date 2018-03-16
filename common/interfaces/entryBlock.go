@@ -4,8 +4,6 @@
 
 package interfaces
 
-import ()
-
 type IEntryBlock interface {
 	Printable
 	DatabaseBatchable

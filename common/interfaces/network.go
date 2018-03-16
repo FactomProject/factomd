@@ -4,8 +4,6 @@
 
 package interfaces
 
-import ()
-
 type INetwork interface {
 	Recieve() IMsg
 	Broadcast(IMsg)

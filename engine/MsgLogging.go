@@ -6,9 +6,10 @@ package engine
 
 import (
 	"fmt"
+	"sync"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/log"
-	"sync"
 )
 
 var _ = log.Printf

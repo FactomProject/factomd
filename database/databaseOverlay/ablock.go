@@ -1,11 +1,12 @@
 package databaseOverlay
 
 import (
+	"sort"
+
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/util"
-	"sort"
 )
 
 // ProcessABlockBatch inserts the AdminBlock

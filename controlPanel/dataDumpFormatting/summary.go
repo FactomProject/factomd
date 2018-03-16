@@ -1,10 +1,8 @@
 package dataDumpFormatting
 
-import (
 //"fmt"
 
 //"github.com/FactomProject/factomd/state"
-)
 
 /*func RawSummary(fnodes []*state.State) string {
 	out := ""
