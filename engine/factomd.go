@@ -38,6 +38,7 @@ func Factomd(params *FactomParams, listenToStdin bool) interfaces.IState {
 	log.Printf("Using build: %s\n", Build)
 	log.Printf("Version: %s\n", FactomdVersion)
 
+
 	state0 := new(state.State)
 	state0.IsRunning = true
 	state0.SetLeaderTimestamp(primitives.NewTimestampFromMilliseconds(0))

@@ -56,24 +56,14 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 	valid := msg.Validate(s)
 	switch valid {
 	case 1:
-		// The highest block for which we have received a message.  Sometimes the same as
-		var vml int
-		if vm == nil || vm.List == nil {
-			vml = 0
-		} else {
-			vml = len(vm.List)
-		}
-		local := msg.IsLocal()
-		vmi := msg.GetVMIndex()
-		hkb := s.GetHighestKnownBlock()
 		if s.RunLeader &&
 			s.Leader &&
 			!s.Saving &&
-			vm != nil && int(vm.Height) == vml &&
+			vm != nil && int(vm.Height) == len(vm.List) &&
 			(!s.Syncing || !vm.Synced) &&
-			(local || vmi == s.LeaderVMIndex) &&
-			s.LeaderPL.DBHeight+1 >= hkb {
-			if vml == 0 {
+			(msg.IsLocal() || msg.GetVMIndex() == s.LeaderVMIndex) &&
+			s.LeaderPL.DBHeight+1 >= s.GetHighestKnownBlock() {
+			if len(vm.List) == 0 {
 				s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex)
 				TotalXReviewQueueInputs.Inc()
 				s.XReview = append(s.XReview, msg)
@@ -240,10 +230,10 @@ processLoop:
 		select {
 		case msg := <-process:
 			progress = s.executeMsg(vm, msg) || progress
-			s.UpdateState()
+		s.UpdateState()
 		default:
 			break processLoop
-		}
+	}
 	} // processLoop for{...}
 
 	processProcChanTime := time.Since(preProcessProcChanTime)
@@ -361,6 +351,30 @@ func (s *State) ReviewHolding() {
 			continue
 		}
 
+		// If it is an entryCommit and it has a duplicate hash to an existing entry throw it away here
+		{
+			ce, ok := v.(*messages.CommitEntryMsg)
+			if ok {
+				x := s.NoEntryYet(ce.CommitEntry.EntryHash, ce.CommitEntry.GetTimestamp())
+				if !x {
+					TotalHoldingQueueOutputs.Inc()
+					delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
+					continue
+				}
+			}
+		}
+		// If it is an chainCommit and it has a duplicate hash to an existing entry throw it away here
+		{
+			ce, ok := v.(*messages.CommitChainMsg)
+			if ok {
+				x := s.NoEntryYet(ce.CommitChain.EntryHash, ce.CommitChain.GetTimestamp())
+				if !x {
+					TotalHoldingQueueOutputs.Inc()
+					delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
+					continue
+				}
+			}
+		}
 		if v.Expire(s) {
 			s.ExpireCnt++
 			TotalHoldingQueueOutputs.Inc()
@@ -933,8 +947,8 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 
 	if s.Commits.Get(m.GetMsgHash().Fixed()) != nil {
 		if m.Validate(s) == 1 {
-			m.SendOut(s, m)
-		}
+		m.SendOut(s, m)
+	}
 	}
 
 	s.Holding[m.GetMsgHash().Fixed()] = m
@@ -1118,9 +1132,9 @@ func (s *State) LeaderExecuteCommitEntry(m interfaces.IMsg) {
 	if re != nil {
 		s.XReview = append(s.XReview, re)
 		if re.Validate(s) == 1 {
-			re.SendOut(s, re)
-		}
+		re.SendOut(s, re)
 	}
+}
 }
 
 func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {

@@ -189,7 +189,6 @@ func ParseCmdLine(args []string) *FactomParams {
 	StderrLogPtr := flag.String("stderrlog", "", "Log stderr to a file, optionally the same file as stdout")
 
 	MutexProfilePtr := flag.Bool("mutexprofile", false, "Enable Mutex Profile")
-
 	flag.CommandLine.Parse(args)
 
 	p.AckbalanceHash = *ackBalanceHashPtr
@@ -244,7 +243,6 @@ func ParseCmdLine(args []string) *FactomParams {
 	p.logstashURL = *logstashURL
 
 	p.Sync2 = *sync2Ptr
-
 	// Factom main flags (not used by individual simulations)
 	p.DebugConsole = *DebugConsolePtr
 	p.StdoutLog = *StdoutLogPtr

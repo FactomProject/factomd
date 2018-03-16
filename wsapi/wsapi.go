@@ -122,9 +122,10 @@ func SetState(state interfaces.IState) {
 	wait := func() {
 		ServersMutex.Lock()
 		defer ServersMutex.Unlock()
-		for Servers == nil || Servers[state.GetPort()] == nil {
-			ServersMutex.Unlock()             // unlock it so it can be updated ...
-			time.Sleep(10 * time.Millisecond) // wait till the server exists
+		//todo: Should wait() instead of sleep but that requires plumbing a wait group....
+		for Servers == nil && Servers[state.GetPort()] != nil && Servers[state.GetPort()].Env != nil {
+			ServersMutex.Unlock()
+			time.Sleep(10 * time.Millisecond)
 			ServersMutex.Lock()
 		}
 		gp := state.GetPort()

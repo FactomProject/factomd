@@ -1962,9 +1962,7 @@ func (s *State) SetPort(port int) {
 	s.PortNumber = port
 }
 
-func (s *State) GetPort() int {
-	return s.PortNumber
-}
+func (s *State) GetPort() int { return s.PortNumber }
 
 func (s *State) TickerQueue() chan int {
 	return s.tickerQueue
