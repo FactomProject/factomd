@@ -1,7 +1,7 @@
 #!/bin/bash
 
 nchains=120   # number of chains to create
-nentries=30    # number of entries to add to each chain
+nentries=35    # number of entries to add to each chain
 
 #factomd=10.41.0.16:8088
 factomd=localhost:8088
@@ -14,6 +14,7 @@ fa1=$(factom-cli -s=$factomd importaddress Fs3E9gV6DXsYzf7Fqx1fVBQPQXV695eP3k5Xb
 
 minsleep=1
 randsleep=2
+entrysize=100
 
 ec1=$(factom-cli -s=$factomd importaddress Es3LB2YW9bpdWmMnNQYb31kyPzqnecsNqmg5W4K7FKp4UP6omRTa)
 
@@ -27,7 +28,7 @@ factom-cli -s=$factomd listaddresses
 
 addentries() {
     # create a random datafile
-	datalen=$(shuf -i 100-9000 -n 1)
+	datalen=$(shuf -i 10-$entrysize -n 1)
 	datafile=$(mktemp)
 	base64 /dev/urandom | head -c $datalen > $datafile
 
