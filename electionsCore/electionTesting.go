@@ -1,5 +1,5 @@
 package electiontesting
 
 import (
-	_ "FactomProject/factomd/electionsCore"
+	_ "github.com/FactomProject/factomd/electionsCore/election"
 )
