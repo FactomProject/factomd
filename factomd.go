@@ -9,7 +9,6 @@ import (
 
 	"bufio"
 	"fmt"
-<<<<<<< HEAD
 	. "github.com/FactomProject/factomd/engine"
 	log "github.com/sirupsen/logrus"
 	"io"
@@ -21,21 +20,6 @@ import (
 	"sync"
 	"time"
 	"github.com/pkg/profile"
-=======
-	"runtime"
-	"time"
-
-	. "github.com/FactomProject/factomd/engine"
-	log "github.com/sirupsen/logrus"
-
-	"bufio"
-	"io"
-	"net"
-	"os/exec"
-	"strconv"
-	"strings"
-	"sync"
->>>>>>> develop
 )
 
 func main() {
@@ -47,7 +31,6 @@ func main() {
 		handleLogfiles(params.StdoutLog, params.StderrLog)
 	}
 
-<<<<<<< HEAD
 	if params.MutexProfile {
 		runtime.SetMutexProfileFraction(5)
 		path := os.Getenv("HOME") + "/go/src/github.com/FactomProject/factomd"
@@ -56,8 +39,6 @@ func main() {
 	}
 
 
-=======
->>>>>>> develop
 	log.Print("//////////////////////// Copyright 2017 Factom Foundation")
 	log.Print("//////////////////////// Use of this source code is governed by the MIT")
 	log.Print("//////////////////////// license that can be found in the LICENSE file.")
@@ -77,13 +58,7 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU()) // TODO: should be *2 to use hyperthreadding? -- clay
 
 	fmt.Printf("Arguments\n %+v\n", params)
-<<<<<<< HEAD
 	sim_Stdin := params.Sim_Stdin
-=======
-
-	sim_Stdin := params.Sim_Stdin
-
->>>>>>> develop
 	state := Factomd(params, sim_Stdin)
 	for state.Running() {
 		time.Sleep(time.Second)
@@ -95,13 +70,10 @@ func main() {
 func isCompilerVersionOK() bool {
 	goodenough := false
 
-<<<<<<< HEAD
 	if strings.Contains(runtime.Version(), "1.5") {
 		goodenough = true
 	}
 
-=======
->>>>>>> develop
 	if strings.Contains(runtime.Version(), "1.6") {
 		goodenough = true
 	}
@@ -117,14 +89,9 @@ func isCompilerVersionOK() bool {
 	if strings.Contains(runtime.Version(), "1.9") {
 		goodenough = true
 	}
-<<<<<<< HEAD
-=======
-
 	if strings.Contains(runtime.Version(), "1.10") {
 		goodenough = true
 	}
-
->>>>>>> develop
 	return goodenough
 }
 
@@ -192,11 +159,7 @@ func launchDebugServer(service string) {
 	// start a go routine to tee stderr to the debug console
 	debugConsole_r, debugConsole_w, _ := os.Pipe() // Can't use the writer directly as os.Stdout so make a pipe
 	var wait sync.WaitGroup
-<<<<<<< HEAD
 	wait.Add(1)
-=======
-	wait.Add(2)
->>>>>>> develop
 	go func() {
 
 		r, w, _ := os.Pipe() // Can't use the writer directly as os.Stderr so make a pipe
@@ -209,7 +172,6 @@ func launchDebugServer(service string) {
 			panic(err)
 		}
 	}() // stderr redirect func
-<<<<<<< HEAD
 	/*
 		wait.Add(1)
 		go func() {
@@ -225,21 +187,6 @@ func launchDebugServer(service string) {
 			}
 		}() // stderr redirect func
 	*/
-=======
-	go func() {
-
-		r, w, _ := os.Pipe() // Can't use the writer directly as os.Stderr so make a pipe
-		oldStdout := os.Stdout
-		os.Stdout = w
-		defer oldStdout.Close()                  // since I'm taking this away from  OS I need to close it when the time comes
-		defer time.Sleep(100 * time.Millisecond) // let the output all complete
-		wait.Done()
-		if _, err := io.Copy(io.MultiWriter(oldStdout, debugConsole_w), r); err != nil { // copy till EOF
-			panic(err)
-		}
-	}() // stderr redirect func
-
->>>>>>> develop
 	wait.Wait() // Let the redirection become active ...
 
 	host, port := "localhost", "8093" // defaults
@@ -325,8 +272,4 @@ func launchDebugServer(service string) {
 	}
 	os.Stdin = newStdInR               // start using the pipe as input
 	time.Sleep(100 * time.Millisecond) // Let the redirection become active ...
-<<<<<<< HEAD
-=======
-
->>>>>>> develop
 }
