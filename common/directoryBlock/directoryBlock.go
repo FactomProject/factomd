@@ -10,6 +10,7 @@ import (
 	"fmt"
 
 	"errors"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -364,10 +365,11 @@ func UnmarshalDBlock(data []byte) (interfaces.IDirectoryBlock, error) {
 }
 
 func (b *DirectoryBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
-	buf := primitives.NewBuffer(data)
+	newData := data
+	var err error
 	var fbh interfaces.IDirectoryBlockHeader = new(DBlockHeader)
 
-	err := buf.PopBinaryMarshallable(fbh)
+	newData, err = fbh.UnmarshalBinaryData(data)
 	if err != nil {
 		return nil, err
 	}
@@ -377,7 +379,7 @@ func (b *DirectoryBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	entries := make([]interfaces.IDBEntry, count)
 	for i := uint32(0); i < count; i++ {
 		entries[i] = new(DBEntry)
-		err = buf.PopBinaryMarshallable(entries[i])
+		newData, err = entries[i].UnmarshalBinaryData(newData)
 		if err != nil {
 			return nil, err
 		}
@@ -393,7 +395,7 @@ func (b *DirectoryBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	return buf.DeepCopyBytes(), nil
+	return newData, nil
 }
 
 func (h *DirectoryBlock) GetTimestamp() interfaces.Timestamp {
