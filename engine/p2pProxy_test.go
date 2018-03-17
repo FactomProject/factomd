@@ -51,18 +51,4 @@ func TestMiscP2Pproxy(t *testing.T) {
 		t.Errorf("GetNameFrom was %s instead of FNodeTest\n", nameFrom)
 	}
 
-	p2pTestProxy.InstantaneousStatusReport([]*FactomNode{})
-}
-
-func TestMiscMessageLog(t *testing.T) {
-	messageLogTester := new(MessageLog)
-
-	_, err := messageLogTester.JSONByte()
-
-	if err != nil {
-		t.Error("MessageLog JSONByte err:", err)
-	}
-
-	_ = messageLogTester.String()
-
 }

@@ -104,8 +104,6 @@ Which will get you something like:
             If true, force node to be a leader.  Only used when replaying a journal. (default true)
     -net string
             The default algorithm to build the network connections (default "tree")
-    -netdebug int
-            0-5: 0 = quiet, >0 = increasing levels of logging
     -node int
             Node Number the simulator will set as the focus
     -p2pPort string
