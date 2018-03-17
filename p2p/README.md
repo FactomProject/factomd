@@ -22,8 +22,6 @@ Nodes can be set up to only dial out to a limited set of peers, called "special 
 ```
   -customnet string
     	This string specifies a custom blockchain network ID.
-  -netdebug int
-    	0-5: 0 = quiet, >0 = increasing levels of logging
   -network string
     	Network to join: MAIN, TEST or LOCAL
   -networkPort int
