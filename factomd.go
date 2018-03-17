@@ -7,16 +7,16 @@ package main
 import (
 	"os"
 
-	"fmt"
-	"runtime"
-	"time"
 	"bufio"
+	"fmt"
 	"io"
 	"net"
 	"os/exec"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	. "github.com/FactomProject/factomd/engine"
 )
