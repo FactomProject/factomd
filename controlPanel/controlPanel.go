@@ -54,6 +54,9 @@ var (
 	// Sync Mutex
 	TemplateMutex     sync.Mutex
 	DisplayStateMutex sync.RWMutex
+
+	// This is the cached dblock for the getRecentTransactions thread
+	getRecentTransactionsDBlock interfaces.IDirectoryBlock
 )
 
 func directoryExists(path string) bool {
@@ -72,7 +75,12 @@ func DisplayStateDrain(channel chan state.DisplayState) {
 		select {
 		case ds := <-channel:
 			DisplayStateMutex.Lock()
+			// Keep our block if there is not a new dblock
+			dblock := DisplayState.LastDirectoryBlock
 			DisplayState = ds
+			if ds.LastDirectoryBlock == nil {
+				DisplayState.LastDirectoryBlock = dblock
+			}
 			DisplayStateMutex.Unlock()
 		default:
 			RequestData()
@@ -516,24 +524,31 @@ func getRecentTransactions(time.Time) {
 		return
 	}
 
+	var last interfaces.IDirectoryBlock
+	// Need to copy the dblock as this runs on it's own thread. Only copy if it is new
 	DisplayStateMutex.RLock()
 	if DisplayState.LastDirectoryBlock == nil {
 		DisplayStateMutex.RUnlock()
 		return
 	}
-	data, err := DisplayState.LastDirectoryBlock.MarshalBinary()
-	if err != nil {
+
+	// If our cached dblock is the same as the new one, don't make another copy
+	if getRecentTransactionsDBlock == nil || DisplayState.LastDirectoryBlock.GetDatabaseHeight() != getRecentTransactionsDBlock.GetDatabaseHeight() {
+		data, err := DisplayState.LastDirectoryBlock.MarshalBinary()
 		DisplayStateMutex.RUnlock()
-		return
-	}
-	last, err := directoryBlock.UnmarshalDBlock(data)
-	err = last.UnmarshalBinary(data)
-	if err != nil {
+		if err != nil {
+			return
+		}
+
+		last, err = directoryBlock.UnmarshalDBlock(data)
+		if err != nil {
+			return
+		}
+		getRecentTransactionsDBlock = last
+	} else {
 		DisplayStateMutex.RUnlock()
-		return
+		last = getRecentTransactionsDBlock
 	}
-	//last := DisplayState.LastDirectoryBlock
-	DisplayStateMutex.RUnlock()
 
 	if last == nil {
 		return
@@ -558,16 +573,19 @@ func getRecentTransactions(time.Time) {
 	}{last.GetKeyMR().String(), last.BodyKeyMR().String(), last.GetFullHash().String(), fmt.Sprintf("%d", last.GetDatabaseHeight()), last.GetTimestamp().String(), last.GetHeader().GetPrevFullHash().String(), last.GetHeader().GetPrevKeyMR().String()}
 	// Process list items
 	DisplayStateMutex.RLock()
-	for _, entry := range DisplayState.PLEntry {
+	for i, entry := range DisplayState.PLEntry {
 		e := new(EntryHolder)
 		e.Hash = entry.EntryHash
 		e.ChainID = "Processing"
 		if !RecentTransactions.ContainsEntry(e.Hash) {
 			RecentTransactions.Entries = append(RecentTransactions.Entries, *e)
 		}
+		if i > 100 {
+			break // We only care about top 100
+		}
 	}
 
-	for _, fTrans := range DisplayState.PLFactoid {
+	for i, fTrans := range DisplayState.PLFactoid {
 		if fTrans.TotalInputs == 0 {
 			continue
 		}
@@ -580,6 +598,9 @@ func getRecentTransactions(time.Time) {
 				TotalInputs  int
 				TotalOutputs int
 			}{fTrans.TxID, fTrans.Hash, fTrans.TotalInput, "Processing", fTrans.TotalInputs, fTrans.TotalOutputs})
+		}
+		if i > 100 {
+			break // We only care about top 100
 		}
 	}
 	DisplayStateMutex.RUnlock()

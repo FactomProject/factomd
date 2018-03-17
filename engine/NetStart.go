@@ -164,8 +164,6 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		}
 		if p.EnableNet {
 			p2pNetwork.NetworkStop()
-			// NODE_TALK_FIX
-			p2pProxy.stopProxy()
 		}
 		fmt.Print("Waiting...\r\n")
 		time.Sleep(3 * time.Second)
@@ -245,7 +243,6 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "database", p.Db))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "database for clones", p.CloneDB))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "peers", p.Peers))
-	os.Stderr.WriteString(fmt.Sprintf("%20s \"%d\"\n", "netdebug", p.Netdebug))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%t\"\n", "exclusive", p.Exclusive))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "block time", p.BlkTime))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "faultTimeout", p.FaultTimeout))
@@ -329,11 +326,13 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	p2p.NetworkDeadline = time.Duration(p.deadline) * time.Millisecond
 
 	if p.EnableNet {
+		nodeName := fnodes[0].State.FactomNodeName
 		if 0 < p.NetworkPortOverride {
 			networkPort = fmt.Sprintf("%d", p.NetworkPortOverride)
 		}
 
 		ci := p2p.ControllerInit{
+			NodeName:                 nodeName,
 			Port:                     networkPort,
 			PeersFile:                s.PeersFile,
 			Network:                  networkID,
@@ -345,18 +344,11 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		p2pNetwork = new(p2p.Controller).Init(ci)
 		fnodes[0].State.NetworkControler = p2pNetwork
 		p2pNetwork.StartNetwork()
-		p2pProxy = new(P2PProxy).Init(fnodes[0].State.FactomNodeName, "P2P Network").(*P2PProxy)
+		p2pProxy = new(P2PProxy).Init(nodeName, "P2P Network").(*P2PProxy)
 		p2pProxy.FromNetwork = p2pNetwork.FromNetwork
 		p2pProxy.ToNetwork = p2pNetwork.ToNetwork
 
 		fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
-		p2pProxy.SetDebugMode(p.Netdebug)
-		if 0 < p.Netdebug {
-			go p2pProxy.PeriodicStatusReport(fnodes)
-			p2pNetwork.StartLogging(uint8(p.Netdebug))
-		} else {
-			p2pNetwork.StartLogging(uint8(0))
-		}
 		p2pProxy.StartProxy()
 		// Command line peers lets us manually set special peers
 		p2pNetwork.DialSpecialPeersString(p.Peers)

@@ -7,20 +7,18 @@ package main
 import (
 	"os"
 
-	"fmt"
-	"runtime"
-	"time"
-
-	. "github.com/FactomProject/factomd/engine"
-	log "github.com/sirupsen/logrus"
-
 	"bufio"
+	"fmt"
 	"io"
 	"net"
 	"os/exec"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
+	"time"
+
+	. "github.com/FactomProject/factomd/engine"
 )
 
 func main() {
@@ -31,12 +29,12 @@ func main() {
 		handleLogfiles(params.StdoutLog, params.StderrLog)
 	}
 
-	log.Print("//////////////////////// Copyright 2017 Factom Foundation")
-	log.Print("//////////////////////// Use of this source code is governed by the MIT")
-	log.Print("//////////////////////// license that can be found in the LICENSE file.")
+	fmt.Print("//////////////////////// Copyright 2017 Factom Foundation\n")
+	fmt.Print("//////////////////////// Use of this source code is governed by the MIT\n")
+	fmt.Print("//////////////////////// license that can be found in the LICENSE file.\n")
 
 	if !isCompilerVersionOK() {
-		log.Println("!!! !!! !!! ERROR: unsupported compiler version !!! !!! !!!")
+		fmt.Println("!!! !!! !!! ERROR: unsupported compiler version !!! !!! !!!")
 		time.Sleep(3 * time.Second)
 		os.Exit(1)
 	}
