@@ -17,7 +17,7 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 
 	for *summary == value {
 		prt := "===SummaryStart===\n\n"
-		prt = fmt.Sprintf("%sTime: %d\n", prt, time.Now().Unix())
+		prt = fmt.Sprintf("%sTime: %d %s\n", prt, time.Now().Unix(), time.Now().String())
 
 		for i, f := range fnodes {
 			f.Index = i
@@ -45,7 +45,7 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 
 		time.Sleep(time.Second)
 
-		prt = prt + "    " + pnodes[0].State.SummaryHeader()
+		prt = prt + "    " + pnodes[*listenTo].State.SummaryHeader()
 
 		for i, f := range pnodes {
 			in := ""

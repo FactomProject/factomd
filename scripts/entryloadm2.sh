@@ -1,7 +1,8 @@
 #!/bin/bash
 
-nchains=120   # number of chains to create
-nentries=35    # number of entries to add to each chain
+nchains=30   # number of chains to create
+nchains2=50   # number of chains to create
+nentries=1   # number of entries to add to each chain
 
 #factomd=10.41.0.16:8088
 factomd=localhost:8088
@@ -19,10 +20,9 @@ entrysize=100
 ec1=$(factom-cli -s=$factomd importaddress Es3LB2YW9bpdWmMnNQYb31kyPzqnecsNqmg5W4K7FKp4UP6omRTa)
 
 
-buyECs=$(expr $nentries \* $nchains \* 11 )
+buyECs=10000000
 echo "Buying" $buyECs $fa1 $ec1
 factom-cli -s=$factomd buyec $fa1 $ec1 $buyECs
-sleep 5s
 	
 factom-cli -s=$factomd listaddresses
 
@@ -48,16 +48,14 @@ addentries() {
 
 echo "Start"
 
-for ((i=0; i<nchains; i++)); do
-	echo "create chain" $i
-	chainid=$(echo test $i $RANDOM | factom-cli -s=$factomd addchain -f  -n test -n $i -n $RANDOM $ec1 | awk '/ChainID/{print $2}')
-	addentries $chainid $i &
-	echo "create chain" $i "b"
-	chainid=$(echo test $i $RANDOM | factom-cli -s=$factomd addchain -f  -n test -n $i -n $RANDOM $ec1 | awk '/ChainID/{print $2}')
-	addentries $chainid $i &
-	sleep $(( ( RANDOM % $randsleep )/2  + minsleep ))
+for ((ii=0; ii<nchains2; ii++)); do
+	for ((i=0; i<nchains; i++)); do
+		echo "create chain" $i
+		chainid=$(echo test $i $RANDOM | factom-cli -s=$factomd addchain -f  -n test -n $i -n $RANDOM $ec1 | awk '/ChainID/{print $2}')
+		addentries $chainid $i &
+	done
+	sleep $minsleep
 done
-
 
 echo SLEEP "a little pause before we go again!"
 sleep $(( $minsleep * 10 ))

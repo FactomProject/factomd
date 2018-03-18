@@ -7,6 +7,7 @@ package entryCreditBlock
 import (
 	"fmt"
 
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -104,7 +105,7 @@ func (e *IncreaseBalance) GetSigHash() interfaces.IHash {
 }
 
 func (b *IncreaseBalance) ECID() byte {
-	return ECIDBalanceIncrease
+	return constants.ECIDBalanceIncrease
 }
 
 func (b *IncreaseBalance) IsInterpretable() bool {

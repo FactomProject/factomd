@@ -75,6 +75,9 @@ func (h *Hash) UnmarshalText(b []byte) error {
 }
 
 func (h *Hash) Fixed() [constants.HASH_LENGTH]byte {
+	if h == nil {
+		panic("nil Hash")
+	}
 	return *h
 }
 
