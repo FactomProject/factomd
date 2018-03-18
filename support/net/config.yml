@@ -1,0 +1,42 @@
+---
+# WARNING: Before changing this file make sure the environment is down,
+# otherwise the tool may lose track of the containers or assign IP addresses in
+# a different order and it may interfere with tests.
+
+# List of factom nodes
+nodes:
+    - name: node1  # the name of the node, should be unique in the environment
+      seed: true   # if true, the node address will be added to the list of
+                   # seeds available when factomd are starting, default: false
+
+    - name: node2
+
+    - name: node3
+
+# Initial rules for the network, use to set up the initial topology of the
+# network (nodes + seed_server).
+# By default all nodes are connected, you can use deny or allow rules to
+# override this. Rules are evaluated in order, so whenever a rule is matched
+# the processing is stopped. Note that the seed_server is considered a node in
+# the network, so blocking access for a node to the whole network means that it
+# will not be able to access the seed_server.
+#
+# Example:
+#
+# Given nodes: A, B, C and the following set of rules:
+#  - allow: B -> A
+#  - deny: * <-> A
+# will result in the following network:
+#  A <- B <-> C
+# (-> denotes a one-way connection and <-> a two-way connection).
+
+network:
+    rules:
+        - action: deny    # allow or deny
+          source: node2   # a node name or "*" for the whole network
+          target: "*"     # a node name or "*" for the whole network
+          one-way: false  # if true, the rule is applied one-way (source ->
+                          # target), if false, the rule is applied both ways
+                          # (source <-> target), default: false
+        - action: deny
+          source: node3
