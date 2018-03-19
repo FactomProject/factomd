@@ -15,8 +15,8 @@ nodes:
       # seeds available when factomd are starting, default: false
       seed: true
       # set a role for the node, by default each node is a
-      # follower, but can be changed to leader or audit
-      role: leader
+      # follower, but can be changed to federated or audit
+      role: federated
       # port on the host machine where the UI for this node is exposed,
       # requires rebuilding images
       ui_port: 8090

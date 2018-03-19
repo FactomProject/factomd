@@ -4,6 +4,7 @@
 nodes:
     - name: leader
       seed: true
+      role: federated
     # first level
     - name: follower1
       seed: true

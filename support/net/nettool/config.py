@@ -11,7 +11,7 @@ from nettool import log
 NODE = Schema({
     "name": str,
     Optional("seed"): bool,
-    Optional("role"): Or("follower", "leader", "audit"),
+    Optional("role"): Or("follower", "federated", "audit"),
     Optional("ui_port"): int,
     Optional("api_port"): int,
     Optional("flags"): str

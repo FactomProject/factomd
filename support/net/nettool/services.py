@@ -218,11 +218,11 @@ class Factomd(Service):
         return self.config.seed
 
     @property
-    def is_leader(self):
+    def is_federated(self):
         """
-        If True, this node will be promoted to a leader.
+        If True, this node will be promoted to a federated server.
         """
-        return self.config.role == "leader"
+        return self.config.role == "federated"
 
     @property
     def is_audit(self):
@@ -278,7 +278,7 @@ class Factomd(Service):
         """
         self._wait_for_api()
 
-        if self.is_leader:
+        if self.is_federated:
             server_type = "f"
         elif self.is_audit:
             server_type = "a"
