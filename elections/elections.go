@@ -141,7 +141,7 @@ func (e *Elections) AuditPriority() int {
 	for len(e.Round) <= e.Electing {
 		e.Round = append(e.Round, 0)
 	}
-	e.APriority = Order(e.Audit, e.DBHeight, e.Minute, e.Electing, e.Round[e.Electing])
+	e.APriority = Order(e.Audit, e.DBHeight, e.Minute, e.Electing)
 	auditIdx := MaxIdx(e.APriority)
 	return auditIdx
 }

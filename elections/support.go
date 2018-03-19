@@ -29,10 +29,9 @@ func Sort(serv []interfaces.IServer) {
 
 // Creates an order for all servers by using a certain hash function.  The list of unordered hashes (in the same order
 // as the slice of servers) is returned.
-func Order(servers []interfaces.IServer, dbheight int, minute int, serverIdx int, round int) (priority []interfaces.IHash) {
+func Order(servers []interfaces.IServer, dbheight int, minute int, serverIdx int) (priority []interfaces.IHash) {
 	for _, s := range servers {
 		var data []byte
-		data = append(data, byte(round>>24), byte(round>>16), byte(round>>8), byte(round))
 		data = append(data, byte(dbheight>>24), byte(dbheight>>16), byte(dbheight>>8), byte(dbheight))
 		data = append(data, byte(minute))
 		data = append(data, byte(serverIdx>>8), byte(serverIdx))
