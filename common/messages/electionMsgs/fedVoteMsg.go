@@ -150,16 +150,16 @@ func (m *FedVoteMsg) ElectionValidate(ie interfaces.IElections) int {
 func (m *FedVoteMsg) ValidateVolunteer(v FedVoteVolunteerMsg, is interfaces.IState) int {
 	s := is.(*state.State)
 
-	pl := s.ProcessLists.Get(m.DBHeight)
+	pl := s.ProcessLists.Get(v.DBHeight)
 	if pl == nil {
 		return 0
 	}
 
-	if m.VMIndex >= len(pl.VMs) || m.VMIndex < 0 {
+	if v.VMIndex >= len(pl.VMs) || v.VMIndex < 0 {
 		return -1
 	}
 
-	vm := pl.VMs[m.VMIndex]
+	vm := pl.VMs[v.VMIndex]
 
 	ack := v.Ack.(*messages.Ack)
 	if vm.Height < int(ack.Height) {

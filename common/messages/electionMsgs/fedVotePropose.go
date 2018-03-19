@@ -43,6 +43,7 @@ func NewFedProposalMsg(signer interfaces.IHash, vol FedVoteVolunteerMsg) *FedVot
 	p.Volunteer = vol
 	p.Signer = signer
 	p.FedVoteMsg.TS = primitives.NewTimestampNow()
+	p.VMIndex = vol.VMIndex
 
 	return p
 }

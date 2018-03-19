@@ -74,6 +74,7 @@ func NewFedVoteLevelMessage(signer interfaces.IHash, vol FedVoteVolunteerMsg) *F
 	f.Volunteer = vol
 	f.Signer = signer
 	f.EOMFrom = new(primitives.Hash)
+	f.VMIndex = vol.VMIndex
 
 	return f
 }
