@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	. "github.com/FactomProject/factomd/common/entryBlock"
+	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
@@ -64,6 +65,41 @@ func TestEBlockMarshal(t *testing.T) {
 	if primitives.AreBytesEqual(p, p3) == false {
 		t.Logf("eb1 = %x\n", p)
 		t.Logf("eb3 = %x\n", p3)
+		t.Fail()
+	}
+}
+
+func TestEBlockMassiveUnmarshal(t *testing.T) {
+	eb := newTestingEntryBlock()
+
+	e := primitives.NewZeroHash()
+	total := 10000
+	entries := make([]interfaces.IHash, total)
+	for i := 0; i < total; i++ {
+		entries[i] = e
+	}
+	eb.GetBody().(*EBlockBody).EBEntries = entries
+	eb.BuildHeader()
+
+	p, err := eb.MarshalBinary()
+	if err != nil {
+		t.Error(err)
+	}
+
+	eb2 := NewEBlock()
+	err = eb2.UnmarshalBinary(p)
+	if err != nil {
+		t.Error(err)
+	}
+
+	p2, err := eb2.MarshalBinary()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if primitives.AreBytesEqual(p, p2) == false {
+		t.Logf("eb1 = %x\n", p)
+		t.Logf("eb2 = %x\n", p2)
 		t.Fail()
 	}
 }

@@ -33,7 +33,6 @@ type FactomParams struct {
 	BlkTime                  int
 	FaultTimeout             int
 	RuntimeLog               bool
-	Netdebug                 int
 	Exclusive                bool
 	prefix                   string
 	rotate                   bool
@@ -89,7 +88,6 @@ func (f *FactomParams) Init() { // maybe used by test code
 	f.BlkTime = 0
 	f.FaultTimeout = 99999 //TODO: REMOVE  Old Fault Mechanism
 	f.RuntimeLog = false
-	f.Netdebug = 0
 	f.Exclusive = false
 	f.prefix = ""
 	f.rotate = false
@@ -105,7 +103,7 @@ func (f *FactomParams) Init() { // maybe used by test code
 	f.memProfileRate = 512 * 1024
 	f.fast = true
 	f.fastLocation = ""
-	f.loglvl = "node"
+	f.loglvl = "none"
 	f.logjson = false
 	f.svm = false
 	f.pluginPath = ""
@@ -142,7 +140,6 @@ func ParseCmdLine(args []string) *FactomParams {
 	// TODO: Old fault mechanism -- remove
 	//	faultTimeoutPtr := flag.Int("faulttimeout", 99999, "Seconds before considering Federated servers at-fault. Default is 30.")
 	runtimeLogPtr := flag.Bool("runtimeLog", false, "If true, maintain runtime logs of messages passed.")
-	netdebugPtr := flag.Int("netdebug", 0, "0-5: 0 = quiet, >0 = increasing levels of logging")
 	exclusivePtr := flag.Bool("exclusive", false, "If true, we only dial out to special/trusted peers.")
 	prefixNodePtr := flag.String("prefix", "", "Prefix the Factom Node Names with this value; used to create leaderless networks.")
 	rotatePtr := flag.Bool("rotate", false, "If true, responsiblity is owned by one leader, and rotated over the leaders.")
@@ -216,7 +213,6 @@ func ParseCmdLine(args []string) *FactomParams {
 	p.BlkTime = *blkTimePtr
 //	p.FaultTimeout = *faultTimeoutPtr
 	p.RuntimeLog = *runtimeLogPtr
-	p.Netdebug = *netdebugPtr
 	p.Exclusive = *exclusivePtr
 	p.prefix = *prefixNodePtr
 	p.rotate = *rotatePtr

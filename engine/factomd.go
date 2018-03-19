@@ -42,9 +42,9 @@ var Build string
 var FactomdVersion string = "BuiltWithoutVersion"
 
 func Factomd(params *FactomParams, listenToStdin bool) interfaces.IState {
-	log.Printf("Go compiler version: %s\n", runtime.Version())
-	log.Printf("Using build: %s\n", Build)
-	log.Printf("Version: %s\n", FactomdVersion)
+	fmt.Printf("Go compiler version: %s\n", runtime.Version())
+	fmt.Printf("Using build: %s\n", Build)
+	fmt.Printf("Version: %s\n", FactomdVersion)
 
 	state0 := new(state.State)
 	state0.IsRunning = true

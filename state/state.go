@@ -78,8 +78,10 @@ type State struct {
 	DropRate                int
 	Delay                   int64 // Simulation delays sending messages this many milliseconds
 
-	ControlPanelPort        int
-	ControlPanelSetting     int
+	ControlPanelPort    int
+	ControlPanelSetting int
+	// Keeping the last display state lets us know when to send over the new blocks
+	LastDisplayState        *DisplayState
 	ControlPanelChannel     chan DisplayState
 	ControlPanelDataRequest bool // If true, update Display state
 
