@@ -301,7 +301,7 @@ func (m *DirectoryBlockSignature) UnmarshalBinaryData(data []byte) (newData []by
 
 	m.marshalCache = append(m.marshalCache, data[:len(data)-len(newData)]...)
 
-	return nil, nil
+	return newData, nil
 }
 
 func (m *DirectoryBlockSignature) UnmarshalBinary(data []byte) error {

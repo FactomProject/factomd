@@ -67,7 +67,7 @@ func TestMarshalUnmarshalSyncMsg(t *testing.T) {
 	sm := new(SyncMsg)
 	sm.Minute = 5
 	sm.Name = "bob"
-	sm.EOM = true
+	sm.SigType = true
 	sm.DBHeight = 10
 	sm.ServerID = primitives.Sha([]byte("leader"))
 	sm.Weight = primitives.Sha([]byte("Weight"))

@@ -11,6 +11,7 @@ import (
 	"github.com/FactomProject/factomd/electionsCore/election"
 	priminterpreter "github.com/FactomProject/factomd/electionsCore/interpreter/primitives"
 	"github.com/FactomProject/factomd/state"
+	"github.com/FactomProject/factomd/testHelper"
 )
 
 var _ = fmt.Println
@@ -54,6 +55,7 @@ func NewController(feds, auds int) *Controller {
 		s.Online = true
 
 		c.feds[i] = &s
+		e.State = testHelper.CreateAndPopulateTestState()
 		c.Elections[i] = e
 	}
 
