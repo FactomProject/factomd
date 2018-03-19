@@ -15,6 +15,8 @@ Install the following prerequisites:
  * [docker](https://www.docker.com/community-edition)
  * [python 3.6](https://www.python.org/downloads/)
 
+It is prefered that you create a new virtual environment for this tool.
+
 Install all required Python libraries:
 
 ```
@@ -41,6 +43,8 @@ Usage:
     ./nettool.py del <from> <to> <action> [--one-way] [-f FILE | --file FILE]
 
 ```
+
+Use `./nettool.py -h` to display the help for the usage.
 
 ## Configuration
 
