@@ -452,6 +452,15 @@ func (p *ProcessList) AddFedServer(identityChainID interfaces.IHash) int {
 		p.RemoveAuditServerHash(identityChainID)
 	}
 
+	// Debugging a panic
+	if p.State == nil {
+		fmt.Println("-- Debug p.State", p.State)
+	}
+
+	if p.State.EFactory == nil {
+		fmt.Println("-- Debug p.State.EFactory", p.State.EFactory)
+	}
+
 	// Inform Elections of a new leader
 	InMsg := p.State.EFactory.NewAddLeaderInternal(
 		p.State.FactomNodeName,
