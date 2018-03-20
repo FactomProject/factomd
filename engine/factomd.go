@@ -7,6 +7,7 @@ package engine
 import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages/electionMsgs"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/state"
 	"runtime"
@@ -49,6 +50,7 @@ func Factomd(params *FactomParams, listenToStdin bool) interfaces.IState {
 	state0 := new(state.State)
 	state0.IsRunning = true
 	state0.SetLeaderTimestamp(primitives.NewTimestampFromMilliseconds(0))
+	state0.EFactory = new(electionMsgs.ElectionsFactory)
 
 	go NetStart(state0, params, listenToStdin)
 	return state0

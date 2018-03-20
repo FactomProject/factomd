@@ -122,7 +122,7 @@ type State struct {
 	ResetCnt    int
 
 	//  pending entry/transaction api calls for the holding queue do not have proper scope
-	//  This is used to create a temporary, correctly scoped holdingqueue snapshot for the calls on demand
+	//  This is used to create a temporary, correctly scoped holding queue snapshot for the calls on demand
 	HoldingMutex sync.RWMutex
 	HoldingLast  int64
 	HoldingMap   map[[32]byte]interfaces.IMsg
@@ -489,7 +489,6 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 		newState.StateSaverStruct.FastBootLocation = newState.BoltDBPath
 		break
 	}
-
 	return newState
 }
 

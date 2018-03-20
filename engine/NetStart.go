@@ -16,6 +16,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages/electionMsgs"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/controlPanel"
 	"github.com/FactomProject/factomd/database/leveldb"
@@ -25,7 +26,6 @@ import (
 	"github.com/FactomProject/factomd/wsapi"
 
 	"github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/common/messages/electionMsgs"
 	"github.com/FactomProject/factomd/common/messages/msgsupport"
 	"github.com/FactomProject/factomd/elections"
 	log "github.com/sirupsen/logrus"
@@ -522,12 +522,15 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 func makeServer(s *state.State) *FactomNode {
 	// All other states are clones of the first state.  Which this routine
 	// gets passed to it.
-	newState := s
+	var newState *state.State
 
 	if len(fnodes) > 0 {
 		newState = s.Clone(len(fnodes)).(*state.State)
+		newState.EFactory = new(electionMsgs.ElectionsFactory) // not an elegant place but before we let the messages hit the state
 		time.Sleep(10 * time.Millisecond)
 		newState.Init()
+	} else {
+		newState = s
 	}
 
 	fnode := new(FactomNode)
@@ -540,7 +543,6 @@ func makeServer(s *state.State) *FactomNode {
 
 func startServers(load bool) {
 	for i, fnode := range fnodes {
-		fnode.State.EFactory = new(electionMsgs.ElectionsFactory)
 		if i > 0 {
 			fnode.State.Init()
 		}
