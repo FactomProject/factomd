@@ -77,7 +77,7 @@ func (m *EomSigInternal) GetMsgHash() interfaces.IHash {
 	}
 	return m.MsgHash
 }
-func Fault(e *elections.Elections, dbheight int, minute int, round int, timeOutId int, currentTimeoutId *atomic.AtomicInt) {
+func Fault(e *elections.Elections, dbheight int, minute int, round int, timeOutId int, currentTimeoutId *atomic.AtomicInt, sigtype bool) {
 	//	e.LogPrintf("election", "Start Timeout %d", timeOutId)
 	time.Sleep(e.Timeout)
 
@@ -88,6 +88,7 @@ func Fault(e *elections.Elections, dbheight int, minute int, round int, timeOutI
 		timeout.DBHeight = dbheight
 		timeout.Minute = byte(minute)
 		timeout.Round = round
+		timeout.SigType = sigtype
 		e.Input.Enqueue(timeout)
 	} else {
 		//		e.LogPrintf("election", "Cancel Timeout %d", timeOutId)
@@ -123,7 +124,7 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 		round := 0
 
 		e.FaultId.Store(e.FaultId.Load() + 1) // increment the timeout counter
-		go Fault(e, e.DBHeight, e.Minute, round, e.FaultId.Load(), &e.FaultId)
+		go Fault(e, e.DBHeight, e.Minute, round, e.FaultId.Load(), &e.FaultId, m.SigType)
 
 		t := "EOM"
 		if !m.SigType {

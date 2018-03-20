@@ -168,7 +168,7 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 	// Start our timer to timeout this sync
 
 	e.FaultId.Store(e.FaultId.Load() + 1) // increment the timeout counter
-	go Fault(e, e.DBHeight, e.Minute, e.Round[e.Electing], e.FaultId.Load(), &e.FaultId)
+	go Fault(e, e.DBHeight, e.Minute, e.Round[e.Electing], e.FaultId.Load(), &e.FaultId, m.SigType)
 
 	auditIdx := e.AuditPriority()
 	// This server's possible identity as an audit server. -1 means we are not an audit server.
@@ -197,6 +197,7 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 			Sync.DBHeight = uint32(e.DBHeight)
 			Sync.Minute = byte(e.Minute)
 			Sync.Round = e.Round[e.Electing]
+			Sync.SigType = m.SigType
 			s.InMsgQueue().Enqueue(Sync)
 			s.Election2 = e.FeedBackStr(fmt.Sprintf("%d", e.Round[e.Electing]), false, auditIdx)
 		}
