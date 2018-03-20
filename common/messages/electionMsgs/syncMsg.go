@@ -151,7 +151,7 @@ func (m *SyncMsg) FollowerExecute(is interfaces.IState) {
 	var ack interfaces.IMsg
 	if m.SigType {
 		msg = messages.General.CreateMsg(constants.EOM_MSG)
-		ack, ack = s.CreateEOM(true, msg, m.VMIndex)
+		msg, ack = s.CreateEOM(true, msg, m.VMIndex)
 	} else {
 		msg, ack = s.CreateDBSig(m.DBHeight, m.VMIndex)
 	}
