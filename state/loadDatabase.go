@@ -105,7 +105,7 @@ func GenerateGenesisBlocks(networkID uint32, bootstrapIdentity interfaces.IHash)
 	ecblk := entryCreditBlock.NewECBlock()
 
 	//decide if a default server identity needs to be added into the genesis block
-	n:
+n:
 	switch networkID {
 	case constants.MAIN_NETWORK_ID:
 		//no identities were added in the M1 genesis block
@@ -114,7 +114,7 @@ func GenerateGenesisBlocks(networkID uint32, bootstrapIdentity interfaces.IHash)
 		ablk.AddFedServer(primitives.NewZeroHash())
 	case constants.LOCAL_NETWORK_ID:
 		ablk.AddFedServer(primitives.Sha([]byte("FNode0")))
-	default:  //we must be using a custom network, where the network ID is based on the customnet name, not one of the three predetermined values above
+	default: //we must be using a custom network, where the network ID is based on the customnet name, not one of the three predetermined values above
 		// add the config file identity to the genesis block
 		ablk.AddFedServer(bootstrapIdentity)
 	}

@@ -1,12 +1,12 @@
 package mirrors_test
 
 import (
-	"testing"
+	"fmt"
 	. "github.com/FactomProject/factomd/electionsCore/ET2/mirrors"
-	"time"
 	"io/ioutil"
 	"os"
-	"fmt"
+	"testing"
+	"time"
 )
 
 func makeH(s string) [32]byte {
@@ -181,15 +181,14 @@ func TestMirrors5(t *testing.T) {
 func TestPrimeWalk(t *testing.T) {
 	var visited [119]bool
 	const prime = 7907
-	i:=0
-	for j:=0;j<len(visited);j++{
-		i = (i+prime)%len(visited)
+	i := 0
+	for j := 0; j < len(visited); j++ {
+		i = (i + prime) % len(visited)
 		fmt.Printf("%d ", i)
 		if visited[i] {
-			t.Errorf(`Found issue %d %d`,i,j)
+			t.Errorf(`Found issue %d %d`, i, j)
 		}
-		visited[i]=true
+		visited[i] = true
 	}
-
 
 }

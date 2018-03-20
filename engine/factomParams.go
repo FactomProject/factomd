@@ -211,7 +211,7 @@ func ParseCmdLine(args []string) *FactomParams {
 	p.ControlPanelPortOverride = *ControlPanelPortOverridePtr
 	p.LogPort = *logportPtr
 	p.BlkTime = *blkTimePtr
-//	p.FaultTimeout = *faultTimeoutPtr
+	//	p.FaultTimeout = *faultTimeoutPtr
 	p.RuntimeLog = *runtimeLogPtr
 	p.Exclusive = *exclusivePtr
 	p.prefix = *prefixNodePtr

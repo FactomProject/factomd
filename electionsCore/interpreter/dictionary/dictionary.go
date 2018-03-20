@@ -1,14 +1,14 @@
 package dictionary
 
 import (
-	. "github.com/FactomProject/factomd/electionsCore/interpreter/names"
 	. "github.com/FactomProject/factomd/electionsCore/interpreter/common"
+	. "github.com/FactomProject/factomd/electionsCore/interpreter/names"
 )
 
 type DictionaryEnrty struct {
 	N Name
 	FlagsStruct
-	E interface {}
+	E interface{}
 }
 
 type Dictionary map[Name]DictionaryEnrty

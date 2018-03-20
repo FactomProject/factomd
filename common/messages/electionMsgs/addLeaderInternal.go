@@ -29,7 +29,6 @@ type AddLeaderInternal struct {
 var _ interfaces.IMsg = (*AddLeaderInternal)(nil)
 var _ interfaces.IElectionMsg = (*AddLeaderInternal)(nil)
 
-
 func (m *AddLeaderInternal) MarshalBinary() (data []byte, err error) {
 	var buf primitives.Buffer
 

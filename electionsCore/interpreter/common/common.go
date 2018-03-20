@@ -33,4 +33,3 @@ func (a *Array) len() int              { return len(a.Data) }
 func (a *Array) cap() int              { return cap(a.Data) }
 func (a Array) GetFlags() FlagsStruct  { return a.FlagsStruct }
 func (a Array) SetFlags(f FlagsStruct) { a.FlagsStruct = f }
-

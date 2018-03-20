@@ -1,15 +1,15 @@
 package mirrors
 
 import (
-	"sync"
-	"os"
 	"encoding/gob"
-	"log"
-	"fmt"
-	"net"
 	"errors"
-	"regexp"
+	"fmt"
 	"io"
+	"log"
+	"net"
+	"os"
+	"regexp"
+	"sync"
 )
 
 var debug bool = false
@@ -246,7 +246,7 @@ func (m *Mirrors) handleRequest(conn net.Conn) {
 		reqLen, err = conn.Read(buf[:])
 		// Normal way to detect the connection has closed
 		if err == io.EOF {
-			return;
+			return
 		}
 		// Awkward way to detect we are shutting down the connection socket.
 		if err != nil {
@@ -255,7 +255,7 @@ func (m *Mirrors) handleRequest(conn net.Conn) {
 			}
 		}
 		if check(err, "Error on connection to %v read %d bytes, error:", conn.RemoteAddr(), reqLen) || reqLen != 32 {
-			break;
+			break
 		}
 		m.IsMirror(buf) // Add the mirror to my map if needed
 	}

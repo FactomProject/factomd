@@ -9,8 +9,8 @@ import (
 
 	"bytes"
 
-	. "github.com/FactomProject/factomd/electionsCore/errorhandling"
 	"github.com/FactomProject/factomd/common/interfaces"
+	. "github.com/FactomProject/factomd/electionsCore/errorhandling"
 )
 
 var hashRegEx *regexp.Regexp

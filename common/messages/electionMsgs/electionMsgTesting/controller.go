@@ -83,7 +83,7 @@ func NewController(feds, auds int) *Controller {
 
 	c.ElectionAdapters = make([]*electionMsgs.ElectionAdapter, len(c.Elections))
 	for i, e := range c.Elections {
-		c.ElectionAdapters[i] = electionMsgs.NewElectionAdapter(e,primitives.NewZeroHash())
+		c.ElectionAdapters[i] = electionMsgs.NewElectionAdapter(e, primitives.NewZeroHash())
 		c.ElectionAdapters[i].SimulatedElection.AddDisplay(nil)
 	}
 

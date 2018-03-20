@@ -33,7 +33,7 @@ func (n *Name) SetFlags(f FlagsStruct) {
 	return
 }
 
-func (n Name) IsImmediate() bool { return (int(n) & (1 << 1)) != 0 }
+func (n Name) IsImmediate() bool  { return (int(n) & (1 << 1)) != 0 }
 func (n Name) IsExecutable() bool { return (int(n) & (1 << 0)) != 0 }
 
 func (n Name) MakeExecutable() Name { return Name(int(n) | 1) }
