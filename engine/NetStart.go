@@ -540,10 +540,10 @@ func makeServer(s *state.State) *FactomNode {
 
 func startServers(load bool) {
 	for i, fnode := range fnodes {
+		fnode.State.EFactory = new(electionMsgs.ElectionsFactory)
 		if i > 0 {
 			fnode.State.Init()
 		}
-		fnode.State.EFactory = new(electionMsgs.ElectionsFactory)
 		go NetworkProcessorNet(fnode)
 		if load {
 			go state.LoadDatabase(fnode.State)
