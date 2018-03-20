@@ -113,6 +113,10 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 		// Set our Identity Chain (Just in case it has changed.)
 		e.FedID = s.IdentityChainID
 
+		// Reset elections as we moved forward
+		if int(m.DBHeight) > e.DBHeight && e.Electing != -1 {
+			e.Electing = -1
+		}
 		e.DBHeight = int(m.DBHeight)
 		e.Minute = int(m.Minute)
 		e.Msgs = append(e.Msgs[:0], m)
