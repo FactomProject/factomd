@@ -2,16 +2,15 @@ package electionMsgs
 
 import (
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/elections"
 )
 
 type ElectionsFactory struct{}
 
 var _ interfaces.IElectionsFactory = (*ElectionsFactory)(nil)
 
-func (e *ElectionsFactory) NewElectionAdapter(el interfaces.IElections) interfaces.IElectionAdapter {
-	return NewElectionAdapter(el.(*elections.Elections))
-}
+//func (e *ElectionsFactory) NewElectionAdapter(el interfaces.IElections) interfaces.IElectionAdapter {
+//	return NewElectionAdapter(el.(*elections.Elections))
+//}
 
 func (e *ElectionsFactory) NewAddLeaderInternal(name string, dbheight uint32, serverID interfaces.IHash) interfaces.IMsg {
 	msg := new(AddLeaderInternal)

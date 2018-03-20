@@ -1,17 +1,19 @@
 package electionMsgs
 
 import (
+	"crypto/sha256"
+	"fmt"
+
 	"github.com/FactomProject/factomd/common/interfaces"
+	primitives2 "github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/electionsCore/election"
 	"github.com/FactomProject/factomd/electionsCore/imessage"
 	"github.com/FactomProject/factomd/electionsCore/primitives"
 	"github.com/FactomProject/factomd/state"
-
 	// "github.com/FactomProject/factomd/common/messages/electionMsgs"
 	"github.com/FactomProject/factomd/elections"
-	//"github.com/FactomProject/factomd/state"
 
-	"fmt"
+	//"github.com/FactomProject/factomd/state"
 
 	"github.com/FactomProject/factomd/electionsCore/messages"
 )
@@ -52,7 +54,50 @@ func (ea *ElectionAdapter) Status() string {
 	return fmt.Sprintf("Election-  DBHeight: %d, Minut: %d, Electing %d\n%s", ea.DBHeight, ea.Minute, ea.Electing, ea.SimulatedElection.Display.String())
 }
 
-func NewElectionAdapter(e *elections.Elections) *ElectionAdapter {
+// Compare two Ids
+func lessId(a, b primitives.Identity) bool {
+	for i, x := range b {
+		if a[i] != x {
+			return a[i] < x // first unequal byte determines order
+		}
+	}
+	return false
+}
+
+// Xor a mask with an ID
+func maskId(mask, b primitives.Identity) primitives.Identity {
+	for i, x := range b {
+		b[i] = x ^ mask[i]
+	}
+	return b
+}
+
+func buildPriorityOrder(audits []interfaces.IServer, dbHash interfaces.IHash, minute int, vm int) (arr []primitives.Identity) {
+	// find a randomizing mask
+	mask := sha256.Sum256(append(dbHash.Bytes(), byte(minute), byte(vm)))
+
+	// build a list with the mask applied
+	for _, a := range audits {
+		arr = append(arr, maskId(mask, a.GetChainID().Fixed()))
+	}
+
+	// bubble sort with the mask
+	for i := 1; i < len(arr); i++ {
+		for j := 0; j < len(arr)-i; j++ {
+			if lessId(arr[j], arr[j+1]) {
+				arr[j], arr[j+1] = arr[j+1], arr[j]
+			}
+		}
+	}
+
+	// remove the mask
+	for i, a := range arr {
+		arr[i] = maskId(mask, a)
+	}
+	return arr
+}
+
+func NewElectionAdapter(e *elections.Elections, dbHash interfaces.IHash) *ElectionAdapter {
 	ea := new(ElectionAdapter)
 	ea.tagedMessages = make(map[[32]byte]interfaces.IMsg)
 	ea.Volunteers = make(map[[32]byte]*FedVoteVolunteerMsg)
@@ -73,8 +118,8 @@ func NewElectionAdapter(e *elections.Elections) *ElectionAdapter {
 		authset.AddHash(f.GetChainID(), 1)
 	}
 
-	for _, a := range ea.Election.Audit {
-		authset.AddHash(a.GetChainID(), 0)
+	for _, a := range buildPriorityOrder(ea.Election.Audit, dbHash, e.Minute, e.VMIndex) {
+		authset.AddHash(primitives2.NewHash(a[:]), 0)
 	}
 
 	ea.SimulatedElection = election.NewElection(primitives.Identity(e.State.GetIdentityChainID().Fixed()), *authset)

@@ -49,5 +49,5 @@ type IElectionsFactory interface {
 	NewDBSigSigInternal(name string, dbheight uint32, minute uint32, vmIndex int, height uint32, serverID IHash) IMsg
 
 	//
-	NewElectionAdapter(el IElections) IElectionAdapter
+	//	NewElectionAdapter(el IElections) IElectionAdapter
 }

@@ -76,7 +76,7 @@ func (m *TimeoutInternal) InitiateElectionAdapter(st interfaces.IState) bool {
 		fmt.Printf("!!!LeaderInit Adapter %s HT:%d Min:%d VM:%d L:%t\n", s.GetFactomNodeName(), m.DBHeight, int(m.Minute), m.VMIndex, s.IsLeader())
 		// TODO: Is cancelling an old election ALWAYS the best way? Should we have some cleanup? Maybe validate
 		// TODO: the new election is valid and the old one has concluded
-		e.Adapter = NewElectionAdapter(e)
+		e.Adapter = NewElectionAdapter(e, st.GetDirectoryBlockByHeight(uint32(m.DBHeight-1)).GetKeyMR())
 		e.Adapter.SetObserver(!s.IsLeader())
 		return true
 	}
