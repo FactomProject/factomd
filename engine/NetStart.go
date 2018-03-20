@@ -117,7 +117,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		p.BlkTime = s.DirectoryBlockInSeconds
 	}
 
-	s.FaultTimeout = 9999999 //todo: Old Faulr Mechanism -- remove
+	s.FaultTimeout = 9999999 //todo: Old Fault Mechanism -- remove
 
 	if p.Follower {
 		p.Leader = false
