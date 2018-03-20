@@ -25,6 +25,8 @@ type IElectionAdapter interface {
 	SetElectionProcessed(swapped bool)
 	IsStateProcessed() bool
 	SetStateProcessed(swapped bool)
+
+	GetAudits() []IHash
 }
 
 type IElectionMsg interface {

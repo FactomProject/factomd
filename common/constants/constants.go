@@ -11,8 +11,7 @@ import (
 
 // Messages
 const (
-	INVALID_MSG byte = iota
-	EOM_MSG
+	EOM_MSG = iota
 	ACK_MSG
 	FED_SERVER_FAULT_MSG
 	AUDIT_SERVER_FAULT_MSG
@@ -56,6 +55,7 @@ const (
 	VOLUNTEERAUDIT
 	VOLUNTEERPROPOSAL
 	VOLUNTEERLEVELVOTE
+	FEDVOTE_MSG_BASE
 	SYNC_MSG
 
 	NUM_MESSAGES // Not used, just a counter for the number of messages.
@@ -137,6 +137,8 @@ func MessageName(Type byte) string {
 		return "INTERNALTIMEOUT"
 	case INTERNALEOMSIG:
 		return "INTERNALEOMSIG"
+	case FEDVOTE_MSG_BASE:
+		return "FEDVOTE_MSG_BASE"
 
 	default:
 		return "Unknown:" + fmt.Sprintf(" %d", Type)

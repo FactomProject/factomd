@@ -136,6 +136,18 @@ func (e *Elections) AuditIndex(server interfaces.IHash) int {
 	return -1
 }
 
+func (e *Elections) AuditAdapterIndex(server interfaces.IHash) int {
+	if e.Adapter == nil {
+		return -1
+	}
+	for i, b := range e.Adapter.GetAudits() {
+		if server.IsSameAs(b) {
+			return i
+		}
+	}
+	return -1
+}
+
 func (e *Elections) AuditPriority() int {
 	// Get the priority order list of audit servers in the priority order
 	for len(e.Round) <= e.Electing {

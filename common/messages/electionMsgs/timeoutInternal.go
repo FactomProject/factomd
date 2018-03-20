@@ -170,9 +170,9 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 	e.FaultId.Store(e.FaultId.Load() + 1) // increment the timeout counter
 	go Fault(e, e.DBHeight, e.Minute, e.Round[e.Electing], e.FaultId.Load(), &e.FaultId, m.SigType)
 
-	auditIdx := e.AuditPriority()
+	auditIdx := e.Round[e.Electing] % len(e.Audit) //e.AuditPriority()
 	// This server's possible identity as an audit server. -1 means we are not an audit server.
-	aidx := e.AuditIndex(is.GetIdentityChainID())
+	aidx := e.AuditAdapterIndex(is.GetIdentityChainID()) //e.AuditIndex(is.GetIdentityChainID())
 
 	if aidx >= 0 {
 		serverMap := state.MakeMap(len(e.Federated), uint32(e.DBHeight))
@@ -189,11 +189,12 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 			Sync.FedIdx = uint32(e.Electing)
 			Sync.FedID = e.FedID
 
-			Sync.ServerIdx = uint32(aidx)
+			actualidx := e.AuditIndex(is.GetIdentityChainID())
+			Sync.ServerIdx = uint32(actualidx)
 			Sync.ServerID = is.GetIdentityChainID()
 			Sync.ServerName = is.GetFactomNodeName()
 
-			Sync.Weight = e.APriority[auditIdx]
+			Sync.Weight = primitives.Sha([]byte("Weight")) //e.APriority[auditIdx]
 			Sync.DBHeight = uint32(e.DBHeight)
 			Sync.Minute = byte(e.Minute)
 			Sync.Round = e.Round[e.Electing]

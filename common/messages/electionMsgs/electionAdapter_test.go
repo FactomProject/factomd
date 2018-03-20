@@ -34,6 +34,15 @@ func TestElectionAdapterMajority(t *testing.T) {
 	}
 }
 
+func TestElectionAuditOrder(t *testing.T) {
+	c := electionMsgTesting.NewController(6, 6)
+	fmt.Printf("%v\n", c.Elections[0].Audit[1].GetChainID())
+	newo := elections.Order(c.Elections[0].Audit, 10, 10, 10)
+	fmt.Printf("%v\n", newo)
+	fmt.Printf("%v\n", elections.MaxIdx(newo))
+
+}
+
 func TestSimpleSigning(t *testing.T) {
 	s := CreateAndPopulateTestState()
 	e := NewTestElection()

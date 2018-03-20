@@ -107,7 +107,7 @@ func (m *FedVoteMsg) GetMsgHash() interfaces.IHash {
 }
 
 func (m *FedVoteMsg) Type() byte {
-	return constants.INVALID_MSG
+	return constants.FEDVOTE_MSG_BASE
 }
 
 func (m *FedVoteMsg) ElectionValidate(ie interfaces.IElections) int {

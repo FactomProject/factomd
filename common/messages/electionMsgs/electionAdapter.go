@@ -1,19 +1,20 @@
 package electionMsgs
 
 import (
-	"crypto/sha256"
-	"fmt"
-
 	"github.com/FactomProject/factomd/common/interfaces"
 	primitives2 "github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/electionsCore/election"
 	"github.com/FactomProject/factomd/electionsCore/imessage"
 	"github.com/FactomProject/factomd/electionsCore/primitives"
 	"github.com/FactomProject/factomd/state"
+
 	// "github.com/FactomProject/factomd/common/messages/electionMsgs"
 	"github.com/FactomProject/factomd/elections"
-
 	//"github.com/FactomProject/factomd/state"
+
+	"fmt"
+
+	"crypto/sha256"
 
 	"github.com/FactomProject/factomd/electionsCore/messages"
 )
@@ -39,6 +40,8 @@ type ElectionAdapter struct {
 	// We need these to expand our own votes
 	Volunteers map[[32]byte]*FedVoteVolunteerMsg
 
+	// Audits kept as IHash for easy access (cache)
+	AuditServerList   []interfaces.IHash
 	SimulatedElection *election.Election
 }
 
@@ -52,6 +55,10 @@ func (ea *ElectionAdapter) MessageLists() string {
 
 func (ea *ElectionAdapter) Status() string {
 	return fmt.Sprintf("Election-  DBHeight: %d, Minut: %d, Electing %d\n%s", ea.DBHeight, ea.Minute, ea.Electing, ea.SimulatedElection.Display.String())
+}
+
+func (ea *ElectionAdapter) GetAudits() []interfaces.IHash {
+	return ea.AuditServerList
 }
 
 // Compare two Ids
@@ -119,7 +126,9 @@ func NewElectionAdapter(e *elections.Elections, dbHash interfaces.IHash) *Electi
 	}
 
 	for _, a := range buildPriorityOrder(ea.Election.Audit, dbHash, e.Minute, e.VMIndex) {
-		authset.AddHash(primitives2.NewHash(a[:]), 0)
+		idhash := primitives2.NewHash(a[:])
+		authset.AddHash(idhash, 0)
+		ea.AuditServerList = append(ea.AuditServerList, idhash)
 	}
 
 	ea.SimulatedElection = election.NewElection(primitives.Identity(e.State.GetIdentityChainID().Fixed()), *authset)
