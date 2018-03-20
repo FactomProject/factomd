@@ -74,6 +74,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	s.StartDelayLimit = p.StartDelay * 1000
 	s.Journaling = p.Journaling
 	s.FactomdVersion = FactomdVersion
+	s.EFactory = new(electionMsgs.ElectionsFactory)
 
 	log.SetOutput(os.Stdout)
 	switch p.loglvl {

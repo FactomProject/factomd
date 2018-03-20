@@ -458,7 +458,7 @@ func (p *ProcessList) AddFedServer(identityChainID interfaces.IHash) int {
 	}
 
 	if p.State.EFactory == nil {
-		fmt.Println("-- Debug p.State.EFactory", p.State.EFactory)
+		fmt.Println("-- Debug p.State.EFactory", p.State.EFactory, p.State.FactomNodeName)
 	}
 
 	// Inform Elections of a new leader
