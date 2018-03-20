@@ -522,15 +522,13 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 func makeServer(s *state.State) *FactomNode {
 	// All other states are clones of the first state.  Which this routine
 	// gets passed to it.
-	var newState *state.State
+	newState := s
 
 	if len(fnodes) > 0 {
 		newState = s.Clone(len(fnodes)).(*state.State)
 		newState.EFactory = new(electionMsgs.ElectionsFactory) // not an elegant place but before we let the messages hit the state
 		time.Sleep(10 * time.Millisecond)
 		newState.Init()
-	} else {
-		newState = s
 	}
 
 	fnode := new(FactomNode)
