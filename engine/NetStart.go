@@ -74,6 +74,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	s.StartDelayLimit = p.StartDelay * 1000
 	s.Journaling = p.Journaling
 	s.FactomdVersion = FactomdVersion
+	s.EFactory = new(electionMsgs.ElectionsFactory)
 
 	log.SetOutput(os.Stdout)
 	switch p.loglvl {
@@ -529,6 +530,7 @@ func makeServer(s *state.State) *FactomNode {
 		newState.EFactory = new(electionMsgs.ElectionsFactory) // not an elegant place but before we let the messages hit the state
 		time.Sleep(10 * time.Millisecond)
 		newState.Init()
+		newState.EFactory = new(electionMsgs.ElectionsFactory)
 	}
 
 	fnode := new(FactomNode)
