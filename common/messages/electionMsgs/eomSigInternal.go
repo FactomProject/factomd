@@ -100,6 +100,9 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 	e := elect.(*elections.Elections) // Could check, but a nil pointer error is just as good.
 	s := is.(*state.State)            // Same here.
 
+	if m.ServerID == nil {
+		return // Someone could send us a msg with a nil chainid
+	}
 	idx := e.LeaderIndex(m.ServerID)
 	if idx == -1 {
 		return // EOM but not from a server, just ignore it.
