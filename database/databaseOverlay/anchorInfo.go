@@ -111,12 +111,12 @@ func (dbo *Overlay) FetchAllAnchorInfo() ([]*anchor.AnchorRecord, error) {
 		}
 		answer = append(answer, ar)
 	}
-	sort.Sort(ByAnchorDBHeightAccending(answer))
+	sort.Sort(ByAnchorDBHeightAscending(answer))
 	return answer, nil
 }
 
 func (dbo *Overlay) SaveAnchorInfoAsDirBlockInfo(ars []*anchor.AnchorRecord) error {
-	sort.Sort(ByAnchorDBHeightAccending(ars))
+	sort.Sort(ByAnchorDBHeightAscending(ars))
 
 	for _, v := range ars {
 		dbi, err := AnchorRecordToDirBlockInfo(v)
@@ -163,15 +163,15 @@ func AnchorRecordToDirBlockInfo(ar *anchor.AnchorRecord) (*dbInfo.DirBlockInfo, 
 	return dbi, nil
 }
 
-// AnchorRecord array sorting implementation - accending
-type ByAnchorDBHeightAccending []*anchor.AnchorRecord
+// AnchorRecord array sorting implementation - ascending
+type ByAnchorDBHeightAscending []*anchor.AnchorRecord
 
-func (f ByAnchorDBHeightAccending) Len() int {
+func (f ByAnchorDBHeightAscending) Len() int {
 	return len(f)
 }
-func (f ByAnchorDBHeightAccending) Less(i, j int) bool {
+func (f ByAnchorDBHeightAscending) Less(i, j int) bool {
 	return f[i].DBHeight < f[j].DBHeight
 }
-func (f ByAnchorDBHeightAccending) Swap(i, j int) {
+func (f ByAnchorDBHeightAscending) Swap(i, j int) {
 	f[i], f[j] = f[j], f[i]
 }

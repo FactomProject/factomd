@@ -83,7 +83,7 @@ const (
 
 	// Block
 	//==================
-	MARKER                  = 0x00                       // Byte used to mark minute boundries in Factoid blocks
+	MARKER                  = 0x00                       // Byte used to mark minute boundaries in Factoid blocks
 	TRANSACTION_PRIOR_LIMIT = int64(12 * 60 * 60 * 1000) // Transactions prior to 12hrs before a block are invalid
 	TRANSACTION_POST_LIMIT  = int64(12 * 60 * 60 * 1000) // Transactions after 12hrs following a block are invalid
 

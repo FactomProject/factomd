@@ -87,7 +87,7 @@ func toABlocksList(source []interfaces.BinaryMarshallableAndCopyable) []interfac
 	for i, v := range source {
 		answer[i] = v.(interfaces.IAdminBlock)
 	}
-	sort.Sort(util.ByABlockIDAccending(answer))
+	sort.Sort(util.ByABlockIDAscending(answer))
 	return answer
 }
 

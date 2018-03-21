@@ -3,7 +3,7 @@ package identityEntries
 //https://github.com/FactomProject/FactomDocs/blob/master/Identity.md
 
 //TODO:
-//- Add conversion to human-readible private / public key
+//- Add conversion to human-readable private / public key
 
 const (
 	IdentityPrivateKeyPrefix1 = "4db6c9"

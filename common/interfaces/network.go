@@ -5,7 +5,7 @@
 package interfaces
 
 type INetwork interface {
-	Recieve() IMsg
+	Receive() IMsg
 	Broadcast(IMsg)
 	SendToPeer(IMsg)
 	Control()

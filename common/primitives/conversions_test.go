@@ -95,7 +95,7 @@ func TestMnemonicValidation(t *testing.T) {
 	}
 }
 
-func TestHumanReadiblePrivateKeys(t *testing.T) {
+func TestHumanReadablePrivateKeys(t *testing.T) {
 	privateKeyStr := "ec9f1cefa00406b80d46135a53504f1f4182d4c0f3fed6cca9281bc020eff973"
 	human, err := PrivateKeyStringToHumanReadableFactoidPrivateKey(privateKeyStr)
 	if err != nil {

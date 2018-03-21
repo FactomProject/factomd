@@ -41,7 +41,7 @@ func TestPublicToAddress(t *testing.T) {
 }
 
 func TestCombined(t *testing.T) {
-	priv, pub, add, err := HumanReadiblePrivateKeyStringToEverythingString("Fs37iVGnZ7jShPudsXuB98qURxk35eLrmh9cgPuPpTXHAJEBkUTh")
+	priv, pub, add, err := HumanReadablePrivateKeyStringToEverythingString("Fs37iVGnZ7jShPudsXuB98qURxk35eLrmh9cgPuPpTXHAJEBkUTh")
 	if err != nil {
 		t.Error(err)
 	}

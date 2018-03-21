@@ -117,7 +117,7 @@ func toECBlocksList(source []interfaces.BinaryMarshallableAndCopyable) []interfa
 	for i, v := range source {
 		answer[i] = v.(interfaces.IEntryCreditBlock)
 	}
-	sort.Sort(util.ByECBlockIDAccending(answer))
+	sort.Sort(util.ByECBlockIDAscending(answer))
 	return answer
 }
 

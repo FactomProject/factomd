@@ -235,7 +235,7 @@ func (db *BoltDB) GetAll(bucket []byte, sample interfaces.BinaryMarshallableAndC
 	return answer, keys, nil
 }
 
-// We have to make accomadation for many Init functions.  But what we really
+// We have to make accommodation for many Init functions.  But what we really
 // want here is:
 //
 //      Init(bucketList [][]byte, filename string)

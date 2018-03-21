@@ -188,7 +188,7 @@ func TestFetchEntryByHash(t *testing.T) {
 	}
 }
 
-func TestUnkownAcks(t *testing.T) {
+func TestUnknownAcks(t *testing.T) {
 	// All random unknown hashes
 	s := CreateAndPopulateTestState()
 	status, _, _, _ := s.GetEntryCommitAckByTXID(primitives.RandomHash())

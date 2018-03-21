@@ -98,7 +98,7 @@ func (db *Overlay) FetchAllDirBlockInfos() ([]interfaces.IDirBlockInfo, error) {
 		return nil, err
 	}
 	all := append(unconfirmed, confirmed...)
-	sort.Sort(util.ByDirBlockInfoIDAccending(all))
+	sort.Sort(util.ByDirBlockInfoIDAscending(all))
 	return all, nil
 }
 
@@ -107,7 +107,7 @@ func toDirBlockInfosList(source []interfaces.BinaryMarshallableAndCopyable) []in
 	for i, v := range source {
 		answer[i] = v.(interfaces.IDirBlockInfo)
 	}
-	sort.Sort(util.ByDirBlockInfoIDAccending(answer))
+	sort.Sort(util.ByDirBlockInfoIDAscending(answer))
 	return answer
 }
 

@@ -272,7 +272,7 @@ func RegisterPrometheus() {
 		return
 	}
 	registered = true
-	// 		Exmaple Cont.
+	// 		Example Cont.
 	// prometheus.MustRegister(stateRandomCounter)
 
 	// Entry syncing

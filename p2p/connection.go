@@ -22,28 +22,28 @@ import (
 var conLogger = packageLogger.WithField("subpack", "connection")
 
 // Connection represents a single connection to another peer over the network. It communicates with the application
-// via two channels, send and recieve.  These channels take structs of type ConnectionCommand or ConnectionParcel
+// via two channels, send and receive.  These channels take structs of type ConnectionCommand or ConnectionParcel
 // (defined below).
 type Connection struct {
 	conn           net.Conn
 	Errors         chan error              // handle errors from connections.
 	Commands       chan *ConnectionCommand // handle connection commands
 	SendChannel    chan interface{}        // Send means "towards the network" Channel sends Parcels and ConnectionCommands
-	ReceiveChannel chan interface{}        // Recieve means "from the network" Channel recieves Parcels and ConnectionCommands
+	ReceiveChannel chan interface{}        // Receive means "from the network" Channel receives Parcels and ConnectionCommands
 	ReceiveParcel  chan *Parcel            // Parcels to be handled.
 	// and as "address" for sending messages to specific nodes.
 	encoder         *gob.Encoder      // Wire format is gobs in this version, may switch to binary
 	decoder         *gob.Decoder      // Wire format is gobs in this version, may switch to binary
 	peer            Peer              // the datastructure representing the peer we are talking to. defined in peer.go
 	attempts        int               // reconnection attempts
-	TimeLastpacket  time.Time         // Time we last successfully recieved a packet or command.
+	TimeLastpacket  time.Time         // Time we last successfully received a packet or command.
 	timeLastAttempt time.Time         // time of last attempt to connect via dial
 	timeLastPing    time.Time         // time of last ping sent
 	timeLastUpdate  time.Time         // time of last peer update sent
 	timeLastStatus  time.Time         // last time we printed our status for debugging.
 	timeLastMetrics time.Time         // last time we updated metrics
 	state           uint8             // Current state of the connection. Private. Only communication
-	isOutGoing      bool              // We keep track of outgoing dial() vs incomming accept() connections
+	isOutGoing      bool              // We keep track of outgoing dial() vs incoming accept() connections
 	isPersistent    bool              // Persistent connections we always redail.
 	notes           string            // Notes about the connection, for debugging (eg: error)
 	metrics         ConnectionMetrics // Metrics about this connection
@@ -52,7 +52,7 @@ type Connection struct {
 	logger *log.Entry
 }
 
-// Each connection is a simple state machine.  The state is managed by a single goroutine which also does netowrking.
+// Each connection is a simple state machine.  The state is managed by a single goroutine which also does networking.
 // The flow is this:  Connection gets initialized, and either has a peer or a net connection (From an accept())
 // If no network connection, the Connection dials.  If the dial is successful, it moves to the Online state
 // If not, it moves to the Shutdown state-- we only dial out once when initialized with a peer.
@@ -64,7 +64,7 @@ const (
 	ConnectionInitialized  uint8 = iota //Structure created, have peer info. Dial command moves us to Online or Shutdown (depending)
 	ConnectionOnline                    // We're connected to the other side.  Normal state
 	ConnectionOffline                   // We've been disconnected for whatever reason.  Attempt to reconnect some number of times. Moves to Online if successful, Shutdown if not.
-	ConnectionShuttingDown              // We're shutting down, the recieves loop exits.
+	ConnectionShuttingDown              // We're shutting down, the receives loop exits.
 	ConnectionClosed                    // We're shut down, the runloop sets this state right before exiting. Controller can clean us up.
 )
 
@@ -77,7 +77,7 @@ var connectionStateStrings = map[uint8]string{
 	ConnectionClosed:       "Closed",
 }
 
-// ConnectionParcel is sent to convey an appication message destined for the network.
+// ConnectionParcel is sent to convey an application message destined for the network.
 type ConnectionParcel struct {
 	Parcel Parcel
 }
@@ -98,10 +98,10 @@ func (e *ConnectionParcel) String() string {
 // ConnectionMetrics is used to encapsulate various metrics about the connection.
 type ConnectionMetrics struct {
 	MomentConnected  time.Time // when the connection started.
-	BytesSent        uint32    // Keeping track of the data sent/recieved for console
-	BytesReceived    uint32    // Keeping track of the data sent/recieved for console
-	MessagesSent     uint32    // Keeping track of the data sent/recieved for console
-	MessagesReceived uint32    // Keeping track of the data sent/recieved for console
+	BytesSent        uint32    // Keeping track of the data sent/received for console
+	BytesReceived    uint32    // Keeping track of the data sent/received for console
+	MessagesSent     uint32    // Keeping track of the data sent/received for console
+	MessagesReceived uint32    // Keeping track of the data sent/received for console
 	PeerAddress      string    // Peer IP Address
 	PeerQuality      int32     // Quality of the connection.
 	// Red: Below -50
@@ -132,7 +132,7 @@ func (e *ConnectionCommand) String() string {
 	return str
 }
 
-// These are the commands that connections can send/recieve
+// These are the commands that connections can send/receive
 const (
 	ConnectionIsClosed uint8 = iota // Notifies the controller that we are shut down and can be released
 	ConnectionShutdownNow
@@ -244,7 +244,7 @@ func (c *Connection) runLoop() {
 
 		switch c.state {
 		case ConnectionInitialized:
-			p2pConnectionRunLoopInitalized.Inc()
+			p2pConnectionRunLoopInitialized.Inc()
 			if MinumumQualityScore > c.peer.QualityScore && !c.isPersistent {
 				stateLogger.WithField("quality_score", c.peer.QualityScore).Info("Shutting down connection due to not reaching minimum quality score")
 				c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.
@@ -375,8 +375,8 @@ func (c *Connection) goShutdown() {
 
 // processSends gets all the messages from the application and sends them out over the network
 func (c *Connection) processSends() {
-	p2pProcessSendsGuage.Inc()
-	defer p2pProcessSendsGuage.Dec()
+	p2pProcessSendsGauge.Inc()
+	defer p2pProcessSendsGauge.Dec()
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -437,7 +437,7 @@ func (c *Connection) handleCommand() {
 				c.goShutdown()
 			}
 		case ConnectionGoOffline:
-			c.logger.Debugf("handleCommand() disconnecting peer: %s goOffline command recieved", c.peer.PeerIdent())
+			c.logger.Debugf("handleCommand() disconnecting peer: %s goOffline command received", c.peer.PeerIdent())
 			c.goOffline()
 		default:
 			c.logger.Errorf("handleCommand() unknown command?: %+v ", command)
@@ -473,8 +473,8 @@ func (c *Connection) sendParcel(parcel Parcel) {
 // -- a network error happens
 // -- something causes our state to be offline
 func (c *Connection) processReceives() {
-	p2pProcessReceivesGuage.Inc()
-	defer p2pProcessReceivesGuage.Dec()
+	p2pProcessReceivesGauge.Inc()
+	defer p2pProcessReceivesGauge.Dec()
 
 	defer func() {
 		if r := recover(); r != nil {

@@ -144,7 +144,7 @@ func (be *BlockExtractor) ExportEChain(chainID string, db interfaces.DBOverlay) 
 		return err
 	}
 	fmt.Printf("Fetched %v blocks\n", len(eBlocks))
-	sort.Sort(util.ByEBlockIDAccending(eBlocks))
+	sort.Sort(util.ByEBlockIDAscending(eBlocks))
 
 	for _, block := range eBlocks {
 		be.SaveBinary(block.(interfaces.DatabaseBatchable))
@@ -175,7 +175,7 @@ func (be *BlockExtractor) ExportDChain(db interfaces.DBOverlay) error {
 	if err != nil {
 		return err
 	}
-	sort.Sort(util.ByDBlockIDAccending(dBlocks))
+	sort.Sort(util.ByDBlockIDAscending(dBlocks))
 
 	for _, block := range dBlocks {
 		//Making sure Hash and KeyMR are set for the JSON export
@@ -196,7 +196,7 @@ func (be *BlockExtractor) ExportECChain(db interfaces.DBOverlay) error {
 	if err != nil {
 		return err
 	}
-	sort.Sort(util.ByECBlockIDAccending(ecBlocks))
+	sort.Sort(util.ByECBlockIDAscending(ecBlocks))
 
 	for _, block := range ecBlocks {
 		err = be.ExportBlock(block.(interfaces.DatabaseBatchable))
@@ -214,7 +214,7 @@ func (be *BlockExtractor) ExportAChain(db interfaces.DBOverlay) error {
 	if err != nil {
 		return err
 	}
-	sort.Sort(util.ByABlockIDAccending(aBlocks))
+	sort.Sort(util.ByABlockIDAscending(aBlocks))
 
 	for _, block := range aBlocks {
 		err = be.ExportBlock(block.(interfaces.DatabaseBatchable))
@@ -232,7 +232,7 @@ func (be *BlockExtractor) ExportFctChain(db interfaces.DBOverlay) error {
 	if err != nil {
 		return err
 	}
-	sort.Sort(util.ByFBlockIDAccending(fBlocks))
+	sort.Sort(util.ByFBlockIDAscending(fBlocks))
 
 	for _, block := range fBlocks {
 		err = be.ExportBlock(block.(interfaces.DatabaseBatchable))
@@ -251,7 +251,7 @@ func (be *BlockExtractor) ExportDirBlockInfo(db interfaces.DBOverlay) error {
 		return err
 	}
 	fmt.Printf("Fetched %v blocks\n", len(dbi))
-	sort.Sort(util.ByDirBlockInfoIDAccending(dbi))
+	sort.Sort(util.ByDirBlockInfoIDAscending(dbi))
 
 	for _, block := range dbi {
 		err = be.ExportBlock(block)

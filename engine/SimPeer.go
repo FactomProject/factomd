@@ -37,7 +37,7 @@ type SimPeer struct {
 	Delayed *SimPacket
 
 	bytesOut int // Bytes sent out
-	bytesIn  int // Bytes recieved
+	bytesIn  int // Bytes received
 
 	Last int64 // Last time reset (nano seconds)
 
@@ -52,7 +52,7 @@ func (f *SimPeer) BytesOut() int {
 	return f.RateOut
 }
 
-// Bytes recieved per second from this peer
+// Bytes received per second from this peer
 func (f *SimPeer) BytesIn() int {
 	return f.RateIn
 }
@@ -129,7 +129,7 @@ func (f *SimPeer) Send(msg interfaces.IMsg) error {
 }
 
 // Non-blocking return value from channel.
-func (f *SimPeer) Recieve() (interfaces.IMsg, error) {
+func (f *SimPeer) Receive() (interfaces.IMsg, error) {
 	if f.Delayed == nil {
 		select {
 		case packet, ok := <-f.BroadcastIn:

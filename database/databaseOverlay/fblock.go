@@ -95,7 +95,7 @@ func toFactoidList(source []interfaces.BinaryMarshallableAndCopyable) []interfac
 	for i, v := range source {
 		answer[i] = v.(interfaces.IFBlock)
 	}
-	sort.Sort(util.ByFBlockIDAccending(answer))
+	sort.Sort(util.ByFBlockIDAscending(answer))
 	return answer
 }
 
