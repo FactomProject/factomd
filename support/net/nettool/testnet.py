@@ -1,9 +1,12 @@
 """
 Manages the network of factomd nodes.
 """
+import time
+
 from nettool import services
 from nettool.docker_client import Image
 from nettool.identities import IdentityPool
+from nettool import log
 
 
 class Testnet(object):
@@ -11,7 +14,7 @@ class Testnet(object):
     Represents a factomd testnet running a set of factomd node and a seeds
     server.
     """
-    def __init__(self, docker, config, flags, network):
+    def __init__(self, docker, config_nodes, flags, network):
         self.network = network
 
         self.base_factomd_image = Image(
@@ -20,14 +23,8 @@ class Testnet(object):
             path="../../"
         )
 
-        self.identity_pool = IdentityPool()
-        self.nodes = []
-
-        for cfg in config:
-            identity = self.identity_pool.assign_next(cfg.name)
-            node = services.Factomd(docker, cfg, identity, cfg.flags or flags)
-            self.nodes.append(node)
-
+        self.identities = IdentityPool()
+        self.nodes = list(self._create_nodes(docker, config_nodes, flags))
         self.seeds = services.SeedServer(docker, self.nodes)
 
         for node in self.nodes:
@@ -57,15 +54,17 @@ class Testnet(object):
         self.seeds.generate_seeds_file()
         self.seeds.up(restart=build)
 
-        first = self.nodes[0]
-        first.up(restart=build)
-        first.load_identities(len(self.nodes))
+        self.nodes[0].up(restart=build)
+        self.nodes[0].load_identities(len(self.nodes) - 1)
+
+        with log.step("WAITING"):
+            time.sleep(120)
+
+        for node in self.nodes[1:]:
+            self.nodes[0].promote(node)
 
         for node in self.nodes[1:]:
             node.up(restart=build)
-
-        for node in self.nodes:
-            node.promote()
 
     def down(self, destroy=False):
         """
@@ -80,3 +79,17 @@ class Testnet(object):
             services.Factomd.destroy_image()
             services.SeedServer.destroy_image()
             self.base_factomd_image.destroy()
+
+    def _create_nodes(self, docker, cfg_nodes, flags):
+        # first node needs to get the bootstrap identity
+        yield services.Factomd(
+            docker,
+            cfg_nodes[0],
+            self.identities.bootstrap,
+            cfg_nodes[0].flags or flags
+        )
+
+        # other nodes get identities from the pool
+        for cfg in cfg_nodes[1:]:
+            identity = self.identities.assign_next(cfg.name)
+            yield services.Factomd(docker, cfg, identity, cfg.flags or flags)

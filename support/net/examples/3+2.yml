@@ -5,7 +5,7 @@
 # at the beginning:
 # ./nettool.py -f 3+2.yml ins \* \* allow
 
-flags: -sim_stdin=false -customnet=1234 -network=CUSTOM -blktime=20
+flags: -sim_stdin=false -customnet=1234 -network=CUSTOM -blktime=60
 
 nodes:
     - name: node1

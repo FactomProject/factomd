@@ -2,7 +2,6 @@
 Definitions of various services run in the environment.
 """
 import os.path
-import time
 
 from nettool import log
 from nettool.docker_client import Image, Container
@@ -179,9 +178,9 @@ class Factomd(Service):
 
         extra_args = {
             "environment": {
-                "ID_CHAIN": self.identity.chain_id,
-                "PRIV_KEY": self.identity.priv_key,
-                "PUB_KEY": self.identity.pub_key
+                "ID_CHAIN": self.identity.chain,
+                "PRIV_KEY": self.identity.priv,
+                "PUB_KEY": self.identity.pub
             },
             "ports": {}
         }
@@ -263,7 +262,7 @@ class Factomd(Service):
             "addToBlockchainNetwork",
             "localhost:8088",
             str(no_of_identities),
-            "1000",
+            "666000",
             "false"
         ])
 
@@ -271,16 +270,16 @@ class Factomd(Service):
         if result != 0:
             log.fatal("Failed to add identities", self.instance_name, output)
 
-    def promote(self):
+    def promote(self, node):
         """
         If role of the node is federated or audit server, run addservermessage
         to promote it.
         """
         self._wait_for_api()
 
-        if self.is_federated:
+        if node.is_federated:
             server_type = "f"
-        elif self.is_audit:
+        elif node.is_audit:
             server_type = "a"
         else:
             return
@@ -290,13 +289,13 @@ class Factomd(Service):
             "-host=localhost:8088",
             "send",
             server_type,
-            self.identity.chain_id,
-            self.identity.priv_key
+            node.identity.chain,
+            self.identity.priv
         ])
 
         result, output = self._run(cmd)
         if result != 0:
-            log.fatal("Failed to promote", self.instance_name, output)
+            log.fatal("Failed to promote", node.instance_name, output)
 
     def _wait_for_api(self):
         cmd = f"wait_for_port.sh 8088 {self.WAIT_FOR_V2_API_TIMEOUT_SECS}"

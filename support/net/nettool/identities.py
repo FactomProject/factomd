@@ -1,14 +1,21 @@
 """
 Management of custom network leader identities.
 """
-from collections import namedtuple
+from collections import deque, namedtuple
 import yaml
 
 
 IDENTITIES_FILE = "docker/identities.yml"
 
 
-Identity = namedtuple("Identity", "chain_id, priv_key, pub_key")
+Identity = namedtuple("Identity", "chain, priv, pub")
+
+
+BOOTSTRAP_IDENTITY = Identity(
+    chain="38bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9",
+    priv="4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d",
+    pub="cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a"
+)
 
 
 class IdentityPool(object):
@@ -16,11 +23,10 @@ class IdentityPool(object):
     A pool of preprepared identities that can be used to set up leaders in
     a custom network.
     """
-    env = None
-
     def __init__(self):
-        self.identities = list(_load_identities_from_file())
+        self.identities = deque(_load_identities_from_file())
         self.assigned = {}
+        self.bootstrap = BOOTSTRAP_IDENTITY
 
     def assign_next(self, node_name):
         """
@@ -28,14 +34,14 @@ class IdentityPool(object):
         """
         if node_name in self.assigned.keys():
             raise Exception(
-                "{} already has an identity assigned" % node_name
+                f"{node_name} already has an identity assigned"
             )
         if not self.identities:
             raise Exception(
-                "No more identites to assign, add more in {}" % IDENTITIES_FILE
+                f"No more identites to assign, add more in {IDENTITIES_FILE}"
             )
 
-        identity = self.identities.pop()
+        identity = self.identities.popleft()
         self.assigned[node_name] = identity
         return identity
 
@@ -51,7 +57,7 @@ def _load_identities_from_file():
     with open(IDENTITIES_FILE) as ident_file:
         for identity_cfg in yaml.load(ident_file):
             yield Identity(
-                chain_id=identity_cfg["IdentityChainID"],
-                priv_key=identity_cfg["ServerPrivKey"],
-                pub_key=identity_cfg["ServerPublicKey"]
+                chain=identity_cfg["IdentityChainID"],
+                priv=identity_cfg["ServerPrivKey"],
+                pub=identity_cfg["ServerPublicKey"]
             )
