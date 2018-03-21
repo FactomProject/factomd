@@ -53,15 +53,15 @@ type Controller struct {
 
 	discovery Discovery // Our discovery structure
 
-	numberOutgoingConnections  int       // In PeerManagmeent we track this to know whent to dial out.
-	numberIncommingConnections int       // In PeerManagmeent we track this and refuse incomming connections when we have too many.
-	lastPeerManagement         time.Time // Last time we ran peer management.
-	lastDiscoveryRequest       time.Time
-	NodeID                     uint64
-	lastStatusReport           time.Time
-	lastPeerRequest            time.Time       // Last time we asked peers about the peers they know about.
-	specialPeersString         string          // configuration set special peers
-	partsAssembler             *PartsAssembler // a data structure that assembles full messages from received message parts
+	numberOutgoingConnections int       // In PeerManagmeent we track this to know whent to dial out.
+	numberIncomingConnections int       // In PeerManagmeent we track this and refuse incoming connections when we have too many.
+	lastPeerManagement        time.Time // Last time we ran peer management.
+	lastDiscoveryRequest      time.Time
+	NodeID                    uint64
+	lastStatusReport          time.Time
+	lastPeerRequest           time.Time       // Last time we asked peers about the peers they know about.
+	specialPeersString        string          // configuration set special peers
+	partsAssembler            *PartsAssembler // a data structure that assembles full messages from received message parts
 
 	// logging
 	logger *log.Entry
@@ -286,13 +286,13 @@ func (c *Controller) acceptLoop(listener net.Listener) {
 		switch err {
 		case nil:
 			switch {
-			case c.numberIncommingConnections < MaxNumberIncommingConnections:
+			case c.numberIncomingConnections < MaxNumberIncomingConnections:
 				c.AddPeer(conn) // Sends command to add the peer to the peers list
 				c.logger.WithField("remote_address", conn.RemoteAddr()).Infof("Accepting new incoming connection")
 			default:
 				c.logger.WithFields(log.Fields{
 					"remote_address": conn.RemoteAddr(),
-					"num_conns":      c.numberIncommingConnections}).Infof("Got new connection request, but too many incomming connections.")
+					"num_conns":      c.numberIncomingConnections}).Infof("Got new connection request, but too many incoming connections.")
 				conn.Close()
 			}
 		default:
@@ -338,11 +338,11 @@ func (c *Controller) runloop() {
 
 // Route pulls all of the messages from the application and sends them to the appropriate
 // peer. Broadcast messages go to everyone, directed messages go to the named peer.
-// route also passes incomming messages on to the application.
+// route also passes incoming messages on to the application.
 func (c *Controller) route() {
-	// Recieve messages from the peers & forward to application.
+	// Receive messages from the peers & forward to application.
 	for peerHash, connection := range c.connections {
-		// Empty the recieve channel, stuff the application channel.
+		// Empty the receive channel, stuff the application channel.
 		for 0 < len(connection.ReceiveChannel) { // effectively "While there are messages"
 			message := <-connection.ReceiveChannel
 			switch message.(type) {
@@ -439,18 +439,18 @@ func (c *Controller) doDirectedSend(parcel Parcel) {
 
 // handleParcelReceive takes a parcel from the network and annotates it for the application then routes it.
 func (c *Controller) handleParcelReceive(message interface{}, peerHash string, connection Connection) {
-	TotalMessagesRecieved++
+	TotalMessagesReceived++
 	parameters := message.(ConnectionParcel)
 	parcel := parameters.Parcel
 	parcel.Header.TargetPeer = peerHash // Set the connection ID so the application knows which peer the message is from.
 	switch parcel.Header.Type {
 	case TypeMessage: // Application message, send it on.
-		ApplicationMessagesRecieved++
+		ApplicationMessagesReceived++
 		BlockFreeChannelSend(c.FromNetwork, parcel)
 	case TypeMessagePart: // A part of the application message, handle by assembler and if we have the full message, send it on.
 		assembled := c.partsAssembler.handlePart(parcel)
 		if assembled != nil {
-			ApplicationMessagesRecieved++
+			ApplicationMessagesReceived++
 			BlockFreeChannelSend(c.FromNetwork, *assembled)
 		}
 	case TypePeerRequest: // send a response to the connection over its connection.SendChannel
@@ -524,7 +524,7 @@ func (c *Controller) handleCommand(command interface{}) {
 			BlockFreeChannelSend(connection.SendChannel, ConnectionCommand{Command: ConnectionShutdownNow})
 		}
 	default:
-		c.logger.Errorf("Unkown p2p.Controller command recieved: %+v", commandType)
+		c.logger.Errorf("Unknown p2p.Controller command received: %+v", commandType)
 	}
 }
 
@@ -576,13 +576,13 @@ func (c *Controller) updateConnectionCounts() {
 	// If we are low on outgoing onnections, attempt to connect to some more.
 	// If the connection is not online, we don't count it as connected.
 	c.numberOutgoingConnections = 0
-	c.numberIncommingConnections = 0
+	c.numberIncomingConnections = 0
 	for _, connection := range c.connections {
 		switch {
 		case connection.IsOutGoing() && connection.IsOnline():
 			c.numberOutgoingConnections++
 		case !connection.IsOutGoing() && connection.IsOnline():
-			c.numberIncommingConnections++
+			c.numberIncomingConnections++
 		default: // we don't count offline connections for these purposes.
 		}
 	}

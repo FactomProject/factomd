@@ -43,12 +43,12 @@ var packageLogger = log.WithFields(log.Fields{"package": "state"})
 var _ = fmt.Print
 
 type State struct {
-	Logger           *log.Entry
-	IsRunning        bool
-	filename         string
-	NetworkControler *p2p.Controller
-	Salt             interfaces.IHash
-	Cfg              interfaces.IFactomConfig
+	Logger            *log.Entry
+	IsRunning         bool
+	filename          string
+	NetworkController *p2p.Controller
+	Salt              interfaces.IHash
+	Cfg               interfaces.IFactomConfig
 
 	Prefix            string
 	FactomNodeName    string
@@ -248,7 +248,7 @@ type State struct {
 	ResendHolding interfaces.Timestamp         // Timestamp to gate resending holding to neighbors
 	Holding       map[[32]byte]interfaces.IMsg // Hold Messages
 	XReview       []interfaces.IMsg            // After the EOM, we must review the messages in Holding
-	Acks          map[[32]byte]interfaces.IMsg // Hold Acknowledgemets
+	Acks          map[[32]byte]interfaces.IMsg // Hold Acknowledgements
 	Commits       *SafeMsgMap                  //  map[[32]byte]interfaces.IMsg // Commit Messages
 
 	InvalidMessages      map[[32]byte]interfaces.IMsg
@@ -792,7 +792,7 @@ func (s *State) Init() {
 	salt := fmt.Sprintf("The Instance ID of this node is %s\n", s.Salt.String()[:16])
 	fmt.Print(salt)
 
-	s.StartDelay = s.GetTimestamp().GetTimeMilli() // We cant start as a leader until we know we are upto date
+	s.StartDelay = s.GetTimestamp().GetTimeMilli() // We can't start as a leader until we know we are upto date
 	s.RunLeader = false
 	s.IgnoreMissing = true
 	s.BootTime = s.GetTimestamp().GetTimeSeconds()
@@ -816,8 +816,8 @@ func (s *State) Init() {
 	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 100) //incoming message queue from the network messages
 	s.InvalidMessages = make(map[[32]byte]interfaces.IMsg, 0)
 	s.networkOutMsgQueue = NewNetOutMsgQueue(1000)      //Messages to be broadcast to the network
-	s.inMsgQueue = NewInMsgQueue(10000)                 //incoming message queue for factom application messages
-	s.electionsQueue = NewElectionQueue(10000)          //incoming message queue for factom application messages
+	s.inMsgQueue = NewInMsgQueue(10000)                 //incoming message queue for Factom application messages
+	s.electionsQueue = NewElectionQueue(10000)          //incoming message queue for Factom application messages
 	s.apiQueue = NewAPIQueue(100)                       //incoming message queue from the API
 	s.ackQueue = make(chan interfaces.IMsg, 100)        //queue of Leadership messages
 	s.msgQueue = make(chan interfaces.IMsg, 400)        //queue of Follower messages
@@ -1101,7 +1101,7 @@ func (s *State) ValidatePrevious(dbheight uint32) error {
 		} else {
 			if pdblk2.GetKeyMR().Fixed() != dblk.GetHeader().GetPrevKeyMR().Fixed() {
 				errs += fmt.Sprintln("xxxx Hash is incorrect.  Expected: ", dblk.GetHeader().GetPrevKeyMR().String())
-				errs += fmt.Sprintln("xxxx Hash is incorrect.  Recieved: ", pdblk2.GetKeyMR().String())
+				errs += fmt.Sprintln("xxxx Hash is incorrect.  Received: ", pdblk2.GetKeyMR().String())
 				errs += fmt.Sprintf("Hash is incorrect at %d", dbheight-1)
 			}
 		}
@@ -1283,7 +1283,7 @@ func (s *State) LoadHoldingMap() map[[32]byte]interfaces.IMsg {
 }
 
 // this is executed in the state maintenance processes where the holding queue is in scope and can be queried
-//  This is what fills the HoldingMap while locking it against a read while building
+//  This is what fills the HoldingMap while locking it againstt a read while building
 func (s *State) fillHoldingMap() {
 	// once a second is often enough to rebuild the Ack list exposed to api
 
@@ -2065,7 +2065,7 @@ func (s *State) SetFaultWait(wait int) {
 
 //var _ IState = (*State)(nil)
 
-// GetAuthoritites will return a list of the network athoritites
+// GetAuthorities will return a list of the network authorities
 func (s *State) GetAuthorities() []interfaces.IAuthority {
 	auths := make([]interfaces.IAuthority, 0)
 	for _, auth := range s.Authorities {
@@ -2087,7 +2087,7 @@ func (s *State) GetCfg() interfaces.IFactomConfig {
 	return s.Cfg
 }
 
-// ReadCfg forces a read of the factom config file.  However, it does not change the
+// ReadCfg forces a read of the Factom config file.  However, it does not change the
 // state of any cfg object held by other processes... Only what will be returned by
 // future calls to Cfg().(s.Cfg.(*util.FactomdConfig)).String()
 func (s *State) ReadCfg(filename string) interfaces.IFactomConfig {
@@ -2127,7 +2127,7 @@ func (s *State) GetNetworkID() uint32 {
 	return uint32(0)
 }
 
-// The inital public key that can sign the first block
+// The initial public key that can sign the first block
 func (s *State) GetNetworkBootStrapKey() interfaces.IHash {
 	switch s.NetworkNumber {
 	case constants.NETWORK_MAIN:
@@ -2149,7 +2149,7 @@ func (s *State) GetNetworkBootStrapKey() interfaces.IHash {
 	return primitives.NewZeroHash()
 }
 
-// The inital identity that can sign the first block
+// The initial identity that can sign the first block
 func (s *State) GetNetworkBootStrapIdentity() interfaces.IHash {
 	switch s.NetworkNumber {
 	case constants.NETWORK_MAIN:
@@ -2314,7 +2314,7 @@ func (s *State) SetStringConsensus() {
 	s.serverPrt = str
 }
 
-// CalculateTransactionRate caculates how many transactions this node is processing
+// CalculateTransactionRate calculates how many transactions this node is processing
 //		totalTPS	: Transaction rate over life of node (totaltime / totaltrans)
 //		instantTPS	: Transaction rate weighted over last 3 seconds
 func (s *State) CalculateTransactionRate() (totalTPS float64, instantTPS float64) {

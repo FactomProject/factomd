@@ -150,7 +150,7 @@ func toDBlocksList(source []interfaces.BinaryMarshallableAndCopyable) []interfac
 	for i, v := range source {
 		answer[i] = v.(interfaces.IDirectoryBlock)
 	}
-	sort.Sort(util.ByDBlockIDAccending(answer))
+	sort.Sort(util.ByDBlockIDAscending(answer))
 	return answer
 }
 

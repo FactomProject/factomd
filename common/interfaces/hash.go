@@ -4,8 +4,6 @@
 
 package interfaces
 
-import ()
-
 type IHash interface {
 	BinaryMarshallableAndCopyable
 	Printable

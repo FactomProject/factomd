@@ -188,7 +188,7 @@ func (s *State) GetEntryCommitAckByEntryHash(hash interfaces.IHash) (status int,
 		return
 	}
 
-	// At this point, we have the status of unkown. Any DBlock or Ack level has been covered above.
+	// At this point, we have the status of unknown. Any DBlock or Ack level has been covered above.
 	// If 'c' is not nil, then commit was found in the holding map.
 	_, c = s.FetchEntryRevealAndCommitFromHolding(hash)
 	if c != nil {

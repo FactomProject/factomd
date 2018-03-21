@@ -9,12 +9,13 @@ import (
 	"strings"
 	"testing"
 
+	"time"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/receipts"
 	"github.com/FactomProject/factomd/testHelper"
 	. "github.com/FactomProject/factomd/wsapi"
-	"time"
 )
 
 func TestRegisterPrometheus(t *testing.T) {
@@ -465,7 +466,7 @@ func Test_ecBlockToResp(t *testing.T) {
 		want1 *primitives.JSONError
 	}{
 
-	// TODO: Add test cases.
+		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

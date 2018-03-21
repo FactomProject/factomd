@@ -602,7 +602,7 @@ func (b *FBlock) AddTransaction(trans interfaces.ITransaction) error {
 		return err
 	}
 
-	// Check against address balances is done at the Factom level.
+	// Check againstt address balances is done at the Factom level.
 
 	b.Transactions = append(b.Transactions, trans)
 	return nil

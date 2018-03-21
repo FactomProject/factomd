@@ -122,7 +122,7 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 	DisplayStateMutex.RUnlock()
 
 	if controlPanelSetting == 0 { // 0 = Disabled
-		fmt.Println("Control Panel has been disabled withing the config file and will not be served. This is recommended for any public server, if you wish to renable it, check your config file.")
+		fmt.Println("Control Panel has been disabled within the config file and will not be served. This is recommended for any public server, if you wish to renable it, check your config file.")
 		return
 	}
 
@@ -135,7 +135,7 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 	Controller = controller
 	InitTemplates()
 
-	// Updated Globals. A seperate GoRoutine updates these, we just initialize
+	// Updated Globals. A separate GoRoutine updates these, we just initialize
 	RecentTransactions = new(LastDirectoryBlockTransactions)
 	AllConnections = NewConnectionsMap()
 
@@ -509,7 +509,7 @@ func toggleDCT() {
 	}
 }
 
-// Gets all the recent transctions. Will only keep the most recent 100.
+// Gets all the recent transitions. Will only keep the most recent 100.
 func getRecentTransactions(time.Time) {
 	/*defer func() {
 		if r := recover(); r != nil {

@@ -1,8 +1,9 @@
 package stack_test
 
 import (
-	. "github.com/FactomProject/factomd/electionsCore/interpreter/stack"
 	"testing"
+
+	. "github.com/FactomProject/factomd/electionsCore/interpreter/stack"
 )
 
 func TestStack(t *testing.T) {

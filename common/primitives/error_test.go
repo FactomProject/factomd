@@ -12,9 +12,9 @@ import (
 
 func TestErrors(t *testing.T) {
 	errs := []Error{
-		Error{ErrorInternal, 500, "Internal", "An internal error occured", "", ""},
-		Error{ErrorJSONMarshal, 500, "JSON Marshal", "An error occured marshalling into JSON", "", ""},
-		Error{ErrorXMLMarshal, 500, "XML Marshal", "An error occured marshalling into XML", "", ""},
+		Error{ErrorInternal, 500, "Internal", "An internal error occurred", "", ""},
+		Error{ErrorJSONMarshal, 500, "JSON Marshal", "An error occurred marshalling into JSON", "", ""},
+		Error{ErrorXMLMarshal, 500, "XML Marshal", "An error occurred marshalling into XML", "", ""},
 		Error{ErrorUnsupportedMarshal, 500, "Unsupported Marshal", "The server attempted to marshal the data into an unsupported format", "", ""},
 		Error{ErrorBadMethod, 405, "Bad Method", "The specified method cannot be used on the specified resource", "", ""},
 		Error{ErrorNotAcceptable, 406, "Not Acceptable", "The resource cannot be retreived as any of the acceptable types", "", ""},
@@ -26,15 +26,15 @@ func TestErrors(t *testing.T) {
 		Error{ErrorBadIdentifier, 400, "Bad Identifier", "The element identifier was malformed", "", ""},
 		Error{ErrorBlockNotFound, 404, "Block Not Found", "The specified block cannot be found", "", ""},
 		Error{ErrorEntryNotFound, 404, "Entry Not Found", "The specified entry cannot be found", "", ""},
-		Error{ErrorJSONUnmarshal, 400, "JSON Unmarshal", "An error occured while unmarshalling from JSON", "", ""},
-		Error{ErrorXMLUnmarshal, 400, "XML Unmarshal", "An error occured while unmarshalling from XML", "", ""},
+		Error{ErrorJSONUnmarshal, 400, "JSON Unmarshal", "An error occurred while unmarshalling from JSON", "", ""},
+		Error{ErrorXMLUnmarshal, 400, "XML Unmarshal", "An error occurred while unmarshalling from XML", "", ""},
 		Error{ErrorUnsupportedUnmarshal, 400, "Unsupported Unmarshal", "The data was specified to be in an unsupported format", "", ""},
 		Error{ErrorBadPOSTData, 400, "Bad POST Data", "The body of the POST request is malformed", "", ""},
-		Error{ErrorTemplateError, 500, "Template Error", "A template error occured", "", ""},
+		Error{ErrorTemplateError, 500, "Template Error", "A template error occurred", "", ""},
 		Error{ErrorHTTPNewRequestFailure, 500, "HTTP Request Failure", "Failed to create an HTTP request", "", ""},
 		Error{ErrorHTTPDoRequestFailure, 500, "HTTP Request Failure", "Error while executing an HTTP request", "", ""},
-		Error{ErrorHTMLMarshal, 500, "HTML Marshal", "An error occured marshalling into HTML", "", ""},
-		Error{9999, 500, "Unknown Error", "An unknown error occured", "", ""},
+		Error{ErrorHTMLMarshal, 500, "HTML Marshal", "An error occurred marshalling into HTML", "", ""},
+		Error{9999, 500, "Unknown Error", "An unknown error occurred", "", ""},
 	}
 
 	for _, e := range errs {

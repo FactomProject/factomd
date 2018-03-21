@@ -45,7 +45,7 @@ type FedVoteVolunteerMsg struct {
 
 	Signature interfaces.IFullSignature
 
-	// Non-marshaled fields
+	// Non-marshalled fields
 	// The authority set to be used in this election
 	AuditServers []interfaces.IServer // List of Audit Servers
 	FedServers   []interfaces.IServer // List of Federated Servers

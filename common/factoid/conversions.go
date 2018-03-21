@@ -85,7 +85,7 @@ func PublicKeyStringToFactoidRCDAddress(public string) (interfaces.IRCD, error) 
 /******************************Combined****************************************/
 /******************************************************************************/
 
-func HumanReadiblePrivateKeyStringToEverythingString(private string) (string, string, string, error) {
+func HumanReadablePrivateKeyStringToEverythingString(private string) (string, string, string, error) {
 	priv, err := primitives.HumanReadableFactoidPrivateKeyToPrivateKeyString(private)
 	if err != nil {
 		return "", "", "", err

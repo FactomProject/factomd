@@ -9,12 +9,13 @@
 package databaseOverlay_test
 
 import (
+	"testing"
+
 	. "github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/primitives"
 	. "github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/mapdb"
 	"github.com/FactomProject/factomd/testHelper"
-	"testing"
 )
 
 func TestSaveLoadEBlockHead(t *testing.T) {

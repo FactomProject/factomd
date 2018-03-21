@@ -165,7 +165,7 @@ func SimControl(listenTo int, listenStdin bool) {
 						os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
 						break
 					}
-					setUpAuthorites(fnodes[wsapiNode].State, true)
+					setUpAuthorities(fnodes[wsapiNode].State, true)
 					os.Stderr.WriteString(fmt.Sprintf("%d Authorities added to the stack and funds are in wallet\n", len(authStack)))
 				}
 				if len(b) == 1 {
@@ -187,7 +187,7 @@ func SimControl(listenTo int, listenStdin bool) {
 						}
 						auths, skipped, err := authorityToBlockchain(count, fnodes[wsapiNode].State)
 						if err != nil {
-							os.Stderr.WriteString(fmt.Sprintf("Error making authorites, %s\n", err.Error()))
+							os.Stderr.WriteString(fmt.Sprintf("Error making authorities, %s\n", err.Error()))
 						}
 						os.Stderr.WriteString(fmt.Sprintf("=== %d Identities added to blockchain, %d remain in stack, %d skipped (Added by someone else) ===\n", len(auths), len(authStack), skipped))
 						for _, ele := range auths {
@@ -445,7 +445,7 @@ func SimControl(listenTo int, listenStdin bool) {
 				if len(b) > 1 {
 					nnn, err := strconv.Atoi(string(b[1:]))
 					if err != nil || nnn < 0 || nnn > 99 {
-						os.Stderr.WriteString("Specifiy a FaultWait between 0 and 100\n")
+						os.Stderr.WriteString("Specify a FaultWait between 0 and 100\n")
 						break
 					}
 					for _, fn := range fnodes {
@@ -514,7 +514,7 @@ func SimControl(listenTo int, listenStdin bool) {
 
 				nnn, err := strconv.Atoi(string(b[1:]))
 				if err != nil || nnn < 0 || nnn > 99 {
-					os.Stderr.WriteString("Specifiy a FaultTimeout between 0 and 100\n")
+					os.Stderr.WriteString("Specify a FaultTimeout between 0 and 100\n")
 					break
 				}
 				for _, fn := range fnodes {
@@ -1045,7 +1045,7 @@ func SimControl(listenTo int, listenStdin bool) {
 				}
 				nnn, err := strconv.Atoi(string(b[1:]))
 				if err != nil || nnn < 0 || nnn > 999 {
-					os.Stderr.WriteString("Specifiy a drop amount between 0 and 1000\n")
+					os.Stderr.WriteString("Specify a drop amount between 0 and 1000\n")
 					break
 				}
 
@@ -1066,7 +1066,7 @@ func SimControl(listenTo int, listenStdin bool) {
 				nn, err := strconv.Atoi(string(b[1:]))
 				nnn := int64(nn)
 				if err != nil || nnn < 0 || nnn > 99999 {
-					os.Stderr.WriteString("Specifiy a delay amount in milliseconds less than 100 seconds\n")
+					os.Stderr.WriteString("Specify a delay amount in milliseconds less than 100 seconds\n")
 					break
 				}
 

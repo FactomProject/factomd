@@ -65,7 +65,7 @@ func (r *RateCalculator) StartTime(start time.Time) {
 	var totalComplete int32 = 0
 
 	ticker := time.NewTicker(r.tickerTime)
-	// Every 2 seconds caluclate the instant rate and adjust the total avg
+	// Every 2 seconds calculate the instant rate and adjust the total avg
 	for _ = range ticker.C {
 		na, nc := int32(0), int32(0)
 

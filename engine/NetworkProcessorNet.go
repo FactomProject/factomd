@@ -64,7 +64,7 @@ func Peers(fnode *FactomNode) {
 	// ackHeight is used in ignoreMsg to determine if we should ignore an acknowledgment
 	ackHeight := uint32(0)
 	// When syncing from disk/network we want to selectively ignore certain msgs to allow
-	// factom to focus on syncing. The following msgs will be ignored:
+	// Factom to focus on syncing. The following msgs will be ignored:
 	//		Acks:
 	//				Ignore acks below the ackheight, which is set if we get an ack at a height higher than
 	//			  	the ackheight. This is because Acks are for the current block, which we are not at,
@@ -188,7 +188,7 @@ func Peers(fnode *FactomNode) {
 
 				preReceiveTime := time.Now()
 
-				msg, err = peer.Recieve()
+				msg, err = peer.Receive()
 				if msg == nil {
 					// Receive is not blocking; nothing to do, we get a nil.
 					break // move to next peer
@@ -196,7 +196,7 @@ func Peers(fnode *FactomNode) {
 
 				if err != nil {
 					fnode.State.LogPrintf("NetworkInputs", "error on receive from %v: %v", peer.GetNameFrom(), err)
-					fmt.Println("ERROR recieving message on", fnode.State.FactomNodeName+":", err)
+					fmt.Println("ERROR receiving message on", fnode.State.FactomNodeName+":", err)
 					// TODO: Maybe we should check the error type and/or count errors and change status to offline?
 					break // move to next peer
 				}

@@ -4,8 +4,6 @@
 
 package interfaces
 
-import ()
-
 type IDatabase interface {
 	Close() error
 	Put(bucket, key []byte, data BinaryMarshallable) error

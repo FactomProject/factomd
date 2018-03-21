@@ -438,7 +438,7 @@ func VerifyMinimalReceipt(dbo interfaces.DBOverlaySimple, receiptStr string) err
 			return fmt.Errorf("Node %v/%v has two non-nil sides", i, len(receipt.MerkleBranch))
 		}
 		if node.Top != nil {
-			return fmt.Errorf("Node %v/%v has unnecesary top", i, len(receipt.MerkleBranch))
+			return fmt.Errorf("Node %v/%v has unnecessary top", i, len(receipt.MerkleBranch))
 		}
 	}
 

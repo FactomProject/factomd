@@ -106,7 +106,7 @@ type IState interface {
 	NetworkOutMsgQueue() IQueue
 	NetworkInvalidMsgQueue() chan IMsg
 
-	// Journalling
+	// Journaling
 	JournalMessage(IMsg)
 	GetJournalMessages() [][]byte
 

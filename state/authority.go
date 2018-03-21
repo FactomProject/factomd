@@ -63,7 +63,7 @@ func (st *State) VerifyAuthoritySignature(msg []byte, sig *[constants.SIGNATURE_
 func (st *State) FastVerifyAuthoritySignature(msg []byte, sig interfaces.IFullSignature, dbheight uint32) (int, error) {
 	feds := st.GetFedServers(dbheight)
 	if feds == nil {
-		return 0, fmt.Errorf("Federated Servers are unknown at directory block hieght %d", dbheight)
+		return 0, fmt.Errorf("Federated Servers are unknown at directory block height %d", dbheight)
 	}
 	auds := st.GetAuditServers(dbheight)
 

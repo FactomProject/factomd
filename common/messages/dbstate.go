@@ -206,7 +206,7 @@ func (m *DBStateMsg) ValidateSignatures(state interfaces.IState) int {
 			// This has all the signatures it needs
 			goto ValidSignatures
 		} else {
-			// If we remove servers, there will not be as many signatures. We need to accomadate for this
+			// If we remove servers, there will not be as many signatures. We need to accommodate for this
 			// by reducing our needed. This will only get called if we fall short on signatures.
 			aes := m.AdminBlock.GetABEntries()
 			for _, adminEntry := range aes {
@@ -272,10 +272,10 @@ ValidSignatures: // Goto here if signatures pass
 	return m.ValidateData(state)
 }
 
-// ValidateData will check the data attached to the DBState against the directory block it contains.
+// ValidateData will check the data attached to the DBState againstt the directory block it contains.
 // This is ensure no additional junk is attached to a valid DBState
 func (m *DBStateMsg) ValidateData(state interfaces.IState) int {
-	// Checking the content of the DBState against the directoryblock contained
+	// Checking the content of the DBState againstt the directoryblock contained
 	// Map of Entries and Eblocks in this DBState dblock
 	// A value of true indicates a repeat. Repeats are not enforce though
 	eblocks := make(map[[32]byte]bool) //, len(m.EBlocks))
@@ -368,7 +368,7 @@ func (m *DBStateMsg) SigTally(state interfaces.IState) int {
 			continue
 		}
 		// it was not the expected signature check the boot strap
-		//Check signature against the Skeleton key
+		//Check signature againstt the Skeleton key
 		authoritativeKey := state.GetNetworkBootStrapKey()
 		if authoritativeKey != nil {
 			if bytes.Compare(sig.GetKey(), authoritativeKey.Bytes()) == 0 {

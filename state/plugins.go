@@ -64,7 +64,7 @@ func (u *UploadController) Close() {
 	Go Routines
 ******************/
 
-// sortRequests sorts through the inital requests to toss out repeats
+// sortRequests sorts through the initial requests to toss out repeats
 func (u *UploadController) sortRequests() {
 	for {
 	backToTopSortRequests:

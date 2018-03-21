@@ -167,7 +167,7 @@ func TestHandleV2FactoidACK(t *testing.T) {
 		_, jError = HandleV2FactoidACK(state, req)
 
 		if jError == nil {
-			t.Error("Invalid transaciton not caught")
+			t.Error("Invalid transactions not caught")
 			continue
 		}
 	}
@@ -356,7 +356,7 @@ func TestHandleV2EntryACK(t *testing.T) {
 		_, jError = HandleV2EntryACK(state, req)
 
 		if jError == nil {
-			t.Error("Invalid transaciton not caught")
+			t.Error("Invalid transactions not caught")
 			continue
 		}
 	}

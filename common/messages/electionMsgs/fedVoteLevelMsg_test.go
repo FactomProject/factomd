@@ -46,7 +46,7 @@ func TestMarshalUnmarshalFedVoteLevel(t *testing.T) {
 
 		//va2s, err := va2.JSONString()
 		//if va2s != vas {
-		//	t.Errorf("Messages are not the json when json marshaled")
+		//	t.Errorf("Messages are not the json when json marshalled")
 		//}
 		if err != nil {
 			t.Error(err)

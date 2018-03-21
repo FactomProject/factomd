@@ -1,9 +1,10 @@
 package blockExtractor_test
 
 import (
+	"testing"
+
 	. "github.com/FactomProject/factomd/database/blockExtractor"
 	"github.com/FactomProject/factomd/testHelper"
-	"testing"
 )
 
 func TestTest(t *testing.T) {

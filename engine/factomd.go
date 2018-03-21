@@ -6,14 +6,14 @@ package engine
 
 import (
 	"fmt"
+	"runtime"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages/electionMsgs"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/state"
-	"runtime"
 
 	"bufio"
-	log "github.com/sirupsen/logrus"
 	"io"
 	"net"
 	"os"
@@ -22,6 +22,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 var _ = fmt.Print

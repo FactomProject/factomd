@@ -8,10 +8,11 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/FactomProject/bolt"
-	"github.com/FactomProject/factomd/common/interfaces"
 	"os"
 	"path/filepath"
+
+	"github.com/FactomProject/bolt"
+	"github.com/FactomProject/factomd/common/interfaces"
 )
 
 // This database stores and retrieves interfaces.IBlock instances.  To do that, it
@@ -247,7 +248,7 @@ func (db *BoltDB) GetAll(bucket []byte, sample interfaces.BinaryMarshallableAndC
 	return answer, keys, nil
 }
 
-// We have to make accomadation for many Init functions.  But what we really
+// We have to make accommodation for many Init functions.  But what we really
 // want here is:
 //
 //      Init(bucketList [][]byte, filename string)

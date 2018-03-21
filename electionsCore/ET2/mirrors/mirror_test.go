@@ -2,11 +2,12 @@ package mirrors_test
 
 import (
 	"fmt"
-	. "github.com/FactomProject/factomd/electionsCore/ET2/mirrors"
 	"io/ioutil"
 	"os"
 	"testing"
 	"time"
+
+	. "github.com/FactomProject/factomd/electionsCore/ET2/mirrors"
 )
 
 func makeH(s string) [32]byte {

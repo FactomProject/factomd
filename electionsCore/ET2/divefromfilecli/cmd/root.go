@@ -5,9 +5,10 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"os"
+
 	. "github.com/FactomProject/factomd/electionsCore/ET2/divefromfile"
 	"github.com/spf13/cobra"
-	"os"
 )
 
 var listen, connect, load string
@@ -23,7 +24,7 @@ var rootCmd = &cobra.Command{
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) < 1 {
-			panic(errors.New("The inital state filename argument is required"))
+			panic(errors.New("The initial state filename argument is required"))
 		}
 		name := args[0]
 		// create a thing

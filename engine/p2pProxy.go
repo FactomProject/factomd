@@ -33,8 +33,8 @@ type P2PProxy struct {
 	FromNetwork chan interface{} // p2p.Parcel Parcels from the network for the application
 
 	NumPeers int
-	bytesOut int // bandwidth used by applicaiton without netowrk fan out
-	bytesIn  int // bandwidth recieved by application from network
+	bytesOut int // bandwidth used by application without network fan out
+	bytesIn  int // bandwidth received by application from network
 
 	// logging
 	logger *log.Entry
@@ -127,7 +127,7 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 }
 
 // Non-blocking return value from channel.
-func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
+func (f *P2PProxy) Receive() (interfaces.IMsg, error) {
 	select {
 	case data, ok := <-f.BroadcastIn:
 		if ok {

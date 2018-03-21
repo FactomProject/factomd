@@ -19,8 +19,9 @@ import (
 	"github.com/FactomProject/factomd/state"
 	//"fmt"
 	"fmt"
-	"github.com/FactomProject/factomd/common/messages/electionMsgs"
 	"os"
+
+	"github.com/FactomProject/factomd/common/messages/electionMsgs"
 )
 
 var BlockCount int = 10

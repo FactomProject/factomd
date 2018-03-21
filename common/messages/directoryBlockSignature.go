@@ -36,7 +36,7 @@ type DirectoryBlockSignature struct {
 	SysHeight   uint32
 	SysHash     interfaces.IHash
 
-	//Not marshaled
+	//Not marshalled
 	Matches      bool
 	hash         interfaces.IHash
 	marshalCache []byte

@@ -133,7 +133,7 @@ func (m *FullServerFault) Priority(state interfaces.IState) (priority int64) {
 }
 
 // Return the serial height for this Full Fault message.  Can return nil if there is
-// no process list at this dbheight, or if we are missing a preceeding Full Fault message.
+// no process list at this dbheight, or if we are missing a preceding Full Fault message.
 func (m *FullServerFault) GetSerialHash() interfaces.IHash {
 	if m.SSerialHash == nil {
 		sh, err := primitives.CreateHash(m.SSerialHash, m.GetCoreHash())

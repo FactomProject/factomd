@@ -6,11 +6,12 @@ package databaseOverlay
 
 import (
 	//"fmt"
+	"sort"
+
 	"github.com/FactomProject/factomd/anchor"
 	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"sort"
 )
 
 var AnchorBlockID string = "df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604"
@@ -110,12 +111,12 @@ func (dbo *Overlay) FetchAllAnchorInfo() ([]*anchor.AnchorRecord, error) {
 		}
 		answer = append(answer, ar)
 	}
-	sort.Sort(ByAnchorDBHeightAccending(answer))
+	sort.Sort(ByAnchorDBHeightAscending(answer))
 	return answer, nil
 }
 
 func (dbo *Overlay) SaveAnchorInfoAsDirBlockInfo(ars []*anchor.AnchorRecord) error {
-	sort.Sort(ByAnchorDBHeightAccending(ars))
+	sort.Sort(ByAnchorDBHeightAscending(ars))
 
 	for _, v := range ars {
 		dbi, err := AnchorRecordToDirBlockInfo(v)
@@ -162,15 +163,15 @@ func AnchorRecordToDirBlockInfo(ar *anchor.AnchorRecord) (*dbInfo.DirBlockInfo, 
 	return dbi, nil
 }
 
-// AnchorRecord array sorting implementation - accending
-type ByAnchorDBHeightAccending []*anchor.AnchorRecord
+// AnchorRecord array sorting implementation - ascending
+type ByAnchorDBHeightAscending []*anchor.AnchorRecord
 
-func (f ByAnchorDBHeightAccending) Len() int {
+func (f ByAnchorDBHeightAscending) Len() int {
 	return len(f)
 }
-func (f ByAnchorDBHeightAccending) Less(i, j int) bool {
+func (f ByAnchorDBHeightAscending) Less(i, j int) bool {
 	return f[i].DBHeight < f[j].DBHeight
 }
-func (f ByAnchorDBHeightAccending) Swap(i, j int) {
+func (f ByAnchorDBHeightAscending) Swap(i, j int) {
 	f[i], f[j] = f[j], f[i]
 }

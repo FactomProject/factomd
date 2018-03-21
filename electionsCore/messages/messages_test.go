@@ -1,9 +1,10 @@
 package messages
 
 import (
+	"testing"
+
 	. "github.com/FactomProject/factomd/electionsCore/errorhandling"
 	. "github.com/FactomProject/factomd/electionsCore/primitives"
-	"testing"
 )
 
 // string to identity

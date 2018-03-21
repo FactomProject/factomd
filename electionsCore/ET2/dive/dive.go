@@ -446,7 +446,7 @@ func printState(depth int, msgs []*DirectedMessage, leaders []*election.Election
 	fmt.Println("====End List===")
 
 	if insanePrints {
-		// Example of a run that has a werid msg state
+		// Example of a run that has a weird msg state
 		fmt.Println("Leader 0")
 		fmt.Println(leaders[0].PrintMessages())
 		fmt.Println("Leader 1")

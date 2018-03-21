@@ -2,8 +2,9 @@ package primitives_test
 
 import (
 	"fmt"
-	. "github.com/FactomProject/factomd/electionsCore/primitives"
 	"testing"
+
+	. "github.com/FactomProject/factomd/electionsCore/primitives"
 )
 
 func TestIsLeader(t *testing.T) {
