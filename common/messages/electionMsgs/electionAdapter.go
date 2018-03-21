@@ -155,18 +155,18 @@ func (ea *ElectionAdapter) Execute(msg interfaces.IMsg) interfaces.IMsg {
 		//return nil
 	}
 
-	var from interfaces.IHash
+	//var from interfaces.IHash
+	//
+	//switch msg.(type) {
+	//case *FedVoteVolunteerMsg:
+	//	from = msg.(*FedVoteVolunteerMsg).ServerID
+	//case *FedVoteProposalMsg:
+	//	from = msg.(*FedVoteProposalMsg).Signer
+	//case *FedVoteLevelMsg:
+	//	from = msg.(*FedVoteLevelMsg).Signer
+	//}
 
-	switch msg.(type) {
-	case *FedVoteVolunteerMsg:
-		from = msg.(*FedVoteVolunteerMsg).ServerID
-	case *FedVoteProposalMsg:
-		from = msg.(*FedVoteProposalMsg).Signer
-	case *FedVoteLevelMsg:
-		from = msg.(*FedVoteLevelMsg).Signer
-	}
-
-	fmt.Printf("SimExecute In :: %s <- %s BY %x\n", ea.Election.State.GetFactomNodeName(), ea.SimulatedElection.Display.FormatMessage(simmessage), from.Fixed())
+	// fmt.Printf("SimExecute In :: %s <- %s BY %x\n", ea.Election.State.GetFactomNodeName(), ea.SimulatedElection.Display.FormatMessage(simmessage), from.Fixed())
 
 	// The second arg does not matter for our purposes
 	resp, _ := ea.SimulatedElection.Execute(simmessage, 0)
@@ -175,7 +175,7 @@ func (ea *ElectionAdapter) Execute(msg interfaces.IMsg) interfaces.IMsg {
 	if resp != nil {
 		ea.Election.LogMessage("election", fmt.Sprintf("return %d", ea.Electing), msg.(interfaces.IMsg))
 
-		fmt.Printf("SimExecute Out :: %s -> %s BY %x\n", ea.Election.State.GetFactomNodeName(), ea.SimulatedElection.Display.FormatMessage(resp), ea.Election.State.GetIdentityChainID().Fixed())
+		// fmt.Printf("SimExecute Out :: %s -> %s BY %x\n", ea.Election.State.GetFactomNodeName(), ea.SimulatedElection.Display.FormatMessage(resp), ea.Election.State.GetIdentityChainID().Fixed())
 		expandedResp := ea.expandMyMessage(resp).(interfaces.Signable)
 		// Sign it!
 		err := expandedResp.Sign(ea.Election.State)

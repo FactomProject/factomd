@@ -133,6 +133,7 @@ func (e *Elections) AuditIndex(server interfaces.IHash) int {
 			return i
 		}
 	}
+
 	return -1
 }
 

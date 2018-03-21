@@ -123,6 +123,12 @@ func (m *FedVoteMsg) ElectionValidate(ie interfaces.IElections) int {
 	if int(m.DBHeight) == e.DBHeight && e.Minute == int(m.Minute) {
 		sm := m.Super
 		vol := sm.GetVolunteerMessage().(*FedVoteVolunteerMsg)
+
+		// Protect from index out of bounds
+		if int(vol.ServerIdx) >= len(e.Audit) || int(vol.FedIdx) >= len(e.Federated) {
+			return -1
+		}
+
 		if !vol.ServerID.IsSameAs(e.Audit[vol.ServerIdx].GetChainID()) ||
 			!vol.FedID.IsSameAs(e.Federated[vol.FedIdx].GetChainID()) {
 			return -1
