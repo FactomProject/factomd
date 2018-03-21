@@ -28,10 +28,13 @@ def create():
 def _verify_docker_connectivity(client):
     try:
         client.ping()
-    except requests.exceptions.ConnectionError:
+    except (requests.exceptions.ConnectionError,
+            docker_lib.errors.APIError) as exc:
         log.fatal(
             "cannot connect to the docker daemon,",
-            "make sure it is running and that you can connect to it."
+            "make sure it is running and that you can connect to it.",
+            "Error:",
+            str(exc)
         )
 
 
