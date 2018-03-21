@@ -66,11 +66,15 @@ def _validate_schema(cfg):
 
 
 def _parse_env_config(cfg):
-    return Environment(
+    env = Environment(
         nodes=[_parse_node(node) for node in cfg["nodes"]],
         network=_parse_network(cfg["network"]),
         flags=cfg.get("flags", None)
     )
+    if not env.nodes:
+        log.fatal("At least one node needs to be defined in the config file")
+
+    return env
 
 
 def _parse_node(cfg):
