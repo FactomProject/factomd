@@ -232,7 +232,7 @@ func DeepStateDisplayCopyDifference(s *State, prev *DisplayState) (*DisplayState
 	}
 	prt = prt + "\n"
 	prt += "__ _ " // Active
-	prt = prt + s.Election1 + s.Election2 + "\n"
+	prt = s.Election3 + "\n" + prt + s.Election1 + s.Election2 + "\n"
 
 	ds.Election = prt
 

@@ -969,6 +969,11 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	progress = true
 	d.IsNew = false
 	list.State.ResetTryCnt = 0
+
+	//fmt.Println("Fixup", d.DirectoryBlock.GetHeader().GetDBHeight())
+	//authlistMsg := list.State.EFactory.NewAuthorityListInternal(currentFeds, currentAuds, currentDBHeight)
+	//list.State.ElectionsQueue().Enqueue(authlistMsg)
+
 	return
 }
 
@@ -1118,6 +1123,9 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 
 	pln.SortFedServers()
 	pln.SortAuditServers()
+
+	authlistMsg := list.State.EFactory.NewAuthorityListInternal(pln.FedServers, pln.AuditServers, pln.DBHeight)
+	list.State.ElectionsQueue().Enqueue(authlistMsg)
 
 	///////////////////////////////
 	// Cleanup Tasks

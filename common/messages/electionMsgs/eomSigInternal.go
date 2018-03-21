@@ -79,6 +79,9 @@ func (m *EomSigInternal) GetMsgHash() interfaces.IHash {
 }
 func Fault(e *elections.Elections, dbheight int, minute int, round int, timeOutId int, currentTimeoutId *atomic.AtomicInt, sigtype bool) {
 	//	e.LogPrintf("election", "Start Timeout %d", timeOutId)
+	for !e.State.Running() {
+		time.Sleep(e.Timeout)
+	}
 	time.Sleep(e.Timeout)
 
 	if currentTimeoutId.Load() == timeOutId {
@@ -137,6 +140,9 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 		if !m.SigType {
 			t = "DBSig"
 		}
+
+		e.SetElections3()
+
 		s.Election1 = fmt.Sprintf("%6s %10s %8d %8d %8d %8d",
 			t,
 			s.FactomNodeName,
