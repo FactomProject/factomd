@@ -79,23 +79,31 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 	valid := msg.Validate(s)
 	switch valid {
 	case 1:
+		// The highest block for which we have received a message.  Sometimes the same as
+		var vml int
+		if vm == nil || vm.List == nil {
+			vml = 0
+		} else {
+			vml = len(vm.List)
+		}
+		local := msg.IsLocal()
+		vmi := msg.GetVMIndex()
+		hkb := s.GetHighestKnownBlock()
+
 		if s.RunLeader &&
 			s.Leader &&
-			vm != nil && int(vm.Height) == len(vm.List) {
-			if len(vm.List) == 0 {
+			!s.Saving &&
+			vm != nil && int(vm.Height) == vml &&
+			(!s.Syncing || !vm.Synced) &&
+			(local || vmi == s.LeaderVMIndex) &&
+			s.LeaderPL.DBHeight+1 >= hkb {
+			if vml == 0 {
 				s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex)
 				TotalXReviewQueueInputs.Inc()
-				s.LogMessage("executeMsg", "XReview", msg)
 				s.XReview = append(s.XReview, msg)
-			} else if !s.Saving &&
-				(!s.Syncing || !vm.Synced) &&
-				(msg.IsLocal() || msg.GetVMIndex() == s.LeaderVMIndex) &&
-				s.LeaderPL.DBHeight+1 >= s.GetHighestKnownBlock() {
+			} else {
 				s.LogMessage("executeMsg", "LeaderExecute", msg)
 				msg.LeaderExecute(s)
-			} else {
-				s.LogMessage("executeMsg", "FollowerExecute1", msg)
-				msg.FollowerExecute(s)
 			}
 		} else {
 			s.LogMessage("executeMsg", "FollowerExecute2", msg)
@@ -361,7 +369,7 @@ func (s *State) ReviewHolding() {
 		}
 
 		eom, ok := v.(*messages.EOM)
-		if ok && ((eom.DBHeight <= saved && saved > 0) || (eom.DBHeight < highest-3 && highest > 2)) {
+		if ok && ((eom.DBHeight <= saved && saved > 0) || int(eom.Minute) < s.CurrentMinute) {
 			TotalHoldingQueueOutputs.Inc()
 			delete(s.Holding, k)
 			continue
@@ -390,26 +398,34 @@ func (s *State) ReviewHolding() {
 		}
 
 		// If it is an entryCommit and it has a duplicate hash to an existing entry throw it away here
-
-		ce, ceok := v.(*messages.CommitEntryMsg)
-		if ceok {
-			x := s.NoEntryYet(ce.CommitEntry.EntryHash, ce.CommitEntry.GetTimestamp())
-			if !x {
-				TotalHoldingQueueOutputs.Inc()
-				delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
-				continue
+		{
+			ce, ok := v.(*messages.CommitEntryMsg)
+			if ok {
+				x := s.NoEntryYet(ce.CommitEntry.EntryHash, ce.CommitEntry.GetTimestamp())
+				if !x {
+					TotalHoldingQueueOutputs.Inc()
+					delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
+					continue
+				}
 			}
 		}
-
 		// If it is an chainCommit and it has a duplicate hash to an existing entry throw it away here
-
-		cc, ccok := v.(*messages.CommitChainMsg)
-		if ccok {
-			x := s.NoEntryYet(cc.CommitChain.EntryHash, cc.CommitChain.GetTimestamp())
-			if !x {
-				TotalHoldingQueueOutputs.Inc()
-				delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
-				continue
+		{
+			ce, ok := v.(*messages.CommitChainMsg)
+			if ok {
+				x := s.NoEntryYet(ce.CommitChain.EntryHash, ce.CommitChain.GetTimestamp())
+				if !x {
+					TotalHoldingQueueOutputs.Inc()
+					delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
+					continue
+				}
+			}
+		}
+		// If a Reveal Entry has a commit available, then process the Reveal Entry and send it out.
+		if re, ok := v.(*messages.RevealEntryMsg); ok {
+			if s.Commits.Get(re.GetHash().Fixed()) != nil {
+				re.FollowerExecute(s)
+				re.SendOut(s, re)
 			}
 		}
 
@@ -434,12 +450,13 @@ func (s *State) ReviewHolding() {
 			continue
 		}
 
-		// Don't review messages if you are not a leader or its not your message.
+		// We don't reprocess if we are not a leader
 		if !s.Leader {
 			continue
 		}
 
-		if v.GetVMIndex() != s.LeaderVMIndex {
+		// We don't reprocess messages if we are a leader, but it ain't ours!
+		if s.LeaderVMIndex != v.GetVMIndex() {
 			continue
 		}
 
@@ -990,6 +1007,7 @@ func (s *State) FollowerExecuteCommitChain(m interfaces.IMsg) {
 	cc := m.(*messages.CommitChainMsg)
 	re := s.Holding[cc.CommitChain.EntryHash.Fixed()]
 	if re != nil {
+		re.FollowerExecute(s)
 		re.SendOut(s, re)
 	}
 }
@@ -1000,6 +1018,7 @@ func (s *State) FollowerExecuteCommitEntry(m interfaces.IMsg) {
 	s.FollowerExecuteMsg(m)
 	re := s.Holding[ce.CommitEntry.EntryHash.Fixed()]
 	if re != nil {
+		re.FollowerExecute(s)
 		re.SendOut(s, re)
 	}
 }
@@ -1310,7 +1329,7 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 	pl.EntryCreditBlock.GetBody().AddEntry(c.CommitChain)
 	if e := s.GetFactoidState().UpdateECTransaction(true, c.CommitChain); e == nil {
 		// save the Commit to match agains the Reveal later
-		h := c.CommitChain.EntryHash
+		h := c.GetHash()
 		s.PutCommit(h, c)
 		entry := s.Holding[h.Fixed()]
 		if entry != nil {
@@ -1334,8 +1353,8 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 	pl := s.ProcessLists.Get(dbheight)
 	pl.EntryCreditBlock.GetBody().AddEntry(c.CommitEntry)
 	if e := s.GetFactoidState().UpdateECTransaction(true, c.CommitEntry); e == nil {
-		// save the Commit to match against the Reveal later
-		h := c.CommitEntry.EntryHash
+		// save the Commit to match agains the Reveal later
+		h := c.GetHash()
 		s.PutCommit(h, c)
 		entry := s.Holding[h.Fixed()]
 		if entry != nil && entry.Validate(s) == 1 {

@@ -83,7 +83,7 @@ func (m *CommitChainMsg) GetRepeatHash() interfaces.IHash {
 }
 
 func (m *CommitChainMsg) GetHash() interfaces.IHash {
-	return m.GetMsgHash()
+	return m.CommitChain.EntryHash
 }
 
 func (m *CommitChainMsg) GetMsgHash() interfaces.IHash {
@@ -136,7 +136,7 @@ func (m *CommitChainMsg) LeaderExecute(state interfaces.IState) {
 }
 
 func (m *CommitChainMsg) FollowerExecute(state interfaces.IState) {
-	state.FollowerExecuteMsg(m)
+	state.FollowerExecuteCommitChain(m)
 }
 
 func (e *CommitChainMsg) JSONByte() ([]byte, error) {

@@ -1253,6 +1253,15 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		panic(err.Error())
 	}
 
+	for _, en := range d.EntryCreditBlock.GetEntries() {
+		switch en.ECID() {
+		case constants.ECIDChainCommit:
+			list.State.NumNewChains++
+		case constants.ECIDEntryCommit:
+			list.State.NumNewEntries++
+		}
+	}
+
 	pl := list.State.ProcessLists.Get(uint32(dbheight))
 
 	allowedEBlocks := make(map[[32]byte]struct{})
@@ -1267,8 +1276,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	for _, eb := range d.EntryBlocks {
 		keymr, err := eb.KeyMR()
 		if err != nil {
-			// I am not sure how we got to this point
-			continue
+			panic(err)
 		}
 		// If its a good eblock, add it's entries to the allowed
 		if _, ok := allowedEBlocks[keymr.Fixed()]; ok {
@@ -1281,39 +1289,39 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	}
 
 	// Info from DBState
-	if len(d.EntryBlocks) > 0 {
-		for _, eb := range d.EntryBlocks {
-			keymr, err := eb.KeyMR()
-			if err != nil {
-				continue
-			}
-			// If it's in the DBlock
-			if _, ok := allowedEBlocks[keymr.Fixed()]; ok {
-				if err := list.State.DB.ProcessEBlockMultiBatch(eb, true); err != nil {
-					panic(err.Error())
-				}
-			} else {
-				list.State.Logf("error", "Error saving eblock from dbstate, eblock not allowed")
-			}
+	for _, eb := range d.EntryBlocks {
+		keymr, err := eb.KeyMR()
+		if err != nil {
+			panic(err)
 		}
-		for _, e := range d.Entries {
-			// If it's in the DBlock
-			if _, ok := allowedEntries[e.GetHash().Fixed()]; ok {
-				if err := list.State.DB.InsertEntryMultiBatch(e); err != nil {
-					panic(err.Error())
-				}
-			} else {
-				list.State.Logf("error", "Error saving entry from dbstate, entry not allowed")
+		// If it's in the DBlock
+		if _, ok := allowedEBlocks[keymr.Fixed()]; ok {
+			if err := list.State.DB.ProcessEBlockMultiBatch(eb, true); err != nil {
+				panic(err.Error())
 			}
+		} else {
+			list.State.Logf("error", "Error saving eblock from dbstate, eblock not allowed")
 		}
 	}
+	for _, e := range d.Entries {
+		// If it's in the DBlock
+		if _, ok := allowedEntries[e.GetHash().Fixed()]; ok {
+			if err := list.State.DB.InsertEntryMultiBatch(e); err != nil {
+				panic(err.Error())
+			}
+		} else {
+			list.State.Logf("error", "Error saving entry from dbstate, entry not allowed")
+		}
+	}
+	list.State.NumEntries += len(d.Entries)
+	list.State.NumEntryBlocks += len(d.EntryBlocks)
 
 	// Info from ProcessList
 	if pl != nil {
 		for _, eb := range pl.NewEBlocks {
 			keymr, err := eb.KeyMR()
 			if err != nil {
-				continue
+				panic(err)
 			}
 			if _, ok := allowedEBlocks[keymr.Fixed()]; ok {
 				if err := list.State.DB.ProcessEBlockMultiBatch(eb, true); err != nil {
@@ -1391,6 +1399,8 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 			fct.GetTimestamp(),
 			d.DirectoryBlock.GetHeader().GetTimestamp())
 	}
+
+	list.State.NumFCTTrans += len(d.FactoidBlock.GetTransactions()) - 1
 
 	list.SavedHeight = uint32(dbheight)
 	progress = true

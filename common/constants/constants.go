@@ -11,39 +11,39 @@ import (
 
 // Messages
 const (
-	EOM_MSG = iota
-	ACK_MSG
-	FED_SERVER_FAULT_MSG
-	AUDIT_SERVER_FAULT_MSG
-	FULL_SERVER_FAULT_MSG
-	COMMIT_CHAIN_MSG
-	COMMIT_ENTRY_MSG
-	DIRECTORY_BLOCK_SIGNATURE_MSG
-	EOM_TIMEOUT_MSG
-	FACTOID_TRANSACTION_MSG
-	HEARTBEAT_MSG
-	INVALID_ACK_MSG
-	INVALID_DIRECTORY_BLOCK_MSG
+	EOM_MSG                       byte = iota // 0
+	ACK_MSG                                   // 1
+	FED_SERVER_FAULT_MSG                      // 2
+	AUDIT_SERVER_FAULT_MSG                    // 3
+	FULL_SERVER_FAULT_MSG                     // 4
+	COMMIT_CHAIN_MSG                          // 5
+	COMMIT_ENTRY_MSG                          // 6
+	DIRECTORY_BLOCK_SIGNATURE_MSG             // 7
+	EOM_TIMEOUT_MSG                           // 8
+	FACTOID_TRANSACTION_MSG                   // 9
+	HEARTBEAT_MSG                             // 10
+	INVALID_ACK_MSG                           // 11
+	INVALID_DIRECTORY_BLOCK_MSG               // 12
 
-	REVEAL_ENTRY_MSG
-	REQUEST_BLOCK_MSG
-	SIGNATURE_TIMEOUT_MSG
-	MISSING_MSG
-	MISSING_DATA
-	DATA_RESPONSE
-	MISSING_MSG_RESPONSE
+	REVEAL_ENTRY_MSG      // 13
+	REQUEST_BLOCK_MSG     // 14
+	SIGNATURE_TIMEOUT_MSG // 15
+	MISSING_MSG           // 16
+	MISSING_DATA          // 17
+	DATA_RESPONSE         // 18
+	MISSING_MSG_RESPONSE  //19
 
-	DBSTATE_MSG
-	DBSTATE_MISSING_MSG
-	ADDSERVER_MSG
-	CHANGESERVER_KEY_MSG
-	REMOVESERVER_MSG
+	DBSTATE_MSG          // 20
+	DBSTATE_MISSING_MSG  // 21
+	ADDSERVER_MSG        // 22
+	CHANGESERVER_KEY_MSG // 23
+	REMOVESERVER_MSG     // 24
 
-	BOUNCE_MSG      //	test message
-	BOUNCEREPLY_MSG // 	test message
+	BOUNCE_MSG      // 25	test message
+	BOUNCEREPLY_MSG // 26	test message
 
-	MISSING_ENTRY_BLOCKS
-	ENTRY_BLOCK_RESPONSE
+	MISSING_ENTRY_BLOCKS //27
+	ENTRY_BLOCK_RESPONSE //28
 
 	INTERNALADDLEADER
 	INTERNALREMOVELEADER
@@ -59,6 +59,15 @@ const (
 	SYNC_MSG
 
 	NUM_MESSAGES // Not used, just a counter for the number of messages.
+)
+
+// Entry Credit Block entries
+const (
+	ECIDServerIndexNumber byte = iota // 0 Must be these values, per the specification
+	ECIDMinuteNumber                  // 1
+	ECIDChainCommit                   // 2
+	ECIDEntryCommit                   // 3
+	ECIDBalanceIncrease               // 4
 )
 
 func MessageName(Type byte) string {

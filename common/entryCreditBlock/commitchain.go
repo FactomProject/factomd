@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -320,7 +321,7 @@ func (c *CommitChain) ValidateSignatures() error {
 }
 
 func (c *CommitChain) ECID() byte {
-	return ECIDChainCommit
+	return constants.ECIDChainCommit
 }
 
 func (c *CommitChain) UnmarshalBinaryData(data []byte) ([]byte, error) {
