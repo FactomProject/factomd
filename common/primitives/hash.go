@@ -84,6 +84,11 @@ func (h *Hash) Fixed() [constants.HASH_LENGTH]byte {
 	return *h
 }
 
+func (h *Hash) PFixed() *[constants.HASH_LENGTH]byte {
+	// Might change the error produced by IHash in FD-398
+	return (*[constants.HASH_LENGTH]byte)(h)
+}
+
 func (h *Hash) Bytes() []byte {
 	return h.GetBytes()
 }

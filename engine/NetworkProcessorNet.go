@@ -147,7 +147,7 @@ func Peers(fnode *FactomNode) {
 			}
 
 			repeatHash := msg.GetRepeatHash()
-			if repeatHash == nil {
+			if repeatHash == nil || repeatHash.PFixed() == nil {
 				fnode.State.LogMessage("NetworkInputs", "API drop, Hash Error", msg)
 				fmt.Println("dddd ERROR!", msg.String())
 				continue
