@@ -241,8 +241,7 @@ func Peers(fnode *FactomNode) {
 					continue
 				}
 
-				// Make sure message isn't a FCT transaction in a block
-				_, bv := fnode.State.FReplay.Valid(constants.BLOCK_REPLAY, hash, timestamp, now)
+				_, bv := fnode.State.Replay.Valid(constants.INTERNAL_REPLAY, hash, timestamp, now)
 				if !bv {
 					fnode.State.LogMessage("NetworkInputs", fromPeer+" Drop, BLOCK_REPLAY", msg)
 					RepeatMsgs.Inc()
