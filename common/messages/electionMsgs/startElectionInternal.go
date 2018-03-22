@@ -19,7 +19,9 @@ import (
 type StartElectionInternal struct {
 	msgbase.MessageBase
 
-	DBHeight uint32
+	DBHeight       uint32
+	PreviousDBHash interfaces.IHash
+	IsLeader       bool
 }
 
 var _ interfaces.IMsg = (*StartElectionInternal)(nil)
@@ -28,7 +30,8 @@ var _ interfaces.IElectionMsg = (*StartElectionInternal)(nil)
 func (m *StartElectionInternal) ElectionProcess(s interfaces.IState, elect interfaces.IElections) {
 	e := elect.(*elections.Elections)
 
-	var _ = e
+	e.Adapter = NewElectionAdapter(e, m.PreviousDBHash)
+	e.Adapter.SetObserver(!m.IsLeader)
 }
 
 // Execute the leader functions of the given message
@@ -37,8 +40,12 @@ func (m *StartElectionInternal) LeaderExecute(state interfaces.IState) {
 	m.FollowerExecute(state)
 }
 
-func (m *StartElectionInternal) FollowerExecute(state interfaces.IState) {
-	state.ElectionsQueue().Enqueue(m)
+func (m *StartElectionInternal) FollowerExecute(is interfaces.IState) {
+	m.IsLeader = is.IsLeader()
+	// TODO: State related things about starting an election
+
+	// Send to elections
+	is.ElectionsQueue().Enqueue(m)
 }
 
 func (m *StartElectionInternal) ElectionValidate(ie interfaces.IElections) int {
@@ -59,12 +66,9 @@ func (m *StartElectionInternal) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *StartElectionInternal) GetMsgHash() interfaces.IHash {
+	// Internal messages don't have marshal code. Give them some hash to be happy
 	if m.MsgHash == nil {
-		data, err := m.MarshalBinary()
-		if err != nil {
-			return nil
-		}
-		m.MsgHash = primitives.Sha(data)
+		m.MsgHash = primitives.RandomHash()
 	}
 	return m.MsgHash
 }
