@@ -241,13 +241,13 @@ func Peers(fnode *FactomNode) {
 					continue
 				}
 
-				_, bv := fnode.State.Replay.Valid(constants.INTERNAL_REPLAY, hash, timestamp, now)
-				if !bv {
-					fnode.State.LogMessage("NetworkInputs", fromPeer+" Drop, BLOCK_REPLAY", msg)
-					RepeatMsgs.Inc()
-					//fnode.MLog.add2(fnode, false, peer.GetNameTo(), "PeerIn", false, msg)
-					continue
-				}
+				//_, bv := fnode.State.Replay.Valid(constants.INTERNAL_REPLAY, hash, timestamp, now)
+				//if !bv {
+				//	fnode.State.LogMessage("NetworkInputs", fromPeer+" Drop, BLOCK_REPLAY", msg)
+				//	RepeatMsgs.Inc()
+				//	//fnode.MLog.add2(fnode, false, peer.GetNameTo(), "PeerIn", false, msg)
+				//	continue
+				//}
 
 				rv := fnode.State.Replay.IsTSValid_(constants.NETWORK_REPLAY, hash, timestamp, now)
 				if !rv {
