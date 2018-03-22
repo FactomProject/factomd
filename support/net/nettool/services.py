@@ -185,11 +185,17 @@ class Factomd(Service):
             "ports": {}
         }
 
-        if config.ui_port:
-            extra_args["ports"]["8090"] = config.ui_port
+        if config.ports.ui:
+            extra_args["ports"]["8090"] = config.ports.ui
 
-        if config.api_port:
-            extra_args["ports"]["8088"] = config.api_port
+        if config.ports.api:
+            extra_args["ports"]["8088"] = config.ports.api
+
+        if config.ports.profiler:
+            extra_args["ports"]["6060"] = config.ports.profiler
+
+        if config.ports.metrics:
+            extra_args["ports"]["9876"] = config.ports.metrics
 
         if flags:
             extra_args["environment"]["FLAGS"] = flags

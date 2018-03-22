@@ -11,25 +11,36 @@ flags: -sim_stdin=false
 nodes:
       # the name of the node, should be unique in the environment
     - name: node1
+
       # if true, the node address will be added to the list of
       # seeds available when factomd are starting, default: false
       seed: true
+
       # set a role for the node, by default each node is a
       # follower, but can be changed to federated or audit
       role: federated
-      # port on the host machine where the UI for this node is exposed,
-      # requires rebuilding images
-      ui_port: 8090
-      # port on the host machine where the API for this node is exposed,
-      # requires rebuilding images
-      api_port: 8088
+
+      # ports section is optional and allows to map ports used by factomd to
+      # ports on the host machine (and e.g. open multiple control panels in the
+      # browser), each change requires rebuilding the containers, by default
+      # the ports are not mapped
+      ports:
+          # the control panel UI port
+          ui: 8090
+          # the JSON-RPC V2 API
+          api: 8088
+          # the port used by the profiler
+          profiler: 6060
+          # the port that exposes the node metrics
+          metrics: 9876
 
       # override flags specified above for this node
       flags: -sim_stdin=false -loglvl=info
 
     - name: node2
       role: audit
-      ui_port: 8190
+      ports:
+          ui: 8190
 
     - name: node3
 

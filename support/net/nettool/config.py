@@ -2,18 +2,29 @@
 Module for reading and validating the network configuration file.
 """
 from collections import namedtuple
-from schema import Schema, SchemaError, Optional, Or
+from schema import Schema, SchemaError, Optional, Or, Use
 import yaml
 
 from nettool import log
+
+
+PORT = Use(lambda p: 0 <= p <= 65535,
+           error="Port must be a number between 0 and 65535")
+
+
+PORTS = Schema({
+    Optional("ui"): PORT,
+    Optional("api"): PORT,
+    Optional("profiler"): PORT,
+    Optional("metrics"): PORT
+})
 
 
 NODE = Schema({
     "name": str,
     Optional("seed"): bool,
     Optional("role"): Or("follower", "federated", "audit"),
-    Optional("ui_port"): int,
-    Optional("api_port"): int,
+    Optional("ports"): PORTS,
     Optional("flags"): str
 })
 
@@ -37,7 +48,9 @@ CONFIG = Schema({
 
 Environment = namedtuple("Environment", "flags, nodes, network")
 
-Node = namedtuple("Node", "name, seed, role, ui_port, api_port, flags")
+Node = namedtuple("Node", "name, seed, role, ports, flags")
+
+Ports = namedtuple("Ports", "ui, api, profiler, metrics")
 
 Network = namedtuple("Network", "rules")
 
@@ -82,9 +95,9 @@ def _parse_node(cfg):
         name=cfg["name"],
         seed=cfg.get("seed", False),
         role=cfg.get("role", "follower"),
-        ui_port=cfg.get("ui_port", None),
-        api_port=cfg.get("api_port", None),
-        flags=cfg.get("flags", None))
+        ports=_parse_ports(cfg.get("ports", None)),
+        flags=cfg.get("flags", None)
+    )
 
 
 def _parse_network(cfg):
@@ -101,3 +114,12 @@ def _parse_network(cfg):
             rules.append(Rule(target, source, action))
 
     return Network(rules=rules)
+
+
+def _parse_ports(cfg):
+    return Ports(
+        ui=cfg.get("ui", None) if cfg else None,
+        api=cfg.get("api", None) if cfg else None,
+        profiler=cfg.get("profiler", None) if cfg else None,
+        metrics=cfg.get("metrics", None) if cfg else None
+    )
