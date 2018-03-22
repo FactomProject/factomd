@@ -30,7 +30,7 @@ var _ interfaces.IElectionMsg = (*AuthorityListInternal)(nil)
 func (m *AuthorityListInternal) MarshalBinary() (data []byte, err error) {
 	//var buf primitives.Buffer
 
-	return nil, nil
+	return nil, fmt.Errorf("Not implmented for AuthorityListInternal")
 }
 
 func (m *AuthorityListInternal) GetMsgHash() interfaces.IHash {
@@ -117,7 +117,7 @@ func (m *AuthorityListInternal) UnmarshalBinaryData(data []byte) (newData []byte
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
-	return
+	return nil, fmt.Errorf("Not implmented for AuthorityListInternal")
 }
 
 func (m *AuthorityListInternal) UnmarshalBinary(data []byte) error {

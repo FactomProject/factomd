@@ -245,8 +245,8 @@ func (m *FedVoteMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error
 	}()
 
 	buf := primitives.NewBuffer(data)
-	if t, e := buf.PopByte(); e != nil || t != constants.VOLUNTEERAUDIT {
-		return nil, errors.New("Not a Volunteer Audit type")
+	if t, e := buf.PopByte(); e != nil || t != m.Type() {
+		return nil, errors.New("Not a Fed Vote Base")
 	}
 	if m.TS, err = buf.PopTimestamp(); err != nil {
 		return nil, err
@@ -272,7 +272,7 @@ func (m *FedVoteMsg) UnmarshalBinary(data []byte) error {
 func (m *FedVoteMsg) MarshalBinary() (data []byte, err error) {
 	var buf primitives.Buffer
 
-	if err = buf.PushByte(constants.VOLUNTEERAUDIT); err != nil {
+	if err = buf.PushByte(m.Type()); err != nil {
 		return nil, err
 	}
 	if e := buf.PushTimestamp(m.TS); e != nil {

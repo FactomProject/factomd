@@ -79,7 +79,7 @@ func (m *EomSigInternal) GetMsgHash() interfaces.IHash {
 }
 func Fault(e *elections.Elections, dbheight int, minute int, round int, timeOutId int, currentTimeoutId *atomic.AtomicInt, sigtype bool) {
 	//	e.LogPrintf("election", "Start Timeout %d", timeOutId)
-	for !e.State.Running() {
+	for !e.State.(*state.State).DBFinished {
 		time.Sleep(e.Timeout)
 	}
 	time.Sleep(e.Timeout)
