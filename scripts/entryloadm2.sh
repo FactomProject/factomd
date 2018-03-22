@@ -1,8 +1,8 @@
 #!/bin/bash
 
 nchains=30   # number of chains to create
-nchains2=50   # number of chains to create
-nentries=1   # number of entries to add to each chain
+nchains2=2   # number of chains to create
+nentries=15   # number of entries to add to each chain
 
 #factomd=10.41.2.5:8088
  factomd=localhost:8088
@@ -32,15 +32,21 @@ addentries() {
 	datafile=$(mktemp)
 	base64 /dev/urandom | head -c $datalen > $datafile
 
-	sleep $(( ( RANDOM % $randsleep )/4  + minsleep ))
+	sleep $(( ( RANDOM % $randsleep ) ))
 
 	echo "Entry Length " $datalen " bytes, file name: " $datafile
 
 	for ((i=0; i<nentries; i++)); do
     		cat $datafile | factom-cli -s=$factomd addentry -f -c $1 -e test -e $i -e $RANDOM -e $RANDOM -e $RANDOM $ec1
 		echo "write entry Chain:"  $2 $i
-		sleep $(( ( RANDOM % ($randsleep)/4 )  + minsleep ))
 	done
+
+	for ((i=0; i<nentries; i++)); do
+    		cat $datafile | factom-cli -s=$factomd addentry -f -c $1 -e test -e $i -e $RANDOM -e $RANDOM -e $RANDOM $ec1
+		echo "write entry Chain:"  $2 $i
+		sleep $(( RANDOM % 20  ))
+	done
+
   
   # get rid of the random datafile
 	rm $datafile

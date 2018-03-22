@@ -79,6 +79,7 @@ func (m *TimeoutInternal) InitiateElectionAdapter(st interfaces.IState) bool {
 
 		// Send the message to be processed to start the election
 		msg := new(StartElectionInternal)
+		msg.VMIndex = m.VMIndex
 		msg.DBHeight = uint32(m.DBHeight)
 		msg.PreviousDBHash = st.GetDirectoryBlockByHeight(uint32(m.DBHeight - 1)).GetKeyMR()
 		e.State.InMsgQueue().Enqueue(msg)
