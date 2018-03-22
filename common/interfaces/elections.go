@@ -49,6 +49,7 @@ type IElectionsFactory interface {
 	NewRemoveAuditInternal(name string, dbheight uint32, serverID IHash) IMsg
 	NewEomSigInternal(name string, dbheight uint32, minute uint32, vmIndex int, height uint32, serverID IHash) IMsg
 	NewDBSigSigInternal(name string, dbheight uint32, minute uint32, vmIndex int, height uint32, serverID IHash) IMsg
+	NewAuthorityListInternal(feds []IServer, auds []IServer, height uint32) IMsg
 
 	//
 	//	NewElectionAdapter(el IElections) IElectionAdapter

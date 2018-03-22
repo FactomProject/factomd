@@ -133,6 +133,7 @@ type State struct {
 	Election0 string // Title
 	Election1 string // Election state for display
 	Election2 string // Election state for display
+	Election3 string // Election leader list
 
 	//  pending entry/transaction api calls for the ack queue do not have proper scope
 	//  This is used to create a temporary, correctly scoped ackqueue snapshot for the calls on demand

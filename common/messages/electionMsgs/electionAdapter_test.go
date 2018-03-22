@@ -61,7 +61,7 @@ func TestSimpleSigning(t *testing.T) {
 func TestElectionAdapterSimple(t *testing.T) {
 	e := NewTestElection()
 
-	a := NewElectionAdapter(e)
+	a := NewElectionAdapter(e, primitives.NewZeroHash())
 	v1 := NewTestVolunteerMessage(e, 2, 0)
 	resp := a.Execute(v1)
 	// Verify resp was a vote

@@ -98,7 +98,7 @@ func UnmarshalMessageData(data []byte) (newdata []byte, msg interfaces.IMsg, err
 
 	newdata, err = msg.UnmarshalBinaryData(data[:])
 	if err != nil {
-		fmt.Printf("***** Marshal Failed to unmarshal %d %s %x",
+		fmt.Printf("***** Marshal Failed to unmarshal %d %s %x\n",
 			messageType,
 			constants.MessageName(messageType),
 			data)

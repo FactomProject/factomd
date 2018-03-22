@@ -369,7 +369,7 @@ func (m *FedVoteLevelMsg) UnmarshalBinaryData(data []byte) (newData []byte, err 
 	var buf primitives.Buffer
 	buf.Write(data)
 
-	if t, e := buf.PopByte(); e != nil || t != constants.VOLUNTEERLEVELVOTE {
+	if t, e := buf.PopByte(); e != nil || t != m.Type() {
 		return nil, errors.New("Not a Volunteer Level type")
 	}
 
@@ -468,7 +468,7 @@ func (m *FedVoteLevelMsg) MarshalBinary() ([]byte, error) {
 func (m *FedVoteLevelMsg) MarshalForSignature() (data []byte, err error) {
 	var buf primitives.Buffer
 
-	if err = buf.PushByte(constants.VOLUNTEERLEVELVOTE); err != nil {
+	if err = buf.PushByte(m.Type()); err != nil {
 		return nil, err
 	}
 

@@ -79,6 +79,9 @@ func (m *EomSigInternal) GetMsgHash() interfaces.IHash {
 }
 func Fault(e *elections.Elections, dbheight int, minute int, round int, timeOutId int, currentTimeoutId *atomic.AtomicInt, sigtype bool) {
 	//	e.LogPrintf("election", "Start Timeout %d", timeOutId)
+	for !e.State.(*state.State).DBFinished {
+		time.Sleep(e.Timeout)
+	}
 	time.Sleep(e.Timeout)
 
 	if currentTimeoutId.Load() == timeOutId {
@@ -100,6 +103,9 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 	e := elect.(*elections.Elections) // Could check, but a nil pointer error is just as good.
 	s := is.(*state.State)            // Same here.
 
+	if m.ServerID == nil {
+		return // Someone could send us a msg with a nil chainid
+	}
 	idx := e.LeaderIndex(m.ServerID)
 	if idx == -1 {
 		return // EOM but not from a server, just ignore it.
@@ -134,6 +140,9 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 		if !m.SigType {
 			t = "DBSig"
 		}
+
+		e.SetElections3()
+
 		s.Election1 = fmt.Sprintf("%6s %10s %8d %8d %8d %8d",
 			t,
 			s.FactomNodeName,

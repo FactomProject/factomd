@@ -174,7 +174,7 @@ func (m *FedVoteProposalMsg) UnmarshalBinaryData(data []byte) (newData []byte, e
 	//}()
 
 	buf := primitives.NewBuffer(data)
-	if t, e := buf.PopByte(); e != nil || t != constants.VOLUNTEERPROPOSAL {
+	if t, e := buf.PopByte(); e != nil || t != m.Type() {
 		return nil, errors.New("Not a Volunteer Proposal type")
 	}
 
@@ -242,7 +242,7 @@ func (m *FedVoteProposalMsg) MarshalBinary() ([]byte, error) {
 func (m *FedVoteProposalMsg) MarshalForSignature() (data []byte, err error) {
 	var buf primitives.Buffer
 
-	if err = buf.PushByte(constants.VOLUNTEERPROPOSAL); err != nil {
+	if err = buf.PushByte(m.Type()); err != nil {
 		return nil, err
 	}
 

@@ -53,6 +53,77 @@ type Elections struct {
 	FaultId atomic.AtomicInt // Incremented every time we launch a new timeout
 }
 
+func (e *Elections) AddFederatedServer(server interfaces.IServer) int {
+	// Already a leader
+	if idx := e.GetFedServerIndex(server); idx != -1 {
+		return idx
+	}
+
+	// If it's an audit server, we need to remove it and add it (promotion)
+	e.RemoveAuditServer(server)
+
+	e.Federated = append(e.Federated, server)
+	Sort(e.Federated)
+
+	return e.GetFedServerIndex(server)
+}
+
+func (e *Elections) AddAuditServer(server interfaces.IServer) int {
+	// Already an audit server
+	if idx := e.GetAudServerIndex(server); idx != -1 {
+		return idx
+	}
+
+	// If it's a federated server, we need to remove it and add it (promotion)
+	e.RemoveFederatedServer(server)
+
+	e.Audit = append(e.Audit, server)
+	Sort(e.Audit)
+
+	return e.GetAudServerIndex(server)
+}
+
+func (e *Elections) RemoveFederatedServer(server interfaces.IServer) {
+	idx := e.GetFedServerIndex(server)
+	if idx == -1 {
+		e.RemoveAuditServer(server)
+		return
+	}
+
+	e.Federated = append(e.Federated[:idx], e.Federated[idx+1:]...)
+}
+
+func (e *Elections) RemoveAuditServer(server interfaces.IServer) {
+	idx := e.GetFedServerIndex(server)
+	if idx == -1 {
+		return
+	}
+
+	e.Audit = append(e.Audit[:idx], e.Audit[idx+1:]...)
+}
+
+func (e *Elections) GetFedServerIndex(server interfaces.IServer) int {
+	idx := -1
+	for i, s := range e.Federated {
+		if s.GetChainID().IsSameAs(server.GetChainID()) {
+			idx = i
+			break
+		}
+	}
+	return idx
+}
+
+func (e *Elections) GetAudServerIndex(server interfaces.IServer) int {
+	idx := -1
+	for i, s := range e.Audit {
+		if s.GetChainID().IsSameAs(server.GetChainID()) {
+			idx = i
+			break
+		}
+	}
+	return idx
+}
+
 func (e *Elections) AdapterStatus() string {
 	if e.Adapter != nil {
 		return e.Adapter.Status()
@@ -112,6 +183,27 @@ func (e *Elections) String() string {
 	return str
 }
 
+func (e *Elections) SetElections3() {
+	e.State.(*state.State).Election3 = fmt.Sprintf("%3s %15s %15s\n", "#", "Federated", "Audit")
+	for i := 0; i < len(e.Federated)+len(e.Audit); i++ {
+		fed := ""
+		aud := ""
+		if i < len(e.Federated) {
+			id := e.Federated[i].GetChainID()
+			fed = id.String()[6:12]
+		}
+		if i < len(e.Audit) {
+			id := e.Audit[i].GetChainID()
+			aud = id.String()[6:12]
+		}
+		if fed == "" && aud == "" {
+			break
+		}
+		e.State.(*state.State).Election3 += fmt.Sprintf("%3d %15s %15s\n", i, fed, aud)
+	}
+
+}
+
 func (e *Elections) Print() {
 	fmt.Println(e.String())
 }
@@ -133,6 +225,7 @@ func (e *Elections) AuditIndex(server interfaces.IHash) int {
 			return i
 		}
 	}
+
 	return -1
 }
 
