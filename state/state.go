@@ -484,8 +484,8 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 	newState.RpcAuthHash = s.RpcAuthHash
 
 	newState.FactomdTLSEnable = s.FactomdTLSEnable
-	newState.FactomdTLSKeyFile = s.FactomdTLSKeyFile
-	newState.FactomdTLSCertFile = s.FactomdTLSCertFile
+	newState.factomdTLSKeyFile = s.factomdTLSKeyFile
+	newState.factomdTLSCertFile = s.factomdTLSCertFile
 	newState.FactomdLocations = s.FactomdLocations
 
 	switch newState.DBType {
@@ -583,7 +583,7 @@ func (s *State) GetRpcAuthHash() []byte {
 }
 
 func (s *State) GetTlsInfo() (bool, string, string) {
-	return s.FactomdTLSEnable, s.FactomdTLSKeyFile, s.FactomdTLSCertFile
+	return s.FactomdTLSEnable, s.factomdTLSKeyFile, s.factomdTLSCertFile
 }
 
 func (s *State) GetFactomdLocations() string {
@@ -695,10 +695,10 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 
 		s.FactomdTLSEnable = cfg.App.FactomdTlsEnabled
 		if cfg.App.FactomdTlsPrivateKey == "/full/path/to/factomdAPIpriv.key" {
-			s.FactomdTLSKeyFile = fmt.Sprint(cfg.App.HomeDir, "factomdAPIpriv.key")
+			s.factomdTLSKeyFile = fmt.Sprint(cfg.App.HomeDir, "factomdAPIpriv.key")
 		}
 		if cfg.App.FactomdTlsPublicCert == "/full/path/to/factomdAPIpub.cert" {
-			s.FactomdTLSCertFile = fmt.Sprint(cfg.App.HomeDir, "factomdAPIpub.cert")
+			s.factomdTLSCertFile = fmt.Sprint(cfg.App.HomeDir, "factomdAPIpub.cert")
 		}
 		externalIP := strings.Split(cfg.Walletd.FactomdLocation, ":")[0]
 		if externalIP != "localhost" {

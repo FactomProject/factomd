@@ -191,9 +191,9 @@ func (logger *FLogger) write(level Level, args ...interface{}) {
 
 	l := fmt.Sprint(args...) // get string for formatting
 	if level == DebugLvl {
-		fmt.Fprintf(logger.out, "%s [%s] %s: %s\n", debugPrefix(), levelPrefix[level], logger.Prefix, l)
+		fmt.Fprintf(logger.out, "%s [%s] %s: %s\n", debugPrefix(), levelPrefix[level], logger.prefix, l)
 	} else {
-		fmt.Fprintf(logger.out, "%s [%s] %s: %s\n", time.Now().Format(time.RFC3339), levelPrefix[level], logger.Prefix, l)
+		fmt.Fprintf(logger.out, "%s [%s] %s: %s\n", time.Now().Format(time.RFC3339), levelPrefix[level], logger.prefix, l)
 	}
 
 	if level <= CriticalLvl {
