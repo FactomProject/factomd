@@ -1,13 +1,11 @@
 package engine_test
 
 import (
+	"fmt"
 	"os"
 	"testing"
 	"time"
 
-	"fmt"
-
-	"github.com/FactomProject/factomd/common/globals"
 	. "github.com/FactomProject/factomd/engine"
 	"github.com/FactomProject/factomd/state"
 )
@@ -22,7 +20,7 @@ func TimeNow(s *state.State) {
 func StatusEveryMinute(s *state.State) {
 	go func() {
 		for {
-			WaitMinutes(s, 1)
+			WaitMinutesQuite(s, 1)
 			PrintOneStatus(0, 0)
 		}
 	}()
@@ -57,13 +55,17 @@ func WaitForMinute(s *state.State, min int) {
 }
 
 // Wait some number of minutes
-func WaitMinutes(s *state.State, min int) {
-	fmt.Printf("WaitMinutes(%d)\n", min)
-	TimeNow(s)
+func WaitMinutesQuite(s *state.State, min int) {
 	newMinute := (s.CurrentMinute + min) % 10
 	for s.CurrentMinute != newMinute {
 		time.Sleep(100 * time.Millisecond)
 	}
+}
+
+func WaitMinutes(s *state.State, min int) {
+	fmt.Printf("WaitMinutes(%d)\n", min)
+	TimeNow(s)
+	WaitMinutesQuite(s, min)
 	TimeNow(s)
 }
 
@@ -256,15 +258,16 @@ func TestAnElection(t *testing.T) {
 		fmt.Sprintf("-count=%d", nodes),
 		"-startdelay=1",
 		"-debuglog=F.*",
+		"--stdoutlog=out.txt",
+		"--stderrlog=err.txt",
+		"--debugconsole=localhost"
 	)
-	HandleLogfiles("out.txt", "out.txt")
 	params := ParseCmdLine(args)
-	globals.DebugLogRegEx = ".*"
+
 	time.Sleep(5 * time.Second) // wait till the control panel is setup
 	state0 := Factomd(params, false).(*state.State)
 	state0.MessageTally = true
 	time.Sleep(5 * time.Second) // wait till the simulation is setup
-	LaunchDebugServer("localhost")
 
 	t.Log(fmt.Sprintf("Allocated %d nodes", nodes))
 	fnodes := GetFnodes()

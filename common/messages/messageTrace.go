@@ -26,7 +26,7 @@ var (
 func checkFileName(name string) bool {
 	if TestRegex == nil {
 
-		theRegex, err := regexp.Compile(globals.DebugLogRegEx)
+		theRegex, err := regexp.Compile(globals.Params.DebugLogRegEx)
 		if err != nil {
 			panic(err)
 		}
