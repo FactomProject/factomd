@@ -126,7 +126,7 @@ func (m *AuthorityListInternal) UnmarshalBinary(data []byte) error {
 }
 
 func (m *AuthorityListInternal) String() string {
-	return "Not implemented, AuthorityListInternal"
+	return fmt.Sprintf("%20s dbheight %d ", "Authority List Internal", m.DBHeight)
 }
 
 func (a *AuthorityListInternal) IsSameAs(b *AuthorityListInternal) bool {

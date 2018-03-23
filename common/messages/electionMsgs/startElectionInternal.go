@@ -123,7 +123,7 @@ func (m *StartElectionInternal) GetTimestamp() interfaces.Timestamp {
 }
 
 func (m *StartElectionInternal) Type() byte {
-	return constants.INTERNALAUTHLIST
+	return constants.INTERNALSTARTELECTION
 }
 
 // Returns true if this is a message for this server to execute as
@@ -159,7 +159,7 @@ func (m *StartElectionInternal) UnmarshalBinary(data []byte) error {
 }
 
 func (m *StartElectionInternal) String() string {
-	return "Not implemented, StartElectionInternal"
+	return fmt.Sprintf("%20s dbheight %d min %d vm d%", "Start Election Internal", m.DBHeight, int(m.Minute), m.VMIndex)
 }
 
 func (a *StartElectionInternal) IsSameAs(b *StartElectionInternal) bool {

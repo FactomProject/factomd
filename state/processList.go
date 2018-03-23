@@ -449,6 +449,9 @@ func (p *ProcessList) SetStartingAuthoritySet() {
 		return s
 	}
 
+	p.StartingFedServers = []interfaces.IServer{}
+	p.StartingAuditServers = []interfaces.IServer{}
+
 	for _, f := range p.FedServers {
 		p.StartingFedServers = append(p.StartingFedServers, copyServer(f))
 	}

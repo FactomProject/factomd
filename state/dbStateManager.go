@@ -858,7 +858,7 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	currentPL := list.State.ProcessLists.Get(currentDBHeight)
 
 	// Servers
-	previousFeds := currentPL.StartingFedServers
+	startingFeds := currentPL.StartingFedServers
 	currentFeds := currentPL.FedServers
 	currentAuds := currentPL.AuditServers
 
@@ -886,7 +886,7 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	// Correcting Server Lists (Caused by Server Faults)
 	// 	This will correct any deltas from the serverlists
 	for _, cf := range currentFeds {
-		if !containsServer(previousFeds, cf) {
+		if !containsServer(startingFeds, cf) {
 			fmt.Printf("******* FUL: %12s %12s  Server %x\n", "Promote", list.State.FactomNodeName, cf.GetChainID().Bytes()[3:6])
 			// Promote to federated
 			addEntry := adminBlock.NewAddFederatedServer(cf.GetChainID(), currentDBHeight+1)
@@ -894,14 +894,13 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 		}
 	}
 
-	for _, pf := range previousFeds {
+	for _, pf := range startingFeds {
 		if !containsServer(currentFeds, pf) {
-			// Option 1: Remove as a server
-			// Option 2: Demote to Audit if it is there
+			// The fed is n
 			if containsServer(currentAuds, pf) {
 				demoteEntry := adminBlock.NewAddAuditServer(pf.GetChainID(), currentDBHeight+1)
 				d.AdminBlock.AddFirstABEntry(demoteEntry)
-				fmt.Printf("******* FUL: %12s %12s  Server %x\n", "Demote", list.State.FactomNodeName, pf.GetChainID().Bytes()[3:6])
+				fmt.Printf("******* FUL: %12s %12s  Server %x, DBHeight: %d\n", "Demote", list.State.FactomNodeName, pf.GetChainID().Bytes()[3:6], d.DirectoryBlock.GetDatabaseHeight())
 			}
 			_ = currentAuds
 		}
