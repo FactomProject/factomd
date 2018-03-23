@@ -1,8 +1,8 @@
 #!/bin/bash
 
-nchains=30   # number of chains to create
-nchains2=50   # number of chains to create
-nentries=1   # number of entries to add to each chain
+nchains=21    # number of chains to create
+nchains2=2    # number of chains to create
+nentries=10   # number of entries to add to each chain
 
 #factomd=10.41.2.5:8088
  factomd=localhost:8088
@@ -15,7 +15,7 @@ fa1=$(factom-cli -s=$factomd importaddress Fs3E9gV6DXsYzf7Fqx1fVBQPQXV695eP3k5Xb
 
 minsleep=1
 randsleep=2
-entrysize=100
+entrysize=2048
 
 ec1=$(factom-cli -s=$factomd importaddress Es3LB2YW9bpdWmMnNQYb31kyPzqnecsNqmg5W4K7FKp4UP6omRTa)
 
@@ -39,7 +39,12 @@ addentries() {
 	for ((i=0; i<nentries; i++)); do
     		cat $datafile | factom-cli -s=$factomd addentry -f -c $1 -e test -e $i -e $RANDOM -e $RANDOM -e $RANDOM $ec1
 		echo "write entry Chain:"  $2 $i
-		sleep $(( ( RANDOM % ($randsleep)/4 )  + minsleep ))
+		sleep $((  1 ))
+	done
+	for ((i=0; i<nentries; i++)); do
+    		cat $datafile | factom-cli -s=$factomd addentry -f -c $1 -e test -e $i -e $RANDOM -e $RANDOM -e $RANDOM $ec1
+		echo "write entry Chain:"  $2 $i
+		sleep $(( RANDOM % 20 ))
 	done
   
   # get rid of the random datafile
