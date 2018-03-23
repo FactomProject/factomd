@@ -34,30 +34,30 @@ type FactomParams struct {
 	FaultTimeout             int
 	RuntimeLog               bool
 	Exclusive                bool
-	prefix                   string
-	rotate                   bool
-	timeOffset               int
-	keepMismatch             bool
+	Prefix                   string
+	Rotate                   bool
+	TimeOffset               int
+	KeepMismatch             bool
 	StartDelay               int64
-	deadline                 int
-	customNet                []byte
-	rpcUser                  string
-	rpcPassword              string
-	factomdTLS               bool
-	factomdLocations         string
-	memProfileRate           int
-	fast                     bool
-	fastLocation             string
-	loglvl                   string
-	logjson                  bool
-	svm                      bool
-	pluginPath               string
-	torManage                bool
-	torUpload                bool
+	Deadline                 int
+	CustomNet                []byte
+	RpcUser                  string
+	RpcPassword              string
+	FactomdTLS               bool
+	FactomdLocations         string
+	MemProfileRate           int
+	Fast                     bool
+	FastLocation             string
+	Loglvl                   string
+	Logjson                  bool
+	Svm                      bool
+	PluginPath               string
+	TorManage                bool
+	TorUpload                bool
 	Sim_Stdin                bool
-	exposeProfiling          bool
-	useLogstash              bool
-	logstashURL              string
+	ExposeProfiling          bool
+	UseLogstash              bool
+	LogstashURL              string
 	Sync2                    int
 	DebugConsole             string
 	StdoutLog                string
@@ -89,28 +89,28 @@ func (f *FactomParams) Init() { // maybe used by test code
 	f.FaultTimeout = 99999 //TODO: REMOVE  Old Fault Mechanism
 	f.RuntimeLog = false
 	f.Exclusive = false
-	f.prefix = ""
-	f.rotate = false
-	f.timeOffset = 0
-	f.keepMismatch = false
+	f.Prefix = ""
+	f.Rotate = false
+	f.TimeOffset = 0
+	f.KeepMismatch = false
 	f.StartDelay = 10
-	f.deadline = 1000
-	f.customNet = primitives.Sha([]byte("")).Bytes()[:4]
-	f.rpcUser = ""
-	f.rpcPassword = ""
-	f.factomdTLS = false
-	f.factomdLocations = ""
-	f.memProfileRate = 512 * 1024
-	f.fast = true
-	f.fastLocation = ""
-	f.loglvl = "none"
-	f.logjson = false
-	f.svm = false
-	f.pluginPath = ""
-	f.torManage = false
-	f.torUpload = false
+	f.Deadline = 1000
+	f.CustomNet = primitives.Sha([]byte("")).Bytes()[:4]
+	f.RpcUser = ""
+	f.RpcPassword = ""
+	f.FactomdTLS = false
+	f.FactomdLocations = ""
+	f.MemProfileRate = 512 * 1024
+	f.Fast = true
+	f.FastLocation = ""
+	f.Loglvl = "none"
+	f.Logjson = false
+	f.Svm = false
+	f.PluginPath = ""
+	f.TorManage = false
+	f.TorUpload = false
 	f.Sim_Stdin = true
-	f.exposeProfiling = false
+	f.ExposeProfiling = false
 	f.Sync2 = -1
 	f.DebugConsole = "foobar" //TODO: pretty sure this value is overridden by the default in the flag -- clay
 	f.StdoutLog = "out.txt"
@@ -141,18 +141,18 @@ func ParseCmdLine(args []string) *FactomParams {
 	//	faultTimeoutPtr := flag.Int("faulttimeout", 99999, "Seconds before considering Federated servers at-fault. Default is 30.")
 	runtimeLogPtr := flag.Bool("runtimeLog", false, "If true, maintain runtime logs of messages passed.")
 	exclusivePtr := flag.Bool("exclusive", false, "If true, we only dial out to special/trusted peers.")
-	prefixNodePtr := flag.String("prefix", "", "Prefix the Factom Node Names with this value; used to create leaderless networks.")
-	rotatePtr := flag.Bool("rotate", false, "If true, responsibility is owned by one leader, and rotated over the leaders.")
-	timeOffsetPtr := flag.Int("timedelta", 0, "Maximum timeDelta in milliseconds to offset each node.  Simulates deltas in system clocks over a network.")
-	keepMismatchPtr := flag.Bool("keepmismatch", false, "If true, do not discard DBStates even when a majority of DBSignatures have a different hash")
+	PrefixNodePtr := flag.String("Prefix", "", "Prefix the Factom Node Names with this value; used to create leaderless networks.")
+	RotatePtr := flag.Bool("Rotate", false, "If true, responsibility is owned by one leader, and Rotated over the leaders.")
+	TimeOffsetPtr := flag.Int("timedelta", 0, "Maximum timeDelta in milliseconds to offset each node.  Simulates deltas in system clocks over a network.")
+	KeepMismatchPtr := flag.Bool("keepmismatch", false, "If true, do not discard DBStates even when a majority of DBSignatures have a different hash")
 	startDelayPtr := flag.Int("startdelay", 10, "Delay to start processing messages, in seconds")
-	deadlinePtr := flag.Int("deadline", 1000, "Timeout Delay in milliseconds used on Reads and Writes to the network comm")
-	customNetPtr := flag.String("customnet", "", "This string specifies a custom blockchain network ID.")
-	rpcUserflag := flag.String("rpcuser", "", "Username to protect factomd local API with simple HTTP authentication")
-	rpcPasswordflag := flag.String("rpcpass", "", "Password to protect factomd local API. Ignored if rpcuser is blank")
-	factomdTLSflag := flag.Bool("tls", false, "Set to true to require encrypted connections to factomd API and Control Panel") //to get tls, run as "factomd -tls=true"
-	factomdLocationsflag := flag.String("selfaddr", "", "comma separated IPAddresses and DNS names of this factomd to use when creating a cert file")
-	memProfileRate := flag.Int("mpr", 512*1024, "Set the Memory Profile Rate to update profiling per X bytes allocated. Default 512K, set to 1 to profile everything, 0 to disable.")
+	DeadlinePtr := flag.Int("Deadline", 1000, "Timeout Delay in milliseconds used on Reads and Writes to the network comm")
+	CustomNetPtr := flag.String("customnet", "", "This string specifies a custom blockchain network ID.")
+	RpcUserflag := flag.String("rpcuser", "", "Username to protect factomd local API with simple HTTP authentication")
+	RpcPasswordflag := flag.String("rpcpass", "", "Password to protect factomd local API. Ignored if rpcuser is blank")
+	FactomdTLSflag := flag.Bool("tls", false, "Set to true to require encrypted connections to factomd API and Control Panel") //to get tls, run as "factomd -tls=true"
+	FactomdLocationsflag := flag.String("selfaddr", "", "comma separated IPAddresses and DNS names of this factomd to use when creating a cert file")
+	MemProfileRate := flag.Int("mpr", 512*1024, "Set the Memory Profile Rate to update profiling per X bytes allocated. Default 512K, set to 1 to profile everything, 0 to disable.")
 	exposeProfilePtr := flag.Bool("exposeprofiler", false, "Setting this exposes the profiling port to outside localhost.")
 	factomHomePtr := flag.String("factomhome", "", "Set the Factom home directory. The .factom folder will be placed here if set, otherwise it will default to $HOME")
 
@@ -161,24 +161,24 @@ func ParseCmdLine(args []string) *FactomParams {
 	ControlPanelPortOverridePtr := flag.Int("ControlPanelPort", 0, "Port for control panel webserver;  Default 8090")
 	networkPortOverridePtr := flag.Int("networkPort", 0, "Port for p2p network; default 8110")
 
-	fastPtr := flag.Bool("fast", true, "If true, factomd will fast-boot from a file.")
-	fastLocationPtr := flag.String("fastlocation", "", "Directory to put the fast-boot file in.")
+	FastPtr := flag.Bool("Fast", true, "If true, factomd will Fast-boot from a file.")
+	FastLocationPtr := flag.String("Fastlocation", "", "Directory to put the Fast-boot file in.")
 
-	logLvlPtr := flag.String("loglvl", "none", "Set log level to either: none, debug, info, warning, error, fatal or panic")
-	logJsonPtr := flag.Bool("logjson", false, "Use to set logging to use a json formatting")
+	logLvlPtr := flag.String("Loglvl", "none", "Set log level to either: none, debug, info, warning, error, fatal or panic")
+	logJsonPtr := flag.Bool("Logjson", false, "Use to set logging to use a json formatting")
 
 	sim_stdinPtr := flag.Bool("sim_stdin", true, "If true, sim control reads from stdin.")
 
 	// Plugins
-	pluginPath := flag.String("plugin", "", "Input the path to any plugin binaries")
+	PluginPath := flag.String("plugin", "", "Input the path to any plugin binaries")
 
 	// 	Torrent Plugin
 	tormanager := flag.Bool("tormanage", false, "Use torrent dbstate manager. Must have plugin binary installed and in $PATH")
-	torUploader := flag.Bool("torupload", false, "Be a torrent uploader")
+	TorUploader := flag.Bool("torupload", false, "Be a torrent uploader")
 
 	// Logstash connection (if used)
 	logstash := flag.Bool("logstash", false, "If true, use Logstash")
-	logstashURL := flag.String("logurl", "localhost:8345", "Endpoint URL for Logstash")
+	LogstashURL := flag.String("logurl", "localhost:8345", "Endpoint URL for Logstash")
 
 	sync2Ptr := flag.Int("sync2", -1, "Set the initial blockheight for the second Sync pass. Used to force a total sync, or skip unnecessary syncing of entries.")
 
@@ -214,31 +214,31 @@ func ParseCmdLine(args []string) *FactomParams {
 	//	p.FaultTimeout = *faultTimeoutPtr
 	p.RuntimeLog = *runtimeLogPtr
 	p.Exclusive = *exclusivePtr
-	p.prefix = *prefixNodePtr
-	p.rotate = *rotatePtr
-	p.timeOffset = *timeOffsetPtr
-	p.keepMismatch = *keepMismatchPtr
+	p.Prefix = *PrefixNodePtr
+	p.Rotate = *RotatePtr
+	p.TimeOffset = *TimeOffsetPtr
+	p.KeepMismatch = *KeepMismatchPtr
 	p.StartDelay = int64(*startDelayPtr)
-	p.deadline = *deadlinePtr
-	p.customNet = primitives.Sha([]byte(*customNetPtr)).Bytes()[:4]
-	p.rpcUser = *rpcUserflag
-	p.rpcPassword = *rpcPasswordflag
-	p.factomdTLS = *factomdTLSflag
-	p.factomdLocations = *factomdLocationsflag
-	p.memProfileRate = *memProfileRate
-	p.fast = *fastPtr
-	p.fastLocation = *fastLocationPtr
-	p.loglvl = *logLvlPtr
-	p.logjson = *logJsonPtr
+	p.Deadline = *DeadlinePtr
+	p.CustomNet = primitives.Sha([]byte(*CustomNetPtr)).Bytes()[:4]
+	p.RpcUser = *RpcUserflag
+	p.RpcPassword = *RpcPasswordflag
+	p.FactomdTLS = *FactomdTLSflag
+	p.FactomdLocations = *FactomdLocationsflag
+	p.MemProfileRate = *MemProfileRate
+	p.Fast = *FastPtr
+	p.FastLocation = *FastLocationPtr
+	p.Loglvl = *logLvlPtr
+	p.Logjson = *logJsonPtr
 	p.Sim_Stdin = *sim_stdinPtr
-	p.exposeProfiling = *exposeProfilePtr
+	p.ExposeProfiling = *exposeProfilePtr
 
-	p.pluginPath = *pluginPath
-	p.torManage = *tormanager
-	p.torUpload = *torUploader
+	p.PluginPath = *PluginPath
+	p.TorManage = *tormanager
+	p.TorUpload = *TorUploader
 
-	p.useLogstash = *logstash
-	p.logstashURL = *logstashURL
+	p.UseLogstash = *logstash
+	p.LogstashURL = *LogstashURL
 
 	p.Sync2 = *sync2Ptr
 	p.DebugConsole = *DebugConsolePtr
