@@ -23,6 +23,7 @@ type StartElectionInternal struct {
 	VMHeight       int
 	DBHeight       uint32
 	PreviousDBHash interfaces.IHash
+	SigType        bool
 	IsLeader       bool
 }
 
@@ -34,6 +35,12 @@ func (m *StartElectionInternal) ElectionProcess(s interfaces.IState, elect inter
 
 	e.Adapter = NewElectionAdapter(e, m.PreviousDBHash)
 	e.Adapter.SetObserver(!m.IsLeader)
+
+	// Start the timeouts
+	for len(e.Round) <= e.Electing {
+		e.Round = append(e.Round, 0)
+	}
+	go Fault(e, e.DBHeight, e.Minute, e.Round[e.Electing], e.FaultId.Load(), &e.FaultId, m.SigType)
 }
 
 // Execute the leader functions of the given message
