@@ -24,40 +24,34 @@ const (
 	HEARTBEAT_MSG                             // 10
 	INVALID_ACK_MSG                           // 11
 	INVALID_DIRECTORY_BLOCK_MSG               // 12
-
-	REVEAL_ENTRY_MSG      // 13
-	REQUEST_BLOCK_MSG     // 14
-	SIGNATURE_TIMEOUT_MSG // 15
-	MISSING_MSG           // 16
-	MISSING_DATA          // 17
-	DATA_RESPONSE         // 18
-	MISSING_MSG_RESPONSE  //19
-
-	DBSTATE_MSG          // 20
-	DBSTATE_MISSING_MSG  // 21
-	ADDSERVER_MSG        // 22
-	CHANGESERVER_KEY_MSG // 23
-	REMOVESERVER_MSG     // 24
-
-	BOUNCE_MSG      // 25	test message
-	BOUNCEREPLY_MSG // 26	test message
-
-	MISSING_ENTRY_BLOCKS //27
-	ENTRY_BLOCK_RESPONSE //28
-
-	INTERNALADDLEADER    // 29
-	INTERNALREMOVELEADER // 30
-	INTERNALADDAUDIT     // 31
-	INTERNALREMOVEAUDIT  // 32
-	INTERNALTIMEOUT      // 33
-	INTERNALEOMSIG       // 34
-	INTERNALAUTHLIST     // 35
-
-	VOLUNTEERAUDIT     // 36
-	VOLUNTEERPROPOSAL  // 37
-	VOLUNTEERLEVELVOTE // 38
-	FEDVOTE_MSG_BASE   // 39
-	SYNC_MSG           // 40
+	REVEAL_ENTRY_MSG                          // 13
+	REQUEST_BLOCK_MSG                         // 14
+	SIGNATURE_TIMEOUT_MSG                     // 15
+	MISSING_MSG                               // 16
+	MISSING_DATA                              // 17
+	DATA_RESPONSE                             // 18
+	MISSING_MSG_RESPONSE                      // 19
+	DBSTATE_MSG                               // 20
+	DBSTATE_MISSING_MSG                       // 21
+	ADDSERVER_MSG                             // 22
+	CHANGESERVER_KEY_MSG                      // 23
+	REMOVESERVER_MSG                          // 24
+	BOUNCE_MSG                                // 25	test message
+	BOUNCEREPLY_MSG                           // 26	test message
+	MISSING_ENTRY_BLOCKS                      // 27
+	ENTRY_BLOCK_RESPONSE                      // 28
+	INTERNALADDLEADER                         // 29
+	INTERNALREMOVELEADER                      // 30
+	INTERNALADDAUDIT                          // 31
+	INTERNALREMOVEAUDIT                       // 32
+	INTERNALTIMEOUT                           // 33
+	INTERNALEOMSIG                            // 34
+	INTERNALAUTHLIST                          // 35
+	VOLUNTEERAUDIT                            // 36
+	VOLUNTEERPROPOSAL                         // 37
+	VOLUNTEERLEVELVOTE                        // 38
+	FEDVOTE_MSG_BASE                          // 39
+	SYNC_MSG                                  // 40
 
 	NUM_MESSAGES // Not used, just a counter for the number of messages.
 )
@@ -127,8 +121,10 @@ func MessageName(Type byte) string {
 		return "Bounce Message"
 	case BOUNCEREPLY_MSG:
 		return "Bounce Reply Message"
-	case SYNC_MSG:
-		return "Sync Msg"
+	case MISSING_ENTRY_BLOCKS: // 27
+		return "MISSING_ENTRY_BLOCKS"
+	case ENTRY_BLOCK_RESPONSE: // 28
+		return "ENTRY_BLOCK_RESPONSE"
 	case VOLUNTEERAUDIT:
 		return "Volunteer Audit"
 	case VOLUNTEERPROPOSAL:
@@ -141,6 +137,8 @@ func MessageName(Type byte) string {
 		return "INTERNALREMOVELEADER"
 	case INTERNALADDAUDIT:
 		return "INTERNALADDAUDIT"
+	case INTERNALAUTHLIST: // 35
+		return "INTERNALAUTHLIST"
 	case INTERNALREMOVEAUDIT:
 		return "INTERNALREMOVEAUDIT"
 	case INTERNALTIMEOUT:
@@ -149,6 +147,8 @@ func MessageName(Type byte) string {
 		return "INTERNALEOMSIG"
 	case FEDVOTE_MSG_BASE:
 		return "FEDVOTE_MSG_BASE"
+	case SYNC_MSG:
+		return "Sync Msg"
 
 	default:
 		return "Unknown:" + fmt.Sprintf(" %d", Type)

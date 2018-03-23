@@ -1,6 +1,6 @@
 #!/bin/bash
 
-nchains=21    # number of chains to create
+nchains=10    # number of chains to create
 nchains2=2    # number of chains to create
 nentries=10   # number of entries to add to each chain
 
