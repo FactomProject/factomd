@@ -67,28 +67,14 @@ func (m *TimeoutInternal) InitiateElectionAdapter(st interfaces.IState) bool {
 	s := st.(*state.State)
 	e := s.Elections.(*elections.Elections)
 
-	//fmt.Printf("???LeaderInit Adapter %s HT:%d Min:%d VM:%d\n", s.GetFactomNodeName(), m.DBHeight, int(m.Minute), m.VMIndex)
-	// We can start an election if:
-	//		1. Don't have one currently
-	//		2. We passed the previous election in height <-- Should we?
-	//		3. We passed the previous elections in minutes <-- Should we?
-	//if e.Adapter == nil || (e.DBHeight > e.Adapter.GetDBHeight() || e.Minute > e.Adapter.GetMinute()) {
-	//fmt.Printf("!!!LeaderInit Adapter %s HT:%d Min:%d VM:%d L:%t\n", s.GetFactomNodeName(), m.DBHeight, int(m.Minute), m.VMIndex, s.IsLeader())
-	// TODO: Is cancelling an old election ALWAYS the best way? Should we have some cleanup? Maybe validate
-	// TODO: the new election is valid and the old one has concluded
-
-	// Send the message to be processed to start the election
 	msg := new(StartElectionInternal)
+	msg.VMIndex = m.VMIndex
 	msg.SetLocal(true)
 	msg.DBHeight = uint32(m.DBHeight)
 	msg.PreviousDBHash = st.GetDirectoryBlockByHeight(uint32(m.DBHeight - 1)).GetKeyMR()
 	e.State.InMsgQueue().Enqueue(msg)
 
-	//e.Adapter = NewElectionAdapter(e, st.GetDirectoryBlockByHeight(uint32(m.DBHeight-1)).GetKeyMR())
-	//e.Adapter.SetObserver(!s.IsLeader())
 	return true
-	//}
-
 }
 
 func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces.IElections) {

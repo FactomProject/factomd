@@ -12,6 +12,7 @@ import (
 	"github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/elections"
+	"github.com/FactomProject/factomd/state"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -19,6 +20,7 @@ import (
 type StartElectionInternal struct {
 	msgbase.MessageBase
 
+	VMHeight       int
 	DBHeight       uint32
 	PreviousDBHash interfaces.IHash
 	IsLeader       bool
@@ -41,9 +43,30 @@ func (m *StartElectionInternal) LeaderExecute(state interfaces.IState) {
 }
 
 func (m *StartElectionInternal) FollowerExecute(is interfaces.IState) {
+	s := is.(*state.State)
 	m.IsLeader = is.IsLeader()
 	// TODO: State related things about starting an election
+	pl := s.ProcessLists.Get(m.DBHeight)
+	if pl == nil {
+		s.Holding[m.GetHash().Fixed()] = m
+	}
+	vm := pl.VMs[m.VMIndex]
+	if vm == nil {
+		return
+	}
 
+	end := len(vm.List)
+	if end > vm.Height {
+		for _, msg := range vm.List[vm.Height:] {
+			hash := msg.GetRepeatHash()
+			s.Replay.Clear(constants.INTERNAL_REPLAY, hash.Fixed())
+			s.Holding[msg.GetMsgHash().Fixed()] = msg
+		}
+	}
+
+	m.VMHeight = vm.Height
+	vm.List = vm.List[:vm.Height]
+	vm.ListAck = vm.ListAck[:vm.Height]
 	// Send to elections
 	is.ElectionsQueue().Enqueue(m)
 }
