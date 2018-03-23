@@ -42,11 +42,12 @@ CONFIG = Schema({
     "network": {
         "rules": [RULE]
     },
+    Optional("factomd_path"): str,
     Optional("flags"): str
 })
 
 
-Environment = namedtuple("Environment", "flags, nodes, network")
+Environment = namedtuple("Environment", "flags, nodes, network, factomd_path")
 
 Node = namedtuple("Node", "name, seed, role, ports, flags")
 
@@ -82,6 +83,7 @@ def _parse_env_config(cfg):
     env = Environment(
         nodes=[_parse_node(node) for node in cfg["nodes"]],
         network=_parse_network(cfg["network"]),
+        factomd_path=cfg.get("factomd_path", "../.."),
         flags=cfg.get("flags", None)
     )
     if not env.nodes:

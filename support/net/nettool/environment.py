@@ -12,12 +12,7 @@ class Environment(object):
     def __init__(self, config):
         docker = docker_client.create()
         self.network = network.Network(docker)
-        self.testnet = testnet.Testnet(
-            docker,
-            config.nodes,
-            config.flags,
-            self.network
-        )
+        self.testnet = testnet.Testnet(docker, config, self.network)
         self.rules = rules.Rules(
             docker,
             config.network,

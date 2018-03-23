@@ -66,7 +66,7 @@ the [examples](examples) directory.
 
 The tool uses the following components:
  * `factomd` instances built using the code currently checked out in the parent
-   directory
+   directory (this can be overriden in the config file)
  * `seeds_server` - an nginx instance that serves a list of initial nodes, so
    that the nodes can discover each other in the network
  * `gateway` - a helper container started with elevated privileges to allow

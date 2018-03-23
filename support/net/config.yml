@@ -3,6 +3,10 @@
 # otherwise the tool may lose track of the containers or assign IP addresses in
 # a different order and it may interfere with tests.
 
+# path to the factomd code that will be used to build factomd containers,
+# by default uses the code two dirs up
+factomd_path: "../../"
+
 # command-line flags that are passed to factomd during startup, you can
 # specify a common value here and override it for particular nodes
 flags: -sim_stdin=false

@@ -14,17 +14,17 @@ class Testnet(object):
     Represents a factomd testnet running a set of factomd node and a seeds
     server.
     """
-    def __init__(self, docker, config_nodes, flags, network):
+    def __init__(self, docker, config, network):
         self.network = network
 
         self.base_factomd_image = Image(
             docker,
             tag="nettool_factomd_base",
-            path="../../"
+            path=config.factomd_path
         )
 
         self.identities = IdentityPool()
-        self.nodes = list(self._create_nodes(docker, config_nodes, flags))
+        self.nodes = list(self._create_nodes(docker, config))
         self.seeds = services.SeedServer(docker, self.nodes)
 
         for node in self.nodes:
@@ -80,16 +80,20 @@ class Testnet(object):
             services.SeedServer.destroy_image()
             self.base_factomd_image.destroy()
 
-    def _create_nodes(self, docker, cfg_nodes, flags):
+    def _create_nodes(self, docker, config):
         # first node needs to get the bootstrap identity
         yield services.Factomd(
             docker,
-            cfg_nodes[0],
+            config.nodes[0],
             self.identities.bootstrap,
-            cfg_nodes[0].flags or flags
+            config.nodes[0].flags or config.flags
         )
 
         # other nodes get identities from the pool
-        for cfg in cfg_nodes[1:]:
+        for cfg in config.nodes[1:]:
             identity = self.identities.assign_next(cfg.name)
-            yield services.Factomd(docker, cfg, identity, cfg.flags or flags)
+            yield services.Factomd(
+                docker,
+                cfg,
+                identity,
+                cfg.flags or config.flags)
