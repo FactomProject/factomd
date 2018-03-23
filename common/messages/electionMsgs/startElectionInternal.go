@@ -58,9 +58,11 @@ func (m *StartElectionInternal) FollowerExecute(is interfaces.IState) {
 	end := len(vm.List)
 	if end > vm.Height {
 		for _, msg := range vm.List[vm.Height:] {
-			hash := msg.GetRepeatHash()
-			s.Replay.Clear(constants.INTERNAL_REPLAY, hash.Fixed())
-			s.Holding[msg.GetMsgHash().Fixed()] = msg
+			if msg != nil {
+				hash := msg.GetRepeatHash()
+				s.Replay.Clear(constants.INTERNAL_REPLAY, hash.Fixed())
+				s.Holding[msg.GetMsgHash().Fixed()] = msg
+			}
 		}
 	}
 
