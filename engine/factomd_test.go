@@ -260,7 +260,6 @@ func TestAnElection(t *testing.T) {
 		"-debuglog=F.*",
 		"--stdoutlog=out.txt",
 		"--stderrlog=err.txt",
-		"--debugconsole=localhost"
 	)
 	params := ParseCmdLine(args)
 
