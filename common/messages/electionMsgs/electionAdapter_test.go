@@ -60,6 +60,7 @@ func TestSimpleSigning(t *testing.T) {
 
 func TestElectionAdapterSimple(t *testing.T) {
 	e := NewTestElection()
+	e.State = CreateAndPopulateTestState()
 
 	a := NewElectionAdapter(e, primitives.NewZeroHash())
 	v1 := NewTestVolunteerMessage(e, 2, 0)

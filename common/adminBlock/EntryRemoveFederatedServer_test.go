@@ -95,7 +95,7 @@ func TestRemoveFederatedServerMarshalUnmarshal(t *testing.T) {
 
 func TestRemoveServerMisc(t *testing.T) {
 	a := new(RemoveFederatedServer)
-	if a.String() != "    E:             Remove Federated Server --   IdentityChainID     0000     DBHeight        0" {
+	if a.String() != "    E:             Remove Federated Server --   IdentityChainID   000000     DBHeight        0" {
 		t.Error("Unexpected string:", a.String())
 	}
 	as, err := a.JSONString()

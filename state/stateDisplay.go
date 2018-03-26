@@ -236,7 +236,9 @@ func DeepStateDisplayCopyDifference(s *State, prev *DisplayState) (*DisplayState
 
 	ds.Election = prt
 
-	ds.SimElection = s.Elections.AdapterStatus()
+	if s.Elections != nil {
+		ds.SimElection = s.Elections.AdapterStatus()
+	}
 
 	return ds, nil
 }

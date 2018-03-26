@@ -45,20 +45,5 @@ func TestVoteFactory(t *testing.T) {
 		t.Error("Majorties should be the same")
 	}
 
-	if len(vf.VotesListWithMajority()) != ah.Majority() {
-		t.Errorf("Number of votes in majority is not correct. Exp %d, got %d", ah.Majority(), len(vf.VotesListWithMajority()))
-	}
-
-	if len(vf.MajorityDecisionListWithMajority()) != ah.Majority() {
-		t.Errorf("Number of votes in majority is not correct. Exp %d, got %d", ah.Majority(), len(vf.MajorityDecisionListWithMajority()))
-	}
-
-	if len(vf.InsistenceListWithMajority()) != ah.Majority() {
-		t.Errorf("Number of votes in majority is not correct. Exp %d, got %d", ah.Majority(), len(vf.InsistenceListWithMajority()))
-	}
-
-	fmt.Println(vf.NextPublish().MajorityIAckMessages)
-	if len(vf.NextPublish().MajorityIAckMessages) != ah.Majority() {
-		t.Errorf("Number of votes in majority is not correct. Exp %d, got %d", ah.Majority(), len(vf.NextPublish().MajorityIAckMessages))
-	}
+	// This code was removed
 }

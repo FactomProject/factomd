@@ -100,7 +100,7 @@ func TestAddFederatedServerSigningKeyMarshalUnmarshal(t *testing.T) {
 
 func TestAddFedServerSignMisc(t *testing.T) {
 	a := new(AddFederatedServerSigningKey)
-	if a.String() != "    E:        AddFederatedServerSigningKey --   IdentityChainID     0000  KeyPriority        0    PublicKey 00000000     DBHeight 0" {
+	if a.String() != "    E:        AddFederatedServerSigningKey --   IdentityChainID   000000  KeyPriority        0    PublicKey 00000000     DBHeight 0" {
 		t.Error("Unexpected string:", a.String())
 	}
 	as, err := a.JSONString()

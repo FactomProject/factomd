@@ -95,7 +95,7 @@ func TestAddReplaceMatryoshkaHashMarshalUnmarshal(t *testing.T) {
 
 func TestAddMatryoshkaHashMisc(t *testing.T) {
 	a := new(AddReplaceMatryoshkaHash)
-	if a.String() != "    E:            AddReplaceMatryoshkaHash --   IdentityChainID     0000        MHash 00000000" {
+	if a.String() != "    E:            AddReplaceMatryoshkaHash --   IdentityChainID   000000        MHash 00000000" {
 		t.Error("Unexpected string:", a.String())
 	}
 	as, err := a.JSONString()

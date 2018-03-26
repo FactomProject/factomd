@@ -94,7 +94,7 @@ func TestDBSEGenesisBlock(t *testing.T) {
 
 func TestDBsigMisc(t *testing.T) {
 	a := new(DBSignatureEntry)
-	if a.String() != "    E:         DB Signature --   IdentityChainID     0000       PubKey 00000000    Signature 3030303030303030" {
+	if a.String() != "    E:         DB Signature --   IdentityChainID   000000       PubKey 00000000    Signature 3030303030303030" {
 		t.Error("Unexpected string:", a.String())
 	}
 	as, err := a.JSONString()
