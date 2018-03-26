@@ -6,11 +6,17 @@ import (
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	. "github.com/FactomProject/factomd/common/messages/electionMsgs"
 	"github.com/FactomProject/factomd/common/messages/msgsupport"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/testHelper"
 )
+
+func init() {
+	primitives.General = new(msgsupport.GeneralFactory)
+}
 
 func TestMarshalUnmarshalFedVoteProposal(t *testing.T) {
 	test := func(va *FedVoteProposalMsg, num string) {
@@ -47,14 +53,16 @@ func TestMarshalUnmarshalFedVoteProposal(t *testing.T) {
 		}
 	}
 
+	s := testHelper.CreateAndPopulateTestState()
 	// Have volunteer
 	for i := 0; i < 20; i++ {
-		p := NewFedProposalMsg(primitives.RandomHash(), *randomVol())
+		p := NewFedProposalMsg(primitives.RandomHash(), *randomVol(s))
+		p.Sign(s)
 		test(p, fmt.Sprintf("%d", i))
 	}
 }
 
-func randomVol() *FedVoteVolunteerMsg {
+func randomVol(s interfaces.IState) *FedVoteVolunteerMsg {
 	va := new(FedVoteVolunteerMsg)
 	va.Minute = 5
 	va.Name = "bob"
@@ -77,6 +85,7 @@ func randomVol() *FedVoteVolunteerMsg {
 	va.TS = primitives.NewTimestampNow()
 
 	va.FedID = primitives.RandomHash()
+	va.Sign(s)
 
 	return va
 }

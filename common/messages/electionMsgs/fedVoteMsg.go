@@ -33,7 +33,7 @@ type FedVoteMsg struct {
 	DBHeight uint32               // Directory Block Height that owns this ack
 
 	// NOT MARSHALED
-	Super interfaces.ISignableElectionMsg
+	Super interfaces.ISignableElectionMsg `json:"-"`
 }
 
 func (m *FedVoteMsg) InitFields(elect interfaces.IElections) {
