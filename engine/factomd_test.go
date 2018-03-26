@@ -69,7 +69,15 @@ func WaitMinutes(s *state.State, min int) {
 	TimeNow(s)
 }
 
+// We can only run 1 simtest!
+var ranSimTest = false
+
 func TestSetupANetwork(t *testing.T) {
+	if ranSimTest {
+		return
+	}
+
+	ranSimTest = true
 
 	runCmd := func(cmd string) {
 		os.Stderr.WriteString("Executing: " + cmd + "\n")
@@ -233,6 +241,11 @@ func TestSetupANetwork(t *testing.T) {
 }
 
 func TestAnElection(t *testing.T) {
+	if ranSimTest {
+		return
+	}
+
+	ranSimTest = true
 
 	var (
 		leaders   int = 3

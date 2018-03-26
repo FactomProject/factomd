@@ -3,7 +3,7 @@ package databaseOverlay_test
 import (
 	"testing"
 
-	"github.com/FactomProject/factomd/common/entryCreditBlock"
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/primitives"
 	. "github.com/FactomProject/factomd/testHelper"
 )
@@ -46,7 +46,7 @@ func TestFetchECTransactionByHash(t *testing.T) {
 
 	for _, block := range blocks {
 		for _, tx := range block.ECBlock.GetEntries() {
-			if tx.ECID() != entryCreditBlock.ECIDChainCommit && tx.ECID() != entryCreditBlock.ECIDEntryCommit || tx.ECID() == entryCreditBlock.ECIDBalanceIncrease {
+			if tx.ECID() != constants.ECIDChainCommit && tx.ECID() != constants.ECIDEntryCommit || tx.ECID() == constants.ECIDBalanceIncrease {
 				continue
 			}
 
