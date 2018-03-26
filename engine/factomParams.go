@@ -270,7 +270,7 @@ func launchDebugServer(service string) {
 		// start a go routine to tee stderr to the debug console
 		debugConsole_r, debugConsole_w, _ := os.Pipe() // Can't use the writer directly as os.Stdout so make a pipe
 		var wait sync.WaitGroup
-		wait.Add(2)
+		wait.Add(1)
 		go func() {
 
 			r, w, _ := os.Pipe() // Can't use the writer directly as os.Stderr so make a pipe
@@ -284,6 +284,7 @@ func launchDebugServer(service string) {
 			}
 		}() // stderr redirect func
 
+		//		wait.Add(1)
 		//go func() {
 		//
 		//	r, w, _ := os.Pipe() // Can't use the writer directly as os.Stderr so make a pipe
