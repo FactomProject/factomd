@@ -13,8 +13,7 @@ func TestParcelString(t *testing.T) {
 	c := new(ConnectionParcel)
 	c.Parcel = *p
 
-	correct := `{"Parcel":{"Header":{"Network":0,"Version":8,"Type":6,"Length":1,"TargetPeer":"","Crc32":4278190080,"PartNo":0,"PartsTotal":0,"NodeID":0,"PeerAddress":"","PeerPort":"8108","AppHash":"NetworkMessage","AppType":"Network"},"Payload":"/w=="}}`
-
+	correct := `{"Parcel":{"Header":{"Network":0,"Version":9,"Type":6,"Length":1,"TargetPeer":"","Crc32":4278190080,"PartNo":0,"PartsTotal":0,"NodeID":0,"PeerAddress":"","PeerPort":"8108","AppHash":"NetworkMessage","AppType":"Network"},"Payload":"/w=="}}`
 	data, err := c.JSONByte()
 	if err != nil {
 		t.Error(err)
