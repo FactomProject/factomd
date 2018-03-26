@@ -95,7 +95,7 @@ func TestAddFederatedServerMarshalUnmarshal(t *testing.T) {
 
 func TestAddFedServerMisc(t *testing.T) {
 	a := new(AddFederatedServer)
-	if a.String() != "    E:                        AddFedServer --   IdentityChainID     0000     DBHeight        0" {
+	if a.String() != "    E:                        AddFedServer --   IdentityChainID   000000     DBHeight        0" {
 		t.Error("Unexpected string:", a.String())
 	}
 	as, err := a.JSONString()

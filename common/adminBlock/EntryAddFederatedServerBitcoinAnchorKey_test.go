@@ -111,7 +111,7 @@ func TestAddFederatedServerBitcoinAnchorKeyMarshalUnmarshal(t *testing.T) {
 
 func TestAddFedServerBTCMisc(t *testing.T) {
 	a := new(AddFederatedServerBitcoinAnchorKey)
-	if a.String() != "    E:  AddFederatedServerBitcoinAnchorKey --   IdentityChainID     0000  KeyPriority        0      KeyType        0 ECDSAPublicKey 00000000" {
+	if a.String() != "    E:  AddFederatedServerBitcoinAnchorKey --   IdentityChainID   000000  KeyPriority        0      KeyType        0 ECDSAPublicKey 00000000" {
 		t.Error("Unexpected string:", a.String())
 	}
 	as, err := a.JSONString()
