@@ -24,6 +24,7 @@ import (
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
+	. "github.com/FactomProject/factomd/common/globals"
 
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/messages/msgsupport"
@@ -65,19 +66,19 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 
 	messages.AckBalanceHash = p.AckbalanceHash
 	// Must add the prefix before loading the configuration.
-	s.AddPrefix(p.prefix)
+	s.AddPrefix(p.Prefix)
 	FactomConfigFilename := util.GetConfigFilename("m2")
 	fmt.Println(fmt.Sprintf("factom config: %s", FactomConfigFilename))
 	s.LoadConfig(FactomConfigFilename, p.NetworkName)
-	s.OneLeader = p.rotate
-	s.TimeOffset = primitives.NewTimestampFromMilliseconds(uint64(p.timeOffset))
+	s.OneLeader = p.Rotate
+	s.TimeOffset = primitives.NewTimestampFromMilliseconds(uint64(p.TimeOffset))
 	s.StartDelayLimit = p.StartDelay * 1000
 	s.Journaling = p.Journaling
 	s.FactomdVersion = FactomdVersion
 	s.EFactory = new(electionMsgs.ElectionsFactory)
 
 	log.SetOutput(os.Stdout)
-	switch p.loglvl {
+	switch p.Loglvl {
 	case "none":
 		log.SetOutput(ioutil.Discard)
 	case "debug":
@@ -94,7 +95,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		log.SetLevel(log.PanicLevel)
 	}
 
-	if p.logjson {
+	if p.Logjson {
 		log.SetFormatter(&log.JSONFormatter{})
 	}
 
@@ -134,30 +135,30 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		p.Cnt = 1
 	}
 
-	if p.rpcUser != "" {
-		s.RpcUser = p.rpcUser
+	if p.RpcUser != "" {
+		s.RpcUser = p.RpcUser
 	}
 
-	if p.rpcPassword != "" {
-		s.RpcPass = p.rpcPassword
+	if p.RpcPassword != "" {
+		s.RpcPass = p.RpcPassword
 	}
 
-	if p.factomdTLS == true {
+	if p.FactomdTLS == true {
 		s.FactomdTLSEnable = true
 	}
 
-	if p.factomdLocations != "" {
+	if p.FactomdLocations != "" {
 		if len(s.FactomdLocations) > 0 {
 			s.FactomdLocations += ","
 		}
-		s.FactomdLocations += p.factomdLocations
+		s.FactomdLocations += p.FactomdLocations
 	}
 
-	if p.fast == false {
+	if p.Fast == false {
 		s.StateSaverStruct.FastBoot = false
 	}
-	if p.fastLocation != "" {
-		s.StateSaverStruct.FastBootLocation = p.fastLocation
+	if p.FastLocation != "" {
+		s.StateSaverStruct.FastBootLocation = p.FastLocation
 	}
 
 	fmt.Println(">>>>>>>>>>>>>>>>")
@@ -195,7 +196,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		}
 	}
 
-	s.KeepMismatch = p.keepMismatch
+	s.KeepMismatch = p.KeepMismatch
 
 	if len(p.Db) > 0 {
 		s.DBType = p.Db
@@ -215,12 +216,12 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		p.Net = "file"
 	}
 
-	s.UseLogstash = p.useLogstash
-	s.LogstashURL = p.logstashURL
+	s.UseLogstash = p.UseLogstash
+	s.LogstashURL = p.LogstashURL
 
-	go StartProfiler(p.memProfileRate, p.exposeProfiling)
+	go StartProfiler(p.MemProfileRate, p.ExposeProfiling)
 
-	s.AddPrefix(p.prefix)
+	s.AddPrefix(p.Prefix)
 	s.SetOut(false)
 	s.Init()
 	s.SetDropRate(p.DropRate)
@@ -246,7 +247,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "enablenet", p.EnableNet))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "waitentries", p.WaitEntries))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "node", p.ListenTo))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "prefix", p.prefix))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "prefix", p.Prefix))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "node count", p.Cnt))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "net spec", pnet))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "Msgs droped", p.DropRate))
@@ -258,13 +259,13 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "block time", p.BlkTime))
 	//os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "faultTimeout", p.FaultTimeout)) // TODO old fault timeout mechanism to be removed
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "runtimeLog", p.RuntimeLog))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "rotate", p.rotate))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "timeOffset", p.timeOffset))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "keepMismatch", p.keepMismatch))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "rotate", p.Rotate))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "timeOffset", p.TimeOffset))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "keepMismatch", p.KeepMismatch))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "startDelay", p.StartDelay))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "Network", s.Network))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %x\n", "customnet", p.customNet))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "deadline (ms)", p.deadline))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %x\n", "customnet", p.CustomNet))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "deadline (ms)", p.Deadline))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "tls", s.FactomdTLSEnable))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "selfaddr", s.FactomdLocations))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "rpcuser", s.RpcUser))
@@ -320,13 +321,13 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		networkPort = s.LocalNetworkPort
 		specialPeers = s.LocalSpecialPeers
 	case "CUSTOM", "custom":
-		if bytes.Compare(p.customNet, []byte("\xe3\xb0\xc4\x42")) == 0 {
+		if bytes.Compare(p.CustomNet, []byte("\xe3\xb0\xc4\x42")) == 0 {
 			panic("Please specify a custom network with -customnet=<something unique here>")
 		}
-		s.CustomNetworkID = p.customNet
-		networkID = p2p.NetworkID(binary.BigEndian.Uint32(p.customNet))
+		s.CustomNetworkID = p.CustomNet
+		networkID = p2p.NetworkID(binary.BigEndian.Uint32(p.CustomNet))
 		for i := range fnodes {
-			fnodes[i].State.CustomNetworkID = p.customNet
+			fnodes[i].State.CustomNetworkID = p.CustomNet
 		}
 		seedURL = s.CustomSeedURL
 		networkPort = s.CustomNetworkPort
@@ -336,7 +337,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	}
 
 	connectionMetricsChannel := make(chan interface{}, p2p.StandardChannelSize)
-	p2p.NetworkDeadline = time.Duration(p.deadline) * time.Millisecond
+	p2p.NetworkDeadline = time.Duration(p.Deadline) * time.Millisecond
 
 	if p.EnableNet {
 		nodeName := fnodes[0].State.FactomNodeName
@@ -480,10 +481,10 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 
 	// Initate dbstate plugin if enabled. Only does so for first node,
 	// any more nodes on sim control will use default method
-	fnodes[0].State.SetTorrentUploader(p.torUpload)
-	if p.torManage {
+	fnodes[0].State.SetTorrentUploader(p.TorUpload)
+	if p.TorManage {
 		fnodes[0].State.SetUseTorrent(true)
-		manager, err := LaunchDBStateManagePlugin(p.pluginPath, fnodes[0].State.InMsgQueue(), fnodes[0].State, fnodes[0].State.GetServerPrivateKey(), p.memProfileRate)
+		manager, err := LaunchDBStateManagePlugin(p.PluginPath, fnodes[0].State.InMsgQueue(), fnodes[0].State, fnodes[0].State.GetServerPrivateKey(), p.MemProfileRate)
 		if err != nil {
 			panic("Encountered an error while trying to use torrent DBState manager: " + err.Error())
 		}
