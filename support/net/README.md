@@ -241,7 +241,7 @@ Rules:
     deny: node3 -> *
     deny: * -> node3
 
-$ ./nettool.py ins node1 node2 allow
+$ ./nettool.py add node1 node2 allow
 ...
 
 $ ./nettool.py status
