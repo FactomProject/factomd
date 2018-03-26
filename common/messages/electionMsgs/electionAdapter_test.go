@@ -61,13 +61,14 @@ func TestSimpleSigning(t *testing.T) {
 func TestElectionAdapterSimple(t *testing.T) {
 	e := NewTestElection()
 	e.State = CreateAndPopulateTestState()
+	e.State.SetIdentityChainID(primitives.NewZeroHash())
 
 	a := NewElectionAdapter(e, primitives.NewZeroHash())
 	v1 := NewTestVolunteerMessage(e, 2, 0)
 	resp := a.Execute(v1)
 	// Verify resp was a vote
 	if msg, ok := resp.(*FedVoteProposalMsg); ok {
-		if !msg.Signer.IsSameAs(e.FedID) {
+		if !msg.Signer.IsSameAs(e.State.GetIdentityChainID()) {
 			t.Errorf("Message not signed by self")
 		}
 	} else {
