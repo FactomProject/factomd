@@ -1,7 +1,6 @@
 package mirrors_test
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -81,7 +80,7 @@ func TestMirrors2(t *testing.T) {
 		t.Errorf(`Found "%s" in empty mirrorlist`, x)
 	}
 
-	m.Load("test.sav")
+	m.Load(file.Name())
 	CheckMirror(m, l, t)
 
 	x = "fred"
@@ -185,7 +184,7 @@ func TestPrimeWalk(t *testing.T) {
 	i := 0
 	for j := 0; j < len(visited); j++ {
 		i = (i + prime) % len(visited)
-		fmt.Printf("%d ", i)
+		//		fmt.Printf("%d ", i)
 		if visited[i] {
 			t.Errorf(`Found issue %d %d`, i, j)
 		}
