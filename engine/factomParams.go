@@ -17,6 +17,7 @@ import (
 	. "github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/elections"
+	"github.com/FactomProject/factomd/p2p"
 )
 
 func ParseCmdLine(args []string) *FactomParams {
@@ -89,6 +90,7 @@ func ParseCmdLine(args []string) *FactomParams {
 	flag.StringVar(&p.StderrLog, "stderrlog", "", "Log stderr to a file, optionally the same file as stdout")
 	flag.StringVar(&p.DebugLogRegEx, "debuglog", "off", "regex to pick which logs to save")
 	flag.IntVar(&elections.FaultTimeout, "faulttimeout", 30, "Seconds before considering Federated servers at-fault. Default is 30.")
+	flag.IntVar(&p2p.NumberPeersToBroadcast, "broadcastnum", 16, "Number of peers to broadcast to in the peer to peer networking")
 	flag.CommandLine.Parse(args)
 
 	p.AckbalanceHash = *ackBalanceHashPtr
