@@ -90,8 +90,20 @@ func OneTest() {
 				broadcasting = append(broadcasting, i)
 				// Broadcast our message
 				start := rand.Intn(len(Nodes[i].Connections))
+				var sentto []int
 				for i := 0; i < Broadcast; i++ {
-					c := (start + i) % len(Nodes[i].Connections)
+					c := start
+					for {
+						c = rand.Intn(len(Nodes[i].Connections))
+						for _, v := range sentto {
+							if v == c {
+								continue
+							}
+						}
+						sentto = append(sentto, c)
+						break
+					}
+					//c = (start + i) % len(Nodes[i].Connections)
 					node := Nodes[i].Connections[c]
 					if node.MsgSeen == 0 {
 						reaching = append(reaching, node.id)
@@ -117,7 +129,7 @@ func OneTest() {
 }
 
 func main() {
-	for i := 0; i < 1; i++ {
+	for i := 0; i < 10; i++ {
 		OneTest()
 	}
 }
