@@ -40,11 +40,12 @@ type MessageBase struct {
 }
 
 func (m *MessageBase) Resend_(s interfaces.IState, msg interfaces.IMsg, cnt int, delay int) {
-	for i := 0; i < cnt; i++ {
+	for cnt > 0 {
+		cnt--
 		s.LogMessage("NetworkOutputs", "Enqueue", msg)
 
 		s.NetworkOutMsgQueue().Enqueue(msg)
-		if m.NoResend || i == cnt {
+		if m.NoResend || cnt == 0 {
 			return
 		}
 		time.Sleep(time.Duration(delay) * time.Second)
