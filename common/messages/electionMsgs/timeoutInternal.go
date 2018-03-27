@@ -72,6 +72,9 @@ func (m *TimeoutInternal) InitiateElectionAdapter(st interfaces.IState) bool {
 	msg.SetLocal(true)
 	msg.DBHeight = uint32(m.DBHeight)
 	msg.PreviousDBHash = st.GetDirectoryBlockByHeight(uint32(m.DBHeight - 1)).GetKeyMR()
+	msg.VMIndex = m.VMIndex
+	msg.Minute = m.Minute
+	msg.SigType = m.SigType
 	e.State.InMsgQueue().Enqueue(msg)
 
 	return true
@@ -136,6 +139,7 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 			// start.
 			// TODO: We should never get a false, so should we do something if it is?
 		} // <-- Election Started
+		return // Let the Election Start kick out the new timeout
 	}
 
 	// Operate in existing election

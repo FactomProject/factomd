@@ -83,6 +83,7 @@ func TestControlPanel(t *testing.T) {
 }
 
 func TestDataDump(t *testing.T) {
+	AllConnections = NewConnectionsMap()
 	s := CreateAndPopulateTestState()
 	ds, err := state.DeepStateDisplayCopy(s)
 	if err != nil {

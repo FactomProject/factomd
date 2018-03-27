@@ -179,7 +179,7 @@ func TestHandleEntryBlock(t *testing.T) {
 	}
 
 	dbo := context.Server.Env["state"].(interfaces.IState).GetDB()
-	defer context.Server.Env["state"].(interfaces.IState).UnlockDB()
+	//defer context.Server.Env["state"].(interfaces.IState).UnlockDB()
 
 	blocks, err := dbo.FetchAllEBlocksByChain(chain)
 	if err != nil {
@@ -450,7 +450,7 @@ func TestHandleGetReceipt(t *testing.T) {
 	}
 
 	dbo := context.Server.Env["state"].(interfaces.IState).GetDB()
-	defer context.Server.Env["state"].(interfaces.IState).UnlockDB()
+	//defer context.Server.Env["state"].(interfaces.IState).UnlockDB()
 
 	receipt := j["receipt"].(map[string]interface{})
 	marshalled, err := json.Marshal(receipt)
@@ -479,7 +479,7 @@ func TestHandleGetUnanchoredReceipt(t *testing.T) {
 	}
 
 	dbo := context.Server.Env["state"].(interfaces.IState).GetDB()
-	defer context.Server.Env["state"].(interfaces.IState).UnlockDB()
+	//defer context.Server.Env["state"].(interfaces.IState).UnlockDB()
 
 	receipt := j["receipt"].(map[string]interface{})
 	marshalled, err := json.Marshal(receipt)

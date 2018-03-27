@@ -23,6 +23,7 @@ type StartElectionInternal struct {
 	VMHeight       int
 	DBHeight       uint32
 	PreviousDBHash interfaces.IHash
+	SigType        bool
 	IsLeader       bool
 }
 
@@ -34,6 +35,12 @@ func (m *StartElectionInternal) ElectionProcess(s interfaces.IState, elect inter
 
 	e.Adapter = NewElectionAdapter(e, m.PreviousDBHash)
 	e.Adapter.SetObserver(!m.IsLeader)
+
+	// Start the timeouts
+	for len(e.Round) <= e.Electing {
+		e.Round = append(e.Round, 0)
+	}
+	go Fault(e, e.DBHeight, e.Minute, e.Round[e.Electing], e.FaultId.Load(), &e.FaultId, m.SigType)
 }
 
 // Execute the leader functions of the given message
@@ -116,7 +123,7 @@ func (m *StartElectionInternal) GetTimestamp() interfaces.Timestamp {
 }
 
 func (m *StartElectionInternal) Type() byte {
-	return constants.INTERNALAUTHLIST
+	return constants.INTERNALSTARTELECTION
 }
 
 // Returns true if this is a message for this server to execute as
@@ -152,7 +159,7 @@ func (m *StartElectionInternal) UnmarshalBinary(data []byte) error {
 }
 
 func (m *StartElectionInternal) String() string {
-	return "Not implemented, StartElectionInternal"
+	return fmt.Sprintf("%20s dbheight %d min %d vm d%", "Start Election Internal", m.DBHeight, int(m.Minute), m.VMIndex)
 }
 
 func (a *StartElectionInternal) IsSameAs(b *StartElectionInternal) bool {

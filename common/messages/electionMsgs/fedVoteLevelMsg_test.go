@@ -57,7 +57,7 @@ func TestMarshalUnmarshalFedVoteLevel(t *testing.T) {
 
 	// Have volunteer
 	for i := 0; i < 20; i++ {
-		v := randomVol()
+		v := randomVol(s)
 		v.Sign(s)
 		l := NewFedVoteLevelMessage(primitives.RandomHash(), *v)
 		l.TS = primitives.NewTimestampNow()
@@ -71,6 +71,7 @@ func TestMarshalUnmarshalFedVoteLevel(t *testing.T) {
 		}
 		test(l, fmt.Sprintf("%d", i))
 		l.Justification = []interfaces.IMsg{}
+		l.Sign(s)
 		msgs = append(msgs, l)
 	}
 }

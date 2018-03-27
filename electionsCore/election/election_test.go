@@ -34,7 +34,7 @@ func TestElectionCopy(t *testing.T) {
 	a := NewElection(au.GetFeds()[0], au.GetAuthSet())
 
 	vol := messages.NewVolunteerMessage(messages.NewEomMessage(a.GetAuds()[0], loc), a.GetAuds()[0])
-	l := messages.NewLeaderLevelMessage(0, 0, 0, vol)
+	l := messages.NewLeaderLevelMessage(primitives.NewIdentityFromInt(0), 0, 0, vol)
 
 	a.MsgListIn = append(a.MsgListIn, NewDepthLeaderLevel(&l, 1))
 	var _ = l

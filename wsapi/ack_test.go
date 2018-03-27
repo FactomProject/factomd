@@ -5,7 +5,7 @@ import (
 	//"fmt"
 	"testing"
 
-	"github.com/FactomProject/factomd/common/entryCreditBlock"
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/testHelper"
 	. "github.com/FactomProject/factomd/wsapi"
 )
@@ -39,7 +39,7 @@ func TestDecodeTransactionToHashes(t *testing.T) {
 		}
 
 		for _, tx := range block.ECBlock.GetEntries() {
-			if tx.ECID() != entryCreditBlock.ECIDChainCommit && tx.ECID() != entryCreditBlock.ECIDEntryCommit {
+			if tx.ECID() != constants.ECIDChainCommit && tx.ECID() != constants.ECIDEntryCommit {
 				continue
 			}
 			/*if tx.ECID() == entryCreditBlock.ECIDChainCommit {
@@ -245,7 +245,7 @@ func TestHandleV2EntryACK(t *testing.T) {
 		}
 
 		for _, tx := range block.ECBlock.GetEntries() {
-			if tx.ECID() != entryCreditBlock.ECIDChainCommit && tx.ECID() != entryCreditBlock.ECIDEntryCommit {
+			if tx.ECID() != constants.ECIDChainCommit && tx.ECID() != constants.ECIDEntryCommit {
 				continue
 			}
 			req := AckRequest{}

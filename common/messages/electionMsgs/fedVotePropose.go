@@ -167,11 +167,11 @@ func (e *FedVoteProposalMsg) JSONString() (string, error) {
 }
 
 func (m *FedVoteProposalMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	//defer func() {
-	//	if r := recover(); r != nil {
-	//		err = fmt.Errorf("Error unmarshalling: %v", r)
-	//	}
-	//}()
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("Error unmarshalling: %v", r)
+		}
+	}()
 
 	buf := primitives.NewBuffer(data)
 	if t, e := buf.PopByte(); e != nil || t != m.Type() {

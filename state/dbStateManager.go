@@ -854,13 +854,15 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	d.EntryCreditBlock.GetHeader().SetDBHeight(currentDBHeight)
 
 	// Admin Block Fixup
-	previousPL := list.State.ProcessLists.Get(previousDBHeight)
+	//previousPL := list.State.ProcessLists.Get(cur)
 	currentPL := list.State.ProcessLists.Get(currentDBHeight)
 
 	// Servers
-	previousFeds := previousPL.FedServers
+	startingFeds := currentPL.StartingFedServers
 	currentFeds := currentPL.FedServers
 	currentAuds := currentPL.AuditServers
+
+	// Set the Start servers for the next block
 
 	// DB Sigs
 	majority := (len(currentFeds) / 2) + 1
@@ -882,35 +884,23 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	//list.State.AddStatus("FIXUPLINKS: Adding the deltas to the Admin Block, if necessary")
 
 	// Correcting Server Lists (Caused by Server Faults)
+	// 	This will correct any deltas from the serverlists
 	for _, cf := range currentFeds {
-		if !containsServer(previousFeds, cf) {
+		if !containsServer(startingFeds, cf) {
 			fmt.Printf("******* FUL: %12s %12s  Server %x\n", "Promote", list.State.FactomNodeName, cf.GetChainID().Bytes()[3:6])
 			// Promote to federated
-			//index := list.State.isIdentityChain(cf.GetChainID())
-			/*if index == -1 || !(list.State.Identities[index].Status == constants.IDENTITY_PENDING_FEDERATED_SERVER ||
-			list.State.Identities[index].Status == constants.IDENTITY_FEDERATED_SERVER) ||
-			list.State.Identities[index].Status == constants.IDENTITY_AUDIT_SERVER) {*/
 			addEntry := adminBlock.NewAddFederatedServer(cf.GetChainID(), currentDBHeight+1)
-			//list.State.AddStatus(fmt.Sprintf("FIXUPLINKS: Adding delta to the Admin Block: %s", addEntry.String()))
 			d.AdminBlock.AddFirstABEntry(addEntry)
-			/*} else {
-				list.State.AddStatus(fmt.Sprintf("FIXUPLINKS: Not Adding delta to the Admin Block: Idx: %d Status: %d", index, list.State.Identities[index].Status))
-			}*/
 		}
 	}
 
-	for _, pf := range previousFeds {
+	for _, pf := range startingFeds {
 		if !containsServer(currentFeds, pf) {
-			// Option 1: Remove as a server
-			/*if list.State.isAuthorityChain(pf.GetChainID()) != -1 {
-				removeEntry := adminBlock.NewRemoveFederatedServer(pf.GetChainID(), currentDBHeight+1)
-				d.AdminBlock.AddFirstABEntry(removeEntry)
-			}*/
-			// Option 2: Demote to Audit if it is there
+			// The fed is n
 			if containsServer(currentAuds, pf) {
 				demoteEntry := adminBlock.NewAddAuditServer(pf.GetChainID(), currentDBHeight+1)
 				d.AdminBlock.AddFirstABEntry(demoteEntry)
-				fmt.Printf("******* FUL: %12s %12s  Server %x\n", "Demote", list.State.FactomNodeName, pf.GetChainID().Bytes()[3:6])
+				fmt.Printf("******* FUL: %12s %12s  Server %x, DBHeight: %d\n", "Demote", list.State.FactomNodeName, pf.GetChainID().Bytes()[3:6], d.DirectoryBlock.GetDatabaseHeight())
 			}
 			_ = currentAuds
 		}
@@ -1071,6 +1061,10 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	pl.SortFedServers()
 	pln.SortAuditServers()
 	pln.SortFedServers()
+
+	// Now the authority lists are set, set the starting
+	pln.SetStartingAuthoritySet()
+	pln2.SetStartingAuthoritySet()
 
 	prt("pl 4th", pl)
 	prt("pln 4th", pln)

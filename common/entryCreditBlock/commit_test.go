@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	ed "github.com/FactomProject/ed25519"
+	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -67,19 +68,19 @@ func TestCommitMarshalUnmarshal(t *testing.T) {
 			var h2 []byte
 			var e interfaces.BinaryMarshallable
 			switch tx.ECID() {
-			case ECIDChainCommit:
+			case constants.ECIDChainCommit:
 				e = new(CommitChain)
 				break
-			case ECIDEntryCommit:
+			case constants.ECIDEntryCommit:
 				e = new(CommitEntry)
 				break
-			case ECIDBalanceIncrease:
+			case constants.ECIDBalanceIncrease:
 				e = new(IncreaseBalance)
 				break
-			case ECIDMinuteNumber:
+			case constants.ECIDMinuteNumber:
 				e = new(MinuteNumber)
 				break
-			case ECIDServerIndexNumber:
+			case constants.ECIDServerIndexNumber:
 				e = new(ServerIndexNumber)
 				break
 			default:
@@ -103,7 +104,7 @@ func TestCommitMarshalUnmarshal(t *testing.T) {
 			}
 
 			if primitives.AreBytesEqual(h1, h2) == false {
-				t.Error("ECEntries are not identical - %x vs %x", h1, h2)
+				t.Errorf("ECEntries are not identical - %x vs %x", h1, h2)
 			}
 		}
 	}

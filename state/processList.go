@@ -104,6 +104,11 @@ type ProcessList struct {
 	AuditServers []interfaces.IServer // List of Audit Servers
 	FedServers   []interfaces.IServer // List of Federated Servers
 
+	// The Fedlist and Audlist at the START of the block. Server faults
+	// can change the list, and we can calculate the deltas at the end
+	StartingAuditServers []interfaces.IServer // List of Audit Servers
+	StartingFedServers   []interfaces.IServer // List of Federated Servers
+
 	// AmINegotiator is just used for displaying an "N" next to a node
 	// that is the assigned negotiator for a particular processList
 	// height
@@ -431,6 +436,30 @@ func (p *ProcessList) PrintMap() string {
 	}
 	prt = prt + fmt.Sprintf("\n===PrintMapEnd=== %d\n", p.DBHeight)
 	return prt
+}
+
+// Will set the starting fed/aud list for delta comparison at the end of the block
+func (p *ProcessList) SetStartingAuthoritySet() {
+	copyServer := func(os interfaces.IServer) interfaces.IServer {
+		s := new(Server)
+		s.ChainID = os.GetChainID()
+		s.Name = os.GetName()
+		s.Online = os.IsOnline()
+		s.Replace = os.LeaderToReplace()
+		return s
+	}
+
+	p.StartingFedServers = []interfaces.IServer{}
+	p.StartingAuditServers = []interfaces.IServer{}
+
+	for _, f := range p.FedServers {
+		p.StartingFedServers = append(p.StartingFedServers, copyServer(f))
+	}
+
+	for _, a := range p.AuditServers {
+		p.StartingAuditServers = append(p.StartingAuditServers, copyServer(a))
+	}
+
 }
 
 // Add the given serverChain to this processlist as a Federated Server, and return

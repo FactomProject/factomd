@@ -50,8 +50,9 @@ const (
 	VOLUNTEERAUDIT                            // 36
 	VOLUNTEERPROPOSAL                         // 37
 	VOLUNTEERLEVELVOTE                        // 38
-	FEDVOTE_MSG_BASE                          // 39
-	SYNC_MSG                                  // 40
+	INTERNALSTARTELECTION                     // 39
+	FEDVOTE_MSG_BASE                          // 40
+	SYNC_MSG                                  // 41
 
 	NUM_MESSAGES // Not used, just a counter for the number of messages.
 )
@@ -149,6 +150,8 @@ func MessageName(Type byte) string {
 		return "FEDVOTE_MSG_BASE"
 	case SYNC_MSG:
 		return "Sync Msg"
+	case INTERNALSTARTELECTION:
+		return "Internal Start Election"
 
 	default:
 		return "Unknown:" + fmt.Sprintf(" %d", Type)

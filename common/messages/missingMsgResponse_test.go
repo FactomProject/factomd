@@ -132,9 +132,11 @@ func TestSillyMarshaling(t *testing.T) {
 	for i, d := range data {
 		ack := mmr[i].AckResponse
 		ad, _ := ack.MarshalBinary()
-		fmt.Printf("mmr  %d %x\n", i, d)
-		fmt.Printf("ack  %d %x\n", i, ad)
-		fmt.Printf("mmr2 %d %x\n", i, data2[i])
+		var _ = ad
+		var _ = d
+		//fmt.Printf("mmr  %d %x\n", i, d)
+		//fmt.Printf("ack  %d %x\n", i, ad)
+		//fmt.Printf("mmr2 %d %x\n", i, data2[i])
 	}
 
 }
