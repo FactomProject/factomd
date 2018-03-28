@@ -37,15 +37,15 @@ func (state *State) ValidatorLoop() {
 			for state.UpdateState() {
 			}
 
-			for i := 0; i < 10; i++ {
+			select {
+			case min := <-state.tickerQueue:
+				timeStruct.timer(state, min)
+			default:
+			}
+
+			for i := 0; i < 1000; i++ {
 				ackRoom := cap(state.ackQueue) - len(state.ackQueue)
 				msgRoom := cap(state.msgQueue) - len(state.msgQueue)
-
-				select {
-				case min := <-state.tickerQueue:
-					timeStruct.timer(state, min)
-				default:
-				}
 
 				if ackRoom > 1 && msgRoom > 1 {
 					msg = state.InMsgQueue().Dequeue()
@@ -63,6 +63,7 @@ func (state *State) ValidatorLoop() {
 					for i := 0; i < 10 && state.InMsgQueue().Length() == 0; i++ {
 						time.Sleep(10 * time.Millisecond)
 					}
+					break
 				}
 			}
 		}
