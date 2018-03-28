@@ -292,10 +292,10 @@ func (s *State) ReviewHolding() {
 	if now.GetTimeMilli()-s.ResendHolding.GetTimeMilli() < 300 {
 		return
 	}
+	s.ResendHolding = now
 
 	s.DB.Trim()
 
-	s.ResendHolding = now
 	// Anything we are holding, we need to reprocess.
 	s.XReview = make([]interfaces.IMsg, 0)
 
@@ -386,6 +386,14 @@ func (s *State) ReviewHolding() {
 				}
 			}
 		}
+		// If a Reveal Entry has a commit available, then process the Reveal Entry and send it out.
+		if re, ok := v.(*messages.RevealEntryMsg); ok {
+			if s.Commits.Get(re.GetHash().Fixed()) != nil {
+				re.FollowerExecute(s)
+				re.SendOut(s, re)
+			}
+		}
+
 		if v.Expire(s) {
 			s.ExpireCnt++
 			TotalHoldingQueueOutputs.Inc()
@@ -406,6 +414,17 @@ func (s *State) ReviewHolding() {
 			delete(s.Holding, k)
 			continue
 		}
+
+		// We don't reprocess if we are not a leader
+		if !s.Leader {
+			continue
+		}
+
+		// We don't reprocess messages if we are a leader, but it ain't ours!
+		if s.LeaderVMIndex != v.GetVMIndex() {
+			continue
+		}
+
 		TotalXReviewQueueInputs.Inc()
 		s.XReview = append(s.XReview, v)
 		TotalHoldingQueueOutputs.Inc()
@@ -938,6 +957,7 @@ func (s *State) FollowerExecuteCommitChain(m interfaces.IMsg) {
 	cc := m.(*messages.CommitChainMsg)
 	re := s.Holding[cc.CommitChain.EntryHash.Fixed()]
 	if re != nil {
+		re.FollowerExecute(s)
 		re.SendOut(s, re)
 	}
 }
@@ -948,6 +968,7 @@ func (s *State) FollowerExecuteCommitEntry(m interfaces.IMsg) {
 	s.FollowerExecuteMsg(m)
 	re := s.Holding[ce.CommitEntry.EntryHash.Fixed()]
 	if re != nil {
+		re.FollowerExecute(s)
 		re.SendOut(s, re)
 	}
 }
@@ -1255,7 +1276,7 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 	pl.EntryCreditBlock.GetBody().AddEntry(c.CommitChain)
 	if e := s.GetFactoidState().UpdateECTransaction(true, c.CommitChain); e == nil {
 		// save the Commit to match agains the Reveal later
-		h := c.CommitChain.EntryHash
+		h := c.GetHash()
 		s.PutCommit(h, c)
 		entry := s.Holding[h.Fixed()]
 		if entry != nil {
@@ -1280,7 +1301,7 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 	pl.EntryCreditBlock.GetBody().AddEntry(c.CommitEntry)
 	if e := s.GetFactoidState().UpdateECTransaction(true, c.CommitEntry); e == nil {
 		// save the Commit to match agains the Reveal later
-		h := c.CommitEntry.EntryHash
+		h := c.GetHash()
 		s.PutCommit(h, c)
 		entry := s.Holding[h.Fixed()]
 		if entry != nil && entry.Validate(s) == 1 {

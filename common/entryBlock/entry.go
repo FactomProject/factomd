@@ -165,7 +165,8 @@ func (e *Entry) GetHash() interfaces.IHash {
 		h := primitives.NewZeroHash()
 		entry, err := e.MarshalBinary()
 		if err != nil {
-			return h
+			fmt.Println("Failed to Marshal Entry", e.String())
+			return nil
 		}
 
 		h1 := sha512.Sum512(entry)
@@ -210,7 +211,7 @@ func (e *Entry) MarshalBinary() ([]byte, error) {
 	// Content
 	buf.Write(e.Content.Bytes)
 
-	return buf.DeepCopyBytes(), nil
+	return buf.Bytes(), nil
 }
 
 // MarshalExtIDsBinary marshals the ExtIDs into a []byte containing a series of

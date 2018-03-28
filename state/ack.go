@@ -574,12 +574,12 @@ func (s *State) FetchPaidFor(hash interfaces.IHash) (interfaces.IHash, error) {
 		ecBlock := pls.EntryCreditBlock
 		for _, tx := range ecBlock.GetEntries() {
 			switch tx.ECID() {
-			case entryCreditBlock.ECIDEntryCommit:
+			case constants.ECIDEntryCommit:
 				if hash.IsSameAs(tx.(*entryCreditBlock.CommitEntry).EntryHash) {
 					return tx.GetSigHash(), nil
 				}
 				break
-			case entryCreditBlock.ECIDChainCommit:
+			case constants.ECIDChainCommit:
 				if hash.IsSameAs(tx.(*entryCreditBlock.CommitChain).EntryHash) {
 					return tx.GetSigHash(), nil
 				}
