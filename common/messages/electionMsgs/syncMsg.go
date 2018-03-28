@@ -177,7 +177,7 @@ func (m *SyncMsg) FollowerExecute(is interfaces.IState) {
 	va.DBHeight = m.DBHeight
 	va.Minute = m.Minute
 	va.Round = m.Round
-	va.EOM = m.SigType
+	va.SigType = m.SigType
 
 	va.Sign(is)
 
