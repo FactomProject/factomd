@@ -141,6 +141,8 @@ func addNodeNames(s string) (rval string) {
 	if hexStr == nil {
 		return s
 	}
+	// loop thru the matches last to first and add the name. Start with the last so the positions don't change
+	// as we add text
 	for i := len(hexStr); i > 0; {
 		i--
 		l := s[hexStr[i][0]:hexStr[i][1]]

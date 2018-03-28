@@ -114,7 +114,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 	case 0:
 		TotalHoldingQueueInputs.Inc()
 		TotalHoldingQueueRecycles.Inc()
-		s.LogMessage("executeMsg", "Holding1", msg)
+		s.LogMessage("executeMsg", "Add to Holding", msg)
 		s.Holding[msg.GetMsgHash().Fixed()] = msg
 
 	default:
