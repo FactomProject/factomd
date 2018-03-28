@@ -160,5 +160,8 @@ func (p *Parcel) LogEntry() *log.Entry {
 }
 
 func (p *Parcel) MessageType() string {
-	return (fmt.Sprintf("[%s]", CommandStrings[p.Header.Type]))
+	if val, ok := CommandStrings[p.Header.Type]; ok {
+		return fmt.Sprintf("[%s]", val)
+	}
+	return "Unknown"
 }
