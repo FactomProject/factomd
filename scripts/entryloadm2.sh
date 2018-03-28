@@ -1,6 +1,6 @@
 #!/bin/bash
 
-nchains=12    # number of chains to create
+nchains=18    # number of chains to create
 nchains2=2    # number of chains to create
 nentries=20   # number of entries to add to each chain
 
@@ -15,7 +15,7 @@ fa1=$(factom-cli -s=$factomd importaddress Fs3E9gV6DXsYzf7Fqx1fVBQPQXV695eP3k5Xb
 
 minsleep=1
 randsleep=2
-entrysize=10238
+entrysize=1000
 
 ec1=$(factom-cli -s=$factomd importaddress Es3LB2YW9bpdWmMnNQYb31kyPzqnecsNqmg5W4K7FKp4UP6omRTa)
 
