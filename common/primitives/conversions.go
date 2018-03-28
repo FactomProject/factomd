@@ -45,7 +45,7 @@ func MnemonicStringToPrivateKeyString(mnemonic string) (string, error) {
 }
 
 /******************************************************************************/
-/********************Human-readible private keys*******************************/
+/********************Human-readable private keys*******************************/
 /******************************************************************************/
 
 func HumanReadableFactoidPrivateKeyToPrivateKey(human string) ([]byte, error) {

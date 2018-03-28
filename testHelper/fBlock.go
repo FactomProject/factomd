@@ -38,11 +38,11 @@ func CreateTestFactoidBlock(prev interfaces.IFBlock) interfaces.IFBlock {
 	return fBlock
 }
 
-func CreateTestFactoidBlockWithTransaction(prev interfaces.IFBlock, sentSecret string, recievePublic []byte, amt uint64) interfaces.IFBlock {
+func CreateTestFactoidBlockWithTransaction(prev interfaces.IFBlock, sentSecret string, receivePublic []byte, amt uint64) interfaces.IFBlock {
 	fBlock := CreateTestFactoidBlockWithCoinbase(prev, NewFactoidAddress(0), DefaultCoinbaseAmount)
 
 	for i := 0; i < 5; i++ {
-		err := fBlock.AddTransaction(newTrans(fBlock.GetDatabaseHeight(), sentSecret, recievePublic, amt))
+		err := fBlock.AddTransaction(newTrans(fBlock.GetDatabaseHeight(), sentSecret, receivePublic, amt))
 		if err != nil {
 			panic(err)
 		}
@@ -51,7 +51,7 @@ func CreateTestFactoidBlockWithTransaction(prev interfaces.IFBlock, sentSecret s
 	return fBlock
 }
 
-func newTrans(height uint32, sentSecret string, recievePublic []byte, amt uint64) *factoid.Transaction {
+func newTrans(height uint32, sentSecret string, receivePublic []byte, amt uint64) *factoid.Transaction {
 	privKey, pubKey, _, err := factoid.PrivateKeyStringToEverythingString(sentSecret)
 	if err != nil {
 		panic(err)
@@ -74,7 +74,7 @@ func newTrans(height uint32, sentSecret string, recievePublic []byte, amt uint64
 
 	ecTx := new(factoid.Transaction)
 	ecTx.AddInput(add, amt)
-	ecTx.AddOutput(factoid.NewAddress(recievePublic), amt)
+	ecTx.AddOutput(factoid.NewAddress(receivePublic), amt)
 	ecTx.SetTimestamp(primitives.NewTimestampFromSeconds(60 * 10 * uint32(height)))
 
 	fee, err := ecTx.CalculateFee(1000)

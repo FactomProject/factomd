@@ -8,72 +8,72 @@ import (
 )
 
 //------------------------------------------------
-// DBlock array sorting implementation - accending
-type ByDBlockIDAccending []IDirectoryBlock
+// DBlock array sorting implementation - ascending
+type ByDBlockIDAscending []IDirectoryBlock
 
-func (f ByDBlockIDAccending) Len() int {
+func (f ByDBlockIDAscending) Len() int {
 	return len(f)
 }
-func (f ByDBlockIDAccending) Less(i, j int) bool {
+func (f ByDBlockIDAscending) Less(i, j int) bool {
 	return f[i].GetHeader().GetDBHeight() < f[j].GetHeader().GetDBHeight()
 }
-func (f ByDBlockIDAccending) Swap(i, j int) {
+func (f ByDBlockIDAscending) Swap(i, j int) {
 	f[i], f[j] = f[j], f[i]
 }
 
 //------------------------------------------------
-// CBlock array sorting implementation - accending
-type ByECBlockIDAccending []IEntryCreditBlock
+// CBlock array sorting implementation - ascending
+type ByECBlockIDAscending []IEntryCreditBlock
 
-func (f ByECBlockIDAccending) Len() int {
+func (f ByECBlockIDAscending) Len() int {
 	return len(f)
 }
-func (f ByECBlockIDAccending) Less(i, j int) bool {
+func (f ByECBlockIDAscending) Less(i, j int) bool {
 	return f[i].GetHeader().GetDBHeight() < f[j].GetHeader().GetDBHeight()
 }
-func (f ByECBlockIDAccending) Swap(i, j int) {
+func (f ByECBlockIDAscending) Swap(i, j int) {
 	f[i], f[j] = f[j], f[i]
 }
 
 //------------------------------------------------
-// ABlock array sorting implementation - accending
-type ByABlockIDAccending []IAdminBlock
+// ABlock array sorting implementation - ascending
+type ByABlockIDAscending []IAdminBlock
 
-func (f ByABlockIDAccending) Len() int {
+func (f ByABlockIDAscending) Len() int {
 	return len(f)
 }
-func (f ByABlockIDAccending) Less(i, j int) bool {
+func (f ByABlockIDAscending) Less(i, j int) bool {
 	return f[i].GetHeader().GetDBHeight() < f[j].GetHeader().GetDBHeight()
 }
-func (f ByABlockIDAccending) Swap(i, j int) {
+func (f ByABlockIDAscending) Swap(i, j int) {
 	f[i], f[j] = f[j], f[i]
 }
 
 //------------------------------------------------
-// ABlock array sorting implementation - accending
-type ByFBlockIDAccending []IFBlock
+// ABlock array sorting implementation - ascending
+type ByFBlockIDAscending []IFBlock
 
-func (f ByFBlockIDAccending) Len() int {
+func (f ByFBlockIDAscending) Len() int {
 	return len(f)
 }
-func (f ByFBlockIDAccending) Less(i, j int) bool {
+func (f ByFBlockIDAscending) Less(i, j int) bool {
 	return f[i].GetDBHeight() < f[j].GetDBHeight()
 }
-func (f ByFBlockIDAccending) Swap(i, j int) {
+func (f ByFBlockIDAscending) Swap(i, j int) {
 	f[i], f[j] = f[j], f[i]
 }
 
 //------------------------------------------------
-// EBlock array sorting implementation - accending
-type ByEBlockIDAccending []IEntryBlock
+// EBlock array sorting implementation - ascending
+type ByEBlockIDAscending []IEntryBlock
 
-func (f ByEBlockIDAccending) Len() int {
+func (f ByEBlockIDAscending) Len() int {
 	return len(f)
 }
-func (f ByEBlockIDAccending) Less(i, j int) bool {
+func (f ByEBlockIDAscending) Less(i, j int) bool {
 	return f[i].GetHeader().GetEBSequence() < f[j].GetHeader().GetEBSequence()
 }
-func (f ByEBlockIDAccending) Swap(i, j int) {
+func (f ByEBlockIDAscending) Swap(i, j int) {
 	f[i], f[j] = f[j], f[i]
 }
 
@@ -92,16 +92,16 @@ func (f ByByteArray) Swap(i, j int) {
 }
 
 //------------------------------------------------
-// DirBlock Info array sorting implementation - accending
-type ByDirBlockInfoIDAccending []IDirBlockInfo
+// DirBlock Info array sorting implementation - ascending
+type ByDirBlockInfoIDAscending []IDirBlockInfo
 
-func (f ByDirBlockInfoIDAccending) Len() int {
+func (f ByDirBlockInfoIDAscending) Len() int {
 	return len(f)
 }
-func (f ByDirBlockInfoIDAccending) Less(i, j int) bool {
+func (f ByDirBlockInfoIDAscending) Less(i, j int) bool {
 	return f[i].GetDBHeight() < f[j].GetDBHeight()
 }
-func (f ByDirBlockInfoIDAccending) Swap(i, j int) {
+func (f ByDirBlockInfoIDAscending) Swap(i, j int) {
 	f[i], f[j] = f[j], f[i]
 }
 

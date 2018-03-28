@@ -13,7 +13,7 @@ import (
 
 // EBlock is the Entry Block. It holds the hashes of the Entries and its Merkle
 // Root is written into the Directory Blocks. Each Entry Block represents all
-// of the entries for a paticular Chain during a 10 minute period.
+// of the entries for a particular Chain during a 10 minute period.
 type EBlock struct {
 	Header interfaces.IEntryBlockHeader `json:"header"`
 	Body   *EBlockBody                  `json:"body"`
@@ -167,7 +167,7 @@ func (e *EBlock) BodyKeyMR() interfaces.IHash {
 	return e.GetHeader().GetBodyMR()
 }
 
-// KeyMR returns the hash of the hash of the Entry Block Header concatinated
+// KeyMR returns the hash of the hash of the Entry Block Header concatenated
 // with the Merkle Root of the Entry Block Body. The Body Merkle Root is
 // calculated by the func (e *EBlockBody) MR() which is called by the func
 // (e *EBlock) BuildHeader().

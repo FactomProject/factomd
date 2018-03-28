@@ -8,9 +8,10 @@ import (
 	"fmt"
 	"os"
 
+	"strconv"
+
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/hybridDB"
-	"strconv"
 )
 
 const level string = "level"

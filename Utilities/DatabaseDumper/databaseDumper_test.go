@@ -1,8 +1,9 @@
 package main
 
 import (
-	"github.com/FactomProject/factomd/testHelper"
 	"testing"
+
+	"github.com/FactomProject/factomd/testHelper"
 )
 
 func TestTest(t *testing.T) {

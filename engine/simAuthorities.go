@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"encoding/binary"
+
 	ed "github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factom"
 	"github.com/FactomProject/factomd/common/entryBlock"
@@ -168,7 +169,7 @@ func fundWallet(st *state.State, amt uint64) error {
 	return nil
 }
 
-func setUpAuthorites(st *state.State, buildMain bool) []hardCodedAuthority {
+func setUpAuthorities(st *state.State, buildMain bool) []hardCodedAuthority {
 	authStack = make([]hardCodedAuthority, 0)
 	authKeyLibrary = make([]hardCodedAuthority, 0)
 	list := buildMessages()
@@ -639,7 +640,7 @@ func getFactomPackageEntryFromString(message string) (*factom.Entry, error) {
 			return nil, errors.New("Invalid Reveal Entry")
 		}
 		fEntry := new(factom.Entry)
-		// build factom pkg entry.
+		// build Factom pkg entry.
 		fEntry.ChainID = entry.ChainID.String()
 		fEntry.ExtIDs = entry.ExternalIDs()
 		fEntry.Content = entry.Content.Bytes

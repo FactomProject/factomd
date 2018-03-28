@@ -41,7 +41,7 @@ func (a *EBlockBody) IsSameAs(b interfaces.IEBlockBody) bool {
 	return true
 }
 
-// NewEBlockBody initalizes an empty Entry Block Body.
+// NewEBlockBody initializes an empty Entry Block Body.
 func NewEBlockBody() *EBlockBody {
 	e := new(EBlockBody)
 	e.EBEntries = make([]interfaces.IHash, 0)

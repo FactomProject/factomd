@@ -150,7 +150,7 @@ func NewProcessLists(state interfaces.IState) *ProcessLists {
 
 	s, ok := state.(*State)
 	if !ok {
-		panic("Failed to initalize Process Lists because the wrong state object was used")
+		panic("Failed to initialize Process Lists because the wrong state object was used")
 	}
 	pls.State = s
 	pls.DBHeightBase = 0

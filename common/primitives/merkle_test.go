@@ -6,9 +6,10 @@ package primitives_test
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
-	"testing"
 )
 
 func TestNextPowerOfTwo(t *testing.T) {

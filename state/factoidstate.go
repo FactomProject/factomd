@@ -211,7 +211,7 @@ func (fs *FactoidState) AddECBlock(blk interfaces.IEntryCreditBlock) error {
 }
 
 // Checks the transaction timestamp for validity in being included in the current
-// No node has any responsiblity to forward on transactions that do not fall within
+// No node has any responsibility to forward on transactions that do not fall within
 // the timeframe around a block defined by TRANSACTION_PRIOR_LIMIT and TRANSACTION_POST_LIMIT
 func (fs *FactoidState) ValidateTransactionAge(trans interfaces.ITransaction) error {
 	tsblk := fs.GetCurrentBlock().GetCoinbaseTimestamp().GetTimeMilli()

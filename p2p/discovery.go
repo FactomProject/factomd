@@ -147,7 +147,7 @@ func (d *Discovery) SavePeers() {
 	d.logger.Debugf("SavePeers() saved %d peers in peers.json. \n They were: %+v", len(qualityPeers), qualityPeers)
 }
 
-// LearnPeers recieves a set of peers from other hosts
+// LearnPeers receives a set of peers from other hosts
 // The unique peers are added to our peer list.
 // The peers are in a json encoded string as a byte slice
 func (d *Discovery) LearnPeers(parcel Parcel) {
@@ -168,7 +168,7 @@ func (d *Discovery) LearnPeers(parcel Parcel) {
 		default:
 			value.Source = map[string]time.Time{parcel.Header.PeerAddress: time.Now()}
 			d.updatePeer(value)
-			d.logger.Debugf("Discovery.LearnPeers !!!!!!!!!!!!! Discoverd new PEER!   %+v ", value)
+			d.logger.Debugf("Discovery.LearnPeers !!!!!!!!!!!!! Discovered new PEER!   %+v ", value)
 		}
 	}
 	d.SavePeers()

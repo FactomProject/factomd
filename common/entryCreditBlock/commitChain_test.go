@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"fmt"
+
 	ed "github.com/FactomProject/ed25519"
 	. "github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/primitives"

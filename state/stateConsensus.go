@@ -766,7 +766,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	s.Saving = true
 	s.Syncing = false
 
-	// Hurry up our next ask.  When we get to where we have the data we aksed for, then go ahead and ask for the next set.
+	// Hurry up our next ask.  When we get to where we have the data we asked for, then go ahead and ask for the next set.
 	if s.DBStates.LastEnd < int(dbheight) {
 		s.DBStates.Catchup(true)
 	}
@@ -1275,7 +1275,7 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 	pl := s.ProcessLists.Get(dbheight)
 	pl.EntryCreditBlock.GetBody().AddEntry(c.CommitChain)
 	if e := s.GetFactoidState().UpdateECTransaction(true, c.CommitChain); e == nil {
-		// save the Commit to match agains the Reveal later
+		// save the Commit to match against the Reveal later
 		h := c.GetHash()
 		s.PutCommit(h, c)
 		entry := s.Holding[h.Fixed()]
@@ -1300,7 +1300,7 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 	pl := s.ProcessLists.Get(dbheight)
 	pl.EntryCreditBlock.GetBody().AddEntry(c.CommitEntry)
 	if e := s.GetFactoidState().UpdateECTransaction(true, c.CommitEntry); e == nil {
-		// save the Commit to match agains the Reveal later
+		// save the Commit to match against the Reveal later
 		h := c.GetHash()
 		s.PutCommit(h, c)
 		entry := s.Holding[h.Fixed()]
@@ -1387,7 +1387,7 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 }
 
 // dbheight is the height of the process list, and vmIndex is the vm
-// that is missing the DBSig.  If the DBSig isn't our responsiblity, then
+// that is missing the DBSig.  If the DBSig isn't our responsibility, then
 // this call will do nothing.  Assumes the state for the leader is set properly
 func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
 	dbslog := consenLogger.WithFields(log.Fields{"func": "SendDBSig"})
@@ -2232,7 +2232,7 @@ func (s *State) GetLeaderHeight() uint32 {
 }
 
 // The highest block for which we have received a message.  Sometimes the same as
-// BuildingBlock(), but can be different depending or the order messages are recieved.
+// BuildingBlock(), but can be different depending or the order messages are received.
 func (s *State) GetHighestKnownBlock() uint32 {
 	if s.ProcessLists == nil {
 		return 0

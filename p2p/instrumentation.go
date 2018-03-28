@@ -33,13 +33,13 @@ var (
 
 	//
 	// Connection Routines
-	p2pProcessSendsGuage = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_p2p_connection_process_sends_routine_guage",
+	p2pProcessSendsGauge = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_p2p_connection_process_sends_routine_gauge",
 		Help: "Number of current processSend routines",
 	})
 
-	p2pProcessReceivesGuage = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_p2p_connection_process_receives_routine_guage",
+	p2pProcessReceivesGauge = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_p2p_connection_process_receives_routine_gauge",
 		Help: "Number of current processReceive routines",
 	})
 
@@ -49,13 +49,13 @@ var (
 	})
 
 	p2pConnectionDialLoop = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_p2p_connection_dialloop_routine_guage",
+		Name: "factomd_p2p_connection_dialloop_routine_gauge",
 		Help: "The number of connections in dialloop",
 	})
 
 	//
 	// Runloops
-	p2pConnectionRunLoopInitalized = prometheus.NewGauge(prometheus.GaugeOpts{
+	p2pConnectionRunLoopInitialized = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "factomd_p2p_connection_runloop_initialized_counter",
 		Help: "Numer of runloops that hit initialized",
 	})
@@ -111,15 +111,15 @@ func RegisterPrometheus() {
 	prometheus.MustRegister(StartingPoint)
 
 	// Connection Routines
-	prometheus.MustRegister(p2pProcessSendsGuage)    // processSends
-	prometheus.MustRegister(p2pProcessReceivesGuage) // processReceives
+	prometheus.MustRegister(p2pProcessSendsGauge)    // processSends
+	prometheus.MustRegister(p2pProcessReceivesGauge) // processReceives
 	prometheus.MustRegister(p2pConnectionsRunLoop)
 	prometheus.MustRegister(p2pConnectionDialLoop)
 	prometheus.MustRegister(p2pConnectionOnlineCall)
 	prometheus.MustRegister(p2pConnectionOfflineCall)
 
 	// RunLoop
-	prometheus.MustRegister(p2pConnectionRunLoopInitalized)
+	prometheus.MustRegister(p2pConnectionRunLoopInitialized)
 	prometheus.MustRegister(p2pConnectionRunLoopOnline)
 	prometheus.MustRegister(p2pConnectionRunLoopOffline)
 	prometheus.MustRegister(p2pConnectionRunLoopShutdown)

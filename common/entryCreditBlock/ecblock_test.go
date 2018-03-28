@@ -7,11 +7,12 @@ import (
 	"strings"
 	"testing"
 
+	"time"
+
 	ed "github.com/FactomProject/ed25519"
 	. "github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/go-spew/spew"
-	"time"
 )
 
 var _ = fmt.Sprint("testing")

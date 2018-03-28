@@ -153,7 +153,7 @@ func (b *CommitChain) Interpret() string {
 	return ""
 }
 
-// CommitMsg returns the binary marshaled message section of the CommitEntry
+// CommitMsg returns the binary marshalled message section of the CommitEntry
 // that is covered by the CommitEntry.Sig.
 func (c *CommitChain) CommitMsg() []byte {
 	p, err := c.MarshalBinarySig()

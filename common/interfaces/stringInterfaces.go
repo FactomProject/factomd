@@ -4,8 +4,6 @@
 
 package interfaces
 
-import ()
-
 //Interface for printing structures into JSON
 type JSONable interface {
 	JSONByte() ([]byte, error)

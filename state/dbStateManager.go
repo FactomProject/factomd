@@ -978,7 +978,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 
 	// If we are locked, the block has already been processed.  If the block IsNew then it has not yet had
 	// its links patched, so we can't process it.  But if this is a repeat block (we have already processed
-	// at this height) then we simpy return.
+	// at this height) then we simply return.
 	if d.Locked || d.IsNew || d.Repeat {
 		return
 	}
@@ -1039,7 +1039,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	prt("pln 1st", pln)
 
 	//
-	// ***** Apply the AdminBlock chainges to the next DBState
+	// ***** Apply the AdminBlock changes to the next DBState
 	//
 	//list.State.AddStatus(fmt.Sprintf("PROCESSBLOCKS:  Processing Admin Block at dbht: %d", d.AdminBlock.GetDBHeight()))
 	err := d.AdminBlock.UpdateState(list.State)
@@ -1174,7 +1174,7 @@ func (list *DBStateList) SignDB(d *DBState) (process bool) {
 		return
 	}
 
-	// Don't sign while negotiationg the EOM
+	// Don't sign while negotiating the EOM
 	if list.State.EOM {
 		return
 	}

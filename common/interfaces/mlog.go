@@ -4,7 +4,5 @@
 
 package interfaces
 
-import ()
-
 type IMLog interface {
 }

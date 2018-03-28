@@ -10,13 +10,14 @@ import (
 	"testing"
 	"time"
 
+	"log"
+	"net/http"
+	"net/http/pprof"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	. "github.com/FactomProject/factomd/state"
-	"log"
-	"net/http"
-	"net/http/pprof"
 )
 
 var _ = fmt.Printf

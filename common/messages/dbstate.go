@@ -204,7 +204,7 @@ func (m *DBStateMsg) ValidateSignatures(state interfaces.IState) int {
 			// This has all the signatures it needs
 			goto ValidSignatures
 		} else {
-			// If we remove servers, there will not be as many signatures. We need to accomadate for this
+			// If we remove servers, there will not be as many signatures. We need to accommodate for this
 			// by reducing our needed. This will only get called if we fall short on signatures.
 			aes := m.AdminBlock.GetABEntries()
 			for _, adminEntry := range aes {
