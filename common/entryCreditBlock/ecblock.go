@@ -7,16 +7,9 @@ package entryCreditBlock
 import (
 	"fmt"
 
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-)
-
-const (
-	ECIDServerIndexNumber byte = iota
-	ECIDMinuteNumber
-	ECIDChainCommit
-	ECIDEntryCommit
-	ECIDBalanceIncrease
 )
 
 // The Entry Credit Block consists of a header and a body. The body is composed
@@ -102,7 +95,9 @@ func (c *ECBlock) GetEntryHashes() []interfaces.IHash {
 	entries := c.GetBody().GetEntries()
 	answer := make([]interfaces.IHash, 0, len(entries))
 	for _, entry := range entries {
-		if entry.ECID() == ECIDBalanceIncrease || entry.ECID() == ECIDChainCommit || entry.ECID() == ECIDEntryCommit {
+		if entry.ECID() == constants.ECIDBalanceIncrease ||
+			entry.ECID() == constants.ECIDChainCommit ||
+			entry.ECID() == constants.ECIDEntryCommit {
 			answer = append(answer, entry.Hash())
 		}
 	}
@@ -113,7 +108,9 @@ func (c *ECBlock) GetEntrySigHashes() []interfaces.IHash {
 	entries := c.GetBody().GetEntries()
 	answer := make([]interfaces.IHash, 0, len(entries))
 	for _, entry := range entries {
-		if entry.ECID() == ECIDBalanceIncrease || entry.ECID() == ECIDChainCommit || entry.ECID() == ECIDEntryCommit {
+		if entry.ECID() == constants.ECIDBalanceIncrease ||
+			entry.ECID() == constants.ECIDChainCommit ||
+			entry.ECID() == constants.ECIDEntryCommit {
 			sHash := entry.GetSigHash()
 			if sHash != nil {
 				answer = append(answer, sHash)
@@ -302,14 +299,14 @@ func (e *ECBlock) unmarshalBodyBinaryData(data []byte) ([]byte, error) {
 		newData = newData[1:]
 
 		switch id {
-		case ECIDServerIndexNumber:
+		case constants.ECIDServerIndexNumber:
 			s := NewServerIndexNumber()
 			newData, err = s.UnmarshalBinaryData(newData)
 			if err != nil {
 				return nil, err
 			}
 			allentries[i] = s
-		case ECIDMinuteNumber:
+		case constants.ECIDMinuteNumber:
 			m := NewMinuteNumber(0)
 			_, err = m.UnmarshalBinaryData(newData[:1])
 			if err != nil {
@@ -317,7 +314,7 @@ func (e *ECBlock) unmarshalBodyBinaryData(data []byte) ([]byte, error) {
 			}
 			allentries[i] = m
 			newData = newData[1:]
-		case ECIDChainCommit:
+		case constants.ECIDChainCommit:
 			c := NewCommitChain()
 			_, err = c.UnmarshalBinaryData(newData[:200])
 			if err != nil {
@@ -325,7 +322,7 @@ func (e *ECBlock) unmarshalBodyBinaryData(data []byte) ([]byte, error) {
 			}
 			allentries[i] = c
 			newData = newData[200:]
-		case ECIDEntryCommit:
+		case constants.ECIDEntryCommit:
 			c := NewCommitEntry()
 			_, err = c.UnmarshalBinaryData(newData[:136])
 			if err != nil {
@@ -333,7 +330,7 @@ func (e *ECBlock) unmarshalBodyBinaryData(data []byte) ([]byte, error) {
 			}
 			allentries[i] = c
 			newData = newData[136:]
-		case ECIDBalanceIncrease:
+		case constants.ECIDBalanceIncrease:
 			c := NewIncreaseBalance()
 			newData, err = c.UnmarshalBinaryData(newData)
 			if err != nil {

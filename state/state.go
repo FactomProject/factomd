@@ -354,6 +354,14 @@ type State struct {
 	HighestCompletedTorrent uint32
 	FastBoot                bool
 	FastBootLocation        string
+
+	// These stats are collected when we write the dbstate to the database.
+	NumNewChains   int // Number of new Chains in this block
+	NumNewEntries  int // Number of new Entries, not counting the first entry in a chain
+	NumEntries     int // Number of entries in this block (including the entries that create chains)
+	NumEntryBlocks int // Number of Entry Blocks
+	NumFCTTrans    int // Number of Factoid Transactions in this block
+
 }
 
 var _ interfaces.IState = (*State)(nil)
@@ -2221,7 +2229,23 @@ func (s *State) SetString() {
 }
 
 func (s *State) SummaryHeader() string {
-	str := fmt.Sprintf(" %10s %6s %12s %5s %4s %6s %10s %8s %5s %4s %20s %12s %10s %-8s %-9s %15s %9s %9s %s\n",
+	ht := s.GetHighestSavedBlk()
+	dbstate := s.DBStates.Get(int(ht))
+	sum := ""
+	if dbstate != nil {
+		sum = fmt.Sprintf("Ht: %d New Chains: %d New Entries: %d sum: %d Total Entries: %d diff %d Total EBs: %d FCT: %d",
+			ht,
+			s.NumNewChains,
+			s.NumNewEntries,
+			s.NumNewEntries+s.NumNewChains,
+			s.NumEntries,
+			s.NumEntries-s.NumNewEntries-s.NumNewChains,
+			s.NumEntryBlocks,
+			s.NumFCTTrans)
+	}
+
+	str := fmt.Sprintf(" %s\n %10s %6s %12s %5s %4s %6s %10s %8s %5s %4s %20s %12s %10s %-8s %-9s %15s %9s %9s %s\n",
+		sum,
 		"Node",
 		"ID   ",
 		" ",

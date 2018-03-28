@@ -27,6 +27,17 @@ func NetworkProcessorNet(fnode *FactomNode) {
 func Peers(fnode *FactomNode) {
 	cnt := 0
 
+	var msg interfaces.IMsg
+
+	once := true
+	defer func() {
+		if r := recover(); r != nil && once {
+			once = false
+			fmt.Println("Msg Type:", msg.Type())
+			fmt.Println("**** Processing msg", msg.String())
+			panic("Error")
+		}
+	}()
 	// ackHeight is used in ignoreMsg to determine if we should ignore an ackowledgment
 	ackHeight := uint32(0)
 	// When syncing from disk/network we want to selectivly ignore certain msgs to allow
@@ -85,7 +96,8 @@ func Peers(fnode *FactomNode) {
 
 	for {
 		for i := 0; i < 100 && fnode.State.APIQueue().Length() > 0; i++ {
-			msg := fnode.State.APIQueue().Dequeue()
+			msg = fnode.State.APIQueue().Dequeue()
+
 			if msg != nil {
 				if msg == nil {
 					continue

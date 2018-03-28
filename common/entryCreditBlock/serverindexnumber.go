@@ -7,6 +7,7 @@ package entryCreditBlock
 import (
 	"fmt"
 
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -92,7 +93,7 @@ func NewServerIndexNumber2(number uint8) *ServerIndexNumber {
 }
 
 func (s *ServerIndexNumber) ECID() byte {
-	return ECIDServerIndexNumber
+	return constants.ECIDServerIndexNumber
 }
 
 func (s *ServerIndexNumber) MarshalBinary() ([]byte, error) {

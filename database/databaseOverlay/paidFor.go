@@ -1,6 +1,7 @@
 package databaseOverlay
 
 import (
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -29,15 +30,15 @@ func (db *Overlay) SavePaidForMultiFromBlockMultiBatch(block interfaces.IEntryCr
 	batch := []interfaces.Record{}
 
 	for _, entry := range block.GetBody().GetEntries() {
-		if entry.ECID() != entryCreditBlock.ECIDChainCommit && entry.ECID() != entryCreditBlock.ECIDEntryCommit {
+		if entry.ECID() != constants.ECIDChainCommit && entry.ECID() != constants.ECIDEntryCommit {
 			continue
 		}
 		var entryHash interfaces.IHash
 
-		if entry.ECID() == entryCreditBlock.ECIDChainCommit {
+		if entry.ECID() == constants.ECIDChainCommit {
 			entryHash = entry.(*entryCreditBlock.CommitChain).EntryHash
 		}
-		if entry.ECID() == entryCreditBlock.ECIDEntryCommit {
+		if entry.ECID() == constants.ECIDEntryCommit {
 			entryHash = entry.(*entryCreditBlock.CommitEntry).EntryHash
 		}
 
@@ -68,15 +69,15 @@ func (db *Overlay) SavePaidForMultiFromBlock(block interfaces.IEntryCreditBlock,
 	batch := []interfaces.Record{}
 
 	for _, entry := range block.GetBody().GetEntries() {
-		if entry.ECID() != entryCreditBlock.ECIDChainCommit && entry.ECID() != entryCreditBlock.ECIDEntryCommit {
+		if entry.ECID() != constants.ECIDChainCommit && entry.ECID() != constants.ECIDEntryCommit {
 			continue
 		}
 		var entryHash interfaces.IHash
 
-		if entry.ECID() == entryCreditBlock.ECIDChainCommit {
+		if entry.ECID() == constants.ECIDChainCommit {
 			entryHash = entry.(*entryCreditBlock.CommitChain).EntryHash
 		}
-		if entry.ECID() == entryCreditBlock.ECIDEntryCommit {
+		if entry.ECID() == constants.ECIDEntryCommit {
 			entryHash = entry.(*entryCreditBlock.CommitEntry).EntryHash
 		}
 

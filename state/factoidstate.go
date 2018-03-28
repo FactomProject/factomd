@@ -258,13 +258,13 @@ func (fs *FactoidState) GetECBalance(address [32]byte) int64 {
 
 func (fs *FactoidState) UpdateECTransaction(rt bool, trans interfaces.IECBlockEntry) error {
 	switch trans.ECID() {
-	case entryCreditBlock.ECIDServerIndexNumber:
+	case constants.ECIDServerIndexNumber:
 		return nil
-	case entryCreditBlock.ECIDMinuteNumber:
+	case constants.ECIDMinuteNumber:
 		return nil
-	case entryCreditBlock.ECIDBalanceIncrease:
+	case constants.ECIDBalanceIncrease:
 		return nil
-	case entryCreditBlock.ECIDChainCommit:
+	case constants.ECIDChainCommit:
 		t := trans.(*entryCreditBlock.CommitChain)
 		v := fs.State.GetE(rt, t.ECPubKey.Fixed()) - int64(t.Credits)
 		if (fs.DBHeight > 97886 || fs.State.GetNetworkID() != constants.MAIN_NETWORK_ID) && v < 0 {
@@ -274,7 +274,7 @@ func (fs *FactoidState) UpdateECTransaction(rt bool, trans interfaces.IECBlockEn
 		fs.State.NumTransactions++
 		fs.State.Replay.IsTSValid(constants.INTERNAL_REPLAY, t.GetSigHash(), t.GetTimestamp())
 		fs.State.Replay.IsTSValid(constants.NETWORK_REPLAY, t.GetSigHash(), t.GetTimestamp())
-	case entryCreditBlock.ECIDEntryCommit:
+	case constants.ECIDEntryCommit:
 		t := trans.(*entryCreditBlock.CommitEntry)
 		v := fs.State.GetE(rt, t.ECPubKey.Fixed()) - int64(t.Credits)
 		if (fs.DBHeight > 97886 || fs.State.GetNetworkID() != constants.MAIN_NETWORK_ID) && v < 0 {

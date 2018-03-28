@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/FactomProject/factomd/common/adminBlock"
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
@@ -53,6 +54,7 @@ func main() {
 	dbo := databaseOverlay.NewOverlay(dbase)
 	CheckDatabase(dbo)
 	//CheckMinuteNumbers(dbo)
+	fmt.Println("\n")
 }
 
 func CheckDatabase(dbo interfaces.DBOverlay) {
@@ -219,6 +221,9 @@ func CheckDatabase(dbo interfaces.DBOverlay) {
 		}
 	}
 
+	ecChains := 0
+	ecEntries := 0
+
 	ecBlocks, err := dbo.FetchAllECBlockKeys()
 	if err != nil {
 		panic(err)
@@ -230,27 +235,53 @@ func CheckDatabase(dbo interfaces.DBOverlay) {
 		if hashMap[block.String()] == "" {
 			fmt.Printf("Free-floating ECBlock - %v\n", block.String())
 		}
+		ecblk, err := dbo.FetchECBlock(block)
+		if err == nil {
+			for _, ebe := range ecblk.GetEntries() {
+				switch ebe.ECID() {
+				case constants.ECIDEntryCommit:
+					ecEntries++
+					eec := ebe.(*entryCreditBlock.CommitEntry)
+					if e, err := dbo.FetchEntry(eec.EntryHash); err != nil || e == nil {
+						fmt.Printf("\t **** Failed to find entry %x for the commit. dbht %d\n",
+							eec.EntryHash.Bytes(),
+							ecblk.GetHeader().GetDBHeight())
+					}
+				case constants.ECIDChainCommit:
+					ecChains++
+				default:
+
+				}
+			}
+		}
 	}
+
+	fmt.Printf("\tEntry Credit Block found chains: %v entries: %v total: %v \n",
+		ecChains,
+		ecEntries,
+		ecChains+ecEntries)
 
 	fmt.Printf("\tFinished looking for free-floating blocks\n")
 
 	fmt.Printf("\tLooking for missing EBlocks\n")
 
 	foundBlocks := 0
+	missingBlocks := 0
+	missingDBlocks := 0
 	for _, dHash := range dBlocks {
 		dBlock, err := dbo.FetchDBlock(dHash)
 		if err != nil {
-			panic(err)
+			missingDBlocks++
 		}
 		if dBlock == nil {
 			fmt.Printf("Could not find DBlock %v!", dHash.String())
-			panic("")
+			missingDBlocks++
 		}
 		eBlockEntries := dBlock.GetEBlockDBEntries()
 		for _, v := range eBlockEntries {
 			eBlock, err := dbo.FetchEBlock(v.GetKeyMR())
 			if err != nil {
-				panic(err)
+				missingBlocks++
 			}
 			if eBlock == nil {
 				fmt.Errorf("Could not find eBlock %v!\n", v.GetKeyMR())
@@ -260,7 +291,7 @@ func CheckDatabase(dbo interfaces.DBOverlay) {
 		}
 	}
 
-	fmt.Printf("\tFinished looking for missing EBlocks - found %v\n", foundBlocks)
+	fmt.Printf("\tFinished looking for missing EBlocks. Missing %d Found %v\n", missingBlocks, foundBlocks)
 
 	fmt.Printf("\tLooking for missing EBlock Entries\n")
 
@@ -270,6 +301,7 @@ func CheckDatabase(dbo interfaces.DBOverlay) {
 	}
 	checkCount := 0
 	missingCount := 0
+
 	for _, chain := range chains {
 		blocks, err := dbo.FetchAllEBlocksByChain(chain)
 		if err != nil {
@@ -309,9 +341,9 @@ func CheckDatabase(dbo interfaces.DBOverlay) {
 			}
 		}
 	}
-	fmt.Printf("Found %v entries, missing %v\n", checkCount, missingCount)
+	fmt.Printf("\tFound %v entries, missing %v\n", checkCount, missingCount)
 	fmt.Printf("\tFinished looking for missing EBlock Entries\n")
-
+	fmt.Printf("\tDifference between entries and commits: **** %d ****", ecEntries+ecChains-checkCount)
 	//CheckMinuteNumbers(dbo)
 }
 
@@ -327,7 +359,7 @@ func CheckMinuteNumbers(dbo interfaces.DBOverlay) {
 		found := 0
 		lastNumber := 0
 		for _, e := range entries {
-			if e.ECID() == entryCreditBlock.ECIDMinuteNumber {
+			if e.ECID() == constants.ECIDMinuteNumber {
 				number := int(e.(*entryCreditBlock.MinuteNumber).Number)
 				if number != lastNumber+1 {
 					fmt.Printf("Block #%v %v, Minute Number %v is not last minute plus 1\n", v.GetDatabaseHeight(), v.GetHash().String(), number)
