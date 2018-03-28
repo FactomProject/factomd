@@ -61,8 +61,8 @@ func ParseCmdLine(args []string) *FactomParams {
 
 	logportPtr := flag.String("logPort", "6060", "Port for pprof logging")
 	portOverridePtr := flag.Int("port", 0, "Port where we serve WSAPI;  default 8088")
-	ControlPanelPortOverridePtr := flag.Int("ControlPanelPort", 0, "Port for control panel webserver;  Default 8090")
-	networkPortOverridePtr := flag.Int("networkPort", 0, "Port for p2p network; default 8110")
+	ControlPanelPortOverridePtr := flag.Int("controlpanelport", 0, "Port for control panel webserver;  Default 8090")
+	networkPortOverridePtr := flag.Int("networkport", 0, "Port for p2p network; default 8110")
 
 	FastPtr := flag.Bool("fast", true, "If true, Factomd will fast-boot from a file.")
 	FastLocationPtr := flag.String("fastlocation", "", "Directory to put the Fast-boot file in.")
