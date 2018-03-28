@@ -2,5 +2,6 @@
 
 while true ;
 do
-	factom-walletd
+	echo Starting....
+	factom-walletd > /dev/null
 done

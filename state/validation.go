@@ -48,15 +48,6 @@ func (state *State) ValidatorLoop() {
 				}
 
 				if ackRoom > 1 && msgRoom > 1 {
-					select {
-					case msg = <-state.TimerMsgQueue():
-						state.JournalMessage(msg)
-						break loop
-					default:
-					}
-				}
-
-				if ackRoom > 1 && msgRoom > 1 {
 					msg = state.InMsgQueue().Dequeue()
 				}
 				// This doesn't block so it intentionally returns nil, don't log nils
@@ -108,6 +99,6 @@ func (t *Timer) timer(state *State, min int) {
 	consenLogger.WithFields(log.Fields{"func": "GenerateEOM", "lheight": state.GetLeaderHeight()}).WithFields(eom.LogFields()).Debug("Generate EOM")
 
 	if state.RunLeader { // don't generate EOM if we are not a leader or are loading the DBState messages
-		state.TimerMsgQueue() <- eom
+		state.MsgQueue() <- eom
 	}
 }
