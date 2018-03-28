@@ -32,13 +32,9 @@ func (state *State) ValidatorLoop() {
 		var msg interfaces.IMsg
 	loop:
 		for i := 0; i < 10; i++ {
-			// Process any messages we might have queued up.
-			for i := 0; i < 10; i++ {
-				p, b := state.Process(), state.UpdateState()
-				if !p && !b {
-					break
-				}
-				//fmt.Printf("dddd %20s %10s --- %10s %10v %10s %10v\n", "Validation", state.FactomNodeName, "Process", p, "Update", b)
+			for state.Process() {
+			}
+			for state.UpdateState() {
 			}
 
 			for i := 0; i < 10; i++ {
