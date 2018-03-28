@@ -467,7 +467,7 @@ func Test_ecBlockToResp(t *testing.T) {
 		want1 *primitives.JSONError
 	}{
 
-		// TODO: Add test cases.
+	// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

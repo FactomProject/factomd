@@ -42,9 +42,9 @@ func TestFetchECTransactionByHash(t *testing.T) {
 
 	for _, block := range blocks {
 		for _, tx := range block.ECBlock.GetEntries() {
-			if tx.ECID() != entryCreditBlock.ECIDChainCommit &&
-				tx.ECID() != entryCreditBlock.ECIDEntryCommit ||
-				tx.ECID() == entryCreditBlock.ECIDBalanceIncrease {
+			if tx.ECID() != constants.ECIDChainCommit &&
+				tx.ECID() != constants.ECIDEntryCommit ||
+				tx.ECID() == constants.ECIDBalanceIncrease {
 				continue
 			}
 
@@ -113,7 +113,7 @@ func TestFetchPaidFor(t *testing.T) {
 	for _, block := range blocks {
 		for _, tx := range block.ECBlock.GetEntries() {
 			switch tx.ECID() {
-			case entryCreditBlock.ECIDEntryCommit:
+			case constants.ECIDEntryCommit:
 				// check that we can get the hash for the paid entry commit
 				eh := tx.(*entryCreditBlock.CommitEntry).EntryHash
 				h1, err := s1.FetchPaidFor(eh)
@@ -130,7 +130,7 @@ func TestFetchPaidFor(t *testing.T) {
 				if !h1.IsSameAs(tx.GetSigHash()) {
 					t.Error("Hash mismatch")
 				}
-			case entryCreditBlock.ECIDChainCommit:
+			case constants.ECIDChainCommit:
 				// check that we can get the hash for the paid chain commit
 				eh := tx.(*entryCreditBlock.CommitChain).EntryHash
 				h1, err := s1.FetchPaidFor(eh)
