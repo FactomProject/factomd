@@ -1431,24 +1431,20 @@ func (list *DBStateList) UpdateState() (progress bool) {
 		if i > 0 {
 			p := list.FixupLinks(list.DBStates[i-1], d)
 			if p && !progress {
-				os.Stderr.WriteString("FixupLinks\n")
 				progress = p
 			}
 		}
 
 		p := list.ProcessBlocks(d) || progress
 		if p && !progress {
-			os.Stderr.WriteString("ProcessBlocks\n")
 			progress = p
 		}
 		p = list.SignDB(d) || progress
 		if p && !progress {
-			os.Stderr.WriteString("SignDB\n")
 			progress = p
 		}
 		p = list.SaveDBStateToDB(d) || progress
 		if p && !progress {
-			os.Stderr.WriteString("SaveDBState\n")
 			progress = p
 		}
 
