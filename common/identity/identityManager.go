@@ -23,7 +23,7 @@ type IdentityManager struct {
 }
 
 type IdentityManagerWithoutMutex struct {
-	Authorities          map[string]*Authority
+	Authorities          map[[32]byte]*Authority
 	Identities           map[string]*Identity
 	AuthorityServerCount int
 
@@ -32,9 +32,28 @@ type IdentityManagerWithoutMutex struct {
 
 func NewIdentityManager() *IdentityManager {
 	im := new(IdentityManager)
-	im.Authorities = make(map[string]*Authority)
+	im.Authorities = make(map[[32]byte]*Authority)
 	im.Identities = make(map[string]*Identity)
 	return im
+}
+
+func (im *IdentityManager) Clone() *IdentityManager {
+	b := NewIdentityManager()
+	for k, v := range im.Authorities {
+
+		b.Authorities[k] = v.Clone()
+	}
+	for k, v := range im.Identities {
+		b.Identities[k] = v.Clone()
+	}
+
+	b.AuthorityServerCount = im.AuthorityServerCount
+	for k, v := range im.OldEntries {
+		copy := *v
+		b.OldEntries[k] = &copy
+	}
+
+	return b
 }
 
 func (im *IdentityManager) SetBootstrapIdentity(id interfaces.IHash, key interfaces.IHash) error {
@@ -112,14 +131,7 @@ func (im *IdentityManager) GobEncode() ([]byte, error) {
 }
 
 func (im *IdentityManager) Init() {
-	im.Mutex.Lock()
-	defer im.Mutex.Unlock()
-	if im.Authorities == nil {
-		im.Authorities = map[string]*Authority{}
-	}
-	if im.Identities == nil {
-		im.Identities = map[string]*Identity{}
-	}
+	// Do nothing, it used to init the maps if they were empty, but we init the Identity control with non-empty maps
 }
 
 func (im *IdentityManager) SetIdentity(chainID interfaces.IHash, id *Identity) {
@@ -152,7 +164,7 @@ func (im *IdentityManager) SetAuthority(chainID interfaces.IHash, auth *Authorit
 	im.Init()
 	im.Mutex.Lock()
 	defer im.Mutex.Unlock()
-	im.Authorities[chainID.String()] = auth
+	im.Authorities[chainID.Fixed()] = auth
 }
 
 func (im *IdentityManager) RemoveAuthority(chainID interfaces.IHash) bool {
@@ -172,7 +184,7 @@ func (im *IdentityManager) GetAuthority(chainID interfaces.IHash) *Authority {
 	im.Init()
 	im.Mutex.RLock()
 	defer im.Mutex.RUnlock()
-	return im.Authorities[chainID.String()]
+	return im.Authorities[chainID.Fixed()]
 }
 
 type OldEntry struct {

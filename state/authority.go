@@ -132,16 +132,18 @@ func pkEq(a, b []byte) bool {
 // 		-1 ->  Not fed or audit
 //		-2 -> Not found
 func (st *State) GetAuthority(serverID interfaces.IHash) (*Authority, int) {
-	for _, auth := range st.Authorities {
-		if serverID.IsSameAs(auth.AuthorityChainID) {
-			return auth, auth.Type()
-		}
+	// NEW
+	auth := st.IdentityControl.GetAuthority(serverID)
+	if auth == nil {
+		return nil, -2
 	}
-	return nil, -2
+
+	return auth, auth.Type()
 }
 
 // We keep a 1 block history of their keys, this is so if we change their
 func (st *State) UpdateAuthSigningKeys(height uint32) {
+	// OLD
 	for index, auth := range st.Authorities {
 		chopOffIndex := 0 // Index of the keys we should chop off
 		for i, key := range auth.KeyHistory {
@@ -154,13 +156,36 @@ func (st *State) UpdateAuthSigningKeys(height uint32) {
 		if chopOffIndex > 0 {
 			if len(st.Authorities[index].KeyHistory) == chopOffIndex+1 {
 				st.Authorities[index].KeyHistory = nil
-				st.IdentityControl.Authorities[auth.AuthorityChainID.String()].KeyHistory = nil
+				st.IdentityControl.Authorities[auth.AuthorityChainID.Fixed()].KeyHistory = nil
 			} else {
 				// This could be a memory leak if the authority keeps updating his keys every block,
 				// but the line above sets to nil if there is only 1 item left, so it will eventually
 				// garbage collect the whole slice
 				st.Authorities[index].KeyHistory = st.Authorities[index].KeyHistory[chopOffIndex+1:]
-				st.IdentityControl.Authorities[auth.AuthorityChainID.String()].KeyHistory = st.IdentityControl.Authorities[auth.AuthorityChainID.String()].KeyHistory[chopOffIndex+1:]
+				st.IdentityControl.Authorities[auth.AuthorityChainID.Fixed()].KeyHistory = st.IdentityControl.Authorities[auth.AuthorityChainID.Fixed()].KeyHistory[chopOffIndex+1:]
+			}
+
+		}
+	}
+
+	// NEW
+	for key, auth := range st.IdentityControl.Authorities {
+		chopOffIndex := 0 // Index of the keys we should chop off
+		for i, key := range auth.KeyHistory {
+			// Keeping 2 heights worth.
+			if key.ActiveDBHeight <= height-2 {
+				chopOffIndex = i
+			}
+		}
+
+		if chopOffIndex > 0 {
+			if len(st.IdentityControl.Authorities[key].KeyHistory) == chopOffIndex+1 {
+				st.IdentityControl.Authorities[key].KeyHistory = nil
+			} else {
+				// This could be a memory leak if the authority keeps updating his keys every block,
+				// but the line above sets to nil if there is only 1 item left, so it will eventually
+				// garbage collect the whole slice
+				st.IdentityControl.Authorities[key].KeyHistory = st.IdentityControl.Authorities[auth.AuthorityChainID.Fixed()].KeyHistory[chopOffIndex+1:]
 			}
 
 		}
@@ -174,7 +199,7 @@ func (st *State) UpdateAuthSigningKeys(height uint32) {
 
 func (st *State) CompareLists() bool {
 	for _, a := range st.Authorities {
-		b, ok := st.IdentityControl.Authorities[a.AuthorityChainID.String()]
+		b, ok := st.IdentityControl.Authorities[a.AuthorityChainID.Fixed()]
 		if !ok {
 			return false
 		}

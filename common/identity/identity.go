@@ -34,6 +34,20 @@ type Identity struct {
 var _ interfaces.Printable = (*Identity)(nil)
 var _ interfaces.BinaryMarshallable = (*Identity)(nil)
 
+func NewIdentity() *Identity {
+	i := new(Identity)
+	i.IdentityChainID = primitives.NewZeroHash()
+	i.ManagementChainID = primitives.NewZeroHash()
+	i.MatryoshkaHash = primitives.NewZeroHash()
+	i.Key1 = primitives.NewZeroHash()
+	i.Key2 = primitives.NewZeroHash()
+	i.Key3 = primitives.NewZeroHash()
+	i.Key4 = primitives.NewZeroHash()
+	i.SigningKey = primitives.NewZeroHash()
+
+	return i
+}
+
 func RandomIdentity() *Identity {
 	id := new(Identity)
 
@@ -57,6 +71,39 @@ func RandomIdentity() *Identity {
 	}
 
 	return id
+}
+
+/*
+	IdentityRegistered   uint32
+	IdentityCreated      uint32
+	ManagementRegistered uint32
+	ManagementCreated    uint32
+	Status               uint8
+	AnchorKeys           []AnchorSigningKey
+*/
+
+func (e *Identity) Clone() *Identity {
+	b := NewIdentity()
+	b.IdentityChainID.SetBytes(e.IdentityChainID.Bytes())
+	b.ManagementChainID.SetBytes(e.ManagementChainID.Bytes())
+	b.MatryoshkaHash.SetBytes(e.MatryoshkaHash.Bytes())
+	b.Key1.SetBytes(e.Key1.Bytes())
+	b.Key2.SetBytes(e.Key2.Bytes())
+	b.Key3.SetBytes(e.Key3.Bytes())
+	b.Key4.SetBytes(e.Key4.Bytes())
+
+	b.IdentityRegistered = e.IdentityRegistered
+	b.IdentityCreated = e.IdentityCreated
+	b.ManagementRegistered = e.ManagementRegistered
+	b.ManagementCreated = e.ManagementCreated
+	b.Status = e.Status
+
+	b.AnchorKeys = make([]AnchorSigningKey, len(e.AnchorKeys))
+	for i := range e.AnchorKeys {
+		b.AnchorKeys[i] = e.AnchorKeys[i]
+	}
+
+	return b
 }
 
 func (e *Identity) IsSameAs(b *Identity) bool {

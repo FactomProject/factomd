@@ -59,6 +59,27 @@ func RandomAuthority() *Authority {
 	return a
 }
 
+func (e *Authority) Clone() *Authority {
+	b := NewAuthority()
+	b.AuthorityChainID.SetBytes(e.AuthorityChainID.Bytes())
+	b.ManagementChainID.SetBytes(e.ManagementChainID.Bytes())
+	b.MatryoshkaHash.SetBytes(e.MatryoshkaHash.Bytes())
+	b.SigningKey = e.SigningKey
+	b.Status = e.Status
+
+	b.AnchorKeys = make([]AnchorSigningKey, len(e.AnchorKeys))
+	for i := range e.AnchorKeys {
+		b.AnchorKeys[i] = e.AnchorKeys[i]
+	}
+
+	b.KeyHistory = make([]HistoricKey, len(e.KeyHistory))
+	for i := range e.KeyHistory {
+		b.KeyHistory[i] = e.KeyHistory[i]
+	}
+
+	return b
+}
+
 func (e *Authority) IsSameAs(b *Authority) bool {
 	if e.AuthorityChainID.IsSameAs(b.AuthorityChainID) == false {
 		return false

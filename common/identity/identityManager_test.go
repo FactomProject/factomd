@@ -12,7 +12,7 @@ import (
 )
 
 func TestSetSkeletonKey(t *testing.T) {
-	im := new(IdentityManager)
+	im := NewIdentityManager()
 	for i := 0; i < 1000; i++ {
 		h := primitives.RandomHash()
 		str := h.String()
@@ -35,7 +35,7 @@ func TestSetSkeletonKey(t *testing.T) {
 }
 
 func TestSetSkeletonKeyMainNet(t *testing.T) {
-	im := new(IdentityManager)
+	im := NewIdentityManager()
 	str := "0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a"
 	err := im.SetSkeletonKeyMainNet()
 	if err != nil {

@@ -126,7 +126,7 @@ func DeepStateDisplayCopyDifference(s *State, prev *DisplayState) (*DisplayState
 	for _, id := range s.Identities {
 		ds.Identities = append(ds.Identities, id)
 	}
-	for _, auth := range s.Authorities {
+	for _, auth := range s.IdentityControl.Authorities {
 		ds.Authorities = append(ds.Authorities, auth)
 	}
 	if pubkey, err := s.GetServerPublicKey().Copy(); err != nil {

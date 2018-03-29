@@ -615,7 +615,7 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 	s.Authorities = append(s.Authorities[:0], ss.Authorities...)
 	// also restore IDControl
 	for _, a := range ss.Authorities {
-		s.IdentityControl.Authorities[a.AuthorityChainID.String()] = a
+		s.IdentityControl.Authorities[a.AuthorityChainID.Fixed()] = a
 	}
 
 	s.AuthorityServerCount = ss.AuthorityServerCount

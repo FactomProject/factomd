@@ -455,6 +455,8 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 	newState.Authorities = s.Authorities
 	newState.AuthorityServerCount = s.AuthorityServerCount
 
+	newState.IdentityControl = s.IdentityControl.Clone()
+
 	newState.FaultTimeout = s.FaultTimeout
 	newState.FaultWait = s.FaultWait
 	newState.EOMfaultIndex = s.EOMfaultIndex
@@ -932,7 +934,10 @@ func (s *State) Init() {
 
 	s.AuditHeartBeats = make([]interfaces.IMsg, 0)
 
-	s.IdentityControl = NewIdentityManager()
+	// If we cloned the Identity control of another node, don't reset!
+	if s.IdentityControl == nil {
+		s.IdentityControl = NewIdentityManager()
+	}
 	s.initServerKeys()
 	s.AuthorityServerCount = 0
 
