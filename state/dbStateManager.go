@@ -875,8 +875,12 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	//list.State.AddStatus(fmt.Sprintf("FIXUPLINKS: Adding the first %d dbsigs",
 	//	majority))
 
-	for _, sig := range list.State.ProcessLists.Get(currentDBHeight).DBSignatures {
-		d.AdminBlock.AddDBSig(sig.ChainID, sig.Signature)
+	for i, sig := range list.State.ProcessLists.Get(currentDBHeight).DBSignatures {
+		if i < majority {
+			d.AdminBlock.AddDBSig(sig.ChainID, sig.Signature)
+		} else {
+			break
+		}
 	}
 
 	//list.State.AddStatus("FIXUPLINKS: Adding the deltas to the Admin Block, if necessary")
