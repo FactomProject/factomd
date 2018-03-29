@@ -32,33 +32,20 @@ func (state *State) ValidatorLoop() {
 		var msg interfaces.IMsg
 	loop:
 		for i := 0; i < 10; i++ {
-			// Process any messages we might have queued up.
-			for i := 0; i < 10; i++ {
-				p, b := state.Process(), state.UpdateState()
-				if !p && !b {
-					break
-				}
-				//fmt.Printf("dddd %20s %10s --- %10s %10v %10s %10v\n", "Validation", state.FactomNodeName, "Process", p, "Update", b)
+			for state.Process() {
+			}
+			for state.UpdateState() {
 			}
 
-			for i := 0; i < 10; i++ {
+			select {
+			case min := <-state.tickerQueue:
+				timeStruct.timer(state, min)
+			default:
+			}
+
+			for i := 0; i < 1000; i++ {
 				ackRoom := cap(state.ackQueue) - len(state.ackQueue)
 				msgRoom := cap(state.msgQueue) - len(state.msgQueue)
-
-				select {
-				case min := <-state.tickerQueue:
-					timeStruct.timer(state, min)
-				default:
-				}
-
-				if ackRoom > 1 && msgRoom > 1 {
-					select {
-					case msg = <-state.TimerMsgQueue():
-						state.JournalMessage(msg)
-						break loop
-					default:
-					}
-				}
 
 				if ackRoom > 1 && msgRoom > 1 {
 					msg = state.InMsgQueue().Dequeue()
@@ -76,6 +63,7 @@ func (state *State) ValidatorLoop() {
 					for i := 0; i < 10 && state.InMsgQueue().Length() == 0; i++ {
 						time.Sleep(10 * time.Millisecond)
 					}
+					break
 				}
 			}
 		}
@@ -112,6 +100,6 @@ func (t *Timer) timer(state *State, min int) {
 	consenLogger.WithFields(log.Fields{"func": "GenerateEOM", "lheight": state.GetLeaderHeight()}).WithFields(eom.LogFields()).Debug("Generate EOM")
 
 	if state.RunLeader { // don't generate EOM if we are not a leader or are loading the DBState messages
-		state.TimerMsgQueue() <- eom
+		state.MsgQueue() <- eom
 	}
 }

@@ -80,6 +80,13 @@ func (m *TimeoutInternal) InitiateElectionAdapter(st interfaces.IState) bool {
 	return true
 }
 
+func (m *TimeoutInternal) ComparisonMinute() int {
+	if !m.SigType {
+		return -1
+	}
+	return int(m.Minute)
+}
+
 func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces.IElections) {
 	s := is.(*state.State)
 
@@ -90,19 +97,19 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 
 	// We have advanced, so do nothing.  We can't reset anything because there
 	// can be a timeout process that started before we got here (with short minutes)
-	if e.DBHeight > m.DBHeight || e.Minute > int(m.Minute) {
+	if e.DBHeight > m.DBHeight || e.ComparisonMinute() > m.ComparisonMinute() {
 		return
 	}
 
 	// No election running, is there one we should start?
-	if e.Electing == -1 || m.DBHeight > e.DBHeight || int(m.Minute) > e.Minute {
+	if e.Electing == -1 || m.DBHeight > e.DBHeight || m.ComparisonMinute() > e.ComparisonMinute() {
 
 		servers := s.ProcessLists.Get(uint32(e.DBHeight)).FedServers
 		nfeds := len(servers)
 		VMscollected := make([]bool, nfeds, nfeds)
 		for _, im := range e.Msgs {
 			msg := im.(interfaces.IMsgAck)
-			if int(msg.GetDBHeight()) == m.DBHeight && int(m.Minute) == int(msg.GetMinute()) {
+			if int(msg.GetDBHeight()) == m.DBHeight && m.ComparisonMinute() == msg.(*EomSigInternal).ComparisonMinute() {
 				VMscollected[msg.GetVMIndex()] = true
 			}
 		}

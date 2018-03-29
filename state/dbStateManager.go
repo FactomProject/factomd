@@ -1155,13 +1155,17 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 // We don't really do the signing here, but just check that we have all the signatures.
 // If we do, we count that as progress.
 func (list *DBStateList) SignDB(d *DBState) (process bool) {
+	if d.Signed {
+		return false
+	}
+
 	dbheight := d.DirectoryBlock.GetHeader().GetDBHeight()
 
 	// If we have the next dbstate in the list, then all the signatures for this dbstate
 	// have been checked, so we can consider this guy signed.
 	if dbheight == 0 || list.Get(int(dbheight+1)) != nil || d.Repeat == true {
 		d.Signed = true
-		return true
+		return false
 	}
 
 	pl := list.State.ProcessLists.Get(dbheight)
@@ -1181,7 +1185,7 @@ func (list *DBStateList) SignDB(d *DBState) (process bool) {
 	}
 
 	d.Signed = true
-	return true
+	return
 }
 
 var nowish int64 = time.Now().Unix()
@@ -1425,12 +1429,24 @@ func (list *DBStateList) UpdateState() (progress bool) {
 		}
 
 		if i > 0 {
-			progress = list.FixupLinks(list.DBStates[i-1], d)
+			p := list.FixupLinks(list.DBStates[i-1], d)
+			if p && !progress {
+				progress = p
+			}
 		}
 
-		progress = list.ProcessBlocks(d) || progress
-		progress = list.SignDB(d) || progress
-		progress = list.SaveDBStateToDB(d) || progress
+		p := list.ProcessBlocks(d) || progress
+		if p && !progress {
+			progress = p
+		}
+		p = list.SignDB(d) || progress
+		if p && !progress {
+			progress = p
+		}
+		p = list.SaveDBStateToDB(d) || progress
+		if p && !progress {
+			progress = p
+		}
 
 		// Make sure we move forward the Adminblock state in the process lists
 		list.State.ProcessLists.Get(d.DirectoryBlock.GetHeader().GetDBHeight() + 1)
