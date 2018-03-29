@@ -91,6 +91,34 @@ var (
 		Name: "factomd_p2p_goOffline_total",
 		Help: "Number of times we call goOffline()",
 	})
+
+	//
+	// General networking metrics
+	p2pParcelsTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "factomd_p2p_parcels_total",
+			Help: "The number of parcels sent/received by the application",
+		},
+		[]string{"direction", "parcel_type"},
+	)
+
+	p2pParcelsErrorsTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "factomd_p2p_parcels_errors_total",
+			Help: "The number of parcel errors for sent/received parcels",
+		},
+		[]string{"direction", "parcel_type"},
+	)
+
+	p2pParcelsSizeBytes = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name: "factomd_p2p_parcels_size_bytes",
+			Help: "A histogram of parcel sizes in bytes (only valid parcels are counted)",
+			// 10 equal buckets between 0 and MaxPayloadSize
+			Buckets: prometheus.LinearBuckets(0, MaxPayloadSize/10, 10),
+		},
+		[]string{"direction", "parcel_type"},
+	)
 )
 
 var registered = false
@@ -126,5 +154,10 @@ func RegisterPrometheus() {
 
 	// Connections
 	prometheus.MustRegister(p2pConnectionCommonInit)
+
+	// General networking metrics
+	prometheus.MustRegister(p2pParcelsTotal)
+	prometheus.MustRegister(p2pParcelsErrorsTotal)
+	prometheus.MustRegister(p2pParcelsSizeBytes)
 
 }

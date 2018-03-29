@@ -451,19 +451,16 @@ func (c *Connection) sendParcel(parcel Parcel) {
 	parcel.Header.NodeID = NodeID // Send it out with our ID for loopback.
 	c.conn.SetWriteDeadline(time.Now().Add(NetworkDeadline * 500))
 
-	//deadline := time.Now().Add(NetworkDeadline)
-	//if len(parcel.Payload) > 1000*10 {
-	//	ms := (len(parcel.Payload) * NetworkDeadline.Seconds())/1000
-	//	deadline = time.Now().Add(time.Duration(ms)*time.Millisecond)
-	//}
-	//c.conn.SetWriteDeadline(deadline)
 	encode := c.encoder
 	err := encode.Encode(parcel)
 	switch {
 	case nil == err:
+		p2pParcelsTotal.WithLabelValues("tx", parcel.MessageType()).Inc()
+		p2pParcelsSizeBytes.WithLabelValues("tx", parcel.MessageType()).Observe(float64(parcel.Header.Length))
 		c.metrics.BytesSent += parcel.Header.Length
 		c.metrics.MessagesSent += 1
 	default:
+		p2pParcelsErrorsTotal.WithLabelValues("tx", parcel.MessageType()).Inc()
 		c.Errors <- err
 	}
 }
@@ -553,11 +550,13 @@ func (c *Connection) handleParcel(parcel Parcel) {
 		c.attempts = MaxNumberOfRedialAttempts + 50 // so we don't redial invalid Peer
 		c.logger.Infof("Connection(%s) shutting down due to InvalidDisconnectPeer result from parcel. Previous notes: %s.", c.peer.AddressPort(), c.notes)
 		c.goShutdown()
+		p2pParcelsErrorsTotal.WithLabelValues("rx", parcel.MessageType()).Inc()
 		return
 	case InvalidPeerDemerit:
 		parcel.LogEntry().Debug("Connection.handleParcel()-InvalidPeerDemerit")
 		c.logger.Debug("Connection.handleParcel() got invalid message")
 		c.peer.demerit()
+		p2pParcelsErrorsTotal.WithLabelValues("rx", parcel.MessageType()).Inc()
 		return
 	case ParcelValid:
 		parcel.LogEntry().Debug("Connection.handleParcel()-ParcelValid")
@@ -565,11 +564,14 @@ func (c *Connection) handleParcel(parcel Parcel) {
 		c.attempts = 0                  // reset since we are clearly in touch now.
 		c.peer.merit()                  // Increase peer quality score.
 		c.logger.Debugf("Connection.handleParcel() got ParcelValid %s", parcel.MessageType())
+		p2pParcelsTotal.WithLabelValues("rx", parcel.MessageType()).Inc()
+		p2pParcelsSizeBytes.WithLabelValues("rx", parcel.MessageType()).Observe(float64(parcel.Header.Length))
 		c.handleParcelTypes(parcel) // handles both network commands and application messages
 		return
 	default:
 		parcel.LogEntry().Debug("Connection.handleParcel()-fatal")
 		c.logger.Errorf("handleParcel() unknown parcelValidity?: %+v ", validity)
+		p2pParcelsErrorsTotal.WithLabelValues("rx", parcel.MessageType()).Inc()
 		return
 	}
 }
