@@ -343,7 +343,10 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 	state.ECBalancesPMutex.Unlock()
 
 	ss.Identities = append(ss.Identities, state.Identities...)
-	ss.Authorities = append(ss.Authorities, state.Authorities...)
+	auths := state.GetAuthorities()
+	for _, a := range auths {
+		ss.Authorities = append(ss.Authorities, a.(*Authority))
+	}
 	ss.AuthorityServerCount = state.AuthorityServerCount
 
 	ss.LLeaderHeight = state.LLeaderHeight
@@ -612,8 +615,7 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 	s.ECBalancesPMutex.Unlock()
 
 	s.Identities = append(s.Identities[:0], ss.Identities...)
-	s.Authorities = append(s.Authorities[:0], ss.Authorities...)
-	// also restore IDControl
+	// Restore IDControl
 	for _, a := range ss.Authorities {
 		s.IdentityControl.Authorities[a.AuthorityChainID.Fixed()] = a
 	}

@@ -104,10 +104,10 @@ type State struct {
 	CustomBootstrapIdentity string
 	CustomBootstrapKey      string
 
-	IdentityChainID      interfaces.IHash // If this node has an identity, this is it
-	Identities           []*Identity      // Identities of all servers in management chain
-	Authorities          []*Authority     // Identities of all servers in management chain
-	AuthorityServerCount int              // number of federated or audit servers allowed
+	IdentityChainID interfaces.IHash // If this node has an identity, this is it
+	Identities      []*Identity      // Identities of all servers in management chain
+	// Authorities          []*Authority     // Identities of all servers in management chain
+	AuthorityServerCount int // number of federated or audit servers allowed
 	IdentityControl      *IdentityManager
 
 	// Just to print (so debugging doesn't drive functionality)
@@ -452,7 +452,7 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 	newState.ControlPanelSetting = s.ControlPanelSetting
 
 	newState.Identities = s.Identities
-	newState.Authorities = s.Authorities
+	//newState.Authorities = s.Authorities
 	newState.AuthorityServerCount = s.AuthorityServerCount
 
 	newState.IdentityControl = s.IdentityControl.Clone()
@@ -2073,12 +2073,7 @@ func (s *State) SetFaultWait(wait int) {
 
 // GetAuthorities will return a list of the network authorities
 func (s *State) GetAuthorities() []interfaces.IAuthority {
-	auths := make([]interfaces.IAuthority, 0)
-	for _, auth := range s.Authorities {
-		auths = append(auths, auth)
-	}
-
-	return auths
+	return s.IdentityControl.GetAuthorities()
 }
 
 // GetLeaderPL returns the leader process list from the state. this method is

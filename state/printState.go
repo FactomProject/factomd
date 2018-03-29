@@ -71,7 +71,7 @@ func PrintState(state *State) {
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "CustomNetworkID", state.CustomNetworkID)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "IdentityChainID", state.IdentityChainID)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "Identities", state.Identities)
-	str = fmt.Sprintf("%s %35s = %+v\n", str, "Authorities", state.Authorities)
+	str = fmt.Sprintf("%s %35s = %+v\n", str, "Authorities", state.IdentityControl.Authorities)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "AuthorityServerCount", state.AuthorityServerCount)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "Status", state.Status)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "serverPrt", state.serverPrt)

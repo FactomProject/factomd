@@ -5,15 +5,11 @@
 package state
 
 import (
-	"bytes"
 	"fmt"
 
-	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/log"
 )
 
 // Checks the signature of a message. Returns an int based on who signed it:
@@ -141,33 +137,8 @@ func (st *State) GetAuthority(serverID interfaces.IHash) (*Authority, int) {
 	return auth, auth.Type()
 }
 
-// We keep a 1 block history of their keys, this is so if we change their
+// We keep a 2 block history of their keys, this is so if we change their
 func (st *State) UpdateAuthSigningKeys(height uint32) {
-	// OLD
-	for index, auth := range st.Authorities {
-		chopOffIndex := 0 // Index of the keys we should chop off
-		for i, key := range auth.KeyHistory {
-			// Keeping 2 heights worth.
-			if key.ActiveDBHeight <= height-2 {
-				chopOffIndex = i
-			}
-		}
-
-		if chopOffIndex > 0 {
-			if len(st.Authorities[index].KeyHistory) == chopOffIndex+1 {
-				st.Authorities[index].KeyHistory = nil
-				st.IdentityControl.Authorities[auth.AuthorityChainID.Fixed()].KeyHistory = nil
-			} else {
-				// This could be a memory leak if the authority keeps updating his keys every block,
-				// but the line above sets to nil if there is only 1 item left, so it will eventually
-				// garbage collect the whole slice
-				st.Authorities[index].KeyHistory = st.Authorities[index].KeyHistory[chopOffIndex+1:]
-				st.IdentityControl.Authorities[auth.AuthorityChainID.Fixed()].KeyHistory = st.IdentityControl.Authorities[auth.AuthorityChainID.Fixed()].KeyHistory[chopOffIndex+1:]
-			}
-
-		}
-	}
-
 	// NEW
 	for key, auth := range st.IdentityControl.Authorities {
 		chopOffIndex := 0 // Index of the keys we should chop off
@@ -192,150 +163,125 @@ func (st *State) UpdateAuthSigningKeys(height uint32) {
 	}
 
 	st.RepairAuthorities()
-	if !st.CompareLists() {
-		fmt.Println("Auth lists are different")
-	}
-}
-
-func (st *State) CompareLists() bool {
-	for _, a := range st.Authorities {
-		b, ok := st.IdentityControl.Authorities[a.AuthorityChainID.Fixed()]
-		if !ok {
-			return false
-		}
-		if !b.IsSameAs(a) {
-			return false
-		}
-	}
-
-	if len(st.Authorities) != len(st.IdentityControl.Authorities) {
-		return false
-	}
-	return true
 }
 
 func (st *State) UpdateAuthorityFromABEntry(entry interfaces.IABEntry) error {
-	var AuthorityIndex int
-	data, err := entry.MarshalBinary()
+	err := st.IdentityControl.ProcessABlockEntry(entry)
 	if err != nil {
 		return err
 	}
 
-	err = st.IdentityControl.ProcessABlockEntry(entry)
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	switch entry.Type() {
-	case constants.TYPE_REVEAL_MATRYOSHKA:
-		r := new(adminBlock.RevealMatryoshkaHash)
-		err := r.UnmarshalBinary(data)
-		if err != nil {
-			return err
-		}
-		// Does nothing for authority right now
-	case constants.TYPE_ADD_MATRYOSHKA:
-		m := new(adminBlock.AddReplaceMatryoshkaHash)
-		err := m.UnmarshalBinary(data)
-		if err != nil {
-			return err
-		}
-		AuthorityIndex = st.AddAuthorityFromChainID(m.IdentityChainID)
-		st.Authorities[AuthorityIndex].MatryoshkaHash = m.MHash
-	case constants.TYPE_ADD_SERVER_COUNT:
-		s := new(adminBlock.IncreaseServerCount)
-		err := s.UnmarshalBinary(data)
-		if err != nil {
-			return err
-		}
-
-		st.AuthorityServerCount = st.AuthorityServerCount + int(s.Amount)
-	case constants.TYPE_ADD_FED_SERVER:
-		f := new(adminBlock.AddFederatedServer)
-		err := f.UnmarshalBinary(data)
-		if err != nil {
-			return err
-		}
-		err = st.AddIdentityFromChainID(f.IdentityChainID)
-		if err != nil {
-			//fmt.Println("Error when Making Identity,", err)
-		}
-		AuthorityIndex = st.AddAuthorityFromChainID(f.IdentityChainID)
-		st.Authorities[AuthorityIndex].Status = constants.IDENTITY_FEDERATED_SERVER
-		// check Identity status
-		UpdateIdentityStatus(f.IdentityChainID, constants.IDENTITY_FEDERATED_SERVER, st)
-	case constants.TYPE_ADD_AUDIT_SERVER:
-		a := new(adminBlock.AddAuditServer)
-		err := a.UnmarshalBinary(data)
-		if err != nil {
-			return err
-		}
-		err = st.AddIdentityFromChainID(a.IdentityChainID)
-		if err != nil {
-			//fmt.Println("Error when Making Identity,", err)
-		}
-		AuthorityIndex = st.AddAuthorityFromChainID(a.IdentityChainID)
-		st.Authorities[AuthorityIndex].Status = constants.IDENTITY_AUDIT_SERVER
-		// check Identity status
-		UpdateIdentityStatus(a.IdentityChainID, constants.IDENTITY_AUDIT_SERVER, st)
-	case constants.TYPE_REMOVE_FED_SERVER:
-		f := new(adminBlock.RemoveFederatedServer)
-		err := f.UnmarshalBinary(data)
-		if err != nil {
-			return err
-		}
-		AuthorityIndex = st.isAuthorityChain(f.IdentityChainID)
-		if AuthorityIndex == -1 {
-			log.Println(f.IdentityChainID.String() + " Cannot be removed.  Not in Authorities List.")
-		} else {
-			st.RemoveAuthority(f.IdentityChainID)
-			IdentityIndex := st.isIdentityChain(f.IdentityChainID)
-			if IdentityIndex != -1 && IdentityIndex < len(st.Identities) {
-				if st.Identities[IdentityIndex].IdentityChainID.IsSameAs(st.GetNetworkSkeletonIdentity()) {
-					st.Identities[IdentityIndex].Status = constants.IDENTITY_SKELETON
-				} else {
-					st.removeIdentity(IdentityIndex)
-				}
-			}
-		}
-	case constants.TYPE_ADD_FED_SERVER_KEY:
-		f := new(adminBlock.AddFederatedServerSigningKey)
-		err := f.UnmarshalBinary(data)
-		if err != nil {
-			return err
-		}
-		keyBytes, err := f.PublicKey.MarshalBinary()
-		if err != nil {
-			return err
-		}
-		key := new(primitives.Hash)
-		err = key.SetBytes(keyBytes)
-		if err != nil {
-			return err
-		}
-		addServerSigningKey(f.IdentityChainID, key, f.DBHeight, st)
-	case constants.TYPE_ADD_BTC_ANCHOR_KEY:
-		b := new(adminBlock.AddFederatedServerBitcoinAnchorKey)
-		err := b.UnmarshalBinary(data)
-		if err != nil {
-			return err
-		}
-		pubKey, err := b.ECDSAPublicKey.MarshalBinary()
-		if err != nil {
-			return err
-		}
-		registerAuthAnchor(b.IdentityChainID, pubKey, b.KeyType, b.KeyPriority, st, "BTC")
-	}
+	//switch entry.Type() {
+	//case constants.TYPE_REVEAL_MATRYOSHKA:
+	//	r := new(adminBlock.RevealMatryoshkaHash)
+	//	err := r.UnmarshalBinary(data)
+	//	if err != nil {
+	//		return err
+	//	}
+	//	// Does nothing for authority right now
+	//case constants.TYPE_ADD_MATRYOSHKA:
+	//	m := new(adminBlock.AddReplaceMatryoshkaHash)
+	//	err := m.UnmarshalBinary(data)
+	//	if err != nil {
+	//		return err
+	//	}
+	//	AuthorityIndex = st.AddAuthorityFromChainID(m.IdentityChainID)
+	//	st.Authorities[AuthorityIndex].MatryoshkaHash = m.MHash
+	//case constants.TYPE_ADD_SERVER_COUNT:
+	//	s := new(adminBlock.IncreaseServerCount)
+	//	err := s.UnmarshalBinary(data)
+	//	if err != nil {
+	//		return err
+	//	}
+	//
+	//	st.AuthorityServerCount = st.AuthorityServerCount + int(s.Amount)
+	//case constants.TYPE_ADD_FED_SERVER:
+	//	f := new(adminBlock.AddFederatedServer)
+	//	err := f.UnmarshalBinary(data)
+	//	if err != nil {
+	//		return err
+	//	}
+	//	err = st.AddIdentityFromChainID(f.IdentityChainID)
+	//	if err != nil {
+	//		//fmt.Println("Error when Making Identity,", err)
+	//	}
+	//	AuthorityIndex = st.AddAuthorityFromChainID(f.IdentityChainID)
+	//	st.Authorities[AuthorityIndex].Status = constants.IDENTITY_FEDERATED_SERVER
+	//	// check Identity status
+	//	UpdateIdentityStatus(f.IdentityChainID, constants.IDENTITY_FEDERATED_SERVER, st)
+	//case constants.TYPE_ADD_AUDIT_SERVER:
+	//	a := new(adminBlock.AddAuditServer)
+	//	err := a.UnmarshalBinary(data)
+	//	if err != nil {
+	//		return err
+	//	}
+	//	err = st.AddIdentityFromChainID(a.IdentityChainID)
+	//	if err != nil {
+	//		//fmt.Println("Error when Making Identity,", err)
+	//	}
+	//	AuthorityIndex = st.AddAuthorityFromChainID(a.IdentityChainID)
+	//	st.Authorities[AuthorityIndex].Status = constants.IDENTITY_AUDIT_SERVER
+	//	// check Identity status
+	//	UpdateIdentityStatus(a.IdentityChainID, constants.IDENTITY_AUDIT_SERVER, st)
+	//case constants.TYPE_REMOVE_FED_SERVER:
+	//	f := new(adminBlock.RemoveFederatedServer)
+	//	err := f.UnmarshalBinary(data)
+	//	if err != nil {
+	//		return err
+	//	}
+	//	AuthorityIndex = st.isAuthorityChain(f.IdentityChainID)
+	//	if AuthorityIndex == -1 {
+	//		log.Println(f.IdentityChainID.String() + " Cannot be removed.  Not in Authorities List.")
+	//	} else {
+	//		st.RemoveAuthority(f.IdentityChainID)
+	//		IdentityIndex := st.isIdentityChain(f.IdentityChainID)
+	//		if IdentityIndex != -1 && IdentityIndex < len(st.Identities) {
+	//			if st.Identities[IdentityIndex].IdentityChainID.IsSameAs(st.GetNetworkSkeletonIdentity()) {
+	//				st.Identities[IdentityIndex].Status = constants.IDENTITY_SKELETON
+	//			} else {
+	//				st.removeIdentity(IdentityIndex)
+	//			}
+	//		}
+	//	}
+	//case constants.TYPE_ADD_FED_SERVER_KEY:
+	//	f := new(adminBlock.AddFederatedServerSigningKey)
+	//	err := f.UnmarshalBinary(data)
+	//	if err != nil {
+	//		return err
+	//	}
+	//	keyBytes, err := f.PublicKey.MarshalBinary()
+	//	if err != nil {
+	//		return err
+	//	}
+	//	key := new(primitives.Hash)
+	//	err = key.SetBytes(keyBytes)
+	//	if err != nil {
+	//		return err
+	//	}
+	//	addServerSigningKey(f.IdentityChainID, key, f.DBHeight, st)
+	//case constants.TYPE_ADD_BTC_ANCHOR_KEY:
+	//	b := new(adminBlock.AddFederatedServerBitcoinAnchorKey)
+	//	err := b.UnmarshalBinary(data)
+	//	if err != nil {
+	//		return err
+	//	}
+	//	pubKey, err := b.ECDSAPublicKey.MarshalBinary()
+	//	if err != nil {
+	//		return err
+	//	}
+	//	registerAuthAnchor(b.IdentityChainID, pubKey, b.KeyType, b.KeyPriority, st, "BTC")
+	//}
 
 	return nil
 }
 
 func (st *State) GetAuthorityServerType(chainID interfaces.IHash) int { // 0 = Federated, 1 = Audit
-	index := st.isAuthorityChain(chainID)
-	if index == -1 {
+	auth := st.IdentityControl.GetAuthority(chainID)
+	if auth == nil {
 		return -1
 	}
-	status := st.Authorities[index].Status
+
+	status := auth.Status
 	if status == constants.IDENTITY_FEDERATED_SERVER ||
 		status == constants.IDENTITY_PENDING_FEDERATED_SERVER {
 		return 0
@@ -347,88 +293,24 @@ func (st *State) GetAuthorityServerType(chainID interfaces.IHash) int { // 0 = F
 	return -1
 }
 
-func (st *State) AddAuthorityFromChainID(chainID interfaces.IHash) int {
-	IdentityIndex := st.isIdentityChain(chainID)
-	if IdentityIndex == -1 {
-		st.AddIdentityFromChainID(chainID)
-	}
-	AuthorityIndex := st.isAuthorityChain(chainID)
-	if AuthorityIndex == -1 {
-		AuthorityIndex = st.createAuthority(chainID)
-	}
-	return AuthorityIndex
-}
-
-func (st *State) RemoveAuthority(chainID interfaces.IHash) bool {
-	i := st.isAuthorityChain(chainID)
-	if i == -1 {
-		return false
-	}
-	if len(st.Authorities) > i+1 {
-		st.Authorities = append(st.Authorities[:i], st.Authorities[i+1:]...)
-	} else {
-		st.Authorities = st.Authorities[:i]
-	}
-	return true
-}
-
-func (st *State) isAuthorityChain(cid interfaces.IHash) int {
-	for i, authorityChain := range st.Authorities {
-		if authorityChain.AuthorityChainID.IsSameAs(cid) {
-			return i
-		}
-	}
-	return -1
-}
-
-func (st *State) createAuthority(chainID interfaces.IHash) int {
-	newAuth := new(Authority)
-	newAuth.AuthorityChainID = chainID
-
-	idIndex := st.isIdentityChain(chainID)
-	if idIndex != -1 && st.Identities[idIndex].ManagementChainID != nil {
-		newAuth.ManagementChainID = st.Identities[idIndex].ManagementChainID
-	}
-	newAuth.Status = constants.IDENTITY_PENDING_FULL
-
-	st.Authorities = append(st.Authorities, newAuth)
-	return len(st.Authorities) - 1
-}
-
 // If the Identity failed to create, it will be fixed here
 func (s *State) RepairAuthorities() {
 	// Fix any missing management chains
-	for i, auth := range s.Authorities {
-		if s.Authorities[i].ManagementChainID == nil {
-			idIndex := s.isIdentityChain(s.Authorities[i].AuthorityChainID)
+	for _, iAuth := range s.IdentityControl.GetAuthorities() {
+		auth := iAuth.(*Authority)
+		if auth.ManagementChainID == nil || auth.ManagementChainID.IsZero() {
+			idIndex := s.isIdentityChain(auth.AuthorityChainID)
 			if idIndex == -1 {
 				err := s.AddIdentityFromChainID(auth.AuthorityChainID)
 				if err != nil {
 					continue
 				}
-				idIndex = s.isIdentityChain(s.Authorities[i].AuthorityChainID)
+				idIndex = s.isIdentityChain(auth.AuthorityChainID)
 			}
 			if idIndex != -1 {
-				s.Authorities[i].ManagementChainID = s.Identities[idIndex].ManagementChainID
-				s.Identities[idIndex].Status = s.Authorities[i].Status
-			}
-		}
-	}
-
-	// Fix any missing management chains -- for new
-	for i, auth := range s.IdentityControl.Authorities {
-		if s.IdentityControl.Authorities[i].ManagementChainID == nil || s.IdentityControl.Authorities[i].ManagementChainID.IsZero() {
-			idIndex := s.isIdentityChain(s.IdentityControl.Authorities[i].AuthorityChainID)
-			if idIndex == -1 {
-				err := s.AddIdentityFromChainID(auth.AuthorityChainID)
-				if err != nil {
-					continue
-				}
-				idIndex = s.isIdentityChain(s.IdentityControl.Authorities[i].AuthorityChainID)
-			}
-			if idIndex != -1 {
-				s.IdentityControl.Authorities[i].ManagementChainID = s.Identities[idIndex].ManagementChainID
-				s.Identities[idIndex].Status = s.IdentityControl.Authorities[i].Status
+				auth.ManagementChainID = s.Identities[idIndex].ManagementChainID
+				s.Identities[idIndex].Status = auth.Status
+				s.IdentityControl.SetAuthority(auth.AuthorityChainID, auth)
 			}
 		}
 	}
@@ -439,55 +321,4 @@ func (s *State) RepairAuthorities() {
 			s.FixMissingKeys(id)
 		}
 	}
-}
-
-func registerAuthAnchor(chainID interfaces.IHash, signingKey []byte, keyType byte, keyLevel byte, st *State, BlockChain string) {
-	AuthorityIndex := st.AddAuthorityFromChainID(chainID)
-	var oneASK AnchorSigningKey
-
-	ask := st.Authorities[AuthorityIndex].AnchorKeys
-	newASK := make([]AnchorSigningKey, len(ask)+1)
-
-	for i := 0; i < len(ask); i++ {
-		newASK[i] = ask[i]
-	}
-
-	oneASK.BlockChain = BlockChain
-	oneASK.KeyLevel = keyLevel
-	oneASK.KeyType = keyType
-	copy(oneASK.SigningKey[:], signingKey)
-
-	newASK[len(ask)] = oneASK
-	st.Authorities[AuthorityIndex].AnchorKeys = newASK
-}
-
-func addServerSigningKey(chainID interfaces.IHash, key interfaces.IHash, height uint32, st *State) {
-	AuthorityIndex := st.AddAuthorityFromChainID(chainID)
-	if st.IdentityChainID.IsSameAs(chainID) && len(st.serverPendingPrivKeys) > 0 {
-		for i, pubKey := range st.serverPendingPubKeys {
-			pubData, err := pubKey.MarshalBinary()
-			if err != nil {
-				break
-			}
-			if bytes.Compare(pubData, key.Bytes()) == 0 {
-				st.serverPrivKey = st.serverPendingPrivKeys[i]
-				st.serverPubKey = st.serverPendingPubKeys[i]
-				if len(st.serverPendingPrivKeys) > i+1 {
-					st.serverPendingPrivKeys = append(st.serverPendingPrivKeys[:i], st.serverPendingPrivKeys[i+1:]...)
-					st.serverPendingPubKeys = append(st.serverPendingPubKeys[:i], st.serverPendingPubKeys[i+1:]...)
-				} else {
-					st.serverPendingPrivKeys = st.serverPendingPrivKeys[:i]
-					st.serverPendingPubKeys = st.serverPendingPubKeys[:i]
-				}
-				break
-			}
-		}
-	}
-	// Add Key History
-	st.Authorities[AuthorityIndex].KeyHistory = append(st.Authorities[AuthorityIndex].KeyHistory, struct {
-		ActiveDBHeight uint32
-		SigningKey     primitives.PublicKey
-	}{height, st.Authorities[AuthorityIndex].SigningKey})
-	// Replace Active Key
-	st.Authorities[AuthorityIndex].SigningKey = primitives.PubKeyFromString(key.String())
 }

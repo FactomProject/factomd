@@ -18,6 +18,7 @@ import (
 
 	"runtime"
 
+	"github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -987,10 +988,11 @@ func SimControl(listenTo int, listenStdin bool) {
 					os.Stderr.WriteString(fmt.Sprint("There are no more available identities in this node. Type 'g1' to claim another identity\n"))
 				}
 			case 'u' == b[0]:
-				os.Stderr.WriteString(fmt.Sprintf("=== Authority List ===  Total: %d Displaying: All\n", len(fnodes[ListenTo].State.Authorities)))
-				for _, i := range fnodes[ListenTo].State.Authorities {
+				os.Stderr.WriteString(fmt.Sprintf("=== Authority List ===  Total: %d Displaying: All\n", len(fnodes[ListenTo].State.IdentityControl.GetAuthorities())))
+				for _, iA := range fnodes[ListenTo].State.IdentityControl.GetAuthorities() {
 					os.Stderr.WriteString("-------------------------------------------------------------------------------\n")
 					var stat string
+					i := iA.(*identity.Authority)
 					stat = returnStatString(i.Status)
 					os.Stderr.WriteString(fmt.Sprint("Server Status: ", stat, "\n"))
 					os.Stderr.WriteString(fmt.Sprint("Identity Chain: ", i.AuthorityChainID, "\n"))

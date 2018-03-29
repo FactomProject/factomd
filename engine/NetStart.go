@@ -14,6 +14,7 @@ import (
 	"os"
 	"time"
 
+	. "github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages/electionMsgs"
@@ -24,7 +25,6 @@ import (
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
-	. "github.com/FactomProject/factomd/common/globals"
 
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/messages/msgsupport"
@@ -560,7 +560,7 @@ func startServers(load bool) {
 
 func setupFirstAuthority(s *state.State) {
 	var id identity.Identity
-	if len(s.Authorities) > 0 {
+	if len(s.IdentityControl.Authorities) > 0 {
 		//Don't initialize first authority if we are loading during fast boot
 		//And there are already authorities present
 		return
@@ -588,14 +588,6 @@ func setupFirstAuthority(s *state.State) {
 	id.Key4 = primitives.NewZeroHash()
 	id.Status = 1
 	s.Identities = append(s.Identities, &id)
-
-	var auth identity.Authority
-	auth.Status = 1
-	auth.SigningKey = primitives.PubKeyFromString(id.SigningKey.String())
-	auth.MatryoshkaHash = primitives.NewZeroHash()
-	auth.AuthorityChainID = id.IdentityChainID
-	auth.ManagementChainID, _ = primitives.HexToHash("88888800000000000000000000000000")
-	s.Authorities = append(s.Authorities, &auth)
 
 	// NEW
 	s.IdentityControl.SetBootstrapIdentity(s.GetNetworkBootStrapIdentity(), s.GetNetworkBootStrapKey())

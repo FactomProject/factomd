@@ -261,10 +261,6 @@ func LoadIdentityByEntry(ent interfaces.IEBEntry, st *State, height uint32, init
 	hs := ent.GetChainID().String()
 	cid := ent.GetChainID()
 	if st.isIdentityChain(cid) == -1 {
-		if st.isAuthorityChain(cid) != -1 {
-			// The authority exists, but the Identity does not. This could be an issue if a
-			// server changes their key as we would not notice the change
-		}
 		return
 	}
 	if hs[0:60] != "000000000000000000000000000000000000000000000000000000000000" { //ignore minute markers
@@ -819,17 +815,7 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 }
 
 // Verifies if is authority
+//		Return true if authority, false if not
 func (st *State) VerifyIsAuthority(cid interfaces.IHash) bool {
-	if st.isAuthorityChain(cid) != -1 {
-		return true
-	}
-	return false
-}
-
-func UpdateIdentityStatus(ChainID interfaces.IHash, StatusTo uint8, st *State) {
-	IdentityIndex := st.isIdentityChain(ChainID)
-	if IdentityIndex == -1 {
-		return
-	}
-	st.Identities[IdentityIndex].Status = StatusTo
+	return st.IdentityControl.GetAuthority(cid) != nil
 }

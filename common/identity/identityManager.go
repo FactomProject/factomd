@@ -64,6 +64,7 @@ func (im *IdentityManager) SetBootstrapIdentity(id interfaces.IHash, key interfa
 	pub = key.Fixed()
 	auth.SigningKey = pub
 	auth.Status = constants.IDENTITY_FEDERATED_SERVER
+	auth.ManagementChainID, _ = primitives.HexToHash("88888800000000000000000000000000")
 
 	im.SetAuthority(auth.AuthorityChainID, auth)
 	return nil
@@ -178,6 +179,18 @@ func (im *IdentityManager) RemoveAuthority(chainID interfaces.IHash) bool {
 	im.SetAuthority(chainID, auth)
 
 	return true
+}
+
+func (im *IdentityManager) GetAuthorities() []interfaces.IAuthority {
+	im.Mutex.RLock()
+	defer im.Mutex.RUnlock()
+
+	auths := make([]interfaces.IAuthority, 0)
+	for _, auth := range im.Authorities {
+		auths = append(auths, auth)
+	}
+
+	return auths
 }
 
 func (im *IdentityManager) GetAuthority(chainID interfaces.IHash) *Authority {
