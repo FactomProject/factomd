@@ -841,33 +841,6 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 
 	mmr, _ := m.(*messages.MissingMsgResponse)
 
-	fullFault, ok := mmr.MsgResponse.(*messages.FullServerFault)
-	if ok && fullFault != nil {
-		switch fullFault.Validate(s) {
-		case 1:
-			pl := s.ProcessLists.Get(fullFault.DBHeight)
-			if pl != nil && fullFault.HasEnoughSigs(s) && s.pledgedByAudit(fullFault) {
-				_, okff := s.Replay.Valid(constants.INTERNAL_REPLAY, fullFault.GetRepeatHash().Fixed(), fullFault.GetTimestamp(), s.GetTimestamp())
-
-				if okff {
-					TotalXReviewQueueInputs.Inc()
-					s.XReview = append(s.XReview, fullFault)
-				} else {
-					pl.AddToSystemList(fullFault)
-				}
-				s.MissingResponseAppliedCnt++
-			} else if pl != nil && int(fullFault.Height) >= pl.System.Height {
-				TotalXReviewQueueInputs.Inc()
-				s.XReview = append(s.XReview, fullFault)
-				s.MissingResponseAppliedCnt++
-			}
-
-		default:
-			// Ignore if 0 or -1 or anything. If 0, I can ask for it again if I need it.
-		}
-		return
-	}
-
 	ack, ok := mmr.AckResponse.(*messages.Ack)
 
 	// If we don't need this message, we don't have to do everything else.

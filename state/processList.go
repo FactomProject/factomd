@@ -641,13 +641,6 @@ func (p *ProcessList) DeleteNewEntry(key interfaces.IHash) {
 	delete(p.NewEntries, key.Fixed())
 }
 
-func (p *ProcessList) CurrentFault() *messages.FullServerFault {
-	if len(p.System.List) < 1 || len(p.System.List) <= p.System.Height {
-		return nil
-	}
-	return p.System.List[p.System.Height].(*messages.FullServerFault)
-}
-
 func (p *ProcessList) GetLeaderTimestamp() interfaces.Timestamp {
 	for _, msg := range p.VMs[0].List {
 		if msg.Type() == constants.DIRECTORY_BLOCK_SIGNATURE_MSG {
@@ -898,93 +891,6 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 	return
 }
 
-func (p *ProcessList) AddToSystemList(m interfaces.IMsg) bool {
-	// Make sure we have a list, and punt if we don't.
-	if p == nil {
-		p.State.Holding[m.GetMsgHash().Fixed()] = m
-		return false
-	}
-
-	fullFault, ok := m.(*messages.FullServerFault)
-	if !ok {
-		//p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Fail (not a FullFault) %s", m))
-		return false // Should never happen;  Don't pass junk to be added to the System List
-	}
-
-	// If we have already processed past this fault, just ignore.
-	if p.System.Height > int(fullFault.SystemHeight) {
-		//p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Fail (System.Height > fullFault.SystemHeight) (%d > %d) : %s",
-		//	p.System.Height,
-		//	int(fullFault.SystemHeight),
-		//	fullFault.String()))
-		return false
-	}
-
-	// If the fault is in the future, hold it.
-	if p.System.Height < int(fullFault.SystemHeight) {
-		//p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Holding (System.Height(%d) < fullFault.SystemHeight(%d)) : %s",
-		//	p.System.Height,
-		//	int(fullFault.SystemHeight),
-		//	fullFault.String()))
-		p.State.Holding[m.GetMsgHash().Fixed()] = m
-		return false
-	}
-
-	// If we are here, fullFault.SystemHeight == p.System.Height
-	if len(p.System.List) <= p.System.Height {
-		// Nothing in our list a this slot yet, so insert this FullFault message
-		p.System.List = append(p.System.List, fullFault)
-		//p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Success (append) : %s",
-		//	fullFault.String()))
-		return true
-	}
-
-	// Something is in our SystemList at this height;
-	// We will prioritize the FullFault with the highest VMIndex
-	existingSystemFault, _ := p.System.List[p.System.Height].(*messages.FullServerFault)
-	if existingSystemFault.GetHash().IsSameAs(fullFault.GetHash()) {
-		if p.VMs[existingSystemFault.VMIndex].WhenFaulted > 0 {
-			//p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Fail (already have) : %s",
-			//	fullFault.String()))
-			return false
-		}
-	}
-
-	if existingSystemFault.HasEnoughSigs(p.State) && p.State.pledgedByAudit(existingSystemFault) {
-		//p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Fail (existingFault is complete) : %s",
-		//	existingSystemFault.String()))
-		return false
-	}
-
-	if fullFault.Priority(p.State) < existingSystemFault.Priority(p.State) {
-		//p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Fail (priority %d < %d) :: Exist: %s /// New: %s",
-		//	fullFault.Priority(p.State),
-		//	existingSystemFault.Priority(p.State),
-		//	existingSystemFault.String(),
-		//	fullFault.String()))
-		return false
-	}
-
-	if existingSystemFault.SigTally(p.State) > fullFault.SigTally(p.State) {
-		if fullFault.GetCoreHash().IsSameAs(existingSystemFault.GetCoreHash()) {
-			//p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Fail (less sigs than existingFault's) (%d > %d) : %s",
-			//	existingSystemFault.SigTally(p.State),
-			//	fullFault.SigTally(p.State),
-			//	fullFault.String()))
-			return false
-		}
-	}
-	//p.State.regularFullFaultExecution(fullFault, p)
-
-	p.System.List[p.System.Height] = fullFault
-
-	//p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Success (create) : %s sigs:%d",
-	//	fullFault.String(), fullFault.SigTally(p.State)))
-
-	return true
-
-}
-
 func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	if p == nil {
 		return
@@ -1229,8 +1135,6 @@ func (p *ProcessList) Reset() bool {
 
 	p.NewEBlocks = make(map[[32]byte]interfaces.IEntryBlock)
 	p.NewEntries = make(map[[32]byte]interfaces.IEntry)
-
-	p.SetAmINegotiator(false)
 
 	p.DBSignatures = make([]DBSig, 0)
 

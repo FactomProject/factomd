@@ -160,7 +160,6 @@ func PrintState(state *State) {
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "FaultTimeout", state.FaultTimeout)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "FaultWait", state.FaultWait)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "EOMfaultIndex", state.EOMfaultIndex)
-	str = fmt.Sprintf("%s %35s = %+v\n", str, "LastFaultAction", state.LastFaultAction)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "LastTiebreak", state.LastTiebreak)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "AuthoritySetString", state.AuthoritySetString)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "NetworkNumber", state.NetworkNumber)
