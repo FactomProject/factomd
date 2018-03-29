@@ -23,12 +23,6 @@ func (s *State) CreateEOM(force bool, m interfaces.IMsg, vmIdx int) (eom *messag
 
 	// Put the System Height and Serial Hash into the EOM
 	eom.SysHeight = uint32(pl.System.Height)
-	if pl.System.Height > 1 {
-		ff, ok := pl.System.List[pl.System.Height-1].(*messages.FullServerFault)
-		if ok {
-			eom.SysHash = ff.GetSerialHash()
-		}
-	}
 
 	if !force && s.Syncing && vm.Synced {
 		return nil, nil

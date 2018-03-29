@@ -344,30 +344,6 @@ func (s *State) ReviewHolding() {
 			delete(s.Holding, k)
 		}
 
-		mm, ok := v.(*messages.MissingMsgResponse)
-		if ok {
-			ff, ok := mm.MsgResponse.(*messages.FullServerFault)
-			if ok && ff.DBHeight < saved {
-				TotalHoldingQueueOutputs.Inc()
-				delete(s.Holding, k)
-			}
-			continue
-		}
-
-		sf, ok := v.(*messages.ServerFault)
-		if ok && sf.DBHeight < saved {
-			TotalHoldingQueueOutputs.Inc()
-			delete(s.Holding, k)
-			continue
-		}
-
-		ff, ok := v.(*messages.FullServerFault)
-		if ok && ff.DBHeight < saved {
-			TotalHoldingQueueOutputs.Inc()
-			delete(s.Holding, k)
-			continue
-		}
-
 		eom, ok := v.(*messages.EOM)
 		if ok && ((eom.DBHeight <= saved && saved > 0) || int(eom.Minute) < s.CurrentMinute) {
 			TotalHoldingQueueOutputs.Inc()
@@ -1080,12 +1056,6 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 
 	// Put the System Height and Serial Hash into the EOM
 	eom.SysHeight = uint32(pl.System.Height)
-	if pl.System.Height > 1 {
-		ff, ok := pl.System.List[pl.System.Height-1].(*messages.FullServerFault)
-		if ok {
-			eom.SysHash = ff.GetSerialHash()
-		}
-	}
 
 	if s.Syncing && vm.Synced {
 		return
@@ -1143,12 +1113,6 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
 
 	// Put the System Height and Serial Hash into the EOM
 	dbs.SysHeight = uint32(pl.System.Height)
-	if pl.System.Height > 1 {
-		ff, ok := pl.System.List[pl.System.Height-1].(*messages.FullServerFault)
-		if ok {
-			dbs.SysHash = ff.GetSerialHash()
-		}
-	}
 
 	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, m.GetRepeatHash().Fixed(), m.GetTimestamp(), s.GetTimestamp())
 	if !ok {
@@ -1901,21 +1865,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	*/
 }
 
-// ProcessFullServerFault begins the replacement
-//
-// Deprecated in favor of new election code
-//
-func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) bool {
-	// If we are here, this means that the FullFault message is complete
-	// and we can execute it as such (replacing the faulted Leader with
-	// the nominated Audit server)
-
-	if true {
-		panic(errors.New("Started Old Faulting Process... very bad thing"))
-	}
-
-	return false
-}
 
 func (s *State) GetMsg(vmIndex int, dbheight int, height int) (interfaces.IMsg, error) {
 

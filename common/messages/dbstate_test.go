@@ -21,6 +21,50 @@ import (
 	"github.com/FactomProject/factomd/testHelper"
 )
 
+func coupleOfSigs(t *testing.T) []interfaces.IFullSignature {
+	priv1 := new(primitives.PrivateKey)
+
+	err := priv1.GenerateKey()
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	msg1 := "Test Message Sign1"
+	msg2 := "Test Message Sign2"
+
+	sig1 := priv1.Sign([]byte(msg1))
+	sig2 := priv1.Sign([]byte(msg2))
+
+	var twoSigs []interfaces.IFullSignature
+	twoSigs = append(twoSigs, sig1)
+	twoSigs = append(twoSigs, sig2)
+	return twoSigs
+}
+
+func makeSigList(t *testing.T) SigList {
+	priv1 := new(primitives.PrivateKey)
+
+	err := priv1.GenerateKey()
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	msg1 := "Test Message Sign1"
+	msg2 := "Test Message Sign2"
+
+	sig1 := priv1.Sign([]byte(msg1))
+	sig2 := priv1.Sign([]byte(msg2))
+
+	var twoSigs []interfaces.IFullSignature
+	twoSigs = append(twoSigs, sig1)
+	twoSigs = append(twoSigs, sig2)
+
+	sl := new(SigList)
+	sl.Length = 2
+	sl.List = twoSigs
+	return *sl
+}
+
 func TestUnmarshalNilDBStateMsg(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {

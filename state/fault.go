@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 
 	log "github.com/sirupsen/logrus"
@@ -151,26 +150,6 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 // a negotiation ping
 func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 
-}
-
-// If a FullFault message includes a signature from the Audit server
-// which was nominated in the Fault, pledgedByAudit will return true
-func (s *State) pledgedByAudit(fullFault *messages.FullServerFault) bool {
-	for _, a := range s.Authorities {
-		if a.AuthorityChainID.IsSameAs(fullFault.AuditServerID) {
-			marshalledSF, err := fullFault.MarshalForSF()
-			if err == nil {
-				for _, sig := range fullFault.SignatureList.List {
-					sigVer, err := a.VerifySignature(marshalledSF, sig.GetSignature())
-					if err == nil && sigVer {
-						return true
-					}
-				}
-			}
-			break
-		}
-	}
-	return false
 }
 
 func (s *State) Reset() {

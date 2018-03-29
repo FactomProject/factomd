@@ -2449,12 +2449,7 @@ func (s *State) SetStringQueues() {
 	str = str + fmt.Sprintf(" %d/%d", list.System.Height, len(list.System.List))
 
 	if list.System.Height < len(list.System.List) {
-		ff, ok := list.System.List[list.System.Height].(*messages.FullServerFault)
-		if ok {
-			str = str + fmt.Sprintf(" VM:%d %s", int(ff.VMIndex), ff.AuditServerID.String()[6:10])
-		} else {
-			str = str + fmt.Sprintf(" VM:%s %s", "?", "-nil-")
-		}
+		str = str + fmt.Sprintf(" VM:%s %s", "?", "-nil-")
 	} else {
 		str = str + " -"
 	}
