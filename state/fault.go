@@ -7,7 +7,6 @@ package state
 import (
 	"encoding/binary"
 	"fmt"
-	"math/rand"
 	"time"
 
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -124,67 +123,13 @@ func markNoFault(pl *ProcessList, vmIndex int) {
 	if index < len(pl.FedServers) {
 		pl.FedServers[index].SetOnline(true)
 	}
-
-	cf := pl.CurrentFault()
-	if !cf.IsNil() {
-		if cf.AmINegotiator {
-			ff := CraftFullFault(pl, vmIndex, vm.Height)
-			if ff != nil {
-				ff.Sign(pl.State.serverPrivKey)
-				ff.SendOut(pl.State, ff)
-				ff.FollowerExecute(pl.State)
-			}
-		}
-	}
-
-}
-
-func NegotiationCheck(pl *ProcessList) {
-	if !pl.State.Leader {
-		//If I'm not a leader, do not attempt to negotiate
-		return
-	}
-	prevIdx := precedingVMIndex(pl)
-	prevVM := pl.VMs[prevIdx]
-
-	if prevVM.WhenFaulted == 0 {
-		//If the VM before me is not faulted, do not attempt
-		//to negotiate
-		return
-	}
-
-	now := time.Now().Unix()
-	if now-prevVM.WhenFaulted < int64(pl.State.FaultTimeout) {
-		//It hasn't been long enough; wait a little longer
-		//before starting negotiation
-		return
-	}
-
-	if now-pl.State.LastFaultAction > int64(pl.State.FaultWait) {
-		//THROTTLE
-		ff := CraftFullFault(pl, prevIdx, prevVM.Height)
-		if ff != nil {
-			ff.Sign(pl.State.serverPrivKey)
-			ff.SendOut(pl.State, ff)
-			ff.FollowerExecute(pl.State)
-		}
-		//pl.State.AddStatus(fmt.Sprintf("Sending Negotiation message (because %d) at %d since LFA=%d: %s", prevVM.FaultFlag, now, pl.State.LastFaultAction, ff.String()))
-		pl.State.LastFaultAction = now
-	}
-
-	return
 }
 
 func FaultCheck(pl *ProcessList) {
-	NegotiationCheck(pl)
-
 	now := time.Now().Unix()
 
 	currentFault := pl.CurrentFault()
 	if currentFault.IsNil() {
-		//Do not have a current fault
-		pl.SetAmINegotiator(false)
-
 		for i := 0; i < len(pl.FedServers); i++ {
 			if i == pl.State.LeaderVMIndex {
 				continue
@@ -204,18 +149,13 @@ func FaultCheck(pl *ProcessList) {
 	timeElapsed := now - currentFault.Timestamp.GetTimeSeconds()
 	currentFaultCore := ExtractFaultCore(currentFault)
 	if isMyNegotiation(currentFaultCore, pl) {
-		pl.SetAmINegotiator(true)
 		if int(timeElapsed) > pl.State.FaultTimeout {
 			if !currentFault.GetPledgeDone() {
 				ToggleAuditOffline(pl, currentFaultCore)
 			}
-			pl.State.LastFaultAction = 0
-			NegotiationCheck(pl)
 		}
 		return
 	}
-
-	pl.SetAmINegotiator(false)
 
 	if int(timeElapsed) > pl.State.FaultTimeout*2 {
 		// The negotiation has expired; time to fault negotiator
@@ -244,87 +184,6 @@ func ToggleAuditOffline(pl *ProcessList, fc FaultCore) {
 	if theAuditReplacement != nil {
 		theAuditReplacement.SetOnline(false)
 	}
-}
-
-func CraftFault(pl *ProcessList, vmIndex int, height int) *messages.ServerFault {
-	// TODO: if I am the Leader being faulted, I should respond by sending out
-	// a MissingMsgResponse to everyone for the msg I'm being faulted for
-
-	// Only consider Online Audit servers as candidates for promotion (this
-	// allows us to cycle through Audits on successive calls to CraftFullFault,
-	// so that we make sure to (eventually) find one that is ready and able to
-	// accept the promotion)
-	auditServerList := pl.State.GetOnlineAuditServers(pl.DBHeight)
-	if len(auditServerList) > 0 {
-		// Nominate the top candidate from the list of Online Audit Servers
-		audIdx := rand.Int() % len(auditServerList)
-		replacementServer := auditServerList[audIdx]
-		leaderMin := pl.State.CurrentMinute
-
-		faultedFed := pl.ServerMap[leaderMin][vmIndex]
-
-		if faultedFed >= len(pl.FedServers) {
-			return nil
-		}
-		pl.FedServers[faultedFed].SetOnline(false)
-		faultedFedID := pl.FedServers[faultedFed].GetChainID()
-
-		// Create and send ServerFault (vote) message
-		sf := messages.NewServerFault(faultedFedID, replacementServer.GetChainID(), vmIndex, pl.DBHeight, uint32(height), pl.System.Height, pl.State.GetTimestamp())
-		if sf != nil {
-			sf.Sign(pl.State.serverPrivKey)
-			return sf
-		}
-	} else {
-		// If we don't see any Audit servers as Online, we reset all of
-		// them to an Online state and start the cycle anew
-		for _, aud := range pl.AuditServers {
-			aud.SetOnline(true)
-		}
-	}
-	return nil
-}
-
-// CraftFullFault is called from the Negotiate check from the process list
-// (which fires once every 5 seconds on each server); most of the time
-// these are "incomplete" FullFault messages which serve as status pings
-// for the negotiation in progress
-func CraftFullFault(pl *ProcessList, vmIndex int, height int) *messages.FullServerFault {
-	faultState := pl.CurrentFault()
-	var sf *messages.ServerFault
-	var listOfSigs []interfaces.IFullSignature
-	var prevFF *messages.FullServerFault
-	if pl.System.Height > 0 {
-		prevFF = pl.System.List[pl.System.Height-1].(*messages.FullServerFault)
-	}
-
-	now := time.Now().Unix()
-
-	if faultState.IsNil() || (now-faultState.GetTimestamp().GetTimeSeconds() > int64(pl.State.FaultTimeout)) && !(faultState.HasEnoughSigs(pl.State) && faultState.GetPledgeDone()) {
-		sf = CraftFault(pl, vmIndex, height)
-		if sf == nil {
-			return nil
-		}
-		listOfSigs = append(listOfSigs, sf.Signature)
-	} else {
-		fc := ExtractFaultCore(faultState)
-		sf = messages.NewServerFault(fc.ServerID, fc.AuditServerID, int(fc.VMIndex), fc.DBHeight, fc.Height, pl.System.Height, fc.Timestamp)
-		for _, sig := range faultState.LocalVoteMap {
-			listOfSigs = append(listOfSigs, sig)
-		}
-		for _, sig := range faultState.SignatureList.List {
-			listOfSigs = append(listOfSigs, sig)
-		}
-
-	}
-
-	fullFault := messages.NewFullServerFault(prevFF, sf, listOfSigs, pl.System.Height)
-	fullFault.SetAmINegotiator(true)
-	if pl.VMs[vmIndex].WhenFaulted == 0 {
-		fullFault.ClearFault = true
-	}
-
-	return fullFault
 }
 
 func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {

@@ -596,6 +596,9 @@ func setupFirstAuthority(s *state.State) {
 	auth.AuthorityChainID = id.IdentityChainID
 	auth.ManagementChainID, _ = primitives.HexToHash("88888800000000000000000000000000")
 	s.Authorities = append(s.Authorities, &auth)
+
+	// NEW
+	s.IdentityControl.SetBootstrapIdentity(s.GetNetworkBootStrapIdentity(), s.GetNetworkBootStrapKey())
 }
 
 func networkHousekeeping() {

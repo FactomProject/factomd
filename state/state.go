@@ -108,6 +108,7 @@ type State struct {
 	Identities           []*Identity      // Identities of all servers in management chain
 	Authorities          []*Authority     // Identities of all servers in management chain
 	AuthorityServerCount int              // number of federated or audit servers allowed
+	IdentityControl      *IdentityManager
 
 	// Just to print (so debugging doesn't drive functionality)
 	Status      int // Return a status (0 do nothing, 1 provide queues, 2 provide consensus data)
@@ -257,11 +258,10 @@ type State struct {
 
 	AuditHeartBeats []interfaces.IMsg // The checklist of HeartBeats for this period
 
-	FaultTimeout    int
-	FaultWait       int
-	EOMfaultIndex   int
-	LastFaultAction int64
-	LastTiebreak    int64
+	FaultTimeout  int
+	FaultWait     int
+	EOMfaultIndex int
+	LastTiebreak  int64
 
 	AuthoritySetString string
 	// Network MAIN = 0, TEST = 1, LOCAL = 2, CUSTOM = 3
@@ -860,7 +860,6 @@ func (s *State) Init() {
 	// Allocate the original set of Process Lists
 	s.ProcessLists = NewProcessLists(s)
 	s.FaultWait = 3
-	s.LastFaultAction = 0
 	s.LastTiebreak = 0
 	s.EOMfaultIndex = 0
 
@@ -933,6 +932,7 @@ func (s *State) Init() {
 
 	s.AuditHeartBeats = make([]interfaces.IMsg, 0)
 
+	s.IdentityControl = NewIdentityManager()
 	s.initServerKeys()
 	s.AuthorityServerCount = 0
 

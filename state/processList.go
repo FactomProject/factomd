@@ -109,11 +109,6 @@ type ProcessList struct {
 	StartingAuditServers []interfaces.IServer // List of Audit Servers
 	StartingFedServers   []interfaces.IServer // List of Federated Servers
 
-	// AmINegotiator is just used for displaying an "N" next to a node
-	// that is the assigned negotiator for a particular processList
-	// height
-	AmINegotiator bool
-
 	// DB Sigs
 	DBSignatures     []DBSig
 	DBSigAlreadySent bool
@@ -124,14 +119,6 @@ type ProcessList struct {
 }
 
 var _ interfaces.IProcessList = (*ProcessList)(nil)
-
-func (p *ProcessList) GetAmINegotiator() bool {
-	return p.AmINegotiator
-}
-
-func (p *ProcessList) SetAmINegotiator(b bool) {
-	p.AmINegotiator = b
-}
 
 // Data needed to add to admin block
 type DBSig struct {
@@ -781,22 +768,6 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			if f == nil {
 				p.Ask(-1, i, 10, 100)
 				break systemloop
-			}
-
-			fault, ok := f.(*messages.FullServerFault)
-
-			if ok {
-				vm := p.VMs[fault.VMIndex]
-				if vm.Height < int(fault.Height) {
-					//p.State.AddStatus(fmt.Sprint("VM HEIGHT IS", vm.Height, "FH IS", fault.Height))
-					break systemloop
-				}
-				if !fault.Process(p.DBHeight, p.State) {
-					fault.SetAlreadyProcessed()
-					break systemloop
-				}
-				p.System.Height++
-				progress = true
 			}
 		}
 	}

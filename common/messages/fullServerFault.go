@@ -185,6 +185,7 @@ func (m *FullServerFault) Type() byte {
 }
 
 func (m *FullServerFault) MarshalCore() (data []byte, err error) {
+	panic("Deprecated")
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error marshalling Server Fault Core: %v", r)

@@ -1000,6 +1000,22 @@ func SimControl(listenTo int, listenStdin bool) {
 					for _, a := range i.AnchorKeys {
 						os.Stderr.WriteString(fmt.Sprintf("Anchor Key: {'%s' L%x T%x K:%x}\n", a.BlockChain, a.KeyLevel, a.KeyType, a.SigningKey))
 					}
+
+				}
+
+				os.Stderr.WriteString(fmt.Sprintf("=== Authority NEW List ===  Total: %d Displaying: All\n", len(fnodes[ListenTo].State.IdentityControl.Authorities)))
+				for _, a := range fnodes[listenTo].State.IdentityControl.Authorities {
+					os.Stderr.WriteString("-------------------------------------------------------------------------------\n")
+					var stat string
+					stat = returnStatString(a.Status)
+					os.Stderr.WriteString(fmt.Sprint("Server Status: ", stat, "\n"))
+					os.Stderr.WriteString(fmt.Sprint("Identity Chain: ", a.AuthorityChainID.String(), "\n"))
+					os.Stderr.WriteString(fmt.Sprint("Management Chain: ", a.ManagementChainID.String(), "\n"))
+					os.Stderr.WriteString(fmt.Sprint("Matryoshka Hash: ", a.MatryoshkaHash.String(), "\n"))
+					os.Stderr.WriteString(fmt.Sprint("Signing Key: ", a.SigningKey.String(), "\n"))
+					for _, k := range a.AnchorKeys {
+						os.Stderr.WriteString(fmt.Sprintf("Anchor Key: {'%s' L%x T%x K:%x}\n", k.BlockChain, k.KeyLevel, k.KeyType, k.SigningKey))
+					}
 				}
 			case 'C' == b[0]:
 				fmt.Println("Cleaning up")

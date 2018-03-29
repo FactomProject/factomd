@@ -67,7 +67,7 @@ func (im *IdentityManager) ApplyAddFederatedServer(entry interfaces.IABEntry) er
 
 	auth := im.GetAuthority(e.IdentityChainID)
 	if auth == nil {
-		auth = new(Authority)
+		auth = NewAuthority()
 	}
 
 	auth.Status = constants.IDENTITY_FEDERATED_SERVER
@@ -82,7 +82,7 @@ func (im *IdentityManager) ApplyAddAuditServer(entry interfaces.IABEntry) error 
 
 	auth := im.GetAuthority(e.IdentityChainID)
 	if auth == nil {
-		auth = new(Authority)
+		auth = NewAuthority()
 	}
 
 	auth.Status = constants.IDENTITY_AUDIT_SERVER
@@ -106,6 +106,11 @@ func (im *IdentityManager) ApplyAddFederatedServerSigningKey(entry interfaces.IA
 	if auth == nil {
 		return fmt.Errorf("Authority %v not found!", e.IdentityChainID.String())
 	}
+
+	auth.KeyHistory = append(auth.KeyHistory, struct {
+		ActiveDBHeight uint32
+		SigningKey     primitives.PublicKey
+	}{e.DBHeight, auth.SigningKey})
 
 	b, err := e.PublicKey.MarshalBinary()
 	if err != nil {
@@ -132,7 +137,7 @@ func (im *IdentityManager) ApplyAddFederatedServerBitcoinAnchorKey(entry interfa
 	ask.SigningKey = e.ECDSAPublicKey
 	ask.KeyLevel = e.KeyPriority
 	ask.KeyType = e.KeyType
-	//ask.BlockChain = e.
+	ask.BlockChain = "BTC"
 
 	auth.AnchorKeys = append(auth.AnchorKeys, ask)
 

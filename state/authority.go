@@ -142,18 +142,51 @@ func (st *State) GetAuthority(serverID interfaces.IHash) (*Authority, int) {
 
 // We keep a 1 block history of their keys, this is so if we change their
 func (st *State) UpdateAuthSigningKeys(height uint32) {
-	/*for index, auth := range st.Authorities {
-		for _, key := range auth.KeyHistory {
-			if key.ActiveDBHeight <= height {
-				if len(st.Authorities[index].KeyHistory) == 1 {
-					st.Authorities[index].KeyHistory = nil
-				} else {
-					st.Authorities[index].KeyHistory = st.Authorities[index].KeyHistory[1:]
-				}
+	for index, auth := range st.Authorities {
+		chopOffIndex := 0 // Index of the keys we should chop off
+		for i, key := range auth.KeyHistory {
+			// Keeping 2 heights worth.
+			if key.ActiveDBHeight <= height-2 {
+				chopOffIndex = i
 			}
 		}
-	}*/
+
+		if chopOffIndex > 0 {
+			if len(st.Authorities[index].KeyHistory) == chopOffIndex+1 {
+				st.Authorities[index].KeyHistory = nil
+				st.IdentityControl.Authorities[auth.AuthorityChainID.String()].KeyHistory = nil
+			} else {
+				// This could be a memory leak if the authority keeps updating his keys every block,
+				// but the line above sets to nil if there is only 1 item left, so it will eventually
+				// garbage collect the whole slice
+				st.Authorities[index].KeyHistory = st.Authorities[index].KeyHistory[chopOffIndex+1:]
+				st.IdentityControl.Authorities[auth.AuthorityChainID.String()].KeyHistory = st.IdentityControl.Authorities[auth.AuthorityChainID.String()].KeyHistory[chopOffIndex+1:]
+			}
+
+		}
+	}
+
 	st.RepairAuthorities()
+	if !st.CompareLists() {
+		fmt.Println("Auth lists are different")
+	}
+}
+
+func (st *State) CompareLists() bool {
+	for _, a := range st.Authorities {
+		b, ok := st.IdentityControl.Authorities[a.AuthorityChainID.String()]
+		if !ok {
+			return false
+		}
+		if !b.IsSameAs(a) {
+			return false
+		}
+	}
+
+	if len(st.Authorities) != len(st.IdentityControl.Authorities) {
+		return false
+	}
+	return true
 }
 
 func (st *State) UpdateAuthorityFromABEntry(entry interfaces.IABEntry) error {
@@ -162,6 +195,12 @@ func (st *State) UpdateAuthorityFromABEntry(entry interfaces.IABEntry) error {
 	if err != nil {
 		return err
 	}
+
+	err = st.IdentityControl.ProcessABlockEntry(entry)
+	if err != nil {
+		fmt.Println(err)
+	}
+
 	switch entry.Type() {
 	case constants.TYPE_REVEAL_MATRYOSHKA:
 		r := new(adminBlock.RevealMatryoshkaHash)
@@ -262,6 +301,7 @@ func (st *State) UpdateAuthorityFromABEntry(entry interfaces.IABEntry) error {
 		}
 		registerAuthAnchor(b.IdentityChainID, pubKey, b.KeyType, b.KeyPriority, st, "BTC")
 	}
+
 	return nil
 }
 
@@ -346,6 +386,24 @@ func (s *State) RepairAuthorities() {
 			if idIndex != -1 {
 				s.Authorities[i].ManagementChainID = s.Identities[idIndex].ManagementChainID
 				s.Identities[idIndex].Status = s.Authorities[i].Status
+			}
+		}
+	}
+
+	// Fix any missing management chains -- for new
+	for i, auth := range s.IdentityControl.Authorities {
+		if s.IdentityControl.Authorities[i].ManagementChainID == nil || s.IdentityControl.Authorities[i].ManagementChainID.IsZero() {
+			idIndex := s.isIdentityChain(s.IdentityControl.Authorities[i].AuthorityChainID)
+			if idIndex == -1 {
+				err := s.AddIdentityFromChainID(auth.AuthorityChainID)
+				if err != nil {
+					continue
+				}
+				idIndex = s.isIdentityChain(s.IdentityControl.Authorities[i].AuthorityChainID)
+			}
+			if idIndex != -1 {
+				s.IdentityControl.Authorities[i].ManagementChainID = s.Identities[idIndex].ManagementChainID
+				s.Identities[idIndex].Status = s.IdentityControl.Authorities[i].Status
 			}
 		}
 	}

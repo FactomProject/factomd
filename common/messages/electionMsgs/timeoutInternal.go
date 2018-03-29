@@ -103,7 +103,9 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 		for _, im := range e.Msgs {
 			msg := im.(interfaces.IMsgAck)
 			if int(msg.GetDBHeight()) == m.DBHeight && int(m.Minute) == int(msg.GetMinute()) {
-				VMscollected[msg.GetVMIndex()] = true
+				if m.SigType == msg.(*EomSigInternal).SigType {
+					VMscollected[msg.GetVMIndex()] = true
+				}
 			}
 		}
 		found := false

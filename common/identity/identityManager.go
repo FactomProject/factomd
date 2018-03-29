@@ -30,6 +30,26 @@ type IdentityManagerWithoutMutex struct {
 	OldEntries []*OldEntry
 }
 
+func NewIdentityManager() *IdentityManager {
+	im := new(IdentityManager)
+	im.Authorities = make(map[string]*Authority)
+	im.Identities = make(map[string]*Identity)
+	return im
+}
+
+func (im *IdentityManager) SetBootstrapIdentity(id interfaces.IHash, key interfaces.IHash) error {
+	auth := NewAuthority()
+	auth.AuthorityChainID = id
+
+	var pub primitives.PublicKey
+	pub = key.Fixed()
+	auth.SigningKey = pub
+	auth.Status = constants.IDENTITY_FEDERATED_SERVER
+
+	im.SetAuthority(auth.AuthorityChainID, auth)
+	return nil
+}
+
 func (im *IdentityManager) SetSkeletonKey(key string) error {
 	auth := new(Authority)
 	err := auth.SigningKey.UnmarshalText([]byte(key))

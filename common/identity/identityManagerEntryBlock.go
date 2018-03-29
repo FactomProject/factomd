@@ -346,7 +346,7 @@ func (im *IdentityManager) ApplyRegisterFactomIdentityStructure(rfi *RegisterFac
 		return false, err
 	}
 
-	id.ManagementRegistered = dBlockHeight
+	id.IdentityRegistered = dBlockHeight
 
 	im.SetIdentity(id.IdentityChainID, id)
 	return false, nil

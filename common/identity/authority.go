@@ -25,10 +25,19 @@ type Authority struct {
 	KeyHistory []HistoricKey
 }
 
+func NewAuthority() *Authority {
+	a := new(Authority)
+	a.AuthorityChainID = primitives.NewZeroHash()
+	a.ManagementChainID = primitives.NewZeroHash()
+	a.MatryoshkaHash = primitives.NewZeroHash()
+
+	return a
+}
+
 var _ interfaces.BinaryMarshallable = (*Authority)(nil)
 
 func RandomAuthority() *Authority {
-	a := new(Authority)
+	a := NewAuthority()
 
 	a.AuthorityChainID = primitives.RandomHash()
 	a.ManagementChainID = primitives.RandomHash()
