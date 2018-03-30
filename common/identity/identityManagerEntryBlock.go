@@ -57,7 +57,7 @@ func (im *IdentityManager) ProcessIdentityEntry(entry interfaces.IEBEntry, dBloc
 		if err != nil {
 			return err
 		}
-		tryAgain, err := im.ApplyNewBitcoinKeyStructure(nkb, chainID, "???????????????", dBlockTimestamp)
+		tryAgain, err := im.ApplyNewBitcoinKeyStructure(nkb, chainID, "BTC", dBlockTimestamp)
 		if tryAgain == true && newEntry == true {
 			//if it's a new entry, push it and return nil
 			return im.PushEntryForLater(entry, dBlockHeight, dBlockTimestamp)
