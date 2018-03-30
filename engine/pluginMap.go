@@ -96,7 +96,7 @@ func LaunchDBStateManagePlugin(path string, inQueue interfaces.IQueue, s *state.
 	return manager, nil
 }
 
-// manageDrain handles messages being returned by the plugin, since our requests are asyncronous
+// manageDrain handles messages being returned by the plugin, since our requests are asynchronous
 // When we make a request via a retrieve, this function will pick up the return
 func manageDrain(inQueue interfaces.IQueue, man interfaces.IManagerController, s *state.State, quit chan int) {
 	cm := NewCompletedHeightManager()

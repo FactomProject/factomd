@@ -4,8 +4,6 @@
 
 package interfaces
 
-import ()
-
 // The wallet interface uses bytes.  This is because we want to
 // handle fixed length values in our maps and the   If
 // we try to use strings, then the lengths vary based on encoding
@@ -71,7 +69,7 @@ type ISCWallet interface {
 	// Checks that the signatures all validate.
 	ValidateSignatures(ITransaction) error
 	// Sign the inputs that have public keys to which we have the private
-	// keys.  In the future, we will allow transactions with partical signatures
+	// keys.  In the future, we will allow transactions with particular signatures
 	// to be sent to other people to complete the signing process.  This will
 	// be particularly useful with multisig.
 	SignInputs(ITransaction) (bool, error) // True if all inputs are signed

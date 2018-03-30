@@ -44,33 +44,33 @@ func BlockFreeChannelSend(channel chan interface{}, message interface{}) int {
 
 // Global variables for the p2p protocol
 var (
-	CurrentNetwork                       = TestNet
-	NetworkListenPort                    = "8108"
-	BroadcastFlag                        = "<BROADCAST>"
-	RandomPeerFlag                       = "<RANDOMPEER>"
-	NodeID                        uint64 = 0           // Random number used for loopback protection
-	MinumumQualityScore           int32  = -200        // if a peer's score is less than this we ignore them.
-	BannedQualityScore            int32  = -2147000000 // Used to ban a peer
-	MinumumSharingQualityScore    int32  = 20          // if a peer's score is less than this we don't share them.
-	OnlySpecialPeers                     = false
-	NetworkDeadline                      = time.Duration(30) * time.Second
-	NumberPeersToConnect                 = 32
-	NumberPeersToBroadcast               = 100
-	MaxNumberIncommingConnections        = 150
-	MaxNumberOfRedialAttempts            = 5 // How many missing pings (and other) before we give up and close.
-	StandardChannelSize                  = 5000
-	NetworkStatusInterval                = time.Second * 9
-	ConnectionStatusInterval             = time.Second * 122
-	PingInterval                         = time.Second * 15
-	TimeBetweenRedials                   = time.Second * 20
-	PeerSaveInterval                     = time.Second * 30
-	PeerRequestInterval                  = time.Second * 180
-	PeerDiscoveryInterval                = time.Hour * 4
+	CurrentNetwork                      = TestNet
+	NetworkListenPort                   = "8108"
+	BroadcastFlag                       = "<BROADCAST>"
+	RandomPeerFlag                      = "<RANDOMPEER>"
+	NodeID                       uint64 = 0           // Random number used for loopback protection
+	MinumumQualityScore          int32  = -200        // if a peer's score is less than this we ignore them.
+	BannedQualityScore           int32  = -2147000000 // Used to ban a peer
+	MinumumSharingQualityScore   int32  = 20          // if a peer's score is less than this we don't share them.
+	OnlySpecialPeers                    = false
+	NetworkDeadline                     = time.Duration(30) * time.Second
+	NumberPeersToConnect                = 32
+	NumberPeersToBroadcast              = 100
+	MaxNumberIncomingConnections        = 150
+	MaxNumberOfRedialAttempts           = 5 // How many missing pings (and other) before we give up and close.
+	StandardChannelSize                 = 5000
+	NetworkStatusInterval               = time.Second * 9
+	ConnectionStatusInterval            = time.Second * 122
+	PingInterval                        = time.Second * 15
+	TimeBetweenRedials                  = time.Second * 20
+	PeerSaveInterval                    = time.Second * 30
+	PeerRequestInterval                 = time.Second * 180
+	PeerDiscoveryInterval               = time.Hour * 4
 
 	// Testing metrics
-	TotalMessagesRecieved       uint64
+	TotalMessagesReceived       uint64
 	TotalMessagesSent           uint64
-	ApplicationMessagesRecieved uint64
+	ApplicationMessagesReceived uint64
 
 	CRCKoopmanTable = crc32.MakeTable(crc32.Koopman)
 	RandomGenerator *rand.Rand // seeded pseudo-random number generator

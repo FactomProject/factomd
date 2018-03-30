@@ -71,7 +71,7 @@ type SaveState struct {
 
 	Holding map[[32]byte]interfaces.IMsg // Hold Messages
 	XReview []interfaces.IMsg            // After the EOM, we must review the messages in Holding
-	Acks    map[[32]byte]interfaces.IMsg // Hold Acknowledgemets
+	Acks    map[[32]byte]interfaces.IMsg // Hold Acknowledgements
 	Commits *SafeMsgMap                  // map[[32]byte]interfaces.IMsg // Commit Messages
 
 	InvalidMessages map[[32]byte]interfaces.IMsg
@@ -828,7 +828,7 @@ func (ss *SaveState) MarshalBinary() ([]byte, error) {
 	/*
 		Holding map[[32]byte]interfaces.IMsg   // Hold Messages
 		XReview []interfaces.IMsg              // After the EOM, we must review the messages in Holding
-		Acks    map[[32]byte]interfaces.IMsg   // Hold Acknowledgemets
+		Acks    map[[32]byte]interfaces.IMsg   // Hold Acknowledgements
 		Commits map[[32]byte][]interfaces.IMsg // Commit Messages
 
 		InvalidMessages map[[32]byte]interfaces.IMsg
@@ -1112,7 +1112,7 @@ func (ss *SaveState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 	/*
 		Holding map[[32]byte]interfaces.IMsg   // Hold Messages
 		XReview []interfaces.IMsg              // After the EOM, we must review the messages in Holding
-		Acks    map[[32]byte]interfaces.IMsg   // Hold Acknowledgemets
+		Acks    map[[32]byte]interfaces.IMsg   // Hold Acknowledgements
 		Commits map[[32]byte][]interfaces.IMsg // Commit Messages
 
 		InvalidMessages map[[32]byte]interfaces.IMsg

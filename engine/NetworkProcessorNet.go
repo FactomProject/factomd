@@ -27,10 +27,21 @@ func NetworkProcessorNet(fnode *FactomNode) {
 func Peers(fnode *FactomNode) {
 	cnt := 0
 
+	var msg interfaces.IMsg
+
+	once := true
+	defer func() {
+		if r := recover(); r != nil && once {
+			once = false
+			fmt.Println("Msg Type:", msg.Type())
+			fmt.Println("**** Processing msg", msg.String())
+			panic("Error")
+		}
+	}()
 	// ackHeight is used in ignoreMsg to determine if we should ignore an ackowledgment
 	ackHeight := uint32(0)
-	// When syncing from disk/network we want to selectivly ignore certain msgs to allow
-	// factom to focus on syncing. The following msgs will be ignored:
+	// When syncing from disk/network we want to selectively ignore certain msgs to allow
+	// Factom to focus on syncing. The following msgs will be ignored:
 	//		Acks:
 	//				Ignore acks below the ackheight, which is set if we get an ack at a height higher than
 	//			  	the ackheight. This is because Acks are for the current block, which we are not at,
@@ -46,7 +57,7 @@ func Peers(fnode *FactomNode) {
 	//				Only helpful at the latest height
 	//
 	//		MissingData:
-	//				We should fufill some of these requests, but we should also focus on ourselves while we are syncing.
+	//				We should fulfill some of these requests, but we should also focus on ourselves while we are syncing.
 	//				If our inmsg queue has too many msgs, then don't help others.
 	ignoreMsg := func(amsg interfaces.IMsg) bool {
 		// Stop uint32 underflow
@@ -85,7 +96,8 @@ func Peers(fnode *FactomNode) {
 
 	for {
 		for i := 0; i < 100 && fnode.State.APIQueue().Length() > 0; i++ {
-			msg := fnode.State.APIQueue().Dequeue()
+			msg = fnode.State.APIQueue().Dequeue()
+
 			if msg != nil {
 				if msg == nil {
 					continue
@@ -127,11 +139,11 @@ func Peers(fnode *FactomNode) {
 				preReceiveTime := time.Now()
 
 				if !fnode.State.GetNetStateOff() {
-					msg, err = peer.Recieve()
+					msg, err = peer.Receive()
 				}
 
 				if msg == nil {
-					// Recieve is not blocking; nothing to do, we get a nil.
+					// Receive is not blocking; nothing to do, we get a nil.
 					break
 				}
 
@@ -145,7 +157,7 @@ func Peers(fnode *FactomNode) {
 				}
 
 				if err != nil {
-					fmt.Println("ERROR recieving message on", fnode.State.FactomNodeName+":", err)
+					fmt.Println("ERROR receiving message on", fnode.State.FactomNodeName+":", err)
 					break
 				}
 
@@ -162,7 +174,7 @@ func Peers(fnode *FactomNode) {
 					msg.GetTimestamp(),
 					fnode.State.GetTimestamp()) {
 					//if state.GetOut() {
-					//	fnode.State.Println("In Comming!! ",msg)
+					//	fnode.State.Println("In Coming!! ",msg)
 					//}
 					in := "PeerIn"
 					if msg.IsPeer2Peer() {
@@ -276,7 +288,7 @@ func InvalidOutputs(fnode *FactomNode) {
 		//fmt.Println(invalidMsg)
 
 		// The following code was giving a demerit for each instance of a message in the NetworkInvalidMsgQueue.
-		// However the concensus system is not properly limiting the messages going into this queue to be ones
+		// However the consensus system is not properly limiting the messages going into this queue to be ones
 		//  indicating an attack.  So the demerits are turned off for now.
 		// if len(invalidMsg.GetNetworkOrigin()) > 0 {
 		// 	p2pNetwork.AdjustPeerQuality(invalidMsg.GetNetworkOrigin(), -2)

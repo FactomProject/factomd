@@ -2,9 +2,10 @@ package dbInfo_test
 
 import (
 	"bytes"
+	"testing"
+
 	. "github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
 	"github.com/FactomProject/factomd/testHelper"
-	"testing"
 )
 
 func TestMarshalUnmarshal(t *testing.T) {

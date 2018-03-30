@@ -2,14 +2,16 @@ package testHelper_test
 
 import (
 	"crypto/rand"
+
 	"github.com/FactomProject/ed25519"
 	//"github.com/FactomProject/factomd/common/factoid/wallet"
 	"encoding/hex"
 	"fmt"
+	"testing"
+
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/primitives"
 	. "github.com/FactomProject/factomd/testHelper"
-	"testing"
 )
 
 /*

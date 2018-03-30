@@ -19,7 +19,7 @@ import (
 type DetachedSignature [ed25519.SignatureSize]byte
 type DetachedPublicKey [ed25519.PublicKeySize]byte
 */
-//Signature has signed data and its corresponsing PublicKey
+//Signature has signed data and its corresponding PublicKey
 type Signature struct {
 	Pub *PublicKey    `json:"pub"`
 	Sig *ByteSliceSig `json:"sig"`

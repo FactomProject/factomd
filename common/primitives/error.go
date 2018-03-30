@@ -59,13 +59,13 @@ func CreateError(code uint, message string) *Error {
 func retreiveErrorParameters(code uint) (int, string, string, string) {
 	switch code {
 	case ErrorInternal:
-		return 500, "Internal", "An internal error occured", ""
+		return 500, "Internal", "An internal error occurred", ""
 
 	case ErrorJSONMarshal:
-		return 500, "JSON Marshal", "An error occured marshalling into JSON", ""
+		return 500, "JSON Marshal", "An error occurred marshalling into JSON", ""
 
 	case ErrorXMLMarshal:
-		return 500, "XML Marshal", "An error occured marshalling into XML", ""
+		return 500, "XML Marshal", "An error occurred marshalling into XML", ""
 
 	case ErrorUnsupportedMarshal:
 		return 500, "Unsupported Marshal", "The server attempted to marshal the data into an unsupported format", ""
@@ -101,10 +101,10 @@ func retreiveErrorParameters(code uint) (int, string, string, string) {
 		return 404, "Entry Not Found", "The specified entry cannot be found", ""
 
 	case ErrorJSONUnmarshal:
-		return 400, "JSON Unmarshal", "An error occured while unmarshalling from JSON", ""
+		return 400, "JSON Unmarshal", "An error occurred while unmarshalling from JSON", ""
 
 	case ErrorXMLUnmarshal:
-		return 400, "XML Unmarshal", "An error occured while unmarshalling from XML", ""
+		return 400, "XML Unmarshal", "An error occurred while unmarshalling from XML", ""
 
 	case ErrorUnsupportedUnmarshal:
 		return 400, "Unsupported Unmarshal", "The data was specified to be in an unsupported format", ""
@@ -113,7 +113,7 @@ func retreiveErrorParameters(code uint) (int, string, string, string) {
 		return 400, "Bad POST Data", "The body of the POST request is malformed", ""
 
 	case ErrorTemplateError:
-		return 500, "Template Error", "A template error occured", ""
+		return 500, "Template Error", "A template error occurred", ""
 
 	case ErrorHTTPNewRequestFailure:
 		return 500, "HTTP Request Failure", "Failed to create an HTTP request", ""
@@ -122,8 +122,8 @@ func retreiveErrorParameters(code uint) (int, string, string, string) {
 		return 500, "HTTP Request Failure", "Error while executing an HTTP request", ""
 
 	case ErrorHTMLMarshal:
-		return 500, "HTML Marshal", "An error occured marshalling into HTML", ""
+		return 500, "HTML Marshal", "An error occurred marshalling into HTML", ""
 	}
 
-	return 500, "Unknown Error", "An unknown error occured", ""
+	return 500, "Unknown Error", "An unknown error occurred", ""
 }

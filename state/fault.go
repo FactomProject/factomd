@@ -514,7 +514,7 @@ func (s *State) DoReset() {
 	plToReset := s.ProcessLists.Get(s.DBStates.Base + uint32(index) + 1)
 	plToReset.Reset()
 
-	//s.StartDelay = s.GetTimestamp().GetTimeMilli() // We cant start as a leader until we know we are upto date
+	//s.StartDelay = s.GetTimestamp().GetTimeMilli() // We can't start as a leader until we know we are upto date
 	//s.RunLeader = false
 	s.CurrentMinute = 0
 

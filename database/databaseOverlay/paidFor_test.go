@@ -9,6 +9,7 @@
 package databaseOverlay_test
 
 import (
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/testHelper"
@@ -30,15 +31,15 @@ func TestPaidFor(t *testing.T) {
 	for _, block := range blocks {
 		ecEntries := block.ECBlock.GetBody().GetEntries()
 		for _, entry := range ecEntries {
-			if entry.ECID() != entryCreditBlock.ECIDChainCommit && entry.ECID() != entryCreditBlock.ECIDEntryCommit {
+			if entry.ECID() != constants.ECIDChainCommit && entry.ECID() != constants.ECIDEntryCommit {
 				continue
 			}
 			var entryHash interfaces.IHash
 
-			if entry.ECID() == entryCreditBlock.ECIDChainCommit {
+			if entry.ECID() == constants.ECIDChainCommit {
 				entryHash = entry.(*entryCreditBlock.CommitChain).EntryHash
 			}
-			if entry.ECID() == entryCreditBlock.ECIDEntryCommit {
+			if entry.ECID() == constants.ECIDEntryCommit {
 				entryHash = entry.(*entryCreditBlock.CommitEntry).EntryHash
 			}
 

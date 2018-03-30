@@ -14,10 +14,10 @@ import (
 type MessageBase struct {
 	FullMsgHash interfaces.IHash
 
-	Origin        int    // Set and examined on a server, not marshaled with the message
+	Origin        int    // Set and examined on a server, not marshalled with the message
 	NetworkOrigin string // Hash of the network peer/connection where the message is from
-	Peer2Peer     bool   // The nature of this message type, not marshaled with the message
-	LocalOnly     bool   // This message is only a local message, is not broadcasted and may skip verification
+	Peer2Peer     bool   // The nature of this message type, not marshalled with the message
+	LocalOnly     bool   // This message is only a local message, is not broadcast and may skip verification
 
 	NoResend  bool // Don't resend this message if true.
 	ResendCnt int  // Put a limit on resends
@@ -54,7 +54,7 @@ func (m *MessageBase) PutAck(ack interfaces.IMsg) {
 }
 
 func (m *MessageBase) SendOut(state interfaces.IState, msg interfaces.IMsg) {
-	// Dont' resend if we are behind
+	// Do not resend if we are behind
 	if m.ResendCnt > 1 && state.GetHighestKnownBlock()-state.GetHighestSavedBlk() > 4 {
 		return
 	}

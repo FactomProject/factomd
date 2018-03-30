@@ -7,6 +7,7 @@ package entryCreditBlock
 import (
 	"fmt"
 
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -81,7 +82,7 @@ func NewMinuteNumber(number uint8) *MinuteNumber {
 }
 
 func (m *MinuteNumber) ECID() byte {
-	return ECIDMinuteNumber
+	return constants.ECIDMinuteNumber
 }
 
 func (m *MinuteNumber) MarshalBinary() ([]byte, error) {
