@@ -17,10 +17,6 @@ func (im *IdentityManager) ProcessIdentityEntry(entry interfaces.IEBEntry, dBloc
 	if entry.GetChainID().String()[:6] != "888888" {
 		return fmt.Errorf("Invalic chainID - expected 888888..., got %v", entry.GetChainID().String())
 	}
-	if entry.GetHash().String() == "172eb5cb84a49280c9ad0baf13bea779a624def8d10adab80c3d007fe8bce9ec" {
-		//First entry, can ignore
-		return nil
-	}
 
 	chainID := entry.GetChainID()
 
@@ -29,6 +25,12 @@ func (im *IdentityManager) ProcessIdentityEntry(entry interfaces.IEBEntry, dBloc
 		//Invalid Identity Chain Entry
 		return fmt.Errorf("Invalid Identity Chain Entry")
 	}
+
+	if string(extIDs[0]) == "Factom Identity Registration Chain" {
+		//First entry, can ignore
+		return nil
+	}
+
 	if len(extIDs[0]) == 0 {
 		return fmt.Errorf("Invalid Identity Chain Entry")
 	}
