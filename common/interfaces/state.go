@@ -289,6 +289,7 @@ type IState interface {
 	VerifyAuthoritySignature(Message []byte, signature *[64]byte, dbheight uint32) (int, error)
 	FastVerifyAuthoritySignature(Message []byte, signature IFullSignature, dbheight uint32) (int, error)
 	UpdateAuthSigningKeys(height uint32)
+	AddIdentityFromChainID(cid IHash) error
 
 	AddAuthorityDelta(changeString string)
 

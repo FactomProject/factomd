@@ -5,6 +5,9 @@
 package identity
 
 import (
+	"errors"
+	"fmt"
+
 	ed "github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -22,13 +25,20 @@ type Identity struct {
 	ManagementRegistered uint32
 	ManagementCreated    uint32
 	MatryoshkaHash       interfaces.IHash
-	Key1                 interfaces.IHash
-	Key2                 interfaces.IHash
-	Key3                 interfaces.IHash
-	Key4                 interfaces.IHash
-	SigningKey           interfaces.IHash
-	Status               uint8
-	AnchorKeys           []AnchorSigningKey
+
+	// All 4 levels keys, 0 indexed.
+	//		Keys[0] --> Key 1
+	//		Keys[1] --> Key 2
+	//		Keys[2] --> Key 3
+	//		Keys[3] --> Key 4
+	Keys       [4]interfaces.IHash
+	Key1       interfaces.IHash
+	Key2       interfaces.IHash
+	Key3       interfaces.IHash
+	Key4       interfaces.IHash
+	SigningKey interfaces.IHash
+	Status     uint8
+	AnchorKeys []AnchorSigningKey
 }
 
 var _ interfaces.Printable = (*Identity)(nil)
@@ -39,6 +49,11 @@ func NewIdentity() *Identity {
 	i.IdentityChainID = primitives.NewZeroHash()
 	i.ManagementChainID = primitives.NewZeroHash()
 	i.MatryoshkaHash = primitives.NewZeroHash()
+
+	for c := range i.Keys {
+		i.Keys[c] = primitives.NewZeroHash()
+	}
+
 	i.Key1 = primitives.NewZeroHash()
 	i.Key2 = primitives.NewZeroHash()
 	i.Key3 = primitives.NewZeroHash()
@@ -58,6 +73,11 @@ func RandomIdentity() *Identity {
 	id.ManagementRegistered = random.RandUInt32()
 	id.ManagementCreated = random.RandUInt32()
 	id.MatryoshkaHash = primitives.RandomHash()
+
+	for c := range id.Keys {
+		id.Keys[c] = primitives.RandomHash()
+	}
+
 	id.Key1 = primitives.RandomHash()
 	id.Key2 = primitives.RandomHash()
 	id.Key3 = primitives.RandomHash()
@@ -73,25 +93,113 @@ func RandomIdentity() *Identity {
 	return id
 }
 
-/*
-	IdentityRegistered   uint32
-	IdentityCreated      uint32
-	ManagementRegistered uint32
-	ManagementCreated    uint32
-	Status               uint8
-	AnchorKeys           []AnchorSigningKey
-*/
+// IsPromteable will return if the identity is able to be promoted.
+//		Checks if the Identity is complete
+//		Checks if the registration is valid
+func (id *Identity) IsPromteable() (bool, error) {
+	if ok, err := id.IsComplete(); !ok {
+		return ok, err
+	}
+
+	if ok, err := id.IsRegistrationValid(); !ok {
+		return ok, err
+	}
+
+	return true, nil
+}
+
+// IsRegistrationValid will return if the registration of the identity is
+// valid. It is determined by the block heights of registration to creation
+// and is all time based (where time is measured in blocks)
+func (id *Identity) IsRegistrationValid() (bool, error) {
+	// Check the time window on registration
+	dif := id.IdentityCreated - id.IdentityRegistered
+	if id.IdentityRegistered > id.IdentityCreated { // Uint underflow
+		dif = id.IdentityRegistered - id.IdentityCreated
+	}
+
+	if dif > constants.IDENTITY_REGISTRATION_BLOCK_WINDOW {
+		return false, errors.New("Time window of identity create and register invalid")
+	}
+
+	// Also check Management registration
+	dif = id.ManagementCreated - id.ManagementRegistered
+	if id.ManagementRegistered > id.ManagementCreated { // Uint underflow
+		dif = id.ManagementRegistered - id.ManagementCreated
+	}
+
+	if dif > constants.IDENTITY_REGISTRATION_BLOCK_WINDOW {
+		return false, errors.New("Time window of identity managment create and register invalid")
+	}
+
+	return true, nil
+}
+
+// IsComplete returns if the identity is complete, meaning it has
+// all of the required information for an authority server.
+// If the identity is not valid, a list of missing things will be
+// returned in the error
+func (id *Identity) IsComplete() (bool, error) {
+	isNil := func(hash interfaces.IHash) bool {
+		if hash == nil || hash.IsZero() {
+			return true
+		}
+		return false
+	}
+
+	// A list of all missing things for a helpful error
+	missing := []string{}
+
+	// Required for Admin Block
+	if isNil(id.SigningKey) {
+		missing = append(missing, "block signing key")
+	}
+
+	if len(id.AnchorKeys) == 0 {
+		missing = append(missing, "block signing key")
+
+	}
+
+	if isNil(id.MatryoshkaHash) {
+		missing = append(missing, "block signing key")
+	}
+
+	// There are additional requirements we will enforce
+	for c := range id.Keys {
+		if isNil(id.Keys[c]) {
+			missing = append(missing, fmt.Sprintf("id key %d", c+1))
+		}
+	}
+
+	if isNil(id.IdentityChainID) {
+		missing = append(missing, "identity chain")
+	}
+
+	if isNil(id.ManagementChainID) {
+		missing = append(missing, "identity chain")
+	}
+
+	if len(missing) > 0 {
+		return false, fmt.Errorf("missing: %v", missing)
+	}
+
+	return true, nil
+}
 
 func (e *Identity) Clone() *Identity {
 	b := NewIdentity()
 	b.IdentityChainID.SetBytes(e.IdentityChainID.Bytes())
 	b.ManagementChainID.SetBytes(e.ManagementChainID.Bytes())
 	b.MatryoshkaHash.SetBytes(e.MatryoshkaHash.Bytes())
+	for i := range b.Keys {
+		b.Keys[i].SetBytes(e.Keys[i].Bytes())
+	}
 	b.Key1.SetBytes(e.Key1.Bytes())
 	b.Key2.SetBytes(e.Key2.Bytes())
 	b.Key3.SetBytes(e.Key3.Bytes())
 	b.Key4.SetBytes(e.Key4.Bytes())
 
+	b.SigningKey = e.SigningKey
 	b.IdentityRegistered = e.IdentityRegistered
 	b.IdentityCreated = e.IdentityCreated
 	b.ManagementRegistered = e.ManagementRegistered

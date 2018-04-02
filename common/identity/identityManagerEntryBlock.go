@@ -13,7 +13,11 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-func (im *IdentityManager) ProcessIdentityEntry(entry interfaces.IEBEntry, dBlockHeight uint32, dBlockTimestamp interfaces.Timestamp, newEntry bool) error {
+func (im *IdentityManager) ProcessIdentityEntry(entry interfaces.IEBEntry, dBlockHeight uint32, dBlockTimestamp interfaces.Timestamp, newEntry bool, inital bool) error {
+	if entry == nil {
+		return fmt.Errorf("Entry is nil")
+	}
+
 	if entry.GetChainID().String()[:6] != "888888" {
 		return fmt.Errorf("Invalic chainID - expected 888888..., got %v", entry.GetChainID().String())
 	}
@@ -134,6 +138,7 @@ func (im *IdentityManager) ProcessIdentityEntry(entry interfaces.IEBEntry, dBloc
 		if err != nil {
 			return err
 		}
+
 		tryAgain, err := im.ApplyServerManagementStructure(sm, chainID, dBlockHeight)
 		if tryAgain == true && newEntry == true {
 			//if it's a new entry, push it and return nil
@@ -374,14 +379,20 @@ func (im *IdentityManager) ApplyRegisterServerManagementStructure(rsm *RegisterS
 	return false, nil
 }
 
+// ApplyServerManagementStructure is the first entry in the management chain
+//	DO NOT set the management chain in the identity, as it will be set on the register
+//		"Server Management"
 func (im *IdentityManager) ApplyServerManagementStructure(sm *ServerManagementStructure, chainID interfaces.IHash, dBlockHeight uint32) (bool, error) {
-	id := im.GetIdentity(chainID)
+	id := im.GetIdentity(sm.RootIdentityChainID)
 	if id == nil {
 		return true, fmt.Errorf("ChainID doesn't exists! %v", chainID.String())
 	}
 
+	if id.ManagementCreated != 0 {
+		return true, fmt.Errorf("ManagementCreated is already set.")
+	}
 	id.ManagementCreated = dBlockHeight
 
-	im.SetIdentity(chainID, id)
+	im.SetIdentity(sm.RootIdentityChainID, id)
 	return false, nil
 }

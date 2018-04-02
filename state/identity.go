@@ -16,6 +16,8 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 
+	"fmt"
+
 	log "github.com/sirupsen/logrus"
 )
 
@@ -74,6 +76,12 @@ func (st *State) GetNetworkSkeletonKey() interfaces.IHash {
 // Add the skeleton identity and try to build it
 func (st *State) IntiateNetworkSkeletonIdentity() error {
 	skel := st.GetNetworkSkeletonIdentity()
+
+	// New
+	st.IdentityControl.SetSkeletonIdentity(skel)
+
+	// Old
+
 	// This adds the status
 	st.CreateBlankFactomIdentity(skel)
 	// This populates the identity with keys found
@@ -85,10 +93,30 @@ func (st *State) IntiateNetworkSkeletonIdentity() error {
 	return nil
 }
 
+func (st *State) CompareIDLists() {
+	for _, i := range st.Identities {
+		id := st.IdentityControl.GetIdentity(i.IdentityChainID)
+		if id == nil {
+			fmt.Printf("%s is nil\n", i.IdentityChainID.String())
+		}
+
+		if !i.IsSameAs(id) {
+			fmt.Println(i, "\n", id)
+			aa := st.IdentityControl.GetAuthority(i.IdentityChainID)
+			ab := st.IdentityControl.GetAuthority(i.IdentityChainID)
+			fmt.Println(aa, "\n", ab)
+			fmt.Printf("%s is not the same\n", i.IdentityChainID.String())
+		}
+	}
+}
+
 func (st *State) AddIdentityFromChainID(cid interfaces.IHash) error {
 	if cid.String() == st.GetNetworkBootStrapIdentity().String() { // Ignore Bootstrap Identity, as it is invalid
 		return nil
 	}
+	// COMP
+	st.CompareIDLists()
+	// END
 
 	index := st.isIdentityChain(cid)
 	if index == -1 {
@@ -156,6 +184,8 @@ func (st *State) AddIdentityFromChainID(cid interfaces.IHash) error {
 					if len(ent.ExternalIDs()[2]) == 32 {
 						idChain := primitives.NewHash(ent.ExternalIDs()[2][:32])
 						if string(ent.ExternalIDs()[1]) == "Register Factom Identity" && cid.IsSameAs(idChain) {
+							// TODO: Check this
+							st.IdentityControl.ProcessIdentityEntry(ent, height, primitives.NewTimestampNow(), true, true)
 							RegisterFactomIdentity(ent, cid, height, st)
 							break // Found the registration
 						}
@@ -189,6 +219,8 @@ func (st *State) AddIdentityFromChainID(cid interfaces.IHash) error {
 	for i := len(eblkStackSub) - 1; i >= 0; i-- {
 		LoadIdentityByEntryBlock(eblkStackSub[i], st)
 	}
+
+	st.IdentityControl.ProcessOldEntries(true)
 	err = checkIdentityForFull(index, st)
 	if err != nil {
 		st.removeIdentity(index)
@@ -251,6 +283,26 @@ func LoadIdentityByEntryBlock(eblk interfaces.IEntryBlock, st *State) {
 			LoadIdentityByEntry(entry, st, eblk.GetDatabaseHeight(), true)
 		}
 	}
+
+	// New parsing
+	if id := st.IdentityControl.GetIdentity(cid); id != nil {
+		dblock, err := st.DB.FetchDBlockByHeight(eblk.GetDatabaseHeight())
+		if err != nil {
+			// TODO: Should we panic here? It's a problem because we cannot parse the identity
+			panic("")
+		}
+		entryHashes := eblk.GetEntryHashes()
+		for _, eHash := range entryHashes {
+			entry, err := st.DB.FetchEntry(eHash)
+			if err != nil {
+				continue
+			}
+			st.IdentityControl.ProcessIdentityEntry(entry, eblk.GetDatabaseHeight(), dblock.GetTimestamp(), true, true)
+			//LoadIdentityByEntry(entry, st, eblk.GetDatabaseHeight(), true)
+		}
+		// Ordering
+		st.IdentityControl.ProcessOldEntries(true)
+	}
 }
 
 func LoadIdentityByEntry(ent interfaces.IEBEntry, st *State, height uint32, initial bool) {
@@ -258,6 +310,9 @@ func LoadIdentityByEntry(ent interfaces.IEBEntry, st *State, height uint32, init
 	if ent == nil {
 		return
 	}
+
+	st.IdentityControl.ProcessIdentityEntry(ent, height, primitives.NewTimestampNow(), true, initial)
+
 	hs := ent.GetChainID().String()
 	cid := ent.GetChainID()
 	if st.isIdentityChain(cid) == -1 {
@@ -751,6 +806,7 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 	}
 
 	index := st.isIdentityChain(chainID)
+	id2 := st.IdentityControl.GetIdentity(chainID)
 
 	if index != -1 {
 		id := st.Identities[index]
@@ -790,9 +846,11 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 		matryoshkaHash = id.MatryoshkaHash
 
 		if servertype == 0 {
+			id2.Status = constants.IDENTITY_PENDING_FEDERATED_SERVER
 			id.Status = constants.IDENTITY_PENDING_FEDERATED_SERVER
 		} else if servertype == 1 {
 			id.Status = constants.IDENTITY_PENDING_AUDIT_SERVER
+			id2.Status = constants.IDENTITY_PENDING_AUDIT_SERVER
 		}
 		st.Identities[index] = id
 	} else {
@@ -804,10 +862,14 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 	if servertype == 0 {
 		st.LeaderPL.AdminBlock.AddFedServer(chainID)
 		st.Identities[index].Status = constants.IDENTITY_PENDING_FEDERATED_SERVER
+		id2.Status = constants.IDENTITY_PENDING_FEDERATED_SERVER
 	} else if servertype == 1 {
 		st.LeaderPL.AdminBlock.AddAuditServer(chainID)
 		st.Identities[index].Status = constants.IDENTITY_PENDING_AUDIT_SERVER
+		id2.Status = constants.IDENTITY_PENDING_AUDIT_SERVER
 	}
+
+	st.IdentityControl.SetIdentity(chainID, id2)
 	st.LeaderPL.AdminBlock.AddFederatedServerSigningKey(chainID, blockSigningKey)
 	st.LeaderPL.AdminBlock.AddMatryoshkaHash(chainID, matryoshkaHash)
 	st.LeaderPL.AdminBlock.AddFederatedServerBitcoinAnchorKey(chainID, btcKeyLevel, btcKeyType, btcKey)

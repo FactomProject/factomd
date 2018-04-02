@@ -24,7 +24,7 @@ type IdentityManager struct {
 
 type IdentityManagerWithoutMutex struct {
 	Authorities          map[[32]byte]*Authority
-	Identities           map[string]*Identity
+	Identities           map[[32]byte]*Identity
 	AuthorityServerCount int
 
 	OldEntries []*OldEntry
@@ -33,14 +33,13 @@ type IdentityManagerWithoutMutex struct {
 func NewIdentityManager() *IdentityManager {
 	im := new(IdentityManager)
 	im.Authorities = make(map[[32]byte]*Authority)
-	im.Identities = make(map[string]*Identity)
+	im.Identities = make(map[[32]byte]*Identity)
 	return im
 }
 
 func (im *IdentityManager) Clone() *IdentityManager {
 	b := NewIdentityManager()
 	for k, v := range im.Authorities {
-
 		b.Authorities[k] = v.Clone()
 	}
 	for k, v := range im.Identities {
@@ -57,6 +56,14 @@ func (im *IdentityManager) Clone() *IdentityManager {
 }
 
 func (im *IdentityManager) SetBootstrapIdentity(id interfaces.IHash, key interfaces.IHash) error {
+	// Identity
+	i := NewIdentity()
+	i.IdentityChainID = id
+	i.SigningKey = key
+	i.Status = constants.IDENTITY_FEDERATED_SERVER
+	im.SetIdentity(id, i)
+
+	// Authority
 	auth := NewAuthority()
 	auth.AuthorityChainID = id
 
@@ -70,24 +77,35 @@ func (im *IdentityManager) SetBootstrapIdentity(id interfaces.IHash, key interfa
 	return nil
 }
 
-func (im *IdentityManager) SetSkeletonKey(key string) error {
-	auth := new(Authority)
-	err := auth.SigningKey.UnmarshalText([]byte(key))
-	if err != nil {
-		return err
-	}
-	auth.Status = constants.IDENTITY_FEDERATED_SERVER
+func (im *IdentityManager) SetSkeletonIdentity(chain interfaces.IHash) error {
+	// Skeleton is in the identity list
+	//	The key comes from the blockchain, and must be parsed
+	id := NewIdentity()
+	id.IdentityChainID = chain
+	id.Status = constants.IDENTITY_SKELETON
 
-	im.SetAuthority(primitives.NewZeroHash(), auth)
+	im.SetIdentity(chain, id)
 	return nil
+
+	// Skeleton is not an authority
+	/*
+		auth := new(Authority)
+		err := auth.SigningKey.UnmarshalText([]byte(key))
+		if err != nil {
+			return err
+		}
+		auth.Status = constants.IDENTITY_FEDERATED_SERVER
+
+		im.SetAuthority(primitives.NewZeroHash(), auth)
+		return nil*/
 }
 
-func (im *IdentityManager) SetSkeletonKeyMainNet() error {
-	//Skeleton key:
-	//"0000000000000000000000000000000000000000000000000000000000000000":"0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a"
-
-	return im.SetSkeletonKey("0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a")
-}
+//func (im *IdentityManager) SetSkeletonKeyMainNet() error {
+//	//Skeleton key:
+//	//"0000000000000000000000000000000000000000000000000000000000000000":"0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a"
+//
+//	return im.SetSkeletonKey("0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a")
+//}
 
 func (im *IdentityManager) FedServerCount() int {
 	im.Mutex.RLock()
@@ -139,18 +157,18 @@ func (im *IdentityManager) SetIdentity(chainID interfaces.IHash, id *Identity) {
 	im.Init()
 	im.Mutex.Lock()
 	defer im.Mutex.Unlock()
-	im.Identities[chainID.String()] = id
+	im.Identities[chainID.Fixed()] = id
 }
 
 func (im *IdentityManager) RemoveIdentity(chainID interfaces.IHash) bool {
 	im.Init()
 	im.Mutex.Lock()
 	defer im.Mutex.Unlock()
-	_, ok := im.Identities[chainID.String()]
+	_, ok := im.Identities[chainID.Fixed()]
 	if ok == false {
 		return false
 	}
-	delete(im.Identities, chainID.String())
+	delete(im.Identities, chainID.Fixed())
 	return true
 }
 
@@ -158,7 +176,19 @@ func (im *IdentityManager) GetIdentity(chainID interfaces.IHash) *Identity {
 	im.Init()
 	im.Mutex.RLock()
 	defer im.Mutex.RUnlock()
-	return im.Identities[chainID.String()]
+	return im.Identities[chainID.Fixed()]
+}
+
+func (im *IdentityManager) GetIdentities() []*Identity {
+	im.Mutex.RLock()
+	defer im.Mutex.RUnlock()
+
+	ids := make([]*Identity, 0)
+	for _, id := range im.Identities {
+		ids = append(ids, id)
+	}
+
+	return ids
 }
 
 func (im *IdentityManager) SetAuthority(chainID interfaces.IHash, auth *Authority) {
@@ -220,7 +250,7 @@ func (im *IdentityManager) PushEntryForLater(entry interfaces.IEBEntry, dBlockHe
 	return nil
 }
 
-func (im *IdentityManager) ProcessOldEntries() error {
+func (im *IdentityManager) ProcessOldEntries(initial bool) error {
 	for {
 		allErrors := true
 		for i := 0; i < len(im.OldEntries); i++ {
@@ -231,7 +261,7 @@ func (im *IdentityManager) ProcessOldEntries() error {
 				return err
 			}
 			t := primitives.NewTimestampFromMilliseconds(oe.DBlockTimestamp)
-			err = im.ProcessIdentityEntry(entry, oe.DBlockHeight, t, false)
+			err = im.ProcessIdentityEntry(entry, oe.DBlockHeight, t, false, initial)
 			if err == nil {
 				//entry has been finally processed, now we can delete it
 				allErrors = false

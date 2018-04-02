@@ -166,7 +166,7 @@ func (st *State) UpdateAuthSigningKeys(height uint32) {
 }
 
 func (st *State) UpdateAuthorityFromABEntry(entry interfaces.IABEntry) error {
-	err := st.IdentityControl.ProcessABlockEntry(entry)
+	err := st.IdentityControl.ProcessABlockEntry(entry, st)
 	if err != nil {
 		return err
 	}
@@ -299,6 +299,7 @@ func (s *State) RepairAuthorities() {
 	for _, iAuth := range s.IdentityControl.GetAuthorities() {
 		auth := iAuth.(*Authority)
 		if auth.ManagementChainID == nil || auth.ManagementChainID.IsZero() {
+			id := s.IdentityControl.GetIdentity(auth.AuthorityChainID)
 			idIndex := s.isIdentityChain(auth.AuthorityChainID)
 			if idIndex == -1 {
 				err := s.AddIdentityFromChainID(auth.AuthorityChainID)
@@ -306,11 +307,14 @@ func (s *State) RepairAuthorities() {
 					continue
 				}
 				idIndex = s.isIdentityChain(auth.AuthorityChainID)
+				id = s.IdentityControl.GetIdentity(auth.AuthorityChainID)
 			}
 			if idIndex != -1 {
 				auth.ManagementChainID = s.Identities[idIndex].ManagementChainID
+				id.Status = auth.Status
 				s.Identities[idIndex].Status = auth.Status
 				s.IdentityControl.SetAuthority(auth.AuthorityChainID, auth)
+				s.IdentityControl.SetIdentity(auth.AuthorityChainID, id)
 			}
 		}
 	}

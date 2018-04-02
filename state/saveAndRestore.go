@@ -620,6 +620,10 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 		s.IdentityControl.Authorities[a.AuthorityChainID.Fixed()] = a
 	}
 
+	for _, i := range ss.Identities {
+		s.IdentityControl.Identities[i.IdentityChainID.Fixed()] = i
+	}
+
 	s.AuthorityServerCount = ss.AuthorityServerCount
 
 	s.LLeaderHeight = ss.LLeaderHeight

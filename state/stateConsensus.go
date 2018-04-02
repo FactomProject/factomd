@@ -1865,7 +1865,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	*/
 }
 
-
 func (s *State) GetMsg(vmIndex int, dbheight int, height int) (interfaces.IMsg, error) {
 
 	pl := s.ProcessLists.Get(uint32(dbheight))

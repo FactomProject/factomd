@@ -566,6 +566,9 @@ func setupFirstAuthority(s *state.State) {
 		return
 	}
 
+	// NEW
+	s.IdentityControl.SetBootstrapIdentity(s.GetNetworkBootStrapIdentity(), s.GetNetworkBootStrapKey())
+
 	if networkIdentity := s.GetNetworkBootStrapIdentity(); networkIdentity != nil {
 		id.IdentityChainID = networkIdentity
 	} else {
@@ -588,9 +591,6 @@ func setupFirstAuthority(s *state.State) {
 	id.Key4 = primitives.NewZeroHash()
 	id.Status = 1
 	s.Identities = append(s.Identities, &id)
-
-	// NEW
-	s.IdentityControl.SetBootstrapIdentity(s.GetNetworkBootStrapIdentity(), s.GetNetworkBootStrapKey())
 }
 
 func networkHousekeeping() {

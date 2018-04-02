@@ -855,9 +855,10 @@ func SimControl(listenTo int, listenStdin bool) {
 					} else {
 						os.Stderr.WriteString(fmt.Sprintf("=== Identity List === Total: %d Displaying: %d\n", len(fnodes[ListenTo].State.Identities), amt))
 					}
-					for c, ident := range fnodes[ListenTo].State.Identities {
+
+					printID := func(ident *identity.Identity, c int) bool {
 						if amt != -1 && c == amt {
-							break
+							return true
 						}
 						stat := returnStatString(ident.Status)
 						if show == 5 {
@@ -893,6 +894,20 @@ func SimControl(listenTo int, listenStdin bool) {
 							for _, a := range ident.AnchorKeys {
 								os.Stderr.WriteString(fmt.Sprintf("Anchor Key: {'%s' L%x T%x K:%x}\n", a.BlockChain, a.KeyLevel, a.KeyType, a.SigningKey))
 							}
+						}
+						return false
+					}
+
+					for c, ident := range fnodes[ListenTo].State.Identities {
+						if printID(ident, c) {
+							break
+						}
+					}
+
+					fmt.Println("\n\n\n")
+					for c, ident := range fnodes[ListenTo].State.IdentityControl.GetIdentities() {
+						if printID(ident, c) {
+							break
 						}
 					}
 				}
