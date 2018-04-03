@@ -73,7 +73,6 @@ type ProcessList struct {
 	diffSigTally int /* Tally of how many VMs have provided different
 		                    					             Directory Block Signatures than what we have
 	                                            (discard DBlock if > 1/2 have sig differences) */
-
 	// messages processed in this list
 	OldMsgs     map[[32]byte]interfaces.IMsg
 	oldmsgslock *sync.Mutex

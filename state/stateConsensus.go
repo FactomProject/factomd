@@ -540,7 +540,7 @@ func (s *State) AddDBState(isNew bool,
 func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 	FollowerExecutions.Inc()
 	TotalHoldingQueueInputs.Inc()
-	s.Holding[m.GetMsgHash().Fixed()] = m
+
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
 
 	if ack != nil {
@@ -552,6 +552,8 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 
 		// Cross Boot Replay
 		s.CrossReplayAddSalt(ack.DBHeight, ack.Salt)
+	} else {
+		s.Holding[m.GetMsgHash().Fixed()] = m
 	}
 }
 
@@ -1040,38 +1042,40 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 	s.Holding[m.GetMsgHash().Fixed()] = m
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
 
-	if ack != nil {
-		m.SendOut(s, m)
-		ack.SendOut(s, ack)
-		m.SetLeaderChainID(ack.GetLeaderChainID())
-		m.SetMinute(ack.Minute)
-
-		pl := s.ProcessLists.Get(ack.DBHeight)
-		if pl == nil {
-			return
-		}
-
-		// Add the message and ack to the process list.
-		pl.AddToProcessList(ack, m)
-
-		// The message might not have gone in.  Make sure it did.  Get the list where it goes
-		list := s.ProcessLists.Get(ack.DBHeight).VMs[ack.VMIndex].List
-		// Check to make sure the list isn't empty.  If it is, then it didn't go in.
-		if int(ack.Height) >= len(list) || list[ack.Height] == nil {
-			return
-		}
-
-		msg := m.(*messages.RevealEntryMsg)
-		TotalCommitsOutputs.Inc()
-		s.Commits.Delete(msg.Entry.GetHash().Fixed()) // 	delete(s.Commits, msg.Entry.GetHash().Fixed())
-
-		// This is so the api can determine if a chainhead is about to be updated. It fixes a race condition
-		// on the api. MUST BE BEFORE THE REPLAY FILTER ADD
-		pl.PendingChainHeads.Put(msg.Entry.GetChainID().Fixed(), msg)
-		// Okay the Reveal has been recorded.  Record this as an entry that cannot be duplicated.
-		s.Replay.IsTSValid_(constants.REVEAL_REPLAY, msg.Entry.GetHash().Fixed(), msg.Timestamp, s.GetTimestamp())
-
+	if ack == nil {
+		s.ProcessLists.GetHolding(m.GetVMIndex())[m.GetMsgHash().Fixed()] = m
+		return
 	}
+
+	m.SendOut(s, m)
+	ack.SendOut(s, ack)
+	m.SetLeaderChainID(ack.GetLeaderChainID())
+	m.SetMinute(ack.Minute)
+
+	pl := s.ProcessLists.Get(ack.DBHeight)
+	if pl == nil {
+		return
+	}
+
+	// Add the message and ack to the process list.
+	pl.AddToProcessList(ack, m)
+
+	// The message might not have gone in.  Make sure it did.  Get the list where it goes
+	list := s.ProcessLists.Get(ack.DBHeight).VMs[ack.VMIndex].List
+	// Check to make sure the list isn't empty.  If it is, then it didn't go in.
+	if int(ack.Height) >= len(list) || list[ack.Height] == nil {
+		return
+	}
+
+	msg := m.(*messages.RevealEntryMsg)
+	TotalCommitsOutputs.Inc()
+	s.Commits.Delete(msg.Entry.GetHash().Fixed()) // 	delete(s.Commits, msg.Entry.GetHash().Fixed())
+
+	// This is so the api can determine if a chainhead is about to be updated. It fixes a race condition
+	// on the api. MUST BE BEFORE THE REPLAY FILTER ADD
+	pl.PendingChainHeads.Put(msg.Entry.GetChainID().Fixed(), msg)
+	// Okay the Reveal has been recorded.  Record this as an entry that cannot be duplicated.
+	s.Replay.IsTSValid_(constants.REVEAL_REPLAY, msg.Entry.GetHash().Fixed(), msg.Timestamp, s.GetTimestamp())
 
 }
 
@@ -1335,14 +1339,19 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 		// save the Commit to match againsttthe Reveal later
 		h := c.GetHash()
 		s.PutCommit(h, c)
-		entry := s.Holding[h.Fixed()]
-		if entry != nil {
-			entry.FollowerExecute(s)
-			entry.SendOut(s, entry)
-			TotalXReviewQueueInputs.Inc()
-			s.XReview = append(s.XReview, entry)
-			TotalHoldingQueueOutputs.Inc()
-			delete(s.Holding, h.Fixed())
+		var entry interfaces.IMsg
+		for _, hld := range s.ProcessLists.Holding {
+			if hld != nil {
+				entry = hld[h.Fixed()]
+				if entry != nil {
+					entry.FollowerExecute(s)
+					entry.SendOut(s, entry)
+					TotalXReviewQueueInputs.Inc()
+					s.XReview = append(s.XReview, entry)
+					TotalHoldingQueueOutputs.Inc()
+					delete(s.Holding, h.Fixed())
+				}
+			}
 		}
 		return true
 	}
@@ -1679,6 +1688,28 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 			s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
+
+			if s.Leader {
+				for _, msg := range s.ProcessLists.Holding[s.LeaderVMIndex] {
+					if msg.GetVMIndex() != s.LeaderVMIndex {
+						s.MsgQueue() <- msg
+					}
+					switch msg.Validate(s) {
+					case -1:
+						delete(s.ProcessLists.Holding[s.LeaderVMIndex], msg.GetHash().Fixed())
+					case 1:
+						if _, ok := msg.(*messages.RevealEntryMsg); ok {
+							if s.Commits.Get(msg.GetHash().Fixed()) != nil {
+								s.msgQueue <- msg
+								delete(s.ProcessLists.Holding[s.LeaderVMIndex], msg.GetHash().Fixed())
+							}
+						} else {
+							s.msgQueue <- msg
+							delete(s.ProcessLists.Holding[s.LeaderVMIndex], msg.GetHash().Fixed())
+						}
+					}
+				}
+			}
 
 			s.DBSigProcessed = 0
 
