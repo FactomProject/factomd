@@ -875,10 +875,10 @@ func SimControl(listenTo int, listenStdin bool) {
 							if show == 0 || c == amt {
 								os.Stderr.WriteString(fmt.Sprint("Management Chain: ", ident.ManagementChainID, "\n"))
 								os.Stderr.WriteString(fmt.Sprint("Matryoshka Hash: ", ident.MatryoshkaHash, "\n"))
-								os.Stderr.WriteString(fmt.Sprint("Key 1: ", ident.Key1, "\n"))
-								os.Stderr.WriteString(fmt.Sprint("Key 2: ", ident.Key2, "\n"))
-								os.Stderr.WriteString(fmt.Sprint("Key 3: ", ident.Key3, "\n"))
-								os.Stderr.WriteString(fmt.Sprint("Key 4: ", ident.Key4, "\n"))
+								os.Stderr.WriteString(fmt.Sprint("Key 1: ", ident.Keys[0], "\n"))
+								os.Stderr.WriteString(fmt.Sprint("Key 2: ", ident.Keys[1], "\n"))
+								os.Stderr.WriteString(fmt.Sprint("Key 3: ", ident.Keys[2], "\n"))
+								os.Stderr.WriteString(fmt.Sprint("Key 4: ", ident.Keys[3], "\n"))
 								os.Stderr.WriteString(fmt.Sprint("Signing Key: ", ident.SigningKey, "\n"))
 								for _, a := range ident.AnchorKeys {
 									os.Stderr.WriteString(fmt.Sprintf("Anchor Key: {'%s' L%x T%x K:%x}\n", a.BlockChain, a.KeyLevel, a.KeyType, a.SigningKey))
@@ -898,11 +898,11 @@ func SimControl(listenTo int, listenStdin bool) {
 						return false
 					}
 
-					for c, ident := range fnodes[ListenTo].State.Identities {
-						if printID(ident, c) {
-							break
-						}
-					}
+					//for c, ident := range fnodes[ListenTo].State.Identities {
+					//	if printID(ident, c) {
+					//		break
+					//	}
+					//}
 
 					fmt.Println("\n\n\n")
 					for c, ident := range fnodes[ListenTo].State.IdentityControl.GetIdentities() {

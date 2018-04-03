@@ -32,10 +32,6 @@ type Identity struct {
 	//		Keys[2] --> Key 3
 	//		Keys[3] --> Key 4
 	Keys       [4]interfaces.IHash
-	Key1       interfaces.IHash
-	Key2       interfaces.IHash
-	Key3       interfaces.IHash
-	Key4       interfaces.IHash
 	SigningKey interfaces.IHash
 	Status     uint8
 	AnchorKeys []AnchorSigningKey
@@ -54,10 +50,6 @@ func NewIdentity() *Identity {
 		i.Keys[c] = primitives.NewZeroHash()
 	}
 
-	i.Key1 = primitives.NewZeroHash()
-	i.Key2 = primitives.NewZeroHash()
-	i.Key3 = primitives.NewZeroHash()
-	i.Key4 = primitives.NewZeroHash()
 	i.SigningKey = primitives.NewZeroHash()
 
 	return i
@@ -78,10 +70,6 @@ func RandomIdentity() *Identity {
 		id.Keys[c] = primitives.RandomHash()
 	}
 
-	id.Key1 = primitives.RandomHash()
-	id.Key2 = primitives.RandomHash()
-	id.Key3 = primitives.RandomHash()
-	id.Key4 = primitives.RandomHash()
 	id.SigningKey = primitives.RandomHash()
 	id.Status = random.RandUInt8()
 
@@ -97,6 +85,10 @@ func RandomIdentity() *Identity {
 //		Checks if the Identity is complete
 //		Checks if the registration is valid
 func (id *Identity) IsPromteable() (bool, error) {
+	if id == nil {
+		return false, fmt.Errorf("Identity does not exist")
+	}
+
 	if ok, err := id.IsComplete(); !ok {
 		return ok, err
 	}
@@ -194,10 +186,6 @@ func (e *Identity) Clone() *Identity {
 	for i := range b.Keys {
 		b.Keys[i].SetBytes(e.Keys[i].Bytes())
 	}
-	b.Key1.SetBytes(e.Key1.Bytes())
-	b.Key2.SetBytes(e.Key2.Bytes())
-	b.Key3.SetBytes(e.Key3.Bytes())
-	b.Key4.SetBytes(e.Key4.Bytes())
 
 	b.SigningKey = e.SigningKey
 	b.IdentityRegistered = e.IdentityRegistered
@@ -236,16 +224,16 @@ func (e *Identity) IsSameAs(b *Identity) bool {
 	if e.MatryoshkaHash.IsSameAs(b.MatryoshkaHash) == false {
 		return false
 	}
-	if e.Key1.IsSameAs(b.Key1) == false {
+	if e.Keys[0].IsSameAs(b.Keys[0]) == false {
 		return false
 	}
-	if e.Key2.IsSameAs(b.Key2) == false {
+	if e.Keys[1].IsSameAs(b.Keys[1]) == false {
 		return false
 	}
-	if e.Key3.IsSameAs(b.Key3) == false {
+	if e.Keys[2].IsSameAs(b.Keys[2]) == false {
 		return false
 	}
-	if e.Key4.IsSameAs(b.Key4) == false {
+	if e.Keys[3].IsSameAs(b.Keys[3]) == false {
 		return false
 	}
 	if e.SigningKey.IsSameAs(b.SigningKey) == false {
@@ -275,17 +263,17 @@ func (e *Identity) Init() {
 	if e.MatryoshkaHash == nil {
 		e.MatryoshkaHash = primitives.NewZeroHash()
 	}
-	if e.Key1 == nil {
-		e.Key1 = primitives.NewZeroHash()
+	if e.Keys[0] == nil {
+		e.Keys[0] = primitives.NewZeroHash()
 	}
-	if e.Key2 == nil {
-		e.Key2 = primitives.NewZeroHash()
+	if e.Keys[1] == nil {
+		e.Keys[1] = primitives.NewZeroHash()
 	}
-	if e.Key3 == nil {
-		e.Key3 = primitives.NewZeroHash()
+	if e.Keys[2] == nil {
+		e.Keys[2] = primitives.NewZeroHash()
 	}
-	if e.Key4 == nil {
-		e.Key4 = primitives.NewZeroHash()
+	if e.Keys[3] == nil {
+		e.Keys[3] = primitives.NewZeroHash()
 	}
 	if e.SigningKey == nil {
 		e.SigningKey = primitives.NewZeroHash()
@@ -324,19 +312,19 @@ func (e *Identity) MarshalBinary() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = buf.PushBinaryMarshallable(e.Key1)
+	err = buf.PushBinaryMarshallable(e.Keys[0])
 	if err != nil {
 		return nil, err
 	}
-	err = buf.PushBinaryMarshallable(e.Key2)
+	err = buf.PushBinaryMarshallable(e.Keys[1])
 	if err != nil {
 		return nil, err
 	}
-	err = buf.PushBinaryMarshallable(e.Key3)
+	err = buf.PushBinaryMarshallable(e.Keys[2])
 	if err != nil {
 		return nil, err
 	}
-	err = buf.PushBinaryMarshallable(e.Key4)
+	err = buf.PushBinaryMarshallable(e.Keys[3])
 	if err != nil {
 		return nil, err
 	}
@@ -394,19 +382,19 @@ func (e *Identity) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 	if err != nil {
 		return
 	}
-	err = buf.PopBinaryMarshallable(e.Key1)
+	err = buf.PopBinaryMarshallable(e.Keys[0])
 	if err != nil {
 		return
 	}
-	err = buf.PopBinaryMarshallable(e.Key2)
+	err = buf.PopBinaryMarshallable(e.Keys[1])
 	if err != nil {
 		return
 	}
-	err = buf.PopBinaryMarshallable(e.Key3)
+	err = buf.PopBinaryMarshallable(e.Keys[2])
 	if err != nil {
 		return
 	}
-	err = buf.PopBinaryMarshallable(e.Key4)
+	err = buf.PopBinaryMarshallable(e.Keys[3])
 	if err != nil {
 		return
 	}
@@ -484,16 +472,16 @@ func (id *Identity) IsFull() bool {
 	if id.MatryoshkaHash.IsSameAs(zero) {
 		return false
 	}
-	if id.Key1.IsSameAs(zero) {
+	if id.Keys[0].IsSameAs(zero) {
 		return false
 	}
-	if id.Key2.IsSameAs(zero) {
+	if id.Keys[1].IsSameAs(zero) {
 		return false
 	}
-	if id.Key3.IsSameAs(zero) {
+	if id.Keys[2].IsSameAs(zero) {
 		return false
 	}
-	if id.Key4.IsSameAs(zero) {
+	if id.Keys[3].IsSameAs(zero) {
 		return false
 	}
 	if id.SigningKey.IsSameAs(zero) {

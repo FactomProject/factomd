@@ -176,7 +176,20 @@ func (im *IdentityManager) GetIdentity(chainID interfaces.IHash) *Identity {
 	im.Init()
 	im.Mutex.RLock()
 	defer im.Mutex.RUnlock()
-	return im.Identities[chainID.Fixed()]
+	// First check identity chain ids
+	id := im.Identities[chainID.Fixed()]
+	if id != nil {
+		return id
+	}
+
+	// Then check management chains
+	for _, id := range im.Identities {
+		if id.ManagementChainID.IsSameAs(chainID) {
+			return id
+		}
+	}
+
+	return nil
 }
 
 func (im *IdentityManager) GetIdentities() []*Identity {

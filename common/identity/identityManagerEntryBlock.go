@@ -23,7 +23,6 @@ func (im *IdentityManager) ProcessIdentityEntry(entry interfaces.IEBEntry, dBloc
 	}
 
 	chainID := entry.GetChainID()
-
 	extIDs := entry.ExternalIDs()
 	if len(extIDs) < 2 {
 		//Invalid Identity Chain Entry
@@ -156,16 +155,16 @@ func (im *IdentityManager) ProcessIdentityEntry(entry interfaces.IEBEntry, dBloc
 
 func (im *IdentityManager) ApplyIdentityChainStructure(ic *IdentityChainStructure, chainID interfaces.IHash, dBlockHeight uint32) (bool, error) {
 	id := im.GetIdentity(chainID)
-	if id != nil {
-		return false, fmt.Errorf("ChainID already exists! %v", chainID.String())
+	if id == nil {
+		id = NewIdentity()
 	}
 
 	id = new(Identity)
 
-	id.Key1 = ic.Key1.(*primitives.Hash)
-	id.Key2 = ic.Key2.(*primitives.Hash)
-	id.Key3 = ic.Key3.(*primitives.Hash)
-	id.Key4 = ic.Key4.(*primitives.Hash)
+	id.Keys[0] = ic.Key1.(*primitives.Hash)
+	id.Keys[1] = ic.Key2.(*primitives.Hash)
+	id.Keys[2] = ic.Key3.(*primitives.Hash)
+	id.Keys[3] = ic.Key4.(*primitives.Hash)
 
 	id.IdentityCreated = dBlockHeight
 
@@ -182,7 +181,7 @@ func (im *IdentityManager) ApplyNewBitcoinKeyStructure(bnk *NewBitcoinKeyStructu
 	if id == nil {
 		return true, fmt.Errorf("ChainID doesn't exists! %v", chainID.String())
 	}
-	err := bnk.VerifySignature(id.Key1)
+	err := bnk.VerifySignature(id.Keys[0]) // Key 1
 	if err != nil {
 		return false, err
 	}
@@ -262,7 +261,7 @@ func (im *IdentityManager) ApplyNewBlockSigningKeyStruct(nbsk *NewBlockSigningKe
 	if id == nil {
 		return true, fmt.Errorf("ChainID doesn't exists! %v", nbsk.RootIdentityChainID.String())
 	}
-	err := nbsk.VerifySignature(id.Key1)
+	err := nbsk.VerifySignature(id.Keys[0])
 	if err != nil {
 		return false, err
 	}
@@ -330,7 +329,7 @@ func (im *IdentityManager) ApplyNewMatryoshkaHashStructure(nmh *NewMatryoshkaHas
 	if id == nil {
 		return true, fmt.Errorf("ChainID doesn't exists! %v", nmh.RootIdentityChainID.String())
 	}
-	err := nmh.VerifySignature(id.Key1)
+	err := nmh.VerifySignature(id.Keys[0])
 	if err != nil {
 		return false, err
 	}
@@ -348,7 +347,7 @@ func (im *IdentityManager) ApplyRegisterFactomIdentityStructure(rfi *RegisterFac
 		return true, fmt.Errorf("ChainID doesn't exists! %v", rfi.IdentityChainID.String())
 	}
 
-	err := rfi.VerifySignature(id.Key1)
+	err := rfi.VerifySignature(id.Keys[0])
 	if err != nil {
 		return false, err
 	}
@@ -365,7 +364,7 @@ func (im *IdentityManager) ApplyRegisterServerManagementStructure(rsm *RegisterS
 		return true, fmt.Errorf("ChainID doesn't exists! %v", chainID.String())
 	}
 
-	err := rsm.VerifySignature(id.Key1)
+	err := rsm.VerifySignature(id.Keys[0])
 	if err != nil {
 		return false, err
 	}

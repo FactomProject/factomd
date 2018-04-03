@@ -585,10 +585,10 @@ func setupFirstAuthority(s *state.State) {
 	id.ManagementRegistered = 0
 	id.IdentityCreated = 0
 	id.IdentityRegistered = 0
-	id.Key1 = primitives.NewZeroHash()
-	id.Key2 = primitives.NewZeroHash()
-	id.Key3 = primitives.NewZeroHash()
-	id.Key4 = primitives.NewZeroHash()
+	id.Keys[0] = primitives.NewZeroHash()
+	id.Keys[1] = primitives.NewZeroHash()
+	id.Keys[2] = primitives.NewZeroHash()
+	id.Keys[3] = primitives.NewZeroHash()
 	id.Status = 1
 	s.Identities = append(s.Identities, &id)
 }
