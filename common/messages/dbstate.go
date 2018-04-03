@@ -198,7 +198,8 @@ func (m *DBStateMsg) ValidateSignatures(state interfaces.IState) int {
 	// we can validate by prevKeyMr of the block that follows this one
 	if m.DirectoryBlock.GetDatabaseHeight() == state.GetHighestSavedBlk()+1 {
 		// Fed count of this height -1, as we may not have the height itself
-		fedCount := len(state.GetFedServers(m.DirectoryBlock.GetDatabaseHeight()))
+		feds := state.GetFedServers(m.DirectoryBlock.GetDatabaseHeight())
+		fedCount := len(feds)
 		tally := m.SigTally(state)
 		if tally >= (fedCount/2 + 1) {
 			// This has all the signatures it needs
@@ -217,6 +218,20 @@ func (m *DBStateMsg) ValidateSignatures(state interfaces.IState) int {
 					}
 					// Reduce our total fed servers
 					fedCount--
+				case constants.TYPE_ADD_AUDIT_SERVER:
+					// This could be a demotion, so we need to reduce the fedcount
+					ad, ok := adminEntry.(*adminBlock.AddAuditServer)
+					if !ok {
+						continue
+					}
+
+					// See if this was one of our leaders
+					for _, f := range feds {
+						if f.GetChainID().IsSameAs(ad.IdentityChainID) {
+							fedCount--
+							break
+						}
+					}
 				}
 			}
 			if tally >= (fedCount/2 + 1) {
