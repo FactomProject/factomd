@@ -5,10 +5,11 @@
 package receipts_test
 
 import (
+	"testing"
+
 	"github.com/FactomProject/factomd/common/primitives"
 	. "github.com/FactomProject/factomd/receipts"
 	. "github.com/FactomProject/factomd/testHelper"
-	"testing"
 )
 
 func TestAnchoringIntoBitcoin(t *testing.T) {

@@ -6,8 +6,9 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
-	"golang.org/x/crypto/scrypt"
 	"io"
+
+	"golang.org/x/crypto/scrypt"
 )
 
 func GetKey(password string, salt []byte) ([]byte, error) {

@@ -5,9 +5,10 @@
 package receipts_test
 
 import (
+	"testing"
+
 	. "github.com/FactomProject/factomd/receipts"
 	. "github.com/FactomProject/factomd/testHelper"
-	"testing"
 )
 
 func TestReceiptSaver(t *testing.T) {

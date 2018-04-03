@@ -188,7 +188,7 @@ func (s *State) GetEntryCommitAckByEntryHash(hash interfaces.IHash) (status int,
 		return
 	}
 
-	// At this point, we have the status of unkown. Any DBlock or Ack level has been covered above.
+	// At this point, we have the status of unknown. Any DBlock or Ack level has been covered above.
 	// If 'c' is not nil, then commit was found in the holding map.
 	_, c = s.FetchEntryRevealAndCommitFromHolding(hash)
 	if c != nil {
@@ -574,12 +574,12 @@ func (s *State) FetchPaidFor(hash interfaces.IHash) (interfaces.IHash, error) {
 		ecBlock := pls.EntryCreditBlock
 		for _, tx := range ecBlock.GetEntries() {
 			switch tx.ECID() {
-			case entryCreditBlock.ECIDEntryCommit:
+			case constants.ECIDEntryCommit:
 				if hash.IsSameAs(tx.(*entryCreditBlock.CommitEntry).EntryHash) {
 					return tx.GetSigHash(), nil
 				}
 				break
-			case entryCreditBlock.ECIDChainCommit:
+			case constants.ECIDChainCommit:
 				if hash.IsSameAs(tx.(*entryCreditBlock.CommitChain).EntryHash) {
 					return tx.GetSigHash(), nil
 				}

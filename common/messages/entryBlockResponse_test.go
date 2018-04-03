@@ -8,9 +8,10 @@ import (
 	"testing"
 
 	"fmt"
+	"strings"
+
 	. "github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/testHelper"
-	"strings"
 )
 
 func TestUnmarshalNilEntryBlockResponse(t *testing.T) {

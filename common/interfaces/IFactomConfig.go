@@ -4,8 +4,6 @@
 
 package interfaces
 
-import ()
-
 // Holds the state information for factomd.  This does imply that we will be
 // using accessors to access state information in the consensus algorithm.
 // This is a bit tedious, but does provide single choke points where information

@@ -6,17 +6,18 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/engine"
-	"github.com/FactomProject/factomd/p2p"
 	"math/rand"
 	"net/http"
 	"os"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/engine"
+	"github.com/FactomProject/factomd/p2p"
 )
 
 var p2pProxy *engine.P2PProxy
@@ -93,7 +94,7 @@ func InitNetwork() {
 	}
 	p2pNetwork := new(p2p.Controller).Init(ci)
 	p2pNetwork.StartNetwork()
-	// Setup the proxy (Which translates from network parcels to factom messages, handling addressing for directed messages)
+	// Setup the proxy (Which translates from network parcels to Factom messages, handling addressing for directed messages)
 	p2pProxy = new(engine.P2PProxy).Init("testnode", "P2P Network").(*engine.P2PProxy)
 	p2pProxy.FromNetwork = p2pNetwork.FromNetwork
 	p2pProxy.ToNetwork = p2pNetwork.ToNetwork
@@ -139,7 +140,7 @@ func SetMsg(msg interfaces.IMsg) {
 
 func listen() {
 	for {
-		msg, err := p2pProxy.Recieve()
+		msg, err := p2pProxy.Receive()
 		if err != nil || msg == nil {
 			time.Sleep(1 * time.Millisecond)
 			continue
@@ -237,7 +238,7 @@ func main() {
 		SetMsg(bounce)
 
 		if isp2p {
-			fmt.Printf("netTest(%s):  ::p2p:: request sent: %d request recieved %d sent: %d received: %d\n",
+			fmt.Printf("netTest(%s):  ::p2p:: request sent: %d request received %d sent: %d received: %d\n",
 				name,
 				p2pRequestSent, p2pRequestReceived,
 				p2pSent, p2pReceived)
@@ -253,7 +254,7 @@ func main() {
 }
 
 // if isp2p {
-// 	fmt.Printf("netTest(%s): Reads: %d errs %d Writes %d errs %d  ::p2p:: request sent: %d request recieved %d sent: %d received: %d\n",
+// 	fmt.Printf("netTest(%s): Reads: %d errs %d Writes %d errs %d  ::p2p:: request sent: %d request received %d sent: %d received: %d\n",
 // 		name,
 // 		p2p.Reads, p2p.ReadsErr,
 // 		p2p.Writes, p2p.WritesErr,

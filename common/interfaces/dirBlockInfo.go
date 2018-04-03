@@ -4,8 +4,6 @@
 
 package interfaces
 
-import ()
-
 type IDirBlockInfo interface {
 	Printable
 	DatabaseBatchable

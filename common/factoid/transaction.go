@@ -223,7 +223,7 @@ func (t Transaction) CalculateFee(factoshisPerEC uint64) (uint64, error) {
 }
 
 // Checks that the sum of the given amounts do not cross
-// a signed boundry.  Returns false if invalid, and the
+// a signed boundary.  Returns false if invalid, and the
 // sum if valid.  Returns 0 and true if nothing is passed in.
 func ValidateAmounts(amts ...uint64) (uint64, error) {
 	var sum int64
@@ -334,7 +334,7 @@ func (t Transaction) Validate(index int) error {
 	}
 	// Every input must have an RCD block
 	if len(t.Inputs) != len(t.RCDs) {
-		return fmt.Errorf("All inputs must have a cooresponding RCD")
+		return fmt.Errorf("All inputs must have a corresponding RCD")
 	}
 	// Every input must match the address of an RCD (which is the hash
 	// of the RCD

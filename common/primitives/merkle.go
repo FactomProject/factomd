@@ -6,9 +6,10 @@ package primitives
 
 import (
 	"fmt"
+	"math"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"math"
 )
 
 var _ = fmt.Println

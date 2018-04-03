@@ -7,7 +7,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-// EBlockHeader holds relevent metadata about the Entry Block and the data
+// EBlockHeader holds relevant metadata about the Entry Block and the data
 // nessisary to verify the previous block in the Entry Block Chain.
 type EBlockHeader struct {
 	ChainID      interfaces.IHash `json:"chainid"`

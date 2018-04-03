@@ -5,12 +5,11 @@
 package main
 
 import (
-	"os"
-
 	"bufio"
 	"fmt"
 	"io"
 	"net"
+	"os"
 	"os/exec"
 	"runtime"
 	"strconv"

@@ -23,26 +23,31 @@ const (
 	HEARTBEAT_MSG                             // 10
 	INVALID_ACK_MSG                           // 11
 	INVALID_DIRECTORY_BLOCK_MSG               // 12
+	REVEAL_ENTRY_MSG                          // 13
+	REQUEST_BLOCK_MSG                         // 14
+	SIGNATURE_TIMEOUT_MSG                     // 15
+	MISSING_MSG                               // 16
+	MISSING_DATA                              // 17
+	DATA_RESPONSE                             // 18
+	MISSING_MSG_RESPONSE                      // 19
+	DBSTATE_MSG                               // 20
+	DBSTATE_MISSING_MSG                       // 21
+	ADDSERVER_MSG                             // 22
+	CHANGESERVER_KEY_MSG                      // 23
+	REMOVESERVER_MSG                          // 24
+	BOUNCE_MSG                                // 25	test message
+	BOUNCEREPLY_MSG                           // 26	test message
+	MISSING_ENTRY_BLOCKS                      //27
+	ENTRY_BLOCK_RESPONSE                      //28
+)
 
-	REVEAL_ENTRY_MSG      // 13
-	REQUEST_BLOCK_MSG     // 14
-	SIGNATURE_TIMEOUT_MSG // 15
-	MISSING_MSG           // 16
-	MISSING_DATA          // 17
-	DATA_RESPONSE         // 18
-	MISSING_MSG_RESPONSE  //19
-
-	DBSTATE_MSG          // 20
-	DBSTATE_MISSING_MSG  // 21
-	ADDSERVER_MSG        // 22
-	CHANGESERVER_KEY_MSG // 23
-	REMOVESERVER_MSG     // 24
-
-	BOUNCE_MSG      // 25	test message
-	BOUNCEREPLY_MSG // 26	test message
-
-	MISSING_ENTRY_BLOCKS //27
-	ENTRY_BLOCK_RESPONSE //28
+// Entry Credit Block entries
+const (
+	ECIDServerIndexNumber byte = iota // 0 Must be these values, per the specification
+	ECIDMinuteNumber                  // 1
+	ECIDChainCommit                   // 2
+	ECIDEntryCommit                   // 3
+	ECIDBalanceIncrease               // 4
 )
 
 const NUM_MESSAGES = 29
@@ -83,7 +88,7 @@ const (
 
 	// Block
 	//==================
-	MARKER                  = 0x00                       // Byte used to mark minute boundries in Factoid blocks
+	MARKER                  = 0x00                       // Byte used to mark minute boundaries in Factoid blocks
 	TRANSACTION_PRIOR_LIMIT = int64(12 * 60 * 60 * 1000) // Transactions prior to 12hrs before a block are invalid
 	TRANSACTION_POST_LIMIT  = int64(12 * 60 * 60 * 1000) // Transactions after 12hrs following a block are invalid
 

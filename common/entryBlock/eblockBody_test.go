@@ -4,8 +4,6 @@
 
 package entryBlock_test
 
-import (
 //"testing"
 
 //. "github.com/FactomProject/factomd/common/entryBlock"
-)

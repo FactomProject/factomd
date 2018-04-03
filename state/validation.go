@@ -42,20 +42,27 @@ func (state *State) ValidatorLoop() {
 			}
 
 			for i := 0; i < 10; i++ {
+				ackRoom := cap(state.ackQueue) - len(state.ackQueue)
+				msgRoom := cap(state.msgQueue) - len(state.msgQueue)
 				select {
 				case min := <-state.tickerQueue:
 					timeStruct.timer(state, min)
 				default:
 				}
 
-				select {
-				case msg = <-state.TimerMsgQueue():
-					state.JournalMessage(msg)
-					break loop
-				default:
+				if ackRoom > 1 && msgRoom > 1 {
+					select {
+					case msg = <-state.TimerMsgQueue():
+						state.JournalMessage(msg)
+						break loop
+					default:
+					}
 				}
 
-				msg = state.InMsgQueue().Dequeue()
+				if ackRoom > 1 && msgRoom > 1 {
+					msg = state.InMsgQueue().Dequeue()
+				}
+
 				if msg != nil {
 					state.JournalMessage(msg)
 					break loop

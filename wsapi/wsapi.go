@@ -130,13 +130,13 @@ func SetState(state interfaces.IState) {
 		}
 		gp := state.GetPort()
 		if Servers == nil {
-			fmt.Println("Got here early need syncronization")
+			fmt.Println("Got here early need synchronization")
 		}
 		if Servers[gp] == nil {
-			fmt.Println("Got here early need syncronization")
+			fmt.Println("Got here early need synchronization")
 		}
 		if Servers[gp].Env == nil {
-			fmt.Println("Got here early need syncronization")
+			fmt.Println("Got here early need synchronization")
 		}
 
 		Servers[gp].Env["state"] = state

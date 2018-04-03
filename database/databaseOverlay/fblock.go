@@ -1,11 +1,12 @@
 package databaseOverlay
 
 import (
+	"sort"
+
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/util"
-	"sort"
 )
 
 func (db *Overlay) ProcessFBlockBatch(block interfaces.DatabaseBlockWithEntries) error {
@@ -94,7 +95,7 @@ func toFactoidList(source []interfaces.BinaryMarshallableAndCopyable) []interfac
 	for i, v := range source {
 		answer[i] = v.(interfaces.IFBlock)
 	}
-	sort.Sort(util.ByFBlockIDAccending(answer))
+	sort.Sort(util.ByFBlockIDAscending(answer))
 	return answer
 }
 

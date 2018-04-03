@@ -75,6 +75,10 @@ func (h *Hash) UnmarshalText(b []byte) error {
 }
 
 func (h *Hash) Fixed() [constants.HASH_LENGTH]byte {
+	// Might change the error produced by IHash in FD-398
+	if h == nil {
+		panic("nil Hash")
+	}
 	return *h
 }
 

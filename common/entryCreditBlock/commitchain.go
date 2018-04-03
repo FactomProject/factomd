@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -152,7 +153,7 @@ func (b *CommitChain) Interpret() string {
 	return ""
 }
 
-// CommitMsg returns the binary marshaled message section of the CommitEntry
+// CommitMsg returns the binary marshalled message section of the CommitEntry
 // that is covered by the CommitEntry.Sig.
 func (c *CommitChain) CommitMsg() []byte {
 	p, err := c.MarshalBinarySig()
@@ -320,7 +321,7 @@ func (c *CommitChain) ValidateSignatures() error {
 }
 
 func (c *CommitChain) ECID() byte {
-	return ECIDChainCommit
+	return constants.ECIDChainCommit
 }
 
 func (c *CommitChain) UnmarshalBinaryData(data []byte) ([]byte, error) {

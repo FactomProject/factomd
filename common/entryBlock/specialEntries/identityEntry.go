@@ -185,7 +185,7 @@ func RegisterFactomIdentity(entry interfaces.IEBEntry, chainID interfaces.IHash,
 		return errors.New("Identity Error Register Identity: Invalid external ID length")
 	}
 	if bytes.Compare([]byte{0x00}, extIDs[0]) != 0 || // Version
-		!CheckExternalIDsLength(extIDs, []int{1, 24, 32, 33, 64}) { // Signiture
+		!CheckExternalIDsLength(extIDs, []int{1, 24, 32, 33, 64}) { // Signature
 		return errors.New("Identity Error Register Identity: Invalid external ID length")
 	}
 
@@ -205,7 +205,7 @@ func RegisterFactomIdentity(entry interfaces.IEBEntry, chainID interfaces.IHash,
 		if CheckSig(idKey, extIDs[3][1:33], sigmsg, extIDs[4]) {
 			st.Identities[IdentityIndex].ManagementRegistered = height
 		} else {
-			return errors.New("New Management Chain Register for identity [" + chainID.String()[:10] + "] is invalid. Bad signiture")
+			return errors.New("New Management Chain Register for identity [" + chainID.String()[:10] + "] is invalid. Bad signature")
 		}
 
 	}
@@ -313,7 +313,7 @@ func registerIdentityAsServer(entry interfaces.IEBEntry, height uint32, st *Stat
 		return errors.New("Identity Error Register Identity: Invalid external ID length")
 	}
 	if bytes.Compare([]byte{0x00}, extIDs[0]) != 0 || // Version
-		!CheckExternalIDsLength(extIDs, []int{1, 26, 32, 33, 64}) { // Signiture
+		!CheckExternalIDsLength(extIDs, []int{1, 26, 32, 33, 64}) { // Signature
 		return errors.New("Identity Error Register Identity: Invalid external ID length")
 	}
 	chainID := entry.GetChainID()
@@ -332,7 +332,7 @@ func registerIdentityAsServer(entry interfaces.IEBEntry, height uint32, st *Stat
 			st.Identities[IdentityIndex].ManagementRegistered = height
 			st.Identities[IdentityIndex].ManagementChainID = primitives.NewHash(extIDs[2][:32])
 		} else {
-			return errors.New("New Management Chain Register for identity [" + chainID.String()[:10] + "] is invalid. Bad signiture")
+			return errors.New("New Management Chain Register for identity [" + chainID.String()[:10] + "] is invalid. Bad signature")
 		}
 
 	}
@@ -404,7 +404,7 @@ func RegisterBlockSigningKey(entry interfaces.IEBEntry, initial bool, height uin
 				st.InMsgQueue() <- msg
 			}
 		} else {
-			return errors.New("New Block Signing key for identity [" + chainID.String()[:10] + "] is invalid. Bad signiture")
+			return errors.New("New Block Signing key for identity [" + chainID.String()[:10] + "] is invalid. Bad signature")
 		}
 	}
 	return nil
@@ -416,7 +416,7 @@ func UpdateMatryoshkaHash(entry interfaces.IEBEntry, initial bool, height uint32
 		return errors.New("Identity Error MHash: Invalid external ID length")
 	}
 	if bytes.Compare([]byte{0x00}, extIDs[0]) != 0 || // Version
-		!CheckExternalIDsLength(extIDs, []int{1, 19, 32, 32, 8, 33, 64}) { // Signiture
+		!CheckExternalIDsLength(extIDs, []int{1, 19, 32, 32, 8, 33, 64}) { // Signature
 		return errors.New("Identity Error MHash: Invalid external ID length")
 	}
 	chainID := new(primitives.Hash)
@@ -474,7 +474,7 @@ func UpdateMatryoshkaHash(entry interfaces.IEBEntry, initial bool, height uint32
 				//}
 			}
 		} else {
-			return errors.New("New Matryoshka Hash for identity [" + chainID.String()[:10] + "] is invalid. Bad signiture")
+			return errors.New("New Matryoshka Hash for identity [" + chainID.String()[:10] + "] is invalid. Bad signature")
 		}
 
 	}
@@ -569,7 +569,7 @@ func RegisterAnchorSigningKey(entry interfaces.IEBEntry, initial bool, height ui
 				st.InMsgQueue() <- msg
 			}
 		} else {
-			return errors.New("New Anchor key for identity [" + chainID.String()[:10] + "] is invalid. Bad signiture")
+			return errors.New("New Anchor key for identity [" + chainID.String()[:10] + "] is invalid. Bad signature")
 		}
 	}
 	return nil
