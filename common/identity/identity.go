@@ -8,12 +8,28 @@ import (
 	"errors"
 	"fmt"
 
+	"bytes"
+
 	ed "github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/primitives/random"
 )
+
+// sort.Sort interface implementation
+type IdentitySort []*Identity
+
+func (p IdentitySort) Len() int {
+	return len(p)
+}
+func (p IdentitySort) Swap(i, j int) {
+	p[i], p[j] = p[j], p[i]
+}
+func (p IdentitySort) Less(i, j int) bool {
+	return bytes.Compare(p[i].IdentityChainID.Bytes(), p[j].IdentityChainID.Bytes()) < 0
+
+}
 
 //https://github.com/FactomProject/FactomDocs/blob/master/Identity.md
 

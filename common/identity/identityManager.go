@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"sync"
 
+	"sort"
+
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
@@ -157,6 +159,8 @@ func (im *IdentityManager) SetIdentity(chainID interfaces.IHash, id *Identity) {
 	im.Init()
 	im.Mutex.Lock()
 	defer im.Mutex.Unlock()
+	c := chainID.String()
+	var _ = c
 	im.Identities[chainID.Fixed()] = id
 }
 
@@ -190,6 +194,20 @@ func (im *IdentityManager) GetIdentity(chainID interfaces.IHash) *Identity {
 	}
 
 	return nil
+}
+
+func (im *IdentityManager) GetSortedIdentities() []*Identity {
+	list := im.GetIdentities()
+	sort.Sort(IdentitySort(list))
+	return list
+
+}
+
+func (im *IdentityManager) GetSortedAuthorities() []interfaces.IAuthority {
+	list := im.GetAuthorities()
+	sort.Sort(AuthoritySort(list))
+	return list
+
 }
 
 func (im *IdentityManager) GetIdentities() []*Identity {

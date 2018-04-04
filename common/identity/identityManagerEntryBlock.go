@@ -159,8 +159,6 @@ func (im *IdentityManager) ApplyIdentityChainStructure(ic *IdentityChainStructur
 		id = NewIdentity()
 	}
 
-	id = new(Identity)
-
 	id.Keys[0] = ic.Key1.(*primitives.Hash)
 	id.Keys[1] = ic.Key2.(*primitives.Hash)
 	id.Keys[2] = ic.Key3.(*primitives.Hash)

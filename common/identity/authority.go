@@ -7,12 +7,27 @@ package identity
 import (
 	"encoding/json"
 
+	"bytes"
+
 	ed "github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/primitives/random"
 )
+
+// sort.Sort interface implementation
+type AuthoritySort []interfaces.IAuthority
+
+func (p AuthoritySort) Len() int {
+	return len(p)
+}
+func (p AuthoritySort) Swap(i, j int) {
+	p[i], p[j] = p[j], p[i]
+}
+func (p AuthoritySort) Less(i, j int) bool {
+	return bytes.Compare(p[i].GetAuthorityChainID().Bytes(), p[j].GetAuthorityChainID().Bytes()) < 0
+}
 
 type Authority struct {
 	AuthorityChainID  interfaces.IHash
@@ -241,6 +256,10 @@ func (e *Authority) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 func (e *Authority) UnmarshalBinary(p []byte) error {
 	_, err := e.UnmarshalBinaryData(p)
 	return err
+}
+
+func (e *Authority) GetAuthorityChainID() interfaces.IHash {
+	return e.AuthorityChainID
 }
 
 // 1 if fed, 0 if audit, -1 if neither
