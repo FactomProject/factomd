@@ -87,8 +87,6 @@ func (im *IdentityManager) ApplyAddFederatedServer(entry interfaces.IABEntry, st
 	if id != nil {
 		id.Status = constants.IDENTITY_FEDERATED_SERVER
 		im.SetIdentity(id.IdentityChainID, id)
-	} else {
-		fmt.Println("Debug Bad!")
 	}
 
 	im.SetAuthority(e.IdentityChainID, auth)
@@ -115,8 +113,6 @@ func (im *IdentityManager) ApplyAddAuditServer(entry interfaces.IABEntry, st int
 	if id != nil {
 		id.Status = constants.IDENTITY_AUDIT_SERVER
 		im.SetIdentity(id.IdentityChainID, id)
-	} else {
-		fmt.Println("Debug Bad!")
 	}
 
 	im.SetAuthority(e.IdentityChainID, auth)
