@@ -31,6 +31,7 @@ type FedVoteMsg struct {
 	TS       interfaces.Timestamp // Message Timestamp
 	TypeMsg  byte                 // Can be either a Volunteer from an Audit Server, or End of round
 	DBHeight uint32               // Directory Block Height that owns this ack
+	SigType  bool                 // False for dbsig, true for EOM
 
 	// NOT MARSHALED
 	Super interfaces.ISignableElectionMsg `json:"-"`
@@ -79,6 +80,13 @@ func (a *FedVoteMsg) IsSameAs(msg interfaces.IMsg) bool {
 //	return nil
 //}
 
+func (m *FedVoteMsg) ComparisonMinute() int {
+	if !m.SigType {
+		return -1
+	}
+	return int(m.GetMinute())
+}
+
 func (m *FedVoteMsg) GetTimestamp() interfaces.Timestamp {
 	return m.TS
 }
@@ -120,7 +128,7 @@ func (m *FedVoteMsg) ElectionValidate(ie interfaces.IElections) int {
 
 	// TODO: Check all the cases
 
-	if int(m.DBHeight) == e.DBHeight && e.Minute == int(m.Minute) {
+	if int(m.DBHeight) == e.DBHeight && e.ComparisonMinute() == m.ComparisonMinute() {
 		sm := m.Super
 		vol := sm.GetVolunteerMessage().(*FedVoteVolunteerMsg)
 
@@ -138,17 +146,17 @@ func (m *FedVoteMsg) ElectionValidate(ie interfaces.IElections) int {
 	}
 
 	// Ignore all elections messages from the past
-	if int(m.DBHeight) < e.DBHeight || (int(m.DBHeight) == e.DBHeight && int(m.Minute) < e.Minute) {
+	if int(m.DBHeight) < e.DBHeight || (int(m.DBHeight) == e.DBHeight && m.ComparisonMinute() < e.ComparisonMinute()) {
 		e.LogMessage("election", "Message is invalid (past)", m)
 		return -1
 	}
 
 	// Is from the future, probably from Marty McFly
-	if int(m.DBHeight) > e.DBHeight || (int(m.DBHeight) == e.DBHeight && int(m.Minute) > e.Minute) {
+	if int(m.DBHeight) > e.DBHeight || (int(m.DBHeight) == e.DBHeight && m.ComparisonMinute() > e.ComparisonMinute()) {
 		return 0
 	}
 
-	panic(errors.New("Though I covered all the cases"))
+	panic(errors.New("Thought I covered all the cases"))
 }
 
 // ValidateVolunteer validates if the volunteer has their process list at the correct height
@@ -260,6 +268,9 @@ func (m *FedVoteMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error
 	if m.Minute, err = buf.PopByte(); err != nil {
 		return nil, err
 	}
+	if m.SigType, err = buf.PopBool(); err != nil {
+		return nil, err
+	}
 	newData = buf.DeepCopyBytes()
 	return
 }
@@ -285,6 +296,9 @@ func (m *FedVoteMsg) MarshalBinary() (data []byte, err error) {
 		return nil, e
 	}
 	if e := buf.PushByte(m.Minute); e != nil {
+		return nil, e
+	}
+	if e := buf.PushBool(m.SigType); e != nil {
 		return nil, e
 	}
 	data = buf.DeepCopyBytes()

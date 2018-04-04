@@ -125,8 +125,25 @@ func (m *AuthorityListInternal) UnmarshalBinary(data []byte) error {
 	return err
 }
 
+/*
+type AuthorityListInternal struct {
+	msgbase.MessageBase
+
+	Federated []interfaces.IServer
+	Audit     []interfaces.IServer
+	DBHeight  uint32 // Directory Block Height that owns this ack
+}
+*/
 func (m *AuthorityListInternal) String() string {
-	return fmt.Sprintf("%20s dbheight %d ", "Authority List Internal", m.DBHeight)
+	var f_str, a_str string
+	for _, f := range m.Federated {
+		f_str = f_str + fmt.Sprintf("%x, ", f.GetChainID().Bytes()[3:6])
+	}
+	for _, a := range m.Audit {
+		a_str = a_str + fmt.Sprintf("%x, ", a.GetChainID().Bytes()[3:6])
+	}
+
+	return fmt.Sprintf("AuthorityListInternal DBH %d fed [%s] aud[%s]", m.DBHeight, f_str, a_str)
 }
 
 func (a *AuthorityListInternal) IsSameAs(b *AuthorityListInternal) bool {

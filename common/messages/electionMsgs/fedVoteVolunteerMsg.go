@@ -29,7 +29,6 @@ var _ = fmt.Print
 type FedVoteVolunteerMsg struct {
 	FedVoteMsg
 	// Volunteer fields
-	EOM        bool             // True if an EOM, false if a DBSig
 	Name       string           // Server name
 	FedIdx     uint32           // Server faulting
 	FedID      interfaces.IHash // Server faulting
@@ -155,7 +154,7 @@ func (a *FedVoteVolunteerMsg) IsSameAs(msg interfaces.IMsg) bool {
 	if a.Name != b.Name {
 		return false
 	}
-	if a.EOM != b.EOM {
+	if a.SigType != b.SigType {
 		return false
 	}
 	if a.ServerIdx != b.ServerIdx {
@@ -272,7 +271,7 @@ func (m *FedVoteVolunteerMsg) UnmarshalBinaryData(data []byte) (newData []byte, 
 	if m.Name, err = buf.PopString(); err != nil {
 		return newData, err
 	}
-	if m.EOM, err = buf.PopBool(); err != nil {
+	if m.SigType, err = buf.PopBool(); err != nil {
 		return newData, err
 	}
 	if m.ServerIdx, err = buf.PopUInt32(); err != nil {
@@ -370,7 +369,7 @@ func (m *FedVoteVolunteerMsg) MarshalForSignature() (data []byte, err error) {
 	if e := buf.PushString(m.Name); e != nil {
 		return nil, e
 	}
-	if e := buf.PushBool(m.EOM); e != nil {
+	if e := buf.PushBool(m.SigType); e != nil {
 		return nil, e
 	}
 	if e := buf.PushUInt32(m.ServerIdx); e != nil {

@@ -79,7 +79,7 @@ func (m *EomSigInternal) GetMsgHash() interfaces.IHash {
 }
 func Fault(e *elections.Elections, dbheight int, minute int, round int, timeOutId int, currentTimeoutId *atomic.AtomicInt, sigtype bool) {
 	//	e.LogPrintf("election", "Start Timeout %d", timeOutId)
-	for !e.State.(*state.State).DBFinished {
+	for !e.State.(*state.State).DBFinished || e.State.(*state.State).IgnoreMissing {
 		time.Sleep(e.Timeout)
 	}
 	time.Sleep(e.Timeout)
@@ -98,6 +98,12 @@ func Fault(e *elections.Elections, dbheight int, minute int, round int, timeOutI
 
 	}
 }
+func (m *EomSigInternal) ComparisonMinute() int {
+	if !m.SigType {
+		return -1
+	}
+	return int(m.Minute)
+}
 
 func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.IElections) {
 	e := elect.(*elections.Elections) // Could check, but a nil pointer error is just as good.
@@ -113,7 +119,7 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 
 	// We only do this once, as we transition into a sync event.
 	// Either the height has incremented, or the minute has incremented.
-	mv := int(m.DBHeight) > e.DBHeight || int(m.Minute) > e.Minute
+	mv := int(m.DBHeight) > e.DBHeight || m.ComparisonMinute() > e.ComparisonMinute()
 
 	if mv {
 		// Set our Identity Chain (Just in case it has changed.)
@@ -125,6 +131,7 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 		}
 		e.DBHeight = int(m.DBHeight)
 		e.Minute = int(m.Minute)
+		e.SigType = m.SigType
 		e.Msgs = append(e.Msgs[:0], m)
 		e.Sync = make([]bool, len(e.Federated))
 		// Set the title in the state

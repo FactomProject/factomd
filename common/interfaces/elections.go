@@ -35,6 +35,10 @@ type IElectionMsg interface {
 	ElectionValidate(IElections) int
 }
 
+type IFedVoteMsg interface {
+	ComparisonMinute() int
+}
+
 type ISignableElectionMsg interface {
 	IElectionMsg
 	Signable

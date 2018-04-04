@@ -75,6 +75,7 @@ func NewFedVoteLevelMessage(signer interfaces.IHash, vol FedVoteVolunteerMsg) *F
 	f.Signer = signer
 	f.EOMFrom = new(primitives.Hash)
 	f.VMIndex = vol.VMIndex
+	f.SigType = vol.SigType
 
 	return f
 }
@@ -138,7 +139,7 @@ func (m *FedVoteLevelMsg) processIfCommitted(is interfaces.IState, elect interfa
 
 		// Ensure we don't start another election for this server
 		se := new(EomSigInternal)
-		se.SigType = m.Volunteer.EOM
+		se.SigType = m.Volunteer.SigType
 		se.NName = m.Volunteer.Name
 		se.DBHeight = m.Volunteer.DBHeight
 		se.Minute = m.Volunteer.Minute

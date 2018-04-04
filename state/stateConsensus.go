@@ -114,7 +114,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 	case 0:
 		TotalHoldingQueueInputs.Inc()
 		TotalHoldingQueueRecycles.Inc()
-		s.LogMessage("executeMsg", "Holding1", msg)
+		s.LogMessage("executeMsg", "Add to Holding", msg)
 		s.Holding[msg.GetMsgHash().Fixed()] = msg
 
 	default:
@@ -205,22 +205,30 @@ ackLoop:
 		select {
 		case ack := <-s.ackQueue:
 			a := ack.(*messages.Ack)
-			if ack.Validate(s) == 1 {
-				if s.IgnoreMissing {
-					now := s.GetTimestamp().GetTimeSeconds() //todo: Do we really need to do this every loop?
-					if now-a.GetTimestamp().GetTimeSeconds() < 60*15 {
-						s.LogMessage("ackQueue", "Execute", ack)
-						s.executeMsg(vm, ack)
-					} else {
-						s.LogMessage("ackQueue", "Drop Too Old", ack)
-					}
-				} else {
-					s.LogMessage("ackQueue", "Execute2", ack)
-					s.executeMsg(vm, ack)
-				}
-			} else {
+			switch ack.Validate(s) {
+			case -1:
 				s.LogMessage("ackQueue", "Drop Invalid", ack) // Maybe put it back in the ask queue ? -- clay
+				continue
+			case 0:
+				s.LogMessage("ackQueue", "Unknown Validity.  Should never happen", ack)
+				panic("Should never happen")
 			}
+
+			if s.IgnoreMissing {
+				now := s.GetTimestamp().GetTimeSeconds() //todo: Do we really need to do this every loop?
+				if now-a.GetTimestamp().GetTimeSeconds() < 60*15 {
+					s.LogMessage("ackQueue", "Execute", ack)
+					s.executeMsg(vm, ack)
+					progress = true
+				} else {
+					s.LogMessage("ackQueue", "Drop Too Old", ack)
+				}
+				continue
+			}
+
+			s.LogMessage("ackQueue", "Execute2", ack)
+			s.executeMsg(vm, ack)
+
 			progress = true
 		default:
 			break ackLoop
@@ -316,15 +324,11 @@ func (s *State) ReviewHolding() {
 		return
 	}
 
-	if s.inMsgQueue.Length() > constants.INMSGQUEUE_LOW {
-		return
-	}
-
 	now := s.GetTimestamp()
 	if s.ResendHolding == nil {
 		s.ResendHolding = now
 	}
-	if now.GetTimeMilli()-s.ResendHolding.GetTimeMilli() < 300 {
+	if now.GetTimeMilli()-s.ResendHolding.GetTimeMilli() < 100 {
 		return
 	}
 

@@ -31,6 +31,7 @@ type Elections struct {
 	FPriority []interfaces.IHash
 	APriority []interfaces.IHash
 	DBHeight  int               // Height of this election
+	SigType   bool              // False for dbsig, true for EOM
 	Minute    int               // Minute of this election (-1 for a DBSig)
 	VMIndex   int               // VMIndex of this election
 	Msgs      []interfaces.IMsg // Messages we are collecting in this election.  Look here for what's missing.
@@ -51,6 +52,13 @@ type Elections struct {
 	Timeout time.Duration
 
 	FaultId atomic.AtomicInt // Incremented every time we launch a new timeout
+}
+
+func (e *Elections) ComparisonMinute() int {
+	if !e.SigType {
+		return -1
+	}
+	return int(e.Minute)
 }
 
 func (e *Elections) AddFederatedServer(server interfaces.IServer) int {

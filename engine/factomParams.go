@@ -44,12 +44,12 @@ func ParseCmdLine(args []string) *FactomParams {
 	//	faultTimeoutPtr := flag.Int("faulttimeout", 99999, "Seconds before considering Federated servers at-fault. Default is 30.")
 	runtimeLogPtr := flag.Bool("runtimeLog", false, "If true, maintain runtime logs of messages passed.")
 	exclusivePtr := flag.Bool("exclusive", false, "If true, we only dial out to special/trusted peers.")
-	PrefixNodePtr := flag.String("Prefix", "", "Prefix the Factom Node Names with this value; used to create leaderless networks.")
-	RotatePtr := flag.Bool("Rotate", false, "If true, responsibility is owned by one leader, and Rotated over the leaders.")
+	PrefixNodePtr := flag.String("prefix", "", "Prefix the Factom Node Names with this value; used to create leaderless networks.")
+	RotatePtr := flag.Bool("rotate", false, "If true, responsibility is owned by one leader, and Rotated over the leaders.")
 	TimeOffsetPtr := flag.Int("timedelta", 0, "Maximum timeDelta in milliseconds to offset each node.  Simulates deltas in system clocks over a network.")
 	KeepMismatchPtr := flag.Bool("keepmismatch", false, "If true, do not discard DBStates even when a majority of DBSignatures have a different hash")
 	startDelayPtr := flag.Int("startdelay", 10, "Delay to start processing messages, in seconds")
-	DeadlinePtr := flag.Int("Deadline", 1000, "Timeout Delay in milliseconds used on Reads and Writes to the network comm")
+	DeadlinePtr := flag.Int("deadline", 1000, "Timeout Delay in milliseconds used on Reads and Writes to the network comm")
 	CustomNetPtr := flag.String("customnet", "", "This string specifies a custom blockchain network ID.")
 	RpcUserflag := flag.String("rpcuser", "", "Username to protect factomd local API with simple HTTP authentication")
 	RpcPasswordflag := flag.String("rpcpass", "", "Password to protect factomd local API. Ignored if rpcuser is blank")
@@ -61,14 +61,14 @@ func ParseCmdLine(args []string) *FactomParams {
 
 	logportPtr := flag.String("logPort", "6060", "Port for pprof logging")
 	portOverridePtr := flag.Int("port", 0, "Port where we serve WSAPI;  default 8088")
-	ControlPanelPortOverridePtr := flag.Int("ControlPanelPort", 0, "Port for control panel webserver;  Default 8090")
-	networkPortOverridePtr := flag.Int("networkPort", 0, "Port for p2p network; default 8110")
+	ControlPanelPortOverridePtr := flag.Int("controlpanelport", 0, "Port for control panel webserver;  Default 8090")
+	networkPortOverridePtr := flag.Int("networkport", 0, "Port for p2p network; default 8110")
 
-	FastPtr := flag.Bool("Fast", true, "If true, factomd will Fast-boot from a file.")
-	FastLocationPtr := flag.String("Fastlocation", "", "Directory to put the Fast-boot file in.")
+	FastPtr := flag.Bool("fast", true, "If true, Factomd will fast-boot from a file.")
+	FastLocationPtr := flag.String("fastlocation", "", "Directory to put the Fast-boot file in.")
 
-	logLvlPtr := flag.String("Loglvl", "none", "Set log level to either: none, debug, info, warning, error, fatal or panic")
-	logJsonPtr := flag.Bool("Logjson", false, "Use to set logging to use a json formatting")
+	logLvlPtr := flag.String("loglvl", "none", "Set log level to either: none, debug, info, warning, error, fatal or panic")
+	logJsonPtr := flag.Bool("logjson", false, "Use to set logging to use a json formatting")
 
 	sim_stdinPtr := flag.Bool("sim_stdin", true, "If true, sim control reads from stdin.")
 
