@@ -300,19 +300,16 @@ func (s *State) RepairAuthorities() {
 		auth := iAuth.(*Authority)
 		if auth.ManagementChainID == nil || auth.ManagementChainID.IsZero() {
 			id := s.IdentityControl.GetIdentity(auth.AuthorityChainID)
-			idIndex := s.isIdentityChain(auth.AuthorityChainID)
-			if idIndex == -1 {
+			if id == nil {
 				err := s.AddIdentityFromChainID(auth.AuthorityChainID)
 				if err != nil {
 					continue
 				}
-				idIndex = s.isIdentityChain(auth.AuthorityChainID)
 				id = s.IdentityControl.GetIdentity(auth.AuthorityChainID)
 			}
-			if idIndex != -1 {
-				auth.ManagementChainID = s.Identities[idIndex].ManagementChainID
+			if id != nil {
+				auth.ManagementChainID = id.ManagementChainID
 				id.Status = auth.Status
-				s.Identities[idIndex].Status = auth.Status
 				s.IdentityControl.SetAuthority(auth.AuthorityChainID, auth)
 				s.IdentityControl.SetIdentity(auth.AuthorityChainID, id)
 			}
@@ -320,7 +317,7 @@ func (s *State) RepairAuthorities() {
 	}
 
 	// Fix any missing keys
-	for _, id := range s.Identities {
+	for _, id := range s.IdentityControl.GetIdentities() {
 		if !id.IsFull() {
 			s.FixMissingKeys(id)
 		}

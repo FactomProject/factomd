@@ -15,7 +15,6 @@ import (
 	"time"
 
 	. "github.com/FactomProject/factomd/common/globals"
-	"github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages/electionMsgs"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -559,38 +558,13 @@ func startServers(load bool) {
 }
 
 func setupFirstAuthority(s *state.State) {
-	var id identity.Identity
 	if len(s.IdentityControl.Authorities) > 0 {
 		//Don't initialize first authority if we are loading during fast boot
 		//And there are already authorities present
 		return
 	}
 
-	// NEW
 	s.IdentityControl.SetBootstrapIdentity(s.GetNetworkBootStrapIdentity(), s.GetNetworkBootStrapKey())
-
-	if networkIdentity := s.GetNetworkBootStrapIdentity(); networkIdentity != nil {
-		id.IdentityChainID = networkIdentity
-	} else {
-		id.IdentityChainID = primitives.NewZeroHash()
-	}
-	id.ManagementChainID, _ = primitives.HexToHash("88888800000000000000000000000000")
-	if pub := s.GetNetworkBootStrapKey(); pub != nil {
-		id.SigningKey = pub
-	} else {
-		id.SigningKey = primitives.NewZeroHash()
-	}
-	id.MatryoshkaHash = primitives.NewZeroHash()
-	id.ManagementCreated = 0
-	id.ManagementRegistered = 0
-	id.IdentityCreated = 0
-	id.IdentityRegistered = 0
-	id.Keys[0] = primitives.NewZeroHash()
-	id.Keys[1] = primitives.NewZeroHash()
-	id.Keys[2] = primitives.NewZeroHash()
-	id.Keys[3] = primitives.NewZeroHash()
-	id.Status = 1
-	s.Identities = append(s.Identities, &id)
 }
 
 func networkHousekeeping() {

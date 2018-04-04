@@ -33,60 +33,60 @@ func TestAuthorityType(t *testing.T) {
 
 }
 
-func TestAuthoritySignature(t *testing.T) {
-	s := testHelper.CreateAndPopulateTestState()
-	idindex := s.CreateBlankFactomIdentity(primitives.NewZeroHash())
-	s.Identities[idindex].ManagementChainID = primitives.NewZeroHash()
+//func TestAuthoritySignature(t *testing.T) {
+//	s := testHelper.CreateAndPopulateTestState()
+//	idindex := s.CreateBlankFactomIdentity(primitives.NewZeroHash())
+//	s.Identities[idindex].ManagementChainID = primitives.NewZeroHash()
+//
+//	index := s.AddAuthorityFromChainID(primitives.NewZeroHash())
+//	s.Authorities[index].SigningKey = *(s.GetServerPublicKey())
+//	s.Authorities[index].Status = 1
+//
+//	ack := new(messages.Ack)
+//	ack.DBHeight = s.LLeaderHeight
+//	ack.VMIndex = 1
+//	ack.Minute = byte(5)
+//	ack.Timestamp = s.GetTimestamp()
+//	ack.MessageHash = primitives.NewZeroHash()
+//	ack.LeaderChainID = s.IdentityChainID
+//	ack.SerialHash = primitives.NewZeroHash()
+//
+//	err := ack.Sign(s)
+//	if err != nil {
+//		t.Error("Authority Test Failed when signing message")
+//	}
+//
+//	msg, err := ack.MarshalForSignature()
+//	if err != nil {
+//		t.Error("Authority Test Failed when marshalling for sig")
+//	}
+//
+//	sig := ack.GetSignature()
+//	server, err := s.Authorities[0].VerifySignature(msg, sig.GetSignature())
+//	if !server || err != nil {
+//		t.Error("Authority Test Failed when checking sigs")
+//	}
+//}
 
-	index := s.AddAuthorityFromChainID(primitives.NewZeroHash())
-	s.Authorities[index].SigningKey = *(s.GetServerPublicKey())
-	s.Authorities[index].Status = 1
-
-	ack := new(messages.Ack)
-	ack.DBHeight = s.LLeaderHeight
-	ack.VMIndex = 1
-	ack.Minute = byte(5)
-	ack.Timestamp = s.GetTimestamp()
-	ack.MessageHash = primitives.NewZeroHash()
-	ack.LeaderChainID = s.IdentityChainID
-	ack.SerialHash = primitives.NewZeroHash()
-
-	err := ack.Sign(s)
-	if err != nil {
-		t.Error("Authority Test Failed when signing message")
-	}
-
-	msg, err := ack.MarshalForSignature()
-	if err != nil {
-		t.Error("Authority Test Failed when marshalling for sig")
-	}
-
-	sig := ack.GetSignature()
-	server, err := s.Authorities[0].VerifySignature(msg, sig.GetSignature())
-	if !server || err != nil {
-		t.Error("Authority Test Failed when checking sigs")
-	}
-}
-
-func TestMarshalJSON(t *testing.T) {
-	s := testHelper.CreateAndPopulateTestState()
-	idindex := s.CreateBlankFactomIdentity(primitives.NewZeroHash())
-	s.Identities[idindex].ManagementChainID = primitives.NewZeroHash()
-
-	index := s.AddAuthorityFromChainID(primitives.NewZeroHash())
-	s.Authorities[index].SigningKey = *(s.GetServerPublicKey())
-	s.Authorities[index].Status = 1
-
-	j, err := s.Authorities[index].MarshalJSON()
-	if err != nil {
-		t.Errorf("%v", err)
-	}
-
-	expected := `{"chainid":"0000000000000000000000000000000000000000000000000000000000000000","manageid":"0000000000000000000000000000000000000000000000000000000000000000","matroyshka":null,"signingkey":"cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a","status":"federated","anchorkeys":null}`
-	if string(j) != expected {
-		t.Errorf("Invalid json returned - %v vs %v", string(j), expected)
-	}
-}
+//func TestMarshalJSON(t *testing.T) {
+//	s := testHelper.CreateAndPopulateTestState()
+//	idindex := s.CreateBlankFactomIdentity(primitives.NewZeroHash())
+//	s.Identities[idindex].ManagementChainID = primitives.NewZeroHash()
+//
+//	index := s.AddAuthorityFromChainID(primitives.NewZeroHash())
+//	s.Authorities[index].SigningKey = *(s.GetServerPublicKey())
+//	s.Authorities[index].Status = 1
+//
+//	j, err := s.Authorities[index].MarshalJSON()
+//	if err != nil {
+//		t.Errorf("%v", err)
+//	}
+//
+//	expected := `{"chainid":"0000000000000000000000000000000000000000000000000000000000000000","manageid":"0000000000000000000000000000000000000000000000000000000000000000","matroyshka":null,"signingkey":"cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a","status":"federated","anchorkeys":null}`
+//	if string(j) != expected {
+//		t.Errorf("Invalid json returned - %v vs %v", string(j), expected)
+//	}
+//}
 
 func TestAuthorityMarshalUnmarshal(t *testing.T) {
 	for i := 0; i < 1000; i++ {

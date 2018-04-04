@@ -1370,7 +1370,8 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 	s.PutNewEntries(dbheight, myhash, msg.Entry)
 
 	// Monitor key changes for fed/audit servers
-	LoadIdentityByEntry(msg.Entry, s, dbheight, false)
+	// TODO: Use dblock timestamp
+	LoadIdentityByEntry(msg.Entry, s, dbheight, primitives.NewTimestampNow(), false)
 
 	s.IncEntries()
 	return true

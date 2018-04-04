@@ -105,7 +105,7 @@ type State struct {
 	CustomBootstrapKey      string
 
 	IdentityChainID interfaces.IHash // If this node has an identity, this is it
-	Identities      []*Identity      // Identities of all servers in management chain
+	//Identities      []*Identity      // Identities of all servers in management chain
 	// Authorities          []*Authority     // Identities of all servers in management chain
 	AuthorityServerCount int // number of federated or audit servers allowed
 	IdentityControl      *IdentityManager
@@ -451,7 +451,7 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 	newState.ControlPanelPort = s.ControlPanelPort
 	newState.ControlPanelSetting = s.ControlPanelSetting
 
-	newState.Identities = s.Identities
+	//newState.Identities = s.Identities
 	//newState.Authorities = s.Authorities
 	newState.AuthorityServerCount = s.AuthorityServerCount
 

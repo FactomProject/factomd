@@ -342,7 +342,12 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 	}
 	state.ECBalancesPMutex.Unlock()
 
-	ss.Identities = append(ss.Identities, state.Identities...)
+	for key, id := range state.IdentityControl.Identities {
+		if id.IdentityChainID.IsZero() { // If it's 0, we need to set it to the correct hash for restoring
+			id.IdentityChainID, _ = primitives.NewShaHash(key[:])
+		}
+		ss.Identities = append(ss.Identities, id)
+	}
 	auths := state.GetAuthorities()
 	for _, a := range auths {
 		ss.Authorities = append(ss.Authorities, a.(*Authority))
@@ -614,7 +619,6 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 	}
 	s.ECBalancesPMutex.Unlock()
 
-	s.Identities = append(s.Identities[:0], ss.Identities...)
 	// Restore IDControl
 	for _, a := range ss.Authorities {
 		s.IdentityControl.Authorities[a.AuthorityChainID.Fixed()] = a

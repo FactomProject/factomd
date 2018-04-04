@@ -231,14 +231,12 @@ func (im *IdentityManager) SetAuthority(chainID interfaces.IHash, auth *Authorit
 
 func (im *IdentityManager) RemoveAuthority(chainID interfaces.IHash) bool {
 	im.Init()
-
-	auth := im.GetAuthority(chainID)
-	if auth == nil {
+	_, ok := im.Authorities[chainID.Fixed()]
+	if !ok {
 		return false
 	}
-	auth.Status = constants.IDENTITY_UNASSIGNED
-	im.SetAuthority(chainID, auth)
 
+	delete(im.Authorities, chainID.Fixed())
 	return true
 }
 
@@ -281,7 +279,8 @@ func (im *IdentityManager) PushEntryForLater(entry interfaces.IEBEntry, dBlockHe
 	return nil
 }
 
-func (im *IdentityManager) ProcessOldEntries(initial bool) error {
+func (im *IdentityManager) ProcessOldEntries() (bool, error) {
+	var change bool
 	for {
 		allErrors := true
 		for i := 0; i < len(im.OldEntries); i++ {
@@ -289,10 +288,10 @@ func (im *IdentityManager) ProcessOldEntries(initial bool) error {
 			entry := new(entryBlock.Entry)
 			err := entry.UnmarshalBinary(oe.EntryBinary)
 			if err != nil {
-				return err
+				return false, err
 			}
 			t := primitives.NewTimestampFromMilliseconds(oe.DBlockTimestamp)
-			err = im.ProcessIdentityEntry(entry, oe.DBlockHeight, t, false, initial)
+			change, err = im.ProcessIdentityEntry(entry, oe.DBlockHeight, t, false)
 			if err == nil {
 				//entry has been finally processed, now we can delete it
 				allErrors = false
@@ -302,10 +301,10 @@ func (im *IdentityManager) ProcessOldEntries(initial bool) error {
 		}
 		//loop over and over until no entries have been removed in a whole loop
 		if allErrors == true {
-			return nil
+			return change, nil
 		}
 	}
-	return nil
+	return change, nil
 }
 
 func (im *IdentityManager) CheckDBSignatureEntries(aBlock interfaces.IAdminBlock, dBlock interfaces.IDirectoryBlock, prevHeader []byte) error {
