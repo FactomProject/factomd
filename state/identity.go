@@ -267,7 +267,9 @@ func LoadIdentityByEntry(ent interfaces.IEBEntry, st *State, height uint32, dblo
 	// Not initial means we need to keep track of key changes
 	if !initial {
 		id := st.IdentityControl.GetIdentity(ent.GetChainID())
-		orig = id.Clone()
+		if id != nil {
+			orig = id.Clone()
+		}
 	}
 
 	change, err := st.IdentityControl.ProcessIdentityEntry(ent, height, dblockTimestamp, true)
