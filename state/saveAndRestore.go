@@ -995,7 +995,7 @@ func (ss *SaveState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 		return
 	}
 	for i := 0; i < int(l); i++ {
-		s := new(Identity)
+		s := NewIdentity()
 		err = buf.PopBinaryMarshallable(s)
 		if err != nil {
 			return
@@ -1008,7 +1008,7 @@ func (ss *SaveState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 		return
 	}
 	for i := 0; i < int(l); i++ {
-		s := new(Authority)
+		s := NewAuthority()
 		err = buf.PopBinaryMarshallable(s)
 		if err != nil {
 			return
