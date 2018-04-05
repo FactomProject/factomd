@@ -134,6 +134,12 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 		// TODO: Got here with a 3 when the e.Federated[] was only 3 long running TestSetupANetwork()
 		e.FedID = e.Federated[e.Electing].GetChainID()
 
+		// Reset this value when we start an election
+		for len(e.Round) <= e.Electing {
+			e.Round = append(e.Round, 0)
+		}
+		e.Round[e.Electing] = 0
+
 		e.LogPrintf("election", "**** Start an Election for %d[%x] ****", e.Electing, e.FedID.Bytes()[3:6])
 
 		// ------------------
