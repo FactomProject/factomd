@@ -103,7 +103,10 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 
 	// No election running, is there one we should start?
 	if e.Electing == -1 || m.DBHeight > e.DBHeight || m.ComparisonMinute() > e.ComparisonMinute() {
-
+		// When we are syncing this can happen, as we are syncing from disk quickly
+		if uint32(e.DBHeight) < s.ProcessLists.DBHeightBase {
+			return
+		}
 		servers := s.ProcessLists.Get(uint32(e.DBHeight)).FedServers
 		nfeds := len(servers)
 		VMscollected := make([]bool, nfeds, nfeds)
