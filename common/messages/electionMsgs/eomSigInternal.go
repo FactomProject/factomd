@@ -143,6 +143,10 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 		e.FaultId.Store(e.FaultId.Load() + 1) // increment the timeout counter
 		go Fault(e, e.DBHeight, e.Minute, round, e.FaultId.Load(), &e.FaultId, m.SigType)
 
+		// Drain all waiting messages as we have advanced, they can now be processed again
+		// as moving forward in mins/blocks may invalidate/validate some messages
+		go e.ProcessWaiting()
+
 		t := "EOM"
 		if !m.SigType {
 			t = "DBSig"

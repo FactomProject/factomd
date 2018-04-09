@@ -52,6 +52,9 @@ type Elections struct {
 	Timeout time.Duration
 
 	FaultId atomic.AtomicInt // Incremented every time we launch a new timeout
+
+	// Messages that are not valid. They can be processed when an election finishes
+	Waiting chan interfaces.IElectionMsg
 }
 
 func (e *Elections) ComparisonMinute() int {
@@ -356,6 +359,18 @@ func CheckAuthSetsMatch(caller string, e *Elections, s *state.State) {
 	//}
 }
 
+// ProcessWaiting drains all waiting messages into the input
+func (e *Elections) ProcessWaiting() {
+	for {
+		select {
+		case msg := <-e.Waiting:
+			e.Input.Enqueue(msg)
+		default:
+			return
+		}
+	}
+}
+
 // Runs the main loop for elections for this instance of factomd
 func Run(s *state.State) {
 	e := new(Elections)
@@ -367,6 +382,7 @@ func Run(s *state.State) {
 	e.Electing = -1
 
 	e.Timeout = time.Duration(FaultTimeout) * time.Second
+	e.Waiting = make(chan interfaces.IElectionMsg, 500)
 
 	// Actually run the elections
 	for {
@@ -379,11 +395,12 @@ func Run(s *state.State) {
 			// Do not process
 			continue
 		case 0:
-			// Not valid, try again later
-			go func() {
-				time.Sleep(10 * time.Millisecond)
-				e.Input.Enqueue(msg)
-			}()
+			// Drop the oldest message if at capacity
+			if len(e.Waiting) > 9*cap(e.Waiting)/10 {
+				<-e.Waiting
+			}
+			// Waiting will get drained when a new election begins, or we move forward
+			e.Waiting <- msg
 			continue
 		}
 		msg.ElectionProcess(s, e)

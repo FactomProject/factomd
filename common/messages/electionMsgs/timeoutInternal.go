@@ -77,6 +77,8 @@ func (m *TimeoutInternal) InitiateElectionAdapter(st interfaces.IState) bool {
 	msg.SigType = m.SigType
 	e.State.InMsgQueue().Enqueue(msg)
 
+	// When we start a new election, we can process all messages that were being held
+	go e.ProcessWaiting()
 	return true
 }
 
