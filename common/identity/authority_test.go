@@ -130,7 +130,7 @@ func TestVerify(t *testing.T) {
 		auth.AuthorityChainID = id
 		auth.SigningKey = *(p.Pub)
 
-		s.Authorities = append(s.Authorities, auth)
+		s.IdentityControl.SetAuthority(auth.AuthorityChainID, auth)
 	}
 
 	for i := 0; i < len(ids); i++ {
