@@ -176,6 +176,8 @@ func (st *State) AddIdentityFromChainID(cid interfaces.IHash) error {
 
 	parseEntryList := func(list []IdentityEntry) {
 		for _, e := range list {
+			// Instead of calling LoadIdentityByEntry, we can call process directly, as this is initializing
+			// an identity.
 			st.IdentityControl.ProcessIdentityEntry(e.Entry, e.Blockheight, e.Timestamp, true)
 		}
 		st.IdentityControl.ProcessOldEntries()
@@ -225,165 +227,9 @@ func (st *State) AddIdentityFromChainID(cid interfaces.IHash) error {
 	return nil
 }
 
-func (st *State) OLDAddIdentityFromChainID(cid interfaces.IHash) error {
-	if cid.String() == st.GetNetworkBootStrapIdentity().String() || cid.String() == st.GetNetworkSkeletonIdentity().String() { // Ignore Bootstrap Identity, as it is invalid
-		return nil
-	}
-
-	id := st.IdentityControl.GetIdentity(cid)
-	if id == nil {
-		id = NewIdentity()
-		st.IdentityControl.SetIdentity(cid, id)
-	}
-
-	RegIdentityChain, _ := primitives.HexToHash(MAIN_FACTOM_IDENTITY_LIST)
-	dbase := st.GetDB()
-	ents, err := dbase.FetchAllEntriesByChainID(RegIdentityChain)
-
-	if err != nil {
-		return err
-	}
-	if len(ents) == 0 {
-		st.IdentityControl.RemoveIdentity(cid)
-		return errors.New("Identity Error: No main Main Factom Identity Chain chain created")
-	}
-
-	// Check Identity chain
-	eblkStackRoot := make([]interfaces.IEntryBlock, 0)
-	mr, err := st.DB.FetchHeadIndexByChainID(cid)
-	if err != nil {
-		return err
-	} else if mr == nil {
-		st.IdentityControl.RemoveIdentity(cid)
-		return errors.New("Identity Error: Identity Chain not found")
-	}
-	for !mr.IsSameAs(primitives.NewZeroHash()) {
-		eblk, err := st.DB.FetchEBlock(mr)
-		if err != nil || eblk == nil {
-			break
-		}
-		eblkStackRoot = append(eblkStackRoot, eblk)
-		mr = eblk.GetHeader().GetPrevKeyMR()
-	}
-
-	for i := len(eblkStackRoot) - 1; i >= 0; i-- {
-		LoadIdentityByEntryBlock(eblkStackRoot[i], st)
-	}
-
-	mr, err = st.DB.FetchHeadIndexByChainID(RegIdentityChain)
-	if err != nil {
-		return err
-	}
-	// Check Factom Main Identity List
-	for !mr.IsSameAs(primitives.NewZeroHash()) {
-		eblk, err := st.DB.FetchEBlock(mr)
-		if err != nil {
-			return err
-		}
-		if eblk == nil {
-			break
-		}
-		entries := eblk.GetEntryHashes()
-		height := eblk.GetDatabaseHeight()
-		dblock, err := st.DB.FetchDBlockByHeight(height)
-		if err != nil {
-			return err
-		}
-		for _, eHash := range entries {
-			if eHash.IsMinuteMarker() { //ignore minute markers
-				ent, err := st.DB.FetchEntry(eHash)
-				if err != nil || ent == nil {
-					continue
-				}
-				if len(ent.ExternalIDs()) > 3 {
-					// This is the Register Factom Identity Message
-					if len(ent.ExternalIDs()[2]) == 32 {
-						idChain := primitives.NewHash(ent.ExternalIDs()[2][:32])
-						if string(ent.ExternalIDs()[1]) == "Register Factom Identity" && cid.IsSameAs(idChain) {
-							st.IdentityControl.ProcessIdentityEntry(ent, height, dblock.GetTimestamp(), true)
-							//RegisterFactomIdentity(ent, cid, height, st)
-							break // Found the registration
-						}
-					}
-				}
-			}
-		}
-		mr = eblk.GetHeader().GetPrevKeyMR()
-	}
-
-	id = st.IdentityControl.GetIdentity(cid)
-
-	x := cid.String()
-	fmt.Println(x)
-	eblkStackSub := make([]interfaces.IEntryBlock, 0)
-	if id == nil || id.ManagementChainID == nil || id.ManagementChainID.IsZero() {
-		st.IdentityControl.RemoveIdentity(cid)
-		return errors.New("Identity Error: No management chain found")
-	}
-	mr, err = st.DB.FetchHeadIndexByChainID(id.ManagementChainID)
-	if err != nil {
-		return err
-	} else if mr == nil {
-		st.IdentityControl.RemoveIdentity(cid)
-		return nil
-	}
-	for !mr.IsSameAs(primitives.NewZeroHash()) {
-		eblk, err := st.DB.FetchEBlock(mr)
-		if err != nil {
-			break
-		}
-		eblkStackSub = append(eblkStackSub, eblk)
-		mr = eblk.GetHeader().GetPrevKeyMR()
-	}
-	for i := len(eblkStackSub) - 1; i >= 0; i-- {
-		LoadIdentityByEntryBlock(eblkStackSub[i], st)
-	}
-
-	st.IdentityControl.ProcessOldEntries()
-
-	id = st.IdentityControl.GetIdentity(cid)
-	if ok, err := id.IsPromteable(); !ok {
-		st.IdentityControl.RemoveIdentity(cid)
-		return errors.New("Error: Identity not full - " + err.Error())
-	}
-
-	return nil
-}
-
-// Should only be called if the Identity is being initialized.
-// Using this will not send any message out if a key is changed.
-// Eg. Only call from addserver or you don't want any messages being sent.
-func LoadIdentityByEntryBlock(eblk interfaces.IEntryBlock, st *State) {
-	if eblk == nil {
-		identLogger.WithFields(st.Logger.Data).WithField("func", "LoadIdentityByEntryBlock").Info("Initializing identity failed as eblock is nil")
-		return
-	}
-	cid := eblk.GetChainID()
-	if cid == nil {
-		return
-	}
-
-	id := st.IdentityControl.GetIdentity(cid)
-	// New parsing
-	if id != nil {
-		dblock, err := st.DB.FetchDBlockByHeight(eblk.GetDatabaseHeight())
-		if err != nil {
-			// TODO: Should we panic here? It's a problem because we cannot parse the identity
-			panic("")
-		}
-		entryHashes := eblk.GetEntryHashes()
-		for _, eHash := range entryHashes {
-			entry, err := st.DB.FetchEntry(eHash)
-			if err != nil {
-				continue
-			}
-			LoadIdentityByEntry(entry, st, eblk.GetDatabaseHeight(), dblock.GetTimestamp(), true)
-		}
-		// Ordering
-		st.IdentityControl.ProcessOldEntries()
-	}
-}
-
+// LoadIdentityByEntry is only useful when initial is set to false. If initial is false, it will track changes
+// in an identity that corresponds to an authority. If initial is true, then calling ProcessIdentityEntry directly will
+// have the same result.
 func LoadIdentityByEntry(ent interfaces.IEBEntry, st *State, height uint32, dblockTimestamp interfaces.Timestamp, initial bool) {
 	flog := identLogger.WithFields(st.Logger.Data).WithField("func", "LoadIdentityByEntry")
 	if ent == nil {

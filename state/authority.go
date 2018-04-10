@@ -137,7 +137,8 @@ func (st *State) GetAuthority(serverID interfaces.IHash) (*Authority, int) {
 	return auth, auth.Type()
 }
 
-// We keep a 2 block history of their keys, this is so if we change their
+// We keep a 2 block history of their keys, this is so if we change their key and need to verify
+// a message from 1 block ago, we still can. This function garbage collects old keys
 func (st *State) UpdateAuthSigningKeys(height uint32) {
 	// NEW
 	for key, auth := range st.IdentityControl.Authorities {
@@ -192,7 +193,9 @@ func (st *State) GetAuthorityServerType(chainID interfaces.IHash) int { // 0 = F
 	return -1
 }
 
-// If the Identity failed to create, it will be fixed here
+// If the Identity failed to create, it will be fixed here. It is possible to create an authority and
+// fail to create the identity if your second pass is not synced. This routine will fix any authorities
+// that are missing an identity.
 func (s *State) RepairAuthorities() {
 	// Fix any missing management chains
 	for _, iAuth := range s.IdentityControl.GetAuthorities() {
