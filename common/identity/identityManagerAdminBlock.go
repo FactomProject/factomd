@@ -7,6 +7,8 @@ package identity
 import (
 	"fmt"
 
+	"bytes"
+
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -166,6 +168,15 @@ func (im *IdentityManager) ApplyAddFederatedServerBitcoinAnchorKey(entry interfa
 	ask.KeyLevel = e.KeyPriority
 	ask.KeyType = e.KeyType
 	ask.BlockChain = "BTC"
+
+	for _, a := range auth.AnchorKeys {
+		// We are only dealing with bitcoin keys, so no need to check blockchain
+		if a.KeyLevel == ask.KeyLevel && a.KeyType == ask.KeyType {
+			if bytes.Compare(a.SigningKey[:], ask.SigningKey[:]) == 0 {
+				return nil // Key already exists in authority
+			}
+		}
+	}
 
 	auth.AnchorKeys = append(auth.AnchorKeys, ask)
 
