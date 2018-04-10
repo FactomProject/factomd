@@ -17,6 +17,8 @@ import (
 
 	"sort"
 
+	"fmt"
+
 	log "github.com/sirupsen/logrus"
 )
 
@@ -95,7 +97,126 @@ func (st *State) IntiateNetworkSkeletonIdentity() error {
 	return nil
 }
 
+type IdentityEntry struct {
+	Entry       interfaces.IEBEntry
+	Timestamp   interfaces.Timestamp
+	Blockheight uint32
+}
+
+// FetchIdentityChainEntriesInCreateOrder will grab all entries in a chain for an identity in the order they were created.
+func (s *State) FetchIdentityChainEntriesInCreateOrder(chainid interfaces.IHash) ([]IdentityEntry, error) {
+	head, err := s.DB.FetchHeadIndexByChainID(chainid)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get Eblocks
+	var blocks []interfaces.IEntryBlock
+	next := head
+	for {
+		if next.IsZero() {
+			break
+		}
+
+		// Get the EBlock, and add to list to parse
+		block, err := s.DB.FetchEBlock(next)
+		if err != nil {
+			return nil, err
+		}
+		blocks = append(blocks, block)
+
+		next = block.GetHeader().GetPrevKeyMR()
+	}
+
+	var entries []IdentityEntry
+	// Walk through eblocks in reverse order to get entries
+	for i := len(blocks) - 1; i >= 0; i-- {
+		eb := blocks[i]
+
+		height := eb.GetDatabaseHeight()
+		// Get the timestamp
+		dblock, err := s.DB.FetchDBlockByHeight(height)
+		if err != nil {
+			return nil, err
+		}
+		ts := dblock.GetTimestamp()
+
+		ehashes := eb.GetEntryHashes()
+		for _, e := range ehashes {
+			if e.IsMinuteMarker() {
+				continue
+			}
+			entry, err := s.DB.FetchEntry(e)
+			if err != nil {
+				return nil, err
+			}
+
+			entries = append(entries, IdentityEntry{entry, ts, height})
+		}
+	}
+
+	return entries, nil
+}
+
 func (st *State) AddIdentityFromChainID(cid interfaces.IHash) error {
+	identityRegisterChain, _ := primitives.HexToHash(MAIN_FACTOM_IDENTITY_LIST)
+
+	// ** Step 1 **
+	// First we need to determine if the identity is registered. We will have to parse the entire
+	// register chain (TODO: This should probably be optimized)
+	regEntries, err := st.FetchIdentityChainEntriesInCreateOrder(identityRegisterChain)
+	if err != nil {
+		return err
+	}
+
+	parseEntryList := func(list []IdentityEntry) {
+		for _, e := range list {
+			st.IdentityControl.ProcessIdentityEntry(e.Entry, e.Blockheight, e.Timestamp, true)
+		}
+		st.IdentityControl.ProcessOldEntries()
+	}
+
+	parseEntryList(regEntries)
+
+	// ** Step 2 **
+	// Parse the identity's chain id, which will give us the management chain ID
+	rootEntries, err := st.FetchIdentityChainEntriesInCreateOrder(cid)
+	if err != nil {
+		return err
+	}
+
+	parseEntryList(rootEntries)
+
+	// ** Step 3 **
+	// Parse the entries contained in the management chain (if exists!)
+	id := st.IdentityControl.GetIdentity(cid)
+	if id == nil {
+		return fmt.Errorf("Identity was not found")
+	}
+
+	// The id stops here
+	if id.ManagementChainID.IsZero() {
+		return fmt.Errorf("No management chain found for identity")
+	}
+
+	manageEntries, err := st.FetchIdentityChainEntriesInCreateOrder(id.ManagementChainID)
+	if err != nil {
+		return err
+	}
+
+	parseEntryList(manageEntries)
+
+	// ** Step 4 **
+	// Check if it is promotable
+	id = st.IdentityControl.GetIdentity(cid)
+	if ok, err := id.IsPromteable(); !ok {
+		st.IdentityControl.RemoveIdentity(cid)
+		return errors.New("Error: Identity not full - " + err.Error())
+	}
+	return nil
+}
+
+func (st *State) OLDAddIdentityFromChainID(cid interfaces.IHash) error {
 	if cid.String() == st.GetNetworkBootStrapIdentity().String() || cid.String() == st.GetNetworkSkeletonIdentity().String() { // Ignore Bootstrap Identity, as it is invalid
 		return nil
 	}
@@ -106,9 +227,9 @@ func (st *State) AddIdentityFromChainID(cid interfaces.IHash) error {
 		st.IdentityControl.SetIdentity(cid, id)
 	}
 
-	managementChain, _ := primitives.HexToHash(MAIN_FACTOM_IDENTITY_LIST)
+	RegIdentityChain, _ := primitives.HexToHash(MAIN_FACTOM_IDENTITY_LIST)
 	dbase := st.GetDB()
-	ents, err := dbase.FetchAllEntriesByChainID(managementChain)
+	ents, err := dbase.FetchAllEntriesByChainID(RegIdentityChain)
 
 	if err != nil {
 		return err
@@ -140,7 +261,7 @@ func (st *State) AddIdentityFromChainID(cid interfaces.IHash) error {
 		LoadIdentityByEntryBlock(eblkStackRoot[i], st)
 	}
 
-	mr, err = st.DB.FetchHeadIndexByChainID(managementChain)
+	mr, err = st.DB.FetchHeadIndexByChainID(RegIdentityChain)
 	if err != nil {
 		return err
 	}
@@ -183,6 +304,8 @@ func (st *State) AddIdentityFromChainID(cid interfaces.IHash) error {
 
 	id = st.IdentityControl.GetIdentity(cid)
 
+	x := cid.String()
+	fmt.Println(x)
 	eblkStackSub := make([]interfaces.IEntryBlock, 0)
 	if id == nil || id.ManagementChainID == nil || id.ManagementChainID.IsZero() {
 		st.IdentityControl.RemoveIdentity(cid)
