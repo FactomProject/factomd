@@ -110,6 +110,10 @@ func (s *State) FetchIdentityChainEntriesInCreateOrder(chainid interfaces.IHash)
 		return nil, err
 	}
 
+	if head == nil {
+		return nil, fmt.Errorf("chain %x does not exist", chainid.Fixed())
+	}
+
 	// Get Eblocks
 	var blocks []interfaces.IEntryBlock
 	next := head
@@ -166,6 +170,7 @@ func (st *State) AddIdentityFromChainID(cid interfaces.IHash) error {
 	// register chain (TODO: This should probably be optimized)
 	regEntries, err := st.FetchIdentityChainEntriesInCreateOrder(identityRegisterChain)
 	if err != nil {
+		st.IdentityControl.RemoveIdentity(cid)
 		return err
 	}
 
@@ -182,6 +187,7 @@ func (st *State) AddIdentityFromChainID(cid interfaces.IHash) error {
 	// Parse the identity's chain id, which will give us the management chain ID
 	rootEntries, err := st.FetchIdentityChainEntriesInCreateOrder(cid)
 	if err != nil {
+		st.IdentityControl.RemoveIdentity(cid)
 		return err
 	}
 
@@ -191,16 +197,19 @@ func (st *State) AddIdentityFromChainID(cid interfaces.IHash) error {
 	// Parse the entries contained in the management chain (if exists!)
 	id := st.IdentityControl.GetIdentity(cid)
 	if id == nil {
+		st.IdentityControl.RemoveIdentity(cid)
 		return fmt.Errorf("Identity was not found")
 	}
 
 	// The id stops here
 	if id.ManagementChainID.IsZero() {
+		st.IdentityControl.RemoveIdentity(cid)
 		return fmt.Errorf("No management chain found for identity")
 	}
 
 	manageEntries, err := st.FetchIdentityChainEntriesInCreateOrder(id.ManagementChainID)
 	if err != nil {
+		st.IdentityControl.RemoveIdentity(cid)
 		return err
 	}
 
