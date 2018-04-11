@@ -70,8 +70,10 @@ func (st *State) GetSigningKey(id interfaces.IHash) (interfaces.IHash, int) {
 
 func (st *State) GetNetworkSkeletonKey() interfaces.IHash {
 	id := st.IdentityControl.GetIdentity(st.GetNetworkSkeletonIdentity())
-	if id == nil { // There should always be a skeleton identity. It cannot be removed
-		return nil
+	if id == nil {
+		// There should always be a skeleton identity. It cannot be removed
+		// If there is one, just use the bootstrap key
+		return st.GetNetworkBootStrapKey()
 	}
 
 	key := id.SigningKey
