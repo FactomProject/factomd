@@ -28,10 +28,10 @@ func (p AnchorSigningKeySort) Less(i, j int) bool {
 }
 
 type AnchorSigningKey struct {
-	BlockChain string   `json:"blockchain"`
-	KeyLevel   byte     `json:"level"`
-	KeyType    byte     `json:"keytype"`
-	SigningKey [20]byte `json:"key"` //if bytes, it is hex
+	BlockChain string                 `json:"blockchain"`
+	KeyLevel   byte                   `json:"level"`
+	KeyType    byte                   `json:"keytype"`
+	SigningKey primitives.ByteSlice20 `json:"key"` //if bytes, it is hex
 }
 
 var _ interfaces.BinaryMarshallable = (*AnchorSigningKey)(nil)
