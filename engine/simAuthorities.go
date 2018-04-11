@@ -237,6 +237,7 @@ func authorityToBlockchain(total int, st *state.State) ([]hardCodedAuthority, in
 		if existsEB != nil {
 			skipped++
 			count--
+			authKeyLibrary = append(authKeyLibrary, ele)
 			continue
 		}
 
@@ -244,6 +245,7 @@ func authorityToBlockchain(total int, st *state.State) ([]hardCodedAuthority, in
 		if existsEB != nil {
 			skipped++
 			count--
+			authKeyLibrary = append(authKeyLibrary, ele)
 			continue
 		}
 
@@ -251,6 +253,7 @@ func authorityToBlockchain(total int, st *state.State) ([]hardCodedAuthority, in
 		if exists != nil {
 			skipped++
 			count--
+			authKeyLibrary = append(authKeyLibrary, ele)
 			continue
 		}
 
@@ -486,17 +489,18 @@ func changeSigningKey(auth interfaces.IHash, st *state.State) (*primitives.Priva
 		if auth.IsSameAs(ele.ChainID) {
 			com, rev, newKey, _ := makeBlockKey(ele, ec, true)
 			ele.NewBlockKey = newKey
-			m := new(wsapi.EntryRequest)
-			m.Entry = com
+			m := new(wsapi.MessageRequest)
+			m.Message = com
+
 			j := primitives.NewJSON2Request("commit-entry", 0, m)
 			_, err := v2Request(j, st.GetPort())
 			//wsapi.HandleV2Request(st, j)
 			if err != nil {
 				return nil, err
 			}
-			m = new(wsapi.EntryRequest)
-			m.Entry = rev
-			j = primitives.NewJSON2Request("reveal-entry", 0, m)
+			mr := new(wsapi.EntryRequest)
+			mr.Entry = rev
+			j = primitives.NewJSON2Request("reveal-entry", 0, mr)
 			//wsapi.HandleV2Request(st, j)
 			_, err = v2Request(j, st.GetPort())
 			if err != nil {

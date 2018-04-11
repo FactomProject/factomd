@@ -12,7 +12,6 @@ import (
 	. "github.com/FactomProject/factomd/common/identity"
 	. "github.com/FactomProject/factomd/common/identityEntries"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 
 	"sort"
@@ -265,19 +264,22 @@ func LoadIdentityByEntry(ent interfaces.IEBEntry, st *State, height uint32, dblo
 			// Is this a change in signing key?
 			if !orig.SigningKey.IsSameAs(id.SigningKey) {
 				key := id.SigningKey
-				msg := messages.NewChangeServerKeyMsg(st, id.IdentityChainID, constants.TYPE_ADD_FED_SERVER_KEY, 0, 0, key)
-				err := msg.(*messages.ChangeServerKeyMsg).Sign(st)
-				if err == nil {
-					st.InMsgQueue().Enqueue(msg)
+				// Add to admin block
+				if st.VerifyIsAuthority(id.IdentityChainID) {
+					err := st.LeaderPL.AdminBlock.AddFederatedServerSigningKey(id.IdentityChainID, key.Fixed())
+					if err != nil {
+						flog.Errorf(err.Error())
+					}
 				}
 			}
 
 			// Is this a change in MHash?
 			if !orig.MatryoshkaHash.IsSameAs(id.MatryoshkaHash) {
-				msg := messages.NewChangeServerKeyMsg(st, id.IdentityChainID, constants.TYPE_ADD_MATRYOSHKA, 0, 0, id.MatryoshkaHash)
-				err := msg.(*messages.ChangeServerKeyMsg).Sign(st)
-				if err == nil {
-					st.InMsgQueue().Enqueue(msg)
+				if st.VerifyIsAuthority(id.IdentityChainID) {
+					err := st.LeaderPL.AdminBlock.AddMatryoshkaHash(id.IdentityChainID, id.MatryoshkaHash)
+					if err != nil {
+						flog.Errorf(err.Error())
+					}
 				}
 			}
 
@@ -300,12 +302,11 @@ func LoadIdentityByEntry(ent interfaces.IEBEntry, st *State, height uint32, dblo
 			}
 
 			if newKey != nil {
-				hashLengthKey := append(newKey.SigningKey[:], []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}...)
-				key := primitives.NewHash(hashLengthKey)
-				msg := messages.NewChangeServerKeyMsg(st, id.IdentityChainID, constants.TYPE_ADD_BTC_ANCHOR_KEY, newKey.KeyLevel, newKey.KeyType, key)
-				err := msg.(*messages.ChangeServerKeyMsg).Sign(st.serverPrivKey)
-				if err == nil {
-					st.InMsgQueue().Enqueue(msg)
+				if st.VerifyIsAuthority(id.IdentityChainID) {
+					err := st.LeaderPL.AdminBlock.AddFederatedServerBitcoinAnchorKey(id.IdentityChainID, newKey.KeyLevel, newKey.KeyType, newKey.SigningKey)
+					if err != nil {
+						flog.Errorf(err.Error())
+					}
 				}
 			}
 		}
