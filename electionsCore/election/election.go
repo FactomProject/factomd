@@ -451,6 +451,9 @@ func (e *Election) VolunteerControlString() string {
 			arr := make([]messages.LeaderLevelMessage, len(v.Votes))
 			i := 0
 			for _, vo := range v.Votes {
+				if i >= len(arr) {
+					break
+				}
 				arr[i] = vo
 				i++
 			}

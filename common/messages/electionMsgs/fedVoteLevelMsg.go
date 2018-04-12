@@ -221,7 +221,10 @@ func (m *FedVoteLevelMsg) FollowerExecute(is interfaces.IState) {
 		pl.FedServers[m.Volunteer.FedIdx], pl.AuditServers[m.Volunteer.ServerIdx] =
 			pl.AuditServers[m.Volunteer.ServerIdx], pl.FedServers[m.Volunteer.FedIdx]
 
+		// Add to the process list and immediately process
 		pl.AddToProcessList(m.Volunteer.Ack.(*messages.Ack), m.Volunteer.Missing)
+		//pl.Process(is.(*state.State))
+		is.UpdateState()
 		pl.SortAuditServers()
 		pl.SortFedServers()
 	} else {
