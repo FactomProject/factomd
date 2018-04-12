@@ -122,7 +122,7 @@ func TestSignAndVerifyDirectoryBlockSignature(t *testing.T) {
 func TestInvalidSignature(t *testing.T) {
 	s := testHelper.CreateEmptyTestState()
 	m, a, key := newSignedDirectoryBlockSignature()
-	s.Authorities = append(s.Authorities, a)
+	s.IdentityControl.SetAuthority(a.AuthorityChainID, a)
 
 	data, err := m.MarshalBinary()
 	if err != nil {
