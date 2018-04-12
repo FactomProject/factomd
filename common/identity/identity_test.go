@@ -32,47 +32,47 @@ func TestIdentityMarshalUnmarshal(t *testing.T) {
 func TestIsComplete(t *testing.T) {
 	i := NewIdentity()
 	if complete, _ := i.IsComplete(); complete {
-		t.Errorf("Identity returns as complete, but it is incomplete")
+		t.Errorf("(1) Identity returns as complete, but it is incomplete")
 	}
 
 	i = RandomIdentity()
 	if complete, _ := i.IsComplete(); !complete {
-		t.Errorf("Identity returns as incomplete, but it is complete")
+		t.Errorf("(2) Identity returns as incomplete, but it is complete")
 	}
 
 	i = RandomIdentity()
 	i.ManagementChainID = nil
 	if complete, _ := i.IsComplete(); complete {
-		t.Errorf("Identity returns as complete, but it is incomplete")
+		t.Errorf("(3) Identity returns as complete, but it is incomplete")
 	}
 
 	i = RandomIdentity()
 	i.IdentityChainID = primitives.NewZeroHash()
 	if complete, _ := i.IsComplete(); complete {
-		t.Errorf("Identity returns as complete, but it is incomplete")
+		t.Errorf("(4) Identity returns as complete, but it is incomplete")
 	}
 
 	i = RandomIdentity()
 	i.ManagementChainID = nil
 	if complete, _ := i.IsComplete(); complete {
-		t.Errorf("Identity returns as complete, but it is incomplete")
+		t.Errorf("(5) Identity returns as complete, but it is incomplete")
 	}
 
 	i = RandomIdentity()
 	i.Keys[0] = nil
 	if complete, _ := i.IsComplete(); complete {
-		t.Errorf("Identity returns as complete, but it is incomplete")
+		t.Errorf("(6) Identity returns as complete, but it is incomplete")
 	}
 
 	i = RandomIdentity()
 	i.AnchorKeys = nil
 	if complete, _ := i.IsComplete(); complete {
-		t.Errorf("Identity returns as complete, but it is incomplete")
+		t.Errorf("(7) Identity returns as complete, but it is incomplete")
 	}
 
 	i = RandomIdentity()
 	i.MatryoshkaHash = primitives.NewZeroHash()
 	if complete, _ := i.IsComplete(); complete {
-		t.Errorf("Identity returns as complete, but it is incomplete")
+		t.Errorf("(8) Identity returns as complete, but it is incomplete")
 	}
 }

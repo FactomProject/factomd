@@ -89,7 +89,7 @@ func RandomIdentity() *Identity {
 	id.SigningKey = primitives.RandomHash()
 	id.Status = random.RandUInt8()
 
-	l := random.RandIntBetween(0, 10)
+	l := random.RandIntBetween(1, 10)
 	for i := 0; i < l; i++ {
 		id.AnchorKeys = append(id.AnchorKeys, *RandomAnchorSigningKey())
 	}

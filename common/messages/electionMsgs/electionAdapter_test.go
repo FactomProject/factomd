@@ -111,7 +111,7 @@ func NewTestElection() *elections.Elections {
 
 func NewTestVolunteerMessage(ele *elections.Elections, f, a int) *FedVoteVolunteerMsg {
 	v := new(FedVoteVolunteerMsg)
-	v.EOM = true
+	v.SigType = true
 	v.Name = "Leader 2"
 	v.FedIdx = uint32(f)
 	v.FedID = ele.Federated[f].GetChainID()
