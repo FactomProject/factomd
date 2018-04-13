@@ -34,7 +34,16 @@ func (m *StartElectionInternal) ElectionProcess(s interfaces.IState, elect inter
 	e := elect.(*elections.Elections)
 
 	e.Adapter = NewElectionAdapter(e, m.PreviousDBHash)
-	e.Adapter.SetObserver(!m.IsLeader)
+	// An election that finishes may make us a leader. We need to know that for the next election that
+	// takes place. So use the election's list of fed servers to determine if we are a leader
+	for _, id := range e.Federated {
+		if id.GetChainID().IsSameAs(s.GetIdentityChainID()) {
+			e.Adapter.SetObserver(false)
+			break
+		}
+		e.Adapter.SetObserver(true)
+	}
+	//e.Adapter.SetObserver(!m.IsLeader)
 
 	// Start the timeouts
 	for len(e.Round) <= e.Electing {

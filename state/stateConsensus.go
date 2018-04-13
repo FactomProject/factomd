@@ -1573,6 +1573,9 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 		s.CurrentMinute++
 		s.CurrentMinuteStartTime = time.Now().UnixNano()
+		// If an election took place, our lists will be unsorted. Fix that
+		pl.SortAuditServers()
+		pl.SortFedServers()
 
 		switch {
 		case s.CurrentMinute < 10:

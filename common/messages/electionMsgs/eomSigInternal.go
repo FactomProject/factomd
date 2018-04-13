@@ -140,6 +140,10 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 		// Start our timer to timeout this sync
 		round := 0
 
+		// Sort leaders, an election is previous min/block may mess up ordering
+		elections.Sort(e.Federated)
+		elections.Sort(e.Audit)
+
 		e.FaultId.Store(e.FaultId.Load() + 1) // increment the timeout counter
 		go Fault(e, e.DBHeight, e.Minute, round, e.FaultId.Load(), &e.FaultId, m.SigType)
 

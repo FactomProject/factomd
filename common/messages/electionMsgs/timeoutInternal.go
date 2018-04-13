@@ -109,7 +109,7 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 		if uint32(e.DBHeight) < s.ProcessLists.DBHeightBase {
 			return
 		}
-		servers := s.ProcessLists.Get(uint32(e.DBHeight)).FedServers
+		servers := e.Federated
 		nfeds := len(servers)
 		VMscollected := make([]bool, nfeds, nfeds)
 		for _, im := range e.Msgs {

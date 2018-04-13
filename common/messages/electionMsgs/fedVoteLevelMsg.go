@@ -154,9 +154,6 @@ func (m *FedVoteLevelMsg) processIfCommitted(is interfaces.IState, elect interfa
 		// End the election by setting this to '-1'
 		e.Electing = -1
 		e.LogPrintf("election", "**** Election is over. Elected %d[%x] ****", m.Volunteer.ServerIdx, m.Volunteer.ServerID.Bytes()[3:6])
-
-		elections.Sort(e.Federated)
-		elections.Sort(e.Audit)
 	}
 }
 func DoSwap(e *elections.Elections, m *FedVoteLevelMsg) {
@@ -223,10 +220,8 @@ func (m *FedVoteLevelMsg) FollowerExecute(is interfaces.IState) {
 
 		// Add to the process list and immediately process
 		pl.AddToProcessList(m.Volunteer.Ack.(*messages.Ack), m.Volunteer.Missing)
-		//pl.Process(is.(*state.State))
 		is.UpdateState()
-		pl.SortAuditServers()
-		pl.SortFedServers()
+
 	} else {
 		is.ElectionsQueue().Enqueue(m)
 	}
