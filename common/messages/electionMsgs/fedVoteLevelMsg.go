@@ -157,9 +157,6 @@ func (m *FedVoteLevelMsg) processIfCommitted(is interfaces.IState, elect interfa
 		e.Electing = -1
 		e.LogPrintf("election", "**** Election is over. Elected %d[%x] ****", m.Volunteer.ServerIdx, m.Volunteer.ServerID.Bytes()[3:6])
 
-		elections.Sort(e.Federated)
-		elections.Sort(e.Audit)
-
 		// Add some string feedback for prints
 		t := "EOM"
 		if !m.SigType {
