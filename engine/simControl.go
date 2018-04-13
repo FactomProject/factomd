@@ -36,6 +36,8 @@ var verboseAuthorityDeltas = false
 var totalServerFaults int
 var lastcmd []string
 var ListenTo int
+var wsapiNode int
+var loadGenerator *LoadGenerator
 
 // Used for signing messages
 var LOCAL_NET_PRIV_KEY string = "4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d"
@@ -86,7 +88,7 @@ func SimControl(listenTo int, listenStdin bool) {
 	var watchPL int
 	var watchMessages int
 	var rotate int
-	var wsapiNode int
+	//var wsapiNode int
 	var faulting bool
 
 	ListenTo = listenTo
@@ -1175,6 +1177,20 @@ func SimControl(listenTo int, listenStdin bool) {
 							dbs.String()))
 					}
 				}
+			case 'R' == b[0]:
+				// load generation
+				if loadGenerator == nil {
+					loadGenerator = NewLoadGenerator()
+				}
+
+				nn, err := strconv.Atoi(string(b[1:]))
+				if err != nil {
+					os.Stderr.WriteString(err.Error() + "\n")
+					break
+				}
+				loadGenerator.PerSecond.Store(nn)
+				go loadGenerator.Run()
+				os.Stderr.WriteString(fmt.Sprintf("Writing entries at %d per second\n", nn))
 
 			case 'h' == b[0]:
 				os.Stderr.WriteString("-------------------------------------------------------------------------------\n")

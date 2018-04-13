@@ -35,14 +35,16 @@ var _ interfaces.IMsg = (*EomSigInternal)(nil)
 var _ interfaces.IElectionMsg = (*EomSigInternal)(nil)
 
 func Title() string {
-	return fmt.Sprintf("%5s%6s %10s %8s %8s %8s %8s",
+	return fmt.Sprintf("%5s%6s %10s %5s %5s %5s %5s %5s %5s",
 		"", // Spacer
 		"Type",
 		"Node",
 		"M:DBHt",
 		"M:Min",
+		"M:VM",
 		"E:DBHt",
-		"E:Min")
+		"E:Min",
+		"E:VM")
 }
 
 func (m *EomSigInternal) MarshalBinary() (data []byte, err error) {
@@ -158,13 +160,16 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 
 		e.SetElections3()
 
-		s.Election1 = fmt.Sprintf("%6s %10s %8d %8d %8d %8d",
+		//								   T   N    mH  mM  mV  eH  eM  eV
+		s.Election1 = fmt.Sprintf("%6s %10s %5d %5d %5d %5d %5d %5d  ",
 			t,
 			s.FactomNodeName,
 			m.DBHeight,
 			m.Minute,
+			m.VMIndex,
 			e.DBHeight,
-			e.Minute)
+			e.Minute,
+			e.VMIndex)
 	} else {
 		e.Msgs = append(e.Msgs, m)
 	}

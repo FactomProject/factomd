@@ -116,6 +116,8 @@ func (m *FedVoteLevelMsg) processIfCommitted(is interfaces.IState, elect interfa
 
 	// This block of code is only called ONCE per election
 	if !e.Adapter.IsElectionProcessed() {
+		// Used for printouts before we swap them!
+		idx := e.LeaderIndex(m.Volunteer.FedID)
 		fmt.Printf("**** FedVoteLevelMsg %12s Swaping Fed: %d(%x) Audit: %d(%x)\n",
 			is.GetFactomNodeName(),
 			m.Volunteer.FedIdx, m.Volunteer.FedID.Bytes()[3:6],
@@ -154,6 +156,30 @@ func (m *FedVoteLevelMsg) processIfCommitted(is interfaces.IState, elect interfa
 		// End the election by setting this to '-1'
 		e.Electing = -1
 		e.LogPrintf("election", "**** Election is over. Elected %d[%x] ****", m.Volunteer.ServerIdx, m.Volunteer.ServerID.Bytes()[3:6])
+
+		elections.Sort(e.Federated)
+		elections.Sort(e.Audit)
+
+		// Add some string feedback for prints
+		t := "EOM"
+		if !m.SigType {
+			t = "DBSig"
+		}
+		s := is.(*state.State)
+		//								   T   N    mH  mM  mV  eH  eM  eV
+		s.Election1 = fmt.Sprintf("%6s %10s %5d %5d %5d %5d %5d %5d  ",
+			t,
+			s.FactomNodeName,
+			m.DBHeight,
+			m.Minute,
+			m.VMIndex,
+			e.DBHeight,
+			e.Minute,
+			e.VMIndex)
+
+		if idx != -1 {
+			s.Election2 = e.FeedBackStr("m", true, idx)
+		}
 	}
 }
 func DoSwap(e *elections.Elections, m *FedVoteLevelMsg) {
@@ -221,7 +247,6 @@ func (m *FedVoteLevelMsg) FollowerExecute(is interfaces.IState) {
 		// Add to the process list and immediately process
 		pl.AddToProcessList(m.Volunteer.Ack.(*messages.Ack), m.Volunteer.Missing)
 		is.UpdateState()
-
 	} else {
 		is.ElectionsQueue().Enqueue(m)
 	}
