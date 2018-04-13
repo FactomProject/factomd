@@ -44,6 +44,7 @@ func ParseCmdLine(args []string) *FactomParams {
 	//	faultTimeoutPtr := flag.Int("faulttimeout", 99999, "Seconds before considering Federated servers at-fault. Default is 30.")
 	runtimeLogPtr := flag.Bool("runtimeLog", false, "If true, maintain runtime logs of messages passed.")
 	exclusivePtr := flag.Bool("exclusive", false, "If true, we only dial out to special/trusted peers.")
+	exclusiveInPtr := flag.Bool("exclusive_in", false, "If true, we only dial out to special/trusted peers and no incoming connections are accepted.")
 	PrefixNodePtr := flag.String("prefix", "", "Prefix the Factom Node Names with this value; used to create leaderless networks.")
 	RotatePtr := flag.Bool("rotate", false, "If true, responsibility is owned by one leader, and Rotated over the leaders.")
 	TimeOffsetPtr := flag.Int("timedelta", 0, "Maximum timeDelta in milliseconds to offset each node.  Simulates deltas in system clocks over a network.")
@@ -117,6 +118,7 @@ func ParseCmdLine(args []string) *FactomParams {
 	//	p.FaultTimeout = *faultTimeoutPtr
 	p.RuntimeLog = *runtimeLogPtr
 	p.Exclusive = *exclusivePtr
+	p.ExclusiveIn = *exclusiveInPtr
 	p.Prefix = *PrefixNodePtr
 	p.Rotate = *RotatePtr
 	p.TimeOffset = *TimeOffsetPtr

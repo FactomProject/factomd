@@ -28,6 +28,7 @@ type FactomParams struct {
 	FaultTimeout             int
 	RuntimeLog               bool
 	Exclusive                bool
+	ExclusiveIn              bool
 	Prefix                   string
 	Rotate                   bool
 	TimeOffset               int

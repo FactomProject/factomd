@@ -73,6 +73,7 @@ type ControllerInit struct {
 	PeersFile                string           // Path to file to find / save peers
 	Network                  NetworkID        // Network - eg MainNet, TestNet etc.
 	Exclusive                bool             // flag to indicate we should only connect to trusted peers
+	ExclusiveIn              bool             // flag to indicate we should only connect to trusted peers and disallow incoming connections
 	SeedURL                  string           // URL to a source of peer info
 	SpecialPeers             string           // Peers to always connect to at startup, and stay persistent
 	ConnectionMetricsChannel chan interface{} // Channel on which we put the connection metrics map, periodically.
@@ -183,7 +184,8 @@ func (c *Controller) Init(ci ControllerInit) *Controller {
 	c.lastPeerManagement = time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
 	c.lastPeerRequest = time.Now()
 	CurrentNetwork = ci.Network
-	OnlySpecialPeers = ci.Exclusive
+	OnlySpecialPeers = ci.Exclusive || ci.ExclusiveIn
+	AcceptIncomingConnections = !ci.ExclusiveIn
 	c.specialPeersString = ci.SpecialPeers
 	c.lastDiscoveryRequest = time.Now() // Discovery does its own on startup.
 	c.lastConnectionMetricsUpdate = time.Now()
@@ -198,7 +200,9 @@ func (c *Controller) StartNetwork() {
 	c.logger.Info("Starting network")
 	c.lastStatusReport = time.Now()
 	// start listening on port given
-	c.listen()
+	if AcceptIncomingConnections {
+		c.listen()
+	}
 	// Dial the peers in from configuration
 	c.DialSpecialPeersString(c.specialPeersString)
 	// Start the runloop
@@ -283,21 +287,21 @@ func (c *Controller) acceptLoop(listener net.Listener) {
 	c.logger.Debug("Controller.acceptLoop() starting up")
 	for {
 		conn, err := listener.Accept()
-		switch err {
-		case nil:
-			switch {
-			case c.numberIncomingConnections < MaxNumberIncomingConnections:
-				c.AddPeer(conn) // Sends command to add the peer to the peers list
-				c.logger.WithField("remote_address", conn.RemoteAddr()).Infof("Accepting new incoming connection")
-			default:
-				c.logger.WithFields(log.Fields{
-					"remote_address": conn.RemoteAddr(),
-					"num_conns":      c.numberIncomingConnections}).Infof("Got new connection request, but too many incoming connections.")
-				conn.Close()
-			}
-		default:
-			c.logger.Warn("Controller.acceptLoop() Error: %+v", err)
+		if err != nil {
+			c.logger.Warnf("Controller.acceptLoop() Error: %+v", err)
+			continue
 		}
+
+		connLogger := c.logger.WithField("remote_address", conn.RemoteAddr())
+
+		if c.numberIncomingConnections >= MaxNumberIncomingConnections {
+			connLogger.Infof("Rejecting new connection request: too many incoming connections")
+			_ = conn.Close()
+			continue
+		}
+
+		c.AddPeer(conn) // Sends command to add the peer to the peers list
+		connLogger.Infof("Accepting new incoming connection")
 	}
 }
 
