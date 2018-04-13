@@ -168,10 +168,15 @@ func (im *IdentityManager) RemoveIdentity(chainID interfaces.IHash) bool {
 	im.Init()
 	im.Mutex.Lock()
 	defer im.Mutex.Unlock()
-	_, ok := im.Identities[chainID.Fixed()]
+	id, ok := im.Identities[chainID.Fixed()]
 	if ok == false {
 		return false
 	}
+
+	if id.Status == constants.IDENTITY_SKELETON {
+		return true // Do not remove skeleton identity
+	}
+
 	delete(im.Identities, chainID.Fixed())
 	return true
 }
