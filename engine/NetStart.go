@@ -351,6 +351,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 			PeersFile:                s.PeersFile,
 			Network:                  networkID,
 			Exclusive:                p.Exclusive,
+			ExclusiveIn:              p.ExclusiveIn,
 			SeedURL:                  seedURL,
 			SpecialPeers:             specialPeers,
 			ConnectionMetricsChannel: connectionMetricsChannel,

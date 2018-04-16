@@ -145,6 +145,14 @@ func (p *Peer) LocationFromAddress() (location uint32) {
 	return location
 }
 
+func (p *Peer) IsSamePeerAs(netAddress net.Addr) bool {
+	address, _, err := net.SplitHostPort(netAddress.String())
+	if err != nil {
+		return false
+	}
+	return address == p.Address
+}
+
 // merit increases a peers reputation
 func (p *Peer) merit() {
 	if 2147483000 > p.QualityScore {

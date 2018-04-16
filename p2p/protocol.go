@@ -53,7 +53,7 @@ var (
 	BannedQualityScore           int32  = -2147000000 // Used to ban a peer
 	MinumumSharingQualityScore   int32  = 20          // if a peer's score is less than this we don't share them.
 	OnlySpecialPeers                    = false       // dial out to special peers only
-	AcceptIncomingConnections           = true        // allow incoming connections from peers
+	AllowUnknownIncomingPeers           = true        // allow incoming connections from peers that are not in the special peer list
 	NetworkDeadline                     = time.Duration(30) * time.Second
 	NumberPeersToConnect                = 32
 	NumberPeersToBroadcast              = 8 // This gets overwritten by command line flag!
