@@ -93,7 +93,7 @@ func InitNetwork() {
 		Exclusive:                exclusive,
 		ExclusiveIn:              exclusiveIn,
 		SeedURL:                  "",
-		SpecialPeers:             peers,
+		ConfigPeers:              peers,
 		ConnectionMetricsChannel: connectionMetricsChannel,
 	}
 	p2pNetwork := new(p2p.Controller).Init(ci)
@@ -104,8 +104,6 @@ func InitNetwork() {
 	p2pProxy.ToNetwork = p2pNetwork.ToNetwork
 
 	p2pProxy.StartProxy()
-	// Command line peers lets us manually set special peers
-	p2pNetwork.DialSpecialPeersString("")
 }
 
 var cntreq int32

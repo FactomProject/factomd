@@ -60,7 +60,7 @@ type Controller struct {
 	NodeID                    uint64
 	lastStatusReport          time.Time
 	lastPeerRequest           time.Time       // Last time we asked peers about the peers they know about.
-	specialPeers              []*Peer         // configuration set special peers
+	specialPeers              []*Peer         // list of special peers (from config file and from the command line params)
 	partsAssembler            *PartsAssembler // a data structure that assembles full messages from received message parts
 
 	// logging
@@ -75,7 +75,8 @@ type ControllerInit struct {
 	Exclusive                bool             // flag to indicate we should only connect to trusted peers
 	ExclusiveIn              bool             // flag to indicate we should only connect to trusted peers and disallow incoming connections
 	SeedURL                  string           // URL to a source of peer info
-	SpecialPeers             string           // Peers to always connect to at startup, and stay persistent
+	ConfigPeers              string           // Peers to always connect to at startup, and stay persistent, passed from the config file
+	CmdLinePeers             string           // Additional special peers passed from the command line
 	ConnectionMetricsChannel chan interface{} // Channel on which we put the connection metrics map, periodically.
 	LogPath                  string           // Path for logs
 	LogLevel                 string           // Logging level
@@ -186,7 +187,9 @@ func (c *Controller) Init(ci ControllerInit) *Controller {
 	CurrentNetwork = ci.Network
 	OnlySpecialPeers = ci.Exclusive || ci.ExclusiveIn
 	AllowUnknownIncomingPeers = !ci.ExclusiveIn
-	c.specialPeers = c.parseSpecialPeers(ci.SpecialPeers)
+	configPeers := c.parseSpecialPeers(ci.ConfigPeers)
+	cmdLinePeers := c.parseSpecialPeers(ci.CmdLinePeers)
+	c.specialPeers = append(configPeers, cmdLinePeers...)
 	c.lastDiscoveryRequest = time.Now() // Discovery does its own on startup.
 	c.lastConnectionMetricsUpdate = time.Now()
 	c.partsAssembler = new(PartsAssembler).Init()
@@ -201,17 +204,10 @@ func (c *Controller) StartNetwork() {
 	c.lastStatusReport = time.Now()
 	// start listening on port given
 	c.listen()
-	// Dial the peers in from configuration
-	c.DialSpecialPeers()
+	// Dial all the gathered special peers
+	c.dialSpecialPeers()
 	// Start the runloop
 	go c.runloop()
-}
-
-// DialSpecialPeersString lets us pass in a string of special peers to dial
-func (c *Controller) DialSpecialPeers() {
-	for _, peer := range c.specialPeers {
-		c.DialPeer(*peer, true) // these are persistent connections
-	}
 }
 
 func (c *Controller) DialPeer(peer Peer, persistent bool) {
@@ -256,6 +252,12 @@ func (c *Controller) GetNumberConnections() int {
 //////////////////////////////////////////////////////////////////////
 // Network management
 //////////////////////////////////////////////////////////////////////
+
+func (c *Controller) dialSpecialPeers() {
+	for _, peer := range c.specialPeers {
+		c.DialPeer(*peer, true) // these are persistent connections
+	}
+}
 
 func (c *Controller) listen() {
 	address := fmt.Sprintf(":%s", c.listenPort)
