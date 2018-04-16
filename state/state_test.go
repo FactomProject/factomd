@@ -128,10 +128,10 @@ func TestCalculateTransactionRate(t *testing.T) {
 	s.FactoidTrans = 333
 	to2, i := s.CalculateTransactionRate()
 	if to >= to2 {
-		t.Errorf("Rate should be higher than %d, found %d", to, to2)
+		t.Errorf("Rate should be higher than %f, found %f", to, to2)
 	}
 	if i < 30 {
-		t.Errorf("Instant transaction rate should be > 30 (roughly), found %d", i)
+		t.Errorf("Instant transaction rate should be > 30 (roughly), found %f", i)
 	}
 
 }

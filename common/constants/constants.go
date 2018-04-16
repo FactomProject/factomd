@@ -292,3 +292,9 @@ const (
 	IDENTITY_PENDING_FULL                          // 6
 	IDENTITY_SKELETON                              // 7 - Skeleton Identity
 )
+
+// Identity Timing
+const (
+	// Time window for identity to require registration: 24hours = 144 blocks
+	IDENTITY_REGISTRATION_BLOCK_WINDOW uint32 = 144
+)

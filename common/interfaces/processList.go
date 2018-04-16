@@ -1,8 +1,6 @@
 package interfaces
 
 type IProcessList interface {
-	GetAmINegotiator() bool
-	SetAmINegotiator(b bool)
 	Clear()
 	GetKeysNewEntries() (keys [][32]byte)
 	GetNewEntry(key [32]byte) IEntry
@@ -40,7 +38,6 @@ type IProcessList interface {
 	Ask(vmIndex int, height int, waitSeconds int64, tag int) int
 	TrimVMList(height uint32, vmIndex int)
 	//Process(state IState) (progress bool)
-	AddToSystemList(m IMsg) bool
 	//AddToProcessList(ack IMsg, m IMsg)
 	ContainsDBSig(serverID IHash) bool
 	AddDBSig(serverID IHash, sig IFullSignature)

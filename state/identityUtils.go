@@ -5,7 +5,6 @@
 package state
 
 import (
-	"encoding/binary"
 	"errors"
 
 	ed "github.com/FactomProject/ed25519"
@@ -68,34 +67,6 @@ func AppendExtIDs(extIDs [][]byte, start int, end int) ([]byte, error) {
 		appended = append(appended, extIDs[i][:]...)
 	}
 	return appended, nil
-}
-
-// Makes sure the timestamp is within the designated window to be valid : 12 hours
-// TimeEntered is in seconds
-func CheckTimestamp(time []byte, timeEntered int64) bool {
-	if len(time) < 8 {
-		zero := []byte{00}
-		add := make([]byte, 0)
-		for i := len(time); i <= 8; i++ {
-			add = append(add, zero...)
-		}
-		time = append(add, time...)
-	}
-
-	// In Seconds
-	ts := binary.BigEndian.Uint64(time)
-	var res uint64
-	timeEnteredUint := uint64(timeEntered)
-	if timeEnteredUint > ts {
-		res = timeEnteredUint - ts
-	} else {
-		res = ts - timeEnteredUint
-	}
-	if res <= TWELVE_HOURS_S {
-		return true
-	} else {
-		return false
-	}
 }
 
 func statusIsFedOrAudit(status uint8) bool {

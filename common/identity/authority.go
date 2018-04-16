@@ -7,12 +7,27 @@ package identity
 import (
 	"encoding/json"
 
+	"bytes"
+
 	ed "github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/primitives/random"
 )
+
+// sort.Sort interface implementation
+type AuthoritySort []interfaces.IAuthority
+
+func (p AuthoritySort) Len() int {
+	return len(p)
+}
+func (p AuthoritySort) Swap(i, j int) {
+	p[i], p[j] = p[j], p[i]
+}
+func (p AuthoritySort) Less(i, j int) bool {
+	return bytes.Compare(p[i].GetAuthorityChainID().Bytes(), p[j].GetAuthorityChainID().Bytes()) < 0
+}
 
 type Authority struct {
 	AuthorityChainID  interfaces.IHash
@@ -25,10 +40,19 @@ type Authority struct {
 	KeyHistory []HistoricKey
 }
 
+func NewAuthority() *Authority {
+	a := new(Authority)
+	a.AuthorityChainID = primitives.NewZeroHash()
+	a.ManagementChainID = primitives.NewZeroHash()
+	a.MatryoshkaHash = primitives.NewZeroHash()
+
+	return a
+}
+
 var _ interfaces.BinaryMarshallable = (*Authority)(nil)
 
 func RandomAuthority() *Authority {
-	a := new(Authority)
+	a := NewAuthority()
 
 	a.AuthorityChainID = primitives.RandomHash()
 	a.ManagementChainID = primitives.RandomHash()
@@ -48,6 +72,27 @@ func RandomAuthority() *Authority {
 	}
 
 	return a
+}
+
+func (e *Authority) Clone() *Authority {
+	b := NewAuthority()
+	b.AuthorityChainID.SetBytes(e.AuthorityChainID.Bytes())
+	b.ManagementChainID.SetBytes(e.ManagementChainID.Bytes())
+	b.MatryoshkaHash.SetBytes(e.MatryoshkaHash.Bytes())
+	b.SigningKey = e.SigningKey
+	b.Status = e.Status
+
+	b.AnchorKeys = make([]AnchorSigningKey, len(e.AnchorKeys))
+	for i := range e.AnchorKeys {
+		b.AnchorKeys[i] = e.AnchorKeys[i]
+	}
+
+	b.KeyHistory = make([]HistoricKey, len(e.KeyHistory))
+	for i := range e.KeyHistory {
+		b.KeyHistory[i] = e.KeyHistory[i]
+	}
+
+	return b
 }
 
 func (e *Authority) IsSameAs(b *Authority) bool {
@@ -211,6 +256,10 @@ func (e *Authority) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 func (e *Authority) UnmarshalBinary(p []byte) error {
 	_, err := e.UnmarshalBinaryData(p)
 	return err
+}
+
+func (e *Authority) GetAuthorityChainID() interfaces.IHash {
+	return e.AuthorityChainID
 }
 
 // 1 if fed, 0 if audit, -1 if neither

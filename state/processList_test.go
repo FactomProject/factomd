@@ -42,10 +42,6 @@ func TestProcessListMisc(t *testing.T) {
 	pl.AddAuditServer(primitives.NewHash([]byte("two")))
 	pl.AddFedServer(primitives.NewHash([]byte("three")))
 
-	if pl.GetAmINegotiator() {
-		t.Error("Should not be negotiator by default")
-	}
-
 	vmi := pl.VMIndexFor([]byte("one"))
 	if vmi != 0 {
 		t.Error("VMIndex should be 0")

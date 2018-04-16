@@ -77,6 +77,8 @@ func (m *TimeoutInternal) InitiateElectionAdapter(st interfaces.IState) bool {
 	msg.SigType = m.SigType
 	e.State.InMsgQueue().Enqueue(msg)
 
+	// When we start a new election, we can process all messages that were being held
+	go e.ProcessWaiting()
 	return true
 }
 
@@ -103,8 +105,11 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 
 	// No election running, is there one we should start?
 	if e.Electing == -1 || m.DBHeight > e.DBHeight || m.ComparisonMinute() > e.ComparisonMinute() {
-
-		servers := s.ProcessLists.Get(uint32(e.DBHeight)).FedServers
+		// When we are syncing this can happen, as we are syncing from disk quickly
+		if uint32(e.DBHeight) < s.ProcessLists.DBHeightBase {
+			return
+		}
+		servers := e.Federated
 		nfeds := len(servers)
 		VMscollected := make([]bool, nfeds, nfeds)
 		for _, im := range e.Msgs {
@@ -133,6 +138,12 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 
 		// TODO: Got here with a 3 when the e.Federated[] was only 3 long running TestSetupANetwork()
 		e.FedID = e.Federated[e.Electing].GetChainID()
+
+		// Reset this value when we start an election
+		for len(e.Round) <= e.Electing {
+			e.Round = append(e.Round, 0)
+		}
+		e.Round[e.Electing] = 0
 
 		e.LogPrintf("election", "**** Start an Election for %d[%x] ****", e.Electing, e.FedID.Bytes()[3:6])
 
@@ -164,7 +175,7 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 	// Start our timer to timeout this sync
 
 	e.FaultId.Store(e.FaultId.Load() + 1) // increment the timeout counter
-	go Fault(e, e.DBHeight, e.Minute, e.Round[e.Electing], e.FaultId.Load(), &e.FaultId, m.SigType)
+	go Fault(e, e.DBHeight, e.Minute, e.Round[e.Electing], e.FaultId.Load(), &e.FaultId, m.SigType, e.RoundTimeout)
 
 	auditIdx := 0
 	if len(e.Audit) > 0 {

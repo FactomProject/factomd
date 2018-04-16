@@ -320,64 +320,6 @@ func systemFaults(f *FactomNode) string {
 }
 
 func faultSummary() string {
-	prt := ""
-	headerTitle := "Faults"
-	headerLabel := "Fed   "
-	currentlyFaulted := "."
 
-	for i, fnode := range fnodes {
-		if verboseFaultOutput || !fnode.State.GetNetStateOff() { // Don't show fault info for nodes that are off
-			b := fnode.State.GetHighestSavedBlk()
-			pl := fnode.State.ProcessLists.Get(b + 1)
-			if pl == nil {
-				pl = fnode.State.ProcessLists.Get(b)
-			}
-			if pl != nil {
-				if i == 0 {
-					prt = prt + fmt.Sprintf("%s\n", headerTitle)
-					prt = prt + fmt.Sprintf("%7s", headerLabel)
-					for headerNum, _ := range pl.FedServers {
-						prt = prt + fmt.Sprintf(" %3d", headerNum)
-					}
-					prt = prt + fmt.Sprintf("\n")
-				}
-				if fnode.State.Leader {
-					prt = prt + fmt.Sprintf("%7s ", fnode.State.FactomNodeName)
-					for _, fed := range pl.FedServers {
-						currentlyFaulted = "."
-						if !fed.IsOnline() {
-							currentlyFaulted = "F"
-						}
-						prt = prt + fmt.Sprintf("%3s ", currentlyFaulted)
-					}
-
-					prt = prt + fmt.Sprintf("| Current Fault:")
-					ff := pl.CurrentFault()
-					if !ff.IsNil() {
-						pledgeDoneString := "N"
-						if ff.PledgeDone {
-							pledgeDoneString = "Y"
-						}
-						prt = prt + fmt.Sprintf(" %x/%x:%d/%d/%d(%s)", ff.ServerID.Bytes()[2:5], ff.AuditServerID.Bytes()[2:5], len(ff.LocalVoteMap), ff.SignatureList.Length, ff.SigTally(fnode.State), pledgeDoneString)
-					}
-
-					prt = prt + fmt.Sprintf("| Watch VM: ")
-					for i := 0; i < len(pl.FedServers); i++ {
-						if pl.VMs[i].WhenFaulted > 0 {
-							prt = prt + fmt.Sprintf("%d ", i)
-						}
-					}
-					prt = prt + " "
-					for i := 0; i < len(pl.FedServers); i++ {
-						if pl.VMs[i].WhenFaulted > 0 {
-							prt = prt + fmt.Sprintf("(%d) ", pl.VMs[i].FaultFlag)
-						}
-					}
-
-					prt = prt + fmt.Sprintf("\n")
-				}
-			}
-		}
-	}
-	return prt
+	return ""
 }

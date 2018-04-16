@@ -342,8 +342,16 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 	}
 	state.ECBalancesPMutex.Unlock()
 
-	ss.Identities = append(ss.Identities, state.Identities...)
-	ss.Authorities = append(ss.Authorities, state.Authorities...)
+	for key, id := range state.IdentityControl.Identities {
+		if id.IdentityChainID.IsZero() { // If it's 0, we need to set it to the correct hash for restoring
+			id.IdentityChainID, _ = primitives.NewShaHash(key[:])
+		}
+		ss.Identities = append(ss.Identities, id)
+	}
+	auths := state.GetAuthorities()
+	for _, a := range auths {
+		ss.Authorities = append(ss.Authorities, a.(*Authority))
+	}
 	ss.AuthorityServerCount = state.AuthorityServerCount
 
 	ss.LLeaderHeight = state.LLeaderHeight
@@ -611,8 +619,15 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 	}
 	s.ECBalancesPMutex.Unlock()
 
-	s.Identities = append(s.Identities[:0], ss.Identities...)
-	s.Authorities = append(s.Authorities[:0], ss.Authorities...)
+	// Restore IDControl
+	for _, a := range ss.Authorities {
+		s.IdentityControl.Authorities[a.AuthorityChainID.Fixed()] = a
+	}
+
+	for _, i := range ss.Identities {
+		s.IdentityControl.Identities[i.IdentityChainID.Fixed()] = i
+	}
+
 	s.AuthorityServerCount = ss.AuthorityServerCount
 
 	s.LLeaderHeight = ss.LLeaderHeight
@@ -980,7 +995,7 @@ func (ss *SaveState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 		return
 	}
 	for i := 0; i < int(l); i++ {
-		s := new(Identity)
+		s := NewIdentity()
 		err = buf.PopBinaryMarshallable(s)
 		if err != nil {
 			return
@@ -993,7 +1008,7 @@ func (ss *SaveState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 		return
 	}
 	for i := 0; i < int(l); i++ {
-		s := new(Authority)
+		s := NewAuthority()
 		err = buf.PopBinaryMarshallable(s)
 		if err != nil {
 			return

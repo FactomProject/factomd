@@ -34,13 +34,22 @@ func (m *StartElectionInternal) ElectionProcess(s interfaces.IState, elect inter
 	e := elect.(*elections.Elections)
 
 	e.Adapter = NewElectionAdapter(e, m.PreviousDBHash)
-	e.Adapter.SetObserver(!m.IsLeader)
+	// An election that finishes may make us a leader. We need to know that for the next election that
+	// takes place. So use the election's list of fed servers to determine if we are a leader
+	for _, id := range e.Federated {
+		if id.GetChainID().IsSameAs(s.GetIdentityChainID()) {
+			e.Adapter.SetObserver(false)
+			break
+		}
+		e.Adapter.SetObserver(true)
+	}
+	//e.Adapter.SetObserver(!m.IsLeader)
 
 	// Start the timeouts
 	for len(e.Round) <= e.Electing {
 		e.Round = append(e.Round, 0)
 	}
-	go Fault(e, e.DBHeight, e.Minute, e.Round[e.Electing], e.FaultId.Load(), &e.FaultId, m.SigType)
+	go Fault(e, e.DBHeight, e.Minute, e.Round[e.Electing], e.FaultId.Load(), &e.FaultId, m.SigType, e.RoundTimeout)
 }
 
 // Execute the leader functions of the given message
@@ -73,9 +82,18 @@ func (m *StartElectionInternal) FollowerExecute(is interfaces.IState) {
 		}
 	}
 
-	m.VMHeight = vm.Height
-	vm.List = vm.List[:vm.Height]
-	vm.ListAck = vm.ListAck[:vm.Height]
+	// TODO: Process all messages that we can. Then trim to the first non-processed message
+	// TODO: This is incase a leader sends out ack 10, but not 9. We need to trim back to 8 because 9 does not exist
+	// TODO: Do not trim EOMs or DBsigs, as they may not be processed until certain conditions.
+	//pre := len(vm.List)
+	//m.VMHeight = vm.Height
+	//vm.List = vm.List[:vm.Height]
+	//vm.ListAck = vm.ListAck[:vm.Height]
+	//post := len(vm.List)
+	//
+	//if pre != post {
+	//	fmt.Println("Trimmed!")
+	//}
 	// Send to elections
 	is.ElectionsQueue().Enqueue(m)
 }
