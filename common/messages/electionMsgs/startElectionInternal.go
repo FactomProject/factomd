@@ -82,9 +82,18 @@ func (m *StartElectionInternal) FollowerExecute(is interfaces.IState) {
 		}
 	}
 
-	m.VMHeight = vm.Height
-	vm.List = vm.List[:vm.Height]
-	vm.ListAck = vm.ListAck[:vm.Height]
+	// TODO: Process all messages that we can. Then trim to the first non-processed message
+	// TODO: This is incase a leader sends out ack 10, but not 9. We need to trim back to 8 because 9 does not exist
+	// TODO: Do not trim EOMs or DBsigs, as they may not be processed until certain conditions.
+	//pre := len(vm.List)
+	//m.VMHeight = vm.Height
+	//vm.List = vm.List[:vm.Height]
+	//vm.ListAck = vm.ListAck[:vm.Height]
+	//post := len(vm.List)
+	//
+	//if pre != post {
+	//	fmt.Println("Trimmed!")
+	//}
 	// Send to elections
 	is.ElectionsQueue().Enqueue(m)
 }

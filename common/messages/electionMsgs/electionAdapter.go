@@ -45,7 +45,13 @@ type ElectionAdapter struct {
 	SimulatedElection *election.Election
 }
 
-func (ea *ElectionAdapter) VolunteerControlsStatus() string {
+func (ea *ElectionAdapter) VolunteerControlsStatus() (status string) {
+	defer func() {
+		if r := recover(); r != nil {
+			status = ""
+			return
+		}
+	}()
 	return ea.SimulatedElection.VolunteerControlString()
 }
 

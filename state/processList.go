@@ -6,10 +6,9 @@ package state
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
 	"sync"
-
-	"encoding/binary"
 
 	"os"
 
@@ -803,6 +802,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			}
 
 			thisAck := vm.ListAck[j]
+			thisMsg := vm.List[j]
 
 			var expectedSerialHash interfaces.IHash
 			var err error
@@ -859,11 +859,13 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				now := p.State.GetTimestamp()
 
 				if _, valid := p.State.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), now); !valid {
+					p.State.LogMessage("process", fmt.Sprintf("drop %v/%v/%v, hash INTERNAL_REPLAY", dbht, i, j), thisMsg)
 					vm.List[j] = nil // If we have seen this message, we don't process it again.  Ever.
 					break VMListLoop
 				}
 
 				if msg.Process(p.DBHeight, state) { // Try and Process this entry
+					p.State.LogMessage("processList", "done", msg)
 					vm.heartBeat = 0
 					vm.Height = j + 1 // Don't process it again if the process worked.
 
@@ -878,6 +880,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					delete(p.State.Holding, msg.GetMsgHash().Fixed())
 
 				} else {
+					p.State.LogMessage("processList", "try again", msg)
 					//p.State.AddStatus(fmt.Sprintf("processList.Process(): Could not process entry dbht: %d VM: %d  msg: [[%s]]", p.DBHeight, i, msg.String()))
 					break VMListLoop // Don't process further in this list, go to the next.
 				}

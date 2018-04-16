@@ -595,11 +595,10 @@ func TestMultiple3Election(t *testing.T) {
 		t.Fatalf("found %d leaders, expected 7", leadercnt)
 	}
 
-	runCmd("s")
-	runCmd("E")
-	runCmd("F")
+	//runCmd("s")
+	//runCmd("E")
+	//runCmd("F")
 	runCmd("0")
-	runCmd("p")
 
 	runCmd("1")
 	runCmd("x")
@@ -698,12 +697,11 @@ func TestMultiple7Election(t *testing.T) {
 		t.Fatalf("found %d audits, expected 10", auditcnt)
 	}
 
-	for i := 0; i < 7; i++ {
+	for i := 1; i < 3; i++ {
 		runCmd(fmt.Sprintf("%d", i))
 		runCmd("x")
 	}
 
-	//runCmd("s")
 	WaitBlocks(state0, 3)
 
 	t.Log("Shutting down the network")
