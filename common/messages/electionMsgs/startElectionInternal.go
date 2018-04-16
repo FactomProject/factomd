@@ -49,7 +49,7 @@ func (m *StartElectionInternal) ElectionProcess(s interfaces.IState, elect inter
 	for len(e.Round) <= e.Electing {
 		e.Round = append(e.Round, 0)
 	}
-	go Fault(e, e.DBHeight, e.Minute, e.Round[e.Electing], e.FaultId.Load(), &e.FaultId, m.SigType)
+	go Fault(e, e.DBHeight, e.Minute, e.Round[e.Electing], e.FaultId.Load(), &e.FaultId, m.SigType, e.RoundTimeout)
 }
 
 // Execute the leader functions of the given message

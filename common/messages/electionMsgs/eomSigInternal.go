@@ -79,12 +79,12 @@ func (m *EomSigInternal) GetMsgHash() interfaces.IHash {
 	}
 	return m.MsgHash
 }
-func Fault(e *elections.Elections, dbheight int, minute int, round int, timeOutId int, currentTimeoutId *atomic.AtomicInt, sigtype bool) {
+func Fault(e *elections.Elections, dbheight int, minute int, round int, timeOutId int, currentTimeoutId *atomic.AtomicInt, sigtype bool, timeoutDuration time.Duration) {
 	//	e.LogPrintf("election", "Start Timeout %d", timeOutId)
 	for !e.State.(*state.State).DBFinished || e.State.(*state.State).IgnoreMissing {
-		time.Sleep(e.Timeout)
+		time.Sleep(timeoutDuration)
 	}
-	time.Sleep(e.Timeout)
+	time.Sleep(timeoutDuration)
 
 	if currentTimeoutId.Load() == timeOutId {
 		//		e.LogPrintf("election", "Timeout %d", timeOutId)
@@ -147,7 +147,7 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 		elections.Sort(e.Audit)
 
 		e.FaultId.Store(e.FaultId.Load() + 1) // increment the timeout counter
-		go Fault(e, e.DBHeight, e.Minute, round, e.FaultId.Load(), &e.FaultId, m.SigType)
+		go Fault(e, e.DBHeight, e.Minute, round, e.FaultId.Load(), &e.FaultId, m.SigType, e.Timeout)
 
 		// Drain all waiting messages as we have advanced, they can now be processed again
 		// as moving forward in mins/blocks may invalidate/validate some messages

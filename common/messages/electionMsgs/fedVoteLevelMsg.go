@@ -179,32 +179,6 @@ func (m *FedVoteLevelMsg) processIfCommitted(is interfaces.IState, elect interfa
 		}
 	}
 }
-func DoSwap(e *elections.Elections, m *FedVoteLevelMsg) {
-	var dummy state.Server = state.Server{primitives.ZeroHash, "dummy", false, primitives.ZeroHash}
-	// Hack code to make broken authority sets not segfault
-	// Force the lists to be the same size by adding Dummy
-	// len()-1 < index to make index be valid [0:index] is index+1==len()
-	if len(e.Audit)-1 < int(m.Volunteer.ServerIdx) {
-		e.LogPrintf("election", "Adding spots to election.Audit to make index %d work", m.Volunteer.ServerIdx)
-		for len(e.Audit)-1 < int(m.Volunteer.ServerIdx) {
-			e.Audit = append(e.Audit, &dummy)
-		}
-	}
-	if len(e.Federated)-1 < int(m.Volunteer.FedIdx) {
-		e.LogPrintf("election", "Adding spots to election.Federated to make index %d work", m.Volunteer.FedIdx)
-		for len(e.Federated)-1 < int(m.Volunteer.FedIdx) {
-			e.Federated = append(e.Federated, &dummy)
-		}
-	}
-	if bytes.Compare(m.Volunteer.ServerID.Bytes(), e.Audit[int(m.Volunteer.ServerIdx)].GetChainID().Bytes()) != 0 {
-		e.LogPrintf("election", "Audit List Index mismatch", m.Volunteer.ServerIdx)
-	}
-	if bytes.Compare(m.Volunteer.FedID.Bytes(), e.Federated[int(m.Volunteer.FedIdx)].GetChainID().Bytes()) == 0 {
-		e.LogPrintf("election", "Audit List Index mismatch", m.Volunteer.ServerIdx)
-	}
-	e.Federated[m.Volunteer.FedIdx], e.Audit[m.Volunteer.ServerIdx] =
-		e.Audit[m.Volunteer.ServerIdx], e.Federated[m.Volunteer.FedIdx]
-}
 
 // Execute the leader functions of the given message
 // Leader, follower, do the same thing.
@@ -363,6 +337,10 @@ func (m *FedVoteLevelMsg) ElectionValidate(ie interfaces.IElections) int {
 }
 
 func (m *FedVoteLevelMsg) Validate(is interfaces.IState) int {
+	if m.IsValid() {
+		return 1
+	}
+
 	// Set the super and let the base validate
 	m.FedVoteMsg.Super = m
 	return m.FedVoteMsg.Validate(is)

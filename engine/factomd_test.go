@@ -638,7 +638,8 @@ func TestMultiple7Election(t *testing.T) {
 		"-db=Map",
 		"-network=LOCAL",
 		"-enablenet=true",
-		"-blktime=30",
+		"-blktime=60",
+		"-faulttimeout=60",
 		"-count=25",
 		"-startdelay=1",
 		"-net=alot+",
@@ -666,10 +667,12 @@ func TestMultiple7Election(t *testing.T) {
 	WaitForMinute(state0, 1)
 	runCmd("1")               // select node 1
 	for i := 0; i < 14; i++ { // 1, 2, 3, 4, 5, 6
+		time.Sleep(100 * time.Millisecond)
 		runCmd("l") // leaders
 	}
 
 	for i := 0; i < 10; i++ { // 8, 9
+		time.Sleep(100 * time.Millisecond)
 		runCmd("o") // leaders
 	}
 

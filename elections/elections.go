@@ -15,6 +15,7 @@ var _ = fmt.Print
 var _ = time.Tick
 
 var FaultTimeout int = 60 // This value only lasts till the command line is parse which will set it.
+var RoundTimeout int = 20 // This value only lasts till the command line is parse which will set it.
 
 type FaultId struct {
 	Dbheight int
@@ -49,7 +50,10 @@ type Elections struct {
 
 	Adapter interfaces.IElectionAdapter
 
+	// Timeout period before we start the election
 	Timeout time.Duration
+	// Timeout for the next audit to volunteer
+	RoundTimeout time.Duration
 
 	FaultId atomic.AtomicInt // Incremented every time we launch a new timeout
 
@@ -382,6 +386,7 @@ func Run(s *state.State) {
 	e.Electing = -1
 
 	e.Timeout = time.Duration(FaultTimeout) * time.Second
+	e.RoundTimeout = time.Duration(RoundTimeout) * time.Second
 	e.Waiting = make(chan interfaces.IElectionMsg, 500)
 
 	// Actually run the elections

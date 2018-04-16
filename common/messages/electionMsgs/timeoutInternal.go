@@ -175,7 +175,7 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 	// Start our timer to timeout this sync
 
 	e.FaultId.Store(e.FaultId.Load() + 1) // increment the timeout counter
-	go Fault(e, e.DBHeight, e.Minute, e.Round[e.Electing], e.FaultId.Load(), &e.FaultId, m.SigType)
+	go Fault(e, e.DBHeight, e.Minute, e.Round[e.Electing], e.FaultId.Load(), &e.FaultId, m.SigType, e.RoundTimeout)
 
 	auditIdx := 0
 	if len(e.Audit) > 0 {
