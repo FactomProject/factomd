@@ -362,7 +362,7 @@ func (m *DBStateMsg) SigTally(state interfaces.IState) int {
 			continue // Toss duplicate signatures
 		}
 		sigmap[fmt.Sprintf("%x", sig.GetSignature()[:])] = true
-		check, err := state.VerifyAuthoritySignature(data, sig.GetSignature(), dbheight)
+		check, err := state.FastVerifyAuthoritySignature(data, sig, dbheight)
 		if err == nil && check >= 0 {
 			validSigCount++
 			continue
