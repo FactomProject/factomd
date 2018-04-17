@@ -749,7 +749,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 	dbht := state.GetHighestSavedBlk()
 	if dbht >= p.DBHeight {
 		//p.State.AddStatus(fmt.Sprintf("ProcessList.Process: VM Height is %d and Saved height is %d", dbht, state.GetHighestSavedBlk()))
-		return true
+		return false
 	}
 
 	state.PLProcessHeight = p.DBHeight
