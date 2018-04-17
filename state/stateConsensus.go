@@ -111,10 +111,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 			msg.FollowerExecute(s)
 		}
 
-		// If put in holding from execute msg, then no work was done. Therefore there is no
-		// progress
-		_, ok := s.Holding[msg.GetMsgHash().Fixed()]
-		ret = !ok
+		ret = true
 
 	case 0:
 		TotalHoldingQueueInputs.Inc()
