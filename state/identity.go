@@ -166,6 +166,13 @@ func (s *State) FetchIdentityChainEntriesInCreateOrder(chainid interfaces.IHash)
 func (st *State) AddIdentityFromChainID(cid interfaces.IHash) error {
 	identityRegisterChain, _ := primitives.HexToHash(MAIN_FACTOM_IDENTITY_LIST)
 
+	// No root entries, means no identity
+	rootEntries, err := st.FetchIdentityChainEntriesInCreateOrder(cid)
+	if err != nil {
+		st.IdentityControl.RemoveIdentity(cid)
+		return err
+	}
+
 	// ** Step 1 **
 	// First we need to determine if the identity is registered. We will have to parse the entire
 	// register chain (TODO: This should probably be optimized)
@@ -188,12 +195,6 @@ func (st *State) AddIdentityFromChainID(cid interfaces.IHash) error {
 
 	// ** Step 2 **
 	// Parse the identity's chain id, which will give us the management chain ID
-	rootEntries, err := st.FetchIdentityChainEntriesInCreateOrder(cid)
-	if err != nil {
-		st.IdentityControl.RemoveIdentity(cid)
-		return err
-	}
-
 	parseEntryList(rootEntries)
 
 	// ** Step 3 **
