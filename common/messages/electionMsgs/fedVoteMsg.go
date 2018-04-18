@@ -207,7 +207,7 @@ func (m *FedVoteMsg) Validate(is interfaces.IState) int {
 		return -1
 	}
 
-	valid, err := is.VerifyAuthoritySignature(signed, sm.GetSignature().GetSignature(), m.DBHeight)
+	valid, err := is.FastVerifyAuthoritySignature(signed, sm.GetSignature(), m.DBHeight)
 	if err != nil || valid < 0 {
 		return -1
 	}
