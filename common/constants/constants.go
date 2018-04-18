@@ -159,6 +159,20 @@ func MessageName(Type byte) string {
 }
 
 const (
+	// Coinbase Related Constants
+
+	// How often to create coinbase transactions
+	COINBASE_PAYOUT_FREQUENCY = 25
+
+	// How many blocks before the coinbase does the coinbase
+	// have to appear in the admin block
+	COINBASE_DECLARATION = 0 // TODO: Set to 1000
+
+	// The maximum amount of factoshis to be issued per server per payout
+	COINBASE_PAYOUT_AMOUNT = uint64(6.4 * 1e8)
+)
+
+const (
 	// Limits for keeping inputs from flooding our execution
 	INMSGQUEUE_HIGH = 1000
 	INMSGQUEUE_MED  = 500

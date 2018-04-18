@@ -51,6 +51,7 @@ type Identity struct {
 	SigningKey interfaces.IHash
 	Status     uint8
 	AnchorKeys []AnchorSigningKey
+	Efficiency uint16
 }
 
 var _ interfaces.Printable = (*Identity)(nil)
@@ -67,6 +68,7 @@ func NewIdentity() *Identity {
 	}
 
 	i.SigningKey = primitives.NewZeroHash()
+	i.Efficiency = 10000
 
 	return i
 }

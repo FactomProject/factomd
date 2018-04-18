@@ -161,6 +161,22 @@ func (im *IdentityManager) ProcessIdentityEntry(entry interfaces.IEBEntry, dBloc
 			return false, err
 		}
 		break
+	case "Server Efficiency":
+		sm, err := DecodeNewServerEfficiencyStructFromExtIDs(extIDs)
+		if err != nil {
+			return false, err
+		}
+
+		tryAgain, change, err = im.ApplyNewServerEfficiencyStruct(sm, chainID, dBlockTimestamp)
+		if tryAgain == true && newEntry == true {
+			//if it's a new entry, push it and return nil
+			return false, im.PushEntryForLater(entry, dBlockHeight, dBlockTimestamp)
+		}
+		//if it's an old entry, return error to signify the entry has not been processed and should be kept
+		if err != nil {
+			return false, err
+		}
+		break
 	}
 
 	return change, nil
@@ -359,4 +375,45 @@ func (im *IdentityManager) ApplyServerManagementStructure(sm *ServerManagementSt
 
 	im.SetIdentity(sm.RootIdentityChainID, id)
 	return false, nil
+}
+
+// ApplyNewBlockSigningKeyStruct will parse a new block signing key and attempt to add the signing to the proper identity.
+//		Returns
+//			bool	change		If a key has been changed
+//			bool	tryagain	If this is set to true, this entry can be reprocessed if it is *new*
+//			error	err			Any errors
+func (im *IdentityManager) ApplyNewServerEfficiencyStruct(nses *NewServerEfficiencyStruct, subchainID interfaces.IHash, dBlockTimestamp interfaces.Timestamp) (bool, bool, error) {
+	chainID := nses.RootIdentityChainID
+	id := im.GetIdentity(chainID)
+	if id == nil {
+		return false, true, fmt.Errorf("ChainID doesn't exists! %v", nses.RootIdentityChainID.String())
+	}
+
+	if id.Efficiency == nses.Efficiency {
+		return false, false, nil
+	}
+
+	err := nses.VerifySignature(id.Keys[0])
+	if err != nil {
+		return false, false, err
+	}
+
+	if id.ManagementChainID.IsSameAs(subchainID) == false {
+		return false, false, fmt.Errorf("Identity Error: Entry was not placed in the correct management chain - %v vs %v", id.ManagementChainID.String(), subchainID.String())
+	}
+
+	// Check Timestamp
+	if !CheckTimestamp(nses.Timestamp, dBlockTimestamp.GetTimeSeconds()) {
+		return false, false, fmt.Errorf("New Server Efficiency for Identity [%x]is too old", chainID.Bytes()[:5])
+	}
+
+	if nses.Efficiency > 10000 {
+		nses.Efficiency = 10000
+	}
+
+	id.Efficiency = nses.Efficiency
+
+	im.SetIdentity(nses.RootIdentityChainID, id)
+
+	return true, false, nil
 }
