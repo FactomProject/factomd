@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/state"
 )
 
@@ -13,10 +14,11 @@ func Identities(copyDS state.DisplayState) string {
 	for c, i := range copyDS.Identities {
 		num := fmt.Sprintf("%d", c)
 		prt = prt + "------------------------------------" + num + "---------------------------------------\n"
-		stat := returnStatString(i.Status)
+		stat := constants.IdentityStatusString(i.Status)
 		prt = prt + fmt.Sprint("Server Status: ", stat, "\n")
-		prt = prt + fmt.Sprint("Identity Chain: ", i.IdentityChainID, "\n")
-		prt = prt + fmt.Sprint("Management Chain: ", i.ManagementChainID, "\n")
+		prt = prt + fmt.Sprintf("Synced Status: ID[%t] MG[%t]\n", i.IdentityChainSync.Synced(), i.ManagementChainSync.Synced())
+		prt = prt + fmt.Sprintf("Identity Chain: %s (C:%d R:%d)\n", i.IdentityChainID.String(), i.IdentityCreated, i.IdentityRegistered)
+		prt = prt + fmt.Sprintf("Management Chain: %s (C:%d R:%d)\n", i.ManagementChainID.String(), i.ManagementCreated, i.ManagementRegistered)
 		prt = prt + fmt.Sprint("Matryoshka Hash: ", i.MatryoshkaHash, "\n")
 		prt = prt + fmt.Sprint("Key 1: ", i.Keys[0], "\n")
 		prt = prt + fmt.Sprint("Key 2: ", i.Keys[1], "\n")
@@ -26,6 +28,8 @@ func Identities(copyDS state.DisplayState) string {
 		for _, a := range i.AnchorKeys {
 			prt = prt + fmt.Sprintf("Anchor Key: {'%s' L%x T%x K:%x}\n", a.BlockChain, a.KeyLevel, a.KeyType, a.SigningKey)
 		}
+		prt += fmt.Sprintf("ID Eblock Syncing: Current: %d  Target: %d\n", i.IdentityChainSync.Current.DBHeight, i.IdentityChainSync.Target.DBHeight)
+		prt += fmt.Sprintf("MG Eblock Syncing: Current: %d  Target: %d\n", i.ManagementChainSync.Current.DBHeight, i.ManagementChainSync.Target.DBHeight)
 	}
 	return prt
 }
@@ -36,7 +40,7 @@ func Authorities(copyDS state.DisplayState) string {
 	for c, i := range copyDS.Authorities {
 		num := fmt.Sprintf("%d", c)
 		prt = prt + "------------------------------------" + num + "---------------------------------------\n"
-		stat := returnStatString(i.Status)
+		stat := constants.IdentityStatusString(i.Status)
 		prt = prt + fmt.Sprint("Server Status: ", stat, "\n")
 		prt = prt + fmt.Sprint("Identity Chain: ", i.AuthorityChainID, "\n")
 		prt = prt + fmt.Sprint("Management Chain: ", i.ManagementChainID, "\n")
@@ -66,27 +70,4 @@ func MyNodeInfo(copyDS state.DisplayState) string {
 
 	}
 	return prt
-}
-
-func returnStatString(i uint8) string {
-	var stat string
-	switch i {
-	case 0:
-		stat = "Unassigned"
-	case 1:
-		stat = "Federated Server"
-	case 2:
-		stat = "Audit Server"
-	case 3:
-		stat = "Full"
-	case 4:
-		stat = "Pending Federated Server"
-	case 5:
-		stat = "Pending Audit Server"
-	case 6:
-		stat = "Pending Full"
-	case 7:
-		stat = "Skeleton Identity"
-	}
-	return stat
 }

@@ -15,6 +15,7 @@ import (
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
+	"github.com/FactomProject/factomd/common/identityEntries"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -25,9 +26,11 @@ type IdentityManager struct {
 }
 
 type IdentityManagerWithoutMutex struct {
-	Authorities          map[[32]byte]*Authority
-	Identities           map[[32]byte]*Identity
-	AuthorityServerCount int
+	Authorities map[[32]byte]*Authority
+	Identities  map[[32]byte]*Identity
+	// All Identity Registrations.
+	IdentityRegistrations map[[32]byte]*identityEntries.RegisterFactomIdentityStructure
+	AuthorityServerCount  int
 
 	OldEntries []*OldEntry
 }
@@ -36,6 +39,7 @@ func NewIdentityManager() *IdentityManager {
 	im := new(IdentityManager)
 	im.Authorities = make(map[[32]byte]*Authority)
 	im.Identities = make(map[[32]byte]*Identity)
+	im.IdentityRegistrations = make(map[[32]byte]*identityEntries.RegisterFactomIdentityStructure)
 	return im
 }
 
@@ -76,6 +80,15 @@ func (im *IdentityManager) SetBootstrapIdentity(id interfaces.IHash, key interfa
 	auth.ManagementChainID, _ = primitives.HexToHash("88888800000000000000000000000000")
 
 	im.SetAuthority(auth.AuthorityChainID, auth)
+	return nil
+}
+
+func (im *IdentityManager) SetIdentityRegistration(chain interfaces.IHash) error {
+	id := NewIdentity()
+	id.IdentityChainID = chain
+	id.Status = constants.IDENTITY_REGISTRATION_CHAIN
+
+	im.SetIdentity(chain, id)
 	return nil
 }
 
@@ -159,8 +172,6 @@ func (im *IdentityManager) SetIdentity(chainID interfaces.IHash, id *Identity) {
 	im.Init()
 	im.Mutex.Lock()
 	defer im.Mutex.Unlock()
-	c := chainID.String()
-	var _ = c
 	im.Identities[chainID.Fixed()] = id
 }
 

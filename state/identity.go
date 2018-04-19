@@ -98,11 +98,341 @@ func (st *State) IntiateNetworkSkeletonIdentity() error {
 	return nil
 }
 
+func (st *State) InitiateNetworkIdentityRegistration() error {
+	reg := st.GetNetworkIdentityRegistrationChain()
+	st.IdentityControl.SetIdentityRegistration(reg)
+
+	// This populates the identity with keys found
+	err := st.AddIdentityFromChainID(reg)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 type IdentityEntry struct {
 	Entry       interfaces.IEBEntry
 	Timestamp   interfaces.Timestamp
 	Blockheight uint32
 }
+
+// LoadIdentityByEntry is only useful when initial is set to false. If initial is false, it will track changes
+// in an identity that corresponds to an authority. If initial is true, then calling ProcessIdentityEntry directly will
+// have the same result.
+func (st *State) LoadIdentityByEntry(ent interfaces.IEBEntry, height uint32, dblockTimestamp interfaces.Timestamp, d *DBState) {
+	flog := identLogger.WithFields(st.Logger.Data).WithField("func", "LoadIdentityByEntry")
+	if ent == nil {
+		return
+	}
+
+	affectAblock := d != nil && d.DirectoryBlock.GetDatabaseHeight() == height+1
+
+	// Not an entry identities care about
+	if bytes.Compare(ent.GetChainID().Bytes()[:3], []byte{0x88, 0x88, 0x88}) != 0 {
+		return
+	}
+
+	var orig *Identity
+	// Not initial means we need to keep track of key changes
+	if affectAblock {
+		id := st.IdentityControl.GetIdentity(ent.GetChainID())
+		if id != nil {
+			orig = id.Clone()
+		}
+	}
+
+	change, err := st.IdentityControl.ProcessIdentityEntry(ent, height, dblockTimestamp, true)
+	if err != nil {
+		flog.Errorf(err.Error())
+	}
+
+	// TODO: This is inefficient per entry. It is only called for identity entries
+	if affectAblock && orig != nil && change {
+		// Can do changing of keys here
+		id := st.IdentityControl.GetIdentity(ent.GetChainID())
+		if statusIsFedOrAudit(id.Status) {
+			// Is this a change in signing key?
+			if !orig.SigningKey.IsSameAs(id.SigningKey) {
+				key := id.SigningKey
+				// Add to admin block
+				if st.VerifyIsAuthority(id.IdentityChainID) {
+					err := d.AdminBlock.AddFederatedServerSigningKey(id.IdentityChainID, key.Fixed())
+					if err != nil {
+						flog.Errorf(err.Error())
+					}
+				}
+			}
+
+			// Is this a change in MHash?
+			if !orig.MatryoshkaHash.IsSameAs(id.MatryoshkaHash) {
+				if st.VerifyIsAuthority(id.IdentityChainID) {
+					err := d.AdminBlock.AddMatryoshkaHash(id.IdentityChainID, id.MatryoshkaHash)
+					if err != nil {
+						flog.Errorf(err.Error())
+					}
+				}
+			}
+
+			var newKey *AnchorSigningKey = nil
+			// Is this a change in Anchor?
+			// 	Need to find if the set has changed
+			if len(orig.AnchorKeys) != len(id.AnchorKeys) {
+				// New key to the set, always appended
+				newKey = &id.AnchorKeys[len(id.AnchorKeys)-1]
+			} else {
+				// An existing key could have been changed
+				sort.Sort(AnchorSigningKeySort(id.AnchorKeys))
+				sort.Sort(AnchorSigningKeySort(orig.AnchorKeys))
+				for i := range id.AnchorKeys {
+					if !id.AnchorKeys[i].IsSameAs(&orig.AnchorKeys[i]) {
+						newKey = &id.AnchorKeys[i]
+						break
+					}
+				}
+			}
+
+			if newKey != nil {
+				if st.VerifyIsAuthority(id.IdentityChainID) {
+					err := d.AdminBlock.AddFederatedServerBitcoinAnchorKey(id.IdentityChainID, newKey.KeyLevel, newKey.KeyType, newKey.SigningKey)
+					if err != nil {
+						flog.Errorf(err.Error())
+					}
+				}
+			}
+		}
+	}
+}
+
+// Called by AddServer Message
+func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype int) bool {
+	flog := identLogger.WithFields(st.Logger.Data).WithField("func", "ProcessIdentityToAdminBlock")
+
+	err := st.AddIdentityFromChainID(chainID)
+	if err != nil {
+		flog.Errorf("Failed to process AddServerMessage for %s : %s", chainID.String()[:10], err.Error())
+		return true
+	}
+
+	id := st.IdentityControl.GetIdentity(chainID)
+
+	if id != nil {
+		if ok, err := id.IsPromteable(); !ok {
+			flog.Errorf("Failed to process AddServerMessage for %s : %s", chainID.String()[:10], err.Error())
+			return true
+		}
+
+	} else {
+		flog.Errorf("Failed to process AddServerMessage: %s", "New Fed/Audit server ["+chainID.String()[:10]+"] does not have an identity associated to it")
+		return true
+	}
+
+	// Add to admin block
+	if servertype == 0 {
+		id.Status = constants.IDENTITY_PENDING_FEDERATED_SERVER
+		st.LeaderPL.AdminBlock.AddFedServer(chainID)
+	} else if servertype == 1 {
+		id.Status = constants.IDENTITY_PENDING_AUDIT_SERVER
+		st.LeaderPL.AdminBlock.AddAuditServer(chainID)
+	}
+
+	st.IdentityControl.SetIdentity(chainID, id)
+	st.LeaderPL.AdminBlock.AddFederatedServerSigningKey(chainID, id.SigningKey.Fixed())
+	st.LeaderPL.AdminBlock.AddMatryoshkaHash(chainID, id.MatryoshkaHash)
+	for _, a := range id.AnchorKeys {
+		st.LeaderPL.AdminBlock.AddFederatedServerBitcoinAnchorKey(chainID, a.KeyLevel, a.KeyType, a.SigningKey)
+	}
+	return true
+}
+
+// Verifies if is authority
+//		Return true if authority, false if not
+func (st *State) VerifyIsAuthority(cid interfaces.IHash) bool {
+	return st.IdentityControl.GetAuthority(cid) != nil
+}
+
+// AddIdentityFromChainID will add an identity to our list to watch and sync it.
+func (st *State) AddIdentityFromChainID(cid interfaces.IHash) error {
+	id := st.IdentityControl.GetIdentity(cid)
+	if id == nil {
+		id = NewIdentity()
+		id.IdentityChainID = cid
+		st.IdentityControl.SetIdentity(cid, id)
+	}
+
+	err := st.AddIdentityEblocks(cid, true)
+	if err != nil {
+		return err
+	}
+
+	// This is the initial call, so the current height should not trigger a keychange in the admin block
+	st.SyncIdentities(nil)
+	return nil
+}
+
+// SyncIdentities will run through the identities and sync any identities that need to be updated.
+// If the current height is equal to the eblock+1, then this entry can trigger a change in key to the admin block
+func (st *State) SyncIdentities(d *DBState) {
+	// This will search an eblock, and sync it's entries if found.
+	getAndSyncEntries := func(ieb EntryBlockMarker) error {
+		eblock, err := st.DB.FetchEBlock(ieb.KeyMr)
+		if err != nil {
+			return fmt.Errorf("eblock missing")
+		}
+
+		entries := make([]IdentityEntry, len(eblock.GetEntryHashes()))
+		for i, e := range eblock.GetEntryHashes() {
+			if e.IsMinuteMarker() {
+				continue
+			}
+			entry, err := st.DB.FetchEntry(e)
+			if err != nil || entry == nil {
+				return fmt.Errorf("eblock missing entries")
+			}
+
+			entries[i] = IdentityEntry{entry, ieb.DblockTimestamp, ieb.DBHeight}
+		}
+
+		// We have all the entries, so now we can process each entry and advance our eblock syncing
+		for _, ie := range entries {
+			st.LoadIdentityByEntry(ie.Entry, ieb.DBHeight, ieb.DblockTimestamp, d)
+		}
+		st.IdentityControl.ProcessOldEntries()
+		return nil
+	}
+
+SyncIdentitiesLoop:
+	for _, id := range st.IdentityControl.Identities {
+		change := false
+		hasManage := !(id.ManagementChainID == nil || id.ManagementChainID.IsZero())
+		for !id.IdentityChainSync.Synced() {
+			// If we find a management chain id, we need to add all of it's Eblocks to it's list to be synced before we
+			// synced it's management chain
+			eb := id.IdentityChainSync.NextEBlock()
+			if eb == nil {
+				panic(fmt.Sprintf("NextEblock was nil, but the identity chain was not fully synced. ID: %s", id.IdentityChainID.String()))
+				continue SyncIdentitiesLoop
+			}
+
+			// Fetch the eblock and process the entries
+			err := getAndSyncEntries(*eb)
+			if err != nil {
+				break
+			}
+
+			// No error means it was synced, so update our eblock sync list
+			id.IdentityChainSync.BlockParsed(*eb)
+			change = true
+		}
+		if !hasManage {
+			// Found a manage chain
+			if id.ManagementChainID != nil && !id.ManagementChainID.IsZero() {
+				err := st.AddIdentityEblocks(id.ManagementChainID, false)
+				if err != nil {
+					panic(fmt.Sprintf("Could not add managment eblocks: %s", err.Error()))
+				}
+			}
+		}
+
+		if change {
+			st.IdentityControl.SetIdentity(id.IdentityChainID, id)
+		}
+
+		change = false
+		for !id.ManagementChainSync.Synced() {
+			// If we find a management chain id, we need to add all of it's Eblocks to it's list to be synced before we
+			// synced it's management chain
+			eb := id.ManagementChainSync.NextEBlock()
+			if eb == nil {
+				break // Manage chain might not have any eblocks to be processed
+			}
+
+			// Fetch the eblock and process the entries
+			err := getAndSyncEntries(*eb)
+			if err != nil {
+				break
+			}
+
+			// No error means it was synced, so update our eblock sync list
+			id.ManagementChainSync.BlockParsed(*eb)
+			change = true
+		}
+
+		if change {
+			st.IdentityControl.SetIdentity(id.IdentityChainID, id)
+		}
+	}
+}
+
+// AddIdentityEblocks will find all eblocks for a root/management chain and add them to the sync list
+func (st *State) AddIdentityEblocks(cid interfaces.IHash, rootChain bool) error {
+	id := st.IdentityControl.GetIdentity(cid)
+	if id == nil {
+		return fmt.Errorf("[%s] identity not found", cid.String()[:10])
+	}
+
+	// A management chain was found. We need to add eblocks to it's synclist
+	eblocks, err := st.DB.FetchAllEBlocksByChain(cid)
+	if err != nil {
+		return fmt.Errorf("This is a problem. Eblocks were not able to be fetched for %s", cid.String()[:10])
+	}
+	markers := make([]EntryBlockMarker, len(eblocks))
+	for i, eb := range eblocks {
+		keymr, err := eb.KeyMR()
+		if err != nil {
+			return fmt.Errorf("Keymr of eblock was unable to be computed")
+		}
+		dblock, err := st.DB.FetchDBlockByHeight(eb.GetDatabaseHeight())
+		if err != nil {
+			return fmt.Errorf("DBlock at %d not found on disk", eb.GetDatabaseHeight())
+		}
+		markers[i] = EntryBlockMarker{keymr, eb.GetHeader().GetEBSequence(), eb.GetDatabaseHeight(), dblock.GetTimestamp()}
+	}
+
+	sort.Sort(EntryBlockMarkerList(markers))
+	for _, m := range markers {
+		if rootChain {
+			id.IdentityChainSync.AddNewHeadMarker(m)
+		} else {
+			id.ManagementChainSync.AddNewHeadMarker(m)
+		}
+	}
+
+	return nil
+}
+
+// AddNewIdentityEblocks will scan the new eblock list and identify any eblocks of interest.
+// If an eblock belongs to a current identity, we add it to the eblock lists of the identity
+// to be synced.
+func (st *State) AddNewIdentityEblocks(eblocks []interfaces.IEntryBlock, dblockTimestamp interfaces.Timestamp) {
+	for _, eb := range eblocks {
+		if bytes.Compare(eb.GetChainID().Bytes()[:3], []byte{0x88, 0x88, 0x88}) == 0 {
+			// Can belong to an identity chain id
+			id := st.IdentityControl.GetIdentity(eb.GetChainID())
+			if id != nil {
+				keymr, err := eb.KeyMR()
+				if err != nil {
+					continue // This shouldn't ever happen
+				}
+				// It belongs to an identity that we are watching
+				if id.IdentityChainID.IsSameAs(eb.GetChainID()) {
+					// Identity chain eblock
+					id.IdentityChainSync.AddNewHead(keymr, eb.GetHeader().GetEBSequence(), eb.GetDatabaseHeight(), dblockTimestamp)
+				} else if id.ManagementChainID.IsSameAs(eb.GetChainID()) {
+					// Manage chain eblock
+					id.ManagementChainSync.AddNewHead(keymr, eb.GetHeader().GetEBSequence(), eb.GetDatabaseHeight(), dblockTimestamp)
+				}
+				st.IdentityControl.SetIdentity(id.IdentityChainID, id)
+			}
+		}
+	}
+}
+
+/*************************
+	Old methods used to
+	lookup an identity
+	in blockchain
+ *************************/
 
 // FetchIdentityChainEntriesInCreateOrder will grab all entries in a chain for an identity in the order they were created.
 func (s *State) FetchIdentityChainEntriesInCreateOrder(chainid interfaces.IHash) ([]IdentityEntry, error) {
@@ -163,7 +493,7 @@ func (s *State) FetchIdentityChainEntriesInCreateOrder(chainid interfaces.IHash)
 	return entries, nil
 }
 
-func (st *State) AddIdentityFromChainID(cid interfaces.IHash) error {
+func (st *State) LookupIdentityInBlockchainByChainID(cid interfaces.IHash) error {
 	identityRegisterChain, _ := primitives.HexToHash(MAIN_FACTOM_IDENTITY_LIST)
 
 	// No root entries, means no identity
@@ -227,136 +557,4 @@ func (st *State) AddIdentityFromChainID(cid interfaces.IHash) error {
 		return errors.New("Error: Identity not full - " + err.Error())
 	}
 	return nil
-}
-
-// LoadIdentityByEntry is only useful when initial is set to false. If initial is false, it will track changes
-// in an identity that corresponds to an authority. If initial is true, then calling ProcessIdentityEntry directly will
-// have the same result.
-func LoadIdentityByEntry(ent interfaces.IEBEntry, st *State, height uint32, dblockTimestamp interfaces.Timestamp, initial bool) {
-	flog := identLogger.WithFields(st.Logger.Data).WithField("func", "LoadIdentityByEntry")
-	if ent == nil {
-		return
-	}
-
-	// Not an entry identities care about
-	if bytes.Compare(ent.GetChainID().Bytes()[:3], []byte{0x88, 0x88, 0x88}) != 0 {
-		return
-	}
-
-	var orig *Identity
-	// Not initial means we need to keep track of key changes
-	if !initial {
-		id := st.IdentityControl.GetIdentity(ent.GetChainID())
-		if id != nil {
-			orig = id.Clone()
-		}
-	}
-
-	change, err := st.IdentityControl.ProcessIdentityEntry(ent, height, dblockTimestamp, true)
-	if err != nil {
-		flog.Errorf(err.Error())
-	}
-
-	// TODO: This is inefficient per entry. It is only called for identity entries
-	if !initial && orig != nil && change {
-		// Can do changing of keys here
-		id := st.IdentityControl.GetIdentity(ent.GetChainID())
-		if statusIsFedOrAudit(id.Status) {
-			// Is this a change in signing key?
-			if !orig.SigningKey.IsSameAs(id.SigningKey) {
-				key := id.SigningKey
-				// Add to admin block
-				if st.VerifyIsAuthority(id.IdentityChainID) {
-					err := st.LeaderPL.AdminBlock.AddFederatedServerSigningKey(id.IdentityChainID, key.Fixed())
-					if err != nil {
-						flog.Errorf(err.Error())
-					}
-				}
-			}
-
-			// Is this a change in MHash?
-			if !orig.MatryoshkaHash.IsSameAs(id.MatryoshkaHash) {
-				if st.VerifyIsAuthority(id.IdentityChainID) {
-					err := st.LeaderPL.AdminBlock.AddMatryoshkaHash(id.IdentityChainID, id.MatryoshkaHash)
-					if err != nil {
-						flog.Errorf(err.Error())
-					}
-				}
-			}
-
-			var newKey *AnchorSigningKey = nil
-			// Is this a change in Anchor?
-			// 	Need to find if the set has changed
-			if len(orig.AnchorKeys) != len(id.AnchorKeys) {
-				// New key to the set, always appended
-				newKey = &id.AnchorKeys[len(id.AnchorKeys)-1]
-			} else {
-				// An existing key could have been changed
-				sort.Sort(AnchorSigningKeySort(id.AnchorKeys))
-				sort.Sort(AnchorSigningKeySort(orig.AnchorKeys))
-				for i := range id.AnchorKeys {
-					if !id.AnchorKeys[i].IsSameAs(&orig.AnchorKeys[i]) {
-						newKey = &id.AnchorKeys[i]
-						break
-					}
-				}
-			}
-
-			if newKey != nil {
-				if st.VerifyIsAuthority(id.IdentityChainID) {
-					err := st.LeaderPL.AdminBlock.AddFederatedServerBitcoinAnchorKey(id.IdentityChainID, newKey.KeyLevel, newKey.KeyType, newKey.SigningKey)
-					if err != nil {
-						flog.Errorf(err.Error())
-					}
-				}
-			}
-		}
-	}
-}
-
-// Called by AddServer Message
-func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype int) bool {
-	flog := identLogger.WithFields(st.Logger.Data).WithField("func", "ProcessIdentityToAdminBlock")
-
-	err := st.AddIdentityFromChainID(chainID)
-	if err != nil {
-		flog.Errorf("Failed to process AddServerMessage for %s : %s", chainID.String()[:10], err.Error())
-		return true
-	}
-
-	id := st.IdentityControl.GetIdentity(chainID)
-
-	if id != nil {
-		if ok, err := id.IsPromteable(); !ok {
-			flog.Errorf("Failed to process AddServerMessage for %s : %s", chainID.String()[:10], err.Error())
-			return true
-		}
-
-	} else {
-		flog.Errorf("Failed to process AddServerMessage: %s", "New Fed/Audit server ["+chainID.String()[:10]+"] does not have an identity associated to it")
-		return true
-	}
-
-	// Add to admin block
-	if servertype == 0 {
-		id.Status = constants.IDENTITY_PENDING_FEDERATED_SERVER
-		st.LeaderPL.AdminBlock.AddFedServer(chainID)
-	} else if servertype == 1 {
-		id.Status = constants.IDENTITY_PENDING_AUDIT_SERVER
-		st.LeaderPL.AdminBlock.AddAuditServer(chainID)
-	}
-
-	st.IdentityControl.SetIdentity(chainID, id)
-	st.LeaderPL.AdminBlock.AddFederatedServerSigningKey(chainID, id.SigningKey.Fixed())
-	st.LeaderPL.AdminBlock.AddMatryoshkaHash(chainID, id.MatryoshkaHash)
-	for _, a := range id.AnchorKeys {
-		st.LeaderPL.AdminBlock.AddFederatedServerBitcoinAnchorKey(chainID, a.KeyLevel, a.KeyType, a.SigningKey)
-	}
-	return true
-}
-
-// Verifies if is authority
-//		Return true if authority, false if not
-func (st *State) VerifyIsAuthority(cid interfaces.IHash) bool {
-	return st.IdentityControl.GetAuthority(cid) != nil
 }

@@ -305,7 +305,34 @@ const (
 	IDENTITY_PENDING_AUDIT_SERVER                  // 5
 	IDENTITY_PENDING_FULL                          // 6
 	IDENTITY_SKELETON                              // 7 - Skeleton Identity
+	IDENTITY_REGISTRATION_CHAIN                    // 8
 )
+
+func IdentityStatusString(i uint8) string {
+	var stat string
+	stat = "Unknown"
+	switch i {
+	case IDENTITY_UNASSIGNED:
+		stat = "Unassigned"
+	case IDENTITY_FEDERATED_SERVER:
+		stat = "Federated Server"
+	case IDENTITY_AUDIT_SERVER:
+		stat = "Audit Server"
+	case IDENTITY_FULL:
+		stat = "Full"
+	case IDENTITY_PENDING_FEDERATED_SERVER:
+		stat = "Pending Federated Server"
+	case IDENTITY_PENDING_AUDIT_SERVER:
+		stat = "Pending Audit Server"
+	case IDENTITY_PENDING_FULL:
+		stat = "Pending Full"
+	case IDENTITY_SKELETON:
+		stat = "Skeleton Identity"
+	case IDENTITY_REGISTRATION_CHAIN:
+		stat = "Registration Chain"
+	}
+	return stat
+}
 
 // Identity Timing
 const (

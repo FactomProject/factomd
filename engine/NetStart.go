@@ -294,9 +294,10 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		modifyLoadIdentities() // We clone s to make all of our servers
 	}
 
-	// Setup the Skeleton Identity
+	// Setup the Skeleton Identity & Registration
 	for i := range fnodes {
 		fnodes[i].State.IntiateNetworkSkeletonIdentity()
+		fnodes[i].State.InitiateNetworkIdentityRegistration()
 	}
 
 	// Start the P2P network

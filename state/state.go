@@ -2190,6 +2190,11 @@ func (s *State) GetNetworkSkeletonIdentity() interfaces.IHash {
 	return id
 }
 
+func (s *State) GetNetworkIdentityRegistrationChain() interfaces.IHash {
+	id, _ := primitives.HexToHash("888888001750ede0eff4b05f0c3f557890b256450cabbb84cada937f9c258327")
+	return id
+}
+
 func (s *State) GetMatryoshka(dbheight uint32) interfaces.IHash {
 	return nil
 }

@@ -93,7 +93,7 @@ func (c *AdminBlock) UpdateState(state interfaces.IState) error {
 	}
 
 	// Clear any keys that are now too old to be valid
-	state.UpdateAuthSigningKeys(c.GetHeader().GetDBHeight())
+	//state.UpdateAuthSigningKeys(c.GetHeader().GetDBHeight())
 	return nil
 }
 

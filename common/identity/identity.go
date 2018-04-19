@@ -34,10 +34,13 @@ func (p IdentitySort) Less(i, j int) bool {
 //https://github.com/FactomProject/FactomDocs/blob/master/Identity.md
 
 type Identity struct {
-	IdentityChainID      interfaces.IHash
-	IdentityRegistered   uint32
-	IdentityCreated      uint32
+	IdentityChainID    interfaces.IHash
+	IdentityChainSync  EntryBlockSync
+	IdentityRegistered uint32
+	IdentityCreated    uint32
+
 	ManagementChainID    interfaces.IHash
+	ManagementChainSync  EntryBlockSync
 	ManagementRegistered uint32
 	ManagementCreated    uint32
 	MatryoshkaHash       interfaces.IHash
@@ -69,6 +72,8 @@ func NewIdentity() *Identity {
 
 	i.SigningKey = primitives.NewZeroHash()
 	i.Efficiency = 10000
+	i.IdentityChainSync = *NewEntryBlockSync()
+	i.ManagementChainSync = *NewEntryBlockSync()
 
 	return i
 }
@@ -211,6 +216,9 @@ func (e *Identity) Clone() *Identity {
 	b.ManagementRegistered = e.ManagementRegistered
 	b.ManagementCreated = e.ManagementCreated
 	b.Status = e.Status
+	b.Efficiency = e.Efficiency
+	b.IdentityChainSync = *e.IdentityChainSync.Clone()
+	b.ManagementChainSync = *e.ManagementChainSync.Clone()
 
 	b.AnchorKeys = make([]AnchorSigningKey, len(e.AnchorKeys))
 	for i := range e.AnchorKeys {
@@ -258,6 +266,9 @@ func (e *Identity) IsSameAs(b *Identity) bool {
 		return false
 	}
 	if e.Status != b.Status {
+		return false
+	}
+	if e.Efficiency != b.Efficiency {
 		return false
 	}
 	if len(e.AnchorKeys) != len(b.AnchorKeys) {
@@ -364,6 +375,11 @@ func (e *Identity) MarshalBinary() ([]byte, error) {
 		}
 	}
 
+	err = buf.PushUInt16(e.Efficiency)
+	if err != nil {
+		return nil, err
+	}
+
 	return buf.DeepCopyBytes(), nil
 }
 
@@ -438,6 +454,11 @@ func (e *Identity) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 			return
 		}
 		e.AnchorKeys = append(e.AnchorKeys, ak)
+	}
+
+	e.Efficiency, err = buf.PopUInt16()
+	if err != nil {
+		return
 	}
 
 	newData = buf.DeepCopyBytes()

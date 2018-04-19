@@ -906,6 +906,9 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 		}
 	}
 
+	// Additional Admin block changed can be made from identity changes
+	list.State.SyncIdentities(d)
+
 	hash, err = p.AdminBlock.BackReferenceHash()
 	if err != nil {
 		panic(err.Error())
@@ -1120,6 +1123,14 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 
 	authlistMsg := list.State.EFactory.NewAuthorityListInternal(pln.FedServers, pln.AuditServers, pln.DBHeight)
 	list.State.ElectionsQueue().Enqueue(authlistMsg)
+
+	// Sync Identities
+	// 	Do the sync first, which will sync any Eblocks added from the prior block
+	//	Then add eblocks from this current block, they will be synced come the next block.
+	//	The order is important as when we are in this function, we only know n-1 is saved to disk
+	list.State.SyncIdentities(nil)                                                   // Sync n-1 eblocks
+	list.State.AddNewIdentityEblocks(d.EntryBlocks, d.DirectoryBlock.GetTimestamp()) // Add eblocks to be synced
+	list.State.UpdateAuthSigningKeys(d.DirectoryBlock.GetDatabaseHeight())           // Remove old keys from key history
 
 	///////////////////////////////
 	// Cleanup Tasks

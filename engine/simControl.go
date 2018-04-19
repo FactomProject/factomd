@@ -17,6 +17,7 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
@@ -867,7 +868,7 @@ func SimControl(listenTo int, listenStdin bool) {
 						if amt != -1 && c == amt {
 							return true
 						}
-						stat := returnStatString(ident.Status)
+						stat := constants.IdentityStatusString(ident.Status)
 						if show == 5 {
 							if c != amt {
 							} else {
@@ -1016,7 +1017,7 @@ func SimControl(listenTo int, listenStdin bool) {
 					os.Stderr.WriteString("-------------------------------------------------------------------------------\n")
 					var stat string
 					i := iA.(*identity.Authority)
-					stat = returnStatString(i.Status)
+					stat = constants.IdentityStatusString(i.Status)
 					os.Stderr.WriteString(fmt.Sprint("Server Status: ", stat, "\n"))
 					os.Stderr.WriteString(fmt.Sprint("Identity Chain: ", i.AuthorityChainID, "\n"))
 					os.Stderr.WriteString(fmt.Sprint("Management Chain: ", i.ManagementChainID, "\n"))
@@ -1269,28 +1270,6 @@ func SimControl(listenTo int, listenStdin bool) {
 			}
 		}
 	}
-}
-func returnStatString(i uint8) string {
-	var stat string
-	switch i {
-	case 0:
-		stat = "Unassigned"
-	case 1:
-		stat = "Federated Server"
-	case 2:
-		stat = "Audit Server"
-	case 3:
-		stat = "Full"
-	case 4:
-		stat = "Pending Federated Server"
-	case 5:
-		stat = "Pending Audit Server"
-	case 6:
-		stat = "Pending Full"
-	case 7:
-		stat = "Skeleton Identity"
-	}
-	return stat
 }
 
 // Allows us to scatter transactions across all nodes.

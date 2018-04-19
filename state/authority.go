@@ -140,7 +140,6 @@ func (st *State) GetAuthority(serverID interfaces.IHash) (*Authority, int) {
 // We keep a 2 block history of their keys, this is so if we change their key and need to verify
 // a message from 1 block ago, we still can. This function garbage collects old keys
 func (st *State) UpdateAuthSigningKeys(height uint32) {
-	// NEW
 	for key, auth := range st.IdentityControl.Authorities {
 		chopOffIndex := 0 // Index of the keys we should chop off
 		for i, key := range auth.KeyHistory {
@@ -193,35 +192,20 @@ func (st *State) GetAuthorityServerType(chainID interfaces.IHash) int { // 0 = F
 	return -1
 }
 
-// If the Identity failed to create, it will be fixed here. It is possible to create an authority and
-// fail to create the identity if your second pass is not synced. This routine will fix any authorities
-// that are missing an identity.
+// RepairAuthorities will put the management chain of an identity in the authority if it
+// is missing.
 func (s *State) RepairAuthorities() {
 	// Fix any missing management chains
 	for _, iAuth := range s.IdentityControl.GetAuthorities() {
 		auth := iAuth.(*Authority)
 		if auth.ManagementChainID == nil || auth.ManagementChainID.IsZero() {
 			id := s.IdentityControl.GetIdentity(auth.AuthorityChainID)
-			if id == nil {
-				err := s.AddIdentityFromChainID(auth.AuthorityChainID)
-				if err != nil {
-					continue
-				}
-				id = s.IdentityControl.GetIdentity(auth.AuthorityChainID)
-			}
 			if id != nil {
 				auth.ManagementChainID = id.ManagementChainID
 				id.Status = auth.Status
 				s.IdentityControl.SetAuthority(auth.AuthorityChainID, auth)
 				s.IdentityControl.SetIdentity(auth.AuthorityChainID, id)
 			}
-		}
-	}
-
-	// Fix any missing keys
-	for _, id := range s.IdentityControl.GetIdentities() {
-		if !id.IsFull() {
-			s.FixMissingKeys(id)
 		}
 	}
 }
