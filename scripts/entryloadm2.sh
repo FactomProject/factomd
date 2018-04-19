@@ -1,8 +1,8 @@
 #!/bin/bash
 
-nchains=10     # number of chains to create
+nchains=1     # number of chains to create
 nchains2=1     # number of chains to create
-nentries=200   # number of entries to add to each chain
+nentries=20   # number of entries to add to each chain
 
 #factomd=10.41.2.5:8088
  factomd=localhost:8088
