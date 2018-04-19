@@ -34,9 +34,10 @@ type Peer struct {
 	logger *log.Entry
 }
 
-const ( // iota is reset to 0
-	RegularPeer uint8 = iota
-	SpecialPeer
+const (
+	RegularPeer        uint8 = iota
+	SpecialPeerConfig        // special peer defined in the config file
+	SpecialPeerCmdLine       // special peer defined via the cmd line params
 )
 
 func (p *Peer) Init(address string, port string, quality int32, peerType uint8, connections int) *Peer {
@@ -171,8 +172,10 @@ func (p *Peer) peerTypeString() string {
 	switch p.Type {
 	case RegularPeer:
 		return "regular"
-	case SpecialPeer:
-		return "special"
+	case SpecialPeerConfig:
+		return "special_config"
+	case SpecialPeerCmdLine:
+		return "special_cmdline"
 	default:
 		return "unknown"
 	}

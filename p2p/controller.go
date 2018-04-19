@@ -59,9 +59,9 @@ type Controller struct {
 	lastDiscoveryRequest      time.Time
 	NodeID                    uint64
 	lastStatusReport          time.Time
-	lastPeerRequest           time.Time       // Last time we asked peers about the peers they know about.
-	specialPeers              []*Peer         // list of special peers (from config file and from the command line params)
-	partsAssembler            *PartsAssembler // a data structure that assembles full messages from received message parts
+	lastPeerRequest           time.Time        // Last time we asked peers about the peers they know about.
+	specialPeers              map[string]*Peer // special peers (from config file and from the command line params) by peer address
+	partsAssembler            *PartsAssembler  // a data structure that assembles full messages from received message parts
 
 	// logging
 	logger *log.Entry
@@ -187,9 +187,7 @@ func (c *Controller) Init(ci ControllerInit) *Controller {
 	CurrentNetwork = ci.Network
 	OnlySpecialPeers = ci.Exclusive || ci.ExclusiveIn
 	AllowUnknownIncomingPeers = !ci.ExclusiveIn
-	configPeers := c.parseSpecialPeers(ci.ConfigPeers)
-	cmdLinePeers := c.parseSpecialPeers(ci.CmdLinePeers)
-	c.specialPeers = append(configPeers, cmdLinePeers...)
+	c.initSpecialPeers(ci)
 	c.lastDiscoveryRequest = time.Now() // Discovery does its own on startup.
 	c.lastConnectionMetricsUpdate = time.Now()
 	c.partsAssembler = new(PartsAssembler).Init()
@@ -238,6 +236,51 @@ func (c *Controller) Disconnect(peerHash string) {
 
 func (c *Controller) GetNumberConnections() int {
 	return len(c.connections)
+}
+
+func (c *Controller) ReloadSpecialPeers(newPeersConfig string) {
+	c.logger.Info("Reloading special peers after config file change")
+	newPeers := make(map[string]*Peer)
+	for _, newPeer := range c.parseSpecialPeers(newPeersConfig, SpecialPeerConfig) {
+		newPeers[newPeer.Address] = newPeer
+	}
+
+	toBeAdded := make([]*Peer, 0, len(newPeers))
+	toBeRemoved := make([]*Peer, 0, len(c.specialPeers))
+
+	for address, newPeer := range newPeers {
+		_, exists := c.specialPeers[address]
+		if !exists {
+			c.logger.Infof("Detected a new peer in the config file: %s", address)
+			toBeAdded = append(toBeAdded, newPeer)
+		}
+	}
+
+	for address, oldPeer := range c.specialPeers {
+		_, exists := newPeers[address]
+		if exists {
+			if oldPeer.Type == SpecialPeerCmdLine {
+				c.logger.Warnf(
+					"Detected a peer removed from the config file,"+
+						" but it was earlier defined in the command line, ignoring: %s",
+					address,
+				)
+				continue
+			}
+			c.logger.Infof("Detected a peer removed from the config file: %s")
+			toBeRemoved = append(toBeRemoved, oldPeer)
+		}
+	}
+
+	for _, peer := range toBeRemoved {
+		delete(c.specialPeers, peer.Address)
+		c.Disconnect(peer.Hash)
+	}
+
+	for _, peer := range toBeAdded {
+		c.specialPeers[peer.Address] = peer
+		c.DialPeer(*peer, true)
+	}
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -315,7 +358,21 @@ func (c *Controller) isSpecialPeer(conn net.Conn) bool {
 	return false
 }
 
-func (c *Controller) parseSpecialPeers(peersString string) []*Peer {
+func (c *Controller) initSpecialPeers(ci ControllerInit) {
+	c.specialPeers = make(map[string]*Peer)
+	configPeers := c.parseSpecialPeers(ci.ConfigPeers, SpecialPeerConfig)
+	cmdLinePeers := c.parseSpecialPeers(ci.CmdLinePeers, SpecialPeerCmdLine)
+
+	// command line peers overwrite config peers
+	for _, peer := range configPeers {
+		c.specialPeers[peer.Address] = peer
+	}
+	for _, peer := range cmdLinePeers {
+		c.specialPeers[peer.Address] = peer
+	}
+}
+
+func (c *Controller) parseSpecialPeers(peersString string, peerType uint8) []*Peer {
 	parseFunc := func(c rune) bool {
 		return !unicode.IsLetter(c) && !unicode.IsNumber(c) && !unicode.IsPunct(c)
 	}
@@ -324,9 +381,9 @@ func (c *Controller) parseSpecialPeers(peersString string) []*Peer {
 	for _, peerAddress := range peerAddresses {
 		address, port, err := net.SplitHostPort(peerAddress)
 		if err != nil {
-			c.logger.Errorf("DialSpecialPeersString: %s is not a valid peer (%v), use format: 127.0.0.1:8999", peersString, err)
+			c.logger.Errorf("%s is not a valid peer (%v), use format: 127.0.0.1:8999", peersString, err)
 		} else {
-			peer := new(Peer).Init(address, port, 0, SpecialPeer, 0)
+			peer := new(Peer).Init(address, port, 0, peerType, 0)
 			peer.Source["Local-Configuration"] = time.Now()
 			peers = append(peers, peer)
 		}

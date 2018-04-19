@@ -762,6 +762,8 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 
 	}
 	s.JournalFile = s.LogPath + "/journal0" + ".log"
+
+	s.updateNetworkControllerConfig()
 }
 
 func (s *State) GetSalt(ts interfaces.Timestamp) uint32 {
@@ -2650,4 +2652,27 @@ func (s *State) GetLastStatus() string {
 	}
 	str := s.StatusStrs[len(s.StatusStrs)-1]
 	return str
+}
+
+func (s *State) updateNetworkControllerConfig() {
+	if s.NetworkController == nil {
+		return
+	}
+
+	var newPeersConfig string
+	switch s.Network {
+	case "MAIN", "main":
+		newPeersConfig = s.MainSpecialPeers
+	case "TEST", "test":
+		newPeersConfig = s.TestSpecialPeers
+	case "LOCAL", "local":
+		newPeersConfig = s.LocalSpecialPeers
+	case "CUSTOM", "custom":
+		newPeersConfig = s.CustomSpecialPeers
+	default:
+		// should already be verified earlier
+		panic(fmt.Sprintf("Invalid Network: %s", s.Network))
+	}
+
+	s.NetworkController.ReloadSpecialPeers(newPeersConfig)
 }
