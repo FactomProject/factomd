@@ -110,6 +110,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 			s.LogMessage("executeMsg", "FollowerExecute2", msg)
 			msg.FollowerExecute(s)
 		}
+
 		ret = true
 
 	case 0:
@@ -282,8 +283,9 @@ processLoop:
 	for {
 		select {
 		case msg := <-process:
-			s.LogMessage("executeMsg", "From processq", msg)
-			progress = s.executeMsg(vm, msg) || progress //
+			newProgress := s.executeMsg(vm, msg)
+			progress = newProgress || progress //
+			s.LogMessage("executeMsg", fmt.Sprintf("From processq : %t", newProgress), msg)
 			s.UpdateState()
 		default:
 			break processLoop

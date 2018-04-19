@@ -1226,6 +1226,7 @@ func SimControl(listenTo int, listenStdin bool) {
 				os.Stderr.WriteString("Dnnn          Set the Delay on messages from the current node to nnn milliseconds\n")
 				os.Stderr.WriteString("Fnnn          Set the Delay on messages from all nodes to nnn milliseconds\n")
 				os.Stderr.WriteString("/             Toggle the sort order between ChainID and Factom Node Name\n")
+				os.Stderr.WriteString("Rnnn          Set load generator to write entries at nnn per second\n")
 
 				//os.Stderr.WriteString("i[m/b/a][N]   Shows only the Mhash, block signing key, or anchor key up to the Nth identity\n")
 				//os.Stderr.WriteString("isN           Shows only Nth identity\n")
