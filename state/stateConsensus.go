@@ -176,7 +176,7 @@ func (s *State) Process() (progress bool) {
 	room := func() bool { return len(process) < 9995 }
 
 	var vm *VM
-	if s.Leader {
+	if s.Leader && s.RunLeader {
 		vm = s.LeaderPL.VMs[s.LeaderVMIndex]
 		if vm.Height == 0 && s.RunLeader { // Shouldn't send DBSigs out until we have fully loaded our db
 			s.SendDBSig(s.LeaderPL.DBHeight, s.LeaderVMIndex)
@@ -197,8 +197,6 @@ func (s *State) Process() (progress bool) {
 		process <- msg
 		s.DBStatesReceived[ix] = nil
 	}
-
-	s.ReviewHolding()
 
 	preAckLoopTime := time.Now()
 	// Process acknowledgements if we have some.
@@ -261,20 +259,25 @@ emptyLoop:
 	preProcessXReviewTime := time.Now()
 	// Reprocess any stalled messages, but not so much compared inbound messages
 	// Process last first
-skipreview:
-	for {
-		for _, msg := range s.XReview {
-			if !room() {
-				break skipreview
+
+	if s.RunLeader {
+		s.ReviewHolding()
+
+	skipreview:
+		for {
+			for _, msg := range s.XReview {
+				if !room() {
+					break skipreview
+				}
+				if msg == nil {
+					continue
+				}
+				process <- msg
 			}
-			if msg == nil {
-				continue
-			}
-			process <- msg
-		}
-		s.XReview = s.XReview[:0]
-		break
-	} // skip review
+			s.XReview = s.XReview[:0]
+			break
+		} // skip review
+	}
 	processXReviewTime := time.Since(preProcessXReviewTime)
 	TotalProcessXReviewTime.Add(float64(processXReviewTime.Nanoseconds()))
 

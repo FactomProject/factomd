@@ -2,7 +2,7 @@
 
 nchains=1     # number of chains to create
 nchains2=1     # number of chains to create
-nentries=20   # number of entries to add to each chain
+nentries=200   # number of entries to add to each chain
 
 #factomd=10.41.2.5:8088
  factomd=localhost:8088
@@ -46,7 +46,7 @@ addentries() {
 
 	for ((i=0; i<nentries; i++)); do
     		cat $datafile | factom-cli -s=$factomd addentry -f -c $1 -e test -e $i -e $RANDOM -e $RANDOM -e $RANDOM $ec1 > /dev/null
-		sleep $((  1 ))
+		sleep $((  3 ))
 	done
   
   # get rid of the random datafile
@@ -65,7 +65,7 @@ for ((ii=0; ii<nchains2; ii++)); do
 done
 
 echo SLEEP "a little pause before we go again!"
-sleep $(( $minsleep * 10 ))
+sleep $(( $minsleep * 30 ))
 
 echo About ready ...
 sleep $(( $minsleep * 2 ))
