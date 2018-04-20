@@ -198,6 +198,12 @@ func (im *IdentityManager) ApplyIdentityChainStructure(ic *IdentityChainStructur
 	id.IdentityChainID = chainID.(*primitives.Hash)
 
 	im.SetIdentity(chainID, id)
+
+	// The registration could have been parsed earlier, double check.
+	if rfi := im.IdentityRegistrations[id.IdentityChainID.Fixed()]; rfi != nil {
+		im.ApplyRegisterFactomIdentityStructure(rfi, dBlockHeight)
+	}
+
 	return false, nil
 }
 
@@ -323,6 +329,8 @@ func (im *IdentityManager) ApplyNewMatryoshkaHashStructure(nmh *NewMatryoshkaHas
 }
 
 func (im *IdentityManager) ApplyRegisterFactomIdentityStructure(rfi *RegisterFactomIdentityStructure, dBlockHeight uint32) (bool, error) {
+	im.IdentityRegistrations[rfi.IdentityChainID.Fixed()] = rfi
+
 	id := im.GetIdentity(rfi.IdentityChainID)
 	if id == nil {
 		return true, fmt.Errorf("ChainID doesn't exists! %v", rfi.IdentityChainID.String())
