@@ -25,6 +25,7 @@ func Identities(copyDS state.DisplayState) string {
 		prt = prt + fmt.Sprint("Key 3: ", i.Keys[2], "\n")
 		prt = prt + fmt.Sprint("Key 4: ", i.Keys[3], "\n")
 		prt = prt + fmt.Sprint("Signing Key: ", i.SigningKey, "\n")
+		prt = prt + fmt.Sprint("Coinbase Address: ", i.GetCoinbaseHumanReadable(), "\n")
 		for _, a := range i.AnchorKeys {
 			prt = prt + fmt.Sprintf("Anchor Key: {'%s' L%x T%x K:%x}\n", a.BlockChain, a.KeyLevel, a.KeyType, a.SigningKey)
 		}

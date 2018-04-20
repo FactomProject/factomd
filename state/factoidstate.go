@@ -394,7 +394,7 @@ func (fs *FactoidState) GetCoinbaseTransaction(dbheight uint32, ftime interfaces
 	if dbheight%constants.COINBASE_PAYOUT_FREQUENCY == 0 && // Frequency of payouts
 		dbheight > constants.COINBASE_DECLARATION+constants.COINBASE_PAYOUT_FREQUENCY { // Cannot payout before a declaration
 		// TODO: Grab outputs from identities, for now it's random
-		outputs := []interfaces.IAddress{factoid.RandomAddress(), factoid.RandomAddress(), factoid.RandomAddress(), factoid.RandomAddress()}
+		outputs := []interfaces.IAddress{factoid.NewAddress(primitives.ZeroHash.Bytes())}
 
 		// Grab the admin block 1000 blocks earlier
 		ablock, err := fs.State.DB.FetchABlockByHeight(dbheight - constants.COINBASE_DECLARATION)

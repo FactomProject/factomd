@@ -18,6 +18,7 @@ import (
 	"unicode"
 
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
@@ -889,6 +890,7 @@ func SimControl(listenTo int, listenStdin bool) {
 								os.Stderr.WriteString(fmt.Sprint("Key 4: ", ident.Keys[3], "\n"))
 								os.Stderr.WriteString(fmt.Sprint("Signing Key: ", ident.SigningKey, "\n"))
 								os.Stderr.WriteString(fmt.Sprint("Efficiency: ", ident.Efficiency, "\n"))
+								os.Stderr.WriteString(fmt.Sprint("Coinbase Address: ", ident.GetCoinbaseHumanReadable(), "\n"))
 								for _, a := range ident.AnchorKeys {
 									os.Stderr.WriteString(fmt.Sprintf("Anchor Key: {'%s' L%x T%x K:%x}\n", a.BlockChain, a.KeyLevel, a.KeyType, a.SigningKey))
 								}
@@ -1210,6 +1212,37 @@ func SimControl(listenTo int, listenStdin bool) {
 				}
 
 				os.Stderr.WriteString(fmt.Sprintf("New efficiency for [%s]: %d\n", fnodes[ListenTo].State.IdentityChainID.String()[:8], nn))
+				break
+
+			case 'B' == b[0]:
+				// Set coinbase address
+				add := primitives.RandomHash().String()
+				if len(b) > 1 {
+					add = string(b[1:])
+				}
+
+				_, _, auth := authKeyLookup(fnodes[ListenTo].State.IdentityChainID)
+				if auth == nil {
+					break
+				}
+
+				wsapiNode = ListenTo
+				wsapi.SetState(fnodes[wsapiNode].State)
+				err = fundWallet(fnodes[ListenTo].State, 1e8)
+				if err != nil {
+					os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
+					break
+				}
+
+				err = changeServerCoinbaseAddress(fnodes[ListenTo].State.IdentityChainID, fnodes[ListenTo].State, add)
+				if err != nil {
+					os.Stderr.WriteString(fmt.Sprintf("Error: %s\n", err.Error()))
+					break
+				}
+
+				h, _ := primitives.HexToHash(add)
+				address := factoid.NewAddress([]byte(h.Bytes()))
+				os.Stderr.WriteString(fmt.Sprintf("New Coinbase Address for [%s]: %s\n", fnodes[ListenTo].State.IdentityChainID.String()[:8], primitives.ConvertFctAddressToUserStr(address)))
 				break
 
 			case 'h' == b[0]:

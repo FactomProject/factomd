@@ -12,6 +12,7 @@ import (
 
 	ed "github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/primitives/random"
@@ -50,11 +51,12 @@ type Identity struct {
 	//		Keys[1] --> Key 2
 	//		Keys[2] --> Key 3
 	//		Keys[3] --> Key 4
-	Keys       [4]interfaces.IHash
-	SigningKey interfaces.IHash
-	Status     uint8
-	AnchorKeys []AnchorSigningKey
-	Efficiency uint16
+	Keys            [4]interfaces.IHash
+	SigningKey      interfaces.IHash
+	Status          uint8
+	AnchorKeys      []AnchorSigningKey
+	Efficiency      uint16
+	CoinbaseAddress interfaces.IHash
 }
 
 var _ interfaces.Printable = (*Identity)(nil)
@@ -74,6 +76,7 @@ func NewIdentity() *Identity {
 	i.Efficiency = 10000
 	i.IdentityChainSync = *NewEntryBlockSync()
 	i.ManagementChainSync = *NewEntryBlockSync()
+	i.CoinbaseAddress = primitives.NewZeroHash()
 
 	return i
 }
@@ -100,8 +103,19 @@ func RandomIdentity() *Identity {
 	for i := 0; i < l; i++ {
 		id.AnchorKeys = append(id.AnchorKeys, *RandomAnchorSigningKey())
 	}
+	id.CoinbaseAddress = primitives.RandomHash()
+	id.Efficiency = uint16(random.RandUInt32())
 
 	return id
+}
+
+func (id *Identity) GetCoinbaseHumanReadable() string {
+	if id.CoinbaseAddress.IsZero() {
+		return "No Address"
+	}
+	add := factoid.NewAddress(id.CoinbaseAddress.Bytes())
+	//primitives.ConvertFctAddressToUserStr(add)
+	return primitives.ConvertFctAddressToUserStr(add)
 }
 
 // IsPromteable will return if the identity is able to be promoted.
@@ -380,6 +394,11 @@ func (e *Identity) MarshalBinary() ([]byte, error) {
 		return nil, err
 	}
 
+	err = buf.PushIHash(e.CoinbaseAddress)
+	if err != nil {
+		return nil, err
+	}
+
 	return buf.DeepCopyBytes(), nil
 }
 
@@ -457,6 +476,11 @@ func (e *Identity) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 	}
 
 	e.Efficiency, err = buf.PopUInt16()
+	if err != nil {
+		return
+	}
+
+	e.CoinbaseAddress, err = buf.PopIHash()
 	if err != nil {
 		return
 	}

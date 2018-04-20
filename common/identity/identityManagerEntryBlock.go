@@ -177,6 +177,22 @@ func (im *IdentityManager) ProcessIdentityEntry(entry interfaces.IEBEntry, dBloc
 			return false, err
 		}
 		break
+	case "Coinbase Address":
+		sm, err := DecodeNewNewCoinbaseAddressStructFromExtIDs(extIDs)
+		if err != nil {
+			return false, err
+		}
+
+		tryAgain, change, err = im.ApplyNewCoinbaseAddressStruct(sm, chainID, dBlockTimestamp)
+		if tryAgain == true && newEntry == true {
+			//if it's a new entry, push it and return nil
+			return false, im.PushEntryForLater(entry, dBlockHeight, dBlockTimestamp)
+		}
+		//if it's an old entry, return error to signify the entry has not been processed and should be kept
+		if err != nil {
+			return false, err
+		}
+		break
 	}
 
 	return change, nil
@@ -385,7 +401,7 @@ func (im *IdentityManager) ApplyServerManagementStructure(sm *ServerManagementSt
 	return false, nil
 }
 
-// ApplyNewBlockSigningKeyStruct will parse a new block signing key and attempt to add the signing to the proper identity.
+// ApplyNewServerEfficiencyStruct will parse a new server efficiency and attempt to add the signing to the proper identity.
 //		Returns
 //			bool	change		If a key has been changed
 //			bool	tryagain	If this is set to true, this entry can be reprocessed if it is *new*
@@ -422,6 +438,43 @@ func (im *IdentityManager) ApplyNewServerEfficiencyStruct(nses *NewServerEfficie
 	id.Efficiency = nses.Efficiency
 
 	im.SetIdentity(nses.RootIdentityChainID, id)
+
+	return true, false, nil
+}
+
+// ApplyNewCoinbaseAddressStruct will parse a new coinbase address and attempt to add the signing to the proper identity.
+//		Returns
+//			bool	change		If a key has been changed
+//			bool	tryagain	If this is set to true, this entry can be reprocessed if it is *new*
+//			error	err			Any errors
+func (im *IdentityManager) ApplyNewCoinbaseAddressStruct(ncas *NewCoinbaseAddressStruct, rootchainID interfaces.IHash, dBlockTimestamp interfaces.Timestamp) (bool, bool, error) {
+	chainID := ncas.RootIdentityChainID
+	id := im.GetIdentity(chainID)
+	if id == nil {
+		return false, true, fmt.Errorf("(coinbase address) ChainID doesn't exists! %v", ncas.RootIdentityChainID.String())
+	}
+
+	if !rootchainID.IsSameAs(ncas.RootIdentityChainID) {
+		return false, true, fmt.Errorf("(coinbase address) ChainID of entry should match root chain id.")
+	}
+
+	if id.CoinbaseAddress.IsSameAs(ncas.CoinbaseAddress) {
+		return false, false, nil
+	}
+
+	err := ncas.VerifySignature(id.Keys[0])
+	if err != nil {
+		return false, false, err
+	}
+
+	// Check Timestamp
+	if !CheckTimestamp(ncas.Timestamp, dBlockTimestamp.GetTimeSeconds()) {
+		return false, false, fmt.Errorf("New Server Efficiency for Identity [%x]is too old", chainID.Bytes()[:5])
+	}
+
+	id.CoinbaseAddress = ncas.CoinbaseAddress
+
+	im.SetIdentity(ncas.RootIdentityChainID, id)
 
 	return true, false, nil
 }
