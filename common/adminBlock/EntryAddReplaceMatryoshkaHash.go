@@ -55,6 +55,10 @@ func NewAddReplaceMatryoshkaHash(identityChainID interfaces.IHash, mHash interfa
 	return e
 }
 
+func (e *AddReplaceMatryoshkaHash) SortedIdentity() interfaces.IHash {
+	return e.IdentityChainID
+}
+
 func (e *AddReplaceMatryoshkaHash) MarshalBinary() ([]byte, error) {
 	e.Init()
 	var buf primitives.Buffer

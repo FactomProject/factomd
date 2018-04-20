@@ -41,6 +41,10 @@ func (a *AddEfficiency) IsSameAs(b *AddEfficiency) bool {
 	return true
 }
 
+func (e *AddEfficiency) SortedIdentity() interfaces.IHash {
+	return e.IdentityChainID
+}
+
 func (e *AddEfficiency) String() string {
 	e.Init()
 	var out primitives.Buffer

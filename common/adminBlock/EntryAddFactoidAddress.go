@@ -76,6 +76,10 @@ func (e *AddFactoidAddress) Type() byte {
 	return constants.TYPE_ADD_FACTOID_ADDRESS
 }
 
+func (e *AddFactoidAddress) SortedIdentity() interfaces.IHash {
+	return e.IdentityChainID
+}
+
 func (e *AddFactoidAddress) MarshalBinary() ([]byte, error) {
 	e.Init()
 	var buf primitives.Buffer

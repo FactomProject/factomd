@@ -15,6 +15,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
@@ -393,20 +394,20 @@ func (fs *FactoidState) GetCoinbaseTransaction(dbheight uint32, ftime interfaces
 	//	Payout blocks are every n blocks, where n is the coinbase frequency
 	if dbheight%constants.COINBASE_PAYOUT_FREQUENCY == 0 && // Frequency of payouts
 		dbheight > constants.COINBASE_DECLARATION+constants.COINBASE_PAYOUT_FREQUENCY { // Cannot payout before a declaration
-		// TODO: Grab outputs from identities, for now it's random
-		outputs := []interfaces.IAddress{factoid.NewAddress(primitives.ZeroHash.Bytes())}
-
 		// Grab the admin block 1000 blocks earlier
+		ht := dbheight - constants.COINBASE_DECLARATION
+		fmt.Println(ht)
 		ablock, err := fs.State.DB.FetchABlockByHeight(dbheight - constants.COINBASE_DECLARATION)
 		if err != nil {
 			panic(fmt.Sprintf("When creating coinbase, admin block at height %d could not be retrieved", dbheight-1000))
 		}
 
-		var _ = ablock
-
-		for _, o := range outputs {
-			// TODO: Include efficiency
-			coinbase.AddOutput(o, constants.COINBASE_PAYOUT_AMOUNT)
+		abe := ablock.FetchCoinbaseDescriptor()
+		if abe != nil {
+			desc := abe.(*adminBlock.CoinbaseDescriptor)
+			for _, o := range desc.Outputs {
+				coinbase.AddOutput(o.GetAddress(), o.GetAmount())
+			}
 		}
 	}
 

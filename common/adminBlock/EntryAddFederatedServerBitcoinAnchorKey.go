@@ -27,6 +27,10 @@ func (e *AddFederatedServerBitcoinAnchorKey) Init() {
 	e.AdminIDType = uint32(e.Type())
 }
 
+func (e *AddFederatedServerBitcoinAnchorKey) SortedIdentity() interfaces.IHash {
+	return e.IdentityChainID
+}
+
 func (e *AddFederatedServerBitcoinAnchorKey) String() string {
 	e.Init()
 	var out primitives.Buffer

@@ -18,6 +18,7 @@ import (
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
+	"github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -908,6 +909,35 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 
 	// Additional Admin block changed can be made from identity changes
 	list.State.SyncIdentities(d)
+
+	// If this is a coinbase descriptor block, add that now
+	if currentDBHeight%constants.COINBASE_PAYOUT_FREQUENCY == 0 {
+		// Build outputs
+		auths := list.State.IdentityControl.GetSortedAuthorities()
+		outputs := make([]interfaces.ITransAddress, 0)
+		for _, a := range auths {
+			ia := a.(*identity.Authority)
+			if ia.CoinbaseAddress.IsZero() {
+				continue
+			}
+			amt := primitives.CalculateCoinbasePayout(ia.Efficiency)
+			if amt == 0 {
+				continue
+			}
+
+			o := factoid.NewOutAddress(ia.CoinbaseAddress, amt)
+			outputs = append(outputs, o)
+		}
+		err = d.AdminBlock.AddCoinbaseDescriptor(outputs)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	err = d.AdminBlock.InsertIdentityABEntries()
+	if err != nil {
+		fmt.Println(err)
+	}
 
 	hash, err = p.AdminBlock.BackReferenceHash()
 	if err != nil {

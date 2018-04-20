@@ -507,7 +507,7 @@ func getAblock(hash string) *AblockHolder {
 			disp.Type = "Coinbase Descriptor"
 			sep := ""
 			for _, o := range f.Outputs {
-				disp.OtherInfo += fmt.Sprintf("%sAddress: <a href='' id='factom-search-link' type='FA'>%s</a> Amount: %d", sep, primitives.ConvertFctAddressToUserStr(o.GetAddress()), factom.FactoshiToFactoid(o.GetAmount()))
+				disp.OtherInfo += fmt.Sprintf("%sAddress: <a href='' id='factom-search-link' type='FA'>%s</a> Amount: %s", sep, primitives.ConvertFctAddressToUserStr(o.GetAddress()), factom.FactoshiToFactoid(o.GetAmount()))
 				sep = "<br />"
 			}
 

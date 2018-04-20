@@ -473,7 +473,7 @@ func (im *IdentityManager) ApplyNewServerEfficiencyStruct(nses *NewServerEfficie
 
 	// Check if we need to update admin block
 	if a != nil && im.GetAuthority(nses.RootIdentityChainID) != nil { // Verify is authority
-		// err = d.AdminBlock.AddEfficency
+		err = a.AddEfficiency(nses.RootIdentityChainID, nses.Efficiency)
 	}
 
 	return true, false, err
@@ -515,7 +515,7 @@ func (im *IdentityManager) ApplyNewCoinbaseAddressStruct(ncas *NewCoinbaseAddres
 
 	// Check if we need to update admin block
 	if a != nil && im.GetAuthority(ncas.RootIdentityChainID) != nil { // Verify is authority
-		// err = d.AdminBlock.AddEfficency
+		err = a.AddCoinbaseAddress(ncas.RootIdentityChainID, ncas.CoinbaseAddress)
 	}
 
 	return true, false, err

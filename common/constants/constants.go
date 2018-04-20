@@ -162,13 +162,16 @@ const (
 	// Coinbase Related Constants
 
 	// How often to create coinbase transactions
-	COINBASE_PAYOUT_FREQUENCY = 25
+	//		:: Default = 25
+	COINBASE_PAYOUT_FREQUENCY = 25 // TODO: Set to 25
 
 	// How many blocks before the coinbase does the coinbase
 	// have to appear in the admin block
-	COINBASE_DECLARATION = 0 // TODO: Set to 1000
+	//		:: Default = 1000
+	COINBASE_DECLARATION = 1000 // TODO: Set to 1000
 
 	// The maximum amount of factoshis to be issued per server per payout
+	// 		:: Default = 6.4*1e8
 	COINBASE_PAYOUT_AMOUNT = uint64(6.4 * 1e8)
 )
 

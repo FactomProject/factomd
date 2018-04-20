@@ -14,6 +14,19 @@ import (
 	"github.com/FactomProject/factomd/testHelper"
 )
 
+func TestCalculateCoinbasePayout(t *testing.T) {
+	testIt := func(eff uint16, exp uint64) {
+		if CalculateCoinbasePayout(eff) != exp {
+			t.Errorf("Expected %d, got %d", exp, CalculateCoinbasePayout(eff))
+		}
+	}
+
+	testIt(10000, 0)
+	testIt(0, 6.4*1e8)
+	testIt(4952, 3.23072*1e8)
+
+}
+
 func TestEfficiencyToString(t *testing.T) {
 	testIt := func(n uint16, e string) {
 		if EfficiencyToString(n) != e {

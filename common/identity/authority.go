@@ -41,7 +41,7 @@ type Authority struct {
 
 	KeyHistory      []HistoricKey
 	Efficiency      uint16
-	CoinbaseAddress interfaces.IHash
+	CoinbaseAddress interfaces.IAddress
 }
 
 func NewAuthority() *Authority {

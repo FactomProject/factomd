@@ -8,6 +8,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"sort"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -21,8 +23,9 @@ import (
 // https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#administrative-block
 type AdminBlock struct {
 	//Marshalized
-	Header    interfaces.IABlockHeader `json:"header"`
-	ABEntries []interfaces.IABEntry    `json:"abentries"` //Interface
+	Header            interfaces.IABlockHeader      `json:"header"`
+	ABEntries         []interfaces.IABEntry         `json:"abentries"` //Interface
+	identityABEntries []interfaces.IIdentityABEntry // This is all identity related entries. They are sorted before added
 }
 
 var _ interfaces.IAdminBlock = (*AdminBlock)(nil)
@@ -97,6 +100,15 @@ func (c *AdminBlock) UpdateState(state interfaces.IState) error {
 	return nil
 }
 
+func (c *AdminBlock) FetchCoinbaseDescriptor() interfaces.IABEntry {
+	for _, e := range c.ABEntries {
+		if e.Type() == constants.TYPE_COINBASE_DESCRIPTOR {
+			return e
+		}
+	}
+	return nil
+}
+
 func (c *AdminBlock) AddDBSig(serverIdentity interfaces.IHash, sig interfaces.IFullSignature) error {
 	if serverIdentity == nil {
 		return fmt.Errorf("No serverIdentity provided")
@@ -142,6 +154,18 @@ func (c *AdminBlock) RemoveFederatedServer(identityChainID interfaces.IHash) err
 	return c.AddEntry(entry)
 }
 
+// InsertIdentityABEntries will prepare the identity entries and add them into the adminblock
+func (a *AdminBlock) InsertIdentityABEntries() error {
+	sort.Sort(interfaces.IIdentityABEntrySort(a.identityABEntries))
+	for _, v := range a.identityABEntries {
+		err := a.AddEntry(v)
+		if err != nil {
+			return fmt.Errorf("No identityChainID provided")
+		}
+	}
+	return nil
+}
+
 func (c *AdminBlock) AddMatryoshkaHash(identityChainID interfaces.IHash, mHash interfaces.IHash) error {
 	if identityChainID == nil {
 		return fmt.Errorf("No identityChainID provided")
@@ -151,7 +175,7 @@ func (c *AdminBlock) AddMatryoshkaHash(identityChainID interfaces.IHash, mHash i
 	}
 
 	entry := NewAddReplaceMatryoshkaHash(identityChainID, mHash)
-	return c.AddEntry(entry)
+	return c.AddIdentityEntry(entry)
 }
 
 func (c *AdminBlock) AddFederatedServerSigningKey(identityChainID interfaces.IHash, publicKey [32]byte) error {
@@ -166,7 +190,7 @@ func (c *AdminBlock) AddFederatedServerSigningKey(identityChainID interfaces.IHa
 		return err
 	}
 	entry := NewAddFederatedServerSigningKey(identityChainID, byte(0), *p, c.GetHeader().GetDBHeight()+1)
-	return c.AddEntry(entry)
+	return c.AddIdentityEntry(entry)
 }
 
 func (c *AdminBlock) AddFederatedServerBitcoinAnchorKey(identityChainID interfaces.IHash, keyPriority byte, keyType byte, ecdsaPublicKey [20]byte) error {
@@ -178,11 +202,9 @@ func (c *AdminBlock) AddFederatedServerBitcoinAnchorKey(identityChainID interfac
 	err := b.UnmarshalBinary(ecdsaPublicKey[:])
 	if err != nil {
 		return err
-	} else {
-		entry := NewAddFederatedServerBitcoinAnchorKey(identityChainID, keyPriority, keyType, *b)
-		return c.AddEntry(entry)
 	}
-	return nil
+	entry := NewAddFederatedServerBitcoinAnchorKey(identityChainID, keyPriority, keyType, *b)
+	return c.AddIdentityEntry(entry)
 }
 
 func (c *AdminBlock) AddCoinbaseDescriptor(outputs []interfaces.ITransAddress) error {
@@ -202,7 +224,7 @@ func (c *AdminBlock) AddEfficiency(chain interfaces.IHash, efficiency uint16) er
 	}
 
 	entry := NewAddEfficiency(chain, efficiency)
-	return c.AddEntry(entry)
+	return c.AddIdentityEntry(entry)
 }
 
 func (c *AdminBlock) AddCoinbaseAddress(chain interfaces.IHash, add interfaces.IAddress) error {
@@ -212,7 +234,16 @@ func (c *AdminBlock) AddCoinbaseAddress(chain interfaces.IHash, add interfaces.I
 	}
 
 	entry := NewAddFactoidAddress(chain, add)
-	return c.AddEntry(entry)
+	return c.AddIdentityEntry(entry)
+}
+
+func (a *AdminBlock) AddIdentityEntry(entry interfaces.IIdentityABEntry) error {
+	if entry == nil {
+		return fmt.Errorf("No entry provided")
+	}
+	// These get sorted when you call the InsertIdentityABEntries function
+	a.identityABEntries = append(a.identityABEntries, entry)
+	return nil
 }
 
 func (c *AdminBlock) AddEntry(entry interfaces.IABEntry) error {
