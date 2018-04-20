@@ -35,6 +35,10 @@ func (im *IdentityManager) ProcessABlockEntry(entry interfaces.IABEntry, st inte
 		return im.ApplyAddFederatedServerBitcoinAnchorKey(entry)
 	case constants.TYPE_SERVER_FAULT:
 		return im.ApplyServerFault(entry)
+	case constants.TYPE_ADD_FACTOID_ADDRESS:
+		im.ApplyAddFactoidAddress(entry)
+	case constants.TYPE_ADD_FACTOID_EFFICIENCY:
+		im.ApplyAddEfficiency(entry)
 	}
 	return nil
 }
@@ -195,5 +199,33 @@ func (im *IdentityManager) ApplyAddFederatedServerBitcoinAnchorKey(entry interfa
 
 func (im *IdentityManager) ApplyServerFault(entry interfaces.IABEntry) error {
 	//	e := entry.(*adminBlock.ServerFault)
+	return nil
+}
+
+func (im *IdentityManager) ApplyAddFactoidAddress(entry interfaces.IABEntry) error {
+	e := entry.(*adminBlock.AddFactoidAddress)
+
+	auth := im.GetAuthority(e.IdentityChainID)
+	if auth == nil {
+		return fmt.Errorf("Authority %v not found!", e.IdentityChainID.String())
+	}
+
+	auth.CoinbaseAddress = e.FactoidAddress
+
+	im.SetAuthority(auth.AuthorityChainID, auth)
+	return nil
+}
+
+func (im *IdentityManager) ApplyAddEfficiency(entry interfaces.IABEntry) error {
+	e := entry.(*adminBlock.AddEfficiency)
+
+	auth := im.GetAuthority(e.IdentityChainID)
+	if auth == nil {
+		return fmt.Errorf("Authority %v not found!", e.IdentityChainID.String())
+	}
+
+	auth.Efficiency = e.Efficiency
+
+	im.SetAuthority(auth.AuthorityChainID, auth)
 	return nil
 }

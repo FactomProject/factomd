@@ -15,8 +15,8 @@ type CoinbaseDescriptor struct {
 	Outputs     []interfaces.ITransAddress
 }
 
-var _ interfaces.IABEntry = (*AddAuditServer)(nil)
-var _ interfaces.BinaryMarshallable = (*AddAuditServer)(nil)
+var _ interfaces.IABEntry = (*CoinbaseDescriptor)(nil)
+var _ interfaces.BinaryMarshallable = (*CoinbaseDescriptor)(nil)
 
 func (e *CoinbaseDescriptor) Init() {
 	e.AdminIDType = uint32(e.Type())
@@ -93,6 +93,7 @@ func (e *CoinbaseDescriptor) MarshalBinary() ([]byte, error) {
 
 func (e *CoinbaseDescriptor) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	buf := primitives.NewBuffer(data)
+	e.Init()
 
 	b, err := buf.PopByte()
 	if err != nil {

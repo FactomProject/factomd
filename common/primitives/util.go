@@ -16,6 +16,10 @@ import (
 	"github.com/btcsuitereleases/btcutil/base58"
 )
 
+func EfficiencyToString(eff uint16) string {
+	return fmt.Sprintf("%d.%02d", eff/100, eff%100)
+}
+
 /*********************************
  * Print helpers
  ********************************/

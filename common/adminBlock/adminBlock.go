@@ -185,6 +185,36 @@ func (c *AdminBlock) AddFederatedServerBitcoinAnchorKey(identityChainID interfac
 	return nil
 }
 
+func (c *AdminBlock) AddCoinbaseDescriptor(outputs []interfaces.ITransAddress) error {
+	c.Init()
+	if outputs == nil {
+		return fmt.Errorf("No outputs provided")
+	}
+
+	entry := NewCoinbaseDescriptor(outputs)
+	return c.AddEntry(entry)
+}
+
+func (c *AdminBlock) AddEfficiency(chain interfaces.IHash, efficiency uint16) error {
+	c.Init()
+	if chain == nil {
+		return fmt.Errorf("No chainid provided")
+	}
+
+	entry := NewAddEfficiency(chain, efficiency)
+	return c.AddEntry(entry)
+}
+
+func (c *AdminBlock) AddCoinbaseAddress(chain interfaces.IHash, add interfaces.IAddress) error {
+	c.Init()
+	if chain == nil {
+		return fmt.Errorf("No chainid provided")
+	}
+
+	entry := NewAddFactoidAddress(chain, add)
+	return c.AddEntry(entry)
+}
+
 func (c *AdminBlock) AddEntry(entry interfaces.IABEntry) error {
 	if entry == nil {
 		return fmt.Errorf("No entry provided")
@@ -389,6 +419,14 @@ func (b *AdminBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 			b.ABEntries[i] = new(AddFederatedServerBitcoinAnchorKey)
 		case constants.TYPE_SERVER_FAULT:
 			b.ABEntries[i] = new(ServerFault)
+		case constants.TYPE_COINBASE_DESCRIPTOR:
+			b.ABEntries[i] = new(CoinbaseDescriptor)
+		case constants.TYPE_COINBASE_DESCRIPTOR_CANCEL:
+			b.ABEntries[i] = new(CoinbaseDescriptor)
+		case constants.TYPE_ADD_FACTOID_ADDRESS:
+			b.ABEntries[i] = new(AddFactoidAddress)
+		case constants.TYPE_ADD_FACTOID_EFFICIENCY:
+			b.ABEntries[i] = new(AddEfficiency)
 		default:
 			fmt.Printf("AB UNDEFINED ENTRY %x for block %v\n", t, b.GetHeader().GetDBHeight())
 			panic("Undefined Admin Block Entry Type")

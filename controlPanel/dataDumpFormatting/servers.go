@@ -47,6 +47,8 @@ func Authorities(copyDS state.DisplayState) string {
 		prt = prt + fmt.Sprint("Management Chain: ", i.ManagementChainID, "\n")
 		prt = prt + fmt.Sprint("Matryoshka Hash: ", i.MatryoshkaHash, "\n")
 		prt = prt + fmt.Sprint("Signing Key: ", i.SigningKey.String(), "\n")
+		prt = prt + fmt.Sprint("Coinbase Address: ", i.GetCoinbaseHumanReadable(), "\n")
+		prt = prt + fmt.Sprint("Efficiency: ", i.Efficiency, "\n")
 		for _, a := range i.AnchorKeys {
 			prt = prt + fmt.Sprintf("Anchor Key: {'%s' L%x T%x K:%x}\n", a.BlockChain, a.KeyLevel, a.KeyType, a.SigningKey)
 		}

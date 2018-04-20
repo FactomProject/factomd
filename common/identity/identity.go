@@ -10,6 +10,8 @@ import (
 
 	"bytes"
 
+	"math/rand"
+
 	ed "github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/factoid"
@@ -104,7 +106,7 @@ func RandomIdentity() *Identity {
 		id.AnchorKeys = append(id.AnchorKeys, *RandomAnchorSigningKey())
 	}
 	id.CoinbaseAddress = primitives.RandomHash()
-	id.Efficiency = uint16(random.RandUInt32())
+	id.Efficiency = uint16(rand.Intn(10000))
 
 	return id
 }

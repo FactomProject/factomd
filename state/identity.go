@@ -187,6 +187,11 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 	for _, a := range id.AnchorKeys {
 		st.LeaderPL.AdminBlock.AddFederatedServerBitcoinAnchorKey(chainID, a.KeyLevel, a.KeyType, a.SigningKey)
 	}
+	if !id.CoinbaseAddress.IsZero() {
+		st.LeaderPL.AdminBlock.AddCoinbaseAddress(chainID, id.CoinbaseAddress)
+	}
+	st.LeaderPL.AdminBlock.AddEfficiency(chainID, id.Efficiency)
+
 	return true
 }
 

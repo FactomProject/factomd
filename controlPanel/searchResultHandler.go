@@ -19,6 +19,7 @@ import (
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
 
+	"github.com/FactomProject/factom"
 	"github.com/FactomProject/factomd/common/factoid"
 )
 
@@ -488,11 +489,7 @@ func getAblock(hash string) *AblockHolder {
 			disp.Type = "Remove Server"
 			disp.OtherInfo = "Identity ChainID: <a href='' id='factom-search-link' type='chainhead'>" + f.IdentityChainID.String() + "</a>"
 		case constants.TYPE_ADD_FED_SERVER_KEY:
-			f := new(adminBlock.AddFederatedServerSigningKey)
-			err := f.UnmarshalBinary(data)
-			if err != nil {
-				continue
-			}
+			f := entry.(*adminBlock.AddFederatedServerSigningKey)
 			disp.Type = "Add Server Key"
 			disp.OtherInfo = "Identity ChainID: <a href='' id='factom-search-link' type='chainhead'>" + f.IdentityChainID.String() + "</a><br />Key: " + f.PublicKey.String()
 		case constants.TYPE_ADD_BTC_ANCHOR_KEY:
@@ -503,6 +500,36 @@ func getAblock(hash string) *AblockHolder {
 			}
 			disp.Type = "Add Bitcoin Server Key"
 			disp.OtherInfo = "Identity ChainID: <a href='' id='factom-search-link' type='chainhead'>" + b.IdentityChainID.String() + "</a>"
+
+			// Coinbase related
+		case constants.TYPE_COINBASE_DESCRIPTOR:
+			f := entry.(*adminBlock.CoinbaseDescriptor)
+			disp.Type = "Coinbase Descriptor"
+			sep := ""
+			for _, o := range f.Outputs {
+				disp.OtherInfo += fmt.Sprintf("%sAddress: <a href='' id='factom-search-link' type='FA'>%s</a> Amount: %d", sep, primitives.ConvertFctAddressToUserStr(o.GetAddress()), factom.FactoshiToFactoid(o.GetAmount()))
+				sep = "<br />"
+			}
+
+		case constants.TYPE_COINBASE_DESCRIPTOR_CANCEL:
+			//f := new(adminBlock.AddFederatedServerSigningKey)
+			//err := f.UnmarshalBinary(data)
+			//if err != nil {
+			//	continue
+			//}
+			disp.Type = "Coinbase Descriptor Cancel"
+			disp.OtherInfo = "Not implemented"
+		case constants.TYPE_ADD_FACTOID_ADDRESS:
+			f := entry.(*adminBlock.AddFactoidAddress)
+			disp.Type = "Add Coinbase Address"
+			disp.OtherInfo = "Identity ChainID: <a href='' id='factom-search-link' type='chainhead'>" + f.IdentityChainID.String() + "</a><br />"
+			disp.OtherInfo += fmt.Sprintf("Address: <a href='' id='factom-search-link' type='FA'>%s</a>", primitives.ConvertFctAddressToUserStr(f.FactoidAddress))
+		case constants.TYPE_ADD_FACTOID_EFFICIENCY:
+			f := entry.(*adminBlock.AddEfficiency)
+			disp.Type = "Add Authority Efficiency"
+			disp.OtherInfo = "Identity ChainID: <a href='' id='factom-search-link' type='chainhead'>" + f.IdentityChainID.String() + "</a><br />"
+			disp.OtherInfo += fmt.Sprintf("Efficiency: %s%%", primitives.EfficiencyToString(f.Efficiency))
+
 		}
 		holder.ABDisplay = append(holder.ABDisplay, *disp)
 	}

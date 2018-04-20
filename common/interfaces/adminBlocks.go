@@ -37,6 +37,10 @@ type IAdminBlock interface {
 	AddFirstABEntry(e IABEntry) error
 	AddMatryoshkaHash(IHash, IHash) error
 	AddServerFault(IABEntry) error
+	AddCoinbaseDescriptor(outputs []ITransAddress) error
+	AddEfficiency(chain IHash, efficiency uint16) error
+	AddCoinbaseAddress(chain IHash, add IAddress) error
+
 	UpdateState(IState) error
 }
 

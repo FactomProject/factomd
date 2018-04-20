@@ -1025,6 +1025,8 @@ func SimControl(listenTo int, listenStdin bool) {
 					os.Stderr.WriteString(fmt.Sprint("Management Chain: ", i.ManagementChainID, "\n"))
 					os.Stderr.WriteString(fmt.Sprint("Matryoshka Hash: ", i.MatryoshkaHash, "\n"))
 					os.Stderr.WriteString(fmt.Sprint("Signing Key: ", i.SigningKey.String(), "\n"))
+					os.Stderr.WriteString(fmt.Sprint("Coinbase Address: ", i.GetCoinbaseHumanReadable(), "\n"))
+					os.Stderr.WriteString(fmt.Sprint("Efficiency: ", i.Efficiency, "\n"))
 					for _, a := range i.AnchorKeys {
 						os.Stderr.WriteString(fmt.Sprintf("Anchor Key: {'%s' L%x T%x K:%x}\n", a.BlockChain, a.KeyLevel, a.KeyType, a.SigningKey))
 					}
