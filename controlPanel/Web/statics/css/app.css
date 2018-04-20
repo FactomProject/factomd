@@ -226,3 +226,5 @@ section .metric table .button { margin: 0; }
 #peer-ip { cursor: pointer; }
 #peer-sent { cursor: pointer; }
 #peer-received { cursor: pointer; }
+
+.hidden {visibility: hidden;}

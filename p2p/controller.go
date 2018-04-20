@@ -727,6 +727,7 @@ func (c *Controller) updateMetrics() {
 					MessagesReceived: metrics.MessagesReceived,
 					PeerAddress:      metrics.PeerAddress,
 					PeerQuality:      metrics.PeerQuality,
+					PeerType:         metrics.PeerType,
 					ConnectionState:  metrics.ConnectionState,
 					ConnectionNotes:  metrics.ConnectionNotes,
 				}

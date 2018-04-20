@@ -89,7 +89,7 @@ func (p *Peer) PeerLogFields() log.Fields {
 	return log.Fields{
 		"address":   p.Address,
 		"port":      p.Port,
-		"peer_type": p.peerTypeString(),
+		"peer_type": p.PeerTypeString(),
 	}
 }
 
@@ -168,7 +168,7 @@ func (p *Peer) demerit() {
 	}
 }
 
-func (p *Peer) peerTypeString() string {
+func (p *Peer) PeerTypeString() string {
 	switch p.Type {
 	case RegularPeer:
 		return "regular"
