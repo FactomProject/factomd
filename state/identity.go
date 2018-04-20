@@ -347,6 +347,11 @@ SyncIdentitiesLoop:
 				break // Manage chain might not have any eblocks to be processed
 			}
 
+			// If the root chain is not synced, we cannot sync past it
+			if !id.IdentityChainSync.Synced() && eb.DBHeight > id.IdentityChainSync.Current.DBHeight {
+				break
+			}
+
 			// Fetch the eblock and process the entries
 			err := getAndSyncEntries(*eb)
 			if err != nil {
