@@ -280,17 +280,21 @@ var ZERO = []byte{0}
 // https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#adminid-bytes
 //---------------------------------------------------------------
 const (
-	TYPE_MINUTE_NUM         uint8 = iota // 0
-	TYPE_DB_SIGNATURE                    // 1
-	TYPE_REVEAL_MATRYOSHKA               // 2
-	TYPE_ADD_MATRYOSHKA                  // 3
-	TYPE_ADD_SERVER_COUNT                // 4
-	TYPE_ADD_FED_SERVER                  // 5
-	TYPE_ADD_AUDIT_SERVER                // 6
-	TYPE_REMOVE_FED_SERVER               // 7
-	TYPE_ADD_FED_SERVER_KEY              // 8
-	TYPE_ADD_BTC_ANCHOR_KEY              // 9
-	TYPE_SERVER_FAULT
+	TYPE_MINUTE_NUM                 uint8 = 0x00 // 0
+	TYPE_DB_SIGNATURE               uint8 = 0x01 // 1
+	TYPE_REVEAL_MATRYOSHKA          uint8 = 0x02 // 2
+	TYPE_ADD_MATRYOSHKA             uint8 = 0x03 // 3
+	TYPE_ADD_SERVER_COUNT           uint8 = 0x04 // 4
+	TYPE_ADD_FED_SERVER             uint8 = 0x05 // 5
+	TYPE_ADD_AUDIT_SERVER           uint8 = 0x06 // 6
+	TYPE_REMOVE_FED_SERVER          uint8 = 0x07 // 7
+	TYPE_ADD_FED_SERVER_KEY         uint8 = 0x08 // 8
+	TYPE_ADD_BTC_ANCHOR_KEY         uint8 = 0x09 // 9
+	TYPE_SERVER_FAULT               uint8 = 0x0A // 10
+	TYPE_COINBASE_DESCRIPTOR        uint8 = 0x0B // 11
+	TYPE_COINBASE_DESCRIPTOR_CANCEL uint8 = 0x0C // 12
+	TYPE_ADD_FACTOID_ADDRESS        uint8 = 0x0D // 13
+	TYPE_ADD_FACTOID_EFFICIENCY     uint8 = 0x0E // 13
 )
 
 //---------------------------------------------------------------------

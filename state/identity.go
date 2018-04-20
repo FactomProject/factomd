@@ -127,80 +127,25 @@ func (st *State) LoadIdentityByEntry(ent interfaces.IEBEntry, height uint32, dbl
 	}
 
 	affectAblock := d != nil && d.DirectoryBlock.GetDatabaseHeight() == height+1
+	if !affectAblock {
+		d = nil
+	}
 
 	// Not an entry identities care about
 	if bytes.Compare(ent.GetChainID().Bytes()[:3], []byte{0x88, 0x88, 0x88}) != 0 {
 		return
 	}
 
-	var orig *Identity
-	// Not initial means we need to keep track of key changes
-	if affectAblock {
-		id := st.IdentityControl.GetIdentity(ent.GetChainID())
-		if id != nil {
-			orig = id.Clone()
-		}
+	var a interfaces.IAdminBlock
+	if d != nil {
+		a = d.AdminBlock
+	} else {
+		a = nil
 	}
 
-	change, err := st.IdentityControl.ProcessIdentityEntry(ent, height, dblockTimestamp, true)
+	_, err := st.IdentityControl.ProcessIdentityEntryWithABlockUpdate(ent, height, dblockTimestamp, a, true)
 	if err != nil {
 		flog.Errorf(err.Error())
-	}
-
-	// TODO: This is inefficient per entry. It is only called for identity entries
-	if affectAblock && orig != nil && change {
-		// Can do changing of keys here
-		id := st.IdentityControl.GetIdentity(ent.GetChainID())
-		if statusIsFedOrAudit(id.Status) {
-			// Is this a change in signing key?
-			if !orig.SigningKey.IsSameAs(id.SigningKey) {
-				key := id.SigningKey
-				// Add to admin block
-				if st.VerifyIsAuthority(id.IdentityChainID) {
-					err := d.AdminBlock.AddFederatedServerSigningKey(id.IdentityChainID, key.Fixed())
-					if err != nil {
-						flog.Errorf(err.Error())
-					}
-				}
-			}
-
-			// Is this a change in MHash?
-			if !orig.MatryoshkaHash.IsSameAs(id.MatryoshkaHash) {
-				if st.VerifyIsAuthority(id.IdentityChainID) {
-					err := d.AdminBlock.AddMatryoshkaHash(id.IdentityChainID, id.MatryoshkaHash)
-					if err != nil {
-						flog.Errorf(err.Error())
-					}
-				}
-			}
-
-			var newKey *AnchorSigningKey = nil
-			// Is this a change in Anchor?
-			// 	Need to find if the set has changed
-			if len(orig.AnchorKeys) != len(id.AnchorKeys) {
-				// New key to the set, always appended
-				newKey = &id.AnchorKeys[len(id.AnchorKeys)-1]
-			} else {
-				// An existing key could have been changed
-				sort.Sort(AnchorSigningKeySort(id.AnchorKeys))
-				sort.Sort(AnchorSigningKeySort(orig.AnchorKeys))
-				for i := range id.AnchorKeys {
-					if !id.AnchorKeys[i].IsSameAs(&orig.AnchorKeys[i]) {
-						newKey = &id.AnchorKeys[i]
-						break
-					}
-				}
-			}
-
-			if newKey != nil {
-				if st.VerifyIsAuthority(id.IdentityChainID) {
-					err := d.AdminBlock.AddFederatedServerBitcoinAnchorKey(id.IdentityChainID, newKey.KeyLevel, newKey.KeyType, newKey.SigningKey)
-					if err != nil {
-						flog.Errorf(err.Error())
-					}
-				}
-			}
-		}
 	}
 }
 

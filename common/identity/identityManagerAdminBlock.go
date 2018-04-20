@@ -169,16 +169,25 @@ func (im *IdentityManager) ApplyAddFederatedServerBitcoinAnchorKey(entry interfa
 	ask.KeyType = e.KeyType
 	ask.BlockChain = "BTC"
 
-	for _, a := range auth.AnchorKeys {
+	written := false
+
+	for i, a := range auth.AnchorKeys {
 		// We are only dealing with bitcoin keys, so no need to check blockchain
 		if a.KeyLevel == ask.KeyLevel && a.KeyType == ask.KeyType {
 			if bytes.Compare(a.SigningKey[:], ask.SigningKey[:]) == 0 {
 				return nil // Key already exists in authority
+			} else {
+				// Overwrite
+				written = true
+				auth.AnchorKeys[i] = ask
+				break
 			}
 		}
 	}
 
-	auth.AnchorKeys = append(auth.AnchorKeys, ask)
+	if !written {
+		auth.AnchorKeys = append(auth.AnchorKeys, ask)
+	}
 
 	im.SetAuthority(e.IdentityChainID, auth)
 	return nil
