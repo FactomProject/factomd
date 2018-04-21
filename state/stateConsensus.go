@@ -347,6 +347,11 @@ func (s *State) ReviewHolding() {
 	highest := s.GetHighestKnownBlock()
 	saved := s.GetHighestSavedBlk()
 
+	// Set this flag, so it acts as a constant.  We will set s.LeaderNewMin to false
+	// after processing the Holding Queue.  Ensures we only do this one per minute.
+	processMinute := s.LeaderNewMin // Have we processed this minute
+	s.LeaderNewMin = false          // Either way, don't do it again until the ProcessEOM resets LeaderNewMin
+
 	for k, v := range s.Holding {
 
 		if int(highest)-int(saved) > 1000 {
@@ -410,8 +415,17 @@ func (s *State) ReviewHolding() {
 		// If a Reveal Entry has a commit available, then process the Reveal Entry and send it out.
 		if re, ok := v.(*messages.RevealEntryMsg); ok {
 			if s.Commits.Get(re.GetHash().Fixed()) != nil {
+				delete(s.Holding, k)
 				re.FollowerExecute(s)
 				re.SendOut(s, re)
+			}
+			// Only reprocess if at the top of a new minute, and if we are a leader.
+			if !processMinute || !s.Leader {
+				continue // No need for followers to review Reveal Entry messages
+			}
+			// Needs to be our VMIndex as well, or ignore.
+			if re.GetVMIndex() != s.LeaderVMIndex {
+				continue // If we are a leader, but it isn't ours, and it isn't a new minute, ignore.
 			}
 		}
 
@@ -1606,6 +1620,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		//	e.VMIndex, allfaults, s.EOMProcessed, s.EOMLimit, s.EOMDone))
 
 		s.EOMDone = true
+		s.LeaderNewMin = true
 		for _, eb := range pl.NewEBlocks {
 			eb.AddEndOfMinuteMarker(byte(e.Minute + 1))
 		}
@@ -1636,6 +1651,8 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 				dbstate := s.GetDBState(dbheight - 1)
 				// Panic had arose when leaders would reboot and the follower was on a future minute
 				if dbstate == nil {
+					// We recognize that this will leave us "Done" without finishing the process.  But
+					// a Follower can heal themselves by asking for a block, and overwriting this block.
 					return false
 				}
 				if !dbstate.Saved {
