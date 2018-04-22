@@ -35,30 +35,29 @@ func (p IdentitySort) Less(i, j int) bool {
 }
 
 //https://github.com/FactomProject/FactomDocs/blob/master/Identity.md
-
 type Identity struct {
-	IdentityChainID    interfaces.IHash
-	IdentityChainSync  EntryBlockSync
-	IdentityRegistered uint32
-	IdentityCreated    uint32
+	IdentityChainID    interfaces.IHash `json:"identity_chainid"`
+	IdentityChainSync  EntryBlockSync   `json:"-"`
+	IdentityRegistered uint32           `json:"identity_registered`
+	IdentityCreated    uint32           `json:"identity_created`
 
-	ManagementChainID    interfaces.IHash
-	ManagementChainSync  EntryBlockSync
-	ManagementRegistered uint32
-	ManagementCreated    uint32
-	MatryoshkaHash       interfaces.IHash
+	ManagementChainID    interfaces.IHash `json:"management_chaind`
+	ManagementChainSync  EntryBlockSync   `json:"-"`
+	ManagementRegistered uint32           `json:"management_registered`
+	ManagementCreated    uint32           `json:"management_created`
+	MatryoshkaHash       interfaces.IHash `json:"matryoshka_hash`
 
 	// All 4 levels keys, 0 indexed.
 	//		Keys[0] --> Key 1
 	//		Keys[1] --> Key 2
 	//		Keys[2] --> Key 3
 	//		Keys[3] --> Key 4
-	Keys            [4]interfaces.IHash
-	SigningKey      interfaces.IHash
-	Status          uint8
-	AnchorKeys      []AnchorSigningKey
-	Efficiency      uint16
-	CoinbaseAddress interfaces.IHash
+	Keys            [4]interfaces.IHash `json:"identity_keys"`
+	SigningKey      interfaces.IHash    `json:"signing_key"`
+	Status          uint8               `json:"status"`
+	AnchorKeys      []AnchorSigningKey  `json:"anchor_keys"`
+	Efficiency      uint16              `json:"efficiency"`
+	CoinbaseAddress interfaces.IHash    `json:"coinbase_address"`
 }
 
 var _ interfaces.Printable = (*Identity)(nil)
