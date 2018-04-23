@@ -120,12 +120,15 @@ jobs:
           name: Build and install the executable
           command: go install -v
 
+      - run:
+          name: Coveralls!
+          no_output_timeout: 2400
+          command: go test $(glide nv) -vet=off -v -cover -coverprofile=/home/ubuntu/coverage.out
 
-      override:
-          - go test $(glide nv) -vet=off -v -cover -coverprofile=/home/ubuntu/coverage.out
-
-      post:
-          - goveralls -coverprofile=/home/ubuntu/coverage.out -service=circle-ci -repotoken=$COVERALLS_TOKEN
+      - run:
+          name: Coveralls!
+          no_output_timeout: 2400
+          command: goveralls -coverprofile=/home/ubuntu/coverage.out -service=circle-ci -repotoken=$COVERALLS_TOKEN
 
 #      - run:
 #          name: Coveralls!
