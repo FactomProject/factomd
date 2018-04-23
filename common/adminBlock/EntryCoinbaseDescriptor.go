@@ -38,7 +38,7 @@ func (a *CoinbaseDescriptor) IsSameAs(b *CoinbaseDescriptor) bool {
 func (e *CoinbaseDescriptor) String() string {
 	e.Init()
 	var out primitives.Buffer
-	out.WriteString(fmt.Sprintf("    E: %20s -- %17",
+	out.WriteString(fmt.Sprintf("    E: %20s -- %17s %d",
 		"CoinbaseDescriptor",
 		"Number of Outputs", len(e.Outputs)))
 	return (string)(out.DeepCopyBytes())

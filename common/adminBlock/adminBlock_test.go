@@ -259,7 +259,7 @@ func TestAddMatryoshkaHash(t *testing.T) {
 }
 
 func TestAddFederatedServerSigningKey(t *testing.T) {
-	testVector := []*AddFederatedServerSigningKey{}
+	testVector := []interfaces.IIdentityABEntry{}
 	for i := 0; i < 1000; i++ {
 		se := new(AddFederatedServerSigningKey)
 		se.IdentityChainID = primitives.RandomHash()
@@ -269,23 +269,28 @@ func TestAddFederatedServerSigningKey(t *testing.T) {
 	}
 	ab := new(AdminBlock)
 	for _, v := range testVector {
-		err := ab.AddFederatedServerSigningKey(v.IdentityChainID, v.PublicKey.Fixed())
+		av := v.(*AddFederatedServerSigningKey)
+		err := ab.AddFederatedServerSigningKey(av.IdentityChainID, av.PublicKey.Fixed())
 		if err != nil {
 			t.Errorf("%v", err)
 		}
 	}
+	sort.Sort(interfaces.IIdentityABEntrySort(testVector))
+	ab.InsertIdentityABEntries()
 	for i := range testVector {
-		if ab.ABEntries[i].(*AddFederatedServerSigningKey).IdentityChainID.String() != testVector[i].IdentityChainID.String() {
+		av := testVector[i].(*AddFederatedServerSigningKey)
+
+		if ab.ABEntries[i].(*AddFederatedServerSigningKey).IdentityChainID.String() != av.IdentityChainID.String() {
 			t.Error("Invalid IdentityChainID")
 		}
-		if primitives.AreBytesEqual(ab.ABEntries[i].(*AddFederatedServerSigningKey).PublicKey[:], testVector[i].PublicKey[:]) == false {
+		if primitives.AreBytesEqual(ab.ABEntries[i].(*AddFederatedServerSigningKey).PublicKey[:], av.PublicKey[:]) == false {
 			t.Error("Invalid PublicKey")
 		}
 	}
 }
 
 func TestAddFederatedServerBitcoinAnchorKey(t *testing.T) {
-	testVector := []*AddFederatedServerBitcoinAnchorKey{}
+	testVector := []interfaces.IIdentityABEntry{}
 	for i := 0; i < 1000; i++ {
 		se := new(AddFederatedServerBitcoinAnchorKey)
 		se.IdentityChainID = primitives.RandomHash()
@@ -295,21 +300,27 @@ func TestAddFederatedServerBitcoinAnchorKey(t *testing.T) {
 	}
 	ab := new(AdminBlock)
 	for i, v := range testVector {
-		fixed, err := v.ECDSAPublicKey.GetFixed()
+		av := v.(*AddFederatedServerBitcoinAnchorKey)
+		fixed, err := av.ECDSAPublicKey.GetFixed()
 		if err != nil {
 			t.Errorf("%v", err)
 		}
 
-		err = ab.AddFederatedServerBitcoinAnchorKey(v.IdentityChainID, byte(i%256), byte(256-i%256), fixed)
+		err = ab.AddFederatedServerBitcoinAnchorKey(av.IdentityChainID, byte(i%256), byte(256-i%256), fixed)
 		if err != nil {
 			t.Errorf("%v", err)
 		}
 	}
+
+	sort.Sort(interfaces.IIdentityABEntrySort(testVector))
+	ab.InsertIdentityABEntries()
 	for i := range testVector {
-		if ab.ABEntries[i].(*AddFederatedServerBitcoinAnchorKey).IdentityChainID.String() != testVector[i].IdentityChainID.String() {
+		av := testVector[i].(*AddFederatedServerBitcoinAnchorKey)
+
+		if ab.ABEntries[i].(*AddFederatedServerBitcoinAnchorKey).IdentityChainID.String() != av.IdentityChainID.String() {
 			t.Error("Invalid IdentityChainID")
 		}
-		if primitives.AreBytesEqual(ab.ABEntries[i].(*AddFederatedServerBitcoinAnchorKey).ECDSAPublicKey[:], testVector[i].ECDSAPublicKey[:]) == false {
+		if primitives.AreBytesEqual(ab.ABEntries[i].(*AddFederatedServerBitcoinAnchorKey).ECDSAPublicKey[:], av.ECDSAPublicKey[:]) == false {
 			t.Error("Invalid ECDSAPublicKey")
 		}
 		if ab.ABEntries[i].(*AddFederatedServerBitcoinAnchorKey).KeyPriority != byte(i%256) {
