@@ -121,7 +121,7 @@ jobs:
           command: go install -v
 
       - run:
-          name: Coveralls!
+          name: Go Test with Coverage
           no_output_timeout: 2400
           command: go test $(glide nv) -vet=off -v -cover -coverprofile=/home/ubuntu/coverage.out
 
