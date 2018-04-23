@@ -25,6 +25,9 @@ var (
 // If it never ben see then check with the regex. If it has been seen then just look it up in the map
 // assumes traceMutex is locked already
 func CheckFileName(name string) bool {
+	if globals.Params.DebugLogRegEx == "" {
+		return false
+	}
 	if TestRegex == nil {
 		if globals.Params.DebugLogRegEx[0] == '"' || globals.Params.DebugLogRegEx[0] == '\'' {
 			globals.Params.DebugLogRegEx = globals.Params.DebugLogRegEx[1 : len(globals.Params.DebugLogRegEx)-1] // Trim the leading "
