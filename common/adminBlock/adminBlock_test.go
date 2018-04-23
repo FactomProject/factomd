@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	"sort"
+
 	. "github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -226,7 +228,7 @@ func TestRemoveFederatedServer(t *testing.T) {
 }
 
 func TestAddMatryoshkaHash(t *testing.T) {
-	testVector := []*AddReplaceMatryoshkaHash{}
+	testVector := []interfaces.IIdentityABEntry{}
 	for i := 0; i < 1000; i++ {
 		se := new(AddReplaceMatryoshkaHash)
 		se.IdentityChainID = primitives.RandomHash()
@@ -235,16 +237,22 @@ func TestAddMatryoshkaHash(t *testing.T) {
 	}
 	ab := new(AdminBlock)
 	for _, v := range testVector {
-		err := ab.AddMatryoshkaHash(v.IdentityChainID, v.MHash)
+		av := v.(*AddReplaceMatryoshkaHash)
+		err := ab.AddMatryoshkaHash(av.IdentityChainID, av.MHash)
 		if err != nil {
 			t.Errorf("%v", err)
 		}
 	}
+
+	sort.Sort(interfaces.IIdentityABEntrySort(testVector))
+
+	ab.InsertIdentityABEntries()
 	for i := range testVector {
-		if ab.ABEntries[i].(*AddReplaceMatryoshkaHash).IdentityChainID.String() != testVector[i].IdentityChainID.String() {
+		av := testVector[i].(*AddReplaceMatryoshkaHash)
+		if ab.ABEntries[i].(*AddReplaceMatryoshkaHash).IdentityChainID.String() != av.IdentityChainID.String() {
 			t.Error("Invalid IdentityChainID")
 		}
-		if ab.ABEntries[i].(*AddReplaceMatryoshkaHash).MHash.String() != testVector[i].MHash.String() {
+		if ab.ABEntries[i].(*AddReplaceMatryoshkaHash).MHash.String() != av.MHash.String() {
 			t.Error("Invalid MHash")
 		}
 	}

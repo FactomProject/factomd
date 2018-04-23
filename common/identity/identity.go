@@ -83,7 +83,7 @@ func NewIdentity() *Identity {
 }
 
 func RandomIdentity() *Identity {
-	id := new(Identity)
+	id := NewIdentity()
 
 	id.IdentityChainID = primitives.RandomHash()
 	id.IdentityRegistered = random.RandUInt32()

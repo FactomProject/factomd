@@ -8,8 +8,6 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"fmt"
-
 	. "github.com/FactomProject/factomd/common/identityEntries"
 )
 
@@ -21,7 +19,7 @@ func TestNewServerEfficiencyStruct(t *testing.T) {
 		"1358",
 		"00000000495EAA80",
 		"0125b0e7fd5e68b4dec40ca0cd2db66be84c02fe6404b696c396e3909079820f61",
-		"08eed980e5c1c3bfb25b6b64db02caf7421d99349fd0fe03463fe67ea1de7ca4f3fb1782365940d22561c3b1c69cd792ca024865ff25d5279eba1fa0b8856500",
+		"2954c40f889d49a561d0ac419741f7efd11e145a99b67485fb8f7c3e3c42d3c698d50866beffbc09032243ab3d375b4c962745c09d1a184d91e5ba69762b4e09",
 	}
 	extIDs := [][]byte{}
 	for _, v := range parts {
@@ -35,11 +33,9 @@ func TestNewServerEfficiencyStruct(t *testing.T) {
 		t.Errorf("%v", err)
 	}
 
-	fmt.Printf("%x\n", nses.MarshalForSig())
-
 	h := nses.GetChainID()
-	if h.String() != "7b7dc6e511afbca5693bfe7fd2d26b2d8269be3d85f7f84bdc237f4985d6eafa" {
-		t.Errorf("Wrong ChainID, expected 7b7dc6e511afbca5693bfe7fd2d26b2d8269be3d85f7f84bdc237f4985d6eafa, got %v", h.String())
+	if h.String() != "076651128405474b6b67c4a0c5476a0deb47732b14f699f58e92b5c011ca160e" {
+		t.Errorf("Wrong ChainID, expected 076651128405474b6b67c4a0c5476a0deb47732b14f699f58e92b5c011ca160e, got %v", h.String())
 	}
 
 	err = nses.VerifySignature(nil)

@@ -154,7 +154,7 @@ func (e *Authority) IsSameAs(b *Authority) bool {
 		return false
 	}
 
-	if e.CoinbaseAddress.IsSameAs(b.CoinbaseAddress) {
+	if !e.CoinbaseAddress.IsSameAs(b.CoinbaseAddress) {
 		return false
 	}
 

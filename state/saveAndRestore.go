@@ -126,6 +126,13 @@ func (ss *SaveState) Init() {
 	if ss.InvalidMessages == nil {
 		ss.InvalidMessages = map[[32]byte]interfaces.IMsg{}
 	}
+
+	if ss.IdentityControl == nil {
+		ss.IdentityControl = NewIdentityManager()
+	}
+
+	ss.IdentityControl.Init()
+
 }
 
 func (a *SaveState) IsSameAs(b *SaveState) bool {

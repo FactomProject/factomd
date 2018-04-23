@@ -167,6 +167,7 @@ func (im *IdentityManager) UnmarshalBinaryData(p []byte) (newData []byte, err er
 
 func (im *IdentityManager) MarshalBinary() ([]byte, error) {
 	buf := primitives.NewBuffer(nil)
+	im.Init()
 
 	err := buf.PushInt(len(im.Authorities))
 	if err != nil {
@@ -318,6 +319,12 @@ func (im *IdentityManager) GobEncode() ([]byte, error) {
 
 func (im *IdentityManager) Init() {
 	// Do nothing, it used to init the maps if they were empty, but we init the Identity control with non-empty maps
+	if im.Identities == nil {
+		im.Identities = make(map[[32]byte]*Identity)
+	}
+	if im.Authorities == nil {
+		im.Authorities = make(map[[32]byte]*Authority)
+	}
 }
 
 func (im *IdentityManager) SetIdentity(chainID interfaces.IHash, id *Identity) {
