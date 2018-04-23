@@ -255,6 +255,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "database for clones", p.CloneDB))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "peers", p.Peers))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%t\"\n", "exclusive", p.Exclusive))
+	os.Stderr.WriteString(fmt.Sprintf("%20s \"%t\"\n", "exclusive_in", p.ExclusiveIn))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "block time", p.BlkTime))
 	//os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "faultTimeout", p.FaultTimeout)) // TODO old fault timeout mechanism to be removed
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "runtimeLog", p.RuntimeLog))
@@ -302,24 +303,24 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 
 	// Start the P2P network
 	var networkID p2p.NetworkID
-	var seedURL, networkPort, specialPeers string
+	var seedURL, networkPort, configPeers string
 	switch s.Network {
 	case "MAIN", "main":
 		networkID = p2p.MainNet
 		seedURL = s.MainSeedURL
 		networkPort = s.MainNetworkPort
-		specialPeers = s.MainSpecialPeers
+		configPeers = s.MainSpecialPeers
 		s.DirectoryBlockInSeconds = 600
 	case "TEST", "test":
 		networkID = p2p.TestNet
 		seedURL = s.TestSeedURL
 		networkPort = s.TestNetworkPort
-		specialPeers = s.TestSpecialPeers
+		configPeers = s.TestSpecialPeers
 	case "LOCAL", "local":
 		networkID = p2p.LocalNet
 		seedURL = s.LocalSeedURL
 		networkPort = s.LocalNetworkPort
-		specialPeers = s.LocalSpecialPeers
+		configPeers = s.LocalSpecialPeers
 	case "CUSTOM", "custom":
 		if bytes.Compare(p.CustomNet, []byte("\xe3\xb0\xc4\x42")) == 0 {
 			panic("Please specify a custom network with -customnet=<something unique here>")
@@ -331,7 +332,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		}
 		seedURL = s.CustomSeedURL
 		networkPort = s.CustomNetworkPort
-		specialPeers = s.CustomSpecialPeers
+		configPeers = s.CustomSpecialPeers
 	default:
 		panic("Invalid Network choice in Config File or command line. Choose MAIN, TEST, LOCAL, or CUSTOM")
 	}
@@ -351,8 +352,10 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 			PeersFile:                s.PeersFile,
 			Network:                  networkID,
 			Exclusive:                p.Exclusive,
+			ExclusiveIn:              p.ExclusiveIn,
 			SeedURL:                  seedURL,
-			SpecialPeers:             specialPeers,
+			ConfigPeers:              configPeers,
+			CmdLinePeers:             p.Peers,
 			ConnectionMetricsChannel: connectionMetricsChannel,
 		}
 		p2pNetwork = new(p2p.Controller).Init(ci)
@@ -364,8 +367,6 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 
 		fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
 		p2pProxy.StartProxy()
-		// Command line peers lets us manually set special peers
-		p2pNetwork.DialSpecialPeersString(p.Peers)
 
 		go networkHousekeeping() // This goroutine executes once a second to keep the proxy apprised of the network status.
 	}

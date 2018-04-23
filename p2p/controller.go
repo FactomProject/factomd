@@ -60,7 +60,7 @@ type Controller struct {
 	NodeID                    uint64
 	lastStatusReport          time.Time
 	lastPeerRequest           time.Time       // Last time we asked peers about the peers they know about.
-	specialPeersString        string          // configuration set special peers
+	specialPeers              []*Peer         // list of special peers (from config file and from the command line params)
 	partsAssembler            *PartsAssembler // a data structure that assembles full messages from received message parts
 
 	// logging
@@ -73,8 +73,10 @@ type ControllerInit struct {
 	PeersFile                string           // Path to file to find / save peers
 	Network                  NetworkID        // Network - eg MainNet, TestNet etc.
 	Exclusive                bool             // flag to indicate we should only connect to trusted peers
+	ExclusiveIn              bool             // flag to indicate we should only connect to trusted peers and disallow incoming connections
 	SeedURL                  string           // URL to a source of peer info
-	SpecialPeers             string           // Peers to always connect to at startup, and stay persistent
+	ConfigPeers              string           // Peers to always connect to at startup, and stay persistent, passed from the config file
+	CmdLinePeers             string           // Additional special peers passed from the command line
 	ConnectionMetricsChannel chan interface{} // Channel on which we put the connection metrics map, periodically.
 	LogPath                  string           // Path for logs
 	LogLevel                 string           // Logging level
@@ -183,8 +185,11 @@ func (c *Controller) Init(ci ControllerInit) *Controller {
 	c.lastPeerManagement = time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
 	c.lastPeerRequest = time.Now()
 	CurrentNetwork = ci.Network
-	OnlySpecialPeers = ci.Exclusive
-	c.specialPeersString = ci.SpecialPeers
+	OnlySpecialPeers = ci.Exclusive || ci.ExclusiveIn
+	AllowUnknownIncomingPeers = !ci.ExclusiveIn
+	configPeers := c.parseSpecialPeers(ci.ConfigPeers)
+	cmdLinePeers := c.parseSpecialPeers(ci.CmdLinePeers)
+	c.specialPeers = append(configPeers, cmdLinePeers...)
 	c.lastDiscoveryRequest = time.Now() // Discovery does its own on startup.
 	c.lastConnectionMetricsUpdate = time.Now()
 	c.partsAssembler = new(PartsAssembler).Init()
@@ -199,28 +204,10 @@ func (c *Controller) StartNetwork() {
 	c.lastStatusReport = time.Now()
 	// start listening on port given
 	c.listen()
-	// Dial the peers in from configuration
-	c.DialSpecialPeersString(c.specialPeersString)
+	// Dial all the gathered special peers
+	c.dialSpecialPeers()
 	// Start the runloop
 	go c.runloop()
-}
-
-// DialSpecialPeersString lets us pass in a string of special peers to dial
-func (c *Controller) DialSpecialPeersString(peersString string) {
-	parseFunc := func(c rune) bool {
-		return !unicode.IsLetter(c) && !unicode.IsNumber(c) && !unicode.IsPunct(c)
-	}
-	peerAddresses := strings.FieldsFunc(peersString, parseFunc)
-	for _, peerAddress := range peerAddresses {
-		address, port, err := net.SplitHostPort(peerAddress)
-		if err != nil {
-			c.logger.Errorf("DialSpecialPeersString: %s is not a valid peer (%v), use format: 127.0.0.1:8999", peersString, err)
-		} else {
-			peer := new(Peer).Init(address, port, 0, SpecialPeer, 0)
-			peer.Source["Local-Configuration"] = time.Now()
-			c.DialPeer(*peer, true) // these are persistent connections
-		}
-	}
 }
 
 func (c *Controller) DialPeer(peer Peer, persistent bool) {
@@ -266,6 +253,12 @@ func (c *Controller) GetNumberConnections() int {
 // Network management
 //////////////////////////////////////////////////////////////////////
 
+func (c *Controller) dialSpecialPeers() {
+	for _, peer := range c.specialPeers {
+		c.DialPeer(*peer, true) // these are persistent connections
+	}
+}
+
 func (c *Controller) listen() {
 	address := fmt.Sprintf(":%s", c.listenPort)
 	c.logger.WithFields(log.Fields{"address": address, "port": c.listenPort}).Infof("Listening for new connections")
@@ -283,22 +276,63 @@ func (c *Controller) acceptLoop(listener net.Listener) {
 	c.logger.Debug("Controller.acceptLoop() starting up")
 	for {
 		conn, err := listener.Accept()
-		switch err {
-		case nil:
-			switch {
-			case c.numberIncomingConnections < MaxNumberIncomingConnections:
-				c.AddPeer(conn) // Sends command to add the peer to the peers list
-				c.logger.WithField("remote_address", conn.RemoteAddr()).Infof("Accepting new incoming connection")
-			default:
-				c.logger.WithFields(log.Fields{
-					"remote_address": conn.RemoteAddr(),
-					"num_conns":      c.numberIncomingConnections}).Infof("Got new connection request, but too many incoming connections.")
-				conn.Close()
-			}
-		default:
-			c.logger.Warn("Controller.acceptLoop() Error: %+v", err)
+		if err != nil {
+			c.logger.Warnf("Controller.acceptLoop() Error: %+v", err)
+			continue
+		}
+
+		connLogger := c.logger.WithField("remote_address", conn.RemoteAddr())
+
+		if ok, reason := c.canConnectTo(conn); !ok {
+			connLogger.Infof("Rejecting new connection request: %s", reason)
+			_ = conn.Close()
+			continue
+		}
+
+		c.AddPeer(conn) // Sends command to add the peer to the peers list
+		connLogger.Infof("Accepting new incoming connection")
+	}
+}
+
+func (c *Controller) canConnectTo(conn net.Conn) (bool, string) {
+	if c.numberIncomingConnections >= MaxNumberIncomingConnections {
+		return false, "too many incoming connections"
+	}
+
+	if !AllowUnknownIncomingPeers && !c.isSpecialPeer(conn) {
+		return false, "not a special peer and unknown incoming connections are not allowed"
+	}
+
+	return true, ""
+}
+
+func (c *Controller) isSpecialPeer(conn net.Conn) bool {
+	for _, peer := range c.specialPeers {
+		if peer.IsSamePeerAs(conn.RemoteAddr()) {
+			return true
 		}
 	}
+	return false
+}
+
+func (c *Controller) parseSpecialPeers(peersString string) []*Peer {
+	parseFunc := func(c rune) bool {
+		return !unicode.IsLetter(c) && !unicode.IsNumber(c) && !unicode.IsPunct(c)
+	}
+	peerAddresses := strings.FieldsFunc(peersString, parseFunc)
+	peers := make([]*Peer, 0, len(peerAddresses))
+	for _, peerAddress := range peerAddresses {
+		address, port, err := net.SplitHostPort(peerAddress)
+		if err != nil {
+			c.logger.Errorf("DialSpecialPeersString: %s is not a valid peer (%v), use format: 127.0.0.1:8999", peersString, err)
+		} else {
+			peer := new(Peer).Init(address, port, 0, SpecialPeer, 0)
+			peer.Source["Local-Configuration"] = time.Now()
+			peers = append(peers, peer)
+		}
+	}
+
+	return peers
 }
 
 //////////////////////////////////////////////////////////////////////
