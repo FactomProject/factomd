@@ -28,8 +28,10 @@ func has(s *State, entry interfaces.IHash) bool {
 		if err != nil {
 			return false
 		}
+
 		entry, err2 := s.DB.FetchEntry(entry)
 		if err2 != nil || entry == nil {
+			panic("Should not happen;  key exists but not entry")
 			return false
 		}
 	}

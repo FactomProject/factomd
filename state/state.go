@@ -205,6 +205,7 @@ type State struct {
 	PLProcessHeight uint32
 	OneLeader       bool
 	OutputAllowed   bool
+	LeaderNewMin    bool
 	CurrentMinute   int
 
 	// These are the start times for blocks and minutes
