@@ -121,9 +121,19 @@ jobs:
           command: go install -v
 
       - run:
+          name: Go Test with Coverage
+          no_output_timeout: 2400
+          command: go test $(glide nv) -vet=off -v -cover -coverprofile=coverage.out
+
+      - run:
           name: Coveralls!
           no_output_timeout: 2400
-          command: goveralls -v -flags "-vet=off" -ignore=$(paste -sd, .coverignore) -service=circle-ci -repotoken=$COVERALLS_TOKEN
+          command: goveralls -coverprofile=coverage.out -service=circle-ci -repotoken=$COVERALLS_TOKEN
+
+#      - run:
+#          name: Coveralls!
+#          no_output_timeout: 2400
+#          command: goveralls -v -flags "-vet=off" -ignore=$(paste -sd, .coverignore) -service=circle-ci -repotoken=$COVERALLS_TOKEN
 
 
       - save_cache:
