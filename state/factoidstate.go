@@ -392,11 +392,12 @@ func (fs *FactoidState) GetCoinbaseTransaction(dbheight uint32, ftime interfaces
 
 	// Coinbases only have outputs on payout blocks.
 	//	Payout blocks are every n blocks, where n is the coinbase frequency
-	if dbheight != 0 && dbheight%constants.COINBASE_PAYOUT_FREQUENCY == 0 && // Frequency of payouts
-		dbheight > constants.COINBASE_DECLARATION+constants.COINBASE_PAYOUT_FREQUENCY { // Cannot payout before a declaration
+	if dbheight > constants.COINBASE_ACTIVATION && // Coinbase code must be above activation
+		dbheight != 0 && // Does not affect gensis
+		dbheight%constants.COINBASE_PAYOUT_FREQUENCY == 0 && // Frequency of payouts
+		// Cannot payout before a declaration (cannot grab below height 0)
+		dbheight > constants.COINBASE_DECLARATION+constants.COINBASE_PAYOUT_FREQUENCY {
 		// Grab the admin block 1000 blocks earlier
-		ht := dbheight - constants.COINBASE_DECLARATION
-		fmt.Println(ht)
 		ablock, err := fs.State.DB.FetchABlockByHeight(dbheight - constants.COINBASE_DECLARATION)
 		if err != nil {
 			panic(fmt.Sprintf("When creating coinbase, admin block at height %d could not be retrieved", dbheight-1000))
