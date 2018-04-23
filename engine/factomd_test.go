@@ -308,7 +308,6 @@ func TestMakeALeader(t *testing.T) {
 		t.Fatalf("found %d leaders, expected 2", leadercnt)
 	}
 }
-
 func TestAnElection(t *testing.T) {
 	if ranSimTest {
 		return
@@ -711,7 +710,6 @@ func TestMultiple7Election(t *testing.T) {
 	for _, fn := range GetFnodes() {
 		fn.State.ShutdownChan <- 1
 	}
-
 }
 
 func CheckAuthoritySet(leaders int, audits int, t *testing.T) {
