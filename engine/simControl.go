@@ -915,7 +915,7 @@ func SimControl(listenTo int, listenStdin bool) {
 					//	}
 					//}
 
-					fmt.Println("\n\n\n")
+					fmt.Print("\n\n\n\n")
 					for c, ident := range fnodes[ListenTo].State.IdentityControl.GetIdentities() {
 						if printID(ident, c) {
 							break

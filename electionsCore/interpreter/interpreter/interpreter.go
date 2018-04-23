@@ -80,7 +80,7 @@ func (p *Interpreter) PStack() {
 	for i := 0; i < p.Ptr; i++ {
 		p.Print(p.PeekN(i))
 	}
-	fmt.Println("|\n")
+	fmt.Print("|\n\n")
 }
 
 func (i *Interpreter) executeArray(a Array) {

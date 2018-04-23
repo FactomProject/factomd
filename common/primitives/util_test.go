@@ -102,7 +102,7 @@ func TestWriteNumber(t *testing.T) {
 
 	answer := "010203040506070809101112131415"
 	if out.String() != answer {
-		t.Errorf("Failed WriteNumbers. Expected %v, got %v", out.String())
+		t.Errorf("Failed WriteNumbers. Expected %v, got %v", out.String(), answer)
 	}
 }
 
