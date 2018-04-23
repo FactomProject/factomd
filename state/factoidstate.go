@@ -392,7 +392,7 @@ func (fs *FactoidState) GetCoinbaseTransaction(dbheight uint32, ftime interfaces
 
 	// Coinbases only have outputs on payout blocks.
 	//	Payout blocks are every n blocks, where n is the coinbase frequency
-	if dbheight%constants.COINBASE_PAYOUT_FREQUENCY == 0 && // Frequency of payouts
+	if dbheight != 0 && dbheight%constants.COINBASE_PAYOUT_FREQUENCY == 0 && // Frequency of payouts
 		dbheight > constants.COINBASE_DECLARATION+constants.COINBASE_PAYOUT_FREQUENCY { // Cannot payout before a declaration
 		// Grab the admin block 1000 blocks earlier
 		ht := dbheight - constants.COINBASE_DECLARATION

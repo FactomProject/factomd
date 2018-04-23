@@ -911,7 +911,7 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	list.State.SyncIdentities(d)
 
 	// If this is a coinbase descriptor block, add that now
-	if currentDBHeight%constants.COINBASE_PAYOUT_FREQUENCY == 0 {
+	if currentDBHeight != 0 && currentDBHeight%constants.COINBASE_PAYOUT_FREQUENCY == 0 {
 		// Build outputs
 		auths := list.State.IdentityControl.GetSortedAuthorities()
 		outputs := make([]interfaces.ITransAddress, 0)
