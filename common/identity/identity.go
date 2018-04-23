@@ -340,6 +340,10 @@ func (e *Identity) MarshalBinary() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	err = buf.PushBinaryMarshallable(&e.IdentityChainSync)
+	if err != nil {
+		return nil, err
+	}
 	err = buf.PushBinaryMarshallable(e.ManagementChainID)
 	if err != nil {
 		return nil, err
@@ -349,6 +353,10 @@ func (e *Identity) MarshalBinary() ([]byte, error) {
 		return nil, err
 	}
 	err = buf.PushUInt32(e.ManagementCreated)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBinaryMarshallable(&e.ManagementChainSync)
 	if err != nil {
 		return nil, err
 	}
@@ -420,6 +428,10 @@ func (e *Identity) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 	if err != nil {
 		return
 	}
+	err = buf.PopBinaryMarshallable(&e.IdentityChainSync)
+	if err != nil {
+		return
+	}
 	err = buf.PopBinaryMarshallable(e.ManagementChainID)
 	if err != nil {
 		return
@@ -429,6 +441,10 @@ func (e *Identity) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 		return
 	}
 	e.ManagementCreated, err = buf.PopUInt32()
+	if err != nil {
+		return
+	}
+	err = buf.PopBinaryMarshallable(&e.ManagementChainSync)
 	if err != nil {
 		return
 	}
