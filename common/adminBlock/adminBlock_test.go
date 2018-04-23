@@ -299,14 +299,14 @@ func TestAddFederatedServerBitcoinAnchorKey(t *testing.T) {
 		testVector = append(testVector, se)
 	}
 	ab := new(AdminBlock)
-	for i, v := range testVector {
+	for _, v := range testVector {
 		av := v.(*AddFederatedServerBitcoinAnchorKey)
 		fixed, err := av.ECDSAPublicKey.GetFixed()
 		if err != nil {
 			t.Errorf("%v", err)
 		}
 
-		err = ab.AddFederatedServerBitcoinAnchorKey(av.IdentityChainID, byte(i%256), byte(256-i%256), fixed)
+		err = ab.AddFederatedServerBitcoinAnchorKey(av.IdentityChainID, 0, 0, fixed)
 		if err != nil {
 			t.Errorf("%v", err)
 		}
@@ -323,11 +323,11 @@ func TestAddFederatedServerBitcoinAnchorKey(t *testing.T) {
 		if primitives.AreBytesEqual(ab.ABEntries[i].(*AddFederatedServerBitcoinAnchorKey).ECDSAPublicKey[:], av.ECDSAPublicKey[:]) == false {
 			t.Error("Invalid ECDSAPublicKey")
 		}
-		if ab.ABEntries[i].(*AddFederatedServerBitcoinAnchorKey).KeyPriority != byte(i%256) {
+		if ab.ABEntries[i].(*AddFederatedServerBitcoinAnchorKey).KeyPriority != 0 {
 			t.Error("Invalid KeyPriority")
 		}
-		if ab.ABEntries[i].(*AddFederatedServerBitcoinAnchorKey).KeyType != byte(256-i%256) {
-			t.Error("Invalid KeyType")
+		if ab.ABEntries[i].(*AddFederatedServerBitcoinAnchorKey).KeyType != 0 {
+			t.Errorf("Invalid KeyType, found %d", ab.ABEntries[i].(*AddFederatedServerBitcoinAnchorKey).KeyType)
 		}
 	}
 }
