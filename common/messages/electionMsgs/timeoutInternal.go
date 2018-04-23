@@ -136,7 +136,6 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 
 		elections.CheckAuthSetsMatch("TimeoutInternal.ElectionProcess", e, s)
 
-		// TODO: Got here with a 3 when the e.Federated[] was only 3 long running TestSetupANetwork()
 		e.FedID = e.Federated[e.Electing].GetChainID()
 
 		// Reset this value when we start an election
@@ -146,6 +145,7 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 		e.Round[e.Electing] = 0
 
 		e.LogPrintf("election", "**** Start an Election for %d[%x] ****", e.Electing, e.FedID.Bytes()[3:6])
+		e.LogPrintf("faulting", "**** Start an Election for %d[%x] ****", e.Electing, e.FedID.Bytes()[3:6])
 
 		// ------------------
 		// Not in an election

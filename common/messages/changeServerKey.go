@@ -82,8 +82,7 @@ func (m *ChangeServerKeyMsg) Validate(state interfaces.IState) int {
 	if err != nil || m.Signature == nil {
 		return -1
 	}
-	sig := m.Signature.GetSignature()
-	authSigned, err := state.VerifyAuthoritySignature(bytes, sig, state.GetLeaderHeight())
+	authSigned, err := state.FastVerifyAuthoritySignature(bytes, m.Signature, state.GetLeaderHeight())
 	if err != nil || authSigned != 1 { // authSigned = 1 for fed signed
 		return -1
 	}

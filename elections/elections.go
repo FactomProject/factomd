@@ -2,6 +2,7 @@ package elections
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -266,22 +267,45 @@ func (e *Elections) AuditPriority() int {
 	return auditIdx
 }
 
+var once sync.Once
+var debugExec_flag bool
+
 func (e *Elections) debugExec() (ret bool) {
-	ret = e.Name == "FNode0"
-	return true || ret
+	s := e.State.(*state.State)
+	once.Do(func() {
+		debugExec_flag = messages.CheckFileName(s.FactomNodeName+"_"+"faulting"+".txt") ||
+			messages.CheckFileName(s.FactomNodeName+"_"+"election"+".txt")
+	})
+
+	//return s.FactomNodeName == "FNode0"
+	return debugExec_flag
 }
 
 func (e *Elections) LogMessage(logName string, comment string, msg interfaces.IMsg) {
+	s := e.State.(*state.State)
 	if e.debugExec() {
-		logFileName := e.Name + "_" + logName + ".txt"
-		messages.LogMessage(logFileName, comment, msg)
+		logFileName := s.FactomNodeName + "_" + logName + ".txt"
+		var t string
+		if s.LeaderPL != nil {
+			t = fmt.Sprintf("%d-:-%d ", s.LeaderPL.DBHeight, s.CurrentMinute)
+		} else {
+			t = "--:--"
+		}
+
+		messages.LogMessage(logFileName, t+comment, msg)
 	}
 }
 
 func (e *Elections) LogPrintf(logName string, format string, more ...interface{}) {
+	s := e.State.(*state.State)
 	if e.debugExec() {
-		logFileName := e.Name + "_" + logName + ".txt"
-		messages.LogPrintf(logFileName, format, more...)
+		logFileName := s.FactomNodeName + "_" + logName + ".txt"
+		h := 0
+		if s.LeaderPL != nil {
+			h = int(s.LeaderPL.DBHeight)
+		}
+		t := fmt.Sprintf("%d-:-%d ", h, s.CurrentMinute)
+		messages.LogPrintf(logFileName, t+format, more...)
 	}
 }
 

@@ -25,7 +25,9 @@ var (
 // assumes traceMutex is locked already
 func checkFileName(name string) bool {
 	if TestRegex == nil {
-
+		if globals.Params.DebugLogRegEx[0] == '"' || globals.Params.DebugLogRegEx[0] == '\'' {
+			globals.Params.DebugLogRegEx = globals.Params.DebugLogRegEx[1: len(globals.Params.DebugLogRegEx)-1] // Trim the leading "
+		}
 		theRegex, err := regexp.Compile(globals.Params.DebugLogRegEx)
 		if err != nil {
 			panic(err)
@@ -176,6 +178,20 @@ func LogParcel(name string, note string, msg string) {
 	seq := sequence
 
 	myfile.WriteString(fmt.Sprintf("%5v %26s %s\n", seq, note, msg))
+}
+
+// Log a message with a state timestamp
+func StateLogMessage(FactomNodeName string, DBHeight int, CurrentMinute int, logName string, comment string, msg interfaces.IMsg) {
+	logFileName := FactomNodeName + "_" + logName + ".txt"
+	t := fmt.Sprintf("%d-:-%d ", DBHeight, CurrentMinute)
+	LogMessage(logFileName, t+comment, msg)
+}
+
+// Log a printf with a state timestamp
+func StateLogPrintf(FactomNodeName string, DBHeight int, CurrentMinute int,logName string, format string, more ...interface{}) {
+		logFileName := FactomNodeName + "_" + logName + ".txt"
+		t := fmt.Sprintf("%d-:-%d ", DBHeight, CurrentMinute)
+		LogPrintf(logFileName, t+format, more...)
 }
 
 // unused -- of.File is written by direct calls to write and not buffered and the os closes the files on exit.
