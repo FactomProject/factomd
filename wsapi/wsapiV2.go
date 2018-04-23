@@ -223,7 +223,7 @@ func HandleV2DBlockByHeight(state interfaces.IState, params interface{}) (interf
 
 func HandleV2EntryCreditBlock(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	n := time.Now()
-	defer HandleV2APICallEblock.Observe(float64(time.Since(n).Nanoseconds()))
+	defer HandleV2APICallECBlock.Observe(float64(time.Since(n).Nanoseconds()))
 
 	keymr := new(KeyMRRequest)
 	err := MapToObject(params, keymr)
@@ -301,7 +301,7 @@ func ECBlockToResp(block interfaces.IEntryCreditBlock) (interface{}, *primitives
 
 func HandleV2FactoidBlock(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	n := time.Now()
-	defer HandleV2APICallEblock.Observe(float64(time.Since(n).Nanoseconds()))
+	defer HandleV2APICallFblock.Observe(float64(time.Since(n).Nanoseconds()))
 
 	keymr := new(KeyMRRequest)
 	err := MapToObject(params, keymr)
@@ -410,7 +410,7 @@ func correctLowerCasedStringToOriginal(j []byte, original string) []byte {
 
 func HandleV2AdminBlock(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	n := time.Now()
-	defer HandleV2APICallEblock.Observe(float64(time.Since(n).Nanoseconds()))
+	defer HandleV2APICallAblock.Observe(float64(time.Since(n).Nanoseconds()))
 
 	keymr := new(KeyMRRequest)
 	err := MapToObject(params, keymr)

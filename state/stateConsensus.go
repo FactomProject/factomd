@@ -19,6 +19,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/util"
+	"github.com/FactomProject/factomd/util/atomic"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -109,6 +110,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 			s.LogMessage("executeMsg", "FollowerExecute2", msg)
 			msg.FollowerExecute(s)
 		}
+
 		ret = true
 
 	case 0:
@@ -174,7 +176,7 @@ func (s *State) Process() (progress bool) {
 	room := func() bool { return len(process) < 9995 }
 
 	var vm *VM
-	if s.Leader {
+	if s.Leader && s.RunLeader {
 		vm = s.LeaderPL.VMs[s.LeaderVMIndex]
 		if vm.Height == 0 && s.RunLeader { // Shouldn't send DBSigs out until we have fully loaded our db
 			s.SendDBSig(s.LeaderPL.DBHeight, s.LeaderVMIndex)
@@ -195,8 +197,6 @@ func (s *State) Process() (progress bool) {
 		process <- msg
 		s.DBStatesReceived[ix] = nil
 	}
-
-	s.ReviewHolding()
 
 	preAckLoopTime := time.Now()
 	// Process acknowledgements if we have some.
@@ -259,20 +259,25 @@ emptyLoop:
 	preProcessXReviewTime := time.Now()
 	// Reprocess any stalled messages, but not so much compared inbound messages
 	// Process last first
-skipreview:
-	for {
-		for _, msg := range s.XReview {
-			if !room() {
-				break skipreview
+
+	if s.RunLeader {
+		s.ReviewHolding()
+
+	skipreview:
+		for {
+			for _, msg := range s.XReview {
+				if !room() {
+					break skipreview
+				}
+				if msg == nil {
+					continue
+				}
+				process <- msg
 			}
-			if msg == nil {
-				continue
-			}
-			process <- msg
-		}
-		s.XReview = s.XReview[:0]
-		break
-	} // skip review
+			s.XReview = s.XReview[:0]
+			break
+		} // skip review
+	}
 	processXReviewTime := time.Since(preProcessXReviewTime)
 	TotalProcessXReviewTime.Add(float64(processXReviewTime.Nanoseconds()))
 
@@ -281,8 +286,9 @@ processLoop:
 	for {
 		select {
 		case msg := <-process:
-			s.LogMessage("executeMsg", "From processq", msg)
-			progress = s.executeMsg(vm, msg) || progress //
+			newProgress := s.executeMsg(vm, msg)
+			progress = newProgress || progress //
+			s.LogMessage("executeMsg", fmt.Sprintf("From processq : %t", newProgress), msg)
 			s.UpdateState()
 		default:
 			break processLoop
@@ -341,35 +347,16 @@ func (s *State) ReviewHolding() {
 	highest := s.GetHighestKnownBlock()
 	saved := s.GetHighestSavedBlk()
 
+	// Set this flag, so it acts as a constant.  We will set s.LeaderNewMin to false
+	// after processing the Holding Queue.  Ensures we only do this one per minute.
+	processMinute := s.LeaderNewMin // Have we processed this minute
+	s.LeaderNewMin = false          // Either way, don't do it again until the ProcessEOM resets LeaderNewMin
+
 	for k, v := range s.Holding {
 
 		if int(highest)-int(saved) > 1000 {
 			TotalHoldingQueueOutputs.Inc()
 			delete(s.Holding, k)
-		}
-
-		mm, ok := v.(*messages.MissingMsgResponse)
-		if ok {
-			ff, ok := mm.MsgResponse.(*messages.FullServerFault)
-			if ok && ff.DBHeight < saved {
-				TotalHoldingQueueOutputs.Inc()
-				delete(s.Holding, k)
-			}
-			continue
-		}
-
-		sf, ok := v.(*messages.ServerFault)
-		if ok && sf.DBHeight < saved {
-			TotalHoldingQueueOutputs.Inc()
-			delete(s.Holding, k)
-			continue
-		}
-
-		ff, ok := v.(*messages.FullServerFault)
-		if ok && ff.DBHeight < saved {
-			TotalHoldingQueueOutputs.Inc()
-			delete(s.Holding, k)
-			continue
 		}
 
 		eom, ok := v.(*messages.EOM)
@@ -428,8 +415,17 @@ func (s *State) ReviewHolding() {
 		// If a Reveal Entry has a commit available, then process the Reveal Entry and send it out.
 		if re, ok := v.(*messages.RevealEntryMsg); ok {
 			if s.Commits.Get(re.GetHash().Fixed()) != nil {
+				delete(s.Holding, k)
 				re.FollowerExecute(s)
 				re.SendOut(s, re)
+			}
+			// Only reprocess if at the top of a new minute, and if we are a leader.
+			if !processMinute || !s.Leader {
+				continue // No need for followers to review Reveal Entry messages
+			}
+			// Needs to be our VMIndex as well, or ignore.
+			if re.GetVMIndex() != s.LeaderVMIndex {
+				continue // If we are a leader, but it isn't ours, and it isn't a new minute, ignore.
 			}
 		}
 
@@ -540,7 +536,7 @@ func (s *State) AddDBState(isNew bool,
 func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 	FollowerExecutions.Inc()
 	TotalHoldingQueueInputs.Inc()
-	s.Holding[m.GetMsgHash().Fixed()] = m
+
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
 
 	if ack != nil {
@@ -552,6 +548,8 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 
 		// Cross Boot Replay
 		s.CrossReplayAddSalt(ack.DBHeight, ack.Salt)
+	} else {
+		s.Holding[m.GetMsgHash().Fixed()] = m
 	}
 }
 
@@ -845,33 +843,6 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 
 	mmr, _ := m.(*messages.MissingMsgResponse)
 
-	fullFault, ok := mmr.MsgResponse.(*messages.FullServerFault)
-	if ok && fullFault != nil {
-		switch fullFault.Validate(s) {
-		case 1:
-			pl := s.ProcessLists.Get(fullFault.DBHeight)
-			if pl != nil && fullFault.HasEnoughSigs(s) && s.pledgedByAudit(fullFault) {
-				_, okff := s.Replay.Valid(constants.INTERNAL_REPLAY, fullFault.GetRepeatHash().Fixed(), fullFault.GetTimestamp(), s.GetTimestamp())
-
-				if okff {
-					TotalXReviewQueueInputs.Inc()
-					s.XReview = append(s.XReview, fullFault)
-				} else {
-					pl.AddToSystemList(fullFault)
-				}
-				s.MissingResponseAppliedCnt++
-			} else if pl != nil && int(fullFault.Height) >= pl.System.Height {
-				TotalXReviewQueueInputs.Inc()
-				s.XReview = append(s.XReview, fullFault)
-				s.MissingResponseAppliedCnt++
-			}
-
-		default:
-			// Ignore if 0 or -1 or anything. If 0, I can ask for it again if I need it.
-		}
-		return
-	}
-
 	ack, ok := mmr.AckResponse.(*messages.Ack)
 
 	// If we don't need this message, we don't have to do everything else.
@@ -1040,38 +1011,40 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 	s.Holding[m.GetMsgHash().Fixed()] = m
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
 
-	if ack != nil {
-		m.SendOut(s, m)
-		ack.SendOut(s, ack)
-		m.SetLeaderChainID(ack.GetLeaderChainID())
-		m.SetMinute(ack.Minute)
-
-		pl := s.ProcessLists.Get(ack.DBHeight)
-		if pl == nil {
-			return
-		}
-
-		// Add the message and ack to the process list.
-		pl.AddToProcessList(ack, m)
-
-		// The message might not have gone in.  Make sure it did.  Get the list where it goes
-		list := s.ProcessLists.Get(ack.DBHeight).VMs[ack.VMIndex].List
-		// Check to make sure the list isn't empty.  If it is, then it didn't go in.
-		if int(ack.Height) >= len(list) || list[ack.Height] == nil {
-			return
-		}
-
-		msg := m.(*messages.RevealEntryMsg)
-		TotalCommitsOutputs.Inc()
-		s.Commits.Delete(msg.Entry.GetHash().Fixed()) // 	delete(s.Commits, msg.Entry.GetHash().Fixed())
-
-		// This is so the api can determine if a chainhead is about to be updated. It fixes a race condition
-		// on the api. MUST BE BEFORE THE REPLAY FILTER ADD
-		pl.PendingChainHeads.Put(msg.Entry.GetChainID().Fixed(), msg)
-		// Okay the Reveal has been recorded.  Record this as an entry that cannot be duplicated.
-		s.Replay.IsTSValid_(constants.REVEAL_REPLAY, msg.Entry.GetHash().Fixed(), msg.Timestamp, s.GetTimestamp())
-
+	if ack == nil {
+		s.ProcessLists.GetHolding(m.GetVMIndex())[m.GetMsgHash().Fixed()] = m
+		return
 	}
+
+	m.SendOut(s, m)
+	ack.SendOut(s, ack)
+	m.SetLeaderChainID(ack.GetLeaderChainID())
+	m.SetMinute(ack.Minute)
+
+	pl := s.ProcessLists.Get(ack.DBHeight)
+	if pl == nil {
+		return
+	}
+
+	// Add the message and ack to the process list.
+	pl.AddToProcessList(ack, m)
+
+	// The message might not have gone in.  Make sure it did.  Get the list where it goes
+	list := s.ProcessLists.Get(ack.DBHeight).VMs[ack.VMIndex].List
+	// Check to make sure the list isn't empty.  If it is, then it didn't go in.
+	if int(ack.Height) >= len(list) || list[ack.Height] == nil {
+		return
+	}
+
+	msg := m.(*messages.RevealEntryMsg)
+	TotalCommitsOutputs.Inc()
+	s.Commits.Delete(msg.Entry.GetHash().Fixed()) // 	delete(s.Commits, msg.Entry.GetHash().Fixed())
+
+	// This is so the api can determine if a chainhead is about to be updated. It fixes a race condition
+	// on the api. MUST BE BEFORE THE REPLAY FILTER ADD
+	pl.PendingChainHeads.Put(msg.Entry.GetChainID().Fixed(), msg)
+	// Okay the Reveal has been recorded.  Record this as an entry that cannot be duplicated.
+	s.Replay.IsTSValid_(constants.REVEAL_REPLAY, msg.Entry.GetHash().Fixed(), msg.Timestamp, s.GetTimestamp())
 
 }
 
@@ -1094,6 +1067,18 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(ack, m)
 }
 
+func (s *State) setCurrentMinute(m int) {
+	if m != s.CurrentMinute && m != s.CurrentMinute+1 {
+		s.LogPrintf("dbsig-eom", " Jump s.CurrentMinute = %d, from %d %s", m, s.CurrentMinute, atomic.WhereAmIString(1))
+
+	} else {
+		if m != s.CurrentMinute {
+			s.LogPrintf("dbsig-eom", "s.CurrentMinute = %d from %s", m, atomic.WhereAmIString(1))
+		}
+	}
+	s.CurrentMinute = m
+}
+
 func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	LeaderEOMExecutions.Inc()
 	if !m.IsLocal() {
@@ -1111,12 +1096,6 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 
 	// Put the System Height and Serial Hash into the EOM
 	eom.SysHeight = uint32(pl.System.Height)
-	if pl.System.Height > 1 {
-		ff, ok := pl.System.List[pl.System.Height-1].(*messages.FullServerFault)
-		if ok {
-			eom.SysHash = ff.GetSerialHash()
-		}
-	}
 
 	if s.Syncing && vm.Synced {
 		return
@@ -1174,12 +1153,6 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
 
 	// Put the System Height and Serial Hash into the EOM
 	dbs.SysHeight = uint32(pl.System.Height)
-	if pl.System.Height > 1 {
-		ff, ok := pl.System.List[pl.System.Height-1].(*messages.FullServerFault)
-		if ok {
-			dbs.SysHash = ff.GetSerialHash()
-		}
-	}
 
 	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, m.GetRepeatHash().Fixed(), m.GetTimestamp(), s.GetTimestamp())
 	if !ok {
@@ -1335,14 +1308,19 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 		// save the Commit to match againsttthe Reveal later
 		h := c.GetHash()
 		s.PutCommit(h, c)
-		entry := s.Holding[h.Fixed()]
-		if entry != nil {
-			entry.FollowerExecute(s)
-			entry.SendOut(s, entry)
-			TotalXReviewQueueInputs.Inc()
-			s.XReview = append(s.XReview, entry)
-			TotalHoldingQueueOutputs.Inc()
-			delete(s.Holding, h.Fixed())
+		var entry interfaces.IMsg
+		for _, hld := range s.ProcessLists.Holding {
+			if hld != nil {
+				entry = hld[h.Fixed()]
+				if entry != nil {
+					entry.FollowerExecute(s)
+					entry.SendOut(s, entry)
+					TotalXReviewQueueInputs.Inc()
+					s.XReview = append(s.XReview, entry)
+					TotalHoldingQueueOutputs.Inc()
+					delete(s.Holding, h.Fixed())
+				}
+			}
 		}
 		return true
 	}
@@ -1436,9 +1414,6 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 	s.PutNewEBlocks(dbheight, chainID, eb)
 	s.PutNewEntries(dbheight, myhash, msg.Entry)
 
-	// Monitor key changes for fed/audit servers
-	LoadIdentityByEntry(msg.Entry, s, dbheight, false)
-
 	s.IncEntries()
 	return true
 }
@@ -1512,62 +1487,85 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	TotalProcessEOMs.Inc()
 	e := msg.(*messages.EOM)
 	// plog := consenLogger.WithFields(log.Fields{"func": "ProcessEOM", "msgheight": e.DBHeight, "lheight": s.GetLeaderHeight(), "min", e.Minute})
+	pl := s.ProcessLists.Get(dbheight)
+	vmIndex := msg.GetVMIndex()
+	vm := pl.VMs[vmIndex]
 
-	if s.Syncing && !s.EOM {
+	s.LogPrintf("dbsig-eom", "ProcessEOM@%d/%d/%d minute %d, Syncing %v , EOM %v, EOMDone %v, EOMsyncing %v, EOMProcessed %v, EOMLimit %v ",
+		dbheight, msg.GetVMIndex(), len(vm.List), s.CurrentMinute, s.Syncing, s.EOM, s.EOMDone, s.EOMsyncing, s.EOMProcessed, s.EOMLimit)
+
+	if s.Syncing && !s.EOM { // this means we are syncing DBSigs
 		//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s vm %2d Will Not Process: return on s.Syncing(%v) && !s.SigType(%v)", s.FactomNodeName, e.VMIndex, s.Syncing, s.SigType))
+		s.LogPrintf("dbsig-eom", "ProcessEOM skip wait for DBSigs to be done")
 		return false
 	}
 
-	if s.EOM && e.DBHeight != dbheight {
+	if s.EOM && e.DBHeight != dbheight { // EOM for the wrong dbheight
 		//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s vm %2d Invalid SigType s.SigType(%v) && e.DBHeight(%v) != dbheight(%v)", s.FactomNodeName, e.VMIndex, s.SigType, e.DBHeight, dbheight))
+		s.LogPrintf("dbsig-eom", "ProcessEOM Found EOM for a different height e.DBHeight(%d) != dbheight(%d) ", e.DBHeight, dbheight)
+		// Really we are just going to process this?
 	}
 
 	if s.EOM && int(e.Minute) > s.EOMMinute {
 		//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s vm %2d Will Not Process: return on s.SigType(%v) && int(e.Minute(%v)) > s.EOMMinute(%v)", s.FactomNodeName, e.VMIndex, s.SigType, e.Minute, s.EOMMinute))
+		s.LogPrintf("dbsig-eom", "ProcessEOM skip EOM for a future minute e.Minute(%d) > s.EOMMinute(%d)", e.Minute, s.EOMMinute)
 		return false
 	}
 
-	pl := s.ProcessLists.Get(dbheight)
-	vm := s.ProcessLists.Get(dbheight).VMs[msg.GetVMIndex()]
+	if s.CurrentMinute == 0 && !s.DBSigDone {
+		s.LogPrintf("dbsig-eom", "ProcessEOM wait for DBSIg in minute 0")
+		return false
+	}
 
 	if uint32(pl.System.Height) >= e.SysHeight {
 		s.EOMSys = true
 	}
 
+	s.LogMessage("dbsig-eom", "ProcessEOM ", msg)
+
 	// If I have done everything for all EOMs for all VMs, then and only then do I
 	// let processing continue.
 	if s.EOMDone && s.EOMSys {
+		s.LogPrintf("dbsig-eom", "ProcessEOM finalize EOM processing")
+
 		dbstate := s.GetDBState(dbheight - 1)
 		if dbstate == nil {
 			//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s vm %2d DBState == nil: return on s.SigType(%v) && int(e.Minute(%v)) > s.EOMMinute(%v)", s.FactomNodeName, e.VMIndex, s.SigType, e.Minute, s.EOMMinute))
+			s.LogPrintf("dbsig-eom", "ProcessEOM wait prev dbstate == nil")
 			return false
 		}
 		if !dbstate.Saved {
 			//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s vm %2d DBState not saved: return on s.SigType(%v) && int(e.Minute(%v)) > s.EOMMinute(%v)", s.FactomNodeName, e.VMIndex, s.SigType, e.Minute, s.EOMMinute))
+			s.LogPrintf("dbsig-eom", "ProcessEOM wait prev !dbstate.Saved")
 			return false
 		}
 
 		//fmt.Println(fmt.Sprintf("EOM PROCESS: %10s vm %2d Done! s.EOMDone(%v) && s.EOMSys(%v)", s.FactomNodeName, e.VMIndex, s.EOMDone, s.EOMSys))
 		s.EOMProcessed--
-		if s.EOMProcessed <= 0 {
+		if s.EOMProcessed <= 0 { // why less than or equal?
 			s.EOM = false
 			s.EOMDone = false
 			s.Syncing = false
 			s.EOMProcessed = 0
 			s.TempBalanceHash = s.FactoidState.GetBalanceHash(true)
+			s.SendHeartBeat() // Only do this once
+			s.LogPrintf("dbsig-eom", "ProcessEOM complete for %d", e.Minute)
 		}
-		s.SendHeartBeat()
-
 		return true
 	}
 
 	// What I do once  for all VMs at the beginning of processing a particular EOM
 	if !s.EOM {
+		s.LogPrintf("dbsig-eom", "ProcessEOM start EOM processing for %d", e.Minute)
+
 		//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s vm %2d Start SigType Processing: !s.SigType(%v) SigType: %s", s.FactomNodeName, e.VMIndex, s.SigType, e.String()))
 		s.EOMSys = false
 		s.Syncing = true
 		s.EOM = true
 		s.EOMLimit = len(s.LeaderPL.FedServers)
+		if s.CurrentMinute != int(e.Minute) {
+			s.LogPrintf("dbsig-eom", "Follower jump to minute %d from %d", s.CurrentMinute, int(e.Minute))
+		}
 		s.EOMMinute = int(e.Minute)
 		s.EOMsyncing = true
 		s.EOMProcessed = 0
@@ -1581,6 +1579,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// What I do for each EOM
 	if !vm.Synced {
+		s.LogPrintf("dbsig-eom", "ProcessEOM Handle VM(%v) minute %d", msg.GetVMIndex(), e.Minute)
 
 		InMsg := s.EFactory.NewEomSigInternal(
 			s.FactomNodeName,
@@ -1607,17 +1606,17 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 	allfaults := s.LeaderPL.System.Height >= s.LeaderPL.SysHighest
 
-	//if !allfaults {
-	//	os.Stderr.WriteString(fmt.Sprintf("%s dbht %d min %d Don't have all faults\n", s.FactomNodeName, e.DBHeight, e.Minute))
-	//}
 	// After all EOM markers are processed, Claim we are done.  Now we can unwind
+
 	if allfaults && s.EOMProcessed == s.EOMLimit && !s.EOMDone {
+		s.LogPrintf("dbsig-eom", "ProcessEOM stop EOM processing minute %d", s.CurrentMinute)
 
 		//fmt.Println(fmt.Sprintf("SigType PROCESS: SigType Complete: %10s vm %2d allfaults(%v) && s.EOMProcessed(%v) == s.EOMLimit(%v) && !s.EOMDone(%v)",
 		//	s.FactomNodeName,
 		//	e.VMIndex, allfaults, s.EOMProcessed, s.EOMLimit, s.EOMDone))
 
 		s.EOMDone = true
+		s.LeaderNewMin = true
 		for _, eb := range pl.NewEBlocks {
 			eb.AddEndOfMinuteMarker(byte(e.Minute + 1))
 		}
@@ -1630,11 +1629,17 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		ecbody.AddEntry(mn)
 
 		if !s.Leader {
-			s.CurrentMinute = int(e.Minute)
+			if s.CurrentMinute != int(e.Minute) {
+				s.LogPrintf("dbsig-eom", "Follower jump to minute %d from %d", s.CurrentMinute, int(e.Minute))
+			}
+			s.setCurrentMinute(int(e.Minute))
 		}
 
-		s.CurrentMinute++
+		s.setCurrentMinute(s.CurrentMinute + 1)
 		s.CurrentMinuteStartTime = time.Now().UnixNano()
+		// If an election took place, our lists will be unsorted. Fix that
+		pl.SortAuditServers()
+		pl.SortFedServers()
 
 		switch {
 		case s.CurrentMinute < 10:
@@ -1642,6 +1647,8 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 				dbstate := s.GetDBState(dbheight - 1)
 				// Panic had arose when leaders would reboot and the follower was on a future minute
 				if dbstate == nil {
+					// We recognize that this will leave us "Done" without finishing the process.  But
+					// a Follower can heal themselves by asking for a block, and overwriting this block.
 					return false
 				}
 				if !dbstate.Saved {
@@ -1650,7 +1657,9 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			}
 			s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
+
 		case s.CurrentMinute == 10:
+			s.LogPrintf("dbsig-eom", "Start new block")
 			eBlocks := []interfaces.IEntryBlock{}
 			entries := []interfaces.IEBEntry{}
 			for _, v := range pl.NewEBlocks {
@@ -1671,7 +1680,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			}
 			s.DBStates.ProcessBlocks(dbstate)
 
-			s.CurrentMinute = 0
+			s.setCurrentMinute(0)
 			s.LLeaderHeight++
 
 			s.GetAckChange()
@@ -1680,12 +1689,34 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
 
+			if s.Leader {
+				for _, msg := range s.ProcessLists.Holding[s.LeaderVMIndex] {
+					if msg.GetVMIndex() != s.LeaderVMIndex {
+						s.MsgQueue() <- msg
+					}
+					switch msg.Validate(s) {
+					case -1:
+						delete(s.ProcessLists.Holding[s.LeaderVMIndex], msg.GetHash().Fixed())
+					case 1:
+						if _, ok := msg.(*messages.RevealEntryMsg); ok {
+							if s.Commits.Get(msg.GetHash().Fixed()) != nil {
+								s.msgQueue <- msg
+								delete(s.ProcessLists.Holding[s.LeaderVMIndex], msg.GetHash().Fixed())
+							}
+						} else {
+							s.msgQueue <- msg
+							delete(s.ProcessLists.Holding[s.LeaderVMIndex], msg.GetHash().Fixed())
+						}
+					}
+				}
+			}
+
 			s.DBSigProcessed = 0
 
 			// Note about dbsigs.... If we processed the previous minute, then we generate the DBSig for the next block.
 			// But if we didn't process the previous block, like we start from scratch, or we had to reset the entire
 			// network, then no dbsig exists.  This code doesn't execute, and so we have no dbsig.  In that case, on
-			// the next EOM, we see the block hasn't been signed, and we sign the block (Thats the call to SendDBSig()
+			// the next EOM, we see the block hasn't been signed, and we sign the block (That is the call to SendDBSig()
 			// above).
 			pldbs := s.ProcessLists.Get(s.LLeaderHeight)
 			if s.Leader && !pldbs.DBSigAlreadySent {
@@ -1710,20 +1741,13 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 				dbslog := consenLogger.WithFields(log.Fields{"func": "SendDBSig", "lheight": s.GetLeaderHeight(), "node-name": s.GetFactomNodeName()}).WithFields(dbs.LogFields())
 				dbslog.Infof("Generate DBSig")
 
+				s.LogMessage("executeMsg", "LeaderExec2", dbs)
 				dbs.LeaderExecute(s)
 			}
 			s.Saving = true
 		}
 
 		s.Commits.RemoveExpired(s)
-		// for k, v := range s.Commits {
-		// 	if v != nil {
-		// 		_, ok := s.Replay.Valid(constants.TIME_TEST, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
-		// 		if !ok {
-		// 			delete(s.Commits, k)
-		// 		}
-		// 	}
-		// }
 
 		for k := range s.Acks {
 			v := s.Acks[k].(*messages.Ack)
@@ -1866,7 +1890,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			return false
 		}
 
-		valid, err := s.VerifyAuthoritySignature(data, dbs.DBSignature.GetSignature(), dbs.DBHeight)
+		valid, err := s.FastVerifyAuthoritySignature(data, dbs.DBSignature, dbs.DBHeight)
 		if err != nil || valid != 1 {
 			plog("Failed. Invalid Auth Sig: Pubkey: %x", dbs.Signature.GetKey())
 			return false
@@ -1930,235 +1954,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			fmt.Printf("Error in adding DB sig to admin block, %s\n", err.Error())
 		}
 	*/
-}
-
-func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) bool {
-	// If we are here, this means that the FullFault message is complete
-	// and we can execute it as such (replacing the faulted Leader with
-	// the nominated Audit server)
-
-	if true {
-		panic(errors.New("Started Old Faulting Process... very bad thing"))
-	}
-	fullFault, ok := msg.(*messages.FullServerFault)
-	if !ok {
-		return false
-	}
-	if fullFault.GetAlreadyProcessed() {
-		return false
-	}
-
-	pl := s.ProcessLists.Get(fullFault.DBHeight)
-	if pl == nil {
-		return false
-	}
-
-	// First we will update our status to include our fault process attempt
-	//s.AddStatus(fmt.Sprintf("PROCESS Full Fault: %s",
-	//	fullFault.StringWithSigCnt(s)))
-
-	// If we're not caught up in our SystemList enough to process the fault,
-	// processing must fail
-	if pl.System.Height < int(fullFault.SystemHeight) {
-		//s.AddStatus(fmt.Sprintf("PROCESS Full Fault Not at right system height: %s", fullFault.StringWithSigCnt(s)))
-		return false
-	}
-
-	vm := pl.VMs[int(fullFault.VMIndex)]
-
-	// Do not process the fault until the VM height is caught up to it
-	if fullFault.Height > uint32(vm.Height) {
-		//s.AddStatus(fmt.Sprintf("PROCESS Full Fault Not at right vm height: (FF:%d vm:%d) %s",
-		//	fullFault.Height,
-		//	uint32(vm.Height),
-		//	fullFault.StringWithSigCnt(s)))
-		return false
-	}
-
-	// Double-check that the fault's SystemHeight is proper
-	if int(fullFault.SystemHeight) != pl.System.Height {
-		//s.AddStatus(fmt.Sprintf("PROCESS Full Fault Not at right system height (FF:%d sys:%d) : %s",
-		//	int(fullFault.SystemHeight),
-		//	pl.System.Height,
-		//	fullFault.StringWithSigCnt(s)))
-
-		return false
-	}
-
-	// If "ClearFault" is set to true, that means the leader came back online so we can "forget" about
-	// the fault (leave it in the SystemList, but consider it processed without having promoted/demoted anyone)
-	if fullFault.ClearFault {
-		if fullFault.GetVMIndex() < len(pl.VMs) && pl.VMs[fullFault.GetVMIndex()].WhenFaulted == 0 {
-			// If we agree that the server doesn't need to be faulted, we will clear our currentFault
-			// but otherwise do nothing (we do not execute the actual demotion/promotion)
-			//s.AddStatus(fmt.Sprintf("PROCESS Full Fault CLEARING: %s", fullFault.StringWithSigCnt(s)))
-			fullFault.SetAlreadyProcessed()
-			faultLogger.WithField("func", "ClearFault").WithFields(fullFault.LogFields()).Warn("Cleared")
-			return true
-		}
-	}
-
-	auditServerList := s.GetAuditServers(fullFault.DBHeight)
-	var theAuditReplacement interfaces.IServer
-
-	for _, auditServer := range auditServerList {
-		if auditServer.GetChainID().IsSameAs(fullFault.AuditServerID) {
-			theAuditReplacement = auditServer
-		}
-	}
-	if theAuditReplacement == nil {
-		for _, fedServer := range s.GetFedServers(fullFault.DBHeight) {
-			if fedServer.GetChainID().IsSameAs(fullFault.AuditServerID) {
-				//s.AddStatus(fmt.Sprintf("PROCESS Full Fault Nothing to do, Already a Fed Server! %s", fullFault.StringWithSigCnt(s)))
-				return false
-			}
-		}
-		// If we don't have any Audit Servers in our Authority set
-		// that match the nominated Audit Server in the FullFault,
-		// we can't really do anything useful with it
-		//s.AddStatus(fmt.Sprintf("PROCESS Full Fault Audit Server not an audit server. %s", fullFault.StringWithSigCnt(s)))
-		return false
-	}
-
-	if fullFault.HasEnoughSigs(s) && s.pledgedByAudit(fullFault) {
-		// If we are here, this means that the FullFault message is complete
-		// and we can execute it as such (replacing the faulted Leader with
-		// the nominated Audit server)
-
-		rHt := vm.Height
-		ffHt := int(fullFault.Height)
-		if rHt > ffHt {
-			//s.AddStatus(fmt.Sprintf("PROCESS Full Fault: FAIL but reset vm... %s", fullFault.StringWithSigCnt(s)))
-			vm.Height = ffHt
-			return false
-		} else if rHt < ffHt {
-			//s.AddStatus(fmt.Sprintf("PROCESS Full Fault: FAIL, vm not there yet. %s", fullFault.StringWithSigCnt(s)))
-			return false
-		}
-
-		// Here is where we actually swap out the Leader with the Audit server
-		// being promoted
-		for listIdx, fedServ := range pl.FedServers {
-			if fedServ.GetChainID().IsSameAs(fullFault.ServerID) {
-
-				pl.FedServers[listIdx] = theAuditReplacement
-				pl.FedServers[listIdx].SetOnline(true)
-				audIdx := pl.AddAuditServer(fedServ.GetChainID())
-				pl.AuditServers[audIdx].SetOnline(false)
-
-				s.RemoveAuditServer(fullFault.DBHeight, theAuditReplacement.GetChainID())
-				// After executing the FullFault successfully, we want to reset
-				// to the default state (No One At Fault)
-				s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
-
-				authoritiesString := ""
-				for _, str := range s.ConstructAuthoritySetString() {
-					if len(authoritiesString) > 0 {
-						authoritiesString += "\n"
-					}
-					authoritiesString += str
-				}
-				// Any updates required to the state as established by the AdminBlock are applied here.
-				pl.State.SetAuthoritySetString(authoritiesString)
-				authorityDeltaString := fmt.Sprintf("FULL FAULT SUCCESSFULLY PROCESSED DBHt: %d SysHt: %d FedID %s AuditServerID %s",
-					fullFault.DBHeight,
-					fullFault.SystemHeight,
-					fullFault.ServerID.String()[4:12],
-					fullFault.AuditServerID.String()[4:12])
-				pl.State.AddAuthorityDelta(authorityDeltaString)
-
-				consenLogger.WithFields(log.Fields{"dbht": fullFault.DBHeight, "sysht": fullFault.SystemHeight,
-					"server": fullFault.ServerID.String()[4:12], "audit": fullFault.AuditServerID.String()[4:12]}).Info("Full fault success")
-				//s.AddStatus(authorityDeltaString)
-
-				pl.State.LastFaultAction = time.Now().Unix()
-				markNoFault(pl, fullFault.GetVMIndex())
-				nextIndex := (int(fullFault.VMIndex) + 1) % len(pl.FedServers)
-				if pl.VMs[nextIndex].FaultFlag > 0 {
-					markNoFault(pl, nextIndex)
-				}
-
-				s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
-				s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
-
-				fullFault.SetAlreadyProcessed()
-				faultLogger.WithField("func", "ProcessFault").WithFields(fullFault.LogFields()).Warn("Fault Processed (Leader Replaced)")
-				return true
-			}
-		}
-	} else {
-		// If we are here, this means that the FullFault message is incomplete
-		// and we cannot execute it (it might not have enough signatures, or it
-		// might lack the pledge from the audit server being promoted)
-
-		// We need to see whether our signature is included, and match the fault if not
-		// (assuming we agree with the basic premise of the fault)
-
-		for _, signature := range fullFault.SignatureList.List {
-			var issuerID [32]byte
-			rawIssuerID := signature.GetKey()
-			for i := 0; i < 32; i++ {
-				if i < len(rawIssuerID) {
-					issuerID[i] = rawIssuerID[i]
-				}
-			}
-
-			lbytes := fullFault.GetCoreHash().Bytes()
-
-			isPledge := false
-			auth, _ := s.GetAuthority(fullFault.AuditServerID)
-			if auth == nil {
-				isPledge = false
-			} else {
-				valid, err := auth.VerifySignature(lbytes, signature.GetSignature())
-				if err == nil && valid {
-					isPledge = true
-					fullFault.SetPledgeDone(true)
-				}
-			}
-
-			sfSigned, err := s.FastVerifyAuthoritySignature(lbytes, signature, fullFault.DBHeight)
-
-			if err == nil && (sfSigned > 0 || (sfSigned == 0 && isPledge)) {
-				fullFault.AddFaultVote(issuerID, fullFault.GetSignature())
-			}
-
-			if s.Leader || s.IdentityChainID.IsSameAs(fullFault.AuditServerID) {
-				if !fullFault.GetMyVoteTallied() {
-					nsf := messages.NewServerFault(fullFault.ServerID, fullFault.AuditServerID, int(fullFault.VMIndex), fullFault.DBHeight,
-						fullFault.Height, int(fullFault.SystemHeight), fullFault.Timestamp)
-					sfbytes, err := nsf.MarshalForSignature()
-					myAuth, _ := s.GetAuthority(s.IdentityChainID)
-					if myAuth == nil || err != nil {
-						continue
-					}
-					valid, err := myAuth.VerifySignature(sfbytes, signature.GetSignature())
-					if err == nil && valid {
-						fullFault.SetMyVoteTallied(true)
-					}
-				}
-			}
-		}
-
-		if s.Leader || s.IdentityChainID.IsSameAs(fullFault.AuditServerID) {
-			if !fullFault.GetMyVoteTallied() {
-				now := time.Now().Unix()
-				if now-fullFault.LastMatch > 5 && int(now-s.LastTiebreak) > s.FaultTimeout/2 {
-					if fullFault.SigTally(s) >= len(pl.FedServers)-1 {
-						s.LastTiebreak = now
-					}
-
-					nsf := messages.NewServerFault(fullFault.ServerID, fullFault.AuditServerID, int(fullFault.VMIndex),
-						fullFault.DBHeight, fullFault.Height, int(fullFault.SystemHeight), fullFault.Timestamp)
-					//s.AddStatus(fmt.Sprintf("Match FullFault: %s", nsf.String()))
-
-					s.matchFault(nsf)
-				}
-			}
-		}
-	}
-
-	return false
 }
 
 func (s *State) GetMsg(vmIndex int, dbheight int, height int) (interfaces.IMsg, error) {

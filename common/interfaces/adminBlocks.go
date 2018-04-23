@@ -4,6 +4,8 @@
 
 package interfaces
 
+import "bytes"
+
 // Administrative Block
 // This is a special block which accompanies this Directory Block.
 // It contains the signatures and organizational data needed to validate previous and future Directory Blocks.
@@ -27,7 +29,9 @@ type IAdminBlock interface {
 	SetABEntries([]IABEntry)
 	SetHeader(IABlockHeader)
 	AddEntry(IABEntry) error
+	FetchCoinbaseDescriptor() IABEntry
 
+	InsertIdentityABEntries() error
 	AddABEntry(e IABEntry) error
 	AddAuditServer(IHash) error
 	AddDBSig(serverIdentity IHash, sig IFullSignature) error
@@ -37,6 +41,10 @@ type IAdminBlock interface {
 	AddFirstABEntry(e IABEntry) error
 	AddMatryoshkaHash(IHash, IHash) error
 	AddServerFault(IABEntry) error
+	AddCoinbaseDescriptor(outputs []ITransAddress) error
+	AddEfficiency(chain IHash, efficiency uint16) error
+	AddCoinbaseAddress(chain IHash, add IAddress) error
+
 	UpdateState(IState) error
 }
 
@@ -70,4 +78,33 @@ type IABEntry interface {
 
 	Type() byte
 	Hash() IHash
+}
+
+type IIdentityABEntrySort []IIdentityABEntry
+
+func (p IIdentityABEntrySort) Len() int {
+	return len(p)
+}
+func (p IIdentityABEntrySort) Swap(i, j int) {
+	p[i], p[j] = p[j], p[i]
+}
+func (p IIdentityABEntrySort) Less(i, j int) bool {
+	// Sort by Type
+	if p[i].Type() != p[j].Type() {
+		return p[i].Type() < p[j].Type()
+	}
+
+	// Sort if identities are the same
+	if p[i].SortedIdentity().IsSameAs(p[j].SortedIdentity()) {
+		return bytes.Compare(p[i].Hash().Bytes(), p[j].Hash().Bytes()) < 0
+	}
+
+	// Sort by identity
+	return bytes.Compare(p[i].SortedIdentity().Bytes(), p[j].SortedIdentity().Bytes()) < 0
+}
+
+type IIdentityABEntry interface {
+	IABEntry
+	// Identity to sort by
+	SortedIdentity() IHash
 }

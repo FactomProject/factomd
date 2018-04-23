@@ -121,13 +121,7 @@ func (m *FedVoteMsg) Type() byte {
 func (m *FedVoteMsg) ElectionValidate(ie interfaces.IElections) int {
 	e := ie.(*elections.Elections)
 
-	// TODO: Correct this
-	if e.Adapter == nil || e.Electing == -1 {
-		return 0
-	}
-
-	// TODO: Check all the cases
-
+	// Current height and minute TODO: Also check VMIndex?
 	if int(m.DBHeight) == e.DBHeight && e.ComparisonMinute() == m.ComparisonMinute() {
 		sm := m.Super
 		vol := sm.GetVolunteerMessage().(*FedVoteVolunteerMsg)
@@ -140,6 +134,11 @@ func (m *FedVoteMsg) ElectionValidate(ie interfaces.IElections) int {
 		if !vol.ServerID.IsSameAs(e.Audit[vol.ServerIdx].GetChainID()) ||
 			!vol.FedID.IsSameAs(e.Federated[vol.FedIdx].GetChainID()) {
 			return -1
+		}
+
+		// For a different election on this minute
+		if int(m.VMIndex) != e.VMIndex {
+			return 0
 		}
 
 		return 1 // This is our election!
@@ -208,7 +207,7 @@ func (m *FedVoteMsg) Validate(is interfaces.IState) int {
 		return -1
 	}
 
-	valid, err := is.VerifyAuthoritySignature(signed, sm.GetSignature().GetSignature(), m.DBHeight)
+	valid, err := is.FastVerifyAuthoritySignature(signed, sm.GetSignature(), m.DBHeight)
 	if err != nil || valid < 0 {
 		return -1
 	}

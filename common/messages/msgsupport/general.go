@@ -29,10 +29,6 @@ func CreateMsg(messageType byte) interfaces.IMsg {
 		return new(messages.Ack)
 	case constants.AUDIT_SERVER_FAULT_MSG:
 		return new(messages.AuditServerFault)
-	case constants.FED_SERVER_FAULT_MSG:
-		return new(messages.ServerFault)
-	case constants.FULL_SERVER_FAULT_MSG:
-		return new(messages.FullServerFault)
 	case constants.COMMIT_CHAIN_MSG:
 		return new(messages.CommitChainMsg)
 	case constants.COMMIT_ENTRY_MSG:

@@ -15,6 +15,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
@@ -132,7 +133,7 @@ func (fs *FactoidState) Reset(dbstate *DBState) {
 
 		fs.CurrentBlock = fBlock
 
-		t := factoid.GetCoinbase(dbstate.NextTimestamp)
+		t := fs.GetCoinbaseTransaction(fs.CurrentBlock.GetDatabaseHeight(), dbstate.NextTimestamp)
 
 		fs.State.FactoshisPerEC = dbstate.FinalExchangeRate
 		fs.State.LeaderTimestamp = dbstate.NextTimestamp
@@ -167,7 +168,7 @@ func (fs *FactoidState) GetCurrentBlock() interfaces.IFBlock {
 		fs.CurrentBlock = factoid.NewFBlock(nil)
 		fs.CurrentBlock.SetExchRate(fs.State.GetFactoshisPerEC())
 		fs.CurrentBlock.SetDBHeight(fs.DBHeight)
-		t := factoid.GetCoinbase(fs.State.GetLeaderTimestamp())
+		t := fs.GetCoinbaseTransaction(fs.CurrentBlock.GetDatabaseHeight(), fs.State.GetLeaderTimestamp())
 		err := fs.CurrentBlock.AddCoinbase(t)
 		if err != nil {
 			panic(err.Error())
@@ -349,7 +350,7 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 
 	leaderTS := fs.State.GetLeaderTimestamp()
 
-	t := factoid.GetCoinbase(leaderTS)
+	t := fs.GetCoinbaseTransaction(fs.CurrentBlock.GetDatabaseHeight(), leaderTS)
 
 	dbstate := fs.State.DBStates.Get(int(fs.DBHeight))
 	if dbstate != nil {
@@ -383,4 +384,33 @@ func (fs *FactoidState) Validate(index int, trans interfaces.ITransaction) error
 	}
 
 	return nil
+}
+
+func (fs *FactoidState) GetCoinbaseTransaction(dbheight uint32, ftime interfaces.Timestamp) interfaces.ITransaction {
+	coinbase := new(factoid.Transaction)
+	coinbase.SetTimestamp(ftime)
+
+	// Coinbases only have outputs on payout blocks.
+	//	Payout blocks are every n blocks, where n is the coinbase frequency
+	if dbheight > constants.COINBASE_ACTIVATION && // Coinbase code must be above activation
+		dbheight != 0 && // Does not affect gensis
+		dbheight%constants.COINBASE_PAYOUT_FREQUENCY == 0 && // Frequency of payouts
+		// Cannot payout before a declaration (cannot grab below height 0)
+		dbheight > constants.COINBASE_DECLARATION+constants.COINBASE_PAYOUT_FREQUENCY {
+		// Grab the admin block 1000 blocks earlier
+		ablock, err := fs.State.DB.FetchABlockByHeight(dbheight - constants.COINBASE_DECLARATION)
+		if err != nil {
+			panic(fmt.Sprintf("When creating coinbase, admin block at height %d could not be retrieved", dbheight-1000))
+		}
+
+		abe := ablock.FetchCoinbaseDescriptor()
+		if abe != nil {
+			desc := abe.(*adminBlock.CoinbaseDescriptor)
+			for _, o := range desc.Outputs {
+				coinbase.AddOutput(o.GetAddress(), o.GetAmount())
+			}
+		}
+	}
+
+	return coinbase
 }

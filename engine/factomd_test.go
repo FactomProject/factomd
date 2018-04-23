@@ -83,7 +83,6 @@ func TestSetupANetwork(t *testing.T) {
 		os.Stderr.WriteString("Executing: " + cmd + "\n")
 		InputChan <- cmd
 		time.Sleep(100 * time.Millisecond)
-		<-ProcessChan
 		return
 	}
 
@@ -99,7 +98,7 @@ func TestSetupANetwork(t *testing.T) {
 		"-controlpanelport=37002",
 		"-networkport=37003",
 		"-startdelay=1",
-		//"-debuglog=F.*",
+		"-debuglog=F.*",
 		"--stdoutlog=out.txt",
 		"--stderrlog=out.txt",
 	)
@@ -243,6 +242,72 @@ func TestSetupANetwork(t *testing.T) {
 	}
 }
 
+func TestMakeALeader(t *testing.T) {
+	if ranSimTest {
+		return
+	}
+
+	ranSimTest = true
+
+	runCmd := func(cmd string) {
+		os.Stderr.WriteString("Executing: " + cmd + "\n")
+		os.Stdout.WriteString("Executing: " + cmd + "\n")
+		InputChan <- cmd
+		time.Sleep(100 * time.Millisecond)
+		return
+	}
+
+	args := append([]string{},
+		"-db=Map",
+		"-network=LOCAL",
+		"-enablenet=true",
+		"-blktime=15",
+		"-count=2",
+		"-startdelay=1",
+		"-debuglog=F.*",
+		"--stdoutlog=out.txt",
+		"--stderrlog=out.txt",
+	)
+
+	params := ParseCmdLine(args)
+	state0 := Factomd(params, false).(*state.State)
+	state0.MessageTally = true
+	time.Sleep(3 * time.Second)
+	StatusEveryMinute(state0)
+	t.Log("Allocated 2 nodes")
+	if len(GetFnodes()) != 2 {
+		t.Fatal("Should have allocated 2 nodes")
+		t.Fail()
+	}
+
+	WaitForMinute(state0, 3)
+	runCmd("g1")
+	WaitBlocks(state0, 1)
+	// Allocate 1 leaders
+	WaitForMinute(state0, 1)
+
+	runCmd("1") // select node 1
+	runCmd("l") // make him a leader
+	WaitBlocks(state0, 1)
+	WaitForMinute(state0, 1)
+
+	leadercnt := 0
+	auditcnt := 0
+	for _, fn := range GetFnodes() {
+		s := fn.State
+		if s.Leader {
+			leadercnt++
+		}
+		list := s.ProcessLists.Get(s.LLeaderHeight)
+		if foundAudit, _ := list.GetAuditServerIndexHash(s.GetIdentityChainID()); foundAudit {
+			auditcnt++
+		}
+	}
+
+	if leadercnt != 2 {
+		t.Fatalf("found %d leaders, expected 2", leadercnt)
+	}
+}
 func TestAnElection(t *testing.T) {
 	if ranSimTest {
 		return
@@ -261,7 +326,6 @@ func TestAnElection(t *testing.T) {
 		os.Stderr.WriteString("Executing: " + cmd + "\n")
 		InputChan <- cmd
 		time.Sleep(100 * time.Millisecond)
-		<-ProcessChan
 		return
 	}
 
@@ -358,6 +422,293 @@ func TestAnElection(t *testing.T) {
 	time.Sleep(time.Duration(state0.DirectoryBlockInSeconds) * time.Second)
 	if state0.LLeaderHeight > 9 {
 		t.Fatal("Failed to shut down factomd via ShutdownChan")
+	}
+}
+
+func TestMultiple2Election(t *testing.T) {
+	if ranSimTest {
+		return
+	}
+
+	ranSimTest = true
+
+	runCmd := func(cmd string) {
+		os.Stderr.WriteString("Executing: " + cmd + "\n")
+		os.Stdout.WriteString("Executing: " + cmd + "\n")
+		InputChan <- cmd
+		time.Sleep(100 * time.Millisecond)
+		return
+	}
+
+	args := append([]string{},
+		"-db=Map",
+		"-network=LOCAL",
+		"-enablenet=true",
+		"-blktime=15",
+		"-count=10",
+		"-startdelay=1",
+		"-net=alot+",
+		"-debuglog=F.*",
+		"--stdoutlog=../out.txt",
+		"--stderrlog=../out.txt",
+		"-debugconsole=localhost:8093",
+	)
+
+	params := ParseCmdLine(args)
+	state0 := Factomd(params, false).(*state.State)
+	state0.MessageTally = true
+	time.Sleep(3 * time.Second)
+	StatusEveryMinute(state0)
+	t.Log("Allocated 10 nodes")
+	if len(GetFnodes()) != 10 {
+		t.Fatal("Should have allocated 10 nodes")
+		t.Fail()
+	}
+
+	WaitForMinute(state0, 3)
+	runCmd("g15")
+	WaitBlocks(state0, 1)
+	// Allocate 1 leaders
+	WaitForMinute(state0, 1)
+
+	runCmd("1")              // select node 1
+	for i := 0; i < 6; i++ { // 1, 2, 3, 4, 5, 6
+		runCmd("l") // leaders
+	}
+
+	for i := 0; i < 2; i++ { // 8, 9
+		runCmd("o") // leaders
+	}
+
+	WaitBlocks(state0, 1)
+	WaitForMinute(state0, 2)
+
+	leadercnt := 0
+	auditcnt := 0
+	for _, fn := range GetFnodes() {
+		s := fn.State
+		if s.Leader {
+			leadercnt++
+		}
+		list := s.ProcessLists.Get(s.LLeaderHeight)
+		if foundAudit, _ := list.GetAuditServerIndexHash(s.GetIdentityChainID()); foundAudit {
+			auditcnt++
+		}
+	}
+
+	if leadercnt != 7 {
+		t.Fatalf("found %d leaders, expected 7", leadercnt)
+	}
+
+	runCmd("1")
+	runCmd("x")
+	runCmd("2")
+	runCmd("x")
+
+	runCmd("s")
+	runCmd("E")
+	runCmd("F")
+	runCmd("0")
+	runCmd("p")
+	WaitBlocks(state0, 3)
+
+	t.Log("Shutting down the network")
+	for _, fn := range GetFnodes() {
+		fn.State.ShutdownChan <- 1
+	}
+
+}
+
+func TestMultiple3Election(t *testing.T) {
+	if ranSimTest {
+		return
+	}
+
+	ranSimTest = true
+
+	runCmd := func(cmd string) {
+		os.Stderr.WriteString("Executing: " + cmd + "\n")
+		os.Stdout.WriteString("Executing: " + cmd + "\n")
+		InputChan <- cmd
+		time.Sleep(100 * time.Millisecond)
+		return
+	}
+
+	args := append([]string{},
+		"-db=Map",
+		"-network=LOCAL",
+		"-enablenet=true",
+		"-blktime=15",
+		"-count=12",
+		"-startdelay=1",
+		"-net=alot+",
+		"-debuglog=F.*",
+		"--stdoutlog=../out.txt",
+		"--stderrlog=../out.txt",
+		"-debugconsole=localhost:8093",
+	)
+
+	params := ParseCmdLine(args)
+	state0 := Factomd(params, false).(*state.State)
+	state0.MessageTally = true
+	time.Sleep(3 * time.Second)
+	StatusEveryMinute(state0)
+	t.Log("Allocated 10 nodes")
+	if len(GetFnodes()) != 12 {
+		t.Fatal("Should have allocated 10 nodes")
+		t.Fail()
+	}
+
+	WaitForMinute(state0, 3)
+	runCmd("g15")
+	WaitBlocks(state0, 1)
+	// Allocate 1 leaders
+	WaitForMinute(state0, 1)
+
+	runCmd("1")              // select node 1
+	for i := 0; i < 6; i++ { // 1, 2, 3, 4, 5, 6
+		runCmd("l") // leaders
+	}
+
+	for i := 0; i < 4; i++ { // 7, 8, 9, 10
+		runCmd("o") // audits
+	}
+
+	WaitBlocks(state0, 1)
+	WaitForMinute(state0, 2)
+
+	leadercnt := 0
+	auditcnt := 0
+	for _, fn := range GetFnodes() {
+		s := fn.State
+		if s.Leader {
+			leadercnt++
+		}
+		list := s.ProcessLists.Get(s.LLeaderHeight)
+		if foundAudit, _ := list.GetAuditServerIndexHash(s.GetIdentityChainID()); foundAudit {
+			auditcnt++
+		}
+	}
+
+	if leadercnt != 7 {
+		t.Fatalf("found %d leaders, expected 7", leadercnt)
+	}
+
+	//runCmd("s")
+	//runCmd("E")
+	//runCmd("F")
+	runCmd("0")
+
+	runCmd("1")
+	runCmd("x")
+	runCmd("2")
+	runCmd("x")
+	runCmd("3")
+	runCmd("x")
+	runCmd("0")
+	WaitMinutes(state0, 1)
+	//runCmd("3")
+	//runCmd("x")
+	WaitBlocks(state0, 3)
+
+	t.Log("Shutting down the network")
+	for _, fn := range GetFnodes() {
+		fn.State.ShutdownChan <- 1
+	}
+
+}
+
+func TestMultiple7Election(t *testing.T) {
+	if ranSimTest {
+		return
+	}
+
+	ranSimTest = true
+
+	runCmd := func(cmd string) {
+		os.Stderr.WriteString("Executing: " + cmd + "\n")
+		os.Stdout.WriteString("Executing: " + cmd + "\n")
+		InputChan <- cmd
+		time.Sleep(100 * time.Millisecond)
+		return
+	}
+
+	args := append([]string{},
+		"-db=Map",
+		"-network=LOCAL",
+		"-enablenet=true",
+		"-blktime=60",
+		"-faulttimeout=60",
+		"-count=25",
+		"-startdelay=1",
+		"-net=alot+",
+		"-debuglog=F.*",
+		"--stdoutlog=../out.txt",
+		"--stderrlog=../out.txt",
+		"-debugconsole=localhost:8093",
+	)
+
+	params := ParseCmdLine(args)
+	state0 := Factomd(params, false).(*state.State)
+	state0.MessageTally = true
+	time.Sleep(3 * time.Second)
+	StatusEveryMinute(state0)
+	t.Log("Allocated 25 nodes")
+	if len(GetFnodes()) != 25 {
+		t.Fatal("Should have allocated 25 nodes")
+		t.Fail()
+	}
+
+	WaitForMinute(state0, 3)
+	runCmd("g30")
+	WaitBlocks(state0, 1)
+	// Allocate 1 leaders
+	WaitForMinute(state0, 1)
+	runCmd("1")               // select node 1
+	for i := 0; i < 14; i++ { // 1, 2, 3, 4, 5, 6
+		time.Sleep(100 * time.Millisecond)
+		runCmd("l") // leaders
+	}
+
+	for i := 0; i < 10; i++ { // 8, 9
+		time.Sleep(100 * time.Millisecond)
+		runCmd("o") // leaders
+	}
+
+	WaitBlocks(state0, 1)
+	WaitForMinute(state0, 2)
+
+	leadercnt := 0
+	auditcnt := 0
+	for _, fn := range GetFnodes() {
+		s := fn.State
+		if s.Leader {
+			leadercnt++
+		}
+		list := s.ProcessLists.Get(s.LLeaderHeight)
+		if foundAudit, _ := list.GetAuditServerIndexHash(s.GetIdentityChainID()); foundAudit {
+			auditcnt++
+		}
+	}
+
+	if leadercnt != 15 {
+		t.Fatalf("found %d leaders, expected 15", leadercnt)
+	}
+
+	if auditcnt != 10 {
+		t.Fatalf("found %d audits, expected 10", auditcnt)
+	}
+
+	for i := 1; i < 3; i++ {
+		runCmd(fmt.Sprintf("%d", i))
+		runCmd("x")
+	}
+
+	WaitBlocks(state0, 3)
+
+	t.Log("Shutting down the network")
+	for _, fn := range GetFnodes() {
+		fn.State.ShutdownChan <- 1
 	}
 }
 

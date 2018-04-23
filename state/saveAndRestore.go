@@ -35,9 +35,9 @@ type SaveState struct {
 	FactoidBalancesP map[[32]byte]int64
 	ECBalancesP      map[[32]byte]int64
 
-	Identities           []*Identity  // Identities of all servers in management chain
-	Authorities          []*Authority // Identities of all servers in management chain
-	AuthorityServerCount int          // number of federated or audit servers allowed
+	IdentityControl *IdentityManager // Identities
+
+	AuthorityServerCount int // number of federated or audit servers allowed
 
 	// Server State
 	LLeaderHeight uint32
@@ -126,6 +126,13 @@ func (ss *SaveState) Init() {
 	if ss.InvalidMessages == nil {
 		ss.InvalidMessages = map[[32]byte]interfaces.IMsg{}
 	}
+
+	if ss.IdentityControl == nil {
+		ss.IdentityControl = NewIdentityManager()
+	}
+
+	ss.IdentityControl.Init()
+
 }
 
 func (a *SaveState) IsSameAs(b *SaveState) bool {
@@ -160,23 +167,10 @@ func (a *SaveState) IsSameAs(b *SaveState) bool {
 		}
 	}
 
-	if len(a.Identities) != len(b.Identities) {
+	if !a.IdentityControl.IsSameAs(b.IdentityControl) {
 		return false
 	}
-	for i := range a.Identities {
-		if a.Identities[i].IsSameAs(b.Identities[i]) == false {
-			fmt.Printf("%v: %v vs %v\n", i, a.Identities[i].String(), b.Identities[i].String())
-			return false
-		}
-	}
-	if len(a.Authorities) != len(b.Authorities) {
-		return false
-	}
-	for i := range a.Authorities {
-		if a.Authorities[i].IsSameAs(b.Authorities[i]) == false {
-			return false
-		}
-	}
+
 	if a.AuthorityServerCount != b.AuthorityServerCount {
 		return false
 	}
@@ -342,8 +336,7 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 	}
 	state.ECBalancesPMutex.Unlock()
 
-	ss.Identities = append(ss.Identities, state.Identities...)
-	ss.Authorities = append(ss.Authorities, state.Authorities...)
+	ss.IdentityControl = state.IdentityControl
 	ss.AuthorityServerCount = state.AuthorityServerCount
 
 	ss.LLeaderHeight = state.LLeaderHeight
@@ -611,8 +604,9 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 	}
 	s.ECBalancesPMutex.Unlock()
 
-	s.Identities = append(s.Identities[:0], ss.Identities...)
-	s.Authorities = append(s.Authorities[:0], ss.Authorities...)
+	// Restore IDControl
+	s.IdentityControl = ss.IdentityControl
+
 	s.AuthorityServerCount = ss.AuthorityServerCount
 
 	s.LLeaderHeight = ss.LLeaderHeight
@@ -711,28 +705,9 @@ func (ss *SaveState) MarshalBinary() ([]byte, error) {
 		return nil, err
 	}
 
-	l = len(ss.Identities)
-	err = buf.PushVarInt(uint64(l))
+	err = buf.PushBinaryMarshallable(ss.IdentityControl)
 	if err != nil {
 		return nil, err
-	}
-	for _, v := range ss.Identities {
-		err = buf.PushBinaryMarshallable(v)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	l = len(ss.Authorities)
-	err = buf.PushVarInt(uint64(l))
-	if err != nil {
-		return nil, err
-	}
-	for _, v := range ss.Authorities {
-		err = buf.PushBinaryMarshallable(v)
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	err = buf.PushVarInt(uint64(ss.AuthorityServerCount))
@@ -928,8 +903,7 @@ func (ss *SaveState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 	ss.FedServers = []interfaces.IServer{}
 	ss.AuditServers = []interfaces.IServer{}
 
-	ss.Identities = []*Identity{}
-	ss.Authorities = []*Authority{}
+	ss.IdentityControl = NewIdentityManager()
 
 	newData = p
 	buf := primitives.NewBuffer(p)
@@ -975,31 +949,11 @@ func (ss *SaveState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 		return
 	}
 
-	l, err = buf.PopVarInt()
+	err = buf.PopBinaryMarshallable(ss.IdentityControl)
 	if err != nil {
 		return
-	}
-	for i := 0; i < int(l); i++ {
-		s := new(Identity)
-		err = buf.PopBinaryMarshallable(s)
-		if err != nil {
-			return
-		}
-		ss.Identities = append(ss.Identities, s)
 	}
 
-	l, err = buf.PopVarInt()
-	if err != nil {
-		return
-	}
-	for i := 0; i < int(l); i++ {
-		s := new(Authority)
-		err = buf.PopBinaryMarshallable(s)
-		if err != nil {
-			return
-		}
-		ss.Authorities = append(ss.Authorities, s)
-	}
 	l, err = buf.PopVarInt()
 	if err != nil {
 		return

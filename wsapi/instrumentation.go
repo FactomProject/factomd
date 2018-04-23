@@ -45,6 +45,11 @@ var (
 		Help: "Time it takes to compelete a eblock",
 	})
 
+	HandleV2APICallAblock = prometheus.NewSummary(prometheus.SummaryOpts{
+		Name: "factomd_wsapi_v2_api_call_ablock_ns",
+		Help: "Time it takes to compelete a eblock",
+	})
+
 	HandleV2APICallEntry = prometheus.NewSummary(prometheus.SummaryOpts{
 		Name: "factomd_wsapi_v2_api_call_entry_ns",
 		Help: "Time it takes to compelete an entry",
@@ -145,9 +150,19 @@ var (
 		Help: "Time it takes to compelete a ecblockbyheight",
 	})
 
+	HandleV2APICallECBlock = prometheus.NewSummary(prometheus.SummaryOpts{
+		Name: "factomd_wsapi_v2_api_call_ecblock_ns",
+		Help: "Time it takes to compelete a ecblock",
+	})
+
 	HandleV2APICallFblockByHeight = prometheus.NewSummary(prometheus.SummaryOpts{
 		Name: "factomd_wsapi_v2_api_call_fblockbyheight_ns",
 		Help: "Time it takes to compelete a fblockbyheight",
+	})
+
+	HandleV2APICallFblock = prometheus.NewSummary(prometheus.SummaryOpts{
+		Name: "factomd_wsapi_v2_api_call_fblock_ns",
+		Help: "Time it takes to compelete a fblock",
 	})
 
 	HandleV2APICallABlockByHeight = prometheus.NewSummary(prometheus.SummaryOpts{
@@ -203,8 +218,11 @@ func RegisterPrometheus() {
 	prometheus.MustRegister(HandleV2APICallTransaction)
 	prometheus.MustRegister(HandleV2APICallDBlockByHeight)
 	prometheus.MustRegister(HandleV2APICallECBlockByHeight)
+	prometheus.MustRegister(HandleV2APICallECBlock)
 	prometheus.MustRegister(HandleV2APICallFblockByHeight)
 	prometheus.MustRegister(HandleV2APICallABlockByHeight)
 	prometheus.MustRegister(HandleV2APICallAuthorities)
 	prometheus.MustRegister(HandleV2APICallTpsRate)
+	prometheus.MustRegister(HandleV2APICallAblock)
+	prometheus.MustRegister(HandleV2APICallFblock)
 }

@@ -138,7 +138,7 @@ func TestSaveLoadFBlockChain(t *testing.T) {
 		t.Error(err)
 	}
 	if len(all) != max {
-		t.Error("Wrong number of entries fetched - %v vs %v", len(all), max)
+		t.Errorf("Wrong number of entries fetched - %v vs %v", len(all), max)
 	}
 	for i := range all {
 		same, err := primitives.AreBinaryMarshallablesEqual(blocks[i], all[i])
@@ -166,28 +166,28 @@ func TestLoadUnknownFBlocks(t *testing.T) {
 			t.Error(err)
 		}
 		if data != nil {
-			t.Error("Fetched entry while we expected nil - %v", data)
+			t.Errorf("Fetched entry while we expected nil - %v", data)
 		}
 		data, err = dbo.FetchFBlockBySecondary(hash)
 		if err != nil {
 			t.Error(err)
 		}
 		if data != nil {
-			t.Error("Fetched entry while we expected nil - %v", data)
+			t.Errorf("Fetched entry while we expected nil - %v", data)
 		}
 		data, err = dbo.FetchFactoidBlockHead()
 		if err != nil {
 			t.Error(err)
 		}
 		if data != nil {
-			t.Error("Fetched entry while we expected nil - %v", data)
+			t.Errorf("Fetched entry while we expected nil - %v", data)
 		}
 		all, err := dbo.FetchAllFBlocks()
 		if err != nil {
 			t.Error(err)
 		}
 		if len(all) != 0 {
-			t.Error("Fetched entries while we expected nil - %v", all)
+			t.Errorf("Fetched entries while we expected nil - %v", all)
 		}
 	}
 }

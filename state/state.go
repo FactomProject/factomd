@@ -104,10 +104,11 @@ type State struct {
 	CustomBootstrapIdentity string
 	CustomBootstrapKey      string
 
-	IdentityChainID      interfaces.IHash // If this node has an identity, this is it
-	Identities           []*Identity      // Identities of all servers in management chain
-	Authorities          []*Authority     // Identities of all servers in management chain
-	AuthorityServerCount int              // number of federated or audit servers allowed
+	IdentityChainID interfaces.IHash // If this node has an identity, this is it
+	//Identities      []*Identity      // Identities of all servers in management chain
+	// Authorities          []*Authority     // Identities of all servers in management chain
+	AuthorityServerCount int // number of federated or audit servers allowed
+	IdentityControl      *IdentityManager
 
 	// Just to print (so debugging doesn't drive functionality)
 	Status      int // Return a status (0 do nothing, 1 provide queues, 2 provide consensus data)
@@ -204,6 +205,7 @@ type State struct {
 	PLProcessHeight uint32
 	OneLeader       bool
 	OutputAllowed   bool
+	LeaderNewMin    bool
 	CurrentMinute   int
 
 	// These are the start times for blocks and minutes
@@ -257,11 +259,10 @@ type State struct {
 
 	AuditHeartBeats []interfaces.IMsg // The checklist of HeartBeats for this period
 
-	FaultTimeout    int
-	FaultWait       int
-	EOMfaultIndex   int
-	LastFaultAction int64
-	LastTiebreak    int64
+	FaultTimeout  int
+	FaultWait     int
+	EOMfaultIndex int
+	LastTiebreak  int64
 
 	AuthoritySetString string
 	// Network MAIN = 0, TEST = 1, LOCAL = 2, CUSTOM = 3
@@ -451,9 +452,11 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 	newState.ControlPanelPort = s.ControlPanelPort
 	newState.ControlPanelSetting = s.ControlPanelSetting
 
-	newState.Identities = s.Identities
-	newState.Authorities = s.Authorities
+	//newState.Identities = s.Identities
+	//newState.Authorities = s.Authorities
 	newState.AuthorityServerCount = s.AuthorityServerCount
+
+	newState.IdentityControl = s.IdentityControl.Clone()
 
 	newState.FaultTimeout = s.FaultTimeout
 	newState.FaultWait = s.FaultWait
@@ -860,7 +863,6 @@ func (s *State) Init() {
 	// Allocate the original set of Process Lists
 	s.ProcessLists = NewProcessLists(s)
 	s.FaultWait = 3
-	s.LastFaultAction = 0
 	s.LastTiebreak = 0
 	s.EOMfaultIndex = 0
 
@@ -933,6 +935,10 @@ func (s *State) Init() {
 
 	s.AuditHeartBeats = make([]interfaces.IMsg, 0)
 
+	// If we cloned the Identity control of another node, don't reset!
+	if s.IdentityControl == nil {
+		s.IdentityControl = NewIdentityManager()
+	}
 	s.initServerKeys()
 	s.AuthorityServerCount = 0
 
@@ -2068,12 +2074,7 @@ func (s *State) SetFaultWait(wait int) {
 
 // GetAuthorities will return a list of the network authorities
 func (s *State) GetAuthorities() []interfaces.IAuthority {
-	auths := make([]interfaces.IAuthority, 0)
-	for _, auth := range s.Authorities {
-		auths = append(auths, auth)
-	}
-
-	return auths
+	return s.IdentityControl.GetAuthorities()
 }
 
 // GetLeaderPL returns the leader process list from the state. this method is
@@ -2187,6 +2188,11 @@ func (s *State) GetNetworkSkeletonIdentity() interfaces.IHash {
 		return id
 	}
 	id, _ := primitives.HexToHash("8888888888888888888888888888888888888888888888888888888888888888")
+	return id
+}
+
+func (s *State) GetNetworkIdentityRegistrationChain() interfaces.IHash {
+	id, _ := primitives.HexToHash("888888001750ede0eff4b05f0c3f557890b256450cabbb84cada937f9c258327")
 	return id
 }
 
@@ -2366,9 +2372,6 @@ func (s *State) SetStringQueues() {
 	if found {
 		L = "L"
 		if list != nil {
-			if list.AmINegotiator {
-				N = "N"
-			}
 		}
 	} else {
 		if list != nil {
@@ -2452,12 +2455,7 @@ func (s *State) SetStringQueues() {
 	str = str + fmt.Sprintf(" %d/%d", list.System.Height, len(list.System.List))
 
 	if list.System.Height < len(list.System.List) {
-		ff, ok := list.System.List[list.System.Height].(*messages.FullServerFault)
-		if ok {
-			str = str + fmt.Sprintf(" VM:%d %s", int(ff.VMIndex), ff.AuditServerID.String()[6:10])
-		} else {
-			str = str + fmt.Sprintf(" VM:%s %s", "?", "-nil-")
-		}
+		str = str + fmt.Sprintf(" VM:%s %s", "?", "-nil-")
 	} else {
 		str = str + " -"
 	}

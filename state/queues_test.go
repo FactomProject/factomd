@@ -139,9 +139,6 @@ func TestQueues(t *testing.T) {
 func tripAllMessages(q interfaces.IQueue) {
 	EnAndDeQueue(q, new(messages.EOM))
 	EnAndDeQueue(q, new(messages.Ack))
-	EnAndDeQueue(q, new(messages.AuditServerFault))
-	EnAndDeQueue(q, new(messages.ServerFault))
-	EnAndDeQueue(q, new(messages.FullServerFault))
 	EnAndDeQueue(q, new(messages.CommitChainMsg))
 	EnAndDeQueue(q, new(messages.CommitEntryMsg))
 	EnAndDeQueue(q, new(messages.DirectoryBlockSignature))

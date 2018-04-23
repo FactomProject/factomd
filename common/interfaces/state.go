@@ -222,7 +222,6 @@ type IState interface {
 	ProcessDBSig(dbheight uint32, commitChain IMsg) bool
 	ProcessEOM(dbheight uint32, eom IMsg) bool
 	ProcessRevealEntry(dbheight uint32, m IMsg) bool
-	ProcessFullServerFault(dbheight uint32, fullFault IMsg) bool
 	// For messages that go into the Process List
 	LeaderExecute(IMsg)
 	LeaderExecuteEOM(IMsg)
@@ -290,6 +289,7 @@ type IState interface {
 	VerifyAuthoritySignature(Message []byte, signature *[64]byte, dbheight uint32) (int, error)
 	FastVerifyAuthoritySignature(Message []byte, signature IFullSignature, dbheight uint32) (int, error)
 	UpdateAuthSigningKeys(height uint32)
+	AddIdentityFromChainID(cid IHash) error
 
 	AddAuthorityDelta(changeString string)
 

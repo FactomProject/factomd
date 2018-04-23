@@ -110,7 +110,7 @@ func NewController(feds, auds int) *Controller {
 
 func NewTestVolunteerMessage(ele *elections.Elections, f, a int) *electionMsgs.FedVoteVolunteerMsg {
 	v := new(electionMsgs.FedVoteVolunteerMsg)
-	v.EOM = true
+	v.SigType = true
 	v.Name = "Leader 2"
 	v.FedIdx = uint32(f)
 	v.FedID = ele.Federated[f].GetChainID()

@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"fmt"
 	//"github.com/FactomProject/factomd/state"
-	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -55,20 +54,10 @@ var _ interfaces.IElectionMsg = (*FedVoteVolunteerMsg)(nil)
 
 func (m *FedVoteVolunteerMsg) ElectionProcess(is interfaces.IState, elect interfaces.IElections) {
 	e := elect.(*elections.Elections)
-
-	// If we haven't detected a fault  ourselves(no timeout), then wait on this for a bit and try again.
-	if e.Electing < 0 {
-		go func() {
-			time.Sleep(100 * time.Millisecond)
-			is.ElectionsQueue().Enqueue(m)
-		}()
-		return
-	}
-
 	// This message picked up the authority set for the affected processlist in state before arriving here
 
-	e.Audit = m.AuditServers
-	e.Federated = m.FedServers
+	//e.Audit = m.AuditServers
+	//e.Federated = m.FedServers
 
 	idx := e.LeaderIndex(is.GetIdentityChainID())
 	aidx := e.AuditIndex(is.GetIdentityChainID())
@@ -124,18 +113,18 @@ func (m *FedVoteVolunteerMsg) FollowerExecute(is interfaces.IState) {
 	if pl == nil {
 		return
 	}
-	s_fservers := pl.FedServers
-	s_aservers := pl.AuditServers
+	//s_fservers := pl.FedServers
+	//s_aservers := pl.AuditServers
 
-	m.FedServers = nil
-	m.AuditServers = nil
-
-	for _, s := range s_fservers {
-		m.FedServers = append(m.FedServers, s) // Append the federated servers
-	}
-	for _, s := range s_aservers {
-		m.AuditServers = append(m.AuditServers, s) // Append the audit servers
-	}
+	//m.FedServers = nil
+	//m.AuditServers = nil
+	//
+	//for _, s := range s_fservers {
+	//	m.FedServers = append(m.FedServers, s) // Append the federated servers
+	//}
+	//for _, s := range s_aservers {
+	//	m.AuditServers = append(m.AuditServers, s) // Append the audit servers
+	//}
 	// these will be sorted to priority order in the election.
 	is.ElectionsQueue().Enqueue(m)
 }
@@ -233,7 +222,16 @@ func (m *FedVoteVolunteerMsg) ElectionValidate(ie interfaces.IElections) int {
 func (m *FedVoteVolunteerMsg) Validate(is interfaces.IState) int {
 	// Set the super and let the base validate
 	m.FedVoteMsg.Super = m
-	return m.FedVoteMsg.Validate(is)
+	valid := m.FedVoteMsg.Validate(is)
+	if valid <= 0 {
+		return valid
+	}
+
+	// If valid is 1
+	if is.(*state.State).Elections.(*elections.Elections).Electing < 0 {
+		return 0
+	}
+	return valid
 }
 
 // Returns true if this is a message for this server to execute as
