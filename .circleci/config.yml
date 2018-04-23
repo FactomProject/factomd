@@ -123,12 +123,12 @@ jobs:
       - run:
           name: Go Test with Coverage
           no_output_timeout: 2400
-          command: go test $(glide nv) -vet=off -v -cover -coverprofile=/home/ubuntu/coverage.out
+          command: go test $(glide nv) -vet=off -v -cover -coverprofile=coverage.out
 
       - run:
           name: Coveralls!
           no_output_timeout: 2400
-          command: goveralls -coverprofile=/home/ubuntu/coverage.out -service=circle-ci -repotoken=$COVERALLS_TOKEN
+          command: goveralls -coverprofile=coverage.out -service=circle-ci -repotoken=$COVERALLS_TOKEN
 
 #      - run:
 #          name: Coveralls!
