@@ -43,7 +43,7 @@ func TestConnectionCommandString(t *testing.T) {
 	c.Command = 4
 	c.Delta = 2
 
-	correct := `{"Command":4,"Peer":{"QualityScore":0,"Address":"","Port":"","NodeID":0,"Hash":"","Location":0,"Network":0,"Type":0,"Connections":0,"LastContact":"0001-01-01T00:00:00Z","Source":null},"Delta":2,"Metrics":{"MomentConnected":"0001-01-01T00:00:00Z","BytesSent":0,"BytesReceived":0,"MessagesSent":0,"MessagesReceived":0,"PeerAddress":"","PeerQuality":0,"ConnectionState":"","ConnectionNotes":""}}`
+	correct := `{"Command":4,"Peer":{"QualityScore":0,"Address":"","Port":"","NodeID":0,"Hash":"","Location":0,"Network":0,"Type":0,"Connections":0,"LastContact":"0001-01-01T00:00:00Z","Source":null},"Delta":2,"Metrics":{"MomentConnected":"0001-01-01T00:00:00Z","BytesSent":0,"BytesReceived":0,"MessagesSent":0,"MessagesReceived":0,"PeerAddress":"","PeerQuality":0,"PeerType":"","ConnectionState":"","ConnectionNotes":""}}`
 
 	data, err := c.JSONByte()
 	if err != nil {
