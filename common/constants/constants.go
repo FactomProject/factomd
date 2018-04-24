@@ -168,7 +168,7 @@ const (
 	// How many blocks before the coinbase does the coinbase
 	// have to appear in the admin block
 	//		:: Default = 1000
-	COINBASE_DECLARATION = 5 // TODO: Set to 1000
+	COINBASE_DECLARATION = 2 * COINBASE_PAYOUT_FREQUENCY // TODO: Set to 1000
 
 	// The maximum amount of factoshis to be issued per server per payout
 	// 		:: Default = 6.4*1e8
@@ -177,7 +177,7 @@ const (
 	// The height at which coinbase transactions will activate.
 	//	 This is useful for updating without needing to take
 	// 	 down the network and giving an update period.
-	COINBASE_ACTIVATION = uint32(100)
+	COINBASE_ACTIVATION = uint32(26625)
 )
 
 const (
