@@ -200,6 +200,20 @@ func (im *IdentityManager) ProcessIdentityEntryWithABlockUpdate(entry interfaces
 			return false, err
 		}
 		break
+	case "Coinbase Cancel":
+		cc, err := DecodeNewCoinbaseCancelStructFromExtIDs(extIDs)
+		if err != nil {
+			return false, err
+		}
+		tryAgain, change, err = im.ApplyNewCoinbaseCancelStruct(cc, chainID, dBlockTimestamp, a)
+		if tryAgain == true && newEntry == true {
+			//if it's a new entry, push it and return nil
+			return false, im.PushEntryForLater(entry, dBlockHeight, dBlockTimestamp)
+		}
+		//if it's an old entry, return error to signify the entry has not been processed and should be kept
+		if err != nil {
+			return false, err
+		}
 	}
 
 	return change, nil
@@ -519,4 +533,13 @@ func (im *IdentityManager) ApplyNewCoinbaseAddressStruct(ncas *NewCoinbaseAddres
 	}
 
 	return true, false, err
+}
+
+// ApplyNewCoinbaseCancelStruct will parse a new coinbase cancel
+//		Returns
+//			bool	change		If a key has been changed
+//			bool	tryagain	If this is set to true, this entry can be reprocessed if it is *new*
+//			error	err			Any errors
+func (im *IdentityManager) ApplyNewCoinbaseCancelStruct(nccs *NewCoinbaseCancelStruct, rootchainID interfaces.IHash, dBlockTimestamp interfaces.Timestamp, a interfaces.IAdminBlock) (bool, bool, error) {
+	return false, false, nil
 }
