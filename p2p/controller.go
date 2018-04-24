@@ -728,7 +728,7 @@ func (c *Controller) broadcast(parcel Parcel) {
 	numRegularPeers := len(c.connections) - len(c.specialPeers)
 	numPeersToSendTo := min(numRegularPeers, NumberPeersToBroadcast)
 	limit := min(numRegularPeers, numPeersToSendTo)
-	if numPeersToSendTo <= 0 {
+	if numPeersToSendTo <= 0 || numSent > limit {
 		return
 	}
 
@@ -739,9 +739,9 @@ broadcast:
 		if !connection.peer.IsSpecial() {
 			BlockFreeChannelSend(connection.SendChannel, ConnectionParcel{Parcel: parcel})
 			numSent++
-			if numSent >= limit {
-				break broadcast
-			}
+		}
+		if numSent >= limit {
+			break broadcast
 		}
 	}
 
