@@ -59,9 +59,9 @@ type Controller struct {
 	lastDiscoveryRequest      time.Time
 	NodeID                    uint64
 	lastStatusReport          time.Time
-	lastPeerRequest           time.Time       // Last time we asked peers about the peers they know about.
-	specialPeers              []*Peer         // list of special peers (from config file and from the command line params)
-	partsAssembler            *PartsAssembler // a data structure that assembles full messages from received message parts
+	lastPeerRequest           time.Time        // Last time we asked peers about the peers they know about.
+	specialPeers              map[string]*Peer // special peers (from config file and from the command line params) by peer address
+	partsAssembler            *PartsAssembler  // a data structure that assembles full messages from received message parts
 
 	// logging
 	logger *log.Entry
@@ -187,9 +187,7 @@ func (c *Controller) Init(ci ControllerInit) *Controller {
 	CurrentNetwork = ci.Network
 	OnlySpecialPeers = ci.Exclusive || ci.ExclusiveIn
 	AllowUnknownIncomingPeers = !ci.ExclusiveIn
-	configPeers := c.parseSpecialPeers(ci.ConfigPeers)
-	cmdLinePeers := c.parseSpecialPeers(ci.CmdLinePeers)
-	c.specialPeers = append(configPeers, cmdLinePeers...)
+	c.initSpecialPeers(ci)
 	c.lastDiscoveryRequest = time.Now() // Discovery does its own on startup.
 	c.lastConnectionMetricsUpdate = time.Now()
 	c.partsAssembler = new(PartsAssembler).Init()
@@ -238,6 +236,51 @@ func (c *Controller) Disconnect(peerHash string) {
 
 func (c *Controller) GetNumberConnections() int {
 	return len(c.connections)
+}
+
+func (c *Controller) ReloadSpecialPeers(newPeersConfig string) {
+	c.logger.Info("Reloading special peers after config file change")
+	newPeers := make(map[string]*Peer)
+	for _, newPeer := range c.parseSpecialPeers(newPeersConfig, SpecialPeerConfig) {
+		newPeers[newPeer.Address] = newPeer
+	}
+
+	toBeAdded := make([]*Peer, 0, len(newPeers))
+	toBeRemoved := make([]*Peer, 0, len(c.specialPeers))
+
+	for address, newPeer := range newPeers {
+		_, exists := c.specialPeers[address]
+		if !exists {
+			c.logger.Infof("Detected a new peer in the config file: %s", address)
+			toBeAdded = append(toBeAdded, newPeer)
+		}
+	}
+
+	for address, oldPeer := range c.specialPeers {
+		_, exists := newPeers[address]
+		if exists {
+			if oldPeer.Type == SpecialPeerCmdLine {
+				c.logger.Warnf(
+					"Detected a peer removed from the config file,"+
+						" but it was earlier defined in the command line, ignoring: %s",
+					address,
+				)
+				continue
+			}
+			c.logger.Infof("Detected a peer removed from the config file: %s")
+			toBeRemoved = append(toBeRemoved, oldPeer)
+		}
+	}
+
+	for _, peer := range toBeRemoved {
+		delete(c.specialPeers, peer.Address)
+		c.Disconnect(peer.Hash)
+	}
+
+	for _, peer := range toBeAdded {
+		c.specialPeers[peer.Address] = peer
+		c.DialPeer(*peer, true)
+	}
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -315,7 +358,21 @@ func (c *Controller) isSpecialPeer(conn net.Conn) bool {
 	return false
 }
 
-func (c *Controller) parseSpecialPeers(peersString string) []*Peer {
+func (c *Controller) initSpecialPeers(ci ControllerInit) {
+	c.specialPeers = make(map[string]*Peer)
+	configPeers := c.parseSpecialPeers(ci.ConfigPeers, SpecialPeerConfig)
+	cmdLinePeers := c.parseSpecialPeers(ci.CmdLinePeers, SpecialPeerCmdLine)
+
+	// command line peers overwrite config peers
+	for _, peer := range configPeers {
+		c.specialPeers[peer.Address] = peer
+	}
+	for _, peer := range cmdLinePeers {
+		c.specialPeers[peer.Address] = peer
+	}
+}
+
+func (c *Controller) parseSpecialPeers(peersString string, peerType uint8) []*Peer {
 	parseFunc := func(c rune) bool {
 		return !unicode.IsLetter(c) && !unicode.IsNumber(c) && !unicode.IsPunct(c)
 	}
@@ -324,9 +381,9 @@ func (c *Controller) parseSpecialPeers(peersString string) []*Peer {
 	for _, peerAddress := range peerAddresses {
 		address, port, err := net.SplitHostPort(peerAddress)
 		if err != nil {
-			c.logger.Errorf("DialSpecialPeersString: %s is not a valid peer (%v), use format: 127.0.0.1:8999", peersString, err)
+			c.logger.Errorf("%s is not a valid peer (%v), use format: 127.0.0.1:8999", peersString, err)
 		} else {
-			peer := new(Peer).Init(address, port, 0, SpecialPeer, 0)
+			peer := new(Peer).Init(address, port, 0, peerType, 0)
 			peer.Source["Local-Configuration"] = time.Now()
 			peers = append(peers, peer)
 		}
@@ -398,44 +455,7 @@ func (c *Controller) route() {
 		TotalMessagesSent++
 		switch parcel.Header.TargetPeer {
 		case BroadcastFlag: // Send to all peers
-
-			// First off, how many nodes are we broadcasting to?  At least 4, if possible.  But 1/4 of the
-			// number of connections if that is more than 4.
-			num := NumberPeersToBroadcast
-			clen := len(c.connections)
-			if clen == 0 {
-				return
-			} else if clen < num {
-				num = clen
-			}
-
-			// So at this point num <= clen, and we are going to send num sequentinial connections our message.
-			// Note that if we run over the end of the connections, we wrap back to the start.  We don't assume
-			// an order of connections, but we do assume that if we range over a map twice, we get the keys in
-			// the same order both times.  (We do not modify the map)
-			cnt := 0
-			start := rand.Int() % clen
-			spot := start
-		broadcast:
-			for i := 0; i < 2; i++ {
-				loopcnt := 0
-				for _, connection := range c.connections {
-					if loopcnt == spot {
-						BlockFreeChannelSend(connection.SendChannel, ConnectionParcel{Parcel: parcel})
-						spot++
-						if spot >= clen {
-							spot = 0
-						}
-						cnt++
-					}
-					if cnt >= num {
-						break broadcast
-					}
-					loopcnt++
-				}
-			}
-			SentToPeers.Set(float64(cnt))
-			StartingPoint.Set(float64(start))
+			c.broadcast(parcel)
 
 		case RandomPeerFlag: // Find a random peer, send to that peer.
 			c.logger.Debugf("Controller.route() Directed FINDING RANDOM Target: %s Type: %s #Number Connections: %d", parcel.Header.TargetPeer, parcel.Header.AppType, len(c.connections))
@@ -670,6 +690,7 @@ func (c *Controller) updateMetrics() {
 					MessagesReceived: metrics.MessagesReceived,
 					PeerAddress:      metrics.PeerAddress,
 					PeerQuality:      metrics.PeerQuality,
+					PeerType:         metrics.PeerType,
 					ConnectionState:  metrics.ConnectionState,
 					ConnectionNotes:  metrics.ConnectionNotes,
 				}
@@ -686,4 +707,58 @@ func (c *Controller) shutdown() {
 		BlockFreeChannelSend(connection.SendChannel, ConnectionCommand{Command: ConnectionShutdownNow})
 	}
 	c.keepRunning = false
+}
+
+// Broadcasts the parcel to a number of peers: all special peers and a random selection
+// of regular peers (max NumberPeersToBroadcast).
+func (c *Controller) broadcast(parcel Parcel) {
+	numSent := 0
+
+	// always broadcast to special peers
+	for _, peer := range c.specialPeers {
+		connection, connected := c.connections[peer.Hash]
+		if !connected {
+			continue
+		}
+		numSent++
+		BlockFreeChannelSend(connection.SendChannel, ConnectionParcel{Parcel: parcel})
+	}
+
+	// estimate a number of regular peers to send messages to, at most NumberPeersToBroadcast
+	numRegularPeers := len(c.connections) - len(c.specialPeers)
+	numPeersToSendTo := min(numRegularPeers, NumberPeersToBroadcast)
+	if numPeersToSendTo <= 0 {
+		return
+	}
+
+	// gather all peer hashes for regular connections for random selection
+	regularPeers := make([]string, 0, numRegularPeers)
+
+	for peerHash, connection := range c.connections {
+		if !connection.peer.IsSpecial() {
+			regularPeers = append(regularPeers, peerHash)
+		}
+	}
+
+	// perform a shuffle on the connection peers, so that we can obtain a random sample
+	// by getting items from the begiining of the shuffled slice
+	rand.Shuffle(len(regularPeers), func(i, j int) {
+		regularPeers[i], regularPeers[j] = regularPeers[j], regularPeers[i]
+	})
+
+	// send until we hit the required number or if we run out of peers
+	for i := 0; i < min(numPeersToSendTo, len(regularPeers)); i++ {
+		connection := c.connections[regularPeers[i]]
+		numSent++
+		BlockFreeChannelSend(connection.SendChannel, ConnectionParcel{Parcel: parcel})
+	}
+	SentToPeers.Set(float64(numSent))
+}
+
+func min(x, y int) int {
+	if x < y {
+		return x
+	} else {
+		return y
+	}
 }
