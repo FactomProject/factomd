@@ -25,6 +25,7 @@ import (
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
 
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/messages/msgsupport"
 	"github.com/FactomProject/factomd/elections"
@@ -333,6 +334,14 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		seedURL = s.CustomSeedURL
 		networkPort = s.CustomNetworkPort
 		configPeers = s.CustomSpecialPeers
+
+		// Also update the coinbase constants if running communitynet
+		if bytes.Compare(Params.CustomNet, []byte{0x88, 0x3e, 0x09, 0x3b}) == 0 {
+			fmt.Println("Running on the community testnet, using coinbase testnet coinbase constants.")
+			constants.COINBASE_ACTIVATION = 26625
+			constants.COINBASE_DECLARATION = 10
+			constants.COINBASE_PAYOUT_FREQUENCY = 5
+		}
 	default:
 		panic("Invalid Network choice in Config File or command line. Choose MAIN, TEST, LOCAL, or CUSTOM")
 	}

@@ -158,17 +158,18 @@ func MessageName(Type byte) string {
 	}
 }
 
-const (
+// Not a constant because custom nets will modify these values
+var (
 	// Coinbase Related Constants
 
 	// How often to create coinbase transactions
 	//		:: Default = 25
-	COINBASE_PAYOUT_FREQUENCY = 5 // TODO: Set to 25
+	COINBASE_PAYOUT_FREQUENCY = uint32(25)
 
 	// How many blocks before the coinbase does the coinbase
 	// have to appear in the admin block
-	//		:: Default = 1000
-	COINBASE_DECLARATION = 2 * COINBASE_PAYOUT_FREQUENCY // TODO: Set to 1000
+	//		:: Default = COINBASE_PAYOUT_FREQUENCY*40
+	COINBASE_DECLARATION = uint32(COINBASE_PAYOUT_FREQUENCY * 40)
 
 	// The maximum amount of factoshis to be issued per server per payout
 	// 		:: Default = 6.4*1e8
@@ -177,7 +178,7 @@ const (
 	// The height at which coinbase transactions will activate.
 	//	 This is useful for updating without needing to take
 	// 	 down the network and giving an update period.
-	COINBASE_ACTIVATION = uint32(26625)
+	COINBASE_ACTIVATION = uint32(0)
 )
 
 const (
