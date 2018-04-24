@@ -709,6 +709,28 @@ func (c *Controller) shutdown() {
 	c.keepRunning = false
 }
 
+/*
+	num := NumberPeersToBroadcast
+	clen := len(c.connections)
+	if clen == 0 {
+		return // oops, no one to talk to
+	} else if clen < num {
+		num = clen
+	}
+	// Go (since 1.3) iterates over maps in a random order (not hash or insert order but random) so we just do the first N from this random ordering
+	cnt := 0
+broadcast:
+	for _, connection := range c.connections {
+		BlockFreeChannelSend(connection.SendChannel, ConnectionParcel{Parcel: parcel})
+		cnt++
+		if cnt >= num {
+			break broadcast
+		}
+	}
+	SentToPeers.Set(float64(cnt))
+	StartingPoint.Set(float64(0)) // Not sure what this was supposed to measure -- clay
+*/
+
 // Broadcasts the parcel to a number of peers: all special peers and a random selection
 // of regular peers (max NumberPeersToBroadcast).
 func (c *Controller) broadcast(parcel Parcel) {
@@ -727,31 +749,24 @@ func (c *Controller) broadcast(parcel Parcel) {
 	// estimate a number of regular peers to send messages to, at most NumberPeersToBroadcast
 	numRegularPeers := len(c.connections) - len(c.specialPeers)
 	numPeersToSendTo := min(numRegularPeers, NumberPeersToBroadcast)
+	limit := min(numRegularPeers, numPeersToSendTo)
 	if numPeersToSendTo <= 0 {
 		return
 	}
 
-	// gather all peer hashes for regular connections for random selection
-	regularPeers := make([]string, 0, numRegularPeers)
-
-	for peerHash, connection := range c.connections {
+	// Go (since 1.3) iterates over maps in a random order (not hash or insert order but random) so we
+	// just do the first N from this random ordering
+broadcast:
+	for _, connection := range c.connections {
 		if !connection.peer.IsSpecial() {
-			regularPeers = append(regularPeers, peerHash)
+			BlockFreeChannelSend(connection.SendChannel, ConnectionParcel{Parcel: parcel})
+			numSent++
+			if numSent >= limit {
+				break broadcast
+			}
 		}
 	}
 
-	// perform a shuffle on the connection peers, so that we can obtain a random sample
-	// by getting items from the begiining of the shuffled slice
-	rand.Shuffle(len(regularPeers), func(i, j int) {
-		regularPeers[i], regularPeers[j] = regularPeers[j], regularPeers[i]
-	})
-
-	// send until we hit the required number or if we run out of peers
-	for i := 0; i < min(numPeersToSendTo, len(regularPeers)); i++ {
-		connection := c.connections[regularPeers[i]]
-		numSent++
-		BlockFreeChannelSend(connection.SendChannel, ConnectionParcel{Parcel: parcel})
-	}
 	SentToPeers.Set(float64(numSent))
 }
 
