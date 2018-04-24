@@ -455,44 +455,7 @@ func (c *Controller) route() {
 		TotalMessagesSent++
 		switch parcel.Header.TargetPeer {
 		case BroadcastFlag: // Send to all peers
-
-			// First off, how many nodes are we broadcasting to?  At least 4, if possible.  But 1/4 of the
-			// number of connections if that is more than 4.
-			num := NumberPeersToBroadcast
-			clen := len(c.connections)
-			if clen == 0 {
-				return
-			} else if clen < num {
-				num = clen
-			}
-
-			// So at this point num <= clen, and we are going to send num sequentinial connections our message.
-			// Note that if we run over the end of the connections, we wrap back to the start.  We don't assume
-			// an order of connections, but we do assume that if we range over a map twice, we get the keys in
-			// the same order both times.  (We do not modify the map)
-			cnt := 0
-			start := rand.Int() % clen
-			spot := start
-		broadcast:
-			for i := 0; i < 2; i++ {
-				loopcnt := 0
-				for _, connection := range c.connections {
-					if loopcnt == spot {
-						BlockFreeChannelSend(connection.SendChannel, ConnectionParcel{Parcel: parcel})
-						spot++
-						if spot >= clen {
-							spot = 0
-						}
-						cnt++
-					}
-					if cnt >= num {
-						break broadcast
-					}
-					loopcnt++
-				}
-			}
-			SentToPeers.Set(float64(cnt))
-			StartingPoint.Set(float64(start))
+			c.broadcast(parcel)
 
 		case RandomPeerFlag: // Find a random peer, send to that peer.
 			c.logger.Debugf("Controller.route() Directed FINDING RANDOM Target: %s Type: %s #Number Connections: %d", parcel.Header.TargetPeer, parcel.Header.AppType, len(c.connections))
@@ -744,4 +707,58 @@ func (c *Controller) shutdown() {
 		BlockFreeChannelSend(connection.SendChannel, ConnectionCommand{Command: ConnectionShutdownNow})
 	}
 	c.keepRunning = false
+}
+
+// Broadcasts the parcel to a number of peers: all special peers and a random selection
+// of regular peers (max NumberPeersToBroadcast).
+func (c *Controller) broadcast(parcel Parcel) {
+	numSent := 0
+
+	// always broadcast to special peers
+	for _, peer := range c.specialPeers {
+		connection, connected := c.connections[peer.Hash]
+		if !connected {
+			continue
+		}
+		numSent++
+		BlockFreeChannelSend(connection.SendChannel, ConnectionParcel{Parcel: parcel})
+	}
+
+	// estimate a number of regular peers to send messages to, at most NumberPeersToBroadcast
+	numRegularPeers := len(c.connections) - len(c.specialPeers)
+	numPeersToSendTo := min(numRegularPeers, NumberPeersToBroadcast)
+	if numPeersToSendTo <= 0 {
+		return
+	}
+
+	// gather all peer hashes for regular connections for random selection
+	regularPeers := make([]string, 0, numRegularPeers)
+
+	for peerHash, connection := range c.connections {
+		if !connection.peer.IsSpecial() {
+			regularPeers = append(regularPeers, peerHash)
+		}
+	}
+
+	// perform a shuffle on the connection peers, so that we can obtain a random sample
+	// by getting items from the begiining of the shuffled slice
+	rand.Shuffle(len(regularPeers), func(i, j int) {
+		regularPeers[i], regularPeers[j] = regularPeers[j], regularPeers[i]
+	})
+
+	// send until we hit the required number or if we run out of peers
+	for i := 0; i < min(numPeersToSendTo, len(regularPeers)); i++ {
+		connection := c.connections[regularPeers[i]]
+		numSent++
+		BlockFreeChannelSend(connection.SendChannel, ConnectionParcel{Parcel: parcel})
+	}
+	SentToPeers.Set(float64(numSent))
+}
+
+func min(x, y int) int {
+	if x < y {
+		return x
+	} else {
+		return y
+	}
 }

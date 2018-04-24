@@ -168,6 +168,10 @@ func (p *Peer) demerit() {
 	}
 }
 
+func (p *Peer) IsSpecial() bool {
+	return p.Type == SpecialPeerConfig || p.Type == SpecialPeerCmdLine
+}
+
 func (p *Peer) PeerTypeString() string {
 	switch p.Type {
 	case RegularPeer:
