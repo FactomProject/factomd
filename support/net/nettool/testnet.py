@@ -54,7 +54,9 @@ class Testnet(object):
         self.seeds.generate_seeds_file()
         self.seeds.up(restart=build)
 
-        self.nodes[0].up(restart=build)
+        for node in self.nodes:
+            node.up(restart=build)
+
         self.nodes[0].load_identities(len(self.nodes) - 1)
 
         with log.step("WAITING"):
@@ -62,9 +64,6 @@ class Testnet(object):
 
         for node in self.nodes[1:]:
             self.nodes[0].promote(node)
-
-        for node in self.nodes[1:]:
-            node.up(restart=build)
 
     def down(self, destroy=False):
         """
