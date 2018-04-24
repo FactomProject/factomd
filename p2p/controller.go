@@ -709,28 +709,6 @@ func (c *Controller) shutdown() {
 	c.keepRunning = false
 }
 
-/*
-	num := NumberPeersToBroadcast
-	clen := len(c.connections)
-	if clen == 0 {
-		return // oops, no one to talk to
-	} else if clen < num {
-		num = clen
-	}
-	// Go (since 1.3) iterates over maps in a random order (not hash or insert order but random) so we just do the first N from this random ordering
-	cnt := 0
-broadcast:
-	for _, connection := range c.connections {
-		BlockFreeChannelSend(connection.SendChannel, ConnectionParcel{Parcel: parcel})
-		cnt++
-		if cnt >= num {
-			break broadcast
-		}
-	}
-	SentToPeers.Set(float64(cnt))
-	StartingPoint.Set(float64(0)) // Not sure what this was supposed to measure -- clay
-*/
-
 // Broadcasts the parcel to a number of peers: all special peers and a random selection
 // of regular peers (max NumberPeersToBroadcast).
 func (c *Controller) broadcast(parcel Parcel) {
