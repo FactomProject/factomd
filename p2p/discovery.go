@@ -127,7 +127,7 @@ func (d *Discovery) SavePeers() {
 	UpdateKnownPeers.Lock()
 	for _, peer := range d.knownPeers {
 		switch {
-		case peer.Type == SpecialPeerConfig || peer.Type == SpecialPeerCmdLine: // always save special peers, even if we haven't talked in awhile.
+		case peer.IsSpecial(): // always save special peers, even if we haven't talked in awhile.
 			qualityPeers[peer.AddressPort()] = peer
 			d.logger.Debugf("SavePeers() saved peer in peers.json: %+v", peer)
 
@@ -222,7 +222,7 @@ func (d *Discovery) GetOutgoingPeers() []Peer {
 	UpdateKnownPeers.Lock()
 	for _, peer := range d.knownPeers {
 		switch {
-		case OnlySpecialPeers && (peer.Type == SpecialPeerConfig || peer.Type == SpecialPeerCmdLine):
+		case OnlySpecialPeers && peer.IsSpecial():
 			firstPassPeers = append(firstPassPeers, peer)
 		case !OnlySpecialPeers:
 			firstPassPeers = append(firstPassPeers, peer)
@@ -293,14 +293,14 @@ func (d *Discovery) getPeerSelection() []byte {
 	// we check by location to keep from sharing special peers when they dial into us (in which case we wouldn't realize
 	// they were special by the flag.)
 	for _, peer := range peerPool {
-		if (peer.Type == SpecialPeerConfig || peer.Type == SpecialPeerCmdLine) && peer.Location != 0 { // only include special peers that have IP address
+		if peer.IsSpecial() && peer.Location != 0 { // only include special peers that have IP address
 			specialPeersByLocation[peer.Location] = peer
 		}
 	}
 	for _, peer := range peerPool {
 		_, present := specialPeersByLocation[peer.Location]
 		switch {
-		case peer.Type == SpecialPeerConfig || peer.Type == SpecialPeerCmdLine:
+		case peer.IsSpecial():
 			break
 		case present:
 			break
