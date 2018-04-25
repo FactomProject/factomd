@@ -167,7 +167,7 @@ func Peers(fnode *FactomNode) {
 			}
 
 			// Make sure the message isn't a duplicate
-			NRValid := fnode.State.Replay.IsTSValid_(constants.NETWORK_REPLAY, repeatHashFixed, timestamp, now)
+			NRValid := fnode.State.Replay.IsTSValidAndUpdateState(constants.NETWORK_REPLAY, repeatHashFixed, timestamp, now)
 			if !NRValid {
 				fnode.State.LogMessage("NetworkInputs", "API Drop, NETWORK_REPLAY", msg)
 				RepeatMsgs.Inc()
@@ -229,7 +229,7 @@ func Peers(fnode *FactomNode) {
 				hash := repeatHash.Fixed()
 				timestamp := msg.GetTimestamp()
 
-				tsv := fnode.State.Replay.IsTSValid_(constants.TIME_TEST, hash, timestamp, now)
+				tsv := fnode.State.Replay.IsTSValidAndUpdateState(constants.TIME_TEST, hash, timestamp, now)
 				if !tsv {
 					fnode.State.LogMessage("NetworkInputs", fromPeer+" Drop, TS invalid", msg)
 					continue
@@ -249,7 +249,7 @@ func Peers(fnode *FactomNode) {
 				//	continue
 				//}
 
-				rv := fnode.State.Replay.IsTSValid_(constants.NETWORK_REPLAY, hash, timestamp, now)
+				rv := fnode.State.Replay.IsTSValidAndUpdateState(constants.NETWORK_REPLAY, hash, timestamp, now)
 				if !rv {
 					fnode.State.LogMessage("NetworkInputs", fromPeer+" Drop, NETWORK_REPLAY", msg)
 					RepeatMsgs.Inc()
@@ -308,7 +308,7 @@ func NetworkOutputs(fnode *FactomNode) {
 				_, ok := msg.(*messages.Ack)
 				if ok {
 					// Add the ack to our replay filter
-					fnode.State.Replay.IsTSValid_(
+					fnode.State.Replay.IsTSValidAndUpdateState(
 						constants.NETWORK_REPLAY,
 						msg.GetRepeatHash().Fixed(),
 						msg.GetTimestamp(),
