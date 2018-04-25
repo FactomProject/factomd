@@ -19,7 +19,8 @@ import (
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
 
-	"github.com/FactomProject/factom"
+	"strings"
+
 	"github.com/FactomProject/factomd/common/factoid"
 )
 
@@ -501,13 +502,13 @@ func getAblock(hash string) *AblockHolder {
 			disp.Type = "Add Bitcoin Server Key"
 			disp.OtherInfo = "Identity ChainID: <a href='' id='factom-search-link' type='chainhead'>" + b.IdentityChainID.String() + "</a>"
 
-			// Coinbase related
+			//Coinbase related
 		case constants.TYPE_COINBASE_DESCRIPTOR:
 			f := entry.(*adminBlock.CoinbaseDescriptor)
 			disp.Type = "Coinbase Descriptor"
 			sep := ""
 			for _, o := range f.Outputs {
-				disp.OtherInfo += fmt.Sprintf("%sAddress: <a href='' id='factom-search-link' type='FA'>%s</a> Amount: %s", sep, primitives.ConvertFctAddressToUserStr(o.GetAddress()), factom.FactoshiToFactoid(o.GetAmount()))
+				disp.OtherInfo += fmt.Sprintf("%sAddress: <a href='' id='factom-search-link' type='FA'>%s</a> Amount: %s", sep, primitives.ConvertFctAddressToUserStr(o.GetAddress()), FactoshiToFactoid(o.GetAmount()))
 				sep = "<br />"
 			}
 
@@ -529,12 +530,37 @@ func getAblock(hash string) *AblockHolder {
 			disp.Type = "Add Authority Efficiency"
 			disp.OtherInfo = "Identity ChainID: <a href='' id='factom-search-link' type='chainhead'>" + f.IdentityChainID.String() + "</a><br />"
 			disp.OtherInfo += fmt.Sprintf("Efficiency: %s%%", primitives.EfficiencyToString(f.Efficiency))
-
+		default:
+			// Forward compatible
+			_, ok := entry.(*adminBlock.ForwardCompatibleEntry)
+			if !ok {
+				disp.Type = "Unknown"
+				data, _ := entry.MarshalBinary()
+				disp.OtherInfo = fmt.Sprintf("Type: %x<br />Raw: %x", entry.Type(), data)
+			} else {
+				disp.Type = "Forward Compatible Type"
+				data, _ := entry.MarshalBinary()
+				disp.OtherInfo = fmt.Sprintf("This entry is not defined, you are probably running old software and should update.<br />Type: 0x%02x<br />Raw: %x\n", entry.Type(), data)
+			}
 		}
 		holder.ABDisplay = append(holder.ABDisplay, *disp)
 	}
 
 	return holder
+}
+
+// FactoshiToFactoid converts a uint64 factoshi ammount into a fixed point
+// number represented as a string
+func FactoshiToFactoid(i uint64) string {
+	d := i / 1e8
+	r := i % 1e8
+	ds := fmt.Sprintf("%d", d)
+	rs := fmt.Sprintf("%08d", r)
+	rs = strings.TrimRight(rs, "0")
+	if len(rs) > 0 {
+		ds = ds + "."
+	}
+	return fmt.Sprintf("%s%s", ds, rs)
 }
 
 type EblockHolder struct {
