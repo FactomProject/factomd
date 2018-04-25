@@ -172,8 +172,7 @@ func (s *State) Process() (progress bool) {
 		}
 	}
 
-	process := make(chan interfaces.IMsg, 10000)
-	room := func() bool { return len(process) < 9995 }
+	process := []interfaces.IMsg{}
 
 	var vm *VM
 	if s.Leader && s.RunLeader {
@@ -185,7 +184,7 @@ func (s *State) Process() (progress bool) {
 
 	/** Process all the DBStates  that might be pending **/
 
-	for room() {
+	for true {
 		ix := int(s.GetHighestSavedBlk()) - s.DBStatesReceivedBase + 1
 		if ix < 0 || ix >= len(s.DBStatesReceived) {
 			break
@@ -194,7 +193,7 @@ func (s *State) Process() (progress bool) {
 		if msg == nil {
 			break
 		}
-		process <- msg
+		process = append(process, msg)
 		s.DBStatesReceived[ix] = nil
 	}
 
@@ -262,37 +261,29 @@ emptyLoop:
 
 	if s.RunLeader {
 		s.ReviewHolding()
-
-	skipreview:
 		for {
 			for _, msg := range s.XReview {
-				if !room() {
-					break skipreview
-				}
 				if msg == nil {
 					continue
 				}
-				process <- msg
+				if msg.GetVMIndex() == s.LeaderVMIndex {
+					process = append(process, msg)
+				}
 			}
 			s.XReview = s.XReview[:0]
 			break
 		} // skip review
 	}
+
 	processXReviewTime := time.Since(preProcessXReviewTime)
 	TotalProcessXReviewTime.Add(float64(processXReviewTime.Nanoseconds()))
 
 	preProcessProcChanTime := time.Now()
-processLoop:
-	for {
-		select {
-		case msg := <-process:
-			newProgress := s.executeMsg(vm, msg)
-			progress = newProgress || progress //
-			s.LogMessage("executeMsg", fmt.Sprintf("From processq : %t", newProgress), msg)
-			s.UpdateState()
-		default:
-			break processLoop
-		}
+	for _, msg := range process {
+		newProgress := s.executeMsg(vm, msg)
+		progress = newProgress || progress //
+		s.LogMessage("executeMsg", fmt.Sprintf("From processq : %t", newProgress), msg)
+		s.UpdateState()
 	} // processLoop for{...}
 
 	processProcChanTime := time.Since(preProcessProcChanTime)
@@ -1012,7 +1003,7 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
 
 	if ack == nil {
-		s.ProcessLists.GetHolding(m.GetVMIndex())[m.GetMsgHash().Fixed()] = m
+		s.Holding[m.GetMsgHash().Fixed()] = m
 		return
 	}
 
@@ -1309,19 +1300,13 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 		h := c.GetHash()
 		s.PutCommit(h, c)
 		var entry interfaces.IMsg
-		for _, hld := range s.ProcessLists.Holding {
-			if hld != nil {
-				entry = hld[h.Fixed()]
-				if entry != nil {
-					entry.FollowerExecute(s)
-					entry.SendOut(s, entry)
-					TotalXReviewQueueInputs.Inc()
-					s.XReview = append(s.XReview, entry)
-					TotalHoldingQueueOutputs.Inc()
-					delete(s.Holding, h.Fixed())
-				}
-			}
+		entry = s.Holding[h.Fixed()]
+		if entry != nil {
+			entry.FollowerExecute(s)
+			TotalHoldingQueueOutputs.Inc()
+			delete(s.Holding, h.Fixed())
 		}
+
 		return true
 	}
 	//s.AddStatus("Cannot process Commit Chain")
@@ -1341,9 +1326,6 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 		entry := s.Holding[h.Fixed()]
 		if entry != nil && entry.Validate(s) == 1 {
 			entry.FollowerExecute(s)
-			entry.SendOut(s, entry)
-			TotalXReviewQueueInputs.Inc()
-			s.XReview = append(s.XReview, entry)
 			TotalHoldingQueueOutputs.Inc()
 			delete(s.Holding, h.Fixed())
 		}
@@ -1688,28 +1670,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 			s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
-
-			if s.Leader {
-				for _, msg := range s.ProcessLists.Holding[s.LeaderVMIndex] {
-					if msg.GetVMIndex() != s.LeaderVMIndex {
-						s.MsgQueue() <- msg
-					}
-					switch msg.Validate(s) {
-					case -1:
-						delete(s.ProcessLists.Holding[s.LeaderVMIndex], msg.GetHash().Fixed())
-					case 1:
-						if _, ok := msg.(*messages.RevealEntryMsg); ok {
-							if s.Commits.Get(msg.GetHash().Fixed()) != nil {
-								s.msgQueue <- msg
-								delete(s.ProcessLists.Holding[s.LeaderVMIndex], msg.GetHash().Fixed())
-							}
-						} else {
-							s.msgQueue <- msg
-							delete(s.ProcessLists.Holding[s.LeaderVMIndex], msg.GetHash().Fixed())
-						}
-					}
-				}
-			}
 
 			s.DBSigProcessed = 0
 
