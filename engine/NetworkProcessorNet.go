@@ -102,7 +102,7 @@ func Peers(fnode *FactomNode) {
 			case constants.MISSING_DATA:
 				if !fnode.State.DBFinished {
 					return true
-				} else if fnode.State.InMsgQueue().Length() > 4000 {
+				} else if fnode.State.InMsgQueue().Length() > constants.INMSGQUEUE_HIGH {
 					// If > 4000, we won't get to this in time anyway. Just drop it since we are behind
 					return true
 				}
@@ -136,7 +136,7 @@ func Peers(fnode *FactomNode) {
 				continue // Toss any inputs from API
 			}
 
-			if fnode.State.InMsgQueue().Length() > fnode.State.InMsgQueue().Cap()*9/10 {
+			if fnode.State.InMsgQueue().Length() > constants.INMSGQUEUE_HIGH {
 				fnode.State.LogMessage("NetworkInputs", "API Drop, Too Full", msg)
 				continue
 			}
@@ -214,7 +214,7 @@ func Peers(fnode *FactomNode) {
 					continue // Toss any inputs from this peer
 				}
 
-				if fnode.State.InMsgQueue().Length() > fnode.State.InMsgQueue().Cap()*9/10 {
+				if fnode.State.InMsgQueue().Length() > constants.INMSGQUEUE_HIGH {
 					fnode.State.LogMessage("NetworkInputs", fromPeer+" Drop, Too Full", msg)
 					continue
 				}
