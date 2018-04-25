@@ -45,10 +45,10 @@ var _ = fmt.Print
 type State struct {
 	Logger            *log.Entry
 	IsRunning         bool
-	filename          string
 	NetworkController *p2p.Controller
 	Salt              interfaces.IHash
 	Cfg               interfaces.IFactomConfig
+	ConfigFilePath    string // $HOME/.factom/m2/factomd.conf by default
 
 	Prefix            string
 	FactomNodeName    string
@@ -383,6 +383,10 @@ type EntryUpdate struct {
 	Timestamp interfaces.Timestamp
 }
 
+func (s *State) GetConfigPath() string {
+	return s.ConfigFilePath
+}
+
 func (s *State) Running() bool {
 	return s.IsRunning
 }
@@ -626,7 +630,7 @@ func (s *State) IncECommits() {
 }
 
 func (s *State) GetAckChange() error {
-	change, err := util.GetChangeAcksHeight(s.filename)
+	change, err := util.GetChangeAcksHeight(s.ConfigFilePath)
 	if err != nil {
 		return err
 	}
@@ -638,7 +642,7 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 	s.FactomNodeName = s.Prefix + "FNode0" // Default Factom Node Name for Simulation
 
 	if len(filename) > 0 {
-		s.filename = filename
+		s.ConfigFilePath = filename
 		s.ReadCfg(filename)
 
 		// Get our factomd configuration information.

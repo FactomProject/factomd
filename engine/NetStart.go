@@ -68,6 +68,9 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	// Must add the prefix before loading the configuration.
 	s.AddPrefix(p.Prefix)
 	FactomConfigFilename := util.GetConfigFilename("m2")
+	if p.ConfigPath != "" {
+		FactomConfigFilename = p.ConfigPath
+	}
 	fmt.Println(fmt.Sprintf("factom config: %s", FactomConfigFilename))
 	s.LoadConfig(FactomConfigFilename, p.NetworkName)
 	s.OneLeader = p.Rotate
