@@ -38,7 +38,6 @@ func (e *AddFederatedServer) String() string {
 
 func (c *AddFederatedServer) UpdateState(state interfaces.IState) error {
 	c.Init()
-	fmt.Printf("height: %v\n", c.DBHeight)
 	if c.DBHeight == 1 {
 		//use the bootstrap identity for the process list following the genesis block
 		id := state.GetNetworkBootStrapIdentity()

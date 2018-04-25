@@ -158,6 +158,29 @@ func MessageName(Type byte) string {
 	}
 }
 
+// Not a constant because custom nets will modify these values
+var (
+	// Coinbase Related Constants
+
+	// How often to create coinbase transactions
+	//		:: Default = 25
+	COINBASE_PAYOUT_FREQUENCY = uint32(25)
+
+	// How many blocks before the coinbase does the coinbase
+	// have to appear in the admin block
+	//		:: Default = COINBASE_PAYOUT_FREQUENCY*40
+	COINBASE_DECLARATION = uint32(COINBASE_PAYOUT_FREQUENCY * 40)
+
+	// The maximum amount of factoshis to be issued per server per payout
+	// 		:: Default = 6.4*1e8
+	COINBASE_PAYOUT_AMOUNT = uint64(6.4 * 1e8)
+
+	// The height at which coinbase transactions will activate.
+	//	 This is useful for updating without needing to take
+	// 	 down the network and giving an update period.
+	COINBASE_ACTIVATION = uint32(0)
+)
+
 const (
 	// Limits for keeping inputs from flooding our execution
 	INMSGQUEUE_HIGH = 1000
@@ -266,17 +289,21 @@ var ZERO = []byte{0}
 // https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#adminid-bytes
 //---------------------------------------------------------------
 const (
-	TYPE_MINUTE_NUM         uint8 = iota // 0
-	TYPE_DB_SIGNATURE                    // 1
-	TYPE_REVEAL_MATRYOSHKA               // 2
-	TYPE_ADD_MATRYOSHKA                  // 3
-	TYPE_ADD_SERVER_COUNT                // 4
-	TYPE_ADD_FED_SERVER                  // 5
-	TYPE_ADD_AUDIT_SERVER                // 6
-	TYPE_REMOVE_FED_SERVER               // 7
-	TYPE_ADD_FED_SERVER_KEY              // 8
-	TYPE_ADD_BTC_ANCHOR_KEY              // 9
-	TYPE_SERVER_FAULT
+	TYPE_MINUTE_NUM                 uint8 = 0x00 // 0
+	TYPE_DB_SIGNATURE               uint8 = 0x01 // 1
+	TYPE_REVEAL_MATRYOSHKA          uint8 = 0x02 // 2
+	TYPE_ADD_MATRYOSHKA             uint8 = 0x03 // 3
+	TYPE_ADD_SERVER_COUNT           uint8 = 0x04 // 4
+	TYPE_ADD_FED_SERVER             uint8 = 0x05 // 5
+	TYPE_ADD_AUDIT_SERVER           uint8 = 0x06 // 6
+	TYPE_REMOVE_FED_SERVER          uint8 = 0x07 // 7
+	TYPE_ADD_FED_SERVER_KEY         uint8 = 0x08 // 8
+	TYPE_ADD_BTC_ANCHOR_KEY         uint8 = 0x09 // 9
+	TYPE_SERVER_FAULT               uint8 = 0x0A // 10
+	TYPE_COINBASE_DESCRIPTOR        uint8 = 0x0B // 11
+	TYPE_COINBASE_DESCRIPTOR_CANCEL uint8 = 0x0C // 12
+	TYPE_ADD_FACTOID_ADDRESS        uint8 = 0x0D // 13
+	TYPE_ADD_FACTOID_EFFICIENCY     uint8 = 0x0E // 13
 )
 
 //---------------------------------------------------------------------
@@ -291,7 +318,34 @@ const (
 	IDENTITY_PENDING_AUDIT_SERVER                  // 5
 	IDENTITY_PENDING_FULL                          // 6
 	IDENTITY_SKELETON                              // 7 - Skeleton Identity
+	IDENTITY_REGISTRATION_CHAIN                    // 8
 )
+
+func IdentityStatusString(i uint8) string {
+	var stat string
+	stat = "Unknown"
+	switch i {
+	case IDENTITY_UNASSIGNED:
+		stat = "Unassigned"
+	case IDENTITY_FEDERATED_SERVER:
+		stat = "Federated Server"
+	case IDENTITY_AUDIT_SERVER:
+		stat = "Audit Server"
+	case IDENTITY_FULL:
+		stat = "Full"
+	case IDENTITY_PENDING_FEDERATED_SERVER:
+		stat = "Pending Federated Server"
+	case IDENTITY_PENDING_AUDIT_SERVER:
+		stat = "Pending Audit Server"
+	case IDENTITY_PENDING_FULL:
+		stat = "Pending Full"
+	case IDENTITY_SKELETON:
+		stat = "Skeleton Identity"
+	case IDENTITY_REGISTRATION_CHAIN:
+		stat = "Registration Chain"
+	}
+	return stat
+}
 
 // Identity Timing
 const (

@@ -229,6 +229,23 @@ function updateProgressBar(id, current, max) {
   }
 }
 
+function updatePeerIcon(element, connection) {
+    switch (connection.PeerType) {
+        case "special_config":
+            element.removeClass("hidden");
+            element.prop("title", "Special Peer (configuration file)");
+            break;
+        case "special_cmdline":
+            element.removeClass("hidden");
+            element.prop("title", "Special Peer (command line)");
+            break;
+        case "regular":
+        default:
+            element.addClass("hidden");
+            element.prop("title", "");
+    }
+}
+
 var peerHashes = [""]
 
 // 2 Queries in Batch
@@ -265,7 +282,8 @@ function updateAllPeers() {
       peer = resp[index]
       peerHashes.push(peer.PeerHash)
       if($("#" + peer.Hash).length > 0) {
-        con = peer.Connection
+        con = peer.Connection;
+        updatePeerIcon($("#" + peer.Hash).find("#ip i"), con);
         if ($("#" + peer.Hash).find("#ip").val() != peer.PeerHash) {
           $("#" + peer.Hash).find("#ip span").text(con.PeerAddress)
           $("#" + peer.Hash).find("#ip").val(peer.PeerHash) // Value
@@ -313,7 +331,9 @@ function updateAllPeers() {
             if(PeerAddFromTopToggle == false) {
               $("#peerList > tbody").prepend("\
               <tr id='" + peer.Hash + "'>\
-                  <td id='ip'><span data-tooltip class='has-tip top' title=''>Loading...</span></td>\
+                  <td id='ip'>\
+                      <i class='fa fa-link hidden'></i>\
+                      <span data-tooltip class='has-tip top' title=''>Loading...</span></td>\
                   <td id='connected'></td>\
                   <td id='peerquality'></td>\
                   <td id='momentconnected'></td>\
@@ -324,7 +344,9 @@ function updateAllPeers() {
             } else {
               $("#peerList > tbody").append("\
               <tr id='" + peer.Hash + "'>\
-                  <td id='ip'><span data-tooltip class='has-tip top' title=''>Loading...</span></td>\
+                  <td id='ip'>\
+                      <i class='fa fa-link hidden'></i>\
+                      <span data-tooltip class='has-tip top' title=''>Loading...</span></td>\
                   <td id='connected'></td>\
                   <td id='peerquality'></td>\
                   <td id='momentconnected'></td>\

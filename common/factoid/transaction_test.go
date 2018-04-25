@@ -208,7 +208,8 @@ func TestTransaction_MarshalUnMarshal(t *testing.T) {
 	}
 
 	if xb.IsSameAs(nb) == false {
-		t.Errorf("Trans\n", nb, "Unmarshal Trans\n", xb)
+
+		t.Errorf("Trans\n%v\n%s\n%v", nb, "Unmarshal Trans", xb)
 	}
 }
 

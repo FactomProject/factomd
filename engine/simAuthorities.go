@@ -20,6 +20,7 @@ import (
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/globals"
+	"github.com/FactomProject/factomd/common/identityEntries"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/state"
@@ -408,6 +409,58 @@ func makeBlockKey(ele hardCodedAuthority, ec *factom.ECAddress, random bool) (st
 	return str1, str2, hex.EncodeToString(key), entry
 }
 
+func makeServerEfficiency(ele hardCodedAuthority, ec *factom.ECAddress, eff uint16) (string, string, *factom.Entry) {
+	var se identityEntries.NewServerEfficiencyStruct
+	se.Efficiency = eff
+	t := primitives.NewTimestampNow().GetTimeSeconds()
+	by := make([]byte, 8)
+	binary.BigEndian.PutUint64(by, uint64(t))
+	se.Timestamp = by
+	se.RootIdentityChainID = ele.ChainID
+	se.SetFunctionName()
+
+	preI := make([]byte, 0)
+	preI = append(preI, []byte{0x01}...)
+	preI = append(preI, ele.Sk1[32:]...)
+	se.PreimageIdentityKey = preI
+
+	data := se.MarshalForSig()
+	sig := ed.Sign(&ele.Sk1, data)
+	se.Signature = sig[:]
+
+	e := new(factom.Entry)
+	e.ExtIDs = se.ToExternalIDs()
+	e.ChainID = ele.ManageChain.String()
+	str1, str2 := getMessageStringEntry(e, ec)
+	return str1, str2, e
+}
+
+func makeServerCoinbaseAddress(ele hardCodedAuthority, ec *factom.ECAddress, add interfaces.IHash) (string, string, *factom.Entry) {
+	var se identityEntries.NewCoinbaseAddressStruct
+	se.CoinbaseAddress = add
+	t := primitives.NewTimestampNow().GetTimeSeconds()
+	by := make([]byte, 8)
+	binary.BigEndian.PutUint64(by, uint64(t))
+	se.Timestamp = by
+	se.RootIdentityChainID = ele.ChainID
+	se.SetFunctionName()
+
+	preI := make([]byte, 0)
+	preI = append(preI, []byte{0x01}...)
+	preI = append(preI, ele.Sk1[32:]...)
+	se.PreimageIdentityKey = preI
+
+	data := se.MarshalForSig()
+	sig := ed.Sign(&ele.Sk1, data)
+	se.Signature = sig[:]
+
+	e := new(factom.Entry)
+	e.ExtIDs = se.ToExternalIDs()
+	e.ChainID = ele.ChainID.String()
+	str1, str2 := getMessageStringEntry(e, ec)
+	return str1, str2, e
+}
+
 func makeMHash(ele hardCodedAuthority, ec *factom.ECAddress) (string, string, *factom.Entry) {
 	mHash, err := identity.MakeMHash(ele.ChainID.String(), ele.ManageChain.String(), ele.ChainID.String(), &(ele.Sk1))
 	if err != nil {
@@ -511,6 +564,76 @@ func changeSigningKey(auth interfaces.IHash, st *state.State) (*primitives.Priva
 		}
 	}
 	return nil, errors.New("No identity found, it must be one of the pregenerated ones.")
+}
+
+func changeServerEfficiency(auth interfaces.IHash, st *state.State, eff uint16) error {
+	sec, _ := hex.DecodeString(ecSec)
+	ec, _ := factom.MakeECAddress(sec[:32])
+	if h, err := st.DB.FetchHeadIndexByChainID(auth); h == nil || err != nil {
+		return errors.New("No chain exists for this identity. ")
+	}
+	for _, ele := range authKeyLibrary {
+		if auth.IsSameAs(ele.ChainID) {
+			com, rev, _ := makeServerEfficiency(ele, ec, eff)
+			m := new(wsapi.MessageRequest)
+			m.Message = com
+
+			j := primitives.NewJSON2Request("commit-entry", 0, m)
+			_, err := v2Request(j, st.GetPort())
+			//wsapi.HandleV2Request(st, j)
+			if err != nil {
+				return err
+			}
+			mr := new(wsapi.EntryRequest)
+			mr.Entry = rev
+			j = primitives.NewJSON2Request("reveal-entry", 0, mr)
+			//wsapi.HandleV2Request(st, j)
+			_, err = v2Request(j, st.GetPort())
+			if err != nil {
+				return err
+			}
+			return nil
+		}
+	}
+	return errors.New("No identity found, it must be one of the pregenerated ones.")
+}
+
+func changeServerCoinbaseAddress(auth interfaces.IHash, st *state.State, add string) error {
+	sec, _ := hex.DecodeString(ecSec)
+	ec, _ := factom.MakeECAddress(sec[:32])
+	if h, err := st.DB.FetchHeadIndexByChainID(auth); h == nil || err != nil {
+		return errors.New("No chain exists for this identity. ")
+	}
+
+	faddHash, err := primitives.HexToHash(add)
+	if err != nil {
+		return err
+	}
+
+	for _, ele := range authKeyLibrary {
+		if auth.IsSameAs(ele.ChainID) {
+			com, rev, _ := makeServerCoinbaseAddress(ele, ec, faddHash)
+			m := new(wsapi.MessageRequest)
+			m.Message = com
+
+			j := primitives.NewJSON2Request("commit-entry", 0, m)
+			_, err := v2Request(j, st.GetPort())
+			//wsapi.HandleV2Request(st, j)
+			if err != nil {
+				return err
+			}
+			mr := new(wsapi.EntryRequest)
+			mr.Entry = rev
+			j = primitives.NewJSON2Request("reveal-entry", 0, mr)
+			//wsapi.HandleV2Request(st, j)
+			_, err = v2Request(j, st.GetPort())
+			if err != nil {
+				return err
+			}
+			return nil
+		}
+	}
+	return errors.New("No identity found, it must be one of the pregenerated ones.")
 }
 
 // Returns the private block signing key of the authority

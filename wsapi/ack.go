@@ -525,7 +525,6 @@ func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{},
 			break
 		default:
 			return nil, NewInternalError()
-			break
 		}
 	}
 

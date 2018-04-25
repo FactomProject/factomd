@@ -14,17 +14,24 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-// ProcessIdentityEntry will process an entry and update an entry. There are some special parameters:
+func (im *IdentityManager) ProcessIdentityEntry(entry interfaces.IEBEntry, dBlockHeight uint32, dBlockTimestamp interfaces.Timestamp, newEntry bool) (bool, error) {
+	return im.ProcessIdentityEntryWithABlockUpdate(entry, dBlockHeight, dBlockTimestamp, nil, newEntry)
+}
+
+// ProcessIdentityEntryWithABlockUpdate will process an entry and update an entry. It will also update the admin block
+// with any changes.
+// There are some special parameters:
 //		Params:
 //			entry
 //			dBlockHeight
 //			dBlockTimestamp
+//			d					DBState		If not nil, it means to update the admin block with changes
 //			newEntry			bool		Setting this to true means it can be put into the oldEntries queue to be reprocesses (helps for out of order entries)
 //
 //		Returns
 //			change				bool		If a key has been changed
 //			err					error
-func (im *IdentityManager) ProcessIdentityEntry(entry interfaces.IEBEntry, dBlockHeight uint32, dBlockTimestamp interfaces.Timestamp, newEntry bool) (bool, error) {
+func (im *IdentityManager) ProcessIdentityEntryWithABlockUpdate(entry interfaces.IEBEntry, dBlockHeight uint32, dBlockTimestamp interfaces.Timestamp, a interfaces.IAdminBlock, newEntry bool) (bool, error) {
 	if entry == nil {
 		return false, fmt.Errorf("Entry is nil")
 	}
@@ -75,7 +82,7 @@ func (im *IdentityManager) ProcessIdentityEntry(entry interfaces.IEBEntry, dBloc
 			return false, err
 		}
 		// hard code BTC because it is a "New bitcoin Key"
-		change, tryAgain, err = im.ApplyNewBitcoinKeyStructure(nkb, chainID, "BTC", dBlockTimestamp)
+		change, tryAgain, err = im.ApplyNewBitcoinKeyStructure(nkb, chainID, "BTC", dBlockTimestamp, a)
 		if tryAgain == true && newEntry == true {
 			//if it's a new entry, push it and return nil
 			return false, im.PushEntryForLater(entry, dBlockHeight, dBlockTimestamp)
@@ -90,7 +97,7 @@ func (im *IdentityManager) ProcessIdentityEntry(entry interfaces.IEBEntry, dBloc
 		if err != nil {
 			return false, err
 		}
-		change, tryAgain, err = im.ApplyNewBlockSigningKeyStruct(nbsk, chainID, dBlockTimestamp)
+		change, tryAgain, err = im.ApplyNewBlockSigningKeyStruct(nbsk, chainID, dBlockTimestamp, a)
 		if tryAgain == true && newEntry == true {
 			//if it's a new entry, push it and return nil
 			return false, im.PushEntryForLater(entry, dBlockHeight, dBlockTimestamp)
@@ -105,7 +112,7 @@ func (im *IdentityManager) ProcessIdentityEntry(entry interfaces.IEBEntry, dBloc
 		if err != nil {
 			return false, err
 		}
-		change, tryAgain, err = im.ApplyNewMatryoshkaHashStructure(nmh, dBlockTimestamp)
+		change, tryAgain, err = im.ApplyNewMatryoshkaHashStructure(nmh, dBlockTimestamp, a)
 		if tryAgain == true && newEntry == true {
 			//if it's a new entry, push it and return nil
 			return false, im.PushEntryForLater(entry, dBlockHeight, dBlockTimestamp)
@@ -161,6 +168,38 @@ func (im *IdentityManager) ProcessIdentityEntry(entry interfaces.IEBEntry, dBloc
 			return false, err
 		}
 		break
+	case "Server Efficiency":
+		sm, err := DecodeNewServerEfficiencyStructFromExtIDs(extIDs)
+		if err != nil {
+			return false, err
+		}
+
+		tryAgain, change, err = im.ApplyNewServerEfficiencyStruct(sm, chainID, dBlockTimestamp, a)
+		if tryAgain == true && newEntry == true {
+			//if it's a new entry, push it and return nil
+			return false, im.PushEntryForLater(entry, dBlockHeight, dBlockTimestamp)
+		}
+		//if it's an old entry, return error to signify the entry has not been processed and should be kept
+		if err != nil {
+			return false, err
+		}
+		break
+	case "Coinbase Address":
+		sm, err := DecodeNewNewCoinbaseAddressStructFromExtIDs(extIDs)
+		if err != nil {
+			return false, err
+		}
+
+		tryAgain, change, err = im.ApplyNewCoinbaseAddressStruct(sm, chainID, dBlockTimestamp, a)
+		if tryAgain == true && newEntry == true {
+			//if it's a new entry, push it and return nil
+			return false, im.PushEntryForLater(entry, dBlockHeight, dBlockTimestamp)
+		}
+		//if it's an old entry, return error to signify the entry has not been processed and should be kept
+		if err != nil {
+			return false, err
+		}
+		break
 	}
 
 	return change, nil
@@ -182,6 +221,12 @@ func (im *IdentityManager) ApplyIdentityChainStructure(ic *IdentityChainStructur
 	id.IdentityChainID = chainID.(*primitives.Hash)
 
 	im.SetIdentity(chainID, id)
+
+	// The registration could have been parsed earlier, double check.
+	if rfi := im.IdentityRegistrations[id.IdentityChainID.Fixed()]; rfi != nil {
+		im.ApplyRegisterFactomIdentityStructure(rfi, dBlockHeight)
+	}
+
 	return false, nil
 }
 
@@ -189,7 +234,7 @@ func (im *IdentityManager) ApplyIdentityChainStructure(ic *IdentityChainStructur
 //			bool	change		If a key has been changed
 //			bool	tryagain	If this is set to true, this entry can be reprocessed if it is *new*
 //			error	err			Any errors
-func (im *IdentityManager) ApplyNewBitcoinKeyStructure(bnk *NewBitcoinKeyStructure, subChainID interfaces.IHash, BlockChain string, dBlockTimestamp interfaces.Timestamp) (bool, bool, error) {
+func (im *IdentityManager) ApplyNewBitcoinKeyStructure(bnk *NewBitcoinKeyStructure, subChainID interfaces.IHash, BlockChain string, dBlockTimestamp interfaces.Timestamp, a interfaces.IAdminBlock) (bool, bool, error) {
 	chainID := bnk.RootIdentityChainID
 
 	id := im.GetIdentity(chainID)
@@ -210,16 +255,6 @@ func (im *IdentityManager) ApplyNewBitcoinKeyStructure(bnk *NewBitcoinKeyStructu
 		return false, false, fmt.Errorf("New Bitcoin key for Identity [%x]is too old", chainID.Bytes()[:5])
 	}
 
-	for _, a := range id.AnchorKeys {
-		// We are only dealing with bitcoin keys, so no need to check blockchain
-		if a.KeyLevel == bnk.BitcoinKeyLevel && a.KeyType == bnk.KeyType {
-			if bytes.Compare(a.SigningKey[:], bnk.NewKey[:]) == 0 {
-				im.SetIdentity(chainID, id)
-				return false, false, nil // Key already exists in identity
-			}
-		}
-	}
-
 	// New Key to add
 	var oneAsk AnchorSigningKey
 	oneAsk.BlockChain = BlockChain
@@ -227,9 +262,33 @@ func (im *IdentityManager) ApplyNewBitcoinKeyStructure(bnk *NewBitcoinKeyStructu
 	oneAsk.KeyType = bnk.KeyType
 	oneAsk.SigningKey = bnk.NewKey
 
-	id.AnchorKeys = append(id.AnchorKeys, oneAsk)
+	written := false
+	for i, a := range id.AnchorKeys {
+		// We are only dealing with bitcoin keys, so no need to check blockchain
+		if a.KeyLevel == bnk.BitcoinKeyLevel && a.KeyType == bnk.KeyType {
+			if bytes.Compare(a.SigningKey[:], bnk.NewKey[:]) == 0 {
+				im.SetIdentity(chainID, id)
+				return false, false, nil // Key already exists in identity
+			} else {
+				// Keylevel and keytype exist already. Overwrite
+				id.AnchorKeys[i] = oneAsk
+				written = true
+				break
+			}
+		}
+	}
+
+	if !written {
+		id.AnchorKeys = append(id.AnchorKeys, oneAsk)
+	}
 	im.SetIdentity(chainID, id)
-	return true, false, nil
+
+	// Check if we need to update admin block
+	if a != nil && im.GetAuthority(chainID) != nil { // Verify is authority
+		err = a.AddFederatedServerBitcoinAnchorKey(id.IdentityChainID, oneAsk.KeyLevel, oneAsk.KeyType, oneAsk.SigningKey)
+	}
+
+	return true, false, err
 }
 
 // ApplyNewBlockSigningKeyStruct will parse a new block signing key and attempt to add the signing to the proper identity.
@@ -237,7 +296,7 @@ func (im *IdentityManager) ApplyNewBitcoinKeyStructure(bnk *NewBitcoinKeyStructu
 //			bool	change		If a key has been changed
 //			bool	tryagain	If this is set to true, this entry can be reprocessed if it is *new*
 //			error	err			Any errors
-func (im *IdentityManager) ApplyNewBlockSigningKeyStruct(nbsk *NewBlockSigningKeyStruct, subchainID interfaces.IHash, dBlockTimestamp interfaces.Timestamp) (bool, bool, error) {
+func (im *IdentityManager) ApplyNewBlockSigningKeyStruct(nbsk *NewBlockSigningKeyStruct, subchainID interfaces.IHash, dBlockTimestamp interfaces.Timestamp, a interfaces.IAdminBlock) (bool, bool, error) {
 	chainID := nbsk.RootIdentityChainID
 	id := im.GetIdentity(chainID)
 	if id == nil {
@@ -272,7 +331,12 @@ func (im *IdentityManager) ApplyNewBlockSigningKeyStruct(nbsk *NewBlockSigningKe
 
 	im.SetIdentity(nbsk.RootIdentityChainID, id)
 
-	return true, false, nil
+	// Check if we need to update admin block
+	if a != nil && im.GetAuthority(nbsk.RootIdentityChainID) != nil { // Verify is authority
+		err = a.AddFederatedServerSigningKey(id.IdentityChainID, key.Fixed())
+	}
+
+	return true, false, err
 }
 
 // ApplyNewMatryoshkaHashStructure will parse a new matryoshka hash and attempt to add the signing to the proper identity.
@@ -280,7 +344,7 @@ func (im *IdentityManager) ApplyNewBlockSigningKeyStruct(nbsk *NewBlockSigningKe
 //			bool	change		If a key has been changed
 //			bool	tryagain	If this is set to true, this entry can be reprocessed if it is *new*
 //			error	err			Any errors
-func (im *IdentityManager) ApplyNewMatryoshkaHashStructure(nmh *NewMatryoshkaHashStructure, dBlockTimestamp interfaces.Timestamp) (bool, bool, error) {
+func (im *IdentityManager) ApplyNewMatryoshkaHashStructure(nmh *NewMatryoshkaHashStructure, dBlockTimestamp interfaces.Timestamp, a interfaces.IAdminBlock) (bool, bool, error) {
 	id := im.GetIdentity(nmh.RootIdentityChainID)
 	if id == nil {
 		return false, true, fmt.Errorf("ChainID doesn't exists! %v", nmh.RootIdentityChainID.String())
@@ -303,10 +367,18 @@ func (im *IdentityManager) ApplyNewMatryoshkaHashStructure(nmh *NewMatryoshkaHas
 	id.MatryoshkaHash = nmh.OutermostMHash.(*primitives.Hash)
 
 	im.SetIdentity(nmh.RootIdentityChainID, id)
-	return true, false, nil
+
+	// Check if we need to update admin block
+	if a != nil && im.GetAuthority(nmh.RootIdentityChainID) != nil { // Verify is authority
+		err = a.AddMatryoshkaHash(id.IdentityChainID, id.MatryoshkaHash)
+	}
+
+	return true, false, err
 }
 
 func (im *IdentityManager) ApplyRegisterFactomIdentityStructure(rfi *RegisterFactomIdentityStructure, dBlockHeight uint32) (bool, error) {
+	im.IdentityRegistrations[rfi.IdentityChainID.Fixed()] = rfi
+
 	id := im.GetIdentity(rfi.IdentityChainID)
 	if id == nil {
 		return true, fmt.Errorf("ChainID doesn't exists! %v", rfi.IdentityChainID.String())
@@ -359,4 +431,92 @@ func (im *IdentityManager) ApplyServerManagementStructure(sm *ServerManagementSt
 
 	im.SetIdentity(sm.RootIdentityChainID, id)
 	return false, nil
+}
+
+// ApplyNewServerEfficiencyStruct will parse a new server efficiency and attempt to add the signing to the proper identity.
+//		Returns
+//			bool	change		If a key has been changed
+//			bool	tryagain	If this is set to true, this entry can be reprocessed if it is *new*
+//			error	err			Any errors
+func (im *IdentityManager) ApplyNewServerEfficiencyStruct(nses *NewServerEfficiencyStruct, subchainID interfaces.IHash, dBlockTimestamp interfaces.Timestamp, a interfaces.IAdminBlock) (bool, bool, error) {
+	chainID := nses.RootIdentityChainID
+	id := im.GetIdentity(chainID)
+	if id == nil {
+		return false, true, fmt.Errorf("ChainID doesn't exists! %v", nses.RootIdentityChainID.String())
+	}
+
+	if id.Efficiency == nses.Efficiency {
+		return false, false, nil
+	}
+
+	err := nses.VerifySignature(id.Keys[0])
+	if err != nil {
+		return false, false, err
+	}
+
+	if id.ManagementChainID.IsSameAs(subchainID) == false {
+		return false, false, fmt.Errorf("Identity Error: Entry was not placed in the correct management chain - %v vs %v", id.ManagementChainID.String(), subchainID.String())
+	}
+
+	// Check Timestamp
+	if !CheckTimestamp(nses.Timestamp, dBlockTimestamp.GetTimeSeconds()) {
+		return false, false, fmt.Errorf("New Server Efficiency for Identity [%x]is too old", chainID.Bytes()[:5])
+	}
+
+	if nses.Efficiency > 10000 {
+		nses.Efficiency = 10000
+	}
+
+	id.Efficiency = nses.Efficiency
+
+	im.SetIdentity(nses.RootIdentityChainID, id)
+
+	// Check if we need to update admin block
+	if a != nil && im.GetAuthority(nses.RootIdentityChainID) != nil { // Verify is authority
+		err = a.AddEfficiency(nses.RootIdentityChainID, nses.Efficiency)
+	}
+
+	return true, false, err
+}
+
+// ApplyNewCoinbaseAddressStruct will parse a new coinbase address and attempt to add the signing to the proper identity.
+//		Returns
+//			bool	change		If a key has been changed
+//			bool	tryagain	If this is set to true, this entry can be reprocessed if it is *new*
+//			error	err			Any errors
+func (im *IdentityManager) ApplyNewCoinbaseAddressStruct(ncas *NewCoinbaseAddressStruct, rootchainID interfaces.IHash, dBlockTimestamp interfaces.Timestamp, a interfaces.IAdminBlock) (bool, bool, error) {
+	chainID := ncas.RootIdentityChainID
+	id := im.GetIdentity(chainID)
+	if id == nil {
+		return false, true, fmt.Errorf("(coinbase address) ChainID doesn't exists! %v", ncas.RootIdentityChainID.String())
+	}
+
+	if !rootchainID.IsSameAs(ncas.RootIdentityChainID) {
+		return false, true, fmt.Errorf("(coinbase address) ChainID of entry should match root chain id.")
+	}
+
+	if id.CoinbaseAddress.IsSameAs(ncas.CoinbaseAddress) {
+		return false, false, nil
+	}
+
+	err := ncas.VerifySignature(id.Keys[0])
+	if err != nil {
+		return false, false, err
+	}
+
+	// Check Timestamp
+	if !CheckTimestamp(ncas.Timestamp, dBlockTimestamp.GetTimeSeconds()) {
+		return false, false, fmt.Errorf("New Server Efficiency for Identity [%x]is too old", chainID.Bytes()[:5])
+	}
+
+	id.CoinbaseAddress = ncas.CoinbaseAddress
+
+	im.SetIdentity(ncas.RootIdentityChainID, id)
+
+	// Check if we need to update admin block
+	if a != nil && im.GetAuthority(ncas.RootIdentityChainID) != nil { // Verify is authority
+		err = a.AddCoinbaseAddress(ncas.RootIdentityChainID, ncas.CoinbaseAddress)
+	}
+
+	return true, false, err
 }

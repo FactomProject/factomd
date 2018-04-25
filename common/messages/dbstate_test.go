@@ -279,7 +279,12 @@ func TestSignedDBStateValidate(t *testing.T) {
 			a.AddFedServer(id.ID)
 			a.AddFederatedServerSigningKey(id.ID, id.Key.Pub.Fixed())
 			signers = append(signers, id)
+			//a := identity.NewAuthority()
+			//a.AuthorityChainID = id.ID
+			//a.SigningKey = *id.Key.Pub
+			//state.IdentityControl.SetAuthority(id.ID, a)
 		}
+		a.InsertIdentityABEntries()
 
 		set, err := createBlockFromAdmin(a, prev, state)
 		if err != nil {
@@ -354,6 +359,8 @@ func TestPropSignedDBStateValidate(t *testing.T) {
 		Key primitives.PrivateKey
 	}
 
+	state := testHelper.CreateEmptyTestState()
+
 	ids := make([]SmallIdentity, 100)
 	for i := range ids {
 		tid, err := primitives.HexToHash("888888" + fmt.Sprintf("%058d", i))
@@ -367,8 +374,6 @@ func TestPropSignedDBStateValidate(t *testing.T) {
 			Key: *primitives.RandomPrivateKey(),
 		}
 	}
-
-	state := testHelper.CreateEmptyTestState()
 
 	// Throw in a geneis block
 	prev := testHelper.CreateTestBlockSetWithNetworkID(nil, state.GetNetworkID(), false)
@@ -425,6 +430,7 @@ func TestPropSignedDBStateValidate(t *testing.T) {
 				totalRemove++
 			}
 		}
+		a.InsertIdentityABEntries()
 
 		set, err := createBlockFromAdmin(a, prev, state)
 		if err != nil {

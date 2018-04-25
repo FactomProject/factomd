@@ -10,8 +10,11 @@ import (
 
 	"bytes"
 
+	"math/rand"
+
 	ed "github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/primitives/random"
@@ -32,25 +35,29 @@ func (p IdentitySort) Less(i, j int) bool {
 }
 
 //https://github.com/FactomProject/FactomDocs/blob/master/Identity.md
-
 type Identity struct {
-	IdentityChainID      interfaces.IHash
-	IdentityRegistered   uint32
-	IdentityCreated      uint32
-	ManagementChainID    interfaces.IHash
-	ManagementRegistered uint32
-	ManagementCreated    uint32
-	MatryoshkaHash       interfaces.IHash
+	IdentityChainID    interfaces.IHash `json:"identity_chainid"`
+	IdentityChainSync  EntryBlockSync   `json:"-"`
+	IdentityRegistered uint32           `json:"identity_registered`
+	IdentityCreated    uint32           `json:"identity_created`
+
+	ManagementChainID    interfaces.IHash `json:"management_chaind`
+	ManagementChainSync  EntryBlockSync   `json:"-"`
+	ManagementRegistered uint32           `json:"management_registered`
+	ManagementCreated    uint32           `json:"management_created`
+	MatryoshkaHash       interfaces.IHash `json:"matryoshka_hash`
 
 	// All 4 levels keys, 0 indexed.
 	//		Keys[0] --> Key 1
 	//		Keys[1] --> Key 2
 	//		Keys[2] --> Key 3
 	//		Keys[3] --> Key 4
-	Keys       [4]interfaces.IHash
-	SigningKey interfaces.IHash
-	Status     uint8
-	AnchorKeys []AnchorSigningKey
+	Keys            [4]interfaces.IHash `json:"identity_keys"`
+	SigningKey      interfaces.IHash    `json:"signing_key"`
+	Status          uint8               `json:"status"`
+	AnchorKeys      []AnchorSigningKey  `json:"anchor_keys"`
+	Efficiency      uint16              `json:"efficiency"`
+	CoinbaseAddress interfaces.IHash    `json:"coinbase_address"`
 }
 
 var _ interfaces.Printable = (*Identity)(nil)
@@ -67,12 +74,16 @@ func NewIdentity() *Identity {
 	}
 
 	i.SigningKey = primitives.NewZeroHash()
+	i.Efficiency = 10000
+	i.IdentityChainSync = *NewEntryBlockSync()
+	i.ManagementChainSync = *NewEntryBlockSync()
+	i.CoinbaseAddress = primitives.NewZeroHash()
 
 	return i
 }
 
 func RandomIdentity() *Identity {
-	id := new(Identity)
+	id := NewIdentity()
 
 	id.IdentityChainID = primitives.RandomHash()
 	id.IdentityRegistered = random.RandUInt32()
@@ -93,8 +104,19 @@ func RandomIdentity() *Identity {
 	for i := 0; i < l; i++ {
 		id.AnchorKeys = append(id.AnchorKeys, *RandomAnchorSigningKey())
 	}
+	id.CoinbaseAddress = primitives.RandomHash()
+	id.Efficiency = uint16(rand.Intn(10000))
 
 	return id
+}
+
+func (id *Identity) GetCoinbaseHumanReadable() string {
+	if id.CoinbaseAddress.IsZero() {
+		return "No Address"
+	}
+	add := factoid.NewAddress(id.CoinbaseAddress.Bytes())
+	//primitives.ConvertFctAddressToUserStr(add)
+	return primitives.ConvertFctAddressToUserStr(add)
 }
 
 // IsPromteable will return if the identity is able to be promoted.
@@ -209,6 +231,9 @@ func (e *Identity) Clone() *Identity {
 	b.ManagementRegistered = e.ManagementRegistered
 	b.ManagementCreated = e.ManagementCreated
 	b.Status = e.Status
+	b.Efficiency = e.Efficiency
+	b.IdentityChainSync = *e.IdentityChainSync.Clone()
+	b.ManagementChainSync = *e.ManagementChainSync.Clone()
 
 	b.AnchorKeys = make([]AnchorSigningKey, len(e.AnchorKeys))
 	for i := range e.AnchorKeys {
@@ -256,6 +281,9 @@ func (e *Identity) IsSameAs(b *Identity) bool {
 		return false
 	}
 	if e.Status != b.Status {
+		return false
+	}
+	if e.Efficiency != b.Efficiency {
 		return false
 	}
 	if len(e.AnchorKeys) != len(b.AnchorKeys) {
@@ -312,6 +340,10 @@ func (e *Identity) MarshalBinary() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	err = buf.PushBinaryMarshallable(&e.IdentityChainSync)
+	if err != nil {
+		return nil, err
+	}
 	err = buf.PushBinaryMarshallable(e.ManagementChainID)
 	if err != nil {
 		return nil, err
@@ -321,6 +353,10 @@ func (e *Identity) MarshalBinary() ([]byte, error) {
 		return nil, err
 	}
 	err = buf.PushUInt32(e.ManagementCreated)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBinaryMarshallable(&e.ManagementChainSync)
 	if err != nil {
 		return nil, err
 	}
@@ -362,6 +398,16 @@ func (e *Identity) MarshalBinary() ([]byte, error) {
 		}
 	}
 
+	err = buf.PushUInt16(e.Efficiency)
+	if err != nil {
+		return nil, err
+	}
+
+	err = buf.PushIHash(e.CoinbaseAddress)
+	if err != nil {
+		return nil, err
+	}
+
 	return buf.DeepCopyBytes(), nil
 }
 
@@ -382,6 +428,10 @@ func (e *Identity) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 	if err != nil {
 		return
 	}
+	err = buf.PopBinaryMarshallable(&e.IdentityChainSync)
+	if err != nil {
+		return
+	}
 	err = buf.PopBinaryMarshallable(e.ManagementChainID)
 	if err != nil {
 		return
@@ -391,6 +441,10 @@ func (e *Identity) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 		return
 	}
 	e.ManagementCreated, err = buf.PopUInt32()
+	if err != nil {
+		return
+	}
+	err = buf.PopBinaryMarshallable(&e.ManagementChainSync)
 	if err != nil {
 		return
 	}
@@ -436,6 +490,16 @@ func (e *Identity) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 			return
 		}
 		e.AnchorKeys = append(e.AnchorKeys, ak)
+	}
+
+	e.Efficiency, err = buf.PopUInt16()
+	if err != nil {
+		return
+	}
+
+	e.CoinbaseAddress, err = buf.PopIHash()
+	if err != nil {
+		return
 	}
 
 	newData = buf.DeepCopyBytes()

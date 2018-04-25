@@ -212,7 +212,7 @@ func Dive(mList []*DirectedMessage, leaders []*election.Election, depth int, lim
 	}
 
 	if depth < 2 {
-		fmt.Println("////////========== Depth %d ====================")
+		fmt.Printf("////////========== Depth %d ====================\n", depth)
 		printState(depth, mList, leaders, msgPath)
 	}
 
@@ -385,7 +385,7 @@ func computeMirrorState(leaders []*election.Election) [32]byte {
 	for i := 0; i < len(hashes)-1; i++ {
 		for j := 0; j < len(hashes)-1-i; j++ {
 			if bytes.Compare(hashes[j][:], hashes[j+1][:]) > 0 {
-				hashes[j], hashes[j+1] = hashes[j+1], hashes[j+1]
+				hashes[j], hashes[j+1] = hashes[j+1], hashes[j]
 				strings[j], strings[j+1] = strings[j+1], strings[j]
 			}
 		}
@@ -536,16 +536,6 @@ func init() {
 
 func CloneElection(src *election.Election) *election.Election {
 	return src.Copy()
-	dst := new(election.Election)
-	err := enc.Encode(src)
-	if err != nil {
-		errCollision++
-	}
-	err = dec.Decode(dst)
-	if err != nil {
-		errCollision++
-	}
-	return dst
 }
 
 // Create a Sha256 Hash from a byte array

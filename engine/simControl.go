@@ -17,6 +17,8 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
@@ -867,7 +869,7 @@ func SimControl(listenTo int, listenStdin bool) {
 						if amt != -1 && c == amt {
 							return true
 						}
-						stat := returnStatString(ident.Status)
+						stat := constants.IdentityStatusString(ident.Status)
 						if show == 5 {
 							if c != amt {
 							} else {
@@ -887,6 +889,8 @@ func SimControl(listenTo int, listenStdin bool) {
 								os.Stderr.WriteString(fmt.Sprint("Key 3: ", ident.Keys[2], "\n"))
 								os.Stderr.WriteString(fmt.Sprint("Key 4: ", ident.Keys[3], "\n"))
 								os.Stderr.WriteString(fmt.Sprint("Signing Key: ", ident.SigningKey, "\n"))
+								os.Stderr.WriteString(fmt.Sprint("Efficiency: ", ident.Efficiency, "\n"))
+								os.Stderr.WriteString(fmt.Sprint("Coinbase Address: ", ident.GetCoinbaseHumanReadable(), "\n"))
 								for _, a := range ident.AnchorKeys {
 									os.Stderr.WriteString(fmt.Sprintf("Anchor Key: {'%s' L%x T%x K:%x}\n", a.BlockChain, a.KeyLevel, a.KeyType, a.SigningKey))
 								}
@@ -911,7 +915,7 @@ func SimControl(listenTo int, listenStdin bool) {
 					//	}
 					//}
 
-					fmt.Println("\n\n\n")
+					fmt.Print("\n\n\n\n")
 					for c, ident := range fnodes[ListenTo].State.IdentityControl.GetIdentities() {
 						if printID(ident, c) {
 							break
@@ -1015,12 +1019,14 @@ func SimControl(listenTo int, listenStdin bool) {
 					os.Stderr.WriteString("-------------------------------------------------------------------------------\n")
 					var stat string
 					i := iA.(*identity.Authority)
-					stat = returnStatString(i.Status)
+					stat = constants.IdentityStatusString(i.Status)
 					os.Stderr.WriteString(fmt.Sprint("Server Status: ", stat, "\n"))
 					os.Stderr.WriteString(fmt.Sprint("Identity Chain: ", i.AuthorityChainID, "\n"))
 					os.Stderr.WriteString(fmt.Sprint("Management Chain: ", i.ManagementChainID, "\n"))
 					os.Stderr.WriteString(fmt.Sprint("Matryoshka Hash: ", i.MatryoshkaHash, "\n"))
 					os.Stderr.WriteString(fmt.Sprint("Signing Key: ", i.SigningKey.String(), "\n"))
+					os.Stderr.WriteString(fmt.Sprint("Coinbase Address: ", i.GetCoinbaseHumanReadable(), "\n"))
+					os.Stderr.WriteString(fmt.Sprint("Efficiency: ", i.Efficiency, "\n"))
 					for _, a := range i.AnchorKeys {
 						os.Stderr.WriteString(fmt.Sprintf("Anchor Key: {'%s' L%x T%x K:%x}\n", a.BlockChain, a.KeyLevel, a.KeyType, a.SigningKey))
 					}
@@ -1181,6 +1187,66 @@ func SimControl(listenTo int, listenStdin bool) {
 				go loadGenerator.Run()
 				os.Stderr.WriteString(fmt.Sprintf("Writing entries at %d per second\n", nn))
 
+			case 'P' == b[0]:
+				// Set efficiency
+				nn, err := strconv.Atoi(string(b[1:]))
+				if err != nil {
+					os.Stderr.WriteString(err.Error() + "\n")
+					break
+				}
+				_, _, auth := authKeyLookup(fnodes[ListenTo].State.IdentityChainID)
+				if auth == nil {
+					break
+				}
+
+				wsapiNode = ListenTo
+				wsapi.SetState(fnodes[wsapiNode].State)
+				err = fundWallet(fnodes[ListenTo].State, 1e8)
+				if err != nil {
+					os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
+					break
+				}
+
+				err = changeServerEfficiency(fnodes[ListenTo].State.IdentityChainID, fnodes[ListenTo].State, uint16(nn))
+				if err != nil {
+					os.Stderr.WriteString(fmt.Sprintf("Error: %s\n", err.Error()))
+					break
+				}
+
+				os.Stderr.WriteString(fmt.Sprintf("New efficiency for [%s]: %d\n", fnodes[ListenTo].State.IdentityChainID.String()[:8], nn))
+				break
+
+			case 'B' == b[0]:
+				// Set coinbase address
+				add := primitives.RandomHash().String()
+				if len(b) > 1 {
+					add = string(b[1:])
+				}
+
+				_, _, auth := authKeyLookup(fnodes[ListenTo].State.IdentityChainID)
+				if auth == nil {
+					break
+				}
+
+				wsapiNode = ListenTo
+				wsapi.SetState(fnodes[wsapiNode].State)
+				err = fundWallet(fnodes[ListenTo].State, 1e8)
+				if err != nil {
+					os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
+					break
+				}
+
+				err = changeServerCoinbaseAddress(fnodes[ListenTo].State.IdentityChainID, fnodes[ListenTo].State, add)
+				if err != nil {
+					os.Stderr.WriteString(fmt.Sprintf("Error: %s\n", err.Error()))
+					break
+				}
+
+				h, _ := primitives.HexToHash(add)
+				address := factoid.NewAddress([]byte(h.Bytes()))
+				os.Stderr.WriteString(fmt.Sprintf("New Coinbase Address for [%s]: %s\n", fnodes[ListenTo].State.IdentityChainID.String()[:8], primitives.ConvertFctAddressToUserStr(address)))
+				break
+
 			case 'h' == b[0]:
 				os.Stderr.WriteString("-------------------------------------------------------------------------------\n")
 				os.Stderr.WriteString("<enter>       Running Enter with nothing repeats the previous command.\n\n")
@@ -1239,28 +1305,6 @@ func SimControl(listenTo int, listenStdin bool) {
 			}
 		}
 	}
-}
-func returnStatString(i uint8) string {
-	var stat string
-	switch i {
-	case 0:
-		stat = "Unassigned"
-	case 1:
-		stat = "Federated Server"
-	case 2:
-		stat = "Audit Server"
-	case 3:
-		stat = "Full"
-	case 4:
-		stat = "Pending Federated Server"
-	case 5:
-		stat = "Pending Audit Server"
-	case 6:
-		stat = "Pending Full"
-	case 7:
-		stat = "Skeleton Identity"
-	}
-	return stat
 }
 
 // Allows us to scatter transactions across all nodes.

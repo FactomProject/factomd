@@ -199,7 +199,7 @@ func (m *StartElectionInternal) UnmarshalBinary(data []byte) error {
 }
 
 func (m *StartElectionInternal) String() string {
-	return fmt.Sprintf("%20s dbheight %d min %d vm d%", "Start Election Internal", m.DBHeight, int(m.Minute), m.VMIndex)
+	return fmt.Sprintf("%20s dbheight %d min %d vm %d", "Start Election Internal", m.DBHeight, int(m.Minute), m.VMIndex)
 }
 
 func (a *StartElectionInternal) IsSameAs(b *StartElectionInternal) bool {

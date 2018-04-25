@@ -33,6 +33,10 @@ func (c *AddFederatedServerSigningKey) UpdateState(state interfaces.IState) erro
 	return nil
 }
 
+func (e *AddFederatedServerSigningKey) SortedIdentity() interfaces.IHash {
+	return e.IdentityChainID
+}
+
 func (e *AddFederatedServerSigningKey) String() string {
 	e.Init()
 	var out primitives.Buffer

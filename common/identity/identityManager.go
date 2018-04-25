@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/gob"
 	"fmt"
+	"math/rand"
 	"sync"
 
 	"sort"
@@ -15,6 +16,7 @@ import (
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
+	"github.com/FactomProject/factomd/common/identityEntries"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -25,9 +27,11 @@ type IdentityManager struct {
 }
 
 type IdentityManagerWithoutMutex struct {
-	Authorities          map[[32]byte]*Authority
-	Identities           map[[32]byte]*Identity
-	AuthorityServerCount int
+	Authorities map[[32]byte]*Authority
+	Identities  map[[32]byte]*Identity
+	// All Identity Registrations.
+	IdentityRegistrations map[[32]byte]*identityEntries.RegisterFactomIdentityStructure
+	AuthorityServerCount  int
 
 	OldEntries []*OldEntry
 }
@@ -36,7 +40,172 @@ func NewIdentityManager() *IdentityManager {
 	im := new(IdentityManager)
 	im.Authorities = make(map[[32]byte]*Authority)
 	im.Identities = make(map[[32]byte]*Identity)
+	im.IdentityRegistrations = make(map[[32]byte]*identityEntries.RegisterFactomIdentityStructure)
 	return im
+}
+
+func RandomIdentityManager() *IdentityManager {
+	im := NewIdentityManager()
+	for i := 0; i < rand.Intn(10); i++ {
+		id := RandomIdentity()
+		im.Identities[id.IdentityChainID.Fixed()] = id
+	}
+
+	for i := 0; i < rand.Intn(10); i++ {
+		id := RandomAuthority()
+		im.Authorities[id.AuthorityChainID.Fixed()] = id
+	}
+	for i := 0; i < rand.Intn(10); i++ {
+		r := identityEntries.RandomRegisterFactomIdentityStructure()
+		im.IdentityRegistrations[r.IdentityChainID.Fixed()] = r
+	}
+	return im
+}
+
+func (a *IdentityManager) IsSameAs(b *IdentityManager) bool {
+	if len(a.Authorities) != len(b.Authorities) {
+		return false
+	}
+
+	for k := range a.Authorities {
+		if _, ok := b.Authorities[k]; !ok {
+			return false
+		}
+		if !a.Authorities[k].IsSameAs(b.Authorities[k]) {
+			return false
+		}
+	}
+
+	if len(a.Identities) != len(b.Identities) {
+		return false
+	}
+
+	for k := range a.Identities {
+		if _, ok := b.Identities[k]; !ok {
+			return false
+		}
+		if !a.Identities[k].IsSameAs(b.Identities[k]) {
+			return false
+		}
+	}
+
+	if len(a.IdentityRegistrations) != len(b.IdentityRegistrations) {
+		return false
+	}
+
+	for k := range a.IdentityRegistrations {
+		if _, ok := b.IdentityRegistrations[k]; !ok {
+			return false
+		}
+		if !a.IdentityRegistrations[k].IsSameAs(b.IdentityRegistrations[k]) {
+			return false
+		}
+	}
+	return true
+}
+
+func (e *IdentityManager) UnmarshalBinary(p []byte) error {
+	_, err := e.UnmarshalBinaryData(p)
+	return err
+}
+
+func (im *IdentityManager) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
+	buf := primitives.NewBuffer(p)
+	newData = p
+
+	al, err := buf.PopInt()
+	if err != nil {
+		return
+	}
+
+	newData = buf.Bytes()
+	for i := 0; i < al; i++ {
+		a := NewAuthority()
+		newData, err = a.UnmarshalBinaryData(newData)
+		if err != nil {
+			return
+		}
+		im.Authorities[a.AuthorityChainID.Fixed()] = a
+	}
+	buf = primitives.NewBuffer(newData)
+
+	il, err := buf.PopInt()
+	if err != nil {
+		return
+	}
+
+	newData = buf.Bytes()
+	for i := 0; i < il; i++ {
+		a := NewIdentity()
+		newData, err = a.UnmarshalBinaryData(newData)
+		if err != nil {
+			return
+		}
+		im.Identities[a.IdentityChainID.Fixed()] = a
+	}
+	buf = primitives.NewBuffer(newData)
+
+	rl, err := buf.PopInt()
+	if err != nil {
+		return
+	}
+
+	newData = buf.Bytes()
+	for i := 0; i < rl; i++ {
+		r := new(identityEntries.RegisterFactomIdentityStructure)
+		newData, err = r.UnmarshalBinaryData(newData)
+		if err != nil {
+			return
+		}
+		im.IdentityRegistrations[r.IdentityChainID.Fixed()] = r
+	}
+	buf = primitives.NewBuffer(newData)
+
+	newData = buf.DeepCopyBytes()
+	return
+}
+
+func (im *IdentityManager) MarshalBinary() ([]byte, error) {
+	buf := primitives.NewBuffer(nil)
+	im.Init()
+
+	err := buf.PushInt(len(im.Authorities))
+	if err != nil {
+		return nil, err
+	}
+
+	for _, a := range im.GetSortedAuthorities() {
+		err = buf.PushBinaryMarshallable(a)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	err = buf.PushInt(len(im.Identities))
+	if err != nil {
+		return nil, err
+	}
+
+	for _, i := range im.GetSortedIdentities() {
+		err = buf.PushBinaryMarshallable(i)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	err = buf.PushInt(len(im.IdentityRegistrations))
+	if err != nil {
+		return nil, err
+	}
+
+	for _, i := range im.GetSortedRegistrations() {
+		err = buf.PushBinaryMarshallable(i)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return buf.DeepCopyBytes(), nil
 }
 
 func (im *IdentityManager) Clone() *IdentityManager {
@@ -79,6 +248,15 @@ func (im *IdentityManager) SetBootstrapIdentity(id interfaces.IHash, key interfa
 	return nil
 }
 
+func (im *IdentityManager) SetIdentityRegistration(chain interfaces.IHash) error {
+	id := NewIdentity()
+	id.IdentityChainID = chain
+	id.Status = constants.IDENTITY_REGISTRATION_CHAIN
+
+	im.SetIdentity(chain, id)
+	return nil
+}
+
 func (im *IdentityManager) SetSkeletonIdentity(chain interfaces.IHash) error {
 	// Skeleton is in the identity list
 	//	The key comes from the blockchain, and must be parsed
@@ -88,18 +266,6 @@ func (im *IdentityManager) SetSkeletonIdentity(chain interfaces.IHash) error {
 
 	im.SetIdentity(chain, id)
 	return nil
-
-	// Skeleton is not an authority
-	/*
-		auth := new(Authority)
-		err := auth.SigningKey.UnmarshalText([]byte(key))
-		if err != nil {
-			return err
-		}
-		auth.Status = constants.IDENTITY_FEDERATED_SERVER
-
-		im.SetAuthority(primitives.NewZeroHash(), auth)
-		return nil*/
 }
 
 //func (im *IdentityManager) SetSkeletonKeyMainNet() error {
@@ -153,14 +319,18 @@ func (im *IdentityManager) GobEncode() ([]byte, error) {
 
 func (im *IdentityManager) Init() {
 	// Do nothing, it used to init the maps if they were empty, but we init the Identity control with non-empty maps
+	if im.Identities == nil {
+		im.Identities = make(map[[32]byte]*Identity)
+	}
+	if im.Authorities == nil {
+		im.Authorities = make(map[[32]byte]*Authority)
+	}
 }
 
 func (im *IdentityManager) SetIdentity(chainID interfaces.IHash, id *Identity) {
 	im.Init()
 	im.Mutex.Lock()
 	defer im.Mutex.Unlock()
-	c := chainID.String()
-	var _ = c
 	im.Identities[chainID.Fixed()] = id
 }
 
@@ -205,14 +375,29 @@ func (im *IdentityManager) GetSortedIdentities() []*Identity {
 	list := im.GetIdentities()
 	sort.Sort(IdentitySort(list))
 	return list
-
 }
 
 func (im *IdentityManager) GetSortedAuthorities() []interfaces.IAuthority {
 	list := im.GetAuthorities()
 	sort.Sort(AuthoritySort(list))
 	return list
+}
 
+func (im *IdentityManager) GetSortedRegistrations() []*identityEntries.RegisterFactomIdentityStructure {
+	list := im.GetRegistrations()
+	sort.Sort(identityEntries.RegisterFactomIdentityStructureSort(list))
+	return list
+}
+func (im *IdentityManager) GetRegistrations() []*identityEntries.RegisterFactomIdentityStructure {
+	im.Mutex.RLock()
+	defer im.Mutex.RUnlock()
+
+	rs := make([]*identityEntries.RegisterFactomIdentityStructure, 0)
+	for _, r := range im.IdentityRegistrations {
+		rs = append(rs, r)
+	}
+
+	return rs
 }
 
 func (im *IdentityManager) GetIdentities() []*Identity {

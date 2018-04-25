@@ -27,6 +27,10 @@ func (e *AddFederatedServerBitcoinAnchorKey) Init() {
 	e.AdminIDType = uint32(e.Type())
 }
 
+func (e *AddFederatedServerBitcoinAnchorKey) SortedIdentity() interfaces.IHash {
+	return e.IdentityChainID
+}
+
 func (e *AddFederatedServerBitcoinAnchorKey) String() string {
 	e.Init()
 	var out primitives.Buffer
@@ -109,7 +113,7 @@ func (e *AddFederatedServerBitcoinAnchorKey) UnmarshalBinaryData(data []byte) ([
 		return nil, err
 	}
 	if e.KeyType != 0 && e.KeyType != 1 {
-		return nil, fmt.Errorf("Invalid KeyType")
+		return nil, fmt.Errorf("Invalid KeyType, found %d", e.KeyType)
 	}
 	err = buf.PopBinaryMarshallable(&e.ECDSAPublicKey)
 	if err != nil {

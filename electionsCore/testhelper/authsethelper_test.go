@@ -24,7 +24,7 @@ func TestMajority(t *testing.T) {
 
 	ah = NewAuthSetHelper(1, 5)
 	if ah.Majority() != 1 {
-		t.Error("majority should be 1, found %d", ah.Majority())
+		t.Errorf("majority should be 1, found %d", ah.Majority())
 	}
 }
 

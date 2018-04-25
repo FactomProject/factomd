@@ -34,9 +34,10 @@ type Peer struct {
 	logger *log.Entry
 }
 
-const ( // iota is reset to 0
-	RegularPeer uint8 = iota
-	SpecialPeer
+const (
+	RegularPeer        uint8 = iota
+	SpecialPeerConfig        // special peer defined in the config file
+	SpecialPeerCmdLine       // special peer defined via the cmd line params
 )
 
 func (p *Peer) Init(address string, port string, quality int32, peerType uint8, connections int) *Peer {
@@ -88,7 +89,7 @@ func (p *Peer) PeerLogFields() log.Fields {
 	return log.Fields{
 		"address":   p.Address,
 		"port":      p.Port,
-		"peer_type": p.peerTypeString(),
+		"peer_type": p.PeerTypeString(),
 	}
 }
 
@@ -145,6 +146,14 @@ func (p *Peer) LocationFromAddress() (location uint32) {
 	return location
 }
 
+func (p *Peer) IsSamePeerAs(netAddress net.Addr) bool {
+	address, _, err := net.SplitHostPort(netAddress.String())
+	if err != nil {
+		return false
+	}
+	return address == p.Address
+}
+
 // merit increases a peers reputation
 func (p *Peer) merit() {
 	if 2147483000 > p.QualityScore {
@@ -159,12 +168,18 @@ func (p *Peer) demerit() {
 	}
 }
 
-func (p *Peer) peerTypeString() string {
+func (p *Peer) IsSpecial() bool {
+	return p.Type == SpecialPeerConfig || p.Type == SpecialPeerCmdLine
+}
+
+func (p *Peer) PeerTypeString() string {
 	switch p.Type {
 	case RegularPeer:
 		return "regular"
-	case SpecialPeer:
-		return "special"
+	case SpecialPeerConfig:
+		return "special_config"
+	case SpecialPeerCmdLine:
+		return "special_cmdline"
 	default:
 		return "unknown"
 	}

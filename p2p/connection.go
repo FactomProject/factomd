@@ -104,6 +104,7 @@ type ConnectionMetrics struct {
 	MessagesReceived uint32    // Keeping track of the data sent/received for console
 	PeerAddress      string    // Peer IP Address
 	PeerQuality      int32     // Quality of the connection.
+	PeerType         string    // Type of the peer (regular, special_config, ...)
 	// Red: Below -50
 	// Yellow: -50 - 100
 	// Green: > 100
@@ -670,6 +671,7 @@ func (c *Connection) updateStats() {
 		c.timeLastMetrics = time.Now()
 		c.metrics.PeerAddress = c.peer.Address
 		c.metrics.PeerQuality = c.peer.QualityScore
+		c.metrics.PeerType = c.peer.PeerTypeString()
 		c.metrics.ConnectionState = connectionStateStrings[c.state]
 		c.metrics.ConnectionNotes = c.notes
 		c.logger.Debugf("updatePeer() SENDING ConnectionUpdateMetrics - Bytes Sent: %d Bytes Received: %d", c.metrics.BytesSent, c.metrics.BytesReceived)

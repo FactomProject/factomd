@@ -35,6 +35,10 @@ func (im *IdentityManager) ProcessABlockEntry(entry interfaces.IABEntry, st inte
 		return im.ApplyAddFederatedServerBitcoinAnchorKey(entry)
 	case constants.TYPE_SERVER_FAULT:
 		return im.ApplyServerFault(entry)
+	case constants.TYPE_ADD_FACTOID_ADDRESS:
+		im.ApplyAddFactoidAddress(entry)
+	case constants.TYPE_ADD_FACTOID_EFFICIENCY:
+		im.ApplyAddEfficiency(entry)
 	}
 	return nil
 }
@@ -169,16 +173,25 @@ func (im *IdentityManager) ApplyAddFederatedServerBitcoinAnchorKey(entry interfa
 	ask.KeyType = e.KeyType
 	ask.BlockChain = "BTC"
 
-	for _, a := range auth.AnchorKeys {
+	written := false
+
+	for i, a := range auth.AnchorKeys {
 		// We are only dealing with bitcoin keys, so no need to check blockchain
 		if a.KeyLevel == ask.KeyLevel && a.KeyType == ask.KeyType {
 			if bytes.Compare(a.SigningKey[:], ask.SigningKey[:]) == 0 {
 				return nil // Key already exists in authority
+			} else {
+				// Overwrite
+				written = true
+				auth.AnchorKeys[i] = ask
+				break
 			}
 		}
 	}
 
-	auth.AnchorKeys = append(auth.AnchorKeys, ask)
+	if !written {
+		auth.AnchorKeys = append(auth.AnchorKeys, ask)
+	}
 
 	im.SetAuthority(e.IdentityChainID, auth)
 	return nil
@@ -186,5 +199,33 @@ func (im *IdentityManager) ApplyAddFederatedServerBitcoinAnchorKey(entry interfa
 
 func (im *IdentityManager) ApplyServerFault(entry interfaces.IABEntry) error {
 	//	e := entry.(*adminBlock.ServerFault)
+	return nil
+}
+
+func (im *IdentityManager) ApplyAddFactoidAddress(entry interfaces.IABEntry) error {
+	e := entry.(*adminBlock.AddFactoidAddress)
+
+	auth := im.GetAuthority(e.IdentityChainID)
+	if auth == nil {
+		return fmt.Errorf("Authority %v not found!", e.IdentityChainID.String())
+	}
+
+	auth.CoinbaseAddress = e.FactoidAddress
+
+	im.SetAuthority(auth.AuthorityChainID, auth)
+	return nil
+}
+
+func (im *IdentityManager) ApplyAddEfficiency(entry interfaces.IABEntry) error {
+	e := entry.(*adminBlock.AddEfficiency)
+
+	auth := im.GetAuthority(e.IdentityChainID)
+	if auth == nil {
+		return fmt.Errorf("Authority %v not found!", e.IdentityChainID.String())
+	}
+
+	auth.Efficiency = e.Efficiency
+
+	im.SetAuthority(auth.AuthorityChainID, auth)
 	return nil
 }
