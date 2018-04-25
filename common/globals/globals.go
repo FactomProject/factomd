@@ -58,4 +58,5 @@ type FactomParams struct {
 	StdoutLog                string
 	StderrLog                string
 	DebugLogRegEx            string
+	ConfigPath               string
 }

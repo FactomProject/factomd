@@ -93,6 +93,8 @@ func ParseCmdLine(args []string) *FactomParams {
 	flag.IntVar(&elections.FaultTimeout, "faulttimeout", 30, "Seconds before considering Federated servers at-fault. Default is 30.")
 	flag.IntVar(&elections.RoundTimeout, "roundtimeout", 30, "Seconds before audit servers will increment rounds and volunteer.")
 	flag.IntVar(&p2p.NumberPeersToBroadcast, "broadcastnum", 16, "Number of peers to broadcast to in the peer to peer networking")
+	flag.StringVar(&p.ConfigPath, "config", "", "Override the config file location (factomd.conf)")
+
 	flag.CommandLine.Parse(args)
 
 	p.AckbalanceHash = *ackBalanceHashPtr

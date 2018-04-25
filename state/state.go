@@ -45,10 +45,10 @@ var _ = fmt.Print
 type State struct {
 	Logger            *log.Entry
 	IsRunning         bool
-	filename          string
 	NetworkController *p2p.Controller
 	Salt              interfaces.IHash
 	Cfg               interfaces.IFactomConfig
+	ConfigFilePath    string // $HOME/.factom/m2/factomd.conf by default
 
 	Prefix            string
 	FactomNodeName    string
@@ -383,6 +383,10 @@ type EntryUpdate struct {
 	Timestamp interfaces.Timestamp
 }
 
+func (s *State) GetConfigPath() string {
+	return s.ConfigFilePath
+}
+
 func (s *State) Running() bool {
 	return s.IsRunning
 }
@@ -626,7 +630,7 @@ func (s *State) IncECommits() {
 }
 
 func (s *State) GetAckChange() error {
-	change, err := util.GetChangeAcksHeight(s.filename)
+	change, err := util.GetChangeAcksHeight(s.ConfigFilePath)
 	if err != nil {
 		return err
 	}
@@ -638,7 +642,7 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 	s.FactomNodeName = s.Prefix + "FNode0" // Default Factom Node Name for Simulation
 
 	if len(filename) > 0 {
-		s.filename = filename
+		s.ConfigFilePath = filename
 		s.ReadCfg(filename)
 
 		// Get our factomd configuration information.
@@ -821,16 +825,16 @@ func (s *State) Init() {
 	s.TimeOffset = new(primitives.Timestamp)                   //interfaces.Timestamp(int64(rand.Int63() % int64(time.Microsecond*10)))
 	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 100) //incoming message queue from the network messages
 	s.InvalidMessages = make(map[[32]byte]interfaces.IMsg, 0)
-	s.networkOutMsgQueue = NewNetOutMsgQueue(1000)      //Messages to be broadcast to the network
-	s.inMsgQueue = NewInMsgQueue(10000)                 //incoming message queue for Factom application messages
-	s.electionsQueue = NewElectionQueue(10000)          //incoming message queue for Factom application messages
-	s.apiQueue = NewAPIQueue(100)                       //incoming message queue from the API
-	s.ackQueue = make(chan interfaces.IMsg, 100)        //queue of Leadership messages
-	s.msgQueue = make(chan interfaces.IMsg, 400)        //queue of Follower messages
-	s.ShutdownChan = make(chan int, 1)                  //Channel to gracefully shut down.
-	s.MissingEntries = make(chan *MissingEntry, 1000)   //Entries I discover are missing from the database
-	s.UpdateEntryHash = make(chan *EntryUpdate, 10000)  //Handles entry hashes and updating Commit maps.
-	s.WriteEntry = make(chan interfaces.IEBEntry, 3000) //Entries to be written to the database
+	s.networkOutMsgQueue = NewNetOutMsgQueue(1000)               //Messages to be broadcast to the network
+	s.inMsgQueue = NewInMsgQueue(constants.INMSGQUEUE_HIGH + 10) //incoming message queue for Factom application messages
+	s.electionsQueue = NewElectionQueue(10000)                   //incoming message queue for Factom application messages
+	s.apiQueue = NewAPIQueue(100)                                //incoming message queue from the API
+	s.ackQueue = make(chan interfaces.IMsg, 100)                 //queue of Leadership messages
+	s.msgQueue = make(chan interfaces.IMsg, 400)                 //queue of Follower messages
+	s.ShutdownChan = make(chan int, 1)                           //Channel to gracefully shut down.
+	s.MissingEntries = make(chan *MissingEntry, 1000)            //Entries I discover are missing from the database
+	s.UpdateEntryHash = make(chan *EntryUpdate, 10000)           //Handles entry hashes and updating Commit maps.
+	s.WriteEntry = make(chan interfaces.IEBEntry, 3000)          //Entries to be written to the database
 
 	if s.Journaling {
 		f, err := os.Create(s.JournalFile)

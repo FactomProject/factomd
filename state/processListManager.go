@@ -15,23 +15,15 @@ var _ = fmt.Print
 var _ = log.Print
 
 type ProcessLists struct {
-	State        *State                           // Pointer to the state object
-	DBHeightBase uint32                           // Height of the first Process List in this structure.
-	Lists        []*ProcessList                   // Pointer to the ProcessList structure for each DBHeight under construction
-	Holding      [64]map[[32]byte]interfaces.IMsg // Messages that don't have Acks
+	State        *State         // Pointer to the state object
+	DBHeightBase uint32         // Height of the first Process List in this structure.
+	Lists        []*ProcessList // Pointer to the ProcessList structure for each DBHeight under construction
 	SetString    bool
 	Str          string
 }
 
 func (lists *ProcessLists) LastList() *ProcessList {
 	return lists.Lists[len(lists.Lists)-1]
-}
-
-func (lists *ProcessLists) GetHolding(vmi int) map[[32]byte]interfaces.IMsg {
-	if lists.Holding[vmi] == nil {
-		lists.Holding[vmi] = make(map[[32]byte]interfaces.IMsg)
-	}
-	return lists.Holding[vmi]
 }
 
 // UpdateState is executed from a Follower's perspective.  So the block we are building
