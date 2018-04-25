@@ -15,7 +15,41 @@ import (
 
 func (state *State) ValidatorLoop() {
 	timeStruct := new(Timer)
+	var prev time.Time
 	for {
+		if state.debugExec() {
+			status := ""
+			now := time.Now()
+			if now.Sub(prev).Minutes() > 1 {
+				state.LogPrintf("executeMsg", "Timestamp DBh/VMh/h %d/%d/%d", state.LLeaderHeight, state.LeaderVMIndex, state.CurrentMinute)
+				pendingEBs := 0
+				pendingEntries := 0
+				pl := state.ProcessLists.Get(state.LLeaderHeight)
+				if pl != nil {
+					pendingEBs = len(pl.NewEBlocks)
+					pendingEntries = len(pl.NewEntries)
+				}
+				status += fmt.Sprintf("Review %d ", len(state.XReview))
+				status += fmt.Sprintf("Holding %d ", len(state.Holding))
+				status += fmt.Sprintf("Commits %d ", state.Commits.Len())
+				status += fmt.Sprintf("Pending EBs %d ", pendingEBs)         // cope with nil
+				status += fmt.Sprintf("Pending Entries %d ", pendingEntries) // cope with nil
+				status += fmt.Sprintf("Acks %d ", len(state.AcksMap))
+				status += fmt.Sprintf("MsgQueue %d ", len(state.msgQueue))
+				status += fmt.Sprintf("InMsgQueue %d ", state.inMsgQueue.Length())
+				status += fmt.Sprintf("APIQueue   %d ", state.apiQueue.Length())
+				status += fmt.Sprintf("AckQueue %d ", len(state.ackQueue))
+				status += fmt.Sprintf("TimerMsgQueue %d ", len(state.timerMsgQueue))
+				status += fmt.Sprintf("NetworkOutMsgQueue %d ", state.networkOutMsgQueue.Length())
+				status += fmt.Sprintf("NetworkInvalidMsgQueue %d ", len(state.networkInvalidMsgQueue))
+				status += fmt.Sprintf("UpdateEntryHash %d ", len(state.UpdateEntryHash))
+				status += fmt.Sprintf("MissingEntries %d ", state.GetMissingEntryCount())
+				status += fmt.Sprintf("WriteEntry %d ", len(state.WriteEntry))
+
+				state.LogPrintf("executeMsg", "Status %s", status)
+				prev = now
+			}
+		}
 		// Check if we should shut down.
 		select {
 		case <-state.ShutdownChan:
@@ -89,17 +123,26 @@ type Timer struct {
 	lastDBHeight uint32
 }
 
-func (t *Timer) timer(state *State, min int) {
+func (t *Timer) timer(s *State, min int) {
 	t.lastMin = min
 
+	if s.RunLeader { // don't generate EOM if we are not a leader or are loading the DBState messages
 	eom := new(messages.EOM)
-	eom.Timestamp = state.GetTimestamp()
-	eom.ChainID = state.GetIdentityChainID()
-	eom.Sign(state)
-	eom.SetLocal(true)
-	consenLogger.WithFields(log.Fields{"func": "GenerateEOM", "lheight": state.GetLeaderHeight()}).WithFields(eom.LogFields()).Debug("Generate EOM")
+		eom.Timestamp = s.GetTimestamp()
+		eom.ChainID = s.GetIdentityChainID()
+		{
+			// best guess info... may be wrong -- just for debug
+			eom.DBHeight = s.LLeaderHeight
+			eom.VMIndex = s.LeaderVMIndex
+			// EOM.Minute is zerobased, while LeaderMinute is 1 based.  So
+			// a simple assignment works.
+			eom.Minute = byte(s.CurrentMinute)
+		}
 
-	if state.RunLeader { // don't generate EOM if we are not a leader or are loading the DBState messages
-		state.MsgQueue() <- eom
+		eom.Sign(s)
+	eom.SetLocal(true)
+		consenLogger.WithFields(log.Fields{"func": "GenerateEOM", "lheight": s.GetLeaderHeight()}).WithFields(eom.LogFields()).Debug("Generate EOM")
+
+		s.MsgQueue() <- eom
 	}
 }

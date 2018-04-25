@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/globals"
 )
 
 func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
@@ -17,7 +18,7 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 	for *summary == value {
 		PrintOneStatus(*listenTo, *wsapiNode)
 
-		time.Sleep(time.Second)
+		time.Sleep(2 * time.Second)
 	}
 }
 
@@ -26,7 +27,7 @@ var out string // previous status
 func PrintOneStatus(listenTo int, wsapiNode int) {
 	f := fnodes[listenTo]
 	prt := "===SummaryStart===\n\n"
-	prt = fmt.Sprintf("%sTime: %d %s\n", prt, time.Now().Unix(), time.Now().String())
+	prt = fmt.Sprintf("%sTime: %d %s Elapsed time:%s\n", prt, time.Now().Unix(), time.Now().String(), time.Since(globals.StartTime).String())
 
 	for i, f := range fnodes {
 		f.Index = i
@@ -51,8 +52,6 @@ func PrintOneStatus(listenTo int, wsapiNode int) {
 	for _, f := range pnodes {
 		f.State.Status = 1
 	}
-
-	time.Sleep(time.Second)
 
 	prt = prt + "    " + pnodes[0].State.SummaryHeader()
 
@@ -133,7 +132,7 @@ func PrintOneStatus(listenTo int, wsapiNode int) {
 	// Nil pointer exception at start up -- clay
 	for _, f := range pnodes {
 		var i int
-		if f.State.LeaderPL.NewEBlocks != nil {
+		if f.State.LeaderPL != nil && f.State.LeaderPL.NewEBlocks != nil {
 			i = len(f.State.LeaderPL.NewEBlocks)
 		} else {
 			i = 0

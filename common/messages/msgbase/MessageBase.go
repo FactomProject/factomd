@@ -232,7 +232,7 @@ func VerifyMessage(s interfaces.Signable) (bool, error) {
 		s.SetValid()
 		return true, nil
 	}
-	return false, errors.New("Signarue is invalid")
+	return false, errors.New("signature is invalid")
 }
 
 func SignSignable(s interfaces.Signable, key interfaces.Signer) (interfaces.IFullSignature, error) {

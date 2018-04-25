@@ -858,7 +858,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				now := p.State.GetTimestamp()
 
 				if _, valid := p.State.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), now); !valid {
-					p.State.LogMessage("process", fmt.Sprintf("drop %v/%v/%v, hash INTERNAL_REPLAY", dbht, i, j), thisMsg)
+					p.State.LogMessage("process", fmt.Sprintf("drop %v/%v/%v, hash INTERNAL_REPLAY", p.DBHeight, i, j), thisMsg)
 					vm.List[j] = nil // If we have seen this message, we don't process it again.  Ever.
 					break VMListLoop
 				}
@@ -867,6 +867,8 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					p.State.LogMessage("processList", "done", msg)
 					vm.heartBeat = 0
 					vm.Height = j + 1 // Don't process it again if the process worked.
+					p.State.LogMessage("process", fmt.Sprintf("done %v/%v/%v", p.DBHeight, i, j), msg)
+					p.State.LogMessage("process", fmt.Sprintf("done %v/%v/%v", p.DBHeight, i, j), msg)
 
 					progress = true
 
@@ -879,7 +881,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					delete(p.State.Holding, msg.GetMsgHash().Fixed())
 
 				} else {
-					p.State.LogMessage("processList", "try again", msg)
+					p.State.LogMessage("process", fmt.Sprintf("retry %v/%v/%v", p.DBHeight, i, j), msg)
 					//p.State.AddStatus(fmt.Sprintf("processList.Process(): Could not process entry dbht: %d VM: %d  msg: [[%s]]", p.DBHeight, i, msg.String()))
 					break VMListLoop // Don't process further in this list, go to the next.
 				}
@@ -894,7 +896,14 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 }
 
 func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
-	if p == nil {
+        p.State.LogMessage("processList", "Message:", m)
+	p.State.LogMessage("processList", "Ack:", ack)
+	if ack == nil {
+		p.State.LogPrintf("processList", "drop Ack==nil")
+		return
+	}
+	if ack.GetMsgHash() == nil {
+		p.State.LogPrintf("processList", "Drop ack.GetMsgHash() == nil")
 		return
 	}
 
@@ -906,6 +915,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
 	if ack.DBHeight > p.State.HighestAck && ack.Minute > 0 {
 		p.State.HighestAck = ack.DBHeight
+		p.State.LogPrintf("processList", "Drop1")
 	}
 
 	TotalAcksInputs.Inc()
@@ -942,7 +952,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	now := p.State.GetTimestamp()
 
 	vm := p.VMs[ack.VMIndex]
-
+        
 	if len(vm.List) > int(ack.Height) && vm.List[ack.Height] != nil {
 		_, isNew2 := p.State.Replay.Valid(constants.INTERNAL_REPLAY, m.GetRepeatHash().Fixed(), m.GetTimestamp(), now)
 		if !isNew2 {
@@ -953,15 +963,18 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
 	if ack.DBHeight != p.DBHeight {
 		// panic(fmt.Sprintf("Ack is wrong height.  Expected: %d Ack: ", p.DBHeight))
+		p.State.LogPrintf("processList", "Drop Ack is wrong height.  Expected: %d Ack: ", p.DBHeight)
 		return
 	}
 
 	if len(vm.List) > int(ack.Height) && vm.List[ack.Height] != nil {
 		if vm.List[ack.Height].GetMsgHash().IsSameAs(m.GetMsgHash()) {
+                        p.State.LogPrintf("processList", "Drop duplicate")
 			toss("2")
 			return
 		}
 
+                p.State.LogMessage("processList", "drop from pl", vm.List[ack.Height])
 		vm.List[ack.Height] = nil
 
 		return
@@ -1067,7 +1080,7 @@ func (p *ProcessList) String() string {
 				}
 
 				if msg != nil {
-					leader := fmt.Sprintf("[%x] ", vm.ListAck[j].LeaderChainID.Bytes()[:4])
+					leader := fmt.Sprintf("[%x] ", vm.ListAck[j].LeaderChainID.Bytes()[3:6])
 					buf.WriteString("   " + leader + msg.String() + "\n")
 				} else {
 					buf.WriteString("   <nil>\n")
