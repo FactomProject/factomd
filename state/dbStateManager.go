@@ -1266,7 +1266,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 
 		// Set the Block Replay flag for all these transactions that are already in the database.
 		for _, fct := range d.FactoidBlock.GetTransactions() {
-			list.State.FReplay.IsTSValid_(
+			list.State.FReplay.IsTSValidAndUpdateState(
 				constants.BLOCK_REPLAY,
 				fct.GetSigHash().Fixed(),
 				fct.GetTimestamp(),
@@ -1440,7 +1440,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 
 	// Set the Block Replay flag for all these transactions we are saving to the database.
 	for _, fct := range d.FactoidBlock.GetTransactions() {
-		list.State.FReplay.IsTSValid_(
+		list.State.FReplay.IsTSValidAndUpdateState(
 			constants.BLOCK_REPLAY,
 			fct.GetSigHash().Fixed(),
 			fct.GetTimestamp(),

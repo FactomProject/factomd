@@ -872,8 +872,8 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 					// We have already tested and found m to be a new message.  We now record its hashes so later, we
 					// can detect that it has been recorded.  We don't care about the results of IsTSValid_ at this point.
-					p.State.Replay.IsTSValid_(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), now)
-					p.State.Replay.IsTSValid_(constants.INTERNAL_REPLAY, msg.GetMsgHash().Fixed(), msg.GetTimestamp(), now)
+					p.State.Replay.IsTSValidAndUpdateState(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), now)
+					p.State.Replay.IsTSValidAndUpdateState(constants.INTERNAL_REPLAY, msg.GetMsgHash().Fixed(), msg.GetTimestamp(), now)
 
 					delete(p.State.Acks, msg.GetMsgHash().Fixed())
 					delete(p.State.Holding, msg.GetMsgHash().Fixed())

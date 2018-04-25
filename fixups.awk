@@ -16,13 +16,12 @@ func fix(bad,good) {
 
 
   {  
-
+againsttt
  fixes += fix("accending" , "ascending" )
  fixes += fix("accomadate" , "accommodate" )
  fixes += fix("accomadation" , "accommodation" )
  fixes += fix("acknowledgemets","acknowledgements");
  fixes += fix("agains ","against");
- fixes += fix("agains" , "against" )
  fixes += fix("aksed","asked");
  fixes += fix("appication" , "application" )
  fixes += fix("applicaiton" , "application" )

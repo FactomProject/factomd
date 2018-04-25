@@ -64,8 +64,7 @@ func GetLine(listenToStdin bool) string {
 						InputChan <- string(line)
 					} else {
 						if err == io.EOF {
-							fmt.Printf("Error reading from std, sleeping for 5s: %s\n", err.Error())
-							time.Sleep(5 * time.Second)
+							return
 						} else {
 							fmt.Printf("Error reading from std, sleeping for 1s: %s\n", err.Error())
 							time.Sleep(1 * time.Second)
