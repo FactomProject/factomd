@@ -1,8 +1,20 @@
 #!/bin/bash
+trap_with_arg() { # from https://stackoverflow.com/a/2183063/804678
+  local func="$1"; shift
+  for sig in "$@"; do
+    trap "$func $sig" "$sig"
+  done
+}
 
-nchains=1     # number of chains to create
-nchains2=1     # number of chains to create
-nentries=200   # number of entries to add to each chain
+stop() {
+  trap - SIGINT EXIT
+  printf '\n%s\n' "recieved $1, killing children"
+  kill -s SIGINT 0
+}
+
+nchains=18    # number of chains to create
+nchains2=2    # number of chains to create
+nentries=20   # number of entries to add to each chain
 
 #factomd=10.41.2.5:8088
  factomd=localhost:8088
@@ -15,7 +27,7 @@ fa1=$(factom-cli -s=$factomd importaddress Fs3E9gV6DXsYzf7Fqx1fVBQPQXV695eP3k5Xb
 
 minsleep=1
 randsleep=2
-entrysize=10000
+entrysize=1000
 
 ec1=$(factom-cli -s=$factomd importaddress Es3LB2YW9bpdWmMnNQYb31kyPzqnecsNqmg5W4K7FKp4UP6omRTa)
 
@@ -46,7 +58,8 @@ addentries() {
 
 	for ((i=0; i<nentries; i++)); do
     		cat $datafile | factom-cli -s=$factomd addentry -f -c $1 -e test -e $i -e $RANDOM -e $RANDOM -e $RANDOM $ec1 > /dev/null
-		sleep $((  3 ))
+#		echo "write entry Chain:"  $2 $i
+		sleep $((  1 ))
 	done
   
   # get rid of the random datafile
@@ -65,7 +78,7 @@ for ((ii=0; ii<nchains2; ii++)); do
 done
 
 echo SLEEP "a little pause before we go again!"
-sleep $(( $minsleep * 30 ))
+sleep $(( $minsleep * 10 ))
 
 echo About ready ...
 sleep $(( $minsleep * 2 ))

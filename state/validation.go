@@ -17,7 +17,7 @@ func (state *State) ValidatorLoop() {
 	timeStruct := new(Timer)
 	var prev time.Time
 	for {
-		if state.debugExec() {
+		if state.DebugExec() {
 			status := ""
 			now := time.Now()
 			if now.Sub(prev).Minutes() > 1 {

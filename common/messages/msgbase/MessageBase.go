@@ -7,11 +7,12 @@ package msgbase
 import (
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
-	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/util/atomic"
 )
 
 type MessageBase struct {
@@ -52,28 +53,73 @@ func (m *MessageBase) Resend_(s interfaces.IState, msg interfaces.IMsg, cnt int,
 	}
 }
 
+var mu sync.Mutex // lock for debug struct
+
+type foo struct {
+	where map[[32]byte]string
+	what  map[[32]byte]interfaces.IMsg
+}
+
+var outs map[string]*foo = make(map[string]*foo)
+var places map[string]interfaces.IMsg = make(map[string]interfaces.IMsg)
+
+var sends, unique, duplicate int
+
 func (m *MessageBase) SendOut(s interfaces.IState, msg interfaces.IMsg) {
-	// Don't resend if we are behind
-	if m.ResendCnt > 1 && s.GetHighestKnownBlock()-s.GetHighestSavedBlk() > 4 {
-		s.LogMessage("NetworkOutputs", "Drop to busy", msg)
+	// Are we ever modifying a message?
+	if m.ResendCnt > 0 { // never send the same message twice ...
 		return
 	}
-
-	if m.ResendCnt > 4 {
-		return
-	}
+	//// Don't resend if we are behind
+	//if m.ResendCnt > 1 && s.GetHighestKnownBlock()-s.GetHighestSavedBlk() > 4 {
+	//	s.LogMessage("NetworkOutputs", "Drop too busy", msg)
+	//	return
+	//}
 	m.ResendCnt++
+	sends++
 
-	switch msg.Type() {
-	//case ServerFault:
-	//	go resend(s, msg, 20, 1)
-	case constants.FULL_SERVER_FAULT_MSG:
-		go m.Resend_(s, msg, 2, 5)
-	case constants.FED_SERVER_FAULT_MSG:
-		go m.Resend_(s, msg, 2, 5)
-	default:
-		m.Resend_(s, msg, 1, 0)
+	if s.DebugExec() { // debug code
+		whereAmIString := atomic.WhereAmIString(1)
+		hash := msg.GetRepeatHash().Fixed()
+		mu.Lock()
+		f, ok := outs[s.GetFactomNodeName()]
+		if !ok {
+			f = new(foo)
+			f.where = make(map[[32]byte]string)
+			f.what = make(map[[32]byte]interfaces.IMsg)
+			outs[s.GetFactomNodeName()] = f
+		}
+		where, ok := f.where[hash]
+		mu.Unlock()
+
+		if ok {
+			duplicate++
+			mu.Lock()
+			orig := f.what[hash]
+			mu.Unlock()
+			s.LogPrintf("NetworkOutputs", "Duplicate Send of R-%x (%d sends, %d duplicates, %d unique)", msg.GetRepeatHash().Bytes()[:4], sends, duplicate, unique)
+			s.LogPrintf("NetworkOutputs", "Original: %p: %s", orig, where)
+			s.LogPrintf("NetworkOutputs", "This:     %p: %s", msg, whereAmIString)
+			s.LogMessage("NetworkOutputs", "Orig Message:", msg)
+			s.LogMessage("NetworkOutputs", "This Message:", msg)
+
+			//mu.Lock()
+			//which, ok := places[whereAmIString]
+			//mu.Unlock()
+			//if ok {
+			//	s.LogPrintf("NetworkOutputs", "message <%s> is original from %s\n", which.String(), whereAmIString)
+			//}
+		} else {
+			unique++
+			mu.Lock()
+			f.where[hash] = whereAmIString
+			f.what[hash] = msg
+			///minute 9[whereAmIString] = msg
+			mu.Unlock()
+		}
 	}
+	s.LogMessage("NetworkOutputs", "Enqueue", msg)
+	s.NetworkOutMsgQueue().Enqueue(msg)
 }
 
 func (m *MessageBase) GetNoResend() bool {

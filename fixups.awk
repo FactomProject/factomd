@@ -16,7 +16,6 @@ func fix(bad,good) {
 
 
   {  
-againsttt
  fixes += fix("accending" , "ascending" )
  fixes += fix("accomadate" , "accommodate" )
  fixes += fix("accomadation" , "accommodation" )

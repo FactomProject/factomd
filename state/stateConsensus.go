@@ -41,7 +41,7 @@ var _ = (*hash.Hash32)(nil)
 var once sync.Once
 var debugExec_flag bool
 
-func (s *State) debugExec() (ret bool) {
+func (s *State) DebugExec() (ret bool) {
 	once.Do(func() { debugExec_flag = globals.Params.DebugLogRegEx != "" })
 
 	//return s.FactomNodeName == "FNode0"
@@ -49,7 +49,7 @@ func (s *State) debugExec() (ret bool) {
 }
 
 func (s *State) LogMessage(logName string, comment string, msg interfaces.IMsg) {
-	if s.debugExec() {
+	if s.DebugExec() {
 		var dbh int
 		if s.LeaderPL != nil {
 			dbh = int(s.LeaderPL.DBHeight)
@@ -59,7 +59,7 @@ func (s *State) LogMessage(logName string, comment string, msg interfaces.IMsg) 
 }
 
 func (s *State) LogPrintf(logName string, format string, more ...interface{}) {
-	if s.debugExec() {
+	if s.DebugExec() {
 		var dbh int
 		if s.LeaderPL != nil {
 			dbh = int(s.LeaderPL.DBHeight)
@@ -129,10 +129,10 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 		// Sometimes messages we have already processed are in the msgQueue from holding when we execute them
 		// this check makes sure we don't put them back in holding after just deleting them
 		if _, valid := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp()); valid {
-		TotalHoldingQueueInputs.Inc()
-		TotalHoldingQueueRecycles.Inc()
-		s.LogMessage("executeMsg", "Add to Holding", msg)
-		s.Holding[msg.GetMsgHash().Fixed()] = msg
+			TotalHoldingQueueInputs.Inc()
+			TotalHoldingQueueRecycles.Inc()
+			s.LogMessage("executeMsg", "Add to Holding", msg)
+			s.Holding[msg.GetMsgHash().Fixed()] = msg
 		} else {
 			s.LogMessage("executeMsg", "drop, IReplay", msg)
 		}
@@ -551,8 +551,10 @@ func (s *State) AddDBState(isNew bool, directoryBlock interfaces.IDirectoryBlock
 // Returns true if it finds a match, puts the message in holding, or invalidates the message
 func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 	FollowerExecutions.Inc()
-	TotalHoldingQueueInputs.Inc()
 
+	// add it to the holding queue in case AddToProcessList may remove it
+	TotalHoldingQueueInputs.Inc()
+	s.Holding[m.GetMsgHash().Fixed()] = m
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
 
 	if ack != nil {
@@ -564,8 +566,9 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 
 		// Cross Boot Replay
 		s.CrossReplayAddSalt(ack.DBHeight, ack.Salt)
-	} else {
-		s.Holding[m.GetMsgHash().Fixed()] = m
+	}
+	if s.Holding[m.GetMsgHash().Fixed()] != nil {
+		s.LogMessage("executeMsg", "Add to Holding", m)
 	}
 }
 
@@ -588,8 +591,10 @@ func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
 	}
 
 	FollowerEOMExecutions.Inc()
+	// add it to the holding queue in case AddToProcessList may remove it
 	TotalHoldingQueueInputs.Inc()
-	s.Holding[m.GetMsgHash().Fixed()] = m
+	s.LogMessage("executeMsg", "Add to Holding", m)
+	s.Holding[m.GetMsgHash().Fixed()] = m // FollowerExecuteEOM
 
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
 	if ack != nil {
@@ -610,6 +615,7 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 
 	pl := s.ProcessLists.Get(ack.DBHeight)
 	if pl == nil {
+		s.LogMessage("executeMsg", "drop, no pl", msg)
 		// Does this mean it's from the future?
 		// TODO: Should we put the ack back on the inMsgQueue queue here instead of dropping it? -- clay
 		return
@@ -850,9 +856,9 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 		return
 	}
 	// Just ignore missing messages for a period after going off line or starting up.
-	//TODO: Log here -- clay
 	if s.IgnoreMissing {
 		s.LogMessage("executeMsg", "Drop IgnoreMissing", m)
+		return
 	}
 	// Drop the missing message response if it's already in the process list
 	_, valid := s.Replay.Valid(constants.INTERNAL_REPLAY, m.GetRepeatHash().Fixed(), m.GetTimestamp(), s.GetTimestamp())
@@ -1028,8 +1034,13 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 	TotalHoldingQueueInputs.Inc()
 
 	if s.Commits.Get(m.GetMsgHash().Fixed()) != nil {
-		if m.Validate(s) == 1 {
-			m.SendOut(s, m)
+		valid := m.Validate(s)
+		switch valid {
+		case 1:
+			m.SendOut(s, m) // there was a matching commit so send out the reveal
+		case -1:
+			s.LogMessage("executeMsg", "drop, invalid", m)
+			return
 		}
 	}
 
@@ -1038,17 +1049,18 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 
 	if ack == nil {
 		s.LogMessage("executeMsg", "hold, no ack yet", m)
-		s.ProcessLists.GetHolding(m.GetVMIndex())[m.GetMsgHash().Fixed()] = m
+		s.Holding[m.GetMsgHash().Fixed()] = m // hold in  FollowerExecuteRevealEntry
 		return
 	}
 
-	m.SendOut(s, m)
 	ack.SendOut(s, ack)
 	m.SetLeaderChainID(ack.GetLeaderChainID())
 	m.SetMinute(ack.Minute)
 
 	pl := s.ProcessLists.Get(ack.DBHeight)
 	if pl == nil {
+		s.LogMessage("executeMsg", "hold, no process list yet", m)
+		s.Holding[m.GetMsgHash().Fixed()] = m // hold in  FollowerExecuteRevealEntry
 		return
 	}
 
@@ -1059,6 +1071,8 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 	list := s.ProcessLists.Get(ack.DBHeight).VMs[ack.VMIndex].List
 	// Check to make sure the list isn't empty.  If it is, then it didn't go in.
 	if int(ack.Height) >= len(list) || list[ack.Height] == nil {
+		s.LogMessage("executeMsg", "hold, no process list yet2", m)
+		s.Holding[m.GetMsgHash().Fixed()] = m // hold in  FollowerExecuteRevealEntry
 		return
 	}
 
@@ -1080,7 +1094,7 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 	if !ok {
 		TotalHoldingQueueOutputs.Inc()
 		delete(s.Holding, m.GetMsgHash().Fixed())
-		if s.debugExec() {
+		if s.DebugExec() {
 			s.LogMessage("executeMsg", "Drop replay", m)
 		}
 		return
@@ -1367,7 +1381,7 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 	pl := s.ProcessLists.Get(dbheight)
 	pl.EntryCreditBlock.GetBody().AddEntry(c.CommitEntry)
 	if e := s.GetFactoidState().UpdateECTransaction(true, c.CommitEntry); e == nil {
-		// save the Commit to match againstttthe Reveal later
+		// save the Commit to match against the Reveal later
 		h := c.GetHash()
 		s.PutCommit(h, c)
 		entry := s.Holding[h.Fixed()]
@@ -1481,17 +1495,20 @@ func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
 	dbslog := consenLogger.WithFields(log.Fields{"func": "SendDBSig"})
 
 	ht := s.GetHighestSavedBlk()
-	if dbheight <= ht || s.EOM {
+	if dbheight <= ht { // if it's in the past, just return.
+		return
+	}
+	if s.EOM { // If we are counting up EOMs don't generate a DBSig .. why ? -- clay
 		return
 	}
 	pl := s.ProcessLists.Get(dbheight)
 	vm := pl.VMs[vmIndex]
 	if vm.Height > 0 {
-		return
+		return // If we already have the DBSIG (it's always in slot 0) then just return
 	}
 	leader, lvm := pl.GetVirtualServers(vm.LeaderMinute, s.IdentityChainID)
 	if !leader || lvm != vmIndex {
-		return
+		return // If I'm not a leader or this is not my VM then return
 	}
 
 	if !vm.Signed {
@@ -1848,6 +1865,22 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	plog := func(format string, args ...interface{}) {
 		consenLogger.WithFields(log.Fields{"func": "ProcessDBSig", "msgheight": dbs.DBHeight, "lheight": s.GetLeaderHeight(), "msg": msg.String()}).Errorf(format, args...)
 	}
+	// debug
+	{
+		var ids string
+		if s.Syncing && s.DBSig && !s.DBSigDone {
+			p := s.ProcessLists.Get(dbheight - 1)
+			for i, l := range p.FedServers {
+				vm := p.VMs[i]
+				if !vm.Synced {
+					ids = ids + "," + l.GetChainID().String()[6:12]
+				}
+			}
+			if len(ids) > 0 {
+				s.LogPrintf("dbsig-eom", "Waiting for DBSIGs from %s", ids[1:])
+			}
+		}
+	}
 	// Don't process if syncing an EOM
 	if s.Syncing && !s.DBSig {
 		//fmt.Println(fmt.Sprintf("ProcessDBSig(): %10s Will Not Process: dbht: %d return on s.Syncing(%v) && !s.DBSig(%v)", s.FactomNodeName,
@@ -1945,7 +1978,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 		valid, err := s.FastVerifyAuthoritySignature(data, dbs.DBSignature, dbs.DBHeight)
 		if err != nil || valid != 1 {
-			plog("Failed. Invalid Auth Sig: Pubkey: %x", dbs.Signature.GetKey())
+			s.LogPrintf("executeMsg", "Failed. Invalid Auth Sig: Pubkey: %x", dbs.Signature.GetKey())
 			return false
 		}
 
@@ -2157,7 +2190,7 @@ func (s *State) GetHighestSavedBlk() uint32 {
 	return v
 }
 
-// This is the highest block signed off, but not necessarily validted.
+// This is the highest block signed off, but not necessarily validated.
 func (s *State) GetHighestCompletedBlk() uint32 {
 	v := s.DBStates.GetHighestCompletedBlk()
 	HighestCompleted.Set(float64(v))

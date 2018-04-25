@@ -902,6 +902,10 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
         p.State.LogMessage("processList", "Message:", m)
 	p.State.LogMessage("processList", "Ack:", ack)
+	if p == nil {
+		p.State.LogPrintf("processList", "Drop no process list to add to")
+		return
+	}
 	if ack == nil {
 		p.State.LogPrintf("processList", "drop Ack==nil")
 		return
@@ -929,6 +933,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	if !ack.Response && ack.LeaderChainID.IsSameAs(p.State.IdentityChainID) {
 		now := p.State.GetTimestamp()
 		if now.GetTimeSeconds()-ack.Timestamp.GetTimeSeconds() > 120 {
+			p.State.LogPrintf("processList", "Drop1")
 			// Us and too old?  Just ignore.
 			return
 		}
