@@ -743,6 +743,10 @@ func (p *ProcessList) TrimVMList(height uint32, vmIndex int) {
 	}
 }
 
+func (p *ProcessList) GetDBHeight() uint32 {
+	return p.DBHeight
+}
+
 // Process messages and update our state.
 func (p *ProcessList) Process(state *State) (progress bool) {
 	dbht := state.GetHighestSavedBlk()

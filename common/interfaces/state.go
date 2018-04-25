@@ -321,4 +321,7 @@ type IState interface {
 
 	LogMessage(logName string, comment string, msg IMsg)
 	LogPrintf(logName string, format string, more ...interface{})
+
+    GetHighestAck() uint32
+    SetHighestAck(uint32)
 }
