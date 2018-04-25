@@ -114,10 +114,16 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 		ret = true
 
 	case 0:
+		// Sometimes messages we have already processed are in the msgQueue from holding when we execute them
+		// this check makes sure we don't put them back in holding after just deleting them
+		if _, valid := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp()); valid {
 		TotalHoldingQueueInputs.Inc()
 		TotalHoldingQueueRecycles.Inc()
 		s.LogMessage("executeMsg", "Add to Holding", msg)
 		s.Holding[msg.GetMsgHash().Fixed()] = msg
+		} else {
+			s.LogMessage("executeMsg", "drop, IReplay", msg)
+		}
 
 	default:
 		if !msg.SentInvalid() {
@@ -204,19 +210,23 @@ ackLoop:
 	for {
 		select {
 		case ack := <-s.ackQueue:
-			a := ack.(*messages.Ack)
 			switch ack.Validate(s) {
 			case -1:
-				s.LogMessage("ackQueue", "Drop Invalid", ack) // Maybe put it back in the ask queue ? -- clay
+				s.LogMessage("ackQueue", "Drop Invalid", ack)
+				ack.Validate(s)
 				continue
 			case 0:
-				s.LogMessage("ackQueue", "Unknown Validity.  Should never happen", ack)
-				panic("Should never happen")
+				// toss the ack into holding and we will try again in a bit...
+				TotalHoldingQueueInputs.Inc()
+				TotalHoldingQueueRecycles.Inc()
+				s.LogMessage("ackQueue", "Add to Holding", ack)
+				s.Holding[ack.GetMsgHash().Fixed()] = ack
+				continue
 			}
 
 			if s.IgnoreMissing {
 				now := s.GetTimestamp().GetTimeSeconds() //todo: Do we really need to do this every loop?
-				if now-a.GetTimestamp().GetTimeSeconds() < 60*15 {
+				if now-ack.GetTimestamp().GetTimeSeconds() < 60*15 {
 					s.LogMessage("ackQueue", "Execute", ack)
 					s.executeMsg(vm, ack)
 					progress = true

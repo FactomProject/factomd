@@ -43,6 +43,7 @@ type IProcessList interface {
 	AddDBSig(serverID IHash, sig IFullSignature)
 	String() string
 	IsPendingChainHead(chainID IHash) bool
+	GetDBHeight() uint32
 }
 
 type IRequest interface {
