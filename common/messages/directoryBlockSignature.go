@@ -40,6 +40,7 @@ type DirectoryBlockSignature struct {
 	Matches      bool
 	hash         interfaces.IHash
 	marshalCache []byte
+	dbsHash      interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*DirectoryBlockSignature)(nil)
@@ -387,23 +388,30 @@ func (m *DirectoryBlockSignature) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *DirectoryBlockSignature) String() string {
-	return fmt.Sprintf("%6s-VM%3d:          DBHt:%5d -- Signer[:3]=%x PrevDBKeyMR[:3]=%x hash[:3]=%x",
+		b, err := m.DirectoryBlockHeader.MarshalBinary()
+		if b != nil && err != nil {
+			h := primitives.Sha(b)
+			m.dbsHash = h
+		} else {
+			m.dbsHash = primitives.NewHash(constants.ZERO)
+		}
+	return fmt.Sprintf("%6s-VM%3d:          DBHt:%5d -- Signer[:3]=%x Directory Hash[:3]=%x hash[:3]=%x",
 		"DBSig",
 		m.VMIndex,
 		m.DBHeight,
 		m.ServerIdentityChainID.Bytes()[2:6],
-		m.DirectoryBlockHeader.GetPrevKeyMR().Bytes()[:3],
+		m.dbsHash.Bytes()[:5],
 		m.GetHash().Bytes()[:3])
 
 }
 
 func (m *DirectoryBlockSignature) LogFields() log.Fields {
 	return log.Fields{"category": "message", "messagetype": "dbsig",
-		"dbheight":  m.DBHeight,
-		"vm":        m.VMIndex,
-		"server":    m.ServerIdentityChainID.String(),
-		"prevkeymr": m.DirectoryBlockHeader.GetPrevKeyMR().String(),
-		"hash":      m.GetHash().String()}
+		"dbheight": m.DBHeight,
+		"vm":       m.VMIndex,
+		"server":   m.ServerIdentityChainID.String(),
+		"dbhash":   m.DirectoryBlockHeader.GetPrevFullHash(),
+		"hash":     m.GetHash().String()}
 }
 
 func (e *DirectoryBlockSignature) JSONByte() ([]byte, error) {
