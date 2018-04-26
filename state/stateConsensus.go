@@ -114,10 +114,17 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 		ret = true
 
 	case 0:
+		// Sometimes messages we have already processed are in the msgQueue from holding when we execute them
+		// this check makes sure we don't put them back in holding after just deleting them
+		if _, valid := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp()); valid {
 		TotalHoldingQueueInputs.Inc()
 		TotalHoldingQueueRecycles.Inc()
 		s.LogMessage("executeMsg", "Add to Holding", msg)
 		s.Holding[msg.GetMsgHash().Fixed()] = msg
+		} else {
+			s.LogMessage("executeMsg", "drop, IReplay", msg)
+		}
+
 	default:
 		if !msg.SentInvalid() {
 			msg.MarkSentInvalid(true)
@@ -149,6 +156,7 @@ func (s *State) Process() (progress bool) {
 	} else {
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
 	}
+
 	if !s.RunLeader {
 		now := s.GetTimestamp().GetTimeMilli() // Timestamps are in milliseconds, so wait 20
 		if now-s.StartDelay > s.StartDelayLimit {
@@ -161,6 +169,7 @@ func (s *State) Process() (progress bool) {
 			}
 		}
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
+
 	} else if s.IgnoreMissing {
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 		now := s.GetTimestamp().GetTimeMilli() // Timestamps are in milliseconds, so wait 20
@@ -200,19 +209,23 @@ ackLoop:
 	for {
 		select {
 		case ack := <-s.ackQueue:
-			a := ack.(*messages.Ack)
 			switch ack.Validate(s) {
 			case -1:
-				s.LogMessage("ackQueue", "Drop Invalid", ack) // Maybe put it back in the ask queue ? -- clay
+				s.LogMessage("ackQueue", "Drop Invalid", ack)
+				ack.Validate(s)
 				continue
 			case 0:
-				s.LogMessage("ackQueue", "Unknown Validity.  Should never happen", ack)
-				panic("Should never happen")
+				// toss the ack into holding and we will try again in a bit...
+				TotalHoldingQueueInputs.Inc()
+				TotalHoldingQueueRecycles.Inc()
+				s.LogMessage("ackQueue", "Add to Holding", ack)
+				s.Holding[ack.GetMsgHash().Fixed()] = ack
+				continue
 			}
 
 			if s.IgnoreMissing {
 				now := s.GetTimestamp().GetTimeSeconds() //todo: Do we really need to do this every loop?
-				if now-a.GetTimestamp().GetTimeSeconds() < 60*15 {
+				if now-ack.GetTimestamp().GetTimeSeconds() < 60*15 {
 					s.LogMessage("ackQueue", "Execute", ack)
 					s.executeMsg(vm, ack)
 					progress = true
@@ -312,6 +325,7 @@ func CheckDBKeyMR(s *State, ht uint32, hash string) error {
 // review if this is a leader, and those messages are that leader's
 // responsibility
 func (s *State) ReviewHolding() {
+
 	preReviewHoldingTime := time.Now()
 	if len(s.XReview) > 0 {
 		return
@@ -523,6 +537,7 @@ func (s *State) AddDBState(isNew bool,
 func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 	FollowerExecutions.Inc()
 	TotalHoldingQueueInputs.Inc()
+
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
 
 	if ack != nil {
