@@ -61,7 +61,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 	preExecuteMsgTime := time.Now()
 	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
 	if !ok {
-		consenLogger.WithFields(msg.LogFields()).Debug("executeMsg (Replay Invalid)")
+		consenLogger.WithFields(msg.LogFields()).Debug("ExecuteMsg (Replay Invalid)")
 		s.LogMessage("executeMsg", "replayInvalid", msg)
 		return
 	}
@@ -190,7 +190,7 @@ func (s *State) Process() (progress bool) {
 
 	/** Process all the DBStates  that might be pending **/
 
-	for true {
+	for  {
 		ix := int(s.GetHighestSavedBlk()) - s.DBStatesReceivedBase + 1
 		if ix < 0 || ix >= len(s.DBStatesReceived) {
 			break
@@ -212,7 +212,7 @@ ackLoop:
 			switch ack.Validate(s) {
 			case -1:
 				s.LogMessage("ackQueue", "Drop Invalid", ack)
-				ack.Validate(s)
+
 				continue
 			case 0:
 				// toss the ack into holding and we will try again in a bit...
@@ -271,29 +271,27 @@ emptyLoop:
 
 	if s.RunLeader {
 		s.ReviewHolding()
+
 		for {
 			for _, msg := range s.XReview {
 				if msg == nil {
 					continue
 				}
-				if msg.GetVMIndex() == s.LeaderVMIndex {
-					process = append(process, msg)
-				}
+				process = append(process, msg)
 			}
 			s.XReview = s.XReview[:0]
 			break
 		} // skip review
 	}
-
 	processXReviewTime := time.Since(preProcessXReviewTime)
 	TotalProcessXReviewTime.Add(float64(processXReviewTime.Nanoseconds()))
 
 	preProcessProcChanTime := time.Now()
 	for _, msg := range process {
-		newProgress := s.executeMsg(vm, msg)
-		progress = newProgress || progress //
-		s.LogMessage("executeMsg", fmt.Sprintf("From processq : %t", newProgress), msg)
-		s.UpdateState()
+			newProgress := s.executeMsg(vm, msg)
+			progress = newProgress || progress //
+			s.LogMessage("executeMsg", fmt.Sprintf("From processq : %t", newProgress), msg)
+			s.UpdateState()
 	} // processLoop for{...}
 
 	processProcChanTime := time.Since(preProcessProcChanTime)
@@ -415,18 +413,21 @@ func (s *State) ReviewHolding() {
 		}
 		// If a Reveal Entry has a commit available, then process the Reveal Entry and send it out.
 		if re, ok := v.(*messages.RevealEntryMsg); ok {
+			if !s.NoEntryYet(re.GetHash(), s.GetLeaderTimestamp()) {
+				delete(s.Holding, re.GetHash().Fixed())
+				s.Commits.Delete(re.GetHash().Fixed())
+				continue
+			}
 			if s.Commits.Get(re.GetHash().Fixed()) != nil {
-				delete(s.Holding, k)
-				re.FollowerExecute(s)
 				re.SendOut(s, re)
 			}
 			// Only reprocess if at the top of a new minute, and if we are a leader.
 			if !processMinute || !s.Leader {
-				continue // No need for followers to review Reveal Entry messages
+				//continue // No need for followers to review Reveal Entry messages
 			}
 			// Needs to be our VMIndex as well, or ignore.
 			if re.GetVMIndex() != s.LeaderVMIndex {
-				continue // If we are a leader, but it isn't ours, and it isn't a new minute, ignore.
+				//continue // If we are a leader, but it isn't ours, and it isn't a new minute, ignore.
 			}
 		}
 
@@ -1306,7 +1307,7 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 	pl := s.ProcessLists.Get(dbheight)
 	pl.EntryCreditBlock.GetBody().AddEntry(c.CommitChain)
 	if e := s.GetFactoidState().UpdateECTransaction(true, c.CommitChain); e == nil {
-		// save the Commit to match againstttthe Reveal later
+		// save the Commit to match againsttthe Reveal later
 		h := c.GetHash()
 		s.PutCommit(h, c)
 		var entry interfaces.IMsg
@@ -1330,7 +1331,7 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 	pl := s.ProcessLists.Get(dbheight)
 	pl.EntryCreditBlock.GetBody().AddEntry(c.CommitEntry)
 	if e := s.GetFactoidState().UpdateECTransaction(true, c.CommitEntry); e == nil {
-		// save the Commit to match againstttthe Reveal later
+		// save the Commit to match againsttthe Reveal later
 		h := c.GetHash()
 		s.PutCommit(h, c)
 		entry := s.Holding[h.Fixed()]

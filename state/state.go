@@ -162,6 +162,7 @@ type State struct {
 	networkOutMsgQueue     NetOutMsgQueue
 	networkInvalidMsgQueue chan interfaces.IMsg
 	inMsgQueue             InMsgMSGQueue
+	inMsgQueue2            InMsgMSGQueue
 	electionsQueue         ElectionQueue
 	apiQueue               APIMSGQueue
 	ackQueue               chan interfaces.IMsg
@@ -825,16 +826,17 @@ func (s *State) Init() {
 	s.TimeOffset = new(primitives.Timestamp)                   //interfaces.Timestamp(int64(rand.Int63() % int64(time.Microsecond*10)))
 	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 100) //incoming message queue from the network messages
 	s.InvalidMessages = make(map[[32]byte]interfaces.IMsg, 0)
-	s.networkOutMsgQueue = NewNetOutMsgQueue(1000)               //Messages to be broadcast to the network
-	s.inMsgQueue = NewInMsgQueue(constants.INMSGQUEUE_HIGH + 10) //incoming message queue for Factom application messages
-	s.electionsQueue = NewElectionQueue(10000)                   //incoming message queue for Factom application messages
-	s.apiQueue = NewAPIQueue(100)                                //incoming message queue from the API
-	s.ackQueue = make(chan interfaces.IMsg, 100)                 //queue of Leadership messages
-	s.msgQueue = make(chan interfaces.IMsg, 400)                 //queue of Follower messages
-	s.ShutdownChan = make(chan int, 1)                           //Channel to gracefully shut down.
-	s.MissingEntries = make(chan *MissingEntry, 1000)            //Entries I discover are missing from the database
-	s.UpdateEntryHash = make(chan *EntryUpdate, 10000)           //Handles entry hashes and updating Commit maps.
-	s.WriteEntry = make(chan interfaces.IEBEntry, 3000)          //Entries to be written to the database
+	s.networkOutMsgQueue = NewNetOutMsgQueue(1000)      //Messages to be broadcast to the network
+	s.inMsgQueue = NewInMsgQueue(constants.INMSGQUEUE_HIGH + 100)  //incoming message queue for Factom application messages
+	s.inMsgQueue2 = NewInMsgQueue(constants.INMSGQUEUE_HIGH + 100) //incoming message queue for Factom application messages
+	s.electionsQueue = NewElectionQueue(10000)          //incoming message queue for Factom application messages
+	s.apiQueue = NewAPIQueue(100)                       //incoming message queue from the API
+	s.ackQueue = make(chan interfaces.IMsg, 100)        //queue of Leadership messages
+	s.msgQueue = make(chan interfaces.IMsg, 400)        //queue of Follower messages
+	s.ShutdownChan = make(chan int, 1)                  //Channel to gracefully shut down.
+	s.MissingEntries = make(chan *MissingEntry, 1000)   //Entries I discover are missing from the database
+	s.UpdateEntryHash = make(chan *EntryUpdate, 10000)  //Handles entry hashes and updating Commit maps.
+	s.WriteEntry = make(chan interfaces.IEBEntry, 3000) //Entries to be written to the database
 
 	if s.Journaling {
 		f, err := os.Create(s.JournalFile)
@@ -1296,7 +1298,7 @@ func (s *State) LoadHoldingMap() map[[32]byte]interfaces.IMsg {
 }
 
 // this is executed in the state maintenance processes where the holding queue is in scope and can be queried
-//  This is what fills the HoldingMap while locking it againsttt a read while building
+//  This is what fills the HoldingMap while locking it againstt a read while building
 func (s *State) fillHoldingMap() {
 	// once a second is often enough to rebuild the Ack list exposed to api
 
@@ -2041,6 +2043,9 @@ func (s *State) InMsgQueue() interfaces.IQueue {
 	return s.inMsgQueue
 }
 
+func (s *State) InMsgQueue2() interfaces.IQueue {
+	return s.inMsgQueue2
+}
 func (s *State) ElectionsQueue() interfaces.IQueue {
 	return s.electionsQueue
 }

@@ -176,7 +176,11 @@ func Peers(fnode *FactomNode) {
 
 			//fnode.MLog.add2(fnode, false, fnode.State.FactomNodeName, "API", true, msg)
 			fnode.State.LogMessage("NetworkInputs", "from API, Enqueue", msg)
-			fnode.State.InMsgQueue().Enqueue(msg)
+			if t := msg.Type(); t == constants.REVEAL_ENTRY_MSG || t == constants.COMMIT_CHAIN_MSG || t == constants.COMMIT_ENTRY_MSG {
+				fnode.State.InMsgQueue2().Enqueue(msg)
+			} else {
+				fnode.State.InMsgQueue().Enqueue(msg)
+			}
 		} // for the api queue read up to 100 messages {...}
 
 		// Put any broadcasts from our peers into our BroadcastIn queue
@@ -272,7 +276,11 @@ func Peers(fnode *FactomNode) {
 
 				if !crossBootIgnore(msg) {
 					fnode.State.LogMessage("NetworkInputs", fromPeer+", enqueue", msg)
-					fnode.State.InMsgQueue().Enqueue(msg)
+					if t := msg.Type(); t == constants.REVEAL_ENTRY_MSG || t == constants.COMMIT_CHAIN_MSG || t == constants.COMMIT_ENTRY_MSG {
+						fnode.State.InMsgQueue2().Enqueue(msg)
+					} else {
+						fnode.State.InMsgQueue().Enqueue(msg)
+					}
 				}
 			} // For a peer read up to 100 messages {...}
 		} // for each peer {...}

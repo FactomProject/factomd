@@ -230,6 +230,7 @@ func TestSetupANetwork(t *testing.T) {
 	runCmd("x")
 	runCmd("g3")
 	WaitBlocks(fn1.State, 1)
+	WaitBlocks(state0, 3)
 
 	t.Log("Shutting down the network")
 	for _, fn := range GetFnodes() {

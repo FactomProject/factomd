@@ -49,6 +49,9 @@ func (state *State) ValidatorLoop() {
 
 				if ackRoom > 1 && msgRoom > 1 {
 					msg = state.InMsgQueue().Dequeue()
+					if msg == nil {
+						msg = state.InMsgQueue2().Dequeue()
+					}
 				}
 				// This doesn't block so it intentionally returns nil, don't log nils
 				if msg != nil {
