@@ -151,7 +151,7 @@ func ParseCmdLine(args []string) *FactomParams {
 		os.Setenv("FACTOM_HOME", *factomHomePtr)
 	}
 
-	// Handle the global (not factom server specific parameters
+	// Handle the global (not Factom server specific parameters
 	if p.StdoutLog != "" || p.StderrLog != "" {
 		handleLogfiles(p.StdoutLog, p.StderrLog)
 	}

@@ -41,7 +41,7 @@ type IFactoidState interface {
 	UpdateECTransaction(bool, IECBlockEntry) error
 
 	// Add a Transaction to the current   The transaction is
-	// validated againstt the address balances, which must cover The
+	// validated against the address balances, which must cover The
 	// inputs.  Returns true if the transaction is added.
 	AddTransaction(int, ITransaction) error
 

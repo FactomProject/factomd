@@ -61,7 +61,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 	preExecuteMsgTime := time.Now()
 	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
 	if !ok {
-		consenLogger.WithFields(msg.LogFields()).Debug("ExecuteMsg (Replay Invalid)")
+		consenLogger.WithFields(msg.LogFields()).Debug("executeMsg (Replay Invalid)")
 		s.LogMessage("executeMsg", "replayInvalid", msg)
 		return
 	}
@@ -759,12 +759,12 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 			if e.IsMinuteMarker() {
 				continue
 			}
-			s.FReplay.IsTSValid_(
+			s.FReplay.IsTSValidAndUpdateState(
 				constants.BLOCK_REPLAY,
 				e.Fixed(),
 				blktime,
 				blktime)
-			s.Replay.IsTSValid_(
+			s.Replay.IsTSValidAndUpdateState(
 				constants.INTERNAL_REPLAY,
 				e.Fixed(),
 				blktime,
@@ -776,7 +776,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	// Only set the flag if we know the whole block is valid.  We know it is because we checked them all in the loop
 	// above
 	for _, fct := range dbstatemsg.FactoidBlock.GetTransactions() {
-		s.FReplay.IsTSValid_(
+		s.FReplay.IsTSValidAndUpdateState(
 			constants.BLOCK_REPLAY,
 			fct.GetSigHash().Fixed(),
 			fct.GetTimestamp(),
@@ -1045,7 +1045,7 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 	// on the api. MUST BE BEFORE THE REPLAY FILTER ADD
 	pl.PendingChainHeads.Put(msg.Entry.GetChainID().Fixed(), msg)
 	// Okay the Reveal has been recorded.  Record this as an entry that cannot be duplicated.
-	s.Replay.IsTSValid_(constants.REVEAL_REPLAY, msg.Entry.GetHash().Fixed(), msg.Timestamp, s.GetTimestamp())
+	s.Replay.IsTSValidAndUpdateState(constants.REVEAL_REPLAY, msg.Entry.GetHash().Fixed(), msg.Timestamp, s.GetTimestamp())
 
 }
 
@@ -1238,7 +1238,7 @@ func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 		m.FollowerExecute(s)
 	} else {
 		// Okay the Reveal has been recorded.  Record this as an entry that cannot be duplicated.
-		s.Replay.IsTSValid_(constants.REVEAL_REPLAY, eh.Fixed(), m.GetTimestamp(), now)
+		s.Replay.IsTSValidAndUpdateState(constants.REVEAL_REPLAY, eh.Fixed(), m.GetTimestamp(), now)
 		TotalCommitsOutputs.Inc()
 		s.Commits.Delete(eh.Fixed()) // delete(s.Commits, eh.Fixed())
 		delete(s.Holding, eh.Fixed())
@@ -1306,7 +1306,7 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 	pl := s.ProcessLists.Get(dbheight)
 	pl.EntryCreditBlock.GetBody().AddEntry(c.CommitChain)
 	if e := s.GetFactoidState().UpdateECTransaction(true, c.CommitChain); e == nil {
-		// save the Commit to match againsttthe Reveal later
+		// save the Commit to match againstttthe Reveal later
 		h := c.GetHash()
 		s.PutCommit(h, c)
 		var entry interfaces.IMsg
@@ -1330,7 +1330,7 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 	pl := s.ProcessLists.Get(dbheight)
 	pl.EntryCreditBlock.GetBody().AddEntry(c.CommitEntry)
 	if e := s.GetFactoidState().UpdateECTransaction(true, c.CommitEntry); e == nil {
-		// save the Commit to match againsttthe Reveal later
+		// save the Commit to match againstttthe Reveal later
 		h := c.GetHash()
 		s.PutCommit(h, c)
 		entry := s.Holding[h.Fixed()]
@@ -1966,7 +1966,7 @@ func (s *State) UpdateECs(ec interfaces.IEntryCreditBlock) {
 	now := s.GetTimestamp()
 	for _, entry := range ec.GetEntries() {
 		cc, ok := entry.(*entryCreditBlock.CommitChain)
-		if ok && s.Replay.IsTSValid_(constants.INTERNAL_REPLAY, cc.GetSigHash().Fixed(), cc.GetTimestamp(), now) {
+		if ok && s.Replay.IsTSValidAndUpdateState(constants.INTERNAL_REPLAY, cc.GetSigHash().Fixed(), cc.GetTimestamp(), now) {
 			if s.NoEntryYet(cc.EntryHash, cc.GetTimestamp()) {
 				cmsg := new(messages.CommitChainMsg)
 				cmsg.CommitChain = cc
@@ -1975,7 +1975,7 @@ func (s *State) UpdateECs(ec interfaces.IEntryCreditBlock) {
 			continue
 		}
 		ce, ok := entry.(*entryCreditBlock.CommitEntry)
-		if ok && s.Replay.IsTSValid_(constants.INTERNAL_REPLAY, ce.GetSigHash().Fixed(), ce.GetTimestamp(), now) {
+		if ok && s.Replay.IsTSValidAndUpdateState(constants.INTERNAL_REPLAY, ce.GetSigHash().Fixed(), ce.GetTimestamp(), now) {
 			if s.NoEntryYet(ce.EntryHash, ce.GetTimestamp()) {
 				emsg := new(messages.CommitEntryMsg)
 				emsg.CommitEntry = ce
