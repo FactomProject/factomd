@@ -102,7 +102,7 @@ func Peers(fnode *FactomNode) {
 			case constants.MISSING_DATA:
 				if !fnode.State.DBFinished {
 					return true
-				} else if fnode.State.InMsgQueue().Length() > constants.INMSGQUEUE_HIGH {
+				} else if fnode.State.InMsgQueue().Length() > constants.INMSGQUEUE_MED {
 					// If > 4000, we won't get to this in time anyway. Just drop it since we are behind
 					return true
 				}
@@ -203,6 +203,7 @@ func Peers(fnode *FactomNode) {
 
 				receiveTime := time.Since(preReceiveTime)
 				TotalReceiveTime.Add(float64(receiveTime.Nanoseconds()))
+
 				cnt++
 
 				if fnode.State.MessageTally {

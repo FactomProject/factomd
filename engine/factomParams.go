@@ -40,8 +40,6 @@ func ParseCmdLine(args []string) *FactomParams {
 	networkNamePtr := flag.String("network", "", "Network to join: MAIN, TEST or LOCAL")
 	peersPtr := flag.String("peers", "", "Array of peer addresses. ")
 	blkTimePtr := flag.Int("blktime", 0, "Seconds per block.  Production is 600.")
-	// TODO: Old fault mechanism -- remove
-	//	faultTimeoutPtr := flag.Int("faulttimeout", 99999, "Seconds before considering Federated servers at-fault. Default is 30.")
 	runtimeLogPtr := flag.Bool("runtimeLog", false, "If true, maintain runtime logs of messages passed.")
 	exclusivePtr := flag.Bool("exclusive", false, "If true, we only dial out to special/trusted peers.")
 	exclusiveInPtr := flag.Bool("exclusive_in", false, "If true, we only dial out to special/trusted peers and no incoming connections are accepted.")
@@ -118,7 +116,6 @@ func ParseCmdLine(args []string) *FactomParams {
 	p.ControlPanelPortOverride = *ControlPanelPortOverridePtr
 	p.LogPort = *logportPtr
 	p.BlkTime = *blkTimePtr
-	//	p.FaultTimeout = *faultTimeoutPtr
 	p.RuntimeLog = *runtimeLogPtr
 	p.Exclusive = *exclusivePtr
 	p.ExclusiveIn = *exclusiveInPtr

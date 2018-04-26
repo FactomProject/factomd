@@ -167,7 +167,7 @@ func (e *EBlock) BodyKeyMR() interfaces.IHash {
 	return e.GetHeader().GetBodyMR()
 }
 
-// KeyMR returns the hash of the hash of the Entry Block Header contaminated
+// KeyMR returns the hash of the hash of the Entry Block Header concatenated
 // with the Merkle Root of the Entry Block Body. The Body Merkle Root is
 // calculated by the func (e *EBlockBody) MR() which is called by the func
 // (e *EBlock) BuildHeader().

@@ -42,10 +42,10 @@ func TestDecodeTransactionToHashes(t *testing.T) {
 			if tx.ECID() != constants.ECIDChainCommit && tx.ECID() != constants.ECIDEntryCommit {
 				continue
 			}
-			/*if tx.ECID() == entryCreditBlock.ECIDChainCommit {
+			/*if tx.ECID() == constants.ECIDChainCommit {
 				fmt.Println("CC!")
 			}
-			if tx.ECID() == entryCreditBlock.ECIDEntryCommit {
+			if tx.ECID() == constants.ECIDEntryCommit {
 				fmt.Println("EC!")
 			}*/
 			txID := tx.GetHash().String()

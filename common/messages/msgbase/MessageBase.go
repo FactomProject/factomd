@@ -59,7 +59,7 @@ func (m *MessageBase) SendOut(s interfaces.IState, msg interfaces.IMsg) {
 		return
 	}
 
-	if m.ResendCnt > 4 {
+	if m.ResendCnt > 1 {
 		return
 	}
 	m.ResendCnt++

@@ -12,15 +12,13 @@ package p2p
 
 import (
 	"fmt"
-
+	"math/rand"
 	"net"
 	"strings"
 	"time"
 	"unicode"
 
 	"github.com/FactomProject/factomd/common/primitives"
-
-	"math/rand"
 
 	log "github.com/sirupsen/logrus"
 )

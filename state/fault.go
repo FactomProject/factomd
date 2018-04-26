@@ -139,7 +139,6 @@ func FaultCheck(pl *ProcessList) {
 
 	}
 	return
-
 }
 
 func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {

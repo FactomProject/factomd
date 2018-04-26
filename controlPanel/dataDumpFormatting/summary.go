@@ -1,9 +1,5 @@
 package dataDumpFormatting
 
-//"fmt"
-
-//"github.com/FactomProject/factomd/state"
-
 /*func RawSummary(fnodes []*state.State) string {
 	out := ""
 	prt := "===SummaryStart===\n"

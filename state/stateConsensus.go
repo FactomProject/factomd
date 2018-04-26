@@ -118,7 +118,6 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 		TotalHoldingQueueRecycles.Inc()
 		s.LogMessage("executeMsg", "Add to Holding", msg)
 		s.Holding[msg.GetMsgHash().Fixed()] = msg
-
 	default:
 		if !msg.SentInvalid() {
 			msg.MarkSentInvalid(true)
@@ -150,7 +149,6 @@ func (s *State) Process() (progress bool) {
 	} else {
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
 	}
-
 	if !s.RunLeader {
 		now := s.GetTimestamp().GetTimeMilli() // Timestamps are in milliseconds, so wait 20
 		if now-s.StartDelay > s.StartDelayLimit {
@@ -163,7 +161,6 @@ func (s *State) Process() (progress bool) {
 			}
 		}
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
-
 	} else if s.IgnoreMissing {
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 		now := s.GetTimestamp().GetTimeMilli() // Timestamps are in milliseconds, so wait 20
@@ -315,7 +312,6 @@ func CheckDBKeyMR(s *State, ht uint32, hash string) error {
 // review if this is a leader, and those messages are that leader's
 // responsibility
 func (s *State) ReviewHolding() {
-
 	preReviewHoldingTime := time.Now()
 	if len(s.XReview) > 0 {
 		return
@@ -527,7 +523,6 @@ func (s *State) AddDBState(isNew bool,
 func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 	FollowerExecutions.Inc()
 	TotalHoldingQueueInputs.Inc()
-
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
 
 	if ack != nil {
