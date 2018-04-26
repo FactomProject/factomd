@@ -8,6 +8,7 @@ import (
 	"encoding/gob"
 	"fmt"
 	"hash/crc32"
+	"io"
 	"net"
 	"os"
 	"time"
@@ -357,6 +358,11 @@ func (c *Connection) goOnline() {
 func (c *Connection) goOffline() {
 	c.logger.Debug("Going offline")
 	p2pConnectionOfflineCall.Inc()
+	if nil != c.conn {
+		defer c.conn.Close()
+	}
+	c.decoder = nil
+	c.encoder = nil
 	c.state = ConnectionOffline
 	c.attempts = 0
 	c.peer.demerit()
@@ -489,17 +495,18 @@ func (c *Connection) processReceives() {
 		for c.state == ConnectionOnline {
 			var message Parcel
 
-			// c.conn.SetReadDeadline(time.Now().Add(NetworkDeadline))
-			err := c.decoder.Decode(&message)
-			switch {
-			case nil == err:
+			result := c.decoder.Decode(&message)
+			switch result {
+			case io.EOF: // nothing to decode
+				continue
+			case nil: // successfully decoded
 				c.metrics.BytesReceived += message.Header.Length
 				c.metrics.MessagesReceived += 1
 				message.Header.PeerAddress = c.peer.Address
 				c.ReceiveParcel <- &message
 				c.TimeLastpacket = time.Now()
-			default:
-				c.Errors <- err
+			default: // error
+				c.Errors <- result
 			}
 		}
 		// If not online, give some time up to handle states that are not online, closed, or shuttingdown.
