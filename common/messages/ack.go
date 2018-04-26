@@ -89,7 +89,7 @@ func (m *Ack) Validate(s interfaces.IState) int {
 		return -1
 	}
 
-	// Only new acks are valid. Of course, the VMIndG2ex has to be valid too.
+	// Only new acks are valid. Of course, the VMIndex has to be valid too.
 	msg, _ := s.GetMsg(m.VMIndex, int(m.DBHeight), int(m.Height))
 	if msg != nil {
 		s.LogMessage("executeMsg", "Ack slot taken", m)

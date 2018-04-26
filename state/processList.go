@@ -812,6 +812,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				last := vm.ListAck[vm.Height-1]
 				expectedSerialHash, err = primitives.CreateHash(last.MessageHash, thisAck.MessageHash)
 				if err != nil {
+					p.State.LogMessage("processList", fmt.Sprintf("drop %v/%v/%v, hash failed", p.DBHeight, i, j), thisMsg)
 					vm.List[j] = nil
 					//p.State.AddStatus(fmt.Sprintf("ProcessList.go Process: Error computing serial hash at dbht: %d vm %d  vm-height %d ", p.DBHeight, i, j))
 					p.Ask(i, j, 3, 4)
@@ -898,6 +899,10 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
         p.State.LogMessage("processList", "Message:", m)
 	p.State.LogMessage("processList", "Ack:", ack)
+	if p == nil {
+		p.State.LogPrintf("processList", "Drop no process list to add to")
+		return
+	}
 	if ack == nil {
 		p.State.LogPrintf("processList", "drop Ack==nil")
 		return
@@ -907,8 +912,11 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 		return
 	}
 
-	if ack == nil || ack.GetMsgHash() == nil {
-		return
+	TotalProcessListInputs.Inc()
+	messageHash := ack.GetHash() // This is the has of the message bring acknowledged not the hash of the ack message
+	msgHash := m.GetMsgHash()
+	if !messageHash.IsSameAs(msgHash) {
+		panic("Hash mismatch")
 	}
 
 	TotalProcessListInputs.Inc()
@@ -925,6 +933,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	if !ack.Response && ack.LeaderChainID.IsSameAs(p.State.IdentityChainID) {
 		now := p.State.GetTimestamp()
 		if now.GetTimeSeconds()-ack.Timestamp.GetTimeSeconds() > 120 {
+			p.State.LogPrintf("processList", "Drop2")
 			// Us and too old?  Just ignore.
 			return
 		}
@@ -945,8 +954,8 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	toss := func(hint string) {
 		TotalHoldingQueueOutputs.Inc()
 		TotalAcksOutputs.Inc()
-		delete(p.State.Holding, ack.GetHash().Fixed())
-		delete(p.State.Acks, ack.GetHash().Fixed())
+		delete(p.State.Holding, msgHash.Fixed())
+		delete(p.State.Acks, msgHash.Fixed())
 	}
 
 	now := p.State.GetTimestamp()
@@ -996,6 +1005,11 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	ack.SetPeer2Peer(false)
 	m.SetPeer2Peer(false)
 
+	// Always send the message first because sending the ack first cause the the recipient to do missing messages requests
+
+	if ack.GetHash().Fixed() != m.GetMsgHash().Fixed() {
+		p.State.LogPrintf("executeMsg", "m/ack mismatch m-%x a-%x", m.GetMsgHash().Fixed(), ack.GetHash().Fixed())
+	}
 	ack.SendOut(p.State, ack)
 	m.SendOut(p.State, m)
 
@@ -1011,6 +1025,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	p.OldAcks[m.GetMsgHash().Fixed()] = ack
 
 	plLogger.WithFields(log.Fields{"func": "AddToProcessList", "node-name": p.State.GetFactomNodeName(), "plheight": ack.Height, "dbheight": p.DBHeight}).WithFields(m.LogFields()).Info("Add To Process List")
+	p.State.LogMessage("processList", fmt.Sprintf("Added at %d/%d/%d", ack.DBHeight, ack.VMIndex, ack.Height), m)
 }
 
 func (p *ProcessList) ContainsDBSig(serverID interfaces.IHash) bool {
@@ -1110,6 +1125,8 @@ func (p *ProcessList) String() string {
 	return buf.String()
 }
 
+// Intended to let a demoted leader come back before the next DB state but interfered with boot under load so disable for now
+// that means demoted leaders are not sane till the next DBState (up to 10 minutes). Maybe revisit after the missing message storms are fixed.
 func (p *ProcessList) Reset() bool {
 	return true
 	previous := p.State.ProcessLists.Get(p.DBHeight - 1)
