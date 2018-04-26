@@ -157,9 +157,14 @@ func (st *State) FastVerifyAuthoritySignature(msg []byte, sig interfaces.IFullSi
 			if auth == nil {
 				continue
 			}
-			valid, err := auth.VerifySignature(msg, sig.GetSignature())
-			if err == nil && valid {
-				return 1, nil
+			compareKey, err := auth.SigningKey.MarshalBinary()
+			if err == nil {
+				if pkEq(sig.GetKey(), compareKey) {
+					valid, err := auth.VerifySignature(msg, sig.GetSignature())
+					if err == nil && valid {
+						return 1, nil
+					}
+				}
 			}
 		}
 	}
