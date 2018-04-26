@@ -170,6 +170,12 @@ func PrintOneStatus(listenTo int, wsapiNode int) {
 
 	list = ""
 	for _, f := range pnodes {
+		list = list + fmt.Sprintf(" %3d", f.State.InMsgQueue2().Length())
+	}
+	prt = prt + fmt.Sprintf(fmtstr, "InMsgQueue2", list)
+
+	list = ""
+	for _, f := range pnodes {
 		list = list + fmt.Sprintf(" %3d", f.State.APIQueue().Length())
 	}
 	prt = prt + fmt.Sprintf(fmtstr, "APIQueue", list)

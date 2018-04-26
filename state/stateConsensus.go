@@ -172,12 +172,7 @@ func (s *State) Process() (progress bool) {
 		}
 	}
 
-	hlen := len(s.Holding)
-	if hlen < 100 {
-		hlen = 100
-	}
-	process := make(chan interfaces.IMsg, hlen)
-	room := func() bool { return len(process) < hlen-5 }
+	process := []interfaces.IMsg{}
 
 	var vm *VM
 	if s.Leader && s.RunLeader {
@@ -189,7 +184,7 @@ func (s *State) Process() (progress bool) {
 
 	/** Process all the DBStates  that might be pending **/
 
-	for room() {
+	for true {
 		ix := int(s.GetHighestSavedBlk()) - s.DBStatesReceivedBase + 1
 		if ix < 0 || ix >= len(s.DBStatesReceived) {
 			break
@@ -198,7 +193,7 @@ func (s *State) Process() (progress bool) {
 		if msg == nil {
 			break
 		}
-		process <- msg
+		process = append(process, msg)
 		s.DBStatesReceived[ix] = nil
 	}
 
@@ -267,16 +262,13 @@ emptyLoop:
 	if s.RunLeader {
 		s.ReviewHolding()
 
-	skipreview:
 		for {
 			for _, msg := range s.XReview {
-				if !room() {
-					break skipreview
-				}
 				if msg == nil {
 					continue
 				}
-				process <- msg
+				process = append(process, msg)
+
 			}
 			s.XReview = s.XReview[:0]
 			break
@@ -286,17 +278,13 @@ emptyLoop:
 	TotalProcessXReviewTime.Add(float64(processXReviewTime.Nanoseconds()))
 
 	preProcessProcChanTime := time.Now()
-processLoop:
-	for {
-		select {
-		case msg := <-process:
-			newProgress := s.executeMsg(vm, msg)
-			progress = newProgress || progress //
-			s.LogMessage("executeMsg", fmt.Sprintf("From processq : %t", newProgress), msg)
-			s.UpdateState()
-		default:
-			break processLoop
-		}
+
+	for _, msg := range process {
+		newProgress := s.executeMsg(vm, msg)
+		progress = newProgress || progress //
+		s.LogMessage("executeMsg", fmt.Sprintf("From processq : %t", newProgress), msg)
+		s.UpdateState()
+
 	} // processLoop for{...}
 
 	processProcChanTime := time.Since(preProcessProcChanTime)

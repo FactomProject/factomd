@@ -102,7 +102,7 @@ func Peers(fnode *FactomNode) {
 			case constants.MISSING_DATA:
 				if !fnode.State.DBFinished {
 					return true
-				} else if fnode.State.InMsgQueue().Length() > 4000 {
+				} else if fnode.State.InMsgQueue().Length() > constants.INMSGQUEUE_MED {
 					// If > 4000, we won't get to this in time anyway. Just drop it since we are behind
 					return true
 				}
@@ -136,7 +136,7 @@ func Peers(fnode *FactomNode) {
 				continue // Toss any inputs from API
 			}
 
-			if fnode.State.InMsgQueue().Length() > fnode.State.InMsgQueue().Cap()*9/10 {
+			if fnode.State.InMsgQueue().Length() > constants.INMSGQUEUE_HIGH {
 				fnode.State.LogMessage("NetworkInputs", "API Drop, Too Full", msg)
 				continue
 			}
@@ -176,7 +176,11 @@ func Peers(fnode *FactomNode) {
 
 			//fnode.MLog.add2(fnode, false, fnode.State.FactomNodeName, "API", true, msg)
 			fnode.State.LogMessage("NetworkInputs", "from API, Enqueue", msg)
-			fnode.State.InMsgQueue().Enqueue(msg)
+			if t := msg.Type(); t == constants.REVEAL_ENTRY_MSG || t == constants.COMMIT_CHAIN_MSG || t == constants.COMMIT_ENTRY_MSG {
+				fnode.State.InMsgQueue2().Enqueue(msg)
+			} else {
+				fnode.State.InMsgQueue().Enqueue(msg)
+			}
 		} // for the api queue read up to 100 messages {...}
 
 		// Put any broadcasts from our peers into our BroadcastIn queue
@@ -214,7 +218,7 @@ func Peers(fnode *FactomNode) {
 					continue // Toss any inputs from this peer
 				}
 
-				if fnode.State.InMsgQueue().Length() > fnode.State.InMsgQueue().Cap()*9/10 {
+				if fnode.State.InMsgQueue().Length() > constants.INMSGQUEUE_HIGH {
 					fnode.State.LogMessage("NetworkInputs", fromPeer+" Drop, Too Full", msg)
 					continue
 				}
@@ -271,7 +275,11 @@ func Peers(fnode *FactomNode) {
 
 				if !crossBootIgnore(msg) {
 					fnode.State.LogMessage("NetworkInputs", fromPeer+", enqueue", msg)
-					fnode.State.InMsgQueue().Enqueue(msg)
+					if t := msg.Type(); t == constants.REVEAL_ENTRY_MSG || t == constants.COMMIT_CHAIN_MSG || t == constants.COMMIT_ENTRY_MSG {
+						fnode.State.InMsgQueue2().Enqueue(msg)
+					} else {
+						fnode.State.InMsgQueue().Enqueue(msg)
+					}
 				}
 			} // For a peer read up to 100 messages {...}
 		} // for each peer {...}

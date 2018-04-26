@@ -61,8 +61,8 @@ func LoadDatabase(s *State) {
 				}
 				s.InMsgQueue().Enqueue(msg)
 				msg.SetLocal(true)
-				if s.InMsgQueue().Length() > 500 {
-					for s.InMsgQueue().Length() > 100 {
+				if s.InMsgQueue().Length() > constants.INMSGQUEUE_MED {
+					for s.InMsgQueue().Length() > constants.INMSGQUEUE_LOW {
 						time.Sleep(10 * time.Millisecond)
 					}
 				}
