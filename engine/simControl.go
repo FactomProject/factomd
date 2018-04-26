@@ -18,6 +18,7 @@ import (
 	"unicode"
 
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
@@ -89,10 +90,11 @@ func GetFocus() *FactomNode {
 func SimControl(listenTo int, listenStdin bool) {
 	var _ = time.Sleep
 	var summary int
+	var elections int
+	var simelections int
 	var watchPL int
 	var watchMessages int
 	var rotate int
-	var wsapiNode int
 	var faulting bool
 
 	ListenTo = listenTo
@@ -260,6 +262,22 @@ func SimControl(listenTo int, listenStdin bool) {
 					go printSummary(&summary, summary, &ListenTo, &wsapiNode)
 				} else {
 					os.Stderr.WriteString("--Print Summary Off--\n")
+				}
+			case 'E' == b[0]:
+				elections++
+				if elections%2 == 1 {
+					os.Stderr.WriteString("--Print Elections On--\n")
+					go printElections(&elections, elections, &ListenTo, &wsapiNode)
+				} else {
+					os.Stderr.WriteString("--Print Elections Off--\n")
+				}
+			case 'F' == b[0] && len(b) == 1:
+				simelections++
+				if simelections%2 == 1 {
+					os.Stderr.WriteString("--Print SimElections On--\n")
+					go printSimElections(&simelections, simelections, &ListenTo, &wsapiNode)
+				} else {
+					os.Stderr.WriteString("--Print SimElections Off--\n")
 				}
 			case 'p' == b[0]:
 				if len(b) > 1 {
@@ -1153,6 +1171,80 @@ func SimControl(listenTo int, listenStdin bool) {
 							dbs.String()))
 					}
 				}
+			case 'R' == b[0]:
+				// load generation
+				if loadGenerator == nil {
+					loadGenerator = NewLoadGenerator()
+				}
+
+				nn, err := strconv.Atoi(string(b[1:]))
+				if err != nil {
+					os.Stderr.WriteString(err.Error() + "\n")
+					break
+				}
+				loadGenerator.PerSecond.Store(nn)
+				go loadGenerator.Run()
+				os.Stderr.WriteString(fmt.Sprintf("Writing entries at %d per second\n", nn))
+
+			case 'P' == b[0]:
+				// Set efficiency
+				nn, err := strconv.Atoi(string(b[1:]))
+				if err != nil {
+					os.Stderr.WriteString(err.Error() + "\n")
+					break
+				}
+				_, _, auth := authKeyLookup(fnodes[ListenTo].State.IdentityChainID)
+				if auth == nil {
+					break
+				}
+
+				wsapiNode = ListenTo
+				wsapi.SetState(fnodes[wsapiNode].State)
+				err = fundWallet(fnodes[ListenTo].State, 1e8)
+				if err != nil {
+					os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
+					break
+				}
+
+				err = changeServerEfficiency(fnodes[ListenTo].State.IdentityChainID, fnodes[ListenTo].State, uint16(nn))
+				if err != nil {
+					os.Stderr.WriteString(fmt.Sprintf("Error: %s\n", err.Error()))
+					break
+				}
+
+				os.Stderr.WriteString(fmt.Sprintf("New efficiency for [%s]: %d\n", fnodes[ListenTo].State.IdentityChainID.String()[:8], nn))
+				break
+
+			case 'B' == b[0]:
+				// Set coinbase address
+				add := primitives.RandomHash().String()
+				if len(b) > 1 {
+					add = string(b[1:])
+				}
+
+				_, _, auth := authKeyLookup(fnodes[ListenTo].State.IdentityChainID)
+				if auth == nil {
+					break
+				}
+
+				wsapiNode = ListenTo
+				wsapi.SetState(fnodes[wsapiNode].State)
+				err = fundWallet(fnodes[ListenTo].State, 1e8)
+				if err != nil {
+					os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
+					break
+				}
+
+				err = changeServerCoinbaseAddress(fnodes[ListenTo].State.IdentityChainID, fnodes[ListenTo].State, add)
+				if err != nil {
+					os.Stderr.WriteString(fmt.Sprintf("Error: %s\n", err.Error()))
+					break
+				}
+
+				h, _ := primitives.HexToHash(add)
+				address := factoid.NewAddress([]byte(h.Bytes()))
+				os.Stderr.WriteString(fmt.Sprintf("New Coinbase Address for [%s]: %s\n", fnodes[ListenTo].State.IdentityChainID.String()[:8], primitives.ConvertFctAddressToUserStr(address)))
+				break
 
 			case 'h' == b[0]:
 				os.Stderr.WriteString("-------------------------------------------------------------------------------\n")
@@ -1199,6 +1291,7 @@ func SimControl(listenTo int, listenStdin bool) {
 				os.Stderr.WriteString("Dnnn          Set the Delay on messages from the current node to nnn milliseconds\n")
 				os.Stderr.WriteString("Fnnn          Set the Delay on messages from all nodes to nnn milliseconds\n")
 				os.Stderr.WriteString("/             Toggle the sort order between ChainID and Factom Node Name\n")
+				os.Stderr.WriteString("Rnnn          Set load generator to write entries at nnn per second\n")
 
 				//os.Stderr.WriteString("i[m/b/a][N]   Shows only the Mhash, block signing key, or anchor key up to the Nth identity\n")
 				//os.Stderr.WriteString("isN           Shows only Nth identity\n")
