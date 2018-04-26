@@ -176,7 +176,7 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 	}
 
 	marshalledMsg, _ := m.MarshalForSignature()
-	authorityLevel, err := state.VerifyAuthoritySignature(marshalledMsg, m.Signature.GetSignature(), m.DBHeight)
+	authorityLevel, err := state.FastVerifyAuthoritySignature(marshalledMsg, m.Signature, m.DBHeight)
 	if err != nil || authorityLevel < 1 {
 		//This authority is not a Fed Server (it's either an Audit or not an Authority at all)
 		vlog("Fail to Verify Sig (not from a Fed Server) %s -- RAW: %x", m.String(), raw)
@@ -388,18 +388,18 @@ func (m *DirectoryBlockSignature) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *DirectoryBlockSignature) String() string {
-	b, err := m.DirectoryBlockHeader.MarshalBinary()
+b, err := m.DirectoryBlockHeader.MarshalBinary()
 	if b != nil && err != nil {
 		h := primitives.Sha(b)
 		m.dbsHash = h
 	} else {
 		m.dbsHash = primitives.NewHash(constants.ZERO)
 	}
-	return fmt.Sprintf("%6s-VM%3d:          DBHt:%5d -- Signer[:3]=%x Directory Hash[:3]=%x hash[:3]=%x",
+	return fmt.Sprintf("%6s-VM%3d:          DBHt:%5d -- Signer=%x PrevDBKeyMR[:3]=%x hash=%x",
 		"DBSig",
 		m.VMIndex,
 		m.DBHeight,
-		m.ServerIdentityChainID.Bytes()[2:6],
+		m.ServerIdentityChainID.Bytes()[3:6],
 		m.dbsHash.Bytes()[:5],
 		m.GetHash().Bytes()[:3])
 
@@ -407,11 +407,11 @@ func (m *DirectoryBlockSignature) String() string {
 
 func (m *DirectoryBlockSignature) LogFields() log.Fields {
 	return log.Fields{"category": "message", "messagetype": "dbsig",
-		"dbheight": m.DBHeight,
-		"vm":       m.VMIndex,
-		"server":   m.ServerIdentityChainID.String(),
-		"dbhash":   m.DirectoryBlockHeader.GetPrevFullHash(),
-		"hash":     m.GetHash().String()}
+		"dbheight":  m.DBHeight,
+		"vm":        m.VMIndex,
+		"server":    m.ServerIdentityChainID.String(),
+		"prevkeymr": m.DirectoryBlockHeader.GetPrevKeyMR().String(),
+		"hash":      m.GetHash().String()}
 }
 
 func (e *DirectoryBlockSignature) JSONByte() ([]byte, error) {

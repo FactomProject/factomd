@@ -6,11 +6,11 @@ package state
 
 import (
 	"bytes"
-	"encoding/binary"
+	"errors"
 	"fmt"
-	"sync"
-
 	"os"
+	"sync"
+	"time"
 
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
@@ -19,6 +19,8 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/util/atomic"
+
 	//"github.com/FactomProject/factomd/database/databaseOverlay"
 
 	log "github.com/sirupsen/logrus"
@@ -29,31 +31,17 @@ var _ = log.Print
 
 var plLogger = packageLogger.WithFields(log.Fields{"subpack": "process-list"})
 
-type Request struct {
-	vmIndex    int    // VM Index
-	vmheight   uint32 // Height in the Process List where we are missing a message
-	wait       int64  // How long to wait before we actually request
-	sent       int64  // Last time sent (zero means none have been sent)
-	requestCnt int
+// This identifies a specific process list slot
+type plRef struct {
+	DBH uint32
+	VM  int
+	H   uint32
 }
 
-var _ interfaces.IRequest = (*Request)(nil)
-
-func (r *Request) key() (thekey [32]byte) {
-	binary.BigEndian.PutUint32(thekey[0:4], uint32(r.vmIndex))
-	binary.BigEndian.PutUint64(thekey[5:13], uint64(r.wait))
-	binary.BigEndian.PutUint64(thekey[14:22], uint64(r.vmheight))
-	return thekey
+type askRef struct {
+	plRef
+	When int64
 }
-
-/*
-func (r *Request) key() (thekey [20]byte) {
-	binary.BigEndian.PutUint32(thekey[0:4], uint32(r.vmIndex))
-	binary.BigEndian.PutUint64(thekey[4:12], uint64(r.wait))
-	binary.BigEndian.PutUint64(thekey[12:20], uint64(r.sent))
-	return
-}
-*/
 
 type ProcessList struct {
 	DBHeight uint32 // The directory block height for these lists
@@ -111,9 +99,12 @@ type ProcessList struct {
 	DBSignatures     []DBSig
 	DBSigAlreadySent bool
 
-	Requests map[[32]byte]*Request
 	//Requests map[[20]byte]*Request
 	NextHeightToProcess [64]int
+	// Channels for managing the missing message requests
+	asks chan askRef   // Requests to ask for missing messages
+	adds chan plRef    // notices of slots filled in the process list
+	done chan struct{} // Notice that this DBHeight is done
 }
 
 var _ interfaces.IProcessList = (*ProcessList)(nil)
@@ -138,46 +129,7 @@ type VM struct {
 	WhenFaulted int64 // WhenFaulted is a timestamp of when this VM was faulted
 	// vm.WhenFaulted serves as a bool flag (if > 0, the vm is currently considered faulted)
 	FaultFlag int // FaultFlag tracks what the VM was faulted for (0 = EOM missing, 1 = negotiation issue)
-}
-
-func (p *ProcessList) Clear() {
-	return
-	//p.State.AddStatus(fmt.Sprintf("PROCESSLIST.Clear dbht %d", p.DBHeight))
-	p.FactoidBalancesTMutex.Lock()
-	defer p.FactoidBalancesTMutex.Unlock()
-	p.FactoidBalancesT = nil
-
-	p.ECBalancesTMutex.Lock()
-	defer p.ECBalancesTMutex.Unlock()
-	p.ECBalancesT = nil
-
-	p.oldmsgslock.Lock()
-	defer p.oldmsgslock.Unlock()
-	p.OldMsgs = nil
-
-	p.oldackslock.Lock()
-	defer p.oldackslock.Unlock()
-	p.OldAcks = nil
-
-	p.neweblockslock.Lock()
-	defer p.neweblockslock.Unlock()
-	p.NewEBlocks = nil
-
-	p.NewEntriesMutex.Lock()
-	defer p.NewEntriesMutex.Unlock()
-	p.NewEntries = nil
-
-	p.AdminBlock = nil
-	p.EntryCreditBlock = nil
-	p.DirectoryBlock = nil
-
-	p.Matryoshka = nil
-	p.AuditServers = nil
-	p.FedServers = nil
-
-	p.DBSignatures = nil
-
-	p.Requests = nil
+	ProcessTime interfaces.Timestamp // Last time we made progress on this VM
 }
 
 func (p *ProcessList) GetKeysNewEntries() (keys [][32]byte) {
@@ -669,72 +621,146 @@ func (p *ProcessList) CheckDiffSigTally() bool {
 	return true
 }
 
-func (p *ProcessList) GetRequest(now int64, vmIndex int, height int, waitSeconds int64) *Request {
-	r := new(Request)
-	r.wait = waitSeconds
-	r.vmIndex = vmIndex
-	r.vmheight = uint32(height)
-
-	if p.Requests[r.key()] == nil {
-		r.sent = now + 2000
-		p.Requests[r.key()] = r
-	} else {
-		r = p.Requests[r.key()]
+// Receive all asks and all process list adds and create missing message requests any ask that has expired
+// and still pending. Add 10 seconds to the ask.
+// Doesn't really use (can't use) the process list but I have it for debug
+func (p *ProcessList) makeMMRs(s interfaces.IState, asks <-chan askRef, adds <-chan plRef, done chan struct{}) {
+	type dbhvm struct {
+		dbh uint32
+		vm  int
 	}
 
-	return r
+	pending := make(map[plRef]*int64)
+	ticker := make(chan int64, 1)
+	mmrs := make(map[dbhvm]*messages.MissingMsg) // an MMR per DBH/VM
+	logname := "missing_messages"
 
-}
+	addAsk := func(ask askRef) {
+		_, ok := pending[ask.plRef]
+		if !ok {
+			when := ask.When
+			pending[ask.plRef] = &when // add the requests to the map
+			s.LogPrintf(logname, "Ask %d/%d/%d %d", ask.DBH, ask.VM, ask.H, len(pending))
+		} // don't update the when if it already existed...
+	}
 
-// Return the number of times we have tripped an ask for this request.
-func (p *ProcessList) Ask(vmIndex int, height int, waitSeconds int64, tag int) int {
+	addAdd := func(add plRef) {
+		delete(pending, add) // Delete request that was just added to the process list in the map
+		s.LogPrintf(logname, "Add %d/%d/%d %d", add.DBH, add.VM, add.H, len(pending))
+	}
+
+	s.LogPrintf(logname, "Start PL DBH %d", p.DBHeight)
+
+	addAllAsks := func() {
+	readasks:
+		for {
+			select {
+			case ask := <-asks:
+				addAsk(ask)
+			default:
+				break readasks
+			}
+		} // process all pending asks before any adds
+	}
+
+	addAllAdds := func() {
+	readadds:
+		for {
+			select {
+			case add := <-adds:
+				addAdd(add)
+			default:
+				break readadds
+			}
+		} // process all pending add before any ticks
+	}
+
+	// tick ever second to check the  pending MMRs
+	go func() {
+		for {
+			ticker <- s.GetTimestamp().GetTimeMilli()
+			time.Sleep(200 * time.Millisecond)
+		}
+	}()
+
+	//	s.LogPrintf(logname, "Start PL DBH %d", p.DBHeight)
+
+	for {
+		select {
+		case ask := <-asks:
+			addAsk(ask)
+
+		case add := <-adds:
+			addAllAsks() // process all pending asks before any adds
+			addAdd(add)
+
+		case now := <-ticker:
+			addAllAsks() // process all pending asks before any adds
+			addAllAdds() // process all pending add before any ticks
+
+			//s.LogPrintf(logname, "tick [%v]", pending)
+
+			//build MMRs with all the asks expired asks.
+			for ref, when := range pending {
+				// if ask is expired
+				if now > *when {
+					var index dbhvm = dbhvm{ref.DBH, ref.VM}
+					if mmrs[index] == nil { // If we don't have a message for this DBH/VM
+						mmrs[index] = messages.NewMissingMsg(s, ref.VM, ref.DBH, uint32(ref.H))
+					} else {
+						mmrs[index].ProcessListHeight = append(mmrs[index].ProcessListHeight, uint32(ref.H))
+					}
+					*when += 10000 // update when we asked...
+					//s.LogPrintf(logname, "mmr ask %d/%d/%d %d", ref.DBH, ref.VM, ref.H, len(pending))
+					// Maybe when asking for past the end of the list we should not ask again?
+				}
+			} //build a MMRs with all the expired asks.
+
+			for index, mmr := range mmrs {
+				s.LogMessage(logname, "sendout", mmr)
+				p.State.MissingRequestAskCnt++
+				mmr.SendOut(s, mmr)
+				delete(mmrs, index)
+			} // Send MMRs that were built
+
+		case <-done:
+			addAllAsks() // process all pending asks before any adds
+			addAllAdds() // process all pending add before any ticks
+			if len(pending) != 0 {
+				s.LogPrintf(logname, "End PL DBH %d with %d still outstanding %v", p.DBHeight, len(pending), pending)
+				s.LogPrintf("executeMsg", "End PL DBH %d with %d still outstanding %v", p.DBHeight, len(pending), pending)
+			} else {
+				s.LogPrintf(logname, "End PL DBH %d", p.DBHeight)
+				s.LogPrintf("executeMsg", "End PL DBH %d", p.DBHeight)
+			}
+			return // this process list is all done...
+		}
+	} // forever .. well until the done chan tells us to quit
+} // func  makeMMRs() {...}
+
+func (p *ProcessList) Ask(vmIndex int, height uint32, delay int64) {
+
+	if vmIndex < 0 {
+		panic(errors.New("Old Faulting code"))
+	}
+
 	now := p.State.GetTimestamp().GetTimeMilli()
+	// Look up the VM
+	vm := p.VMs[vmIndex]
 
-	r := p.GetRequest(now, vmIndex, len(p.VMs[0].List), waitSeconds)
-
-	if r == nil {
-		return 0
+	lenVMList := len(vm.List)
+	// ask for every nil -- probably should remember the bottom nil and save scanning the whole list
+	for i := 0; i < lenVMList; i++ {
+		if vm.List[i] == nil {
+			ask := askRef{plRef{p.DBHeight, vmIndex, height}, now + delay}
+			p.asks <- ask
+		}
 	}
+	// always ask for one past the end as well...Can't hurt ... Famous last words...
+	ask := askRef{plRef{p.DBHeight, vmIndex, uint32(lenVMList)}, now + delay}
+	p.asks <- ask
 
-	if now-r.sent >= waitSeconds*1000+500 && p.State.inMsgQueue.Length() < constants.INMSGQUEUE_MED {
-		missingMsgRequest := messages.NewMissingMsg(p.State, r.vmIndex, p.DBHeight, r.vmheight)
-
-		// The System (handling full faults) is a special VM.  Let's guess it first.
-		vm := &p.System
-		if vmIndex >= 0 {
-			// Ah, not the System VM, so let's look up the one we are really talking about.
-			vm = p.VMs[vmIndex]
-		}
-
-		for k := range p.Requests {
-			r2 := p.Requests[k]
-			if r2.vmIndex == vmIndex && int(r2.vmheight) < vm.Height {
-				delete(p.Requests, k)
-			}
-		}
-
-		missingMsgRequest.AddHeight(uint32(height))
-		// Okay, we are going to send one, so ask for all nil messages for this vm
-		for i := 0; i < len(vm.List); i++ {
-			if vm.List[i] == nil {
-				missingMsgRequest.AddHeight(uint32(i))
-			}
-		}
-		// Might as well as for the next message too.  Won't hurt.
-		missingMsgRequest.AddHeight(uint32(len(vm.List)))
-
-		if vmIndex < 0 {
-			missingMsgRequest.SystemHeight = uint32(p.System.Height)
-		}
-
-		missingMsgRequest.SendOut(p.State, missingMsgRequest)
-		p.State.MissingRequestAskCnt++
-
-		r.sent = now
-		r.requestCnt++
-	}
-
-	return r.requestCnt
+	return
 }
 
 func (p *ProcessList) TrimVMList(height uint32, vmIndex int) {
@@ -742,64 +768,103 @@ func (p *ProcessList) TrimVMList(height uint32, vmIndex int) {
 		p.VMs[vmIndex].List = p.VMs[vmIndex].List[:height]
 	}
 }
-
 func (p *ProcessList) GetDBHeight() uint32 {
 	return p.DBHeight
 }
+
+type foo struct {
+	Syncing, DBSig, EOM, DBSigDone, EOMDone, EOMmax, EOMmin, DBSigMax, DBSigMin bool
+}
+
+var decodeMap map[foo]string = map[foo]string{
+	//grep "Unexpected state" FNode0*process.txt | awk ' {print substr($0,index($0,"0x"));}' | sort -u
+	//0x043 {true true false false false false true false false}
+	//0x04b {true true false true false false true false false}
+	//0x10d {true false true true false false false false true}
+	//0x11d {true false true true true false false false true}
+	//0x140 {false false false false false false true false true}
+	//0x148 {false false false true false false true false true}
+	//0x14d {true false true true false false true false true}
+
+	foo{true, true, false, false, false, false, true, false, false}:  "Syncing DBSig Start",       //0x043
+	foo{true, true, false, true, false, false, true, false, false}:   "Syncing DBSig ...",         //0x04b
+	foo{true, true, false, true, false, false, true, true, false}:    "Syncing DBSig Done",        //0x0cb
+	foo{true, false, true, true, false, false, false, false, true}:   "Syncing EOM ... ",          //0x10d
+	foo{true, false, true, true, true, false, false, false, true}:    "Syncing EOM Done",          //0x11d
+	foo{false, false, false, false, false, false, true, false, true}: "Normal (Begining of time)", //0x140
+	foo{false, false, false, true, false, false, true, false, true}:  "Normal",                    //0x148
+	foo{true, false, true, true, false, false, true, false, true}:    "Syncing EOM Start",         //0x14d
+
+	// old code used to also hit these states some of which are problematic as they allow both DBSIG and EOM concurrently
+	//foo{true, true, false, true, false, false, true, true, false}:     "Stop Syncing DBSig",              //0x0cb
+	//foo{true, false, false, false, false, false, false, false, false}: "Sync Only??",                     //0x100 ***
+	//foo{true, false, true, true, false, true, false, false, true}:     "Syncing EOM Stop",                //0x12d
+	//foo{true, false, true, true, true, true, false, false, true}:      "Syncing EOM Complete",            //0x13d
+	//foo{true, true, false, false, false, false, true, false, true}:    "Start Syncing DBSig",             //0x143
+	//foo{true, false, true, false, false, false, true, false, true}:    "Syncing EOM Start (DBSIG !Done)", //0x145 ***
+	//foo{true, false, true, true, true, false, true, false, true}:      "Syncing EOM ... ",                //0x15d
+}
+
+func (p *ProcessList) decodeState(Syncing bool, DBSig bool, EOM bool, DBSigDone bool, EOMDone bool, FedServers int, EOMProcessed int, DBSigProcessed int) string {
+
+	if EOMProcessed > FedServers || EOMProcessed < 0 {
+		p.State.LogPrintf("process", "Unexpected EOMProcessed %v of %v", EOMProcessed, FedServers)
+	}
+	if DBSigProcessed > FedServers || DBSigProcessed < 0 {
+		p.State.LogPrintf("process", "Unexpected DBSigProcessed %v of %v", DBSigProcessed, FedServers)
+	}
+
+	var x = foo{Syncing, DBSig, EOM, DBSigDone, EOMDone,
+		EOMProcessed == FedServers, EOMProcessed == 0, DBSigProcessed == FedServers, DBSigProcessed == 0}
+
+	xx := 0
+	var z []bool = []bool{Syncing, DBSig, EOM, DBSigDone, EOMDone, EOMProcessed == FedServers, EOMProcessed == 0, DBSigProcessed == FedServers, DBSigProcessed == 0}
+	for i, b := range z {
+		if b {
+			xx = xx | (1 << uint(i))
+		}
+	}
+
+	s, ok := decodeMap[x]
+	if !ok {
+
+		p.State.LogPrintf("process", "Unexpected state 0x%03x %v", xx, x)
+		s = "Unknown"
+	}
+	return fmt.Sprintf("SyncingStatus: 0x%03x %s", xx, s)
+
+}
+
 // Process messages and update our state.
 func (p *ProcessList) Process(state *State) (progress bool) {
 	dbht := state.GetHighestSavedBlk()
 	if dbht >= p.DBHeight {
 		//p.State.AddStatus(fmt.Sprintf("ProcessList.Process: VM Height is %d and Saved height is %d", dbht, state.GetHighestSavedBlk()))
-		return true
+		return false
 	}
 
 	state.PLProcessHeight = p.DBHeight
 
-	if len(p.System.List) >= p.System.Height {
-	systemloop:
-		for i, f := range p.System.List[p.System.Height:] {
-			if f == nil {
-				p.Ask(-1, i, 10, 100)
-				break systemloop
-			}
-		}
-	}
+	now := p.State.GetTimestamp()
 
 	for i := 0; i < len(p.FedServers); i++ {
 		vm := p.VMs[i]
 
-		if !p.State.Syncing {
-			markNoFault(p, i)
-		} else {
-			if !vm.Synced {
-				if vm.WhenFaulted == 0 {
-					markFault(p, i, 0)
-				}
-			} else {
-				if vm.FaultFlag == 0 {
-					markNoFault(p, i)
-				}
-			}
-		}
-
-		FaultCheck(p)
-
 		if vm.Height == len(vm.List) && p.State.Syncing && !vm.Synced {
 			// means that we are missing an EOM
-			p.Ask(i, vm.Height, 0, 1)
+			p.Ask(i, uint32(vm.Height), 10) // Ask 10ms out, unless we already asked
 		}
 
-		// If we haven't heard anything from a VM, ask for a message at the last-known height
-		if vm.Height == len(vm.List) {
-			p.Ask(i, vm.Height, 20, 2)
+		// If we haven't heard anything from a VM in 2 seconds, ask for a message at the last-known height
+		if vm.Height == len(vm.List) && now.GetTimeMilli()-vm.ProcessTime.GetTimeMilli() > 2000 {
+			p.Ask(i, uint32(vm.Height), 2000) // 2 second delay
 		}
 
 	VMListLoop:
 		for j := vm.Height; j < len(vm.List); j++ {
 			if vm.List[j] == nil {
 				//p.State.AddStatus(fmt.Sprintf("ProcessList.go Process: Found nil list at vm %d vm height %d ", i, j))
-				p.Ask(i, j, 0, 3)
+				p.Ask(i, uint32(j), 100) // 100ms delay
 				break VMListLoop
 			}
 
@@ -817,32 +882,14 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				if err != nil {
 					vm.List[j] = nil
 					//p.State.AddStatus(fmt.Sprintf("ProcessList.go Process: Error computing serial hash at dbht: %d vm %d  vm-height %d ", p.DBHeight, i, j))
-					p.Ask(i, j, 3, 4)
+					p.Ask(i, uint32(j), 3000) // 3 second delay
 					break VMListLoop
 				}
 
 				// compare the SerialHash of this acknowledgement with the
 				// expected serialHash (generated above)
 				if !expectedSerialHash.IsSameAs(thisAck.SerialHash) {
-					//p.State.AddStatus(fmt.Sprintf("processList.Process(): SerialHash fail: dbht: %d vm %d msg %s", p.DBHeight, i, vm.List[j]))
-
-					//fmt.Printf("dddd %20s %10s --- %10s %10x %10s %10x \n", "Conflict", p.State.FactomNodeName, "expected", expectedSerialHash.Bytes()[:3], "This", thisAck.Bytes()[:3])
-					//fmt.Printf("dddd Error detected on %s\nSerial Hash failure: Fed Server %d  Leader ID %x List Ht: %d \nDetected on: %s\n",
-					//	state.GetFactomNodeName(),
-					//	i,
-					//	p.FedServers[i].GetChainID().Bytes()[:3],
-					//	j,
-					//	vm.List[j].String())
-					//fmt.Printf("dddd Last Ack: %6x  Last Serial: %6x\n", last.GetHash().Bytes()[:3], last.SerialHash.Bytes()[:3])
-					//fmt.Printf("dddd This Ack: %6x  This Serial: %6x\n", thisAck.GetHash().Bytes()[:3], thisAck.SerialHash.Bytes()[:3])
-					//fmt.Printf("dddd Expected: %6x\n", expectedSerialHash.Bytes()[:3])
-					//fmt.Printf("dddd The message that didn't work: %s\n\n", vm.List[j].String())
-					// the SerialHash of this acknowledgment is incorrect
-					// according to this node's processList
-
-					//fault(p, i, 0, vm, 0, j, 2)
-					//p.State.AddStatus(fmt.Sprintf("ProcessList.go Process: SerialHash fails to match at dbht %d vm %d vm-height %d ", p.DBHeight, i, j))
-					p.State.Reset()
+					p.State.Reset() // This currently does nothing.. see comments in reset
 					return
 				}
 			}
@@ -853,40 +900,59 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 			// Keep in mind, the process list is processing at a height one greater than the database. 1 is caught up.  2 is one behind.
 			// Until the first couple signatures are processed, we will be 2 behind.
-			if !p.State.WaitForEntries || (vm.LeaderMinute < 2 && diff <= 3) || diff <= 2 {
+			//TODO: Why is this in the execution per message per VM when it's global to the processlist -- clay
+			if p.State.WaitForEntries {
+				p.State.LogPrintf("processList", "p.State.WaitForEntries")
+				break VMListLoop // Don't process further in this list, go to the next.
+			}
+
+			// If the block is not yet being written to disk (22 minutes old...)
+			if (vm.LeaderMinute < 2 && diff <= 3) || diff <= 2 {
 				// If we can't process this entry (i.e. returns false) then we can't process any more.
-				p.NextHeightToProcess[i] = j + 1
-				msg := vm.List[j]
+				p.NextHeightToProcess[i] = j + 1 // unused...
+				msg := thisMsg
 
 				now := p.State.GetTimestamp()
 
-				if _, valid := p.State.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), now); !valid {
-					p.State.LogMessage("process", fmt.Sprintf("drop %v/%v/%v, hash INTERNAL_REPLAY", dbht, i, j), thisMsg)
+				msgRepeatHashFixed := msg.GetRepeatHash().Fixed()
+				msgHashFixed := msg.GetMsgHash().Fixed()
+
+				if _, valid := p.State.Replay.Valid(constants.INTERNAL_REPLAY, msgRepeatHashFixed, msg.GetTimestamp(), now); !valid {
+					p.State.LogMessage("process", fmt.Sprintf("drop %v/%v/%v, hash INTERNAL_REPLAY", p.DBHeight, i, j), thisMsg)
 					vm.List[j] = nil // If we have seen this message, we don't process it again.  Ever.
+					p.State.Replay.Valid(constants.INTERNAL_REPLAY, msgRepeatHashFixed, msg.GetTimestamp(), now)
+					p.Ask(i, uint32(j), 3000) // 3 second delay
+					// If we ask won't we just get the same thing back?
 					break VMListLoop
 				}
+				vm.ProcessTime = now
 
 				if msg.Process(p.DBHeight, state) { // Try and Process this entry
+
 					if msg.Type() == constants.REVEAL_ENTRY_MSG {
 						delete(p.State.Holding, msg.GetHash().Fixed()) // We successfully executed the message, so take it out of holding if it is there.
 						p.State.Commits.Delete(msg.GetHash().Fixed())
 					}
+
 					p.State.LogMessage("processList", "done", msg)
 					vm.heartBeat = 0
 					vm.Height = j + 1 // Don't process it again if the process worked.
+					p.State.LogMessage("process", fmt.Sprintf("done %v/%v/%v", p.DBHeight, i, j), msg)
+					p.State.LogMessage("process", fmt.Sprintf("done %v/%v/%v", p.DBHeight, i, j), msg)
 
 					progress = true
 
 					// We have already tested and found m to be a new message.  We now record its hashes so later, we
-					// can detect that it has been recorded.  We don't care about the results of IsTSValid_ at this point.
-					p.State.Replay.IsTSValidAndUpdateState(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), now)
-					p.State.Replay.IsTSValidAndUpdateState(constants.INTERNAL_REPLAY, msg.GetMsgHash().Fixed(), msg.GetTimestamp(), now)
+					// can detect that it has been recorded.  We don't care about the results of IsTSValidAndUpdateState at this point.
+					// block network replay too since we have already seen this message there is not need to see it again
+					p.State.Replay.IsTSValidAndUpdateState(constants.INTERNAL_REPLAY|constants.NETWORK_REPLAY, msgRepeatHashFixed, msg.GetTimestamp(), now)
+					p.State.Replay.IsTSValidAndUpdateState(constants.INTERNAL_REPLAY|constants.NETWORK_REPLAY, msgHashFixed, msg.GetTimestamp(), now)
 
-					delete(p.State.Acks, msg.GetMsgHash().Fixed())
-					delete(p.State.Holding, msg.GetMsgHash().Fixed())
+					delete(p.State.Acks, msgHashFixed)
+					delete(p.State.Holding, msgHashFixed)
 
 				} else {
-					p.State.LogMessage("processList", "try again", msg)
+					p.State.LogMessage("process", fmt.Sprintf("retry %v/%v/%v", p.DBHeight, i, j), msg)
 					//p.State.AddStatus(fmt.Sprintf("processList.Process(): Could not process entry dbht: %d VM: %d  msg: [[%s]]", p.DBHeight, i, msg.String()))
 					break VMListLoop // Don't process further in this list, go to the next.
 				}
@@ -901,18 +967,34 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 }
 
 func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
+	p.State.LogMessage("processList", "Message:", m)
+	p.State.LogMessage("processList", "Ack:", ack)
 	if p == nil {
+		p.State.LogPrintf("processList", "Drop no process list to add to")
 		return
 	}
 
-	if ack == nil || ack.GetMsgHash() == nil {
+	if ack == nil {
+		p.State.LogPrintf("processList", "drop Ack==nil")
 		return
+	}
+	if ack.GetMsgHash() == nil {
+		p.State.LogPrintf("processList", "Drop ack.GetMsgHash() == nil")
+		return
+	}
+
+	TotalProcessListInputs.Inc()
+	messageHash := ack.GetHash() // This is the has of the message bring acknowledged not the hash of the ack message
+	msgHash := m.GetMsgHash()
+	if !messageHash.IsSameAs(msgHash) {
+		panic("Hash mismatch")
 	}
 
 	TotalProcessListInputs.Inc()
 
 	if ack.DBHeight > p.State.HighestAck && ack.Minute > 0 {
 		p.State.HighestAck = ack.DBHeight
+		p.State.LogPrintf("processList", "Drop1")
 	}
 
 	TotalAcksInputs.Inc()
@@ -922,13 +1004,14 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	if !ack.Response && ack.LeaderChainID.IsSameAs(p.State.IdentityChainID) {
 		now := p.State.GetTimestamp()
 		if now.GetTimeSeconds()-ack.Timestamp.GetTimeSeconds() > 120 {
+			p.State.LogPrintf("processList", "Drop1")
 			// Us and too old?  Just ignore.
 			return
 		}
 
 		num := p.State.GetSalt(ack.Timestamp)
 		if num != ack.SaltNumber {
-			os.Stderr.WriteString(fmt.Sprintf("This  AckHash    %x\n", ack.GetHash().Bytes()))
+			os.Stderr.WriteString(fmt.Sprintf("This  AckHash    %x\n", messageHash.Bytes()))
 			os.Stderr.WriteString(fmt.Sprintf("This  ChainID    %x\n", p.State.IdentityChainID.Bytes()))
 			os.Stderr.WriteString(fmt.Sprintf("This  Salt       %x\n", p.State.Salt.Bytes()[:8]))
 			os.Stderr.WriteString(fmt.Sprintf("This  SaltNumber %x\n for this ack", num))
@@ -940,10 +1023,11 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	}
 
 	toss := func(hint string) {
+		p.State.LogPrintf("processList", "Drop "+hint)
 		TotalHoldingQueueOutputs.Inc()
 		TotalAcksOutputs.Inc()
-		delete(p.State.Holding, ack.GetHash().Fixed())
-		delete(p.State.Acks, ack.GetHash().Fixed())
+		delete(p.State.Holding, msgHash.Fixed())
+		delete(p.State.Acks, msgHash.Fixed())
 	}
 
 	now := p.State.GetTimestamp()
@@ -960,16 +1044,19 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
 	if ack.DBHeight != p.DBHeight {
 		// panic(fmt.Sprintf("Ack is wrong height.  Expected: %d Ack: ", p.DBHeight))
+		p.State.LogPrintf("processList", "Drop Ack is wrong height.  Expected: %d Ack: ", p.DBHeight)
 		return
 	}
 
 	if len(vm.List) > int(ack.Height) && vm.List[ack.Height] != nil {
-		if vm.List[ack.Height].GetMsgHash().IsSameAs(m.GetMsgHash()) {
+		if vm.List[ack.Height].GetMsgHash().IsSameAs(msgHash) {
+			p.State.LogPrintf("processList", "Drop duplicate")
 			toss("2")
 			return
 		}
 
-		vm.List[ack.Height] = nil
+		p.State.LogMessage("processList", "drop from pl", vm.List[ack.Height])
+		vm.List[ack.Height] = m // remove the old message
 
 		return
 	}
@@ -981,8 +1068,8 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
 	TotalHoldingQueueOutputs.Inc()
 	TotalAcksOutputs.Inc()
-	delete(p.State.Acks, m.GetMsgHash().Fixed())
-	delete(p.State.Holding, m.GetMsgHash().Fixed())
+	delete(p.State.Acks, msgHash.Fixed())
+	delete(p.State.Holding, msgHash.Fixed())
 
 	// Both the ack and the message hash to the same GetHash()
 	m.SetLocal(false)
@@ -990,6 +1077,9 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	ack.SetPeer2Peer(false)
 	m.SetPeer2Peer(false)
 
+	if ack.GetHash().Fixed() != m.GetMsgHash().Fixed() {
+		p.State.LogPrintf("executeMsg", "m/ack mismatch m-%x a-%x", m.GetMsgHash().Fixed(), ack.GetHash().Fixed())
+	}
 	ack.SendOut(p.State, ack)
 	m.SendOut(p.State, m)
 
@@ -998,13 +1088,18 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 		vm.ListAck = append(vm.ListAck, nil)
 	}
 
-	delete(p.State.Acks, m.GetMsgHash().Fixed())
+	p.State.LogPrintf("executeMsg", "remove from holding M-%v|R-%v", m.GetMsgHash().String()[:6], m.GetRepeatHash().String()[:6])
+	delete(p.State.Holding, msgHash.Fixed())
+	delete(p.State.Acks, msgHash.Fixed())
 	p.VMs[ack.VMIndex].List[ack.Height] = m
 	p.VMs[ack.VMIndex].ListAck[ack.Height] = ack
 	p.AddOldMsgs(m)
-	p.OldAcks[m.GetMsgHash().Fixed()] = ack
+	p.OldAcks[msgHash.Fixed()] = ack
+
+	p.adds <- plRef{p.DBHeight, ack.VMIndex, ack.Height}
 
 	plLogger.WithFields(log.Fields{"func": "AddToProcessList", "node-name": p.State.GetFactomNodeName(), "plheight": ack.Height, "dbheight": p.DBHeight}).WithFields(m.LogFields()).Info("Add To Process List")
+	p.State.LogMessage("processList", fmt.Sprintf("Added at %d/%d/%d", ack.DBHeight, ack.VMIndex, ack.Height), m)
 }
 
 func (p *ProcessList) ContainsDBSig(serverID interfaces.IHash) bool {
@@ -1074,7 +1169,7 @@ func (p *ProcessList) String() string {
 				}
 
 				if msg != nil {
-					leader := fmt.Sprintf("[%x] ", vm.ListAck[j].LeaderChainID.Bytes()[:4])
+					leader := fmt.Sprintf("[%x] ", vm.ListAck[j].LeaderChainID.Bytes()[3:6])
 					buf.WriteString("   " + leader + msg.String() + "\n")
 				} else {
 					buf.WriteString("   <nil>\n")
@@ -1104,106 +1199,10 @@ func (p *ProcessList) String() string {
 	return buf.String()
 }
 
+// Intended to let a demoted leader come back before the next DB state but interfered with boot under load so disable for now
+// that means demoted leaders are not sane till the next DBState (up to 10 minutes). Maybe revisit after the missing message storms are fixed.
 func (p *ProcessList) Reset() bool {
-	return true
-	previous := p.State.ProcessLists.Get(p.DBHeight - 1)
-
-	if previous == nil {
-		return false
-	}
-
-	//p.State.AddStatus(fmt.Sprintf("PROCESSLIST.Reset(): at dbht %d", p.DBHeight))
-
-	// Make a copy of the previous FedServers
-	p.System.List = p.System.List[:0]
-	p.System.Height = 0
-	p.Requests = make(map[[32]byte]*Request)
-	//pl.Requests = make(map[[20]byte]*Request)
-
-	p.FactoidBalancesT = map[[32]byte]int64{}
-	p.ECBalancesT = map[[32]byte]int64{}
-
-	p.FedServers = append(p.FedServers[:0], previous.FedServers...)
-	p.AuditServers = append(p.AuditServers[:0], previous.AuditServers...)
-	for _, auditServer := range p.AuditServers {
-		auditServer.SetOnline(false)
-		if p.State.GetIdentityChainID().IsSameAs(auditServer.GetChainID()) {
-			// Always consider yourself "online"
-			auditServer.SetOnline(true)
-		}
-	}
-	for _, fedServer := range p.FedServers {
-		fedServer.SetOnline(true)
-	}
-	p.SortFedServers()
-	p.SortAuditServers()
-
-	// empty my maps --
-	p.OldMsgs = make(map[[32]byte]interfaces.IMsg)
-	p.OldAcks = make(map[[32]byte]interfaces.IMsg)
-
-	p.NewEBlocks = make(map[[32]byte]interfaces.IEntryBlock)
-	p.NewEntries = make(map[[32]byte]interfaces.IEntry)
-
-	p.DBSignatures = make([]DBSig, 0)
-
-	// If a federated server, this is the server index, which is our index in the FedServers list
-
-	var err error
-
-	if previous != nil {
-		p.DirectoryBlock = directoryBlock.NewDirectoryBlock(previous.DirectoryBlock)
-		p.AdminBlock = adminBlock.NewAdminBlock(previous.AdminBlock)
-		p.EntryCreditBlock, err = entryCreditBlock.NextECBlock(previous.EntryCreditBlock)
-	} else {
-		p.DirectoryBlock = directoryBlock.NewDirectoryBlock(nil)
-		p.AdminBlock = adminBlock.NewAdminBlock(nil)
-		p.EntryCreditBlock, err = entryCreditBlock.NextECBlock(nil)
-	}
-	if err != nil {
-		panic(err.Error())
-	}
-
-	p.ResetDiffSigTally()
-
-	for i := range p.FedServers {
-		vm := p.VMs[i]
-
-		vm.Height = 0 // Knock all the VMs back
-		vm.LeaderMinute = 0
-		vm.heartBeat = 0
-		vm.Signed = false
-		vm.Synced = false
-		vm.WhenFaulted = 0
-
-		p.VMs[i].List = p.VMs[i].List[:0]       // Knock all the lists back.
-		p.VMs[i].ListAck = p.VMs[i].ListAck[:0] // Knock all the lists back.
-		//p.State.SendDBSig(p.DBHeight, i)
-	}
-
-	/*fs := p.State.FactoidState.(*FactoidState)
-	if previous.NextTimestamp != nil {
-		fs.Reset(previous)
-	}*/
-
-	s := p.State
-	s.LLeaderHeight--
-	s.Saving = true
-	s.Syncing = false
-	s.EOM = false
-	s.EOMDone = false
-	s.DBSig = false
-	s.DBSigDone = false
-	s.CurrentMinute = 0
-	s.EOMProcessed = 0
-	s.DBSigProcessed = 0
-	s.StartDelay = s.GetTimestamp().GetTimeMilli()
-	s.RunLeader = false
-
-	s.LLeaderHeight = s.GetHighestSavedBlk() + 1
-	s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
-
-	s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
+	p.State.LogPrintf("processList", "ProcessList.Reset %d minute %s @ %s", p.DBHeight, p.State.CurrentMinute, atomic.WhereAmIString(1))
 
 	return true
 }
@@ -1224,7 +1223,6 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	// Make a copy of the previous FedServers
 	pl.FedServers = make([]interfaces.IServer, 0)
 	pl.AuditServers = make([]interfaces.IServer, 0)
-	pl.Requests = make(map[[32]byte]*Request)
 	//pl.Requests = make(map[[20]byte]*Request)
 
 	pl.FactoidBalancesT = map[[32]byte]int64{}
@@ -1249,6 +1247,7 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 		// pl.AddFedServer(primitives.Sha([]byte("FNode0"))) // Our default for now fed server on LOCAL network
 	}
 
+	now := state.GetTimestamp()
 	// We just make lots of VMs as they have nearly no impact if not used.
 	pl.VMs = make([]*VM, 65)
 	for i := 0; i < 65; i++ {
@@ -1256,6 +1255,7 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 		pl.VMs[i].List = make([]interfaces.IMsg, 0)
 		pl.VMs[i].Synced = true
 		pl.VMs[i].WhenFaulted = 0
+		pl.VMs[i].ProcessTime = now
 	}
 
 	pl.DBHeight = dbheight
@@ -1294,6 +1294,10 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 		panic(err.Error())
 	}
 
+	pl.asks = make(chan askRef)
+	pl.adds = make(chan plRef)
+	pl.done = make(chan struct{})
+	go pl.makeMMRs(pl.State, pl.asks, pl.adds, pl.done)
 	return pl
 }
 
