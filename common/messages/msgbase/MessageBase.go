@@ -55,7 +55,7 @@ func (m *MessageBase) Resend_(s interfaces.IState, msg interfaces.IMsg, cnt int,
 func (m *MessageBase) SendOut(s interfaces.IState, msg interfaces.IMsg) {
 	// Don't resend if we are behind
 	if m.ResendCnt > 1 && s.GetHighestKnownBlock()-s.GetHighestSavedBlk() > 4 {
-		s.LogMessage("NetworkOutputs", "Drop to busy", msg)
+		s.LogMessage("NetworkOutputs", "Drop too far behind to resend", msg)
 		return
 	}
 

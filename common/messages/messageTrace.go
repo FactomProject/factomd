@@ -25,6 +25,11 @@ var (
 // If it never ben see then check with the regex. If it has been seen then just look it up in the map
 // assumes traceMutex is locked already
 func CheckFileName(name string) bool {
+	traceMutex.Lock()
+	defer traceMutex.Unlock()
+	return checkFileName(name)
+}
+func checkFileName(name string) bool {
 	if globals.Params.DebugLogRegEx == "" {
 		return false
 	}
@@ -52,7 +57,7 @@ func CheckFileName(name string) bool {
 // assumes traceMutex is locked already
 func getTraceFile(name string) (f *os.File) {
 	//traceMutex.Lock()	defer traceMutex.Unlock()
-	if !CheckFileName(name) {
+	if !checkFileName(name) {
 		return nil
 	}
 	if files == nil {

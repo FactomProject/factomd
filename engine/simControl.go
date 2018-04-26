@@ -63,8 +63,7 @@ func GetLine(listenToStdin bool) string {
 						InputChan <- string(line)
 					} else {
 						if err == io.EOF {
-							fmt.Printf("Error reading from std, sleeping for 5s: %s\n", err.Error())
-							time.Sleep(5 * time.Second)
+							return
 						} else {
 							fmt.Printf("Error reading from std, sleeping for 1s: %s\n", err.Error())
 							time.Sleep(1 * time.Second)
@@ -139,7 +138,7 @@ func SimControl(listenTo int, listenStdin bool) {
 
 			case 'b' == b[0]:
 				if len(b) == 1 {
-					os.Stderr.WriteString("specifivy how long a block will be recorded (in nanoseconds).  1 records all blocks.\n")
+					os.Stderr.WriteString("specifically how long a block will be recorded (in nanoseconds).  1 records all blocks.\n")
 					break
 				}
 				delay, err := strconv.Atoi(string(b[1:]))
@@ -599,7 +598,7 @@ func SimControl(listenTo int, listenStdin bool) {
 
 				if ListenTo >= 0 && ListenTo < len(fnodes) {
 					f := fnodes[ListenTo]
-					v := f.State.GetNetStateOff()
+					v := f.State.GetNetStateOff() // Toggle his network on/off state
 					if v {
 						os.Stderr.WriteString("Bring " + f.State.FactomNodeName + " Back onto the network\n")
 					} else {
@@ -719,7 +718,7 @@ func SimControl(listenTo int, listenStdin bool) {
 					}
 					err = msg.(*messages.AddServerMsg).Sign(priv)
 					if err != nil {
-						os.Stderr.WriteString(fmt.Sprintln("Could not make a audit server,", err.Error()))
+						os.Stderr.WriteString(fmt.Sprintln("Could not make an audit server,", err.Error()))
 						break
 					}
 					fnodes[ListenTo].State.InMsgQueue().Enqueue(msg)

@@ -49,6 +49,8 @@ func Factomd(params *FactomParams, listenToStdin bool) interfaces.IState {
 	fmt.Printf("Go compiler version: %s\n", runtime.Version())
 	fmt.Printf("Using build: %s\n", Build)
 	fmt.Printf("Version: %s\n", FactomdVersion)
+	StartTime = time.Now()
+	fmt.Printf("Start time: %s\n", StartTime.String())
 
 	state0 := new(state.State)
 	state0.IsRunning = true

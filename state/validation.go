@@ -89,17 +89,26 @@ type Timer struct {
 	lastDBHeight uint32
 }
 
-func (t *Timer) timer(state *State, min int) {
+func (t *Timer) timer(s *State, min int) {
 	t.lastMin = min
 
+	if s.RunLeader { // don't generate EOM if we are not a leader or are loading the DBState messages
 	eom := new(messages.EOM)
-	eom.Timestamp = state.GetTimestamp()
-	eom.ChainID = state.GetIdentityChainID()
-	eom.Sign(state)
-	eom.SetLocal(true)
-	consenLogger.WithFields(log.Fields{"func": "GenerateEOM", "lheight": state.GetLeaderHeight()}).WithFields(eom.LogFields()).Debug("Generate EOM")
+		eom.Timestamp = s.GetTimestamp()
+		eom.ChainID = s.GetIdentityChainID()
+		{
+			// best guess info... may be wrong -- just for debug
+			eom.DBHeight = s.LLeaderHeight
+			eom.VMIndex = s.LeaderVMIndex
+			// EOM.Minute is zerobased, while LeaderMinute is 1 based.  So
+			// a simple assignment works.
+			eom.Minute = byte(s.CurrentMinute)
+		}
 
-	if state.RunLeader { // don't generate EOM if we are not a leader or are loading the DBState messages
-		state.MsgQueue() <- eom
+		eom.Sign(s)
+	eom.SetLocal(true)
+		consenLogger.WithFields(log.Fields{"func": "GenerateEOM", "lheight": s.GetLeaderHeight()}).WithFields(eom.LogFields()).Debug("Generate EOM")
+
+		s.MsgQueue() <- eom
 	}
 }
