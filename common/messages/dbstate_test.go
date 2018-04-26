@@ -396,7 +396,6 @@ func TestPropSignedDBStateValidate(t *testing.T) {
 		var signers []SmallIdentity
 
 		a := testHelper.CreateTestAdminBlock(prev.ABlock)
-		state.ProcessLists.Get(a.GetDatabaseHeight()).Clear()
 		state.ProcessLists.Get(a.GetDatabaseHeight()).FedServers = make([]interfaces.IServer, 0)
 		for ia := 0; ia < len(ids); ia++ {
 			switch random.RandIntBetween(0, 4) {

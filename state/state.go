@@ -1800,9 +1800,7 @@ entryHashProcessing:
 			s.Replay.SetHashNow(constants.REVEAL_REPLAY, e.Hash.Fixed(), e.Timestamp)
 			// If the SetHashNow worked, then we should prohibit any commit that might be pending.
 			// Remove any commit that might be around.
-			if !s.Replay.IsHashUnique(constants.REVEAL_REPLAY, e.Hash.Fixed()) {
-				s.Commits.Delete(e.Hash.Fixed())
-			}
+			s.Commits.Delete(e.Hash.Fixed())
 		default:
 			break entryHashProcessing
 		}

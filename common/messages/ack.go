@@ -90,14 +90,6 @@ func (m *Ack) Validate(s interfaces.IState) int {
 		return -1
 	}
 
-	// Only new acks are valid. Of course, the VMIndex has to be valid too.
-	msg, _ := s.GetMsg(m.VMIndex, int(m.DBHeight), int(m.Height))
-	if msg != nil {
-		s.LogMessage("executeMsg", "Ack slot taken", m)
-		s.LogMessage("executeMsg", "found:", msg)
-		return -1
-	}
-
 	if s.GetHighestAck() < m.DBHeight {
 		s.SetHighestAck(m.DBHeight) // assume the ack isn't lying. this will make us start requesting DBState blocks...
 	}
@@ -111,9 +103,18 @@ func (m *Ack) Validate(s interfaces.IState) int {
 		return -1
 	}
 
-	if delta > 5 {
+	if delta > 15 {
 		return 0 // put this in the holding and validate it later
 	}
+
+	// Only new acks are valid. Of course, the VMIndex has to be valid too.
+	msg, _ := s.GetMsg(m.VMIndex, int(m.DBHeight), int(m.Height))
+	if msg != nil {
+		s.LogMessage("executeMsg", "Ack slot taken", m)
+		s.LogMessage("executeMsg", "found:", msg)
+		return -1
+	}
+
 	if !m.authvalid {
 		// Check signature
 		bytes, err := m.MarshalForSignature()

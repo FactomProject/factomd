@@ -97,6 +97,10 @@ func (m *SafeMsgMap) Cleanup(s *State) {
 		if !ok {
 			delete(m.msgmap, k)
 		}
+		ok = s.Replay.IsHashUnique(constants.REVEAL_REPLAY, k)
+		if !ok {
+			delete(m.msgmap, k)
+		}
 	}
 	m.Unlock()
 }
