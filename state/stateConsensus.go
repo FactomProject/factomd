@@ -407,8 +407,6 @@ func (s *State) ReviewHolding() {
 		// If a Reveal Entry has a commit available, then process the Reveal Entry and send it out.
 		if re, ok := v.(*messages.RevealEntryMsg); ok {
 			if s.Commits.Get(re.GetHash().Fixed()) != nil {
-				delete(s.Holding, k)
-				re.FollowerExecute(s)
 				re.SendOut(s, re)
 			}
 			// Only reprocess if at the top of a new minute, and if we are a leader.
@@ -417,7 +415,7 @@ func (s *State) ReviewHolding() {
 			}
 			// Needs to be our VMIndex as well, or ignore.
 			if re.GetVMIndex() != s.LeaderVMIndex {
-				continue // If we are a leader, but it isn't ours, and it isn't a new minute, ignore.
+				//continue // If we are a leader, but it isn't ours, and it isn't a new minute, ignore.
 			}
 		}
 

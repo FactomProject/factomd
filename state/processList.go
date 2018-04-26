@@ -864,6 +864,11 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				}
 
 				if msg.Process(p.DBHeight, state) { // Try and Process this entry
+					if msg.Type() == constants.REVEAL_ENTRY_MSG {
+						delete(p.State.Holding, msg.GetHash().Fixed())
+						p.State.Commits.Delete(msg.GetHash().Fixed())
+					}
+
 					p.State.LogMessage("processList", "done", msg)
 					vm.heartBeat = 0
 					vm.Height = j + 1 // Don't process it again if the process worked.
