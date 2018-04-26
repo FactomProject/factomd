@@ -117,10 +117,10 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 		// Sometimes messages we have already processed are in the msgQueue from holding when we execute them
 		// this check makes sure we don't put them back in holding after just deleting them
 		if _, valid := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp()); valid {
-		TotalHoldingQueueInputs.Inc()
-		TotalHoldingQueueRecycles.Inc()
-		s.LogMessage("executeMsg", "Add to Holding", msg)
-		s.Holding[msg.GetMsgHash().Fixed()] = msg
+			TotalHoldingQueueInputs.Inc()
+			TotalHoldingQueueRecycles.Inc()
+			s.LogMessage("executeMsg", "Add to Holding", msg)
+			s.Holding[msg.GetMsgHash().Fixed()] = msg
 		} else {
 			s.LogMessage("executeMsg", "drop, IReplay", msg)
 		}
@@ -190,7 +190,7 @@ func (s *State) Process() (progress bool) {
 
 	/** Process all the DBStates  that might be pending **/
 
-	for  {
+	for {
 		ix := int(s.GetHighestSavedBlk()) - s.DBStatesReceivedBase + 1
 		if ix < 0 || ix >= len(s.DBStatesReceived) {
 			break
@@ -288,10 +288,10 @@ emptyLoop:
 
 	preProcessProcChanTime := time.Now()
 	for _, msg := range process {
-			newProgress := s.executeMsg(vm, msg)
-			progress = newProgress || progress //
-			s.LogMessage("executeMsg", fmt.Sprintf("From processq : %t", newProgress), msg)
-			s.UpdateState()
+		newProgress := s.executeMsg(vm, msg)
+		progress = newProgress || progress //
+		s.LogMessage("executeMsg", fmt.Sprintf("From processq : %t", newProgress), msg)
+		s.UpdateState()
 	} // processLoop for{...}
 
 	processProcChanTime := time.Since(preProcessProcChanTime)
