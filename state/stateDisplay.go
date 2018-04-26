@@ -114,9 +114,13 @@ func DeepStateDisplayCopyDifference(s *State, prev *DisplayState) (*DisplayState
 
 	// DB Info
 	ds.CurrentNodeHeight = s.GetHighestSavedBlk()
-	ds.CurrentLeaderHeight = s.GetLeaderHeight()
+	lheight := s.GetLeaderHeight()
+	if s.GetHighestAck() > lheight {
+		lheight = s.GetHighestAck()
+	}
+	ds.CurrentLeaderHeight = lheight
 	ds.CurrentEBDBHeight = s.EntryDBHeightComplete
-	ds.LeaderHeight = s.GetTrueLeaderHeight()
+	ds.LeaderHeight = lheight
 
 	// Only copies the directory block if it is new
 	ds.CopyDirectoryBlock(s, prev, s.GetLLeaderHeight())
