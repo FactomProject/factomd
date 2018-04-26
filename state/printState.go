@@ -29,7 +29,7 @@ func PrintState(state *State) {
 	cnts[state.FactomNodeName] = state.ResetCnt
 	cntsMutex.Unlock()
 
-	str = fmt.Sprintf("%s %35s = %+v\n", str, "filename", state.filename)
+	str = fmt.Sprintf("%s %35s = %+v\n", str, "filename", state.ConfigFilePath)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "Salt", state.Salt)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "Cfg", state.Cfg)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "Prefix", state.Prefix)

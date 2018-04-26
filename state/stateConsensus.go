@@ -1772,7 +1772,7 @@ func (s *State) CheckForIDChange() {
 		}
 	}
 	if reloadIdentity {
-		config := util.ReadConfig(s.filename)
+		config := util.ReadConfig(s.ConfigFilePath)
 		var err error
 		s.IdentityChainID, err = primitives.NewShaHashFromStr(config.App.IdentityChainID)
 		if err != nil {
