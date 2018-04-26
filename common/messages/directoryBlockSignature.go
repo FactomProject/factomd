@@ -388,7 +388,7 @@ func (m *DirectoryBlockSignature) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *DirectoryBlockSignature) String() string {
-b, err := m.DirectoryBlockHeader.MarshalBinary()
+	b, err := m.DirectoryBlockHeader.MarshalBinary()
 	if b != nil && err != nil {
 		h := primitives.Sha(b)
 		m.dbsHash = h

@@ -23,8 +23,8 @@ import (
 	"sync"
 	"time"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/FactomProject/factomd/common/messages/electionMsgs"
+	log "github.com/sirupsen/logrus"
 )
 
 var _ = fmt.Print

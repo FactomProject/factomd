@@ -349,6 +349,8 @@ func (s *State) ReviewHolding() {
 		return
 	}
 
+	s.Commits.Cleanup(s)
+
 	s.DB.Trim()
 
 	s.ResendHolding = now
@@ -1079,17 +1081,6 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 		s.Holding[m.GetMsgHash().Fixed()] = m // hold in  FollowerExecuteRevealEntry
 		return
 	}
-
-	msg := m.(*messages.RevealEntryMsg)
-	TotalCommitsOutputs.Inc()
-	s.Commits.Delete(msg.Entry.GetHash().Fixed()) // 	delete(s.Commits, msg.Entry.GetHash().Fixed())
-
-	// This is so the api can determine if a chainhead is about to be updated. It fixes a race condition
-	// on the api. MUST BE BEFORE THE REPLAY FILTER ADD
-	pl.PendingChainHeads.Put(msg.Entry.GetChainID().Fixed(), msg)
-	// Okay the Reveal has been recorded.  Record this as an entry that cannot be duplicated.
-	s.Replay.IsTSValidAndUpdateState(constants.REVEAL_REPLAY, msg.Entry.GetHash().Fixed(), msg.Timestamp, s.GetTimestamp())
-
 }
 
 func (s *State) LeaderExecute(m interfaces.IMsg) {
@@ -1401,8 +1392,23 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 }
 
 func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
+	pl := s.ProcessLists.Get(dbheight)
+	if pl == nil {
+		return false
+	}
+
 	TotalProcessListProcesses.Inc()
 	msg := m.(*messages.RevealEntryMsg)
+
+	TotalCommitsOutputs.Inc()
+	s.Commits.Delete(msg.Entry.GetHash().Fixed()) // 	delete(s.Commits, msg.Entry.GetHash().Fixed())
+
+	// This is so the api can determine if a chainhead is about to be updated. It fixes a race condition
+	// on the api. MUST BE BEFORE THE REPLAY FILTER ADD
+	pl.PendingChainHeads.Put(msg.Entry.GetChainID().Fixed(), msg)
+	// Okay the Reveal has been recorded.  Record this as an entry that cannot be duplicated.
+	s.Replay.IsTSValidAndUpdateState(constants.REVEAL_REPLAY, msg.Entry.GetHash().Fixed(), msg.Timestamp, s.GetTimestamp())
+
 	myhash := msg.Entry.GetHash()
 
 	chainID := msg.Entry.GetChainID()
