@@ -89,6 +89,18 @@ func (m *Ack) Validate(s interfaces.IState) int {
 	if m.DBHeight <= s.GetHighestSavedBlk() {
 		return -1
 	}
+	delta := (int(m.DBHeight)-int(s.GetLeaderPL().GetDBHeight()))*10 + (int(m.Minute) - int(s.GetCurrentMinute()))
+
+	if delta > 30 {
+		s.LogMessage("ackQueue", "Drop ack from future", m)
+		// when we get caught up we will either get a DBState with this message or we will missing message it.
+		// but if it was malicious then we don't want to keep it around filling up queues.
+		return -1
+	}
+
+	if delta > 5 {
+		return 0 // put this in the holding and validate it later
+	}
 
 	// Only new acks are valid. Of course, the VMIndex has to be valid too.
 	msg, _ := s.GetMsg(m.VMIndex, int(m.DBHeight), int(m.Height))
@@ -102,18 +114,6 @@ func (m *Ack) Validate(s interfaces.IState) int {
 		s.SetHighestAck(m.DBHeight) // assume the ack isn't lying. this will make us start requesting DBState blocks...
 	}
 
-	delta := (int(m.DBHeight)-int(s.GetLeaderPL().GetDBHeight()))*10 + (int(m.Minute) - int(s.GetCurrentMinute()))
-
-	if delta > 30 {
-		s.LogMessage("ackQueue", "Drop ack from future", m)
-		// when we get caught up we will either get a DBState with this message or we will missing message it.
-		// but if it was malicious then we don't want to keep it around filling up queues.
-		return -1
-	}
-
-	if delta > 5 {
-		return 0 // put this in the holding and validate it later
-	}
 	if !m.authvalid {
 		// Check signature
 		bytes, err := m.MarshalForSignature()
