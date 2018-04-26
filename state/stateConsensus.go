@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"hash"
-	"runtime"
 	"sync"
 	"time"
 
@@ -68,7 +67,6 @@ func (s *State) LogPrintf(logName string, format string, more ...interface{}) {
 	}
 }
 func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
-	runtime.Gosched() // Make sure all the simulation progress...
 
 	preExecuteMsgTime := time.Now()
 	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
@@ -1513,22 +1511,19 @@ func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
 
 	if !vm.Signed {
 
-		if lvm == vmIndex {
-			if !pl.DBSigAlreadySent {
+		if !pl.DBSigAlreadySent {
 
-				dbs, _ := s.CreateDBSig(dbheight, vmIndex)
-				if dbs == nil {
-					return
-				}
-
-				dbslog.WithFields(dbs.LogFields()).WithFields(log.Fields{"lheight": s.GetLeaderHeight(), "node-name": s.GetFactomNodeName()}).Infof("Generate DBSig")
-				dbs.LeaderExecute(s)
-				vm.Signed = true
-				pl.DBSigAlreadySent = true
-			} else {
-				pl.Ask(vmIndex, 0, 0, 5)
+			dbs, _ := s.CreateDBSig(dbheight, vmIndex)
+			if dbs == nil {
+				return
 			}
+
+			dbslog.WithFields(dbs.LogFields()).WithFields(log.Fields{"lheight": s.GetLeaderHeight(), "node-name": s.GetFactomNodeName()}).Infof("Generate DBSig")
+			dbs.LeaderExecute(s)
+			vm.Signed = true
+			pl.DBSigAlreadySent = true
 		}
+		// used to ask here for the message we already made and sent...
 	}
 }
 
