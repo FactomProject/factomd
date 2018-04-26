@@ -103,7 +103,7 @@ func (m *Ack) Validate(s interfaces.IState) int {
 		return -1
 	}
 
-	if delta > 5 {
+	if delta > 15 {
 		return 0 // put this in the holding and validate it later
 	}
 
