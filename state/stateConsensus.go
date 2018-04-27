@@ -355,7 +355,7 @@ func (s *State) ReviewHolding() {
 	// Set the resend time at the END of the function. This prevents the time it takes to execute this function
 	// from reducing the time we allow before another review
 	defer func() {
-	s.ResendHolding = now
+		s.ResendHolding = now
 	}()
 	// Anything we are holding, we need to reprocess.
 	s.XReview = make([]interfaces.IMsg, 0)
@@ -415,10 +415,7 @@ func (s *State) ReviewHolding() {
 				x := s.NoEntryYet(ce.CommitEntry.EntryHash, ce.CommitEntry.GetTimestamp())
 				if !x {
 					TotalHoldingQueueOutputs.Inc()
-					re := s.HoldingMap[k]
-					if re != nil {
-						s.LogMessage("executeMsg", "review, NoEntryYet(1) delete", re)
-					}
+					s.LogMessage("executeMsg", "review, NoEntryYet(1) delete", v)
 					delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
 					continue
 				}
@@ -431,10 +428,7 @@ func (s *State) ReviewHolding() {
 				x := s.NoEntryYet(ce.CommitChain.EntryHash, ce.CommitChain.GetTimestamp())
 				if !x {
 					TotalHoldingQueueOutputs.Inc()
-					re := s.HoldingMap[k]
-					if re != nil {
-						s.LogMessage("executeMsg", "review, NoEntryYet(2) delete", re)
-					}
+					s.LogMessage("executeMsg", "review, NoEntryYet(2) delete", v)
 					delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
 					continue
 				}
@@ -1058,11 +1052,11 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 	TotalHoldingQueueInputs.Inc()
 	s.Holding[m.GetMsgHash().Fixed()] = m // hold in  FollowerExecuteRevealEntry
 
-		valid := m.Validate(s)
-		switch valid {
-		case -1:
-			s.LogMessage("executeMsg", "drop, invalid", m)
-			return
+	valid := m.Validate(s)
+	switch valid {
+	case -1:
+		s.LogMessage("executeMsg", "drop, invalid", m)
+		return
 	case 0:
 		s.LogMessage("executeMsg", "hold, no commit yet", m)
 		return
