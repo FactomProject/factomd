@@ -179,7 +179,7 @@ func Peers(fnode *FactomNode) {
 			if t := msg.Type(); t == constants.REVEAL_ENTRY_MSG || t == constants.COMMIT_CHAIN_MSG || t == constants.COMMIT_ENTRY_MSG {
 				fnode.State.LogMessage("NetworkInputs", "from API, Enqueue2", msg)
 				fnode.State.LogMessage("InMsgQueue2", "enqueue", msg)
-				fnode.State.InMsgQueue2().Enqueue(msg)
+				fnode.State.InMsgQueue().Enqueue(msg)
 			} else {
 				fnode.State.LogMessage("NetworkInputs", "from API, Enqueue", msg)
 				fnode.State.LogMessage("InMsgQueue", "enqueue", msg)

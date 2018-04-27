@@ -14,7 +14,6 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/primitives/random"
-	"github.com/FactomProject/factomd/util/atomic"
 )
 
 const Range = 60                // Double this for the period we protect, i.e. 120 means +/- 120 minutes

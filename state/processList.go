@@ -638,7 +638,7 @@ func (p *ProcessList) makeMMRs(s interfaces.IState, asks <-chan askRef, adds <-c
 	addAsk := func(ask askRef) {
 		_, ok := pending[ask.plRef]
 		if !ok {
-			when := ask.When
+			when := (ask.When & -2)    // clear lsb
 			pending[ask.plRef] = &when // add the requests to the map
 			s.LogPrintf(logname, "Ask %d/%d/%d %d", ask.DBH, ask.VM, ask.H, len(pending))
 		} // don't update the when if it already existed...
@@ -700,17 +700,19 @@ func (p *ProcessList) makeMMRs(s interfaces.IState, asks <-chan askRef, adds <-c
 
 			//s.LogPrintf(logname, "tick [%v]", pending)
 
+			// time offset to pick asks to
+
 			//build MMRs with all the asks expired asks.
 			for ref, when := range pending {
-				// if ask is expired
-				if now > *when {
-					var index dbhvm = dbhvm{ref.DBH, ref.VM}
+				var index dbhvm = dbhvm{ref.DBH, ref.VM}
+				// if ask is expired or we have an MMR for this DBH/VM
+				if now > *when || mmrs[index] != nil {
 					if mmrs[index] == nil { // If we don't have a message for this DBH/VM
 						mmrs[index] = messages.NewMissingMsg(s, ref.VM, ref.DBH, uint32(ref.H))
 					} else {
 						mmrs[index].ProcessListHeight = append(mmrs[index].ProcessListHeight, uint32(ref.H))
 					}
-					*when += 10000 // update when we asked...
+					*when = *when + 10000 // update when we asked, set lsb to say we already asked...
 					//s.LogPrintf(logname, "mmr ask %d/%d/%d %d", ref.DBH, ref.VM, ref.H, len(pending))
 					// Maybe when asking for past the end of the list we should not ask again?
 				}
