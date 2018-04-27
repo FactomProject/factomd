@@ -3,8 +3,6 @@ package electionMsgs_test
 import (
 	"testing"
 
-	"fmt"
-
 	"github.com/FactomProject/factomd/common/messages"
 	. "github.com/FactomProject/factomd/common/messages/electionMsgs"
 	"github.com/FactomProject/factomd/common/messages/electionMsgs/electionMsgTesting"
@@ -45,7 +43,10 @@ func TestUnmarshalFedVoteVolunteerDBSig(t *testing.T) {
 
 	var err error
 	s := testHelper.CreateAndPopulateTestState()
-	fmt.Println(s)
+	for s.UpdateState() {
+	}
+	for s.Process() {
+	}
 	vol.Missing, vol.Ack = s.CreateDBSig(1, 0)
 	if err != nil {
 		t.Error(err)
