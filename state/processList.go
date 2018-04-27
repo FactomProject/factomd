@@ -860,13 +860,8 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			p.Ask(i, uint32(vm.Height), 2000) // 2 second delay
 		}
 
-		loopCount := 0
 	VMListLoop:
 		for j := vm.Height; j < len(vm.List); j++ {
-			loopCount++
-			if loopCount > 200 {
-				break VMListLoop
-			}
 			if vm.List[j] == nil {
 				//p.State.AddStatus(fmt.Sprintf("ProcessList.go Process: Found nil list at vm %d vm height %d ", i, j))
 				p.Ask(i, uint32(j), 100) // 100ms delay
