@@ -865,7 +865,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			if vm.List[j] == nil {
 				//p.State.AddStatus(fmt.Sprintf("ProcessList.go Process: Found nil list at vm %d vm height %d ", i, j))
 				cnt := 0
-				for k := j; k < vm.Height; k++ {
+				for k := j; k < len(vm.List); k++ {
 					if vm.List[k] == nil {
 						cnt++
 						p.Ask(i, uint32(k), 0) // Ask immediately
