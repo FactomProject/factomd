@@ -679,7 +679,7 @@ func (p *ProcessList) makeMMRs(s interfaces.IState, asks <-chan askRef, adds <-c
 	go func() {
 		for {
 			ticker <- s.GetTimestamp().GetTimeMilli()
-			time.Sleep(200 * time.Millisecond)
+			time.Sleep(20 * time.Millisecond)
 		}
 	}()
 
@@ -835,6 +835,8 @@ func (p *ProcessList) decodeState(Syncing bool, DBSig bool, EOM bool, DBSigDone 
 
 }
 
+var nillist map[int]int = make(map[int]int)
+
 // Process messages and update our state.
 func (p *ProcessList) Process(state *State) (progress bool) {
 	dbht := state.GetHighestSavedBlk()
@@ -868,10 +870,16 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				for k := j; k < len(vm.List); k++ {
 					if vm.List[k] == nil {
 						cnt++
-						p.Ask(i, uint32(k), 0) // Ask immediately
+						p.Ask(i, uint32(k), 10) // Ask 10ms
 					}
 				}
-				p.State.LogPrintf("process", "%d nils  at  %v/%v/%v", cnt, p.DBHeight, i, j)
+				if p.State.DebugExec() {
+					if nillist[i] < j {
+						p.State.LogPrintf("process", "%d nils  at  %v/%v/%v", cnt, p.DBHeight, i, j)
+						nillist[i] = j
+					}
+				}
+
 				//				p.State.LogPrintf("process","nil  at  %v/%v/%v", p.DBHeight, i, j)
 				break VMListLoop
 			}
@@ -955,7 +963,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					// can detect that it has been recorded.  We don't care about the results of IsTSValidAndUpdateState at this point.
 					// block network replay too since we have already seen this message there is not need to see it again
 					p.State.Replay.IsTSValidAndUpdateState(constants.INTERNAL_REPLAY|constants.NETWORK_REPLAY, msgRepeatHashFixed, msg.GetTimestamp(), now)
-					p.State.Replay.IsTSValidAndUpdateState(constants.INTERNAL_REPLAY|constants.NETWORK_REPLAY, msgHashFixed, msg.GetTimestamp(), now)
+					p.State.Replay.IsTSValidAndUpdateState(constants.INTERNAL_REPLAY, msgHashFixed, msg.GetTimestamp(), now)
 
 					delete(p.State.Acks, msgHashFixed)
 					delete(p.State.Holding, msgHashFixed)

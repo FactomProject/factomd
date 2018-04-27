@@ -130,7 +130,9 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 		if _, valid := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp()); valid {
 			TotalHoldingQueueInputs.Inc()
 			TotalHoldingQueueRecycles.Inc()
-			s.LogMessage("executeMsg", "Add to Holding", msg)
+			s.LogMessage("executeMsg", "Add to Holding0", msg)
+			s.LogMessage("executeMsg", fmt.Sprintf("Add to Holding %x", msg.GetMsgHash().Bytes()[:3]), msg)
+
 			s.Holding[msg.GetMsgHash().Fixed()] = msg
 		} else {
 			s.LogMessage("executeMsg", "drop, IReplay", msg)
@@ -228,7 +230,7 @@ ackLoop:
 				// toss the ack into holding and we will try again in a bit...
 				TotalHoldingQueueInputs.Inc()
 				TotalHoldingQueueRecycles.Inc()
-				s.LogMessage("ackQueue", "Add to Holding", ack)
+				s.LogMessage("executeMsg", fmt.Sprintf("Add to Holding3 %x", ack.GetMsgHash().Bytes()[:3]), ack)
 				s.Holding[ack.GetMsgHash().Fixed()] = ack
 				continue
 			}
@@ -581,7 +583,7 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 		s.CrossReplayAddSalt(ack.DBHeight, ack.Salt)
 	}
 	if s.Holding[m.GetMsgHash().Fixed()] != nil {
-		s.LogMessage("executeMsg", "Add to Holding", m)
+		s.LogMessage("executeMsg", fmt.Sprintf("Add to Holding1 %x", m.GetMsgHash().Bytes()[:3]), m)
 	}
 }
 
@@ -607,7 +609,7 @@ func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
 	FollowerEOMExecutions.Inc()
 	// add it to the holding queue in case AddToProcessList may remove it
 	TotalHoldingQueueInputs.Inc()
-	s.LogMessage("executeMsg", "Add to Holding", m)
+	s.LogMessage("executeMsg", fmt.Sprintf("Add to Holding2 %x", m.GetMsgHash().Bytes()[:3]), m)
 	s.Holding[m.GetMsgHash().Fixed()] = m // FollowerExecuteEOM
 
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)

@@ -106,9 +106,10 @@ func LogMessage(name string, note string, msg interfaces.IMsg) {
 	sequence++
 	seq := sequence
 	var t byte
-	var rhash, hash, msgString string
+	var rhash, hash, mhash, msgString string
 	embeddedHash := ""
 	hash = "??????"
+	mhash = "??????"
 	rhash = "??????"
 	if msg == nil {
 		t = 0
@@ -117,13 +118,17 @@ func LogMessage(name string, note string, msg interfaces.IMsg) {
 		t = msg.Type()
 		msgString = msg.String()
 		// work around message that don't have hashes yet ...
-		h := msg.GetMsgHash()
+		mh := msg.GetMsgHash()
+		if mh != nil {
+			mhash = mh.String()[:6]
+		}
+		h := msg.GetHash()
 		if h != nil {
 			hash = h.String()[:6]
 		}
-		h = msg.GetRepeatHash()
-		if h != nil {
-			rhash = h.String()[:6]
+		mh = msg.GetRepeatHash()
+		if mh != nil {
+			rhash = mh.String()[:6]
 		}
 
 		switch t {
@@ -148,8 +153,8 @@ func LogMessage(name string, note string, msg interfaces.IMsg) {
 
 	now := time.Now().Local()
 
-	s := fmt.Sprintf("%7v %02d:%02d:%02d %-25s M-%v|R-%v %26s[%2v]:%v%v\n", seq, now.Hour()%24, now.Minute()%60, now.Second()%60,
-		note, hash, rhash, constants.MessageName(byte(t)), t,
+	s := fmt.Sprintf("%7v %02d:%02d:%02d %-25s M-%v|R-%v|H-%v %26s[%2v]:%v%v\n", seq, now.Hour()%24, now.Minute()%60, now.Second()%60,
+		note, mhash, rhash, hash, constants.MessageName(byte(t)), t,
 		msgString, embeddedHash)
 	s = addNodeNames(s)
 
