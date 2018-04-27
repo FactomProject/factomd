@@ -413,6 +413,10 @@ func (s *State) ReviewHolding() {
 				x := s.NoEntryYet(ce.CommitEntry.EntryHash, ce.CommitEntry.GetTimestamp())
 				if !x {
 					TotalHoldingQueueOutputs.Inc()
+					re := s.HoldingMap[k]
+					if re != nil {
+						s.LogMessage("executeMsg", "review, NoEntryYet(1) delete", re)
+					}
 					delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
 					continue
 				}
@@ -425,6 +429,10 @@ func (s *State) ReviewHolding() {
 				x := s.NoEntryYet(ce.CommitChain.EntryHash, ce.CommitChain.GetTimestamp())
 				if !x {
 					TotalHoldingQueueOutputs.Inc()
+					re := s.HoldingMap[k]
+					if re != nil {
+						s.LogMessage("executeMsg", "review, NoEntryYet(2) delete", re)
+					}
 					delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
 					continue
 				}
@@ -433,11 +441,13 @@ func (s *State) ReviewHolding() {
 		// If a Reveal Entry has a commit available, then process the Reveal Entry and send it out.
 		if re, ok := v.(*messages.RevealEntryMsg); ok {
 			if !s.NoEntryYet(re.GetHash(), s.GetLeaderTimestamp()) {
+				s.LogMessage("executeMsg", "review, NoEntryYet(3) delete", v)
 				delete(s.Holding, re.GetHash().Fixed())
 				s.Commits.Delete(re.GetHash().Fixed())
 				continue
 			}
 			if s.Commits.Get(re.GetHash().Fixed()) != nil {
+				s.LogMessage("executeMsg", "review, delete", v)
 				delete(s.Holding, k)
 				re.FollowerExecute(s)
 				re.SendOut(s, re)
@@ -643,6 +653,8 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 	if m != nil {
 		s.LogMessage("executeMsg", "FollowerExecute3 ", m)
 		m.FollowerExecute(s)
+	} else {
+		s.LogPrintf("executeMsg", "No Msg Holding %x", ack.GetHash().Bytes()[:3])
 	}
 }
 
