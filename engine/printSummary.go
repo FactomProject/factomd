@@ -221,16 +221,30 @@ func PrintOneStatus(listenTo int, wsapiNode int) {
 
 	if f.State.MessageTally {
 		prt = prt + "\nType:"
-		for i := 0; i < int(constants.NUM_MESSAGES); i++ {
+		NumMsgTypes := int(constants.NUM_MESSAGES)
+		for i := 0; i < NumMsgTypes/2; i++ {
 			prt = prt + fmt.Sprintf("%5d ", i)
 		}
 		prt = prt + "\nRecd:"
 
-		for i := 0; i < int(constants.NUM_MESSAGES); i++ {
+		for i := 0; i < NumMsgTypes/2; i++ {
 			prt = prt + fmt.Sprintf("%5d ", f.State.GetMessageTalliesReceived(i))
 		}
 		prt = prt + "\nSent:"
-		for i := 0; i < int(constants.NUM_MESSAGES); i++ {
+		for i := 0; i < NumMsgTypes/2; i++ {
+			prt = prt + fmt.Sprintf("%5d ", f.State.GetMessageTalliesSent(i))
+		}
+		prt = prt + "\nType:"
+		for i := NumMsgTypes /2; i < NumMsgTypes; i++ {
+			prt = prt + fmt.Sprintf("%5d ", i)
+		}
+		prt = prt + "\nRecd:"
+
+		for i := NumMsgTypes /2; i < NumMsgTypes; i++ {
+			prt = prt + fmt.Sprintf("%5d ", f.State.GetMessageTalliesReceived(i))
+		}
+		prt = prt + "\nSent:"
+		for i := NumMsgTypes /2; i < NumMsgTypes; i++ {
 			prt = prt + fmt.Sprintf("%5d ", f.State.GetMessageTalliesSent(i))
 		}
 

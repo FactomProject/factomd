@@ -864,7 +864,19 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 		for j := vm.Height; j < len(vm.List); j++ {
 			if vm.List[j] == nil {
 				//p.State.AddStatus(fmt.Sprintf("ProcessList.go Process: Found nil list at vm %d vm height %d ", i, j))
-				p.Ask(i, uint32(j), 100) // 100ms delay
+				if p.State.DebugExec() {
+					cnt := 0
+					for k := j; k < vm.Height; k++ {
+						if vm.List[k] == nil {
+							cnt++
+							p.Ask(i, uint32(k), 0) // Ask immediately
+						}
+					}
+					p.State.LogPrintf("process", "%d nils  at  %v/%v/%v", cnt, p.DBHeight, i, j)
+				}
+				//				p.State.LogPrintf("process","nil  at  %v/%v/%v", p.DBHeight, i, j)
+
+				p.Ask(i, uint32(j), 0) // Ask immediately
 				break VMListLoop
 			}
 
@@ -937,7 +949,6 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					p.State.LogMessage("processList", "done", msg)
 					vm.heartBeat = 0
 					vm.Height = j + 1 // Don't process it again if the process worked.
-					p.State.LogMessage("process", fmt.Sprintf("done %v/%v/%v", p.DBHeight, i, j), msg)
 					p.State.LogMessage("process", fmt.Sprintf("done %v/%v/%v", p.DBHeight, i, j), msg)
 
 					progress = true
