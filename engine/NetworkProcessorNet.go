@@ -336,7 +336,7 @@ func NetworkOutputs(fnode *FactomNode) {
 						fnode.MLog.Add2(fnode, true, peer.GetNameTo(), "P2P out", true, msg)
 						if !fnode.State.GetNetStateOff() { // don't Send p2p messages if he is OFF
 							preSendTime := time.Now()
-							fnode.State.LogMessage("NetworkOutputs", "Send P2P", msg)
+							fnode.State.LogMessage("NetworkOutputs", "Send P2P "+peer.GetNameTo(), msg)
 							peer.Send(msg)
 							sendTime := time.Since(preSendTime)
 							TotalSendTime.Add(float64(sendTime.Nanoseconds()))

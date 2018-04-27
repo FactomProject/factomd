@@ -53,7 +53,6 @@ func PrintOneStatus(listenTo int, wsapiNode int) {
 		f.State.Status = 1
 	}
 
-
 	prt = prt + "    " + pnodes[0].State.SummaryHeader()
 
 	for i, f := range pnodes {
@@ -133,7 +132,7 @@ func PrintOneStatus(listenTo int, wsapiNode int) {
 	// Nil pointer exception at start up -- clay
 	for _, f := range pnodes {
 		var i int
-		if f.State.LeaderPL.NewEBlocks != nil {
+		if f.State.LeaderPL != nil && f.State.LeaderPL.NewEBlocks != nil {
 			i = len(f.State.LeaderPL.NewEBlocks)
 		} else {
 			i = 0
@@ -167,12 +166,6 @@ func PrintOneStatus(listenTo int, wsapiNode int) {
 		list = list + fmt.Sprintf(" %3d", f.State.InMsgQueue().Length())
 	}
 	prt = prt + fmt.Sprintf(fmtstr, "InMsgQueue", list)
-
-	list = ""
-	for _, f := range pnodes {
-		list = list + fmt.Sprintf(" %3d", f.State.InMsgQueue2().Length())
-	}
-	prt = prt + fmt.Sprintf(fmtstr, "InMsgQueue2", list)
 
 	list = ""
 	for _, f := range pnodes {

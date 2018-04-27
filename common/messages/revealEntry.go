@@ -106,6 +106,7 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 	commit := state.NextCommit(m.Entry.GetHash())
 
 	if commit == nil {
+		state.LogMessage("executeMsg", "Hold, no commit",m)
 		return 0
 	}
 	//
@@ -114,6 +115,7 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 	m.CommitChain, okChain = commit.(*CommitChainMsg)
 	m.commitEntry, okEntry = commit.(*CommitEntryMsg)
 	if !okChain && !okEntry { // What is this trash doing here?  Not a commit at all!
+		state.LogMessage("executeMsg", "Drop, bad commit", m)
 		return -1
 	}
 
@@ -124,10 +126,12 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 		ECs := int(m.commitEntry.CommitEntry.Credits)
 		// Any entry over 10240 bytes will be rejected
 		if m.Entry.KSize() > 10 {
+			state.LogMessage("executeMsg","Drop, oversized", m)
 			return -1
 		}
 
 		if m.Entry.KSize() > ECs {
+			state.LogMessage("executeMsg","Hold, underpaid", m)
 			return 0 // not enough payments on the EC to reveal this entry.  Return 0 to wait on another commit
 		}
 
@@ -148,6 +152,7 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 		}
 
 		if eb == nil {
+			state.LogMessage("executeMsg", "Hold, no chain", m)
 			// No chain, we have to leave it be and maybe one will be made.
 			return 0
 		}
@@ -156,10 +161,12 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 		m.IsEntry = false
 		ECs := int(m.CommitChain.CommitChain.Credits)
 		if m.Entry.KSize()+10 > ECs { // Discard commits that are not funded properly
+			state.LogMessage("executeMsg", "Hold, under paid", m)
 			return 0
 		}
 
 		if !CheckChainID(state, m.Entry.ExternalIDs(), m) {
+			state.LogMessage("executeMsg", "Drop, chainID does not match hash of ExtIDs",m)
 			return -1
 		}
 	}
@@ -265,7 +272,7 @@ func (m *RevealEntryMsg) String() string {
 		"REntry",
 		m.VMIndex,
 		m.Minute,
-		m.GetLeaderChainID().Bytes()[:5],
+		m.GetLeaderChainID().Bytes()[3:6],
 		m.Entry.GetHash().Bytes()[:3],
 		m.Entry.GetChainID().Bytes()[:5],
 		m.GetHash().Bytes()[:3])

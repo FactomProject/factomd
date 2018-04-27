@@ -388,19 +388,12 @@ func (m *DirectoryBlockSignature) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *DirectoryBlockSignature) String() string {
-b, err := m.DirectoryBlockHeader.MarshalBinary()
-	if b != nil && err != nil {
-		h := primitives.Sha(b)
-		m.dbsHash = h
-	} else {
-		m.dbsHash = primitives.NewHash(constants.ZERO)
-	}
-	return fmt.Sprintf("%6s-VM%3d:          DBHt:%5d -- Signer=%x PrevDBKeyMR[:3]=%x hash=%x",
+	return fmt.Sprintf("%6s-VM%3d:          DBHt:%5d -- Signer[:3]=%x PrevDBKeyMR[:3]=%x hash[:3]=%x",
 		"DBSig",
 		m.VMIndex,
 		m.DBHeight,
-		m.ServerIdentityChainID.Bytes()[3:6],
-		m.dbsHash.Bytes()[:5],
+		m.ServerIdentityChainID.Bytes()[2:6],
+		m.DirectoryBlockHeader.GetPrevKeyMR().Bytes()[:3],
 		m.GetHash().Bytes()[:3])
 
 }

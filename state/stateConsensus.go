@@ -281,6 +281,7 @@ emptyLoop:
 
 	if s.RunLeader {
 		s.ReviewHolding()
+
 		for {
 			for _, msg := range s.XReview {
 				if msg == nil {
@@ -294,7 +295,6 @@ emptyLoop:
 			break
 		} // skip review
 	}
-
 	processXReviewTime := time.Since(preProcessXReviewTime)
 	TotalProcessXReviewTime.Add(float64(processXReviewTime.Nanoseconds()))
 
@@ -858,7 +858,6 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 		return
 	}
 	// Just ignore missing messages for a period after going off line or starting up.
-
 	if s.IgnoreMissing {
 		s.LogMessage("executeMsg", "Drop IgnoreMissing", m)
 		return
@@ -1035,16 +1034,16 @@ func (s *State) FollowerExecuteCommitEntry(m interfaces.IMsg) {
 func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 	FollowerExecutions.Inc()
 	TotalHoldingQueueInputs.Inc()
+	s.Holding[m.GetMsgHash().Fixed()] = m // hold in  FollowerExecuteRevealEntry
 
-	if s.Commits.Get(m.GetMsgHash().Fixed()) != nil {
-		valid := m.Validate(s)
-		switch valid {
-		case 1:
-			m.SendOut(s, m) // there was a matching commit so send out the reveal
-		case -1:
-			s.LogMessage("executeMsg", "drop, invalid", m)
-			return
-		}
+	valid := m.Validate(s)
+	switch valid {
+	case -1:
+		s.LogMessage("executeMsg", "drop, invalid", m)
+		return
+	case 0:
+		s.LogMessage("executeMsg", "hold, no commit yet", m)
+		return
 	}
 
 	s.Holding[m.GetMsgHash().Fixed()] = m
@@ -1052,44 +1051,37 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 
 	if ack == nil {
 		s.LogMessage("executeMsg", "hold, no ack yet", m)
-		s.Holding[m.GetMsgHash().Fixed()] = m // hold in  FollowerExecuteRevealEntry
 		return
 	}
 
-	m.SendOut(s, m)
-	ack.SendOut(s, ack)
+	//ack.SendOut(s, ack)
 	m.SetLeaderChainID(ack.GetLeaderChainID())
 	m.SetMinute(ack.Minute)
+	m.SendOut(s, m)
 
 	pl := s.ProcessLists.Get(ack.DBHeight)
 	if pl == nil {
 		s.LogMessage("executeMsg", "hold, no process list yet", m)
-		s.Holding[m.GetMsgHash().Fixed()] = m // hold in  FollowerExecuteRevealEntry
 		return
 	}
 
 	// Add the message and ack to the process list.
 	pl.AddToProcessList(ack, m)
 
-	// The message might not have gone in.  Make sure it did.  Get the list where it goes
-	list := s.ProcessLists.Get(ack.DBHeight).VMs[ack.VMIndex].List
-	// Check to make sure the list isn't empty.  If it is, then it didn't go in.
-	if int(ack.Height) >= len(list) || list[ack.Height] == nil {
+	// Check to make sure AddToProcessList removed it from holding (added it to the list)
+	if s.Holding[m.GetMsgHash().Fixed()] != nil {
 		s.LogMessage("executeMsg", "hold, no process list yet2", m)
-		s.Holding[m.GetMsgHash().Fixed()] = m // hold in  FollowerExecuteRevealEntry
 		return
 	}
 
 	msg := m.(*messages.RevealEntryMsg)
 	TotalCommitsOutputs.Inc()
-	s.Commits.Delete(msg.Entry.GetHash().Fixed()) // 	delete(s.Commits, msg.Entry.GetHash().Fixed())
 
 	// This is so the api can determine if a chainhead is about to be updated. It fixes a race condition
 	// on the api. MUST BE BEFORE THE REPLAY FILTER ADD
 	pl.PendingChainHeads.Put(msg.Entry.GetChainID().Fixed(), msg)
 	// Okay the Reveal has been recorded.  Record this as an entry that cannot be duplicated.
 	s.Replay.IsTSValidAndUpdateState(constants.REVEAL_REPLAY, msg.Entry.GetHash().Fixed(), msg.Timestamp, s.GetTimestamp())
-
 }
 
 func (s *State) LeaderExecute(m interfaces.IMsg) {
@@ -1367,7 +1359,6 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 			TotalHoldingQueueOutputs.Inc()
 			delete(s.Holding, h.Fixed())
 		}
-
 		return true
 	}
 	//s.AddStatus("Cannot process Commit Chain")

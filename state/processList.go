@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"sync"
+
 	"time"
 
 	"github.com/FactomProject/factomd/common/adminBlock"
@@ -20,7 +21,6 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/util/atomic"
-
 	//"github.com/FactomProject/factomd/database/databaseOverlay"
 
 	log "github.com/sirupsen/logrus"
@@ -42,6 +42,7 @@ type askRef struct {
 	plRef
 	When int64
 }
+
 
 type ProcessList struct {
 	DBHeight uint32 // The directory block height for these lists
@@ -642,7 +643,7 @@ func (p *ProcessList) makeMMRs(s interfaces.IState, asks <-chan askRef, adds <-c
 			pending[ask.plRef] = &when // add the requests to the map
 			s.LogPrintf(logname, "Ask %d/%d/%d %d", ask.DBH, ask.VM, ask.H, len(pending))
 		} // don't update the when if it already existed...
-	}
+}
 
 	addAdd := func(add plRef) {
 		delete(pending, add) // Delete request that was just added to the process list in the map
@@ -709,11 +710,11 @@ func (p *ProcessList) makeMMRs(s interfaces.IState, asks <-chan askRef, adds <-c
 						mmrs[index] = messages.NewMissingMsg(s, ref.VM, ref.DBH, uint32(ref.H))
 					} else {
 						mmrs[index].ProcessListHeight = append(mmrs[index].ProcessListHeight, uint32(ref.H))
-					}
+			}
 					*when += 10000 // update when we asked...
 					//s.LogPrintf(logname, "mmr ask %d/%d/%d %d", ref.DBH, ref.VM, ref.H, len(pending))
 					// Maybe when asking for past the end of the list we should not ask again?
-				}
+		}
 			} //build a MMRs with all the expired asks.
 
 			for index, mmr := range mmrs {
@@ -740,9 +741,9 @@ func (p *ProcessList) makeMMRs(s interfaces.IState, asks <-chan askRef, adds <-c
 
 func (p *ProcessList) Ask(vmIndex int, height uint32, delay int64) {
 
-	if vmIndex < 0 {
+		if vmIndex < 0 {
 		panic(errors.New("Old Faulting code"))
-	}
+		}
 
 	now := p.State.GetTimestamp().GetTimeMilli()
 	// Look up the VM
@@ -754,7 +755,7 @@ func (p *ProcessList) Ask(vmIndex int, height uint32, delay int64) {
 		if vm.List[i] == nil {
 			ask := askRef{plRef{p.DBHeight, vmIndex, height}, now + delay}
 			p.asks <- ask
-		}
+	}
 	}
 	// always ask for one past the end as well...Can't hurt ... Famous last words...
 	ask := askRef{plRef{p.DBHeight, vmIndex, uint32(lenVMList)}, now + delay}
@@ -768,13 +769,10 @@ func (p *ProcessList) TrimVMList(height uint32, vmIndex int) {
 		p.VMs[vmIndex].List = p.VMs[vmIndex].List[:height]
 	}
 }
-func (p *ProcessList) GetDBHeight() uint32 {
-	return p.DBHeight
-}
 
 type foo struct {
 	Syncing, DBSig, EOM, DBSigDone, EOMDone, EOMmax, EOMmin, DBSigMax, DBSigMin bool
-}
+	}
 
 var decodeMap map[foo]string = map[foo]string{
 	//grep "Unexpected state" FNode0*process.txt | awk ' {print substr($0,index($0,"0x"));}' | sort -u
@@ -803,18 +801,17 @@ var decodeMap map[foo]string = map[foo]string{
 	//foo{true, true, false, false, false, false, true, false, true}:    "Start Syncing DBSig",             //0x143
 	//foo{true, false, true, false, false, false, true, false, true}:    "Syncing EOM Start (DBSIG !Done)", //0x145 ***
 	//foo{true, false, true, true, true, false, true, false, true}:      "Syncing EOM ... ",                //0x15d
-}
-
+			}
 func (p *ProcessList) decodeState(Syncing bool, DBSig bool, EOM bool, DBSigDone bool, EOMDone bool, FedServers int, EOMProcessed int, DBSigProcessed int) string {
 
 	if EOMProcessed > FedServers || EOMProcessed < 0 {
 		p.State.LogPrintf("process", "Unexpected EOMProcessed %v of %v", EOMProcessed, FedServers)
-	}
+		}
 	if DBSigProcessed > FedServers || DBSigProcessed < 0 {
 		p.State.LogPrintf("process", "Unexpected DBSigProcessed %v of %v", DBSigProcessed, FedServers)
 	}
 
-	var x = foo{Syncing, DBSig, EOM, DBSigDone, EOMDone,
+	var x foo = foo{Syncing, DBSig, EOM, DBSigDone, EOMDone,
 		EOMProcessed == FedServers, EOMProcessed == 0, DBSigProcessed == FedServers, DBSigProcessed == 0}
 
 	xx := 0
@@ -822,17 +819,19 @@ func (p *ProcessList) decodeState(Syncing bool, DBSig bool, EOM bool, DBSigDone 
 	for i, b := range z {
 		if b {
 			xx = xx | (1 << uint(i))
-		}
-	}
-
+				}
+				}
 	s, ok := decodeMap[x]
 	if !ok {
 
 		p.State.LogPrintf("process", "Unexpected state 0x%03x %v", xx, x)
 		s = "Unknown"
-	}
+			}
 	return fmt.Sprintf("SyncingStatus: 0x%03x %s", xx, s)
+		}
 
+func (p *ProcessList) GetDBHeight() uint32 {
+	return p.DBHeight
 }
 
 // Process messages and update our state.
@@ -928,12 +927,10 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				vm.ProcessTime = now
 
 				if msg.Process(p.DBHeight, state) { // Try and Process this entry
-
 					if msg.Type() == constants.REVEAL_ENTRY_MSG {
 						delete(p.State.Holding, msg.GetHash().Fixed()) // We successfully executed the message, so take it out of holding if it is there.
 						p.State.Commits.Delete(msg.GetHash().Fixed())
 					}
-
 					p.State.LogMessage("processList", "done", msg)
 					vm.heartBeat = 0
 					vm.Height = j + 1 // Don't process it again if the process worked.
