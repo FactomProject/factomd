@@ -72,10 +72,14 @@ func (state *State) ValidatorLoop() {
 			//for state.Process() {}
 			//for state.UpdateState() {}
 			var progress bool
-			for i := 0; i < 10; i++ {
-				progress = state.Process() || progress
-				progress = state.UpdateState() || progress
+			//for i := 0; progress && i < 100; i++ {
+			for state.Process() {
+				progress = true
 			}
+			for state.UpdateState() {
+				progress = true
+			}
+			//}
 
 			select {
 			case min := <-state.tickerQueue:
@@ -83,7 +87,7 @@ func (state *State) ValidatorLoop() {
 			default:
 			}
 
-			for i := 0; i < 100; i++ {
+			for i := 0; i < 1; i++ {
 				if ackRoom == 1 || msgRoom == 1 {
 					break // no room
 				}
