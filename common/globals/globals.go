@@ -1,6 +1,7 @@
 package globals
 
 import "time"
+
 var FnodeNames map[string]string = make(map[string]string) /// use by MessageTrace debug code
 var Params FactomParams
 var StartTime time.Time

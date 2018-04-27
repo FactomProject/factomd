@@ -130,7 +130,7 @@ func (t *Timer) timer(s *State, min int) {
 	t.lastMin = min
 
 	if s.RunLeader { // don't generate EOM if we are not a leader or are loading the DBState messages
-	eom := new(messages.EOM)
+		eom := new(messages.EOM)
 		eom.Timestamp = s.GetTimestamp()
 		eom.ChainID = s.GetIdentityChainID()
 		{
@@ -143,7 +143,7 @@ func (t *Timer) timer(s *State, min int) {
 		}
 
 		eom.Sign(s)
-	eom.SetLocal(true)
+		eom.SetLocal(true)
 		consenLogger.WithFields(log.Fields{"func": "GenerateEOM", "lheight": s.GetLeaderHeight()}).WithFields(eom.LogFields()).Debug("Generate EOM")
 
 		s.MsgQueue() <- eom

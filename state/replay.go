@@ -261,6 +261,7 @@ func (r *Replay) validate(mask int, hash [32]byte, timestamp interfaces.Timestam
 	}
 	return index, true
 }
+
 // Returns false if the hash is too old, or is already a
 // member of the set.  Timestamp is in seconds.
 // Does not add the hash to the buckets!

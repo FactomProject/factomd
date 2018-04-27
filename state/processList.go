@@ -129,7 +129,7 @@ type VM struct {
 	Signed      bool  // We have signed the previous block.
 	WhenFaulted int64 // WhenFaulted is a timestamp of when this VM was faulted
 	// vm.WhenFaulted serves as a bool flag (if > 0, the vm is currently considered faulted)
-	FaultFlag int // FaultFlag tracks what the VM was faulted for (0 = EOM missing, 1 = negotiation issue)
+	FaultFlag   int                  // FaultFlag tracks what the VM was faulted for (0 = EOM missing, 1 = negotiation issue)
 	ProcessTime interfaces.Timestamp // Last time we made progress on this VM
 }
 
@@ -879,6 +879,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				last := vm.ListAck[vm.Height-1]
 				expectedSerialHash, err = primitives.CreateHash(last.MessageHash, thisAck.MessageHash)
 				if err != nil {
+					state.LogMessage("process", "Nil out message", vm.List[j])
 					vm.List[j] = nil
 					//p.State.AddStatus(fmt.Sprintf("ProcessList.go Process: Error computing serial hash at dbht: %d vm %d  vm-height %d ", p.DBHeight, i, j))
 					p.Ask(i, uint32(j), 3000) // 3 second delay
@@ -928,8 +929,8 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 				if msg.Process(p.DBHeight, state) { // Try and Process this entry
 					if msg.Type() == constants.REVEAL_ENTRY_MSG {
-						delete(p.State.Holding, msg.GetHash().Fixed()) // We successfully executed the message, so take it out of holding if it is there.
-						p.State.Commits.Delete(msg.GetHash().Fixed())
+						delete(p.State.Holding, msg.GetMsgHash().Fixed()) // We successfully executed the message, so take it out of holding if it is there.
+						p.State.Commits.Delete(msg.GetMsgHash().Fixed())
 					}
 					p.State.LogMessage("processList", "done", msg)
 					vm.heartBeat = 0

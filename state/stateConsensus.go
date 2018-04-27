@@ -281,7 +281,6 @@ emptyLoop:
 
 	if s.RunLeader {
 		s.ReviewHolding()
-
 		for {
 			for _, msg := range s.XReview {
 				if msg == nil {
@@ -295,6 +294,7 @@ emptyLoop:
 			break
 		} // skip review
 	}
+
 	processXReviewTime := time.Since(preProcessXReviewTime)
 	TotalProcessXReviewTime.Add(float64(processXReviewTime.Nanoseconds()))
 
@@ -349,9 +349,14 @@ func (s *State) ReviewHolding() {
 		return
 	}
 
+	s.Commits.Cleanup(s)
 	s.DB.Trim()
 
+	// Set the resend time at the END of the function. This prevents the time it takes to execute this function
+	// from reducing the time we allow before another review
+	defer func() {
 	s.ResendHolding = now
+	}()
 	// Anything we are holding, we need to reprocess.
 	s.XReview = make([]interfaces.IMsg, 0)
 
@@ -364,6 +369,10 @@ func (s *State) ReviewHolding() {
 	s.LeaderNewMin = false          // Either way, don't do it again until the ProcessEOM resets LeaderNewMin
 
 	for k, v := range s.Holding {
+		ack := s.Acks[k]
+		if ack != nil {
+			v.FollowerExecute(s)
+		}
 
 		if int(highest)-int(saved) > 1000 {
 			TotalHoldingQueueOutputs.Inc()
@@ -406,6 +415,10 @@ func (s *State) ReviewHolding() {
 				x := s.NoEntryYet(ce.CommitEntry.EntryHash, ce.CommitEntry.GetTimestamp())
 				if !x {
 					TotalHoldingQueueOutputs.Inc()
+					re := s.HoldingMap[k]
+					if re != nil {
+						s.LogMessage("executeMsg", "review, NoEntryYet(1) delete", re)
+					}
 					delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
 					continue
 				}
@@ -418,6 +431,10 @@ func (s *State) ReviewHolding() {
 				x := s.NoEntryYet(ce.CommitChain.EntryHash, ce.CommitChain.GetTimestamp())
 				if !x {
 					TotalHoldingQueueOutputs.Inc()
+					re := s.HoldingMap[k]
+					if re != nil {
+						s.LogMessage("executeMsg", "review, NoEntryYet(2) delete", re)
+					}
 					delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
 					continue
 				}
@@ -426,22 +443,24 @@ func (s *State) ReviewHolding() {
 		// If a Reveal Entry has a commit available, then process the Reveal Entry and send it out.
 		if re, ok := v.(*messages.RevealEntryMsg); ok {
 			if !s.NoEntryYet(re.GetHash(), s.GetLeaderTimestamp()) {
+				s.LogMessage("executeMsg", "review, NoEntryYet(3) delete", v)
 				delete(s.Holding, re.GetHash().Fixed())
 				s.Commits.Delete(re.GetHash().Fixed())
 				continue
 			}
 			if s.Commits.Get(re.GetHash().Fixed()) != nil {
+				s.LogMessage("executeMsg", "review, delete", v)
 				delete(s.Holding, k)
 				re.FollowerExecute(s)
 				re.SendOut(s, re)
 			}
 			// Only reprocess if at the top of a new minute, and if we are a leader.
 			if !processMinute || !s.Leader {
-				//continue // No need for followers to review Reveal Entry messages
+				continue // No need for followers to review Reveal Entry messages
 			}
 			// Needs to be our VMIndex as well, or ignore.
 			if re.GetVMIndex() != s.LeaderVMIndex {
-				//continue // If we are a leader, but it isn't ours, and it isn't a new minute, ignore.
+				continue // If we are a leader, but it isn't ours, and it isn't a new minute, ignore.
 			}
 		}
 
@@ -636,6 +655,8 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 	if m != nil {
 		s.LogMessage("executeMsg", "FollowerExecute3 ", m)
 		m.FollowerExecute(s)
+	} else {
+		s.LogPrintf("executeMsg", "No Msg Holding %x", ack.GetHash().Bytes()[:3])
 	}
 }
 
@@ -858,6 +879,7 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 		return
 	}
 	// Just ignore missing messages for a period after going off line or starting up.
+
 	if s.IgnoreMissing {
 		s.LogMessage("executeMsg", "Drop IgnoreMissing", m)
 		return
@@ -1036,11 +1058,11 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 	TotalHoldingQueueInputs.Inc()
 	s.Holding[m.GetMsgHash().Fixed()] = m // hold in  FollowerExecuteRevealEntry
 
-	valid := m.Validate(s)
-	switch valid {
-	case -1:
-		s.LogMessage("executeMsg", "drop, invalid", m)
-		return
+		valid := m.Validate(s)
+		switch valid {
+		case -1:
+			s.LogMessage("executeMsg", "drop, invalid", m)
+			return
 	case 0:
 		s.LogMessage("executeMsg", "hold, no commit yet", m)
 		return
@@ -1082,6 +1104,7 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 	pl.PendingChainHeads.Put(msg.Entry.GetChainID().Fixed(), msg)
 	// Okay the Reveal has been recorded.  Record this as an entry that cannot be duplicated.
 	s.Replay.IsTSValidAndUpdateState(constants.REVEAL_REPLAY, msg.Entry.GetHash().Fixed(), msg.Timestamp, s.GetTimestamp())
+
 }
 
 func (s *State) LeaderExecute(m interfaces.IMsg) {
@@ -1359,6 +1382,7 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 			TotalHoldingQueueOutputs.Inc()
 			delete(s.Holding, h.Fixed())
 		}
+
 		return true
 	}
 	//s.AddStatus("Cannot process Commit Chain")
@@ -1392,8 +1416,20 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 }
 
 func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
+	pl := s.ProcessLists.Get(dbheight)
+	if pl == nil {
+		return false
+	}
 	TotalProcessListProcesses.Inc()
 	msg := m.(*messages.RevealEntryMsg)
+	TotalCommitsOutputs.Inc()
+	s.Commits.Delete(msg.Entry.GetHash().Fixed()) // 	delete(s.Commits, msg.Entry.GetHash().Fixed())
+
+	// This is so the api can determine if a chainhead is about to be updated. It fixes a race condition
+	// on the api. MUST BE BEFORE THE REPLAY FILTER ADD
+	pl.PendingChainHeads.Put(msg.Entry.GetChainID().Fixed(), msg)
+	// Okay the Reveal has been recorded.  Record this as an entry that cannot be duplicated.
+	s.Replay.IsTSValidAndUpdateState(constants.REVEAL_REPLAY, msg.Entry.GetHash().Fixed(), msg.Timestamp, s.GetTimestamp())
 	myhash := msg.Entry.GetHash()
 
 	chainID := msg.Entry.GetChainID()
@@ -1604,7 +1640,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			s.EOMDone = false
 			s.Syncing = false
 			s.EOMProcessed = 0
-			s.TempBalanceHash = s.FactoidState.GetBalanceHash(true)
 			s.SendHeartBeat() // Only do this once
 			s.LogPrintf("dbsig-eom", "ProcessEOM complete for %d", e.Minute)
 		}
@@ -1747,6 +1782,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
 
 			s.DBSigProcessed = 0
+			s.TempBalanceHash = s.FactoidState.GetBalanceHash(true)
 
 			// Note about dbsigs.... If we processed the previous minute, then we generate the DBSig for the next block.
 			// But if we didn't process the previous block, like we start from scratch, or we had to reset the entire
