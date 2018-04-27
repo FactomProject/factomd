@@ -377,12 +377,14 @@ func (s *State) ReviewHolding() {
 		}
 
 		if int(highest)-int(saved) > 1000 {
+			s.LogMessage("executeMsg", "remove from holding(0)", v)
 			TotalHoldingQueueOutputs.Inc()
 			delete(s.Holding, k)
 		}
 
 		eom, ok := v.(*messages.EOM)
 		if ok && ((eom.DBHeight <= saved && saved > 0) || int(eom.Minute) < s.CurrentMinute) {
+			s.LogMessage("executeMsg", "remove from holding(1)", v)
 			TotalHoldingQueueOutputs.Inc()
 			delete(s.Holding, k)
 			continue
@@ -390,6 +392,7 @@ func (s *State) ReviewHolding() {
 
 		dbsmsg, ok := v.(*messages.DBStateMsg)
 		if ok && (dbsmsg.DirectoryBlock.GetHeader().GetDBHeight() < saved-1 && saved > 0) {
+			s.LogMessage("executeMsg", "remove from holding(2)", v)
 			TotalHoldingQueueOutputs.Inc()
 			delete(s.Holding, k)
 			continue
@@ -397,6 +400,7 @@ func (s *State) ReviewHolding() {
 
 		dbsigmsg, ok := v.(*messages.DirectoryBlockSignature)
 		if ok && ((dbsigmsg.DBHeight <= saved && saved > 0) || (dbsigmsg.DBHeight < highest-3 && highest > 2)) {
+			s.LogMessage("executeMsg", "remove from holding(3)", v)
 			TotalHoldingQueueOutputs.Inc()
 			delete(s.Holding, k)
 			continue
@@ -405,6 +409,7 @@ func (s *State) ReviewHolding() {
 		_, ok = s.Replay.Valid(constants.INTERNAL_REPLAY, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
 		ok2 := s.FReplay.IsHashUnique(constants.BLOCK_REPLAY, v.GetRepeatHash().Fixed())
 		if !ok || !ok2 {
+			s.LogMessage("executeMsg", "remove from holding(4)", v)
 			TotalHoldingQueueOutputs.Inc()
 			delete(s.Holding, k)
 			continue
@@ -461,6 +466,7 @@ func (s *State) ReviewHolding() {
 		}
 
 		if v.Expire(s) {
+			s.LogMessage("executeMsg", "expire from holding", v)
 			s.ExpireCnt++
 			TotalHoldingQueueOutputs.Inc()
 			delete(s.Holding, k)
@@ -476,6 +482,7 @@ func (s *State) ReviewHolding() {
 		}
 
 		if v.Validate(s) < 0 {
+			s.LogMessage("executeMsg", "invalid from holding", v)
 			TotalHoldingQueueOutputs.Inc()
 			delete(s.Holding, k)
 			continue
@@ -615,6 +622,7 @@ func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
 	if ack != nil {
 		pl := s.ProcessLists.Get(ack.DBHeight)
+		s.LogMessage("executeMsg", "Call add to processlist", m)
 		pl.AddToProcessList(ack, m)
 	}
 }
