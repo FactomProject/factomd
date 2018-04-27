@@ -864,7 +864,15 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 		for j := vm.Height; j < len(vm.List); j++ {
 			if vm.List[j] == nil {
 				//p.State.AddStatus(fmt.Sprintf("ProcessList.go Process: Found nil list at vm %d vm height %d ", i, j))
-				p.Ask(i, uint32(j), 100) // 100ms delay
+				cnt := 0
+				for k := j; k < vm.Height; k++ {
+					if vm.List[k] == nil {
+						cnt++
+						p.Ask(i, uint32(k), 0) // Ask immediately
+					}
+				}
+				p.State.LogPrintf("process", "%d nils  at  %v/%v/%v", cnt, p.DBHeight, i, j)
+				//				p.State.LogPrintf("process","nil  at  %v/%v/%v", p.DBHeight, i, j)
 				break VMListLoop
 			}
 
@@ -880,6 +888,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				last := vm.ListAck[vm.Height-1]
 				expectedSerialHash, err = primitives.CreateHash(last.MessageHash, thisAck.MessageHash)
 				if err != nil {
+					state.LogMessage("process", "Nil out message", vm.List[j])
 					vm.List[j] = nil
 					//p.State.AddStatus(fmt.Sprintf("ProcessList.go Process: Error computing serial hash at dbht: %d vm %d  vm-height %d ", p.DBHeight, i, j))
 					p.Ask(i, uint32(j), 3000) // 3 second delay
