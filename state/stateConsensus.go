@@ -367,6 +367,11 @@ func (s *State) ReviewHolding() {
 
 	for k, v := range s.Holding {
 
+		ack := s.Acks[k]
+		if ack != nil {
+			v.FollowerExecute(s)
+		}
+
 		if int(highest)-int(saved) > 1000 {
 			TotalHoldingQueueOutputs.Inc()
 			delete(s.Holding, k)
@@ -439,11 +444,11 @@ func (s *State) ReviewHolding() {
 			}
 			// Only reprocess if at the top of a new minute, and if we are a leader.
 			if !processMinute || !s.Leader {
-				//continue // No need for followers to review Reveal Entry messages
+				continue // No need for followers to review Reveal Entry messages
 			}
 			// Needs to be our VMIndex as well, or ignore.
 			if re.GetVMIndex() != s.LeaderVMIndex {
-				//continue // If we are a leader, but it isn't ours, and it isn't a new minute, ignore.
+				continue // If we are a leader, but it isn't ours, and it isn't a new minute, ignore.
 			}
 		}
 
@@ -1619,7 +1624,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			s.EOMDone = false
 			s.Syncing = false
 			s.EOMProcessed = 0
-			s.TempBalanceHash = s.FactoidState.GetBalanceHash(true)
 			s.SendHeartBeat() // Only do this once
 			s.LogPrintf("dbsig-eom", "ProcessEOM complete for %d", e.Minute)
 		}
@@ -1762,6 +1766,8 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
 
 			s.DBSigProcessed = 0
+
+			s.TempBalanceHash = s.FactoidState.GetBalanceHash(true)
 
 			// Note about dbsigs.... If we processed the previous minute, then we generate the DBSig for the next block.
 			// But if we didn't process the previous block, like we start from scratch, or we had to reset the entire
