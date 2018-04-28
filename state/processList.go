@@ -638,7 +638,7 @@ func (p *ProcessList) makeMMRs(s interfaces.IState, asks <-chan askRef, adds <-c
 	addAsk := func(ask askRef) {
 		_, ok := pending[ask.plRef]
 		if !ok {
-			when := ask.When           // clear lsb
+			when := ask.When
 			pending[ask.plRef] = &when // add the requests to the map
 			s.LogPrintf(logname, "Ask %d/%d/%d %d", ask.DBH, ask.VM, ask.H, len(pending))
 		} // don't update the when if it already existed...
@@ -806,26 +806,28 @@ var decodeMap map[foo]string = map[foo]string{
 	//grep "Unexpected state" FNode0*process.txt | awk ' {print substr($0,index($0,"0x"));}' | sort -u
 	//0x043 {true true false false false false true false false}
 	//0x04b {true true false true false false true false false}
+	//0x0cb {true true false true false false true true false}
 	//0x10d {true false true true false false false false true}
 	//0x11d {true false true true true false false false true}
+	//0x12d {true false true true false true false false true}
+	//0x13d {true false true true true true false false true}
 	//0x140 {false false false false false false true false true}
 	//0x148 {false false false true false false true false true}
 	//0x14d {true false true true false false true false true}
 
-	foo{true, true, false, false, false, false, true, false, false}:  "Syncing DBSig Start",       //0x043
-	foo{true, true, false, true, false, false, true, false, false}:   "Syncing DBSig ...",         //0x04b
-	foo{true, true, false, true, false, false, true, true, false}:    "Syncing DBSig Done",        //0x0cb
-	foo{true, false, true, true, false, false, false, false, true}:   "Syncing EOM ... ",          //0x10d
+	foo{true, true, false, false, false, false, true, false, false}:  "Syncing DBSig",             //0x043
+	foo{true, true, false, true, false, false, true, false, false}:   "Syncing DBSig Done",        //0x04b
+	foo{true, true, false, true, false, false, true, true, false}:    "Syncing DBSig Stop",        //0x0cb
+	foo{true, false, true, true, false, false, false, false, true}:   "Syncing EOM Start",         //0x11d
 	foo{true, false, true, true, true, false, false, false, true}:    "Syncing EOM Done",          //0x11d
+	foo{true, false, true, true, false, true, false, false, true}:    "Syncing EOM Stop",          //0x12d
+	foo{true, false, true, true, true, true, false, false, true}:     "Syncing EOM Done",          //0x13d
 	foo{false, false, false, false, false, false, true, false, true}: "Normal (Begining of time)", //0x140
 	foo{false, false, false, true, false, false, true, false, true}:  "Normal",                    //0x148
 	foo{true, false, true, true, false, false, true, false, true}:    "Syncing EOM Start",         //0x14d
 
-	// old code used to also hit these states some of which are problematic as they allow both DBSIG and EOM concurrently
-	//foo{true, true, false, true, false, false, true, true, false}:     "Stop Syncing DBSig",              //0x0cb
 	//foo{true, false, false, false, false, false, false, false, false}: "Sync Only??",                     //0x100 ***
-	//foo{true, false, true, true, false, true, false, false, true}:     "Syncing EOM Stop",                //0x12d
-	//foo{true, false, true, true, true, true, false, false, true}:      "Syncing EOM Complete",            //0x13d
+	//foo{true, false, true, true, false, false, false, false, true}:   "Syncing EOM ... ",                 //0x10d
 	//foo{true, true, false, false, false, false, true, false, true}:    "Start Syncing DBSig",             //0x143
 	//foo{true, false, true, false, false, false, true, false, true}:    "Syncing EOM Start (DBSIG !Done)", //0x145 ***
 	//foo{true, false, true, true, true, false, true, false, true}:      "Syncing EOM ... ",                //0x15d
@@ -854,10 +856,11 @@ func (p *ProcessList) decodeState(Syncing bool, DBSig bool, EOM bool, DBSigDone 
 	s, ok := decodeMap[x]
 	if !ok {
 
-		p.State.LogPrintf("process", "Unexpected state 0x%03x %v", xx, x)
+		p.State.LogPrintf("process", "Unexpected 0x%03x %v", xx, x)
 		s = "Unknown"
 	}
-	return fmt.Sprintf("SyncingStatus: 0x%03x %s", xx, s)
+	return fmt.Sprintf("SyncingStatus: %d-:-%d 0x%03x %25s EOM/DBSIG %02d/%02d of %02d",
+		p.State.LeaderPL.DBHeight, p.State.CurrentMinute, xx, s, EOMProcessed, DBSigProcessed, FedServers)
 
 }
 
@@ -890,6 +893,17 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 	VMListLoop:
 		for j := vm.Height; j < len(vm.List); j++ {
+			if state.DebugExec() {
+				x := p.decodeState(state.Syncing, state.DBSig, state.EOM, state.DBSigDone, state.EOMDone,
+					len(state.LeaderPL.FedServers), state.EOMProcessed, state.DBSigProcessed)
+
+				// Compute a syncing state string and report if it has changed
+				if state.SyncingState[state.SyncingStateCurrent] != x {
+					state.LogPrintf("process", x)
+					state.SyncingStateCurrent = (state.SyncingStateCurrent + 1) % len(state.SyncingState)
+					state.SyncingState[state.SyncingStateCurrent] = x
+				}
+			}
 			if vm.List[j] == nil {
 				//p.State.AddStatus(fmt.Sprintf("ProcessList.go Process: Found nil list at vm %d vm height %d ", i, j))
 				cnt := 0

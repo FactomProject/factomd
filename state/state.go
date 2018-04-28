@@ -377,6 +377,10 @@ type State struct {
 	NumEntryBlocks int // Number of Entry Blocks
 	NumFCTTrans    int // Number of Factoid Transactions in this block
 
+	// debug message
+	pstate              string
+	SyncingState        [256]string
+	SyncingStateCurrent int
 }
 
 var _ interfaces.IState = (*State)(nil)
@@ -792,6 +796,7 @@ func (s *State) GetSalt(ts interfaces.Timestamp) uint32 {
 }
 
 func (s *State) Init() {
+
 	if s.Salt == nil {
 		b := make([]byte, 32)
 		_, err := rand.Read(b)
