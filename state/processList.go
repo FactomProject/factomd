@@ -686,9 +686,21 @@ func (p *ProcessList) makeMMRs(s interfaces.IState, asks <-chan askRef, adds <-c
 	//	s.LogPrintf(logname, "Start PL DBH %d", p.DBHeight)
 
 	for {
+		// You have to compute this at every cycle as you can change the block time
+		// in sim control.
+		// blocktime in milliseconds
+		askDelay := int64(s.(*State).DirectoryBlockInSeconds * 1000)
+		// Take 1/10 of 1 minute boundary (DBlock is 10*min)
+		//		This means on 10min block, 6 second delay
+		//					  1min block, .6 second delay
+		askDelay = askDelay / 100
+		if askDelay < 500 { // Don't go below half a second. That is just too much
+			askDelay = 500
+		}
 		select {
 		case ask := <-asks:
 			addAsk(ask)
+			addAllAsks()
 
 		case add := <-adds:
 			addAllAsks() // process all pending asks before any adds
@@ -700,6 +712,7 @@ func (p *ProcessList) makeMMRs(s interfaces.IState, asks <-chan askRef, adds <-c
 
 			//s.LogPrintf(logname, "tick [%v]", pending)
 
+			// time offset to pick asks to
 
 			//build MMRs with all the asks expired asks.
 			for ref, when := range pending {
@@ -711,7 +724,7 @@ func (p *ProcessList) makeMMRs(s interfaces.IState, asks <-chan askRef, adds <-c
 					} else {
 						mmrs[index].ProcessListHeight = append(mmrs[index].ProcessListHeight, uint32(ref.H))
 					}
-					*when += 10000 // update when we asked...
+					*when = *when + askDelay // update when we asked, set lsb to say we already asked...
 					//s.LogPrintf(logname, "mmr ask %d/%d/%d %d", ref.DBH, ref.VM, ref.H, len(pending))
 					// Maybe when asking for past the end of the list we should not ask again?
 				}
@@ -836,9 +849,7 @@ func (p *ProcessList) decodeState(Syncing bool, DBSig bool, EOM bool, DBSigDone 
 
 }
 
-var debug sync.Mutex
 var nillist map[int]int = make(map[int]int)
-var uplist map[int]int = make(map[int]int)
 
 // Process messages and update our state.
 func (p *ProcessList) Process(state *State) (progress bool) {
@@ -865,16 +876,6 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			p.Ask(i, uint32(vm.Height), 2000) // 2 second delay
 		}
 
-		if p.State.DebugExec() {
-			if vm.Height == len(vm.List) {
-				debug.Lock()
-				if uplist[i] != vm.Height {
-					p.State.LogPrintf("process", "no msg  %v/%v/%v", p.DBHeight, i, vm.Height)
-					uplist[i] = vm.Height
-				}
-				debug.Unlock()
-			}
-		}
 	VMListLoop:
 		for j := vm.Height; j < len(vm.List); j++ {
 			if vm.List[j] == nil {
@@ -887,12 +888,10 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					}
 				}
 				if p.State.DebugExec() {
-					debug.Lock()
 					if nillist[i] < j {
 						p.State.LogPrintf("process", "%d nils  at  %v/%v/%v", cnt, p.DBHeight, i, j)
 						nillist[i] = j
 					}
-					debug.Unlock()
 				}
 
 				//				p.State.LogPrintf("process","nil  at  %v/%v/%v", p.DBHeight, i, j)
@@ -1112,8 +1111,8 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	if ack.GetHash().Fixed() != m.GetMsgHash().Fixed() {
 		p.State.LogPrintf("executeMsg", "m/ack mismatch m-%x a-%x", m.GetMsgHash().Fixed(), ack.GetHash().Fixed())
 	}
-	ack.SendOut(p.State, ack)
 	m.SendOut(p.State, m)
+	ack.SendOut(p.State, ack)
 
 	for len(vm.List) <= int(ack.Height) {
 		vm.List = append(vm.List, nil)
