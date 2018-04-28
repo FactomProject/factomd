@@ -378,6 +378,29 @@ func (s *State) ReviewHolding() {
 			continue
 		}
 
+		if v.Expire(s) {
+			s.LogMessage("executeMsg", "expire from holding", v)
+			s.ExpireCnt++
+			TotalHoldingQueueOutputs.Inc()
+			delete(s.Holding, k)
+			continue
+		}
+
+		if v.Resend(s) {
+			if v.Validate(s) == 1 {
+
+				v.SendOut(s, v)
+				continue
+			}
+		}
+
+		if v.Validate(s) < 0 {
+			s.LogMessage("executeMsg", "invalid from holding", v)
+			TotalHoldingQueueOutputs.Inc()
+			delete(s.Holding, k)
+			continue
+		}
+
 		if int(highest)-int(saved) > 1000 {
 			s.LogMessage("executeMsg", "remove from holding(0)", v)
 			TotalHoldingQueueOutputs.Inc()
@@ -453,8 +476,6 @@ func (s *State) ReviewHolding() {
 			}
 			if s.Commits.Get(re.GetHash().Fixed()) != nil {
 				s.LogMessage("executeMsg", "review, delete", v)
-				delete(s.Holding, k)
-				re.FollowerExecute(s)
 				re.SendOut(s, re)
 			}
 			// Only reprocess if at the top of a new minute, and if we are a leader.
@@ -465,34 +486,6 @@ func (s *State) ReviewHolding() {
 			if re.GetVMIndex() != s.LeaderVMIndex {
 				continue // If we are a leader, but it isn't ours, and it isn't a new minute, ignore.
 			}
-		}
-
-		if v.Expire(s) {
-			s.LogMessage("executeMsg", "expire from holding", v)
-			s.ExpireCnt++
-			TotalHoldingQueueOutputs.Inc()
-			delete(s.Holding, k)
-			continue
-		}
-
-		if v.Resend(s) {
-			if v.Validate(s) == 1 {
-				s.ResendCnt++
-				v.SendOut(s, v)
-				continue
-			}
-		}
-
-		if v.Validate(s) < 0 {
-			s.LogMessage("executeMsg", "invalid from holding", v)
-			TotalHoldingQueueOutputs.Inc()
-			delete(s.Holding, k)
-			continue
-		}
-
-		// We don't reprocess if we are not a leader
-		if !s.Leader {
-			continue
 		}
 
 		// We don't reprocess messages if we are a leader, but it ain't ours!
