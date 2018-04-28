@@ -238,7 +238,7 @@ func TestSetupANetwork(t *testing.T) {
 	}
 
 	time.Sleep(10 * time.Second)
-	if state0.LLeaderHeight > 13 {
+	if state0.LLeaderHeight > 14 {
 		t.Fatal("Failed to shut down factomd via ShutdownChan")
 	}
 }

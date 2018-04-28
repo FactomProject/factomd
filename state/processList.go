@@ -638,7 +638,7 @@ func (p *ProcessList) makeMMRs(s interfaces.IState, asks <-chan askRef, adds <-c
 	addAsk := func(ask askRef) {
 		_, ok := pending[ask.plRef]
 		if !ok {
-			when := ask.When
+			when := ask.When           // clear lsb
 			pending[ask.plRef] = &when // add the requests to the map
 			s.LogPrintf(logname, "Ask %d/%d/%d %d", ask.DBH, ask.VM, ask.H, len(pending))
 		} // don't update the when if it already existed...
@@ -679,7 +679,7 @@ func (p *ProcessList) makeMMRs(s interfaces.IState, asks <-chan askRef, adds <-c
 	go func() {
 		for {
 			ticker <- s.GetTimestamp().GetTimeMilli()
-			time.Sleep(200 * time.Millisecond)
+			time.Sleep(20 * time.Millisecond)
 		}
 	}()
 
@@ -699,6 +699,7 @@ func (p *ProcessList) makeMMRs(s interfaces.IState, asks <-chan askRef, adds <-c
 			addAllAdds() // process all pending add before any ticks
 
 			//s.LogPrintf(logname, "tick [%v]", pending)
+
 
 			//build MMRs with all the asks expired asks.
 			for ref, when := range pending {

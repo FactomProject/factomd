@@ -106,7 +106,7 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 	commit := state.NextCommit(m.Entry.GetHash())
 
 	if commit == nil {
-		state.LogMessage("executeMsg", "Hold, no commit",m)
+		state.LogMessage("executeMsg", "Hold, no commit", m)
 		return 0
 	}
 	//
@@ -126,12 +126,12 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 		ECs := int(m.commitEntry.CommitEntry.Credits)
 		// Any entry over 10240 bytes will be rejected
 		if m.Entry.KSize() > 10 {
-			state.LogMessage("executeMsg","Drop, oversized", m)
+			state.LogMessage("executeMsg", "Drop, oversized", m)
 			return -1
 		}
 
 		if m.Entry.KSize() > ECs {
-			state.LogMessage("executeMsg","Hold, underpaid", m)
+			state.LogMessage("executeMsg", "Hold, underpaid", m)
 			return 0 // not enough payments on the EC to reveal this entry.  Return 0 to wait on another commit
 		}
 
@@ -166,7 +166,7 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 		}
 
 		if !CheckChainID(state, m.Entry.ExternalIDs(), m) {
-			state.LogMessage("executeMsg", "Drop, chainID does not match hash of ExtIDs",m)
+			state.LogMessage("executeMsg", "Drop, chainID does not match hash of ExtIDs", m)
 			return -1
 		}
 	}

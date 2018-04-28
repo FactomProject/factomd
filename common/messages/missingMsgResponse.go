@@ -196,8 +196,9 @@ func (m *MissingMsgResponse) String() string {
 	if !ok {
 		return fmt.Sprint("MissingMsgResponse (no Ack) <-- ", m.MsgResponse.String())
 	}
-	return fmt.Sprintf("MissingMsgResponse <-- DBh/VMh/h[%15s] msgHash[%x]",
-		fmt.Sprintf("%d/%d/%d", ack.DBHeight, ack.VMIndex, ack.Height), m.GetMsgHash().Bytes()[:3])
+
+	return fmt.Sprintf("MissingMsgResponse <-- DBh/VMh/h[%15s] message %s msgHash[%x]",
+		fmt.Sprintf("%d/%d/%d", ack.DBHeight, ack.VMIndex, ack.Height), m.MsgResponse.String(), m.GetMsgHash().Bytes()[:3])
 }
 
 func (m *MissingMsgResponse) LogFields() log.Fields {
