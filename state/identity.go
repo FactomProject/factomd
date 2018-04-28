@@ -226,7 +226,7 @@ func (st *State) SyncIdentities(d *DBState) {
 	// This will search an eblock, and sync it's entries if found.
 	getAndSyncEntries := func(ieb EntryBlockMarker) error {
 		eblock, err := st.DB.FetchEBlock(ieb.KeyMr)
-		if err != nil {
+		if err != nil || eblock == nil {
 			return fmt.Errorf("eblock missing")
 		}
 
