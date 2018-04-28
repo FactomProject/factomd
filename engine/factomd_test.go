@@ -91,14 +91,14 @@ func TestSetupANetwork(t *testing.T) {
 		"-network=LOCAL",
 		"-net=alot+",
 		"-enablenet=true",
-		"-blktime=15",
+		"-blktime=8",
 		"-count=10",
 		"-logPort=37000",
 		"-port=37001",
 		"-controlpanelport=37002",
 		"-networkport=37003",
 		"-startdelay=1",
-		"-debuglog=F.*",
+		//		"-debuglog=F.*",
 		"--stdoutlog=out.txt",
 		"--stderrlog=out.txt",
 	)
@@ -262,7 +262,7 @@ func TestLoad(t *testing.T) {
 		"-db=Map",
 		"-network=LOCAL",
 		"-enablenet=true",
-		"-blktime=8",
+		"-blktime=10",
 		"-count=3",
 		"-startdelay=1",
 		"-debuglog=F.*",
@@ -311,7 +311,7 @@ func TestLoad(t *testing.T) {
 
 	runCmd("2")   // select 2
 	runCmd("R30") // Feed load
-	WaitBlocks(state0, 10)
+	WaitBlocks(state0, 50)
 	runCmd("R0") // Stop load
 
 } // testLoad(){...}

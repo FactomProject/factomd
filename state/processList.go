@@ -702,9 +702,9 @@ func (p *ProcessList) makeMMRs(s interfaces.IState, asks <-chan askRef, adds <-c
 
 			//build MMRs with all the asks expired asks.
 			for ref, when := range pending {
-				// if ask is expired
-				if now > *when {
-					var index dbhvm = dbhvm{ref.DBH, ref.VM}
+				var index dbhvm = dbhvm{ref.DBH, ref.VM}
+				// if ask is expired or we have an MMR for this DBH/VM
+				if now > *when || mmrs[index] != nil {
 					if mmrs[index] == nil { // If we don't have a message for this DBH/VM
 						mmrs[index] = messages.NewMissingMsg(s, ref.VM, ref.DBH, uint32(ref.H))
 					} else {
@@ -835,6 +835,10 @@ func (p *ProcessList) decodeState(Syncing bool, DBSig bool, EOM bool, DBSigDone 
 
 }
 
+var debug sync.Mutex
+var nillist map[int]int = make(map[int]int)
+var uplist map[int]int = make(map[int]int)
+
 // Process messages and update our state.
 func (p *ProcessList) Process(state *State) (progress bool) {
 	dbht := state.GetHighestSavedBlk()
@@ -860,23 +864,37 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			p.Ask(i, uint32(vm.Height), 2000) // 2 second delay
 		}
 
+		if p.State.DebugExec() {
+			if vm.Height == len(vm.List) {
+				debug.Lock()
+				if uplist[i] != vm.Height {
+					p.State.LogPrintf("process", "no msg  %v/%v/%v", p.DBHeight, i, vm.Height)
+					uplist[i] = vm.Height
+				}
+				debug.Unlock()
+			}
+		}
 	VMListLoop:
 		for j := vm.Height; j < len(vm.List); j++ {
 			if vm.List[j] == nil {
 				//p.State.AddStatus(fmt.Sprintf("ProcessList.go Process: Found nil list at vm %d vm height %d ", i, j))
-				if p.State.DebugExec() {
-					cnt := 0
-					for k := j; k < vm.Height; k++ {
-						if vm.List[k] == nil {
-							cnt++
-							p.Ask(i, uint32(k), 0) // Ask immediately
-						}
+				cnt := 0
+				for k := j; k < len(vm.List); k++ {
+					if vm.List[k] == nil {
+						cnt++
+						p.Ask(i, uint32(k), 10) // Ask 10ms
 					}
-					p.State.LogPrintf("process", "%d nils  at  %v/%v/%v", cnt, p.DBHeight, i, j)
 				}
-				//				p.State.LogPrintf("process","nil  at  %v/%v/%v", p.DBHeight, i, j)
+				if p.State.DebugExec() {
+					debug.Lock()
+					if nillist[i] < j {
+						p.State.LogPrintf("process", "%d nils  at  %v/%v/%v", cnt, p.DBHeight, i, j)
+						nillist[i] = j
+					}
+					debug.Unlock()
+				}
 
-				p.Ask(i, uint32(j), 0) // Ask immediately
+				//				p.State.LogPrintf("process","nil  at  %v/%v/%v", p.DBHeight, i, j)
 				break VMListLoop
 			}
 
@@ -892,6 +910,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				last := vm.ListAck[vm.Height-1]
 				expectedSerialHash, err = primitives.CreateHash(last.MessageHash, thisAck.MessageHash)
 				if err != nil {
+					state.LogMessage("process", "Nil out message", vm.List[j])
 					vm.List[j] = nil
 					//p.State.AddStatus(fmt.Sprintf("ProcessList.go Process: Error computing serial hash at dbht: %d vm %d  vm-height %d ", p.DBHeight, i, j))
 					p.Ask(i, uint32(j), 3000) // 3 second delay
@@ -950,6 +969,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					vm.heartBeat = 0
 					vm.Height = j + 1 // Don't process it again if the process worked.
 					p.State.LogMessage("process", fmt.Sprintf("done %v/%v/%v", p.DBHeight, i, j), msg)
+					p.State.LogMessage("process", fmt.Sprintf("done %v/%v/%v", p.DBHeight, i, j), msg)
 
 					progress = true
 
@@ -957,7 +977,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					// can detect that it has been recorded.  We don't care about the results of IsTSValidAndUpdateState at this point.
 					// block network replay too since we have already seen this message there is not need to see it again
 					p.State.Replay.IsTSValidAndUpdateState(constants.INTERNAL_REPLAY|constants.NETWORK_REPLAY, msgRepeatHashFixed, msg.GetTimestamp(), now)
-					p.State.Replay.IsTSValidAndUpdateState(constants.INTERNAL_REPLAY|constants.NETWORK_REPLAY, msgHashFixed, msg.GetTimestamp(), now)
+					p.State.Replay.IsTSValidAndUpdateState(constants.INTERNAL_REPLAY, msgHashFixed, msg.GetTimestamp(), now)
 
 					delete(p.State.Acks, msgHashFixed)
 					delete(p.State.Holding, msgHashFixed)

@@ -149,7 +149,8 @@ func (st *State) FastVerifyAuthoritySignature(msg []byte, sig interfaces.IFullSi
 	}
 	//fmt.Println("WARNING: A signature failed to validate.")
 
-	if st.CurrentMinute == 0 {
+	// The checking pl for nil happens for unit testing
+	if st.CurrentMinute == 0 && st.LeaderPL != nil {
 		// Also allow leaders who were demoted if we are in minute 0
 		feds := st.LeaderPL.StartingFedServers
 		for _, fed := range feds {

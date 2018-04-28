@@ -140,6 +140,8 @@ func (e *CoinbaseDescriptor) UnmarshalBinaryData(data []byte) ([]byte, error) {
 			return nil, err
 		}
 
+		it.SetUserAddress(primitives.ConvertFctAddressToUserStr(it.Address))
+
 		e.Outputs = append(e.Outputs, it)
 	}
 

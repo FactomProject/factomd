@@ -62,13 +62,19 @@ func (state *State) ValidatorLoop() {
 		default:
 		}
 
+		ackRoom := cap(state.ackQueue) - len(state.ackQueue)
+		msgRoom := cap(state.msgQueue) - len(state.msgQueue)
+
 		// Look for pending messages, and get one if there is one.
 		var msg interfaces.IMsg
-	loop:
+
 		for i := 0; i < 10; i++ {
-			for state.Process() {
-			}
-			for state.UpdateState() {
+			//for state.Process() {}
+			//for state.UpdateState() {}
+			var progress bool
+			for i := 0; i < 10; i++ {
+				progress = state.Process() || progress
+				progress = state.UpdateState() || progress
 			}
 
 			select {
@@ -77,47 +83,53 @@ func (state *State) ValidatorLoop() {
 			default:
 			}
 
-			for i := 0; i < 1000; i++ {
-				ackRoom := cap(state.ackQueue) - len(state.ackQueue)
-				msgRoom := cap(state.msgQueue) - len(state.msgQueue)
-
-				if ackRoom > 1 && msgRoom > 1 {
-					msg = state.InMsgQueue().Dequeue()
-					if msg == nil {
-						msg = state.InMsgQueue2().Dequeue()
-					}
+			for i := 0; i < 100; i++ {
+				if ackRoom == 1 || msgRoom == 1 {
+					break // no room
 				}
+
 				// This doesn't block so it intentionally returns nil, don't log nils
+				msg = state.InMsgQueue().Dequeue()
 				if msg != nil {
 					state.LogMessage("InMsgQueue", "dequeue", msg)
 				}
+				if msg == nil {
+					// This doesn't block so it intentionally returns nil, don't log nils
+					msg = state.InMsgQueue2().Dequeue()
+					if msg != nil {
+						state.LogMessage("InMsgQueue2", "dequeue", msg)
+					}
+				}
+
+				// This doesn't block so it intentionally returns nil, don't log nils
 
 				if msg != nil {
 					state.JournalMessage(msg)
-					break loop
-				} else {
-					// No messages? Sleep for a bit
-					for i := 0; i < 10 && state.InMsgQueue().Length() == 0; i++ {
-						time.Sleep(10 * time.Millisecond)
+
+					// Sort the messages.
+					if state.IsReplaying == true {
+						state.ReplayTimestamp = msg.GetTimestamp()
 					}
-					break
+					if _, ok := msg.(*messages.Ack); ok {
+						state.LogMessage("ackQueue", "enqueue", msg)
+						state.ackQueue <- msg //
+					} else {
+						state.LogMessage("msgQueue", "enqueue", msg)
+						state.msgQueue <- msg //
+					}
 				}
+				ackRoom = cap(state.ackQueue) - len(state.ackQueue)
+				msgRoom = cap(state.msgQueue) - len(state.msgQueue)
+			}
+			if !progress && state.InMsgQueue().Length() == 0 && state.InMsgQueue2().Length() == 0 {
+				// No messages? Sleep for a bit
+				for i := 0; i < 10 && state.InMsgQueue().Length() == 0; i++ {
+					time.Sleep(10 * time.Millisecond)
+				}
+
 			}
 		}
 
-		// Sort the messages.
-		if msg != nil {
-			if state.IsReplaying == true {
-				state.ReplayTimestamp = msg.GetTimestamp()
-			}
-			if _, ok := msg.(*messages.Ack); ok {
-				state.LogMessage("ackQueue", "enqueue", msg)
-				state.ackQueue <- msg //
-			} else {
-				state.LogMessage("msgQueue", "enqueue", msg)
-				state.msgQueue <- msg //
-			}
-		}
 	}
 }
 
