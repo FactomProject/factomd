@@ -638,7 +638,7 @@ func (p *ProcessList) makeMMRs(s interfaces.IState, asks <-chan askRef, adds <-c
 	addAsk := func(ask askRef) {
 		_, ok := pending[ask.plRef]
 		if !ok {
-			when := (ask.When & -2)    // clear lsb
+			when := ask.When           // clear lsb
 			pending[ask.plRef] = &when // add the requests to the map
 			s.LogPrintf(logname, "Ask %d/%d/%d %d", ask.DBH, ask.VM, ask.H, len(pending))
 		} // don't update the when if it already existed...
@@ -689,6 +689,7 @@ func (p *ProcessList) makeMMRs(s interfaces.IState, asks <-chan askRef, adds <-c
 		select {
 		case ask := <-asks:
 			addAsk(ask)
+			addAllAsks()
 
 		case add := <-adds:
 			addAllAsks() // process all pending asks before any adds

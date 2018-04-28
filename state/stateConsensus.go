@@ -373,7 +373,9 @@ func (s *State) ReviewHolding() {
 	for k, v := range s.Holding {
 		ack := s.Acks[k]
 		if ack != nil {
+			s.LogMessage("executeMsg", "Found Ack for this thing in Holding", v)
 			v.FollowerExecute(s)
+			continue
 		}
 
 		if int(highest)-int(saved) > 1000 {
@@ -1384,7 +1386,6 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 			TotalXReviewQueueInputs.Inc()
 			s.XReview = append(s.XReview, entry)
 			TotalHoldingQueueOutputs.Inc()
-			delete(s.Holding, h.Fixed())
 		}
 
 		return true
@@ -1410,7 +1411,6 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 			TotalXReviewQueueInputs.Inc()
 			s.XReview = append(s.XReview, entry)
 			TotalHoldingQueueOutputs.Inc()
-			delete(s.Holding, h.Fixed())
 		}
 		return true
 	}

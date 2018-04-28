@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	log "github.com/sirupsen/logrus"
@@ -114,11 +115,15 @@ func (state *State) ValidatorLoop() {
 					if state.IsReplaying == true {
 						state.ReplayTimestamp = msg.GetTimestamp()
 					}
-					if _, ok := msg.(*messages.Ack); ok {
+					if t := msg.Type(); t == constants.ACK_MSG {
 						state.LogMessage("ackQueue", "enqueue", msg)
 						state.ackQueue <- msg //
 					} else {
+						if t == constants.COMMIT_ENTRY_MSG || t == constants.COMMIT_CHAIN_MSG || t == constants.REVEAL_ENTRY_MSG {
+							state.Holding[msg.GetMsgHash().Fixed()] = msg
+						}
 						state.LogMessage("msgQueue", "enqueue", msg)
+
 						state.msgQueue <- msg //
 					}
 				}

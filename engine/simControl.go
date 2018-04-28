@@ -1176,15 +1176,24 @@ func SimControl(listenTo int, listenStdin bool) {
 				if loadGenerator == nil {
 					loadGenerator = NewLoadGenerator()
 				}
-
-				nn, err := strconv.Atoi(string(b[1:]))
-				if err != nil {
-					os.Stderr.WriteString(err.Error() + "\n")
-					break
+				nn := 0
+				if b[1] == '.' {
+					nn, err = strconv.Atoi(b[2:])
+					if err != nil {
+						os.Stderr.WriteString("Specify in seconds (R3) or in tenths of a second (R.5)")
+						break
+					}
+				} else {
+					nn, err = strconv.Atoi(string(b[1:]))
+					if err != nil {
+						os.Stderr.WriteString("Specify in seconds (R3) or in tenths of a second (R.5)")
+						break
+					}
+					nn = nn * 10
 				}
 				loadGenerator.PerSecond.Store(nn)
 				go loadGenerator.Run()
-				os.Stderr.WriteString(fmt.Sprintf("Writing entries at %d per second\n", nn))
+				os.Stderr.WriteString(fmt.Sprintf("Writing entries at %d.%d per second\n", nn/10, nn%10))
 
 			case 'P' == b[0]:
 				// Set efficiency

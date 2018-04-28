@@ -111,7 +111,7 @@ func (m *EntryBlockResponse) LeaderExecute(state interfaces.IState) {
 }
 
 func (m *EntryBlockResponse) FollowerExecute(state interfaces.IState) {
-	if state.NetworkOutMsgQueue().Length() > 1000 {
+	if state.NetworkOutMsgQueue().Length() > state.NetworkOutMsgQueue().Cap()*99/100 {
 		return
 	}
 

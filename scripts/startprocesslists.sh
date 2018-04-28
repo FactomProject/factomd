@@ -1,3 +1,8 @@
 #!/usr/bin/env bash
 reset
-tail -f out.txt | gawk -f scripts/ProcessList.awk
+if [[ -z $1 ]]; then
+file=out.txt
+else
+file=$1
+fi
+tail -f $file | gawk -f scripts/ProcessList.awk
