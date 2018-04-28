@@ -118,6 +118,10 @@ func DeepStateDisplayCopyDifference(s *State, prev *DisplayState) (*DisplayState
 	if s.GetHighestAck() > lheight {
 		lheight = s.GetHighestAck()
 	}
+	tl := s.GetTrueLeaderHeight()
+	if tl > lheight {
+		lheight = tl
+	}
 	ds.CurrentLeaderHeight = lheight
 	ds.CurrentEBDBHeight = s.EntryDBHeightComplete
 	ds.LeaderHeight = lheight
