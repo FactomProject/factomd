@@ -204,10 +204,12 @@ type State struct {
 	LeaderVMIndex   int
 	LeaderPL        *ProcessList
 	PLProcessHeight uint32
-	OneLeader       bool
-	OutputAllowed   bool
-	LeaderNewMin    bool
-	CurrentMinute   int
+	// Height cutoff where no missing messages below this height
+	DBHeightAtBoot uint32
+	OneLeader      bool
+	OutputAllowed  bool
+	LeaderNewMin   bool
+	CurrentMinute  int
 
 	// These are the start times for blocks and minutes
 	CurrentMinuteStartTime int64

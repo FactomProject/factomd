@@ -678,6 +678,11 @@ func (p *ProcessList) makeMMRs(s interfaces.IState, asks <-chan askRef, adds <-c
 	// tick ever second to check the  pending MMRs
 	go func() {
 		for {
+			// TODO: There is still a race condition that keeps this goroutine alive
+			_, open := <-ticker
+			if !open {
+				return
+			}
 			ticker <- s.GetTimestamp().GetTimeMilli()
 			time.Sleep(20 * time.Millisecond)
 		}
@@ -738,8 +743,9 @@ func (p *ProcessList) makeMMRs(s interfaces.IState, asks <-chan askRef, adds <-c
 			} // Send MMRs that were built
 
 		case <-done:
-			addAllAsks() // process all pending asks before any adds
-			addAllAdds() // process all pending add before any ticks
+			addAllAsks()  // process all pending asks before any adds
+			addAllAdds()  // process all pending add before any ticks
+			close(ticker) // TODO: Fix this, there is still a race condition that leaves this go routine
 			if len(pending) != 0 {
 				s.LogPrintf(logname, "End PL DBH %d with %d still outstanding %v", p.DBHeight, len(pending), pending)
 				s.LogPrintf("executeMsg", "End PL DBH %d with %d still outstanding %v", p.DBHeight, len(pending), pending)
@@ -766,13 +772,18 @@ func (p *ProcessList) Ask(vmIndex int, height uint32, delay int64) {
 	// ask for every nil -- probably should remember the bottom nil and save scanning the whole list
 	for i := 0; i < lenVMList; i++ {
 		if vm.List[i] == nil {
-			ask := askRef{plRef{p.DBHeight, vmIndex, height}, now + delay}
-			p.asks <- ask
+			if p.asks != nil { // If it is nil, there is no makemmrs
+				ask := askRef{plRef{p.DBHeight, vmIndex, height}, now + delay}
+				p.asks <- ask
+			}
 		}
 	}
-	// always ask for one past the end as well...Can't hurt ... Famous last words...
-	ask := askRef{plRef{p.DBHeight, vmIndex, uint32(lenVMList)}, now + delay}
-	p.asks <- ask
+
+	if p.asks != nil { // If it is nil, there is no makemmrs
+		// always ask for one past the end as well...Can't hurt ... Famous last words...
+		ask := askRef{plRef{p.DBHeight, vmIndex, uint32(lenVMList)}, now + delay}
+		p.asks <- ask
+	}
 
 	return
 }
@@ -1127,7 +1138,9 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	p.AddOldMsgs(m)
 	p.OldAcks[msgHash.Fixed()] = ack
 
-	p.adds <- plRef{p.DBHeight, ack.VMIndex, ack.Height}
+	if p.adds != nil {
+		p.adds <- plRef{p.DBHeight, ack.VMIndex, ack.Height}
+	}
 
 	plLogger.WithFields(log.Fields{"func": "AddToProcessList", "node-name": p.State.GetFactomNodeName(), "plheight": ack.Height, "dbheight": p.DBHeight}).WithFields(m.LogFields()).Info("Add To Process List")
 	p.State.LogMessage("processList", fmt.Sprintf("Added at %d/%d/%d", ack.DBHeight, ack.VMIndex, ack.Height), m)
@@ -1325,10 +1338,16 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 		panic(err.Error())
 	}
 
-	pl.asks = make(chan askRef)
-	pl.adds = make(chan plRef)
-	pl.done = make(chan struct{})
-	go pl.makeMMRs(pl.State, pl.asks, pl.adds, pl.done)
+	if pl.DBHeight > pl.State.DBHeightAtBoot {
+		pl.asks = make(chan askRef, 100)
+		pl.adds = make(chan plRef, 100)
+		pl.done = make(chan struct{}, 1)
+		go pl.makeMMRs(pl.State, pl.asks, pl.adds, pl.done)
+	} else {
+		pl.asks = nil
+		pl.adds = nil
+		pl.done = nil
+	}
 	return pl
 }
 
