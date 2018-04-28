@@ -686,6 +686,18 @@ func (p *ProcessList) makeMMRs(s interfaces.IState, asks <-chan askRef, adds <-c
 	//	s.LogPrintf(logname, "Start PL DBH %d", p.DBHeight)
 
 	for {
+		// You have to compute this at every cycle as you can change the block time
+		// in sim control.
+		// blocktime in milliseconds
+		askDelay := int64(s.(*State).DirectoryBlockInSeconds * 1000)
+		// Take 1/10 of 1 minute boundary (DBlock is 10*min)
+		//		This means on 10min block, 6 second delay
+		//					  1min block, .6 second delay
+		askDelay = askDelay / 100
+		if askDelay < 500 { // Don't go below half a second. That is just too much
+			askDelay = 500
+		}
+
 		select {
 		case ask := <-asks:
 			addAsk(ask)
@@ -713,7 +725,7 @@ func (p *ProcessList) makeMMRs(s interfaces.IState, asks <-chan askRef, adds <-c
 					} else {
 						mmrs[index].ProcessListHeight = append(mmrs[index].ProcessListHeight, uint32(ref.H))
 					}
-					*when = *when + 10000 // update when we asked, set lsb to say we already asked...
+					*when = *when + askDelay // update when we asked, set lsb to say we already asked...
 					//s.LogPrintf(logname, "mmr ask %d/%d/%d %d", ref.DBH, ref.VM, ref.H, len(pending))
 					// Maybe when asking for past the end of the list we should not ask again?
 				}
