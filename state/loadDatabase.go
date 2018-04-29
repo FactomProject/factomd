@@ -38,8 +38,6 @@ func LoadDatabase(s *State) {
 		start = start - 10
 	}
 
-	s.DBHeightAtBoot = start
-
 	for i := int(start); i <= int(blkCnt); i++ {
 		if i > 0 && i%1000 == 0 {
 			bps := float64(1000) / time.Since(last).Seconds()
