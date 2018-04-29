@@ -12,12 +12,12 @@ func NewInMsgQueue(capacity int) InMsgMSGQueue {
 
 // Length of underlying channel
 func (q InMsgMSGQueue) Length() int {
-	return q.Length()
+	return len(q)
 }
 
 // Cap of underlying channel
 func (q InMsgMSGQueue) Cap() int {
-	return q.Cap()
+	return cap(q)
 }
 
 // Enqueue adds item to channel and instruments based on type
@@ -56,12 +56,12 @@ func NewElectionQueue(capacity int) ElectionQueue {
 
 // Length of underlying channel
 func (q ElectionQueue) Length() int {
-	return q.Length()
+	return len(q)
 }
 
 // Cap of underlying channel
 func (q ElectionQueue) Cap() int {
-	return q.Cap()
+	return cap(q)
 }
 
 // Enqueue adds item to channel and instruments based on type
