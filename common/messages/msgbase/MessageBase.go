@@ -67,7 +67,8 @@ var sends, unique, duplicate int
 
 func (m *MessageBase) SendOut(s interfaces.IState, msg interfaces.IMsg) {
 	// Are we ever modifying a message?
-	if m.ResendCnt > 4 { // never send the same message twice ...
+	if m.ResendCnt > 4 { // If the first send fails, we need to try again
+		// TODO: Maybe have it not resend unless x time passed?
 		return
 	}
 	//// Don't resend if we are behind

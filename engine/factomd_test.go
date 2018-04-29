@@ -357,6 +357,7 @@ func TestAnElection(t *testing.T) {
 	}
 
 	StatusEveryMinute(state0)
+	WaitMinutes(state0, 2)
 
 	runCmd("g6")
 	WaitBlocks(state0, 1)
@@ -411,7 +412,6 @@ func TestAnElection(t *testing.T) {
 
 	CheckAuthoritySet(leaders, audits, t)
 
-	// Now swap back...
 	WaitBlocks(state0, 1)
 
 	t.Log("Shutting down the network")
@@ -424,6 +424,13 @@ func TestAnElection(t *testing.T) {
 	if state0.LLeaderHeight > 9 {
 		t.Fatal("Failed to shut down factomd via ShutdownChan")
 	}
+
+	j := state0.SyncingStateCurrent
+	for range state0.SyncingState {
+		fmt.Println(state0.SyncingState[j])
+		j = (j - 1 + len(state0.SyncingState)) % len(state0.SyncingState)
+	}
+
 }
 
 func TestMultiple2Election(t *testing.T) {

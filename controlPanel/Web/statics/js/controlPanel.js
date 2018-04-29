@@ -91,6 +91,7 @@ function updataDataDumps() {
     obj = JSON.parse(resp)
     $("#dump1 #dumpShort").text(obj.DataDump1.ShortDump)
     $("#dump1 #dumpRaw").text(obj.DataDump1.RawDump)
+    $("#dump1 #dumpSyncing").text(obj.DataDump1.SyncingDump)
 
     $("#dump2 #dumpRawProc").text(obj.DataDump2.RawDump)
     $("#dump2 #dumpNext").text(obj.DataDump2.NextDump)
