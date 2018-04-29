@@ -386,18 +386,13 @@ func (s *State) ReviewHolding() {
 			continue
 		}
 
-		if v.Resend(s) {
-			if v.Validate(s) == 1 {
-
-				v.SendOut(s, v)
-				continue
-			}
-		}
-
-		if v.Validate(s) < 0 {
+		switch v.Validate(s) {
+		case -1:
 			s.LogMessage("executeMsg", "invalid from holding", v)
 			TotalHoldingQueueOutputs.Inc()
 			delete(s.Holding, k)
+			continue
+		case 0:
 			continue
 		}
 
@@ -474,14 +469,11 @@ func (s *State) ReviewHolding() {
 				s.Commits.Delete(re.GetHash().Fixed())
 				continue
 			}
-			if s.Commits.Get(re.GetHash().Fixed()) != nil {
-				s.LogMessage("executeMsg", "review, delete", v)
-				re.SendOut(s, re)
-			}
 			// Only reprocess if at the top of a new minute, and if we are a leader.
 			if !processMinute || !s.Leader {
 				continue // No need for followers to review Reveal Entry messages
 			}
+			re.SendOut(s, re)
 			// Needs to be our VMIndex as well, or ignore.
 			if re.GetVMIndex() != s.LeaderVMIndex {
 				continue // If we are a leader, but it isn't ours, and it isn't a new minute, ignore.
@@ -1055,19 +1047,9 @@ func (s *State) FollowerExecuteCommitEntry(m interfaces.IMsg) {
 func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 	FollowerExecutions.Inc()
 	TotalHoldingQueueInputs.Inc()
+
 	s.Holding[m.GetMsgHash().Fixed()] = m // hold in  FollowerExecuteRevealEntry
 
-	valid := m.Validate(s)
-	switch valid {
-	case -1:
-		s.LogMessage("executeMsg", "drop, invalid", m)
-		return
-	case 0:
-		s.LogMessage("executeMsg", "hold, no commit yet", m)
-		return
-	}
-
-	s.Holding[m.GetMsgHash().Fixed()] = m
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
 
 	if ack == nil {
@@ -1102,7 +1084,7 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 	// on the api. MUST BE BEFORE THE REPLAY FILTER ADD
 	pl.PendingChainHeads.Put(msg.Entry.GetChainID().Fixed(), msg)
 	// Okay the Reveal has been recorded.  Record this as an entry that cannot be duplicated.
-	s.Replay.IsTSValidAndUpdateState(constants.REVEAL_REPLAY, msg.Entry.GetHash().Fixed(), msg.Timestamp, s.GetTimestamp())
+	s.Replay.IsTSValidAndUpdateState(constants.REVEAL_REPLAY, msg.Entry.GetHash().Fixed(), msg.Timestamp, s.GetLeaderTimestamp())
 
 }
 
@@ -1237,29 +1219,31 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
 func (s *State) LeaderExecuteCommitChain(m interfaces.IMsg) {
 	cc := m.(*messages.CommitChainMsg)
 	// Check if this commit has more entry credits than any previous that we have.
-	if !s.IsHighestCommit(cc.CommitChain.EntryHash, m) {
+	if !s.IsHighestCommit(cc.GetHash(), m) {
 		// This commit is not higher than any previous, so we can discard it and prevent a double spend
 		return
 	}
 
 	s.LeaderExecute(m)
-	re := s.Holding[cc.CommitChain.EntryHash.Fixed()]
-	if re != nil {
-		TotalXReviewQueueInputs.Inc()
-		s.XReview = append(s.XReview, re)
-		re.SendOut(s, re)
+
+	if re := s.Holding[cc.GetHash().Fixed()]; re != nil {
+		re.SendOut(s, m) // If I was waiting on the commit, go ahead and send out the reveal
 	}
 }
 
 func (s *State) LeaderExecuteCommitEntry(m interfaces.IMsg) {
-	s.LeaderExecute(m)
 	ce := m.(*messages.CommitEntryMsg)
-	re := s.Holding[ce.CommitEntry.EntryHash.Fixed()]
-	if re != nil {
-		s.XReview = append(s.XReview, re)
-		if re.Validate(s) == 1 {
-			re.SendOut(s, re)
-		}
+
+	// Check if this commit has more entry credits than any previous that we have.
+	if !s.IsHighestCommit(ce.GetHash(), m) {
+		// This commit is not higher than any previous, so we can discard it and prevent a double spend
+		return
+	}
+
+	s.LeaderExecute(m)
+
+	if re := s.Holding[ce.GetHash().Fixed()]; re != nil {
+		re.SendOut(s, m) // If I was waiting on the commit, go ahead and send out the reveal
 	}
 }
 
@@ -1268,26 +1252,14 @@ func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 	re := m.(*messages.RevealEntryMsg)
 	eh := re.Entry.GetHash()
 
-	rtn := re.Validate(s)
-
-	switch rtn {
-	case 0:
-		m.FollowerExecute(s)
-		return
-	case -1:
-		return
-	}
-
-	commit := s.NextCommit(eh)
-
-	now := s.GetTimestamp()
 	// If we have already recorded a Reveal Entry with this hash in this period, just ignore.
-	if _, v := s.Replay.Valid(constants.REVEAL_REPLAY, eh.Fixed(), s.GetLeaderTimestamp(), now); !v {
+	if !s.Replay.IsHashUnique(constants.REVEAL_REPLAY, eh.Fixed()) {
 		return
 	}
 
 	ack := s.NewAck(m, nil).(*messages.Ack)
 
+	// Debugging thing.
 	m.SetLeaderChainID(ack.GetLeaderChainID())
 	m.SetMinute(ack.Minute)
 
@@ -1295,17 +1267,16 @@ func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 	s.Acks[m.GetMsgHash().Fixed()] = ack
 	TotalAcksInputs.Inc()
 	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(ack, m)
-	// If it was added, then get rid of the matching Commit.
+
+	// If it was not added, then handle as a follower, and leave.
 	if s.Acks[m.GetMsgHash().Fixed()] != nil {
-		s.PutCommit(eh, commit)
 		m.FollowerExecute(s)
-	} else {
-		// Okay the Reveal has been recorded.  Record this as an entry that cannot be duplicated.
-		s.Replay.IsTSValidAndUpdateState(constants.REVEAL_REPLAY, eh.Fixed(), m.GetTimestamp(), now)
-		TotalCommitsOutputs.Inc()
-		s.Commits.Delete(eh.Fixed()) // delete(s.Commits, eh.Fixed())
-		delete(s.Holding, eh.Fixed())
+		return
 	}
+
+	// Okay the Reveal has been recorded.  Record this as an entry that cannot be duplicated.
+	s.Replay.IsTSValidAndUpdateState(constants.REVEAL_REPLAY, eh.Fixed(), m.GetTimestamp(), s.GetLeaderTimestamp())
+	TotalCommitsOutputs.Inc()
 }
 
 func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) bool {

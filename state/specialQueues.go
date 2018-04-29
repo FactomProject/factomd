@@ -1,8 +1,6 @@
 package state
 
-import (
-	"github.com/FactomProject/factomd/common/interfaces"
-)
+import "github.com/FactomProject/factomd/common/interfaces"
 
 // InMsgMSGQueue counts incoming and outgoing messages for inmsg queue
 type InMsgMSGQueue chan interfaces.IMsg
@@ -14,12 +12,12 @@ func NewInMsgQueue(capacity int) InMsgMSGQueue {
 
 // Length of underlying channel
 func (q InMsgMSGQueue) Length() int {
-	return len(chan interfaces.IMsg(q))
+	return q.Length()
 }
 
 // Cap of underlying channel
 func (q InMsgMSGQueue) Cap() int {
-	return cap(chan interfaces.IMsg(q))
+	return q.Cap()
 }
 
 // Enqueue adds item to channel and instruments based on type
@@ -58,12 +56,12 @@ func NewElectionQueue(capacity int) ElectionQueue {
 
 // Length of underlying channel
 func (q ElectionQueue) Length() int {
-	return len(chan interfaces.IMsg(q))
+	return q.Length()
 }
 
 // Cap of underlying channel
 func (q ElectionQueue) Cap() int {
-	return cap(chan interfaces.IMsg(q))
+	return q.Cap()
 }
 
 // Enqueue adds item to channel and instruments based on type
