@@ -719,7 +719,7 @@ func (p *ProcessList) makeMMRs(s interfaces.IState, asks <-chan askRef, adds <-c
 			for ref, when := range pending {
 				var index dbhvm = dbhvm{ref.DBH, ref.VM}
 				// if ask is expired or we have an MMR for this DBH/VM
-				if now > *when || mmrs[index] != nil {
+				if now > *when || (mmrs[index] != nil && now > (*when-askDelay/2)) {
 					if mmrs[index] == nil { // If we don't have a message for this DBH/VM
 						mmrs[index] = messages.NewMissingMsg(s, ref.VM, ref.DBH, uint32(ref.H))
 					} else {
