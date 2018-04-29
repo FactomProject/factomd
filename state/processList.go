@@ -631,7 +631,7 @@ func (p *ProcessList) makeMMRs(s interfaces.IState, asks <-chan askRef, adds <-c
 	}
 
 	pending := make(map[plRef]*int64)
-	ticker := make(chan int64, 1)
+	ticker := make(chan int64, 50)               // this should deep enough you know that the reading thread is dead if it fills up
 	mmrs := make(map[dbhvm]*messages.MissingMsg) // an MMR per DBH/VM
 	logname := "missing_messages"
 
@@ -675,14 +675,25 @@ func (p *ProcessList) makeMMRs(s interfaces.IState, asks <-chan askRef, adds <-c
 		} // process all pending add before any ticks
 	}
 
+	// drain the ticker channel
+	readAllTickers := func() {
+	readalltickers:
+		for {
+			select {
+			case <-ticker:
+			default:
+				break readalltickers
+			}
+		} // process all pending add before any ticks
+	}
+
 	// tick ever second to check the  pending MMRs
 	go func() {
 		for {
-			// TODO: There is still a race condition that keeps this goroutine alive
-			_, open := <-ticker
-			if !open {
+			if len(ticker) == cap(ticker) {
 				return
-			}
+			} // time to die, no one is listening
+
 			ticker <- s.GetTimestamp().GetTimeMilli()
 			time.Sleep(20 * time.Millisecond)
 		}
@@ -713,8 +724,9 @@ func (p *ProcessList) makeMMRs(s interfaces.IState, asks <-chan askRef, adds <-c
 			addAdd(add)
 
 		case now := <-ticker:
-			addAllAsks() // process all pending asks before any adds
-			addAllAdds() // process all pending add before any ticks
+			addAllAsks()     // process all pending asks before any adds
+			addAllAdds()     // process all pending add before any ticks
+			readAllTickers() // drain the ticker channel
 
 			//s.LogPrintf(logname, "tick [%v]", pending)
 
@@ -744,9 +756,9 @@ func (p *ProcessList) makeMMRs(s interfaces.IState, asks <-chan askRef, adds <-c
 			} // Send MMRs that were built
 
 		case <-done:
-			addAllAsks()  // process all pending asks before any adds
-			addAllAdds()  // process all pending add before any ticks
-			close(ticker) // TODO: Fix this, there is still a race condition that leaves this go routine
+			addAllAsks() // process all pending asks before any adds
+			addAllAdds() // process all pending add before any ticks
+
 			if len(pending) != 0 {
 				s.LogPrintf(logname, "End PL DBH %d with %d still outstanding %v", p.DBHeight, len(pending), pending)
 				s.LogPrintf("executeMsg", "End PL DBH %d with %d still outstanding %v", p.DBHeight, len(pending), pending)
@@ -760,7 +772,9 @@ func (p *ProcessList) makeMMRs(s interfaces.IState, asks <-chan askRef, adds <-c
 } // func  makeMMRs() {...}
 
 func (p *ProcessList) Ask(vmIndex int, height uint32, delay int64) {
-
+	if p.asks == nil { // If it is nil, there is no makemmrs
+		return
+	}
 	if vmIndex < 0 {
 		panic(errors.New("Old Faulting code"))
 	}
@@ -771,20 +785,16 @@ func (p *ProcessList) Ask(vmIndex int, height uint32, delay int64) {
 
 	lenVMList := len(vm.List)
 	// ask for every nil -- probably should remember the bottom nil and save scanning the whole list
-	for i := 0; i < lenVMList; i++ {
+	for i := vm.Height; i < lenVMList; i++ {
 		if vm.List[i] == nil {
-			if p.asks != nil { // If it is nil, there is no makemmrs
-				ask := askRef{plRef{p.DBHeight, vmIndex, height}, now + delay}
-				p.asks <- ask
-			}
+			ask := askRef{plRef{p.DBHeight, vmIndex, height}, now + delay}
+			p.asks <- ask
 		}
 	}
 
-	if p.asks != nil { // If it is nil, there is no makemmrs
-		// always ask for one past the end as well...Can't hurt ... Famous last words...
-		ask := askRef{plRef{p.DBHeight, vmIndex, uint32(lenVMList)}, now + delay}
-		p.asks <- ask
-	}
+	// always ask for one past the end as well...Can't hurt ... Famous last words...
+	ask := askRef{plRef{p.DBHeight, vmIndex, uint32(lenVMList)}, now + delay}
+	p.asks <- ask
 
 	return
 }
@@ -859,8 +869,9 @@ func (p *ProcessList) decodeState(Syncing bool, DBSig bool, EOM bool, DBSigDone 
 		p.State.LogPrintf("process", "Unexpected 0x%03x %v", xx, x)
 		s = "Unknown"
 	}
-	return fmt.Sprintf("SyncingStatus: %d-:-%d 0x%03x %25s EOM/DBSIG %02d/%02d of %02d",
-		p.State.LeaderPL.DBHeight, p.State.CurrentMinute, xx, s, EOMProcessed, DBSigProcessed, FedServers)
+	// divide processCnt by a big number to make it not change the status string very often
+	return fmt.Sprintf("SyncingStatus: %d-:-%d 0x%03x %25s EOM/DBSIG %02d/%02d of %02d -- %d",
+		p.State.LeaderPL.DBHeight, p.State.CurrentMinute, xx, s, EOMProcessed, DBSigProcessed, FedServers, p.State.processCnt/100000)
 
 }
 
@@ -893,6 +904,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 	VMListLoop:
 		for j := vm.Height; j < len(vm.List); j++ {
+			state.processCnt++
 			if state.DebugExec() {
 				x := p.decodeState(state.Syncing, state.DBSig, state.EOM, state.DBSigDone, state.EOMDone,
 					len(state.LeaderPL.FedServers), state.EOMProcessed, state.DBSigProcessed)
