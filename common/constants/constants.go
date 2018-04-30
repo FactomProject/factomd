@@ -178,7 +178,7 @@ var (
 	// The height at which coinbase transactions will activate.
 	//	 This is useful for updating without needing to take
 	// 	 down the network and giving an update period.
-	COINBASE_ACTIVATION = uint32(0)
+	COINBASE_ACTIVATION = uint32(140200)
 )
 
 const (
