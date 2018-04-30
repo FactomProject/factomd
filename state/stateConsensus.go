@@ -92,7 +92,29 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 	switch valid {
 	case 1:
 		// The highest block for which we have received a message.  Sometimes the same as
-		msg.SendOut(s, msg)
+		if msg.GetResendCnt() == 0 {
+			msg.SendOut(s, msg)
+		} else if msg.Resend(s) {
+			msg.SendOut(s, msg)
+		}
+
+		switch msg.Type() {
+		case constants.REVEAL_ENTRY_MSG:
+			if !s.NoEntryYet(msg.GetHash(), nil) {
+				return true
+			}
+			s.Holding[msg.GetMsgHash().Fixed()] = msg
+		case constants.COMMIT_ENTRY_MSG:
+			if !s.NoEntryYet(msg.GetHash(), nil) {
+				return true
+			}
+			s.Holding[msg.GetMsgHash().Fixed()] = msg
+		case constants.COMMIT_CHAIN_MSG:
+			if !s.NoEntryYet(msg.GetHash(), nil) {
+				return true
+			}
+			s.Holding[msg.GetMsgHash().Fixed()] = msg
+		}
 
 		var vml int
 		if vm == nil || vm.List == nil {
@@ -493,7 +515,6 @@ func (s *State) ReviewHolding() {
 
 		// If a Reveal Entry has a commit available, then process the Reveal Entry and send it out.
 		if re, ok := v.(*messages.RevealEntryMsg); ok {
-			re.SendOut(s, re)
 			if !s.NoEntryYet(re.GetHash(), s.GetLeaderTimestamp()) {
 				s.LogMessage("executeMsg", "review, NoEntryYet(3) delete", v)
 				delete(s.Holding, re.GetHash().Fixed())
@@ -504,7 +525,6 @@ func (s *State) ReviewHolding() {
 			if processMinute < 20 {
 				//continue // No need for followers to review Reveal Entry messages
 			}
-			re.SendOut(s, re)
 			// Needs to be our VMIndex as well, or ignore.
 			if re.GetVMIndex() != s.LeaderVMIndex || !s.Leader {
 				continue // If we are a leader, but it isn't ours, and it isn't a new minute, ignore.

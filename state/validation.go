@@ -119,11 +119,7 @@ func (state *State) ValidatorLoop() {
 						state.LogMessage("ackQueue", "enqueue", msg)
 						state.ackQueue <- msg //
 					} else {
-						if t == constants.COMMIT_ENTRY_MSG || t == constants.COMMIT_CHAIN_MSG || t == constants.REVEAL_ENTRY_MSG {
-							state.Holding[msg.GetMsgHash().Fixed()] = msg
-						}
 						state.LogMessage("msgQueue", "enqueue", msg)
-
 						state.msgQueue <- msg //
 					}
 				}
