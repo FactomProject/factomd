@@ -130,6 +130,7 @@ type VM struct {
 	// vm.WhenFaulted serves as a bool flag (if > 0, the vm is currently considered faulted)
 	FaultFlag   int                  // FaultFlag tracks what the VM was faulted for (0 = EOM missing, 1 = negotiation issue)
 	ProcessTime interfaces.Timestamp // Last time we made progress on this VM
+	HighestAsk  int                  // highest ask sent to MMR for this VM
 }
 
 func (p *ProcessList) GetKeysNewEntries() (keys [][32]byte) {
@@ -779,13 +780,18 @@ func (p *ProcessList) Ask(vmIndex int, height uint32, delay int64) {
 		panic(errors.New("Old Faulting code"))
 	}
 
-	now := p.State.GetTimestamp().GetTimeMilli()
 	// Look up the VM
 	vm := p.VMs[vmIndex]
 
+	if vm.HighestAsk > int(height) {
+		return
+	} // already sent to MMR
+	vm.HighestAsk = int(height)
+
+	now := p.State.GetTimestamp().GetTimeMilli()
+
 	lenVMList := len(vm.List)
-	// ask for every nil -- probably should remember the bottom nil and save scanning the whole list
-	for i := vm.Height; i < lenVMList; i++ {
+	for i := vm.HighestAsk; i < lenVMList; i++ {
 		if vm.List[i] == nil {
 			ask := askRef{plRef{p.DBHeight, vmIndex, height}, now + delay}
 			p.asks <- ask
@@ -828,7 +834,7 @@ var decodeMap map[foo]string = map[foo]string{
 	foo{true, true, false, false, false, false, true, false, false}:  "Syncing DBSig",             //0x043
 	foo{true, true, false, true, false, false, true, false, false}:   "Syncing DBSig Done",        //0x04b
 	foo{true, true, false, true, false, false, true, true, false}:    "Syncing DBSig Stop",        //0x0cb
-	foo{true, false, true, true, false, false, false, false, true}:   "Syncing EOM Start",         //0x11d
+	foo{true, false, true, true, false, false, false, false, true}:   "Syncing EOM",               //0x10d
 	foo{true, false, true, true, true, false, false, false, true}:    "Syncing EOM Done",          //0x11d
 	foo{true, false, true, true, false, true, false, false, true}:    "Syncing EOM Stop",          //0x12d
 	foo{true, false, true, true, true, true, false, false, true}:     "Syncing EOM Done",          //0x13d
@@ -1006,7 +1012,6 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					p.State.LogMessage("processList", "done", msg)
 					vm.heartBeat = 0
 					vm.Height = j + 1 // Don't process it again if the process worked.
-					p.State.LogMessage("process", fmt.Sprintf("done %v/%v/%v", p.DBHeight, i, j), msg)
 					p.State.LogMessage("process", fmt.Sprintf("done %v/%v/%v", p.DBHeight, i, j), msg)
 
 					progress = true
