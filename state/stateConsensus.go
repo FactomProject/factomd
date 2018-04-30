@@ -341,7 +341,7 @@ func CheckDBKeyMR(s *State, ht uint32, hash string) error {
 func (s *State) ReviewHolding() {
 
 	preReviewHoldingTime := time.Now()
-	if len(s.XReview) > 0 {
+	if len(s.XReview) > 0 || s.Syncing {
 		return
 	}
 
