@@ -436,31 +436,40 @@ func (s *State) ReviewHolding() {
 		}
 
 		// If it is an entryCommit and it has a duplicate hash to an existing entry throw it away here
-		{
-			ce, ok := v.(*messages.CommitEntryMsg)
-			if ok {
-				ebal := s.GetFactoidState().GetECBalance(*ce.CommitEntry.ECPubKey)
-				if int(ce.CommitEntry.Credits) < int(ebal) {
-					ce.FollowerExecute(s)
-					continue
-				}
+		var vm *VM
+		if s.Leader && s.RunLeader {
+			vm = s.LeaderPL.VMs[s.LeaderVMIndex]
+		}
+		ce, ok := v.(*messages.CommitEntryMsg)
+		if ok {
+			ebal := s.GetFactoidState().GetECBalance(*ce.CommitEntry.ECPubKey)
+			if int(ce.CommitEntry.Credits) < int(ebal) {
+				s.LogMessage("executeMsg", "remove from holding(5)", v)
+				TotalHoldingQueueOutputs.Inc()
+				delete(s.Holding, k)
+				s.executeMsg(vm, ce)
+				continue
+			}
 
-				x := s.NoEntryYet(ce.CommitEntry.EntryHash, ce.CommitEntry.GetTimestamp())
-				if !x {
-					TotalHoldingQueueOutputs.Inc()
-					s.LogMessage("executeMsg", "review, NoEntryYet(1) delete", v)
-					delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
-					continue
-				}
+			x := s.NoEntryYet(ce.CommitEntry.EntryHash, ce.CommitEntry.GetTimestamp())
+			if !x {
+				TotalHoldingQueueOutputs.Inc()
+				s.LogMessage("executeMsg", "review, NoEntryYet(1) delete", v)
+				delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
+				continue
 			}
 		}
+
 		// If it is an chainCommit and it has a duplicate hash to an existing entry throw it away here
 
 		cc, ok := v.(*messages.CommitChainMsg)
 		if ok {
 			ebal := s.GetFactoidState().GetECBalance(*cc.CommitChain.ECPubKey)
 			if int(cc.CommitChain.Credits) < int(ebal) {
-				cc.FollowerExecute(s)
+				s.LogMessage("executeMsg", "remove from holding(6)", v)
+				TotalHoldingQueueOutputs.Inc()
+				delete(s.Holding, k)
+				s.executeMsg(vm, cc)
 				continue
 			}
 

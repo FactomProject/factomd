@@ -98,7 +98,7 @@ func TestSetupANetwork(t *testing.T) {
 		"-controlpanelport=37002",
 		"-networkport=37003",
 		"-startdelay=1",
-		//		"-debuglog=F.*",
+		"-debuglog=F.*",
 		"--stdoutlog=out.txt",
 		"--stderrlog=out.txt",
 	)

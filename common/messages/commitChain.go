@@ -245,6 +245,7 @@ func (m *CommitChainMsg) String() string {
 	str := fmt.Sprintf("%6s-VM%3d: entryhash[%x] hash[%x]",
 		"CChain",
 		m.VMIndex,
+
 		m.CommitChain.EntryHash.Bytes()[:3],
 		m.GetHash().Bytes()[:3])
 	return str
