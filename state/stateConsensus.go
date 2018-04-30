@@ -250,9 +250,8 @@ ackLoop:
 			}
 
 			s.LogMessage("ackQueue", "Execute2", ack)
-			s.executeMsg(vm, ack)
+			progress = s.executeMsg(vm, ack) || progress
 
-			progress = true
 		default:
 			break ackLoop
 		}
