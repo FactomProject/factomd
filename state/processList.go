@@ -701,7 +701,7 @@ func (p *ProcessList) makeMMRs(s interfaces.IState, asks <-chan askRef, adds <-c
 	}()
 
 	//	s.LogPrintf(logname, "Start PL DBH %d", p.DBHeight)
-
+	lastAskDelay := int64(0)
 	for {
 		// You have to compute this at every cycle as you can change the block time
 		// in sim control.
@@ -710,9 +710,14 @@ func (p *ProcessList) makeMMRs(s interfaces.IState, asks <-chan askRef, adds <-c
 		// Take 1/10 of 1 minute boundary (DBlock is 10*min)
 		//		This means on 10min block, 6 second delay
 		//					  1min block, .6 second delay
-		askDelay = askDelay / 100
+		askDelay = askDelay / 50
 		if askDelay < 500 { // Don't go below half a second. That is just too much
 			askDelay = 500
+		}
+
+		if askDelay != lastAskDelay {
+			s.LogPrintf(logname, "AskDelay %d BlockTime %d", askDelay, s.(*State).DirectoryBlockInSeconds)
+			lastAskDelay = askDelay
 		}
 
 		select {
@@ -737,7 +742,7 @@ func (p *ProcessList) makeMMRs(s interfaces.IState, asks <-chan askRef, adds <-c
 			for ref, when := range pending {
 				var index dbhvm = dbhvm{ref.DBH, ref.VM}
 				// if ask is expired or we have an MMR for this DBH/VM
-				if now > *when || (mmrs[index] != nil && now > (*when-askDelay/2)) {
+				if now > *when || (mmrs[index] != nil && now > (*when-4*askDelay/5)) {
 					if mmrs[index] == nil { // If we don't have a message for this DBH/VM
 						mmrs[index] = messages.NewMissingMsg(s, ref.VM, ref.DBH, uint32(ref.H))
 					} else {
@@ -778,6 +783,10 @@ func (p *ProcessList) Ask(vmIndex int, height uint32, delay int64) {
 	}
 	if vmIndex < 0 {
 		panic(errors.New("Old Faulting code"))
+	}
+
+	if delay < 50 {
+		delay = 50
 	}
 
 	// Look up the VM
@@ -917,7 +926,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 				// Compute a syncing state string and report if it has changed
 				if state.SyncingState[state.SyncingStateCurrent] != x {
-					state.LogPrintf("process", x)
+					state.LogPrintf("processStatus", x)
 					state.SyncingStateCurrent = (state.SyncingStateCurrent + 1) % len(state.SyncingState)
 					state.SyncingState[state.SyncingStateCurrent] = x
 				}

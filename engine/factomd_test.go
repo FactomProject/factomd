@@ -262,7 +262,7 @@ func TestMakeALeader(t *testing.T) {
 		"-db=Map",
 		"-network=LOCAL",
 		"-enablenet=true",
-		"-blktime=15",
+		"-blktime=60",
 		"-count=2",
 		"-startdelay=1",
 		"-debuglog=F.*",
