@@ -92,6 +92,8 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 	switch valid {
 	case 1:
 		// The highest block for which we have received a message.  Sometimes the same as
+		msg.SendOut(s, msg)
+
 		var vml int
 		if vm == nil || vm.List == nil {
 			vml = 0
@@ -484,6 +486,7 @@ func (s *State) ReviewHolding() {
 
 		// If a Reveal Entry has a commit available, then process the Reveal Entry and send it out.
 		if re, ok := v.(*messages.RevealEntryMsg); ok {
+			re.SendOut(s, re)
 			if !s.NoEntryYet(re.GetHash(), s.GetLeaderTimestamp()) {
 				s.LogMessage("executeMsg", "review, NoEntryYet(3) delete", v)
 				delete(s.Holding, re.GetHash().Fixed())
@@ -491,12 +494,12 @@ func (s *State) ReviewHolding() {
 				continue
 			}
 			// Only reprocess if at the top of a new minute, and if we are a leader.
-			if !processMinute || !s.Leader {
+			if !processMinute {
 				continue // No need for followers to review Reveal Entry messages
 			}
 			re.SendOut(s, re)
 			// Needs to be our VMIndex as well, or ignore.
-			if re.GetVMIndex() != s.LeaderVMIndex {
+			if re.GetVMIndex() != s.LeaderVMIndex || !s.Leader {
 				continue // If we are a leader, but it isn't ours, and it isn't a new minute, ignore.
 			}
 		}
@@ -1052,6 +1055,7 @@ func (s *State) FollowerExecuteCommitChain(m interfaces.IMsg) {
 		re.FollowerExecute(s)
 		re.SendOut(s, re)
 	}
+	m.SendOut(s, m)
 }
 
 func (s *State) FollowerExecuteCommitEntry(m interfaces.IMsg) {
@@ -1063,6 +1067,7 @@ func (s *State) FollowerExecuteCommitEntry(m interfaces.IMsg) {
 		re.FollowerExecute(s)
 		re.SendOut(s, re)
 	}
+	m.SendOut(s, m)
 }
 
 func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
@@ -1106,6 +1111,7 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 	pl.PendingChainHeads.Put(msg.Entry.GetChainID().Fixed(), msg)
 	// Okay the Reveal has been recorded.  Record this as an entry that cannot be duplicated.
 	s.Replay.IsTSValidAndUpdateState(constants.REVEAL_REPLAY, msg.Entry.GetHash().Fixed(), msg.Timestamp, s.GetLeaderTimestamp())
+	m.SendOut(s, m)
 
 }
 
