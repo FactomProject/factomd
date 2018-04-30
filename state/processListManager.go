@@ -61,6 +61,8 @@ func (lists *ProcessLists) UpdateState(dbheight uint32) (progress bool) {
 		s := lists.State
 		//fmt.Println(fmt.Sprintf("EOM PROCESS: %10s ProcessListManager: !s.EOM(%v)", s.FactomNodeName, s.EOM))
 		s.LLeaderHeight = dbheight
+		s.ProcessLists.Get(dbheight + 1) // make the current and future process list exist
+
 		s.CurrentMinute = 0
 		s.EOMProcessed = 0
 		s.DBSigProcessed = 0
@@ -69,6 +71,8 @@ func (lists *ProcessLists) UpdateState(dbheight uint32) (progress bool) {
 		s.DBSig = false
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
+
+		s.DBSig = false
 	}
 	//lists.State.AddStatus(fmt.Sprintf("UpdateState: ProcessList Height %d", pl.DBHeight))
 	return pl.Process(lists.State)

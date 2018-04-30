@@ -439,6 +439,12 @@ func (s *State) ReviewHolding() {
 		{
 			ce, ok := v.(*messages.CommitEntryMsg)
 			if ok {
+				ebal := s.GetFactoidState().GetECBalance(*ce.CommitEntry.ECPubKey)
+				if int(ce.CommitEntry.Credits) < int(ebal) {
+					ce.FollowerExecute(s)
+					continue
+				}
+
 				x := s.NoEntryYet(ce.CommitEntry.EntryHash, ce.CommitEntry.GetTimestamp())
 				if !x {
 					TotalHoldingQueueOutputs.Inc()
@@ -449,18 +455,24 @@ func (s *State) ReviewHolding() {
 			}
 		}
 		// If it is an chainCommit and it has a duplicate hash to an existing entry throw it away here
-		{
-			ce, ok := v.(*messages.CommitChainMsg)
-			if ok {
-				x := s.NoEntryYet(ce.CommitChain.EntryHash, ce.CommitChain.GetTimestamp())
-				if !x {
-					TotalHoldingQueueOutputs.Inc()
-					s.LogMessage("executeMsg", "review, NoEntryYet(2) delete", v)
-					delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
-					continue
-				}
+
+		cc, ok := v.(*messages.CommitChainMsg)
+		if ok {
+			ebal := s.GetFactoidState().GetECBalance(*cc.CommitChain.ECPubKey)
+			if int(cc.CommitChain.Credits) < int(ebal) {
+				cc.FollowerExecute(s)
+				continue
+			}
+
+			x := s.NoEntryYet(cc.CommitChain.EntryHash, cc.CommitChain.GetTimestamp())
+			if !x {
+				TotalHoldingQueueOutputs.Inc()
+				s.LogMessage("executeMsg", "review, NoEntryYet(2) delete", v)
+				delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
+				continue
 			}
 		}
+
 		// If a Reveal Entry has a commit available, then process the Reveal Entry and send it out.
 		if re, ok := v.(*messages.RevealEntryMsg); ok {
 			if !s.NoEntryYet(re.GetHash(), s.GetLeaderTimestamp()) {
