@@ -13,7 +13,7 @@ import (
 )
 
 func TestSafeMsgMag(t *testing.T) {
-	m := NewSafeMsgMap("test")
+	m := NewSafeMsgMap("test",nil)
 	addAndTest := func() {
 		for i := 0; i < 10; i++ {
 			hash := primitives.RandomHash()

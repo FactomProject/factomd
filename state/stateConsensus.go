@@ -390,8 +390,8 @@ func (s *State) ReviewHolding() {
 
 	// Set this flag, so it acts as a constant.  We will set s.LeaderNewMin to false
 	// after processing the Holding Queue.  Ensures we only do this one per minute.
-	processMinute := s.LeaderNewMin // Have we processed this minute
-	s.LeaderNewMin++                // Either way, don't do it again until the ProcessEOM resets LeaderNewMin
+	//	processMinute := s.LeaderNewMin // Have we processed this minute
+	s.LeaderNewMin++ // Either way, don't do it again until the ProcessEOM resets LeaderNewMin
 
 	for k, v := range s.Holding {
 		ack := s.Acks[k]
