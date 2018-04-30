@@ -795,14 +795,13 @@ func (p *ProcessList) Ask(vmIndex int, height uint32, delay int64) {
 	if vm.HighestAsk > int(height) {
 		return
 	} // already sent to MMR
-	vm.HighestAsk = int(height)
 
 	now := p.State.GetTimestamp().GetTimeMilli()
 
 	lenVMList := len(vm.List)
 	for i := vm.HighestAsk; i < lenVMList; i++ {
 		if vm.List[i] == nil {
-			ask := askRef{plRef{p.DBHeight, vmIndex, height}, now + delay}
+			ask := askRef{plRef{p.DBHeight, vmIndex, uint32(i)}, now + delay}
 			p.asks <- ask
 		}
 	}
@@ -810,6 +809,8 @@ func (p *ProcessList) Ask(vmIndex int, height uint32, delay int64) {
 	// always ask for one past the end as well...Can't hurt ... Famous last words...
 	ask := askRef{plRef{p.DBHeight, vmIndex, uint32(lenVMList)}, now + delay}
 	p.asks <- ask
+
+	vm.HighestAsk = int(lenVMList) + 1 // We have asked for all nils up to this height
 
 	return
 }
