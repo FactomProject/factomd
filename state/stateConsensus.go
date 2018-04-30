@@ -501,9 +501,9 @@ func (s *State) ReviewHolding() {
 				continue
 			}
 			// Only reprocess if at the top of a new minute, and if we are a leader.
-			if processMinute > 10 {
-				continue // No need for followers to review Reveal Entry messages
-			}
+			//if processMinute > 10 {
+			//	continue // No need for followers to review Reveal Entry messages
+			//}
 			// Needs to be our VMIndex as well, or ignore.
 			if re.GetVMIndex() != s.LeaderVMIndex || !s.Leader {
 				continue // If we are a leader, but it isn't ours, and it isn't a new minute, ignore.
