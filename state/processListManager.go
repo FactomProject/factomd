@@ -33,18 +33,21 @@ func (lists *ProcessLists) UpdateState(dbheight uint32) (progress bool) {
 
 	// Look and see if we need to toss some previous blocks under construction.
 	diff := int(dbheight) - int(lists.DBHeightBase)
+	//TODO: Maybe the test about len(lists.list) is pointless
 	if diff > 1 && len(lists.Lists) > 1 {
 		diff = diff - 1
 		progress = true
 		lists.DBHeightBase += uint32(diff)
-		var newlist []*ProcessList
+
+		// Kill the old process lists that are being retired
 		for _, pl := range lists.Lists[:diff] {
 			if pl != nil && pl.done != nil {
 				pl.done <- struct{}{} // stop looking for missing messages for that process list
 				pl.done = nil
 			}
 		}
-		newlist = append(newlist, lists.Lists[diff:]...)
+
+		newlist := append([]*ProcessList{}, lists.Lists[diff:]...)
 		lists.Lists = newlist
 	}
 	dbstate := lists.State.DBStates.Get(int(dbheight))
@@ -107,6 +110,7 @@ func (lists *ProcessLists) Get(dbheight uint32) *ProcessList {
 
 	i := int(dbheight) - int(lists.DBHeightBase)
 
+	//TODO: Actually allocate the PL here !!!
 	for len(lists.Lists) <= i {
 		lists.Lists = append(lists.Lists, nil)
 	}

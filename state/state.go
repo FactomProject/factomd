@@ -381,7 +381,7 @@ type State struct {
 	pstate              string
 	SyncingState        [256]string
 	SyncingStateCurrent int
-	processCnt          int64 // count of attempts to process .. so we can see if teh thread is running
+	processCnt          int64 // count of attempts to process .. so we can see if the thread is running
 }
 
 var _ interfaces.IState = (*State)(nil)

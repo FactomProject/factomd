@@ -362,7 +362,7 @@ func CheckDBKeyMR(s *State, ht uint32, hash string) error {
 func (s *State) ReviewHolding() {
 
 	preReviewHoldingTime := time.Now()
-	if len(s.XReview) > 0 || s.Syncing {
+	if len(s.XReview) > 0 || s.Syncing || s.Saving {
 		return
 	}
 
@@ -466,22 +466,10 @@ func (s *State) ReviewHolding() {
 			continue
 		}
 
-		// If it is an entryCommit and it has a duplicate hash to an existing entry throw it away here
-		var vm *VM
-		if s.Leader && s.RunLeader {
-			vm = s.LeaderPL.VMs[s.LeaderVMIndex]
-		}
+		// If it is an entryCommit/ChainCommit/RevealEntry and it has a duplicate hash to an existing entry throw it away here
+
 		ce, ok := v.(*messages.CommitEntryMsg)
 		if ok {
-			ebal := s.GetFactoidState().GetECBalance(*ce.CommitEntry.ECPubKey)
-			if int(ce.CommitEntry.Credits) < int(ebal) {
-				s.LogMessage("executeMsg", "remove from holding(5)", v)
-				TotalHoldingQueueOutputs.Inc()
-				delete(s.Holding, k)
-				s.executeMsg(vm, ce)
-				continue
-			}
-
 			x := s.NoEntryYet(ce.CommitEntry.EntryHash, ce.CommitEntry.GetTimestamp())
 			if !x {
 				TotalHoldingQueueOutputs.Inc()
@@ -495,15 +483,6 @@ func (s *State) ReviewHolding() {
 
 		cc, ok := v.(*messages.CommitChainMsg)
 		if ok {
-			ebal := s.GetFactoidState().GetECBalance(*cc.CommitChain.ECPubKey)
-			if int(cc.CommitChain.Credits) < int(ebal) {
-				s.LogMessage("executeMsg", "remove from holding(6)", v)
-				TotalHoldingQueueOutputs.Inc()
-				delete(s.Holding, k)
-				s.executeMsg(vm, cc)
-				continue
-			}
-
 			x := s.NoEntryYet(cc.CommitChain.EntryHash, cc.CommitChain.GetTimestamp())
 			if !x {
 				TotalHoldingQueueOutputs.Inc()
@@ -522,15 +501,15 @@ func (s *State) ReviewHolding() {
 				continue
 			}
 			// Only reprocess if at the top of a new minute, and if we are a leader.
-			if processMinute < 20 {
-				//continue // No need for followers to review Reveal Entry messages
+			if processMinute > 10 {
+				continue // No need for followers to review Reveal Entry messages
 			}
 			// Needs to be our VMIndex as well, or ignore.
 			if re.GetVMIndex() != s.LeaderVMIndex || !s.Leader {
 				continue // If we are a leader, but it isn't ours, and it isn't a new minute, ignore.
 			}
 		}
-
+		//TODO: Move this earlier!
 		// We don't reprocess messages if we are a leader, but it ain't ours!
 		if s.LeaderVMIndex != v.GetVMIndex() {
 			continue
@@ -1138,8 +1117,6 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 	pl.PendingChainHeads.Put(msg.Entry.GetChainID().Fixed(), msg)
 	// Okay the Reveal has been recorded.  Record this as an entry that cannot be duplicated.
 	s.Replay.IsTSValidAndUpdateState(constants.REVEAL_REPLAY, msg.Entry.GetHash().Fixed(), msg.Timestamp, s.GetLeaderTimestamp())
-	m.SendOut(s, m)
-
 }
 
 func (s *State) LeaderExecute(m interfaces.IMsg) {
@@ -1305,11 +1282,6 @@ func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 	LeaderExecutions.Inc()
 	re := m.(*messages.RevealEntryMsg)
 	eh := re.Entry.GetHash()
-
-	// If we have already recorded a Reveal Entry with this hash in this period, just ignore.
-	if !s.Replay.IsHashUnique(constants.REVEAL_REPLAY, eh.Fixed()) {
-		return
-	}
 
 	ack := s.NewAck(m, nil).(*messages.Ack)
 
