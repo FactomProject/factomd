@@ -152,7 +152,7 @@ func TestSetupANetwork(t *testing.T) {
 			auditcnt++
 		}
 	}
-
+	PrintOneStatus(0, 0)
 	if leadercnt != 4 {
 		t.Fatalf("found %d leaders, expected 4", leadercnt)
 	}
@@ -167,6 +167,7 @@ func TestSetupANetwork(t *testing.T) {
 	runCmd("g10")
 
 	fn1 := GetFocus()
+	PrintOneStatus(0, 0)
 	if fn1.State.FactomNodeName != "FNode07" {
 		t.Fatalf("Expected FNode07, but got %s", fn1.State.FactomNodeName)
 	}
@@ -193,6 +194,7 @@ func TestSetupANetwork(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	fn2 := GetFocus()
+	PrintOneStatus(0, 0)
 	if fn2.State.FactomNodeName != "FNode08" {
 		t.Fatalf("Expected FNode08, but got %s", fn1.State.FactomNodeName)
 	}
@@ -238,9 +240,11 @@ func TestSetupANetwork(t *testing.T) {
 	}
 
 	time.Sleep(10 * time.Second)
+	PrintOneStatus(0, 0)
 	if state0.LLeaderHeight > 14 {
 		t.Fatal("Failed to shut down factomd via ShutdownChan")
 	}
+
 }
 
 func TestMakeALeader(t *testing.T) {

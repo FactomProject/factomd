@@ -76,11 +76,17 @@ func getTraceFile(name string) (f *os.File) {
 	return f
 }
 
-var history [16384][32]byte // Last 16k messages logged
-var h int                   // head of history
-var msgmap map[[32]byte]string = make(map[[32]byte]string)
+var history *([16384][32]byte) // Last 16k messages logged
+var h int                      // head of history
+var msgmap map[[32]byte]string
 
 func addmsg(hash [32]byte, msg string) {
+	if history == nil {
+		history = new([16384][32]byte)
+	}
+	if msgmap == nil {
+		msgmap = make(map[[32]byte]string)
+	}
 	remove := history[h] // get the oldest message
 	delete(msgmap, remove)
 	history[h] = hash
@@ -89,6 +95,9 @@ func addmsg(hash [32]byte, msg string) {
 }
 
 func getmsg(hash [32]byte) string {
+	if msgmap == nil {
+		msgmap = make(map[[32]byte]string)
+	}
 	rval, ok := msgmap[hash]
 	if !ok {
 		rval = fmt.Sprintf("UnknownMsg: %x", hash[:3])
