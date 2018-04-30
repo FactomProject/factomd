@@ -1019,7 +1019,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 						p.State.Commits.Delete(msg.GetMsgHash().Fixed())
 					}
 
-					p.State.LogMessage("processList", "done", msg)
+					//					p.State.LogMessage("processList", "done", msg)
 					vm.heartBeat = 0
 					vm.Height = j + 1 // Don't process it again if the process worked.
 					p.State.LogMessage("process", fmt.Sprintf("done %v/%v/%v", p.DBHeight, i, j), msg)

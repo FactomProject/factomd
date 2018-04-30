@@ -154,9 +154,6 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 		if _, valid := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp()); valid {
 			TotalHoldingQueueInputs.Inc()
 			TotalHoldingQueueRecycles.Inc()
-			s.LogMessage("executeMsg", "Add to Holding0", msg)
-			s.LogMessage("executeMsg", fmt.Sprintf("Add to Holding %x", msg.GetMsgHash().Bytes()[:3]), msg)
-
 			s.Holding[msg.GetMsgHash().Fixed()] = msg
 		} else {
 			s.LogMessage("executeMsg", "drop, IReplay", msg)
@@ -254,7 +251,6 @@ ackLoop:
 				// toss the ack into holding and we will try again in a bit...
 				TotalHoldingQueueInputs.Inc()
 				TotalHoldingQueueRecycles.Inc()
-				s.LogMessage("executeMsg", fmt.Sprintf("Add to Holding3 %x", ack.GetMsgHash().Bytes()[:3]), ack)
 				s.Holding[ack.GetMsgHash().Fixed()] = ack
 				continue
 			}
@@ -428,14 +424,12 @@ func (s *State) ReviewHolding() {
 		}
 
 		if int(highest)-int(saved) > 1000 {
-			s.LogMessage("executeMsg", "remove from holding(0)", v)
 			TotalHoldingQueueOutputs.Inc()
 			delete(s.Holding, k)
 		}
 
 		eom, ok := v.(*messages.EOM)
 		if ok && ((eom.DBHeight <= saved && saved > 0) || int(eom.Minute) < s.CurrentMinute) {
-			s.LogMessage("executeMsg", "remove from holding(1)", v)
 			TotalHoldingQueueOutputs.Inc()
 			delete(s.Holding, k)
 			continue
@@ -443,7 +437,6 @@ func (s *State) ReviewHolding() {
 
 		dbsmsg, ok := v.(*messages.DBStateMsg)
 		if ok && (dbsmsg.DirectoryBlock.GetHeader().GetDBHeight() < saved-1 && saved > 0) {
-			s.LogMessage("executeMsg", "remove from holding(2)", v)
 			TotalHoldingQueueOutputs.Inc()
 			delete(s.Holding, k)
 			continue
@@ -451,7 +444,6 @@ func (s *State) ReviewHolding() {
 
 		dbsigmsg, ok := v.(*messages.DirectoryBlockSignature)
 		if ok && ((dbsigmsg.DBHeight <= saved && saved > 0) || (dbsigmsg.DBHeight < highest-3 && highest > 2)) {
-			s.LogMessage("executeMsg", "remove from holding(3)", v)
 			TotalHoldingQueueOutputs.Inc()
 			delete(s.Holding, k)
 			continue
@@ -460,7 +452,6 @@ func (s *State) ReviewHolding() {
 		_, ok = s.Replay.Valid(constants.INTERNAL_REPLAY, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
 		ok2 := s.FReplay.IsHashUnique(constants.BLOCK_REPLAY, v.GetRepeatHash().Fixed())
 		if !ok || !ok2 {
-			s.LogMessage("executeMsg", "remove from holding(4)", v)
 			TotalHoldingQueueOutputs.Inc()
 			delete(s.Holding, k)
 			continue
@@ -473,7 +464,6 @@ func (s *State) ReviewHolding() {
 			x := s.NoEntryYet(ce.CommitEntry.EntryHash, ce.CommitEntry.GetTimestamp())
 			if !x {
 				TotalHoldingQueueOutputs.Inc()
-				s.LogMessage("executeMsg", "review, NoEntryYet(1) delete", v)
 				delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
 				continue
 			}
@@ -486,7 +476,6 @@ func (s *State) ReviewHolding() {
 			x := s.NoEntryYet(cc.CommitChain.EntryHash, cc.CommitChain.GetTimestamp())
 			if !x {
 				TotalHoldingQueueOutputs.Inc()
-				s.LogMessage("executeMsg", "review, NoEntryYet(2) delete", v)
 				delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
 				continue
 			}
@@ -495,7 +484,6 @@ func (s *State) ReviewHolding() {
 		// If a Reveal Entry has a commit available, then process the Reveal Entry and send it out.
 		if re, ok := v.(*messages.RevealEntryMsg); ok {
 			if !s.NoEntryYet(re.GetHash(), s.GetLeaderTimestamp()) {
-				s.LogMessage("executeMsg", "review, NoEntryYet(3) delete", v)
 				delete(s.Holding, re.GetHash().Fixed())
 				s.Commits.Delete(re.GetHash().Fixed())
 				continue
@@ -606,9 +594,6 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 		// Cross Boot Replay
 		s.CrossReplayAddSalt(ack.DBHeight, ack.Salt)
 	}
-	if s.Holding[m.GetMsgHash().Fixed()] != nil {
-		s.LogMessage("executeMsg", fmt.Sprintf("Add to Holding1 %x", m.GetMsgHash().Bytes()[:3]), m)
-	}
 }
 
 // Messages that will go into the Process List must match an Acknowledgement.
@@ -633,13 +618,11 @@ func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
 	FollowerEOMExecutions.Inc()
 	// add it to the holding queue in case AddToProcessList may remove it
 	TotalHoldingQueueInputs.Inc()
-	s.LogMessage("executeMsg", fmt.Sprintf("Add to Holding2 %x", m.GetMsgHash().Bytes()[:3]), m)
 	s.Holding[m.GetMsgHash().Fixed()] = m // FollowerExecuteEOM
 
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
 	if ack != nil {
 		pl := s.ProcessLists.Get(ack.DBHeight)
-		s.LogMessage("executeMsg", "Call add to processlist", m)
 		pl.AddToProcessList(ack, m)
 	}
 }
@@ -1085,6 +1068,7 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
 
 	if ack == nil {
+		// todo: prevent this log from double logging
 		s.LogMessage("executeMsg", "hold, no ack yet", m)
 		return
 	}
@@ -1223,7 +1207,7 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
 		return
 	}
 	if len(pl.VMs[dbs.VMIndex].List) > 0 {
-		s.LogMessage("executeMsg", "drop len(pl.VMs[dbs.VMIndex].List) > 0", m)
+		s.LogMessage("executeMsg", "drop, slot 0 taken by", pl.VMs[dbs.VMIndex].List[0])
 		return
 	}
 
