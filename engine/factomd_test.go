@@ -98,7 +98,7 @@ func TestSetupANetwork(t *testing.T) {
 		"-controlpanelport=37002",
 		"-networkport=37003",
 		"-startdelay=1",
-		"-debuglog=F.*",
+		//"-debuglog=F.*",
 		"--stdoutlog=out.txt",
 		"--stderrlog=out.txt",
 	)
@@ -242,7 +242,7 @@ func TestSetupANetwork(t *testing.T) {
 	time.Sleep(10 * time.Second)
 	PrintOneStatus(0, 0)
 	if state0.LLeaderHeight > 15 {
-		t.Fatalf("Failed to shut down factomd via ShutdownChan expected DBHeight 15 got %s", state0.LLeaderHeight)
+		t.Fatalf("Failed to shut down factomd via ShutdownChan expected DBHeight 15 got %d", state0.LLeaderHeight)
 	}
 
 }
