@@ -124,6 +124,10 @@ func (m *MessageBase) SendOut(s interfaces.IState, msg interfaces.IMsg) {
 	s.NetworkOutMsgQueue().Enqueue(msg)
 }
 
+func (m *MessageBase) GetResendCnt() int {
+	return m.ResendCnt
+}
+
 func (m *MessageBase) GetNoResend() bool {
 	return m.NoResend
 }
@@ -157,7 +161,7 @@ func (m *MessageBase) Resend(s interfaces.IState) (rtn bool) {
 		m.resend = now
 		return false
 	}
-	if now-m.resend > 20000 && s.NetworkOutMsgQueue().Length() < s.NetworkOutMsgQueue().Cap()*99/100 {
+	if now-m.resend > 2000 && s.NetworkOutMsgQueue().Length() < s.NetworkOutMsgQueue().Cap()*99/100 {
 		m.resend = now
 		return true
 	}

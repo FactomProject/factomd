@@ -370,7 +370,7 @@ func (s *State) ReviewHolding() {
 	// Set this flag, so it acts as a constant.  We will set s.LeaderNewMin to false
 	// after processing the Holding Queue.  Ensures we only do this one per minute.
 	processMinute := s.LeaderNewMin // Have we processed this minute
-	s.LeaderNewMin = false          // Either way, don't do it again until the ProcessEOM resets LeaderNewMin
+	s.LeaderNewMin++                // Either way, don't do it again until the ProcessEOM resets LeaderNewMin
 
 	for k, v := range s.Holding {
 		ack := s.Acks[k]
@@ -396,6 +396,14 @@ func (s *State) ReviewHolding() {
 			continue
 		case 0:
 			continue
+		}
+
+		if v.GetResendCnt() == 0 {
+			v.SendOut(s, v)
+		} else {
+			if v.Resend(s) {
+				v.SendOut(s, v)
+			}
 		}
 
 		if int(highest)-int(saved) > 1000 {
@@ -494,7 +502,7 @@ func (s *State) ReviewHolding() {
 				continue
 			}
 			// Only reprocess if at the top of a new minute, and if we are a leader.
-			if !processMinute {
+			if processMinute < 10 {
 				continue // No need for followers to review Reveal Entry messages
 			}
 			re.SendOut(s, re)
@@ -1703,7 +1711,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		//	e.VMIndex, allfaults, s.EOMProcessed, s.EOMLimit, s.EOMDone))
 
 		s.EOMDone = true
-		s.LeaderNewMin = true
+		s.LeaderNewMin = 0
 		for _, eb := range pl.NewEBlocks {
 			eb.AddEndOfMinuteMarker(byte(e.Minute + 1))
 		}
