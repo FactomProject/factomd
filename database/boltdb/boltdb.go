@@ -8,6 +8,9 @@ import (
 	"fmt"
 	"sync"
 
+	"os"
+	"path/filepath"
+
 	"github.com/FactomProject/bolt"
 	"github.com/FactomProject/factomd/common/interfaces"
 )
@@ -39,6 +42,16 @@ func NewBoltDB(bucketList [][]byte, filename string) *BoltDB {
 	db := new(BoltDB)
 	db.Init(bucketList, filename)
 	return db
+}
+
+func NewAndCreateBoltDB(bucketList [][]byte, filename string) *BoltDB {
+	err := os.MkdirAll(filepath.Dir(filename), 0750)
+	if err != nil {
+		if err != nil {
+			panic("Database could not be created, " + err.Error())
+		}
+	}
+	return NewBoltDB(bucketList, filename)
 }
 
 /***************************************

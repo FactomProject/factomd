@@ -14,6 +14,34 @@ import (
 	"github.com/FactomProject/factomd/testHelper"
 )
 
+func TestCalculateCoinbasePayout(t *testing.T) {
+	testIt := func(eff uint16, exp uint64) {
+		if CalculateCoinbasePayout(eff) != exp {
+			t.Errorf("Expected %d, got %d", exp, CalculateCoinbasePayout(eff))
+		}
+	}
+
+	testIt(10000, 0)
+	testIt(0, 6.4*1e8)
+	testIt(4952, 3.23072*1e8)
+
+}
+
+func TestEfficiencyToString(t *testing.T) {
+	testIt := func(n uint16, e string) {
+		if EfficiencyToString(n) != e {
+			t.Errorf("Expected %s, got %s", e, EfficiencyToString(n))
+		}
+	}
+
+	testIt(10000, "100.00")
+	testIt(4952, "49.52")
+	testIt(0x1358, "49.52")
+	testIt(100, "1.00")
+	testIt(2945, "29.45")
+	testIt(10, "0.10")
+}
+
 func TestPrintHelp(test *testing.T) {
 	t := func(v int64, str string) {
 		s := AddCommas(v)
@@ -74,7 +102,7 @@ func TestWriteNumber(t *testing.T) {
 
 	answer := "010203040506070809101112131415"
 	if out.String() != answer {
-		t.Errorf("Failed WriteNumbers. Expected %v, got %v", out.String())
+		t.Errorf("Failed WriteNumbers. Expected %v, got %v", out.String(), answer)
 	}
 }
 

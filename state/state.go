@@ -7,16 +7,15 @@ package state
 import (
 	"bufio"
 	"bytes"
+	"crypto/rand"
+	"encoding/binary"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
-	"time"
-
 	"sync"
-
-	"crypto/rand"
-	"encoding/binary"
+	"time"
 
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
@@ -30,10 +29,9 @@ import (
 	"github.com/FactomProject/factomd/database/mapdb"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/util"
+	"github.com/FactomProject/factomd/util/atomic"
 	"github.com/FactomProject/factomd/wsapi"
 	"github.com/FactomProject/logrustash"
-
-	"errors"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -47,10 +45,10 @@ var _ = fmt.Print
 type State struct {
 	Logger            *log.Entry
 	IsRunning         bool
-	filename          string
 	NetworkController *p2p.Controller
 	Salt              interfaces.IHash
 	Cfg               interfaces.IFactomConfig
+	ConfigFilePath    string // $HOME/.factom/m2/factomd.conf by default
 
 	Prefix            string
 	FactomNodeName    string
@@ -76,6 +74,7 @@ type State struct {
 	PortNumber              int
 	Replay                  *Replay
 	FReplay                 *Replay
+	CrossReplay             *CrossReplayFilter
 	DropRate                int
 	Delay                   int64 // Simulation delays sending messages this many milliseconds
 
@@ -98,14 +97,18 @@ type State struct {
 	LocalNetworkPort        string
 	LocalSeedURL            string
 	LocalSpecialPeers       string
+	CustomNetworkPort       string
+	CustomSeedURL           string
+	CustomSpecialPeers      string
 	CustomNetworkID         []byte
 	CustomBootstrapIdentity string
 	CustomBootstrapKey      string
 
-	IdentityChainID      interfaces.IHash // If this node has an identity, this is it
-	Identities           []*Identity      // Identities of all servers in management chain
-	Authorities          []*Authority     // Identities of all servers in management chain
-	AuthorityServerCount int              // number of federated or audit servers allowed
+	IdentityChainID interfaces.IHash // If this node has an identity, this is it
+	//Identities      []*Identity      // Identities of all servers in management chain
+	// Authorities          []*Authority     // Identities of all servers in management chain
+	AuthorityServerCount int // number of federated or audit servers allowed
+	IdentityControl      *IdentityManager
 
 	// Just to print (so debugging doesn't drive functionality)
 	Status      int // Return a status (0 do nothing, 1 provide queues, 2 provide consensus data)
@@ -120,10 +123,18 @@ type State struct {
 	ResetCnt    int
 
 	//  pending entry/transaction api calls for the holding queue do not have proper scope
-	//  This is used to create a temporary, correctly scoped holdingqueue snapshot for the calls on demand
+	//  This is used to create a temporary, correctly scoped holding queue snapshot for the calls on demand
 	HoldingMutex sync.RWMutex
 	HoldingLast  int64
 	HoldingMap   map[[32]byte]interfaces.IMsg
+
+	// Elections are managed through the Elections Structure
+	EFactory  interfaces.IElectionsFactory
+	Elections interfaces.IElections
+	Election0 string // Title
+	Election1 string // Election state for display
+	Election2 string // Election state for display
+	Election3 string // Election leader list
 
 	//  pending entry/transaction api calls for the ack queue do not have proper scope
 	//  This is used to create a temporary, correctly scoped ackqueue snapshot for the calls on demand
@@ -151,6 +162,8 @@ type State struct {
 	networkOutMsgQueue     NetOutMsgQueue
 	networkInvalidMsgQueue chan interfaces.IMsg
 	inMsgQueue             InMsgMSGQueue
+	inMsgQueue2            InMsgMSGQueue
+	electionsQueue         ElectionQueue
 	apiQueue               APIMSGQueue
 	ackQueue               chan interfaces.IMsg
 	msgQueue               chan interfaces.IMsg
@@ -191,9 +204,12 @@ type State struct {
 	LeaderVMIndex   int
 	LeaderPL        *ProcessList
 	PLProcessHeight uint32
-	OneLeader       bool
-	OutputAllowed   bool
-	CurrentMinute   int
+	// Height cutoff where no missing messages below this height
+	DBHeightAtBoot uint32
+	OneLeader      bool
+	OutputAllowed  bool
+	LeaderNewMin   int
+	CurrentMinute  int
 
 	// These are the start times for blocks and minutes
 	CurrentMinuteStartTime int64
@@ -246,11 +262,10 @@ type State struct {
 
 	AuditHeartBeats []interfaces.IMsg // The checklist of HeartBeats for this period
 
-	FaultTimeout    int
-	FaultWait       int
-	EOMfaultIndex   int
-	LastFaultAction int64
-	LastTiebreak    int64
+	FaultTimeout  int
+	FaultWait     int
+	EOMfaultIndex int
+	LastTiebreak  int64
 
 	AuthoritySetString string
 	// Network MAIN = 0, TEST = 1, LOCAL = 2, CUSTOM = 3
@@ -362,6 +377,11 @@ type State struct {
 	NumEntryBlocks int // Number of Entry Blocks
 	NumFCTTrans    int // Number of Factoid Transactions in this block
 
+	// debug message
+	pstate              string
+	SyncingState        [256]string
+	SyncingStateCurrent int
+	processCnt          int64 // count of attempts to process .. so we can see if the thread is running
 }
 
 var _ interfaces.IState = (*State)(nil)
@@ -369,6 +389,10 @@ var _ interfaces.IState = (*State)(nil)
 type EntryUpdate struct {
 	Hash      interfaces.IHash
 	Timestamp interfaces.Timestamp
+}
+
+func (s *State) GetConfigPath() string {
+	return s.ConfigFilePath
 }
 
 func (s *State) Running() bool {
@@ -428,6 +452,9 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 	newState.LocalNetworkPort = s.LocalNetworkPort
 	newState.LocalSeedURL = s.LocalSeedURL
 	newState.LocalSpecialPeers = s.LocalSpecialPeers
+	newState.CustomNetworkPort = s.CustomNetworkPort
+	newState.CustomSeedURL = s.CustomSeedURL
+	newState.CustomSpecialPeers = s.CustomSpecialPeers
 	newState.StartDelayLimit = s.StartDelayLimit
 	newState.CustomNetworkID = s.CustomNetworkID
 
@@ -437,9 +464,11 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 	newState.ControlPanelPort = s.ControlPanelPort
 	newState.ControlPanelSetting = s.ControlPanelSetting
 
-	newState.Identities = s.Identities
-	newState.Authorities = s.Authorities
+	//newState.Identities = s.Identities
+	//newState.Authorities = s.Authorities
 	newState.AuthorityServerCount = s.AuthorityServerCount
+
+	newState.IdentityControl = s.IdentityControl.Clone()
 
 	newState.FaultTimeout = s.FaultTimeout
 	newState.FaultWait = s.FaultWait
@@ -484,7 +513,6 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 		newState.StateSaverStruct.FastBootLocation = newState.BoltDBPath
 		break
 	}
-
 	return newState
 }
 
@@ -545,6 +573,11 @@ func (s *State) GetNetStateOff() bool { //	If true, all network communications a
 }
 
 func (s *State) SetNetStateOff(net bool) {
+	//flag this in everyone!
+	s.LogPrintf("executeMsg", "State.SetNetStateOff(%v)", net)
+	s.LogPrintf("election", "State.SetNetStateOff(%v)", net)
+	s.LogPrintf("InMsgQueue", "State.SetNetStateOff(%v)", net)
+	s.LogPrintf("NetworkInputs", "State.SetNetStateOff(%v)", net)
 	s.NetStateOff = net
 }
 
@@ -605,7 +638,7 @@ func (s *State) IncECommits() {
 }
 
 func (s *State) GetAckChange() error {
-	change, err := util.GetChangeAcksHeight(s.filename)
+	change, err := util.GetChangeAcksHeight(s.ConfigFilePath)
 	if err != nil {
 		return err
 	}
@@ -617,7 +650,7 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 	s.FactomNodeName = s.Prefix + "FNode0" // Default Factom Node Name for Simulation
 
 	if len(filename) > 0 {
-		s.filename = filename
+		s.ConfigFilePath = filename
 		s.ReadCfg(filename)
 
 		// Get our factomd configuration information.
@@ -661,6 +694,9 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		s.LocalSeedURL = cfg.App.LocalSeedURL
 		s.LocalSpecialPeers = cfg.App.LocalSpecialPeers
 		s.LocalServerPrivKey = cfg.App.LocalServerPrivKey
+		s.CustomNetworkPort = cfg.App.CustomNetworkPort
+		s.CustomSeedURL = cfg.App.CustomSeedURL
+		s.CustomSpecialPeers = cfg.App.CustomSpecialPeers
 		s.FactoshisPerEC = cfg.App.ExchangeRate
 		s.DirectoryBlockInSeconds = cfg.App.DirectoryBlockInSeconds
 		s.PortNumber = cfg.App.PortNumber
@@ -738,6 +774,8 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 
 	}
 	s.JournalFile = s.LogPath + "/journal0" + ".log"
+
+	s.updateNetworkControllerConfig()
 }
 
 func (s *State) GetSalt(ts interfaces.Timestamp) uint32 {
@@ -759,6 +797,7 @@ func (s *State) GetSalt(ts interfaces.Timestamp) uint32 {
 }
 
 func (s *State) Init() {
+
 	if s.Salt == nil {
 		b := make([]byte, 32)
 		_, err := rand.Read(b)
@@ -795,15 +834,17 @@ func (s *State) Init() {
 	s.TimeOffset = new(primitives.Timestamp)                   //interfaces.Timestamp(int64(rand.Int63() % int64(time.Microsecond*10)))
 	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 100) //incoming message queue from the network messages
 	s.InvalidMessages = make(map[[32]byte]interfaces.IMsg, 0)
-	s.networkOutMsgQueue = NewNetOutMsgQueue(1000)      //Messages to be broadcast to the network
-	s.inMsgQueue = NewInMsgQueue(10000)                 //incoming message queue for Factom application messages
-	s.apiQueue = NewAPIQueue(100)                       //incoming message queue from the API
-	s.ackQueue = make(chan interfaces.IMsg, 100)        //queue of Leadership messages
-	s.msgQueue = make(chan interfaces.IMsg, 400)        //queue of Follower messages
-	s.ShutdownChan = make(chan int, 1)                  //Channel to gracefully shut down.
-	s.MissingEntries = make(chan *MissingEntry, 1000)   //Entries I discover are missing from the database
-	s.UpdateEntryHash = make(chan *EntryUpdate, 10000)  //Handles entry hashes and updating Commit maps.
-	s.WriteEntry = make(chan interfaces.IEBEntry, 3000) //Entries to be written to the database
+	s.networkOutMsgQueue = NewNetOutMsgQueue(5000)                 //Messages to be broadcast to the network
+	s.inMsgQueue = NewInMsgQueue(constants.INMSGQUEUE_HIGH + 100)  //incoming message queue for Factom application messages
+	s.inMsgQueue2 = NewInMsgQueue(constants.INMSGQUEUE_HIGH + 100) //incoming message queue for Factom application messages
+	s.electionsQueue = NewElectionQueue(10000)                     //incoming message queue for Factom application messages
+	s.apiQueue = NewAPIQueue(100)                                  //incoming message queue from the API
+	s.ackQueue = make(chan interfaces.IMsg, 100)                   //queue of Leadership messages
+	s.msgQueue = make(chan interfaces.IMsg, 400)                   //queue of Follower messages
+	s.ShutdownChan = make(chan int, 1)                             //Channel to gracefully shut down.
+	s.MissingEntries = make(chan *MissingEntry, 1000)              //Entries I discover are missing from the database
+	s.UpdateEntryHash = make(chan *EntryUpdate, 10000)             //Handles entry hashes and updating Commit maps.
+	s.WriteEntry = make(chan interfaces.IEBEntry, 3000)            //Entries to be written to the database
 
 	if s.Journaling {
 		f, err := os.Create(s.JournalFile)
@@ -815,12 +856,17 @@ func (s *State) Init() {
 	}
 	// Set up struct to stop replay attacks
 	s.Replay = new(Replay)
+	s.Replay.s = s
+	s.Replay.name = "Replay"
+
 	s.FReplay = new(Replay)
+	s.FReplay.s = s
+	s.FReplay.name = "FReplay"
 
 	// Set up maps for the followers
 	s.Holding = make(map[[32]byte]interfaces.IMsg)
 	s.Acks = make(map[[32]byte]interfaces.IMsg)
-	s.Commits = NewSafeMsgMap() //make(map[[32]byte]interfaces.IMsg)
+	s.Commits = NewSafeMsgMap("commits", s) //make(map[[32]byte]interfaces.IMsg)
 
 	// Setup the FactoidState and Validation Service that holds factoid and entry credit balances
 	s.FactoidBalancesP = map[[32]byte]int64{}
@@ -833,7 +879,6 @@ func (s *State) Init() {
 	// Allocate the original set of Process Lists
 	s.ProcessLists = NewProcessLists(s)
 	s.FaultWait = 3
-	s.LastFaultAction = 0
 	s.LastTiebreak = 0
 	s.EOMfaultIndex = 0
 
@@ -877,6 +922,14 @@ func (s *State) Init() {
 		s.DB.SetExportData(s.ExportDataSubpath)
 	}
 
+	// Cross Boot Replay
+	switch s.DBType {
+	case "Map":
+		s.SetupCrossBootReplay("Map")
+	default:
+		s.SetupCrossBootReplay("Bolt")
+	}
+
 	//Network
 	switch s.Network {
 	case "MAIN":
@@ -898,6 +951,10 @@ func (s *State) Init() {
 
 	s.AuditHeartBeats = make([]interfaces.IMsg, 0)
 
+	// If we cloned the Identity control of another node, don't reset!
+	if s.IdentityControl == nil {
+		s.IdentityControl = NewIdentityManager()
+	}
 	s.initServerKeys()
 	s.AuthorityServerCount = 0
 
@@ -1016,11 +1073,8 @@ func (s *State) GetEBlockKeyMRFromEntryHash(entryHash interfaces.IHash) interfac
 	return nil
 }
 
-func (s *State) GetAndLockDB() interfaces.DBOverlaySimple {
+func (s *State) GetDB() interfaces.DBOverlaySimple {
 	return s.DB
-}
-
-func (s *State) UnlockDB() {
 }
 
 // Checks ChainIDs to determine if we need their entries to process entries and transactions.
@@ -1754,9 +1808,7 @@ entryHashProcessing:
 			s.Replay.SetHashNow(constants.REVEAL_REPLAY, e.Hash.Fixed(), e.Timestamp)
 			// If the SetHashNow worked, then we should prohibit any commit that might be pending.
 			// Remove any commit that might be around.
-			if !s.Replay.IsHashUnique(constants.REVEAL_REPLAY, e.Hash.Fixed()) {
-				s.Commits.Delete(e.Hash.Fixed())
-			}
+			s.Commits.Delete(e.Hash.Fixed())
 		default:
 			break entryHashProcessing
 		}
@@ -1778,6 +1830,7 @@ func (s *State) AddDBSig(dbheight uint32, chainID interfaces.IHash, sig interfac
 
 func (s *State) AddFedServer(dbheight uint32, hash interfaces.IHash) int {
 	//s.AddStatus(fmt.Sprintf("AddFedServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
+	s.LogPrintf("executeMsg", "AddServer (Federated): ChainID: %x at dbht: %d From %s", hash.Bytes()[3:6], dbheight, atomic.WhereAmIString(1))
 	return s.ProcessLists.Get(dbheight).AddFedServer(hash)
 }
 
@@ -1787,16 +1840,19 @@ func (s *State) TrimVMList(dbheight uint32, height uint32, vmIndex int) {
 
 func (s *State) RemoveFedServer(dbheight uint32, hash interfaces.IHash) {
 	//s.AddStatus(fmt.Sprintf("RemoveFedServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
+	s.LogPrintf("executeMsg", "RemoveServer (Federated): ChainID: %x at dbht: %d", hash.Bytes()[3:6], dbheight)
 	s.ProcessLists.Get(dbheight).RemoveFedServerHash(hash)
 }
 
 func (s *State) AddAuditServer(dbheight uint32, hash interfaces.IHash) int {
 	//s.AddStatus(fmt.Sprintf("AddAuditServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
+	s.LogPrintf("executeMsg", "AddServer (Audit): ChainID: %x at dbht: %d", hash.Bytes()[3:6], dbheight)
 	return s.ProcessLists.Get(dbheight).AddAuditServer(hash)
 }
 
 func (s *State) RemoveAuditServer(dbheight uint32, hash interfaces.IHash) {
 	//s.AddStatus(fmt.Sprintf("RemoveAuditServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
+	s.LogPrintf("executeMsg", "RemoveServer (Audit): ChainID: %x at dbht: %d", hash.Bytes()[3:6], dbheight)
 	s.ProcessLists.Get(dbheight).RemoveAuditServerHash(hash)
 }
 
@@ -1993,6 +2049,13 @@ func (s *State) InMsgQueue() interfaces.IQueue {
 	return s.inMsgQueue
 }
 
+func (s *State) InMsgQueue2() interfaces.IQueue {
+	return s.inMsgQueue2
+}
+func (s *State) ElectionsQueue() interfaces.IQueue {
+	return s.electionsQueue
+}
+
 func (s *State) APIQueue() interfaces.IQueue {
 	return s.apiQueue
 }
@@ -2028,12 +2091,7 @@ func (s *State) SetFaultWait(wait int) {
 
 // GetAuthorities will return a list of the network authorities
 func (s *State) GetAuthorities() []interfaces.IAuthority {
-	auths := make([]interfaces.IAuthority, 0)
-	for _, auth := range s.Authorities {
-		auths = append(auths, auth)
-	}
-
-	return auths
+	return s.IdentityControl.GetAuthorities()
 }
 
 // GetLeaderPL returns the leader process list from the state. this method is
@@ -2147,6 +2205,11 @@ func (s *State) GetNetworkSkeletonIdentity() interfaces.IHash {
 		return id
 	}
 	id, _ := primitives.HexToHash("8888888888888888888888888888888888888888888888888888888888888888")
+	return id
+}
+
+func (s *State) GetNetworkIdentityRegistrationChain() interfaces.IHash {
+	id, _ := primitives.HexToHash("888888001750ede0eff4b05f0c3f557890b256450cabbb84cada937f9c258327")
 	return id
 }
 
@@ -2326,9 +2389,6 @@ func (s *State) SetStringQueues() {
 	if found {
 		L = "L"
 		if list != nil {
-			if list.AmINegotiator {
-				N = "N"
-			}
 		}
 	} else {
 		if list != nil {
@@ -2372,7 +2432,7 @@ func (s *State) SetStringQueues() {
 
 	str := fmt.Sprintf("%10s[%6x] %4s%4s %2d/%2d %2d.%01d%% %2d.%03d",
 		s.FactomNodeName,
-		s.IdentityChainID.Bytes()[2:5],
+		s.IdentityChainID.Bytes()[3:6],
 		stype,
 		vmIndex,
 		s.ResetTryCnt,
@@ -2412,12 +2472,7 @@ func (s *State) SetStringQueues() {
 	str = str + fmt.Sprintf(" %d/%d", list.System.Height, len(list.System.List))
 
 	if list.System.Height < len(list.System.List) {
-		ff, ok := list.System.List[list.System.Height].(*messages.FullServerFault)
-		if ok {
-			str = str + fmt.Sprintf(" VM:%d %s", int(ff.VMIndex), ff.AuditServerID.String()[6:10])
-		} else {
-			str = str + fmt.Sprintf(" VM:%s %s", "?", "-nil-")
-		}
+		str = str + fmt.Sprintf(" VM:%s %s", "?", "-nil-")
 	} else {
 		str = str + " -"
 	}
@@ -2612,4 +2667,27 @@ func (s *State) GetLastStatus() string {
 	}
 	str := s.StatusStrs[len(s.StatusStrs)-1]
 	return str
+}
+
+func (s *State) updateNetworkControllerConfig() {
+	if s.NetworkController == nil {
+		return
+	}
+
+	var newPeersConfig string
+	switch s.Network {
+	case "MAIN", "main":
+		newPeersConfig = s.MainSpecialPeers
+	case "TEST", "test":
+		newPeersConfig = s.TestSpecialPeers
+	case "LOCAL", "local":
+		newPeersConfig = s.LocalSpecialPeers
+	case "CUSTOM", "custom":
+		newPeersConfig = s.CustomSpecialPeers
+	default:
+		// should already be verified earlier
+		panic(fmt.Sprintf("Invalid Network: %s", s.Network))
+	}
+
+	s.NetworkController.ReloadSpecialPeers(newPeersConfig)
 }

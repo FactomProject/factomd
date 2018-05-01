@@ -19,13 +19,14 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 	log "github.com/sirupsen/logrus"
 )
 
 // Communicate a Directory Block State
 
 type DBStateMsg struct {
-	MessageBase
+	msgbase.MessageBase
 	Timestamp interfaces.Timestamp
 
 	//TODO: handle malformed DBStates!
@@ -198,7 +199,8 @@ func (m *DBStateMsg) ValidateSignatures(state interfaces.IState) int {
 	// we can validate by prevKeyMr of the block that follows this one
 	if m.DirectoryBlock.GetDatabaseHeight() == state.GetHighestSavedBlk()+1 {
 		// Fed count of this height -1, as we may not have the height itself
-		fedCount := len(state.GetFedServers(m.DirectoryBlock.GetDatabaseHeight()))
+		feds := state.GetFedServers(m.DirectoryBlock.GetDatabaseHeight())
+		fedCount := len(feds)
 		tally := m.SigTally(state)
 		if tally >= (fedCount/2 + 1) {
 			// This has all the signatures it needs
@@ -217,6 +219,20 @@ func (m *DBStateMsg) ValidateSignatures(state interfaces.IState) int {
 					}
 					// Reduce our total fed servers
 					fedCount--
+				case constants.TYPE_ADD_AUDIT_SERVER:
+					// This could be a demotion, so we need to reduce the fedcount
+					ad, ok := adminEntry.(*adminBlock.AddAuditServer)
+					if !ok {
+						continue
+					}
+
+					// See if this was one of our leaders
+					for _, f := range feds {
+						if f.GetChainID().IsSameAs(ad.IdentityChainID) {
+							fedCount--
+							break
+						}
+					}
 				}
 			}
 			if tally >= (fedCount/2 + 1) {
@@ -346,7 +362,7 @@ func (m *DBStateMsg) SigTally(state interfaces.IState) int {
 			continue // Toss duplicate signatures
 		}
 		sigmap[fmt.Sprintf("%x", sig.GetSignature()[:])] = true
-		check, err := state.VerifyAuthoritySignature(data, sig.GetSignature(), dbheight)
+		check, err := state.FastVerifyAuthoritySignature(data, sig, dbheight)
 		if err == nil && check >= 0 {
 			validSigCount++
 			continue
@@ -505,7 +521,7 @@ func (m *DBStateMsg) FollowerExecute(state interfaces.IState) {
 	state.FollowerExecuteDBState(m)
 }
 
-// Acknowledgements do not go into the process list.
+// DBState messages do not go into the process list.
 func (e *DBStateMsg) Process(dbheight uint32, state interfaces.IState) bool {
 	panic("DBStatemsg should never have its Process() method called")
 }
@@ -719,4 +735,46 @@ func NewDBStateMsg(timestamp interfaces.Timestamp,
 	msg.SignatureList = *sl
 
 	return msg
+}
+
+type SigList struct {
+	Length uint32
+	List   []interfaces.IFullSignature
+}
+
+func (sl *SigList) MarshalBinary() (data []byte, err error) {
+	var buf primitives.Buffer
+
+	binary.Write(&buf, binary.BigEndian, uint32(sl.Length))
+
+	for _, individualSig := range sl.List {
+		if d, err := individualSig.MarshalBinary(); err != nil {
+			return nil, err
+		} else {
+			buf.Write(d)
+		}
+	}
+
+	return buf.DeepCopyBytes(), nil
+}
+
+func (sl *SigList) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("Error unmarshalling SigList in Full Server Fault: %v", r)
+		}
+	}()
+
+	newData = data
+	sl.Length, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+
+	for i := sl.Length; i > 0; i-- {
+		tempSig := new(primitives.Signature)
+		newData, err = tempSig.UnmarshalBinaryData(newData)
+		if err != nil {
+			return nil, err
+		}
+		sl.List = append(sl.List, tempSig)
+	}
+	return newData, nil
 }

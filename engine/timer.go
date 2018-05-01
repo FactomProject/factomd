@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	s "github.com/FactomProject/factomd/state"
 )
@@ -53,7 +54,7 @@ func Timer(state interfaces.IState) {
 				next += tenthPeriod
 			}
 			time.Sleep(time.Duration(wait))
-			for state.InMsgQueue().Length() > 5000 {
+			for state.InMsgQueue().Length() > constants.INMSGQUEUE_HIGH {
 				time.Sleep(100 * time.Millisecond)
 			}
 

@@ -12,13 +12,14 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 	log "github.com/sirupsen/logrus"
 )
 
 //Requests entry blocks from a range of DBlocks
 
 type MissingEntryBlocks struct {
-	MessageBase
+	msgbase.MessageBase
 	Timestamp interfaces.Timestamp
 
 	DBHeightStart uint32 // First block missing
@@ -93,7 +94,7 @@ func (m *MissingEntryBlocks) LeaderExecute(state interfaces.IState) {
 }
 
 func (m *MissingEntryBlocks) FollowerExecute(state interfaces.IState) {
-	if state.NetworkOutMsgQueue().Length() > 1000 {
+	if state.NetworkOutMsgQueue().Length() > state.NetworkOutMsgQueue().Cap()*99/100 {
 		return
 	}
 	start := m.DBHeightStart
@@ -101,8 +102,7 @@ func (m *MissingEntryBlocks) FollowerExecute(state interfaces.IState) {
 	if end-start > 20 {
 		end = start + 20
 	}
-	db := state.GetAndLockDB()
-	defer state.UnlockDB()
+	db := state.GetDB()
 
 	resp := NewEntryBlockResponse(state).(*EntryBlockResponse)
 

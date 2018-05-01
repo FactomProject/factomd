@@ -10,14 +10,19 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/common/primitives"
 
 	log "github.com/sirupsen/logrus"
 )
 
+// packageLogger is the general logger for all message related logs. You can add additional fields,
+// or create more context loggers off of this
+var packageLogger = log.WithFields(log.Fields{"package": "messages"})
+
 //General acknowledge message
 type Ack struct {
-	MessageBase
+	msgbase.MessageBase
 	Timestamp   interfaces.Timestamp // Timestamp of Ack by Leader
 	Salt        [8]byte              // Eight bytes of the salt
 	SaltNumber  uint32               // Secret Number used to detect multiple servers with the same ID
@@ -39,14 +44,14 @@ type Ack struct {
 }
 
 var _ interfaces.IMsg = (*Ack)(nil)
-var _ Signable = (*Ack)(nil)
+var _ interfaces.Signable = (*Ack)(nil)
 var AckBalanceHash = true
 
 func (m *Ack) GetRepeatHash() interfaces.IHash {
 	return m.GetMsgHash()
 }
 
-// We have to return the haswh of the underlying message.
+// We have to return the hash of the underlying message.
 func (m *Ack) GetHash() interfaces.IHash {
 	return m.MessageHash
 }
@@ -71,22 +76,42 @@ func (m *Ack) GetTimestamp() interfaces.Timestamp {
 }
 
 func (m *Ack) VerifySignature() (bool, error) {
-	return VerifyMessage(m)
+	return msgbase.VerifyMessage(m)
 }
 
 // Validate the message, given the state.  Three possible results:
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
-func (m *Ack) Validate(state interfaces.IState) int {
+func (m *Ack) Validate(s interfaces.IState) int {
+	//	atomic.WhereAmI2("Ack.Validate()", 1)
 	// If too old, it isn't valid.
-	if m.DBHeight <= state.GetHighestSavedBlk() {
+	if m.DBHeight <= s.GetHighestSavedBlk() {
 		return -1
 	}
 
+	if s.GetHighestAck() < m.DBHeight {
+		s.SetHighestAck(m.DBHeight) // assume the ack isn't lying. this will make us start requesting DBState blocks...
+	}
+
+	delta := (int(m.DBHeight)-int(s.GetLeaderPL().GetDBHeight()))*10 + (int(m.Minute) - int(s.GetCurrentMinute()))
+
+	if delta > 30 {
+		s.LogMessage("ackQueue", "Drop ack from future", m)
+		// when we get caught up we will either get a DBState with this message or we will missing message it.
+		// but if it was malicious then we don't want to keep it around filling up queues.
+		return -1
+	}
+
+	if delta > 15 {
+		return 0 // put this in the holding and validate it later
+	}
+
 	// Only new acks are valid. Of course, the VMIndex has to be valid too.
-	msg, _ := state.GetMsg(m.VMIndex, int(m.DBHeight), int(m.Height))
+	msg, _ := s.GetMsg(m.VMIndex, int(m.DBHeight), int(m.Height))
 	if msg != nil {
+		s.LogMessage("executeMsg", "Ack slot taken", m)
+		s.LogMessage("executeMsg", "found:", msg)
 		return -1
 	}
 
@@ -97,8 +122,8 @@ func (m *Ack) Validate(state interfaces.IState) int {
 			//fmt.Println("Err is not nil on Ack sig check: ", err)
 			return -1
 		}
-		sig := m.Signature.GetSignature()
-		ackSigned, err := state.VerifyAuthoritySignature(bytes, sig, m.DBHeight)
+		s.LogMessage("executeMsg", "Validate", m)
+		ackSigned, err := s.FastVerifyAuthoritySignature(bytes, m.Signature, m.DBHeight)
 
 		//ackSigned, err := m.VerifySignature()
 		if err != nil {
@@ -143,7 +168,7 @@ func (e *Ack) JSONString() (string, error) {
 }
 
 func (m *Ack) Sign(key interfaces.Signer) error {
-	signature, err := SignSignable(m, key)
+	signature, err := msgbase.SignSignable(m, key)
 	if err != nil {
 		return err
 	}
@@ -230,7 +255,9 @@ func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 		}
 	}
 
-	if len(newData) > 0 {
+	b, newData := newData[0], newData[1:]
+
+	if b > 0 {
 		m.Signature = new(primitives.Signature)
 		newData, err = m.Signature.UnmarshalBinaryData(newData)
 		if err != nil {
@@ -238,7 +265,7 @@ func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 		}
 	}
 
-	m.marshalCache = data[:len(data)-len(newData)]
+	m.marshalCache = append(m.marshalCache, data[:len(data)-len(newData)]...)
 
 	return
 }
@@ -327,22 +354,23 @@ func (m *Ack) MarshalBinary() (data []byte, err error) {
 	sig := m.GetSignature()
 
 	if sig != nil {
+		resp = append(resp, 1)
 		sigBytes, err := sig.MarshalBinary()
 		if err != nil {
 			return nil, err
 		}
 		return append(resp, sigBytes...), nil
+	} else {
+		resp = append(resp, 0)
 	}
 	return resp, nil
 }
 
 func (m *Ack) String() string {
-	return fmt.Sprintf("%6s-VM%3d: PL:%5d DBHt:%5d -- Leader[:3]=%x hash[:3]=%x",
+	return fmt.Sprintf("%6s-%27s -- Leader[%x] hash[%x]",
 		"ACK",
-		m.VMIndex,
-		m.Height,
-		m.DBHeight,
-		m.LeaderChainID.Bytes()[:3],
+		fmt.Sprintf("DBh/VMh/h %d/%d/%d       ", m.DBHeight, m.VMIndex, m.Height),
+		m.LeaderChainID.Bytes()[3:6],
 		m.GetHash().Bytes()[:3])
 
 }

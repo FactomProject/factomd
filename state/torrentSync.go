@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	"github.com/FactomProject/factomd/common/constants"
 	"log"
 	"time"
 )
@@ -70,7 +71,7 @@ func (s *State) StartTorrentSyncing() error {
 		}
 
 		// Make sure we don't overload
-		if s.InMsgQueue().Length() > 3000 || s.HighestCompletedTorrent > lower+3500 {
+		if s.InMsgQueue().Length() > constants.INMSGQUEUE_MED || s.HighestCompletedTorrent > lower+3500 {
 			if s.HighestCompletedTorrent > lower+500 {
 				allowed = 1750
 			} else {

@@ -18,6 +18,7 @@ import (
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
+	"github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -728,8 +729,8 @@ func (list *DBStateList) String() string {
 			if ds.DirectoryBlock != nil {
 				rec = "x"
 
-				dblk, _ := list.State.GetAndLockDB().FetchDBlock(ds.DirectoryBlock.GetKeyMR())
-				defer list.State.UnlockDB()
+				dblk, _ := list.State.GetDB().FetchDBlock(ds.DirectoryBlock.GetKeyMR())
+
 				if dblk != nil {
 					rec = "s"
 				}
@@ -854,13 +855,15 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	d.EntryCreditBlock.GetHeader().SetDBHeight(currentDBHeight)
 
 	// Admin Block Fixup
-	previousPL := list.State.ProcessLists.Get(previousDBHeight)
+	//previousPL := list.State.ProcessLists.Get(cur)
 	currentPL := list.State.ProcessLists.Get(currentDBHeight)
 
 	// Servers
-	previousFeds := previousPL.FedServers
+	startingFeds := currentPL.StartingFedServers
 	currentFeds := currentPL.FedServers
 	currentAuds := currentPL.AuditServers
+
+	// Set the Start servers for the next block
 
 	// DB Sigs
 	majority := (len(currentFeds) / 2) + 1
@@ -875,47 +878,65 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	//list.State.AddStatus(fmt.Sprintf("FIXUPLINKS: Adding the first %d dbsigs",
 	//	majority))
 
-	for i, sig := range list.State.ProcessLists.Get(currentDBHeight).DBSignatures {
-		if i < majority {
-			d.AdminBlock.AddDBSig(sig.ChainID, sig.Signature)
-		} else {
-			break
-		}
+	for _, sig := range list.State.ProcessLists.Get(currentDBHeight).DBSignatures {
+		d.AdminBlock.AddDBSig(sig.ChainID, sig.Signature)
 	}
 
 	//list.State.AddStatus("FIXUPLINKS: Adding the deltas to the Admin Block, if necessary")
 
 	// Correcting Server Lists (Caused by Server Faults)
+	// 	This will correct any deltas from the serverlists
 	for _, cf := range currentFeds {
-		if !containsServer(previousFeds, cf) {
+		if !containsServer(startingFeds, cf) {
+			fmt.Printf("******* FUL: %12s %12s  Server %x\n", "Promote", list.State.FactomNodeName, cf.GetChainID().Bytes()[3:6])
 			// Promote to federated
-			//index := list.State.isIdentityChain(cf.GetChainID())
-			/*if index == -1 || !(list.State.Identities[index].Status == constants.IDENTITY_PENDING_FEDERATED_SERVER ||
-			list.State.Identities[index].Status == constants.IDENTITY_FEDERATED_SERVER) ||
-			list.State.Identities[index].Status == constants.IDENTITY_AUDIT_SERVER) {*/
 			addEntry := adminBlock.NewAddFederatedServer(cf.GetChainID(), currentDBHeight+1)
-			//list.State.AddStatus(fmt.Sprintf("FIXUPLINKS: Adding delta to the Admin Block: %s", addEntry.String()))
 			d.AdminBlock.AddFirstABEntry(addEntry)
-			/*} else {
-				list.State.AddStatus(fmt.Sprintf("FIXUPLINKS: Not Adding delta to the Admin Block: Idx: %d Status: %d", index, list.State.Identities[index].Status))
-			}*/
 		}
 	}
 
-	for _, pf := range previousFeds {
+	for _, pf := range startingFeds {
 		if !containsServer(currentFeds, pf) {
-			// Option 1: Remove as a server
-			/*if list.State.isAuthorityChain(pf.GetChainID()) != -1 {
-				removeEntry := adminBlock.NewRemoveFederatedServer(pf.GetChainID(), currentDBHeight+1)
-				d.AdminBlock.AddFirstABEntry(removeEntry)
-			}*/
-			// Option 2: Demote to Audit if it is there
+			// The fed is n
 			if containsServer(currentAuds, pf) {
 				demoteEntry := adminBlock.NewAddAuditServer(pf.GetChainID(), currentDBHeight+1)
 				d.AdminBlock.AddFirstABEntry(demoteEntry)
+				fmt.Printf("******* FUL: %12s %12s  Server %x, DBHeight: %d\n", "Demote", list.State.FactomNodeName, pf.GetChainID().Bytes()[3:6], d.DirectoryBlock.GetDatabaseHeight())
 			}
 			_ = currentAuds
 		}
+	}
+
+	// Additional Admin block changed can be made from identity changes
+	list.State.SyncIdentities(d)
+
+	// If this is a coinbase descriptor block, add that now
+	if currentDBHeight > constants.COINBASE_ACTIVATION && currentDBHeight%constants.COINBASE_PAYOUT_FREQUENCY == 0 {
+		// Build outputs
+		auths := list.State.IdentityControl.GetSortedAuthorities()
+		outputs := make([]interfaces.ITransAddress, 0)
+		for _, a := range auths {
+			ia := a.(*identity.Authority)
+			if ia.CoinbaseAddress.IsZero() {
+				continue
+			}
+			amt := primitives.CalculateCoinbasePayout(ia.Efficiency)
+			if amt == 0 {
+				continue
+			}
+
+			o := factoid.NewOutAddress(ia.CoinbaseAddress, amt)
+			outputs = append(outputs, o)
+		}
+		err = d.AdminBlock.AddCoinbaseDescriptor(outputs)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	err = d.AdminBlock.InsertIdentityABEntries()
+	if err != nil {
+		fmt.Println(err)
 	}
 
 	hash, err = p.AdminBlock.BackReferenceHash()
@@ -970,6 +991,12 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 
 	progress = true
 	d.IsNew = false
+	list.State.ResetTryCnt = 0
+
+	//fmt.Println("Fixup", d.DirectoryBlock.GetHeader().GetDBHeight())
+	//authlistMsg := list.State.EFactory.NewAuthorityListInternal(currentFeds, currentAuds, currentDBHeight)
+	//list.State.ElectionsQueue().Enqueue(authlistMsg)
+
 	return
 }
 
@@ -1026,11 +1053,11 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		out.WriteString(fmt.Sprintf("%19s %20s (%4d)", list.State.FactomNodeName, lable, pl.DBHeight))
 		out.WriteString("Fed: ")
 		for _, f := range pl.FedServers {
-			out.WriteString(fmt.Sprintf("%x ", f.GetChainID().Bytes()[3:5]))
+			out.WriteString(fmt.Sprintf("%x ", f.GetChainID().Bytes()[3:6]))
 		}
 		out.WriteString("---Audit: ")
 		for _, f := range pl.AuditServers {
-			out.WriteString(fmt.Sprintf("%x ", f.GetChainID().Bytes()[3:5]))
+			out.WriteString(fmt.Sprintf("%x ", f.GetChainID().Bytes()[3:6]))
 		}
 		out.WriteString("\n")
 	}
@@ -1067,6 +1094,10 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	pl.SortFedServers()
 	pln.SortAuditServers()
 	pln.SortFedServers()
+
+	// Now the authority lists are set, set the starting
+	pln.SetStartingAuthoritySet()
+	pln2.SetStartingAuthoritySet()
 
 	prt("pl 4th", pl)
 	prt("pln 4th", pln)
@@ -1120,6 +1151,17 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	pln.SortFedServers()
 	pln.SortAuditServers()
 
+	authlistMsg := list.State.EFactory.NewAuthorityListInternal(pln.FedServers, pln.AuditServers, pln.DBHeight)
+	list.State.ElectionsQueue().Enqueue(authlistMsg)
+
+	// Sync Identities
+	// 	Do the sync first, which will sync any Eblocks added from the prior block
+	//	Then add eblocks from this current block, they will be synced come the next block.
+	//	The order is important as when we are in this function, we only know n-1 is saved to disk
+	list.State.SyncIdentities(nil)                                                   // Sync n-1 eblocks
+	list.State.AddNewIdentityEblocks(d.EntryBlocks, d.DirectoryBlock.GetTimestamp()) // Add eblocks to be synced
+	list.State.UpdateAuthSigningKeys(d.DirectoryBlock.GetDatabaseHeight())           // Remove old keys from key history
+
 	///////////////////////////////
 	// Cleanup Tasks
 	///////////////////////////////
@@ -1154,13 +1196,17 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 // We don't really do the signing here, but just check that we have all the signatures.
 // If we do, we count that as progress.
 func (list *DBStateList) SignDB(d *DBState) (process bool) {
+	if d.Signed {
+		return false
+	}
+
 	dbheight := d.DirectoryBlock.GetHeader().GetDBHeight()
 
 	// If we have the next dbstate in the list, then all the signatures for this dbstate
 	// have been checked, so we can consider this guy signed.
 	if dbheight == 0 || list.Get(int(dbheight+1)) != nil || d.Repeat == true {
 		d.Signed = true
-		return true
+		return false
 	}
 
 	pl := list.State.ProcessLists.Get(dbheight)
@@ -1180,7 +1226,7 @@ func (list *DBStateList) SignDB(d *DBState) (process bool) {
 	}
 
 	d.Signed = true
-	return true
+	return
 }
 
 var nowish int64 = time.Now().Unix()
@@ -1220,7 +1266,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 
 		// Set the Block Replay flag for all these transactions that are already in the database.
 		for _, fct := range d.FactoidBlock.GetTransactions() {
-			list.State.FReplay.IsTSValid_(
+			list.State.FReplay.IsTSValidAndUpdateState(
 				constants.BLOCK_REPLAY,
 				fct.GetSigHash().Fixed(),
 				fct.GetTimestamp(),
@@ -1394,7 +1440,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 
 	// Set the Block Replay flag for all these transactions we are saving to the database.
 	for _, fct := range d.FactoidBlock.GetTransactions() {
-		list.State.FReplay.IsTSValid_(
+		list.State.FReplay.IsTSValidAndUpdateState(
 			constants.BLOCK_REPLAY,
 			fct.GetSigHash().Fixed(),
 			fct.GetTimestamp(),
@@ -1424,12 +1470,24 @@ func (list *DBStateList) UpdateState() (progress bool) {
 		}
 
 		if i > 0 {
-			progress = list.FixupLinks(list.DBStates[i-1], d)
+			p := list.FixupLinks(list.DBStates[i-1], d)
+			if p && !progress {
+				progress = p
+			}
 		}
 
-		progress = list.ProcessBlocks(d) || progress
-		progress = list.SignDB(d) || progress
-		progress = list.SaveDBStateToDB(d) || progress
+		p := list.ProcessBlocks(d) || progress
+		if p && !progress {
+			progress = p
+		}
+		p = list.SignDB(d) || progress
+		if p && !progress {
+			progress = p
+		}
+		p = list.SaveDBStateToDB(d) || progress
+		if p && !progress {
+			progress = p
+		}
 
 		// Make sure we move forward the Adminblock state in the process lists
 		list.State.ProcessLists.Get(d.DirectoryBlock.GetHeader().GetDBHeight() + 1)

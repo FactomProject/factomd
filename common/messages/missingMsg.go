@@ -12,12 +12,13 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 	log "github.com/sirupsen/logrus"
 )
 
 //Structure to request missing messages in a node's process list
 type MissingMsg struct {
-	MessageBase
+	msgbase.MessageBase
 
 	Timestamp         interfaces.Timestamp
 	Asking            interfaces.IHash
@@ -183,12 +184,10 @@ func (m *MissingMsg) MarshalBinary() ([]byte, error) {
 func (m *MissingMsg) String() string {
 	str := ""
 	for _, n := range m.ProcessListHeight {
-		str = fmt.Sprintf("%s%d,", str, n)
+		str += fmt.Sprintf("%d/%d/%d, ", m.DBHeight, m.VMIndex, n)
 	}
-	return fmt.Sprintf("MissingMsg --> Asking %x DBHeight:%3d vm=%3d Hts::[%s] Sys: %d msgHash[%x]",
-		m.Asking.Bytes()[:8],
-		m.DBHeight,
-		m.VMIndex,
+	return fmt.Sprintf("MissingMsg --> %x asking for DBh/VMh/h[%s] Sys: %d msgHash[%x]",
+		m.Asking.Bytes()[3:6],
 		str,
 		m.SystemHeight,
 		m.GetMsgHash().Bytes()[:3])

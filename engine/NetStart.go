@@ -14,9 +14,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/FactomProject/factomd/common/identity"
+	. "github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/messages/electionMsgs"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/controlPanel"
 	"github.com/FactomProject/factomd/database/leveldb"
@@ -25,19 +25,26 @@ import (
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
 
+	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/messages/msgsupport"
+	"github.com/FactomProject/factomd/elections"
 	log "github.com/sirupsen/logrus"
 )
 
 var _ = fmt.Print
 
 type FactomNode struct {
-	Index int
-	State *state.State
-	Peers []interfaces.IPeer
-	MLog  *MsgLog
+	Index    int
+	State    *state.State
+	Peers    []interfaces.IPeer
+	MLog     *MsgLog
+	P2PIndex int
 }
 
 var fnodes []*FactomNode
+
+var networkpattern string
 var mLog = new(MsgLog)
 var p2pProxy *P2PProxy
 var p2pNetwork *p2p.Controller
@@ -45,6 +52,11 @@ var logPort string
 
 func GetFnodes() []*FactomNode {
 	return fnodes
+}
+
+func init() {
+	messages.General = new(msgsupport.GeneralFactory)
+	primitives.General = messages.General
 }
 
 func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
@@ -55,18 +67,22 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 
 	messages.AckBalanceHash = p.AckbalanceHash
 	// Must add the prefix before loading the configuration.
-	s.AddPrefix(p.prefix)
+	s.AddPrefix(p.Prefix)
 	FactomConfigFilename := util.GetConfigFilename("m2")
+	if p.ConfigPath != "" {
+		FactomConfigFilename = p.ConfigPath
+	}
 	fmt.Println(fmt.Sprintf("factom config: %s", FactomConfigFilename))
 	s.LoadConfig(FactomConfigFilename, p.NetworkName)
-	s.OneLeader = p.rotate
-	s.TimeOffset = primitives.NewTimestampFromMilliseconds(uint64(p.timeOffset))
+	s.OneLeader = p.Rotate
+	s.TimeOffset = primitives.NewTimestampFromMilliseconds(uint64(p.TimeOffset))
 	s.StartDelayLimit = p.StartDelay * 1000
 	s.Journaling = p.Journaling
 	s.FactomdVersion = FactomdVersion
+	s.EFactory = new(electionMsgs.ElectionsFactory)
 
 	log.SetOutput(os.Stdout)
-	switch p.loglvl {
+	switch p.Loglvl {
 	case "none":
 		log.SetOutput(ioutil.Discard)
 	case "debug":
@@ -83,7 +99,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		log.SetLevel(log.PanicLevel)
 	}
 
-	if p.logjson {
+	if p.Logjson {
 		log.SetFormatter(&log.JSONFormatter{})
 	}
 
@@ -107,7 +123,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		p.BlkTime = s.DirectoryBlockInSeconds
 	}
 
-	s.FaultTimeout = p.FaultTimeout
+	s.FaultTimeout = 9999999 //todo: Old Fault Mechanism -- remove
 
 	if p.Follower {
 		p.Leader = false
@@ -123,30 +139,30 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		p.Cnt = 1
 	}
 
-	if p.rpcUser != "" {
-		s.RpcUser = p.rpcUser
+	if p.RpcUser != "" {
+		s.RpcUser = p.RpcUser
 	}
 
-	if p.rpcPassword != "" {
-		s.RpcPass = p.rpcPassword
+	if p.RpcPassword != "" {
+		s.RpcPass = p.RpcPassword
 	}
 
-	if p.factomdTLS == true {
+	if p.FactomdTLS == true {
 		s.FactomdTLSEnable = true
 	}
 
-	if p.factomdLocations != "" {
+	if p.FactomdLocations != "" {
 		if len(s.FactomdLocations) > 0 {
 			s.FactomdLocations += ","
 		}
-		s.FactomdLocations += p.factomdLocations
+		s.FactomdLocations += p.FactomdLocations
 	}
 
-	if p.fast == false {
+	if p.Fast == false {
 		s.StateSaverStruct.FastBoot = false
 	}
-	if p.fastLocation != "" {
-		s.StateSaverStruct.FastBootLocation = p.fastLocation
+	if p.FastLocation != "" {
+		s.StateSaverStruct.FastBootLocation = p.FastLocation
 	}
 
 	fmt.Println(">>>>>>>>>>>>>>>>")
@@ -184,7 +200,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		}
 	}
 
-	s.KeepMismatch = p.keepMismatch
+	s.KeepMismatch = p.KeepMismatch
 
 	if len(p.Db) > 0 {
 		s.DBType = p.Db
@@ -204,12 +220,12 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		p.Net = "file"
 	}
 
-	s.UseLogstash = p.useLogstash
-	s.LogstashURL = p.logstashURL
+	s.UseLogstash = p.UseLogstash
+	s.LogstashURL = p.LogstashURL
 
-	go StartProfiler(p.memProfileRate, p.exposeProfiling)
+	go StartProfiler(p.MemProfileRate, p.ExposeProfiling)
 
-	s.AddPrefix(p.prefix)
+	s.AddPrefix(p.Prefix)
 	s.SetOut(false)
 	s.Init()
 	s.SetDropRate(p.DropRate)
@@ -235,7 +251,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "enablenet", p.EnableNet))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "waitentries", p.WaitEntries))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "node", p.ListenTo))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "prefix", p.prefix))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "prefix", p.Prefix))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "node count", p.Cnt))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "net spec", pnet))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "Msgs droped", p.DropRate))
@@ -244,20 +260,23 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "database for clones", p.CloneDB))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "peers", p.Peers))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%t\"\n", "exclusive", p.Exclusive))
+	os.Stderr.WriteString(fmt.Sprintf("%20s \"%t\"\n", "exclusive_in", p.ExclusiveIn))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "block time", p.BlkTime))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "faultTimeout", p.FaultTimeout))
+	//os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "faultTimeout", p.FaultTimeout)) // TODO old fault timeout mechanism to be removed
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "runtimeLog", p.RuntimeLog))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "rotate", p.rotate))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "timeOffset", p.timeOffset))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "keepMismatch", p.keepMismatch))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "rotate", p.Rotate))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "timeOffset", p.TimeOffset))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "keepMismatch", p.KeepMismatch))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "startDelay", p.StartDelay))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "Network", s.Network))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %x\n", "customnet", p.customNet))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "deadline (ms)", p.deadline))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %x\n", "customnet", p.CustomNet))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "deadline (ms)", p.Deadline))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "tls", s.FactomdTLSEnable))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "selfaddr", s.FactomdLocations))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "rpcuser", s.RpcUser))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "Start 2nd Sync at ht", s.EntryDBHeightComplete))
+
+	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "faultTimeout", elections.FaultTimeout))
 
 	if "" == s.RpcPass {
 		os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "rpcpass", "is blank"))
@@ -281,49 +300,62 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		modifyLoadIdentities() // We clone s to make all of our servers
 	}
 
-	// Setup the Skeleton Identity
+	// Setup the Skeleton Identity & Registration
 	for i := range fnodes {
 		fnodes[i].State.IntiateNetworkSkeletonIdentity()
+		fnodes[i].State.InitiateNetworkIdentityRegistration()
 	}
 
-	// Start the P2P netowork
+	// Start the P2P network
 	var networkID p2p.NetworkID
-	var seedURL, networkPort, specialPeers string
+	var seedURL, networkPort, configPeers string
 	switch s.Network {
 	case "MAIN", "main":
 		networkID = p2p.MainNet
 		seedURL = s.MainSeedURL
 		networkPort = s.MainNetworkPort
-		specialPeers = s.MainSpecialPeers
+		configPeers = s.MainSpecialPeers
 		s.DirectoryBlockInSeconds = 600
 	case "TEST", "test":
 		networkID = p2p.TestNet
 		seedURL = s.TestSeedURL
 		networkPort = s.TestNetworkPort
-		specialPeers = s.TestSpecialPeers
+		configPeers = s.TestSpecialPeers
 	case "LOCAL", "local":
 		networkID = p2p.LocalNet
 		seedURL = s.LocalSeedURL
 		networkPort = s.LocalNetworkPort
-		specialPeers = s.LocalSpecialPeers
+		configPeers = s.LocalSpecialPeers
+
+		// Also update the local constants for custom networks
+		fmt.Println("Running on the local network, use local coinbase constants")
+		constants.COINBASE_DECLARATION = 10
+		constants.COINBASE_PAYOUT_FREQUENCY = 5
+		constants.COINBASE_ACTIVATION = 0
 	case "CUSTOM", "custom":
-		if bytes.Compare(p.customNet, []byte("\xe3\xb0\xc4\x42")) == 0 {
+		if bytes.Compare(p.CustomNet, []byte("\xe3\xb0\xc4\x42")) == 0 {
 			panic("Please specify a custom network with -customnet=<something unique here>")
 		}
-		s.CustomNetworkID = p.customNet
-		networkID = p2p.NetworkID(binary.BigEndian.Uint32(p.customNet))
+		s.CustomNetworkID = p.CustomNet
+		networkID = p2p.NetworkID(binary.BigEndian.Uint32(p.CustomNet))
 		for i := range fnodes {
-			fnodes[i].State.CustomNetworkID = p.customNet
+			fnodes[i].State.CustomNetworkID = p.CustomNet
 		}
-		seedURL = s.LocalSeedURL
-		networkPort = s.LocalNetworkPort
-		specialPeers = s.LocalSpecialPeers
+		seedURL = s.CustomSeedURL
+		networkPort = s.CustomNetworkPort
+		configPeers = s.CustomSpecialPeers
+
+		// Also update the coinbase constants for custom networks
+		fmt.Println("Running on the custom network, use custom coinbase constants")
+		constants.COINBASE_DECLARATION = 10
+		constants.COINBASE_PAYOUT_FREQUENCY = 5
+		constants.COINBASE_ACTIVATION = 0
 	default:
 		panic("Invalid Network choice in Config File or command line. Choose MAIN, TEST, LOCAL, or CUSTOM")
 	}
 
 	connectionMetricsChannel := make(chan interface{}, p2p.StandardChannelSize)
-	p2p.NetworkDeadline = time.Duration(p.deadline) * time.Millisecond
+	p2p.NetworkDeadline = time.Duration(p.Deadline) * time.Millisecond
 
 	if p.EnableNet {
 		nodeName := fnodes[0].State.FactomNodeName
@@ -337,8 +369,10 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 			PeersFile:                s.PeersFile,
 			Network:                  networkID,
 			Exclusive:                p.Exclusive,
+			ExclusiveIn:              p.ExclusiveIn,
 			SeedURL:                  seedURL,
-			SpecialPeers:             specialPeers,
+			ConfigPeers:              configPeers,
+			CmdLinePeers:             p.Peers,
 			ConnectionMetricsChannel: connectionMetricsChannel,
 		}
 		p2pNetwork = new(p2p.Controller).Init(ci)
@@ -350,11 +384,11 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 
 		fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
 		p2pProxy.StartProxy()
-		// Command line peers lets us manually set special peers
-		p2pNetwork.DialSpecialPeersString(p.Peers)
 
 		go networkHousekeeping() // This goroutine executes once a second to keep the proxy apprised of the network status.
 	}
+
+	networkpattern = p.Net
 
 	switch p.Net {
 	case "file":
@@ -463,12 +497,17 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 
 	}
 
+	var colors []string = []string{"95cde5", "b01700", "db8e3c", "ffe35f"}
+
+	for i, s := range fnodes {
+		fmt.Printf("%d {color:#%v, shape:dot, label:%v}\n", i, colors[i%len(colors)], s.State.FactomNodeName)
+	}
 	// Initate dbstate plugin if enabled. Only does so for first node,
 	// any more nodes on sim control will use default method
-	fnodes[0].State.SetTorrentUploader(p.torUpload)
-	if p.torManage {
+	fnodes[0].State.SetTorrentUploader(p.TorUpload)
+	if p.TorManage {
 		fnodes[0].State.SetUseTorrent(true)
-		manager, err := LaunchDBStateManagePlugin(p.pluginPath, fnodes[0].State.InMsgQueue(), fnodes[0].State, fnodes[0].State.GetServerPrivateKey(), p.memProfileRate)
+		manager, err := LaunchDBStateManagePlugin(p.PluginPath, fnodes[0].State.InMsgQueue(), fnodes[0].State, fnodes[0].State.GetServerPrivateKey(), p.MemProfileRate)
 		if err != nil {
 			panic("Encountered an error while trying to use torrent DBState manager: " + err.Error())
 		}
@@ -485,7 +524,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	}
 
 	// Start the webserver
-	go wsapi.Start(fnodes[0].State)
+	wsapi.Start(fnodes[0].State)
 
 	// Start prometheus on port
 	launchPrometheus(9876)
@@ -512,8 +551,10 @@ func makeServer(s *state.State) *FactomNode {
 
 	if len(fnodes) > 0 {
 		newState = s.Clone(len(fnodes)).(*state.State)
+		newState.EFactory = new(electionMsgs.ElectionsFactory) // not an elegant place but before we let the messages hit the state
 		time.Sleep(10 * time.Millisecond)
 		newState.Init()
+		newState.EFactory = new(electionMsgs.ElectionsFactory)
 	}
 
 	fnode := new(FactomNode)
@@ -536,47 +577,18 @@ func startServers(load bool) {
 		go fnode.State.GoSyncEntries()
 		go Timer(fnode.State)
 		go fnode.State.ValidatorLoop()
+		go elections.Run(fnode.State)
 	}
 }
 
 func setupFirstAuthority(s *state.State) {
-	var id identity.Identity
-	if len(s.Authorities) > 0 {
+	if len(s.IdentityControl.Authorities) > 0 {
 		//Don't initialize first authority if we are loading during fast boot
 		//And there are already authorities present
 		return
 	}
 
-	if networkIdentity := s.GetNetworkBootStrapIdentity(); networkIdentity != nil {
-		id.IdentityChainID = networkIdentity
-	} else {
-		id.IdentityChainID = primitives.NewZeroHash()
-	}
-	id.ManagementChainID, _ = primitives.HexToHash("88888800000000000000000000000000")
-	if pub := s.GetNetworkBootStrapKey(); pub != nil {
-		id.SigningKey = pub
-	} else {
-		id.SigningKey = primitives.NewZeroHash()
-	}
-	id.MatryoshkaHash = primitives.NewZeroHash()
-	id.ManagementCreated = 0
-	id.ManagementRegistered = 0
-	id.IdentityCreated = 0
-	id.IdentityRegistered = 0
-	id.Key1 = primitives.NewZeroHash()
-	id.Key2 = primitives.NewZeroHash()
-	id.Key3 = primitives.NewZeroHash()
-	id.Key4 = primitives.NewZeroHash()
-	id.Status = 1
-	s.Identities = append(s.Identities, &id)
-
-	var auth identity.Authority
-	auth.Status = 1
-	auth.SigningKey = primitives.PubKeyFromString(id.SigningKey.String())
-	auth.MatryoshkaHash = primitives.NewZeroHash()
-	auth.AuthorityChainID = id.IdentityChainID
-	auth.ManagementChainID, _ = primitives.HexToHash("88888800000000000000000000000000")
-	s.Authorities = append(s.Authorities, &auth)
+	s.IdentityControl.SetBootstrapIdentity(s.GetNetworkBootStrapIdentity(), s.GetNetworkBootStrapKey())
 }
 
 func networkHousekeeping() {

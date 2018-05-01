@@ -572,7 +572,7 @@ func TestMerkleTree(t *testing.T) {
 	//fmt.Println(db1.GetEntryHashes())
 	mr, err := db1.BuildBodyMR()
 	if err != nil {
-		t.Errorf("tree building function failed", err)
+		t.Errorf("tree building function failed %v", err)
 	}
 
 	//fmt.Println(mr)

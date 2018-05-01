@@ -23,7 +23,7 @@ func main() {
 	params := engine.ParseCmdLine(args)
 	state := engine.Factomd(params, true)
 
-	CheckEntryBlocks(state.GetAndLockDB(), true)
+	CheckEntryBlocks(state.GetDB(), true)
 
 }
 

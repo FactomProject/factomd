@@ -13,6 +13,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -20,7 +21,7 @@ import (
 var dLogger = packageLogger.WithFields(log.Fields{"message": "DirectoryBlockSignature"})
 
 type DirectoryBlockSignature struct {
-	MessageBase
+	msgbase.MessageBase
 	Timestamp interfaces.Timestamp
 	DBHeight  uint32
 	//DirectoryBlockKeyMR   interfaces.IHash
@@ -39,10 +40,11 @@ type DirectoryBlockSignature struct {
 	Matches      bool
 	hash         interfaces.IHash
 	marshalCache []byte
+	dbsHash      interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*DirectoryBlockSignature)(nil)
-var _ Signable = (*DirectoryBlockSignature)(nil)
+var _ interfaces.Signable = (*DirectoryBlockSignature)(nil)
 
 func (a *DirectoryBlockSignature) IsSameAs(b *DirectoryBlockSignature) bool {
 	if b == nil {
@@ -143,8 +145,8 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 
 	raw, _ := m.MarshalBinary()
 	if m.DBHeight <= state.GetHighestSavedBlk() {
-		vlog("[1] Validate Fail %s -- RAW: %x", m.String(), raw)
-		// state.Logf("error", "DirectoryBlockSignature: Fail dbstate ht: %v < dbht: %v  %s\n  [%s] RAW: %x", m.DBHeight, state.GetHighestSavedBlk(), m.String(), m.GetMsgHash().String(), raw)
+		//	vlog("[1] Validate Fail %s -- RAW: %x", m.String(), raw)
+		//	// state.Logf("error", "DirectoryBlockSignature: Fail dbstate ht: %v < dbht: %v  %s\n  [%s] RAW: %x", m.DBHeight, state.GetHighestSavedBlk(), m.String(), m.GetMsgHash().String(), raw)
 		return -1
 	}
 
@@ -153,7 +155,7 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 	if found == false {
 		state.AddStatus(fmt.Sprintf("DirectoryBlockSignature: Fail dbht: %v Server not found %x %s",
 			state.GetLLeaderHeight(),
-			m.ServerIdentityChainID.Bytes()[3:5],
+			m.ServerIdentityChainID.Bytes()[3:6],
 			m.String()))
 		return 0
 	}
@@ -174,7 +176,7 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 	}
 
 	marshalledMsg, _ := m.MarshalForSignature()
-	authorityLevel, err := state.VerifyAuthoritySignature(marshalledMsg, m.Signature.GetSignature(), m.DBHeight)
+	authorityLevel, err := state.FastVerifyAuthoritySignature(marshalledMsg, m.Signature, m.DBHeight)
 	if err != nil || authorityLevel < 1 {
 		//This authority is not a Fed Server (it's either an Audit or not an Authority at all)
 		vlog("Fail to Verify Sig (not from a Fed Server) %s -- RAW: %x", m.String(), raw)
@@ -210,7 +212,7 @@ func (m *DirectoryBlockSignature) Sign(key interfaces.Signer) error {
 		return err
 	}
 
-	signature, err := SignSignable(m, key)
+	signature, err := msgbase.SignSignable(m, key)
 	if err != nil {
 		return err
 	}
@@ -232,7 +234,7 @@ func (m *DirectoryBlockSignature) GetSignature() interfaces.IFullSignature {
 }
 
 func (m *DirectoryBlockSignature) VerifySignature() (bool, error) {
-	return VerifyMessage(m)
+	return msgbase.VerifyMessage(m)
 }
 
 func (m *DirectoryBlockSignature) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
@@ -298,9 +300,9 @@ func (m *DirectoryBlockSignature) UnmarshalBinaryData(data []byte) (newData []by
 		m.Signature = sig
 	}
 
-	m.marshalCache = data[:len(data)-len(newData)]
+	m.marshalCache = append(m.marshalCache, data[:len(data)-len(newData)]...)
 
-	return nil, nil
+	return newData, nil
 }
 
 func (m *DirectoryBlockSignature) UnmarshalBinary(data []byte) error {
@@ -386,7 +388,14 @@ func (m *DirectoryBlockSignature) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *DirectoryBlockSignature) String() string {
-	return fmt.Sprintf("%6s-VM%3d:          DBHt:%5d -- Signer[:3]=%x PrevDBKeyMR[:3]=%x hash[:3]=%x",
+	b, err := m.DirectoryBlockHeader.MarshalBinary()
+	if b != nil && err != nil {
+		h := primitives.Sha(b)
+		m.dbsHash = h
+	} else {
+		m.dbsHash = primitives.NewHash(constants.ZERO)
+	}
+	return fmt.Sprintf("%6s-VM%3d:          DBHt:%5d -- Signer=%x PrevDBKeyMR[:3]=%x hash=%x",
 		"DBSig",
 		m.VMIndex,
 		m.DBHeight,

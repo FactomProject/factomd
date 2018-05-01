@@ -3,6 +3,8 @@ package adminBlock_test
 import (
 	"testing"
 
+	"strings"
+
 	. "github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/testHelper"
@@ -95,8 +97,8 @@ func TestAddAuditServerMarshalUnmarshal(t *testing.T) {
 
 func TestAddAuditServerMisc(t *testing.T) {
 	a := new(AddAuditServer)
-	if a.String() != "    E:       AddAuditServer --   IdentityChainID     0000     DBHeight        0" {
-		t.Error("Unexpected string:", a.String())
+	if strings.Compare(a.String(), "    E:       AddAuditServer --   IdentityChainID   000000     DBHeight        0") != 0 {
+		t.Errorf("Unexpected string:%s", a.String())
 	}
 	as, err := a.JSONString()
 	if err != nil {

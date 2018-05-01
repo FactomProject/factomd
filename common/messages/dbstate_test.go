@@ -14,11 +14,56 @@ import (
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/messages/msgsupport"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/primitives/random"
 	statepkg "github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/testHelper"
 )
+
+func coupleOfSigs(t *testing.T) []interfaces.IFullSignature {
+	priv1 := new(primitives.PrivateKey)
+
+	err := priv1.GenerateKey()
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	msg1 := "Test Message Sign1"
+	msg2 := "Test Message Sign2"
+
+	sig1 := priv1.Sign([]byte(msg1))
+	sig2 := priv1.Sign([]byte(msg2))
+
+	var twoSigs []interfaces.IFullSignature
+	twoSigs = append(twoSigs, sig1)
+	twoSigs = append(twoSigs, sig2)
+	return twoSigs
+}
+
+func makeSigList(t *testing.T) SigList {
+	priv1 := new(primitives.PrivateKey)
+
+	err := priv1.GenerateKey()
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	msg1 := "Test Message Sign1"
+	msg2 := "Test Message Sign2"
+
+	sig1 := priv1.Sign([]byte(msg1))
+	sig2 := priv1.Sign([]byte(msg2))
+
+	var twoSigs []interfaces.IFullSignature
+	twoSigs = append(twoSigs, sig1)
+	twoSigs = append(twoSigs, sig2)
+
+	sl := new(SigList)
+	sl.Length = 2
+	sl.List = twoSigs
+	return *sl
+}
 
 func TestUnmarshalNilDBStateMsg(t *testing.T) {
 	defer func() {
@@ -49,7 +94,7 @@ func TestMarshalUnmarshalDBStateMsg(t *testing.T) {
 	}
 	//t.Logf("Marshalled - %x", hex)
 
-	msg2, err := UnmarshalMessage(hex)
+	msg2, err := msgsupport.UnmarshalMessage(hex)
 	if err != nil {
 		t.Error(err)
 	}
@@ -196,7 +241,7 @@ func TestSignedDBStateValidate(t *testing.T) {
 
 	// Throw in a geneis block
 	prev := testHelper.CreateTestBlockSetWithNetworkID(nil, state.GetNetworkID(), false)
-	dblk, ablk, fblk, ecblk := statepkg.GenerateGenesisBlocks(state.GetNetworkID())
+	dblk, ablk, fblk, ecblk := statepkg.GenerateGenesisBlocks(state.GetNetworkID(), nil)
 	prev.DBlock = dblk.(*directoryBlock.DirectoryBlock)
 	prev.ABlock = ablk.(*adminBlock.AdminBlock)
 	prev.FBlock = fblk
@@ -234,7 +279,12 @@ func TestSignedDBStateValidate(t *testing.T) {
 			a.AddFedServer(id.ID)
 			a.AddFederatedServerSigningKey(id.ID, id.Key.Pub.Fixed())
 			signers = append(signers, id)
+			//a := identity.NewAuthority()
+			//a.AuthorityChainID = id.ID
+			//a.SigningKey = *id.Key.Pub
+			//state.IdentityControl.SetAuthority(id.ID, a)
 		}
+		a.InsertIdentityABEntries()
 
 		set, err := createBlockFromAdmin(a, prev, state)
 		if err != nil {
@@ -309,6 +359,8 @@ func TestPropSignedDBStateValidate(t *testing.T) {
 		Key primitives.PrivateKey
 	}
 
+	state := testHelper.CreateEmptyTestState()
+
 	ids := make([]SmallIdentity, 100)
 	for i := range ids {
 		tid, err := primitives.HexToHash("888888" + fmt.Sprintf("%058d", i))
@@ -323,11 +375,9 @@ func TestPropSignedDBStateValidate(t *testing.T) {
 		}
 	}
 
-	state := testHelper.CreateEmptyTestState()
-
 	// Throw in a geneis block
 	prev := testHelper.CreateTestBlockSetWithNetworkID(nil, state.GetNetworkID(), false)
-	dblk, ablk, fblk, ecblk := statepkg.GenerateGenesisBlocks(state.GetNetworkID())
+	dblk, ablk, fblk, ecblk := statepkg.GenerateGenesisBlocks(state.GetNetworkID(), nil)
 	prev.DBlock = dblk.(*directoryBlock.DirectoryBlock)
 	prev.ABlock = ablk.(*adminBlock.AdminBlock)
 	prev.FBlock = fblk
@@ -346,7 +396,6 @@ func TestPropSignedDBStateValidate(t *testing.T) {
 		var signers []SmallIdentity
 
 		a := testHelper.CreateTestAdminBlock(prev.ABlock)
-		state.ProcessLists.Get(a.GetDatabaseHeight()).Clear()
 		state.ProcessLists.Get(a.GetDatabaseHeight()).FedServers = make([]interfaces.IServer, 0)
 		for ia := 0; ia < len(ids); ia++ {
 			switch random.RandIntBetween(0, 4) {
@@ -380,6 +429,7 @@ func TestPropSignedDBStateValidate(t *testing.T) {
 				totalRemove++
 			}
 		}
+		a.InsertIdentityABEntries()
 
 		set, err := createBlockFromAdmin(a, prev, state)
 		if err != nil {

@@ -13,7 +13,6 @@ import (
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/web"
 )
 
@@ -400,7 +399,7 @@ func HandleReloadConfig(
 	*primitives.JSONError,
 ) {
 	// LoacConfig with "" strings should load the default location
-	state.LoadConfig(util.ConfigFilename(), state.GetNetworkName())
+	state.LoadConfig(state.GetConfigPath(), state.GetNetworkName())
 
 	return state.GetCfg(), nil
 }

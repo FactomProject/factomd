@@ -161,7 +161,7 @@ func (e *Entry) IsValid() bool {
 }
 
 func (e *Entry) GetHash() interfaces.IHash {
-	if e.hash == nil {
+	if e.hash == nil || e.hash.PFixed() == nil {
 		h := primitives.NewZeroHash()
 		entry, err := e.MarshalBinary()
 		if err != nil {
@@ -303,7 +303,7 @@ func (e *Entry) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	}
 
 	// Content
-	err = e.Content.UnmarshalBinary(buf.DeepCopyBytes())
+	err = e.Content.UnmarshalBinary(buf.Bytes())
 	if err != nil {
 		return nil, err
 	}

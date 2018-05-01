@@ -1,5 +1,5 @@
-hash: 3b055c7d4a025bc6f11815cd55402c91d6cb56a451a6bf6aa38c8b3211ccda89
-updated: 2017-10-17T17:29:32.73705394-05:00
+hash: fee315cb28853cbabcdc4261c83daf3465a28cf59c2d2f9e10ae9b6f5ddf7166
+updated: 2018-03-16T15:36:47.554093377-05:00
 imports:
 - name: github.com/beorn7/perks
   version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
@@ -18,6 +18,8 @@ imports:
   version: f2b1058a82554c0c7c3b8809c5956c38374604d8
   subpackages:
   - base58
+- name: github.com/dustin/go-humanize
+  version: bb3d318650d48840a39aa21a027c6630e198e626
 - name: github.com/FactomProject/basen
   version: fe3947df716ebfda9847eb1b9a48f9592e06478c
 - name: github.com/FactomProject/bolt
@@ -36,14 +38,14 @@ imports:
   subpackages:
   - edwards25519
 - name: github.com/FactomProject/factom
-  version: d4b86d75081c311144799f6909e4d6046cd31f93
+  version: cf230df541757ac86cd945a4a388c6c15914b726
   subpackages:
   - wallet
   - wallet/wsapi
 - name: github.com/FactomProject/factom-cli
-  version: 31313ef3e7902b135f65272a07430aefeffec159
+  version: 4702861b7796d370a888ab3a232c37609304ff94
 - name: github.com/FactomProject/factom-walletd
-  version: d060b871e59c6e542a22911d99acf4038bd8dd67
+  version: dfab0806bccd0de9ca065d6fcb05ab56fa77c3e4
 - name: github.com/FactomProject/fctwallet
   version: 97e19f8d1e251975480fa6f76eb2d9084b984a14
 - name: github.com/FactomProject/fsnotify
@@ -82,7 +84,7 @@ imports:
 - name: github.com/FactomProject/netki-go-partner-client
   version: 426acb535e66cc2f9e6226ae254555e3572fd142
 - name: github.com/FactomProject/serveridentity
-  version: e085562080f86875a7c6aa82031560e259617479
+  version: 1b8c36bc234e26829156f0cf6b4f64f64057d137
   subpackages:
   - identity
   - utils
@@ -104,6 +106,8 @@ imports:
   version: 3e6d191694b5a3a2b99755f31b47fa209e4bcd09
 - name: github.com/hashicorp/yamux
   version: f5742cb6b85602e7fa834e9d5d91a7d7fa850824
+- name: github.com/inconshreveable/mousetrap
+  version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
 - name: github.com/matttproud/golang_protobuf_extensions
   version: c12348ce28de40eed0136aa2b644d0ee0650e56c
   subpackages:
@@ -130,6 +134,10 @@ imports:
   - xfs
 - name: github.com/sirupsen/logrus
   version: 89742aefa4b206dcf400792f3bd35b542998eb3b
+- name: github.com/spf13/cobra
+  version: c6c44e6fdcc30161c7f4480754da7230d01c06e3
+- name: github.com/spf13/pflag
+  version: ee5fd03fd6acfd43e44aea0b4135958546ed8e73
 - name: golang.org/x/crypto
   version: 9419663f5a44be8b34ca85f08abc5fe1be11f8a3
   subpackages:
@@ -194,5 +202,3 @@ imports:
 - name: gopkg.in/warnings.v0
   version: 8a331561fe74dadba6edfc59f3be66c22c3b065d
 testImports: []
-
-

@@ -13,6 +13,7 @@ func CreateTestAdminBlock(prev *adminBlock.AdminBlock) *adminBlock.AdminBlock {
 		block.AddFedServer(h)
 		p := primitives.PubKeyFromString("cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a")
 		block.AddFederatedServerSigningKey(h, p)
+		block.InsertIdentityABEntries()
 	}
 	block.GetHeader().SetMessageCount(uint32(len(block.GetABEntries())))
 	return block

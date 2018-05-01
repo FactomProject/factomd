@@ -9,6 +9,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/messages/msgsupport"
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
@@ -40,7 +41,7 @@ func TestMarshalUnmarshalEOM(t *testing.T) {
 	}
 	t.Logf("Marshalled - %x", hex)
 
-	msg2, err := UnmarshalMessage(hex)
+	msg2, err := msgsupport.UnmarshalMessage(hex)
 	if err != nil {
 		t.Error(err)
 	}
@@ -90,7 +91,7 @@ func TestSignAndVerifyEOM(t *testing.T) {
 		t.Error("Signature is not valid")
 	}
 
-	msg2, err := UnmarshalMessage(hex)
+	msg2, err := msgsupport.UnmarshalMessage(hex)
 	if err != nil {
 		t.Error(err)
 	}
@@ -135,4 +136,64 @@ func newSignedEOM() *EOM {
 	}
 
 	return ack
+}
+
+func TestNoResend(t *testing.T) {
+	eom := newEOM()
+	eom.SetNoResend(true)
+	if !eom.GetNoResend() {
+		t.Error("NoResend is false after being set to true")
+	}
+	eom.SetNoResend(false)
+	if eom.GetNoResend() {
+		t.Error("NoResend is true after being set to false")
+	}
+}
+
+func TestSentInvalid(t *testing.T) {
+	eom := newEOM()
+	eom.MarkSentInvalid(true)
+	if !eom.SentInvalid() {
+		t.Error("SentInvalid is false after being set to true")
+	}
+	eom.MarkSentInvalid(false)
+	if eom.SentInvalid() {
+		t.Error("SentInvalid is true after being set to false")
+	}
+}
+
+func TestIsStalled(t *testing.T) {
+	eom := newEOM()
+	eom.SetStall(true)
+	if !eom.IsStalled() {
+		t.Error("IsStalled is false after being set to true")
+	}
+	eom.SetStall(false)
+	if eom.IsStalled() {
+		t.Error("IsStalled is true after being set to false")
+	}
+}
+
+func TestOrigin(t *testing.T) {
+	eom := newEOM()
+	eom.SetOrigin(123)
+	if eom.GetOrigin() != 123 {
+		t.Error("SetOrigin/GetOrigin mismatch")
+	}
+	eom.SetOrigin(321)
+	if eom.GetOrigin() != 321 {
+		t.Error("SetOrigin/GetOrigin mismatch")
+	}
+}
+
+func TestNetworkOrigin(t *testing.T) {
+	eom := newEOM()
+	eom.SetNetworkOrigin("FNode00")
+	if eom.GetNetworkOrigin() != "FNode00" {
+		t.Error("SetNetworkOrigin/GetNetworkOrigin mismatch")
+	}
+	eom.SetNetworkOrigin("FNode123")
+	if eom.GetNetworkOrigin() != "FNode123" {
+		t.Error("SetNetworkOrigin/GetNetworkOrigin mismatch")
+	}
 }

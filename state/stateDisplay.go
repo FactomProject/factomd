@@ -46,10 +46,15 @@ type DisplayState struct {
 	PLEntry   []EntryTransaction
 
 	// DataDump
-	RawSummary   string
-	PrintMap     string
-	ProcessList  string
-	ProcessList2 string
+	RawSummary          string
+	PrintMap            string
+	ProcessList0        string
+	ProcessList         string
+	ProcessList2        string
+	Election            string
+	SimElection         string
+	SyncingState        [256]string
+	SyncingStateCurrent int
 }
 
 type FactoidTransaction struct {
@@ -99,7 +104,7 @@ func (s *State) CopyStateToControlPanel() error {
 	} else {
 		return fmt.Errorf("DisplayState Error: Control Panel channel has been filled to maximum allowed size.")
 	}
-	return fmt.Errorf("DisplayState Error: Reached unreachable code. Impressive")
+	// 	return fmt.Errorf("DisplayState Error: Reached unreachable code. Impressive")
 }
 
 func DeepStateDisplayCopyDifference(s *State, prev *DisplayState) (*DisplayState, error) {
@@ -111,21 +116,28 @@ func DeepStateDisplayCopyDifference(s *State, prev *DisplayState) (*DisplayState
 
 	// DB Info
 	ds.CurrentNodeHeight = s.GetHighestSavedBlk()
-	ds.CurrentLeaderHeight = s.GetLeaderHeight()
+	lheight := s.GetLeaderHeight()
+	if s.GetHighestAck() > lheight {
+		lheight = s.GetHighestAck()
+	}
+	tl := s.GetTrueLeaderHeight()
+	if tl > lheight {
+		lheight = tl
+	}
+	ds.CurrentLeaderHeight = lheight
 	ds.CurrentEBDBHeight = s.EntryDBHeightComplete
-	ds.LeaderHeight = s.GetTrueLeaderHeight()
+	ds.LeaderHeight = lheight
 
 	// Only copies the directory block if it is new
 	ds.CopyDirectoryBlock(s, prev, s.GetLLeaderHeight())
 
 	// Identities
 	ds.IdentityChainID = s.GetIdentityChainID().Copy()
-	for _, id := range s.Identities {
-		ds.Identities = append(ds.Identities, id)
+	ds.Identities = s.IdentityControl.GetSortedIdentities()
+	for _, auth := range s.IdentityControl.GetSortedAuthorities() {
+		ds.Authorities = append(ds.Authorities, auth.(*Authority))
 	}
-	for _, auth := range s.Authorities {
-		ds.Authorities = append(ds.Authorities, auth)
-	}
+
 	if pubkey, err := s.GetServerPublicKey().Copy(); err != nil {
 	} else {
 		ds.PublicKey = pubkey
@@ -193,14 +205,18 @@ func DeepStateDisplayCopyDifference(s *State, prev *DisplayState) (*DisplayState
 		}
 	}
 
+	pl0 := s.ProcessLists.GetSafe(b + 1)
+	if pl0 != nil {
+		ds.ProcessList0 = pl0.String()
+	} else {
+		ds.ProcessList0 = fmt.Sprintf("Process list %d is nil\n", b+1)
+
+	}
+
 	var pl2 *ProcessList
-	if b > 3 {
-		b--
-		pl2 = s.ProcessLists.GetSafe(b)
-		if pl == nil {
-			b--
-			pl2 = s.ProcessLists.GetSafe(b)
-		}
+	pl2 = s.ProcessLists.GetSafe(b - 1)
+	if pl2 == nil {
+		ds.ProcessList2 = fmt.Sprintf("Process list %d is nil\n", b-1)
 	}
 
 	if pl != nil && pl.FedServers != nil {
@@ -214,6 +230,27 @@ func DeepStateDisplayCopyDifference(s *State, prev *DisplayState) (*DisplayState
 	if pl2 != nil {
 		ds.ProcessList2 = pl2.String()
 	}
+
+	prt = ""
+	prt = prt + "\n" + s.Election0
+	for i, _ := range pl.FedServers {
+		prt = prt + fmt.Sprintf("%4d ", i)
+	}
+	for i, _ := range pl.AuditServers {
+		prt = prt + fmt.Sprintf("%4d ", i)
+	}
+	prt = prt + "\n"
+	prt += "__ _ " // Active
+	prt = s.Election3 + "\n" + prt + s.Election1 + s.Election2 + "\n"
+
+	ds.Election = prt
+
+	if s.Elections != nil {
+		ds.SimElection = s.Elections.AdapterStatus()
+	}
+
+	ds.SyncingState = s.SyncingState
+	ds.SyncingStateCurrent = s.SyncingStateCurrent
 
 	return ds, nil
 }
@@ -275,6 +312,13 @@ func (d *DisplayState) Clone() *DisplayState {
 	ds.RawSummary = d.RawSummary
 	ds.PrintMap = d.PrintMap
 	ds.ProcessList = d.ProcessList
+	ds.ProcessList2 = d.ProcessList2
+	ds.ProcessList0 = d.ProcessList0
+	ds.Election = d.Election
+
+	ds.SimElection = d.SimElection
+	ds.SyncingStateCurrent = d.SyncingStateCurrent
+	ds.SyncingState = d.SyncingState
 
 	return ds
 }

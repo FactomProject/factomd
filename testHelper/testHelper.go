@@ -20,6 +20,8 @@ import (
 	//"fmt"
 	"fmt"
 	"os"
+
+	"github.com/FactomProject/factomd/common/messages/electionMsgs"
 )
 
 var BlockCount int = 10
@@ -27,6 +29,7 @@ var DefaultCoinbaseAmount uint64 = 100000000
 
 func CreateEmptyTestState() *state.State {
 	s := new(state.State)
+	s.EFactory = new(electionMsgs.ElectionsFactory)
 	s.LoadConfig("", "")
 	s.Network = "LOCAL"
 	s.LogPath = "stdout"
@@ -55,6 +58,7 @@ func CreatePopulateAndExecuteTestState() *state.State {
 
 func createAndPopulateTestState() *state.State {
 	s := new(state.State)
+	s.EFactory = new(electionMsgs.ElectionsFactory)
 	s.SetLeaderTimestamp(primitives.NewTimestampFromMilliseconds(0))
 	s.DB = CreateAndPopulateTestDatabaseOverlay()
 	s.LoadConfig("", "")
