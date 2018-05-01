@@ -16,11 +16,12 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 	log "github.com/sirupsen/logrus"
 )
 
 type Bounce struct {
-	MessageBase
+	msgbase.MessageBase
 	Name      string
 	Number    int32
 	Timestamp interfaces.Timestamp
@@ -49,7 +50,7 @@ func (m *Bounce) GetRepeatHash() interfaces.IHash {
 	return m.GetMsgHash()
 }
 
-// We have to return the haswh of the underlying message.
+// We have to return the hash of the underlying message.
 func (m *Bounce) GetHash() interfaces.IHash {
 	return m.GetMsgHash()
 }

@@ -23,8 +23,7 @@ func TestCheckDatabaseFromState(t *testing.T) {
 func TestCheckDatabaseFromWSAPI(t *testing.T) {
 	ctx := testHelper.CreateWebContext()
 	state := ctx.Server.Env["state"].(interfaces.IState)
-	dbase := state.GetAndLockDB().(interfaces.DBOverlay)
-	defer state.UnlockDB()
+	dbase := state.GetDB().(interfaces.DBOverlay)
 
 	CheckDatabase(dbase)
 }

@@ -7,11 +7,13 @@ package engine
 import (
 	"fmt"
 
+	// "github.com/FactomProject/factomd/common/constants"
+
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/p2p"
 
+	"github.com/FactomProject/factomd/common/messages/msgsupport"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -136,7 +138,7 @@ func (f *P2PProxy) Receive() (interfaces.IMsg, error) {
 			switch data.(type) {
 			case FactomMessage:
 				fmessage := data.(FactomMessage)
-				msg, err := messages.UnmarshalMessage(fmessage.Message)
+				msg, err := msgsupport.UnmarshalMessage(fmessage.Message)
 
 				if err != nil {
 					proxyLogger.WithField("receive-error", err).Error()

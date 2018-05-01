@@ -222,7 +222,7 @@ func TestDblockConf(t *testing.T) {
 	eh := commit.CommitEntry.Hash()
 	commit.CommitEntry.EntryHash = eh
 	s.Commits.Put(eh.Fixed(), commit)
-	s.Replay.IsTSValid_(constants.REVEAL_REPLAY, eh.Fixed(), primitives.NewTimestampNow(), primitives.NewTimestampNow())
+	s.Replay.IsTSValidAndUpdateState(constants.REVEAL_REPLAY, eh.Fixed(), primitives.NewTimestampNow(), primitives.NewTimestampNow())
 
 	status, _ := s.GetEntryCommitAckByEntryHash(eh)
 	if status != constants.AckStatusDBlockConfirmed {

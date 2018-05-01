@@ -9,6 +9,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/messages/msgsupport"
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
@@ -45,7 +46,7 @@ func TestMarshalUnmarshalAddServer(t *testing.T) {
 	}
 	t.Logf("Marshalled - %x", hex)
 
-	addserv2, err := UnmarshalMessage(hex)
+	addserv2, err := msgsupport.UnmarshalMessage(hex)
 	if err != nil {
 		t.Error(err)
 	}
@@ -86,7 +87,7 @@ func TestMarshalUnmarshalSignedAddServer(t *testing.T) {
 		t.Error("Signature is not valid")
 	}
 
-	addserv2, err := UnmarshalMessage(hex)
+	addserv2, err := msgsupport.UnmarshalMessage(hex)
 	if err != nil {
 		t.Error(err)
 	}

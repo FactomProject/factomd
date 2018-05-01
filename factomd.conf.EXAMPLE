@@ -1,0 +1,69 @@
+; ------------------------------------------------------------------------------
+; App settings
+; ------------------------------------------------------------------------------
+[app]
+PortNumber                            = 9088
+;HomeDir                               = ""
+; --------------- ControlPanel disabled | readonly | readwrite
+ControlPanelSetting                   = readonly
+ControlPanelPort                      = 8090
+; --------------- DBType: LDB | Bolt | Map
+;DBType                                = "LDB"
+;LdbPath                               = "database/ldb"
+;BoltDBPath                            = "database/bolt"
+;DataStorePath                         = "data/export"
+;DirectoryBlockInSeconds               = 6
+;ExportData                            = false
+;ExportDataSubpath                     = "database/export/"
+;FastBoot                              = true
+;FastBootLocation                      = ""
+; --------------- Network: MAIN | TEST | LOCAL
+;Network                               = MAIN
+;PeersFile            = "peers.json"
+;MainNetworkPort      = 8108
+;MainSeedURL          = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/mainseed.txt"
+;MainSpecialPeers     = ""
+;TestNetworkPort      = 8109
+;TestSeedURL          = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/testseed.txt"
+;TestSpecialPeers     = ""
+LocalNetworkPort     = 8110
+; Using the seeds url for the community testnet
+;LocalSeedURL         = "https://raw.githubusercontent.com/FactomProject/communitytestnet/master/seeds/testnetseeds.txt"
+;LocalSpecialPeers    = ""
+CustomNetworkPort     = 8110
+CustomSeedURL         = "https://raw.githubusercontent.com/FactomProject/communitytestnet/master/seeds/testnetseeds.txt"
+CustomSpecialPeers    = ""
+; --------------- NodeMode: FULL | SERVER ----------------
+;NodeMode                                = FULL
+;ExchangeRateChainId                     = 111111118d918a8be684e0dac725493a75862ef96d2d3f43f84b26969329bf03
+;ExchangeRateAuthorityPublicKeyMainNet   = daf5815c2de603dbfa3e1e64f88a5cf06083307cf40da4a9b539c41832135b4a
+;ExchangeRateAuthorityPublicKeyTestNet   = 1d75de249c2fc0384fb6701b30dc86b39dc72e5a47ba4f79ef250d39e21e7a4f
+; Private key all zeroes:
+;ExchangeRateAuthorityPublicKeyLocalNet  = 3b6a27bcceb6a42d62a3a8d02a6f0d73653215771de243a63ac048a18b59da29
+
+; These define if the RPC and Control Panel connection to factomd should be encrypted, and if it is, what files
+; are the secret key and the public certificate.  factom-cli and factom-walletd uses the certificate specified here if TLS is enabled.
+; To use default files and paths leave /full/path/to/... in place.
+;FactomdTlsEnabled                     = false
+;FactomdTlsPrivateKey                  = "/full/path/to/factomdAPIpriv.key"
+;FactomdTlsPublicCert                  = "/full/path/to/factomdAPIpub.cert"
+
+; These are the username and password that factomd requires for the RPC API and the Control Panel
+; This file is also used by factom-cli and factom-walletd to determine what login to use
+;FactomdRpcUser                        = ""
+;FactomdRpcPass                        = ""
+
+; Specifying when to change ACKs for switching leader servers
+;ChangeAcksHeight                      = 0
+
+
+; Community Testnet Bootstrap information
+network = CUSTOM
+CustomBootstrapIdentity               = 8888882f5002ff95fce15d20ecb7e18ae6cc4d5849b372985d856b56e492ae0f
+CustomBootstrapKey                    = 58cfccaa48a101742845df3cecde6a9f38037030842d34d0eaa76867904705ae
+ExchangeRateAuthorityPublicKey        = 58cfccaa48a101742845df3cecde6a9f38037030842d34d0eaa76867904705ae
+DirectoryBlockInSeconds               = 600
+
+
+; --- Node Identity Information (Keep this line please) ---
+IdentityChainID						 	 = FA1E000000000000000000000000000000000000000000000000000000000000

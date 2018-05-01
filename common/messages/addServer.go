@@ -13,13 +13,14 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 	log "github.com/sirupsen/logrus"
 )
 
 // Communicate a Directory Block State
 
 type AddServerMsg struct {
-	MessageBase
+	msgbase.MessageBase
 	Timestamp     interfaces.Timestamp // Message Timestamp
 	ServerChainID interfaces.IHash     // ChainID of new server
 	ServerType    int                  // 0 = Federated, 1 = Audit
@@ -28,7 +29,7 @@ type AddServerMsg struct {
 }
 
 var _ interfaces.IMsg = (*AddServerMsg)(nil)
-var _ Signable = (*AddServerMsg)(nil)
+var _ interfaces.Signable = (*AddServerMsg)(nil)
 
 func (m *AddServerMsg) GetRepeatHash() interfaces.IHash {
 	return m.GetMsgHash()
@@ -106,7 +107,7 @@ func (e *AddServerMsg) JSONString() (string, error) {
 }
 
 func (m *AddServerMsg) Sign(key interfaces.Signer) error {
-	signature, err := SignSignable(m, key)
+	signature, err := msgbase.SignSignable(m, key)
 	if err != nil {
 		return err
 	}
@@ -119,7 +120,7 @@ func (m *AddServerMsg) GetSignature() interfaces.IFullSignature {
 }
 
 func (m *AddServerMsg) VerifySignature() (bool, error) {
-	return VerifyMessage(m)
+	return msgbase.VerifyMessage(m)
 }
 
 func (m *AddServerMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
@@ -213,7 +214,7 @@ func (m *AddServerMsg) String() string {
 	}
 	return fmt.Sprintf("AddServer (%s): ChainID: %x Time: %x Msg Hash %x ",
 		stype,
-		m.ServerChainID.Bytes()[:3],
+		m.ServerChainID.Bytes()[3:6],
 		&m.Timestamp,
 		m.GetMsgHash().Bytes()[:3])
 

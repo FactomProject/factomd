@@ -259,8 +259,7 @@ func TestHandleV2GetReceipt(t *testing.T) {
 		return
 	}
 
-	dbo := state.GetAndLockDB()
-	defer state.UnlockDB()
+	dbo := state.GetDB()
 
 	marshalled, err := json.Marshal(resp.(*ReceiptResponse).Receipt)
 	if err != nil {
@@ -467,7 +466,7 @@ func Test_ecBlockToResp(t *testing.T) {
 		want1 *primitives.JSONError
 	}{
 
-	// TODO: Add test cases.
+		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

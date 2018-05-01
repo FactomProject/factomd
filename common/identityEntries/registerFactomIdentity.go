@@ -7,10 +7,25 @@ package identityEntries
 import (
 	"fmt"
 
+	"bytes"
+
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives/random"
 )
+
+type RegisterFactomIdentityStructureSort []*RegisterFactomIdentityStructure
+
+func (p RegisterFactomIdentityStructureSort) Len() int {
+	return len(p)
+}
+func (p RegisterFactomIdentityStructureSort) Swap(i, j int) {
+	p[i], p[j] = p[j], p[i]
+}
+func (p RegisterFactomIdentityStructureSort) Less(i, j int) bool {
+	return bytes.Compare(p[i].IdentityChainID.Bytes(), p[j].IdentityChainID.Bytes()) < 0
+}
 
 //https://github.com/FactomProject/FactomDocs/blob/master/Identity.md#factom-identity-registration
 type RegisterFactomIdentityStructure struct {
@@ -25,6 +40,102 @@ type RegisterFactomIdentityStructure struct {
 	PreimageIdentityKey []byte
 	//The 5th ExtID is the signature of the first, second, and third ExtIDs serialized together.
 	Signature []byte
+}
+
+func RandomRegisterFactomIdentityStructure() *RegisterFactomIdentityStructure {
+	r := new(RegisterFactomIdentityStructure)
+	r.Version = random.RandByteSliceOfLen(1)[0]
+	r.FunctionName = random.RandByteSliceOfLen(100)
+	r.IdentityChainID = primitives.RandomHash()
+	r.PreimageIdentityKey = random.RandByteSliceOfLen(100)
+	r.Signature = random.RandByteSliceOfLen(100)
+
+	return r
+}
+
+func (e *RegisterFactomIdentityStructure) UnmarshalBinary(p []byte) error {
+	_, err := e.UnmarshalBinaryData(p)
+	return err
+}
+
+func (e *RegisterFactomIdentityStructure) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
+	buf := primitives.NewBuffer(p)
+	newData = p
+
+	e.Version, err = buf.PopByte()
+	if err != nil {
+		return
+	}
+
+	e.FunctionName, err = buf.PopBytes()
+	if err != nil {
+		return
+	}
+
+	e.IdentityChainID, err = buf.PopIHash()
+	if err != nil {
+		return
+	}
+
+	e.PreimageIdentityKey, err = buf.PopBytes()
+	if err != nil {
+		return
+	}
+
+	e.Signature, err = buf.PopBytes()
+	if err != nil {
+		return
+	}
+
+	newData = buf.DeepCopyBytes()
+	return
+}
+
+func (r *RegisterFactomIdentityStructure) MarshalBinary() ([]byte, error) {
+	buf := primitives.NewBuffer(nil)
+
+	err := buf.PushByte(r.Version)
+	if err != nil {
+		return nil, err
+	}
+
+	err = buf.PushBytes(r.FunctionName)
+	if err != nil {
+		return nil, err
+	}
+
+	err = buf.PushIHash(r.IdentityChainID)
+	if err != nil {
+		return nil, err
+	}
+
+	err = buf.PushBytes(r.PreimageIdentityKey)
+	if err != nil {
+		return nil, err
+	}
+
+	err = buf.PushBytes(r.Signature)
+	if err != nil {
+		return nil, err
+	}
+
+	return buf.DeepCopyBytes(), nil
+}
+
+func (a *RegisterFactomIdentityStructure) IsSameAs(b *RegisterFactomIdentityStructure) bool {
+	la := a.ToExternalIDs()
+	lb := b.ToExternalIDs()
+
+	if len(la) != len(lb) {
+		return false
+	}
+
+	for i := range la {
+		if bytes.Compare(la[i], lb[i]) != 0 {
+			return false
+		}
+	}
+	return true
 }
 
 func DecodeRegisterFactomIdentityStructureFromExtIDs(extIDs [][]byte) (*RegisterFactomIdentityStructure, error) {

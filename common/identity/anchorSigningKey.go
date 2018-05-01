@@ -5,6 +5,8 @@
 package identity
 
 import (
+	"bytes"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/primitives/random"
@@ -12,11 +14,24 @@ import (
 
 //https://github.com/FactomProject/FactomDocs/blob/master/Identity.md
 
+// sort.Sort interface implementation
+type AnchorSigningKeySort []AnchorSigningKey
+
+func (p AnchorSigningKeySort) Len() int {
+	return len(p)
+}
+func (p AnchorSigningKeySort) Swap(i, j int) {
+	p[i], p[j] = p[j], p[i]
+}
+func (p AnchorSigningKeySort) Less(i, j int) bool {
+	return bytes.Compare(p[i].SigningKey[:], p[j].SigningKey[:]) < 0
+}
+
 type AnchorSigningKey struct {
-	BlockChain string   `json:"blockchain"`
-	KeyLevel   byte     `json:"level"`
-	KeyType    byte     `json:"keytype"`
-	SigningKey [20]byte `json:"key"` //if bytes, it is hex
+	BlockChain string                 `json:"blockchain"`
+	KeyLevel   byte                   `json:"level"`
+	KeyType    byte                   `json:"keytype"`
+	SigningKey primitives.ByteSlice20 `json:"key"` //if bytes, it is hex
 }
 
 var _ interfaces.BinaryMarshallable = (*AnchorSigningKey)(nil)

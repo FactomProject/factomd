@@ -12,13 +12,14 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 	log "github.com/sirupsen/logrus"
 )
 
 // Communicate a Admin Block Change
 
 type ChangeServerKeyMsg struct {
-	MessageBase
+	msgbase.MessageBase
 	Timestamp        interfaces.Timestamp // Message Timestamp
 	IdentityChainID  interfaces.IHash     // ChainID of new server
 	AdminBlockChange byte
@@ -30,7 +31,7 @@ type ChangeServerKeyMsg struct {
 }
 
 var _ interfaces.IMsg = (*ChangeServerKeyMsg)(nil)
-var _ Signable = (*ChangeServerKeyMsg)(nil)
+var _ interfaces.Signable = (*ChangeServerKeyMsg)(nil)
 
 func (m *ChangeServerKeyMsg) GetRepeatHash() interfaces.IHash {
 	return m.GetMsgHash()
@@ -81,8 +82,7 @@ func (m *ChangeServerKeyMsg) Validate(state interfaces.IState) int {
 	if err != nil || m.Signature == nil {
 		return -1
 	}
-	sig := m.Signature.GetSignature()
-	authSigned, err := state.VerifyAuthoritySignature(bytes, sig, state.GetLeaderHeight())
+	authSigned, err := state.FastVerifyAuthoritySignature(bytes, m.Signature, state.GetLeaderHeight())
 	if err != nil || authSigned != 1 { // authSigned = 1 for fed signed
 		return -1
 	}
@@ -127,7 +127,7 @@ func (e *ChangeServerKeyMsg) JSONString() (string, error) {
 }
 
 func (m *ChangeServerKeyMsg) Sign(key interfaces.Signer) error {
-	signature, err := SignSignable(m, key)
+	signature, err := msgbase.SignSignable(m, key)
 	if err != nil {
 		return err
 	}
@@ -140,7 +140,7 @@ func (m *ChangeServerKeyMsg) GetSignature() interfaces.IFullSignature {
 }
 
 func (m *ChangeServerKeyMsg) VerifySignature() (bool, error) {
-	return VerifyMessage(m)
+	return msgbase.VerifyMessage(m)
 }
 
 func (m *ChangeServerKeyMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {

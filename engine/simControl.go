@@ -10,17 +10,21 @@ import (
 	"io"
 	"math/rand"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 	"unicode"
 
-	"runtime"
-
+	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/factoid"
+	"github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/controlPanel"
+	elections2 "github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/wsapi"
 )
@@ -33,39 +37,47 @@ var verboseAuthorityDeltas = false
 var totalServerFaults int
 var lastcmd []string
 var ListenTo int
+var wsapiNode int
+var loadGenerator *LoadGenerator
 
 // Used for signing messages
 var LOCAL_NET_PRIV_KEY string = "4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d"
 
-var ProcessChan = make(chan int)  // signal done here.
 var InputChan = make(chan string) // Get commands here
+
+var once bool
 
 func GetLine(listenToStdin bool) string {
 
-	if listenToStdin {
-		line := make([]byte, 100)
-		var err error
-		// When running as a detached process, this routine becomes a very tight loop and starves other goroutines.
-		// So, we will sleep before letting it check to see if Stdin has been reconnected
-		for {
-			if _, err = os.Stdin.Read(line); err == nil {
-				return string(line)
-			} else {
-				if err == io.EOF {
-					fmt.Printf("Error reading from std, sleeping for 5s: %s\n", err.Error())
-					time.Sleep(5 * time.Second)
-				} else {
-					fmt.Printf("Error reading from std, sleeping for 1s: %s\n", err.Error())
-					time.Sleep(1 * time.Second)
+	if !once {
+		once = true
+
+		// read stdin and copy it to the simcr
+		go func() {
+			line := make([]byte, 100)
+			for {
+				var err error
+				// When running as a detached process, this routine becomes a very tight loop and starves other goroutines.
+				// So, we will sleep before letting it check to see if Stdin has been reconnected
+				for {
+					if _, err = os.Stdin.Read(line); err == nil {
+						InputChan <- string(line)
+					} else {
+						if err == io.EOF {
+							return
+						} else {
+							fmt.Printf("Error reading from std, sleeping for 1s: %s\n", err.Error())
+							time.Sleep(1 * time.Second)
+						}
+						continue
+					}
 				}
-				continue
-			}
-		}
-	} else {
-		line := <-InputChan
-		ProcessChan <- 1
-		return line
+			} // forever
+		}()
 	}
+
+	line := <-InputChan
+	return line
 }
 
 func GetFocus() *FactomNode {
@@ -78,10 +90,11 @@ func GetFocus() *FactomNode {
 func SimControl(listenTo int, listenStdin bool) {
 	var _ = time.Sleep
 	var summary int
+	var elections int
+	var simelections int
 	var watchPL int
 	var watchMessages int
 	var rotate int
-	var wsapiNode int
 	var faulting bool
 
 	ListenTo = listenTo
@@ -127,7 +140,7 @@ func SimControl(listenTo int, listenStdin bool) {
 
 			case 'b' == b[0]:
 				if len(b) == 1 {
-					os.Stderr.WriteString("specifivy how long a block will be recorded (in nanoseconds).  1 records all blocks.\n")
+					os.Stderr.WriteString("specifically how long a block will be recorded (in nanoseconds).  1 records all blocks.\n")
 					break
 				}
 				delay, err := strconv.Atoi(string(b[1:]))
@@ -249,6 +262,22 @@ func SimControl(listenTo int, listenStdin bool) {
 					go printSummary(&summary, summary, &ListenTo, &wsapiNode)
 				} else {
 					os.Stderr.WriteString("--Print Summary Off--\n")
+				}
+			case 'E' == b[0]:
+				elections++
+				if elections%2 == 1 {
+					os.Stderr.WriteString("--Print Elections On--\n")
+					go printElections(&elections, elections, &ListenTo, &wsapiNode)
+				} else {
+					os.Stderr.WriteString("--Print Elections Off--\n")
+				}
+			case 'F' == b[0] && len(b) == 1:
+				simelections++
+				if simelections%2 == 1 {
+					os.Stderr.WriteString("--Print SimElections On--\n")
+					go printSimElections(&simelections, simelections, &ListenTo, &wsapiNode)
+				} else {
+					os.Stderr.WriteString("--Print SimElections Off--\n")
 				}
 			case 'p' == b[0]:
 				if len(b) > 1 {
@@ -587,7 +616,7 @@ func SimControl(listenTo int, listenStdin bool) {
 
 				if ListenTo >= 0 && ListenTo < len(fnodes) {
 					f := fnodes[ListenTo]
-					v := f.State.GetNetStateOff()
+					v := f.State.GetNetStateOff() // Toggle his network on/off state
 					if v {
 						os.Stderr.WriteString("Bring " + f.State.FactomNodeName + " Back onto the network\n")
 					} else {
@@ -614,7 +643,8 @@ func SimControl(listenTo int, listenStdin bool) {
 							v := f.State.Holding[k]
 							vf := v.Validate(f.State)
 							if v != nil {
-								os.Stderr.WriteString(fmt.Sprintf("%s v %d\n", v.String(), vf))
+								repeat := f.State.Replay.IsHashUnique(constants.REVEAL_REPLAY, v.GetHash().Fixed())
+								os.Stderr.WriteString(fmt.Sprintf("%s v %d cnt %d notYet: %v\n", v.String(), vf, v.GetResendCnt(), repeat))
 							} else {
 								os.Stderr.WriteString("<nul>\n")
 							}
@@ -625,7 +655,8 @@ func SimControl(listenTo int, listenStdin bool) {
 						for k, c := range f.State.Commits.GetRaw() {
 							if c != nil {
 								vf := c.Validate(f.State)
-								os.Stderr.WriteString(fmt.Sprintf("%s v %d %x\n", c.String(), vf, k))
+								repeat := f.State.Replay.IsHashUnique(constants.REVEAL_REPLAY, c.GetHash().Fixed())
+								os.Stderr.WriteString(fmt.Sprintf("%s v %d %x cnt %d notYet: %v\n", c.String(), vf, k, c.GetResendCnt(), repeat))
 								cc, ok1 := c.(*messages.CommitChainMsg)
 								cm, ok2 := c.(*messages.CommitEntryMsg)
 								if ok1 && f.State.Holding[cc.CommitChain.EntryHash.Fixed()] != nil {
@@ -707,7 +738,7 @@ func SimControl(listenTo int, listenStdin bool) {
 					}
 					err = msg.(*messages.AddServerMsg).Sign(priv)
 					if err != nil {
-						os.Stderr.WriteString(fmt.Sprintln("Could not make a audit server,", err.Error()))
+						os.Stderr.WriteString(fmt.Sprintln("Could not make an audit server,", err.Error()))
 						break
 					}
 					fnodes[ListenTo].State.InMsgQueue().Enqueue(msg)
@@ -826,18 +857,19 @@ func SimControl(listenTo int, listenStdin bool) {
 						}
 					}
 					if amt == -1 {
-						os.Stderr.WriteString(fmt.Sprintf("=== Identity List === Total: %d Displaying: All\n", len(fnodes[ListenTo].State.Identities)))
+						os.Stderr.WriteString(fmt.Sprintf("=== Identity List === Total: %d Displaying: All\n", len(fnodes[ListenTo].State.IdentityControl.Identities)))
 
 					} else if show == 5 {
-						os.Stderr.WriteString(fmt.Sprintf("=== Identity List === Total: %d Displaying Only: %d\n", len(fnodes[ListenTo].State.Identities), amt))
+						os.Stderr.WriteString(fmt.Sprintf("=== Identity List === Total: %d Displaying Only: %d\n", len(fnodes[ListenTo].State.IdentityControl.Identities), amt))
 					} else {
-						os.Stderr.WriteString(fmt.Sprintf("=== Identity List === Total: %d Displaying: %d\n", len(fnodes[ListenTo].State.Identities), amt))
+						os.Stderr.WriteString(fmt.Sprintf("=== Identity List === Total: %d Displaying: %d\n", len(fnodes[ListenTo].State.IdentityControl.Identities), amt))
 					}
-					for c, ident := range fnodes[ListenTo].State.Identities {
+
+					printID := func(ident *identity.Identity, c int) bool {
 						if amt != -1 && c == amt {
-							break
+							return true
 						}
-						stat := returnStatString(ident.Status)
+						stat := constants.IdentityStatusString(ident.Status)
 						if show == 5 {
 							if c != amt {
 							} else {
@@ -852,11 +884,13 @@ func SimControl(listenTo int, listenStdin bool) {
 							if show == 0 || c == amt {
 								os.Stderr.WriteString(fmt.Sprint("Management Chain: ", ident.ManagementChainID, "\n"))
 								os.Stderr.WriteString(fmt.Sprint("Matryoshka Hash: ", ident.MatryoshkaHash, "\n"))
-								os.Stderr.WriteString(fmt.Sprint("Key 1: ", ident.Key1, "\n"))
-								os.Stderr.WriteString(fmt.Sprint("Key 2: ", ident.Key2, "\n"))
-								os.Stderr.WriteString(fmt.Sprint("Key 3: ", ident.Key3, "\n"))
-								os.Stderr.WriteString(fmt.Sprint("Key 4: ", ident.Key4, "\n"))
+								os.Stderr.WriteString(fmt.Sprint("Key 1: ", ident.Keys[0], "\n"))
+								os.Stderr.WriteString(fmt.Sprint("Key 2: ", ident.Keys[1], "\n"))
+								os.Stderr.WriteString(fmt.Sprint("Key 3: ", ident.Keys[2], "\n"))
+								os.Stderr.WriteString(fmt.Sprint("Key 4: ", ident.Keys[3], "\n"))
 								os.Stderr.WriteString(fmt.Sprint("Signing Key: ", ident.SigningKey, "\n"))
+								os.Stderr.WriteString(fmt.Sprint("Efficiency: ", ident.Efficiency, "\n"))
+								os.Stderr.WriteString(fmt.Sprint("Coinbase Address: ", ident.GetCoinbaseHumanReadable(), "\n"))
 								for _, a := range ident.AnchorKeys {
 									os.Stderr.WriteString(fmt.Sprintf("Anchor Key: {'%s' L%x T%x K:%x}\n", a.BlockChain, a.KeyLevel, a.KeyType, a.SigningKey))
 								}
@@ -872,8 +906,23 @@ func SimControl(listenTo int, listenStdin bool) {
 								os.Stderr.WriteString(fmt.Sprintf("Anchor Key: {'%s' L%x T%x K:%x}\n", a.BlockChain, a.KeyLevel, a.KeyType, a.SigningKey))
 							}
 						}
+						return false
+					}
+
+					//for c, ident := range fnodes[ListenTo].State.Identities {
+					//	if printID(ident, c) {
+					//		break
+					//	}
+					//}
+
+					fmt.Print("\n\n\n\n")
+					for c, ident := range fnodes[ListenTo].State.IdentityControl.GetIdentities() {
+						if printID(ident, c) {
+							break
+						}
 					}
 				}
+
 			case 't' == b[0]:
 				if len(b) == 2 && b[1] == 'm' {
 					_, _, auth := authKeyLookup(fnodes[ListenTo].State.IdentityChainID)
@@ -966,20 +1015,29 @@ func SimControl(listenTo int, listenStdin bool) {
 					os.Stderr.WriteString(fmt.Sprint("There are no more available identities in this node. Type 'g1' to claim another identity\n"))
 				}
 			case 'u' == b[0]:
-				os.Stderr.WriteString(fmt.Sprintf("=== Authority List ===  Total: %d Displaying: All\n", len(fnodes[ListenTo].State.Authorities)))
-				for _, i := range fnodes[ListenTo].State.Authorities {
+				os.Stderr.WriteString(fmt.Sprintf("=== Authority List ===  Total: %d Displaying: All\n", len(fnodes[ListenTo].State.IdentityControl.GetAuthorities())))
+				for _, iA := range fnodes[ListenTo].State.IdentityControl.GetAuthorities() {
 					os.Stderr.WriteString("-------------------------------------------------------------------------------\n")
 					var stat string
-					stat = returnStatString(i.Status)
+					i := iA.(*identity.Authority)
+					stat = constants.IdentityStatusString(i.Status)
 					os.Stderr.WriteString(fmt.Sprint("Server Status: ", stat, "\n"))
 					os.Stderr.WriteString(fmt.Sprint("Identity Chain: ", i.AuthorityChainID, "\n"))
 					os.Stderr.WriteString(fmt.Sprint("Management Chain: ", i.ManagementChainID, "\n"))
 					os.Stderr.WriteString(fmt.Sprint("Matryoshka Hash: ", i.MatryoshkaHash, "\n"))
 					os.Stderr.WriteString(fmt.Sprint("Signing Key: ", i.SigningKey.String(), "\n"))
+					os.Stderr.WriteString(fmt.Sprint("Coinbase Address: ", i.GetCoinbaseHumanReadable(), "\n"))
+					os.Stderr.WriteString(fmt.Sprint("Efficiency: ", i.Efficiency, "\n"))
 					for _, a := range i.AnchorKeys {
 						os.Stderr.WriteString(fmt.Sprintf("Anchor Key: {'%s' L%x T%x K:%x}\n", a.BlockChain, a.KeyLevel, a.KeyType, a.SigningKey))
 					}
 				}
+			case 'C' == b[0]:
+				fmt.Println("Cleaning up")
+				interruptChannel <- syscall.SIGINT
+			case 'Q' == b[0]:
+				fmt.Println("Quiting forcefully")
+				os.Exit(0)
 			case 'q' == b[0]:
 				var eHashes interface{}
 				if len(b) > 1 {
@@ -1056,7 +1114,45 @@ func SimControl(listenTo int, listenStdin bool) {
 						}
 					}
 				}
-
+			case 'J' == b[0]:
+				elect := fnodes[listenTo].State.Elections.(*elections2.Elections)
+				flist := elect.Federated
+				alist := elect.Audit
+				os.Stderr.WriteString(fmt.Sprintf(fnodes[listenTo].State.Elections.String()))
+				for _, n := range fnodes {
+					founddif := false
+					str := "\n - " + n.State.GetFactomNodeName()
+					ele2 := n.State.Elections.(*elections2.Elections)
+					flist2 := ele2.Federated
+					alist2 := ele2.Audit
+					if len(flist2) != len(flist) {
+						str += fmt.Sprintf("\n   /FedList different length: Exp %d vs %d", len(flist), len(flist2))
+						founddif = true
+					} else {
+						for i := range flist {
+							if !flist[i].GetChainID().IsSameAs(flist2[i].GetChainID()) {
+								str += fmt.Sprintf("\n   /FedList[%d] different. Exp %x vs %x",
+									i, flist[i].GetChainID().Bytes()[:8], flist2[i].GetChainID().Bytes()[:8])
+								founddif = true
+							}
+						}
+					}
+					if len(alist2) != len(alist) {
+						str += fmt.Sprintf("\n   /AudList different length: Exp %d vs %d", len(alist), len(alist2))
+						founddif = true
+					} else {
+						for i := range alist {
+							if !alist[i].GetChainID().IsSameAs(alist2[i].GetChainID()) {
+								str += fmt.Sprintf("\n   /AudList[%d] different. Exp %x vs %x",
+									i, alist[i].GetChainID().Bytes()[:8], alist2[i].GetChainID().Bytes()[:8])
+								founddif = true
+							}
+						}
+					}
+					if founddif {
+						os.Stderr.WriteString(str)
+					}
+				}
 			case 'D' == b[0]:
 				if ListenTo < 0 || ListenTo > len(fnodes) {
 					os.Stderr.WriteString("No Factom Node selected\n")
@@ -1077,6 +1173,89 @@ func SimControl(listenTo int, listenStdin bool) {
 							dbs.String()))
 					}
 				}
+			case 'R' == b[0]:
+				// load generation
+				if loadGenerator == nil {
+					loadGenerator = NewLoadGenerator()
+				}
+				nn := 0
+				if b[1] == '.' {
+					nn, err = strconv.Atoi(b[2:])
+					if err != nil {
+						os.Stderr.WriteString("Specify in seconds (R3) or in tenths of a second (R.5)")
+						break
+					}
+				} else {
+					nn, err = strconv.Atoi(string(b[1:]))
+					if err != nil {
+						os.Stderr.WriteString("Specify in seconds (R3) or in tenths of a second (R.5)")
+						break
+					}
+					nn = nn * 10
+				}
+				loadGenerator.PerSecond.Store(nn)
+				go loadGenerator.Run()
+				os.Stderr.WriteString(fmt.Sprintf("Writing entries at %d.%d per second\n", nn/10, nn%10))
+
+			case 'P' == b[0]:
+				// Set efficiency
+				nn, err := strconv.Atoi(string(b[1:]))
+				if err != nil {
+					os.Stderr.WriteString(err.Error() + "\n")
+					break
+				}
+				_, _, auth := authKeyLookup(fnodes[ListenTo].State.IdentityChainID)
+				if auth == nil {
+					break
+				}
+
+				wsapiNode = ListenTo
+				wsapi.SetState(fnodes[wsapiNode].State)
+				err = fundWallet(fnodes[ListenTo].State, 1e8)
+				if err != nil {
+					os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
+					break
+				}
+
+				err = changeServerEfficiency(fnodes[ListenTo].State.IdentityChainID, fnodes[ListenTo].State, uint16(nn))
+				if err != nil {
+					os.Stderr.WriteString(fmt.Sprintf("Error: %s\n", err.Error()))
+					break
+				}
+
+				os.Stderr.WriteString(fmt.Sprintf("New efficiency for [%s]: %d\n", fnodes[ListenTo].State.IdentityChainID.String()[:8], nn))
+				break
+
+			case 'B' == b[0]:
+				// Set coinbase address
+				add := primitives.RandomHash().String()
+				if len(b) > 1 {
+					add = string(b[1:])
+				}
+
+				_, _, auth := authKeyLookup(fnodes[ListenTo].State.IdentityChainID)
+				if auth == nil {
+					break
+				}
+
+				wsapiNode = ListenTo
+				wsapi.SetState(fnodes[wsapiNode].State)
+				err = fundWallet(fnodes[ListenTo].State, 1e8)
+				if err != nil {
+					os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
+					break
+				}
+
+				err = changeServerCoinbaseAddress(fnodes[ListenTo].State.IdentityChainID, fnodes[ListenTo].State, add)
+				if err != nil {
+					os.Stderr.WriteString(fmt.Sprintf("Error: %s\n", err.Error()))
+					break
+				}
+
+				h, _ := primitives.HexToHash(add)
+				address := factoid.NewAddress([]byte(h.Bytes()))
+				os.Stderr.WriteString(fmt.Sprintf("New Coinbase Address for [%s]: %s\n", fnodes[ListenTo].State.IdentityChainID.String()[:8], primitives.ConvertFctAddressToUserStr(address)))
+				break
 
 			case 'h' == b[0]:
 				os.Stderr.WriteString("-------------------------------------------------------------------------------\n")
@@ -1123,6 +1302,7 @@ func SimControl(listenTo int, listenStdin bool) {
 				os.Stderr.WriteString("Dnnn          Set the Delay on messages from the current node to nnn milliseconds\n")
 				os.Stderr.WriteString("Fnnn          Set the Delay on messages from all nodes to nnn milliseconds\n")
 				os.Stderr.WriteString("/             Toggle the sort order between ChainID and Factom Node Name\n")
+				os.Stderr.WriteString("Rnnn          Set load generator to write entries at nnn per second\n")
 
 				//os.Stderr.WriteString("i[m/b/a][N]   Shows only the Mhash, block signing key, or anchor key up to the Nth identity\n")
 				//os.Stderr.WriteString("isN           Shows only Nth identity\n")

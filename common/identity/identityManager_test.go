@@ -7,43 +7,68 @@ package identity_test
 import (
 	"testing"
 
-	. "github.com/FactomProject/factomd/common/identity"
-	"github.com/FactomProject/factomd/common/primitives"
+	"math/rand"
+
+	"fmt"
+
+	"bytes"
+
+	"github.com/FactomProject/factomd/common/identity"
+	"github.com/FactomProject/factomd/common/identityEntries"
+	"github.com/FactomProject/factomd/common/primitives/random"
 )
 
-func TestSetSkeletonKey(t *testing.T) {
-	im := new(IdentityManager)
-	for i := 0; i < 1000; i++ {
-		h := primitives.RandomHash()
-		str := h.String()
-		err := im.SetSkeletonKey(str)
+//import . "github.com/FactomProject/factomd/common/identity"
+
+func TestIdentityManagerMarshal(t *testing.T) {
+	for i := 0; i < 100; i++ {
+		im := identity.NewIdentityManager()
+		for i := 0; i < rand.Intn(10); i++ {
+			id := identity.RandomIdentity()
+			im.Identities[id.IdentityChainID.Fixed()] = id
+		}
+
+		for i := 0; i < rand.Intn(10); i++ {
+			id := identity.RandomAuthority()
+			im.Authorities[id.AuthorityChainID.Fixed()] = id
+		}
+		for i := 0; i < rand.Intn(10); i++ {
+			r := identityEntries.RandomRegisterFactomIdentityStructure()
+			im.IdentityRegistrations[r.IdentityChainID.Fixed()] = r
+		}
+
+		data, err := im.MarshalBinary()
 		if err != nil {
-			t.Errorf("%v", err)
-		}
-		auth := im.GetAuthority(primitives.NewZeroHash())
-		str2 := auth.SigningKey.String()
-		if str != str2 {
-			t.Errorf("Invalid signing key - %v vs %v", str, str2)
+			t.Error(err)
+			t.FailNow()
 		}
 
-		str = str[1:]
-		err = im.SetSkeletonKey(str)
-		if err == nil {
-			t.Errorf("No error returned")
-		}
-	}
-}
+		extra := rand.Intn(100)
+		extraData := append(data, random.RandByteSliceOfLen(extra)...)
 
-func TestSetSkeletonKeyMainNet(t *testing.T) {
-	im := new(IdentityManager)
-	str := "0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a"
-	err := im.SetSkeletonKeyMainNet()
-	if err != nil {
-		t.Errorf("%v", err)
-	}
-	auth := im.GetAuthority(primitives.NewZeroHash())
-	str2 := auth.SigningKey.String()
-	if str != str2 {
-		t.Errorf("Invalid signing key - %v vs %v", str, str2)
+		im2 := identity.NewIdentityManager()
+		newData, err := im2.UnmarshalBinaryData(extraData)
+		if err != nil {
+			t.Error(err)
+			t.FailNow()
+		}
+
+		if len(newData) != extra {
+			t.Errorf(fmt.Sprintf("Extra %d data", len(newData)))
+		}
+
+		if !im2.IsSameAs(im) {
+			t.Errorf("Not same")
+		}
+
+		data2, err := im2.MarshalBinary()
+		if err != nil {
+			t.Error(err)
+			t.FailNow()
+		}
+
+		if bytes.Compare(data, data2) != 0 {
+			t.Errorf("Bytes are different: \n%x \n%x", data, data2)
+		}
 	}
 }

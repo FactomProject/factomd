@@ -25,6 +25,8 @@ var _ interfaces.IHash = (*Hash)(nil)
 var _ interfaces.BinaryMarshallableAndCopyable = (*Hash)(nil)
 var _ encoding.TextMarshaler = (*Hash)(nil)
 
+var ZeroHash interfaces.IHash = NewHash(constants.ZERO_HASH)
+
 func RandomHash() interfaces.IHash {
 	h := random.RandByteSliceOfLen(constants.HASH_LENGTH)
 	answer := new(Hash)
@@ -80,6 +82,11 @@ func (h *Hash) Fixed() [constants.HASH_LENGTH]byte {
 		panic("nil Hash")
 	}
 	return *h
+}
+
+func (h *Hash) PFixed() *[constants.HASH_LENGTH]byte {
+	// Might change the error produced by IHash in FD-398
+	return (*[constants.HASH_LENGTH]byte)(h)
 }
 
 func (h *Hash) Bytes() []byte {

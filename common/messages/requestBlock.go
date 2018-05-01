@@ -11,12 +11,13 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 	log "github.com/sirupsen/logrus"
 )
 
 //A placeholder structure for messages
 type RequestBlock struct {
-	MessageBase
+	msgbase.MessageBase
 	Timestamp interfaces.Timestamp
 
 	//TODO: figure whether this should be signed or not?

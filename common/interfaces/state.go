@@ -30,6 +30,7 @@ type IState interface {
 	GetSalt(Timestamp) uint32 // A secret number computed from a TS that tests if a message was issued from this server or not
 	Clone(number int) IState
 	GetCfg() IFactomConfig
+	GetConfigPath() string
 	LoadConfig(filename string, networkFlag string)
 	Init()
 	String() string
@@ -115,6 +116,7 @@ type IState interface {
 	InMsgQueue() IQueue  // Read by Validate
 	AckQueue() chan IMsg // Leader Queue
 	MsgQueue() chan IMsg // Follower Queue
+	ElectionsQueue() IQueue
 
 	// Lists and Maps
 	// =====
@@ -173,8 +175,7 @@ type IState interface {
 	GetAnchor() IAnchor
 
 	// Database
-	GetAndLockDB() DBOverlaySimple
-	UnlockDB()
+	GetDB() DBOverlaySimple
 
 	// Web Services
 	// ============
@@ -222,7 +223,6 @@ type IState interface {
 	ProcessDBSig(dbheight uint32, commitChain IMsg) bool
 	ProcessEOM(dbheight uint32, eom IMsg) bool
 	ProcessRevealEntry(dbheight uint32, m IMsg) bool
-	ProcessFullServerFault(dbheight uint32, fullFault IMsg) bool
 	// For messages that go into the Process List
 	LeaderExecute(IMsg)
 	LeaderExecuteEOM(IMsg)
@@ -246,6 +246,9 @@ type IState interface {
 	UpdateECs(IEntryCreditBlock)
 	SetIsReplaying()
 	SetIsDoneReplaying()
+
+	CrossReplayAddSalt(height uint32, salt [8]byte) error
+
 	// No Entry Yet returns true if no Entry Hash is found in the Replay structs.
 	// Returns false if we have seen an Entry Replay in the current period.
 	NoEntryYet(IHash, Timestamp) bool
@@ -287,6 +290,7 @@ type IState interface {
 	VerifyAuthoritySignature(Message []byte, signature *[64]byte, dbheight uint32) (int, error)
 	FastVerifyAuthoritySignature(Message []byte, signature IFullSignature, dbheight uint32) (int, error)
 	UpdateAuthSigningKeys(height uint32)
+	AddIdentityFromChainID(cid IHash) error
 
 	AddAuthorityDelta(changeString string)
 
@@ -315,4 +319,11 @@ type IState interface {
 	// Plugins
 	UsingTorrent() bool
 	GetMissingDBState(height uint32) error
+
+	LogMessage(logName string, comment string, msg IMsg)
+	LogPrintf(logName string, format string, more ...interface{})
+
+	GetHighestAck() uint32
+	SetHighestAck(uint32)
+	DebugExec() bool
 }

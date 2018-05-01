@@ -106,6 +106,9 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 			}
 		}
 	}()
+
+	time.Sleep(10 * time.Second)
+
 	StatePointer = statePointer
 	StatePointer.ControlPanelDataRequest = true // Request initial State
 	// Wait for initial State
@@ -506,7 +509,7 @@ func toggleDCT() {
 	}
 }
 
-// Gets all the recent transactions. Will only keep the most recent 100.
+// Gets all the recent transitions. Will only keep the most recent 100.
 func getRecentTransactions(time.Time) {
 	/*defer func() {
 		if r := recover(); r != nil {
@@ -612,9 +615,9 @@ func getRecentTransactions(time.Time) {
 		}
 		if entry.GetChainID().String() == "000000000000000000000000000000000000000000000000000000000000000f" {
 			mr := entry.GetKeyMR()
-			dbase := StatePointer.GetAndLockDB()
+			dbase := StatePointer.GetDB()
 			fblock, err := dbase.FetchFBlock(mr)
-			StatePointer.UnlockDB()
+
 			if err != nil || fblock == nil {
 				continue
 			}
@@ -642,9 +645,9 @@ func getRecentTransactions(time.Time) {
 		} else if entry.GetChainID().String() == "000000000000000000000000000000000000000000000000000000000000000c" {
 			mr := entry.GetKeyMR()
 
-			dbase := StatePointer.GetAndLockDB()
+			dbase := StatePointer.GetDB()
 			ecblock, err := dbase.FetchECBlock(mr)
-			StatePointer.UnlockDB()
+
 			if err != nil || ecblock == nil {
 				continue
 			}
@@ -720,9 +723,9 @@ func getPastEntries(last interfaces.IDirectoryBlock, eNeeded int, fNeeded int) {
 		if next.IsSameAs(zero) {
 			break
 		}
-		dbase := StatePointer.GetAndLockDB()
+		dbase := StatePointer.GetDB()
 		dblk, err := dbase.FetchDBlock(next)
-		StatePointer.UnlockDB()
+
 		if err != nil || dblk == nil {
 			break
 		}
@@ -730,9 +733,9 @@ func getPastEntries(last interfaces.IDirectoryBlock, eNeeded int, fNeeded int) {
 		ents := dblk.GetDBEntries()
 		if len(ents) > 3 && eNeeded > 0 {
 			for _, eblock := range ents[3:] {
-				dbase := StatePointer.GetAndLockDB()
+				dbase := StatePointer.GetDB()
 				eblk, err := dbase.FetchEBlock(eblock.GetKeyMR())
-				StatePointer.UnlockDB()
+
 				if err != nil || eblk == nil {
 					break
 				}
@@ -753,9 +756,9 @@ func getPastEntries(last interfaces.IDirectoryBlock, eNeeded int, fNeeded int) {
 			fChain := primitives.NewHash(constants.FACTOID_CHAINID)
 			for _, entry := range ents {
 				if entry.GetChainID().IsSameAs(fChain) {
-					dbase := StatePointer.GetAndLockDB()
+					dbase := StatePointer.GetDB()
 					fblk, err := dbase.FetchFBlock(entry.GetKeyMR())
-					StatePointer.UnlockDB()
+
 					if err != nil || fblk == nil {
 						break
 					}

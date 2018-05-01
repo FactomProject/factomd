@@ -56,8 +56,7 @@ func main() {
 			panic(err)
 		}
 	}
-	dbo := state.GetAndLockDB().(interfaces.DBOverlay)
-	defer state.UnlockDB()
+	dbo := state.GetDB().(interfaces.DBOverlay)
 
 	if entryID != "" {
 		err := ExportEntryReceipt(entryID, dbo)

@@ -49,6 +49,7 @@ func InitNetwork() {
 	logportPtr := flag.String("logPort", "6060", "Port for the profiler")
 	peersPtr := flag.String("peers", "", "Array of peer addresses. ")
 	exclusivePtr := flag.Bool("exclusive", false, "If true, we only dial out to special/trusted peers.")
+	exclusiveInPtr := flag.Bool("exclusive_in", false, "If true, we only dial out to special/trusted peers and disallow all incoming connections.")
 	deadlinePtr := flag.Int64("deadline", 1, "Deadline for Reads and Writes to conn.")
 	p2pPtr := flag.Bool("p2p", false, "Test p2p messages (default to false)")
 	numStampsPtr := flag.Int("numstamps", 1, "Number of timestamps per reply on p2p test. (makes messages big)")
@@ -63,6 +64,7 @@ func InitNetwork() {
 	port := *networkPortOverridePtr
 	peers := *peersPtr
 	exclusive := *exclusivePtr
+	exclusiveIn := *exclusiveInPtr
 	logPort = *logportPtr
 	p2p.NetworkDeadline = time.Duration(*deadlinePtr) * time.Millisecond
 	isp2p = *p2pPtr
@@ -78,6 +80,7 @@ func InitNetwork() {
 	os.Stderr.WriteString(fmt.Sprintf("%20s -- %s\n", "networkPort", port))
 	os.Stderr.WriteString(fmt.Sprintf("%20s -- %s\n", "peers", peers))
 	os.Stderr.WriteString(fmt.Sprintf("%20s -- %v\n", "exclusive", exclusive))
+	os.Stderr.WriteString(fmt.Sprintf("%20s -- %v\n", "exclusiveIn", exclusiveIn))
 	os.Stderr.WriteString(fmt.Sprintf("%20s -- %v\n", "deadline", p2p.NetworkDeadline.Seconds()))
 	os.Stderr.WriteString(fmt.Sprintf("%20s -- %v\n", "p2p", isp2p))
 	os.Stderr.WriteString(fmt.Sprintf("%20s -- %dk\n\n", "size", size/1024))
@@ -88,8 +91,9 @@ func InitNetwork() {
 		PeersFile:                "peers.json",
 		Network:                  1,
 		Exclusive:                exclusive,
+		ExclusiveIn:              exclusiveIn,
 		SeedURL:                  "",
-		SpecialPeers:             peers,
+		ConfigPeers:              peers,
 		ConnectionMetricsChannel: connectionMetricsChannel,
 	}
 	p2pNetwork := new(p2p.Controller).Init(ci)
@@ -100,8 +104,6 @@ func InitNetwork() {
 	p2pProxy.ToNetwork = p2pNetwork.ToNetwork
 
 	p2pProxy.StartProxy()
-	// Command line peers lets us manually set special peers
-	p2pNetwork.DialSpecialPeersString("")
 }
 
 var cntreq int32

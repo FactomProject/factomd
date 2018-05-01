@@ -18,9 +18,6 @@ type IMsg interface {
 	Printable
 	BinaryMarshallable
 
-	GetAck() IMsg
-	PutAck(IMsg)
-
 	// Returns a byte indicating the type of message.
 	Type() byte
 
@@ -89,6 +86,7 @@ type IMsg interface {
 	// We won't resend them or pass them on.
 	GetNoResend() bool
 	SetNoResend(bool)
+	GetResendCnt() int
 
 	// Process.  When we get a sequence of acknowledgements that we trust, we process.
 	// A message will only be processed once, and in order, guaranteed.
@@ -115,4 +113,15 @@ type IMsg interface {
 
 	// Equivalent to String() for logging
 	LogFields() log.Fields
+}
+
+// Internal Messaging supporting Elections
+type IMsgInternal interface {
+	IMsg
+	ProcessElections(IState, IElectionMsg)
+}
+
+type IMsgAck interface {
+	IMsg
+	GetDBHeight() uint32
 }

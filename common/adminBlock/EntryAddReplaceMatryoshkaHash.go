@@ -33,7 +33,7 @@ func (e *AddReplaceMatryoshkaHash) String() string {
 	var out primitives.Buffer
 	out.WriteString(fmt.Sprintf("    E: %35s -- %17s %8x %12s %8s",
 		"AddReplaceMatryoshkaHash",
-		"IdentityChainID", e.IdentityChainID.Bytes()[3:5],
+		"IdentityChainID", e.IdentityChainID.Bytes()[3:6],
 		"MHash", e.MHash.String()[:8]))
 	return (string)(out.DeepCopyBytes())
 }
@@ -53,6 +53,10 @@ func NewAddReplaceMatryoshkaHash(identityChainID interfaces.IHash, mHash interfa
 	e.IdentityChainID = identityChainID
 	e.MHash = mHash
 	return e
+}
+
+func (e *AddReplaceMatryoshkaHash) SortedIdentity() interfaces.IHash {
+	return e.IdentityChainID
 }
 
 func (e *AddReplaceMatryoshkaHash) MarshalBinary() ([]byte, error) {

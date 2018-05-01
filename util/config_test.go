@@ -83,6 +83,9 @@ TestSpecialPeers        = ""
 LocalNetworkPort        = 8110
 LocalSeedURL            = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/localseed.txt"
 LocalSpecialPeers       = ""
+CustomNetworkPort       = 8110
+CustomSeedURL           = ""
+CustomSpecialPeers      = ""
 CustomBootstrapIdentity = 38bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9
 CustomBootstrapKey      = cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a
 ; --------------- NodeMode: FULL | SERVER | LIGHT ----------------

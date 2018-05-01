@@ -104,7 +104,7 @@ func TestCommitMarshalUnmarshal(t *testing.T) {
 			}
 
 			if primitives.AreBytesEqual(h1, h2) == false {
-				t.Error("ECEntries are not identical - %x vs %x", h1, h2)
+				t.Errorf("ECEntries are not identical - %x vs %x", h1, h2)
 			}
 		}
 	}

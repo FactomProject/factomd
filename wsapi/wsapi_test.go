@@ -6,10 +6,13 @@ import (
 	"strings"
 	"testing"
 
+	"fmt"
+
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/receipts"
+	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/testHelper"
 	. "github.com/FactomProject/factomd/wsapi"
 )
@@ -178,8 +181,8 @@ func TestHandleEntryBlock(t *testing.T) {
 		t.Error(err)
 	}
 
-	dbo := context.Server.Env["state"].(interfaces.IState).GetAndLockDB()
-	defer context.Server.Env["state"].(interfaces.IState).UnlockDB()
+	dbo := context.Server.Env["state"].(interfaces.IState).GetDB()
+	//defer context.Server.Env["state"].(interfaces.IState).UnlockDB()
 
 	blocks, err := dbo.FetchAllEBlocksByChain(chain)
 	if err != nil {
@@ -256,6 +259,12 @@ func TestHandleChainHead(t *testing.T) {
 
 	testHelper.ClearContextResponseWriter(context)
 	HandleChainHead(context, hash)
+
+	s := context.Server.Env["state"]
+	st := s.(*state.State)
+	a, _ := st.DB.FetchABlockByHeight(0)
+	fmt.Println(a)
+	fmt.Println(string(testHelper.GetBody(context)))
 
 	if strings.Contains(testHelper.GetBody(context), testHelper.ABlockHeadPrimaryIndex) == false {
 		t.Errorf("Invalid admin block head: %v", testHelper.GetBody(context))
@@ -449,8 +458,8 @@ func TestHandleGetReceipt(t *testing.T) {
 		return
 	}
 
-	dbo := context.Server.Env["state"].(interfaces.IState).GetAndLockDB()
-	defer context.Server.Env["state"].(interfaces.IState).UnlockDB()
+	dbo := context.Server.Env["state"].(interfaces.IState).GetDB()
+	//defer context.Server.Env["state"].(interfaces.IState).UnlockDB()
 
 	receipt := j["receipt"].(map[string]interface{})
 	marshalled, err := json.Marshal(receipt)
@@ -478,8 +487,8 @@ func TestHandleGetUnanchoredReceipt(t *testing.T) {
 		return
 	}
 
-	dbo := context.Server.Env["state"].(interfaces.IState).GetAndLockDB()
-	defer context.Server.Env["state"].(interfaces.IState).UnlockDB()
+	dbo := context.Server.Env["state"].(interfaces.IState).GetDB()
+	//defer context.Server.Env["state"].(interfaces.IState).UnlockDB()
 
 	receipt := j["receipt"].(map[string]interface{})
 	marshalled, err := json.Marshal(receipt)

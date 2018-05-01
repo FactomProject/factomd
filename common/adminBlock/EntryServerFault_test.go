@@ -132,7 +132,7 @@ func TestServerFaultMarshalUnmarshal(t *testing.T) {
 
 func TestFaultMisc(t *testing.T) {
 	a := new(ServerFault)
-	if a.String() != "    E:                    EntryServerFault -- DBheight 0s ServerID     0000 AuditServer     0000, #sigs 0, VMIndex 0" {
+	if a.String() != "    E:                    EntryServerFault -- DBheight 0s FedID   000000 AuditServer   000000, #sigs 0, VMIndex 0" {
 		t.Error("Unexpected string:", a.String())
 	}
 	as, err := a.JSONString()
