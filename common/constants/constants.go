@@ -303,7 +303,7 @@ const (
 	TYPE_COINBASE_DESCRIPTOR        uint8 = 0x0B // 11
 	TYPE_COINBASE_DESCRIPTOR_CANCEL uint8 = 0x0C // 12
 	TYPE_ADD_FACTOID_ADDRESS        uint8 = 0x0D // 13
-	TYPE_ADD_FACTOID_EFFICIENCY     uint8 = 0x0E // 13
+	TYPE_ADD_FACTOID_EFFICIENCY     uint8 = 0x0E // 14
 )
 
 //---------------------------------------------------------------------

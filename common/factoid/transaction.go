@@ -290,7 +290,7 @@ func (t Transaction) TotalECs() (sum uint64, err error) {
 // valid.  That validation must be done separately.
 //
 // Also note that we DO allow for transactions that do not have any outputs.
-// This provides for a provable "netsim" of factoids, since all inputs would
+// This provides for a provable "burn" of factoids, since all inputs would
 // go as "transaction fees" and those fees do not go to anyone.
 //
 // The index is the height of the transaction in a Factoid block.  When

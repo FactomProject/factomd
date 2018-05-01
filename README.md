@@ -14,9 +14,9 @@ Factom leverages the Bitcoin Blockchain, but in a way that minimizes the amount 
 
 You need to set up Go environment with golang 1.10 or higher. You also need git.  See the [Install from source](https://github.com/FactomProject/FactomDocs/blob/master/installFromSourceDirections.md) directions for more details and wallet installation instructions.
 
-### Install the dependency namagement program
+### Install the dependency management program
 
-First check if golang 1.10 or higher is installed.  some operationg systems install older versions.
+First check if golang 1.10 or higher is installed.  some operating systems install older versions.
 
 `go version` should return something like
 `go version go1.10.1 linux/amd64`
