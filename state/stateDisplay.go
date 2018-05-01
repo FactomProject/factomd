@@ -46,13 +46,15 @@ type DisplayState struct {
 	PLEntry   []EntryTransaction
 
 	// DataDump
-	RawSummary   string
-	PrintMap     string
-	ProcessList0 string
-	ProcessList  string
-	ProcessList2 string
-	Election     string
-	SimElection  string
+	RawSummary          string
+	PrintMap            string
+	ProcessList0        string
+	ProcessList         string
+	ProcessList2        string
+	Election            string
+	SimElection         string
+	SyncingState        [256]string
+	SyncingStateCurrent int
 }
 
 type FactoidTransaction struct {
@@ -247,6 +249,9 @@ func DeepStateDisplayCopyDifference(s *State, prev *DisplayState) (*DisplayState
 		ds.SimElection = s.Elections.AdapterStatus()
 	}
 
+	ds.SyncingState = s.SyncingState
+	ds.SyncingStateCurrent = s.SyncingStateCurrent
+
 	return ds, nil
 }
 
@@ -312,6 +317,8 @@ func (d *DisplayState) Clone() *DisplayState {
 	ds.Election = d.Election
 
 	ds.SimElection = d.SimElection
+	ds.SyncingStateCurrent = d.SyncingStateCurrent
+	ds.SyncingState = d.SyncingState
 
 	return ds
 }

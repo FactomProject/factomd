@@ -9,8 +9,9 @@ import (
 
 type DataDump struct {
 	DataDump1 struct { // State Summary
-		ShortDump string
-		RawDump   string
+		ShortDump   string
+		RawDump     string
+		SyncingDump string
 	}
 	DataDump2 struct {
 		NextDump string
@@ -43,6 +44,7 @@ func GetDataDumps() []byte {
 
 	holder.DataDump1.ShortDump = "Currently disabled"
 	holder.DataDump1.RawDump = DsCopy.RawSummary
+	holder.DataDump1.SyncingDump = dd.SyncingState(DsCopy)
 
 	holder.DataDump2.NextDump = DsCopy.ProcessList0
 	holder.DataDump2.RawDump = DsCopy.ProcessList

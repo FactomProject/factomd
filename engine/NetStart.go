@@ -331,6 +331,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		fmt.Println("Running on the local network, use local coinbase constants")
 		constants.COINBASE_DECLARATION = 10
 		constants.COINBASE_PAYOUT_FREQUENCY = 5
+		constants.COINBASE_ACTIVATION = 0
 	case "CUSTOM", "custom":
 		if bytes.Compare(p.CustomNet, []byte("\xe3\xb0\xc4\x42")) == 0 {
 			panic("Please specify a custom network with -customnet=<something unique here>")
@@ -348,6 +349,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		fmt.Println("Running on the custom network, use custom coinbase constants")
 		constants.COINBASE_DECLARATION = 10
 		constants.COINBASE_PAYOUT_FREQUENCY = 5
+		constants.COINBASE_ACTIVATION = 0
 	default:
 		panic("Invalid Network choice in Config File or command line. Choose MAIN, TEST, LOCAL, or CUSTOM")
 	}

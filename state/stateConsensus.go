@@ -92,6 +92,30 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 	switch valid {
 	case 1:
 		// The highest block for which we have received a message.  Sometimes the same as
+		if msg.GetResendCnt() == 0 {
+			msg.SendOut(s, msg)
+		} else if msg.Resend(s) {
+			msg.SendOut(s, msg)
+		}
+
+		switch msg.Type() {
+		case constants.REVEAL_ENTRY_MSG:
+			if !s.NoEntryYet(msg.GetHash(), nil) {
+				return true
+			}
+			s.Holding[msg.GetMsgHash().Fixed()] = msg
+		case constants.COMMIT_ENTRY_MSG:
+			if !s.NoEntryYet(msg.GetHash(), nil) {
+				return true
+			}
+			s.Holding[msg.GetMsgHash().Fixed()] = msg
+		case constants.COMMIT_CHAIN_MSG:
+			if !s.NoEntryYet(msg.GetHash(), nil) {
+				return true
+			}
+			s.Holding[msg.GetMsgHash().Fixed()] = msg
+		}
+
 		var vml int
 		if vm == nil || vm.List == nil {
 			vml = 0
@@ -130,9 +154,6 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 		if _, valid := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp()); valid {
 			TotalHoldingQueueInputs.Inc()
 			TotalHoldingQueueRecycles.Inc()
-			s.LogMessage("executeMsg", "Add to Holding0", msg)
-			s.LogMessage("executeMsg", fmt.Sprintf("Add to Holding %x", msg.GetMsgHash().Bytes()[:3]), msg)
-
 			s.Holding[msg.GetMsgHash().Fixed()] = msg
 		} else {
 			s.LogMessage("executeMsg", "drop, IReplay", msg)
@@ -228,7 +249,6 @@ ackLoop:
 				// toss the ack into holding and we will try again in a bit...
 				TotalHoldingQueueInputs.Inc()
 				TotalHoldingQueueRecycles.Inc()
-				s.LogMessage("executeMsg", fmt.Sprintf("Add to Holding3 %x", ack.GetMsgHash().Bytes()[:3]), ack)
 				s.Holding[ack.GetMsgHash().Fixed()] = ack
 				continue
 			}
@@ -246,9 +266,8 @@ ackLoop:
 			}
 
 			s.LogMessage("ackQueue", "Execute2", ack)
-			s.executeMsg(vm, ack)
+			progress = s.executeMsg(vm, ack) || progress
 
-			progress = true
 		default:
 			break ackLoop
 		}
@@ -337,7 +356,7 @@ func CheckDBKeyMR(s *State, ht uint32, hash string) error {
 func (s *State) ReviewHolding() {
 
 	preReviewHoldingTime := time.Now()
-	if len(s.XReview) > 0 {
+	if len(s.XReview) > 0 || s.Syncing || s.Saving {
 		return
 	}
 
@@ -365,8 +384,8 @@ func (s *State) ReviewHolding() {
 
 	// Set this flag, so it acts as a constant.  We will set s.LeaderNewMin to false
 	// after processing the Holding Queue.  Ensures we only do this one per minute.
-	processMinute := s.LeaderNewMin // Have we processed this minute
-	s.LeaderNewMin = false          // Either way, don't do it again until the ProcessEOM resets LeaderNewMin
+	//	processMinute := s.LeaderNewMin // Have we processed this minute
+	s.LeaderNewMin++ // Either way, don't do it again until the ProcessEOM resets LeaderNewMin
 
 	for k, v := range s.Holding {
 		ack := s.Acks[k]
@@ -384,30 +403,31 @@ func (s *State) ReviewHolding() {
 			continue
 		}
 
-		if v.Resend(s) {
-			if v.Validate(s) == 1 {
-
-				v.SendOut(s, v)
-				continue
-			}
-		}
-
-		if v.Validate(s) < 0 {
+		switch v.Validate(s) {
+		case -1:
 			s.LogMessage("executeMsg", "invalid from holding", v)
 			TotalHoldingQueueOutputs.Inc()
 			delete(s.Holding, k)
 			continue
+		case 0:
+			continue
+		}
+
+		if v.GetResendCnt() == 0 {
+			v.SendOut(s, v)
+		} else {
+			if v.Resend(s) {
+				v.SendOut(s, v)
+			}
 		}
 
 		if int(highest)-int(saved) > 1000 {
-			s.LogMessage("executeMsg", "remove from holding(0)", v)
 			TotalHoldingQueueOutputs.Inc()
 			delete(s.Holding, k)
 		}
 
 		eom, ok := v.(*messages.EOM)
 		if ok && ((eom.DBHeight <= saved && saved > 0) || int(eom.Minute) < s.CurrentMinute) {
-			s.LogMessage("executeMsg", "remove from holding(1)", v)
 			TotalHoldingQueueOutputs.Inc()
 			delete(s.Holding, k)
 			continue
@@ -415,7 +435,6 @@ func (s *State) ReviewHolding() {
 
 		dbsmsg, ok := v.(*messages.DBStateMsg)
 		if ok && (dbsmsg.DirectoryBlock.GetHeader().GetDBHeight() < saved-1 && saved > 0) {
-			s.LogMessage("executeMsg", "remove from holding(2)", v)
 			TotalHoldingQueueOutputs.Inc()
 			delete(s.Holding, k)
 			continue
@@ -423,7 +442,6 @@ func (s *State) ReviewHolding() {
 
 		dbsigmsg, ok := v.(*messages.DirectoryBlockSignature)
 		if ok && ((dbsigmsg.DBHeight <= saved && saved > 0) || (dbsigmsg.DBHeight < highest-3 && highest > 2)) {
-			s.LogMessage("executeMsg", "remove from holding(3)", v)
 			TotalHoldingQueueOutputs.Inc()
 			delete(s.Holding, k)
 			continue
@@ -432,60 +450,52 @@ func (s *State) ReviewHolding() {
 		_, ok = s.Replay.Valid(constants.INTERNAL_REPLAY, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
 		ok2 := s.FReplay.IsHashUnique(constants.BLOCK_REPLAY, v.GetRepeatHash().Fixed())
 		if !ok || !ok2 {
-			s.LogMessage("executeMsg", "remove from holding(4)", v)
 			TotalHoldingQueueOutputs.Inc()
 			delete(s.Holding, k)
 			continue
 		}
 
-		// If it is an entryCommit and it has a duplicate hash to an existing entry throw it away here
-		{
-			ce, ok := v.(*messages.CommitEntryMsg)
-			if ok {
-				x := s.NoEntryYet(ce.CommitEntry.EntryHash, ce.CommitEntry.GetTimestamp())
-				if !x {
-					TotalHoldingQueueOutputs.Inc()
-					s.LogMessage("executeMsg", "review, NoEntryYet(1) delete", v)
-					delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
-					continue
-				}
+		// If it is an entryCommit/ChainCommit/RevealEntry and it has a duplicate hash to an existing entry throw it away here
+
+		ce, ok := v.(*messages.CommitEntryMsg)
+		if ok {
+			x := s.NoEntryYet(ce.CommitEntry.EntryHash, ce.CommitEntry.GetTimestamp())
+			if !x {
+				TotalHoldingQueueOutputs.Inc()
+				delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
+				continue
 			}
 		}
+
 		// If it is an chainCommit and it has a duplicate hash to an existing entry throw it away here
-		{
-			ce, ok := v.(*messages.CommitChainMsg)
-			if ok {
-				x := s.NoEntryYet(ce.CommitChain.EntryHash, ce.CommitChain.GetTimestamp())
-				if !x {
-					TotalHoldingQueueOutputs.Inc()
-					s.LogMessage("executeMsg", "review, NoEntryYet(2) delete", v)
-					delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
-					continue
-				}
+
+		cc, ok := v.(*messages.CommitChainMsg)
+		if ok {
+			x := s.NoEntryYet(cc.CommitChain.EntryHash, cc.CommitChain.GetTimestamp())
+			if !x {
+				TotalHoldingQueueOutputs.Inc()
+				delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
+				continue
 			}
 		}
+
 		// If a Reveal Entry has a commit available, then process the Reveal Entry and send it out.
 		if re, ok := v.(*messages.RevealEntryMsg); ok {
 			if !s.NoEntryYet(re.GetHash(), s.GetLeaderTimestamp()) {
-				s.LogMessage("executeMsg", "review, NoEntryYet(3) delete", v)
 				delete(s.Holding, re.GetHash().Fixed())
 				s.Commits.Delete(re.GetHash().Fixed())
 				continue
 			}
-			if s.Commits.Get(re.GetHash().Fixed()) != nil {
-				s.LogMessage("executeMsg", "review, delete", v)
-				re.SendOut(s, re)
-			}
 			// Only reprocess if at the top of a new minute, and if we are a leader.
-			if !processMinute || !s.Leader {
-				continue // No need for followers to review Reveal Entry messages
-			}
+			//if processMinute > 10 {
+			//	continue // No need for followers to review Reveal Entry messages
+			//}
 			// Needs to be our VMIndex as well, or ignore.
-			if re.GetVMIndex() != s.LeaderVMIndex {
+			if re.GetVMIndex() != s.LeaderVMIndex || !s.Leader {
 				continue // If we are a leader, but it isn't ours, and it isn't a new minute, ignore.
 			}
 		}
-
+		//TODO: Move this earlier!
 		// We don't reprocess messages if we are a leader, but it ain't ours!
 		if s.LeaderVMIndex != v.GetVMIndex() {
 			continue
@@ -582,9 +592,6 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 		// Cross Boot Replay
 		s.CrossReplayAddSalt(ack.DBHeight, ack.Salt)
 	}
-	if s.Holding[m.GetMsgHash().Fixed()] != nil {
-		s.LogMessage("executeMsg", fmt.Sprintf("Add to Holding1 %x", m.GetMsgHash().Bytes()[:3]), m)
-	}
 }
 
 // Messages that will go into the Process List must match an Acknowledgement.
@@ -609,13 +616,11 @@ func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
 	FollowerEOMExecutions.Inc()
 	// add it to the holding queue in case AddToProcessList may remove it
 	TotalHoldingQueueInputs.Inc()
-	s.LogMessage("executeMsg", fmt.Sprintf("Add to Holding2 %x", m.GetMsgHash().Bytes()[:3]), m)
 	s.Holding[m.GetMsgHash().Fixed()] = m // FollowerExecuteEOM
 
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
 	if ack != nil {
 		pl := s.ProcessLists.Get(ack.DBHeight)
-		s.LogMessage("executeMsg", "Call add to processlist", m)
 		pl.AddToProcessList(ack, m)
 	}
 }
@@ -1037,6 +1042,7 @@ func (s *State) FollowerExecuteCommitChain(m interfaces.IMsg) {
 		re.FollowerExecute(s)
 		re.SendOut(s, re)
 	}
+	m.SendOut(s, m)
 }
 
 func (s *State) FollowerExecuteCommitEntry(m interfaces.IMsg) {
@@ -1048,27 +1054,19 @@ func (s *State) FollowerExecuteCommitEntry(m interfaces.IMsg) {
 		re.FollowerExecute(s)
 		re.SendOut(s, re)
 	}
+	m.SendOut(s, m)
 }
 
 func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 	FollowerExecutions.Inc()
 	TotalHoldingQueueInputs.Inc()
+
 	s.Holding[m.GetMsgHash().Fixed()] = m // hold in  FollowerExecuteRevealEntry
 
-	valid := m.Validate(s)
-	switch valid {
-	case -1:
-		s.LogMessage("executeMsg", "drop, invalid", m)
-		return
-	case 0:
-		s.LogMessage("executeMsg", "hold, no commit yet", m)
-		return
-	}
-
-	s.Holding[m.GetMsgHash().Fixed()] = m
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
 
 	if ack == nil {
+		// todo: prevent this log from double logging
 		s.LogMessage("executeMsg", "hold, no ack yet", m)
 		return
 	}
@@ -1100,8 +1098,7 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 	// on the api. MUST BE BEFORE THE REPLAY FILTER ADD
 	pl.PendingChainHeads.Put(msg.Entry.GetChainID().Fixed(), msg)
 	// Okay the Reveal has been recorded.  Record this as an entry that cannot be duplicated.
-	s.Replay.IsTSValidAndUpdateState(constants.REVEAL_REPLAY, msg.Entry.GetHash().Fixed(), msg.Timestamp, s.GetTimestamp())
-
+	s.Replay.IsTSValidAndUpdateState(constants.REVEAL_REPLAY, msg.Entry.GetHash().Fixed(), msg.Timestamp, s.GetLeaderTimestamp())
 }
 
 func (s *State) LeaderExecute(m interfaces.IMsg) {
@@ -1208,7 +1205,7 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
 		return
 	}
 	if len(pl.VMs[dbs.VMIndex].List) > 0 {
-		s.LogMessage("executeMsg", "drop len(pl.VMs[dbs.VMIndex].List) > 0", m)
+		s.LogMessage("executeMsg", "drop, slot 0 taken by", pl.VMs[dbs.VMIndex].List[0])
 		return
 	}
 
@@ -1235,29 +1232,31 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
 func (s *State) LeaderExecuteCommitChain(m interfaces.IMsg) {
 	cc := m.(*messages.CommitChainMsg)
 	// Check if this commit has more entry credits than any previous that we have.
-	if !s.IsHighestCommit(cc.CommitChain.EntryHash, m) {
+	if !s.IsHighestCommit(cc.GetHash(), m) {
 		// This commit is not higher than any previous, so we can discard it and prevent a double spend
 		return
 	}
 
 	s.LeaderExecute(m)
-	re := s.Holding[cc.CommitChain.EntryHash.Fixed()]
-	if re != nil {
-		TotalXReviewQueueInputs.Inc()
-		s.XReview = append(s.XReview, re)
-		re.SendOut(s, re)
+
+	if re := s.Holding[cc.GetHash().Fixed()]; re != nil {
+		re.SendOut(s, m) // If I was waiting on the commit, go ahead and send out the reveal
 	}
 }
 
 func (s *State) LeaderExecuteCommitEntry(m interfaces.IMsg) {
-	s.LeaderExecute(m)
 	ce := m.(*messages.CommitEntryMsg)
-	re := s.Holding[ce.CommitEntry.EntryHash.Fixed()]
-	if re != nil {
-		s.XReview = append(s.XReview, re)
-		if re.Validate(s) == 1 {
-			re.SendOut(s, re)
-		}
+
+	// Check if this commit has more entry credits than any previous that we have.
+	if !s.IsHighestCommit(ce.GetHash(), m) {
+		// This commit is not higher than any previous, so we can discard it and prevent a double spend
+		return
+	}
+
+	s.LeaderExecute(m)
+
+	if re := s.Holding[ce.GetHash().Fixed()]; re != nil {
+		re.SendOut(s, m) // If I was waiting on the commit, go ahead and send out the reveal
 	}
 }
 
@@ -1266,26 +1265,9 @@ func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 	re := m.(*messages.RevealEntryMsg)
 	eh := re.Entry.GetHash()
 
-	rtn := re.Validate(s)
-
-	switch rtn {
-	case 0:
-		m.FollowerExecute(s)
-		return
-	case -1:
-		return
-	}
-
-	commit := s.NextCommit(eh)
-
-	now := s.GetTimestamp()
-	// If we have already recorded a Reveal Entry with this hash in this period, just ignore.
-	if _, v := s.Replay.Valid(constants.REVEAL_REPLAY, eh.Fixed(), s.GetLeaderTimestamp(), now); !v {
-		return
-	}
-
 	ack := s.NewAck(m, nil).(*messages.Ack)
 
+	// Debugging thing.
 	m.SetLeaderChainID(ack.GetLeaderChainID())
 	m.SetMinute(ack.Minute)
 
@@ -1293,17 +1275,16 @@ func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 	s.Acks[m.GetMsgHash().Fixed()] = ack
 	TotalAcksInputs.Inc()
 	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(ack, m)
-	// If it was added, then get rid of the matching Commit.
+
+	// If it was not added, then handle as a follower, and leave.
 	if s.Acks[m.GetMsgHash().Fixed()] != nil {
-		s.PutCommit(eh, commit)
 		m.FollowerExecute(s)
-	} else {
-		// Okay the Reveal has been recorded.  Record this as an entry that cannot be duplicated.
-		s.Replay.IsTSValidAndUpdateState(constants.REVEAL_REPLAY, eh.Fixed(), m.GetTimestamp(), now)
-		TotalCommitsOutputs.Inc()
-		s.Commits.Delete(eh.Fixed()) // delete(s.Commits, eh.Fixed())
-		delete(s.Holding, eh.Fixed())
+		return
 	}
+
+	// Okay the Reveal has been recorded.  Record this as an entry that cannot be duplicated.
+	s.Replay.IsTSValidAndUpdateState(constants.REVEAL_REPLAY, eh.Fixed(), m.GetTimestamp(), s.GetLeaderTimestamp())
+	TotalCommitsOutputs.Inc()
 }
 
 func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) bool {
@@ -1703,7 +1684,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		//	e.VMIndex, allfaults, s.EOMProcessed, s.EOMLimit, s.EOMDone))
 
 		s.EOMDone = true
-		s.LeaderNewMin = true
+		s.LeaderNewMin = 0
 		for _, eb := range pl.NewEBlocks {
 			eb.AddEndOfMinuteMarker(byte(e.Minute + 1))
 		}

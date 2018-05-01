@@ -208,7 +208,7 @@ type State struct {
 	DBHeightAtBoot uint32
 	OneLeader      bool
 	OutputAllowed  bool
-	LeaderNewMin   bool
+	LeaderNewMin   int
 	CurrentMinute  int
 
 	// These are the start times for blocks and minutes
@@ -377,6 +377,11 @@ type State struct {
 	NumEntryBlocks int // Number of Entry Blocks
 	NumFCTTrans    int // Number of Factoid Transactions in this block
 
+	// debug message
+	pstate              string
+	SyncingState        [256]string
+	SyncingStateCurrent int
+	processCnt          int64 // count of attempts to process .. so we can see if the thread is running
 }
 
 var _ interfaces.IState = (*State)(nil)
@@ -792,6 +797,7 @@ func (s *State) GetSalt(ts interfaces.Timestamp) uint32 {
 }
 
 func (s *State) Init() {
+
 	if s.Salt == nil {
 		b := make([]byte, 32)
 		_, err := rand.Read(b)
@@ -860,7 +866,7 @@ func (s *State) Init() {
 	// Set up maps for the followers
 	s.Holding = make(map[[32]byte]interfaces.IMsg)
 	s.Acks = make(map[[32]byte]interfaces.IMsg)
-	s.Commits = NewSafeMsgMap() //make(map[[32]byte]interfaces.IMsg)
+	s.Commits = NewSafeMsgMap("commits", s) //make(map[[32]byte]interfaces.IMsg)
 
 	// Setup the FactoidState and Validation Service that holds factoid and entry credit balances
 	s.FactoidBalancesP = map[[32]byte]int64{}

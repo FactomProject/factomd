@@ -130,6 +130,7 @@ type VM struct {
 	// vm.WhenFaulted serves as a bool flag (if > 0, the vm is currently considered faulted)
 	FaultFlag   int                  // FaultFlag tracks what the VM was faulted for (0 = EOM missing, 1 = negotiation issue)
 	ProcessTime interfaces.Timestamp // Last time we made progress on this VM
+	HighestAsk  int                  // highest ask sent to MMR for this VM
 }
 
 func (p *ProcessList) GetKeysNewEntries() (keys [][32]byte) {
@@ -631,14 +632,14 @@ func (p *ProcessList) makeMMRs(s interfaces.IState, asks <-chan askRef, adds <-c
 	}
 
 	pending := make(map[plRef]*int64)
-	ticker := make(chan int64, 1)
+	ticker := make(chan int64, 50)               // this should deep enough you know that the reading thread is dead if it fills up
 	mmrs := make(map[dbhvm]*messages.MissingMsg) // an MMR per DBH/VM
 	logname := "missing_messages"
 
 	addAsk := func(ask askRef) {
 		_, ok := pending[ask.plRef]
 		if !ok {
-			when := ask.When           // clear lsb
+			when := ask.When
 			pending[ask.plRef] = &when // add the requests to the map
 			s.LogPrintf(logname, "Ask %d/%d/%d %d", ask.DBH, ask.VM, ask.H, len(pending))
 		} // don't update the when if it already existed...
@@ -675,14 +676,24 @@ func (p *ProcessList) makeMMRs(s interfaces.IState, asks <-chan askRef, adds <-c
 		} // process all pending add before any ticks
 	}
 
+	// drain the ticker channel
+	readAllTickers := func() {
+	readalltickers:
+		for {
+			select {
+			case <-ticker:
+			default:
+				break readalltickers
+			}
+		} // process all pending add before any ticks
+	}
+
 	// tick ever second to check the  pending MMRs
 	go func() {
 		for {
-			// TODO: There is still a race condition that keeps this goroutine alive
-			_, open := <-ticker
-			if !open {
+			if len(ticker) == cap(ticker) {
 				return
-			}
+			} // time to die, no one is listening
 			ticker <- s.GetTimestamp().GetTimeMilli()
 			time.Sleep(20 * time.Millisecond)
 		}
@@ -690,6 +701,7 @@ func (p *ProcessList) makeMMRs(s interfaces.IState, asks <-chan askRef, adds <-c
 
 	//	s.LogPrintf(logname, "Start PL DBH %d", p.DBHeight)
 
+	lastAskDelay := int64(0)
 	for {
 		// You have to compute this at every cycle as you can change the block time
 		// in sim control.
@@ -698,10 +710,16 @@ func (p *ProcessList) makeMMRs(s interfaces.IState, asks <-chan askRef, adds <-c
 		// Take 1/10 of 1 minute boundary (DBlock is 10*min)
 		//		This means on 10min block, 6 second delay
 		//					  1min block, .6 second delay
-		askDelay = askDelay / 100
+		askDelay = askDelay / 50
 		if askDelay < 500 { // Don't go below half a second. That is just too much
 			askDelay = 500
 		}
+
+		if askDelay != lastAskDelay {
+			s.LogPrintf(logname, "AskDelay %d BlockTime %d", askDelay, s.(*State).DirectoryBlockInSeconds)
+			lastAskDelay = askDelay
+		}
+
 		select {
 		case ask := <-asks:
 			addAsk(ask)
@@ -712,8 +730,9 @@ func (p *ProcessList) makeMMRs(s interfaces.IState, asks <-chan askRef, adds <-c
 			addAdd(add)
 
 		case now := <-ticker:
-			addAllAsks() // process all pending asks before any adds
-			addAllAdds() // process all pending add before any ticks
+			addAllAsks()     // process all pending asks before any adds
+			addAllAdds()     // process all pending add before any ticks
+			readAllTickers() // drain the ticker channel
 
 			//s.LogPrintf(logname, "tick [%v]", pending)
 
@@ -723,7 +742,7 @@ func (p *ProcessList) makeMMRs(s interfaces.IState, asks <-chan askRef, adds <-c
 			for ref, when := range pending {
 				var index dbhvm = dbhvm{ref.DBH, ref.VM}
 				// if ask is expired or we have an MMR for this DBH/VM
-				if now > *when || mmrs[index] != nil {
+				if now > *when || (mmrs[index] != nil && now > (*when-4*askDelay/5)) {
 					if mmrs[index] == nil { // If we don't have a message for this DBH/VM
 						mmrs[index] = messages.NewMissingMsg(s, ref.VM, ref.DBH, uint32(ref.H))
 					} else {
@@ -743,9 +762,8 @@ func (p *ProcessList) makeMMRs(s interfaces.IState, asks <-chan askRef, adds <-c
 			} // Send MMRs that were built
 
 		case <-done:
-			addAllAsks()  // process all pending asks before any adds
-			addAllAdds()  // process all pending add before any ticks
-			close(ticker) // TODO: Fix this, there is still a race condition that leaves this go routine
+			addAllAsks() // process all pending asks before any adds
+			addAllAdds() // process all pending add before any ticks
 			if len(pending) != 0 {
 				s.LogPrintf(logname, "End PL DBH %d with %d still outstanding %v", p.DBHeight, len(pending), pending)
 				s.LogPrintf("executeMsg", "End PL DBH %d with %d still outstanding %v", p.DBHeight, len(pending), pending)
@@ -760,22 +778,30 @@ func (p *ProcessList) makeMMRs(s interfaces.IState, asks <-chan askRef, adds <-c
 
 func (p *ProcessList) Ask(vmIndex int, height uint32, delay int64) {
 
+	if p.asks == nil { // If it is nil, there is no makemmrs
+		return
+	}
 	if vmIndex < 0 {
 		panic(errors.New("Old Faulting code"))
 	}
 
-	now := p.State.GetTimestamp().GetTimeMilli()
+	if delay < 50 {
+		delay = 50
+	}
 	// Look up the VM
 	vm := p.VMs[vmIndex]
+	if vm.HighestAsk > int(height) {
+		return
+	} // already sent to MMR
+
+	now := p.State.GetTimestamp().GetTimeMilli()
 
 	lenVMList := len(vm.List)
-	// ask for every nil -- probably should remember the bottom nil and save scanning the whole list
-	for i := 0; i < lenVMList; i++ {
+	for i := vm.HighestAsk; i < lenVMList; i++ {
 		if vm.List[i] == nil {
-			if p.asks != nil { // If it is nil, there is no makemmrs
-				ask := askRef{plRef{p.DBHeight, vmIndex, height}, now + delay}
-				p.asks <- ask
-			}
+			ask := askRef{plRef{p.DBHeight, vmIndex, uint32(i)}, now + delay}
+			p.asks <- ask
+
 		}
 	}
 
@@ -783,8 +809,8 @@ func (p *ProcessList) Ask(vmIndex int, height uint32, delay int64) {
 		// always ask for one past the end as well...Can't hurt ... Famous last words...
 		ask := askRef{plRef{p.DBHeight, vmIndex, uint32(lenVMList)}, now + delay}
 		p.asks <- ask
+		vm.HighestAsk = int(lenVMList) + 1 // We have asked for all nils up to this height
 	}
-
 	return
 }
 
@@ -805,17 +831,22 @@ var decodeMap map[foo]string = map[foo]string{
 	//grep "Unexpected state" FNode0*process.txt | awk ' {print substr($0,index($0,"0x"));}' | sort -u
 	//0x043 {true true false false false false true false false}
 	//0x04b {true true false true false false true false false}
+	//0x0cb {true true false true false false true true false}
 	//0x10d {true false true true false false false false true}
 	//0x11d {true false true true true false false false true}
+	//0x12d {true false true true false true false false true}
+	//0x13d {true false true true true true false false true}
 	//0x140 {false false false false false false true false true}
 	//0x148 {false false false true false false true false true}
 	//0x14d {true false true true false false true false true}
 
-	foo{true, true, false, false, false, false, true, false, false}:  "Syncing DBSig Start",       //0x043
-	foo{true, true, false, true, false, false, true, false, false}:   "Syncing DBSig ...",         //0x04b
-	foo{true, true, false, true, false, false, true, true, false}:    "Syncing DBSig Done",        //0x0cb
-	foo{true, false, true, true, false, false, false, false, true}:   "Syncing EOM ... ",          //0x10d
+	foo{true, true, false, false, false, false, true, false, false}:  "Syncing DBSig",             //0x043
+	foo{true, true, false, true, false, false, true, false, false}:   "Syncing DBSig Done",        //0x04b
+	foo{true, true, false, true, false, false, true, true, false}:    "Syncing DBSig Stop",        //0x0cb
+	foo{true, false, true, true, false, false, false, false, true}:   "Syncing EOM",               //0x10d
 	foo{true, false, true, true, true, false, false, false, true}:    "Syncing EOM Done",          //0x11d
+	foo{true, false, true, true, false, true, false, false, true}:    "Syncing EOM Stop",          //0x12d
+	foo{true, false, true, true, true, true, false, false, true}:     "Syncing EOM Done",          //0x13d
 	foo{false, false, false, false, false, false, true, false, true}: "Normal (Begining of time)", //0x140
 	foo{false, false, false, true, false, false, true, false, true}:  "Normal",                    //0x148
 	foo{true, false, true, true, false, false, true, false, true}:    "Syncing EOM Start",         //0x14d
@@ -823,8 +854,7 @@ var decodeMap map[foo]string = map[foo]string{
 	// old code used to also hit these states some of which are problematic as they allow both DBSIG and EOM concurrently
 	//foo{true, true, false, true, false, false, true, true, false}:     "Stop Syncing DBSig",              //0x0cb
 	//foo{true, false, false, false, false, false, false, false, false}: "Sync Only??",                     //0x100 ***
-	//foo{true, false, true, true, false, true, false, false, true}:     "Syncing EOM Stop",                //0x12d
-	//foo{true, false, true, true, true, true, false, false, true}:      "Syncing EOM Complete",            //0x13d
+	//foo{true, false, true, true, false, false, false, false, true}:   "Syncing EOM ... ",                 //0x10d
 	//foo{true, true, false, false, false, false, true, false, true}:    "Start Syncing DBSig",             //0x143
 	//foo{true, false, true, false, false, false, true, false, true}:    "Syncing EOM Start (DBSIG !Done)", //0x145 ***
 	//foo{true, false, true, true, true, false, true, false, true}:      "Syncing EOM ... ",                //0x15d
@@ -853,10 +883,12 @@ func (p *ProcessList) decodeState(Syncing bool, DBSig bool, EOM bool, DBSigDone 
 	s, ok := decodeMap[x]
 	if !ok {
 
-		p.State.LogPrintf("process", "Unexpected state 0x%03x %v", xx, x)
+		p.State.LogPrintf("process", "Unexpected 0x%03x %v", xx, x)
 		s = "Unknown"
 	}
-	return fmt.Sprintf("SyncingStatus: 0x%03x %s", xx, s)
+	// divide processCnt by a big number to make it not change the status string very often
+	return fmt.Sprintf("SyncingStatus: %d-:-%d 0x%03x %25s EOM/DBSIG %02d/%02d of %02d -- %d",
+		p.State.LeaderPL.DBHeight, p.State.CurrentMinute, xx, s, EOMProcessed, DBSigProcessed, FedServers, p.State.processCnt/5000)
 
 }
 
@@ -889,6 +921,18 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 	VMListLoop:
 		for j := vm.Height; j < len(vm.List); j++ {
+			state.processCnt++
+			if state.DebugExec() {
+				x := p.decodeState(state.Syncing, state.DBSig, state.EOM, state.DBSigDone, state.EOMDone,
+					len(state.LeaderPL.FedServers), state.EOMProcessed, state.DBSigProcessed)
+
+				// Compute a syncing state string and report if it has changed
+				if state.SyncingState[state.SyncingStateCurrent] != x {
+					state.LogPrintf("processStatus", x)
+					state.SyncingStateCurrent = (state.SyncingStateCurrent + 1) % len(state.SyncingState)
+					state.SyncingState[state.SyncingStateCurrent] = x
+				}
+			}
 			if vm.List[j] == nil {
 				//p.State.AddStatus(fmt.Sprintf("ProcessList.go Process: Found nil list at vm %d vm height %d ", i, j))
 				cnt := 0
@@ -979,7 +1023,6 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					p.State.LogMessage("processList", "done", msg)
 					vm.heartBeat = 0
 					vm.Height = j + 1 // Don't process it again if the process worked.
-					p.State.LogMessage("process", fmt.Sprintf("done %v/%v/%v", p.DBHeight, i, j), msg)
 					p.State.LogMessage("process", fmt.Sprintf("done %v/%v/%v", p.DBHeight, i, j), msg)
 
 					progress = true
@@ -1306,7 +1349,7 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 
 	pl.MakeMap()
 
-	pl.PendingChainHeads = NewSafeMsgMap()
+	pl.PendingChainHeads = NewSafeMsgMap("PendingChainHeads", pl.State)
 	pl.OldMsgs = make(map[[32]byte]interfaces.IMsg)
 	pl.oldmsgslock = new(sync.Mutex)
 	pl.OldAcks = make(map[[32]byte]interfaces.IMsg)

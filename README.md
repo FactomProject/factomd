@@ -9,51 +9,43 @@ Factom began by providing proof of existence services, but then move on to provi
 
 Factom leverages the Bitcoin Blockchain, but in a way that minimizes the amount of data actually inserted in the Blockchain. Thus it provides a mechanism for creating Bitcoin 2.0 services for the trading of assets, securities, commodities, or other complex applications without increasing blockchain "pollution".
 
-## State of Development
-
-We are very much at an Alpha level of development.  This is the M2 codebase, which is a direct implementation of the Factom Whitepaper.
 
 ## Getting Started
 
-You need to set up Go environment with golang 1.5 or 1.6. You also need to install the latest version of git, and it doesn't hurt to set up a github account.
+You need to set up Go environment with golang 1.10 or higher. You also need git.  See the [Install from source](https://github.com/FactomProject/FactomDocs/blob/master/installFromSourceDirections.md) directions for more details and wallet installation instructions.
 
-### Install the m2 repository
+### Install the dependency management program
 
-Get the M2 database, with the following command
+First check if golang 1.10 or higher is installed.  some operating systems install older versions.
 
-	go get github.com/FactomProject/factomd
+`go version` should return something like
+`go version go1.10.1 linux/amd64`
 
-You should now be ready to execute factomd
+Next install Glide, which gets the dependencies for factomd and places them in the `$GOPATH/src/github/FactomProject/factomd/vendor` directory.
 
-### Testing M2
+`go get -u github.com/Masterminds/glide`
 
-The test team is working on the master branch, while the developers are working on the m2 branch.  But because of shared repositories (some of which have some m2 changes), moving between milestone 1 code, m2s, and m2 is a bit complicated.  The all.sh script is your friend.  Follow these steps to get M2 setup and running for test:
+### Install factomd Full Node
 
-	cd factomd  			# However or wherever you put it>
-	./all.sh m2			# This is going to put you into the m2 branch
-	git checkout master		# Gets you back to master
-	go install			# Recompiles factomd with master code
-	
-You are now good to go.
-	
+```
+cd $GOPATH/src/github.com/FactomProject/
+git clone https://github.com/FactomProject/factomd $GOPATH/src/github.com/FactomProject/factomd
+
+# clear the glide cache since it has been known to cause errors
+# deleting the $GOPATH/src/github.com/FactomProject/factomd/vendor  directory may be useful too
+glide cc
+cd $GOPATH/src/github.com/FactomProject/factomd
+# this command download the dependencies and sets them to the right version
+glide install
+# install factomd with either the install.sh script or:
+go install -ldflags "-X github.com/FactomProject/factomd/engine.Build=`git rev-parse HEAD` -X github.com/FactomProject/factomd/engine.FactomdVersion=`cat VERSION`" -v
+# you can optionally use a config file to run in a non-standard mode
+# mkdir -p ~/.factom/m2/
+# cp $GOPATH/src/github.com/FactomProject/factomd/factomd.conf ~/.factom/m2/
+
+```
 
 
-### Running the M2 Simulator for the first time
-
-Create a ~/.factom/m2 directory
-
-cd to the factomd directory created with the go get.
-
-execute:
-
-	cp factomd.conf ~/.factom/m2/
-
-Now you are ready to execute factomd.
-
-	go install
-	factomd
-
-This is the simplist way to execute factomd with the defaults.  You can hit "enter" to get the status of the factom nodes running in the simulatory.
 
 ## M2 Simulator 
 

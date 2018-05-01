@@ -242,10 +242,8 @@ func (m *CommitEntryMsg) ComputeVMIndex(state interfaces.IState) {
 func (m *CommitEntryMsg) LeaderExecute(state interfaces.IState) {
 	// Check if we have yet to see an entry.  If we have seen one (NoEntryYet == false) then
 	// this commit is invalid.
-	if state.NoEntryYet(m.CommitEntry.EntryHash, m.CommitEntry.GetTimestamp()) {
-		state.LeaderExecuteCommitEntry(m)
-		// If this test fails then an existing entry has the same hash and this commit will never get processed.
-	}
+	state.LeaderExecuteCommitEntry(m)
+
 }
 
 func (m *CommitEntryMsg) FollowerExecute(state interfaces.IState) {
