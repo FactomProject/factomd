@@ -459,8 +459,12 @@ func (b *AdminBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 		case constants.TYPE_ADD_FACTOID_EFFICIENCY:
 			b.ABEntries[i] = new(AddEfficiency)
 		default:
-			fmt.Printf("AB UNDEFINED ENTRY %x for block %v\n", t, b.GetHeader().GetDBHeight())
-			panic("Undefined Admin Block Entry Type")
+			// Undefined types are > 0x09 and are not defined yet, but we have placeholder code to deal with them.
+			// This allows for future updates to the admin block with backwards compatibility
+			fmt.Printf("AB UNDEFINED ENTRY %x for block %v. Using Forward Compatible holder\n", t, b.GetHeader().GetDBHeight())
+			b.ABEntries[i] = new(ForwardCompatibleEntry)
+
+			//panic("Undefined Admin Block Entry Type")
 		}
 		err = buf.PopBinaryMarshallable(b.ABEntries[i])
 		if err != nil {

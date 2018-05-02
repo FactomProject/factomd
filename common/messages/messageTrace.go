@@ -25,6 +25,11 @@ var (
 // If it never ben see then check with the regex. If it has been seen then just look it up in the map
 // assumes traceMutex is locked already
 func CheckFileName(name string) bool {
+	traceMutex.Lock()
+	defer traceMutex.Unlock()
+	return checkFileName(name)
+}
+func checkFileName(name string) bool {
 	if globals.Params.DebugLogRegEx == "" {
 		return false
 	}
@@ -52,7 +57,7 @@ func CheckFileName(name string) bool {
 // assumes traceMutex is locked already
 func getTraceFile(name string) (f *os.File) {
 	//traceMutex.Lock()	defer traceMutex.Unlock()
-	if !CheckFileName(name) {
+	if !checkFileName(name) {
 		return nil
 	}
 	if files == nil {
@@ -71,11 +76,17 @@ func getTraceFile(name string) (f *os.File) {
 	return f
 }
 
-var history [16384][32]byte // Last 16k messages logged
-var h int                   // head of history
-var msgmap map[[32]byte]string = make(map[[32]byte]string)
+var history *([16384][32]byte) // Last 16k messages logged
+var h int                      // head of history
+var msgmap map[[32]byte]string
 
 func addmsg(hash [32]byte, msg string) {
+	if history == nil {
+		history = new([16384][32]byte)
+	}
+	if msgmap == nil {
+		msgmap = make(map[[32]byte]string)
+	}
 	remove := history[h] // get the oldest message
 	delete(msgmap, remove)
 	history[h] = hash
@@ -84,6 +95,9 @@ func addmsg(hash [32]byte, msg string) {
 }
 
 func getmsg(hash [32]byte) string {
+	if msgmap == nil {
+		msgmap = make(map[[32]byte]string)
+	}
 	rval, ok := msgmap[hash]
 	if !ok {
 		rval = fmt.Sprintf("UnknownMsg: %x", hash[:3])
@@ -101,9 +115,10 @@ func LogMessage(name string, note string, msg interfaces.IMsg) {
 	sequence++
 	seq := sequence
 	var t byte
-	var rhash, hash, msgString string
+	var rhash, hash, mhash, msgString string
 	embeddedHash := ""
 	hash = "??????"
+	mhash = "??????"
 	rhash = "??????"
 	if msg == nil {
 		t = 0
@@ -112,13 +127,17 @@ func LogMessage(name string, note string, msg interfaces.IMsg) {
 		t = msg.Type()
 		msgString = msg.String()
 		// work around message that don't have hashes yet ...
-		h := msg.GetMsgHash()
+		mh := msg.GetMsgHash()
+		if mh != nil {
+			mhash = mh.String()[:6]
+		}
+		h := msg.GetHash()
 		if h != nil {
 			hash = h.String()[:6]
 		}
-		h = msg.GetRepeatHash()
-		if h != nil {
-			rhash = h.String()[:6]
+		mh = msg.GetRepeatHash()
+		if mh != nil {
+			rhash = mh.String()[:6]
 		}
 
 		switch t {
@@ -143,8 +162,8 @@ func LogMessage(name string, note string, msg interfaces.IMsg) {
 
 	now := time.Now().Local()
 
-	s := fmt.Sprintf("%7v %02d:%02d:%02d %-25s M-%v|R-%v %26s[%2v]:%v%v\n", seq, now.Hour()%24, now.Minute()%60, now.Second()%60,
-		note, hash, rhash, constants.MessageName(byte(t)), t,
+	s := fmt.Sprintf("%7v %02d:%02d:%02d %-25s M-%v|R-%v|H-%v %26s[%2v]:%v%v\n", seq, now.Hour()%24, now.Minute()%60, now.Second()%60,
+		note, mhash, rhash, hash, constants.MessageName(byte(t)), t,
 		msgString, embeddedHash)
 	s = addNodeNames(s)
 

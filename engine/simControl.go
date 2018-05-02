@@ -64,8 +64,7 @@ func GetLine(listenToStdin bool) string {
 						InputChan <- string(line)
 					} else {
 						if err == io.EOF {
-							fmt.Printf("Error reading from std, sleeping for 5s: %s\n", err.Error())
-							time.Sleep(5 * time.Second)
+							return
 						} else {
 							fmt.Printf("Error reading from std, sleeping for 1s: %s\n", err.Error())
 							time.Sleep(1 * time.Second)
@@ -280,7 +279,6 @@ func SimControl(listenTo int, listenStdin bool) {
 				} else {
 					os.Stderr.WriteString("--Print SimElections Off--\n")
 				}
-
 			case 'p' == b[0]:
 				if len(b) > 1 {
 					ht, err := strconv.Atoi(string(b[1:]))
@@ -645,7 +643,8 @@ func SimControl(listenTo int, listenStdin bool) {
 							v := f.State.Holding[k]
 							vf := v.Validate(f.State)
 							if v != nil {
-								os.Stderr.WriteString(fmt.Sprintf("%s v %d\n", v.String(), vf))
+								repeat := f.State.Replay.IsHashUnique(constants.REVEAL_REPLAY, v.GetHash().Fixed())
+								os.Stderr.WriteString(fmt.Sprintf("%s v %d cnt %d notYet: %v\n", v.String(), vf, v.GetResendCnt(), repeat))
 							} else {
 								os.Stderr.WriteString("<nul>\n")
 							}
@@ -656,7 +655,8 @@ func SimControl(listenTo int, listenStdin bool) {
 						for k, c := range f.State.Commits.GetRaw() {
 							if c != nil {
 								vf := c.Validate(f.State)
-								os.Stderr.WriteString(fmt.Sprintf("%s v %d %x\n", c.String(), vf, k))
+								repeat := f.State.Replay.IsHashUnique(constants.REVEAL_REPLAY, c.GetHash().Fixed())
+								os.Stderr.WriteString(fmt.Sprintf("%s v %d %x cnt %d notYet: %v\n", c.String(), vf, k, c.GetResendCnt(), repeat))
 								cc, ok1 := c.(*messages.CommitChainMsg)
 								cm, ok2 := c.(*messages.CommitEntryMsg)
 								if ok1 && f.State.Holding[cc.CommitChain.EntryHash.Fixed()] != nil {
@@ -922,6 +922,7 @@ func SimControl(listenTo int, listenStdin bool) {
 						}
 					}
 				}
+
 			case 't' == b[0]:
 				if len(b) == 2 && b[1] == 'm' {
 					_, _, auth := authKeyLookup(fnodes[ListenTo].State.IdentityChainID)
@@ -1177,15 +1178,24 @@ func SimControl(listenTo int, listenStdin bool) {
 				if loadGenerator == nil {
 					loadGenerator = NewLoadGenerator()
 				}
-
-				nn, err := strconv.Atoi(string(b[1:]))
-				if err != nil {
-					os.Stderr.WriteString(err.Error() + "\n")
-					break
+				nn := 0
+				if b[1] == '.' {
+					nn, err = strconv.Atoi(b[2:])
+					if err != nil {
+						os.Stderr.WriteString("Specify in seconds (R3) or in tenths of a second (R.5)")
+						break
+					}
+				} else {
+					nn, err = strconv.Atoi(string(b[1:]))
+					if err != nil {
+						os.Stderr.WriteString("Specify in seconds (R3) or in tenths of a second (R.5)")
+						break
+					}
+					nn = nn * 10
 				}
 				loadGenerator.PerSecond.Store(nn)
 				go loadGenerator.Run()
-				os.Stderr.WriteString(fmt.Sprintf("Writing entries at %d per second\n", nn))
+				os.Stderr.WriteString(fmt.Sprintf("Writing entries at %d.%d per second\n", nn/10, nn%10))
 
 			case 'P' == b[0]:
 				// Set efficiency
@@ -1305,6 +1315,28 @@ func SimControl(listenTo int, listenStdin bool) {
 			}
 		}
 	}
+}
+func returnStatString(i uint8) string {
+	var stat string
+	switch i {
+	case 0:
+		stat = "Unassigned"
+	case 1:
+		stat = "Federated Server"
+	case 2:
+		stat = "Audit Server"
+	case 3:
+		stat = "Full"
+	case 4:
+		stat = "Pending Federated Server"
+	case 5:
+		stat = "Pending Audit Server"
+	case 6:
+		stat = "Pending Full"
+	case 7:
+		stat = "Skeleton Identity"
+	}
+	return stat
 }
 
 // Allows us to scatter transactions across all nodes.

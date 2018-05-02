@@ -83,15 +83,35 @@ func (m *Ack) VerifySignature() (bool, error) {
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
-func (m *Ack) Validate(state interfaces.IState) int {
+func (m *Ack) Validate(s interfaces.IState) int {
+	//	atomic.WhereAmI2("Ack.Validate()", 1)
 	// If too old, it isn't valid.
-	if m.DBHeight <= state.GetHighestSavedBlk() {
+	if m.DBHeight <= s.GetHighestSavedBlk() {
 		return -1
 	}
 
-	// Only new acks are valid. Of course, the VMIndG2ex has to be valid too.
-	msg, _ := state.GetMsg(m.VMIndex, int(m.DBHeight), int(m.Height))
+	if s.GetHighestAck() < m.DBHeight {
+		s.SetHighestAck(m.DBHeight) // assume the ack isn't lying. this will make us start requesting DBState blocks...
+	}
+
+	delta := (int(m.DBHeight)-int(s.GetLeaderPL().GetDBHeight()))*10 + (int(m.Minute) - int(s.GetCurrentMinute()))
+
+	if delta > 30 {
+		s.LogMessage("ackQueue", "Drop ack from future", m)
+		// when we get caught up we will either get a DBState with this message or we will missing message it.
+		// but if it was malicious then we don't want to keep it around filling up queues.
+		return -1
+	}
+
+	if delta > 15 {
+		return 0 // put this in the holding and validate it later
+	}
+
+	// Only new acks are valid. Of course, the VMIndex has to be valid too.
+	msg, _ := s.GetMsg(m.VMIndex, int(m.DBHeight), int(m.Height))
 	if msg != nil {
+		s.LogMessage("executeMsg", "Ack slot taken", m)
+		s.LogMessage("executeMsg", "found:", msg)
 		return -1
 	}
 
@@ -102,8 +122,8 @@ func (m *Ack) Validate(state interfaces.IState) int {
 			//fmt.Println("Err is not nil on Ack sig check: ", err)
 			return -1
 		}
-		sig := m.Signature.GetSignature()
-		ackSigned, err := state.VerifyAuthoritySignature(bytes, sig, m.DBHeight)
+		s.LogMessage("executeMsg", "Validate", m)
+		ackSigned, err := s.FastVerifyAuthoritySignature(bytes, m.Signature, m.DBHeight)
 
 		//ackSigned, err := m.VerifySignature()
 		if err != nil {
@@ -347,9 +367,9 @@ func (m *Ack) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *Ack) String() string {
-	return fmt.Sprintf("%6s- DBh/VMh/h[%15s] -- Leader[3:6]=%x hash[:3]=%x",
+	return fmt.Sprintf("%6s-%27s -- Leader[%x] hash[%x]",
 		"ACK",
-		fmt.Sprintf("%d/%d/%d", m.VMIndex, m.Height, m.DBHeight),
+		fmt.Sprintf("DBh/VMh/h %d/%d/%d       ", m.DBHeight, m.VMIndex, m.Height),
 		m.LeaderChainID.Bytes()[3:6],
 		m.GetHash().Bytes()[:3])
 

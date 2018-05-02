@@ -21,6 +21,7 @@ import (
 type LoadGenerator struct {
 	ECKey *primitives.PrivateKey
 
+	ToSend    int
 	PerSecond atomic.AtomicInt
 	stop      chan bool
 
@@ -53,9 +54,11 @@ func (lg *LoadGenerator) Run() {
 		default:
 
 		}
-
-		top := lg.PerSecond.Load()
-		if top == 0 {
+		addSend := lg.PerSecond.Load()
+		lg.ToSend += addSend
+		top := lg.ToSend / 10
+		lg.ToSend = lg.ToSend % 10
+		if addSend == 0 {
 			lg.running.Store(false)
 			return
 		}

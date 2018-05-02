@@ -82,6 +82,7 @@ func (e *EOM) Process(dbheight uint32, state interfaces.IState) bool {
 	return state.ProcessEOM(dbheight, e)
 }
 
+// Fix EOM hash to match and not have the sig so duplicates are not generated.
 func (m *EOM) GetRepeatHash() interfaces.IHash {
 	if m.RepeatHash == nil {
 		data, err := m.MarshalBinary()
@@ -333,11 +334,9 @@ func (m *EOM) String() string {
 	if m.FactoidVM {
 		f = "F"
 	}
-	return fmt.Sprintf("%6s-VM%3d: Min:%4d DBHt:%5d FF %2d -%1s-Leader[%x] hash[%x] %s",
+	return fmt.Sprintf("%6s-%30s FF %2d %1s-Leader[%x] hash[%x] %s",
 		"EOM",
-		m.VMIndex,
-		m.Minute,
-		m.DBHeight,
+		fmt.Sprintf("DBh/VMh/h %d/%d/-- minute %d", m.DBHeight, m.VMIndex, m.Minute),
 		m.SysHeight,
 		f,
 		m.ChainID.Bytes()[3:6],

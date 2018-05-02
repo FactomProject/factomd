@@ -14,10 +14,10 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-// Because we have to go back to a previous state should the network be partictoned and we are on a separate
-// brach, we need to log our state periodically so we can reset to a state prior to the network partitioin.
+// Because we have to go back to a previous state should the network be partitioned and we are on a separate
+// branch, we need to log our state periodically so we can reset to a state prior to the network partition.
 // The need to go back to a SaveState should be rare.  And even more rare would be the need to go back two
-// levels.   However, it is possible that a minority particion is able to see a level of consensus and save
+// levels.   However, it is possible that a minority partition is able to see a level of consensus and save
 // a state to disk that the majority of the nodes did not see.  However it is not possible for this to occur
 // more than once.  This is because any consensus a node can see requires that all the nodes saw the previous
 // consensus.
@@ -121,7 +121,7 @@ func (ss *SaveState) Init() {
 		ss.Acks = map[[32]byte]interfaces.IMsg{}
 	}
 	if ss.Commits == nil {
-		ss.Commits = NewSafeMsgMap() // map[[32]byte]interfaces.IMsg{}
+		ss.Commits = NewSafeMsgMap("sscommits", nil) // map[[32]byte]interfaces.IMsg{}
 	}
 	if ss.InvalidMessages == nil {
 		ss.InvalidMessages = map[[32]byte]interfaces.IMsg{}
@@ -571,6 +571,8 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 			}
 		}
 	}
+	// Set this, as we know it to be true
+	s.DBHeightAtBoot = ss.DBHeight
 	pl := s.ProcessLists.Get(ss.DBHeight)
 
 	// s.AddStatus(fmt.Sprintln("Index: ", index, "dbht:", ss.DBHeight, "lleaderheight", s.LLeaderHeight))
@@ -897,7 +899,7 @@ func (ss *SaveState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 	ss.ECBalancesP = map[[32]byte]int64{}
 	ss.Holding = map[[32]byte]interfaces.IMsg{}
 	ss.Acks = map[[32]byte]interfaces.IMsg{}
-	ss.Commits = NewSafeMsgMap()
+	ss.Commits = NewSafeMsgMap("sscommits", nil)
 	ss.InvalidMessages = map[[32]byte]interfaces.IMsg{}
 
 	ss.FedServers = []interfaces.IServer{}

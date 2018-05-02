@@ -37,6 +37,6 @@ func TestMarshaling(a interfaces.BinaryMarshallable, b interfaces.BinaryMarshall
 	}
 
 	if bytes.Compare(data, data2) != 0 {
-		t.Errorf("Marshaling for a and b are not the same")
+		t.Errorf("Marshaling for a and b are not the same: \n %x\n %x", data, data2)
 	}
 }

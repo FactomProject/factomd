@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages/msgsupport"
 )
@@ -84,8 +85,8 @@ func LoadJournalFromReader(s interfaces.IState, r *bufio.Reader) {
 		// Process the message.
 		s.InMsgQueue().Enqueue(msg)
 		p++
-		if s.InMsgQueue().Length() > 200 {
-			for s.InMsgQueue().Length() > 50 {
+		if s.InMsgQueue().Length() > constants.INMSGQUEUE_MED {
+			for s.InMsgQueue().Length() > constants.INMSGQUEUE_LOW {
 				time.Sleep(time.Millisecond * 10)
 			}
 			time.Sleep(time.Millisecond * 100)
@@ -94,7 +95,7 @@ func LoadJournalFromReader(s interfaces.IState, r *bufio.Reader) {
 
 	//Waiting for state to process the message queue
 	//before we disable "IsDoneReplaying"
-	for s.InMsgQueue().Length() > 0 {
+	for s.InMsgQueue().Length() > constants.INMSGQUEUE_LOW {
 		time.Sleep(time.Millisecond * 100)
 	}
 }

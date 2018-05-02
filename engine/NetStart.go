@@ -35,10 +35,11 @@ import (
 var _ = fmt.Print
 
 type FactomNode struct {
-	Index int
-	State *state.State
-	Peers []interfaces.IPeer
-	MLog  *MsgLog
+	Index    int
+	State    *state.State
+	Peers    []interfaces.IPeer
+	MLog     *MsgLog
+	P2PIndex int
 }
 
 var fnodes []*FactomNode
@@ -68,6 +69,9 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	// Must add the prefix before loading the configuration.
 	s.AddPrefix(p.Prefix)
 	FactomConfigFilename := util.GetConfigFilename("m2")
+	if p.ConfigPath != "" {
+		FactomConfigFilename = p.ConfigPath
+	}
 	fmt.Println(fmt.Sprintf("factom config: %s", FactomConfigFilename))
 	s.LoadConfig(FactomConfigFilename, p.NetworkName)
 	s.OneLeader = p.Rotate
@@ -322,6 +326,12 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		seedURL = s.LocalSeedURL
 		networkPort = s.LocalNetworkPort
 		configPeers = s.LocalSpecialPeers
+
+		// Also update the local constants for custom networks
+		fmt.Println("Running on the local network, use local coinbase constants")
+		constants.COINBASE_DECLARATION = 10
+		constants.COINBASE_PAYOUT_FREQUENCY = 5
+		constants.COINBASE_ACTIVATION = 0
 	case "CUSTOM", "custom":
 		if bytes.Compare(p.CustomNet, []byte("\xe3\xb0\xc4\x42")) == 0 {
 			panic("Please specify a custom network with -customnet=<something unique here>")
@@ -335,13 +345,11 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		networkPort = s.CustomNetworkPort
 		configPeers = s.CustomSpecialPeers
 
-		// Also update the coinbase constants if running communitynet
-		if bytes.Compare(Params.CustomNet, []byte{0x88, 0x3e, 0x09, 0x3b}) == 0 {
-			fmt.Println("Running on the community testnet, using coinbase testnet coinbase constants.")
-			constants.COINBASE_ACTIVATION = 26625
-			constants.COINBASE_DECLARATION = 10
-			constants.COINBASE_PAYOUT_FREQUENCY = 5
-		}
+		// Also update the coinbase constants for custom networks
+		fmt.Println("Running on the custom network, use custom coinbase constants")
+		constants.COINBASE_DECLARATION = 10
+		constants.COINBASE_PAYOUT_FREQUENCY = 5
+		constants.COINBASE_ACTIVATION = 0
 	default:
 		panic("Invalid Network choice in Config File or command line. Choose MAIN, TEST, LOCAL, or CUSTOM")
 	}
@@ -489,6 +497,11 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 
 	}
 
+	var colors []string = []string{"95cde5", "b01700", "db8e3c", "ffe35f"}
+
+	for i, s := range fnodes {
+		fmt.Printf("%d {color:#%v, shape:dot, label:%v}\n", i, colors[i%len(colors)], s.State.FactomNodeName)
+	}
 	// Initate dbstate plugin if enabled. Only does so for first node,
 	// any more nodes on sim control will use default method
 	fnodes[0].State.SetTorrentUploader(p.TorUpload)

@@ -145,7 +145,7 @@ func NewEnd(inLen int, start uint32, end uint32) (s uint32, e uint32) {
 }
 
 func (m *DBStateMissing) FollowerExecute(state interfaces.IState) {
-	if state.NetworkOutMsgQueue().Length() > 100 {
+	if state.NetworkOutMsgQueue().Length() > state.NetworkOutMsgQueue().Cap()*99/100 {
 		return
 	}
 	// TODO: Likely need to consider a limit on how many blocks we reply with.  For now,

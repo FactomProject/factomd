@@ -169,24 +169,36 @@ func Minutes(unix int64) int {
 	return int(unix / 60)
 }
 
-// Returns false if the hash is too old, or is already a
-// member of the set.  Timestamp is in seconds.
-// Does not add the hash to the buckets!
-func (r *Replay) validate(mask int, hash [32]byte, timestamp interfaces.Timestamp, systemtime interfaces.Timestamp) (index int, valid bool) {
+func maskToString(mask int) (rval string) {
+	if mask&constants.INTERNAL_REPLAY != 0 {
+		rval += "|INTERNAL_REPLAY"
+	}
+
+	if mask&constants.NETWORK_REPLAY != 0 {
+		rval += "|NETWORK_REPLAY"
+	}
+	if mask&constants.TIME_TEST != 0 {
+		rval += "|TIME_TEST"
+	}
+	if mask&constants.REVEAL_REPLAY != 0 {
+		rval += "|REVEAL_REPLAY"
+	}
+	if mask&constants.BLOCK_REPLAY != 0 {
+		rval += "|BLOCK_REPLAY"
+	}
+	if mask > 31 {
+		panic("Unknown replay mask")
+	}
+	if mask == 0 {
+		rval = "|Empty" // extra character to be removed
+	}
+	return rval[1:]
+}
+
+// This move the center time of the replay filter to the current systemtime.
+// Really it should track the time for the current block.
+func (r *Replay) Recenter(systemtime interfaces.Timestamp) {
 	now := Minutes(systemtime.GetTimeSeconds())
-	t := Minutes(timestamp.GetTimeSeconds())
-
-	diff := now - t
-	// Check the timestamp to see if within 12 hours of the system time.  That not valid, we are
-	// just done without any added concerns.
-	if diff > Range || diff < -Range {
-		//fmt.Println("Time in hours, range:", hours(timeSeconds-systemTimeSeconds), HourRange)
-		return -1, false
-	}
-
-	if mask == constants.TIME_TEST {
-		return -1, true
-	}
 
 	// We don't let the system clock go backwards.  likely an attack if it does.
 	// Move the current time up to r.center if it is in the past.
@@ -208,6 +220,29 @@ func (r *Replay) validate(mask int, hash [32]byte, timestamp interfaces.Timestam
 		r.Basetime++
 	}
 
+}
+
+// Returns false if the hash is too old, or is already a
+// member of the set.  Timestamp is in seconds.
+// Does not add the hash to the buckets!
+// Assume locking is done by caller
+func (r *Replay) validate(mask int, hash [32]byte, timestamp interfaces.Timestamp, systemtime interfaces.Timestamp) (index int, valid bool) {
+	now := Minutes(systemtime.GetTimeSeconds())
+	t := Minutes(timestamp.GetTimeSeconds())
+
+	r.Recenter(systemtime) // Move the center of our replay list to the current time.
+
+	diff := now - t
+	// Check the timestamp to see if within 12 hours of the system time.  That not valid, we are
+	// just done without any added concerns.
+	if diff > Range || diff < -Range {
+		//fmt.Println("Time in hours, range:", hours(timeSeconds-systemTimeSeconds), HourRange)
+		return -1, false
+	}
+
+	if mask == constants.TIME_TEST {
+		return -1, true
+	}
 	// Just take the time of the thing in hours less the basetime to get the index.
 	index = t - r.Basetime
 
@@ -226,6 +261,10 @@ func (r *Replay) validate(mask int, hash [32]byte, timestamp interfaces.Timestam
 	}
 	return index, true
 }
+
+// Returns false if the hash is too old, or is already a
+// member of the set.  Timestamp is in seconds.
+// Does not add the hash to the buckets!
 func (r *Replay) Valid(mask int, hash [32]byte, timestamp interfaces.Timestamp, systemtime interfaces.Timestamp) (index int, valid bool) {
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
@@ -238,34 +277,37 @@ func (r *Replay) Valid(mask int, hash [32]byte, timestamp interfaces.Timestamp, 
 // this code remembers hashes tested in the past, and rejects the
 // second submission of the same hash.
 func (r *Replay) IsTSValid(mask int, hash interfaces.IHash, timestamp interfaces.Timestamp) bool {
-	return r.IsTSValid_(mask, hash.Fixed(), timestamp, primitives.NewTimestampNow())
+	return r.IsTSValidAndUpdateState(mask, hash.Fixed(), timestamp, primitives.NewTimestampNow())
 }
 
 // To make the function testable, the logic accepts the current time
 // as a parameter.  This way, the test code can manipulate the clock
 // at will.
-func (r *Replay) IsTSValid_(mask int, hash [32]byte, timestamp interfaces.Timestamp, now interfaces.Timestamp) bool {
+func (r *Replay) IsTSValidAndUpdateState(mask int, hash [32]byte, timestamp interfaces.Timestamp, systemtime interfaces.Timestamp) (rval bool) {
+	r.Mutex.Lock()
+	// Fixed to avoid a race with unlocking after finding the index and then using it in a later when it could be stale
 
-	//TODO: There is a race that the index could go stale while the replay is unlocked. -- clay
-	if index, ok := r.Valid(mask, hash, timestamp, now); ok {
+	index, rval := r.validate(mask, hash, timestamp, systemtime)
+	if rval {
 		// Mark this hash as seen
 		if mask != constants.TIME_TEST {
-			r.Mutex.Lock()
 			r.Buckets[index][hash] = r.Buckets[index][hash] | mask
 			r.Mutex.Unlock()
-			//			r.s.LogPrintf(r.name, "AddHash1 %x from %s", hash[:4], atomic.WhereAmIString(1))
+			//r.s.LogPrintf("replay", "Add %x (%s) to %s from %s", hash[:3], maskToString(mask), r.name, atomic.WhereAmIString(1))
+			return rval // true
 		}
-		return true
+		r.Mutex.Unlock()
+		return rval // true
 	}
 
-	return false
+	r.Mutex.Unlock()
+	return rval // false
 }
 
 // Returns True if there is no record of this hash in the Replay structures.
 // Returns false if we have seen this hash before.
-func (r *Replay) IsHashUnique(mask int, hash [32]byte) bool {
-	r.Mutex.Lock()
-	defer r.Mutex.Unlock()
+// Assume locking is done by caller
+func (r *Replay) IsHashUnique_internal(mask int, hash [32]byte) bool {
 
 	for _, bucket := range r.Buckets {
 		if bucket[hash]&mask > 0 {
@@ -275,20 +317,30 @@ func (r *Replay) IsHashUnique(mask int, hash [32]byte) bool {
 	return true
 }
 
+// Returns True if there is no record of this hash in the Replay structures.
+// Returns false if we have seen this hash before.
+func (r *Replay) IsHashUnique(mask int, hash [32]byte) bool {
+	r.Mutex.Lock()
+	defer r.Mutex.Unlock()
+	return r.IsHashUnique_internal(mask, hash)
+}
+
+// Fixed conflicting lock path
+// Add a hash/mask at a specific time if it did not exist prior.
 func (r *Replay) SetHashNow(mask int, hash [32]byte, now interfaces.Timestamp) {
-	if r.IsHashUnique(mask, hash) {
+	r.Mutex.Lock()
+	defer r.Mutex.Unlock()
+	if r.IsHashUnique_internal(mask, hash) {
 		index := Minutes(now.GetTimeSeconds()) - r.Basetime
 		if index < 0 || index >= len(r.Buckets) {
 			return
 		}
 
-		r.Mutex.Lock()
 		if r.Buckets[index] == nil {
 			r.Buckets[index] = make(map[[32]byte]int)
 		}
 		r.Buckets[index][hash] = mask | r.Buckets[index][hash]
-		r.Mutex.Unlock()
-		//		r.s.LogPrintf(r.name, "AddHash2 %x from %s", hash[:4], atomic.WhereAmIString(1))
+		//r.s.LogPrintf("replay", "Add2 %x (%s) to %s from %s", hash[:3], maskToString(mask), r.name, atomic.WhereAmIString(1))
 	}
 }
 

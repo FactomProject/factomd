@@ -16,7 +16,46 @@ import (
 // 			1  -> Federated Signature
 //			0  -> Audit Signature
 //			-1 -> Neither Fed or Audit Signature
-func (st *State) VerifyAuthoritySignature(msg []byte, sig *[constants.SIGNATURE_LENGTH]byte, dbheight uint32) (int, error) {
+func (st *State) VerifyAuthoritySignature(msg []byte, sig *[constants.SIGNATURE_LENGTH]byte, dbheight uint32) (rval int, err error) {
+
+	//defer func() { // debug code
+	//	//st.LogMessage("executeMsg", "Signature Fail", msg)
+	//	if rval <= 0 {
+	//		m, err := messages.General.UnmarshalMessage(append(msg[:], make([]byte, 256)[:]...))
+	//		if err != nil {
+	//			st.LogPrintf("executeMsg", "Unable to unmarshal message")
+	//		} else {
+	//			st.LogMessage("executeMsg", "VerifyAuthoritySignature", m)
+	//		}
+	//		st.LogPrintf("executeMsg", "VerifyAuthoritySignature failed signature")
+	//
+	//		feds := st.GetFedServers(dbheight)
+	//		for _, fed := range feds {
+	//			st.LogPrintf("executeMsg", "L %s:%s", messages.LookupName(fed.GetChainID().String()), fed.GetChainID().String()[6:12])
+	//		}
+	//
+	//		auds := st.GetAuditServers(dbheight)
+	//		if auds == nil {
+	//			st.LogPrintf("executeMsg", "Audit Servers are unknown at directory block height %d", dbheight)
+	//		}
+	//		for _, aud := range auds {
+	//			st.LogPrintf("executeMsg", "A %s:%s", messages.LookupName(aud.GetChainID().String()), aud.GetChainID().String()[6:12])
+	//		}
+	//
+	//		st.LogPrintf("executeMsg", "auth.VerifySignature(msg:%x, sig:%x)", msg, sig)
+	//		for _, s := range feds {
+	//			auth, _ := st.GetAuthority(s.GetChainID())
+	//			valid, err := auth.VerifySignature2(msg, sig)
+	//			st.LogPrintf("executeMsg", "L-%x valid:%v, err:%v", s.GetChainID().Bytes()[3:6], valid, err)
+	//		}
+	//		for _, s := range auds {
+	//			auth, _ := st.GetAuthority(s.GetChainID())
+	//			valid, err := auth.VerifySignature2(msg, sig)
+	//			st.LogPrintf("executeMsg", "A-%x valid:%v, err:%v", s.GetChainID().Bytes()[3:6], valid, err)
+	//		}
+	//
+	//	}
+	//}() // end debug code
 	feds := st.GetFedServers(dbheight)
 	if feds == nil {
 		return -1, fmt.Errorf("Federated Servers are unknown at directory block height %d", dbheight)
@@ -45,6 +84,20 @@ func (st *State) VerifyAuthoritySignature(msg []byte, sig *[constants.SIGNATURE_
 		valid, err := auth.VerifySignature(msg, sig)
 		if err == nil && valid {
 			return 0, nil
+		}
+	}
+	if st.CurrentMinute == 0 {
+		// Also allow leaders who were demoted if we are in minute 0
+		feds := st.LeaderPL.StartingFedServers
+		for _, fed := range feds {
+			auth, _ := st.GetAuthority(fed.GetChainID())
+			if auth == nil {
+				continue
+			}
+			valid, err := auth.VerifySignature(msg, sig)
+			if err == nil && valid {
+				return 1, nil
+			}
 		}
 	}
 	//fmt.Println("WARNING: A signature failed to validate.")
@@ -96,6 +149,26 @@ func (st *State) FastVerifyAuthoritySignature(msg []byte, sig interfaces.IFullSi
 	}
 	//fmt.Println("WARNING: A signature failed to validate.")
 
+	// The checking pl for nil happens for unit testing
+	if st.CurrentMinute == 0 && st.LeaderPL != nil {
+		// Also allow leaders who were demoted if we are in minute 0
+		feds := st.LeaderPL.StartingFedServers
+		for _, fed := range feds {
+			auth, _ := st.GetAuthority(fed.GetChainID())
+			if auth == nil {
+				continue
+			}
+			compareKey, err := auth.SigningKey.MarshalBinary()
+			if err == nil {
+				if pkEq(sig.GetKey(), compareKey) {
+					valid, err := auth.VerifySignature(msg, sig.GetSignature())
+					if err == nil && valid {
+						return 1, nil
+					}
+				}
+			}
+		}
+	}
 	return -1, fmt.Errorf("%s", "Signature Key Invalid or not Federated Server Key")
 }
 

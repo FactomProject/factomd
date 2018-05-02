@@ -30,6 +30,7 @@ type IState interface {
 	GetSalt(Timestamp) uint32 // A secret number computed from a TS that tests if a message was issued from this server or not
 	Clone(number int) IState
 	GetCfg() IFactomConfig
+	GetConfigPath() string
 	LoadConfig(filename string, networkFlag string)
 	Init()
 	String() string
@@ -320,4 +321,9 @@ type IState interface {
 	GetMissingDBState(height uint32) error
 
 	LogMessage(logName string, comment string, msg IMsg)
+	LogPrintf(logName string, format string, more ...interface{})
+
+	GetHighestAck() uint32
+	SetHighestAck(uint32)
+	DebugExec() bool
 }

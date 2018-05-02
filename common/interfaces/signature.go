@@ -44,7 +44,7 @@ type IFullSignature interface {
 	SetPub(publicKey []byte)
 	// Get the public key
 	GetKey() []byte
-	// Validate data againstt this signature
+	// Validate data against this signature
 	Verify(data []byte) bool
 	IsSameAs(IFullSignature) bool
 }

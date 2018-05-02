@@ -63,7 +63,7 @@ func Test_Replay(test *testing.T) {
 			for in := 0; in < 1000; in++ {
 				i := rand.Int() % len(mhs)
 				x := mhs[i]
-				if r.IsTSValid_(constants.INTERNAL_REPLAY, x.hash, x.time, now) {
+				if r.IsTSValidAndUpdateState(constants.INTERNAL_REPLAY, x.hash, x.time, now) {
 					fmt.Printf("Failed Repeat Test %d\n", i)
 					test.Fail()
 					return
@@ -95,14 +95,14 @@ func Test_Replay(test *testing.T) {
 		}
 
 		// The first time we test, it should be valid.
-		if !r.IsTSValid_(constants.INTERNAL_REPLAY, x.hash, x.time, now) {
+		if !r.IsTSValidAndUpdateState(constants.INTERNAL_REPLAY, x.hash, x.time, now) {
 			fmt.Println("Failed Test ", i, "first")
 			test.Fail()
 			return
 		}
 
 		// An immediate replay!  Should fail!
-		if r.IsTSValid_(constants.INTERNAL_REPLAY, x.hash, x.time, now) {
+		if r.IsTSValidAndUpdateState(constants.INTERNAL_REPLAY, x.hash, x.time, now) {
 			fmt.Println("Failed Test ", i, "second")
 			test.Fail()
 			return
@@ -126,7 +126,7 @@ func Test_Replay(test *testing.T) {
 		}
 
 		// The first time we test, it should not be valid.
-		if r.IsTSValid_(constants.INTERNAL_REPLAY, x.hash, x.time, now) {
+		if r.IsTSValidAndUpdateState(constants.INTERNAL_REPLAY, x.hash, x.time, now) {
 			fmt.Println("Failed Test ", i, "bad first")
 			test.Fail()
 			return

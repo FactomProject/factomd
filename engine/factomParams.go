@@ -40,8 +40,6 @@ func ParseCmdLine(args []string) *FactomParams {
 	networkNamePtr := flag.String("network", "", "Network to join: MAIN, TEST or LOCAL")
 	peersPtr := flag.String("peers", "", "Array of peer addresses. ")
 	blkTimePtr := flag.Int("blktime", 0, "Seconds per block.  Production is 600.")
-	// TODO: Old fault mechanism -- remove
-	//	faultTimeoutPtr := flag.Int("faulttimeout", 99999, "Seconds before considering Federated servers at-fault. Default is 30.")
 	runtimeLogPtr := flag.Bool("runtimeLog", false, "If true, maintain runtime logs of messages passed.")
 	exclusivePtr := flag.Bool("exclusive", false, "If true, we only dial out to special/trusted peers.")
 	exclusiveInPtr := flag.Bool("exclusive_in", false, "If true, we only dial out to special/trusted peers and no incoming connections are accepted.")
@@ -89,10 +87,12 @@ func ParseCmdLine(args []string) *FactomParams {
 	flag.StringVar(&p.DebugConsole, "debugconsole", "", "Enable DebugConsole on port. localhost:8093 open 8093 and spawns a telnet console, remotehost:8093 open 8093")
 	flag.StringVar(&p.StdoutLog, "stdoutlog", "", "Log stdout to a file")
 	flag.StringVar(&p.StderrLog, "stderrlog", "", "Log stderr to a file, optionally the same file as stdout")
-	flag.StringVar(&p.DebugLogRegEx, "debuglog", "off", "regex to pick which logs to save")
+	flag.StringVar(&p.DebugLogRegEx, "debuglog", "", "regex to pick which logs to save")
 	flag.IntVar(&elections.FaultTimeout, "faulttimeout", 30, "Seconds before considering Federated servers at-fault. Default is 30.")
 	flag.IntVar(&elections.RoundTimeout, "roundtimeout", 30, "Seconds before audit servers will increment rounds and volunteer.")
 	flag.IntVar(&p2p.NumberPeersToBroadcast, "broadcastnum", 16, "Number of peers to broadcast to in the peer to peer networking")
+	flag.StringVar(&p.ConfigPath, "config", "", "Override the config file location (factomd.conf)")
+
 	flag.CommandLine.Parse(args)
 
 	p.AckbalanceHash = *ackBalanceHashPtr
@@ -116,7 +116,6 @@ func ParseCmdLine(args []string) *FactomParams {
 	p.ControlPanelPortOverride = *ControlPanelPortOverridePtr
 	p.LogPort = *logportPtr
 	p.BlkTime = *blkTimePtr
-	//	p.FaultTimeout = *faultTimeoutPtr
 	p.RuntimeLog = *runtimeLogPtr
 	p.Exclusive = *exclusivePtr
 	p.ExclusiveIn = *exclusiveInPtr
@@ -152,7 +151,7 @@ func ParseCmdLine(args []string) *FactomParams {
 		os.Setenv("FACTOM_HOME", *factomHomePtr)
 	}
 
-	// Handle the global (not factom server specific parameters
+	// Handle the global (not Factom server specific parameters
 	if p.StdoutLog != "" || p.StderrLog != "" {
 		handleLogfiles(p.StdoutLog, p.StderrLog)
 	}

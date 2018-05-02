@@ -15,23 +15,15 @@ var _ = fmt.Print
 var _ = log.Print
 
 type ProcessLists struct {
-	State        *State                           // Pointer to the state object
-	DBHeightBase uint32                           // Height of the first Process List in this structure.
-	Lists        []*ProcessList                   // Pointer to the ProcessList structure for each DBHeight under construction
-	Holding      [64]map[[32]byte]interfaces.IMsg // Messages that don't have Acks
+	State        *State         // Pointer to the state object
+	DBHeightBase uint32         // Height of the first Process List in this structure.
+	Lists        []*ProcessList // Pointer to the ProcessList structure for each DBHeight under construction
 	SetString    bool
 	Str          string
 }
 
 func (lists *ProcessLists) LastList() *ProcessList {
 	return lists.Lists[len(lists.Lists)-1]
-}
-
-func (lists *ProcessLists) GetHolding(vmi int) map[[32]byte]interfaces.IMsg {
-	if lists.Holding[vmi] == nil {
-		lists.Holding[vmi] = make(map[[32]byte]interfaces.IMsg)
-	}
-	return lists.Holding[vmi]
 }
 
 // UpdateState is executed from a Follower's perspective.  So the block we are building
@@ -41,15 +33,21 @@ func (lists *ProcessLists) UpdateState(dbheight uint32) (progress bool) {
 
 	// Look and see if we need to toss some previous blocks under construction.
 	diff := int(dbheight) - int(lists.DBHeightBase)
+	//TODO: Maybe the test about len(lists.list) is pointless
 	if diff > 1 && len(lists.Lists) > 1 {
 		diff = diff - 1
 		progress = true
 		lists.DBHeightBase += uint32(diff)
-		var newlist []*ProcessList
-		for i := 0; i < diff; i++ {
-			lists.Lists[i].Clear()
+
+		// Kill the old process lists that are being retired
+		for _, pl := range lists.Lists[:diff] {
+			if pl != nil && pl.done != nil {
+				pl.done <- struct{}{} // stop looking for missing messages for that process list
+				pl.done = nil
+			}
 		}
-		newlist = append(newlist, lists.Lists[diff:]...)
+
+		newlist := append([]*ProcessList{}, lists.Lists[diff:]...)
 		lists.Lists = newlist
 	}
 	dbstate := lists.State.DBStates.Get(int(dbheight))
@@ -66,6 +64,8 @@ func (lists *ProcessLists) UpdateState(dbheight uint32) (progress bool) {
 		s := lists.State
 		//fmt.Println(fmt.Sprintf("EOM PROCESS: %10s ProcessListManager: !s.EOM(%v)", s.FactomNodeName, s.EOM))
 		s.LLeaderHeight = dbheight
+		s.ProcessLists.Get(dbheight + 1) // make the current and future process list exist
+
 		s.CurrentMinute = 0
 		s.EOMProcessed = 0
 		s.DBSigProcessed = 0
@@ -74,6 +74,8 @@ func (lists *ProcessLists) UpdateState(dbheight uint32) (progress bool) {
 		s.DBSig = false
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
+
+		s.DBSig = false
 	}
 	//lists.State.AddStatus(fmt.Sprintf("UpdateState: ProcessList Height %d", pl.DBHeight))
 	return pl.Process(lists.State)
@@ -108,6 +110,7 @@ func (lists *ProcessLists) Get(dbheight uint32) *ProcessList {
 
 	i := int(dbheight) - int(lists.DBHeightBase)
 
+	//TODO: Actually allocate the PL here !!!
 	for len(lists.Lists) <= i {
 		lists.Lists = append(lists.Lists, nil)
 	}

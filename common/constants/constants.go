@@ -178,14 +178,14 @@ var (
 	// The height at which coinbase transactions will activate.
 	//	 This is useful for updating without needing to take
 	// 	 down the network and giving an update period.
-	COINBASE_ACTIVATION = uint32(0)
+	COINBASE_ACTIVATION = uint32(140200)
 )
 
 const (
 	// Limits for keeping inputs from flooding our execution
-	INMSGQUEUE_HIGH = 1000
-	INMSGQUEUE_MED  = 500
-	INMSGQUEUE_LOW  = 100
+	INMSGQUEUE_HIGH = 100000
+	INMSGQUEUE_MED  = 5000
+	INMSGQUEUE_LOW  = 1000
 
 	DBSTATE_REQUEST_LIM_HIGH = 200
 	DBSTATE_REQUEST_LIM_MED  = 50

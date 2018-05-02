@@ -1,7 +1,7 @@
 package interfaces
 
 type IProcessList interface {
-	Clear()
+	//Clear()
 	GetKeysNewEntries() (keys [][32]byte)
 	GetNewEntry(key [32]byte) IEntry
 	LenNewEntries() int
@@ -35,7 +35,7 @@ type IProcessList interface {
 	ResetDiffSigTally()
 	IncrementDiffSigTally()
 	CheckDiffSigTally() bool
-	Ask(vmIndex int, height int, waitSeconds int64, tag int) int
+	//	Ask(vmIndex int, height int) int
 	TrimVMList(height uint32, vmIndex int)
 	//Process(state IState) (progress bool)
 	//AddToProcessList(ack IMsg, m IMsg)
@@ -43,6 +43,7 @@ type IProcessList interface {
 	AddDBSig(serverID IHash, sig IFullSignature)
 	String() string
 	IsPendingChainHead(chainID IHash) bool
+	GetDBHeight() uint32
 }
 
 type IRequest interface {

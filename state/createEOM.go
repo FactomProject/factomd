@@ -48,7 +48,7 @@ func (s *State) CreateEOM(force bool, m interfaces.IMsg, vmIdx int) (eom *messag
 
 	eom.DBHeight = s.LLeaderHeight
 	eom.VMIndex = vmIdx
-	// eom.Minute is zerobased, while LeaderMinute is 1 based.  So
+	// EOM.Minute is zerobased, while LeaderMinute is 1 based.  So
 	// a simple assignment works.
 	eom.Minute = byte(s.CurrentMinute)
 	vm.EomMinuteIssued = s.CurrentMinute + 1
