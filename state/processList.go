@@ -992,6 +992,8 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			}
 
 			// If the block is not yet being written to disk (22 minutes old...)
+			// dif >2 means the second pass sync is not complete so don't process yet.
+			// this prevent you from becoming a leader when you don't have complete identities
 			if (vm.LeaderMinute < 2 && diff <= 3) || diff <= 2 {
 				// If we can't process this entry (i.e. returns false) then we can't process any more.
 				p.NextHeightToProcess[i] = j + 1 // unused...
