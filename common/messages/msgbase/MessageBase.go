@@ -89,6 +89,8 @@ var outs map[string]*msgHistory = make(map[string]*msgHistory)
 // counts are global to all nodes
 var sends, unique, duplicate int
 
+var logname = "duplicateSend" //"NetworkOutputs" to put then in the common place
+
 func checkForDuplicateSend(s interfaces.IState, msg interfaces.IMsg, whereAmI string) {
 	mu.Lock()
 	f, ok := outs[s.GetFactomNodeName()]
@@ -113,26 +115,31 @@ func checkForDuplicateSend(s interfaces.IState, msg interfaces.IMsg, whereAmI st
 	}
 }
 
-var logname = "duplicateSend" //"NetworkOutputs" to put then in the common place
-
 func (m *MessageBase) SendOut(s interfaces.IState, msg interfaces.IMsg) {
-	s.LogMessage("NetworkOutputsCall", "Enqueue", msg)
-
 	// Are we ever modifying a message?
 	if m.ResendCnt > 4 { // If the first send fails, we need to try again
 		return
 	}
-
 	now := s.GetTimestamp().GetTimeMilli()
+
+	comment := fmt.Sprintf("Enqueue %v %v", m.ResendCnt, now-m.resend)
+	s.LogMessage("NetworkOutputsCall", comment, msg)
+
 	if m.ResendCnt > 1 { // If the first send fails, we need to try again
 		//block := s.GetHighestKnownBlock()
 		//blk := s.GetHighestSavedBlk()
 		//if block-blk > 4 {
 		//	return // don't resend when we are behind by more than a block
 		//}
-		if now-m.resend < 2000 || s.NetworkOutMsgQueue().Length() > s.NetworkOutMsgQueue().Cap()*99/100 {
+		if now-m.resend < 2000 {
+			//			s.LogPrintf("NetworkOutputsCall", "too soon")
 			return
 		}
+		if s.NetworkOutMsgQueue().Length() > s.NetworkOutMsgQueue().Cap()*99/100 {
+			//			s.LogPrintf("NetworkOutputsCall", "too full
+			return
+		}
+
 	}
 
 	m.ResendCnt++
@@ -144,7 +151,7 @@ func (m *MessageBase) SendOut(s interfaces.IState, msg interfaces.IMsg) {
 		checkForDuplicateSend(s, msg, atomic.WhereAmIString(1))
 	}
 	// debug code end ............
-	s.LogMessage("NetworkOutputs", "Enqueue", msg)
+	s.LogMessage("NetworkOutputs", comment, msg)
 	s.NetworkOutMsgQueue().Enqueue(msg)
 }
 
