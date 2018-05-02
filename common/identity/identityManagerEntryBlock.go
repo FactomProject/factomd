@@ -9,6 +9,7 @@ import (
 
 	"bytes"
 
+	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/identityEntries"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -205,7 +206,7 @@ func (im *IdentityManager) ProcessIdentityEntryWithABlockUpdate(entry interfaces
 		if err != nil {
 			return false, err
 		}
-		tryAgain, change, err = im.ApplyNewCoinbaseCancelStruct(cc, chainID, dBlockTimestamp, a)
+		tryAgain, change, err = im.ApplyNewCoinbaseCancelStruct(cc, chainID, dBlockHeight, a)
 		if tryAgain == true && newEntry == true {
 			//if it's a new entry, push it and return nil
 			return false, im.PushEntryForLater(entry, dBlockHeight, dBlockTimestamp)
@@ -499,8 +500,8 @@ func (im *IdentityManager) ApplyNewServerEfficiencyStruct(nses *NewServerEfficie
 //			bool	tryagain	If this is set to true, this entry can be reprocessed if it is *new*
 //			error	err			Any errors
 func (im *IdentityManager) ApplyNewCoinbaseAddressStruct(ncas *NewCoinbaseAddressStruct, rootchainID interfaces.IHash, dBlockTimestamp interfaces.Timestamp, a interfaces.IAdminBlock) (bool, bool, error) {
-	chainID := ncas.RootIdentityChainID
-	id := im.GetIdentity(chainID)
+	root := ncas.RootIdentityChainID
+	id := im.GetIdentity(root)
 	if id == nil {
 		return false, true, fmt.Errorf("(coinbase address) ChainID doesn't exists! %v", ncas.RootIdentityChainID.String())
 	}
@@ -520,7 +521,7 @@ func (im *IdentityManager) ApplyNewCoinbaseAddressStruct(ncas *NewCoinbaseAddres
 
 	// Check Timestamp
 	if !CheckTimestamp(ncas.Timestamp, dBlockTimestamp.GetTimeSeconds()) {
-		return false, false, fmt.Errorf("New Server Efficiency for Identity [%x]is too old", chainID.Bytes()[:5])
+		return false, false, fmt.Errorf("New Server Efficiency for Identity [%x]is too old", root.Bytes()[:5])
 	}
 
 	id.CoinbaseAddress = ncas.CoinbaseAddress
@@ -536,10 +537,48 @@ func (im *IdentityManager) ApplyNewCoinbaseAddressStruct(ncas *NewCoinbaseAddres
 }
 
 // ApplyNewCoinbaseCancelStruct will parse a new coinbase cancel
+//		Validation Difference:
+//			Most entries check the timestamps to ensure entry is within 12 hours of dblock. That does not apply to coinbase, it can be replayed
+//			as long as it is between the block window.
 //		Returns
 //			bool	change		If a key has been changed
 //			bool	tryagain	If this is set to true, this entry can be reprocessed if it is *new*
 //			error	err			Any errors
-func (im *IdentityManager) ApplyNewCoinbaseCancelStruct(nccs *NewCoinbaseCancelStruct, rootchainID interfaces.IHash, dBlockTimestamp interfaces.Timestamp, a interfaces.IAdminBlock) (bool, bool, error) {
+func (im *IdentityManager) ApplyNewCoinbaseCancelStruct(nccs *NewCoinbaseCancelStruct, managechain interfaces.IHash, dblockHeight uint32, a interfaces.IAdminBlock) (bool, bool, error) {
+	// Validate Block window
+	//		If the descriptor to cancel has already been applied, then this entry is no longer valid
+	//		Descriptor height + Declaration is the block the coinbase is added
+	if dblockHeight > nccs.CoinbaseDescriptorHeight+constants.COINBASE_DECLARATION {
+		return false, false, nil
+	}
+
+	root := nccs.RootIdentityChainID
+	id := im.GetIdentity(root)
+	if id == nil {
+		return false, true, fmt.Errorf("(coinbase cancel) ChainID doesn't exists! %v", nccs.RootIdentityChainID.String())
+	}
+
+	if !managechain.IsSameAs(id.ManagementChainID) {
+		return false, true, fmt.Errorf("(coinbase cancel) ChainID of entry should match manage chain id.")
+	}
+
+	// TODO: Check if this cancel is a repeat. If it is, we can ignore it as it's already been counted
+	if false {
+		return false, false, nil
+	}
+
+	err := nccs.VerifySignature(id.Keys[0])
+	if err != nil {
+		return false, false, err
+	}
+
+	// TODO: Add count to cancel counting
+
+	// Check if we need to update admin block
+	if a != nil {
+		// TODO: Check if it reaches critical mass
+		// 		TODO: Add to admin block if it does
+		// err = a.AddCoinbaseAddress(ncas.RootIdentityChainID, ncas.CoinbaseAddress)
+	}
 	return false, false, nil
 }
