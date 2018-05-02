@@ -142,6 +142,12 @@ func (m *MessageBase) SendOut(s interfaces.IState, msg interfaces.IMsg) {
 
 	}
 
+	m1, m2 := fmt.Sprintf("%p", m), fmt.Sprintf("%p", msg)
+
+	if m1 != m2 {
+		panic("mismatch")
+	}
+
 	m.ResendCnt++
 	m.resend = now
 	sends++
