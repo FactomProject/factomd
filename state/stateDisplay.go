@@ -116,15 +116,9 @@ func DeepStateDisplayCopyDifference(s *State, prev *DisplayState) (*DisplayState
 
 	// DB Info
 	ds.CurrentNodeHeight = s.GetHighestSavedBlk()
-	lheight := s.GetLeaderHeight()
-	if s.GetHighestAck() > lheight {
-		lheight = s.GetHighestAck()
-	}
-	tl := s.GetTrueLeaderHeight()
-	if tl > lheight {
-		lheight = tl
-	}
-	ds.CurrentLeaderHeight = lheight
+	lheight := s.GetTrueLeaderHeight()
+	// Acks are from the current block being built, and at +1
+	ds.CurrentLeaderHeight = s.GetLeaderHeight()
 	ds.CurrentEBDBHeight = s.EntryDBHeightComplete
 	ds.LeaderHeight = lheight
 
