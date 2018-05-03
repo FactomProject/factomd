@@ -133,6 +133,10 @@ func (p *Peer) LocationFromAddress() (location uint32) {
 		}
 		p.Address = ipAddress[0]
 		ip = net.ParseIP(p.Address)
+		if ip == nil {
+			p.logger.Debugf("net.ParseIP(%v) returned nil", p.Address)
+			return 0
+		}
 	}
 	if len(ip) == 16 { // If we got back an IP6 (16 byte) address, use the last 4 byte
 		ip = ip[12:]
