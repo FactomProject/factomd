@@ -548,7 +548,10 @@ func (im *IdentityManager) ApplyNewCoinbaseCancelStruct(nccs *NewCoinbaseCancelS
 	// Validate Block window
 	//		If the descriptor to cancel has already been applied, then this entry is no longer valid
 	//		Descriptor height + Declaration is the block the coinbase is added
-	if dblockHeight > nccs.CoinbaseDescriptorHeight+constants.COINBASE_DECLARATION {
+	//
+	//		If the descriptor has not happened yet, it is also not valid
+	if dblockHeight > nccs.CoinbaseDescriptorHeight+constants.COINBASE_DECLARATION || // After payment
+		dblockHeight < nccs.CoinbaseDescriptorHeight { // Before Descriptor
 		return false, false, nil
 	}
 
@@ -584,7 +587,9 @@ func (im *IdentityManager) ApplyNewCoinbaseCancelStruct(nccs *NewCoinbaseCancelS
 
 		// Check if the tallies reach critical mass for given descriptor and (output) index
 		if im.CancelManager.IsCoinbaseCancelled(nccs.CoinbaseDescriptorHeight, nccs.CoinbaseDescriptorIndex) {
-			// 		TODO: Add to admin block if it does
+			// Add to admin block, mark it added
+			a.AddCancelCoinbaseDescriptor(nccs.CoinbaseDescriptorHeight, nccs.CoinbaseDescriptorIndex)
+			im.CancelManager.MarkAdminBlockRecorded(nccs.CoinbaseDescriptorHeight, nccs.CoinbaseDescriptorIndex)
 		}
 	}
 	return false, false, nil

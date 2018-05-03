@@ -96,6 +96,8 @@ func SimControl(listenTo int, listenStdin bool) {
 	var watchMessages int
 	var rotate int
 	var faulting bool
+	var cancelheight int = -1
+	var cancelindex int = -1
 
 	ListenTo = listenTo
 
@@ -1257,6 +1259,56 @@ func SimControl(listenTo int, listenStdin bool) {
 				os.Stderr.WriteString(fmt.Sprintf("New Coinbase Address for [%s]: %s\n", fnodes[ListenTo].State.IdentityChainID.String()[:8], primitives.ConvertFctAddressToUserStr(address)))
 				break
 
+			case 'L' == b[0]:
+				if len(b) < 2 {
+					if cancelheight == -1 {
+						fmt.Errorf("Exp LH.I")
+						break
+					}
+					cancelCoinbase(fnodes[ListenTo].State.IdentityChainID, fnodes[ListenTo].State, uint32(cancelheight), uint32(cancelindex))
+					os.Stderr.WriteString(fmt.Sprintf("Voting to cancel height %d, index %d\n", cancelheight, cancelindex))
+
+					fnodes[ListenTo].State.SetOut(false)
+					ListenTo++
+					if ListenTo >= len(fnodes) {
+						ListenTo = 0
+					}
+					fnodes[ListenTo].State.SetOut(true)
+					os.Stderr.WriteString(fmt.Sprint("\r\nSwitching to Node ", ListenTo, "\r\n"))
+					break
+				}
+
+				str := b[1:]
+				res := strings.Split(str, ".")
+				if len(res) != 2 {
+					fmt.Errorf("Exp Lh.i")
+					break
+				}
+				height, err := strconv.Atoi(res[0])
+				if err != nil {
+					fmt.Errorf("%s", err.Error())
+					break
+				}
+
+				index, err := strconv.Atoi(res[1])
+				if err != nil {
+					fmt.Errorf("%s", err.Error())
+					break
+				}
+
+				cancelheight = height
+				cancelindex = index
+				cancelCoinbase(fnodes[ListenTo].State.IdentityChainID, fnodes[ListenTo].State, uint32(cancelheight), uint32(cancelindex))
+
+				fnodes[ListenTo].State.SetOut(false)
+				ListenTo++
+				if ListenTo >= len(fnodes) {
+					ListenTo = 0
+				}
+				fnodes[ListenTo].State.SetOut(true)
+				os.Stderr.WriteString(fmt.Sprintf("Voting to cancel height %d, index %d\n", cancelheight, cancelindex))
+				os.Stderr.WriteString(fmt.Sprint("\r\nSwitching to Node ", ListenTo, "\r\n"))
+				break
 			case 'h' == b[0]:
 				os.Stderr.WriteString("-------------------------------------------------------------------------------\n")
 				os.Stderr.WriteString("<enter>       Running Enter with nothing repeats the previous command.\n\n")
@@ -1302,6 +1354,9 @@ func SimControl(listenTo int, listenStdin bool) {
 				os.Stderr.WriteString("Dnnn          Set the Delay on messages from the current node to nnn milliseconds\n")
 				os.Stderr.WriteString("Fnnn          Set the Delay on messages from all nodes to nnn milliseconds\n")
 				os.Stderr.WriteString("/             Toggle the sort order between ChainID and Factom Node Name\n")
+				os.Stderr.WriteString("Pnnn          Set's the efficiency of the given node to nnn\n")
+				os.Stderr.WriteString("B             Set's the coinbase address to a random one. Tyoe BFA... for a specific\n")
+				os.Stderr.WriteString("Lh.i             Proposes a cancel for the descriptor h at index i\n")
 				os.Stderr.WriteString("Rnnn          Set load generator to write entries at nnn per second\n")
 
 				//os.Stderr.WriteString("i[m/b/a][N]   Shows only the Mhash, block signing key, or anchor key up to the Nth identity\n")

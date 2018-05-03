@@ -513,13 +513,9 @@ func getAblock(hash string) *AblockHolder {
 			}
 
 		case constants.TYPE_COINBASE_DESCRIPTOR_CANCEL:
-			//f := new(adminBlock.AddFederatedServerSigningKey)
-			//err := f.UnmarshalBinary(data)
-			//if err != nil {
-			//	continue
-			//}
+			f := entry.(*adminBlock.CancelCoinbaseDescriptor)
 			disp.Type = "Coinbase Descriptor Cancel"
-			disp.OtherInfo = "Not implemented"
+			disp.OtherInfo = fmt.Sprintf("Descriptor Height: %d, Index: %d", f.DescriptorHeight, f.DescriptorIndex)
 		case constants.TYPE_ADD_FACTOID_ADDRESS:
 			f := entry.(*adminBlock.AddFactoidAddress)
 			disp.Type = "Add Coinbase Address"

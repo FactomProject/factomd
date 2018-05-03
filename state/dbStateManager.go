@@ -1162,6 +1162,9 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	list.State.AddNewIdentityEblocks(d.EntryBlocks, d.DirectoryBlock.GetTimestamp()) // Add eblocks to be synced
 	list.State.UpdateAuthSigningKeys(d.DirectoryBlock.GetDatabaseHeight())           // Remove old keys from key history
 
+	// Canceling Coinbase Descriptors
+	list.State.IdentityControl.CancelManager.GC(d.DirectoryBlock.GetDatabaseHeight()) // garbage collect
+
 	///////////////////////////////
 	// Cleanup Tasks
 	///////////////////////////////

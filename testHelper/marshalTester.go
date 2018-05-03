@@ -40,3 +40,49 @@ func TestMarshaling(a interfaces.BinaryMarshallable, b interfaces.BinaryMarshall
 		t.Errorf("Marshaling for a and b are not the same: \n %x\n %x", data, data2)
 	}
 }
+
+func TestABlockEntryFunctions(a interfaces.IABEntry, b interfaces.IABEntry, t *testing.T) {
+	as, err := a.JSONString()
+	if err != nil {
+		t.Error(err)
+	}
+
+	bs, err := b.JSONString()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if as != bs {
+		t.Errorf("JSONString() does not match")
+	}
+
+	ab, err := a.JSONByte()
+	if err != nil {
+		t.Error(err)
+	}
+
+	bb, err := b.JSONByte()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if bytes.Compare(ab, bb) != 0 {
+		t.Errorf("JSONByte() does not match")
+	}
+
+	if a.Interpret() != b.Interpret() {
+		t.Errorf("Interpret() does not match")
+	}
+
+	if a.IsInterpretable() != b.IsInterpretable() {
+		t.Errorf("IsInterpretable() does not match")
+	}
+
+	if a.String() != b.String() {
+		t.Errorf("String() does not match")
+	}
+
+	if !a.Hash().IsSameAs(b.Hash()) {
+		t.Errorf("Hash() does not match")
+	}
+}
