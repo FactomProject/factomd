@@ -50,6 +50,7 @@ func (e *CancelCoinbaseDescriptor) String() string {
 
 func (c *CancelCoinbaseDescriptor) UpdateState(state interfaces.IState) error {
 	c.Init()
+	state.UpdateAuthorityFromABEntry(c)
 	return nil
 }
 

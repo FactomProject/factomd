@@ -38,6 +38,17 @@ func CheckTimestamp(time []byte, timeEntered int64) bool {
 	}
 }
 
+func BubbleSortUint32(arr []uint32) []uint32 {
+	for i := 1; i < len(arr); i++ {
+		for j := 0; j < len(arr)-i; j++ {
+			if arr[j] > arr[j+1] {
+				arr[j], arr[j+1] = arr[j+1], arr[j]
+			}
+		}
+	}
+	return arr
+}
+
 func statusIsFedOrAudit(status uint8) bool {
 	if status == constants.IDENTITY_FEDERATED_SERVER ||
 		status == constants.IDENTITY_AUDIT_SERVER ||

@@ -157,14 +157,3 @@ func (cm *CoinbaseCancelManager) AddNewProposalHeight(descriptorHeight uint32) {
 	}
 	cm.ProposalsList = append([]uint32{descriptorHeight}, cm.ProposalsList...)
 }
-
-func BubbleSortUint32(arr []uint32) []uint32 {
-	for i := 1; i < len(arr); i++ {
-		for j := 0; j < len(arr)-i; j++ {
-			if arr[j] > arr[j+1] {
-				arr[j], arr[j+1] = arr[j+1], arr[j]
-			}
-		}
-	}
-	return arr
-}

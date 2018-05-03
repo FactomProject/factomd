@@ -398,7 +398,8 @@ func (fs *FactoidState) GetCoinbaseTransaction(dbheight uint32, ftime interfaces
 		// Cannot payout before a declaration (cannot grab below height 0)
 		dbheight > constants.COINBASE_DECLARATION+constants.COINBASE_PAYOUT_FREQUENCY {
 		// Grab the admin block 1000 blocks earlier
-		ablock, err := fs.State.DB.FetchABlockByHeight(dbheight - constants.COINBASE_DECLARATION)
+		descriptorHeight := dbheight - constants.COINBASE_DECLARATION
+		ablock, err := fs.State.DB.FetchABlockByHeight(descriptorHeight)
 		if err != nil {
 			panic(fmt.Sprintf("When creating coinbase, admin block at height %d could not be retrieved", dbheight-1000))
 		}
@@ -406,8 +407,25 @@ func (fs *FactoidState) GetCoinbaseTransaction(dbheight uint32, ftime interfaces
 		abe := ablock.FetchCoinbaseDescriptor()
 		if abe != nil {
 			desc := abe.(*adminBlock.CoinbaseDescriptor)
-			for _, o := range desc.Outputs {
-				coinbase.AddOutput(o.GetAddress(), o.GetAmount())
+			// Before we go through the outputs, we need to check if we have any
+			// cancellations pending.
+			m := make(map[uint32]struct{}, 0)
+			list, ok := fs.State.IdentityControl.CanceledCoinbaseOutputs[descriptorHeight]
+			if ok {
+				// No longer need this
+				delete(fs.State.IdentityControl.CanceledCoinbaseOutputs, descriptorHeight)
+			}
+
+			// Map contains all cancelled indicies
+			for _, v := range list {
+				m[v] = struct{}{}
+			}
+
+			for i, o := range desc.Outputs {
+				// Only elements not in map are ok
+				if _, ok := m[uint32(i)]; !ok {
+					coinbase.AddOutput(o.GetAddress(), o.GetAmount())
+				}
 			}
 		}
 	}

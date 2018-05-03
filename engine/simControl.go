@@ -1268,13 +1268,13 @@ func SimControl(listenTo int, listenStdin bool) {
 					cancelCoinbase(fnodes[ListenTo].State.IdentityChainID, fnodes[ListenTo].State, uint32(cancelheight), uint32(cancelindex))
 					os.Stderr.WriteString(fmt.Sprintf("Voting to cancel height %d, index %d\n", cancelheight, cancelindex))
 
-					fnodes[ListenTo].State.SetOut(false)
-					ListenTo++
-					if ListenTo >= len(fnodes) {
-						ListenTo = 0
-					}
-					fnodes[ListenTo].State.SetOut(true)
-					os.Stderr.WriteString(fmt.Sprint("\r\nSwitching to Node ", ListenTo, "\r\n"))
+					//fnodes[ListenTo].State.SetOut(false)
+					//ListenTo++
+					//if ListenTo >= len(fnodes) {
+					//	ListenTo = 0
+					//}
+					//fnodes[ListenTo].State.SetOut(true)
+					//os.Stderr.WriteString(fmt.Sprint("\r\nSwitching to Node ", ListenTo, "\r\n"))
 					break
 				}
 
@@ -1300,12 +1300,12 @@ func SimControl(listenTo int, listenStdin bool) {
 				cancelindex = index
 				cancelCoinbase(fnodes[ListenTo].State.IdentityChainID, fnodes[ListenTo].State, uint32(cancelheight), uint32(cancelindex))
 
-				fnodes[ListenTo].State.SetOut(false)
-				ListenTo++
-				if ListenTo >= len(fnodes) {
-					ListenTo = 0
-				}
-				fnodes[ListenTo].State.SetOut(true)
+				//fnodes[ListenTo].State.SetOut(false)
+				//ListenTo++
+				//if ListenTo >= len(fnodes) {
+				//	ListenTo = 0
+				//}
+				//fnodes[ListenTo].State.SetOut(true)
 				os.Stderr.WriteString(fmt.Sprintf("Voting to cancel height %d, index %d\n", cancelheight, cancelindex))
 				os.Stderr.WriteString(fmt.Sprint("\r\nSwitching to Node ", ListenTo, "\r\n"))
 				break

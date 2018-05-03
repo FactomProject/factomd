@@ -39,6 +39,11 @@ func (im *IdentityManager) ProcessABlockEntry(entry interfaces.IABEntry, st inte
 		im.ApplyAddFactoidAddress(entry)
 	case constants.TYPE_ADD_FACTOID_EFFICIENCY:
 		im.ApplyAddEfficiency(entry)
+	case constants.TYPE_COINBASE_DESCRIPTOR_CANCEL:
+		im.ApplyCancelCoinbaseDescriptor(entry)
+	case constants.TYPE_COINBASE_DESCRIPTOR:
+		// This does nothing. The coinbase code looks back in the database
+		// for this entry. In the present, it does not do anything.
 	}
 	return nil
 }
@@ -46,6 +51,24 @@ func (im *IdentityManager) ProcessABlockEntry(entry interfaces.IABEntry, st inte
 //func (im *IdentityManager) () {
 
 //}
+
+func (im *IdentityManager) ApplyCancelCoinbaseDescriptor(entry interfaces.IABEntry) error {
+	e := entry.(*adminBlock.CancelCoinbaseDescriptor)
+
+	// Add the descriptor and index to the list of cancelled outputs.
+	//	This will be checked and garbage collected on payout
+	var list []uint32
+	var ok bool
+	if list, ok = im.CanceledCoinbaseOutputs[e.DescriptorHeight]; !ok {
+		im.CanceledCoinbaseOutputs[e.DescriptorHeight] = make([]uint32, 0)
+	}
+
+	list = append(list, e.DescriptorIndex)
+	list = BubbleSortUint32(list)
+	im.CanceledCoinbaseOutputs[e.DescriptorHeight] = list
+
+	return nil
+}
 
 func (im *IdentityManager) ApplyRevealMatryoshkaHash(entry interfaces.IABEntry) error {
 	//e:=entry.(*adminBlock.RevealMatryoshkaHash)
