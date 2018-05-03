@@ -33,6 +33,9 @@ type IdentityManagerWithoutMutex struct {
 	IdentityRegistrations map[[32]byte]*identityEntries.RegisterFactomIdentityStructure
 	AuthorityServerCount  int
 
+	// Tracks cancellation of coinbases
+	CancelManager *CoinbaseCancelManager
+
 	OldEntries []*OldEntry
 }
 
@@ -41,6 +44,26 @@ func NewIdentityManager() *IdentityManager {
 	im.Authorities = make(map[[32]byte]*Authority)
 	im.Identities = make(map[[32]byte]*Identity)
 	im.IdentityRegistrations = make(map[[32]byte]*identityEntries.RegisterFactomIdentityStructure)
+	im.CancelManager = NewCoinbaseCancelManager(im)
+	return im
+}
+
+func RandomIdentityManagerWithCounts(fedCount, audCount int) *IdentityManager {
+	im := NewIdentityManager()
+	for i := 0; i < fedCount; i++ {
+		id := RandomIdentity()
+		id.Status = constants.IDENTITY_FEDERATED_SERVER
+		im.Authorities[id.IdentityChainID.Fixed()] = id.ToAuthority()
+		im.Identities[id.IdentityChainID.Fixed()] = id
+	}
+
+	for i := 0; i < audCount; i++ {
+		id := RandomIdentity()
+		id.Status = constants.IDENTITY_AUDIT_SERVER
+		im.Authorities[id.IdentityChainID.Fixed()] = id.ToAuthority()
+		im.Identities[id.IdentityChainID.Fixed()] = id
+	}
+
 	return im
 }
 

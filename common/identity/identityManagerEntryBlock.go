@@ -552,6 +552,11 @@ func (im *IdentityManager) ApplyNewCoinbaseCancelStruct(nccs *NewCoinbaseCancelS
 		return false, false, nil
 	}
 
+	// This coinbase transaction has already been identified to be cancelled. No need to do any more work.
+	if im.CancelManager.IsAdminBlockRecorded(nccs.CoinbaseDescriptorHeight, nccs.CoinbaseDescriptorIndex) {
+		return false, false, nil
+	}
+
 	root := nccs.RootIdentityChainID
 	id := im.GetIdentity(root)
 	if id == nil {
@@ -562,23 +567,25 @@ func (im *IdentityManager) ApplyNewCoinbaseCancelStruct(nccs *NewCoinbaseCancelS
 		return false, true, fmt.Errorf("(coinbase cancel) ChainID of entry should match manage chain id.")
 	}
 
-	// TODO: Check if this cancel is a repeat. If it is, we can ignore it as it's already been counted
-	if false {
-		return false, false, nil
-	}
-
 	err := nccs.VerifySignature(id.Keys[0])
 	if err != nil {
 		return false, false, err
 	}
 
-	// TODO: Add count to cancel counting
+	// Add the cancel to our tallies
+	im.CancelManager.AddCancel(*nccs)
 
 	// Check if we need to update admin block
 	if a != nil {
-		// TODO: Check if it reaches critical mass
-		// 		TODO: Add to admin block if it does
-		// err = a.AddCoinbaseAddress(ncas.RootIdentityChainID, ncas.CoinbaseAddress)
+		// Already recorded in an admin block
+		if im.CancelManager.IsAdminBlockRecorded(nccs.CoinbaseDescriptorHeight, nccs.CoinbaseDescriptorIndex) {
+			return false, false, nil
+		}
+
+		// Check if the tallies reach critical mass for given descriptor and (output) index
+		if im.CancelManager.IsCoinbaseCancelled(nccs.CoinbaseDescriptorHeight, nccs.CoinbaseDescriptorIndex) {
+			// 		TODO: Add to admin block if it does
+		}
 	}
 	return false, false, nil
 }
