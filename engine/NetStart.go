@@ -599,6 +599,6 @@ func setupFirstAuthority(s *state.State) {
 func networkHousekeeping() {
 	for {
 		time.Sleep(1 * time.Second)
-		p2pProxy.SetWeight(p2pNetwork.GetNumberConnections())
+		p2pProxy.SetWeight(p2pNetwork.GetNumberOfConnections())
 	}
 }
