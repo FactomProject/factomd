@@ -1265,16 +1265,18 @@ func SimControl(listenTo int, listenStdin bool) {
 						fmt.Errorf("Exp LH.I")
 						break
 					}
-					cancelCoinbase(fnodes[ListenTo].State.IdentityChainID, fnodes[ListenTo].State, uint32(cancelheight), uint32(cancelindex))
+					err = cancelCoinbase(fnodes[ListenTo].State.IdentityChainID, fnodes[ListenTo].State, uint32(cancelheight), uint32(cancelindex))
+					if err != nil {
+						os.Stderr.WriteString(fmt.Sprintf("%s\n", err.Error()))
+						break
+					}
 					os.Stderr.WriteString(fmt.Sprintf("Voting to cancel height %d, index %d\n", cancelheight, cancelindex))
 
-					//fnodes[ListenTo].State.SetOut(false)
-					//ListenTo++
-					//if ListenTo >= len(fnodes) {
-					//	ListenTo = 0
-					//}
-					//fnodes[ListenTo].State.SetOut(true)
-					//os.Stderr.WriteString(fmt.Sprint("\r\nSwitching to Node ", ListenTo, "\r\n"))
+					ListenTo++
+					if ListenTo >= len(fnodes) {
+						ListenTo = 0
+					}
+					os.Stderr.WriteString(fmt.Sprint("\r\nSwitching to Node ", ListenTo, "\r\n"))
 					break
 				}
 
@@ -1298,14 +1300,16 @@ func SimControl(listenTo int, listenStdin bool) {
 
 				cancelheight = height
 				cancelindex = index
-				cancelCoinbase(fnodes[ListenTo].State.IdentityChainID, fnodes[ListenTo].State, uint32(cancelheight), uint32(cancelindex))
+				err = cancelCoinbase(fnodes[ListenTo].State.IdentityChainID, fnodes[ListenTo].State, uint32(cancelheight), uint32(cancelindex))
+				if err != nil {
+					os.Stderr.WriteString(fmt.Sprintf("%s\n", err.Error()))
+					break
+				}
 
-				//fnodes[ListenTo].State.SetOut(false)
-				//ListenTo++
-				//if ListenTo >= len(fnodes) {
-				//	ListenTo = 0
-				//}
-				//fnodes[ListenTo].State.SetOut(true)
+				ListenTo++
+				if ListenTo >= len(fnodes) {
+					ListenTo = 0
+				}
 				os.Stderr.WriteString(fmt.Sprintf("Voting to cancel height %d, index %d\n", cancelheight, cancelindex))
 				os.Stderr.WriteString(fmt.Sprint("\r\nSwitching to Node ", ListenTo, "\r\n"))
 				break
@@ -1356,7 +1360,7 @@ func SimControl(listenTo int, listenStdin bool) {
 				os.Stderr.WriteString("/             Toggle the sort order between ChainID and Factom Node Name\n")
 				os.Stderr.WriteString("Pnnn          Set's the efficiency of the given node to nnn\n")
 				os.Stderr.WriteString("B             Set's the coinbase address to a random one. Tyoe BFA... for a specific\n")
-				os.Stderr.WriteString("Lh.i             Proposes a cancel for the descriptor h at index i\n")
+				os.Stderr.WriteString("Lh.i          Proposes a cancel for the descriptor h at index i\n")
 				os.Stderr.WriteString("Rnnn          Set load generator to write entries at nnn per second\n")
 
 				//os.Stderr.WriteString("i[m/b/a][N]   Shows only the Mhash, block signing key, or anchor key up to the Nth identity\n")
