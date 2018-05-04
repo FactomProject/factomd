@@ -5,23 +5,23 @@
 package engine
 
 import (
-	"fmt"
-	"runtime"
-
-	. "github.com/FactomProject/factomd/common/globals"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/state"
-
 	"bufio"
+	"fmt"
 	"io"
 	"net"
 	"os"
 	"os/exec"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	. "github.com/FactomProject/factomd/common/globals"
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/state"
 
 	"github.com/FactomProject/factomd/common/messages/electionMsgs"
 	log "github.com/sirupsen/logrus"
@@ -56,6 +56,16 @@ func Factomd(params *FactomParams, listenToStdin bool) interfaces.IState {
 	state0.IsRunning = true
 	state0.SetLeaderTimestamp(primitives.NewTimestampFromMilliseconds(0))
 	state0.EFactory = new(electionMsgs.ElectionsFactory)
+
+	if state0.DebugExec() && messages.CheckFileName("systemStatus") {
+		go func() {
+			for {
+				time.Sleep((time.Duration(Params.BlkTime) * time.Second) / 10)
+				messages.LogPrintf("systemStatus.txt", "\n%s\n", GetSystemStatus(0, 0))
+			}
+		}()
+
+	}
 
 	go NetStart(state0, params, listenToStdin)
 	return state0

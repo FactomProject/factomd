@@ -17,6 +17,7 @@ import (
 func (state *State) ValidatorLoop() {
 	timeStruct := new(Timer)
 	var prev time.Time
+
 	for {
 		if state.DebugExec() {
 			status := ""

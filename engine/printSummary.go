@@ -22,9 +22,8 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 	}
 }
 
-var out string // previous status
-
-func PrintOneStatus(listenTo int, wsapiNode int) {
+func GetSystemStatus(listenTo int, wsapiNode int) string {
+	fnodes := GetFnodes()
 	f := fnodes[listenTo]
 	prt := "===SummaryStart===\n\n"
 	prt = fmt.Sprintf("%sTime: %d %s Elapsed time:%s\n", prt, time.Now().Unix(), time.Now().String(), time.Since(globals.StartTime).String())
@@ -35,7 +34,7 @@ func PrintOneStatus(listenTo int, wsapiNode int) {
 
 	var pnodes []*FactomNode
 	pnodes = append(pnodes, fnodes...)
-	if sortByID {
+	if SortByID {
 		for i := 0; i < len(pnodes)-1; i++ {
 			for j := 0; j < len(pnodes)-1-i; j++ {
 				if bytes.Compare(pnodes[j].State.GetIdentityChainID().Bytes(), pnodes[j+1].State.GetIdentityChainID().Bytes()) > 0 {
@@ -235,12 +234,12 @@ func PrintOneStatus(listenTo int, wsapiNode int) {
 		}
 
 	}
-	prt = prt + "\n" + systemFaults(f)
+	prt = prt + "\n" + SystemFaults(f)
 
-	prt = prt + faultSummary()
+	prt = prt + FaultSummary()
 
 	lastdiff := ""
-	if verboseAuthoritySet {
+	if VerboseAuthoritySet {
 		lastdelta := pnodes[0].State.GetAuthoritySetString()
 		for i, f := range pnodes {
 			prt = prt + "\n"
@@ -278,7 +277,7 @@ func PrintOneStatus(listenTo int, wsapiNode int) {
 		prt = prt + "\n"
 	}
 
-	if verboseAuthorityDeltas {
+	if VerboseAuthorityDeltas {
 		prt = prt + "AuthorityDeltas:"
 
 		for _, f := range pnodes {
@@ -290,7 +289,13 @@ func PrintOneStatus(listenTo int, wsapiNode int) {
 	}
 
 	prt = prt + "===SummaryEnd===\n"
+	return prt
+}
 
+var out string // previous status
+
+func PrintOneStatus(listenTo int, wsapiNode int) {
+	prt := GetSystemStatus(listenTo, wsapiNode)
 	if prt != out {
 		fmt.Println(prt)
 		out = prt
@@ -298,7 +303,7 @@ func PrintOneStatus(listenTo int, wsapiNode int) {
 
 }
 
-func systemFaults(f *FactomNode) string {
+func SystemFaults(f *FactomNode) string {
 	dbheight := f.State.LLeaderHeight
 	pl := f.State.ProcessLists.Get(dbheight)
 	if pl == nil {
@@ -318,7 +323,7 @@ func systemFaults(f *FactomNode) string {
 	return str
 }
 
-func faultSummary() string {
+func FaultSummary() string {
 
 	return ""
 }
