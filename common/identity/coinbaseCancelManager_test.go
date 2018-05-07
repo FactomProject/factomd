@@ -108,6 +108,22 @@ func TestCancelTally(t *testing.T) {
 		t.Errorf("Should not be cancelled")
 	}
 
+	// Test GC not catching it
+	addAndTestWithOptions(al(3), 100000, []uint32{1}, []int{1}, t, false, false)
+	c.GC(0)
+	addAndTest(al(0), 100000, []uint32{1}, []int{1}, t)
+
+	// Double check is cleared
+	addAndTest(al(0), 100000, []uint32{1}, []int{}, t)
+
+	// Test admin block marked
+	c.MarkAdminBlockRecorded(100, 1)
+	addAndTest(al(3), 100, []uint32{1}, []int{}, t)
+
+	// Clear admin block marked
+	delete(c.AdminBlockRecord, 100)
+	addAndTest(al(3), 100, []uint32{1}, []int{1}, t) // Confirm delete
+
 }
 
 func newCoinbaseCancel(id *Authority, h, i uint32) identityEntries.NewCoinbaseCancelStruct {

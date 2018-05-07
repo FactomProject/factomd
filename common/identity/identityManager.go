@@ -550,6 +550,7 @@ func (im *IdentityManager) MarshalBinary() ([]byte, error) {
 	return buf.DeepCopyBytes(), nil
 }
 
+// Used when cloning state into sim nodes
 func (im *IdentityManager) Clone() *IdentityManager {
 	b := NewIdentityManager()
 	for k, v := range im.Authorities {
@@ -564,6 +565,8 @@ func (im *IdentityManager) Clone() *IdentityManager {
 		copy := *v
 		b.OldEntries[k] = &copy
 	}
+
+	b.IdentityRegistrations = im.IdentityRegistrations
 
 	return b
 }
