@@ -139,7 +139,7 @@ func (cm *ConnectionManager) removeFromConnectionsByAddress(connection *Connecti
 		return
 	}
 
-	delete(addressBucket, connection.peer.Address)
+	delete(addressBucket, connection.peer.Hash)
 
 	if len(addressBucket) == 0 {
 		delete(cm.connectionsByAddress, connection.peer.Address)

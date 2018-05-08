@@ -184,6 +184,7 @@ func (c *Connection) StatusString() string {
 func (c *Connection) IsPersistent() bool {
 	return c.isPersistent
 }
+
 func (c *Connection) Notes() string {
 	return c.notes
 }
