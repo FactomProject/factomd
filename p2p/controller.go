@@ -659,8 +659,14 @@ func (c *Controller) broadcast(parcel Parcel) {
 
 	// send also to a random selection of regular peers
 	numToSendTo := NumberPeersToBroadcast - len(c.specialPeers)
-	for _, connection := range c.connections.GetRandomRegular(numToSendTo) {
-		BlockFreeChannelSend(connection.SendChannel, ConnectionParcel{Parcel: parcel})
+	randomSelection := c.connections.GetRandomRegular(numToSendTo)
+
+	if len(randomSelection) == 0 {
+		c.logger.Warn("Broadcast to random hosts failed: we don't have any peers to broadcast to")
+	} else {
+		for _, connection := range randomSelection {
+			BlockFreeChannelSend(connection.SendChannel, ConnectionParcel{Parcel: parcel})
+		}
 	}
 
 	SentToPeers.Set(float64(numSent))
@@ -669,6 +675,12 @@ func (c *Controller) broadcast(parcel Parcel) {
 func (c *Controller) sendToRandomPeer(parcel Parcel) {
 	c.logger.Debugf("Controller.route() Directed FINDING RANDOM Target: %s Type: %s #Number Connections: %d", parcel.Header.TargetPeer, parcel.Header.AppType, c.connections.Count())
 	randomConn := c.connections.GetRandom()
+
+	if randomConn == nil {
+		c.logger.Warn("Sending a parcel to a random peer failed: we don't have any peers to send to")
+		return
+	}
+
 	parcel.Header.TargetPeer = randomConn.peer.Hash
 	c.doDirectedSend(parcel)
 }

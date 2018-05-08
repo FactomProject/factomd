@@ -23,7 +23,7 @@ func (cm *ConnectionManager) Init() *ConnectionManager {
 	return cm
 }
 
-// TODO get rid of this
+// Get the map of all connections by the peer hash.
 func (cm *ConnectionManager) All() map[string]*Connection {
 	return cm.connections
 }
