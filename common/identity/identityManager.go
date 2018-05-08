@@ -566,7 +566,10 @@ func (im *IdentityManager) Clone() *IdentityManager {
 		b.OldEntries[k] = &copy
 	}
 
-	b.IdentityRegistrations = im.IdentityRegistrations
+	b.IdentityRegistrations = make(map[[32]byte]*identityEntries.RegisterFactomIdentityStructure, len(im.IdentityRegistrations))
+	for k, v := range im.IdentityRegistrations {
+		b.IdentityRegistrations[k] = v
+	}
 
 	return b
 }
