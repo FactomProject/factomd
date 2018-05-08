@@ -9,6 +9,7 @@ import (
 	"encoding/gob"
 	"fmt"
 	"math/rand"
+	"os"
 	"sync"
 
 	"sort"
@@ -165,11 +166,16 @@ func (im *IdentityManager) UnmarshalBinaryData(p []byte) (newData []byte, err er
 	return
 }
 
-func (im *IdentityManager) MarshalBinary() ([]byte, error) {
+func (im *IdentityManager) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "IdentityManager.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	buf := primitives.NewBuffer(nil)
 	im.Init()
 
-	err := buf.PushInt(len(im.Authorities))
+	err = buf.PushInt(len(im.Authorities))
 	if err != nil {
 		return nil, err
 	}

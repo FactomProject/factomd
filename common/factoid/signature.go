@@ -7,6 +7,7 @@ package factoid
 import (
 	"encoding/hex"
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -38,7 +39,12 @@ func (s *FactoidSignature) GetKey() []byte {
 	return s.Signature[32:]
 }
 
-func (h *FactoidSignature) MarshalText() ([]byte, error) {
+func (h *FactoidSignature) MarshalText() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "FactoidSignature.MarshalText err:%v", *pe)
+		}
+	}(&err)
 	return []byte(hex.EncodeToString(h.Signature[:])), nil
 }
 

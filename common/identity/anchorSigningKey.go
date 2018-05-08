@@ -6,6 +6,8 @@ package identity
 
 import (
 	"bytes"
+	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -63,10 +65,15 @@ func (e *AnchorSigningKey) IsSameAs(b *AnchorSigningKey) bool {
 	return true
 }
 
-func (e *AnchorSigningKey) MarshalBinary() ([]byte, error) {
+func (e *AnchorSigningKey) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "AnchorSigningKey.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	buf := primitives.NewBuffer(nil)
 
-	err := buf.PushString(e.BlockChain)
+	err = buf.PushString(e.BlockChain)
 	if err != nil {
 		return nil, err
 	}

@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"reflect"
 	"strings"
 	"time"
@@ -501,7 +502,12 @@ type JStruct struct {
 	data []byte
 }
 
-func (e *JStruct) MarshalJSON() ([]byte, error) {
+func (e *JStruct) MarshalJSON() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "JStruct.MarshalJSON err:%v", *pe)
+		}
+	}(&err)
 	return e.data, nil
 }
 

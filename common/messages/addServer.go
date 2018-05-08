@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -165,7 +166,12 @@ func (m *AddServerMsg) UnmarshalBinary(data []byte) error {
 	return err
 }
 
-func (m *AddServerMsg) MarshalForSignature() ([]byte, error) {
+func (m *AddServerMsg) MarshalForSignature() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "AddServerMsg.MarshalForSignature err:%v", *pe)
+		}
+	}(&err)
 	var buf primitives.Buffer
 	buf.Write([]byte{m.Type()})
 	if d, err := m.Timestamp.MarshalBinary(); err != nil {
@@ -185,7 +191,12 @@ func (m *AddServerMsg) MarshalForSignature() ([]byte, error) {
 	return buf.DeepCopyBytes(), nil
 }
 
-func (m *AddServerMsg) MarshalBinary() ([]byte, error) {
+func (m *AddServerMsg) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "AddServerMsg.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	var buf primitives.Buffer
 
 	data, err := m.MarshalForSignature()

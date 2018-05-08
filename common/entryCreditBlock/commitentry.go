@@ -7,6 +7,7 @@ package entryCreditBlock
 import (
 	"encoding/binary"
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -181,12 +182,17 @@ func (c *CommitEntry) GetSigHash() interfaces.IHash {
 	return primitives.Sha(data)
 }
 
-func (c *CommitEntry) MarshalBinarySig() ([]byte, error) {
+func (c *CommitEntry) MarshalBinarySig() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "CommitEntry.MarshalBinarySig err:%v", *pe)
+		}
+	}(&err)
 	c.Init()
 	buf := primitives.NewBuffer(nil)
 
 	// 1 byte Version
-	err := buf.PushUInt8(c.Version)
+	err = buf.PushUInt8(c.Version)
 	if err != nil {
 		return nil, err
 	}
@@ -213,7 +219,12 @@ func (c *CommitEntry) MarshalBinarySig() ([]byte, error) {
 }
 
 // Transaction hash of entry commit. (version through pub key hashed)
-func (c *CommitEntry) MarshalBinaryTransaction() ([]byte, error) {
+func (c *CommitEntry) MarshalBinaryTransaction() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "CommitEntry.MarshalBinaryTransaction err:%v", *pe)
+		}
+	}(&err)
 	b, err := c.MarshalBinarySig()
 	if err != nil {
 		return nil, err
@@ -229,7 +240,12 @@ func (c *CommitEntry) MarshalBinaryTransaction() ([]byte, error) {
 	return buf.DeepCopyBytes(), nil
 }
 
-func (c *CommitEntry) MarshalBinary() ([]byte, error) {
+func (c *CommitEntry) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "CommitEntry.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	b, err := c.MarshalBinaryTransaction()
 	if err != nil {
 		return nil, err

@@ -12,6 +12,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -47,7 +48,12 @@ func (c *Hash) New() interfaces.BinaryMarshallableAndCopyable {
 	return new(Hash)
 }
 
-func (h *Hash) MarshalText() ([]byte, error) {
+func (h *Hash) MarshalText() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "Hash.MarshalText err:%v", *pe)
+		}
+	}(&err)
 	return []byte(hex.EncodeToString(h[:])), nil
 }
 
@@ -111,7 +117,12 @@ func CreateHash(entities ...interfaces.BinaryMarshallable) (h interfaces.IHash, 
 	return
 }
 
-func (h *Hash) MarshalBinary() ([]byte, error) {
+func (h *Hash) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "Hash.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	return h.Bytes(), nil
 }
 

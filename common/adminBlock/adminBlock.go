@@ -7,6 +7,7 @@ package adminBlock
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"sort"
 
@@ -376,7 +377,12 @@ func (b *AdminBlock) AddFirstABEntry(e interfaces.IABEntry) (err error) {
 }
 
 // Write out the AdminBlock to binary.
-func (b *AdminBlock) MarshalBinary() ([]byte, error) {
+func (b *AdminBlock) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "AdminBlock.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	b.Init()
 	// Marshal all the entries into their own thing (need the size)
 	var buf2 primitives.Buffer
@@ -391,7 +397,7 @@ func (b *AdminBlock) MarshalBinary() ([]byte, error) {
 	b.GetHeader().SetBodySize(uint32(buf2.Len()))
 
 	var buf primitives.Buffer
-	err := buf.PushBinaryMarshallable(b.GetHeader())
+	err = buf.PushBinaryMarshallable(b.GetHeader())
 	if err != nil {
 		return nil, err
 	}

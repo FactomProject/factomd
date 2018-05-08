@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"os"
 	"regexp"
 
 	"bytes"
@@ -262,7 +263,12 @@ func (i *Identity) String() string {
 	return fmt.Sprintf("ID-%08x", *i)
 }
 
-func (i *Identity) MarshalJSON() ([]byte, error) {
+func (i *Identity) MarshalJSON() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "Identity.MarshalJSON err:%v", *pe)
+		}
+	}(&err)
 	s := `"` + i.String() + `"`
 	return []byte(s), nil
 }
@@ -308,7 +314,12 @@ func (a *AuthorityStatus) ReadString(s string) {
 		}
 	}
 }
-func (i *AuthorityStatus) MarshalJSON() ([]byte, error) {
+func (i *AuthorityStatus) MarshalJSON() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "AuthorityStatus.MarshalJSON err:%v", *pe)
+		}
+	}(&err)
 	s := `"` + i.String() + `"`
 	return []byte(s), nil
 }

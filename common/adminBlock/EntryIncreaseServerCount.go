@@ -2,6 +2,7 @@ package adminBlock
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -32,12 +33,17 @@ func (e *IncreaseServerCount) Type() byte {
 	return constants.TYPE_ADD_SERVER_COUNT
 }
 
-func (e *IncreaseServerCount) MarshalBinary() ([]byte, error) {
+func (e *IncreaseServerCount) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "IncreaseServerCount.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	var buf primitives.Buffer
 
 	e.AdminIDType = uint32(e.Type())
 
-	err := buf.PushByte(e.Type())
+	err = buf.PushByte(e.Type())
 	if err != nil {
 		return nil, err
 	}

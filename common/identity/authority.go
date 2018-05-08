@@ -6,7 +6,9 @@ package identity
 
 import (
 	"encoding/json"
+	"fmt"
 	"math/rand"
+	"os"
 
 	"bytes"
 
@@ -176,11 +178,16 @@ func (e *Authority) Init() {
 	}
 }
 
-func (e *Authority) MarshalBinary() ([]byte, error) {
+func (e *Authority) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "Authority.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	e.Init()
 	buf := primitives.NewBuffer(nil)
 
-	err := buf.PushBinaryMarshallable(e.AuthorityChainID)
+	err = buf.PushBinaryMarshallable(e.AuthorityChainID)
 	if err != nil {
 		return nil, err
 	}
@@ -351,7 +358,12 @@ func (auth *Authority) VerifySignature(msg []byte, sig *[constants.SIGNATURE_LEN
 	return false, nil
 }
 
-func (auth *Authority) MarshalJSON() ([]byte, error) {
+func (auth *Authority) MarshalJSON() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "Authority.MarshalJSON err:%v", *pe)
+		}
+	}(&err)
 	return json.Marshal(struct {
 		AuthorityChainID  interfaces.IHash   `json:"chainid"`
 		ManagementChainID interfaces.IHash   `json:"manageid"`

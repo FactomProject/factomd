@@ -6,6 +6,7 @@ package factoid
 
 import (
 	"fmt"
+	"os"
 	"runtime/debug"
 	"time"
 
@@ -520,10 +521,15 @@ func (t *Transaction) UnmarshalBinary(data []byte) (err error) {
 
 // This is what Gets Signed.  Yet signature blocks are part of the transaction.
 // We don't include them here, and tack them on later.
-func (t *Transaction) MarshalBinarySig() ([]byte, error) {
+func (t *Transaction) MarshalBinarySig() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "Transaction.MarshalBinarySig err:%v", *pe)
+		}
+	}(&err)
 	buf := primitives.NewBuffer(nil)
 
-	err := buf.PushVarInt(t.GetVersion())
+	err = buf.PushVarInt(t.GetVersion())
 	if err != nil {
 		return nil, err
 	}
