@@ -82,6 +82,21 @@ func NewIdentity() *Identity {
 	return i
 }
 
+// ToAuthority should ONLY be used in TESTING
+// 	Helpful for unit tests, useless for anything else
+func (id *Identity) ToAuthority() *Authority {
+	a := NewAuthority()
+	a.AuthorityChainID = id.IdentityChainID
+	a.ManagementChainID = id.ManagementChainID
+	a.Efficiency = id.Efficiency
+	//a.SigningKey = id.SigningKey
+	a.CoinbaseAddress = id.CoinbaseAddress
+	a.AnchorKeys = id.AnchorKeys
+	a.Status = id.Status
+	a.MatryoshkaHash = id.MatryoshkaHash
+	return a
+}
+
 func RandomIdentity() *Identity {
 	id := NewIdentity()
 
