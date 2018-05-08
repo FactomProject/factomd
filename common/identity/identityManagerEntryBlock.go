@@ -579,6 +579,7 @@ func (im *IdentityManager) ApplyNewCoinbaseCancelStruct(nccs *NewCoinbaseCancelS
 	im.CancelManager.AddCancel(*nccs)
 
 	// Check if we need to update admin block
+	//		If syncing from dbstates/disk this is nil
 	if a != nil {
 		// Already recorded in an admin block
 		if im.CancelManager.IsAdminBlockRecorded(nccs.CoinbaseDescriptorHeight, nccs.CoinbaseDescriptorIndex) {

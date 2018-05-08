@@ -1171,11 +1171,11 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	list.State.Commits.Cleanup(list.State)
 	// This usually gets cleaned up when creating the coinbase. If syncing from disk or dbstates, this routine will clean
 	// up any leftover valid cancels.
-	if d.DirectoryBlock.GetDatabaseHeight() > 0 {
-		_, ok := list.State.IdentityControl.CanceledCoinbaseOutputs[d.DirectoryBlock.GetDatabaseHeight()-1]
+	if d.DirectoryBlock.GetDatabaseHeight() > constants.COINBASE_DECLARATION {
+		_, ok := list.State.IdentityControl.CanceledCoinbaseOutputs[d.DirectoryBlock.GetDatabaseHeight()-constants.COINBASE_DECLARATION]
 		if ok {
 			// No longer need this
-			delete(list.State.IdentityControl.CanceledCoinbaseOutputs, d.DirectoryBlock.GetDatabaseHeight()-1)
+			delete(list.State.IdentityControl.CanceledCoinbaseOutputs, d.DirectoryBlock.GetDatabaseHeight()-constants.COINBASE_DECLARATION)
 		}
 	}
 

@@ -18,6 +18,7 @@ type CoinbaseCancelManager struct {
 	Proposals map[uint32]map[uint32]map[[32]byte]identityEntries.NewCoinbaseCancelStruct
 
 	// Boolean indicator if it's been recorded to the admin block. We do not do this more than once
+	//		[descriptorheight][cancel index]
 	AdminBlockRecord map[uint32]map[uint32]bool
 
 	// Need a reference to the authority set

@@ -42,6 +42,7 @@ type IdentityManagerWithoutMutex struct {
 	//	The list of ints are the indices of the outputs to be
 	//	removed. The keys from the map should be deleted when the
 	//	descriptor+declaration height is hit.
+	//		[descriptorheight]List of cancelled outputs
 	CanceledCoinbaseOutputs map[uint32][]uint32
 
 	OldEntries []*OldEntry
