@@ -15,8 +15,8 @@ type CancelCoinbaseDescriptor struct {
 	DescriptorIndex  uint32 `json:descriptor_index`
 }
 
-var _ interfaces.IABEntry = (*CoinbaseDescriptor)(nil)
-var _ interfaces.BinaryMarshallable = (*CoinbaseDescriptor)(nil)
+var _ interfaces.IABEntry = (*CancelCoinbaseDescriptor)(nil)
+var _ interfaces.BinaryMarshallable = (*CancelCoinbaseDescriptor)(nil)
 
 func (e *CancelCoinbaseDescriptor) Init() {
 	e.AdminIDType = uint32(e.Type())

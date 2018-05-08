@@ -9,6 +9,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/identityEntries"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 func TestCancelTally(t *testing.T) {
@@ -155,6 +156,29 @@ func TestCancelGC(t *testing.T) {
 	if _, ok := c.Proposals[10]; ok {
 		t.Errorf("Should be deleted")
 	}
+
+	if len(c.ProposalsList) != 0 {
+		t.Errorf("Remaining height in proposal list")
+	}
+
+	for i := 0; i < 100; i++ {
+		cc := new(identityEntries.NewCoinbaseCancelStruct)
+		cc.CoinbaseDescriptorHeight = uint32(i)
+		cc.RootIdentityChainID = primitives.NewZeroHash()
+		c.AddCancel(*cc)
+	}
+
+	for i := 0; i < 11; i++ {
+		c.GC(uint32(i)*10 + constants.COINBASE_DECLARATION)
+		if len(c.Proposals) != len(c.ProposalsList) {
+			t.Errorf("GC left orphan proposal")
+		}
+	}
+
+	if len(c.ProposalsList) != 0 {
+		t.Errorf("Left over %d list elements", len(c.ProposalsList))
+	}
+
 }
 
 func TestAdminBlockRecorded(t *testing.T) {

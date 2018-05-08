@@ -36,6 +36,7 @@ func NewCoinbaseCancelManager(im *IdentityManager) *CoinbaseCancelManager {
 // GC is garbage collecting old proposals
 //		dbheight is the current height.
 func (c *CoinbaseCancelManager) GC(dbheight uint32) {
+	count := 0
 	// These are sorting in incrementing order.
 	for _, h := range c.ProposalsList {
 		// If you height a height that is greater than the height, break.
@@ -45,7 +46,11 @@ func (c *CoinbaseCancelManager) GC(dbheight uint32) {
 		}
 		delete(c.Proposals, h)
 		delete(c.AdminBlockRecord, h)
+		count++
 	}
+	// Remove deleted items from sorted list
+	c.ProposalsList = append([]uint32{}, c.ProposalsList[count:]...)
+
 }
 
 // AddCancel will add a proposal to the list. It assumes the height check has already been done
@@ -69,6 +74,8 @@ func (cm *CoinbaseCancelManager) AddCancel(cc identityEntries.NewCoinbaseCancelS
 
 // CanceledOutputs will return the indices of all indices to be canceled for a given descriptor height
 //		It will only return indicies not already marked as cancelled (in the admin block)
+//
+// This function is used in unit tests, not in factomd
 func (cm *CoinbaseCancelManager) CanceledOutputs(descriptorHeight uint32) []uint32 {
 	cancelList := make([]uint32, 0)
 	maj := (cm.im.FedServerCount() / 2) + 1
@@ -133,7 +140,7 @@ func (cm *CoinbaseCancelManager) MarkAdminBlockRecorded(descriptorHeight uint32,
 }
 
 // IsAdminBlockRecorded returns boolean if marked already recorded. Garbage collected heights
-// will return false, so the caller will have to check the dbheight is valid.
+// will return false, so the caller will have to check if the dbheight is valid.
 func (cm *CoinbaseCancelManager) IsAdminBlockRecorded(descriptorHeight uint32, index uint32) bool {
 	if list, ok := cm.AdminBlockRecord[descriptorHeight]; ok {
 		if value, ok := list[index]; ok {
