@@ -35,7 +35,7 @@ type Connection struct {
 	// and as "address" for sending messages to specific nodes.
 	encoder         *gob.Encoder      // Wire format is gobs in this version, may switch to binary
 	decoder         *gob.Decoder      // Wire format is gobs in this version, may switch to binary
-	peer            Peer              // the datastructure representing the peer we are talking to. defined in peer.go
+	peer            Peer              // the data structure representing the peer we are talking to. defined in peer.go
 	attempts        int               // reconnection attempts
 	TimeLastpacket  time.Time         // Time we last successfully received a packet or command.
 	timeLastAttempt time.Time         // time of last attempt to connect via dial

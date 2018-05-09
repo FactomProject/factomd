@@ -21,6 +21,7 @@ type MessageBase struct {
 	NetworkOrigin string // Hash of the network peer/connection where the message is from
 	Peer2Peer     bool   // The nature of this message type, not marshalled with the message
 	LocalOnly     bool   // This message is only a local message, is not broadcast and may skip verification
+	FullBroadcast bool   // This is used for messages with no missing message support e.g. election related messages
 
 	NoResend  bool // Don't resend this message if true.
 	ResendCnt int  // Put a limit on resends
@@ -231,6 +232,14 @@ func (m *MessageBase) SetLocal(v bool) {
 	m.LocalOnly = v
 }
 
+func (m *MessageBase) IsFullBroadcast() bool {
+	return m.FullBroadcast
+}
+
+func (m *MessageBase) SetFullBroadcast(v bool) {
+	m.FullBroadcast = v
+}
+
 func (m *MessageBase) GetLeaderChainID() interfaces.IHash {
 	if m.LeaderChainID == nil {
 		m.LeaderChainID = primitives.NewZeroHash()
@@ -283,7 +292,7 @@ func VerifyMessage(s interfaces.Signable) (bool, error) {
 		s.SetValid()
 		return true, nil
 	}
-	return false, errors.New("Signarue is invalid")
+	return false, errors.New("Signature is invalid")
 }
 
 func SignSignable(s interfaces.Signable, key interfaces.Signer) (interfaces.IFullSignature, error) {

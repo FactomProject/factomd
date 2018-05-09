@@ -741,7 +741,7 @@ func (c *Controller) broadcast(parcel Parcel) {
 	}
 
 	// perform a shuffle on the connection peers, so that we can obtain a random sample
-	// by getting items from the begiining of the shuffled slice
+	// by getting items from the beginning of the shuffled slice
 	Shuffle(len(regularPeers), func(i, j int) {
 		regularPeers[i], regularPeers[j] = regularPeers[j], regularPeers[i]
 	})
