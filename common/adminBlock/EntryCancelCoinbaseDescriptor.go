@@ -13,6 +13,9 @@ type CancelCoinbaseDescriptor struct {
 	AdminIDType      uint32 `json:"adminidtype"`
 	DescriptorHeight uint32 `json:"descriptor_height"`
 	DescriptorIndex  uint32 `json:descriptor_index`
+
+	// Not marshalled
+	hash interfaces.IHash // cache
 }
 
 var _ interfaces.IABEntry = (*CancelCoinbaseDescriptor)(nil)
@@ -64,6 +67,11 @@ func NewCancelCoinbaseDescriptor(height, index uint32) *CancelCoinbaseDescriptor
 
 func (e *CancelCoinbaseDescriptor) Type() byte {
 	return constants.TYPE_COINBASE_DESCRIPTOR_CANCEL
+}
+
+// SortedIdentity has no identity to sort by, so we will just use the hash of the cancel.
+func (e *CancelCoinbaseDescriptor) SortedIdentity() interfaces.IHash {
+	return e.Hash()
 }
 
 func (e *CancelCoinbaseDescriptor) MarshalBinary() ([]byte, error) {
@@ -178,9 +186,12 @@ func (e *CancelCoinbaseDescriptor) Interpret() string {
 }
 
 func (e *CancelCoinbaseDescriptor) Hash() interfaces.IHash {
-	bin, err := e.MarshalBinary()
-	if err != nil {
-		panic(err)
+	if e.hash == nil {
+		bin, err := e.MarshalBinary()
+		if err != nil {
+			panic(err)
+		}
+		e.hash = primitives.Sha(bin)
 	}
-	return primitives.Sha(bin)
+	return e.hash
 }

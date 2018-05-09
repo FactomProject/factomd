@@ -158,7 +158,7 @@ func (c *AdminBlock) AddCancelCoinbaseDescriptor(descriptorHeight, index uint32)
 	c.Init()
 	entry := NewCancelCoinbaseDescriptor(descriptorHeight, index)
 
-	return c.AddEntry(entry)
+	return c.AddIdentityEntry(entry)
 }
 
 // InsertIdentityABEntries will prepare the identity entries and add them into the adminblock
