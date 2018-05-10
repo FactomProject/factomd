@@ -454,7 +454,10 @@ func (c *Controller) route() {
 		parcel := message.(Parcel)
 		TotalMessagesSent++
 		switch parcel.Header.TargetPeer {
-		case BroadcastFlag: // Send to all peers
+		case FullBroadcastFlag: // Send to all peers
+			c.fullbroadcast(parcel)
+
+		case BroadcastFlag: // Send to many peers
 			c.broadcast(parcel)
 
 		case RandomPeerFlag: // Find a random peer, send to that peer.
@@ -711,7 +714,7 @@ func (c *Controller) shutdown() {
 
 // Broadcasts the parcel to a number of peers: all special peers and a random selection
 // of regular peers (max NumberPeersToBroadcast).
-func (c *Controller) broadcast(parcel Parcel) {
+func (c *Controller) broadcast(parcel Parcel, full bool) {
 	numSent := 0
 
 	// always broadcast to special peers
@@ -726,7 +729,10 @@ func (c *Controller) broadcast(parcel Parcel) {
 
 	// estimate a number of regular peers to send messages to, at most NumberPeersToBroadcast
 	numRegularPeers := len(c.connections) - len(c.specialPeers)
-	numPeersToSendTo := min(numRegularPeers, NumberPeersToBroadcast)
+	numPeersToSendTo := numRegularPeers
+	if !full && numRegularPeers > NumberPeersToBroadcast {
+		numPeersToSendTo = NumberPeersToBroadcast
+	}
 	if numPeersToSendTo <= 0 {
 		return
 	}
