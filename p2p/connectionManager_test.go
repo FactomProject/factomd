@@ -97,6 +97,30 @@ func TestConnectionManagerConnectedTo(t *testing.T) {
 	}
 }
 
+func TestConnectionManagerRemoveIsIdempotent(t *testing.T) {
+	cm := new(ConnectionManager).Init()
+	conn := newConnection(newPeer("1.2.3.4", "8888", RegularPeer))
+
+	cm.Add(conn)
+	existing, present := cm.GetByHash(conn.peer.Hash)
+	if !present || existing != conn {
+		t.Error("GetByHash does not find the added connection")
+	}
+
+	cm.Remove(conn)
+	existing, present = cm.GetByHash(conn.peer.Hash)
+	if present || existing != nil {
+		t.Error("GetByHash found a connection after removal")
+	}
+
+	// make sure remove works even if there is no connection
+	cm.Remove(conn)
+	existing, present = cm.GetByHash(conn.peer.Hash)
+	if present || existing != nil {
+		t.Error("GetByHash found a connection after second removal")
+	}
+}
+
 func TestConnectionManagerGetRandomEmpty(t *testing.T) {
 	cm := new(ConnectionManager).Init()
 

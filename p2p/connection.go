@@ -217,6 +217,14 @@ func (c *Connection) Start() {
 	go c.runLoop()
 }
 
+// Copies metrics from another connection to this one.
+func (c *Connection) CopyMetricsFrom(another *Connection) {
+	// perform a shallow copy of the metrics, but update the state with the
+	// current value
+	c.metrics = another.metrics
+	c.metrics.ConnectionState = connectionStateStrings[c.state]
+}
+
 // runloop OWNs the connection.  It is the only goroutine that can change values in the connection struct
 // runLoop operates the state machine and routes messages out to network (messages from network are routed in processReceives)
 func (c *Connection) runLoop() {

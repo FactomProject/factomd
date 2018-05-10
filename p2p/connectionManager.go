@@ -8,6 +8,7 @@ package p2p
 // by peer hash or by the remote address.
 
 import (
+	"fmt"
 	"math/rand"
 )
 
@@ -58,8 +59,12 @@ func (cm *ConnectionManager) ConnectedTo(address string) bool {
 
 // Add a new connection.
 func (cm *ConnectionManager) Add(connection *Connection) {
+	if _, present := cm.connections[connection.peer.Hash]; present {
+		// we should be checking whether we are already connected to this peer,
+		// so something went wrong
+		panic(fmt.Sprintf("Duplicated peer in connection manager: %s", connection.peer.Hash))
+	}
 	cm.connections[connection.peer.Hash] = connection
-
 	cm.addToConnectionsByAddress(connection)
 }
 
