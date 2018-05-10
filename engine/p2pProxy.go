@@ -5,11 +5,13 @@
 package engine
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 
 	// "github.com/FactomProject/factomd/common/constants"
 
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages/msgsupport"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -111,8 +113,9 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 
 	f.bytesOut += len(data)
 
-	if msg.GetMsgHash() == nil {
+	if msg.GetMsgHash() == nil || bytes.Equal(msg.GetMsgHash().Bytes(), constants.ZERO_HASH) {
 		fmt.Fprintf(os.Stderr, "nil hash message in p2pProxy.Send() %s\n", msg.String())
+		fmt.Fprintf(os.Stderr, "nil hash message in p2pProxy.Send() %+v\n", msg)
 	} else {
 
 		hash := fmt.Sprintf("%x", msg.GetMsgHash().Bytes())

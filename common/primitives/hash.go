@@ -13,6 +13,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"runtime"
+	"runtime/debug"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -85,6 +87,7 @@ func (h *Hash) UnmarshalText(b []byte) error {
 func (h *Hash) Fixed() [constants.HASH_LENGTH]byte {
 	// Might change the error produced by IHash in FD-398
 	if h == nil {
+		runtime.Breakpoint()
 		panic("nil Hash")
 	}
 	return *h
@@ -95,7 +98,14 @@ func (h *Hash) PFixed() *[constants.HASH_LENGTH]byte {
 	return (*[constants.HASH_LENGTH]byte)(h)
 }
 
-func (h *Hash) Bytes() []byte {
+func (h *Hash) Bytes() (rval []byte) {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Fprintf(os.Stderr, "nil hash")
+			debug.PrintStack()
+			rval = constants.ZERO_HASH
+		}
+	}()
 	return h.GetBytes()
 }
 
