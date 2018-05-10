@@ -520,8 +520,7 @@ func (c *Controller) handleCommand(command interface{}) {
 	case CommandDialPeer: // parameter is the peer address
 		parameters := command.(CommandDialPeer)
 		conn := new(Connection).Init(parameters.peer, parameters.persistent)
-		conn.Start()
-		c.connections.Add(conn)
+		c.handleNewConnection(conn)
 	case CommandAddPeer: // parameter is a Connection. This message is sent by the accept loop which is in a different goroutine
 
 		parameters := command.(CommandAddPeer)
@@ -531,8 +530,7 @@ func (c *Controller) handleCommand(command interface{}) {
 		peer := new(Peer).Init(addPort[0], addPort[1], 0, RegularPeer, 0)
 		peer.Source["Accept()"] = time.Now()
 		connection := new(Connection).InitWithConn(conn, *peer)
-		connection.Start()
-		c.connections.Add(connection)
+		c.handleNewConnection(connection)
 	case CommandShutdown:
 		c.shutdown()
 	case CommandAdjustPeerQuality:
@@ -552,6 +550,22 @@ func (c *Controller) handleCommand(command interface{}) {
 	default:
 		c.logger.Errorf("Unknown p2p.Controller command received: %+v", commandType)
 	}
+}
+
+func (c *Controller) handleNewConnection(connection *Connection) {
+	oldConnection, alreadyConnected := c.connections.GetByHash(connection.peer.Hash)
+	if alreadyConnected {
+		// we already have a connection to this peer, so we assume that it's dead
+		// replace it with a new one but copy all the metrics that we had
+		connection.CopyMetricsFrom(oldConnection)
+		c.connections.Remove(oldConnection)
+		BlockFreeChannelSend(
+			oldConnection.SendChannel,
+			ConnectionCommand{Command: ConnectionShutdownNow},
+		)
+	}
+	connection.Start()
+	c.connections.Add(connection)
 }
 
 func (c *Controller) applicationPeerUpdate(qualityDelta int32, peerHash string) {
