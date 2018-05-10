@@ -125,18 +125,13 @@ func (m *MessageBase) SendOut(s interfaces.IState, msg interfaces.IMsg) {
 	comment := fmt.Sprintf("Enqueue %v %v", m.ResendCnt, now-m.resend)
 	s.LogMessage("NetworkOutputsCall", comment, msg)
 
-	if m.ResendCnt > 1 { // If the first send fails, we need to try again
-		//block := s.GetHighestKnownBlock()
-		//blk := s.GetHighestSavedBlk()
-		//if block-blk > 4 {
-		//	return // don't resend when we are behind by more than a block
-		//}
+	if m.ResendCnt > 0 { // If the first send fails, we need to try again
 		if now-m.resend < 2000 {
-			//			s.LogPrintf("NetworkOutputsCall", "too soon")
+			s.LogPrintf("NetworkOutputsCall", "too soon")
 			return
 		}
 		if s.NetworkOutMsgQueue().Length() > s.NetworkOutMsgQueue().Cap()*99/100 {
-			//			s.LogPrintf("NetworkOutputsCall", "too full
+			s.LogPrintf("NetworkOutputsCall", "too full")
 			return
 		}
 
@@ -153,7 +148,7 @@ func (m *MessageBase) SendOut(s interfaces.IState, msg interfaces.IMsg) {
 	sends++
 
 	// debug code start ............
-	if s.DebugExec() /* && s.CheckFileName(logname)*/ { // if debug is on and this logfile is enabled
+	if s.DebugExec() && s.CheckFileName(logname) { // if debug is on and this logfile is enabled
 		checkForDuplicateSend(s, msg, atomic.WhereAmIString(1))
 	}
 	// debug code end ............
