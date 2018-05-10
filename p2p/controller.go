@@ -455,10 +455,10 @@ func (c *Controller) route() {
 		TotalMessagesSent++
 		switch parcel.Header.TargetPeer {
 		case FullBroadcastFlag: // Send to all peers
-			c.fullbroadcast(parcel)
+			c.broadcast(parcel, true)
 
 		case BroadcastFlag: // Send to many peers
-			c.broadcast(parcel)
+			c.broadcast(parcel, false)
 
 		case RandomPeerFlag: // Find a random peer, send to that peer.
 			c.logger.Debugf("Controller.route() Directed FINDING RANDOM Target: %s Type: %s #Number Connections: %d", parcel.Header.TargetPeer, parcel.Header.AppType, len(c.connections))
