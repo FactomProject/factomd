@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/util/atomic"
@@ -103,7 +104,7 @@ func checkForDuplicateSend(s interfaces.IState, msg interfaces.IMsg, whereAmI st
 	what, where, ok := f.getmsg(hash)
 	if ok {
 		duplicate++
-		s.LogPrintf(logname, "Duplicate Send of R-%x (%d sends, %d duplicates, %d unique)", msg.GetRepeatHash().Bytes()[:4], sends, duplicate, unique)
+		s.LogPrintf(logname, "Duplicate Send of R-%x (%d sends, %d duplicates, %d unique)", msg.GetRepeatHash().Bytes()[:3], sends, duplicate, unique)
 		s.LogPrintf(logname, "Original: %p: %s", what, where)
 		s.LogPrintf(logname, "This:     %p: %s", msg, whereAmI)
 		s.LogMessage(logname, "Orig Message:", what)
@@ -122,9 +123,6 @@ func (m *MessageBase) SendOut(s interfaces.IState, msg interfaces.IMsg) {
 	}
 	now := s.GetTimestamp().GetTimeMilli()
 
-	comment := fmt.Sprintf("Enqueue %v %v", m.ResendCnt, now-m.resend)
-	s.LogMessage("NetworkOutputsCall", comment, msg)
-
 	if m.ResendCnt > 0 { // If the first send fails, we need to try again
 		if now-m.resend < 2000 {
 			s.LogPrintf("NetworkOutputsCall", "too soon")
@@ -134,7 +132,6 @@ func (m *MessageBase) SendOut(s interfaces.IState, msg interfaces.IMsg) {
 			s.LogPrintf("NetworkOutputsCall", "too full")
 			return
 		}
-
 	}
 
 	m1, m2 := fmt.Sprintf("%p", m), fmt.Sprintf("%p", msg)
@@ -148,12 +145,14 @@ func (m *MessageBase) SendOut(s interfaces.IState, msg interfaces.IMsg) {
 	sends++
 
 	// debug code start ............
-	if s.DebugExec() && s.CheckFileName(logname) { // if debug is on and this logfile is enabled
+	if !msg.IsPeer2Peer() && s.DebugExec() && s.CheckFileName(logname) { // if debug is on and this logfile is enabled
 		checkForDuplicateSend(s, msg, atomic.WhereAmIString(1))
 	}
 	// debug code end ............
-	s.LogMessage("NetworkOutputs", comment, msg)
+	s.LogMessage("NetworkOutputs", "Enqueue", msg)
 	s.NetworkOutMsgQueue().Enqueue(msg)
+	// Add this to the network replay filter so we don't bother processing any echos
+	s.AddToReplayFilter(constants.NETWORK_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
 }
 
 func (m *MessageBase) GetResendCnt() int {

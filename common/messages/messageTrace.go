@@ -114,16 +114,14 @@ func LogMessage(name string, note string, msg interfaces.IMsg) {
 	}
 	sequence++
 	seq := sequence
-	var t byte
-	var rhash, hash, mhash, msgString string
 	embeddedHash := ""
-	hash = "??????"
-	mhash = "??????"
-	rhash = "??????"
-	if msg == nil {
-		t = 0
-		msgString = "-nil-"
-	} else {
+	to := ""
+	hash := "??????"
+	mhash := "??????"
+	rhash := "??????"
+	t := byte(0)
+	msgString := "-nil-"
+	if msg != nil {
 		t = msg.Type()
 		msgString = msg.String()
 		// work around message that don't have hashes yet ...
@@ -145,9 +143,9 @@ func LogMessage(name string, note string, msg interfaces.IMsg) {
 			ack := msg.(*Ack)
 			byte := ack.GetHash().Fixed
 			embeddedHash = fmt.Sprintf(" EmbeddedMsg: %s", getmsg(byte()))
-		//case constants.MISSING_MSG_RESPONSE:
-		//	mm := msg.(*MissingMsgResponse)
-		//	embeddedHash = fmt.Sprintf(" EmbeddedMsg: %s | %s", mm.MsgResponse.String(), mm.AckResponse.String())
+			//case constants.MISSING_MSG_RESPONSE:
+			//	mm := msg.(*MissingMsgResponse)
+			//	embeddedHash = fmt.Sprintf(" EmbeddedMsg: %s | %s", mm.MsgResponse.String(), mm.AckResponse.String())
 		case constants.MISSING_DATA:
 			md := msg.(*MissingData)
 			embeddedHash = fmt.Sprintf(" EmbeddedMsg: %s", getmsg(md.RequestHash.Fixed()))
@@ -158,13 +156,24 @@ func LogMessage(name string, note string, msg interfaces.IMsg) {
 				addmsg(bytes, msgString) // Keep message we have seen for a while
 			}
 		}
+		to = msg.GetNetworkOrigin() // this is "" if it is broadcast or random p2p
+
+		if msg.IsPeer2Peer() {
+			if 0 == len(to) {
+				to = "RandomPeer"
+			} else {
+				to = msg.GetNetworkOrigin()
+			}
+		} else {
+			//to = "broadcast"
+		}
 	}
 
 	now := time.Now().Local()
 
-	s := fmt.Sprintf("%7v %02d:%02d:%02d %-25s M-%v|R-%v|H-%v %26s[%2v]:%v%v\n", seq, now.Hour()%24, now.Minute()%60, now.Second()%60,
-		note, mhash, rhash, hash, constants.MessageName(byte(t)), t,
-		msgString, embeddedHash)
+	s := fmt.Sprintf("%7v %02d:%02d:%02d.%03d %-25s M-%v|R-%v|H-%v|%p %26s[%2v]:%v%v %v\n", seq, now.Hour()%24, now.Minute()%60, now.Second()%60, (now.Nanosecond()/1e6)%1000,
+		note, mhash, rhash, hash, msg, constants.MessageName(byte(t)), t,
+		msgString, embeddedHash, to)
 	s = addNodeNames(s)
 
 	myfile.WriteString(s)
@@ -223,7 +232,7 @@ func LogPrintf(name string, format string, more ...interface{}) {
 	}
 	seq := sequence
 	now := time.Now().Local()
-	s := fmt.Sprintf("%7v %02d:%02d:%02d %s\n", seq, now.Hour()%24, now.Minute()%60, now.Second()%60, fmt.Sprintf(format, more...))
+	s := fmt.Sprintf("%7v %02d:%02d:%02d.%03d %s\n", seq, now.Hour()%24, now.Minute()%60, now.Second()%60, (now.Nanosecond()/1e6)%1000, fmt.Sprintf(format, more...))
 	s = addNodeNames(s)
 	myfile.WriteString(s)
 }

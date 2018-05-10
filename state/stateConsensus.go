@@ -41,6 +41,10 @@ var _ = (*hash.Hash32)(nil)
 var once sync.Once
 var debugExec_flag bool
 
+func (s *State) CheckFileName(name string) bool {
+	return messages.CheckFileName(name)
+}
+
 func (s *State) DebugExec() (ret bool) {
 	once.Do(func() { debugExec_flag = globals.Params.DebugLogRegEx != "" })
 
@@ -998,7 +1002,7 @@ func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
 		msgResponse := messages.NewMissingMsgResponse(s, pl.System.List[m.SystemHeight], nil)
 		msgResponse.SetOrigin(m.GetOrigin())
 		msgResponse.SetNetworkOrigin(m.GetNetworkOrigin())
-		msgResponse.SendOut(s,msgResponse)
+		msgResponse.SendOut(s, msgResponse)
 		s.MissingRequestReplyCnt++
 		sent = true
 	}
@@ -1011,7 +1015,7 @@ func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
 			msgResponse := messages.NewMissingMsgResponse(s, missingmsg, ackMsg)
 			msgResponse.SetOrigin(m.GetOrigin())
 			msgResponse.SetNetworkOrigin(m.GetNetworkOrigin())
-			msgResponse.SendOut(s,msgResponse)
+			msgResponse.SendOut(s, msgResponse)
 			s.MissingRequestReplyCnt++
 			sent = true
 		}
