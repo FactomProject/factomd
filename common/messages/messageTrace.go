@@ -12,13 +12,15 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
-//TODO: Cache message hash to message string with age out...
 var (
 	traceMutex sync.Mutex
 	files      map[string]*os.File
 	enabled    map[string]bool
 	TestRegex  *regexp.Regexp
 	sequence   int
+	history    *([16384][32]byte) // Last 16k messages logged
+	h          int                // head of history
+	msgmap     map[[32]byte]string
 )
 
 // Check a filename and see if logging is on for that filename
@@ -75,10 +77,6 @@ func getTraceFile(name string) (f *os.File) {
 	}
 	return f
 }
-
-var history *([16384][32]byte) // Last 16k messages logged
-var h int                      // head of history
-var msgmap map[[32]byte]string
 
 func addmsg(hash [32]byte, msg string) {
 	if history == nil {
@@ -156,13 +154,13 @@ func LogMessage(name string, note string, msg interfaces.IMsg) {
 				addmsg(bytes, msgString) // Keep message we have seen for a while
 			}
 		}
-		to = msg.GetNetworkOrigin() // this is "" if it is broadcast or random p2p
 
 		if msg.IsPeer2Peer() {
-			if 0 == len(to) {
+			if 0 == msg.GetOrigin() {
 				to = "RandomPeer"
 			} else {
-				to = msg.GetNetworkOrigin()
+				// right for sim... what about network ?
+				to = fmt.Sprintf("FNode%02d", msg.GetOrigin()-1)
 			}
 		} else {
 			//to = "broadcast"

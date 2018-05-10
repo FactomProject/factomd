@@ -123,7 +123,7 @@ func (m *MessageBase) SendOut(s interfaces.IState, msg interfaces.IMsg) {
 	}
 	now := s.GetTimestamp().GetTimeMilli()
 
-	if m.ResendCnt > 0 { // If the first send fails, we need to try again
+	if m.ResendCnt > 0 && !msg.IsPeer2Peer() { // If the first send fails, we need to try again
 		if now-m.resend < 2000 {
 			s.LogPrintf("NetworkOutputsCall", "too soon")
 			return
