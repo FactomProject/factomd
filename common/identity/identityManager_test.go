@@ -72,3 +72,12 @@ func TestIdentityManagerMarshal(t *testing.T) {
 		}
 	}
 }
+
+func TestIdentityManagerClone(t *testing.T) {
+	a := identity.RandomIdentityManager()
+	b := a.Clone()
+
+	if !a.IsSameAs(b) {
+		t.Error("Clone is not the same")
+	}
+}

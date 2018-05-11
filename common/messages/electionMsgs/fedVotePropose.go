@@ -40,6 +40,7 @@ var _ interfaces.IElectionMsg = (*FedVoteVolunteerMsg)(nil)
 
 func NewFedProposalMsg(signer interfaces.IHash, vol FedVoteVolunteerMsg) *FedVoteProposalMsg {
 	p := new(FedVoteProposalMsg)
+	p.SetFullBroadcast(true)
 	p.Volunteer = vol
 	p.Signer = signer
 	p.FedVoteMsg.TS = primitives.NewTimestampNow()

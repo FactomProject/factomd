@@ -1164,10 +1164,22 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	list.State.AddNewIdentityEblocks(d.EntryBlocks, d.DirectoryBlock.GetTimestamp()) // Add eblocks to be synced
 	list.State.UpdateAuthSigningKeys(d.DirectoryBlock.GetDatabaseHeight())           // Remove old keys from key history
 
+	// Canceling Coinbase Descriptors
+	list.State.IdentityControl.CancelManager.GC(d.DirectoryBlock.GetDatabaseHeight()) // garbage collect
+
 	///////////////////////////////
 	// Cleanup Tasks
 	///////////////////////////////
 	list.State.Commits.Cleanup(list.State)
+	// This usually gets cleaned up when creating the coinbase. If syncing from disk or dbstates, this routine will clean
+	// up any leftover valid cancels.
+	if d.DirectoryBlock.GetDatabaseHeight() > constants.COINBASE_DECLARATION {
+		_, ok := list.State.IdentityControl.CanceledCoinbaseOutputs[d.DirectoryBlock.GetDatabaseHeight()-constants.COINBASE_DECLARATION]
+		if ok {
+			// No longer need this
+			delete(list.State.IdentityControl.CanceledCoinbaseOutputs, d.DirectoryBlock.GetDatabaseHeight()-constants.COINBASE_DECLARATION)
+		}
+	}
 
 	// s := list.State
 	// // Time out commits every now and again.

@@ -68,11 +68,17 @@ func CreateMsg(messageType byte) interfaces.IMsg {
 	case constants.SYNC_MSG:
 		return new(electionMsgs.SyncMsg)
 	case constants.VOLUNTEERAUDIT:
-		return new(electionMsgs.FedVoteVolunteerMsg)
+		msg := new(electionMsgs.FedVoteVolunteerMsg)
+		msg.SetFullBroadcast(true)
+		return msg
 	case constants.VOLUNTEERPROPOSAL:
-		return new(electionMsgs.FedVoteProposalMsg)
+		msg := new(electionMsgs.FedVoteProposalMsg)
+		msg.SetFullBroadcast(true)
+		return msg
 	case constants.VOLUNTEERLEVELVOTE:
-		return new(electionMsgs.FedVoteLevelMsg)
+		msg := new(electionMsgs.FedVoteLevelMsg)
+		msg.SetFullBroadcast(true)
+		return msg
 	default:
 		return nil
 	}

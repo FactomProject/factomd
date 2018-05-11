@@ -54,8 +54,27 @@ const (
 	FEDVOTE_MSG_BASE                          // 40
 	SYNC_MSG                                  // 41
 
-	NUM_MESSAGES // Not used, just a counter for the number of messages.
+	NUM_MESSAGES  // Not used, just a counter for the number of messages.
 )
+
+// Election related messages are full broadcast
+func NormallyFullBroadcast(t byte) bool {
+	switch t {
+	case VOLUNTEERAUDIT, VOLUNTEERPROPOSAL, VOLUNTEERLEVELVOTE:
+		return true
+	}
+	return false
+}
+
+// Election related messages are full broadcast
+func NormallyPeer2Peer(t byte) bool {
+	switch t {
+	case MISSING_MSG, MISSING_DATA, DATA_RESPONSE, MISSING_MSG_RESPONSE, BOUNCE_MSG, BOUNCEREPLY_MSG,
+		MISSING_ENTRY_BLOCKS, ENTRY_BLOCK_RESPONSE, DBSTATE_MSG, DBSTATE_MISSING_MSG:
+		return true
+	}
+	return false
+}
 
 // Entry Credit Block entries
 const (

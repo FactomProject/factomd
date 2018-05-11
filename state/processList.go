@@ -806,18 +806,27 @@ func (p *ProcessList) Ask(vmIndex int, height uint32, delay int64) {
 		}
 	}
 
+	if p.asks != nil { // If it is nil, there is no makemmrs
 	// always ask for one past the end as well...Can't hurt ... Famous last words...
 	ask := askRef{plRef{p.DBHeight, vmIndex, uint32(lenVMList)}, now + delay}
 	p.asks <- ask
 
 	vm.HighestAsk = int(lenVMList) + 1 // We have asked for all nils up to this height
 
+	}
 	return
 }
 
 func (p *ProcessList) TrimVMList(height uint32, vmIndex int) {
 	if !(uint32(len(p.VMs[vmIndex].List)) > height) {
+		p.State.LogMessage("processList", fmt.Sprintf("TrimVMList() %d/%d/%d", p.DBHeight, vmIndex, height), p.VMs[vmIndex].List[height])
 		p.VMs[vmIndex].List = p.VMs[vmIndex].List[:height]
+		p.VMs[vmIndex].HighestAsk = int(height) // make sure we will ask again for nil's above this height
+		if p.State.DebugExec() {
+			if nillist[vmIndex] > int(height-1) {
+				nillist[vmIndex] = int(height - 1) // Drag the highest nil logged back before this nil
+			}
+		}
 	}
 }
 func (p *ProcessList) GetDBHeight() uint32 {
@@ -964,8 +973,14 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				last := vm.ListAck[vm.Height-1]
 				expectedSerialHash, err = primitives.CreateHash(last.MessageHash, thisAck.MessageHash)
 				if err != nil {
-					state.LogMessage("process", "Nil out message", vm.List[j])
+					p.State.LogMessage("process", fmt.Sprintf("nil out message %v/%v/%v, hash INTERNAL_REPLAY", p.DBHeight, i, j), vm.List[j])
 					vm.List[j] = nil
+					vm.HighestAsk = j // have to be able to ask for this again
+					if p.State.DebugExec() {
+						if nillist[i] > j-1 {
+							nillist[i] = j - 1 // Drag the highest nil logged back before this nil
+						}
+					}
 					//p.State.AddStatus(fmt.Sprintf("ProcessList.go Process: Error computing serial hash at dbht: %d vm %d  vm-height %d ", p.DBHeight, i, j))
 					p.Ask(i, uint32(j), 3000) // 3 second delay
 					break VMListLoop
@@ -992,6 +1007,8 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			}
 
 			// If the block is not yet being written to disk (22 minutes old...)
+			// dif >2 means the second pass sync is not complete so don't process yet.
+			// this prevent you from becoming a leader when you don't have complete identities
 			if (vm.LeaderMinute < 2 && diff <= 3) || diff <= 2 {
 				// If we can't process this entry (i.e. returns false) then we can't process any more.
 				p.NextHeightToProcess[i] = j + 1 // unused...
@@ -1003,9 +1020,14 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				msgHashFixed := msg.GetMsgHash().Fixed()
 
 				if _, valid := p.State.Replay.Valid(constants.INTERNAL_REPLAY, msgRepeatHashFixed, msg.GetTimestamp(), now); !valid {
-					p.State.LogMessage("process", fmt.Sprintf("drop %v/%v/%v, hash INTERNAL_REPLAY", p.DBHeight, i, j), thisMsg)
+					p.State.LogMessage("process", fmt.Sprintf("nil out message %v/%v/%v, hash INTERNAL_REPLAY", p.DBHeight, i, j), thisMsg)
 					vm.List[j] = nil // If we have seen this message, we don't process it again.  Ever.
-					p.State.Replay.Valid(constants.INTERNAL_REPLAY, msgRepeatHashFixed, msg.GetTimestamp(), now)
+					vm.HighestAsk = j // have to be able to ask for this again
+					if p.State.DebugExec() {
+					       if nillist[i] > j-1 {
+							nillist[i] = j - 1 // Drag the highest nil logged back before this nil
+						}
+					}
 					p.Ask(i, uint32(j), 3000) // 3 second delay
 					// If we ask won't we just get the same thing back?
 					break VMListLoop
