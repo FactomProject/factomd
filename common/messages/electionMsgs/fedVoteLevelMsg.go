@@ -71,6 +71,7 @@ func (m *FedVoteLevelMsg) String() string {
 
 func NewFedVoteLevelMessage(signer interfaces.IHash, vol FedVoteVolunteerMsg) *FedVoteLevelMsg {
 	f := new(FedVoteLevelMsg)
+	f.SetFullBroadcast(true)
 	f.Volunteer = vol
 	f.Signer = signer
 	f.EOMFrom = new(primitives.Hash)
