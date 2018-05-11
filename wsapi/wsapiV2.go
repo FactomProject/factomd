@@ -1078,11 +1078,6 @@ func HandleV2Heights(state interfaces.IState, params interface{}) (interface{}, 
 	h := new(HeightsResponse)
 
 	lheight := int64(state.GetTrueLeaderHeight())
-	// Highest ack is the highest leader height.
-	// It may not be the "True" leader height
-	if int64(state.GetHighestAck()) > lheight {
-		lheight = int64(state.GetHighestAck())
-	}
 	h.DirectoryBlockHeight = int64(state.GetHighestSavedBlk())
 	h.LeaderHeight = lheight
 	h.EntryBlockHeight = int64(state.GetHighestSavedBlk())
