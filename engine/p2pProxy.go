@@ -114,7 +114,10 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 	appType := fmt.Sprintf("%d", msg.Type())
 	message := FactomMessage{Message: data, PeerHash: msg.GetNetworkOrigin(), AppHash: hash, AppType: appType}
 	switch {
-	case !msg.IsPeer2Peer():
+	case !msg.IsPeer2Peer() && msg.IsFullBroadcast():
+		msgLogger.Debug("Sending full broadcast message")
+		message.PeerHash = p2p.FullBroadcastFlag
+	case !msg.IsPeer2Peer() && !msg.IsFullBroadcast():
 		msgLogger.Debug("Sending broadcast message")
 		message.PeerHash = p2p.BroadcastFlag
 	case msg.IsPeer2Peer() && 0 == len(message.PeerHash): // directed, with no direction of who to send it to

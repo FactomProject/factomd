@@ -316,13 +316,15 @@ func NetworkOutputs(fnode *FactomNode) {
 			if fnode.State.GetDropRate() > 0 && rand.Int()%1000 < fnode.State.GetDropRate() {
 				//drop the message, rather than processing it normally
 			} else {
-				// We don't care about the result, but we do want to log that we have
-				// seen this message before, because we might have generated the message
-				// ourselves.
+
 				if msg.GetRepeatHash() == nil {
+					fnode.State.LogMessage("NetworkOutputs", "Drop, no repeat hash", msg)
 					continue
 				}
 
+				// We don't care about the result, but we do want to log that we have
+				// seen this message before, because we might have generated the message
+				// ourselves.
 				_, ok := msg.(*messages.Ack)
 				if ok {
 					// Add the ack to our replay filter
@@ -379,6 +381,8 @@ func NetworkOutputs(fnode *FactomNode) {
 					}
 				}
 			}
+		} else {
+			fnode.State.LogMessage("NetworkOutputs", "Drop, local only", msg)
 		}
 	}
 }
