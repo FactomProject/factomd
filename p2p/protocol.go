@@ -47,7 +47,7 @@ var (
 	CurrentNetwork                      = TestNet
 	NetworkListenPort                   = "8108"
 	BroadcastFlag                       = "<BROADCAST>"
-	FullBroadcastFlag					= "<FULLBORADCAST>"
+	FullBroadcastFlag                   = "<FULLBORADCAST>"
 	RandomPeerFlag                      = "<RANDOMPEER>"
 	NodeID                       uint64 = 0           // Random number used for loopback protection
 	MinumumQualityScore          int32  = -200        // if a peer's score is less than this we ignore them.

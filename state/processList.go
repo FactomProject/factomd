@@ -807,11 +807,11 @@ func (p *ProcessList) Ask(vmIndex int, height uint32, delay int64) {
 	}
 
 	if p.asks != nil { // If it is nil, there is no makemmrs
-	// always ask for one past the end as well...Can't hurt ... Famous last words...
-	ask := askRef{plRef{p.DBHeight, vmIndex, uint32(lenVMList)}, now + delay}
-	p.asks <- ask
+		// always ask for one past the end as well...Can't hurt ... Famous last words...
+		ask := askRef{plRef{p.DBHeight, vmIndex, uint32(lenVMList)}, now + delay}
+		p.asks <- ask
 
-	vm.HighestAsk = int(lenVMList) + 1 // We have asked for all nils up to this height
+		vm.HighestAsk = int(lenVMList) + 1 // We have asked for all nils up to this height
 
 	}
 	return
@@ -1021,10 +1021,10 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 				if _, valid := p.State.Replay.Valid(constants.INTERNAL_REPLAY, msgRepeatHashFixed, msg.GetTimestamp(), now); !valid {
 					p.State.LogMessage("process", fmt.Sprintf("nil out message %v/%v/%v, hash INTERNAL_REPLAY", p.DBHeight, i, j), thisMsg)
-					vm.List[j] = nil // If we have seen this message, we don't process it again.  Ever.
+					vm.List[j] = nil  // If we have seen this message, we don't process it again.  Ever.
 					vm.HighestAsk = j // have to be able to ask for this again
 					if p.State.DebugExec() {
-					       if nillist[i] > j-1 {
+						if nillist[i] > j-1 {
 							nillist[i] = j - 1 // Drag the highest nil logged back before this nil
 						}
 					}

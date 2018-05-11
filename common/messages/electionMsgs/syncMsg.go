@@ -162,7 +162,7 @@ func (m *SyncMsg) FollowerExecute(is interfaces.IState) {
 	va := new(FedVoteVolunteerMsg)
 	va.Missing = msg
 	va.Ack = ack
-    va.SetFullBroadcast(true)
+	va.SetFullBroadcast(true)
 	va.FedIdx = m.FedIdx
 	va.FedID = m.FedID
 

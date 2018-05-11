@@ -54,7 +54,7 @@ const (
 	FEDVOTE_MSG_BASE                          // 40
 	SYNC_MSG                                  // 41
 
-	NUM_MESSAGES  // Not used, just a counter for the number of messages.
+	NUM_MESSAGES // Not used, just a counter for the number of messages.
 )
 
 // Election related messages are full broadcast
