@@ -5,7 +5,6 @@
 package p2p
 
 import (
-	"bytes"
 	"fmt"
 	"hash/crc32"
 
@@ -22,17 +21,20 @@ type Parcel struct {
 }
 
 // ParcelHeaderSize is the number of bytes in a parcel header
+// Note: PartNo and PartsTotal are currently unused, remove at the next protocol version bump
 const ParcelHeaderSize = 32
 
 type ParcelHeader struct {
-	Network     NetworkID         // 4 bytes - the network we are on (eg testnet, main net, etc.)
-	Version     uint16            // 2 bytes - the version of the protocol we are running.
-	Type        ParcelCommandType // 2 bytes - network level commands (eg: ping/pong)
-	Length      uint32            // 4 bytes - length of the payload (that follows this header) in bytes
-	TargetPeer  string            // ? bytes - "" or nil for broadcast, otherwise the destination peer's hash.
-	Crc32       uint32            // 4 bytes - data integrity hash (of the payload itself.)
-	PartNo      uint16            // 2 bytes - in case of multipart parcels, indicates which part this corresponds to, otherwise should be 0
-	PartsTotal  uint16            // 2 bytes - in case of multipart parcels, indicates the total number of parts that the receiver should expect
+	Network    NetworkID         // 4 bytes - the network we are on (eg testnet, main net, etc.)
+	Version    uint16            // 2 bytes - the version of the protocol we are running.
+	Type       ParcelCommandType // 2 bytes - network level commands (eg: ping/pong)
+	Length     uint32            // 4 bytes - length of the payload (that follows this header) in bytes
+	TargetPeer string            // ? bytes - "" or nil for broadcast, otherwise the destination peer's hash.
+	Crc32      uint32            // 4 bytes - data integrity hash (of the payload itself.)
+
+	PartNo     uint16 // 2 bytes - unused, remove at the next protocol version bump
+	PartsTotal uint16 // 2 bytes - unused, remove at the next protocol version bump
+
 	NodeID      uint64
 	PeerAddress string // address of the peer set by connection to know who sent message (for tracking source of other peers)
 	PeerPort    string // port of the peer , or we are listening on
@@ -51,7 +53,6 @@ const ( // iota is reset to 0
 	TypePeerResponse                          // "Here's some peers I know about."
 	TypeAlert                                 // network wide alerts (used in bitcoin to indicate criticalities)
 	TypeMessage                               // Application level message
-	TypeMessagePart                           // Application level message that was split into multiple parts
 )
 
 // CommandStrings is a Map of command ids to strings for easy printing of network comands
@@ -63,11 +64,7 @@ var CommandStrings = map[ParcelCommandType]string{
 	TypePeerResponse: "Peer-Response", // "Here's some peers I know about."
 	TypeAlert:        "Alert",         // network wide alerts (used in bitcoin to indicate criticalities)
 	TypeMessage:      "Message",       // Application level message
-	TypeMessagePart:  "MessagePart",   // Application level message that was split into multiple parts
 }
-
-// MaxPayloadSize is the maximum bytes a message can be at the networking level.
-const MaxPayloadSize = 1000000000
 
 func NewParcel(network NetworkID, payload []byte) *Parcel {
 	header := new(ParcelHeader).Init(network)
@@ -77,51 +74,6 @@ func NewParcel(network NetworkID, payload []byte) *Parcel {
 	parcel.Payload = payload
 	parcel.UpdateHeader() // Updates the header with info about payload.
 	return parcel
-}
-
-func ParcelsForPayload(network NetworkID, payload []byte) []Parcel {
-	parcelCount := (len(payload) / MaxPayloadSize) + 1
-	parcels := make([]Parcel, parcelCount)
-
-	for i := 0; i < parcelCount; i++ {
-		start := i * MaxPayloadSize
-		next := (i + 1) * MaxPayloadSize
-		var end int
-		if next < len(payload) {
-			end = next
-		} else {
-			end = len(payload)
-		}
-		parcel := NewParcel(network, payload[start:end])
-		parcel.Header.Type = TypeMessagePart
-		parcel.Header.PartNo = uint16(i)
-		parcel.Header.PartsTotal = uint16(parcelCount)
-		parcels[i] = *parcel
-	}
-
-	return parcels
-}
-
-func ReassembleParcel(parcels []*Parcel) *Parcel {
-	var payload bytes.Buffer
-
-	for _, parcel := range parcels {
-		payload.Write(parcel.Payload)
-	}
-
-	// create a new message parcel from the reassembled payload, but
-	// copy all the relevant header fields from one of the original
-	// messages
-	origHeader := parcels[0].Header
-
-	assembledParcel := NewParcel(origHeader.Network, payload.Bytes())
-	assembledParcel.Header.NodeID = origHeader.NodeID
-	assembledParcel.Header.Type = TypeMessage
-	assembledParcel.Header.TargetPeer = origHeader.TargetPeer
-	assembledParcel.Header.PeerAddress = origHeader.PeerAddress
-	assembledParcel.Header.PeerPort = origHeader.PeerPort
-
-	return assembledParcel
 }
 
 func (p *ParcelHeader) Init(network NetworkID) *ParcelHeader {

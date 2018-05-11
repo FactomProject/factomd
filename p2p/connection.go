@@ -653,12 +653,6 @@ func (c *Connection) handleParcelTypes(parcel Parcel) {
 		parcel.Header.TargetPeer = c.peer.Hash
 		parcel.Header.NodeID = NodeID
 		BlockFreeChannelSend(c.ReceiveChannel, ConnectionParcel{Parcel: parcel}) // Controller handles these.
-	case TypeMessagePart:
-		c.peer.QualityScore = c.peer.QualityScore + 1
-		// Store our connection ID so the controller can direct response to us.
-		parcel.Header.TargetPeer = c.peer.Hash
-		parcel.Header.NodeID = NodeID
-		BlockFreeChannelSend(c.ReceiveChannel, ConnectionParcel{Parcel: parcel}) // Controller handles these.
 	default:
 		c.logger.Warn("Got message of unknown type?")
 	}

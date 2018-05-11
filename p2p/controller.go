@@ -57,7 +57,6 @@ type Controller struct {
 	lastStatusReport     time.Time
 	lastPeerRequest      time.Time        // Last time we asked peers about the peers they know about.
 	specialPeers         map[string]*Peer // special peers (from config file and from the command line params) by peer address
-	partsAssembler       *PartsAssembler  // a data structure that assembles full messages from received message parts
 
 	// logging
 	logger *log.Entry
@@ -185,7 +184,6 @@ func (c *Controller) Init(ci ControllerInit) *Controller {
 	c.initSpecialPeers(ci)
 	c.lastDiscoveryRequest = time.Now() // Discovery does its own on startup.
 	c.lastConnectionMetricsUpdate = time.Now()
-	c.partsAssembler = new(PartsAssembler).Init()
 	discovery := new(Discovery).Init(ci.PeersFile, ci.SeedURL)
 	c.discovery = *discovery
 	return c
@@ -480,12 +478,6 @@ func (c *Controller) handleParcelReceive(message interface{}, peerHash string, c
 	case TypeMessage: // Application message, send it on.
 		ApplicationMessagesReceived++
 		BlockFreeChannelSend(c.FromNetwork, parcel)
-	case TypeMessagePart: // A part of the application message, handle by assembler and if we have the full message, send it on.
-		assembled := c.partsAssembler.handlePart(parcel)
-		if assembled != nil {
-			ApplicationMessagesReceived++
-			BlockFreeChannelSend(c.FromNetwork, *assembled)
-		}
 	case TypePeerRequest: // send a response to the connection over its connection.SendChannel
 		// Get selection of peers from discovery
 		response := NewParcel(CurrentNetwork, c.discovery.SharePeers())
