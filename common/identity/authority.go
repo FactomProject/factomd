@@ -324,6 +324,10 @@ func (auth *Authority) Type() int {
 	return -1
 }
 
+func (auth *Authority) GetSigningKey() []byte {
+	return auth.SigningKey[:]
+}
+
 func (auth *Authority) VerifySignature(msg []byte, sig *[constants.SIGNATURE_LENGTH]byte) (bool, error) {
 	//return true, nil // Testing
 	var pub [32]byte

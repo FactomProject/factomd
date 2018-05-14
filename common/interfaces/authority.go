@@ -12,5 +12,6 @@ type IAuthority interface {
 	Type() int
 	VerifySignature([]byte, *[constants.SIGNATURE_LENGTH]byte) (bool, error)
 	GetAuthorityChainID() IHash
+	GetSigningKey() []byte
 	BinaryMarshallable
 }

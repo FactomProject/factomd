@@ -12,6 +12,8 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
+	"bytes"
+
 	"github.com/FactomProject/factomd/common/messages/msgbase"
 	log "github.com/sirupsen/logrus"
 )
@@ -248,8 +250,8 @@ func (m *Heartbeat) SerialHash() []byte {
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
-func (m *Heartbeat) Validate(state interfaces.IState) int {
-	now := state.GetTimestamp()
+func (m *Heartbeat) Validate(is interfaces.IState) int {
+	now := is.GetTimestamp()
 
 	if now.GetTimeSeconds()-m.Timestamp.GetTimeSeconds() > 60 {
 		return -1
@@ -261,11 +263,20 @@ func (m *Heartbeat) Validate(state interfaces.IState) int {
 	}
 
 	// Ignore old heartbeats
-	if m.DBHeight <= state.GetHighestSavedBlk() {
+	if m.DBHeight <= is.GetHighestSavedBlk() {
 		return -1
 	}
 
 	if !m.sigvalid {
+		auth := is.GetAuthorityInterface(m.IdentityChainID)
+		if auth == nil {
+			return -1
+		}
+
+		if bytes.Compare(m.Signature.GetKey(), auth.GetSigningKey()) != 0 {
+			return -1
+		}
+
 		isVer, err := m.VerifySignature()
 		if err != nil || !isVer {
 			// if there is an error during signature verification
@@ -289,11 +300,11 @@ func (m *Heartbeat) LeaderExecute(state interfaces.IState) {
 	m.FollowerExecute(state)
 }
 
-func (m *Heartbeat) FollowerExecute(state interfaces.IState) {
-	for _, auditServer := range state.GetAuditServers(state.GetLeaderHeight()) {
+func (m *Heartbeat) FollowerExecute(is interfaces.IState) {
+	for _, auditServer := range is.GetAuditServers(is.GetLeaderHeight()) {
 		if auditServer.GetChainID().IsSameAs(m.IdentityChainID) {
-			if m.IdentityChainID.IsSameAs(state.GetIdentityChainID()) {
-				if m.SecretNumber != state.GetSalt(m.Timestamp) {
+			if m.IdentityChainID.IsSameAs(is.GetIdentityChainID()) {
+				if m.SecretNumber != is.GetSalt(m.Timestamp) {
 					panic("We have seen a heartbeat using our Identity that isn't ours")
 				}
 			}
