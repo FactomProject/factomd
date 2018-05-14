@@ -23,7 +23,7 @@ func (list *DBStateList) Catchup(justDoIt bool) {
 
 		tolerance := 1
 		if list.State.Leader {
-			tolerance = 2
+			tolerance = 1
 		}
 
 		if list.TimeToAsk != nil && hk-hs > tolerance && now.GetTime().After(list.TimeToAsk.GetTime()) {
