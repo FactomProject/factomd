@@ -20,6 +20,7 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/util/atomic"
+	"github.com/btcsuitereleases/btcd/btcjson"
 
 	//"github.com/FactomProject/factomd/database/databaseOverlay"
 
@@ -730,6 +731,9 @@ func (p *ProcessList) makeMMRs(s interfaces.IState, asks <-chan askRef, adds <-c
 			addAdd(add)
 
 		case now := <-ticker:
+
+			p.State.GetLeaderHeight()
+
 			addAllAsks()     // process all pending asks before any adds
 			addAllAdds()     // process all pending add before any ticks
 			readAllTickers() // drain the ticker channel
@@ -764,6 +768,9 @@ func (p *ProcessList) makeMMRs(s interfaces.IState, asks <-chan askRef, adds <-c
 		case <-done:
 			addAllAsks() // process all pending asks before any adds
 			addAllAdds() // process all pending add before any ticks
+			p.asks = nil // nil all the channel pointers so no one will use them
+			p.adds = nil
+			p.done = nil
 
 			if len(pending) != 0 {
 				s.LogPrintf(logname, "End PL DBH %d with %d still outstanding %v", p.DBHeight, len(pending), pending)
