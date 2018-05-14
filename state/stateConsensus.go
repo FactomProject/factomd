@@ -1242,7 +1242,7 @@ func (s *State) LeaderExecuteCommitChain(m interfaces.IMsg) {
 	s.LeaderExecute(m)
 
 	if re := s.Holding[cc.GetHash().Fixed()]; re != nil {
-		re.SendOut(s, m) // If I was waiting on the commit, go ahead and send out the reveal
+		re.SendOut(s, re) // If I was waiting on the commit, go ahead and send out the reveal
 	}
 }
 
@@ -1258,7 +1258,7 @@ func (s *State) LeaderExecuteCommitEntry(m interfaces.IMsg) {
 	s.LeaderExecute(m)
 
 	if re := s.Holding[ce.GetHash().Fixed()]; re != nil {
-		re.SendOut(s, m) // If I was waiting on the commit, go ahead and send out the reveal
+		re.SendOut(s, re) // If I was waiting on the commit, go ahead and send out the reveal
 	}
 }
 
