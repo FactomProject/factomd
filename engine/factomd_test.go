@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/FactomProject/factomd/common/globals"
 	. "github.com/FactomProject/factomd/engine"
 	"github.com/FactomProject/factomd/state"
 )
@@ -20,7 +21,15 @@ func TimeNow(s *state.State) {
 func StatusEveryMinute(s *state.State) {
 	go func() {
 		for {
-			WaitMinutesQuite(s, 1)
+			newMinute := (s.CurrentMinute + 1) % 10
+			timeout := globals.Params.BlkTime * 80 // timeout if a minutes takes twice as long as expected
+			for s.CurrentMinute != newMinute && timeout > 0 {
+				time.Sleep(time.Duration(globals.Params.BlkTime/40) * time.Millisecond) // wake up and about 4 times per minute
+				timeout--
+			}
+			if timeout <= 0 {
+				fmt.Println("Stalled !!!")
+			}
 			PrintOneStatus(0, 0)
 		}
 	}()
@@ -87,18 +96,19 @@ func TestSetupANetwork(t *testing.T) {
 	}
 
 	args := append([]string{},
-		"-db=Map",
-		"-network=LOCAL",
-		"-net=alot+",
-		"-enablenet=true",
-		"-blktime=8",
-		"-count=10",
-		"-logPort=37000",
-		"-port=37001",
-		"-controlpanelport=37002",
-		"-networkport=37003",
-		"-startdelay=1",
-		"-debuglog=faulting|duplicate|Network",
+		"--db=Map",
+		"--network=LOCAL",
+		"--net=alot+",
+		"--enablenet=true",
+		"--blktime=8",
+		"--faulttimeout=10",
+		"--count=10",
+		"--logPort=37000",
+		"--port=37001",
+		"--controlpanelport=37002",
+		"--networkport=37003",
+		"--startdelay=1",
+		"--debuglog=faulting|duplicate|Network",
 		"--stdoutlog=out.txt",
 		"--stderrlog=out.txt",
 	)
@@ -336,13 +346,13 @@ func TestMakeALeader(t *testing.T) {
 	}
 
 	args := append([]string{},
-		"-db=Map",
-		"-network=LOCAL",
-		"-enablenet=true",
-		"-blktime=60",
-		"-count=2",
-		"-startdelay=1",
-		"-debuglog=F.*",
+		"--db=Map",
+		"--network=LOCAL",
+		"--enablenet=true",
+		"--blktime=10",
+		"--count=2",
+		"--startdelay=1",
+		"--debuglog=F.*",
 		"--stdoutlog=out.txt",
 		"--stderrlog=out.txt",
 	)
@@ -409,14 +419,15 @@ func TestAnElection(t *testing.T) {
 	}
 
 	args := append([]string{},
-		"-db=Map",
-		"-network=LOCAL",
-		"-net=alot+",
-		"-enablenet=true",
-		"-blktime=10",
+		"--db=Map",
+		"--network=LOCAL",
+		"--net=alot+",
+		"--enablenet=true",
+		"--blktime=10",
+		"--faulttimeout=10",
 		fmt.Sprintf("-count=%d", nodes),
-		"-startdelay=1",
-		"-debuglog=F.*",
+		"--startdelay=1",
+		"--debuglog=F.*",
 		"--stdoutlog=out.txt",
 		"--stderrlog=err.txt",
 	)
@@ -471,9 +482,6 @@ func TestAnElection(t *testing.T) {
 	runCmd("w") // point the control panel at 2
 
 	CheckAuthoritySet(leaders, audits, t)
-
-	runCmd("R50")
-	WaitBlocks(state0, 30)
 
 	runCmd(fmt.Sprintf("%d", leaders-1))
 	runCmd("x")
@@ -530,17 +538,18 @@ func TestMultiple2Election(t *testing.T) {
 	}
 
 	args := append([]string{},
-		"-db=Map",
-		"-network=LOCAL",
-		"-enablenet=true",
-		"-blktime=15",
-		"-count=10",
-		"-startdelay=1",
-		"-net=alot+",
-		"-debuglog=F.*",
+		"--db=Map",
+		"--network=LOCAL",
+		"--enablenet=true",
+		"--blktime=10",
+		"--faulttimeout=10",
+		"--count=10",
+		"--startdelay=1",
+		"--net=alot+",
+		"--debuglog=F.*",
 		"--stdoutlog=../out.txt",
 		"--stderrlog=../out.txt",
-		"-debugconsole=localhost:8093",
+		"--debugconsole=localhost:8093",
 	)
 
 	params := ParseCmdLine(args)
