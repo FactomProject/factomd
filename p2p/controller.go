@@ -53,8 +53,8 @@ type Controller struct {
 
 	discovery Discovery // Our discovery structure
 
-	numberOutgoingConnections int       // In PeerManagmeent we track this to know whent to dial out.
-	numberIncomingConnections int       // In PeerManagmeent we track this and refuse incoming connections when we have too many.
+	numberOutgoingConnections int       // In PeerManagement we track this to know when to dial out.
+	numberIncomingConnections int       // In PeerManagement we track this and refuse incoming connections when we have too many.
 	lastPeerManagement        time.Time // Last time we ran peer management.
 	lastDiscoveryRequest      time.Time
 	NodeID                    uint64
