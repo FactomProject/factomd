@@ -44,6 +44,7 @@ type IAdminBlock interface {
 	AddCoinbaseDescriptor(outputs []ITransAddress) error
 	AddEfficiency(chain IHash, efficiency uint16) error
 	AddCoinbaseAddress(chain IHash, add IAddress) error
+	AddCancelCoinbaseDescriptor(descriptorHeight, index uint32) error
 
 	UpdateState(IState) error
 }

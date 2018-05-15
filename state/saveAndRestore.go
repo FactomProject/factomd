@@ -323,14 +323,14 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 	ss.AuditServers = append(ss.AuditServers, pl.AuditServers...)
 
 	state.FactoidBalancesPMutex.Lock()
-	ss.FactoidBalancesP = make(map[[32]byte]int64)
+	ss.FactoidBalancesP = make(map[[32]byte]int64, len(state.FactoidBalancesP))
 	for k := range state.FactoidBalancesP {
 		ss.FactoidBalancesP[k] = state.FactoidBalancesP[k]
 	}
 	state.FactoidBalancesPMutex.Unlock()
 
 	state.ECBalancesPMutex.Lock()
-	ss.ECBalancesP = make(map[[32]byte]int64)
+	ss.ECBalancesP = make(map[[32]byte]int64, len(state.ECBalancesP))
 	for k := range state.ECBalancesP {
 		ss.ECBalancesP[k] = state.ECBalancesP[k]
 	}

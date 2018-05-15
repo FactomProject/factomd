@@ -9,6 +9,7 @@ import (
 
 	"bytes"
 
+	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/identityEntries"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -200,6 +201,20 @@ func (im *IdentityManager) ProcessIdentityEntryWithABlockUpdate(entry interfaces
 			return false, err
 		}
 		break
+	case "Coinbase Cancel":
+		cc, err := DecodeNewCoinbaseCancelStructFromExtIDs(extIDs)
+		if err != nil {
+			return false, err
+		}
+		tryAgain, change, err = im.ApplyNewCoinbaseCancelStruct(cc, chainID, dBlockHeight, a)
+		if tryAgain == true && newEntry == true {
+			//if it's a new entry, push it and return nil
+			return false, im.PushEntryForLater(entry, dBlockHeight, dBlockTimestamp)
+		}
+		//if it's an old entry, return error to signify the entry has not been processed and should be kept
+		if err != nil {
+			return false, err
+		}
 	}
 
 	return change, nil
@@ -485,8 +500,8 @@ func (im *IdentityManager) ApplyNewServerEfficiencyStruct(nses *NewServerEfficie
 //			bool	tryagain	If this is set to true, this entry can be reprocessed if it is *new*
 //			error	err			Any errors
 func (im *IdentityManager) ApplyNewCoinbaseAddressStruct(ncas *NewCoinbaseAddressStruct, rootchainID interfaces.IHash, dBlockTimestamp interfaces.Timestamp, a interfaces.IAdminBlock) (bool, bool, error) {
-	chainID := ncas.RootIdentityChainID
-	id := im.GetIdentity(chainID)
+	root := ncas.RootIdentityChainID
+	id := im.GetIdentity(root)
 	if id == nil {
 		return false, true, fmt.Errorf("(coinbase address) ChainID doesn't exists! %v", ncas.RootIdentityChainID.String())
 	}
@@ -506,7 +521,7 @@ func (im *IdentityManager) ApplyNewCoinbaseAddressStruct(ncas *NewCoinbaseAddres
 
 	// Check Timestamp
 	if !CheckTimestamp(ncas.Timestamp, dBlockTimestamp.GetTimeSeconds()) {
-		return false, false, fmt.Errorf("New Server Efficiency for Identity [%x]is too old", chainID.Bytes()[:5])
+		return false, false, fmt.Errorf("New Server Efficiency for Identity [%x]is too old", root.Bytes()[:5])
 	}
 
 	id.CoinbaseAddress = ncas.CoinbaseAddress
@@ -519,4 +534,64 @@ func (im *IdentityManager) ApplyNewCoinbaseAddressStruct(ncas *NewCoinbaseAddres
 	}
 
 	return true, false, err
+}
+
+// ApplyNewCoinbaseCancelStruct will parse a new coinbase cancel
+//		Validation Difference:
+//			Most entries check the timestamps to ensure entry is within 12 hours of dblock. That does not apply to coinbase, it can be replayed
+//			as long as it is between the block window.
+//		Returns
+//			bool	change		If a key has been changed
+//			bool	tryagain	If this is set to true, this entry can be reprocessed if it is *new*
+//			error	err			Any errors
+func (im *IdentityManager) ApplyNewCoinbaseCancelStruct(nccs *NewCoinbaseCancelStruct, managechain interfaces.IHash, dblockHeight uint32, a interfaces.IAdminBlock) (bool, bool, error) {
+	// Validate Block window
+	//		If the descriptor to cancel has already been applied, then this entry is no longer valid
+	//		Descriptor height + Declaration is the block the coinbase is added
+	//
+	//		If the descriptor has not happened yet, it is also not valid
+	if dblockHeight > nccs.CoinbaseDescriptorHeight+constants.COINBASE_DECLARATION || // After payment
+		dblockHeight < nccs.CoinbaseDescriptorHeight { // Before Descriptor
+		return false, false, nil
+	}
+
+	// This coinbase transaction has already been identified to be cancelled. No need to do any more work.
+	if im.CancelManager.IsAdminBlockRecorded(nccs.CoinbaseDescriptorHeight, nccs.CoinbaseDescriptorIndex) {
+		return false, false, nil
+	}
+
+	root := nccs.RootIdentityChainID
+	id := im.GetIdentity(root)
+	if id == nil {
+		return false, true, fmt.Errorf("(coinbase cancel) ChainID doesn't exists! %v", nccs.RootIdentityChainID.String())
+	}
+
+	if !managechain.IsSameAs(id.ManagementChainID) {
+		return false, true, fmt.Errorf("(coinbase cancel) ChainID of entry should match manage chain id.")
+	}
+
+	err := nccs.VerifySignature(id.Keys[0])
+	if err != nil {
+		return false, false, err
+	}
+
+	// Add the cancel to our tallies
+	im.CancelManager.AddCancel(*nccs)
+
+	// Check if we need to update admin block
+	//		If syncing from dbstates/disk this is nil
+	if a != nil {
+		// Already recorded in an admin block
+		if im.CancelManager.IsAdminBlockRecorded(nccs.CoinbaseDescriptorHeight, nccs.CoinbaseDescriptorIndex) {
+			return false, false, nil
+		}
+
+		// Check if the tallies reach critical mass for given descriptor and (output) index
+		if im.CancelManager.IsCoinbaseCancelled(nccs.CoinbaseDescriptorHeight, nccs.CoinbaseDescriptorIndex) {
+			// Add to admin block, mark it added
+			a.AddCancelCoinbaseDescriptor(nccs.CoinbaseDescriptorHeight, nccs.CoinbaseDescriptorIndex)
+			im.CancelManager.MarkAdminBlockRecorded(nccs.CoinbaseDescriptorHeight, nccs.CoinbaseDescriptorIndex)
+		}
+	}
+	return false, false, nil
 }

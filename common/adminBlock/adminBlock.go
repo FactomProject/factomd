@@ -154,6 +154,13 @@ func (c *AdminBlock) RemoveFederatedServer(identityChainID interfaces.IHash) err
 	return c.AddEntry(entry)
 }
 
+func (c *AdminBlock) AddCancelCoinbaseDescriptor(descriptorHeight, index uint32) error {
+	c.Init()
+	entry := NewCancelCoinbaseDescriptor(descriptorHeight, index)
+
+	return c.AddIdentityEntry(entry)
+}
+
 // InsertIdentityABEntries will prepare the identity entries and add them into the adminblock
 func (a *AdminBlock) InsertIdentityABEntries() error {
 	sort.Sort(interfaces.IIdentityABEntrySort(a.identityABEntries))
@@ -453,7 +460,7 @@ func (b *AdminBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 		case constants.TYPE_COINBASE_DESCRIPTOR:
 			b.ABEntries[i] = new(CoinbaseDescriptor)
 		case constants.TYPE_COINBASE_DESCRIPTOR_CANCEL:
-			b.ABEntries[i] = new(CoinbaseDescriptor)
+			b.ABEntries[i] = new(CancelCoinbaseDescriptor)
 		case constants.TYPE_ADD_FACTOID_ADDRESS:
 			b.ABEntries[i] = new(AddFactoidAddress)
 		case constants.TYPE_ADD_FACTOID_EFFICIENCY:
