@@ -39,6 +39,10 @@ type MessageBase struct {
 	Sigvalid    bool
 }
 
+func (m *MessageBase) StringOfMsgBase() string {
+  return fmt.Sprintf("%+v", m)
+}
+
 func (m *MessageBase) Resend_(s interfaces.IState, msg interfaces.IMsg, cnt int, delay int) {
 	for cnt > 0 {
 		cnt--
