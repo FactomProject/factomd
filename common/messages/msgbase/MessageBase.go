@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -39,19 +38,6 @@ type MessageBase struct {
 	Sigvalid    bool
 }
 
-func (m *MessageBase) Resend_(s interfaces.IState, msg interfaces.IMsg, cnt int, delay int) {
-	for cnt > 0 {
-		cnt--
-		s.LogMessage("NetworkOutputs", "Enqueue", msg)
-
-		s.NetworkOutMsgQueue().Enqueue(msg)
-		if m.NoResend || cnt == 0 {
-			return
-		}
-		time.Sleep(time.Duration(delay) * time.Second)
-	}
-}
-
 var mu sync.Mutex // lock for debug struct
 
 type foo struct {
@@ -68,6 +54,9 @@ func (m *MessageBase) SendOut(s interfaces.IState, msg interfaces.IMsg) {
 	// Are we ever modifying a message?
 	if m.ResendCnt > 4 { // If the first send fails, we need to try again
 		// TODO: Maybe have it not resend unless x time passed?
+		return
+	}
+	if msg.GetNoResend() {
 		return
 	}
 	//// Don't resend if we are behind
