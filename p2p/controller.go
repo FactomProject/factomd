@@ -476,11 +476,11 @@ func (c *Controller) route() {
 				}
 			}
 			parcel.Header.TargetPeer = bestKey
-			RandomDirectSendsVec.WithLabelValues(parcel.Header.TargetPeer).Inc()
+			RandomDirectSendsVec.WithLabelValues(parcel.Header.TargetPeer,fmt.Sprintf("%d", parcel.Payload[0]))
 			c.doDirectedSend(parcel)
 		default: // Check if we're connected to the peer, if not drop message.
 			c.logger.Debugf("Controller.route() Directed Neither Random nor Broadcast: %s Type: %s ", parcel.Header.TargetPeer, parcel.Header.AppType)
-			DirectSendsVec.WithLabelValues(parcel.Header.TargetPeer).Inc()
+			DirectSendsVec.WithLabelValues(parcel.Header.TargetPeer, fmt.Sprintf("%d", parcel.Payload[0])).Inc()
 			c.doDirectedSend(parcel)
 		}
 	}
