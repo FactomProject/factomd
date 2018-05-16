@@ -119,7 +119,7 @@ func checkForDuplicateSend(s interfaces.IState, msg interfaces.IMsg, whereAmI st
 
 func (m *MessageBase) SendOut(s interfaces.IState, msg interfaces.IMsg) {
 	if msg.IsLocal() {
-		s.LogMessage("NetworkOutputsCall", "local only", msg)
+		//		s.LogMessage("NetworkOutputsCall", "local only", msg)
 		return
 	}
 	if m.ResendCnt > 4 { // If the first send fails, we need to try again
@@ -128,15 +128,15 @@ func (m *MessageBase) SendOut(s interfaces.IState, msg interfaces.IMsg) {
 	if msg.GetNoResend() {
 		return
 	}
-	now := s.GetTimestamp().GetTimeMilli()
+	now := s.GetTimestamp()
 
 	if m.ResendCnt > 0 && !msg.IsPeer2Peer() { // If the first send fails, we need to try again
-		if now-m.resend < 2000 {
-			s.LogMessage("NetworkOutputsCall", "too soon", msg)
+		if now.GetTimeMilli()-m.resend < 2000 {
+			//			s.LogMessage("NetworkOutputsCall", "too soon", msg)
 			return
 		}
 		if s.NetworkOutMsgQueue().Length() > s.NetworkOutMsgQueue().Cap()*99/100 {
-			s.LogMessage("NetworkOutputsCall", "too full", msg)
+			//			s.LogMessage("NetworkOutputsCall", "too full", msg)
 			return
 		}
 	}
@@ -148,7 +148,7 @@ func (m *MessageBase) SendOut(s interfaces.IState, msg interfaces.IMsg) {
 	}
 
 	m.ResendCnt++
-	m.resend = now
+	m.resend = now.GetTimeMilli()
 	sends++
 
 	// debug code start ............
@@ -159,7 +159,7 @@ func (m *MessageBase) SendOut(s interfaces.IState, msg interfaces.IMsg) {
 	s.LogMessage("NetworkOutputs", "Enqueue", msg)
 	s.NetworkOutMsgQueue().Enqueue(msg)
 	// Add this to the network replay filter so we don't bother processing any echos
-	s.AddToReplayFilter(constants.NETWORK_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
+	s.AddToReplayFilter(constants.NETWORK_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), now)
 }
 
 func (m *MessageBase) GetResendCnt() int {
