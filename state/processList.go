@@ -20,7 +20,6 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/util/atomic"
-	"github.com/btcsuitereleases/btcd/btcjson"
 
 	//"github.com/FactomProject/factomd/database/databaseOverlay"
 
