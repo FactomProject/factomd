@@ -31,20 +31,20 @@ var (
 		Help: "Number of msgs broadcasting",
 	})
 
-	DirectSendsVec = prometheus.NewCounterVec(prometheus.CounterOpts{
+	DirectSends = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "factomd_state_direct_sends",
 		Help: "Number of messages to sent as directed to peers",
-	}, []string{"peer", "msgtype"})
+	})
 
-	RandomDirectSendsVec = prometheus.NewCounterVec(prometheus.CounterOpts{
+	RandomDirectSends = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "factomd_state_random_direct_sends",
 		Help: "Number of messages to sent as directed to peers",
-	}, []string{"peer", "msgtype"})
+	})
 
-	ConnecitonSendQueueSize = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "factomd_state_connection_send_queue",
+	ConnectionSendQueueTotal = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_connection_send_queue_total",
 		Help: "Number of messages in send queue",
-	}, []string{"peer"})
+	})
 
 	//
 	// Connection Routines
@@ -124,9 +124,9 @@ func RegisterPrometheus() {
 	prometheus.MustRegister(p2pControllerNumConnectionsByAddress)
 	prometheus.MustRegister(SentToPeers)
 	prometheus.MustRegister(StartingPoint)
-	prometheus.MustRegister(DirectSendsVec)
-	prometheus.MustRegister(RandomDirectSendsVec)
-	prometheus.MustRegister(ConnecitonSendQueueSize)
+	prometheus.MustRegister(DirectSends)
+	prometheus.MustRegister(RandomDirectSends)
+	prometheus.MustRegister(ConnectionSendQueueTotal)
 
 	// Connection Routines
 	prometheus.MustRegister(p2pProcessSendsGauge)    // processSends
