@@ -278,6 +278,11 @@ func Peers(fnode *FactomNode) {
 				}
 				fnode.MLog.Add2(fnode, false, peer.GetNameTo(), fmt.Sprintf("%s %d", in, i+1), true, msg)
 
+				// don't resend peer to peer messages or responses
+				switch msg.Type() {
+				case constants.MISSING_DATA, constants.MISSING_MSG, constants.MISSING_MSG_RESPONSE, constants.DBSTATE_MISSING_MSG, constants.DATA_RESPONSE:
+					msg.SetNoResend(true)
+				}
 				if !crossBootIgnore(msg) {
 					fnode.State.LogMessage("NetworkInputs", fromPeer+", enqueue", msg)
 					if t := msg.Type(); t == constants.REVEAL_ENTRY_MSG || t == constants.COMMIT_CHAIN_MSG || t == constants.COMMIT_ENTRY_MSG {
