@@ -379,6 +379,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		fnodes[0].State.NetworkController = p2pNetwork
 		p2pNetwork.StartNetwork()
 		p2pProxy = new(P2PProxy).Init(nodeName, "P2P Network").(*P2PProxy)
+
 		p2pProxy.FromNetwork = p2pNetwork.FromNetwork
 		p2pProxy.ToNetwork = p2pNetwork.ToNetwork
 

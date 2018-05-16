@@ -53,8 +53,8 @@ type Controller struct {
 
 	discovery Discovery // Our discovery structure
 
-	numberOutgoingConnections int       // In PeerManagmeent we track this to know whent to dial out.
-	numberIncomingConnections int       // In PeerManagmeent we track this and refuse incoming connections when we have too many.
+	numberOutgoingConnections int       // In PeerManagement we track this to know when to dial out.
+	numberIncomingConnections int       // In PeerManagement we track this and refuse incoming connections when we have too many.
 	lastPeerManagement        time.Time // Last time we ran peer management.
 	lastDiscoveryRequest      time.Time
 	NodeID                    uint64
@@ -476,9 +476,11 @@ func (c *Controller) route() {
 				}
 			}
 			parcel.Header.TargetPeer = bestKey
+			RandomDirectSends.Inc()
 			c.doDirectedSend(parcel)
 		default: // Check if we're connected to the peer, if not drop message.
 			c.logger.Debugf("Controller.route() Directed Neither Random nor Broadcast: %s Type: %s ", parcel.Header.TargetPeer, parcel.Header.AppType)
+			DirectSends.Inc()
 			c.doDirectedSend(parcel)
 		}
 	}
@@ -487,6 +489,7 @@ func (c *Controller) route() {
 func (c *Controller) doDirectedSend(parcel Parcel) {
 	connection, present := c.connections[parcel.Header.TargetPeer]
 	if present { // We're still connected to the target
+		ConnectionSendQueueTotal.Inc()
 		BlockFreeChannelSend(connection.SendChannel, ConnectionParcel{Parcel: parcel})
 	}
 }

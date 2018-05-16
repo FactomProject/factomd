@@ -6,7 +6,6 @@ package state
 
 import (
 	"fmt"
-	"math/rand"
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -49,24 +48,27 @@ func (s *State) MakeMissingEntryRequests() {
 
 	MissingEntryMap := make(map[[32]byte]*MissingEntry)
 
+	cnt := 0
+	sum := 0
+	avg := 0
 	for {
 		now := time.Now()
 
 		newrequest := 0
 
-		cnt := 0
-		sum := 0
-		avg := 0
 		highest := 0
 
 		// Look through our map, and remove any entries we now have in our database.
 		for k := range MissingEntryMap {
 			if has(s, MissingEntryMap[k].EntryHash) {
 				found++
-				delete(MissingEntryMap, k)
-			} else {
+				ESMissingRequestLoopBackTime.Observe(float64(time.Since(MissingEntryMap[k].LastTime).Nanoseconds()))
 				cnt++
 				sum += MissingEntryMap[k].Cnt
+				delete(MissingEntryMap, k)
+			} else {
+				//cnt++
+				//sum += MissingEntryMap[k].Cnt
 				if MissingEntryMap[k].DBHeight > uint32(highest) {
 					highest = int(MissingEntryMap[k].DBHeight)
 				}
@@ -84,7 +86,7 @@ func (s *State) MakeMissingEntryRequests() {
 
 		// Keep our map of entries that we are asking for filled up.
 	fillMap:
-		for len(MissingEntryMap) < 3000 {
+		for len(MissingEntryMap) < 1500 {
 			select {
 			case et := <-s.MissingEntries:
 				missing++
@@ -98,16 +100,15 @@ func (s *State) MakeMissingEntryRequests() {
 		if s.inMsgQueue.Length() < constants.INMSGQUEUE_MED {
 			// Make requests for entries we don't have.
 			for k := range MissingEntryMap {
-
 				et := MissingEntryMap[k]
 
-				if et.Cnt == 0 {
-					et.Cnt = 1
-					et.LastTime = now.Add(time.Duration((rand.Int() % 5000)) * time.Millisecond)
-					continue
-				}
+				//if et.Cnt == 0 {
+				//	et.Cnt = 1
+				//	et.LastTime = now.Add(2000 * time.Millisecond) // (rand.Int() % 5000)
+				//	continue
+				//}
 
-				max := 100
+				max := 1500
 				// If using torrent and the saved height is more than 750 behind, let torrent do it's work, and don't send out
 				// missing message requests
 				if s.UsingTorrent() && s.GetLeaderHeight() > 1000 && s.GetHighestSavedBlk() < s.GetLeaderHeight()-750 {
@@ -118,42 +119,27 @@ func (s *State) MakeMissingEntryRequests() {
 					sent++
 					entryRequest := messages.NewMissingData(s, et.EntryHash)
 					entryRequest.SendOut(s, entryRequest)
+					ESMissingRequestCount.Inc()
 					newrequest++
-					et.LastTime = now.Add(time.Duration((rand.Int() % 5000)) * time.Millisecond)
+					et.LastTime = now.Add(3000 * time.Millisecond)
 					et.Cnt++
+
+					// Do (up to) 1 write per request to prevent bursts of writes/requests
+					writeEntryToDisk(MissingEntryMap, s)
 				}
 
+				if sent >= max {
+					break
+				}
 			}
 		} else {
 			time.Sleep(20 * time.Second)
 		}
 
 		// Insert the entries we have found into the database.
-	InsertLoop:
-		for {
-
-			select {
-
-			case entry := <-s.WriteEntry:
-
-				asked := MissingEntryMap[entry.GetHash().Fixed()] != nil
-
-				if asked {
-					s.DB.StartMultiBatch()
-					err := s.DB.InsertEntryMultiBatch(entry)
-					if err != nil {
-						panic(err)
-					}
-					err = s.DB.ExecuteMultiBatch()
-					if err != nil {
-						panic(err)
-					}
-				}
-
-			default:
-				break InsertLoop
-			}
+		for writeEntryToDisk(MissingEntryMap, s) {
 		}
+
 		if sent == 0 {
 			if s.GetHighestKnownBlock()-s.GetHighestSavedBlk() > 100 {
 				time.Sleep(10 * time.Second)
@@ -165,6 +151,27 @@ func (s *State) MakeMissingEntryRequests() {
 			}
 		}
 	}
+}
+func writeEntryToDisk(MissingEntryMap map[[32]byte]*MissingEntry, s *State) bool {
+	select {
+	case entry := <-s.WriteEntry:
+		asked := MissingEntryMap[entry.GetHash().Fixed()] != nil
+		if asked {
+			s.DB.StartMultiBatch()
+			err := s.DB.InsertEntryMultiBatch(entry)
+			if err != nil {
+				panic(err)
+			}
+			err = s.DB.ExecuteMultiBatch()
+			if err != nil {
+				panic(err)
+			}
+			ESWritingToDiskCount.Inc()
+		}
+	default:
+		return false
+	}
+	return true
 }
 
 func (s *State) GoSyncEntries() {
