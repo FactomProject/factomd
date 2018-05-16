@@ -766,9 +766,10 @@ func (p *ProcessList) makeMMRs(s interfaces.IState, asks <-chan askRef, adds <-c
 		case <-done:
 			addAllAsks() // process all pending asks before any adds
 			addAllAdds() // process all pending add before any ticks
-			p.asks = nil // nil all the channel pointers so no one will use them
-			p.adds = nil
-			p.done = nil
+			// this causes a race with the main thread checking for nil and then sending to the channel
+			//p.asks = nil // nil all the channel pointers so no one will use them
+			//p.adds = nil
+			//p.done = nil
 
 			if len(pending) != 0 {
 				s.LogPrintf(logname, "End PL DBH %d with %d still outstanding %v", p.DBHeight, len(pending), pending)
@@ -907,6 +908,8 @@ func (p *ProcessList) decodeState(Syncing bool, DBSig bool, EOM bool, DBSigDone 
 
 var nillist map[int]int = make(map[int]int)
 
+var extraDebug bool = false
+
 // Process messages and update our state.
 func (p *ProcessList) Process(state *State) (progress bool) {
 	dbht := state.GetHighestSavedBlk()
@@ -946,7 +949,9 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					state.SyncingState[state.SyncingStateCurrent] = x
 				}
 			}
-			p.State.LogMessage("process", fmt.Sprintf("Consider %v/%v/%v", p.DBHeight, i, j), vm.List[j])
+			if extraDebug {
+				p.State.LogMessage("process", fmt.Sprintf("Consider %v/%v/%v", p.DBHeight, i, j), vm.List[j])
+			}
 			if vm.List[j] == nil {
 				//p.State.AddStatus(fmt.Sprintf("ProcessList.go Process: Found nil list at vm %d vm height %d ", i, j))
 				cnt := 0
@@ -1072,7 +1077,9 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			} else {
 				// If we don't have the Entry Blocks (or we haven't processed the signatures) we can't do more.
 				// p.State.AddStatus(fmt.Sprintf("Can't do more: dbht: %d vm: %d vm-height: %d Entry Height: %d", p.DBHeight, i, j, state.EntryDBHeightComplete))
-				p.State.LogPrintf("process", "else case")
+				if extraDebug {
+					p.State.LogPrintf("process", "Waiting on saving blocks to progress complete %d processing %d-:-%d", state.EntryDBHeightComplete, p.DBHeight, vm.LeaderMinute)
+				}
 				break VMListLoop
 			}
 		}
