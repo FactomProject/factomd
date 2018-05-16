@@ -946,6 +946,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					state.SyncingState[state.SyncingStateCurrent] = x
 				}
 			}
+			p.State.LogPrintf("process", "Consider %v/%v/%v", p.DBHeight, i, j)
 			if vm.List[j] == nil {
 				//p.State.AddStatus(fmt.Sprintf("ProcessList.go Process: Found nil list at vm %d vm height %d ", i, j))
 				cnt := 0
@@ -1204,6 +1205,9 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	delete(p.State.Acks, msgHash.Fixed())
 	p.VMs[ack.VMIndex].List[ack.Height] = m
 	p.VMs[ack.VMIndex].ListAck[ack.Height] = ack
+
+	delete(nillist, int(ack.Height)) // Notify if this is ever nil again
+
 	p.AddOldMsgs(m)
 	p.OldAcks[msgHash.Fixed()] = ack
 
