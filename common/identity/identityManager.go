@@ -315,7 +315,11 @@ func (im *IdentityManager) GetAuthority(chainID interfaces.IHash) *Authority {
 	im.Init()
 	im.Mutex.RLock()
 	defer im.Mutex.RUnlock()
-	return im.Authorities[chainID.Fixed()]
+	rval, ok := im.Authorities[chainID.Fixed()]
+	if !ok {
+		return nil
+	}
+	return rval
 }
 
 type OldEntry struct {

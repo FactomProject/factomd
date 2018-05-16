@@ -325,6 +325,9 @@ func (auth *Authority) Type() int {
 }
 
 func (auth *Authority) GetSigningKey() []byte {
+	if auth == nil {
+		return constants.ZERO_HASH // probably bad we got here but worse to let it cause a panic
+	}
 	return auth.SigningKey[:]
 }
 

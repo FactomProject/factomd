@@ -2097,7 +2097,11 @@ func (s *State) GetAuthorities() []interfaces.IAuthority {
 // GetAuthorityInterface will the authority as an interface. Because of import issues
 // we cannot access IdentityControl Directly
 func (s *State) GetAuthorityInterface(chainid interfaces.IHash) interfaces.IAuthority {
-	return s.IdentityControl.GetAuthority(chainid)
+	rval := s.IdentityControl.GetAuthority(chainid)
+	if rval == nil {
+		return nil
+	}
+	return rval
 }
 
 // GetLeaderPL returns the leader process list from the state. this method is
