@@ -326,4 +326,6 @@ type IState interface {
 	GetHighestAck() uint32
 	SetHighestAck(uint32)
 	DebugExec() bool
+	CheckFileName(string) bool
+	//	AddToReplayFilter(mask int, hash [32]byte, timestamp Timestamp, systemtime Timestamp) bool
 }
