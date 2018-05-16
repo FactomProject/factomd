@@ -946,7 +946,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					state.SyncingState[state.SyncingStateCurrent] = x
 				}
 			}
-			p.State.LogPrintf("process", "Consider %v/%v/%v", p.DBHeight, i, j)
+			p.State.LogMessage("process", fmt.Sprintf("Consider %v/%v/%v", p.DBHeight, i, j), vm.List[j])
 			if vm.List[j] == nil {
 				//p.State.AddStatus(fmt.Sprintf("ProcessList.go Process: Found nil list at vm %d vm height %d ", i, j))
 				cnt := 0
@@ -996,6 +996,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				// expected serialHash (generated above)
 				if !expectedSerialHash.IsSameAs(thisAck.SerialHash) {
 					p.State.Reset() // This currently does nothing.. see comments in reset
+					p.State.LogPrintf("process", "reset")
 					return
 				}
 			}
@@ -1071,6 +1072,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			} else {
 				// If we don't have the Entry Blocks (or we haven't processed the signatures) we can't do more.
 				// p.State.AddStatus(fmt.Sprintf("Can't do more: dbht: %d vm: %d vm-height: %d Entry Height: %d", p.DBHeight, i, j, state.EntryDBHeightComplete))
+				p.State.LogPrintf("process", "else case")
 				break VMListLoop
 			}
 		}
