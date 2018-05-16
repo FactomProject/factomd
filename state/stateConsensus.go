@@ -639,8 +639,12 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 	list := pl.VMs[ack.VMIndex].List
 	if len(list) > int(ack.Height) && list[ack.Height] != nil {
 		// there is already a message in our slot?
-		s.LogPrintf("executeMsg", "drop, len(list)(%d) > int(ack.Height)(%d) && list[ack.Height](%p) != nil", len(list), int(ack.Height), list[ack.Height])
-		s.LogMessage("executeMsg", "found ", list[ack.Height])
+		if list[ack.Height].GetRepeatHash() != msg.GetRepeatHash() {
+			s.LogPrintf("executeMsg", "drop, processlist slot taken", len(list), int(ack.Height), list[ack.Height])
+			s.LogMessage("executeMsg", "found ", list[ack.Height])
+		} else {
+			s.LogMessage("executeMsg", "executed twice", msg)
+		}
 		return
 	}
 
