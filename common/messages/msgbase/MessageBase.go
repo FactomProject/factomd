@@ -66,6 +66,9 @@ var places map[string]interfaces.IMsg = make(map[string]interfaces.IMsg)
 var sends, unique, duplicate int
 
 func (m *MessageBase) SendOut(s interfaces.IState, msg interfaces.IMsg) {
+if msg.GetNoResend() {
+		return
+	}
 	// Are we ever modifying a message?
 	if m.ResendCnt > 4 { // If the first send fails, we need to try again
 		// TODO: Maybe have it not resend unless x time passed?
