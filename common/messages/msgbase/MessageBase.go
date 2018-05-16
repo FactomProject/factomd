@@ -45,6 +45,7 @@ type foo struct {
 	what  map[[32]byte]interfaces.IMsg
 }
 
+//
 var outs map[string]*foo = make(map[string]*foo)
 var places map[string]interfaces.IMsg = make(map[string]interfaces.IMsg)
 

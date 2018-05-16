@@ -270,9 +270,7 @@ func (m *DataResponse) MarshalBinary() ([]byte, error) {
 }
 
 func (m *DataResponse) String() string {
-	return fmt.Sprintf("DataResponse Type: %2d Hash: %x\n",
-		m.DataType,
-		m.DataHash.Bytes())
+	return fmt.Sprintf("DataResponse Type: %2d Hash: %x", m.DataType, m.DataHash.Bytes())
 }
 
 func (m *DataResponse) LogFields() log.Fields {
