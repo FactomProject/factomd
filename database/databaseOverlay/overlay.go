@@ -11,6 +11,7 @@ package databaseOverlay
 import (
 	"encoding/binary"
 	"fmt"
+	"os"
 	"sync"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -271,9 +272,14 @@ func (db *Overlay) FetchAllBlockKeysFromBucket(bucket []byte) ([]interfaces.IHas
 	}
 	answer := make([]interfaces.IHash, len(entries))
 	for i := range entries {
-		answer[i], err = primitives.NewShaHash(entries[i])
+		h, err := primitives.NewShaHash(entries[i])
 		if err != nil {
 			return nil, err
+		}
+		if h != nil { // should always happen
+			answer[i] = h
+		} else {
+			fmt.Fprintf(os.Stderr, "Overlay.FetchAllBlockKeysFromBucket() unexpected nil")
 		}
 	}
 	return answer, nil
