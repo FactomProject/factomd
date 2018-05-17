@@ -908,7 +908,7 @@ func (p *ProcessList) decodeState(Syncing bool, DBSig bool, EOM bool, DBSigDone 
 
 var nillist map[int]int = make(map[int]int)
 
-var extraDebug bool = true
+var extraDebug bool = false
 
 // Process messages and update our state.
 func (p *ProcessList) Process(state *State) (progress bool) {
