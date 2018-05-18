@@ -377,11 +377,13 @@ type State struct {
 	NumEntryBlocks int // Number of Entry Blocks
 	NumFCTTrans    int // Number of Factoid Transactions in this block
 
-	// debug message
+	// debug message about state status rolling queue for ControlPanel
 	pstate              string
 	SyncingState        [256]string
 	SyncingStateCurrent int
 	processCnt          int64 // count of attempts to process .. so we can see if the thread is running
+
+	MMRInfo // fields for MMR processing
 }
 
 var _ interfaces.IState = (*State)(nil)
@@ -998,6 +1000,7 @@ func (s *State) Init() {
 		}
 	}
 
+	s.startMMR()
 }
 
 func (s *State) HookLogstash() error {
