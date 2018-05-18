@@ -48,7 +48,7 @@ type ProcessList struct {
 	                                            (discard DBlock if > 1/2 have sig differences) */
 	// messages processed in this list
 	OldMsgs     map[[32]byte]interfaces.IMsg
-	oldmsgslock *sync.Mutex
+	oldmsgslock sync.Mutex
 
 	// Chains that are executed, but not processed. There is a small window of a pending chain that the ack
 	// will pass and the chainhead will fail. This covers that window. This is only used by WSAPI,
@@ -56,11 +56,11 @@ type ProcessList struct {
 	PendingChainHeads *SafeMsgMap
 
 	OldAcks     map[[32]byte]interfaces.IMsg
-	oldackslock *sync.Mutex
+	oldackslock sync.Mutex
 
 	// Entry Blocks added within 10 minutes (follower and leader)
 	NewEBlocks     map[[32]byte]interfaces.IEntryBlock
-	neweblockslock *sync.Mutex
+	neweblockslock sync.Mutex
 
 	NewEntriesMutex sync.RWMutex
 	NewEntries      map[[32]byte]interfaces.IEntry
@@ -536,9 +536,6 @@ func (p *ProcessList) GetOldMsgs(key interfaces.IHash) interfaces.IMsg {
 	if p == nil {
 		return nil
 	}
-	if p.oldmsgslock == nil {
-		return nil
-	}
 	p.oldmsgslock.Lock()
 	defer p.oldmsgslock.Unlock()
 	return p.OldMsgs[key.Fixed()]
@@ -769,6 +766,8 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 				// expected serialHash (generated above)
 				if !expectedSerialHash.IsSameAs(thisAck.SerialHash) {
 					s.LogMessage("process", "Reset", vm.List[j])
+					s.LogPrintf("process", "expected %x", expectedSerialHash.Bytes())
+					s.LogPrintf("process", "thisAck  %x", thisAck.SerialHash.Bytes())
 					s.Reset() // This currently does nothing.. see comments in reset
 					//todo: report this... it's probably bad
 					return
@@ -826,6 +825,7 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 					vm.heartBeat = 0
 					vm.Height = j + 1 // Don't process it again if the process worked.
 					s.LogMessage("process", fmt.Sprintf("done %v/%v/%v", p.DBHeight, i, j), msg)
+					s.LogPrintf("process", "thisAck  %x", thisAck.SerialHash.Bytes())
 
 					progress = true
 
@@ -1156,12 +1156,9 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 
 	pl.PendingChainHeads = NewSafeMsgMap("PendingChainHeads", pl.State)
 	pl.OldMsgs = make(map[[32]byte]interfaces.IMsg)
-	pl.oldmsgslock = new(sync.Mutex)
 	pl.OldAcks = make(map[[32]byte]interfaces.IMsg)
-	pl.oldackslock = new(sync.Mutex)
 
 	pl.NewEBlocks = make(map[[32]byte]interfaces.IEntryBlock)
-	pl.neweblockslock = new(sync.Mutex)
 	pl.NewEntries = make(map[[32]byte]interfaces.IEntry)
 
 	pl.DBSignatures = make([]DBSig, 0)
