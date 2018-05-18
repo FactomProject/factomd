@@ -3,6 +3,13 @@ package blockgen
 import (
 	"math/rand"
 
+	"time"
+
+	"bytes"
+	"encoding/binary"
+
+	"fmt"
+
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
@@ -31,7 +38,17 @@ type EntryGeneratorConfig struct {
 	EblocksPerHeight Range
 }
 
+func NewDefaultEntryGeneratorConfig() *EntryGeneratorConfig {
+	e := new(EntryGeneratorConfig)
+	e.EntriesPerBlock = Range{10, 100}
+	e.EntrySize = Range{100, 1000}
+	e.EblocksPerHeight = Range{5, 10}
+
+	return e
+}
+
 type IFullEntryGenerator interface {
+	NewBlockSet(dbs *state.DBState, newtime interfaces.Timestamp) (*state.DBState, error)
 }
 
 // Generates ECBlock, EBlocks, Entries, and Factoid transactions
@@ -50,15 +67,22 @@ func NewFullEntryGenerator(ecKey, fKey primitives.PrivateKey, config EntryGenera
 	return f
 }
 
-func (f *FullEntryGenerator) NewBlockSet(dbs *state.DBState) {
+func (f *FullEntryGenerator) NewBlockSet(dbs *state.DBState, newtime interfaces.Timestamp) (*state.DBState, error) {
 	newDBState := new(state.DBState)
 	// Need all the entries and commits
 	// Then we need to build an ECBlock, and a factoid transaction to fund these entries
 
 	//  Step 1: Get the entries
-	eblocks, entries, commits, totalcost := f.IEntryGenerator.AllEntries()
-	newDBState.EntryBlocks = eblocks
-	newDBState.Entries = entries
+	eblocks, entries, commits, totalcost := f.IEntryGenerator.AllEntries(dbs.DirectoryBlock.GetDatabaseHeight()+1, newtime)
+	newDBState.EntryBlocks = make([]interfaces.IEntryBlock, len(eblocks))
+	for i, eb := range eblocks {
+		newDBState.EntryBlocks[i] = eb
+	}
+
+	newDBState.Entries = make([]interfaces.IEBEntry, len(entries))
+	for i, e := range entries {
+		newDBState.Entries[i] = e
+	}
 
 	// Step 2: ECBlock
 	ecb := entryCreditBlock.NewECBlock()
@@ -67,19 +91,57 @@ func (f *FullEntryGenerator) NewBlockSet(dbs *state.DBState) {
 	}
 
 	// Step3: FactoidBlock with funds
+	fb := factoid.NewFBlock(dbs.FactoidBlock)
+	coinbase := new(factoid.Transaction)
+	coinbase.MilliTimestamp = newtime.GetTimeMilliUInt64()
+	fmt.Println(coinbase.MilliTimestamp)
+	fb.AddCoinbase(coinbase)
 
+	ect, err := BuyEC(f.FKey, f.IEntryGenerator.GetECKey().Pub, uint64(totalcost), dbs.FactoidBlock.GetExchRate(), newtime)
+	if err != nil {
+		return nil, err
+	}
+	ect.BlockHeight = fb.GetDatabaseHeight()
+	ect.GetTxID()
+	err = fb.AddTransaction(ect)
+	if err != nil {
+		return nil, err
+	}
+
+	// Assemble
+	newDBState.EntryCreditBlock = ecb
+
+	newDBState.EntryBlocks = make([]interfaces.IEntryBlock, len(eblocks))
+	for i, eb := range eblocks {
+		newDBState.EntryBlocks[i] = eb
+	}
+
+	newDBState.Entries = make([]interfaces.IEBEntry, len(entries))
+	for i, e := range entries {
+		newDBState.Entries[i] = e
+	}
+
+	newDBState.FactoidBlock = fb
+
+	// hashes
+	newDBState.FBHash = fb.DatabasePrimaryIndex()
+	newDBState.ECHash = ecb.DatabasePrimaryIndex()
+
+	return newDBState, nil
 }
 
-func BuyEC(from primitives.PrivateKey, to primitives.PublicKey, amt int64, ecrate uint64) (*factoid.Transaction, error) {
+func BuyEC(from primitives.PrivateKey, to *primitives.PublicKey, ecamount uint64, ecrate uint64, time interfaces.Timestamp) (*factoid.Transaction, error) {
 	trans := new(factoid.Transaction)
 	pub := from.Pub.Fixed()
-	inHash := primitives.Sha(append([]byte{0x01}, pub[:]...))
+	inHash := primitives.Sha(primitives.Sha(append([]byte{0x01}, pub[:]...)).Bytes())
 	rcd := factoid.NewRCD_1(pub[:])
 
-	trans.AddInput(inHash, 0)
-	trans.AddECOutput(factoid.NewAddress(to[:]), 0)
+	amt := uint64(ecamount * ecrate)
+
+	trans.AddInput(inHash, amt)
+	trans.AddECOutput(factoid.NewAddress(to[:]), amt)
 	trans.AddRCD(rcd)
-	trans.SetTimestamp(primitives.NewTimestampNow())
+	trans.SetTimestamp(time)
 	fee, err := trans.CalculateFee(ecrate)
 	if err != nil {
 		return nil, err
@@ -93,69 +155,14 @@ func BuyEC(from primitives.PrivateKey, to primitives.PublicKey, amt int64, ecrat
 	if err != nil {
 		return nil, err
 	}
-	sig := factoid.NewSingleSignatureBlock(from[:], dataSig)
+	sig := factoid.NewSingleSignatureBlock(from.Key[:], dataSig)
 	trans.SetSignatureBlock(0, sig)
 	return trans, nil
-
-	/*
-			func fundWallet(st *state.State, amt uint64) error {
-			inSec, _ := primitives.HexToHash("FB3B471B1DCDADFEB856BD0B02D8BF49ACE0EDD372A3D9F2A95B78EC12A324D6")
-			outEC, _ := primitives.HexToHash("c23ae8eec2beb181a0da926bd2344e988149fbe839fbc7489f2096e7d6110243")
-			inHash, _ := primitives.HexToHash("646F3E8750C550E4582ECA5047546FFEF89C13A175985E320232BACAC81CC428")
-			var sec [64]byte
-			copy(sec[:32], inSec.Bytes())
-
-			pub := ed.GetPublicKey(&sec)
-			//inRcd := shad(inPub.Bytes())
-
-			rcd := factoid.NewRCD_1(pub[:])
-			inAdd := factoid.NewAddress(inHash.Bytes())
-			outAdd := factoid.NewAddress(outEC.Bytes())
-
-			trans := new(factoid.Transaction)
-			trans.AddInput(inAdd, amt)
-			trans.AddECOutput(outAdd, amt)
-
-			trans.AddRCD(rcd)
-			trans.AddAuthorization(rcd)
-			trans.SetTimestamp(primitives.NewTimestampNow())
-
-			fee, err := trans.CalculateFee(st.GetFactoshisPerEC())
-			if err != nil {
-				return err
-			}
-			input, err := trans.GetInput(0)
-			if err != nil {
-				return err
-			}
-			input.SetAmount(amt + fee)
-
-			dataSig, err := trans.MarshalBinarySig()
-			if err != nil {
-				return err
-			}
-			sig := factoid.NewSingleSignatureBlock(inSec.Bytes(), dataSig)
-			trans.SetSignatureBlock(0, sig)
-
-			t := new(wsapi.TransactionRequest)
-			data, _ := trans.MarshalBinary()
-			t.Transaction = hex.EncodeToString(data)
-			j := primitives.NewJSON2Request("factoid-submit", 0, t)
-			_, err = v2Request(j, st.GetPort())
-			//_, err = wsapi.HandleV2Request(st, j)
-			if err != nil {
-				return err
-			}
-			_ = err
-
-			return nil
-		}
-	*/
 }
 
 type IEntryGenerator interface {
-	AllEntries(height uint32) ([]*entryBlock.EBlock, []*entryBlock.Entry, []*entryCreditBlock.CommitEntry, int)
-	NewEblock(height uint32) (*entryBlock.EBlock, []*entryBlock.Entry, []*entryCreditBlock.CommitEntry, int)
+	AllEntries(height uint32, time interfaces.Timestamp) ([]*entryBlock.EBlock, []*entryBlock.Entry, []*entryCreditBlock.CommitEntry, int)
+	NewEblock(height uint32, time interfaces.Timestamp) (*entryBlock.EBlock, []*entryBlock.Entry, []*entryCreditBlock.CommitEntry, int)
 	NewEntry(chain interfaces.IHash) *entryBlock.Entry
 
 	GetECKey() primitives.PrivateKey
@@ -179,14 +186,14 @@ func (r *RandomEntryGenerator) GetECKey() primitives.PrivateKey {
 	return r.ECKey
 }
 
-func (r *RandomEntryGenerator) AllEntries(height uint32) ([]*entryBlock.EBlock, []*entryBlock.Entry, []*entryCreditBlock.CommitEntry, int) {
+func (r *RandomEntryGenerator) AllEntries(height uint32, time interfaces.Timestamp) ([]*entryBlock.EBlock, []*entryBlock.Entry, []*entryCreditBlock.CommitEntry, int) {
 	eblocks := make([]*entryBlock.EBlock, 0)
 	commits := make([]*entryCreditBlock.CommitEntry, 0)
 	entries := make([]*entryBlock.Entry, 0)
 	totalCost := 0
 
 	for i := 0; i < r.Config.EblocksPerHeight.Amount(); i++ {
-		neb, nes, necs, t := r.NewEblock(height)
+		neb, nes, necs, t := r.NewEblock(height, time)
 		eblocks = append(eblocks, neb)
 		entries = append(entries, nes...)
 		commits = append(commits, necs...)
@@ -195,16 +202,16 @@ func (r *RandomEntryGenerator) AllEntries(height uint32) ([]*entryBlock.EBlock, 
 	return eblocks, entries, commits, totalCost
 }
 
-func (r *RandomEntryGenerator) NewEblock(height uint32) (*entryBlock.EBlock, []*entryBlock.Entry, []*entryCreditBlock.CommitEntry, int) {
+func (r *RandomEntryGenerator) NewEblock(height uint32, time interfaces.Timestamp) (*entryBlock.EBlock, []*entryBlock.Entry, []*entryCreditBlock.CommitEntry, int) {
 	commits := make([]*entryCreditBlock.CommitEntry, 0)
 	entries := make([]*entryBlock.Entry, 0)
 	totalCost := 0
 
 	head := r.NewEntry(primitives.NewZeroHash())
 	// First one needs an extid
-	head.ExternalIDs() = [][]byte{random.RandByteSliceOfLen(10), random.RandByteSliceOfLen(10)}
+	head.ExtIDs = []primitives.ByteSlice{primitives.ByteSlice{random.RandByteSliceOfLen(10)}, primitives.ByteSlice{random.RandByteSliceOfLen(10)}}
 	head.ChainID = head.GetChainID()
-	commit := r.newCommit(head)
+	commit := r.newCommit(head, time)
 	commit.Credits += 10
 	totalCost += int(commit.Credits)
 	commit = r.signCommit(commit)
@@ -220,7 +227,7 @@ func (r *RandomEntryGenerator) NewEblock(height uint32) (*entryBlock.EBlock, []*
 	// now add the other entries
 	for i := 0; i < r.Config.EntriesPerBlock.Amount(); i++ {
 		ent := r.NewEntry(head.ChainID)
-		commit := r.newCommit(ent)
+		commit := r.newCommit(ent, time)
 		commit = r.signCommit(commit)
 		totalCost += int(commit.Credits)
 		eb.AddEBEntry(ent)
@@ -237,7 +244,7 @@ func (r *RandomEntryGenerator) NewEntry(chain interfaces.IHash) *entryBlock.Entr
 	bytes := rand.Intn(conf.EntrySize.Max) + conf.EntrySize.Max
 
 	ent := entryBlock.NewEntry()
-	ent.Content = random.RandByteSliceOfLen(bytes)
+	ent.Content = primitives.ByteSlice{random.RandByteSliceOfLen(bytes)}
 	ent.ChainID = chain
 	return ent
 }
@@ -247,11 +254,22 @@ func (r *RandomEntryGenerator) signCommit(entry *entryCreditBlock.CommitEntry) *
 	return entry
 }
 
-func (r *RandomEntryGenerator) newCommit(e *entryBlock.Entry) *entryCreditBlock.CommitEntry {
+func (r *RandomEntryGenerator) newCommit(e *entryBlock.Entry, time interfaces.Timestamp) *entryCreditBlock.CommitEntry {
 	commit := entryCreditBlock.NewCommitEntry()
 	commit.EntryHash = e.GetHash()
 	d, _ := e.MarshalBinary()
 	commit.Credits, _ = util.EntryCost(d)
-	commit.MilliTime = primitives.NewTimestampNow().GetTimeMilli()
+	var t primitives.ByteSlice6
+	copy(t[:], milliTime(time.GetTimeSeconds())[:])
+	commit.MilliTime = &t
 	return commit
+}
+
+// milliTime returns a 6 byte slice representing the unix time in milliseconds
+func milliTime(unix int64) (r []byte) {
+	buf := new(bytes.Buffer)
+	t := time.Unix(unix, 0).UnixNano()
+	m := t / 1e6
+	binary.Write(buf, binary.BigEndian, m)
+	return buf.Bytes()[2:]
 }

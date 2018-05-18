@@ -3,6 +3,8 @@ package blockgen
 import (
 	"strings"
 
+	"git.factoid.org/factomd/common/constants"
+
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/messages/electionMsgs"
 
@@ -20,7 +22,23 @@ import (
 type DBGenerator struct {
 	// We need to process blocks to get state values
 	// and ensure the data is correct
-	FactomdState *state.State
+	FactomdState   *state.State
+	BlockGenerator *BlockGen
+
+	last *state.DBState
+}
+
+func NewDBGenerator(c *DBGeneratorConfig) (*DBGenerator, error) {
+	var err error
+	db := new(DBGenerator)
+	db.FactomdState = NewGeneratorState(c.DBPath, c.DBType, c.FactomdConfigPath)
+	db.BlockGenerator, err = NewBlockGen(c.EntryGenConfig)
+	if err != nil {
+		return nil, err
+	}
+	db.loadGenesis() // TODO: Load from db?
+
+	return db, nil
 }
 
 func NewGeneratorState(dbpath, dbtype string, configpath string) *state.State {
@@ -44,7 +62,10 @@ func NewGeneratorState(dbpath, dbtype string, configpath string) *state.State {
 	s.LoadConfig(configpath, "CUSTOM")
 	s.EFactory = new(electionMsgs.ElectionsFactory)
 	s.Init()
-	s.NetworkNumber = 1000
+	s.NetworkNumber = constants.NETWORK_CUSTOM
+
+	customnetname := "gen"
+	s.CustomNetworkID = primitives.Sha([]byte(customnetname)).Bytes()[:4]
 	return s
 }
 
@@ -71,7 +92,20 @@ func (g *DBGenerator) loadGenesis() {
 	sds := g.msgToDBState(dbstate)
 	sds.ReadyToSave = true
 	sds.Signed = true
+	g.FactomdState.DBStates.NewDBState(false, sds.DirectoryBlock, sds.AdminBlock, sds.FactoidBlock, sds.EntryCreditBlock, sds.EntryBlocks, sds.Entries)
 	g.FactomdState.DBStates.SaveDBStateToDB(sds)
+	sds.Saved = true
+	g.last = sds
+}
+
+func (g *DBGenerator) SaveDBState(dbstate *state.DBState) {
+	dbstate.ReadyToSave = true
+	dbstate.Signed = true
+	put := g.FactomdState.DBStates.Put(dbstate)
+	if !put {
+		fmt.Printf("%d Not put in dbstate list\n", dbstate.DirectoryBlock.GetDatabaseHeight())
+	}
+	g.FactomdState.DBStates.SaveDBStateToDB(dbstate)
 }
 
 // dbState := s.DBStates.NewDBState(isNew, directoryBlock, adminBlock, factoidBlock, entryCreditBlock, eBlocks, entries)
@@ -96,6 +130,8 @@ type DBGeneratorConfig struct {
 	DBPath            string
 	DBType            string
 	FactomdConfigPath string
+
+	EntryGenConfig EntryGeneratorConfig
 }
 
 func NewDefaultDBGeneratorConfig() *DBGeneratorConfig {
@@ -103,15 +139,19 @@ func NewDefaultDBGeneratorConfig() *DBGeneratorConfig {
 	c.DBType = "level"
 	c.DBPath = "factoid_level.db"
 	c.FactomdConfigPath = "gen.conf"
+	c.EntryGenConfig = *NewDefaultEntryGeneratorConfig()
 	return c
 }
 
-func NewDBGenerator(c *DBGeneratorConfig) *DBGenerator {
-	db := new(DBGenerator)
-	db.FactomdState = NewGeneratorState(c.DBPath, c.DBType, c.FactomdConfigPath)
-
-	db.loadGenesis()
-	fmt.Println(db.FactomdState.DB.FetchDBlockHead())
-
-	return db
+func (g *DBGenerator) CreateBlocks(amt int) error {
+	for i := 0; i < amt; i++ {
+		dbstate, err := g.BlockGenerator.NewBlock(g.last, g.FactomdState.GetNetworkID())
+		if err != nil {
+			return err
+		}
+		g.SaveDBState(dbstate)
+		g.last = dbstate
+		fmt.Println(i)
+	}
+	return nil
 }

@@ -1467,7 +1467,6 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	progress = true
 	d.ReadyToSave = false
 	d.Saved = true
-
 	return
 }
 
@@ -1558,7 +1557,11 @@ searchLoop:
 		dbstates = append(dbstates, list.DBStates[cnt-int(keep):]...)
 		list.DBStates = dbstates
 		list.Base = list.Base + uint32(cnt) - keep
-		list.Complete = list.Complete - uint32(cnt) + keep
+		if int(list.Complete)-cnt+int(keep) < 0 { // TODO: How should we solve the underflow?
+			list.Complete = 0
+		} else {
+			list.Complete = list.Complete - uint32(cnt) + keep
+		}
 	}
 
 	index := int(dbheight) - int(list.Base)
