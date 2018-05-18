@@ -276,7 +276,7 @@ func (db *Overlay) FetchAllBlockKeysFromBucket(bucket []byte) ([]interfaces.IHas
 			return nil, err
 		}
 		// be careful to not assign a nil hash to an IHash
-		if h!=nil {
+		if h != nil {
 			answer[i] = h
 		}
 	}

@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -116,7 +117,12 @@ func (t *Timestamp) GetTimeSecondsUInt32() uint32 {
 	return uint32(*t / 1000)
 }
 
-func (t *Timestamp) MarshalBinary() ([]byte, error) {
+func (t *Timestamp) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "Timestamp.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	var out bytes.Buffer
 	hd := uint32(*t >> 16)
 	ld := uint16(*t & 0xFFFF)

@@ -7,6 +7,7 @@ package primitives
 import (
 	"encoding/hex"
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -92,7 +93,12 @@ func (a *ByteSlice32) IsSameAs(b *ByteSlice32) bool {
 	return AreBytesEqual(a[:], b[:])
 }
 
-func (bs *ByteSlice32) MarshalBinary() ([]byte, error) {
+func (bs *ByteSlice32) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "ByteSlice32.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	return bs[:], nil
 }
 
@@ -131,7 +137,12 @@ func (bs *ByteSlice32) String() string {
 	return fmt.Sprintf("%x", bs[:])
 }
 
-func (bs *ByteSlice32) MarshalText() ([]byte, error) {
+func (bs *ByteSlice32) MarshalText() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "ByteSlice32.MarshalText err:%v", *pe)
+		}
+	}(&err)
 	return []byte(bs.String()), nil
 }
 
@@ -150,7 +161,12 @@ func (a *ByteSlice64) IsSameAs(b *ByteSlice64) bool {
 	return AreBytesEqual(a[:], b[:])
 }
 
-func (bs *ByteSlice64) MarshalBinary() ([]byte, error) {
+func (bs *ByteSlice64) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "ByteSlice64.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	return bs[:], nil
 }
 
@@ -185,7 +201,12 @@ func (bs *ByteSlice64) String() string {
 	return fmt.Sprintf("%x", bs[:])
 }
 
-func (bs *ByteSlice64) MarshalText() ([]byte, error) {
+func (bs *ByteSlice64) MarshalText() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "ByteSlice64.MarshalText err:%v", *pe)
+		}
+	}(&err)
 	return []byte(bs.String()), nil
 }
 
@@ -204,7 +225,12 @@ func (a *ByteSlice6) IsSameAs(b *ByteSlice6) bool {
 	return AreBytesEqual(a[:], b[:])
 }
 
-func (bs *ByteSlice6) MarshalBinary() ([]byte, error) {
+func (bs *ByteSlice6) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "ByteSlice6.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	return bs[:], nil
 }
 
@@ -239,7 +265,12 @@ func (bs *ByteSlice6) String() string {
 	return fmt.Sprintf("%x", bs[:])
 }
 
-func (bs *ByteSlice6) MarshalText() ([]byte, error) {
+func (bs *ByteSlice6) MarshalText() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "ByteSlice6.MarshalText err:%v", *pe)
+		}
+	}(&err)
 	return []byte(bs.String()), nil
 }
 
@@ -258,7 +289,12 @@ func (a *ByteSliceSig) IsSameAs(b *ByteSliceSig) bool {
 	return AreBytesEqual(a[:], b[:])
 }
 
-func (bs *ByteSliceSig) MarshalBinary() ([]byte, error) {
+func (bs *ByteSliceSig) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "ByteSliceSig.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	return bs[:], nil
 }
 
@@ -303,7 +339,12 @@ func (bs *ByteSliceSig) String() string {
 	return fmt.Sprintf("%x", bs[:])
 }
 
-func (bs *ByteSliceSig) MarshalText() ([]byte, error) {
+func (bs *ByteSliceSig) MarshalText() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "ByteSliceSig.MarshalText err:%v", *pe)
+		}
+	}(&err)
 	return []byte(bs.String()), nil
 }
 
@@ -330,7 +371,12 @@ func (a *ByteSlice20) IsSameAs(b *ByteSlice20) bool {
 	return AreBytesEqual(a[:], b[:])
 }
 
-func (bs *ByteSlice20) MarshalBinary() ([]byte, error) {
+func (bs *ByteSlice20) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "ByteSlice20.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	return bs[:], nil
 }
 
@@ -372,7 +418,12 @@ func (bs *ByteSlice20) String() string {
 	return fmt.Sprintf("%x", bs[:])
 }
 
-func (bs *ByteSlice20) MarshalText() ([]byte, error) {
+func (bs *ByteSlice20) MarshalText() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "ByteSlice20.MarshalText err:%v", *pe)
+		}
+	}(&err)
 	return []byte(bs.String()), nil
 }
 
@@ -418,7 +469,12 @@ func (bs *ByteSlice) New() interfaces.BinaryMarshallableAndCopyable {
 	return new(ByteSlice)
 }
 
-func (bs *ByteSlice) MarshalBinary() ([]byte, error) {
+func (bs *ByteSlice) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "ByteSlice.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	return bs.Bytes[:], nil
 }
 
@@ -450,6 +506,11 @@ func (bs *ByteSlice) String() string {
 	return fmt.Sprintf("%x", bs.Bytes[:])
 }
 
-func (bs *ByteSlice) MarshalText() ([]byte, error) {
+func (bs *ByteSlice) MarshalText() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "ByteSlice.MarshalText err:%v", *pe)
+		}
+	}(&err)
 	return []byte(bs.String()), nil
 }

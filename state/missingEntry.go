@@ -5,6 +5,8 @@
 package state
 
 import (
+	"fmt"
+	"os"
 	"time"
 
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -33,10 +35,15 @@ func (s *MissingEntryBlock) IsSameAs(b *MissingEntryBlock) bool {
 	return s.DBHeight == b.DBHeight
 }
 
-func (s *MissingEntryBlock) MarshalBinary() ([]byte, error) {
+func (s *MissingEntryBlock) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "MissingEntryBlock.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	buf := primitives.NewBuffer(nil)
 
-	err := buf.PushBinaryMarshallable(s.EBHash)
+	err = buf.PushBinaryMarshallable(s.EBHash)
 	if err != nil {
 		return nil, err
 	}
@@ -109,10 +116,15 @@ func (s *MissingEntry) IsSameAs(b *MissingEntry) bool {
 	return s.DBHeight == b.DBHeight
 }
 
-func (s *MissingEntry) MarshalBinary() ([]byte, error) {
+func (s *MissingEntry) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "MissingEntry.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	buf := primitives.NewBuffer(nil)
 
-	err := buf.PushVarInt(uint64(s.Cnt))
+	err = buf.PushVarInt(uint64(s.Cnt))
 	if err != nil {
 		return nil, err
 	}

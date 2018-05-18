@@ -5,10 +5,13 @@
 package engine
 
 import (
+	"bytes"
 	"fmt"
+	"os"
 
 	// "github.com/FactomProject/factomd/common/constants"
 
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/p2p"
@@ -110,23 +113,28 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 	msgLogger := f.logger.WithFields(msg.LogFields())
 
 	f.bytesOut += len(data)
-	hash := fmt.Sprintf("%x", msg.GetMsgHash().Bytes())
-	appType := fmt.Sprintf("%d", msg.Type())
-	message := FactomMessage{Message: data, PeerHash: msg.GetNetworkOrigin(), AppHash: hash, AppType: appType}
-	switch {
-	case !msg.IsPeer2Peer() && msg.IsFullBroadcast():
-		msgLogger.Debug("Sending full broadcast message")
-		message.PeerHash = p2p.FullBroadcastFlag
-	case !msg.IsPeer2Peer() && !msg.IsFullBroadcast():
-		msgLogger.Debug("Sending broadcast message")
-		message.PeerHash = p2p.BroadcastFlag
-	case msg.IsPeer2Peer() && 0 == len(message.PeerHash): // directed, with no direction of who to send it to
-		msgLogger.Debug("Sending directed message to a random peer")
-		message.PeerHash = p2p.RandomPeerFlag
-	default:
-		msgLogger.Debugf("Sending directed message to: %s", message.PeerHash)
+	if msg.GetMsgHash() == nil || bytes.Equal(msg.GetMsgHash().Bytes(), constants.ZERO_HASH) {
+		fmt.Fprintf(os.Stderr, "nil hash message in p2pProxy.Send() %s\n", msg.String())
+		fmt.Fprintf(os.Stderr, "nil hash message in p2pProxy.Send() %+v\n", msg)
+	} else {
+		hash := fmt.Sprintf("%x", msg.GetMsgHash().Bytes())
+		appType := fmt.Sprintf("%d", msg.Type())
+		message := FactomMessage{Message: data, PeerHash: msg.GetNetworkOrigin(), AppHash: hash, AppType: appType}
+		switch {
+		case !msg.IsPeer2Peer() && msg.IsFullBroadcast():
+			msgLogger.Debug("Sending full broadcast message")
+			message.PeerHash = p2p.FullBroadcastFlag
+		case !msg.IsPeer2Peer() && !msg.IsFullBroadcast():
+			msgLogger.Debug("Sending broadcast message")
+			message.PeerHash = p2p.BroadcastFlag
+		case msg.IsPeer2Peer() && 0 == len(message.PeerHash): // directed, with no direction of who to send it to
+			msgLogger.Debug("Sending directed message to a random peer")
+			message.PeerHash = p2p.RandomPeerFlag
+		default:
+			msgLogger.Debugf("Sending directed message to: %s", message.PeerHash)
+		}
+		p2p.BlockFreeChannelSend(f.BroadcastOut, message)
 	}
-	p2p.BlockFreeChannelSend(f.BroadcastOut, message)
 
 	return nil
 }

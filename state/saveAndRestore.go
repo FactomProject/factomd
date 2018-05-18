@@ -7,6 +7,7 @@ package state
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"sort"
 
 	. "github.com/FactomProject/factomd/common/identity"
@@ -665,10 +666,15 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 	s.FERPrioritySetHeight = ss.FERPrioritySetHeight
 }
 
-func (ss *SaveState) MarshalBinary() ([]byte, error) {
+func (ss *SaveState) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "SaveState.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	buf := primitives.NewBuffer(nil)
 
-	err := buf.PushUInt32(ss.DBHeight)
+	err = buf.PushUInt32(ss.DBHeight)
 	if err != nil {
 		return nil, err
 	}

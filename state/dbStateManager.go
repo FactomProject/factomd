@@ -201,11 +201,16 @@ func (a *DBState) IsSameAs(b *DBState) bool {
 	return true
 }
 
-func (dbs *DBState) MarshalBinary() ([]byte, error) {
+func (dbs *DBState) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "DBState.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	dbs.Init()
 	b := primitives.NewBuffer(nil)
 
-	err := b.PushBool(dbs.IsNew)
+	err = b.PushBool(dbs.IsNew)
 	if err != nil {
 		return nil, err
 	}
@@ -512,11 +517,16 @@ func (a *DBStateList) IsSameAs(b *DBStateList) bool {
 	return true
 }
 
-func (dbsl *DBStateList) MarshalBinary() ([]byte, error) {
+func (dbsl *DBStateList) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "DBStateList.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	dbsl.Init()
 	buf := primitives.NewBuffer(nil)
 
-	err := buf.PushBool(dbsl.SrcNetwork)
+	err = buf.PushBool(dbsl.SrcNetwork)
 	if err != nil {
 		return nil, err
 	}

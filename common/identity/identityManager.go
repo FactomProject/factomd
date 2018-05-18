@@ -44,8 +44,7 @@ type IdentityManagerWithoutMutex struct {
 	//	descriptor+declaration height is hit.
 	//		[descriptorheight]List of cancelled outputs
 	CanceledCoinbaseOutputs map[uint32][]uint32
-
-	OldEntries []*OldEntry
+	OldEntries              []*OldEntry
 }
 
 func NewIdentityManager() *IdentityManager {
@@ -73,7 +72,6 @@ func RandomIdentityManagerWithCounts(fedCount, audCount int) *IdentityManager {
 		im.Authorities[id.IdentityChainID.Fixed()] = id.ToAuthority()
 		im.Identities[id.IdentityChainID.Fixed()] = id
 	}
-
 	return im
 }
 

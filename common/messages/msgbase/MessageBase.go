@@ -39,6 +39,30 @@ type MessageBase struct {
 	Sigvalid    bool
 }
 
+func (m *MessageBase) StringOfMsgBase() string {
+
+	rval := fmt.Sprintf("origin %s(%d), LChain=%x resendCnt=%d", m.NetworkOrigin, m.Origin, m.LeaderChainID.Bytes()[3:6], m.ResendCnt)
+	if m.LocalOnly {
+		rval += " local"
+	}
+	if m.Peer2Peer {
+		rval += " p2p"
+	}
+	if m.FullBroadcast {
+		rval += " FullBroadcast"
+	}
+	if m.NoResend {
+		rval += "noResend"
+	}
+	if m.MarkInvalid {
+		rval += "MarkInvalid"
+	}
+	if m.Stalled {
+		rval += "Stalled"
+	}
+
+	return rval
+}
 
 var mu sync.Mutex // lock for debug struct
 
@@ -53,7 +77,7 @@ var places map[string]interfaces.IMsg = make(map[string]interfaces.IMsg)
 var sends, unique, duplicate int
 
 func (m *MessageBase) SendOut(s interfaces.IState, msg interfaces.IMsg) {
-if msg.GetNoResend() {
+	if msg.GetNoResend() {
 		return
 	}
 	// Local Messages are Not broadcast out.  This is mostly the block signature
