@@ -181,17 +181,35 @@ func NewDefaultDBGeneratorConfig() *DBGeneratorConfig {
 
 // CreateBlocks actually creates the blocks and saves them to disk
 func (g *DBGenerator) CreateBlocks(amt int) error {
+	start := time.Now()
 	loop := time.Now()
 	loopper := 10
+	totalEntries := 0
+	loopEntries := 0 // Entries per loop
 	for i := 0; i < amt; i++ {
 		if i%loopper == 0 && i != 0 {
-			log.Infof("Current Height %5d:  %6d/%-6d at %fps", g.last.DirectoryBlock.GetDatabaseHeight(), i, amt, float64(loopper)/time.Since(loop).Seconds())
+			totalDuration := time.Since(start).Seconds()
+			duration := time.Since(loop).Seconds()
+			avgb := totalDuration / float64(i) // avg block/s
+			left := float64(amt - i)
+			timeleft := left * avgb
+
+			log.Infof("Current Height %5d:  %6d/%-6d at %6.2f b/s. Entries at %8.2f e/s. Avg Entry Rate: %8.2f e/s. ~%-12s Remain ",
+				g.last.DirectoryBlock.GetDatabaseHeight(), i, amt,
+				avgb, //float64(loopper)/duration,
+				float64(loopEntries)/duration,
+				float64(totalEntries)/totalDuration,
+				time.Duration(timeleft)*time.Second,
+			)
+			loopEntries = 0
 			loop = time.Now()
 		}
 		dbstate, err := g.BlockGenerator.NewBlock(g.last, g.FactomdState.GetNetworkID(), g.FactomdState.GetLeaderTimestamp())
 		if err != nil {
 			return err
 		}
+		loopEntries += len(dbstate.Entries)
+		totalEntries += len(dbstate.Entries)
 		g.SaveDBState(dbstate)
 		g.last = dbstate
 	}

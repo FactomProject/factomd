@@ -25,16 +25,22 @@ func (r Range) Amount() int {
 }
 
 type EntryGeneratorConfig struct {
-	EntriesPerBlock  Range
+	EntriesPerEBlock Range
 	EntrySize        Range
 	EblocksPerHeight Range
+
+	// MultiThread Stuff
+	Multithreaded   bool
+	ThreadpoolCount int
 }
 
 func NewDefaultEntryGeneratorConfig() *EntryGeneratorConfig {
 	e := new(EntryGeneratorConfig)
-	e.EntriesPerBlock = Range{10, 100}
+	e.EntriesPerEBlock = Range{10, 100}
 	e.EntrySize = Range{100, 1000}
 	e.EblocksPerHeight = Range{5, 10}
+	e.Multithreaded = true
+	e.ThreadpoolCount = 8
 	return e
 }
 

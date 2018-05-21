@@ -17,6 +17,8 @@ import (
 )
 
 func main() {
+	go StartProfiler(512*1024, true)
+
 	var blockcount int
 	var (
 		loglvl     = flag.String("loglvl", "info", "Sets log level to 'debug', 'info', 'warning', or 'error'")

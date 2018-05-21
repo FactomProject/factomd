@@ -20,18 +20,20 @@ starttime: ""
 #     "incr" == Incrementer
 #         Each entry in a chain will have prevent+1 as content
 #         Chainhead will be using random bytes
-entrygenerator: "incr"
+entrygenerator: ""
 # Entry gen config fields
 entrygenconfig:
-  entriesperblock:
-    min: 10
+  entriespereblock:
+    min: 100
     max: 100
   entrysize:
-    min: 100
-    max: 1000
+    min: 9000
+    max: 9000
   eblocksperheight:
     min: 10
-    max: 100
-  # Some entry generation might include custom options
-  customoptions:
-    incr:
+    max: 10
+  # Multithread EBlock creation
+  multithreaded: true
+  threadpoolcount: 8
+
+

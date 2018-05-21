@@ -3,6 +3,8 @@ package blockgen
 import (
 	"math/rand"
 
+	"sync"
+
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -19,6 +21,11 @@ type EntryGenCore struct {
 	// YOU MUST SET THIS
 	//	Setting this allows for overrides. If you do not set this, your new implementation will not work
 	Parent IEntryGenerator
+
+	threadpoolon bool
+	jobs         chan Job
+	results      chan *Resp
+	quit         chan bool
 }
 
 func (r *EntryGenCore) AllEntries(height uint32, time interfaces.Timestamp) ([]*entryBlock.EBlock, []*entryBlock.Entry, []*entryCreditBlock.CommitEntry, int) {
@@ -27,14 +34,85 @@ func (r *EntryGenCore) AllEntries(height uint32, time interfaces.Timestamp) ([]*
 	entries := make([]*entryBlock.Entry, 0)
 	totalCost := 0
 
-	for i := 0; i < r.Config.EblocksPerHeight.Amount(); i++ {
-		neb, nes, necs, t := r.Parent.NewEblock(height, time)
-		eblocks = append(eblocks, neb)
-		entries = append(entries, nes...)
-		commits = append(commits, necs...)
-		totalCost += t
+	if r.Config.Multithreaded {
+		r.InitThreadPool()
+		// Multithread the EBlocks
+		var wg sync.WaitGroup
+		quit := make(chan bool, 2)
+		go func() {
+			for {
+				select {
+				case resp := <-r.results:
+					eblocks = append(eblocks, resp.Neb)
+					entries = append(entries, resp.Nes...)
+					commits = append(commits, resp.Nec...)
+					totalCost += resp.T
+					wg.Done()
+				case <-quit:
+					return
+				}
+			}
+		}()
+
+		for i := 0; i < r.Config.EblocksPerHeight.Amount(); i++ {
+			r.jobs <- Job{height, time}
+			wg.Add(1)
+		}
+
+		wg.Wait()
+		quit <- true
+
+	} else {
+		// Single thread
+		for i := 0; i < r.Config.EblocksPerHeight.Amount(); i++ {
+			neb, nes, necs, t := r.Parent.NewEblock(height, time)
+			eblocks = append(eblocks, neb)
+			entries = append(entries, nes...)
+			commits = append(commits, necs...)
+			totalCost += t
+		}
 	}
 	return eblocks, entries, commits, totalCost
+}
+
+type Resp struct {
+	Neb *entryBlock.EBlock
+	Nec []*entryCreditBlock.CommitEntry
+	Nes []*entryBlock.Entry
+	T   int
+}
+
+type Job struct {
+	Height uint32
+	Time   interfaces.Timestamp
+}
+
+func (r *EntryGenCore) InitThreadPool() {
+	if !r.threadpoolon {
+		r.jobs = make(chan Job, 20)
+		r.results = make(chan *Resp, 20)
+		r.quit = make(chan bool, 10)
+		if r.Config.ThreadpoolCount == 0 {
+			r.Config.ThreadpoolCount = 8
+		}
+		for i := 0; i < r.Config.ThreadpoolCount; i++ {
+			go r.multiThreadWorker()
+		}
+	}
+}
+
+func (r *EntryGenCore) multiThreadWorker() {
+	for {
+		select {
+		case j := <-r.jobs:
+			res := new(Resp)
+			res.Neb, res.Nes, res.Nec, res.T = r.Parent.NewEblock(j.Height, j.Time)
+			r.results <- res
+		case <-r.quit:
+			r.quit <- true
+			return
+		}
+	}
 }
 
 func (r *EntryGenCore) NewEblock(height uint32, time interfaces.Timestamp) (*entryBlock.EBlock, []*entryBlock.Entry, []*entryCreditBlock.CommitEntry, int) {
@@ -57,7 +135,7 @@ func (r *EntryGenCore) NewEblock(height uint32, time interfaces.Timestamp) (*ent
 	commits = append(commits, commit)
 
 	// now add the other entries
-	for i := 0; i < r.Config.EntriesPerBlock.Amount(); i++ {
+	for i := 0; i < r.Config.EntriesPerEBlock.Amount(); i++ {
 		ent := r.Parent.NewEntry(head.ChainID)
 		commit := r.NewCommit(ent, time)
 		commit = r.SignCommit(commit)
