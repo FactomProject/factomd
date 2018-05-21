@@ -7,12 +7,15 @@ import (
 	"github.com/FactomProject/factomd/state"
 )
 
+// BlockGen can created full blocks. EntryGen generates entries, commits, and fct
+// transactions. AuthoritySigner generates DBSigs.
+// BlockGen packs all the responses into a DBState
 type BlockGen struct {
 	EntryGenerator  IFullEntryGenerator
 	AuthoritySigner IAuthSigner
 }
 
-func NewBlockGen(config EntryGeneratorConfig) (*BlockGen, error) {
+func NewBlockGen(config DBGeneratorConfig) (*BlockGen, error) {
 	b := new(BlockGen)
 	b.AuthoritySigner = new(DefaultAuthSigner)
 
@@ -25,12 +28,18 @@ func NewBlockGen(config EntryGeneratorConfig) (*BlockGen, error) {
 	return b, nil
 }
 
-func (bg *BlockGen) NewBlock(prev *state.DBState, netid uint32) (*state.DBState, error) {
+// NewBlock
+//	Parameters
+//		prev			*DBState	Previous DBState for all linking fields
+//		netid			uint32		NetworkID for blockchain db
+//		firsttimestamp	timestamp	Used for block 1 timestamp if on height 1
+func (bg *BlockGen) NewBlock(prev *state.DBState, netid uint32, firstTimeStamp interfaces.Timestamp) (*state.DBState, error) {
 	// ABlock
 	nab := bg.AuthoritySigner.SignBlock(prev)
-	next := primitives.Timestamp(prev.DirectoryBlock.GetHeader().GetTimestamp().GetTimeMilliUInt64() + 10*60)
+	next := primitives.Timestamp(0)
+	next.SetTimeSeconds(prev.DirectoryBlock.GetHeader().GetTimestamp().GetTimeSeconds() + 60*10)
 	if prev.DirectoryBlock.GetDatabaseHeight() == 0 {
-		next = *primitives.NewTimestampNow()
+		next = *firstTimeStamp.(*primitives.Timestamp)
 	}
 
 	// Entries (need entries for ecblock)
@@ -51,7 +60,10 @@ func (bg *BlockGen) NewBlock(prev *state.DBState, netid uint32) (*state.DBState,
 
 	for _, eb := range newDBState.EntryBlocks {
 		k, _ := eb.KeyMR()
-		dblock.AddEntry(eb.GetChainID(), k)
+		err := dblock.AddEntry(eb.GetChainID(), k)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	dblock.HeaderHash()
@@ -60,9 +72,4 @@ func (bg *BlockGen) NewBlock(prev *state.DBState, netid uint32) (*state.DBState,
 
 	newDBState.DirectoryBlock = dblock
 	return newDBState, nil
-}
-
-func newDblock(prev interfaces.IDirectoryBlock) interfaces.IDirectoryBlock {
-	dblock := directoryBlock.NewDirectoryBlock(prev)
-	return dblock
 }

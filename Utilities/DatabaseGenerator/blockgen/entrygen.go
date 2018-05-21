@@ -3,21 +3,13 @@ package blockgen
 import (
 	"math/rand"
 
-	"time"
-
-	"bytes"
-	"encoding/binary"
-
-	"fmt"
-
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/common/primitives/random"
 	"github.com/FactomProject/factomd/state"
-	"github.com/FactomProject/factomd/util"
+	log "github.com/sirupsen/logrus"
 )
 
 type Range struct {
@@ -43,7 +35,6 @@ func NewDefaultEntryGeneratorConfig() *EntryGeneratorConfig {
 	e.EntriesPerBlock = Range{10, 100}
 	e.EntrySize = Range{100, 1000}
 	e.EblocksPerHeight = Range{5, 10}
-
 	return e
 }
 
@@ -58,11 +49,18 @@ type FullEntryGenerator struct {
 	Config EntryGeneratorConfig
 }
 
-func NewFullEntryGenerator(ecKey, fKey primitives.PrivateKey, config EntryGeneratorConfig) *FullEntryGenerator {
+func NewFullEntryGenerator(ecKey, fKey primitives.PrivateKey, config DBGeneratorConfig) *FullEntryGenerator {
 	f := new(FullEntryGenerator)
-	f.IEntryGenerator = NewRandomEntryGenerator(ecKey, config)
+	// There can other entry generators
+	switch config.EntryGenerator {
+	case "increment", "incr":
+		f.IEntryGenerator = NewIncrementEntryGenerator(ecKey, config.EntryGenConfig)
+	default:
+		f.IEntryGenerator = NewRandomEntryGenerator(ecKey, config.EntryGenConfig)
+	}
+	log.Infof("EntryGen found : '%s'. Using %s", config.EntryGenerator, f.IEntryGenerator.Name())
 	f.FKey = fKey
-	f.Config = config
+	f.Config = config.EntryGenConfig
 
 	return f
 }
@@ -94,9 +92,9 @@ func (f *FullEntryGenerator) NewBlockSet(dbs *state.DBState, newtime interfaces.
 	fb := factoid.NewFBlock(dbs.FactoidBlock)
 	coinbase := new(factoid.Transaction)
 	coinbase.MilliTimestamp = newtime.GetTimeMilliUInt64()
-	fmt.Println(coinbase.MilliTimestamp)
 	fb.AddCoinbase(coinbase)
 
+	// This will cover the ec needed for all our commits
 	ect, err := BuyEC(f.FKey, f.IEntryGenerator.GetECKey().Pub, uint64(totalcost), dbs.FactoidBlock.GetExchRate(), newtime)
 	if err != nil {
 		return nil, err
@@ -130,6 +128,7 @@ func (f *FullEntryGenerator) NewBlockSet(dbs *state.DBState, newtime interfaces.
 	return newDBState, nil
 }
 
+// BuyEC returns a factoid transaction to cover the ec amount
 func BuyEC(from primitives.PrivateKey, to *primitives.PublicKey, ecamount uint64, ecrate uint64, time interfaces.Timestamp) (*factoid.Transaction, error) {
 	trans := new(factoid.Transaction)
 	pub := from.Pub.Fixed()
@@ -163,113 +162,9 @@ func BuyEC(from primitives.PrivateKey, to *primitives.PublicKey, ecamount uint64
 type IEntryGenerator interface {
 	AllEntries(height uint32, time interfaces.Timestamp) ([]*entryBlock.EBlock, []*entryBlock.Entry, []*entryCreditBlock.CommitEntry, int)
 	NewEblock(height uint32, time interfaces.Timestamp) (*entryBlock.EBlock, []*entryBlock.Entry, []*entryCreditBlock.CommitEntry, int)
+	NewChainHead() *entryBlock.Entry
 	NewEntry(chain interfaces.IHash) *entryBlock.Entry
 
 	GetECKey() primitives.PrivateKey
-}
-
-// RandomEntryGenerator generates random entries between 0-10kbish
-type RandomEntryGenerator struct {
-	ECKey  primitives.PrivateKey
-	Config EntryGeneratorConfig
-}
-
-func NewRandomEntryGenerator(ecKey primitives.PrivateKey, config EntryGeneratorConfig) *RandomEntryGenerator {
-	r := new(RandomEntryGenerator)
-	r.ECKey = ecKey
-	r.Config = config
-
-	return r
-}
-
-func (r *RandomEntryGenerator) GetECKey() primitives.PrivateKey {
-	return r.ECKey
-}
-
-func (r *RandomEntryGenerator) AllEntries(height uint32, time interfaces.Timestamp) ([]*entryBlock.EBlock, []*entryBlock.Entry, []*entryCreditBlock.CommitEntry, int) {
-	eblocks := make([]*entryBlock.EBlock, 0)
-	commits := make([]*entryCreditBlock.CommitEntry, 0)
-	entries := make([]*entryBlock.Entry, 0)
-	totalCost := 0
-
-	for i := 0; i < r.Config.EblocksPerHeight.Amount(); i++ {
-		neb, nes, necs, t := r.NewEblock(height, time)
-		eblocks = append(eblocks, neb)
-		entries = append(entries, nes...)
-		commits = append(commits, necs...)
-		totalCost += t
-	}
-	return eblocks, entries, commits, totalCost
-}
-
-func (r *RandomEntryGenerator) NewEblock(height uint32, time interfaces.Timestamp) (*entryBlock.EBlock, []*entryBlock.Entry, []*entryCreditBlock.CommitEntry, int) {
-	commits := make([]*entryCreditBlock.CommitEntry, 0)
-	entries := make([]*entryBlock.Entry, 0)
-	totalCost := 0
-
-	head := r.NewEntry(primitives.NewZeroHash())
-	// First one needs an extid
-	head.ExtIDs = []primitives.ByteSlice{primitives.ByteSlice{random.RandByteSliceOfLen(10)}, primitives.ByteSlice{random.RandByteSliceOfLen(10)}}
-	head.ChainID = head.GetChainID()
-	commit := r.newCommit(head, time)
-	commit.Credits += 10
-	totalCost += int(commit.Credits)
-	commit = r.signCommit(commit)
-
-	eb := entryBlock.NewEBlock()
-	eb.Header.SetChainID(head.ChainID)
-	eb.Header.SetDBHeight(height)
-	eb.AddEBEntry(head)
-
-	entries = append(entries, head)
-	commits = append(commits, commit)
-
-	// now add the other entries
-	for i := 0; i < r.Config.EntriesPerBlock.Amount(); i++ {
-		ent := r.NewEntry(head.ChainID)
-		commit := r.newCommit(ent, time)
-		commit = r.signCommit(commit)
-		totalCost += int(commit.Credits)
-		eb.AddEBEntry(ent)
-
-		entries = append(entries, ent)
-		commits = append(commits, commit)
-	}
-
-	return eb, entries, commits, totalCost
-}
-
-func (r *RandomEntryGenerator) NewEntry(chain interfaces.IHash) *entryBlock.Entry {
-	conf := r.Config
-	bytes := rand.Intn(conf.EntrySize.Max) + conf.EntrySize.Max
-
-	ent := entryBlock.NewEntry()
-	ent.Content = primitives.ByteSlice{random.RandByteSliceOfLen(bytes)}
-	ent.ChainID = chain
-	return ent
-}
-
-func (r *RandomEntryGenerator) signCommit(entry *entryCreditBlock.CommitEntry) *entryCreditBlock.CommitEntry {
-	entry.Sign(r.ECKey.Key[:])
-	return entry
-}
-
-func (r *RandomEntryGenerator) newCommit(e *entryBlock.Entry, time interfaces.Timestamp) *entryCreditBlock.CommitEntry {
-	commit := entryCreditBlock.NewCommitEntry()
-	commit.EntryHash = e.GetHash()
-	d, _ := e.MarshalBinary()
-	commit.Credits, _ = util.EntryCost(d)
-	var t primitives.ByteSlice6
-	copy(t[:], milliTime(time.GetTimeSeconds())[:])
-	commit.MilliTime = &t
-	return commit
-}
-
-// milliTime returns a 6 byte slice representing the unix time in milliseconds
-func milliTime(unix int64) (r []byte) {
-	buf := new(bytes.Buffer)
-	t := time.Unix(unix, 0).UnixNano()
-	m := t / 1e6
-	binary.Write(buf, binary.BigEndian, m)
-	return buf.Bytes()[2:]
+	Name() string
 }

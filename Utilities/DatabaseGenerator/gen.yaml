@@ -1,0 +1,37 @@
+# DatabaseGenerator Configuration
+#   The fields used depends on which entrygenerator is used
+
+# Path to db
+dbpath: factoid_level.db
+# Level, Map, Bolt
+dbtype: level
+# Kinda pointless
+factomdconfigpath: gen.conf
+# -customnet net id
+customnetid: gen
+# First block timestamp (only works for fresh db)
+#  Format: 22 May 2017 12:46
+#  Blank == Default 1 year back
+starttime: ""
+
+# Choose the entry generator you want to use:
+#     "" == Random
+#         Random bytes for content
+#     "incr" == Incrementer
+#         Each entry in a chain will have prevent+1 as content
+#         Chainhead will be using random bytes
+entrygenerator: "incr"
+# Entry gen config fields
+entrygenconfig:
+  entriesperblock:
+    min: 10
+    max: 100
+  entrysize:
+    min: 100
+    max: 1000
+  eblocksperheight:
+    min: 10
+    max: 100
+  # Some entry generation might include custom options
+  customoptions:
+    incr:

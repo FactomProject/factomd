@@ -1,28 +1,29 @@
 package blockgen
 
 import (
+	"fmt"
 	"strings"
+	"time"
 
-	"git.factoid.org/factomd/common/constants"
-
+	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/messages/electionMsgs"
-
-	"fmt"
-
-	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/boltdb"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/leveldb"
 	"github.com/FactomProject/factomd/database/mapdb"
 	"github.com/FactomProject/factomd/state"
+	log "github.com/sirupsen/logrus"
 )
 
+// DBGenerator is able to create a database given a defined config
 type DBGenerator struct {
 	// We need to process blocks to get state values
 	// and ensure the data is correct
-	FactomdState   *state.State
+	FactomdState *state.State
+	// Defines the blocks created and data in the db
 	BlockGenerator *BlockGen
 
 	last *state.DBState
@@ -31,26 +32,52 @@ type DBGenerator struct {
 func NewDBGenerator(c *DBGeneratorConfig) (*DBGenerator, error) {
 	var err error
 	db := new(DBGenerator)
-	db.FactomdState = NewGeneratorState(c.DBPath, c.DBType, c.FactomdConfigPath)
-	db.BlockGenerator, err = NewBlockGen(c.EntryGenConfig)
+	starttime := primitives.NewTimestampFromSeconds(uint32(time.Now().Add(-1 * 364 * 24 * time.Hour).Unix()))
+
+	if c.StartTime != "" {
+		starttimeT, err := time.Parse(c.TimeFormat(), c.StartTime)
+		if err != nil {
+			panic(err)
+		}
+		starttime = primitives.NewTimestampFromSeconds(uint32(starttimeT.Unix()))
+	}
+	// We need the factomd state to use it's functions
+	db.FactomdState = NewGeneratorState(c, starttime)
+	db.BlockGenerator, err = NewBlockGen(*c)
 	if err != nil {
 		return nil, err
 	}
-	db.loadGenesis() // TODO: Load from db?
+
+	head, err := db.FactomdState.DB.FetchDBlockHead()
+	if err != nil || head == nil || head.GetDatabaseHeight() == 0 {
+		db.loadGenesis()
+	} else {
+		// Load from db instead of genesis
+		log.Infof("Starting at block height %d", head.GetDatabaseHeight())
+		msg, err := db.FactomdState.LoadDBState(head.GetDatabaseHeight())
+		if err != nil {
+			return nil, err
+		}
+		dbs := db.msgToDBState(msg.(*messages.DBStateMsg))
+		db.last = dbs
+		dbs.Saved = true
+		db.FactomdState.DBStates.Put(dbs)
+
+	}
 
 	return db, nil
 }
 
-func NewGeneratorState(dbpath, dbtype string, configpath string) *state.State {
+func NewGeneratorState(conf *DBGeneratorConfig, starttime interfaces.Timestamp) *state.State {
 	s := new(state.State)
-	s.SetLeaderTimestamp(primitives.NewTimestampFromMilliseconds(0))
+	s.SetLeaderTimestamp(starttime)
 	var db interfaces.IDatabase
 	var err error
-	switch strings.ToLower(dbtype) {
+	switch strings.ToLower(conf.DBType) {
 	case "level", "ldb":
-		db, err = leveldb.NewLevelDB(dbpath, true)
+		db, err = leveldb.NewLevelDB(conf.DBPath, true)
 	case "bolt":
-		db = boltdb.NewBoltDB(nil, dbpath)
+		db = boltdb.NewBoltDB(nil, conf.DBPath)
 	case "map":
 		db = new(mapdb.MapDB)
 	}
@@ -59,16 +86,17 @@ func NewGeneratorState(dbpath, dbtype string, configpath string) *state.State {
 	}
 
 	s.DB = databaseOverlay.NewOverlay(db)
-	s.LoadConfig(configpath, "CUSTOM")
+	s.LoadConfig(conf.FactomdConfigPath, "CUSTOM")
 	s.EFactory = new(electionMsgs.ElectionsFactory)
 	s.Init()
 	s.NetworkNumber = constants.NETWORK_CUSTOM
 
-	customnetname := "gen"
+	customnetname := conf.CustomNetID
 	s.CustomNetworkID = primitives.Sha([]byte(customnetname)).Bytes()[:4]
 	return s
 }
 
+// loadGenesis loads the gensis block for given config and saves it to disk as a starting point
 func (g *DBGenerator) loadGenesis() {
 	var err error
 	fmt.Println("\n***********************************")
@@ -98,17 +126,19 @@ func (g *DBGenerator) loadGenesis() {
 	g.last = sds
 }
 
+// SaveDBState will save a dbstate to disk
 func (g *DBGenerator) SaveDBState(dbstate *state.DBState) {
 	dbstate.ReadyToSave = true
 	dbstate.Signed = true
 	put := g.FactomdState.DBStates.Put(dbstate)
 	if !put {
-		fmt.Printf("%d Not put in dbstate list\n", dbstate.DirectoryBlock.GetDatabaseHeight())
+		log.Warnf("%d Not put in dbstate list", dbstate.DirectoryBlock.GetDatabaseHeight())
 	}
-	g.FactomdState.DBStates.SaveDBStateToDB(dbstate)
+	progress := g.FactomdState.DBStates.SaveDBStateToDB(dbstate)
+	if !progress {
+		log.Warnf("%d Not saved to disk", dbstate.DirectoryBlock.GetDatabaseHeight())
+	}
 }
-
-// dbState := s.DBStates.NewDBState(isNew, directoryBlock, adminBlock, factoidBlock, entryCreditBlock, eBlocks, entries)
 
 func (g *DBGenerator) msgToDBState(msg *messages.DBStateMsg) *state.DBState {
 	return g.FactomdState.DBStates.NewDBState(false,
@@ -120,18 +150,23 @@ func (g *DBGenerator) msgToDBState(msg *messages.DBStateMsg) *state.DBState {
 		msg.Entries)
 }
 
-// There are queues that get filled up from internal state operations.
-func (db *DBGenerator) drain() {
-	// Election queue?
-
-}
-
 type DBGeneratorConfig struct {
 	DBPath            string
 	DBType            string
 	FactomdConfigPath string
+	CustomNetID       string
+	StartTime         string
+	EntryGenerator    string
 
 	EntryGenConfig EntryGeneratorConfig
+}
+
+func (DBGeneratorConfig) TimeFormat() string {
+	return "02 Jan 2006 15:04"
+}
+
+func (c DBGeneratorConfig) FactomLaunch() string {
+	return fmt.Sprintf("factomd -network=CUSTOM -customnet=%s", c.CustomNetID)
 }
 
 func NewDefaultDBGeneratorConfig() *DBGeneratorConfig {
@@ -140,18 +175,26 @@ func NewDefaultDBGeneratorConfig() *DBGeneratorConfig {
 	c.DBPath = "factoid_level.db"
 	c.FactomdConfigPath = "gen.conf"
 	c.EntryGenConfig = *NewDefaultEntryGeneratorConfig()
+	c.StartTime = time.Now().Add(-1 * 364 * 24 * time.Hour).Format(c.TimeFormat())
 	return c
 }
 
+// CreateBlocks actually creates the blocks and saves them to disk
 func (g *DBGenerator) CreateBlocks(amt int) error {
+	loop := time.Now()
+	loopper := 10
 	for i := 0; i < amt; i++ {
-		dbstate, err := g.BlockGenerator.NewBlock(g.last, g.FactomdState.GetNetworkID())
+		if i%loopper == 0 && i != 0 {
+			log.Infof("Current Height %5d:  %6d/%-6d at %fps", g.last.DirectoryBlock.GetDatabaseHeight(), i, amt, float64(loopper)/time.Since(loop).Seconds())
+			loop = time.Now()
+		}
+		dbstate, err := g.BlockGenerator.NewBlock(g.last, g.FactomdState.GetNetworkID(), g.FactomdState.GetLeaderTimestamp())
 		if err != nil {
 			return err
 		}
 		g.SaveDBState(dbstate)
 		g.last = dbstate
-		fmt.Println(i)
 	}
+	log.Infof("%d blocks saved to db", amt)
 	return nil
 }

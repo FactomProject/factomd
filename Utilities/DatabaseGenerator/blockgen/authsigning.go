@@ -7,10 +7,13 @@ import (
 	"github.com/FactomProject/factomd/state"
 )
 
+// IAuthSigner is an interface that is able to return dbsigs given a previous block.
+// 	It keeps track of authority sets and keys
 type IAuthSigner interface {
 	SignBlock(prev *state.DBState) interfaces.IAdminBlock
 }
 
+// DefaultAuthSigner only signs for 38bab
 type DefaultAuthSigner struct {
 }
 
