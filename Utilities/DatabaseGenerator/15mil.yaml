@@ -8,11 +8,11 @@ dbtype: level
 # Kinda pointless
 factomdconfigpath: gen.conf
 # -customnet net id
-customnetid: gen
+customnetid: gates-net
 # First block timestamp (only works for fresh db)
 #  Format: 22 May 2017 12:46
 #  Blank == Default 1 year back
-starttime: ""
+starttime: "22 May 2016 12:46"
 
 # Choose the entry generator you want to use:
 #     "" == Random
@@ -20,18 +20,16 @@ starttime: ""
 #     "incr" == Incrementer
 #         Each entry in a chain will have prevent+1 as content
 #         Chainhead will be using random bytes
-entrygenerator: ""
+#     "record" == Record Gen
+entrygenerator: "record"
 # Entry gen config fields
 entrygenconfig:
   entriespereblock:
-    min: 100
-    max: 100
-  entrysize:
-    min: 100
-    max: 100
+    min: 50
+    max: 50
   eblocksperheight:
-    min: 10
-    max: 10
+    min: 20
+    max: 20
   # Multithread EBlock creation
   multithreaded: true
   threadpoolcount: 8

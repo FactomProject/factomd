@@ -3,8 +3,6 @@ package blockgen
 import (
 	"fmt"
 
-	"sync"
-
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -23,7 +21,6 @@ type IncrementEntryGenerator struct {
 
 	// The stateful object
 	currentCount int
-	sync.Mutex
 }
 
 func NewIncrementEntryGenerator(ecKey primitives.PrivateKey, config EntryGeneratorConfig) *IncrementEntryGenerator {
@@ -41,14 +38,10 @@ func (r *IncrementEntryGenerator) Name() string {
 
 func (r *IncrementEntryGenerator) NewChainHead() *entryBlock.Entry {
 	// Reset the count for the next chain
-	r.Lock()
 	r.currentCount = 0
-	r.Unlock()
 	return r.EntryGenCore.NewChainHead()
 }
 func (r *IncrementEntryGenerator) NewEntry(chain interfaces.IHash) *entryBlock.Entry {
-	r.Lock()
-	defer r.Unlock()
 	ent := entryBlock.NewEntry()
 	// Putting the ASCII number so you can read in explorer
 	ent.Content = primitives.ByteSlice{[]byte(fmt.Sprintf("%d", r.currentCount))}

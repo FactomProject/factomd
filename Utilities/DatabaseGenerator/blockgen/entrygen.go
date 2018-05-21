@@ -59,6 +59,8 @@ func NewFullEntryGenerator(ecKey, fKey primitives.PrivateKey, config DBGenerator
 	f := new(FullEntryGenerator)
 	// There can other entry generators
 	switch config.EntryGenerator {
+	case "record":
+		f.IEntryGenerator = NewRecordEntryGenerator(ecKey, config.EntryGenConfig)
 	case "increment", "incr":
 		f.IEntryGenerator = NewIncrementEntryGenerator(ecKey, config.EntryGenConfig)
 	default:
@@ -71,13 +73,13 @@ func NewFullEntryGenerator(ecKey, fKey primitives.PrivateKey, config DBGenerator
 	return f
 }
 
-func (f *FullEntryGenerator) NewBlockSet(dbs *state.DBState, newtime interfaces.Timestamp) (*state.DBState, error) {
+func (f *FullEntryGenerator) NewBlockSet(prev *state.DBState, newtime interfaces.Timestamp) (*state.DBState, error) {
 	newDBState := new(state.DBState)
 	// Need all the entries and commits
 	// Then we need to build an ECBlock, and a factoid transaction to fund these entries
 
 	//  Step 1: Get the entries
-	eblocks, entries, commits, totalcost := f.IEntryGenerator.AllEntries(dbs.DirectoryBlock.GetDatabaseHeight()+1, newtime)
+	eblocks, entries, commits, totalcost := f.IEntryGenerator.AllEntries(prev.DirectoryBlock.GetDatabaseHeight()+1, newtime)
 	newDBState.EntryBlocks = make([]interfaces.IEntryBlock, len(eblocks))
 	for i, eb := range eblocks {
 		newDBState.EntryBlocks[i] = eb
@@ -93,15 +95,28 @@ func (f *FullEntryGenerator) NewBlockSet(dbs *state.DBState, newtime interfaces.
 	for _, c := range commits {
 		ecb.GetBody().AddEntry(c)
 	}
+	ecb.GetHeader().SetDBHeight(prev.EntryCreditBlock.GetDatabaseHeight() + 1)
+
+	hash, err := prev.EntryCreditBlock.HeaderHash()
+	if err != nil {
+		panic(err.Error())
+	}
+	ecb.GetHeader().SetPrevHeaderHash(hash)
+
+	hash, err = prev.EntryCreditBlock.GetFullHash()
+	if err != nil {
+		panic(err.Error())
+	}
+	ecb.GetHeader().SetPrevFullHash(hash)
 
 	// Step3: FactoidBlock with funds
-	fb := factoid.NewFBlock(dbs.FactoidBlock)
+	fb := factoid.NewFBlock(prev.FactoidBlock)
 	coinbase := new(factoid.Transaction)
 	coinbase.MilliTimestamp = newtime.GetTimeMilliUInt64()
 	fb.AddCoinbase(coinbase)
 
 	// This will cover the ec needed for all our commits
-	ect, err := BuyEC(f.FKey, f.IEntryGenerator.GetECKey().Pub, uint64(totalcost), dbs.FactoidBlock.GetExchRate(), newtime)
+	ect, err := BuyEC(f.FKey, f.IEntryGenerator.GetECKey().Pub, uint64(totalcost), prev.FactoidBlock.GetExchRate(), newtime)
 	if err != nil {
 		return nil, err
 	}

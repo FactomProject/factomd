@@ -71,5 +71,6 @@ func (bg *BlockGen) NewBlock(prev *state.DBState, netid uint32, firstTimeStamp i
 	dblock.BuildKeyMerkleRoot()
 
 	newDBState.DirectoryBlock = dblock
+
 	return newDBState, nil
 }
