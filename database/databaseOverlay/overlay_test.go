@@ -517,7 +517,7 @@ func (d *DBTestObject) MarshalBinary() (rval []byte, err error) {
 	tmp.SecondaryIndex = d.SecondaryIndex
 	tmp.ChainID = d.ChainID
 
-	err := enc.Encode(tmp)
+	err = enc.Encode(tmp)
 	if err != nil {
 		return nil, err
 	}
