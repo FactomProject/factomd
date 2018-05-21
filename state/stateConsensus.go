@@ -41,6 +41,10 @@ var _ = (*hash.Hash32)(nil)
 var once sync.Once
 var debugExec_flag bool
 
+func (s *State) CheckFileName(name string) bool {
+	return messages.CheckFileName(name)
+}
+
 func (s *State) DebugExec() (ret bool) {
 	once.Do(func() { debugExec_flag = globals.Params.DebugLogRegEx != "" })
 

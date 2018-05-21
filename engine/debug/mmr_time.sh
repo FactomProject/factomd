@@ -29,6 +29,7 @@ func time2sec(t) {
 /sendout/     {
     cnt = match($0,/([0-9]+\\/[0-9]\\/[0-9]+, )+/,ary);
     list = substr($0,RSTART,RLENGTH);
+    total_request_msgs_a++
  #   print "          1         2         3         4         5         6         7         8         9         0         1         2         3         4         5         6         7         8         9         0"
  #   print "012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890"
  #   print $0
@@ -36,6 +37,7 @@ func time2sec(t) {
     n = split(list,ary,", ");
     for( i in ary ) {
 	if(ary[i] ~ /[0-9]+\\/[0-9]\\/[0-9]+/) {
+	   total_requests_a++;
            v = ary[i];
 	   a = asks[v]; 
 #	   print v, "ask to sendout", ts-a; 
@@ -54,7 +56,7 @@ func time2sec(t) {
 /Send P2P.*MissingMsg / {
 #    print "MM", $2, $0
     ts =  time2sec($2);
-
+    total_request_msgs_b++
     cnt = match($0,/([0-9]+\\/[0-9]\\/[0-9]+, )+/,ary);
     list = substr($0,RSTART,RLENGTH);
      n = split(list,ary,", ");
@@ -62,6 +64,7 @@ func time2sec(t) {
         v = ary[i]
 #	print i, v
 	if(v ~ /[0-9]+\\/[0-9]\\/[0-9]+/) {
+	   total_requests_b++;
 	    asking[v][substr($6,6)]++
             if(!(v in firstp2p)) {
                firstp2p[v] = ts;
@@ -82,7 +85,7 @@ func time2sec(t) {
 #  print "          1         2         3         4         5         6         7         8         9         0         1         2         3         4         5         6         7         8         9         0"
 #   print "012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890"
 #   print $0
-
+    total_responces++
     cnt = match($0,/([0-9]+\\/[0-9]\\/[0-9]+)+/,ary);
     list = substr($0,RSTART,RLENGTH);
 #   peer = substr($6,6)
@@ -130,14 +133,16 @@ END {
         printf("%10s %10s %10s %10s %10s %10s %10s %10s %10s %10s %10s\\n", i, lask, fs, ls, add, sendcnt[i], fp, lp, fr,lr,  peerStr);
      }
    }
+
+	printf("Total requests messages %d/%d, total requests %d/%d, total responces %d\\n", total_request_msgs_a,total_request_msgs_b,total_requests_a,total_requests_b,  total_responces);
 }
 EOF
 ################################
 # End of AWK Scripts           #
 ################################
 
+ 
+(cat $1_missing_messages.txt; grep -h "MissingMsg " $1_NetworkOutputs.txt; grep -hE "Send P2P.* $1 .*Missing Msg Response" FNode*_NetworkOutputs.txt) | awk "$scriptVariable"
 
 
-
-(cat $1_missing_messages.txt; grep  "MissingMsg " $1_NetworkOutputs.txt | grep "Send P2P F"; grep -h "MissingMsgResponse" FNode*_NetworkOutputs.txt | grep "$1 ") | awk "$scriptVariable"
 

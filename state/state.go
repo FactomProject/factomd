@@ -2694,3 +2694,8 @@ func (s *State) updateNetworkControllerConfig() {
 
 	s.NetworkController.ReloadSpecialPeers(newPeersConfig)
 }
+
+// Check and Add a hash to the network replay filter
+func (s *State) AddToReplayFilter(mask int, hash [32]byte, timestamp interfaces.Timestamp, systemtime interfaces.Timestamp) (rval bool) {
+	return s.Replay.IsTSValidAndUpdateState(constants.NETWORK_REPLAY, hash, timestamp, systemtime)
+}
