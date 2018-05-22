@@ -92,15 +92,17 @@ func TestSetupANetwork(t *testing.T) {
 		"--net=alot+",
 		"--enablenet=true",
 		"--blktime=8",
+		"--faulttimeout=8",
+		"--roundtimeout=4",
 		"--count=10",
 		"--logPort=37000",
 		"--port=37001",
 		"--controlpanelport=37002",
 		"--networkport=37003",
 		"--startdelay=1",
-		"--debuglog=F.*",
+		"--debuglog=.*",
 		"--stdoutlog=out.txt",
-		"--stderrlog=out.txt",
+		"--stderrlog=err.txt",
 	)
 
 	params := ParseCmdLine(args)
