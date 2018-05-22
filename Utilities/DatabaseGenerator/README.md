@@ -13,6 +13,14 @@ See (gen.yaml)[gen.yaml] for config options. Options may depend on which EntryGe
 DatabaseGenerator -config 15mil.yaml -b 50000
 ```
 
+#### Check integrity of the DB
+
+You can use the DatabaseIntegrityCheck to verify the database
+
+```
+DatabaseIntegrityCheck level factoid_level.db/
+```
+
 
 # Extending
 

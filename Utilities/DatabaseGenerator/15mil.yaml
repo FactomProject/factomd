@@ -3,9 +3,9 @@ dbtype: level
 factomdconfigpath: gen.conf
 customnetid: gen
 starttime: ""
-entrygenerator: ""
+entrygenerator: "record"
 entrygenconfig:
-  entriespereblock: 
+  entriespereblock:
     min: 100
     max: 100
   entrysize:
