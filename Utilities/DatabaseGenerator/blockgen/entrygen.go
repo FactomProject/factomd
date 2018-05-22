@@ -18,10 +18,13 @@ type Range struct {
 }
 
 func (r Range) Amount() int {
+	if r.Max < r.Min {
+		return 0
+	}
 	if r.Max == r.Min {
 		return r.Max
 	}
-	return rand.Intn(r.Max) + r.Min
+	return rand.Intn(r.Max-r.Min) + r.Min
 }
 
 type EntryGeneratorConfig struct {

@@ -17,17 +17,20 @@ import (
 func main() {
 	// Seed rand incase any entrygen uses math/rand
 	rand.Seed(time.Now().UnixNano())
-	go StartProfiler(512*1024, true)
-
 	var blockcount int
 	var (
 		loglvl     = flag.String("loglvl", "info", "Sets log level to 'debug', 'info', 'warning', or 'error'")
 		configfile = flag.String("config", "", "Generator config file location.")
 		genconfig  = flag.Bool("genconfig", false, "Does not run the program, but instead outputs the default config file")
+		profiling  = flag.Bool("profile", false, "Turn on profiling on :6060")
 	)
 	flag.IntVar(&blockcount, "b", 1000, "Number of blocks to generate")
 
 	flag.Parse()
+	if *profiling {
+		go StartProfiler(512*1024, true)
+	}
+
 	if *genconfig {
 		c := blockgen.NewDefaultDBGeneratorConfig()
 		data, err := yaml.Marshal(c)

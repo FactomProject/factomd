@@ -161,7 +161,7 @@ func (r *EntryGenCore) NewChainHead() *entryBlock.Entry {
 
 func (r *EntryGenCore) NewEntry(chain interfaces.IHash) *entryBlock.Entry {
 	conf := r.Config
-	bytes := rand.Intn(conf.EntrySize.Max) + conf.EntrySize.Max
+	bytes := rand.Intn(conf.EntrySize.Amount())
 
 	ent := entryBlock.NewEntry()
 	ent.Content = primitives.ByteSlice{random.RandByteSliceOfLen(bytes)}
