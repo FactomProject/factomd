@@ -190,7 +190,7 @@ func (g *DBGenerator) CreateBlocks(amt int) error {
 		if i%loopper == 0 && i != 0 {
 			totalDuration := time.Since(start).Seconds()
 			duration := time.Since(loop).Seconds()
-			avgb := totalDuration / float64(i) // avg block/s
+			avgb := float64(i) / totalDuration // avg block/s
 			left := float64(amt - i)
 			timeleft := left * avgb
 
