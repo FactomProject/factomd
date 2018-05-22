@@ -20,19 +20,25 @@ starttime: ""
 #     "incr" == Incrementer
 #         Each entry in a chain will have prevent+1 as content
 #         Chainhead will be using random bytes
+#     "record" == Record Gen
+#         Each entry has 5 random hashes in 5 external ids
 entrygenerator: ""
 # Entry gen config fields
 entrygenconfig:
-  entriespereblock:
+  # Entry gens can use this min/max ranges to determine
+  # random elements of their entry gen.
+  # Not all fields may be used by a selected entrygenerator
+  entriespereblock: # Used By: "", "incr", "record"
     min: 100
     max: 100
-  entrysize:
+  entrysize: # Used By: "", "incr"
     min: 100
-    max: 100
-  eblocksperheight:
-    min: 10
+    max: 250
+  eblocksperheight: # Used By: "", "incr", "record"
+    min: 5
     max: 10
   # Multithread EBlock creation
+  #   Do not touch these if you don't know what it does
   multithreaded: true
   threadpoolcount: 8
 
