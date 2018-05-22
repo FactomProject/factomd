@@ -110,6 +110,7 @@ func time2sec(t) {
 
 END {
    printf("%10s %10s %10s %10s %10s %10s %10s %10s %10s %10s %10s\\n", "loc","ask2LAsk","ask2send", "ask2last", "ask2add", "askcount", "ask2p2p", "ask2Lp2p","firstMR","lastMR","peers");
+   PROCINFO["sorted_in"] ="@ind_num_asc";
    for(i in firstsendout) {
      ask = asks[i]
      if(i in lasks) {lask = lasks[i]-ask;}else{lask="NA"}
@@ -129,7 +130,7 @@ END {
 #     for(j in peers) {
 #       peerStr = peerStr + " " + j + "-" + peers[j];
 #     }
-     if (fs > 1 || ls > 1 || add > 1|| fp != "NA" )	 {
+     if (fs > 1 || ls > 1 || add > 1|| fp > 1 )	 {
         printf("%10s %10s %10s %10s %10s %10s %10s %10s %10s %10s %10s\\n", i, lask, fs, ls, add, sendcnt[i], fp, lp, fr,lr,  peerStr);
      }
    }
