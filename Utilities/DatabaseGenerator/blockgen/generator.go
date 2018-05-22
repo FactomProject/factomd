@@ -62,7 +62,6 @@ func NewDBGenerator(c *DBGeneratorConfig) (*DBGenerator, error) {
 		db.last = dbs
 		dbs.Saved = true
 		db.FactomdState.DBStates.Put(dbs)
-
 	}
 
 	return db, nil
@@ -87,12 +86,24 @@ func NewGeneratorState(conf *DBGeneratorConfig, starttime interfaces.Timestamp) 
 
 	s.DB = databaseOverlay.NewOverlay(db)
 	s.LoadConfig(conf.FactomdConfigPath, "CUSTOM")
+	s.StateSaverStruct.FastBoot = false
 	s.EFactory = new(electionMsgs.ElectionsFactory)
 	s.Init()
 	s.NetworkNumber = constants.NETWORK_CUSTOM
 
 	customnetname := conf.CustomNetID
 	s.CustomNetworkID = primitives.Sha([]byte(customnetname)).Bytes()[:4]
+
+	var blkCnt uint32
+	head, err := s.DB.FetchDBlockHead()
+	if err == nil && head != nil {
+		blkCnt = head.GetHeader().GetDBHeight()
+	}
+	s.DBHeightAtBoot = blkCnt
+	list := s.DBStates
+	list.Base = blkCnt
+	list.ProcessHeight = blkCnt
+	s.ProcessLists.DBHeightBase = blkCnt
 	return s
 }
 
@@ -130,6 +141,7 @@ func (g *DBGenerator) loadGenesis() {
 func (g *DBGenerator) SaveDBState(dbstate *state.DBState) {
 	dbstate.ReadyToSave = true
 	dbstate.Signed = true
+	g.FactomdState.DBStates.ProcessHeight = dbstate.DirectoryBlock.GetDatabaseHeight()
 	put := g.FactomdState.DBStates.Put(dbstate)
 	if !put {
 		log.Warnf("%d Not put in dbstate list", dbstate.DirectoryBlock.GetDatabaseHeight())
@@ -138,6 +150,10 @@ func (g *DBGenerator) SaveDBState(dbstate *state.DBState) {
 	if !progress {
 		log.Warnf("%d Not saved to disk", dbstate.DirectoryBlock.GetDatabaseHeight())
 	}
+	dbstate.Saved = true
+	g.FactomdState.DBStates.Complete = dbstate.DirectoryBlock.GetDatabaseHeight() - g.FactomdState.DBStates.Base
+	g.FactomdState.ProcessLists.DBHeightBase = dbstate.DirectoryBlock.GetDatabaseHeight()
+	g.FactomdState.ProcessLists.Lists = make([]*state.ProcessList, 0)
 }
 
 func (g *DBGenerator) msgToDBState(msg *messages.DBStateMsg) *state.DBState {
@@ -192,7 +208,7 @@ func (g *DBGenerator) CreateBlocks(amt int) error {
 			duration := time.Since(loop).Seconds()
 			avgb := float64(i) / totalDuration // avg block/s
 			left := float64(amt - i)
-			timeleft := left * avgb
+			timeleft := left / avgb
 
 			log.Infof("Current Height %5d:  %6d/%-6d at %6.2f b/s. Entries at %8.2f e/s. Avg Entry Rate: %8.2f e/s. ~%-12s Remain ",
 				g.last.DirectoryBlock.GetDatabaseHeight(), i, amt,

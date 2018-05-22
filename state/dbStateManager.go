@@ -1552,16 +1552,12 @@ searchLoop:
 	}
 
 	keep := uint32(3) // How many states to keep around; debugging helps with more.
-	if uint32(cnt) > keep {
+	if uint32(cnt) > keep && int(list.Complete)-cnt+int(keep) > 0 {
 		var dbstates []*DBState
 		dbstates = append(dbstates, list.DBStates[cnt-int(keep):]...)
 		list.DBStates = dbstates
 		list.Base = list.Base + uint32(cnt) - keep
-		if int(list.Complete)-cnt+int(keep) < 0 { // TODO: How should we solve the underflow?
-			list.Complete = 0
-		} else {
-			list.Complete = list.Complete - uint32(cnt) + keep
-		}
+		list.Complete = list.Complete - uint32(cnt) + keep
 	}
 
 	index := int(dbheight) - int(list.Base)

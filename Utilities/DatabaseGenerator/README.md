@@ -6,6 +6,13 @@ This tool can generate databases very quickly with various amounts of entries/bl
 
 See (gen.yaml)[gen.yaml] for config options. Options may depend on which EntryGenerator you decide to use.
 
+#### To run for record generation
+
+```
+# b being the number of blocks to buil
+DatabaseGenerator -config 15mil.yaml -b 50000
+```
+
 
 # Extending
 
@@ -26,4 +33,4 @@ If your database has multiple leaders, all private keys will be needed. Currentl
 
 ### Complex Blockchains
 
-This tool currently only creates simple blockchains at this time.
+This tool currently only creates simple blockchains.

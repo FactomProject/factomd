@@ -1,15 +1,13 @@
 package main
 
 import (
+	"flag"
+	"fmt"
+	"io/ioutil"
+	"os"
 	"time"
 
-	"fmt"
-
-	"flag"
-
-	"os"
-
-	"io/ioutil"
+	"math/rand"
 
 	"github.com/FactomProject/factomd/Utilities/DatabaseGenerator/blockgen"
 	log "github.com/sirupsen/logrus"
@@ -17,6 +15,8 @@ import (
 )
 
 func main() {
+	// Seed rand incase any entrygen uses math/rand
+	rand.Seed(time.Now().UnixNano())
 	go StartProfiler(512*1024, true)
 
 	var blockcount int

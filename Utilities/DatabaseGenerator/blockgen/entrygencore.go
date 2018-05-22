@@ -152,7 +152,9 @@ func (r *EntryGenCore) NewEblock(height uint32, time interfaces.Timestamp) (*ent
 func (r *EntryGenCore) NewChainHead() *entryBlock.Entry {
 	head := r.Parent.NewEntry(primitives.NewZeroHash())
 	// First one needs an extid
-	head.ExtIDs = []primitives.ByteSlice{primitives.ByteSlice{random.RandByteSliceOfLen(10)}, primitives.ByteSlice{random.RandByteSliceOfLen(10)}}
+	head.ExtIDs = []primitives.ByteSlice{primitives.ByteSlice{random.RandByteSliceOfLen(10)},
+		primitives.ByteSlice{random.RandByteSliceOfLen(10)},
+		primitives.ByteSlice{random.RandByteSliceOfLen(10)}}
 	head.ChainID = entryBlock.ExternalIDsToChainID(head.ExternalIDs())
 	return head
 }
