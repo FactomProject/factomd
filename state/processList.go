@@ -987,6 +987,9 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					if vm.HighestNil > j {
 						vm.HighestNil = j // Drag report limit back
 					}
+                                        if vm.HighestAsk > j {
+						vm.HighestAsk = j // Drag Ask limit back
+					}
 					//p.State.AddStatus(fmt.Sprintf("ProcessList.go Process: Error computing serial hash at dbht: %d vm %d  vm-height %d ", p.DBHeight, i, j))
 					p.Ask(i, uint32(j), 3000) // 3 second delay
 					break VMListLoop
@@ -1028,6 +1031,9 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					vm.List[j] = nil // If we have seen this message, we don't process it again.  Ever.
 					if vm.HighestNil > j {
 						vm.HighestNil = j // Drag report limit back
+					}
+                                        if vm.HighestAsk > j {
+						vm.HighestAsk = j // Drag Ask limit back
 					}
 					p.State.Replay.Valid(constants.INTERNAL_REPLAY, msgRepeatHashFixed, msg.GetTimestamp(), now)
 					p.Ask(i, uint32(j), 3000) // 3 second delay
