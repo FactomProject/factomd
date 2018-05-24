@@ -175,7 +175,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 }
 
 func (s *State) Process() (progress bool) {
-
+	s.StateProcessCnt++
 	if s.ResetRequest {
 		s.ResetRequest = false
 		s.DoReset()

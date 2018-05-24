@@ -378,10 +378,13 @@ type State struct {
 	NumFCTTrans    int // Number of Factoid Transactions in this block
 
 	// debug message
-	pstate              string
-	SyncingState        [256]string
-	SyncingStateCurrent int
-	processCnt          int64 // count of attempts to process .. so we can see if the thread is running
+	pstate                string
+	SyncingState          [256]string
+	SyncingStateCurrent   int
+	ProcessListProcessCnt int64 // count of attempts to process .. so we can see if the thread is running
+	StateProcessCnt       int64
+	StateUpdateState      int64
+	ValidatorLoopSleepCnt int64
 }
 
 var _ interfaces.IState = (*State)(nil)
@@ -1762,6 +1765,7 @@ func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBl
 }
 
 func (s *State) UpdateState() (progress bool) {
+	s.StateUpdateState++
 	dbheight := s.GetHighestSavedBlk()
 	plbase := s.ProcessLists.DBHeightBase
 	if dbheight == 0 {
