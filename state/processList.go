@@ -130,7 +130,10 @@ type VM struct {
 	// vm.WhenFaulted serves as a bool flag (if > 0, the vm is currently considered faulted)
 	FaultFlag   int                  // FaultFlag tracks what the VM was faulted for (0 = EOM missing, 1 = negotiation issue)
 	ProcessTime interfaces.Timestamp // Last time we made progress on this VM
+	VmIndex     int                  // the index of this MV
 	HighestAsk  int                  // highest ask sent to MMR for this VM
+	HighestNil  int                  // Debug highest nil reported
+	p           *ProcessList         // processList this VM part of
 }
 
 func (p *ProcessList) GetKeysNewEntries() (keys [][32]byte) {
@@ -559,7 +562,24 @@ func (p *ProcessList) GetOldMsgs(key interfaces.IHash) interfaces.IMsg {
 	}
 	p.oldmsgslock.Lock()
 	defer p.oldmsgslock.Unlock()
-	return p.OldMsgs[key.Fixed()]
+	m, ok := p.OldMsgs[key.Fixed()]
+	if !ok {
+		return nil
+	}
+	return m
+}
+
+func (p *ProcessList) GetOldAck(key interfaces.IHash) interfaces.IMsg {
+	if p == nil {
+		return nil
+	}
+	p.oldackslock.Lock()
+	defer p.oldackslock.Unlock()
+	a, ok := p.OldAcks[key.Fixed()]
+	if !ok {
+		return nil
+	}
+	return a
 }
 
 func (p *ProcessList) AddNewEBlocks(key interfaces.IHash, value interfaces.IEntryBlock) {
@@ -891,8 +911,6 @@ func (p *ProcessList) decodeState(Syncing bool, DBSig bool, EOM bool, DBSigDone 
 
 }
 
-var nillist map[int]int = make(map[int]int)
-
 // Process messages and update our state.
 func (p *ProcessList) Process(state *State) (progress bool) {
 	dbht := state.GetHighestSavedBlk()
@@ -941,10 +959,10 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 						p.Ask(i, uint32(k), 10) // Ask 10ms
 					}
 				}
-				if p.State.DebugExec() {
-					if nillist[i] < j {
-						p.State.LogPrintf("process", "%d nils  at  %v/%v/%v", cnt, p.DBHeight, i, j)
-						nillist[i] = j
+				if state.DebugExec() {
+					if vm.HighestNil < j {
+						state.LogPrintf("process", "%d nils  at  %v/%v/%v", cnt, p.DBHeight, i, j)
+						vm.HighestNil = j
 					}
 				}
 
@@ -966,6 +984,12 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				if err != nil {
 					state.LogMessage("process", "Nil out message", vm.List[j])
 					vm.List[j] = nil
+					if vm.HighestNil > j {
+						vm.HighestNil = j // Drag report limit back
+					}
+                                        if vm.HighestAsk > j {
+						vm.HighestAsk = j // Drag Ask limit back
+					}
 					//p.State.AddStatus(fmt.Sprintf("ProcessList.go Process: Error computing serial hash at dbht: %d vm %d  vm-height %d ", p.DBHeight, i, j))
 					p.Ask(i, uint32(j), 3000) // 3 second delay
 					break VMListLoop
@@ -1005,6 +1029,12 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				if _, valid := p.State.Replay.Valid(constants.INTERNAL_REPLAY, msgRepeatHashFixed, msg.GetTimestamp(), now); !valid {
 					p.State.LogMessage("process", fmt.Sprintf("drop %v/%v/%v, hash INTERNAL_REPLAY", p.DBHeight, i, j), thisMsg)
 					vm.List[j] = nil // If we have seen this message, we don't process it again.  Ever.
+					if vm.HighestNil > j {
+						vm.HighestNil = j // Drag report limit back
+					}
+                                        if vm.HighestAsk > j {
+						vm.HighestAsk = j // Drag Ask limit back
+					}
 					p.State.Replay.Valid(constants.INTERNAL_REPLAY, msgRepeatHashFixed, msg.GetTimestamp(), now)
 					p.Ask(i, uint32(j), 3000) // 3 second delay
 					// If we ask won't we just get the same thing back?
@@ -1342,6 +1372,8 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 		pl.VMs[i].Synced = true
 		pl.VMs[i].WhenFaulted = 0
 		pl.VMs[i].ProcessTime = now
+		pl.VMs[i].VmIndex = i
+		pl.VMs[i].p = pl
 	}
 
 	pl.DBHeight = dbheight
