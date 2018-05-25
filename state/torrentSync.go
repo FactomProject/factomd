@@ -2,9 +2,10 @@ package state
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/common/constants"
 	"log"
 	"time"
+
+	"github.com/FactomProject/factomd/common/constants"
 )
 
 // StartTorrentSyncing is an endless loop that uses torrents to sync missing blocks

@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"errors"
 
@@ -264,10 +265,15 @@ func (e *DirectoryBlock) String() string {
 
 }
 
-func (b *DirectoryBlock) MarshalBinary() ([]byte, error) {
+func (b *DirectoryBlock) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "DirectoryBlock.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	b.Init()
 	b.Sort()
-	_, err := b.BuildBodyMR()
+	_, err = b.BuildBodyMR()
 	if err != nil {
 		return nil, err
 	}

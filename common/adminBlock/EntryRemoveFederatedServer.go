@@ -2,6 +2,7 @@ package adminBlock
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -67,11 +68,16 @@ func (e *RemoveFederatedServer) Type() byte {
 	return constants.TYPE_REMOVE_FED_SERVER
 }
 
-func (e *RemoveFederatedServer) MarshalBinary() ([]byte, error) {
+func (e *RemoveFederatedServer) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "RemoveFederatedServer.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	e.Init()
 	var buf primitives.Buffer
 
-	err := buf.PushByte(e.Type())
+	err = buf.PushByte(e.Type())
 	if err != nil {
 		return nil, err
 	}

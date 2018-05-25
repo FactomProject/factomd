@@ -29,7 +29,7 @@ type NewCoinbaseAddressStruct struct {
 	Timestamp []byte
 	//6th is the identity key preimage.
 	PreimageIdentityKey []byte
-	//7th is the signature of the serialized version, text, chainID, new key, and the timestamp.
+	//7th is the signature of the serialized version through timestamp.
 	Signature []byte
 }
 

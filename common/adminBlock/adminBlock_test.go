@@ -8,6 +8,9 @@ import (
 
 	"sort"
 
+	"math/rand"
+	"time"
+
 	. "github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -885,4 +888,47 @@ func TestABlockVec(t *testing.T) {
 		t.Error("Not Same")
 	}
 
+}
+
+func TestSortOrder(t *testing.T) {
+	rand.Seed(time.Now().UnixNano())
+	a := NewAdminBlock(nil)
+	b := NewAdminBlock(nil)
+
+	for i := 0; i < 100; i++ {
+		h := uint32(rand.Intn(100))
+		i := uint32(rand.Intn(100))
+		a.AddCancelCoinbaseDescriptor(h, i)
+		b.AddCancelCoinbaseDescriptor(h, i)
+	}
+
+	a.AddCoinbaseDescriptor([]interfaces.ITransAddress{})
+	b.AddCoinbaseDescriptor([]interfaces.ITransAddress{})
+
+	a.AddFedServer(primitives.NewZeroHash())
+	b.AddFedServer(primitives.NewZeroHash())
+
+	err := a.InsertIdentityABEntries()
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = b.InsertIdentityABEntries()
+	if err != nil {
+		t.Error(err)
+	}
+
+	da, err := a.MarshalBinary()
+	if err != nil {
+		t.Error(err)
+	}
+
+	db, err := b.MarshalBinary()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if bytes.Compare(da, db) != 0 {
+		t.Error("Sorted order is not deterministic")
+	}
 }

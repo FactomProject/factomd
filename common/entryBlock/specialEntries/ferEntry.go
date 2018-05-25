@@ -7,6 +7,7 @@ package specialEntries
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -115,6 +116,11 @@ func (e *FEREntry) UnmarshalBinary(data []byte) (err error) {
 	return
 }
 
-func (e *FEREntry) MarshalBinary() ([]byte, error) {
+func (e *FEREntry) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "FEREntry.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	return json.Marshal(e)
 }

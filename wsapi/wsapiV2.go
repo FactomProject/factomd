@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"reflect"
 	"strings"
 	"time"
@@ -501,7 +502,12 @@ type JStruct struct {
 	data []byte
 }
 
-func (e *JStruct) MarshalJSON() ([]byte, error) {
+func (e *JStruct) MarshalJSON() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "JStruct.MarshalJSON err:%v", *pe)
+		}
+	}(&err)
 	return e.data, nil
 }
 
@@ -1078,11 +1084,6 @@ func HandleV2Heights(state interfaces.IState, params interface{}) (interface{}, 
 	h := new(HeightsResponse)
 
 	lheight := int64(state.GetTrueLeaderHeight())
-	// Highest ack is the highest leader height.
-	// It may not be the "True" leader height
-	if int64(state.GetHighestAck()) > lheight {
-		lheight = int64(state.GetHighestAck())
-	}
 	h.DirectoryBlockHeight = int64(state.GetHighestSavedBlk())
 	h.LeaderHeight = lheight
 	h.EntryBlockHeight = int64(state.GetHighestSavedBlk())

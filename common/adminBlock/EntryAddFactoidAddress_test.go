@@ -24,6 +24,8 @@ func TestAddFactoidAddressMarshal(t *testing.T) {
 		if !a.IsSameAs(b) {
 			t.Errorf("Objects are not the same")
 		}
+
+		testHelper.TestABlockEntryFunctions(a, b, t)
 	}
 
 	// Test the empty

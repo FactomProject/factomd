@@ -1,6 +1,9 @@
 package identity
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -85,9 +88,14 @@ func (e *EntryBlockSync) Clone() *EntryBlockSync {
 	return b
 }
 
-func (e *EntryBlockSync) MarshalBinary() ([]byte, error) {
+func (e *EntryBlockSync) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "EntryBlockSync.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	buf := primitives.NewBuffer(nil)
-	err := buf.PushBinaryMarshallable(&e.Current)
+	err = buf.PushBinaryMarshallable(&e.Current)
 	if err != nil {
 		return nil, err
 	}
@@ -199,9 +207,14 @@ func (e *EntryBlockMarker) Clone() *EntryBlockMarker {
 	return b
 }
 
-func (e *EntryBlockMarker) MarshalBinary() ([]byte, error) {
+func (e *EntryBlockMarker) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "EntryBlockMarker.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	buf := primitives.NewBuffer(nil)
-	err := buf.PushIHash(e.KeyMr)
+	err = buf.PushIHash(e.KeyMr)
 	if err != nil {
 		return nil, err
 	}

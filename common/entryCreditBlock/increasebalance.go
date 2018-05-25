@@ -6,6 +6,7 @@ package entryCreditBlock
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -116,11 +117,16 @@ func (b *IncreaseBalance) Interpret() string {
 	return ""
 }
 
-func (b *IncreaseBalance) MarshalBinary() ([]byte, error) {
+func (b *IncreaseBalance) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "IncreaseBalance.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	b.Init()
 	buf := primitives.NewBuffer(nil)
 
-	err := buf.PushBinaryMarshallable(b.ECPubKey)
+	err = buf.PushBinaryMarshallable(b.ECPubKey)
 	if err != nil {
 		return nil, err
 	}

@@ -757,6 +757,13 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 
 	if dbstatemsg.IsLast { // this is the last DBState in this load
 		s.DBFinished = true // Normal case
+		// Attempted hack to fix a set where one leader was ahead of the others.
+		//if s.Leader {
+		//	dbstatemsg.SetLocal(false) // we are going to send it out to catch everyone up
+		//	dbstatemsg.SetPeer2Peer(false)
+		//	dbstatemsg.SetFullBroadcast(true)
+		//	dbstatemsg.SendOut(s, dbstatemsg)
+		//}
 	}
 	/**************************
 	for int(s.ProcessLists.DBHeightBase)+len(s.ProcessLists.Lists) > int(dbheight+1) {
@@ -1242,7 +1249,7 @@ func (s *State) LeaderExecuteCommitChain(m interfaces.IMsg) {
 	s.LeaderExecute(m)
 
 	if re := s.Holding[cc.GetHash().Fixed()]; re != nil {
-		re.SendOut(s, m) // If I was waiting on the commit, go ahead and send out the reveal
+		re.SendOut(s, re) // If I was waiting on the commit, go ahead and send out the reveal
 	}
 }
 
@@ -1258,7 +1265,7 @@ func (s *State) LeaderExecuteCommitEntry(m interfaces.IMsg) {
 	s.LeaderExecute(m)
 
 	if re := s.Holding[ce.GetHash().Fixed()]; re != nil {
-		re.SendOut(s, m) // If I was waiting on the commit, go ahead and send out the reveal
+		re.SendOut(s, re) // If I was waiting on the commit, go ahead and send out the reveal
 	}
 }
 
