@@ -271,9 +271,13 @@ func (db *Overlay) FetchAllBlockKeysFromBucket(bucket []byte) ([]interfaces.IHas
 	}
 	answer := make([]interfaces.IHash, len(entries))
 	for i := range entries {
-		answer[i], err = primitives.NewShaHash(entries[i])
+		h, err := primitives.NewShaHash(entries[i])
 		if err != nil {
 			return nil, err
+		}
+		// be careful to not assign a nil hash to an IHash
+		if h != nil {
+			answer[i] = h
 		}
 	}
 	return answer, nil

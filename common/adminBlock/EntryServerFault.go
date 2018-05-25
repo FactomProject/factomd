@@ -2,6 +2,7 @@ package adminBlock
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -124,11 +125,16 @@ func (e *ServerFault) UpdateState(state interfaces.IState) error {
 	return nil
 }
 
-func (m *ServerFault) MarshalCore() ([]byte, error) {
+func (m *ServerFault) MarshalCore() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "ServerFault.MarshalCore err:%v", *pe)
+		}
+	}(&err)
 	m.Init()
 	var buf primitives.Buffer
 
-	err := buf.PushBinaryMarshallable(m.ServerID)
+	err = buf.PushBinaryMarshallable(m.ServerID)
 	if err != nil {
 		return nil, err
 	}
@@ -154,11 +160,16 @@ func (m *ServerFault) MarshalCore() ([]byte, error) {
 	return buf.DeepCopyBytes(), nil
 }
 
-func (m *ServerFault) MarshalBinary() ([]byte, error) {
+func (m *ServerFault) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "ServerFault.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	m.Init()
 	var buf primitives.Buffer
 
-	err := buf.PushByte(m.Type())
+	err = buf.PushByte(m.Type())
 	if err != nil {
 		return nil, err
 	}

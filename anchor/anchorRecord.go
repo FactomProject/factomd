@@ -10,6 +10,7 @@ package anchor
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -59,7 +60,12 @@ func (e *AnchorRecord) String() string {
 	return str
 }
 
-func (ar *AnchorRecord) Marshal() ([]byte, error) {
+func (ar *AnchorRecord) Marshal() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "AnchorRecord.Marshal err:%v", *pe)
+		}
+	}(&err)
 	data, err := json.Marshal(ar)
 	if err != nil {
 		return nil, err

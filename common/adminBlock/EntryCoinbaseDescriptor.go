@@ -2,6 +2,7 @@ package adminBlock
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/factoid"
@@ -60,11 +61,16 @@ func (e *CoinbaseDescriptor) Type() byte {
 	return constants.TYPE_COINBASE_DESCRIPTOR
 }
 
-func (e *CoinbaseDescriptor) MarshalBinary() ([]byte, error) {
+func (e *CoinbaseDescriptor) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "CoinbaseDescriptor.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	e.Init()
 	var buf primitives.Buffer
 
-	err := buf.PushByte(e.Type())
+	err = buf.PushByte(e.Type())
 	if err != nil {
 		return nil, err
 	}

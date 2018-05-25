@@ -7,6 +7,7 @@ package electionMsgs
 import (
 	"bytes"
 	"fmt"
+	"os"
 	//"github.com/FactomProject/factomd/state"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -336,7 +337,12 @@ func (m *FedVoteVolunteerMsg) GetSignature() interfaces.IFullSignature {
 	return m.Signature
 }
 
-func (m *FedVoteVolunteerMsg) MarshalBinary() ([]byte, error) {
+func (m *FedVoteVolunteerMsg) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "FedVoteVolunteerMsg.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	var buf primitives.Buffer
 
 	data, err := m.MarshalForSignature()

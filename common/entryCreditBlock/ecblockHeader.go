@@ -7,6 +7,7 @@ package entryCreditBlock
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -170,12 +171,17 @@ func (e *ECBlockHeader) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
 }
 
-func (e *ECBlockHeader) MarshalBinary() ([]byte, error) {
+func (e *ECBlockHeader) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "ECBlockHeader.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	e.Init()
 	buf := primitives.NewBuffer(nil)
 
 	// 32 byte ECChainID
-	err := buf.PushBinaryMarshallable(e.GetECChainID())
+	err = buf.PushBinaryMarshallable(e.GetECChainID())
 	if err != nil {
 		return nil, err
 	}
