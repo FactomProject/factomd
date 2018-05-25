@@ -526,7 +526,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	// Start the webserver
 	wsapi.Start(fnodes[0].State)
 	if fnodes[0].State.DebugExec() && messages.CheckFileName("graphData.txt") {
-		go printGraphData("graphData.txt", 5)
+		go printGraphData("graphData.txt", 30)
 	}
 
 	// Start prometheus on port
