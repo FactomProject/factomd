@@ -5,7 +5,7 @@ jobs:
   build:
     working_directory: /go/src/github.com/FactomProject/factomd
     docker:
-      - image: circleci/golang:1.10
+      - image: circleci/golang:1.10.2
 
     steps:
       - checkout
@@ -44,7 +44,7 @@ jobs:
   test:
     working_directory: /go/src/github.com/FactomProject/factomd
     docker:
-      - image: circleci/golang:1.10
+      - image: circleci/golang:1.10.2
 
     steps:
       - checkout
@@ -89,7 +89,7 @@ jobs:
   coveralls:
     working_directory: /go/src/github.com/FactomProject/factomd
     docker:
-      - image: circleci/golang:1.10
+      - image: circleci/golang:1.10.2
 
     steps:
       - checkout

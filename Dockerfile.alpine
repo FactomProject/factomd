@@ -1,4 +1,4 @@
-FROM golang:1.10-alpine  as builder
+FROM golang:1.10.2-alpine  as builder
 
 # Get git
 RUN apk add --no-cache curl git
