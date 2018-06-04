@@ -190,8 +190,9 @@ func Sha512Half(p []byte) (h *Hash) {
 
 // Convert a hash into a string with hex encoding
 func (h *Hash) String() string {
+	// Maybe should return "-nil-" and check over in the HexToHash for "-nil-"?
 	if h == nil {
-		return hex.EncodeToString(nil)
+		return ""
 	} else {
 		return hex.EncodeToString(h[:])
 	}
