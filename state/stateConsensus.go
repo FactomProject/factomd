@@ -103,18 +103,10 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 		}
 
 		switch msg.Type() {
-		case constants.REVEAL_ENTRY_MSG:
+		case constants.REVEAL_ENTRY_MSG, constants.COMMIT_ENTRY_MSG, constants.COMMIT_CHAIN_MSG:
 			if !s.NoEntryYet(msg.GetHash(), nil) {
-				return true
-			}
-			s.Holding[msg.GetMsgHash().Fixed()] = msg
-		case constants.COMMIT_ENTRY_MSG:
-			if !s.NoEntryYet(msg.GetHash(), nil) {
-				return true
-			}
-			s.Holding[msg.GetMsgHash().Fixed()] = msg
-		case constants.COMMIT_CHAIN_MSG:
-			if !s.NoEntryYet(msg.GetHash(), nil) {
+				delete(s.Holding, msg.GetHash().Fixed())
+				s.Commits.Delete(msg.GetHash().Fixed())
 				return true
 			}
 			s.Holding[msg.GetMsgHash().Fixed()] = msg
@@ -387,6 +379,11 @@ func (s *State) ReviewHolding() {
 
 	highest := s.GetHighestKnownBlock()
 	saved := s.GetHighestSavedBlk()
+	for _, a := range s.Acks {
+		if s.Holding[a.GetHash().Fixed()] != nil {
+			a.FollowerExecute(s)
+		}
+	}
 
 	// Set this flag, so it acts as a constant.  We will set s.LeaderNewMin to false
 	// after processing the Holding Queue.  Ensures we only do this one per minute.
@@ -394,12 +391,6 @@ func (s *State) ReviewHolding() {
 	s.LeaderNewMin++ // Either way, don't do it again until the ProcessEOM resets LeaderNewMin
 
 	for k, v := range s.Holding {
-		ack := s.Acks[k]
-		if ack != nil {
-			s.LogMessage("executeMsg", "Found Ack for this thing in Holding", v)
-			v.FollowerExecute(s)
-			continue
-		}
 
 		if v.Expire(s) {
 			s.LogMessage("executeMsg", "expire from holding", v)
@@ -935,13 +926,13 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 	if okm {
 		s.LogMessage("executeMsg", "FollowerExecute3", msg)
 		msg.FollowerExecute(s)
+
+		s.LogMessage("executeMsg", "FollowerExecute4", ack)
+		ack.FollowerExecute(s)
+
+		s.MissingResponseAppliedCnt++
+
 	}
-
-	s.LogMessage("executeMsg", "FollowerExecute4", ack)
-	ack.FollowerExecute(s)
-
-	s.MissingResponseAppliedCnt++
-
 }
 
 func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
@@ -1194,6 +1185,8 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	TotalAcksInputs.Inc()
 	s.Acks[eom.GetMsgHash().Fixed()] = ack
 	m.SetLocal(false)
+	ack.SendOut(s, ack)
+	m.SendOut(s, m)
 	s.FollowerExecuteEOM(m)
 	s.UpdateState()
 	delete(s.Acks, ack.GetHash().Fixed())
@@ -1246,7 +1239,7 @@ func (s *State) LeaderExecuteCommitChain(m interfaces.IMsg) {
 	s.LeaderExecute(m)
 
 	if re := s.Holding[cc.GetHash().Fixed()]; re != nil {
-		re.SendOut(s, m) // If I was waiting on the commit, go ahead and send out the reveal
+		re.SendOut(s, re) // If I was waiting on the commit, go ahead and send out the reveal
 	}
 }
 
@@ -1262,7 +1255,7 @@ func (s *State) LeaderExecuteCommitEntry(m interfaces.IMsg) {
 	s.LeaderExecute(m)
 
 	if re := s.Holding[ce.GetHash().Fixed()]; re != nil {
-		re.SendOut(s, m) // If I was waiting on the commit, go ahead and send out the reveal
+		re.SendOut(s, re) // If I was waiting on the commit, go ahead and send out the reveal
 	}
 }
 
