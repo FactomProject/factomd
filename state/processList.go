@@ -1196,14 +1196,13 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	if len(vm.List) > int(ack.Height) && vm.List[ack.Height] != nil {
 		if vm.List[ack.Height].GetMsgHash().IsSameAs(msgHash) {
 			p.State.LogPrintf("processList", "Drop duplicate")
-			toss("2")
+			toss("Drop duplicate")
 			return
 		}
 
 		p.State.LogMessage("processList", "drop from pl", vm.List[ack.Height])
-		vm.List[ack.Height] = m // remove the old message
-
-		return
+		p.State.LogMessage("processList", "drop from pl", vm.ListAck[ack.Height])
+		// the code below will blindly overwrite the old message/ack
 	}
 
 	// From this point on, we consider the transaction recorded.  If we detect it has already been
@@ -1211,20 +1210,15 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
 	vm.heartBeat = 0 // We have heard from this VM
 
-	TotalHoldingQueueOutputs.Inc()
-	TotalAcksOutputs.Inc()
-	delete(p.State.Acks, msgHash.Fixed())
-	delete(p.State.Holding, msgHash.Fixed())
-
 	// Both the ack and the message hash to the same GetHash()
+	if ack.GetHash().Fixed() != m.GetMsgHash().Fixed() {
+		p.State.LogPrintf("executeMsg", "m/ack mismatch m-%x a-%x", m.GetMsgHash().Fixed(), ack.GetHash().Fixed())
+	}
+
 	m.SetLocal(false)
 	ack.SetLocal(false)
 	ack.SetPeer2Peer(false)
 	m.SetPeer2Peer(false)
-
-	if ack.GetHash().Fixed() != m.GetMsgHash().Fixed() {
-		p.State.LogPrintf("executeMsg", "m/ack mismatch m-%x a-%x", m.GetMsgHash().Fixed(), ack.GetHash().Fixed())
-	}
 	m.SendOut(p.State, m)
 	ack.SendOut(p.State, ack)
 
@@ -1234,8 +1228,11 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	}
 
 	p.State.LogPrintf("executeMsg", "remove from holding M-%v|R-%v", m.GetMsgHash().String()[:6], m.GetRepeatHash().String()[:6])
+	TotalHoldingQueueOutputs.Inc()
+	TotalAcksOutputs.Inc()
 	delete(p.State.Holding, msgHash.Fixed())
 	delete(p.State.Acks, msgHash.Fixed())
+
 	p.VMs[ack.VMIndex].List[ack.Height] = m
 	p.VMs[ack.VMIndex].ListAck[ack.Height] = ack
 
