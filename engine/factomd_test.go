@@ -467,7 +467,7 @@ func TestLoad(t *testing.T) {
 		"--db=Map",
 		"--network=LOCAL",
 		"--enablenet=true",
-		"--blktime=30",
+		"--blktime=10",
 		"--faulttimeout=30",
 		"--roundtimeout=10",
 		"--count=7",
@@ -525,7 +525,7 @@ func TestLoad(t *testing.T) {
 		t.Fatalf("found %d leaders, expected 5", leadercnt)
 	}
 
-	runCmd("S100")
+	runCmd("S300")
 	runCmd("R10")
 	WaitBlocks(state0, 10)
 	runCmd("R0")
