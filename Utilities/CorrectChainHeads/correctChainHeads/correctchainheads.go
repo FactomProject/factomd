@@ -29,6 +29,10 @@ func FindHeads(f tools.Fetcher, conf CorrectChainHeadConfig) {
 		conf.Logger = log.New()
 		log.SetLevel(log.InfoLevel)
 	}
+	if conf.PrintFreq == 0 {
+		conf.PrintFreq = 500
+	}
+
 	flog := conf.Logger.WithFields(log.Fields{
 		"tool": "chainheadtool",
 	})
