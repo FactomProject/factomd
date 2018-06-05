@@ -51,6 +51,11 @@ func FindHeads(f tools.Fetcher, conf CorrectChainHeadConfig) {
 		panic(fmt.Sprintf("Error fetching head"))
 	}
 
+	if head == nil {
+		// No head means database is empty
+		return
+	}
+
 	height := head.GetDatabaseHeight()
 	dblock = head
 	top := height
