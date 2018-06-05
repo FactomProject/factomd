@@ -5,7 +5,7 @@ import (
 
 	"fmt"
 
-	"github.com/AdamSLevy/factom"
+	"github.com/FactomProject/factom"
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
