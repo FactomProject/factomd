@@ -33,6 +33,7 @@ import (
 	"github.com/FactomProject/factomd/wsapi"
 	"github.com/FactomProject/logrustash"
 
+	"github.com/FactomProject/factomd/Utilities/CorrectChainHeads/correctChainHeads"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -50,16 +51,20 @@ type State struct {
 	Cfg               interfaces.IFactomConfig
 	ConfigFilePath    string // $HOME/.factom/m2/factomd.conf by default
 
-	Prefix            string
-	FactomNodeName    string
-	FactomdVersion    string
-	LogPath           string
-	LdbPath           string
-	BoltDBPath        string
-	LogLevel          string
-	ConsoleLogLevel   string
-	NodeMode          string
-	DBType            string
+	Prefix          string
+	FactomNodeName  string
+	FactomdVersion  string
+	LogPath         string
+	LdbPath         string
+	BoltDBPath      string
+	LogLevel        string
+	ConsoleLogLevel string
+	NodeMode        string
+	DBType          string
+	CheckChainHeads struct {
+		CheckChainHeads bool
+		Fix             bool
+	}
 	CloneDBType       string
 	ExportData        bool
 	ExportDataSubpath string
@@ -439,6 +444,7 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 	newState.NodeMode = "FULL"
 	newState.CloneDBType = s.CloneDBType
 	newState.DBType = s.CloneDBType
+	newState.CheckChainHeads = s.CheckChainHeads
 	newState.ExportData = s.ExportData
 	newState.ExportDataSubpath = s.ExportDataSubpath + "sim-" + number
 	newState.Network = s.Network
@@ -917,6 +923,10 @@ func (s *State) Init() {
 	default:
 		panic("No Database type specified")
 	}
+
+	correctChainHeads.FindHeads(s.DB.(*databaseOverlay.Overlay), correctChainHeads.CorrectChainHeadConfig{
+		PrintFreq: 5000,
+	})
 
 	if s.ExportData {
 		s.DB.SetExportData(s.ExportDataSubpath)
