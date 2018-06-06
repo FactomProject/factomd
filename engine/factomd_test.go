@@ -87,20 +87,23 @@ func TestSetupANetwork(t *testing.T) {
 	}
 
 	args := append([]string{},
-		"-db=Map",
-		"-network=LOCAL",
-		"-net=alot+",
-		"-enablenet=true",
-		"-blktime=8",
-		"-count=10",
-		"-logPort=37000",
-		"-port=37001",
-		"-controlpanelport=37002",
-		"-networkport=37003",
-		"-startdelay=1",
-		//"-debuglog=F.*",
+		"--db=Map",
+		"--network=LOCAL",
+		"--net=alot+",
+		"--enablenet=true",
+		"--blktime=8",
+		"--faulttimeout=8",
+		"--roundtimeout=4",
+		"--count=10",
+		"--logPort=37000",
+		"--port=37001",
+		"--controlpanelport=37002",
+		"--networkport=37003",
+		"--startdelay=1",
+		//"--debuglog=.*",
 		"--stdoutlog=out.txt",
 		"--stderrlog=err.txt",
+		"--checkheads=false",
 	)
 
 	params := ParseCmdLine(args)
@@ -272,6 +275,7 @@ func TestMakeALeader(t *testing.T) {
 		"-debuglog=F.*",
 		"--stdoutlog=out.txt",
 		"--stderrlog=out.txt",
+		"--checkheads=false",
 	)
 
 	params := ParseCmdLine(args)
@@ -340,11 +344,14 @@ func TestAnElection(t *testing.T) {
 		"-net=alot+",
 		"-enablenet=true",
 		"-blktime=10",
+		"--faulttimeout=8",
+		"--roundtimeout=4",
 		fmt.Sprintf("-count=%d", nodes),
 		"-startdelay=1",
 		"-debuglog=F.*",
 		"--stdoutlog=out.txt",
 		"--stderrlog=err.txt",
+		"--checkheads=false",
 	)
 	params := ParseCmdLine(args)
 
@@ -460,6 +467,8 @@ func TestMultiple2Election(t *testing.T) {
 		"-network=LOCAL",
 		"-enablenet=true",
 		"-blktime=15",
+		"--faulttimeout=8",
+		"--roundtimeout=4",
 		"-count=10",
 		"-startdelay=1",
 		"-net=alot+",
@@ -467,6 +476,7 @@ func TestMultiple2Election(t *testing.T) {
 		"--stdoutlog=../out.txt",
 		"--stderrlog=../out.txt",
 		"-debugconsole=localhost:8093",
+		"--checkheads=false",
 	)
 
 	params := ParseCmdLine(args)
@@ -554,6 +564,8 @@ func TestMultiple3Election(t *testing.T) {
 		"-network=LOCAL",
 		"-enablenet=true",
 		"-blktime=15",
+		"--faulttimeout=8",
+		"--roundtimeout=4",
 		"-count=12",
 		"-startdelay=1",
 		"-net=alot+",
@@ -561,6 +573,7 @@ func TestMultiple3Election(t *testing.T) {
 		"--stdoutlog=../out.txt",
 		"--stderrlog=../out.txt",
 		"-debugconsole=localhost:8093",
+		"--checkheads=false",
 	)
 
 	params := ParseCmdLine(args)
@@ -661,6 +674,7 @@ func TestMultiple7Election(t *testing.T) {
 		"--stdoutlog=../out.txt",
 		"--stderrlog=../out.txt",
 		"-debugconsole=localhost:8093",
+		"--checkheads=false",
 	)
 
 	params := ParseCmdLine(args)
