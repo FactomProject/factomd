@@ -210,7 +210,7 @@ func (m *MissingMsgResponse) String() string {
 
 	return fmt.Sprintf("MissingMsgResponse <-- DBh/VMh/h[%15s] message %s msgHash[%x] to peer-%d %s",
 		fmt.Sprintf("%d/%d/%d", ack.DBHeight, ack.VMIndex, ack.Height), m.MsgResponse.String(),
-			m.GetMsgHash().Bytes()[:3],m.GetOrigin(),m.GetNetworkOrigin())
+		m.GetMsgHash().Bytes()[:3], m.GetOrigin(), m.GetNetworkOrigin())
 }
 
 func (m *MissingMsgResponse) LogFields() log.Fields {

@@ -103,6 +103,7 @@ func TestSetupANetwork(t *testing.T) {
 		//"--debuglog=.*",
 		"--stdoutlog=out.txt",
 		"--stderrlog=err.txt",
+		"--checkheads=false",
 	)
 
 	params := ParseCmdLine(args)
@@ -274,6 +275,7 @@ func TestMakeALeader(t *testing.T) {
 		"-debuglog=F.*",
 		"--stdoutlog=out.txt",
 		"--stderrlog=out.txt",
+		"--checkheads=false",
 	)
 
 	params := ParseCmdLine(args)
@@ -349,6 +351,7 @@ func TestAnElection(t *testing.T) {
 		"-debuglog=F.*",
 		"--stdoutlog=out.txt",
 		"--stderrlog=err.txt",
+		"--checkheads=false",
 	)
 	params := ParseCmdLine(args)
 
@@ -473,6 +476,7 @@ func TestMultiple2Election(t *testing.T) {
 		"--stdoutlog=../out.txt",
 		"--stderrlog=../out.txt",
 		"-debugconsole=localhost:8093",
+		"--checkheads=false",
 	)
 
 	params := ParseCmdLine(args)
@@ -569,6 +573,7 @@ func TestMultiple3Election(t *testing.T) {
 		"--stdoutlog=../out.txt",
 		"--stderrlog=../out.txt",
 		"-debugconsole=localhost:8093",
+		"--checkheads=false",
 	)
 
 	params := ParseCmdLine(args)
@@ -669,6 +674,7 @@ func TestMultiple7Election(t *testing.T) {
 		"--stdoutlog=../out.txt",
 		"--stderrlog=../out.txt",
 		"-debugconsole=localhost:8093",
+		"--checkheads=false",
 	)
 
 	params := ParseCmdLine(args)

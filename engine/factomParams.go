@@ -92,6 +92,8 @@ func ParseCmdLine(args []string) *FactomParams {
 	flag.IntVar(&elections.RoundTimeout, "roundtimeout", 30, "Seconds before audit servers will increment rounds and volunteer.")
 	flag.IntVar(&p2p.NumberPeersToBroadcast, "broadcastnum", 16, "Number of peers to broadcast to in the peer to peer networking")
 	flag.StringVar(&p.ConfigPath, "config", "", "Override the config file location (factomd.conf)")
+	flag.BoolVar(&p.CheckChainHeads, "checkheads", true, "Enables checking chain heads on boot")
+	flag.BoolVar(&p.FixChainHeads, "fixheads", true, "If --checkheads is enabled, then this will also correct any errors reported")
 
 	flag.CommandLine.Parse(args)
 

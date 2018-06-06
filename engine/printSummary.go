@@ -235,16 +235,16 @@ func PrintOneStatus(listenTo int, wsapiNode int) {
 			prt = prt + fmt.Sprintf("%5d ", f.State.GetMessageTalliesSent(i))
 		}
 		prt = prt + "\nType:"
-		for i := NumMsgTypes /2; i < NumMsgTypes; i++ {
+		for i := NumMsgTypes / 2; i < NumMsgTypes; i++ {
 			prt = prt + fmt.Sprintf("%5d ", i)
 		}
 		prt = prt + "\nRecd:"
 
-		for i := NumMsgTypes /2; i < NumMsgTypes; i++ {
+		for i := NumMsgTypes / 2; i < NumMsgTypes; i++ {
 			prt = prt + fmt.Sprintf("%5d ", f.State.GetMessageTalliesReceived(i))
 		}
 		prt = prt + "\nSent:"
-		for i := NumMsgTypes /2; i < NumMsgTypes; i++ {
+		for i := NumMsgTypes / 2; i < NumMsgTypes; i++ {
 			prt = prt + fmt.Sprintf("%5d ", f.State.GetMessageTalliesSent(i))
 		}
 
