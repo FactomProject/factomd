@@ -192,11 +192,11 @@ func (m *MissingMsg) String() string {
 	for _, n := range m.ProcessListHeight {
 		str += fmt.Sprintf("%d/%d/%d, ", m.DBHeight, m.VMIndex, n)
 	}
-	return fmt.Sprintf("MissingMsg --> %x asking for DBh/VMh/h[%s] Sys: %d msgHash[%x]",
+	return fmt.Sprintf("MissingMsg --> %x asking for DBh/VMh/h[%s] Sys: %d msgHash[%x] from peer-%d %s",
 		m.Asking.Bytes()[3:6],
 		str,
 		m.SystemHeight,
-		m.GetMsgHash().Bytes()[:3])
+		m.GetMsgHash().Bytes()[:3], m.GetOrigin(), m.GetNetworkOrigin())
 }
 
 func (m *MissingMsg) LogFields() log.Fields {

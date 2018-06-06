@@ -97,16 +97,17 @@ func (a *CommitEntry) IsSameAs(b interfaces.IECBlockEntry) bool {
 }
 
 func (e *CommitEntry) String() string {
-	var out primitives.Buffer
-	out.WriteString(fmt.Sprintf(" %s\n", "CommitEntry"))
-	out.WriteString(fmt.Sprintf("   %-20s %d\n", "Version", e.Version))
-	out.WriteString(fmt.Sprintf("   %-20s %s\n", "MilliTime", e.MilliTime))
-	out.WriteString(fmt.Sprintf("   %-20s %x\n", "EntryHash", e.EntryHash.Bytes()[:3]))
-	out.WriteString(fmt.Sprintf("   %-20s %d\n", "Credits", e.Credits))
-	out.WriteString(fmt.Sprintf("   %-20s %x\n", "ECPubKey", e.ECPubKey[:3]))
-	out.WriteString(fmt.Sprintf("   %-20s %x\n", "Sig", e.Sig[:3]))
-
-	return (string)(out.DeepCopyBytes())
+	//var out primitives.Buffer
+	//out.WriteString(fmt.Sprintf(" %s\n", "CommitEntry"))
+	//out.WriteString(fmt.Sprintf("   %-20s %d\n", "Version", e.Version))
+	//out.WriteString(fmt.Sprintf("   %-20s %s\n", "MilliTime", e.MilliTime))
+	//out.WriteString(fmt.Sprintf("   %-20s %x\n", "EntryHash", e.EntryHash.Bytes()[:3]))
+	//out.WriteString(fmt.Sprintf("   %-20s %d\n", "Credits", e.Credits))
+	//out.WriteString(fmt.Sprintf("   %-20s %x\n", "ECPubKey", e.ECPubKey[:3]))
+	//out.WriteString(fmt.Sprintf("   %-20s %x\n", "Sig", e.Sig[:3]))
+	//
+	//return (string)(out.DeepCopyBytes())
+	return fmt.Sprintf("ehash[%x] Credits[%d] PublicKey[%x] Sig[%x]", e.EntryHash.Bytes()[:3], e.Credits, e.ECPubKey[:3], e.Sig[:3])
 }
 
 func (a *CommitEntry) GetEntryHash() interfaces.IHash {
