@@ -924,9 +924,12 @@ func (s *State) Init() {
 		panic("No Database type specified")
 	}
 
-	correctChainHeads.FindHeads(s.DB.(*databaseOverlay.Overlay), correctChainHeads.CorrectChainHeadConfig{
-		PrintFreq: 5000,
-	})
+	if s.CheckChainHeads.CheckChainHeads {
+		correctChainHeads.FindHeads(s.DB.(*databaseOverlay.Overlay), correctChainHeads.CorrectChainHeadConfig{
+			PrintFreq: 5000,
+			Fix:       s.CheckChainHeads.Fix,
+		})
+	}
 
 	if s.ExportData {
 		s.DB.SetExportData(s.ExportDataSubpath)
