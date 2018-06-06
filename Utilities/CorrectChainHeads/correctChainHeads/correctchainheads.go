@@ -142,12 +142,15 @@ func FindHeads(f tools.Fetcher, conf CorrectChainHeadConfig) {
 				flog.Errorf("Error getting chainhead for %s", eblk.GetChainID().String())
 			} else {
 				if !ch.IsSameAs(eblk.GetKeyMR()) {
-					flog.Errorf("ERROR: Chainhead found: %s, Expected %s :: For Chain: %s at height %d",
-						ch.String(), eblk.GetKeyMR().String(), eblk.GetChainID().String(), height)
-					errCount++
 					if fix {
 						f.SetChainHeads([]interfaces.IHash{eblk.GetKeyMR()}, []interfaces.IHash{eblk.GetChainID()})
+						flog.Warnf("{FIXED!} Chainhead found: %s, Expected %s :: For Chain: %s at height %d",
+							ch.String(), eblk.GetKeyMR().String(), eblk.GetChainID().String(), height)
+					} else {
+						flog.Errorf("Chainhead found: %s, Expected %s :: For Chain: %s at height %d",
+							ch.String(), eblk.GetKeyMR().String(), eblk.GetChainID().String(), height)
 					}
+					errCount++
 				}
 			}
 		}
@@ -185,6 +188,10 @@ func FindHeads(f tools.Fetcher, conf CorrectChainHeadConfig) {
 			}
 		}
 	}
-	flog.Infof("Check Complete. %d Errors found checking for bad links", errCount)
+	if fix {
+		flog.Infof("Check Complete. %d Errors corrected while checking for bad links", errCount)
+	} else {
+		flog.Infof("Check Complete. %d Errors found checking for bad links", errCount)
+	}
 
 }
