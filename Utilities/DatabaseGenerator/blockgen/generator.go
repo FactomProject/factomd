@@ -26,12 +26,14 @@ type DBGenerator struct {
 	// Defines the blocks created and data in the db
 	BlockGenerator *BlockGen
 
-	last *state.DBState
+	last   *state.DBState
+	config *DBGeneratorConfig
 }
 
 func NewDBGenerator(c *DBGeneratorConfig) (*DBGenerator, error) {
 	var err error
 	db := new(DBGenerator)
+	db.config = c
 	starttime := primitives.NewTimestampFromSeconds(uint32(time.Now().Add(-1 * 364 * 24 * time.Hour).Unix()))
 
 	if c.StartTime != "" {
@@ -173,6 +175,7 @@ type DBGeneratorConfig struct {
 	CustomNetID       string
 	StartTime         string
 	EntryGenerator    string
+	LoopsPerPrint     int
 
 	EntryGenConfig EntryGeneratorConfig
 }
@@ -192,6 +195,7 @@ func NewDefaultDBGeneratorConfig() *DBGeneratorConfig {
 	c.FactomdConfigPath = "gen.conf"
 	c.EntryGenConfig = *NewDefaultEntryGeneratorConfig()
 	c.StartTime = time.Now().Add(-1 * 364 * 24 * time.Hour).Format(c.TimeFormat())
+	c.LoopsPerPrint = 10
 	return c
 }
 
@@ -199,10 +203,13 @@ func NewDefaultDBGeneratorConfig() *DBGeneratorConfig {
 func (g *DBGenerator) CreateBlocks(amt int) error {
 	start := time.Now()
 	loop := time.Now()
-	loopper := 10
+	loopper := g.config.LoopsPerPrint
 	totalEntries := 0
 	loopEntries := 0 // Entries per loop
 	for i := 0; i < amt; i++ {
+		for count := 0; count < g.FactomdState.ElectionsQueue().Length(); count++ {
+			g.FactomdState.ElectionsQueue().Dequeue() // Always have to do a dequeue
+		}
 		if i%loopper == 0 && i != 0 {
 			totalDuration := time.Since(start).Seconds()
 			duration := time.Since(loop).Seconds()
@@ -210,24 +217,28 @@ func (g *DBGenerator) CreateBlocks(amt int) error {
 			left := float64(amt - i)
 			timeleft := left / avgb
 
-			log.Infof("Current Height %5d:  %6d/%-6d at %6.2f b/s. Entries at %8.2f e/s. Avg Entry Rate: %8.2f e/s. ~%-12s Remain ",
+			log.Infof("Current Height %5d:  %6d/%-6d at %6.2f b/s. Entries at %8.2f e/s. Avg Entry Rate: %8.2f e/s. ~%-12s Remain. Total Entries: %d",
 				g.last.DirectoryBlock.GetDatabaseHeight(), i, amt,
 				avgb, //float64(loopper)/duration,
 				float64(loopEntries)/duration,
 				float64(totalEntries)/totalDuration,
 				time.Duration(timeleft)*time.Second,
+				totalEntries,
 			)
 			loopEntries = 0
 			loop = time.Now()
 		}
+
 		dbstate, err := g.BlockGenerator.NewBlock(g.last, g.FactomdState.GetNetworkID(), g.FactomdState.GetLeaderTimestamp())
 		if err != nil {
 			return err
 		}
+
 		loopEntries += len(dbstate.Entries)
 		totalEntries += len(dbstate.Entries)
 		g.SaveDBState(dbstate)
 		g.last = dbstate
+
 	}
 	log.Infof("%d blocks saved to db", amt)
 	return nil

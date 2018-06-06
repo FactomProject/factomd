@@ -13,6 +13,8 @@ customnetid: gen
 #  Format: 22 May 2017 12:46
 #  Blank == Default 1 year back
 starttime: ""
+# How many blocks generated per status print
+loopsperprint: 5000
 
 # Choose the entry generator you want to use:
 #     "" == Random
@@ -22,20 +24,20 @@ starttime: ""
 #         Chainhead will be using random bytes
 #     "record" == Record Gen
 #         Each entry has 5 random hashes in 5 external ids
-entrygenerator: ""
+entrygenerator: "random"
 # Entry gen config fields
 entrygenconfig:
   # Entry gens can use this min/max ranges to determine
   # random elements of their entry gen.
   # Not all fields may be used by a selected entrygenerator
   entriespereblock: # Used By: "", "incr", "record"
-    min: 100
-    max: 100
+    min: 10
+    max: 10
   entrysize: # Used By: "", "incr"
     min: 100
     max: 250
   eblocksperheight: # Used By: "", "incr", "record"
-    min: 5
+    min: 10
     max: 10
   # Multithread EBlock creation
   #   Do not touch these if you don't know what it does
