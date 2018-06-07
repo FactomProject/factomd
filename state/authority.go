@@ -201,7 +201,6 @@ func pkEq(a, b []byte) bool {
 // 		-1 ->  Not fed or audit
 //		-2 -> Not found
 func (st *State) GetAuthority(serverID interfaces.IHash) (*Authority, int) {
-	// NEW
 	auth := st.IdentityControl.GetAuthority(serverID)
 	if auth == nil {
 		return nil, -2

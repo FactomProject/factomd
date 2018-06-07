@@ -29,6 +29,8 @@ func LoadDatabase(s *State) {
 	if err == nil && head != nil {
 		blkCnt = head.GetHeader().GetDBHeight()
 	}
+	// prevent MMR processing from happening for blocks being loaded from the database
+	s.DBHeightAtBoot = blkCnt
 
 	last := time.Now()
 

@@ -2,6 +2,7 @@ package adminBlock
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/factoid"
@@ -80,11 +81,16 @@ func (e *AddFactoidAddress) SortedIdentity() interfaces.IHash {
 	return e.IdentityChainID
 }
 
-func (e *AddFactoidAddress) MarshalBinary() ([]byte, error) {
+func (e *AddFactoidAddress) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "AddFactoidAddress.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	e.Init()
 	var buf primitives.Buffer
 
-	err := buf.PushByte(e.Type())
+	err = buf.PushByte(e.Type())
 	if err != nil {
 		return nil, err
 	}

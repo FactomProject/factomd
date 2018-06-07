@@ -6,6 +6,7 @@ package entryCreditBlock
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -96,9 +97,14 @@ func (s *ServerIndexNumber) ECID() byte {
 	return constants.ECIDServerIndexNumber
 }
 
-func (s *ServerIndexNumber) MarshalBinary() ([]byte, error) {
+func (s *ServerIndexNumber) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "ServerIndexNumber.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	buf := primitives.NewBuffer(nil)
-	err := buf.PushByte(s.ServerIndexNumber)
+	err = buf.PushByte(s.ServerIndexNumber)
 	if err != nil {
 		return nil, err
 	}

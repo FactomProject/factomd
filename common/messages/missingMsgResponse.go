@@ -7,6 +7,7 @@ package messages
 import (
 	"encoding/binary"
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -137,7 +138,12 @@ func (m *MissingMsgResponse) UnmarshalBinary(data []byte) error {
 	return err
 }
 
-func (m *MissingMsgResponse) MarshalBinaryOld() ([]byte, error) {
+func (m *MissingMsgResponse) MarshalBinaryOld() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "MissingMsgResponse.MarshalBinaryOld err:%v", *pe)
+		}
+	}(&err)
 	var buf primitives.Buffer
 
 	binary.Write(&buf, binary.BigEndian, m.Type())
@@ -171,7 +177,12 @@ func (m *MissingMsgResponse) MarshalBinaryOld() ([]byte, error) {
 	return bb, nil
 }
 
-func (m *MissingMsgResponse) MarshalBinary() ([]byte, error) {
+func (m *MissingMsgResponse) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "MissingMsgResponse.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 
 	var buf primitives.Buffer
 
@@ -197,8 +208,9 @@ func (m *MissingMsgResponse) String() string {
 		return fmt.Sprint("MissingMsgResponse (no Ack) <-- ", m.MsgResponse.String())
 	}
 
-	return fmt.Sprintf("MissingMsgResponse <-- DBh/VMh/h[%15s] message %s msgHash[%x]",
-		fmt.Sprintf("%d/%d/%d", ack.DBHeight, ack.VMIndex, ack.Height), m.MsgResponse.String(), m.GetMsgHash().Bytes()[:3])
+	return fmt.Sprintf("MissingMsgResponse <-- DBh/VMh/h[%15s] message %s msgHash[%x] to peer-%d %s",
+		fmt.Sprintf("%d/%d/%d", ack.DBHeight, ack.VMIndex, ack.Height), m.MsgResponse.String(),
+		m.GetMsgHash().Bytes()[:3], m.GetOrigin(), m.GetNetworkOrigin())
 }
 
 func (m *MissingMsgResponse) LogFields() log.Fields {

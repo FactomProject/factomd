@@ -149,5 +149,3 @@ EOF
  
 (cat $1_missing_messages.txt; grep -h "MissingMsg " $1_NetworkOutputs.txt; grep -HE "Send P2P.* $1 .*Missing Msg Response" FNode*_NetworkOutputs.txt) | awk "$scriptVariable"
 
-
-

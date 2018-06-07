@@ -6,6 +6,7 @@ package state
 
 import (
 	"fmt"
+	"os"
 	"sort"
 	"sync"
 	"time"
@@ -94,7 +95,12 @@ func (a *Replay) IsSameAs(b *Replay) bool {
 	return true
 }
 
-func (r *Replay) MarshalBinary() ([]byte, error) {
+func (r *Replay) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "Replay.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	r.Init()
 	b := primitives.NewBuffer(nil)
 
@@ -105,7 +111,7 @@ func (r *Replay) MarshalBinary() ([]byte, error) {
 		}
 	}
 
-	err := b.PushInt(r.Basetime)
+	err = b.PushInt(r.Basetime)
 	if err != nil {
 		return nil, err
 	}

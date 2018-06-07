@@ -110,9 +110,10 @@ func TestSetupANetwork(t *testing.T) {
 		"--controlpanelport=37002",
 		"--networkport=37003",
 		"--startdelay=1",
-		"--debuglog=.*",
+		//"--debuglog=.*",
 		"--stdoutlog=out.txt",
 		"--stderrlog=err.txt",
+		"--checkheads=false",
 	)
 
 	params := ParseCmdLine(args)
@@ -284,6 +285,7 @@ func TestMakeALeader(t *testing.T) {
 		"-debuglog=F.*",
 		"--stdoutlog=out.txt",
 		"--stderrlog=out.txt",
+		"--checkheads=false",
 	)
 
 	params := ParseCmdLine(args)
@@ -352,11 +354,14 @@ func TestAnElection(t *testing.T) {
 		"-net=alot+",
 		"-enablenet=true",
 		"-blktime=10",
+		"--faulttimeout=8",
+		"--roundtimeout=4",
 		fmt.Sprintf("-count=%d", nodes),
 		"-startdelay=1",
 		"-debuglog=F.*",
 		"--stdoutlog=out.txt",
 		"--stderrlog=err.txt",
+		"--checkheads=false",
 	)
 	params := ParseCmdLine(args)
 
@@ -448,7 +453,6 @@ func TestAnElection(t *testing.T) {
 	}
 
 }
-
 func TestLoad(t *testing.T) {
 	if ranSimTest {
 		return
@@ -476,6 +480,7 @@ func TestLoad(t *testing.T) {
 		"--debuglog=.*",
 		"--stdoutlog=out.txt",
 		"--stderrlog=err.txt",
+		"--checkheads=false",
 		//		"-debugconsole=localhost:8093",
 	)
 
@@ -565,6 +570,7 @@ func TestMultiple2Election(t *testing.T) {
 		"--debuglog=.*",
 		"--stdoutlog=out.txt",
 		"--stderrlog=err.txt",
+		"--checkheads=false",
 		//		"-debugconsole=localhost:8093",
 	)
 
@@ -693,6 +699,8 @@ func TestMultiple3Election(t *testing.T) {
 		"-network=LOCAL",
 		"-enablenet=true",
 		"-blktime=15",
+		"--faulttimeout=8",
+		"--roundtimeout=4",
 		"-count=12",
 		"-startdelay=1",
 		"-net=alot+",
@@ -700,6 +708,7 @@ func TestMultiple3Election(t *testing.T) {
 		"--stdoutlog=../out.txt",
 		"--stderrlog=../out.txt",
 		"-debugconsole=localhost:8093",
+		"--checkheads=false",
 	)
 
 	params := ParseCmdLine(args)
@@ -800,6 +809,7 @@ func TestMultiple7Election(t *testing.T) {
 		"--stdoutlog=../out.txt",
 		"--stderrlog=../out.txt",
 		"-debugconsole=localhost:8093",
+		"--checkheads=false",
 	)
 
 	params := ParseCmdLine(args)

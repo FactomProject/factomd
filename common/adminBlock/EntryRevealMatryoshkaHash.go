@@ -2,6 +2,7 @@ package adminBlock
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -44,11 +45,16 @@ func (c *RevealMatryoshkaHash) UpdateState(state interfaces.IState) error {
 	return nil
 }
 
-func (e *RevealMatryoshkaHash) MarshalBinary() ([]byte, error) {
+func (e *RevealMatryoshkaHash) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "RevealMatryoshkaHash.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	e.Init()
 	var buf primitives.Buffer
 
-	err := buf.PushByte(e.Type())
+	err = buf.PushByte(e.Type())
 	if err != nil {
 		return nil, err
 	}

@@ -6,6 +6,7 @@ package entryCreditBlock
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -183,12 +184,17 @@ func (e *ECBlock) HeaderHash() (interfaces.IHash, error) {
 	return primitives.Sha(p), nil
 }
 
-func (e *ECBlock) MarshalBinary() ([]byte, error) {
+func (e *ECBlock) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "ECBlock.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	e.Init()
 	buf := primitives.NewBuffer(nil)
 
 	// Header
-	err := e.BuildHeader()
+	err = e.BuildHeader()
 	if err != nil {
 		return nil, err
 	}
@@ -266,7 +272,12 @@ func (e *ECBlock) UnmarshalBinary(data []byte) (err error) {
 	return
 }
 
-func (e *ECBlock) marshalBodyBinary() ([]byte, error) {
+func (e *ECBlock) marshalBodyBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "ECBlock.marshalBodyBinary err:%v", *pe)
+		}
+	}(&err)
 	e.Init()
 	buf := primitives.NewBuffer(nil)
 	entries := e.GetBody().GetEntries()

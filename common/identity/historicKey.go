@@ -5,6 +5,9 @@
 package identity
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/primitives/random"
@@ -37,10 +40,15 @@ func (e *HistoricKey) IsSameAs(b *HistoricKey) bool {
 	return true
 }
 
-func (e *HistoricKey) MarshalBinary() ([]byte, error) {
+func (e *HistoricKey) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "HistoricKey.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	buf := primitives.NewBuffer(nil)
 
-	err := buf.PushUInt32(e.ActiveDBHeight)
+	err = buf.PushUInt32(e.ActiveDBHeight)
 	if err != nil {
 		return nil, err
 	}

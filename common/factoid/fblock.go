@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -142,7 +143,12 @@ func (b *FBlock) GetEndOfPeriod() [10]int {
 	return b.endOfPeriod
 }
 
-func (b *FBlock) MarshalTrans() ([]byte, error) {
+func (b *FBlock) MarshalTrans() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "FBlock.MarshalTrans err:%v", *pe)
+		}
+	}(&err)
 	var out primitives.Buffer
 	var periodMark = 0
 	var i int
@@ -178,7 +184,12 @@ func (b *FBlock) MarshalTrans() ([]byte, error) {
 	return out.DeepCopyBytes(), nil
 }
 
-func (b *FBlock) MarshalHeader() ([]byte, error) {
+func (b *FBlock) MarshalHeader() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "FBlock.MarshalHeader err:%v", *pe)
+		}
+	}(&err)
 	var out primitives.Buffer
 
 	out.Write(constants.FACTOID_CHAINID)
@@ -228,7 +239,12 @@ func (b *FBlock) MarshalHeader() ([]byte, error) {
 }
 
 // Write out the block
-func (b *FBlock) MarshalBinary() ([]byte, error) {
+func (b *FBlock) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "FBlock.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	b.Init()
 	var out primitives.Buffer
 

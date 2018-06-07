@@ -62,4 +62,6 @@ type FactomParams struct {
 	StderrLog                string
 	DebugLogRegEx            string
 	ConfigPath               string
+	CheckChainHeads          bool // Run checkchain heads on boot
+	FixChainHeads            bool // Only matters if CheckChainHeads == true
 }

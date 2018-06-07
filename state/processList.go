@@ -538,7 +538,24 @@ func (p *ProcessList) GetOldMsgs(key interfaces.IHash) interfaces.IMsg {
 	}
 	p.oldmsgslock.Lock()
 	defer p.oldmsgslock.Unlock()
-	return p.OldMsgs[key.Fixed()]
+	m, ok := p.OldMsgs[key.Fixed()]
+	if !ok {
+		return nil
+	}
+	return m
+}
+
+func (p *ProcessList) GetOldAck(key interfaces.IHash) interfaces.IMsg {
+	if p == nil {
+		return nil
+	}
+	p.oldackslock.Lock()
+	defer p.oldackslock.Unlock()
+	a, ok := p.OldAcks[key.Fixed()]
+	if !ok {
+		return nil
+	}
+	return a
 }
 
 func (p *ProcessList) AddNewEBlocks(key interfaces.IHash, value interfaces.IEntryBlock) {
@@ -603,7 +620,16 @@ func (p *ProcessList) CheckDiffSigTally() bool {
 
 func (p *ProcessList) TrimVMList(height uint32, vmIndex int) {
 	if !(uint32(len(p.VMs[vmIndex].List)) > height) {
+		p.State.LogMessage("processList", fmt.Sprintf("TrimVMList() %d/%d/%d", p.DBHeight, vmIndex, height), p.VMs[vmIndex].List[height])
 		p.VMs[vmIndex].List = p.VMs[vmIndex].List[:height]
+		p.VMs[vmIndex].HighestAsk = int(height) // make sure we will ask again for nil's above this height
+		if p.State.DebugExec() {
+			p.nilListMutex.Lock()
+			if p.nilList[vmIndex] > int(height-1) {
+				p.nilList[vmIndex] = int(height - 1) // Drag the highest nil logged back before this nil
+			}
+			p.nilListMutex.Unlock()
+		}
 	}
 }
 func (p *ProcessList) GetDBHeight() uint32 {
@@ -677,6 +703,8 @@ func (p *ProcessList) decodeState(Syncing bool, DBSig bool, EOM bool, DBSigDone 
 
 }
 
+var extraDebug bool = false
+
 // Process messages and update our state.
 func (p *ProcessList) Process(s *State) (progress bool) {
 	dbht := s.GetHighestSavedBlk()
@@ -715,6 +743,9 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 					s.SyncingStateCurrent = (s.SyncingStateCurrent + 1) % len(s.SyncingState)
 					s.SyncingState[s.SyncingStateCurrent] = x
 				}
+			}
+			if extraDebug {
+				p.State.LogMessage("process", fmt.Sprintf("Consider %v/%v/%v", p.DBHeight, i, j), vm.List[j])
 			}
 			if vm.List[j] == nil {
 				//s.AddStatus(fmt.Sprintf("ProcessList.go Process: Found nil list at vm %d vm height %d ", i, j))
@@ -788,7 +819,6 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 
 			// Try an process this message
 			msg := thisMsg
-
 			// If the block is not yet being written to disk (22 minutes old...)
 			if (vm.LeaderMinute < 2 && diff <= 3) || diff <= 2 {
 				// If we can't process this entry (i.e. returns false) then we can't process any more.

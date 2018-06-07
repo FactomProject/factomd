@@ -752,6 +752,13 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 
 	if dbstatemsg.IsLast { // this is the last DBState in this load
 		s.DBFinished = true // Normal case
+		// Attempted hack to fix a set where one leader was ahead of the others.
+		//if s.Leader {
+		//	dbstatemsg.SetLocal(false) // we are going to send it out to catch everyone up
+		//	dbstatemsg.SetPeer2Peer(false)
+		//	dbstatemsg.SetFullBroadcast(true)
+		//	dbstatemsg.SendOut(s, dbstatemsg)
+		//}
 	}
 	/**************************
 	for int(s.ProcessLists.DBHeightBase)+len(s.ProcessLists.Lists) > int(dbheight+1) {

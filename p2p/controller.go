@@ -53,8 +53,8 @@ type Controller struct {
 
 	discovery Discovery // Our discovery structure
 
-	numberOutgoingConnections int       // In PeerManagmeent we track this to know whent to dial out.
-	numberIncomingConnections int       // In PeerManagmeent we track this and refuse incoming connections when we have too many.
+	numberOutgoingConnections int       // In PeerManagement we track this to know when to dial out.
+	numberIncomingConnections int       // In PeerManagement we track this and refuse incoming connections when we have too many.
 	lastPeerManagement        time.Time // Last time we ran peer management.
 	lastDiscoveryRequest      time.Time
 	NodeID                    uint64
@@ -454,8 +454,11 @@ func (c *Controller) route() {
 		parcel := message.(Parcel)
 		TotalMessagesSent++
 		switch parcel.Header.TargetPeer {
-		case BroadcastFlag: // Send to all peers
-			c.broadcast(parcel)
+		case FullBroadcastFlag: // Send to all peers
+			c.broadcast(parcel, true)
+
+		case BroadcastFlag: // Send to many peers
+			c.broadcast(parcel, false)
 
 		case RandomPeerFlag: // Find a random peer, send to that peer.
 			c.logger.Debugf("Controller.route() Directed FINDING RANDOM Target: %s Type: %s #Number Connections: %d", parcel.Header.TargetPeer, parcel.Header.AppType, len(c.connections))
@@ -711,7 +714,7 @@ func (c *Controller) shutdown() {
 
 // Broadcasts the parcel to a number of peers: all special peers and a random selection
 // of regular peers (max NumberPeersToBroadcast).
-func (c *Controller) broadcast(parcel Parcel) {
+func (c *Controller) broadcast(parcel Parcel, full bool) {
 	numSent := 0
 
 	// always broadcast to special peers
@@ -726,7 +729,10 @@ func (c *Controller) broadcast(parcel Parcel) {
 
 	// estimate a number of regular peers to send messages to, at most NumberPeersToBroadcast
 	numRegularPeers := len(c.connections) - len(c.specialPeers)
-	numPeersToSendTo := min(numRegularPeers, NumberPeersToBroadcast)
+	numPeersToSendTo := numRegularPeers
+	if !full && numRegularPeers > NumberPeersToBroadcast {
+		numPeersToSendTo = NumberPeersToBroadcast
+	}
 	if numPeersToSendTo <= 0 {
 		return
 	}
@@ -741,7 +747,7 @@ func (c *Controller) broadcast(parcel Parcel) {
 	}
 
 	// perform a shuffle on the connection peers, so that we can obtain a random sample
-	// by getting items from the begiining of the shuffled slice
+	// by getting items from the beginning of the shuffled slice
 	Shuffle(len(regularPeers), func(i, j int) {
 		regularPeers[i], regularPeers[j] = regularPeers[j], regularPeers[i]
 	})

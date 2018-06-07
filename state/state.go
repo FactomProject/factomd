@@ -33,6 +33,7 @@ import (
 	"github.com/FactomProject/factomd/wsapi"
 	"github.com/FactomProject/logrustash"
 
+	"github.com/FactomProject/factomd/Utilities/CorrectChainHeads/correctChainHeads"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -50,16 +51,20 @@ type State struct {
 	Cfg               interfaces.IFactomConfig
 	ConfigFilePath    string // $HOME/.factom/m2/factomd.conf by default
 
-	Prefix            string
-	FactomNodeName    string
-	FactomdVersion    string
-	LogPath           string
-	LdbPath           string
-	BoltDBPath        string
-	LogLevel          string
-	ConsoleLogLevel   string
-	NodeMode          string
-	DBType            string
+	Prefix          string
+	FactomNodeName  string
+	FactomdVersion  string
+	LogPath         string
+	LdbPath         string
+	BoltDBPath      string
+	LogLevel        string
+	ConsoleLogLevel string
+	NodeMode        string
+	DBType          string
+	CheckChainHeads struct {
+		CheckChainHeads bool
+		Fix             bool
+	}
 	CloneDBType       string
 	ExportData        bool
 	ExportDataSubpath string
@@ -441,6 +446,7 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 	newState.NodeMode = "FULL"
 	newState.CloneDBType = s.CloneDBType
 	newState.DBType = s.CloneDBType
+	newState.CheckChainHeads = s.CheckChainHeads
 	newState.ExportData = s.ExportData
 	newState.ExportDataSubpath = s.ExportDataSubpath + "sim-" + number
 	newState.Network = s.Network
@@ -918,6 +924,13 @@ func (s *State) Init() {
 		}
 	default:
 		panic("No Database type specified")
+	}
+
+	if s.CheckChainHeads.CheckChainHeads {
+		correctChainHeads.FindHeads(s.DB.(*databaseOverlay.Overlay), correctChainHeads.CorrectChainHeadConfig{
+			PrintFreq: 5000,
+			Fix:       s.CheckChainHeads.Fix,
+		})
 	}
 
 	if s.ExportData {
@@ -2095,6 +2108,16 @@ func (s *State) SetFaultWait(wait int) {
 // GetAuthorities will return a list of the network authorities
 func (s *State) GetAuthorities() []interfaces.IAuthority {
 	return s.IdentityControl.GetAuthorities()
+}
+
+// GetAuthorityInterface will the authority as an interface. Because of import issues
+// we cannot access IdentityControl Directly
+func (s *State) GetAuthorityInterface(chainid interfaces.IHash) interfaces.IAuthority {
+	rval := s.IdentityControl.GetAuthority(chainid)
+	if rval == nil {
+		return nil
+	}
+	return rval
 }
 
 // GetLeaderPL returns the leader process list from the state. this method is
