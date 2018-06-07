@@ -5,7 +5,7 @@ jobs:
   build:
     working_directory: /go/src/github.com/FactomProject/factomd
     docker:
-      - image: circleci/golang:1.10.2
+      - image: circleci/golang:1.10
 
     steps:
       - checkout
@@ -44,7 +44,7 @@ jobs:
   test:
     working_directory: /go/src/github.com/FactomProject/factomd
     docker:
-      - image: circleci/golang:1.10.2
+      - image: circleci/golang:1.10
 
     steps:
       - checkout
@@ -80,6 +80,11 @@ jobs:
           no_output_timeout: 2400
           command: go test -v -vet=off $(glide nv)
 
+    - run:
+          name: Test Making a Leader 
+          no_output_timeout: 2400
+          command: cd engine/ && go test -run TestMakeALeader
+
 
       - save_cache:
           key: v2-factomd-go-build-cache-{{ checksum "glide.lock" }}
@@ -89,7 +94,7 @@ jobs:
   coveralls:
     working_directory: /go/src/github.com/FactomProject/factomd
     docker:
-      - image: circleci/golang:1.10.2
+      - image: circleci/golang:1.10
 
     steps:
       - checkout

@@ -80,20 +80,19 @@ func time2sec(t) {
 
 #   4159 16:41:26 1-:-4 Send P2P FNode02    M-b86815|R-b86815|H-b86815       Missing Msg Response[19]:MissingMsgResponse <-- DBh/VMh/h[         1/0/45] msgHash[b86815] EmbeddedMsg: REntry-VM  0: Min:   4          -- Leader[455b7b<FNode0>] Entry[c1c4d4] ChainID[888888dc44] hash[c1c4d4] |    ACK-    DBh/VMh/h 1/0/45        -- Leader[455b7b<FNode0>] hash[c1c4d4]
 /MissingMsgResponse/{
-#    print "MMR", $0
-    ts =  time2sec($2);
-#  print "          1         2         3         4         5         6         7         8         9         0         1         2         3         4         5         6         7         8         9         0"
-#   print "012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890"
-#   print $0
+    sub(/:/," ");
+#   print "MMR           1         2         3         4         5         6         7         8         9         0         1         2         3         4         5         6         7         8         9         0"
+#   print "MMR 012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890"
+#    print "MMR " $0
+    ts =  time2sec($3);
     total_responces++
     cnt = match($0,/([0-9]+\\/[0-9]\\/[0-9]+)+/,ary);
     list = substr($0,RSTART,RLENGTH);
-#   peer = substr($6,6)
     n = split(list,ary,", ");
-#	print n,ary[1]
-    i=1;
-        v = ary[1];
-#	print "MMR", v, peer;
+    v = ary[1];
+#	print list, n, v
+    peer = substr($1,1,index($1,"_")-1)
+#    print "MMR", v, peer,$1;
 	if(v ~ /[0-9]+\\/[0-9]\\/[0-9]+/) {
            if(!(v in firstMR)) {
                firstMR[v] = ts;
@@ -102,36 +101,41 @@ func time2sec(t) {
               } else {
                lastMR[v] = ts;
            }
-		countMR[v]++
+           peers[v][peer]++;
+	   countMR[v]++;
         }
     
 }
 
 
 END {
-   printf("%10s %10s %10s %10s %10s %10s %10s %10s %10s %10s %10s\\n", "loc","ask2LAsk","ask2send", "ask2last", "ask2add", "askcount", "ask2p2p", "ask2Lp2p","firstMR","lastMR","peers");
+   printf("%10s %10s %10s %10s %10s %10s %10s %10s %10s %10s %10s %-10s\\n", "loc","ask2LAsk","ask2send", "ask2last", "ask2add", "askcount", "ask2p2p", "ask2Lp2p","firstMR","lastMR", "replies","peers");
    PROCINFO["sorted_in"] ="@ind_num_asc";
    for(i in firstsendout) {
      ask = asks[i]
      if(i in lasks) {lask = lasks[i]-ask;}else{lask="NA"}
      fs = firstsendout[i]-ask
      ls = lastsendout[i]-ask
-     add = asks[i]-ask   
+     if(i in adds) {add = adds[i]-ask} else {add = "never"}
      if(i in firstp2p){ fp = firstp2p[i]-ask;} else {fp = "NA";}
      if(i in lastp2p) { lp = lastp2p[i]-ask;}  else {lp = "NA";}
      if(i in firstMR) { fr = firstMR[i]-ask;} else {fr = "NA";}
      if(i in lastMR)  { lr = lastMR[i]-ask;}  else {lr = "NA";}
      delete peerCnt
-    
+     replies = countMR[i]+0
      PROCINFO["sorted_in"] ="@ind_str_asc";
      peerStr = ""
-    
-#     peers = asking[i]
-#     for(j in peers) {
-#       peerStr = peerStr + " " + j + "-" + peers[j];
-#     }
-     if (fs > 1 || ls > 1 || add > 1|| fp > 1 )	 {
-        printf("%10s %10s %10s %10s %10s %10s %10s %10s %10s %10s %10s\\n", i, lask, fs, ls, add, sendcnt[i], fp, lp, fr,lr,  peerStr);
+     if(i in peers) {
+       
+        for(j in peers[i]) {
+#          print "<"i"><"j">["peers[i][j]"]";
+          peerStr = peerStr " "  j "-" peers[i][j];
+        }
+        peerStr = substr(peerStr,2)
+     } else {peerStr = "NA";}
+
+     if (fs > 5 || ls > 5 || add > 5|| fp > 5 )	 {
+        printf("%10s %10s %10s %10s %10s %10s %10s %10s %10s %10s %10s %-10s\\n", i, lask, fs, ls, add, sendcnt[i], fp, lp, fr,lr, replies,  peerStr);
      }
    }
 
@@ -143,5 +147,7 @@ EOF
 ################################
 
  
-(cat $1_missing_messages.txt; grep -h "MissingMsg " $1_NetworkOutputs.txt; grep -hE "Send P2P.* $1 .*Missing Msg Response" FNode*_NetworkOutputs.txt) | awk "$scriptVariable"
+(cat $1_missing_messages.txt; grep -h "MissingMsg " $1_NetworkOutputs.txt; grep -HE "Send P2P.* $1 .*Missing Msg Response" FNode*_NetworkOutputs.txt) | awk "$scriptVariable"
+
+
 
