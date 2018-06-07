@@ -80,7 +80,7 @@ jobs:
           no_output_timeout: 2400
           command: go test -v -vet=off $(glide nv)
 
-    - run:
+      - run:
           name: Test Making a Leader 
           no_output_timeout: 2400
           command: cd engine/ && go test -run TestMakeALeader
