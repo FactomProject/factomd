@@ -27,7 +27,7 @@ func NewCorrectChainHeadConfig() CorrectChainHeadConfig {
 func FindHeads(f tools.Fetcher, conf CorrectChainHeadConfig) {
 	if conf.Logger == nil {
 		conf.Logger = log.New()
-		log.SetLevel(log.InfoLevel)
+		conf.Logger.SetLevel(log.InfoLevel)
 	}
 	if conf.PrintFreq == 0 {
 		conf.PrintFreq = 500
@@ -41,7 +41,7 @@ func FindHeads(f tools.Fetcher, conf CorrectChainHeadConfig) {
 	chainHeads := make(map[string]interfaces.IHash)
 
 	var allEblockLock sync.Mutex
-	allEblks := make(map[string]interfaces.IHash)
+	allEblks := make(map[[32]byte]interfaces.IHash)
 
 	var err error
 	var dblock interfaces.IDirectoryBlock
@@ -125,7 +125,7 @@ func FindHeads(f tools.Fetcher, conf CorrectChainHeadConfig) {
 					}
 
 					allEblockLock.Lock()
-					allEblks[kmr.String()] = eblkF.GetHeader().GetPrevKeyMR()
+					allEblks[kmr.Fixed()] = eblkF.GetHeader().GetPrevKeyMR()
 					allEblockLock.Unlock()
 				}(eblockEnts[i])
 			}
@@ -169,6 +169,12 @@ func FindHeads(f tools.Fetcher, conf CorrectChainHeadConfig) {
 	doPrint = false
 
 	flog.Infof("%d Chains found in %f seconds", len(chainHeads), time.Since(start).Seconds())
+	if fix {
+		flog.Infof("Chainhead Check Complete. %d Errors corrected while checking for bad heads", errCount)
+	} else {
+		flog.Infof("Chainhead Check Complete. %d Errors found checking for bad heads", errCount)
+	}
+
 	errCount = 0
 	if checkFloating {
 		flog.Infof("Checking all EBLK links")
@@ -179,19 +185,18 @@ func FindHeads(f tools.Fetcher, conf CorrectChainHeadConfig) {
 				if prev.IsZero() {
 					break
 				}
-				p, ok := allEblks[prev.String()]
+				p, ok := allEblks[prev.Fixed()]
 				if !ok {
 					errCount++
 					flog.Infof("Error finding Eblock %s for chain %s", h.String(), k)
 				}
+				delete(allEblks, prev.Fixed())
 				prev = p
 			}
 		}
+		flog.Infof("Floating Check Complete. %d Eblocks remain unaccounted for", len(allEblks))
+		for k, h := range allEblks {
+			flog.Infof("		|- %x missing. Prev: %s", k, h.String())
+		}
 	}
-	if fix {
-		flog.Infof("Check Complete. %d Errors corrected while checking for bad links", errCount)
-	} else {
-		flog.Infof("Check Complete. %d Errors found checking for bad links", errCount)
-	}
-
 }
