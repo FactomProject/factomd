@@ -25,6 +25,8 @@ import (
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
 
+	"strings"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/messages/msgsupport"
@@ -82,14 +84,14 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	s.EFactory = new(electionMsgs.ElectionsFactory)
 
 	log.SetOutput(os.Stdout)
-	switch p.Loglvl {
+	switch strings.ToLower(p.Loglvl) {
 	case "none":
 		log.SetOutput(ioutil.Discard)
 	case "debug":
 		log.SetLevel(log.DebugLevel)
 	case "info":
 		log.SetLevel(log.InfoLevel)
-	case "warning":
+	case "warning", "warn":
 		log.SetLevel(log.WarnLevel)
 	case "error":
 		log.SetLevel(log.ErrorLevel)
