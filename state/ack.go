@@ -272,12 +272,12 @@ func (s *State) GetSpecificACKStatus(hash interfaces.IHash) (int, interfaces.IHa
 func (s *State) getACKStatus(hash interfaces.IHash, useOldMsgs bool) (int, interfaces.IHash, interfaces.Timestamp, interfaces.Timestamp, error) {
 	msg := s.GetInvalidMsg(hash)
 	if msg != nil {
-		return constants.AckStatusInvalid, hash, nil, nil, nil
+		return 0, hash, nil, nil, nil // 0 is not in the set of constants defined so this will error when converted to a string and return "NA"
 	}
 
 	in, err := s.DB.FetchIncludedIn(hash)
 	if err != nil {
-		return 0, hash, nil, nil, err
+		return constants.AckStatusInvalid, hash, nil, nil, err
 	}
 
 	if in == nil {
@@ -286,11 +286,24 @@ func (s *State) getACKStatus(hash interfaces.IHash, useOldMsgs bool) (int, inter
 		for _, pl := range s.ProcessLists.Lists {
 			//pl := s.ProcessLists.LastList()
 			if useOldMsgs {
+				aMsg := pl.GetOldAck(hash)
+				if aMsg != nil { // No ack then it's not "known"
+					a, ok := aMsg.(*messages.Ack)
+					if !ok {
+						// probably deserves a panic here if we got an old ack and it wasn't an ack
+						return constants.AckStatusUnknown, hash, nil, nil, nil
+					}
+					if pl.VMs[a.GetVMIndex()].Height < int(a.Height) {
+						// if it is in the process list but has not yet been process then claim it's unknown
+						// Otherwise it might get an ack status but still be un-spendable
+						return constants.AckStatusNotConfirmed, hash, nil, nil, nil
+					}
+				}
 				m := pl.GetOldMsgs(hash)
 				if m != nil {
 					return constants.AckStatusACK, hash, m.GetTimestamp(), nil, nil
 				}
-				if pl.DirectoryBlock == nil { // can't use m.getTimestap, m might == nil
+				if pl.DirectoryBlock == nil { // can't use m.getTimestamp, m might == nil
 					return constants.AckStatusACK, hash, nil, nil, nil
 				}
 			}
