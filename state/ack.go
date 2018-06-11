@@ -297,15 +297,11 @@ func (s *State) getACKStatus(hash interfaces.IHash, useOldMsgs bool) (int, inter
 						// if it is in the process list but has not yet been process then claim it's unknown
 						// Otherwise it might get an ack status but still be un-spendable
 						return constants.AckStatusNotConfirmed, hash, nil, nil, nil
+					} else {
+						return constants.AckStatusACK, hash, m.GetTimestamp(), nil, nil
 					}
 				}
-				m := pl.GetOldMsgs(hash)
-				if m != nil {
-					return constants.AckStatusACK, hash, m.GetTimestamp(), nil, nil
-				}
-				if pl.DirectoryBlock == nil { // can't use m.getTimestamp, m might == nil
-					return constants.AckStatusACK, hash, nil, nil, nil
-				}
+
 			}
 
 			ts := pl.DirectoryBlock.GetHeader().GetTimestamp()
