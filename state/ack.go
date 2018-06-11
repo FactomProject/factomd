@@ -298,7 +298,7 @@ func (s *State) getACKStatus(hash interfaces.IHash, useOldMsgs bool) (int, inter
 						// Otherwise it might get an ack status but still be un-spendable
 						return constants.AckStatusNotConfirmed, hash, nil, nil, nil
 					} else {
-						return constants.AckStatusACK, hash, m.GetTimestamp(), nil, nil
+						return constants.AckStatusACK, hash, a.GetTimestamp(), nil, nil
 					}
 				}
 
