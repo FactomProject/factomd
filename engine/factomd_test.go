@@ -266,13 +266,15 @@ func TestMakeALeader(t *testing.T) {
 	}
 
 	args := append([]string{},
-		"-db=Map",
-		"-network=LOCAL",
-		"-enablenet=true",
-		"-blktime=60",
-		"-count=2",
-		"-startdelay=1",
-		"-debuglog=F.*",
+		"--db=Map",
+		"--network=LOCAL",
+		"--enablenet=true",
+		"--blktime=60",
+		"--faulttimeout=10",
+		"--roundtimeout=5",
+		"--count=2",
+		"--startdelay=1",
+		"--debuglog=F.*",
 		"--stdoutlog=out.txt",
 		"--stderrlog=out.txt",
 		"--checkheads=false",
@@ -317,6 +319,7 @@ func TestMakeALeader(t *testing.T) {
 		t.Fatalf("found %d leaders, expected 2", leadercnt)
 	}
 }
+
 func TestAnElection(t *testing.T) {
 	if ranSimTest {
 		return

@@ -887,6 +887,8 @@ var decodeMap map[foo]string = map[foo]string{
 	foo{false, false, false, true, false, false, true, false, true}:  "Normal",                    //0x148
 	foo{true, false, true, true, false, false, true, false, true}:    "Syncing EOM Start",         //0x14d
 
+	foo{false, false, false, false, false, true, false, false, true}: " Unexpected", // 0x120
+
 	//foo{true, false, false, false, false, false, false, false, false}: "Sync Only??",                     //0x100 ***
 	//foo{true, false, true, true, false, false, false, false, true}:   "Syncing EOM ... ",                 //0x10d
 	//foo{true, true, false, false, false, false, true, false, true}:    "Start Syncing DBSig",             //0x143
