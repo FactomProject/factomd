@@ -269,7 +269,7 @@ func TestMakeALeader(t *testing.T) {
 		"--db=Map",
 		"--network=LOCAL",
 		"--enablenet=true",
-		"--blktime=60",
+		"--blktime=10",
 		"--faulttimeout=10",
 		"--roundtimeout=5",
 		"--count=2",
