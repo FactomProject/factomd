@@ -81,9 +81,34 @@ jobs:
           command: go test -v -vet=off $(glide nv)
 
       - run:
-          name: Test Making a Leader 
+          name: TestMakeALeader 
           no_output_timeout: 2400
           command: cd engine/ && go test -run TestMakeALeader
+
+      - run:
+          name: TestAnElection 
+          no_output_timeout: 2400
+          command: cd engine/ && go test -run TestAnElection
+
+      - run:
+          name: TestLoad 
+          no_output_timeout: 2400
+          command: cd engine/ && go test -run TestLoad
+
+      - run:
+          name: TestMultiple2Election 
+          no_output_timeout: 2400
+          command: cd engine/ && go test -run TestMultiple2Election
+
+      - run:
+          name: TestMultiple3Election 
+          no_output_timeout: 2400
+          command: cd engine/ && go test -run TestMultiple3Election
+
+      - run:
+          name: TestMultiple7Election 
+          no_output_timeout: 2400
+          command: cd engine/ && go test -run TestMultiple7Election
 
 
       - save_cache:
