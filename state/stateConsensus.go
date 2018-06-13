@@ -933,10 +933,10 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 		s.LogMessage("executeMsg", "FollowerExecute3", msg)
 		msg.FollowerExecute(s)
 
-	s.LogMessage("executeMsg", "FollowerExecute4", ack)
-	ack.FollowerExecute(s)
+		s.LogMessage("executeMsg", "FollowerExecute4", ack)
+		ack.FollowerExecute(s)
 
-	s.MissingResponseAppliedCnt++
+		s.MissingResponseAppliedCnt++
 
 	}
 }

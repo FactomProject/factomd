@@ -84,6 +84,7 @@ const (
 	ECIDEntryCommit                   // 3
 	ECIDBalanceIncrease               // 4
 )
+
 func MessageName(Type byte) string {
 	switch Type {
 	case EOM_MSG:
@@ -176,7 +177,6 @@ func MessageName(Type byte) string {
 	}
 }
 
-
 func ShortMessageName(Type byte) string {
 	switch Type {
 	case EOM_MSG:
@@ -268,7 +268,6 @@ func ShortMessageName(Type byte) string {
 		return "Unk:" + fmt.Sprintf(" %d", Type)
 	}
 }
-
 
 // Not a constant because custom nets will modify these values
 var (
