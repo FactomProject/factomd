@@ -847,14 +847,14 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	}
 
 	//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s Clear SigType follower execute DBState:  !s.SigType(%v)", s.FactomNodeName, s.SigType))
-	s.EOM = false
-	s.EOMDone = false
-	s.EOMSys = false
-	s.DBSig = false
-	s.DBSigDone = false
-	s.DBSigSys = false
-	s.Saving = true
-	s.Syncing = false
+	//s.EOM = false
+	//s.EOMDone = false
+	//s.EOMSys = false
+	//s.DBSig = false
+	//s.DBSigDone = false
+	//s.DBSigSys = false
+	//s.Saving = true
+	//s.Syncing = false
 
 	// Hurry up our next ask.  When we get to where we have the data we asked for, then go ahead and ask for the next set.
 	if s.DBStates.LastEnd < int(dbheight) {
