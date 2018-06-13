@@ -751,13 +751,6 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 
 	if dbstatemsg.IsLast { // this is the last DBState in this load
 		s.DBFinished = true // Normal case
-		// Attempted hack to fix a set where one leader was ahead of the others.
-		//if s.Leader {
-		//	dbstatemsg.SetLocal(false) // we are going to send it out to catch everyone up
-		//	dbstatemsg.SetPeer2Peer(false)
-		//	dbstatemsg.SetFullBroadcast(true)
-		//	dbstatemsg.SendOut(s, dbstatemsg)
-		//}
 	}
 	/**************************
 	for int(s.ProcessLists.DBHeightBase)+len(s.ProcessLists.Lists) > int(dbheight+1) {
@@ -847,14 +840,17 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	}
 
 	//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s Clear SigType follower execute DBState:  !s.SigType(%v)", s.FactomNodeName, s.SigType))
-	//s.EOM = false
-	//s.EOMDone = false
-	//s.EOMSys = false
-	//s.DBSig = false
-	//s.DBSigDone = false
-	//s.DBSigSys = false
-	//s.Saving = true
-	//s.Syncing = false
+	s.EOM = false
+	s.EOMDone = false
+	s.EOMSys = false
+	s.DBSig = false
+	s.DBSigDone = false //p
+	//	s.LogPrintf("dbsig-eom", "DBSIGDone written %v @ %s", s.DBSigDone, atomic.WhereAmIString(0))
+
+	s.DBSigSys = false
+	s.Saving = true
+	s.Syncing = false
+	s.LogPrintf("dbsig-eom", "Reset Process State because we loaded a DBState")
 
 	// Hurry up our next ask.  When we get to where we have the data we asked for, then go ahead and ask for the next set.
 	if s.DBStates.LastEnd < int(dbheight) {
@@ -1928,7 +1924,9 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		s.DBSigProcessed = 0
 		s.DBSig = true
 		s.Syncing = true
-		s.DBSigDone = false
+		s.DBSigDone = false // p
+		//		s.LogPrintf("dbsig-eom", "DBSIGDone written %v @ %s", s.DBSigDone, atomic.WhereAmIString(0))
+
 		for _, vm := range pl.VMs {
 			vm.Synced = false
 		}
@@ -2042,7 +2040,9 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 		s.ReviewHolding()
 		s.Saving = false
-		s.DBSigDone = true
+		s.DBSigDone = true // p
+		//		s.LogPrintf("dbsig-eom", "DBSIGDone written %v @ %s", s.DBSigDone, atomic.WhereAmIString(0))
+
 	}
 	return false
 	/*
