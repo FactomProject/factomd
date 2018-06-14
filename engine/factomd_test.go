@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/FactomProject/factomd/common/globals"
 	. "github.com/FactomProject/factomd/engine"
 	"github.com/FactomProject/factomd/state"
 )
@@ -20,7 +21,15 @@ func TimeNow(s *state.State) {
 func StatusEveryMinute(s *state.State) {
 	go func() {
 		for {
-			WaitMinutesQuite(s, 1)
+			newMinute := (s.CurrentMinute + 1) % 10
+			timeout := 8 // timeout if a minutes takes twice as long as expected
+			for s.CurrentMinute != newMinute && timeout > 0 {
+				sleepTime := time.Duration(globals.Params.BlkTime) * 1000 / 40 // Figure out how long to sleep in milliseconds
+				time.Sleep(sleepTime * time.Millisecond)                       // wake up and about 4 times per minute				timeout--
+			}
+			if timeout <= 0 {
+				fmt.Println("Stalled !!!")
+			}
 			PrintOneStatus(0, 0)
 		}
 	}()
@@ -95,12 +104,8 @@ func TestSetupANetwork(t *testing.T) {
 		"--faulttimeout=8",
 		"--roundtimeout=4",
 		"--count=10",
-		"--logPort=37000",
-		"--port=37001",
-		"--controlpanelport=37002",
-		"--networkport=37003",
 		"--startdelay=1",
-		"--debuglog=.*|faulting|duplicate|Network|systemStatus",
+		//"--debuglog=.*|faulting|duplicate|Network|systemStatus",
 		"--stdoutlog=out.txt",
 		"--stderrlog=err.txt",
 	)
@@ -345,7 +350,7 @@ func TestMakeALeader(t *testing.T) {
 		"-startdelay=1",
 		"-debuglog=F.*",
 		"--stdoutlog=out.txt",
-		"--stderrlog=out.txt",
+		"--stderrlog=err.txt",
 		"--checkheads=false",
 	)
 
@@ -476,6 +481,7 @@ func TestAnElection(t *testing.T) {
 
 	CheckAuthoritySet(leaders, audits, t)
 
+
 	runCmd(fmt.Sprintf("%d", leaders-1))
 	runCmd("x")
 	WaitBlocks(state0, 3)
@@ -491,6 +497,7 @@ func TestAnElection(t *testing.T) {
 	if !GetFnodes()[leaders].State.Leader && !GetFnodes()[leaders+1].State.Leader {
 		t.Fatalf("Node %d or %d should be a leader", leaders, leaders+1)
 	}
+
 	CheckAuthoritySet(leaders, audits, t)
 
 	WaitBlocks(state0, 1)
@@ -504,6 +511,97 @@ func TestAnElection(t *testing.T) {
 	time.Sleep(time.Duration(state0.DirectoryBlockInSeconds) * time.Second)
 	if state0.LLeaderHeight > 9 {
 		t.Fatal("Failed to shut down factomd via ShutdownChan")
+	}
+
+	}
+
+}
+
+func TestLoad(t *testing.T) {
+	if ranSimTest {
+		return
+	}
+
+	ranSimTest = true
+
+	runCmd := func(cmd string) {
+		os.Stderr.WriteString("Executing: " + cmd + "\n")
+		os.Stdout.WriteString("Executing: " + cmd + "\n")
+		InputChan <- cmd
+		return
+	}
+
+	args := append([]string{},
+		"--db=Map",
+		"--network=LOCAL",
+		"--enablenet=true",
+		"--blktime=10",
+		"--faulttimeout=30",
+		"--roundtimeout=10",
+		"--count=7",
+		"--startdelay=1",
+		"--net=alot+",
+		"--debuglog=.*",
+		"--stdoutlog=out.txt",
+		"--stderrlog=err.txt",
+		//		"-debugconsole=localhost:8093",
+	)
+
+	params := ParseCmdLine(args)
+	state0 := Factomd(params, false).(*state.State)
+	state0.MessageTally = true
+	time.Sleep(10 * time.Second)
+	StatusEveryMinute(state0)
+	t.Log("Allocated 7 nodes")
+	if len(GetFnodes()) != 7 {
+		t.Fatal("Should have allocated 7 nodes")
+		t.Fail()
+	}
+
+	WaitForMinute(state0, 3)
+	runCmd("g7")
+	WaitBlocks(state0, 1)
+	// Allocate 1 leaders
+	WaitForMinute(state0, 1)
+
+	runCmd("0")
+	runCmd("l") // leaders
+	runCmd("l") // leaders
+	runCmd("l") // leaders
+	runCmd("o") // Audit
+	runCmd("o") // Audit
+	runCmd("l") // leaders
+	runCmd("l") // leaders
+
+	WaitBlocks(state0, 1)
+	WaitForMinute(state0, 2)
+
+	leadercnt := 0
+	auditcnt := 0
+	for _, fn := range GetFnodes() {
+		s := fn.State
+		if s.Leader {
+			leadercnt++
+		}
+		list := s.ProcessLists.Get(s.LLeaderHeight)
+		if foundAudit, _ := list.GetAuditServerIndexHash(s.GetIdentityChainID()); foundAudit {
+			auditcnt++
+		}
+	}
+
+	if leadercnt != 5 {
+		t.Fatalf("found %d leaders, expected 5", leadercnt)
+	}
+
+	runCmd("S100")
+	runCmd("R0")
+	WaitBlocks(state0, 10)
+	runCmd("R0")
+	WaitBlocks(state0, 2)
+
+	t.Log("Shutting down the network")
+	for _, fn := range GetFnodes() {
+		fn.State.ShutdownChan <- 1
 	}
 
 }
@@ -746,10 +844,10 @@ func TestMultiple3Election(t *testing.T) {
 		"-count=12",
 		"-startdelay=1",
 		"-net=alot+",
-		"-debuglog=F.*",
-		"--stdoutlog=../out.txt",
-		"--stderrlog=../out.txt",
-		"-debugconsole=localhost:8093",
+		//"-debuglog=F.*",
+		"--stdoutlog=out.txt",
+		"--stderrlog=err.txt",
+		//"-debugconsole=localhost:8093",
 		"--checkheads=false",
 	)
 
@@ -848,9 +946,9 @@ func TestMultiple7Election(t *testing.T) {
 		"-startdelay=1",
 		"-net=alot+",
 		"-debuglog=F.*",
-		"--stdoutlog=../out.txt",
-		"--stderrlog=../out.txt",
-		"-debugconsole=localhost:8093",
+		"--stdoutlog=out.txt",
+		"--stderrlog=err.txt",
+		//"--debugconsole=localhost:8093",
 		"--checkheads=false",
 	)
 
