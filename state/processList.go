@@ -833,18 +833,23 @@ func (p *ProcessList) Ask(vmIndex int, height uint32, delay int64) {
 	return
 }
 
-func (p *ProcessList) TrimVMList(height uint32, vmIndex int) {
-	if !(uint32(len(p.VMs[vmIndex].List)) > height) {
-		p.State.LogMessage("processList", fmt.Sprintf("TrimVMList() %d/%d/%d", p.DBHeight, vmIndex, height), p.VMs[vmIndex].List[height])
+func (p *ProcessList) TrimVMList(h uint32, vmIndex int) {
+	height := int(h)
+	if len(p.VMs[vmIndex].List) < height {
+		p.State.LogPrintf("processList", "TrimVMList() %d/%d/%d", p.DBHeight, vmIndex, height)
 		p.VMs[vmIndex].List = p.VMs[vmIndex].List[:height]
-		p.VMs[vmIndex].HighestAsk = int(height) // make sure we will ask again for nil's above this height
 		if p.State.DebugExec() {
-			p.nilListMutex.Lock()
-			if p.nilList[vmIndex] > int(height-1) {
-				p.nilList[vmIndex] = int(height - 1) // Drag the highest nil logged back before this nil
+			if p.VMs[vmIndex].HighestNil > height {
+				p.VMs[vmIndex].HighestNil = height // Drag report limit back
 			}
-			p.nilListMutex.Unlock()
 		}
+		// make sure we will ask again for nil's above this height
+		if p.VMs[vmIndex].HighestAsk > height {
+			p.VMs[vmIndex].HighestAsk = height // Drag Ask limit back
+		}
+	} else {
+		p.State.LogPrintf("process", "Attempt to trim higher than list list=%d h=%d", len(p.VMs[vmIndex].List), height)
+
 	}
 }
 func (p *ProcessList) GetDBHeight() uint32 {
