@@ -557,7 +557,7 @@ func (p *ProcessList) GetOldMsgs(key interfaces.IHash) interfaces.IMsg {
 	if p == nil {
 		return nil
 	}
-	
+
 	p.oldmsgslock.Lock()
 	defer p.oldmsgslock.Unlock()
 	m, ok := p.OldMsgs[key.Fixed()]
@@ -923,7 +923,6 @@ func (p *ProcessList) decodeState(Syncing bool, DBSig bool, EOM bool, DBSigDone 
 
 }
 
-
 // Process messages and update our state.
 func (p *ProcessList) Process(state *State) (progress bool) {
 	dbht := state.GetHighestSavedBlk()
@@ -1000,7 +999,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					if vm.HighestNil > j {
 						vm.HighestNil = j // Drag report limit back
 					}
-                                        if vm.HighestAsk > j {
+					if vm.HighestAsk > j {
 						vm.HighestAsk = j // Drag Ask limit back
 					}
 					//p.State.AddStatus(fmt.Sprintf("ProcessList.go Process: Error computing serial hash at dbht: %d vm %d  vm-height %d ", p.DBHeight, i, j))
@@ -1045,7 +1044,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					if vm.HighestNil > j {
 						vm.HighestNil = j // Drag report limit back
 					}
-                                        if vm.HighestAsk > j {
+					if vm.HighestAsk > j {
 						vm.HighestAsk = j // Drag Ask limit back
 					}
 					p.State.Replay.Valid(constants.INTERNAL_REPLAY, msgRepeatHashFixed, msg.GetTimestamp(), now)
