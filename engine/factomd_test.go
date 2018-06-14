@@ -112,6 +112,7 @@ func TestSetupANetwork(t *testing.T) {
 		//"--debuglog=.*|faulting|duplicate|Network|systemStatus",
 		"--stdoutlog=out.txt",
 		"--stderrlog=err.txt",
+		"--checkheads=false",
 	)
 
 	params := ParseCmdLine(args)
@@ -280,7 +281,7 @@ func TestLoad(t *testing.T) {
 		"-blktime=10",
 		"-count=3",
 		"-startdelay=1",
-		"-debuglog=F.*",
+		//"-debuglog=F.*",
 		"--stdoutlog=out.txt",
 		"--stderrlog=err.txt",
 	)
@@ -346,13 +347,13 @@ func TestMakeALeader(t *testing.T) {
 	}
 
 	args := append([]string{},
-		"-db=Map",
-		"-network=LOCAL",
-		"-enablenet=true",
-		"-blktime=60",
-		"-count=2",
-		"-startdelay=1",
-		"-debuglog=F.*",
+		"--db=Map",
+		"--network=LOCAL",
+		"--enablenet=true",
+		"--blktime=10",
+		"--count=2",
+		"--startdelay=1",
+		//"--debuglog=F.*",
 		"--stdoutlog=out.txt",
 		"--stderrlog=err.txt",
 		"--checkheads=false",
@@ -419,16 +420,16 @@ func TestAnElection(t *testing.T) {
 	}
 
 	args := append([]string{},
-		"-db=Map",
-		"-network=LOCAL",
-		"-net=alot+",
-		"-enablenet=true",
-		"-blktime=10",
+		"--db=Map",
+		"--network=LOCAL",
+		"--net=alot+",
+		"--enablenet=true",
+		"--blktime=10",
 		"--faulttimeout=8",
 		"--roundtimeout=4",
 		fmt.Sprintf("-count=%d", nodes),
-		"-startdelay=1",
-		"-debuglog=F.*",
+		"--startdelay=1",
+		//"--debuglog=F.*",
 		"--stdoutlog=out.txt",
 		"--stderrlog=err.txt",
 		"--checkheads=false",
@@ -541,16 +542,17 @@ func Test5up(t *testing.T) {
 
 	args := append([]string{},
 
-		"-network=LOCAL",
-		"-net=alot+",
-		"-enablenet=true",
-		"-blktime=6",
-		"-faulttimeout=30",
-		"-enablenet=false",
-		"-debugconsole=localhost",
-		"-startdelay=5",
+		"--network=LOCAL",
+		"--net=alot+",
+		"--enablenet=true",
+		"--blktime=8",
+		"--faulttimeout=8",
+		"--roundtimeout=4",
+		"--enablenet=false",
+		//"--debugconsole=localhost",
+		"--startdelay=5",
 		fmt.Sprintf("-count=%d", nodes),
-		"-debuglog=.*",
+		//"--debuglog=.*",
 		"--stdoutlog=out.txt",
 		"--stderrlog=err.txt",
 	)
@@ -645,52 +647,50 @@ func TestMultiple2Election(t *testing.T) {
 		os.Stderr.WriteString("Executing: " + cmd + "\n")
 		os.Stdout.WriteString("Executing: " + cmd + "\n")
 		InputChan <- cmd
-		time.Sleep(100 * time.Millisecond)
 		return
 	}
 
 	args := append([]string{},
-		"-db=Map",
-		"-network=LOCAL",
-		"-enablenet=true",
-		"-blktime=15",
-		"--faulttimeout=8",
-		"--roundtimeout=4",
-		"-count=10",
-		"-startdelay=1",
-		"-net=alot+",
-		"-debuglog=F.*",
-		"--stdoutlog=../out.txt",
-		"--stderrlog=../out.txt",
-		"-debugconsole=localhost:8093",
+		"--db=Map",
+		"--network=LOCAL",
+		"--enablenet=true",
+		"--blktime=10",
+		"--faulttimeout=10",
+		"--count=10",
+		"--startdelay=1",
+		"--net=alot+",
+		//"--debuglog=.*",
+		"--stdoutlog=out.txt",
+		"--stderrlog=err.txt",
 		"--checkheads=false",
+		//		"-debugconsole=localhost:8093",
 	)
 
 	params := ParseCmdLine(args)
 	state0 := Factomd(params, false).(*state.State)
 	state0.MessageTally = true
-	time.Sleep(3 * time.Second)
+	time.Sleep(10 * time.Second)
 	StatusEveryMinute(state0)
-	t.Log("Allocated 10 nodes")
-	if len(GetFnodes()) != 10 {
-		t.Fatal("Should have allocated 10 nodes")
+	t.Log("Allocated 7 nodes")
+	if len(GetFnodes()) != 7 {
+		t.Fatal("Should have allocated 7 nodes")
 		t.Fail()
 	}
 
 	WaitForMinute(state0, 3)
-	runCmd("g15")
+	runCmd("g7")
 	WaitBlocks(state0, 1)
 	// Allocate 1 leaders
 	WaitForMinute(state0, 1)
 
-	runCmd("1")              // select node 1
-	for i := 0; i < 6; i++ { // 1, 2, 3, 4, 5, 6
+	runCmd("0")
 		runCmd("l") // leaders
-	}
-
-	for i := 0; i < 2; i++ { // 8, 9
-		runCmd("o") // leaders
-	}
+	runCmd("l") // leaders
+	runCmd("l") // leaders
+	runCmd("o") // Audit
+	runCmd("o") // Audit
+	runCmd("l") // leaders
+	runCmd("l") // leaders
 
 	WaitBlocks(state0, 1)
 	WaitForMinute(state0, 2)
@@ -708,21 +708,15 @@ func TestMultiple2Election(t *testing.T) {
 		}
 	}
 
-	if leadercnt != 7 {
-		t.Fatalf("found %d leaders, expected 7", leadercnt)
+	if leadercnt != 5 {
+		t.Fatalf("found %d leaders, expected 5", leadercnt)
 	}
 
-	runCmd("1")
-	runCmd("x")
-	runCmd("2")
-	runCmd("x")
-
-	runCmd("s")
-	runCmd("E")
-	runCmd("F")
-	runCmd("0")
-	runCmd("p")
-	WaitBlocks(state0, 3)
+	runCmd("S300")
+	runCmd("R10")
+	WaitBlocks(state0, 10)
+	runCmd("R0")
+	WaitBlocks(state0, 2)
 
 	t.Log("Shutting down the network")
 	for _, fn := range GetFnodes() {
@@ -759,7 +753,7 @@ func TestMultiple3Election(t *testing.T) {
 		//"-debuglog=F.*",
 		"--stdoutlog=out.txt",
 		"--stderrlog=err.txt",
-		//"-debugconsole=localhost:8093",
+		//"--debugconsole=localhost:8093",
 		"--checkheads=false",
 	)
 
@@ -849,15 +843,15 @@ func TestMultiple7Election(t *testing.T) {
 	}
 
 	args := append([]string{},
-		"-db=Map",
-		"-network=LOCAL",
-		"-enablenet=true",
-		"-blktime=60",
-		"-faulttimeout=60",
-		"-count=25",
-		"-startdelay=1",
-		"-net=alot+",
-		"-debuglog=F.*",
+		"--db=Map",
+		"--network=LOCAL",
+		"--enablenet=true",
+		"--blktime=60",
+		"--faulttimeout=60",
+		"--count=25",
+		"--startdelay=1",
+		"--net=alot+",
+		//"-debuglog=F.*",
 		"--stdoutlog=out.txt",
 		"--stderrlog=err.txt",
 		//"--debugconsole=localhost:8093",
