@@ -69,6 +69,11 @@ func (s *State) LogPrintf(logName string, format string, more ...interface{}) {
 }
 func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 
+	if msg.GetHash() == nil {
+		s.LogMessage("badMsgs", "Nil hash", msg)
+		return false
+	}
+
 	preExecuteMsgTime := time.Now()
 	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
 	if !ok {
@@ -278,9 +283,7 @@ emptyLoop:
 		select {
 		case msg := <-s.msgQueue:
 			s.LogMessage("msgQueue", "Execute", msg)
-			if s.executeMsg(vm, msg) && !msg.IsPeer2Peer() {
-				msg.SendOut(s, msg)
-			}
+			progress = s.executeMsg(vm, msg) || progress
 		default:
 			break emptyLoop
 		}
