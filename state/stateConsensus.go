@@ -70,7 +70,7 @@ func (s *State) LogPrintf(logName string, format string, more ...interface{}) {
 func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 
 	if msg.GetHash() == nil {
-		s.LogMessage("badMsgs", "Nil hash", msg)
+		s.LogMessage("badMsgs", "Nil hash in executeMsg", msg)
 		return false
 	}
 
