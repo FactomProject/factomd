@@ -138,10 +138,6 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 		// Set the title in the state
 		s.Election0 = Title()
 
-		// Sort leaders, an election is previous min/block may mess up ordering
-		elections.Sort(e.Federated)
-		elections.Sort(e.Audit)
-
 		e.FaultId.Store(e.FaultId.Load() + 1) // increment the timeout counter
 		go Fault(e, e.DBHeight, e.Minute, e.FaultId.Load(), &e.FaultId, m.SigType, e.Timeout)
 
