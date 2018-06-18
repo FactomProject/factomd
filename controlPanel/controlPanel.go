@@ -107,8 +107,6 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 		}
 	}()
 
-	time.Sleep(10 * time.Second)
-
 	StatePointer = statePointer
 	StatePointer.ControlPanelDataRequest = true // Request initial State
 	// Wait for initial State
@@ -242,6 +240,15 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 				w.Write([]byte(`{"Type": "special-action-fack"}`))
 				return
 			}
+		}
+	case "changelogs":
+		// >= 2 means we have write access
+		if StatePointer.ControlPanelSetting == 2 {
+			newRegex := r.FormValue("logsetting")
+			fmt.Printf("Changing log regex to: '%s'", newRegex)
+		} else {
+			w.Write([]byte(`{"Error": "Access denied"}`))
+			return
 		}
 	}
 	w.Write([]byte(`{"Type": "None"}`))
