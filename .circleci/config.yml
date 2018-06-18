@@ -153,7 +153,7 @@ jobs:
       - checkout
 
       - setup_remote_docker:
-          version: 17.06.0-ce
+          version: 18.03.1-ce
 
       # The main (only) thing we care about is caching the /vendor dir.
       #   Hence, checksumming glide.lock
