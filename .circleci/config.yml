@@ -254,11 +254,18 @@ jobs:
               docker push factominc/factomd:community-testnet-alpine
             fi
 
-            if [ "${CIRCLE_BRANCH}" == "experimental" ]; then
-              docker tag factomd factominc/factomd:experimental
-              docker push factominc/factomd:experimental
-              docker tag factomd-alpine factominc/factomd:experimental-alpine
-              docker push factominc/factomd:experimental-alpine
+            if [ "${CIRCLE_BRANCH}" == "experimental1" ]; then
+              docker tag factomd factominc/factomd:experimental1
+              docker push factominc/factomd:experimental1
+              docker tag factomd-alpine factominc/factomd:experimental1-alpine
+              docker push factominc/factomd:experimental1-alpine
+            fi
+            
+            if [ "${CIRCLE_BRANCH}" == "experimental2" ]; then
+              docker tag factomd factominc/factomd:experimental2
+              docker push factominc/factomd:experimental2
+              docker tag factomd-alpine factominc/factomd:experimental2-alpine
+              docker push factominc/factomd:experimental2-alpine
             fi
             
             if [ "${CIRCLE_BRANCH}" == "qa1" ]; then
@@ -280,6 +287,27 @@ jobs:
               docker push factominc/factomd:qa3
               docker tag factomd-alpine factominc/factomd:qa3-alpine
               docker push factominc/factomd:qa3-alpine
+            fi
+            
+            if [ "${CIRCLE_BRANCH}" == "devnet1" ]; then
+              docker tag factomd factominc/factomd:devnet1
+              docker push factominc/factomd:devnet1
+              docker tag factomd-alpine factominc/factomd:devnet1-alpine
+              docker push factominc/factomd:devnet1-alpine
+            fi
+            
+            if [ "${CIRCLE_BRANCH}" == "devnet2" ]; then
+              docker tag factomd factominc/factomd:devnet2
+              docker push factominc/factomd:devnet2
+              docker tag factomd-alpine factominc/factomd:devnet2-alpine
+              docker push factominc/factomd:devnet2-alpine
+            fi
+            
+            if [ "${CIRCLE_BRANCH}" == "devnet3" ]; then
+              docker tag factomd factominc/factomd:devnet3
+              docker push factominc/factomd:devnet3
+              docker tag factomd-alpine factominc/factomd:devnet3-alpine
+              docker push factominc/factomd:devnet3-alpine
             fi
             
             docker logout
