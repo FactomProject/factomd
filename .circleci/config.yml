@@ -277,7 +277,7 @@ workflows:
           filters:
             tags:
               only: /.*/
-      - test:Pulling from library/golang
+      - test:
           filters:
             tags:
               only: /.*/
