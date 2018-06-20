@@ -94,6 +94,7 @@ func ParseCmdLine(args []string) *FactomParams {
 	flag.StringVar(&p.ConfigPath, "config", "", "Override the config file location (factomd.conf)")
 	flag.BoolVar(&p.CheckChainHeads, "checkheads", true, "Enables checking chain heads on boot")
 	flag.BoolVar(&p.FixChainHeads, "fixheads", true, "If --checkheads is enabled, then this will also correct any errors reported")
+	flag.StringVar(&p.ControlPanelSetting, "controlpanelsetting", "", "Can set to 'disabled', 'readonly', or 'readwrite' to overwrite config file")
 
 	flag.CommandLine.Parse(args)
 

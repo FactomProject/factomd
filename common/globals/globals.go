@@ -65,5 +65,5 @@ type FactomParams struct {
 	ConfigPath               string
 	CheckChainHeads          bool // Run checkchain heads on boot
 	FixChainHeads            bool // Only matters if CheckChainHeads == true
-
+	ControlPanelSetting      string
 }

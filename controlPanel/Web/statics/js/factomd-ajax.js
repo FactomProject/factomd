@@ -78,6 +78,7 @@ function changeLogging() {
             if (obj.Error == "" || obj.Error == undefined) {
                 $(".factom-log-error").hide()
                 $(".factom-log-success").show()
+                $("#dump7 #current-log-value").text($("#factom-log-set").val())
             } else {
                 $(".factom-log-success").hide()
                 $(".factom-log-error").show()

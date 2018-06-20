@@ -91,13 +91,20 @@
                     <div class="row">
                         <div class="small-offset-1 small-6 columns">
 							<h3>Change log settings</h3>
-							<div class="input-group">
+							<div class="input-group" style="margin-left: 5%;">
 								<span class="input-group-label"><i class="fa fa-file-text" aria-hidden="true"></i></span>
 								<input type="search" name="q" class="input-group-field" id="factom-log-set" placeholder="Set the log regex...">
 								<div class="input-group-button">
 									<input type="submit" id="factom-log-submit" class="button dark" value="Go">
 								</div>
 							</div>
+                            <h4>Current Log Setting</h4>
+							<pre style="
+							background-color: #eee;
+                            border: 1px solid #999;
+                            display: block;
+                            padding: 2px;;
+							margin-left: 5%;" id="current-log-value">Placeholder....</pre>
                             <div class="factom-log-error callout alert text-center" style="overflow:hidden;display:none;">Denied</div>
                             <div class="factom-log-success callout success text-center" style="overflow:hidden;display:none;">Log settings set</div>
 						</div>
