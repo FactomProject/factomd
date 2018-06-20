@@ -1528,7 +1528,7 @@ func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
 				return
 			}
 
-			dbslog.WithFields(dbs.LogFields()).WithFields(log.Fields{"lheight": s.GetLeaderHeight(), "node-name": s.GetFactomNodeName()}).Infof("Generate DBSig")
+			dbslog.WithFields(dbs.LogFields()).WithFields(log.Fields{"lheight": s.GetLeaderHeight(), "node-Name": s.GetFactomNodeName()}).Infof("Generate DBSig")
 			dbs.LeaderExecute(s)
 			vm.Signed = true
 			pl.DBSigAlreadySent = true
@@ -1790,7 +1790,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 				}
 				pldbs.DBSigAlreadySent = true
 
-				dbslog := consenLogger.WithFields(log.Fields{"func": "SendDBSig", "lheight": s.GetLeaderHeight(), "node-name": s.GetFactomNodeName()}).WithFields(dbs.LogFields())
+				dbslog := consenLogger.WithFields(log.Fields{"func": "SendDBSig", "lheight": s.GetLeaderHeight(), "node-Name": s.GetFactomNodeName()}).WithFields(dbs.LogFields())
 				dbslog.Infof("Generate DBSig")
 
 				s.LogMessage("executeMsg", "LeaderExec2", dbs)

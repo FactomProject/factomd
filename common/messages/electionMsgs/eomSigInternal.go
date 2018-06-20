@@ -10,6 +10,7 @@ import (
 
 	"time"
 
+	"github.com/FactomProject/factomd/activations"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages/msgbase"
@@ -137,6 +138,13 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 		e.Sync = make([]bool, len(e.Federated))
 		// Set the title in the state
 		s.Election0 = Title()
+
+		// We quite sorting on 6/28/18 at 12pm ...
+		if !is.IsActive(activations.ELECTION_NO_SORT) {
+			// Sort leaders, an election is previous min/block may mess up ordering
+			elections.Sort(e.Federated)
+			elections.Sort(e.Audit)
+		}
 
 		e.FaultId.Store(e.FaultId.Load() + 1) // increment the timeout counter
 		go Fault(e, e.DBHeight, e.Minute, e.FaultId.Load(), &e.FaultId, m.SigType, e.Timeout)
