@@ -246,7 +246,7 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 		// >= 2 means we have write access
 		if StatePointer.ControlPanelSetting == 2 {
 			newRegex := r.FormValue("logsetting")
-			fmt.Printf("Changing log regex to: '%s'", newRegex)
+			fmt.Printf("Changing log regex to: '%s'\n", newRegex)
 			globals.LastDebugLogRegEx = newRegex
 		} else {
 			w.Write([]byte(`{"Error": "Access denied"}`))
