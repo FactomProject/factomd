@@ -909,10 +909,10 @@ func TestDBsigEOMElection(t *testing.T) {
 		t.Fatalf("found %d leaders, expected 5", leadercnt)
 	}
 
-	//// Wait for the activation of the
-	//for !state.IsActive(activations.ELECTION_NO_SORT) {
-	//	WaitBlocks(state, 1)
-	//}
+	// Wait for the activation of the
+	for !state.IsActive(activations.ELECTION_NO_SORT) {
+		WaitBlocks(state, 1)
+	}
 
 	var wait sync.WaitGroup
 	wait.Add(2)
@@ -1036,7 +1036,7 @@ func TestMultiple2Election(t *testing.T) {
 	// Allocate 1 leaders
 	WaitForMinute(state0, 1)
 
-	runCmd("1") // select node 1
+	runCmd("1")              // select node 1
 	for i := 0; i < 6; i++ { // 1, 2, 3, 4, 5, 6
 		runCmd("l") // leaders
 	}
@@ -1132,7 +1132,7 @@ func TestMultiple3Election(t *testing.T) {
 	// Allocate 1 leaders
 	WaitForMinute(state0, 1)
 
-	runCmd("1") // select node 1
+	runCmd("1")              // select node 1
 	for i := 0; i < 6; i++ { // 1, 2, 3, 4, 5, 6
 		runCmd("l") // leaders
 	}
@@ -1232,7 +1232,7 @@ func TestMultiple7Election(t *testing.T) {
 	WaitBlocks(state0, 1)
 	// Allocate 1 leaders
 	WaitForMinute(state0, 1)
-	runCmd("1") // select node 1
+	runCmd("1")               // select node 1
 	for i := 0; i < 14; i++ { // 1, 2, 3, 4, 5, 6
 		time.Sleep(100 * time.Millisecond)
 		runCmd("l") // leaders

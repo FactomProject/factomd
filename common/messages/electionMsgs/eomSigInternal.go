@@ -7,7 +7,6 @@ package electionMsgs
 import (
 	"errors"
 	"fmt"
-
 	"time"
 
 	"github.com/FactomProject/factomd/activations"
@@ -119,9 +118,12 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 		return // EOM but not from a server, just ignore it.
 	}
 
-	if int(m.DBHeight) > e.DBHeight {
-		elections.Sort(e.Federated)
-		elections.Sort(e.Audit)
+	// We quite sorting on 6/28/18 at 12pm ...
+	if !is.IsActive(activations.ELECTION_NO_SORT) {
+		if int(m.DBHeight) > e.DBHeight {
+			elections.Sort(e.Federated)
+			elections.Sort(e.Audit)
+		}
 	}
 
 	// We only do this once, as we transition into a sync event.
@@ -149,8 +151,6 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 			// Sort leaders, an election is previous min/block may mess up ordering
 			elections.Sort(e.Federated)
 			elections.Sort(e.Audit)
-		} else {
-			fmt.Printf("Got here!")
 		}
 
 		e.FaultId.Store(e.FaultId.Load() + 1) // increment the timeout counter
