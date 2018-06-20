@@ -112,7 +112,7 @@ func TestSetupANetwork(t *testing.T) {
 		"--db=Map",
 		"--network=LOCAL",
 		"--net=alot+",
-		"--enablenet=true",
+		"--enablenet=false",
 		"--blktime=8",
 		"--faulttimeout=2",
 		"--roundtimeout=2",
@@ -289,7 +289,7 @@ func TestLoad(t *testing.T) {
 	args := append([]string{},
 		"--db=Map",
 		"--network=LOCAL",
-		"--enablenet=true",
+		"--enablenet=false",
 		"--blktime=8",
 		"--faulttimeout=2",
 		"--roundtimeout=2",
@@ -364,7 +364,7 @@ func TestMakeALeader(t *testing.T) {
 	args := append([]string{},
 		"--db=Map",
 		"--network=LOCAL",
-		"--enablenet=true",
+		"--enablenet=false",
 		"--blktime=8",
 		"--faulttimeout=2",
 		"--roundtimeout=2",
@@ -441,7 +441,7 @@ func TestActivationHeightElection(t *testing.T) {
 		"--db=Map",
 		"--network=LOCAL",
 		"--net=alot+",
-		"--enablenet=true",
+		"--enablenet=false",
 		"--logPort=37000",
 		"--port=37001",
 		"--controlpanelport=37002",
@@ -613,7 +613,7 @@ func TestAnElection(t *testing.T) {
 		"--db=Map",
 		"--network=LOCAL",
 		"--net=alot+",
-		"--enablenet=true",
+		"--enablenet=false",
 		"--blktime=8",
 		"--faulttimeout=2",
 		"--roundtimeout=2",
@@ -734,7 +734,6 @@ func Test5up(t *testing.T) {
 
 		"--network=LOCAL",
 		"--net=alot+",
-		"--enablenet=true",
 		"--blktime=8",
 		"--faulttimeout=2",
 		"--roundtimeout=2",
@@ -842,7 +841,11 @@ func TestDBsigEOMElection(t *testing.T) {
 	args := append([]string{},
 		"--db=Map",
 		"--network=LOCAL",
-		"--enablenet=true",
+		"--enablenet=false",
+		"--logPort=37000",
+		"--port=37001",
+		"--controlpanelport=37002",
+		"--networkport=37003",
 		"--blktime=8",
 		"--faulttimeout=2",
 		"--roundtimeout=2",
@@ -905,6 +908,11 @@ func TestDBsigEOMElection(t *testing.T) {
 	if leadercnt != 5 {
 		t.Fatalf("found %d leaders, expected 5", leadercnt)
 	}
+
+	//// Wait for the activation of the
+	//for !state.IsActive(activations.ELECTION_NO_SORT) {
+	//	WaitBlocks(state, 1)
+	//}
 
 	var wait sync.WaitGroup
 	wait.Add(2)
@@ -997,7 +1005,7 @@ func TestMultiple2Election(t *testing.T) {
 	args := append([]string{},
 		"--db=Map",
 		"--network=LOCAL",
-		"--enablenet=true",
+		"--enablenet=false",
 		"--blktime=8",
 		"--faulttimeout=2",
 		"--roundtimeout=2",
@@ -1028,7 +1036,7 @@ func TestMultiple2Election(t *testing.T) {
 	// Allocate 1 leaders
 	WaitForMinute(state0, 1)
 
-	runCmd("1")              // select node 1
+	runCmd("1") // select node 1
 	for i := 0; i < 6; i++ { // 1, 2, 3, 4, 5, 6
 		runCmd("l") // leaders
 	}
@@ -1093,7 +1101,7 @@ func TestMultiple3Election(t *testing.T) {
 	args := append([]string{},
 		"--db=Map",
 		"--network=LOCAL",
-		"--enablenet=true",
+		"--enablenet=false",
 		"--blktime=8",
 		"--faulttimeout=2",
 		"--roundtimeout=2",
@@ -1124,7 +1132,7 @@ func TestMultiple3Election(t *testing.T) {
 	// Allocate 1 leaders
 	WaitForMinute(state0, 1)
 
-	runCmd("1")              // select node 1
+	runCmd("1") // select node 1
 	for i := 0; i < 6; i++ { // 1, 2, 3, 4, 5, 6
 		runCmd("l") // leaders
 	}
@@ -1194,7 +1202,7 @@ func TestMultiple7Election(t *testing.T) {
 	args := append([]string{},
 		"--db=Map",
 		"--network=LOCAL",
-		"--enablenet=true",
+		"--enablenet=false",
 		"--blktime=8",
 		"--faulttimeout=2",
 		"--roundtimeout=2",
@@ -1224,7 +1232,7 @@ func TestMultiple7Election(t *testing.T) {
 	WaitBlocks(state0, 1)
 	// Allocate 1 leaders
 	WaitForMinute(state0, 1)
-	runCmd("1")               // select node 1
+	runCmd("1") // select node 1
 	for i := 0; i < 14; i++ { // 1, 2, 3, 4, 5, 6
 		time.Sleep(100 * time.Millisecond)
 		runCmd("l") // leaders
