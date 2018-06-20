@@ -119,6 +119,11 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 		return // EOM but not from a server, just ignore it.
 	}
 
+	if int(m.DBHeight) > e.DBHeight {
+		elections.Sort(e.Federated)
+		elections.Sort(e.Audit)
+	}
+
 	// We only do this once, as we transition into a sync event.
 	// Either the height has incremented, or the minute has incremented.
 	mv := int(m.DBHeight) > e.DBHeight || m.ComparisonMinute() > e.ComparisonMinute()

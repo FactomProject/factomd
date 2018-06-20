@@ -441,7 +441,7 @@ func TestActivationHeightElection(t *testing.T) {
 		"--db=Map",
 		"--network=LOCAL",
 		"--net=alot+",
-		"--enablenet=true",
+		"--enablenet=false",
 		"--blktime=8",
 		"--faulttimeout=2",
 		"--roundtimeout=2",
