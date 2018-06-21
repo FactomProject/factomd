@@ -148,7 +148,7 @@ func TestSetupANetwork(t *testing.T) {
 	runCmd("w")
 	WaitBlocks(state0, 1)
 	runCmd("g10")
-	WaitBlocks(state0, 3)
+	WaitBlocks(state0, 1)
 	// Allocate 4 leaders
 	WaitForMinute(state0, 3)
 
@@ -251,13 +251,8 @@ func TestSetupANetwork(t *testing.T) {
 	runCmd("r")
 	WaitForMinute(state0, 1)
 	runCmd("g1")
-	runCmd("2")
-	runCmd("x")
 	WaitForMinute(state0, 3)
-	runCmd("x")
-	runCmd("g3")
-	WaitBlocks(fn1.State, 1)
-	WaitBlocks(state0, 3)
+	WaitBlocks(fn1.State, 3)
 
 	t.Log("Shutting down the network")
 	for _, fn := range GetFnodes() {
@@ -266,8 +261,9 @@ func TestSetupANetwork(t *testing.T) {
 
 	time.Sleep(10 * time.Second)
 	PrintOneStatus(0, 0)
-	if state0.LLeaderHeight > 15 {
-		t.Fatalf("Failed to shut down factomd via ShutdownChan expected DBHeight 15 got %d", state0.LLeaderHeight)
+	dblim := 12
+	if state0.LLeaderHeight > uint32(dblim) {
+		t.Fatalf("Failed to shut down factomd via ShutdownChan expected DBHeight %d got %d", dblim, state0.LLeaderHeight)
 	}
 
 }
@@ -584,7 +580,7 @@ func TestActivationHeightElection(t *testing.T) {
 
 	// Sleep one block
 	time.Sleep(time.Duration(state0.DirectoryBlockInSeconds) * time.Second)
-	if state0.LLeaderHeight > 9 {
+	if state0.LLeaderHeight > 14 {
 		t.Fatal("Failed to shut down factomd via ShutdownChan")
 	}
 
