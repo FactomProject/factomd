@@ -5,6 +5,8 @@ package activations
 import (
 	"fmt"
 	"os"
+
+	"github.com/FactomProject/factomd/common/globals"
 )
 
 type ActivationType int
@@ -33,10 +35,10 @@ func init() {
 	var activations []Activation = []Activation{
 		Activation{"ElectionNoSort", ELECTION_NO_SORT, "Disable sorting of severs after elections",
 			map[string]int{
-				"MAIN":   146060 + 8*24*10 + 1, // On 6/20/18 11:45 mainnet was 146060, we want activation at 6/28/18 at ~12pm
-				"TEST":   32756 + 2*24*10 + 1,  // On 6/20/18 11:45 testnet was 146060, we want activation at 6/22/18 at ~12pm
-				"LOCAL":  10,                   // Must be > 6 for TestActivationHeightElection to pass
-				"CUSTOM": 9223372036854775807,  // Hard to say if this should be 0 or Max int....
+				"MAIN":                      146060 + 8*24*10 + 1, // On 6/20/18 11:45 mainnet was 146060, we want activation at 6/28/18 at ~12pm
+				"TEST":                      32756 + 2*24*10 + 1,  // On 6/20/18 11:45 testnet was 146060, we want activation at 6/22/18 at ~12pm
+				"LOCAL":                     10,                   // Must be > 6 for TestActivationHeightElection to pass
+				"CUSTOM:fct_community_test": 32756 + 2*24*10 + 1,  // On 6/20/18 11:45 testnet was 146060, we want activation at 6/22/18 at ~12pm
 			},
 		},
 	}
@@ -64,8 +66,12 @@ func (id ActivationType) String() string {
 	return n
 }
 
-func IsActive(id ActivationType, network string, height int) bool {
+func IsActive(id ActivationType, height int) bool {
 
+	netName := globals.Params.NetworkName
+	if netName == "CUSTOM" {
+		netName = fmt.Sprintf("%s:%s", netName, globals.Params.CustomNet)
+	}
 	a, ok := ActivationMap[id]
 
 	if !ok {
@@ -73,9 +79,9 @@ func IsActive(id ActivationType, network string, height int) bool {
 		return false
 	}
 
-	h, ok := a.ActivationHeight[network]
+	h, ok := a.ActivationHeight[netName]
 	if !ok {
-		fmt.Fprintf(os.Stderr, "Activation %s does not support network name %s\n", id.String(), network)
+		fmt.Fprintf(os.Stderr, "Activation %s does not support network name %s\n", id.String(), netName)
 		return false
 	}
 

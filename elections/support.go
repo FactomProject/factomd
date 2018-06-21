@@ -10,7 +10,8 @@ import (
 
 var _ = fmt.Print
 
-func Sort(serv []interfaces.IServer) {
+func Sort(serv []interfaces.IServer) bool {
+	changed := false
 	for i := 0; i < len(serv)-1; i++ {
 		allgood := true
 		for j := 0; j < len(serv)-1-i; j++ {
@@ -19,12 +20,14 @@ func Sort(serv []interfaces.IServer) {
 				serv[j] = serv[j+1]
 				serv[j+1] = s
 				allgood = false
+				changed = true
 			}
 		}
 		if allgood {
-			return
+			return changed
 		}
 	}
+	return changed
 }
 
 // Creates an order for all servers by using a certain hash function.  The list of unordered hashes (in the same order

@@ -848,7 +848,7 @@ func TestDBsigEOMElection(t *testing.T) {
 		"--count=7",
 		"--startdelay=1",
 		"--net=alot+",
-		//"--debuglog=.*",
+		"--debuglog=.*",
 		"--stdoutlog=out.txt",
 		"--stderrlog=err.txt",
 		"--checkheads=false",
@@ -905,10 +905,10 @@ func TestDBsigEOMElection(t *testing.T) {
 		t.Fatalf("found %d leaders, expected 5", leadercnt)
 	}
 
-	// Wait for the activation of the
-	for !state.IsActive(activations.ELECTION_NO_SORT) {
-		WaitBlocks(state, 1)
-	}
+	//// Wait for the activation of the
+	//for !state.IsActive(activations.ELECTION_NO_SORT) {
+	//	WaitBlocks(state, 1)
+	//}
 
 	var wait sync.WaitGroup
 	wait.Add(2)

@@ -20,7 +20,6 @@ import (
 	"github.com/FactomProject/factomd/activations"
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/globals"
 	. "github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
@@ -2722,7 +2721,8 @@ func (s *State) updateNetworkControllerConfig() {
 // Return if a feature is active for the current height
 func (s *State) IsActive(id activations.ActivationType) bool {
 	highestCompletedBlk := s.GetHighestCompletedBlk()
-	rval := activations.IsActive(id, globals.Params.NetworkName, int(highestCompletedBlk))
+
+	rval := activations.IsActive(id, int(highestCompletedBlk))
 
 	if rval && !s.reportedActivations[id] {
 		s.LogPrintf("executeMsg", "Activating Feature %s at height %v", id.String(), highestCompletedBlk)
