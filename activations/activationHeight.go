@@ -36,9 +36,9 @@ func init() {
 		Activation{"ElectionNoSort", ELECTION_NO_SORT, "Disable sorting of severs after elections",
 			map[string]int{
 				"MAIN":                      146060 + 8*24*10 + 1, // On 6/20/18 11:45 mainnet was 146060, we want activation at 6/28/18 at ~12pm
-				"TEST":                      32756 + 2*24*10 + 1,  // On 6/20/18 11:45 testnet was 146060, we want activation at 6/22/18 at ~12pm
+				"TEST":                      0,                    // On 6/20/18 11:45 testnet was 146060, we want activation at 6/22/18 at ~12pm
 				"LOCAL":                     10,                   // Must be > 6 for TestActivationHeightElection to pass
-				"CUSTOM:fct_community_test": 32756 + 2*24*10 + 1,  // On 6/20/18 11:45 testnet was 146060, we want activation at 6/22/18 at ~12pm
+				"CUSTOM:fct_community_test": 32908 + 2*24*10,      // On 6/21/18 2:04 testnet was 32908, we want activation at 6/23/18 at 2:00pm
 			},
 		},
 	}
