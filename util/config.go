@@ -285,7 +285,7 @@ func ReadConfig(filename string) *FactomdConfig {
 	if filename == "" {
 		filename = ConfigFilename()
 	}
-	if filename[0:0] != "/" {
+	if filename[0:1] != "/" {
 		filename = GetHomeDir() + "/.factom/m2/" + filename
 	}
 
