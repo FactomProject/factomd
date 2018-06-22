@@ -127,6 +127,7 @@ func ParseCmdLine(args []string) *FactomParams {
 	p.KeepMismatch = *KeepMismatchPtr
 	p.StartDelay = int64(*startDelayPtr)
 	p.Deadline = *DeadlinePtr
+	p.CustomNetName = *CustomNetPtr
 	p.CustomNet = primitives.Sha([]byte(*CustomNetPtr)).Bytes()[:4]
 	p.RpcUser = *RpcUserflag
 	p.RpcPassword = *RpcPasswordflag

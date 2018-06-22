@@ -39,6 +39,7 @@ type FactomParams struct {
 	StartDelay               int64
 	Deadline                 int
 	CustomNet                []byte
+	CustomNetName			 string
 	RpcUser                  string
 	RpcPassword              string
 	FactomdTLS               bool

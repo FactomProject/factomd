@@ -285,6 +285,10 @@ func ReadConfig(filename string) *FactomdConfig {
 	if filename == "" {
 		filename = ConfigFilename()
 	}
+	if filename[0:0] != "/" {
+		filename = GetHomeDir() + "/.factom/m2/" + filename
+	}
+
 	cfg := new(FactomdConfig)
 
 	err := gcfg.ReadStringInto(cfg, defaultConfig)
