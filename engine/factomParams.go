@@ -113,7 +113,7 @@ func ParseCmdLine(args []string) *FactomParams {
 	p.CloneDB = *cloneDBPtr
 	p.PortOverride = *portOverridePtr
 	p.Peers = *peersPtr
-	p.NetworkName = *networkNamePtr
+	p.NetworkName = strings.ToUpper(*networkNamePtr)
 	p.NetworkPortOverride = *networkPortOverridePtr
 	p.ControlPanelPortOverride = *ControlPanelPortOverridePtr
 	p.LogPort = *logportPtr

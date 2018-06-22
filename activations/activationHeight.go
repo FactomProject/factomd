@@ -66,12 +66,23 @@ func (id ActivationType) String() string {
 	return n
 }
 
-func IsActive(id ActivationType, height int) bool {
+var once bool
+var netName string
 
-	netName := globals.Params.NetworkName
-	if netName == "CUSTOM" {
-		netName = fmt.Sprintf("%s:%s", netName, globals.Params.CustomNetName)
+func networkname() string {
+	if !once {
+		once = true
+		netName = globals.Params.NetworkName
+		if netName == "CUSTOM" {
+			netName = fmt.Sprintf("%s:%s", netName, globals.Params.CustomNetName)
+		}
+		fmt.Printf("Using NetworkName \"%s\"\n", netName)
 	}
+	return netName
+}
+
+func IsActive(id ActivationType, height int) bool {
+	netName := networkname()
 	a, ok := ActivationMap[id]
 
 	if !ok {
@@ -81,7 +92,7 @@ func IsActive(id ActivationType, height int) bool {
 
 	h, ok := a.ActivationHeight[netName]
 	if !ok {
-		fmt.Fprintf(os.Stderr, "Activation %s does not know network name %s. Activating at 0.\n", id.String(), netName)
+		fmt.Fprintf(os.Stderr, "Activation %s does not know network name \"%s\". Activating at 0.\n", id.String(), netName)
 		a.ActivationHeight[netName] = 0
 		return true
 	}

@@ -20,6 +20,7 @@ import (
 	"github.com/FactomProject/factomd/activations"
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/globals"
 	. "github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
@@ -668,6 +669,9 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		s.Network = cfg.App.Network
 		if 0 < len(networkFlag) { // Command line overrides the config file.
 			s.Network = networkFlag
+			globals.Params.NetworkName = networkFlag // in case it did not come from there.
+		} else {
+			globals.Params.NetworkName = s.Network
 		}
 		fmt.Printf("\n\nNetwork : %s\n", s.Network)
 
