@@ -142,6 +142,8 @@ func (m *DBStateMsg) GetTimestamp() interfaces.Timestamp {
 //  1   -- Message is valid
 // NOTE! Do no return 0, that sticks this message in the holding map, vs the DBStateList
 // 			ValidateSignatures is called when actually applying the DBState.
+var max int
+
 func (m *DBStateMsg) Validate(state interfaces.IState) int {
 	// No matter what, a block has to have what a block has to have.
 	if m.DirectoryBlock == nil || m.AdminBlock == nil || m.FactoidBlock == nil || m.EntryCreditBlock == nil {
@@ -176,6 +178,11 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 		state.AddStatus(fmt.Sprintf("DBStateMsg.Validate() Fail dbstate dbht: %d Highest Saved %d diff %d",
 			dbheight, state.GetEntryDBHeightComplete(), diff))
 		return -1
+	}
+
+	if diff > max {
+		fmt.Printf("DBState %v blocks ahead arrived in validate\n", diff)
+		max = diff
 	}
 
 	if m.DirectoryBlock.GetHeader().GetNetworkID() == constants.MAIN_NETWORK_ID {

@@ -140,14 +140,30 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 	vlog := func(format string, args ...interface{}) {
 		dLogger.WithFields(log.Fields{"func": "Validate", "msgheight": m.DBHeight, "lheight": state.GetLeaderHeight()})
 	}
+
 	if m.IsValid() {
 		return 1
 	}
 
-	raw, _ := m.MarshalBinary()
+	// Wrap MarshalBinary on the message so I can log it on error.
+	MarshalBinary := func () [] byte{
+		raw, err := m.MarshalBinary()
+		if err != nil {
+			vlog("DirectoryBlockSignature  MarshalBinary fail %v", err)
+		}
+		return raw
+	}
+
+	// if this is a DBSig for a saved block it's invalid (old)
 	if m.DBHeight <= state.GetHighestSavedBlk() {
-		//	vlog("[1] Validate Fail %s -- RAW: %x", m.String(), raw)
-		//	// state.Logf("error", "DirectoryBlockSignature: Fail dbstate ht: %v < dbht: %v  %s\n  [%s] RAW: %x", m.DBHeight, state.GetHighestSavedBlk(), m.String(), m.GetMsgHash().String(), raw)
+		//	vlog("[1] Validate Fail %s -- RAW: %x", m.String(), MarshalBinary())
+		//	// state.Logf("error", "DirectoryBlockSignature: Fail dbstate ht: %v < dbht: %v  %s\n  [%s] RAW: %x", m.DBHeight, state.GetHighestSavedBlk(), m.String(), m.GetMsgHash().String(), MarshalBinary())
+		return -1
+	}
+	// if this is a DBSig for a future block it's invalid (to far in the future)
+	if m.DBHeight > state.GetHighestKnownBlock() { // (this may need to be +1?)
+		//	vlog("[1] Validate Fail %s -- RAW: %x", m.String(), MarshalBinary())
+		//	// state.Logf("error", "DirectoryBlockSignature: Fail dbstate ht: %v < dbht: %v  %s\n  [%s] RAW: %x", m.DBHeight, state.GetHighestSavedBlk(), m.String(), m.GetMsgHash().String(), MarshalBinary())
 		return -1
 	}
 
@@ -168,8 +184,8 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 
 	isVer, err := m.VerifySignature()
 	if err != nil || !isVer {
-		vlog("[2] Verify Sig Failed %s -- RAW: %x", m.String(), raw)
-		// state.Logf("error", "DirectoryBlockSignature: Fail to Verify Sig dbht: %v %s\n  [%s] RAW: %x", state.GetLLeaderHeight(), m.String(), m.GetMsgHash().String(), raw)
+		vlog("[2] Verify Sig Failed %s -- RAW: %x", m.String(), MarshalBinary())
+		// state.Logf("error", "DirectoryBlockSignature: Fail to Verify Sig dbht: %v %s\n  [%s] RAW: %x", state.GetLLeaderHeight(), m.String(), m.GetMsgHash().String(), MarshalBinary())
 		// if there is an error during signature verification
 		// or if the signature is invalid
 		// the message is considered invalid
@@ -180,13 +196,13 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 	authorityLevel, err := state.FastVerifyAuthoritySignature(marshalledMsg, m.Signature, m.DBHeight)
 	if err != nil || authorityLevel < 1 {
 		//This authority is not a Fed Server (it's either an Audit or not an Authority at all)
-		vlog("Fail to Verify Sig (not from a Fed Server) %s -- RAW: %x", m.String(), raw)
-		//state.Logf("error", "DirectoryBlockSignature: Fail to Verify Sig (not from a Fed Server) dbht: %v %s\n  [%s] RAW: %x", state.GetLLeaderHeight(), m.String(), m.GetMsgHash().String(), raw)
+		vlog("Fail to Verify Sig (not from a Fed Server) %s -- RAW: %x", m.String(), MarshalBinary())
+		//state.Logf("error", "DirectoryBlockSignature: Fail to Verify Sig (not from a Fed Server) dbht: %v %s\n  [%s] RAW: %x", state.GetLLeaderHeight(), m.String(), m.GetMsgHash().String(), MarshalBinary())
 		// state.AddStatus(fmt.Sprintf("DirectoryBlockSignature: Fail to Verify Sig (not from a Fed Server) dbht: %v %s", state.GetLLeaderHeight(), m.String()))
 		return authorityLevel
 	}
 
-	//state.Logf("info", "DirectoryBlockSignature: VALID  dbht: %v %s. MsgHash: %s\n [%s] RAW: %x ", state.GetLLeaderHeight(), m.String(), m.GetMsgHash().String(), m.GetMsgHash().String(), raw)
+	//state.Logf("info", "DirectoryBlockSignature: VALID  dbht: %v %s. MsgHash: %s\n [%s] RAW: %x ", state.GetLLeaderHeight(), m.String(), m.GetMsgHash().String(), m.GetMsgHash().String(), MarshalBinary())
 	dLogger.WithFields(m.LogFields()).WithField("node-name", state.GetFactomNodeName()).Info("DirectoryBlockSignature Valid")
 	m.SetValid()
 	return 1
@@ -372,7 +388,7 @@ func (m *DirectoryBlockSignature) MarshalForSignature() (rval []byte, err error)
 }
 
 func (m *DirectoryBlockSignature) MarshalBinary() (data []byte, err error) {
-
+	// do we have a saved binary version already?
 	if m.marshalCache != nil {
 		return m.marshalCache, nil
 	}
@@ -390,6 +406,9 @@ func (m *DirectoryBlockSignature) MarshalBinary() (data []byte, err error) {
 		}
 		return append(resp, sigBytes...), nil
 	}
+
+	// remember the binary version for next time
+	m.marshalCache = resp
 	return resp, nil
 }
 
@@ -413,11 +432,11 @@ func (m *DirectoryBlockSignature) String() string {
 
 func (m *DirectoryBlockSignature) LogFields() log.Fields {
 	return log.Fields{"category": "message", "messagetype": "dbsig",
-		"dbheight":  m.DBHeight,
-		"vm":        m.VMIndex,
-		"server":    m.ServerIdentityChainID.String(),
+		"dbheight": m.DBHeight,
+		"vm": m.VMIndex,
+		"server": m.ServerIdentityChainID.String(),
 		"prevkeymr": m.DirectoryBlockHeader.GetPrevKeyMR().String(),
-		"hash":      m.GetHash().String()}
+		"hash": m.GetHash().String()}
 }
 
 func (e *DirectoryBlockSignature) JSONByte() ([]byte, error) {

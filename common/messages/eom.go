@@ -129,8 +129,12 @@ func (m *EOM) Validate(state interfaces.IState) int {
 		return 1
 	}
 
-	// Ignore old EOM
+	// if this is a EOM for a saved block it's invalid (old)
 	if m.DBHeight <= state.GetHighestSavedBlk() {
+		return -1
+	}
+	// if this is a DBSig for a future block it's invalid (to far in the future)
+	if m.DBHeight > state.GetHighestKnownBlock() { // (this may need to be +1?)
 		return -1
 	}
 
@@ -322,7 +326,9 @@ func (m *EOM) MarshalBinary() (data []byte, err error) {
 	} else {
 		buf.WriteByte(0)
 	}
-	return buf.DeepCopyBytes(), nil
+
+	m.marshalCache = buf.DeepCopyBytes()
+	return m.marshalCache, nil
 }
 
 func (m *EOM) String() string {

@@ -227,6 +227,10 @@ func (m *MissingMsg) Validate(state interfaces.IState) int {
 	if m.Asking.IsZero() {
 		return -1
 	}
+	//if the DBH is in my future I can't help
+	if m.DBHeight > state.GetHighestKnownBlock() {
+		return -1
+	}
 	return 1
 }
 

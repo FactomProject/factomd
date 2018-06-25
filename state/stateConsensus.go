@@ -700,7 +700,30 @@ func (s *State) ExecuteEntriesInDBState(dbmsg *messages.DBStateMsg) {
 	}
 }
 
+var timestamps [100]time.Time
+var start, end int
+
+func add() {
+	timestamps[end] = time.Now()
+	end = (end + 1) % len(timestamps)
+	if start == end {
+		start = (start + 1) % len(timestamps)
+	}
+}
+
+func rate() float64 {
+	f_idx := (end - 1 + len(timestamps)) % len(timestamps)
+	x := timestamps[f_idx].Sub(timestamps[start]).Nanoseconds()
+	t := float64(x) / 1e9
+	numberTransations := (end - start + len(timestamps)) % len(timestamps)
+	return float64(numberTransations) / t
+}
+
 func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
+
+	add()
+	fmt.Printf("DBSTATE rate = %7.2g\n", rate())
+
 	dbstatemsg, _ := msg.(*messages.DBStateMsg)
 
 	cntFail := func() {
@@ -757,13 +780,6 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 
 	if dbstatemsg.IsLast { // this is the last DBState in this load
 		s.DBFinished = true // Normal case
-		// Attempted hack to fix a set where one leader was ahead of the others.
-		//if s.Leader {
-		//	dbstatemsg.SetLocal(false) // we are going to send it out to catch everyone up
-		//	dbstatemsg.SetPeer2Peer(false)
-		//	dbstatemsg.SetFullBroadcast(true)
-		//	dbstatemsg.SendOut(s, dbstatemsg)
-		//}
 	}
 	/**************************
 	for int(s.ProcessLists.DBHeightBase)+len(s.ProcessLists.Lists) > int(dbheight+1) {

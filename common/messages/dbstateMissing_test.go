@@ -116,14 +116,14 @@ func TestNewDBStateMissing(t *testing.T) {
 
 	s := testHelper.CreateEmptyTestState()
 
-	ndbs := NewDBStateMissing(s, 1, 100)
+	ndbs := NewDBStateMissing(s, 1, constants.MAX_DB_STATES_PER_REQUEST)
 
 	//fmt.Printf("asdf: %v\n", ndbs)
 	if ndbs.Validate(s) != 1 {
 		t.Errorf("NewDBStateMissing is marked invalid when it should be valid")
 	}
 
-	ndbs2 := NewDBStateMissing(s, 100, 1)
+	ndbs2 := NewDBStateMissing(s, 2, 1)
 	if ndbs2.Validate(s) != -1 {
 		t.Errorf("NewDBStateMissing is marked valid when it should be invalid")
 	}

@@ -219,6 +219,7 @@ func (m *Heartbeat) MarshalBinary() (data []byte, err error) {
 		}
 		return append(resp, sigBytes...), nil
 	}
+	m.marshalCache = resp
 	return resp, nil
 }
 
@@ -264,6 +265,10 @@ func (m *Heartbeat) Validate(is interfaces.IState) int {
 
 	// Ignore old heartbeats
 	if m.DBHeight <= is.GetHighestSavedBlk() {
+		return -1
+	}
+	// ignore it if it's from the distant future
+	if m.DBHeight > is.GetHighestKnownBlock() {
 		return -1
 	}
 
