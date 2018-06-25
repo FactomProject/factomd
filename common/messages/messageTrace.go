@@ -35,11 +35,18 @@ func checkFileName(name string) bool {
 	if globals.Params.DebugLogRegEx == "" {
 		return false
 	}
-	// if we haven't compiled the regex or the regex string has changed ...
-	if TestRegex == nil || globals.Params.DebugLogRegEx != globals.LastDebugLogRegEx {
-		if globals.Params.DebugLogRegEx[0] == '"' || globals.Params.DebugLogRegEx[0] == '\'' {
-			globals.Params.DebugLogRegEx = globals.Params.DebugLogRegEx[1 : len(globals.Params.DebugLogRegEx)-1] // Trim the "'s
-		}
+	// if  the regex string has changed ...
+	if globals.Params.DebugLogRegEx != globals.LastDebugLogRegEx {
+
+		TestRegex = nil // throw away the old regex
+		globals.LastDebugLogRegEx = globals.Params.DebugLogRegEx
+	}
+	//strip quotes if they are included in the string
+	if globals.Params.DebugLogRegEx[0] == '"' || globals.Params.DebugLogRegEx[0] == '\'' {
+		globals.Params.DebugLogRegEx = globals.Params.DebugLogRegEx[1 : len(globals.Params.DebugLogRegEx)-1] // Trim the "'s
+	}
+	// if we haven't compiled the regex ...
+	if TestRegex == nil {
 		theRegex, err := regexp.Compile("(?i)" + globals.Params.DebugLogRegEx) // force case insensitive
 		if err != nil {
 			panic(err)
@@ -48,7 +55,6 @@ func checkFileName(name string) bool {
 		TestRegex = theRegex
 		globals.LastDebugLogRegEx = globals.Params.DebugLogRegEx
 	}
-
 	flag, old := enabled[name]
 	if !old {
 		flag = TestRegex.Match([]byte(name))
