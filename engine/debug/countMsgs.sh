@@ -1,14 +1,19 @@
 ################################
 # AWK scripts                  #
 ################################
+pattern="$1"
+shift
+
 read -d '' scriptVariable << 'EOF'
  { sub(/:/," "); # fix files where the sequence number grew upto the filename
-   hash = $6
-   sub(/|0x[0-9a-f]+/,"",hash) # remove address of message if it is present
+   hash = substr($0,index($0,"M-"),26)
    endHash = index($0,hash) + length(hash)
+   sub(/|0x[0-9a-f]+/,"",$0) # remove address of message if it is present
    rest = substr($0,endHash)
    msgType = substr(rest,0,index(rest,":")-1)
    gsub(/ +/,"",msgType);   # remove spaces from message type
+# print;
+# print "<"msgType"><"hash">"
    if (tcount[msgType]++ == 0) { # count the types messages
       #print $0
    }
@@ -37,4 +42,4 @@ EOF
 ################################
 
 
-grep -H "Dequeue" $@  | awk "$scriptVariable" 
+grep -H  "$pattern" $@  | awk "$scriptVariable" 

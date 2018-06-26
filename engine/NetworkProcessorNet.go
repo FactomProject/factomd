@@ -280,7 +280,9 @@ func Peers(fnode *FactomNode) {
 
 				// don't resend peer to peer messages or responses
 				switch msg.Type() {
-				case constants.MISSING_DATA, constants.MISSING_MSG, constants.MISSING_MSG_RESPONSE, constants.DBSTATE_MISSING_MSG, constants.DATA_RESPONSE, constants.DBSTATE_MSG:
+				case constants.MISSING_DATA, constants.MISSING_MSG, constants.MISSING_MSG_RESPONSE,
+					constants.DBSTATE_MISSING_MSG, constants.DATA_RESPONSE, constants.DBSTATE_MSG,
+					constants.MISSING_ENTRY_BLOCKS, constants.ENTRY_BLOCK_RESPONSE:
 					msg.SetNoResend(true)
 				}
 				if !crossBootIgnore(msg) {

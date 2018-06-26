@@ -5,11 +5,12 @@
 read -d '' scriptVariable << 'EOF'
 func time2sec(t) {	
   x = split(t,ary,":");
-  if(x!=3) {print "bad time",NR, $0; exit;}
+  if(x!=3) {printf("time2sec(%s) bad split got %d fields. %d", t , x ,NR); print $0; exit;}
   sec = (ary[1]*60+ary[2])*60+ary[3];
 #  printf("time2sec(%s) %02d:%02d:%02d= %d\\n",t, ary[1]+0, ary[2]+0,ary[3]+0,sec);
   return sec;
 }
+
 
 #   8285 16:41:39 3-:-0 Enqueue             M-f8a39e|R-f8a39e|H-f8a39e                Missing Msg[16]:MissingMsg --> 455b7b<FNode0> asking for DBh/VMh/h[3/1/1, ] Sys: 0 msgHash[f8a39e]
 
