@@ -931,12 +931,15 @@ func (s *State) Init() {
 		panic("No Database type specified")
 	}
 
+	//correctChainHeads sets the log level to info.  we should reset it back to the command line specified value after correcting the chain heads
+	specifiedLogLevel := log.GetLevel()
 	if s.CheckChainHeads.CheckChainHeads {
 		correctChainHeads.FindHeads(s.DB.(*databaseOverlay.Overlay), correctChainHeads.CorrectChainHeadConfig{
 			PrintFreq: 5000,
 			Fix:       s.CheckChainHeads.Fix,
 		})
 	}
+	log.SetLevel(specifiedLogLevel)
 
 	if s.ExportData {
 		s.DB.SetExportData(s.ExportDataSubpath)
