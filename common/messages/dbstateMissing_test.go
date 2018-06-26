@@ -116,7 +116,7 @@ func TestNewDBStateMissing(t *testing.T) {
 
 	s := testHelper.CreateEmptyTestState()
 
-	ndbs := NewDBStateMissing(s, 1, constants.MAX_DB_STATES_PER_REQUEST)
+	ndbs := NewDBStateMissing(s, 0, constants.MAX_DB_STATES_PER_REQUEST)
 
 	//fmt.Printf("asdf: %v\n", ndbs)
 	if ndbs.Validate(s) != 1 {

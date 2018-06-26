@@ -84,11 +84,12 @@ func (m *DBStateMissing) Validate(state interfaces.IState) int {
 		return -1
 	}
 	// if they are asking for too many DBStates in one request then toss the request
-	if m.DBHeightEnd - m.DBHeightStart > constants.MAX_DB_STATES_PER_REQUEST {
+	if m.DBHeightEnd-m.DBHeightStart > constants.MAX_DB_STATES_PER_REQUEST {
 		return -1
 	}
 	//if the DBH start is in my future I can't help
-	if m.DBHeightStart > state.GetHighestKnownBlock() {
+	block := state.GetHighestKnownBlock()
+	if m.DBHeightStart > block {
 		return -1
 	}
 	return 1
