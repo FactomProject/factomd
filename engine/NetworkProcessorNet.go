@@ -178,7 +178,7 @@ func Peers(fnode *FactomNode) {
 			fnode.State.LogMessage("NetworkInputs", "from API, Enqueue", msg)
 			if t := msg.Type(); t == constants.REVEAL_ENTRY_MSG || t == constants.COMMIT_CHAIN_MSG || t == constants.COMMIT_ENTRY_MSG {
 				fnode.State.LogMessage("NetworkInputs", "from API, Enqueue2", msg)
-				fnode.State.LogMessage("InMsgQueue2", "enqueue", msg)
+				fnode.State.LogMessage("InMsgQueue2", "enqueue2", msg)
 				fnode.State.InMsgQueue().Enqueue(msg)
 			} else {
 				fnode.State.LogMessage("NetworkInputs", "from API, Enqueue", msg)
@@ -280,11 +280,10 @@ func Peers(fnode *FactomNode) {
 
 				// don't resend peer to peer messages or responses
 				switch msg.Type() {
-				case constants.MISSING_DATA, constants.MISSING_MSG, constants.MISSING_MSG_RESPONSE, constants.DBSTATE_MISSING_MSG, constants.DATA_RESPONSE:
+				case constants.MISSING_DATA, constants.MISSING_MSG, constants.MISSING_MSG_RESPONSE, constants.DBSTATE_MISSING_MSG, constants.DATA_RESPONSE, constants.DBSTATE_MSG:
 					msg.SetNoResend(true)
 				}
 				if !crossBootIgnore(msg) {
-					fnode.State.LogMessage("NetworkInputs", fromPeer+", enqueue", msg)
 					if t := msg.Type(); t == constants.REVEAL_ENTRY_MSG || t == constants.COMMIT_CHAIN_MSG || t == constants.COMMIT_ENTRY_MSG {
 						fnode.State.LogMessage("NetworkInputs", fromPeer+", enqueue2", msg)
 						fnode.State.LogMessage("InMsgQueue2", fromPeer+", enqueue", msg)
