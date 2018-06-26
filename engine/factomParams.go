@@ -113,7 +113,7 @@ func ParseCmdLine(args []string) *FactomParams {
 	p.CloneDB = *cloneDBPtr
 	p.PortOverride = *portOverridePtr
 	p.Peers = *peersPtr
-	p.NetworkName = *networkNamePtr
+	p.NetworkName = strings.ToUpper(*networkNamePtr)
 	p.NetworkPortOverride = *networkPortOverridePtr
 	p.ControlPanelPortOverride = *ControlPanelPortOverridePtr
 	p.LogPort = *logportPtr
@@ -127,6 +127,7 @@ func ParseCmdLine(args []string) *FactomParams {
 	p.KeepMismatch = *KeepMismatchPtr
 	p.StartDelay = int64(*startDelayPtr)
 	p.Deadline = *DeadlinePtr
+	p.CustomNetName = *CustomNetPtr
 	p.CustomNet = primitives.Sha([]byte(*CustomNetPtr)).Bytes()[:4]
 	p.RpcUser = *RpcUserflag
 	p.RpcPassword = *RpcPasswordflag
