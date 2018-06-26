@@ -7,6 +7,8 @@ package state
 import (
 	"fmt"
 	"sync"
+
+	"github.com/FactomProject/factomd/common/globals"
 )
 
 var cntsMutex sync.Mutex
@@ -68,7 +70,7 @@ func PrintState(state *State) {
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "CustomNetworkPort", state.CustomNetworkPort)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "CustomSeedURL", state.CustomSeedURL)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "CustomSpecialPeers", state.CustomSpecialPeers)
-	str = fmt.Sprintf("%s %35s = %+v\n", str, "CustomNetworkID", state.CustomNetworkID)
+	str = fmt.Sprintf("%s %35s = %+v(%s)\n", str, "CustomNetworkID", state.CustomNetworkID, globals.Params.CustomNetName)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "IdentityChainID", state.IdentityChainID)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "Identities", state.IdentityControl.GetIdentities())
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "Authorities", state.IdentityControl.Authorities)

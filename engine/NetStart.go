@@ -25,6 +25,8 @@ import (
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
 
+	"strings"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/messages/msgsupport"
@@ -82,14 +84,14 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	s.EFactory = new(electionMsgs.ElectionsFactory)
 
 	log.SetOutput(os.Stdout)
-	switch p.Loglvl {
+	switch strings.ToLower(p.Loglvl) {
 	case "none":
 		log.SetOutput(ioutil.Discard)
 	case "debug":
 		log.SetLevel(log.DebugLevel)
 	case "info":
 		log.SetLevel(log.InfoLevel)
-	case "warning":
+	case "warning", "warn":
 		log.SetLevel(log.WarnLevel)
 	case "error":
 		log.SetLevel(log.ErrorLevel)
@@ -272,7 +274,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "keepMismatch", p.KeepMismatch))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "startDelay", p.StartDelay))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "Network", s.Network))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %x\n", "customnet", p.CustomNet))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %x (%s)\n", "customnet", p.CustomNet, p.CustomNetName))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "deadline (ms)", p.Deadline))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "tls", s.FactomdTLSEnable))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "selfaddr", s.FactomdLocations))

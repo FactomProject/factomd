@@ -4,6 +4,8 @@
 
 package interfaces
 
+import "github.com/FactomProject/factomd/activations"
+
 type DBStateSent struct {
 	DBHeight uint32
 	Sent     Timestamp
@@ -327,4 +329,7 @@ type IState interface {
 	GetHighestAck() uint32
 	SetHighestAck(uint32)
 	DebugExec() bool
+
+	// Activations
+	IsActive(id activations.ActivationType) bool
 }
