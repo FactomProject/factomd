@@ -722,7 +722,7 @@ func rate() float64 {
 func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 
 	add()
-	fmt.Printf("DBSTATE rate = %7.2g\n", rate())
+	fmt.Printf("DBSTATE rate = %10.2f\n", rate())
 
 	dbstatemsg, _ := msg.(*messages.DBStateMsg)
 
