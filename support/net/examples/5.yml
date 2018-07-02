@@ -1,0 +1,47 @@
+---
+
+# A factomd network of 5 leaders.
+
+flags: -sim_stdin=false -customnet=1234 -network=CUSTOM -blktime=20
+
+nodes:
+    - name: node1
+      seed: true
+      role: federated
+      ports:
+          ui: 8190
+          api: 8188
+
+    - name: node2
+      seed: true
+      role: federated
+      ports:
+          ui: 8290
+          api: 8288
+
+    - name: node3
+      seed: true
+      role: federated
+      ports:
+          ui: 8390
+          api: 8388
+
+    - name: node4
+      seed: true
+      role: federated
+      ports:
+          ui: 8490
+          api: 8488
+
+    - name: node5
+      seed: true
+      role: federated
+      ports:
+          ui: 8590
+          api: 8588
+
+
+network:
+    rules:
+          # allow all nodes to connect
+        - action: allow

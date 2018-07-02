@@ -1,0 +1,35 @@
+---
+
+# A factomd network connected into a star, where the leader is the central node,
+# all other nodes can discover it and connect to it, but they cannot connect
+# to each other.
+
+nodes:
+    - name: leader
+      seed: true
+      role: federated
+    - name: follower1
+    - name: follower2
+    - name: follower3
+
+network:
+    rules:
+        # allow all nodes to connect to the seeds server
+        - action: allow
+          target: seeds_server
+
+        # allow followers to connecto to the leader
+        - action: allow
+          source: follower1
+          target: leader
+
+        - action: allow
+          source: follower2
+          target: leader
+
+        - action: allow
+          source: follower3
+          target: leader
+
+        # deny any other connections
+        - action: deny

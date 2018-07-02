@@ -1,0 +1,14 @@
+certifi==2018.1.18
+chardet==3.0.4
+docker==3.1.1
+docker-pycreds==0.2.1
+docopt==0.6.2
+idna==2.6
+pyaml==17.12.1
+PyYAML==3.12
+requests==2.18.4
+schema==0.6.7
+six==1.11.0
+termcolor==1.1.0
+urllib3==1.22
+websocket-client==0.46.0
