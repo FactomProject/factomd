@@ -1,0 +1,8 @@
+[
+  {
+    "targets": [
+        "localhost:9876",
+        "docker.for.mac.host.internal:9876"
+    ]
+  }
+]
