@@ -6,6 +6,7 @@ package identityEntries
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -118,7 +119,14 @@ func (rsm *RegisterServerManagementStructure) ToExternalIDs() [][]byte {
 	return extIDs
 }
 
-func (rsm *RegisterServerManagementStructure) GetChainID() interfaces.IHash {
+func (rsm *RegisterServerManagementStructure) GetChainID() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("RegisterServerManagementStructure.GetChainID() saw an interface that was nil")
+		}
+	}()
+
 	extIDs := rsm.ToExternalIDs()
 
 	return entryBlock.ExternalIDsToChainID(extIDs)

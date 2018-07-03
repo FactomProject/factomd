@@ -13,6 +13,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"reflect"
 	"runtime"
 	"runtime/debug"
 
@@ -47,7 +48,6 @@ func (h *Hash) IsHashNil() bool {
 	return h == nil
 }
 
-
 func RandomHash() interfaces.IHash {
 	h := random.RandByteSliceOfLen(constants.HASH_LENGTH)
 	answer := new(Hash)
@@ -55,7 +55,14 @@ func RandomHash() interfaces.IHash {
 	return answer
 }
 
-func (c *Hash) Copy() interfaces.IHash {
+func (c *Hash) Copy() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			LogNilHashBug("Hash.Copy() saw an interface that was nil")
+		}
+	}()
+
 	h := new(Hash)
 	err := h.SetBytes(c.Bytes())
 	if err != nil {

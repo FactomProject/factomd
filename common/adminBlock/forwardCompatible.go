@@ -1,10 +1,10 @@
 package adminBlock
 
 import (
+	"bytes"
 	"fmt"
 	"os"
-
-	"bytes"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -156,7 +156,14 @@ func (e *ForwardCompatibleEntry) Interpret() string {
 	return ""
 }
 
-func (e *ForwardCompatibleEntry) Hash() interfaces.IHash {
+func (e *ForwardCompatibleEntry) Hash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("ForwardCompatibleEntry.Hash() saw an interface that was nil")
+		}
+	}()
+
 	bin, err := e.MarshalBinary()
 	if err != nil {
 		panic(err)

@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"hash"
+	"reflect"
 	"sync"
 	"time"
 
@@ -2319,7 +2320,14 @@ func (s *State) GetDirectoryBlock() interfaces.IDirectoryBlock {
 	return s.DBStates.Last().DirectoryBlock
 }
 
-func (s *State) GetNewHash() (rval interfaces.IHash) { 	defer func() { 		if rval.IsHashNil() { 			rval = nil // convert an interface that is nil to a nil interface 		} 	}()
+func (s *State) GetNewHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("State.GetNewHash() saw an interface that was nil")
+		}
+	}()
+
 	return new(primitives.Hash)
 }
 

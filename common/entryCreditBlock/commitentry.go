@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"os"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -110,7 +111,14 @@ func (e *CommitEntry) String() string {
 	return fmt.Sprintf("ehash[%x] Credits[%d] PublicKey[%x] Sig[%x]", e.EntryHash.Bytes()[:3], e.Credits, e.ECPubKey[:3], e.Sig[:3])
 }
 
-func (a *CommitEntry) GetEntryHash() interfaces.IHash {
+func (a *CommitEntry) GetEntryHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("CommitEntry.GetEntryHash() saw an interface that was nil")
+		}
+	}()
+
 	return a.EntryHash
 }
 
@@ -125,7 +133,14 @@ func NewCommitEntry() *CommitEntry {
 	return c
 }
 
-func (e *CommitEntry) Hash() interfaces.IHash {
+func (e *CommitEntry) Hash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("CommitEntry.Hash() saw an interface that was nil")
+		}
+	}()
+
 	bin, err := e.MarshalBinary()
 	if err != nil {
 		panic(err)
@@ -173,12 +188,26 @@ func (c *CommitEntry) IsValid() bool {
 	}
 }
 
-func (c *CommitEntry) GetHash() interfaces.IHash {
+func (c *CommitEntry) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("CommitEntry.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	h, _ := c.MarshalBinary()
 	return primitives.Sha(h)
 }
 
-func (c *CommitEntry) GetSigHash() interfaces.IHash {
+func (c *CommitEntry) GetSigHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("CommitEntry.GetSigHash() saw an interface that was nil")
+		}
+	}()
+
 	data := c.CommitMsg()
 	return primitives.Sha(data)
 }
