@@ -19,6 +19,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives/random"
+	"github.com/FactomProject/factomd/util/atomic"
 )
 
 type Hash [constants.HASH_LENGTH]byte
@@ -29,6 +30,23 @@ var _ interfaces.BinaryMarshallableAndCopyable = (*Hash)(nil)
 var _ encoding.TextMarshaler = (*Hash)(nil)
 
 var ZeroHash interfaces.IHash = NewHash(constants.ZERO_HASH)
+
+var noRepeat map[string]int
+
+func LogNilHashBug(msg string) {
+	whereAmI := atomic.WhereAmIString(2)
+	noRepeat[whereAmI]++
+
+	if noRepeat[whereAmI]%100 == 1 {
+		fmt.Fprintf(os.Stderr, "%s. Called from %s\n", msg, whereAmI)
+	}
+
+}
+
+func (h *Hash) IsHashNil() bool {
+	return h == nil
+}
+
 
 func RandomHash() interfaces.IHash {
 	h := random.RandByteSliceOfLen(constants.HASH_LENGTH)
@@ -107,10 +125,6 @@ func (h *Hash) Bytes() (rval []byte) {
 		}
 	}()
 	return h.GetBytes()
-}
-
-func (Hash) GetHash() interfaces.IHash {
-	return nil
 }
 
 func CreateHash(entities ...interfaces.BinaryMarshallable) (h interfaces.IHash, err error) {
