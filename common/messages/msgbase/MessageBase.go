@@ -117,6 +117,31 @@ func checkForDuplicateSend(s interfaces.IState, msg interfaces.IMsg, whereAmI st
 	}
 }
 
+func (m *MessageBase) StringOfMsgBase() string {
+
+	rval := fmt.Sprintf("origin %s(%d), LChain=%x resendCnt=%d", m.NetworkOrigin, m.Origin, m.LeaderChainID.Bytes()[3:6], m.ResendCnt)
+	if m.LocalOnly {
+		rval += " local"
+	}
+	if m.Peer2Peer {
+		rval += " p2p"
+	}
+	if m.FullBroadcast {
+		rval += " FullBroadcast"
+	}
+	if m.NoResend {
+		rval += "noResend"
+	}
+	if m.MarkInvalid {
+		rval += "MarkInvalid"
+	}
+	if m.Stalled {
+		rval += "Stalled"
+	}
+
+	return rval
+}
+
 func (m *MessageBase) SendOut(s interfaces.IState, msg interfaces.IMsg) {
 	if msg.IsLocal() {
 		//		s.LogMessage("NetworkOutputsCall", "local only", msg)
@@ -195,19 +220,7 @@ func (m *MessageBase) SentInvalid() bool {
 // Try and Resend.  Return true if we should keep the message, false if we should give up.
 func (m *MessageBase) Resend(s interfaces.IState) (rtn bool) {
 	return true
-	if m.ResendCnt > 4 { // Only send four times ...
-		return false
-	}
-	now := s.GetTimestamp().GetTimeMilli()
-	if m.resend == 0 {
-		m.resend = now
-		return false
-	}
-	if now-m.resend > 2000 && s.NetworkOutMsgQueue().Length() < s.NetworkOutMsgQueue().Cap()*99/100 {
-		m.resend = now
-		return true
-	}
-	return false
+
 }
 
 // Try and Resend.  Return true if we should keep the message, false if we should give up.

@@ -6,6 +6,7 @@ package identityEntries
 
 import (
 	"fmt"
+	"os"
 
 	"bytes"
 
@@ -91,10 +92,15 @@ func (e *RegisterFactomIdentityStructure) UnmarshalBinaryData(p []byte) (newData
 	return
 }
 
-func (r *RegisterFactomIdentityStructure) MarshalBinary() ([]byte, error) {
+func (r *RegisterFactomIdentityStructure) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "RegisterFactomIdentityStructure.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	buf := primitives.NewBuffer(nil)
 
-	err := buf.PushByte(r.Version)
+	err = buf.PushByte(r.Version)
 	if err != nil {
 		return nil, err
 	}

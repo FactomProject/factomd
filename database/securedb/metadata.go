@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -65,7 +66,12 @@ func (m *SecureDBMetaData) UnmarshalBinaryData(data []byte) (newData []byte, err
 	return
 }
 
-func (m *SecureDBMetaData) MarshalBinary() ([]byte, error) {
+func (m *SecureDBMetaData) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "SecureDBMetaData.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	buf := primitives.NewBuffer(nil)
 
 	buf.Write(intToBytes(len(m.Salt.Bytes)))

@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"errors"
 
@@ -125,11 +126,16 @@ func (b *ABlockHeader) SetPrevBackRefHash(BackRefHash interfaces.IHash) {
 }
 
 // Write out the ABlockHeader to binary.
-func (b *ABlockHeader) MarshalBinary() ([]byte, error) {
+func (b *ABlockHeader) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "ABlockHeader.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	b.Init()
 	var buf primitives.Buffer
 
-	err := buf.PushBinaryMarshallable(b.GetAdminChainID())
+	err = buf.PushBinaryMarshallable(b.GetAdminChainID())
 	if err != nil {
 		return nil, err
 	}

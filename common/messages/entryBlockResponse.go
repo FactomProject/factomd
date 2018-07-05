@@ -7,6 +7,7 @@ package messages
 import (
 	"encoding/binary"
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
@@ -201,7 +202,12 @@ func (m *EntryBlockResponse) UnmarshalBinary(data []byte) error {
 	return err
 }
 
-func (m *EntryBlockResponse) MarshalForSignature() ([]byte, error) {
+func (m *EntryBlockResponse) MarshalForSignature() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "EntryBlockResponse.MarshalForSignature err:%v", *pe)
+		}
+	}(&err)
 	var buf primitives.Buffer
 
 	binary.Write(&buf, binary.BigEndian, m.Type())
@@ -236,7 +242,12 @@ func (m *EntryBlockResponse) MarshalForSignature() ([]byte, error) {
 	return buf.DeepCopyBytes(), nil
 }
 
-func (m *EntryBlockResponse) MarshalBinary() ([]byte, error) {
+func (m *EntryBlockResponse) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "EntryBlockResponse.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	return m.MarshalForSignature()
 }
 

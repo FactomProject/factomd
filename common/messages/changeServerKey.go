@@ -7,6 +7,7 @@ package messages
 import (
 	"encoding/binary"
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -197,7 +198,12 @@ func (m *ChangeServerKeyMsg) UnmarshalBinary(data []byte) error {
 	return err
 }
 
-func (m *ChangeServerKeyMsg) MarshalForSignature() ([]byte, error) {
+func (m *ChangeServerKeyMsg) MarshalForSignature() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "ChangeServerKeyMsg.MarshalForSignature err:%v", *pe)
+		}
+	}(&err)
 	var buf primitives.Buffer
 
 	binary.Write(&buf, binary.BigEndian, m.Type())
@@ -228,7 +234,12 @@ func (m *ChangeServerKeyMsg) MarshalForSignature() ([]byte, error) {
 	return buf.DeepCopyBytes(), nil
 }
 
-func (m *ChangeServerKeyMsg) MarshalBinary() ([]byte, error) {
+func (m *ChangeServerKeyMsg) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "ChangeServerKeyMsg.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	var buf primitives.Buffer
 
 	data, err := m.MarshalForSignature()

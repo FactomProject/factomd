@@ -7,6 +7,7 @@ package identity
 import (
 	"errors"
 	"fmt"
+	"os"
 
 	"bytes"
 
@@ -339,11 +340,16 @@ func (e *Identity) Init() {
 	}
 }
 
-func (e *Identity) MarshalBinary() ([]byte, error) {
+func (e *Identity) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "Identity.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	e.Init()
 	buf := primitives.NewBuffer(nil)
 
-	err := buf.PushBinaryMarshallable(e.IdentityChainID)
+	err = buf.PushBinaryMarshallable(e.IdentityChainID)
 	if err != nil {
 		return nil, err
 	}

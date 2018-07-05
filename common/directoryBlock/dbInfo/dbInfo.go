@@ -2,6 +2,8 @@ package dbInfo
 
 import (
 	"encoding/gob"
+	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -119,13 +121,18 @@ func (e *DirBlockInfo) GetBTCBlockHeight() int32 {
 	return e.BTCBlockHeight
 }
 
-func (e *DirBlockInfo) MarshalBinary() ([]byte, error) {
+func (e *DirBlockInfo) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "DirBlockInfo.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	e.Init()
 	var data primitives.Buffer
 
 	enc := gob.NewEncoder(&data)
 
-	err := enc.Encode(newDirBlockInfoCopyFromDBI(e))
+	err = enc.Encode(newDirBlockInfoCopyFromDBI(e))
 	if err != nil {
 		return nil, err
 	}

@@ -11,6 +11,8 @@ package databaseOverlay_test
 import (
 	"bytes"
 	"encoding/gob"
+	"fmt"
+	"os"
 	"testing"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -497,7 +499,12 @@ func (d *DBTestObject) UnmarshalBinary(data []byte) error {
 	return err
 }
 
-func (d *DBTestObject) MarshalBinary() ([]byte, error) {
+func (d *DBTestObject) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "DBTestObject.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	var data bytes.Buffer
 
 	enc := gob.NewEncoder(&data)
@@ -510,7 +517,7 @@ func (d *DBTestObject) MarshalBinary() ([]byte, error) {
 	tmp.SecondaryIndex = d.SecondaryIndex
 	tmp.ChainID = d.ChainID
 
-	err := enc.Encode(tmp)
+	err = enc.Encode(tmp)
 	if err != nil {
 		return nil, err
 	}

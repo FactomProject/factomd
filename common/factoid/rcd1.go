@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/constants"
@@ -50,7 +51,12 @@ func (e *RCD_1) JSONString() (string, error) {
 }
 
 // MarshalJSON will prepend the RCD type
-func (e *RCD_1) MarshalJSON() ([]byte, error) {
+func (e *RCD_1) MarshalJSON() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "RCD_1.MarshalJSON err:%v", *pe)
+		}
+	}(&err)
 	return json.Marshal(fmt.Sprintf("%x", append([]byte{0x01}, e.PublicKey[:]...)))
 }
 
@@ -62,7 +68,12 @@ func (b RCD_1) String() string {
 	return string(txt)
 }
 
-func (r *RCD_1) MarshalText() ([]byte, error) {
+func (r *RCD_1) MarshalText() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "RCD_1.MarshalText err:%v", *pe)
+		}
+	}(&err)
 	return []byte(hex.EncodeToString(r.PublicKey[:])), nil
 }
 

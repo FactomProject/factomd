@@ -39,6 +39,7 @@ type FactomParams struct {
 	StartDelay               int64
 	Deadline                 int
 	CustomNet                []byte
+	CustomNetName            string
 	RpcUser                  string
 	RpcPassword              string
 	FactomdTLS               bool
@@ -62,4 +63,6 @@ type FactomParams struct {
 	StderrLog                string
 	DebugLogRegEx            string
 	ConfigPath               string
+	CheckChainHeads          bool // Run checkchain heads on boot
+	FixChainHeads            bool // Only matters if CheckChainHeads == true
 }

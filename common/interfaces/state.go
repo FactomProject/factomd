@@ -4,6 +4,7 @@
 
 package interfaces
 
+import "github.com/FactomProject/factomd/activations"
 type DBStateSent struct {
 	DBHeight uint32
 	Sent     Timestamp
@@ -295,6 +296,7 @@ type IState interface {
 	AddAuthorityDelta(changeString string)
 
 	GetAuthorities() []IAuthority
+	GetAuthorityInterface(chainid IHash) IAuthority
 	GetLeaderPL() IProcessList
 	GetLLeaderHeight() uint32
 	GetEntryDBHeightComplete() uint32
@@ -326,6 +328,8 @@ type IState interface {
 	GetHighestAck() uint32
 	SetHighestAck(uint32)
 	DebugExec() bool
-	CheckFileName(string) bool
+CheckFileName(string) bool
 	AddToReplayFilter(mask int, hash [32]byte, timestamp Timestamp, systemtime Timestamp) bool
+	// Activations
+	IsActive(id activations.ActivationType) bool
 }

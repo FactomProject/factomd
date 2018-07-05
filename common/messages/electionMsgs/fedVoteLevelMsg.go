@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -62,7 +63,7 @@ func (m *FedVoteLevelMsg) String() string {
 		"Fed VoteLevelMsg",
 		m.DBHeight,
 		m.Minute,
-		m.Signer.Bytes()[3:9],
+		m.Signer.Bytes()[3:5],
 		m.Volunteer.ServerName,
 		m.Committed,
 		m.Level,
@@ -445,7 +446,12 @@ func (m *FedVoteLevelMsg) GetSignature() interfaces.IFullSignature {
 	return m.Signature
 }
 
-func (m *FedVoteLevelMsg) MarshalBinary() ([]byte, error) {
+func (m *FedVoteLevelMsg) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "FedVoteLevelMsg.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	var buf primitives.Buffer
 
 	data, err := m.MarshalForSignature()

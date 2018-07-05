@@ -2,6 +2,7 @@ package adminBlock
 
 import (
 	"fmt"
+	"os"
 
 	"bytes"
 
@@ -64,11 +65,16 @@ func (e *ForwardCompatibleEntry) Type() byte {
 	return byte(e.AdminIDType)
 }
 
-func (e *ForwardCompatibleEntry) MarshalBinary() ([]byte, error) {
+func (e *ForwardCompatibleEntry) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "ForwardCompatibleEntry.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	e.Init()
 	var buf primitives.Buffer
 
-	err := buf.PushByte(byte(e.AdminIDType))
+	err = buf.PushByte(byte(e.AdminIDType))
 	if err != nil {
 		return nil, err
 	}

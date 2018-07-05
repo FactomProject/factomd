@@ -7,6 +7,7 @@ package messages
 import (
 	"encoding/binary"
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -214,7 +215,12 @@ func (m *DBStateMissing) UnmarshalBinary(data []byte) error {
 	return err
 }
 
-func (m *DBStateMissing) MarshalForSignature() ([]byte, error) {
+func (m *DBStateMissing) MarshalForSignature() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "DBStateMissing.MarshalForSignature err:%v", *pe)
+		}
+	}(&err)
 	var buf primitives.Buffer
 
 	binary.Write(&buf, binary.BigEndian, m.Type())
@@ -232,7 +238,12 @@ func (m *DBStateMissing) MarshalForSignature() ([]byte, error) {
 	return buf.DeepCopyBytes(), nil
 }
 
-func (m *DBStateMissing) MarshalBinary() ([]byte, error) {
+func (m *DBStateMissing) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "DBStateMissing.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	return m.MarshalForSignature()
 }
 

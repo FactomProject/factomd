@@ -68,7 +68,11 @@ func (m *AddAuditInternal) ElectionProcess(is interfaces.IState, elect interface
 	}
 	if e.AuditIndex(m.ServerID) < 0 {
 		e.Audit = append(e.Audit, &state.Server{ChainID: m.ServerID, Online: true})
-		elections.Sort(e.Audit)
+		changed := elections.Sort(e.Audit)
+		if changed {
+			e.LogPrintf("election", "Sort changed leaders")
+			e.LogPrintLeaders("election")
+		}
 	}
 }
 
