@@ -125,11 +125,11 @@ func (m *MessageBase) SendOut(s interfaces.IState, msg interfaces.IMsg) {
 
 	if m.ResendCnt > 0 && !msg.IsPeer2Peer() { // If the first send fails, we need to try again
 		if now-m.resend < 2000 {
-			s.LogPrintf("NetworkOutputsCall", "too soon")
+			//s.LogPrintf("NetworkOutputsCall", "too soon")
 			return
 		}
 		if s.NetworkOutMsgQueue().Length() > s.NetworkOutMsgQueue().Cap()*99/100 {
-			s.LogPrintf("NetworkOutputsCall", "too full")
+			//s.LogPrintf("NetworkOutputsCall", "too full")
 			return
 		}
 	}
