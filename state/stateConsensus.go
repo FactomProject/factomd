@@ -99,18 +99,10 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 		msg.SendOut(s, msg)
 
 		switch msg.Type() {
-		case constants.REVEAL_ENTRY_MSG:
+		case constants.REVEAL_ENTRY_MSG, constants.COMMIT_ENTRY_MSG, constants.COMMIT_CHAIN_MSG:
 			if !s.NoEntryYet(msg.GetHash(), nil) {
-				return true
-			}
-			s.Holding[msg.GetMsgHash().Fixed()] = msg
-		case constants.COMMIT_ENTRY_MSG:
-			if !s.NoEntryYet(msg.GetHash(), nil) {
-				return true
-			}
-			s.Holding[msg.GetMsgHash().Fixed()] = msg
-		case constants.COMMIT_CHAIN_MSG:
-			if !s.NoEntryYet(msg.GetHash(), nil) {
+				delete(s.Holding, msg.GetHash().Fixed())
+				s.Commits.Delete(msg.GetHash().Fixed())
 				return true
 			}
 			s.Holding[msg.GetMsgHash().Fixed()] = msg
