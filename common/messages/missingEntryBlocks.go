@@ -88,7 +88,7 @@ func (m *MissingEntryBlocks) Validate(state interfaces.IState) int {
 		return -1
 	}
 	// if they are asking for too many DBStates in one request then toss the request
-	if m.DBHeightEnd - m.DBHeightStart > constants.MAX_EB_PER_REQUEST {
+	if m.DBHeightEnd-m.DBHeightStart > constants.MAX_EB_PER_REQUEST {
 		return -1
 	}
 	return 1

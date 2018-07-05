@@ -371,6 +371,7 @@ const (
 	// Time window for identity to require registration: 24hours = 144 blocks
 	IDENTITY_REGISTRATION_BLOCK_WINDOW uint32 = 144
 )
+
 // used to limit how many DBState can be requested per dbStateMissing message
 const MAX_DB_STATES_PER_REQUEST = 5
 const MAX_EB_PER_REQUEST = 20

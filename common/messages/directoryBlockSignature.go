@@ -145,13 +145,13 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 	}
 
 	raw, err := m.MarshalBinary()
-		if err != nil {
-			vlog("DirectoryBlockSignature  MarshalBinary fail %v", err)
-		}
+	if err != nil {
+		vlog("DirectoryBlockSignature  MarshalBinary fail %v", err)
+	}
 	if m.DBHeight <= state.GetHighestSavedBlk() {
 		return -1
 	}
-        if m.DBHeight > state.GetHighestKnownBlock() { // (this may need to be +1?)		
+	if m.DBHeight > state.GetHighestKnownBlock() { // (this may need to be +1?)
 		return -1
 	}
 

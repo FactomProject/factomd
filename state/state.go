@@ -53,16 +53,16 @@ type State struct {
 	Cfg               interfaces.IFactomConfig
 	ConfigFilePath    string // $HOME/.factom/m2/factomd.conf by default
 
-	Prefix            string
-	FactomNodeName    string
-	FactomdVersion    string
-	LogPath           string
-	LdbPath           string
-	BoltDBPath        string
-	LogLevel          string
-	ConsoleLogLevel   string
-	NodeMode          string
-	DBType            string
+	Prefix          string
+	FactomNodeName  string
+	FactomdVersion  string
+	LogPath         string
+	LdbPath         string
+	BoltDBPath      string
+	LogLevel        string
+	ConsoleLogLevel string
+	NodeMode        string
+	DBType          string
 	CheckChainHeads struct {
 		CheckChainHeads bool
 		Fix             bool
@@ -388,7 +388,7 @@ type State struct {
 	pstate              string
 	SyncingState        [256]string
 	SyncingStateCurrent int
-	processCnt          int64 // count of attempts to process .. so we can see if the thread is running
+	processCnt          int64                                       // count of attempts to process .. so we can see if the thread is running
 	reportedActivations [activations.ACTIVATION_TYPE_COUNT + 1]bool // flags about which activations we have reported (+1 because we don't use 0)
 }
 
@@ -2121,6 +2121,7 @@ func (s *State) GetAuthorityInterface(chainid interfaces.IHash) interfaces.IAuth
 	}
 	return rval
 }
+
 // GetLeaderPL returns the leader process list from the state. this method is
 // for debugging and should not be called in normal production code.
 func (s *State) GetLeaderPL() interfaces.IProcessList {

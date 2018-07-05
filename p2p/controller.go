@@ -18,6 +18,7 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 
 	log "github.com/sirupsen/logrus"
@@ -480,6 +481,7 @@ func (c *Controller) route() {
 			}
 			parcel.Header.TargetPeer = bestKey
 			c.doDirectedSend(parcel)
+			messages.LogPrintf("randompeers", parcel.Header.TargetPeer)
 		default: // Check if we're connected to the peer, if not drop message.
 			c.logger.Debugf("Controller.route() Directed Neither Random nor Broadcast: %s Type: %s ", parcel.Header.TargetPeer, parcel.Header.AppType)
 			c.doDirectedSend(parcel)
