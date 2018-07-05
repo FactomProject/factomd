@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"hash"
+	"reflect"
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -36,6 +37,7 @@ var _ = (*hash.Hash32)(nil)
 //
 // Returns true if some message was processed.
 //***************************************************************
+
 func (s *State) CheckFileName(name string) bool {
 	return messages.CheckFileName(name)
 }
@@ -64,6 +66,7 @@ func (s *State) LogPrintf(logName string, format string, more ...interface{}) {
 	}
 }
 func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
+
 	if msg.GetHash() == nil {
 		s.LogMessage("badMsgs", "Nil hash in executeMsg", msg)
 		return false
@@ -2306,7 +2309,13 @@ func (s *State) GetDirectoryBlock() interfaces.IDirectoryBlock {
 	return s.DBStates.Last().DirectoryBlock
 }
 
-func (s *State) GetNewHash() interfaces.IHash {
+func (s *State) GetNewHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("State.GetNewHash() saw an interface that was nil")
+		}
+	}()
 	return new(primitives.Hash)
 }
 

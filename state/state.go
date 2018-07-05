@@ -13,6 +13,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -1068,7 +1069,14 @@ func (s *State) GetMissingEntryCount() uint32 {
 	return uint32(len(s.MissingEntries))
 }
 
-func (s *State) GetEBlockKeyMRFromEntryHash(entryHash interfaces.IHash) interfaces.IHash {
+func (s *State) GetEBlockKeyMRFromEntryHash(entryHash interfaces.IHash) (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("State.GetEBlockKeyMRFromEntryHash() saw an interface that was nil")
+		}
+	}()
+
 	entry, err := s.DB.FetchEntry(entryHash)
 	if err != nil {
 		return nil
@@ -1919,7 +1927,14 @@ func (s *State) SetFactoshisPerEC(factoshisPerEC uint64) {
 	s.FactoshisPerEC = factoshisPerEC
 }
 
-func (s *State) GetIdentityChainID() interfaces.IHash {
+func (s *State) GetIdentityChainID() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("State.GetIdentityChainID() saw an interface that was nil")
+		}
+	}()
+
 	return s.IdentityChainID
 }
 
@@ -2175,7 +2190,14 @@ func (s *State) GetNetworkID() uint32 {
 }
 
 // The initial public key that can sign the first block
-func (s *State) GetNetworkBootStrapKey() interfaces.IHash {
+func (s *State) GetNetworkBootStrapKey() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("State.GetNetworkBootStrapKey() saw an interface that was nil")
+		}
+	}()
+
 	switch s.NetworkNumber {
 	case constants.NETWORK_MAIN:
 		key, _ := primitives.HexToHash("0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a")
@@ -2197,7 +2219,14 @@ func (s *State) GetNetworkBootStrapKey() interfaces.IHash {
 }
 
 // The initial identity that can sign the first block
-func (s *State) GetNetworkBootStrapIdentity() interfaces.IHash {
+func (s *State) GetNetworkBootStrapIdentity() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("State.GetNetworkBootStrapIdentity() saw an interface that was nil")
+		}
+	}()
+
 	switch s.NetworkNumber {
 	case constants.NETWORK_MAIN:
 		return primitives.NewZeroHash()
@@ -2217,7 +2246,14 @@ func (s *State) GetNetworkBootStrapIdentity() interfaces.IHash {
 }
 
 // The identity for validating messages
-func (s *State) GetNetworkSkeletonIdentity() interfaces.IHash {
+func (s *State) GetNetworkSkeletonIdentity() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("State.GetNetworkSkeletonIdentity() saw an interface that was nil")
+		}
+	}()
+
 	switch s.NetworkNumber {
 	case constants.NETWORK_MAIN:
 		id, _ := primitives.HexToHash("8888882690706d0d45d49538e64e7c76571d9a9b331256b5b69d9fd2d7f1f14a")
@@ -2236,12 +2272,25 @@ func (s *State) GetNetworkSkeletonIdentity() interfaces.IHash {
 	return id
 }
 
-func (s *State) GetNetworkIdentityRegistrationChain() interfaces.IHash {
+func (s *State) GetNetworkIdentityRegistrationChain() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("State.GetNetworkIdentityRegistrationChain() saw an interface that was nil")
+		}
+	}()
+
 	id, _ := primitives.HexToHash("888888001750ede0eff4b05f0c3f557890b256450cabbb84cada937f9c258327")
 	return id
 }
 
-func (s *State) GetMatryoshka(dbheight uint32) interfaces.IHash {
+func (s *State) GetMatryoshka(dbheight uint32) (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("State.GetMatryoshka saw an interface thatwas nil")
+		}
+	}()
 	return nil
 }
 

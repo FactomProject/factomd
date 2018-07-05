@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"os"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
@@ -93,7 +94,14 @@ func (e *DirectoryBlockSignature) Process(dbheight uint32, state interfaces.ISta
 	return state.ProcessDBSig(dbheight, e)
 }
 
-func (m *DirectoryBlockSignature) GetRepeatHash() interfaces.IHash {
+func (m *DirectoryBlockSignature) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("DirectoryBlockSignature.GetRepeatHash() saw an interface that was nil")
+		}
+	}()
+
 	if m.RepeatHash == nil {
 		data, err := m.MarshalBinary()
 		if err != nil {
@@ -104,11 +112,25 @@ func (m *DirectoryBlockSignature) GetRepeatHash() interfaces.IHash {
 	return m.RepeatHash
 }
 
-func (m *DirectoryBlockSignature) GetHash() interfaces.IHash {
+func (m *DirectoryBlockSignature) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("DirectoryBlockSignature.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.GetMsgHash()
 }
 
-func (m *DirectoryBlockSignature) GetMsgHash() interfaces.IHash {
+func (m *DirectoryBlockSignature) GetMsgHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("DirectoryBlockSignature.GetMsgHash() saw an interface that was nil")
+		}
+	}()
+
 	if m.MsgHash == nil {
 		data, _ := m.MarshalForSignature()
 		if data == nil {

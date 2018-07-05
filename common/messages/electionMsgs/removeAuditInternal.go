@@ -6,6 +6,7 @@ package electionMsgs
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -50,7 +51,14 @@ func (m *RemoveAuditInternal) MarshalBinary() (data []byte, err error) {
 	return data, nil
 }
 
-func (m *RemoveAuditInternal) GetMsgHash() interfaces.IHash {
+func (m *RemoveAuditInternal) GetMsgHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("RemoveAuditInternal.GetMsgHash() saw an interface that was nil")
+		}
+	}()
+
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()
 		if err != nil {
@@ -78,7 +86,14 @@ func (m *RemoveAuditInternal) ElectionProcess(state interfaces.IState, elect int
 	}
 }
 
-func (m *RemoveAuditInternal) GetServerID() interfaces.IHash {
+func (m *RemoveAuditInternal) GetServerID() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("RemoveAuditInternal.GetServerID() saw an interface that was nil")
+		}
+	}()
+
 	return m.ServerID
 }
 
@@ -86,12 +101,26 @@ func (m *RemoveAuditInternal) LogFields() log.Fields {
 	return log.Fields{"category": "message", "messagetype": "RemoveAuditInternal", "dbheight": m.DBHeight, "newleader": m.ServerID.String()[4:12]}
 }
 
-func (m *RemoveAuditInternal) GetRepeatHash() interfaces.IHash {
+func (m *RemoveAuditInternal) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("RemoveAuditInternal.GetRepeatHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.GetMsgHash()
 }
 
 // We have to return the hash of the underlying message.
-func (m *RemoveAuditInternal) GetHash() interfaces.IHash {
+func (m *RemoveAuditInternal) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("RemoveAuditInternal.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.MessageHash
 }
 
