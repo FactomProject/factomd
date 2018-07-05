@@ -5,7 +5,7 @@
 read -d '' scriptVariable << 'EOF'
 func time2sec(t) {	
   x = split(t,ary,":");
-  if(x!=3) {print "bad time",NR, $0; exit;}
+  if(x!=3) {printf("time2sec(%s) bad split got %d fields. %d", t , x ,NR); print $0; exit;}
   sec = (ary[1]*60+ary[2])*60+ary[3];
 #  printf("time2sec(%s) %02d:%02d:%02d= %d\\n",t, ary[1]+0, ary[2]+0,ary[3]+0,sec);
   return sec;

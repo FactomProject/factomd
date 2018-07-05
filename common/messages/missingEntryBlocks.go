@@ -100,8 +100,12 @@ func (m *MissingEntryBlocks) FollowerExecute(state interfaces.IState) {
 	}
 	start := m.DBHeightStart
 	end := m.DBHeightEnd
-	if end-start > 20 {
-		end = start + 20
+	if end-start > constants.MAX_EB_PER_REQUEST {
+		end = start + constants.MAX_EB_PER_REQUEST
+	}
+
+	if end > state.GetHighestKnownBlock() {
+		end = state.GetHighestKnownBlock()
 	}
 	db := state.GetDB()
 
