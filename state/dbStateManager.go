@@ -1477,7 +1477,6 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	progress = true
 	d.ReadyToSave = false
 	d.Saved = true
-
 	return
 }
 
@@ -1563,7 +1562,7 @@ searchLoop:
 	}
 
 	keep := uint32(3) // How many states to keep around; debugging helps with more.
-	if uint32(cnt) > keep {
+	if uint32(cnt) > keep && int(list.Complete)-cnt+int(keep) > 0 {
 		var dbstates []*DBState
 		dbstates = append(dbstates, list.DBStates[cnt-int(keep):]...)
 		list.DBStates = dbstates

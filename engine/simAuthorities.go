@@ -952,6 +952,8 @@ func addFnodeName(i int) {
 	// common short set
 	globals.FnodeNames[fmt.Sprintf("%x", fnodes[i].State.IdentityChainID.Bytes()[3:6])] = fnodes[i].State.FactomNodeName
 	globals.FnodeNames[fmt.Sprintf("%x", fnodes[i].State.IdentityChainID.Bytes()[:5])] = fnodes[i].State.FactomNodeName
+	globals.FnodeNames[fmt.Sprintf("%x", fnodes[i].State.IdentityChainID.Bytes()[:])] = fnodes[i].State.FactomNodeName
+	globals.FnodeNames[fmt.Sprintf("%x", fnodes[i].State.IdentityChainID.Bytes()[:8])] = fnodes[i].State.FactomNodeName
 }
 
 func shad(data []byte) []byte {

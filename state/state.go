@@ -17,8 +17,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/FactomProject/factomd/activations"
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/globals"
 	. "github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
@@ -387,8 +389,8 @@ type State struct {
 	SyncingState        [256]string
 	SyncingStateCurrent int
 	processCnt          int64 // count of attempts to process .. so we can see if the thread is running
-
 	MMRInfo // fields for MMR processing
+	reportedActivations [activations.ACTIVATION_TYPE_COUNT + 1]bool // flags about which activations we have reported (+1 because we don't use 0)
 }
 
 var _ interfaces.IState = (*State)(nil)
@@ -667,6 +669,9 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		s.Network = cfg.App.Network
 		if 0 < len(networkFlag) { // Command line overrides the config file.
 			s.Network = networkFlag
+			globals.Params.NetworkName = networkFlag // in case it did not come from there.
+		} else {
+			globals.Params.NetworkName = s.Network
 		}
 		fmt.Printf("\n\nNetwork : %s\n", s.Network)
 
@@ -2333,7 +2338,7 @@ func (s *State) SummaryHeader() string {
 			s.NumFCTTrans)
 	}
 
-	str := fmt.Sprintf(" %s\n %10s %6s %12s %5s %4s %6s %10s %8s %5s %4s %20s %12s %10s %-8s %-9s %15s %9s %9s %s\n",
+	str := fmt.Sprintf(" %s\n %10s %6s %12s %5s %4s %6s %10s %8s %5s %4s %20s %14s %10s %-8s %-9s %16s %9s %9s %s\n",
 		sum,
 		"Node",
 		"ID   ",
@@ -2352,7 +2357,7 @@ func (s *State) SummaryHeader() string {
 		"Fct/EC/E",
 		"API:Fct/EC/E",
 		"tps t/i",
-		"SysHeight",
+		"DBH-:-M",
 		"BH")
 
 	return str
@@ -2495,7 +2500,7 @@ func (s *State) SetStringQueues() {
 		s.Balancehash = primitives.NewZeroHash()
 	}
 
-	str = str + fmt.Sprintf(" %d/%d", list.System.Height, len(list.System.List))
+	str = str + fmt.Sprintf(" %5d-:-%d", s.LLeaderHeight, s.CurrentMinute)
 
 	if list.System.Height < len(list.System.List) {
 		str = str + fmt.Sprintf(" VM:%s %s", "?", "-nil-")
@@ -2721,4 +2726,18 @@ func (s *State) updateNetworkControllerConfig() {
 // Check and Add a hash to the network replay filter
 func (s *State) AddToReplayFilter(mask int, hash [32]byte, timestamp interfaces.Timestamp, systemtime interfaces.Timestamp) (rval bool) {
 	return s.Replay.IsTSValidAndUpdateState(constants.NETWORK_REPLAY, hash, timestamp, systemtime)
+}
+
+// Return if a feature is active for the current height
+func (s *State) IsActive(id activations.ActivationType) bool {
+	highestCompletedBlk := s.GetHighestCompletedBlk()
+
+	rval := activations.IsActive(id, int(highestCompletedBlk))
+
+	if rval && !s.reportedActivations[id] {
+		s.LogPrintf("executeMsg", "Activating Feature %s at height %v", id.String(), highestCompletedBlk)
+		s.reportedActivations[id] = true
+	}
+
+	return rval
 }
