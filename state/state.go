@@ -53,16 +53,16 @@ type State struct {
 	Cfg               interfaces.IFactomConfig
 	ConfigFilePath    string // $HOME/.factom/m2/factomd.conf by default
 
-	Prefix          string
-	FactomNodeName  string
-	FactomdVersion  string
-	LogPath         string
-	LdbPath         string
-	BoltDBPath      string
-	LogLevel        string
-	ConsoleLogLevel string
-	NodeMode        string
-	DBType          string
+	Prefix            string
+	FactomNodeName    string
+	FactomdVersion    string
+	LogPath           string
+	LdbPath           string
+	BoltDBPath        string
+	LogLevel          string
+	ConsoleLogLevel   string
+	NodeMode          string
+	DBType            string
 	CheckChainHeads struct {
 		CheckChainHeads bool
 		Fix             bool
@@ -389,7 +389,6 @@ type State struct {
 	SyncingState        [256]string
 	SyncingStateCurrent int
 	processCnt          int64 // count of attempts to process .. so we can see if the thread is running
-
 	reportedActivations [activations.ACTIVATION_TYPE_COUNT + 1]bool // flags about which activations we have reported (+1 because we don't use 0)
 }
 
@@ -487,7 +486,7 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 	if !config {
 		newState.IdentityChainID = primitives.Sha([]byte(newState.FactomNodeName))
 		//generate and use a new deterministic PrivateKey for this clone
-		shaHashOfNodeName := primitives.Sha([]byte(newState.FactomNodeName)) //seed the private key with node Name
+		shaHashOfNodeName := primitives.Sha([]byte(newState.FactomNodeName)) //seed the private key with node name
 		clonePrivateKey := primitives.NewPrivateKeyFromHexBytes(shaHashOfNodeName.Bytes())
 		newState.LocalServerPrivKey = clonePrivateKey.PrivateKeyString()
 	}
@@ -937,7 +936,6 @@ func (s *State) Init() {
 			Fix:       s.CheckChainHeads.Fix,
 		})
 	}
-
 	if s.ExportData {
 		s.DB.SetExportData(s.ExportDataSubpath)
 	}
@@ -2123,7 +2121,6 @@ func (s *State) GetAuthorityInterface(chainid interfaces.IHash) interfaces.IAuth
 	}
 	return rval
 }
-
 // GetLeaderPL returns the leader process list from the state. this method is
 // for debugging and should not be called in normal production code.
 func (s *State) GetLeaderPL() interfaces.IProcessList {
@@ -2720,6 +2717,11 @@ func (s *State) updateNetworkControllerConfig() {
 	}
 
 	s.NetworkController.ReloadSpecialPeers(newPeersConfig)
+}
+
+// Check and Add a hash to the network replay filter
+func (s *State) AddToReplayFilter(mask int, hash [32]byte, timestamp interfaces.Timestamp, systemtime interfaces.Timestamp) (rval bool) {
+	return s.Replay.IsTSValidAndUpdateState(constants.NETWORK_REPLAY, hash, timestamp, systemtime)
 }
 
 // Return if a feature is active for the current height

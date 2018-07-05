@@ -95,6 +95,8 @@ func (m *Ack) Validate(s interfaces.IState) int {
 		s.SetHighestAck(m.DBHeight) // assume the ack isn't lying. this will make us start requesting DBState blocks...
 	}
 
+	//TODO: Check if ack is in the past? -- clay
+
 	delta := (int(m.DBHeight)-int(s.GetLeaderPL().GetDBHeight()))*10 + (int(m.Minute) - int(s.GetCurrentMinute()))
 
 	if delta > 30 {
@@ -111,8 +113,11 @@ func (m *Ack) Validate(s interfaces.IState) int {
 	// Only new acks are valid. Of course, the VMIndex has to be valid too.
 	msg, _ := s.GetMsg(m.VMIndex, int(m.DBHeight), int(m.Height))
 	if msg != nil {
-		s.LogMessage("executeMsg", "Ack slot taken", m)
-		s.LogMessage("executeMsg", "found:", msg)
+		if msg.GetHash() == m.GetHash() {
+			s.LogMessage("executeMsg", "duplicate Ack for", msg)
+		} else {
+			s.LogMessage("executeMsg", "Ack slot taken", m)
+		}
 		return -1
 	}
 

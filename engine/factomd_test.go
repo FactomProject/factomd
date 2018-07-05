@@ -74,7 +74,6 @@ func WaitForMinute(s *state.State, min int) {
 // Wait some number of minutes
 func WaitMinutesQuite(s *state.State, min int) {
 	sleepTime := time.Duration(globals.Params.BlkTime) * 1000 / 40 // Figure out how long to sleep in milliseconds
-
 	newMinute := (s.CurrentMinute + min) % 10
 	newBlock := int(s.LLeaderHeight) + (s.CurrentMinute+min)/10
 	for int(s.LLeaderHeight) < newBlock {
@@ -342,7 +341,6 @@ func TestLoad(t *testing.T) {
 	WaitBlocks(state0, 1)
 
 } // testLoad(){...}
-
 func TestMakeALeader(t *testing.T) {
 	if ranSimTest {
 		return
@@ -583,7 +581,6 @@ func TestActivationHeightElection(t *testing.T) {
 	if state0.LLeaderHeight > 14 {
 		t.Fatal("Failed to shut down factomd via ShutdownChan")
 	}
-
 }
 func TestAnElection(t *testing.T) {
 	if ranSimTest {
@@ -671,6 +668,7 @@ func TestAnElection(t *testing.T) {
 	runCmd("w") // point the control panel at 2
 
 	CheckAuthoritySet(leaders, audits, t)
+
 
 	runCmd(fmt.Sprintf("%d", leaders-1))
 	runCmd("x")

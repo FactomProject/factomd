@@ -31,6 +31,21 @@ var (
 		Help: "Number of msgs broadcasting",
 	})
 
+	DirectSends = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_direct_sends",
+		Help: "Number of messages to sent as directed to peers",
+	})
+
+	RandomDirectSends = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_random_direct_sends",
+		Help: "Number of messages to sent as directed to peers",
+	})
+
+	ConnectionSendQueueTotal = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_connection_send_queue_total",
+		Help: "Number of messages in send queue",
+	})
+
 	//
 	// Connection Routines
 	p2pProcessSendsGauge = prometheus.NewGauge(prometheus.GaugeOpts{
