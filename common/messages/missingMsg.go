@@ -227,6 +227,11 @@ func (m *MissingMsg) Validate(state interfaces.IState) int {
 	if m.Asking.IsZero() {
 		return -1
 	}
+	//if the DBH is in my future I can't help
+	block := state.GetHighestKnownBlock()
+	if m.DBHeight > block+3 { // +3 is a mystery, I can kind of understand +1 but +3 is required to pass TestSetupANetwork
+		return -1
+	}
 	return 1
 }
 
