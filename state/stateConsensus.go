@@ -194,7 +194,7 @@ func (s *State) Process() (progress bool) {
 
 	} else if s.IgnoreMissing {
 		if now-s.StartDelay > s.StartDelayLimit {
-			s.LogPrintf("executeMsg","Clear s.IgnoreMissing")
+			s.LogPrintf("executeMsg", "Clear s.IgnoreMissing")
 			s.IgnoreMissing = false
 		}
 	}
