@@ -171,10 +171,14 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 		vlog("DirectoryBlockSignature  MarshalBinary fail %v", err)
 	}
 	if m.DBHeight <= state.GetHighestSavedBlk() {
-		return -1
+		return -1 // past fail it
 	}
-	if m.DBHeight > state.GetHighestKnownBlock() { // (this may need to be +1?)
-		return -1
+	block := state.GetHighestKnownBlock()
+	if m.DBHeight > block+30 {
+		return -1 // Far future fail it
+	}
+	if m.DBHeight > block+3 {
+		return 0 // near future hold it
 	}
 
 	found, _ := state.GetVirtualServers(m.DBHeight, 9, m.ServerIdentityChainID)

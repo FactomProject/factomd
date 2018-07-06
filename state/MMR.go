@@ -66,9 +66,14 @@ func (s *State) Ask(DBHeight int, vmIndex int, height int, when int64) {
 	if s.asks == nil { // If it is nil, there is no makemmrs
 		return
 	}
-	if !s.IgnoreMissing {
-		return // no point in asking if we are ignoring responses.
+	if s.IgnoreMissing {
+		return // no point in asking if we are ignoring the response
 	}
+	if !s.DBFinished {
+		return // wait till we finnish loading the db state to start asking for things
+	}
+
+	//TODO: Can we not ask if we are asking to load by DBState? -- Clay
 	// do not ask for things in the past or very far into the future
 	if DBHeight < int(s.LLeaderHeight) || DBHeight > int(s.LLeaderHeight)+1 || DBHeight < int(s.DBHeightAtBoot) {
 		return

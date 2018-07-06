@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"hash"
+	"reflect"
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -36,6 +37,7 @@ var _ = (*hash.Hash32)(nil)
 //
 // Returns true if some message was processed.
 //***************************************************************
+
 func (s *State) CheckFileName(name string) bool {
 	return messages.CheckFileName(name)
 }
@@ -47,6 +49,10 @@ func (s *State) DebugExec() (ret bool) {
 func (s *State) LogMessage(logName string, comment string, msg interfaces.IMsg) {
 	if s.DebugExec() {
 		var dbh int
+		if s == nil {
+			fmt.Fprintf(os.Stderr, "No State %s:%s:%s\n", logName, comment, msg.String())
+			return
+		}
 		if s.LeaderPL != nil {
 			dbh = int(s.LeaderPL.DBHeight)
 		}
@@ -57,6 +63,10 @@ func (s *State) LogMessage(logName string, comment string, msg interfaces.IMsg) 
 func (s *State) LogPrintf(logName string, format string, more ...interface{}) {
 	if s.DebugExec() {
 		var dbh int
+		if s == nil {
+			fmt.Fprintf(os.Stderr, "No State %s:%s\n", logName, fmt.Sprintf(format, more))
+			return
+		}
 		if s.LeaderPL != nil {
 			dbh = int(s.LeaderPL.DBHeight)
 		}
@@ -64,7 +74,7 @@ func (s *State) LogPrintf(logName string, format string, more ...interface{}) {
 	}
 }
 func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
-	if msg.GetHash().IsHashNil() {
+	if msg.GetHash() == nil || reflect.ValueOf(msg.GetHash()).IsNil() {
 		s.LogMessage("badMsgs", "Nil hash in executeMsg", msg)
 		return false
 	}
@@ -194,7 +204,6 @@ func (s *State) Process() (progress bool) {
 
 	} else if s.IgnoreMissing {
 		if now-s.StartDelay > s.StartDelayLimit {
-			s.LogPrintf("executeMsg","Clear s.IgnoreMissing")
 			s.IgnoreMissing = false
 		}
 	}

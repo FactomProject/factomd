@@ -212,6 +212,8 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 		}
 	}
 
+	//TODO: Only accept states I asked for --
+
 	return 1
 }
 
