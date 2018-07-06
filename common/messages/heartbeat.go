@@ -290,7 +290,7 @@ func (m *Heartbeat) Validate(is interfaces.IState) int {
 	}
 	// ignore it if it's from the distant future
 	block := is.GetHighestKnownBlock()
-	if m.DBHeight > block +3 {
+	if m.DBHeight > block+3 {
 		return -1
 	}
 
