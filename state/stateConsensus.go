@@ -194,6 +194,7 @@ func (s *State) Process() (progress bool) {
 
 	} else if s.IgnoreMissing {
 		if now-s.StartDelay > s.StartDelayLimit {
+			s.LogPrintf("executeMsg","Clear s.IgnoreMissing")
 			s.IgnoreMissing = false
 		}
 	}
@@ -210,8 +211,9 @@ func (s *State) Process() (progress bool) {
 
 	/** Process all the DBStates  that might be pending **/
 
+	blk := s.GetHighestSavedBlk()
 	for {
-		ix := int(s.GetHighestSavedBlk()) - s.DBStatesReceivedBase + 1
+		ix := int(blk) - s.DBStatesReceivedBase + 1
 		if ix < 0 || ix >= len(s.DBStatesReceived) {
 			break
 		}
@@ -735,7 +737,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		}
 		return
 	}
-	-m
+
 	if dbstatemsg.IsLast { // this is the last DBState in this load
 		s.DBFinished = true // Normal case
 		// Attempted hack to fix a set where one leader was ahead of the others.
