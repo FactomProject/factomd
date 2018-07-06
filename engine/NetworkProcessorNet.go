@@ -7,6 +7,7 @@ package engine
 import (
 	"fmt"
 	"math/rand"
+	"reflect"
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -331,54 +332,57 @@ func NetworkOutputs(fnode *FactomNode) {
 		// Don't do a rand int if drop rate is 0
 		if fnode.State.GetDropRate() > 0 && rand.Int()%1000 < fnode.State.GetDropRate() {
 			//drop the message, rather than processing it normally
-		} else {
+			fnode.State.LogMessage("NetworkOutputs", "Drop, simCtrl", msg)
+			continue
+		}
 
-			if msg.GetRepeatHash() == nil {
-				fnode.State.LogMessage("NetworkOutputs", "Drop, no repeat hash", msg)
-				continue
-			}
+		if msg.GetRepeatHash() == nil {
+			fnode.State.LogMessage("NetworkOutputs", "Drop, no repeat hash", msg)
+			continue
+		}
 
-			p := msg.GetOrigin() - 1 // Origin is one based but peer list is zero based.
+		p := msg.GetOrigin() - 1 // Origin is one based but peer list is zero based.
 
-			if msg.IsPeer2Peer() {
-				// Must have a Peer to send a message to a peer
-				if len(fnode.Peers) > 0 {
-					if p < 0 {
-						fnode.P2PIndex = (fnode.P2PIndex + 1) % len(fnode.Peers)
-						p = rand.Int() % len(fnode.Peers)
+		if msg.IsPeer2Peer() {
+			// Must have a Peer to send a message to a peer
+			if len(fnode.Peers) > 0 {
+				if p < 0 {
+					fnode.P2PIndex = (fnode.P2PIndex + 1) % len(fnode.Peers)
+					p = rand.Int() % len(fnode.Peers)
+				}
+				peer := fnode.Peers[p]
+				fnode.MLog.Add2(fnode, true, peer.GetNameTo(), "P2P out", true, msg)
+				if !fnode.State.GetNetStateOff() { // don't Send p2p messages if he is OFF
+					preSendTime := time.Now()
+					fnode.State.LogMessage("NetworkOutputs", "Send P2P "+peer.GetNameTo(), msg)
+					peer.Send(msg)
+					sendTime := time.Since(preSendTime)
+					TotalSendTime.Add(float64(sendTime.Nanoseconds()))
+					if fnode.State.MessageTally {
+						fnode.State.TallySent(int(msg.Type()))
 					}
-					peer := fnode.Peers[p]
-					fnode.MLog.Add2(fnode, true, peer.GetNameTo(), "P2P out", true, msg)
-					if !fnode.State.GetNetStateOff() { // don't Send p2p messages if he is OFF
+				}
+			} else {
+				fnode.State.LogMessage("NetworkOutputs", "Drop, no peers", msg)
+			}
+		} else {
+			fnode.State.LogMessage("NetworkOutputs", "Send broadcast", msg)
+			for i, peer := range fnode.Peers {
+				wt := 1
+				if p >= 0 {
+					wt = fnode.Peers[p].Weight()
+				}
+				// Don't resend to the node that sent it to you.
+				if i != p || wt > 1 {
+					bco := fmt.Sprintf("%s/%d/%d", "BCast", p, i)
+					fnode.MLog.Add2(fnode, true, peer.GetNameTo(), bco, true, msg)
+					if !fnode.State.GetNetStateOff() { // Don't send him broadcast message if he is off
 						preSendTime := time.Now()
-						fnode.State.LogMessage("NetworkOutputs", "Send P2P "+peer.GetNameTo(), msg)
 						peer.Send(msg)
 						sendTime := time.Since(preSendTime)
 						TotalSendTime.Add(float64(sendTime.Nanoseconds()))
 						if fnode.State.MessageTally {
 							fnode.State.TallySent(int(msg.Type()))
-						}
-					}
-				}
-			} else {
-				fnode.State.LogMessage("NetworkOutputs", "Send broadcast", msg)
-				for i, peer := range fnode.Peers {
-					wt := 1
-					if p >= 0 {
-						wt = fnode.Peers[p].Weight()
-					}
-					// Don't resend to the node that sent it to you.
-					if i != p || wt > 1 {
-						bco := fmt.Sprintf("%s/%d/%d", "BCast", p, i)
-						fnode.MLog.Add2(fnode, true, peer.GetNameTo(), bco, true, msg)
-						if !fnode.State.GetNetStateOff() { // Don't send him broadcast message if he is off
-							preSendTime := time.Now()
-							peer.Send(msg)
-							sendTime := time.Since(preSendTime)
-							TotalSendTime.Add(float64(sendTime.Nanoseconds()))
-							if fnode.State.MessageTally {
-								fnode.State.TallySent(int(msg.Type()))
-							}
 						}
 					}
 				}

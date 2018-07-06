@@ -47,7 +47,6 @@ func LogNilHashBug(msg string) {
 func (h *Hash) IsHashNil() bool {
 	return h == nil
 }
-
 func RandomHash() interfaces.IHash {
 	h := random.RandByteSliceOfLen(constants.HASH_LENGTH)
 	answer := new(Hash)
@@ -62,7 +61,6 @@ func (c *Hash) Copy() (rval interfaces.IHash) {
 			LogNilHashBug("Hash.Copy() saw an interface that was nil")
 		}
 	}()
-
 	h := new(Hash)
 	err := h.SetBytes(c.Bytes())
 	if err != nil {
@@ -112,7 +110,6 @@ func (h *Hash) UnmarshalText(b []byte) error {
 func (h *Hash) Fixed() [constants.HASH_LENGTH]byte {
 	// Might change the error produced by IHash in FD-398
 	if h == nil {
-		runtime.Breakpoint()
 		panic("nil Hash")
 	}
 	return *h

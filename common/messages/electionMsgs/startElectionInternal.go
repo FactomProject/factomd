@@ -40,7 +40,6 @@ func (m *StartElectionInternal) ElectionProcess(s interfaces.IState, elect inter
 		go Fault(e, e.DBHeight, e.Minute, e.FaultId.Load(), &e.FaultId, m.SigType, e.RoundTimeout)
 		return
 	}
-
 	e.Adapter = NewElectionAdapter(e, m.PreviousDBHash)
 	// An election that finishes may make us a leader. We need to know that for the next election that
 	// takes place. So use the election's list of fed servers to determine if we are a leader
@@ -80,7 +79,6 @@ func (m *StartElectionInternal) FollowerExecute(is interfaces.IState) {
 	}
 
 	m.VMHeight = vm.Height
-
 	// TODO: Process all messages that we can. Then trim to the first non-processed message
 	// TODO: This is incase a leader sends out ack 10, but not 9. We need to trim back to 8 because 9 does not exist
 	// TODO: Do not trim EOMs or DBsigs, as they may not be processed until certain conditions.

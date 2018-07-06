@@ -117,6 +117,7 @@ func checkForDuplicateSend(s interfaces.IState, msg interfaces.IMsg, whereAmI st
 		f.addmsg(hash, msg, whereAmI)
 	}
 }
+
 func (m *MessageBase) StringOfMsgBase() string {
 
 	rval := fmt.Sprintf("origin %s(%d), LChain=%x resendCnt=%d", m.NetworkOrigin, m.Origin, m.LeaderChainID.Bytes()[3:6], m.ResendCnt)
@@ -298,6 +299,7 @@ func (m *MessageBase) IsFullBroadcast() bool {
 func (m *MessageBase) SetFullBroadcast(v bool) {
 	m.FullBroadcast = v
 }
+
 func (m *MessageBase) GetLeaderChainID() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {
