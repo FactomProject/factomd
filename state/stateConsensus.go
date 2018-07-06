@@ -37,6 +37,7 @@ var _ = (*hash.Hash32)(nil)
 //
 // Returns true if some message was processed.
 //***************************************************************
+
 func (s *State) CheckFileName(name string) bool {
 	return messages.CheckFileName(name)
 }

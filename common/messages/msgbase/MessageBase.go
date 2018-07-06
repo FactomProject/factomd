@@ -116,7 +116,6 @@ func checkForDuplicateSend(s interfaces.IState, msg interfaces.IMsg, whereAmI st
 		f.addmsg(hash, msg, whereAmI)
 	}
 }
-
 func (m *MessageBase) StringOfMsgBase() string {
 
 	rval := fmt.Sprintf("origin %s(%d), LChain=%x resendCnt=%d", m.NetworkOrigin, m.Origin, m.LeaderChainID.Bytes()[3:6], m.ResendCnt)
@@ -147,6 +146,7 @@ func (m *MessageBase) SendOut(s interfaces.IState, msg interfaces.IMsg) {
 		//		s.LogMessage("NetworkOutputsCall", "local only", msg)
 		return
 	}
+
 	if m.ResendCnt > 4 { // If the first send fails, we need to try again
 		return
 	}
@@ -292,7 +292,6 @@ func (m *MessageBase) IsFullBroadcast() bool {
 func (m *MessageBase) SetFullBroadcast(v bool) {
 	m.FullBroadcast = v
 }
-
 func (m *MessageBase) GetLeaderChainID() interfaces.IHash {
 	if m.LeaderChainID == nil {
 		m.LeaderChainID = primitives.NewZeroHash()

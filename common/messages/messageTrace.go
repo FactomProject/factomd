@@ -154,9 +154,6 @@ func LogMessage(name string, note string, msg interfaces.IMsg) {
 			//case constants.MISSING_MSG_RESPONSE:
 			//	mm := msg.(*MissingMsgResponse)
 			//	embeddedHash = fmt.Sprintf(" EmbeddedMsg: %s | %s", mm.MsgResponse.String(), mm.AckResponse.String())
-		case constants.MISSING_DATA:
-			md := msg.(*MissingData)
-			embeddedHash = fmt.Sprintf(" EmbeddedMsg: %s", getmsg(md.RequestHash.Fixed()))
 
 		default:
 			if msg.GetMsgHash() != nil {

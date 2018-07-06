@@ -384,11 +384,13 @@ type State struct {
 	NumEntryBlocks int // Number of Entry Blocks
 	NumFCTTrans    int // Number of Factoid Transactions in this block
 
-	// debug message
+	// debug message about state status rolling queue for ControlPanel
 	pstate              string
 	SyncingState        [256]string
 	SyncingStateCurrent int
-	processCnt          int64                                       // count of attempts to process .. so we can see if the thread is running
+	processCnt          int64 // count of attempts to process .. so we can see if the thread is running
+
+	MMRInfo                                                         // fields for MMR processing
 	reportedActivations [activations.ACTIVATION_TYPE_COUNT + 1]bool // flags about which activations we have reported (+1 because we don't use 0)
 }
 
@@ -936,6 +938,7 @@ func (s *State) Init() {
 			Fix:       s.CheckChainHeads.Fix,
 		})
 	}
+
 	if s.ExportData {
 		s.DB.SetExportData(s.ExportDataSubpath)
 	}
@@ -1006,7 +1009,7 @@ func (s *State) Init() {
 		}
 	}
 
-	s.Logger = log.WithFields(log.Fields{"node-Name": s.GetFactomNodeName(), "identity": s.GetIdentityChainID().String()})
+	s.Logger = log.WithFields(log.Fields{"node-name": s.GetFactomNodeName(), "identity": s.GetIdentityChainID().String()})
 
 	// Set up Logstash Hook for Logrus (if enabled)
 	if s.UseLogstash {
@@ -1016,6 +1019,7 @@ func (s *State) Init() {
 		}
 	}
 
+	s.startMMR()
 }
 
 func (s *State) HookLogstash() error {
