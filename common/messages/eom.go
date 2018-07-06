@@ -134,7 +134,8 @@ func (m *EOM) Validate(state interfaces.IState) int {
 		return -1
 	}
 	// if this is a DBSig for a future block it's invalid (to far in the future)
-	if m.DBHeight > state.GetHighestKnownBlock() { // (this may need to be +1?)
+	block := state.GetHighestKnownBlock()
+	if m.DBHeight > block+3 {
 		return -1
 	}
 
