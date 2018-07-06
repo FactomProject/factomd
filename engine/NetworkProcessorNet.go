@@ -7,7 +7,6 @@ package engine
 import (
 	"fmt"
 	"math/rand"
-	"reflect"
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"

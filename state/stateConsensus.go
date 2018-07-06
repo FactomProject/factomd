@@ -735,7 +735,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		}
 		return
 	}
-
+	-m
 	if dbstatemsg.IsLast { // this is the last DBState in this load
 		s.DBFinished = true // Normal case
 		// Attempted hack to fix a set where one leader was ahead of the others.
