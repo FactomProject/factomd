@@ -375,6 +375,7 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 	//}
 
 	ss.Commits = state.Commits.Copy()
+	ss.Commits.s = state
 	// for k, c := range state.Commits {
 	// 	ss.Commits[k] = c
 	// }

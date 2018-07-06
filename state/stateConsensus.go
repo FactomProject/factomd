@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"hash"
+	"os"
 	"reflect"
 	"time"
 
@@ -49,6 +50,10 @@ func (s *State) DebugExec() (ret bool) {
 func (s *State) LogMessage(logName string, comment string, msg interfaces.IMsg) {
 	if s.DebugExec() {
 		var dbh int
+		if s == nil {
+			fmt.Fprintf(os.Stderr, "No State %s:%s:%s\n", logName, comment, msg.String())
+			return
+		}
 		if s.LeaderPL != nil {
 			dbh = int(s.LeaderPL.DBHeight)
 		}
@@ -59,6 +64,10 @@ func (s *State) LogMessage(logName string, comment string, msg interfaces.IMsg) 
 func (s *State) LogPrintf(logName string, format string, more ...interface{}) {
 	if s.DebugExec() {
 		var dbh int
+		if s == nil {
+			fmt.Fprintf(os.Stderr, "No State %s:%s\n", logName, fmt.Sprintf(format, more))
+			return
+		}
 		if s.LeaderPL != nil {
 			dbh = int(s.LeaderPL.DBHeight)
 		}

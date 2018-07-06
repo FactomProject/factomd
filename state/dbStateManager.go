@@ -631,6 +631,8 @@ func (dbsl *DBStateList) UnmarshalBinaryData(p []byte) (newData []byte, err erro
 		if err != nil {
 			return
 		}
+		dbs.SaveStruct.Commits.s = dbsl.State // used for debug logging
+
 		dbsl.DBStates = append(dbsl.DBStates, dbs)
 
 	}
