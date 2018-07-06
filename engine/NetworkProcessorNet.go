@@ -7,6 +7,7 @@ package engine
 import (
 	"fmt"
 	"math/rand"
+	"reflect"
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -130,7 +131,7 @@ func Peers(fnode *FactomNode) {
 			if msg == nil {
 				continue
 			}
-			if msg.GetHash() == nil {
+			if msg.GetHash() == nil || reflect.ValueOf(msg.GetHash()).IsNil() {
 				fnode.State.LogMessage("badMsgs", "Nil hash from APIQueue", msg)
 				continue
 			}
@@ -222,7 +223,7 @@ func Peers(fnode *FactomNode) {
 					fnode.State.TallyReceived(int(msg.Type())) //TODO: Do we want to count dropped message?
 				}
 
-				if msg.GetHash() == nil {
+				if msg.GetHash() == nil || reflect.ValueOf(msg.GetHash()).IsNil() {
 					fnode.State.LogMessage("badMsgs", "Nil hash from Peer", msg)
 					continue
 				}
