@@ -289,10 +289,10 @@ func (m *Heartbeat) Validate(is interfaces.IState) int {
 		return -1
 	}
 	// ignore it if it's from the distant future
-	block := is.GetHighestKnownBlock()
-	if m.DBHeight > block+3 {
-		return -1
-	}
+	//block := is.GetHighestKnownBlock()
+	//if m.DBHeight > block+3 {
+	//	return -1
+	//}
 
 	if !m.sigvalid {
 		auth := is.GetAuthorityInterface(m.IdentityChainID)

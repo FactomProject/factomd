@@ -173,13 +173,13 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 	if m.DBHeight <= state.GetHighestSavedBlk() {
 		return -1 // past fail it
 	}
-	block := state.GetHighestKnownBlock()
-	if m.DBHeight > block+30 {
-		return -1 // Far future fail it
-	}
-	if m.DBHeight > block+3 {
-		return 0 // near future hold it
-	}
+	//block := state.GetHighestKnownBlock()
+	//if m.DBHeight > block+30 {
+	//	return -1 // Far future fail it
+	//}
+	//if m.DBHeight > block+3 {
+	//	return 0 // near future hold it
+	//}
 
 	found, _ := state.GetVirtualServers(m.DBHeight, 9, m.ServerIdentityChainID)
 

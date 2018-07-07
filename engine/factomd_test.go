@@ -612,7 +612,7 @@ func TestAnElection(t *testing.T) {
 		"--roundtimeout=2",
 		fmt.Sprintf("--count=%d", nodes),
 		"--startdelay=1",
-		//"--debuglog=F.*",
+		"--debuglog=.*",
 		"--stdoutlog=out.txt",
 		"--stderrlog=err.txt",
 		"--checkheads=false",
@@ -646,7 +646,7 @@ func TestAnElection(t *testing.T) {
 		if pendingCommits == 0 {
 			break
 		}
-		fmt.Printf("Waiting for G5 to complete\n")
+		fmt.Printf("Waiting for g6 to complete\n")
 		WaitMinutes(state0, 1)
 
 	}
@@ -669,13 +669,16 @@ func TestAnElection(t *testing.T) {
 
 	CheckAuthoritySet(leaders, audits, t)
 
+	// remove the last leader
 	runCmd(fmt.Sprintf("%d", leaders-1))
 	runCmd("x")
-	WaitBlocks(state0, 3)
-	runCmd("x")
-
-	WaitBlocks(state0, 2)
+	// wait for the election
 	WaitMinutes(state0, 2)
+	//bring him back
+	runCmd("x")
+	// wait for him to update via dbstate and become an audit
+	WaitBlocks(state0, 4)
+	WaitMinutes(state0, 1)
 
 	// PrintOneStatus(0, 0)
 	if GetFnodes()[leaders-1].State.Leader {

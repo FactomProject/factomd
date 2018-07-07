@@ -156,10 +156,10 @@ func (m *EOM) Validate(state interfaces.IState) int {
 		return -1
 	}
 	// if this is a DBSig for a future block it's invalid (to far in the future)
-	block := state.GetHighestKnownBlock()
-	if m.DBHeight > block+3 {
-		return -1
-	}
+	//block := state.GetHighestKnownBlock()
+	//if m.DBHeight > block+3 {
+	//	return -1
+	//}
 
 	found, _ := state.GetVirtualServers(m.DBHeight, int(m.Minute), m.ChainID)
 	if !found { // Only EOM from federated servers are valid.

@@ -106,14 +106,14 @@ func (m *MissingEntryBlocks) Validate(state interfaces.IState) int {
 		return -1
 	}
 	// ignore it if it's from the future
-	block := state.GetHighestKnownBlock()
-	if m.DBHeightStart > block+3 {
-		return -1
-	}
+	//block := state.GetHighestKnownBlock()
+	//if m.DBHeightStart > block {
+	//	return -1
+	//}
 	// if they are asking for too many DBStates in one request then toss the request
-	if m.DBHeightEnd-m.DBHeightStart > constants.MAX_EB_PER_REQUEST {
-		return -1
-	}
+	//if m.DBHeightEnd-m.DBHeightStart > constants.MAX_EB_PER_REQUEST {
+	//	return -1
+	//}
 	return 1
 }
 

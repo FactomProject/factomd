@@ -1,7 +1,6 @@
 package state
 
 import (
-	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/messages"
 )
 
@@ -69,7 +68,7 @@ func (list *DBStateList) Catchup(justDoIt bool) {
 			}
 
 			if list.State.RunLeader && !list.State.IgnoreMissing {
-				msg := messages.NewDBStateMissing(list.State, uint32(begin), uint32(end+constants.MAX_DB_STATES_PER_REQUEST))
+				msg := messages.NewDBStateMissing(list.State, uint32(begin), uint32(end))
 
 				if msg != nil {
 					//		list.State.RunLeader = false
