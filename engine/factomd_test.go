@@ -1156,6 +1156,9 @@ func TestMultiple3Election(t *testing.T) {
 	if leadercnt != 7 {
 		t.Fatalf("found %d leaders, expected 7", leadercnt)
 	}
+	if auditcnt != 4 {
+		t.Fatalf("found %d audit, expected 4", auditcnt)
+	}
 
 	//runCmd("s")
 	//runCmd("E")
@@ -1173,6 +1176,27 @@ func TestMultiple3Election(t *testing.T) {
 	//runCmd("3")
 	//runCmd("x")
 	WaitBlocks(state0, 3)
+
+	leadercnt = 0
+	auditcnt = 0
+
+	for _, fn := range GetFnodes() {
+		s := fn.State
+		if s.Leader {
+			leadercnt++
+		}
+		list := s.ProcessLists.Get(s.LLeaderHeight)
+		if foundAudit, _ := list.GetAuditServerIndexHash(s.GetIdentityChainID()); foundAudit {
+			auditcnt++
+		}
+	}
+
+	if leadercnt != 7 {
+		t.Fatalf("found %d leaders, expected 7", leadercnt)
+	}
+	if auditcnt != 4 {
+		t.Fatalf("found %d audit, expected 4", auditcnt)
+	}
 
 	t.Log("Shutting down the network")
 	for _, fn := range GetFnodes() {
@@ -1210,6 +1234,7 @@ func TestMultiple7Election(t *testing.T) {
 		"--stderrlog=err.txt",
 		//"--debugconsole=localhost:8093",
 		"--checkheads=false",
+		"--controlpanelsetting=readwrite",
 	)
 
 	params := ParseCmdLine(args)
@@ -1263,12 +1288,24 @@ func TestMultiple7Election(t *testing.T) {
 		t.Fatalf("found %d audits, expected 10", auditcnt)
 	}
 
-	for i := 1; i < 3; i++ {
+	// Take 7 nodes off line
+	for i := 1; i < 8; i++ {
+		runCmd(fmt.Sprintf("%d", i))
+		runCmd("x")
+	}
+	// force them all to be faulted
+	WaitMinutes(state0, 1)
+
+	// bring them back online
+	for i := 1; i < 8; i++ {
 		runCmd(fmt.Sprintf("%d", i))
 		runCmd("x")
 	}
 
+	// Wait till the should have updated by DBSTATE
 	WaitBlocks(state0, 3)
+
+	CheckAuthoritySet(15, 10, t)
 
 	t.Log("Shutting down the network")
 	for _, fn := range GetFnodes() {
