@@ -31,7 +31,7 @@ var _ encoding.TextMarshaler = (*Hash)(nil)
 
 var ZeroHash interfaces.IHash = NewHash(constants.ZERO_HASH)
 
-var noRepeat map[string]int
+var noRepeat map[string]int = make(map[string]int)
 
 func LogNilHashBug(msg string) {
 	whereAmI := atomic.WhereAmIString(2)
