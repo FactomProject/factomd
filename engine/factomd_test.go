@@ -16,6 +16,67 @@ import (
 
 var _ = Factomd
 
+
+func SetupSim(GivenNodes, NetworkType string, Options map[string]string) []string {
+	DefaultOptions:= map[string]string {
+		"--db" : "Map",
+		"--network" : fmt.Sprintf("%v", NetworkType),
+		"--net" : "alot+",
+		"--enablenet" : "false",
+		"--blktime" : "8",
+		"--faulttimeout" : "2",
+		"--roundtimeout" : "2",
+		"--count" : fmt.Sprintf("%v", len(GivenNodes)),
+		//"--debuglog=.*",
+		"--startdelay" : "1",
+		"--stdoutlog" : "out.txt",
+		"--stderrlog" : "err.txt",
+		"--checkheads" : "false",
+
+	}
+
+	returningSlice := []string{}
+	for key, value := range DefaultOptions {
+		returningSlice = append(returningSlice, key+"="+value)
+	}
+
+	if Options != nil && len(Options) != 0 {
+		for key, value := range Options {
+			DefaultOptions[key] = value
+		}
+	}
+	return returningSlice
+}
+
+func creatingNodes(creatingNodes string, state0 *state.State) {
+	runCmd := func(cmd string) {
+		os.Stderr.WriteString("Executing: " + cmd + "\n")
+		InputChan <- cmd
+		return
+	}
+
+	runCmd(fmt.Sprintf("g%d", len(creatingNodes)))
+	WaitBlocks(state0, 1) // Wait for 1 block
+	WaitForMinute(state0, 3)
+	runCmd("0")
+	for i,c := range []byte(creatingNodes) {
+		fmt.Println(i)
+		switch c {
+		case 'L','l':
+			runCmd("l")
+		case 'A','a':
+			runCmd("o")
+		case 'F', 'f':
+			break
+		default:
+			panic("NOT L, A or F")
+		}
+	}
+	WaitBlocks(state0, 1) // Wait for 1 block
+	WaitForMinute(state0, 1)
+}
+
+
 func TimeNow(s *state.State) {
 	fmt.Printf("%s:%d/%d\n", s.FactomNodeName, int(s.LLeaderHeight), s.CurrentMinute)
 }
@@ -107,25 +168,30 @@ func TestSetupANetwork(t *testing.T) {
 		return
 	}
 
-	args := append([]string{},
-		"--db=Map",
-		"--network=LOCAL",
-		"--net=alot+",
-		"--enablenet=false",
-		"--blktime=8",
-		"--faulttimeout=2",
-		"--roundtimeout=2",
-		"--count=10",
-		"--logPort=37000",
-		"--port=37001",
-		"--controlpanelport=37002",
-		"--networkport=37003",
-		"--startdelay=1",
-		//"--debuglog=.*",
-		"--stdoutlog=out.txt",
-		"--stderrlog=err.txt",
-		"--checkheads=false",
-	)
+	//args := append([]string{},
+	//	"--db=Map",
+	//	"--network=LOCAL",
+	//	"--net=alot+",
+	//	"--enablenet=false",
+	//	"--blktime=8",
+	//	"--faulttimeout=2",
+	//	"--roundtimeout=2",
+	//	"--count=10",
+	//	"--logPort=37000",
+	//	"--port=37001",
+	//	"--controlpanelport=37002",
+	//	"--networkport=37003",
+	//	"--startdelay=1",
+	//	//"--debuglog=.*",
+	//	"--stdoutlog=out.txt",
+	//	"--stderrlog=err.txt",
+	//	"--checkheads=false",
+	//)
+	//args := SetupSim("10", "LOCAL", map[string]string {})
+	args := SetupSim("LLLLAAAFFF", "LOCAL", map[string]string{"--logPort" : "37000",
+		"--port" : "37001",
+		"--controlpanelport" : "37002",
+		"--networkport" : "37003",})
 
 	params := ParseCmdLine(args)
 	state0 := Factomd(params, false).(*state.State)
@@ -138,31 +204,33 @@ func TestSetupANetwork(t *testing.T) {
 		t.Fail()
 	}
 
-	runCmd("s")
-	runCmd("9")
-	runCmd("x")
-	runCmd("w")
-	runCmd("10")
-	runCmd("8")
-	runCmd("w")
-	WaitBlocks(state0, 1)
-	runCmd("g10")
-	WaitBlocks(state0, 1)
-	// Allocate 4 leaders
-	WaitForMinute(state0, 3)
+	runCmd("s") // Show the process lists and directory block states as
+	runCmd("9") // Puts the focus on node 9
+	runCmd("x") // Takes Node 9 Offline
+	runCmd("w") // Point the WSAPI to send API calls to the current node.
+	runCmd("10") // Puts the focus on node 9
+	runCmd("8") // Puts the focus on node 8
+	runCmd("w") // Point the WSAPI to send API calls to the current node.
+	WaitBlocks(state0, 1) // Wait for 1 block
 
-	runCmd("1")
-	runCmd("l")
-	runCmd("")
-	runCmd("")
-
-	// Allocate 3 audit servers
-	runCmd("o")
-	runCmd("")
-	runCmd("")
-
-	WaitBlocks(state0, 1)
-	WaitForMinute(state0, 1)
+	creatingNodes("LLLLAAAFFF", state0)
+	//runCmd("g10") // Creates 10 identities
+	//WaitBlocks(state0, 1) // Wait for 1 block
+	//// Allocate 4 leaders
+	//WaitForMinute(state0, 3)
+	//
+	//runCmd("1") // Focuses on Node 1
+	//runCmd("l") // Makes Node 1 a leader
+	//runCmd("") // Makes Node 2 a leader
+	//runCmd("") // Makes Node 3 a leader
+	//
+	//// Allocate 3 audit servers
+	//runCmd("o") // Makes Node 4 an audit server
+	//runCmd("") // Makes Node 5 an audit server
+	//runCmd("") // Makes Node 6 an audit server
+	//
+	//WaitBlocks(state0, 1) // Wait for 1 block
+	//WaitForMinute(state0, 1) // Wait for 1 "Minute"
 
 	leadercnt := 0
 	auditcnt := 0
@@ -185,35 +253,35 @@ func TestSetupANetwork(t *testing.T) {
 		t.Fatalf("found %d audit servers, expected 3", auditcnt)
 		t.Fail()
 	}
-	WaitForMinute(state0, 2)
-	runCmd("F100")
-	runCmd("S10")
-	runCmd("g10")
+	WaitForMinute(state0, 2) // Waits for 2 "Minutes"
+	runCmd("F100") //  Set the Delay on messages from all nodes to 100 milliseconds
+	runCmd("S10") // Set Drop Rate to 1.0 on everyone
+	runCmd("g10") // Adds 10 identities to your identity pool.
 
 	fn1 := GetFocus()
 	PrintOneStatus(0, 0)
 	if fn1.State.FactomNodeName != "FNode07" {
 		t.Fatalf("Expected FNode07, but got %s", fn1.State.FactomNodeName)
 	}
-	runCmd("g1")
-	WaitForMinute(state0, 3)
-	runCmd("g1")
-	WaitForMinute(state0, 4)
-	runCmd("g1")
-	WaitForMinute(state0, 5)
-	runCmd("g1")
-	WaitForMinute(state0, 6)
+	runCmd("g1") // Adds 1 identities to your identity pool.
+	WaitForMinute(state0, 3) // Waits for 3 "Minutes"
+	runCmd("g1") // // Adds 1 identities to your identity pool.
+	WaitForMinute(state0, 4) // Waits for 4 "Minutes"
+	runCmd("g1") // Adds 1 identities to your identity pool.
+	WaitForMinute(state0, 5) // Waits for 5 "Minutes"
+	runCmd("g1") // Adds 1 identities to your identity pool.
+	WaitForMinute(state0, 6) // Waits for 6 "Minutes"
+	WaitBlocks(state0, 1) // Waits for 1 block
+	WaitForMinute(state0, 1) // Waits for 1 "Minutes"
+	runCmd("g1") // Adds 1 identities to your identity pool.
+	WaitForMinute(state0, 2) // Waits for 2 "Minutes"
+	runCmd("g1") // Adds 1 identities to your identity pool.
+	WaitForMinute(state0, 3) // Waits for 3 "Minutes"
+	runCmd("g20") // Adds 20 identities to your identity pool.
 	WaitBlocks(state0, 1)
-	WaitForMinute(state0, 1)
-	runCmd("g1")
-	WaitForMinute(state0, 2)
-	runCmd("g1")
-	WaitForMinute(state0, 3)
-	runCmd("g20")
-	WaitBlocks(state0, 1)
-	runCmd("9")
-	runCmd("x")
-	runCmd("8")
+	runCmd("9") // Focuses on Node 9
+	runCmd("x") // Brings Node 9 back Online
+	runCmd("8") // Focuses on Node 8
 
 	time.Sleep(100 * time.Millisecond)
 
@@ -223,35 +291,35 @@ func TestSetupANetwork(t *testing.T) {
 		t.Fatalf("Expected FNode08, but got %s", fn1.State.FactomNodeName)
 	}
 
-	runCmd("i")
+	runCmd("i") // Shows the identities being monitored for change.
 	// Test block recording lengths and error checking for pprof
-	runCmd("b100")
+	runCmd("b100") // Recording delays due to blocked go routines longer than 100 ns (0 ms)
 
-	runCmd("b")
+	runCmd("b") // specifically how long a block will be recorded (in nanoseconds).  1 records all blocks.
 
-	runCmd("babc")
+	runCmd("babc") // Not sure that this does anything besides return a message to use "bnnn"
 
-	runCmd("b1000000")
+	runCmd("b1000000") // Recording delays due to blocked go routines longer than 1000000 ns (1 ms)
 
-	runCmd("/")
+	runCmd("/") // Sort Status by Chain IDs
 
-	runCmd("/")
+	runCmd("/") // Sort Status by Node Name
 
-	runCmd("a1")
-	runCmd("e1")
-	runCmd("d1")
-	runCmd("f1")
-	runCmd("a100")
-	runCmd("e100")
-	runCmd("d100")
-	runCmd("f100")
-	runCmd("yh")
-	runCmd("yc")
-	runCmd("r")
-	WaitForMinute(state0, 1)
-	runCmd("g1")
-	WaitForMinute(state0, 3)
-	WaitBlocks(fn1.State, 3)
+	runCmd("a1") // Shows Admin block for Node 1
+	runCmd("e1") // Shows Entry credit block for Node 1
+	runCmd("d1") // Shows Directory block
+	runCmd("f1") // Shows Factoid block for Node 1
+	runCmd("a100") // Shows Admin block for Node 100
+	runCmd("e100") // Shows Entry credit block for Node 100
+	runCmd("d100") // Shows Directory block
+	runCmd("f100") // Shows Factoid block for Node 1
+	runCmd("yh") // Nothing
+	runCmd("yc") // Nothing
+	runCmd("r") // Rotate the WSAPI around the nodes
+	WaitForMinute(state0, 1) // Waits 1 "Minute"
+	runCmd("g1") // Adds 1 identities to your identity pool.
+	WaitForMinute(state0, 3) // Waits 3 "Minutes"
+	WaitBlocks(fn1.State, 3) // Waits for 3 blocks
 
 	t.Log("Shutting down the network")
 	for _, fn := range GetFnodes() {
@@ -281,19 +349,21 @@ func TestLoad(t *testing.T) {
 		return
 	}
 
-	args := append([]string{},
-		"--db=Map",
-		"--network=LOCAL",
-		"--enablenet=false",
-		"--blktime=8",
-		"--faulttimeout=2",
-		"--roundtimeout=2",
-		"--count=2",
-		"--startdelay=1",
-		//"--debuglog=F.*",
-		"--stdoutlog=out.txt",
-		"--stderrlog=err.txt",
-	)
+	//args := append([]string{},
+	//	"--db=Map",
+	//	"--network=LOCAL",
+	//	"--enablenet=false",
+	//	"--blktime=8",
+	//	"--faulttimeout=2",
+	//	"--roundtimeout=2",
+	//	"--count=2",
+	//	"--startdelay=1",
+	//	//"--debuglog=F.*",
+	//	"--stdoutlog=out.txt",
+	//	"--stderrlog=err.txt",
+	//)
+
+	args := SetupSim("2", "LOCAL", map[string]string {})
 
 	params := ParseCmdLine(args)
 	state0 := Factomd(params, false).(*state.State)
@@ -355,20 +425,22 @@ func TestMakeALeader(t *testing.T) {
 		return
 	}
 
-	args := append([]string{},
-		"--db=Map",
-		"--network=LOCAL",
-		"--enablenet=false",
-		"--blktime=8",
-		"--faulttimeout=2",
-		"--roundtimeout=2",
-		"--count=2",
-		"--startdelay=1",
-		//"--debuglog=F.*",
-		"--stdoutlog=out.txt",
-		"--stderrlog=err.txt",
-		"--checkheads=false",
-	)
+	//args := append([]string{},
+	//	"--db=Map",
+	//	"--network=LOCAL",
+	//	"--enablenet=false",
+	//	"--blktime=8",
+	//	"--faulttimeout=2",
+	//	"--roundtimeout=2",
+	//	"--count=2",
+	//	"--startdelay=1",
+	//	//"--debuglog=F.*",
+	//	"--stdoutlog=out.txt",
+	//	"--stderrlog=err.txt",
+	//	"--checkheads=false",
+	//)
+
+	args := SetupSim("2", "LOCAL", map[string]string {})
 
 	params := ParseCmdLine(args)
 	state0 := Factomd(params, false).(*state.State)
@@ -431,25 +503,26 @@ func TestActivationHeightElection(t *testing.T) {
 		return
 	}
 
-	args := append([]string{},
-		"--db=Map",
-		"--network=LOCAL",
-		"--net=alot+",
-		"--enablenet=false",
-		"--logPort=37000",
-		"--port=37001",
-		"--controlpanelport=37002",
-		"--networkport=37003",
-		"--blktime=8",
-		"--faulttimeout=2",
-		"--roundtimeout=2",
-		fmt.Sprintf("--count=%d", nodes),
-		"--startdelay=1",
-		"--debuglog=F.*",
-		"--stdoutlog=out.txt",
-		"--stderrlog=err.txt",
-		"--checkheads=false",
-	)
+	//args := append([]string{},
+	//	"--db=Map",
+	//	"--network=LOCAL",
+	//	"--net=alot+",
+	//	"--enablenet=false",
+	//	"--logPort=37000",
+	//	"--port=37001",
+	//	"--controlpanelport=37002",
+	//	"--networkport=37003",
+	//	"--blktime=8",
+	//	"--faulttimeout=2",
+	//	"--roundtimeout=2",
+	//	fmt.Sprintf("--count=%d", nodes),
+	//	"--startdelay=1",
+	//	"--debuglog=F.*",
+	//	"--stdoutlog=out.txt",
+	//	"--stderrlog=err.txt",
+	//	"--checkheads=false",
+	//)
+	args := SetupSim("8", "LOCAL", map[string]string {})
 	params := ParseCmdLine(args)
 
 	time.Sleep(5 * time.Second) // wait till the control panel is setup
@@ -602,21 +675,22 @@ func TestAnElection(t *testing.T) {
 		return
 	}
 
-	args := append([]string{},
-		"--db=Map",
-		"--network=LOCAL",
-		"--net=alot+",
-		"--enablenet=false",
-		"--blktime=8",
-		"--faulttimeout=2",
-		"--roundtimeout=2",
-		fmt.Sprintf("--count=%d", nodes),
-		"--startdelay=1",
-		"--debuglog=.*",
-		"--stdoutlog=out.txt",
-		"--stderrlog=err.txt",
-		"--checkheads=false",
-	)
+	//args := append([]string{},
+	//	"--db=Map",
+	//	"--network=LOCAL",
+	//	"--net=alot+",
+	//	"--enablenet=false",
+	//	"--blktime=8",
+	//	"--faulttimeout=2",
+	//	"--roundtimeout=2",
+	//	fmt.Sprintf("--count=%d", nodes),
+	//	"--startdelay=1",
+	//	"--debuglog=.*",
+	//	"--stdoutlog=out.txt",
+	//	"--stderrlog=err.txt",
+	//	"--checkheads=false",
+	//)
+	args := SetupSim("6", "LOCAL", map[string]string {})
 	params := ParseCmdLine(args)
 
 	time.Sleep(5 * time.Second) // wait till the control panel is setup
@@ -726,21 +800,23 @@ func Test5up(t *testing.T) {
 		return
 	}
 
-	args := append([]string{},
+	//args := append([]string{},
+	//
+	//	"--network=LOCAL",
+	//	"--net=alot+",
+	//	"--blktime=8",
+	//	"--faulttimeout=2",
+	//	"--roundtimeout=2",
+	//	"--enablenet=false",
+	//	//"--debugconsole=localhost",
+	//	"--startdelay=5",
+	//	fmt.Sprintf("-count=%d", nodes),
+	//	//"--debuglog=.*",
+	//	"--stdoutlog=out.txt",
+	//	"--stderrlog=err.txt",
+	//)
+	args := SetupSim("5", "LOCAL", map[string]string {})
 
-		"--network=LOCAL",
-		"--net=alot+",
-		"--blktime=8",
-		"--faulttimeout=2",
-		"--roundtimeout=2",
-		"--enablenet=false",
-		//"--debugconsole=localhost",
-		"--startdelay=5",
-		fmt.Sprintf("-count=%d", nodes),
-		//"--debuglog=.*",
-		"--stdoutlog=out.txt",
-		"--stderrlog=err.txt",
-	)
 	params := ParseCmdLine(args)
 
 	time.Sleep(5 * time.Second) // wait till the control panel is setup
@@ -834,26 +910,28 @@ func TestDBsigEOMElection(t *testing.T) {
 		return
 	}
 
-	args := append([]string{},
-		"--db=Map",
-		"--network=LOCAL",
-		"--enablenet=false",
-		"--logPort=37000",
-		"--port=37001",
-		"--controlpanelport=37002",
-		"--networkport=37003",
-		"--blktime=8",
-		"--faulttimeout=2",
-		"--roundtimeout=2",
-		"--count=7",
-		"--startdelay=1",
-		"--net=alot+",
-		"--debuglog=.*",
-		"--stdoutlog=out.txt",
-		"--stderrlog=err.txt",
-		"--checkheads=false",
-		//		"-debugconsole=localhost:8093",
-	)
+	//args := append([]string{},
+	//	"--db=Map",
+	//	"--network=LOCAL",
+	//	"--enablenet=false",
+	//	"--logPort=37000",
+	//	"--port=37001",
+	//	"--controlpanelport=37002",
+	//	"--networkport=37003",
+	//	"--blktime=8",
+	//	"--faulttimeout=2",
+	//	"--roundtimeout=2",
+	//	"--count=7",
+	//	"--startdelay=1",
+	//	"--net=alot+",
+	//	"--debuglog=.*",
+	//	"--stdoutlog=out.txt",
+	//	"--stderrlog=err.txt",
+	//	"--checkheads=false",
+	//	//		"-debugconsole=localhost:8093",
+	//)
+
+	args := SetupSim("7", "LOCAL", map[string]string {})
 
 	params := ParseCmdLine(args)
 	_ = Factomd(params, false).(*state.State)
@@ -998,22 +1076,24 @@ func TestMultiple2Election(t *testing.T) {
 		return
 	}
 
-	args := append([]string{},
-		"--db=Map",
-		"--network=LOCAL",
-		"--enablenet=false",
-		"--blktime=8",
-		"--faulttimeout=2",
-		"--roundtimeout=2",
-		"--count=10",
-		"--startdelay=1",
-		"--net=alot+",
-		//"--debuglog=F.*",
-		"--stdoutlog=out.txt",
-		"--stderrlog=err.txt",
-		//"--debugconsole=localhost:8093",
-		"--checkheads=false",
-	)
+	//args := append([]string{},
+	//	"--db=Map",
+	//	"--network=LOCAL",
+	//	"--enablenet=false",
+	//	"--blktime=8",
+	//	"--faulttimeout=2",
+	//	"--roundtimeout=2",
+	//	"--count=10",
+	//	"--startdelay=1",
+	//	"--net=alot+",
+	//	//"--debuglog=F.*",
+	//	"--stdoutlog=out.txt",
+	//	"--stderrlog=err.txt",
+	//	//"--debugconsole=localhost:8093",
+	//	"--checkheads=false",
+	//)
+
+	args := SetupSim("10", "LOCAL", map[string]string {})
 
 	params := ParseCmdLine(args)
 	state0 := Factomd(params, false).(*state.State)
@@ -1094,31 +1174,33 @@ func TestMultiple3Election(t *testing.T) {
 		return
 	}
 
-	args := append([]string{},
-		"--db=Map",
-		"--network=LOCAL",
-		"--enablenet=false",
-		"--blktime=8",
-		"--faulttimeout=2",
-		"--roundtimeout=2",
-		"--count=12",
-		"--startdelay=1",
-		"--net=alot+",
-		//"--debuglog=F.*",
-		"--stdoutlog=out.txt",
-		"--stderrlog=err.txt",
-		//"--debugconsole=localhost:8093",
-		"--checkheads=false",
-	)
+	//args := append([]string{},
+	//	"--db=Map",
+	//	"--network=LOCAL",
+	//	"--enablenet=false",
+	//	"--blktime=8",
+	//	"--faulttimeout=2",
+	//	"--roundtimeout=2",
+	//	"--count=12",
+	//	"--startdelay=1",
+	//	"--net=alot+",
+	//	//"--debuglog=F.*",
+	//	"--stdoutlog=out.txt",
+	//	"--stderrlog=err.txt",
+	//	//"--debugconsole=localhost:8093",
+	//	"--checkheads=false",
+	//)
+
+	args := SetupSim("12", "LOCAL", map[string]string {})
 
 	params := ParseCmdLine(args)
 	state0 := Factomd(params, false).(*state.State)
 	state0.MessageTally = true
 	time.Sleep(3 * time.Second)
 	StatusEveryMinute(state0)
-	t.Log("Allocated 10 nodes")
+	t.Log("Allocated 12 nodes")
 	if len(GetFnodes()) != 12 {
-		t.Fatal("Should have allocated 10 nodes")
+		t.Fatal("Should have allocated 12 nodes")
 		t.Fail()
 	}
 
