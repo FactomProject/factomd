@@ -484,167 +484,98 @@ func TestActivationHeightElection(t *testing.T) {
 	}
 }
 
-//func TestAnElection(t *testing.T) {
-//	if ranSimTest {
-//		return
-//	}
-//
-//	ranSimTest = true
-//
-//	var (
-//		leaders   int = 3
-//		audits    int = 2
-//		followers int = 1
-//		nodes     int = leaders + audits + followers
-//	)
-//
-//	runCmd := func(cmd string) {
-//		os.Stderr.WriteString("Executing: " + cmd + "\n")
-//		InputChan <- cmd
-//		return
-//	}
-//
-//	//args := append([]string{},
-//	//	"--db=Map",
-//	//	"--network=LOCAL",
-//	//	"--net=alot+",
-//	//	"--enablenet=false",
-//	//	"--blktime=8",
-//	//	"--faulttimeout=2",
-//	//	"--roundtimeout=2",
-//	//	fmt.Sprintf("--count=%d", nodes),
-//	//	"--startdelay=1",
-//	//	"--debuglog=.*",
-//	//	"--stdoutlog=out.txt",
-//	//	"--stderrlog=err.txt",
-//	//	"--checkheads=false",
-//	//)
-//	args := SetupSim("LLLAAF", "LOCAL", map[string]string {})
-//	params := ParseCmdLine(args)
-//
-//	time.Sleep(5 * time.Second) // wait till the control panel is setup
-//	state0 := Factomd(params, false).(*state.State)
-//	state0.MessageTally = true
-//	time.Sleep(5 * time.Second) // wait till the simulation is setup
-//
-//	t.Log(fmt.Sprintf("Allocated %d nodes", nodes))
-//	fnodes := GetFnodes()
-//	if len(fnodes) != nodes {
-//		t.Fatalf("Should have allocated %d nodes", nodes)
-//		t.Fail()
-//	}
-//	//t.Log(fmt.Sprintf("Allocated 6 nodes"))
-//	//fnodes := GetFnodes()
-//	//if len(fnodes) != 6 {
-//	//	t.Fatalf("Should have allocated 6 nodes")
-//	//	t.Fail()
-//	//}
-//
-//	StatusEveryMinute(state0)
-//	WaitMinutes(state0, 2)
-//	//runCmd("1")
-//	nodelist := ""
-//	for i := 0; i < leaders; i++ {
-//		//runCmd("l")
-//		nodelist += "L"
-//	}
-//
-//	// Allocate audit servers
-//	for i := 0; i < audits; i++ {
-//		//runCmd("o")
-//		nodelist += "A"
-//	}
-//
-//	for i := 0; i < followers; i++ {
-//		//runCmd("o")
-//		nodelist += "F"
-//	}
-//
-//	creatingNodes(nodelist, state0)
-//
-//	//runCmd("g6")
-//	//WaitBlocks(state0, 1)
-//	//WaitMinutes(state0, 1)
-//
-//	for {
-//		pendingCommits := 0
-//		for _, s := range fnodes {
-//			pendingCommits += s.State.Commits.Len()
-//		}
-//		if pendingCommits == 0 {
-//			break
-//		}
-//		fmt.Printf("Waiting for g6 to complete\n")
-//		WaitMinutes(state0, 1)
-//
-//	}
-//	// Allocate leaders
-//
-//	//runCmd("1")
-//	//nodelist := ""
-//	//for i := 0; i < leaders; i++ {
-//	//	//runCmd("l")
-//	//	nodelist += "L"
-//	//}
-//	//
-//	//// Allocate audit servers
-//	//for i := 0; i < audits; i++ {
-//	//	//runCmd("o")
-//	//	nodelist += "A"
-//	//}
-//	//
-//	//for i := 0; i < followers; i++ {
-//	//	//runCmd("o")
-//	//	nodelist += "F"
-//	//}
-//	//
-//	//creatingNodes(nodelist, state0)
-//
-//
-//	WaitBlocks(state0, 1)
-//	WaitMinutes(state0, 2)
-//	PrintOneStatus(0, 0)
-//	runCmd("2")
-//	runCmd("w") // point the control panel at 2
-//
-//	CheckAuthoritySet(leaders, audits, t)
-//
-//	// remove the last leader
-//	runCmd(fmt.Sprintf("%d", leaders-1))
-//	runCmd("x")
-//	// wait for the election
-//	WaitMinutes(state0, 2)
-//	//bring him back
-//	runCmd("x")
-//	// wait for him to update via dbstate and become an audit
-//	WaitBlocks(state0, 4)
-//	WaitMinutes(state0, 1)
-//
-//	// PrintOneStatus(0, 0)
-//	if GetFnodes()[leaders-1].State.Leader {
-//		t.Fatalf("Node %d should not be a leader", leaders-1)
-//	}
-//	if !GetFnodes()[leaders].State.Leader && !GetFnodes()[leaders+1].State.Leader {
-//		t.Fatalf("Node %d or %d should be a leader", leaders, leaders+1)
-//	}
-//
-//	CheckAuthoritySet(leaders, audits, t)
-//
-//	WaitBlocks(state0, 1)
-//
-//	t.Log("Shutting down the network")
-//	for _, fn := range GetFnodes() {
-//		fn.State.ShutdownChan <- 1
-//	}
-//
-//	// Sleep one block
-//	time.Sleep(time.Duration(state0.DirectoryBlockInSeconds) * time.Second)
-//	if state0.LLeaderHeight > 9 {
-//		t.Fatal("Failed to shut down factomd via ShutdownChan")
-//	}
-//
-//}
-//
+func TestAnElection(t *testing.T) {
+	if ranSimTest {
+		return
+	}
+
+	ranSimTest = true
+
+	var (
+		leaders   int = 3
+		audits    int = 2
+		followers int = 1
+	)
+
+	nodeList := ""
+	for i := 0; i < leaders; i++ {
+		//runCmd("l")
+		nodeList += "L"
+	}
+
+	// Allocate audit servers
+	for i := 0; i < audits; i++ {
+		//runCmd("o")
+		nodeList += "A"
+	}
+
+	for i := 0; i < followers; i++ {
+		//runCmd("o")
+		nodeList += "F"
+	}
+
+	state0 := SetupSim(nodeList, "LOCAL", map[string]string {}, t)
+
+	StatusEveryMinute(state0)
+	WaitMinutes(state0, 2)
+
+	for {
+		pendingCommits := 0
+		for _, s := range fnodes {
+			pendingCommits += s.State.Commits.Len()
+		}
+		if pendingCommits == 0 {
+			break
+		}
+		fmt.Printf("Waiting for g6 to complete\n")
+		WaitMinutes(state0, 1)
+
+	}
+	
+	WaitBlocks(state0, 1)
+	WaitMinutes(state0, 2)
+	PrintOneStatus(0, 0)
+	runCmd("2")
+	runCmd("w") // point the control panel at 2
+
+	CheckAuthoritySet(leaders, audits, t)
+
+	// remove the last leader
+	runCmd(fmt.Sprintf("%d", leaders-1))
+	runCmd("x")
+	// wait for the election
+	WaitMinutes(state0, 2)
+	//bring him back
+	runCmd("x")
+	// wait for him to update via dbstate and become an audit
+	WaitBlocks(state0, 4)
+	WaitMinutes(state0, 1)
+
+	// PrintOneStatus(0, 0)
+	if GetFnodes()[leaders-1].State.Leader {
+		t.Fatalf("Node %d should not be a leader", leaders-1)
+	}
+	if !GetFnodes()[leaders].State.Leader && !GetFnodes()[leaders+1].State.Leader {
+		t.Fatalf("Node %d or %d should be a leader", leaders, leaders+1)
+	}
+
+	CheckAuthoritySet(leaders, audits, t)
+
+	WaitBlocks(state0, 1)
+
+	t.Log("Shutting down the network")
+	for _, fn := range GetFnodes() {
+		fn.State.ShutdownChan <- 1
+	}
+
+	// Sleep one block
+	time.Sleep(time.Duration(state0.DirectoryBlockInSeconds) * time.Second)
+	if state0.LLeaderHeight > 9 {
+		t.Fatal("Failed to shut down factomd via ShutdownChan")
+	}
+
+}
+
 //func Test5up(t *testing.T) {
 //	if ranSimTest {
 //		return
