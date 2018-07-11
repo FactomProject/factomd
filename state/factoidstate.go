@@ -394,7 +394,7 @@ func (fs *FactoidState) GetCoinbaseTransaction(dbheight uint32, ftime interfaces
 	//	Payout blocks are every n blocks, where n is the coinbase frequency
 	if dbheight > constants.COINBASE_ACTIVATION && // Coinbase code must be above activation
 		dbheight != 0 && // Does not affect gensis
-		dbheight%constants.COINBASE_PAYOUT_FREQUENCY == 0 && // Frequency of payouts
+		(dbheight%constants.COINBASE_PAYOUT_FREQUENCY == 0 || dbheight%constants.COINBASE_PAYOUT_FREQUENCY == 1) && // Frequency of payouts
 		// Cannot payout before a declaration (cannot grab below height 0)
 		dbheight > constants.COINBASE_DECLARATION+constants.COINBASE_PAYOUT_FREQUENCY {
 		// Grab the admin block 1000 blocks earlier
@@ -416,7 +416,7 @@ func (fs *FactoidState) GetCoinbaseTransaction(dbheight uint32, ftime interfaces
 				delete(fs.State.IdentityControl.CanceledCoinbaseOutputs, descriptorHeight)
 			}
 
-			// Map contains all cancelled indicies
+			// Map contains all cancelled indices
 			for _, v := range list {
 				m[v] = struct{}{}
 			}

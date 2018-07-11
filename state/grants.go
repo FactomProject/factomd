@@ -16,7 +16,10 @@ type HardGrant struct {
 func getHardCodedGrants() []HardGrant {
 	var hardcodegrants = [...]HardGrant{
 		// waiting for "real-ish" data from brian
-		HardGrant{10, 1, factoid.NewAddress(primitives.ConvertUserStrToAddress("FA3oajkmHMfqkNMMShmqpwDThzMCuVrSsBwiXM2kYFVRz3MzxNAJ"))}, // Pay Clay 1 at dbheight 10
+		HardGrant{10, 2, factoid.NewAddress(primitives.ConvertUserStrToAddress("FA3oajkmHMfqkNMMShmqpwDThzMCuVrSsBwiXM2kYFVRz3MzxNAJ"))}, // Pay Clay 2 at dbheight 10
+		HardGrant{12, 4, factoid.NewAddress(primitives.ConvertUserStrToAddress("FA3Ga2XcaheS5NgQ3q22gBpLgE6tXmPu1GhjdU2FsdN2QPMzKJET"))}, // Pay Bob 4 at dbheight 12
+		HardGrant{10, 3, factoid.NewAddress(primitives.ConvertUserStrToAddress("FA3Ga2XcaheS5NgQ3q22gBpLgE6tXmPu1GhjdU2FsdN2QPMzKJET"))}, // Pay Bob 3 at dbheight 10
+		HardGrant{9, 1, factoid.NewAddress(primitives.ConvertUserStrToAddress("FA3GH7VEFKqTdJcmwGgDrcY4Xh9njQ4EWiJxhJeim6BCA7QuB388"))},  // Pay Bill 1 at dbheight 9
 	}
 	// Passing an array to a function creates a copy and I return a slide anchored to that copy
 	// so the caller does not have the address of the array itself.
@@ -25,7 +28,7 @@ func getHardCodedGrants() []HardGrant {
 }
 
 //return a (possibly empty) of coinbase payouts to be scheduled at this height
-func (s *State) GetGrantPayoutsFor(currentDBHeight uint32) []interfaces.ITransAddress {
+func GetGrantPayoutsFor(currentDBHeight uint32) []interfaces.ITransAddress {
 
 	outputs := make([]interfaces.ITransAddress, 0)
 	// this is only but temporary, once the hard coded grants are payed this code will go away
