@@ -16,6 +16,11 @@ import (
 
 var _ = Factomd
 
+//	"--logPort=37000",
+//	"--port=37001",
+//	"--controlpanelport=37002",
+//	"--networkport=37003",
+
 
 func SetupSim(GivenNodes, NetworkType string, Options map[string]string) []string {
 	DefaultOptions:= map[string]string {
@@ -188,10 +193,7 @@ func TestSetupANetwork(t *testing.T) {
 	//	"--checkheads=false",
 	//)
 	//args := SetupSim("10", "LOCAL", map[string]string {})
-	args := SetupSim("LLLLAAAFFF", "LOCAL", map[string]string{"--logPort" : "37000",
-		"--port" : "37001",
-		"--controlpanelport" : "37002",
-		"--networkport" : "37003",})
+	args := SetupSim("LLLLAAAFFF", "LOCAL", map[string]string{"--logPort" : "37000", "--port" : "37001", "--controlpanelport" : "37002", "--networkport" : "37003",})
 
 	params := ParseCmdLine(args)
 	state0 := Factomd(params, false).(*state.State)
@@ -317,9 +319,10 @@ func TestSetupANetwork(t *testing.T) {
 	runCmd("yc") // Nothing
 	runCmd("r") // Rotate the WSAPI around the nodes
 	WaitForMinute(state0, 1) // Waits 1 "Minute"
-	runCmd("g1") // Adds 1 identities to your identity pool.
-	WaitForMinute(state0, 3) // Waits 3 "Minutes"
-	WaitBlocks(fn1.State, 3) // Waits for 3 blocks
+	//runCmd("g1") // Adds 1 identities to your identity pool.
+	//WaitForMinute(state0, 3) // Waits 3 "Minutes"
+	//WaitBlocks(fn1.State, 3) // Waits for 3 blocks
+	creatingNodes("F", state0)
 
 	t.Log("Shutting down the network")
 	for _, fn := range GetFnodes() {
