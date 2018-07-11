@@ -11,26 +11,26 @@ import (
 func makeExpected(grants []HardGrant) []interfaces.ITransAddress {
 	var rval []interfaces.ITransAddress
 	for _, g := range grants {
-		rval = append(rval, factoid.NewOutAddress(g.address, g.amount))
+		rval = append(rval, factoid.NewOutAddress(g.Address, g.Amount))
 	}
 	return rval
 }
 
 func TestGetGrantPayoutsFor(t *testing.T) {
 
-	grants := getHardCodedGrants()
+	grants := GetHardCodedGrants()
 
 	// find all the heights we care about
 	heights := map[uint32][]HardGrant{}
 	min := uint32(9999999)
 	max := uint32(0)
 	for _, g := range grants {
-		heights[g.dbh] = append(heights[g.dbh], g)
-		if min > g.dbh {
-			min = g.dbh
+		heights[g.DBh] = append(heights[g.DBh], g)
+		if min > g.DBh {
+			min = g.DBh
 		}
-		if max < g.dbh {
-			max = g.dbh
+		if max < g.DBh {
+			max = g.DBh
 		}
 	}
 	// loop thru the dbheights and make sure the payouts get returned

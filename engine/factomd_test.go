@@ -9,7 +9,9 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/activations"
+	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/globals"
+	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/engine"
 	"github.com/FactomProject/factomd/state"
 )
@@ -1295,5 +1297,93 @@ func CheckAuthoritySet(leaders int, audits int, t *testing.T) {
 	if auditcnt != audits {
 		t.Fatalf("found %d audit servers, expected %d", auditcnt, audits)
 		t.Fail()
+	}
+}
+
+func makeExpected(grants []state.HardGrant) []interfaces.ITransAddress {
+	var rval []interfaces.ITransAddress
+	for _, g := range grants {
+		rval = append(rval, factoid.NewOutAddress(g.Address, g.Amount))
+	}
+	return rval
+}
+
+func TestGrants(t *testing.T) {
+	if ranSimTest {
+		return
+	}
+
+	ranSimTest = true
+
+	runCmd := func(cmd string) {
+		os.Stderr.WriteString("Executing: " + cmd + "\n")
+		os.Stdout.WriteString("Executing: " + cmd + "\n")
+		InputChan <- cmd
+		return
+	}
+
+	args := append([]string{},
+		"--db=Map",
+		"--network=LOCAL",
+		"--enablenet=false",
+		"--blktime=2",
+		"--faulttimeout=2",
+		"--roundtimeout=2",
+		"--count=3",
+		"--startdelay=1",
+		"--net=alot+",
+		//"--debuglog=F.*",
+		"--stdoutlog=out.txt",
+		"--stderrlog=err.txt",
+		//"--debugconsole=localhost:8093",
+		"--checkheads=false",
+	)
+
+	params := ParseCmdLine(args)
+	state0 := Factomd(params, false).(*state.State)
+	WaitForMinute(state0, 3)
+	runCmd("g30")
+	WaitBlocks(state0, 1)
+	// Allocate 1 audit "LAF"
+	WaitForMinute(state0, 1)
+	runCmd("1") // select node 1
+	runCmd("o") // audit
+
+	grants := state.GetHardCodedGrants()
+
+	// find all the heights we care about
+	heights := map[uint32][]state.HardGrant{}
+	min := uint32(9999999)
+	max := uint32(0)
+	for _, g := range grants {
+		heights[g.DBh] = append(heights[g.DBh], g)
+		if min > g.DBh {
+			min = g.DBh
+		}
+		if max < g.DBh {
+			max = g.DBh
+		}
+	}
+
+	WaitBlocks(state0, max+1+1000)
+
+	// Change this to get the admin block and check them ...
+	// loop thru the dbheights and make sure the payouts get returned
+	todo := _ // remind me where I was
+	for dbh := uint32(min - 1); dbh <= uint32(max+1); dbh++ {
+		expected := makeExpected(heights[dbh])
+		gotGrants := state.GetGrantPayoutsFor(dbh)
+		if len(expected) != len(gotGrants) {
+			t.Errorf("Expected %d grants but found %d", len(expected), len(gotGrants))
+		}
+		for i, p := range expected {
+			if expected[i].GetAddress() == gotGrants[i].GetAddress() &&
+				expected[i].GetAmount() == gotGrants[i].GetAmount() &&
+				expected[i].GetUserAddress() == gotGrants[i].GetUserAddress() {
+				t.Errorf("Expected: %v ", expected[i])
+				t.Errorf("but found %v for grant #%d at %d", gotGrants[i], i, dbh)
+			}
+			fmt.Println(p.GetAmount(), p.GetUserAddress())
+		}
 	}
 }

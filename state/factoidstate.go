@@ -371,7 +371,7 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 // Returns an error message about what is wrong with the transaction if it is
 // invalid, otherwise you are good to go.
 func (fs *FactoidState) Validate(index int, trans interfaces.ITransaction) error {
-	var sums = make(map[[32]byte]uint64, 10)  // Look at the sum of an address's inputs
+	var sums = make(map[[32]byte]uint64, 10)  // Look at the sum of an Address's inputs
 	for _, input := range trans.GetInputs() { //    to a transaction.
 		bal, err := factoid.ValidateAmounts(sums[input.GetAddress().Fixed()], input.GetAmount())
 		if err != nil {
