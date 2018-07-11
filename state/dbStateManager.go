@@ -920,6 +920,7 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	// Additional Admin block changed can be made from identity changes
 	list.State.SyncIdentities(d)
 
+	// every 25 blocks +0 we add grant payouts
 	// If this is a coinbase descriptor block, add that now
 	if currentDBHeight > constants.COINBASE_ACTIVATION && currentDBHeight%constants.COINBASE_PAYOUT_FREQUENCY == 0 {
 		// Build outputs
@@ -938,7 +939,20 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 			o := factoid.NewOutAddress(ia.CoinbaseAddress, amt)
 			outputs = append(outputs, o)
 		}
+
+		// Add the grants to the list
+		outputs = append(outputs, list.State.GetGrantPayoutsFor(currentDBHeight)...)
+
 		err = d.AdminBlock.AddCoinbaseDescriptor(outputs)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	// every 25 blocks +1 we add grant payouts
+	if currentDBHeight > constants.COINBASE_ACTIVATION && currentDBHeight%constants.COINBASE_PAYOUT_FREQUENCY == 1 {
+		// Add the grants to the list
+		err = d.AdminBlock.AddCoinbaseDescriptor(list.State.GetGrantPayoutsFor(currentDBHeight))
 		if err != nil {
 			panic(err)
 		}
