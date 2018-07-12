@@ -110,6 +110,14 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 		return err
 	}
 
+	//direction := msg.GetNetworkOrigin()
+	//switch {
+	//case !msg.IsPeer2Peer():
+	//	direction = "broadcast"
+	//case msg.IsPeer2Peer() && 0 == len(direction): // directed, with no direction of who to send it to
+	//	direction = "randPeer"
+	//}
+	//messages.LogMessage("p2pSend.txt", direction, msg)
 	msgLogger := f.logger.WithFields(msg.LogFields())
 
 	f.bytesOut += len(data)

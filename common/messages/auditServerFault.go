@@ -6,6 +6,7 @@ package messages
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -29,7 +30,14 @@ type AuditServerFault struct {
 var _ interfaces.IMsg = (*AuditServerFault)(nil)
 var _ interfaces.Signable = (*AuditServerFault)(nil)
 
-func (m *AuditServerFault) GetRepeatHash() interfaces.IHash {
+func (m *AuditServerFault) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("AuditServerFault.GetRepeatHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.GetMsgHash()
 }
 
@@ -80,11 +88,25 @@ func (m *AuditServerFault) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }
 
-func (m *AuditServerFault) GetHash() interfaces.IHash {
+func (m *AuditServerFault) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("AuditServerFault.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	return nil
 }
 
-func (m *AuditServerFault) GetMsgHash() interfaces.IHash {
+func (m *AuditServerFault) GetMsgHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("AuditServerFault.GetMsgHash() saw an interface that was nil")
+		}
+	}()
+
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()
 		if err != nil {

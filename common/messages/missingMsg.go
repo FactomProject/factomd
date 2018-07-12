@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"os"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -67,11 +68,25 @@ func (m *MissingMsg) Process(uint32, interfaces.IState) bool {
 	panic("MissingMsg should not have its Process() method called")
 }
 
-func (m *MissingMsg) GetRepeatHash() interfaces.IHash {
+func (m *MissingMsg) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("MissingMsg.GetRepeatHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.GetMsgHash()
 }
 
-func (m *MissingMsg) GetHash() interfaces.IHash {
+func (m *MissingMsg) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("MissingMsg.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	if m.hash == nil {
 		data, err := m.MarshalBinary()
 		if err != nil {
@@ -82,7 +97,14 @@ func (m *MissingMsg) GetHash() interfaces.IHash {
 	return m.hash
 }
 
-func (m *MissingMsg) GetMsgHash() interfaces.IHash {
+func (m *MissingMsg) GetMsgHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("MissingMsg.GetMsgHash() saw an interface that was nil")
+		}
+	}()
+
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()
 		if err != nil {
@@ -227,6 +249,11 @@ func (m *MissingMsg) Validate(state interfaces.IState) int {
 	if m.Asking.IsZero() {
 		return -1
 	}
+	//if the DBH is in my future I can't help
+//	block := state.GetHighestKnownBlock()
+//	if m.DBHeight > block+3 { // +3 is a mystery, I can kind of understand +1 but +3 is required to pass TestSetupANetwork
+//		return -1
+//	}
 	return 1
 }
 

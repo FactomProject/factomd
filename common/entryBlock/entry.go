@@ -10,6 +10,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"os"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -96,21 +97,49 @@ func (e *Entry) GetWeld() []byte {
 	return primitives.DoubleSha(append(e.GetHash().Bytes(), e.GetChainID().Bytes()...))
 }
 
-func (e *Entry) GetWeldHash() interfaces.IHash {
+func (e *Entry) GetWeldHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("Entry.GetWeldHash() saw an interface that was nil")
+		}
+	}()
+
 	hash := primitives.NewZeroHash()
 	hash.SetBytes(e.GetWeld())
 	return hash
 }
 
-func (c *Entry) GetChainID() interfaces.IHash {
+func (c *Entry) GetChainID() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("Entry.GetChainID() saw an interface that was nil")
+		}
+	}()
+
 	return c.ChainID
 }
 
-func (c *Entry) DatabasePrimaryIndex() interfaces.IHash {
+func (c *Entry) DatabasePrimaryIndex() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("Entry.DatabasePrimaryIndex() saw an interface that was nil")
+		}
+	}()
+
 	return c.GetHash()
 }
 
-func (c *Entry) DatabaseSecondaryIndex() interfaces.IHash {
+func (c *Entry) DatabaseSecondaryIndex() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("Entry.DatabaseSecondaryIndex() saw an interface that was nil")
+		}
+	}()
+
 	return nil
 }
 
@@ -136,7 +165,14 @@ func (e *Entry) GetContent() []byte {
 	return e.Content.Bytes
 }
 
-func (e *Entry) GetChainIDHash() interfaces.IHash {
+func (e *Entry) GetChainIDHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("Entry.GetChainIDHash() saw an interface that was nil")
+		}
+	}()
+
 	return e.ChainID
 }
 
@@ -161,7 +197,14 @@ func (e *Entry) IsValid() bool {
 	return true
 }
 
-func (e *Entry) GetHash() interfaces.IHash {
+func (e *Entry) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("Entry.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	if e.hash == nil || e.hash.PFixed() == nil {
 		h := primitives.NewZeroHash()
 		entry, err := e.MarshalBinary()

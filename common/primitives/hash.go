@@ -13,12 +13,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"runtime"
+	"reflect"
 	"runtime/debug"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives/random"
+	"github.com/FactomProject/factomd/util/atomic"
 )
 
 type Hash [constants.HASH_LENGTH]byte
@@ -30,6 +31,21 @@ var _ encoding.TextMarshaler = (*Hash)(nil)
 
 var ZeroHash interfaces.IHash = NewHash(constants.ZERO_HASH)
 
+var noRepeat map[string]int = make(map[string]int)
+
+func LogNilHashBug(msg string) {
+	whereAmI := atomic.WhereAmIString(2)
+	noRepeat[whereAmI]++
+
+	if noRepeat[whereAmI]%100 == 1 {
+		fmt.Fprintf(os.Stderr, "%s. Called from %s\n", msg, whereAmI)
+	}
+
+}
+
+func (h *Hash) IsHashNil() bool {
+	return h == nil
+}
 func RandomHash() interfaces.IHash {
 	h := random.RandByteSliceOfLen(constants.HASH_LENGTH)
 	answer := new(Hash)
@@ -37,7 +53,13 @@ func RandomHash() interfaces.IHash {
 	return answer
 }
 
-func (c *Hash) Copy() interfaces.IHash {
+func (c *Hash) Copy() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			LogNilHashBug("Hash.Copy() saw an interface that was nil")
+		}
+	}()
 	h := new(Hash)
 	err := h.SetBytes(c.Bytes())
 	if err != nil {
@@ -87,7 +109,6 @@ func (h *Hash) UnmarshalText(b []byte) error {
 func (h *Hash) Fixed() [constants.HASH_LENGTH]byte {
 	// Might change the error produced by IHash in FD-398
 	if h == nil {
-		runtime.Breakpoint()
 		panic("nil Hash")
 	}
 	return *h
@@ -107,10 +128,6 @@ func (h *Hash) Bytes() (rval []byte) {
 		}
 	}()
 	return h.GetBytes()
-}
-
-func (Hash) GetHash() interfaces.IHash {
-	return nil
 }
 
 func CreateHash(entities ...interfaces.BinaryMarshallable) (h interfaces.IHash, err error) {

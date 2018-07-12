@@ -7,6 +7,7 @@ package messages
 import (
 	"encoding/binary"
 	"fmt"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -83,7 +84,14 @@ func (e *EOM) Process(dbheight uint32, state interfaces.IState) bool {
 }
 
 // Fix EOM hash to match and not have the sig so duplicates are not generated.
-func (m *EOM) GetRepeatHash() interfaces.IHash {
+func (m *EOM) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("EOM.GetRepeatHash() saw an interface that was nil")
+		}
+	}()
+
 	if m.RepeatHash == nil {
 		data, err := m.MarshalBinary()
 		if err != nil {
@@ -94,11 +102,25 @@ func (m *EOM) GetRepeatHash() interfaces.IHash {
 	return m.RepeatHash
 }
 
-func (m *EOM) GetHash() interfaces.IHash {
+func (m *EOM) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("EOM.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.GetMsgHash()
 }
 
-func (m *EOM) GetMsgHash() interfaces.IHash {
+func (m *EOM) GetMsgHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("EOM.GetMsgHash() saw an interface that was nil")
+		}
+	}()
+
 	if m.MsgHash == nil {
 		data, err := m.MarshalForSignature()
 		if err != nil {
@@ -133,6 +155,11 @@ func (m *EOM) Validate(state interfaces.IState) int {
 	if m.DBHeight <= state.GetHighestSavedBlk() {
 		return -1
 	}
+	// if this is a DBSig for a future block it's invalid (to far in the future)
+	//block := state.GetHighestKnownBlock()
+	//if m.DBHeight > block+3 {
+	//	return -1
+	//}
 
 	found, _ := state.GetVirtualServers(m.DBHeight, int(m.Minute), m.ChainID)
 	if !found { // Only EOM from federated servers are valid.

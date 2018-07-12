@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"os"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -48,15 +49,36 @@ func (a *MissingEntryBlocks) IsSameAs(b *MissingEntryBlocks) bool {
 	return true
 }
 
-func (m *MissingEntryBlocks) GetRepeatHash() interfaces.IHash {
+func (m *MissingEntryBlocks) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("MissingEntryBlocks.GetRepeatHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.GetMsgHash()
 }
 
-func (m *MissingEntryBlocks) GetHash() interfaces.IHash {
+func (m *MissingEntryBlocks) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("MissingEntryBlocks.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.GetMsgHash()
 }
 
-func (m *MissingEntryBlocks) GetMsgHash() interfaces.IHash {
+func (m *MissingEntryBlocks) GetMsgHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("MissingEntryBlocks.GetMsgHash() saw an interface that was nil")
+		}
+	}()
+
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()
 		if err != nil {
@@ -83,6 +105,15 @@ func (m *MissingEntryBlocks) Validate(state interfaces.IState) int {
 	if m.DBHeightStart > m.DBHeightEnd {
 		return -1
 	}
+	// ignore it if it's from the future
+	//block := state.GetHighestKnownBlock()
+	//if m.DBHeightStart > block {
+	//	return -1
+	//}
+	// if they are asking for too many DBStates in one request then toss the request
+	//if m.DBHeightEnd-m.DBHeightStart > constants.MAX_EB_PER_REQUEST {
+	//	return -1
+	//}
 	return 1
 }
 
@@ -100,8 +131,12 @@ func (m *MissingEntryBlocks) FollowerExecute(state interfaces.IState) {
 	}
 	start := m.DBHeightStart
 	end := m.DBHeightEnd
-	if end-start > 20 {
-		end = start + 20
+	if end-start > constants.MAX_EB_PER_REQUEST {
+		end = start + constants.MAX_EB_PER_REQUEST
+	}
+
+	if end > state.GetHighestKnownBlock() {
+		end = state.GetHighestKnownBlock()
 	}
 	db := state.GetDB()
 

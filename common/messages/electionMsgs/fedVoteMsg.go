@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -76,7 +77,14 @@ func (a *FedVoteMsg) IsSameAs(msg interfaces.IMsg) bool {
 	return true
 }
 
-//func (m *FedVoteMsg) GetServerID() interfaces.IHash {
+//func (m *FedVoteMsg) GetServerID()(rval interfaces.IHash) {
+//defer func() {
+//		if rval != nil && reflect.ValueOf(rval).IsNil() {
+//		rval = nil // convert an interface that is nil to a nil interface
+//			primitives.LogNilHashBug("FedVoteMsg.GetServerID() saw an interface that was nil")
+//		}
+//	}()
+//
 //	return nil
 //}
 
@@ -95,15 +103,36 @@ func (m *FedVoteMsg) LogFields() log.Fields {
 	return log.Fields{"category": "message", "messagetype": "FedVoteMsg", "dbheight": m.DBHeight}
 }
 
-func (m *FedVoteMsg) GetRepeatHash() interfaces.IHash {
+func (m *FedVoteMsg) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("FedVoteMsg.GetRepeatHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.GetMsgHash()
 }
 
-func (m *FedVoteMsg) GetHash() interfaces.IHash {
+func (m *FedVoteMsg) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("FedVoteMsg.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.GetMsgHash()
 }
 
-func (m *FedVoteMsg) GetMsgHash() interfaces.IHash {
+func (m *FedVoteMsg) GetMsgHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("FedVoteMsg.GetMsgHash() saw an interface that was nil")
+		}
+	}()
+
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()
 		if err != nil {

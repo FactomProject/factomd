@@ -13,6 +13,15 @@ var (
 	//
 
 	// Entry Syncing Controller
+	ESMissingRequestCount = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_es_missing_entry_request_count",
+		Help: "Number of known missing entries requested.",
+	})
+	ESMissingRequestLoopBackTime = prometheus.NewSummary(prometheus.SummaryOpts{
+		Name: "factomd_state_es_missing_entry_loopback_ns",
+		Help: "Time it takes for a missing entry to get filled.",
+	})
+
 	ESMissingQueue = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "factomd_state_es_missing_entry_queue",
 		Help: "Number of known missing entries in our queue to find.",
@@ -64,6 +73,11 @@ var (
 	HighestCompleted = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "factomd_state_highest_completed",
 		Help: "Highest completed block, which may or may not be saved to the database",
+	})
+
+	ESWritingToDiskCount = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_entry_syncing_write_count",
+		Help: "Amount of entries written to disk from entry syncing",
 	})
 
 	// TPS

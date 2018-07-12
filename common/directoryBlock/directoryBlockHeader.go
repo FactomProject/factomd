@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -103,7 +104,14 @@ func (h *DBlockHeader) SetNetworkID(networkID uint32) {
 	h.NetworkID = networkID
 }
 
-func (h *DBlockHeader) GetBodyMR() interfaces.IHash {
+func (h *DBlockHeader) GetBodyMR() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("DBlockHeader.GetBodyMR() saw an interface that was nil")
+		}
+	}()
+
 	return h.BodyMR
 }
 
@@ -111,7 +119,14 @@ func (h *DBlockHeader) SetBodyMR(bodyMR interfaces.IHash) {
 	h.BodyMR = bodyMR
 }
 
-func (h *DBlockHeader) GetPrevKeyMR() interfaces.IHash {
+func (h *DBlockHeader) GetPrevKeyMR() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("DBlockHeader.GetPrevKeyMR() saw an interface that was nil")
+		}
+	}()
+
 	return h.PrevKeyMR
 }
 
@@ -119,7 +134,14 @@ func (h *DBlockHeader) SetPrevKeyMR(prevKeyMR interfaces.IHash) {
 	h.PrevKeyMR = prevKeyMR
 }
 
-func (h *DBlockHeader) GetPrevFullHash() interfaces.IHash {
+func (h *DBlockHeader) GetPrevFullHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("DBlockHeader.GetPrevFullHash() saw an interface that was nil")
+		}
+	}()
+
 	return h.PrevFullHash
 }
 

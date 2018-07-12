@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"reflect"
 	"strings"
 	"time"
 
@@ -47,12 +48,26 @@ func (m *Bounce) AddData(dataSize int) {
 	}
 }
 
-func (m *Bounce) GetRepeatHash() interfaces.IHash {
+func (m *Bounce) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("Bounce.GetRepeatHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.GetMsgHash()
 }
 
 // We have to return the hash of the underlying message.
-func (m *Bounce) GetHash() interfaces.IHash {
+func (m *Bounce) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("Bounce.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.GetMsgHash()
 }
 
@@ -61,7 +76,14 @@ func (m *Bounce) SizeOf() int {
 	return m.size
 }
 
-func (m *Bounce) GetMsgHash() interfaces.IHash {
+func (m *Bounce) GetMsgHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("Bounce.GetMsgHash() saw an interface that was nil")
+		}
+	}()
+
 	data, err := m.MarshalForSignature()
 
 	m.size = len(data)

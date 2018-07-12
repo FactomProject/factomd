@@ -37,6 +37,10 @@ func (list *DBStateList) Catchup(justDoIt bool) {
 				if ix >= hk {
 					return
 				}
+				//// if we already have more than 100 waiting to process don't ask for more
+				//if ix > hs+100 {
+				//	return
+				//}
 				if v == nil {
 					begin = ix
 					break
@@ -64,7 +68,7 @@ func (list *DBStateList) Catchup(justDoIt bool) {
 			}
 
 			if list.State.RunLeader && !list.State.IgnoreMissing {
-				msg := messages.NewDBStateMissing(list.State, uint32(begin), uint32(end+5))
+				msg := messages.NewDBStateMissing(list.State, uint32(begin), uint32(end))
 
 				if msg != nil {
 					//		list.State.RunLeader = false

@@ -5,6 +5,7 @@ import "time"
 var FnodeNames map[string]string = make(map[string]string) /// use by MessageTrace debug code
 var Params FactomParams
 var StartTime time.Time
+var LastDebugLogRegEx string // used to detect if FactomParams.DebugLogRegEx was changed by the control panel
 
 type FactomParams struct {
 	AckbalanceHash           bool
@@ -65,4 +66,5 @@ type FactomParams struct {
 	ConfigPath               string
 	CheckChainHeads          bool // Run checkchain heads on boot
 	FixChainHeads            bool // Only matters if CheckChainHeads == true
+	ControlPanelSetting      string
 }

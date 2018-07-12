@@ -5,12 +5,12 @@
 package identity
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"math/rand"
 	"os"
-
-	"bytes"
+	"reflect"
 
 	ed "github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/constants"
@@ -317,7 +317,14 @@ func (e *Authority) UnmarshalBinary(p []byte) error {
 	return err
 }
 
-func (e *Authority) GetAuthorityChainID() interfaces.IHash {
+func (e *Authority) GetAuthorityChainID() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("Authority.GetAuthorityChainID() saw an interface that was nil")
+		}
+	}()
+
 	return e.AuthorityChainID
 }
 

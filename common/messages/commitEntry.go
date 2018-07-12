@@ -7,6 +7,7 @@ package messages
 import (
 	"encoding/binary"
 	"fmt"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
@@ -82,15 +83,36 @@ func (m *CommitEntryMsg) Process(dbheight uint32, state interfaces.IState) bool 
 	return state.ProcessCommitEntry(dbheight, m)
 }
 
-func (m *CommitEntryMsg) GetRepeatHash() interfaces.IHash {
+func (m *CommitEntryMsg) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("CommitEntryMsg.GetRepeatHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.CommitEntry.GetSigHash()
 }
 
-func (m *CommitEntryMsg) GetHash() interfaces.IHash {
+func (m *CommitEntryMsg) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("CommitEntryMsg.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.CommitEntry.EntryHash
 }
 
-func (m *CommitEntryMsg) GetMsgHash() interfaces.IHash {
+func (m *CommitEntryMsg) GetMsgHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("CommitEntryMsg.GetMsgHash() saw an interface that was nil")
+		}
+	}()
+
 	if m.MsgHash == nil {
 		m.MsgHash = m.CommitEntry.GetSigHash()
 	}

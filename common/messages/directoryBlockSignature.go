@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"os"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
@@ -93,7 +94,14 @@ func (e *DirectoryBlockSignature) Process(dbheight uint32, state interfaces.ISta
 	return state.ProcessDBSig(dbheight, e)
 }
 
-func (m *DirectoryBlockSignature) GetRepeatHash() interfaces.IHash {
+func (m *DirectoryBlockSignature) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("DirectoryBlockSignature.GetRepeatHash() saw an interface that was nil")
+		}
+	}()
+
 	if m.RepeatHash == nil {
 		data, err := m.MarshalBinary()
 		if err != nil {
@@ -104,11 +112,25 @@ func (m *DirectoryBlockSignature) GetRepeatHash() interfaces.IHash {
 	return m.RepeatHash
 }
 
-func (m *DirectoryBlockSignature) GetHash() interfaces.IHash {
+func (m *DirectoryBlockSignature) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("DirectoryBlockSignature.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.GetMsgHash()
 }
 
-func (m *DirectoryBlockSignature) GetMsgHash() interfaces.IHash {
+func (m *DirectoryBlockSignature) GetMsgHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("DirectoryBlockSignature.GetMsgHash() saw an interface that was nil")
+		}
+	}()
+
 	if m.MsgHash == nil {
 		data, _ := m.MarshalForSignature()
 		if data == nil {
@@ -144,12 +166,20 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 		return 1
 	}
 
-	raw, _ := m.MarshalBinary()
-	if m.DBHeight <= state.GetHighestSavedBlk() {
-		//	vlog("[1] Validate Fail %s -- RAW: %x", m.String(), raw)
-		//	// state.Logf("error", "DirectoryBlockSignature: Fail dbstate ht: %v < dbht: %v  %s\n  [%s] RAW: %x", m.DBHeight, state.GetHighestSavedBlk(), m.String(), m.GetMsgHash().String(), raw)
-		return -1
+	raw, err := m.MarshalBinary()
+	if err != nil {
+		vlog("DirectoryBlockSignature  MarshalBinary fail %v", err)
 	}
+	if m.DBHeight <= state.GetHighestSavedBlk() {
+		return -1 // past fail it
+	}
+	//block := state.GetHighestKnownBlock()
+	//if m.DBHeight > block+30 {
+	//	return -1 // Far future fail it
+	//}
+	//if m.DBHeight > block+3 {
+	//	return 0 // near future hold it
+	//}
 
 	found, _ := state.GetVirtualServers(m.DBHeight, 9, m.ServerIdentityChainID)
 
