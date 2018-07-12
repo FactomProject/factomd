@@ -1332,7 +1332,7 @@ func TestGrants(t *testing.T) {
 		"--blktime=1",
 		"--faulttimeout=2",
 		"--roundtimeout=2",
-		"--count=1",
+		"--count=3",
 		"--startdelay=1",
 		"--net=alot+",
 		"--debuglog=database.txt",
@@ -1349,8 +1349,8 @@ func TestGrants(t *testing.T) {
 	WaitBlocks(state0, 1)
 	// Allocate 1 audit "LAF"
 	WaitForMinute(state0, 1)
-	//	runCmd("1") // select node 1
-	//	runCmd("o") // audit
+		runCmd("1") // select node 1
+		runCmd("o") // audit
 
 	grants := state.GetHardCodedGrants()
 

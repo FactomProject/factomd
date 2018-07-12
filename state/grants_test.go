@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/factoid"
+	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
@@ -16,7 +18,24 @@ func makeExpected(grants []HardGrant) []interfaces.ITransAddress {
 	return rval
 }
 
+func TestImmutableGrantTable(t *testing.T) {
+	globals.Params.NetworkName = "LOCAL"
+	constants.SetLocalCoinBaseConstants()
+
+	grants1 := GetHardCodedGrants()
+	grants2 := GetHardCodedGrants()
+
+	if fmt.Sprintf("%p", grants1) == fmt.Sprintf("%p", grants2) {
+		t.Errorf("Expected unique address for grant lists")
+	}
+	if fmt.Sprintf("%p", &grants1[0]) == fmt.Sprintf("%p", grants2[0]) {
+		t.Errorf("Expected unique address for grants")
+	}
+}
+
 func TestGetGrantPayoutsFor(t *testing.T) {
+	globals.Params.NetworkName = "LOCAL"
+	constants.SetLocalCoinBaseConstants()
 
 	grants := GetHardCodedGrants()
 
