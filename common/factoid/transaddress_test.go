@@ -11,6 +11,9 @@ import (
 	. "github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"math"
+	"github.com/FactomProject/factomd/testHelper"
+	"github.com/FactomProject/factomd/common/primitives/random"
 )
 
 func TestUnmarshalNilTransAddress(t *testing.T) {
@@ -190,5 +193,73 @@ func TestInAddress(t *testing.T) {
 	}
 	if strings.Contains(str, "ec9f1cefa00406b80d46135a53504f1f4182d4c0f3fed6cca9281bc020eff973") == false {
 		t.Error("'ec9f1cefa00406b80d46135a53504f1f4182d4c0f3fed6cca9281bc020eff973' not found")
+	}
+}
+
+// Test multiple trans addresses in the same binary blob
+func TestTransAddressBlob(t *testing.T) {
+	var err error
+	// TODO: Add unit test to cover unmarshaling multiple transaddresses from same binary blob
+	for i := 0; i < 100; i++ {
+		n := random.RandIntBetween(2, 10)
+		array := make([]interfaces.ITransAddress, n)
+		var data []byte
+		for i := range array {
+			array[i] = RandomTransAddress()
+			d, err := array[i].MarshalBinary()
+			if err != nil {
+				t.Error(err)
+			}
+			data = append(data, d...)
+		}
+
+		new_array := make([]interfaces.ITransAddress, n)
+		for i := range new_array {
+			new_array[i] = new(TransAddress)
+			data, err = new_array[i].UnmarshalBinaryData(data)
+			if err != nil {
+				t.Error(err)
+			}
+		}
+
+		if len(data) != 0 {
+			t.Errorf("%d bytes remain, expected 0", len(data))
+		}
+
+		for i := range array {
+			if !array[i].IsSameAs(new_array[i]) {
+				t.Error("Transaddress differs")
+			}
+		}
+	}
+}
+
+func TestVectorTransAddressMarshalling(t *testing.T) {
+	amounts := []uint64{
+		0, 1, 2, 3, 4, 5, 100, 1000, 1e10, math.MaxUint32, math.MaxUint64 - 1, math.MaxUint64,
+	}
+	for _, amt := range amounts {
+		a := RandomTransAddress()
+		a.SetAmount(amt)
+		b := new(TransAddress)
+		testHelper.TestMarshaling(a, b, random.RandIntBetween(0, 100), t)
+
+		if !a.IsSameAs(b) {
+			t.Error("Unmarshaled value does not match marshalled")
+		}
+	}
+
+}
+
+func TestRandomTransAddressMarshalling(t *testing.T) {
+	// Test Random addresses with random amounts
+	for i := 0; i < 100; i++ {
+		a := RandomTransAddress()
+		b := new(TransAddress)
+		testHelper.TestMarshaling(a, b, random.RandIntBetween(0, 100), t)
+
+		if !a.IsSameAs(b) {
+			t.Error("Unmarshaled value does not match marshalled")
+		}
 	}
 }
