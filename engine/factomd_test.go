@@ -1370,11 +1370,12 @@ func TestGrants(t *testing.T) {
 		}
 		// keep a list of grant addresses
 
-		_, ok := grantBalances[g.Address.String()]
+		userAddr := primitives.ConvertFctAddressToUserStr(g.Address)
+		_, ok := grantBalances[userAddr]
 		if !ok {
-			grantBalances[g.Address.String()] = state0.FactoidState.GetFactoidBalance(g.Address.Fixed()) // Save initial balance
+			grantBalances[userAddr] = state0.FactoidState.GetFactoidBalance(g.Address.Fixed()) // Save initial balance
 		}
-		grantBalances[g.Address.String()] += int64(g.Amount) // Add the grant amount
+		grantBalances[userAddr] += int64(g.Amount) // Add the grant amount
 	}
 
 	// run the state till we are past the 100 block delay and check the final balances
@@ -1396,7 +1397,7 @@ func TestGrants(t *testing.T) {
 			t.Errorf("Expected %d grants but found %d", len(expected), len(gotGrants))
 		}
 		for i, p := range expected {
-			if expected[i].GetAddress() == gotGrants[i].GetAddress() &&
+			if expected[i].GetAddress().IsSameAs(gotGrants[i].GetAddress()) &&
 				expected[i].GetAmount() == gotGrants[i].GetAmount() &&
 				expected[i].GetUserAddress() == gotGrants[i].GetUserAddress() {
 				t.Errorf("Expected: %v ", expected[i])
