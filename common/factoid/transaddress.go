@@ -105,6 +105,10 @@ func (a TransAddress) MarshalBinary() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	i := buf.Len()
+	if i != 36 {
+		panic("wrong size for an address")
+	}
 	return buf.DeepCopyBytes(), nil
 }
 
