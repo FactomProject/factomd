@@ -16,6 +16,13 @@ import (
 
 var _ = Factomd
 
+// SetupSim takes care of your options, and setting up nodes
+// pass in a string for nodes: 4 Leaders, 3 Audit, 4 Followers: "LLLLAAAFFFF" as the first argument
+// Pass in the Network type ex. "LOCAL" as the second argument
+// It has default but if you want just add it like "map[string]string{"--Other" : "Option"}" as the third argument
+// Pass in t for the testing as the 4th argument
+
+//EX. state0 := SetupSim("LLLLLLLLLLLLLLLAAAAAAAAAA", "LOCAL", map[string]string {"--controlpanelsetting" : "readwrite"}, t)
 func SetupSim(GivenNodes string, NetworkType string, Options map[string]string, t *testing.T) *state.State {
 	l := len(GivenNodes)
 	DefaultOptions:= map[string]string {
@@ -33,7 +40,6 @@ func SetupSim(GivenNodes string, NetworkType string, Options map[string]string, 
 		"--stdoutlog" : "out.txt",
 		"--stderrlog" : "err.txt",
 		"--checkheads" : "false",
-
 	}
 
 	returningSlice := []string{}
