@@ -1349,8 +1349,8 @@ func TestGrants(t *testing.T) {
 	WaitBlocks(state0, 1)
 	// Allocate 1 audit "LAF"
 	WaitForMinute(state0, 1)
-		runCmd("1") // select node 1
-		runCmd("o") // audit
+	runCmd("1") // select node 1
+	runCmd("o") // audit
 
 	grants := state.GetHardCodedGrants()
 
@@ -1420,7 +1420,7 @@ func TestGrants(t *testing.T) {
 				coinBaseOutputs[o.GetAddress().String()] = o.GetAmount()
 			}
 			if len(expected) != len(coinBaseOutputs) {
-				t.Errorf("Expected %d grants but found %d at height %d", len(expected), len(gotGrants), dbheight)
+				t.Errorf("Expected %d grants but found %d at height %d\ne:%v\nc:%v", len(expected), len(coinBaseOutputs), dbheight)
 			}
 			for i, p := range expected {
 				if expected[i].GetAmount() != coinBaseOutputs[expected[i].GetUserAddress()] {
