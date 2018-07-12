@@ -10,10 +10,13 @@ import (
 	"math/rand"
 	"testing"
 
+	"math"
+
 	"github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives/random"
 	"github.com/FactomProject/factomd/testHelper"
 )
 
@@ -304,6 +307,41 @@ func TestHasUserAddress(t *testing.T) {
 		}
 		if tx.HasUserAddress(str) == false {
 			t.Errorf("Did not found user address %v", str)
+		}
+	}
+}
+
+// Test multiple trans addresses in the same binary blob
+func TestTransAddressBlob(t *testing.T) {
+	// TODO: Add unit test to cover unmarshaling multiple transaddresses from same binary blob
+}
+
+func TestVectorTransAddressMarshalling(t *testing.T) {
+	amounts := []uint64{
+		0, 1, 2, 3, 4, 5, 100, 1000, 1e10, math.MaxUint32, math.MaxUint64 - 1, math.MaxUint64,
+	}
+	for _, amt := range amounts {
+		a := RandomTransAddress()
+		a.SetAmount(amt)
+		b := new(TransAddress)
+		testHelper.TestMarshaling(a, b, random.RandIntBetween(0, 100), t)
+
+		if !a.IsSameAs(b) {
+			t.Error("Unmarshaled value does not match marshalled")
+		}
+	}
+
+}
+
+func TestRandomTransAddressMarshalling(t *testing.T) {
+	// Test Random addresses with random amounts
+	for i := 0; i < 100; i++ {
+		a := RandomTransAddress()
+		b := new(TransAddress)
+		testHelper.TestMarshaling(a, b, random.RandIntBetween(0, 100), t)
+
+		if !a.IsSameAs(b) {
+			t.Error("Unmarshaled value does not match marshalled")
 		}
 	}
 }

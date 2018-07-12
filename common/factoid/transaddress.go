@@ -33,7 +33,7 @@ func RandomTransAddress() interfaces.ITransAddress {
 	ta := new(TransAddress)
 	ta.Address = RandomAddress()
 	ta.Amount = random.RandUInt64()
-	ta.UserAddress = random.RandomString()
+	ta.UserAddress = primitives.ConvertFctAddressToUserStr(ta.Address)
 	return ta
 }
 
