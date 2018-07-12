@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/util"
 )
 
@@ -86,6 +87,13 @@ func (db *MapDB) RawPut(bucket, key []byte, data interfaces.BinaryMarshallable) 
 }
 
 func (db *MapDB) rawPut(bucket, key []byte, data interfaces.BinaryMarshallable) error {
+	var hex []byte
+	var err error
+
+	defer func() {
+		messages.LogPrintf("database.txt", "Put(bucket %d[%x], key %d[%x], value %d[%x]", len(bucket), bucket, len(key), key, len(hex), hex)
+	}()
+
 	if db.Cache == nil {
 		db.Cache = map[string]map[string][]byte{}
 	}
@@ -93,8 +101,6 @@ func (db *MapDB) rawPut(bucket, key []byte, data interfaces.BinaryMarshallable) 
 	if ok == false {
 		db.Cache[string(bucket)] = map[string][]byte{}
 	}
-	var hex []byte
-	var err error
 	if data != nil {
 		hex, err = data.MarshalBinary()
 		if err != nil {
@@ -119,6 +125,12 @@ func (db *MapDB) PutInBatch(records []interfaces.Record) error {
 }
 
 func (db *MapDB) Get(bucket, key []byte, destination interfaces.BinaryMarshallable) (interfaces.BinaryMarshallable, error) {
+	var data []byte
+	var ok bool
+	defer func() {
+		messages.LogPrintf("database.txt", "Get(bucket %d[%x], key %d[%x], value %d[%x]", len(bucket), bucket, len(key), key, len(data), data)
+	}()
+
 	db.createCache(bucket)
 
 	db.Sem.RLock()
@@ -127,19 +139,21 @@ func (db *MapDB) Get(bucket, key []byte, destination interfaces.BinaryMarshallab
 	if db.Cache == nil {
 		db.Cache = map[string]map[string][]byte{}
 	}
-	_, ok := db.Cache[string(bucket)]
+	_, ok = db.Cache[string(bucket)]
 	if ok == false {
 		db.Cache[string(bucket)] = map[string][]byte{}
 	}
-	v, ok := db.Cache[string(bucket)][string(key)]
+	data, ok = db.Cache[string(bucket)][string(key)]
 	if ok == false {
 		return nil, nil
 	}
-	if v == nil {
+	if data == nil {
 		return nil, nil
 	}
-	_, err := destination.UnmarshalBinaryData(v)
+	_, err := destination.UnmarshalBinaryData(data)
 	if err != nil {
+		_, err := destination.UnmarshalBinaryData(data)
+
 		return nil, err
 	}
 	return destination, nil

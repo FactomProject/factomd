@@ -1,6 +1,9 @@
 package state
 
 import (
+	"fmt"
+
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -16,11 +19,20 @@ type HardGrant struct {
 func GetHardCodedGrants() []HardGrant {
 	var hardcodegrants = [...]HardGrant{
 		// waiting for "real-ish" data from brian
-		HardGrant{10, 2, factoid.NewAddress(primitives.ConvertUserStrToAddress("FA3oajkmHMfqkNMMShmqpwDThzMCuVrSsBwiXM2kYFVRz3MzxNAJ"))}, // Pay Clay 2 at dbheight 10
-		HardGrant{12, 4, factoid.NewAddress(primitives.ConvertUserStrToAddress("FA3Ga2XcaheS5NgQ3q22gBpLgE6tXmPu1GhjdU2FsdN2QPMzKJET"))}, // Pay Bob 4 at dbheight 12
-		HardGrant{10, 3, factoid.NewAddress(primitives.ConvertUserStrToAddress("FA3Ga2XcaheS5NgQ3q22gBpLgE6tXmPu1GhjdU2FsdN2QPMzKJET"))}, // Pay Bob 3 at dbheight 10
-		HardGrant{9, 1, factoid.NewAddress(primitives.ConvertUserStrToAddress("FA3GH7VEFKqTdJcmwGgDrcY4Xh9njQ4EWiJxhJeim6BCA7QuB388"))},  // Pay Bill 1 at dbheight 9
+		HardGrant{21, 2, factoid.NewAddress(primitives.ConvertUserStrToAddress("FA3oajkmHMfqkNMMShmqpwDThzMCuVrSsBwiXM2kYFVRz3MzxNAJ"))}, // Pay Clay 2
+		HardGrant{31, 4, factoid.NewAddress(primitives.ConvertUserStrToAddress("FA3Ga2XcaheS5NgQ3q22gBpLgE6tXmPu1GhjdU2FsdN2QPMzKJET"))}, // Pay Bob 4
+		HardGrant{21, 3, factoid.NewAddress(primitives.ConvertUserStrToAddress("FA3Ga2XcaheS5NgQ3q22gBpLgE6tXmPu1GhjdU2FsdN2QPMzKJET"))}, // Pay Bob 3
+		HardGrant{11, 1, factoid.NewAddress(primitives.ConvertUserStrToAddress("FA3GH7VEFKqTdJcmwGgDrcY4Xh9njQ4EWiJxhJeim6BCA7QuB388"))}, // Pay Bill 1
 	}
+
+	// this used to be in an inint block but it turns out COINBASE_PAYOUT_FREQUENCY isn't so
+	// constants (changed based on network type) so it had to move here to be valid.
+	for _, g := range hardcodegrants { // check every hardcoded grant
+		if g.DBh%constants.COINBASE_PAYOUT_FREQUENCY != 1 {
+			panic(fmt.Sprintf("Bad grant payout height for %v", g))
+		}
+	}
+
 	// Passing an array to a function creates a copy and I return a slide anchored to that copy
 	// so the caller does not have the Address of the array itself.
 	// Closest thing to a constant array I can get in Go

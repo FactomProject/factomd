@@ -401,7 +401,7 @@ func (fs *FactoidState) GetCoinbaseTransaction(dbheight uint32, ftime interfaces
 		descriptorHeight := dbheight - constants.COINBASE_DECLARATION
 		ablock, err := fs.State.DB.FetchABlockByHeight(descriptorHeight)
 		if err != nil {
-			panic(fmt.Sprintf("When creating coinbase, admin block at height %d could not be retrieved", dbheight-1000))
+			panic(fmt.Sprintf("When creating coinbase, admin block at height %d could not be retrieved", descriptorHeight))
 		}
 
 		abe := ablock.FetchCoinbaseDescriptor()

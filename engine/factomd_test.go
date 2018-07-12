@@ -9,9 +9,12 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/activations"
+	"github.com/FactomProject/factomd/common/adminBlock"
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 	. "github.com/FactomProject/factomd/engine"
 	"github.com/FactomProject/factomd/state"
 )
@@ -52,6 +55,7 @@ func WaitBlocks(s *state.State, blks int) {
 	newBlock := int(s.LLeaderHeight) + blks
 	for int(s.LLeaderHeight) < newBlock {
 		time.Sleep(time.Second)
+		TimeNow(s)
 	}
 	TimeNow(s)
 }
@@ -1317,7 +1321,6 @@ func TestGrants(t *testing.T) {
 
 	runCmd := func(cmd string) {
 		os.Stderr.WriteString("Executing: " + cmd + "\n")
-		os.Stdout.WriteString("Executing: " + cmd + "\n")
 		InputChan <- cmd
 		return
 	}
@@ -1326,13 +1329,13 @@ func TestGrants(t *testing.T) {
 		"--db=Map",
 		"--network=LOCAL",
 		"--enablenet=false",
-		"--blktime=2",
+		"--blktime=1",
 		"--faulttimeout=2",
 		"--roundtimeout=2",
-		"--count=3",
+		"--count=1",
 		"--startdelay=1",
 		"--net=alot+",
-		//"--debuglog=F.*",
+		"--debuglog=database.txt",
 		"--stdoutlog=out.txt",
 		"--stderrlog=err.txt",
 		//"--debugconsole=localhost:8093",
@@ -1342,12 +1345,12 @@ func TestGrants(t *testing.T) {
 	params := ParseCmdLine(args)
 	state0 := Factomd(params, false).(*state.State)
 	WaitForMinute(state0, 3)
-	runCmd("g30")
+	runCmd("g2")
 	WaitBlocks(state0, 1)
 	// Allocate 1 audit "LAF"
 	WaitForMinute(state0, 1)
-	runCmd("1") // select node 1
-	runCmd("o") // audit
+	//	runCmd("1") // select node 1
+	//	runCmd("o") // audit
 
 	grants := state.GetHardCodedGrants()
 
@@ -1355,6 +1358,8 @@ func TestGrants(t *testing.T) {
 	heights := map[uint32][]state.HardGrant{}
 	min := uint32(9999999)
 	max := uint32(0)
+	grantBalances := map[string]int64{} // Compute the expeced final balances
+	// TODO: (does not account for cancels)
 	for _, g := range grants {
 		heights[g.DBh] = append(heights[g.DBh], g)
 		if min > g.DBh {
@@ -1363,16 +1368,30 @@ func TestGrants(t *testing.T) {
 		if max < g.DBh {
 			max = g.DBh
 		}
+		// keep a list of grant addresses
+
+		_, ok := grantBalances[g.Address.String()]
+		if !ok {
+			grantBalances[g.Address.String()] = state0.FactoidState.GetFactoidBalance(g.Address.Fixed()) // Save initial balance
+		}
+		grantBalances[g.Address.String()] += int64(g.Amount) // Add the grant amount
 	}
 
-	WaitBlocks(state0, max+1+1000)
+	// run the state till we are past the 100 block delay and check the final balances
+	WaitBlocks(state0, int(max+1+constants.COINBASE_DECLARATION+constants.COINBASE_PAYOUT_FREQUENCY*2))
 
-	// Change this to get the admin block and check them ...
-	// loop thru the dbheights and make sure the payouts get returned
-	todo := _ // remind me where I was
-	for dbh := uint32(min - 1); dbh <= uint32(max+1); dbh++ {
-		expected := makeExpected(heights[dbh])
-		gotGrants := state.GetGrantPayoutsFor(dbh)
+	// check the final balances of the accounts
+	for addr, balance := range grantBalances {
+		factoidBalance := state0.FactoidState.GetFactoidBalance(factoid.NewAddress(primitives.ConvertUserStrToAddress(addr)).Fixed())
+		if balance != factoidBalance {
+			t.Errorf("FinalBalanceMismatch for %s. Got %d expected %d", addr, balance, factoidBalance)
+		}
+	}
+
+	// loop thru the dbheights  to get the admin block and check them and make sure the payouts get returned
+	for dbheight := uint32(min - constants.COINBASE_PAYOUT_FREQUENCY*2); dbheight <= uint32(max+constants.COINBASE_PAYOUT_FREQUENCY*2); dbheight++ {
+		expected := makeExpected(heights[dbheight])
+		gotGrants := state.GetGrantPayoutsFor(dbheight)
 		if len(expected) != len(gotGrants) {
 			t.Errorf("Expected %d grants but found %d", len(expected), len(gotGrants))
 		}
@@ -1381,9 +1400,34 @@ func TestGrants(t *testing.T) {
 				expected[i].GetAmount() == gotGrants[i].GetAmount() &&
 				expected[i].GetUserAddress() == gotGrants[i].GetUserAddress() {
 				t.Errorf("Expected: %v ", expected[i])
-				t.Errorf("but found %v for grant #%d at %d", gotGrants[i], i, dbh)
+				t.Errorf("but found %v for grant #%d at %d", gotGrants[i], i, dbheight)
 			}
 			fmt.Println(p.GetAmount(), p.GetUserAddress())
 		}
-	}
+		//descriptorHeight := dbheight - constants.COINBASE_DECLARATION
+
+		ablock, err := state0.DB.FetchABlockByHeight(dbheight)
+		if err != nil {
+			panic(fmt.Sprintf("Missing coinbase, admin block at height %d could not be retrieved", dbheight))
+		}
+
+		abe := ablock.FetchCoinbaseDescriptor()
+		if abe != nil {
+			desc := abe.(*adminBlock.CoinbaseDescriptor)
+			coinBaseOutputs := map[string]uint64{}
+			for _, o := range desc.Outputs {
+				coinBaseOutputs[o.GetAddress().String()] = o.GetAmount()
+			}
+			if len(expected) != len(coinBaseOutputs) {
+				t.Errorf("Expected %d grants but found %d at height %d", len(expected), len(gotGrants), dbheight)
+			}
+			for i, p := range expected {
+				if expected[i].GetAmount() != coinBaseOutputs[expected[i].GetUserAddress()] {
+					t.Errorf("Expected: %v ", expected[i])
+					t.Errorf("but found %v for grant #%d at %d", gotGrants[i], i, dbheight)
+				}
+				fmt.Println(p.GetAmount(), p.GetUserAddress())
+			}
+		}
+	} // for all dbheights {...}
 }
