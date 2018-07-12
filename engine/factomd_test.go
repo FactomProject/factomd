@@ -194,27 +194,8 @@ func TestSetupANetwork(t *testing.T) {
 	runCmd("7")
 	WaitBlocks(state0, 1) // Wait for 1 block
 
-	leadercnt := 0
-	auditcnt := 0
-	for _, fn := range GetFnodes() {
-		s := fn.State
-		if s.Leader {
-			leadercnt++
-		}
-		list := s.ProcessLists.Get(s.LLeaderHeight)
-		if foundAudit, _ := list.GetAuditServerIndexHash(s.GetIdentityChainID()); foundAudit {
-			auditcnt++
-		}
-	}
-	PrintOneStatus(0, 0)
-	if leadercnt != 4 {
-		t.Fatalf("found %d leaders, expected 4", leadercnt)
-	}
-
-	if auditcnt != 3 {
-		t.Fatalf("found %d audit servers, expected 3", auditcnt)
-		t.Fail()
-	}
+	CheckAuthoritySet(4, 3, t)
+	
 	WaitForMinute(state0, 2) // Waits for 2 "Minutes"
 	runCmd("F100") //  Set the Delay on messages from all nodes to 100 milliseconds
 	runCmd("S10") // Set Drop Rate to 1.0 on everyone
@@ -311,22 +292,7 @@ func TestLoad(t *testing.T) {
 	WaitBlocks(state0, 1)
 	WaitForMinute(state0, 1)
 
-	leadercnt := 0
-	auditcnt := 0
-	for _, fn := range GetFnodes() {
-		s := fn.State
-		if s.Leader {
-			leadercnt++
-		}
-		list := s.ProcessLists.Get(s.LLeaderHeight)
-		if foundAudit, _ := list.GetAuditServerIndexHash(s.GetIdentityChainID()); foundAudit {
-			auditcnt++
-		}
-	}
-
-	if leadercnt != 2 {
-		t.Fatalf("found %d leaders, expected 2", leadercnt)
-	}
+	CheckAuthoritySet(2, 0, t)
 
 	runCmd("2")   // select 2
 	runCmd("R30") // Feed load
@@ -350,23 +316,7 @@ func TestMakeALeader(t *testing.T) {
 	WaitBlocks(state0, 1)
 	WaitForMinute(state0, 1)
 
-	leadercnt := 0
-	auditcnt := 0
-	for _, fn := range GetFnodes() {
-		s := fn.State
-		if s.Leader {
-			leadercnt++
-		}
-		list := s.ProcessLists.Get(s.LLeaderHeight)
-		if foundAudit, _ := list.GetAuditServerIndexHash(s.GetIdentityChainID()); foundAudit {
-			auditcnt++
-		}
-	}
-
-	if leadercnt != 2 {
-		t.Fatalf("found %d leaders, expected 2", leadercnt)
-	}
-	WaitMinutes(state0, 2)
+	CheckAuthoritySet(2, 0, t)
 }
 
 func TestActivationHeightElection(t *testing.T) {
@@ -679,22 +629,7 @@ func TestDBsigEOMElection(t *testing.T) {
 	WaitBlocks(state, 1)
 	WaitForMinute(state, 2)
 
-	leadercnt := 0
-	auditcnt := 0
-	for _, fn := range GetFnodes() {
-		s := fn.State
-		if s.Leader {
-			leadercnt++
-		}
-		list := s.ProcessLists.Get(s.LLeaderHeight)
-		if foundAudit, _ := list.GetAuditServerIndexHash(s.GetIdentityChainID()); foundAudit {
-			auditcnt++
-		}
-	}
-
-	if leadercnt != 5 {
-		t.Fatalf("found %d leaders, expected 5", leadercnt)
-	}
+	CheckAuthoritySet(5, 2, t)
 
 	var wait sync.WaitGroup
 	wait.Add(2)
@@ -733,10 +668,6 @@ func TestDBsigEOMElection(t *testing.T) {
 	wait.Wait()
 	fmt.Println("Caused Elections")
 
-	//runCmd("E")
-	//runCmd("F")
-	//runCmd("0")
-	//runCmd("p")
 	WaitBlocks(state, 3)
 	// bring them back
 	runCmd("0")
@@ -745,24 +676,7 @@ func TestDBsigEOMElection(t *testing.T) {
 	runCmd("x")
 	WaitBlocks(state, 2)
 
-	leadercnt = 0
-	auditcnt = 0
-	for _, fn := range GetFnodes() {
-		s := fn.State
-		if s.Leader {
-			leadercnt++
-		}
-		list := s.ProcessLists.Get(s.LLeaderHeight)
-		if foundAudit, _ := list.GetAuditServerIndexHash(s.GetIdentityChainID()); foundAudit {
-			auditcnt++
-		}
-	}
-	if leadercnt != 5 {
-		t.Fatalf("found %d leaders, expected 5", leadercnt)
-	}
-	if auditcnt != 2 {
-		t.Fatalf("found %d leaders, expected 2", auditcnt)
-	}
+	CheckAuthoritySet(5, 2, t)
 
 	t.Log("Shutting down the network")
 	for _, fn := range GetFnodes() {
@@ -780,22 +694,7 @@ func TestMultiple2Election(t *testing.T) {
 
 	state0 := SetupSim("LLLLLLLAAF", "LOCAL", map[string]string {}, t)
 
-	leadercnt := 0
-	auditcnt := 0
-	for _, fn := range GetFnodes() {
-		s := fn.State
-		if s.Leader {
-			leadercnt++
-		}
-		list := s.ProcessLists.Get(s.LLeaderHeight)
-		if foundAudit, _ := list.GetAuditServerIndexHash(s.GetIdentityChainID()); foundAudit {
-			auditcnt++
-		}
-	}
-
-	if leadercnt != 7 {
-		t.Fatalf("found %d leaders, expected 7", leadercnt)
-	}
+	CheckAuthoritySet(7, 2, t)
 
 	runCmd("1")
 	runCmd("x")
@@ -813,7 +712,6 @@ func TestMultiple2Election(t *testing.T) {
 	for _, fn := range GetFnodes() {
 		fn.State.ShutdownChan <- 1
 	}
-
 }
 
 func TestMultiple3Election(t *testing.T) {
@@ -845,11 +743,6 @@ func TestMultiple3Election(t *testing.T) {
 		t.Fatalf("found %d audit, expected 4", auditcnt)
 	}
 
-	//runCmd("s")
-	//runCmd("E")
-	//runCmd("F")
-	runCmd("0")
-
 	runCmd("1")
 	runCmd("x")
 	runCmd("2")
@@ -866,27 +759,7 @@ func TestMultiple3Election(t *testing.T) {
 	runCmd("x")
 	WaitBlocks(state0, 3)
 
-	leadercnt = 0
-	auditcnt = 0
-
-	for _, fn := range GetFnodes() {
-		s := fn.State
-		if s.Leader {
-			leadercnt++
-		}
-		list := s.ProcessLists.Get(s.LLeaderHeight)
-		if foundAudit, _ := list.GetAuditServerIndexHash(s.GetIdentityChainID()); foundAudit {
-			auditcnt++
-		}
-	}
-
-	if leadercnt != 7 {
-		t.Fatalf("found %d leaders, expected 7", leadercnt)
-	}
-	if auditcnt != 4 {
-		t.Fatalf("found %d audit, expected 4", auditcnt)
-	}
-
+	CheckAuthoritySet(7,4,t)
 	t.Log("Shutting down the network")
 	for _, fn := range GetFnodes() {
 		fn.State.ShutdownChan <- 1
