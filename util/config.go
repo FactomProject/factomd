@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/user"
+	"regexp"
 	"time"
 
 	"github.com/FactomProject/factomd/common/primitives"
@@ -281,13 +282,33 @@ func GetChangeAcksHeight(filename string) (change uint32, err error) {
 	return config.App.ChangeAcksHeight, nil
 }
 
+// Check for absolute path on Windows or linux or Darwin(Mac)
+var pathPresent *regexp.Regexp
+
+func CheckConfigFileName(filename string) string {
+	// compile the regex if this is the first time.
+	if pathPresent == nil {
+		var err error
+		// paths may look like C: or c: or ~/ or ./ or ../ or / or \ at the start of a filename
+		pathPresent, err = regexp.Compile(`^([A-Za-z]:)?~?(\.\.?)?[/\\]`)
+		if err != nil {
+			panic(err)
+		}
+	}
+	// Check for absolute path on Windows or linux or Darwin(Mac)
+	// if path is relative prepend the Factom Home path
+	if !pathPresent.MatchString(filename) {
+		filename = GetHomeDir() + "/.factom/m2/" + filename
+	}
+	return filename
+}
+
 func ReadConfig(filename string) *FactomdConfig {
 	if filename == "" {
 		filename = ConfigFilename()
 	}
-	if filename[0:1] != "/" {
-		filename = GetHomeDir() + "/.factom/m2/" + filename
-	}
+
+	filename = CheckConfigFileName(filename)
 
 	cfg := new(FactomdConfig)
 
@@ -331,6 +352,7 @@ func ReadConfig(filename string) *FactomdConfig {
 
 	return cfg
 }
+
 
 func GetHomeDir() string {
 	factomhome := os.Getenv("FACTOM_HOME")
