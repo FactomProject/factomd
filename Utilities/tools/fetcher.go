@@ -25,6 +25,9 @@ type Fetcher interface {
 	FetchHeadIndexByChainID(chainID interfaces.IHash) (interfaces.IHash, error)
 	FetchEBlock(hash interfaces.IHash) (interfaces.IEntryBlock, error)
 	SetChainHeads(primaryIndexes, chainIDs []interfaces.IHash) error
+	FetchECBlockByHeight(blockHeight uint32) (interfaces.IEntryCreditBlock, error)
+	FetchECBlockByPrimary(hash interfaces.IHash) (interfaces.IEntryCreditBlock, error)
+	FetchFBlockByHeight(blockHeight uint32) (interfaces.IFBlock, error)
 }
 
 func NewDBReader(levelBolt string, path string) *databaseOverlay.Overlay {
@@ -53,6 +56,18 @@ func NewAPIReader(loc string) *APIReader {
 	factom.SetFactomdServer(loc)
 
 	return a
+}
+
+func (a *APIReader) FetchECBlockByPrimary(hash interfaces.IHash) (interfaces.IEntryCreditBlock, error) {
+	return nil, fmt.Errorf("Not implmented for api")
+}
+
+func (a *APIReader) FetchFBlockByHeight(blockHeight uint32) (interfaces.IFBlock, error) {
+	return nil, fmt.Errorf("Not implmented for api")
+}
+
+func (a *APIReader) FetchECBlockByHeight(blockHeight uint32) (interfaces.IEntryCreditBlock, error) {
+	return nil, fmt.Errorf("Not implmented for api")
 }
 
 func (a *APIReader) SetChainHeads(primaryIndexes, chainIDs []interfaces.IHash) error {
