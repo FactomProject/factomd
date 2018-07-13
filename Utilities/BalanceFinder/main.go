@@ -100,11 +100,6 @@ func FindBalance(reader tools.Fetcher) (map[[32]byte]int64, map[[32]byte]int64, 
 	ecAddressMap := make(map[[32]byte]int64)
 
 	for i := uint32(0); i < topheight; i++ {
-		//dblock, err := reader.FetchDBlockByHeight(i)
-		//if err != nil {
-		//	return nil, nil, err
-		//}
-
 		if i%1000 == 0 {
 			fmt.Printf("Completed %d/%d\n", i, topheight)
 		}
