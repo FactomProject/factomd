@@ -5,11 +5,14 @@ import (
 	"fmt"
 	"os"
 
+	"strconv"
+
 	"github.com/FactomProject/factomd/Utilities/tools"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/state"
 )
 
 var CheckFloating bool
@@ -21,12 +24,32 @@ const bolt string = "bolt"
 
 var Debug = false
 var Out = "out"
+var BalanceHashDBHeights arrayFlags
+
+type arrayFlags []uint32
+
+func (i *arrayFlags) String() string {
+	return fmt.Sprintf("%#v", i)
+}
+
+func (i *arrayFlags) Set(value string) error {
+	v, err := strconv.Atoi(value)
+	if err != nil {
+		return err
+	}
+	*i = append(*i, uint32(v))
+	return nil
+}
+
+var myFlags arrayFlags
 
 func main() {
 	var (
 		useApi = flag.Bool("api", false, "Use API instead")
 		//addr   = flag.String("addr", "", "Address to check balance of")
 	)
+
+	flag.Var(&BalanceHashDBHeights, "h", "Heights to print the balance hash out for")
 	flag.BoolVar(&Debug, "debug", false, "Have debug printing for balances under 0")
 	flag.StringVar(&Out, "o", "out", "File to output addresses and balances too")
 
@@ -99,6 +122,11 @@ func FindBalance(reader tools.Fetcher) (map[[32]byte]int64, map[[32]byte]int64, 
 	fctAddressMap := make(map[[32]byte]int64)
 	ecAddressMap := make(map[[32]byte]int64)
 
+	heightmap := make(map[uint32]bool)
+	for _, v := range BalanceHashDBHeights {
+		heightmap[v] = true
+	}
+
 	for i := uint32(0); i < topheight; i++ {
 		if i%1000 == 0 {
 			fmt.Printf("Completed %d/%d\n", i, topheight)
@@ -139,6 +167,19 @@ func FindBalance(reader tools.Fetcher) (map[[32]byte]int64, map[[32]byte]int64, 
 				ecAddressMap[ent.ECPubKey.Fixed()] -= int64(ent.Credits)
 				DebugIfNeg(ent.ECPubKey.Fixed(), ecAddressMap[ent.ECPubKey.Fixed()], false, i)
 			}
+		}
+
+		// Print the balance hash
+		if heightmap[i] == true {
+			h1 := state.GetMapHash(i, fctAddressMap)
+			h2 := state.GetMapHash(i, ecAddressMap)
+
+			var b []byte
+			b = append(b, h1.Bytes()...)
+			b = append(b, h2.Bytes()...)
+			r := primitives.Sha(b)
+
+			fmt.Printf("Balance Hash: DBHeight %d, Hash %x\n", i, r.Bytes()[:])
 		}
 	}
 	return fctAddressMap, ecAddressMap, nil
