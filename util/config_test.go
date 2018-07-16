@@ -192,3 +192,22 @@ func TestReadConfig(t *testing.T) {
 	fconfig.String()
 	GetConfigFilename("")
 }
+
+// Check that the home directory is correctly prepended to bare files only
+func TestCheckConfigFileName(t *testing.T) {
+	checks := map[string]string{
+		"C:junk":  "C:junk",
+		"~/junk":  "~/junk",
+		"\\junk":  "\\junk",
+		"./junk":  "./junk",
+		"../junk": "../junk",
+		"junk":    GetHomeDir() + "/.factom/m2/" + "junk",
+	}
+	for i, o := range checks {
+		name := CheckConfigFileName(i)
+		if name != o {
+			t.Errorf("CheckConfigFileName(\"%s\")!=\"%s\" instead it it \"%s\"", i, o, name)
+
+		}
+	}
+}

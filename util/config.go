@@ -290,7 +290,7 @@ func CheckConfigFileName(filename string) string {
 	if pathPresent == nil {
 		var err error
 		// paths may look like C: or c: or ~/ or ./ or ../ or / or \ at the start of a filename
-		pathPresent, err = regexp.Compile(`^([A-Za-z]:)?~?(\.\.?)?[/\\]`)
+		pathPresent, err = regexp.Compile(`^([A-Za-z]:)|(~?(\.\.?)?[/\\])`)
 		if err != nil {
 			panic(err)
 		}
@@ -352,7 +352,6 @@ func ReadConfig(filename string) *FactomdConfig {
 
 	return cfg
 }
-
 
 func GetHomeDir() string {
 	factomhome := os.Getenv("FACTOM_HOME")
