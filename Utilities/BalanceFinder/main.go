@@ -127,7 +127,7 @@ func FindBalance(reader tools.Fetcher) (map[[32]byte]int64, map[[32]byte]int64, 
 		heightmap[v] = true
 	}
 
-	for i := uint32(0); i < topheight; i++ {
+	for i := uint32(0); i <= topheight; i++ {
 		if i%1000 == 0 {
 			fmt.Printf("Completed %d/%d\n", i, topheight)
 		}
@@ -150,7 +150,15 @@ func FindBalance(reader tools.Fetcher) (map[[32]byte]int64, map[[32]byte]int64, 
 			}
 		}
 
-		ecblock, err := reader.FetchECBlockByHeight(i)
+		dblock, err := reader.FetchDBlockByHeight(i)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		ent := dblock.GetDBEntries()[1]
+
+		//ecblock, err := reader.FetchECBlockByHeight(i)
+		ecblock, err := reader.FetchECBlockByPrimary(ent.GetKeyMR())
 		// ECBlocks 70386-70411 do not exists
 		if ecblock == nil && i >= 70386 && i < 70411 {
 			continue
@@ -171,15 +179,17 @@ func FindBalance(reader tools.Fetcher) (map[[32]byte]int64, map[[32]byte]int64, 
 
 		// Print the balance hash
 		if heightmap[i] == true {
-			h1 := state.GetMapHash(i, fctAddressMap)
-			h2 := state.GetMapHash(i, ecAddressMap)
+			{
+				h1 := state.GetMapHash(i, fctAddressMap)
+				h2 := state.GetMapHash(i, ecAddressMap)
 
-			var b []byte
-			b = append(b, h1.Bytes()...)
-			b = append(b, h2.Bytes()...)
-			r := primitives.Sha(b)
+				var b []byte
+				b = append(b, h1.Bytes()...)
+				b = append(b, h2.Bytes()...)
+				r := primitives.Sha(b)
 
-			fmt.Printf("Balance Hash: DBHeight %d, Hash %x\n", i, r.Bytes()[:])
+				fmt.Printf("Balance Hash: DBHeight %d, FCTCount %d, ECCount %d, Hash %x\n", i, len(fctAddressMap), len(ecAddressMap), r.Bytes()[:])
+			}
 		}
 	}
 	return fctAddressMap, ecAddressMap, nil

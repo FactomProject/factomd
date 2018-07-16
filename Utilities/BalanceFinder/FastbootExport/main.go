@@ -10,6 +10,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/state"
+	"github.com/FactomProject/factomd/testHelper"
 )
 
 func main() {
@@ -19,8 +20,8 @@ func main() {
 
 	flag.Parse()
 
-	ss := new(state.SaveState)
-	ss.Init()
+	s := testHelper.CreateEmptyTestState()
+	//dbs := new(state.DBStateList)
 	file, err := os.OpenFile(*filename, os.O_RDONLY, 0777)
 	if err != nil {
 		panic(err)
@@ -43,7 +44,7 @@ func main() {
 		//return fmt.Errorf("Integrity hashes do not match")
 	}
 
-	nd, err := ss.UnmarshalBinaryData(data)
+	nd, err := s.DBStates.UnmarshalBinaryData(data)
 	if err != nil {
 		panic(err)
 	}
@@ -52,5 +53,10 @@ func main() {
 		panic("Left over bytes after savestate unmarshal")
 	}
 
-	fmt.Println(ss)
+	state.PrintState(s)
+	b := s.FactoidState.GetBalanceHash(false)
+	fmt.Printf("-- State --\n"+
+		"Height: %d\n"+
+		"Balance Hash: %s\n",
+		s.LLeaderHeight, b.String())
 }
