@@ -759,27 +759,27 @@ func TestMultiple3Election(t *testing.T) {
 	runCmd("x")
 	WaitBlocks(state0, 3)
 
-(??)	leadercnt = 0
-(??)	auditcnt = 0
-(??)
-(??)	for _, fn := range GetFnodes() {
-(??)		s := fn.State
-(??)		if s.Leader {
-(??)			leadercnt++
-(??)		}
-(??)		list := s.ProcessLists.Get(s.LLeaderHeight)
-(??)		if foundAudit, _ := list.GetAuditServerIndexHash(s.GetIdentityChainID()); foundAudit {
-(??)			auditcnt++
-(??)		}
-(??)	}
-(??)
-(??)	if leadercnt != 7 {
-(??)		t.Fatalf("found %d leaders, expected 7", leadercnt)
-(??)	}
-(??)	if auditcnt != 4 {
-(??)		t.Fatalf("found %d audit, expected 4", auditcnt)
-(??)	}
-(??)
+	leadercnt = 0
+	auditcnt = 0
+
+	for _, fn := range GetFnodes() {
+		s := fn.State
+		if s.Leader {
+			leadercnt++
+		}
+		list := s.ProcessLists.Get(s.LLeaderHeight)
+		if foundAudit, _ := list.GetAuditServerIndexHash(s.GetIdentityChainID()); foundAudit {
+			auditcnt++
+		}
+	}
+
+	if leadercnt != 7 {
+		t.Fatalf("found %d leaders, expected 7", leadercnt)
+	}
+	if auditcnt != 4 {
+		t.Fatalf("found %d audit, expected 4", auditcnt)
+	}
+
 	t.Log("Shutting down the network")
 	for _, fn := range GetFnodes() {
 		fn.State.ShutdownChan <- 1
