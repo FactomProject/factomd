@@ -2198,75 +2198,85 @@ func (s *State) GetHighestKnownBlock() uint32 {
 	return s.HighestKnown
 }
 
+// GetF()
+// If rt == true, read the Temp balances.  Otherwise read the Permenent balances.
+// concurrency safe to call
 func (s *State) GetF(rt bool, adr [32]byte) (v int64) {
 	ok := false
 	if rt {
 		pl := s.ProcessLists.Get(s.LLeaderHeight)
 		if pl != nil {
 			pl.FactoidBalancesTMutex.Lock()
-			defer pl.FactoidBalancesTMutex.Unlock()
 			v, ok = pl.FactoidBalancesT[adr]
+			pl.FactoidBalancesTMutex.Unlock()
 		}
 	}
 	if !ok {
 		s.FactoidBalancesPMutex.Lock()
-		defer s.FactoidBalancesPMutex.Unlock()
 		v = s.FactoidBalancesP[adr]
+		s.FactoidBalancesPMutex.Unlock()
+
 	}
 
 	return v
 
 }
 
+// PutF()
 // If rt == true, update the Temp balances.  Otherwise update the Permenent balances.
+// concurrency safe to call
 func (s *State) PutF(rt bool, adr [32]byte, v int64) {
 	if rt {
 		pl := s.ProcessLists.Get(s.LLeaderHeight)
 		if pl != nil {
 			pl.FactoidBalancesTMutex.Lock()
-			defer pl.FactoidBalancesTMutex.Unlock()
-
 			pl.FactoidBalancesT[adr] = v
+			pl.FactoidBalancesTMutex.Unlock()
 		}
 	} else {
 		s.FactoidBalancesPMutex.Lock()
-		defer s.FactoidBalancesPMutex.Unlock()
 		s.FactoidBalancesP[adr] = v
+		s.FactoidBalancesPMutex.Unlock()
 	}
 }
 
+// GetE()
+// If rt == true, read the Temp balances.  Otherwise read the Permenent balances.
+// concurrency safe to call
 func (s *State) GetE(rt bool, adr [32]byte) (v int64) {
 	ok := false
 	if rt {
 		pl := s.ProcessLists.Get(s.LLeaderHeight)
 		if pl != nil {
 			pl.ECBalancesTMutex.Lock()
-			defer pl.ECBalancesTMutex.Unlock()
 			v, ok = pl.ECBalancesT[adr]
+			pl.ECBalancesTMutex.Unlock()
 		}
 	}
 	if !ok {
 		s.ECBalancesPMutex.Lock()
-		defer s.ECBalancesPMutex.Unlock()
 		v = s.ECBalancesP[adr]
+		s.ECBalancesPMutex.Unlock()
 	}
 	return v
 
 }
 
+// PutE()
 // If rt == true, update the Temp balances.  Otherwise update the Permenent balances.
+// concurrency safe to call
 func (s *State) PutE(rt bool, adr [32]byte, v int64) {
 	if rt {
 		pl := s.ProcessLists.Get(s.LLeaderHeight)
 		if pl != nil {
 			pl.ECBalancesTMutex.Lock()
-			defer pl.ECBalancesTMutex.Unlock()
 			pl.ECBalancesT[adr] = v
+			pl.ECBalancesTMutex.Unlock()
 		}
 	} else {
 		s.ECBalancesPMutex.Lock()
-		defer s.ECBalancesPMutex.Unlock()
 		s.ECBalancesP[adr] = v
+		s.ECBalancesPMutex.Unlock()
 	}
 }
 

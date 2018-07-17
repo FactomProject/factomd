@@ -1129,9 +1129,8 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		panic(err)
 	}
 
-	if list.State.DBFinished {
-		list.State.Balancehash = fs.GetBalanceHash(false)
-	}
+	list.State.Balancehash = fs.GetBalanceHash(false)
+	os.Stderr.WriteString(fmt.Sprintf("Balance Hash %5d %x \n", ht, list.State.Balancehash.Fixed()))
 
 	// Make the current exchange rate whatever we had in the previous block.
 	// UNLESS there was a FER entry processed during this block  changeheight will be left at 1 on a change block

@@ -44,8 +44,8 @@ func (sss *StateSaverStruct) SaveDBStateList(ss *DBStateList, networkName string
 		return nil
 	}
 
-	//Save only every 1000 states
-	if ss.GetHighestSavedBlk()%1000 != 0 || ss.GetHighestSavedBlk() < 1000 {
+	//Save only every 4 states
+	if ss.GetHighestSavedBlk()%4 != 0 || ss.GetHighestSavedBlk() < 4 {
 		return nil
 	}
 

@@ -976,7 +976,7 @@ func (s *State) Init() {
 			panic(err)
 		}
 
-		if d == nil || d.GetDatabaseHeight() < 2000 {
+		if d == nil || d.GetDatabaseHeight() < 1 {
 			//If we have less than 2k blocks, we wipe SaveState
 			//This is to ensure we don't accidentally keep SaveState while deleting a database
 			s.StateSaverStruct.DeleteSaveState(s.Network)
