@@ -54,9 +54,10 @@ func main() {
 	}
 
 	state.PrintState(s)
-	b := s.FactoidState.GetBalanceHash(false)
+	s.FactoidState.(*state.FactoidState).DBHeight = s.GetLLeaderHeight()
+	bh := s.FactoidState.GetBalanceHash(false)
 	fmt.Printf("-- State --\n"+
 		"Height: %d\n"+
 		"Balance Hash: %s\n",
-		s.LLeaderHeight, b.String())
+		s.LLeaderHeight, bh.String())
 }
