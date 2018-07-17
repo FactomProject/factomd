@@ -185,7 +185,7 @@ func FindHeads(f Fetcher) {
 		if height%500 == 0 {
 			d := atomic.LoadInt32(done)
 			ps := float64(top-height) / time.Since(start).Seconds()
-			fmt.Printf("Currently on %d out of %d at %.3fp/s. %d Eblocks, %d done. %d ChainHeads so far. %d Are bad\n", height, top, ps, total, d, len(chainHeads), errCount)
+			fmt.Printf("Currently on %d out of %d at %.3fp/s. %d EblocksPerHeight, %d done. %d ChainHeads so far. %d Are bad\n", height, top, ps, total, d, len(chainHeads), errCount)
 		}
 
 		var _ = dblock

@@ -566,9 +566,11 @@ func (dbsl *DBStateList) MarshalBinary() (rval []byte, err error) {
 		return nil, err
 	}
 	for _, v := range dbsl.DBStates {
-		err = buf.PushBinaryMarshallable(v)
-		if err != nil {
-			return nil, err
+		if v.Saved {
+			err = buf.PushBinaryMarshallable(v)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -1130,7 +1132,10 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	}
 
 	list.State.Balancehash = fs.GetBalanceHash(false)
-	os.Stderr.WriteString(fmt.Sprintf("Balance Hash %5d %x \n", ht, list.State.Balancehash.Fixed()))
+	os.Stderr.WriteString(fmt.Sprintf("%s: Balance Hash %5d %x \n",
+		list.State.GetFactomNodeName(),
+		ht,
+		list.State.Balancehash.Fixed()))
 
 	// Make the current exchange rate whatever we had in the previous block.
 	// UNLESS there was a FER entry processed during this block  changeheight will be left at 1 on a change block
@@ -1158,6 +1163,14 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	list.ProcessHeight = dbht
 	progress = true
 	d.Locked = true // Only after all is done will I admit this state has been saved.
+
+	if list.State.StateSaverStruct.FastBoot {
+		d.SaveStruct = SaveFactomdState(list.State, d)
+		err := list.State.StateSaverStruct.SaveDBStateList(list.State.DBStates, list.State.Network)
+		if err != nil {
+			panic(err)
+		}
+	}
 
 	pln.SortFedServers()
 	pln.SortAuditServers()

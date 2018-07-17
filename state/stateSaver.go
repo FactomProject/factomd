@@ -16,10 +16,10 @@ import (
 type StateSaverStruct struct {
 	FastBoot         bool
 	FastBootLocation string
-
-	TmpState []byte
-	Mutex    sync.Mutex
-	Stop     bool
+	TmpDBHt          uint32
+	TmpState         []byte
+	Mutex            sync.Mutex
+	Stop             bool
 }
 
 //To be increased whenever the data being saved changes from the last verion
@@ -39,24 +39,20 @@ func (sss *StateSaverStruct) SaveDBStateList(ss *DBStateList, networkName string
 	sss.Mutex.Lock()
 	defer sss.Mutex.Unlock()
 
-	//Don't save States after the server has booted - it might start it in a wrong state
-	if ss.State.DBFinished == true {
-		return nil
-	}
-
+	hsb := ss.GetHighestSavedBlk()
 	//Save only every 4 states
-	if ss.GetHighestSavedBlk()%4 != 0 || ss.GetHighestSavedBlk() < 4 {
+	if hsb%4 != 0 || hsb < 4 {
 		return nil
 	}
 
 	//Actually save data from previous cached state to prevent dealing with rollbacks
 	if len(sss.TmpState) > 0 {
+		os.Stderr.WriteString(fmt.Sprintf("Save State %20s ht %8d\n", ss.State.FactomNodeName, sss.TmpDBHt))
 		err := SaveToFile(sss.TmpState, NetworkIDToFilename(networkName, sss.FastBootLocation))
 		if err != nil {
 			return err
 		}
 	}
-
 	//Marshal state for future saving
 	b, err := ss.MarshalBinary()
 	if err != nil {
@@ -66,6 +62,7 @@ func (sss *StateSaverStruct) SaveDBStateList(ss *DBStateList, networkName string
 	h := primitives.Sha(b)
 	b = append(h.Bytes(), b...)
 	sss.TmpState = b
+	sss.TmpDBHt = ss.State.LLeaderHeight
 
 	return nil
 }

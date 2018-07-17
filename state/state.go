@@ -983,7 +983,8 @@ func (s *State) Init() {
 		} else {
 			err = s.StateSaverStruct.LoadDBStateList(s.DBStates, s.Network)
 			if err != nil {
-				panic(err)
+				os.Stderr.WriteString(err.Error())
+				s.StateSaverStruct.DeleteSaveState(s.Network)
 			}
 		}
 	}

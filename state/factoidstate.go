@@ -279,7 +279,11 @@ func (fs *FactoidState) UpdateECTransaction(rt bool, trans interfaces.IECBlockEn
 		t := trans.(*entryCreditBlock.CommitEntry)
 		v := fs.State.GetE(rt, t.ECPubKey.Fixed()) - int64(t.Credits)
 		if (fs.DBHeight > 97886 || fs.State.GetNetworkID() != constants.MAIN_NETWORK_ID) && v < 0 {
-			return fmt.Errorf("Not enough ECs to cover a commit")
+			return fmt.Errorf("%29s dbht %d: Not enough ECs (%d) to cover a commit (%d)",
+				fs.State.GetFactomNodeName(),
+				fs.DBHeight,
+				fs.State.GetE(rt, t.ECPubKey.Fixed()),
+				t.Credits)
 		}
 		fs.State.PutE(rt, t.ECPubKey.Fixed(), v)
 		fs.State.NumTransactions++
@@ -301,7 +305,11 @@ func (fs *FactoidState) UpdateTransaction(rt bool, trans interfaces.ITransaction
 		oldv := fs.State.GetF(rt, adr)
 		v := oldv - int64(input.GetAmount())
 		if v < 0 {
-			return fmt.Errorf("Not enough factoids to cover a transaction")
+			return fmt.Errorf("%29s dbht %d: Not enough factoids (%d) to cover a transaction (%d)",
+				fs.State.GetFactomNodeName(),
+				fs.DBHeight,
+				oldv,
+				input.GetAmount())
 		}
 	}
 	// Then update the state for all inputs.
@@ -377,8 +385,12 @@ func (fs *FactoidState) Validate(index int, trans interfaces.ITransaction) error
 		if err != nil {
 			return err
 		}
-		if int64(bal) > fs.State.GetF(true, input.GetAddress().Fixed()) {
-			return fmt.Errorf("%s", "Not enough funds in input addresses for the transaction")
+		curbal := fs.State.GetF(true, input.GetAddress().Fixed())
+		if int64(bal) > curbal {
+			return fmt.Errorf("%20s DBHT %d %s %d %s %d %s",
+				fs.State.GetFactomNodeName(),
+				fs.DBHeight, "Not enough funds in input addresses (", bal,
+				") to cover the transaction (", curbal, ")")
 		}
 		sums[input.GetAddress().Fixed()] = bal
 	}

@@ -871,16 +871,6 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	}
 	s.DBStates.TimeToAsk = nil
 
-	if dbstatemsg.IsLocal() {
-		if s.StateSaverStruct.FastBoot {
-			dbstate.SaveStruct = SaveFactomdState(s, dbstate)
-
-			err := s.StateSaverStruct.SaveDBStateList(s.DBStates, s.Network)
-			if err != nil {
-				panic(err)
-			}
-		}
-	}
 }
 
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
