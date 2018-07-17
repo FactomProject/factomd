@@ -61,13 +61,6 @@ func (db *Overlay) FetchABlockByPrimary(hash interfaces.IHash) (interfaces.IAdmi
 func (db *Overlay) FetchABlockByHeight(blockHeight uint32) (interfaces.IAdminBlock, error) {
 	block, err := db.FetchBlockByHeight(ADMINBLOCK_NUMBER, ADMINBLOCK, blockHeight, new(adminBlock.AdminBlock))
 	if err != nil {
-		//bucket, err := db.FetchBlockIndexByHeight(ADMINBLOCK_NUMBER, blockHeight)
-		//
-		//key := ADMINBLOCK
-		//binary.BigEndian.PutUint32(key, blockHeight)
-
-		block, err = db.FetchBlockByHeight(ADMINBLOCK_NUMBER, ADMINBLOCK, blockHeight, new(adminBlock.AdminBlock))
-
 		return nil, err
 	}
 	if block == nil {

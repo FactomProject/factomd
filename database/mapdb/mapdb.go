@@ -9,7 +9,6 @@ import (
 	"sync"
 
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/util"
 )
 
@@ -90,9 +89,9 @@ func (db *MapDB) rawPut(bucket, key []byte, data interfaces.BinaryMarshallable) 
 	var hex []byte
 	var err error
 
-	defer func() {
-		messages.LogPrintf("database.txt", "Put(bucket %d[%x], key %d[%x], value %d[%x]", len(bucket), bucket, len(key), key, len(hex), hex)
-	}()
+	//defer func() {
+	//	messages.LogPrintf("database.txt", "Put(bucket %d[%x], key %d[%x], value %d[%x]", len(bucket), bucket, len(key), key, len(hex), hex)
+	//}()
 
 	if db.Cache == nil {
 		db.Cache = map[string]map[string][]byte{}
@@ -127,9 +126,9 @@ func (db *MapDB) PutInBatch(records []interfaces.Record) error {
 func (db *MapDB) Get(bucket, key []byte, destination interfaces.BinaryMarshallable) (interfaces.BinaryMarshallable, error) {
 	var data []byte
 	var ok bool
-	defer func() {
-		messages.LogPrintf("database.txt", "Get(bucket %d[%x], key %d[%x], value %d[%x]", len(bucket), bucket, len(key), key, len(data), data)
-	}()
+	//defer func() {
+	//	messages.LogPrintf("database.txt", "Get(bucket %d[%x], key %d[%x], value %d[%x]", len(bucket), bucket, len(key), key, len(data), data)
+	//}()
 
 	db.createCache(bucket)
 
