@@ -54,10 +54,23 @@ func main() {
 	}
 
 	state.PrintState(s)
+
+	h1 := state.GetMapHash(s.GetLLeaderHeight(), s.FactoidBalancesP)
+	h2 = state.GetMapHash(s.GetLLeaderHeight(), s.ECBalancesP)
+
+	var b []byte
+	b = append(b, h1.Bytes()...)
+	b = append(b, h2.Bytes()...)
+	r := primitives.Sha(b)
+
+	fmt.Printf("Balance Hash: DBHeight %d, FCTCount %d, ECCount %d, Hash %x\n", s.GetLLeaderHeight(), len(s.FactoidBalancesP), len(s.ECBalancesP), r.Bytes()[:])
+
 	s.FactoidState.(*state.FactoidState).DBHeight = s.GetLLeaderHeight()
 	bh := s.FactoidState.GetBalanceHash(false)
 	fmt.Printf("-- State --\n"+
 		"Height: %d\n"+
+		"FCT Address Count: %d\n"+
+		"EC Address Count: %d\n"+
 		"Balance Hash: %s\n",
-		s.LLeaderHeight, bh.String())
+		s.LLeaderHeight, len(s.FactoidBalancesP), len(s.ECBalancesP), bh.String())
 }
