@@ -77,6 +77,7 @@ type IState interface {
 	GetRpcAuthHash() []byte
 	GetTlsInfo() (bool, string, string)
 	GetFactomdLocations() string
+	GetCorsDomains() []string
 
 	// Routine for handling the syncroniztion of the leader and follower processes
 	// and how they process messages.

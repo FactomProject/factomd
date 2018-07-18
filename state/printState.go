@@ -115,6 +115,7 @@ func PrintState(state *State) {
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "factomdTLSKeyFile", state.factomdTLSKeyFile)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "factomdTLSCertFile", state.factomdTLSCertFile)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "FactomdLocations", state.FactomdLocations)
+	str = fmt.Sprintf("%s %35s = %+v\n", str, "CorsDomains", state.CorsDomains)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "StartDelay", state.StartDelay)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "StartDelayLimit", state.StartDelayLimit)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "RunLeader", state.RunLeader)

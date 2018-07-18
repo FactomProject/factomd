@@ -194,6 +194,8 @@ type State struct {
 	factomdTLSCertFile string
 	FactomdLocations   string
 
+	CorsDomains []string
+
 	// Server State
 	StartDelay      int64 // Time in Milliseconds since the last DBState was applied
 	StartDelayLimit int64
@@ -513,6 +515,8 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 	newState.factomdTLSCertFile = s.factomdTLSCertFile
 	newState.FactomdLocations = s.FactomdLocations
 
+	newState.CorsDomains = s.CorsDomains
+
 	switch newState.DBType {
 	case "LDB":
 		newState.StateSaverStruct.FastBoot = s.StateSaverStruct.FastBoot
@@ -593,6 +597,10 @@ func (s *State) SetNetStateOff(net bool) {
 
 func (s *State) GetRpcUser() string {
 	return s.RpcUser
+}
+
+func (s *State) GetCorsDomains() []string {
+	return s.CorsDomains
 }
 
 func (s *State) GetRpcPass() string {
@@ -720,6 +728,14 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		s.StateSaverStruct.FastBootLocation = cfg.App.FastBootLocation
 		s.FastBoot = cfg.App.FastBoot
 		s.FastBootLocation = cfg.App.FastBootLocation
+
+		if len(cfg.App.CorsDomains) > 0 {
+			domains := strings.Split(cfg.App.CorsDomains, ",")
+			s.CorsDomains = make([]string, len(domains))
+			for _, domain := range domains {
+				s.CorsDomains = append(s.CorsDomains, strings.Trim(domain, " "))
+			}
+		}
 
 		s.FactomdTLSEnable = cfg.App.FactomdTlsEnabled
 		if cfg.App.FactomdTlsPrivateKey == "/full/path/to/factomdAPIpriv.key" {
