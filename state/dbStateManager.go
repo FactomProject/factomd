@@ -394,11 +394,11 @@ func (a *DBStateList) IsSameAs(b *DBStateList) bool {
 }
 
 func (dbsl *DBStateList) MarshalBinary() (rval []byte, err error) {
-	//defer func(pe *error) {
-	//	if *pe != nil {
-	//		fmt.Fprintf(os.Stderr, "DBStateList.MarshalBinary err:%v", *pe)
-	//	}
-	//}(&err)
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "DBStateList.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	dbsl.Init()
 	buf := primitives.NewBuffer(nil)
 
@@ -1491,7 +1491,7 @@ searchLoop:
 	}
 
 	keep := uint32(3) // How many states to keep around; debugging helps with more.
-	if uint32(cnt) > keep {
+	if uint32(cnt) > keep && int(list.Complete)-cnt+int(keep) > 0 {
 		var dbstates []*DBState
 		dbstates = append(dbstates, list.DBStates[cnt-int(keep):]...)
 		list.DBStates = dbstates

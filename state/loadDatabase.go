@@ -116,7 +116,7 @@ n:
 		ablk.AddFedServer(primitives.NewZeroHash())
 	case constants.LOCAL_NETWORK_ID:
 		ablk.AddFedServer(primitives.Sha([]byte("FNode0")))
-	default: //we must be using a custom network, where the network ID is based on the customnet name, not one of the three predetermined values above
+	default: //we must be using a custom network, where the network ID is based on the customnet Name, not one of the three predetermined values above
 		// add the config file identity to the genesis block
 		ablk.AddFedServer(bootstrapIdentity)
 	}

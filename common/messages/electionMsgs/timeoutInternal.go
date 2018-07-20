@@ -151,8 +151,14 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 		}
 		e.Round[e.Electing] = 0
 
-		e.LogPrintf("election", "**** Start an Election for %d[%x] ****", e.Electing, e.FedID.Bytes()[3:6])
-		e.LogPrintf("faulting", "**** Start an Election for %d[%x] ****", e.Electing, e.FedID.Bytes()[3:6])
+		sync := "dbsig"
+		if m.SigType {
+			sync = "eom"
+		}
+
+		e.LogPrintf("election", "**** Start an Election for %d[%x] missing %s ****", e.Electing, e.FedID.Bytes()[3:6], sync)
+		e.LogPrintf("faulting", "**** Start an Election for %d[%x] missing %s ****", e.Electing, e.FedID.Bytes()[3:6], sync)
+		e.LogPrintLeaders("election")
 
 		// Begin a new Election for a specific vm/min/height
 		m.InitiateElectionAdapter(is) // <-- Election Started

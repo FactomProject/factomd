@@ -53,6 +53,7 @@ func (sss *StateSaverStruct) SaveDBStateList(ss *DBStateList, networkName string
 			return err
 		}
 	}
+
 	//Marshal state for future saving
 	b, err := ss.MarshalBinary()
 	if err != nil {

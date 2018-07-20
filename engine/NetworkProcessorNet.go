@@ -130,6 +130,11 @@ func Peers(fnode *FactomNode) {
 			if msg == nil {
 				continue
 			}
+			if msg.GetHash() == nil {
+				fnode.State.LogMessage("badMsgs", "Nil hash from APIQueue", msg)
+				continue
+			}
+
 			// TODO: Is this as intended for 'x' command? -- clay
 			if fnode.State.GetNetStateOff() { // drop received message if he is off
 				fnode.State.LogMessage("NetworkInputs", "API drop, X'd by simCtrl", msg)
@@ -201,7 +206,6 @@ func Peers(fnode *FactomNode) {
 					// Receive is not blocking; nothing to do, we get a nil.
 					break // move to next peer
 				}
-
 				if err != nil {
 					fnode.State.LogPrintf("NetworkInputs", "error on receive from %v: %v", peer.GetNameFrom(), err)
 					fmt.Println("ERROR receiving message on", fnode.State.FactomNodeName+":", err)
@@ -216,6 +220,11 @@ func Peers(fnode *FactomNode) {
 
 				if fnode.State.MessageTally {
 					fnode.State.TallyReceived(int(msg.Type())) //TODO: Do we want to count dropped message?
+				}
+
+				if msg.GetHash() == nil {
+					fnode.State.LogMessage("badMsgs", "Nil hash from Peer", msg)
+					continue
 				}
 
 				if fnode.State.GetNetStateOff() { // drop received message if he is off

@@ -946,7 +946,7 @@ func SimControl(listenTo int, listenStdin bool) {
 					}
 					wsapiNode = ListenTo
 					wsapi.SetState(fnodes[wsapiNode].State)
-					GetECs(fnodes[listenTo].State, true, 1000)
+					GetECs(fnodes[listenTo].State, true, 2000)
 
 					newKey, err := changeSigningKey(fnodes[ListenTo].State.IdentityChainID, fnodes[ListenTo].State)
 					if err != nil {
