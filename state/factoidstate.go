@@ -269,7 +269,11 @@ func (fs *FactoidState) UpdateECTransaction(rt bool, trans interfaces.IECBlockEn
 		t := trans.(*entryCreditBlock.CommitChain)
 		v := fs.State.GetE(rt, t.ECPubKey.Fixed()) - int64(t.Credits)
 		if (fs.DBHeight > 97886 || fs.State.GetNetworkID() != constants.MAIN_NETWORK_ID) && v < 0 {
-			return fmt.Errorf("Not enough ECs to cover a commit")
+			return fmt.Errorf("%29s dbht %d: Not enough ECs (%d) to cover a chain commit (%d)",
+				fs.State.GetFactomNodeName(),
+				fs.DBHeight,
+				fs.State.GetE(rt, t.ECPubKey.Fixed()),
+				t.Credits)
 		}
 		fs.State.PutE(rt, t.ECPubKey.Fixed(), v)
 		fs.State.NumTransactions++
@@ -279,7 +283,7 @@ func (fs *FactoidState) UpdateECTransaction(rt bool, trans interfaces.IECBlockEn
 		t := trans.(*entryCreditBlock.CommitEntry)
 		v := fs.State.GetE(rt, t.ECPubKey.Fixed()) - int64(t.Credits)
 		if (fs.DBHeight > 97886 || fs.State.GetNetworkID() != constants.MAIN_NETWORK_ID) && v < 0 {
-			return fmt.Errorf("%29s dbht %d: Not enough ECs (%d) to cover a commit (%d)",
+			return fmt.Errorf("%29s dbht %d: Not enough ECs (%d) to cover a entry commit (%d)",
 				fs.State.GetFactomNodeName(),
 				fs.DBHeight,
 				fs.State.GetE(rt, t.ECPubKey.Fixed()),

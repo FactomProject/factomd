@@ -17,7 +17,7 @@ type IFactoidState interface {
 	GetFactoidBalance(address [32]byte) int64
 	GetECBalance(address [32]byte) int64
 
-	// Add a transaction   Useful for catching up with the network.
+	// Add a transaction block   Useful for catching up with the network.
 	AddTransactionBlock(IFBlock) error
 	AddECBlock(IEntryCreditBlock) error
 

@@ -130,6 +130,8 @@ func GetECs(s *state.State, tight bool, c int) {
 
 	if c == 0 && !tight {
 		c += 1000
+	} else {
+		c += 10
 	}
 
 	if ecBal > 15 {

@@ -844,7 +844,6 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		dbstate.Locked = false
 		dbstate.Signed = true
 		s.DBStateAppliedCnt++
-		s.DBStates.UpdateState()
 	} else {
 		//s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): dbstate added from local db at ht %d", dbheight))
 		dbstate.Saved = true
@@ -1671,11 +1670,9 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		return false
 	}
 
-	allfaults := s.LeaderPL.System.Height >= s.LeaderPL.SysHighest
-
 	// After all EOM markers are processed, Claim we are done.  Now we can unwind
 
-	if allfaults && s.EOMProcessed == s.EOMLimit && !s.EOMDone {
+	if s.EOMProcessed == s.EOMLimit && !s.EOMDone {
 		s.LogPrintf("dbsig-eom", "ProcessEOM stop EOM processing minute %d", s.CurrentMinute)
 
 		//fmt.Println(fmt.Sprintf("SigType PROCESS: SigType Complete: %10s vm %2d allfaults(%v) && s.EOMProcessed(%v) == s.EOMLimit(%v) && !s.EOMDone(%v)",
@@ -1745,6 +1742,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 				prev := s.DBStates.Get(dbht - 1)
 				s.DBStates.FixupLinks(prev, dbstate)
 			}
+
 			s.DBStates.ProcessBlocks(dbstate)
 
 			s.setCurrentMinute(0)

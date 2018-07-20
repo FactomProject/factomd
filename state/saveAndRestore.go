@@ -302,6 +302,12 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 	ss.DBHeight = d.DirectoryBlock.GetHeader().GetDBHeight()
 	pl := state.ProcessLists.Get(ss.DBHeight)
 
+	// Need to ensure the dbstate is at the same height as the state.
+	if ss.DBHeight != state.LLeaderHeight {
+		os.Stderr.WriteString(fmt.Sprintf("%10s dbht mismatch %d %d\n", state.GetFactomNodeName(), ss.DBHeight, state.LLeaderHeight))
+		return
+	}
+
 	if pl == nil {
 		return nil
 	}
@@ -348,19 +354,19 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 
 	ss.EOMsyncing = state.EOMsyncing
 
-	ss.EOM = state.EOM
-	ss.EOMLimit = state.EOMLimit
-	ss.EOMProcessed = state.EOMProcessed
-	ss.EOMDone = state.EOMDone
-	ss.EOMMinute = state.EOMMinute
-	ss.EOMSys = state.EOMSys
-	ss.DBSig = state.DBSig
-	ss.DBSigLimit = state.DBSigLimit
-	ss.DBSigProcessed = state.DBSigProcessed
-	ss.DBSigDone = state.DBSigDone
-	ss.DBSigSys = state.DBSigSys
-	ss.Saving = state.Saving
-	ss.Syncing = state.Syncing
+	ss.EOM = false
+	ss.EOMLimit = 0
+	ss.EOMProcessed = 0
+	ss.EOMDone = true
+	ss.EOMMinute = 0
+	ss.EOMSys = true
+	ss.DBSig = false
+	ss.DBSigLimit = 0
+	ss.DBSigProcessed = 0
+	ss.DBSigDone = false
+	ss.DBSigSys = true
+	ss.Saving = true
+	ss.Syncing = false
 
 	ss.Holding = make(map[[32]byte]interfaces.IMsg)
 	//for k := range state.Holding {
@@ -574,6 +580,7 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 	}
 	// Set this, as we know it to be true
 	s.DBHeightAtBoot = ss.DBHeight
+	s.ProcessLists.Lists = s.ProcessLists.Lists[:0]
 	pl := s.ProcessLists.Get(ss.DBHeight)
 
 	// s.AddStatus(fmt.Sprintln("Index: ", index, "dbht:", ss.DBHeight, "lleaderheight", s.LLeaderHeight))
@@ -636,6 +643,7 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 	s.HighestAck = ss.DBHeight + 1
 	s.HighestKnown = ss.DBHeight + 2
 	s.Holding = make(map[[32]byte]interfaces.IMsg)
+
 	for k := range ss.Holding {
 		s.Holding[k] = ss.Holding[k]
 	}
