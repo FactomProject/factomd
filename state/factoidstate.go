@@ -50,9 +50,87 @@ func (slice elementSortable) Swap(i, j int) {
 	slice[i], slice[j] = slice[j], slice[i]
 }
 
+type stringSortable []string
+
+func (v stringSortable) Len() int           { return len(v) }
+func (v stringSortable) Swap(i, j int)      { v[i], v[j] = v[j], v[i] }
+func (v stringSortable) Less(i, j int) bool { return v[i] < v[j] }
+
 type element struct {
 	adr [32]byte
 	v   int64
+}
+
+func (fs *FactoidState) GetMultipleECBalances(listofadd [][32]byte) (uint32, [][]int64) {
+	height := fs.DBHeight
+	list := make([][]int64, 0)
+
+	for _, k := range listofadd {
+		// Gets the Balance of the EC address
+		PermBalance := fs.State.ECBalancesP[k]
+		pl := fs.State.ProcessLists.Get(height)
+		pl.ECBalancesTMutex.Lock()
+		// Gets the Temp Balance of the EC address
+		TempBalance, ok := pl.ECBalancesT[k]
+		if ok != true {
+			TempBalance = 0
+		}
+		if TempBalance == 0 {
+			TempBalance = PermBalance
+		}
+		pl.ECBalancesTMutex.Unlock()
+		list2 := make([]int64, 0)
+		list2 = append(list2, TempBalance)
+		list2 = append(list2, PermBalance)
+		list = append(list, list2)
+	}
+	return height, list
+}
+
+func (fs *FactoidState) GetMultipleFactoidBalances(listofadd [][32]byte) (uint32, [][]int64) {
+	fmt.Println("Called")
+	height := fs.DBHeight
+	list := make([][]int64, 0)
+
+	for _, k := range listofadd {
+		// Gets the Balance of the Factoid address
+		PermBalance := fs.State.FactoidBalancesP[k]
+
+		pl := fs.State.ProcessLists.Get(height)
+		pl.FactoidBalancesTMutex.Lock()
+		// Gets the Temp Balance of the Factoid address
+		TempBalance, ok := pl.FactoidBalancesT[k]
+		if ok != true {
+			TempBalance = 0
+		}
+		if TempBalance == 0 {
+			TempBalance = PermBalance
+		}
+		pl.FactoidBalancesTMutex.Unlock()
+
+		list2 := make([]int64, 0)
+		list2 = append(list2, TempBalance)
+		list2 = append(list2, PermBalance)
+		list = append(list, list2)
+	}
+	return height, list
+}
+
+func (fs *FactoidState) GetFactiodAccounts(params interface{}) (uint32, []string) {
+	name := fs.State.FactoidBalancesP
+	height := fs.DBHeight
+	list := make([]string, 0, len(name))
+
+	for k, _ := range name {
+		y := primitives.Hash(k)
+		z := interfaces.IAddress(interfaces.IHash(&y))
+		e := primitives.ConvertFctAddressToUserStr(z)
+		list = append(list, e)
+	}
+
+	sort.Sort(stringSortable(list))
+
+	return height, list
 }
 
 func GetMapHash(dbheight uint32, bmap map[[32]byte]int64) interfaces.IHash {

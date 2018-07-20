@@ -6,12 +6,18 @@ import (
 	"testing"
 	"time"
 
+	"bytes"
+	"github.com/FactomProject/factomd/activations"
 	"github.com/FactomProject/factomd/common/globals"
 	. "github.com/FactomProject/factomd/engine"
 	"github.com/FactomProject/factomd/state"
-	"github.com/FactomProject/factomd/activations"
-	"sync"
+	"net/http"
 	"runtime"
+	"sync"
+	"strings"
+	"io/ioutil"
+	"github.com/FactomProject/factomd/common/primitives"
+	"strconv"
 )
 
 var _ = Factomd
@@ -25,21 +31,21 @@ var _ = Factomd
 //EX. state0 := SetupSim("LLLLLLLLLLLLLLLAAAAAAAAAA", "LOCAL", map[string]string {"--controlpanelsetting" : "readwrite"}, t)
 func SetupSim(GivenNodes string, NetworkType string, Options map[string]string, t *testing.T) *state.State {
 	l := len(GivenNodes)
-	DefaultOptions:= map[string]string {
-		"--db" : "Map",
-		"--network" : fmt.Sprintf("%v", NetworkType),
-		"--net" : "alot+",
-		"--enablenet" : "false",
-		"--blktime" : "8",
-		"--faulttimeout" : "2",
-		"--roundtimeout" : "2",
-		"--count" : fmt.Sprintf("%v", l),
+	DefaultOptions := map[string]string{
+		"--db":           "Map",
+		"--network":      fmt.Sprintf("%v", NetworkType),
+		"--net":          "alot+",
+		"--enablenet":    "false",
+		"--blktime":      "8",
+		"--faulttimeout": "2",
+		"--roundtimeout": "2",
+		"--count":        fmt.Sprintf("%v", l),
 		//"--debuglog=.*",
 		//"--debuglog=F.*",
-		"--startdelay" : "1",
-		"--stdoutlog" : "out.txt",
-		"--stderrlog" : "err.txt",
-		"--checkheads" : "false",
+		"--startdelay": "1",
+		"--stdoutlog":  "out.txt",
+		"--stderrlog":  "err.txt",
+		"--checkheads": "false",
 	}
 
 	returningSlice := []string{}
@@ -59,9 +65,9 @@ func SetupSim(GivenNodes string, NetworkType string, Options map[string]string, 
 	time.Sleep(3 * time.Second)
 	creatingNodes(GivenNodes, state0)
 
-	t.Log("Allocated "+ string(l)+" nodes")
+	t.Log("Allocated " + string(l) + " nodes")
 	if len(GetFnodes()) != l {
-		t.Fatal("Should have allocated "+ string(l)+" nodes")
+		t.Fatal("Should have allocated " + string(l) + " nodes")
 		t.Fail()
 	}
 	return state0
@@ -72,13 +78,13 @@ func creatingNodes(creatingNodes string, state0 *state.State) {
 	WaitBlocks(state0, 1) // Wait for 1 block
 	WaitForMinute(state0, 3)
 	runCmd("0")
-	for i,c := range []byte(creatingNodes) {
+	for i, c := range []byte(creatingNodes) {
 		fmt.Println(i)
 		switch c {
-		case 'L','l':
+		case 'L', 'l':
 			fmt.Println("L")
 			runCmd("l")
-		case 'A','a':
+		case 'A', 'a':
 			runCmd("o")
 		case 'F', 'f':
 			break
@@ -89,7 +95,6 @@ func creatingNodes(creatingNodes string, state0 *state.State) {
 	WaitBlocks(state0, 1) // Wait for 1 block
 	WaitForMinute(state0, 1)
 }
-
 
 func TimeNow(s *state.State) {
 	fmt.Printf("%s:%d/%d\n", s.FactomNodeName, int(s.LLeaderHeight), s.CurrentMinute)
@@ -169,10 +174,120 @@ func WaitMinutes(s *state.State, min int) {
 // We can only run 1 simtest!
 var ranSimTest = false
 
-func runCmd (cmd string) {
+func runCmd(cmd string) {
 	os.Stderr.WriteString("Executing: " + cmd + "\n")
 	InputChan <- cmd
 	return
+}
+
+func TestMultipleFTAccountsAPI(t *testing.T) {
+	if ranSimTest {
+		return
+	}
+
+	ranSimTest = true
+
+	state0 := SetupSim("LLLLAAAFFF", "LOCAL", map[string]string{"--logPort": "37000", "--port": "37001", "--controlpanelport": "37002", "--networkport": "37003"}, t)
+	WaitForMinute(state0, 1)
+
+	url := "http://localhost:8088/v2"
+	arrayOfFactoidAccounts := []string{"FA1zT4aFpEvcnPqPCigB3fvGu4Q4mTXY22iiuV69DqE1pNhdF2MC","FA3Y1tBWnFpyoZUPr9ZH51R1gSC8r5x5kqvkXL3wy4uRvzFnuWLB","FA3Fsy2WPkR5z7qjpL8H1G51RvZLCiLDWASS6mByeQmHSwAws8K7"}
+
+	var jsonStr = []byte(`{"jsonrpc": "2.0", "id": 0, "method": "multiple-ft-balances", "params":{"addresses":["`+strings.Join(arrayOfFactoidAccounts, `", "`)+`"]}}  `)
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
+	req.Header.Set("content-type", "text/plain;")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		panic(err)
+	}
+
+	defer resp.Body.Close()
+	body, _ := ioutil.ReadAll(resp.Body)
+
+	temp := strings.Split(string(body), `balances":[[`)
+	justArray := strings.Split(temp[1],  `]]}}`)
+	individualArrays := strings.Split(justArray[0],  `],[`)
+
+	// To check if the balances returned from the API are right
+	for i, a := range arrayOfFactoidAccounts {
+		byteAcc := [32]byte{}
+		copy(byteAcc[:], primitives.ConvertUserStrToAddress(a))
+		PermBalance := state0.FactoidBalancesP[byteAcc]
+		pl := state0.ProcessLists.Get(state0.LLeaderHeight)
+		pl.FactoidBalancesTMutex.Lock()
+		// Gets the Temp Balance of the Factoid address
+		TempBalance, ok := pl.FactoidBalancesT[byteAcc]
+		if ok != true {
+			TempBalance = 0
+		}
+		if TempBalance == 0 {
+			TempBalance = PermBalance
+		}
+		pl.FactoidBalancesTMutex.Unlock()
+
+		// splits `num,num` up into `[num, num]` som BothNumbers[0] with give you the first value (the Temp value)
+		BothNumbers := strings.Split(individualArrays[i], `,`)
+		if BothNumbers[0] !=  strconv.FormatInt(TempBalance, 10) || BothNumbers[1] != strconv.FormatInt(PermBalance, 10) {
+			t.Fatalf("Expected "+BothNumbers[0]+","+BothNumbers[1]+", but got %s"+ strconv.FormatInt(TempBalance, 10)+","+strconv.FormatInt(PermBalance, 10))
+		}
+	}
+}
+
+func TestMultipleECAccountsAPI(t *testing.T) {
+	if ranSimTest {
+		return
+	}
+
+	ranSimTest = true
+
+	state0 := SetupSim("LLLLAAAFFF", "LOCAL", map[string]string{"--logPort": "37000", "--port": "37001", "--controlpanelport": "37002", "--networkport": "37003"}, t)
+	WaitForMinute(state0, 1)
+
+	url := "http://localhost:8088/v2"
+	arrayOfECAccounts := []string{"EC3Eh7yQKShgjkUSFrPbnQpboykCzf4kw9QHxi47GGz5P2k3dbab","EC3Eh7yQKShgjkUSFrPbnQpboykCzf4kw9QHxi47GGz5P2k3dbab"}
+
+	var jsonStr = []byte(`{"jsonrpc": "2.0", "id": 0, "method": "multiple-ec-balances", "params":{"addresses":["`+strings.Join(arrayOfECAccounts, `", "`)+`"]}}  `)
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
+	req.Header.Set("content-type", "text/plain;")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		panic(err)
+	}
+
+	defer resp.Body.Close()
+	body, _ := ioutil.ReadAll(resp.Body)
+
+	temp := strings.Split(string(body), `balances":[[`)
+	justArray := strings.Split(temp[1],  `]]}}`)
+	individualArrays := strings.Split(justArray[0],  `],[`)
+
+	// To check if the balances returned from the API are right
+	for i, a := range arrayOfECAccounts {
+		byteAcc := [32]byte{}
+		copy(byteAcc[:], primitives.ConvertUserStrToAddress(a))
+		PermBalance := state0.ECBalancesP[byteAcc]
+		pl := state0.ProcessLists.Get(state0.LLeaderHeight)
+		pl.ECBalancesTMutex.Lock()
+		// Gets the Temp Balance of the Factoid address
+		TempBalance, ok := pl.ECBalancesT[byteAcc]
+		if ok != true {
+			TempBalance = 0
+		}
+		if TempBalance == 0 {
+			TempBalance = PermBalance
+		}
+		pl.ECBalancesTMutex.Unlock()
+
+		// splits `num,num` up into `[num, num]` som BothNumbers[0] with give you the first value (the Temp value)
+		BothNumbers := strings.Split(individualArrays[i], `,`)
+		if BothNumbers[0] !=  strconv.FormatInt(TempBalance, 10) || BothNumbers[1] != strconv.FormatInt(PermBalance, 10) {
+			t.Fatalf("Expected "+BothNumbers[0]+","+BothNumbers[1]+", but got %s"+ strconv.FormatInt(TempBalance, 10)+","+strconv.FormatInt(PermBalance, 10))
+		}
+	}
 }
 
 func TestSetupANetwork(t *testing.T) {
@@ -182,45 +297,45 @@ func TestSetupANetwork(t *testing.T) {
 
 	ranSimTest = true
 
-	state0 := SetupSim("LLLLAAAFFF", "LOCAL", map[string]string{"--logPort" : "37000", "--port" : "37001", "--controlpanelport" : "37002", "--networkport" : "37003",}, t)
+	state0 := SetupSim("LLLLAAAFFF", "LOCAL", map[string]string{"--logPort": "37000", "--port": "37001", "--controlpanelport": "37002", "--networkport": "37003"}, t)
 
-	runCmd("s") // Show the process lists and directory block states as
-	runCmd("9") // Puts the focus on node 9
-	runCmd("x") // Takes Node 9 Offline
-	runCmd("w") // Point the WSAPI to send API calls to the current node.
+	runCmd("s")  // Show the process lists and directory block states as
+	runCmd("9")  // Puts the focus on node 9
+	runCmd("x")  // Takes Node 9 Offline
+	runCmd("w")  // Point the WSAPI to send API calls to the current node.
 	runCmd("10") // Puts the focus on node 9
-	runCmd("8") // Puts the focus on node 8
-	runCmd("w") // Point the WSAPI to send API calls to the current node.
+	runCmd("8")  // Puts the focus on node 8
+	runCmd("w")  // Point the WSAPI to send API calls to the current node.
 	runCmd("7")
 	WaitBlocks(state0, 1) // Wait for 1 block
 
 	CheckAuthoritySet(4, 3, t)
-	
+
 	WaitForMinute(state0, 2) // Waits for 2 "Minutes"
-	runCmd("F100") //  Set the Delay on messages from all nodes to 100 milliseconds
-	runCmd("S10") // Set Drop Rate to 1.0 on everyone
-	runCmd("g10") // Adds 10 identities to your identity pool.
+	runCmd("F100")           //  Set the Delay on messages from all nodes to 100 milliseconds
+	runCmd("S10")            // Set Drop Rate to 1.0 on everyone
+	runCmd("g10")            // Adds 10 identities to your identity pool.
 
 	fn1 := GetFocus()
 	PrintOneStatus(0, 0)
 	if fn1.State.FactomNodeName != "FNode07" {
 		t.Fatalf("Expected FNode07, but got %s", fn1.State.FactomNodeName)
 	}
-	runCmd("g1") // Adds 1 identities to your identity pool.
+	runCmd("g1")             // Adds 1 identities to your identity pool.
 	WaitForMinute(state0, 3) // Waits for 3 "Minutes"
-	runCmd("g1") // // Adds 1 identities to your identity pool.
+	runCmd("g1")             // // Adds 1 identities to your identity pool.
 	WaitForMinute(state0, 4) // Waits for 4 "Minutes"
-	runCmd("g1") // Adds 1 identities to your identity pool.
+	runCmd("g1")             // Adds 1 identities to your identity pool.
 	WaitForMinute(state0, 5) // Waits for 5 "Minutes"
-	runCmd("g1") // Adds 1 identities to your identity pool.
+	runCmd("g1")             // Adds 1 identities to your identity pool.
 	WaitForMinute(state0, 6) // Waits for 6 "Minutes"
-	WaitBlocks(state0, 1) // Waits for 1 block
+	WaitBlocks(state0, 1)    // Waits for 1 block
 	WaitForMinute(state0, 1) // Waits for 1 "Minutes"
-	runCmd("g1") // Adds 1 identities to your identity pool.
+	runCmd("g1")             // Adds 1 identities to your identity pool.
 	WaitForMinute(state0, 2) // Waits for 2 "Minutes"
-	runCmd("g1") // Adds 1 identities to your identity pool.
+	runCmd("g1")             // Adds 1 identities to your identity pool.
 	WaitForMinute(state0, 3) // Waits for 3 "Minutes"
-	runCmd("g20") // Adds 20 identities to your identity pool.
+	runCmd("g20")            // Adds 20 identities to your identity pool.
 	WaitBlocks(state0, 1)
 	runCmd("9") // Focuses on Node 9
 	runCmd("x") // Brings Node 9 back Online
@@ -248,20 +363,20 @@ func TestSetupANetwork(t *testing.T) {
 
 	runCmd("/") // Sort Status by Node Name
 
-	runCmd("a1") // Shows Admin block for Node 1
-	runCmd("e1") // Shows Entry credit block for Node 1
-	runCmd("d1") // Shows Directory block
-	runCmd("f1") // Shows Factoid block for Node 1
-	runCmd("a100") // Shows Admin block for Node 100
-	runCmd("e100") // Shows Entry credit block for Node 100
-	runCmd("d100") // Shows Directory block
-	runCmd("f100") // Shows Factoid block for Node 1
-	runCmd("yh") // Nothing
-	runCmd("yc") // Nothing
-	runCmd("r") // Rotate the WSAPI around the nodes
+	runCmd("a1")             // Shows Admin block for Node 1
+	runCmd("e1")             // Shows Entry credit block for Node 1
+	runCmd("d1")             // Shows Directory block
+	runCmd("f1")             // Shows Factoid block for Node 1
+	runCmd("a100")           // Shows Admin block for Node 100
+	runCmd("e100")           // Shows Entry credit block for Node 100
+	runCmd("d100")           // Shows Directory block
+	runCmd("f100")           // Shows Factoid block for Node 1
+	runCmd("yh")             // Nothing
+	runCmd("yc")             // Nothing
+	runCmd("r")              // Rotate the WSAPI around the nodes
 	WaitForMinute(state0, 1) // Waits 1 "Minute"
 
-	runCmd("g1") // Adds 1 identities to your identity pool.
+	runCmd("g1")             // Adds 1 identities to your identity pool.
 	WaitForMinute(state0, 3) // Waits 3 "Minutes"
 	WaitBlocks(fn1.State, 3) // Waits for 3 blocks
 
@@ -285,7 +400,7 @@ func TestLoad(t *testing.T) {
 
 	ranSimTest = true
 
-	state0 := SetupSim("LL", "LOCAL", map[string]string {}, t)
+	state0 := SetupSim("LL", "LOCAL", map[string]string{}, t)
 
 	runCmd("1") // select node 1
 	runCmd("l") // make 1 a leader
@@ -309,7 +424,7 @@ func TestMakeALeader(t *testing.T) {
 
 	ranSimTest = true
 
-	state0 := SetupSim("LL", "LOCAL", map[string]string {}, t)
+	state0 := SetupSim("LL", "LOCAL", map[string]string{}, t)
 
 	runCmd("1") // select node 1
 	runCmd("l") // make him a leader
@@ -344,7 +459,7 @@ func TestActivationHeightElection(t *testing.T) {
 		nodeList += "F"
 	}
 
-	state0 := SetupSim(nodeList, "LOCAL", map[string]string {"--logPort" : "37000",	"--port" : "37001", "--controlpanelport" : "37002", "--networkport" : "37003",},t)
+	state0 := SetupSim(nodeList, "LOCAL", map[string]string{"--logPort": "37000", "--port": "37001", "--controlpanelport": "37002", "--networkport": "37003"}, t)
 
 	StatusEveryMinute(state0)
 	WaitMinutes(state0, 2)
@@ -469,7 +584,7 @@ func TestAnElection(t *testing.T) {
 		nodeList += "F"
 	}
 
-	state0 := SetupSim(nodeList, "LOCAL", map[string]string {}, t)
+	state0 := SetupSim(nodeList, "LOCAL", map[string]string{}, t)
 
 	StatusEveryMinute(state0)
 	WaitMinutes(state0, 2)
@@ -555,7 +670,7 @@ func Test5up(t *testing.T) {
 		nodeList += "F"
 	}
 
-	state0 := SetupSim(nodeList, "LOCAL", map[string]string {"--startdelay" : "5",}, t)
+	state0 := SetupSim(nodeList, "LOCAL", map[string]string{"--startdelay": "5"}, t)
 
 	StatusEveryMinute(state0)
 	WaitMinutes(state0, 2)
@@ -615,7 +730,7 @@ func TestDBsigEOMElection(t *testing.T) {
 
 	ranSimTest = true
 
-	state := SetupSim("LLLLLAA", "LOCAL", map[string]string {"--logPort" : "37000", "--port" : "37001", "--controlpanelport" : "37002", "--networkport" : "37003",}, t)
+	state := SetupSim("LLLLLAA", "LOCAL", map[string]string{"--logPort": "37000", "--port": "37001", "--controlpanelport": "37002", "--networkport": "37003"}, t)
 
 	state = GetFnodes()[2].State
 	state.MessageTally = true
@@ -692,7 +807,7 @@ func TestMultiple2Election(t *testing.T) {
 
 	ranSimTest = true
 
-	state0 := SetupSim("LLLLLLLAAF", "LOCAL", map[string]string {}, t)
+	state0 := SetupSim("LLLLLLLAAF", "LOCAL", map[string]string{}, t)
 
 	CheckAuthoritySet(7, 2, t)
 
@@ -721,7 +836,7 @@ func TestMultiple3Election(t *testing.T) {
 
 	ranSimTest = true
 
-	state0 := SetupSim("LLLLLLLAAAAF", "LOCAL", map[string]string {}, t)
+	state0 := SetupSim("LLLLLLLAAAAF", "LOCAL", map[string]string{}, t)
 
 	leadercnt := 0
 	auditcnt := 0
@@ -794,7 +909,7 @@ func TestMultiple7Election(t *testing.T) {
 
 	ranSimTest = true
 
-	state0 := SetupSim("LLLLLLLLLLLLLLLAAAAAAAAAA", "LOCAL", map[string]string {"--controlpanelsetting" : "readwrite"}, t)
+	state0 := SetupSim("LLLLLLLLLLLLLLLAAAAAAAAAA", "LOCAL", map[string]string{"--controlpanelsetting": "readwrite"}, t)
 
 	leadercnt := 0
 	auditcnt := 0

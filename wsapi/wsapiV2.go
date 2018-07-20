@@ -171,6 +171,12 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 		resp, jsonError = HandleV2TransactionRate(state, params)
 	case "ack":
 		resp, jsonError = HandleV2ACKWithChain(state, params)
+	case "multiple-ft-balances":
+		resp, jsonError = HandleV2MultipleFTBalances(state, params)
+	case "multiple-ec-balances":
+		resp, jsonError = HandleV2MultipleECBalances(state, params)
+		//case "factoid-accounts":
+		// resp, jsonError = HandleV2Accounts(state, params)
 	default:
 		jsonError = NewMethodNotFoundError()
 		break
@@ -185,6 +191,96 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 
 	return jsonResp, nil
 }
+
+func HandleV2MultipleECBalances(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	x, ok := params.(map[string]interface{})
+	if ok != true {
+		return nil, NewCustomInvalidParamsError("Invalid params passed in")
+	}
+	listofadd := (x["addresses"]).([]interface{})
+	arrayAdd := make([][32]byte, len(listofadd))
+
+	// Converts readable accounts
+	for i, a := range listofadd {
+		arrayAdd[i] = [32]byte{}
+		s := a.(string)
+		copy(arrayAdd[i][:], primitives.ConvertUserStrToAddress(s))
+	}
+	height, somethin := state.GetFactoidState().GetMultipleECBalances(arrayAdd)
+
+	h := new(MultipleECBalances)
+
+	h.Height = height
+	h.Balances = somethin
+
+	return h, nil
+}
+
+func HandleV2MultipleFTBalances(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	x, ok := params.(map[string]interface{})
+	if ok != true {
+		fmt.Println(params)
+		return nil, NewCustomInvalidParamsError("Invalid params passed in")
+	}
+	listofadd := (x["addresses"]).([]interface{})
+	arrayAdd := make([][32]byte, len(listofadd))
+
+	// Converts readable accounts
+	for i, a := range listofadd {
+		arrayAdd[i] = [32]byte{}
+		s := a.(string)
+		copy(arrayAdd[i][:], primitives.ConvertUserStrToAddress(s))
+	}
+	height, somethin := state.GetFactoidState().GetMultipleFactoidBalances(arrayAdd)
+
+	h := new(MultipleFTBalances)
+
+	h.Height = height
+	h.Balances = somethin
+
+	return h, nil
+}
+
+//func HandleV2Accounts(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+// height, acc, returnedLen, totalLen := state.GetFactoidState().GetFactiodAccounts(params)
+// h := new(FactiodAccounts)
+//
+// min, max := 0, 10
+//
+// if params != nil {
+//    ok := params.(map[string]interface{})
+//    numbStr := ok["accountsrequest"]
+//    s := strings.Split(numbStr.(string), "-")
+//    first, second := s[0], s[1]
+//    i, err := strconv.Atoi(first)
+//    j, err2 := strconv.Atoi(second)
+//    min, max = i, j
+//    if err != nil && err2 != nil {
+//       // handle error
+//       fmt.Println(err)
+//       os.Exit(2)
+//    }
+//
+//    // no more than 2000 should be returned
+//    if max-min > 2000 {
+//       max = 2000+min
+//    }
+//    if max > numberOfAccounts {
+//       max = numberOfAccounts
+//    }
+// }
+//
+// err := MapToObject(params, h)
+// if err != nil {
+//    return nil, NewInvalidParamsError()
+// }
+//
+// h.NumbOfAccounts = strings.Join([]string{"returned: ", strconv.Itoa(returnedLen), " total: ",strconv.Itoa(totalLen)}, "")
+// h.Height = height
+// h.Accounts = acc
+//
+// return h, nil
+//}
 
 func HandleV2DBlockByHeight(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	n := time.Now()
