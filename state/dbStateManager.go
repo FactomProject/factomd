@@ -990,11 +990,13 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	}
 	fs := list.State.GetFactoidState()
 
-	os.Stderr.WriteString(fmt.Sprintf("%8s S hashes d %6.6x f %6.6x e %6.6x\n",
+	os.Stderr.WriteString(fmt.Sprintf("%8s hashes d %6.6x f %6.6x l %5d e %6.6x l %5d\n",
 		list.State.GetFactomNodeName(),
 		d.DirectoryBlock.GetHash().Bytes(),
 		d.FactoidBlock.GetHash().Bytes(),
-		d.EntryCreditBlock.GetHash().Bytes()))
+		len(d.FactoidBlock.GetTransactions()),
+		d.EntryCreditBlock.GetHash().Bytes(),
+		len(d.EntryCreditBlock.GetEntries())))
 
 	list.State.Balancehash = fs.GetBalanceHash(false)
 	os.Stderr.WriteString(fmt.Sprintf("%8s S dbht %5d P  Balance Hashes  %10.10x ...\n",
@@ -1013,12 +1015,6 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		panic(err)
 	}
 
-	os.Stderr.WriteString(fmt.Sprintf("%8s M hashes d %6.6x f %6.6x e %6.6x\n",
-		list.State.GetFactomNodeName(),
-		d.DirectoryBlock.GetHash().Bytes(),
-		d.FactoidBlock.GetHash().Bytes(),
-		d.EntryCreditBlock.GetHash().Bytes()))
-
 	list.State.Balancehash = fs.GetBalanceHash(false)
 	os.Stderr.WriteString(fmt.Sprintf("%8s M dbht %5d P  Balance Hashes  %10.10x ...\n",
 		list.State.FactomNodeName,
@@ -1031,14 +1027,11 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 
 	err = fs.AddECBlock(d.EntryCreditBlock)
 	if err != nil {
+		for _, v := range d.EntryCreditBlock.GetEntries() {
+			os.Stderr.WriteString(fmt.Sprintf("%8s %s\n", list.State.GetFactomNodeName(), v.String()))
+		}
 		panic(err)
 	}
-
-	os.Stderr.WriteString(fmt.Sprintf("%8s E hashes d %6.6x f %6.6x e %6.6x\n",
-		list.State.GetFactomNodeName(),
-		d.DirectoryBlock.GetHash().Bytes(),
-		d.FactoidBlock.GetHash().Bytes(),
-		d.EntryCreditBlock.GetHash().Bytes()))
 
 	list.State.Balancehash = fs.GetBalanceHash(false)
 	os.Stderr.WriteString(fmt.Sprintf("%8s E dbht %5d P  Balance Hashes  %10.10x ...\n",
