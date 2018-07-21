@@ -988,60 +988,17 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		out.WriteString("=== AdminBlock.UpdateState() End ===")
 		fmt.Println(out.String())
 	}
-	fs := list.State.GetFactoidState()
-
-	os.Stderr.WriteString(fmt.Sprintf("%8s hashes d %6.6x f %6.6x l %5d e %6.6x l %5d\n",
-		list.State.GetFactomNodeName(),
-		d.DirectoryBlock.GetHash().Bytes(),
-		d.FactoidBlock.GetHash().Bytes(),
-		len(d.FactoidBlock.GetTransactions()),
-		d.EntryCreditBlock.GetHash().Bytes(),
-		len(d.EntryCreditBlock.GetEntries())))
-
-	list.State.Balancehash = fs.GetBalanceHash(false)
-	os.Stderr.WriteString(fmt.Sprintf("%8s S dbht %5d P  Balance Hashes  %10.10x ...\n",
-		list.State.FactomNodeName,
-		ht,
-		list.State.Balancehash.Fixed()))
-	os.Stderr.WriteString(fmt.Sprintf("%8s S dbht %5d T  Balance Hashes  %10.10x ...\n",
-		list.State.FactomNodeName,
-		ht,
-		fs.GetBalanceHash(true)))
-
 	// Process the Factoid End of Block
+	fs := list.State.GetFactoidState()
 	fs.(*FactoidState).DBHeight = dbht
 	err = fs.AddTransactionBlock(d.FactoidBlock)
 	if err != nil {
 		panic(err)
 	}
-
-	list.State.Balancehash = fs.GetBalanceHash(false)
-	os.Stderr.WriteString(fmt.Sprintf("%8s M dbht %5d P  Balance Hashes  %10.10x ...\n",
-		list.State.FactomNodeName,
-		ht,
-		list.State.Balancehash.Fixed()))
-	os.Stderr.WriteString(fmt.Sprintf("%8s M dbht %5d T  Balance Hashes  %10.10x ...\n",
-		list.State.FactomNodeName,
-		ht,
-		fs.GetBalanceHash(true)))
-
 	err = fs.AddECBlock(d.EntryCreditBlock)
 	if err != nil {
-		for _, v := range d.EntryCreditBlock.GetEntries() {
-			os.Stderr.WriteString(fmt.Sprintf("%8s %s\n", list.State.GetFactomNodeName(), v.String()))
-		}
 		panic(err)
 	}
-
-	list.State.Balancehash = fs.GetBalanceHash(false)
-	os.Stderr.WriteString(fmt.Sprintf("%8s E dbht %5d P  Balance Hashes  %10.10x ...\n",
-		list.State.FactomNodeName,
-		ht,
-		list.State.Balancehash.Fixed()))
-	os.Stderr.WriteString(fmt.Sprintf("%8s E dbht %5d T  Balance Hashes  %10.10x ...\n",
-		list.State.FactomNodeName,
-		ht,
-		fs.GetBalanceHash(true)))
 
 	// Make the current exchange rate whatever we had in the previous block.
 	// UNLESS there was a FER entry processed during this block  changeheight will be left at 1 on a change block
@@ -1126,6 +1083,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 
 	// Saving our state so we can reset it if we need to.
 	d.TmpSaveStruct = SaveFactomdState(list.State, d)
+	list.State.Balancehash = fs.GetBalanceHash(false)
 
 	return
 }

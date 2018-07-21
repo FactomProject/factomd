@@ -10,6 +10,8 @@ import (
 	"os"
 	"sort"
 
+	"errors"
+
 	. "github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -675,6 +677,10 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 }
 
 func (ss *SaveState) MarshalBinary() (rval []byte, err error) {
+	if ss == nil {
+		return nil, errors.New("SaveState is nil")
+	}
+
 	defer func(pe *error) {
 		if *pe != nil {
 			fmt.Fprintf(os.Stderr, "SaveState.MarshalBinary err:%v", *pe)

@@ -39,15 +39,14 @@ func (sss *StateSaverStruct) SaveDBStateList(ss *DBStateList, networkName string
 	sss.Mutex.Lock()
 	defer sss.Mutex.Unlock()
 
-	hsb := ss.GetHighestSavedBlk()
+	hsb := int(ss.GetHighestSavedBlk())
 	//Save only every 4 states
-	if hsb%4 != 0 || hsb < 4 {
+	if hsb%ss.State.FastSaveRate != 0 || hsb < ss.State.FastSaveRate {
 		return nil
 	}
 
 	//Actually save data from previous cached state to prevent dealing with rollbacks
 	if len(sss.TmpState) > 0 {
-		os.Stderr.WriteString(fmt.Sprintf("Save State %20s ht %8d\n", ss.State.FactomNodeName, sss.TmpDBHt))
 		err := SaveToFile(sss.TmpState, NetworkIDToFilename(networkName, sss.FastBootLocation))
 		if err != nil {
 			return err

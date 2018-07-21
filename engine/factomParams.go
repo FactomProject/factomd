@@ -83,6 +83,8 @@ func ParseCmdLine(args []string) *FactomParams {
 	LogstashURL := flag.String("logurl", "localhost:8345", "Endpoint URL for Logstash")
 
 	sync2Ptr := flag.Int("sync2", -1, "Set the initial blockheight for the second Sync pass. Used to force a total sync, or skip unnecessary syncing of entries.")
+	// We need the fastSaveRate to be greater than 1000 because we need the entries for 1000 blocks to know payments for the coinbase have not been removed.
+	fastSaveRatePtr := flag.Int("fastsaverate", 1000, "Save a fastboot file every so many blocks. Should be > 1000 for live systems.")
 
 	flag.StringVar(&p.DebugConsole, "debugconsole", "", "Enable DebugConsole on port. localhost:8093 open 8093 and spawns a telnet console, remotehost:8093 open 8093")
 	flag.StringVar(&p.StdoutLog, "stdoutlog", "", "Log stdout to a file")
@@ -140,6 +142,7 @@ func ParseCmdLine(args []string) *FactomParams {
 	p.Logjson = *logJsonPtr
 	p.Sim_Stdin = *sim_stdinPtr
 	p.ExposeProfiling = *exposeProfilePtr
+	p.FastSaveRate = *fastSaveRatePtr
 
 	p.PluginPath = *PluginPath
 	p.TorManage = *tormanager

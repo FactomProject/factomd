@@ -136,13 +136,12 @@ func GetECs(s *state.State, tight bool, c int) {
 
 	if ecBal > 15 {
 		cnt++
-		if cnt%100 == 0 || true {
-			os.Stderr.WriteString(fmt.Sprintf("Wanted to buy %d ECs, but we are ignoring them because EC Balance %v\n", c, ecBal))
+		if cnt%1000 == 0 {
+			os.Stderr.WriteString(fmt.Sprintf("%d purchases, buying %d and balance is %d \n", cnt, c, ecBal))
 		}
 		return
 	}
 	fundWallet(s, uint64(c)*ecPrice)
-	os.Stderr.WriteString(fmt.Sprintf("Bought %d ECs, now EC Balance %v\n", c, ecBal))
 
 }
 
