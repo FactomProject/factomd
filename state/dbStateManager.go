@@ -940,9 +940,6 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 			outputs = append(outputs, o)
 		}
 
-		// Add the grants to the list
-		outputs = append(outputs, GetGrantPayoutsFor(currentDBHeight)...)
-
 		err = d.AdminBlock.AddCoinbaseDescriptor(outputs)
 		if err != nil {
 			panic(err)
