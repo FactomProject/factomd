@@ -11,9 +11,9 @@ import (
 	. "github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"math"
-	"github.com/FactomProject/factomd/testHelper"
 	"github.com/FactomProject/factomd/common/primitives/random"
+	"github.com/FactomProject/factomd/testHelper"
+	"math"
 )
 
 func TestUnmarshalNilTransAddress(t *testing.T) {
