@@ -12,8 +12,10 @@ import (
 	"io/ioutil"
 	"math"
 	"os"
+	"strings"
 	"time"
 
+	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages/electionMsgs"
@@ -25,9 +27,6 @@ import (
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
 
-	"strings"
-
-	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/messages/msgsupport"
 	"github.com/FactomProject/factomd/elections"
@@ -338,9 +337,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 
 		// Also update the local constants for custom networks
 		fmt.Println("Running on the local network, use local coinbase constants")
-		constants.COINBASE_DECLARATION = 10
-		constants.COINBASE_PAYOUT_FREQUENCY = 5
-		constants.COINBASE_ACTIVATION = 0
+		constants.SetLocalCoinBaseConstants()
 	case "CUSTOM", "custom":
 		if bytes.Compare(p.CustomNet, []byte("\xe3\xb0\xc4\x42")) == 0 {
 			panic("Please specify a custom network with -customnet=<something unique here>")
@@ -356,9 +353,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 
 		// Also update the coinbase constants for custom networks
 		fmt.Println("Running on the custom network, use custom coinbase constants")
-		constants.COINBASE_DECLARATION = 10
-		constants.COINBASE_PAYOUT_FREQUENCY = 5
-		constants.COINBASE_ACTIVATION = 0
+		constants.SetCustomCoinBaseConstants()
 	default:
 		panic("Invalid Network choice in Config File or command line. Choose MAIN, TEST, LOCAL, or CUSTOM")
 	}
@@ -511,7 +506,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	for i, s := range fnodes {
 		fmt.Printf("%d {color:#%v, shape:dot, label:%v}\n", i, colors[i%len(colors)], s.State.FactomNodeName)
 	}
-	// Initate dbstate plugin if enabled. Only does so for first node,
+	// Initiate dbstate plugin if enabled. Only does so for first node,
 	// any more nodes on sim control will use default method
 	fnodes[0].State.SetTorrentUploader(p.TorUpload)
 	if p.TorManage {
