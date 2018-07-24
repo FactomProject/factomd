@@ -15,19 +15,15 @@ var _ = fmt.Println
 type SafeMsgMap struct {
 	msgmap map[[32]byte]interfaces.IMsg
 	sync.RWMutex
-	name      string
-	s         *State
-	debugFlag bool
+	name string
+	s    *State
 }
 
 func NewSafeMsgMap(name string, s *State) *SafeMsgMap {
 	m := new(SafeMsgMap)
 	m.msgmap = make(map[[32]byte]interfaces.IMsg)
 	m.name = name
-	if s != nil {
-		m.s = s
-		m.debugFlag = s.DebugExec()
-	}
+	m.s = s
 	return m
 }
 
@@ -39,11 +35,9 @@ func (m *SafeMsgMap) Get(key [32]byte) (msg interfaces.IMsg) {
 
 func (m *SafeMsgMap) Put(key [32]byte, msg interfaces.IMsg) {
 	m.Lock()
-	if m.debugFlag {
-		_, ok := m.msgmap[key]
-		if !ok {
-			defer m.s.LogMessage(m.name, "put", msg)
-		}
+	_, ok := m.msgmap[key]
+	if !ok {
+		defer m.s.LogMessage(m.name, "put", msg)
 	}
 	m.msgmap[key] = msg
 	m.Unlock()
@@ -53,9 +47,7 @@ func (m *SafeMsgMap) Delete(key [32]byte) (msg interfaces.IMsg, found bool) {
 	m.Lock()
 	msg, ok := m.msgmap[key] // return the message being deleted
 	if ok {
-		if m.debugFlag {
-			defer m.s.LogMessage(m.name, "delete", msg)
-		}
+		defer m.s.LogMessage(m.name, "delete", msg)
 		delete(m.msgmap, key)
 	}
 	m.Unlock()
@@ -63,8 +55,8 @@ func (m *SafeMsgMap) Delete(key [32]byte) (msg interfaces.IMsg, found bool) {
 }
 
 func (m *SafeMsgMap) Len() int {
-	m.Lock()
-	defer m.Unlock()
+	m.RLock()
+	defer m.RUnlock()
 	return len(m.msgmap)
 }
 
@@ -87,9 +79,7 @@ func (m *SafeMsgMap) Reset() {
 		m.msgmap = make(map[[32]byte]interfaces.IMsg)
 	}
 	m.Unlock()
-	if m.debugFlag {
-		m.s.LogPrintf(m.name, "reset")
-	}
+	m.s.LogPrintf(m.name, "reset")
 }
 
 //
@@ -105,11 +95,9 @@ func (m *SafeMsgMap) Cleanup(s *State) {
 
 		cc, ok := msg.(*messages.CommitChainMsg)
 		if ok && !s.NoEntryYet(cc.CommitChain.EntryHash, now) {
-			if m.debugFlag {
-				msg, ok := m.msgmap[k]
-				if ok {
-					defer m.s.LogMessage(m.name, "cleanup_chain", msg)
-				}
+			msg, ok := m.msgmap[k]
+			if ok {
+				defer m.s.LogMessage(m.name, "cleanup_chain", msg)
 			}
 			delete(m.msgmap, k)
 			continue
@@ -117,11 +105,9 @@ func (m *SafeMsgMap) Cleanup(s *State) {
 
 		c, ok := msg.(*messages.CommitEntryMsg)
 		if ok && !s.NoEntryYet(c.CommitEntry.EntryHash, now) {
-			if m.debugFlag {
-				msg, ok := m.msgmap[k]
-				if ok {
-					defer m.s.LogMessage(m.name, "cleanup_entry", msg)
-				}
+			msg, ok := m.msgmap[k]
+			if ok {
+				defer m.s.LogMessage(m.name, "cleanup_entry", msg)
 			}
 			delete(m.msgmap, k)
 			continue
@@ -129,21 +115,17 @@ func (m *SafeMsgMap) Cleanup(s *State) {
 
 		_, ok = s.Replay.Valid(constants.TIME_TEST, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), now)
 		if !ok {
-			if m.debugFlag {
-				msg, ok := m.msgmap[k]
-				if ok {
-					defer m.s.LogMessage(m.name, "cleanup_timeout", msg)
-				}
+			msg, ok := m.msgmap[k]
+			if ok {
+				defer m.s.LogMessage(m.name, "cleanup_timeout", msg)
 			}
 			delete(m.msgmap, k)
 		}
 		ok = s.Replay.IsHashUnique(constants.REVEAL_REPLAY, k)
 		if !ok {
-			if m.debugFlag {
-				msg, ok := m.msgmap[k]
-				if ok {
-					defer m.s.LogMessage(m.name, "cleanup_replay", msg)
-				}
+			msg, ok := m.msgmap[k]
+			if ok {
+				defer m.s.LogMessage(m.name, "cleanup_replay", msg)
 			}
 			delete(m.msgmap, k)
 		}

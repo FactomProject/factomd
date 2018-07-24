@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"hash"
-	"sync"
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -38,14 +37,8 @@ var _ = (*hash.Hash32)(nil)
 // Returns true if some message was processed.
 //***************************************************************
 
-var once sync.Once
-var debugExec_flag bool
-
 func (s *State) DebugExec() (ret bool) {
-	once.Do(func() { debugExec_flag = globals.Params.DebugLogRegEx != "" })
-
-	//return s.FactomNodeName == "FNode0"
-	return debugExec_flag
+	return globals.Params.DebugLogRegEx != ""
 }
 
 func (s *State) LogMessage(logName string, comment string, msg interfaces.IMsg) {
@@ -68,6 +61,10 @@ func (s *State) LogPrintf(logName string, format string, more ...interface{}) {
 	}
 }
 func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
+	if msg.GetHash() == nil {
+		s.LogMessage("badMsgs", "Nil hash in executeMsg", msg)
+		return false
+	}
 
 	if msg.GetHash() == nil {
 		s.LogMessage("badMsgs", "Nil hash in executeMsg", msg)
