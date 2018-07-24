@@ -82,6 +82,37 @@ func GetHardCodedGrants() []HardGrant {
 			// Protocol Development Grant:
 			// Factom, Inc.  30000 per month from June 9 -> Sep 9, 2018, Total of 90000 FCT
 			HardGrant{26, 9000000000000, factoid.NewAddress(primitives.ConvertUserStrToAddress("FA3LwCDE3ZdFkr9nE1Keb5JcHgwXVWpEHydshT1x2qKFdvZELVQz"))},
+
+			// Guide Payments (past) April 7- July 7
+			// April 2018.  April 7 - 30 = 160 FCT for each of the 5 guides
+			// May 2018. 200 FCT for 3 guides.  Dchapman 70.96 FCT. Canonical Ledgers & DBGrow 6.45 FCT
+			// June 2018. pay rate was 200 FCT/month June1-7 and 600 FCT/month June 8-30  40 FCT for each guide for July 1-7.
+			// From June 7 - July 7 each guide got 600 FCT
+
+			// Dchapman
+			// 160 + 70.96 = 230.96 rounded to 231
+			HardGrant{26, 23100000000, factoid.NewAddress(primitives.ConvertUserStrToAddress("FA22C7H844H5TrWNyXerqp6ZAvdSxYEEUNZxexuZbLnBvcxTobit"))},
+
+			// Centis BV total: 160 + 200 + 40 + 600 = 1000 FCT
+			HardGrant{26, 100000000000, factoid.NewAddress(primitives.ConvertUserStrToAddress("FA2hvRaci9Kks9cLNkEUFcxzUJuUFaaAE1eWYLqa2qk1k9pVFVBp"))},
+
+			// The 42nd Factoid total: 160 + 200 + 40 + 600 = 1000 FCT
+			HardGrant{26, 100000000000, factoid.NewAddress(primitives.ConvertUserStrToAddress("FA3QzobSZzMMYY1iL8SPWLzRsRggm9cKRg8SXkHxEhaQjqSSLY1o"))},
+
+			// Factom Inc. Factoid total: 160 + 200 + 40 + 600 = 1000 FCT
+			HardGrant{26, 100000000000, factoid.NewAddress(primitives.ConvertUserStrToAddress("FA2teRURMYTdYAA97zdh7rZDkxNtR1nhjryo34aaskjYqsqRSwZq"))},
+
+			// Matt Osborne/12 Lantern Solutions total: 160 + 200 = 360 FCT
+			HardGrant{26, 36000000000, factoid.NewAddress(primitives.ConvertUserStrToAddress("FA3dug63wat1WnaLSHB3vZw1dbsqTzmgaVqpm727UYKit4sdHgQJ"))},
+
+			// Canonical Ledgers total: 6.45 + 40 + 600 = 646.45 rounded to 646 FCT
+			HardGrant{26, 64600000000, factoid.NewAddress(primitives.ConvertUserStrToAddress("FA2PEXgRiPd14NzUP47XfVTgEnvjtLSebBZvnM8gM7cJAMuqWs89"))},
+
+			// DBGrow total: 6.45 + 40 + 600 = 646.45 rounded to 646 FCT
+			HardGrant{26, 64600000000, factoid.NewAddress(primitives.ConvertUserStrToAddress("FA3HSuFo9Soa5ZnG82JHqyKiRi4Pw17LxPTo9AsCaFNLCGkXkgsu"))},
+
+			// Guide Payments (anticipated) July 7 - Sep 7 2018
+
 		}
 
 	default:
