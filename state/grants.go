@@ -83,7 +83,7 @@ func GetHardCodedGrants() []HardGrant {
 
 			// Protocol Development Grant:
 			// Factom, Inc.  30000 per month from June 9 -> Sep 9, 2018, Total of 90000 FCT
-			HardGrant{155001, 9000000000000, factoid.NewAddress(primitives.ConvertUserStrToAddress("FA3LwCDE3ZdFkr9nE1Keb5JcHgwXVWpEHydshT1x2qKFdvZELVQz"))},
+			HardGrant{155001, 9000000000000, factoid.NewAddress(primitives.ConvertUserStrToAddress("FA3LwCDE3ZdFkr9nE1Keb5JcHgwXVWpEHydshT1x2qKFdvZELVQz"))}, // c
 
 			// Guide Payments (past) April 7- July 7
 			// April 2018.  April 7 - 30 = 160 FCT for each of the 5 guides
