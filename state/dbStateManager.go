@@ -396,7 +396,7 @@ func (a *DBStateList) IsSameAs(b *DBStateList) bool {
 func (dbsl *DBStateList) MarshalBinary() (rval []byte, err error) {
 	defer func(pe *error) {
 		if *pe != nil {
-			fmt.Fprintf(os.Stderr, "DBStateList.MarshalBinary err:%v", *pe)
+			//fmt.Fprintf(os.Stderr, "DBStateList.MarshalBinary err:%v", *pe)
 		}
 	}(&err)
 	dbsl.Init()

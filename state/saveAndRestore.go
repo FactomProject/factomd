@@ -306,7 +306,6 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 
 	// Need to ensure the dbstate is at the same height as the state.
 	if ss.DBHeight != state.LLeaderHeight {
-		os.Stderr.WriteString(fmt.Sprintf("%10s dbht mismatch %d %d\n", state.GetFactomNodeName(), ss.DBHeight, state.LLeaderHeight))
 		return
 	}
 
@@ -314,13 +313,10 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 		return nil
 	}
 
-	//Only check if we're not loading from the database
-	if state.DBFinished == true {
-		// If the timestamp is over a day old, then there is really no point in saving the state of
-		// historical data.
-		if int(state.GetHighestKnownBlock())-int(state.GetHighestSavedBlk()) > 144 {
-			return nil
-		}
+	// If the timestamp is over a day old, then there is really no point in saving the state of
+	// historical data.
+	if int(state.GetHighestKnownBlock())-int(state.GetHighestSavedBlk()) > 2000 {
+		return nil
 	}
 
 	// state.AddStatus(fmt.Sprintf("Save state at dbht: %d", ss.DBHeight))
