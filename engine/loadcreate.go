@@ -128,20 +128,21 @@ func GetECs(s *state.State, tight bool, c int) {
 	ecBal := s.GetE(true, outAdd.Fixed())
 	ecPrice := s.GetFactoshisPerEC()
 
-	if c == 0 && !tight {
-		c += 1000
-	} else {
-		c += 10
-	}
-
+	cnt++
 	if ecBal > int64(c) && ecBal > 15 {
+		if cnt%100 == 0 {
+			os.Stderr.WriteString(fmt.Sprintf("%d purchases, would be buying %d but balance is %d \n", cnt, c, ecBal))
+		}
 		return
 	}
 
-	cnt++
-	if cnt%1000 == 0 {
-		os.Stderr.WriteString(fmt.Sprintf("%d purchases, buying %d and balance is %d \n", cnt, c, ecBal))
+	if c == 0 && !tight {
+		c += 1000
+	} else {
+		c += 25
 	}
+
+	os.Stderr.WriteString(fmt.Sprintf("%d purchases, buying %d and balance is %d \n", cnt, c, ecBal))
 
 	fundWallet(s, uint64(c)*ecPrice)
 
