@@ -70,6 +70,18 @@ func GetHardCodedGrants() []HardGrant {
 			// Java Enterprise Client Library Grant:
 			// Blockchain Innovation Foundation 1200 FCT
 			HardGrant{26, 120000000000, factoid.NewAddress(primitives.ConvertUserStrToAddress("FA3YVoaN2D8xNitQ6BNhUDW6jH73MdYKyokJqs9LPJM8cuusM7fo"))},
+
+			// Oracle Master Grant:
+			// Factom, Inc.  300 FCT
+			HardGrant{26, 30000000000, factoid.NewAddress(primitives.ConvertUserStrToAddress("FA3fpiZ91MCRRFjVGfNXK4pg7vx3BT3aSRyoVqgptZCX7N5BNR8P"))},
+
+			// Anchor Master grant:
+			// Factom, Inc.  One time 600 FCT plus 220 per month from June 9 -> Sep 9, 2018. Total of 1260 FCT
+			HardGrant{26, 126000000000, factoid.NewAddress(primitives.ConvertUserStrToAddress("FA3jySUFtLXb1VdAJJ5NRVNYEtZ4EBSkDB7yn6LuKGQ4P1ntARhx"))},
+
+			// Protocol Development Grant:
+			// Factom, Inc.  30000 per month from June 9 -> Sep 9, 2018, Total of 90000 FCT
+			HardGrant{26, 9000000000000, factoid.NewAddress(primitives.ConvertUserStrToAddress("FA3LwCDE3ZdFkr9nE1Keb5JcHgwXVWpEHydshT1x2qKFdvZELVQz"))},
 		}
 
 	default:
