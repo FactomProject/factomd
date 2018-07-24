@@ -111,8 +111,22 @@ func GetHardCodedGrants() []HardGrant {
 			// DBGrow total: 6.45 + 40 + 600 = 646.45 rounded to 646 FCT
 			HardGrant{26, 64600000000, factoid.NewAddress(primitives.ConvertUserStrToAddress("FA3HSuFo9Soa5ZnG82JHqyKiRi4Pw17LxPTo9AsCaFNLCGkXkgsu"))},
 
+			
 			// Guide Payments (anticipated) July 7 - Sep 7 2018
+			// Centis BV total: 600 + 600 = 1200 FCT
+			HardGrant{26, 120000000000, factoid.NewAddress(primitives.ConvertUserStrToAddress("FA2hvRaci9Kks9cLNkEUFcxzUJuUFaaAE1eWYLqa2qk1k9pVFVBp"))},
 
+			// The 42nd Factoid total: 600 + 600 = 1200 FCT
+			HardGrant{26, 120000000000, factoid.NewAddress(primitives.ConvertUserStrToAddress("FA3QzobSZzMMYY1iL8SPWLzRsRggm9cKRg8SXkHxEhaQjqSSLY1o"))},
+
+			// Factom Inc. Factoid total: 600 + 600 = 1200 FCT
+			HardGrant{26, 120000000000, factoid.NewAddress(primitives.ConvertUserStrToAddress("FA2teRURMYTdYAA97zdh7rZDkxNtR1nhjryo34aaskjYqsqRSwZq"))},
+
+			// Canonical Ledgers total: 600 + 600 = 1200 FCT
+			HardGrant{26, 120000000000, factoid.NewAddress(primitives.ConvertUserStrToAddress("FA2PEXgRiPd14NzUP47XfVTgEnvjtLSebBZvnM8gM7cJAMuqWs89"))},
+
+			// DBGrow total: 600 + 600 = 1200 FCT
+			HardGrant{26, 120000000000, factoid.NewAddress(primitives.ConvertUserStrToAddress("FA3HSuFo9Soa5ZnG82JHqyKiRi4Pw17LxPTo9AsCaFNLCGkXkgsu"))},
 		}
 
 	default:
