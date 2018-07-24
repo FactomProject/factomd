@@ -79,7 +79,11 @@ func (e *Elections) AddFederatedServer(server interfaces.IServer) int {
 	e.RemoveAuditServer(server)
 
 	e.Federated = append(e.Federated, server)
-	Sort(e.Federated)
+	changed := Sort(e.Federated)
+	if changed {
+		e.LogPrintf("election", "Sort changed leaders")
+		e.LogPrintLeaders("election")
+	}
 
 	return e.GetFedServerIndex(server)
 }
@@ -94,7 +98,11 @@ func (e *Elections) AddAuditServer(server interfaces.IServer) int {
 	e.RemoveFederatedServer(server)
 
 	e.Audit = append(e.Audit, server)
-	Sort(e.Audit)
+	changed := Sort(e.Audit)
+	if changed {
+		e.LogPrintf("election", "Sort changed leaders")
+		e.LogPrintLeaders("election")
+	}
 
 	return e.GetAudServerIndex(server)
 }
@@ -294,6 +302,26 @@ func (e *Elections) LogMessage(logName string, comment string, msg interfaces.IM
 
 		messages.LogMessage(logFileName, t+comment, msg)
 	}
+}
+
+func (e *Elections) LogPrintLeaders(log string) {
+	e.LogPrintf(log, "AuthSet %15s | %15s", "Fed", "Aud")
+	limit := len(e.Federated)
+	if limit < len(e.Audit) {
+		limit = len(e.Audit)
+	}
+	for i := 0; i < limit; i++ {
+		f := ""
+		a := ""
+		if i < len(e.Federated) {
+			f = fmt.Sprintf("%x", e.Federated[i].GetChainID().Bytes()[3:6])
+		}
+		if i < len(e.Audit) {
+			a = fmt.Sprintf("%x", e.Audit[i].GetChainID().Bytes()[3:6])
+		}
+		e.LogPrintf(log, "AuthSet %15s | %215s", f, a)
+	}
+
 }
 
 func (e *Elections) LogPrintf(logName string, format string, more ...interface{}) {

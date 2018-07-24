@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"strings"
 	"sync"
 	"time"
 
@@ -12,13 +13,15 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
-//TODO: Cache message hash to message string with age out...
 var (
 	traceMutex sync.Mutex
 	files      map[string]*os.File
 	enabled    map[string]bool
 	TestRegex  *regexp.Regexp
 	sequence   int
+	history    *([16384][32]byte) // Last 16k messages logged
+	h          int                // head of history
+	msgmap     map[[32]byte]string
 )
 
 // Check a filename and see if logging is on for that filename
@@ -33,16 +36,18 @@ func checkFileName(name string) bool {
 	if globals.Params.DebugLogRegEx == "" {
 		return false
 	}
+
+	//strip quotes if they are included in the string
+	if globals.Params.DebugLogRegEx[0] == '"' || globals.Params.DebugLogRegEx[0] == '\'' {
+		globals.Params.DebugLogRegEx = globals.Params.DebugLogRegEx[1 : len(globals.Params.DebugLogRegEx)-1] // Trim the "'s
+	}
+	// if we haven't compiled the regex ...
 	if TestRegex == nil {
-		if globals.Params.DebugLogRegEx[0] == '"' || globals.Params.DebugLogRegEx[0] == '\'' {
-			globals.Params.DebugLogRegEx = globals.Params.DebugLogRegEx[1 : len(globals.Params.DebugLogRegEx)-1] // Trim the leading "
-		}
-		theRegex, err := regexp.Compile(globals.Params.DebugLogRegEx)
+		theRegex, err := regexp.Compile("(?i)" + globals.Params.DebugLogRegEx) // force case insensitive
 		if err != nil {
 			panic(err)
 		}
-		files = make(map[string]*os.File)
-		enabled = make(map[string]bool)
+		enabled = make(map[string]bool) // create a clean cache of enabled files
 		TestRegex = theRegex
 	}
 
@@ -57,6 +62,7 @@ func checkFileName(name string) bool {
 // assumes traceMutex is locked already
 func getTraceFile(name string) (f *os.File) {
 	//traceMutex.Lock()	defer traceMutex.Unlock()
+	name = strings.ToLower(name)
 	if !checkFileName(name) {
 		return nil
 	}
@@ -75,10 +81,6 @@ func getTraceFile(name string) (f *os.File) {
 	}
 	return f
 }
-
-var history *([16384][32]byte) // Last 16k messages logged
-var h int                      // head of history
-var msgmap map[[32]byte]string
 
 func addmsg(hash [32]byte, msg string) {
 	if history == nil {
@@ -114,16 +116,14 @@ func LogMessage(name string, note string, msg interfaces.IMsg) {
 	}
 	sequence++
 	seq := sequence
-	var t byte
-	var rhash, hash, mhash, msgString string
 	embeddedHash := ""
-	hash = "??????"
-	mhash = "??????"
-	rhash = "??????"
-	if msg == nil {
-		t = 0
-		msgString = "-nil-"
-	} else {
+	to := ""
+	hash := "??????"
+	mhash := "??????"
+	rhash := "??????"
+	t := byte(0)
+	msgString := "-nil-"
+	if msg != nil {
 		t = msg.Type()
 		msgString = msg.String()
 		// work around message that don't have hashes yet ...
@@ -145,12 +145,9 @@ func LogMessage(name string, note string, msg interfaces.IMsg) {
 			ack := msg.(*Ack)
 			byte := ack.GetHash().Fixed
 			embeddedHash = fmt.Sprintf(" EmbeddedMsg: %s", getmsg(byte()))
-		case constants.MISSING_MSG_RESPONSE:
-			mm := msg.(*MissingMsgResponse)
-			embeddedHash = fmt.Sprintf(" EmbeddedMsg: %s | %s", mm.MsgResponse.String(), mm.AckResponse.String())
-		case constants.MISSING_DATA:
-			md := msg.(*MissingData)
-			embeddedHash = fmt.Sprintf(" EmbeddedMsg: %s", getmsg(md.RequestHash.Fixed()))
+			//case constants.MISSING_MSG_RESPONSE:
+			//	mm := msg.(*MissingMsgResponse)
+			//	embeddedHash = fmt.Sprintf(" EmbeddedMsg: %s | %s", mm.MsgResponse.String(), mm.AckResponse.String())
 
 		default:
 			if msg.GetMsgHash() != nil {
@@ -158,13 +155,23 @@ func LogMessage(name string, note string, msg interfaces.IMsg) {
 				addmsg(bytes, msgString) // Keep message we have seen for a while
 			}
 		}
+		if msg.IsPeer2Peer() {
+			if 0 == msg.GetOrigin() {
+				to = "RandomPeer"
+			} else {
+				// right for sim... what about network ?
+				to = fmt.Sprintf("FNode%02d", msg.GetOrigin()-1)
+			}
+		} else {
+			//to = "broadcast"
+		}
 	}
 
 	now := time.Now().Local()
 
-	s := fmt.Sprintf("%7v %02d:%02d:%02d %-25s M-%v|R-%v|H-%v %26s[%2v]:%v%v\n", seq, now.Hour()%24, now.Minute()%60, now.Second()%60,
-		note, mhash, rhash, hash, constants.MessageName(byte(t)), t,
-		msgString, embeddedHash)
+	s := fmt.Sprintf("%7v %02d:%02d:%02d.%03d %-25s M-%v|R-%v|H-%v|%p %26s[%2v]:%v%v %v\n", seq, now.Hour()%24, now.Minute()%60, now.Second()%60, (now.Nanosecond()/1e6)%1000,
+		note, mhash, rhash, hash, msg, constants.MessageName(byte(t)), t,
+		msgString, embeddedHash, to)
 	s = addNodeNames(s)
 
 	myfile.WriteString(s)
@@ -223,7 +230,7 @@ func LogPrintf(name string, format string, more ...interface{}) {
 	}
 	seq := sequence
 	now := time.Now().Local()
-	s := fmt.Sprintf("%7v %02d:%02d:%02d %s\n", seq, now.Hour()%24, now.Minute()%60, now.Second()%60, fmt.Sprintf(format, more...))
+	s := fmt.Sprintf("%7v %02d:%02d:%02d.%03d %s\n", seq, now.Hour()%24, now.Minute()%60, now.Second()%60, (now.Nanosecond()/1e6)%1000, fmt.Sprintf(format, more...))
 	s = addNodeNames(s)
 	myfile.WriteString(s)
 }

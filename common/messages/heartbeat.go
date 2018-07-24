@@ -267,8 +267,8 @@ func (m *Heartbeat) Validate(is interfaces.IState) int {
 	if m.DBHeight <= is.GetHighestSavedBlk() {
 		return -1
 	}
-	// ignore it if it's from the distant future
-	if m.DBHeight > is.GetHighestKnownBlock() {
+	// ignore it if it's from the future
+	if m.DBHeight > is.GetLLeaderHeight() {
 		return -1
 	}
 

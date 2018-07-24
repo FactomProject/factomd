@@ -115,6 +115,7 @@ func Testlimits(t *testing.T) {
 func TestNewDBStateMissing(t *testing.T) {
 
 	s := testHelper.CreateEmptyTestState()
+	s.LLeaderHeight = 2 // move the leader height up so the request can ask for a valid state
 
 	ndbs := NewDBStateMissing(s, 0, constants.MAX_DB_STATES_PER_REQUEST)
 

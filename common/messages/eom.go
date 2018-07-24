@@ -124,21 +124,32 @@ func (m *EOM) Type() byte {
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
-func (m *EOM) Validate(state interfaces.IState) int {
+func (m *EOM) Validate(s interfaces.IState) int {
 	if m.IsLocal() {
 		return 1
 	}
 
-	// if this is a EOM for a saved block it's invalid (old)
-	if m.DBHeight <= state.GetHighestSavedBlk() {
+	// Ignore old EOM
+	if m.DBHeight <= s.GetHighestSavedBlk() {
 		return -1
 	}
-	// if this is a DBSig for a future block it's invalid (to far in the future)
-	if m.DBHeight > state.GetHighestKnownBlock() { // (this may need to be +1?)
+	delta := (int(m.DBHeight)-int(s.GetLLeaderHeight()))*10 + (int(m.Minute) - int(s.GetCurrentMinute()))
+
+	if delta < 0 {
+		s.LogMessage("executeMsg", "Drop EOM from past", m)
 		return -1
 	}
 
-	found, _ := state.GetVirtualServers(m.DBHeight, int(m.Minute), m.ChainID)
+	if delta > 30 {
+		s.LogMessage("executeMsg", "Drop EOM from future", m)
+		return -1
+	}
+
+	if delta > 10 {
+		return 0 // put this in the holding and validate it later
+	}
+
+	found, _ := s.GetVirtualServers(m.DBHeight, int(m.Minute), m.ChainID)
 	if !found { // Only EOM from federated servers are valid.
 		return -1
 	}
@@ -147,7 +158,7 @@ func (m *EOM) Validate(state interfaces.IState) int {
 	eomSigned, err := m.VerifySignature()
 	if err != nil || !eomSigned {
 		vlog := func(format string, args ...interface{}) {
-			eLogger.WithFields(log.Fields{"func": "Validate", "lheight": state.GetLeaderHeight()}).WithFields(m.LogFields()).Errorf(format, args...)
+			eLogger.WithFields(log.Fields{"func": "Validate", "lheight": s.GetLeaderHeight()}).WithFields(m.LogFields()).Errorf(format, args...)
 		}
 
 		if err != nil {
@@ -159,7 +170,7 @@ func (m *EOM) Validate(state interfaces.IState) int {
 		return -1
 	}
 	// if !eomSigned {
-	// 	state.Logf("warning", "[EOM Validate (2)] Failed to verify signature. Msg: %s", err.Error(), m.String())
+	// 	s.Logf("warning", "[EOM Validate (2)] Failed to verify signature. Msg: %s", err.Error(), m.String())
 	// 	return -1
 	// }
 	return 1
