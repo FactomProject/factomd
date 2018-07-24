@@ -75,15 +75,15 @@ func GetHardCodedGrants() []HardGrant {
 
 			// Oracle Master Grant:
 			// Factom, Inc.  300 FCT
-			HardGrant{26, 30000000000, factoid.NewAddress(primitives.ConvertUserStrToAddress("FA3fpiZ91MCRRFjVGfNXK4pg7vx3BT3aSRyoVqgptZCX7N5BNR8P"))},
+			HardGrant{151776, 30000000000, factoid.NewAddress(primitives.ConvertUserStrToAddress("FA3fpiZ91MCRRFjVGfNXK4pg7vx3BT3aSRyoVqgptZCX7N5BNR8P"))},
 
 			// Anchor Master grant:
 			// Factom, Inc.  One time 600 FCT plus 220 per month from June 9 -> Sep 9, 2018. Total of 1260 FCT
-			HardGrant{26, 126000000000, factoid.NewAddress(primitives.ConvertUserStrToAddress("FA3jySUFtLXb1VdAJJ5NRVNYEtZ4EBSkDB7yn6LuKGQ4P1ntARhx"))},
+			HardGrant{151776, 126000000000, factoid.NewAddress(primitives.ConvertUserStrToAddress("FA3jySUFtLXb1VdAJJ5NRVNYEtZ4EBSkDB7yn6LuKGQ4P1ntARhx"))},
 
 			// Protocol Development Grant:
 			// Factom, Inc.  30000 per month from June 9 -> Sep 9, 2018, Total of 90000 FCT
-			HardGrant{26, 9000000000000, factoid.NewAddress(primitives.ConvertUserStrToAddress("FA3LwCDE3ZdFkr9nE1Keb5JcHgwXVWpEHydshT1x2qKFdvZELVQz"))},
+			HardGrant{155001, 9000000000000, factoid.NewAddress(primitives.ConvertUserStrToAddress("FA3LwCDE3ZdFkr9nE1Keb5JcHgwXVWpEHydshT1x2qKFdvZELVQz"))},
 
 			// Guide Payments (past) April 7- July 7
 			// April 2018.  April 7 - 30 = 160 FCT for each of the 5 guides
@@ -115,19 +115,19 @@ func GetHardCodedGrants() []HardGrant {
 
 			// Guide Payments (anticipated) July 7 - Sep 7 2018
 			// Centis BV total: 600 + 600 = 1200 FCT
-			HardGrant{26, 120000000000, factoid.NewAddress(primitives.ConvertUserStrToAddress("FA2hvRaci9Kks9cLNkEUFcxzUJuUFaaAE1eWYLqa2qk1k9pVFVBp"))},
+			HardGrant{158001, 120000000000, factoid.NewAddress(primitives.ConvertUserStrToAddress("FA2hvRaci9Kks9cLNkEUFcxzUJuUFaaAE1eWYLqa2qk1k9pVFVBp"))},
 
 			// The 42nd Factoid total: 600 + 600 = 1200 FCT
-			HardGrant{26, 120000000000, factoid.NewAddress(primitives.ConvertUserStrToAddress("FA3QzobSZzMMYY1iL8SPWLzRsRggm9cKRg8SXkHxEhaQjqSSLY1o"))},
+			HardGrant{158001, 120000000000, factoid.NewAddress(primitives.ConvertUserStrToAddress("FA3QzobSZzMMYY1iL8SPWLzRsRggm9cKRg8SXkHxEhaQjqSSLY1o"))},
 
 			// Factom Inc. Factoid total: 600 + 600 = 1200 FCT
-			HardGrant{26, 120000000000, factoid.NewAddress(primitives.ConvertUserStrToAddress("FA2teRURMYTdYAA97zdh7rZDkxNtR1nhjryo34aaskjYqsqRSwZq"))},
+			HardGrant{158001, 120000000000, factoid.NewAddress(primitives.ConvertUserStrToAddress("FA2teRURMYTdYAA97zdh7rZDkxNtR1nhjryo34aaskjYqsqRSwZq"))},
 
 			// Canonical Ledgers total: 600 + 600 = 1200 FCT
-			HardGrant{26, 120000000000, factoid.NewAddress(primitives.ConvertUserStrToAddress("FA2PEXgRiPd14NzUP47XfVTgEnvjtLSebBZvnM8gM7cJAMuqWs89"))},
+			HardGrant{158001, 120000000000, factoid.NewAddress(primitives.ConvertUserStrToAddress("FA2PEXgRiPd14NzUP47XfVTgEnvjtLSebBZvnM8gM7cJAMuqWs89"))},
 
 			// DBGrow total: 600 + 600 = 1200 FCT
-			HardGrant{26, 120000000000, factoid.NewAddress(primitives.ConvertUserStrToAddress("FA3HSuFo9Soa5ZnG82JHqyKiRi4Pw17LxPTo9AsCaFNLCGkXkgsu"))},
+			HardGrant{158001, 120000000000, factoid.NewAddress(primitives.ConvertUserStrToAddress("FA3HSuFo9Soa5ZnG82JHqyKiRi4Pw17LxPTo9AsCaFNLCGkXkgsu"))},
 		}
 
 	default:
