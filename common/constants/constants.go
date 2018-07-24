@@ -385,3 +385,7 @@ const (
 	// Time window for identity to require registration: 24hours = 144 blocks
 	IDENTITY_REGISTRATION_BLOCK_WINDOW uint32 = 144
 )
+
+// SaveState Version
+// This variable is the versioning of the savestate files written to accelerate the booting of Factomd.
+const SaveStateVersion = 9

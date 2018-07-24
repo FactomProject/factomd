@@ -10,6 +10,7 @@ import (
 	"os"
 	"sync"
 
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
@@ -23,7 +24,6 @@ type StateSaverStruct struct {
 }
 
 //To be increased whenever the data being saved changes from the last verion
-const version = 8
 
 func (sss *StateSaverStruct) StopSaving() {
 	sss.Mutex.Lock()
@@ -95,7 +95,7 @@ func (sss *StateSaverStruct) LoadDBStateList(ss *DBStateList, networkName string
 }
 
 func NetworkIDToFilename(networkName string, fileLocation string) string {
-	file := fmt.Sprintf("FastBoot_%s_v%v.db", networkName, version)
+	file := fmt.Sprintf("FastBoot_%s_v%v.db", networkName, constants.SaveStateVersion)
 	if fileLocation != "" {
 		return fmt.Sprintf("%v/%v", fileLocation, file)
 	}
