@@ -18,6 +18,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/dustin/go-humanize"
 )
 
 var _ = fmt.Print
@@ -39,6 +40,8 @@ func LoadDatabase(s *State) {
 	if start > 10 {
 		start = start - 10
 	}
+
+	os.Stderr.WriteString(fmt.Sprintf("%x Loading %s Blocks from disk\n", s.IdentityChainID.Bytes()[3:8], humanize.Comma(int64(blkCnt))))
 
 	for i := int(start); i <= int(blkCnt); i++ {
 		if i > 0 && i%1000 == 0 {

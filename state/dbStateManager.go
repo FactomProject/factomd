@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/FactomProject/factomd/common/adminBlock"
@@ -954,6 +953,8 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		out.WriteString("\n")
 	}
 
+	list.State.LLeaderHeight = dbht
+
 	prt("pl 1st", pl)
 	prt("pln 1st", pln)
 
@@ -1094,8 +1095,9 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 
 	// Saving our state so we can reset it if we need to.
 	d.TmpSaveStruct = SaveFactomdState(list.State, d)
-	list.State.Balancehash = fs.GetBalanceHash(false)
 
+	list.State.Balancehash = fs.GetBalanceHash(false)
+	list.State.LogPrintf("dbstateprocess", "dbht %d BalanceHash P %x T %x")
 	return
 }
 
@@ -1141,6 +1143,17 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	dbheight := int(d.DirectoryBlock.GetHeader().GetDBHeight())
 	// Take the height, and some function of the identity chain, and use that to decide to trim.  That
 	// way, not all nodes in a simulation Trim() at the same time.
+
+	// If loaded from disk, I still want to create a fast boot file if appropriate.
+	if !d.IsNew {
+		// We will only save blocks marked to be saved.  As such, this must follow
+		// the "d.saved = true" above
+		if list.State.StateSaverStruct.FastBoot {
+			d.SaveStruct = d.TmpSaveStruct
+			err := list.State.StateSaverStruct.SaveDBStateList(list.State.DBStates, list.State.Network)
+			list.State.LogPrintf("dbsatesprocess", "Error while saving Fastboot %v", err)
+		}
+	}
 
 	if !d.Signed || !d.ReadyToSave || list.State.DB == nil {
 		return
@@ -1237,7 +1250,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 				allowedEntries[e.Fixed()] = struct{}{}
 			}
 		} else {
-			list.State.Logf("error", "Error putting entries in allowedmap, as Eblock is not in Dblock")
+			list.State.LogPrintf("dbstateprocess", "Error putting entries in allowedmap, as Eblock is not in Dblock")
 		}
 	}
 
@@ -1253,7 +1266,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 				panic(err.Error())
 			}
 		} else {
-			list.State.Logf("error", "Error saving eblock from dbstate, eblock not allowed")
+			list.State.LogPrintf("dbstateprocess", "Error saving eblock from dbstate, eblock not allowed")
 		}
 	}
 	for _, e := range d.Entries {
@@ -1263,7 +1276,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 				panic(err.Error())
 			}
 		} else {
-			list.State.Logf("error", "Error saving entry from dbstate, entry not allowed")
+			list.State.LogPrintf("dbstateprocess", "Error saving entry from dbstate, entry not allowed")
 		}
 	}
 	list.State.NumEntries += len(d.Entries)
@@ -1287,11 +1300,11 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 							panic(err.Error())
 						}
 					} else {
-						list.State.Logf("error", "Error saving entry from process list, entry not allowed")
+						list.State.LogPrintf("dbstateprocess", "Error saving entry from process list, entry not allowed")
 					}
 				}
 			} else {
-				list.State.Logf("error", "Error saving eblock from process list, eblock not allowed")
+				list.State.LogPrintf("dbstateprocess", "Error saving eblock from process list, eblock not allowed")
 			}
 		}
 		pl.NewEBlocks = make(map[[32]byte]interfaces.IEntryBlock)
@@ -1314,12 +1327,11 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		good := true
 		mr, err := list.State.DB.FetchDBKeyMRByHeight(uint32(dbheight))
 		if err != nil {
-			os.Stderr.WriteString(err.Error() + "\n")
+			list.State.LogPrintf("dbstateprocess", err.Error())
 			return
-			panic(fmt.Sprintf("%20s At Directory Block Height %d", list.State.FactomNodeName, dbheight))
 		}
 		if mr == nil {
-			os.Stderr.WriteString(fmt.Sprintf("There is no mr returned by list.State.DB.FetchDBKeyMRByHeight() at %d\n", dbheight))
+			list.State.LogPrintf("dbstateprocess", "There is no mr returned by list.State.DB.FetchDBKeyMRByHeight() at %d\n", dbheight)
 			mr = d.DirectoryBlock.GetKeyMR()
 			good = false
 		}
@@ -1327,17 +1339,15 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		td, err := list.State.DB.FetchDBlock(mr)
 		if err != nil || td == nil {
 			if err != nil {
-				os.Stderr.WriteString(err.Error() + "\n")
+				list.State.LogPrintf("dbstateprocess", err.Error())
 			} else {
-				os.Stderr.WriteString(fmt.Sprintf("Could not get directory block by primary key at Block Height %d\n", dbheight))
+				list.State.LogPrintf("dbstateprocess", "Could not get directory block by primary key at Block Height %d\n", dbheight)
 			}
 			return
-			panic(fmt.Sprintf("%20s Error reading db by mr at Directory Block Height %d", list.State.FactomNodeName, dbheight))
 		}
 		if td.GetKeyMR().Fixed() != mr.Fixed() {
-			os.Stderr.WriteString(fmt.Sprintf("Key MR is wrong at Directory Block Height %d\n", dbheight))
+			list.State.LogPrintf("dbsatesprocess", "Key MR is wrong at Directory Block Height %d\n", dbheight)
 			return
-			panic(fmt.Sprintf("%20s KeyMR is wrong at Directory Block Height %d", list.State.FactomNodeName, dbheight))
 		}
 		if !good {
 			return
