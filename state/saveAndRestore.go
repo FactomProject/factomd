@@ -313,12 +313,6 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 		return nil
 	}
 
-	// If the timestamp is over a day old, then there is really no point in saving the state of
-	// historical data.
-	if int(state.GetHighestKnownBlock())-int(state.GetHighestSavedBlk()) > 2000 {
-		return nil
-	}
-
 	// state.AddStatus(fmt.Sprintf("Save state at dbht: %d", ss.DBHeight))
 
 	ss.Replay = state.Replay.Save()

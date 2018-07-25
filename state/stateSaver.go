@@ -40,7 +40,7 @@ func (sss *StateSaverStruct) SaveDBStateList(ss *DBStateList, networkName string
 	defer sss.Mutex.Unlock()
 
 	hsb := int(ss.GetHighestSavedBlk())
-	//Save only every 4 states
+	//Save only at the rate of the FastSaveRate
 	if hsb%ss.State.FastSaveRate != 0 || hsb < ss.State.FastSaveRate {
 		return nil
 	}
@@ -72,6 +72,7 @@ func (sss *StateSaverStruct) DeleteSaveState(networkName string) error {
 }
 
 func (sss *StateSaverStruct) LoadDBStateList(ss *DBStateList, networkName string) error {
+
 	b, err := LoadFromFile(NetworkIDToFilename(networkName, sss.FastBootLocation))
 	if err != nil {
 		return nil
