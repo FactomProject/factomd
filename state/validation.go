@@ -18,7 +18,7 @@ func (state *State) ValidatorLoop() {
 	CheckGrants()
 	timeStruct := new(Timer)
 	var prev time.Time
-//	state.validatorLoopThreadID = atomic.Goid()
+	//	state.validatorLoopThreadID = atomic.Goid()
 	for {
 		if state.DebugExec() {
 			status := ""
