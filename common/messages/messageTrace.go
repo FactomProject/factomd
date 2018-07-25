@@ -88,7 +88,6 @@ func getTraceFile(name string) (f *os.File) {
 	return f
 }
 
-
 func addmsg(hash [32]byte, msg string) {
 	if history == nil {
 		history = new([16384][32]byte)
