@@ -72,6 +72,7 @@ func (sss *StateSaverStruct) DeleteSaveState(networkName string) error {
 }
 
 func (sss *StateSaverStruct) LoadDBStateList(ss *DBStateList, networkName string) error {
+
 	b, err := LoadFromFile(NetworkIDToFilename(networkName, sss.FastBootLocation))
 	if err != nil {
 		return nil

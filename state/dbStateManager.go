@@ -1097,7 +1097,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	d.TmpSaveStruct = SaveFactomdState(list.State, d)
 
 	list.State.Balancehash = fs.GetBalanceHash(false)
-	list.State.LogPrintf("dbstateprocess","dbht %d BalanceHash P %x T %x",)
+	list.State.LogPrintf("dbstateprocess", "dbht %d BalanceHash P %x T %x")
 	return
 }
 
@@ -1143,6 +1143,17 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	dbheight := int(d.DirectoryBlock.GetHeader().GetDBHeight())
 	// Take the height, and some function of the identity chain, and use that to decide to trim.  That
 	// way, not all nodes in a simulation Trim() at the same time.
+
+	// If loaded from disk, I still want to create a fast boot file if appropriate.
+	if !d.IsNew {
+		// We will only save blocks marked to be saved.  As such, this must follow
+		// the "d.saved = true" above
+		if list.State.StateSaverStruct.FastBoot {
+			d.SaveStruct = d.TmpSaveStruct
+			err := list.State.StateSaverStruct.SaveDBStateList(list.State.DBStates, list.State.Network)
+			list.State.LogPrintf("dbsatesprocess", "Error while saving Fastboot %v", err)
+		}
+	}
 
 	if !d.Signed || !d.ReadyToSave || list.State.DB == nil {
 		return
