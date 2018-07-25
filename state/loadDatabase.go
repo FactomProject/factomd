@@ -41,7 +41,10 @@ func LoadDatabase(s *State) {
 		start = start - 10
 	}
 
-	os.Stderr.WriteString(fmt.Sprintf("%x Loading %s Blocks from disk\n", s.IdentityChainID.Bytes()[3:8], humanize.Comma(int64(blkCnt))))
+	os.Stderr.WriteString(fmt.Sprintf("%x Loading %s Blocks starting at %s from disk\n",
+		s.IdentityChainID.Bytes()[3:8],
+		humanize.Comma(int64(blkCnt)),
+		humanize.Comma(int64(start))))
 
 	for i := int(start); i <= int(blkCnt); i++ {
 		if i > 0 && i%1000 == 0 {

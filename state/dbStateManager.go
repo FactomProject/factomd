@@ -1148,7 +1148,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	if !d.IsNew {
 		// We will only save blocks marked to be saved.  As such, this must follow
 		// the "d.saved = true" above
-		if list.State.StateSaverStruct.FastBoot {
+		if list.State.StateSaverStruct.FastBoot && list.State.StateSaverStruct.TmpDBHt < uint32(dbheight) {
 			d.SaveStruct = d.TmpSaveStruct
 			err := list.State.StateSaverStruct.SaveDBStateList(list.State.DBStates, list.State.Network)
 			list.State.LogPrintf("dbsatesprocess", "Error while saving Fastboot %v", err)
