@@ -42,6 +42,9 @@ func (s *State) DebugExec() (ret bool) {
 }
 
 func (s *State) LogMessage(logName string, comment string, msg interfaces.IMsg) {
+	if s == nil {
+		return
+	}
 	if s.DebugExec() {
 		var dbh int
 		if s.LeaderPL != nil {
@@ -52,6 +55,10 @@ func (s *State) LogMessage(logName string, comment string, msg interfaces.IMsg) 
 }
 
 func (s *State) LogPrintf(logName string, format string, more ...interface{}) {
+	if s == nil {
+		return
+	}
+
 	if s.DebugExec() {
 		var dbh int
 		if s.LeaderPL != nil {
