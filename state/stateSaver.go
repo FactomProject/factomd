@@ -40,7 +40,7 @@ func (sss *StateSaverStruct) SaveDBStateList(ss *DBStateList, networkName string
 	defer sss.Mutex.Unlock()
 
 	hsb := int(ss.GetHighestSavedBlk())
-	//Save only every 4 states
+	//Save only at the rate of the FastSaveRate
 	if hsb%ss.State.FastSaveRate != 0 || hsb < ss.State.FastSaveRate {
 		return nil
 	}
