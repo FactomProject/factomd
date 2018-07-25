@@ -67,7 +67,10 @@ func (fs *FactoidState) GetMultipleECBalances(listofadd [][32]byte) (uint32, [][
 
 	for _, k := range listofadd {
 		// Gets the Balance of the EC address
-		PermBalance := fs.State.ECBalancesP[k]
+		PermBalance, pok:= fs.State.ECBalancesP[k]
+		if pok != true {
+			PermBalance = -1
+		}
 		pl := fs.State.ProcessLists.Get(height)
 		pl.ECBalancesTMutex.Lock()
 		// Gets the Temp Balance of the EC address
@@ -94,8 +97,10 @@ func (fs *FactoidState) GetMultipleFactoidBalances(listofadd [][32]byte) (uint32
 
 	for _, k := range listofadd {
 		// Gets the Balance of the Factoid address
-		PermBalance := fs.State.FactoidBalancesP[k]
-
+		PermBalance, pok := fs.State.FactoidBalancesP[k]
+		if pok != true {
+			PermBalance = -1
+		}
 		pl := fs.State.ProcessLists.Get(height)
 		pl.FactoidBalancesTMutex.Lock()
 		// Gets the Temp Balance of the Factoid address

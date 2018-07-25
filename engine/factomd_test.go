@@ -193,7 +193,7 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 	url := "http://localhost:8088/v2"
 	arrayOfFactoidAccounts := []string{"FA1zT4aFpEvcnPqPCigB3fvGu4Q4mTXY22iiuV69DqE1pNhdF2MC","FA3Y1tBWnFpyoZUPr9ZH51R1gSC8r5x5kqvkXL3wy4uRvzFnuWLB","FA3Fsy2WPkR5z7qjpL8H1G51RvZLCiLDWASS6mByeQmHSwAws8K7"}
 
-	var jsonStr = []byte(`{"jsonrpc": "2.0", "id": 0, "method": "multiple-ft-balances", "params":{"addresses":["`+strings.Join(arrayOfFactoidAccounts, `", "`)+`"]}}  `)
+	var jsonStr = []byte(`{"jsonrpc": "2.0", "id": 0, "method": "multiple-fct-balances", "params":{"addresses":["`+strings.Join(arrayOfFactoidAccounts, `", "`)+`"]}}  `)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
 	req.Header.Set("content-type", "text/plain;")
 
@@ -214,7 +214,10 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 	for i, a := range arrayOfFactoidAccounts {
 		byteAcc := [32]byte{}
 		copy(byteAcc[:], primitives.ConvertUserStrToAddress(a))
-		PermBalance := state0.FactoidBalancesP[byteAcc]
+		PermBalance, pok := state0.FactoidBalancesP[byteAcc]
+		if pok != true {
+			PermBalance = -1
+		}
 		pl := state0.ProcessLists.Get(state0.LLeaderHeight)
 		pl.FactoidBalancesTMutex.Lock()
 		// Gets the Temp Balance of the Factoid address
@@ -229,6 +232,7 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 
 		// splits `num,num` up into `[num, num]` som BothNumbers[0] with give you the first value (the Temp value)
 		BothNumbers := strings.Split(individualArrays[i], `,`)
+		fmt.Println(BothNumbers[0])
 		if BothNumbers[0] !=  strconv.FormatInt(TempBalance, 10) || BothNumbers[1] != strconv.FormatInt(PermBalance, 10) {
 			t.Fatalf("Expected "+BothNumbers[0]+","+BothNumbers[1]+", but got %s"+ strconv.FormatInt(TempBalance, 10)+","+strconv.FormatInt(PermBalance, 10))
 		}
@@ -269,7 +273,10 @@ func TestMultipleECAccountsAPI(t *testing.T) {
 	for i, a := range arrayOfECAccounts {
 		byteAcc := [32]byte{}
 		copy(byteAcc[:], primitives.ConvertUserStrToAddress(a))
-		PermBalance := state0.ECBalancesP[byteAcc]
+		PermBalance, pok := state0.ECBalancesP[byteAcc]
+		if pok != true {
+			PermBalance = -1
+		}
 		pl := state0.ProcessLists.Get(state0.LLeaderHeight)
 		pl.ECBalancesTMutex.Lock()
 		// Gets the Temp Balance of the Factoid address

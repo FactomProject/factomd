@@ -171,8 +171,8 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 		resp, jsonError = HandleV2TransactionRate(state, params)
 	case "ack":
 		resp, jsonError = HandleV2ACKWithChain(state, params)
-	case "multiple-ft-balances":
-		resp, jsonError = HandleV2MultipleFTBalances(state, params)
+	case "multiple-fct-balances":
+		resp, jsonError = HandleV2MultipleFCTBalances(state, params)
 	case "multiple-ec-balances":
 		resp, jsonError = HandleV2MultipleECBalances(state, params)
 		//case "factoid-accounts":
@@ -197,11 +197,19 @@ func HandleV2MultipleECBalances(state interfaces.IState, params interface{}) (in
 	if ok != true {
 		return nil, NewCustomInvalidParamsError("Invalid params passed in")
 	}
+
+	if x["addresses"] == nil {
+		return nil, NewCustomInvalidParamsError("Invalid params passed in, expected 'addresses'")
+	}
+
 	listofadd := (x["addresses"]).([]interface{})
 	arrayAdd := make([][32]byte, len(listofadd))
 
 	// Converts readable accounts
 	for i, a := range listofadd {
+		if a.(string)[0:2] != "EC" || len(a.(string)) != 52 {
+			return nil, NewCustomInvalidParamsError("Invalid factoid account passed in: "+ a.(string))
+		}
 		arrayAdd[i] = [32]byte{}
 		s := a.(string)
 		copy(arrayAdd[i][:], primitives.ConvertUserStrToAddress(s))
@@ -216,17 +224,25 @@ func HandleV2MultipleECBalances(state interfaces.IState, params interface{}) (in
 	return h, nil
 }
 
-func HandleV2MultipleFTBalances(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+func HandleV2MultipleFCTBalances(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	x, ok := params.(map[string]interface{})
 	if ok != true {
 		fmt.Println(params)
 		return nil, NewCustomInvalidParamsError("Invalid params passed in")
 	}
+
+	if x["addresses"] == nil {
+		return nil, NewCustomInvalidParamsError("Invalid params passed in, expected 'addresses'")
+	}
+
 	listofadd := (x["addresses"]).([]interface{})
 	arrayAdd := make([][32]byte, len(listofadd))
 
 	// Converts readable accounts
 	for i, a := range listofadd {
+		if a.(string)[0:2] != "FA" || len(a.(string)) != 52 {
+			return nil, NewCustomInvalidParamsError("Invalid factoid account passed in: "+ a.(string))
+		}
 		arrayAdd[i] = [32]byte{}
 		s := a.(string)
 		copy(arrayAdd[i][:], primitives.ConvertUserStrToAddress(s))
@@ -1141,6 +1157,7 @@ func HandleV2FactoidSubmit(state interfaces.IState, params interface{}) (interfa
 }
 
 func HandleV2FactoidBalance(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	fmt.Println(params)
 	n := time.Now()
 	defer HandleV2APICallFABal.Observe(float64(time.Since(n).Nanoseconds()))
 
