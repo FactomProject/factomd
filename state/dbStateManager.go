@@ -822,7 +822,10 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	// every 25 blocks +1 we add grant payouts
 	if currentDBHeight > constants.COINBASE_ACTIVATION && currentDBHeight%constants.COINBASE_PAYOUT_FREQUENCY == 1 {
 		// Add the grants to the list
-		err = d.AdminBlock.AddCoinbaseDescriptor(GetGrantPayoutsFor(currentDBHeight))
+		grantPayouts := GetGrantPayoutsFor(currentDBHeight)
+		if len(grantPayouts) > 0 {
+			err = d.AdminBlock.AddCoinbaseDescriptor(grantPayouts)
+		}
 		if err != nil {
 			panic(err)
 		}
