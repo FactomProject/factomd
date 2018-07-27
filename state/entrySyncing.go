@@ -291,15 +291,14 @@ func (s *State) GoSyncEntries() {
 				}
 			}
 
-			if s.EntryDBHeightComplete%1000 == 0 {
-				if firstMissing < 0 {
-					//Only save EntryDBHeightComplete IF it's a multiple of 1000 AND there are no missing entries
-					err := s.DB.SaveDatabaseEntryHeight(s.EntryDBHeightComplete)
-					if err != nil {
-						fmt.Printf("ERROR: %v\n", err)
-					}
+			if firstMissing < 0 {
+				//Only save EntryDBHeightComplete IF it's a multiple of 1000 AND there are no missing entries
+				err := s.DB.SaveDatabaseEntryHeight(s.EntryDBHeightComplete)
+				if err != nil {
+					fmt.Printf("ERROR: %v\n", err)
 				}
 			}
+
 		}
 		lastfirstmissing = firstMissing
 		if firstMissing < 0 {
