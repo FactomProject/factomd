@@ -200,6 +200,20 @@ var (
 	COINBASE_ACTIVATION = uint32(140200)
 )
 
+// set the "constants" to values that are more useful for testing
+func SetLocalCoinBaseConstants() {
+	COINBASE_DECLARATION = 10
+	COINBASE_PAYOUT_FREQUENCY = 5
+	COINBASE_ACTIVATION = 0
+}
+
+// set the "constants" to values that are more useful for testing
+func SetCustomCoinBaseConstants() {
+	COINBASE_DECLARATION = 10
+	COINBASE_PAYOUT_FREQUENCY = 5
+	COINBASE_ACTIVATION = 0
+}
+
 const (
 	// Limits for keeping inputs from flooding our execution
 	INMSGQUEUE_HIGH = 100000
@@ -371,3 +385,7 @@ const (
 	// Time window for identity to require registration: 24hours = 144 blocks
 	IDENTITY_REGISTRATION_BLOCK_WINDOW uint32 = 144
 )
+
+// SaveState Version
+// This variable is the versioning of the savestate files written to accelerate the booting of Factomd.
+const SaveStateVersion = 9
