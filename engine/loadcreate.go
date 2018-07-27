@@ -8,29 +8,35 @@ import (
 
 	"crypto/sha256"
 
+	"fmt"
+	"os"
+
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
+	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/primitives/random"
+	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/util/atomic"
 )
 
 type LoadGenerator struct {
-	ECKey *primitives.PrivateKey
-
-	ToSend    int
-	PerSecond atomic.AtomicInt
-	stop      chan bool
-
-	running atomic.AtomicBool
+	State     *state.State           // Where we get balances
+	ECKey     *primitives.PrivateKey // Entry Credit private key
+	ToSend    int                    // How much to send
+	PerSecond atomic.AtomicInt       // How much per second
+	stop      chan bool              // Stop the go routine
+	running   atomic.AtomicBool      // We are running
+	tight     atomic.AtomicBool      // Only allocate ECs as needed (more EC purchases)
 }
 
 // NewLoadGenerator makes a new load generator. The state is used for funding the transaction
-func NewLoadGenerator() *LoadGenerator {
+func NewLoadGenerator(s *state.State) *LoadGenerator {
 	lg := new(LoadGenerator)
+	lg.State = s
 	lg.ECKey, _ = primitives.NewPrivateKeyFromHex(ecSec)
 	lg.stop = make(chan bool, 5)
 
@@ -42,7 +48,6 @@ func (lg *LoadGenerator) Run() {
 		return
 	}
 	lg.running.Store(true)
-	fundWallet(fnodes[wsapiNode].State, 15000e8)
 
 	// Every second add the per second amount
 	ticker := time.NewTicker(time.Second)
@@ -115,14 +120,46 @@ func (lg *LoadGenerator) NewRevealEntry(entry *entryBlock.Entry) *messages.Revea
 	return msg
 }
 
+var cnt int
+
+func GetECs(s *state.State, tight bool, c int) {
+	outEC, _ := primitives.HexToHash("c23ae8eec2beb181a0da926bd2344e988149fbe839fbc7489f2096e7d6110243")
+	outAdd := factoid.NewAddress(outEC.Bytes())
+	ecBal := s.GetE(true, outAdd.Fixed())
+	ecPrice := s.GetFactoshisPerEC()
+
+	cnt++
+	if ecBal > int64(c) && ecBal > 15 {
+		if cnt%100 == 0 {
+			os.Stderr.WriteString(fmt.Sprintf("%d purchases, would be buying %d but balance is %d \n", cnt, c, ecBal))
+		}
+		return
+	}
+
+	if c == 0 && !tight {
+		c += 1000
+	} else {
+		c += 25
+	}
+
+	os.Stderr.WriteString(fmt.Sprintf("%d purchases, buying %d and balance is %d \n", cnt, c, ecBal))
+
+	fundWallet(s, uint64(c)*ecPrice)
+
+}
+
 func (lg *LoadGenerator) NewCommitChain(entry *entryBlock.Entry) *messages.CommitChainMsg {
+
 	msg := new(messages.CommitChainMsg)
 
 	// form commit
 	commit := entryCreditBlock.NewCommitChain()
 	data, _ := entry.MarshalBinary()
 	commit.Credits, _ = util.EntryCost(data)
+
 	commit.Credits += 10
+	GetECs(lg.State, lg.tight.Load(), int(commit.Credits))
+
 	commit.EntryHash = entry.GetHash()
 	var b6 primitives.ByteSlice6
 	copy(b6[:], milliTime()[:])
@@ -148,7 +185,10 @@ func (lg *LoadGenerator) NewCommitEntry(entry *entryBlock.Entry) *messages.Commi
 	// form commit
 	commit := entryCreditBlock.NewCommitEntry()
 	data, _ := entry.MarshalBinary()
+
 	commit.Credits, _ = util.EntryCost(data)
+	GetECs(lg.State, lg.tight.Load(), int(commit.Credits))
+
 	commit.EntryHash = entry.GetHash()
 	var b6 primitives.ByteSlice6
 	copy(b6[:], milliTime()[:])

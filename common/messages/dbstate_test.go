@@ -239,7 +239,7 @@ func TestSignedDBStateValidate(t *testing.T) {
 
 	state := testHelper.CreateEmptyTestState()
 
-	// Throw in a geneis block
+	// Throw in a genesis block
 	prev := testHelper.CreateTestBlockSetWithNetworkID(nil, state.GetNetworkID(), false)
 	dblk, ablk, fblk, ecblk := statepkg.GenerateGenesisBlocks(state.GetNetworkID(), nil)
 	prev.DBlock = dblk.(*directoryBlock.DirectoryBlock)
@@ -252,7 +252,7 @@ func TestSignedDBStateValidate(t *testing.T) {
 	}
 
 	state.FollowerExecuteDBState(genDBState)
-	// Ok Geneis set
+	// Ok genesis set
 
 	timestamp := primitives.NewTimestampNow()
 	start := 0
