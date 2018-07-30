@@ -281,9 +281,6 @@ func GetChangeAcksHeight(filename string) (change uint32, err error) {
 	return config.App.ChangeAcksHeight, nil
 }
 
-// Track a filename-error pair so we don't report the same error repeatedly
-var reportedError map[string]string = make(map[string]string)
-
 func ReadConfig(filename string) *FactomdConfig {
 	if filename == "" {
 		filename = ConfigFilename()
@@ -298,22 +295,17 @@ func ReadConfig(filename string) *FactomdConfig {
 	if err != nil {
 		panic(err)
 	}
+
 	err = gcfg.FatalOnly(gcfg.ReadFileInto(cfg, filename))
 	if err != nil {
-		if reportedError[filename] != err.Error() {
-			log.Printfln("Reading from '%s'", filename)
-			log.Printfln("Cannot open custom config file,\nStarting with default settings.\n%v\n", err)
-			// Remember the error reported for this filename
-			reportedError[filename] = err.Error()
-		}
+		log.Printfln("Reading from '%s'", filename)
+		log.Printfln("Cannot open custom config file,\nStarting with default settings.\n%v\n", err)
 		err = gcfg.ReadStringInto(cfg, defaultConfig)
 		if err != nil {
 			panic(err)
 		}
-	} else {
-		// Remember that there was no error reported for this filename
-		delete(reportedError, filename)
 	}
+
 	// Default to home directory if not set
 	if len(cfg.App.HomeDir) < 1 {
 		cfg.App.HomeDir = GetHomeDir() + "/.factom/m2/"

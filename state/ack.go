@@ -72,18 +72,14 @@ func (s *State) GetEntryCommitAckByTXID(hash interfaces.IHash) (status int, blkt
 			// We will search the processlist for the commit
 			// TODO: Is this thread safe?
 			for _, v := range pl.VMs {
-				for i, m := range v.List {
+				for _, m := range v.List {
 					switch m.Type() {
 					case constants.COMMIT_CHAIN_MSG:
 						cc, ok := m.(*messages.CommitChainMsg)
 						if ok {
 							if cc.CommitChain.GetSigHash().IsSameAs(hash) {
 								// Msg found in the latest processlist
-								if i > v.Height { // if it has not yet been processed ...
-									status = constants.AckStatusNotConfirmed
-								} else {
-									status = constants.AckStatusACK
-								}
+								status = constants.AckStatusACK
 								commit = cc
 								entryhash = cc.CommitChain.EntryHash
 								return
@@ -94,11 +90,7 @@ func (s *State) GetEntryCommitAckByTXID(hash interfaces.IHash) (status int, blkt
 						if ok {
 							if ce.CommitEntry.GetSigHash().IsSameAs(hash) {
 								// Msg found in the latest processlist
-								if i > v.Height { // if it has not yet been processed ...
-									status = constants.AckStatusNotConfirmed
-								} else {
-									status = constants.AckStatusACK
-								}
+								status = constants.AckStatusACK
 								commit = ce
 								entryhash = ce.CommitEntry.EntryHash
 								return

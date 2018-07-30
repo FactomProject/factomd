@@ -119,17 +119,16 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 		return -1
 	}
 
-	// Any entry over 10240 bytes will be rejected
-	if m.Entry.KSize() > 10 {
-		state.LogMessage("executeMsg", "Drop, oversized", m)
-		return -1
-	}
-
 	// Now make sure the proper amount of credits were paid to record the entry.
 	// The chain must exist
 	if okEntry {
 		m.IsEntry = true
 		ECs := int(m.commitEntry.CommitEntry.Credits)
+		// Any entry over 10240 bytes will be rejected
+		if m.Entry.KSize() > 10 {
+			state.LogMessage("executeMsg", "Drop, oversized", m)
+			return -1
+		}
 
 		if m.Entry.KSize() > ECs {
 			state.LogMessage("executeMsg", "Hold, underpaid", m)
