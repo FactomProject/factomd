@@ -269,11 +269,7 @@ func (fs *FactoidState) UpdateECTransaction(rt bool, trans interfaces.IECBlockEn
 		t := trans.(*entryCreditBlock.CommitChain)
 		v := fs.State.GetE(rt, t.ECPubKey.Fixed()) - int64(t.Credits)
 		if (fs.DBHeight > 97886 || fs.State.GetNetworkID() != constants.MAIN_NETWORK_ID) && v < 0 {
-			return fmt.Errorf("%29s dbht %d: Not enough ECs (%d) to cover a chain commit (%d)",
-				fs.State.GetFactomNodeName(),
-				fs.DBHeight,
-				fs.State.GetE(rt, t.ECPubKey.Fixed()),
-				t.Credits)
+			return fmt.Errorf("Not enough ECs to cover a commit")
 		}
 		fs.State.PutE(rt, t.ECPubKey.Fixed(), v)
 		fs.State.NumTransactions++
@@ -283,11 +279,7 @@ func (fs *FactoidState) UpdateECTransaction(rt bool, trans interfaces.IECBlockEn
 		t := trans.(*entryCreditBlock.CommitEntry)
 		v := fs.State.GetE(rt, t.ECPubKey.Fixed()) - int64(t.Credits)
 		if (fs.DBHeight > 97886 || fs.State.GetNetworkID() != constants.MAIN_NETWORK_ID) && v < 0 {
-			return fmt.Errorf("%29s dbht %d: Not enough ECs (%d) to cover a entry commit (%d)",
-				fs.State.GetFactomNodeName(),
-				fs.DBHeight,
-				fs.State.GetE(rt, t.ECPubKey.Fixed()),
-				t.Credits)
+			return fmt.Errorf("Not enough ECs to cover a commit")
 		}
 		fs.State.PutE(rt, t.ECPubKey.Fixed(), v)
 		fs.State.NumTransactions++
@@ -309,11 +301,7 @@ func (fs *FactoidState) UpdateTransaction(rt bool, trans interfaces.ITransaction
 		oldv := fs.State.GetF(rt, adr)
 		v := oldv - int64(input.GetAmount())
 		if v < 0 {
-			return fmt.Errorf("%29s dbht %d: Not enough factoids (%d) to cover a transaction (%d)",
-				fs.State.GetFactomNodeName(),
-				fs.DBHeight,
-				oldv,
-				input.GetAmount())
+			return fmt.Errorf("Not enough factoids to cover a transaction")
 		}
 	}
 	// Then update the state for all inputs.
@@ -383,18 +371,14 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 // Returns an error message about what is wrong with the transaction if it is
 // invalid, otherwise you are good to go.
 func (fs *FactoidState) Validate(index int, trans interfaces.ITransaction) error {
-	var sums = make(map[[32]byte]uint64, 10)  // Look at the sum of an Address's inputs
+	var sums = make(map[[32]byte]uint64, 10)  // Look at the sum of an address's inputs
 	for _, input := range trans.GetInputs() { //    to a transaction.
 		bal, err := factoid.ValidateAmounts(sums[input.GetAddress().Fixed()], input.GetAmount())
 		if err != nil {
 			return err
 		}
-		curbal := fs.State.GetF(true, input.GetAddress().Fixed())
-		if int64(bal) > curbal {
-			return fmt.Errorf("%20s DBHT %d %s %d %s %d %s",
-				fs.State.GetFactomNodeName(),
-				fs.DBHeight, "Not enough funds in input addresses (", bal,
-				") to cover the transaction (", curbal, ")")
+		if int64(bal) > fs.State.GetF(true, input.GetAddress().Fixed()) {
+			return fmt.Errorf("%s", "Not enough funds in input addresses for the transaction")
 		}
 		sums[input.GetAddress().Fixed()] = bal
 	}
@@ -410,14 +394,14 @@ func (fs *FactoidState) GetCoinbaseTransaction(dbheight uint32, ftime interfaces
 	//	Payout blocks are every n blocks, where n is the coinbase frequency
 	if dbheight > constants.COINBASE_ACTIVATION && // Coinbase code must be above activation
 		dbheight != 0 && // Does not affect gensis
-		(dbheight%constants.COINBASE_PAYOUT_FREQUENCY == 0 || dbheight%constants.COINBASE_PAYOUT_FREQUENCY == 1) && // Frequency of payouts
+		dbheight%constants.COINBASE_PAYOUT_FREQUENCY == 0 && // Frequency of payouts
 		// Cannot payout before a declaration (cannot grab below height 0)
 		dbheight > constants.COINBASE_DECLARATION+constants.COINBASE_PAYOUT_FREQUENCY {
 		// Grab the admin block 1000 blocks earlier
 		descriptorHeight := dbheight - constants.COINBASE_DECLARATION
 		ablock, err := fs.State.DB.FetchABlockByHeight(descriptorHeight)
 		if err != nil {
-			panic(fmt.Sprintf("When creating coinbase, admin block at height %d could not be retrieved", descriptorHeight))
+			panic(fmt.Sprintf("When creating coinbase, admin block at height %d could not be retrieved", dbheight-1000))
 		}
 
 		abe := ablock.FetchCoinbaseDescriptor()
@@ -432,7 +416,7 @@ func (fs *FactoidState) GetCoinbaseTransaction(dbheight uint32, ftime interfaces
 				delete(fs.State.IdentityControl.CanceledCoinbaseOutputs, descriptorHeight)
 			}
 
-			// Map contains all cancelled indices
+			// Map contains all cancelled indicies
 			for _, v := range list {
 				m[v] = struct{}{}
 			}

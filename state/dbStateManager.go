@@ -8,12 +8,14 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/FactomProject/factomd/common/adminBlock"
 	// "github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
+	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/identity"
@@ -32,8 +34,7 @@ var _ = log.Print
 type DBState struct {
 	IsNew bool
 
-	TmpSaveStruct *SaveState
-	SaveStruct    *SaveState
+	SaveStruct *SaveState
 
 	DBHash interfaces.IHash
 	ABHash interfaces.IHash
@@ -201,19 +202,33 @@ func (a *DBState) IsSameAs(b *DBState) bool {
 }
 
 func (dbs *DBState) MarshalBinary() (rval []byte, err error) {
-
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error Marshalling a dbstate %v", r)
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "DBState.MarshalBinary err:%v", *pe)
 		}
-	}()
-
+	}(&err)
 	dbs.Init()
 	b := primitives.NewBuffer(nil)
 
-	err = b.PushBinaryMarshallable(dbs.SaveStruct)
+	err = b.PushBool(dbs.IsNew)
 	if err != nil {
 		return nil, err
+	}
+
+	if dbs.SaveStruct == nil {
+		err = b.PushBool(false)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		err = b.PushBool(true)
+		if err != nil {
+			return nil, err
+		}
+		err = b.PushBinaryMarshallable(dbs.SaveStruct)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	err = b.PushBinaryMarshallable(dbs.DBHash)
@@ -250,6 +265,56 @@ func (dbs *DBState) MarshalBinary() (rval []byte, err error) {
 		return nil, err
 	}
 
+	l := len(dbs.EntryBlocks)
+	err = b.PushVarInt(uint64(l))
+	if err != nil {
+		return nil, err
+	}
+	for _, v := range dbs.EntryBlocks {
+		err = b.PushBinaryMarshallable(v)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	h, err := entryBlock.MarshalEntryList(dbs.Entries)
+	if err != nil {
+		return nil, err
+	}
+	err = b.Push(h)
+	if err != nil {
+		return nil, err
+	}
+
+	err = b.PushBool(dbs.Repeat)
+	if err != nil {
+		return nil, err
+	}
+	err = b.PushBool(dbs.ReadyToSave)
+	if err != nil {
+		return nil, err
+	}
+	err = b.PushBool(dbs.Locked)
+	if err != nil {
+		return nil, err
+	}
+	err = b.PushBool(dbs.Signed)
+	if err != nil {
+		return nil, err
+	}
+	err = b.PushBool(dbs.Saved)
+	if err != nil {
+		return nil, err
+	}
+
+	err = b.PushBinaryMarshallable(dbs.Added)
+	if err != nil {
+		return nil, err
+	}
+	err = b.PushUInt64(dbs.FinalExchangeRate)
+	if err != nil {
+		return nil, err
+	}
 	err = b.PushBinaryMarshallable(dbs.NextTimestamp)
 	if err != nil {
 		return nil, err
@@ -266,12 +331,22 @@ func (dbs *DBState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 	newData = p
 	b := primitives.NewBuffer(p)
 
-	dbs.IsNew = false
-
-	dbs.SaveStruct = new(SaveState)
-	err = b.PopBinaryMarshallable(dbs.SaveStruct)
+	dbs.IsNew, err = b.PopBool()
 	if err != nil {
 		return
+	}
+
+	ok, err := b.PopBool()
+	if err != nil {
+		return
+	}
+
+	if ok == true {
+		dbs.SaveStruct = new(SaveState)
+		err = b.PopBinaryMarshallable(dbs.SaveStruct)
+		if err != nil {
+			return
+		}
 	}
 
 	err = b.PopBinaryMarshallable(dbs.DBHash)
@@ -308,11 +383,56 @@ func (dbs *DBState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 		return
 	}
 
-	dbs.Repeat = false
-	dbs.ReadyToSave = true
-	dbs.Locked = true
-	dbs.Signed = true
-	dbs.Saved = true
+	l, err := b.PopVarInt()
+	if err != nil {
+		return
+	}
+	for i := 0; i < int(l); i++ {
+		eb := entryBlock.NewEBlock()
+		err = b.PopBinaryMarshallable(eb)
+		if err != nil {
+			return
+		}
+		dbs.EntryBlocks = append(dbs.EntryBlocks, eb)
+	}
+
+	entries, rest, err := entryBlock.UnmarshalEntryList(b.DeepCopyBytes())
+	if err != nil {
+		return
+	}
+	dbs.Entries = entries
+	b = primitives.NewBuffer(rest)
+
+	dbs.Repeat, err = b.PopBool()
+	if err != nil {
+		return
+	}
+	dbs.ReadyToSave, err = b.PopBool()
+	if err != nil {
+		return
+	}
+	dbs.Locked, err = b.PopBool()
+	if err != nil {
+		return
+	}
+	dbs.Signed, err = b.PopBool()
+	if err != nil {
+		return
+	}
+	dbs.Saved, err = b.PopBool()
+	if err != nil {
+		return
+	}
+
+	err = b.PopBinaryMarshallable(dbs.Added)
+	if err != nil {
+		return
+	}
+
+	dbs.FinalExchangeRate, err = b.PopUInt64()
+	if err != nil {
+		return
+	}
 
 	err = b.PopBinaryMarshallable(dbs.NextTimestamp)
 	if err != nil {
@@ -329,6 +449,8 @@ func (dbs *DBState) UnmarshalBinary(p []byte) error {
 }
 
 type DBStateList struct {
+	SrcNetwork bool // True if I got this block from the network.
+
 	LastEnd       int
 	LastBegin     int
 	TimeToAsk     interfaces.Timestamp
@@ -353,6 +475,9 @@ func (a *DBStateList) IsSameAs(b *DBStateList) bool {
 		if a == nil && b == nil {
 			return true
 		}
+		return false
+	}
+	if a.SrcNetwork != b.SrcNetwork {
 		return false
 	}
 
@@ -395,11 +520,16 @@ func (a *DBStateList) IsSameAs(b *DBStateList) bool {
 func (dbsl *DBStateList) MarshalBinary() (rval []byte, err error) {
 	defer func(pe *error) {
 		if *pe != nil {
-			//fmt.Fprintf(os.Stderr, "DBStateList.MarshalBinary err:%v", *pe)
+			fmt.Fprintf(os.Stderr, "DBStateList.MarshalBinary err:%v", *pe)
 		}
 	}(&err)
 	dbsl.Init()
 	buf := primitives.NewBuffer(nil)
+
+	err = buf.PushBool(dbsl.SrcNetwork)
+	if err != nil {
+		return nil, err
+	}
 
 	err = buf.PushUInt32(uint32(dbsl.LastEnd))
 	if err != nil {
@@ -409,7 +539,10 @@ func (dbsl *DBStateList) MarshalBinary() (rval []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
-
+	err = buf.PushBinaryMarshallable(dbsl.TimeToAsk)
+	if err != nil {
+		return nil, err
+	}
 	err = buf.PushUInt32(dbsl.ProcessHeight)
 	if err != nil {
 		return nil, err
@@ -427,29 +560,15 @@ func (dbsl *DBStateList) MarshalBinary() (rval []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
-
-	dlen := 0
-	for _, v := range dbsl.DBStates {
-		if v.Saved {
-			dlen++
-		} else {
-			break
-		}
-	}
-
-	err = buf.PushVarInt(uint64(dlen))
+	l := len(dbsl.DBStates)
+	err = buf.PushVarInt(uint64(l))
 	if err != nil {
 		return nil, err
 	}
-
 	for _, v := range dbsl.DBStates {
-		if v.Saved {
-			err = buf.PushBinaryMarshallable(v)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			break
+		err = buf.PushBinaryMarshallable(v)
+		if err != nil {
+			return nil, err
 		}
 	}
 
@@ -463,18 +582,26 @@ func (dbsl *DBStateList) UnmarshalBinaryData(p []byte) (newData []byte, err erro
 
 	buf := primitives.NewBuffer(p)
 
+	dbsl.SrcNetwork, err = buf.PopBool()
+	if err != nil {
+		return
+	}
+
 	x, err := buf.PopUInt32()
 	if err != nil {
 		return
 	}
 	dbsl.LastEnd = int(x)
-
 	x, err = buf.PopUInt32()
 	if err != nil {
 		return
 	}
 	dbsl.LastBegin = int(x)
 
+	err = buf.PopBinaryMarshallable(dbsl.TimeToAsk)
+	if err != nil {
+		return
+	}
 	dbsl.ProcessHeight, err = buf.PopUInt32()
 	if err != nil {
 		return
@@ -793,7 +920,6 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	// Additional Admin block changed can be made from identity changes
 	list.State.SyncIdentities(d)
 
-	// every 25 blocks +0 we add grant payouts
 	// If this is a coinbase descriptor block, add that now
 	if currentDBHeight > constants.COINBASE_ACTIVATION && currentDBHeight%constants.COINBASE_PAYOUT_FREQUENCY == 0 {
 		// Build outputs
@@ -812,22 +938,9 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 			o := factoid.NewOutAddress(ia.CoinbaseAddress, amt)
 			outputs = append(outputs, o)
 		}
-
 		err = d.AdminBlock.AddCoinbaseDescriptor(outputs)
 		if err != nil {
 			panic(err)
-		}
-	}
-
-	// every 25 blocks +1 we add grant payouts
-	if currentDBHeight > constants.COINBASE_ACTIVATION && currentDBHeight%constants.COINBASE_PAYOUT_FREQUENCY == 1 {
-		// Add the grants to the list
-		grantPayouts := GetGrantPayoutsFor(currentDBHeight)
-		if len(grantPayouts) > 0 {
-			err := d.AdminBlock.AddCoinbaseDescriptor(grantPayouts)
-			if err != nil {
-				panic(err)
-			}
 		}
 	}
 
@@ -930,6 +1043,9 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		PrintState(list.State)
 	}
 
+	// Saving our state so we can reset it if we need to.
+	d.SaveStruct = SaveFactomdState(list.State, d)
+
 	ht := d.DirectoryBlock.GetHeader().GetDBHeight()
 	pl := list.State.ProcessLists.Get(ht)
 	pln := list.State.ProcessLists.Get(ht + 1)
@@ -955,8 +1071,6 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		}
 		out.WriteString("\n")
 	}
-
-	list.State.LLeaderHeight = dbht
 
 	prt("pl 1st", pl)
 	prt("pln 1st", pln)
@@ -1013,6 +1127,10 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	err = fs.AddECBlock(d.EntryCreditBlock)
 	if err != nil {
 		panic(err)
+	}
+
+	if list.State.DBFinished {
+		list.State.Balancehash = fs.GetBalanceHash(false)
 	}
 
 	// Make the current exchange rate whatever we had in the previous block.
@@ -1096,11 +1214,6 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	// 	}
 	// }
 
-	// Saving our state so we can reset it if we need to.
-	d.TmpSaveStruct = SaveFactomdState(list.State, d)
-
-	list.State.Balancehash = fs.GetBalanceHash(false)
-	list.State.LogPrintf("dbstateprocess", "dbht %d BalanceHash P %x T %x")
 	return
 }
 
@@ -1146,17 +1259,6 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	dbheight := int(d.DirectoryBlock.GetHeader().GetDBHeight())
 	// Take the height, and some function of the identity chain, and use that to decide to trim.  That
 	// way, not all nodes in a simulation Trim() at the same time.
-
-	// If loaded from disk, I still want to create a fast boot file if appropriate.
-	if !d.IsNew {
-		// We will only save blocks marked to be saved.  As such, this must follow
-		// the "d.saved = true" above
-		if list.State.StateSaverStruct.FastBoot && list.State.StateSaverStruct.TmpDBHt < uint32(dbheight) {
-			d.SaveStruct = d.TmpSaveStruct
-			err := list.State.StateSaverStruct.SaveDBStateList(list.State.DBStates, list.State.Network)
-			list.State.LogPrintf("dbsatesprocess", "Error while saving Fastboot %v", err)
-		}
-	}
 
 	if !d.Signed || !d.ReadyToSave || list.State.DB == nil {
 		return
@@ -1253,7 +1355,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 				allowedEntries[e.Fixed()] = struct{}{}
 			}
 		} else {
-			list.State.LogPrintf("dbstateprocess", "Error putting entries in allowedmap, as Eblock is not in Dblock")
+			list.State.Logf("error", "Error putting entries in allowedmap, as Eblock is not in Dblock")
 		}
 	}
 
@@ -1269,7 +1371,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 				panic(err.Error())
 			}
 		} else {
-			list.State.LogPrintf("dbstateprocess", "Error saving eblock from dbstate, eblock not allowed")
+			list.State.Logf("error", "Error saving eblock from dbstate, eblock not allowed")
 		}
 	}
 	for _, e := range d.Entries {
@@ -1279,7 +1381,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 				panic(err.Error())
 			}
 		} else {
-			list.State.LogPrintf("dbstateprocess", "Error saving entry from dbstate, entry not allowed")
+			list.State.Logf("error", "Error saving entry from dbstate, entry not allowed")
 		}
 	}
 	list.State.NumEntries += len(d.Entries)
@@ -1303,11 +1405,11 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 							panic(err.Error())
 						}
 					} else {
-						list.State.LogPrintf("dbstateprocess", "Error saving entry from process list, entry not allowed")
+						list.State.Logf("error", "Error saving entry from process list, entry not allowed")
 					}
 				}
 			} else {
-				list.State.LogPrintf("dbstateprocess", "Error saving eblock from process list, eblock not allowed")
+				list.State.Logf("error", "Error saving eblock from process list, eblock not allowed")
 			}
 		}
 		pl.NewEBlocks = make(map[[32]byte]interfaces.IEntryBlock)
@@ -1330,11 +1432,12 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		good := true
 		mr, err := list.State.DB.FetchDBKeyMRByHeight(uint32(dbheight))
 		if err != nil {
-			list.State.LogPrintf("dbstateprocess", err.Error())
+			os.Stderr.WriteString(err.Error() + "\n")
 			return
+			panic(fmt.Sprintf("%20s At Directory Block Height %d", list.State.FactomNodeName, dbheight))
 		}
 		if mr == nil {
-			list.State.LogPrintf("dbstateprocess", "There is no mr returned by list.State.DB.FetchDBKeyMRByHeight() at %d\n", dbheight)
+			os.Stderr.WriteString(fmt.Sprintf("There is no mr returned by list.State.DB.FetchDBKeyMRByHeight() at %d\n", dbheight))
 			mr = d.DirectoryBlock.GetKeyMR()
 			good = false
 		}
@@ -1342,15 +1445,17 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		td, err := list.State.DB.FetchDBlock(mr)
 		if err != nil || td == nil {
 			if err != nil {
-				list.State.LogPrintf("dbstateprocess", err.Error())
+				os.Stderr.WriteString(err.Error() + "\n")
 			} else {
-				list.State.LogPrintf("dbstateprocess", "Could not get directory block by primary key at Block Height %d\n", dbheight)
+				os.Stderr.WriteString(fmt.Sprintf("Could not get directory block by primary key at Block Height %d\n", dbheight))
 			}
 			return
+			panic(fmt.Sprintf("%20s Error reading db by mr at Directory Block Height %d", list.State.FactomNodeName, dbheight))
 		}
 		if td.GetKeyMR().Fixed() != mr.Fixed() {
-			list.State.LogPrintf("dbsatesprocess", "Key MR is wrong at Directory Block Height %d\n", dbheight)
+			os.Stderr.WriteString(fmt.Sprintf("Key MR is wrong at Directory Block Height %d\n", dbheight))
 			return
+			panic(fmt.Sprintf("%20s KeyMR is wrong at Directory Block Height %d", list.State.FactomNodeName, dbheight))
 		}
 		if !good {
 			return
@@ -1372,15 +1477,6 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	progress = true
 	d.ReadyToSave = false
 	d.Saved = true
-
-	// We will only save blocks marked to be saved.  As such, this must follow
-	// the "d.saved = true" above
-	if list.State.StateSaverStruct.FastBoot {
-		d.SaveStruct = d.TmpSaveStruct
-		err := list.State.StateSaverStruct.SaveDBStateList(list.State.DBStates, list.State.Network)
-		list.State.LogPrintf("dbsatesprocess", "Error while saving Fastboot %v", err)
-	}
-
 	return
 }
 
