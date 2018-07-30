@@ -800,7 +800,7 @@ func (p *ProcessList) Ask(vmIndex int, height uint32, delay int64) {
 		return
 	}
 
-	if p.State.IgnoreMissing {
+	if p.State.IgnoreMissing || p.State.DBFinished == false {
 		return // Don't ask for missing message while we are in ignore.
 	}
 
