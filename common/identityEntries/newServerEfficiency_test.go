@@ -44,6 +44,6 @@ func TestNewServerEfficiencyStruct(t *testing.T) {
 	}
 
 	if nses.Efficiency != 4952 {
-		t.Errorf("Should be 4952, found %d", nses.Efficiency)
+		t.Error("Should be 4952, found %d", nses.Efficiency)
 	}
 }

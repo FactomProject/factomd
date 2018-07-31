@@ -376,7 +376,6 @@ type State struct {
 	HighestCompletedTorrent uint32
 	FastBoot                bool
 	FastBootLocation        string
-	FastSaveRate            int
 
 	// These stats are collected when we write the dbstate to the database.
 	NumNewChains   int // Number of new Chains in this block
@@ -392,7 +391,6 @@ type State struct {
 	processCnt          int64 // count of attempts to process .. so we can see if the thread is running
 
 	reportedActivations [activations.ACTIVATION_TYPE_COUNT + 1]bool // flags about which activations we have reported (+1 because we don't use 0)
-	//	validatorLoopThreadID string
 }
 
 var _ interfaces.IState = (*State)(nil)
@@ -515,7 +513,6 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 	newState.factomdTLSCertFile = s.factomdTLSCertFile
 	newState.FactomdLocations = s.FactomdLocations
 
-	newState.FastSaveRate = s.FastSaveRate
 	switch newState.DBType {
 	case "LDB":
 		newState.StateSaverStruct.FastBoot = s.StateSaverStruct.FastBoot
@@ -999,15 +996,14 @@ func (s *State) Init() {
 			panic(err)
 		}
 
-		if d == nil || int(d.GetDatabaseHeight()) < s.FastSaveRate {
+		if d == nil || d.GetDatabaseHeight() < 2000 {
 			//If we have less than 2k blocks, we wipe SaveState
 			//This is to ensure we don't accidentally keep SaveState while deleting a database
 			s.StateSaverStruct.DeleteSaveState(s.Network)
 		} else {
 			err = s.StateSaverStruct.LoadDBStateList(s.DBStates, s.Network)
 			if err != nil {
-				os.Stderr.WriteString(err.Error())
-				s.StateSaverStruct.DeleteSaveState(s.Network)
+				panic(err)
 			}
 		}
 	}

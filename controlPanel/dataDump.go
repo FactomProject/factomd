@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/FactomProject/factomd/common/globals"
 	dd "github.com/FactomProject/factomd/controlPanel/dataDumpFormatting"
 )
 
@@ -35,9 +34,6 @@ type DataDump struct {
 		Elections         string
 		SimulatedElection string
 	}
-	LogSettingsDump struct {
-		CurrentLogSettings string
-	}
 }
 
 func GetDataDumps() []byte {
@@ -65,8 +61,6 @@ func GetDataDumps() []byte {
 
 	holder.ElectionDataDump.Elections = DsCopy.Election
 	holder.ElectionDataDump.SimulatedElection = DsCopy.SimElection
-
-	holder.LogSettingsDump.CurrentLogSettings = globals.Params.DebugLogRegEx
 
 	ret, err := json.Marshal(holder)
 	if err != nil {

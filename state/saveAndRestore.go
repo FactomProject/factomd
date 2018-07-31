@@ -10,8 +10,6 @@ import (
 	"os"
 	"sort"
 
-	"errors"
-
 	. "github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -304,13 +302,17 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 	ss.DBHeight = d.DirectoryBlock.GetHeader().GetDBHeight()
 	pl := state.ProcessLists.Get(ss.DBHeight)
 
-	// Need to ensure the dbstate is at the same height as the state.
-	if ss.DBHeight != state.LLeaderHeight {
-		return
-	}
-
 	if pl == nil {
 		return nil
+	}
+
+	//Only check if we're not loading from the database
+	if state.DBFinished == true {
+		// If the timestamp is over a day old, then there is really no point in saving the state of
+		// historical data.
+		if int(state.GetHighestKnownBlock())-int(state.GetHighestSavedBlk()) > 144 {
+			return nil
+		}
 	}
 
 	// state.AddStatus(fmt.Sprintf("Save state at dbht: %d", ss.DBHeight))
@@ -346,19 +348,19 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 
 	ss.EOMsyncing = state.EOMsyncing
 
-	ss.EOM = false
-	ss.EOMLimit = 0
-	ss.EOMProcessed = 0
-	ss.EOMDone = true
-	ss.EOMMinute = 0
-	ss.EOMSys = true
-	ss.DBSig = false
-	ss.DBSigLimit = 0
-	ss.DBSigProcessed = 0
-	ss.DBSigDone = false
-	ss.DBSigSys = true
-	ss.Saving = true
-	ss.Syncing = false
+	ss.EOM = state.EOM
+	ss.EOMLimit = state.EOMLimit
+	ss.EOMProcessed = state.EOMProcessed
+	ss.EOMDone = state.EOMDone
+	ss.EOMMinute = state.EOMMinute
+	ss.EOMSys = state.EOMSys
+	ss.DBSig = state.DBSig
+	ss.DBSigLimit = state.DBSigLimit
+	ss.DBSigProcessed = state.DBSigProcessed
+	ss.DBSigDone = state.DBSigDone
+	ss.DBSigSys = state.DBSigSys
+	ss.Saving = state.Saving
+	ss.Syncing = state.Syncing
 
 	ss.Holding = make(map[[32]byte]interfaces.IMsg)
 	//for k := range state.Holding {
@@ -572,7 +574,6 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 	}
 	// Set this, as we know it to be true
 	s.DBHeightAtBoot = ss.DBHeight
-	s.ProcessLists.Lists = s.ProcessLists.Lists[:0]
 	pl := s.ProcessLists.Get(ss.DBHeight)
 
 	// s.AddStatus(fmt.Sprintln("Index: ", index, "dbht:", ss.DBHeight, "lleaderheight", s.LLeaderHeight))
@@ -635,7 +636,6 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 	s.HighestAck = ss.DBHeight + 1
 	s.HighestKnown = ss.DBHeight + 2
 	s.Holding = make(map[[32]byte]interfaces.IMsg)
-
 	for k := range ss.Holding {
 		s.Holding[k] = ss.Holding[k]
 	}
@@ -667,10 +667,6 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 }
 
 func (ss *SaveState) MarshalBinary() (rval []byte, err error) {
-	if ss == nil {
-		return nil, errors.New("SaveState is nil")
-	}
-
 	defer func(pe *error) {
 		if *pe != nil {
 			fmt.Fprintf(os.Stderr, "SaveState.MarshalBinary err:%v", *pe)

@@ -16,7 +16,6 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
-	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/controlPanel/files"
@@ -241,16 +240,6 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 				w.Write([]byte(`{"Type": "special-action-fack"}`))
 				return
 			}
-		}
-	case "changelogs":
-		// >= 2 means we have write access
-		if StatePointer.ControlPanelSetting == 2 {
-			newRegex := r.FormValue("logsetting")
-			fmt.Printf("Changing log regex to: '%s'\n", newRegex)
-			globals.Params.DebugLogRegEx = newRegex
-		} else {
-			w.Write([]byte(`{"Error": "Access denied"}`))
-			return
 		}
 	}
 	w.Write([]byte(`{"Type": "None"}`))
