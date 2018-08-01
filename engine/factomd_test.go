@@ -29,7 +29,7 @@ var _ = Factomd
 // Pass in t for the testing as the 4th argument
 
 //EX. state0 := SetupSim("LLLLLLLLLLLLLLLAAAAAAAAAA", "LOCAL", map[string]string {"--controlpanelsetting" : "readwrite"}, t)
-func SetupSim(GivenNodes string, NetworkType string, Options map[string]string, t *testing.T) *state.State {
+func SetupSim(GivenNodes string, NetworkType string, UserAddedOptions map[string]string, t *testing.T) *state.State {
 	l := len(GivenNodes)
 	DefaultOptions := map[string]string{
 		"--db":           "Map",
@@ -53,8 +53,8 @@ func SetupSim(GivenNodes string, NetworkType string, Options map[string]string, 
 		returningSlice = append(returningSlice, key+"="+value)
 	}
 
-	if Options != nil && len(Options) != 0 {
-		for key, value := range Options {
+	if UserAddedOptions != nil && len(UserAddedOptions) != 0 {
+		for key, value := range UserAddedOptions {
 			DefaultOptions[key] = value
 		}
 	}
