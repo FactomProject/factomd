@@ -208,7 +208,7 @@ func HandleV2MultipleECBalances(state interfaces.IState, params interface{}) (in
 	// Converts readable accounts
 	for i, a := range listofadd {
 		if a.(string)[0:2] != "EC" || len(a.(string)) != 52 {
-			return nil, NewCustomInvalidParamsError("Invalid factoid account passed in: "+ a.(string))
+			return nil, NewCustomInvalidParamsError("Invalid factoid account passed in: " + a.(string))
 		}
 		arrayAdd[i] = [32]byte{}
 		s := a.(string)
@@ -241,7 +241,7 @@ func HandleV2MultipleFCTBalances(state interfaces.IState, params interface{}) (i
 	// Converts readable accounts
 	for i, a := range listofadd {
 		if a.(string)[0:2] != "FA" || len(a.(string)) != 52 {
-			return nil, NewCustomInvalidParamsError("Invalid factoid account passed in: "+ a.(string))
+			return nil, NewCustomInvalidParamsError("Invalid factoid account passed in: " + a.(string))
 		}
 		arrayAdd[i] = [32]byte{}
 		s := a.(string)

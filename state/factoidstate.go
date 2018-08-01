@@ -21,6 +21,7 @@ import (
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"strconv"
 )
 
 var _ = debug.PrintStack
@@ -61,20 +62,21 @@ type element struct {
 	v   int64
 }
 
-func (fs *FactoidState) GetMultipleECBalances(listofadd [][32]byte) (uint32, [][]int64) {
+func (fs *FactoidState) GetMultipleECBalances(listofadd [][32]byte) (uint32, [][]string) {
 	height := fs.DBHeight
-	list := make([][]int64, 0)
+	list := make([][]string, 0)
 
 	for _, k := range listofadd {
 		// Gets the Balance of the EC address
-		PermBalance, pok:= fs.State.ECBalancesP[k]
+		PermBalance, pok := fs.State.ECBalancesP[k]
+		errNotAcc := ""
 		if pok != true {
-			PermBalance = -1
+			PermBalance = 0
+			errNotAcc = "Not a valid account"
 		}
 		pl := fs.State.ProcessLists.Get(height)
 		pl.ECBalancesTMutex.Lock()
-		// Gets the Temp Balance of the EC address
-		TempBalance, ok := pl.ECBalancesT[k]
+		TempBalance, ok := pl.ECBalancesT[k] // Gets the Temp Balance of the EC address
 		if ok != true {
 			TempBalance = 0
 		}
@@ -82,29 +84,31 @@ func (fs *FactoidState) GetMultipleECBalances(listofadd [][32]byte) (uint32, [][
 			TempBalance = PermBalance
 		}
 		pl.ECBalancesTMutex.Unlock()
-		list2 := make([]int64, 0)
-		list2 = append(list2, TempBalance)
-		list2 = append(list2, PermBalance)
+
+		list2 := make([]string, 0)
+		list2 = append(list2, strconv.FormatInt(TempBalance, 10))
+		list2 = append(list2, strconv.FormatInt(PermBalance, 10))
+		list2 = append(list2, errNotAcc)
 		list = append(list, list2)
 	}
 	return height, list
 }
 
-func (fs *FactoidState) GetMultipleFactoidBalances(listofadd [][32]byte) (uint32, [][]int64) {
-	fmt.Println("Called")
+func (fs *FactoidState) GetMultipleFactoidBalances(listofadd [][32]byte) (uint32, [][]string) {
 	height := fs.DBHeight
-	list := make([][]int64, 0)
+	list := make([][]string, 0)
 
 	for _, k := range listofadd {
 		// Gets the Balance of the Factoid address
 		PermBalance, pok := fs.State.FactoidBalancesP[k]
+		errNotAcc := ""
 		if pok != true {
-			PermBalance = -1
+			PermBalance = 0
+			errNotAcc = "Not a valid account"
 		}
 		pl := fs.State.ProcessLists.Get(height)
 		pl.FactoidBalancesTMutex.Lock()
-		// Gets the Temp Balance of the Factoid address
-		TempBalance, ok := pl.FactoidBalancesT[k]
+		TempBalance, ok := pl.FactoidBalancesT[k] // Gets the Temp Balance of the Factoid address
 		if ok != true {
 			TempBalance = 0
 		}
@@ -113,9 +117,10 @@ func (fs *FactoidState) GetMultipleFactoidBalances(listofadd [][32]byte) (uint32
 		}
 		pl.FactoidBalancesTMutex.Unlock()
 
-		list2 := make([]int64, 0)
-		list2 = append(list2, TempBalance)
-		list2 = append(list2, PermBalance)
+		list2 := make([]string, 0)
+		list2 = append(list2, strconv.FormatInt(TempBalance, 10))
+		list2 = append(list2, strconv.FormatInt(PermBalance, 10))
+		list2 = append(list2, errNotAcc)
 		list = append(list, list2)
 	}
 	return height, list
@@ -454,7 +459,7 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 // Returns an error message about what is wrong with the transaction if it is
 // invalid, otherwise you are good to go.
 func (fs *FactoidState) Validate(index int, trans interfaces.ITransaction) error {
-	var sums = make(map[[32]byte]uint64, 10)  // Look at the sum of an address's inputs
+	var sums = make(map[[32]byte]uint64, 10) // Look at the sum of an address's inputs
 	for _, input := range trans.GetInputs() { //    to a transaction.
 		bal, err := factoid.ValidateAmounts(sums[input.GetAddress().Fixed()], input.GetAmount())
 		if err != nil {
@@ -478,7 +483,7 @@ func (fs *FactoidState) GetCoinbaseTransaction(dbheight uint32, ftime interfaces
 	if dbheight > constants.COINBASE_ACTIVATION && // Coinbase code must be above activation
 		dbheight != 0 && // Does not affect gensis
 		dbheight%constants.COINBASE_PAYOUT_FREQUENCY == 0 && // Frequency of payouts
-		// Cannot payout before a declaration (cannot grab below height 0)
+	// Cannot payout before a declaration (cannot grab below height 0)
 		dbheight > constants.COINBASE_DECLARATION+constants.COINBASE_PAYOUT_FREQUENCY {
 		// Grab the admin block 1000 blocks earlier
 		descriptorHeight := dbheight - constants.COINBASE_DECLARATION

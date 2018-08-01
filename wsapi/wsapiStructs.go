@@ -291,11 +291,11 @@ type FactiodAccounts struct {
 }
 
 type MultipleFTBalances struct {
-	Height   uint32    `json:"height"`
-	Balances [][]int64 `json:"balances"`
+	Height   uint32     `json:"height"`
+	Balances [][]string `json:"balances"`
 }
 
 type MultipleECBalances struct {
-	Height   uint32    `json:"height"`
-	Balances [][]int64 `json:"balances"`
+	Height   uint32     `json:"height"`
+	Balances [][]string `json:"balances"`
 }

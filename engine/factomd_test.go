@@ -18,6 +18,7 @@ import (
 	"io/ioutil"
 	"github.com/FactomProject/factomd/common/primitives"
 	"strconv"
+	"encoding/json"
 )
 
 var _ = Factomd
@@ -191,32 +192,46 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 	WaitForMinute(state0, 1)
 
 	url := "http://localhost:8088/v2"
-	arrayOfFactoidAccounts := []string{"FA1zT4aFpEvcnPqPCigB3fvGu4Q4mTXY22iiuV69DqE1pNhdF2MC","FA3Y1tBWnFpyoZUPr9ZH51R1gSC8r5x5kqvkXL3wy4uRvzFnuWLB","FA3Fsy2WPkR5z7qjpL8H1G51RvZLCiLDWASS6mByeQmHSwAws8K7"}
+	arrayOfFactoidAccounts := []string{"FA1zT4aFpEvcnPqPCigB3fvGu4Q4mTXY22iiuV69DqE1pNhdF2MC", "FA3Y1tBWnFpyoZUPr9ZH51R1gSC8r5x5kqvkXL3wy4uRvzFnuWLB", "FA3Fsy2WPkR5z7qjpL8H1G51RvZLCiLDWASS6mByeQmHSwAws8K7"}
 
-	var jsonStr = []byte(`{"jsonrpc": "2.0", "id": 0, "method": "multiple-fct-balances", "params":{"addresses":["`+strings.Join(arrayOfFactoidAccounts, `", "`)+`"]}}  `)
+	var jsonStr = []byte(`{"jsonrpc": "2.0", "id": 0, "method": "multiple-fct-balances", "params":{"addresses":["` + strings.Join(arrayOfFactoidAccounts, `", "`) + `"]}}  `)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
 	req.Header.Set("content-type", "text/plain;")
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		panic(err)
+		t.Error(err)
+	}
+	type walletcallHelper struct {
+		Height   uint32     `json:"height"`
+		Balances [][]string `json:"balances"`
+	}
+	type walletcall struct {
+		Jsonrpc string           `json:"jsonrps"`
+		Id      int              `json:"id"`
+		Result  walletcallHelper `json:"result"`
 	}
 
 	defer resp.Body.Close()
 	body, _ := ioutil.ReadAll(resp.Body)
+	fmt.Println("BODY: ", string(body))
 
-	temp := strings.Split(string(body), `balances":[[`)
-	justArray := strings.Split(temp[1],  `]]}}`)
-	individualArrays := strings.Split(justArray[0],  `],[`)
+	resp2 := new(walletcall)
+	err1 := json.Unmarshal([]byte(body), &resp2)
+	if err1 != nil {
+		t.Error(err1)
+	}
 
 	// To check if the balances returned from the API are right
 	for i, a := range arrayOfFactoidAccounts {
 		byteAcc := [32]byte{}
 		copy(byteAcc[:], primitives.ConvertUserStrToAddress(a))
 		PermBalance, pok := state0.FactoidBalancesP[byteAcc]
+		errNotAcc := ""
 		if pok != true {
-			PermBalance = -1
+			PermBalance = 0
+			errNotAcc = "Not a valid account"
 		}
 		pl := state0.ProcessLists.Get(state0.LLeaderHeight)
 		pl.FactoidBalancesTMutex.Lock()
@@ -230,11 +245,8 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 		}
 		pl.FactoidBalancesTMutex.Unlock()
 
-		// splits `num,num` up into `[num, num]` som BothNumbers[0] with give you the first value (the Temp value)
-		BothNumbers := strings.Split(individualArrays[i], `,`)
-		fmt.Println(BothNumbers[0])
-		if BothNumbers[0] !=  strconv.FormatInt(TempBalance, 10) || BothNumbers[1] != strconv.FormatInt(PermBalance, 10) {
-			t.Fatalf("Expected "+BothNumbers[0]+","+BothNumbers[1]+", but got %s"+ strconv.FormatInt(TempBalance, 10)+","+strconv.FormatInt(PermBalance, 10))
+		if resp2.Result.Balances[i][0] != strconv.FormatInt(TempBalance, 10) || resp2.Result.Balances[i][1] != strconv.FormatInt(PermBalance, 10) || resp2.Result.Balances[i][2] != errNotAcc {
+			t.Fatalf("Expected " + resp2.Result.Balances[i][0] + "," + resp2.Result.Balances[i][1] + ", but got %s" + strconv.FormatInt(TempBalance, 10) + "," + strconv.FormatInt(PermBalance, 10))
 		}
 	}
 }
@@ -250,32 +262,45 @@ func TestMultipleECAccountsAPI(t *testing.T) {
 	WaitForMinute(state0, 1)
 
 	url := "http://localhost:8088/v2"
-	arrayOfECAccounts := []string{"EC3Eh7yQKShgjkUSFrPbnQpboykCzf4kw9QHxi47GGz5P2k3dbab","EC3Eh7yQKShgjkUSFrPbnQpboykCzf4kw9QHxi47GGz5P2k3dbab"}
+	arrayOfECAccounts := []string{"EC3Eh7yQKShgjkUSFrPbnQpboykCzf4kw9QHxi47GGz5P2k3dbab", "EC3Eh7yQKShgjkUSFrPbnQpboykCzf4kw9QHxi47GGz5P2k3dbab"}
 
-	var jsonStr = []byte(`{"jsonrpc": "2.0", "id": 0, "method": "multiple-ec-balances", "params":{"addresses":["`+strings.Join(arrayOfECAccounts, `", "`)+`"]}}  `)
+	var jsonStr = []byte(`{"jsonrpc": "2.0", "id": 0, "method": "multiple-ec-balances", "params":{"addresses":["` + strings.Join(arrayOfECAccounts, `", "`) + `"]}}  `)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
 	req.Header.Set("content-type", "text/plain;")
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		panic(err)
+		t.Error(err)
+	}
+	type walletcallHelper struct {
+		Height   uint32     `json:"height"`
+		Balances [][]string `json:"balances"`
+	}
+	type walletcall struct {
+		Jsonrpc string           `json:"jsonrps"`
+		Id      int              `json:"id"`
+		Result  walletcallHelper `json:"result"`
 	}
 
 	defer resp.Body.Close()
 	body, _ := ioutil.ReadAll(resp.Body)
 
-	temp := strings.Split(string(body), `balances":[[`)
-	justArray := strings.Split(temp[1],  `]]}}`)
-	individualArrays := strings.Split(justArray[0],  `],[`)
+	resp2 := new(walletcall)
+	err1 := json.Unmarshal([]byte(body), &resp2)
+	if err1 != nil {
+		t.Error(err1)
+	}
 
 	// To check if the balances returned from the API are right
 	for i, a := range arrayOfECAccounts {
 		byteAcc := [32]byte{}
 		copy(byteAcc[:], primitives.ConvertUserStrToAddress(a))
 		PermBalance, pok := state0.ECBalancesP[byteAcc]
+		errNotAcc := ""
 		if pok != true {
-			PermBalance = -1
+			PermBalance = 0
+			errNotAcc = "Not a valid account"
 		}
 		pl := state0.ProcessLists.Get(state0.LLeaderHeight)
 		pl.ECBalancesTMutex.Lock()
@@ -289,11 +314,10 @@ func TestMultipleECAccountsAPI(t *testing.T) {
 		}
 		pl.ECBalancesTMutex.Unlock()
 
-		// splits `num,num` up into `[num, num]` som BothNumbers[0] with give you the first value (the Temp value)
-		BothNumbers := strings.Split(individualArrays[i], `,`)
-		if BothNumbers[0] !=  strconv.FormatInt(TempBalance, 10) || BothNumbers[1] != strconv.FormatInt(PermBalance, 10) {
-			t.Fatalf("Expected "+BothNumbers[0]+","+BothNumbers[1]+", but got %s"+ strconv.FormatInt(TempBalance, 10)+","+strconv.FormatInt(PermBalance, 10))
+		if resp2.Result.Balances[i][0] != strconv.FormatInt(TempBalance, 10) || resp2.Result.Balances[i][1] != strconv.FormatInt(PermBalance, 10) || resp2.Result.Balances[i][2] != errNotAcc {
+			t.Fatalf("Expected " + resp2.Result.Balances[i][0] + "," + resp2.Result.Balances[i][1] + ", but got %s" + strconv.FormatInt(TempBalance, 10) + "," + strconv.FormatInt(PermBalance, 10))
 		}
+
 	}
 }
 
