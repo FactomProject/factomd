@@ -36,36 +36,36 @@ func GetHardCodedGrants() []HardGrant {
 		hardcodegrants = []HardGrant{
 			// Initial grants approved June 9, 2018 https://drive.google.com/drive/folders/1e_xmKgJb375EcAwwkz2d3mdYs0PVVih3
 			// https://factomize.com/forums/threads/implementing-the-initial-grants.428/
-			// USD/FCT rate calculated at $10.03567 using 7 day EMA from July 16, 2018 https://drive.google.com/drive/folders/1GgAtsTlZEMD77eUvQW3TSGULxIT0Ld03
+			// USD/FCT rate calculated at $8.6218 using 7 day EMA from August 1, 2018 https://drive.google.com/drive/folders/1GgAtsTlZEMD77eUvQW3TSGULxIT0Ld03
 
 			/// activation block height of 152326 is expected on Friday, August 3 around 5pm UTC
 
 			// USD denominated grants
 			// Legal Review Grant:
-			// $200,000 total = 19929 FCT split over 4 addresses
-			// part 1/4 6929 FCT
-			HardGrant{152326, 692900000000, validateAddress("FA2eNHCf6Sh8aPJrtiparZcxKHWENbvAVvm18Yw9tXyqHyVdxz6E")},
-			// part 2/4 7500 FCT
-			HardGrant{152326, 750000000000, validateAddress("FA2Ls3yMt9gy8MxxxzvuBj4Zt6wjt15kEW3xoTKi1Npe4LQ1idDw")},
-			// part 3/4 2000 FCT
-			HardGrant{152326, 200000000000, validateAddress("FA2apt71pNu4dfr7o1zFiCdKUJQvCYfnjXjiUveV8VJNJ9QmXg93")},
-			// part 4/4 3500 FCT
-			HardGrant{152326, 350000000000, validateAddress("FA2LpYCTSxWssXghqtSkpsedB9zozPy9psMKfbJhcCV1qKLp4iZy")},
+			// $200,000 total = 23197 FCT split over 4 addresses
+			// part 1/4 8065 FCT
+			HardGrant{152326, 806500000000, validateAddress("FA2eNHCf6Sh8aPJrtiparZcxKHWENbvAVvm18Yw9tXyqHyVdxz6E")},
+			// part 2/4 8730 FCT
+			HardGrant{152326, 873000000000, validateAddress("FA2Ls3yMt9gy8MxxxzvuBj4Zt6wjt15kEW3xoTKi1Npe4LQ1idDw")},
+			// part 3/4 2328 FCT
+			HardGrant{152326, 232800000000, validateAddress("FA2apt71pNu4dfr7o1zFiCdKUJQvCYfnjXjiUveV8VJNJ9QmXg93")},
+			// part 4/4 4074 FCT
+			HardGrant{152326, 407400000000, validateAddress("FA2LpYCTSxWssXghqtSkpsedB9zozPy9psMKfbJhcCV1qKLp4iZy")},
 
 			// Voting System Grant:
-			// Sent to 4 addresses for 4 parties a total of 22658 FCT
-			// TFA $154291.2  ($105091.2 + $43200 + $6000) = 15374 FCT
-			// part 1/4 15374 FCT
-			HardGrant{152326, 1537400000000, validateAddress("FA3dxxVGuL3oPCBLoxmTPXrse3dyS1VyqTttGWJpcCPjnihFFqT5")},
-			// Factomatic $45400 = 4524 FCT
-			// part 2/4 4524 FCT
-			HardGrant{152326, 452400000000, validateAddress("FA2944TXTDQKdJDp3TLSANjgMjwK2pQnTSkzE3kQcHWKetCCphcH")},
-			// LUCIAP $24200 = 2411 FCT
-			// part 3/4 2411 FCT
-			HardGrant{152326, 241100000000, validateAddress("FA1yjNL71ddoQPMcgJpBK4TcuyRH8xpHSZWMLJ7DbkdjhHBVZhEm")},
-			// Factoshi $3500 = 349 FCT
-			// part 4/4 349 FCT
-			HardGrant{152326, 34900000000, validateAddress("FA2EPEXRPLc6HE3py95f2bsouFTj7tDq9gd5RVdv1RVAUiUTXyJm")},
+			// Sent to 4 addresses for 4 parties a total of 26374 FCT
+			// TFA $154291.2  ($105091.2 + $43200 + $6000) = 17895 FCT
+			// part 1/4 17895 FCT
+			HardGrant{152326, 1789500000000, validateAddress("FA3dxxVGuL3oPCBLoxmTPXrse3dyS1VyqTttGWJpcCPjnihFFqT5")},
+			// Factomatic $45400 = 5266 FCT
+			// part 2/4 5266 FCT
+			HardGrant{152326, 526600000000, validateAddress("FA2944TXTDQKdJDp3TLSANjgMjwK2pQnTSkzE3kQcHWKetCCphcH")},
+			// LUCIAP $24200 = 2807 FCT
+			// part 3/4 2807 FCT
+			HardGrant{152326, 280700000000, validateAddress("FA1yjNL71ddoQPMcgJpBK4TcuyRH8xpHSZWMLJ7DbkdjhHBVZhEm")},
+			// Factoshi $3500 = 406 FCT
+			// part 4/4 406 FCT
+			HardGrant{152326, 40600000000, validateAddress("FA2EPEXRPLc6HE3py95f2bsouFTj7tDq9gd5RVdv1RVAUiUTXyJm")},
 
 			// FCT denominated grants
 
@@ -83,7 +83,7 @@ func GetHardCodedGrants() []HardGrant {
 
 			// Protocol Development Grant:
 			// Factom, Inc.  30000 per month from June 9 -> Sep 9, 2018, Total of 90000 FCT
-			HardGrant{155001, 9000000000000, validateAddress("FA3LwCDE3ZdFkr9nE1Keb5JcHgwXVWpEHydshT1x2qKFdvZELVQz")}, // c
+			HardGrant{155501, 9000000000000, validateAddress("FA3LwCDE3ZdFkr9nE1Keb5JcHgwXVWpEHydshT1x2qKFdvZELVQz")}, // c
 
 			// Guide Payments (past) April 7- July 7
 			// April 2018.  April 7 - 30 = 160 FCT for each of the 5 guides
