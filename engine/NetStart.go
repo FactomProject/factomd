@@ -100,16 +100,6 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		log.SetLevel(log.PanicLevel)
 	}
 
-	// Command line override if provided
-	switch p.ControlPanelSetting {
-	case "disabled":
-		s.ControlPanelSetting = 0
-	case "readonly":
-		s.ControlPanelSetting = 1
-	case "readwrite":
-		s.ControlPanelSetting = 2
-	}
-
 	if p.Logjson {
 		log.SetFormatter(&log.JSONFormatter{})
 	}
@@ -175,10 +165,6 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	if p.FastLocation != "" {
 		s.StateSaverStruct.FastBootLocation = p.FastLocation
 	}
-	if p.FastSaveRate < 2 || p.FastSaveRate > 5000 {
-		panic("FastSaveRate must be between 2 and 5000")
-	}
-	s.FastSaveRate = p.FastSaveRate
 
 	s.CheckChainHeads.CheckChainHeads = p.CheckChainHeads
 	s.CheckChainHeads.Fix = p.FixChainHeads
