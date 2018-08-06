@@ -102,11 +102,8 @@ func (cm *ConnectionManager) GetRandom() *Connection {
 	return onlineActive[rand.Intn(len(onlineActive))]
 }
 
-// Get a set of random connections from all the online, active regular peers we have.
-func (cm *ConnectionManager) GetRandomRegular(sampleSize int) []*Connection {
-	if sampleSize <= 0 {
-		return make([]*Connection, 0)
-	}
+// Get connections for all online, active regular peers, but in random order.
+func (cm *ConnectionManager) GetAllRegular() []*Connection {
 
 	selection := cm.getMatching(func(c *Connection) bool {
 		return c.IsOnline() && !c.peer.IsSpecial() && c.metrics.BytesReceived > 0
@@ -116,6 +113,16 @@ func (cm *ConnectionManager) GetRandomRegular(sampleSize int) []*Connection {
 		selection[i], selection[j] = selection[j], selection[i]
 	})
 
+	return selection
+}
+
+// Get a set of random connections from all the online, active regular peers we have.
+func (cm *ConnectionManager) GetRandomRegular(sampleSize int) []*Connection {
+	if sampleSize <= 0 {
+		return make([]*Connection, 0)
+	}
+
+	selection := cm.GetAllRegular()
 	resultSize := min(sampleSize, len(selection))
 	return selection[:resultSize]
 }

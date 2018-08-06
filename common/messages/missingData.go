@@ -6,6 +6,7 @@ package messages
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -112,7 +113,12 @@ func (m *MissingData) UnmarshalBinary(data []byte) error {
 	return err
 }
 
-func (m *MissingData) MarshalBinary() ([]byte, error) {
+func (m *MissingData) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "MissingData.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	var buf primitives.Buffer
 	buf.Write([]byte{m.Type()})
 	if d, err := m.Timestamp.MarshalBinary(); err != nil {

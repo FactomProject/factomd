@@ -6,6 +6,7 @@ package entryBlock
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -182,11 +183,16 @@ func (e *EBlock) KeyMR() (interfaces.IHash, error) {
 }
 
 // MarshalBinary returns the serialized binary form of the Entry Block.
-func (e *EBlock) MarshalBinary() ([]byte, error) {
+func (e *EBlock) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "EBlock.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	e.Init()
 	buf := primitives.NewBuffer(nil)
 
-	err := e.BuildHeader()
+	err = e.BuildHeader()
 	if err != nil {
 		return nil, err
 	}
@@ -249,7 +255,12 @@ func (e *EBlock) UnmarshalBinary(data []byte) (err error) {
 }
 
 // marshalBodyBinary returns a serialized binary Entry Block Body
-func (e *EBlock) marshalBodyBinary() ([]byte, error) {
+func (e *EBlock) marshalBodyBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "EBlock.marshalBodyBinary err:%v", *pe)
+		}
+	}(&err)
 	e.Init()
 	buf := new(primitives.Buffer)
 

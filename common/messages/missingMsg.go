@@ -7,6 +7,7 @@ package messages
 import (
 	"encoding/binary"
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -146,7 +147,12 @@ func (m *MissingMsg) UnmarshalBinary(data []byte) error {
 	return err
 }
 
-func (m *MissingMsg) MarshalBinary() ([]byte, error) {
+func (m *MissingMsg) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "MissingMsg.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	var buf primitives.Buffer
 
 	binary.Write(&buf, binary.BigEndian, m.Type())
@@ -186,11 +192,11 @@ func (m *MissingMsg) String() string {
 	for _, n := range m.ProcessListHeight {
 		str += fmt.Sprintf("%d/%d/%d, ", m.DBHeight, m.VMIndex, n)
 	}
-	return fmt.Sprintf("MissingMsg --> %x asking for DBh/VMh/h[%s] Sys: %d msgHash[%x]",
+	return fmt.Sprintf("MissingMsg --> %x asking for DBh/VMh/h[%s] Sys: %d msgHash[%x] from peer-%d %s",
 		m.Asking.Bytes()[3:6],
 		str,
 		m.SystemHeight,
-		m.GetMsgHash().Bytes()[:3])
+		m.GetMsgHash().Bytes()[:3], m.GetOrigin(), m.GetNetworkOrigin())
 }
 
 func (m *MissingMsg) LogFields() log.Fields {

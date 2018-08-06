@@ -2,6 +2,7 @@ package entryBlock
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -161,11 +162,16 @@ func (c *EBlockHeader) SetEntryCount(entryCount uint32) {
 }
 
 // marshalHeaderBinary returns a serialized binary Entry Block Header
-func (e *EBlockHeader) MarshalBinary() ([]byte, error) {
+func (e *EBlockHeader) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "EBlockHeader.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	e.Init()
 	buf := primitives.NewBuffer(nil)
 
-	err := buf.PushBinaryMarshallable(e.ChainID)
+	err = buf.PushBinaryMarshallable(e.ChainID)
 	if err != nil {
 		return nil, err
 	}

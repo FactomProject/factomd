@@ -7,6 +7,7 @@ package messages
 import (
 	"encoding/binary"
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
@@ -310,7 +311,12 @@ func (m *DirectoryBlockSignature) UnmarshalBinary(data []byte) error {
 	return err
 }
 
-func (m *DirectoryBlockSignature) MarshalForSignature() ([]byte, error) {
+func (m *DirectoryBlockSignature) MarshalForSignature() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "DirectoryBlockSignature.MarshalForSignature err:%v", *pe)
+		}
+	}(&err)
 	if m.DirectoryBlockHeader == nil {
 		m.DirectoryBlockHeader = directoryBlock.NewDBlockHeader()
 	}

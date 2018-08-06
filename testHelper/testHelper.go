@@ -35,6 +35,7 @@ func CreateEmptyTestState() *state.State {
 	s.LogPath = "stdout"
 	s.Init()
 	s.Network = "LOCAL"
+	s.CheckChainHeads.CheckChainHeads = false
 	state.LoadDatabase(s)
 	return s
 }

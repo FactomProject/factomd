@@ -7,6 +7,7 @@ package messages
 import (
 	"encoding/binary"
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
@@ -241,7 +242,12 @@ func attemptEBlockUnmarshal(data []byte) (eblock interfaces.IEntryBlock, err err
 	return eblock, nil
 }
 
-func (m *DataResponse) MarshalBinary() ([]byte, error) {
+func (m *DataResponse) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "DataResponse.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	var buf primitives.Buffer
 	buf.Write([]byte{m.Type()})
 	if d, err := m.Timestamp.MarshalBinary(); err != nil {
@@ -270,9 +276,7 @@ func (m *DataResponse) MarshalBinary() ([]byte, error) {
 }
 
 func (m *DataResponse) String() string {
-	return fmt.Sprintf("DataResponse Type: %2d Hash: %x\n",
-		m.DataType,
-		m.DataHash.Bytes())
+	return fmt.Sprintf("DataResponse Type: %2d Hash: %x", m.DataType, m.DataHash.Bytes())
 }
 
 func (m *DataResponse) LogFields() log.Fields {

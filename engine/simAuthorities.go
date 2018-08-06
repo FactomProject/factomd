@@ -392,6 +392,32 @@ func authorityToBlockchain(total int, st *state.State) ([]hardCodedAuthority, in
 		_, _ = v2Request(j, st.GetPort())
 		//_, _ = wsapi.HandleV2Request(st, j)
 
+		com, rev, _ = makeServerCoinbaseAddress(ele, ec, primitives.RandomHash())
+		mC = new(wsapi.MessageRequest)
+		mC.Message = com
+		j = primitives.NewJSON2Request("commit-entry", 0, mC)
+		_, _ = v2Request(j, st.GetPort())
+		//_, _ = wsapi.HandleV2Request(st, j)
+
+		mR = new(wsapi.EntryRequest)
+		mR.Entry = rev
+		j = primitives.NewJSON2Request("reveal-entry", 0, mR)
+		_, _ = v2Request(j, st.GetPort())
+		//_, _ = wsapi.HandleV2Request(st, j)
+
+		com, rev, _ = makeServerEfficiency(ele, ec, 1000)
+		mC = new(wsapi.MessageRequest)
+		mC.Message = com
+		j = primitives.NewJSON2Request("commit-entry", 0, mC)
+		_, _ = v2Request(j, st.GetPort())
+		//_, _ = wsapi.HandleV2Request(st, j)
+
+		mR = new(wsapi.EntryRequest)
+		mR.Entry = rev
+		j = primitives.NewJSON2Request("reveal-entry", 0, mR)
+		_, _ = v2Request(j, st.GetPort())
+		//_, _ = wsapi.HandleV2Request(st, j)
+
 		madeAuths = append(madeAuths, ele)
 		authKeyLibrary = append(authKeyLibrary, ele)
 	}
@@ -926,6 +952,8 @@ func addFnodeName(i int) {
 	// common short set
 	globals.FnodeNames[fmt.Sprintf("%x", fnodes[i].State.IdentityChainID.Bytes()[3:6])] = fnodes[i].State.FactomNodeName
 	globals.FnodeNames[fmt.Sprintf("%x", fnodes[i].State.IdentityChainID.Bytes()[:5])] = fnodes[i].State.FactomNodeName
+	globals.FnodeNames[fmt.Sprintf("%x", fnodes[i].State.IdentityChainID.Bytes()[:])] = fnodes[i].State.FactomNodeName
+	globals.FnodeNames[fmt.Sprintf("%x", fnodes[i].State.IdentityChainID.Bytes()[:8])] = fnodes[i].State.FactomNodeName
 }
 
 func shad(data []byte) []byte {

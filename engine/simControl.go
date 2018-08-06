@@ -1260,23 +1260,32 @@ func SimControl(listenTo int, listenStdin bool) {
 				break
 
 			case 'L' == b[0]:
-				if len(b) < 2 {
+				if len(b) <= 2 {
 					if cancelheight == -1 {
 						fmt.Errorf("Exp LH.I")
 						break
 					}
-					err = cancelCoinbase(fnodes[ListenTo].State.IdentityChainID, fnodes[ListenTo].State, uint32(cancelheight), uint32(cancelindex))
-					if err != nil {
-						os.Stderr.WriteString(fmt.Sprintf("%s\n", err.Error()))
-						break
-					}
-					os.Stderr.WriteString(fmt.Sprintf("Voting to cancel height %d, index %d\n", cancelheight, cancelindex))
 
-					ListenTo++
-					if ListenTo >= len(fnodes) {
-						ListenTo = 0
+					num := ListenTo + 1
+					if b[1] == 'a' {
+						num = len(fnodes)
 					}
-					os.Stderr.WriteString(fmt.Sprint("\r\nSwitching to Node ", ListenTo, "\r\n"))
+
+					for listenTo < num {
+						err = cancelCoinbase(fnodes[ListenTo].State.IdentityChainID, fnodes[ListenTo].State, uint32(cancelheight), uint32(cancelindex))
+						if err != nil {
+							os.Stderr.WriteString(fmt.Sprintf("%s\n", err.Error()))
+							break
+						}
+						os.Stderr.WriteString(fmt.Sprintf("Voting to cancel height %d, index %d\n", cancelheight, cancelindex))
+
+						ListenTo++
+						if ListenTo >= len(fnodes) {
+							ListenTo = 0
+						}
+						os.Stderr.WriteString(fmt.Sprint("\r\nSwitching to Node ", ListenTo, "\r\n"))
+						num++
+					}
 					break
 				}
 

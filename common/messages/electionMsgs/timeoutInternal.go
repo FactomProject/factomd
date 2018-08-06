@@ -6,7 +6,6 @@ package electionMsgs
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -25,7 +24,6 @@ type TimeoutInternal struct {
 	Name        string
 	SigType     bool // True for EOM, false for DBSig
 	DBHeight    int
-	Round       int
 	MessageHash interfaces.IHash
 }
 
@@ -89,6 +87,10 @@ func (m *TimeoutInternal) ComparisonMinute() int {
 	return int(m.Minute)
 }
 
+// ElectionProcess on TimeoutInternal is a loop.
+//		The loop is executed by goroutines on delays. This function handles
+//		starting an election, and incrementing rounds. It will self terminate
+//		the loop if there is nothing left to be done
 func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces.IElections) {
 	s := is.(*state.State)
 
@@ -103,6 +105,11 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 		return
 	}
 
+	// This if block should be run if there is no current election ongoing.
+	//	It checks if there should be an election by looking for missing EOMs
+	//	If it finds none, then it exits, if it does find a hole, it sends a message
+	//	to start an election. That start message will trigger this ElectionProcess()
+	//	again.
 	// No election running, is there one we should start?
 	if e.Electing == -1 || m.DBHeight > e.DBHeight || m.ComparisonMinute() > e.ComparisonMinute() {
 		// When we are syncing this can happen, as we are syncing from disk quickly
@@ -127,8 +134,8 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 			}
 		}
 
+		// Terminate the loop, no elections needed, everything is found.
 		if !found {
-			// TODO: Set Electing to -1?
 			return
 		}
 
@@ -144,24 +151,22 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 		}
 		e.Round[e.Electing] = 0
 
-		e.LogPrintf("election", "**** Start an Election for %d[%x] ****", e.Electing, e.FedID.Bytes()[3:6])
-		e.LogPrintf("faulting", "**** Start an Election for %d[%x] ****", e.Electing, e.FedID.Bytes()[3:6])
+		sync := "dbsig"
+		if m.SigType {
+			sync = "eom"
+		}
 
-		// ------------------
-		// Not in an election
+		e.LogPrintf("election", "**** Start an Election for %d[%x] missing %s ****", e.Electing, e.FedID.Bytes()[3:6], sync)
+		e.LogPrintf("faulting", "**** Start an Election for %d[%x] missing %s ****", e.Electing, e.FedID.Bytes()[3:6], sync)
+		e.LogPrintLeaders("election")
 
 		// Begin a new Election for a specific vm/min/height
-		initiated := m.InitiateElectionAdapter(is)
-		if !initiated {
-			// True means the election is started or already going. False means it did not
-			// start.
-			// TODO: We should never get a false, so should we do something if it is?
-		} // <-- Election Started
-		return // Let the Election Start kick out the new timeout
+		m.InitiateElectionAdapter(is) // <-- Election Started
+		return                        // Let the Election Start kick out the new timeout
 	}
 
 	// Operate in existing election
-
+	//		Mainly increment rounds and check if we should send out our audit volunteer (if we are an aud)
 	e.State.(*state.State).Election2 = e.FeedBackStr("E", true, e.Electing)
 
 	for len(e.Round) <= e.Electing {
@@ -175,7 +180,7 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 	// Start our timer to timeout this sync
 
 	e.FaultId.Store(e.FaultId.Load() + 1) // increment the timeout counter
-	go Fault(e, e.DBHeight, e.Minute, e.Round[e.Electing], e.FaultId.Load(), &e.FaultId, m.SigType, e.RoundTimeout)
+	go Fault(e, e.DBHeight, e.Minute, e.FaultId.Load(), &e.FaultId, m.SigType, e.RoundTimeout)
 
 	auditIdx := 0
 	if len(e.Audit) > 0 {
@@ -308,19 +313,4 @@ func (m *TimeoutInternal) String() string {
 
 func (a *TimeoutInternal) IsSameAs(b *TimeoutInternal) bool {
 	return true
-}
-
-func newRound(e *elections.Elections, dbheight int, minute int, round int) {
-
-	time.Sleep(e.Timeout)
-	if e.DBHeight > dbheight || e.Minute > minute {
-		return
-	}
-
-	timeout := new(TimeoutInternal)
-	timeout.Minute = byte(minute)
-	timeout.DBHeight = dbheight
-	timeout.Round = round
-	e.Input.Enqueue(timeout)
-
 }

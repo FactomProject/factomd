@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -169,7 +170,12 @@ func (c *CrossReplayFilter) Close() {
 
 type MarshalableUint32 uint32
 
-func (m *MarshalableUint32) MarshalBinary() ([]byte, error) {
+func (m *MarshalableUint32) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "MarshalableUint32.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	return Uint32ToBytes(uint32(*m))
 }
 
