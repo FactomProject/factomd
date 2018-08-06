@@ -498,6 +498,10 @@ func (c *Connection) processReceives() {
 			result := c.decoder.Decode(&message)
 			switch result {
 			case io.EOF: // nothing to decode
+				// TODO: This error is a starving loop. Does the error always mean the connection is closed?
+				// TODO: If so, we should pass it to the errors channel to kill this connection and stop reading.
+				// For now, just sleep to stop the starve
+				time.Sleep(500 * time.Millisecond)
 				continue
 			case nil: // successfully decoded
 				c.metrics.BytesReceived += message.Header.Length
