@@ -184,6 +184,7 @@ func (c *Connection) StatusString() string {
 func (c *Connection) IsPersistent() bool {
 	return c.isPersistent
 }
+
 func (c *Connection) Notes() string {
 	return c.notes
 }
@@ -214,6 +215,14 @@ func (c *Connection) commonInit(peer Peer) {
 func (c *Connection) Start() {
 	c.logger.Debug("Starting connection")
 	go c.runLoop()
+}
+
+// Copies metrics from another connection to this one.
+func (c *Connection) CopyMetricsFrom(another *Connection) {
+	// perform a shallow copy of the metrics, but update the state with the
+	// current value
+	c.metrics = another.metrics
+	c.metrics.ConnectionState = connectionStateStrings[c.state]
 }
 
 // runloop OWNs the connection.  It is the only goroutine that can change values in the connection struct
