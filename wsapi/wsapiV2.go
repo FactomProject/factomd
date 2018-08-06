@@ -195,64 +195,91 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 func HandleV2MultipleECBalances(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	x, ok := params.(map[string]interface{})
 	if ok != true {
-		return nil, NewCustomInvalidParamsError("Invalid params passed in")
+		return nil, NewCustomInvalidParamsError("ERROR! Invalid params passed in")
 	}
 
 	if x["addresses"] == nil {
-		return nil, NewCustomInvalidParamsError("Invalid params passed in, expected 'addresses'")
+		return nil, NewCustomInvalidParamsError("ERROR! Invalid params passed in, expected 'addresses'")
 	}
 
 	listofadd := (x["addresses"]).([]interface{})
-	arrayAdd := make([][32]byte, len(listofadd))
+	totalBalances := make([]interface{}, len(listofadd))
+	var currentHeight uint32
+	var savedHeight uint32
 
 	// Converts readable accounts
 	for i, a := range listofadd {
-		if a.(string)[0:2] != "EC" || len(a.(string)) != 52 {
-			return nil, NewCustomInvalidParamsError("Invalid factoid account passed in: " + a.(string))
+		if primitives.ValidateFUserStr(a.(string)) != true {
+			errStruct := new(interfaces.IndividualObj)
+			errStruct.ERROR = "ERROR! Invalid factoid address passed in"
+			totalBalances[i] = errStruct
+		} else {
+			covertedAdd := [32]byte{}
+			copy(covertedAdd[:], primitives.ConvertUserStrToAddress(a.(string)))
+			cHeight, sHeight, temp, perm, error := state.GetFactoidState().GetMultipleECBalances(covertedAdd)
+			currentHeight = cHeight
+			savedHeight = sHeight
+
+			valueStruct := new(interfaces.StructToReturnValues)
+			valueStruct.TempBal = temp
+			valueStruct.PermBal = perm
+			valueStruct.Error = error
+			totalBalances[i] = valueStruct
 		}
-		arrayAdd[i] = [32]byte{}
-		s := a.(string)
-		copy(arrayAdd[i][:], primitives.ConvertUserStrToAddress(s))
 	}
-	height, somethin := state.GetFactoidState().GetMultipleECBalances(arrayAdd)
+	h := new(MultipleFTBalances)
 
-	h := new(MultipleECBalances)
-
-	h.Height = height
-	h.Balances = somethin
+	h.CurrentHeight = currentHeight
+	h.LastSavedHeight = savedHeight
+	h.Balances = totalBalances
 
 	return h, nil
 }
 
+
+//todo look for waitmode and ignoremode Tied into knowing if node has booted from disk, from database
 func HandleV2MultipleFCTBalances(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	x, ok := params.(map[string]interface{})
 	if ok != true {
 		fmt.Println(params)
-		return nil, NewCustomInvalidParamsError("Invalid params passed in")
+		return nil, NewCustomInvalidParamsError("ERROR! Invalid params passed in")
 	}
 
 	if x["addresses"] == nil {
-		return nil, NewCustomInvalidParamsError("Invalid params passed in, expected 'addresses'")
+		return nil, NewCustomInvalidParamsError("ERROR! Invalid params passed in, expected 'addresses'")
 	}
-
 	listofadd := (x["addresses"]).([]interface{})
-	arrayAdd := make([][32]byte, len(listofadd))
+
+	totalBalances := make([]interface{}, len(listofadd))
+	var currentHeight uint32
+	var savedHeight uint32
 
 	// Converts readable accounts
 	for i, a := range listofadd {
-		if a.(string)[0:2] != "FA" || len(a.(string)) != 52 {
-			return nil, NewCustomInvalidParamsError("Invalid factoid account passed in: " + a.(string))
+		if primitives.ValidateFUserStr(a.(string)) != true {
+			errStruct := new(interfaces.IndividualObj)
+			errStruct.ERROR = "ERROR! Invalid factoid address passed in"
+			totalBalances[i] = errStruct
+		} else {
+			covertedAdd := [32]byte{}
+			copy(covertedAdd[:], primitives.ConvertUserStrToAddress(a.(string)))
+			cHeight, sHeight, temp, perm, error := state.GetFactoidState().GetMultipleFactoidBalances(covertedAdd)
+			currentHeight = cHeight
+			savedHeight = sHeight
+
+			valueStruct := new(interfaces.StructToReturnValues)
+			valueStruct.TempBal = temp
+			valueStruct.PermBal = perm
+			valueStruct.Error = error
+			totalBalances[i] = valueStruct
 		}
-		arrayAdd[i] = [32]byte{}
-		s := a.(string)
-		copy(arrayAdd[i][:], primitives.ConvertUserStrToAddress(s))
 	}
-	height, somethin := state.GetFactoidState().GetMultipleFactoidBalances(arrayAdd)
 
 	h := new(MultipleFTBalances)
 
-	h.Height = height
-	h.Balances = somethin
+	h.CurrentHeight = currentHeight
+	h.LastSavedHeight = savedHeight
+	h.Balances = totalBalances
 
 	return h, nil
 }
