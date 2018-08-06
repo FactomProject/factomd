@@ -619,7 +619,7 @@ func (c *Controller) fillOutgoingSlots(openSlots int) {
 	// To avoid dialing "too many" peers, we are keeping a count and only dialing the number of peers we need to add.
 	newPeers := 0
 	for _, peer := range peers {
-		if c.connections.ConnectedTo(peer.Address) && newPeers < openSlots {
+		if !c.connections.ConnectedTo(peer.Address) && newPeers < openSlots {
 			c.logger.Debugf("newPeers: %d < openSlots: %d We think we are not already connected to: %s so dialing.", newPeers, openSlots, peer.AddressPort())
 			newPeers = newPeers + 1
 			c.DialPeer(peer, false)
@@ -660,8 +660,8 @@ func (c *Controller) shutdown() {
 }
 
 // Broadcasts the parcel to a number of peers: all special peers and a random selection
-// of regular peers (max NumberPeersToBroadcast).
-func (c *Controller) broadcast(parcel Parcel) {
+// of regular peers (total max NumberPeersToBroadcast).
+func (c *Controller) broadcast(parcel Parcel, full bool) {
 	numSent := 0
 
 	// always broadcast to special peers
@@ -674,20 +674,21 @@ func (c *Controller) broadcast(parcel Parcel) {
 		BlockFreeChannelSend(connection.SendChannel, ConnectionParcel{Parcel: parcel})
 	}
 
-	// estimate a number of regular peers to send messages to, at most NumberPeersToBroadcast
-	numRegularPeers := len(c.connections) - len(c.specialPeers)
-	numPeersToSendTo := min(numRegularPeers, NumberPeersToBroadcast)
-	if numPeersToSendTo <= 0 {
-		return
+	// send also to a random selection of regular peers
+	var randomSelection []*Connection
+	if full {
+		randomSelection = c.connections.GetAllRegular()
+	} else {
+		numToSendTo := NumberPeersToBroadcast - len(c.specialPeers)
+		randomSelection = c.connections.GetRandomRegular(numToSendTo)
 	}
 
-	// gather all peer hashes for regular connections for random selection
-	regularPeers := make([]string, 0, numRegularPeers)
-
-	for peerHash, connection := range c.connections {
-		if !connection.peer.IsSpecial() {
-			regularPeers = append(regularPeers, peerHash)
+	if len(randomSelection) == 0 {
+		c.logger.Warn("Broadcast to random hosts failed: we don't have any peers to broadcast to")
+		return
 		}
+	for _, connection := range randomSelection {
+		BlockFreeChannelSend(connection.SendChannel, ConnectionParcel{Parcel: parcel})
 	}
 
 	SentToPeers.Set(float64(numSent))
