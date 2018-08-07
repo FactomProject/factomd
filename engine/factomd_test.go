@@ -245,7 +245,12 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 		if tok != true && pok != true {
 			TempBalance = 0
 			PermBalance = 0
-			errNotAcc = "ERROR! Address not found"
+			errNotAcc = "ERROR! FCT Address not found"
+		} else if tok == true && pok == false {
+			PermBalance = 0
+			errNotAcc =""
+		} else if tok == false && pok == true {
+			TempBalance = PermBalance
 		}
 
 		fmt.Println("WHAT IT SHOULD BE: " ,currentHeight, heighestSavedHeight, TempBalance, PermBalance, errNotAcc)
@@ -257,8 +262,9 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 		if resp2.Result.CurrentHeight != currentHeight || string(resp2.Result.LastSavedHeight) != string(heighestSavedHeight) {
 			t.Fatalf("Who wrote this trash code?... Expected a current height of "+fmt.Sprint(currentHeight)+" and a saved height of "+fmt.Sprint(heighestSavedHeight)+" but got "+fmt.Sprint(resp2.Result.CurrentHeight)+", "+fmt.Sprint(resp2.Result.LastSavedHeight))
 		}
-		if x["temporary"] != float64(TempBalance) || x["permanent"] != float64(PermBalance) || x["error"] != errNotAcc{
-			t.Fatalf("Expected " + fmt.Sprint(strconv.FormatInt(x["temporary"].(int64), 10)) + ", " + fmt.Sprint(strconv.FormatInt(x["permanent"].(int64), 10)) + ", but got " + strconv.FormatInt(TempBalance, 10) + "," + strconv.FormatInt(PermBalance, 10))
+
+		if x["ack"] != float64(TempBalance) || x["saved"] != float64(PermBalance) || x["err"] != errNotAcc{
+			t.Fatalf("Expected " + fmt.Sprint(strconv.FormatInt(x["ack"].(int64), 10)) + ", " + fmt.Sprint(strconv.FormatInt(x["saved"].(int64), 10)) + ", but got " + strconv.FormatInt(TempBalance, 10) + "," + strconv.FormatInt(PermBalance, 10))
 		}
 	}
 }
@@ -337,8 +343,8 @@ func TestMultipleECAccountsAPI(t *testing.T) {
 		if resp2.Result.CurrentHeight != currentHeight || string(resp2.Result.LastSavedHeight) != string(heighestSavedHeight) {
 			t.Fatalf("Who wrote this trash code?... Expected a current height of "+fmt.Sprint(currentHeight)+" and a saved height of "+fmt.Sprint(heighestSavedHeight)+" but got "+fmt.Sprint(resp2.Result.CurrentHeight)+", "+fmt.Sprint(resp2.Result.LastSavedHeight))
 		}
-		if x["temporary"] != float64(TempBalance) || x["permanent"] != float64(PermBalance) || x["error"] != errNotAcc{
-			t.Fatalf("Expected " + fmt.Sprint(strconv.FormatInt(x["temporary"].(int64), 10)) + ", " + fmt.Sprint(strconv.FormatInt(x["permanent"].(int64), 10)) + ", but got " + strconv.FormatInt(TempBalance, 10) + "," + strconv.FormatInt(PermBalance, 10))
+		if x["ack"] != float64(TempBalance) || x["saved"] != float64(PermBalance) || x["err"] != errNotAcc{
+			t.Fatalf("Expected " + fmt.Sprint(strconv.FormatInt(x["ack"].(int64), 10)) + ", " + fmt.Sprint(strconv.FormatInt(x["saved"].(int64), 10)) + ", but got " + strconv.FormatInt(TempBalance, 10) + "," + strconv.FormatInt(PermBalance, 10))
 		}
 	}
 }
