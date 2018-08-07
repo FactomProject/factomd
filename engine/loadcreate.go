@@ -42,7 +42,7 @@ func (lg *LoadGenerator) Run() {
 		return
 	}
 	lg.running.Store(true)
-	fundWallet(fnodes[wsapiNode].State, 15000e8)
+	FundWallet(fnodes[wsapiNode].State, 15000e8)
 
 	// Every second add the per second amount
 	ticker := time.NewTicker(time.Second)

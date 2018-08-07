@@ -68,6 +68,12 @@ func (fs *FactoidState) GetMultipleECBalances(singleAdd [32]byte) (uint32, uint3
 
 	PermBalance, pok := fs.State.ECBalancesP[singleAdd] // Gets the Balance of the EC address
 
+	if fs.State.ECBalancesPapi!= nil {
+		if savedBal, ok := fs.State.ECBalancesPapi[singleAdd]; ok {
+			PermBalance = savedBal
+		}
+	}
+
 	pl := fs.State.ProcessLists.Get(currentHeight)
 	pl.ECBalancesTMutex.Lock()
 	TempBalance, tok := pl.ECBalancesT[singleAdd] // Gets the Temp Balance of the EC address
@@ -96,7 +102,16 @@ func (fs *FactoidState) GetMultipleFactoidBalances(singleAdd [32]byte) (uint32, 
 	heighestSavedHeight := fs.State.GetHighestSavedBlk()
 	errNotAcc := ""
 
+
 	PermBalance, pok := fs.State.FactoidBalancesP[singleAdd] // Gets the Balance of the Factoid address
+
+	fmt.Println("fs.State.FactoidBalancesPapi ", fs.State.FactoidBalancesPapi)
+	if fs.State.FactoidBalancesPapi != nil {
+		if savedBal, ok := fs.State.FactoidBalancesPapi[singleAdd]; ok {
+			fmt.Println("SAVEDBAL ", savedBal)
+			PermBalance = savedBal
+		}
+	}
 
 	pl := fs.State.ProcessLists.Get(currentHeight)
 	pl.FactoidBalancesTMutex.Lock()
@@ -114,6 +129,8 @@ func (fs *FactoidState) GetMultipleFactoidBalances(singleAdd [32]byte) (uint32, 
 		TempBalance = PermBalance
 	}
 
+	fmt.Println("fs.State.IgnoreDone ", fs.State.IgnoreDone)
+	fmt.Println("fs.State.DBFinished ", fs.State.DBFinished)
 	if fs.State.IgnoreDone != true || fs.State.DBFinished != true {
 		return 0, 0, 0, 0, "Not fully booted"
 	}

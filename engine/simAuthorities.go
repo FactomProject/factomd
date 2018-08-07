@@ -85,7 +85,7 @@ func copyOver(st *state.State) {
 	var err error
 	sec, _ := hex.DecodeString(ecSec)
 	ec, _ := factom.MakeECAddress(sec[:32])
-	fundWallet(st, 10)
+	FundWallet(st, 10)
 	chain, _ := primitives.HexToHash("1d1d1d1d07714fea910f9c6e42e5dc072c86491a3d80418855a2499e85b0039f")
 	ents, _ := st.DB.FetchAllEntriesByChainID(chain)
 	for i, e := range ents {
@@ -117,7 +117,7 @@ func copyOver(st *state.State) {
 	}
 }
 
-func fundWallet(st *state.State, amt uint64) error {
+func FundWallet(st *state.State, amt uint64) error {
 	inSec, _ := primitives.HexToHash("FB3B471B1DCDADFEB856BD0B02D8BF49ACE0EDD372A3D9F2A95B78EC12A324D6")
 	outEC, _ := primitives.HexToHash("c23ae8eec2beb181a0da926bd2344e988149fbe839fbc7489f2096e7d6110243")
 	inHash, _ := primitives.HexToHash("646F3E8750C550E4582ECA5047546FFEF89C13A175985E320232BACAC81CC428")

@@ -160,7 +160,7 @@ func SimControl(listenTo int, listenStdin bool) {
 						break
 					}
 					if b[1] == 'f' {
-						fundWallet(fnodes[wsapiNode].State, uint64(200*5e7))
+						FundWallet(fnodes[wsapiNode].State, uint64(200*5e7))
 						break
 					}
 				}
@@ -171,7 +171,7 @@ func SimControl(listenTo int, listenStdin bool) {
 				wsapi.SetState(fnodes[wsapiNode].State)
 
 				if nextAuthority == -1 {
-					err := fundWallet(fnodes[wsapiNode].State, 2e7)
+					err := FundWallet(fnodes[wsapiNode].State, 2e7)
 					if err != nil {
 						os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
 						break
@@ -191,7 +191,7 @@ func SimControl(listenTo int, listenStdin bool) {
 							os.Stderr.WriteString(fmt.Sprint("You can only pop a max of 100 off the stack at a time."))
 							count = 100
 						}
-						err := fundWallet(fnodes[wsapiNode].State, uint64(count*5e7))
+						err := FundWallet(fnodes[wsapiNode].State, uint64(count*5e7))
 						if err != nil {
 							os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
 							break
@@ -954,7 +954,7 @@ func SimControl(listenTo int, listenStdin bool) {
 					}
 					wsapiNode = ListenTo
 					wsapi.SetState(fnodes[wsapiNode].State)
-					err := fundWallet(fnodes[ListenTo].State, 1e8)
+					err := FundWallet(fnodes[ListenTo].State, 1e8)
 					if err != nil {
 						os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
 						break
@@ -1213,7 +1213,7 @@ func SimControl(listenTo int, listenStdin bool) {
 
 				wsapiNode = ListenTo
 				wsapi.SetState(fnodes[wsapiNode].State)
-				err = fundWallet(fnodes[ListenTo].State, 1e8)
+				err = FundWallet(fnodes[ListenTo].State, 1e8)
 				if err != nil {
 					os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
 					break
@@ -1242,7 +1242,7 @@ func SimControl(listenTo int, listenStdin bool) {
 
 				wsapiNode = ListenTo
 				wsapi.SetState(fnodes[wsapiNode].State)
-				err = fundWallet(fnodes[ListenTo].State, 1e8)
+				err = FundWallet(fnodes[ListenTo].State, 1e8)
 				if err != nil {
 					os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
 					break

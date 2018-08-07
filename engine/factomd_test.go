@@ -19,6 +19,10 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	. "github.com/FactomProject/factomd/engine"
 	"github.com/FactomProject/factomd/state"
+
+
+		//ed "github.com/FactomProject/ed25519"
+	//ed "github.com/FactomProject/ed25519"
 )
 
 var _ = Factomd
@@ -49,15 +53,17 @@ func SetupSim(GivenNodes string, NetworkType string, UserAddedOptions map[string
 		"--checkheads": "false",
 	}
 
-	returningSlice := []string{}
-	for key, value := range DefaultOptions {
-		returningSlice = append(returningSlice, key+"="+value)
-	}
+
 
 	if UserAddedOptions != nil && len(UserAddedOptions) != 0 {
 		for key, value := range UserAddedOptions {
 			DefaultOptions[key] = value
 		}
+	}
+
+	returningSlice := []string{}
+	for key, value := range DefaultOptions {
+		returningSlice = append(returningSlice, key+"="+value)
 	}
 
 	params := ParseCmdLine(returningSlice)
@@ -181,33 +187,46 @@ func runCmd(cmd string) {
 	return
 }
 
+func v2Request(req *primitives.JSON2Request, port int) (*primitives.JSON2Response, error) {
+	j, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	portStr := fmt.Sprintf("%d", port)
+	resp, err := http.Post(
+		"http://localhost:"+portStr+"/v2",
+		"application/json",
+		bytes.NewBuffer(j))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	r := primitives.NewJSON2Response()
+	if err := json.Unmarshal(body, r); err != nil {
+		return nil, err
+	}
+	return nil, nil
+}
+
 func TestMultipleFTAccountsAPI(t *testing.T) {
 	if ranSimTest {
 		return
 	}
-
 	ranSimTest = true
 
 	state0 := SetupSim("LLLLAAAFFF", "LOCAL", map[string]string{"--logPort": "37000", "--port": "37001", "--controlpanelport": "37002", "--networkport": "37003"}, t)
 	WaitForMinute(state0, 1)
 
-	url := "http://localhost:8088/v2"
-	arrayOfFactoidAccounts := []string{"FA1zT4aFpEvcnPqPCigB3fvGu4Q4mTXY22iiuV69DqE1pNhdF2MC", "FA3Y1tBWnFpyoZUPr9ZH51R1gSC8r5x5kqvkXL3wy4uRvzFnuWLB", "FA3Fsy2WPkR5z7qjpL8H1G51RvZLCiLDWASS6mByeQmHSwAws8K7"}
-
-	var jsonStr = []byte(`{"jsonrpc": "2.0", "id": 0, "method": "multiple-fct-balances", "params":{"addresses":["` + strings.Join(arrayOfFactoidAccounts, `", "`) + `"]}}  `)
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
-	req.Header.Set("content-type", "text/plain;")
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		t.Error(err)
-	}
-
 	type walletcallHelper struct {
-		CurrentHeight   uint32   `json:"current-height"`
-		LastSavedHeight uint `json:"last-saved-height"`
-		Balances []interface{} `json:"Balances"`
+		CurrentHeight   uint32        `json:"current-height"`
+		LastSavedHeight uint          `json:"last-saved-height"`
+		Balances        []interface{} `json:"Balances"`
 	}
 	type walletcall struct {
 		Jsonrpc string           `json:"jsonrps"`
@@ -215,15 +234,33 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 		Result  walletcallHelper `json:"result"`
 	}
 
-	defer resp.Body.Close()
-	body, _ := ioutil.ReadAll(resp.Body)
-	fmt.Println("BODY: ", string(body))
+	apiCall := func(arrayOfFactoidAccounts []string) (*walletcall) {
+		url := "http://localhost:37001/v2"
+		var jsonStr = []byte(`{"jsonrpc": "2.0", "id": 0, "method": "multiple-fct-balances", "params":{"addresses":["` + strings.Join(arrayOfFactoidAccounts, `", "`) + `"]}}  `)
+		req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
+		req.Header.Set("content-type", "text/plain;")
 
-	resp2 := new(walletcall)
-	err1 := json.Unmarshal([]byte(body), &resp2)
-	if err1 != nil {
-		t.Error(err1)
+		client := &http.Client{}
+		resp, err := client.Do(req)
+		if err != nil {
+			t.Error(err)
+		}
+
+		defer resp.Body.Close()
+		body, _ := ioutil.ReadAll(resp.Body)
+		fmt.Println("BODY: ", string(body))
+
+		resp2 := new(walletcall)
+		err1 := json.Unmarshal([]byte(body), &resp2)
+		if err1 != nil {
+			t.Error(err1)
+		}
+
+		return resp2
 	}
+
+	arrayOfFactoidAccounts := []string{"FA1zT4aFpEvcnPqPCigB3fvGu4Q4mTXY22iiuV69DqE1pNhdF2MC", "FA3Y1tBWnFpyoZUPr9ZH51R1gSC8r5x5kqvkXL3wy4uRvzFnuWLB", "FA3Fsy2WPkR5z7qjpL8H1G51RvZLCiLDWASS6mByeQmHSwAws8K7"}
+	resp2 := apiCall(arrayOfFactoidAccounts)
 
 	// To check if the balances returned from the API are right
 
@@ -248,25 +285,126 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 			errNotAcc = "ERROR! FCT Address not found"
 		} else if tok == true && pok == false {
 			PermBalance = 0
-			errNotAcc =""
+			errNotAcc = ""
 		} else if tok == false && pok == true {
 			TempBalance = PermBalance
 		}
 
-		fmt.Println("WHAT IT SHOULD BE: " ,currentHeight, heighestSavedHeight, TempBalance, PermBalance, errNotAcc)
 		x, ok := resp2.Result.Balances[i].(map[string]interface{})
 		if ok != true {
 			fmt.Println(x)
 		}
 
 		if resp2.Result.CurrentHeight != currentHeight || string(resp2.Result.LastSavedHeight) != string(heighestSavedHeight) {
-			t.Fatalf("Who wrote this trash code?... Expected a current height of "+fmt.Sprint(currentHeight)+" and a saved height of "+fmt.Sprint(heighestSavedHeight)+" but got "+fmt.Sprint(resp2.Result.CurrentHeight)+", "+fmt.Sprint(resp2.Result.LastSavedHeight))
+			t.Fatalf("Who wrote this trash code?... Expected a current height of " + fmt.Sprint(currentHeight) + " and a saved height of " + fmt.Sprint(heighestSavedHeight) + " but got " + fmt.Sprint(resp2.Result.CurrentHeight) + ", " + fmt.Sprint(resp2.Result.LastSavedHeight))
 		}
 
-		if x["ack"] != float64(TempBalance) || x["saved"] != float64(PermBalance) || x["err"] != errNotAcc{
+		if x["ack"] != float64(TempBalance) || x["saved"] != float64(PermBalance) || x["err"] != errNotAcc {
 			t.Fatalf("Expected " + fmt.Sprint(strconv.FormatInt(x["ack"].(int64), 10)) + ", " + fmt.Sprint(strconv.FormatInt(x["saved"].(int64), 10)) + ", but got " + strconv.FormatInt(TempBalance, 10) + "," + strconv.FormatInt(PermBalance, 10))
 		}
 	}
+	arrayToTestPermAndTempBetweenBlocks := []string{"FA3EPZYqodgyEGXNMbiZKE5TS2x2J9wF8J9MvPZb52iGR78xMgCb", "FA2q5tyirCUczEEQLsoz2iDopajbmory5JZELDfXV9QUjB154Jvf"}
+	resp3 := apiCall(arrayToTestPermAndTempBetweenBlocks)
+	fmt.Println(resp3)
+	//cmd
+
+	//trans := new(factoid.Transaction)
+	////value := primitives.ConvertUserStrToAddress("FA3EPZYqodgyEGXNMbiZKE5TS2x2J9wF8J9MvPZb52iGR78xMgCb")
+	//convertingtohash := hex.EncodeToString(primitives.ConvertUserStrToAddress("FA3EPZYqodgyEGXNMbiZKE5TS2x2J9wF8J9MvPZb52iGR78xMgCb"))
+	//addAsHashWBal, _ := primitives.HexToHash(convertingtohash)
+	//convertingtohash2 := hex.EncodeToString(primitives.ConvertUserStrToAddress("FA3U2j837EBL7RTv3HGk86o5iAKAhG3NPy6D35LTiiyDdptp7ntZ"))
+	//addAsHashWOBal, _ := primitives.HexToHash(convertingtohash2)
+	//trans.AddInput(addAsHashWBal, 10)
+	//trans.AddOutput(addAsHashWOBal, 10)
+
+	//convertingtohash := hex.EncodeToString(primitives.ConvertUserStrToAddress("FA3EPZYqodgyEGXNMbiZKE5TS2x2J9wF8J9MvPZb52iGR78xMgCb"))
+	//convertingtohashOut := hex.EncodeToString(primitives.ConvertUserStrToAddress("FA3U2j837EBL7RTv3HGk86o5iAKAhG3NPy6D35LTiiyDdptp7ntZ"))
+
+	PUB := [32]byte{}
+	copy(PUB[:], primitives.ConvertUserStrToAddress("FA2q5tyirCUczEEQLsoz2iDopajbmory5JZELDfXV9QUjB154Jvf"))
+	fmt.Println("PUB BEFORE TRANS: ", state0.GetFactoidState().GetFactoidBalance(PUB))
+
+	covertedAdd := [32]byte{}
+	copy(covertedAdd[:], primitives.ConvertUserStrToAddress("FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q"))
+	fmt.Println("INHASH BEFORE TRANS: ", state0.GetFactoidState().GetFactoidBalance(covertedAdd))
+
+
+
+	FundWallet(state0, 100)
+
+	//var amt uint64 = 1000
+	//inSec, _ := primitives.HexToHash("FB3B471B1DCDADFEB856BD0B02D8BF49ACE0EDD372A3D9F2A95B78EC12A324D6")
+	//outEC, _ := primitives.HexToHash(convertingtohashOut)
+	////inHash, err := primitives.HexToHash(convertingtohash)
+	////if err != nil {
+	////	fmt.Println("ERROR ",err)
+	////}
+	//var sec [64]byte
+	//copy(sec[:32], inSec.Bytes())
+	//
+	//pub := ed.GetPublicKey(&sec)
+	//
+	////inRcd := shad(inPub.Bytes())
+	//
+	//rcd := factoid.NewRCD_1(pub[:])
+	//inAdd := factoid.NewAddress(pub[:])
+	//outAdd := factoid.NewAddress(outEC.Bytes())
+	//
+	//trans := new(factoid.Transaction)
+	//trans.AddInput(inAdd, amt)
+	//trans.AddOutput(outAdd, amt)
+	//
+	//trans.AddRCD(rcd)
+	//trans.AddAuthorization(rcd)
+	//trans.SetTimestamp(primitives.NewTimestampNow())
+	//
+	//fee, err := trans.CalculateFee(state0.GetFactoshisPerEC())
+	//if err != nil {
+	//	fmt.Println("ERROR ", err)
+	//}
+	//input, err := trans.GetInput(0)
+	//if err != nil {
+	//	fmt.Println("ERROR ", err)
+	//}
+	//input.SetAmount(amt + fee)
+	//
+	//dataSig, err := trans.MarshalBinarySig()
+	//if err != nil {
+	//	fmt.Println("ERROR ", err)
+	//}
+	//sig := factoid.NewSingleSignatureBlock(inSec.Bytes(), dataSig)
+	//trans.SetSignatureBlock(0, sig)
+	//
+	//tranReq := new(wsapi.TransactionRequest)
+	//data, _ := trans.MarshalBinary()
+	//tranReq.Transaction = hex.EncodeToString(data)
+	//j := primitives.NewJSON2Request("factoid-submit", 0, tranReq)
+	//_, err = v2Request(j, state0.GetPort())
+	//
+	//fmt.Println("TRANS: ", trans)
+	////_, err = wsapi.HandleV2Request(st, j)
+	//if err != nil {
+	//	fmt.Println("ERROR ", err)
+	//}
+	//_ = err
+
+	PUB2 := [32]byte{}
+	copy(PUB2[:], primitives.ConvertUserStrToAddress("FA2q5tyirCUczEEQLsoz2iDopajbmory5JZELDfXV9QUjB154Jvf"))
+	fmt.Println("PUB BEFORE TRANS: ", state0.GetFactoidState().GetFactoidBalance(PUB2))
+
+	covertedAdd2 := [32]byte{}
+	copy(covertedAdd2[:], primitives.ConvertUserStrToAddress("FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q"))
+	fmt.Println("INHASH BEFORE TRANS: ", state0.GetFactoidState().GetFactoidBalance(covertedAdd2))
+
+
+	WaitBlocks(state0, 2)
+	WaitMinutes(state0, 2)
+	ToTestPermAndTempBetweenBlocks2 := []string{"FA3EPZYqodgyEGXNMbiZKE5TS2x2J9wF8J9MvPZb52iGR78xMgCb", "FA3U2j837EBL7RTv3HGk86o5iAKAhG3NPy6D35LTiiyDdptp7ntZ"}
+	resp_5 := apiCall(ToTestPermAndTempBetweenBlocks2)
+	fmt.Println(resp_5)
+	//trans.Outputs(addAsHashWOBal, 10)
+	//trans.AddECOutput(outAdd, amt)
+
 }
 
 func TestMultipleECAccountsAPI(t *testing.T) {
@@ -292,16 +430,15 @@ func TestMultipleECAccountsAPI(t *testing.T) {
 		t.Error(err)
 	}
 	type walletcallHelper struct {
-		CurrentHeight   uint32   `json:"current-height"`
-		LastSavedHeight uint `json:"last-saved-height"`
-		Balances []interface{} `json:"Balances"`
+		CurrentHeight   uint32        `json:"current-height"`
+		LastSavedHeight uint          `json:"last-saved-height"`
+		Balances        []interface{} `json:"Balances"`
 	}
 	type walletcall struct {
 		Jsonrpc string           `json:"jsonrps"`
 		Id      int              `json:"id"`
 		Result  walletcallHelper `json:"result"`
 	}
-
 
 	defer resp.Body.Close()
 	body, _ := ioutil.ReadAll(resp.Body)
@@ -341,9 +478,9 @@ func TestMultipleECAccountsAPI(t *testing.T) {
 		}
 
 		if resp2.Result.CurrentHeight != currentHeight || string(resp2.Result.LastSavedHeight) != string(heighestSavedHeight) {
-			t.Fatalf("Who wrote this trash code?... Expected a current height of "+fmt.Sprint(currentHeight)+" and a saved height of "+fmt.Sprint(heighestSavedHeight)+" but got "+fmt.Sprint(resp2.Result.CurrentHeight)+", "+fmt.Sprint(resp2.Result.LastSavedHeight))
+			t.Fatalf("Who wrote this trash code?... Expected a current height of " + fmt.Sprint(currentHeight) + " and a saved height of " + fmt.Sprint(heighestSavedHeight) + " but got " + fmt.Sprint(resp2.Result.CurrentHeight) + ", " + fmt.Sprint(resp2.Result.LastSavedHeight))
 		}
-		if x["ack"] != float64(TempBalance) || x["saved"] != float64(PermBalance) || x["err"] != errNotAcc{
+		if x["ack"] != float64(TempBalance) || x["saved"] != float64(PermBalance) || x["err"] != errNotAcc {
 			t.Fatalf("Expected " + fmt.Sprint(strconv.FormatInt(x["ack"].(int64), 10)) + ", " + fmt.Sprint(strconv.FormatInt(x["saved"].(int64), 10)) + ", but got " + strconv.FormatInt(TempBalance, 10) + "," + strconv.FormatInt(PermBalance, 10))
 		}
 	}
