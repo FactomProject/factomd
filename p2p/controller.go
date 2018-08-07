@@ -333,10 +333,7 @@ func (c *Controller) acceptLoop(listener net.Listener) {
 }
 
 func (c *Controller) canConnectTo(conn net.Conn) (bool, string) {
-	incoming := c.connections.CountIf(func(c *Connection) bool {
-		return !c.IsOutGoing() && c.IsOnline()
-	})
-	if incoming >= MaxNumberIncomingConnections {
+	if c.connections.incomingCount >= MaxNumberIncomingConnections {
 		return false, "too many incoming connections"
 	}
 
@@ -590,9 +587,7 @@ func (c *Controller) managePeers() {
 			c.discovery.DiscoverPeersFromSeed()
 			c.logger.Debug("back from c.discovery.DiscoverPeersFromSeed()")
 		}
-		outgoingCount := c.connections.CountIf(func(c *Connection) bool {
-			return c.IsOutGoing() && c.IsOnline()
-		})
+		outgoingCount := c.connections.outgoingCount
 		c.logger.Debugf("managePeers() NumberPeersToConnect: %d outgoing: %d", NumberPeersToConnect, outgoingCount)
 		if NumberPeersToConnect > outgoingCount {
 			// Get list of peers ordered by quality from discovery

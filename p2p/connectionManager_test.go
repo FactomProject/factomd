@@ -14,7 +14,7 @@ func TestConnectionManagerGettingByHash(t *testing.T) {
 	}
 
 	peer := newPeer("127.0.0.1", "8888", RegularPeer)
-	connection := newConnection(peer)
+	connection := newIncomingConnection(peer)
 	cm.Add(connection)
 
 	existing, present := cm.GetByHash(peer.Hash)
@@ -36,27 +36,53 @@ func TestConnectionManagerCountConnections(t *testing.T) {
 		t.Error("Count does not handle empty connection manager")
 	}
 
-	cm.Add(newConnection(newPeer("1.2.3.4", "8888", RegularPeer)))
-	cm.Add(newConnection(newPeer("2.3.4.5", "8888", RegularPeer)))
-	cm.Add(newConnection(newPeer("3.4.5.6", "8888", SpecialPeerCmdLine)))
+	conn1 := newIncomingConnection(newPeer("1.2.3.4", "8888", RegularPeer))
+	conn2 := newIncomingConnection(newPeer("2.3.4.5", "8888", RegularPeer))
+	conn3 := newOutgoingConnection(newPeer("3.4.5.6", "8888", RegularPeer))
 
-	totalCount := cm.Count()
-	if totalCount != 3 {
-		t.Errorf("Connections are not counted correctly: %d", totalCount)
+	cm.Add(conn1)
+	cm.Add(conn2)
+	cm.Add(conn3)
+
+	if cm.Count() != 3 {
+		t.Errorf("Connections are not counted correctly: %d, expected 3", cm.Count())
+	}
+	if cm.outgoingCount != 1 {
+		t.Errorf("Outgoing connections are not counted correctly: %d, expected 1", cm.outgoingCount)
+	}
+	if cm.incomingCount != 2 {
+		t.Errorf("Incoming connections are not counted correctly: %d, expected 2", cm.incomingCount)
 	}
 
-	specialCount := cm.CountIf(func(c *Connection) bool { return c.peer.IsSpecial() })
-	if specialCount != 1 {
-		t.Errorf("Special connections are not counted correctly: %d", specialCount)
+	cm.Remove(conn1)
+	if cm.Count() != 2 {
+		t.Errorf("Connections are not counted correctly: %d, expected 2", cm.Count())
+	}
+	if cm.outgoingCount != 1 {
+		t.Errorf("Outgoing connections are not counted correctly: %d, expected 1", cm.outgoingCount)
+	}
+	if cm.incomingCount != 1 {
+		t.Errorf("Incoming connections are not counted correctly: %d, expected 1", cm.incomingCount)
+	}
+
+	cm.Remove(conn2)
+	if cm.Count() != 1 {
+		t.Errorf("Connections are not counted correctly: %d, expected 1", cm.Count())
+	}
+	if cm.outgoingCount != 1 {
+		t.Errorf("Outgoing connections are not counted correctly: %d, expected 1", cm.outgoingCount)
+	}
+	if cm.incomingCount != 0 {
+		t.Errorf("Incoming connections are not counted correctly: %d, expected 0", cm.incomingCount)
 	}
 }
 
 func TestConnectionManagerConnectedTo(t *testing.T) {
 	cm := new(ConnectionManager).Init()
 
-	conn1 := newConnection(newPeer("1.2.3.4", "8888", RegularPeer))
-	conn2 := newConnection(newPeer("2.3.4.5", "8888", RegularPeer))
-	conn3 := newConnection(newPeer("1.2.3.4", "8889", RegularPeer))
+	conn1 := newIncomingConnection(newPeer("1.2.3.4", "8888", RegularPeer))
+	conn2 := newIncomingConnection(newPeer("2.3.4.5", "8888", RegularPeer))
+	conn3 := newIncomingConnection(newPeer("1.2.3.4", "8889", RegularPeer))
 
 	if cm.ConnectedTo("some address") {
 		t.Error("Connected to reports we're connected, while the connection manager is empty")
@@ -99,7 +125,7 @@ func TestConnectionManagerConnectedTo(t *testing.T) {
 
 func TestConnectionManagerRemoveIsIdempotent(t *testing.T) {
 	cm := new(ConnectionManager).Init()
-	conn := newConnection(newPeer("1.2.3.4", "8888", RegularPeer))
+	conn := newIncomingConnection(newPeer("1.2.3.4", "8888", RegularPeer))
 
 	cm.Add(conn)
 	existing, present := cm.GetByHash(conn.peer.Hash)
@@ -131,7 +157,7 @@ func TestConnectionManagerGetRandomEmpty(t *testing.T) {
 
 func TestConnectionManagerGetRandomSingleRegular(t *testing.T) {
 	cm := new(ConnectionManager).Init()
-	connection := newActiveConnection(newPeer("1", "1", RegularPeer))
+	connection := newIncomingActiveConnection(newPeer("1", "1", RegularPeer))
 
 	cm.Add(connection)
 
@@ -142,7 +168,7 @@ func TestConnectionManagerGetRandomSingleRegular(t *testing.T) {
 
 func TestConnectionManagerGetRandomSingleSpecial(t *testing.T) {
 	cm := new(ConnectionManager).Init()
-	connection := newActiveConnection(newPeer("1", "1", RegularPeer))
+	connection := newIncomingActiveConnection(newPeer("1", "1", RegularPeer))
 
 	cm.Add(connection)
 
@@ -153,9 +179,9 @@ func TestConnectionManagerGetRandomSingleSpecial(t *testing.T) {
 
 func TestConnectionManagerGetRandomRegularSingle(t *testing.T) {
 	cm := new(ConnectionManager).Init()
-	conn1 := newActiveConnection(newPeer("1", "1", RegularPeer))
-	conn2 := newActiveConnection(newPeer("2", "1", SpecialPeerCmdLine))
-	conn3 := newActiveConnection(newPeer("3", "1", SpecialPeerCmdLine))
+	conn1 := newIncomingActiveConnection(newPeer("1", "1", RegularPeer))
+	conn2 := newIncomingActiveConnection(newPeer("2", "1", SpecialPeerCmdLine))
+	conn3 := newIncomingActiveConnection(newPeer("3", "1", SpecialPeerCmdLine))
 
 	cm.Add(conn1)
 	cm.Add(conn2)
@@ -179,16 +205,20 @@ func newPeer(address string, port string, peerType uint8) *Peer {
 	return new(Peer).Init(address, port, 100, peerType, 0)
 }
 
-func newConnection(peer *Peer) *Connection {
+func newIncomingConnection(peer *Peer) *Connection {
 	return new(Connection).InitWithConn(nil, *peer)
 }
 
-func newActiveConnection(peer *Peer) *Connection {
-	connection := newConnection(peer)
+func newIncomingActiveConnection(peer *Peer) *Connection {
+	connection := newIncomingConnection(peer)
 
 	// pretend we're online and we've received something
 	connection.state = ConnectionOnline
 	connection.metrics.BytesReceived += 2
 
 	return connection
+}
+
+func newOutgoingConnection(peer *Peer) *Connection {
+	return new(Connection).Init(*peer, false)
 }
