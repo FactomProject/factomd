@@ -15,6 +15,8 @@ import (
 type ConnectionManager struct {
 	connections          map[string]*Connection     // connections indexed by peer hash
 	connectionsByAddress map[string]map[string]bool // peer hashes indexed by the address (we can have multiple connections to the same address)
+	outgoingCount        int
+	incomingCount        int
 }
 
 func (cm *ConnectionManager) Init() *ConnectionManager {
@@ -32,17 +34,6 @@ func (cm *ConnectionManager) All() map[string]*Connection {
 // Get the number of all connections
 func (cm *ConnectionManager) Count() int {
 	return len(cm.connections)
-}
-
-// Get the number of connections meeting the predicate
-func (cm *ConnectionManager) CountIf(pred func(*Connection) bool) int {
-	result := 0
-	for _, connection := range cm.connections {
-		if pred(connection) {
-			result++
-		}
-	}
-	return result
 }
 
 // Get the connection for a specified peer hash.
@@ -64,12 +55,26 @@ func (cm *ConnectionManager) Add(connection *Connection) {
 		// so something went wrong
 		panic(fmt.Sprintf("Duplicated peer in connection manager: %s", connection.peer.Hash))
 	}
+	if connection.IsOutGoing() {
+		cm.outgoingCount++
+	} else {
+		cm.incomingCount++
+	}
 	cm.connections[connection.peer.Hash] = connection
 	cm.addToConnectionsByAddress(connection)
 }
 
 // Remove an existing connection.
 func (cm *ConnectionManager) Remove(connection *Connection) {
+	if _, present := cm.connections[connection.peer.Hash]; !present {
+		return
+	}
+	if connection.IsOutGoing() {
+		cm.outgoingCount--
+	} else {
+		cm.incomingCount--
+	}
+
 	delete(cm.connections, connection.peer.Hash)
 	cm.removeFromConnectionsByAddress(connection)
 }
