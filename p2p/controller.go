@@ -301,6 +301,7 @@ func (c *Controller) listen() {
 	address := fmt.Sprintf(":%s", c.listenPort)
 	c.logger.WithFields(log.Fields{"address": address, "port": c.listenPort}).Infof("Listening for new connections")
 	listener, err := net.Listen("tcp", address)
+	listener = LimitListenerSources(listener)
 	if nil != err {
 		c.logger.Errorf("Controller.listen() Error: %+v", err)
 	} else {
