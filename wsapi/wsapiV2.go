@@ -209,9 +209,11 @@ func HandleV2MultipleECBalances(state interfaces.IState, params interface{}) (in
 
 	// Converts readable accounts
 	for i, a := range listofadd {
-		if primitives.ValidateFUserStr(a.(string)) != true {
-			errStruct := new(interfaces.IndividualObj)
-			errStruct.ERROR = "ERROR! Invalid factoid address passed in"
+		if primitives.ValidateECUserStr(a.(string)) != true {
+			errStruct := new(interfaces.StructToReturnValues)
+			errStruct.PermBal = 0
+			errStruct.TempBal = 0
+			errStruct.Error = "Error decoding address"
 			totalBalances[i] = errStruct
 		} else {
 			covertedAdd := [32]byte{}
@@ -236,8 +238,6 @@ func HandleV2MultipleECBalances(state interfaces.IState, params interface{}) (in
 	return h, nil
 }
 
-
-//todo look for waitmode and ignoremode Tied into knowing if node has booted from disk, from database
 func HandleV2MultipleFCTBalances(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	x, ok := params.(map[string]interface{})
 	if ok != true {
@@ -257,8 +257,10 @@ func HandleV2MultipleFCTBalances(state interfaces.IState, params interface{}) (i
 	// Converts readable accounts
 	for i, a := range listofadd {
 		if primitives.ValidateFUserStr(a.(string)) != true {
-			errStruct := new(interfaces.IndividualObj)
-			errStruct.ERROR = "ERROR! Invalid factoid address passed in"
+			errStruct := new(interfaces.StructToReturnValues)
+			errStruct.PermBal = 0
+			errStruct.TempBal = 0
+			errStruct.Error = "Error decoding address"
 			totalBalances[i] = errStruct
 		} else {
 			covertedAdd := [32]byte{}

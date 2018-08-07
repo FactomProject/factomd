@@ -297,8 +297,9 @@ type MultipleFTBalances struct {
 }
 
 type MultipleECBalances struct {
-	Height   uint32     `json:"height"`
-	Balances [][]string `json:"balances"`
+	CurrentHeight   uint32        `json:"current-height"`
+	LastSavedHeight uint32        `json:"last-saved-height"`
+	Balances        []interface{} `json:""`
 }
 
 //type individualObj struct {

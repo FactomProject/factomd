@@ -23,11 +23,11 @@ type ShortInterpretable interface {
 }
 
 type IndividualObj struct {
-	ERROR string `json:"error"`
+	ERROR string `json:"err"`
 }
 
 type StructToReturnValues struct {
-	TempBal int64  `json:"temporary"`
-	PermBal int64  `json:"permanent"`
-	Error   string `json:"error"`
+	TempBal int64  `json:"ack"`
+	PermBal int64  `json:"saved"`
+	Error   string `json:"err"`
 }

@@ -76,7 +76,16 @@ func (fs *FactoidState) GetMultipleECBalances(singleAdd [32]byte) (uint32, uint3
 	if tok != true && pok != true {
 		TempBalance = 0
 		PermBalance = 0
-		errNotAcc = "ERROR! Address not found"
+		errNotAcc = "ERROR! FCT Address not found"
+	} else if tok == true && pok == false {
+		PermBalance = 0
+		errNotAcc =""
+	} else if tok == false && pok == true {
+		TempBalance = PermBalance
+	}
+
+	if fs.State.IgnoreDone != true || fs.State.DBFinished != true {
+		return 0, 0, 0, 0, "Not fully booted"
 	}
 
 	return currentHeight, heighestSavedHeight, TempBalance, PermBalance, errNotAcc
@@ -97,7 +106,16 @@ func (fs *FactoidState) GetMultipleFactoidBalances(singleAdd [32]byte) (uint32, 
 	if tok != true && pok != true {
 		TempBalance = 0
 		PermBalance = 0
-		errNotAcc = "ERROR! Address not found"
+		errNotAcc = "ERROR! FCT Address not found"
+	} else if tok == true && pok == false {
+		PermBalance = 0
+		errNotAcc =""
+	} else if tok == false && pok == true {
+		TempBalance = PermBalance
+	}
+
+	if fs.State.IgnoreDone != true || fs.State.DBFinished != true {
+		return 0, 0, 0, 0, "Not fully booted"
 	}
 
 	return currentHeight, heighestSavedHeight, TempBalance, PermBalance, errNotAcc
