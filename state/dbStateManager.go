@@ -1117,6 +1117,29 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		out.WriteString("=== AdminBlock.UpdateState() End ===")
 		fmt.Println(out.String())
 	}
+
+	// get all the prior balances of the Factoid addresses that may have changed
+	// in this block.  If you want the balance of the highest saved block, look to
+	// list.State.FactoidBalancesPapi if it is not null.  If you have no entry there,
+	// then look to list.State.FactoidBalancesP
+	list.State.FactoidBalancesPMutex.Lock()
+	list.State.FactoidBalancesPapi = make(map[[32]byte]int64, len(pl.FactoidBalancesT))
+	for k := range pl.FactoidBalancesT {
+		list.State.FactoidBalancesPapi[k] = list.State.FactoidBalancesP[k]
+	}
+	list.State.FactoidBalancesPMutex.Unlock()
+
+	// get all the prior balances of the entry credit addresses that may have changed
+	// in this block.  If you want the balance of the highest saved block, look to
+	// list.State.ECBalancesPapi if it is not null.  If you have no entry there,
+	// then look to list.State.ECBalancesP
+	list.State.ECBalancesPMutex.Lock()
+	list.State.ECBalancesPapi = make(map[[32]byte]int64, len(pl.ECBalancesT))
+	for k := range pl.ECBalancesT {
+		list.State.ECBalancesPapi[k] = list.State.ECBalancesP[k]
+	}
+	list.State.ECBalancesPMutex.Unlock()
+
 	// Process the Factoid End of Block
 	fs := list.State.GetFactoidState()
 	fs.(*FactoidState).DBHeight = dbht
@@ -1477,6 +1500,20 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	progress = true
 	d.ReadyToSave = false
 	d.Saved = true
+
+	// Now that we have saved the perm balances, we can clear the api hashmaps that held the differences
+	// between the actual saved block prior, and this saved block.  If you are looking for balances of
+	// the highest saved block, you first look to see that one of the "<fct or ec>Papi" maps exist, then
+	// if that map has a value for your address.  If it doesn't exist, or doesn't have a value, then look
+	// in the "<fct or ec>P" map.
+	list.State.FactoidBalancesPMutex.Lock()
+	list.State.FactoidBalancesPapi = nil
+	list.State.FactoidBalancesPMutex.Unlock()
+
+	list.State.ECBalancesPMutex.Lock()
+	list.State.ECBalancesPapi = nil
+	list.State.ECBalancesPMutex.Unlock()
+
 	return
 }
 

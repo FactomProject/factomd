@@ -74,7 +74,7 @@ func (t *TransAddress) IsSameAs(add interfaces.ITransAddress) bool {
 }
 
 func (t *TransAddress) UnmarshalBinaryData(data []byte) ([]byte, error) {
-	if len(data) < 36 {
+	if len(data) < 33 {
 		return nil, fmt.Errorf("Data source too short to UnmarshalBinary() an address: %d", len(data))
 	}
 	buf := primitives.NewBuffer(data)

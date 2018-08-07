@@ -1,24 +1,24 @@
 package engine_test
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"os"
+	"runtime"
+	"strconv"
+	"strings"
+	"sync"
 	"testing"
 	"time"
 
-	"bytes"
 	"github.com/FactomProject/factomd/activations"
 	"github.com/FactomProject/factomd/common/globals"
+	"github.com/FactomProject/factomd/common/primitives"
 	. "github.com/FactomProject/factomd/engine"
 	"github.com/FactomProject/factomd/state"
-	"net/http"
-	"runtime"
-	"sync"
-	"strings"
-	"io/ioutil"
-	"github.com/FactomProject/factomd/common/primitives"
-	"strconv"
-	"encoding/json"
 )
 
 var _ = Factomd
