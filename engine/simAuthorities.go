@@ -118,14 +118,14 @@ func copyOver(st *state.State) {
 }
 
 func fundWallet(st *state.State, amt uint64) error {
-	inSec, _ := primitives.HexToHash("FB3B471B1DCDADFEB856BD0B02D8BF49ACE0EDD372A3D9F2A95B78EC12A324D6") // private key or FCT Source
+	inSec, _ := primitives.HexToHash("FB3B471B1DCDADFEB856BD0B02D8BF49ACE0EDD372A3D9F2A95B78EC12A324D6") // private key for FCT Source
 	outEC, _ := primitives.HexToHash("c23ae8eec2beb181a0da926bd2344e988149fbe839fbc7489f2096e7d6110243") // EC address
 	var sec [64]byte
-	copy(sec[:32], inSec.Bytes()) // pass 32 byte key ina 64 byte field for the crypto library
+	copy(sec[:32], inSec.Bytes()) // pass 32 byte key in a 64 byte field for the crypto library
 
 	pub := ed.GetPublicKey(&sec) // get the public key for our FCT source address
 
-	rcd := factoid.NewRCD_1(pub[:])
+	rcd := factoid.NewRCD_1(pub[:]) // build the an RCD "redeem condition data structure"
 
 	inAdd, err := rcd.GetAddress()
 	if err != nil {
