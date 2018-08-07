@@ -118,17 +118,22 @@ func copyOver(st *state.State) {
 }
 
 func fundWallet(st *state.State, amt uint64) error {
-	inSec, _ := primitives.HexToHash("FB3B471B1DCDADFEB856BD0B02D8BF49ACE0EDD372A3D9F2A95B78EC12A324D6")
-	outEC, _ := primitives.HexToHash("c23ae8eec2beb181a0da926bd2344e988149fbe839fbc7489f2096e7d6110243")
-	inHash, _ := primitives.HexToHash("646F3E8750C550E4582ECA5047546FFEF89C13A175985E320232BACAC81CC428")
+	inSec, _ := primitives.HexToHash("FB3B471B1DCDADFEB856BD0B02D8BF49ACE0EDD372A3D9F2A95B78EC12A324D6") // private key or FCT Source
+	outEC, _ := primitives.HexToHash("c23ae8eec2beb181a0da926bd2344e988149fbe839fbc7489f2096e7d6110243") // EC address
 	var sec [64]byte
-	copy(sec[:32], inSec.Bytes())
+	copy(sec[:32], inSec.Bytes()) // pass 32 byte key ina 64 byte field for the crypto library
 
-	pub := ed.GetPublicKey(&sec)
-	//inRcd := shad(inPub.Bytes())
+	pub := ed.GetPublicKey(&sec) // get the public key for our FCT source address
 
 	rcd := factoid.NewRCD_1(pub[:])
-	inAdd := factoid.NewAddress(inHash.Bytes())
+
+	inAdd, err := rcd.GetAddress()
+	if err != nil {
+		panic(err)
+	}
+
+	//	fmt.Printf("%s bal %d\n", primitives.ConvertFctAddressToUserStr(inAdd), st.FactoidState.GetFactoidBalance(inAdd.Fixed()))
+
 	outAdd := factoid.NewAddress(outEC.Bytes())
 
 	trans := new(factoid.Transaction)
