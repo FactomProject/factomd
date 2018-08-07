@@ -21,7 +21,6 @@ import (
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"strconv"
 )
 
 var _ = debug.PrintStack
@@ -62,68 +61,64 @@ type element struct {
 	v   int64
 }
 
-func (fs *FactoidState) GetMultipleECBalances(listofadd [][32]byte) (uint32, [][]string) {
-	height := fs.DBHeight
-	list := make([][]string, 0)
+func (fs *FactoidState) GetMultipleECBalances(singleAdd [32]byte) (uint32, uint32, int64, int64, string) {
+	currentHeight := fs.DBHeight
+	heighestSavedHeight := fs.State.GetHighestSavedBlk()
+	errNotAcc := ""
 
-	for _, k := range listofadd {
-		// Gets the Balance of the EC address
-		PermBalance, pok := fs.State.ECBalancesP[k]
-		errNotAcc := ""
-		if pok != true {
-			PermBalance = 0
-			errNotAcc = "Not a valid account"
-		}
-		pl := fs.State.ProcessLists.Get(height)
-		pl.ECBalancesTMutex.Lock()
-		TempBalance, ok := pl.ECBalancesT[k] // Gets the Temp Balance of the EC address
-		if ok != true {
-			TempBalance = 0
-		}
-		if TempBalance == 0 {
-			TempBalance = PermBalance
-		}
-		pl.ECBalancesTMutex.Unlock()
+	PermBalance, pok := fs.State.ECBalancesP[singleAdd] // Gets the Balance of the EC address
 
-		list2 := make([]string, 0)
-		list2 = append(list2, strconv.FormatInt(TempBalance, 10))
-		list2 = append(list2, strconv.FormatInt(PermBalance, 10))
-		list2 = append(list2, errNotAcc)
-		list = append(list, list2)
+	pl := fs.State.ProcessLists.Get(currentHeight)
+	pl.ECBalancesTMutex.Lock()
+	TempBalance, tok := pl.ECBalancesT[singleAdd] // Gets the Temp Balance of the EC address
+	pl.ECBalancesTMutex.Unlock()
+
+	if tok != true && pok != true {
+		TempBalance = 0
+		PermBalance = 0
+		errNotAcc = "ERROR! FCT Address not found"
+	} else if tok == true && pok == false {
+		PermBalance = 0
+		errNotAcc =""
+	} else if tok == false && pok == true {
+		TempBalance = PermBalance
 	}
-	return height, list
+
+	if fs.State.IgnoreDone != true || fs.State.DBFinished != true {
+		return 0, 0, 0, 0, "Not fully booted"
+	}
+
+	return currentHeight, heighestSavedHeight, TempBalance, PermBalance, errNotAcc
 }
 
-func (fs *FactoidState) GetMultipleFactoidBalances(listofadd [][32]byte) (uint32, [][]string) {
-	height := fs.DBHeight
-	list := make([][]string, 0)
+func (fs *FactoidState) GetMultipleFactoidBalances(singleAdd [32]byte) (uint32, uint32, int64, int64, string) {
+	currentHeight := fs.DBHeight
+	heighestSavedHeight := fs.State.GetHighestSavedBlk()
+	errNotAcc := ""
 
-	for _, k := range listofadd {
-		// Gets the Balance of the Factoid address
-		PermBalance, pok := fs.State.FactoidBalancesP[k]
-		errNotAcc := ""
-		if pok != true {
-			PermBalance = 0
-			errNotAcc = "Not a valid account"
-		}
-		pl := fs.State.ProcessLists.Get(height)
-		pl.FactoidBalancesTMutex.Lock()
-		TempBalance, ok := pl.FactoidBalancesT[k] // Gets the Temp Balance of the Factoid address
-		if ok != true {
-			TempBalance = 0
-		}
-		if TempBalance == 0 {
-			TempBalance = PermBalance
-		}
-		pl.FactoidBalancesTMutex.Unlock()
+	PermBalance, pok := fs.State.FactoidBalancesP[singleAdd] // Gets the Balance of the Factoid address
 
-		list2 := make([]string, 0)
-		list2 = append(list2, strconv.FormatInt(TempBalance, 10))
-		list2 = append(list2, strconv.FormatInt(PermBalance, 10))
-		list2 = append(list2, errNotAcc)
-		list = append(list, list2)
+	pl := fs.State.ProcessLists.Get(currentHeight)
+	pl.FactoidBalancesTMutex.Lock()
+	TempBalance, tok := pl.FactoidBalancesT[singleAdd] // Gets the Temp Balance of the Factoid address
+	pl.FactoidBalancesTMutex.Unlock()
+
+	if tok != true && pok != true {
+		TempBalance = 0
+		PermBalance = 0
+		errNotAcc = "ERROR! FCT Address not found"
+	} else if tok == true && pok == false {
+		PermBalance = 0
+		errNotAcc =""
+	} else if tok == false && pok == true {
+		TempBalance = PermBalance
 	}
-	return height, list
+
+	if fs.State.IgnoreDone != true || fs.State.DBFinished != true {
+		return 0, 0, 0, 0, "Not fully booted"
+	}
+
+	return currentHeight, heighestSavedHeight, TempBalance, PermBalance, errNotAcc
 }
 
 func (fs *FactoidState) GetFactiodAccounts(params interface{}) (uint32, []string) {

@@ -291,11 +291,22 @@ type FactiodAccounts struct {
 }
 
 type MultipleFTBalances struct {
-	Height   uint32     `json:"height"`
-	Balances [][]string `json:"balances"`
+	CurrentHeight   uint32        `json:"current-height"`
+	LastSavedHeight uint32        `json:"last-saved-height"`
+	Balances        []interface{} `json:""`
 }
 
 type MultipleECBalances struct {
-	Height   uint32     `json:"height"`
-	Balances [][]string `json:"balances"`
+	CurrentHeight   uint32        `json:"current-height"`
+	LastSavedHeight uint32        `json:"last-saved-height"`
+	Balances        []interface{} `json:""`
 }
+
+//type individualObj struct {
+//	ERROR string `json:"ERROR"`
+//}
+//
+//type StructToReturnValues struct {
+//	TempBal int64 `json:"temporary"`
+//	PermBal int64 `json:"permanent"`
+//}

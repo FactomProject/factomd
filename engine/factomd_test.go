@@ -203,9 +203,11 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+
 	type walletcallHelper struct {
-		Height   uint32     `json:"height"`
-		Balances [][]string `json:"balances"`
+		CurrentHeight   uint32   `json:"current-height"`
+		LastSavedHeight uint `json:"last-saved-height"`
+		Balances []interface{} `json:"Balances"`
 	}
 	type walletcall struct {
 		Jsonrpc string           `json:"jsonrps"`
@@ -224,29 +226,45 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 	}
 
 	// To check if the balances returned from the API are right
+
 	for i, a := range arrayOfFactoidAccounts {
+		currentHeight := state0.LLeaderHeight
+		heighestSavedHeight := state0.GetHighestSavedBlk()
+		errNotAcc := ""
+
 		byteAcc := [32]byte{}
 		copy(byteAcc[:], primitives.ConvertUserStrToAddress(a))
 		PermBalance, pok := state0.FactoidBalancesP[byteAcc]
-		errNotAcc := ""
-		if pok != true {
-			PermBalance = 0
-			errNotAcc = "Not a valid account"
-		}
-		pl := state0.ProcessLists.Get(state0.LLeaderHeight)
+
+		pl := state0.ProcessLists.Get(currentHeight)
 		pl.FactoidBalancesTMutex.Lock()
 		// Gets the Temp Balance of the Factoid address
-		TempBalance, ok := pl.FactoidBalancesT[byteAcc]
-		if ok != true {
-			TempBalance = 0
-		}
-		if TempBalance == 0 {
-			TempBalance = PermBalance
-		}
+		TempBalance, tok := pl.FactoidBalancesT[byteAcc]
 		pl.FactoidBalancesTMutex.Unlock()
 
-		if resp2.Result.Balances[i][0] != strconv.FormatInt(TempBalance, 10) || resp2.Result.Balances[i][1] != strconv.FormatInt(PermBalance, 10) || resp2.Result.Balances[i][2] != errNotAcc {
-			t.Fatalf("Expected " + resp2.Result.Balances[i][0] + "," + resp2.Result.Balances[i][1] + ", but got %s" + strconv.FormatInt(TempBalance, 10) + "," + strconv.FormatInt(PermBalance, 10))
+		if tok != true && pok != true {
+			TempBalance = 0
+			PermBalance = 0
+			errNotAcc = "ERROR! FCT Address not found"
+		} else if tok == true && pok == false {
+			PermBalance = 0
+			errNotAcc =""
+		} else if tok == false && pok == true {
+			TempBalance = PermBalance
+		}
+
+		fmt.Println("WHAT IT SHOULD BE: " ,currentHeight, heighestSavedHeight, TempBalance, PermBalance, errNotAcc)
+		x, ok := resp2.Result.Balances[i].(map[string]interface{})
+		if ok != true {
+			fmt.Println(x)
+		}
+
+		if resp2.Result.CurrentHeight != currentHeight || string(resp2.Result.LastSavedHeight) != string(heighestSavedHeight) {
+			t.Fatalf("Who wrote this trash code?... Expected a current height of "+fmt.Sprint(currentHeight)+" and a saved height of "+fmt.Sprint(heighestSavedHeight)+" but got "+fmt.Sprint(resp2.Result.CurrentHeight)+", "+fmt.Sprint(resp2.Result.LastSavedHeight))
+		}
+
+		if x["ack"] != float64(TempBalance) || x["saved"] != float64(PermBalance) || x["err"] != errNotAcc{
+			t.Fatalf("Expected " + fmt.Sprint(strconv.FormatInt(x["ack"].(int64), 10)) + ", " + fmt.Sprint(strconv.FormatInt(x["saved"].(int64), 10)) + ", but got " + strconv.FormatInt(TempBalance, 10) + "," + strconv.FormatInt(PermBalance, 10))
 		}
 	}
 }
@@ -262,7 +280,7 @@ func TestMultipleECAccountsAPI(t *testing.T) {
 	WaitForMinute(state0, 1)
 
 	url := "http://localhost:8088/v2"
-	arrayOfECAccounts := []string{"EC3Eh7yQKShgjkUSFrPbnQpboykCzf4kw9QHxi47GGz5P2k3dbab", "EC3Eh7yQKShgjkUSFrPbnQpboykCzf4kw9QHxi47GGz5P2k3dbab"}
+	arrayOfECAccounts := []string{"EC1zGzM78psHhs5xVdv6jgVGmswvUaN6R3VgmTquGsdyx9W67Cqy"}
 
 	var jsonStr = []byte(`{"jsonrpc": "2.0", "id": 0, "method": "multiple-ec-balances", "params":{"addresses":["` + strings.Join(arrayOfECAccounts, `", "`) + `"]}}  `)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
@@ -274,14 +292,16 @@ func TestMultipleECAccountsAPI(t *testing.T) {
 		t.Error(err)
 	}
 	type walletcallHelper struct {
-		Height   uint32     `json:"height"`
-		Balances [][]string `json:"balances"`
+		CurrentHeight   uint32   `json:"current-height"`
+		LastSavedHeight uint `json:"last-saved-height"`
+		Balances []interface{} `json:"Balances"`
 	}
 	type walletcall struct {
 		Jsonrpc string           `json:"jsonrps"`
 		Id      int              `json:"id"`
 		Result  walletcallHelper `json:"result"`
 	}
+
 
 	defer resp.Body.Close()
 	body, _ := ioutil.ReadAll(resp.Body)
@@ -291,33 +311,41 @@ func TestMultipleECAccountsAPI(t *testing.T) {
 	if err1 != nil {
 		t.Error(err1)
 	}
+	fmt.Println(resp2)
 
 	// To check if the balances returned from the API are right
 	for i, a := range arrayOfECAccounts {
+		currentHeight := state0.LLeaderHeight
+		heighestSavedHeight := state0.GetHighestSavedBlk()
+		errNotAcc := ""
+
 		byteAcc := [32]byte{}
 		copy(byteAcc[:], primitives.ConvertUserStrToAddress(a))
 		PermBalance, pok := state0.ECBalancesP[byteAcc]
-		errNotAcc := ""
-		if pok != true {
-			PermBalance = 0
-			errNotAcc = "Not a valid account"
-		}
-		pl := state0.ProcessLists.Get(state0.LLeaderHeight)
-		pl.ECBalancesTMutex.Lock()
+
+		pl := state0.ProcessLists.Get(currentHeight)
+		pl.FactoidBalancesTMutex.Lock()
 		// Gets the Temp Balance of the Factoid address
-		TempBalance, ok := pl.ECBalancesT[byteAcc]
-		if ok != true {
+		TempBalance, tok := pl.ECBalancesT[byteAcc]
+		pl.FactoidBalancesTMutex.Unlock()
+
+		if tok != true && pok != true {
 			TempBalance = 0
-		}
-		if TempBalance == 0 {
-			TempBalance = PermBalance
-		}
-		pl.ECBalancesTMutex.Unlock()
-
-		if resp2.Result.Balances[i][0] != strconv.FormatInt(TempBalance, 10) || resp2.Result.Balances[i][1] != strconv.FormatInt(PermBalance, 10) || resp2.Result.Balances[i][2] != errNotAcc {
-			t.Fatalf("Expected " + resp2.Result.Balances[i][0] + "," + resp2.Result.Balances[i][1] + ", but got %s" + strconv.FormatInt(TempBalance, 10) + "," + strconv.FormatInt(PermBalance, 10))
+			PermBalance = 0
+			errNotAcc = "ERROR! Address not found"
 		}
 
+		x, ok := resp2.Result.Balances[i].(map[string]interface{})
+		if ok != true {
+			fmt.Println(x)
+		}
+
+		if resp2.Result.CurrentHeight != currentHeight || string(resp2.Result.LastSavedHeight) != string(heighestSavedHeight) {
+			t.Fatalf("Who wrote this trash code?... Expected a current height of "+fmt.Sprint(currentHeight)+" and a saved height of "+fmt.Sprint(heighestSavedHeight)+" but got "+fmt.Sprint(resp2.Result.CurrentHeight)+", "+fmt.Sprint(resp2.Result.LastSavedHeight))
+		}
+		if x["ack"] != float64(TempBalance) || x["saved"] != float64(PermBalance) || x["err"] != errNotAcc{
+			t.Fatalf("Expected " + fmt.Sprint(strconv.FormatInt(x["ack"].(int64), 10)) + ", " + fmt.Sprint(strconv.FormatInt(x["saved"].(int64), 10)) + ", but got " + strconv.FormatInt(TempBalance, 10) + "," + strconv.FormatInt(PermBalance, 10))
+		}
 	}
 }
 
