@@ -293,7 +293,7 @@ type FactiodAccounts struct {
 type MultipleFTBalances struct {
 	CurrentHeight   uint32        `json:"currentheight"`
 	LastSavedHeight uint32        `json:"lastsavedheight"`
-	Balances        []interface{} `json:""`
+	Balances        []interface{} `json:"balances"`
 }
 
 type MultipleECBalances struct {
