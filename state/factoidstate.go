@@ -82,7 +82,7 @@ func (fs *FactoidState) GetMultipleECBalances(singleAdd [32]byte) (uint32, uint3
 	if tok != true && pok != true {
 		TempBalance = 0
 		PermBalance = 0
-		errNotAcc = "ERROR! FCT Address not found"
+		errNotAcc = "Address has not had a transaction"
 	} else if tok == true && pok == false {
 		PermBalance = 0
 		errNotAcc =""
@@ -104,10 +104,8 @@ func (fs *FactoidState) GetMultipleFactoidBalances(singleAdd [32]byte) (uint32, 
 
 	PermBalance, pok := fs.State.FactoidBalancesP[singleAdd] // Gets the Balance of the Factoid address
 
-	fmt.Println("fs.State.FactoidBalancesPapi ", fs.State.FactoidBalancesPapi)
 	if fs.State.FactoidBalancesPapi != nil {
 		if savedBal, ok := fs.State.FactoidBalancesPapi[singleAdd]; ok {
-			fmt.Println("SAVEDBAL ", savedBal)
 			PermBalance = savedBal
 		}
 	}
@@ -120,7 +118,7 @@ func (fs *FactoidState) GetMultipleFactoidBalances(singleAdd [32]byte) (uint32, 
 	if tok != true && pok != true {
 		TempBalance = 0
 		PermBalance = 0
-		errNotAcc = "ERROR! FCT Address not found"
+		errNotAcc = "Address has not had a transaction"
 	} else if tok == true && pok == false {
 		PermBalance = 0
 		errNotAcc =""

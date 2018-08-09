@@ -250,7 +250,6 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 
 		defer resp.Body.Close()
 		body, _ := ioutil.ReadAll(resp.Body)
-		fmt.Println("BODY: ", string(body))
 
 		resp2 := new(walletcall)
 		err1 := json.Unmarshal([]byte(body), &resp2)
@@ -290,7 +289,7 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 		if tok != true && pok != true {
 			TempBalance = 0
 			PermBalance = 0
-			errNotAcc = "ERROR! FCT Address not found"
+			errNotAcc = "Address has not had a transaction"
 		} else if tok == true && pok == false {
 			PermBalance = 0
 			errNotAcc = ""
@@ -314,7 +313,14 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 	TimeNow(state0)
 	ToTestPermAndTempBetweenBlocks := []string{"FA3EPZYqodgyEGXNMbiZKE5TS2x2J9wF8J9MvPZb52iGR78xMgCb", "FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q"}
 	resp3 := apiCall(ToTestPermAndTempBetweenBlocks)
-	fmt.Println(resp3)
+	x, ok := resp3.Result.Balances[1].(map[string]interface{})
+	if ok != true {
+		fmt.Println(x)
+	}
+	if x["ack"] != x["saved"] {
+		t.Fatalf("Expected acknowledged and saved balances to be he same")
+	}
+
 	TimeNow(state0)
 
 	_, str := FundWallet(state0, uint64(200*5e7))
@@ -335,7 +341,6 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 
 		defer resp.Body.Close()
 		body, _ := ioutil.ReadAll(resp.Body)
-		fmt.Println("factoid-ack: ", string(body))
 
 		resp2 := new(ackHelp)
 		err1 := json.Unmarshal([]byte(body), &resp2)
@@ -343,7 +348,6 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 			t.Error(err1)
 		}
 
-		fmt.Println("RESP2: ", resp2.Result.Status)
 		if resp2.Result.Status == "TransactionACK" {
 			thisShouldNotBeUnknownAtSomePoint = resp2.Result.Status
 		}
@@ -351,13 +355,13 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 
 	// This call should show a different acknowledged balance than the Saved Balance
 	resp_5 := apiCall(ToTestPermAndTempBetweenBlocks)
-	x, ok := resp_5.Result.Balances[1].(map[string]interface{})
+	x, ok = resp_5.Result.Balances[1].(map[string]interface{})
 	if ok != true {
 		fmt.Println(x)
 	}
 
 	if x["ack"] == x["saved"] {
-		t.Fatalf("Expected " + fmt.Sprint(x["ack"]) + ", " + fmt.Sprint(x["saved"]) + " but got " + fmt.Sprint(x["ack"]) + ", " + fmt.Sprint(x["saved"]))
+		t.Fatalf("Expected acknowledged and saved balances to be different.")
 	}
 
 	WaitBlocks(state0, 1)
@@ -369,7 +373,7 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 		fmt.Println(x)
 	}
 	if x["ack"] != x["saved"] {
-		t.Fatalf("Expected " + fmt.Sprint(x["ack"]) + ", " + fmt.Sprint(x["saved"]) + " but got " + fmt.Sprint(x["ack"]) + ", " + fmt.Sprint(x["saved"]))
+		t.Fatalf("Expected acknowledged and saved balances to be he same")
 	}
 }
 
@@ -379,7 +383,7 @@ func TestMultipleECAccountsAPI(t *testing.T) {
 	}
 	ranSimTest = true
 
-	state0 := SetupSim("LLLLAAAFFF", "LOCAL", map[string]string{"--logPort": "37000", "--port": "37001", "--controlpanelport": "37002", "--networkport": "37003"}, t)
+	state0 := SetupSim("LLLLAAAFFF", "LOCAL", map[string]string{"--logPort": "37000", "--port": "8088", "--controlpanelport": "37002", "--networkport": "37003"}, t)
 	WaitForMinute(state0, 1)
 
 	type walletcallHelper struct {
@@ -410,16 +414,6 @@ func TestMultipleECAccountsAPI(t *testing.T) {
 		Result  GeneralTransactionData `json:"result"`
 	}
 
-	//type EntryStatusEC struct {
-	//	CommitTxID string `json:"committxid"`
-	//	EntryHash  string `json:"entryhash"`
-	//
-	//	CommitData GeneralTransactionData `json:"commitdata"`
-	//	EntryData  GeneralTransactionData `json:"entrydata"`
-	//
-	//	//ReserveTransactions          []ReserveInfo `json:"reserveinfo,omitempty"`
-	//	ConflictingRevealEntryHashes []string      `json:"conflictingrevealentryhashes,omitempty"`
-	//}
 	type ackHelpEC struct {
 		Jsonrpc string            `json:"jsonrps"`
 		Id      int               `json:"id"`
@@ -440,7 +434,6 @@ func TestMultipleECAccountsAPI(t *testing.T) {
 
 		defer resp.Body.Close()
 		body, _ := ioutil.ReadAll(resp.Body)
-		fmt.Println("BODY: ", string(body))
 
 		resp2 := new(walletcall)
 		err1 := json.Unmarshal([]byte(body), &resp2)
@@ -453,14 +446,12 @@ func TestMultipleECAccountsAPI(t *testing.T) {
 
 	arrayOfECAccounts := []string{"EC1zGzM78psHhs5xVdv6jgVGmswvUaN6R3VgmTquGsdyx9W67Cqy", "EC1zGzM78psHhs5xVdv6jgVGmswvUaN6R3VgmTquGsdyx9W67Cqy"}
 	resp2 := apiCall(arrayOfECAccounts)
-	fmt.Println("RESP2: ", resp2)
 
 	// To check if the balances returned from the API are right
 	for i, a := range arrayOfECAccounts {
-		fmt.Println("Got to FOOR LOOP")
 		currentHeight := state0.LLeaderHeight
-		//heighestSavedHeight := state0.GetHighestSavedBlk()
-		//errNotAcc := ""
+		heighestSavedHeight := state0.GetHighestSavedBlk()
+		errNotAcc := ""
 
 		byteAcc := [32]byte{}
 		copy(byteAcc[:], primitives.ConvertUserStrToAddress(a))
@@ -479,46 +470,48 @@ func TestMultipleECAccountsAPI(t *testing.T) {
 		TempBalance, tok := pl.ECBalancesT[byteAcc]
 		pl.ECBalancesTMutex.Unlock()
 
-		fmt.Println("Got to IF STATEMENTS 456")
 		if tok != true && pok != true {
 			TempBalance = 0
 			PermBalance = 0
-			//errNotAcc = "ERROR! EC Address not found"
+			errNotAcc = "Address has not had a transaction"
 		} else if tok == true && pok == false {
 			PermBalance = 0
-			//errNotAcc = ""
+			errNotAcc = ""
 		} else if tok == false && pok == true {
 			TempBalance = PermBalance
 		}
 
-		fmt.Println("MADE IT PASSED IF STATEMENTS: ", TempBalance, PermBalance)
 		x, ok := resp2.Result.Balances[i].(map[string]interface{})
 		if ok != true {
 			fmt.Println(x)
 		}
 
-		//if resp2.Result.CurrentHeight != currentHeight || string(resp2.Result.LastSavedHeight) != string(heighestSavedHeight) {
-		//	t.Fatalf("Who wrote this trash code?... Expected a current height of " + fmt.Sprint(currentHeight) + " and a saved height of " + fmt.Sprint(heighestSavedHeight) + " but got " + fmt.Sprint(resp2.Result.CurrentHeight) + ", " + fmt.Sprint(resp2.Result.LastSavedHeight))
-		//}
-		//
-		//if x["ack"] != float64(TempBalance) || x["saved"] != float64(PermBalance) || x["err"] != errNotAcc {
-		//	t.Fatalf("Expected " + fmt.Sprint(strconv.FormatInt(x["ack"].(int64), 10)) + ", " + fmt.Sprint(strconv.FormatInt(x["saved"].(int64), 10)) + ", but got " + strconv.FormatInt(TempBalance, 10) + "," + strconv.FormatInt(PermBalance, 10))
-		//}
+		if resp2.Result.CurrentHeight != currentHeight || string(resp2.Result.LastSavedHeight) != string(heighestSavedHeight) {
+			t.Fatalf("Who wrote this trash code?... Expected a current height of " + fmt.Sprint(currentHeight) + " and a saved height of " + fmt.Sprint(heighestSavedHeight) + " but got " + fmt.Sprint(resp2.Result.CurrentHeight) + ", " + fmt.Sprint(resp2.Result.LastSavedHeight))
+		}
+
+		if x["ack"] != float64(TempBalance) || x["saved"] != float64(PermBalance) || x["err"] != errNotAcc {
+			t.Fatalf("Expected " + fmt.Sprint(strconv.FormatInt(x["ack"].(int64), 10)) + ", " + fmt.Sprint(strconv.FormatInt(x["saved"].(int64), 10)) + ", but got " + strconv.FormatInt(TempBalance, 10) + "," + strconv.FormatInt(PermBalance, 10))
+		}
 	}
 	TimeNow(state0)
 	ToTestPermAndTempBetweenBlocks := []string{"EC1zGzM78psHhs5xVdv6jgVGmswvUaN6R3VgmTquGsdyx9W67Cqy", "EC3Eh7yQKShgjkUSFrPbnQpboykCzf4kw9QHxi47GGz5P2k3dbab"}
 	resp3 := apiCall(ToTestPermAndTempBetweenBlocks)
-	fmt.Println("TEMP AND PERM SHOULD BE THE SAME: ", resp3)
+	x, ok := resp3.Result.Balances[1].(map[string]interface{})
+	if ok != true {
+		fmt.Println(x)
+	}
+
+	if x["ack"] != x["saved"] {
+		t.Fatalf("Expected " + fmt.Sprint(x["ack"]) + ", " + fmt.Sprint(x["saved"]) + " but got " + fmt.Sprint(x["ack"]) + ", " + fmt.Sprint(x["saved"]))
+	}
+
 	TimeNow(state0)
 
-	_, str := FundWallet(state0, 100)
-	fmt.Println("STR: ", str)
-	WaitMinutes(state0, 2)
+	_, str := FundWallet(state0, 20000000)
 
 	// a while loop to find when the transaction made FundWallet ^^Above^^ has been acknowledged
-	thisShouldNotBeUnknownAtSomePoint := "Unknown"
-	thisShouldNotBeUnknownAtSomePointEC := "Unkown"
-	for thisShouldNotBeUnknownAtSomePoint != "TransactionACK" && thisShouldNotBeUnknownAtSomePointEC != "TransactionACK" {
+	for {
 		url := "http://localhost:" + fmt.Sprint(state0.GetPort()) + "/v2"
 		var jsonStr = []byte(`{"jsonrpc": "2.0", "id": 0, "method":"factoid-ack", "params":{"txid":"` + str + `"}}  `)
 		req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
@@ -532,7 +525,6 @@ func TestMultipleECAccountsAPI(t *testing.T) {
 
 		defer resp.Body.Close()
 		body, _ := ioutil.ReadAll(resp.Body)
-		fmt.Println("factoid-ack: ", string(body))
 
 		resp2 := new(ackHelp)
 		err1 := json.Unmarshal([]byte(body), &resp2)
@@ -540,80 +532,26 @@ func TestMultipleECAccountsAPI(t *testing.T) {
 			t.Error(err1)
 		}
 
-
-		//'{"jsonrpc": "2.0", "id": 0, "method":"entry-ack", "params":{"txid":"9228b4b080b3cf94cceea866b74c48319f2093f56bd5a63465288e9a71437ee8"}}'
-
-		var jsonStrEC = []byte(`{"jsonrpc": "2.0", "id": 0, "method":"entry-ack", "params":{"txid":"` + str + `"}}  `)
-		reqEC, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStrEC))
-		reqEC.Header.Set("content-type", "text/plain;")
-
-		clientEC := &http.Client{}
-		respEC, err := clientEC.Do(reqEC)
-		if err != nil {
-			t.Error(err)
+		if resp2.Result.Status == "TransactionACK" {
+			break
 		}
-
-		defer respEC.Body.Close()
-		bodyEC, _ := ioutil.ReadAll(respEC.Body)
-		fmt.Println("ECCCCCCCCCCCCCCCCCCCCCCCCC: ", string(bodyEC))
-
-		resp2EC := new(ackHelpEC)
-		err1EC := json.Unmarshal([]byte(bodyEC), &resp2EC)
-		if err1EC != nil {
-			t.Error(err1EC)
-		}
-
-		fmt.Println("RESP2: ", resp2.Result.Status)
-		fmt.Println("RESP2 EC: ", resp2EC.Result)
-		if resp2.Result.Status == "TransactionACK" && resp2EC.Result.EntryData.Status == "TransactionACK" {
-			thisShouldNotBeUnknownAtSomePoint = resp2.Result.Status
-			thisShouldNotBeUnknownAtSomePointEC = resp2EC.Result.EntryData.Status
-		}
-
-
-
-		////{"jsonrpc": "2.0", "id": 0, "method": "transaction", "params":{"hash":"64251aa63e011f803c883acf2342d784b405afa59e24d9c5506c84f6c91bf18b"}}
-		////url := "http://localhost:" + fmt.Sprint(state0.GetPort()) + "/v2"
-		//fmt.Println("resp2.Result.Transid ", resp2.Result.)
-		//var jsonStr2 = []byte(`{"jsonrpc": "2.0", "id": 0, "method":"transaction", "params":{"hash":"` + resp2.Result.Transid + `"}}  `)
-		//req2, err2 := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr2))
-		//req2.Header.Set("content-type", "text/plain;")
-		//
-		//client2 := &http.Client{}
-		//resp3, err3 := client2.Do(req2)
-		//if err3 != nil || err2 !=nil {
-		//	t.Error(err)
-		//}
-		//
-		//defer resp3.Body.Close()
-		//body3, _ := ioutil.ReadAll(resp3.Body)
-		//fmt.Println("TRANSACTION: ", string(body3))
-		//
-		//resp4 := new(ackHelp)
-		//err4 := json.Unmarshal([]byte(body3), &resp4)
-		//if err4 != nil {
-		//	t.Error(err1)
-		//}
-		//fmt.Println("RESP4: ",resp4)
 	}
 
 	// This call should show a different acknowledged balance than the Saved Balance
 	resp_5 := apiCall(ToTestPermAndTempBetweenBlocks)
-	fmt.Println("TEMP SHOULD BE DIFFERENT: ", resp_5)
-	x, ok := resp_5.Result.Balances[1].(map[string]interface{})
+	x, ok = resp_5.Result.Balances[1].(map[string]interface{})
 	if ok != true {
 		fmt.Println(x)
 	}
 
-	//if x["ack"] == x["saved"] {
-	//	t.Fatalf("Expected " + fmt.Sprint(x["ack"]) + ", " + fmt.Sprint(x["saved"]) + " but got " + fmt.Sprint(x["ack"]) + ", " + fmt.Sprint(x["saved"]))
-	//}
+	if x["ack"] == x["saved"] {
+		t.Fatalf("Expected " + fmt.Sprint(x["ack"]) + ", " + fmt.Sprint(x["saved"]) + " but got " + fmt.Sprint(x["ack"]) + ", " + fmt.Sprint(x["saved"]))
+	}
 
 	WaitBlocks(state0, 1)
 	WaitMinutes(state0, 1)
 
 	resp_6 := apiCall(ToTestPermAndTempBetweenBlocks)
-	fmt.Println("RESP_6: ", resp_6)
 	x, ok = resp_6.Result.Balances[1].(map[string]interface{})
 	if ok != true {
 		fmt.Println(x)
@@ -621,7 +559,6 @@ func TestMultipleECAccountsAPI(t *testing.T) {
 	if x["ack"] != x["saved"] {
 		t.Fatalf("Expected " + fmt.Sprint(x["ack"]) + ", " + fmt.Sprint(x["saved"]) + " but got " + fmt.Sprint(x["ack"]) + ", " + fmt.Sprint(x["saved"]))
 	}
-
 }
 
 func TestSetupANetwork(t *testing.T) {
