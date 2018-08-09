@@ -1209,29 +1209,34 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
 		m.FollowerExecute(s)
 		return
 	}
-	if len(pl.VMs[dbs.VMIndex].List) > 0 {
-		s.LogMessage("executeMsg", "drop, slot 0 taken by", pl.VMs[dbs.VMIndex].List[0])
+
+	// Already process the DBSig what the heck is this?
+	if pl.VMs[dbs.VMIndex].Height > 0 {
+		if pl.VMs[dbs.VMIndex].List[0] != m {
+			s.LogMessage("executeMsg", "drop, slot 0 taken by", pl.VMs[dbs.VMIndex].List[0])
+		}
 		return
 	}
+}
 
-	// Put the System Height and Serial Hash into the EOM
-	dbs.SysHeight = uint32(pl.System.Height)
+// Put the System Height and Serial Hash into the EOM
+dbs.SysHeight = uint32(pl.System.Height)
 
-	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, m.GetRepeatHash().Fixed(), m.GetTimestamp(), s.GetTimestamp())
-	if !ok {
-		TotalHoldingQueueOutputs.Inc()
-		HoldingQueueDBSigOutputs.Inc()
-		delete(s.Holding, m.GetMsgHash().Fixed())
-		s.LogMessage("executeMsg", "drop INTERNAL_REPLAY", m)
-		return
-	}
+_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, m.GetRepeatHash().Fixed(), m.GetTimestamp(), s.GetTimestamp())
+if !ok {
+TotalHoldingQueueOutputs.Inc()
+HoldingQueueDBSigOutputs.Inc()
+delete(s.Holding, m.GetMsgHash().Fixed())
+s.LogMessage("executeMsg", "drop INTERNAL_REPLAY", m)
+return
+}
 
-	ack := s.NewAck(m, s.Balancehash).(*messages.Ack)
+ack := s.NewAck(m, s.Balancehash).(*messages.Ack)
 
-	m.SetLeaderChainID(ack.GetLeaderChainID())
-	m.SetMinute(ack.Minute)
+m.SetLeaderChainID(ack.GetLeaderChainID())
+m.SetMinute(ack.Minute)
 
-	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(ack, m)
+s.ProcessLists.Get(ack.DBHeight).AddToProcessList(ack, m)
 }
 
 func (s *State) LeaderExecuteCommitChain(m interfaces.IMsg) {
@@ -1979,18 +1984,17 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			return false
 		}
 
-		// Adds DB Sig to be added to Admin block if passes sig checks
 		data, err := dbs.DirectoryBlockHeader.MarshalBinary()
-		if err != nil {
-			return false
-		}
-		if !dbs.DBSignature.Verify(data) {
-			return false
-		}
-
 		valid, err := s.FastVerifyAuthoritySignature(data, dbs.DBSignature, dbs.DBHeight)
+
 		if err != nil || valid != 1 {
 			s.LogPrintf("executeMsg", "Failed. Invalid Auth Sig: Pubkey: %x", dbs.Signature.GetKey())
+			if vm.List[vm.Height] == dbs {
+				s.LogMessage("badMsgs", "removing invalid", vm.List[vm.Height])
+				vm.List[vm.Height] = nil // nuke the bad DBSig
+			} else {
+				panic("did not find my dbs")
+			}
 			return false
 		}
 
