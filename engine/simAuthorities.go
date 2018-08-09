@@ -117,18 +117,22 @@ func copyOver(st *state.State) {
 	}
 }
 
-func FundWallet(st *state.State, amt uint64) error {
-	inSec, _ := primitives.HexToHash("FB3B471B1DCDADFEB856BD0B02D8BF49ACE0EDD372A3D9F2A95B78EC12A324D6")
-	outEC, _ := primitives.HexToHash("c23ae8eec2beb181a0da926bd2344e988149fbe839fbc7489f2096e7d6110243")
-	inHash, _ := primitives.HexToHash("646F3E8750C550E4582ECA5047546FFEF89C13A175985E320232BACAC81CC428")
-	var sec [64]byte
-	copy(sec[:32], inSec.Bytes())
+func FundWallet(st *state.State, amt uint64) (error, string) {
+	inSec, _ := primitives.HexToHash("FB3B471B1DCDADFEB856BD0B02D8BF49ACE0EDD372A3D9F2A95B78EC12A324D6") // private key or FCT Source
+	outEC, _ := primitives.HexToHash("c23ae8eec2beb181a0da926bd2344e988149fbe839fbc7489f2096e7d6110243") // EC address
 
-	pub := ed.GetPublicKey(&sec)
-	//inRcd := shad(inPub.Bytes())
+	var sec [64]byte
+	copy(sec[:32], inSec.Bytes()) // pass 32 byte key in a 64 byte field for the crypto library
+
+	pub := ed.GetPublicKey(&sec) // get the public key for our FCT source address
 
 	rcd := factoid.NewRCD_1(pub[:])
-	inAdd := factoid.NewAddress(inHash.Bytes())
+
+	inAdd, err := rcd.GetAddress()
+	if err != nil {
+		panic(err)
+	}
+
 	outAdd := factoid.NewAddress(outEC.Bytes())
 
 	trans := new(factoid.Transaction)
@@ -141,17 +145,17 @@ func FundWallet(st *state.State, amt uint64) error {
 
 	fee, err := trans.CalculateFee(st.GetFactoshisPerEC())
 	if err != nil {
-		return err
+		return err, ""
 	}
 	input, err := trans.GetInput(0)
 	if err != nil {
-		return err
+		return err, ""
 	}
 	input.SetAmount(amt + fee)
 
 	dataSig, err := trans.MarshalBinarySig()
 	if err != nil {
-		return err
+		return err, ""
 	}
 	sig := factoid.NewSingleSignatureBlock(inSec.Bytes(), dataSig)
 	trans.SetSignatureBlock(0, sig)
@@ -163,11 +167,11 @@ func FundWallet(st *state.State, amt uint64) error {
 	_, err = v2Request(j, st.GetPort())
 	//_, err = wsapi.HandleV2Request(st, j)
 	if err != nil {
-		return err
+		return err, ""
 	}
 	_ = err
 
-	return nil
+	return nil, fmt.Sprintf("%v", trans.GetTxID())
 }
 
 func setUpAuthorities(st *state.State, buildMain bool) []hardCodedAuthority {
