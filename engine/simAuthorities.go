@@ -126,7 +126,7 @@ func FundWallet(st *state.State, amt uint64) (error, string) {
 
 	pub := ed.GetPublicKey(&sec) // get the public key for our FCT source address
 
-	rcd := factoid.NewRCD_1(pub[:])
+	rcd := factoid.NewRCD_1(pub[:]) // build the an RCD "redeem condition data structure"
 
 	inAdd, err := rcd.GetAddress()
 	if err != nil {
