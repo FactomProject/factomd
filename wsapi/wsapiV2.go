@@ -209,7 +209,7 @@ func HandleV2MultipleECBalances(state interfaces.IState, params interface{}) (in
 
 	// Converts readable accounts
 	for i, a := range listofadd {
-		if a == "" {
+		if a.(string) == "" {
 			errStruct := new(interfaces.StructToReturnValues)
 			errStruct.PermBal = 0
 			errStruct.TempBal = 0
