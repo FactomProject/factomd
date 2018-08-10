@@ -215,8 +215,7 @@ func HandleV2MultipleECBalances(state interfaces.IState, params interface{}) (in
 			errStruct.TempBal = 0
 			errStruct.Error = "No EC addresses"
 			totalBalances[i] = errStruct
-		}
-		if primitives.ValidateECUserStr(a.(string)) != true {
+		} else if primitives.ValidateECUserStr(a.(string)) != true {
 			errStruct := new(interfaces.StructToReturnValues)
 			errStruct.PermBal = 0
 			errStruct.TempBal = 0
@@ -263,8 +262,13 @@ func HandleV2MultipleFCTBalances(state interfaces.IState, params interface{}) (i
 
 	// Converts readable accounts
 	for i, a := range listofadd {
-		fmt.Println(a)
-		if primitives.ValidateFUserStr(a.(string)) != true {
+		if a.(string) == "" {
+			errStruct := new(interfaces.StructToReturnValues)
+			errStruct.PermBal = 0
+			errStruct.TempBal = 0
+			errStruct.Error = "No FCT addresses"
+			totalBalances[i] = errStruct
+		} else if primitives.ValidateFUserStr(a.(string)) != true {
 			errStruct := new(interfaces.StructToReturnValues)
 			errStruct.PermBal = 0
 			errStruct.TempBal = 0
