@@ -198,7 +198,6 @@ func HandleV2MultipleECBalances(state interfaces.IState, params interface{}) (in
 		return nil, NewCustomInvalidParamsError("ERROR! Invalid params passed in")
 	}
 
-	fmt.Println(`x["addresses"]`, x["addresses"])
 	if x["addresses"] == nil {
 		return nil, NewCustomInvalidParamsError("ERROR! Invalid params passed in, expected 'addresses'")
 	}
@@ -210,6 +209,7 @@ func HandleV2MultipleECBalances(state interfaces.IState, params interface{}) (in
 
 	// Converts readable accounts
 	for i, a := range listofadd {
+		fmt.Println(a)
 		if primitives.ValidateECUserStr(a.(string)) != true {
 			errStruct := new(interfaces.StructToReturnValues)
 			errStruct.PermBal = 0
@@ -257,6 +257,7 @@ func HandleV2MultipleFCTBalances(state interfaces.IState, params interface{}) (i
 
 	// Converts readable accounts
 	for i, a := range listofadd {
+		fmt.Println(a)
 		if primitives.ValidateFUserStr(a.(string)) != true {
 			errStruct := new(interfaces.StructToReturnValues)
 			errStruct.PermBal = 0
