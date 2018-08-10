@@ -210,7 +210,11 @@ func HandleV2MultipleECBalances(state interfaces.IState, params interface{}) (in
 	// Converts readable accounts
 	for i, a := range listofadd {
 		if a == "" {
-			break
+			errStruct := new(interfaces.StructToReturnValues)
+			errStruct.PermBal = 0
+			errStruct.TempBal = 0
+			errStruct.Error = "No EC addresses"
+			totalBalances[i] = errStruct
 		}
 		if primitives.ValidateECUserStr(a.(string)) != true {
 			errStruct := new(interfaces.StructToReturnValues)
