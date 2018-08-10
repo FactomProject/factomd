@@ -911,6 +911,8 @@ func TestDBsigEOMElection(t *testing.T) {
 		t.Fatalf("found %d leaders, expected 5", leadercnt)
 	}
 
+	PrintOneStatus(2, 2)
+
 	//// Wait for the activation of the
 	//for !state.IsActive(activations.ELECTION_NO_SORT) {
 	//	WaitBlocks(state, 1)
@@ -951,6 +953,9 @@ func TestDBsigEOMElection(t *testing.T) {
 	go stop0()
 	go stop1()
 	wait.Wait()
+
+	PrintOneStatus(2, 2)
+
 	fmt.Println("Caused Elections")
 
 	//runCmd("E")

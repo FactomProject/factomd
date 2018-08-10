@@ -1,4 +1,5 @@
 #/bin/sh
+set -x
 mkdir -p test
 #compile the tests
 rm -rf test/*

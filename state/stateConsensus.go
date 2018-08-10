@@ -1214,29 +1214,30 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
 	if pl.VMs[dbs.VMIndex].Height > 0 {
 		if pl.VMs[dbs.VMIndex].List[0] != m {
 			s.LogMessage("executeMsg", "drop, slot 0 taken by", pl.VMs[dbs.VMIndex].List[0])
+		} else {
+			s.LogMessage("executeMsg", "drop, duplicate", pl.VMs[dbs.VMIndex].List[0])
 		}
 		return
 	}
-}
 
-// Put the System Height and Serial Hash into the EOM
-dbs.SysHeight = uint32(pl.System.Height)
+	// Put the System Height and Serial Hash into the EOM
+	dbs.SysHeight = uint32(pl.System.Height)
 
-_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, m.GetRepeatHash().Fixed(), m.GetTimestamp(), s.GetTimestamp())
-if !ok {
-TotalHoldingQueueOutputs.Inc()
-HoldingQueueDBSigOutputs.Inc()
-delete(s.Holding, m.GetMsgHash().Fixed())
-s.LogMessage("executeMsg", "drop INTERNAL_REPLAY", m)
-return
-}
+	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, m.GetRepeatHash().Fixed(), m.GetTimestamp(), s.GetTimestamp())
+	if !ok {
+		TotalHoldingQueueOutputs.Inc()
+		HoldingQueueDBSigOutputs.Inc()
+		delete(s.Holding, m.GetMsgHash().Fixed())
+		s.LogMessage("executeMsg", "drop INTERNAL_REPLAY", m)
+		return
+	}
 
-ack := s.NewAck(m, s.Balancehash).(*messages.Ack)
+	ack := s.NewAck(m, s.Balancehash).(*messages.Ack)
 
-m.SetLeaderChainID(ack.GetLeaderChainID())
-m.SetMinute(ack.Minute)
+	m.SetLeaderChainID(ack.GetLeaderChainID())
+	m.SetMinute(ack.Minute)
 
-s.ProcessLists.Get(ack.DBHeight).AddToProcessList(ack, m)
+	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(ack, m)
 }
 
 func (s *State) LeaderExecuteCommitChain(m interfaces.IMsg) {
