@@ -198,6 +198,7 @@ func HandleV2MultipleECBalances(state interfaces.IState, params interface{}) (in
 		return nil, NewCustomInvalidParamsError("ERROR! Invalid params passed in")
 	}
 
+	fmt.Println(`x["addresses"]`, x["addresses"])
 	if x["addresses"] == nil {
 		return nil, NewCustomInvalidParamsError("ERROR! Invalid params passed in, expected 'addresses'")
 	}
