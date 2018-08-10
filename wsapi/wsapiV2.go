@@ -209,7 +209,9 @@ func HandleV2MultipleECBalances(state interfaces.IState, params interface{}) (in
 
 	// Converts readable accounts
 	for i, a := range listofadd {
-		fmt.Println(a)
+		if a == "" {
+			break
+		}
 		if primitives.ValidateECUserStr(a.(string)) != true {
 			errStruct := new(interfaces.StructToReturnValues)
 			errStruct.PermBal = 0
