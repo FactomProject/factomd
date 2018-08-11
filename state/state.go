@@ -306,8 +306,10 @@ type State struct {
 	NumTransactions int
 
 	// Permanent balances from processing blocks.
+	FactoidBalancesPapi   map[[32]byte]int64
 	FactoidBalancesP      map[[32]byte]int64
 	FactoidBalancesPMutex sync.Mutex
+	ECBalancesPapi        map[[32]byte]int64
 	ECBalancesP           map[[32]byte]int64
 	ECBalancesPMutex      sync.Mutex
 	TempBalanceHash       interfaces.IHash

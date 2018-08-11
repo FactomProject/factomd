@@ -50,9 +50,104 @@ func (slice elementSortable) Swap(i, j int) {
 	slice[i], slice[j] = slice[j], slice[i]
 }
 
+type stringSortable []string
+
+func (v stringSortable) Len() int           { return len(v) }
+func (v stringSortable) Swap(i, j int)      { v[i], v[j] = v[j], v[i] }
+func (v stringSortable) Less(i, j int) bool { return v[i] < v[j] }
+
 type element struct {
 	adr [32]byte
 	v   int64
+}
+
+func (fs *FactoidState) GetMultipleECBalances(singleAdd [32]byte) (uint32, uint32, int64, int64, string) {
+	currentHeight := fs.DBHeight
+	heighestSavedHeight := fs.State.GetHighestSavedBlk()
+	errNotAcc := ""
+
+	PermBalance, pok := fs.State.ECBalancesP[singleAdd] // Gets the Balance of the EC address
+
+	if fs.State.ECBalancesPapi != nil {
+		if savedBal, ok := fs.State.ECBalancesPapi[singleAdd]; ok {
+			PermBalance = savedBal
+		}
+	}
+
+	pl := fs.State.ProcessLists.Get(currentHeight)
+	pl.ECBalancesTMutex.Lock()
+	TempBalance, tok := pl.ECBalancesT[singleAdd] // Gets the Temp Balance of the EC address
+	pl.ECBalancesTMutex.Unlock()
+
+	if tok != true && pok != true {
+		TempBalance = 0
+		PermBalance = 0
+		errNotAcc = "Address has not had a transaction"
+	} else if tok == true && pok == false {
+		PermBalance = 0
+		errNotAcc = ""
+	} else if tok == false && pok == true {
+		TempBalance = PermBalance
+	}
+
+	if fs.State.IgnoreDone != true || fs.State.DBFinished != true {
+		return 0, 0, 0, 0, "Not fully booted"
+	}
+
+	return currentHeight, heighestSavedHeight, TempBalance, PermBalance, errNotAcc
+}
+
+func (fs *FactoidState) GetMultipleFactoidBalances(singleAdd [32]byte) (uint32, uint32, int64, int64, string) {
+	currentHeight := fs.DBHeight
+	heighestSavedHeight := fs.State.GetHighestSavedBlk()
+	errNotAcc := ""
+
+	PermBalance, pok := fs.State.FactoidBalancesP[singleAdd] // Gets the Balance of the Factoid address
+
+	if fs.State.FactoidBalancesPapi != nil {
+		if savedBal, ok := fs.State.FactoidBalancesPapi[singleAdd]; ok {
+			PermBalance = savedBal
+		}
+	}
+
+	pl := fs.State.ProcessLists.Get(currentHeight)
+	pl.FactoidBalancesTMutex.Lock()
+	TempBalance, tok := pl.FactoidBalancesT[singleAdd] // Gets the Temp Balance of the Factoid address
+	pl.FactoidBalancesTMutex.Unlock()
+
+	if tok != true && pok != true {
+		TempBalance = 0
+		PermBalance = 0
+		errNotAcc = "Address has not had a transaction"
+	} else if tok == true && pok == false {
+		PermBalance = 0
+		errNotAcc = ""
+	} else if tok == false && pok == true {
+		TempBalance = PermBalance
+	}
+
+	if fs.State.IgnoreDone != true || fs.State.DBFinished != true {
+		return 0, 0, 0, 0, "Not fully booted"
+	}
+
+	return currentHeight, heighestSavedHeight, TempBalance, PermBalance, errNotAcc
+}
+
+func (fs *FactoidState) GetFactiodAccounts(params interface{}) (uint32, []string) {
+	name := fs.State.FactoidBalancesP
+	height := fs.DBHeight
+	list := make([]string, 0, len(name))
+
+	for k, _ := range name {
+		y := primitives.Hash(k)
+		z := interfaces.IAddress(interfaces.IHash(&y))
+		e := primitives.ConvertFctAddressToUserStr(z)
+		list = append(list, e)
+	}
+
+	sort.Sort(stringSortable(list))
+
+	return height, list
 }
 
 func GetMapHash(dbheight uint32, bmap map[[32]byte]int64) interfaces.IHash {
