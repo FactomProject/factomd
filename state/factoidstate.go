@@ -466,7 +466,7 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 // Returns an error message about what is wrong with the transaction if it is
 // invalid, otherwise you are good to go.
 func (fs *FactoidState) Validate(index int, trans interfaces.ITransaction) error {
-	var sums = make(map[[32]byte]uint64, 10)  // Look at the sum of an address's inputs
+	var sums = make(map[[32]byte]uint64, 10)  // Look at the sum of an Address's inputs
 	for _, input := range trans.GetInputs() { //    to a transaction.
 		bal, err := factoid.ValidateAmounts(sums[input.GetAddress().Fixed()], input.GetAmount())
 		if err != nil {
@@ -489,14 +489,14 @@ func (fs *FactoidState) GetCoinbaseTransaction(dbheight uint32, ftime interfaces
 	//	Payout blocks are every n blocks, where n is the coinbase frequency
 	if dbheight > constants.COINBASE_ACTIVATION && // Coinbase code must be above activation
 		dbheight != 0 && // Does not affect gensis
-		dbheight%constants.COINBASE_PAYOUT_FREQUENCY == 0 && // Frequency of payouts
+		(dbheight%constants.COINBASE_PAYOUT_FREQUENCY == 0 || dbheight%constants.COINBASE_PAYOUT_FREQUENCY == 1) && // Frequency of payouts
 		// Cannot payout before a declaration (cannot grab below height 0)
 		dbheight > constants.COINBASE_DECLARATION+constants.COINBASE_PAYOUT_FREQUENCY {
 		// Grab the admin block 1000 blocks earlier
 		descriptorHeight := dbheight - constants.COINBASE_DECLARATION
 		ablock, err := fs.State.DB.FetchABlockByHeight(descriptorHeight)
 		if err != nil {
-			panic(fmt.Sprintf("When creating coinbase, admin block at height %d could not be retrieved", dbheight-1000))
+			panic(fmt.Sprintf("When creating coinbase, admin block at height %d could not be retrieved", descriptorHeight))
 		}
 
 		abe := ablock.FetchCoinbaseDescriptor()
@@ -511,7 +511,7 @@ func (fs *FactoidState) GetCoinbaseTransaction(dbheight uint32, ftime interfaces
 				delete(fs.State.IdentityControl.CanceledCoinbaseOutputs, descriptorHeight)
 			}
 
-			// Map contains all cancelled indicies
+			// Map contains all cancelled indices
 			for _, v := range list {
 				m[v] = struct{}{}
 			}

@@ -19,7 +19,6 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	. "github.com/FactomProject/factomd/engine"
 	"github.com/FactomProject/factomd/state"
-
 	"github.com/FactomProject/factomd/wsapi"
 )
 
@@ -70,7 +69,7 @@ func SetupSim(GivenNodes string, NetworkType string, UserAddedOptions map[string
 
 	t.Logf("Allocated %d nodes", l)
 	lenFnodes := len(GetFnodes())
-	if  lenFnodes != l {
+	if lenFnodes != l {
 		t.Fatalf("Should have allocated %d nodes", l)
 		t.Fail()
 	}
@@ -158,6 +157,7 @@ func WaitForMinute(s *state.State, min int) {
 // Wait some number of minutes
 func WaitMinutesQuite(s *state.State, min int) {
 	sleepTime := time.Duration(globals.Params.BlkTime) * 1000 / 40 // Figure out how long to sleep in milliseconds
+
 	newMinute := (s.CurrentMinute + min) % 10
 	newBlock := int(s.LLeaderHeight) + (s.CurrentMinute+min)/10
 	for int(s.LLeaderHeight) < newBlock {
@@ -215,6 +215,7 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 	if ranSimTest {
 		return
 	}
+
 	ranSimTest = true
 
 	state0 := SetupSim("LLLLAAAFFF", "LOCAL", map[string]string{"--logPort": "37000", "--port": "37001", "--controlpanelport": "37002", "--networkport": "37003"}, t)
@@ -663,6 +664,7 @@ func TestSetupANetwork(t *testing.T) {
 	if state0.LLeaderHeight > uint32(dblim) {
 		t.Fatalf("Failed to shut down factomd via ShutdownChan expected DBHeight %d got %d", dblim, state0.LLeaderHeight)
 	}
+
 }
 
 func TestLoad(t *testing.T) {
