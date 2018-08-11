@@ -1209,7 +1209,7 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
 		m.FollowerExecute(s)
 		return
 	}
-	if len(pl.VMs[dbs.VMIndex].List) > 0 {
+	if pl.VMs[dbs.VMIndex].Height > 0 {
 		s.LogMessage("executeMsg", "drop, slot 0 taken by", pl.VMs[dbs.VMIndex].List[0])
 		return
 	}
@@ -2340,7 +2340,7 @@ func (s *State) NewAck(msg interfaces.IMsg, balanceHash interfaces.IHash) interf
 	ack.MessageHash = msg.GetMsgHash()
 	ack.LeaderChainID = s.IdentityChainID
 	ack.BalanceHash = balanceHash
-	listlen := len(s.LeaderPL.VMs[vmIndex].List)
+	listlen := s.LeaderPL.VMs[vmIndex].Height
 	if listlen == 0 {
 		ack.Height = 0
 		ack.SerialHash = ack.MessageHash
