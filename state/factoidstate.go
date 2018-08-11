@@ -68,7 +68,7 @@ func (fs *FactoidState) GetMultipleECBalances(singleAdd [32]byte) (uint32, uint3
 
 	PermBalance, pok := fs.State.ECBalancesP[singleAdd] // Gets the Balance of the EC address
 
-	if fs.State.ECBalancesPapi!= nil {
+	if fs.State.ECBalancesPapi != nil {
 		if savedBal, ok := fs.State.ECBalancesPapi[singleAdd]; ok {
 			PermBalance = savedBal
 		}
@@ -85,7 +85,7 @@ func (fs *FactoidState) GetMultipleECBalances(singleAdd [32]byte) (uint32, uint3
 		errNotAcc = "Address has not had a transaction"
 	} else if tok == true && pok == false {
 		PermBalance = 0
-		errNotAcc =""
+		errNotAcc = ""
 	} else if tok == false && pok == true {
 		TempBalance = PermBalance
 	}
@@ -121,7 +121,7 @@ func (fs *FactoidState) GetMultipleFactoidBalances(singleAdd [32]byte) (uint32, 
 		errNotAcc = "Address has not had a transaction"
 	} else if tok == true && pok == false {
 		PermBalance = 0
-		errNotAcc =""
+		errNotAcc = ""
 	} else if tok == false && pok == true {
 		TempBalance = PermBalance
 	}

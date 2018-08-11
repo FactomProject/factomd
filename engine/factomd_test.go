@@ -236,7 +236,7 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 		Result  wsapi.GeneralTransactionData `json:"result"`
 	}
 
-	apiCall := func(arrayOfFactoidAccounts []string) (*walletcall) {
+	apiCall := func(arrayOfFactoidAccounts []string) *walletcall {
 		url := "http://localhost:" + fmt.Sprint(state0.GetPort()) + "/v2"
 		var jsonStr = []byte(`{"jsonrpc": "2.0", "id": 0, "method": "multiple-fct-balances", "params":{"addresses":["` + strings.Join(arrayOfFactoidAccounts, `", "`) + `"]}}  `)
 		req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
@@ -420,7 +420,7 @@ func TestMultipleECAccountsAPI(t *testing.T) {
 		Result  wsapi.EntryStatus `json:"result"`
 	}
 
-	apiCall := func(arrayOfECAccounts []string) (*walletcall) {
+	apiCall := func(arrayOfECAccounts []string) *walletcall {
 		url := "http://localhost:" + fmt.Sprint(state0.GetPort()) + "/v2"
 		var jsonStr = []byte(`{"jsonrpc": "2.0", "id": 0, "method": "multiple-ec-balances", "params":{"addresses":["` + strings.Join(arrayOfECAccounts, `", "`) + `"]}}  `)
 		req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
