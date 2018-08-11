@@ -68,9 +68,10 @@ func SetupSim(GivenNodes string, NetworkType string, UserAddedOptions map[string
 	time.Sleep(3 * time.Second)
 	creatingNodes(GivenNodes, state0)
 
-	t.Log("Allocated " + string(l) + " nodes")
-	if len(GetFnodes()) != l {
-		t.Fatal("Should have allocated " + string(l) + " nodes")
+	t.Logf("Allocated %d nodes", l)
+	lenFnodes := len(GetFnodes())
+	if  lenFnodes != l {
+		t.Fatalf("Should have allocated %d nodes", l)
 		t.Fail()
 	}
 	return state0
@@ -303,7 +304,7 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 		}
 
 		if resp2.Result.CurrentHeight != currentHeight || string(resp2.Result.LastSavedHeight) != string(heighestSavedHeight) {
-			t.Fatalf("Who wrote this trash code?... Expected a current height of " + fmt.Sprint(currentHeight) + " and a saved height of " + fmt.Sprint(heighestSavedHeight) + " but got " + fmt.Sprint(resp2.Result.CurrentHeight) + ", " + fmt.Sprint(resp2.Result.LastSavedHeight))
+			t.Fatalf("Expected a current height of " + fmt.Sprint(currentHeight) + " and a saved height of " + fmt.Sprint(heighestSavedHeight) + " but got " + fmt.Sprint(resp2.Result.CurrentHeight) + ", " + fmt.Sprint(resp2.Result.LastSavedHeight))
 		}
 
 		if x["ack"] != float64(TempBalance) || x["saved"] != float64(PermBalance) || x["err"] != errNotAcc {
