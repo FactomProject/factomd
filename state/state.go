@@ -1009,7 +1009,6 @@ func (s *State) Init() {
 					}
 				}
 			}
-
 		}
 	}
 
