@@ -145,7 +145,7 @@ func GetECs(s *state.State, tight bool, c int) {
 
 	os.Stderr.WriteString(fmt.Sprintf("%d purchases, buying %d and balance is %d \n", cnt, c, ecBal))
 
-	fundWallet(s, uint64(c)*ecPrice)
+	FundWallet(s, uint64(c)*ecPrice)
 
 }
 

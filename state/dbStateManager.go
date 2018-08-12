@@ -8,16 +8,18 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/FactomProject/factomd/common/adminBlock"
-	// "github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
+	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
@@ -1251,6 +1253,12 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	// 	}
 	// }
 
+	// Writing the DBState to a debug file allows for later analyzing the last block not saved to the database.
+	// Do not do this while loading from disk, as those blocks are already saved
+	if list.State.DBFinished && globals.Params.WriteProcessedDBStates {
+		list.WriteDBStateToDebugFile(d)
+	}
+
 	return
 }
 
@@ -1291,6 +1299,55 @@ func (list *DBStateList) SignDB(d *DBState) (process bool) {
 }
 
 var nowish int64 = time.Now().Unix()
+
+// WriteDBStateToDebugFile will write the marshaled dbstate to a file alongside the database.
+// This can be written on the processblocks, so in the event the block does not get written to disk
+// in the event of a stall, the dbstate can be analyzed. The written dbstate does NOT include entries.
+func (list *DBStateList) WriteDBStateToDebugFile(d *DBState) {
+	// Because DBStates include the Savestate, we cannot marshal it, as the savestate is not set
+	// So change it to a full block
+
+	f := NewWholeBlock()
+	f.DBlock = d.DirectoryBlock
+	f.ABlock = d.AdminBlock
+	f.FBlock = d.FactoidBlock
+	f.ECBlock = d.EntryCreditBlock
+	f.EBlocks = d.EntryBlocks
+
+	data, err := f.MarshalBinary()
+	if err != nil {
+		fmt.Printf("An error has occurred while writing the DBState to disk: %s\n", err.Error())
+		return
+	}
+
+	filename := fmt.Sprintf("processed_dbstate_%d.block", d.DirectoryBlock.GetDatabaseHeight()%10)
+	path := filepath.Join(list.State.LdbPath, list.State.Network, "dbstates", filename)
+
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0777)
+	if err != nil {
+		fmt.Printf("An error has occurred while writing the DBState to disk: %s\n", err.Error())
+		return
+	}
+
+	file.Write(data)
+	file.Close()
+}
+
+func ReadDBStateFromDebugFile(filename string) (*WholeBlock, error) {
+	file, err := os.OpenFile(filename, os.O_RDONLY, 0777)
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := ioutil.ReadAll(file)
+	if err != nil {
+		return nil, err
+	}
+
+	wb := NewWholeBlock()
+	err = wb.UnmarshalBinary(data)
+	return wb, err
+}
 
 func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	dbheight := int(d.DirectoryBlock.GetHeader().GetDBHeight())

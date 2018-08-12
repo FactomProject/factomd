@@ -35,6 +35,8 @@ import (
 	"github.com/FactomProject/factomd/wsapi"
 	"github.com/FactomProject/logrustash"
 
+	"path/filepath"
+
 	"github.com/FactomProject/factomd/Utilities/CorrectChainHeads/correctChainHeads"
 	log "github.com/sirupsen/logrus"
 )
@@ -525,6 +527,12 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 		newState.StateSaverStruct.FastBootLocation = newState.BoltDBPath
 		break
 	}
+
+	if globals.Params.WriteProcessedDBStates {
+		path := filepath.Join(newState.LdbPath, newState.Network, "dbstates")
+		os.MkdirAll(path, 0777)
+	}
+
 	return newState
 }
 
@@ -1018,6 +1026,11 @@ func (s *State) Init() {
 		if err != nil {
 			log.Fatal(err)
 		}
+	}
+
+	if globals.Params.WriteProcessedDBStates {
+		path := filepath.Join(s.LdbPath, s.Network, "dbstates")
+		os.MkdirAll(path, 0777)
 	}
 
 }
