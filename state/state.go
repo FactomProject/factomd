@@ -1012,8 +1012,12 @@ func (s *State) Init() {
 			s.StateSaverStruct.DeleteSaveState(s.Network)
 		} else {
 			err = s.StateSaverStruct.LoadDBStateList(s.DBStates, s.Network)
-			if err != nil {
-				panic(err)
+			if err == nil {
+				for _, dbstate := range s.DBStates.DBStates {
+					if dbstate != nil {
+						dbstate.SaveStruct.Commits.s = s
+					}
+				}
 			}
 		}
 	}

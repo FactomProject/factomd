@@ -42,7 +42,7 @@ func (s *State) DebugExec() (ret bool) {
 }
 
 func (s *State) LogMessage(logName string, comment string, msg interfaces.IMsg) {
-	if s.DebugExec() {
+	if s != nil && s.DebugExec() {
 		var dbh int
 		if s.LeaderPL != nil {
 			dbh = int(s.LeaderPL.DBHeight)
