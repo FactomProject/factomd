@@ -122,7 +122,7 @@ func (ss *SaveState) Init(s *State) {
 		ss.Acks = map[[32]byte]interfaces.IMsg{}
 	}
 	if ss.Commits == nil {
-		ss.Commits = NewSafeMsgMap("sscommits",s) // map[[32]byte]interfaces.IMsg{}
+		ss.Commits = NewSafeMsgMap("sscommits", s) // map[[32]byte]interfaces.IMsg{}
 	}
 	if ss.InvalidMessages == nil {
 		ss.InvalidMessages = map[[32]byte]interfaces.IMsg{}
