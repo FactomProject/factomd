@@ -440,6 +440,11 @@ func (fs *FactoidState) GetCoinbaseTransaction(dbheight uint32, ftime interfaces
 }
 
 func (fs *FactoidState) GetMultipleECBalances(singleAdd [32]byte) (uint32, uint32, int64, int64, string) {
+
+	if fs.State.IgnoreDone != true || fs.State.DBFinished != true {
+		return 0, 0, 0, 0, "Not fully booted"
+	}
+
 	currentHeight := fs.DBHeight
 	heighestSavedHeight := fs.State.GetHighestSavedBlk()
 	errNotAcc := ""
@@ -467,22 +472,19 @@ func (fs *FactoidState) GetMultipleECBalances(singleAdd [32]byte) (uint32, uint3
 		errNotAcc = "Address has not had a transaction"
 	} else if tok == true && pok == false {
 		PermBalance = 0
-		errNotAcc = ""
 	} else if tok == false && pok == true {
-		// pl2 is the previous process list.
+		// default to the Perm Balance
+		TempBalance = PermBalance
+		// pl2 is the previous process list.  So if we have a temp balance there, use that one!
 		pl2 := fs.State.ProcessLists.Get(currentHeight - 1)
 		if pl2 != nil {
 			pl2.ECBalancesTMutex.Lock()
 			TempBalance, tok = pl2.ECBalancesT[singleAdd] // Gets the Temp Balance of the EC address
 			pl2.ECBalancesTMutex.Unlock()
+			if tok == false {
+				TempBalance = PermBalance
+			}
 		}
-		if tok == false {
-			TempBalance = PermBalance
-		}
-	}
-
-	if fs.State.IgnoreDone != true || fs.State.DBFinished != true {
-		return 0, 0, 0, 0, "Not fully booted"
 	}
 
 	return currentHeight, heighestSavedHeight, TempBalance, PermBalance, errNotAcc
