@@ -301,12 +301,3 @@ type MultipleECBalances struct {
 	LastSavedHeight uint32        `json:"lastsavedheight"`
 	Balances        []interface{} `json:"balances"`
 }
-
-//type individualObj struct {
-//	ERROR string `json:"ERROR"`
-//}
-//
-//type StructToReturnValues struct {
-//	TempBal int64 `json:"temporary"`
-//	PermBal int64 `json:"permanent"`
-//}
