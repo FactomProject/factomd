@@ -452,10 +452,14 @@ func (fs *FactoidState) GetMultipleECBalances(singleAdd [32]byte) (uint32, uint3
 		}
 	}
 
+	tok := false
+	TempBalance := int64(0)
 	pl := fs.State.ProcessLists.Get(currentHeight)
-	pl.ECBalancesTMutex.Lock()
-	TempBalance, tok := pl.ECBalancesT[singleAdd] // Gets the Temp Balance of the EC address
-	pl.ECBalancesTMutex.Unlock()
+	if pl != nil {
+		pl.ECBalancesTMutex.Lock()
+		TempBalance, tok = pl.ECBalancesT[singleAdd] // Gets the Temp Balance of the EC address
+		pl.ECBalancesTMutex.Unlock()
+	}
 
 	if tok != true && pok != true {
 		TempBalance = 0
@@ -465,14 +469,15 @@ func (fs *FactoidState) GetMultipleECBalances(singleAdd [32]byte) (uint32, uint3
 		PermBalance = 0
 		errNotAcc = ""
 	} else if tok == false && pok == true {
-		plLastHeight := fs.State.ProcessLists.Get(currentHeight - 1)
-		plLastHeight.ECBalancesTMutex.Lock()
-		TempBalanceLastHeight, tokLastHeight := plLastHeight.ECBalancesT[singleAdd] // Gets the Temp Balance of the EC address
-		plLastHeight.ECBalancesTMutex.Unlock()
-		if tokLastHeight == false {
+		// pl2 is the previous process list.
+		pl2 := fs.State.ProcessLists.Get(currentHeight - 1)
+		if pl2 != nil {
+			pl2.ECBalancesTMutex.Lock()
+			TempBalance, tok = pl2.ECBalancesT[singleAdd] // Gets the Temp Balance of the EC address
+			pl2.ECBalancesTMutex.Unlock()
+		}
+		if tok == false {
 			TempBalance = PermBalance
-		} else {
-			TempBalance = TempBalanceLastHeight
 		}
 	}
 
