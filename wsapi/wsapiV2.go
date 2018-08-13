@@ -192,153 +192,6 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 	return jsonResp, nil
 }
 
-func HandleV2MultipleECBalances(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	x, ok := params.(map[string]interface{})
-	if ok != true {
-		return nil, NewCustomInvalidParamsError("ERROR! Invalid params passed in")
-	}
-
-	if x["addresses"] == nil {
-		return nil, NewCustomInvalidParamsError("ERROR! Invalid params passed in, expected 'addresses'")
-	}
-
-	listofadd := (x["addresses"]).([]interface{})
-	totalBalances := make([]interface{}, len(listofadd))
-	var currentHeight uint32
-	var savedHeight uint32
-
-	// Converts readable accounts
-	for i, a := range listofadd {
-		if a.(string) == "" {
-			errStruct := new(interfaces.StructToReturnValues)
-			errStruct.PermBal = 0
-			errStruct.TempBal = 0
-			errStruct.Error = "No EC addresses"
-			totalBalances[i] = errStruct
-		} else if primitives.ValidateECUserStr(a.(string)) != true {
-			errStruct := new(interfaces.StructToReturnValues)
-			errStruct.PermBal = 0
-			errStruct.TempBal = 0
-			errStruct.Error = "Error decoding address"
-			totalBalances[i] = errStruct
-		} else {
-			covertedAdd := [32]byte{}
-			copy(covertedAdd[:], primitives.ConvertUserStrToAddress(a.(string)))
-			cHeight, sHeight, temp, perm, error := state.GetFactoidState().GetMultipleECBalances(covertedAdd)
-			currentHeight = cHeight
-			savedHeight = sHeight
-
-			valueStruct := new(interfaces.StructToReturnValues)
-			valueStruct.TempBal = temp
-			valueStruct.PermBal = perm
-			valueStruct.Error = error
-			totalBalances[i] = valueStruct
-		}
-	}
-	h := new(MultipleFTBalances)
-
-	h.CurrentHeight = currentHeight
-	h.LastSavedHeight = savedHeight
-	h.Balances = totalBalances
-
-	return h, nil
-}
-
-func HandleV2MultipleFCTBalances(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	x, ok := params.(map[string]interface{})
-	if ok != true {
-		fmt.Println(params)
-		return nil, NewCustomInvalidParamsError("ERROR! Invalid params passed in")
-	}
-
-	if x["addresses"] == nil {
-		return nil, NewCustomInvalidParamsError("ERROR! Invalid params passed in, expected 'addresses'")
-	}
-	listofadd := (x["addresses"]).([]interface{})
-
-	totalBalances := make([]interface{}, len(listofadd))
-	var currentHeight uint32
-	var savedHeight uint32
-
-	// Converts readable accounts
-	for i, a := range listofadd {
-		if a.(string) == "" {
-			errStruct := new(interfaces.StructToReturnValues)
-			errStruct.PermBal = 0
-			errStruct.TempBal = 0
-			errStruct.Error = "No FCT addresses"
-			totalBalances[i] = errStruct
-		} else if primitives.ValidateFUserStr(a.(string)) != true {
-			errStruct := new(interfaces.StructToReturnValues)
-			errStruct.PermBal = 0
-			errStruct.TempBal = 0
-			errStruct.Error = "Error decoding address"
-			totalBalances[i] = errStruct
-		} else {
-			covertedAdd := [32]byte{}
-			copy(covertedAdd[:], primitives.ConvertUserStrToAddress(a.(string)))
-			cHeight, sHeight, temp, perm, error := state.GetFactoidState().GetMultipleFactoidBalances(covertedAdd)
-			currentHeight = cHeight
-			savedHeight = sHeight
-
-			valueStruct := new(interfaces.StructToReturnValues)
-			valueStruct.TempBal = temp
-			valueStruct.PermBal = perm
-			valueStruct.Error = error
-			totalBalances[i] = valueStruct
-		}
-	}
-
-	h := new(MultipleFTBalances)
-
-	h.CurrentHeight = currentHeight
-	h.LastSavedHeight = savedHeight
-	h.Balances = totalBalances
-
-	return h, nil
-}
-
-//func HandleV2Accounts(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-// height, acc, returnedLen, totalLen := state.GetFactoidState().GetFactiodAccounts(params)
-// h := new(FactiodAccounts)
-//
-// min, max := 0, 10
-//
-// if params != nil {
-//    ok := params.(map[string]interface{})
-//    numbStr := ok["accountsrequest"]
-//    s := strings.Split(numbStr.(string), "-")
-//    first, second := s[0], s[1]
-//    i, err := strconv.Atoi(first)
-//    j, err2 := strconv.Atoi(second)
-//    min, max = i, j
-//    if err != nil && err2 != nil {
-//       // handle error
-//       fmt.Println(err)
-//       os.Exit(2)
-//    }
-//
-//    // no more than 2000 should be returned
-//    if max-min > 2000 {
-//       max = 2000+min
-//    }
-//    if max > numberOfAccounts {
-//       max = numberOfAccounts
-//    }
-// }
-//
-// err := MapToObject(params, h)
-// if err != nil {
-//    return nil, NewInvalidParamsError()
-// }
-//
-// h.NumbOfAccounts = strings.Join([]string{"returned: ", strconv.Itoa(returnedLen), " total: ",strconv.Itoa(totalLen)}, "")
-// h.Height = height
-// h.Accounts = acc
-//
-// return h, nil
-//}
-
 func HandleV2DBlockByHeight(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	n := time.Now()
 	defer HandleV2APICallDBlockByHeight.Observe(float64(time.Since(n).Nanoseconds()))
@@ -1422,3 +1275,150 @@ func HandleV2TransactionRate(state interfaces.IState, params interface{}) (inter
 	r.InstantTransactionRate = instant
 	return r, nil
 }
+
+func HandleV2MultipleECBalances(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	x, ok := params.(map[string]interface{})
+	if ok != true {
+		return nil, NewCustomInvalidParamsError("ERROR! Invalid params passed in")
+	}
+
+	if x["addresses"] == nil {
+		return nil, NewCustomInvalidParamsError("ERROR! Invalid params passed in, expected 'addresses'")
+	}
+
+	listofadd := (x["addresses"]).([]interface{})
+	totalBalances := make([]interface{}, len(listofadd))
+	var currentHeight uint32
+	var savedHeight uint32
+
+	// Converts readable accounts
+	for i, a := range listofadd {
+		if a.(string) == "" {
+			errStruct := new(interfaces.StructToReturnValues)
+			errStruct.PermBal = 0
+			errStruct.TempBal = 0
+			errStruct.Error = "No EC addresses"
+			totalBalances[i] = errStruct
+		} else if primitives.ValidateECUserStr(a.(string)) != true {
+			errStruct := new(interfaces.StructToReturnValues)
+			errStruct.PermBal = 0
+			errStruct.TempBal = 0
+			errStruct.Error = "Error decoding address"
+			totalBalances[i] = errStruct
+		} else {
+			covertedAdd := [32]byte{}
+			copy(covertedAdd[:], primitives.ConvertUserStrToAddress(a.(string)))
+			cHeight, sHeight, temp, perm, error := state.GetFactoidState().GetMultipleECBalances(covertedAdd)
+			currentHeight = cHeight
+			savedHeight = sHeight
+
+			valueStruct := new(interfaces.StructToReturnValues)
+			valueStruct.TempBal = temp
+			valueStruct.PermBal = perm
+			valueStruct.Error = error
+			totalBalances[i] = valueStruct
+		}
+	}
+	h := new(MultipleFTBalances)
+
+	h.CurrentHeight = currentHeight
+	h.LastSavedHeight = savedHeight
+	h.Balances = totalBalances
+
+	return h, nil
+}
+
+func HandleV2MultipleFCTBalances(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	x, ok := params.(map[string]interface{})
+	if ok != true {
+		fmt.Println(params)
+		return nil, NewCustomInvalidParamsError("ERROR! Invalid params passed in")
+	}
+
+	if x["addresses"] == nil {
+		return nil, NewCustomInvalidParamsError("ERROR! Invalid params passed in, expected 'addresses'")
+	}
+	listofadd := (x["addresses"]).([]interface{})
+
+	totalBalances := make([]interface{}, len(listofadd))
+	var currentHeight uint32
+	var savedHeight uint32
+
+	// Converts readable accounts
+	for i, a := range listofadd {
+		if a.(string) == "" {
+			errStruct := new(interfaces.StructToReturnValues)
+			errStruct.PermBal = 0
+			errStruct.TempBal = 0
+			errStruct.Error = "No FCT addresses"
+			totalBalances[i] = errStruct
+		} else if primitives.ValidateFUserStr(a.(string)) != true {
+			errStruct := new(interfaces.StructToReturnValues)
+			errStruct.PermBal = 0
+			errStruct.TempBal = 0
+			errStruct.Error = "Error decoding address"
+			totalBalances[i] = errStruct
+		} else {
+			covertedAdd := [32]byte{}
+			copy(covertedAdd[:], primitives.ConvertUserStrToAddress(a.(string)))
+			cHeight, sHeight, temp, perm, error := state.GetFactoidState().GetMultipleFactoidBalances(covertedAdd)
+			currentHeight = cHeight
+			savedHeight = sHeight
+
+			valueStruct := new(interfaces.StructToReturnValues)
+			valueStruct.TempBal = temp
+			valueStruct.PermBal = perm
+			valueStruct.Error = error
+			totalBalances[i] = valueStruct
+		}
+	}
+
+	h := new(MultipleFTBalances)
+
+	h.CurrentHeight = currentHeight
+	h.LastSavedHeight = savedHeight
+	h.Balances = totalBalances
+
+	return h, nil
+}
+
+//func HandleV2Accounts(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+// height, acc, returnedLen, totalLen := state.GetFactoidState().GetFactiodAccounts(params)
+// h := new(FactiodAccounts)
+//
+// min, max := 0, 10
+//
+// if params != nil {
+//    ok := params.(map[string]interface{})
+//    numbStr := ok["accountsrequest"]
+//    s := strings.Split(numbStr.(string), "-")
+//    first, second := s[0], s[1]
+//    i, err := strconv.Atoi(first)
+//    j, err2 := strconv.Atoi(second)
+//    min, max = i, j
+//    if err != nil && err2 != nil {
+//       // handle error
+//       fmt.Println(err)
+//       os.Exit(2)
+//    }
+//
+//    // no more than 2000 should be returned
+//    if max-min > 2000 {
+//       max = 2000+min
+//    }
+//    if max > numberOfAccounts {
+//       max = numberOfAccounts
+//    }
+// }
+//
+// err := MapToObject(params, h)
+// if err != nil {
+//    return nil, NewInvalidParamsError()
+// }
+//
+// h.NumbOfAccounts = strings.Join([]string{"returned: ", strconv.Itoa(returnedLen), " total: ",strconv.Itoa(totalLen)}, "")
+// h.Height = height
+// h.Accounts = acc
+//
+// return h, nil
+//}
