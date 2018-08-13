@@ -491,6 +491,11 @@ func (fs *FactoidState) GetMultipleECBalances(singleAdd [32]byte) (uint32, uint3
 }
 
 func (fs *FactoidState) GetMultipleFactoidBalances(singleAdd [32]byte) (uint32, uint32, int64, int64, string) {
+
+	if fs.State.IgnoreDone != true || fs.State.DBFinished != true {
+		return 0, 0, 0, 0, "Not fully booted"
+	}
+
 	currentHeight := fs.DBHeight
 	heighestSavedHeight := fs.State.GetHighestSavedBlk()
 	errNotAcc := ""
@@ -503,10 +508,14 @@ func (fs *FactoidState) GetMultipleFactoidBalances(singleAdd [32]byte) (uint32, 
 		}
 	}
 
+	tok := false
+	TempBalance := int64(0)
 	pl := fs.State.ProcessLists.Get(currentHeight)
-	pl.FactoidBalancesTMutex.Lock()
-	TempBalance, tok := pl.FactoidBalancesT[singleAdd] // Gets the Temp Balance of the Factoid address
-	pl.FactoidBalancesTMutex.Unlock()
+	if pl != nil {
+		pl.FactoidBalancesTMutex.Lock()
+		TempBalance, tok = pl.FactoidBalancesT[singleAdd] // Gets the Temp Balance of the Factoid address
+		pl.FactoidBalancesTMutex.Unlock()
+	}
 
 	if tok != true && pok != true {
 		TempBalance = 0
@@ -514,21 +523,19 @@ func (fs *FactoidState) GetMultipleFactoidBalances(singleAdd [32]byte) (uint32, 
 		errNotAcc = "Address has not had a transaction"
 	} else if tok == true && pok == false {
 		PermBalance = 0
-		errNotAcc = ""
 	} else if tok == false && pok == true {
-		plLastHeight := fs.State.ProcessLists.Get(currentHeight - 1)
-		plLastHeight.FactoidBalancesTMutex.Lock()
-		TempBalanceLastHeight, tokLastHeight := plLastHeight.FactoidBalancesT[singleAdd] // Gets the Temp Balance of the Factoid address
-		plLastHeight.FactoidBalancesTMutex.Unlock()
-		if tokLastHeight == false {
-			TempBalance = PermBalance
-		} else {
-			TempBalance = TempBalanceLastHeight
+		// default to the Perm Balance
+		TempBalance = PermBalance
+		// pl2 is the previous process list.  So if we have a temp balance there, use that one!
+		pl2 := fs.State.ProcessLists.Get(currentHeight - 1)
+		if pl2 != nil {
+			pl2.FactoidBalancesTMutex.Lock()
+			TempBalance, tok = pl2.FactoidBalancesT[singleAdd] // Gets the Temp Balance of the Factoid address
+			pl2.FactoidBalancesTMutex.Unlock()
+			if tok == false {
+				TempBalance = PermBalance
+			}
 		}
-	}
-
-	if fs.State.IgnoreDone != true || fs.State.DBFinished != true {
-		return 0, 0, 0, 0, "Not fully booted"
 	}
 
 	return currentHeight, heighestSavedHeight, TempBalance, PermBalance, errNotAcc
