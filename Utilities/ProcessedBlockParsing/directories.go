@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 
 	"github.com/FactomProject/factomd/state"
-	"gopkg.in/AlecAivazis/survey.v1"
 )
 
 func SelectDirectory() {

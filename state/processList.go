@@ -1195,7 +1195,7 @@ func (p *ProcessList) AddDBSig(serverID interfaces.IHash, sig interfaces.IFullSi
 	dbsig.ChainID = serverID
 	dbsig.Signature = sig
 	found, dbsig.VMIndex = p.GetVirtualServers(0, serverID) //set the vmindex of the dbsig to the vm this server should sign
-	if !found { // Should never happen.
+	if !found {                                             // Should never happen.
 		return
 	}
 	p.DBSignatures = append(p.DBSignatures, *dbsig)
