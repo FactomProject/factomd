@@ -100,6 +100,16 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		log.SetLevel(log.PanicLevel)
 	}
 
+	// Command line override if provided
+	switch p.ControlPanelSetting {
+	case "disabled":
+		s.ControlPanelSetting = 0
+	case "readonly":
+		s.ControlPanelSetting = 1
+	case "readwrite":
+		s.ControlPanelSetting = 2
+	}
+
 	if p.Logjson {
 		log.SetFormatter(&log.JSONFormatter{})
 	}
@@ -594,6 +604,6 @@ func setupFirstAuthority(s *state.State) {
 func networkHousekeeping() {
 	for {
 		time.Sleep(1 * time.Second)
-		p2pProxy.SetWeight(p2pNetwork.GetNumberConnections())
+		p2pProxy.SetWeight(p2pNetwork.GetNumberOfConnections())
 	}
 }

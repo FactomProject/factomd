@@ -51,25 +51,37 @@ func (s *State) DebugExec() (ret bool) {
 func (s *State) LogMessage(logName string, comment string, msg interfaces.IMsg) {
 	if s.DebugExec() {
 		var dbh int
+		nodeName := "unknown"
+		minute := 0
+		if s != nil {
 		if s.LeaderPL != nil {
 			dbh = int(s.LeaderPL.DBHeight)
 		}
-		messages.StateLogMessage(s.FactomNodeName, dbh, int(s.CurrentMinute), logName, comment, msg)
+			nodeName = s.FactomNodeName
+			minute = int(s.CurrentMinute)
+		}
+		messages.StateLogMessage(nodeName, dbh, minute, logName, comment, msg)
 	}
 }
 
 func (s *State) LogPrintf(logName string, format string, more ...interface{}) {
 	if s.DebugExec() {
 		var dbh int
+		nodeName := "unknown"
+		minute := 0
+		if s != nil {
 		if s.LeaderPL != nil {
 			dbh = int(s.LeaderPL.DBHeight)
 		}
-		messages.StateLogPrintf(s.FactomNodeName, dbh, int(s.CurrentMinute), logName, format, more...)
+			nodeName = s.FactomNodeName
+			minute = int(s.CurrentMinute)
+		}
+		messages.StateLogPrintf(nodeName, dbh, minute, logName, format, more...)
 	}
 }
 func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 
-	if msg.GetHash() == nil {
+	if msg.GetHash() == nil || reflect.ValueOf(msg.GetHash()).IsNil() {
 		s.LogMessage("badMsgs", "Nil hash in executeMsg", msg)
 		return false
 	}
@@ -1209,14 +1221,8 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
 		m.FollowerExecute(s)
 		return
 	}
-
-	// Already process the DBSig what the heck is this?
-	if pl.VMs[dbs.VMIndex].Height > 0 {
-		if pl.VMs[dbs.VMIndex].List[0] != m {
-			s.LogMessage("executeMsg", "drop, slot 0 taken by", pl.VMs[dbs.VMIndex].List[0])
-		} else {
-			s.LogMessage("executeMsg", "drop, duplicate", pl.VMs[dbs.VMIndex].List[0])
-		}
+	if len(pl.VMs[dbs.VMIndex].List) > 0 {
+		s.LogMessage("executeMsg", "drop, slot 0 taken by", pl.VMs[dbs.VMIndex].List[0])
 		return
 	}
 
@@ -1985,17 +1991,18 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			return false
 		}
 
+		// Adds DB Sig to be added to Admin block if passes sig checks
 		data, err := dbs.DirectoryBlockHeader.MarshalBinary()
-		valid, err := s.FastVerifyAuthoritySignature(data, dbs.DBSignature, dbs.DBHeight)
+		if err != nil {
+			return false
+		}
+		if !dbs.DBSignature.Verify(data) {
+			return false
+		}
 
+		valid, err := s.FastVerifyAuthoritySignature(data, dbs.DBSignature, dbs.DBHeight)
 		if err != nil || valid != 1 {
 			s.LogPrintf("executeMsg", "Failed. Invalid Auth Sig: Pubkey: %x", dbs.Signature.GetKey())
-			if vm.List[vm.Height] == dbs {
-				s.LogMessage("badMsgs", "removing invalid", vm.List[vm.Height])
-				vm.List[vm.Height] = nil // nuke the bad DBSig
-			} else {
-				panic("did not find my dbs")
-			}
 			return false
 		}
 

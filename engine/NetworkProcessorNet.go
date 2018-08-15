@@ -296,8 +296,8 @@ func Peers(fnode *FactomNode) {
 					fnode.State.LogMessage("NetworkInputs", fromPeer+", enqueue", msg)
 					if t := msg.Type(); t == constants.REVEAL_ENTRY_MSG || t == constants.COMMIT_CHAIN_MSG || t == constants.COMMIT_ENTRY_MSG {
 						fnode.State.LogMessage("NetworkInputs", fromPeer+", enqueue2", msg)
-						fnode.State.LogMessage("InMsgQueue2", fromPeer+", enqueue", msg)
-						fnode.State.InMsgQueue2().Enqueue(msg)
+						fnode.State.LogMessage("InMsgQueue", fromPeer+", enqueue", msg)
+						fnode.State.InMsgQueue().Enqueue(msg)
 					} else {
 						fnode.State.LogMessage("NetworkInputs", fromPeer+", enqueue", msg)
 						fnode.State.LogMessage("InMsgQueue", fromPeer+", enqueue", msg)
