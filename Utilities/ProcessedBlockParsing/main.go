@@ -10,7 +10,6 @@ import (
 	"os"
 
 	"github.com/FactomProject/factomd/state"
-	"gopkg.in/AlecAivazis/survey.v1"
 )
 
 func main() {

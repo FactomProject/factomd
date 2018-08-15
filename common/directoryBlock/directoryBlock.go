@@ -352,7 +352,6 @@ func (b *DirectoryBlock) BuildKeyMerkleRoot() (keyMR interfaces.IHash, err error
 
 	b.GetFullHash() // Create the Full Hash when we create the keyMR
 
-
 	return primitives.NewHash(keyMR.Bytes()), nil
 }
 
