@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"hash"
+	"reflect"
 	"sync"
 	"time"
 
@@ -51,25 +52,37 @@ func (s *State) DebugExec() (ret bool) {
 func (s *State) LogMessage(logName string, comment string, msg interfaces.IMsg) {
 	if s.DebugExec() {
 		var dbh int
-		if s.LeaderPL != nil {
-			dbh = int(s.LeaderPL.DBHeight)
+		nodeName := "unknown"
+		minute := 0
+		if s != nil {
+			if s.LeaderPL != nil {
+				dbh = int(s.LeaderPL.DBHeight)
+			}
+			nodeName = s.FactomNodeName
+			minute = int(s.CurrentMinute)
 		}
-		messages.StateLogMessage(s.FactomNodeName, dbh, int(s.CurrentMinute), logName, comment, msg)
+		messages.StateLogMessage(nodeName, dbh, minute, logName, comment, msg)
 	}
 }
 
 func (s *State) LogPrintf(logName string, format string, more ...interface{}) {
 	if s.DebugExec() {
 		var dbh int
-		if s.LeaderPL != nil {
-			dbh = int(s.LeaderPL.DBHeight)
+		nodeName := "unknown"
+		minute := 0
+		if s != nil {
+			if s.LeaderPL != nil {
+				dbh = int(s.LeaderPL.DBHeight)
+			}
+			nodeName = s.FactomNodeName
+			minute = int(s.CurrentMinute)
 		}
-		messages.StateLogPrintf(s.FactomNodeName, dbh, int(s.CurrentMinute), logName, format, more...)
+		messages.StateLogPrintf(nodeName, dbh, minute, logName, format, more...)
 	}
 }
 func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 
-	if msg.GetHash() == nil {
+	if msg.GetHash() == nil || reflect.ValueOf(msg.GetHash()).IsNil() {
 		s.LogMessage("badMsgs", "Nil hash in executeMsg", msg)
 		return false
 	}
@@ -1209,7 +1222,7 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
 		m.FollowerExecute(s)
 		return
 	}
-	if len(pl.VMs[dbs.VMIndex].List) > 0 {
+	if pl.VMs[dbs.VMIndex].Height > 0 {
 		s.LogMessage("executeMsg", "drop, slot 0 taken by", pl.VMs[dbs.VMIndex].List[0])
 		return
 	}
@@ -1351,7 +1364,7 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 	c, _ := commitChain.(*messages.CommitChainMsg)
 
 	pl := s.ProcessLists.Get(dbheight)
-	pl.EntryCreditBlock.GetBody().AddEntry(c.CommitChain)
+
 	if e := s.GetFactoidState().UpdateECTransaction(true, c.CommitChain); e == nil {
 		// save the Commit to match against the Reveal later
 		h := c.GetHash()
@@ -1364,9 +1377,10 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 			s.XReview = append(s.XReview, entry)
 			TotalHoldingQueueOutputs.Inc()
 		}
-
+		pl.EntryCreditBlock.GetBody().AddEntry(c.CommitChain)
 		return true
 	}
+
 	//s.AddStatus("Cannot process Commit Chain")
 
 	return false
@@ -1376,7 +1390,6 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 	c, _ := commitEntry.(*messages.CommitEntryMsg)
 
 	pl := s.ProcessLists.Get(dbheight)
-	pl.EntryCreditBlock.GetBody().AddEntry(c.CommitEntry)
 	if e := s.GetFactoidState().UpdateECTransaction(true, c.CommitEntry); e == nil {
 		// save the Commit to match against the Reveal later
 		h := c.GetHash()
@@ -1389,6 +1402,7 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 			s.XReview = append(s.XReview, entry)
 			TotalHoldingQueueOutputs.Inc()
 		}
+		pl.EntryCreditBlock.GetBody().AddEntry(c.CommitEntry)
 		return true
 	}
 	//s.AddStatus("Cannot Process Commit Entry")
@@ -1396,27 +1410,32 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 	return false
 }
 
-func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
+func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) (worked bool) {
 	pl := s.ProcessLists.Get(dbheight)
 	if pl == nil {
 		return false
 	}
-	TotalProcessListProcesses.Inc()
 	msg := m.(*messages.RevealEntryMsg)
-	TotalCommitsOutputs.Inc()
-	s.Commits.Delete(msg.Entry.GetHash().Fixed()) // 	delete(s.Commits, msg.Entry.GetHash().Fixed())
 
-	// This is so the api can determine if a chainhead is about to be updated. It fixes a race condition
-	// on the api. MUST BE BEFORE THE REPLAY FILTER ADD
-	pl.PendingChainHeads.Put(msg.Entry.GetChainID().Fixed(), msg)
-	// Okay the Reveal has been recorded.  Record this as an entry that cannot be duplicated.
-	s.Replay.IsTSValidAndUpdateState(constants.REVEAL_REPLAY, msg.Entry.GetHash().Fixed(), msg.Timestamp, s.GetTimestamp())
+	defer func() {
+		if worked {
+			TotalProcessListProcesses.Inc()
+			TotalCommitsOutputs.Inc()
+			s.Commits.Delete(msg.Entry.GetHash().Fixed()) // 	delete(s.Commits, msg.Entry.GetHash().Fixed())
+			// This is so the api can determine if a chainhead is about to be updated. It fixes a race condition
+			// on the api. MUST BE BEFORE THE REPLAY FILTER ADD
+			pl.PendingChainHeads.Put(msg.Entry.GetChainID().Fixed(), msg)
+			// Okay the Reveal has been recorded.  Record this as an entry that cannot be duplicated.
+			s.Replay.IsTSValidAndUpdateState(constants.REVEAL_REPLAY, msg.Entry.GetHash().Fixed(), msg.Timestamp, s.GetTimestamp())
+			s.Commits.Delete(msg.Entry.GetHash().Fixed()) // delete(s.Commits, msg.Entry.GetHash().Fixed())
+		}
+	}()
+
 	myhash := msg.Entry.GetHash()
 
 	chainID := msg.Entry.GetChainID()
 
 	TotalCommitsOutputs.Inc()
-	s.Commits.Delete(msg.Entry.GetHash().Fixed()) // delete(s.Commits, msg.Entry.GetHash().Fixed())
 
 	eb := s.GetNewEBlocks(dbheight, chainID)
 	eb_db := s.GetNewEBlocks(dbheight-1, chainID)
@@ -1983,9 +2002,13 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		}
 
 		if dbs.DirectoryBlockHeader.GetBodyMR().Fixed() != dblk.GetHeader().GetBodyMR().Fixed() {
-			pl.IncrementDiffSigTally()
 			plog("Failed. DBlocks do not match Expected-Body-Mr: %x, Got: %x",
 				dblk.GetHeader().GetBodyMR().Fixed(), dbs.DirectoryBlockHeader.GetBodyMR().Fixed())
+
+			// If the Directory block hash doesn't work for me, then the dbsig doesn't work for me, so
+			// toss it and ask our neighbors for another one.
+			vm.ListAck[0] = nil
+			vm.List[0] = nil
 			return false
 		}
 
@@ -1995,12 +2018,19 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			return false
 		}
 		if !dbs.DBSignature.Verify(data) {
+			// If the signature fails, then ask for another one.
+			vm.ListAck[0] = nil
+			vm.List[0] = nil
 			return false
 		}
 
 		valid, err := s.FastVerifyAuthoritySignature(data, dbs.DBSignature, dbs.DBHeight)
 		if err != nil || valid != 1 {
 			s.LogPrintf("executeMsg", "Failed. Invalid Auth Sig: Pubkey: %x", dbs.Signature.GetKey())
+
+			// If the authority is bad, toss this signature and ask for another.
+			vm.ListAck[0] = nil
+			vm.List[0] = nil
 			return false
 		}
 
@@ -2022,10 +2052,8 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		s.electionsQueue.Enqueue(InMsg)
 	}
 
-	allfaults := s.LeaderPL.System.Height >= s.LeaderPL.SysHighest
-
 	// Put the stuff that executes once for set of DBSignatures (after I have them all) here
-	if allfaults && !s.DBSigDone && s.DBSigProcessed >= s.DBSigLimit {
+	if !s.DBSigDone && s.DBSigProcessed >= s.DBSigLimit {
 		s.LogPrintf("dbsig-eom", "ProcessDBSig stop DBSig processing minute %d", s.CurrentMinute)
 		//fmt.Println(fmt.Sprintf("All DBSigs are processed: allfaults(%v), && !s.DBSigDone(%v) && s.DBSigProcessed(%v)>= s.DBSigLimit(%v)",
 		//	allfaults, s.DBSigDone, s.DBSigProcessed, s.DBSigLimit))
@@ -2236,20 +2264,23 @@ func (s *State) GetHighestKnownBlock() uint32 {
 	return s.HighestKnown
 }
 
+// GetF()
+// If rt (return temp) is true, return the temp balance.  If false, return the perm balance (balance as of
+// the last completed block.
 func (s *State) GetF(rt bool, adr [32]byte) (v int64) {
 	ok := false
 	if rt {
 		pl := s.ProcessLists.Get(s.LLeaderHeight)
 		if pl != nil {
 			pl.FactoidBalancesTMutex.Lock()
-			defer pl.FactoidBalancesTMutex.Unlock()
 			v, ok = pl.FactoidBalancesT[adr]
+			pl.FactoidBalancesTMutex.Unlock()
 		}
 	}
 	if !ok {
 		s.FactoidBalancesPMutex.Lock()
-		defer s.FactoidBalancesPMutex.Unlock()
 		v = s.FactoidBalancesP[adr]
+		s.FactoidBalancesPMutex.Unlock()
 	}
 
 	return v
@@ -2262,14 +2293,13 @@ func (s *State) PutF(rt bool, adr [32]byte, v int64) {
 		pl := s.ProcessLists.Get(s.LLeaderHeight)
 		if pl != nil {
 			pl.FactoidBalancesTMutex.Lock()
-			defer pl.FactoidBalancesTMutex.Unlock()
-
 			pl.FactoidBalancesT[adr] = v
+			pl.FactoidBalancesTMutex.Unlock()
 		}
 	} else {
 		s.FactoidBalancesPMutex.Lock()
-		defer s.FactoidBalancesPMutex.Unlock()
 		s.FactoidBalancesP[adr] = v
+		s.FactoidBalancesPMutex.Unlock()
 	}
 }
 
@@ -2279,14 +2309,14 @@ func (s *State) GetE(rt bool, adr [32]byte) (v int64) {
 		pl := s.ProcessLists.Get(s.LLeaderHeight)
 		if pl != nil {
 			pl.ECBalancesTMutex.Lock()
-			defer pl.ECBalancesTMutex.Unlock()
 			v, ok = pl.ECBalancesT[adr]
+			pl.ECBalancesTMutex.Unlock()
 		}
 	}
 	if !ok {
 		s.ECBalancesPMutex.Lock()
-		defer s.ECBalancesPMutex.Unlock()
 		v = s.ECBalancesP[adr]
+		s.ECBalancesPMutex.Unlock()
 	}
 	return v
 
@@ -2298,13 +2328,13 @@ func (s *State) PutE(rt bool, adr [32]byte, v int64) {
 		pl := s.ProcessLists.Get(s.LLeaderHeight)
 		if pl != nil {
 			pl.ECBalancesTMutex.Lock()
-			defer pl.ECBalancesTMutex.Unlock()
 			pl.ECBalancesT[adr] = v
+			pl.ECBalancesTMutex.Unlock()
 		}
 	} else {
 		s.ECBalancesPMutex.Lock()
-		defer s.ECBalancesPMutex.Unlock()
 		s.ECBalancesP[adr] = v
+		s.ECBalancesPMutex.Unlock()
 	}
 }
 
@@ -2350,7 +2380,7 @@ func (s *State) NewAck(msg interfaces.IMsg, balanceHash interfaces.IHash) interf
 	ack.MessageHash = msg.GetMsgHash()
 	ack.LeaderChainID = s.IdentityChainID
 	ack.BalanceHash = balanceHash
-	listlen := len(s.LeaderPL.VMs[vmIndex].List)
+	listlen := s.LeaderPL.VMs[vmIndex].Height
 	if listlen == 0 {
 		ack.Height = 0
 		ack.SerialHash = ack.MessageHash
