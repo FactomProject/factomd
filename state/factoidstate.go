@@ -50,6 +50,12 @@ func (slice elementSortable) Swap(i, j int) {
 	slice[i], slice[j] = slice[j], slice[i]
 }
 
+type stringSortable []string
+
+func (v stringSortable) Len() int           { return len(v) }
+func (v stringSortable) Swap(i, j int)      { v[i], v[j] = v[j], v[i] }
+func (v stringSortable) Less(i, j int) bool { return v[i] < v[j] }
+
 type element struct {
 	adr [32]byte
 	v   int64
@@ -383,7 +389,7 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 // Returns an error message about what is wrong with the transaction if it is
 // invalid, otherwise you are good to go.
 func (fs *FactoidState) Validate(index int, trans interfaces.ITransaction) error {
-	var sums = make(map[[32]byte]uint64, 10)  // Look at the sum of an Address's inputs
+	var sums = make(map[[32]byte]uint64, 10)  // Look at the sum of an address's inputs
 	for _, input := range trans.GetInputs() { //    to a transaction.
 		bal, err := factoid.ValidateAmounts(sums[input.GetAddress().Fixed()], input.GetAmount())
 		if err != nil {
@@ -448,3 +454,122 @@ func (fs *FactoidState) GetCoinbaseTransaction(dbheight uint32, ftime interfaces
 
 	return coinbase
 }
+
+func (fs *FactoidState) GetMultipleECBalances(singleAdd [32]byte) (uint32, uint32, int64, int64, string) {
+
+	if fs.State.IgnoreDone != true || fs.State.DBFinished != true {
+		return 0, 0, 0, 0, "Not fully booted"
+	}
+
+	currentHeight := fs.DBHeight
+	heighestSavedHeight := fs.State.GetHighestSavedBlk()
+	errNotAcc := ""
+
+	PermBalance, pok := fs.State.ECBalancesP[singleAdd] // Gets the Balance of the EC address
+
+	if fs.State.ECBalancesPapi != nil {
+		if savedBal, ok := fs.State.ECBalancesPapi[singleAdd]; ok {
+			PermBalance = savedBal
+		}
+	}
+
+	tok := false
+	TempBalance := int64(0)
+	pl := fs.State.ProcessLists.Get(currentHeight)
+	if pl != nil {
+		pl.ECBalancesTMutex.Lock()
+		TempBalance, tok = pl.ECBalancesT[singleAdd] // Gets the Temp Balance of the EC address
+		pl.ECBalancesTMutex.Unlock()
+	}
+
+	if tok != true && pok != true {
+		TempBalance = 0
+		PermBalance = 0
+		errNotAcc = "Address has not had a transaction"
+	} else if tok == true && pok == false {
+		PermBalance = 0
+	} else if tok == false && pok == true {
+		// default to the Perm Balance
+		TempBalance = PermBalance
+		// pl2 is the previous process list.  So if we have a temp balance there, use that one!
+		pl2 := fs.State.ProcessLists.Get(currentHeight - 1)
+		if pl2 != nil {
+			pl2.ECBalancesTMutex.Lock()
+			TempBalance, tok = pl2.ECBalancesT[singleAdd] // Gets the Temp Balance of the EC address
+			pl2.ECBalancesTMutex.Unlock()
+			if tok == false {
+				TempBalance = PermBalance
+			}
+		}
+	}
+
+	return currentHeight, heighestSavedHeight, TempBalance, PermBalance, errNotAcc
+}
+
+func (fs *FactoidState) GetMultipleFactoidBalances(singleAdd [32]byte) (uint32, uint32, int64, int64, string) {
+
+	if fs.State.IgnoreDone != true || fs.State.DBFinished != true {
+		return 0, 0, 0, 0, "Not fully booted"
+	}
+
+	currentHeight := fs.DBHeight
+	heighestSavedHeight := fs.State.GetHighestSavedBlk()
+	errNotAcc := ""
+
+	PermBalance, pok := fs.State.FactoidBalancesP[singleAdd] // Gets the Balance of the Factoid address
+
+	if fs.State.FactoidBalancesPapi != nil {
+		if savedBal, ok := fs.State.FactoidBalancesPapi[singleAdd]; ok {
+			PermBalance = savedBal
+		}
+	}
+
+	tok := false
+	TempBalance := int64(0)
+	pl := fs.State.ProcessLists.Get(currentHeight)
+	if pl != nil {
+		pl.FactoidBalancesTMutex.Lock()
+		TempBalance, tok = pl.FactoidBalancesT[singleAdd] // Gets the Temp Balance of the Factoid address
+		pl.FactoidBalancesTMutex.Unlock()
+	}
+
+	if tok != true && pok != true {
+		TempBalance = 0
+		PermBalance = 0
+		errNotAcc = "Address has not had a transaction"
+	} else if tok == true && pok == false {
+		PermBalance = 0
+	} else if tok == false && pok == true {
+		// default to the Perm Balance
+		TempBalance = PermBalance
+		// pl2 is the previous process list.  So if we have a temp balance there, use that one!
+		pl2 := fs.State.ProcessLists.Get(currentHeight - 1)
+		if pl2 != nil {
+			pl2.FactoidBalancesTMutex.Lock()
+			TempBalance, tok = pl2.FactoidBalancesT[singleAdd] // Gets the Temp Balance of the Factoid address
+			pl2.FactoidBalancesTMutex.Unlock()
+			if tok == false {
+				TempBalance = PermBalance
+			}
+		}
+	}
+
+	return currentHeight, heighestSavedHeight, TempBalance, PermBalance, errNotAcc
+}
+
+//func (fs *FactoidState) GetFactiodAccounts(params interface{}) (uint32, []string) {
+//	name := fs.State.FactoidBalancesP
+//	height := fs.DBHeight
+//	list := make([]string, 0, len(name))
+//
+//	for k, _ := range name {
+//		y := primitives.Hash(k)
+//		z := interfaces.IAddress(interfaces.IHash(&y))
+//		e := primitives.ConvertFctAddressToUserStr(z)
+//		list = append(list, e)
+//	}
+//
+//	sort.Sort(stringSortable(list))
+//
+//	return height, list
+//}

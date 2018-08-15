@@ -66,7 +66,7 @@ func GetDataDumps() []byte {
 	holder.ElectionDataDump.Elections = DsCopy.Election
 	holder.ElectionDataDump.SimulatedElection = DsCopy.SimElection
 
-	holder.LogSettingsDump.CurrentLogSettings = globals.Params.DebugLogRegEx
+	holder.LogSettingsDump.CurrentLogSettings = globals.LastDebugLogRegEx
 
 	ret, err := json.Marshal(holder)
 	if err != nil {

@@ -48,6 +48,7 @@ func (lg *LoadGenerator) Run() {
 		return
 	}
 	lg.running.Store(true)
+	//FundWallet(fnodes[wsapiNode].State, 15000e8)
 
 	// Every second add the per second amount
 	ticker := time.NewTicker(time.Second)
@@ -128,23 +129,23 @@ func GetECs(s *state.State, tight bool, c int) {
 	ecBal := s.GetE(true, outAdd.Fixed())
 	ecPrice := s.GetFactoshisPerEC()
 
+	if c == 0 || !tight {
+		c += 1000
+	} else {
+		c += 10
+	}
+
 	cnt++
-	if ecBal > int64(c) && ecBal > 15 {
-		if cnt%100 == 0 {
-			os.Stderr.WriteString(fmt.Sprintf("%d purchases, would be buying %d but balance is %d \n", cnt, c, ecBal))
+	if (ecBal > int64(c) && ecBal > 15) || (!tight && ecBal > 2000) {
+		if cnt%1000 == 0 {
+			os.Stderr.WriteString(fmt.Sprintf("%d purchases, not buying %d cause the balance is %d \n", cnt, c, ecBal))
 		}
 		return
 	}
 
-	if c == 0 && !tight {
-		c += 1000
-	} else {
-		c += 25
-	}
-
 	os.Stderr.WriteString(fmt.Sprintf("%d purchases, buying %d and balance is %d \n", cnt, c, ecBal))
 
-	fundWallet(s, uint64(c)*ecPrice)
+	FundWallet(s, uint64(c)*ecPrice)
 
 }
 

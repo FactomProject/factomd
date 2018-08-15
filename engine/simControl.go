@@ -161,6 +161,7 @@ func SimControl(listenTo int, listenStdin bool) {
 					}
 					if b[1] == 'f' {
 						GetECs(fnodes[listenTo].State, true, 1000)
+						//FundWallet(fnodes[wsapiNode].State, uint64(200*5e7))
 						break
 					}
 				}
@@ -172,6 +173,11 @@ func SimControl(listenTo int, listenStdin bool) {
 
 				if nextAuthority == -1 {
 					GetECs(fnodes[listenTo].State, true, 1000)
+					//err, _ := FundWallet(fnodes[wsapiNode].State, 2e7)
+					//if err != nil {
+					//	os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
+					//	break
+					//}
 					setUpAuthorities(fnodes[wsapiNode].State, true)
 					os.Stderr.WriteString(fmt.Sprintf("%d Authorities added to the stack and funds are in wallet\n", len(authStack)))
 				}
@@ -188,6 +194,11 @@ func SimControl(listenTo int, listenStdin bool) {
 							count = 100
 						}
 						GetECs(fnodes[listenTo].State, true, 1000)
+						//err := fundWallet(fnodes[wsapiNode].State, uint64(count*5e7))
+						//if err != nil {
+						//	os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
+						//	break
+						//}
 						auths, skipped, err := authorityToBlockchain(count, fnodes[wsapiNode].State)
 						if err != nil {
 							os.Stderr.WriteString(fmt.Sprintf("Error making authorities, %s\n", err.Error()))
@@ -946,8 +957,13 @@ func SimControl(listenTo int, listenStdin bool) {
 					}
 					wsapiNode = ListenTo
 					wsapi.SetState(fnodes[wsapiNode].State)
-					GetECs(fnodes[listenTo].State, true, 2000)
+					GetECs(fnodes[listenTo].State, true, 1000)
 
+					//err, _ := FundWallet(fnodes[ListenTo].State, 1e8)
+					//if err != nil {
+					//	os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
+					//	break
+					//}
 					newKey, err := changeSigningKey(fnodes[ListenTo].State.IdentityChainID, fnodes[ListenTo].State)
 					if err != nil {
 						os.Stderr.WriteString(fmt.Sprintf("Error: %s\n", err.Error()))
@@ -1223,6 +1239,11 @@ func SimControl(listenTo int, listenStdin bool) {
 				wsapiNode = ListenTo
 				wsapi.SetState(fnodes[wsapiNode].State)
 				GetECs(fnodes[listenTo].State, true, 1000)
+				//err = fundWallet(fnodes[ListenTo].State, 1e8)
+				//if err != nil {
+				//	os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
+				//	break
+				//}
 
 				err = changeServerEfficiency(fnodes[ListenTo].State.IdentityChainID, fnodes[ListenTo].State, uint16(nn))
 				if err != nil {
@@ -1248,6 +1269,11 @@ func SimControl(listenTo int, listenStdin bool) {
 				wsapiNode = ListenTo
 				wsapi.SetState(fnodes[wsapiNode].State)
 				GetECs(fnodes[listenTo].State, true, 1000)
+				//err = fundWallet(fnodes[ListenTo].State, 1e8)
+				//if err != nil {
+				//	os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
+				//	break
+				//}
 
 				err = changeServerCoinbaseAddress(fnodes[ListenTo].State.IdentityChainID, fnodes[ListenTo].State, add)
 				if err != nil {

@@ -175,10 +175,6 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	if p.FastLocation != "" {
 		s.StateSaverStruct.FastBootLocation = p.FastLocation
 	}
-	if p.FastSaveRate < 2 || p.FastSaveRate > 5000 {
-		panic("FastSaveRate must be between 2 and 5000")
-	}
-	s.FastSaveRate = p.FastSaveRate
 
 	s.CheckChainHeads.CheckChainHeads = p.CheckChainHeads
 	s.CheckChainHeads.Fix = p.FixChainHeads
@@ -608,6 +604,6 @@ func setupFirstAuthority(s *state.State) {
 func networkHousekeeping() {
 	for {
 		time.Sleep(1 * time.Second)
-		p2pProxy.SetWeight(p2pNetwork.GetNumberConnections())
+		p2pProxy.SetWeight(p2pNetwork.GetNumberOfConnections())
 	}
 }
