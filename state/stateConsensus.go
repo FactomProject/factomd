@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"hash"
+	"reflect"
 	"sync"
 	"time"
 
@@ -54,9 +55,9 @@ func (s *State) LogMessage(logName string, comment string, msg interfaces.IMsg) 
 		nodeName := "unknown"
 		minute := 0
 		if s != nil {
-		if s.LeaderPL != nil {
-			dbh = int(s.LeaderPL.DBHeight)
-		}
+			if s.LeaderPL != nil {
+				dbh = int(s.LeaderPL.DBHeight)
+			}
 			nodeName = s.FactomNodeName
 			minute = int(s.CurrentMinute)
 		}
@@ -70,9 +71,9 @@ func (s *State) LogPrintf(logName string, format string, more ...interface{}) {
 		nodeName := "unknown"
 		minute := 0
 		if s != nil {
-		if s.LeaderPL != nil {
-			dbh = int(s.LeaderPL.DBHeight)
-		}
+			if s.LeaderPL != nil {
+				dbh = int(s.LeaderPL.DBHeight)
+			}
 			nodeName = s.FactomNodeName
 			minute = int(s.CurrentMinute)
 		}
