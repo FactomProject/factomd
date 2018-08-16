@@ -21,20 +21,15 @@ import (
 func TestSaveLoadEBlockHead(t *testing.T) {
 	b1, _ := testHelper.CreateTestEntryBlock(nil)
 
-	chain, err := primitives.NewShaHash(b1.GetChainID().Bytes())
-	if err != nil {
-		t.Error(err)
-	}
-
 	dbo := NewOverlay(new(mapdb.MapDB))
 	defer dbo.Close()
 
-	err = dbo.SaveEBlockHead(b1, false)
+	err := dbo.SaveEBlock(b1, false)
 	if err != nil {
 		t.Error(err)
 	}
 
-	head, err := dbo.FetchEBlockHead(chain)
+	head, err := dbo.FetchEBlock(b1.DatabasePrimaryIndex())
 	if err != nil {
 		t.Error(err)
 	}
@@ -57,12 +52,12 @@ func TestSaveLoadEBlockHead(t *testing.T) {
 
 	b2, _ := testHelper.CreateTestEntryBlock(b1)
 
-	err = dbo.SaveEBlockHead(b2, false)
+	err = dbo.SaveEBlock(b2, false)
 	if err != nil {
 		t.Error(err)
 	}
 
-	head, err = dbo.FetchEBlockHead(chain)
+	head, err = dbo.FetchEBlock(b2.DatabaseSecondaryIndex())
 	if err != nil {
 		t.Error(err)
 	}
@@ -93,18 +88,13 @@ func TestSaveLoadEBlockChain(t *testing.T) {
 	for i := 0; i < max; i++ {
 		prev, _ = testHelper.CreateTestEntryBlock(prev)
 		blocks = append(blocks, prev)
-		err := dbo.SaveEBlockHead(prev, false)
+		err := dbo.SaveEBlock(prev, false)
 		if err != nil {
 			t.Error(err)
 		}
 	}
 
-	chain, err := primitives.NewShaHash(prev.GetChainID().Bytes())
-	if err != nil {
-		t.Error(err)
-	}
-
-	current, err := dbo.FetchEBlockHead(chain)
+	current, err := dbo.FetchEBlock(prev.DatabasePrimaryIndex())
 	if err != nil {
 		t.Error(err)
 	}
@@ -139,24 +129,6 @@ func TestSaveLoadEBlockChain(t *testing.T) {
 	}
 	if fetchedCount != max {
 		t.Errorf("Wrong number of entries fetched - %v vs %v", fetchedCount, max)
-	}
-
-	all, err := dbo.FetchAllEBlocksByChain(chain)
-	if err != nil {
-		t.Error(err)
-	}
-	if len(all) != max {
-		t.Errorf("Wrong number of entries fetched - %v vs %v", len(all), max)
-	}
-	for i := range all {
-		same, err := primitives.AreBinaryMarshallablesEqual(blocks[i], all[i])
-		if err != nil {
-			t.Error(err)
-		}
-		if same == false {
-			t.Error("Blocks fetched by all and original blocks are not identical")
-			t.Logf("\n%v\nvs\n%v", blocks[i].String(), all[i].String())
-		}
 	}
 }
 

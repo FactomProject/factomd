@@ -11,22 +11,8 @@ import (
 
 // ProcessECBlockBatch inserts the ECBlock and update all it's cbentries in DB
 func (db *Overlay) ProcessECBlockBatch(block interfaces.IEntryCreditBlock, checkForDuplicateEntries bool) error {
-	err := db.ProcessBlockBatch(ENTRYCREDITBLOCK,
-		ENTRYCREDITBLOCK_NUMBER,
-		ENTRYCREDITBLOCK_SECONDARYINDEX, block)
-	if err != nil {
-		return err
-	}
-	err = db.SaveIncludedInMultiFromBlock(block, false)
-	if err != nil {
-		return err
-	}
-	return db.SavePaidForMultiFromBlock(block, checkForDuplicateEntries)
-}
-
-func (db *Overlay) ProcessECBlockBatchWithoutHead(block interfaces.IEntryCreditBlock, checkForDuplicateEntries bool) error {
 	err := db.ProcessBlockBatchWithoutHead(ENTRYCREDITBLOCK,
-		ENTRYCREDITBLOCK_NUMBER,
+		nil,
 		ENTRYCREDITBLOCK_SECONDARYINDEX, block)
 	if err != nil {
 		return err
@@ -39,8 +25,8 @@ func (db *Overlay) ProcessECBlockBatchWithoutHead(block interfaces.IEntryCreditB
 }
 
 func (db *Overlay) ProcessECBlockMultiBatch(block interfaces.IEntryCreditBlock, checkForDuplicateEntries bool) error {
-	err := db.ProcessBlockMultiBatch(ENTRYCREDITBLOCK,
-		ENTRYCREDITBLOCK_NUMBER,
+	err := db.ProcessBlockMultiBatchWithoutHead(ENTRYCREDITBLOCK,
+		nil,
 		ENTRYCREDITBLOCK_SECONDARYINDEX, block)
 	if err != nil {
 		return err
@@ -121,7 +107,7 @@ func toECBlocksList(source []interfaces.BinaryMarshallableAndCopyable) []interfa
 	return answer
 }
 
-func (db *Overlay) SaveECBlockHead(block interfaces.IEntryCreditBlock, checkForDuplicateEntries bool) error {
+func (db *Overlay) SaveECBlock(block interfaces.IEntryCreditBlock, checkForDuplicateEntries bool) error {
 	return db.ProcessECBlockBatch(block, checkForDuplicateEntries)
 }
 

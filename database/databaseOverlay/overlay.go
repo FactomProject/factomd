@@ -645,3 +645,50 @@ func (db *Overlay) SetChainHeads(primaryIndexes, chainIDs []interfaces.IHash) er
 
 	return db.PutInBatch(batch)
 }
+
+func (db *Overlay) SetChainHeadsMultiBatch(primaryIndexes, chainIDs []interfaces.IHash) error {
+	if len(primaryIndexes) != len(chainIDs) {
+		return fmt.Errorf("Mismatched array lengths - %v vs %v", len(primaryIndexes), len(chainIDs))
+	}
+
+	batch := []interfaces.Record{}
+	for i := range primaryIndexes {
+		batch = append(batch, interfaces.Record{CHAIN_HEAD, chainIDs[i].Bytes(), primaryIndexes[i]})
+	}
+
+	db.PutInMultiBatch(batch)
+	return nil
+}
+
+func (db *Overlay) SetChainNumbers(primaryIndexes []interfaces.IHash, numberBuckets [][]byte, height uint32) error {
+	if len(primaryIndexes) != len(numberBuckets) {
+		return fmt.Errorf("Mismatched array lengths - %v vs %v", len(primaryIndexes), len(numberBuckets))
+	}
+
+	heightBytes := make([]byte, 4)
+	binary.BigEndian.PutUint32(heightBytes, height)
+
+	batch := []interfaces.Record{}
+	for i := range primaryIndexes {
+		batch = append(batch, interfaces.Record{numberBuckets[i], heightBytes, primaryIndexes[i]})
+	}
+
+	return db.PutInBatch(batch)
+}
+
+func (db *Overlay) SetChainNumbersMultiBatch(primaryIndexes []interfaces.IHash, numberBuckets [][]byte, height uint32) error {
+	if len(primaryIndexes) != len(numberBuckets) {
+		return fmt.Errorf("Mismatched array lengths - %v vs %v", len(primaryIndexes), len(numberBuckets))
+	}
+
+	heightBytes := make([]byte, 4)
+	binary.BigEndian.PutUint32(heightBytes, height)
+
+	batch := []interfaces.Record{}
+	for i := range primaryIndexes {
+		batch = append(batch, interfaces.Record{numberBuckets[i], heightBytes, primaryIndexes[i]})
+	}
+
+	db.PutInMultiBatch(batch)
+	return nil
+}

@@ -19,23 +19,23 @@ import (
 	"github.com/FactomProject/factomd/database/mapdb"
 )
 
-func TestSaveLoadABlockHead(t *testing.T) {
+func TestSaveLoadABlock(t *testing.T) {
 	b1 := testHelper.CreateTestAdminBlock(nil)
 
 	dbo := NewOverlay(new(mapdb.MapDB))
 	defer dbo.Close()
 
-	err := dbo.SaveABlockHead(b1)
+	err := dbo.SaveABlock(b1)
 	if err != nil {
 		t.Error(err)
 	}
 
-	head, err := dbo.FetchABlockHead()
+	head, err := dbo.FetchABlock(b1.DatabasePrimaryIndex())
 	if err != nil {
 		t.Error(err)
 	}
 	if head == nil {
-		t.Error("DBlock head is nil")
+		t.Error("ABlock head is nil")
 	}
 
 	m1, err := b1.MarshalBinary()
@@ -53,17 +53,17 @@ func TestSaveLoadABlockHead(t *testing.T) {
 
 	b2 := testHelper.CreateTestAdminBlock(b1)
 
-	err = dbo.SaveABlockHead(b2)
+	err = dbo.SaveABlock(b2)
 	if err != nil {
 		t.Error(err)
 	}
 
-	head, err = dbo.FetchABlockHead()
+	head, err = dbo.FetchABlock(b2.DatabaseSecondaryIndex())
 	if err != nil {
 		t.Error(err)
 	}
 	if head == nil {
-		t.Error("DBlock head is nil")
+		t.Error("ABlock head is nil")
 	}
 
 	m1, err = b2.MarshalBinary()
@@ -90,13 +90,13 @@ func TestSaveLoadABlockChain(t *testing.T) {
 	for i := 0; i < max; i++ {
 		prev = testHelper.CreateTestAdminBlock(prev)
 		blocks = append(blocks, prev)
-		err := dbo.SaveABlockHead(prev)
+		err := dbo.SaveABlock(prev)
 		if err != nil {
 			t.Error(err)
 		}
 	}
 
-	current, err := dbo.FetchABlockHead()
+	current, err := dbo.FetchABlock(prev.DatabasePrimaryIndex())
 	if err != nil {
 		t.Error(err)
 	}

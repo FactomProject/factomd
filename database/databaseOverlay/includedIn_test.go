@@ -29,7 +29,7 @@ func TestIncludedIn(t *testing.T) {
 	for i := 0; i < max; i++ {
 		prev, _ = testHelper.CreateTestEntryBlock(prev)
 		blocks = append(blocks, prev)
-		err := dbo.SaveEBlockHead(prev, false)
+		err := dbo.SaveEBlock(prev, false)
 		if err != nil {
 			t.Error(err)
 		}
@@ -61,7 +61,7 @@ func TestIncludedInOverwriting(t *testing.T) {
 	for i := 0; i < max; i++ {
 		prev, _ = testHelper.CreateTestEntryBlockWithContentN(prev, 1)
 		blocks = append(blocks, prev)
-		err := dbo.SaveEBlockHead(prev, true)
+		err := dbo.SaveEBlock(prev, true)
 		if err != nil {
 			t.Error(err)
 		}
@@ -96,7 +96,7 @@ func TestIncludedInOverwriting(t *testing.T) {
 	for i := 0; i < max; i++ {
 		prev, _ = testHelper.CreateTestEntryBlockWithContentN(prev, 1)
 		blocks = append(blocks, prev)
-		err := dbo.SaveEBlockHead(prev, false)
+		err := dbo.SaveEBlock(prev, false)
 		if err != nil {
 			t.Error(err)
 		}

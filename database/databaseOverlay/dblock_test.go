@@ -191,3 +191,203 @@ func TestLoadUnknownDBlocks(t *testing.T) {
 		}
 	}
 }
+
+func TestChainHeightsAndHeads(t *testing.T) {
+	dbo := NewOverlay(new(mapdb.MapDB))
+	defer dbo.Close()
+
+	max := 10
+	var prev *testHelper.BlockSet = nil
+	blocks := []*testHelper.BlockSet{}
+
+	for i := 0; i < max; i++ {
+		prev = testHelper.CreateTestBlockSet(prev)
+		blocks = append(blocks, prev)
+		err := dbo.SaveDirectoryBlockHead(prev.DBlock)
+		if err != nil {
+			t.Error(err)
+		}
+		err = dbo.SaveABlock(prev.ABlock)
+		if err != nil {
+			t.Error(err)
+		}
+		err = dbo.SaveECBlock(prev.ECBlock, false)
+		if err != nil {
+			t.Error(err)
+		}
+		err = dbo.SaveFBlock(prev.FBlock)
+		if err != nil {
+			t.Error(err)
+		}
+		err = dbo.SaveEBlock(prev.EBlock, false)
+		if err != nil {
+			t.Error(err)
+		}
+		err = dbo.SaveEBlock(prev.AnchorEBlock, false)
+		if err != nil {
+			t.Error(err)
+		}
+
+		//check block heads
+
+		dBlock, err := dbo.FetchDBlockHead()
+		if err != nil {
+			t.Error(err)
+		}
+		ok, err := primitives.AreBinaryMarshallablesEqual(prev.DBlock, dBlock)
+		if err != nil {
+			t.Error(err)
+		}
+		if ok == false {
+			t.Errorf("DBlock heads are not equal")
+		}
+
+		aBlock, err := dbo.FetchABlockHead()
+		if err != nil {
+			t.Error(err)
+		}
+		ok, err = primitives.AreBinaryMarshallablesEqual(prev.ABlock, aBlock)
+		if err != nil {
+			t.Error(err)
+		}
+		if ok == false {
+			t.Errorf("ABlock heads are not equal")
+		}
+
+		ecBlock, err := dbo.FetchECBlockHead()
+		if err != nil {
+			t.Error(err)
+		}
+		ok, err = primitives.AreBinaryMarshallablesEqual(prev.ECBlock, ecBlock)
+		if err != nil {
+			t.Error(err)
+		}
+		if ok == false {
+			t.Errorf("ECBlock heads are not equal")
+		}
+
+		fBlock, err := dbo.FetchFBlockHead()
+		if err != nil {
+			t.Error(err)
+		}
+		ok, err = primitives.AreBinaryMarshallablesEqual(prev.FBlock, fBlock)
+		if err != nil {
+			t.Error(err)
+		}
+		if ok == false {
+			t.Errorf("FBlock heads are not equal")
+		}
+
+		eBlock, err := dbo.FetchEBlockHead(prev.EBlock.GetChainID())
+		if err != nil {
+			t.Error(err)
+		}
+		ok, err = primitives.AreBinaryMarshallablesEqual(prev.EBlock, eBlock)
+		if err != nil {
+			t.Error(err)
+		}
+		if ok == false {
+			t.Errorf("EBlock heads are not equal")
+		}
+
+		eBlock, err = dbo.FetchEBlockHead(prev.AnchorEBlock.GetChainID())
+		if err != nil {
+			t.Error(err)
+		}
+		ok, err = primitives.AreBinaryMarshallablesEqual(prev.AnchorEBlock, eBlock)
+		if err != nil {
+			t.Error(err)
+		}
+		if ok == false {
+			t.Errorf("Anchor EBlock heads are not equal")
+		}
+	}
+
+	allEblocks, err := dbo.FetchAllEBlocksByChain(prev.EBlock.GetChainID())
+	if err != nil {
+		t.Error(err)
+	}
+	if len(allEblocks) != max {
+		t.Errorf("Wrong number of entries fetched - %v vs %v", len(allEblocks), max)
+	}
+	allAnchorEblocks, err := dbo.FetchAllEBlocksByChain(prev.AnchorEBlock.GetChainID())
+	if err != nil {
+		t.Error(err)
+	}
+	if len(allAnchorEblocks) != max {
+		t.Errorf("Wrong number of entries fetched - %v vs %v", len(allAnchorEblocks), max)
+	}
+
+	//check block heights
+	for i := 0; i < max; i++ {
+		prev = blocks[i]
+
+		dBlock, err := dbo.FetchDBlockByHeight(prev.DBlock.GetDatabaseHeight())
+		if err != nil {
+			t.Error(err)
+		}
+		ok, err := primitives.AreBinaryMarshallablesEqual(prev.DBlock, dBlock)
+		if err != nil {
+			t.Error(err)
+		}
+		if ok == false {
+			t.Errorf("DBlocks by height are not equal")
+		}
+
+		aBlock, err := dbo.FetchABlockByHeight(prev.DBlock.GetDatabaseHeight())
+		if err != nil {
+			t.Error(err)
+		}
+		ok, err = primitives.AreBinaryMarshallablesEqual(prev.ABlock, aBlock)
+		if err != nil {
+			t.Error(err)
+		}
+		if ok == false {
+			t.Errorf("ABlocks by height are not equal")
+		}
+
+		ecBlock, err := dbo.FetchECBlockByHeight(prev.DBlock.GetDatabaseHeight())
+		if err != nil {
+			t.Error(err)
+		}
+		ok, err = primitives.AreBinaryMarshallablesEqual(prev.ECBlock, ecBlock)
+		if err != nil {
+			t.Error(err)
+		}
+		if ok == false {
+			t.Errorf("ECBlocks by height are not equal")
+		}
+
+		fBlock, err := dbo.FetchFBlockByHeight(prev.DBlock.GetDatabaseHeight())
+		if err != nil {
+			t.Error(err)
+		}
+		ok, err = primitives.AreBinaryMarshallablesEqual(prev.FBlock, fBlock)
+		if err != nil {
+			t.Error(err)
+		}
+		if ok == false {
+			t.Errorf("FBlocks by height are not equal")
+		}
+
+		ok, err = primitives.AreBinaryMarshallablesEqual(prev.EBlock, allEblocks[i])
+		if err != nil {
+			t.Error(err)
+		}
+		if ok == false {
+			t.Error("Blocks fetched by all and original blocks are not identical")
+			t.Logf("\n%v\nvs\n%v", allEblocks[i].String(), prev.EBlock.String())
+		}
+
+		ok, err = primitives.AreBinaryMarshallablesEqual(prev.AnchorEBlock, allAnchorEblocks[i])
+		if err != nil {
+			t.Error(err)
+		}
+		if ok == false {
+			t.Error("Blocks fetched by all and original blocks are not identical")
+			t.Logf("\n%v\nvs\n%v", allAnchorEblocks[i].String(), prev.AnchorEBlock.String())
+		}
+	}
+
+	//check fetch all blocks from chain
+}

@@ -24,12 +24,12 @@ func TestSaveLoadFBlockHead(t *testing.T) {
 	dbo := NewOverlay(new(mapdb.MapDB))
 	defer dbo.Close()
 
-	err := dbo.SaveFactoidBlockHead(b1)
+	err := dbo.SaveFactoidBlock(b1)
 	if err != nil {
 		t.Error(err)
 	}
 
-	head, err := dbo.FetchFactoidBlockHead()
+	head, err := dbo.FetchFBlock(b1.DatabasePrimaryIndex())
 	if err != nil {
 		t.Error(err)
 	}
@@ -52,12 +52,12 @@ func TestSaveLoadFBlockHead(t *testing.T) {
 
 	b2 := testHelper.CreateTestFactoidBlock(b1)
 
-	err = dbo.SaveFactoidBlockHead(b2)
+	err = dbo.SaveFactoidBlock(b2)
 	if err != nil {
 		t.Error(err)
 	}
 
-	head, err = dbo.FetchFactoidBlockHead()
+	head, err = dbo.FetchFBlock(b2.DatabaseSecondaryIndex())
 	if err != nil {
 		t.Error(err)
 	}
@@ -88,13 +88,13 @@ func TestSaveLoadFBlockChain(t *testing.T) {
 	for i := 0; i < max; i++ {
 		prev = testHelper.CreateTestFactoidBlock(prev)
 		blocks = append(blocks, prev)
-		err := dbo.SaveFactoidBlockHead(prev)
+		err := dbo.SaveFactoidBlock(prev)
 		if err != nil {
 			t.Error(err)
 		}
 	}
 
-	current, err := dbo.FetchFactoidBlockHead()
+	current, err := dbo.FetchFBlock(prev.DatabasePrimaryIndex())
 	if err != nil {
 		t.Error(err)
 	}
