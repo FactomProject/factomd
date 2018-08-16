@@ -8,7 +8,6 @@ import (
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/state"
-	"gopkg.in/AlecAivazis/survey.v1"
 )
 
 func OpenBlock(block *state.WholeBlock) {
