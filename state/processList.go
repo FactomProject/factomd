@@ -743,6 +743,11 @@ func (p *ProcessList) Ask(vmIndex int, height uint32, delay int64) {
 	if p.asks == nil { // If it is nil, there is no makemmrs
 		return
 	}
+
+	if p.State.IgnoreMissing || p.State.DBFinished == false {
+		return // Don't ask for missing message while we are in ignore.
+	}
+
 	if vmIndex < 0 {
 		panic(errors.New("Old Faulting code"))
 	}
