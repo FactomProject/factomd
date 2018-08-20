@@ -1,4 +1,5 @@
 controlPanel/files/statics/*
 controlPanel/files/templates/*
 vendor/*
+Utilities/*
 

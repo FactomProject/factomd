@@ -108,7 +108,7 @@ type SaveState struct {
 var _ interfaces.BinaryMarshallable = (*SaveState)(nil)
 var _ interfaces.Printable = (*SaveState)(nil)
 
-func (ss *SaveState) Init() {
+func (ss *SaveState) Init(s *State) {
 	if ss.FactoidBalancesP == nil {
 		ss.FactoidBalancesP = map[[32]byte]int64{}
 	}
@@ -122,7 +122,7 @@ func (ss *SaveState) Init() {
 		ss.Acks = map[[32]byte]interfaces.IMsg{}
 	}
 	if ss.Commits == nil {
-		ss.Commits = NewSafeMsgMap("sscommits", nil) // map[[32]byte]interfaces.IMsg{}
+		ss.Commits = NewSafeMsgMap("sscommits", s) // map[[32]byte]interfaces.IMsg{}
 	}
 	if ss.InvalidMessages == nil {
 		ss.InvalidMessages = map[[32]byte]interfaces.IMsg{}
