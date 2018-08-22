@@ -509,8 +509,11 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 
 	var colors []string = []string{"95cde5", "b01700", "db8e3c", "ffe35f"}
 
-	for i, s := range fnodes {
-		fmt.Printf("%d {color:#%v, shape:dot, label:%v}\n", i, colors[i%len(colors)], s.State.FactomNodeName)
+	if len(fnodes) > 2 {
+		for i, s := range fnodes {
+			fmt.Printf("%d {color:#%v, shape:dot, label:%v}\n", i, colors[i%len(colors)], s.State.FactomNodeName)
+		}
+		fmt.Printf("Paste the network info above into http://arborjs.org/halfviz to visualize the network\n")
 	}
 	// Initiate dbstate plugin if enabled. Only does so for first node,
 	// any more nodes on sim control will use default method
