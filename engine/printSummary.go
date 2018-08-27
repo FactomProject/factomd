@@ -169,6 +169,12 @@ func PrintOneStatus(listenTo int, wsapiNode int) {
 
 	list = ""
 	for _, f := range pnodes {
+		list = list + fmt.Sprintf(" %3d", f.State.InMsgQueue2().Length())
+	}
+	prt = prt + fmt.Sprintf(fmtstr, "InMsgQueue2", list)
+
+	list = ""
+	for _, f := range pnodes {
 		list = list + fmt.Sprintf(" %3d", f.State.APIQueue().Length())
 	}
 	prt = prt + fmt.Sprintf(fmtstr, "APIQueue", list)
@@ -235,16 +241,16 @@ func PrintOneStatus(listenTo int, wsapiNode int) {
 			prt = prt + fmt.Sprintf("%5d ", f.State.GetMessageTalliesSent(i))
 		}
 		prt = prt + "\nType:"
-		for i := NumMsgTypes /2; i < NumMsgTypes; i++ {
+		for i := NumMsgTypes / 2; i < NumMsgTypes; i++ {
 			prt = prt + fmt.Sprintf("%5d ", i)
 		}
 		prt = prt + "\nRecd:"
 
-		for i := NumMsgTypes /2; i < NumMsgTypes; i++ {
+		for i := NumMsgTypes / 2; i < NumMsgTypes; i++ {
 			prt = prt + fmt.Sprintf("%5d ", f.State.GetMessageTalliesReceived(i))
 		}
 		prt = prt + "\nSent:"
-		for i := NumMsgTypes /2; i < NumMsgTypes; i++ {
+		for i := NumMsgTypes / 2; i < NumMsgTypes; i++ {
 			prt = prt + fmt.Sprintf("%5d ", f.State.GetMessageTalliesSent(i))
 		}
 

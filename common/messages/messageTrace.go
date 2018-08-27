@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"strings"
 	"sync"
 	"time"
 
@@ -31,23 +32,31 @@ func CheckFileName(name string) bool {
 	defer traceMutex.Unlock()
 	return checkFileName(name)
 }
+
 func checkFileName(name string) bool {
 	if globals.Params.DebugLogRegEx == "" {
 		return false
 	}
+	// if  the regex string has changed ...
+	if globals.Params.DebugLogRegEx != globals.LastDebugLogRegEx {
+
+		TestRegex = nil // throw away the old regex
+		globals.LastDebugLogRegEx = globals.Params.DebugLogRegEx
+	}
+	//strip quotes if they are included in the string
+	if globals.Params.DebugLogRegEx[0] == '"' || globals.Params.DebugLogRegEx[0] == '\'' {
+		globals.Params.DebugLogRegEx = globals.Params.DebugLogRegEx[1 : len(globals.Params.DebugLogRegEx)-1] // Trim the "'s
+	}
+	// if we haven't compiled the regex ...
 	if TestRegex == nil {
-		if globals.Params.DebugLogRegEx[0] == '"' || globals.Params.DebugLogRegEx[0] == '\'' {
-			globals.Params.DebugLogRegEx = globals.Params.DebugLogRegEx[1 : len(globals.Params.DebugLogRegEx)-1] // Trim the leading "
-		}
-		theRegex, err := regexp.Compile(globals.Params.DebugLogRegEx)
+		theRegex, err := regexp.Compile("(?i)" + globals.Params.DebugLogRegEx) // force case insensitive
 		if err != nil {
 			panic(err)
 		}
-		files = make(map[string]*os.File)
-		enabled = make(map[string]bool)
+		enabled = make(map[string]bool) // create a clean cache of enabled files
 		TestRegex = theRegex
+		globals.LastDebugLogRegEx = globals.Params.DebugLogRegEx
 	}
-
 	flag, old := enabled[name]
 	if !old {
 		flag = TestRegex.Match([]byte(name))
@@ -59,6 +68,7 @@ func checkFileName(name string) bool {
 // assumes traceMutex is locked already
 func getTraceFile(name string) (f *os.File) {
 	//traceMutex.Lock()	defer traceMutex.Unlock()
+	name = strings.ToLower(name)
 	if !checkFileName(name) {
 		return nil
 	}

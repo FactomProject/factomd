@@ -33,6 +33,13 @@ var _ interfaces.IElectionMsg = (*StartElectionInternal)(nil)
 func (m *StartElectionInternal) ElectionProcess(s interfaces.IState, elect interfaces.IElections) {
 	e := elect.(*elections.Elections)
 
+	// If the electing is set to -1, that election has ended before we got to start it.
+	// Still trigger the Fault loop, it will self terminate if we've moved forward
+	if e.Electing == -1 {
+		go Fault(e, e.DBHeight, e.Minute, e.FaultId.Load(), &e.FaultId, m.SigType, e.RoundTimeout)
+		return
+	}
+
 	e.Adapter = NewElectionAdapter(e, m.PreviousDBHash)
 	// An election that finishes may make us a leader. We need to know that for the next election that
 	// takes place. So use the election's list of fed servers to determine if we are a leader
@@ -43,13 +50,8 @@ func (m *StartElectionInternal) ElectionProcess(s interfaces.IState, elect inter
 		}
 		e.Adapter.SetObserver(true)
 	}
-	//e.Adapter.SetObserver(!m.IsLeader)
 
-	// Start the timeouts
-	for len(e.Round) <= e.Electing {
-		e.Round = append(e.Round, 0)
-	}
-	go Fault(e, e.DBHeight, e.Minute, e.Round[e.Electing], e.FaultId.Load(), &e.FaultId, m.SigType, e.RoundTimeout)
+	go Fault(e, e.DBHeight, e.Minute, e.FaultId.Load(), &e.FaultId, m.SigType, e.RoundTimeout)
 }
 
 // Execute the leader functions of the given message
@@ -77,11 +79,11 @@ func (m *StartElectionInternal) FollowerExecute(is interfaces.IState) {
 	}
 
 	m.VMHeight = vm.Height
+
 	// TODO: Process all messages that we can. Then trim to the first non-processed message
-	// TODO: This is in case a leader sends out ack 10, but not 9. We need to trim back to 8 because 9 does not exist
+	// TODO: This is incase a leader sends out ack 10, but not 9. We need to trim back to 8 because 9 does not exist
 	// TODO: Do not trim EOMs or DBsigs, as they may not be processed until certain conditions.
 
-	// this trim stuff was badly ordered and failed even the simple tests cases so it is removed.
 	//end := len(vm.List)
 	//if end > vm.Height {
 	//	for _, msg := range vm.List[vm.Height:] {
@@ -92,6 +94,7 @@ func (m *StartElectionInternal) FollowerExecute(is interfaces.IState) {
 	//		}
 	//	}
 	//}
+	//
 	//// Trim the height to the last processed message
 	//trimto := vm.Height
 	//pre := len(vm.List)

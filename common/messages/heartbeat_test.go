@@ -8,9 +8,11 @@ import (
 	"testing"
 
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/identity"
 	. "github.com/FactomProject/factomd/common/messages"
 	. "github.com/FactomProject/factomd/common/messages/msgsupport"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/testHelper"
 )
 
 func TestUnmarshalNilHeartbeat(t *testing.T) {
@@ -139,4 +141,32 @@ func newSignedHeartbeat() *Heartbeat {
 	}
 
 	return ack
+}
+
+func TestValidHeatbeat(t *testing.T) {
+	s := testHelper.CreateAndPopulateTestState()
+	a := identity.RandomAuthority()
+
+	pkey := primitives.RandomPrivateKey()
+	a.SigningKey = *pkey.Pub
+
+	s.IdentityControl.Authorities[a.AuthorityChainID.Fixed()] = a
+
+	h := newSignedHeartbeat()
+	// To pass validate, we need
+	// 	The timestamp to be near state timestamp
+	//	The height to be high
+	h.IdentityChainID = a.AuthorityChainID
+	h.DBHeight = 100
+	h.Timestamp = s.GetTimestamp()
+
+	h.Signature = nil
+	err := h.Sign(pkey)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if h.Validate(s) != 1 {
+		t.Errorf("Exp %d found %d", 1, h.Validate(s))
+	}
 }

@@ -7,6 +7,7 @@ package identity
 import (
 	"errors"
 	"fmt"
+	"os"
 
 	"bytes"
 
@@ -80,6 +81,21 @@ func NewIdentity() *Identity {
 	i.CoinbaseAddress = primitives.NewZeroHash()
 
 	return i
+}
+
+// ToAuthority should ONLY be used in TESTING
+// 	Helpful for unit tests, useless for anything else
+func (id *Identity) ToAuthority() *Authority {
+	a := NewAuthority()
+	a.AuthorityChainID = id.IdentityChainID
+	a.ManagementChainID = id.ManagementChainID
+	a.Efficiency = id.Efficiency
+	//a.SigningKey = id.SigningKey
+	a.CoinbaseAddress = id.CoinbaseAddress
+	a.AnchorKeys = id.AnchorKeys
+	a.Status = id.Status
+	a.MatryoshkaHash = id.MatryoshkaHash
+	return a
 }
 
 func RandomIdentity() *Identity {
@@ -324,11 +340,16 @@ func (e *Identity) Init() {
 	}
 }
 
-func (e *Identity) MarshalBinary() ([]byte, error) {
+func (e *Identity) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "Identity.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	e.Init()
 	buf := primitives.NewBuffer(nil)
 
-	err := buf.PushBinaryMarshallable(e.IdentityChainID)
+	err = buf.PushBinaryMarshallable(e.IdentityChainID)
 	if err != nil {
 		return nil, err
 	}

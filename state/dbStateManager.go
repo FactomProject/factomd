@@ -8,16 +8,18 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/FactomProject/factomd/common/adminBlock"
-	// "github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
+	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
@@ -201,11 +203,16 @@ func (a *DBState) IsSameAs(b *DBState) bool {
 	return true
 }
 
-func (dbs *DBState) MarshalBinary() ([]byte, error) {
+func (dbs *DBState) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "DBState.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	dbs.Init()
 	b := primitives.NewBuffer(nil)
 
-	err := b.PushBool(dbs.IsNew)
+	err = b.PushBool(dbs.IsNew)
 	if err != nil {
 		return nil, err
 	}
@@ -512,11 +519,16 @@ func (a *DBStateList) IsSameAs(b *DBStateList) bool {
 	return true
 }
 
-func (dbsl *DBStateList) MarshalBinary() ([]byte, error) {
+func (dbsl *DBStateList) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "DBStateList.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	dbsl.Init()
 	buf := primitives.NewBuffer(nil)
 
-	err := buf.PushBool(dbsl.SrcNetwork)
+	err = buf.PushBool(dbsl.SrcNetwork)
 	if err != nil {
 		return nil, err
 	}
@@ -910,6 +922,7 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	// Additional Admin block changed can be made from identity changes
 	list.State.SyncIdentities(d)
 
+	// every 25 blocks +0 we add grant payouts
 	// If this is a coinbase descriptor block, add that now
 	if currentDBHeight > constants.COINBASE_ACTIVATION && currentDBHeight%constants.COINBASE_PAYOUT_FREQUENCY == 0 {
 		// Build outputs
@@ -928,9 +941,22 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 			o := factoid.NewOutAddress(ia.CoinbaseAddress, amt)
 			outputs = append(outputs, o)
 		}
+
 		err = d.AdminBlock.AddCoinbaseDescriptor(outputs)
 		if err != nil {
 			panic(err)
+		}
+	}
+
+	// every 25 blocks +1 we add grant payouts
+	if currentDBHeight > constants.COINBASE_ACTIVATION && currentDBHeight%constants.COINBASE_PAYOUT_FREQUENCY == 1 {
+		// Add the grants to the list
+		grantPayouts := GetGrantPayoutsFor(currentDBHeight)
+		if len(grantPayouts) > 0 {
+			err := d.AdminBlock.AddCoinbaseDescriptor(grantPayouts)
+			if err != nil {
+				panic(err)
+			}
 		}
 	}
 
@@ -1107,6 +1133,29 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		out.WriteString("=== AdminBlock.UpdateState() End ===")
 		fmt.Println(out.String())
 	}
+
+	// get all the prior balances of the Factoid addresses that may have changed
+	// in this block.  If you want the balance of the highest saved block, look to
+	// list.State.FactoidBalancesPapi if it is not null.  If you have no entry there,
+	// then look to list.State.FactoidBalancesP
+	list.State.FactoidBalancesPMutex.Lock()
+	list.State.FactoidBalancesPapi = make(map[[32]byte]int64, len(pl.FactoidBalancesT))
+	for k := range pl.FactoidBalancesT {
+		list.State.FactoidBalancesPapi[k] = list.State.FactoidBalancesP[k]
+	}
+	list.State.FactoidBalancesPMutex.Unlock()
+
+	// get all the prior balances of the entry credit addresses that may have changed
+	// in this block.  If you want the balance of the highest saved block, look to
+	// list.State.ECBalancesPapi if it is not null.  If you have no entry there,
+	// then look to list.State.ECBalancesP
+	list.State.ECBalancesPMutex.Lock()
+	list.State.ECBalancesPapi = make(map[[32]byte]int64, len(pl.ECBalancesT))
+	for k := range pl.ECBalancesT {
+		list.State.ECBalancesPapi[k] = list.State.ECBalancesP[k]
+	}
+	list.State.ECBalancesPMutex.Unlock()
+
 	// Process the Factoid End of Block
 	fs := list.State.GetFactoidState()
 	fs.(*FactoidState).DBHeight = dbht
@@ -1119,7 +1168,9 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		panic(err)
 	}
 
-	list.State.Balancehash = fs.GetBalanceHash(false)
+	if list.State.DBFinished {
+		list.State.Balancehash = fs.GetBalanceHash(false)
+	}
 
 	// Make the current exchange rate whatever we had in the previous block.
 	// UNLESS there was a FER entry processed during this block  changeheight will be left at 1 on a change block
@@ -1162,10 +1213,22 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	list.State.AddNewIdentityEblocks(d.EntryBlocks, d.DirectoryBlock.GetTimestamp()) // Add eblocks to be synced
 	list.State.UpdateAuthSigningKeys(d.DirectoryBlock.GetDatabaseHeight())           // Remove old keys from key history
 
+	// Canceling Coinbase Descriptors
+	list.State.IdentityControl.CancelManager.GC(d.DirectoryBlock.GetDatabaseHeight()) // garbage collect
+
 	///////////////////////////////
 	// Cleanup Tasks
 	///////////////////////////////
 	list.State.Commits.Cleanup(list.State)
+	// This usually gets cleaned up when creating the coinbase. If syncing from disk or dbstates, this routine will clean
+	// up any leftover valid cancels.
+	if d.DirectoryBlock.GetDatabaseHeight() > constants.COINBASE_DECLARATION {
+		_, ok := list.State.IdentityControl.CanceledCoinbaseOutputs[d.DirectoryBlock.GetDatabaseHeight()-constants.COINBASE_DECLARATION]
+		if ok {
+			// No longer need this
+			delete(list.State.IdentityControl.CanceledCoinbaseOutputs, d.DirectoryBlock.GetDatabaseHeight()-constants.COINBASE_DECLARATION)
+		}
+	}
 
 	// s := list.State
 	// // Time out commits every now and again.
@@ -1189,6 +1252,12 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	// 		delete(s.Commits, k)
 	// 	}
 	// }
+
+	// Writing the DBState to a debug file allows for later analyzing the last block not saved to the database.
+	// Do not do this while loading from disk, as those blocks are already saved
+	if list.State.DBFinished && globals.Params.WriteProcessedDBStates {
+		list.WriteDBStateToDebugFile(d)
+	}
 
 	return
 }
@@ -1230,6 +1299,55 @@ func (list *DBStateList) SignDB(d *DBState) (process bool) {
 }
 
 var nowish int64 = time.Now().Unix()
+
+// WriteDBStateToDebugFile will write the marshaled dbstate to a file alongside the database.
+// This can be written on the processblocks, so in the event the block does not get written to disk
+// in the event of a stall, the dbstate can be analyzed. The written dbstate does NOT include entries.
+func (list *DBStateList) WriteDBStateToDebugFile(d *DBState) {
+	// Because DBStates include the Savestate, we cannot marshal it, as the savestate is not set
+	// So change it to a full block
+
+	f := NewWholeBlock()
+	f.DBlock = d.DirectoryBlock
+	f.ABlock = d.AdminBlock
+	f.FBlock = d.FactoidBlock
+	f.ECBlock = d.EntryCreditBlock
+	f.EBlocks = d.EntryBlocks
+
+	data, err := f.MarshalBinary()
+	if err != nil {
+		fmt.Printf("An error has occurred while writing the DBState to disk: %s\n", err.Error())
+		return
+	}
+
+	filename := fmt.Sprintf("processed_dbstate_%d.block", d.DirectoryBlock.GetDatabaseHeight()%10)
+	path := filepath.Join(list.State.LdbPath, list.State.Network, "dbstates", filename)
+
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0777)
+	if err != nil {
+		fmt.Printf("An error has occurred while writing the DBState to disk: %s\n", err.Error())
+		return
+	}
+
+	file.Write(data)
+	file.Close()
+}
+
+func ReadDBStateFromDebugFile(filename string) (*WholeBlock, error) {
+	file, err := os.OpenFile(filename, os.O_RDONLY, 0777)
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := ioutil.ReadAll(file)
+	if err != nil {
+		return nil, err
+	}
+
+	wb := NewWholeBlock()
+	err = wb.UnmarshalBinary(data)
+	return wb, err
+}
 
 func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	dbheight := int(d.DirectoryBlock.GetHeader().GetDBHeight())
@@ -1454,6 +1572,19 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	d.ReadyToSave = false
 	d.Saved = true
 
+	// Now that we have saved the perm balances, we can clear the api hashmaps that held the differences
+	// between the actual saved block prior, and this saved block.  If you are looking for balances of
+	// the highest saved block, you first look to see that one of the "<fct or ec>Papi" maps exist, then
+	// if that map has a value for your address.  If it doesn't exist, or doesn't have a value, then look
+	// in the "<fct or ec>P" map.
+	list.State.FactoidBalancesPMutex.Lock()
+	list.State.FactoidBalancesPapi = nil
+	list.State.FactoidBalancesPMutex.Unlock()
+
+	list.State.ECBalancesPMutex.Lock()
+	list.State.ECBalancesPapi = nil
+	list.State.ECBalancesPMutex.Unlock()
+
 	return
 }
 
@@ -1539,7 +1670,7 @@ searchLoop:
 	}
 
 	keep := uint32(3) // How many states to keep around; debugging helps with more.
-	if uint32(cnt) > keep {
+	if uint32(cnt) > keep && int(list.Complete)-cnt+int(keep) > 0 {
 		var dbstates []*DBState
 		dbstates = append(dbstates, list.DBStates[cnt-int(keep):]...)
 		list.DBStates = dbstates

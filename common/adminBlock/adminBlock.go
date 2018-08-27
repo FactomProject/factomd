@@ -7,6 +7,7 @@ package adminBlock
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"sort"
 
@@ -152,6 +153,13 @@ func (c *AdminBlock) RemoveFederatedServer(identityChainID interfaces.IHash) err
 
 	entry := NewRemoveFederatedServer(identityChainID, c.GetHeader().GetDBHeight()+1) // Goes in the NEXT block
 	return c.AddEntry(entry)
+}
+
+func (c *AdminBlock) AddCancelCoinbaseDescriptor(descriptorHeight, index uint32) error {
+	c.Init()
+	entry := NewCancelCoinbaseDescriptor(descriptorHeight, index)
+
+	return c.AddIdentityEntry(entry)
 }
 
 // InsertIdentityABEntries will prepare the identity entries and add them into the adminblock
@@ -376,7 +384,12 @@ func (b *AdminBlock) AddFirstABEntry(e interfaces.IABEntry) (err error) {
 }
 
 // Write out the AdminBlock to binary.
-func (b *AdminBlock) MarshalBinary() ([]byte, error) {
+func (b *AdminBlock) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "AdminBlock.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	b.Init()
 	// Marshal all the entries into their own thing (need the size)
 	var buf2 primitives.Buffer
@@ -391,7 +404,7 @@ func (b *AdminBlock) MarshalBinary() ([]byte, error) {
 	b.GetHeader().SetBodySize(uint32(buf2.Len()))
 
 	var buf primitives.Buffer
-	err := buf.PushBinaryMarshallable(b.GetHeader())
+	err = buf.PushBinaryMarshallable(b.GetHeader())
 	if err != nil {
 		return nil, err
 	}
@@ -453,7 +466,7 @@ func (b *AdminBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 		case constants.TYPE_COINBASE_DESCRIPTOR:
 			b.ABEntries[i] = new(CoinbaseDescriptor)
 		case constants.TYPE_COINBASE_DESCRIPTOR_CANCEL:
-			b.ABEntries[i] = new(CoinbaseDescriptor)
+			b.ABEntries[i] = new(CancelCoinbaseDescriptor)
 		case constants.TYPE_ADD_FACTOID_ADDRESS:
 			b.ABEntries[i] = new(AddFactoidAddress)
 		case constants.TYPE_ADD_FACTOID_EFFICIENCY:

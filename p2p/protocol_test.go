@@ -41,15 +41,19 @@ func TestBlockFreeChannelSend(t *testing.T) {
 	// is non-blocking
 	didnotblock := false
 CheckForBlockingLoop:
-	for c := 0; c < 10; c++ {
+	for i := 0; i < 10; i++ {
 		select {
 		case <-d:
 			didnotblock = true
 			break CheckForBlockingLoop
 		default:
 		}
-		time.Sleep(5 * time.Millisecond)
-
+		// Channel should never fill above 95%
+		if len(c) > int(float64(cap(c))*0.95) {
+			didnotblock = false
+			break CheckForBlockingLoop
+		}
+		time.Sleep(20 * time.Millisecond)
 	}
 
 	if !didnotblock {

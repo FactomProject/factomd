@@ -10,6 +10,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -158,7 +159,12 @@ func (a *PublicKey) IsSameAs(b *PublicKey) bool {
 	return true
 }
 
-func (pk *PublicKey) MarshalText() ([]byte, error) {
+func (pk *PublicKey) MarshalText() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "PublicKey.MarshalText err:%v", *pe)
+		}
+	}(&err)
 	return []byte(pk.String()), nil
 }
 
@@ -185,7 +191,12 @@ func (k *PublicKey) Verify(msg []byte, sig *[ed25519.SignatureSize]byte) bool {
 	return ed25519.VerifyCanonical((*[32]byte)(k), msg, sig)
 }
 
-func (k *PublicKey) MarshalBinary() ([]byte, error) {
+func (k *PublicKey) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "PublicKey.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	var buf Buffer
 	buf.Write(k[:])
 	return buf.DeepCopyBytes(), nil

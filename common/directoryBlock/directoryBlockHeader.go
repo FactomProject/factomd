@@ -7,6 +7,7 @@ package directoryBlock
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -41,6 +42,18 @@ func (h *DBlockHeader) Init() {
 	if h.PrevFullHash == nil {
 		h.PrevFullHash = primitives.NewZeroHash()
 	}
+}
+
+func (b *DBlockHeader) GetHeaderHash() (interfaces.IHash, error) {
+
+	binaryEBHeader, err := b.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+
+	h := primitives.Sha(binaryEBHeader)
+
+	return h, nil
 }
 
 func (a *DBlockHeader) IsSameAs(b interfaces.IDirectoryBlockHeader) bool {
@@ -174,11 +187,16 @@ func (e *DBlockHeader) String() string {
 	return (string)(out.DeepCopyBytes())
 }
 
-func (b *DBlockHeader) MarshalBinary() ([]byte, error) {
+func (b *DBlockHeader) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "DBlockHeader.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	b.Init()
 	buf := primitives.NewBuffer(nil)
 
-	err := buf.PushByte(b.Version)
+	err = buf.PushByte(b.Version)
 	if err != nil {
 		return nil, err
 	}

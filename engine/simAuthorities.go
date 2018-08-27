@@ -85,7 +85,7 @@ func copyOver(st *state.State) {
 	var err error
 	sec, _ := hex.DecodeString(ecSec)
 	ec, _ := factom.MakeECAddress(sec[:32])
-	fundWallet(st, 10)
+	FundWallet(st, 10)
 	chain, _ := primitives.HexToHash("1d1d1d1d07714fea910f9c6e42e5dc072c86491a3d80418855a2499e85b0039f")
 	ents, _ := st.DB.FetchAllEntriesByChainID(chain)
 	for i, e := range ents {
@@ -117,18 +117,22 @@ func copyOver(st *state.State) {
 	}
 }
 
-func fundWallet(st *state.State, amt uint64) error {
-	inSec, _ := primitives.HexToHash("FB3B471B1DCDADFEB856BD0B02D8BF49ACE0EDD372A3D9F2A95B78EC12A324D6")
-	outEC, _ := primitives.HexToHash("c23ae8eec2beb181a0da926bd2344e988149fbe839fbc7489f2096e7d6110243")
-	inHash, _ := primitives.HexToHash("646F3E8750C550E4582ECA5047546FFEF89C13A175985E320232BACAC81CC428")
+func FundWallet(st *state.State, amt uint64) (error, string) {
+	inSec, _ := primitives.HexToHash("FB3B471B1DCDADFEB856BD0B02D8BF49ACE0EDD372A3D9F2A95B78EC12A324D6") // private key or FCT Source
+	outEC, _ := primitives.HexToHash("c23ae8eec2beb181a0da926bd2344e988149fbe839fbc7489f2096e7d6110243") // EC address
+
 	var sec [64]byte
-	copy(sec[:32], inSec.Bytes())
+	copy(sec[:32], inSec.Bytes()) // pass 32 byte key in a 64 byte field for the crypto library
 
-	pub := ed.GetPublicKey(&sec)
-	//inRcd := shad(inPub.Bytes())
+	pub := ed.GetPublicKey(&sec) // get the public key for our FCT source address
 
-	rcd := factoid.NewRCD_1(pub[:])
-	inAdd := factoid.NewAddress(inHash.Bytes())
+	rcd := factoid.NewRCD_1(pub[:]) // build the an RCD "redeem condition data structure"
+
+	inAdd, err := rcd.GetAddress()
+	if err != nil {
+		panic(err)
+	}
+
 	outAdd := factoid.NewAddress(outEC.Bytes())
 
 	trans := new(factoid.Transaction)
@@ -141,17 +145,17 @@ func fundWallet(st *state.State, amt uint64) error {
 
 	fee, err := trans.CalculateFee(st.GetFactoshisPerEC())
 	if err != nil {
-		return err
+		return err, ""
 	}
 	input, err := trans.GetInput(0)
 	if err != nil {
-		return err
+		return err, ""
 	}
 	input.SetAmount(amt + fee)
 
 	dataSig, err := trans.MarshalBinarySig()
 	if err != nil {
-		return err
+		return err, ""
 	}
 	sig := factoid.NewSingleSignatureBlock(inSec.Bytes(), dataSig)
 	trans.SetSignatureBlock(0, sig)
@@ -163,11 +167,11 @@ func fundWallet(st *state.State, amt uint64) error {
 	_, err = v2Request(j, st.GetPort())
 	//_, err = wsapi.HandleV2Request(st, j)
 	if err != nil {
-		return err
+		return err, ""
 	}
 	_ = err
 
-	return nil
+	return nil, fmt.Sprintf("%v", trans.GetTxID())
 }
 
 func setUpAuthorities(st *state.State, buildMain bool) []hardCodedAuthority {
@@ -392,6 +396,32 @@ func authorityToBlockchain(total int, st *state.State) ([]hardCodedAuthority, in
 		_, _ = v2Request(j, st.GetPort())
 		//_, _ = wsapi.HandleV2Request(st, j)
 
+		com, rev, _ = makeServerCoinbaseAddress(ele, ec, primitives.RandomHash())
+		mC = new(wsapi.MessageRequest)
+		mC.Message = com
+		j = primitives.NewJSON2Request("commit-entry", 0, mC)
+		_, _ = v2Request(j, st.GetPort())
+		//_, _ = wsapi.HandleV2Request(st, j)
+
+		mR = new(wsapi.EntryRequest)
+		mR.Entry = rev
+		j = primitives.NewJSON2Request("reveal-entry", 0, mR)
+		_, _ = v2Request(j, st.GetPort())
+		//_, _ = wsapi.HandleV2Request(st, j)
+
+		com, rev, _ = makeServerEfficiency(ele, ec, 1000)
+		mC = new(wsapi.MessageRequest)
+		mC.Message = com
+		j = primitives.NewJSON2Request("commit-entry", 0, mC)
+		_, _ = v2Request(j, st.GetPort())
+		//_, _ = wsapi.HandleV2Request(st, j)
+
+		mR = new(wsapi.EntryRequest)
+		mR.Entry = rev
+		j = primitives.NewJSON2Request("reveal-entry", 0, mR)
+		_, _ = v2Request(j, st.GetPort())
+		//_, _ = wsapi.HandleV2Request(st, j)
+
 		madeAuths = append(madeAuths, ele)
 		authKeyLibrary = append(authKeyLibrary, ele)
 	}
@@ -457,6 +487,32 @@ func makeServerCoinbaseAddress(ele hardCodedAuthority, ec *factom.ECAddress, add
 	e := new(factom.Entry)
 	e.ExtIDs = se.ToExternalIDs()
 	e.ChainID = ele.ChainID.String()
+	str1, str2 := getMessageStringEntry(e, ec)
+	return str1, str2, e
+}
+
+func makeCancelCoinbase(ele hardCodedAuthority, ec *factom.ECAddress, h, i uint32) (string, string, *factom.Entry) {
+	var se identityEntries.NewCoinbaseCancelStruct
+	se.CoinbaseDescriptorHeight = h
+	se.CoinbaseDescriptorIndex = i
+	t := primitives.NewTimestampNow().GetTimeSeconds()
+	by := make([]byte, 8)
+	binary.BigEndian.PutUint64(by, uint64(t))
+	se.RootIdentityChainID = ele.ChainID
+	se.SetFunctionName()
+
+	preI := make([]byte, 0)
+	preI = append(preI, []byte{0x01}...)
+	preI = append(preI, ele.Sk1[32:]...)
+	se.PreimageIdentityKey = preI
+
+	data := se.MarshalForSig()
+	sig := ed.Sign(&ele.Sk1, data)
+	se.Signature = sig[:]
+
+	e := new(factom.Entry)
+	e.ExtIDs = se.ToExternalIDs()
+	e.ChainID = ele.ManageChain.String()
 	str1, str2 := getMessageStringEntry(e, ec)
 	return str1, str2, e
 }
@@ -613,6 +669,39 @@ func changeServerCoinbaseAddress(auth interfaces.IHash, st *state.State, add str
 	for _, ele := range authKeyLibrary {
 		if auth.IsSameAs(ele.ChainID) {
 			com, rev, _ := makeServerCoinbaseAddress(ele, ec, faddHash)
+			m := new(wsapi.MessageRequest)
+			m.Message = com
+
+			j := primitives.NewJSON2Request("commit-entry", 0, m)
+			_, err := v2Request(j, st.GetPort())
+			//wsapi.HandleV2Request(st, j)
+			if err != nil {
+				return err
+			}
+			mr := new(wsapi.EntryRequest)
+			mr.Entry = rev
+			j = primitives.NewJSON2Request("reveal-entry", 0, mr)
+			//wsapi.HandleV2Request(st, j)
+			_, err = v2Request(j, st.GetPort())
+			if err != nil {
+				return err
+			}
+			return nil
+		}
+	}
+	return errors.New("No identity found, it must be one of the pregenerated ones.")
+}
+
+func cancelCoinbase(auth interfaces.IHash, st *state.State, h, i uint32) error {
+	sec, _ := hex.DecodeString(ecSec)
+	ec, _ := factom.MakeECAddress(sec[:32])
+	if h, err := st.DB.FetchHeadIndexByChainID(auth); h == nil || err != nil {
+		return errors.New("No chain exists for this identity. ")
+	}
+
+	for _, ele := range authKeyLibrary {
+		if auth.IsSameAs(ele.ChainID) {
+			com, rev, _ := makeCancelCoinbase(ele, ec, h, i)
 			m := new(wsapi.MessageRequest)
 			m.Message = com
 
@@ -867,6 +956,8 @@ func addFnodeName(i int) {
 	// common short set
 	globals.FnodeNames[fmt.Sprintf("%x", fnodes[i].State.IdentityChainID.Bytes()[3:6])] = fnodes[i].State.FactomNodeName
 	globals.FnodeNames[fmt.Sprintf("%x", fnodes[i].State.IdentityChainID.Bytes()[:5])] = fnodes[i].State.FactomNodeName
+	globals.FnodeNames[fmt.Sprintf("%x", fnodes[i].State.IdentityChainID.Bytes()[:])] = fnodes[i].State.FactomNodeName
+	globals.FnodeNames[fmt.Sprintf("%x", fnodes[i].State.IdentityChainID.Bytes()[:8])] = fnodes[i].State.FactomNodeName
 }
 
 func shad(data []byte) []byte {
