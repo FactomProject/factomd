@@ -35,6 +35,8 @@ import (
 	"github.com/FactomProject/factomd/wsapi"
 	"github.com/FactomProject/logrustash"
 
+	"path/filepath"
+
 	"github.com/FactomProject/factomd/Utilities/CorrectChainHeads/correctChainHeads"
 	log "github.com/sirupsen/logrus"
 )
@@ -306,8 +308,10 @@ type State struct {
 	NumTransactions int
 
 	// Permanent balances from processing blocks.
+	FactoidBalancesPapi   map[[32]byte]int64
 	FactoidBalancesP      map[[32]byte]int64
 	FactoidBalancesPMutex sync.Mutex
+	ECBalancesPapi        map[[32]byte]int64
 	ECBalancesP           map[[32]byte]int64
 	ECBalancesPMutex      sync.Mutex
 	TempBalanceHash       interfaces.IHash
@@ -389,7 +393,8 @@ type State struct {
 	SyncingState        [256]string
 	SyncingStateCurrent int
 	processCnt          int64 // count of attempts to process .. so we can see if the thread is running
-	MMRInfo // fields for MMR processing
+
+	MMRInfo                                                         // fields for MMR processing
 	reportedActivations [activations.ACTIVATION_TYPE_COUNT + 1]bool // flags about which activations we have reported (+1 because we don't use 0)
 }
 
@@ -522,6 +527,10 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 		newState.StateSaverStruct.FastBoot = s.StateSaverStruct.FastBoot
 		newState.StateSaverStruct.FastBootLocation = newState.BoltDBPath
 		break
+	}
+	if globals.Params.WriteProcessedDBStates {
+		path := filepath.Join(newState.LdbPath, newState.Network, "dbstates")
+		os.MkdirAll(path, 0777)
 	}
 	return newState
 }
@@ -1019,6 +1028,10 @@ func (s *State) Init() {
 	}
 
 	s.startMMR()
+	if globals.Params.WriteProcessedDBStates {
+		path := filepath.Join(s.LdbPath, s.Network, "dbstates")
+		os.MkdirAll(path, 0777)
+	}
 }
 
 func (s *State) HookLogstash() error {

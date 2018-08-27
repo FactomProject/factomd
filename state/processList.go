@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 
 	"github.com/FactomProject/factomd/common/adminBlock"
@@ -18,6 +19,7 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/util/atomic"
+
 	//"github.com/FactomProject/factomd/database/databaseOverlay"
 
 	log "github.com/sirupsen/logrus"
@@ -525,25 +527,6 @@ func (p *ProcessList) AddOldMsgs(m interfaces.IMsg) {
 	p.OldMsgs[m.GetHash().Fixed()] = m
 }
 
-func (p *ProcessList) DeleteOldMsgs(key interfaces.IHash) {
-	p.oldmsgslock.Lock()
-	defer p.oldmsgslock.Unlock()
-	delete(p.OldMsgs, key.Fixed())
-}
-
-func (p *ProcessList) GetOldMsgs(key interfaces.IHash) interfaces.IMsg {
-	if p == nil {
-		return nil
-	}
-	p.oldmsgslock.Lock()
-	defer p.oldmsgslock.Unlock()
-	m, ok := p.OldMsgs[key.Fixed()]
-	if !ok {
-		return nil
-	}
-	return m
-}
-
 func (p *ProcessList) GetOldAck(key interfaces.IHash) interfaces.IMsg {
 	if p == nil {
 		return nil
@@ -569,31 +552,10 @@ func (p *ProcessList) GetNewEBlocks(key interfaces.IHash) interfaces.IEntryBlock
 	return p.NewEBlocks[key.Fixed()]
 }
 
-func (p *ProcessList) DeleteEBlocks(key interfaces.IHash) {
-	p.neweblockslock.Lock()
-	defer p.neweblockslock.Unlock()
-	delete(p.NewEBlocks, key.Fixed())
-}
-
 func (p *ProcessList) AddNewEntry(key interfaces.IHash, value interfaces.IEntry) {
 	p.NewEntriesMutex.Lock()
 	defer p.NewEntriesMutex.Unlock()
 	p.NewEntries[key.Fixed()] = value
-}
-
-func (p *ProcessList) DeleteNewEntry(key interfaces.IHash) {
-	p.NewEntriesMutex.Lock()
-	defer p.NewEntriesMutex.Unlock()
-	delete(p.NewEntries, key.Fixed())
-}
-
-func (p *ProcessList) GetLeaderTimestamp() interfaces.Timestamp {
-	for _, msg := range p.VMs[0].List {
-		if msg.Type() == constants.DIRECTORY_BLOCK_SIGNATURE_MSG {
-			return msg.GetTimestamp()
-		}
-	}
-	return new(primitives.Timestamp)
 }
 
 func (p *ProcessList) ResetDiffSigTally() {
@@ -633,6 +595,7 @@ func (p *ProcessList) TrimVMList(h uint32, vmIndex int) {
 		}
 	} else {
 		p.State.LogPrintf("process", "Attempt to trim higher than list list=%d h=%d", len(p.VMs[vmIndex].List), height)
+
 	}
 }
 func (p *ProcessList) GetDBHeight() uint32 {
@@ -992,6 +955,11 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	vm.heartBeat = 0 // We have heard from this VM
 
 	// Both the ack and the message hash to the same GetHash()
+	if ack.GetHash().Fixed() != m.GetMsgHash().Fixed() {
+		p.State.LogPrintf("executeMsg", "m/ack mismatch m-%x a-%x", m.GetMsgHash().Fixed(), ack.GetHash().Fixed())
+	}
+
+	// Both the ack and the message hash to the same GetHash()
 	m.SetLocal(false)
 	ack.SetLocal(false)
 	ack.SetPeer2Peer(false)
@@ -1015,7 +983,6 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	delete(p.State.Acks, msgHash.Fixed())
 	p.VMs[ack.VMIndex].List[ack.Height] = m
 	p.VMs[ack.VMIndex].ListAck[ack.Height] = ack
-
 	p.AddOldMsgs(m)
 	p.OldAcks[msgHash.Fixed()] = ack
 
@@ -1095,7 +1062,12 @@ func (p *ProcessList) String() string {
 
 				if msg != nil {
 					leader := fmt.Sprintf("[%x] ", vm.ListAck[j].LeaderChainID.Bytes()[3:6])
-					buf.WriteString("   " + leader + msg.String() + "\n")
+					msgStr := msg.String()
+					index := strings.Index(msgStr, "\n")
+					if index > 0 {
+						msgStr = msgStr[0:index]
+					}
+					buf.WriteString("   " + leader + msgStr + "\n")
 				} else {
 					buf.WriteString("   <nil>\n")
 				}
@@ -1192,6 +1164,7 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	pl.PendingChainHeads = NewSafeMsgMap("PendingChainHeads", pl.State)
 	pl.OldMsgs = make(map[[32]byte]interfaces.IMsg)
 	pl.OldAcks = make(map[[32]byte]interfaces.IMsg)
+
 	pl.NewEBlocks = make(map[[32]byte]interfaces.IEntryBlock)
 	pl.NewEntries = make(map[[32]byte]interfaces.IEntry)
 

@@ -12,8 +12,10 @@ import (
 	"io/ioutil"
 	"math"
 	"os"
+	"strings"
 	"time"
 
+	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages/electionMsgs"
@@ -25,9 +27,6 @@ import (
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
 
-	"strings"
-
-	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/messages/msgsupport"
 	"github.com/FactomProject/factomd/elections"
@@ -99,6 +98,16 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		log.SetLevel(log.FatalLevel)
 	case "panic":
 		log.SetLevel(log.PanicLevel)
+	}
+
+	// Command line override if provided
+	switch p.ControlPanelSetting {
+	case "disabled":
+		s.ControlPanelSetting = 0
+	case "readonly":
+		s.ControlPanelSetting = 1
+	case "readwrite":
+		s.ControlPanelSetting = 2
 	}
 
 	if p.Logjson {
@@ -334,9 +343,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 
 		// Also update the local constants for custom networks
 		fmt.Println("Running on the local network, use local coinbase constants")
-		constants.COINBASE_DECLARATION = 10
-		constants.COINBASE_PAYOUT_FREQUENCY = 5
-		constants.COINBASE_ACTIVATION = 0
+		constants.SetLocalCoinBaseConstants()
 	case "CUSTOM", "custom":
 		if bytes.Compare(p.CustomNet, []byte("\xe3\xb0\xc4\x42")) == 0 {
 			panic("Please specify a custom network with -customnet=<something unique here>")
@@ -352,9 +359,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 
 		// Also update the coinbase constants for custom networks
 		fmt.Println("Running on the custom network, use custom coinbase constants")
-		constants.COINBASE_DECLARATION = 10
-		constants.COINBASE_PAYOUT_FREQUENCY = 5
-		constants.COINBASE_ACTIVATION = 0
+		constants.SetCustomCoinBaseConstants()
 	default:
 		panic("Invalid Network choice in Config File or command line. Choose MAIN, TEST, LOCAL, or CUSTOM")
 	}
@@ -504,10 +509,13 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 
 	var colors []string = []string{"95cde5", "b01700", "db8e3c", "ffe35f"}
 
-	for i, s := range fnodes {
-		fmt.Printf("%d {color:#%v, shape:dot, label:%v}\n", i, colors[i%len(colors)], s.State.FactomNodeName)
+	if len(fnodes) > 2 {
+		for i, s := range fnodes {
+			fmt.Printf("%d {color:#%v, shape:dot, label:%v}\n", i, colors[i%len(colors)], s.State.FactomNodeName)
+		}
+		fmt.Printf("Paste the network info above into http://arborjs.org/halfviz to visualize the network\n")
 	}
-	// Initate dbstate plugin if enabled. Only does so for first node,
+	// Initiate dbstate plugin if enabled. Only does so for first node,
 	// any more nodes on sim control will use default method
 	fnodes[0].State.SetTorrentUploader(p.TorUpload)
 	if p.TorManage {
@@ -541,7 +549,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 
 	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelChannel, fnodes[0].State, connectionMetricsChannel, p2pNetwork, Build)
 
-	SimControl(p.ListenTo, listenToStdin)
+	go SimControl(p.ListenTo, listenToStdin)
 
 }
 
@@ -599,6 +607,6 @@ func setupFirstAuthority(s *state.State) {
 func networkHousekeeping() {
 	for {
 		time.Sleep(1 * time.Second)
-		p2pProxy.SetWeight(p2pNetwork.GetNumberConnections())
+		p2pProxy.SetWeight(p2pNetwork.GetNumberOfConnections())
 	}
 }

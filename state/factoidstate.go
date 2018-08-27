@@ -50,6 +50,12 @@ func (slice elementSortable) Swap(i, j int) {
 	slice[i], slice[j] = slice[j], slice[i]
 }
 
+type stringSortable []string
+
+func (v stringSortable) Len() int           { return len(v) }
+func (v stringSortable) Swap(i, j int)      { v[i], v[j] = v[j], v[i] }
+func (v stringSortable) Less(i, j int) bool { return v[i] < v[j] }
+
 type element struct {
 	adr [32]byte
 	v   int64
@@ -269,7 +275,11 @@ func (fs *FactoidState) UpdateECTransaction(rt bool, trans interfaces.IECBlockEn
 		t := trans.(*entryCreditBlock.CommitChain)
 		v := fs.State.GetE(rt, t.ECPubKey.Fixed()) - int64(t.Credits)
 		if (fs.DBHeight > 97886 || fs.State.GetNetworkID() != constants.MAIN_NETWORK_ID) && v < 0 {
-			return fmt.Errorf("Not enough ECs to cover a commit")
+			return fmt.Errorf("%29s dbht %d: Not enough ECs (%d) to cover a chain commit (%d)",
+				fs.State.GetFactomNodeName(),
+				fs.DBHeight,
+				fs.State.GetE(rt, t.ECPubKey.Fixed()),
+				t.Credits)
 		}
 		fs.State.PutE(rt, t.ECPubKey.Fixed(), v)
 		fs.State.NumTransactions++
@@ -279,7 +289,11 @@ func (fs *FactoidState) UpdateECTransaction(rt bool, trans interfaces.IECBlockEn
 		t := trans.(*entryCreditBlock.CommitEntry)
 		v := fs.State.GetE(rt, t.ECPubKey.Fixed()) - int64(t.Credits)
 		if (fs.DBHeight > 97886 || fs.State.GetNetworkID() != constants.MAIN_NETWORK_ID) && v < 0 {
-			return fmt.Errorf("Not enough ECs to cover a commit")
+			return fmt.Errorf("%29s dbht %d: Not enough ECs (%d) to cover a entry commit (%d)",
+				fs.State.GetFactomNodeName(),
+				fs.DBHeight,
+				fs.State.GetE(rt, t.ECPubKey.Fixed()),
+				t.Credits)
 		}
 		fs.State.PutE(rt, t.ECPubKey.Fixed(), v)
 		fs.State.NumTransactions++
@@ -301,7 +315,11 @@ func (fs *FactoidState) UpdateTransaction(rt bool, trans interfaces.ITransaction
 		oldv := fs.State.GetF(rt, adr)
 		v := oldv - int64(input.GetAmount())
 		if v < 0 {
-			return fmt.Errorf("Not enough factoids to cover a transaction")
+			return fmt.Errorf("%29s dbht %d: Not enough factoids (%d) to cover a transaction (%d)",
+				fs.State.GetFactomNodeName(),
+				fs.DBHeight,
+				oldv,
+				input.GetAmount())
 		}
 	}
 	// Then update the state for all inputs.
@@ -377,8 +395,12 @@ func (fs *FactoidState) Validate(index int, trans interfaces.ITransaction) error
 		if err != nil {
 			return err
 		}
-		if int64(bal) > fs.State.GetF(true, input.GetAddress().Fixed()) {
-			return fmt.Errorf("%s", "Not enough funds in input addresses for the transaction")
+		curbal := fs.State.GetF(true, input.GetAddress().Fixed())
+		if int64(bal) > curbal {
+			return fmt.Errorf("%20s DBHT %d %s %d %s %d %s",
+				fs.State.GetFactomNodeName(),
+				fs.DBHeight, "Not enough funds in input addresses (", bal,
+				") to cover the transaction (", curbal, ")")
 		}
 		sums[input.GetAddress().Fixed()] = bal
 	}
@@ -394,14 +416,14 @@ func (fs *FactoidState) GetCoinbaseTransaction(dbheight uint32, ftime interfaces
 	//	Payout blocks are every n blocks, where n is the coinbase frequency
 	if dbheight > constants.COINBASE_ACTIVATION && // Coinbase code must be above activation
 		dbheight != 0 && // Does not affect gensis
-		dbheight%constants.COINBASE_PAYOUT_FREQUENCY == 0 && // Frequency of payouts
+		(dbheight%constants.COINBASE_PAYOUT_FREQUENCY == 0 || dbheight%constants.COINBASE_PAYOUT_FREQUENCY == 1) && // Frequency of payouts
 		// Cannot payout before a declaration (cannot grab below height 0)
 		dbheight > constants.COINBASE_DECLARATION+constants.COINBASE_PAYOUT_FREQUENCY {
 		// Grab the admin block 1000 blocks earlier
 		descriptorHeight := dbheight - constants.COINBASE_DECLARATION
 		ablock, err := fs.State.DB.FetchABlockByHeight(descriptorHeight)
 		if err != nil {
-			panic(fmt.Sprintf("When creating coinbase, admin block at height %d could not be retrieved", dbheight-1000))
+			panic(fmt.Sprintf("When creating coinbase, admin block at height %d could not be retrieved", descriptorHeight))
 		}
 
 		abe := ablock.FetchCoinbaseDescriptor()
@@ -416,7 +438,7 @@ func (fs *FactoidState) GetCoinbaseTransaction(dbheight uint32, ftime interfaces
 				delete(fs.State.IdentityControl.CanceledCoinbaseOutputs, descriptorHeight)
 			}
 
-			// Map contains all cancelled indicies
+			// Map contains all cancelled indices
 			for _, v := range list {
 				m[v] = struct{}{}
 			}
@@ -432,3 +454,122 @@ func (fs *FactoidState) GetCoinbaseTransaction(dbheight uint32, ftime interfaces
 
 	return coinbase
 }
+
+func (fs *FactoidState) GetMultipleECBalances(singleAdd [32]byte) (uint32, uint32, int64, int64, string) {
+
+	if fs.State.IgnoreDone != true || fs.State.DBFinished != true {
+		return 0, 0, 0, 0, "Not fully booted"
+	}
+
+	currentHeight := fs.DBHeight
+	heighestSavedHeight := fs.State.GetHighestSavedBlk()
+	errNotAcc := ""
+
+	PermBalance, pok := fs.State.ECBalancesP[singleAdd] // Gets the Balance of the EC address
+
+	if fs.State.ECBalancesPapi != nil {
+		if savedBal, ok := fs.State.ECBalancesPapi[singleAdd]; ok {
+			PermBalance = savedBal
+		}
+	}
+
+	tok := false
+	TempBalance := int64(0)
+	pl := fs.State.ProcessLists.Get(currentHeight)
+	if pl != nil {
+		pl.ECBalancesTMutex.Lock()
+		TempBalance, tok = pl.ECBalancesT[singleAdd] // Gets the Temp Balance of the EC address
+		pl.ECBalancesTMutex.Unlock()
+	}
+
+	if tok != true && pok != true {
+		TempBalance = 0
+		PermBalance = 0
+		errNotAcc = "Address has not had a transaction"
+	} else if tok == true && pok == false {
+		PermBalance = 0
+	} else if tok == false && pok == true {
+		// default to the Perm Balance
+		TempBalance = PermBalance
+		// pl2 is the previous process list.  So if we have a temp balance there, use that one!
+		pl2 := fs.State.ProcessLists.Get(currentHeight - 1)
+		if pl2 != nil {
+			pl2.ECBalancesTMutex.Lock()
+			TempBalance, tok = pl2.ECBalancesT[singleAdd] // Gets the Temp Balance of the EC address
+			pl2.ECBalancesTMutex.Unlock()
+			if tok == false {
+				TempBalance = PermBalance
+			}
+		}
+	}
+
+	return currentHeight, heighestSavedHeight, TempBalance, PermBalance, errNotAcc
+}
+
+func (fs *FactoidState) GetMultipleFactoidBalances(singleAdd [32]byte) (uint32, uint32, int64, int64, string) {
+
+	if fs.State.IgnoreDone != true || fs.State.DBFinished != true {
+		return 0, 0, 0, 0, "Not fully booted"
+	}
+
+	currentHeight := fs.DBHeight
+	heighestSavedHeight := fs.State.GetHighestSavedBlk()
+	errNotAcc := ""
+
+	PermBalance, pok := fs.State.FactoidBalancesP[singleAdd] // Gets the Balance of the Factoid address
+
+	if fs.State.FactoidBalancesPapi != nil {
+		if savedBal, ok := fs.State.FactoidBalancesPapi[singleAdd]; ok {
+			PermBalance = savedBal
+		}
+	}
+
+	tok := false
+	TempBalance := int64(0)
+	pl := fs.State.ProcessLists.Get(currentHeight)
+	if pl != nil {
+		pl.FactoidBalancesTMutex.Lock()
+		TempBalance, tok = pl.FactoidBalancesT[singleAdd] // Gets the Temp Balance of the Factoid address
+		pl.FactoidBalancesTMutex.Unlock()
+	}
+
+	if tok != true && pok != true {
+		TempBalance = 0
+		PermBalance = 0
+		errNotAcc = "Address has not had a transaction"
+	} else if tok == true && pok == false {
+		PermBalance = 0
+	} else if tok == false && pok == true {
+		// default to the Perm Balance
+		TempBalance = PermBalance
+		// pl2 is the previous process list.  So if we have a temp balance there, use that one!
+		pl2 := fs.State.ProcessLists.Get(currentHeight - 1)
+		if pl2 != nil {
+			pl2.FactoidBalancesTMutex.Lock()
+			TempBalance, tok = pl2.FactoidBalancesT[singleAdd] // Gets the Temp Balance of the Factoid address
+			pl2.FactoidBalancesTMutex.Unlock()
+			if tok == false {
+				TempBalance = PermBalance
+			}
+		}
+	}
+
+	return currentHeight, heighestSavedHeight, TempBalance, PermBalance, errNotAcc
+}
+
+//func (fs *FactoidState) GetFactiodAccounts(params interface{}) (uint32, []string) {
+//	name := fs.State.FactoidBalancesP
+//	height := fs.DBHeight
+//	list := make([]string, 0, len(name))
+//
+//	for k, _ := range name {
+//		y := primitives.Hash(k)
+//		z := interfaces.IAddress(interfaces.IHash(&y))
+//		e := primitives.ConvertFctAddressToUserStr(z)
+//		list = append(list, e)
+//	}
+//
+//	sort.Sort(stringSortable(list))
+//
+//	return height, list
+//}

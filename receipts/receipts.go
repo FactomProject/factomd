@@ -363,7 +363,7 @@ func CreateReceipt(dbo interfaces.DBOverlaySimple, entryID interfaces.IHash) (*R
 
 	branch = primitives.BuildMerkleBranchForEntryHash(entries, receipt.EntryBlockKeyMR, true)
 	blockNode = new(primitives.MerkleNode)
-	left, err = dBlock.HeaderHash()
+	left, err = dBlock.GetHeaderHash()
 	if err != nil {
 		return nil, err
 	}
