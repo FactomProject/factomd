@@ -2737,9 +2737,18 @@ func (s *State) updateNetworkControllerConfig() {
 	s.NetworkController.ReloadSpecialPeers(newPeersConfig)
 }
 
-// Check and Add a hash to the network replay filter
-func (s *State) AddToReplayFilter(mask int, hash [32]byte, timestamp interfaces.Timestamp, systemtime interfaces.Timestamp) (rval bool) {
-	return s.Replay.IsTSValidAndUpdateState(constants.NETWORK_REPLAY, hash, timestamp, systemtime)
+// Return if a feature is active for the current height
+func (s *State) IsActive(id activations.ActivationType) bool {
+	highestCompletedBlk := s.GetHighestCompletedBlk()
+
+	rval := activations.IsActive(id, int(highestCompletedBlk))
+
+	if rval && !s.reportedActivations[id] {
+		s.LogPrintf("executeMsg", "Activating Feature %s at height %v", id.String(), highestCompletedBlk)
+		s.reportedActivations[id] = true
+	}
+
+	return rval
 }
 
 // Return if a feature is active for the current height
