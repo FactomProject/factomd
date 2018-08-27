@@ -1219,8 +1219,21 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
 		m.FollowerExecute(s)
 		return
 	}
+
 	if pl.VMs[dbs.VMIndex].Height > 0 {
-		s.LogMessage("executeMsg", "drop, slot 0 taken by", pl.VMs[dbs.VMIndex].List[0])
+		s.LogPrintf("executeMsg", "DBSig issue height = %d, length = %d", pl.VMs[dbs.VMIndex].Height, len(pl.VMs[dbs.VMIndex].List))
+		s.LogMessage("executeMsg", "drop, already processed ", pl.VMs[dbs.VMIndex].List[0])
+		return
+	}
+
+	if len(pl.VMs[dbs.VMIndex].List) > 0 && pl.VMs[dbs.VMIndex].List[0] != nil {
+		s.LogPrintf("executeMsg", "DBSig issue height = %d, length = %d", pl.VMs[dbs.VMIndex].Height, len(pl.VMs[dbs.VMIndex].List))
+		if pl.VMs[dbs.VMIndex].List[0] != m {
+			s.LogMessage("executeMsg", "drop, slot 0 taken by", pl.VMs[dbs.VMIndex].List[0])
+		} else {
+			s.LogMessage("executeMsg", "duplicate execute", pl.VMs[dbs.VMIndex].List[0])
+		}
+
 		return
 	}
 

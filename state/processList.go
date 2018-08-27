@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -1252,7 +1253,12 @@ func (p *ProcessList) String() string {
 
 				if msg != nil {
 					leader := fmt.Sprintf("[%x] ", vm.ListAck[j].LeaderChainID.Bytes()[3:6])
-					buf.WriteString("   " + leader + msg.String() + "\n")
+					msgStr := msg.String()
+					index := strings.Index(msgStr, "\n")
+					if index > 0 {
+						msgStr = msgStr[0:index]
+					}
+					buf.WriteString("   " + leader + msgStr + "\n")
 				} else {
 					buf.WriteString("   <nil>\n")
 				}
