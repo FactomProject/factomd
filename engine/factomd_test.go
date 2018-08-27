@@ -178,10 +178,10 @@ func WaitMinutes(s *state.State, min int) {
 var ranSimTest = false
 
 func runCmd(cmd string) {
-		os.Stderr.WriteString("Executing: " + cmd + "\n")
-		InputChan <- cmd
-		return
-	}
+	os.Stderr.WriteString("Executing: " + cmd + "\n")
+	InputChan <- cmd
+	return
+}
 
 func v2Request(req *primitives.JSON2Request, port int) (*primitives.JSON2Response, error) {
 	j, err := json.Marshal(req)
@@ -208,7 +208,7 @@ func v2Request(req *primitives.JSON2Request, port int) (*primitives.JSON2Respons
 		return nil, err
 	}
 	return nil, nil
-	}
+}
 
 func TestSetupANetwork(t *testing.T) {
 	if ranSimTest {
@@ -429,7 +429,7 @@ func TestActivationHeightElection(t *testing.T) {
 	}
 
 	for !state0.IsActive(activations.ELECTION_NO_SORT) {
-	WaitBlocks(state0, 1)
+		WaitBlocks(state0, 1)
 	}
 
 	WaitForMinute(state0, 2) // Don't Fault at the end of a block
@@ -450,10 +450,10 @@ func TestActivationHeightElection(t *testing.T) {
 
 	if GetFnodes()[leaders].State.Leader {
 		t.Fatalf("Node %d should not be a leader", leaders)
-		}
+	}
 	if GetFnodes()[leaders+1].State.Leader {
 		t.Fatalf("Node %d should not be a leader", leaders+1)
-		}
+	}
 	if !GetFnodes()[leaders-1].State.Leader {
 		t.Fatalf("Node %d should be a leader", leaders-1)
 	}
@@ -507,7 +507,6 @@ func TestAnElection(t *testing.T) {
 	state0 := SetupSim(nodeList, "LOCAL", map[string]string{}, t)
 	StatusEveryMinute(state0)
 	WaitMinutes(state0, 2)
-
 
 	for {
 		pendingCommits := 0
@@ -566,7 +565,7 @@ func TestAnElection(t *testing.T) {
 		t.Fatal("Failed to shut down factomd via ShutdownChan")
 	}
 
-	}
+}
 
 func TestDBsigEOMElection(t *testing.T) {
 	if ranSimTest {
@@ -642,7 +641,7 @@ func TestDBsigEOMElection(t *testing.T) {
 	for _, fn := range GetFnodes() {
 		fn.State.ShutdownChan <- 1
 	}
-	}
+}
 
 func TestMultiple2Election(t *testing.T) {
 	if ranSimTest {
