@@ -55,16 +55,16 @@ type State struct {
 	Cfg               interfaces.IFactomConfig
 	ConfigFilePath    string // $HOME/.factom/m2/factomd.conf by default
 
-	Prefix          string
-	FactomNodeName  string
-	FactomdVersion  string
-	LogPath         string
-	LdbPath         string
-	BoltDBPath      string
-	LogLevel        string
-	ConsoleLogLevel string
-	NodeMode        string
-	DBType          string
+	Prefix            string
+	FactomNodeName    string
+	FactomdVersion    string
+	LogPath           string
+	LdbPath           string
+	BoltDBPath        string
+	LogLevel          string
+	ConsoleLogLevel   string
+	NodeMode          string
+	DBType            string
 	CheckChainHeads struct {
 		CheckChainHeads bool
 		Fix             bool
@@ -392,8 +392,7 @@ type State struct {
 	pstate              string
 	SyncingState        [256]string
 	SyncingStateCurrent int
-	processCnt          int64                                       // count of attempts to process .. so we can see if the thread is running
-	reportedActivations [activations.ACTIVATION_TYPE_COUNT + 1]bool // flags about which activations we have reported (+1 because we don't use 0)
+	processCnt          int64 // count of attempts to process .. so we can see if the thread is running
 }
 
 var _ interfaces.IState = (*State)(nil)
@@ -525,10 +524,6 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 		newState.StateSaverStruct.FastBoot = s.StateSaverStruct.FastBoot
 		newState.StateSaverStruct.FastBootLocation = newState.BoltDBPath
 		break
-	}
-	if globals.Params.WriteProcessedDBStates {
-		path := filepath.Join(newState.LdbPath, newState.Network, "dbstates")
-		os.MkdirAll(path, 0777)
 	}
 	return newState
 }
@@ -938,12 +933,6 @@ func (s *State) Init() {
 		panic("No Database type specified")
 	}
 
-	if s.CheckChainHeads.CheckChainHeads {
-		correctChainHeads.FindHeads(s.DB.(*databaseOverlay.Overlay), correctChainHeads.CorrectChainHeadConfig{
-			PrintFreq: 5000,
-			Fix:       s.CheckChainHeads.Fix,
-		})
-	}
 	if s.ExportData {
 		s.DB.SetExportData(s.ExportDataSubpath)
 	}
@@ -1032,7 +1021,6 @@ func (s *State) Init() {
 		path := filepath.Join(s.LdbPath, s.Network, "dbstates")
 		os.MkdirAll(path, 0777)
 	}
-
 }
 
 func (s *State) HookLogstash() error {
@@ -2138,7 +2126,6 @@ func (s *State) GetAuthorityInterface(chainid interfaces.IHash) interfaces.IAuth
 	}
 	return rval
 }
-
 // GetLeaderPL returns the leader process list from the state. this method is
 // for debugging and should not be called in normal production code.
 func (s *State) GetLeaderPL() interfaces.IProcessList {
@@ -2735,32 +2722,4 @@ func (s *State) updateNetworkControllerConfig() {
 	}
 
 	s.NetworkController.ReloadSpecialPeers(newPeersConfig)
-}
-
-// Return if a feature is active for the current height
-func (s *State) IsActive(id activations.ActivationType) bool {
-	highestCompletedBlk := s.GetHighestCompletedBlk()
-
-	rval := activations.IsActive(id, int(highestCompletedBlk))
-
-	if rval && !s.reportedActivations[id] {
-		s.LogPrintf("executeMsg", "Activating Feature %s at height %v", id.String(), highestCompletedBlk)
-		s.reportedActivations[id] = true
-	}
-
-	return rval
-}
-
-// Return if a feature is active for the current height
-func (s *State) IsActive(id activations.ActivationType) bool {
-	highestCompletedBlk := s.GetHighestCompletedBlk()
-
-	rval := activations.IsActive(id, int(highestCompletedBlk))
-
-	if rval && !s.reportedActivations[id] {
-		s.LogPrintf("executeMsg", "Activating Feature %s at height %v", id.String(), highestCompletedBlk)
-		s.reportedActivations[id] = true
-	}
-
-	return rval
 }
