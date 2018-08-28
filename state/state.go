@@ -1012,7 +1012,14 @@ func (s *State) Init() {
 		} else {
 			err = s.StateSaverStruct.LoadDBStateList(s.DBStates, s.Network)
 			if err != nil {
-				panic(err)
+				s.LogPrintf("faulting", "Database load failed %v", err)
+			}
+			if err == nil {
+				for _, dbstate := range s.DBStates.DBStates {
+					if dbstate != nil {
+						dbstate.SaveStruct.Commits.s = s
+					}
+				}
 			}
 		}
 	}
