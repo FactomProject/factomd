@@ -3,6 +3,7 @@ package engine_test
 import (
 	"bytes"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -68,20 +69,20 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 			// remove options not supported by the current flags set so we can merge this update into older code bases
 		}
 	}
-	//// Finds all of the valid commands and stores them
-	//optionsArr := make(map[string]bool, 0)
-	//flag.VisitAll(func(key *flag.Flag) {
-	//	optionsArr["--"+key.Name] = true
-	//})
-	//
-	//// Loops through CmdLineOptions to removed commands that are not valid
-	//for i, _ := range CmdLineOptions {
-	//	_, ok := optionsArr[i]
-	//	if !ok {
-	//		fmt.Println("Not Included: " + i + ", Removing from Options")
-	//		delete(CmdLineOptions, i)
-	//	}
-	//}
+	// Finds all of the valid commands and stores them
+	optionsArr := make(map[string]bool, 0)
+	flag.VisitAll(func(key *flag.Flag) {
+		optionsArr["--"+key.Name] = true
+	})
+
+	// Loops through CmdLineOptions to removed commands that are not valid
+	for i, _ := range CmdLineOptions {
+		_, ok := optionsArr[i]
+		if !ok {
+			fmt.Println("Not Included: " + i + ", Removing from Options")
+			delete(CmdLineOptions, i)
+		}
+	}
 
 	// default the fault time and round time based on the blk time out
 	blktime, err := strconv.Atoi(CmdLineOptions["--blktime"])
@@ -374,7 +375,7 @@ func shutDownEverything(t *testing.T) {
 	}
 	currentHeight := statusState.LLeaderHeight
 	// Sleep one block
-	time.Sleep(time.Duration(statusState.DirectoryBlockInSeconds) * time.Second)
+	time.Sleep(time.Duration(globals.Params.BlkTime) * time.Second)
 
 	if currentHeight < statusState.LLeaderHeight {
 		t.Fatal("Failed to shut down factomd via ShutdownChan")
