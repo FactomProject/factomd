@@ -901,16 +901,14 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 	VMListLoop:
 		for j := vm.Height; j < len(vm.List); j++ {
 			state.processCnt++
-			if state.DebugExec() {
-				x := p.decodeState(state.Syncing, state.DBSig, state.EOM, state.DBSigDone, state.EOMDone,
-					len(state.LeaderPL.FedServers), state.EOMProcessed, state.DBSigProcessed)
+			x := p.decodeState(state.Syncing, state.DBSig, state.EOM, state.DBSigDone, state.EOMDone,
+				len(state.LeaderPL.FedServers), state.EOMProcessed, state.DBSigProcessed)
 
-				// Compute a syncing state string and report if it has changed
-				if state.SyncingState[state.SyncingStateCurrent] != x {
-					state.LogPrintf("processStatus", x)
-					state.SyncingStateCurrent = (state.SyncingStateCurrent + 1) % len(state.SyncingState)
-					state.SyncingState[state.SyncingStateCurrent] = x
-				}
+			// Compute a syncing state string and report if it has changed
+			if state.SyncingState[state.SyncingStateCurrent] != x {
+				state.LogPrintf("processStatus", x)
+				state.SyncingStateCurrent = (state.SyncingStateCurrent + 1) % len(state.SyncingState)
+				state.SyncingState[state.SyncingStateCurrent] = x
 			}
 			if vm.List[j] == nil {
 				//p.State.AddStatus(fmt.Sprintf("ProcessList.go Process: Found nil list at vm %d vm height %d ", i, j))
