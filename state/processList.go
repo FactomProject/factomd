@@ -615,6 +615,8 @@ var decodeMap map[foo]string = map[foo]string{
 	foo{false, false, false, true, false, false, true, false, true}:  "Normal",                    //0x148
 	foo{true, false, true, true, false, false, true, false, true}:    "Syncing EOM Start",         //0x14d
 
+	// old code used to also hit these states some of which are problematic as they allow both DBSIG and EOM concurrently
+	//foo{true, true, false, true, false, false, true, true, false}:     "Stop Syncing DBSig",              //0x0cb
 	//foo{true, false, false, false, false, false, false, false, false}: "Sync Only??",                     //0x100 ***
 	//foo{true, false, true, true, false, false, false, false, true}:   "Syncing EOM ... ",                 //0x10d
 	//foo{true, true, false, false, false, false, true, false, true}:    "Start Syncing DBSig",             //0x143
@@ -683,17 +685,16 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 
 	VMListLoop:
 		for j := vm.Height; j < len(vm.List); j++ {
-			s.processCnt++
-			if s.DebugExec() {
-				x := p.decodeState(s.Syncing, s.DBSig, s.EOM, s.DBSigDone, s.EOMDone,
-					len(s.LeaderPL.FedServers), s.EOMProcessed, s.DBSigProcessed)
 
-				// Compute a syncing s string and report if it has changed
-				if s.SyncingState[s.SyncingStateCurrent] != x {
-					s.LogPrintf("processStatus", x)
-					s.SyncingStateCurrent = (s.SyncingStateCurrent + 1) % len(s.SyncingState)
-					s.SyncingState[s.SyncingStateCurrent] = x
-				}
+			state.processCnt++
+			x := p.decodeState(state.Syncing, state.DBSig, state.EOM, state.DBSigDone, state.EOMDone,
+				len(state.LeaderPL.FedServers), state.EOMProcessed, state.DBSigProcessed)
+
+			// Compute a syncing state string and report if it has changed
+			if state.SyncingState[state.SyncingStateCurrent] != x {
+				state.LogPrintf("processStatus", x)
+				state.SyncingStateCurrent = (state.SyncingStateCurrent + 1) % len(state.SyncingState)
+				state.SyncingState[state.SyncingStateCurrent] = x
 			}
 			if extraDebug {
 				p.State.LogMessage("process", fmt.Sprintf("Consider %v/%v/%v", p.DBHeight, i, j), vm.List[j])
@@ -804,7 +805,8 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 						s.Commits.Delete(msg.GetMsgHash().Fixed())
 					}
 
-					//					s.LogMessage("processList", "done", msg)
+					p.State.LogMessage("processList", "done", msg)
+
 					vm.heartBeat = 0
 					vm.Height = j + 1 // Don't process it again if the process worked.
 					s.LogMessage("process", fmt.Sprintf("done %v/%v/%v", p.DBHeight, i, j), msg)
