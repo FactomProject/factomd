@@ -162,13 +162,13 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 		// You have to compute this at every cycle as you can change the block time
 		// in sim control.
 		// blocktime in milliseconds
-		askDelay := int64(s.DirectoryBlockInSeconds * 1000)
-		// Take 1/10 of 1 minute boundary (DBlock is 10*min)
-		//		This means on 10min block, 6 second delay
-		//					  1min block, .6 second delay
-		askDelay = askDelay / 50
-		if askDelay < 500 { // Don't go below half a second. That is just too much
-			askDelay = 500
+		askDelay := int64(s.DirectoryBlockInSeconds*1000) / 50
+		// Take 1/5 of 1 minute boundary (DBlock is 10*min)
+		//		This means on 10min block, 12 second delay
+		//					  1min block, 1.2 second delay
+
+		if askDelay < 50 { // Don't go below 50ms. That is just too much
+			askDelay = 50
 		}
 
 		if askDelay != lastAskDelay {
