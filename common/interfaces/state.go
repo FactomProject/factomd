@@ -329,8 +329,8 @@ type IState interface {
 	GetHighestAck() uint32
 	SetHighestAck(uint32)
 	DebugExec() bool
-	// Activations
-	IsActive(id activations.ActivationType) bool
 	CheckFileName(string) bool
 	AddToReplayFilter(mask int, hash [32]byte, timestamp Timestamp, systemtime Timestamp) bool
+	// Activations
+	IsActive(id activations.ActivationType) bool
 }

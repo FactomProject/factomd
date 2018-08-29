@@ -1008,6 +1008,9 @@ func (s *State) Init() {
 			s.StateSaverStruct.DeleteSaveState(s.Network)
 		} else {
 			err = s.StateSaverStruct.LoadDBStateList(s.DBStates, s.Network)
+			if err != nil {
+				s.LogPrintf("faulting", "Database load failed %v", err)
+			}
 			if err == nil {
 				for _, dbstate := range s.DBStates.DBStates {
 					if dbstate != nil {
