@@ -8,7 +8,6 @@ import (
 	"reflect"
 	"strings"
 	"testing"
-
 	"time"
 
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -106,7 +105,7 @@ func TestHandleV2GetRaw(t *testing.T) {
 		}
 
 		if strings.Contains(resp.String(), v.Raw) == false {
-			t.Errorf("Looking for %v", v.Hash1, "but got %v", v.Raw)
+			t.Errorf("Looking for %v but got %v", v.Hash1, v.Raw)
 			t.Errorf("GetRaw %v/%v from Hash1 failed - %v", i, len(toTest), resp.String())
 		}
 
@@ -465,7 +464,6 @@ func Test_ecBlockToResp(t *testing.T) {
 		want  interface{}
 		want1 *primitives.JSONError
 	}{
-
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
