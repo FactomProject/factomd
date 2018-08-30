@@ -686,18 +686,18 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 	VMListLoop:
 		for j := vm.Height; j < len(vm.List); j++ {
 
-			state.processCnt++
-			x := p.decodeState(state.Syncing, state.DBSig, state.EOM, state.DBSigDone, state.EOMDone,
-				len(state.LeaderPL.FedServers), state.EOMProcessed, state.DBSigProcessed)
+			s.processCnt++
+			x := p.decodeState(s.Syncing, s.DBSig, s.EOM, s.DBSigDone, s.EOMDone,
+				len(s.LeaderPL.FedServers), s.EOMProcessed, s.DBSigProcessed)
 
-			// Compute a syncing state string and report if it has changed
-			if state.SyncingState[state.SyncingStateCurrent] != x {
-				state.LogPrintf("processStatus", x)
-				state.SyncingStateCurrent = (state.SyncingStateCurrent + 1) % len(state.SyncingState)
-				state.SyncingState[state.SyncingStateCurrent] = x
+			// Compute a syncing s string and report if it has changed
+			if s.SyncingState[s.SyncingStateCurrent] != x {
+				s.LogPrintf("processStatus", x)
+				s.SyncingStateCurrent = (s.SyncingStateCurrent + 1) % len(s.SyncingState)
+				s.SyncingState[s.SyncingStateCurrent] = x
 			}
 			if extraDebug {
-				p.State.LogMessage("process", fmt.Sprintf("Consider %v/%v/%v", p.DBHeight, i, j), vm.List[j])
+				s.LogMessage("process", fmt.Sprintf("Consider %v/%v/%v", p.DBHeight, i, j), vm.List[j])
 			}
 			if vm.List[j] == nil {
 				//p.State.AddStatus(fmt.Sprintf("ProcessList.go Process: Found nil list at vm %d vm height %d ", i, j))
@@ -715,7 +715,7 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 					}
 				}
 
-				//				p.State.LogPrintf("process","nil  at  %v/%v/%v", p.DBHeight, i, j)
+				//				s.LogPrintf("process","nil  at  %v/%v/%v", p.DBHeight, i, j)
 				break VMListLoop
 			}
 
@@ -831,7 +831,7 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 			} else {
 				s.LogMessage("process", "Waiting on saving", msg)
 				// If we don't have the Entry Blocks (or we haven't processed the signatures) we can't do more.
-				// p.State.AddStatus(fmt.Sprintf("Can't do more: dbht: %d vm: %d vm-height: %d Entry Height: %d", p.DBHeight, i, j, state.EntryDBHeightComplete))
+				// p.State.AddStatus(fmt.Sprintf("Can't do more: dbht: %d vm: %d vm-height: %d Entry Height: %d", p.DBHeight, i, j, s.EntryDBHeightComplete))
 				if extraDebug {
 					p.State.LogPrintf("process", "Waiting on saving blocks to progress complete %d processing %d-:-%d", s.EntryDBHeightComplete, p.DBHeight, vm.LeaderMinute)
 				}
