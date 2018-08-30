@@ -777,7 +777,7 @@ func TestMultiple2Election(t *testing.T) {
 
 	state0 := SetupSim("LLLLLAAF", map[string]string{"--debuglog": ".*"}, 7, 2, 2, t)
 
-  CheckAuthoritySet(t)
+	CheckAuthoritySet(t)
 
 	WaitForMinute(state0, 2)
 	runCmd("1")
