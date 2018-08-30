@@ -42,6 +42,10 @@ var _ = (*hash.Hash32)(nil)
 var once sync.Once
 var debugExec_flag bool
 
+func (s *State) CheckFileName(name string) bool {
+	return messages.CheckFileName(name)
+}
+
 func (s *State) DebugExec() (ret bool) {
 	once.Do(func() { debugExec_flag = globals.Params.DebugLogRegEx != "" })
 
@@ -110,11 +114,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 	switch valid {
 	case 1:
 		// The highest block for which we have received a message.  Sometimes the same as
-		if msg.GetResendCnt() == 0 {
-			msg.SendOut(s, msg)
-		} else if msg.Resend(s) {
-			msg.SendOut(s, msg)
-		}
+		msg.SendOut(s, msg)
 
 		switch msg.Type() {
 		case constants.REVEAL_ENTRY_MSG, constants.COMMIT_ENTRY_MSG, constants.COMMIT_CHAIN_MSG:
@@ -419,13 +419,7 @@ func (s *State) ReviewHolding() {
 			continue
 		}
 
-		if v.GetResendCnt() == 0 {
-			v.SendOut(s, v)
-		} else {
-			if v.Resend(s) {
-				v.SendOut(s, v)
-			}
-		}
+		v.SendOut(s, v)
 
 		if int(highest)-int(saved) > 1000 {
 			TotalHoldingQueueOutputs.Inc()
@@ -593,7 +587,7 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 		m.SetMinute(ack.Minute)
 
 		pl := s.ProcessLists.Get(ack.DBHeight)
-		pl.AddToProcessList(ack, m)
+		pl.AddToProcessList(s, ack, m)
 
 		// Cross Boot Replay
 		s.CrossReplayAddSalt(ack.DBHeight, ack.Salt)
@@ -627,7 +621,7 @@ func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
 	if ack != nil {
 		pl := s.ProcessLists.Get(ack.DBHeight)
-		pl.AddToProcessList(ack, m)
+		pl.AddToProcessList(s, ack, m)
 	}
 }
 
@@ -1021,7 +1015,7 @@ func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
 		msgResponse := messages.NewMissingMsgResponse(s, pl.System.List[m.SystemHeight], nil)
 		msgResponse.SetOrigin(m.GetOrigin())
 		msgResponse.SetNetworkOrigin(m.GetNetworkOrigin())
-		s.NetworkOutMsgQueue().Enqueue(msgResponse)
+		msgResponse.SendOut(s, msgResponse)
 		s.MissingRequestReplyCnt++
 		sent = true
 	}
@@ -1034,7 +1028,7 @@ func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
 			msgResponse := messages.NewMissingMsgResponse(s, missingmsg, ackMsg)
 			msgResponse.SetOrigin(m.GetOrigin())
 			msgResponse.SetNetworkOrigin(m.GetNetworkOrigin())
-			s.NetworkOutMsgQueue().Enqueue(msgResponse)
+			msgResponse.SendOut(s, msgResponse)
 			s.MissingRequestReplyCnt++
 			sent = true
 		}
@@ -1096,7 +1090,7 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 	}
 
 	// Add the message and ack to the process list.
-	pl.AddToProcessList(ack, m)
+	pl.AddToProcessList(s, ack, m)
 
 	// Check to make sure AddToProcessList removed it from holding (added it to the list)
 	if s.Holding[m.GetMsgHash().Fixed()] != nil {
@@ -1130,7 +1124,7 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 	m.SetLeaderChainID(ack.GetLeaderChainID())
 	m.SetMinute(ack.Minute)
 
-	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(ack, m)
+	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(s, ack, m)
 }
 
 func (s *State) setCurrentMinute(m int) {
@@ -1254,7 +1248,7 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
 	m.SetLeaderChainID(ack.GetLeaderChainID())
 	m.SetMinute(ack.Minute)
 
-	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(ack, m)
+	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(s, ack, m)
 }
 
 func (s *State) LeaderExecuteCommitChain(m interfaces.IMsg) {
@@ -1302,7 +1296,7 @@ func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 	// Put the acknowledgement in the Acks so we can tell if AddToProcessList() adds it.
 	s.Acks[m.GetMsgHash().Fixed()] = ack
 	TotalAcksInputs.Inc()
-	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(ack, m)
+	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(s, ack, m)
 
 	// If it was not added, then handle as a follower, and leave.
 	if s.Acks[m.GetMsgHash().Fixed()] != nil {

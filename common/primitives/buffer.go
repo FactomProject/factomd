@@ -18,6 +18,8 @@ type Buffer struct {
 }
 
 func (b *Buffer) DeepCopyBytes() []byte {
+	// Despite the name this purposefully does not copy, copying turns out to blow up memory when unmarshalling
+	// because the []bytes is very big with many messages and it all gets copied many many times
 	return b.Next(b.Len())
 }
 

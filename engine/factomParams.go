@@ -99,6 +99,8 @@ func ParseCmdLine(args []string) *FactomParams {
 
 	flag.CommandLine.Parse(args)
 
+	Params.FaultTimeout = elections.FaultTimeout
+	Params.RoundTimeout = elections.RoundTimeout
 	p.AckbalanceHash = *ackBalanceHashPtr
 	p.EnableNet = *enablenetPtr
 	p.WaitEntries = *waitEntriesPtr
