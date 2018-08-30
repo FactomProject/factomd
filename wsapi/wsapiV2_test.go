@@ -18,6 +18,8 @@ import (
 	. "github.com/FactomProject/factomd/wsapi"
 )
 
+var Dont_run_these_test
+
 func TestRegisterPrometheus(t *testing.T) {
 	RegisterPrometheus()
 	RegisterPrometheus()
