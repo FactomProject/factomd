@@ -7,10 +7,9 @@ package state_test
 import (
 	"fmt"
 	"math/rand"
+	"net/http/pprof"
 	"testing"
 	"time"
-
-	"net/http/pprof"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
