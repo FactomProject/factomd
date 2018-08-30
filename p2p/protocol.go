@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/util/atomic"
 )
 
 var prLogger = packageLogger.WithField("subpack", "protocol")
@@ -28,6 +29,9 @@ func BlockFreeChannelSend(channel chan interface{}, message interface{}) int {
 	case highWaterMark < clen:
 		str, _ := primitives.EncodeJSONString(message)
 		prLogger.Warnf("nonBlockingChanSend() - DROPPING MESSAGES. Channel is over 90 percent full! \n channel len: \n %d \n 90 percent: \n %d \n last message type: %v", len(channel), highWaterMark, str)
+
+		fmt.Printf("nonBlockingChanSend() - DROPPING MESSAGES. Channel is over 90 percent full! \n channel len: \n %d \n 90 percent: \n %d \n last message type: %v called from %s",
+			len(channel), highWaterMark, str, atomic.WhereAmIString(1))
 		for highWaterMark <= len(channel) { // Clear out some messages
 			removed++
 			<-channel

@@ -42,6 +42,10 @@ var _ = (*hash.Hash32)(nil)
 var once sync.Once
 var debugExec_flag bool
 
+func (s *State) CheckFileName(name string) bool {
+	return messages.CheckFileName(name)
+}
+
 func (s *State) DebugExec() (ret bool) {
 	once.Do(func() { debugExec_flag = globals.Params.DebugLogRegEx != "" })
 
@@ -110,11 +114,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 	switch valid {
 	case 1:
 		// The highest block for which we have received a message.  Sometimes the same as
-		if msg.GetResendCnt() == 0 {
-			msg.SendOut(s, msg)
-		} else if msg.Resend(s) {
-			msg.SendOut(s, msg)
-		}
+		msg.SendOut(s, msg)
 
 		switch msg.Type() {
 		case constants.REVEAL_ENTRY_MSG, constants.COMMIT_ENTRY_MSG, constants.COMMIT_CHAIN_MSG:
@@ -192,6 +192,9 @@ func (s *State) Process() (progress bool) {
 		return false
 	}
 
+	s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
+	now := s.GetTimestamp().GetTimeMilli() // Timestamps are in milliseconds, so wait 20
+
 	// If we are not running the leader, then look to see if we have waited long enough to
 	// start running the leader.  If we are, start the clock on Ignoring Missing Messages.  This
 	// is so we don't conflict with past version of the network if we have to reboot the network.
@@ -202,7 +205,6 @@ func (s *State) Process() (progress bool) {
 	}
 
 	if !s.RunLeader {
-		now := s.GetTimestamp().GetTimeMilli() // Timestamps are in milliseconds, so wait 20
 		if now-s.StartDelay > s.StartDelayLimit {
 			if s.DBFinished == true {
 				s.RunLeader = true
@@ -212,11 +214,8 @@ func (s *State) Process() (progress bool) {
 				}
 			}
 		}
-		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 
 	} else if s.IgnoreMissing {
-		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
-		now := s.GetTimestamp().GetTimeMilli() // Timestamps are in milliseconds, so wait 20
 		if now-s.StartDelay > s.StartDelayLimit {
 			s.IgnoreMissing = false
 		}
@@ -266,7 +265,6 @@ ackLoop:
 			}
 
 			if s.IgnoreMissing {
-				now := s.GetTimestamp().GetTimeSeconds() //todo: Do we really need to do this every loop?
 				if now-ack.GetTimestamp().GetTimeSeconds() < 60*15 {
 					s.LogMessage("ackQueue", "Execute", ack)
 					s.executeMsg(vm, ack)
@@ -422,13 +420,7 @@ func (s *State) ReviewHolding() {
 			continue
 		}
 
-		if v.GetResendCnt() == 0 {
-			v.SendOut(s, v)
-		} else {
-			if v.Resend(s) {
-				v.SendOut(s, v)
-			}
-		}
+		v.SendOut(s, v)
 
 		if int(highest)-int(saved) > 1000 {
 			TotalHoldingQueueOutputs.Inc()
@@ -1024,7 +1016,7 @@ func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
 		msgResponse := messages.NewMissingMsgResponse(s, pl.System.List[m.SystemHeight], nil)
 		msgResponse.SetOrigin(m.GetOrigin())
 		msgResponse.SetNetworkOrigin(m.GetNetworkOrigin())
-		s.NetworkOutMsgQueue().Enqueue(msgResponse)
+		msgResponse.SendOut(s, msgResponse)
 		s.MissingRequestReplyCnt++
 		sent = true
 	}
@@ -1037,7 +1029,7 @@ func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
 			msgResponse := messages.NewMissingMsgResponse(s, missingmsg, ackMsg)
 			msgResponse.SetOrigin(m.GetOrigin())
 			msgResponse.SetNetworkOrigin(m.GetNetworkOrigin())
-			s.NetworkOutMsgQueue().Enqueue(msgResponse)
+			msgResponse.SendOut(s, msgResponse)
 			s.MissingRequestReplyCnt++
 			sent = true
 		}

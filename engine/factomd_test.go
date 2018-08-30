@@ -305,7 +305,6 @@ func WaitForMinute(s *state.State, min int) {
 // Wait some number of minutes
 func WaitMinutesQuite(s *state.State, min int) {
 	sleepTime := time.Duration(globals.Params.BlkTime) * 1000 / 40 // Figure out how long to sleep in milliseconds
-
 	newMinute := (s.CurrentMinute + min) % 10
 	newBlock := int(s.LLeaderHeight) + (s.CurrentMinute+min)/10
 	for int(s.LLeaderHeight) < newBlock {
@@ -663,7 +662,6 @@ func TestActivationHeightElection(t *testing.T) {
 
 	shutDownEverything(t)
 }
-
 func TestAnElection(t *testing.T) {
 	if ranSimTest {
 		return
@@ -687,6 +685,7 @@ func TestAnElection(t *testing.T) {
 	WaitMinutes(state0, 2)
 	//bring him back
 	runCmd("x")
+
 	// wait for him to update via dbstate and become an audit
 	WaitBlocks(state0, 2)
 	WaitMinutes(state0, 1)
@@ -767,7 +766,6 @@ func TestDBsigEOMElection(t *testing.T) {
 	WaitForAllNodes(state0)
 	CheckAuthoritySet(t)
 	shutDownEverything(t)
-
 }
 
 func TestMultiple2Election(t *testing.T) {
@@ -779,7 +777,7 @@ func TestMultiple2Election(t *testing.T) {
 
 	state0 := SetupSim("LLLLLAAF", map[string]string{"--debuglog": ".*"}, 7, 2, 2, t)
 
-	CheckAuthoritySet(t)
+  CheckAuthoritySet(t)
 
 	WaitForMinute(state0, 2)
 	runCmd("1")
@@ -1361,5 +1359,4 @@ func TestRandom(t *testing.T) {
 	if random.RandUInt8() > 200 {
 		t.Fatal("Failed")
 	}
-
 }
