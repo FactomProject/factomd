@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"reflect"
 	"strings"
@@ -89,9 +90,15 @@ func TestHandleV2GetRaw(t *testing.T) {
 	raw.Raw = primitives.EncodeBinary(hex)
 	toTest = append(toTest, raw) //5
 
-	//initializing server
-	state := testHelper.CreateAndPopulateTestState()
-	Start(state)
+	// running on CircleCI another test may have started the server so check
+	// and only start it if necessary
+	ln, err := net.Listen("tcp", ":8088")
+	if err == nil {
+		ln.Close()
+		//initializing server
+		state := testHelper.CreateAndPopulateTestState()
+		Start(state)
+	}
 
 	for i, v := range toTest {
 		data := new(HashRequest)
