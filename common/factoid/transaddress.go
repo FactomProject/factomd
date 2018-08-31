@@ -33,7 +33,7 @@ func RandomTransAddress() interfaces.ITransAddress {
 	ta := new(TransAddress)
 	ta.Address = RandomAddress()
 	ta.Amount = random.RandUInt64()
-	ta.UserAddress = random.RandomString()
+	ta.UserAddress = primitives.ConvertFctAddressToUserStr(ta.Address)
 	return ta
 }
 
@@ -74,13 +74,17 @@ func (t *TransAddress) IsSameAs(add interfaces.ITransAddress) bool {
 }
 
 func (t *TransAddress) UnmarshalBinaryData(data []byte) ([]byte, error) {
-	if len(data) < 36 {
-		return nil, fmt.Errorf("Data source too short to UnmarshalBinary() an address: %d", len(data))
+	//
+	if len(data) < 33 { // leading varint has to be one or more bytes and the address is 32
+		return nil, fmt.Errorf("Data source too short in TransAddress.UnmarshalBinaryData() an address: %d", len(data))
 	}
 	buf := primitives.NewBuffer(data)
 	var err error
 
 	t.Amount, err = buf.PopVarInt()
+	if len(data) < 32 { // after the varint there have to be 32 bytes left but there may be some other struct following so longer is fine
+		return nil, fmt.Errorf("Data source too short in TransAddress.UnmarshalBinaryData() an address: %d", len(data))
+	}
 	if err != nil {
 		return nil, err
 	}

@@ -38,6 +38,8 @@ log, Copyright (c) 2014 Alexandre Cesaro
 logrus, Copyright (c) 2014 Simon Eskildsen
 perks, Copyright (C) 2013 Blake Mizerany
 logrustash, Copyright (c) 2016 Boaz Shuster
+go-humanize, Copyright (c) 2005-2008 Dustin Sallings <dustin@spy.net>
+survey, Copyright (c) 2018 Alec Aivazis
 
 
 Use of any of this software is governed by the terms and conditions set forth below:
@@ -399,6 +401,7 @@ Exhibit B - “Incompatible With Secondary Licenses” Notice
 
 The following software may be included in this product:
 client_golang, Copyright (c) 2016 The Prometheus Authors
+yaml, Copyright (c) 2011-2016 Canonical Ltd.
 
 Use of any of this software is governed by the terms and conditions set forth below:
 

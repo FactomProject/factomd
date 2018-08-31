@@ -102,7 +102,7 @@ func Peers(fnode *FactomNode) {
 			case constants.MISSING_DATA:
 				if !fnode.State.DBFinished {
 					return true
-				} else if fnode.State.InMsgQueue().Length() > constants.INMSGQUEUE_MED {
+				} else if fnode.State.InMsgQueue().Length() > constants.INMSGQUEUE_HIGH {
 					// If > 4000, we won't get to this in time anyway. Just drop it since we are behind
 					return true
 				}
@@ -130,6 +130,11 @@ func Peers(fnode *FactomNode) {
 			if msg == nil {
 				continue
 			}
+			if msg.GetHash() == nil {
+				fnode.State.LogMessage("badMsgs", "Nil hash from APIQueue", msg)
+				continue
+			}
+
 			// TODO: Is this as intended for 'x' command? -- clay
 			if fnode.State.GetNetStateOff() { // drop received message if he is off
 				fnode.State.LogMessage("NetworkInputs", "API drop, X'd by simCtrl", msg)
@@ -178,8 +183,8 @@ func Peers(fnode *FactomNode) {
 			fnode.State.LogMessage("NetworkInputs", "from API, Enqueue", msg)
 			if t := msg.Type(); t == constants.REVEAL_ENTRY_MSG || t == constants.COMMIT_CHAIN_MSG || t == constants.COMMIT_ENTRY_MSG {
 				fnode.State.LogMessage("NetworkInputs", "from API, Enqueue2", msg)
-				fnode.State.LogMessage("InMsgQueue2", "enqueue", msg)
-				fnode.State.InMsgQueue().Enqueue(msg)
+				fnode.State.LogMessage("InMsgQueue2", "enqueue2", msg)
+				fnode.State.InMsgQueue2().Enqueue(msg)
 			} else {
 				fnode.State.LogMessage("NetworkInputs", "from API, Enqueue", msg)
 				fnode.State.LogMessage("InMsgQueue", "enqueue", msg)
@@ -201,7 +206,6 @@ func Peers(fnode *FactomNode) {
 					// Receive is not blocking; nothing to do, we get a nil.
 					break // move to next peer
 				}
-
 				if err != nil {
 					fnode.State.LogPrintf("NetworkInputs", "error on receive from %v: %v", peer.GetNameFrom(), err)
 					fmt.Println("ERROR receiving message on", fnode.State.FactomNodeName+":", err)
@@ -216,6 +220,11 @@ func Peers(fnode *FactomNode) {
 
 				if fnode.State.MessageTally {
 					fnode.State.TallyReceived(int(msg.Type())) //TODO: Do we want to count dropped message?
+				}
+
+				if msg.GetHash() == nil {
+					fnode.State.LogMessage("badMsgs", "Nil hash from Peer", msg)
+					continue
 				}
 
 				if fnode.State.GetNetStateOff() { // drop received message if he is off
@@ -287,7 +296,7 @@ func Peers(fnode *FactomNode) {
 					fnode.State.LogMessage("NetworkInputs", fromPeer+", enqueue", msg)
 					if t := msg.Type(); t == constants.REVEAL_ENTRY_MSG || t == constants.COMMIT_CHAIN_MSG || t == constants.COMMIT_ENTRY_MSG {
 						fnode.State.LogMessage("NetworkInputs", fromPeer+", enqueue2", msg)
-						fnode.State.LogMessage("InMsgQueue2", fromPeer+", enqueue", msg)
+						fnode.State.LogMessage("InMsgQueue2", fromPeer+", enqueue2", msg)
 						fnode.State.InMsgQueue2().Enqueue(msg)
 					} else {
 						fnode.State.LogMessage("NetworkInputs", fromPeer+", enqueue", msg)
