@@ -663,7 +663,7 @@ func TestMultiple2Election(t *testing.T) {
 	runCmd("F")
 	runCmd("0")
 	runCmd("p")
-	WaitBlocks(state0, 3)
+	WaitBlocks(state0, 5)
 
 	t.Log("Shutting down the network")
 	for _, fn := range GetFnodes() {
@@ -716,7 +716,7 @@ func TestMultiple3Election(t *testing.T) {
 	runCmd("x")
 	runCmd("2")
 	runCmd("x")
-	WaitBlocks(state0, 3)
+	WaitBlocks(state0, 5)
 
 	leadercnt = 0
 	auditcnt = 0
@@ -790,7 +790,7 @@ func TestMultiple7Election(t *testing.T) {
 	}
 
 	// Wait till the should have updated by DBSTATE
-	WaitBlocks(state0, 3)
+	WaitBlocks(state0, 5)
 
 	CheckAuthoritySet(15, 10, t)
 	t.Log("Shutting down the network")
