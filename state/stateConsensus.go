@@ -554,8 +554,6 @@ func (s *State) AddDBState(isNew bool,
 			s.LeaderPL.FactoidBalancesTMutex.Unlock()
 
 			s.LeaderPL.ECBalancesTMutex.Lock()
-
-			s.LeaderPL.FactoidBalancesT = map[[32]byte]int64{}
 			s.LeaderPL.ECBalancesT = map[[32]byte]int64{}
 			s.LeaderPL.ECBalancesTMutex.Unlock()
 		}
