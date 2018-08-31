@@ -303,11 +303,13 @@ func CheckConfigFileName(filename string) string {
 	return filename
 }
 
+// Track a filename-error pair so we don't report the same error repeatedly
+var reportedError map[string]string = make(map[string]string)
+
 func ReadConfig(filename string) *FactomdConfig {
 	if filename == "" {
 		filename = ConfigFilename()
 	}
-
 	filename = CheckConfigFileName(filename)
 
 	cfg := new(FactomdConfig)
@@ -319,12 +321,20 @@ func ReadConfig(filename string) *FactomdConfig {
 
 	err = gcfg.FatalOnly(gcfg.ReadFileInto(cfg, filename))
 	if err != nil {
-		log.Printfln("Reading from '%s'", filename)
-		log.Printfln("Cannot open custom config file,\nStarting with default settings.\n%v\n", err)
+		if reportedError[filename] != err.Error() {
+			log.Printfln("Reading from '%s'", filename)
+			log.Printfln("Cannot open custom config file,\nStarting with default settings.\n%v\n", err)
+			// Remember the error reported for this filename
+			reportedError[filename] = err.Error()
+		}
+
 		err = gcfg.ReadStringInto(cfg, defaultConfig)
 		if err != nil {
 			panic(err)
 		}
+	} else {
+		// Remember that there was no error reported for this filename
+		delete(reportedError, filename)
 	}
 
 	// Default to home directory if not set

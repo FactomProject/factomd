@@ -8,16 +8,18 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/FactomProject/factomd/common/adminBlock"
-	// "github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
+	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
@@ -920,6 +922,7 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	// Additional Admin block changed can be made from identity changes
 	list.State.SyncIdentities(d)
 
+	// every 25 blocks +0 we add grant payouts
 	// If this is a coinbase descriptor block, add that now
 	if currentDBHeight > constants.COINBASE_ACTIVATION && currentDBHeight%constants.COINBASE_PAYOUT_FREQUENCY == 0 {
 		// Build outputs
@@ -938,9 +941,22 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 			o := factoid.NewOutAddress(ia.CoinbaseAddress, amt)
 			outputs = append(outputs, o)
 		}
+
 		err = d.AdminBlock.AddCoinbaseDescriptor(outputs)
 		if err != nil {
 			panic(err)
+		}
+	}
+
+	// every 25 blocks +1 we add grant payouts
+	if currentDBHeight > constants.COINBASE_ACTIVATION && currentDBHeight%constants.COINBASE_PAYOUT_FREQUENCY == 1 {
+		// Add the grants to the list
+		grantPayouts := GetGrantPayoutsFor(currentDBHeight)
+		if len(grantPayouts) > 0 {
+			err := d.AdminBlock.AddCoinbaseDescriptor(grantPayouts)
+			if err != nil {
+				panic(err)
+			}
 		}
 	}
 
@@ -1117,6 +1133,29 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		out.WriteString("=== AdminBlock.UpdateState() End ===")
 		fmt.Println(out.String())
 	}
+
+	// get all the prior balances of the Factoid addresses that may have changed
+	// in this block.  If you want the balance of the highest saved block, look to
+	// list.State.FactoidBalancesPapi if it is not null.  If you have no entry there,
+	// then look to list.State.FactoidBalancesP
+	list.State.FactoidBalancesPMutex.Lock()
+	list.State.FactoidBalancesPapi = make(map[[32]byte]int64, len(pl.FactoidBalancesT))
+	for k := range pl.FactoidBalancesT {
+		list.State.FactoidBalancesPapi[k] = list.State.FactoidBalancesP[k]
+	}
+	list.State.FactoidBalancesPMutex.Unlock()
+
+	// get all the prior balances of the entry credit addresses that may have changed
+	// in this block.  If you want the balance of the highest saved block, look to
+	// list.State.ECBalancesPapi if it is not null.  If you have no entry there,
+	// then look to list.State.ECBalancesP
+	list.State.ECBalancesPMutex.Lock()
+	list.State.ECBalancesPapi = make(map[[32]byte]int64, len(pl.ECBalancesT))
+	for k := range pl.ECBalancesT {
+		list.State.ECBalancesPapi[k] = list.State.ECBalancesP[k]
+	}
+	list.State.ECBalancesPMutex.Unlock()
+
 	// Process the Factoid End of Block
 	fs := list.State.GetFactoidState()
 	fs.(*FactoidState).DBHeight = dbht
@@ -1214,6 +1253,12 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	// 	}
 	// }
 
+	// Writing the DBState to a debug file allows for later analyzing the last block not saved to the database.
+	// Do not do this while loading from disk, as those blocks are already saved
+	if list.State.DBFinished && globals.Params.WriteProcessedDBStates {
+		list.WriteDBStateToDebugFile(d)
+	}
+
 	return
 }
 
@@ -1254,6 +1299,55 @@ func (list *DBStateList) SignDB(d *DBState) (process bool) {
 }
 
 var nowish int64 = time.Now().Unix()
+
+// WriteDBStateToDebugFile will write the marshaled dbstate to a file alongside the database.
+// This can be written on the processblocks, so in the event the block does not get written to disk
+// in the event of a stall, the dbstate can be analyzed. The written dbstate does NOT include entries.
+func (list *DBStateList) WriteDBStateToDebugFile(d *DBState) {
+	// Because DBStates include the Savestate, we cannot marshal it, as the savestate is not set
+	// So change it to a full block
+
+	f := NewWholeBlock()
+	f.DBlock = d.DirectoryBlock
+	f.ABlock = d.AdminBlock
+	f.FBlock = d.FactoidBlock
+	f.ECBlock = d.EntryCreditBlock
+	f.EBlocks = d.EntryBlocks
+
+	data, err := f.MarshalBinary()
+	if err != nil {
+		fmt.Printf("An error has occurred while writing the DBState to disk: %s\n", err.Error())
+		return
+	}
+
+	filename := fmt.Sprintf("processed_dbstate_%d.block", d.DirectoryBlock.GetDatabaseHeight()%10)
+	path := filepath.Join(list.State.LdbPath, list.State.Network, "dbstates", filename)
+
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0777)
+	if err != nil {
+		fmt.Printf("An error has occurred while writing the DBState to disk: %s\n", err.Error())
+		return
+	}
+
+	file.Write(data)
+	file.Close()
+}
+
+func ReadDBStateFromDebugFile(filename string) (*WholeBlock, error) {
+	file, err := os.OpenFile(filename, os.O_RDONLY, 0777)
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := ioutil.ReadAll(file)
+	if err != nil {
+		return nil, err
+	}
+
+	wb := NewWholeBlock()
+	err = wb.UnmarshalBinary(data)
+	return wb, err
+}
 
 func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	dbheight := int(d.DirectoryBlock.GetHeader().GetDBHeight())
@@ -1477,6 +1571,20 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	progress = true
 	d.ReadyToSave = false
 	d.Saved = true
+
+	// Now that we have saved the perm balances, we can clear the api hashmaps that held the differences
+	// between the actual saved block prior, and this saved block.  If you are looking for balances of
+	// the highest saved block, you first look to see that one of the "<fct or ec>Papi" maps exist, then
+	// if that map has a value for your address.  If it doesn't exist, or doesn't have a value, then look
+	// in the "<fct or ec>P" map.
+	list.State.FactoidBalancesPMutex.Lock()
+	list.State.FactoidBalancesPapi = nil
+	list.State.FactoidBalancesPMutex.Unlock()
+
+	list.State.ECBalancesPMutex.Lock()
+	list.State.ECBalancesPapi = nil
+	list.State.ECBalancesPMutex.Unlock()
+
 	return
 }
 
