@@ -57,7 +57,7 @@ func Factomd(params *FactomParams, listenToStdin bool) interfaces.IState {
 	state0.SetLeaderTimestamp(primitives.NewTimestampFromMilliseconds(0))
 	state0.EFactory = new(electionMsgs.ElectionsFactory)
 
-	go NetStart(state0, params, listenToStdin)
+	NetStart(state0, params, listenToStdin)
 	return state0
 }
 
