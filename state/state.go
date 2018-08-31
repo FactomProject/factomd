@@ -36,6 +36,8 @@ import (
 	"github.com/FactomProject/factomd/wsapi"
 	"github.com/FactomProject/logrustash"
 
+	"path/filepath"
+
 	"github.com/FactomProject/factomd/Utilities/CorrectChainHeads/correctChainHeads"
 	log "github.com/sirupsen/logrus"
 )
@@ -307,8 +309,10 @@ type State struct {
 	NumTransactions int
 
 	// Permanent balances from processing blocks.
+	FactoidBalancesPapi   map[[32]byte]int64
 	FactoidBalancesP      map[[32]byte]int64
 	FactoidBalancesPMutex sync.Mutex
+	ECBalancesPapi        map[[32]byte]int64
 	ECBalancesP           map[[32]byte]int64
 	ECBalancesPMutex      sync.Mutex
 	TempBalanceHash       interfaces.IHash
@@ -524,6 +528,12 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 		newState.StateSaverStruct.FastBootLocation = newState.BoltDBPath
 		break
 	}
+
+	if globals.Params.WriteProcessedDBStates {
+		path := filepath.Join(newState.LdbPath, newState.Network, "dbstates")
+		os.MkdirAll(path, 0777)
+	}
+
 	return newState
 }
 
@@ -1003,8 +1013,12 @@ func (s *State) Init() {
 			s.StateSaverStruct.DeleteSaveState(s.Network)
 		} else {
 			err = s.StateSaverStruct.LoadDBStateList(s.DBStates, s.Network)
-			if err != nil {
-				panic(err)
+			if err == nil {
+				for _, dbstate := range s.DBStates.DBStates {
+					if dbstate != nil {
+						dbstate.SaveStruct.Commits.s = s
+					}
+				}
 			}
 		}
 	}
@@ -1017,6 +1031,11 @@ func (s *State) Init() {
 		if err != nil {
 			log.Fatal(err)
 		}
+	}
+
+	if globals.Params.WriteProcessedDBStates {
+		path := filepath.Join(s.LdbPath, s.Network, "dbstates")
+		os.MkdirAll(path, 0777)
 	}
 
 }

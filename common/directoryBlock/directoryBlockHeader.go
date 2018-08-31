@@ -45,6 +45,18 @@ func (h *DBlockHeader) Init() {
 	}
 }
 
+func (b *DBlockHeader) GetHeaderHash() (interfaces.IHash, error) {
+
+	binaryEBHeader, err := b.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+
+	h := primitives.Sha(binaryEBHeader)
+
+	return h, nil
+}
+
 func (a *DBlockHeader) IsSameAs(b interfaces.IDirectoryBlockHeader) bool {
 	if a == nil || b == nil {
 		if a == nil && b == nil {

@@ -24,9 +24,8 @@ var dLogger = packageLogger.WithFields(log.Fields{"message": "DirectoryBlockSign
 
 type DirectoryBlockSignature struct {
 	msgbase.MessageBase
-	Timestamp interfaces.Timestamp
-	DBHeight  uint32
-	//DirectoryBlockKeyMR   interfaces.IHash
+	Timestamp             interfaces.Timestamp
+	DBHeight              uint32
 	DirectoryBlockHeader  interfaces.IDirectoryBlockHeader
 	ServerIdentityChainID interfaces.IHash
 
@@ -395,6 +394,7 @@ func (m *DirectoryBlockSignature) MarshalForSignature() (rval []byte, err error)
 
 func (m *DirectoryBlockSignature) MarshalBinary() (data []byte, err error) {
 
+	// do we have a saved binary version already?
 	if m.marshalCache != nil {
 		return m.marshalCache, nil
 	}
@@ -412,6 +412,8 @@ func (m *DirectoryBlockSignature) MarshalBinary() (data []byte, err error) {
 		}
 		return append(resp, sigBytes...), nil
 	}
+	// remember the binary version for next time
+	m.marshalCache = resp
 	return resp, nil
 }
 
@@ -423,13 +425,18 @@ func (m *DirectoryBlockSignature) String() string {
 	} else {
 		m.dbsHash = primitives.NewHash(constants.ZERO)
 	}
-	return fmt.Sprintf("%6s-VM%3d:          DBHt:%5d -- Signer=%x PrevDBKeyMR[:3]=%x hash=%x",
+	headerHash, err := m.DirectoryBlockHeader.GetHeaderHash()
+
+	return fmt.Sprintf("%6s-VM%3d:          DBHt:%5d -- Signer[%x] PrevDBKeyMR[%x] HeaderHash[%x] BodyMR[%x] hash[%x] header - %s",
 		"DBSig",
 		m.VMIndex,
 		m.DBHeight,
-		m.ServerIdentityChainID.Bytes()[2:6],
+		m.ServerIdentityChainID.Bytes()[3:6],
 		m.DirectoryBlockHeader.GetPrevKeyMR().Bytes()[:3],
-		m.GetHash().Bytes()[:3])
+		headerHash.Bytes()[:3],
+		m.DirectoryBlockHeader.GetBodyMR().Bytes()[:3],
+		m.GetHash().Bytes()[:3],
+		m.DirectoryBlockHeader.String())
 
 }
 

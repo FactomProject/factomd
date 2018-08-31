@@ -52,25 +52,37 @@ func (s *State) DebugExec() (ret bool) {
 func (s *State) LogMessage(logName string, comment string, msg interfaces.IMsg) {
 	if s.DebugExec() {
 		var dbh int
-		if s.LeaderPL != nil {
-			dbh = int(s.LeaderPL.DBHeight)
+		nodeName := "unknown"
+		minute := 0
+		if s != nil {
+			if s.LeaderPL != nil {
+				dbh = int(s.LeaderPL.DBHeight)
+			}
+			nodeName = s.FactomNodeName
+			minute = int(s.CurrentMinute)
 		}
-		messages.StateLogMessage(s.FactomNodeName, dbh, int(s.CurrentMinute), logName, comment, msg)
+		messages.StateLogMessage(nodeName, dbh, minute, logName, comment, msg)
 	}
 }
 
 func (s *State) LogPrintf(logName string, format string, more ...interface{}) {
 	if s.DebugExec() {
 		var dbh int
-		if s.LeaderPL != nil {
-			dbh = int(s.LeaderPL.DBHeight)
+		nodeName := "unknown"
+		minute := 0
+		if s != nil {
+			if s.LeaderPL != nil {
+				dbh = int(s.LeaderPL.DBHeight)
+			}
+			nodeName = s.FactomNodeName
+			minute = int(s.CurrentMinute)
 		}
-		messages.StateLogPrintf(s.FactomNodeName, dbh, int(s.CurrentMinute), logName, format, more...)
+		messages.StateLogPrintf(nodeName, dbh, minute, logName, format, more...)
 	}
 }
 func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 
-	if msg.GetHash().IsHashNil() {
+	if msg.GetHash() == nil || reflect.ValueOf(msg.GetHash()).IsNil() {
 		s.LogMessage("badMsgs", "Nil hash in executeMsg", msg)
 		return false
 	}
@@ -2289,13 +2301,13 @@ func (s *State) PutE(rt bool, adr [32]byte, v int64) {
 		pl := s.ProcessLists.Get(s.LLeaderHeight)
 		if pl != nil {
 			pl.ECBalancesTMutex.Lock()
-			defer pl.ECBalancesTMutex.Unlock()
 			pl.ECBalancesT[adr] = v
+			pl.ECBalancesTMutex.Unlock()
 		}
 	} else {
 		s.ECBalancesPMutex.Lock()
-		defer s.ECBalancesPMutex.Unlock()
 		s.ECBalancesP[adr] = v
+		s.ECBalancesPMutex.Unlock()
 	}
 }
 
@@ -2327,7 +2339,6 @@ func (s *State) GetNewHash() (rval interfaces.IHash) {
 			primitives.LogNilHashBug("State.GetNewHash() saw an interface that was nil")
 		}
 	}()
-
 	return new(primitives.Hash)
 }
 
@@ -2348,7 +2359,7 @@ func (s *State) NewAck(msg interfaces.IMsg, balanceHash interfaces.IHash) interf
 	ack.MessageHash = msg.GetMsgHash()
 	ack.LeaderChainID = s.IdentityChainID
 	ack.BalanceHash = balanceHash
-	listlen := len(s.LeaderPL.VMs[vmIndex].List)
+	listlen := s.LeaderPL.VMs[vmIndex].Height
 	if listlen == 0 {
 		ack.Height = 0
 		ack.SerialHash = ack.MessageHash
