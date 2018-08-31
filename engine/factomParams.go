@@ -94,6 +94,8 @@ func ParseCmdLine(args []string) *FactomParams {
 	flag.StringVar(&p.ConfigPath, "config", "", "Override the config file location (factomd.conf)")
 	flag.BoolVar(&p.CheckChainHeads, "checkheads", true, "Enables checking chain heads on boot")
 	flag.BoolVar(&p.FixChainHeads, "fixheads", true, "If --checkheads is enabled, then this will also correct any errors reported")
+	flag.StringVar(&p.ControlPanelSetting, "controlpanelsetting", "", "Can set to 'disabled', 'readonly', or 'readwrite' to overwrite config file")
+	flag.BoolVar(&p.WriteProcessedDBStates, "wrproc", true, "Write processed blocks to temporary debug file")
 
 	flag.CommandLine.Parse(args)
 
@@ -113,7 +115,7 @@ func ParseCmdLine(args []string) *FactomParams {
 	p.CloneDB = *cloneDBPtr
 	p.PortOverride = *portOverridePtr
 	p.Peers = *peersPtr
-	p.NetworkName = *networkNamePtr
+	p.NetworkName = strings.ToUpper(*networkNamePtr)
 	p.NetworkPortOverride = *networkPortOverridePtr
 	p.ControlPanelPortOverride = *ControlPanelPortOverridePtr
 	p.LogPort = *logportPtr
@@ -127,6 +129,7 @@ func ParseCmdLine(args []string) *FactomParams {
 	p.KeepMismatch = *KeepMismatchPtr
 	p.StartDelay = int64(*startDelayPtr)
 	p.Deadline = *DeadlinePtr
+	p.CustomNetName = *CustomNetPtr
 	p.CustomNet = primitives.Sha([]byte(*CustomNetPtr)).Bytes()[:4]
 	p.RpcUser = *RpcUserflag
 	p.RpcPassword = *RpcPasswordflag

@@ -21,3 +21,13 @@ type ShortInterpretable interface {
 	IsInterpretable() bool //Whether the structure can interpret itself
 	Interpret() string     //Turns the data encoded in the structure into human-friendly string
 }
+
+type IndividualObj struct {
+	ERROR string `json:"err"`
+}
+
+type StructToReturnValues struct {
+	TempBal int64  `json:"ack"`
+	PermBal int64  `json:"saved"`
+	Error   string `json:"err"`
+}

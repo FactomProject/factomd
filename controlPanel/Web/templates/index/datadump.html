@@ -10,6 +10,7 @@
 				<li class="tabs-title"><a href="#dump4">Servers</a></li>
                 <li class="tabs-title"><a href="#dump6">Elections</a></li>
 				<li class="tabs-title"><a href="#dump5">Connections</a></li>
+                <li class="tabs-title"><a href="#dump7">Log Settings</a></li>
 			</ul>
 			<div class="tabs-content" data-tabs-content="example-tabs">
 				<div class="tabs-panel is-active" id="dump1">
@@ -86,8 +87,42 @@
                         <textarea disabled spellcheck="false" class="tabs-panel" id="dumpSimulatedElections"></textarea>
                     </div>
                 </div>
+                <div class="tabs-panel" id="dump7">
+                    <div class="row">
+                        <div class="small-offset-1 small-6 columns">
+							<h3>Change log settings</h3>
+							<div class="input-group" style="margin-left: 5%;">
+								<span class="input-group-label"><i class="fa fa-file-text" aria-hidden="true"></i></span>
+								<input type="search" name="q" class="input-group-field" id="factom-log-set" placeholder="Set the log regex...">
+								<div class="input-group-button">
+									<input type="submit" id="factom-log-submit" class="button dark" value="Go">
+								</div>
+							</div>
+                            <h4>Current Log Setting</h4>
+							<pre style="
+							background-color: #eee;
+                            border: 1px solid #999;
+                            display: block;
+                            padding: 2px;;
+							margin-left: 5%;" id="current-log-value">Placeholder....</pre>
+                            <div class="factom-log-error callout alert text-center" style="overflow:hidden;display:none;">Denied</div>
+                            <div class="factom-log-success callout success text-center" style="overflow:hidden;display:none;">Log settings set</div>
+						</div>
+					</div>
+                </div>
 			</div>
 		</div>
 	</div>
 </section>
+
+<script>
+    var input = document.getElementById("factom-log-set");
+    input.addEventListener("keyup", function(event) {
+        event.preventDefault();
+        if (event.keyCode === 13) {
+            document.getElementById("factom-log-submit").click();
+        }
+    });
+</script>
+
 {{end}}

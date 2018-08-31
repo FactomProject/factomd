@@ -109,6 +109,10 @@ function updataDataDumps() {
 
     $("#dump6 #dumpElections").text(obj.ElectionDataDump.Elections)
     $("#dump6 #dumpSimulatedElections").text(obj.ElectionDataDump.SimulatedElection)
+    if(obj.LogSettingsDump.CurrentLogSettings == "") {
+        obj.LogSettingsDump.CurrentLogSettings = " "
+    }
+    $("#dump7 #current-log-value").text(obj.LogSettingsDump.CurrentLogSettings)
   })
 }
 
