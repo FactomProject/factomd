@@ -72,14 +72,18 @@ func (s *State) GetEntryCommitAckByTXID(hash interfaces.IHash) (status int, blkt
 			// We will search the processlist for the commit
 			// TODO: Is this thread safe?
 			for _, v := range pl.VMs {
-				for _, m := range v.List {
+				for i, m := range v.List {
 					switch m.Type() {
 					case constants.COMMIT_CHAIN_MSG:
 						cc, ok := m.(*messages.CommitChainMsg)
 						if ok {
 							if cc.CommitChain.GetSigHash().IsSameAs(hash) {
 								// Msg found in the latest processlist
-								status = constants.AckStatusACK
+								if i > v.Height { // if it has not yet been processed ...
+									status = constants.AckStatusNotConfirmed
+								} else {
+									status = constants.AckStatusACK
+								}
 								commit = cc
 								entryhash = cc.CommitChain.EntryHash
 								return
@@ -90,7 +94,11 @@ func (s *State) GetEntryCommitAckByTXID(hash interfaces.IHash) (status int, blkt
 						if ok {
 							if ce.CommitEntry.GetSigHash().IsSameAs(hash) {
 								// Msg found in the latest processlist
-								status = constants.AckStatusACK
+								if i > v.Height { // if it has not yet been processed ...
+									status = constants.AckStatusNotConfirmed
+								} else {
+									status = constants.AckStatusACK
+								}
 								commit = ce
 								entryhash = ce.CommitEntry.EntryHash
 								return
@@ -286,12 +294,20 @@ func (s *State) getACKStatus(hash interfaces.IHash, useOldMsgs bool) (int, inter
 		for _, pl := range s.ProcessLists.Lists {
 			//pl := s.ProcessLists.LastList()
 			if useOldMsgs {
-				m := pl.GetOldMsgs(hash)
-				if m != nil {
-					return constants.AckStatusACK, hash, m.GetTimestamp(), nil, nil
-				}
-				if pl.DirectoryBlock == nil { // can't use m.getTimestap, m might == nil
-					return constants.AckStatusACK, hash, nil, nil, nil
+				aMsg := pl.GetOldAck(hash)
+				if aMsg != nil { // No ack then it's not "known"
+					a, ok := aMsg.(*messages.Ack)
+					if !ok {
+						// probably deserves a panic here if we got an old ack and it wasn't an ack
+						return constants.AckStatusUnknown, hash, nil, nil, nil
+					}
+					if pl.VMs[a.GetVMIndex()].Height < int(a.Height) {
+						// if it is in the process list but has not yet been process then claim it's unknown
+						// Otherwise it might get an ack status but still be un-spendable
+						return constants.AckStatusNotConfirmed, hash, nil, nil, nil
+					} else {
+						return constants.AckStatusACK, hash, a.GetTimestamp(), nil, nil
+					}
 				}
 			}
 

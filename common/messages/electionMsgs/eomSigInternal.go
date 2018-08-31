@@ -7,9 +7,9 @@ package electionMsgs
 import (
 	"errors"
 	"fmt"
-
 	"time"
 
+	"github.com/FactomProject/factomd/activations"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages/msgbase"
@@ -118,6 +118,19 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 		return // EOM but not from a server, just ignore it.
 	}
 
+	// We start sorting here on 6/28/18 at 12pm ...
+	if is.IsActive(activations.ELECTION_NO_SORT) {
+		if int(m.DBHeight) > e.DBHeight {
+			// Sort leaders, on block boundries
+			changed := elections.Sort(e.Federated)
+			changed = elections.Sort(e.Audit) || changed
+			if changed {
+				e.LogPrintf("election", "Sort changed leaders")
+				e.LogPrintLeaders("election")
+			}
+		}
+	}
+
 	// We only do this once, as we transition into a sync event.
 	// Either the height has incremented, or the minute has incremented.
 	mv := int(m.DBHeight) > e.DBHeight || m.ComparisonMinute() > e.ComparisonMinute()
@@ -130,6 +143,19 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 		if int(m.DBHeight) > e.DBHeight && e.Electing != -1 {
 			e.Electing = -1
 		}
+
+		// We stop sorting on 6/28/18 at 12pm ...
+		if !is.IsActive(activations.ELECTION_NO_SORT) {
+			// Sort leaders every minute
+			changed := elections.Sort(e.Federated)
+			changed = elections.Sort(e.Audit) || changed
+			if changed {
+				e.LogPrintf("election", "Sort changed leaders")
+				e.LogPrintLeaders("election")
+			}
+
+		}
+
 		e.DBHeight = int(m.DBHeight)
 		e.Minute = int(m.Minute)
 		e.SigType = m.SigType
@@ -137,10 +163,6 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 		e.Sync = make([]bool, len(e.Federated))
 		// Set the title in the state
 		s.Election0 = Title()
-
-		// Sort leaders, an election is previous min/block may mess up ordering
-		elections.Sort(e.Federated)
-		elections.Sort(e.Audit)
 
 		e.FaultId.Store(e.FaultId.Load() + 1) // increment the timeout counter
 		go Fault(e, e.DBHeight, e.Minute, e.FaultId.Load(), &e.FaultId, m.SigType, e.Timeout)

@@ -64,6 +64,35 @@ function searchBarSubmit() {
   x.send(formData)
 }
 
+
+$("#factom-log-submit").click(function() {
+    changeLogging()
+})
+
+function changeLogging() {
+    var x = new XMLHttpRequest()
+    x.onreadystatechange = function() {
+        if(x.readyState == 4) {
+            console.log(x.response)
+            obj = JSON.parse(x.response)
+            if (obj.Error == "" || obj.Error == undefined) {
+                $(".factom-log-error").hide()
+                $(".factom-log-success").show()
+                $("#dump7 #current-log-value").text($("#factom-log-set").val())
+            } else {
+                $(".factom-log-success").hide()
+                $(".factom-log-error").show()
+            }
+        }
+    }
+    var formData = new FormData();
+    formData.append("method", "changelogs")
+    formData.append("logsetting", $("#factom-log-set").val())
+
+    x.open("POST", "./post")
+    x.send(formData)
+}
+
 $("body").on('mouseup',"section #factom-search-link",function(e) {
   type = jQuery(this).attr("type")
   hash = jQuery(this).text()

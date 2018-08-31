@@ -19,9 +19,9 @@ type IDirectoryBlock interface {
 	GetKeyMR() IHash
 	GetHash() IHash
 	GetFullHash() IHash
+	GetHeaderHash() (IHash, error)
 
 	GetTimestamp() Timestamp
-	HeaderHash() (IHash, error)
 	BodyKeyMR() IHash
 	GetEntryHashesForBranch() []IHash
 
@@ -44,6 +44,7 @@ type IDirectoryBlockHeader interface {
 	SetBodyMR(IHash)
 	GetPrevKeyMR() IHash
 	SetPrevKeyMR(IHash)
+	GetHeaderHash() (IHash, error)
 	GetDBHeight() uint32
 	SetDBHeight(uint32)
 	GetBlockCount() uint32

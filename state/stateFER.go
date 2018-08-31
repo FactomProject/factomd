@@ -145,7 +145,7 @@ func (this *State) ExchangeRateAuthorityIsValid(e interfaces.IEBEntry) bool {
 	if err != nil {
 		return false
 	}
-	// convert the conf quthority address into a
+	// convert the conf quthority Address into a
 	authorityAddress := base58.Decode(pubStr)
 	ecPubPrefix := []byte{0x59, 0x2a}
 

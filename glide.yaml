@@ -73,3 +73,4 @@ import:
   - prometheus
 - package: github.com/dustin/go-humanize
 - package: github.com/spf13/cobra
+- package: gopkg.in/yaml.v2

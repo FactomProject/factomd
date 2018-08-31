@@ -200,6 +200,20 @@ var (
 	COINBASE_ACTIVATION = uint32(140200)
 )
 
+// set the "constants" to values that are more useful for testing
+func SetLocalCoinBaseConstants() {
+	COINBASE_DECLARATION = 10
+	COINBASE_PAYOUT_FREQUENCY = 5
+	COINBASE_ACTIVATION = 0
+}
+
+// set the "constants" to values that are more useful for testing
+func SetCustomCoinBaseConstants() {
+	COINBASE_DECLARATION = 10
+	COINBASE_PAYOUT_FREQUENCY = 5
+	COINBASE_ACTIVATION = 0
+}
+
 const (
 	// Limits for keeping inputs from flooding our execution
 	INMSGQUEUE_HIGH = 100000

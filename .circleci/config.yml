@@ -5,7 +5,7 @@ jobs:
   build:
     working_directory: /go/src/github.com/FactomProject/factomd
     docker:
-      - image: circleci/golang:1.10.3
+      - image: circleci/golang:1.10
 
     steps:
       - checkout
@@ -44,7 +44,7 @@ jobs:
   test:
     working_directory: /go/src/github.com/FactomProject/factomd
     docker:
-      - image: circleci/golang:1.10.3
+      - image: circleci/golang:1.10
 
     steps:
       - checkout
@@ -78,7 +78,7 @@ jobs:
       - run:
           name: Run tests!
           no_output_timeout: 2400
-          command: go test -v -vet=off $(glide nv)
+          command: go test -v -vet=off $(glide nv | grep -v Utilities)
 
 
       - save_cache:
@@ -89,7 +89,7 @@ jobs:
   coveralls:
     working_directory: /go/src/github.com/FactomProject/factomd
     docker:
-      - image: circleci/golang:1.10.3
+      - image: circleci/golang:1.10
 
     steps:
       - checkout
@@ -123,7 +123,7 @@ jobs:
       - run:
           name: Go Test with Coverage
           no_output_timeout: 2400
-          command: go test $(glide nv) -vet=off -v -cover -coverprofile=coverage.out
+          command: go test $(glide nv | grep -v Utilities) -vet=off -v -cover -coverprofile=coverage.out
 
       - run:
           name: Coveralls!
@@ -153,7 +153,7 @@ jobs:
       - checkout
 
       - setup_remote_docker:
-          version: 17.06.0-ce
+          version: 18.03.1-ce
 
       # The main (only) thing we care about is caching the /vendor dir.
       #   Hence, checksumming glide.lock
@@ -178,7 +178,7 @@ jobs:
 
       # Push, depending on branch/tag
       - run:
-          name: Push  master / develop to DockerHub
+          name: Push  special branches to DockerHub
           command: |
 
            # Login to DockerHub
@@ -192,6 +192,7 @@ jobs:
               docker push factominc/factomd:${CIRCLE_TAG}-alpine
             fi
 
+            # Legacy master/develop images.  Continue building and pushing until we know they aren't being used
             if [ "${CIRCLE_BRANCH}" == "master" ]; then
 
               # Tag master as latest
@@ -209,7 +210,106 @@ jobs:
               docker tag factomd-alpine factominc/factomd:alpine-develop
               docker push factominc/factomd:alpine-develop
             fi
+            
+            # Push alternate named versions of the master and develop branches
+            if [ "${CIRCLE_BRANCH}" == "master" ]; then
 
+              # Tag master as master, although it is alredy pushed as the latest
+              # using the latest branch is frowned upon by some docer experts, so explicitly push master
+              docker tag factomd factominc/factomd:master
+              docker push factominc/factomd:master
+              docker tag factomd-alpine factominc/factomd:master-alpine
+              docker push factominc/factomd:master-alpine
+            fi
+
+            if [ "${CIRCLE_BRANCH}" == "develop" ]; then
+
+              # push develop on ansible again, but with the name concatenated like the rest of the tags 
+              docker tag factomd-alpine factominc/factomd:develop-alpine
+              docker push factominc/factomd:develop-alpine
+            fi
+            
+            #push special branches if they exist
+            
+            if [ "${CIRCLE_BRANCH}" == "master-staging" ]; then
+
+              # push a branch that can be used to test a pre-release version of master just before it is released.
+              docker tag factomd factominc/factomd:master-staging
+              docker push factominc/factomd:master-staging
+              docker tag factomd-alpine factominc/factomd:master-staging-alpine
+              docker push factominc/factomd:master-staging-alpine
+            fi
+            
+            if [ "${CIRCLE_BRANCH}" == "community-testnet-staging" ]; then
+              docker tag factomd factominc/factomd:community-testnet-staging
+              docker push factominc/factomd:community-testnet-staging
+              docker tag factomd-alpine factominc/factomd:community-testnet-staging-alpine
+              docker push factominc/factomd:community-testnet-staging-alpine
+            fi
+            
+            if [ "${CIRCLE_BRANCH}" == "community-testnet" ]; then
+              docker tag factomd factominc/factomd:community-testnet
+              docker push factominc/factomd:community-testnet
+              docker tag factomd-alpine factominc/factomd:community-testnet-alpine
+              docker push factominc/factomd:community-testnet-alpine
+            fi
+
+            if [ "${CIRCLE_BRANCH}" == "experimental1" ]; then
+              docker tag factomd factominc/factomd:experimental1
+              docker push factominc/factomd:experimental1
+              docker tag factomd-alpine factominc/factomd:experimental1-alpine
+              docker push factominc/factomd:experimental1-alpine
+            fi
+            
+            if [ "${CIRCLE_BRANCH}" == "experimental2" ]; then
+              docker tag factomd factominc/factomd:experimental2
+              docker push factominc/factomd:experimental2
+              docker tag factomd-alpine factominc/factomd:experimental2-alpine
+              docker push factominc/factomd:experimental2-alpine
+            fi
+            
+            if [ "${CIRCLE_BRANCH}" == "qa1" ]; then
+              docker tag factomd factominc/factomd:qa1
+              docker push factominc/factomd:qa1
+              docker tag factomd-alpine factominc/factomd:qa1-alpine
+              docker push factominc/factomd:qa1-alpine
+            fi
+
+            if [ "${CIRCLE_BRANCH}" == "qa2" ]; then
+              docker tag factomd factominc/factomd:qa2
+              docker push factominc/factomd:qa2
+              docker tag factomd-alpine factominc/factomd:qa2-alpine
+              docker push factominc/factomd:qa2-alpine
+            fi
+            
+            if [ "${CIRCLE_BRANCH}" == "qa3" ]; then
+              docker tag factomd factominc/factomd:qa3
+              docker push factominc/factomd:qa3
+              docker tag factomd-alpine factominc/factomd:qa3-alpine
+              docker push factominc/factomd:qa3-alpine
+            fi
+            
+            if [ "${CIRCLE_BRANCH}" == "devnet1" ]; then
+              docker tag factomd factominc/factomd:devnet1
+              docker push factominc/factomd:devnet1
+              docker tag factomd-alpine factominc/factomd:devnet1-alpine
+              docker push factominc/factomd:devnet1-alpine
+            fi
+            
+            if [ "${CIRCLE_BRANCH}" == "devnet2" ]; then
+              docker tag factomd factominc/factomd:devnet2
+              docker push factominc/factomd:devnet2
+              docker tag factomd-alpine factominc/factomd:devnet2-alpine
+              docker push factominc/factomd:devnet2-alpine
+            fi
+            
+            if [ "${CIRCLE_BRANCH}" == "devnet3" ]; then
+              docker tag factomd factominc/factomd:devnet3
+              docker push factominc/factomd:devnet3
+              docker tag factomd-alpine factominc/factomd:devnet3-alpine
+              docker push factominc/factomd:devnet3-alpine
+            fi
+            
             docker logout
 
       - run:
