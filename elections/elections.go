@@ -467,3 +467,8 @@ func Run(s *state.State) {
 		//}
 	}
 }
+
+func (e *Elections) ElectingStatus() (int, []int, interfaces.IHash, int) {
+
+	return e.Electing, e.Round, e.FedID, e.VMIndex
+}

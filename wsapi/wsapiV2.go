@@ -176,8 +176,10 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 		resp, jsonError = HandleV2MultipleFCTBalances(state, params)
 	case "multiple-ec-balances":
 		resp, jsonError = HandleV2MultipleECBalances(state, params)
-		//case "factoid-accounts":
-		// resp, jsonError = HandleV2Accounts(state, params)
+	case "diagnostics":
+		resp, jsonError = HandleV2Diagnostics(state, params)
+	//case "factoid-accounts":
+	// resp, jsonError = HandleV2Accounts(state, params)
 	default:
 		jsonError = NewMethodNotFoundError()
 		break
@@ -1381,6 +1383,30 @@ func HandleV2MultipleFCTBalances(state interfaces.IState, params interface{}) (i
 	h.CurrentHeight = currentHeight
 	h.LastSavedHeight = savedHeight
 	h.Balances = totalBalances
+
+	return h, nil
+}
+
+func HandleV2Diagnostics(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+
+	NodeName, ChainID, PublicKey, status := state.GetFactoidState().GetServerStatus()
+
+	s := new(Server)
+	s.NodeName = NodeName
+	s.CurrentID = ChainID
+	s.CurrentPublicKey = PublicKey
+	s.Mode = status
+
+	arrFed, arrAud, audAlive, electionstatus := state.GetFactoidState().GetElectionStatus()
+	e := new(ElectionInfo)
+	e.AuthoritySet.Leaders = arrFed
+	e.AuthoritySet.Audits = arrAud
+	e.AuthoritySet.AuditServerHeartbeat = audAlive
+	e.ElecInProgress = electionstatus
+
+	h := new(Diags)
+	h.ServerStatus = s
+	h.ElectionInfo = e
 
 	return h, nil
 }

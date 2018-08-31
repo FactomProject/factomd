@@ -303,3 +303,44 @@ type MultipleECBalances struct {
 	LastSavedHeight uint32        `json:"lastsavedheight"`
 	Balances        []interface{} `json:"balances"`
 }
+
+type Diags struct {
+	ServerStatus *Server       `json:"serverstats"`
+	ElectionInfo *ElectionInfo `json:"electioninfo"`
+}
+
+type Server struct {
+	NodeName         string `json:"nodename"`
+	CurrentID        string `json:"currentid"`
+	CurrentPublicKey string `json:"publickey"`
+	Mode             string `json:"mode"`
+}
+
+type ElectionInfo struct {
+	ElecInProgress bool `json:"electioninprogress"`
+	AuthoritySet   struct {
+		Leaders              []string          `json:"leaders"`
+		Audits               []string          `json:"audits"`
+		AuditServerHeartbeat []interfaces.IMsg `json:"auditheartbeat"`
+	} `json:"authorityset"`
+	Elections []struct {
+		Vm    int    `json:"vm"`
+		Id    string `json:"id"`
+		Round int    `json:"round"`
+	} `json:"elections"`
+}
+
+type Diags2 struct {
+	SyncingState      string `json:"syncingstate"`
+	SyncingReceived   int    `json:"syncingreceived"`
+	SyncingExpected   int
+	SyncingMissingIDs []string `json:"missingnodesids"`
+}
+
+type VM struct {
+	ProcessList []struct {
+		Height  int    `json:"height"`
+		Length  int    `json:"length"`
+		NextNil string `json:"nextnil"`
+	}
+}
