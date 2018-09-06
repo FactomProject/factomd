@@ -647,6 +647,10 @@ func (c *Connection) handleParcelTypes(parcel Parcel) {
 		BlockFreeChannelSend(c.ReceiveChannel, ConnectionParcel{Parcel: parcel}) // Controller handles these.
 	case TypePeerResponse:
 		BlockFreeChannelSend(c.ReceiveChannel, ConnectionParcel{Parcel: parcel}) // Controller handles these.
+	case TypeMessagePart:
+		// handle TypeMessagePart messages from older clients, to be removed when we are sure we cannot receive
+		// these anymore
+		fallthrough
 	case TypeMessage:
 		c.peer.QualityScore = c.peer.QualityScore + 1
 		// Store our connection ID so the controller can direct response to us.

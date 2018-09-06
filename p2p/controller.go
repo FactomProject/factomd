@@ -478,6 +478,17 @@ func (c *Controller) handleParcelReceive(message interface{}, peerHash string, c
 	case TypeMessage: // Application message, send it on.
 		ApplicationMessagesReceived++
 		BlockFreeChannelSend(c.FromNetwork, parcel)
+	case TypeMessagePart: // handle backward compatibility with old TypeMessagePart messages
+		// since MaxPayloadSize was already set to 1GB in the old client code,
+		// we shouldn't be receiving partial messages anymore, but handle and log here just in case
+		if parcel.Header.PartsTotal != 1 {
+			c.logger.Warnf("Received a message part with parts total: %+d, dropping", parcel.Header.PartsTotal)
+			return
+		}
+		// treat it as a regular message
+		parcel.Header.Type = TypeMessage
+		ApplicationMessagesReceived++
+		BlockFreeChannelSend(c.FromNetwork, parcel)
 	case TypePeerRequest: // send a response to the connection over its connection.SendChannel
 		// Get selection of peers from discovery
 		response := NewParcel(CurrentNetwork, c.discovery.SharePeers())

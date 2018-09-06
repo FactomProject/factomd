@@ -53,6 +53,7 @@ const ( // iota is reset to 0
 	TypePeerResponse                          // "Here's some peers I know about."
 	TypeAlert                                 // network wide alerts (used in bitcoin to indicate criticalities)
 	TypeMessage                               // Application level message
+	TypeMessagePart                           // Application level message that was split into multiple parts (only for backwards compatibility)
 )
 
 // CommandStrings is a Map of command ids to strings for easy printing of network comands
@@ -64,6 +65,7 @@ var CommandStrings = map[ParcelCommandType]string{
 	TypePeerResponse: "Peer-Response", // "Here's some peers I know about."
 	TypeAlert:        "Alert",         // network wide alerts (used in bitcoin to indicate criticalities)
 	TypeMessage:      "Message",       // Application level message
+	TypeMessagePart:  "MessagePart",   // Application level message that was split into multiple parts (only for backwards compatibility)
 }
 
 func NewParcel(network NetworkID, payload []byte) *Parcel {
