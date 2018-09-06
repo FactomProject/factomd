@@ -64,7 +64,7 @@ func (m *FedVoteLevelMsg) String() string {
 		"Fed VoteLevelMsg",
 		m.DBHeight,
 		m.Minute,
-		m.Signer.Bytes()[3:5],
+		m.Signer.Bytes()[3:6],
 		m.Volunteer.ServerName,
 		m.Committed,
 		m.Level,
