@@ -1222,8 +1222,21 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
 		m.FollowerExecute(s)
 		return
 	}
+
 	if pl.VMs[dbs.VMIndex].Height > 0 {
-		s.LogMessage("executeMsg", "drop, slot 0 taken by", pl.VMs[dbs.VMIndex].List[0])
+		s.LogPrintf("executeMsg", "DBSig issue height = %d, length = %d", pl.VMs[dbs.VMIndex].Height, len(pl.VMs[dbs.VMIndex].List))
+		s.LogMessage("executeMsg", "drop, already processed ", pl.VMs[dbs.VMIndex].List[0])
+		return
+	}
+
+	if len(pl.VMs[dbs.VMIndex].List) > 0 && pl.VMs[dbs.VMIndex].List[0] != nil {
+		s.LogPrintf("executeMsg", "DBSig issue height = %d, length = %d", pl.VMs[dbs.VMIndex].Height, len(pl.VMs[dbs.VMIndex].List))
+		if pl.VMs[dbs.VMIndex].List[0] != m {
+			s.LogMessage("executeMsg", "drop, slot 0 taken by", pl.VMs[dbs.VMIndex].List[0])
+		} else {
+			s.LogMessage("executeMsg", "duplicate execute", pl.VMs[dbs.VMIndex].List[0])
+		}
+
 		return
 	}
 
@@ -1498,7 +1511,6 @@ func (s *State) CreateDBSig(dbheight uint32, vmIndex int) (interfaces.IMsg, inte
 	}
 	dbs := new(messages.DirectoryBlockSignature)
 	dbs.DirectoryBlockHeader = dbstate.DirectoryBlock.GetHeader()
-	//dbs.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
 	dbs.ServerIdentityChainID = s.GetIdentityChainID()
 	dbs.DBHeight = dbheight
 	dbs.Timestamp = s.GetTimestamp()
@@ -1511,6 +1523,10 @@ func (s *State) CreateDBSig(dbheight uint32, vmIndex int) (interfaces.IMsg, inte
 		panic(err)
 	}
 	ack := s.NewAck(dbs, s.Balancehash).(*messages.Ack)
+
+	s.LogMessage("dbstate", "CreateDBSig", dbs)
+	s.LogPrintf("dbstate", dbstate.String())
+
 	return dbs, ack
 }
 
@@ -1787,7 +1803,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 				dbs := new(messages.DirectoryBlockSignature)
 				db := dbstate.DirectoryBlock
 				dbs.DirectoryBlockHeader = db.GetHeader()
-				//dbs.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
 				dbs.ServerIdentityChainID = s.GetIdentityChainID()
 				dbs.DBHeight = s.LLeaderHeight
 				dbs.Timestamp = s.GetTimestamp()
@@ -1799,6 +1814,14 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 				if err != nil {
 					panic(err)
 				}
+				//{ // debug
+				//	s.LogMessage("dbstate", "currentminute=10", dbs)
+				//	dbs2, _ := s.CreateDBSig(s.LLeaderHeight, s.LeaderVMIndex)
+				//	dbs3 := dbs2.(*messages.DirectoryBlockSignature)
+				//	s.LogPrintf("dbstate", "issameas()=%v", dbs.IsSameAs(dbs3))
+				//}
+				s.LogMessage("dbstate", "currentminute=10", dbs)
+				s.LogPrintf("dbstate", dbstate.String())
 				pldbs.DBSigAlreadySent = true
 
 				dbslog := consenLogger.WithFields(log.Fields{"func": "SendDBSig", "lheight": s.GetLeaderHeight(), "node-name": s.GetFactomNodeName()}).WithFields(dbs.LogFields())
