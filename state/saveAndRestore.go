@@ -7,6 +7,7 @@ package state
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"sort"
 
 	. "github.com/FactomProject/factomd/common/identity"
@@ -107,7 +108,7 @@ type SaveState struct {
 var _ interfaces.BinaryMarshallable = (*SaveState)(nil)
 var _ interfaces.Printable = (*SaveState)(nil)
 
-func (ss *SaveState) Init() {
+func (ss *SaveState) Init(s *State) {
 	if ss.FactoidBalancesP == nil {
 		ss.FactoidBalancesP = map[[32]byte]int64{}
 	}
@@ -121,7 +122,7 @@ func (ss *SaveState) Init() {
 		ss.Acks = map[[32]byte]interfaces.IMsg{}
 	}
 	if ss.Commits == nil {
-		ss.Commits = NewSafeMsgMap("sscommits", nil) // map[[32]byte]interfaces.IMsg{}
+		ss.Commits = NewSafeMsgMap("sscommits", s) // map[[32]byte]interfaces.IMsg{}
 	}
 	if ss.InvalidMessages == nil {
 		ss.InvalidMessages = map[[32]byte]interfaces.IMsg{}
@@ -323,14 +324,14 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 	ss.AuditServers = append(ss.AuditServers, pl.AuditServers...)
 
 	state.FactoidBalancesPMutex.Lock()
-	ss.FactoidBalancesP = make(map[[32]byte]int64)
+	ss.FactoidBalancesP = make(map[[32]byte]int64, len(state.FactoidBalancesP))
 	for k := range state.FactoidBalancesP {
 		ss.FactoidBalancesP[k] = state.FactoidBalancesP[k]
 	}
 	state.FactoidBalancesPMutex.Unlock()
 
 	state.ECBalancesPMutex.Lock()
-	ss.ECBalancesP = make(map[[32]byte]int64)
+	ss.ECBalancesP = make(map[[32]byte]int64, len(state.ECBalancesP))
 	for k := range state.ECBalancesP {
 		ss.ECBalancesP[k] = state.ECBalancesP[k]
 	}
@@ -665,10 +666,15 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 	s.FERPrioritySetHeight = ss.FERPrioritySetHeight
 }
 
-func (ss *SaveState) MarshalBinary() ([]byte, error) {
+func (ss *SaveState) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "SaveState.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	buf := primitives.NewBuffer(nil)
 
-	err := buf.PushUInt32(ss.DBHeight)
+	err = buf.PushUInt32(ss.DBHeight)
 	if err != nil {
 		return nil, err
 	}

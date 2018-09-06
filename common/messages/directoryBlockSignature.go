@@ -7,6 +7,7 @@ package messages
 import (
 	"encoding/binary"
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
@@ -22,9 +23,8 @@ var dLogger = packageLogger.WithFields(log.Fields{"message": "DirectoryBlockSign
 
 type DirectoryBlockSignature struct {
 	msgbase.MessageBase
-	Timestamp interfaces.Timestamp
-	DBHeight  uint32
-	//DirectoryBlockKeyMR   interfaces.IHash
+	Timestamp             interfaces.Timestamp
+	DBHeight              uint32
 	DirectoryBlockHeader  interfaces.IDirectoryBlockHeader
 	ServerIdentityChainID interfaces.IHash
 
@@ -139,17 +139,19 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 	vlog := func(format string, args ...interface{}) {
 		dLogger.WithFields(log.Fields{"func": "Validate", "msgheight": m.DBHeight, "lheight": state.GetLeaderHeight()})
 	}
+
+	// if we already did all the checks just be valid
 	if m.IsValid() {
 		return 1
 	}
 
-	raw, _ := m.MarshalBinary()
+	// is the dbsig is old, just drop it
 	if m.DBHeight <= state.GetHighestSavedBlk() {
-		//	vlog("[1] Validate Fail %s -- RAW: %x", m.String(), raw)
-		//	// state.Logf("error", "DirectoryBlockSignature: Fail dbstate ht: %v < dbht: %v  %s\n  [%s] RAW: %x", m.DBHeight, state.GetHighestSavedBlk(), m.String(), m.GetMsgHash().String(), raw)
 		return -1
 	}
 
+	// get the raw binary to log if things are bad
+	raw, _ := m.MarshalBinary()
 	found, _ := state.GetVirtualServers(m.DBHeight, 9, m.ServerIdentityChainID)
 
 	if found == false {
@@ -160,11 +162,6 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 		return 0
 	}
 
-	if m.IsLocal() {
-		m.SetValid()
-		return 1
-	}
-
 	isVer, err := m.VerifySignature()
 	if err != nil || !isVer {
 		vlog("[2] Verify Sig Failed %s -- RAW: %x", m.String(), raw)
@@ -172,7 +169,33 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 		// if there is an error during signature verification
 		// or if the signature is invalid
 		// the message is considered invalid
+		if m.IsLocal() {
+			state.LogMessage("badMsgs", "Invalid Local DBSIG!", m)
+		}
 		return -1
+	}
+
+	// Adds DB Sig to be added to Admin block if passes sig checks
+	data, err := m.DirectoryBlockHeader.MarshalBinary()
+	if err != nil {
+		vlog("Unable to unmarshal Directory block header %s -- RAW: %x", m.String(), raw)
+		if m.IsLocal() {
+			state.LogMessage("badMsgs", "Invalid Local DBSIG!", m)
+		}
+		return -1
+	}
+
+	if !m.DBSignature.Verify(data) {
+		vlog("Unable to verify signature %s -- RAW: %x", m.String(), raw)
+		if m.IsLocal() {
+			state.LogMessage("badMsgs", "Invalid Local DBSIG!", m)
+		}
+		return -1
+	}
+
+	if m.IsLocal() {
+		m.SetValid()
+		return 1
 	}
 
 	marshalledMsg, _ := m.MarshalForSignature()
@@ -182,7 +205,7 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 		vlog("Fail to Verify Sig (not from a Fed Server) %s -- RAW: %x", m.String(), raw)
 		//state.Logf("error", "DirectoryBlockSignature: Fail to Verify Sig (not from a Fed Server) dbht: %v %s\n  [%s] RAW: %x", state.GetLLeaderHeight(), m.String(), m.GetMsgHash().String(), raw)
 		// state.AddStatus(fmt.Sprintf("DirectoryBlockSignature: Fail to Verify Sig (not from a Fed Server) dbht: %v %s", state.GetLLeaderHeight(), m.String()))
-		return authorityLevel
+		return -1
 	}
 
 	//state.Logf("info", "DirectoryBlockSignature: VALID  dbht: %v %s. MsgHash: %s\n [%s] RAW: %x ", state.GetLLeaderHeight(), m.String(), m.GetMsgHash().String(), m.GetMsgHash().String(), raw)
@@ -310,7 +333,12 @@ func (m *DirectoryBlockSignature) UnmarshalBinary(data []byte) error {
 	return err
 }
 
-func (m *DirectoryBlockSignature) MarshalForSignature() ([]byte, error) {
+func (m *DirectoryBlockSignature) MarshalForSignature() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "DirectoryBlockSignature.MarshalForSignature err:%v", *pe)
+		}
+	}(&err)
 	if m.DirectoryBlockHeader == nil {
 		m.DirectoryBlockHeader = directoryBlock.NewDBlockHeader()
 	}
@@ -367,6 +395,7 @@ func (m *DirectoryBlockSignature) MarshalForSignature() ([]byte, error) {
 
 func (m *DirectoryBlockSignature) MarshalBinary() (data []byte, err error) {
 
+	// do we have a saved binary version already?
 	if m.marshalCache != nil {
 		return m.marshalCache, nil
 	}
@@ -384,6 +413,8 @@ func (m *DirectoryBlockSignature) MarshalBinary() (data []byte, err error) {
 		}
 		return append(resp, sigBytes...), nil
 	}
+	// remember the binary version for next time
+	m.marshalCache = resp
 	return resp, nil
 }
 
@@ -395,13 +426,18 @@ func (m *DirectoryBlockSignature) String() string {
 	} else {
 		m.dbsHash = primitives.NewHash(constants.ZERO)
 	}
-	return fmt.Sprintf("%6s-VM%3d:          DBHt:%5d -- Signer=%x PrevDBKeyMR[:3]=%x hash=%x",
+	headerHash, err := m.DirectoryBlockHeader.GetHeaderHash()
+
+	return fmt.Sprintf("%6s-VM%3d:          DBHt:%5d -- Signer[%x] PrevDBKeyMR[%x] HeaderHash[%x] BodyMR[%x] hash[%x] header - %s",
 		"DBSig",
 		m.VMIndex,
 		m.DBHeight,
-		m.ServerIdentityChainID.Bytes()[2:6],
+		m.ServerIdentityChainID.Bytes()[3:6],
 		m.DirectoryBlockHeader.GetPrevKeyMR().Bytes()[:3],
-		m.GetHash().Bytes()[:3])
+		headerHash.Bytes()[:3],
+		m.DirectoryBlockHeader.GetBodyMR().Bytes()[:3],
+		m.GetHash().Bytes()[:3],
+		m.DirectoryBlockHeader.String())
 
 }
 

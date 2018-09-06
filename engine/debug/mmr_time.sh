@@ -11,6 +11,7 @@ func time2sec(t) {
   return sec;
 }
 
+
 #   8285 16:41:39 3-:-0 Enqueue             M-f8a39e|R-f8a39e|H-f8a39e                Missing Msg[16]:MissingMsg --> 455b7b<FNode0> asking for DBh/VMh/h[3/1/1, ] Sys: 0 msgHash[f8a39e]
 
  
@@ -144,6 +145,5 @@ EOF
 
  
 (cat $1_missing_messages.txt; grep -h "MissingMsg " $1_NetworkOutputs.txt; grep -hE "Send P2P.* $1 .*Missing Msg Response" FNode*_NetworkOutputs.txt) | awk "$scriptVariable"
-
 
 

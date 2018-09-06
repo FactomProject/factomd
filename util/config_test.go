@@ -192,3 +192,14 @@ func TestReadConfig(t *testing.T) {
 	fconfig.String()
 	GetConfigFilename("")
 }
+
+func Example_ReadConfig() {
+	_ = ReadConfig("///") // We know this is not a valid file name
+	// second time there should be no output
+	_ = ReadConfig("///") // We know this is not a valid file name
+	// Output:
+	// Reading from '///'
+	// Cannot open custom config file,
+	// Starting with default settings.
+	// read ///: is a directory
+}

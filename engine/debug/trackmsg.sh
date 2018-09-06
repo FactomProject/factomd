@@ -1,7 +1,6 @@
 #/bin/sh
 pattern="$1"
 shift
-
 ################################
 # AWK scripts                  #
 ################################
@@ -28,6 +27,5 @@ EOF
 ################################
 # End of AWK Scripts           #
 ################################
-
 echo "grep -E \"$pattern\" $@ | awk -f msgOrder.awk | sort -n | grep -E \"$pattern\" --color='always' | less -R"
 grep -H -E "$pattern" $@ | awk "$scriptVariable" | sort -n | grep -E "$pattern" --color='always' | less -R

@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -155,7 +156,12 @@ func (m *BounceReply) UnmarshalBinary(data []byte) error {
 	return err
 }
 
-func (m *BounceReply) MarshalForSignature() ([]byte, error) {
+func (m *BounceReply) MarshalForSignature() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "BounceReply.MarshalForSignature err:%v", *pe)
+		}
+	}(&err)
 	var buf primitives.Buffer
 
 	binary.Write(&buf, binary.BigEndian, m.Type())

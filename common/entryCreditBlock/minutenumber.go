@@ -6,6 +6,7 @@ package entryCreditBlock
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -85,9 +86,14 @@ func (m *MinuteNumber) ECID() byte {
 	return constants.ECIDMinuteNumber
 }
 
-func (m *MinuteNumber) MarshalBinary() ([]byte, error) {
+func (m *MinuteNumber) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "MinuteNumber.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	buf := primitives.NewBuffer(nil)
-	err := buf.PushByte(m.Number)
+	err = buf.PushByte(m.Number)
 	if err != nil {
 		return nil, err
 	}

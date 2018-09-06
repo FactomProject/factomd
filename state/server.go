@@ -6,6 +6,7 @@ package state
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -58,11 +59,16 @@ func (s *Server) IsSameAs(b interfaces.IServer) bool {
 	return true
 }
 
-func (s *Server) MarshalBinary() ([]byte, error) {
+func (s *Server) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "Server.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	s.Init()
 	buf := new(primitives.Buffer)
 
-	err := buf.PushBinaryMarshallable(s.ChainID)
+	err = buf.PushBinaryMarshallable(s.ChainID)
 	if err != nil {
 		return nil, err
 	}

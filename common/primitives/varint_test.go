@@ -135,7 +135,6 @@ func TestRandomVarInt(t *testing.T) {
 func TestRandomVarIntWithExtraData(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		vi := RandomVarInt()
-
 		out := new(Buffer)
 		EncodeVarInt(out, vi)
 		extra := random.RandByteSlice()

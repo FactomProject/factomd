@@ -15,6 +15,7 @@ import (
 )
 
 func (state *State) ValidatorLoop() {
+	CheckGrants()
 	timeStruct := new(Timer)
 	var prev time.Time
 	for {

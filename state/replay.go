@@ -6,6 +6,7 @@ package state
 
 import (
 	"fmt"
+	"os"
 	"sort"
 	"sync"
 	"time"
@@ -94,7 +95,12 @@ func (a *Replay) IsSameAs(b *Replay) bool {
 	return true
 }
 
-func (r *Replay) MarshalBinary() ([]byte, error) {
+func (r *Replay) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "Replay.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	r.Init()
 	b := primitives.NewBuffer(nil)
 
@@ -105,7 +111,7 @@ func (r *Replay) MarshalBinary() ([]byte, error) {
 		}
 	}
 
-	err := b.PushInt(r.Basetime)
+	err = b.PushInt(r.Basetime)
 	if err != nil {
 		return nil, err
 	}
@@ -293,7 +299,7 @@ func (r *Replay) IsTSValidAndUpdateState(mask int, hash [32]byte, timestamp inte
 		if mask != constants.TIME_TEST {
 			r.Buckets[index][hash] = r.Buckets[index][hash] | mask
 			r.Mutex.Unlock()
-			//r.s.LogPrintf("replay", "Add %x (%s) to %s from %s", hash[:3], maskToString(mask), r.name, atomic.WhereAmIString(1))
+			//r.s.LogPrintf("replay", "Add %x (%s) to %s from %s", hash[:3], maskToString(mask), r.Name, atomic.WhereAmIString(1))
 			return rval // true
 		}
 		r.Mutex.Unlock()
@@ -340,7 +346,7 @@ func (r *Replay) SetHashNow(mask int, hash [32]byte, now interfaces.Timestamp) {
 			r.Buckets[index] = make(map[[32]byte]int)
 		}
 		r.Buckets[index][hash] = mask | r.Buckets[index][hash]
-		//r.s.LogPrintf("replay", "Add2 %x (%s) to %s from %s", hash[:3], maskToString(mask), r.name, atomic.WhereAmIString(1))
+		//r.s.LogPrintf("replay", "Add2 %x (%s) to %s from %s", hash[:3], maskToString(mask), r.Name, atomic.WhereAmIString(1))
 	}
 }
 

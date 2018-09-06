@@ -283,3 +283,21 @@ type TransactionRequest struct {
 type SendRawMessageRequest struct {
 	Message string `json:"message"`
 }
+
+type FactiodAccounts struct {
+	NumbOfAccounts string   `json:numberofacc`
+	Height         uint32   `json:"height"`
+	Accounts       []string `json:accounts`
+}
+
+type MultipleFTBalances struct {
+	CurrentHeight   uint32        `json:"currentheight"`
+	LastSavedHeight uint32        `json:"lastsavedheight"`
+	Balances        []interface{} `json:"balances"`
+}
+
+type MultipleECBalances struct {
+	CurrentHeight   uint32        `json:"currentheight"`
+	LastSavedHeight uint32        `json:"lastsavedheight"`
+	Balances        []interface{} `json:"balances"`
+}
