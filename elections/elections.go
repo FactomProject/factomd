@@ -314,10 +314,10 @@ func (e *Elections) LogPrintLeaders(log string) {
 		f := ""
 		a := ""
 		if i < len(e.Federated) {
-			f = fmt.Sprintf("%x", e.Federated[i].GetChainID().Bytes()[3:5])
+			f = fmt.Sprintf("%x", e.Federated[i].GetChainID().Bytes()[3:6])
 		}
 		if i < len(e.Audit) {
-			a = fmt.Sprintf("%x", e.Audit[i].GetChainID().Bytes()[3:5])
+			a = fmt.Sprintf("%x", e.Audit[i].GetChainID().Bytes()[3:6])
 		}
 		e.LogPrintf(log, "%x | %x", f, a)
 	}
