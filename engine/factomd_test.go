@@ -1494,7 +1494,7 @@ func TestTestNetCoinBaseActivation(t *testing.T) {
 
 	fmt.Println("Wait till activation height")
 	WaitForBlock(state0, 25)
-	if constants.COINBASE_DECLARATION != 20 {
+	if constants.COINBASE_DECLARATION != 140 {
 		t.Fatalf("constants.COINBASE_DECLARATION = %d expect 140\n", constants.COINBASE_DECLARATION)
 	}
 
