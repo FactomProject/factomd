@@ -8,12 +8,13 @@ import (
 	"strings"
 	"testing"
 
+	"math"
+
 	. "github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/primitives/random"
 	"github.com/FactomProject/factomd/testHelper"
-	"math"
 )
 
 func TestUnmarshalNilTransAddress(t *testing.T) {
