@@ -45,7 +45,7 @@ func init() {
 			},
 		},
 		Activation{"TestNetCoinBasePeriod", TESTNET_COINBASE_PERIOD,
-			"Change testnet coin base payout delay to 144 blocks",
+			"Change testnet coin base payout delay to 140 blocks",
 			math.MaxInt32, // inactive unless overridden below
 			map[string]int{
 				"LOCAL":                     math.MaxInt32,
