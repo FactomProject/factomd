@@ -19,6 +19,7 @@ import (
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
+	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -965,6 +966,8 @@ func HandleV2CurrentMinute(state interfaces.IState, params interface{}) (interfa
 	h.CurrentMinuteStartTime = int64(state.GetCurrentMinuteStartTime())
 	h.DirectoryBlockInSeconds = int64(state.GetDirectoryBlockInSeconds())
 	h.StallDetected = state.IsStalled()
+	h.FaultTimeOut = int64(globals.Params.FaultTimeout)
+	h.RoundTimeOut = int64(globals.Params.RoundTimeout)
 
 	//h.LastBlockTime = state.GetTimestamp
 	return h, nil
@@ -1051,7 +1054,6 @@ func HandleV2FactoidSubmit(state interfaces.IState, params interface{}) (interfa
 }
 
 func HandleV2FactoidBalance(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	fmt.Println(params)
 	n := time.Now()
 	defer HandleV2APICallFABal.Observe(float64(time.Since(n).Nanoseconds()))
 
@@ -1331,7 +1333,6 @@ func HandleV2MultipleECBalances(state interfaces.IState, params interface{}) (in
 func HandleV2MultipleFCTBalances(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	x, ok := params.(map[string]interface{})
 	if ok != true {
-		fmt.Println(params)
 		return nil, NewCustomInvalidParamsError("ERROR! Invalid params passed in")
 	}
 

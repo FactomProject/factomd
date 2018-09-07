@@ -11,7 +11,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"runtime/debug"
 	"sort"
 	"time"
 
@@ -23,8 +22,6 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
-
-var _ = debug.PrintStack
 
 var FACTOID_CHAINID_HASH = primitives.NewHash(constants.FACTOID_CHAINID)
 
