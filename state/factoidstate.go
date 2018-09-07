@@ -14,6 +14,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/FactomProject/factomd/activations"
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
@@ -408,6 +409,11 @@ func (fs *FactoidState) Validate(index int, trans interfaces.ITransaction) error
 func (fs *FactoidState) GetCoinbaseTransaction(dbheight uint32, ftime interfaces.Timestamp) interfaces.ITransaction {
 	coinbase := new(factoid.Transaction)
 	coinbase.SetTimestamp(ftime)
+
+	if fs.State.IsActive(activations.TESTNET_COINBASE_PERIOD) {
+		// testnet wants payout to be a day delayed instead of 50 minutes
+		constants.COINBASE_DECLARATION = 140 // Ok, so it's not really constant...
+	}
 
 	// Coinbases only have outputs on payout blocks.
 	//	Payout blocks are every n blocks, where n is the coinbase frequency
