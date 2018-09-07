@@ -17,7 +17,11 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/activations"
+	"github.com/FactomProject/factomd/common/adminBlock"
+	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/globals"
+	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/primitives/random"
 	"github.com/FactomProject/factomd/elections"
@@ -38,6 +42,7 @@ var quit = make(chan struct{})
 // Pass in t for the testing as the 4th argument
 
 var expectedHeight, leaders, audits, followers int
+var startTime time.Time
 
 //EX. state0 := SetupSim("LLLLLLLLLLLLLLLAAAAAAAAAA",  map[string]string {"--controlpanelsetting" : "readwrite"}, t)
 func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int, electionsCnt int, RoundsCnt int, t *testing.T) *state.State {
@@ -125,7 +130,9 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 	blkt := globals.Params.BlkTime
 	roundt := elections.RoundTimeout
 	et := elections.FaultTimeout
+	startTime = time.Now()
 	state0 := Factomd(params, false).(*state.State)
+	statusState = state0
 	Calctime := time.Duration(float64((height*blkt)+(electionsCnt*et)+(RoundsCnt*roundt))*1.1) * time.Second
 	endtime := time.Now().Add(Calctime)
 	fmt.Println("ENDTIME: ", endtime)
@@ -137,7 +144,7 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 				return
 			default:
 				if int(state0.GetLLeaderHeight()) > height {
-					fmt.Println("Test Timeout: Expected %d blocks\n", height)
+					fmt.Printf("Test Timeout: Expected %d blocks\n", height)
 					panic("Exceeded expected height")
 				}
 				if time.Now().After(endtime) {
@@ -150,7 +157,7 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 	}()
 	state0.MessageTally = true
 	fmt.Printf("Starting timeout timer:  Expected test to take %s or %d blocks\n", Calctime.String(), height)
-	StatusEveryMinute(state0)
+	//	StatusEveryMinute(state0)
 	WaitMinutes(state0, 1) // wait till initial DBState message for the genesis block is processed
 	creatingNodes(GivenNodes, state0)
 
@@ -278,10 +285,25 @@ func WaitBlocks(s *state.State, blks int) {
 	TimeNow(s)
 	sleepTime := time.Duration(globals.Params.BlkTime) * 1000 / 40 // Figure out how long to sleep in milliseconds
 	newBlock := int(s.LLeaderHeight) + blks
-	for int(s.LLeaderHeight) < newBlock {
-		time.Sleep(sleepTime * time.Millisecond) // wake up and about 4 times per minute
+	for i := int(s.LLeaderHeight); i < newBlock; i++ {
+		for int(s.LLeaderHeight) < i {
+			time.Sleep(sleepTime * time.Millisecond) // wake up and about 4 times per minute
+		}
+		TimeNow(s)
 	}
+}
+
+// Wait for a specific blocks
+func WaitForBlock(s *state.State, newBlock int) {
+	fmt.Printf("WaitForBlocks(%d)\n", newBlock)
 	TimeNow(s)
+	sleepTime := time.Duration(globals.Params.BlkTime) * 1000 / 40 // Figure out how long to sleep in milliseconds
+	for i := int(s.LLeaderHeight); i < newBlock; i++ {
+		for int(s.LLeaderHeight) < i {
+			time.Sleep(sleepTime * time.Millisecond) // wake up and about 4 times per minute
+		}
+		TimeNow(s)
+	}
 }
 
 // Wait to a given minute.  If we are == to the minute or greater, then
@@ -365,9 +387,9 @@ func runCmd(cmd string) {
 }
 
 func shutDownEverything(t *testing.T) {
+	CheckAuthoritySet(t)
 	quit <- struct{}{}
 	close(quit)
-	CheckAuthoritySet(t)
 	t.Log("Shutting down the network")
 	for _, fn := range GetFnodes() {
 		fn.State.ShutdownChan <- 1
@@ -380,7 +402,7 @@ func shutDownEverything(t *testing.T) {
 		t.Fatal("Failed to shut down factomd via ShutdownChan")
 	}
 
-	fmt.Printf("Test took %d blocks and %s time\n", GetFnodes()[0].State.LLeaderHeight, time.Now().Sub(GetFnodes()[0].State.Starttime))
+	fmt.Printf("Test took %d blocks and %s time\n", GetFnodes()[0].State.LLeaderHeight, time.Now().Sub(startTime))
 
 }
 func v2Request(req *primitives.JSON2Request, port int) (*primitives.JSON2Response, error) {
@@ -533,7 +555,7 @@ func TestLoadScrambled(t *testing.T) {
 	}
 	defer func() {
 		if r := recover(); r != nil {
-			t.Fatalf("TestLoadScrambled:", r)
+			t.Fatalf("TestLoadScrambled: %v", r)
 		}
 	}()
 
@@ -1295,7 +1317,6 @@ func TestDBSigElection(t *testing.T) {
 	ranSimTest = true
 
 	state0 := SetupSim("LLLAF", map[string]string{"--debuglog": "fault|badmsg|network|process|dbsig", "--faulttimeout": "10"}, 6, 1, 1, t)
-	StatusEveryMinute(state0)
 
 	CheckAuthoritySet(t)
 
@@ -1319,12 +1340,183 @@ func TestDBSigElection(t *testing.T) {
 	WaitForAllNodes(state0)
 
 	CheckAuthoritySet(t) // check the authority set is as expected
+	shutDownEverything(t)
+}
 
-	t.Log("Shutting down the network")
-	for _, fn := range GetFnodes() {
-		fn.State.ShutdownChan <- 1
+func makeExpected(grants []state.HardGrant) []interfaces.ITransAddress {
+	var rval []interfaces.ITransAddress
+	for _, g := range grants {
+		rval = append(rval, factoid.NewOutAddress(g.Address, g.Amount))
+	}
+	return rval
+}
+
+func TestGrants(t *testing.T) {
+	if ranSimTest {
+		return
 	}
 
+	ranSimTest = true
+
+	state0 := SetupSim("LAF", map[string]string{"--debuglog": "fault|badmsg|network|process|dbsig", "--faulttimeout": "10", "--blktime": "5"}, 300, 0, 0, t)
+	CheckAuthoritySet(t)
+
+	grants := state.GetHardCodedGrants()
+
+	// find all the heights we care about
+	heights := map[uint32][]state.HardGrant{}
+	min := uint32(9999999)
+	max := uint32(0)
+	grantBalances := map[string]int64{} // Compute the expected final balances
+	// TODO: (does not account for cancels)
+	for _, g := range grants {
+		heights[g.DBh] = append(heights[g.DBh], g)
+		if min > g.DBh {
+			min = g.DBh
+		}
+		if max < g.DBh {
+			max = g.DBh
+		}
+		// keep a list of grant addresses
+	}
+
+	// Build a list of grant addresses
+	for _, g := range grants {
+		userAddr := primitives.ConvertFctAddressToUserStr(g.Address)
+		_, ok := grantBalances[userAddr]
+		if !ok {
+			grantBalances[userAddr] = state0.FactoidState.GetFactoidBalance(g.Address.Fixed()) // Save initial balance
+		}
+		grantBalances[userAddr] += int64(g.Amount) // Add the grant amount
+	}
+
+	fmt.Println("Waiting for grant payout")
+	// run the state till we are past the 100 block delay and check the final balances
+	WaitBlocks(state0, int(max+1+constants.COINBASE_DECLARATION+constants.COINBASE_PAYOUT_FREQUENCY*2))
+
+	// check the final balances of the accounts
+	for addr, balance := range grantBalances {
+		factoidBalance := state0.FactoidState.GetFactoidBalance(factoid.NewAddress(primitives.ConvertUserStrToAddress(addr)).Fixed())
+		if balance != factoidBalance {
+			t.Errorf("FinalBalanceMismatch for %s. Got %d expected %d", addr, balance, factoidBalance)
+		}
+	}
+
+	// loop thru the dbheights  to get the admin block and check them and make sure the payouts get returned
+	for dbheight := uint32(min - constants.COINBASE_PAYOUT_FREQUENCY*2); dbheight <= uint32(max+constants.COINBASE_PAYOUT_FREQUENCY*2); dbheight++ {
+		expected := makeExpected(heights[dbheight])
+		gotGrants := state.GetGrantPayoutsFor(dbheight)
+		if len(expected) != len(gotGrants) {
+			t.Errorf("Expected %d grants but found %d", len(expected), len(gotGrants))
+		} else if len(expected) > 0 {
+			fmt.Printf("Got %d expected grants at %d\n", len(expected), dbheight)
+		}
+
+		for i, _ := range expected {
+			if !expected[i].GetAddress().IsSameAs(gotGrants[i].GetAddress()) ||
+				expected[i].GetAmount() != gotGrants[i].GetAmount() ||
+				expected[i].GetUserAddress() != gotGrants[i].GetUserAddress() {
+				t.Errorf("Expected: %v ", expected[i])
+				t.Errorf("but found %v for grant #%d at %d", gotGrants[i], i, dbheight)
+			} else {
+				fmt.Printf("Got grants %v\n", expected[i])
+			}
+			//fmt.Println(p.GetAmount(), p.GetUserAddress())
+		}
+		//descriptorHeight := dbheight - constants.COINBASE_DECLARATION
+
+		ablock, err := state0.DB.FetchABlockByHeight(dbheight)
+		if err != nil {
+			panic(fmt.Sprintf("Missing coinbase, admin block at height %d could not be retrieved", dbheight))
+		}
+
+		abe := ablock.FetchCoinbaseDescriptor()
+		if abe != nil {
+			desc := abe.(*adminBlock.CoinbaseDescriptor)
+			coinBaseOutputs := map[string]uint64{}
+			for _, o := range desc.Outputs {
+				coinBaseOutputs[primitives.ConvertFctAddressToUserStr(o.GetAddress())] = o.GetAmount()
+			}
+			if len(expected) != len(coinBaseOutputs) && !(len(coinBaseOutputs) == 1 && dbheight%constants.COINBASE_PAYOUT_FREQUENCY == 0) {
+				t.Errorf("Expected %d grants but found %d at height %d", len(expected), len(coinBaseOutputs), dbheight)
+				printList("coinbase", coinBaseOutputs)
+			}
+			for i, _ := range expected {
+				address := expected[i].GetUserAddress()
+				cbAmount := coinBaseOutputs[address]
+				amount := expected[i].GetAmount()
+				if amount != cbAmount {
+					t.Errorf("Expected: %v ", expected[i])
+					t.Errorf("but found %v:%v for grant #%d at %d", address, cbAmount, i, dbheight)
+				}
+				//fmt.Println(p.GetAmount(), p.GetUserAddress())
+			}
+		}
+	} // for all dbheights {...}
+
+	WaitForAllNodes(state0)
+
+	CheckAuthoritySet(t) // check the authority set is as expected
+	shutDownEverything(t)
+}
+
+func printList(title string, list map[string]uint64) {
+	for addr, amt := range list {
+		fmt.Printf("%v - %v:%v\n", title, addr, amt)
+	}
+}
+
+func TestTestNetCoinBaseActivation(t *testing.T) {
+	if ranSimTest {
+		return
+	}
+	ranSimTest = true
+
+	// reach into the activation an hack the TESTNET_COINBASE_PERIOD to be early so I can check it worked.
+	activations.ActivationMap[activations.TESTNET_COINBASE_PERIOD].ActivationHeight["LOCAL"] = 22
+
+	state0 := SetupSim("LAF", map[string]string{"--debuglog": "fault|badmsg|network|process|dbsig", "--faulttimeout": "10", "--blktime": "5"}, 160, 0, 0, t)
+	CheckAuthoritySet(t)
+	fmt.Println("Simulation configured")
+	nextBlock := uint32(11 + constants.COINBASE_DECLARATION) // first grant is at 11 so it pays at 21
+	fmt.Println("Wait till first grant should payout")
+	WaitForBlock(state0, int(nextBlock)) // wait for the first coin base payout to be generated
+	factoidState0 := state0.FactoidState.(*state.FactoidState)
+	CBT := factoidState0.GetCoinbaseTransaction(nextBlock, state0.GetLeaderTimestamp())
+	oldCBDelay := constants.COINBASE_DECLARATION
+	if oldCBDelay != 10 {
+		t.Fatalf("constants.COINBASE_DECLARATION = %d expect 10\n", constants.COINBASE_DECLARATION)
+	}
+	if len(CBT.GetOutputs()) != 1 {
+		t.Fatalf("Expected first payout at block %d\n", nextBlock)
+	} else {
+		fmt.Println("Got first payout")
+	}
+
+	fmt.Println("Wait till activation height")
+	WaitForBlock(state0, 25)
+	if constants.COINBASE_DECLARATION != 140 {
+		t.Fatalf("constants.COINBASE_DECLARATION = %d expect 140\n", constants.COINBASE_DECLARATION)
+	}
+
+	nextBlock += oldCBDelay + 1
+	fmt.Println("Wait till second grant should payout if the activation fails")
+	WaitForBlock(state0, int(nextBlock+1)) // next old payout passed activation (should not be paid)
+	CBT = factoidState0.GetCoinbaseTransaction(nextBlock, state0.GetLeaderTimestamp())
+	if len(CBT.GetOutputs()) != 0 {
+		t.Fatalf("because the payout delay changed there is no payout at block %d\n", nextBlock)
+	}
+
+	nextBlock += constants.COINBASE_DECLARATION - oldCBDelay + 1
+	fmt.Println("Wait till second grant should payout with the new activation height")
+	WaitForBlock(state0, int(nextBlock+1)) // next payout passed new activation (should be paid)
+	CBT = factoidState0.GetCoinbaseTransaction(nextBlock, state0.GetLeaderTimestamp())
+	if len(CBT.GetOutputs()) != 0 {
+		t.Fatalf("Expected first payout at block %d\n", nextBlock)
+	}
+
+	WaitForAllNodes(state0)
+	CheckAuthoritySet(t) // check the authority set is as expected
 	shutDownEverything(t)
 }
 
