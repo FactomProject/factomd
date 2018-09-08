@@ -214,7 +214,6 @@ func (s *State) Process() (progress bool) {
 				}
 			}
 		}
-
 	} else if s.IgnoreMissing {
 		if now-s.StartDelay > s.StartDelayLimit {
 			s.IgnoreMissing = false
