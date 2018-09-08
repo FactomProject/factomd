@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/util/atomic"
 )
 
 var prLogger = packageLogger.WithField("subpack", "protocol")
