@@ -351,7 +351,7 @@ func TestSetupANetwork(t *testing.T) {
 
 	time.Sleep(10 * time.Second)
 	PrintOneStatus(0, 0)
-	dblim := 12
+	dblim := 14
 	if state0.LLeaderHeight > uint32(dblim) {
 		t.Fatalf("Failed to shut down factomd via ShutdownChan expected DBHeight %d got %d", dblim, state0.LLeaderHeight)
 	}
