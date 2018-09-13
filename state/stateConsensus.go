@@ -170,6 +170,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 		}
 
 	default:
+		s.LogMessage("executeMsg", "drop, InvalidMsg", msg)
 		if !msg.SentInvalid() {
 			msg.MarkSentInvalid(true)
 			s.LogMessage("executeMsg", "InvalidMsg", msg)
