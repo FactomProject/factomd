@@ -91,7 +91,7 @@ imports:
 - name: github.com/FactomProject/snappy-go
   version: f2f83b22c29e5abc60e3a95062ce1491d3b95371
 - name: github.com/FactomProject/web
-  version: 7daee1bf727fc2cd9142b9a73a797f98b3180756
+  version: 81c1471604b06b9d3d87e91f8c91274bacec260a
 - name: github.com/golang/protobuf
   version: 130e6b02ab059e7b717a096f397c5b60111cae74
   subpackages:
