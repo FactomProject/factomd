@@ -3,6 +3,7 @@ package engine_test
 import (
 	"bytes"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -71,6 +72,20 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 				CmdLineOptions[key] = CmdLineOptions[key] + "|" + value // add debug log flags to the default
 			}
 			// remove options not supported by the current flags set so we can merge this update into older code bases
+		}
+	}
+	// Finds all of the valid commands and stores them
+	optionsArr := make(map[string]bool, 0)
+	flag.VisitAll(func(key *flag.Flag) {
+		optionsArr["--"+key.Name] = true
+	})
+
+	// Loops through CmdLineOptions to removed commands that are not valid
+	for i, _ := range CmdLineOptions {
+		_, ok := optionsArr[i]
+		if !ok {
+			fmt.Println("Not Included: " + i + ", Removing from Options")
+			delete(CmdLineOptions, i)
 		}
 	}
 
@@ -507,7 +522,6 @@ func TestSetupANetwork(t *testing.T) {
 	WaitBlocks(fn1.State, 3) // Waits for 3 blocks
 
 	shutDownEverything(t)
-
 }
 
 func TestLoad(t *testing.T) {
@@ -559,9 +573,9 @@ func TestLoadScrambled(t *testing.T) {
 	WaitBlocks(state0, 10)
 	runCmd("R0") // Stop load
 	WaitBlocks(state0, 1)
-
 	shutDownEverything(t)
 } // testLoad(){...}
+
 
 func TestMakeALeader(t *testing.T) {
 	if ranSimTest {
@@ -1390,69 +1404,61 @@ func TestGrants(t *testing.T) {
 			t.Errorf("FinalBalanceMismatch for %s. Got %d expected %d", addr, balance, factoidBalance)
 		}
 	}
-
-	// loop thru the dbheights  to get the admin block and check them and make sure the payouts get returned
-	for dbheight := uint32(min - constants.COINBASE_PAYOUT_FREQUENCY*2); dbheight <= uint32(max+constants.COINBASE_PAYOUT_FREQUENCY*2); dbheight++ {
-		expected := makeExpected(heights[dbheight])
-		gotGrants := state.GetGrantPayoutsFor(dbheight)
-		if len(expected) != len(gotGrants) {
-			t.Errorf("Expected %d grants but found %d", len(expected), len(gotGrants))
-		} else if len(expected) > 0 {
-			fmt.Printf("Got %d expected grants at %d\n", len(expected), dbheight)
-		}
-
-		for i, _ := range expected {
-			if !expected[i].GetAddress().IsSameAs(gotGrants[i].GetAddress()) ||
-				expected[i].GetAmount() != gotGrants[i].GetAmount() ||
-				expected[i].GetUserAddress() != gotGrants[i].GetUserAddress() {
-				t.Errorf("Expected: %v ", expected[i])
-				t.Errorf("but found %v for grant #%d at %d", gotGrants[i], i, dbheight)
-			} else {
-				fmt.Printf("Got grants %v\n", expected[i])
-			}
-			//fmt.Println(p.GetAmount(), p.GetUserAddress())
-		}
-		//descriptorHeight := dbheight - constants.COINBASE_DECLARATION
-
-		ablock, err := state0.DB.FetchABlockByHeight(dbheight)
-		if err != nil {
-			panic(fmt.Sprintf("Missing coinbase, admin block at height %d could not be retrieved", dbheight))
-		}
-
-		abe := ablock.FetchCoinbaseDescriptor()
-		if abe != nil {
-			desc := abe.(*adminBlock.CoinbaseDescriptor)
-			coinBaseOutputs := map[string]uint64{}
-			for _, o := range desc.Outputs {
-				coinBaseOutputs[primitives.ConvertFctAddressToUserStr(o.GetAddress())] = o.GetAmount()
-			}
-			if len(expected) != len(coinBaseOutputs) && !(len(coinBaseOutputs) == 1 && dbheight%constants.COINBASE_PAYOUT_FREQUENCY == 0) {
-				t.Errorf("Expected %d grants but found %d at height %d", len(expected), len(coinBaseOutputs), dbheight)
-				printList("coinbase", coinBaseOutputs)
-			}
-			for i, _ := range expected {
-				address := expected[i].GetUserAddress()
-				cbAmount := coinBaseOutputs[address]
-				amount := expected[i].GetAmount()
-				if amount != cbAmount {
-					t.Errorf("Expected: %v ", expected[i])
-					t.Errorf("but found %v:%v for grant #%d at %d", address, cbAmount, i, dbheight)
-				}
-				//fmt.Println(p.GetAmount(), p.GetUserAddress())
-			}
-		}
-	} // for all dbheights {...}
-
-	WaitForAllNodes(state0)
-
-	CheckAuthoritySet(t) // check the authority set is as expected
-	shutDownEverything(t)
+	return rval
 }
 
-func printList(title string, list map[string]uint64) {
-	for addr, amt := range list {
-		fmt.Printf("%v - %v:%v\n", title, addr, amt)
+func TestTestNetCoinBaseActivation(t *testing.T) {
+	if ranSimTest {
+		return
 	}
+	ranSimTest = true
+
+	// reach into the activation an hack the TESTNET_COINBASE_PERIOD to be early so I can check it worked.
+	activations.ActivationMap[activations.TESTNET_COINBASE_PERIOD].ActivationHeight["LOCAL"] = 22
+
+	state0 := SetupSim("LAF", map[string]string{"--debuglog": "fault|badmsg|network|process|dbsig", "--faulttimeout": "10", "--blktime": "5"}, 160, 0, 0, t)
+	CheckAuthoritySet(t)
+	fmt.Println("Simulation configured")
+	nextBlock := uint32(11 + constants.COINBASE_DECLARATION) // first grant is at 11 so it pays at 21
+	fmt.Println("Wait till first grant should payout")
+	WaitForBlock(state0, int(nextBlock)) // wait for the first coin base payout to be generated
+	factoidState0 := state0.FactoidState.(*state.FactoidState)
+	CBT := factoidState0.GetCoinbaseTransaction(nextBlock, state0.GetLeaderTimestamp())
+	oldCBDelay := constants.COINBASE_DECLARATION
+	if oldCBDelay != 10 {
+		t.Fatalf("constants.COINBASE_DECLARATION = %d expect 10\n", constants.COINBASE_DECLARATION)
+	}
+	if len(CBT.GetOutputs()) != 1 {
+		t.Fatalf("Expected first payout at block %d\n", nextBlock)
+	} else {
+		fmt.Println("Got first payout")
+	}
+
+	fmt.Println("Wait till activation height")
+	WaitForBlock(state0, 25)
+	if constants.COINBASE_DECLARATION != 140 {
+		t.Fatalf("constants.COINBASE_DECLARATION = %d expect 140\n", constants.COINBASE_DECLARATION)
+	}
+
+	nextBlock += oldCBDelay + 1
+	fmt.Println("Wait till second grant should payout if the activation fails")
+	WaitForBlock(state0, int(nextBlock+1)) // next old payout passed activation (should not be paid)
+	CBT = factoidState0.GetCoinbaseTransaction(nextBlock, state0.GetLeaderTimestamp())
+	if len(CBT.GetOutputs()) != 0 {
+		t.Fatalf("because the payout delay changed there is no payout at block %d\n", nextBlock)
+	}
+
+	nextBlock += constants.COINBASE_DECLARATION - oldCBDelay + 1
+	fmt.Println("Wait till second grant should payout with the new activation height")
+	WaitForBlock(state0, int(nextBlock+1)) // next payout passed new activation (should be paid)
+	CBT = factoidState0.GetCoinbaseTransaction(nextBlock, state0.GetLeaderTimestamp())
+	if len(CBT.GetOutputs()) != 0 {
+		t.Fatalf("Expected first payout at block %d\n", nextBlock)
+	}
+
+	WaitForAllNodes(state0)
+	CheckAuthoritySet(t) // check the authority set is as expected
+	shutDownEverything(t)
 }
 
 // Cheap tests for developing binary search commits algorithm
