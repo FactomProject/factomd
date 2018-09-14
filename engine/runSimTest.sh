@@ -14,6 +14,4 @@ grep -Eo " Test[^( ]+" factomd_test.go | grep -P "$pattern" | grep -Ev "TestPass
 find . -name testlog.txt | xargs grep -EH "PASS:|FAIL:|panic|bind"
 
 
-
-
 #(echo git checkout git rev-parse HEAD; find . -name testlog.txt | xargs grep -EH "PASS:|FAIL:|panic") | mail -s "Test results `date`" `whoami`@factom.com

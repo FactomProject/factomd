@@ -72,6 +72,7 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 	var resp interface{}
 	var jsonError *primitives.JSONError
 	params := j.Params
+	state.LogPrintf("apilog", "request %v", j.String())
 	switch j.Method {
 	case "chain-head":
 		resp, jsonError = HandleV2ChainHead(state, params)
@@ -183,6 +184,7 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 		break
 	}
 	if jsonError != nil {
+		state.LogPrintf("apilog", "error %v", jsonError)
 		return nil, jsonError
 	}
 
@@ -190,6 +192,7 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 	jsonResp.ID = j.ID
 	jsonResp.Result = resp
 
+	state.LogPrintf("apilog", "responce %v", jsonResp.String())
 	return jsonResp, nil
 }
 

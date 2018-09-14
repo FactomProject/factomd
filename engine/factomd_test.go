@@ -522,7 +522,6 @@ func TestSetupANetwork(t *testing.T) {
 	WaitBlocks(fn1.State, 3) // Waits for 3 blocks
 
 	shutDownEverything(t)
-
 }
 
 func TestLoad(t *testing.T) {
