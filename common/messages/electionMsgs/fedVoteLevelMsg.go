@@ -63,7 +63,7 @@ func (m *FedVoteLevelMsg) String() string {
 		"Fed VoteLevelMsg",
 		m.DBHeight,
 		m.Minute,
-		m.Signer.Bytes()[3:5],
+		m.Signer.Bytes()[3:6],
 		m.Volunteer.ServerName,
 		m.Committed,
 		m.Level,
@@ -222,7 +222,7 @@ func (m *FedVoteLevelMsg) FollowerExecute(is interfaces.IState) {
 			pl.AuditServers[m.Volunteer.ServerIdx], pl.FedServers[m.Volunteer.FedIdx]
 
 		// Add to the process list and immediately process
-		pl.AddToProcessList(m.Volunteer.Ack.(*messages.Ack), m.Volunteer.Missing)
+		pl.AddToProcessList(s, m.Volunteer.Ack.(*messages.Ack), m.Volunteer.Missing)
 		is.UpdateState()
 	} else {
 		is.ElectionsQueue().Enqueue(m)

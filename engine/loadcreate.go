@@ -122,6 +122,7 @@ func (lg *LoadGenerator) NewRevealEntry(entry *entryBlock.Entry) *messages.Revea
 }
 
 var cnt int
+var goingUp bool
 
 func GetECs(s *state.State, tight bool, c int) {
 	outEC, _ := primitives.HexToHash("c23ae8eec2beb181a0da926bd2344e988149fbe839fbc7489f2096e7d6110243")
@@ -136,7 +137,16 @@ func GetECs(s *state.State, tight bool, c int) {
 	}
 
 	cnt++
-	if (ecBal > int64(c) && ecBal > 15) || (!tight && ecBal > 2000) {
+
+	if goingUp && ecBal > 500 {
+		if cnt%1000 == 0 {
+			os.Stderr.WriteString(fmt.Sprintf("%d purchases, not buying %d cause the balance is %d \n", cnt, c, ecBal))
+		}
+		goingUp = false
+		return
+	}
+
+	if !goingUp && ecBal > int64(c) {
 		if cnt%1000 == 0 {
 			os.Stderr.WriteString(fmt.Sprintf("%d purchases, not buying %d cause the balance is %d \n", cnt, c, ecBal))
 		}
@@ -146,7 +156,7 @@ func GetECs(s *state.State, tight bool, c int) {
 	os.Stderr.WriteString(fmt.Sprintf("%d purchases, buying %d and balance is %d \n", cnt, c, ecBal))
 
 	FundWallet(s, uint64(c)*ecPrice)
-
+	goingUp = true
 }
 
 func (lg *LoadGenerator) NewCommitChain(entry *entryBlock.Entry) *messages.CommitChainMsg {
