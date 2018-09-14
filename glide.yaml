@@ -57,7 +57,7 @@ import:
 - package: github.com/FactomProject/snappy-go
   version: master
 - package: github.com/FactomProject/web
-  version: develop
+  version: FD-654_adding_CORS
 - package: github.com/btcsuitereleases/btcd
   version: master
   subpackages:
