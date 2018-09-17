@@ -105,6 +105,7 @@ func (lists *ProcessLists) GetSafe(dbheight uint32) (pl *ProcessList) {
 
 func (lists *ProcessLists) Get(dbheight uint32) *ProcessList {
 	if dbheight < lists.DBHeightBase {
+		//REVIEW: why doesn't this keep list from growing ?
 		return nil
 	}
 
