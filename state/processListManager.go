@@ -131,6 +131,7 @@ func (lists *ProcessLists) Get(dbheight uint32) *ProcessList {
 		if dbheight == 0 {
 			prev = nil
 		} else {
+			// REVIEW: here is there recursive call that is a problem during boot
 			prev = lists.Get(dbheight - 1)
 		}
 		pl = NewProcessList(lists.State, prev, dbheight)
