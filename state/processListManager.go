@@ -97,6 +97,7 @@ func (lists *ProcessLists) GetSafe(dbheight uint32) (pl *ProcessList) {
 
 func (lists *ProcessLists) Get(dbheight uint32) *ProcessList {
 	if dbheight < lists.DBHeightBase {
+		//REVIEW: why doesn't this keep list from growing ?
 		return nil
 	}
 
@@ -108,7 +109,10 @@ func (lists *ProcessLists) Get(dbheight uint32) *ProcessList {
 	}
 
 	// Only allocate a pl I have a hope of using. If too high, ignore.
-	if dbheight >= lists.State.GetHighestCompletedBlk()+200 {
+	highestcompletedheight := lists.State.GetHighestCompletedBlk()
+
+	// KLUDGE: try to avoid loading process lists that are too old or too new
+	if dbheight >= highestcompletedheight+200 || dbheight < highestcompletedheight-2000 {
 		return nil
 	}
 
@@ -120,6 +124,7 @@ func (lists *ProcessLists) Get(dbheight uint32) *ProcessList {
 		if dbheight == 0 {
 			prev = nil
 		} else {
+			// REVIEW: here is there recursive call that is a problem during boot
 			prev = lists.Get(dbheight - 1)
 		}
 		pl = NewProcessList(lists.State, prev, dbheight)
