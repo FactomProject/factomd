@@ -42,10 +42,6 @@ func (s *State) CheckFileName(name string) bool {
 	return messages.CheckFileName(name)
 }
 
-func (s *State) CheckFileName(name string) bool {
-	return messages.CheckFileName(name)
-}
-
 func (s *State) DebugExec() (ret bool) {
 	return globals.Params.DebugLogRegEx != ""
 }

@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/activations"
-	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/globals"
@@ -575,7 +574,6 @@ func TestLoadScrambled(t *testing.T) {
 	WaitBlocks(state0, 1)
 	shutDownEverything(t)
 } // testLoad(){...}
-
 
 func TestMakeALeader(t *testing.T) {
 	if ranSimTest {
