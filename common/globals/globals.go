@@ -30,6 +30,7 @@ type FactomParams struct {
 	LogPort                  string
 	BlkTime                  int
 	FaultTimeout             int
+	RoundTimeout             int
 	RuntimeLog               bool
 	Exclusive                bool
 	ExclusiveIn              bool

@@ -7,12 +7,9 @@ package state_test
 import (
 	"fmt"
 	"math/rand"
+	"net/http/pprof"
 	"testing"
 	"time"
-
-	"log"
-	"net/http"
-	"net/http/pprof"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -37,9 +34,9 @@ func Test_Replay(test *testing.T) {
 		time interfaces.Timestamp
 	}
 
-	go func() {
-		log.Println(http.ListenAndServe("localhost:6060", nil))
-	}()
+	//go func() {
+	//	log.Println(http.ListenAndServe("localhost:6060", nil))
+	//}()
 
 	XTrans := 61440 //102400000 //61440 //145000
 
