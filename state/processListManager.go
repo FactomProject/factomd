@@ -116,7 +116,10 @@ func (lists *ProcessLists) Get(dbheight uint32) *ProcessList {
 	}
 
 	// Only allocate a pl I have a hope of using. If too high, ignore.
-	if dbheight >= lists.State.GetHighestCompletedBlk()+200 {
+	highestcompletedheight := lists.State.GetHighestCompletedBlk()
+
+	// KLUDGE: try to avoid loading process lists that are too old or too new
+	if dbheight >= highestcompletedheight+200 || dbheight < highestcompletedheight-2000 {
 		return nil
 	}
 
