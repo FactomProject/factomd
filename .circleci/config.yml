@@ -113,27 +113,27 @@ jobs:
           no_output_timeout: 2400
           command: cd engine/ && go test -run TestMultiple7Election
 
-       - run:
+      - run:
           name: TestSetupANetwork
           no_output_timeout: 2400
           command: cd engine/ && go test -run TestSetupANetwork
 
-       - run:
+      - run:
           name: TestActivationHeightElection
           no_output_timeout: 2400
           command: cd engine/ && go test -run TestActivationHeightElection
 
-       - run:
+      - run:
           name: TestDBsigEOMElection
           no_output_timeout: 2400
           command: cd engine/ && go test -run TestDBsigEOMElection
 
-       - run:
+      - run:
           name: TestMultipleFTAccountsAPI
           no_output_timeout: 2400
           command: cd engine/ && go test -run TestMultipleFTAccountsAPI
 
-       - run:
+      - run:
           name: TestMultipleECAccountsAPI
           no_output_timeout: 2400
           command: cd engine/ && go test -run TestMultipleECAccountsAPI
@@ -143,7 +143,7 @@ jobs:
   #        no_output_timeout: 2400
   #        command: cd engine/ && go test -run TestDBsigElectionEvery2Block
 
-       - run:
+      - run:
           name: TestGrants
           no_output_timeout: 2400
           command: cd engine/ && go test -run TestGrants
