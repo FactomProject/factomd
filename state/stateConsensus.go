@@ -42,10 +42,6 @@ func (s *State) CheckFileName(name string) bool {
 	return messages.CheckFileName(name)
 }
 
-func (s *State) CheckFileName(name string) bool {
-	return messages.CheckFileName(name)
-}
-
 func (s *State) DebugExec() (ret bool) {
 	return globals.Params.DebugLogRegEx != ""
 }
@@ -1375,7 +1371,6 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 			TotalHoldingQueueOutputs.Inc()
 		}
 
-
 		pl.EntryCreditBlock.GetBody().AddEntry(c.CommitChain)
 		return true
 	}
@@ -1414,7 +1409,6 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) (worked b
 		return false
 	}
 	msg := m.(*messages.RevealEntryMsg)
-
 
 	defer func() {
 		if worked {
@@ -2043,7 +2037,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		)
 		s.electionsQueue.Enqueue(InMsg)
 	}
-
 
 	// Put the stuff that executes once for set of DBSignatures (after I have them all) here
 	if !s.DBSigDone && s.DBSigProcessed >= s.DBSigLimit {
