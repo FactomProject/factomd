@@ -28,7 +28,7 @@ func TestImmutableGrantTable(t *testing.T) {
 	if fmt.Sprintf("%p", grants1) == fmt.Sprintf("%p", grants2) {
 		t.Errorf("Expected unique address for grant lists")
 	}
-	if fmt.Sprintf("%p", &grants1[0]) == fmt.Sprintf("%p", grants2[0]) {
+	if fmt.Sprintf("%p", &grants1[0]) == fmt.Sprintf("%p", &grants2[0]) {
 		t.Errorf("Expected unique address for grants")
 	}
 }
