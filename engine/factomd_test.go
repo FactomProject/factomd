@@ -133,7 +133,7 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 	startTime = time.Now()
 	state0 := Factomd(params, false).(*state.State)
 	statusState = state0
-	Calctime := time.Duration(float64((height*blkt)+(electionsCnt*et)+(RoundsCnt*roundt))*1.1) * time.Second
+	Calctime := time.Duration(float64((height*blkt)+(electionsCnt*et)+(RoundsCnt*roundt))*1.3) * time.Second
 	endtime := time.Now().Add(Calctime)
 	fmt.Println("ENDTIME: ", endtime)
 
@@ -1505,7 +1505,7 @@ func TestTestNetCoinBaseActivation(t *testing.T) {
 		t.Fatalf("because the payout delay changed there is no payout at block %d\n", nextBlock)
 	}
 
-	nextBlock += constants.COINBASE_DECLARATION - oldCBDelay
+	nextBlock += constants.COINBASE_DECLARATION - oldCBDelay + 1
 	fmt.Println("Wait till second grant should payout with the new activation height")
 	WaitForBlock(state0, int(nextBlock+1)) // next payout passed new activation (should be paid)
 	CBT = factoidState0.GetCoinbaseTransaction(nextBlock, state0.GetLeaderTimestamp())
