@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/activations"
+	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/globals"
@@ -573,7 +574,7 @@ func TestLoadScrambled(t *testing.T) {
 	runCmd("R0") // Stop load
 	WaitBlocks(state0, 1)
 	shutDownEverything(t)
-} // testLoad(){...}
+} // TestLoadScrambled(){...}
 
 func TestMakeALeader(t *testing.T) {
 	if ranSimTest {
@@ -1402,9 +1403,67 @@ func TestGrants(t *testing.T) {
 			t.Errorf("FinalBalanceMismatch for %s. Got %d expected %d", addr, balance, factoidBalance)
 		}
 	}
-	return rval
+	// loop thru the dbheights  to get the admin block and check them and make sure the payouts get returned
+	for dbheight := uint32(min - constants.COINBASE_PAYOUT_FREQUENCY*2); dbheight <= uint32(max+constants.COINBASE_PAYOUT_FREQUENCY*2); dbheight++ {
+		expected := makeExpected(heights[dbheight])
+		gotGrants := state.GetGrantPayoutsFor(dbheight)
+		if len(expected) != len(gotGrants) {
+			t.Errorf("Expected %d grants but found %d", len(expected), len(gotGrants))
+		} else if len(expected) > 0 {
+			fmt.Printf("Got %d expected grants at %d\n", len(expected), dbheight)
+		}
+
+		for i, _ := range expected {
+			if !expected[i].GetAddress().IsSameAs(gotGrants[i].GetAddress()) ||
+				expected[i].GetAmount() != gotGrants[i].GetAmount() ||
+				expected[i].GetUserAddress() != gotGrants[i].GetUserAddress() {
+				t.Errorf("Expected: %v ", expected[i])
+				t.Errorf("but found %v for grant #%d at %d", gotGrants[i], i, dbheight)
+			} else {
+				fmt.Printf("Got grants %v\n", expected[i])
+			}
+			//fmt.Println(p.GetAmount(), p.GetUserAddress())
+		}
+		//descriptorHeight := dbheight - constants.COINBASE_DECLARATION
+
+		ablock, err := state0.DB.FetchABlockByHeight(dbheight)
+		if err != nil {
+			panic(fmt.Sprintf("Missing coinbase, admin block at height %d could not be retrieved", dbheight))
+		}
+
+		abe := ablock.FetchCoinbaseDescriptor()
+		if abe != nil {
+			desc := abe.(*adminBlock.CoinbaseDescriptor)
+			coinBaseOutputs := map[string]uint64{}
+			for _, o := range desc.Outputs {
+				coinBaseOutputs[primitives.ConvertFctAddressToUserStr(o.GetAddress())] = o.GetAmount()
+			}
+			if len(expected) != len(coinBaseOutputs) && !(len(coinBaseOutputs) == 1 && dbheight%constants.COINBASE_PAYOUT_FREQUENCY == 0) {
+				t.Errorf("Expected %d grants but found %d at height %d", len(expected), len(coinBaseOutputs), dbheight)
+				printList("coinbase", coinBaseOutputs)
+			}
+			for i, _ := range expected {
+				address := expected[i].GetUserAddress()
+				cbAmount := coinBaseOutputs[address]
+				amount := expected[i].GetAmount()
+				if amount != cbAmount {
+					t.Errorf("Expected: %v ", expected[i])
+					t.Errorf("but found %v:%v for grant #%d at %d", address, cbAmount, i, dbheight)
+				}
+				//fmt.Println(p.GetAmount(), p.GetUserAddress())
+			}
+		}
+	} // for all dbheights {...}
+	WaitForAllNodes(state0)
+	CheckAuthoritySet(t) // check the authority set is as expected
+	shutDownEverything(t)
 }
 
+func printList(title string, list map[string]uint64) {
+	for addr, amt := range list {
+		fmt.Printf("%v - %v:%v\n", title, addr, amt)
+	}
+}
 func TestTestNetCoinBaseActivation(t *testing.T) {
 	if ranSimTest {
 		return
@@ -1414,7 +1473,7 @@ func TestTestNetCoinBaseActivation(t *testing.T) {
 	// reach into the activation an hack the TESTNET_COINBASE_PERIOD to be early so I can check it worked.
 	activations.ActivationMap[activations.TESTNET_COINBASE_PERIOD].ActivationHeight["LOCAL"] = 22
 
-	state0 := SetupSim("LAF", map[string]string{"--debuglog": "fault|badmsg|network|process|dbsig", "--faulttimeout": "10", "--blktime": "5"}, 160, 0, 0, t)
+	state0 := SetupSim("LAF", map[string]string{"--debuglog": "fault|badmsg|network|process|dbsig", "--faulttimeout": "10", "--blktime": "2"}, 180, 0, 0, t)
 	CheckAuthoritySet(t)
 	fmt.Println("Simulation configured")
 	nextBlock := uint32(11 + constants.COINBASE_DECLARATION) // first grant is at 11 so it pays at 21
@@ -1438,7 +1497,7 @@ func TestTestNetCoinBaseActivation(t *testing.T) {
 		t.Fatalf("constants.COINBASE_DECLARATION = %d expect 140\n", constants.COINBASE_DECLARATION)
 	}
 
-	nextBlock += oldCBDelay + 1
+	nextBlock += oldCBDelay
 	fmt.Println("Wait till second grant should payout if the activation fails")
 	WaitForBlock(state0, int(nextBlock+1)) // next old payout passed activation (should not be paid)
 	CBT = factoidState0.GetCoinbaseTransaction(nextBlock, state0.GetLeaderTimestamp())
@@ -1446,7 +1505,7 @@ func TestTestNetCoinBaseActivation(t *testing.T) {
 		t.Fatalf("because the payout delay changed there is no payout at block %d\n", nextBlock)
 	}
 
-	nextBlock += constants.COINBASE_DECLARATION - oldCBDelay + 1
+	nextBlock += constants.COINBASE_DECLARATION - oldCBDelay
 	fmt.Println("Wait till second grant should payout with the new activation height")
 	WaitForBlock(state0, int(nextBlock+1)) // next payout passed new activation (should be paid)
 	CBT = factoidState0.GetCoinbaseTransaction(nextBlock, state0.GetLeaderTimestamp())
