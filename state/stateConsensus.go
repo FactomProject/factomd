@@ -102,7 +102,6 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 	switch valid {
 	case 1:
 		// The highest block for which we have received a message.  Sometimes the same as
-
 		if !msg.IsLocal() && !msg.IsPeer2Peer() {
 			msg.SendOut(s, msg) // send out messages that are valid and not local or peer to  peer
 		}
