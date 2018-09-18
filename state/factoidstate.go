@@ -11,6 +11,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"reflect"
 	"sort"
 	"time"
 
@@ -93,7 +94,14 @@ func GetMapHash(dbheight uint32, bmap map[[32]byte]int64) interfaces.IHash {
 	return h
 }
 
-func (fs *FactoidState) GetBalanceHash(includeTemp bool) interfaces.IHash {
+func (fs *FactoidState) GetBalanceHash(includeTemp bool) (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("FactoidState.GetBalanceHash() saw an interface that was nil")
+		}
+	}()
+
 	h1 := GetMapHash(fs.DBHeight, fs.State.FactoidBalancesP)
 	h2 := GetMapHash(fs.DBHeight, fs.State.ECBalancesP)
 	h3 := h1

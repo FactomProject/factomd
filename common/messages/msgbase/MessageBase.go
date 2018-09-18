@@ -7,6 +7,7 @@ package msgbase
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"sync"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -234,7 +235,14 @@ func (m *MessageBase) SetStall(b bool) {
 	m.Stalled = b
 }
 
-func (m *MessageBase) GetFullMsgHash() interfaces.IHash {
+func (m *MessageBase) GetFullMsgHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("MessageBase.GetFullMsgHash() saw an interface that was nil")
+		}
+	}()
+
 	if m.FullMsgHash == nil {
 		m.FullMsgHash = primitives.NewZeroHash()
 	}
@@ -285,7 +293,14 @@ func (m *MessageBase) IsFullBroadcast() bool {
 func (m *MessageBase) SetFullBroadcast(v bool) {
 	m.FullBroadcast = v
 }
-func (m *MessageBase) GetLeaderChainID() interfaces.IHash {
+func (m *MessageBase) GetLeaderChainID() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("MessageBase.GetLeaderChainID() saw an interface that was nil")
+		}
+	}()
+
 	if m.LeaderChainID == nil {
 		m.LeaderChainID = primitives.NewZeroHash()
 	}

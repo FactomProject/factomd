@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"reflect"
 	"strings"
 	"time"
 
@@ -31,12 +32,26 @@ type BounceReply struct {
 
 var _ interfaces.IMsg = (*BounceReply)(nil)
 
-func (m *BounceReply) GetRepeatHash() interfaces.IHash {
+func (m *BounceReply) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("BounceReply.GetRepeatHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.GetMsgHash()
 }
 
 // We have to return the hash of the underlying message.
-func (m *BounceReply) GetHash() interfaces.IHash {
+func (m *BounceReply) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("BounceReply.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.GetMsgHash()
 }
 
@@ -45,7 +60,14 @@ func (m *BounceReply) SizeOf() int {
 	return m.size
 }
 
-func (m *BounceReply) GetMsgHash() interfaces.IHash {
+func (m *BounceReply) GetMsgHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("BounceReply.GetMsgHash() saw an interface that was nil")
+		}
+	}()
+
 	data, err := m.MarshalForSignature()
 
 	m.size = len(data)

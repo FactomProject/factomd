@@ -3,6 +3,7 @@ package adminBlock
 import (
 	"fmt"
 	"os"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/factoid"
@@ -77,7 +78,14 @@ func (e *AddFactoidAddress) Type() byte {
 	return constants.TYPE_ADD_FACTOID_ADDRESS
 }
 
-func (e *AddFactoidAddress) SortedIdentity() interfaces.IHash {
+func (e *AddFactoidAddress) SortedIdentity() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("AddFactoidAddress.SortedIdentity() saw an interface that was nil")
+		}
+	}()
+
 	return e.IdentityChainID
 }
 
@@ -191,7 +199,14 @@ func (e *AddFactoidAddress) Interpret() string {
 	return ""
 }
 
-func (e *AddFactoidAddress) Hash() interfaces.IHash {
+func (e *AddFactoidAddress) Hash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("AddFactoidAddress.Hash() saw an interface that was nil")
+		}
+	}()
+
 	bin, err := e.MarshalBinary()
 	if err != nil {
 		panic(err)

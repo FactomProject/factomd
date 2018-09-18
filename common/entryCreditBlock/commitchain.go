@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"os"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -134,11 +135,25 @@ func NewCommitChain() *CommitChain {
 	return c
 }
 
-func (a *CommitChain) GetEntryHash() interfaces.IHash {
+func (a *CommitChain) GetEntryHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("CommitChain.GetEntryHash() saw an interface that was nil")
+		}
+	}()
+
 	return a.EntryHash
 }
 
-func (e *CommitChain) Hash() interfaces.IHash {
+func (e *CommitChain) Hash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("CommitChain.Hash() saw an interface that was nil")
+		}
+	}()
+
 	bin, err := e.MarshalBinary()
 	if err != nil {
 		panic(err)
@@ -188,12 +203,26 @@ func (c *CommitChain) IsValid() bool {
 	}
 }
 
-func (c *CommitChain) GetHash() interfaces.IHash {
+func (c *CommitChain) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("CommitChain.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	data, _ := c.MarshalBinary()
 	return primitives.Sha(data)
 }
 
-func (c *CommitChain) GetSigHash() interfaces.IHash {
+func (c *CommitChain) GetSigHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("CommitChain.GetSigHash() saw an interface that was nil")
+		}
+	}()
+
 	data := c.CommitMsg()
 	return primitives.Sha(data)
 }
