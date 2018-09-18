@@ -7,6 +7,7 @@ package electionMsgs
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/FactomProject/factomd/activations"
@@ -69,7 +70,14 @@ func (m *EomSigInternal) MarshalBinary() (data []byte, err error) {
 	return data, nil
 }
 
-func (m *EomSigInternal) GetMsgHash() interfaces.IHash {
+func (m *EomSigInternal) GetMsgHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("EomSigInternal.GetMsgHash() saw an interface that was nil")
+		}
+	}()
+
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()
 		if err != nil {
@@ -208,7 +216,14 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 	e.Round = e.Round[:0] // Get rid of any previous round counting.
 }
 
-func (m *EomSigInternal) GetServerID() interfaces.IHash {
+func (m *EomSigInternal) GetServerID() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("EomSigInternal.GetServerID() saw an interface that was nil")
+		}
+	}()
+
 	return m.ServerID
 }
 
@@ -216,12 +231,26 @@ func (m *EomSigInternal) LogFields() log.Fields {
 	return log.Fields{"category": "message", "messagetype": "EomSigInternal", "dbheight": m.DBHeight, "newleader": m.ServerID.String()[4:12]}
 }
 
-func (m *EomSigInternal) GetRepeatHash() interfaces.IHash {
+func (m *EomSigInternal) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("EomSigInternal.GetRepeatHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.GetMsgHash()
 }
 
 // We have to return the hash of the underlying message.
-func (m *EomSigInternal) GetHash() interfaces.IHash {
+func (m *EomSigInternal) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("EomSigInternal.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.MessageHash
 }
 

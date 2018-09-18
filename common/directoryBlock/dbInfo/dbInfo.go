@@ -4,6 +4,7 @@ import (
 	"encoding/gob"
 	"fmt"
 	"os"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -87,28 +88,63 @@ func (c *DirBlockInfo) GetBTCConfirmed() bool {
 	return c.BTCConfirmed
 }
 
-func (c *DirBlockInfo) GetChainID() interfaces.IHash {
+func (c *DirBlockInfo) GetChainID() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("DirBlockInfo.GetChainID() saw an interface that was nil")
+		}
+	}()
+
 	id := make([]byte, 32)
 	copy(id, []byte("DirBlockInfo"))
 	return primitives.NewHash(id)
 }
 
-func (c *DirBlockInfo) DatabasePrimaryIndex() interfaces.IHash {
+func (c *DirBlockInfo) DatabasePrimaryIndex() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("DirBlockInfo.DatabasePrimaryIndex() saw an interface that was nil")
+		}
+	}()
+
 	c.Init()
 	return c.DBMerkleRoot
 }
 
-func (c *DirBlockInfo) DatabaseSecondaryIndex() interfaces.IHash {
+func (c *DirBlockInfo) DatabaseSecondaryIndex() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("DirBlockInfo.DatabaseSecondaryIndex() saw an interface that was nil")
+		}
+	}()
+
 	c.Init()
 	return c.DBHash
 }
 
-func (e *DirBlockInfo) GetDBMerkleRoot() interfaces.IHash {
+func (e *DirBlockInfo) GetDBMerkleRoot() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("DirBlockInfo.GetDBMerkleRoot() saw an interface that was nil")
+		}
+	}()
+
 	e.Init()
 	return e.DBMerkleRoot
 }
 
-func (e *DirBlockInfo) GetBTCTxHash() interfaces.IHash {
+func (e *DirBlockInfo) GetBTCTxHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("DirBlockInfo.GetBTCTxHash() saw an interface that was nil")
+		}
+	}()
+
 	e.Init()
 	return e.BTCTxHash
 }

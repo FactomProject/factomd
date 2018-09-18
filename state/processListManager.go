@@ -39,14 +39,6 @@ func (lists *ProcessLists) UpdateState(dbheight uint32) (progress bool) {
 		progress = true
 		lists.DBHeightBase += uint32(diff)
 
-		// Kill the old process lists that are being retired
-		for _, pl := range lists.Lists[:diff] {
-			if pl != nil && pl.done != nil {
-				pl.done <- struct{}{} // stop looking for missing messages for that process list
-				pl.done = nil
-			}
-		}
-
 		newlist := append([]*ProcessList{}, lists.Lists[diff:]...)
 		lists.Lists = newlist
 	}

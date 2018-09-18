@@ -11,10 +11,11 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"runtime/debug"
+	"reflect"
 	"sort"
 	"time"
 
+	"github.com/FactomProject/factomd/activations"
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
@@ -22,8 +23,6 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
-
-var _ = debug.PrintStack
 
 var FACTOID_CHAINID_HASH = primitives.NewHash(constants.FACTOID_CHAINID)
 
@@ -95,7 +94,14 @@ func GetMapHash(dbheight uint32, bmap map[[32]byte]int64) interfaces.IHash {
 	return h
 }
 
-func (fs *FactoidState) GetBalanceHash(includeTemp bool) interfaces.IHash {
+func (fs *FactoidState) GetBalanceHash(includeTemp bool) (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("FactoidState.GetBalanceHash() saw an interface that was nil")
+		}
+	}()
+
 	h1 := GetMapHash(fs.DBHeight, fs.State.FactoidBalancesP)
 	h2 := GetMapHash(fs.DBHeight, fs.State.ECBalancesP)
 	h3 := h1
@@ -411,6 +417,11 @@ func (fs *FactoidState) Validate(index int, trans interfaces.ITransaction) error
 func (fs *FactoidState) GetCoinbaseTransaction(dbheight uint32, ftime interfaces.Timestamp) interfaces.ITransaction {
 	coinbase := new(factoid.Transaction)
 	coinbase.SetTimestamp(ftime)
+
+	if fs.State.IsActive(activations.TESTNET_COINBASE_PERIOD) {
+		// testnet wants payout to be a day delayed instead of 50 minutes
+		constants.COINBASE_DECLARATION = 140 // Ok, so it's not really constant...
+	}
 
 	// Coinbases only have outputs on payout blocks.
 	//	Payout blocks are every n blocks, where n is the coinbase frequency

@@ -455,7 +455,9 @@ func (ss *SaveState) TrimBack(s *State, d *DBState) {
 	s.DBSig = pss.DBSig
 	s.DBSigLimit = pss.DBSigLimit
 	s.DBSigProcessed = pss.DBSigProcessed
-	s.DBSigDone = pss.DBSigDone
+	s.DBSigDone = pss.DBSigDone //p
+	//	s.LogPrintf("dbsig-eom", "DBSIGDone written %v @ %s", s.DBSigDone, atomic.WhereAmIString(0))
+
 	s.DBSigSys = pss.DBSigSys
 	s.Saving = pss.Saving
 	s.Syncing = pss.Syncing
@@ -629,7 +631,9 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 	s.DBSig = false
 	s.DBSigLimit = ss.DBSigLimit
 	s.DBSigProcessed = ss.DBSigProcessed
-	s.DBSigDone = ss.DBSigDone
+	s.DBSigDone = ss.DBSigDone // p
+	//	s.LogPrintf("dbsig-eom", "DBSIGDone written %v @ %s", s.DBSigDone, atomic.WhereAmIString(0))
+
 	s.DBSigSys = ss.DBSigSys
 	s.Saving = true
 	s.Syncing = false

@@ -7,6 +7,7 @@ package state
 import (
 	"fmt"
 	"os"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -130,7 +131,14 @@ func (s *Server) GetName() string {
 	return s.Name
 }
 
-func (s *Server) GetChainID() interfaces.IHash {
+func (s *Server) GetChainID() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("Server.GetChainID() saw an interface that was nil")
+		}
+	}()
+
 	return s.ChainID
 }
 
@@ -146,7 +154,14 @@ func (s *Server) SetOnline(o bool) {
 	s.Online = o
 }
 
-func (s *Server) LeaderToReplace() interfaces.IHash {
+func (s *Server) LeaderToReplace() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("Server.LeaderToReplace() saw an interface that was nil")
+		}
+	}()
+
 	return s.Replace
 }
 

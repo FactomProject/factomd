@@ -60,6 +60,7 @@ jobs:
             cd $GOPATH/src/github.com/Masterminds/glide
             git checkout tags/v0.13.1
             go install
+            
       - run:
           name: Get goveralls
           command: |
@@ -67,10 +68,12 @@ jobs:
             cd $GOPATH/src/github.com/Masterminds/glide
             git checkout tags/v0.13.1
             go install
+            
       - run:
           name: Get the dependencies
           command: |
             glide install
+
       - run:
           name: Build and install the executable
           command: go install -v
@@ -80,6 +83,75 @@ jobs:
           no_output_timeout: 2400
           command: go test -v -vet=off $(glide nv | grep -v Utilities)
 
+      - run:
+          name: TestMakeALeader 
+          no_output_timeout: 2400
+          command: cd engine/ && go test -run TestMakeALeader
+
+      - run:
+          name: TestAnElection 
+          no_output_timeout: 2400
+          command: cd engine/ && go test -run TestAnElection
+
+      - run:
+          name: TestLoad 
+          no_output_timeout: 2400
+          command: cd engine/ && go test -run TestLoad
+
+      - run:
+          name: TestMultiple2Election 
+          no_output_timeout: 2400
+          command: cd engine/ && go test -run TestMultiple2Election
+
+      - run:
+          name: TestMultiple3Election 
+          no_output_timeout: 2400
+          command: cd engine/ && go test -run TestMultiple3Election
+
+      - run:
+          name: TestMultiple7Election 
+          no_output_timeout: 2400
+          command: cd engine/ && go test -run TestMultiple7Election
+
+      - run:
+          name: TestSetupANetwork
+          no_output_timeout: 2400
+          command: cd engine/ && go test -run TestSetupANetwork
+
+      - run:
+          name: TestActivationHeightElection
+          no_output_timeout: 2400
+          command: cd engine/ && go test -run TestActivationHeightElection
+
+      - run:
+          name: TestDBsigEOMElection
+          no_output_timeout: 2400
+          command: cd engine/ && go test -run TestDBsigEOMElection
+
+      - run:
+          name: TestMultipleFTAccountsAPI
+          no_output_timeout: 2400
+          command: cd engine/ && go test -run TestMultipleFTAccountsAPI
+
+      - run:
+          name: TestMultipleECAccountsAPI
+          no_output_timeout: 2400
+          command: cd engine/ && go test -run TestMultipleECAccountsAPI
+
+  #     - run:
+  #        name: TestDBsigElectionEvery2Block
+  #        no_output_timeout: 2400
+  #        command: cd engine/ && go test -run TestDBsigElectionEvery2Block
+
+      - run:
+          name: TestGrants
+          no_output_timeout: 2400
+          command: cd engine/ && go test -run TestGrants
+
+ #      - run:
+ #         name: TestTestNetCoinBaseActivation
+ #         no_output_timeout: 2400
+ #         command: cd engine/ && go test -run TestTestNetCoinBaseActivation
 
       - save_cache:
           key: v2-factomd-go-build-cache-{{ checksum "glide.lock" }}

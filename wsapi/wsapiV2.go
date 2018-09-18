@@ -19,6 +19,7 @@ import (
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
+	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -596,7 +597,8 @@ func HandleV2CommitEntry(state interfaces.IState, params interface{}) (interface
 	}
 
 	commit := entryCreditBlock.NewCommitEntry()
-	if p, err := hex.DecodeString(commitEntryMsg.Message); err != nil {
+	p, err := hex.DecodeString(commitEntryMsg.Message)
+	if err != nil {
 		return nil, NewInvalidCommitEntryError()
 	} else {
 		_, err := commit.UnmarshalBinaryData(p)
@@ -965,6 +967,8 @@ func HandleV2CurrentMinute(state interfaces.IState, params interface{}) (interfa
 	h.CurrentMinuteStartTime = int64(state.GetCurrentMinuteStartTime())
 	h.DirectoryBlockInSeconds = int64(state.GetDirectoryBlockInSeconds())
 	h.StallDetected = state.IsStalled()
+	h.FaultTimeOut = int64(globals.Params.FaultTimeout)
+	h.RoundTimeOut = int64(globals.Params.RoundTimeout)
 
 	//h.LastBlockTime = state.GetTimestamp
 	return h, nil

@@ -74,7 +74,6 @@ func (s *State) LogPrintf(logName string, format string, more ...interface{}) {
 	}
 }
 func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
-
 	if msg.GetHash() == nil || reflect.ValueOf(msg.GetHash()).IsNil() {
 		s.LogMessage("badMsgs", "Nil hash in executeMsg", msg)
 		return false
@@ -183,6 +182,9 @@ func (s *State) Process() (progress bool) {
 		return false
 	}
 
+	s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
+	now := s.GetTimestamp().GetTimeMilli() // Timestamps are in milliseconds, so wait 20
+
 	// If we are not running the leader, then look to see if we have waited long enough to
 	// start running the leader.  If we are, start the clock on Ignoring Missing Messages.  This
 	// is so we don't conflict with past version of the network if we have to reboot the network.
@@ -193,7 +195,6 @@ func (s *State) Process() (progress bool) {
 	}
 
 	if !s.RunLeader {
-		now := s.GetTimestamp().GetTimeMilli() // Timestamps are in milliseconds, so wait 20
 		if now-s.StartDelay > s.StartDelayLimit {
 			if s.DBFinished == true {
 				s.RunLeader = true
@@ -203,11 +204,7 @@ func (s *State) Process() (progress bool) {
 				}
 			}
 		}
-		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
-
 	} else if s.IgnoreMissing {
-		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
-		now := s.GetTimestamp().GetTimeMilli() // Timestamps are in milliseconds, so wait 20
 		if now-s.StartDelay > s.StartDelayLimit {
 			s.IgnoreMissing = false
 		}
@@ -257,7 +254,6 @@ ackLoop:
 			}
 
 			if s.IgnoreMissing {
-				now := s.GetTimestamp().GetTimeSeconds() //todo: Do we really need to do this every loop?
 				if now-ack.GetTimestamp().GetTimeSeconds() < 60*15 {
 					s.LogMessage("ackQueue", "Execute", ack)
 					s.executeMsg(vm, ack)
@@ -413,13 +409,7 @@ func (s *State) ReviewHolding() {
 			continue
 		}
 
-		if v.GetResendCnt() == 0 {
-			v.SendOut(s, v)
-		} else {
-			if v.Resend(s) {
-				v.SendOut(s, v)
-			}
-		}
+		v.SendOut(s, v)
 
 		if int(highest)-int(saved) > 1000 {
 			TotalHoldingQueueOutputs.Inc()
@@ -586,7 +576,7 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 		m.SetMinute(ack.Minute)
 
 		pl := s.ProcessLists.Get(ack.DBHeight)
-		pl.AddToProcessList(ack, m)
+		pl.AddToProcessList(s, ack, m)
 
 		// Cross Boot Replay
 		s.CrossReplayAddSalt(ack.DBHeight, ack.Salt)
@@ -620,7 +610,7 @@ func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
 	if ack != nil {
 		pl := s.ProcessLists.Get(ack.DBHeight)
-		pl.AddToProcessList(ack, m)
+		pl.AddToProcessList(s, ack, m)
 	}
 }
 
@@ -1089,7 +1079,7 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 	}
 
 	// Add the message and ack to the process list.
-	pl.AddToProcessList(ack, m)
+	pl.AddToProcessList(s, ack, m)
 
 	// Check to make sure AddToProcessList removed it from holding (added it to the list)
 	if s.Holding[m.GetMsgHash().Fixed()] != nil {
@@ -1123,7 +1113,7 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 	m.SetLeaderChainID(ack.GetLeaderChainID())
 	m.SetMinute(ack.Minute)
 
-	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(ack, m)
+	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(s, ack, m)
 }
 
 func (s *State) setCurrentMinute(m int) {
@@ -1245,7 +1235,7 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
 	m.SetLeaderChainID(ack.GetLeaderChainID())
 	m.SetMinute(ack.Minute)
 
-	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(ack, m)
+	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(s, ack, m)
 }
 
 func (s *State) LeaderExecuteCommitChain(m interfaces.IMsg) {
@@ -1293,7 +1283,7 @@ func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 	// Put the acknowledgement in the Acks so we can tell if AddToProcessList() adds it.
 	s.Acks[m.GetMsgHash().Fixed()] = ack
 	TotalAcksInputs.Inc()
-	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(ack, m)
+	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(s, ack, m)
 
 	// If it was not added, then handle as a follower, and leave.
 	if s.Acks[m.GetMsgHash().Fixed()] != nil {
@@ -1365,6 +1355,7 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 	c, _ := commitChain.(*messages.CommitChainMsg)
 
 	pl := s.ProcessLists.Get(dbheight)
+
 	if e := s.GetFactoidState().UpdateECTransaction(true, c.CommitChain); e == nil {
 		// save the Commit to match against the Reveal later
 		h := c.GetHash()
@@ -1431,6 +1422,7 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) (worked b
 			s.Commits.Delete(msg.Entry.GetHash().Fixed()) // delete(s.Commits, msg.Entry.GetHash().Fixed())
 		}
 	}()
+
 	myhash := msg.Entry.GetHash()
 
 	chainID := msg.Entry.GetChainID()
@@ -1499,6 +1491,7 @@ func (s *State) CreateDBSig(dbheight uint32, vmIndex int) (interfaces.IMsg, inte
 	}
 	dbs := new(messages.DirectoryBlockSignature)
 	dbs.DirectoryBlockHeader = dbstate.DirectoryBlock.GetHeader()
+	//dbs.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
 	dbs.ServerIdentityChainID = s.GetIdentityChainID()
 	dbs.DBHeight = dbheight
 	dbs.Timestamp = s.GetTimestamp()
@@ -1548,7 +1541,7 @@ func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
 				return
 			}
 
-			dbslog.WithFields(dbs.LogFields()).WithFields(log.Fields{"lheight": s.GetLeaderHeight(), "node-Name": s.GetFactomNodeName()}).Infof("Generate DBSig")
+			dbslog.WithFields(dbs.LogFields()).WithFields(log.Fields{"lheight": s.GetLeaderHeight(), "node-name": s.GetFactomNodeName()}).Infof("Generate DBSig")
 			dbs.LeaderExecute(s)
 			vm.Signed = true
 			pl.DBSigAlreadySent = true
@@ -1789,6 +1782,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 				dbs := new(messages.DirectoryBlockSignature)
 				db := dbstate.DirectoryBlock
 				dbs.DirectoryBlockHeader = db.GetHeader()
+				//dbs.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
 				dbs.ServerIdentityChainID = s.GetIdentityChainID()
 				dbs.DBHeight = s.LLeaderHeight
 				dbs.Timestamp = s.GetTimestamp()
@@ -1800,14 +1794,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 				if err != nil {
 					panic(err)
 				}
-				//{ // debug
-				//	s.LogMessage("dbstate", "currentminute=10", dbs)
-				//	dbs2, _ := s.CreateDBSig(s.LLeaderHeight, s.LeaderVMIndex)
-				//	dbs3 := dbs2.(*messages.DirectoryBlockSignature)
-				//	s.LogPrintf("dbstate", "issameas()=%v", dbs.IsSameAs(dbs3))
-				//}
-				s.LogMessage("dbstate", "currentminute=10", dbs)
-				s.LogPrintf("dbstate", dbstate.String())
 				pldbs.DBSigAlreadySent = true
 
 				dbslog := consenLogger.WithFields(log.Fields{"func": "SendDBSig", "lheight": s.GetLeaderHeight(), "node-name": s.GetFactomNodeName()}).WithFields(dbs.LogFields())
@@ -2000,9 +1986,9 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		}
 
 		if dbs.DirectoryBlockHeader.GetBodyMR().Fixed() != dblk.GetHeader().GetBodyMR().Fixed() {
-			pl.IncrementDiffSigTally()
 			plog("Failed. DBlocks do not match Expected-Body-Mr: %x, Got: %x",
 				dblk.GetHeader().GetBodyMR().Fixed(), dbs.DirectoryBlockHeader.GetBodyMR().Fixed())
+
 			// If the Directory block hash doesn't work for me, then the dbsig doesn't work for me, so
 			// toss it and ask our neighbors for another one.
 			vm.ListAck[0] = nil
@@ -2025,6 +2011,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		valid, err := s.FastVerifyAuthoritySignature(data, dbs.DBSignature, dbs.DBHeight)
 		if err != nil || valid != 1 {
 			s.LogPrintf("executeMsg", "Failed. Invalid Auth Sig: Pubkey: %x", dbs.Signature.GetKey())
+
 			// If the authority is bad, toss this signature and ask for another.
 			vm.ListAck[0] = nil
 			vm.List[0] = nil
@@ -2357,7 +2344,13 @@ func (s *State) GetDirectoryBlock() interfaces.IDirectoryBlock {
 	return s.DBStates.Last().DirectoryBlock
 }
 
-func (s *State) GetNewHash() interfaces.IHash {
+func (s *State) GetNewHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("State.GetNewHash() saw an interface that was nil")
+		}
+	}()
 	return new(primitives.Hash)
 }
 

@@ -7,16 +7,15 @@ package state
 import (
 	"bytes"
 	"errors"
+	"fmt"
+	"reflect"
+	"sort"
 
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/identity"
 	. "github.com/FactomProject/factomd/common/identityEntries"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-
-	"sort"
-
-	"fmt"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -67,7 +66,14 @@ func (st *State) GetSigningKey(id interfaces.IHash) (interfaces.IHash, int) {
 	return nil, -1
 }
 
-func (st *State) GetNetworkSkeletonKey() interfaces.IHash {
+func (st *State) GetNetworkSkeletonKey() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("State.GetNetworkSkeletonKey() saw an interface that was nil")
+		}
+	}()
+
 	id := st.IdentityControl.GetIdentity(st.GetNetworkSkeletonIdentity())
 	if id == nil {
 		// There should always be a skeleton identity. It cannot be removed

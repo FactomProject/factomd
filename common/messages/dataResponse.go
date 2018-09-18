@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"os"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
@@ -72,15 +73,36 @@ func (a *DataResponse) IsSameAs(b *DataResponse) bool {
 	return true
 }
 
-func (m *DataResponse) GetRepeatHash() interfaces.IHash {
+func (m *DataResponse) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("DataResponse.GetRepeatHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.GetMsgHash()
 }
 
-func (m *DataResponse) GetHash() interfaces.IHash {
+func (m *DataResponse) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("DataResponse.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.GetMsgHash()
 }
 
-func (m *DataResponse) GetMsgHash() interfaces.IHash {
+func (m *DataResponse) GetMsgHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("DataResponse.GetMsgHash() saw an interface that was nil")
+		}
+	}()
+
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()
 		if err != nil {

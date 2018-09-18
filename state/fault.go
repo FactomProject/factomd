@@ -7,6 +7,7 @@ package state
 import (
 	"encoding/binary"
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -29,7 +30,14 @@ type FaultCore struct {
 	Timestamp     interfaces.Timestamp
 }
 
-func (fc *FaultCore) GetHash() interfaces.IHash {
+func (fc *FaultCore) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("FaultCore.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	data, err := fc.MarshalCore()
 	if err != nil {
 		return nil
