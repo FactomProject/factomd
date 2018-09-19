@@ -1,26 +1,27 @@
+
 Contributor License Agreement
 =============================
 
-Factom Inc. and the Factom Protocol Community wish to encourage contributions to the software, documentation, and other
-materials. This agreement is intended to give Factom Inc. and the Community the most flexibility in how these materials
-are licensed and distributed.
+Factom Inc. and the Factom community wish to encourage contributions to the software, documentation, and other
+materials. We also wish to maintain the most flexibility in how the development of the Factom protocol is organized and
+managed in the future.
 
-In order to be able to submit pull requests to any of the Factom repositories (found under github.com/FactomProject),
-contributors are required to add their name and github username to this document, then submit the change as a pull
-request.
+The purpose of this agreement is to provide to the Community, through Factom Inc., the flexibility to manage how Factom
+software, documents, etc. are licensed and distributed.
 
-By adding your name to this file, and submitting the updated CLA.txt as a pull request to the factomd repository, you
-agree and attest:
+In order for the core developers of the Factom protocol to be able to accept and approve your pull requests to any of
+the Factom repositories [found under github.com/FactomProject], contributors are required to agree to this Contributor
+License Agreement (CLA). You can agree to the CLA by adding your name to this file, and submitting the resulting
+updated CLA.txt as a pull request to the factomd repository.  This will indicate that you agree and attest:
 
-  * This agreement applies to all Factom Protocol repositories, currently found under github.com/FactomProject
-  * You agree to adhere to the github terms of service (https://help.github.com/articles/github-terms-of-service/)
-  * Additionally to the github terms of service, Factom Inc. has the right to change the software license under which
-    your pull requests are distributed to another open source software license in the future.
-  * This agreement can be updated to reflect changes in repository locations, changes in URLs, and signing instructions
-    without invalidating the agreement.
+  * This agreement applies to all Factom Protocol repositories, found under [github.com/FactomProject]
+  * You agree to adhere to the github terms of service [https://help.github.com/articles/github-terms-of-service/]
+  * Additionally you agree that Factom Inc. has the right to change the software license under which any of your pull
+    requests past or future are distributed.
+  * This agreement can be updated to reflect changes in repository locations, URLs, and signing instructions without
+    invalidating the agreement.
 
 
-
-Name                                       Github Account                               Optional
-===================================        ======================================       ================================
-Paul Snow                                  PaulSnow                                     Founder and Architect of Factom
+Name                                       Github Account                               Optional: Organization                       Optional: Additional Info
+===================================        ======================================       =====================================        ================================
+Paul Snow                                  PaulSnow                                     Factom Inc.                                  Founder and Architect of Factom
