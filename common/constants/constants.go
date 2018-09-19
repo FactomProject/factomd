@@ -385,3 +385,7 @@ const (
 	// Time window for identity to require registration: 24hours = 144 blocks
 	IDENTITY_REGISTRATION_BLOCK_WINDOW uint32 = 144
 )
+
+//Fast boot save state version (savestate)
+//To be increased whenever the data being saved changes from the last version
+const SaveStateVersion = 9

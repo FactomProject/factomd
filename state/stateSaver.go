@@ -10,20 +10,18 @@ import (
 	"os"
 	"sync"
 
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
 type StateSaverStruct struct {
 	FastBoot         bool
 	FastBootLocation string
-
-	TmpState []byte
-	Mutex    sync.Mutex
-	Stop     bool
+	TmpDBHt          uint32
+	TmpState         []byte
+	Mutex            sync.Mutex
+	Stop             bool
 }
-
-//To be increased whenever the data being saved changes from the last verion
-const version = 8
 
 func (sss *StateSaverStruct) StopSaving() {
 	sss.Mutex.Lock()
@@ -39,13 +37,10 @@ func (sss *StateSaverStruct) SaveDBStateList(ss *DBStateList, networkName string
 	sss.Mutex.Lock()
 	defer sss.Mutex.Unlock()
 
-	//Don't save States after the server has booted - it might start it in a wrong state
-	if ss.State.DBFinished == true {
-		return nil
-	}
+	hsb := int(ss.GetHighestSavedBlk())
+	//Save only every 4 states
 
-	//Save only every 1000 states
-	if ss.GetHighestSavedBlk()%1000 != 0 || ss.GetHighestSavedBlk() < 1000 {
+	if hsb%ss.State.FastSaveRate != 0 || hsb < ss.State.FastSaveRate {
 		return nil
 	}
 
@@ -66,6 +61,7 @@ func (sss *StateSaverStruct) SaveDBStateList(ss *DBStateList, networkName string
 	h := primitives.Sha(b)
 	b = append(h.Bytes(), b...)
 	sss.TmpState = b
+	sss.TmpDBHt = ss.State.LLeaderHeight
 
 	return nil
 }
@@ -98,7 +94,7 @@ func (sss *StateSaverStruct) LoadDBStateList(ss *DBStateList, networkName string
 }
 
 func NetworkIDToFilename(networkName string, fileLocation string) string {
-	file := fmt.Sprintf("FastBoot_%s_v%v.db", networkName, version)
+	file := fmt.Sprintf("FastBoot_%s_v%v.db", networkName, constants.SaveStateVersion)
 	if fileLocation != "" {
 		return fmt.Sprintf("%v/%v", fileLocation, file)
 	}

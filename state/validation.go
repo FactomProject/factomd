@@ -11,6 +11,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/util/atomic"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -18,6 +19,7 @@ func (state *State) ValidatorLoop() {
 	CheckGrants()
 	timeStruct := new(Timer)
 	var prev time.Time
+	state.validatorLoopThreadID = atomic.Goid()
 	for {
 		if state.DebugExec() {
 			status := ""
