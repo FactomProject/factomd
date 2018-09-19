@@ -1009,7 +1009,7 @@ func (s *State) Init() {
 		}
 
 		if d == nil || int(d.GetDatabaseHeight()) < s.FastSaveRate {
-			//If we have less than 2k blocks, we wipe SaveState
+			//If we have less than whatever our block rate is, we wipe SaveState
 			//This is to ensure we don't accidentally keep SaveState while deleting a database
 			s.StateSaverStruct.DeleteSaveState(s.Network)
 		} else {

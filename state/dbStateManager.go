@@ -495,11 +495,11 @@ func (dbsl *DBStateList) UnmarshalBinaryData(p []byte) (newData []byte, err erro
 		return
 	}
 
-	l, err := buf.PopVarInt()
+	listLen, err := buf.PopVarInt()
 	if err != nil {
 		return
 	}
-	for i := 0; i < int(l); i++ {
+	for i := 0; i < int(listLen); i++ {
 		dbs := new(DBState)
 		err = buf.PopBinaryMarshallable(dbs)
 		if err != nil {
