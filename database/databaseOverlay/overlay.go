@@ -247,6 +247,10 @@ func (db *Overlay) FetchBlockBySecondaryIndex(secondaryIndexBucket, blockBucket 
 }
 
 func (db *Overlay) FetchBlock(bucket []byte, key interfaces.IHash, dst interfaces.DatabaseBatchable) (interfaces.DatabaseBatchable, error) {
+	if key == nil {
+		return nil, nil
+	}
+
 	block, err := db.Get(bucket, key.Bytes(), dst)
 	if err != nil {
 		return nil, err
