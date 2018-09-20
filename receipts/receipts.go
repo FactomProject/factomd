@@ -5,21 +5,20 @@
 package receipts
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 
-	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
 type Receipt struct {
-	Entry                  *JSON                    `json:"entry,omitempty"`
-	MerkleBranch           []*primitives.MerkleNode `json:"merklebranch,omitempty"`
-	EntryBlockKeyMR        *primitives.Hash         `json:"entryblockkeymr,omitempty"`
-	DirectoryBlockKeyMR    *primitives.Hash         `json:"directoryblockkeymr,omitempty"`
-	BitcoinTransactionHash *primitives.Hash         `json:"bitcointransactionhash,omitempty"`
-	BitcoinBlockHash       *primitives.Hash         `json:"bitcoinblockhash,omitempty"`
+	Entry                *JSON                    `json:"entry,omitempty"`
+	MerkleBranch         []*primitives.MerkleNode `json:"merklebranch,omitempty"`
+	EntryBlockKeyMR      *primitives.Hash         `json:"entryblockkeymr,omitempty"`
+	DirectoryBlockKeyMR  *primitives.Hash         `json:"directoryblockkeymr,omitempty"`
+	DirectoryBlockHeight uint32                   `json:"directoryblockheight,omitempty"`
 }
 
 func (e *Receipt) TrimReceipt() {
@@ -182,26 +181,6 @@ func (e *Receipt) IsSameAs(r *Receipt) bool {
 		}
 	}
 
-	if e.BitcoinTransactionHash == nil {
-		if r.BitcoinTransactionHash != nil {
-			return false
-		}
-	} else {
-		if e.BitcoinTransactionHash.IsSameAs(r.BitcoinTransactionHash) == false {
-			return false
-		}
-	}
-
-	if e.BitcoinBlockHash == nil {
-		if r.BitcoinBlockHash != nil {
-			return false
-		}
-	} else {
-		if e.BitcoinBlockHash.IsSameAs(r.BitcoinBlockHash) == false {
-			return false
-		}
-	}
-
 	return true
 }
 
@@ -271,12 +250,12 @@ func (e *JSON) IsSameAs(r *JSON) bool {
 	return true
 }
 
-func CreateFullReceipt(dbo interfaces.DBOverlaySimple, entryID interfaces.IHash) (*Receipt, error) {
-	return CreateReceipt(dbo, entryID)
+func CreateFullReceipt(dbo interfaces.DBOverlaySimple, entryHash interfaces.IHash, includeRawEntry bool) (*Receipt, error) {
+	return CreateReceipt(dbo, entryHash, includeRawEntry)
 }
 
 func CreateMinimalReceipt(dbo interfaces.DBOverlaySimple, entryID interfaces.IHash) (*Receipt, error) {
-	receipt, err := CreateReceipt(dbo, entryID)
+	receipt, err := CreateReceipt(dbo, entryID, false)
 	if err != nil {
 		return nil, err
 	}
@@ -286,28 +265,39 @@ func CreateMinimalReceipt(dbo interfaces.DBOverlaySimple, entryID interfaces.IHa
 	return receipt, nil
 }
 
-func CreateReceipt(dbo interfaces.DBOverlaySimple, entryID interfaces.IHash) (*Receipt, error) {
+func CreateReceipt(dbo interfaces.DBOverlaySimple, entryHash interfaces.IHash, includeRawEntry bool) (*Receipt, error) {
 	receipt := new(Receipt)
 	receipt.Entry = new(JSON)
-	receipt.Entry.EntryHash = entryID.String()
+	receipt.Entry.EntryHash = entryHash.String()
 
-	//EBlock
-
-	hash, err := dbo.FetchIncludedIn(entryID)
-	if err != nil {
-		return nil, err
+	// Optionally include the full marshalled entry in the receipt
+	if includeRawEntry {
+		entry, err := dbo.FetchEntry(entryHash)
+		if err != nil {
+			return nil, err
+		} else if entry == nil {
+			return nil, fmt.Errorf("entry not found")
+		}
+		raw, err := entry.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		receipt.Entry.Raw = hex.EncodeToString(raw)
 	}
 
-	if hash == nil {
+	// Entry Block
+
+	hash, err := dbo.FetchIncludedIn(entryHash)
+	if err != nil {
+		return nil, err
+	} else if hash == nil {
 		return nil, fmt.Errorf("Block containing entry not found")
 	}
 
 	eBlock, err := dbo.FetchEBlock(hash)
 	if err != nil {
 		return nil, err
-	}
-
-	if eBlock == nil {
+	} else if eBlock == nil {
 		return nil, fmt.Errorf("EBlock not found")
 	}
 
@@ -315,8 +305,7 @@ func CreateReceipt(dbo interfaces.DBOverlaySimple, entryID interfaces.IHash) (*R
 	receipt.EntryBlockKeyMR = hash.(*primitives.Hash)
 
 	entries := eBlock.GetEntryHashes()
-	//fmt.Printf("eBlock entries - %v\n\n", entries)
-	branch := primitives.BuildMerkleBranchForEntryHash(entries, entryID, true)
+	branch := primitives.BuildMerkleBranchForHash(entries, entryHash, true)
 	blockNode := new(primitives.MerkleNode)
 	left, err := eBlock.HeaderHash()
 	if err != nil {
@@ -325,43 +314,27 @@ func CreateReceipt(dbo interfaces.DBOverlaySimple, entryID interfaces.IHash) (*R
 	blockNode.Left = left.(*primitives.Hash)
 	blockNode.Right = eBlock.BodyKeyMR().(*primitives.Hash)
 	blockNode.Top = hash.(*primitives.Hash)
-	//fmt.Printf("eBlock blockNode - %v\n\n", blockNode)
 	branch = append(branch, blockNode)
 	receipt.MerkleBranch = append(receipt.MerkleBranch, branch...)
 
-	//str, _ := eBlock.JSONString()
-	//fmt.Printf("eBlock - %v\n\n", str)
-
-	//DBlock
+	// Directory Block
 
 	hash, err = dbo.FetchIncludedIn(hash)
 	if err != nil {
 		return nil, err
-	}
-
-	if hash == nil {
+	} else if hash == nil {
 		return nil, fmt.Errorf("Block containing EBlock not found")
 	}
 
 	dBlock, err := dbo.FetchDBlock(hash)
 	if err != nil {
 		return nil, err
-	}
-
-	if dBlock == nil {
+	} else if dBlock == nil {
 		return nil, fmt.Errorf("DBlock not found")
 	}
 
-	//str, _ = dBlock.JSONString()
-	//fmt.Printf("dBlock - %v\n\n", str)
-
 	entries = dBlock.GetEntryHashesForBranch()
-	//fmt.Printf("dBlock entries - %v\n\n", entries)
-
-	//merkleTree := primitives.BuildMerkleTreeStore(entries)
-	//fmt.Printf("dBlock merkleTree - %v\n\n", merkleTree)
-
-	branch = primitives.BuildMerkleBranchForEntryHash(entries, receipt.EntryBlockKeyMR, true)
+	branch = primitives.BuildMerkleBranchForHash(entries, receipt.EntryBlockKeyMR, true)
 	blockNode = new(primitives.MerkleNode)
 	left, err = dBlock.GetHeaderHash()
 	if err != nil {
@@ -370,26 +343,14 @@ func CreateReceipt(dbo interfaces.DBOverlaySimple, entryID interfaces.IHash) (*R
 	blockNode.Left = left.(*primitives.Hash)
 	blockNode.Right = dBlock.BodyKeyMR().(*primitives.Hash)
 	blockNode.Top = hash.(*primitives.Hash)
-	//fmt.Printf("dBlock blockNode - %v\n\n", blockNode)
 	branch = append(branch, blockNode)
 	receipt.MerkleBranch = append(receipt.MerkleBranch, branch...)
 
-	//DirBlockInfo
+	// Directory Block Info
 
 	hash = dBlock.DatabasePrimaryIndex()
 	receipt.DirectoryBlockKeyMR = hash.(*primitives.Hash)
-
-	dirBlockInfo, err := dbo.FetchDirBlockInfoByKeyMR(hash)
-	if err != nil {
-		return nil, err
-	}
-
-	if dirBlockInfo != nil {
-		dbi := dirBlockInfo.(*dbInfo.DirBlockInfo)
-
-		receipt.BitcoinTransactionHash = dbi.BTCTxHash.(*primitives.Hash)
-		receipt.BitcoinBlockHash = dbi.BTCBlockHash.(*primitives.Hash)
-	}
+	receipt.DirectoryBlockHeight = dBlock.GetDatabaseHeight()
 
 	return receipt, nil
 }
