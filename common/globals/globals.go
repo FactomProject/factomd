@@ -69,4 +69,5 @@ type FactomParams struct {
 	FixChainHeads            bool // Only matters if CheckChainHeads == true
 	ControlPanelSetting      string
 	WriteProcessedDBStates   bool // Write processed DBStates to debug file
+	FactomHome               string
 }
