@@ -88,7 +88,7 @@ func init() {
 	flag.BoolVar(&p.UseLogstash, "logstash", false, "If true, use Logstash")
 	flag.StringVar(&p.LogstashURL, "logurl", "localhost:8345", "Endpoint URL for Logstash")
 	flag.IntVar(&p.Sync2, "sync2", -1, "Set the initial blockheight for the second Sync pass. Used to force a total sync, or skip unnecessary syncing of entries.")
-
+	flag.BoolVar(&p.WriteProcessedDBStates, "wrproc", true, "Write processed blocks to temporary debug file")
 }
 
 func ParseCmdLine(args []string) *FactomParams {
