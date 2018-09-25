@@ -102,8 +102,10 @@ func NetworkIDToFilename(networkName string, fileLocation string) string {
 }
 
 func SaveToFile(b []byte, filename string) error {
+	fmt.Fprintf(os.Stderr, "Saving %s\n", filename)
 	err := ioutil.WriteFile(filename, b, 0644)
 	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		return err
 	}
 	return nil

@@ -59,15 +59,12 @@ func init() {
 	flag.BoolVar(&p.KeepMismatch, "keepmismatch", false, "If true, do not discard DBStates even when a majority of DBSignatures have a different hash")
 	flag.Int64Var(&p.StartDelay, "startdelay", 10, "Delay to start processing messages, in seconds")
 	flag.IntVar(&p.Deadline, "deadline", 1000, "Timeout Delay in milliseconds used on Reads and Writes to the network comm")
-	//flag.StringVar(&p.CustomNetName,"customnet", "", "This string specifies a custom blockchain network ID.")
-	//p.CustomNet = primitives.Sha([]byte(*CustomNetPtr)).Bytes()[:4]
 	flag.StringVar(&p.RpcUser, "rpcuser", "", "Username to protect factomd local API with simple HTTP authentication")
 	flag.StringVar(&p.RpcPassword, "rpcpass", "", "Password to protect factomd local API. Ignored if rpcuser is blank")
 	flag.BoolVar(&p.FactomdTLS, "tls", false, "Set to true to require encrypted connections to factomd API and Control Panel") //to get tls, run as "factomd -tls=true"
 	flag.StringVar(&p.FactomdLocations, "selfaddr", "", "comma separated IPAddresses and DNS names of this factomd to use when creating a cert file")
 	flag.IntVar(&p.MemProfileRate, "mpr", 512*1024, "Set the Memory Profile Rate to update profiling per X bytes allocated. Default 512K, set to 1 to profile everything, 0 to disable.")
 	flag.BoolVar(&p.ExposeProfiling, "exposeprofiler", false, "Setting this exposes the profiling port to outside localhost.")
-	//flag.StringVar(&,"factomhome", "", "Set the Factom home directory. The .factom folder will be placed here if set, otherwise it will default to $HOME")
 	flag.StringVar(&p.LogPort, "logPort", "6060", "Port for pprof logging")
 	flag.IntVar(&p.PortOverride, "port", 0, "Port where we serve WSAPI;  default 8088")
 	flag.IntVar(&p.ControlPanelPortOverride, "controlpanelport", 0, "Port for control panel webserver;  Default 8090")
@@ -88,25 +85,16 @@ func init() {
 	flag.BoolVar(&p.UseLogstash, "logstash", false, "If true, use Logstash")
 	flag.StringVar(&p.LogstashURL, "logurl", "localhost:8345", "Endpoint URL for Logstash")
 	flag.IntVar(&p.Sync2, "sync2", -1, "Set the initial blockheight for the second Sync pass. Used to force a total sync, or skip unnecessary syncing of entries.")
+	flag.BoolVar(&p.WriteProcessedDBStates, "wrproc", true, "Write processed blocks to temporary debug file")
+	flag.StringVar(&p.CustomNetName, "customnet", "", "This string specifies a custom blockchain network ID.")
+	flag.StringVar(&p.FactomHome, "factomhome", "", "Set the Factom home directory. The .factom folder will be placed here if set, otherwise it will default to $HOME")
+	flag.StringVar(&p.ControlPanelSetting, "controlpanelsetting", "", "Can set to 'disabled', 'readonly', or 'readwrite' to overwrite config file")
 
 }
 
 func ParseCmdLine(args []string) *FactomParams {
 	p := &Params // Global copy of decoded Params global.Params
-
-	CustomNetPtr := flag.String("customnet", "", "This string specifies a custom blockchain network ID.")
-	factomHomePtr := flag.String("factomhome", "", "Set the Factom home directory. The .factom folder will be placed here if set, otherwise it will default to $HOME")
-
 	flag.CommandLine.Parse(args)
-	elections.FaultTimeout = p.FaultTimeout
-	elections.RoundTimeout = p.RoundTimeout
-
-	p.CustomNetName = *CustomNetPtr
-	p.CustomNet = primitives.Sha([]byte(*CustomNetPtr)).Bytes()[:4]
-
-	if *factomHomePtr != "" {
-		os.Setenv("FACTOM_HOME", *factomHomePtr)
-	}
 
 	// Handle the global (not Factom server specific parameters
 	if p.StdoutLog != "" || p.StderrLog != "" {
@@ -116,6 +104,24 @@ func ParseCmdLine(args []string) *FactomParams {
 	fmt.Print("//////////////////////// Copyright 2017 Factom Foundation\n")
 	fmt.Print("//////////////////////// Use of this source code is governed by the MIT\n")
 	fmt.Print("//////////////////////// license that can be found in the LICENSE file.\n")
+
+	elections.FaultTimeout = p.FaultTimeout
+	elections.RoundTimeout = p.RoundTimeout
+
+	p.CustomNet = primitives.Sha([]byte(p.CustomNetName)).Bytes()[:4]
+
+	s, set := os.LookupEnv("FACTOM_HOME")
+	if p.FactomHome != "" {
+		os.Setenv("FACTOM_HOME", p.FactomHome)
+		if set {
+			fmt.Fprint(os.Stderr, "Overriding environment variable %s to be \"%s\"\n", "FACTOM_HOME", p.FactomHome)
+		}
+	} else {
+		if set {
+			p.FactomHome = s
+		}
+
+	}
 
 	if !isCompilerVersionOK() {
 		fmt.Println("!!! !!! !!! ERROR: unsupported compiler version !!! !!! !!!")

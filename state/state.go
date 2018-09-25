@@ -534,7 +534,7 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 	}
 	if globals.Params.WriteProcessedDBStates {
 		path := filepath.Join(newState.LdbPath, newState.Network, "dbstates")
-		os.MkdirAll(path, 0777)
+		os.MkdirAll(path, 0775)
 	}
 	return newState
 }
