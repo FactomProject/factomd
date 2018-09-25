@@ -7,6 +7,7 @@ package state
 import (
 	"fmt"
 	"math/rand"
+	"os"
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -168,6 +169,15 @@ func (s *State) MakeMissingEntryRequests() {
 }
 
 func (s *State) GoSyncEntries() {
+
+	height, err := s.DB.FetchDatabaseEntryHeight()
+	if err != nil {
+		os.Stderr.WriteString(fmt.Sprintf("%10s Skipped setting EntryDBHeightComplete - ERROR: %v\n", s.FactomNodeName, err))
+	} else {
+		os.Stderr.WriteString(fmt.Sprintf("%10s set EntryDBHeightComplete: %8d\n", s.FactomNodeName, height))
+		s.EntryDBHeightComplete = height
+	}
+
 	go s.MakeMissingEntryRequests()
 
 	// Map to track what I know is missing
@@ -292,7 +302,6 @@ func (s *State) GoSyncEntries() {
 			}
 
 			if firstMissing < 0 {
-				//Only save EntryDBHeightComplete IF it's a multiple of 1000 AND there are no missing entries
 				err := s.DB.SaveDatabaseEntryHeight(s.EntryDBHeightComplete)
 				if err != nil {
 					fmt.Printf("ERROR: %v\n", err)
