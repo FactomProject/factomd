@@ -1015,8 +1015,21 @@ func (s *State) Init() {
 		} else {
 			err = s.StateSaverStruct.LoadDBStateList(s.DBStates, s.Network)
 			if err != nil {
-				os.Stderr.WriteString(err.Error())
 				s.StateSaverStruct.DeleteSaveState(s.Network)
+				s.LogPrintf("faulting", "Database load failed %v", err)
+			} else {
+				var last *DBState
+				for _, dbstate := range s.DBStates.DBStates {
+					if dbstate != nil && dbstate.DirectoryBlock.GetHeader().GetDBHeight() == s.LLeaderHeight {
+						dbstate.SaveStruct.Commits.s = s
+					}
+					if last != nil {
+						last.SaveStruct = nil
+					}
+					if dbstate != nil {
+						last = dbstate
+					}
+				}
 			}
 		}
 	}

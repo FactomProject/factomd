@@ -1370,6 +1370,18 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		err := list.State.StateSaverStruct.SaveDBStateList(list.State.DBStates, list.State.Network)
 		list.State.LogPrintf("dbsatesprocess", "Error while saving Fastboot %v", err)
 	}
+	// Now that we have saved the perm balances, we can clear the api hashmaps that held the differences
+	// between the actual saved block prior, and this saved block.  If you are looking for balances of
+	// the highest saved block, you first look to see that one of the "<fct or ec>Papi" maps exist, then
+	// if that map has a value for your address.  If it doesn't exist, or doesn't have a value, then look
+	// in the "<fct or ec>P" map.
+	list.State.FactoidBalancesPMutex.Lock()
+	list.State.FactoidBalancesPapi = nil
+	list.State.FactoidBalancesPMutex.Unlock()
+
+	list.State.ECBalancesPMutex.Lock()
+	list.State.ECBalancesPapi = nil
+	list.State.ECBalancesPMutex.Unlock()
 
 	return
 }
