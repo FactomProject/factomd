@@ -101,7 +101,7 @@ func (cm *CoinbaseCancelManager) CanceledOutputs(descriptorHeight uint32) []uint
 // IsCoinbaseCancelled returns true if the coinbase transaction is cancelled for a given descriptor
 // height and (output) index.
 func (cm *CoinbaseCancelManager) IsCoinbaseCancelled(descriptorHeight, index uint32) bool {
-	return cm.isCoinbaseCancelled(descriptorHeight, index, (cm.im.FedServerCount()/2)+1)
+	return cm.isCoinbaseCancelled(descriptorHeight, index, (cm.im.AuthorityServerCount()/2)+1)
 }
 
 // isCoinbaseCancelled takes the majority number as a parameter to reduce calculations in the loop

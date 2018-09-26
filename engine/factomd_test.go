@@ -157,7 +157,7 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 	}()
 	state0.MessageTally = true
 	fmt.Printf("Starting timeout timer:  Expected test to take %s or %d blocks\n", Calctime.String(), height)
-	//	StatusEveryMinute(state0)
+	// 	StatusEveryMinute(state0)
 	WaitMinutes(state0, 1) // wait till initial DBState message for the genesis block is processed
 	creatingNodes(GivenNodes, state0)
 
@@ -386,8 +386,7 @@ func runCmd(cmd string) {
 	return
 }
 
-func shutDownEverything(t *testing.T) {
-	CheckAuthoritySet(t)
+func shutDownEverythingWithoutAuthCheck(t *testing.T) {
 	quit <- struct{}{}
 	close(quit)
 	t.Log("Shutting down the network")
@@ -403,8 +402,13 @@ func shutDownEverything(t *testing.T) {
 	}
 
 	fmt.Printf("Test took %d blocks and %s time\n", GetFnodes()[0].State.LLeaderHeight, time.Now().Sub(startTime))
-
 }
+
+func shutDownEverything(t *testing.T) {
+	CheckAuthoritySet(t)
+	shutDownEverythingWithoutAuthCheck(t)
+}
+
 func v2Request(req *primitives.JSON2Request, port int) (*primitives.JSON2Response, error) {
 	j, err := json.Marshal(req)
 	if err != nil {
@@ -1518,6 +1522,91 @@ func TestTestNetCoinBaseActivation(t *testing.T) {
 	WaitForAllNodes(state0)
 	CheckAuthoritySet(t) // check the authority set is as expected
 	shutDownEverything(t)
+}
+
+func TestCoinbaseCancel(t *testing.T) {
+	if ranSimTest {
+		return
+	}
+
+	ranSimTest = true
+
+	state0 := SetupSim("LFFFFF", map[string]string{"-blktime": "5"}, 16, 0, 1, t)
+	// Make it quicker
+	constants.COINBASE_PAYOUT_FREQUENCY = 2
+	constants.COINBASE_DECLARATION = constants.COINBASE_PAYOUT_FREQUENCY * 2
+
+	WaitMinutes(state0, 2)
+	runCmd("g10") // Set Drop Rate to 1.0 on everyonecancel
+	WaitBlocks(state0, 1)
+	// Assign identities
+	runCmd("1")
+	runCmd("t")
+	runCmd("2")
+	runCmd("t")
+	runCmd("3")
+	runCmd("t")
+	runCmd("4")
+	runCmd("t")
+	runCmd("5")
+	runCmd("t")
+
+	WaitBlocks(state0, 2)
+	// Promotions
+	runCmd("1")
+	runCmd("l")
+	runCmd("2")
+	runCmd("l")
+	runCmd("3")
+	runCmd("o")
+	runCmd("4")
+	runCmd("o")
+	runCmd("5")
+	runCmd("o")
+
+	WaitBlocks(state0, 3)
+	WaitForBlock(state0, 8)
+	// Cancels
+	runCmd("1")
+	runCmd("L6.1")
+	runCmd("2")
+	runCmd("L6.1")
+	runCmd("3")
+	runCmd("L6.1")
+	runCmd("4")
+	runCmd("L6.1")
+	WaitBlocks(state0, 1)
+	WaitMinutes(state0, 1)
+
+	runCmd("1")
+	runCmd("L8.1")
+	runCmd("2")
+	runCmd("L8.1")
+	runCmd("3")
+	runCmd("L8.1")
+	WaitForBlock(state0, 14)
+	WaitForMinute(state0, 2)
+	// Check the admin blocks
+	//	10 should be cancelled, 12 should not
+	f, err := state0.DB.FetchFBlockByHeight(10)
+	if err != nil {
+		panic(fmt.Sprintf("Missing coinbase, admin block at height %d could not be retrieved"))
+	}
+	c := len(f.GetTransactions()[0].GetOutputs())
+	if c != 4 {
+		t.Fatalf("Coinbase at height 10 not cancelled")
+	}
+
+	f, err = state0.DB.FetchFBlockByHeight(12)
+	if err != nil {
+		panic(fmt.Sprintf("Missing coinbase, admin block at height %d could not be retrieved"))
+	}
+	c = len(f.GetTransactions()[0].GetOutputs())
+	if c != 5 {
+		t.Fatalf("Coinbase at height 12 should have 5 outputs")
+	}
+
+	shutDownEverythingWithoutAuthCheck(t)
 }
 
 // Cheap tests for developing binary search commits algorithm
