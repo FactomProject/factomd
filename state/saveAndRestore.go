@@ -591,6 +591,7 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 	s.DBStates.DBStates = s.DBStates.DBStates[:dindex]
 	//s.AddStatus(fmt.Sprintf("SAVESTATE Restoring the State to dbht: %d", ss.DBHeight))
 
+	// REVIEW: should we rebuild Replay from DB instead ?
 	s.Replay = ss.Replay.Save()
 	s.Replay.s = s
 	s.Replay.name = "Replay"

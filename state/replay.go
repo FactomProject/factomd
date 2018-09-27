@@ -96,6 +96,11 @@ func (a *Replay) IsSameAs(b *Replay) bool {
 }
 
 func (r *Replay) MarshalBinary() (rval []byte, err error) {
+	// REVIEW: added locking since Marshal is being executed
+	// against State.Replay rather than a copy from Replay.Save()
+	r.Mutex.Lock()
+	defer r.Mutex.Unlock()
+
 	defer func(pe *error) {
 		if *pe != nil {
 			fmt.Fprintf(os.Stderr, "Replay.MarshalBinary err:%v", *pe)
@@ -153,6 +158,9 @@ func (r *Replay) UnmarshalBinary(p []byte) error {
 }
 
 func (r *Replay) Save() *Replay {
+	// KLUDGE don't make a copy to prevent memory leak
+	return r
+
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
 	newr := new(Replay)
