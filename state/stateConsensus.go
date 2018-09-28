@@ -94,7 +94,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 		s.LogMessage("executeMsg", "replayInvalid", msg)
 		return
 	}
-	if s.LLeaderHeight > 10 {
+	if s.LLeaderHeight > 160180 && !msg.IsLocal() {
 		blktime := primitives.NewTimestampFromMilliseconds(uint64(s.CurrentBlockStartTime) * 1000000)
 		_, ok2 := s.FReplay.Valid(constants.NETWORK_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), blktime)
 		if !ok2 {
