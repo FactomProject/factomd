@@ -94,6 +94,12 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 		s.LogMessage("executeMsg", "replayInvalid", msg)
 		return
 	}
+	_, ok2 := s.FReplay.Valid(constants.NETWORK_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.CurrentBlockStartTime)
+	if !ok2 {
+		consenLogger.WithFields(msg.LogFields()).Debug("executeMsg (FReplay Invalid)")
+		s.LogMessage("executeMsg", "FreplayInvalid", msg)
+		return
+	}
 	s.SetString()
 	msg.ComputeVMIndex(s)
 
