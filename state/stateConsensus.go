@@ -94,11 +94,15 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 		s.LogMessage("executeMsg", "replayInvalid", msg)
 		return
 	}
-	lim := 10
+	lim := uint32(10)
 	if s.Network == "MAIN" {
 		lim = 160180
 	}
-	if s.LLeaderHeight > lim && !msg.IsLocal() {
+	t := msg.Type()
+	if s.LLeaderHeight > lim &&
+		!msg.IsLocal() &&
+		t != constants.DBSTATE_MSG &&
+		t != constants.ADDSERVER_MSG {
 		blktime := primitives.NewTimestampFromMilliseconds(uint64(s.CurrentBlockStartTime) * 1000000)
 		_, ok2 := s.FReplay.Valid(constants.NETWORK_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), blktime)
 		if !ok2 {
