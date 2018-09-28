@@ -799,11 +799,20 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	// Check all the transaction IDs (do not include signatures).  Only check, don't set flags.
 	for i, fct := range dbstatemsg.FactoidBlock.GetTransactions() {
 		// Check the prior blocks for a replay.
+		fixed := fct.GetSigHash().Fixed()
 		_, valid := s.FReplay.Valid(
 			constants.BLOCK_REPLAY,
-			fct.GetSigHash().Fixed(),
+			fixed,
 			fct.GetTimestamp(),
 			dbstatemsg.DirectoryBlock.GetHeader().GetTimestamp())
+		// on 09/27/18 there was a block 160181 that was more than 60 minutes long and this transaction is judged invalid because it was 88 minutes
+		// after the blcok start time. The transaction is valid.
+		if dbheight == 160181 && fixed == [32]byte{0xf9, 0x6a, 0xf0, 0x63, 0xff, 0xfd, 0x90, 0xe2, 0x61, 0xe4, 0x5c, 0xbc, 0xdf, 0x34, 0xc3, 0x95,
+			0x8c, 0xf5, 0x4e, 0x23, 0x88, 0xfd, 0x3f, 0x8e, 0xf9, 0x07, 0xdc, 0xa9, 0x03, 0xea, 0x2f, 0x2e} {
+			valid = true
+		}
+		// f96af063fffd90e261e45cbcdf34c3958cf54e2388fd3f8ef907dca903ea2f2e
+
 		// If not the coinbase TX, and we are past 100,000, and the TX is not valid,then we don't accept this block.
 		if i > 0 && // Don't test the coinbase TX
 			((dbheight > 0 && dbheight < 2000) || dbheight > 100000) && // Test the first 2000 blks, so we can unit test, then after
