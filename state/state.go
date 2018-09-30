@@ -942,6 +942,26 @@ func (s *State) Init() {
 	}
 
 	if s.CheckChainHeads.CheckChainHeads {
+		if s.CheckChainHeads.Fix {
+			// Set dblock head to 184 if 184 is present and head is not 184
+			d, err := s.DB.FetchDBlockHead()
+			if err != nil {
+				// We should have a dblock head...
+				panic(fmt.Errorf("Error loading dblock head: %s\n", err.Error()))
+			}
+
+			if d != nil {
+				if d.GetDatabaseHeight() == 160183 {
+					// Our head is less than 160184, do we have 160184?
+					if d2, err := s.DB.FetchDBlockByHeight(160184); d2 != nil && err == nil {
+						err := s.DB.(*databaseOverlay.Overlay).SaveDirectoryBlockHead(d2)
+						if err != nil {
+							panic(err)
+						}
+					}
+				}
+			}
+		}
 		correctChainHeads.FindHeads(s.DB.(*databaseOverlay.Overlay), correctChainHeads.CorrectChainHeadConfig{
 			PrintFreq: 5000,
 			Fix:       s.CheckChainHeads.Fix,
