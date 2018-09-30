@@ -951,7 +951,7 @@ func (s *State) Init() {
 			}
 
 			if d != nil {
-				if d.GetDatabaseHeight() < 160184 {
+				if d.GetDatabaseHeight() == 160183 {
 					// Our head is less than 160184, do we have 160184?
 					if d2, err := s.DB.FetchDBlockByHeight(160184); d2 != nil && err == nil {
 						err := s.DB.(*databaseOverlay.Overlay).SaveDirectoryBlockHead(d2)
