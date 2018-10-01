@@ -5,9 +5,13 @@
 package messages_test
 
 import (
+	"encoding/binary"
+	"fmt"
+	"os"
 	"testing"
 
 	. "github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 func TestUnmarshalNilBounce(t *testing.T) {
@@ -104,4 +108,89 @@ func TestBounceMisc(t *testing.T) {
 	if !b2.Processed() {
 		t.Error("Processed should be true")
 	}
+}
+
+func TestMarshalUnmarshalBounce(t *testing.T) {
+	b1 := new(Bounce)
+	b1.Timestamp = primitives.NewTimestampNow()
+	b1.Data = append(b1.Data, 1)
+
+	p, err := b1.MarshalBinary()
+	if err != nil {
+		t.Error(err)
+	}
+
+	b2 := new(Bounce)
+	if err := b2.UnmarshalBinary(p); err != nil {
+		t.Error(err)
+	}
+
+	if !b1.IsSameAs(b2) {
+		t.Error("unmarshaled bounce did not match original", b1, b2)
+	}
+}
+
+func TestMarshalUnmarshalMaliciousBounce(t *testing.T) {
+	b1 := new(Bounce)
+	b1.Timestamp = primitives.NewTimestampNow()
+	b1.Data = append(b1.Data, 1)
+
+	good, err := b1.MarshalBinary()
+	if err != nil {
+		t.Error(err)
+	}
+	bad, err := BadMarshal(b1)
+	if err != nil {
+		t.Error(err)
+	}
+
+	t.Logf("good: %x\n", good)
+	t.Logf("bad:  %x\n", bad)
+
+	b2 := new(Bounce)
+	b2.UnmarshalBinary(bad) // this should fail badly
+}
+
+func BadMarshal(m *Bounce) (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "Bounce.MarshalForSignature err:%v", *pe)
+		}
+	}(&err)
+	var buf primitives.Buffer
+
+	binary.Write(&buf, binary.BigEndian, m.Type())
+
+	var buff [32]byte
+
+	copy(buff[:32], []byte(fmt.Sprintf("%32s", m.Name)))
+	buf.Write(buff[:])
+
+	binary.Write(&buf, binary.BigEndian, m.Number)
+
+	t := m.GetTimestamp()
+	data, err := t.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	buf.Write(data)
+
+	// Bad value -1 used instad of correct value
+	binary.Write(&buf, binary.BigEndian, int32(-1))
+	// binary.Write(&buf, binary.BigEndian, int32(len(m.Stamps)))
+
+	for _, ts := range m.Stamps {
+		data, err := ts.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		buf.Write(data)
+	}
+
+	// Bad write wrong length for Data
+	binary.Write(&buf, binary.BigEndian, int32(-1))
+	// binary.Write(&buf, binary.BigEndian, int32(len(m.Data)))
+	buf.Write(m.Data)
+
+	return buf.DeepCopyBytes(), nil
 }
