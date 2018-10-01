@@ -919,7 +919,7 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 
 	ack, ok := mmr.AckResponse.(*messages.Ack)
 
-	if ack.DBHeight < s.DBHeightAtBoot && ack.GetTimestamp().GetTimeMilli() < s.TimestampAtBoot.GetTimeMilli() {
+	if ack.DBHeight < s.DBHeightAtBoot+2 && ack.GetTimestamp().GetTimeMilli() < s.TimestampAtBoot.GetTimeMilli() {
 		s.LogMessage("executeMsg", "drop, Before boot time and in first blocks after boot", m)
 		return
 	}
