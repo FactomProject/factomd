@@ -106,8 +106,9 @@ func TestBadUnmarshal(t *testing.T) {
 	}
 
 	f2 := new(FBlock)
-	if err := f2.UnmarshalBinary(raw); err != nil {
-		t.Error(err)
+	// we should get an error from unmarshal for the bad data: "uint underflow"
+	if err := f2.UnmarshalBinary(raw); err == nil {
+		t.Error("got no error when expecting error: transaction count too high")
 	}
 	fmt.Println(f2)
 }
