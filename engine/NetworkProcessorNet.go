@@ -215,7 +215,8 @@ func Peers(fnode *FactomNode) {
 
 				if fnode.State.LLeaderHeight < fnode.State.DBHeightAtBoot+2 {
 					if msg.GetTimestamp().GetTimeMilli() < fnode.State.TimestampAtBoot.GetTimeMilli() {
-						break
+						fnode.State.LogMessage("NetworkInputs", "drop, Before Boot time during First Blocks after boot", msg)
+						continue
 					}
 				}
 
