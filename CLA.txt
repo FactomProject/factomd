@@ -11,8 +11,9 @@ software, documents, etc. are licensed and distributed.
 
 In order for the core developers of the Factom protocol to be able to accept and approve your pull requests to any of
 the Factom repositories [found under github.com/FactomProject], contributors are required to agree to this Contributor
-License Agreement (CLA). You can agree to the CLA by adding your name to this file, and submitting the resulting
-updated CLA.txt as a pull request to the factomd repository.  This will indicate that you agree and attest:
+License Agreement (CLA). The CLA applies to the pull request the agreement is made within, and any subsequent pull requests.
+You can agree to the CLA by adding your name to this file, and submitting the resulting updated CLA.txt as a pull request
+to the factomd repository.  This will indicate that you agree and attest:
 
   * This agreement applies to all Factom Protocol repositories, found under [github.com/FactomProject]
   * You agree to adhere to the github terms of service [https://help.github.com/articles/github-terms-of-service/]
@@ -20,6 +21,8 @@ updated CLA.txt as a pull request to the factomd repository.  This will indicate
     requests past or future are distributed.
   * This agreement can be updated to reflect changes in repository locations, URLs, and signing instructions without
     invalidating the agreement.
+  * This agreement may be sub-licensed to other parties by Factom, Inc. which would extend all the rights granted by
+    by this agreement.
 
 
 Name                                       Github Account                               Optional: Organization                       Optional: Additional Info
