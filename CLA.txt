@@ -28,3 +28,5 @@ to the factomd repository.  This will indicate that you agree and attest:
 Name                                       Github Account                               Optional: Organization                       Optional: Additional Info
 ===================================        ======================================       =====================================        ================================
 Paul Snow                                  PaulSnow                                     Factom Inc.                                  Founder and Architect of Factom
+Brian Deery                                carryforward                                 Factom Inc.
+
