@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -321,11 +322,14 @@ func (b *FBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	cnt, err := buf.PopUInt32()
+	txCount, err := buf.PopUInt32()
 	if err != nil {
 		return nil, err
 	}
-	if cnt > 1000 {
+	// TODO: remove printing unmarshal count numbers once we have good data on
+	// what they should be.
+	log.Print("FBlock unmarshaled transaction count: ", txCount)
+	if txCount > 1000 {
 		// TODO: replace this message with a proper error
 		return nil, fmt.Errorf("Error: fblock.UnmarshalBinary: transaction count too high (uint underflow?)")
 	}
@@ -336,13 +340,13 @@ func (b *FBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	b.Transactions = make([]interfaces.ITransaction, int(cnt), int(cnt))
+	b.Transactions = make([]interfaces.ITransaction, int(txCount), int(txCount))
 	for i, _ := range b.endOfPeriod {
 		b.endOfPeriod[i] = 0
 	}
 	var periodMark = 0
 
-	for i := uint32(0); i < cnt; i++ {
+	for i := uint32(0); i < txCount; i++ {
 		by, err := buf.PeekByte()
 		if err != nil {
 			return nil, err
@@ -376,7 +380,7 @@ func (b *FBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		b.endOfPeriod[periodMark] = int(cnt)
+		b.endOfPeriod[periodMark] = int(txCount)
 		periodMark++
 	}
 
