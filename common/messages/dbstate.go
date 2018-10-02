@@ -151,7 +151,7 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 	}
 
 	if m.IsInDB {
-		return 1
+		return 1 // accept any DBState from our database
 	}
 
 	dbheight := m.DirectoryBlock.GetHeader().GetDBHeight()
@@ -159,6 +159,12 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 	// Just accept the genesis block
 	if dbheight == 0 {
 		return 1
+	}
+
+	// don't accept DBState Messages from peer if we already have it
+	dbHeightComplete := state.GetDBHeightComplete()
+	if dbheight < dbHeightComplete {
+		return -1
 	}
 
 	if state.GetNetworkID() != m.DirectoryBlock.GetHeader().GetNetworkID() {
