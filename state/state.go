@@ -388,7 +388,7 @@ type State struct {
 	NumEntryBlocks int // Number of Entry Blocks
 	NumFCTTrans    int // Number of Factoid Transactions in this block
 
-	// debug message
+	// debug message about state status rolling queue for ControlPanel
 	pstate              string
 	SyncingState        [256]string
 	SyncingStateCurrent int
@@ -491,7 +491,7 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 	if !config {
 		newState.IdentityChainID = primitives.Sha([]byte(newState.FactomNodeName))
 		//generate and use a new deterministic PrivateKey for this clone
-		shaHashOfNodeName := primitives.Sha([]byte(newState.FactomNodeName)) //seed the private key with node Name
+		shaHashOfNodeName := primitives.Sha([]byte(newState.FactomNodeName)) //seed the private key with node name
 		clonePrivateKey := primitives.NewPrivateKeyFromHexBytes(shaHashOfNodeName.Bytes())
 		newState.LocalServerPrivKey = clonePrivateKey.PrivateKeyString()
 	}
@@ -1012,6 +1012,9 @@ func (s *State) Init() {
 			s.StateSaverStruct.DeleteSaveState(s.Network)
 		} else {
 			err = s.StateSaverStruct.LoadDBStateList(s.DBStates, s.Network)
+			if err != nil {
+				s.LogPrintf("faulting", "Database load failed %v", err)
+			}
 			if err == nil {
 				for _, dbstate := range s.DBStates.DBStates {
 					if dbstate != nil {
@@ -1022,7 +1025,7 @@ func (s *State) Init() {
 		}
 	}
 
-	s.Logger = log.WithFields(log.Fields{"node-Name": s.GetFactomNodeName(), "identity": s.GetIdentityChainID().String()})
+	s.Logger = log.WithFields(log.Fields{"node-name": s.GetFactomNodeName(), "identity": s.GetIdentityChainID().String()})
 
 	// Set up Logstash Hook for Logrus (if enabled)
 	if s.UseLogstash {

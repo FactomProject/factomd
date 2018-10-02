@@ -22,7 +22,7 @@ type StateSaverStruct struct {
 	Stop     bool
 }
 
-//To be increased whenever the data being saved changes from the last verion
+//To be increased whenever the data being saved changes from the last version
 const version = 8
 
 func (sss *StateSaverStruct) StopSaving() {
@@ -75,7 +75,9 @@ func (sss *StateSaverStruct) DeleteSaveState(networkName string) error {
 }
 
 func (sss *StateSaverStruct) LoadDBStateList(ss *DBStateList, networkName string) error {
-	b, err := LoadFromFile(NetworkIDToFilename(networkName, sss.FastBootLocation))
+	filename := NetworkIDToFilename(networkName, sss.FastBootLocation)
+	fmt.Println(ss.State.FactomNodeName, "Loading from", filename)
+	b, err := LoadFromFile(filename)
 	if err != nil {
 		return nil
 	}
@@ -114,6 +116,7 @@ func SaveToFile(b []byte, filename string) error {
 }
 
 func LoadFromFile(filename string) ([]byte, error) {
+	fmt.Fprintf(os.Stderr, "Load state from %s\n", filename)
 	b, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, err

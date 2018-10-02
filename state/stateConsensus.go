@@ -556,13 +556,12 @@ func (s *State) AddDBState(isNew bool,
 		{
 			// Okay, we have just loaded a new DBState.  The temp balances are no longer valid, if they exist.  Nuke them.
 			s.LeaderPL.FactoidBalancesTMutex.Lock()
-			defer s.LeaderPL.FactoidBalancesTMutex.Unlock()
+			s.LeaderPL.FactoidBalancesT = map[[32]byte]int64{}
+			s.LeaderPL.FactoidBalancesTMutex.Unlock()
 
 			s.LeaderPL.ECBalancesTMutex.Lock()
-			defer s.LeaderPL.ECBalancesTMutex.Unlock()
-
-			s.LeaderPL.FactoidBalancesT = map[[32]byte]int64{}
 			s.LeaderPL.ECBalancesT = map[[32]byte]int64{}
+			s.LeaderPL.ECBalancesTMutex.Unlock()
 		}
 
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
@@ -799,9 +798,10 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	// Check all the transaction IDs (do not include signatures).  Only check, don't set flags.
 	for i, fct := range dbstatemsg.FactoidBlock.GetTransactions() {
 		// Check the prior blocks for a replay.
+		fixed := fct.GetSigHash().Fixed()
 		_, valid := s.FReplay.Valid(
 			constants.BLOCK_REPLAY,
-			fct.GetSigHash().Fixed(),
+			fixed,
 			fct.GetTimestamp(),
 			dbstatemsg.DirectoryBlock.GetHeader().GetTimestamp())
 		// If not the coinbase TX, and we are past 100,000, and the TX is not valid,then we don't accept this block.
@@ -947,6 +947,8 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 		ack.FollowerExecute(s)
 
 		s.MissingResponseAppliedCnt++
+	} else {
+		s.LogMessage("executeMsg", "Drop, INTERNAL_REPLAY", msg)
 
 	}
 }
