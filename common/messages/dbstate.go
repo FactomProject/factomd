@@ -161,26 +161,20 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 		return 1
 	}
 
-	// don't accept DBState Messages from peer if we already have it
-	dbHeightComplete := state.GetDBHeightComplete()
-	if dbheight < dbHeightComplete {
-		return -1
+	if dbheight < state.GetDBHeightAtBoot() {
+		state.LogMessage("dbstatesloaded", "Drop, below database", m)
+		return -1 // already have this one
+	}
+
+	if dbheight < state.GetHighestSavedBlk() {
+		state.LogMessage("dbstatesloaded", "Drop, already in database", m)
+		return -1 // already have this one
 	}
 
 	if state.GetNetworkID() != m.DirectoryBlock.GetHeader().GetNetworkID() {
 		state.AddStatus(fmt.Sprintf("DBStateMsg.Validate() Fail  ht: %d Expecting NetworkID %x and found %x",
 			dbheight, state.GetNetworkID(), m.DirectoryBlock.GetHeader().GetNetworkID()))
 		//Wrong network ID
-		return -1
-	}
-
-	// Difference of completed blocks, rather than just highest DBlock (might be missing entries)
-	diff := int(dbheight) - (int(state.GetEntryDBHeightComplete()))
-
-	// Look at saved heights if not too far from what we have saved.
-	if diff < -1 {
-		state.AddStatus(fmt.Sprintf("DBStateMsg.Validate() Fail dbstate dbht: %d Highest Saved %d diff %d",
-			dbheight, state.GetEntryDBHeightComplete(), diff))
 		return -1
 	}
 

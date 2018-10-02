@@ -1311,5 +1311,4 @@ func TestRandom(t *testing.T) {
 	if random.RandUInt8() > 200 {
 		t.Fatal("Failed")
 	}
-
 }

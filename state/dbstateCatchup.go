@@ -8,12 +8,24 @@ import (
 func (list *DBStateList) Catchup(justDoIt bool) {
 	// We only check if we need updates once every so often.
 
+	if !list.State.DBFinished {
+		return // Don't catchup until we have loaded our database
+	}
+
 	now := list.State.GetTimestamp()
 
 	hs := int(list.State.GetHighestSavedBlk())
+	heightAtBoot := int(list.State.GetDBHeightAtBoot())
 	hk := int(list.State.GetHighestAck())
 	if list.State.GetHighestKnownBlock() > uint32(hk+2) {
 		hk = int(list.State.GetHighestKnownBlock())
+	}
+
+	if hs < heightAtBoot {
+		hs = heightAtBoot // don't ask for blocks we have
+	}
+	if hk < heightAtBoot {
+		hk = heightAtBoot // don't ask for block we have
 	}
 
 	begin := hs + 1
@@ -78,7 +90,6 @@ func (list *DBStateList) Catchup(justDoIt bool) {
 			}
 		}
 	}
-
 	if end-begin > 200 {
 		end = begin + 200
 	}
