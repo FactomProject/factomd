@@ -40,28 +40,27 @@ func (sss *StateSaverStruct) SaveDBStateList(ss *DBStateList, networkName string
 	hsb := int(ss.GetHighestSavedBlk())
 	//Save only every FastSaveRate states
 
-	if hsb%ss.State.FastSaveRate != 0 || hsb < ss.State.FastSaveRate {
-		return nil
+	if (hsb+1)%ss.State.FastSaveRate == 0 {
+		//Marshal state for future saving
+		b, err := ss.MarshalBinary()
+		if err != nil {
+			return err
+		}
+		//adding an integrity check
+		h := primitives.Sha(b)
+		b = append(h.Bytes(), b...)
+		sss.TmpState = b
+		sss.TmpDBHt = ss.State.LLeaderHeight
 	}
 
-	//Actually save data from previous cached state to prevent dealing with rollbacks
-	if len(sss.TmpState) > 0 {
+	if hsb%ss.State.FastSaveRate == 0  &&  len(sss.TmpState) > 0 {
+		//Actually save data from previous cached state to prevent dealing with rollbacks
 		err := SaveToFile(sss.TmpState, NetworkIDToFilename(networkName, sss.FastBootLocation))
 		if err != nil {
 			return err
 		}
+		sss.TmpState = nil
 	}
-
-	//Marshal state for future saving
-	b, err := ss.MarshalBinary()
-	if err != nil {
-		return err
-	}
-	//adding an integrity check
-	h := primitives.Sha(b)
-	b = append(h.Bytes(), b...)
-	sss.TmpState = b
-	sss.TmpDBHt = ss.State.LLeaderHeight
 
 	return nil
 }
