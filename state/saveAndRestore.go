@@ -68,7 +68,8 @@ type SaveState struct {
 	Saving  bool // True if we are in the process of saving to the database
 	Syncing bool // Looking for messages from leaders to sync
 
-	Replay *Replay
+	Replay  *Replay
+	ReplayData []byte
 
 	LeaderTimestamp interfaces.Timestamp
 
@@ -325,7 +326,7 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 
 	// state.AddStatus(fmt.Sprintf("Save state at dbht: %d", ss.DBHeight))
 
-	ss.Replay = state.Replay.Save()
+	ss.ReplayData = state.Replay.Save()
 	ss.LeaderTimestamp = d.DirectoryBlock.GetTimestamp()
 
 	ss.FedServers = append(ss.FedServers, pl.FedServers...)
@@ -468,7 +469,7 @@ func (ss *SaveState) TrimBack(s *State, d *DBState) {
 	s.Saving = pss.Saving
 	s.Syncing = pss.Syncing
 
-	s.Replay = pss.Replay.Save()
+	s.Replay = pss.Replay.Clone() // FIXME do we need this?
 	s.Replay.s = s
 	s.Replay.name = "Replay"
 
@@ -593,7 +594,7 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 	s.DBStates.DBStates = s.DBStates.DBStates[:dindex]
 	//s.AddStatus(fmt.Sprintf("SAVESTATE Restoring the State to dbht: %d", ss.DBHeight))
 
-	s.Replay = ss.Replay.Save()
+	s.Replay = ss.Replay.Clone()
 	s.Replay.s = s
 	s.Replay.name = "Replay"
 
@@ -821,7 +822,7 @@ func (ss *SaveState) MarshalBinary() (rval []byte, err error) {
 		return nil, err
 	}
 
-	err = buf.PushBinaryMarshallable(ss.Replay)
+	err = buf.PushBytes(ss.ReplayData)
 	if err != nil {
 		return nil, err
 	}
