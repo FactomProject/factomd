@@ -329,7 +329,6 @@ func NetworkOutputs(fnode *FactomNode) {
 			// todo: Should be a dead case. Add tracking code to see if it ever happens -- clay
 			fnode.State.LogMessage("NetworkOutputs", "Drop, local", msg)
 			continue
-			return
 		}
 		// Don't do a rand int if drop rate is 0
 		if fnode.State.GetDropRate() > 0 && rand.Int()%1000 < fnode.State.GetDropRate() {

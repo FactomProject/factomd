@@ -102,14 +102,20 @@ func (sss *StateSaverStruct) LoadDBStateList(ss *DBStateList, networkName string
 func NetworkIDToFilename(networkName string, fileLocation string) string {
 	file := fmt.Sprintf("FastBoot_%s_v%v.db", networkName, version)
 	if fileLocation != "" {
+		i := len(fileLocation) - 1
+		if fileLocation[i] == '/' {
+			fileLocation = fileLocation[:i] // trim trailing '/'
+		}
 		return fmt.Sprintf("%v/%v", fileLocation, file)
 	}
 	return file
 }
 
 func SaveToFile(b []byte, filename string) error {
+	fmt.Fprintf(os.Stderr, "Saving %s\n", filename)
 	err := ioutil.WriteFile(filename, b, 0644)
 	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		return err
 	}
 	return nil
