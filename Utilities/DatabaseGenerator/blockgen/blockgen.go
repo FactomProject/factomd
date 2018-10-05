@@ -66,7 +66,7 @@ func (bg *BlockGen) NewBlock(prev *state.DBState, netid uint32, firstTimeStamp i
 		}
 	}
 
-	dblock.HeaderHash()
+	dblock.GetHeaderHash()
 	dblock.BuildBodyMR()
 	dblock.BuildKeyMerkleRoot()
 
