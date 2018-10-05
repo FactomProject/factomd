@@ -290,9 +290,14 @@ func (e *Entry) UnmarshalBinaryData(data []byte) ([]byte, error) {
 			err = fmt.Errorf("Error parsing external IDs")
 			return nil, err
 		}
+		// check that the payload size is not too big before we allocate the
+		// buffer.
+		if xsize > 10240 {
+			// TODO: replace this message with a proper error
+			return nil, fmt.Errorf("Error: entry.UnmarshalBinary: ExtIDs size too high (uint underflow?)")
+		}
 		x := make([]byte, xsize)
-		var n int
-		if n, err = buf.Read(x); err != nil {
+		if n, err := buf.Read(x); err != nil {
 			return nil, err
 		} else {
 			if c := cap(x); n != c {
@@ -376,7 +381,16 @@ func UnmarshalEntryList(bin []byte) ([]interfaces.IEBEntry, []byte, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	list := make([]interfaces.IEBEntry, int(l))
+	e := int(l)
+	// TODO: remove printing unmarshal count numbers once we have good data on
+	// what they should be.
+	//	messages.LogPrintf("marshelsizes.txt", "UnmarshalEntryList unmarshaled entry count: %d", e)
+	if e > 1000 {
+		// TODO: replace this message with a proper error
+		return nil, nil, fmt.Errorf("Error: UnmarshalEntryList: entry count too high (uint underflow?)")
+	}
+
+	list := make([]interfaces.IEBEntry, e)
 	for i := range list {
 		e := NewEntry()
 		x, err := b.PopBytes()

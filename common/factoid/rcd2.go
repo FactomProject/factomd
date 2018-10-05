@@ -26,7 +26,7 @@ import (
 
 type RCD_2 struct {
 	M           int                   // Number signatures required
-	N           int                   // Total sigatures possible
+	N           int                   // Total signatures possible
 	N_Addresses []interfaces.IAddress // n addresses
 }
 
@@ -102,6 +102,18 @@ func (t *RCD_2) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 
 	t.N, data = int(binary.BigEndian.Uint16(data[0:2])), data[2:]
 	t.M, data = int(binary.BigEndian.Uint16(data[0:2])), data[2:]
+	// TODO: remove printing unmarshal count numbers once we have good data on
+	// what they should be.
+	//messages.LogPrintf("marshelsizes.txt", "RCD_2 unmarshaled signatures possible: %d", t.N)
+	//messages.LogPrintf("marshelsizes.txt", "RCD_2 unmarshaled signatures required: %d", t.M)
+	if t.N > t.M {
+		// TODO: replace this message with a proper error
+		return nil, fmt.Errorf("Error: RCD_2.UnmarshalBinary: signatures possible too many (uint underflow?)")
+	}
+	if t.M > 1000 {
+		// TODO: replace this message with a proper error
+		return nil, fmt.Errorf("Error: RCD_2.UnmarshalBinary: signatures required too many (uint underflow?)")
+	}
 
 	t.N_Addresses = make([]interfaces.IAddress, t.M, t.M)
 

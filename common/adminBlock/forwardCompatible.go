@@ -2,6 +2,7 @@ package adminBlock
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	"bytes"
@@ -109,6 +110,13 @@ func (e *ForwardCompatibleEntry) UnmarshalBinaryData(data []byte) ([]byte, error
 	bl, err := buf.PopVarInt()
 	if err != nil {
 		return nil, err
+	}
+	// TODO: remove printing unmarshal count numbers once we have good data on
+	// what they should be.
+	log.Print("ForwardCompatibleEntry unmarshaled body length: ", bl)
+	if bl > 10240 {
+		// TODO: replace this message with a proper error
+		return nil, fmt.Errorf("Error: ForwardCompatibleEntry.UnmarshalBinary: body length too long (uint underflow?)")
 	}
 	e.Size = uint32(bl)
 

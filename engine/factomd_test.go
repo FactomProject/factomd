@@ -2,6 +2,7 @@ package engine_test
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -15,7 +16,9 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/activations"
+	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/globals"
+	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/primitives/random"
 	. "github.com/FactomProject/factomd/engine"
@@ -43,7 +46,7 @@ func SetupSim(GivenNodes string, NetworkType string, UserAddedOptions map[string
 		"--faulttimeout": "2",
 		"--roundtimeout": "2",
 		"--count":        fmt.Sprintf("%v", l),
-		//"--debuglog=.*",
+		"--debuglog":     ".*",
 		//"--debuglog=F.*",
 		"--startdelay": "1",
 		"--stdoutlog":  "out.txt",
@@ -66,7 +69,7 @@ func SetupSim(GivenNodes string, NetworkType string, UserAddedOptions map[string
 	state0 := Factomd(params, false).(*state.State)
 	state0.MessageTally = true
 	time.Sleep(3 * time.Second)
-	StatusEveryMinute(state0)
+	//	StatusEveryMinute(state0)
 	creatingNodes(GivenNodes, state0)
 
 	t.Logf("Allocated %d nodes", l)
@@ -389,7 +392,7 @@ func TestMakeALeader(t *testing.T) {
 
 	ranSimTest = true
 
-	state0 := SetupSim("LL", "LOCAL", map[string]string{}, t)
+	state0 := SetupSim("LF", "LOCAL", map[string]string{}, t)
 
 	runCmd("1") // select node 1
 	runCmd("l") // make him a leader
@@ -1312,4 +1315,38 @@ func TestRandom(t *testing.T) {
 		t.Fatal("Failed")
 	}
 
+}
+
+func TestBadDBState(t *testing.T) {
+	if ranSimTest {
+		return
+	}
+
+	ranSimTest = true
+
+	state0 := SetupSim("LF", "LOCAL", map[string]string{}, t)
+
+	msg, err := state0.LoadDBState(state0.GetDBHeightComplete() - 1)
+	if err != nil {
+		panic(err)
+	}
+	dbs := msg.(*messages.DBStateMsg)
+	dbs.DirectoryBlock.GetHeader().(*directoryBlock.DBlockHeader).DBHeight += 2
+	m_dbs, err := dbs.MarshalBinary()
+	// replace the length of transaction in the marshaled datta with 0xdeadbeef!
+	m_dbs = append(append(m_dbs[:659], []byte{0xde, 0xad, 0xbe, 0xef}...), m_dbs[663:]...)
+
+	if err != nil {
+		panic(err)
+	}
+	s := hex.EncodeToString(m_dbs)
+
+	i := 659
+	fmt.Printf("---%x---\n", m_dbs[i:i+4])
+
+	wsapi.HandleV2SendRawMessage(state0, map[string]string{"message": s})
+
+	WaitForMinute(state0, 1)
+	WaitForAllNodes(state0)
+	CheckAuthoritySet(2, 0, t)
 }

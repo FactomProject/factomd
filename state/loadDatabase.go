@@ -91,6 +91,9 @@ func LoadDatabase(s *State) {
 			}
 		}
 		dblk, ablk, fblk, ecblk := GenerateGenesisBlocks(s.GetNetworkID(), customIdentity)
+
+		messages.LogPrintf("marshelsizes.txt", "FBlock unmarshaled transaction count: %d", len(fblk.GetTransactions()))
+
 		msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk, nil, nil, nil)
 		// last block, flag it.
 		dbstate, _ := msg.(*messages.DBStateMsg)

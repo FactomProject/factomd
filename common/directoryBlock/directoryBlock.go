@@ -7,10 +7,9 @@ package directoryBlock
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
-
-	"errors"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -378,9 +377,17 @@ func (b *DirectoryBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	}
 	b.SetHeader(fbh)
 
-	count := b.GetHeader().GetBlockCount()
-	entries := make([]interfaces.IDBEntry, count)
-	for i := uint32(0); i < count; i++ {
+	entryCount := b.GetHeader().GetBlockCount()
+	// TODO: remove printing unmarshal count numbers once we have good data on
+	// what they should be.
+	//messages.LogPrintf("marshelsizes.txt", "DirectoryBlock unmarshaled entry count: %d", entryCount)
+	if entryCount > 1000 {
+		// TODO: replace this message with a proper error
+		return nil, fmt.Errorf("Error: DirectoryBlock.UnmarshalBinary: entry count too high (uint underflow?)")
+	}
+
+	entries := make([]interfaces.IDBEntry, entryCount)
+	for i := uint32(0); i < entryCount; i++ {
 		entries[i] = new(DBEntry)
 		newData, err = entries[i].UnmarshalBinaryData(newData)
 		if err != nil {
