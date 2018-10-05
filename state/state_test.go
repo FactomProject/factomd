@@ -86,7 +86,7 @@ func TestDirBlockHead(t *testing.T) {
 */
 
 func TestGetDirectoryBlockByHeight(t *testing.T) {
-	state := testHelper.CreateAndPopulateTestState()
+	state := testHelper.CreateAndPopulateTestStateAndStartValidator()
 	blocks := testHelper.CreateFullTestBlockSet()
 	for i, block := range blocks {
 		dBlock := state.GetDirectoryBlockByHeight(uint32(i))
@@ -102,7 +102,7 @@ func TestGetDirectoryBlockByHeight(t *testing.T) {
 }
 
 func TestLoadHoldingMap(t *testing.T) {
-	state := testHelper.CreateAndPopulateTestState()
+	state := testHelper.CreateAndPopulateTestStateAndStartValidator()
 
 	hque := state.LoadHoldingMap()
 	if len(hque) != len(state.HoldingMap) {
@@ -111,7 +111,7 @@ func TestLoadHoldingMap(t *testing.T) {
 }
 
 func TestLoadAcksMap(t *testing.T) {
-	state := testHelper.CreateAndPopulateTestState()
+	state := testHelper.CreateAndPopulateTestStateAndStartValidator()
 
 	hque := state.LoadAcksMap()
 	if len(hque) != len(state.HoldingMap) {
@@ -127,7 +127,7 @@ func TestCalculateTransactionRate(t *testing.T) {
 
 	s.FactoidTrans = 333
 	to2, i := s.CalculateTransactionRate()
-	fmt.Println(to2, i)
+	fmt.Println("tps", to2, i)
 	if to >= to2 {
 		t.Errorf("Rate should be higher than %f, found %f", to, to2)
 	}
@@ -138,7 +138,7 @@ func TestCalculateTransactionRate(t *testing.T) {
 }
 
 func TestClone(t *testing.T) {
-	s := testHelper.CreateAndPopulateTestState()
+	s := testHelper.CreateAndPopulateTestStateAndStartValidator()
 	s2i := s.Clone(1)
 	s2, ok := s2i.(*State)
 	if !ok {
@@ -159,7 +159,7 @@ func TestClone(t *testing.T) {
 }
 
 func TestLog(t *testing.T) {
-	s := testHelper.CreateAndPopulateTestState()
+	s := testHelper.CreateAndPopulateTestStateAndStartValidator()
 	buf := new(bytes.Buffer)
 	//s.Logger = log.New(buf, "debug", "unit_test")
 	log.SetOutput(buf)
@@ -186,7 +186,7 @@ func TestLog(t *testing.T) {
 }
 
 func TestSetKeys(t *testing.T) {
-	s := testHelper.CreateAndPopulateTestState()
+	s := testHelper.CreateAndPopulateTestStateAndStartValidator()
 	p, _ := primitives.NewPrivateKeyFromHex("0000000000000000000000000000000000000000000000000000000000000000")
 	s.SimSetNewKeys(p)
 
@@ -196,7 +196,7 @@ func TestSetKeys(t *testing.T) {
 }
 
 func TestPrintState(t *testing.T) {
-	s := testHelper.CreateAndPopulateTestState()
+	s := testHelper.CreateAndPopulateTestStateAndStartValidator()
 	PrintState(s)
 }
 

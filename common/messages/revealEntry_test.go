@@ -95,7 +95,7 @@ func newRevealEntry() *RevealEntryMsg {
 }
 
 func TestValidRevealMsg(t *testing.T) {
-	s := testHelper.CreateAndPopulateTestState()
+	s := testHelper.CreateAndPopulateTestStateAndStartValidator()
 
 	if v := testValid(1, 0, s); v != 0 {
 		t.Error("Should be 0, found ", v)
@@ -163,7 +163,7 @@ func newMaliciousRevealEntry() *RevealEntryMsg {
 }
 
 func TestRevealMaliciousFirstEntryReveal(t *testing.T) {
-	testState := testHelper.CreateAndPopulateTestState()
+	testState := testHelper.CreateAndPopulateTestStateAndStartValidator()
 
 	m := newMaliciousRevealEntry()
 	goodEntry := newSignedCommitChain()

@@ -91,7 +91,7 @@ func TestHandleV2GetRaw(t *testing.T) {
 	toTest = append(toTest, raw) //5
 
 	//initializing server
-	state := testHelper.CreateAndPopulateTestState()
+	state := testHelper.CreateAndPopulateTestStateAndStartValidator()
 	Start(state)
 
 	for i, v := range toTest {
@@ -247,7 +247,7 @@ func TestHandleV2CommitChain(t *testing.T) {
 }
 
 func TestHandleV2GetReceipt(t *testing.T) {
-	state := testHelper.CreateAndPopulateTestState()
+	state := testHelper.CreateAndPopulateTestStateAndStartValidator()
 	//Start(state)
 
 	hashkey := new(HashRequest)
@@ -275,7 +275,7 @@ func TestHandleV2GetReceipt(t *testing.T) {
 }
 
 func TestHandleV2GetTranasction(t *testing.T) {
-	state := testHelper.CreateAndPopulateTestState()
+	state := testHelper.CreateAndPopulateTestStateAndStartValidator()
 	blocks := testHelper.CreateFullTestBlockSet()
 
 	for _, block := range blocks {

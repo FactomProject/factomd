@@ -55,7 +55,7 @@ func NewController(feds, auds int) *Controller {
 		s.Online = true
 
 		c.feds[i] = &s
-		e.State = testHelper.CreateAndPopulateTestState()
+		e.State = testHelper.CreateAndPopulateTestStateAndStartValidator()
 		e.State.SetIdentityChainID(s.ChainID)
 		c.Elections[i] = e
 	}
