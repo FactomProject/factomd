@@ -2424,7 +2424,6 @@ func (s *State) CalculateTransactionRate() (totalTPS float64, instantTPS float64
 		s.transCnt = total                     // transactions accounted for
 		InstantTransactionPerSecond.Set(s.tps) // Prometheus
 	}
-
 	return tps, s.tps
 }
 
