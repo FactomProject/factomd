@@ -17,7 +17,9 @@ import (
 
 	"github.com/FactomProject/factomd/activations"
 	"github.com/FactomProject/factomd/common/directoryBlock"
+	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/globals"
+	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/primitives/random"
@@ -1347,6 +1349,55 @@ func TestBadDBState(t *testing.T) {
 	wsapi.HandleV2SendRawMessage(state0, map[string]string{"message": s})
 
 	WaitForMinute(state0, 1)
+	WaitForAllNodes(state0)
+	CheckAuthoritySet(2, 0, t)
+}
+
+func TestBadDBState2(t *testing.T) {
+	if ranSimTest {
+		return
+	}
+
+	ranSimTest = true
+
+	state0 := SetupSim("LF", "LOCAL", map[string]string{}, t)
+
+	msg, err := state0.LoadDBState(state0.GetDBHeightComplete() - 1)
+	if err != nil {
+		panic(err)
+	}
+	dbs := msg.(*messages.DBStateMsg)
+	dbs.DirectoryBlock.GetHeader().(*directoryBlock.DBlockHeader).DBHeight += 2
+
+	old_trans := dbs.FactoidBlock.(*factoid.FBlock).Transactions
+	dbs.FactoidBlock.(*factoid.FBlock).Transactions = make([]interfaces.ITransaction, 1000) // chew up 20MB of memory
+	for i, _ := range dbs.FactoidBlock.(*factoid.FBlock).Transactions {
+		dbs.FactoidBlock.(*factoid.FBlock).Transactions[i] = old_trans[0]
+	}
+
+	m_dbs, err := dbs.MarshalBinary()
+
+	if err != nil {
+		panic(err)
+	}
+	s := hex.EncodeToString(m_dbs)
+
+	i := 659
+	fmt.Printf("---%x---\n", m_dbs[i:i+4])
+
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	fmt.Printf("%+v", m)
+	wsapi.HandleV2SendRawMessage(state0, map[string]string{"message": s})
+
+	WaitForMinute(state0, 1)
+
+	runtime.ReadMemStats(&m)
+	fmt.Printf("%+v", m)
+	WaitForMinute(state0, 30)
+	runtime.ReadMemStats(&m)
+	fmt.Printf("%+v", m)
+
 	WaitForAllNodes(state0)
 	CheckAuthoritySet(2, 0, t)
 }
