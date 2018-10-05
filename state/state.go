@@ -2413,10 +2413,10 @@ func (s *State) SetStringConsensus() {
 //		instantTPS	: Transaction rate weighted over last 3 seconds
 func (s *State) CalculateTransactionRate() (totalTPS float64, instantTPS float64) {
 	runtime := time.Since(s.starttime)
-	shorttime := time.Since(s.lasttime)
 	total := s.FactoidTrans + s.NewEntryChains + s.NewEntries
 	tps := float64(total) / float64(runtime.Seconds())
 	TotalTransactionPerSecond.Set(tps) // Prometheus
+	shorttime := time.Since(s.lasttime)
 	if shorttime >= time.Second*3 {
 		delta := (s.FactoidTrans + s.NewEntryChains + s.NewEntries) - s.transCnt
 		s.tps = ((float64(delta) / float64(shorttime.Seconds())) + 2*s.tps) / 3

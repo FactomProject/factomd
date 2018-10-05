@@ -127,6 +127,7 @@ func TestCalculateTransactionRate(t *testing.T) {
 
 	s.FactoidTrans = 333
 	to2, i := s.CalculateTransactionRate()
+	fmt.Println(to2, i)
 	if to >= to2 {
 		t.Errorf("Rate should be higher than %f, found %f", to, to2)
 	}
