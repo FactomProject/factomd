@@ -60,7 +60,11 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 		"--stderrlog":           "out.txt",
 		"--checkheads":          "false",
 		"--controlpanelsetting": "readwrite",
-		"--debuglog":            "faulting|bad",
+		"--debuglog":            ".",
+		"--logPort":             "37000",
+		"--port":                "37001",
+		"--controlpanelport":    "37002",
+		"--networkport":         "37003",
 	}
 
 	// loop thru the test specific options and overwrite or append to the DefaultOptions
