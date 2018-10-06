@@ -515,8 +515,9 @@ func (s *State) MoveStateToHeight(dbheight uint32) {
 	s.LogPrintf("dbstate", "MoveStateToHeight(%d) called from %s", dbheight, atomic.WhereAmIString(1))
 	if s.LLeaderHeight+1 != dbheight {
 		s.LogPrintf("dbstate", "State move between non-sequential heights from %d to %d", s.LLeaderHeight, dbheight)
-
-		fmt.Fprintf(os.Stderr, "State move between non-sequential heights from %d to %d\n", s.LLeaderHeight, dbheight)
+		if s.LLeaderHeight != dbheight {
+			fmt.Fprintf(os.Stderr, "State move between non-sequential heights from %d to %d\n", s.LLeaderHeight, dbheight)
+		}
 	}
 	if s.CurrentMinute != 0 {
 		s.LogPrintf("dbstate", "CurrentMinute not 0 %d", s.CurrentMinute)
@@ -559,7 +560,7 @@ func (s *State) AddDBState(isNew bool,
 	if ht == s.LLeaderHeight-1 || (ht == s.LLeaderHeight) {
 	} else {
 		s.LogPrintf("dbstate", "AddDBState out of order! at %d added %d", s.LLeaderHeight, ht)
-		fmt.Fprint(os.Stderr, "AddDBState() out of order! at %d added %d\n", s.LLeaderHeight, ht)
+		fmt.Fprintf(os.Stderr, "AddDBState() out of order! at %d added %d\n", s.LLeaderHeight, ht)
 		//panic("AddDBState out of order!")
 	}
 
