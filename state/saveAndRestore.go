@@ -614,15 +614,12 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 	s.ECBalancesPMutex.Unlock()
 
 	// Restore IDControl
-	s.IdentityControl = ss.IdentityControl
-
 	s.AuthorityServerCount = ss.AuthorityServerCount
 
-	s.LLeaderHeight = ss.LLeaderHeight
-	s.Leader = ss.Leader
-	s.LeaderVMIndex = ss.LeaderVMIndex
-	s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight) // get the pointer based on the current leader height
+	s.IdentityControl = ss.IdentityControl
 	s.CurrentMinute = ss.CurrentMinute
+
+	s.MoveStateToHeight(ss.LLeaderHeight)
 
 	ss.EOMsyncing = s.EOMsyncing
 
