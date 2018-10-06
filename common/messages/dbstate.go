@@ -195,6 +195,9 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 
 func (m *DBStateMsg) ValidateSignatures(state interfaces.IState) int {
 	// Validate Signatures
+	if m.IsInDB {
+		return 1
+	}
 
 	// If this is the next block that we need, we can validate it by signatures. If it is a past block
 	// we can validate by prevKeyMr of the block that follows this one

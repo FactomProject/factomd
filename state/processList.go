@@ -842,7 +842,8 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 	return
 }
 
-func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces.IMsg) {
+func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
+	s := p.State
 	s.LogMessage("processList", "Message:", m)
 	s.LogMessage("processList", "Ack:", ack)
 	if p == nil {
