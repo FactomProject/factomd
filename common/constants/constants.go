@@ -66,11 +66,20 @@ func NormallyFullBroadcast(t byte) bool {
 	return false
 }
 
-// Election related messages are full broadcast
+// Identify P2P messages. Used to prevent rebroadcast
 func NormallyPeer2Peer(t byte) bool {
 	switch t {
 	case MISSING_MSG, MISSING_DATA, DATA_RESPONSE, MISSING_MSG_RESPONSE, BOUNCE_MSG, BOUNCEREPLY_MSG,
 		MISSING_ENTRY_BLOCKS, ENTRY_BLOCK_RESPONSE, DBSTATE_MSG, DBSTATE_MISSING_MSG:
+		return true
+	}
+	return false
+}
+
+// Identify AuthoritySet messages. Used to prevent collection of pre-boot leader messages
+func IsLeaderMessage(t byte) bool {
+	switch t {
+	case EOM_MSG, DIRECTORY_BLOCK_SIGNATURE_MSG, ACK_MSG, VOLUNTEERAUDIT, VOLUNTEERLEVELVOTE, VOLUNTEERPROPOSAL, HEARTBEAT_MSG:
 		return true
 	}
 	return false
