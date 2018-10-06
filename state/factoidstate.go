@@ -308,6 +308,7 @@ func (fs *FactoidState) UpdateECTransaction(rt bool, trans interfaces.IECBlockEn
 
 // Assumes validation has already been done.
 func (fs *FactoidState) UpdateTransaction(rt bool, trans interfaces.ITransaction) error {
+	fs.State.LogPrintf("factoids", "At %d process rt =%v %s", fs.DBHeight, rt, trans.String())
 
 	// First check all inputs are good.
 	for _, input := range trans.GetInputs() {
@@ -337,6 +338,9 @@ func (fs *FactoidState) UpdateTransaction(rt bool, trans interfaces.ITransaction
 		adr := output.GetAddress().Fixed()
 		oldv := fs.State.GetF(rt, adr)
 		fs.State.PutF(rt, adr, oldv+int64(output.GetAmount()))
+	}
+	if len(trans.GetECOutputs()) > 0 {
+		fs.State.LogPrintf("entrycredits", "At %d process %s", fs.DBHeight, trans.String())
 	}
 	for _, ecOut := range trans.GetECOutputs() {
 		ecbal := int64(ecOut.GetAmount()) / int64(fs.State.FactoshisPerEC)

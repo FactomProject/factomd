@@ -124,6 +124,7 @@ func LoadDatabase(s *State) {
 		s.InMsgQueue().Enqueue(msg)
 	}
 	s.Println(fmt.Sprintf("Loaded %d directory blocks on %s", blkCnt, s.FactomNodeName))
+	fmt.Fprintf(os.Stderr, "%20s Loading complete %v.\n", s.FactomNodeName, blkCnt)
 }
 
 func GenerateGenesisBlocks(networkID uint32, bootstrapIdentity interfaces.IHash) (interfaces.IDirectoryBlock, interfaces.IAdminBlock, interfaces.IFBlock, interfaces.IEntryCreditBlock) {

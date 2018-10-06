@@ -405,7 +405,7 @@ func (m *DirectoryBlockSignature) String() string {
 	}
 	headerHash, err := m.DirectoryBlockHeader.GetHeaderHash()
 
-	return fmt.Sprintf("%6s-VM%3d:          DBHt:%5d -- Signer[%x] PrevDBKeyMR[%x] HeaderHash[%x] BodyMR[%x] hash[%x] header - %s",
+	return fmt.Sprintf("%6s-VM%3d:          DBHt:%5d -- Signer[%x] PrevDBKeyMR[%x] HeaderHash[%x] BodyMR[%x] Timestamp[%d-%s] hash[%x] header - %s",
 		"DBSig",
 		m.VMIndex,
 		m.DBHeight,
@@ -413,6 +413,8 @@ func (m *DirectoryBlockSignature) String() string {
 		m.DirectoryBlockHeader.GetPrevKeyMR().Bytes()[:3],
 		headerHash.Bytes()[:3],
 		m.DirectoryBlockHeader.GetBodyMR().Bytes()[:3],
+		m.Timestamp,
+		m.Timestamp.String(),
 		m.GetHash().Bytes()[:3],
 		m.DirectoryBlockHeader.String())
 
