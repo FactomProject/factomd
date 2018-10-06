@@ -1283,15 +1283,21 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 // We don't really do the signing here, but just check that we have all the signatures.
 // If we do, we count that as progress.
 func (list *DBStateList) SignDB(d *DBState) (process bool) {
-	if d.Signed {
-		return false
-	}
 
 	dbheight := d.DirectoryBlock.GetHeader().GetDBHeight()
+	if d.Signed {
+
+		list.State.LLeaderHeight = dbheight + 1
+		list.State.LeaderPL = list.State.ProcessLists.Get(dbheight + 1)
+
+		return false
+	}
 
 	// If we have the next dbstate in the list, then all the signatures for this dbstate
 	// have been checked, so we can consider this guy signed.
 	if dbheight == 0 || list.Get(int(dbheight+1)) != nil || d.Repeat == true {
+		list.State.LLeaderHeight = dbheight + 1
+		list.State.LeaderPL = list.State.ProcessLists.Get(dbheight + 1)
 		d.Signed = true
 		return false
 	}
@@ -1311,6 +1317,9 @@ func (list *DBStateList) SignDB(d *DBState) (process bool) {
 	if list.State.EOM {
 		return
 	}
+
+	list.State.LLeaderHeight = dbheight + 1
+	list.State.LeaderPL = list.State.ProcessLists.Get(dbheight + 1)
 
 	d.Signed = true
 	return
