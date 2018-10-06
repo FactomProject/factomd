@@ -61,7 +61,7 @@ func (id ActivationType) String() string {
 
 	n, ok := ActivationNameMap[id]
 	if !ok {
-		n = fmt.Sprintf("ActivationId(%v)", id)
+		n = fmt.Sprintf("ActivationId(%v)", string(id))
 	}
 	return n
 }

@@ -35,7 +35,7 @@ func TestUnmarshalNilEntryBlockResponse(t *testing.T) {
 
 func TestNewEntryBlockResponse(t *testing.T) {
 
-	state := testHelper.CreateAndPopulateTestState()
+	state := testHelper.CreateAndPopulateTestStateAndStartValidator()
 	msg := NewEntryBlockResponse(state)
 	response := msg.String()
 	timestamp := fmt.Sprintf("%d", msg.GetTimestamp().GetTimeMilli())
