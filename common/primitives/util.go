@@ -152,7 +152,7 @@ func ConvertDecimalToString(v uint64) string {
 	return fmt.Sprintf("%.8f", f)
 }
 
-// Take fixed point data and produce a nice decimial point
+// Take fixed point data and produce a nice decimal point
 // sort of output that users can handle.
 func ConvertDecimalToPaddedString(v uint64) string {
 	tv := v / 100000000
