@@ -1208,18 +1208,18 @@ func SimControl(listenTo int, listenStdin bool) {
 				}
 
 				if b[1] == 't' {
-					if len(b) < 3 {
-						nn, err := strconv.Atoi(b[3:])
+					if len(b) >= 3 {
+						nn, err := strconv.Atoi(b[2:])
 						if err != nil {
-							os.Stderr.WriteString("Specify in milliseconds (Rt10000 or Rt-10000) a time delay to add to tx")
+							os.Stderr.WriteString("Specify in minutes (Rt10000 or Rt-10000) a time delay to add to tx\n")
 							continue
 						}
-						loadGenerator.txoffset = int64(nn)
+						loadGenerator.txoffset = int64(nn * 60 * 1000)
+						os.Stderr.WriteString(fmt.Sprintf("Setting the tx time to add %d minutes\n", nn))
 					} else {
-						os.Stderr.WriteString("Specify in milliseconds (Rt10000 or Rt-10000) a time delay to add to tx")
-						continue
+						os.Stderr.WriteString("Specify in minutes (Rt10000 or Rt-10000) a time delay to add to tx\n")
 					}
-
+					continue
 				}
 
 				nn := 0
@@ -1415,6 +1415,8 @@ func SimControl(listenTo int, listenStdin bool) {
 				os.Stderr.WriteString("B             Set's the coinbase address to a random one. Tyoe BFA... for a specific\n")
 				os.Stderr.WriteString("Lh.i          Proposes a cancel for the descriptor h at index i\n")
 				os.Stderr.WriteString("Rnnn          Set load generator to write entries at nnn per second\n")
+				os.Stderr.WriteString("Re            Turn on 'tight' mode, that buys ECs in only small amounts when running Rnnn\n")
+				os.Stderr.WriteString("Rtnnn         Add a signed constant to the timestamp of load generator FCT TXs.\n")
 
 				//os.Stderr.WriteString("i[m/b/a][N]   Shows only the Mhash, block signing key, or anchor key up to the Nth identity\n")
 				//os.Stderr.WriteString("isN           Shows only Nth identity\n")
