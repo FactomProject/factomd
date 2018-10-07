@@ -24,19 +24,18 @@ import (
 )
 
 type LoadGenerator struct {
-	State     *state.State           // Where we get balances
 	ECKey     *primitives.PrivateKey // Entry Credit private key
 	ToSend    int                    // How much to send
 	PerSecond atomic.AtomicInt       // How much per second
 	stop      chan bool              // Stop the go routine
 	running   atomic.AtomicBool      // We are running
 	tight     atomic.AtomicBool      // Only allocate ECs as needed (more EC purchases)
+	txoffset  int64                  // Offset to be added to the timestamp of created tx to test time limits.
 }
 
 // NewLoadGenerator makes a new load generator. The state is used for funding the transaction
 func NewLoadGenerator(s *state.State) *LoadGenerator {
 	lg := new(LoadGenerator)
-	lg.State = s
 	lg.ECKey, _ = primitives.NewPrivateKeyFromHex(ecSec)
 	lg.stop = make(chan bool, 5)
 
@@ -123,7 +122,8 @@ func (lg *LoadGenerator) NewRevealEntry(entry *entryBlock.Entry) *messages.Revea
 
 var cnt int
 
-func GetECs(s *state.State, tight bool, c int) {
+func (lg *LoadGenerator) GetECs(tight bool, c int) {
+	s := fnodes[wsapiNode].State
 	outEC, _ := primitives.HexToHash("c23ae8eec2beb181a0da926bd2344e988149fbe839fbc7489f2096e7d6110243")
 	outAdd := factoid.NewAddress(outEC.Bytes())
 	ecBal := s.GetE(true, outAdd.Fixed())
@@ -145,7 +145,7 @@ func GetECs(s *state.State, tight bool, c int) {
 
 	os.Stderr.WriteString(fmt.Sprintf("%d purchases, buying %d and balance is %d \n", cnt, c, ecBal))
 
-	FundWallet(s, uint64(c)*ecPrice)
+	FundWalletTOFF(s, lg.txoffset, uint64(c)*ecPrice)
 
 }
 
@@ -159,7 +159,7 @@ func (lg *LoadGenerator) NewCommitChain(entry *entryBlock.Entry) *messages.Commi
 	commit.Credits, _ = util.EntryCost(data)
 
 	commit.Credits += 10
-	GetECs(lg.State, lg.tight.Load(), int(commit.Credits))
+	lg.GetECs(lg.tight.Load(), int(commit.Credits))
 
 	commit.EntryHash = entry.GetHash()
 	var b6 primitives.ByteSlice6
@@ -188,7 +188,7 @@ func (lg *LoadGenerator) NewCommitEntry(entry *entryBlock.Entry) *messages.Commi
 	data, _ := entry.MarshalBinary()
 
 	commit.Credits, _ = util.EntryCost(data)
-	GetECs(lg.State, lg.tight.Load(), int(commit.Credits))
+	lg.GetECs(lg.tight.Load(), int(commit.Credits))
 
 	commit.EntryHash = entry.GetHash()
 	var b6 primitives.ByteSlice6

@@ -107,6 +107,26 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 	}
 
 	valid := msg.Validate(s)
+	if valid == 1 {
+		// Make sure we don't put in an old ack (outside our repeat range)
+		blktime := s.GetLeaderTimestamp().GetTime().UnixNano()
+		tlim := int64(Range * 60 * 1000000000)
+
+		if blktime != 0 {
+			msgtime := msg.GetTimestamp().GetTime().UnixNano()
+
+			// Make sure we don't put in an old msg (outside our repeat range)
+			Delta := blktime - msgtime
+			if Delta > tlim || -Delta > tlim {
+				valid = -1 // Assume the message is bad.
+				s.LogPrintf("processList", "Drop message pair, because the msg is out of range")
+				// Delta is is negative its greater than blktime then it is future.
+				if Delta < 0 {
+					valid = 0 // Future stuff I can hold for now.  It might be good later.
+				}
+			}
+		}
+	}
 	switch valid {
 	case 1:
 		// The highest block for which we have received a message.  Sometimes the same as
