@@ -25,14 +25,22 @@ import (
 
 var _ = Factomd
 
+// SetupSim()
 // SetupSim takes care of your options, and setting up nodes
 // pass in a string for nodes: 4 Leaders, 3 Audit, 4 Followers: "LLLLAAAFFFF" as the first argument
 // Pass in the Network type ex. "LOCAL" as the second argument
 // It has default but if you want just add it like "map[string]string{"--Other" : "Option"}" as the third argument
 // Pass in t for the testing as the 4th argument
-
+//
 //EX. state0 := SetupSim("LLLLLLLLLLLLLLLAAAAAAAAAA", "LOCAL", map[string]string {"--controlpanelsetting" : "readwrite"}, t)
 func SetupSim(GivenNodes string, NetworkType string, UserAddedOptions map[string]string, t *testing.T) *state.State {
+	return SetupSim2(GivenNodes, false, NetworkType, UserAddedOptions, t)
+}
+
+// SetupSim2()
+// new entrypoint into SetupSim to allow specifying "tight" transactions, where EC are bought as needed rather than in
+// large blocks.
+func SetupSim2(GivenNodes string, tight bool, NetworkType string, UserAddedOptions map[string]string, t *testing.T) *state.State {
 	l := len(GivenNodes)
 	DefaultOptions := map[string]string{
 		"--db":           "Map",
@@ -67,6 +75,10 @@ func SetupSim(GivenNodes string, NetworkType string, UserAddedOptions map[string
 	state0.MessageTally = true
 	time.Sleep(3 * time.Second)
 	StatusEveryMinute(state0)
+	if tight {
+		runCmd("Re")
+	}
+
 	creatingNodes(GivenNodes, state0)
 
 	t.Logf("Allocated %d nodes", l)
@@ -379,6 +391,40 @@ func TestLoad(t *testing.T) {
 	WaitBlocks(state0, 30)
 	runCmd("R0") // Stop load
 	WaitBlocks(state0, 1)
+
+} // testLoad(){...}
+
+func TestLoad2(t *testing.T) {
+	if ranSimTest {
+		return
+	}
+
+	ranSimTest = true
+
+	state0 := SetupSim2("LLLAAAFFF", true, "LOCAL", map[string]string{}, t)
+
+	runCmd("7") // select node 1
+	runCmd("x") // take out 7 from the network
+	WaitBlocks(state0, 1)
+	WaitForMinute(state0, 1)
+
+	CheckAuthoritySet(3, 3, t)
+
+	runCmd("R30") // Feed load
+	WaitBlocks(state0, 3)
+	runCmd("Rt60")
+	runCmd("T20")
+	runCmd("R.5")
+	WaitBlocks(state0, 2)
+	runCmd("x")
+	WaitBlocks(state0, 3)
+	WaitMinutes(state0, 3)
+
+	ht7 := GetFnodes()[7].State.GetLLeaderHeight()
+	ht6 := GetFnodes()[6].State.GetLLeaderHeight()
+	if ht7 != ht6 {
+		t.Fatalf("Node 7 was at dbheight %d which didn't match Node 6 at dbheight %d", ht7, ht6)
+	}
 
 } // testLoad(){...}
 
