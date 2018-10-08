@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/activations"
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/primitives/random"
@@ -88,6 +89,19 @@ func SetupSim2(GivenNodes string, tight bool, NetworkType string, UserAddedOptio
 		t.Fail()
 	}
 	return state0
+}
+
+// Wait for a specific blocks
+func WaitForBlock(s *state.State, newBlock int) {
+	fmt.Printf("WaitForBlocks(%d)\n", newBlock)
+	TimeNow(s)
+	sleepTime := time.Duration(globals.Params.BlkTime) * 1000 / 40 // Figure out how long to sleep in milliseconds
+	for i := int(s.LLeaderHeight); i < newBlock; i++ {
+		for int(s.LLeaderHeight) < i {
+			time.Sleep(sleepTime * time.Millisecond) // wake up and about 4 times per minute
+		}
+		TimeNow(s)
+	}
 }
 
 func creatingNodes(creatingNodes string, state0 *state.State) {
@@ -1324,6 +1338,63 @@ func TestDBSigElection(t *testing.T) {
 		fn.State.ShutdownChan <- 1
 	}
 
+}
+
+func TestTestNetCoinBaseActivation(t *testing.T) {
+	if ranSimTest {
+		return
+	}
+	ranSimTest = true
+
+	// reach into the activation an hack the TESTNET_COINBASE_PERIOD to be early so I can check it worked.
+	activations.ActivationMap[activations.TESTNET_COINBASE_PERIOD].ActivationHeight["LOCAL"] = 22
+
+	state0 := SetupSim("LAF", "LOCAL", map[string]string{"--debuglog": "fault|badmsg|network|process|dbsig", "--faulttimeout": "10", "--blktime": "5"}, t)
+	CheckAuthoritySet(1, 1, t)
+	fmt.Println("Simulation configured")
+	nextBlock := uint32(11 + constants.COINBASE_DECLARATION) // first grant is at 11 so it pays at 21
+	fmt.Println("Wait till first grant should payout")
+	WaitForBlock(state0, int(nextBlock)) // wait for the first coin base payout to be generated
+	factoidState0 := state0.FactoidState.(*state.FactoidState)
+	CBT := factoidState0.GetCoinbaseTransaction(nextBlock, state0.GetLeaderTimestamp())
+	oldCBDelay := constants.COINBASE_DECLARATION
+	if oldCBDelay != 10 {
+		t.Fatalf("constants.COINBASE_DECLARATION = %d expect 10\n", constants.COINBASE_DECLARATION)
+	}
+	if len(CBT.GetOutputs()) != 1 {
+		t.Fatalf("Expected first payout at block %d\n", nextBlock)
+	} else {
+		fmt.Println("Got first payout")
+	}
+
+	fmt.Println("Wait till activation height")
+	WaitForBlock(state0, 25)
+	if constants.COINBASE_DECLARATION != 20 {
+		t.Fatalf("constants.COINBASE_DECLARATION = %d expect 140\n", constants.COINBASE_DECLARATION)
+	}
+
+	nextBlock += oldCBDelay + 1
+	fmt.Println("Wait till second grant should payout if the activation fails")
+	WaitForBlock(state0, int(nextBlock+1)) // next old payout passed activation (should not be paid)
+	CBT = factoidState0.GetCoinbaseTransaction(nextBlock, state0.GetLeaderTimestamp())
+	if len(CBT.GetOutputs()) != 0 {
+		t.Fatalf("because the payout delay changed there is no payout at block %d\n", nextBlock)
+	}
+
+	nextBlock += constants.COINBASE_DECLARATION - oldCBDelay + 1
+	fmt.Println("Wait till second grant should payout with the new activation height")
+	WaitForBlock(state0, int(nextBlock+1)) // next payout passed new activation (should be paid)
+	CBT = factoidState0.GetCoinbaseTransaction(nextBlock, state0.GetLeaderTimestamp())
+	if len(CBT.GetOutputs()) != 0 {
+		t.Fatalf("Expected first payout at block %d\n", nextBlock)
+	}
+
+	WaitForAllNodes(state0)
+	CheckAuthoritySet(1, 1, t) // check the authority set is as expected
+	t.Log("Shutting down the network")
+	for _, fn := range GetFnodes() {
+		fn.State.ShutdownChan <- 1
+	}
 }
 
 // Cheap tests for developing binary search commits algorithm
