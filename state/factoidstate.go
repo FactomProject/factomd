@@ -415,7 +415,7 @@ func (fs *FactoidState) GetCoinbaseTransaction(dbheight uint32, ftime interfaces
 
 	if fs.State.IsActive(activations.TESTNET_COINBASE_PERIOD) {
 		// testnet wants payout to be a day delayed instead of 50 minutes
-		constants.COINBASE_DECLARATION = 20 // Ok, so it's not really constant...
+		constants.COINBASE_DECLARATION = 140 // Ok, so it's not really constant...
 	}
 
 	// Coinbases only have outputs on payout blocks.
