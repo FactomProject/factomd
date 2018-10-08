@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/activations"
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/primitives/random"
@@ -76,6 +77,19 @@ func SetupSim(GivenNodes string, NetworkType string, UserAddedOptions map[string
 		t.Fail()
 	}
 	return state0
+}
+
+// Wait for a specific blocks
+func WaitForBlock(s *state.State, newBlock int) {
+	fmt.Printf("WaitForBlocks(%d)\n", newBlock)
+	TimeNow(s)
+	sleepTime := time.Duration(globals.Params.BlkTime) * 1000 / 40 // Figure out how long to sleep in milliseconds
+	for i := int(s.LLeaderHeight); i < newBlock; i++ {
+		for int(s.LLeaderHeight) < i {
+			time.Sleep(sleepTime * time.Millisecond) // wake up and about 4 times per minute
+		}
+		TimeNow(s)
+	}
 }
 
 func creatingNodes(creatingNodes string, state0 *state.State) {
@@ -1290,8 +1304,8 @@ func TestTestNetCoinBaseActivation(t *testing.T) {
 	// reach into the activation an hack the TESTNET_COINBASE_PERIOD to be early so I can check it worked.
 	activations.ActivationMap[activations.TESTNET_COINBASE_PERIOD].ActivationHeight["LOCAL"] = 22
 
-	state0 := SetupSim("LAF", map[string]string{"--debuglog": "fault|badmsg|network|process|dbsig", "--faulttimeout": "10", "--blktime": "5"}, 160, 0, 0, t)
-	CheckAuthoritySet(t)
+	state0 := SetupSim("LAF", "LOCAL", map[string]string{"--debuglog": "fault|badmsg|network|process|dbsig", "--faulttimeout": "10", "--blktime": "5"}, t)
+	CheckAuthoritySet(1,1,t)
 	fmt.Println("Simulation configured")
 	nextBlock := uint32(11 + constants.COINBASE_DECLARATION) // first grant is at 11 so it pays at 21
 	fmt.Println("Wait till first grant should payout")
@@ -1331,9 +1345,11 @@ func TestTestNetCoinBaseActivation(t *testing.T) {
 	}
 
 	WaitForAllNodes(state0)
-	CheckAuthoritySet(t) // check the authority set is as expected
-	shutDownEverything(t)
-
+	CheckAuthoritySet(1,1,t) // check the authority set is as expected
+	t.Log("Shutting down the network")
+	for _, fn := range GetFnodes() {
+		fn.State.ShutdownChan <- 1
+	}
 }
 
 // Cheap tests for developing binary search commits algorithm
