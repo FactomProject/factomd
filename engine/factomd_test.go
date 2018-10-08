@@ -1294,7 +1294,6 @@ func TestDBSigElection(t *testing.T) {
 
 }
 
-
 func TestTestNetCoinBaseActivation(t *testing.T) {
 	if ranSimTest {
 		return
@@ -1305,7 +1304,7 @@ func TestTestNetCoinBaseActivation(t *testing.T) {
 	activations.ActivationMap[activations.TESTNET_COINBASE_PERIOD].ActivationHeight["LOCAL"] = 22
 
 	state0 := SetupSim("LAF", "LOCAL", map[string]string{"--debuglog": "fault|badmsg|network|process|dbsig", "--faulttimeout": "10", "--blktime": "5"}, t)
-	CheckAuthoritySet(1,1,t)
+	CheckAuthoritySet(1, 1, t)
 	fmt.Println("Simulation configured")
 	nextBlock := uint32(11 + constants.COINBASE_DECLARATION) // first grant is at 11 so it pays at 21
 	fmt.Println("Wait till first grant should payout")
@@ -1345,7 +1344,7 @@ func TestTestNetCoinBaseActivation(t *testing.T) {
 	}
 
 	WaitForAllNodes(state0)
-	CheckAuthoritySet(1,1,t) // check the authority set is as expected
+	CheckAuthoritySet(1, 1, t) // check the authority set is as expected
 	t.Log("Shutting down the network")
 	for _, fn := range GetFnodes() {
 		fn.State.ShutdownChan <- 1
