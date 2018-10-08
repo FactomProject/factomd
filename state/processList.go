@@ -842,7 +842,8 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 	return
 }
 
-func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces.IMsg) {
+func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
+	s := p.State
 	s.LogMessage("processList", "Message:", m)
 	s.LogMessage("processList", "Ack:", ack)
 	if p == nil {
@@ -1109,8 +1110,13 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	pl.AuditServers = make([]interfaces.IServer, 0)
 	//pl.Requests = make(map[[20]byte]*Request)
 
+	pl.FactoidBalancesTMutex.Lock()
 	pl.FactoidBalancesT = map[[32]byte]int64{}
+	pl.FactoidBalancesTMutex.Unlock()
+
+	pl.ECBalancesTMutex.Lock()
 	pl.ECBalancesT = map[[32]byte]int64{}
+	pl.ECBalancesTMutex.Unlock()
 
 	if previous != nil {
 		pl.FedServers = append(pl.FedServers, previous.FedServers...)

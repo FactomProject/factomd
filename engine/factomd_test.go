@@ -60,7 +60,11 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 		"--stderrlog":           "out.txt",
 		"--checkheads":          "false",
 		"--controlpanelsetting": "readwrite",
-		"--debuglog":            "faulting|bad",
+		//"--debuglog":            ".",
+		"--logPort":          "37000",
+		"--port":             "37001",
+		"--controlpanelport": "37002",
+		"--networkport":      "37003",
 	}
 
 	// loop thru the test specific options and overwrite or append to the DefaultOptions
@@ -166,6 +170,7 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 		t.Fatalf("Should have allocated %d nodes", l)
 		t.Fail()
 	}
+	CheckAuthoritySet(t)
 	return state0
 }
 
@@ -450,9 +455,7 @@ func TestSetupANetwork(t *testing.T) {
 	runCmd("7")
 	WaitBlocks(state0, 1) // Wait for 1 block
 
-	CheckAuthoritySet(t)
-
-	WaitForMinute(state0, 2) // Waits for 2 "Minutes"
+	WaitForMinute(state0, 2) // Waits for minute 2
 	runCmd("F100")           //  Set the Delay on messages from all nodes to 100 milliseconds
 	runCmd("S10")            // Set Drop Rate to 1.0 on everyone
 	runCmd("g10")            // Adds 10 identities to your identity pool.
@@ -535,8 +538,6 @@ func TestLoad(t *testing.T) {
 	// use a tree so the messages get reordered
 	state0 := SetupSim("LLF", map[string]string{}, 15, 0, 0, t)
 
-	CheckAuthoritySet(t)
-
 	runCmd("2")   // select 2
 	runCmd("R30") // Feed load
 	WaitBlocks(state0, 10)
@@ -564,8 +565,6 @@ func TestLoadScrambled(t *testing.T) {
 	// use a tree so the messages get reordered
 	state0 := SetupSim("LLFFFFFF", map[string]string{"--net": "tree"}, 32, 0, 0, t)
 	//TODO: Why does this run longer than expected?
-	CheckAuthoritySet(t)
-
 	runCmd("2")     // select 2
 	runCmd("F1000") // set the message delay
 	runCmd("S10")   // delete 1% of the messages
@@ -595,7 +594,6 @@ func TestMakeALeader(t *testing.T) {
 	// Adjust expectations
 	leaders++
 	followers--
-	CheckAuthoritySet(t)
 	shutDownEverything(t)
 }
 
@@ -607,8 +605,6 @@ func TestActivationHeightElection(t *testing.T) {
 	ranSimTest = true
 
 	state0 := SetupSim("LLLLLAAF", map[string]string{}, 14, 2, 2, t)
-
-	CheckAuthoritySet(t)
 
 	// Kill the last two leader to cause a double election
 	runCmd("3")
@@ -698,8 +694,6 @@ func TestAnElection(t *testing.T) {
 	runCmd("2")
 	runCmd("w") // point the control panel at 2
 
-	CheckAuthoritySet(t)
-
 	// remove the last leader
 	runCmd("2")
 	runCmd("x")
@@ -720,8 +714,6 @@ func TestAnElection(t *testing.T) {
 	if !GetFnodes()[3].State.Leader && !GetFnodes()[4].State.Leader {
 		t.Fatalf("Node 3 or 4  should be a leader")
 	}
-
-	CheckAuthoritySet(t)
 
 	shutDownEverything(t)
 
@@ -786,7 +778,6 @@ func TestDBsigEOMElection(t *testing.T) {
 	WaitBlocks(state0, 2)
 	WaitMinutes(state0, 1)
 	WaitForAllNodes(state0)
-	CheckAuthoritySet(t)
 	shutDownEverything(t)
 }
 
@@ -798,8 +789,6 @@ func TestMultiple2Election(t *testing.T) {
 	ranSimTest = true
 
 	state0 := SetupSim("LLLLLAAF", map[string]string{"--debuglog": ".*"}, 7, 2, 2, t)
-
-	CheckAuthoritySet(t)
 
 	WaitForMinute(state0, 2)
 	runCmd("1")
@@ -820,7 +809,6 @@ func TestMultiple2Election(t *testing.T) {
 	WaitBlocks(state0, 2)
 	WaitForMinute(state0, 1)
 	WaitForAllNodes(state0)
-	CheckAuthoritySet(t)
 	shutDownEverything(t)
 
 }
@@ -833,8 +821,6 @@ func TestMultiple3Election(t *testing.T) {
 	ranSimTest = true
 
 	state0 := SetupSim("LLLLLLLAAAAF", map[string]string{"--debuglog": ".*"}, 9, 3, 3, t)
-
-	CheckAuthoritySet(t)
 
 	runCmd("1")
 	runCmd("x")
@@ -854,7 +840,6 @@ func TestMultiple3Election(t *testing.T) {
 	WaitBlocks(state0, 3)
 	WaitForMinute(state0, 1)
 	WaitForAllNodes(state0)
-	CheckAuthoritySet(t)
 	shutDownEverything(t)
 
 }
@@ -866,9 +851,7 @@ func TestMultiple7Election(t *testing.T) {
 
 	ranSimTest = true
 
-	state0 := SetupSim("LLLLLLLLLLLLLLLAAAAAAAAAAF", map[string]string{}, 7, 7, 7, t)
-
-	CheckAuthoritySet(t)
+	state0 := SetupSim("LLLLLLLLLLLLLLLAAAAAAAAAAF", map[string]string{"--blktime": "15"}, 7, 7, 7, t)
 
 	WaitForMinute(state0, 2)
 
@@ -890,7 +873,6 @@ func TestMultiple7Election(t *testing.T) {
 	WaitBlocks(state0, 2)
 	WaitMinutes(state0, 1)
 	WaitForAllNodes(state0)
-	CheckAuthoritySet(t)
 	shutDownEverything(t)
 }
 
@@ -900,7 +882,7 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 	}
 	ranSimTest = true
 
-	state0 := SetupSim("LLLLAAAFFF", map[string]string{"--logPort": "37000", "--port": "37001", "--controlpanelport": "37002", "--networkport": "37003"}, 6, 0, 0, t)
+	state0 := SetupSim("LLLLAAAFFF", map[string]string{"--blktime": "15"}, 6, 0, 0, t)
 	WaitForMinute(state0, 1)
 
 	type walletcallHelper struct {
@@ -1066,7 +1048,7 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 		fmt.Println(x)
 	}
 	if x["ack"] != x["saved"] {
-		t.Fatalf("Expected acknowledged and saved balances to be he same")
+		t.Fatalf("Expected acknowledged and saved balances to be the same")
 	}
 	shutDownEverything(t)
 }
@@ -1077,7 +1059,7 @@ func TestMultipleECAccountsAPI(t *testing.T) {
 	}
 	ranSimTest = true
 
-	state0 := SetupSim("LLLLAAAFFF", map[string]string{"--logPort": "37000", "--port": "37001", "--controlpanelport": "37002", "--networkport": "37003"}, 6, 0, 0, t)
+	state0 := SetupSim("LLLLAAAFFF", map[string]string{"--blktime": "15"}, 6, 0, 0, t)
 	WaitForMinute(state0, 1)
 
 	type walletcallHelper struct {
@@ -1261,6 +1243,8 @@ func TestMultipleECAccountsAPI(t *testing.T) {
 	if x["ack"] != x["saved"] {
 		t.Fatalf("Expected " + fmt.Sprint(x["ack"]) + ", " + fmt.Sprint(x["saved"]) + " but got " + fmt.Sprint(x["ack"]) + ", " + fmt.Sprint(x["saved"]))
 	}
+	WaitForAllNodes(state0)
+	shutDownEverything(t)
 }
 
 func TestDBsigElectionEvery2Block(t *testing.T) {
@@ -1274,8 +1258,6 @@ func TestDBsigElectionEvery2Block(t *testing.T) {
 	state := SetupSim("LLLLLLAF", map[string]string{"--debuglog": "fault|badmsg|network|process|dbsig", "--faulttimeout": "10"}, 28, 6, 6, t)
 
 	runCmd("S10") // Set Drop Rate to 1.0 on everyone
-
-	CheckAuthoritySet(t)
 
 	for j := 0; j <= iterations; j++ {
 		// for leader 1 thu 7 kill each in turn
@@ -1303,11 +1285,8 @@ func TestDBsigElectionEvery2Block(t *testing.T) {
 			CheckAuthoritySet(t) // check the authority set is as expected
 		}
 	}
-	t.Log("Shutting down the network")
-	for _, fn := range GetFnodes() {
-		fn.State.ShutdownChan <- 1
-	}
-
+	WaitForAllNodes(state)
+	shutDownEverything(t)
 }
 
 func TestDBSigElection(t *testing.T) {
@@ -1317,8 +1296,6 @@ func TestDBSigElection(t *testing.T) {
 	ranSimTest = true
 
 	state0 := SetupSim("LLLAF", map[string]string{"--debuglog": "fault|badmsg|network|process|dbsig", "--faulttimeout": "10"}, 6, 1, 1, t)
-
-	CheckAuthoritySet(t)
 
 	s := GetFnodes()[2].State
 	if !s.IsLeader() {
@@ -1339,7 +1316,6 @@ func TestDBSigElection(t *testing.T) {
 	WaitForMinute(state0, 1) // Wait till ablock is loaded
 	WaitForAllNodes(state0)
 
-	CheckAuthoritySet(t) // check the authority set is as expected
 	shutDownEverything(t)
 }
 
@@ -1359,7 +1335,6 @@ func TestGrants(t *testing.T) {
 	ranSimTest = true
 
 	state0 := SetupSim("LAF", map[string]string{"--debuglog": "fault|badmsg|network|process|dbsig", "--faulttimeout": "10", "--blktime": "5"}, 300, 0, 0, t)
-	CheckAuthoritySet(t)
 
 	grants := state.GetHardCodedGrants()
 
@@ -1455,8 +1430,6 @@ func TestGrants(t *testing.T) {
 	} // for all dbheights {...}
 
 	WaitForAllNodes(state0)
-
-	CheckAuthoritySet(t) // check the authority set is as expected
 	shutDownEverything(t)
 }
 
@@ -1476,7 +1449,6 @@ func TestTestNetCoinBaseActivation(t *testing.T) {
 	activations.ActivationMap[activations.TESTNET_COINBASE_PERIOD].ActivationHeight["LOCAL"] = 22
 
 	state0 := SetupSim("LAF", map[string]string{"--debuglog": "fault|badmsg|network|process|dbsig", "--faulttimeout": "10", "--blktime": "5"}, 160, 0, 0, t)
-	CheckAuthoritySet(t)
 	fmt.Println("Simulation configured")
 	nextBlock := uint32(11 + constants.COINBASE_DECLARATION) // first grant is at 11 so it pays at 21
 	fmt.Println("Wait till first grant should payout")
@@ -1516,7 +1488,6 @@ func TestTestNetCoinBaseActivation(t *testing.T) {
 	}
 
 	WaitForAllNodes(state0)
-	CheckAuthoritySet(t) // check the authority set is as expected
 	shutDownEverything(t)
 }
 

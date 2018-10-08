@@ -195,6 +195,9 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 
 func (m *DBStateMsg) ValidateSignatures(state interfaces.IState) int {
 	// Validate Signatures
+	if m.IsInDB {
+		return 1
+	}
 
 	// If this is the next block that we need, we can validate it by signatures. If it is a past block
 	// we can validate by prevKeyMr of the block that follows this one
@@ -691,14 +694,14 @@ func (m *DBStateMsg) MarshalBinary() (rval []byte, err error) {
 
 func (m *DBStateMsg) String() string {
 	data, _ := m.MarshalBinary()
-	return fmt.Sprintf("DBState: dbht:%3d [size: %11s] dblock %6x admin %6x fb %6x ec %6x hash %6x",
+	return fmt.Sprintf("DBState: dbht:%3d [size: %11s] dblock %6x admin %6x fb %6x ec %6x hash %6x InDB %v IsLast %v Sigs %d",
 		m.DirectoryBlock.GetHeader().GetDBHeight(),
 		primitives.AddCommas(int64(len(data))),
 		m.DirectoryBlock.GetKeyMR().Bytes()[:3],
 		m.AdminBlock.GetHash().Bytes()[:3],
 		m.FactoidBlock.GetHash().Bytes()[:3],
 		m.EntryCreditBlock.GetHash().Bytes()[:3],
-		m.GetHash().Bytes()[:3])
+		m.GetHash().Bytes()[:3], m.IsInDB, m.IsLast, m.SignatureList.Length)
 }
 
 func (m *DBStateMsg) LogFields() log.Fields {
