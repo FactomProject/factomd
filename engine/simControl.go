@@ -160,7 +160,7 @@ func SimControl(listenTo int, listenStdin bool) {
 						break
 					}
 					if b[1] == 'f' {
-						GetECs(fnodes[listenTo].State, true, 1000)
+						loadGenerator.GetECs(true, 1000)
 						//FundWallet(fnodes[wsapiNode].State, uint64(200*5e7))
 						break
 					}
@@ -172,7 +172,7 @@ func SimControl(listenTo int, listenStdin bool) {
 				wsapi.SetState(fnodes[wsapiNode].State)
 
 				if nextAuthority == -1 {
-					GetECs(fnodes[listenTo].State, true, 1000)
+					loadGenerator.GetECs(true, 1000)
 					//err, _ := FundWallet(fnodes[wsapiNode].State, 2e7)
 					//if err != nil {
 					//	os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
@@ -193,7 +193,7 @@ func SimControl(listenTo int, listenStdin bool) {
 							os.Stderr.WriteString(fmt.Sprint("You can only pop a max of 100 off the stack at a time."))
 							count = 100
 						}
-						GetECs(fnodes[listenTo].State, true, 1000)
+						loadGenerator.GetECs(true, 1000)
 						//err := fundWallet(fnodes[wsapiNode].State, uint64(count*5e7))
 						//if err != nil {
 						//	os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
@@ -957,7 +957,7 @@ func SimControl(listenTo int, listenStdin bool) {
 					}
 					wsapiNode = ListenTo
 					wsapi.SetState(fnodes[wsapiNode].State)
-					GetECs(fnodes[listenTo].State, true, 1000)
+					loadGenerator.GetECs(true, 1000)
 
 					//err, _ := FundWallet(fnodes[ListenTo].State, 1e8)
 					//if err != nil {
@@ -1190,7 +1190,9 @@ func SimControl(listenTo int, listenStdin bool) {
 				}
 
 				if len(b) < 2 {
-					os.Stderr.WriteString("Specify in seconds (R3) or in tenths of a second (R.5)\n")
+					os.Stderr.WriteString("Specify in seconds (R3) or in tenths of a second (R.5).\n" +
+						"Or Re to have entry credits allocated tightly.\n" +
+						"Or RtMMM where MMM is some milliseconds to be added to the timestamp of TX generated.")
 					continue
 				}
 
@@ -1202,6 +1204,21 @@ func SimControl(listenTo int, listenStdin bool) {
 						loadGenerator.tight.Store(true)
 					}
 					os.Stderr.WriteString(fmt.Sprintf("Setting tight mode (many EC purchases) to %v\n", loadGenerator.tight.Load()))
+					continue
+				}
+
+				if b[1] == 't' {
+					if len(b) >= 3 {
+						nn, err := strconv.Atoi(b[2:])
+						if err != nil {
+							os.Stderr.WriteString("Specify in minutes (Rt10000 or Rt-10000) a time delay to add to tx\n")
+							continue
+						}
+						loadGenerator.txoffset = int64(nn * 60 * 1000)
+						os.Stderr.WriteString(fmt.Sprintf("Setting the tx time to add %d minutes\n", nn))
+					} else {
+						os.Stderr.WriteString("Specify in minutes (Rt10000 or Rt-10000) a time delay to add to tx\n")
+					}
 					continue
 				}
 
@@ -1238,7 +1255,7 @@ func SimControl(listenTo int, listenStdin bool) {
 
 				wsapiNode = ListenTo
 				wsapi.SetState(fnodes[wsapiNode].State)
-				GetECs(fnodes[listenTo].State, true, 1000)
+				loadGenerator.GetECs(true, 1000)
 				//err = fundWallet(fnodes[ListenTo].State, 1e8)
 				//if err != nil {
 				//	os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
@@ -1268,7 +1285,7 @@ func SimControl(listenTo int, listenStdin bool) {
 
 				wsapiNode = ListenTo
 				wsapi.SetState(fnodes[wsapiNode].State)
-				GetECs(fnodes[listenTo].State, true, 1000)
+				loadGenerator.GetECs(true, 1000)
 				//err = fundWallet(fnodes[ListenTo].State, 1e8)
 				//if err != nil {
 				//	os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
@@ -1398,6 +1415,8 @@ func SimControl(listenTo int, listenStdin bool) {
 				os.Stderr.WriteString("B             Set's the coinbase address to a random one. Tyoe BFA... for a specific\n")
 				os.Stderr.WriteString("Lh.i          Proposes a cancel for the descriptor h at index i\n")
 				os.Stderr.WriteString("Rnnn          Set load generator to write entries at nnn per second\n")
+				os.Stderr.WriteString("Re            Turn on 'tight' mode, that buys ECs in only small amounts when running Rnnn\n")
+				os.Stderr.WriteString("Rtnnn         Add a signed constant to the timestamp of load generator FCT TXs.\n")
 
 				//os.Stderr.WriteString("i[m/b/a][N]   Shows only the Mhash, block signing key, or anchor key up to the Nth identity\n")
 				//os.Stderr.WriteString("isN           Shows only Nth identity\n")
