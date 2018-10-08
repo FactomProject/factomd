@@ -247,7 +247,7 @@ func WaitForAllNodes(state *state.State) {
 }
 
 func TimeNow(s *state.State) {
-	fmt.Printf("%s:%d/%d\n", s.FactomNodeName, int(s.LLeaderHeight), s.CurrentMinute)
+	fmt.Printf("%s:%d-:-%d\n", s.FactomNodeName, int(s.LLeaderHeight), s.CurrentMinute)
 }
 
 var statusState *state.State
@@ -284,56 +284,13 @@ func StatusEveryMinute(s *state.State) {
 	}
 }
 
-// Wait so many blocks
-func WaitBlocks(s *state.State, blks int) {
-	fmt.Printf("WaitBlocks(%d)\n", blks)
-	TimeNow(s)
+// Wait till block = newBlock and minute = newMinute
+func WaitForQuite(s *state.State, newBlock int, newMinute int) {
+	fmt.Printf("WaitFor(%d-:-%d)\n", newBlock, newMinute)
 	sleepTime := time.Duration(globals.Params.BlkTime) * 1000 / 40 // Figure out how long to sleep in milliseconds
-	newBlock := int(s.LLeaderHeight) + blks
-	for i := int(s.LLeaderHeight); i < newBlock; i++ {
-		for int(s.LLeaderHeight) < i {
-			time.Sleep(sleepTime * time.Millisecond) // wake up and about 4 times per minute
-		}
-		TimeNow(s)
+	if newBlock*10+newMinute < int(s.LLeaderHeight)*10+s.CurrentMinute {
+		panic("Wait for the past")
 	}
-}
-
-// Wait for a specific blocks
-func WaitForBlock(s *state.State, newBlock int) {
-	fmt.Printf("WaitForBlocks(%d)\n", newBlock)
-	TimeNow(s)
-	sleepTime := time.Duration(globals.Params.BlkTime) * 1000 / 40 // Figure out how long to sleep in milliseconds
-	for i := int(s.LLeaderHeight); i < newBlock; i++ {
-		for int(s.LLeaderHeight) < i {
-			time.Sleep(sleepTime * time.Millisecond) // wake up and about 4 times per minute
-		}
-		TimeNow(s)
-	}
-}
-
-// Wait to a given minute.  If we are == to the minute or greater, then
-// we first wait to the start of the next block.
-func WaitForMinute(s *state.State, min int) {
-	fmt.Printf("WaitForMinute(%d)\n", min)
-	TimeNow(s)
-	sleepTime := time.Duration(globals.Params.BlkTime) * 1000 / 40 // Figure out how long to sleep in milliseconds
-	if s.CurrentMinute >= min {
-		for s.CurrentMinute > 0 {
-			time.Sleep(sleepTime * time.Millisecond) // wake up and about 4 times per minute
-		}
-	}
-
-	for min > s.CurrentMinute {
-		time.Sleep(sleepTime * time.Millisecond) // wake up and about 4 times per minute
-	}
-	TimeNow(s)
-}
-
-// Wait some number of minutes
-func WaitMinutesQuite(s *state.State, min int) {
-	sleepTime := time.Duration(globals.Params.BlkTime) * 1000 / 40 // Figure out how long to sleep in milliseconds
-	newMinute := (s.CurrentMinute + min) % 10
-	newBlock := int(s.LLeaderHeight) + (s.CurrentMinute+min)/10
 	for int(s.LLeaderHeight) < newBlock {
 		time.Sleep(sleepTime * time.Millisecond) // wake up and about 4 times per minute
 	}
@@ -343,9 +300,39 @@ func WaitMinutesQuite(s *state.State, min int) {
 }
 
 func WaitMinutes(s *state.State, min int) {
-	fmt.Printf("WaitMinutes(%d)\n", min)
+	fmt.Printf("%s: %d-:-%d WaitMinutes(%d)\n", s.FactomNodeName, s.LLeaderHeight, s.CurrentMinute, min)
+	newBlock := int(s.LLeaderHeight) + min/10
+	newMinute := s.CurrentMinute + min%10
+	WaitForQuite(s, newBlock, newMinute)
 	TimeNow(s)
-	WaitMinutesQuite(s, min)
+}
+
+// Wait so many blocks
+func WaitBlocks(s *state.State, blks int) {
+	fmt.Printf("%s: %d-:-%d WaitBlocks(%d)\n", s.FactomNodeName, s.LLeaderHeight, s.CurrentMinute, blks)
+	newBlock := int(s.LLeaderHeight) + blks
+	WaitForQuite(s, newBlock, 0)
+	TimeNow(s)
+}
+
+// Wait for a specific blocks
+func WaitForBlock(s *state.State, newBlock int) {
+	fmt.Printf("%s: %d-:-%d WaitForBlock(%d)\n", s.FactomNodeName, s.LLeaderHeight, s.CurrentMinute, newBlock)
+	WaitForQuite(s, newBlock, 0)
+	TimeNow(s)
+}
+
+// Wait to a given minute.
+func WaitForMinute(s *state.State, newMinute int) {
+	fmt.Printf("%s: %d-:-%d WaitForMinute(%d)\n", s.FactomNodeName, s.LLeaderHeight, s.CurrentMinute, newMinute)
+	if newMinute > 10 {
+		panic("invalid minute")
+	}
+	newBlock := int(s.LLeaderHeight)
+	if s.CurrentMinute < newMinute {
+		newBlock++
+	}
+	WaitForQuite(s, newBlock, newMinute)
 	TimeNow(s)
 }
 
