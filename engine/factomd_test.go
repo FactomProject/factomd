@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/activations"
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/primitives/random"
@@ -76,6 +77,19 @@ func SetupSim(GivenNodes string, NetworkType string, UserAddedOptions map[string
 		t.Fail()
 	}
 	return state0
+}
+
+// Wait for a specific blocks
+func WaitForBlock(s *state.State, newBlock int) {
+	fmt.Printf("WaitForBlocks(%d)\n", newBlock)
+	TimeNow(s)
+	sleepTime := time.Duration(globals.Params.BlkTime) * 1000 / 40 // Figure out how long to sleep in milliseconds
+	for i := int(s.LLeaderHeight); i < newBlock; i++ {
+		for int(s.LLeaderHeight) < i {
+			time.Sleep(sleepTime * time.Millisecond) // wake up and about 4 times per minute
+		}
+		TimeNow(s)
+	}
 }
 
 func creatingNodes(creatingNodes string, state0 *state.State) {
@@ -1287,7 +1301,7 @@ func TestCoinbaseCancel(t *testing.T) {
 
 	ranSimTest = true
 
-	state0 := SetupSim("LFFFFF", map[string]string{"-blktime": "5"}, 16, 0, 1, t)
+	state0 := SetupSim("LFFFFF", "LOCAL", map[string]string{"-blktime": "5"}, t)
 	// Make it quicker
 	constants.COINBASE_PAYOUT_FREQUENCY = 2
 	constants.COINBASE_DECLARATION = constants.COINBASE_PAYOUT_FREQUENCY * 2
@@ -1346,7 +1360,7 @@ func TestCoinbaseCancel(t *testing.T) {
 	//	10 should be cancelled, 12 should not
 	f, err := state0.DB.FetchFBlockByHeight(10)
 	if err != nil {
-		panic(fmt.Sprintf("Missing coinbase, admin block at height %d could not be retrieved"))
+		panic(fmt.Sprintf("Missing coinbase, admin block at height %d could not be retrieved", 10))
 	}
 	c := len(f.GetTransactions()[0].GetOutputs())
 	if c != 4 {
@@ -1355,14 +1369,19 @@ func TestCoinbaseCancel(t *testing.T) {
 
 	f, err = state0.DB.FetchFBlockByHeight(12)
 	if err != nil {
-		panic(fmt.Sprintf("Missing coinbase, admin block at height %d could not be retrieved"))
+		panic(fmt.Sprintf("Missing coinbase, admin block at height %d could not be retrieved", 12))
 	}
 	c = len(f.GetTransactions()[0].GetOutputs())
 	if c != 5 {
 		t.Fatalf("Coinbase at height 12 should have 5 outputs")
 	}
 
-	shutDownEverythingWithoutAuthCheck(t)
+	//shutDownEverythingWithoutAuthCheck(t)  see 9cf214e9140d767ea172b06a6e4b748475a9c494 for shutDownEverythingWithoutAuthCheck()
+
+	t.Log("Shutting down the network")
+	for _, fn := range GetFnodes() {
+		fn.State.ShutdownChan <- 1
+	}
 }
 
 // Cheap tests for developing binary search commits algorithm
