@@ -101,6 +101,10 @@ func SimControl(listenTo int, listenStdin bool) {
 
 	ListenTo = listenTo
 
+	if loadGenerator == nil {
+		loadGenerator = new(LoadGenerator)
+	}
+
 	for {
 		// This splits up the command at anycodepoint that is not a letter, number or punctuation, so usually by spaces.
 		parseFunc := func(c rune) bool {
