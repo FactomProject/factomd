@@ -121,7 +121,10 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 				prev := s.GetDBState(s.LLeaderHeight - 1)
 				cur := s.GetDBState(s.LLeaderHeight)
 
-				s.LogPrintf("executeMsg", "cur %v prev %v", cur.DirectoryBlock.GetTimestamp().String(), prev.DirectoryBlock.GetTimestamp().String())
+				s.LogPrintf("executeMsg", "prev %v", prev.DirectoryBlock.GetTimestamp().String())
+				if cur != nil {
+					s.LogPrintf("executeMsg", "curr %v ", cur.DirectoryBlock.GetTimestamp().String())
+				}
 
 				if Delta > tlim || -Delta > tlim {
 					/*
