@@ -118,6 +118,11 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 
 				// Make sure we don't put in an old msg (outside our repeat range)
 				Delta := blktime - msgtime
+				prev := s.GetDBState(s.LLeaderHeight - 1)
+				cur := s.GetDBState(s.LLeaderHeight)
+
+				s.LogPrintf("executeMsg", "cur %v prev %v", cur.DirectoryBlock.GetTimestamp().String(), prev.DirectoryBlock.GetTimestamp().String())
+
 				if Delta > tlim || -Delta > tlim {
 					/*
 
