@@ -1307,7 +1307,7 @@ func TestCoinbaseCancel(t *testing.T) {
 	constants.COINBASE_DECLARATION = constants.COINBASE_PAYOUT_FREQUENCY * 2
 
 	WaitMinutes(state0, 2)
-	runCmd("g10") // Set Drop Rate to 1.0 on everyonecancel
+	runCmd("g10") // Adds 10 identities to your identity pool.
 	WaitBlocks(state0, 1)
 	// Assign identities
 	runCmd("1")
@@ -1364,7 +1364,7 @@ func TestCoinbaseCancel(t *testing.T) {
 	}
 	c := len(f.GetTransactions()[0].GetOutputs())
 	if c != 4 {
-		t.Fatalf("Coinbase at height 10 not cancelled")
+		t.Fatalf("Coinbase at height 10 improperly cancelled.  Found %d outputs instead of 4", c)
 	}
 
 	f, err = state0.DB.FetchFBlockByHeight(12)
@@ -1373,7 +1373,7 @@ func TestCoinbaseCancel(t *testing.T) {
 	}
 	c = len(f.GetTransactions()[0].GetOutputs())
 	if c != 5 {
-		t.Fatalf("Coinbase at height 12 should have 5 outputs")
+		t.Fatalf("Coinbase at height 12 should have 5 outputs, but found %d", c)
 	}
 
 	//shutDownEverythingWithoutAuthCheck(t)  see 9cf214e9140d767ea172b06a6e4b748475a9c494 for shutDownEverythingWithoutAuthCheck()
