@@ -203,11 +203,52 @@ func (m *FactoidTransaction) MarshalBinary() (data []byte, err error) {
 	return buf.DeepCopyBytes(), nil
 }
 
+func transToString(fct bool, label string, ta interfaces.ITransAddress) string {
+	out := fmt.Sprintf("%s:", label)
+	v := primitives.ConvertDecimalToPaddedString(ta.GetAmount())
+	for v[0] == " "[0] {
+		v = v[1:]
+	} // trim leading spaces
+	out += v + " " + fmt.Sprintf("<%d>", ta.GetAmount())
+	if fct {
+		out += primitives.ConvertFctAddressToUserStr(ta.GetAddress())
+	} else {
+		out += primitives.ConvertECAddressToUserStr(ta.GetAddress())
+	}
+	return out
+}
 func (m *FactoidTransaction) String() string {
-	return fmt.Sprintf("Factoid VM %d Leader %x GetHash %x",
+	inputs := "["
+	for _, x := range m.Transaction.GetInputs() {
+		inputs += transToString(true, "I", x)
+		inputs += fmt.Sprintf("<%x> ", x.GetAddress().Bytes()[:4])
+	}
+	inputs += "]"
+	outputs := "["
+	fctOutputs := m.Transaction.GetOutputs()
+	if len(fctOutputs) > 0 {
+		outputs = "["
+		for _, x := range fctOutputs {
+			outputs += transToString(true, "FO", x)
+			outputs += fmt.Sprintf("<%x> ", x.GetAddress().Bytes()[:4])
+		}
+		outputs += "]"
+	}
+	ecOutputs := m.Transaction.GetECOutputs()
+	if len(ecOutputs) > 0 {
+		outputs += "["
+		for _, x := range ecOutputs {
+			outputs += transToString(false, "EO", x)
+			outputs += fmt.Sprintf("<%x> ", x.GetAddress().Bytes()[:4])
+		}
+		outputs += "]"
+	}
+	outputs += "]"
+	rval := fmt.Sprintf("Factoid VM %d Leader %x GetHash %x %s -> %s",
 		m.VMIndex,
 		m.GetLeaderChainID().Bytes()[3:6],
-		m.GetHash().Bytes()[:3])
+		m.GetHash().Bytes()[:3], inputs, outputs)
+	return rval
 }
 
 func (m *FactoidTransaction) LogFields() log.Fields {

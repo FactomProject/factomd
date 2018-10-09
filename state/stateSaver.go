@@ -22,7 +22,7 @@ type StateSaverStruct struct {
 	Stop     bool
 }
 
-//To be increased whenever the data being saved changes from the last verion
+//To be increased whenever the data being saved changes from the last version
 const version = 8
 
 func (sss *StateSaverStruct) StopSaving() {
@@ -75,7 +75,9 @@ func (sss *StateSaverStruct) DeleteSaveState(networkName string) error {
 }
 
 func (sss *StateSaverStruct) LoadDBStateList(ss *DBStateList, networkName string) error {
-	b, err := LoadFromFile(NetworkIDToFilename(networkName, sss.FastBootLocation))
+	filename := NetworkIDToFilename(networkName, sss.FastBootLocation)
+	fmt.Println(ss.State.FactomNodeName, "Loading from", filename)
+	b, err := LoadFromFile(filename)
 	if err != nil {
 		return nil
 	}
@@ -100,20 +102,27 @@ func (sss *StateSaverStruct) LoadDBStateList(ss *DBStateList, networkName string
 func NetworkIDToFilename(networkName string, fileLocation string) string {
 	file := fmt.Sprintf("FastBoot_%s_v%v.db", networkName, version)
 	if fileLocation != "" {
+		i := len(fileLocation) - 1
+		if fileLocation[i] == '/' {
+			fileLocation = fileLocation[:i] // trim trailing '/'
+		}
 		return fmt.Sprintf("%v/%v", fileLocation, file)
 	}
 	return file
 }
 
 func SaveToFile(b []byte, filename string) error {
+	fmt.Fprintf(os.Stderr, "Saving %s\n", filename)
 	err := ioutil.WriteFile(filename, b, 0644)
 	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		return err
 	}
 	return nil
 }
 
 func LoadFromFile(filename string) ([]byte, error) {
+	fmt.Fprintf(os.Stderr, "Load state from %s\n", filename)
 	b, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, err
