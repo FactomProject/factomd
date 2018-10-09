@@ -238,9 +238,11 @@ func LogPrintf(name string, format string, more ...interface{}) {
 	if myfile == nil {
 		return
 	}
+	text := fmt.Sprintf(format, more...)
+	text = strings.Replace(text, "\n", " ", -1) // remove newlines in printout for logging
 	seq := sequence
 	now := time.Now().Local()
-	s := fmt.Sprintf("%7v %02d:%02d:%02d.%03d %s\n", seq, now.Hour()%24, now.Minute()%60, now.Second()%60, (now.Nanosecond()/1e6)%1000, fmt.Sprintf(format, more...))
+	s := fmt.Sprintf("%7v %02d:%02d:%02d.%03d %s\n", seq, now.Hour()%24, now.Minute()%60, now.Second()%60, (now.Nanosecond()/1e6)%1000, text)
 	s = addNodeNames(s)
 	myfile.WriteString(s)
 }

@@ -1245,8 +1245,6 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	m.SendOut(s, m)
 	s.FollowerExecuteEOM(m)
 	s.UpdateState()
-	delete(s.Acks, ack.GetHash().Fixed())
-	delete(s.Holding, m.GetMsgHash().Fixed())
 }
 
 func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {

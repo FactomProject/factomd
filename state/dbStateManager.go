@@ -26,6 +26,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/log"
+	"github.com/FactomProject/factomd/util/atomic"
 )
 
 var _ = hex.EncodeToString
@@ -1056,14 +1057,13 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 
 	if dbht > 1 {
 		pd := list.State.DBStates.Get(int(dbht - 1))
-		if pd != nil {
+		if pd == nil {
 			s.LogPrintf("dbstateprocess", "Skipping Prev Block Missing")
-		} else if !pd.Saved {
-			s.LogPrintf("dbstateprocess", "Skipping Prev Block not saved")
+			return // Can't process out of order
 		}
-		if pd != nil && !pd.Saved {
-			//list.State.AddStatus(fmt.Sprintf("PROCESSBLOCKS:  Previous dbstate (%d) not saved", dbht-1))
-			return
+		if !pd.Saved {
+			s.LogPrintf("dbstateprocess", "Skipping Prev Block not saved")
+			return // can't process till the prev is saved
 		}
 	}
 
@@ -1085,6 +1085,12 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		s.LogPrintf("dbstateprocess", "Skipping No ProcessList")
 		return
 	}
+
+	s.LogPrintf("dbstateprocess", "ProcessBlock %d actually", d.DirectoryBlock.GetHeader().GetDBHeight())
+
+	s.LogPrintf("dbstateprocess", "ProcessBlock 1 %s", atomic.WhereAmIString(1))
+	s.LogPrintf("dbstateprocess", "ProcessBlock 2 %s", atomic.WhereAmIString(2))
+	s.LogPrintf("dbstateprocess", "ProcessBlock 3 %s", atomic.WhereAmIString(3))
 
 	var out bytes.Buffer
 	out.WriteString("=== AdminBlock.UpdateState() Start ===\n")
