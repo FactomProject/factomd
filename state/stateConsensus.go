@@ -119,9 +119,14 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 				// Make sure we don't put in an old msg (outside our repeat range)
 				Delta := blktime - msgtime
 				if Delta > tlim || -Delta > tlim {
+					/*
 
+					   4031 11:24:44 48497-:-0 Block 48497 time 2018-09-28 22:52:00 -0500 CDT
+					                                       time 2018-10-09 11:24:56 delta %!d(MISSING)
+					   4031 11:24:44 48497-:-0 Block 48497 time 2018-09-28 22:52:00 -0500 CDT Msg 38343834383864393137623031346662376664353164633936623731333965666135383432313432343762376635623763393537353230656439356262363461 time 2018-10-09 11:24:56 delta %!d(MISSING)
+					*/
 					s.LogPrintf("executeMsg", "Block %d time %v Msg %x time %v delta %d",
-						s.LLeaderHeight, s.GetLeaderTimestamp().GetTime().String(), msg.GetHash(), msg.GetTimestamp().String())
+						s.LLeaderHeight, s.GetLeaderTimestamp().GetTime().String(), msg.GetHash(), msg.GetTimestamp().String(), Delta)
 
 					// Delta is is negative its greater than blktime then it is future.
 					if Delta < 0 {
