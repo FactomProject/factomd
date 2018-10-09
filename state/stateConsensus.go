@@ -108,17 +108,21 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 
 	valid := msg.Validate(s)
 	if valid == 1 {
-		// Make sure we don't put in an old ack (outside our repeat range)
-		blktime := s.GetLeaderTimestamp().GetTime().UnixNano()
-		tlim := int64(Range * 60 * 1000000000)
-
 		if msg.Type() != constants.DBSTATE_MSG {
+			// Make sure we don't put in an old ack (outside our repeat range)
+			blktime := s.GetLeaderTimestamp().GetTime().UnixNano()
+			tlim := int64(Range * 60 * 1000000000)
+
 			if blktime != 0 {
 				msgtime := msg.GetTimestamp().GetTime().UnixNano()
 
 				// Make sure we don't put in an old msg (outside our repeat range)
 				Delta := blktime - msgtime
 				if Delta > tlim || -Delta > tlim {
+
+					s.LogPrintf("executeMsg", "Block %d time %v Msg %x time %v delta %d",
+						s.LLeaderHeight, s.GetLeaderTimestamp().GetTime().String(), msg.GetHash(), msg.GetTimestamp().String())
+
 					// Delta is is negative its greater than blktime then it is future.
 					if Delta < 0 {
 						s.LogMessage("executeMsg", "Hold message from the future", msg)

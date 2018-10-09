@@ -2295,6 +2295,7 @@ func (s *State) InitLevelDB() error {
 	path := s.LdbPath + "/" + s.Network + "/" + "factoid_level.db"
 
 	s.Println("Database:", path)
+	fmt.Fprint(os.Stderr, "Database:", path)
 
 	dbase, err := leveldb.NewLevelDB(path, false)
 
