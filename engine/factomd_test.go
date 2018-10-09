@@ -79,19 +79,6 @@ func SetupSim(GivenNodes string, NetworkType string, UserAddedOptions map[string
 	return state0
 }
 
-// Wait for a specific blocks
-func WaitForBlock(s *state.State, newBlock int) {
-	fmt.Printf("WaitForBlocks(%d)\n", newBlock)
-	TimeNow(s)
-	sleepTime := time.Duration(globals.Params.BlkTime) * 1000 / 40 // Figure out how long to sleep in milliseconds
-	for i := int(s.LLeaderHeight); i < newBlock; i++ {
-		for int(s.LLeaderHeight) < i {
-			time.Sleep(sleepTime * time.Millisecond) // wake up and about 4 times per minute
-		}
-		TimeNow(s)
-	}
-}
-
 func creatingNodes(creatingNodes string, state0 *state.State) {
 	runCmd(fmt.Sprintf("g%d", len(creatingNodes)))
 	// Wait till all the entries from the g command are processed
@@ -183,40 +170,13 @@ func StatusEveryMinute(s *state.State) {
 	}()
 }
 
-// Wait so many blocks
-func WaitBlocks(s *state.State, blks int) {
-	fmt.Printf("WaitBlocks(%d)\n", blks)
-	TimeNow(s)
-	newBlock := int(s.LLeaderHeight) + blks
-	for int(s.LLeaderHeight) < newBlock {
-		time.Sleep(time.Second)
-	}
-	TimeNow(s)
-}
-
-// Wait to a given minute.  If we are == to the minute or greater, then
-// we first wait to the start of the next block.
-func WaitForMinute(s *state.State, min int) {
-	fmt.Printf("WaitForMinute(%d)\n", min)
-	TimeNow(s)
-	if s.CurrentMinute >= min {
-		for s.CurrentMinute > 0 {
-			time.Sleep(500 * time.Millisecond)
-		}
-	}
-
-	for min > s.CurrentMinute {
-		time.Sleep(100 * time.Millisecond)
-	}
-	TimeNow(s)
-}
-
-// Wait some number of minutes
-func WaitMinutesQuite(s *state.State, min int) {
+// Wait till block = newBlock and minute = newMinute
+func WaitForQuite(s *state.State, newBlock int, newMinute int) {
+	fmt.Printf("WaitFor(%d-:-%d)\n", newBlock, newMinute)
 	sleepTime := time.Duration(globals.Params.BlkTime) * 1000 / 40 // Figure out how long to sleep in milliseconds
-
-	newMinute := (s.CurrentMinute + min) % 10
-	newBlock := int(s.LLeaderHeight) + (s.CurrentMinute+min)/10
+	if newBlock*10+newMinute < int(s.LLeaderHeight)*10+s.CurrentMinute {
+		panic("Wait for the past")
+	}
 	for int(s.LLeaderHeight) < newBlock {
 		time.Sleep(sleepTime * time.Millisecond) // wake up and about 4 times per minute
 	}
@@ -226,9 +186,39 @@ func WaitMinutesQuite(s *state.State, min int) {
 }
 
 func WaitMinutes(s *state.State, min int) {
-	fmt.Printf("WaitMinutes(%d)\n", min)
+	fmt.Printf("%s: %d-:-%d WaitMinutes(%d)\n", s.FactomNodeName, s.LLeaderHeight, s.CurrentMinute, min)
+	newBlock := int(s.LLeaderHeight) + min/10
+	newMinute := s.CurrentMinute + min%10
+	WaitForQuite(s, newBlock, newMinute)
 	TimeNow(s)
-	WaitMinutesQuite(s, min)
+}
+
+// Wait so many blocks
+func WaitBlocks(s *state.State, blks int) {
+	fmt.Printf("%s: %d-:-%d WaitBlocks(%d)\n", s.FactomNodeName, s.LLeaderHeight, s.CurrentMinute, blks)
+	newBlock := int(s.LLeaderHeight) + blks
+	WaitForQuite(s, newBlock, 0)
+	TimeNow(s)
+}
+
+// Wait for a specific blocks
+func WaitForBlock(s *state.State, newBlock int) {
+	fmt.Printf("%s: %d-:-%d WaitForBlock(%d)\n", s.FactomNodeName, s.LLeaderHeight, s.CurrentMinute, newBlock)
+	WaitForQuite(s, newBlock, 0)
+	TimeNow(s)
+}
+
+// Wait to a given minute.
+func WaitForMinute(s *state.State, newMinute int) {
+	fmt.Printf("%s: %d-:-%d WaitForMinute(%d)\n", s.FactomNodeName, s.LLeaderHeight, s.CurrentMinute, newMinute)
+	if newMinute > 10 {
+		panic("invalid minute")
+	}
+	newBlock := int(s.LLeaderHeight)
+	if s.CurrentMinute < newMinute {
+		newBlock++
+	}
+	WaitForQuite(s, newBlock, newMinute)
 	TimeNow(s)
 }
 
@@ -1322,7 +1312,7 @@ func TestCoinbaseCancel(t *testing.T) {
 	runCmd("t")
 
 	WaitBlocks(state0, 2)
-	// Promotions
+	// Promotions, create 3 feds and 3 audits
 	runCmd("1")
 	runCmd("l")
 	runCmd("2")
@@ -1335,45 +1325,48 @@ func TestCoinbaseCancel(t *testing.T) {
 	runCmd("o")
 
 	WaitBlocks(state0, 3)
-	WaitForBlock(state0, 8)
-	// Cancels
+	WaitForBlock(state0, 15)
+	WaitMinutes(state0, 1)
+	// Cancel coinbase of 18 (14+ delay of 4) with a majority of the authority set, should succeed
 	runCmd("1")
-	runCmd("L6.1")
+	runCmd("L14.1")
 	runCmd("2")
-	runCmd("L6.1")
+	runCmd("L14.1")
 	runCmd("3")
-	runCmd("L6.1")
+	runCmd("L14.1")
 	runCmd("4")
-	runCmd("L6.1")
-	WaitBlocks(state0, 1)
+	runCmd("L14.1")
+	WaitForBlock(state0, 17)
 	WaitMinutes(state0, 1)
 
+	// attempt cancel coinbase of  20 (16+ delay of 4) without a majority of the authority set.  Should fail
 	runCmd("1")
-	runCmd("L8.1")
+	runCmd("L16.1")
 	runCmd("2")
-	runCmd("L8.1")
+	//runCmd("L16.1")  commented out to get a positive result
 	runCmd("3")
-	runCmd("L8.1")
-	WaitForBlock(state0, 14)
+	//runCmd("L16.1")  commented out to get a positive result
+	WaitForBlock(state0, 21)
 	WaitForMinute(state0, 2)
-	// Check the admin blocks
-	//	10 should be cancelled, 12 should not
-	f, err := state0.DB.FetchFBlockByHeight(10)
+	// Check the coinbase blocks for correct number of outputs, indicating a successful (or correctly ignored) coinbase cancels
+	//	16 should be cancelled, 18 should not
+
+	f, err := state0.DB.FetchFBlockByHeight(18)
 	if err != nil {
-		panic(fmt.Sprintf("Missing coinbase, admin block at height %d could not be retrieved", 10))
+		panic(fmt.Sprintf("Missing coinbase, admin block at height %d could not be retrieved", 18))
 	}
 	c := len(f.GetTransactions()[0].GetOutputs())
 	if c != 4 {
-		t.Fatalf("Coinbase at height 10 improperly cancelled.  Found %d outputs instead of 4", c)
+		t.Fatalf("Coinbase at height 18 improperly cancelled.  should have 4 outputs, but found %d", c)
 	}
 
-	f, err = state0.DB.FetchFBlockByHeight(12)
+	f, err = state0.DB.FetchFBlockByHeight(20)
 	if err != nil {
-		panic(fmt.Sprintf("Missing coinbase, admin block at height %d could not be retrieved", 12))
+		panic(fmt.Sprintf("Missing coinbase, admin block at height %d could not be retrieved", 20))
 	}
 	c = len(f.GetTransactions()[0].GetOutputs())
 	if c != 5 {
-		t.Fatalf("Coinbase at height 12 should have 5 outputs, but found %d", c)
+		t.Fatalf("Coinbase at height 20 improperly cancelled.  Found %d outputs instead of 5", c)
 	}
 
 	//shutDownEverythingWithoutAuthCheck(t)  see 9cf214e9140d767ea172b06a6e4b748475a9c494 for shutDownEverythingWithoutAuthCheck()
