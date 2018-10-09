@@ -594,6 +594,7 @@ func (s *State) AddDBState(isNew bool,
 		s.StartDelay = s.GetTimestamp().GetTimeMilli()
 		s.RunLeader = false
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
+		s.LeaderTimestamp = dbState.DirectoryBlock.GetTimestamp() // move the leader timestamp to the start of the block
 
 		{
 			// Okay, we have just loaded a new DBState.  The temp balances are no longer valid, if they exist.  Nuke them.
