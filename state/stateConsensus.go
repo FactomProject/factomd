@@ -119,7 +119,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 			Delta := blktime - msgtime
 			if Delta > tlim || -Delta > tlim {
 				// Delta is is negative its greater than blktime then it is future.
-				if Delta < 0 {
+				if Delta < 0 && msg.Type() != constants.DBSTATE_MSG {
 					s.LogMessage("executeMsg", "Hold message from the future", msg)
 					valid = 0 // Future stuff I can hold for now.  It might be good later.
 				} else {
