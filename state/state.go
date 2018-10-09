@@ -2130,13 +2130,18 @@ func (s *State) MsgQueue() chan interfaces.IMsg {
 
 func (s *State) GetLeaderTimestamp() interfaces.Timestamp {
 	if s.LeaderTimestamp == nil {
-		s.LeaderTimestamp = new(primitives.Timestamp)
+		s.SetLeaderTimestamp(new(primitives.Timestamp))
 	}
 	return s.LeaderTimestamp
 }
 
 func (s *State) SetLeaderTimestamp(ts interfaces.Timestamp) {
-	s.LeaderTimestamp = ts
+	s.LeaderTimestamp = ts //SetLeaderTimestamp()
+	s.LogPrintf("executeMsg", "Set LeaderTimeStamp %d %v for %s", s.LLeaderHeight, s.LeaderTimestamp.String(), atomic.WhereAmIString(1))
+}
+func (s *State) SetLLeaderHeight(height uint32) {
+	s.LLeaderHeight = height //SetLeaderHeight()
+	s.LogPrintf("executeMsg", "Set LeaderHeight %d for %s", s.LLeaderHeight, atomic.WhereAmIString(1))
 }
 
 func (s *State) SetFaultTimeout(timeout int) {
