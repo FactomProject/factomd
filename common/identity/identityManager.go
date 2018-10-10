@@ -148,8 +148,8 @@ func (im *IdentityManager) AuthorityServerCount() int {
 	defer im.Mutex.RUnlock()
 	answer := 0
 	for _, v := range im.Authorities {
-		if v.Type() == int(constants.IDENTITY_FEDERATED_SERVER) ||
-			v.Type() == int(constants.IDENTITY_AUDIT_SERVER) {
+		if v.Status == constants.IDENTITY_FEDERATED_SERVER ||
+			v.Status == constants.IDENTITY_AUDIT_SERVER {
 			answer++
 		}
 	}
