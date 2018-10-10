@@ -114,6 +114,9 @@ func getmsg(hash [32]byte) string {
 	}
 	return rval
 }
+
+var matchWS = regexp.MustCompile("[ \n\t]+")
+
 func LogMessage(name string, note string, msg interfaces.IMsg) {
 
 	traceMutex.Lock()
@@ -171,7 +174,12 @@ func LogMessage(name string, note string, msg interfaces.IMsg) {
 	}
 
 	now := time.Now().Local()
-
+	if strings.Contains(msgString, "\n") {
+		msgString = matchWS.ReplaceAllString(msgString, " ")
+	}
+	if strings.Contains(embeddedHash, "\n") {
+		embeddedHash = matchWS.ReplaceAllString(embeddedHash, " ")
+	}
 	s := fmt.Sprintf("%7v %02d:%02d:%02d %-25s M-%v|R-%v|H-%v %26s[%2v]:%v%v\n", seq, now.Hour()%24, now.Minute()%60, now.Second()%60,
 		note, mhash, rhash, hash, constants.MessageName(byte(t)), t,
 		msgString, embeddedHash)
@@ -233,7 +241,9 @@ func LogPrintf(name string, format string, more ...interface{}) {
 	}
 	seq := sequence
 	now := time.Now().Local()
-	s := fmt.Sprintf("%7v %02d:%02d:%02d %s\n", seq, now.Hour()%24, now.Minute()%60, now.Second()%60, fmt.Sprintf(format, more...))
+	str := fmt.Sprintf(format, more...)
+	str = matchWS.ReplaceAllString(str, " ")
+	s := fmt.Sprintf("%7v %02d:%02d:%02d %s\n", seq, now.Hour()%24, now.Minute()%60, now.Second()%60, str)
 	s = addNodeNames(s)
 	myfile.WriteString(s)
 }

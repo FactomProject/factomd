@@ -55,9 +55,10 @@ func (lists *ProcessLists) UpdateState(dbheight uint32) (progress bool) {
 	for pl.Complete() || (dbstate != nil && (dbstate.Signed || dbstate.Saved)) {
 		s := lists.State
 		// OK, we processed this state, set our leader height and timestamp
-		//		s.SetLLeaderHeight(dbheight)
-		// this causes infinant looping
-		s.SetLeaderTimestamp(pl.DirectoryBlock.GetTimestamp())
+		if s.LLeaderHeight <= dbheight {
+			s.SetLLeaderHeight(dbheight)
+			s.SetLeaderTimestamp(pl.DirectoryBlock.GetTimestamp())
+		}
 		dbheight++
 		pl = lists.Get(dbheight)
 		dbstate = lists.State.DBStates.Get(int(dbheight))
