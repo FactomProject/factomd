@@ -382,9 +382,6 @@ func UnmarshalEntryList(bin []byte) ([]interfaces.IEBEntry, []byte, error) {
 		return nil, nil, err
 	}
 	e := int(l)
-	// TODO: remove printing unmarshal count numbers once we have good data on
-	// what they should be.
-	//	messages.LogPrintf("marshelsizes.txt", "UnmarshalEntryList unmarshaled entry count: %d", e)
 	if e > 1000 {
 		// TODO: replace this message with a proper error
 		return nil, nil, fmt.Errorf("Error: UnmarshalEntryList: entry count too high (uint underflow?)")

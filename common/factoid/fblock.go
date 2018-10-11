@@ -326,12 +326,11 @@ func (b *FBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	// TODO: remove printing unmarshal count numbers once we have good data on
-	// what they should be.
 	if txCount > 1000 {
 		// TODO: replace this message with a proper error
 		return nil, fmt.Errorf("Error: fblock.UnmarshalBinary: transaction count too high (uint underflow?)")
 	}
+
 	// Just skip the size... We don't really need it.
 	_, err = buf.PopUInt32()
 	if err != nil {

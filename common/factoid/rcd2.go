@@ -102,10 +102,6 @@ func (t *RCD_2) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 
 	t.N, data = int(binary.BigEndian.Uint16(data[0:2])), data[2:]
 	t.M, data = int(binary.BigEndian.Uint16(data[0:2])), data[2:]
-	// TODO: remove printing unmarshal count numbers once we have good data on
-	// what they should be.
-	//messages.LogPrintf("marshelsizes.txt", "RCD_2 unmarshaled signatures possible: %d", t.N)
-	//messages.LogPrintf("marshelsizes.txt", "RCD_2 unmarshaled signatures required: %d", t.M)
 	if t.N > t.M {
 		// TODO: replace this message with a proper error
 		return nil, fmt.Errorf("Error: RCD_2.UnmarshalBinary: signatures possible too many (uint underflow?)")
