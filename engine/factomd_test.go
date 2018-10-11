@@ -1340,12 +1340,13 @@ func TestCoinbaseCancel(t *testing.T) {
 	WaitMinutes(state0, 1)
 
 	// attempt cancel coinbase of  20 (16+ delay of 4) without a majority of the authority set.  Should fail
+	// This tests 3 of 6 canceling, which is not a majority (but almost is)
 	runCmd("1")
 	runCmd("L16.1")
 	runCmd("2")
-	//runCmd("L16.1")  commented out to get a positive result
+	runCmd("L16.1")
 	runCmd("3")
-	//runCmd("L16.1")  commented out to get a positive result
+	runCmd("L16.1")
 	WaitForBlock(state0, 21)
 	WaitForMinute(state0, 2)
 	// Check the coinbase blocks for correct number of outputs, indicating a successful (or correctly ignored) coinbase cancels
