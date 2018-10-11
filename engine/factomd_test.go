@@ -1319,7 +1319,7 @@ func TestRandom(t *testing.T) {
 
 }
 
-func TestBadDBState(t *testing.T) {
+func TestBadDBStateUnderflow(t *testing.T) {
 	if ranSimTest {
 		return
 	}
@@ -1335,17 +1335,17 @@ func TestBadDBState(t *testing.T) {
 	dbs := msg.(*messages.DBStateMsg)
 	dbs.DirectoryBlock.GetHeader().(*directoryBlock.DBlockHeader).DBHeight += 2
 	m_dbs, err := dbs.MarshalBinary()
-	// replace the length of transaction in the marshaled datta with 0xdeadbeef!
-	m_dbs = append(append(m_dbs[:659], []byte{0xde, 0xad, 0xbe, 0xef}...), m_dbs[663:]...)
-
 	if err != nil {
 		panic(err)
 	}
+
+	// replace the length of transaction in the marshaled datta with 0xdeadbeef!
+	m_dbs = append(append(m_dbs[:659], []byte{0xde, 0xad, 0xbe, 0xef}...), m_dbs[663:]...)
+
+	// i := 659
+	// fmt.Printf("---%x---\n", m_dbs[i:i+4])
+
 	s := hex.EncodeToString(m_dbs)
-
-	i := 659
-	fmt.Printf("---%x---\n", m_dbs[i:i+4])
-
 	wsapi.HandleV2SendRawMessage(state0, map[string]string{"message": s})
 
 	WaitForMinute(state0, 1)
@@ -1353,7 +1353,7 @@ func TestBadDBState(t *testing.T) {
 	CheckAuthoritySet(2, 0, t)
 }
 
-func TestBadDBState2(t *testing.T) {
+func TestBadDBStateMemLeak(t *testing.T) {
 	if ranSimTest {
 		return
 	}
