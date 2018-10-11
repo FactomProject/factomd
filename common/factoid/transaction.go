@@ -659,13 +659,13 @@ func (t *Transaction) CustomMarshalText() (text []byte, err error) {
 		return nil, err
 	}
 
-	txid := "coinbase"
+	txid := fmt.Sprintf("%64s", "coinbase") //make it the same length as a real TXID
 	if t.Txid != nil {
 		txid = fmt.Sprintf("%x", t.Txid.Bytes())
 	}
 
 	var out primitives.Buffer
-	out.WriteString(fmt.Sprintf("Transaction TXID: %x (size %d):\n", txid, len(data)))
+	out.WriteString(fmt.Sprintf("Transaction TXID: %s (size %d):\n", txid, len(data)))
 	out.WriteString("                 Version: ")
 	primitives.WriteNumber64(&out, uint64(t.GetVersion()))
 	out.WriteString("\n          MilliTimestamp: ")

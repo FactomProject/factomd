@@ -2339,7 +2339,7 @@ func (s *State) GetF(rt bool, adr [32]byte) (v int64) {
 }
 
 // PutF()
-// If rt == true, update the Temp balances.  Otherwise update the Permenent balances.
+// If rt == true, update the Temp balances.  Otherwise update the Permanent balances.
 // concurrency safe to call
 func (s *State) PutF(rt bool, adr [32]byte, v int64) {
 	if rt {
@@ -2372,7 +2372,7 @@ func (s *State) GetE(rt bool, adr [32]byte) (v int64) {
 			v, ok = pl.ECBalancesT[adr]
 			pl.ECBalancesTMutex.Unlock()
 		} else {
-			s.LogPrintf("entrycredits", "GetE(%v,%x) = %d -- no pl", rt, adr[:4],
+			s.LogPrintf("entrycredits", "GetE(%v,%x<%s>) = %d -- no pl", rt, adr[:4],
 				primitives.ConvertECAddressToUserStr(factoid.NewAddress(adr[:])), v)
 		}
 	}
@@ -2380,10 +2380,10 @@ func (s *State) GetE(rt bool, adr [32]byte) (v int64) {
 		s.ECBalancesPMutex.Lock()
 		v = s.ECBalancesP[adr]
 		s.ECBalancesPMutex.Unlock()
-		s.LogPrintf("entrycredits", "GetE(%v,%x) = %d using permanent balance", rt, adr[:4],
+		s.LogPrintf("entrycredits", "GetE(%v,%x<%s>) = %d using permanent balance", rt, adr[:4],
 			primitives.ConvertECAddressToUserStr(factoid.NewAddress(adr[:])), v)
 	} else {
-		s.LogPrintf("entrycredits", "GetE(%v,%x) = %d using temporary balance", rt, adr[:4],
+		s.LogPrintf("entrycredits", "GetE(%v,%x<%s>) = %d using temporary balance", rt, adr[:4],
 			primitives.ConvertECAddressToUserStr(factoid.NewAddress(adr[:])), v)
 	}
 	return v
@@ -2400,17 +2400,17 @@ func (s *State) PutE(rt bool, adr [32]byte, v int64) {
 			pl.ECBalancesTMutex.Lock()
 			pl.ECBalancesT[adr] = v
 			pl.ECBalancesTMutex.Unlock()
-			s.LogPrintf("entrycredits", "PutE(%v,%x, %d) using temporary balance", rt, adr[:4],
+			s.LogPrintf("entrycredits", "PutE(%v,%x<%s>, %d) using temporary balance", rt, adr[:4],
 				primitives.ConvertECAddressToUserStr(factoid.NewAddress(adr[:])), v)
 		} else {
-			s.LogPrintf("entrycredits", "PutE(%v,%x, %d) using temporary balance -- no pl", rt, adr[:4],
+			s.LogPrintf("entrycredits", "PutE(%v,%x<%s>, %d) using temporary balance -- no pl", rt, adr[:4],
 				primitives.ConvertECAddressToUserStr(factoid.NewAddress(adr[:])), v)
 		}
 	} else {
 		s.ECBalancesPMutex.Lock()
 		s.ECBalancesP[adr] = v
 		s.ECBalancesPMutex.Unlock()
-		s.LogPrintf("entrycredits", "PutE(%v,%x, %d) using permanent balance", rt, adr[:4],
+		s.LogPrintf("entrycredits", "PutE(%v,%x<%s>, %d) using permanent balance", rt, adr[:4],
 			primitives.ConvertECAddressToUserStr(factoid.NewAddress(adr[:])), v)
 	}
 }

@@ -1059,6 +1059,8 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		pd := list.State.DBStates.Get(int(dbht - 1))
 		if pd == nil {
 			s.LogPrintf("dbstateprocess", "Skipping Prev Block Missing")
+			s.LogPrintf("dbstateprocess", "list: %v", list.State.DBStates.String())
+
 			return // Can't process out of order
 		}
 		if !pd.Saved {

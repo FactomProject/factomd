@@ -121,7 +121,6 @@ func LogMessage(name string, note string, msg interfaces.IMsg) {
 		return
 	}
 	sequence++
-	seq := sequence
 	embeddedHash := ""
 	to := ""
 	hash := "??????"
@@ -146,23 +145,9 @@ func LogMessage(name string, note string, msg interfaces.IMsg) {
 			rhash = mh.String()[:6]
 		}
 
-		switch t {
-		case constants.ACK_MSG:
-			ack := msg.(*Ack)
-			byte := ack.GetHash().Fixed
-			embeddedHash = fmt.Sprintf(" EmbeddedMsg: %s", getmsg(byte()))
-			//case constants.MISSING_MSG_RESPONSE:
-			//	mm := msg.(*MissingMsgResponse)
-			//	embeddedHash = fmt.Sprintf(" EmbeddedMsg: %s | %s", mm.MsgResponse.String(), mm.AckResponse.String())
-		case constants.MISSING_DATA:
-			md := msg.(*MissingData)
-			embeddedHash = fmt.Sprintf(" EmbeddedMsg: %s", getmsg(md.RequestHash.Fixed()))
-
-		default:
-			if msg.GetMsgHash() != nil {
-				bytes := msg.GetMsgHash().Fixed()
-				addmsg(bytes, msgString) // Keep message we have seen for a while
-			}
+		if msg.GetMsgHash() != nil {
+			bytes := msg.GetMsgHash().Fixed()
+			addmsg(bytes, msgString) // Keep message we have seen for a while
 		}
 
 		if msg.IsPeer2Peer() {
@@ -177,14 +162,64 @@ func LogMessage(name string, note string, msg interfaces.IMsg) {
 		}
 	}
 
+	switch t {
+	case constants.ACK_MSG:
+		ack := msg.(*Ack)
+		embeddedHash = fmt.Sprintf(" EmbeddedMsg: %x", ack.GetHash().Bytes()[:3])
+	case constants.MISSING_DATA:
+		md := msg.(*MissingData)
+		embeddedHash = fmt.Sprintf(" EmbeddedMsg: %x", md.RequestHash.Bytes()[:3])
+	}
+
+	// handle multi-line printf's
+	lines := strings.Split(msgString, "\n")
+
+	lines[0] = lines[0] + embeddedHash + " " + to
+
 	now := time.Now().Local()
 
-	s := fmt.Sprintf("%7v %02d:%02d:%02d.%03d %-25s M-%v|R-%v|H-%v|%p %26s[%2v]:%v%v %v\n", seq, now.Hour()%24, now.Minute()%60, now.Second()%60, (now.Nanosecond()/1e6)%1000,
-		note, mhash, rhash, hash, msg, constants.MessageName(byte(t)), t,
-		msgString, embeddedHash, to)
-	s = addNodeNames(s)
+	for i, text := range lines {
+		var s string
+		switch i {
+		case 0:
+			s = fmt.Sprintf("%9d %02d:%02d:%02d.%03d %-30s M-%v|R-%v|H-%v|%p %26s[%2v]:%v\n", sequence, now.Hour()%24, now.Minute()%60, now.Second()%60, (now.Nanosecond()/1e6)%1000,
+				note, mhash, rhash, hash, msg, constants.MessageName(byte(t)), t, text)
+		case 1:
+			s = fmt.Sprintf("%9d %02d:%02d:%02d.%03d %-30s M-%v|R-%v|H-%v|%p %30s:%v\n", sequence, now.Hour()%24, now.Minute()%60, now.Second()%60, (now.Nanosecond()/1e6)%1000,
+				note, mhash, rhash, hash, msg, "continue:", t, text)
+		}
+		s = addNodeNames(s)
+		myfile.WriteString(s)
+	}
 
-	myfile.WriteString(s)
+	var embeddedMsg string
+	switch t {
+	case constants.ACK_MSG:
+		ack := msg.(*Ack)
+		embeddedMsg = fmt.Sprintf(" EmbeddedMsg: %s", getmsg(ack.GetHash().Fixed()))
+		// handle multi-line printf's
+
+	case constants.MISSING_DATA:
+		md := msg.(*MissingData)
+		embeddedMsg = fmt.Sprintf(" EmbeddedMsg: %s", getmsg(md.RequestHash.Fixed()))
+	}
+
+	if embeddedMsg != "" {
+		lines := strings.Split(embeddedMsg, "\n")
+		for i, text := range lines {
+			var s string
+			switch i {
+			case 0:
+				s = fmt.Sprintf("%9d %02d:%02d:%02d.%03d %-30s M-%v|R-%v|H-%v|%p %26s[%2v]:%v\n", sequence, now.Hour()%24, now.Minute()%60, now.Second()%60, (now.Nanosecond()/1e6)%1000,
+					note, mhash, rhash, hash, msg, "embedded:"+constants.MessageName(byte(t)), t, text)
+			default:
+				s = fmt.Sprintf("%9d %02d:%02d:%02d.%03d %-30s M-%v|R-%v|H-%v|%p %30s:%v\n", sequence, now.Hour()%24, now.Minute()%60, now.Second()%60, (now.Nanosecond()/1e6)%1000,
+					note, mhash, rhash, hash, msg, "embedded:"+"continue:", t, text)
+			}
+			s = addNodeNames(s)
+			myfile.WriteString(s)
+		}
+	}
 }
 
 var findHex *regexp.Regexp
@@ -238,13 +273,21 @@ func LogPrintf(name string, format string, more ...interface{}) {
 	if myfile == nil {
 		return
 	}
-	text := fmt.Sprintf(format, more...)
-	text = strings.Replace(text, "\n", " ", -1) // remove newlines in printout for logging
-	seq := sequence
+	sequence++
+	// handle multi-line printf's
+	lines := strings.Split(fmt.Sprintf(format, more...), "\n")
 	now := time.Now().Local()
-	s := fmt.Sprintf("%7v %02d:%02d:%02d.%03d %s\n", seq, now.Hour()%24, now.Minute()%60, now.Second()%60, (now.Nanosecond()/1e6)%1000, text)
-	s = addNodeNames(s)
-	myfile.WriteString(s)
+	for i, text := range lines {
+		var s string
+		switch i {
+		case 0:
+			s = fmt.Sprintf("%9d %02d:%02d:%02d.%03d %s\n", sequence, now.Hour()%24, now.Minute()%60, now.Second()%60, (now.Nanosecond()/1e6)%1000, text)
+		default:
+			s = fmt.Sprintf("%9d %02d:%02d:%02d.%03d %s\n", sequence, now.Hour()%24, now.Minute()%60, now.Second()%60, (now.Nanosecond()/1e6)%1000, text)
+		}
+		s = addNodeNames(s)
+		myfile.WriteString(s)
+	}
 }
 
 // stringify it in the caller to avoid having to deal with the import loop
@@ -264,14 +307,14 @@ func LogParcel(name string, note string, msg string) {
 // Log a message with a state timestamp
 func StateLogMessage(FactomNodeName string, DBHeight int, CurrentMinute int, logName string, comment string, msg interfaces.IMsg) {
 	logFileName := FactomNodeName + "_" + logName + ".txt"
-	t := fmt.Sprintf("%d-:-%d ", DBHeight, CurrentMinute)
+	t := fmt.Sprintf("%7d-:-%d ", DBHeight, CurrentMinute)
 	LogMessage(logFileName, t+comment, msg)
 }
 
 // Log a printf with a state timestamp
 func StateLogPrintf(FactomNodeName string, DBHeight int, CurrentMinute int, logName string, format string, more ...interface{}) {
 	logFileName := FactomNodeName + "_" + logName + ".txt"
-	t := fmt.Sprintf("%d-:-%d ", DBHeight, CurrentMinute)
+	t := fmt.Sprintf("%7d-:-%d ", DBHeight, CurrentMinute)
 	LogPrintf(logFileName, t+format, more...)
 }
 
