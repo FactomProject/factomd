@@ -108,17 +108,34 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 
 	valid := msg.Validate(s)
 	if valid == 1 {
-		// Make sure we don't put in an old ack (outside our repeat range)
-		blktime := s.GetLeaderTimestamp().GetTime().UnixNano()
-		tlim := int64(Range * 60 * 1000000000)
+		if msg.Type() != constants.DBSTATE_MSG && msg.Type() != constants.DIRECTORY_BLOCK_SIGNATURE_MSG {
+			// Make sure we don't put in an old ack (outside our repeat range)
+			blktime := s.GetLeaderTimestamp().GetTime().UnixNano()
+			tlim := int64(Range * 60 * 1000000000)
 
-		if msg.Type() != constants.DBSTATE_MSG {
 			if blktime != 0 {
 				msgtime := msg.GetTimestamp().GetTime().UnixNano()
 
 				// Make sure we don't put in an old msg (outside our repeat range)
 				Delta := blktime - msgtime
+				prev := s.GetDBState(s.LLeaderHeight - 1)
+				cur := s.GetDBState(s.LLeaderHeight)
+
+				s.LogPrintf("executeMsg", "prev %v", prev.DirectoryBlock.GetTimestamp().String())
+				if cur != nil {
+					s.LogPrintf("executeMsg", "curr %v ", cur.DirectoryBlock.GetTimestamp().String())
+				}
+
 				if Delta > tlim || -Delta > tlim {
+					/*
+
+					   4031 11:24:44 48497-:-0 Block 48497 time 2018-09-28 22:52:00 -0500 CDT
+					                                       time 2018-10-09 11:24:56 delta %!d(MISSING)
+					   4031 11:24:44 48497-:-0 Block 48497 time 2018-09-28 22:52:00 -0500 CDT Msg 38343834383864393137623031346662376664353164633936623731333965666135383432313432343762376635623763393537353230656439356262363461 time 2018-10-09 11:24:56 delta %!d(MISSING)
+					*/
+					s.LogPrintf("executeMsg", "Block %d time %v Msg %x time %v delta %d",
+						s.LLeaderHeight, s.GetLeaderTimestamp().GetTime().String(), msg.GetHash(), msg.GetTimestamp().String(), Delta)
+
 					// Delta is is negative its greater than blktime then it is future.
 					if Delta < 0 {
 						s.LogMessage("executeMsg", "Hold message from the future", msg)
@@ -569,7 +586,7 @@ func (s *State) AddDBState(isNew bool,
 		//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s Add DBState: s.SigType(%v)", s.FactomNodeName, s.SigType))
 		s.EOM = false
 		s.DBSig = false
-		s.LLeaderHeight = ht
+		s.SetLLeaderHeight(ht)
 		s.ProcessLists.Get(ht + 1)
 		s.CurrentMinute = 0
 		s.EOMProcessed = 0
@@ -577,7 +594,7 @@ func (s *State) AddDBState(isNew bool,
 		s.StartDelay = s.GetTimestamp().GetTimeMilli()
 		s.RunLeader = false
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
-
+		s.SetLeaderTimestamp(dbState.DirectoryBlock.GetTimestamp()) // move the leader timestamp to the start of the block
 		{
 			// Okay, we have just loaded a new DBState.  The temp balances are no longer valid, if they exist.  Nuke them.
 			s.LeaderPL.FactoidBalancesTMutex.Lock()
@@ -595,7 +612,7 @@ func (s *State) AddDBState(isNew bool,
 		}
 	}
 	if ht == 0 && s.LLeaderHeight < 1 {
-		s.LLeaderHeight = 1
+		s.SetLLeaderHeight(1)
 	}
 
 	return dbState
@@ -1818,7 +1835,8 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			s.DBStates.ProcessBlocks(dbstate)
 
 			s.setCurrentMinute(0)
-			s.LLeaderHeight++
+			s.SetLLeaderHeight(s.LLeaderHeight + 1)
+			//			s.SetLeaderTimestamp(s.GetTimestamp()) // start the new block now...Needs to be updated when we get the VM 0 DBSig.
 
 			s.GetAckChange()
 			s.CheckForIDChange()
