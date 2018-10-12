@@ -186,7 +186,7 @@ func LogMessage(name string, note string, msg interfaces.IMsg) {
 				note, mhash, rhash, hash, msg, constants.MessageName(byte(t)), t, text)
 		case 1:
 			s = fmt.Sprintf("%9d %02d:%02d:%02d.%03d %-30s M-%v|R-%v|H-%v|%p %30s:%v\n", sequence, now.Hour()%24, now.Minute()%60, now.Second()%60, (now.Nanosecond()/1e6)%1000,
-				note, mhash, rhash, hash, msg, "continue:", t, text)
+				note, mhash, rhash, hash, msg, "continue:", text)
 		}
 		s = addNodeNames(s)
 		myfile.WriteString(s)
@@ -214,7 +214,7 @@ func LogMessage(name string, note string, msg interfaces.IMsg) {
 					note, mhash, rhash, hash, msg, "embedded:"+constants.MessageName(byte(t)), t, text)
 			default:
 				s = fmt.Sprintf("%9d %02d:%02d:%02d.%03d %-30s M-%v|R-%v|H-%v|%p %30s:%v\n", sequence, now.Hour()%24, now.Minute()%60, now.Second()%60, (now.Nanosecond()/1e6)%1000,
-					note, mhash, rhash, hash, msg, "embedded:"+"continue:", t, text)
+					note, mhash, rhash, hash, msg, "embedded:"+"continue:", text)
 			}
 			s = addNodeNames(s)
 			myfile.WriteString(s)
