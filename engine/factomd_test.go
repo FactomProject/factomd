@@ -1341,33 +1341,85 @@ func TestCoinbaseCancel(t *testing.T) {
 
 	// attempt cancel coinbase of  20 (16+ delay of 4) without a majority of the authority set.  Should fail
 	// This tests 3 of 6 canceling, which is not a majority (but almost is)
+	// all feds
+	runCmd("0")
+	runCmd("L16.1")
 	runCmd("1")
 	runCmd("L16.1")
 	runCmd("2")
 	runCmd("L16.1")
-	runCmd("3")
-	runCmd("L16.1")
 	WaitForBlock(state0, 21)
-	WaitForMinute(state0, 2)
-	// Check the coinbase blocks for correct number of outputs, indicating a successful (or correctly ignored) coinbase cancels
-	//	16 should be cancelled, 18 should not
+	WaitForMinute(state0, 9)
 
-	f, err := state0.DB.FetchFBlockByHeight(18)
+	// attempt cancel coinbase of  22 (18+ delay of 4) without a majority of the authority set.  Should fail
+	// This tests 3 of 6 canceling, which is not a majority (but almost is)
+	// all audits
+	runCmd("3")
+	runCmd("L18.1")
+	runCmd("4")
+	runCmd("L18.1")
+	runCmd("5")
+	runCmd("L18.1")
+	WaitForBlock(state0, 23)
+	WaitForMinute(state0, 2)
+
+
+	// attempt cancel coinbase of  24 (20+ delay of 4) without a majority of the authority set.  Should fail
+	// This tests 3 of 6 canceling, which is not a majority (but almost is)
+	// 2 audit 1 fed
+	runCmd("2")
+	runCmd("L20.1")
+	runCmd("4")
+	runCmd("L20.1")
+	runCmd("5")
+	runCmd("L20.1")
+	WaitForBlock(state0, 25)
+	WaitForMinute(state0, 2)
+
+	// Check the coinbase blocks for correct number of outputs, indicating a successful (or correctly ignored) coinbase cancels
+
+	hei := 18
+	expected := 4
+	f, err := state0.DB.FetchFBlockByHeight(uint32(hei))
 	if err != nil {
-		panic(fmt.Sprintf("Missing coinbase, admin block at height %d could not be retrieved", 18))
+		panic(fmt.Sprintf("Missing coinbase, admin block at height %d could not be retrieved", hei))
 	}
 	c := len(f.GetTransactions()[0].GetOutputs())
-	if c != 4 {
-		t.Fatalf("Coinbase at height 18 improperly cancelled.  should have 4 outputs, but found %d", c)
+	if c != expected {
+		t.Fatalf("Coinbase at height %d improperly cancelled.  should have %d outputs, but found %d", hei, expected, c)
 	}
 
-	f, err = state0.DB.FetchFBlockByHeight(20)
+	hei = 20
+	expected = 5
+	f, err = state0.DB.FetchFBlockByHeight(uint32(hei))
 	if err != nil {
-		panic(fmt.Sprintf("Missing coinbase, admin block at height %d could not be retrieved", 20))
+		panic(fmt.Sprintf("Missing coinbase, admin block at height %d could not be retrieved", hei))
 	}
 	c = len(f.GetTransactions()[0].GetOutputs())
-	if c != 5 {
-		t.Fatalf("Coinbase at height 20 improperly cancelled.  Found %d outputs instead of 5", c)
+	if c != expected {
+		t.Fatalf("Coinbase at height %d improperly cancelled.  should have %d outputs, but found %d", hei, expected, c)
+	}
+
+	hei = 22
+	expected = 5
+	f, err = state0.DB.FetchFBlockByHeight(uint32(hei))
+	if err != nil {
+		panic(fmt.Sprintf("Missing coinbase, admin block at height %d could not be retrieved", hei))
+	}
+	c = len(f.GetTransactions()[0].GetOutputs())
+	if c != expected {
+		t.Fatalf("Coinbase at height %d improperly cancelled.  should have %d outputs, but found %d", hei, expected, c)
+	}
+
+	hei = 24
+	expected = 5
+	f, err = state0.DB.FetchFBlockByHeight(uint32(hei))
+	if err != nil {
+		panic(fmt.Sprintf("Missing coinbase, admin block at height %d could not be retrieved", hei))
+	}
+	c = len(f.GetTransactions()[0].GetOutputs())
+	if c != expected {
+		t.Fatalf("Coinbase at height %d improperly cancelled.  should have %d outputs, but found %d", hei, expected, c)
 	}
 
 	//shutDownEverythingWithoutAuthCheck(t)  see 9cf214e9140d767ea172b06a6e4b748475a9c494 for shutDownEverythingWithoutAuthCheck()
