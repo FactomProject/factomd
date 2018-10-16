@@ -16,7 +16,7 @@ import (
 var _ = NewProcessList
 
 func TestIsHighestCommit(t *testing.T) {
-	s := testHelper.CreateAndPopulateTestState()
+	s := testHelper.CreateAndPopulateTestStateAndStartValidator()
 
 	commit := newCom()
 	eh := commit.CommitEntry.EntryHash

@@ -40,8 +40,8 @@ func CreateEmptyTestState() *state.State {
 	return s
 }
 
-func CreateAndPopulateTestState() *state.State {
-	s := createAndPopulateTestState()
+func CreateAndPopulateTestStateAndStartValidator() *state.State {
+	s := CreateAndPopulateTestState()
 	go s.ValidatorLoop()
 	time.Sleep(30 * time.Millisecond)
 
@@ -49,7 +49,7 @@ func CreateAndPopulateTestState() *state.State {
 }
 
 func CreatePopulateAndExecuteTestState() *state.State {
-	s := createAndPopulateTestState()
+	s := CreateAndPopulateTestState()
 	ExecuteAllBlocksFromDatabases(s)
 	go s.ValidatorLoop()
 	time.Sleep(30 * time.Millisecond)
@@ -57,7 +57,7 @@ func CreatePopulateAndExecuteTestState() *state.State {
 	return s
 }
 
-func createAndPopulateTestState() *state.State {
+func CreateAndPopulateTestState() *state.State {
 	s := new(state.State)
 	s.EFactory = new(electionMsgs.ElectionsFactory)
 	s.SetLeaderTimestamp(primitives.NewTimestampFromMilliseconds(0))

@@ -30,6 +30,7 @@ var _ = log.Print
 
 var plLogger = packageLogger.WithFields(log.Fields{"subpack": "process-list"})
 
+
 type ProcessList struct {
 	DBHeight uint32 // The directory block height for these lists
 
@@ -99,21 +100,21 @@ type DBSig struct {
 }
 
 type VM struct {
-	List            []interfaces.IMsg    // Lists of acknowledged messages
-	ListAck         []*messages.Ack      // Acknowledgements
-	Height          int                  // Height of messages that have been processed
-	EomMinuteIssued int                  // Last Minute Issued on this VM (from the leader, when we are the leader)
-	LeaderMinute    int                  // Where the leader is in acknowledging messages
-	Synced          bool                 // Is this VM synced yet?
-	heartBeat       int64                // Just ping ever so often if we have heard nothing.
-	Signed          bool                 // We have signed the previous block.
-	WhenFaulted     int64                // WhenFaulted is a timestamp of when this VM was faulted
-	FaultFlag       int                  // FaultFlag tracks what the VM was faulted for (0 = EOM missing, 1 = negotiation issue)
-	ProcessTime     interfaces.Timestamp // Last time we made progress on this VM
-	VmIndex         int                  // the index of this MV
-	HighestAsk      int                  // highest ask sent to MMR for this VM
-	HighestNil      int                  // Debug highest nil reported
-	p               *ProcessList         // processList this VM part of
+	List            []interfaces.IMsg // Lists of acknowledged messages
+	ListAck         []*messages.Ack   // Acknowledgements
+	Height          int               // Height of messages that have been processed
+	EomMinuteIssued int               // Last Minute Issued on this VM (from the leader, when we are the leader)
+	LeaderMinute    int               // Where the leader is in acknowledging messages
+	Synced          bool              // Is this VM synced yet?
+	heartBeat   int64 // Just ping ever so often if we have heard nothing.
+	Signed      bool  // We have signed the previous block.
+	WhenFaulted int64 // WhenFaulted is a timestamp of when this VM was faulted
+	FaultFlag   int                  // FaultFlag tracks what the VM was faulted for (0 = EOM missing, 1 = negotiation issue)
+	ProcessTime interfaces.Timestamp // Last time we made progress on this VM
+	VmIndex     int                  // the index of this MV
+	HighestAsk  int                  // highest ask sent to MMR for this VM
+	HighestNil  int                  // Debug highest nil reported
+	p           *ProcessList         // processList this VM part of
 }
 
 func (p *ProcessList) GetKeysNewEntries() (keys [][32]byte) {
@@ -564,6 +565,7 @@ func (p *ProcessList) CheckDiffSigTally() bool {
 	return true
 }
 
+
 func (p *ProcessList) TrimVMList(h uint32, vmIndex int) {
 	height := int(h)
 	if len(p.VMs[vmIndex].List) < height {
@@ -657,7 +659,6 @@ func (p *ProcessList) decodeState(Syncing bool, DBSig bool, EOM bool, DBSigDone 
 }
 
 var extraDebug bool = false
-
 // Process messages and update our state.
 func (p *ProcessList) Process(s *State) (progress bool) {
 	dbht := s.GetHighestSavedBlk()
@@ -695,7 +696,7 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 				s.LogPrintf("processStatus", x)
 				s.SyncingStateCurrent = (s.SyncingStateCurrent + 1) % len(s.SyncingState)
 				s.SyncingState[s.SyncingStateCurrent] = x
-			}
+				}
 			if extraDebug {
 				s.LogMessage("process", fmt.Sprintf("Consider %v/%v/%v", p.DBHeight, i, j), vm.List[j])
 			}
@@ -806,7 +807,6 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 					}
 
 					p.State.LogMessage("processList", "done", msg)
-
 					vm.heartBeat = 0
 					vm.Height = j + 1 // Don't process it again if the process worked.
 					s.LogMessage("process", fmt.Sprintf("done %v/%v/%v", p.DBHeight, i, j), msg)

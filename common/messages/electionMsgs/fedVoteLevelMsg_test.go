@@ -17,7 +17,7 @@ import (
 func TestMarshalUnmarshalFedVoteLevel(t *testing.T) {
 	messages.General = new(msgsupport.GeneralFactory)
 	primitives.General = messages.General
-	s := testHelper.CreateAndPopulateTestState()
+	s := testHelper.CreateAndPopulateTestStateAndStartValidator()
 
 	test := func(va *FedVoteLevelMsg, num string) {
 		vas, err := va.JSONString()

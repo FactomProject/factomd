@@ -393,8 +393,7 @@ type State struct {
 	pstate              string
 	SyncingState        [256]string
 	SyncingStateCurrent int
-
-	processCnt int64 // count of attempts to process .. so we can see if the thread is running
+	processCnt          int64 // count of attempts to process .. so we can see if the thread is running
 	MMRInfo          // fields for MMR processing
 
 	reportedActivations [activations.ACTIVATION_TYPE_COUNT + 1]bool // flags about which activations we have reported (+1 because we don't use 0)
@@ -530,10 +529,12 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 		newState.StateSaverStruct.FastBootLocation = newState.BoltDBPath
 		break
 	}
+
 	if globals.Params.WriteProcessedDBStates {
 		path := filepath.Join(newState.LdbPath, newState.Network, "dbstates")
 		os.MkdirAll(path, 0777)
 	}
+
 	return newState
 }
 
@@ -968,6 +969,7 @@ func (s *State) Init() {
 			Fix:       s.CheckChainHeads.Fix,
 		})
 	}
+
 	if s.ExportData {
 		s.DB.SetExportData(s.ExportDataSubpath)
 	}
@@ -1060,6 +1062,7 @@ func (s *State) Init() {
 		path := filepath.Join(s.LdbPath, s.Network, "dbstates")
 		os.MkdirAll(path, 0777)
 	}
+
 }
 
 func (s *State) HookLogstash() error {
@@ -2415,11 +2418,11 @@ func (s *State) SetStringConsensus() {
 //		instantTPS	: Transaction rate weighted over last 3 seconds
 func (s *State) CalculateTransactionRate() (totalTPS float64, instantTPS float64) {
 	runtime := time.Since(s.Starttime)
-	shorttime := time.Since(s.lasttime)
 	total := s.FactoidTrans + s.NewEntryChains + s.NewEntries
 	tps := float64(total) / float64(runtime.Seconds())
 	TotalTransactionPerSecond.Set(tps) // Prometheus
-	if shorttime > time.Second*3 {
+	shorttime := time.Since(s.lasttime)
+	if shorttime >= time.Second*3 {
 		delta := (s.FactoidTrans + s.NewEntryChains + s.NewEntries) - s.transCnt
 		s.tps = ((float64(delta) / float64(shorttime.Seconds())) + 2*s.tps) / 3
 		s.lasttime = time.Now()
