@@ -16,7 +16,7 @@ const (
 	_                ActivationType = iota // 0 Don't use ZERO
 	ELECTION_NO_SORT                = iota // 1 -- this is a passing activation and this ID may be reused once that height is passes and the references are removed
 
-	TESTNET_COINBASE_PERIOD                = iota // 2 -- this is a passing activation and this ID may be reused once that height is passes and the references are removed
+	TESTNET_COINBASE_PERIOD = iota // 2 -- this is a passing activation and this ID may be reused once that height is passes and the references are removed
 	//
 	ACTIVATION_TYPE_COUNT = iota - 1 // Always Last
 )

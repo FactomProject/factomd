@@ -49,16 +49,16 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 	expectedHeight = height
 	l := len(GivenNodes)
 	CmdLineOptions := map[string]string{
-		"--db":           "Map",
+		"--db":                  "Map",
 		"--network":             "LOCAL",
-		"--net":          "alot+",
-		"--enablenet":    "false",
+		"--net":                 "alot+",
+		"--enablenet":           "false",
 		"--blktime":             "10",
-		"--count":        fmt.Sprintf("%v", l),
-		"--startdelay": "1",
-		"--stdoutlog":  "out.txt",
+		"--count":               fmt.Sprintf("%v", l),
+		"--startdelay":          "1",
+		"--stdoutlog":           "out.txt",
 		"--stderrlog":           "out.txt",
-		"--checkheads": "false",
+		"--checkheads":          "false",
 		"--controlpanelsetting": "readwrite",
 		//"--debuglog":            ".",
 		"--logPort":          "37000",
@@ -74,9 +74,9 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 				CmdLineOptions[key] = value
 			} else {
 				CmdLineOptions[key] = CmdLineOptions[key] + "|" + value // add debug log flags to the default
-		}
+			}
 			// remove options not supported by the current flags set so we can merge this update into older code bases
-	}
+		}
 	}
 	// Finds all of the valid commands and stores them
 	optionsArr := make(map[string]bool, 0)
@@ -247,35 +247,36 @@ func WaitForAllNodes(state *state.State) {
 }
 
 func TimeNow(s *state.State) {
-	fmt.Printf("%s:%d-:-%d\n", s.FactomNodeName, int(s.LLeaderHeight), s.CurrentMinute)
+	fmt.Printf("%s:%d-:-%d Now\n", s.FactomNodeName, int(s.LLeaderHeight), s.CurrentMinute)
 }
 
 var statusState *state.State
+
 // print the status for every minute for a state
 func StatusEveryMinute(s *state.State) {
 	if statusState == nil {
 		fmt.Fprintf(os.Stdout, "Printing status from %s\n", s.FactomNodeName)
 		statusState = s
-	go func() {
-		for {
+		go func() {
+			for {
 				s := statusState
-			newMinute := (s.CurrentMinute + 1) % 10
-			timeout := 8 // timeout if a minutes takes twice as long as expected
-			for s.CurrentMinute != newMinute && timeout > 0 {
-				sleepTime := time.Duration(globals.Params.BlkTime) * 1000 / 40 // Figure out how long to sleep in milliseconds
-				time.Sleep(sleepTime * time.Millisecond)                       // wake up and about 4 times per minute
-				timeout--
-			}
-			if timeout <= 0 {
-				fmt.Println("Stalled !!!")
-			}
+				newMinute := (s.CurrentMinute + 1) % 10
+				timeout := 8 // timeout if a minutes takes twice as long as expected
+				for s.CurrentMinute != newMinute && timeout > 0 {
+					sleepTime := time.Duration(globals.Params.BlkTime) * 1000 / 40 // Figure out how long to sleep in milliseconds
+					time.Sleep(sleepTime * time.Millisecond)                       // wake up and about 4 times per minute
+					timeout--
+				}
+				if timeout <= 0 {
+					fmt.Println("Stalled !!!")
+				}
 				// Make all the nodes update their status
-			for _, n := range GetFnodes() {
-				n.State.SetString()
+				for _, n := range GetFnodes() {
+					n.State.SetString()
+				}
+				PrintOneStatus(0, 0)
 			}
-			PrintOneStatus(0, 0)
-		}
-	}()
+		}()
 	} else {
 		fmt.Fprintf(os.Stdout, "Printing status from %s", s.FactomNodeName)
 		statusState = s
@@ -285,7 +286,7 @@ func StatusEveryMinute(s *state.State) {
 
 // Wait till block = newBlock and minute = newMinute
 func WaitForQuiet(s *state.State, newBlock int, newMinute int) {
-	fmt.Printf("WaitFor(%d-:-%d)\n", newBlock, newMinute)
+	fmt.Printf("%s: %d-:-%d WaitFor(%d-:-%d)\n", s.FactomNodeName, s.LLeaderHeight, s.CurrentMinute, newBlock, newMinute)
 	sleepTime := time.Duration(globals.Params.BlkTime) * 1000 / 40 // Figure out how long to sleep in milliseconds
 	if newBlock*10+newMinute < int(s.LLeaderHeight)*10+s.CurrentMinute {
 		panic("Wait for the past")
@@ -293,15 +294,20 @@ func WaitForQuiet(s *state.State, newBlock int, newMinute int) {
 	for int(s.LLeaderHeight) < newBlock {
 		time.Sleep(sleepTime * time.Millisecond) // wake up and about 4 times per minute
 	}
+	TimeNow(s)
+
 	for s.CurrentMinute != newMinute {
 		time.Sleep(sleepTime * time.Millisecond) // wake up and about 4 times per minute
 	}
+	TimeNow(s)
+
 }
 
 func WaitMinutes(s *state.State, min int) {
 	fmt.Printf("%s: %d-:-%d WaitMinutes(%d)\n", s.FactomNodeName, s.LLeaderHeight, s.CurrentMinute, min)
-	newBlock := int(s.LLeaderHeight) + min/10
-	newMinute := s.CurrentMinute + min%10
+	newTime := int(s.LLeaderHeight)*10 + s.CurrentMinute + min
+	newBlock := newTime / 10
+	newMinute := newTime % 10
 	WaitForQuiet(s, newBlock, newMinute)
 	TimeNow(s)
 }
@@ -319,7 +325,7 @@ func WaitForBlock(s *state.State, newBlock int) {
 	fmt.Printf("%s: %d-:-%d WaitForBlock(%d)\n", s.FactomNodeName, s.LLeaderHeight, s.CurrentMinute, newBlock)
 	WaitForQuiet(s, newBlock, 0)
 	TimeNow(s)
-	}
+}
 
 // Wait to a given minute.
 func WaitForMinute(s *state.State, newMinute int) {
@@ -328,7 +334,7 @@ func WaitForMinute(s *state.State, newMinute int) {
 		panic("invalid minute")
 	}
 	newBlock := int(s.LLeaderHeight)
-	if s.CurrentMinute < newMinute {
+	if s.CurrentMinute > newMinute {
 		newBlock++
 	}
 	WaitForQuiet(s, newBlock, newMinute)
@@ -351,9 +357,9 @@ func CheckAuthoritySet(t *testing.T) {
 				auditcnt++
 			} else {
 				followercnt++
+			}
+		}
 	}
-	}
-}
 
 	if leadercnt != leaders {
 		t.Fatalf("found %d leaders, expected %d", leadercnt, leaders)
@@ -431,7 +437,7 @@ func TestSetupANetwork(t *testing.T) {
 
 	ranSimTest = true
 
-	state0 := SetupSim("LLLLAAAFFF", map[string]string{}, 11, 0, 0, t)
+	state0 := SetupSim("LLLLAAAFFF", map[string]string{}, 14, 0, 0, t)
 
 	runCmd("9")  // Puts the focus on node 9
 	runCmd("x")  // Takes Node 9 Offline
@@ -550,9 +556,9 @@ func TestLoadScrambled(t *testing.T) {
 	ranSimTest = true
 
 	// use a tree so the messages get reordered
-	state0 := SetupSim("LLFFFFFF", map[string]string{"--net": "tree"}, 32, 0, 0, t)
+	state0 := SetupSim("LLFFFFFF", map[string]string{"--net": "tree"}, 16, 0, 0, t)
 	//TODO: Why does this run longer than expected?
-	runCmd("2")   // select 2
+	runCmd("2")     // select 2
 	runCmd("F1000") // set the message delay
 	runCmd("S10")   // delete 1% of the messages
 	runCmd("r")     // rotate the load around the network
@@ -666,8 +672,7 @@ func TestActivationHeightElection(t *testing.T) {
 	}
 
 	shutDownEverything(t)
-	}
-
+}
 
 func TestAnElection(t *testing.T) {
 	if ranSimTest {
@@ -682,7 +687,6 @@ func TestAnElection(t *testing.T) {
 
 	runCmd("2")
 	runCmd("w") // point the control panel at 2
-
 
 	// remove the last leader
 	runCmd("2")
@@ -1238,7 +1242,7 @@ func TestMultipleECAccountsAPI(t *testing.T) {
 	shutDownEverything(t)
 }
 
-func TestDBsigElectionEvery2Block(t *testing.T) {
+func TestDBsigElectionEvery2Block_long(t *testing.T) {
 	if ranSimTest {
 		return
 	}
@@ -1246,12 +1250,11 @@ func TestDBsigElectionEvery2Block(t *testing.T) {
 	ranSimTest = true
 
 	iterations := 1
-	state := SetupSim("LLLLLLAF", map[string]string{"--debuglog": "fault|badmsg|network|process|dbsig", "--faulttimeout": "10"}, 28, 6, 6, t)
+	state := SetupSim("LLLLLLAF", map[string]string{"--debuglog": "fault|badmsg|network|process|dbsig", "--faulttimeout": "10"}, 24, 6, 6, t)
 
 	runCmd("S10") // Set Drop Rate to 1.0 on everyone
 
-
-	for j := 0; j <= iterations; j++ {
+	for j := 0; j < iterations; j++ {
 		// for leader 1 thu 7 kill each in turn
 		for i := 1; i < 7; i++ {
 			s := GetFnodes()[i].State
@@ -1318,9 +1321,9 @@ func makeExpected(grants []state.HardGrant) []interfaces.ITransAddress {
 		rval = append(rval, factoid.NewOutAddress(g.Address, g.Amount))
 	}
 	return rval
-	}
+}
 
-func TestGrants(t *testing.T) {
+func TestGrants_long(t *testing.T) {
 	if ranSimTest {
 		return
 	}
@@ -1432,7 +1435,7 @@ func printList(title string, list map[string]uint64) {
 	}
 }
 
-func TestTestNetCoinBaseActivation(t *testing.T) {
+func TestTestNetCoinBaseActivation_long(t *testing.T) {
 	if ranSimTest {
 		return
 	}

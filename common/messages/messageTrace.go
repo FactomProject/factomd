@@ -112,13 +112,13 @@ func getmsg(hash [32]byte) interfaces.IMsg {
 }
 
 func LogMessage(name string, note string, msg interfaces.IMsg) {
-
 	traceMutex.Lock()
-	defer traceMutex.Unlock()
 	myfile := getTraceFile(name)
+	defer traceMutex.Unlock()
 	if myfile == nil {
 		return
 	}
+
 	sequence++
 	embeddedHash := ""
 	to := ""
@@ -145,7 +145,7 @@ func LogMessage(name string, note string, msg interfaces.IMsg) {
 			rhash = mh.String()[:6]
 		}
 
-		if msg.GetMsgHash() != nil {
+		if msg.Type() != constants.ACK_MSG && msg.Type() != constants.MISSING_DATA && msg.GetMsgHash() != nil {
 			addmsg(msg) // Keep message we have seen for a while
 		}
 
@@ -194,11 +194,19 @@ func LogMessage(name string, note string, msg interfaces.IMsg) {
 	switch t {
 	case constants.ACK_MSG:
 		ack := msg.(*Ack)
-		LogMessage(name, "EmbeddedMsg: %s", getmsg(ack.GetHash().Fixed()))
+		fixed := ack.GetHash().Fixed()
+		iMsg := getmsg(fixed)
+		traceMutex.Unlock()
+		LogMessage(name, "EmbeddedMsg: %s", iMsg)
+		traceMutex.Lock()
 
 	case constants.MISSING_DATA:
 		md := msg.(*MissingData)
-		LogMessage(name, "EmbeddedMsg: %s", getmsg(md.RequestHash.Fixed()))
+		fixed := md.RequestHash.Fixed()
+		iMsg := getmsg(fixed)
+		traceMutex.Unlock()
+		LogMessage(name, "EmbeddedMsg: %s", iMsg)
+		traceMutex.Lock()
 	}
 }
 
