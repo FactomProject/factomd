@@ -13,6 +13,7 @@ import (
 	. "github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/util/atomic"
 )
 
 // Because we have to go back to a previous state should the network be partitioned and we are on a separate
@@ -586,7 +587,7 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 	s.Replay.s = s
 	s.Replay.name = "Replay"
 
-	s.LeaderTimestamp = ss.LeaderTimestamp
+	s.SetLeaderTimestamp(ss.LeaderTimestamp)
 
 	pl.FedServers = []interfaces.IServer{}
 	pl.AuditServers = []interfaces.IServer{}
@@ -612,11 +613,30 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 
 	s.AuthorityServerCount = ss.AuthorityServerCount
 
-	s.LLeaderHeight = ss.LLeaderHeight
-	s.Leader = ss.Leader
-	s.LeaderVMIndex = ss.LeaderVMIndex
-	s.LeaderPL = ss.LeaderPL
+	s.SetLLeaderHeight(ss.LLeaderHeight)
 	s.CurrentMinute = ss.CurrentMinute
+	if ss.CurrentMinute != 0 {
+		s.LogPrintf("executeMsg", "unexpected %s", s.LLeaderHeight, s.LeaderTimestamp.String(), atomic.WhereAmIString(0))
+	}
+
+	s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
+	//	s.LeaderTimestamp = dbstate.DirectoryBlock.GetTimestamp()
+
+	s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
+	s.ProcessLists.Get(s.LLeaderHeight + 1) // make the current and future process list exist
+
+	s.LogPrintf("executeMsg", "Set LeaderTimeStamp %d %v for %s", s.LLeaderHeight, s.LeaderTimestamp.String(), atomic.WhereAmIString(0))
+
+	if ss.Leader != s.Leader {
+		s.LogPrintf("executeMsg", "unexpected %s", s.LLeaderHeight, s.LeaderTimestamp.String(), atomic.WhereAmIString(0))
+	}
+	s.Leader = ss.Leader
+	if ss.LeaderVMIndex != s.LeaderVMIndex {
+		s.LogPrintf("executeMsg", "unexpected %s", s.LLeaderHeight, s.LeaderTimestamp.String(), atomic.WhereAmIString(0))
+	}
+	s.LeaderVMIndex = ss.LeaderVMIndex
+
+	//	s.LeaderPL = ss.LeaderPL can't restore pointers ...
 
 	ss.EOMsyncing = s.EOMsyncing
 
@@ -647,6 +667,7 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 	}
 
 	s.Commits = ss.Commits.Copy() // make(map[[32]byte]interfaces.IMsg)
+	s.Commits.s = s
 	// for k, c := range ss.Commits {
 	// 	s.Commits[k] = c
 	// }
