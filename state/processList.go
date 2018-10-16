@@ -731,7 +731,7 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 				last := vm.ListAck[vm.Height-1]
 				expectedSerialHash, err = primitives.CreateHash(last.MessageHash, thisAck.MessageHash)
 				if err != nil {
-					s.LogMessage("process", fmt.Sprintf("nil out message %v/%v/%v, hash INTERNAL_REPLAY", p.DBHeight, i, j), vm.List[j])
+					s.LogMessage("process", fmt.Sprintf("nil out message %v/%v/%v, hash INTERNAL_REPLAY", p.DBHeight, i, j), vm.List[j]) //todo: revisit message
 					vm.List[j] = nil
 					if vm.HighestNil > j {
 						vm.HighestNil = j // Drag report limit back
@@ -871,7 +871,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
 	if ack.DBHeight > s.HighestAck && ack.Minute > 0 {
 		s.HighestAck = ack.DBHeight
-		s.LogPrintf("processList", "Drop1")
+		s.LogPrintf("processList", "Drop1") //todo:remove
 	}
 
 	TotalAcksInputs.Inc()

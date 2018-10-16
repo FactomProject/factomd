@@ -21,7 +21,7 @@ var (
 	sequence   int
 	history    *([16384][32]byte) // Last 16k messages logged
 	h          int                // head of history
-	msgmap     map[[32]byte]string
+	msgmap     map[[32]byte]interfaces.IMsg
 )
 
 // Check a filename and see if logging is on for that filename
@@ -88,12 +88,13 @@ func getTraceFile(name string) (f *os.File) {
 	return f
 }
 
-func addmsg(hash [32]byte, msg string) {
+func addmsg(msg interfaces.IMsg) {
+	hash := msg.GetMsgHash().Fixed()
 	if history == nil {
 		history = new([16384][32]byte)
 	}
 	if msgmap == nil {
-		msgmap = make(map[[32]byte]string)
+		msgmap = make(map[[32]byte]interfaces.IMsg)
 	}
 	remove := history[h] // get the oldest message
 	delete(msgmap, remove)
@@ -102,16 +103,14 @@ func addmsg(hash [32]byte, msg string) {
 	h = (h + 1) % cap(history) // move the head
 }
 
-func getmsg(hash [32]byte) string {
+func getmsg(hash [32]byte) interfaces.IMsg {
 	if msgmap == nil {
-		msgmap = make(map[[32]byte]string)
+		msgmap = make(map[[32]byte]interfaces.IMsg)
 	}
-	rval, ok := msgmap[hash]
-	if !ok {
-		rval = fmt.Sprintf("UnknownMsg: %x", hash[:3])
-	}
+	rval, _ := msgmap[hash]
 	return rval
 }
+
 func LogMessage(name string, note string, msg interfaces.IMsg) {
 
 	traceMutex.Lock()
@@ -131,6 +130,7 @@ func LogMessage(name string, note string, msg interfaces.IMsg) {
 	if msg != nil {
 		t = msg.Type()
 		msgString = msg.String()
+
 		// work around message that don't have hashes yet ...
 		mh := msg.GetMsgHash()
 		if mh != nil {
@@ -146,8 +146,7 @@ func LogMessage(name string, note string, msg interfaces.IMsg) {
 		}
 
 		if msg.GetMsgHash() != nil {
-			bytes := msg.GetMsgHash().Fixed()
-			addmsg(bytes, msgString) // Keep message we have seen for a while
+			addmsg(msg) // Keep message we have seen for a while
 		}
 
 		if msg.IsPeer2Peer() {
@@ -192,33 +191,14 @@ func LogMessage(name string, note string, msg interfaces.IMsg) {
 		myfile.WriteString(s)
 	}
 
-	var embeddedMsg string
 	switch t {
 	case constants.ACK_MSG:
 		ack := msg.(*Ack)
-		embeddedMsg = fmt.Sprintf(" EmbeddedMsg: %s", getmsg(ack.GetHash().Fixed()))
-		// handle multi-line printf's
+		LogMessage(name, "EmbeddedMsg: %s", getmsg(ack.GetHash().Fixed()))
 
 	case constants.MISSING_DATA:
 		md := msg.(*MissingData)
-		embeddedMsg = fmt.Sprintf(" EmbeddedMsg: %s", getmsg(md.RequestHash.Fixed()))
-	}
-
-	if embeddedMsg != "" {
-		lines := strings.Split(embeddedMsg, "\n")
-		for i, text := range lines {
-			var s string
-			switch i {
-			case 0:
-				s = fmt.Sprintf("%9d %02d:%02d:%02d.%03d %-30s M-%v|R-%v|H-%v|%p %26s[%2v]:%v\n", sequence, now.Hour()%24, now.Minute()%60, now.Second()%60, (now.Nanosecond()/1e6)%1000,
-					note, mhash, rhash, hash, msg, "embedded:"+constants.MessageName(byte(t)), t, text)
-			default:
-				s = fmt.Sprintf("%9d %02d:%02d:%02d.%03d %-30s M-%v|R-%v|H-%v|%p %30s:%v\n", sequence, now.Hour()%24, now.Minute()%60, now.Second()%60, (now.Nanosecond()/1e6)%1000,
-					note, mhash, rhash, hash, msg, "embedded:"+"continue:", text)
-			}
-			s = addNodeNames(s)
-			myfile.WriteString(s)
-		}
+		LogMessage(name, "EmbeddedMsg: %s", getmsg(md.RequestHash.Fixed()))
 	}
 }
 
