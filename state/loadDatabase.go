@@ -43,6 +43,7 @@ func LoadDatabase(s *State) {
 	}
 	// prevent MMR processing from happening for blocks being loaded from the database
 	s.DBHeightAtBoot = blkCnt
+	s.TimestampAtBoot = primitives.NewTimestampNow()
 
 	first := time.Now()
 	last := first

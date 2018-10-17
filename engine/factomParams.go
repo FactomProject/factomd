@@ -182,10 +182,6 @@ func ParseCmdLine(args []string) *FactomParams {
 func isCompilerVersionOK() bool {
 	goodenough := false
 
-	if strings.Contains(runtime.Version(), "1.6") {
-		goodenough = true
-	}
-
 	if strings.Contains(runtime.Version(), "1.7") {
 		goodenough = true
 	}
@@ -199,6 +195,10 @@ func isCompilerVersionOK() bool {
 	}
 
 	if strings.Contains(runtime.Version(), "1.10") {
+		goodenough = true
+	}
+
+	if strings.Contains(runtime.Version(), "1.11") {
 		goodenough = true
 	}
 
