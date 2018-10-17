@@ -75,7 +75,7 @@ func CreateWebContext() *web.Context {
 	context := new(web.Context)
 	context.Server = new(web.Server)
 	context.Server.Env = map[string]interface{}{}
-	context.Server.Env["state"] = CreateAndPopulateTestState()
+	context.Server.Env["state"] = CreateAndPopulateTestStateAndStartValidator()
 	context.ResponseWriter = new(TestResponseWriter)
 
 	return context

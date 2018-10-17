@@ -452,7 +452,6 @@ func NewDirectoryBlock(prev interfaces.IDirectoryBlock) interfaces.IDirectoryBlo
 
 	newdb.Header = new(DBlockHeader)
 	newdb.GetHeader().SetVersion(constants.VERSION_0)
-
 	if prev != nil {
 		newdb.GetHeader().SetPrevFullHash(prev.GetFullHash())
 		newdb.GetHeader().SetPrevKeyMR(prev.GetKeyMR())
