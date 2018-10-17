@@ -124,7 +124,7 @@ type State struct {
 	serverPrt   string
 	StatusMutex sync.Mutex
 	StatusStrs  []string
-	starttime   time.Time
+	Starttime   time.Time
 	transCnt    int
 	lasttime    time.Time
 	tps         float64
@@ -381,6 +381,7 @@ type State struct {
 	HighestCompletedTorrent uint32
 	FastBoot                bool
 	FastBootLocation        string
+	FastSaveRate            int
 
 	// These stats are collected when we write the dbstate to the database.
 	NumNewChains   int // Number of new Chains in this block
@@ -394,8 +395,10 @@ type State struct {
 	SyncingState        [256]string
 	SyncingStateCurrent int
 	processCnt          int64 // count of attempts to process .. so we can see if the thread is running
+	MMRInfo                   // fields for MMR processing
 
-	reportedActivations [activations.ACTIVATION_TYPE_COUNT + 1]bool // flags about which activations we have reported (+1 because we don't use 0)
+	reportedActivations   [activations.ACTIVATION_TYPE_COUNT + 1]bool // flags about which activations we have reported (+1 because we don't use 0)
+	validatorLoopThreadID string
 }
 
 var _ interfaces.IState = (*State)(nil)
@@ -518,6 +521,7 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 	newState.factomdTLSCertFile = s.factomdTLSCertFile
 	newState.FactomdLocations = s.FactomdLocations
 
+	newState.FastSaveRate = s.FastSaveRate
 	switch newState.DBType {
 	case "LDB":
 		newState.StateSaverStruct.FastBoot = s.StateSaverStruct.FastBoot
@@ -531,7 +535,7 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 
 	if globals.Params.WriteProcessedDBStates {
 		path := filepath.Join(newState.LdbPath, newState.Network, "dbstates")
-		os.MkdirAll(path, 0777)
+		os.MkdirAll(path, 0775)
 	}
 
 	return newState
@@ -1019,7 +1023,7 @@ func (s *State) Init() {
 		s.ExchangeRateAuthorityPublicKey = "3b6a27bcceb6a42d62a3a8d02a6f0d73653215771de243a63ac048a18b59da29"
 	}
 	// end of FER removal
-	s.starttime = time.Now()
+	s.Starttime = time.Now()
 
 	if s.StateSaverStruct.FastBoot {
 		d, err := s.DB.FetchDBlockHead()
@@ -1027,19 +1031,26 @@ func (s *State) Init() {
 			panic(err)
 		}
 
-		if d == nil || d.GetDatabaseHeight() < 2000 {
-			//If we have less than 2k blocks, we wipe SaveState
+		if d == nil || int(d.GetDatabaseHeight()) < s.FastSaveRate {
+			//If we have less than whatever our block rate is, we wipe SaveState
 			//This is to ensure we don't accidentally keep SaveState while deleting a database
 			s.StateSaverStruct.DeleteSaveState(s.Network)
 		} else {
 			err = s.StateSaverStruct.LoadDBStateList(s.DBStates, s.Network)
 			if err != nil {
+				s.StateSaverStruct.DeleteSaveState(s.Network)
 				s.LogPrintf("faulting", "Database load failed %v", err)
-			}
-			if err == nil {
+			} else {
+				var last *DBState
 				for _, dbstate := range s.DBStates.DBStates {
-					if dbstate != nil {
+					if dbstate != nil && dbstate.DirectoryBlock.GetHeader().GetDBHeight() == s.LLeaderHeight {
 						dbstate.SaveStruct.Commits.s = s
+					}
+					if last != nil {
+						last.SaveStruct = nil
+					}
+					if dbstate != nil {
+						last = dbstate
 					}
 				}
 			}
@@ -1056,6 +1067,7 @@ func (s *State) Init() {
 		}
 	}
 
+	s.startMMR()
 	if globals.Params.WriteProcessedDBStates {
 		path := filepath.Join(s.LdbPath, s.Network, "dbstates")
 		os.MkdirAll(path, 0777)
@@ -2421,7 +2433,7 @@ func (s *State) SetStringConsensus() {
 //		totalTPS	: Transaction rate over life of node (totaltime / totaltrans)
 //		instantTPS	: Transaction rate weighted over last 3 seconds
 func (s *State) CalculateTransactionRate() (totalTPS float64, instantTPS float64) {
-	runtime := time.Since(s.starttime)
+	runtime := time.Since(s.Starttime)
 	total := s.FactoidTrans + s.NewEntryChains + s.NewEntries
 	tps := float64(total) / float64(runtime.Seconds())
 	TotalTransactionPerSecond.Set(tps) // Prometheus
@@ -2768,6 +2780,11 @@ func (s *State) updateNetworkControllerConfig() {
 	}
 
 	s.NetworkController.ReloadSpecialPeers(newPeersConfig)
+}
+
+// Check and Add a hash to the network replay filter
+func (s *State) AddToReplayFilter(mask int, hash [32]byte, timestamp interfaces.Timestamp, systemtime interfaces.Timestamp) (rval bool) {
+	return s.Replay.IsTSValidAndUpdateState(constants.NETWORK_REPLAY, hash, timestamp, systemtime)
 }
 
 // Return if a feature is active for the current height

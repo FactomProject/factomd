@@ -175,6 +175,10 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	if p.FastLocation != "" {
 		s.StateSaverStruct.FastBootLocation = p.FastLocation
 	}
+	if p.FastSaveRate < 2 || p.FastSaveRate > 5000 {
+		panic("FastSaveRate must be between 2 and 5000")
+	}
+	s.FastSaveRate = p.FastSaveRate
 
 	s.CheckChainHeads.CheckChainHeads = p.CheckChainHeads
 	s.CheckChainHeads.Fix = p.FixChainHeads
@@ -267,6 +271,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "node", p.ListenTo))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "prefix", p.Prefix))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "node count", p.Cnt))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "FastSaveRate", p.FastSaveRate))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "net spec", pnet))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "Msgs droped", p.DropRate))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "journal", p.Journal))

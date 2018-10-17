@@ -13,9 +13,10 @@ import (
 type ActivationType int
 
 const (
-	_                       ActivationType = iota // 0 Don't use ZERO
-	ELECTION_NO_SORT                       = iota // 1 -- this is a passing activation and this ID may be reused once that height is passes and the references are removed
-	TESTNET_COINBASE_PERIOD                = iota // 2 -- this is a passing activation and this ID may be reused once that height is passes and the references are removed
+	_                ActivationType = iota // 0 Don't use ZERO
+	ELECTION_NO_SORT                = iota // 1 -- this is a passing activation and this ID may be reused once that height is passes and the references are removed
+
+	TESTNET_COINBASE_PERIOD = iota // 2 -- this is a passing activation and this ID may be reused once that height is passes and the references are removed
 	//
 	ACTIVATION_TYPE_COUNT = iota - 1 // Always Last
 )
@@ -45,7 +46,7 @@ func init() {
 			},
 		},
 		Activation{"TestNetCoinBasePeriod", TESTNET_COINBASE_PERIOD,
-			"Change testnet coin base payout delay to 144 blocks",
+			"Change testnet coin base payout delay to 140 blocks",
 			math.MaxInt32, // inactive unless overridden below
 			map[string]int{
 				"MAIN":                      math.MaxInt32,
@@ -73,7 +74,7 @@ func (id ActivationType) String() string {
 
 	n, ok := ActivationNameMap[id]
 	if !ok {
-		n = fmt.Sprintf("ActivationId(%v)", string(id))
+		n = fmt.Sprintf("ActivationId(%v)", id)
 	}
 	return n
 }

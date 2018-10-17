@@ -10,6 +10,8 @@ import (
 	"os"
 	"sort"
 
+	"errors"
+
 	. "github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -67,7 +69,8 @@ type SaveState struct {
 	Saving  bool // True if we are in the process of saving to the database
 	Syncing bool // Looking for messages from leaders to sync
 
-	Replay *Replay
+	Replay     *Replay
+	ReplayData []byte
 
 	LeaderTimestamp interfaces.Timestamp
 
@@ -303,6 +306,11 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 	ss.DBHeight = d.DirectoryBlock.GetHeader().GetDBHeight()
 	pl := state.ProcessLists.Get(ss.DBHeight)
 
+	// Need to ensure the dbstate is at the same height as the state.
+	if ss.DBHeight != state.LLeaderHeight {
+		//os.Stderr.WriteString(fmt.Sprintf("%10s dbht mismatch %d %d\n", state.GetFactomNodeName(), ss.DBHeight, state.LLeaderHeight))
+		return
+	}
 	if pl == nil {
 		return nil
 	}
@@ -318,7 +326,7 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 
 	// state.AddStatus(fmt.Sprintf("Save state at dbht: %d", ss.DBHeight))
 
-	ss.Replay = state.Replay.Save()
+	ss.ReplayData = state.Replay.Save()
 	ss.LeaderTimestamp = d.DirectoryBlock.GetTimestamp()
 
 	ss.FedServers = append(ss.FedServers, pl.FedServers...)
@@ -349,19 +357,19 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 
 	ss.EOMsyncing = state.EOMsyncing
 
-	ss.EOM = state.EOM
-	ss.EOMLimit = state.EOMLimit
-	ss.EOMProcessed = state.EOMProcessed
-	ss.EOMDone = state.EOMDone
-	ss.EOMMinute = state.EOMMinute
-	ss.EOMSys = state.EOMSys
-	ss.DBSig = state.DBSig
-	ss.DBSigLimit = state.DBSigLimit
-	ss.DBSigProcessed = state.DBSigProcessed
-	ss.DBSigDone = state.DBSigDone
-	ss.DBSigSys = state.DBSigSys
-	ss.Saving = state.Saving
-	ss.Syncing = state.Syncing
+	ss.EOM = false
+	ss.EOMLimit = 0
+	ss.EOMProcessed = 0
+	ss.EOMDone = true
+	ss.EOMMinute = 0
+	ss.EOMSys = true
+	ss.DBSig = false
+	ss.DBSigLimit = 0
+	ss.DBSigProcessed = 0
+	ss.DBSigDone = false
+	ss.DBSigSys = true
+	ss.Saving = true
+	ss.Syncing = false
 
 	ss.Holding = make(map[[32]byte]interfaces.IMsg)
 	//for k := range state.Holding {
@@ -461,7 +469,7 @@ func (ss *SaveState) TrimBack(s *State, d *DBState) {
 	s.Saving = pss.Saving
 	s.Syncing = pss.Syncing
 
-	s.Replay = pss.Replay.Save()
+	s.Replay = pss.Replay.Clone() // FIXME do we need this?
 	s.Replay.s = s
 	s.Replay.name = "Replay"
 
@@ -575,6 +583,8 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 	}
 	// Set this, as we know it to be true
 	s.DBHeightAtBoot = ss.DBHeight
+	// set DBHeightBase to avoid recursively loading process lists
+	s.ProcessLists.DBHeightBase = ss.DBHeight
 	pl := s.ProcessLists.Get(ss.DBHeight)
 
 	// s.AddStatus(fmt.Sprintln("Index: ", index, "dbht:", ss.DBHeight, "lleaderheight", s.LLeaderHeight))
@@ -584,7 +594,7 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 	//s.AddStatus(fmt.Sprintf("SAVESTATE Restoring the State to dbht: %d", ss.DBHeight))
 
 	s.LogPrintf("dbstatesProcess", "restoring to DBH %d", ss.DBHeight)
-	s.Replay = ss.Replay.Save()
+	s.Replay = ss.Replay.Clone()
 	s.Replay.s = s
 	s.Replay.name = "Replay"
 
@@ -638,6 +648,7 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 		s.LogPrintf("executeMsg", "unexpected %s", s.LLeaderHeight, s.LeaderTimestamp.String(), atomic.WhereAmIString(0))
 	}
 	s.LeaderVMIndex = ss.LeaderVMIndex
+
 	//	s.LeaderPL = ss.LeaderPL can't restore pointers ...
 
 	ss.EOMsyncing = s.EOMsyncing
@@ -690,6 +701,9 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 }
 
 func (ss *SaveState) MarshalBinary() (rval []byte, err error) {
+	if ss == nil {
+		return nil, errors.New("SaveState is nil")
+	}
 	defer func(pe *error) {
 		if *pe != nil {
 			fmt.Fprintf(os.Stderr, "SaveState.MarshalBinary err:%v", *pe)
@@ -828,7 +842,7 @@ func (ss *SaveState) MarshalBinary() (rval []byte, err error) {
 		return nil, err
 	}
 
-	err = buf.PushBinaryMarshallable(ss.Replay)
+	err = buf.PushBytes(ss.ReplayData)
 	if err != nil {
 		return nil, err
 	}

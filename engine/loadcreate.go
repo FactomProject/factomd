@@ -121,6 +121,7 @@ func (lg *LoadGenerator) NewRevealEntry(entry *entryBlock.Entry) *messages.Revea
 }
 
 var cnt int
+var goingUp bool
 
 func (lg *LoadGenerator) GetECs(tight bool, c int) {
 	s := fnodes[wsapiNode].State
@@ -136,7 +137,15 @@ func (lg *LoadGenerator) GetECs(tight bool, c int) {
 	}
 
 	cnt++
-	if (ecBal > int64(c) && ecBal > 15) || (!tight && ecBal > 2000) {
+	if goingUp && ecBal > 500 {
+		if cnt%1000 == 0 {
+			os.Stderr.WriteString(fmt.Sprintf("%d purchases, not buying %d cause the balance is %d \n", cnt, c, ecBal))
+		}
+		goingUp = false
+		return
+	}
+
+	if !goingUp && ecBal > int64(c) {
 		if cnt%1000 == 0 {
 			os.Stderr.WriteString(fmt.Sprintf("%d purchases, not buying %d cause the balance is %d \n", cnt, c, ecBal))
 		}
@@ -146,6 +155,7 @@ func (lg *LoadGenerator) GetECs(tight bool, c int) {
 	os.Stderr.WriteString(fmt.Sprintf("%d purchases, buying %d and balance is %d \n", cnt, c, ecBal))
 
 	FundWalletTOFF(s, lg.txoffset, uint64(c)*ecPrice)
+	goingUp = true
 
 }
 

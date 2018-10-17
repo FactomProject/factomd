@@ -14,12 +14,11 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/adminBlock"
+	// "github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
-	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
-	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
@@ -36,7 +35,8 @@ var _ = log.Print
 type DBState struct {
 	IsNew bool
 
-	SaveStruct *SaveState
+	TmpSaveStruct *SaveState
+	SaveStruct    *SaveState
 
 	DBHash interfaces.IHash
 	ABHash interfaces.IHash
@@ -209,33 +209,12 @@ func (dbs *DBState) MarshalBinary() (rval []byte, err error) {
 			err = fmt.Errorf("Error Marshalling a dbstate %v", r)
 		}
 	}()
-	defer func(pe *error) {
-		if *pe != nil {
-			fmt.Fprintf(os.Stderr, "DBState.MarshalBinary err:%v", *pe)
-		}
-	}(&err)
 	dbs.Init()
 	b := primitives.NewBuffer(nil)
 
-	err = b.PushBool(dbs.IsNew)
+	err = b.PushBinaryMarshallable(dbs.SaveStruct)
 	if err != nil {
 		return nil, err
-	}
-
-	if dbs.SaveStruct == nil {
-		err = b.PushBool(false)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		err = b.PushBool(true)
-		if err != nil {
-			return nil, err
-		}
-		err = b.PushBinaryMarshallable(dbs.SaveStruct)
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	err = b.PushBinaryMarshallable(dbs.DBHash)
@@ -272,56 +251,6 @@ func (dbs *DBState) MarshalBinary() (rval []byte, err error) {
 		return nil, err
 	}
 
-	l := len(dbs.EntryBlocks)
-	err = b.PushVarInt(uint64(l))
-	if err != nil {
-		return nil, err
-	}
-	for _, v := range dbs.EntryBlocks {
-		err = b.PushBinaryMarshallable(v)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	h, err := entryBlock.MarshalEntryList(dbs.Entries)
-	if err != nil {
-		return nil, err
-	}
-	err = b.Push(h)
-	if err != nil {
-		return nil, err
-	}
-
-	err = b.PushBool(dbs.Repeat)
-	if err != nil {
-		return nil, err
-	}
-	err = b.PushBool(dbs.ReadyToSave)
-	if err != nil {
-		return nil, err
-	}
-	err = b.PushBool(dbs.Locked)
-	if err != nil {
-		return nil, err
-	}
-	err = b.PushBool(dbs.Signed)
-	if err != nil {
-		return nil, err
-	}
-	err = b.PushBool(dbs.Saved)
-	if err != nil {
-		return nil, err
-	}
-
-	err = b.PushBinaryMarshallable(dbs.Added)
-	if err != nil {
-		return nil, err
-	}
-	err = b.PushUInt64(dbs.FinalExchangeRate)
-	if err != nil {
-		return nil, err
-	}
 	err = b.PushBinaryMarshallable(dbs.NextTimestamp)
 	if err != nil {
 		return nil, err
@@ -338,22 +267,12 @@ func (dbs *DBState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 	newData = p
 	b := primitives.NewBuffer(p)
 
-	dbs.IsNew, err = b.PopBool()
+	dbs.IsNew = false
+
+	dbs.SaveStruct = new(SaveState)
+	err = b.PopBinaryMarshallable(dbs.SaveStruct)
 	if err != nil {
 		return
-	}
-
-	ok, err := b.PopBool()
-	if err != nil {
-		return
-	}
-
-	if ok == true {
-		dbs.SaveStruct = new(SaveState)
-		err = b.PopBinaryMarshallable(dbs.SaveStruct)
-		if err != nil {
-			return
-		}
 	}
 
 	err = b.PopBinaryMarshallable(dbs.DBHash)
@@ -390,56 +309,11 @@ func (dbs *DBState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 		return
 	}
 
-	l, err := b.PopVarInt()
-	if err != nil {
-		return
-	}
-	for i := 0; i < int(l); i++ {
-		eb := entryBlock.NewEBlock()
-		err = b.PopBinaryMarshallable(eb)
-		if err != nil {
-			return
-		}
-		dbs.EntryBlocks = append(dbs.EntryBlocks, eb)
-	}
-
-	entries, rest, err := entryBlock.UnmarshalEntryList(b.DeepCopyBytes())
-	if err != nil {
-		return
-	}
-	dbs.Entries = entries
-	b = primitives.NewBuffer(rest)
-
-	dbs.Repeat, err = b.PopBool()
-	if err != nil {
-		return
-	}
-	dbs.ReadyToSave, err = b.PopBool()
-	if err != nil {
-		return
-	}
-	dbs.Locked, err = b.PopBool()
-	if err != nil {
-		return
-	}
-	dbs.Signed, err = b.PopBool()
-	if err != nil {
-		return
-	}
-	dbs.Saved, err = b.PopBool()
-	if err != nil {
-		return
-	}
-
-	err = b.PopBinaryMarshallable(dbs.Added)
-	if err != nil {
-		return
-	}
-
-	dbs.FinalExchangeRate, err = b.PopUInt64()
-	if err != nil {
-		return
-	}
+	dbs.Repeat = false
+	dbs.ReadyToSave = true
+	dbs.Locked = true
+	dbs.Signed = true
+	dbs.Saved = true
 
 	err = b.PopBinaryMarshallable(dbs.NextTimestamp)
 	if err != nil {
@@ -456,8 +330,6 @@ func (dbs *DBState) UnmarshalBinary(p []byte) error {
 }
 
 type DBStateList struct {
-	SrcNetwork bool // True if I got this block from the network.
-
 	LastEnd       int
 	LastBegin     int
 	TimeToAsk     interfaces.Timestamp
@@ -482,9 +354,6 @@ func (a *DBStateList) IsSameAs(b *DBStateList) bool {
 		if a == nil && b == nil {
 			return true
 		}
-		return false
-	}
-	if a.SrcNetwork != b.SrcNetwork {
 		return false
 	}
 
@@ -527,26 +396,17 @@ func (a *DBStateList) IsSameAs(b *DBStateList) bool {
 func (dbsl *DBStateList) MarshalBinary() (rval []byte, err error) {
 	defer func(pe *error) {
 		if *pe != nil {
-			fmt.Fprintf(os.Stderr, "DBStateList.MarshalBinary err:%v", *pe)
+			//fmt.Fprintf(os.Stderr, "DBStateList.MarshalBinary err:%v", *pe)
 		}
 	}(&err)
 	dbsl.Init()
 	buf := primitives.NewBuffer(nil)
-
-	err = buf.PushBool(dbsl.SrcNetwork)
-	if err != nil {
-		return nil, err
-	}
 
 	err = buf.PushUInt32(uint32(dbsl.LastEnd))
 	if err != nil {
 		return nil, err
 	}
 	err = buf.PushUInt32(uint32(dbsl.LastBegin))
-	if err != nil {
-		return nil, err
-	}
-	err = buf.PushBinaryMarshallable(dbsl.TimeToAsk)
 	if err != nil {
 		return nil, err
 	}
@@ -567,15 +427,27 @@ func (dbsl *DBStateList) MarshalBinary() (rval []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
-	l := len(dbsl.DBStates)
-	err = buf.PushVarInt(uint64(l))
+	dlen := 0
+	for _, v := range dbsl.DBStates {
+		if v.Saved {
+			dlen++
+		} else {
+			break
+		}
+	}
+
+	err = buf.PushVarInt(uint64(dlen))
 	if err != nil {
 		return nil, err
 	}
 	for _, v := range dbsl.DBStates {
-		err = buf.PushBinaryMarshallable(v)
-		if err != nil {
-			return nil, err
+		if v.Saved {
+			err = buf.PushBinaryMarshallable(v)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			break
 		}
 	}
 
@@ -589,11 +461,6 @@ func (dbsl *DBStateList) UnmarshalBinaryData(p []byte) (newData []byte, err erro
 
 	buf := primitives.NewBuffer(p)
 
-	dbsl.SrcNetwork, err = buf.PopBool()
-	if err != nil {
-		return
-	}
-
 	x, err := buf.PopUInt32()
 	if err != nil {
 		return
@@ -605,10 +472,6 @@ func (dbsl *DBStateList) UnmarshalBinaryData(p []byte) (newData []byte, err erro
 	}
 	dbsl.LastBegin = int(x)
 
-	err = buf.PopBinaryMarshallable(dbsl.TimeToAsk)
-	if err != nil {
-		return
-	}
 	dbsl.ProcessHeight, err = buf.PopUInt32()
 	if err != nil {
 		return
@@ -628,11 +491,11 @@ func (dbsl *DBStateList) UnmarshalBinaryData(p []byte) (newData []byte, err erro
 		return
 	}
 
-	l, err := buf.PopVarInt()
+	listLen, err := buf.PopVarInt()
 	if err != nil {
 		return
 	}
-	for i := 0; i < int(l); i++ {
+	for i := 0; i < int(listLen); i++ {
 		dbs := new(DBState)
 		err = buf.PopBinaryMarshallable(dbs)
 		if err != nil {
@@ -1034,20 +897,16 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	dbht := d.DirectoryBlock.GetHeader().GetDBHeight()
 
-	s := list.State
-	s.LogPrintf("dbstateprocess", "ProcessBlock %d", d.DirectoryBlock.GetHeader().GetDBHeight())
 	// If we are locked, the block has already been processed.  If the block IsNew then it has not yet had
 	// its links patched, so we can't process it.  But if this is a repeat block (we have already processed
 	// at this height) then we simply return.
 	if d.Locked || d.IsNew || d.Repeat {
-		s.LogPrintf("dbstateprocess", "Skipping d.Locked(%v) || d.IsNew(%v) || d.Repeat(%v)", d.Locked, d.IsNew, d.Repeat)
 		return
 	}
 
 	// If we detect that we have processed at this height, flag the dbstate as a repeat, progress is good, and
 	// go forward.
 	if dbht > 0 && dbht <= list.ProcessHeight {
-		s.LogPrintf("dbstateprocess", "Skipping old ProcessHeight = %d", list.ProcessHeight)
 		progress = true
 		d.Repeat = true
 		return
@@ -1055,11 +914,6 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 
 	if dbht > 1 {
 		pd := list.State.DBStates.Get(int(dbht - 1))
-		if pd != nil {
-			s.LogPrintf("dbstateprocess", "Skipping Prev Block Missing")
-		} else if !pd.Saved {
-			s.LogPrintf("dbstateprocess", "Skipping Prev Block not saved")
-		}
 		if pd != nil && !pd.Saved {
 			//list.State.AddStatus(fmt.Sprintf("PROCESSBLOCKS:  Previous dbstate (%d) not saved", dbht-1))
 			return
@@ -1073,15 +927,11 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		PrintState(list.State)
 	}
 
-	// Saving our state so we can reset it if we need to.
-	d.SaveStruct = SaveFactomdState(list.State, d)
-
 	ht := d.DirectoryBlock.GetHeader().GetDBHeight()
 	pl := list.State.ProcessLists.Get(ht)
 	pln := list.State.ProcessLists.Get(ht + 1)
 
 	if pl == nil {
-		s.LogPrintf("dbstateprocess", "Skipping No ProcessList")
 		return
 	}
 
@@ -1149,28 +999,6 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		fmt.Println(out.String())
 	}
 
-	// get all the prior balances of the Factoid addresses that may have changed
-	// in this block.  If you want the balance of the highest saved block, look to
-	// list.State.FactoidBalancesPapi if it is not null.  If you have no entry there,
-	// then look to list.State.FactoidBalancesP
-	list.State.FactoidBalancesPMutex.Lock()
-	list.State.FactoidBalancesPapi = make(map[[32]byte]int64, len(pl.FactoidBalancesT))
-	for k := range pl.FactoidBalancesT {
-		list.State.FactoidBalancesPapi[k] = list.State.FactoidBalancesP[k]
-	}
-	list.State.FactoidBalancesPMutex.Unlock()
-
-	// get all the prior balances of the entry credit addresses that may have changed
-	// in this block.  If you want the balance of the highest saved block, look to
-	// list.State.ECBalancesPapi if it is not null.  If you have no entry there,
-	// then look to list.State.ECBalancesP
-	list.State.ECBalancesPMutex.Lock()
-	list.State.ECBalancesPapi = make(map[[32]byte]int64, len(pl.ECBalancesT))
-	for k := range pl.ECBalancesT {
-		list.State.ECBalancesPapi[k] = list.State.ECBalancesP[k]
-	}
-	list.State.ECBalancesPMutex.Unlock()
-
 	// Process the Factoid End of Block
 	fs := list.State.GetFactoidState()
 	fs.(*FactoidState).DBHeight = dbht
@@ -1181,10 +1009,6 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	err = fs.AddECBlock(d.EntryCreditBlock)
 	if err != nil {
 		panic(err)
-	}
-
-	if list.State.DBFinished {
-		list.State.Balancehash = fs.GetBalanceHash(false)
 	}
 
 	// Make the current exchange rate whatever we had in the previous block.
@@ -1268,15 +1092,10 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	// 	}
 	// }
 
-	// Writing the DBState to a debug file allows for later analyzing the last block not saved to the database.
-	// Do not do this while loading from disk, as those blocks are already saved
-	if list.State.DBFinished && globals.Params.WriteProcessedDBStates {
-		list.WriteDBStateToDebugFile(d)
-	}
-
-	tbh := list.State.FactoidState.GetBalanceHash(true) // recompute temp balance hash here
+	// Saving our state so we can reset it if we need to.
+	d.TmpSaveStruct = SaveFactomdState(list.State, d)
 	list.State.Balancehash = fs.GetBalanceHash(false)
-	list.State.LogPrintf("dbstateprocess", "dbht %d BalanceHash P %x T %x", dbht, list.State.Balancehash.Bytes()[0:4], tbh.Bytes()[0:4])
+
 	return
 }
 
@@ -1341,9 +1160,7 @@ func (list *DBStateList) WriteDBStateToDebugFile(d *DBState) {
 	filename := fmt.Sprintf("processed_dbstate_%d.block", d.DirectoryBlock.GetDatabaseHeight()%10)
 	path := filepath.Join(list.State.LdbPath, list.State.Network, "dbstates", filename)
 
-	//fmt.Printf("Saving DBH %d to %s\n", list.State.LLeaderHeight, path)
-
-	file, err := os.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0775)
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0777)
 	if err != nil {
 		fmt.Printf("An error has occurred while writing the DBState to disk: %s\n", err.Error())
 		return
@@ -1418,7 +1235,6 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	// have marked them all as saved to disk!  So we gotta save them to disk.  Or panic trying.
 
 	list.State.LogPrintf("dbstate", "SaveDBStateToDB(%d) %s\n", dbheight, d.String())
-
 	// Only trim when we are really saving.
 	v := dbheight + int(list.State.IdentityChainID.Bytes()[4])
 	if v%4 == 0 {
@@ -1594,6 +1410,13 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	d.ReadyToSave = false
 	d.Saved = true
 
+	// We will only save blocks marked to be saved.  As such, this must follow
+	// the "d.saved = true" above
+	if list.State.StateSaverStruct.FastBoot {
+		d.SaveStruct = d.TmpSaveStruct
+		err := list.State.StateSaverStruct.SaveDBStateList(list.State.DBStates, list.State.Network)
+		list.State.LogPrintf("dbsatesprocess", "Error while saving Fastboot %v", err)
+	}
 	// Now that we have saved the perm balances, we can clear the api hashmaps that held the differences
 	// between the actual saved block prior, and this saved block.  If you are looking for balances of
 	// the highest saved block, you first look to see that one of the "<fct or ec>Papi" maps exist, then

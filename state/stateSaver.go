@@ -10,6 +10,7 @@ import (
 	"os"
 	"sync"
 
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
@@ -17,13 +18,11 @@ type StateSaverStruct struct {
 	FastBoot         bool
 	FastBootLocation string
 
+	TmpDBHt  uint32
 	TmpState []byte
 	Mutex    sync.Mutex
 	Stop     bool
 }
-
-//To be increased whenever the data being saved changes from the last version
-const version = 8
 
 func (sss *StateSaverStruct) StopSaving() {
 	sss.Mutex.Lock()
@@ -44,28 +43,31 @@ func (sss *StateSaverStruct) SaveDBStateList(ss *DBStateList, networkName string
 		return nil
 	}
 
-	//Save only every 1000 states
-	if ss.GetHighestSavedBlk()%1000 != 0 || ss.GetHighestSavedBlk() < 1000 {
-		return nil
+	hsb := int(ss.GetHighestSavedBlk())
+	//Save only every FastSaveRate states
+
+	if (hsb+1)%ss.State.FastSaveRate == 0 {
+
+		//Marshal state for future saving
+		b, err := ss.MarshalBinary()
+		if err != nil {
+			return err
+		}
+		//adding an integrity check
+		h := primitives.Sha(b)
+		b = append(h.Bytes(), b...)
+		sss.TmpState = b
+		sss.TmpDBHt = ss.State.LLeaderHeight
 	}
 
-	//Actually save data from previous cached state to prevent dealing with rollbacks
-	if len(sss.TmpState) > 0 {
+	if hsb%ss.State.FastSaveRate == 0 && len(sss.TmpState) > 0 {
+		//Actually save data from previous cached state to prevent dealing with rollbacks
 		err := SaveToFile(sss.TmpState, NetworkIDToFilename(networkName, sss.FastBootLocation))
 		if err != nil {
 			return err
 		}
+		sss.TmpState = nil
 	}
-
-	//Marshal state for future saving
-	b, err := ss.MarshalBinary()
-	if err != nil {
-		return err
-	}
-	//adding an integrity check
-	h := primitives.Sha(b)
-	b = append(h.Bytes(), b...)
-	sss.TmpState = b
 
 	return nil
 }
@@ -75,9 +77,7 @@ func (sss *StateSaverStruct) DeleteSaveState(networkName string) error {
 }
 
 func (sss *StateSaverStruct) LoadDBStateList(ss *DBStateList, networkName string) error {
-	filename := NetworkIDToFilename(networkName, sss.FastBootLocation)
-	fmt.Println(ss.State.FactomNodeName, "Loading from", filename)
-	b, err := LoadFromFile(filename)
+	b, err := LoadFromFile(NetworkIDToFilename(networkName, sss.FastBootLocation))
 	if err != nil {
 		return nil
 	}
@@ -100,12 +100,8 @@ func (sss *StateSaverStruct) LoadDBStateList(ss *DBStateList, networkName string
 }
 
 func NetworkIDToFilename(networkName string, fileLocation string) string {
-	file := fmt.Sprintf("FastBoot_%s_v%v.db", networkName, version)
+	file := fmt.Sprintf("FastBoot_%s_v%v.db", networkName, constants.SaveStateVersion)
 	if fileLocation != "" {
-		i := len(fileLocation) - 1
-		if fileLocation[i] == '/' {
-			fileLocation = fileLocation[:i] // trim trailing '/'
-		}
 		return fmt.Sprintf("%v/%v", fileLocation, file)
 	}
 	return file
@@ -122,7 +118,6 @@ func SaveToFile(b []byte, filename string) error {
 }
 
 func LoadFromFile(filename string) ([]byte, error) {
-	fmt.Fprintf(os.Stderr, "Load state from %s\n", filename)
 	b, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, err

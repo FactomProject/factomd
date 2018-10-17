@@ -43,6 +43,10 @@ var _ = (*hash.Hash32)(nil)
 var once sync.Once
 var debugExec_flag bool
 
+func (s *State) CheckFileName(name string) bool {
+	return messages.CheckFileName(name)
+}
+
 func (s *State) DebugExec() (ret bool) {
 	once.Do(func() { debugExec_flag = globals.Params.DebugLogRegEx != "" })
 
@@ -153,11 +157,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 	switch valid {
 	case 1:
 		// The highest block for which we have received a message.  Sometimes the same as
-		if msg.GetResendCnt() == 0 {
-			msg.SendOut(s, msg)
-		} else if msg.Resend(s) {
-			msg.SendOut(s, msg)
-		}
+		msg.SendOut(s, msg)
 
 		switch msg.Type() {
 		case constants.REVEAL_ENTRY_MSG, constants.COMMIT_ENTRY_MSG, constants.COMMIT_CHAIN_MSG:
@@ -462,13 +462,7 @@ func (s *State) ReviewHolding() {
 			continue
 		}
 
-		if v.GetResendCnt() == 0 {
-			v.SendOut(s, v)
-		} else {
-			if v.Resend(s) {
-				v.SendOut(s, v)
-			}
-		}
+		v.SendOut(s, v)
 
 		if int(highest)-int(saved) > 1000 {
 			TotalHoldingQueueOutputs.Inc()
@@ -2366,6 +2360,9 @@ func (s *State) GetF(rt bool, adr [32]byte) (v int64) {
 // If rt == true, update the Temp balances.  Otherwise update the Permenent balances.
 // concurrency safe to call
 func (s *State) PutF(rt bool, adr [32]byte, v int64) {
+	if s.validatorLoopThreadID != atomic.Goid() {
+		panic("Second thread writing the factoids")
+	}
 	if rt {
 		pl := s.ProcessLists.Get(s.LLeaderHeight)
 		if pl != nil {
@@ -2418,6 +2415,9 @@ func (s *State) GetE(rt bool, adr [32]byte) (v int64) {
 // If rt == true, update the Temp balances.  Otherwise update the Permenent balances.
 // concurrency safe to call
 func (s *State) PutE(rt bool, adr [32]byte, v int64) {
+	if s.validatorLoopThreadID != atomic.Goid() {
+		panic("Second thread writing the entrycredits")
+	}
 	if rt {
 		pl := s.ProcessLists.Get(s.LLeaderHeight)
 		if pl != nil {
