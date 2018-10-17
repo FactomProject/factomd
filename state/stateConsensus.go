@@ -113,6 +113,47 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 	}
 
 	valid := msg.Validate(s)
+	if valid == 1 {
+		if msg.Type() != constants.DBSTATE_MSG && msg.Type() != constants.DIRECTORY_BLOCK_SIGNATURE_MSG {
+			// Make sure we don't put in an old ack (outside our repeat range)
+			blktime := s.GetLeaderTimestamp().GetTime().UnixNano()
+			tlim := int64(Range * 60 * 1000000000)
+
+			if blktime != 0 {
+				msgtime := msg.GetTimestamp().GetTime().UnixNano()
+
+				// Make sure we don't put in an old msg (outside our repeat range)
+				Delta := blktime - msgtime
+				prev := s.GetDBState(s.LLeaderHeight - 1)
+				cur := s.GetDBState(s.LLeaderHeight)
+
+				s.LogPrintf("executeMsg", "prev %v", prev.DirectoryBlock.GetTimestamp().String())
+				if cur != nil {
+					s.LogPrintf("executeMsg", "curr %v ", cur.DirectoryBlock.GetTimestamp().String())
+				}
+
+				if Delta > tlim || -Delta > tlim {
+					/*
+
+					   4031 11:24:44 48497-:-0 Block 48497 time 2018-09-28 22:52:00 -0500 CDT
+					                                       time 2018-10-09 11:24:56 delta %!d(MISSING)
+					   4031 11:24:44 48497-:-0 Block 48497 time 2018-09-28 22:52:00 -0500 CDT Msg 38343834383864393137623031346662376664353164633936623731333965666135383432313432343762376635623763393537353230656439356262363461 time 2018-10-09 11:24:56 delta %!d(MISSING)
+					*/
+					s.LogPrintf("executeMsg", "Block %d time %v Msg %x time %v delta %d",
+						s.LLeaderHeight, s.GetLeaderTimestamp().GetTime().String(), msg.GetHash(), msg.GetTimestamp().String(), Delta)
+
+					// Delta is is negative its greater than blktime then it is future.
+					if Delta < 0 {
+						s.LogMessage("executeMsg", "Hold message from the future", msg)
+						valid = 0 // Future stuff I can hold for now.  It might be good later.
+					} else {
+						s.LogMessage("executeMsg", "Drop message because the msg is out of range", msg)
+						valid = -1 // Old messages are bad.
+					}
+				}
+			}
+		}
+	}
 	switch valid {
 	case 1:
 		// The highest block for which we have received a message.  Sometimes the same as
@@ -540,7 +581,6 @@ func (s *State) AddDBState(isNew bool,
 	s.LogPrintf("dbstate", "AddDBState(isNew %v, directoryBlock %d %x, adminBlock %x, factoidBlock %x, entryCreditBlock %X, eBlocks %d, entries %d)",
 		isNew, directoryBlock.GetHeader().GetDBHeight(), directoryBlock.GetHash().Bytes()[:4],
 		adminBlock.GetHash().Bytes()[:4], factoidBlock.GetHash().Bytes()[:4], entryCreditBlock.GetHash().Bytes()[:4], len(eBlocks), len(entries))
-
 	dbState := s.DBStates.NewDBState(isNew, directoryBlock, adminBlock, factoidBlock, entryCreditBlock, eBlocks, entries)
 
 	if dbState == nil {
@@ -569,7 +609,6 @@ func (s *State) AddDBState(isNew bool,
 		//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s Add DBState: s.SigType(%v)", s.FactomNodeName, s.SigType))
 		s.CurrentMinute = 0
 		s.MoveStateToHeight(ht)
-
 		s.EOMProcessed = 0
 		s.DBSigProcessed = 0
 		s.StartDelay = s.GetTimestamp().GetTimeMilli()

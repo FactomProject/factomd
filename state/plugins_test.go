@@ -11,7 +11,7 @@ import (
 )
 
 func TestSetAndGetUseTorrent(t *testing.T) {
-	state := testHelper.CreateAndPopulateTestState()
+	state := testHelper.CreateAndPopulateTestStateAndStartValidator()
 	if state.UsingTorrent() {
 		t.Error("State unexpectedly using torrents without having been set to true")
 	}
@@ -22,7 +22,7 @@ func TestSetAndGetUseTorrent(t *testing.T) {
 	}
 }
 func TestSetAndGetTorrentUploader(t *testing.T) {
-	state := testHelper.CreateAndPopulateTestState()
+	state := testHelper.CreateAndPopulateTestStateAndStartValidator()
 	if state.TorrentUploader() {
 		t.Error("State unexpectedly using TorrentUploader without having been set to true")
 	}
