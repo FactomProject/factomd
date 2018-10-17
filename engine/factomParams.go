@@ -322,7 +322,7 @@ func launchDebugServer(service string) {
 
 			_, badPort := strconv.Atoi(port)
 			if (host != "localhost" && host != "remotehost") || badPort != nil {
-				panic("Malformed -debugconsole option. Should be localhost:[port] or remotehost:[port] where [port] is a port number")
+				panic("Malformed --debugconsole option. Should be localhost:[port] or remotehost:[port] where [port] is a port number")
 			}
 		}
 
