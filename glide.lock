@@ -63,7 +63,7 @@ imports:
 - name: github.com/FactomProject/snappy-go
   version: f2f83b22c29e5abc60e3a95062ce1491d3b95371
 - name: github.com/FactomProject/web
-  version: 7daee1bf727fc2cd9142b9a73a797f98b3180756
+  version: 5bb394cc64239b77f571bbddc9a47c80c4d2283f
 - name: github.com/golang/protobuf
   version: ddf22928ea3c56eb4292a0adbbf5001b1e8e7d0d
   subpackages:
@@ -119,6 +119,8 @@ imports:
   - internal/util
   - nfs
   - xfs
+- name: github.com/rs/cors
+  version: a3460e445dd310dbefee993fe449f2ff9c08ae71
 - name: github.com/sirupsen/logrus
   version: 680f584d621da87ee04ea659130e149ba9d23cae
 - name: github.com/spf13/cobra
