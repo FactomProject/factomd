@@ -26,14 +26,22 @@ import (
 
 var _ = Factomd
 
+// SetupSim()
 // SetupSim takes care of your options, and setting up nodes
 // pass in a string for nodes: 4 Leaders, 3 Audit, 4 Followers: "LLLLAAAFFFF" as the first argument
 // Pass in the Network type ex. "LOCAL" as the second argument
 // It has default but if you want just add it like "map[string]string{"--Other" : "Option"}" as the third argument
 // Pass in t for the testing as the 4th argument
-
+//
 //EX. state0 := SetupSim("LLLLLLLLLLLLLLLAAAAAAAAAA", "LOCAL", map[string]string {"--controlpanelsetting" : "readwrite"}, t)
 func SetupSim(GivenNodes string, NetworkType string, UserAddedOptions map[string]string, t *testing.T) *state.State {
+	return SetupSim2(GivenNodes, false, NetworkType, UserAddedOptions, t)
+}
+
+// SetupSim2()
+// new entrypoint into SetupSim to allow specifying "tight" transactions, where EC are bought as needed rather than in
+// large blocks.
+func SetupSim2(GivenNodes string, tight bool, NetworkType string, UserAddedOptions map[string]string, t *testing.T) *state.State {
 	l := len(GivenNodes)
 	DefaultOptions := map[string]string{
 		"--db":           "Map",
@@ -68,6 +76,10 @@ func SetupSim(GivenNodes string, NetworkType string, UserAddedOptions map[string
 	state0.MessageTally = true
 	time.Sleep(3 * time.Second)
 	StatusEveryMinute(state0)
+	if tight {
+		runCmd("Re")
+	}
+
 	creatingNodes(GivenNodes, state0)
 
 	t.Logf("Allocated %d nodes", l)
@@ -77,6 +89,19 @@ func SetupSim(GivenNodes string, NetworkType string, UserAddedOptions map[string
 		t.Fail()
 	}
 	return state0
+}
+
+// Wait for a specific blocks
+func WaitForBlock(s *state.State, newBlock int) {
+	fmt.Printf("WaitForBlocks(%d)\n", newBlock)
+	TimeNow(s)
+	sleepTime := time.Duration(globals.Params.BlkTime) * 1000 / 40 // Figure out how long to sleep in milliseconds
+	for i := int(s.LLeaderHeight); i < newBlock; i++ {
+		for int(s.LLeaderHeight) < i {
+			time.Sleep(sleepTime * time.Millisecond) // wake up and about 4 times per minute
+		}
+		TimeNow(s)
+	}
 }
 
 func creatingNodes(creatingNodes string, state0 *state.State) {
@@ -383,6 +408,40 @@ func TestLoad(t *testing.T) {
 	WaitBlocks(state0, 30)
 	runCmd("R0") // Stop load
 	WaitBlocks(state0, 1)
+
+} // testLoad(){...}
+
+func TestLoad2(t *testing.T) {
+	if ranSimTest {
+		return
+	}
+
+	ranSimTest = true
+
+	state0 := SetupSim2("LLLAAAFFF", true, "LOCAL", map[string]string{}, t)
+
+	runCmd("7") // select node 1
+	runCmd("x") // take out 7 from the network
+	WaitBlocks(state0, 1)
+	WaitForMinute(state0, 1)
+
+	CheckAuthoritySet(3, 3, t)
+
+	runCmd("R30") // Feed load
+	WaitBlocks(state0, 3)
+	runCmd("Rt60")
+	runCmd("T20")
+	runCmd("R.5")
+	WaitBlocks(state0, 2)
+	runCmd("x")
+	WaitBlocks(state0, 3)
+	WaitMinutes(state0, 3)
+
+	ht7 := GetFnodes()[7].State.GetLLeaderHeight()
+	ht6 := GetFnodes()[6].State.GetLLeaderHeight()
+	if ht7 != ht6 {
+		t.Fatalf("Node 7 was at dbheight %d which didn't match Node 6 at dbheight %d", ht7, ht6)
+	}
 
 } // testLoad(){...}
 
@@ -1284,6 +1343,7 @@ func TestDBSigElection(t *testing.T) {
 
 }
 
+<<<<<<< HEAD
 func TestCoinbaseCancel(t *testing.T) {
 	if ranSimTest {
 		return
@@ -1424,6 +1484,59 @@ func TestCoinbaseCancel(t *testing.T) {
 
 	//shutDownEverythingWithoutAuthCheck(t)  see 9cf214e9140d767ea172b06a6e4b748475a9c494 for shutDownEverythingWithoutAuthCheck()
 
+=======
+func TestTestNetCoinBaseActivation(t *testing.T) {
+	if ranSimTest {
+		return
+	}
+	ranSimTest = true
+
+	// reach into the activation an hack the TESTNET_COINBASE_PERIOD to be early so I can check it worked.
+	activations.ActivationMap[activations.TESTNET_COINBASE_PERIOD].ActivationHeight["LOCAL"] = 22
+
+	state0 := SetupSim("LAF", "LOCAL", map[string]string{"--debuglog": "fault|badmsg|network|process|dbsig", "--faulttimeout": "10", "--blktime": "5"}, t)
+	CheckAuthoritySet(1, 1, t)
+	fmt.Println("Simulation configured")
+	nextBlock := uint32(11 + constants.COINBASE_DECLARATION) // first grant is at 11 so it pays at 21
+	fmt.Println("Wait till first grant should payout")
+	WaitForBlock(state0, int(nextBlock)) // wait for the first coin base payout to be generated
+	factoidState0 := state0.FactoidState.(*state.FactoidState)
+	CBT := factoidState0.GetCoinbaseTransaction(nextBlock, state0.GetLeaderTimestamp())
+	oldCBDelay := constants.COINBASE_DECLARATION
+	if oldCBDelay != 10 {
+		t.Fatalf("constants.COINBASE_DECLARATION = %d expect 10\n", constants.COINBASE_DECLARATION)
+	}
+	if len(CBT.GetOutputs()) != 1 {
+		t.Fatalf("Expected first payout at block %d\n", nextBlock)
+	} else {
+		fmt.Println("Got first payout")
+	}
+
+	fmt.Println("Wait till activation height")
+	WaitForBlock(state0, 25)
+	if constants.COINBASE_DECLARATION != 20 {
+		t.Fatalf("constants.COINBASE_DECLARATION = %d expect 140\n", constants.COINBASE_DECLARATION)
+	}
+
+	nextBlock += oldCBDelay + 1
+	fmt.Println("Wait till second grant should payout if the activation fails")
+	WaitForBlock(state0, int(nextBlock+1)) // next old payout passed activation (should not be paid)
+	CBT = factoidState0.GetCoinbaseTransaction(nextBlock, state0.GetLeaderTimestamp())
+	if len(CBT.GetOutputs()) != 0 {
+		t.Fatalf("because the payout delay changed there is no payout at block %d\n", nextBlock)
+	}
+
+	nextBlock += constants.COINBASE_DECLARATION - oldCBDelay + 1
+	fmt.Println("Wait till second grant should payout with the new activation height")
+	WaitForBlock(state0, int(nextBlock+1)) // next payout passed new activation (should be paid)
+	CBT = factoidState0.GetCoinbaseTransaction(nextBlock, state0.GetLeaderTimestamp())
+	if len(CBT.GetOutputs()) != 0 {
+		t.Fatalf("Expected first payout at block %d\n", nextBlock)
+	}
+
+	WaitForAllNodes(state0)
+	CheckAuthoritySet(1, 1, t) // check the authority set is as expected
+>>>>>>> origin/FD-706_release_candidate_6.0.2_dev
 	t.Log("Shutting down the network")
 	for _, fn := range GetFnodes() {
 		fn.State.ShutdownChan <- 1
