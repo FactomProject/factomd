@@ -55,6 +55,7 @@ func (lists *ProcessLists) UpdateState(dbheight uint32) (progress bool) {
 	if dbheight > lists.State.LLeaderHeight {
 		s := lists.State
 		//fmt.Println(fmt.Sprintf("EOM PROCESS: %10s ProcessListManager: !s.EOM(%v)", s.FactomNodeName, s.EOM))
+
 		s.CurrentMinute = 0
 		s.MoveStateToHeight(dbheight)
 		s.EOMProcessed = 0

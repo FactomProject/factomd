@@ -1175,8 +1175,9 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 		pl.AdminBlock = adminBlock.NewAdminBlock(nil)
 		pl.EntryCreditBlock, err = entryCreditBlock.NextECBlock(nil)
 	}
-
 	pl.ResetDiffSigTally()
+
+	pl.DirectoryBlock.GetHeader().SetTimestamp(now) // Well this is awkwardly after it's created but ....
 
 	if err != nil {
 		panic(err.Error())
