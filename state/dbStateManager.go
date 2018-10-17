@@ -1089,6 +1089,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	}
 
 	s.LogPrintf("dbstateprocess", "ProcessBlock %d actually", d.DirectoryBlock.GetHeader().GetDBHeight())
+	s.LogPrintf("dbstateprocess", "%s", d.String())
 
 	s.LogPrintf("dbstateprocess", "ProcessBlock 1 %s", atomic.WhereAmIString(1))
 	s.LogPrintf("dbstateprocess", "ProcessBlock 2 %s", atomic.WhereAmIString(2))

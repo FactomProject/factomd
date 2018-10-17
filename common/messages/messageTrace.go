@@ -197,7 +197,7 @@ func LogMessage(name string, note string, msg interfaces.IMsg) {
 		fixed := ack.GetHash().Fixed()
 		iMsg := getmsg(fixed)
 		traceMutex.Unlock()
-		LogMessage(name, "EmbeddedMsg: %s", iMsg)
+		LogMessage(name, "EmbeddedMsg:", iMsg)
 		traceMutex.Lock()
 
 	case constants.MISSING_DATA:
@@ -205,7 +205,7 @@ func LogMessage(name string, note string, msg interfaces.IMsg) {
 		fixed := md.RequestHash.Fixed()
 		iMsg := getmsg(fixed)
 		traceMutex.Unlock()
-		LogMessage(name, "EmbeddedMsg: %s", iMsg)
+		LogMessage(name, "EmbeddedMsg:", iMsg)
 		traceMutex.Lock()
 	}
 }

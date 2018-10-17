@@ -1492,6 +1492,34 @@ func TestTestNetCoinBaseActivation_long(t *testing.T) {
 	shutDownEverything(t)
 }
 
+func TestElection9(t *testing.T) {
+	if ranSimTest {
+		return
+	}
+	ranSimTest = true
+
+	state0 := SetupSim("LLAL", map[string]string{"--debuglog": ".|fault|badmsg|network|process|dbsig", "--faulttimeout": "10"}, 8, 1, 1, t)
+	StatusEveryMinute(state0)
+	CheckAuthoritySet(t)
+
+	state3 := GetFnodes()[3].State
+	if !state3.IsLeader() {
+		panic("Can't kill a audit and cause an election")
+	}
+	runCmd("3")
+	WaitForMinute(state3, 9) // wait till the victim is at minute 9
+	runCmd("x")
+	WaitMinutes(state0, 1) // Wait till fault completes
+	runCmd("x")
+
+	WaitBlocks(state0, 2)    // wait till the victim is back as the audit server
+	WaitForMinute(state0, 1) // Wait till ablock is loaded
+	WaitForAllNodes(state0)
+
+	WaitForMinute(state3, 1) // Wait till node 3 is following by minutes
+	shutDownEverything(t)
+}
+
 // Cheap tests for developing binary search commits algorithm
 
 func TestPass(t *testing.T) {
