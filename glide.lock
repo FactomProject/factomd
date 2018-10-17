@@ -1,19 +1,10 @@
-hash: fee315cb28853cbabcdc4261c83daf3465a28cf59c2d2f9e10ae9b6f5ddf7166
-updated: 2018-03-16T15:36:47.554093377-05:00
+hash: 47800735ff9bb7c6aecfa35f3f7a8e74f2e2612bd9670db4d6f1a1e85546b97a
+updated: 2018-10-17T14:23:08.297692985-05:00
 imports:
 - name: github.com/beorn7/perks
   version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
   subpackages:
   - quantile
-- name: github.com/btcsuitereleases/btcd
-  version: e005ff2cdaac3b3a0b60c8d03978221b784ad50a
-  subpackages:
-  - btcjson
-  - chaincfg
-  - txscript
-  - wire
-- name: github.com/btcsuitereleases/btcrpcclient
-  version: 30a5dc36b5f1519ae5dd9cae45aaf73ad46a813a
 - name: github.com/btcsuitereleases/btcutil
   version: f2b1058a82554c0c7c3b8809c5956c38374604d8
   subpackages:
@@ -31,25 +22,12 @@ imports:
   - certs
 - name: github.com/FactomProject/btcutilecc
   version: d3a63a5752ecf3fbc06bd97365da752111c263df
-- name: github.com/FactomProject/dynrsrc
-  version: b64fbdf4a9b9385ecae4749c6399eae2a604527f
 - name: github.com/FactomProject/ed25519
   version: 38002c4fe7b609c2fa3144a3cc29b997b756bb4c
   subpackages:
   - edwards25519
 - name: github.com/FactomProject/factom
-  version: cf230df541757ac86cd945a4a388c6c15914b726
-  subpackages:
-  - wallet
-  - wallet/wsapi
-- name: github.com/FactomProject/factom-cli
-  version: 4702861b7796d370a888ab3a232c37609304ff94
-- name: github.com/FactomProject/factom-walletd
-  version: dfab0806bccd0de9ca065d6fcb05ab56fa77c3e4
-- name: github.com/FactomProject/fctwallet
-  version: 97e19f8d1e251975480fa6f76eb2d9084b984a14
-- name: github.com/FactomProject/fsnotify
-  version: 4894fe7efedeeef21891033e1cce3b23b9af7ad2
+  version: 92b9a9bb5aa25574d8b950bf4e9daec78c8980b2
 - name: github.com/FactomProject/go-bip32
   version: 3b593af1c415abc1017648e4eb24a88c32fee0f3
 - name: github.com/FactomProject/go-bip39
@@ -58,12 +36,6 @@ imports:
   version: fd672f46ddc35bb381f497f7b64c9cf34f9e0703
 - name: github.com/FactomProject/go-simplejson
   version: aabad6e819789e569bd6aabf444c935aa9ba1e44
-- name: github.com/FactomProject/go-spew
-  version: ddfaec9b42f58fc8172b0cbb03b21c6668dd0a46
-  subpackages:
-  - spew
-- name: github.com/FactomProject/gocoding
-  version: 59666ce39524e0b2ed84fbdbb16e9b38dc92d9df
 - name: github.com/FactomProject/goleveldb
   version: e7800c6976c5d75f0a9c5e9e0e2ff8086940e58f
   subpackages:
@@ -108,10 +80,18 @@ imports:
   version: f5742cb6b85602e7fa834e9d5d91a7d7fa850824
 - name: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
+- name: github.com/kballard/go-shellquote
+  version: 95032a82bc518f77982ea72343cc1ade730072f0
+- name: github.com/mattn/go-colorable
+  version: efa589957cd060542a26d2dd7832fd6a6c6c3ade
+- name: github.com/mattn/go-isatty
+  version: 3fb116b820352b7f0c281308a4d6250c22d94e27
 - name: github.com/matttproud/golang_protobuf_extensions
   version: c12348ce28de40eed0136aa2b644d0ee0650e56c
   subpackages:
   - pbutil
+- name: github.com/mgutz/ansi
+  version: 9520e82c474b0a04dd04f8a40959027271bab992
 - name: github.com/mitchellh/go-testing-interface
   version: a61a99592b77c9ba629d254a693acffaeb4b7e28
 - name: github.com/prometheus/client_golang
@@ -132,6 +112,8 @@ imports:
   version: a6e9df898b1336106c743392c48ee0b71f5c4efa
   subpackages:
   - xfs
+- name: github.com/rs/cors
+  version: a3460e445dd310dbefee993fe449f2ff9c08ae71
 - name: github.com/sirupsen/logrus
   version: 89742aefa4b206dcf400792f3bd35b542998eb3b
 - name: github.com/spf13/cobra
@@ -193,6 +175,11 @@ imports:
   - status
   - tap
   - transport
+- name: gopkg.in/AlecAivazis/survey.v1
+  version: f30c5d1830c892f533140f29a1de89141dc217f5
+  subpackages:
+  - core
+  - terminal
 - name: gopkg.in/gcfg.v1
   version: 298b7a6a3838f79debfaee8bd3bfb2b8d779e756
   subpackages:
@@ -203,5 +190,8 @@ imports:
   version: 8a331561fe74dadba6edfc59f3be66c22c3b065d
 - name: gopkg.in/yaml.v2
   version: 5420a8b6744d3b0345ab293f6fcba19c978f1183
-testImports: []
-
+testImports:
+- name: github.com/FactomProject/go-spew
+  version: ddfaec9b42f58fc8172b0cbb03b21c6668dd0a46
+  subpackages:
+  - spew
