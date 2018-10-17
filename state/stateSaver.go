@@ -53,7 +53,7 @@ func (sss *StateSaverStruct) SaveDBStateList(ss *DBStateList, networkName string
 		sss.TmpDBHt = ss.State.LLeaderHeight
 	}
 
-	if hsb%ss.State.FastSaveRate == 0  &&  len(sss.TmpState) > 0 {
+	if hsb%ss.State.FastSaveRate == 0 && len(sss.TmpState) > 0 {
 		//Actually save data from previous cached state to prevent dealing with rollbacks
 		err := SaveToFile(sss.TmpState, NetworkIDToFilename(networkName, sss.FastBootLocation))
 		if err != nil {

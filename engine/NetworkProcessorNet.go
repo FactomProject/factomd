@@ -213,6 +213,13 @@ func Peers(fnode *FactomNode) {
 					break // move to next peer
 				}
 
+				if fnode.State.LLeaderHeight < fnode.State.DBHeightAtBoot+2 {
+					if msg.GetTimestamp().GetTimeMilli() < fnode.State.TimestampAtBoot.GetTimeMilli() {
+						fnode.State.LogMessage("NetworkInputs", "drop, too old", msg)
+						continue
+					}
+				}
+
 				receiveTime := time.Since(preReceiveTime)
 				TotalReceiveTime.Add(float64(receiveTime.Nanoseconds()))
 

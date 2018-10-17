@@ -117,7 +117,15 @@ func copyOver(st *state.State) {
 	}
 }
 
+// FundWallet()
+// Entry Point for no time offset on the transaction.
 func FundWallet(st *state.State, amt uint64) (error, string) {
+	return FundWalletTOFF(st, 0, amt)
+}
+
+// FundWalletTOFF()
+// Entry Point where test code allows the transaction to have a time offset from the current time.
+func FundWalletTOFF(st *state.State, timeOffsetInMilliseconds int64, amt uint64) (error, string) {
 	inSec, _ := primitives.HexToHash("FB3B471B1DCDADFEB856BD0B02D8BF49ACE0EDD372A3D9F2A95B78EC12A324D6") // private key or FCT Source
 	outEC, _ := primitives.HexToHash("c23ae8eec2beb181a0da926bd2344e988149fbe839fbc7489f2096e7d6110243") // EC address
 
@@ -141,7 +149,11 @@ func FundWallet(st *state.State, amt uint64) (error, string) {
 
 	trans.AddRCD(rcd)
 	trans.AddAuthorization(rcd)
-	trans.SetTimestamp(primitives.NewTimestampNow())
+
+	// So what we are going to do is get the current time in ms, add to it the offset provided (usually zero, except
+	// for tests)
+	trans.SetTimestamp(primitives.NewTimestampFromMilliseconds(
+		uint64(primitives.NewTimestampNow().GetTimeMilli() + timeOffsetInMilliseconds)))
 
 	fee, err := trans.CalculateFee(st.GetFactoshisPerEC())
 	if err != nil {
