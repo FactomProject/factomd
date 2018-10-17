@@ -42,7 +42,7 @@ var quit = make(chan struct{})
 // Pass in t for the testing as the 4th argument
 
 var expectedHeight, leaders, audits, followers int
-var startTime time.Time
+var startTime, endTime time.Time
 
 //EX. state0 := SetupSim("LLLLLLLLLLLLLLLAAAAAAAAAA",  map[string]string {"--controlpanelsetting" : "readwrite"}, t)
 func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int, electionsCnt int, RoundsCnt int, t *testing.T) *state.State {
@@ -137,9 +137,9 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 	startTime = time.Now()
 	state0 := Factomd(params, false).(*state.State)
 	statusState = state0
-	Calctime := time.Duration(float64((height*blkt)+(electionsCnt*et)+(RoundsCnt*roundt))*1.1) * time.Second
-	endtime := time.Now().Add(Calctime)
-	fmt.Println("ENDTIME: ", endtime)
+	calctime := time.Duration(float64((height*blkt)+(electionsCnt*et)+(RoundsCnt*roundt))*1.1) * time.Second
+	endTime = time.Now().Add(calctime)
+	fmt.Println("endTime: ", endTime.String(), "duration:", calctime.String())
 
 	go func() {
 		for {
@@ -151,8 +151,8 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 					fmt.Printf("Test Timeout: Expected %d blocks\n", height)
 					panic("Exceeded expected height")
 				}
-				if time.Now().After(endtime) {
-					fmt.Printf("Test Timeout: Expected it to take %s\n", Calctime.String())
+				if time.Now().After(endTime) {
+					fmt.Printf("Test Timeout: Expected it to take %s\n", calctime.String())
 					panic("TOOK TOO LONG")
 				}
 				time.Sleep(1 * time.Second)
@@ -160,7 +160,7 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 		}
 	}()
 	state0.MessageTally = true
-	fmt.Printf("Starting timeout timer:  Expected test to take %s or %d blocks\n", Calctime.String(), height)
+	fmt.Printf("Starting timeout timer:  Expected test to take %s or %d blocks\n", calctime.String(), height)
 	//	StatusEveryMinute(state0)
 	WaitMinutes(state0, 1) // wait till initial DBState message for the genesis block is processed
 	creatingNodes(GivenNodes, state0)
@@ -247,7 +247,7 @@ func WaitForAllNodes(state *state.State) {
 }
 
 func TimeNow(s *state.State) {
-	fmt.Printf("%s:%d-:-%d Now\n", s.FactomNodeName, int(s.LLeaderHeight), s.CurrentMinute)
+	fmt.Printf("%s:%d-:-%d Now %s of %s\n", s.FactomNodeName, int(s.LLeaderHeight), s.CurrentMinute, time.Now().Sub(startTime).String(), endTime.Sub(time.Now()).String())
 }
 
 var statusState *state.State
@@ -286,21 +286,26 @@ func StatusEveryMinute(s *state.State) {
 
 // Wait till block = newBlock and minute = newMinute
 func WaitForQuiet(s *state.State, newBlock int, newMinute int) {
-	fmt.Printf("%s: %d-:-%d WaitFor(%d-:-%d)\n", s.FactomNodeName, s.LLeaderHeight, s.CurrentMinute, newBlock, newMinute)
+	//	fmt.Printf("%s: %d-:-%d WaitFor(%d-:-%d)\n", s.FactomNodeName, s.LLeaderHeight, s.CurrentMinute, newBlock, newMinute)
 	sleepTime := time.Duration(globals.Params.BlkTime) * 1000 / 40 // Figure out how long to sleep in milliseconds
 	if newBlock*10+newMinute < int(s.LLeaderHeight)*10+s.CurrentMinute {
 		panic("Wait for the past")
 	}
 	for int(s.LLeaderHeight) < newBlock {
-		time.Sleep(sleepTime * time.Millisecond) // wake up and about 4 times per minute
+		x := int(s.LLeaderHeight)
+		// wait for the next block
+		for int(s.LLeaderHeight) == x {
+			time.Sleep(sleepTime * time.Millisecond) // wake up and about 4 times per minute
+		}
+		if int(s.LLeaderHeight) < newBlock {
+			TimeNow(s)
+		}
 	}
-	TimeNow(s)
 
+	// wait for the right minute
 	for s.CurrentMinute != newMinute {
 		time.Sleep(sleepTime * time.Millisecond) // wake up and about 4 times per minute
 	}
-	TimeNow(s)
-
 }
 
 func WaitMinutes(s *state.State, min int) {
@@ -556,7 +561,7 @@ func TestLoadScrambled(t *testing.T) {
 	ranSimTest = true
 
 	// use a tree so the messages get reordered
-	state0 := SetupSim("LLFFFFFF", map[string]string{"--net": "tree"}, 16, 0, 0, t)
+	state0 := SetupSim("LLFFFFFF", map[string]string{"--net": "tree"}, 30, 0, 0, t)
 	//TODO: Why does this run longer than expected?
 	runCmd("2")     // select 2
 	runCmd("F1000") // set the message delay
