@@ -16,7 +16,7 @@ import (
 // TODO - very incompleate journal test. needs to be expanded with different
 // message types and more messages and bad messages and so on.
 func TestJournal(t *testing.T) {
-	s := CreateAndPopulateTestState()
+	s := CreateAndPopulateTestStateAndStartValidator()
 	filename := "journaltest.log"
 	s.JournalFile = filename
 	_, err := os.Create(s.JournalFile)

@@ -140,7 +140,7 @@ func (fs *FactoidState) Reset(dbstate *DBState) {
 		t := fs.GetCoinbaseTransaction(fs.CurrentBlock.GetDatabaseHeight(), dbstate.NextTimestamp)
 
 		fs.State.FactoshisPerEC = dbstate.FinalExchangeRate
-		fs.State.LeaderTimestamp = dbstate.NextTimestamp
+		fs.State.SetLeaderTimestamp(dbstate.NextTimestamp)
 
 		err := fs.CurrentBlock.AddCoinbase(t)
 		if err != nil {

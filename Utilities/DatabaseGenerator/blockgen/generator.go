@@ -114,7 +114,7 @@ func (g *DBGenerator) loadGenesis() {
 	var err error
 	fmt.Println("\n***********************************")
 	fmt.Println("******* New Database **************")
-	fmt.Println("***********************************\n")
+	fmt.Println("***********************************")
 
 	var customIdentity interfaces.IHash
 	if g.FactomdState.Network == "CUSTOM" {

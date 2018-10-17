@@ -165,7 +165,7 @@ func TestMarshalUnmarshalDBStateMsg(t *testing.T) {
 }
 
 func TestSimpleDBStateMsgValidate(t *testing.T) {
-	state := testHelper.CreateAndPopulateTestState()
+	state := testHelper.CreateAndPopulateTestStateAndStartValidator()
 
 	msg := new(DBStateMsg)
 	if msg.Validate(state) >= 0 {
@@ -190,7 +190,7 @@ func TestSimpleDBStateMsgValidate(t *testing.T) {
 }
 
 func TestDBStateDataValidate(t *testing.T) {
-	state := testHelper.CreateAndPopulateTestState()
+	state := testHelper.CreateAndPopulateTestStateAndStartValidator()
 	msg := newDBStateMsg()
 
 	if v := msg.ValidateData(state); v != 1 {

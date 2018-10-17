@@ -111,6 +111,48 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 	}
 
 	valid := msg.Validate(s)
+	if valid == 1 {
+		if msg.Type() != constants.DBSTATE_MSG && msg.Type() != constants.DIRECTORY_BLOCK_SIGNATURE_MSG {
+			// Make sure we don't put in an old ack (outside our repeat range)
+			blktime := s.GetLeaderTimestamp().GetTime().UnixNano()
+			tlim := int64(Range * 60 * 1000000000)
+
+			if blktime != 0 {
+				msgtime := msg.GetTimestamp().GetTime().UnixNano()
+
+				// Make sure we don't put in an old msg (outside our repeat range)
+				Delta := blktime - msgtime
+				prev := s.GetDBState(s.LLeaderHeight - 1)
+				cur := s.GetDBState(s.LLeaderHeight)
+
+				s.LogPrintf("executeMsg", "prev %v", prev.DirectoryBlock.GetTimestamp().String())
+				if cur != nil {
+					s.LogPrintf("executeMsg", "curr %v ", cur.DirectoryBlock.GetTimestamp().String())
+				}
+
+				if Delta > tlim || -Delta > tlim {
+					/*
+
+					   4031 11:24:44 48497-:-0 Block 48497 time 2018-09-28 22:52:00 -0500 CDT
+					                                       time 2018-10-09 11:24:56 delta %!d(MISSING)
+					   4031 11:24:44 48497-:-0 Block 48497 time 2018-09-28 22:52:00 -0500 CDT Msg 38343834383864393137623031346662376664353164633936623731333965666135383432313432343762376635623763393537353230656439356262363461 time 2018-10-09 11:24:56 delta %!d(MISSING)
+					*/
+					s.LogPrintf("executeMsg", "Block %d time %v Msg %x time %v delta %d",
+						s.LLeaderHeight, s.GetLeaderTimestamp().GetTime().String(), msg.GetHash(), msg.GetTimestamp().String(), Delta)
+
+					// Delta is is negative its greater than blktime then it is future.
+					if Delta < 0 {
+						s.LogMessage("executeMsg", "Hold message from the future", msg)
+						valid = 0 // Future stuff I can hold for now.  It might be good later.
+					} else {
+						s.LogMessage("executeMsg", "Drop message because the msg is out of range", msg)
+						valid = -1 // Old messages are bad.
+					}
+				}
+			}
+		}
+	}
+
 	switch valid {
 	case 1:
 		// The highest block for which we have received a message.  Sometimes the same as
@@ -538,7 +580,7 @@ func (s *State) AddDBState(isNew bool,
 		//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s Add DBState: s.SigType(%v)", s.FactomNodeName, s.SigType))
 		s.EOM = false
 		s.DBSig = false
-		s.LLeaderHeight = ht
+		s.SetLLeaderHeight(ht)
 		s.ProcessLists.Get(ht + 1)
 		s.CurrentMinute = 0
 		s.EOMProcessed = 0
@@ -546,7 +588,7 @@ func (s *State) AddDBState(isNew bool,
 		s.StartDelay = s.GetTimestamp().GetTimeMilli()
 		s.RunLeader = false
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
-
+		s.SetLeaderTimestamp(dbState.DirectoryBlock.GetTimestamp()) // move the leader timestamp to the start of the block
 		{
 			// Okay, we have just loaded a new DBState.  The temp balances are no longer valid, if they exist.  Nuke them.
 			s.LeaderPL.FactoidBalancesTMutex.Lock()
@@ -564,7 +606,7 @@ func (s *State) AddDBState(isNew bool,
 		}
 	}
 	if ht == 0 && s.LLeaderHeight < 1 {
-		s.LLeaderHeight = 1
+		s.SetLLeaderHeight(1)
 	}
 
 	return dbState
@@ -587,7 +629,7 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 		m.SetMinute(ack.Minute)
 
 		pl := s.ProcessLists.Get(ack.DBHeight)
-		pl.AddToProcessList(s, ack, m)
+		pl.AddToProcessList(ack, m)
 
 		// Cross Boot Replay
 		s.CrossReplayAddSalt(ack.DBHeight, ack.Salt)
@@ -621,7 +663,7 @@ func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
 	if ack != nil {
 		pl := s.ProcessLists.Get(ack.DBHeight)
-		pl.AddToProcessList(s, ack, m)
+		pl.AddToProcessList(ack, m)
 	}
 }
 
@@ -793,11 +835,20 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	// Check all the transaction IDs (do not include signatures).  Only check, don't set flags.
 	for i, fct := range dbstatemsg.FactoidBlock.GetTransactions() {
 		// Check the prior blocks for a replay.
+		fixed := fct.GetSigHash().Fixed()
 		_, valid := s.FReplay.Valid(
 			constants.BLOCK_REPLAY,
-			fct.GetSigHash().Fixed(),
+			fixed,
 			fct.GetTimestamp(),
 			dbstatemsg.DirectoryBlock.GetHeader().GetTimestamp())
+		// FD-682 on 09/27/18 there was a block 160181 that was more than 60 minutes long and this transaction is judged invalid because it was 88 minutes
+		// after the blcok start time. The transaction is valid.
+		if dbheight == 160181 && fixed == [32]byte{0xf9, 0x6a, 0xf0, 0x63, 0xff, 0xfd, 0x90, 0xe2, 0x61, 0xe4, 0x5c, 0xbc, 0xdf, 0x34, 0xc3, 0x95,
+			0x8c, 0xf5, 0x4e, 0x23, 0x88, 0xfd, 0x3f, 0x8e, 0xf9, 0x07, 0xdc, 0xa9, 0x03, 0xea, 0x2f, 0x2e} {
+			valid = true
+		}
+		// f96af063fffd90e261e45cbcdf34c3958cf54e2388fd3f8ef907dca903ea2f2e
+
 		// If not the coinbase TX, and we are past 100,000, and the TX is not valid,then we don't accept this block.
 		if i > 0 && // Don't test the coinbase TX
 			((dbheight > 0 && dbheight < 2000) || dbheight > 100000) && // Test the first 2000 blks, so we can unit test, then after
@@ -903,6 +954,11 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 	mmr, _ := m.(*messages.MissingMsgResponse)
 
 	ack, ok := mmr.AckResponse.(*messages.Ack)
+
+	if ack.DBHeight < s.DBHeightAtBoot+2 && ack.GetTimestamp().GetTimeMilli() < s.TimestampAtBoot.GetTimeMilli() {
+		s.LogMessage("executeMsg", "drop, too old", m)
+		return
+	}
 
 	// If we don't need this message, we don't have to do everything else.
 	if !ok {
@@ -1090,7 +1146,7 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 	}
 
 	// Add the message and ack to the process list.
-	pl.AddToProcessList(s, ack, m)
+	pl.AddToProcessList(ack, m)
 
 	// Check to make sure AddToProcessList removed it from holding (added it to the list)
 	if s.Holding[m.GetMsgHash().Fixed()] != nil {
@@ -1124,7 +1180,7 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 	m.SetLeaderChainID(ack.GetLeaderChainID())
 	m.SetMinute(ack.Minute)
 
-	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(s, ack, m)
+	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(ack, m)
 }
 
 func (s *State) setCurrentMinute(m int) {
@@ -1248,7 +1304,7 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
 	m.SetLeaderChainID(ack.GetLeaderChainID())
 	m.SetMinute(ack.Minute)
 
-	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(s, ack, m)
+	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(ack, m)
 }
 
 func (s *State) LeaderExecuteCommitChain(m interfaces.IMsg) {
@@ -1296,7 +1352,7 @@ func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 	// Put the acknowledgement in the Acks so we can tell if AddToProcessList() adds it.
 	s.Acks[m.GetMsgHash().Fixed()] = ack
 	TotalAcksInputs.Inc()
-	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(s, ack, m)
+	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(ack, m)
 
 	// If it was not added, then handle as a follower, and leave.
 	if s.Acks[m.GetMsgHash().Fixed()] != nil {
@@ -1773,7 +1829,8 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			s.DBStates.ProcessBlocks(dbstate)
 
 			s.setCurrentMinute(0)
-			s.LLeaderHeight++
+			s.SetLLeaderHeight(s.LLeaderHeight + 1)
+			//			s.SetLeaderTimestamp(s.GetTimestamp()) // start the new block now...Needs to be updated when we get the VM 0 DBSig.
 
 			s.GetAckChange()
 			s.CheckForIDChange()

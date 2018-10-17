@@ -806,7 +806,6 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 					}
 
 					p.State.LogMessage("processList", "done", msg)
-
 					vm.heartBeat = 0
 					vm.Height = j + 1 // Don't process it again if the process worked.
 					s.LogMessage("process", fmt.Sprintf("done %v/%v/%v", p.DBHeight, i, j), msg)
@@ -842,7 +841,11 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 	return
 }
 
-func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces.IMsg) {
+func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
+	if p == nil { // Just do nothing if we don't have a process list here.
+		return
+	}
+	s := p.State
 	s.LogMessage("processList", "Message:", m)
 	s.LogMessage("processList", "Ack:", ack)
 	if p == nil {
@@ -867,6 +870,28 @@ func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces
 	}
 
 	TotalProcessListInputs.Inc()
+
+	// Make sure we don't put in an old ack (outside our repeat range)
+	blktime := p.State.GetLeaderTimestamp().GetTime().UnixNano()
+	tlim := int64(Range * 60 * 1000000000)
+
+	if blktime != 0 {
+		acktime := ack.GetTimestamp().GetTime().UnixNano()
+		msgtime := m.GetTimestamp().GetTime().UnixNano()
+		Delta := blktime - acktime
+
+		if Delta > tlim || -Delta > tlim {
+			p.State.LogPrintf("processList", "Drop message pair, because the ack is out of range")
+			return
+		}
+
+		// Make sure we don't put in an old msg (outside our repeat range)
+		Delta = blktime - msgtime
+		if Delta > tlim || -Delta > tlim {
+			p.State.LogPrintf("processList", "Drop message pair, because the msg is out of range")
+			return
+		}
+	}
 
 	if ack.DBHeight > s.HighestAck && ack.Minute > 0 {
 		s.HighestAck = ack.DBHeight
@@ -1173,6 +1198,7 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 
 	pl.ResetDiffSigTally()
 
+	pl.DirectoryBlock.GetHeader().SetTimestamp(now) // Well this is awkwardly after it's created but ....
 	if err != nil {
 		panic(err.Error())
 	}
