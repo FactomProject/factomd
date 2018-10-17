@@ -21,7 +21,7 @@ var _ interfaces.IMsg
 var _ = NewProcessList
 
 func TestIsStateFullySynced(t *testing.T) {
-	s1_good := CreateAndPopulateTestState()
+	s1_good := CreateAndPopulateTestStateAndStartValidator()
 	t.Log("IsStateFullySynced():", s1_good.IsStateFullySynced())
 	if !s1_good.IsStateFullySynced() {
 		t.Error("Test state is shown not to be fully synced")
@@ -37,7 +37,7 @@ func TestIsStateFullySynced(t *testing.T) {
 }
 
 func TestFetchECTransactionByHash(t *testing.T) {
-	s1 := CreateAndPopulateTestState()
+	s1 := CreateAndPopulateTestStateAndStartValidator()
 	blocks := CreateFullTestBlockSet()
 
 	for _, block := range blocks {
@@ -75,7 +75,7 @@ func TestFetchECTransactionByHash(t *testing.T) {
 }
 
 func TestFetchFactoidTransactionByHash(t *testing.T) {
-	s1 := CreateAndPopulateTestState()
+	s1 := CreateAndPopulateTestStateAndStartValidator()
 	blocks := CreateFullTestBlockSet()
 
 	for _, block := range blocks {
@@ -107,7 +107,7 @@ func TestFetchFactoidTransactionByHash(t *testing.T) {
 }
 
 func TestFetchPaidFor(t *testing.T) {
-	s1 := CreateAndPopulateTestState()
+	s1 := CreateAndPopulateTestStateAndStartValidator()
 	blocks := CreateFullTestBlockSet()
 
 	for _, block := range blocks {
@@ -162,7 +162,7 @@ func TestFetchPaidFor(t *testing.T) {
 }
 
 func TestFetchEntryByHash(t *testing.T) {
-	s1 := CreateAndPopulateTestState()
+	s1 := CreateAndPopulateTestStateAndStartValidator()
 	blocks := CreateFullTestBlockSet()
 
 	for _, block := range blocks {
@@ -190,7 +190,7 @@ func TestFetchEntryByHash(t *testing.T) {
 
 func TestUnknownAcks(t *testing.T) {
 	// All random unknown hashes
-	s := CreateAndPopulateTestState()
+	s := CreateAndPopulateTestStateAndStartValidator()
 	status, _, _, _ := s.GetEntryCommitAckByTXID(primitives.RandomHash())
 	if status != constants.AckStatusUnknown {
 		t.Error("Should be unknown")
@@ -214,7 +214,7 @@ func TestUnknownAcks(t *testing.T) {
 
 func TestDblockConf(t *testing.T) {
 	// All random unknown hashes
-	s := CreateAndPopulateTestState()
+	s := CreateAndPopulateTestStateAndStartValidator()
 	commit := messages.NewCommitEntryMsg()
 	commit.CommitEntry = entryCreditBlock.NewCommitEntry()
 	commit.CommitEntry.Credits = 2

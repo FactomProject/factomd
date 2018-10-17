@@ -53,7 +53,7 @@ func TestMarshalUnmarshalFedVoteProposal(t *testing.T) {
 		}
 	}
 
-	s := testHelper.CreateAndPopulateTestState()
+	s := testHelper.CreateAndPopulateTestStateAndStartValidator()
 	// Have volunteer
 	for i := 0; i < 20; i++ {
 		p := NewFedProposalMsg(primitives.RandomHash(), *randomVol(s))

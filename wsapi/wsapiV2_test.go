@@ -91,7 +91,7 @@ func TestHandleV2GetRaw(t *testing.T) {
 	toTest = append(toTest, raw) //5
 
 	//initializing server
-	state := testHelper.CreateAndPopulateTestState()
+	state := testHelper.CreateAndPopulateTestStateAndStartValidator()
 	Start(state)
 
 	for i, v := range toTest {
@@ -106,7 +106,7 @@ func TestHandleV2GetRaw(t *testing.T) {
 		}
 
 		if strings.Contains(resp.String(), v.Raw) == false {
-			t.Errorf("Looking for %v", v.Hash1, "but got %v", v.Raw)
+			t.Errorf("Looking for %v but got %v", v.Hash1, v.Raw)
 			t.Errorf("GetRaw %v/%v from Hash1 failed - %v", i, len(toTest), resp.String())
 		}
 
@@ -247,7 +247,7 @@ func TestHandleV2CommitChain(t *testing.T) {
 }
 
 func TestHandleV2GetReceipt(t *testing.T) {
-	state := testHelper.CreateAndPopulateTestState()
+	state := testHelper.CreateAndPopulateTestStateAndStartValidator()
 	//Start(state)
 
 	hashkey := new(HashRequest)
@@ -275,7 +275,7 @@ func TestHandleV2GetReceipt(t *testing.T) {
 }
 
 func TestHandleV2GetTranasction(t *testing.T) {
-	state := testHelper.CreateAndPopulateTestState()
+	state := testHelper.CreateAndPopulateTestStateAndStartValidator()
 	blocks := testHelper.CreateFullTestBlockSet()
 
 	for _, block := range blocks {

@@ -2130,13 +2130,18 @@ func (s *State) MsgQueue() chan interfaces.IMsg {
 
 func (s *State) GetLeaderTimestamp() interfaces.Timestamp {
 	if s.LeaderTimestamp == nil {
-		s.LeaderTimestamp = new(primitives.Timestamp)
+		s.SetLeaderTimestamp(new(primitives.Timestamp))
 	}
 	return s.LeaderTimestamp
 }
 
 func (s *State) SetLeaderTimestamp(ts interfaces.Timestamp) {
-	s.LeaderTimestamp = ts
+	s.LeaderTimestamp = ts //SetLeaderTimestamp()
+	//s.LogPrintf("executeMsg", "Set LeaderTimeStamp %d %v for %s", s.LLeaderHeight, s.LeaderTimestamp.String(), atomic.WhereAmIString(1))
+}
+func (s *State) SetLLeaderHeight(height uint32) {
+	s.LLeaderHeight = height //SetLeaderHeight()
+	//s.LogPrintf("executeMsg", "Set LeaderHeight %d for %s", s.LLeaderHeight, atomic.WhereAmIString(1))
 }
 
 func (s *State) SetFaultTimeout(timeout int) {
@@ -2295,6 +2300,7 @@ func (s *State) InitLevelDB() error {
 	path := s.LdbPath + "/" + s.Network + "/" + "factoid_level.db"
 
 	s.Println("Database:", path)
+	fmt.Fprint(os.Stderr, "Database:", path)
 
 	dbase, err := leveldb.NewLevelDB(path, false)
 
@@ -2413,18 +2419,17 @@ func (s *State) SetStringConsensus() {
 //		instantTPS	: Transaction rate weighted over last 3 seconds
 func (s *State) CalculateTransactionRate() (totalTPS float64, instantTPS float64) {
 	runtime := time.Since(s.starttime)
-	shorttime := time.Since(s.lasttime)
 	total := s.FactoidTrans + s.NewEntryChains + s.NewEntries
 	tps := float64(total) / float64(runtime.Seconds())
 	TotalTransactionPerSecond.Set(tps) // Prometheus
-	if shorttime > time.Second*3 {
+	shorttime := time.Since(s.lasttime)
+	if shorttime >= time.Second*3 {
 		delta := (s.FactoidTrans + s.NewEntryChains + s.NewEntries) - s.transCnt
 		s.tps = ((float64(delta) / float64(shorttime.Seconds())) + 2*s.tps) / 3
 		s.lasttime = time.Now()
 		s.transCnt = total                     // transactions accounted for
 		InstantTransactionPerSecond.Set(s.tps) // Prometheus
 	}
-
 	return tps, s.tps
 }
 
