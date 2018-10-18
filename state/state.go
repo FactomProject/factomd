@@ -398,7 +398,7 @@ type State struct {
 	processCnt int64 // count of attempts to process .. so we can see if the thread is running
 	MMRInfo          // fields for MMR processing
 
-	reportedActivations [activations.ACTIVATION_TYPE_COUNT + 1]bool // flags about which activations we have reported (+1 because we don't use 0)
+	reportedActivations   [activations.ACTIVATION_TYPE_COUNT + 1]bool // flags about which activations we have reported (+1 because we don't use 0)
 	validatorLoopThreadID string
 }
 
@@ -2422,12 +2422,7 @@ func (s *State) SetStringConsensus() {
 //		totalTPS	: Transaction rate over life of node (totaltime / totaltrans)
 //		instantTPS	: Transaction rate weighted over last 3 seconds
 func (s *State) CalculateTransactionRate() (totalTPS float64, instantTPS float64) {
-<<<<<<<<< Temporary merge branch 1
 	runtime := time.Since(s.Starttime)
-	shorttime := time.Since(s.lasttime)
-=========
-	runtime := time.Since(s.starttime)
->>>>>>>>> Temporary merge branch 2
 	total := s.FactoidTrans + s.NewEntryChains + s.NewEntries
 	tps := float64(total) / float64(runtime.Seconds())
 	TotalTransactionPerSecond.Set(tps) // Prometheus
