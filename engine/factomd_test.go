@@ -33,31 +33,22 @@ var _ = Factomd
 // It has default but if you want just add it like "map[string]string{"--Other" : "Option"}" as the third argument
 // Pass in t for the testing as the 4th argument
 //
-//EX. state0 := SetupSim("LLLLLLLLLLLLLLLAAAAAAAAAA", "LOCAL", map[string]string {"--controlpanelsetting" : "readwrite"}, t)
-func SetupSim(GivenNodes string, NetworkType string, UserAddedOptions map[string]string, t *testing.T) *state.State {
-	return SetupSim2(GivenNodes, false, NetworkType, UserAddedOptions, t)
-}
-
-// SetupSim2()
-// new entrypoint into SetupSim to allow specifying "tight" transactions, where EC are bought as needed rather than in
-// large blocks.
-func SetupSim2(GivenNodes string, tight bool, NetworkType string, UserAddedOptions map[string]string, t *testing.T) *state.State {
+//EX. state0 := SetupSim("LLLLLLLLLLLLLLLAAAAAAAAAA",  map[string]string {"--controlpanelsetting" : "readwrite"}, t)
+func SetupSim(GivenNodes string, UserAddedOptions map[string]string, t *testing.T) *state.State {
 	l := len(GivenNodes)
 	DefaultOptions := map[string]string{
 		"--db":           "Map",
-		"--network":      fmt.Sprintf("%v", NetworkType),
+		"--network":      "LOCAL",
 		"--net":          "alot+",
 		"--enablenet":    "false",
 		"--blktime":      "8",
 		"--faulttimeout": "2",
 		"--roundtimeout": "2",
 		"--count":        fmt.Sprintf("%v", l),
-		//"--debuglog=.*",
-		//"--debuglog=F.*",
-		"--startdelay": "1",
-		"--stdoutlog":  "out.txt",
-		"--stderrlog":  "err.txt",
-		"--checkheads": "false",
+		"--startdelay":   "1",
+		"--stdoutlog":    "out.txt",
+		"--stderrlog":    "err.txt",
+		"--checkheads":   "false",
 	}
 
 	if UserAddedOptions != nil && len(UserAddedOptions) != 0 {
@@ -75,11 +66,6 @@ func SetupSim2(GivenNodes string, tight bool, NetworkType string, UserAddedOptio
 	state0 := Factomd(params, false).(*state.State)
 	state0.MessageTally = true
 	time.Sleep(3 * time.Second)
-	StatusEveryMinute(state0)
-	if tight {
-		runCmd("Re")
-	}
-
 	creatingNodes(GivenNodes, state0)
 
 	t.Logf("Allocated %d nodes", l)
@@ -288,7 +274,7 @@ func TestSetupANetwork(t *testing.T) {
 
 	ranSimTest = true
 
-	state0 := SetupSim("LLLLAAAFFF", "LOCAL", map[string]string{"--logPort": "37000", "--port": "37001", "--controlpanelport": "37002", "--networkport": "37003"}, t)
+	state0 := SetupSim("LLLLAAAFFF", map[string]string{"--logPort": "37000", "--port": "37001", "--controlpanelport": "37002", "--networkport": "37003"}, t)
 
 	runCmd("s")  // Show the process lists and directory block states as
 	runCmd("9")  // Puts the focus on node 9
@@ -392,7 +378,7 @@ func TestLoad(t *testing.T) {
 
 	ranSimTest = true
 
-	state0 := SetupSim("LL", "LOCAL", map[string]string{}, t)
+	state0 := SetupSim("LL", map[string]string{}, t)
 
 	runCmd("1") // select node 1
 	runCmd("l") // make 1 a leader
@@ -413,10 +399,11 @@ func TestLoad2(t *testing.T) {
 	if ranSimTest {
 		return
 	}
-
 	ranSimTest = true
-	go runCmd("Re")
-	state0 := SetupSim2("LLLAAAFFF", true, "LOCAL", map[string]string{}, t)
+
+	go runCmd("Re") // Turn on tight allocation of EC as soon as the simulator is up and running
+	state0 := SetupSim("LLLAAAFFF", map[string]string{}, t)
+	StatusEveryMinute(state0)
 
 	runCmd("7") // select node 1
 	runCmd("x") // take out 7 from the network
@@ -450,7 +437,7 @@ func TestMakeALeader(t *testing.T) {
 
 	ranSimTest = true
 
-	state0 := SetupSim("LL", "LOCAL", map[string]string{}, t)
+	state0 := SetupSim("LL", map[string]string{}, t)
 
 	runCmd("1") // select node 1
 	runCmd("l") // make him a leader
@@ -485,7 +472,7 @@ func TestActivationHeightElection(t *testing.T) {
 		nodeList += "F"
 	}
 
-	state0 := SetupSim(nodeList, "LOCAL", map[string]string{"--logPort": "37000", "--port": "37001", "--controlpanelport": "37002", "--networkport": "37003"}, t)
+	state0 := SetupSim(nodeList, map[string]string{"--logPort": "37000", "--port": "37001", "--controlpanelport": "37002", "--networkport": "37003"}, t)
 
 	StatusEveryMinute(state0)
 	WaitMinutes(state0, 2)
@@ -611,7 +598,7 @@ func TestAnElection(t *testing.T) {
 		nodeList += "F"
 	}
 
-	state0 := SetupSim(nodeList, "LOCAL", map[string]string{}, t)
+	state0 := SetupSim(nodeList, map[string]string{}, t)
 
 	StatusEveryMinute(state0)
 	WaitMinutes(state0, 2)
@@ -681,7 +668,7 @@ func TestDBsigEOMElection(t *testing.T) {
 
 	ranSimTest = true
 
-	state := SetupSim("LLLLLAA", "LOCAL", map[string]string{"--logPort": "37000", "--port": "37001", "--controlpanelport": "37002", "--networkport": "37003"}, t)
+	state := SetupSim("LLLLLAA", map[string]string{"--logPort": "37000", "--port": "37001", "--controlpanelport": "37002", "--networkport": "37003"}, t)
 
 	state = GetFnodes()[2].State
 	state.MessageTally = true
@@ -760,7 +747,7 @@ func TestMultiple2Election(t *testing.T) {
 
 	ranSimTest = true
 
-	state := SetupSim("LLLLLLLAAF", "LOCAL", map[string]string{}, t)
+	state := SetupSim("LLLLLLLAAF", map[string]string{}, t)
 
 	CheckAuthoritySet(7, 2, t)
 
@@ -796,7 +783,7 @@ func TestMultiple3Election(t *testing.T) {
 
 	ranSimTest = true
 
-	state := SetupSim("LLLLLLLAAAAF", "LOCAL", map[string]string{}, t)
+	state := SetupSim("LLLLLLLAAAAF", map[string]string{}, t)
 
 	CheckAuthoritySet(7, 4, t)
 
@@ -834,7 +821,7 @@ func TestMultiple7Election(t *testing.T) {
 
 	ranSimTest = true
 
-	state := SetupSim("LLLLLLLLLLLLLLLAAAAAAAAAA", "LOCAL", map[string]string{"--controlpanelsetting": "readwrite"}, t)
+	state := SetupSim("LLLLLLLLLLLLLLLAAAAAAAAAA", map[string]string{"--controlpanelsetting": "readwrite"}, t)
 
 	CheckAuthoritySet(15, 10, t)
 
@@ -871,7 +858,7 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 	}
 	ranSimTest = true
 
-	state0 := SetupSim("LLLLAAAFFF", "LOCAL", map[string]string{"--logPort": "37000", "--port": "37001", "--controlpanelport": "37002", "--networkport": "37003"}, t)
+	state0 := SetupSim("LLLLAAAFFF", map[string]string{"--logPort": "37000", "--port": "37001", "--controlpanelport": "37002", "--networkport": "37003"}, t)
 	WaitForMinute(state0, 1)
 
 	type walletcallHelper struct {
@@ -1047,7 +1034,7 @@ func TestMultipleECAccountsAPI(t *testing.T) {
 	}
 	ranSimTest = true
 
-	state0 := SetupSim("LLLLAAAFFF", "LOCAL", map[string]string{"--logPort": "37000", "--port": "8088", "--controlpanelport": "37002", "--networkport": "37003"}, t)
+	state0 := SetupSim("LLLLAAAFFF", map[string]string{"--logPort": "37000", "--port": "8088", "--controlpanelport": "37002", "--networkport": "37003"}, t)
 	WaitForMinute(state0, 1)
 
 	type walletcallHelper struct {
@@ -1263,7 +1250,7 @@ func TestDBsigElectionEvery2Block(t *testing.T) {
 	ranSimTest = true
 
 	iterations := 1
-	state := SetupSim("LLLLLLAF", "LOCAL", map[string]string{"--debuglog": "fault|badmsg|network|process|dbsig", "--faulttimeout": "10"}, t)
+	state := SetupSim("LLLLLLAF", map[string]string{"--debuglog": "fault|badmsg|network|process|dbsig", "--faulttimeout": "10"}, t)
 
 	runCmd("S10") // Set Drop Rate to 1.0 on everyone
 
@@ -1308,7 +1295,7 @@ func TestDBSigElection(t *testing.T) {
 	}
 	ranSimTest = true
 
-	state0 := SetupSim("LLLAF", "LOCAL", map[string]string{"--debuglog": "fault|badmsg|network|process|dbsig", "--faulttimeout": "10"}, t)
+	state0 := SetupSim("LLLAF", map[string]string{"--debuglog": "fault|badmsg|network|process|dbsig", "--faulttimeout": "10"}, t)
 	StatusEveryMinute(state0)
 
 	CheckAuthoritySet(3, 1, t)
@@ -1350,7 +1337,7 @@ func TestTestNetCoinBaseActivation(t *testing.T) {
 	// reach into the activation an hack the TESTNET_COINBASE_PERIOD to be early so I can check it worked.
 	activations.ActivationMap[activations.TESTNET_COINBASE_PERIOD].ActivationHeight["LOCAL"] = 22
 
-	state0 := SetupSim("LAF", "LOCAL", map[string]string{"--debuglog": "fault|badmsg|network|process|dbsig", "--faulttimeout": "10", "--blktime": "5"}, t)
+	state0 := SetupSim("LAF", map[string]string{"--debuglog": "fault|badmsg|network|process|dbsig", "--faulttimeout": "10", "--blktime": "5"}, t)
 	CheckAuthoritySet(1, 1, t)
 	fmt.Println("Simulation configured")
 	nextBlock := uint32(11 + constants.COINBASE_DECLARATION) // first grant is at 11 so it pays at 21

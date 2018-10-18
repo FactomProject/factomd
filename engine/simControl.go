@@ -102,7 +102,7 @@ func SimControl(listenTo int, listenStdin bool) {
 	ListenTo = listenTo
 
 	if loadGenerator == nil {
-		loadGenerator = new(LoadGenerator)
+		loadGenerator = NewLoadGenerator(fnodes[0].State)
 	}
 
 	for {
