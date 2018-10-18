@@ -42,7 +42,7 @@ func TestUnmarshalFedVoteVolunteerDBSig(t *testing.T) {
 	vol := con.Volunteers[0]
 
 	var err error
-	s := testHelper.CreateAndPopulateTestState()
+	s := testHelper.CreateAndPopulateTestStateAndStartValidator()
 	for s.UpdateState() {
 	}
 	for s.Process() {

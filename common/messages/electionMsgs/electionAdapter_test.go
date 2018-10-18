@@ -44,7 +44,7 @@ func TestElectionAuditOrder(t *testing.T) {
 }
 
 func TestSimpleSigning(t *testing.T) {
-	s := CreateAndPopulateTestState()
+	s := CreateAndPopulateTestStateAndStartValidator()
 	e := NewTestElection()
 	v1 := NewTestVolunteerMessage(e, 2, 0)
 	err := v1.Sign(s)
@@ -60,7 +60,7 @@ func TestSimpleSigning(t *testing.T) {
 
 func TestElectionAdapterSimple(t *testing.T) {
 	e := NewTestElection()
-	e.State = CreateAndPopulateTestState()
+	e.State = CreateAndPopulateTestStateAndStartValidator()
 	e.State.SetIdentityChainID(primitives.NewZeroHash())
 
 	a := NewElectionAdapter(e, primitives.NewZeroHash())

@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -518,11 +519,6 @@ func (p *ProcessList) RemoveAuditServerHash(identityChainID interfaces.IHash) {
 }
 
 // Given a server index, return the last Ack
-func (p *ProcessList) GetAck(vmIndex int) *messages.Ack {
-	return p.GetAckAt(vmIndex, p.VMs[vmIndex].Height)
-}
-
-// Given a server index, return the last Ack
 func (p *ProcessList) GetAckAt(vmIndex int, height int) *messages.Ack {
 	vm := p.VMs[vmIndex]
 	if height < 0 || height >= len(vm.ListAck) {
@@ -531,40 +527,10 @@ func (p *ProcessList) GetAckAt(vmIndex int, height int) *messages.Ack {
 	return vm.ListAck[height]
 }
 
-func (p ProcessList) HasMessage() bool {
-	for i := 0; i < len(p.FedServers); i++ {
-		if len(p.VMs[i].List) > 0 {
-			return true
-		}
-	}
-
-	return false
-}
-
 func (p *ProcessList) AddOldMsgs(m interfaces.IMsg) {
 	p.oldmsgslock.Lock()
 	defer p.oldmsgslock.Unlock()
 	p.OldMsgs[m.GetHash().Fixed()] = m
-}
-
-func (p *ProcessList) DeleteOldMsgs(key interfaces.IHash) {
-	p.oldmsgslock.Lock()
-	defer p.oldmsgslock.Unlock()
-	delete(p.OldMsgs, key.Fixed())
-}
-
-func (p *ProcessList) GetOldMsgs(key interfaces.IHash) interfaces.IMsg {
-	if p == nil {
-		return nil
-	}
-
-	p.oldmsgslock.Lock()
-	defer p.oldmsgslock.Unlock()
-	m, ok := p.OldMsgs[key.Fixed()]
-	if !ok {
-		return nil
-	}
-	return m
 }
 
 func (p *ProcessList) GetOldAck(key interfaces.IHash) interfaces.IMsg {
@@ -592,31 +558,10 @@ func (p *ProcessList) GetNewEBlocks(key interfaces.IHash) interfaces.IEntryBlock
 	return p.NewEBlocks[key.Fixed()]
 }
 
-func (p *ProcessList) DeleteEBlocks(key interfaces.IHash) {
-	p.neweblockslock.Lock()
-	defer p.neweblockslock.Unlock()
-	delete(p.NewEBlocks, key.Fixed())
-}
-
 func (p *ProcessList) AddNewEntry(key interfaces.IHash, value interfaces.IEntry) {
 	p.NewEntriesMutex.Lock()
 	defer p.NewEntriesMutex.Unlock()
 	p.NewEntries[key.Fixed()] = value
-}
-
-func (p *ProcessList) DeleteNewEntry(key interfaces.IHash) {
-	p.NewEntriesMutex.Lock()
-	defer p.NewEntriesMutex.Unlock()
-	delete(p.NewEntries, key.Fixed())
-}
-
-func (p *ProcessList) GetLeaderTimestamp() interfaces.Timestamp {
-	for _, msg := range p.VMs[0].List {
-		if msg.Type() == constants.DIRECTORY_BLOCK_SIGNATURE_MSG {
-			return msg.GetTimestamp()
-		}
-	}
-	return new(primitives.Timestamp)
 }
 
 func (p *ProcessList) ResetDiffSigTally() {
@@ -799,6 +744,11 @@ func (p *ProcessList) Ask(vmIndex int, height uint32, delay int64) {
 	if p.asks == nil { // If it is nil, there is no makemmrs
 		return
 	}
+
+	if p.State.IgnoreMissing || p.State.DBFinished == false {
+		return // Don't ask for missing message while we are in ignore.
+	}
+
 	if vmIndex < 0 {
 		panic(errors.New("Old Faulting code"))
 	}
@@ -1093,6 +1043,10 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 }
 
 func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
+	if p == nil { // Just do nothing if we don't have a process list here.
+		return
+	}
+
 	p.State.LogMessage("processList", "Message:", m)
 	p.State.LogMessage("processList", "Ack:", ack)
 	if p == nil {
@@ -1117,6 +1071,28 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	}
 
 	TotalProcessListInputs.Inc()
+
+	// Make sure we don't put in an old ack (outside our repeat range)
+	blktime := p.State.GetLeaderTimestamp().GetTime().UnixNano()
+	tlim := int64(Range * 60 * 1000000000)
+
+	if blktime != 0 {
+		acktime := ack.GetTimestamp().GetTime().UnixNano()
+		msgtime := m.GetTimestamp().GetTime().UnixNano()
+		Delta := blktime - acktime
+
+		if Delta > tlim || -Delta > tlim {
+			p.State.LogPrintf("processList", "Drop message pair, because the ack is out of range")
+			return
+		}
+
+		// Make sure we don't put in an old msg (outside our repeat range)
+		Delta = blktime - msgtime
+		if Delta > tlim || -Delta > tlim {
+			p.State.LogPrintf("processList", "Drop message pair, because the msg is out of range")
+			return
+		}
+	}
 
 	if ack.DBHeight > p.State.HighestAck && ack.Minute > 0 {
 		p.State.HighestAck = ack.DBHeight
@@ -1299,7 +1275,12 @@ func (p *ProcessList) String() string {
 
 				if msg != nil {
 					leader := fmt.Sprintf("[%x] ", vm.ListAck[j].LeaderChainID.Bytes()[3:6])
-					buf.WriteString("   " + leader + msg.String() + "\n")
+					msgStr := msg.String()
+					index := strings.Index(msgStr, "\n")
+					if index > 0 {
+						msgStr = msgStr[0:index]
+					}
+					buf.WriteString("   " + leader + msgStr + "\n")
 				} else {
 					buf.WriteString("   <nil>\n")
 				}
@@ -1415,8 +1396,9 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 		pl.AdminBlock = adminBlock.NewAdminBlock(nil)
 		pl.EntryCreditBlock, err = entryCreditBlock.NextECBlock(nil)
 	}
-
 	pl.ResetDiffSigTally()
+
+	pl.DirectoryBlock.GetHeader().SetTimestamp(now) // Well this is awkwardly after it's created but ....
 
 	if err != nil {
 		panic(err.Error())

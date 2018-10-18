@@ -144,7 +144,7 @@ func newSignedHeartbeat() *Heartbeat {
 }
 
 func TestValidHeatbeat(t *testing.T) {
-	s := testHelper.CreateAndPopulateTestState()
+	s := testHelper.CreateAndPopulateTestStateAndStartValidator()
 	a := identity.RandomAuthority()
 
 	pkey := primitives.RandomPrivateKey()
