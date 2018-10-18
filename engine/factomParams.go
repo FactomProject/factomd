@@ -59,19 +59,21 @@ func init() {
 	flag.BoolVar(&p.KeepMismatch, "keepmismatch", false, "If true, do not discard DBStates even when a majority of DBSignatures have a different hash")
 	flag.Int64Var(&p.StartDelay, "startdelay", 10, "Delay to start processing messages, in seconds")
 	flag.IntVar(&p.Deadline, "deadline", 1000, "Timeout Delay in milliseconds used on Reads and Writes to the network comm")
+	//flag.StringVar(&p.CustomNetName,"customnet", "", "This string specifies a custom blockchain network ID.")
+	//p.CustomNet = primitives.Sha([]byte(*CustomNetPtr)).Bytes()[:4]
 	flag.StringVar(&p.RpcUser, "rpcuser", "", "Username to protect factomd local API with simple HTTP authentication")
 	flag.StringVar(&p.RpcPassword, "rpcpass", "", "Password to protect factomd local API. Ignored if rpcuser is blank")
 	flag.BoolVar(&p.FactomdTLS, "tls", false, "Set to true to require encrypted connections to factomd API and Control Panel") //to get tls, run as "factomd -tls=true"
 	flag.StringVar(&p.FactomdLocations, "selfaddr", "", "comma separated IPAddresses and DNS names of this factomd to use when creating a cert file")
 	flag.IntVar(&p.MemProfileRate, "mpr", 512*1024, "Set the Memory Profile Rate to update profiling per X bytes allocated. Default 512K, set to 1 to profile everything, 0 to disable.")
 	flag.BoolVar(&p.ExposeProfiling, "exposeprofiler", false, "Setting this exposes the profiling port to outside localhost.")
+	//flag.StringVar(&,"factomhome", "", "Set the Factom home directory. The .factom folder will be placed here if set, otherwise it will default to $HOME")
 	flag.StringVar(&p.LogPort, "logPort", "6060", "Port for pprof logging")
 	flag.IntVar(&p.PortOverride, "port", 0, "Port where we serve WSAPI;  default 8088")
 	flag.IntVar(&p.ControlPanelPortOverride, "controlpanelport", 0, "Port for control panel webserver;  Default 8090")
 	flag.IntVar(&p.NetworkPortOverride, "networkport", 0, "Port for p2p network; default 8110")
 	flag.BoolVar(&p.Fast, "fast", true, "If true, Factomd will fast-boot from a file.")
 	flag.IntVar(&p.FastSaveRate, "fastsaverate", 1000, "Save a fastboot file every so many blocks. Should be > 1000 for live systems.")
-
 	flag.StringVar(&p.FastLocation, "fastlocation", "", "Directory to put the Fast-boot file in.")
 	flag.StringVar(&p.Loglvl, "loglvl", "none", "Set log level to either: none, debug, info, warning, error, fatal or panic")
 	flag.BoolVar(&p.Logjson, "logjson", false, "Use to set logging to use a json formatting")
@@ -94,6 +96,8 @@ func init() {
 
 func ParseCmdLine(args []string) *FactomParams {
 	p := &Params // Global copy of decoded Params global.Params
+
+
 	flag.CommandLine.Parse(args)
 
 	// Handle the global (not Factom server specific parameters
@@ -122,7 +126,6 @@ func ParseCmdLine(args []string) *FactomParams {
 		}
 
 	}
-
 	if !isCompilerVersionOK() {
 		fmt.Println("!!! !!! !!! ERROR: unsupported compiler version !!! !!! !!!")
 		time.Sleep(3 * time.Second)

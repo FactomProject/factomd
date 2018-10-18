@@ -40,6 +40,7 @@ var quit = make(chan struct{})
 // Pass in the Network type ex. "LOCAL" as the second argument
 // It has default but if you want just add it like "map[string]string{"--Other" : "Option"}" as the third argument
 // Pass in t for the testing as the 4th argument
+
 var expectedHeight, leaders, audits, followers int
 var startTime, endTime time.Time
 
@@ -48,16 +49,16 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 	expectedHeight = height
 	l := len(GivenNodes)
 	CmdLineOptions := map[string]string{
-		"--db":           "Map",
+		"--db":                  "Map",
 		"--network":             "LOCAL",
-		"--net":          "alot+",
-		"--enablenet":    "false",
+		"--net":                 "alot+",
+		"--enablenet":           "false",
 		"--blktime":             "10",
-		"--count":        fmt.Sprintf("%v", l),
-		"--startdelay": "1",
-		"--stdoutlog":  "out.txt",
+		"--count":               fmt.Sprintf("%v", l),
+		"--startdelay":          "1",
+		"--stdoutlog":           "out.txt",
 		"--stderrlog":           "out.txt",
-		"--checkheads": "false",
+		"--checkheads":          "false",
 		"--controlpanelsetting": "readwrite",
 		"--debuglog":            ".|faulting|bad",
 		"--logPort":             "37000",
@@ -73,9 +74,9 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 				CmdLineOptions[key] = value
 			} else {
 				CmdLineOptions[key] = CmdLineOptions[key] + "|" + value // add debug log flags to the default
-		}
+			}
 			// remove options not supported by the current flags set so we can merge this update into older code bases
-	}
+		}
 	}
 	// Finds all of the valid commands and stores them
 	optionsArr := make(map[string]bool, 0)
@@ -173,6 +174,7 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 	return state0
 }
 
+
 func creatingNodes(creatingNodes string, state0 *state.State) {
 	runCmd(fmt.Sprintf("g%d", len(creatingNodes)))
 	WaitMinutes(state0, 1)
@@ -250,31 +252,32 @@ func TimeNow(s *state.State) {
 }
 
 var statusState *state.State
+
 // print the status for every minute for a state
 func StatusEveryMinute(s *state.State) {
 	if statusState == nil {
 		fmt.Fprintf(os.Stdout, "Printing status from %s\n", s.FactomNodeName)
 		statusState = s
-	go func() {
-		for {
+		go func() {
+			for {
 				s := statusState
-			newMinute := (s.CurrentMinute + 1) % 10
-			timeout := 8 // timeout if a minutes takes twice as long as expected
-			for s.CurrentMinute != newMinute && timeout > 0 {
-				sleepTime := time.Duration(globals.Params.BlkTime) * 1000 / 40 // Figure out how long to sleep in milliseconds
-				time.Sleep(sleepTime * time.Millisecond)                       // wake up and about 4 times per minute
-				timeout--
-			}
-			if timeout <= 0 {
-				fmt.Println("Stalled !!!")
-			}
+				newMinute := (s.CurrentMinute + 1) % 10
+				timeout := 8 // timeout if a minutes takes twice as long as expected
+				for s.CurrentMinute != newMinute && timeout > 0 {
+					sleepTime := time.Duration(globals.Params.BlkTime) * 1000 / 40 // Figure out how long to sleep in milliseconds
+					time.Sleep(sleepTime * time.Millisecond)                       // wake up and about 4 times per minute
+					timeout--
+				}
+				if timeout <= 0 {
+					fmt.Println("Stalled !!!")
+				}
 				// Make all the nodes update their status
-			for _, n := range GetFnodes() {
-				n.State.SetString()
+				for _, n := range GetFnodes() {
+					n.State.SetString()
+				}
+				PrintOneStatus(0, 0)
 			}
-			PrintOneStatus(0, 0)
-		}
-	}()
+		}()
 	} else {
 		fmt.Fprintf(os.Stdout, "Printing status from %s", s.FactomNodeName)
 		statusState = s
@@ -294,17 +297,17 @@ func WaitForQuiet(s *state.State, newBlock int, newMinute int) {
 		// wait for the next block
 		for int(s.LLeaderHeight) == x {
 			time.Sleep(sleepTime * time.Millisecond) // wake up and about 4 times per minute
-	}
+		}
 		if int(s.LLeaderHeight) < newBlock {
-	TimeNow(s)
-}
+		TimeNow(s)
 	}
+}
 
 	// wait for the right minute
 	for s.CurrentMinute != newMinute {
-		time.Sleep(sleepTime * time.Millisecond) // wake up and about 4 times per minute
+			time.Sleep(sleepTime * time.Millisecond) // wake up and about 4 times per minute
 		}
-	}
+}
 
 func WaitMinutes(s *state.State, min int) {
 	fmt.Printf("%s: %d-:-%d WaitMinutes(%d)\n", s.FactomNodeName, s.LLeaderHeight, s.CurrentMinute, min)
@@ -313,14 +316,14 @@ func WaitMinutes(s *state.State, min int) {
 	newMinute := newTime % 10
 	WaitForQuiet(s, newBlock, newMinute)
 	TimeNow(s)
-	}
+		}
 // Wait so many blocks
 func WaitBlocks(s *state.State, blks int) {
 	fmt.Printf("%s: %d-:-%d WaitBlocks(%d)\n", s.FactomNodeName, s.LLeaderHeight, s.CurrentMinute, blks)
 	newBlock := int(s.LLeaderHeight) + blks
 	WaitForQuiet(s, newBlock, 0)
 	TimeNow(s)
-}
+	}
 
 // Wait for a specific blocks
 func WaitForBlock(s *state.State, newBlock int) {
@@ -532,12 +535,12 @@ func TestLoad(t *testing.T) {
 	// use a tree so the messages get reordered
 	state0 := SetupSim("LLF", map[string]string{}, 15, 0, 0, t)
 
+
 	runCmd("2")   // select 2
 	runCmd("R30") // Feed load
 	WaitBlocks(state0, 10)
 	runCmd("R0") // Stop load
 	WaitBlocks(state0, 1)
-
 	shutDownEverything(t)
 } // testLoad(){...}
 
@@ -575,7 +578,6 @@ func TestLoad2(t *testing.T) {
 	}
 	shutDownEverything(t)
 } // testLoad2(){...}
-
 // The intention of this test is to detect the EC overspend/duplicate commits (FD-566) bug.
 // the bug happened when the FCT transaction and the commits arrived in different orders on followers vs the leader.
 // Using a message delay, drop and tree network makes this likely
@@ -596,7 +598,7 @@ func TestLoadScrambled(t *testing.T) {
 	state0 := SetupSim("LLFFFFFF", map[string]string{"--net": "tree"}, 32, 0, 0, t)
 	//TODO: Why does this run longer than expected?
 
-	runCmd("2")   // select 2
+	runCmd("2")     // select 2
 	runCmd("F1000") // set the message delay
 	runCmd("S10")   // delete 1% of the messages
 	runCmd("r")     // rotate the load around the network
@@ -607,6 +609,7 @@ func TestLoadScrambled(t *testing.T) {
 
 	shutDownEverything(t)
 } // testLoad(){...}
+
 
 func TestMakeALeader(t *testing.T) {
 	if ranSimTest {
@@ -636,6 +639,7 @@ func TestActivationHeightElection(t *testing.T) {
 	ranSimTest = true
 
 	state0 := SetupSim("LLLLLAAF", map[string]string{}, 14, 2, 2, t)
+
 
 	// Kill the last two leader to cause a double election
 	runCmd("3")
@@ -711,7 +715,6 @@ func TestActivationHeightElection(t *testing.T) {
 
 	shutDownEverything(t)
 }
-
 func TestAnElection(t *testing.T) {
 	if ranSimTest {
 		return
@@ -734,6 +737,7 @@ func TestAnElection(t *testing.T) {
 	WaitMinutes(state0, 2)
 	//bring him back
 	runCmd("x")
+
 	// wait for him to update via dbstate and become an audit
 	WaitBlocks(state0, 2)
 	WaitMinutes(state0, 1)
@@ -746,6 +750,7 @@ func TestAnElection(t *testing.T) {
 	if !GetFnodes()[3].State.Leader && !GetFnodes()[4].State.Leader {
 		t.Fatalf("Node 3 or 4  should be a leader")
 	}
+
 
 	shutDownEverything(t)
 
@@ -811,7 +816,6 @@ func TestDBsigEOMElection(t *testing.T) {
 	WaitMinutes(state0, 1)
 	WaitForAllNodes(state0)
 	shutDownEverything(t)
-
 }
 
 func TestMultiple2Election(t *testing.T) {
@@ -855,6 +859,7 @@ func TestMultiple3Election(t *testing.T) {
 	ranSimTest = true
 
 	state0 := SetupSim("LLLLLLLAAAAF", map[string]string{"--debuglog": ".*"}, 9, 3, 3, t)
+
 
 	runCmd("1")
 	runCmd("x")
@@ -1332,6 +1337,7 @@ func TestDBSigElection(t *testing.T) {
 
 	state0 := SetupSim("LLLAF", map[string]string{"--debuglog": "fault|badmsg|network|process|dbsig", "--faulttimeout": "10"}, 6, 1, 1, t)
 
+
 	s := GetFnodes()[2].State
 	if !s.IsLeader() {
 		panic("Can't kill a audit and cause an election")
@@ -1360,7 +1366,7 @@ func makeExpected(grants []state.HardGrant) []interfaces.ITransAddress {
 		rval = append(rval, factoid.NewOutAddress(g.Address, g.Amount))
 	}
 	return rval
-	}
+}
 
 func TestGrants_long(t *testing.T) {
 	if ranSimTest {
@@ -1614,5 +1620,4 @@ func TestFactoidDBState(t *testing.T) {
 	}
 	WaitForAllNodes(state0)
 	shutDownEverything(t)
-
 }

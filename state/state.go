@@ -394,10 +394,11 @@ type State struct {
 	pstate              string
 	SyncingState        [256]string
 	SyncingStateCurrent int
-	processCnt          int64 // count of attempts to process .. so we can see if the thread is running
-	MMRInfo                   // fields for MMR processing
 
-	reportedActivations   [activations.ACTIVATION_TYPE_COUNT + 1]bool // flags about which activations we have reported (+1 because we don't use 0)
+	processCnt int64 // count of attempts to process .. so we can see if the thread is running
+	MMRInfo          // fields for MMR processing
+
+	reportedActivations [activations.ACTIVATION_TYPE_COUNT + 1]bool // flags about which activations we have reported (+1 because we don't use 0)
 	validatorLoopThreadID string
 }
 
@@ -521,7 +522,6 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 	newState.factomdTLSCertFile = s.factomdTLSCertFile
 	newState.FactomdLocations = s.FactomdLocations
 
-	newState.FastSaveRate = s.FastSaveRate
 	switch newState.DBType {
 	case "LDB":
 		newState.StateSaverStruct.FastBoot = s.StateSaverStruct.FastBoot
@@ -532,12 +532,10 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 		newState.StateSaverStruct.FastBootLocation = newState.BoltDBPath
 		break
 	}
-
 	if globals.Params.WriteProcessedDBStates {
 		path := filepath.Join(newState.LdbPath, newState.Network, "dbstates")
-		os.MkdirAll(path, 0775)
+		os.MkdirAll(path, 0777)
 	}
-
 	return newState
 }
 
@@ -972,7 +970,6 @@ func (s *State) Init() {
 			Fix:       s.CheckChainHeads.Fix,
 		})
 	}
-
 	if s.ExportData {
 		s.DB.SetExportData(s.ExportDataSubpath)
 	}
@@ -1031,26 +1028,19 @@ func (s *State) Init() {
 			panic(err)
 		}
 
-		if d == nil || int(d.GetDatabaseHeight()) < s.FastSaveRate {
-			//If we have less than whatever our block rate is, we wipe SaveState
+		if d == nil || d.GetDatabaseHeight() < 2000 {
+			//If we have less than 2k blocks, we wipe SaveState
 			//This is to ensure we don't accidentally keep SaveState while deleting a database
 			s.StateSaverStruct.DeleteSaveState(s.Network)
 		} else {
 			err = s.StateSaverStruct.LoadDBStateList(s.DBStates, s.Network)
 			if err != nil {
-				s.StateSaverStruct.DeleteSaveState(s.Network)
 				s.LogPrintf("faulting", "Database load failed %v", err)
-			} else {
-				var last *DBState
+			}
+			if err == nil {
 				for _, dbstate := range s.DBStates.DBStates {
-					if dbstate != nil && dbstate.DirectoryBlock.GetHeader().GetDBHeight() == s.LLeaderHeight {
-						dbstate.SaveStruct.Commits.s = s
-					}
-					if last != nil {
-						last.SaveStruct = nil
-					}
 					if dbstate != nil {
-						last = dbstate
+						dbstate.SaveStruct.Commits.s = s
 					}
 				}
 			}
@@ -1072,7 +1062,6 @@ func (s *State) Init() {
 		path := filepath.Join(s.LdbPath, s.Network, "dbstates")
 		os.MkdirAll(path, 0777)
 	}
-
 }
 
 func (s *State) HookLogstash() error {
@@ -2433,7 +2422,12 @@ func (s *State) SetStringConsensus() {
 //		totalTPS	: Transaction rate over life of node (totaltime / totaltrans)
 //		instantTPS	: Transaction rate weighted over last 3 seconds
 func (s *State) CalculateTransactionRate() (totalTPS float64, instantTPS float64) {
+<<<<<<<<< Temporary merge branch 1
 	runtime := time.Since(s.Starttime)
+	shorttime := time.Since(s.lasttime)
+=========
+	runtime := time.Since(s.starttime)
+>>>>>>>>> Temporary merge branch 2
 	total := s.FactoidTrans + s.NewEntryChains + s.NewEntries
 	tps := float64(total) / float64(runtime.Seconds())
 	TotalTransactionPerSecond.Set(tps) // Prometheus

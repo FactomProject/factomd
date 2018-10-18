@@ -137,6 +137,7 @@ func (lg *LoadGenerator) GetECs(tight bool, c int) {
 	}
 
 	cnt++
+
 	if goingUp && ecBal > 500 {
 		if cnt%1000 == 0 {
 			os.Stderr.WriteString(fmt.Sprintf("%d purchases, not buying %d cause the balance is %d \n", cnt, c, ecBal))
