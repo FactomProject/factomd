@@ -40,7 +40,6 @@ var quit = make(chan struct{})
 // Pass in the Network type ex. "LOCAL" as the second argument
 // It has default but if you want just add it like "map[string]string{"--Other" : "Option"}" as the third argument
 // Pass in t for the testing as the 4th argument
-
 var expectedHeight, leaders, audits, followers int
 var startTime time.Time
 
@@ -159,6 +158,7 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 	fmt.Printf("Starting timeout timer:  Expected test to take %s or %d blocks\n", Calctime.String(), height)
 	//	StatusEveryMinute(state0)
 	WaitMinutes(state0, 1) // wait till initial DBState message for the genesis block is processed
+
 	creatingNodes(GivenNodes, state0)
 
 	t.Logf("Allocated %d nodes", l)
@@ -451,8 +451,6 @@ func TestSetupANetwork(t *testing.T) {
 	runCmd("7")
 	WaitBlocks(state0, 1) // Wait for 1 block
 
-	CheckAuthoritySet(t)
-
 	WaitForMinute(state0, 2) // Waits for 2 "Minutes"
 	runCmd("F100")           //  Set the Delay on messages from all nodes to 100 milliseconds
 	runCmd("S10")            // Set Drop Rate to 1.0 on everyone
@@ -536,15 +534,49 @@ func TestLoad(t *testing.T) {
 	// use a tree so the messages get reordered
 	state0 := SetupSim("LLF", map[string]string{}, 15, 0, 0, t)
 
-	CheckAuthoritySet(t)
-
 	runCmd("2")   // select 2
 	runCmd("R30") // Feed load
 	WaitBlocks(state0, 10)
 	runCmd("R0") // Stop load
 	WaitBlocks(state0, 1)
+
 	shutDownEverything(t)
 } // testLoad(){...}
+
+func TestLoad2(t *testing.T) {
+	if ranSimTest {
+		return
+	}
+	ranSimTest = true
+
+	go runCmd("Re") // Turn on tight allocation of EC as soon as the simulator is up and running
+	state0 := SetupSim("LLLAAAFFF", map[string]string{"--debuglog": "."}, 24, 0, 0, t)
+	StatusEveryMinute(state0)
+
+	runCmd("7") // select node 1
+	runCmd("x") // take out 7 from the network
+	WaitBlocks(state0, 1)
+	WaitForMinute(state0, 1)
+
+	runCmd("R30") // Feed load
+	WaitBlocks(state0, 3)
+	runCmd("Rt60")
+	runCmd("T20")
+	runCmd("R.5")
+	WaitBlocks(state0, 2)
+	runCmd("x")
+	runCmd("R0")
+	WaitBlocks(state0, 3)
+	WaitMinutes(state0, 3)
+
+	ht7 := GetFnodes()[7].State.GetLLeaderHeight()
+	ht6 := GetFnodes()[6].State.GetLLeaderHeight()
+
+	if ht7 != ht6 {
+		t.Fatalf("Node 7 was at dbheight %d which didn't match Node 6 at dbheight %d", ht7, ht6)
+	}
+	shutDownEverything(t)
+} // testLoad2(){...}
 
 // The intention of this test is to detect the EC overspend/duplicate commits (FD-566) bug.
 // the bug happened when the FCT transaction and the commits arrived in different orders on followers vs the leader.
