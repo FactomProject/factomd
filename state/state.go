@@ -740,6 +740,14 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		s.FastBoot = cfg.App.FastBoot
 		s.FastBootLocation = cfg.App.FastBootLocation
 
+		// to test run curl -H "Origin: http://anotherexample.com" -H "Access-Control-Request-Method: POST" /
+		//     -H "Access-Control-Request-Headers: X-Requested-With" -X POST /
+		//     --data-binary '{"jsonrpc": "2.0", "id": 0, "method": "heights"}' -H 'content-type:text/plain;'  /
+		//     --verbose http://localhost:8088/v2
+
+		// while the config file has http://anotherexample.com in parameter CorsDomains the response should contain the string
+		// < Access-Control-Allow-Origin: http://anotherexample.com
+
 		if len(cfg.App.CorsDomains) > 0 {
 			domains := strings.Split(cfg.App.CorsDomains, ",")
 			s.CorsDomains = make([]string, len(domains))

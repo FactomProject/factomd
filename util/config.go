@@ -160,6 +160,10 @@ FactomdTlsPublicCert                  = "/full/path/to/factomdAPIpub.cert"
 FactomdRpcUser                        = ""
 FactomdRpcPass                        = ""
 
+; This paramater allows Cross-Origin Resource Sharing (CORS) so web browsers will use data returned from the API when called from the listed URLs
+; Example paramaters are "http://www.example.com, http://anotherexample.com, *"
+CorsDomains                           = ""
+
 ; Specifying when to change ACKs for switching leader servers
 ChangeAcksHeight                      = 0
 
