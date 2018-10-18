@@ -414,7 +414,7 @@ func TestLoad2(t *testing.T) {
 	}
 
 	ranSimTest = true
-
+	runCmd("Re")
 	state0 := SetupSim2("LLLAAAFFF", true, "LOCAL", map[string]string{}, t)
 
 	runCmd("7") // select node 1
