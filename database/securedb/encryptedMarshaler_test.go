@@ -18,7 +18,7 @@ func TestEncryptedMarshaler(t *testing.T) {
 	var err error
 	var ems []*EncryptedMarshaler
 	var hashes []interfaces.BinaryMarshallable
-	s := testHelper.CreateAndPopulateTestState()
+	s := testHelper.CreateAndPopulateTestStateAndStartValidator()
 
 	key := primitives.RandomHash().Bytes()
 	// Test with IHash

@@ -61,7 +61,7 @@ func Test(t *testing.T) {
 }
 
 func Test_DB_With_Ten_Blks(t *testing.T) {
-	state := CreateAndPopulateTestState()
+	state := CreateAndPopulateTestStateAndStartValidator()
 	t.Log("Highest Recorded Block: ", state.GetHighestSavedBlk())
 }
 

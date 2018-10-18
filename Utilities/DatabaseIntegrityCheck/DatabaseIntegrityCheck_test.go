@@ -16,7 +16,7 @@ func TestCheckDatabaseFromDBO(t *testing.T) {
 }
 
 func TestCheckDatabaseFromState(t *testing.T) {
-	state := testHelper.CreateAndPopulateTestState()
+	state := testHelper.CreateAndPopulateTestStateAndStartValidator()
 	CheckDatabase(state.DB.(interfaces.DBOverlay))
 }
 

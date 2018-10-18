@@ -1072,6 +1072,28 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
 	TotalProcessListInputs.Inc()
 
+	// Make sure we don't put in an old ack (outside our repeat range)
+	blktime := p.State.GetLeaderTimestamp().GetTime().UnixNano()
+	tlim := int64(Range * 60 * 1000000000)
+
+	if blktime != 0 {
+		acktime := ack.GetTimestamp().GetTime().UnixNano()
+		msgtime := m.GetTimestamp().GetTime().UnixNano()
+		Delta := blktime - acktime
+
+		if Delta > tlim || -Delta > tlim {
+			p.State.LogPrintf("processList", "Drop message pair, because the ack is out of range")
+			return
+		}
+
+		// Make sure we don't put in an old msg (outside our repeat range)
+		Delta = blktime - msgtime
+		if Delta > tlim || -Delta > tlim {
+			p.State.LogPrintf("processList", "Drop message pair, because the msg is out of range")
+			return
+		}
+	}
+
 	if ack.DBHeight > p.State.HighestAck && ack.Minute > 0 {
 		p.State.HighestAck = ack.DBHeight
 		p.State.LogPrintf("processList", "Drop1")
@@ -1374,8 +1396,9 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 		pl.AdminBlock = adminBlock.NewAdminBlock(nil)
 		pl.EntryCreditBlock, err = entryCreditBlock.NextECBlock(nil)
 	}
-
 	pl.ResetDiffSigTally()
+
+	pl.DirectoryBlock.GetHeader().SetTimestamp(now) // Well this is awkwardly after it's created but ....
 
 	if err != nil {
 		panic(err.Error())
