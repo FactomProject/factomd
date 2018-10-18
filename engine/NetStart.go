@@ -288,6 +288,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "tls", s.FactomdTLSEnable))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "selfaddr", s.FactomdLocations))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "rpcuser", s.RpcUser))
+	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "corsdomains", s.CorsDomains))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "Start 2nd Sync at ht", s.EntryDBHeightComplete))
 
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "faultTimeout", elections.FaultTimeout))
