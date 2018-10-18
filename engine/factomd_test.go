@@ -59,7 +59,11 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 		"--stderrlog":           "out.txt",
 		"--checkheads":          "false",
 		"--controlpanelsetting": "readwrite",
-		"--debuglog":            "faulting|bad",
+		"--debuglog":            ".|faulting|bad",
+		"--logPort":             "37000",
+		"--port":                "37001",
+		"--controlpanelport":    "37002",
+		"--networkport":         "37003",
 	}
 
 	// loop thru the test specific options and overwrite or append to the DefaultOptions
@@ -440,7 +444,7 @@ func TestSetupANetwork(t *testing.T) {
 
 	ranSimTest = true
 
-	state0 := SetupSim("LLLLAAAFFF", map[string]string{}, 11, 0, 0, t)
+	state0 := SetupSim("LLLLAAAFFF", map[string]string{}, 14, 0, 0, t)
 
 	runCmd("9")  // Puts the focus on node 9
 	runCmd("x")  // Takes Node 9 Offline
@@ -1585,5 +1589,33 @@ func TestRandom(t *testing.T) {
 	if random.RandUInt8() > 200 {
 		t.Fatal("Failed")
 	}
+}
+
+func TestFactoidDBState(t *testing.T) {
+	if ranSimTest {
+		return
+	}
+	ranSimTest = true
+
+	state0 := SetupSim("LAF", map[string]string{"--debuglog": "fault|badmsg|network|process|dbsig", "--faulttimeout": "10", "--blktime": "5"}, 120, 0, 0, t)
+	WaitForBlock(state0, 5)
+
+	go func() {
+		for i := 0; i <= 1000; i++ {
+			FundWallet(state0, 10000)
+			time.Sleep(time.Duration(random.RandIntBetween(250, 1250)) * time.Millisecond)
+		}
+	}()
+
+	runCmd("2")
+	for i := 0; i < 20; i++ {
+		WaitMinutes(state0, i)
+		runCmd("x")
+		WaitMinutes(state0, 1+i)
+		runCmd("x")
+		WaitBlocks(state0, 2)
+	}
+	WaitForAllNodes(state0)
+	shutDownEverything(t)
 
 }
