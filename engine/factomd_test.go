@@ -402,7 +402,7 @@ func TestLoad2(t *testing.T) {
 	ranSimTest = true
 
 	go runCmd("Re") // Turn on tight allocation of EC as soon as the simulator is up and running
-	state0 := SetupSim("LLLAAAFFF", map[string]string{}, t)
+	state0 := SetupSim("LLLAAAFFF", map[string]string{"--debuglog": "."}, t)
 	StatusEveryMinute(state0)
 
 	runCmd("7") // select node 1
@@ -427,8 +427,7 @@ func TestLoad2(t *testing.T) {
 	if ht7 != ht6 {
 		t.Fatalf("Node 7 was at dbheight %d which didn't match Node 6 at dbheight %d", ht7, ht6)
 	}
-
-} // testLoad(){...}
+} // testLoad2(){...}
 
 func TestMakeALeader(t *testing.T) {
 	if ranSimTest {
