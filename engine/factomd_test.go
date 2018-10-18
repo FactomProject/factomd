@@ -250,6 +250,7 @@ var ranSimTest = false
 func runCmd(cmd string) {
 	os.Stderr.WriteString("Executing: " + cmd + "\n")
 	InputChan <- cmd
+	os.Stderr.WriteString("Executed: " + cmd + "\n")
 	return
 }
 
@@ -414,7 +415,7 @@ func TestLoad2(t *testing.T) {
 	}
 
 	ranSimTest = true
-	runCmd("Re")
+	go runCmd("Re")
 	state0 := SetupSim2("LLLAAAFFF", true, "LOCAL", map[string]string{}, t)
 
 	runCmd("7") // select node 1
