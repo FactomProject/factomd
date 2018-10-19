@@ -60,7 +60,7 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 		"--stderrlog":           "out.txt",
 		"--checkheads":          "false",
 		"--controlpanelsetting": "readwrite",
-		"--debuglog":            ".|faulting|bad",
+		"--debuglog":            "faulting|bad",
 		"--logPort":             "37000",
 		"--port":                "37001",
 		"--controlpanelport":    "37002",
@@ -883,8 +883,8 @@ func TestMultiple7Election(t *testing.T) {
 	}
 
 	ranSimTest = true
-
-	state0 := SetupSim("LLLLLLLLLLLLLLLAAAAAAAAAAF", map[string]string{"--blktime": "15"}, 7, 7, 7, t)
+	// Test fails if you turn on all logs 10/19/2018 -- clay
+	state0 := SetupSim("LLLLLLLLLLLLLLLAAAAAAAAAAF", map[string]string{"--blktime": "20"}, 7, 7, 7, t)
 
 	WaitForMinute(state0, 2)
 

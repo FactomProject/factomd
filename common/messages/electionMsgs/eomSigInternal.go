@@ -121,7 +121,7 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 	// We start sorting here on 6/28/18 at 12pm ...
 	if is.IsActive(activations.ELECTION_NO_SORT) {
 		if int(m.DBHeight) > e.DBHeight {
-			// Sort leaders, on block boundries
+			// Sort leaders, on block boundaries
 			changed := elections.Sort(e.Federated)
 			changed = elections.Sort(e.Audit) || changed
 			if changed {
