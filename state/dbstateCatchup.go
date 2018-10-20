@@ -16,6 +16,7 @@ func (list *DBStateList) Catchup(justDoIt bool) {
 
 	top := int(list.State.DBHeightAtBoot)
 	hs := int(list.State.GetHighestSavedBlk())
+	heightAtBoot := int(list.State.GetDBHeightAtBoot())
 	if hs < top {
 		hs = top // never ask for states we already have
 	}
@@ -24,6 +25,13 @@ func (list *DBStateList) Catchup(justDoIt bool) {
 
 	if hk > ha+2 {
 		ha = hk
+	}
+
+	if hs < heightAtBoot {
+		hs = heightAtBoot // don't ask for blocks we have
+	}
+	if hk < heightAtBoot {
+		hk = heightAtBoot // don't ask for block we have
 	}
 
 	begin := hs + 1

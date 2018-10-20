@@ -2312,6 +2312,10 @@ func (s *State) GetHighestSavedBlk() uint32 {
 	return v
 }
 
+func (s *State) GetDBHeightAtBoot() uint32 {
+	return s.DBHeightAtBoot
+}
+
 // This is the highest block signed off, but not necessarily validated.
 func (s *State) GetHighestCompletedBlk() uint32 {
 	v := s.DBStates.GetHighestCompletedBlk()
