@@ -9,7 +9,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -328,7 +327,7 @@ func (b *FBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	}
 	// TODO: remove printing unmarshal count numbers once we have good data on
 	// what they should be.
-	log.Print("FBlock unmarshaled transaction count: ", txCount)
+	//log.Print("FBlock unmarshaled transaction count: ", txCount)
 	if txCount > 1000 {
 		// TODO: replace this message with a proper error
 		return nil, fmt.Errorf("Error: fblock.UnmarshalBinary: transaction count too high (uint underflow?)")

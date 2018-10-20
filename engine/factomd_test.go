@@ -136,11 +136,11 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 	et := elections.FaultTimeout
 	startTime = time.Now()
 	state0 := Factomd(params, false).(*state.State)
-	statusState = state0
+	//	statusState = state0
 	calctime := time.Duration(float64((height*blkt)+(electionsCnt*et)+(RoundsCnt*roundt))*1.1) * time.Second
 	endTime = time.Now().Add(calctime)
 	fmt.Println("endTime: ", endTime.String(), "duration:", calctime.String())
-
+	height += 5
 	go func() {
 		for {
 			select {
@@ -722,7 +722,7 @@ func TestAnElection(t *testing.T) {
 	ranSimTest = true
 
 	state0 := SetupSim("LLLAAF", map[string]string{}, 9, 1, 1, t)
-
+	StatusEveryMinute(state0)
 	WaitMinutes(state0, 2)
 
 	runCmd("2")

@@ -7,7 +7,6 @@ package adminBlock
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 
 	"sort"
@@ -438,7 +437,7 @@ func (b *AdminBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	msgCount := b.GetHeader().GetMessageCount()
 	// TODO: remove printing unmarshal count numbers once we have good data on
 	// what they should be.
-	log.Print("AdminBlock unmarshaled message count: ", msgCount)
+	//log.Print("AdminBlock unmarshaled message count: ", msgCount)
 	if msgCount > 1000 {
 		// TODO: replace this message with a proper error
 		return nil, fmt.Errorf("Error: AdminBlock.UnmarshalBinary: message count too high (uint underflow?)")

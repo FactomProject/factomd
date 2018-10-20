@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 
 	"errors"
@@ -382,7 +381,7 @@ func (b *DirectoryBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	entryCount := b.GetHeader().GetBlockCount()
 	// TODO: remove printing unmarshal count numbers once we have good data on
 	// what they should be.
-	log.Print("DirectoryBlock unmarshaled entry count: ", entryCount)
+	//log.Print("DirectoryBlock unmarshaled entry count: ", entryCount)
 	if entryCount > 1000 {
 		// TODO: replace this message with a proper error
 		return nil, fmt.Errorf("Error: DirectoryBlock.UnmarshalBinary: entry count too high (uint underflow?)")

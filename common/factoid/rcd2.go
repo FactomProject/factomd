@@ -8,7 +8,6 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	"log"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -105,8 +104,8 @@ func (t *RCD_2) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	t.M, data = int(binary.BigEndian.Uint16(data[0:2])), data[2:]
 	// TODO: remove printing unmarshal count numbers once we have good data on
 	// what they should be.
-	log.Print("RCD_2 unmarshaled signatures possible: ", t.N)
-	log.Print("RCD_2 unmarshaled signatures required: ", t.M)
+	//log.Print("RCD_2 unmarshaled signatures possible: ", t.N)
+	//log.Print("RCD_2 unmarshaled signatures required: ", t.M)
 	if t.N > 1000 {
 		// TODO: replace this message with a proper error
 		return nil, fmt.Errorf("Error: RCD_2.UnmarshalBinary: signatures possible too many (uint underflow?)")

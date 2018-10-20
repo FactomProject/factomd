@@ -9,7 +9,6 @@ import (
 	"crypto/sha512"
 	"encoding/binary"
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -386,7 +385,7 @@ func UnmarshalEntryList(bin []byte) ([]interfaces.IEBEntry, []byte, error) {
 	e := int(l)
 	// TODO: remove printing unmarshal count numbers once we have good data on
 	// what they should be.
-	log.Print("UnmarshalEntryList unmarshaled entry count: ", e)
+	//log.Print("UnmarshalEntryList unmarshaled entry count: ", e)
 	if e > 1000 {
 		// TODO: replace this message with a proper error
 		return nil, nil, fmt.Errorf("Error: UnmarshalEntryList: entry count too high (uint underflow?)")
