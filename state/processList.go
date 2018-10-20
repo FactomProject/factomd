@@ -731,7 +731,7 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 				last := vm.ListAck[vm.Height-1]
 				expectedSerialHash, err = primitives.CreateHash(last.MessageHash, thisAck.MessageHash)
 				if err != nil {
-					s.LogMessage("process", fmt.Sprintf("nil out message %v/%v/%v, hash INTERNAL_REPLAY", p.DBHeight, i, j), vm.List[j])
+					s.LogMessage("process", fmt.Sprintf("nil out message %v/%v/%v, hash INTERNAL_REPLAY", p.DBHeight, i, j), vm.List[j]) //todo: revisit message
 					vm.List[j] = nil
 					if vm.HighestNil > j {
 						vm.HighestNil = j // Drag report limit back
@@ -895,7 +895,6 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
 	if ack.DBHeight > s.HighestAck && ack.Minute > 0 {
 		s.HighestAck = ack.DBHeight
-		s.LogPrintf("processList", "Drop1")
 	}
 
 	TotalAcksInputs.Inc()
@@ -1134,8 +1133,13 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	pl.AuditServers = make([]interfaces.IServer, 0)
 	//pl.Requests = make(map[[20]byte]*Request)
 
+	pl.FactoidBalancesTMutex.Lock()
 	pl.FactoidBalancesT = map[[32]byte]int64{}
+	pl.FactoidBalancesTMutex.Unlock()
+
+	pl.ECBalancesTMutex.Lock()
 	pl.ECBalancesT = map[[32]byte]int64{}
+	pl.ECBalancesTMutex.Unlock()
 
 	if previous != nil {
 		pl.FedServers = append(pl.FedServers, previous.FedServers...)

@@ -365,6 +365,7 @@ func CheckAuthoritySet(t *testing.T) {
 			}
 		}
 	}
+
 	if leadercnt != leaders {
 		t.Fatalf("found %d leaders, expected %d", leadercnt, leaders)
 	}
@@ -712,6 +713,7 @@ func TestActivationHeightElection(t *testing.T) {
 
 	shutDownEverything(t)
 }
+
 func TestAnElection(t *testing.T) {
 	if ranSimTest {
 		return
@@ -733,7 +735,6 @@ func TestAnElection(t *testing.T) {
 	WaitMinutes(state0, 2)
 	//bring him back
 	runCmd("x")
-
 	// wait for him to update via dbstate and become an audit
 	WaitBlocks(state0, 2)
 	WaitMinutes(state0, 1)
@@ -811,6 +812,7 @@ func TestDBsigEOMElection(t *testing.T) {
 	WaitMinutes(state0, 1)
 	WaitForAllNodes(state0)
 	shutDownEverything(t)
+
 }
 
 func TestMultiple2Election(t *testing.T) {
