@@ -522,7 +522,6 @@ func TestSetupANetwork(t *testing.T) {
 	WaitBlocks(fn1.State, 3) // Waits for 3 blocks
 
 	shutDownEverything(t)
-
 }
 
 func TestLoad(t *testing.T) {
@@ -577,6 +576,7 @@ func TestLoad2(t *testing.T) {
 	}
 	shutDownEverything(t)
 } // testLoad2(){...}
+
 // The intention of this test is to detect the EC overspend/duplicate commits (FD-566) bug.
 // the bug happened when the FCT transaction and the commits arrived in different orders on followers vs the leader.
 // Using a message delay, drop and tree network makes this likely

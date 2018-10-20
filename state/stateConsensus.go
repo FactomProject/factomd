@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"hash"
 	"reflect"
-	"sync"
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -40,49 +39,39 @@ var _ = (*hash.Hash32)(nil)
 // Returns true if some message was processed.
 //***************************************************************
 
-var once sync.Once
-var debugExec_flag bool
-
 func (s *State) CheckFileName(name string) bool {
 	return messages.CheckFileName(name)
 }
 
 func (s *State) DebugExec() (ret bool) {
-	once.Do(func() { debugExec_flag = globals.Params.DebugLogRegEx != "" })
-
-	//return s.FactomNodeName == "FNode0"
-	return debugExec_flag
+	return globals.Params.DebugLogRegEx != ""
 }
 
 func (s *State) LogMessage(logName string, comment string, msg interfaces.IMsg) {
 	if s.DebugExec() {
 		var dbh int
-		nodeName := "unknown"
-		minute := 0
-		if s != nil {
+		if s == nil {
+			messages.StateLogMessage("unknown", 0, 0, logName, comment, msg)
+		} else {
 			if s.LeaderPL != nil {
 				dbh = int(s.LeaderPL.DBHeight)
 			}
-			nodeName = s.FactomNodeName
-			minute = int(s.CurrentMinute)
+			messages.StateLogMessage(s.FactomNodeName, dbh, int(s.CurrentMinute), logName, comment, msg)
 		}
-		messages.StateLogMessage(nodeName, dbh, minute, logName, comment, msg)
 	}
 }
 
 func (s *State) LogPrintf(logName string, format string, more ...interface{}) {
 	if s.DebugExec() {
-		var dbh int
-		nodeName := "unknown"
-		minute := 0
-		if s != nil {
+		if s == nil {
+			messages.StateLogPrintf("unknown", 0, 0, logName, format, more...)
+		} else {
+			var dbh int
 			if s.LeaderPL != nil {
 				dbh = int(s.LeaderPL.DBHeight)
 			}
-			nodeName = s.FactomNodeName
-			minute = int(s.CurrentMinute)
+			messages.StateLogPrintf(s.FactomNodeName, dbh, int(s.CurrentMinute), logName, format, more...)
 		}
-		messages.StateLogPrintf(nodeName, dbh, minute, logName, format, more...)
 	}
 }
 func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
@@ -157,7 +146,9 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 	switch valid {
 	case 1:
 		// The highest block for which we have received a message.  Sometimes the same as
-		msg.SendOut(s, msg)
+		if !msg.IsLocal() && !msg.IsPeer2Peer() {
+			msg.SendOut(s, msg) // send out messages that are valid and not local or peer to  peer
+		}
 
 		switch msg.Type() {
 		case constants.REVEAL_ENTRY_MSG, constants.COMMIT_ENTRY_MSG, constants.COMMIT_CHAIN_MSG:
@@ -1271,7 +1262,6 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
 		m.FollowerExecute(s)
 		return
 	}
-
 	if pl.VMs[dbs.VMIndex].Height > 0 {
 		s.LogPrintf("executeMsg", "DBSig issue height = %d, length = %d", pl.VMs[dbs.VMIndex].Height, len(pl.VMs[dbs.VMIndex].List))
 		s.LogMessage("executeMsg", "drop, already processed ", pl.VMs[dbs.VMIndex].List[0])
@@ -1285,7 +1275,6 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
 		} else {
 			s.LogMessage("executeMsg", "duplicate execute", pl.VMs[dbs.VMIndex].List[0])
 		}
-
 		return
 	}
 
@@ -1426,7 +1415,6 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 	c, _ := commitChain.(*messages.CommitChainMsg)
 
 	pl := s.ProcessLists.Get(dbheight)
-
 	if e := s.GetFactoidState().UpdateECTransaction(true, c.CommitChain); e == nil {
 		// save the Commit to match against the Reveal later
 		h := c.GetHash()
@@ -1439,10 +1427,10 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 			s.XReview = append(s.XReview, entry)
 			TotalHoldingQueueOutputs.Inc()
 		}
+
 		pl.EntryCreditBlock.GetBody().AddEntry(c.CommitChain)
 		return true
 	}
-
 	//s.AddStatus("Cannot process Commit Chain")
 
 	return false
@@ -1484,6 +1472,7 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) (worked b
 			TotalProcessListProcesses.Inc()
 			TotalCommitsOutputs.Inc()
 			s.Commits.Delete(msg.Entry.GetHash().Fixed()) // 	delete(s.Commits, msg.Entry.GetHash().Fixed())
+
 			// This is so the api can determine if a chainhead is about to be updated. It fixes a race condition
 			// on the api. MUST BE BEFORE THE REPLAY FILTER ADD
 			pl.PendingChainHeads.Put(msg.Entry.GetChainID().Fixed(), msg)
@@ -1492,7 +1481,6 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) (worked b
 			s.Commits.Delete(msg.Entry.GetHash().Fixed()) // delete(s.Commits, msg.Entry.GetHash().Fixed())
 		}
 	}()
-
 	myhash := msg.Entry.GetHash()
 
 	chainID := msg.Entry.GetChainID()
@@ -1573,10 +1561,8 @@ func (s *State) CreateDBSig(dbheight uint32, vmIndex int) (interfaces.IMsg, inte
 		panic(err)
 	}
 	ack := s.NewAck(dbs, s.Balancehash).(*messages.Ack)
-
 	s.LogMessage("dbstate", "CreateDBSig", dbs)
 	s.LogPrintf("dbstate", dbstate.String())
-
 	return dbs, ack
 }
 
@@ -2063,9 +2049,9 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		}
 
 		if dbs.DirectoryBlockHeader.GetBodyMR().Fixed() != dblk.GetHeader().GetBodyMR().Fixed() {
+			pl.IncrementDiffSigTally()
 			plog("Failed. DBlocks do not match Expected-Body-Mr: %x, Got: %x",
 				dblk.GetHeader().GetBodyMR().Fixed(), dbs.DirectoryBlockHeader.GetBodyMR().Fixed())
-
 			// If the Directory block hash doesn't work for me, then the dbsig doesn't work for me, so
 			// toss it and ask our neighbors for another one.
 			vm.ListAck[0] = nil
@@ -2088,7 +2074,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		valid, err := s.FastVerifyAuthoritySignature(data, dbs.DBSignature, dbs.DBHeight)
 		if err != nil || valid != 1 {
 			s.LogPrintf("executeMsg", "Failed. Invalid Auth Sig: Pubkey: %x", dbs.Signature.GetKey())
-
 			// If the authority is bad, toss this signature and ask for another.
 			vm.ListAck[0] = nil
 			vm.List[0] = nil
@@ -2367,6 +2352,7 @@ func (s *State) PutF(rt bool, adr [32]byte, v int64) {
 		pl := s.ProcessLists.Get(s.LLeaderHeight)
 		if pl != nil {
 			pl.FactoidBalancesTMutex.Lock()
+
 			pl.FactoidBalancesT[adr] = v
 			pl.FactoidBalancesTMutex.Unlock()
 			s.LogPrintf("factoids", "PutF(%v,%x<%s>, %d) using temporary balance", rt, adr[:4],
