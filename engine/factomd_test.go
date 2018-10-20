@@ -140,7 +140,7 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 	calctime := time.Duration(float64((height*blkt)+(electionsCnt*et)+(RoundsCnt*roundt))*1.1) * time.Second
 	endTime = time.Now().Add(calctime)
 	fmt.Println("endTime: ", endTime.String(), "duration:", calctime.String())
-	height += 5
+
 	go func() {
 		for {
 			select {
@@ -748,6 +748,7 @@ func TestAnElection(t *testing.T) {
 		t.Fatalf("Node 3 or 4  should be a leader")
 	}
 
+	WaitForAllNodes(state0)
 	shutDownEverything(t)
 
 }

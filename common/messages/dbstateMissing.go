@@ -112,14 +112,19 @@ func (m *DBStateMissing) send(dbheight uint32, state interfaces.IState) (msglen 
 	}
 	if send {
 		msg, err := state.LoadDBState(dbheight)
-		if msg == nil || err == nil {
+		if err != nil {
 			return
 		}
+		if msg == nil {
+			return
+		}
+
 		dbstatemsg := msg.(*DBStateMsg)
 		dbstatemsg.IsInDB = false // else validateSignatures would approve it automatically
 		if dbstatemsg.ValidateSignatures(state) != 1 {
 			return // the last DBState we have saved may not have any or all the signatures so we can't share
 		}
+
 		b, err := msg.MarshalBinary()
 		if err != nil {
 			return
@@ -134,6 +139,7 @@ func (m *DBStateMissing) send(dbheight uint32, state interfaces.IState) (msglen 
 		v.DBHeight = dbheight
 		v.Sent = now
 		keeps = append(keeps, v)
+
 		state.SetDBStatesSent(keeps)
 	}
 	return
