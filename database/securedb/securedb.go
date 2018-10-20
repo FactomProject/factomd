@@ -9,6 +9,10 @@ import (
 	"crypto/subtle"
 	"fmt"
 
+	"time"
+
+	"bytes"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/boltdb"
@@ -21,6 +25,9 @@ var (
 	EncyptedMetaData = []byte("EncyptedDBMetaData")
 
 	challenge = []byte("Challenge")
+
+	lockedError = fmt.Errorf("encrypted database is locked")
+	TimeCheck   = time.Time{} // Used to Check if time has been initiated
 )
 
 // EncryptedDB is a database with symmetric encryption to encrypt all writes, and decrypt all reads
@@ -33,6 +40,10 @@ type EncryptedDB struct {
 
 	// encryptionkey is a hash of the password and salt
 	encryptionkey []byte
+
+	// Allow the wallet to be locked, by gating access based
+	// on time.
+	UnlockedUntil time.Time
 }
 
 // NewEncryptedDB takes the filename, dbtype, and password.
@@ -93,11 +104,11 @@ func (db *EncryptedDB) initSecureDB(password string) error {
 		// Do challenge
 		plainText, err := Decrypt(db.metadata.Challenge.Bytes, db.encryptionkey)
 		if err != nil {
-			return err
+			return fmt.Errorf("password supplied is incorrect, and cannot decrypt the existing database")
 		}
 
 		if subtle.ConstantTimeCompare(plainText, challenge) == 0 {
-			return fmt.Errorf("Wrong password given for this database")
+			return fmt.Errorf("password supplied is incorrect, and cannot decrypt the existing database")
 		}
 	}
 
@@ -119,12 +130,50 @@ func (db *EncryptedDB) initNewMetaData() {
  *       Methods
  ***************************************/
 
+// Lock locks the database such that further access calls will fail until it is
+// unlocked
+func (db *EncryptedDB) Lock() {
+	db.UnlockedUntil = time.Now().Add(-1 * time.Minute)
+}
+
+func (db *EncryptedDB) UnlockFor(password string, duration time.Duration) error {
+	key, err := GetKey(password, db.metadata.Salt.Bytes)
+	if err != nil {
+		return err
+	}
+	if bytes.Compare(key, db.encryptionkey) != 0 {
+		return fmt.Errorf("incorrect password")
+	}
+
+	db.UnlockedUntil = time.Now().Add(duration)
+	return nil
+}
+
+func (db *EncryptedDB) isLocked() bool {
+	// Not being used, means always unlocked
+	if db.UnlockedUntil == TimeCheck {
+		return false
+	}
+
+	// All times after the unlock time set, are invalid
+	if time.Now().Before(db.UnlockedUntil) {
+		return false
+	}
+	return true
+}
+
 func (db *EncryptedDB) ListAllBuckets() ([][]byte, error) {
+	if db.isLocked() {
+		return nil, lockedError
+	}
 	return db.db.ListAllBuckets()
 }
 
 // We don't care if delete works or not.  If the key isn't there, that's ok
 func (db *EncryptedDB) Delete(bucket []byte, key []byte) error {
+	if db.isLocked() {
+		return lockedError
+	}
 	return db.db.Delete(bucket, key)
 }
 
@@ -137,6 +186,10 @@ func (db *EncryptedDB) Close() error {
 }
 
 func (db *EncryptedDB) Get(bucket []byte, key []byte, destination interfaces.BinaryMarshallable) (interfaces.BinaryMarshallable, error) {
+	if db.isLocked() {
+		return nil, lockedError
+	}
+
 	e := NewEncryptedMarshaler(db.encryptionkey, destination)
 	tmp, err := db.db.Get(bucket, key, e)
 	if err != nil {
@@ -151,11 +204,19 @@ func (db *EncryptedDB) Get(bucket []byte, key []byte, destination interfaces.Bin
 }
 
 func (db *EncryptedDB) Put(bucket []byte, key []byte, data interfaces.BinaryMarshallable) error {
+	if db.isLocked() {
+		return lockedError
+	}
+
 	e := NewEncryptedMarshaler(db.encryptionkey, data)
 	return db.db.Put(bucket, key, e)
 }
 
 func (db *EncryptedDB) PutInBatch(records []interfaces.Record) error {
+	if db.isLocked() {
+		return lockedError
+	}
+
 	cipherRecords := make([]interfaces.Record, len(records))
 	for i, r := range records {
 		cipherRecords[i].Bucket = r.Bucket
@@ -169,10 +230,18 @@ func (db *EncryptedDB) PutInBatch(records []interfaces.Record) error {
 }
 
 func (db *EncryptedDB) Clear(bucket []byte) error {
+	if db.isLocked() {
+		return lockedError
+	}
+
 	return db.db.Clear(bucket)
 }
 
 func (db *EncryptedDB) ListAllKeys(bucket []byte) (keys [][]byte, err error) {
+	if db.isLocked() {
+		return nil, lockedError
+	}
+
 	keys, err = db.db.ListAllKeys(bucket)
 	if err != nil {
 		return nil, err
@@ -182,6 +251,10 @@ func (db *EncryptedDB) ListAllKeys(bucket []byte) (keys [][]byte, err error) {
 }
 
 func (db *EncryptedDB) GetAll(bucket []byte, sample interfaces.BinaryMarshallableAndCopyable) ([]interfaces.BinaryMarshallableAndCopyable, [][]byte, error) {
+	if db.isLocked() {
+		return nil, nil, lockedError
+	}
+
 	s := NewEncryptedMarshaler(db.encryptionkey, sample.(interfaces.BinaryMarshallable))
 
 	cipheredAll, keys, err := db.db.GetAll(bucket, s)
@@ -215,5 +288,9 @@ func (db *EncryptedDB) Init(filename string, dbtype string) {
 }
 
 func (db *EncryptedDB) DoesKeyExist(bucket, key []byte) (bool, error) {
+	if db.isLocked() {
+		return false, fmt.Errorf("Encrypted database is locked")
+	}
+
 	return db.db.DoesKeyExist(bucket, key)
 }
