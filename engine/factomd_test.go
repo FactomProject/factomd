@@ -174,7 +174,6 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 	return state0
 }
 
-
 func creatingNodes(creatingNodes string, state0 *state.State) {
 	runCmd(fmt.Sprintf("g%d", len(creatingNodes)))
 	WaitMinutes(state0, 1)
@@ -203,7 +202,7 @@ func creatingNodes(creatingNodes string, state0 *state.State) {
 		if iq == 0 && iq2 == 0 && pendingCommits == 0 && holding == 0 {
 			break
 		}
-		fmt.Printf("Waiting for g to complete\n")
+		fmt.Printf("Waiting for g to complete iq == %d && iq2 == %d && pendingCommits == %d && holding == %d\n", iq, iq2, pendingCommits, holding)
 		WaitMinutes(state0, 1)
 
 	}
@@ -299,14 +298,14 @@ func WaitForQuiet(s *state.State, newBlock int, newMinute int) {
 			time.Sleep(sleepTime * time.Millisecond) // wake up and about 4 times per minute
 		}
 		if int(s.LLeaderHeight) < newBlock {
-		TimeNow(s)
+			TimeNow(s)
+		}
 	}
-}
 
 	// wait for the right minute
 	for s.CurrentMinute != newMinute {
-			time.Sleep(sleepTime * time.Millisecond) // wake up and about 4 times per minute
-		}
+		time.Sleep(sleepTime * time.Millisecond) // wake up and about 4 times per minute
+	}
 }
 
 func WaitMinutes(s *state.State, min int) {
@@ -316,14 +315,15 @@ func WaitMinutes(s *state.State, min int) {
 	newMinute := newTime % 10
 	WaitForQuiet(s, newBlock, newMinute)
 	TimeNow(s)
-		}
+}
+
 // Wait so many blocks
 func WaitBlocks(s *state.State, blks int) {
 	fmt.Printf("%s: %d-:-%d WaitBlocks(%d)\n", s.FactomNodeName, s.LLeaderHeight, s.CurrentMinute, blks)
 	newBlock := int(s.LLeaderHeight) + blks
 	WaitForQuiet(s, newBlock, 0)
 	TimeNow(s)
-	}
+}
 
 // Wait for a specific blocks
 func WaitForBlock(s *state.State, newBlock int) {
@@ -535,7 +535,6 @@ func TestLoad(t *testing.T) {
 	// use a tree so the messages get reordered
 	state0 := SetupSim("LLF", map[string]string{}, 15, 0, 0, t)
 
-
 	runCmd("2")   // select 2
 	runCmd("R30") // Feed load
 	WaitBlocks(state0, 10)
@@ -610,7 +609,6 @@ func TestLoadScrambled(t *testing.T) {
 	shutDownEverything(t)
 } // testLoad(){...}
 
-
 func TestMakeALeader(t *testing.T) {
 	if ranSimTest {
 		return
@@ -639,7 +637,6 @@ func TestActivationHeightElection(t *testing.T) {
 	ranSimTest = true
 
 	state0 := SetupSim("LLLLLAAF", map[string]string{}, 14, 2, 2, t)
-
 
 	// Kill the last two leader to cause a double election
 	runCmd("3")
@@ -729,7 +726,6 @@ func TestAnElection(t *testing.T) {
 	runCmd("2")
 	runCmd("w") // point the control panel at 2
 
-
 	// remove the last leader
 	runCmd("2")
 	runCmd("x")
@@ -750,7 +746,6 @@ func TestAnElection(t *testing.T) {
 	if !GetFnodes()[3].State.Leader && !GetFnodes()[4].State.Leader {
 		t.Fatalf("Node 3 or 4  should be a leader")
 	}
-
 
 	shutDownEverything(t)
 
@@ -860,7 +855,6 @@ func TestMultiple3Election(t *testing.T) {
 
 	state0 := SetupSim("LLLLLLLAAAAF", map[string]string{"--debuglog": ".*"}, 9, 3, 3, t)
 
-
 	runCmd("1")
 	runCmd("x")
 	runCmd("2")
@@ -890,7 +884,7 @@ func TestMultiple7Election(t *testing.T) {
 
 	ranSimTest = true
 
-	state0 := SetupSim("LLLLLLLLLLLLLLLAAAAAAAAAAF", map[string]string{"--blktime": "15"}, 7, 7, 7, t)
+	state0 := SetupSim("LLLLLLLLLLLLLLLAAAAAAAF", map[string]string{"--blktime": "25"}, 7, 7, 7, t)
 
 	WaitForMinute(state0, 2)
 
@@ -1336,7 +1330,6 @@ func TestDBSigElection(t *testing.T) {
 	ranSimTest = true
 
 	state0 := SetupSim("LLLAF", map[string]string{"--debuglog": "fault|badmsg|network|process|dbsig", "--faulttimeout": "10"}, 6, 1, 1, t)
-
 
 	s := GetFnodes()[2].State
 	if !s.IsLeader() {

@@ -97,7 +97,6 @@ func init() {
 func ParseCmdLine(args []string) *FactomParams {
 	p := &Params // Global copy of decoded Params global.Params
 
-
 	flag.CommandLine.Parse(args)
 
 	// Handle the global (not Factom server specific parameters
@@ -118,7 +117,7 @@ func ParseCmdLine(args []string) *FactomParams {
 	if p.FactomHome != "" {
 		os.Setenv("FACTOM_HOME", p.FactomHome)
 		if set {
-			fmt.Fprint(os.Stderr, "Overriding environment variable %s to be \"%s\"\n", "FACTOM_HOME", p.FactomHome)
+			fmt.Fprintf(os.Stderr, "Overriding environment variable %s to be \"%s\"\n", "FACTOM_HOME", p.FactomHome)
 		}
 	} else {
 		if set {

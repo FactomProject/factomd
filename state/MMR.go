@@ -40,8 +40,8 @@ func (vm *VM) ReportMissing(height int, delay int64) {
 		return
 	}
 	now := vm.p.State.GetTimestamp().GetTimeMilli()
-	if delay < 50 {
-		delay = 50 // Floor for delays is 50ms so there is time to merge adjacent requests
+	if delay < 500 {
+		delay = 500 // Floor for delays is 500ms so there is time to merge adjacent requests
 	}
 	lenVMList := len(vm.List)
 	// ask for all missing messages
@@ -167,8 +167,8 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 		//		This means on 10min block, 12 second delay
 		//					  1min block, 1.2 second delay
 
-		if askDelay < 50 { // Don't go below 50ms. That is just too much
-			askDelay = 50
+		if askDelay < 500 { // Don't go below 500ms. That is just too much
+			askDelay = 500
 		}
 
 		if askDelay != lastAskDelay {

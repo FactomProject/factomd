@@ -289,6 +289,22 @@ func (s *State) Process() (progress bool) {
 		s.DBStatesReceived[ix] = nil
 	}
 
+	preEmptyLoopTime := time.Now()
+
+	// Process inbound messages
+emptyLoop:
+	for {
+		select {
+		case msg := <-s.msgQueue:
+			s.LogMessage("msgQueue", "Execute", msg)
+			progress = s.executeMsg(vm, msg) || progress
+		default:
+			break emptyLoop
+		}
+	}
+	emptyLoopTime := time.Since(preEmptyLoopTime)
+	TotalEmptyLoopTime.Add(float64(emptyLoopTime.Nanoseconds()))
+
 	preAckLoopTime := time.Now()
 	// Process acknowledgements if we have some.
 ackLoop:
@@ -308,10 +324,9 @@ ackLoop:
 			}
 
 			if s.IgnoreMissing {
-				if now-ack.GetTimestamp().GetTimeSeconds() < 60*15 {
+				if (now/1000 - ack.GetTimestamp().GetTimeSeconds()) < 60*15 {
 					s.LogMessage("ackQueue", "Execute", ack)
-					s.executeMsg(vm, ack)
-					progress = true
+					progress = s.executeMsg(vm, ack) || progress
 				} else {
 					s.LogMessage("ackQueue", "Drop Too Old", ack)
 				}
@@ -328,22 +343,6 @@ ackLoop:
 
 	ackLoopTime := time.Since(preAckLoopTime)
 	TotalAckLoopTime.Add(float64(ackLoopTime.Nanoseconds()))
-
-	preEmptyLoopTime := time.Now()
-
-	// Process inbound messages
-emptyLoop:
-	for {
-		select {
-		case msg := <-s.msgQueue:
-			s.LogMessage("msgQueue", "Execute", msg)
-			progress = s.executeMsg(vm, msg) || progress
-		default:
-			break emptyLoop
-		}
-	}
-	emptyLoopTime := time.Since(preEmptyLoopTime)
-	TotalEmptyLoopTime.Add(float64(emptyLoopTime.Nanoseconds()))
 
 	preProcessXReviewTime := time.Now()
 	// Reprocess any stalled messages, but not so much compared inbound messages

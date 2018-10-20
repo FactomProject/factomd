@@ -129,7 +129,6 @@ func (m *Ack) Validate(s interfaces.IState) int {
 			//fmt.Println("Err is not nil on Ack sig check: ", err)
 			return -1
 		}
-		s.LogMessage("executeMsg", "Validate", m)
 		ackSigned, err := s.FastVerifyAuthoritySignature(bytes, m.Signature, m.DBHeight)
 
 		//ackSigned, err := m.VerifySignature()
@@ -145,6 +144,7 @@ func (m *Ack) Validate(s interfaces.IState) int {
 	}
 
 	m.authvalid = true
+	s.LogMessage("executeMsg", "Valid", m)
 	return 1
 }
 
