@@ -30,8 +30,8 @@ type IdentityManagerWithoutMutex struct {
 	Authorities map[[32]byte]*Authority
 	Identities  map[[32]byte]*Identity
 	// All Identity Registrations.
-	IdentityRegistrations map[[32]byte]*identityEntries.RegisterFactomIdentityStructure
-	AuthorityServerCount  int
+	IdentityRegistrations   map[[32]byte]*identityEntries.RegisterFactomIdentityStructure
+	MaxAuthorityServerCount int
 
 	// Not Marshalled
 	// Tracks cancellation of coinbases
@@ -141,6 +141,20 @@ func (im *IdentityManager) SetSkeletonIdentity(chain interfaces.IHash) error {
 //
 //	return im.SetSkeletonKey("0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a")
 //}
+
+// AuthorityServerCount returns the total count of Federated + Audit Servers
+func (im *IdentityManager) AuthorityServerCount() int {
+	im.Mutex.RLock()
+	defer im.Mutex.RUnlock()
+	answer := 0
+	for _, v := range im.Authorities {
+		if v.Status == constants.IDENTITY_FEDERATED_SERVER ||
+			v.Status == constants.IDENTITY_AUDIT_SERVER {
+			answer++
+		}
+	}
+	return answer
+}
 
 func (im *IdentityManager) FedServerCount() int {
 	im.Mutex.RLock()
@@ -563,7 +577,7 @@ func (im *IdentityManager) Clone() *IdentityManager {
 		b.Identities[k] = v.Clone()
 	}
 
-	b.AuthorityServerCount = im.AuthorityServerCount
+	b.MaxAuthorityServerCount = im.MaxAuthorityServerCount
 	for k, v := range im.OldEntries {
 		copy := *v
 		b.OldEntries[k] = &copy

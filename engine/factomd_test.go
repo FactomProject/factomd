@@ -1476,6 +1476,147 @@ func printList(title string, list map[string]uint64) {
 	}
 }
 
+func TestCoinbaseCancel(t *testing.T) {
+	if ranSimTest {
+		return
+	}
+
+	ranSimTest = true
+
+	state0 := SetupSim("LFFFFF", map[string]string{"-blktime": "5"}, 30, 0, 0, t)
+	// Make it quicker
+	constants.COINBASE_PAYOUT_FREQUENCY = 2
+	constants.COINBASE_DECLARATION = constants.COINBASE_PAYOUT_FREQUENCY * 2
+
+	WaitMinutes(state0, 2)
+	runCmd("g10") // Adds 10 identities to your identity pool.
+	WaitBlocks(state0, 1)
+	// Assign identities
+	runCmd("1")
+	runCmd("t")
+	runCmd("2")
+	runCmd("t")
+	runCmd("3")
+	runCmd("t")
+	runCmd("4")
+	runCmd("t")
+	runCmd("5")
+	runCmd("t")
+
+	WaitBlocks(state0, 2)
+	// Promotions, create 3 feds and 3 audits
+	runCmd("1")
+	runCmd("l")
+	runCmd("2")
+	runCmd("l")
+	runCmd("3")
+	runCmd("o")
+	runCmd("4")
+	runCmd("o")
+	runCmd("5")
+	runCmd("o")
+
+	WaitBlocks(state0, 3)
+	WaitForBlock(state0, 15)
+	WaitMinutes(state0, 1)
+	// Cancel coinbase of 18 (14+ delay of 4) with a majority of the authority set, should succeed
+	runCmd("1")
+	runCmd("L14.1")
+	runCmd("2")
+	runCmd("L14.1")
+	runCmd("3")
+	runCmd("L14.1")
+	runCmd("4")
+	runCmd("L14.1")
+	WaitForBlock(state0, 17)
+	WaitMinutes(state0, 1)
+
+	// attempt cancel coinbase of  20 (16+ delay of 4) without a majority of the authority set.  Should fail
+	// This tests 3 of 6 canceling, which is not a majority (but almost is)
+	// all feds
+	runCmd("0")
+	runCmd("L16.1")
+	runCmd("1")
+	runCmd("L16.1")
+	runCmd("2")
+	runCmd("L16.1")
+	WaitForBlock(state0, 21)
+	WaitForMinute(state0, 9)
+
+	// attempt cancel coinbase of  22 (18+ delay of 4) without a majority of the authority set.  Should fail
+	// This tests 3 of 6 canceling, which is not a majority (but almost is)
+	// all audits
+	runCmd("3")
+	runCmd("L18.1")
+	runCmd("4")
+	runCmd("L18.1")
+	runCmd("5")
+	runCmd("L18.1")
+	WaitForBlock(state0, 23)
+	WaitForMinute(state0, 2)
+
+	// attempt cancel coinbase of  24 (20+ delay of 4) without a majority of the authority set.  Should fail
+	// This tests 3 of 6 canceling, which is not a majority (but almost is)
+	// 2 audit 1 fed
+	runCmd("2")
+	runCmd("L20.1")
+	runCmd("4")
+	runCmd("L20.1")
+	runCmd("5")
+	runCmd("L20.1")
+	WaitForBlock(state0, 25)
+	WaitForMinute(state0, 2)
+
+	// Check the coinbase blocks for correct number of outputs, indicating a successful (or correctly ignored) coinbase cancels
+
+	hei := 18
+	expected := 4
+	f, err := state0.DB.FetchFBlockByHeight(uint32(hei))
+	if err != nil {
+		panic(fmt.Sprintf("Missing coinbase, admin block at height %d could not be retrieved", hei))
+	}
+	c := len(f.GetTransactions()[0].GetOutputs())
+	if c != expected {
+		t.Fatalf("Coinbase at height %d improperly cancelled.  should have %d outputs, but found %d", hei, expected, c)
+	}
+
+	hei = 20
+	expected = 5
+	f, err = state0.DB.FetchFBlockByHeight(uint32(hei))
+	if err != nil {
+		panic(fmt.Sprintf("Missing coinbase, admin block at height %d could not be retrieved", hei))
+	}
+	c = len(f.GetTransactions()[0].GetOutputs())
+	if c != expected {
+		t.Fatalf("Coinbase at height %d improperly cancelled.  should have %d outputs, but found %d", hei, expected, c)
+	}
+
+	hei = 22
+	expected = 5
+	f, err = state0.DB.FetchFBlockByHeight(uint32(hei))
+	if err != nil {
+		panic(fmt.Sprintf("Missing coinbase, admin block at height %d could not be retrieved", hei))
+	}
+	c = len(f.GetTransactions()[0].GetOutputs())
+	if c != expected {
+		t.Fatalf("Coinbase at height %d improperly cancelled.  should have %d outputs, but found %d", hei, expected, c)
+	}
+
+	hei = 24
+	expected = 5
+	f, err = state0.DB.FetchFBlockByHeight(uint32(hei))
+	if err != nil {
+		panic(fmt.Sprintf("Missing coinbase, admin block at height %d could not be retrieved", hei))
+	}
+	c = len(f.GetTransactions()[0].GetOutputs())
+	if c != expected {
+		t.Fatalf("Coinbase at height %d improperly cancelled.  should have %d outputs, but found %d", hei, expected, c)
+	}
+
+	//shutDownEverythingWithoutAuthCheck(t)  see 9cf214e9140d767ea172b06a6e4b748475a9c494 for shutDownEverythingWithoutAuthCheck()
+
+}
+
 func TestTestNetCoinBaseActivation_long(t *testing.T) {
 	if ranSimTest {
 		return
