@@ -140,6 +140,13 @@ func (e *EntryBlockSync) UnmarshalBinaryData(p []byte) (newData []byte, err erro
 	if err != nil {
 		return
 	}
+	// TODO: remove printing unmarshal count numbers once we have good data on
+	// what they should be.
+	//log.Print("EntryBlockSync unmarshaled EntryBlockMarker count: ", l)
+	if l > 1000 {
+		// TODO: replace this message with a proper error
+		return nil, fmt.Errorf("Error: EntryBlockSync.UnmarshalBinary: EntryBlockMarker count too high (uint underflow?)")
+	}
 
 	e.BlocksToBeParsed = make([]EntryBlockMarker, l)
 

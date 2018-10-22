@@ -118,6 +118,7 @@ func SaveToFile(b []byte, filename string) error {
 }
 
 func LoadFromFile(filename string) ([]byte, error) {
+	fmt.Fprintf(os.Stderr, "Load state from %s\n", filename)
 	b, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, err

@@ -8,16 +8,34 @@ import (
 func (list *DBStateList) Catchup(justDoIt bool) {
 	// We only check if we need updates once every so often.
 
+	if !list.State.DBFinished {
+		return // don't ask for dbstates while we are loading from the database
+	}
+
 	now := list.State.GetTimestamp()
 
+	top := int(list.State.DBHeightAtBoot)
 	hs := int(list.State.GetHighestSavedBlk())
-	hk := int(list.State.GetHighestAck())
-	if list.State.GetHighestKnownBlock() > uint32(hk+2) {
-		hk = int(list.State.GetHighestKnownBlock())
+	heightAtBoot := int(list.State.GetDBHeightAtBoot())
+	if hs < top {
+		hs = top // never ask for states we already have
+	}
+	ha := int(list.State.GetHighestAck())
+	hk := int(list.State.GetHighestKnownBlock())
+
+	if hk > ha+2 {
+		ha = hk
+	}
+
+	if hs < heightAtBoot {
+		hs = heightAtBoot // don't ask for blocks we have
+	}
+	if hk < heightAtBoot {
+		hk = heightAtBoot // don't ask for block we have
 	}
 
 	begin := hs + 1
-	end := hk
+	end := ha
 
 	ask := func() {
 
@@ -26,7 +44,7 @@ func (list *DBStateList) Catchup(justDoIt bool) {
 			tolerance = 2
 		}
 
-		if list.TimeToAsk != nil && hk-hs > tolerance && now.GetTime().After(list.TimeToAsk.GetTime()) {
+		if list.TimeToAsk != nil && ha-hs > tolerance && now.GetTime().After(list.TimeToAsk.GetTime()) {
 
 			// Find the first dbstate we don't have.
 			for i, v := range list.State.DBStatesReceived {
@@ -34,7 +52,7 @@ func (list *DBStateList) Catchup(justDoIt bool) {
 				if ix <= hs {
 					continue
 				}
-				if ix >= hk {
+				if ix >= ha {
 					return
 				}
 				if v == nil {
@@ -43,7 +61,7 @@ func (list *DBStateList) Catchup(justDoIt bool) {
 				}
 			}
 
-			for len(list.State.DBStatesReceived)+list.State.DBStatesReceivedBase <= hk {
+			for len(list.State.DBStatesReceived)+list.State.DBStatesReceivedBase <= ha {
 				list.State.DBStatesReceived = append(list.State.DBStatesReceived, nil)
 			}
 

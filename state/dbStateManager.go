@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/adminBlock"
+	"github.com/FactomProject/factomd/common/globals"
 	// "github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
@@ -509,7 +510,27 @@ func (dbsl *DBStateList) UnmarshalBinaryData(p []byte) (newData []byte, err erro
 
 	for i := len(dbsl.DBStates) - 1; i >= 0; i-- {
 		if dbsl.DBStates[i].SaveStruct != nil {
-			dbsl.DBStates[i].SaveStruct.RestoreFactomdState(dbsl.State)
+			dbh := dbsl.DBStates[i].DirectoryBlock.GetHeader().GetDBHeight()
+			dbsl.State.LogPrintf("executeMsg", "Reset to dbht %v", dbh)
+			//			dbsl.DBStates[i].SaveStruct.RestoreFactomdState(dbsl.State)
+			s := dbsl.State
+			ss := dbsl.DBStates[i].SaveStruct
+
+			s.LogPrintf("fct_transactions", "Loading %d EC balances from DBH %d", len(ss.FactoidBalancesP), dbh)
+			s.FactoidBalancesPMutex.Lock()
+			s.FactoidBalancesP = make(map[[32]byte]int64, len(ss.FactoidBalancesP))
+			for k := range ss.FactoidBalancesP {
+				s.FactoidBalancesP[k] = ss.FactoidBalancesP[k]
+			}
+			s.FactoidBalancesPMutex.Unlock()
+
+			s.LogPrintf("ec_transactions", "Loading %d EC balances from DBH %d", len(ss.ECBalancesP), dbh)
+			s.ECBalancesPMutex.Lock()
+			s.ECBalancesP = make(map[[32]byte]int64, len(ss.ECBalancesP))
+			for k := range ss.ECBalancesP {
+				s.ECBalancesP[k] = ss.ECBalancesP[k]
+			}
+			s.ECBalancesPMutex.Unlock()
 			break
 		}
 	}
@@ -534,11 +555,12 @@ func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 	dbheight := dirblk.GetHeader().GetDBHeight()
 
 	// If we don't have the previous blocks processed yet, then let's wait on this one.
-	if dbheight > state.GetHighestSavedBlk()+1 {
+	highestSavedBlk := state.GetHighestSavedBlk()
+	if dbheight > highestSavedBlk+1 {
 		return 0
 	}
 
-	if dbheight == 0 && state.GetHighestSavedBlk() == 0 {
+	if dbheight == 0 && highestSavedBlk == 0 {
 		//state.AddStatus(fmt.Sprintf("DBState.ValidNext: rtn 1 genesis block is valid dbht: %d", dbheight))
 		// The genesis block is valid by definition.
 		return 1
@@ -549,7 +571,7 @@ func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 	}
 
 	// Don't reload blocks!
-	if dbheight <= state.GetHighestSavedBlk() {
+	if dbheight <= highestSavedBlk {
 		return -1
 	}
 
@@ -716,6 +738,7 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 		return
 	}
 
+	list.State.LogPrintf("dbstate", "FixupLinks(%d,%d)", p.DirectoryBlock.GetHeader().GetDBHeight(), d.DirectoryBlock.GetHeader().GetDBHeight())
 	currentDBHeight := d.DirectoryBlock.GetHeader().GetDBHeight()
 	previousDBHeight := p.DirectoryBlock.GetHeader().GetDBHeight()
 
@@ -897,16 +920,20 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	dbht := d.DirectoryBlock.GetHeader().GetDBHeight()
 
+	s := list.State
+	s.LogPrintf("dbstateprocess", "ProcessBlock %d", d.DirectoryBlock.GetHeader().GetDBHeight())
 	// If we are locked, the block has already been processed.  If the block IsNew then it has not yet had
 	// its links patched, so we can't process it.  But if this is a repeat block (we have already processed
 	// at this height) then we simply return.
 	if d.Locked || d.IsNew || d.Repeat {
+		s.LogPrintf("dbstateprocess", "Skipping d.Locked(%v) || d.IsNew(%v) || d.Repeat(%v)", d.Locked, d.IsNew, d.Repeat)
 		return
 	}
 
 	// If we detect that we have processed at this height, flag the dbstate as a repeat, progress is good, and
 	// go forward.
 	if dbht > 0 && dbht <= list.ProcessHeight {
+		s.LogPrintf("dbstateprocess", "Skipping old ProcessHeight = %d", list.ProcessHeight)
 		progress = true
 		d.Repeat = true
 		return
@@ -914,9 +941,15 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 
 	if dbht > 1 {
 		pd := list.State.DBStates.Get(int(dbht - 1))
-		if pd != nil && !pd.Saved {
-			//list.State.AddStatus(fmt.Sprintf("PROCESSBLOCKS:  Previous dbstate (%d) not saved", dbht-1))
-			return
+		if pd == nil {
+			s.LogPrintf("dbstateprocess", "Skipping Prev Block Missing")
+			s.LogPrintf("dbstateprocess", "list: %v", list.State.DBStates.String())
+
+			return // Can't process out of order
+		}
+		if !pd.Saved {
+			s.LogPrintf("dbstateprocess", "Skipping Prev Block not saved")
+			return // can't process till the prev is saved
 		}
 	}
 
@@ -932,6 +965,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	pln := list.State.ProcessLists.Get(ht + 1)
 
 	if pl == nil {
+		s.LogPrintf("dbstateprocess", "Skipping No ProcessList")
 		return
 	}
 
@@ -999,6 +1033,28 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		fmt.Println(out.String())
 	}
 
+	// get all the prior balances of the Factoid addresses that may have changed
+	// in this block.  If you want the balance of the highest saved block, look to
+	// list.State.FactoidBalancesPapi if it is not null.  If you have no entry there,
+	// then look to list.State.FactoidBalancesP
+	list.State.FactoidBalancesPMutex.Lock()
+	list.State.FactoidBalancesPapi = make(map[[32]byte]int64, len(pl.FactoidBalancesT))
+	for k := range pl.FactoidBalancesT {
+		list.State.FactoidBalancesPapi[k] = list.State.FactoidBalancesP[k]
+	}
+	list.State.FactoidBalancesPMutex.Unlock()
+
+	// get all the prior balances of the entry credit addresses that may have changed
+	// in this block.  If you want the balance of the highest saved block, look to
+	// list.State.ECBalancesPapi if it is not null.  If you have no entry there,
+	// then look to list.State.ECBalancesP
+	list.State.ECBalancesPMutex.Lock()
+	list.State.ECBalancesPapi = make(map[[32]byte]int64, len(pl.ECBalancesT))
+	for k := range pl.ECBalancesT {
+		list.State.ECBalancesPapi[k] = list.State.ECBalancesP[k]
+	}
+	list.State.ECBalancesPMutex.Unlock()
+
 	// Process the Factoid End of Block
 	fs := list.State.GetFactoidState()
 	fs.(*FactoidState).DBHeight = dbht
@@ -1009,6 +1065,10 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	err = fs.AddECBlock(d.EntryCreditBlock)
 	if err != nil {
 		panic(err)
+	}
+
+	if list.State.DBFinished {
+		list.State.Balancehash = fs.GetBalanceHash(false)
 	}
 
 	// Make the current exchange rate whatever we had in the previous block.
@@ -1092,44 +1152,68 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	// 	}
 	// }
 
-	// Saving our state so we can reset it if we need to.
-	d.TmpSaveStruct = SaveFactomdState(list.State, d)
-	list.State.Balancehash = fs.GetBalanceHash(false)
+	// Writing the DBState to a debug file allows for later analyzing the last block not saved to the database.
+	// Do not do this while loading from disk, as those blocks are already saved
+	if list.State.DBFinished && globals.Params.WriteProcessedDBStates {
+		list.WriteDBStateToDebugFile(d)
+	}
 
+	tbh := list.State.FactoidState.GetBalanceHash(true) // recompute temp balance hash here
+	list.State.Balancehash = fs.GetBalanceHash(false)
+	list.State.LogPrintf("dbstateprocess", "dbht %d BalanceHash P %x T %x", dbht, list.State.Balancehash.Bytes()[0:4], tbh.Bytes()[0:4])
 	return
 }
 
 // We don't really do the signing here, but just check that we have all the signatures.
 // If we do, we count that as progress.
 func (list *DBStateList) SignDB(d *DBState) (process bool) {
+	dbheight := d.DirectoryBlock.GetHeader().GetDBHeight()
+	list.State.LogPrintf("dbstate", "SignDB(%d)", dbheight)
+
+	dbheight1 := d.DirectoryBlock.GetHeader().GetDBHeight()
+	_ = dbheight1
 	if d.Signed {
+		//s := list.State
+		//		s.MoveStateToHeight(dbheight + 1)
+		list.State.LogPrintf("dbstate", "SignDB(%d) already signed", d.DirectoryBlock.GetHeader().GetDBHeight())
+
 		return false
 	}
-
-	dbheight := d.DirectoryBlock.GetHeader().GetDBHeight()
 
 	// If we have the next dbstate in the list, then all the signatures for this dbstate
 	// have been checked, so we can consider this guy signed.
 	if dbheight == 0 || list.Get(int(dbheight+1)) != nil || d.Repeat == true {
+		s := list.State
+		s.MoveStateToHeight(dbheight + 1)
+		list.State.LogPrintf("dbstate", "SignDB(%d) next blocks exists!", d.DirectoryBlock.GetHeader().GetDBHeight())
 		d.Signed = true
 		return false
 	}
 
 	pl := list.State.ProcessLists.Get(dbheight)
-	if pl == nil || !pl.Complete() {
+	if pl == nil {
+		list.State.LogPrintf("dbstate", "SignDB(%d) no processlist!", d.DirectoryBlock.GetHeader().GetDBHeight())
+		return
+	} else if !pl.Complete() {
+		list.State.LogPrintf("dbstate", "SignDB(%d) processlist not complete!", d.DirectoryBlock.GetHeader().GetDBHeight())
 		return
 	}
 
 	// If we don't have the next dbstate yet, see if we have all the signatures.
 	pl = list.State.ProcessLists.Get(dbheight + 1)
 	if pl == nil {
+		list.State.LogPrintf("dbstate", "SignDB(%d) missing next processlist!", d.DirectoryBlock.GetHeader().GetDBHeight())
 		return
 	}
 
 	// Don't sign while negotiating the EOM
 	if list.State.EOM {
+		list.State.LogPrintf("dbstate", "SignDB(%d) negotiating the EOM!", d.DirectoryBlock.GetHeader().GetDBHeight())
 		return
 	}
+
+	s := list.State
+	s.MoveStateToHeight(dbheight + 1)
 
 	d.Signed = true
 	return
@@ -1160,7 +1244,9 @@ func (list *DBStateList) WriteDBStateToDebugFile(d *DBState) {
 	filename := fmt.Sprintf("processed_dbstate_%d.block", d.DirectoryBlock.GetDatabaseHeight()%10)
 	path := filepath.Join(list.State.LdbPath, list.State.Network, "dbstates", filename)
 
-	file, err := os.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0777)
+	//fmt.Printf("Saving DBH %d to %s\n", list.State.LLeaderHeight, path)
+
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0775)
 	if err != nil {
 		fmt.Printf("An error has occurred while writing the DBState to disk: %s\n", err.Error())
 		return
@@ -1194,6 +1280,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	if !d.Signed || !d.ReadyToSave || list.State.DB == nil {
 		return
 	}
+	list.State.LogPrintf("dbstate", "SaveDBStateToDB(%d)", d.DirectoryBlock.GetHeader().GetDBHeight())
 
 	// If this is a repeated block, and I have already saved at this height, then we can safely ignore
 	// this dbstate.
@@ -1205,7 +1292,11 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 
 	if dbheight > 0 {
 		dp := list.State.GetDBState(uint32(dbheight - 1))
-		if dp == nil || !dp.Saved {
+		if dp == nil {
+			list.State.LogPrintf("dbstate", "SaveDBStateToDB(%d) no previous block!", d.DirectoryBlock.GetHeader().GetDBHeight())
+			return
+		} else if !dp.Saved {
+			list.State.LogPrintf("dbstate", "SaveDBStateToDB(%d) previous not saved!", d.DirectoryBlock.GetHeader().GetDBHeight())
 			return
 		}
 	}
@@ -1219,6 +1310,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 				d.DirectoryBlock.GetKeyMR().Bytes()))
 		}
 
+		list.State.LogPrintf("dbstate", "SaveDBStateToDB(%d) Alreay saved, add to replay!", d.DirectoryBlock.GetHeader().GetDBHeight())
 		// Set the Block Replay flag for all these transactions that are already in the database.
 		for _, fct := range d.FactoidBlock.GetTransactions() {
 			list.State.FReplay.IsTSValidAndUpdateState(
@@ -1436,7 +1528,22 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 func (list *DBStateList) UpdateState() (progress bool) {
 	list.Catchup(false)
 
+	s := list.State
+
 	saved := 0
+	if len(list.DBStates) != 0 {
+		l := "["
+		for _, d := range list.DBStates {
+			if d == nil {
+				l += "nil "
+			} else {
+				l += fmt.Sprintf("%d, ", d.DirectoryBlock.GetHeader().GetDBHeight())
+			}
+		}
+		l += "]"
+		s.LogPrintf("dbstate", "updateState() %d %s", list.Base, l)
+	}
+
 	for i, d := range list.DBStates {
 		//fmt.Printf("dddd %20s %10s --- %10s %10v %10s %10v \n", "DBStateList Update", list.State.FactomNodeName, "Looking at", i, "DBHeight", list.Base+uint32(i))
 

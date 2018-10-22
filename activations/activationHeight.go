@@ -41,6 +41,7 @@ func init() {
 			0, // active at the beginning of time unless overridden below
 			map[string]int{
 				"MAIN":                      146060 + 8*24*10 + 1, // On 6/20/18 11:45 mainnet was 146060, we want activation at 6/28/18 at ~12pm
+				"TEST":                      0,                    // On 6/20/18 11:45 testnet was 146060, we want activation at 6/22/18 at ~12pm
 				"LOCAL":                     10,                   // Must be > 6 for TestActivationHeightElection to pass
 				"CUSTOM:fct_community_test": 33037 + 2*24*10 + 1,  // On 6/22/18 11:45 testnet was 33037, we want activation at 6/24/18 at 12:00pm
 			},

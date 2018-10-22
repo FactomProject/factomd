@@ -8,8 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"hash"
+	"os"
 	"reflect"
-	"sync"
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -40,49 +40,39 @@ var _ = (*hash.Hash32)(nil)
 // Returns true if some message was processed.
 //***************************************************************
 
-var once sync.Once
-var debugExec_flag bool
-
 func (s *State) CheckFileName(name string) bool {
 	return messages.CheckFileName(name)
 }
 
 func (s *State) DebugExec() (ret bool) {
-	once.Do(func() { debugExec_flag = globals.Params.DebugLogRegEx != "" })
-
-	//return s.FactomNodeName == "FNode0"
-	return debugExec_flag
+	return globals.Params.DebugLogRegEx != ""
 }
 
 func (s *State) LogMessage(logName string, comment string, msg interfaces.IMsg) {
 	if s.DebugExec() {
 		var dbh int
-		nodeName := "unknown"
-		minute := 0
-		if s != nil {
+		if s == nil {
+			messages.StateLogMessage("unknown", 0, 0, logName, comment, msg)
+		} else {
 			if s.LeaderPL != nil {
 				dbh = int(s.LeaderPL.DBHeight)
 			}
-			nodeName = s.FactomNodeName
-			minute = int(s.CurrentMinute)
+			messages.StateLogMessage(s.FactomNodeName, dbh, int(s.CurrentMinute), logName, comment, msg)
 		}
-		messages.StateLogMessage(nodeName, dbh, minute, logName, comment, msg)
 	}
 }
 
 func (s *State) LogPrintf(logName string, format string, more ...interface{}) {
 	if s.DebugExec() {
-		var dbh int
-		nodeName := "unknown"
-		minute := 0
-		if s != nil {
+		if s == nil {
+			messages.StateLogPrintf("unknown", 0, 0, logName, format, more...)
+		} else {
+			var dbh int
 			if s.LeaderPL != nil {
 				dbh = int(s.LeaderPL.DBHeight)
 			}
-			nodeName = s.FactomNodeName
-			minute = int(s.CurrentMinute)
+			messages.StateLogPrintf(s.FactomNodeName, dbh, int(s.CurrentMinute), logName, format, more...)
 		}
-		messages.StateLogPrintf(nodeName, dbh, minute, logName, format, more...)
 	}
 }
 func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
@@ -157,7 +147,9 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 	switch valid {
 	case 1:
 		// The highest block for which we have received a message.  Sometimes the same as
-		msg.SendOut(s, msg)
+		if !msg.IsLocal() && !msg.IsPeer2Peer() {
+			msg.SendOut(s, msg) // send out messages that are valid and not local or peer to  peer
+		}
 
 		switch msg.Type() {
 		case constants.REVEAL_ENTRY_MSG, constants.COMMIT_ENTRY_MSG, constants.COMMIT_CHAIN_MSG:
@@ -552,6 +544,24 @@ func (s *State) ReviewHolding() {
 	TotalReviewHoldingTime.Add(float64(reviewHoldingTime.Nanoseconds()))
 }
 
+func (s *State) MoveStateToHeight(dbheight uint32) {
+	s.LogPrintf("dbstate", "MoveStateToHeight(%d) called from %s", dbheight, atomic.WhereAmIString(1))
+	if s.LLeaderHeight+1 != dbheight {
+		s.LogPrintf("dbstate", "State move between non-sequential heights from %d to %d", s.LLeaderHeight, dbheight)
+		if s.LLeaderHeight != dbheight {
+			fmt.Fprintf(os.Stderr, "State move between non-sequential heights from %d to %d\n", s.LLeaderHeight, dbheight)
+		}
+	}
+	if s.CurrentMinute != 0 {
+		s.LogPrintf("dbstate", "CurrentMinute not 0 %d", s.CurrentMinute)
+		fmt.Fprintf(os.Stderr, "CurrentMinute not 0 %d\n", s.CurrentMinute)
+	}
+	s.LLeaderHeight = dbheight                       // Update leader height
+	s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight) // fix up cached values
+	s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
+	s.ProcessLists.Get(s.LLeaderHeight + 1) // Make sure next PL exists
+}
+
 // Adds blocks that are either pulled locally from a database, or acquired from peers.
 func (s *State) AddDBState(isNew bool,
 	directoryBlock interfaces.IDirectoryBlock,
@@ -561,6 +571,9 @@ func (s *State) AddDBState(isNew bool,
 	eBlocks []interfaces.IEntryBlock,
 	entries []interfaces.IEBEntry) *DBState {
 
+	s.LogPrintf("dbstate", "AddDBState(isNew %v, directoryBlock %d %x, adminBlock %x, factoidBlock %x, entryCreditBlock %X, eBlocks %d, entries %d)",
+		isNew, directoryBlock.GetHeader().GetDBHeight(), directoryBlock.GetHash().Bytes()[:4],
+		adminBlock.GetHash().Bytes()[:4], factoidBlock.GetHash().Bytes()[:4], entryCreditBlock.GetHash().Bytes()[:4], len(eBlocks), len(entries))
 	dbState := s.DBStates.NewDBState(isNew, directoryBlock, adminBlock, factoidBlock, entryCreditBlock, eBlocks, entries)
 
 	if dbState == nil {
@@ -576,19 +589,27 @@ func (s *State) AddDBState(isNew bool,
 		panic(fmt.Errorf("Found block at height %d that didn't match a checkpoint. Got %s, expected %s", ht, DBKeyMR, constants.CheckPoints[ht])) //TODO make failing when given bad blocks fail more elegantly
 	}
 
+	if ht == s.LLeaderHeight-1 || (ht == s.LLeaderHeight) {
+	} else {
+		s.LogPrintf("dbstate", "AddDBState out of order! at %d added %d", s.LLeaderHeight, ht)
+		fmt.Fprintf(os.Stderr, "AddDBState() out of order! at %d added %d\n", s.LLeaderHeight, ht)
+		//panic("AddDBState out of order!")
+	}
+
 	if ht > s.LLeaderHeight {
+		s.LogPrintf("dbstate", "unexpected: ht > s.LLeaderHeight  at %d added %d", s.LLeaderHeight, ht)
 		s.Syncing = false
 		//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s Add DBState: s.SigType(%v)", s.FactomNodeName, s.SigType))
-		s.EOM = false
-		s.DBSig = false
-		s.SetLLeaderHeight(ht)
-		s.ProcessLists.Get(ht + 1)
 		s.CurrentMinute = 0
+		s.MoveStateToHeight(ht)
 		s.EOMProcessed = 0
 		s.DBSigProcessed = 0
 		s.StartDelay = s.GetTimestamp().GetTimeMilli()
+		s.EOM = false
+		s.DBSig = false
 		s.RunLeader = false
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
+
 		s.SetLeaderTimestamp(dbState.DirectoryBlock.GetTimestamp()) // move the leader timestamp to the start of the block
 		{
 			// Okay, we have just loaded a new DBState.  The temp balances are no longer valid, if they exist.  Nuke them.
@@ -605,8 +626,8 @@ func (s *State) AddDBState(isNew bool,
 		for s.ProcessLists.UpdateState(s.LLeaderHeight) {
 		}
 	}
-	if ht == 0 && s.LLeaderHeight < 1 {
-		s.SetLLeaderHeight(1)
+	if ht == 0 && s.LLeaderHeight == 0 {
+		s.MoveStateToHeight(1)
 	}
 
 	return dbState
@@ -1257,8 +1278,6 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	m.SendOut(s, m)
 	s.FollowerExecuteEOM(m)
 	s.UpdateState()
-	delete(s.Acks, ack.GetHash().Fixed())
-	delete(s.Holding, m.GetMsgHash().Fixed())
 }
 
 func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
@@ -1271,7 +1290,6 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
 		m.FollowerExecute(s)
 		return
 	}
-
 	if pl.VMs[dbs.VMIndex].Height > 0 {
 		s.LogPrintf("executeMsg", "DBSig issue height = %d, length = %d", pl.VMs[dbs.VMIndex].Height, len(pl.VMs[dbs.VMIndex].List))
 		s.LogMessage("executeMsg", "drop, already processed ", pl.VMs[dbs.VMIndex].List[0])
@@ -1285,7 +1303,6 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
 		} else {
 			s.LogMessage("executeMsg", "duplicate execute", pl.VMs[dbs.VMIndex].List[0])
 		}
-
 		return
 	}
 
@@ -1426,7 +1443,6 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 	c, _ := commitChain.(*messages.CommitChainMsg)
 
 	pl := s.ProcessLists.Get(dbheight)
-
 	if e := s.GetFactoidState().UpdateECTransaction(true, c.CommitChain); e == nil {
 		// save the Commit to match against the Reveal later
 		h := c.GetHash()
@@ -1439,10 +1455,10 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 			s.XReview = append(s.XReview, entry)
 			TotalHoldingQueueOutputs.Inc()
 		}
+
 		pl.EntryCreditBlock.GetBody().AddEntry(c.CommitChain)
 		return true
 	}
-
 	//s.AddStatus("Cannot process Commit Chain")
 
 	return false
@@ -1484,6 +1500,7 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) (worked b
 			TotalProcessListProcesses.Inc()
 			TotalCommitsOutputs.Inc()
 			s.Commits.Delete(msg.Entry.GetHash().Fixed()) // 	delete(s.Commits, msg.Entry.GetHash().Fixed())
+
 			// This is so the api can determine if a chainhead is about to be updated. It fixes a race condition
 			// on the api. MUST BE BEFORE THE REPLAY FILTER ADD
 			pl.PendingChainHeads.Put(msg.Entry.GetChainID().Fixed(), msg)
@@ -1492,7 +1509,6 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) (worked b
 			s.Commits.Delete(msg.Entry.GetHash().Fixed()) // delete(s.Commits, msg.Entry.GetHash().Fixed())
 		}
 	}()
-
 	myhash := msg.Entry.GetHash()
 
 	chainID := msg.Entry.GetChainID()
@@ -1573,10 +1589,8 @@ func (s *State) CreateDBSig(dbheight uint32, vmIndex int) (interfaces.IMsg, inte
 		panic(err)
 	}
 	ack := s.NewAck(dbs, s.Balancehash).(*messages.Ack)
-
 	s.LogMessage("dbstate", "CreateDBSig", dbs)
 	s.LogPrintf("dbstate", dbstate.String())
-
 	return dbs, ack
 }
 
@@ -1829,14 +1843,10 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			s.DBStates.ProcessBlocks(dbstate)
 
 			s.setCurrentMinute(0)
-			s.SetLLeaderHeight(s.LLeaderHeight + 1)
-			//			s.SetLeaderTimestamp(s.GetTimestamp()) // start the new block now...Needs to be updated when we get the VM 0 DBSig.
+			s.MoveStateToHeight(s.LLeaderHeight + 1)
 
 			s.GetAckChange()
 			s.CheckForIDChange()
-
-			s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
-			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
 
 			s.DBSigProcessed = 0
 			s.TempBalanceHash = s.FactoidState.GetBalanceHash(true)
@@ -2063,9 +2073,9 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		}
 
 		if dbs.DirectoryBlockHeader.GetBodyMR().Fixed() != dblk.GetHeader().GetBodyMR().Fixed() {
+			pl.IncrementDiffSigTally()
 			plog("Failed. DBlocks do not match Expected-Body-Mr: %x, Got: %x",
 				dblk.GetHeader().GetBodyMR().Fixed(), dbs.DirectoryBlockHeader.GetBodyMR().Fixed())
-
 			// If the Directory block hash doesn't work for me, then the dbsig doesn't work for me, so
 			// toss it and ask our neighbors for another one.
 			vm.ListAck[0] = nil
@@ -2088,7 +2098,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		valid, err := s.FastVerifyAuthoritySignature(data, dbs.DBSignature, dbs.DBHeight)
 		if err != nil || valid != 1 {
 			s.LogPrintf("executeMsg", "Failed. Invalid Auth Sig: Pubkey: %x", dbs.Signature.GetKey())
-
 			// If the authority is bad, toss this signature and ask for another.
 			vm.ListAck[0] = nil
 			vm.List[0] = nil
@@ -2303,6 +2312,10 @@ func (s *State) GetHighestSavedBlk() uint32 {
 	return v
 }
 
+func (s *State) GetDBHeightAtBoot() uint32 {
+	return s.DBHeightAtBoot
+}
+
 // This is the highest block signed off, but not necessarily validated.
 func (s *State) GetHighestCompletedBlk() uint32 {
 	v := s.DBStates.GetHighestCompletedBlk()
@@ -2357,12 +2370,10 @@ func (s *State) GetF(rt bool, adr [32]byte) (v int64) {
 }
 
 // PutF()
-// If rt == true, update the Temp balances.  Otherwise update the Permenent balances.
+// PutF()
+// If rt == true, update the Temp balances.  Otherwise update the Permanent balances.
 // concurrency safe to call
 func (s *State) PutF(rt bool, adr [32]byte, v int64) {
-	if s.validatorLoopThreadID != atomic.Goid() {
-		panic("Second thread writing the factoids")
-	}
 	if rt {
 		pl := s.ProcessLists.Get(s.LLeaderHeight)
 		if pl != nil {
@@ -2393,7 +2404,7 @@ func (s *State) GetE(rt bool, adr [32]byte) (v int64) {
 			v, ok = pl.ECBalancesT[adr]
 			pl.ECBalancesTMutex.Unlock()
 		} else {
-			s.LogPrintf("entrycredits", "GetE(%v,%x) = %d -- no pl", rt, adr[:4],
+			s.LogPrintf("entrycredits", "GetE(%v,%x<%s>) = %d -- no pl", rt, adr[:4],
 				primitives.ConvertECAddressToUserStr(factoid.NewAddress(adr[:])), v)
 		}
 	}
@@ -2401,10 +2412,10 @@ func (s *State) GetE(rt bool, adr [32]byte) (v int64) {
 		s.ECBalancesPMutex.Lock()
 		v = s.ECBalancesP[adr]
 		s.ECBalancesPMutex.Unlock()
-		s.LogPrintf("entrycredits", "GetE(%v,%x) = %d using permanent balance", rt, adr[:4],
+		s.LogPrintf("entrycredits", "GetE(%v,%x<%s>) = %d using permanent balance", rt, adr[:4],
 			primitives.ConvertECAddressToUserStr(factoid.NewAddress(adr[:])), v)
 	} else {
-		s.LogPrintf("entrycredits", "GetE(%v,%x) = %d using temporary balance", rt, adr[:4],
+		s.LogPrintf("entrycredits", "GetE(%v,%x<%s>) = %d using temporary balance", rt, adr[:4],
 			primitives.ConvertECAddressToUserStr(factoid.NewAddress(adr[:])), v)
 	}
 	return v
@@ -2415,26 +2426,23 @@ func (s *State) GetE(rt bool, adr [32]byte) (v int64) {
 // If rt == true, update the Temp balances.  Otherwise update the Permenent balances.
 // concurrency safe to call
 func (s *State) PutE(rt bool, adr [32]byte, v int64) {
-	if s.validatorLoopThreadID != atomic.Goid() {
-		panic("Second thread writing the entrycredits")
-	}
 	if rt {
 		pl := s.ProcessLists.Get(s.LLeaderHeight)
 		if pl != nil {
 			pl.ECBalancesTMutex.Lock()
 			pl.ECBalancesT[adr] = v
 			pl.ECBalancesTMutex.Unlock()
-			s.LogPrintf("entrycredits", "PutE(%v,%x, %d) using temporary balance", rt, adr[:4],
+			s.LogPrintf("entrycredits", "PutE(%v,%x<%s>, %d) using temporary balance", rt, adr[:4],
 				primitives.ConvertECAddressToUserStr(factoid.NewAddress(adr[:])), v)
 		} else {
-			s.LogPrintf("entrycredits", "PutE(%v,%x, %d) using temporary balance -- no pl", rt, adr[:4],
+			s.LogPrintf("entrycredits", "PutE(%v,%x<%s>, %d) using temporary balance -- no pl", rt, adr[:4],
 				primitives.ConvertECAddressToUserStr(factoid.NewAddress(adr[:])), v)
 		}
 	} else {
 		s.ECBalancesPMutex.Lock()
 		s.ECBalancesP[adr] = v
 		s.ECBalancesPMutex.Unlock()
-		s.LogPrintf("entrycredits", "PutE(%v,%x, %d) using permanent balance", rt, adr[:4],
+		s.LogPrintf("entrycredits", "PutE(%v,%x<%s>, %d) using permanent balance", rt, adr[:4],
 			primitives.ConvertECAddressToUserStr(factoid.NewAddress(adr[:])), v)
 	}
 }

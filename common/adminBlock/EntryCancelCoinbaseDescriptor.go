@@ -125,6 +125,13 @@ func (e *CancelCoinbaseDescriptor) UnmarshalBinaryData(data []byte) ([]byte, err
 	if err != nil {
 		return nil, err
 	}
+	// TODO: remove printing unmarshal count numbers once we have good data on
+	// what they should be.
+	//log.Print("CancelCoinbaseDescriptor unmarshaled body length: ", bl)
+	if bl > 1000 {
+		// TODO: replace this message with a proper error
+		return nil, fmt.Errorf("Error: CancelCoinbaseDescriptor.UnmarshalBinary: body length too long (uint underflow?)")
+	}
 
 	body := make([]byte, bl)
 	n, err := buf.Read(body)

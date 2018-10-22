@@ -136,6 +136,13 @@ func (e *AddEfficiency) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	// TODO: remove printing unmarshal count numbers once we have good data on
+	// what they should be.
+	//log.Print("AddEfficiency unmarshaled body length: ", bl)
+	if bl > 1000 {
+		// TODO: replace this message with a proper error
+		return nil, fmt.Errorf("Error: AddEfficiency.UnmarshalBinary: body length too long (uint underflow?)")
+	}
 
 	body := make([]byte, bl)
 	n, err := buf.Read(body)

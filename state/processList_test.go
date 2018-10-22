@@ -19,7 +19,7 @@ func TestProcessListString(t *testing.T) {
 	// The string function is called in some unit tests, and lines that show offline nodes is sometimes hit. This
 	// ensures coverage is consistent, despite it just being a String() call
 	state := testHelper.CreateEmptyTestState()
-	pl := NewProcessList(state, nil, 1)
+	pl := NewProcessList(state, nil, 0)
 	pl.VMs[0].List = append(pl.VMs[0].List, nil)
 	pl.AddFedServer(primitives.NewHash([]byte("one")))
 	pl.AddAuditServer(primitives.NewHash([]byte("two")))

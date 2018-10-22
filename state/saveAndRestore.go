@@ -6,12 +6,12 @@ package state
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"sort"
 
-	"errors"
-
+	"github.com/FactomProject/factomd/common/factoid"
 	. "github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -605,19 +605,21 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 	pl.FedServers = append(pl.FedServers, ss.FedServers...)
 	pl.AuditServers = append(pl.AuditServers, ss.AuditServers...)
 
-	s.LogPrintf("fct_transactions", "Loading %d FTC balances from DBH %d", len(ss.FactoidBalancesP), ss.DBHeight)
+	s.LogPrintf("factoids", "Loading %d FTC balances from DBH %d", len(ss.FactoidBalancesP), ss.DBHeight)
 	s.FactoidBalancesPMutex.Lock()
 	s.FactoidBalancesP = make(map[[32]byte]int64, len(ss.FactoidBalancesP))
 	for k := range ss.FactoidBalancesP {
 		s.FactoidBalancesP[k] = ss.FactoidBalancesP[k]
+		s.LogPrintf("factoids", "%x<%s> = %d", k, primitives.ConvertFctAddressToUserStr(factoid.NewAddress(k[:])), s.FactoidBalancesP[k])
 	}
 	s.FactoidBalancesPMutex.Unlock()
 
-	s.LogPrintf("ec_transactions", "Loading %d EC balances from DBH %d", len(ss.ECBalancesP), ss.DBHeight)
+	s.LogPrintf("entrycredits", "Loading %d EC balances from DBH %d", len(ss.ECBalancesP), ss.DBHeight)
 	s.ECBalancesPMutex.Lock()
 	s.ECBalancesP = make(map[[32]byte]int64, len(ss.ECBalancesP))
 	for k := range ss.ECBalancesP {
 		s.ECBalancesP[k] = ss.ECBalancesP[k]
+		s.LogPrintf("entrycredits", "%x<%s> = %d", k, primitives.ConvertECAddressToUserStr(factoid.NewAddress(k[:])), s.ECBalancesP[k])
 	}
 	s.ECBalancesPMutex.Unlock()
 
@@ -626,19 +628,15 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 
 	s.AuthorityServerCount = ss.AuthorityServerCount
 
-	s.SetLLeaderHeight(ss.LLeaderHeight)
+	s.IdentityControl = ss.IdentityControl
 	s.CurrentMinute = ss.CurrentMinute
 	if ss.CurrentMinute != 0 {
 		s.LogPrintf("executeMsg", "unexpected %s", s.LLeaderHeight, s.LeaderTimestamp.String(), atomic.WhereAmIString(0))
 	}
+	s.MoveStateToHeight(ss.LLeaderHeight)
 
-	s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
 	//	s.LeaderTimestamp = dbstate.DirectoryBlock.GetTimestamp()
-
-	s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
-	s.ProcessLists.Get(s.LLeaderHeight + 1) // make the current and future process list exist
-
-	s.LogPrintf("executeMsg", "Set LeaderTimeStamp %d %v for %s", s.LLeaderHeight, s.LeaderTimestamp.String(), atomic.WhereAmIString(0))
+	//      s.LogPrintf("executeMsg", "Set LeaderTimeStamp %d %v for %s", s.LLeaderHeight, s.LeaderTimestamp.String(), atomic.WhereAmIString(0))
 
 	if ss.Leader != s.Leader {
 		s.LogPrintf("executeMsg", "unexpected %s", s.LLeaderHeight, s.LeaderTimestamp.String(), atomic.WhereAmIString(0))
