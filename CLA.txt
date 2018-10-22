@@ -32,3 +32,4 @@ Brian Deery                                carryforward                         
 Paul Bernier                               PaulBernier                                  Luciap Technology Inc.
 Carl DiClementi                            Cahl-Dee                                     Factom Inc.                                       Product Management @ Factom
 Matt York                                  stackdump                                    Factom Inc.
+Sam Barnes                                 sambarnes                                    Factom Inc.
