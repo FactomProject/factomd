@@ -31,4 +31,6 @@ Paul Snow                                  PaulSnow                             
 Brian Deery                                carryforward                                 Factom Inc.
 Paul Bernier                               PaulBernier                                  Luciap Technology Inc.
 Carl DiClementi                            Cahl-Dee                                     Factom Inc.                                       Product Management @ Factom
+Matt York                                  stackdump                                    Factom Inc.
+Sam Barnes                                 sambarnes                                    Factom Inc.
 Michael Beam                               michaelbeam                                  Factom Inc.
