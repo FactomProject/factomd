@@ -1,5 +1,5 @@
-#/bin/bash
-#set -x
+#/bin/sh
+set -x
 
 if [ -z "$1" ]
   then
@@ -30,9 +30,10 @@ grep -Eo " Test[^( ]+" factomd_test.go | grep -P "$pattern" | grep -Pv "$npatter
 go test -c github.com/FactomProject/factomd/engine -o test/factomd_test
 #run the tests
 
-grep -Eo " Test[^( ]+" factomd_test.go | grep -P "$pattern" | grep -Pv "$npattern" | sort | xargs -I TestMakeALeader -n1 bash -c  'mkdir -p test/TestMakeALeader; cd test/TestMakeALeader; ../factomd_test --test.v --test.timeout 900s  --test.run "^TestMakeALeader$" &> testlog.txt; pwd; grep -EH "PASS:|FAIL:|panic|bind"  testlog.txt'
+grep -Eo " Test[^( ]+" factomd_test.go | grep -P "$pattern" | grep -Pv "$npattern" | sort | xargs -I TestMakeALeader -n1 bash -c  'mkdir -p test/TestMakeALeader; cd test/TestMakeALeader; ../factomd_test --test.v --test.timeout 30m  --test.run "^TestMakeALeader$" &> testlog.txt; pwd; grep -EH "PASS:|FAIL:|panic|bind"  testlog.txt'
 find . -name testlog.txt | sort | xargs grep -EH "PASS:|FAIL:|panic|bind"
 
 
 
 #(echo git checkout git rev-parse HEAD; find . -name testlog.txt | xargs grep -EH "PASS:|FAIL:|panic") | mail -s "Test results `date`" `whoami`@factom.com
+

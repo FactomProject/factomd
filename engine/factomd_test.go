@@ -61,10 +61,10 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 		"--checkheads":          "false",
 		"--controlpanelsetting": "readwrite",
 		"--debuglog":            "faulting|bad",
-		"--logPort":             "37000",
-		"--port":                "37001",
-		"--controlpanelport":    "37002",
-		"--networkport":         "37003",
+		//"--logPort":             "37000",
+		//"--port":                "37001",
+		//"--controlpanelport":    "37002",
+		//"--networkport":         "37003",
 	}
 
 	// loop thru the test specific options and overwrite or append to the DefaultOptions
@@ -248,7 +248,7 @@ func WaitForAllNodes(state *state.State) {
 
 func TimeNow(s *state.State) {
 	now := time.Now()
-	fmt.Printf("%s:%d-:-%d Now %s of %s (remaining %s)\n", s.FactomNodeName, int(s.LLeaderHeight), s.CurrentMinute, now.Sub(startTime).String(), endTime.String(), endTime.Sub(now).String())
+	fmt.Printf("%s:%d-:-%d Now %s of %s (remaining %s)\n", s.FactomNodeName, int(s.LLeaderHeight), s.CurrentMinute, now.Sub(startTime).String(), endTime.Sub(startTime).String(), endTime.Sub(now).String())
 }
 
 var statusState *state.State
@@ -398,11 +398,12 @@ func shutDownEverything(t *testing.T) {
 	for _, fn := range GetFnodes() {
 		fn.State.ShutdownChan <- 1
 	}
-	currentHeight := statusState.LLeaderHeight
+	fnodes := GetFnodes()
+	currentHeight := fnodes[0].State.LLeaderHeight
 	// Sleep one block
 	time.Sleep(time.Duration(globals.Params.BlkTime) * time.Second)
 
-	if currentHeight < statusState.LLeaderHeight {
+	if currentHeight < fnodes[0].State.LLeaderHeight {
 		t.Fatal("Failed to shut down factomd via ShutdownChan")
 	}
 
@@ -534,7 +535,7 @@ func TestLoad(t *testing.T) {
 	ranSimTest = true
 
 	// use a tree so the messages get reordered
-	state0 := SetupSim("LLF", map[string]string{}, 15, 0, 0, t)
+	state0 := SetupSim("LLF", map[string]string{"--debuglog": "."}, 15, 0, 0, t)
 
 	runCmd("2")   // select 2
 	runCmd("R30") // Feed load
@@ -1314,7 +1315,7 @@ func TestDBsigElectionEvery2Block_long(t *testing.T) {
 	ranSimTest = true
 
 	iterations := 1
-	state := SetupSim("LLLLLLAF", map[string]string{"--debuglog": "fault|badmsg|network|process|dbsig", "--faulttimeout": "10"}, 28, 6, 6, t)
+	state := SetupSim("LLLLLLAF", map[string]string{"--debuglog": "fault|badmsg|network|process|dbsig", "--faulttimeout": "10"}, 32, 6, 6, t)
 
 	runCmd("S10") // Set Drop Rate to 1.0 on everyone
 
