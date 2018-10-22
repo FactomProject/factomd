@@ -247,7 +247,8 @@ func WaitForAllNodes(state *state.State) {
 }
 
 func TimeNow(s *state.State) {
-	fmt.Printf("%s:%d-:-%d Now %s of %s\n", s.FactomNodeName, int(s.LLeaderHeight), s.CurrentMinute, time.Now().Sub(startTime).String(), endTime.Sub(time.Now()).String())
+	now := time.Now()
+	fmt.Printf("%s:%d-:-%d Now %s of %s (remaining %s)\n", s.FactomNodeName, int(s.LLeaderHeight), s.CurrentMinute, now.Sub(startTime).String(), endTime.String(), endTime.Sub(now).String())
 }
 
 var statusState *state.State
@@ -1014,8 +1015,14 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 			t.Fatalf("Who wrote this trash code?... Expected a current height of " + fmt.Sprint(currentHeight) + " and a saved height of " + fmt.Sprint(heighestSavedHeight) + " but got " + fmt.Sprint(resp2.Result.CurrentHeight) + ", " + fmt.Sprint(resp2.Result.LastSavedHeight))
 		}
 
-		if x["ack"] != float64(TempBalance) || x["saved"] != float64(PermBalance) || x["err"] != errNotAcc {
-			t.Fatalf("Expected " + fmt.Sprint(strconv.FormatInt(x["ack"].(int64), 10)) + ", " + fmt.Sprint(strconv.FormatInt(x["saved"].(int64), 10)) + ", but got " + strconv.FormatInt(TempBalance, 10) + "," + strconv.FormatInt(PermBalance, 10))
+		if x["err"].(string) != errNotAcc {
+			t.Fatalf("Expected err = \"%s\" but got \"%s\"", x["err"], errNotAcc)
+		}
+		if int64(x["ack"].(float64)) != TempBalance {
+			t.Fatalf("Expected temp[%d] but got X[%d]<%f> ", TempBalance, int64(x["ack"].(float64)), x["ack"].(float64))
+		}
+		if int64(x["saved"].(float64)) != PermBalance {
+			t.Fatalf("Expected perm[%d] but got X[%d]<%f>", PermBalance, int64(x["saved"].(float64)), x["saved"].(float64))
 		}
 	}
 	TimeNow(state0)
@@ -1025,8 +1032,11 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 	if ok != true {
 		fmt.Println(x)
 	}
-	if x["ack"] != x["saved"] {
-		t.Fatalf("Expected acknowledged and saved balances to be he same")
+	//if x["ack"] != x["saved"] {
+	//	t.Fatalf("Expected acknowledged and saved balances to be the same")
+	//}
+	if int64(x["ack"].(float64)) != int64(x["saved"].(float64)) {
+		t.Fatalf("Expected  temp[%d] to match perm[%d]", int64(x["ack"].(float64)), int64(x["saved"].(float64)))
 	}
 
 	TimeNow(state0)
@@ -1067,9 +1077,12 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 	if ok != true {
 		fmt.Println(x)
 	}
-
-	if x["ack"] == x["saved"] {
-		t.Fatalf("Expected acknowledged and saved balances to be different.")
+	//
+	//if x["ack"] == x["saved"] {
+	//	t.Fatalf("Expected acknowledged and saved balances to be different.")
+	//}
+	if int64(x["ack"].(float64)) == int64(x["saved"].(float64)) {
+		t.Fatalf("Expected  temp[%d] to not match perm[%d]", int64(x["ack"].(float64)), int64(x["saved"].(float64)))
 	}
 
 	WaitBlocks(state0, 1)
@@ -1207,8 +1220,18 @@ func TestMultipleECAccountsAPI(t *testing.T) {
 			t.Fatalf("Who wrote this trash code?... Expected a current height of " + fmt.Sprint(currentHeight) + " and a saved height of " + fmt.Sprint(heighestSavedHeight) + " but got " + fmt.Sprint(resp2.Result.CurrentHeight) + ", " + fmt.Sprint(resp2.Result.LastSavedHeight))
 		}
 
-		if x["ack"] != float64(TempBalance) || x["saved"] != float64(PermBalance) || x["err"] != errNotAcc {
-			t.Fatalf("Expected " + fmt.Sprint(strconv.FormatInt(x["ack"].(int64), 10)) + ", " + fmt.Sprint(strconv.FormatInt(x["saved"].(int64), 10)) + ", but got " + strconv.FormatInt(TempBalance, 10) + "," + strconv.FormatInt(PermBalance, 10))
+		//for i := range x {
+		//	fmt.Printf("%s: %v %T\n", i, x[i], x[i])
+		//}
+
+		if x["err"].(string) != errNotAcc {
+			t.Fatalf("Expected err = \"%s\" but got \"%s\"", x["err"], errNotAcc)
+		}
+		if int64(x["ack"].(float64)) != TempBalance {
+			t.Fatalf("Expected temp[%d] but got X[%d]<%f> ", TempBalance, int64(x["ack"].(float64)), x["ack"].(float64))
+		}
+		if int64(x["saved"].(float64)) != PermBalance {
+			t.Fatalf("Expected perm[%d] but got X[%d]<%f>", PermBalance, int64(x["saved"].(float64)), x["saved"].(float64))
 		}
 	}
 	TimeNow(state0)
@@ -1219,8 +1242,8 @@ func TestMultipleECAccountsAPI(t *testing.T) {
 		fmt.Println(x)
 	}
 
-	if x["ack"] != x["saved"] {
-		t.Fatalf("Expected " + fmt.Sprint(x["ack"]) + ", " + fmt.Sprint(x["saved"]) + " but got " + fmt.Sprint(x["ack"]) + ", " + fmt.Sprint(x["saved"]))
+	if int64(x["ack"].(float64)) != int64(x["saved"].(float64)) {
+		t.Fatalf("Expected  temp[%d] to match perm[%d]", int64(x["ack"].(float64)), int64(x["saved"].(float64)))
 	}
 
 	TimeNow(state0)
@@ -1261,8 +1284,8 @@ func TestMultipleECAccountsAPI(t *testing.T) {
 		fmt.Println(x)
 	}
 
-	if x["ack"] == x["saved"] {
-		t.Fatalf("Expected " + fmt.Sprint(x["ack"]) + ", " + fmt.Sprint(x["saved"]) + " but got " + fmt.Sprint(x["ack"]) + ", " + fmt.Sprint(x["saved"]))
+	if int64(x["ack"].(float64)) == int64(x["saved"].(float64)) {
+		t.Fatalf("Expected  temp[%d] to not match perm[%d]", int64(x["ack"].(float64)), int64(x["saved"].(float64)))
 	}
 
 	WaitBlocks(state0, 1)
@@ -1483,7 +1506,7 @@ func TestTestNetCoinBaseActivation_long(t *testing.T) {
 	// reach into the activation an hack the TESTNET_COINBASE_PERIOD to be early so I can check it worked.
 	activations.ActivationMap[activations.TESTNET_COINBASE_PERIOD].ActivationHeight["LOCAL"] = 22
 
-	state0 := SetupSim("LAF", map[string]string{"--debuglog": "fault|badmsg|network|process|dbsig", "--faulttimeout": "10", "--blktime": "5"}, 160, 0, 0, t)
+	state0 := SetupSim("LAF", map[string]string{"--debuglog": "fault|badmsg|network|process|dbsig", "--faulttimeout": "10", "--blktime": "10"}, 168, 0, 0, t)
 	fmt.Println("Simulation configured")
 	nextBlock := uint32(11 + constants.COINBASE_DECLARATION) // first grant is at 11 so it pays at 21
 	fmt.Println("Wait till first grant should payout")
@@ -1521,7 +1544,8 @@ func TestTestNetCoinBaseActivation_long(t *testing.T) {
 	if len(CBT.GetOutputs()) != 0 {
 		t.Fatalf("Expected first payout at block %d\n", nextBlock)
 	}
-
+	fmt.Println("Wait to shut down")
+	StatusEveryMinute(state0)
 	WaitForAllNodes(state0)
 	shutDownEverything(t)
 }
