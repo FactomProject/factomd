@@ -1037,8 +1037,9 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	}
 
 	// If we detect that we have processed at this height, flag the dbstate as a repeat, progress is good, and
-	// go forward.
-	if dbht > 0 && dbht <= list.ProcessHeight {
+	// go forward. If dbHeight == list.ProcessHeight and current minute is 0, we want don't want to mark as a repeat,
+	// so we can avoid the Election in Minute 9 bug.
+	if dbht > 0 && (dbht < list.ProcessHeight || (dbht == list.ProcessHeight && list.State.CurrentMinute != 0)) {
 		progress = true
 		d.Repeat = true
 		return
