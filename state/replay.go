@@ -7,6 +7,7 @@ package state
 import (
 	"fmt"
 	"os"
+	"sort"
 	"sync"
 	"time"
 
@@ -151,17 +152,7 @@ func (r *Replay) UnmarshalBinary(p []byte) error {
 	return err
 }
 
-func (r *Replay) Save() (rval []byte) {
-	r.Mutex.Lock()
-	defer r.Mutex.Unlock()
-	data, err := r.MarshalBinary()
-	if err != nil {
-		panic("failed to Marshal Replay")
-	}
-	return data
-}
-
-func (r *Replay) Clone() *Replay {
+func (r *Replay) Save() *Replay {
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
 	newr := new(Replay)
@@ -383,6 +374,7 @@ func PushBucketMap(b *primitives.Buffer, m map[[32]byte]int) error {
 	for k := range m {
 		keys = append(keys, k)
 	}
+	sort.Sort(ByKey(keys))
 
 	for _, k := range keys {
 		err = b.Push(k[:])

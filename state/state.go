@@ -523,6 +523,7 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 	newState.factomdTLSCertFile = s.factomdTLSCertFile
 	newState.FactomdLocations = s.FactomdLocations
 
+	newState.FastSaveRate = s.FastSaveRate
 	newState.CorsDomains = s.CorsDomains
 
 	switch newState.DBType {
@@ -538,7 +539,7 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 
 	if globals.Params.WriteProcessedDBStates {
 		path := filepath.Join(newState.LdbPath, newState.Network, "dbstates")
-		os.MkdirAll(path, 0777)
+		os.MkdirAll(path, 0775)
 	}
 
 	return newState
@@ -1054,19 +1055,27 @@ func (s *State) Init() {
 			panic(err)
 		}
 
-		if d == nil || d.GetDatabaseHeight() < 2000 {
-			//If we have less than 2k blocks, we wipe SaveState
+		if d == nil || int(d.GetDatabaseHeight()) < s.FastSaveRate {
+			//If we have less than whatever our block rate is, we wipe SaveState
 			//This is to ensure we don't accidentally keep SaveState while deleting a database
 			s.StateSaverStruct.DeleteSaveState(s.Network)
 		} else {
 			err = s.StateSaverStruct.LoadDBStateList(s.DBStates, s.Network)
 			if err != nil {
+				s.StateSaverStruct.DeleteSaveState(s.Network)
 				s.LogPrintf("faulting", "Database load failed %v", err)
 			}
 			if err == nil {
+				var last *DBState
 				for _, dbstate := range s.DBStates.DBStates {
 					if dbstate != nil {
 						dbstate.SaveStruct.Commits.s = s
+					}
+					if last != nil {
+						last.SaveStruct = nil
+					}
+					if dbstate != nil {
+						last = dbstate
 					}
 				}
 			}

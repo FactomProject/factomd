@@ -147,9 +147,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 	switch valid {
 	case 1:
 		// The highest block for which we have received a message.  Sometimes the same as
-		if !msg.IsLocal() && !msg.IsPeer2Peer() {
-			msg.SendOut(s, msg) // send out messages that are valid and not local or peer to  peer
-		}
+		msg.SendOut(s, msg)
 
 		switch msg.Type() {
 		case constants.REVEAL_ENTRY_MSG, constants.COMMIT_ENTRY_MSG, constants.COMMIT_CHAIN_MSG:
@@ -208,7 +206,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 		s.LogMessage("executeMsg", "drop, InvalidMsg", msg)
 		if !msg.SentInvalid() {
 			msg.MarkSentInvalid(true)
-			s.LogMessage("executeMsg", "InvalidMsg", msg)
+			s.LogMessage("executeMsg", "Send to InvalidMsgQueue", msg)
 			s.networkInvalidMsgQueue <- msg
 		}
 	}
@@ -650,7 +648,7 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 		m.SetMinute(ack.Minute)
 
 		pl := s.ProcessLists.Get(ack.DBHeight)
-		pl.AddToProcessList(ack, m)
+		pl.AddToProcessList(s, ack, m)
 
 		// Cross Boot Replay
 		s.CrossReplayAddSalt(ack.DBHeight, ack.Salt)
@@ -684,7 +682,7 @@ func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
 	if ack != nil {
 		pl := s.ProcessLists.Get(ack.DBHeight)
-		pl.AddToProcessList(ack, m)
+		pl.AddToProcessList(s, ack, m)
 	}
 }
 
@@ -1169,7 +1167,7 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 	}
 
 	// Add the message and ack to the process list.
-	pl.AddToProcessList(ack, m)
+	pl.AddToProcessList(s, ack, m)
 
 	// Check to make sure AddToProcessList removed it from holding (added it to the list)
 	if s.Holding[m.GetMsgHash().Fixed()] != nil {
@@ -1203,7 +1201,7 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 	m.SetLeaderChainID(ack.GetLeaderChainID())
 	m.SetMinute(ack.Minute)
 
-	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(ack, m)
+	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(s, ack, m)
 }
 
 func (s *State) setCurrentMinute(m int) {
@@ -1323,7 +1321,7 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
 	m.SetLeaderChainID(ack.GetLeaderChainID())
 	m.SetMinute(ack.Minute)
 
-	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(ack, m)
+	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(s, ack, m)
 }
 
 func (s *State) LeaderExecuteCommitChain(m interfaces.IMsg) {
@@ -1371,7 +1369,7 @@ func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 	// Put the acknowledgement in the Acks so we can tell if AddToProcessList() adds it.
 	s.Acks[m.GetMsgHash().Fixed()] = ack
 	TotalAcksInputs.Inc()
-	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(ack, m)
+	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(s, ack, m)
 
 	// If it was not added, then handle as a follower, and leave.
 	if s.Acks[m.GetMsgHash().Fixed()] != nil {

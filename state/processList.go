@@ -841,11 +841,7 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 	return
 }
 
-func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
-	if p == nil { // Just do nothing if we don't have a process list here.
-		return
-	}
-	s := p.State
+func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces.IMsg) {
 	s.LogMessage("processList", "Message:", m)
 	s.LogMessage("processList", "Ack:", ack)
 	if p == nil {
@@ -895,6 +891,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
 	if ack.DBHeight > s.HighestAck && ack.Minute > 0 {
 		s.HighestAck = ack.DBHeight
+		s.LogPrintf("processList", "Drop1")
 	}
 
 	TotalAcksInputs.Inc()

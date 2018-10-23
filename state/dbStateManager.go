@@ -510,27 +510,7 @@ func (dbsl *DBStateList) UnmarshalBinaryData(p []byte) (newData []byte, err erro
 
 	for i := len(dbsl.DBStates) - 1; i >= 0; i-- {
 		if dbsl.DBStates[i].SaveStruct != nil {
-			dbh := dbsl.DBStates[i].DirectoryBlock.GetHeader().GetDBHeight()
-			dbsl.State.LogPrintf("executeMsg", "Reset to dbht %v", dbh)
-			//			dbsl.DBStates[i].SaveStruct.RestoreFactomdState(dbsl.State)
-			s := dbsl.State
-			ss := dbsl.DBStates[i].SaveStruct
-
-			s.LogPrintf("fct_transactions", "Loading %d EC balances from DBH %d", len(ss.FactoidBalancesP), dbh)
-			s.FactoidBalancesPMutex.Lock()
-			s.FactoidBalancesP = make(map[[32]byte]int64, len(ss.FactoidBalancesP))
-			for k := range ss.FactoidBalancesP {
-				s.FactoidBalancesP[k] = ss.FactoidBalancesP[k]
-			}
-			s.FactoidBalancesPMutex.Unlock()
-
-			s.LogPrintf("ec_transactions", "Loading %d EC balances from DBH %d", len(ss.ECBalancesP), dbh)
-			s.ECBalancesPMutex.Lock()
-			s.ECBalancesP = make(map[[32]byte]int64, len(ss.ECBalancesP))
-			for k := range ss.ECBalancesP {
-				s.ECBalancesP[k] = ss.ECBalancesP[k]
-			}
-			s.ECBalancesPMutex.Unlock()
+			dbsl.DBStates[i].SaveStruct.RestoreFactomdState(dbsl.State)
 			break
 		}
 	}
@@ -1161,6 +1141,8 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	tbh := list.State.FactoidState.GetBalanceHash(true) // recompute temp balance hash here
 	list.State.Balancehash = fs.GetBalanceHash(false)
 	list.State.LogPrintf("dbstateprocess", "dbht %d BalanceHash P %x T %x", dbht, list.State.Balancehash.Bytes()[0:4], tbh.Bytes()[0:4])
+	// Saving our state so we can reset it if we need to.
+	d.TmpSaveStruct = SaveFactomdState(list.State, d)
 	return
 }
 
@@ -1170,8 +1152,6 @@ func (list *DBStateList) SignDB(d *DBState) (process bool) {
 	dbheight := d.DirectoryBlock.GetHeader().GetDBHeight()
 	list.State.LogPrintf("dbstate", "SignDB(%d)", dbheight)
 
-	dbheight1 := d.DirectoryBlock.GetHeader().GetDBHeight()
-	_ = dbheight1
 	if d.Signed {
 		//s := list.State
 		//		s.MoveStateToHeight(dbheight + 1)
@@ -1310,7 +1290,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 				d.DirectoryBlock.GetKeyMR().Bytes()))
 		}
 
-		list.State.LogPrintf("dbstate", "SaveDBStateToDB(%d) Alreay saved, add to replay!", d.DirectoryBlock.GetHeader().GetDBHeight())
+		list.State.LogPrintf("dbstate", "SaveDBStateToDB(%d) Already saved, add to replay!", d.DirectoryBlock.GetHeader().GetDBHeight())
 		// Set the Block Replay flag for all these transactions that are already in the database.
 		for _, fct := range d.FactoidBlock.GetTransactions() {
 			list.State.FReplay.IsTSValidAndUpdateState(
