@@ -6,7 +6,6 @@ package state
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"os"
 	"sort"
@@ -698,7 +697,7 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 
 func (ss *SaveState) MarshalBinary() (rval []byte, err error) {
 	if ss == nil {
-		return nil, errors.New("SaveState is nil")
+		return nil, nil // FIXME errors.New("SaveState is nil")
 	}
 	defer func(pe *error) {
 		if *pe != nil {
