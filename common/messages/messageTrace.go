@@ -113,8 +113,13 @@ func getmsg(hash [32]byte) interfaces.IMsg {
 
 func LogMessage(name string, note string, msg interfaces.IMsg) {
 	traceMutex.Lock()
-	myfile := getTraceFile(name)
 	defer traceMutex.Unlock()
+	logMessage(name, note, msg)
+}
+
+// Assumes called managed the locks so we can recurse for multi part messages
+func logMessage(name string, note string, msg interfaces.IMsg) {
+	myfile := getTraceFile(name)
 	if myfile == nil {
 		return
 	}
@@ -196,17 +201,13 @@ func LogMessage(name string, note string, msg interfaces.IMsg) {
 		ack := msg.(*Ack)
 		fixed := ack.GetHash().Fixed()
 		iMsg := getmsg(fixed)
-		traceMutex.Unlock()
-		LogMessage(name, "EmbeddedMsg:", iMsg)
-		traceMutex.Lock()
+		logMessage(name, "EmbeddedMsg:", iMsg)
 
 	case constants.MISSING_DATA:
 		md := msg.(*MissingData)
 		fixed := md.RequestHash.Fixed()
 		iMsg := getmsg(fixed)
-		traceMutex.Unlock()
-		LogMessage(name, "EmbeddedMsg:", iMsg)
-		traceMutex.Lock()
+		logMessage(name, "EmbeddedMsg:", iMsg)
 	}
 }
 
