@@ -1208,7 +1208,9 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 
 	pl.ResetDiffSigTally()
 
-	pl.DirectoryBlock.GetHeader().SetTimestamp(now) // Well this is awkwardly after it's created but ....
+	if pl.DirectoryBlock != nil {
+		pl.DirectoryBlock.GetHeader().SetTimestamp(now) // Well this is awkwardly after it's created but ....
+	}
 	if err != nil {
 		panic(err.Error())
 	}

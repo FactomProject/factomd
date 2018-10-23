@@ -77,6 +77,9 @@ func (s *State) Ask(DBHeight int, vmIndex int, height int, when int64) {
 	return
 }
 
+// Used by debug code only
+var MMR_enable bool = true
+
 // Receive all asks and all process list adds and create missing message requests any ask that has expired
 // and still pending. Add 10 seconds to the ask.
 // Doesn't really use (can't use) the process list but I have it for debug
@@ -222,7 +225,9 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 			for index, mmr := range mmrs {
 				s.LogMessage(logname, "sendout", mmr)
 				s.MissingRequestAskCnt++
-				mmr.SendOut(s, mmr)
+				if MMR_enable {
+					mmr.SendOut(s, mmr)
+				}
 				delete(mmrs, index)
 			} // Send MMRs that were built
 

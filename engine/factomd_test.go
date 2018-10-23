@@ -1783,3 +1783,19 @@ func TestFactoidDBState(t *testing.T) {
 	WaitForAllNodes(state0)
 	shutDownEverything(t)
 }
+
+func TestNoMMR(t *testing.T) {
+	if ranSimTest {
+		return
+	}
+	ranSimTest = true
+
+	state0 := SetupSim("LLLAAFFFFF", map[string]string{"--debuglog": "fault|badmsg|network|process|exec|missing", "--blktime": "20"}, 10, 0, 0, t)
+	state.MMR_enable = false // turn off MMR processing
+	StatusEveryMinute(state0)
+	runCmd("R10") // turn on some load
+	WaitBlocks(state0, 5)
+	runCmd("R0") // turn off load
+	WaitForAllNodes(state0)
+	shutDownEverything(t)
+}
