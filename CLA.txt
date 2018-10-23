@@ -34,3 +34,4 @@ Carl DiClementi                            Cahl-Dee                             
 Matt York                                  stackdump                                    Factom Inc.
 Sam Barnes                                 sambarnes                                    Factom Inc.
 Michael Beam                               michaelbeam                                  Factom Inc.
+Joshua Brigati                             JoshuaBrigati                                Factom Inc.
