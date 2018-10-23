@@ -397,7 +397,7 @@ func (a *DBStateList) IsSameAs(b *DBStateList) bool {
 func (dbsl *DBStateList) MarshalBinary() (rval []byte, err error) {
 	defer func(pe *error) {
 		if *pe != nil {
-			//fmt.Fprintf(os.Stderr, "DBStateList.MarshalBinary err:%v", *pe)
+			fmt.Fprintf(os.Stderr, "DBStateList.MarshalBinary err:%v", *pe)
 		}
 	}(&err)
 	dbsl.Init()
@@ -1484,7 +1484,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	if list.State.StateSaverStruct.FastBoot {
 		d.SaveStruct = d.TmpSaveStruct
 		err := list.State.StateSaverStruct.SaveDBStateList(list.State.DBStates, list.State.Network)
-		list.State.LogPrintf("dbsatesprocess", "Error while saving Fastboot %v", err)
+		list.State.LogPrintf("dbstatesprocess", "Error while saving Fastboot %v", err)
 	}
 	// Now that we have saved the perm balances, we can clear the api hashmaps that held the differences
 	// between the actual saved block prior, and this saved block.  If you are looking for balances of
@@ -1520,7 +1520,10 @@ func (list *DBStateList) UpdateState() (progress bool) {
 		s.LogPrintf("dbstate", "updateState() %d %s", list.Base, l)
 	}
 	for i, d := range list.DBStates {
-		//fmt.Printf("dddd %20s %10s --- %10s %10v %10s %10v \n", "DBStateList Update", list.State.FactomNodeName, "Looking at", i, "DBHeight", list.Base+uint32(i))
+		// loop only thru this and future blocks
+		//for i := int(list.State.LLeaderHeight); i < int(list.Base)+len(list.DBStates); i++ {
+		//	d := list.Get(i)
+		//	//fmt.Printf("dddd %20s %10s --- %10s %10v %10s %10v \n", "DBStateList Update", list.State.FactomNodeName, "Looking at", i, "DBHeight", list.Base+uint32(i))
 
 		// Must process blocks in sequence.  Missing a block says we must stop.
 		if d == nil {
