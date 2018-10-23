@@ -911,9 +911,9 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	}
 
 	// If we detect that we have processed at this height, flag the dbstate as a repeat, progress is good, and
-	// go forward.
-	if dbht > 0 && dbht <= list.ProcessHeight {
-		s.LogPrintf("dbstateprocess", "Skipping old ProcessHeight = %d", list.ProcessHeight)
+	// go forward. If dbHeight == list.ProcessHeight and current minute is 0, we want don't want to mark as a repeat,
+	// so we can avoid the Election in Minute 9 bug.
+	if dbht > 0 && (dbht < list.ProcessHeight || (dbht == list.ProcessHeight && list.State.CurrentMinute != 0)) {
 		progress = true
 		d.Repeat = true
 		return
@@ -1151,12 +1151,10 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 func (list *DBStateList) SignDB(d *DBState) (process bool) {
 	dbheight := d.DirectoryBlock.GetHeader().GetDBHeight()
 	list.State.LogPrintf("dbstate", "SignDB(%d)", dbheight)
-
 	if d.Signed {
 		//s := list.State
 		//		s.MoveStateToHeight(dbheight + 1)
 		list.State.LogPrintf("dbstate", "SignDB(%d) already signed", d.DirectoryBlock.GetHeader().GetDBHeight())
-
 		return false
 	}
 
@@ -1194,7 +1192,6 @@ func (list *DBStateList) SignDB(d *DBState) (process bool) {
 
 	s := list.State
 	s.MoveStateToHeight(dbheight + 1)
-
 	d.Signed = true
 	return
 }
@@ -1509,7 +1506,6 @@ func (list *DBStateList) UpdateState() (progress bool) {
 	list.Catchup(false)
 
 	s := list.State
-
 	saved := 0
 	if len(list.DBStates) != 0 {
 		l := "["
@@ -1523,7 +1519,6 @@ func (list *DBStateList) UpdateState() (progress bool) {
 		l += "]"
 		s.LogPrintf("dbstate", "updateState() %d %s", list.Base, l)
 	}
-
 	for i, d := range list.DBStates {
 		//fmt.Printf("dddd %20s %10s --- %10s %10v %10s %10v \n", "DBStateList Update", list.State.FactomNodeName, "Looking at", i, "DBHeight", list.Base+uint32(i))
 

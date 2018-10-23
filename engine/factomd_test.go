@@ -1081,6 +1081,7 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 	if ok != true {
 		fmt.Println(x)
 	}
+
 	//
 	//if x["ack"] == x["saved"] {
 	//	t.Fatalf("Expected acknowledged and saved balances to be different.")
@@ -1720,6 +1721,8 @@ func TestElection9(t *testing.T) {
 	WaitForAllNodes(state0)
 
 	WaitForMinute(state3, 1) // Wait till node 3 is following by minutes
+
+	WaitForAllNodes(state0)
 	shutDownEverything(t)
 }
 
