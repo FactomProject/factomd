@@ -232,8 +232,15 @@ func creatingNodes(creatingNodes string, state0 *state.State) {
 func WaitForAllNodes(state *state.State) {
 	height := ""
 	simFnodes := GetFnodes()
+	PrintOneStatus(0, 0) // Print a status
+	fmt.Printf("Wait for all nodes done\n%s", height)
+	prevblk := state.LLeaderHeight
 	for i := 0; i < len(simFnodes); i++ {
 		blk := state.LLeaderHeight
+		if prevblk != blk {
+			PrintOneStatus(0, 0)
+			prevblk = blk
+		}
 		s := simFnodes[i].State
 		height = ""
 		if s.LLeaderHeight != blk { // if not caught up, start over
@@ -407,6 +414,7 @@ func shutDownEverything(t *testing.T) {
 		t.Fatal("Failed to shut down factomd via ShutdownChan")
 	}
 
+	PrintOneStatus(0, 0) // Print a final status
 	fmt.Printf("Test took %d blocks and %s time\n", GetFnodes()[0].State.LLeaderHeight, time.Now().Sub(startTime))
 
 }

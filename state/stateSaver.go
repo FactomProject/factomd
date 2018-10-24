@@ -35,8 +35,6 @@ func (sss *StateSaverStruct) SaveDBStateList(ss *DBStateList, networkName string
 	if sss.Stop == true {
 		return nil
 	}
-	sss.Mutex.Lock()
-	defer sss.Mutex.Unlock()
 
 	hsb := int(ss.GetHighestSavedBlk())
 	//Save only every FastSaveRate states
@@ -45,10 +43,13 @@ func (sss *StateSaverStruct) SaveDBStateList(ss *DBStateList, networkName string
 		return nil
 	}
 
+	sss.Mutex.Lock()
+	defer sss.Mutex.Unlock()
 	//Actually save data from previous cached state to prevent dealing with rollbacks
 	if len(sss.TmpState) > 0 {
-		err := SaveToFile(sss.TmpState, NetworkIDToFilename(networkName, sss.FastBootLocation))
+		err := SaveToFile(sss.TmpDBHt, sss.TmpState, NetworkIDToFilename(networkName, sss.FastBootLocation))
 		if err != nil {
+			fmt.Fprintln(os.Stderr, "SaveState SaveToFile Failed", err)
 			return err
 		}
 	}
@@ -56,6 +57,7 @@ func (sss *StateSaverStruct) SaveDBStateList(ss *DBStateList, networkName string
 	//Marshal state for future saving
 	b, err := ss.MarshalBinary()
 	if err != nil {
+		fmt.Fprintln(os.Stderr, "SaveState MarshalBinary Failed", err)
 		return err
 	}
 	//adding an integrity check
@@ -64,6 +66,24 @@ func (sss *StateSaverStruct) SaveDBStateList(ss *DBStateList, networkName string
 	sss.TmpState = b
 	sss.TmpDBHt = ss.State.LLeaderHeight
 
+	{ /// Debug code, check if I can unmarshal the object myself.
+		test := new(DBStateList)
+		test.UnmarshalBinary(b)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "SaveState UnmarshalBinary Failed", err)
+		}
+
+		h := primitives.NewZeroHash()
+		b, err = h.UnmarshalBinaryData(b)
+		if err != nil {
+			return nil
+		}
+		h2 := primitives.Sha(b)
+		if h.IsSameAs(h2) == false {
+			fmt.Fprintln(os.Stderr, "LoadDBStateList - Integrity hashes do not match!")
+			return nil
+		}
+	}
 	return nil
 }
 
@@ -74,9 +94,11 @@ func (sss *StateSaverStruct) DeleteSaveState(networkName string) error {
 func (sss *StateSaverStruct) LoadDBStateList(ss *DBStateList, networkName string) error {
 	b, err := LoadFromFile(NetworkIDToFilename(networkName, sss.FastBootLocation))
 	if err != nil {
+		fmt.Fprintln(os.Stderr, "LoadDBStateList error:", err)
 		return nil
 	}
 	if b == nil {
+		fmt.Fprintln(os.Stderr, "LoadDBStateList LoadFromFile returned nil")
 		return nil
 	}
 	h := primitives.NewZeroHash()
@@ -86,7 +108,7 @@ func (sss *StateSaverStruct) LoadDBStateList(ss *DBStateList, networkName string
 	}
 	h2 := primitives.Sha(b)
 	if h.IsSameAs(h2) == false {
-		fmt.Printf("LoadDBStateList - Integrity hashes do not match!")
+		fmt.Fprintf(os.Stderr, "LoadDBStateList - Integrity hashes do not match!")
 		return nil
 		//return fmt.Errorf("Integrity hashes do not match")
 	}
@@ -97,6 +119,7 @@ func (sss *StateSaverStruct) LoadDBStateList(ss *DBStateList, networkName string
 func NetworkIDToFilename(networkName string, fileLocation string) string {
 	file := fmt.Sprintf("FastBoot_%s_v%v.db", networkName, constants.SaveStateVersion)
 	if fileLocation != "" {
+		// Trim optional trailing / from file path
 		i := len(fileLocation) - 1
 		if fileLocation[i] == byte('/') {
 			fileLocation = fileLocation[:i]
@@ -106,8 +129,8 @@ func NetworkIDToFilename(networkName string, fileLocation string) string {
 	return file
 }
 
-func SaveToFile(b []byte, filename string) error {
-	fmt.Fprintf(os.Stderr, "Saving %s\n", filename)
+func SaveToFile(dbht uint32, b []byte, filename string) error {
+	fmt.Fprintf(os.Stderr, "Saving %s for dbht %d\n", filename, dbht)
 	err := ioutil.WriteFile(filename, b, 0644)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
@@ -120,6 +143,7 @@ func LoadFromFile(filename string) ([]byte, error) {
 	fmt.Fprintf(os.Stderr, "Load state from %s\n", filename)
 	b, err := ioutil.ReadFile(filename)
 	if err != nil {
+		fmt.Fprintf(os.Stderr, "LoadFromFile error: %v\n", err)
 		return nil, err
 	}
 	return b, nil

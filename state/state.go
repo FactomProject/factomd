@@ -2177,11 +2177,11 @@ func (s *State) GetLeaderTimestamp() interfaces.Timestamp {
 
 func (s *State) SetLeaderTimestamp(ts interfaces.Timestamp) {
 	s.LeaderTimestamp = ts //SetLeaderTimestamp()
-	//s.LogPrintf("executeMsg", "Set LeaderTimeStamp %d %v for %s", s.LLeaderHeight, s.LeaderTimestamp.String(), atomic.WhereAmIString(1))
+	s.LogPrintf("executeMsg", "Set LeaderTimeStamp %d %v for %s", s.LLeaderHeight, s.LeaderTimestamp.String(), atomic.WhereAmIString(1))
 }
 func (s *State) SetLLeaderHeight(height uint32) {
 	s.LLeaderHeight = height //SetLeaderHeight()
-	//s.LogPrintf("executeMsg", "Set LeaderHeight %d for %s", s.LLeaderHeight, atomic.WhereAmIString(1))
+	s.LogPrintf("executeMsg", "Set LeaderHeight %d for %s", s.LLeaderHeight, atomic.WhereAmIString(1))
 }
 
 func (s *State) SetFaultTimeout(timeout int) {
@@ -2340,7 +2340,7 @@ func (s *State) InitLevelDB() error {
 	path := s.LdbPath + "/" + s.Network + "/" + "factoid_level.db"
 
 	s.Println("Database:", path)
-	fmt.Fprint(os.Stderr, "Database:", path)
+	fmt.Fprintln(os.Stderr, "Database:", path)
 
 	dbase, err := leveldb.NewLevelDB(path, false)
 

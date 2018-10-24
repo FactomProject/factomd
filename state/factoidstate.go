@@ -190,12 +190,16 @@ func (fs *FactoidState) AddTransactionBlock(blk interfaces.IFBlock) error {
 	}
 
 	transactions := blk.GetTransactions()
+	fs.State.LogPrintf("factoids_trans", "Start Process Transactions for %d", fs.DBHeight)
 	for _, trans := range transactions {
+		fs.State.LogPrintf("factoids_trans", "%s", trans.String())
 		err := fs.UpdateTransaction(false, trans)
 		if err != nil {
+			fs.State.LogPrintf("factoids_trans", "Error: %v", err)
 			return err
 		}
 	}
+	fs.State.LogPrintf("factoids_trans", "End Process Transactions for %d", fs.DBHeight)
 	fs.CurrentBlock = blk
 	//fs.State.SetFactoshisPerEC(blk.GetExchRate())
 
@@ -205,12 +209,16 @@ func (fs *FactoidState) AddTransactionBlock(blk interfaces.IFBlock) error {
 func (fs *FactoidState) AddECBlock(blk interfaces.IEntryCreditBlock) error {
 	transactions := blk.GetBody().GetEntries()
 
+	fs.State.LogPrintf("entrycredits_trans", "Start Process Transactions for %d", fs.DBHeight)
 	for _, trans := range transactions {
+		fs.State.LogPrintf("entrycredits_trans", "%s", trans.String())
 		err := fs.UpdateECTransaction(false, trans)
 		if err != nil {
+			fs.State.LogPrintf("entrycredits_trans", "Error: %v", err)
 			return err
 		}
 	}
+	fs.State.LogPrintf("entrycredits_trans", "End Process Transactions for %d", fs.DBHeight)
 
 	return nil
 }

@@ -251,10 +251,10 @@ func (b *Buffer) PopBytes() ([]byte, error) {
 		return nil, err
 	}
 
-	answer := make([]byte, int(l))
 	if b.Len() < int(l) {
 		return nil, errors.New(fmt.Sprintf("End of Buffer Looking for %d but only have %d", l, b.Len()))
 	}
+	answer := make([]byte, int(l))
 	al, err := b.Read(answer)
 	if al != int(l) {
 		return nil, errors.New("2End of Buffer")

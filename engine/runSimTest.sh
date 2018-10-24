@@ -1,5 +1,5 @@
 #/bin/sh
-set -x
+# set -x
 
 if [ -z "$1" ]
   then
