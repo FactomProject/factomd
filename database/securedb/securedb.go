@@ -5,13 +5,11 @@
 package securedb
 
 import (
+	"bytes"
 	"crypto/rand"
 	"crypto/subtle"
 	"fmt"
-
 	"time"
-
-	"bytes"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"

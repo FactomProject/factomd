@@ -200,6 +200,10 @@ WalletdLocation                       = "localhost:8089"
 ; Enables wallet database encryption on factom-walletd. If this option is enabled, an unencrypted database
 ; cannot exist. If an unencrypted database exists, the wallet will exit.
 WalletEncrypted						  = false
+
+; Enables wallet database encryption on factom-walletd. If this option is enabled, an unencrypted database
+; cannot exist. If an unencrypted database exists, the wallet will exit.
+WalletEncrypted                       = false
 `
 
 func (s *FactomdConfig) String() string {
