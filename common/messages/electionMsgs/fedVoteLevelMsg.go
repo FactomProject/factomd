@@ -87,6 +87,12 @@ func (m *FedVoteLevelMsg) ElectionProcess(is interfaces.IState, elect interfaces
 
 	elections.CheckAuthSetsMatch("FedVoteLevelMsg.ElectionProcess()", e, e.State.(*state.State))
 
+	// TODO: determine if we need to check here too, or if checking before every election is fine
+	if !e.IsSafeToReplaceFed(e.FedID) {
+		e.LogPrintf("election", "FedVoteLevelMsg.ElectionProcess(): cannot remove more than half of the block's starting feds")
+		return
+	}
+
 	/******  Election Adapter Control   ******/
 	/**	Controlling the inner election state**/
 	m.processIfCommitted(is, elect) // This will end the election if it's over

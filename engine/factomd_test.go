@@ -1740,14 +1740,7 @@ func TestElectionReplacingMoreThanHalfOfFeds(t *testing.T) {
 	}
 	ranSimTest = true
 
-	defer func() {
-		if r := recover(); r == nil {
-			// TODO: figure out why this working and if there's a better way to show that a panic == test passing
-			t.Errorf("No panic observed")
-		}
-	}()
-
-	state0 := SetupSim("LLLLLAAAAA", map[string]string{"--debuglog": ".", "--faulttimeout": "10"}, 5, 3, 1, t)
+	state0 := SetupSim("LLLLLAAA", map[string]string{"--debuglog": ".", "--faulttimeout": "10"}, 8, 3, 3, t)
 	StatusEveryMinute(state0)
 	CheckAuthoritySet(t)
 
@@ -1769,15 +1762,26 @@ func TestElectionReplacingMoreThanHalfOfFeds(t *testing.T) {
 	WaitMinutes(state0, 1) // Wait till fault completes
 	runCmd("3")
 	runCmd("x")
-	WaitMinutes(state0, 1) // Wait till fault completes
 
-	// Bring them all back
+	// wait out the stall for about two blocks worth of time
+	stallHeight := state0.LLeaderHeight
+	stallMinute := state0.GetCurrentMinute()
+	sleepTime := time.Duration(globals.Params.BlkTime) * 1000 / 40
+	for i := 0; i < 80; i++ {
+		// wake up and check for stall about 4 times per minute
+		time.Sleep(sleepTime * time.Millisecond)
+		if state0.LLeaderHeight != stallHeight || stallMinute != state0.GetCurrentMinute() {
+			t.Errorf("should have been stalled while waiting to bring last leader back on")
+		}
+	}
+
+	// bring em all back online
 	runCmd("1")
-	runCmd("x")
+	runCmd("x") // should become audit after two blocks
 	runCmd("2")
-	runCmd("x")
+	runCmd("x") // should become audit after two blocks
 	runCmd("3")
-	runCmd("x")
+	runCmd("x") // should continue as a leader
 
 	WaitBlocks(state0, 2)
 	WaitForMinute(state0, 1)
