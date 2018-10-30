@@ -378,9 +378,9 @@ func (b *DirectoryBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	b.SetHeader(fbh)
 
 	entryCount := b.GetHeader().GetBlockCount()
-	if entryCount > 1000 {
+	if entryCount > 5000 {
 		// TODO: replace this message with a proper error
-		return nil, fmt.Errorf("Error: DirectoryBlock.UnmarshalBinary: entry count too high (uint underflow?)")
+		return nil, fmt.Errorf("Error: DirectoryBlock.UnmarshalBinary: entry count %d too high (uint underflow?)", entryCount)
 	}
 
 	entries := make([]interfaces.IDBEntry, entryCount)

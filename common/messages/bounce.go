@@ -179,7 +179,7 @@ func (m *Bounce) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	lenData, newData := binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 	if lenData > 1000 {
 		// TODO: replace this message with a proper error
-		return nil, fmt.Errorf("Error: Bounce.UnmarshalBinary: data length too high (uint underflow?)")
+		return nil, fmt.Errorf("Error: Bounce.UnmarshalBinary: data length %d too high (uint underflow?)", lenData)
 	}
 
 	m.Data = make([]byte, lenData)

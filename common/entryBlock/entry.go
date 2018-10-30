@@ -294,7 +294,7 @@ func (e *Entry) UnmarshalBinaryData(data []byte) ([]byte, error) {
 		// buffer.
 		if xsize > 10240 {
 			// TODO: replace this message with a proper error
-			return nil, fmt.Errorf("Error: entry.UnmarshalBinary: ExtIDs size too high (uint underflow?)")
+			return nil, fmt.Errorf("Error: entry.UnmarshalBinary: ExtIDs size %d too high (uint underflow?)", xsize)
 		}
 		x := make([]byte, xsize)
 		if n, err := buf.Read(x); err != nil {
@@ -384,7 +384,7 @@ func UnmarshalEntryList(bin []byte) ([]interfaces.IEBEntry, []byte, error) {
 	e := int(l)
 	if e > 1000 {
 		// TODO: replace this message with a proper error
-		return nil, nil, fmt.Errorf("Error: UnmarshalEntryList: entry count too high (uint underflow?)")
+		return nil, nil, fmt.Errorf("Error: UnmarshalEntryList: entry count %d too high (uint underflow?)", e)
 	}
 
 	list := make([]interfaces.IEBEntry, e)

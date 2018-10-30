@@ -437,7 +437,7 @@ func (b *AdminBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	msgCount := b.GetHeader().GetMessageCount()
 	if msgCount > 1000 {
 		// TODO: replace this message with a proper error
-		return nil, fmt.Errorf("Error: AdminBlock.UnmarshalBinary: message count too high (uint underflow?)")
+		return nil, fmt.Errorf("Error: AdminBlock.UnmarshalBinary: message count %d too high (uint underflow?)", msgCount)
 	}
 
 	b.ABEntries = make([]interfaces.IABEntry, int(msgCount))
