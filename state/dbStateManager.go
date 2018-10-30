@@ -745,6 +745,7 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	startingFeds := currentPL.StartingFedServers
 	currentFeds := currentPL.FedServers
 	currentAuds := currentPL.AuditServers
+	removedFeds := 0
 
 	// Set the Start servers for the next block
 
@@ -785,9 +786,18 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 				demoteEntry := adminBlock.NewAddAuditServer(pf.GetChainID(), currentDBHeight+1)
 				d.AdminBlock.AddFirstABEntry(demoteEntry)
 				fmt.Printf("******* FUL: %12s %12s  Server %x, DBHeight: %d\n", "Demote", list.State.FactomNodeName, pf.GetChainID().Bytes()[3:6], d.DirectoryBlock.GetDatabaseHeight())
+				removedFeds++
 			}
 			_ = currentAuds
 		}
+	}
+
+	// If we attempt to replace more than half of the federated servers in a single block,
+	// force a network stall. Better to stall than allow a coup.
+	if len(startingFeds) / 2 + 1 <= removedFeds {
+		// TODO: determine if a panic should be issued, or if returning false is enough to create the stall
+		panic(fmt.Errorf("elections tried to replace more than half of starting federated servers"))
+		//return false
 	}
 
 	// Additional Admin block changed can be made from identity changes

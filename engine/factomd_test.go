@@ -1734,6 +1734,58 @@ func TestElection9(t *testing.T) {
 	shutDownEverything(t)
 }
 
+func TestElectionReplacingMoreThanHalfOfFeds(t *testing.T) {
+	if ranSimTest {
+		return
+	}
+	ranSimTest = true
+
+	defer func() {
+		if r := recover(); r == nil {
+			// TODO: figure out why this working and if there's a better way to show that a panic == test passing
+			t.Errorf("No panic observed")
+		}
+	}()
+
+	state0 := SetupSim("LLLLLAAAAA", map[string]string{"--debuglog": ".", "--faulttimeout": "10"}, 5, 3, 1, t)
+	StatusEveryMinute(state0)
+	CheckAuthoritySet(t)
+
+	state1 := GetFnodes()[1].State
+	state2 := GetFnodes()[2].State
+	state3 := GetFnodes()[3].State
+	if !state1.IsLeader() || !state2.IsLeader() || !state3.IsLeader() {
+		panic("Can't kill an audit and cause an election")
+	}
+
+	WaitForMinute(state0, 2)
+
+	// Take more than half of feds offline
+	runCmd("1")
+	runCmd("x")
+	WaitMinutes(state0, 1) // Wait till fault completes
+	runCmd("2")
+	runCmd("x")
+	WaitMinutes(state0, 1) // Wait till fault completes
+	runCmd("3")
+	runCmd("x")
+	WaitMinutes(state0, 1) // Wait till fault completes
+
+	// Bring them all back
+	runCmd("1")
+	runCmd("x")
+	runCmd("2")
+	runCmd("x")
+	runCmd("3")
+	runCmd("x")
+
+	WaitBlocks(state0, 2)
+	WaitForMinute(state0, 1)
+	WaitForAllNodes(state0)
+
+	shutDownEverything(t)
+}
+
 // Cheap tests for developing binary search commits algorithm
 
 func TestPass(t *testing.T) {
