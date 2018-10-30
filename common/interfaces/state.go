@@ -4,7 +4,10 @@
 
 package interfaces
 
-import "github.com/FactomProject/factomd/activations"
+import (
+	"github.com/FactomProject/factomd/activations"
+	"github.com/FactomProject/factomd/common/primitives"
+)
 
 type DBStateSent struct {
 	DBHeight uint32
@@ -41,6 +44,7 @@ type IState interface {
 	Sign([]byte) IFullSignature
 	Log(level string, message string)
 	Logf(level string, format string, args ...interface{})
+	GetServerPublicKey() *primitives.PublicKey
 
 	GetDBStatesSent() []*DBStateSent
 	SetDBStatesSent([]*DBStateSent)
@@ -296,6 +300,7 @@ type IState interface {
 
 	AddAuthorityDelta(changeString string)
 
+	GetElections() IElections
 	GetAuthorities() []IAuthority
 	GetAuthorityInterface(chainid IHash) IAuthority
 	GetLeaderPL() IProcessList

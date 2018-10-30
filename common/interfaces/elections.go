@@ -3,7 +3,6 @@ package interfaces
 type IElections interface {
 	String() string
 	AdapterStatus() string
-	ElectingStatus() (int, []int, IHash, int)
 }
 
 type IElectionAdapter interface {

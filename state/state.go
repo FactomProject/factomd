@@ -2128,6 +2128,10 @@ func (s *State) SetFaultWait(wait int) {
 
 //var _ IState = (*State)(nil)
 
+func (s *State) GetElections() interfaces.IElections {
+	return s.Elections
+}
+
 // GetAuthorities will return a list of the network authorities
 func (s *State) GetAuthorities() []interfaces.IAuthority {
 	return s.IdentityControl.GetAuthorities()

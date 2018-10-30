@@ -13,7 +13,6 @@ import (
 	"fmt"
 	"runtime/debug"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/FactomProject/factomd/common/adminBlock"
@@ -556,58 +555,6 @@ func (fs *FactoidState) GetMultipleFactoidBalances(singleAdd [32]byte) (uint32, 
 	}
 
 	return currentHeight, heighestSavedHeight, TempBalance, PermBalance, errNotAcc
-}
-
-func (fs *FactoidState) GetServerStatus() (string, string, string, string) {
-	NodeName := fs.State.GetFactomNodeName()
-	ChainId := fs.State.GetIdentityChainID()
-	publicKey := fs.State.GetServerPublicKey()
-	var status string
-
-	ListsFed := fs.State.ProcessLists.Get(fs.State.LLeaderHeight).FedServers
-	ListsAud := fs.State.ProcessLists.Get(fs.State.LLeaderHeight).AuditServers
-
-	pl := fs.State.ProcessLists.Get(fs.State.LLeaderHeight)
-	AudHash, _ := pl.GetAuditServerIndexHash(ChainId)
-	FedHash, _ := pl.GetFedServerIndexHash(ChainId)
-
-	if FedHash && ListsFed[0].String() != "" {
-		status = "Leader"
-	} else if AudHash && ListsAud[0].String() != "" {
-		status = "Audit"
-	} else {
-		status = "Follower"
-	}
-
-	return NodeName, ChainId.String(), publicKey.String(), status
-}
-
-func (fs *FactoidState) GetElectionStatus() ([]string, []string, []interfaces.IMsg, bool) {
-	authorityString := fs.State.AuthoritySetString
-	//fmt.Printf("%T", authorityString)
-
-	temp := strings.Split(authorityString, "\n")
-
-	arrFeds := make([]string, len(temp))
-	arrAuds := make([]string, len(temp))
-
-	for i := 0; i < len(temp); i++ {
-		arrFeds[i] = temp[i][21:25]
-		arrAuds[i] = temp[i][35:]
-	}
-
-	audAlive := fs.State.GetAuditHeartBeats()
-
-	electingInt := fs.State.Elections.ElectingStatus()
-	electingStr := false
-
-	if electingInt == -1 {
-		electingStr = false
-	} else {
-		electingStr = true
-	}
-
-	return arrFeds, arrAuds, audAlive, electingStr
 }
 
 //func (fs *FactoidState) GetFactiodAccounts(params interface{}) (uint32, []string) {

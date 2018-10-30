@@ -58,7 +58,4 @@ type IFactoidState interface {
 	GetMultipleFactoidBalances([32]byte) (uint32, uint32, int64, int64, string)
 
 	GetMultipleECBalances([32]byte) (uint32, uint32, int64, int64, string)
-
-	GetServerStatus() (string, string, string, string)
-	GetElectionStatus() ([]string, []string, []IMsg, bool)
 }

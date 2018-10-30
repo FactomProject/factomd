@@ -304,43 +304,40 @@ type MultipleECBalances struct {
 	Balances        []interface{} `json:"balances"`
 }
 
-type Diags struct {
-	ServerStatus *Server       `json:"serverstats"`
-	ElectionInfo *ElectionInfo `json:"electioninfo"`
-}
-
-type Server struct {
-	NodeName         string `json:"nodename"`
-	CurrentID        string `json:"currentid"`
-	CurrentPublicKey string `json:"publickey"`
-	Mode             string `json:"mode"`
-}
-
-type ElectionInfo struct {
-	ElecInProgress bool `json:"electioninprogress"`
-	AuthoritySet   struct {
-		Leaders              []string          `json:"leaders"`
-		Audits               []string          `json:"audits"`
-		AuditServerHeartbeat []interfaces.IMsg `json:"auditheartbeat"`
-	} `json:"authorityset"`
-	Elections []struct {
-		Vm    int    `json:"vm"`
-		Id    string `json:"id"`
-		Round int    `json:"round"`
-	} `json:"elections"`
-}
-
-type Diags2 struct {
+type DiagnosticsResponse struct {
+	Name      string `json:"name"`
+	ID        string `json:"id,omitempty"`
+	PublicKey string `json:"publickey,omitempty"`
+	Role      string `json:"role"`
 	SyncingState      string `json:"syncingstate"`
 	SyncingReceived   int    `json:"syncingreceived"`
 	SyncingExpected   int
 	SyncingMissingIDs []string `json:"missingnodesids"`
+	VMs       []VM    `json:"vms"`
+
+	ElectionInfo *ElectionInfo `json:"elections"`
+}
+
+type ElectionInfo struct {
+	InProgress bool                    `json:"inprogress"`
+	CurrentAuthSet   struct {
+		Leaders              []string          `json:"leaders"`
+		Audits               []string          `json:"audits"`
+		//AuditServerHeartbeat []interfaces.IMsg `json:"auditheartbeat"`
+	} `json:"currentauthset"`
+
+	VmIndex  *int   `json:"vmindex,omitempty"`
+	FedIndex *int   `json:"fedindex,omitempty"`
+	FedID    string `json:"fedid,omitempty"`
+	Round    *int   `json:"round,omitempty"`
 }
 
 type VM struct {
-	ProcessList []struct {
+	CurrentProcessList struct {
 		Height  int    `json:"height"`
 		Length  int    `json:"length"`
 		NextNil string `json:"nextnil"`
-	}
+	} `json:"currentprocesslist"`
+	PrevBlockCreatedFrom string `json:"prevblockcreatedfrom"`
+
 }

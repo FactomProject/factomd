@@ -25,6 +25,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/receipts"
 	"github.com/FactomProject/web"
+	"github.com/FactomProject/factomd/elections"
 )
 
 const API_VERSION string = "2.0"
@@ -1388,27 +1389,57 @@ func HandleV2MultipleFCTBalances(state interfaces.IState, params interface{}) (i
 }
 
 func HandleV2Diagnostics(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	leaderHeight:= state.GetLLeaderHeight()
+	feds := state.GetFedServers(leaderHeight)
+	audits := state.GetAuditServers(leaderHeight)
 
-	NodeName, ChainID, PublicKey, status := state.GetFactoidState().GetServerStatus()
+	fedCount := len(feds)
+	fedStrings := make([]string, fedCount)
+	for i := 0; i < fedCount; i++ {
+		fedStrings[i] = feds[i].String()
+	}
+	auditCount := len(audits)
+	auditStrings := make([]string, auditCount)
+	for i := 0; i < auditCount; i++ {
+		auditStrings[i] = audits[i].String()
+	}
 
-	s := new(Server)
-	s.NodeName = NodeName
-	s.CurrentID = ChainID
-	s.CurrentPublicKey = PublicKey
-	s.Mode = status
+	role := "Follower"
+	for _, v := range feds {
+		if v.GetChainID().IsSameAs(state.GetIdentityChainID()) {
+			role = "Leader"
+		}
+	}
+	if role == "Follower" {
+		for _, v := range audits {
+			if v.GetChainID().IsSameAs(state.GetIdentityChainID()) {
+				role = "Audit"
+			}
+		}
+	}
 
-	arrFed, arrAud, audAlive, electionstatus := state.GetFactoidState().GetElectionStatus()
-	e := new(ElectionInfo)
-	e.AuthoritySet.Leaders = arrFed
-	e.AuthoritySet.Audits = arrAud
-	e.AuthoritySet.AuditServerHeartbeat = audAlive
-	e.ElecInProgress = electionstatus
+	eInfo := new(ElectionInfo)
+	eInfo.CurrentAuthSet.Leaders = fedStrings
+	eInfo.CurrentAuthSet.Audits = auditStrings
+	//e.CurrentAuthSet.AuditServerHeartbeat = audAlive
 
-	h := new(Diags)
-	h.ServerStatus = s
-	h.ElectionInfo = e
+	e := state.GetElections().(*elections.Elections)
+	if e.Electing != -1 {
+		eInfo.InProgress = true
+		eInfo.VmIndex = &e.VMIndex
+		eInfo.FedIndex = &e.Electing
+		eInfo.FedID = e.FedID.String()
+		eInfo.Round = &e.Round[e.Electing]
+	}
 
-	return h, nil
+	resp := new(DiagnosticsResponse)
+	resp.Name = state.GetFactomNodeName()
+	resp.ID = state.GetIdentityChainID().String()
+	resp.PublicKey = state.GetServerPublicKey().String()
+	resp.Role = role
+	resp.ElectionInfo = eInfo
+
+	return resp, nil
 }
 
 //func HandleV2Accounts(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
