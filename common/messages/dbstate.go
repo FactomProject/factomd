@@ -190,6 +190,52 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 		}
 	}
 
+	// TODO: add a condition where this is not checked until above a certain block height (there are likely old blocks that fail this rule)
+	// check that the at least half of starting feds for next dbstate are not demoted
+	startingFeds := state.GetFedServers(m.DirectoryBlock.GetDatabaseHeight())
+	removedFeds := 0
+	var containsServer func([]interfaces.IServer, interfaces.IHash) bool
+	containsServer = func(haystack []interfaces.IServer, needle interfaces.IHash) bool {
+		for _, hay := range haystack {
+			if needle.IsSameAs(hay.GetChainID()) {
+				return true
+			}
+		}
+		return false
+	}
+	for _, adminEntry := range m.AdminBlock.GetABEntries() {
+		switch adminEntry.Type() {
+		case constants.TYPE_REMOVE_FED_SERVER:
+			// Double check the entry is a real remove fed server message
+			ad, ok := adminEntry.(*adminBlock.RemoveFederatedServer)
+			if !ok {
+				continue
+			}
+			// See if this was one of our starting leaders
+			if containsServer(startingFeds, ad.IdentityChainID) {
+				removedFeds++
+			}
+		case constants.TYPE_ADD_AUDIT_SERVER:
+			// This could be a demotion, so we need to reduce the fedcount
+			ad, ok := adminEntry.(*adminBlock.AddAuditServer)
+			if !ok {
+				continue
+			}
+			// See if this was one of our starting leaders
+			if containsServer(startingFeds, ad.IdentityChainID) {
+				removedFeds++
+			}
+		}
+	}
+	if removedFeds >= len(startingFeds) / 2 + 1 {
+		state.LogPrintf(
+			"dbstate",
+			"DBStateMsg.Validate(): dbstate for height %d invalidated by removing more than half of starting feds",
+			m.DirectoryBlock.GetDatabaseHeight(),
+		)
+		return -1
+	}
+
 	return 1
 }
 

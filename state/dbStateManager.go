@@ -792,12 +792,17 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 		}
 	}
 
+	// TODO: add a condition where this is not checked until above a certain block height (there are likely old blocks that fail this rule)
 	// If we attempt to replace more than half of the federated servers in a single block,
 	// force a network stall. Better to stall than allow a coup.
 	if len(startingFeds) / 2 + 1 <= removedFeds {
-		// TODO: determine if a panic should be issued, or if returning false is enough to create the stall
-		panic(fmt.Errorf("elections tried to replace more than half of starting federated servers"))
-		//return false
+		// TODO: determine if a panic should be issued, or if returning false is enough
+		list.State.LogPrintf(
+			"dbstate",
+			"DBStateList.FixupLinks(): dbstate for height %d invalidated by removing more than half of starting feds",
+			d.DirectoryBlock.GetDatabaseHeight(),
+		)
+		return false
 	}
 
 	// Additional Admin block changed can be made from identity changes
