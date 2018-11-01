@@ -263,6 +263,7 @@ func FedServerVM(serverMap [10][64]int, numberOfFedServers int, minute int, fedI
 }
 
 func (p *ProcessList) GetVirtualServers(minute int, identityChainID interfaces.IHash) (found bool, index int) {
+	//fmt.Fprintf(os.Stderr, "GetVirtualServers(%d,%x)", minute, identityChainID.Bytes()[3:6])
 	found, fedIndex := p.GetFedServerIndexHash(identityChainID)
 	if !found {
 		return false, -1
@@ -270,6 +271,9 @@ func (p *ProcessList) GetVirtualServers(minute int, identityChainID interfaces.I
 
 	p.MakeMap()
 
+	if minute > 9 {
+		minute = 9 // in case we get called between blocks.
+	}
 	for i := 0; i < len(p.FedServers); i++ {
 		fedix := p.ServerMap[minute][i]
 		if fedix == fedIndex {
