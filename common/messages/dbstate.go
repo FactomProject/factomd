@@ -192,7 +192,7 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 
 	// TODO: add a condition where this is not checked until above a certain block height (there are likely old blocks that fail this rule)
 	// check that the at least half of starting feds for next dbstate are not demoted
-	startingFeds := state.GetFedServers(m.DirectoryBlock.GetDatabaseHeight())
+	startingFeds := state.GetFedServers(m.DirectoryBlock.GetDatabaseHeight() - 1)
 	removedFeds := 0
 	var containsServer func([]interfaces.IServer, interfaces.IHash) bool
 	containsServer = func(haystack []interfaces.IServer, needle interfaces.IHash) bool {

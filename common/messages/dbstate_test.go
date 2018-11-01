@@ -349,6 +349,132 @@ func TestSignedDBStateValidate(t *testing.T) {
 	}
 }
 
+// Test that a DBStateMsg.Validate() will return invalid (-1) if more than half
+// of the starting federated servers from the last block were removed
+func TestDBStateValidateReplaceMoreThanHalfFeds(t *testing.T) {
+	type SmallIdentity struct {
+		ID  interfaces.IHash
+		Key primitives.PrivateKey
+	}
+
+	ids := make([]SmallIdentity, 100)
+	for i := range ids {
+		tid, err := primitives.HexToHash("888888" + fmt.Sprintf("%058d", i))
+		if err != nil {
+			panic(err)
+		}
+		ids[i] = SmallIdentity{
+			ID: tid,
+			// Can you believe there isn't a 'RandomPrivateKey' that returns a private key.
+			// Well this works
+			Key: *primitives.RandomPrivateKey(),
+		}
+	}
+
+	timestamp := primitives.NewTimestampNow()
+
+	// test with fed server sets of size 5 to 50
+	for i := 4; i < 50; i++ {
+		state := testHelper.CreateEmptyTestState()
+
+		// Throw in a geneis block
+		prev := testHelper.CreateTestBlockSetWithNetworkID(nil, state.GetNetworkID(), false)
+		dblk, ablk, fblk, ecblk := statepkg.GenerateGenesisBlocks(state.GetNetworkID(), nil)
+		prev.DBlock = dblk.(*directoryBlock.DirectoryBlock)
+		prev.ABlock = ablk.(*adminBlock.AdminBlock)
+		prev.FBlock = fblk
+		prev.ECBlock = ecblk
+		genDBState := NewDBStateMsg(state.GetTimestamp(), prev.DBlock, prev.ABlock, prev.FBlock, prev.ECBlock, nil, nil, nil)
+		if genDBState.Validate(state) != 1 {
+			t.Error("Genesis should always be valid")
+		}
+		state.FollowerExecuteDBState(genDBState)
+
+		fedsCount := i + 1 // because the genesis block already has one fed in it
+		timestamp.SetTime(uint64(fedsCount * 1000 * 60 * 60 * 6))
+
+		{ // Create initial block with fedCount feds
+			var signers []SmallIdentity
+			var a *adminBlock.AdminBlock
+			a = testHelper.CreateTestAdminBlock(prev.ABlock)
+			for j := 1; j < fedsCount; j++ {
+				id := ids[j]
+				a.AddFedServer(id.ID)
+				a.AddFederatedServerSigningKey(id.ID, id.Key.Pub.Fixed())
+				signers = append(signers, id)
+			}
+			a.InsertIdentityABEntries()
+			set, err := createBlockFromAdmin(a, prev, state)
+			if err != nil {
+				t.Error(err)
+				continue
+			}
+			for j := 1; j < fedsCount; j++ {
+				state.ProcessLists.Get(set.DBlock.GetDatabaseHeight()).AddFedServer(ids[j].ID)
+			}
+			var dbSigList []interfaces.IFullSignature
+			for _, s := range signers {
+				data, _ := set.DBlock.GetHeader().MarshalBinary()
+				dbSigList = append(dbSigList, s.Key.Sign(data))
+			}
+			msg := NewDBStateMsg(timestamp, set.DBlock, set.ABlock, set.FBlock, set.ECBlock, nil, nil, dbSigList)
+			m := msg.(*DBStateMsg)
+			m.IgnoreSigs = true
+			if m.Validate(state) != 1 {
+				t.Errorf("Setup DBStateMsg should be valid")
+			}
+			if m.ValidateSignatures(state) < 0 {
+				t.Errorf("Should be valid, found %d", m.ValidateSignatures(state))
+			}
+			state.FollowerExecuteDBState(msg)
+			prev = set
+		}
+
+		// Now try to make a message that removes more than half of the starting feds
+		for remove := 0; remove < fedsCount; remove++ {
+			var signers []SmallIdentity
+			var a *adminBlock.AdminBlock
+			a = testHelper.CreateTestAdminBlock(prev.ABlock)
+			for i := 1; i < fedsCount; i++ {
+				id := ids[i]
+				if i <= remove {
+					a.RemoveFederatedServer(id.ID)
+				} else {
+					//a.AddFederatedServerSigningKey(id.ID, id.Key.Pub.Fixed())
+					signers = append(signers, id)
+				}
+			}
+			a.InsertIdentityABEntries()
+			set, err := createBlockFromAdmin(a, prev, state)
+			if err != nil {
+				t.Error(err)
+				continue
+			}
+			for i := 1; i < fedsCount; i++ {
+				if i <= remove {
+					state.ProcessLists.Get(set.DBlock.GetDatabaseHeight()).RemoveFedServerHash(ids[i].ID)
+				}
+			}
+			var dbSigList []interfaces.IFullSignature
+			for _, s := range signers {
+				data, _ := set.DBlock.GetHeader().MarshalBinary()
+				dbSigList = append(dbSigList, s.Key.Sign(data))
+			}
+			msg := NewDBStateMsg(timestamp, set.DBlock, set.ABlock, set.FBlock, set.ECBlock, nil, nil, dbSigList)
+			m := msg.(*DBStateMsg)
+			m.IgnoreSigs = true
+
+			if remove >= fedsCount / 2 + 1 {
+				if m.Validate(state) == 1 {
+					t.Errorf("Setup DBStateMsg should be invalid, removed %d of %d starting feds", remove, fedsCount)
+				}
+			} else if m.Validate(state) != 1 {
+				t.Errorf("Setup DBStateMsg should be valid, only removed %d of %d starting feds", remove, fedsCount)
+			}
+		}
+	}
+}
+
 // Test Random Conditions
 //		Random number of Feds
 //		Random # of them sign
