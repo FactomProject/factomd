@@ -321,6 +321,13 @@ func (fs *FactoidState) UpdateTransaction(rt bool, trans interfaces.ITransaction
 		adr := input.GetAddress().Fixed()
 		oldv := fs.State.GetF(rt, adr)
 		v := oldv - int64(input.GetAmount())
+		amt := int64(input.GetAmount())
+		if oldv <= 1000000000 { // DEBUG
+			fs.State.LogPrintf("FD662", "OLDV: %v - AMT: %v  = NEWV: %v => : %x , \n", oldv, amt, v, adr )
+			for _, m := range fs.State.Holding {
+				fs.State.LogPrintf("FD662", "HOLD: %v", m)
+			}
+		}
 		if v < 0 {
 			return fmt.Errorf("%29s dbht %d: Not enough factoids (%d) to cover a transaction (%d)",
 				fs.State.GetFactomNodeName(),

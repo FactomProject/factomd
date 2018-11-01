@@ -131,29 +131,29 @@ func Peers(fnode *FactomNode) {
 				continue
 			}
 			if msg.GetHash() == nil {
-				fnode.State.LogMessage("badMsgs", "Nil hash from APIQueue", msg)
+				fnode.State.LogMessage("FD662", "Nil hash from APIQueue", msg)
 				continue
 			}
 
 			// TODO: Is this as intended for 'x' command? -- clay
 			if fnode.State.GetNetStateOff() { // drop received message if he is off
-				fnode.State.LogMessage("NetworkInputs", "API drop, X'd by simCtrl", msg)
+				fnode.State.LogMessage("FD662", "API drop, X'd by simCtrl", msg)
 				continue // Toss any inputs from API
 			}
 
 			if fnode.State.InMsgQueue().Length() > constants.INMSGQUEUE_HIGH {
-				fnode.State.LogMessage("NetworkInputs", "API Drop, Too Full", msg)
+				fnode.State.LogMessage("FD662", "API Drop, Too Full", msg)
 				continue
 			}
 
 			if fnode.State.GetNetStateOff() {
-				fnode.State.LogMessage("NetworkInputs", "API drop, X'd by simCtrl", msg)
+				fnode.State.LogMessage("FD662", "API drop, X'd by simCtrl", msg)
 				continue
 			}
 
 			repeatHash := msg.GetRepeatHash()
 			if repeatHash == nil || repeatHash.PFixed() == nil {
-				fnode.State.LogMessage("NetworkInputs", "API drop, Hash Error", msg)
+				fnode.State.LogMessage("FD662", "API drop, Hash Error", msg)
 				fmt.Println("dddd ERROR!", msg.String())
 				continue
 			}
@@ -166,7 +166,7 @@ func Peers(fnode *FactomNode) {
 			// Make sure message isn't a FCT transaction in a block
 			_, BRValid := fnode.State.FReplay.Valid(constants.BLOCK_REPLAY, repeatHashFixed, timestamp, now)
 			if !BRValid {
-				fnode.State.LogMessage("NetworkInputs", "API Drop, BLOCK_REPLAY", msg)
+				fnode.State.LogMessage("FD662", "API Drop, BLOCK_REPLAY", msg)
 				RepeatMsgs.Inc()
 				continue
 			}
@@ -174,7 +174,7 @@ func Peers(fnode *FactomNode) {
 			// Make sure the message isn't a duplicate
 			NRValid := fnode.State.Replay.IsTSValidAndUpdateState(constants.NETWORK_REPLAY, repeatHashFixed, timestamp, now)
 			if !NRValid {
-				fnode.State.LogMessage("NetworkInputs", "API Drop, NETWORK_REPLAY", msg)
+				fnode.State.LogMessage("FD662", "API Drop, NETWORK_REPLAY", msg)
 				RepeatMsgs.Inc()
 				continue
 			}
@@ -183,11 +183,11 @@ func Peers(fnode *FactomNode) {
 			fnode.State.LogMessage("NetworkInputs", "from API, Enqueue", msg)
 			if t := msg.Type(); t == constants.REVEAL_ENTRY_MSG || t == constants.COMMIT_CHAIN_MSG || t == constants.COMMIT_ENTRY_MSG {
 				fnode.State.LogMessage("NetworkInputs", "from API, Enqueue2", msg)
-				fnode.State.LogMessage("InMsgQueue2", "enqueue2", msg)
+				//fnode.State.LogMessage("FD662", "enqueue2", msg)
 				fnode.State.InMsgQueue2().Enqueue(msg)
 			} else {
 				fnode.State.LogMessage("NetworkInputs", "from API, Enqueue", msg)
-				fnode.State.LogMessage("InMsgQueue", "enqueue", msg)
+				fnode.State.LogMessage("FD662", "enqueue", msg)
 				fnode.State.InMsgQueue().Enqueue(msg)
 			}
 		} // for the api queue read up to 100 messages {...}

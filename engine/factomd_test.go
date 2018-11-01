@@ -5,6 +5,11 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/FactomProject/factom"
+	"github.com/FactomProject/factomd/common/adminBlock"
+	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/primitives/random"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -16,14 +21,12 @@ import (
 	"testing"
 	"time"
 
+	ed "github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/activations"
-	"github.com/FactomProject/factomd/common/adminBlock"
-	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/common/primitives/random"
 	"github.com/FactomProject/factomd/elections"
 	. "github.com/FactomProject/factomd/engine"
 	"github.com/FactomProject/factomd/state"
@@ -61,10 +64,10 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 		"--checkheads":          "false",
 		"--controlpanelsetting": "readwrite",
 		"--debuglog":            "faulting|bad",
-		"--logPort":             "37000",
-		"--port":                "37001",
-		"--controlpanelport":    "37002",
-		"--networkport":         "37003",
+		"--logPort":          "37000",
+		"--port":             "37001",
+		"--controlpanelport": "37002",
+		"--networkport":      "37003",
 	}
 
 	// loop thru the test specific options and overwrite or append to the DefaultOptions
@@ -1396,7 +1399,6 @@ func makeExpected(grants []state.HardGrant) []interfaces.ITransAddress {
 	}
 	return rval
 }
-
 func TestGrants_long(t *testing.T) {
 	if ranSimTest {
 		return
@@ -1807,6 +1809,251 @@ func TestNoMMR(t *testing.T) {
 	runCmd("R10") // turn on some load
 	WaitBlocks(state0, 5)
 	runCmd("R0") // turn off load
+	WaitForAllNodes(state0)
+	shutDownEverything(t)
+}
+
+// construct a new factoid transaction
+func newTransaction(amt uint64, userSecretIn string, userPublicOut string, ecPrice uint64) (*factoid.Transaction, error) {
+
+	inSec := factoid.NewAddress(primitives.ConvertUserStrToAddress(userSecretIn))
+	outPub := factoid.NewAddress(primitives.ConvertUserStrToAddress(userPublicOut))
+
+	var sec [64]byte
+	copy(sec[:32], inSec.Bytes()) // pass 32 byte key in a 64 byte field for the crypto library
+
+	pub := ed.GetPublicKey(&sec) // get the public key for our FCT source address
+
+	rcd := factoid.NewRCD_1(pub[:]) // build the an RCD "redeem condition data structure"
+
+	inAdd, err := rcd.GetAddress()
+	if err != nil {
+		panic(err)
+	}
+
+	trans := new(factoid.Transaction)
+	trans.AddInput(inAdd, amt)
+	trans.AddOutput(outPub, amt)
+
+	/*
+		userIn := primitives.ConvertFctAddressToUserStr(inAdd)
+		userOut := primitives.ConvertFctAddressToUserStr(outPub)
+		fmt.Printf("Txn %v %v -> %v\n", amt, userIn, userOut)
+	*/
+
+	// REVIEW: why is this different from engine.FundWallet() ?
+	//trans.AddRCD(rcd)
+	trans.AddAuthorization(rcd)
+	trans.SetTimestamp(primitives.NewTimestampNow())
+
+	fee, err := trans.CalculateFee(ecPrice)
+	if err != nil {
+		return trans, err
+	}
+
+	input, err := trans.GetInput(0)
+	if err != nil {
+		return trans, err
+	}
+	input.SetAmount(amt + fee)
+
+	dataSig, err := trans.MarshalBinarySig()
+	if err != nil {
+		return trans, err
+	}
+	sig := factoid.NewSingleSignatureBlock(inSec.Bytes(), dataSig)
+	trans.SetSignatureBlock(0, sig)
+
+	return trans, nil
+
+}
+
+func AssertEquals(t *testing.T, a interface{}, b interface{}) {
+	AssertEqualsMsg(t, a, b, "")
+}
+
+func AssertEqualsMsg(t *testing.T, a interface{}, b interface{}, msg string) {
+	if a != b {
+		t.Fatalf("%v != %v  %s", a, b, msg)
+	}
+}
+
+func AssertNil(t *testing.T, a interface{}) {
+	AssertEquals(t, a, nil)
+}
+
+func TestFeeTxnCreate(t *testing.T) {
+	var oneFct uint64 = 100000000 // Factoshis
+	var ecPrice uint64 = 10000
+
+	balance := oneFct
+	inUser := "Fs3E9gV6DXsYzf7Fqx1fVBQPQXV695eP3k5XbmHEZVRLkMdD9qCK" // FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q
+	outAddress := "FA2s2SJ5Cxmv4MzpbGxVS9zbNCjpNRJoTX4Vy7EZaTwLq3YTur4u"
+
+	for i := 0; i < 10; i++ {
+		txn, _ := newTransaction(balance, inUser, outAddress, ecPrice)
+		fee, _ := txn.CalculateFee(ecPrice)
+		balance = balance - fee
+		AssertEquals(t, 12*ecPrice, fee)
+	}
+}
+
+func TestTxnCreate(t *testing.T) {
+	var amt uint64 = 100000000
+	var ecPrice uint64 = 10000
+
+	inUser := "Fs3E9gV6DXsYzf7Fqx1fVBQPQXV695eP3k5XbmHEZVRLkMdD9qCK" // FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q
+	//outUser := "Fs2GCfAa2HBKaGEUWCtw8eGDkN1CfyS6HhdgLv8783shkrCgvcpJ" // FA2s2SJ5Cxmv4MzpbGxVS9zbNCjpNRJoTX4Vy7EZaTwLq3YTur4u
+	outAddress := "FA2s2SJ5Cxmv4MzpbGxVS9zbNCjpNRJoTX4Vy7EZaTwLq3YTur4u"
+
+	txn, err := newTransaction(amt, inUser, outAddress, ecPrice)
+	AssertNil(t, err)
+
+	err = txn.ValidateSignatures()
+	AssertNil(t, err)
+
+	err = txn.Validate(1)
+	AssertNil(t, err)
+
+	if err := txn.Validate(0); err == nil {
+		t.Fatalf("expected coinbase txn to error")
+	}
+
+	// test that we are sending to the address we thought
+	AssertEquals(t, outAddress, txn.Outputs[0].GetUserAddress())
+
+}
+
+func sendTxn(s *state.State, amt uint64, userSecretIn string, userPubOut string, ecPrice uint64) (*factoid.Transaction, error) {
+	txn, _ := newTransaction(amt, userSecretIn, userPubOut, ecPrice)
+	msg := new(messages.FactoidTransaction)
+	msg.SetTransaction(txn)
+	s.APIQueue().Enqueue(msg)
+	return txn, nil
+}
+
+func getBalance(s *state.State, userStr string) int64 {
+	return s.FactoidState.GetFactoidBalance(factoid.NewAddress(primitives.ConvertUserStrToAddress(userStr)).Fixed())
+}
+
+// generate a pair of user-strings Fs.., FA..
+func randomFctAddressPair() (string, string) {
+	pkey := primitives.RandomPrivateKey()
+	privUserStr, _ := primitives.PrivateKeyStringToHumanReadableFactoidPrivateKey(pkey.PrivateKeyString())
+	_, _, pubUserStr,_ := factoid.PrivateKeyStringToEverythingString(pkey.PrivateKeyString())
+
+	return privUserStr, pubUserStr
+}
+
+func TestProcessedBlockFailure(t *testing.T) {
+	if ranSimTest {
+		return
+	}
+	ranSimTest = true
+
+	// a genesis block address w/ funding
+	bankSecret := "Fs3E9gV6DXsYzf7Fqx1fVBQPQXV695eP3k5XbmHEZVRLkMdD9qCK"
+	bankAddress := "FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q"
+	_ = bankAddress
+	_ = bankSecret
+
+	var depositSecrets []string
+	var depositAddresses []string
+
+	for i:=0; i<120; i++  {
+		priv, addr := randomFctAddressPair()
+		depositSecrets = append(depositSecrets, priv)
+		depositAddresses = append(depositAddresses, addr)
+	}
+
+	var maxBlocks = 500
+	state0 := SetupSim("LAF", map[string]string{"--debuglog": ".",}, maxBlocks+1, 0, 0, t)
+	var ecPrice uint64 = state0.GetFactoshisPerEC() //10000
+	var oneFct uint64 = factom.FactoidToFactoshi("1")
+
+	waitForDeposit := func(i int, amt uint64) uint64 {
+		balance := getBalance(state0, depositAddresses[i])
+		TimeNow(state0)
+		fmt.Printf("%v waitForDeposit %v %v - %v = diff: %v \n", i, depositAddresses[i], balance, amt, balance-int64(amt))
+		var waited bool
+		for balance != int64(amt) {
+			waited = true
+			balance = getBalance(state0, depositAddresses[i])
+			time.Sleep(time.Millisecond*100)
+		}
+		if waited {
+			fmt.Printf("%v waitForDeposit %v %v - %v = diff: %v \n", i, depositAddresses[i], balance, amt, balance-int64(amt))
+			TimeNow(state0)
+		}
+		return uint64(balance)
+	}
+	_ = waitForDeposit
+
+	initialBalance := 10*oneFct
+	fee := 12*ecPrice
+
+	prepareTransactions := func(bal uint64) ([]func(), uint64, int) {
+
+		var transactions []func()
+		var i int
+
+		for i = 0; i < len(depositAddresses)-1; i += 1 {
+			bal -= fee
+
+			in := i
+			out := i+1
+			send := bal
+
+			txn := func() {
+				//fmt.Printf("TXN %v %v => %v \n", send, depositAddresses[in], depositAddresses[out])
+				sendTxn(state0, send, depositSecrets[in], depositAddresses[out], ecPrice)
+			}
+			transactions = append(transactions, txn)
+		}
+		return transactions, bal, i
+	}
+
+	// offset to send initial blocking transaction
+	offset := 1
+
+	mkTransactions := func() { // txnGenerator
+		// fund the start address
+		sendTxn(state0, initialBalance, bankSecret, depositAddresses[0], ecPrice)
+		WaitMinutes(state0, 1)
+		waitForDeposit(0, initialBalance)
+        transactions, finalBalance, finalAddress := prepareTransactions(initialBalance)
+
+		var sent []int
+        var unblocked bool = false
+
+		for i:=1; i<len(transactions); i++ {
+		    sent = append(sent, i)
+		    //fmt.Printf("offset: %v <=> i:%v", offset, i)
+		    if i == offset {
+		    	fmt.Printf("\n==>TXN offset%v\n", offset)
+				transactions[0]() // unblock the transactions
+				unblocked = true
+			}
+			transactions[i]()
+		}
+		if ! unblocked{
+			transactions[0]() // unblock the transactions
+		}
+		offset++ // next time start further in the future
+		fmt.Printf("send chained transations")
+		waitForDeposit(finalAddress, finalBalance)
+
+		// empty final address returning remaining funds to bank
+		sendTxn(state0, finalBalance-fee, depositSecrets[finalAddress], bankAddress, ecPrice)
+		waitForDeposit(finalAddress, 0)
+	}
+	_ = mkTransactions
+
+	for x:= 1; x<= 120; x++ {
+		mkTransactions()
+		WaitBlocks(state0, 1)
+	}
+
 	WaitForAllNodes(state0)
 	shutDownEverything(t)
 }
