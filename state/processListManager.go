@@ -56,8 +56,7 @@ func (lists *ProcessLists) UpdateState(dbheight uint32) (progress bool) {
 		s := lists.State
 		//fmt.Println(fmt.Sprintf("EOM PROCESS: %10s ProcessListManager: !s.EOM(%v)", s.FactomNodeName, s.EOM))
 
-		s.CurrentMinute = 0
-		s.MoveStateToHeight(dbheight)
+		s.MoveStateToHeight(dbheight, 0)
 		s.EOMProcessed = 0
 		s.DBSigProcessed = 0
 		s.Syncing = false

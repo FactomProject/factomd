@@ -629,23 +629,20 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 	s.AuthorityServerCount = ss.AuthorityServerCount
 
 	s.IdentityControl = ss.IdentityControl
-	s.CurrentMinute = ss.CurrentMinute
-	if ss.CurrentMinute != 0 {
-		s.LogPrintf("executeMsg", "unexpected %s", s.LLeaderHeight, s.LeaderTimestamp.String(), atomic.WhereAmIString(0))
-	}
-	s.MoveStateToHeight(ss.LLeaderHeight)
 
-	//	s.LeaderTimestamp = dbstate.DirectoryBlock.GetTimestamp()
-	//      s.LogPrintf("executeMsg", "Set LeaderTimeStamp %d %v for %s", s.LLeaderHeight, s.LeaderTimestamp.String(), atomic.WhereAmIString(0))
+	if ss.CurrentMinute != 0 {
+		s.LogPrintf("executeMsg", "unexpected ss.CurrentMinute=%d  %s", ss.CurrentMinute, atomic.WhereAmIString(0))
+	}
+
+	s.MoveStateToHeight(ss.LLeaderHeight, ss.CurrentMinute)
 
 	if ss.Leader != s.Leader {
-		s.LogPrintf("executeMsg", "unexpected %s", s.LLeaderHeight, s.LeaderTimestamp.String(), atomic.WhereAmIString(0))
+		s.LogPrintf("executeMsg", "unexpected ss.Leader=%v %s", ss.Leader, atomic.WhereAmIString(0))
 	}
-	s.Leader = ss.Leader
+
 	if ss.LeaderVMIndex != s.LeaderVMIndex {
-		s.LogPrintf("executeMsg", "unexpected %s", s.LLeaderHeight, s.LeaderTimestamp.String(), atomic.WhereAmIString(0))
+		s.LogPrintf("executeMsg", "unexpected  ss.LeaderVMIndex=%v %s", ss.LeaderVMIndex, atomic.WhereAmIString(0))
 	}
-	s.LeaderVMIndex = ss.LeaderVMIndex
 
 	ss.EOMsyncing = s.EOMsyncing
 
@@ -665,6 +662,8 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 	s.HighestAck = ss.DBHeight + 1
 	s.HighestKnown = ss.DBHeight + 2
 	s.Holding = make(map[[32]byte]interfaces.IMsg)
+
+	//TODO: Rip all these maps and arrays out. they are not needed... famouus last words.
 	for k := range ss.Holding {
 		s.Holding[k] = ss.Holding[k]
 	}

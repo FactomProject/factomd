@@ -949,6 +949,8 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		return
 	}
 
+	s.LogPrintf("dbstateprocess", "Process DBState %d", ht)
+
 	var out bytes.Buffer
 	out.WriteString("=== AdminBlock.UpdateState() Start ===\n")
 	prt := func(lable string, pl *ProcessList) {
@@ -1152,9 +1154,11 @@ func (list *DBStateList) SignDB(d *DBState) (process bool) {
 	dbheight := d.DirectoryBlock.GetHeader().GetDBHeight()
 	list.State.LogPrintf("dbstate", "SignDB(%d)", dbheight)
 	if d.Signed {
-		//s := list.State
-		//		s.MoveStateToHeight(dbheight + 1)
-		list.State.LogPrintf("dbstate", "SignDB(%d) already signed", d.DirectoryBlock.GetHeader().GetDBHeight())
+		s := list.State
+		if dbheight > s.LLeaderHeight {
+			s.MoveStateToHeight(dbheight+1, 0) // Move forward in time
+		}
+		list.State.LogPrintf("dbstate", "SignDB(%d) already signed", dbheight)
 		return false
 	}
 
@@ -1162,38 +1166,41 @@ func (list *DBStateList) SignDB(d *DBState) (process bool) {
 	// have been checked, so we can consider this guy signed.
 	if dbheight == 0 || list.Get(int(dbheight+1)) != nil || d.Repeat == true {
 		s := list.State
-		s.MoveStateToHeight(dbheight + 1)
-		list.State.LogPrintf("dbstate", "SignDB(%d) next blocks exists!", d.DirectoryBlock.GetHeader().GetDBHeight())
+		s.MoveStateToHeight(dbheight+1, 0)
+		list.State.LogPrintf("dbstate", "SignDB(%d) next blocks exists!", dbheight)
 		d.Signed = true
 		return false
 	}
 
 	pl := list.State.ProcessLists.Get(dbheight)
 	if pl == nil {
-		list.State.LogPrintf("dbstate", "SignDB(%d) no processlist!", d.DirectoryBlock.GetHeader().GetDBHeight())
-		return
-	} else if !pl.Complete() {
-		list.State.LogPrintf("dbstate", "SignDB(%d) processlist not complete!", d.DirectoryBlock.GetHeader().GetDBHeight())
-		return
+		list.State.LogPrintf("dbstate", "SignDB(%d) no processlist!", dbheight)
+		return false
+
+	} else if !pl.Complete() { // Check every VM is at minute 10 and has a list taht is height long or longer...
+		list.State.LogPrintf("dbstate", "SignDB(%d) processlist not complete!", dbheight)
+		return false
 	}
 
 	// If we don't have the next dbstate yet, see if we have all the signatures.
 	pl = list.State.ProcessLists.Get(dbheight + 1)
 	if pl == nil {
-		list.State.LogPrintf("dbstate", "SignDB(%d) missing next processlist!", d.DirectoryBlock.GetHeader().GetDBHeight())
+		list.State.LogPrintf("dbstate", "SignDB(%d) missing next processlist!", dbheight)
 		return
 	}
 
-	// Don't sign while negotiating the EOM
+	// Don't sign while syncing the EOM
+	// TODO: really only EOM 0 is interesting maybe add CurrentMinute < 1 &&
+	// Why is this not syncing DBSIG?
 	if list.State.EOM {
-		list.State.LogPrintf("dbstate", "SignDB(%d) negotiating the EOM!", d.DirectoryBlock.GetHeader().GetDBHeight())
+		list.State.LogPrintf("dbstate", "SignDB(%d) syncing EOM 0!", dbheight)
 		return
 	}
 
 	s := list.State
-	s.MoveStateToHeight(dbheight + 1)
+	s.MoveStateToHeight(dbheight+1, 0)
 	d.Signed = true
-	return
+	return true
 }
 
 var nowish int64 = time.Now().Unix()
