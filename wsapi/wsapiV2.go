@@ -1419,8 +1419,8 @@ func HandleV2Diagnostics(state interfaces.IState, params interface{}) (interface
 	}
 
 	eInfo := new(ElectionInfo)
-	eInfo.CurrentAuthSet.Leaders = fedStrings
-	eInfo.CurrentAuthSet.Audits = auditStrings
+	eInfo.StateAuthSet.Leaders = fedStrings
+	eInfo.StateAuthSet.Audits = auditStrings
 	//e.CurrentAuthSet.AuditServerHeartbeat = audAlive
 
 	e := state.GetElections().(*elections.Elections)
@@ -1430,6 +1430,20 @@ func HandleV2Diagnostics(state interfaces.IState, params interface{}) (interface
 		eInfo.FedIndex = &e.Electing
 		eInfo.FedID = e.FedID.String()
 		eInfo.Round = &e.Round[e.Electing]
+	}
+	for _, fed := range e.Federated {
+		eInfo.ElectionAuthSet.Leaders = append(eInfo.ElectionAuthSet.Leaders, fed.GetChainID().String())
+	}
+	for _, aud := range e.Audit {
+		eInfo.ElectionAuthSet.Audits = append(eInfo.ElectionAuthSet.Leaders, aud.GetChainID().String())
+	}
+
+	for _, msg := range state.GetAuditHeartBeats() {
+		str, err := msg.JSONString()
+		if err != nil {
+			return nil, NewCustomInternalError("Failed to unmarshal heartbeat message")
+		}
+		eInfo.AuditHeartBeats = append(eInfo.AuditHeartBeats, str)
 	}
 
 	resp := new(DiagnosticsResponse)

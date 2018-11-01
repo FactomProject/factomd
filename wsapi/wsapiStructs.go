@@ -305,31 +305,34 @@ type MultipleECBalances struct {
 }
 
 type DiagnosticsResponse struct {
-	Name      string `json:"name"`
-	ID        string `json:"id,omitempty"`
-	PublicKey string `json:"publickey,omitempty"`
-	Role      string `json:"role"`
+	Name              string `json:"name"`
+	ID                string `json:"id,omitempty"`
+	PublicKey         string `json:"publickey,omitempty"`
+	Role              string `json:"role"`
 	SyncingState      string `json:"syncingstate"`
 	SyncingReceived   int    `json:"syncingreceived"`
 	SyncingExpected   int
 	SyncingMissingIDs []string `json:"missingnodesids"`
-	VMs       []VM    `json:"vms"`
+	VMs               []VM     `json:"vms"`
 
 	ElectionInfo *ElectionInfo `json:"elections"`
 }
 
 type ElectionInfo struct {
-	InProgress bool                    `json:"inprogress"`
-	CurrentAuthSet   struct {
-		Leaders              []string          `json:"leaders"`
-		Audits               []string          `json:"audits"`
-		//AuditServerHeartbeat []interfaces.IMsg `json:"auditheartbeat"`
-	} `json:"currentauthset"`
+	InProgress      bool     `json:"inprogress"`
+	StateAuthSet    AuthSet  `json:"stateauthset"`
+	ElectionAuthSet AuthSet  `json:"electionauthset"`
+	AuditHeartBeats []string `json:"auditheartbeats"`
 
 	VmIndex  *int   `json:"vmindex,omitempty"`
 	FedIndex *int   `json:"fedindex,omitempty"`
 	FedID    string `json:"fedid,omitempty"`
 	Round    *int   `json:"round,omitempty"`
+}
+
+type AuthSet struct {
+	Leaders []string `json:"leaders"`
+	Audits  []string `json:"audits"`
 }
 
 type VM struct {
@@ -339,5 +342,4 @@ type VM struct {
 		NextNil string `json:"nextnil"`
 	} `json:"currentprocesslist"`
 	PrevBlockCreatedFrom string `json:"prevblockcreatedfrom"`
-
 }
