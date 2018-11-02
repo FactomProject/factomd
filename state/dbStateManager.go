@@ -719,7 +719,7 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 		return
 	}
 
-	list.State.LogPrintf("dbstateprocess", "FixupLinks(%d,%d)", p.DirectoryBlock.GetHeader().GetDBHeight(), d.DirectoryBlock.GetHeader().GetDBHeight())
+	//	list.State.LogPrintf("dbstateprocess", "FixupLinks(%d,%d)", p.DirectoryBlock.GetHeader().GetDBHeight(), d.DirectoryBlock.GetHeader().GetDBHeight())
 	currentDBHeight := d.DirectoryBlock.GetHeader().GetDBHeight()
 	previousDBHeight := p.DirectoryBlock.GetHeader().GetDBHeight()
 
@@ -1077,7 +1077,6 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		list.Complete = uint32(i)
 	}
 	list.ProcessHeight = dbht
-	s.LogPrintf("dbstateprocess", "Lock %d", dbht)
 	progress = true
 	d.Locked = true // Only after all is done will I admit this state has been saved.
 

@@ -574,8 +574,12 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 				if dbstate != nil {
 					s.SetLeaderTimestamp(dbstate.DirectoryBlock.GetTimestamp())
 				} else {
-					// What now?
-					panic("No prior state")
+					// if it's a clean boot the genisis block is not yet saved and is not in the dbstates list
+					if dbheight == 1 {
+						s.SetLeaderTimestamp(primitives.NewTimestampNow())
+					} else {
+						panic("No prior state")
+					}
 				}
 			}
 		}

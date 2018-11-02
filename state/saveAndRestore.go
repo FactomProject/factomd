@@ -301,7 +301,6 @@ func (a *SaveState) IsSameAs(b *SaveState) bool {
 }
 
 func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
-	return nil
 	ss = new(SaveState)
 	ss.DBHeight = d.DirectoryBlock.GetHeader().GetDBHeight()
 	pl := state.ProcessLists.Get(ss.DBHeight)
