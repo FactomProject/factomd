@@ -87,7 +87,7 @@ func LoadDatabase(s *State) {
 					dbstate.IsLast = true // this is the last DBState in this load
 					// this will cause s.DBFinished to go true
 				}
-				s.LogMessage("dbstate", "enqueue", msg)
+				s.LogMessage("InMsgQueue", "enqueue", msg)
 				s.InMsgQueue().Enqueue(msg)
 				msg.SetLocal(true)
 				if s.InMsgQueue().Length() > constants.INMSGQUEUE_MED {

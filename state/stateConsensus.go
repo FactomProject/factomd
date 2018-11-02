@@ -547,9 +547,9 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 	}
 	// normally when loading by DBStates we jump from minute 0 to minute 0
 	// when following by minute we jump from minute 10 to minute 0
-	if s.CurrentMinute != 0 && s.CurrentMinute != 10 {
+	if s.LLeaderHeight != dbheight && s.CurrentMinute != 0 && s.CurrentMinute != 10 {
 		s.LogPrintf("dbstate", "Jump in current minute from %d-:-%d to %d-:-%d", s.LLeaderHeight, s.CurrentMinute, dbheight, newMinute)
-		fmt.Fprintf(os.Stderr, "Jump in current minute from %d-:-%d to %d-:-%d", s.LLeaderHeight, s.CurrentMinute, dbheight, newMinute)
+		fmt.Fprintf(os.Stderr, "Jump in current minute from %d-:-%d to %d-:-%d\n", s.LLeaderHeight, s.CurrentMinute, dbheight, newMinute)
 	}
 	// update cached values that change with height
 	if s.LLeaderHeight != dbheight {
@@ -562,13 +562,21 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		if dbstate != nil {
 			s.SetLeaderTimestamp(dbstate.DirectoryBlock.GetTimestamp())
 		} else {
-			// TODO: What's right here? Current time? For now leave the timestamp at the prev value
-			dbstate := s.DBStates.Get(int(dbheight - 1))
-			if dbstate != nil {
-				s.SetLeaderTimestamp(dbstate.DirectoryBlock.GetTimestamp())
+			// check if the dbstate is in the database
+			dblock, err := s.DB.FetchDBlockByHeight(dbheight)
+
+			if dblock != nil && err == nil {
+				s.SetLeaderTimestamp(dblock.GetTimestamp())
 			} else {
-				// What now?
-				panic("No prior state")
+
+				// Use the time stamp of the prev block until DBSig VM0 arrives
+				dbstate := s.DBStates.Get(int(dbheight - 1))
+				if dbstate != nil {
+					s.SetLeaderTimestamp(dbstate.DirectoryBlock.GetTimestamp())
+				} else {
+					// What now?
+					panic("No prior state")
+				}
 			}
 		}
 	}
@@ -959,10 +967,11 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	if dbstatemsg.IsLocal() {
 		if s.StateSaverStruct.FastBoot {
 			dbstate.SaveStruct = SaveFactomdState(s, dbstate)
-
-			err := s.StateSaverStruct.SaveDBStateList(s.DBStates, s.Network)
-			if err != nil {
-				panic(err)
+			if dbstate.SaveStruct != nil {
+				err := s.StateSaverStruct.SaveDBStateList(s.DBStates, s.Network)
+				if err != nil {
+					panic(err)
+				}
 			}
 		}
 	}

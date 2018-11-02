@@ -73,7 +73,7 @@ func (state *State) ValidatorLoop() {
 		// Look for pending messages, and get one if there is one.
 		var msg interfaces.IMsg
 
-		for i := 0; i < 10; i++ {
+		for i := 0; i < 50; i++ {
 			//for state.Process() {}
 			//for state.UpdateState() {}
 			var progress bool

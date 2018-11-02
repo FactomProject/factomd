@@ -130,8 +130,11 @@ func logMessage(name string, note string, msg interfaces.IMsg) {
 	hash := "??????"
 	mhash := "??????"
 	rhash := "??????"
+	messageType := ""
 	t := byte(0)
 	msgString := "-nil-"
+	var embeddedMsg interfaces.IMsg
+
 	if msg != nil {
 		t = msg.Type()
 		msgString = msg.String()
@@ -164,15 +167,17 @@ func logMessage(name string, note string, msg interfaces.IMsg) {
 		} else {
 			//to = "broadcast"
 		}
-	}
-
-	switch t {
-	case constants.ACK_MSG:
-		ack := msg.(*Ack)
-		embeddedHash = fmt.Sprintf(" EmbeddedMsg: %x", ack.GetHash().Bytes()[:3])
-	case constants.MISSING_DATA:
-		md := msg.(*MissingData)
-		embeddedHash = fmt.Sprintf(" EmbeddedMsg: %x", md.RequestHash.Bytes()[:3])
+		switch t {
+		case constants.ACK_MSG:
+			ack := msg.(*Ack)
+			embeddedHash = fmt.Sprintf(" EmbeddedMsg: %x", ack.GetHash().Bytes()[:3])
+			fixed := ack.GetHash().Fixed()
+			embeddedMsg = getmsg(fixed)
+			if embeddedMsg == nil {
+				embeddedHash += "(unknown)"
+			}
+		}
+		messageType = constants.MessageName(byte(t))
 	}
 
 	// handle multi-line printf's
@@ -187,7 +192,7 @@ func logMessage(name string, note string, msg interfaces.IMsg) {
 		switch i {
 		case 0:
 			s = fmt.Sprintf("%9d %02d:%02d:%02d.%03d %-30s M-%v|R-%v|H-%v|%p %26s[%2v]:%v\n", sequence, now.Hour()%24, now.Minute()%60, now.Second()%60, (now.Nanosecond()/1e6)%1000,
-				note, mhash, rhash, hash, msg, constants.MessageName(byte(t)), t, text)
+				note, mhash, rhash, hash, msg, messageType, t, text)
 		case 1:
 			s = fmt.Sprintf("%9d %02d:%02d:%02d.%03d %-30s M-%v|R-%v|H-%v|%p %30s:%v\n", sequence, now.Hour()%24, now.Minute()%60, now.Second()%60, (now.Nanosecond()/1e6)%1000,
 				note, mhash, rhash, hash, msg, "continue:", text)
@@ -196,18 +201,8 @@ func logMessage(name string, note string, msg interfaces.IMsg) {
 		myfile.WriteString(s)
 	}
 
-	switch t {
-	case constants.ACK_MSG:
-		ack := msg.(*Ack)
-		fixed := ack.GetHash().Fixed()
-		iMsg := getmsg(fixed)
-		logMessage(name, "EmbeddedMsg:", iMsg)
-
-	case constants.MISSING_DATA:
-		md := msg.(*MissingData)
-		fixed := md.RequestHash.Fixed()
-		iMsg := getmsg(fixed)
-		logMessage(name, "EmbeddedMsg:", iMsg)
+	if embeddedMsg != nil {
+		logMessage(name, "EmbeddedMsg:", embeddedMsg)
 	}
 }
 

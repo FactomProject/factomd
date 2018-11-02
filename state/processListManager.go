@@ -96,14 +96,17 @@ func (lists *ProcessLists) Get(dbheight uint32) *ProcessList {
 
 	i := int(dbheight) - int(lists.DBHeightBase)
 
+	s := lists.State
+	_ = s
+
+	// Only allocate a pl I have a hope of using. If too high, ignore.
+	highestCompletedBlk := lists.State.GetHighestCompletedBlk()
+	if dbheight >= highestCompletedBlk+200 {
+		return nil
+	}
 	//TODO: Actually allocate the PL here !!!
 	for len(lists.Lists) <= i {
 		lists.Lists = append(lists.Lists, nil)
-	}
-
-	// Only allocate a pl I have a hope of using. If too high, ignore.
-	if dbheight >= lists.State.GetHighestCompletedBlk()+200 {
-		return nil
 	}
 
 	pl := lists.Lists[i]
