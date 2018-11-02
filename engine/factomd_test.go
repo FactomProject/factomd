@@ -1430,7 +1430,7 @@ func TestTxnCreate(t *testing.T) {
 
 }
 
-func TestProcessedBlockFailure(t *testing.T) {
+func TestChainedTransactions(t *testing.T) {
 	if RanSimTest {
 		return
 	}
