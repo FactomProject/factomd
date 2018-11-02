@@ -1964,6 +1964,10 @@ func (s *State) GetServerPublicKey() *primitives.PublicKey {
 	return s.serverPubKey
 }
 
+func (s *State) GetServerPublicKeyString() string {
+	return s.serverPubKey.String()
+}
+
 func (s *State) GetAnchor() interfaces.IAnchor {
 	return s.Anchor
 }

@@ -62,11 +62,35 @@ type Elections struct {
 	Waiting chan interfaces.IElectionMsg
 }
 
+func (e *Elections) GetFedID() interfaces.IHash {
+	return e.FedID
+}
+
+func (e *Elections) GetElecting() int {
+	return e.Electing
+}
+
+func (e *Elections) GetVMIndex() int {
+	return e.VMIndex
+}
+
+func (e *Elections) GetRound() []int {
+	return e.Round
+}
+
 func (e *Elections) ComparisonMinute() int {
 	if !e.SigType {
 		return -1
 	}
 	return int(e.Minute)
+}
+
+func (e *Elections) GetFederatedServers() []interfaces.IServer {
+	return e.Federated
+}
+
+func (e *Elections) GetAuditServers() []interfaces.IServer {
+	return e.Audit
 }
 
 func (e *Elections) AddFederatedServer(server interfaces.IServer) int {
@@ -148,11 +172,8 @@ func (e *Elections) GetAudServerIndex(server interfaces.IServer) int {
 	return idx
 }
 
-func (e *Elections) AdapterStatus() string {
-	if e.Adapter != nil {
-		return e.Adapter.Status()
-	}
-	return ""
+func (e *Elections) GetAdapter() interfaces.IElectionAdapter {
+	return e.Adapter
 }
 
 // Add the given sig list to the list of signatures for the given round.

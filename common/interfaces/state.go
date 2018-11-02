@@ -6,7 +6,6 @@ package interfaces
 
 import (
 	"github.com/FactomProject/factomd/activations"
-	"github.com/FactomProject/factomd/common/primitives"
 )
 
 type DBStateSent struct {
@@ -44,7 +43,7 @@ type IState interface {
 	Sign([]byte) IFullSignature
 	Log(level string, message string)
 	Logf(level string, format string, args ...interface{})
-	GetServerPublicKey() *primitives.PublicKey
+	GetServerPublicKeyString() string
 
 	GetDBStatesSent() []*DBStateSent
 	SetDBStatesSent([]*DBStateSent)
