@@ -25,7 +25,6 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/receipts"
 	"github.com/FactomProject/web"
-	"github.com/FactomProject/factomd/elections"
 )
 
 const API_VERSION string = "2.0"
@@ -1423,18 +1422,20 @@ func HandleV2Diagnostics(state interfaces.IState, params interface{}) (interface
 	eInfo.StateAuthSet.Audits = auditStrings
 	//e.CurrentAuthSet.AuditServerHeartbeat = audAlive
 
-	e := state.GetElections().(*elections.Elections)
-	if e.Electing != -1 {
+	e := state.GetElections()
+	electing := e.GetElecting()
+	if electing != -1 {
 		eInfo.InProgress = true
-		eInfo.VmIndex = &e.VMIndex
-		eInfo.FedIndex = &e.Electing
-		eInfo.FedID = e.FedID.String()
-		eInfo.Round = &e.Round[e.Electing]
+		vm := e.GetVMIndex()
+		eInfo.VmIndex = &vm
+		eInfo.FedIndex = &electing
+		eInfo.FedID = e.GetFedID().String()
+		eInfo.Round = &e.GetRound()[electing]
 	}
-	for _, fed := range e.Federated {
+	for _, fed := range e.GetFederatedServers() {
 		eInfo.ElectionAuthSet.Leaders = append(eInfo.ElectionAuthSet.Leaders, fed.GetChainID().String())
 	}
-	for _, aud := range e.Audit {
+	for _, aud := range e.GetAuditServers() {
 		eInfo.ElectionAuthSet.Audits = append(eInfo.ElectionAuthSet.Leaders, aud.GetChainID().String())
 	}
 
@@ -1449,7 +1450,7 @@ func HandleV2Diagnostics(state interfaces.IState, params interface{}) (interface
 	resp := new(DiagnosticsResponse)
 	resp.Name = state.GetFactomNodeName()
 	resp.ID = state.GetIdentityChainID().String()
-	resp.PublicKey = state.GetServerPublicKey().String()
+	resp.PublicKey = state.GetServerPublicKeyString()
 	resp.Role = role
 	resp.ElectionInfo = eInfo
 
