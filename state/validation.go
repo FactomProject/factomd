@@ -101,9 +101,9 @@ func (state *State) ValidatorLoop() {
 				msg = state.InMsgQueue().Dequeue()
 				if msg != nil {
 					if msg.Type() != constants.HEARTBEAT_MSG {
-						state.LogMessage("InMsgQueue", "heartbeat", msg)
-					} else {
 						state.LogMessage("InMsgQueue", "dequeue", msg)
+					} else {
+						state.LogMessage("InMsgQueue", "heartbeat", msg)
 					}
 
 				}
