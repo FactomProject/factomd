@@ -247,7 +247,7 @@ func (b *Buffer) PopString() (string, error) {
 
 func (b *Buffer) PopBytes() ([]byte, error) {
 	l, err := b.PopVarInt()
-	if err != nil {
+	if err != nil || int(l) < 0 {
 		return nil, err
 	}
 

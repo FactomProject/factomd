@@ -195,6 +195,9 @@ func DeepStateDisplayCopyDifference(s *State, prev *DisplayState) (*DisplayState
 			if b > 1 {
 				b--
 				pl = s.ProcessLists.Get(b)
+				if pl == nil {
+					return ds, nil
+				}
 			}
 		}
 	}

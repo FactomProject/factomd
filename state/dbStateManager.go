@@ -5,7 +5,6 @@
 package state
 
 import (
-	"bytes"
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
@@ -949,27 +948,6 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		return
 	}
 
-	var out bytes.Buffer
-	out.WriteString("=== AdminBlock.UpdateState() Start ===\n")
-	prt := func(lable string, pl *ProcessList) {
-		if !list.State.DebugConsensus {
-			return
-		}
-		out.WriteString(fmt.Sprintf("%19s %20s (%4d)", list.State.FactomNodeName, lable, pl.DBHeight))
-		out.WriteString("Fed: ")
-		for _, f := range pl.FedServers {
-			out.WriteString(fmt.Sprintf("%x ", f.GetChainID().Bytes()[3:6]))
-		}
-		out.WriteString("---Audit: ")
-		for _, f := range pl.AuditServers {
-			out.WriteString(fmt.Sprintf("%x ", f.GetChainID().Bytes()[3:6]))
-		}
-		out.WriteString("\n")
-	}
-
-	prt("pl 1st", pl)
-	prt("pln 1st", pln)
-
 	//
 	// ***** Apply the AdminBlock changes to the next DBState
 	//
@@ -983,14 +961,9 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		panic(err)
 	}
 
-	prt("pl 2st", pl)
-	prt("pln 2st", pln)
-
 	pln2 := list.State.ProcessLists.Get(ht + 2)
 	pln2.FedServers = append(pln2.FedServers[:0], pln.FedServers...)
 	pln2.AuditServers = append(pln2.AuditServers[:0], pln.AuditServers...)
-
-	prt("pln2 3st", pln2)
 
 	pln2.SortAuditServers()
 	pln2.SortFedServers()
@@ -1004,14 +977,14 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	pln.SetStartingAuthoritySet()
 	pln2.SetStartingAuthoritySet()
 
-	prt("pl 4th", pl)
-	prt("pln 4th", pln)
-	prt("pln2 4th", pln2)
+	// *******************
+	// Factoid Block Processing
+	// *******************
+	fs := list.State.GetFactoidState()
+	fs.(*FactoidState).DBHeight = dbht
 
-	if list.State.DebugConsensus {
-		out.WriteString("=== AdminBlock.UpdateState() End ===")
-		fmt.Println(out.String())
-	}
+	s.LogPrintf("dbstateprocess", "ProcessBlock Process Factoids dbht %d factoid ht %d",
+		dbht, fs.(*FactoidState).DBHeight)
 
 	// get all the prior balances of the Factoid addresses that may have changed
 	// in this block.  If you want the balance of the highest saved block, look to
@@ -1036,8 +1009,6 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	list.State.ECBalancesPMutex.Unlock()
 
 	// Process the Factoid End of Block
-	fs := list.State.GetFactoidState()
-	fs.(*FactoidState).DBHeight = dbht
 	err = fs.AddTransactionBlock(d.FactoidBlock)
 	if err != nil {
 		panic(err)
