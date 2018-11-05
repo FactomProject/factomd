@@ -71,7 +71,7 @@ func (e *ABlockHeader) String() string {
 	out.WriteString(fmt.Sprintf("    %20s: %10v\n", "HeaderExpansionSize", e.HeaderExpansionSize))
 	out.WriteString(fmt.Sprintf("    %20s: %x\n", "HeaderExpansionArea", e.HeaderExpansionArea))
 	out.WriteString(fmt.Sprintf("    %20s: %x\n", "MessageCount", e.MessageCount))
-	out.WriteString(fmt.Sprintf("    %20s: %x\n", "MessageCount", e.BodySize))
+	out.WriteString(fmt.Sprintf("    %20s: %x\n", "BodySize", e.BodySize))
 	return (string)(out.DeepCopyBytes())
 }
 

@@ -431,10 +431,22 @@ func TestAdminBlockHash(t *testing.T) {
 	}
 }
 
+func TestAdminBlockSetHeader(t *testing.T) {
+	block := createTestAdminBlock()
+	h := createTestAdminHeader()
+	block.SetHeader(h)
+	if !h.IsSameAs(block.GetHeader()) {
+		t.Error("header is not equal to block.Header", h, block.GetHeader())
+	}
+}
+
 func TestAdminBlockMarshalUnmarshal(t *testing.T) {
 	blocks := []interfaces.IAdminBlock{}
-	blocks = append(blocks, createSmallTestAdminBlock())
-	blocks = append(blocks, createTestAdminBlock())
+	blocks = append(blocks,
+		createSmallTestAdminBlock(),
+		createTestAdminBlock(),
+	)
+
 	for b, block := range blocks {
 		binary, err := block.MarshalBinary()
 		if err != nil {
@@ -487,6 +499,25 @@ func TestAdminBlockMarshalUnmarshal(t *testing.T) {
 		if block.String() != block2.String() {
 			t.Errorf("String representation doesn't match %d", b)
 		}
+	}
+}
+
+func TestUnmarshalBadAblock(t *testing.T) {
+	block := createTestAdminBlock()
+
+	p, err := block.MarshalBinary()
+	if err != nil {
+		t.Error(err)
+	}
+	// create an incorrect MessageCount
+	p[75] = 0x01
+
+	block2 := new(AdminBlock)
+	err = block2.UnmarshalBinary(p)
+	if err == nil {
+		t.Error("block should have errored on unmarshal", block2)
+	} else {
+		t.Log(err)
 	}
 }
 

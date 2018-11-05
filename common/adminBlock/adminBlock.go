@@ -434,8 +434,12 @@ func (b *AdminBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	}
 	b.Header = h
 
-	msgCount := b.GetHeader().GetMessageCount()
-	if msgCount > 1000 {
+	// msgLimit is the theoretical maximum number of messages possible in the
+	// admin block. The limit is the body size divided by the smallest possible
+	// message size (2 bytes for a minute message {0x00, 0x0[0-9]})
+	msgLimit := b.Header.GetBodySize() / 2
+	msgCount := b.Header.GetMessageCount()
+	if msgCount > msgLimit {
 		// TODO: replace this message with a proper error
 		return nil, fmt.Errorf("Error: AdminBlock.UnmarshalBinary: message count %d too high (uint underflow?)", msgCount)
 	}
