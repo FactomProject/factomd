@@ -507,13 +507,6 @@ func (dbsl *DBStateList) UnmarshalBinaryData(p []byte) (newData []byte, err erro
 
 	newData = buf.DeepCopyBytes()
 
-	for i := len(dbsl.DBStates) - 1; i >= 0; i-- {
-		if dbsl.DBStates[i].SaveStruct != nil {
-			dbsl.DBStates[i].SaveStruct.RestoreFactomdState(dbsl.State)
-			break
-		}
-	}
-
 	return
 }
 
@@ -545,7 +538,9 @@ func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 		return 1
 	}
 
-	if d == nil || !d.Saved {
+	// This node cannot be validated until the previous node (d) has been saved to disk, which means processed
+	// and signed as well.
+	if d == nil || !(d.Locked && d.Signed && d.Saved) {
 		return 0
 	}
 
@@ -1122,6 +1117,9 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 func (list *DBStateList) SignDB(d *DBState) (process bool) {
 	dbheight := d.DirectoryBlock.GetHeader().GetDBHeight()
 	list.State.LogPrintf("dbstate", "SignDB(%d)", dbheight)
+
+	list.State.LogPrintf("dbstate", "SignDB(%d) Trying to sign", dbheight)
+
 	if d.Signed {
 		//s := list.State
 		//		s.MoveStateToHeight(dbheight + 1)
@@ -1133,9 +1131,10 @@ func (list *DBStateList) SignDB(d *DBState) (process bool) {
 	// have been checked, so we can consider this guy signed.
 	if dbheight == 0 || list.Get(int(dbheight+1)) != nil || d.Repeat == true {
 		s := list.State
-		s.MoveStateToHeight(dbheight + 1)
 		list.State.LogPrintf("dbstate", "SignDB(%d) next blocks exists!", d.DirectoryBlock.GetHeader().GetDBHeight())
 		d.Signed = true
+		list.State.LogPrintf("dbstate", "SignDB(%d) Signed! because in db", dbheight)
+		s.MoveStateToHeight(dbheight + 1)
 		return false
 	}
 
@@ -1162,8 +1161,9 @@ func (list *DBStateList) SignDB(d *DBState) (process bool) {
 	}
 
 	s := list.State
-	s.MoveStateToHeight(dbheight + 1)
 	d.Signed = true
+	s.MoveStateToHeight(dbheight + 1)
+	list.State.LogPrintf("dbstate", "SignDB(%d) Signed! have sigs", dbheight)
 	return
 }
 
@@ -1477,7 +1477,7 @@ func (list *DBStateList) UpdateState() (progress bool) {
 	list.Catchup(false)
 
 	s := list.State
-	saved := 0
+
 	if len(list.DBStates) != 0 {
 		l := "["
 		for _, d := range list.DBStates {
@@ -1499,6 +1499,9 @@ func (list *DBStateList) UpdateState() (progress bool) {
 		// Must process blocks in sequence.  Missing a block says we must stop.
 		if d == nil {
 			return
+		}
+		if d.Locked && d.Signed && d.Saved {
+			continue
 		}
 
 		if i > 0 {
@@ -1524,12 +1527,7 @@ func (list *DBStateList) UpdateState() (progress bool) {
 		// Make sure we move forward the Adminblock state in the process lists
 		list.State.ProcessLists.Get(d.DirectoryBlock.GetHeader().GetDBHeight() + 1)
 
-		if d.Saved {
-			saved = i
-		}
-		if i-saved > 1 {
-			break
-		}
+		break
 	}
 	return
 }
@@ -1555,15 +1553,19 @@ func (list *DBStateList) Highest() uint32 {
 
 // Return true if we actually added the dbstate to the list
 func (list *DBStateList) Put(dbState *DBState) bool {
+
 	dblk := dbState.DirectoryBlock
 	dbheight := dblk.GetHeader().GetDBHeight()
 
-	// Count completed states, starting from the beginning (since base starts at
-	// zero.
+	list.State.LogPrintf("dbstateprocess", "DBStateList put dbstate dbht %d locked %v signed %v saved %v",
+		dbheight, dbState.Locked, dbState.Signed, dbState.Saved)
+
+	// Count completed, done, don't have to do anything more to states,
+	// starting from the beginning (since base starts at zero).
 	cnt := 0
 searchLoop:
 	for i, v := range list.DBStates {
-		if dbheight > 0 && (v == nil || v.DirectoryBlock == nil || !v.Saved) {
+		if dbheight > 0 && (v == nil || v.DirectoryBlock == nil || !(v.Saved && v.Locked && v.Signed)) {
 			list.DBStates[i] = nil
 			break searchLoop
 		}

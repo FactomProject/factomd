@@ -583,6 +583,7 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 	// Set this, as we know it to be true
 	s.DBHeightAtBoot = ss.DBHeight
 	s.ProcessLists.Lists = s.ProcessLists.Lists[:0]
+	s.LLeaderHeight = ss.LLeaderHeight
 	// set DBHeightBase to avoid recursively loading process lists
 	s.ProcessLists.DBHeightBase = ss.DBHeight
 	pl := s.ProcessLists.Get(ss.DBHeight)

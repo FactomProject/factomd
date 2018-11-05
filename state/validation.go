@@ -92,7 +92,7 @@ func (state *State) ValidatorLoop() {
 			default:
 			}
 
-			for i := 0; i < 50; i++ {
+			for i := 0; i < 1; i++ {
 				if ackRoom == 1 || msgRoom == 1 {
 					break // no room
 				}

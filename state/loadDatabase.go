@@ -37,13 +37,14 @@ func humanizeDuration(duration time.Duration) string {
 func LoadDatabase(s *State) {
 	var blkCnt uint32
 
+	time.Sleep(10 * time.Second)
+
 	head, err := s.DB.FetchDBlockHead()
 	if err == nil && head != nil {
 		blkCnt = head.GetHeader().GetDBHeight()
 	}
 	// prevent MMR processing from happening for blocks being loaded from the database
 	s.DBHeightAtBoot = blkCnt
-	s.TimestampAtBoot = primitives.NewTimestampNow()
 
 	first := time.Now()
 	last := first
@@ -90,11 +91,12 @@ func LoadDatabase(s *State) {
 				s.LogMessage("dbstate", "enqueue", msg)
 				s.InMsgQueue().Enqueue(msg)
 				msg.SetLocal(true)
-				if s.InMsgQueue().Length() > constants.INMSGQUEUE_MED {
-					for s.InMsgQueue().Length() > constants.INMSGQUEUE_LOW {
-						time.Sleep(10 * time.Millisecond)
+				if s.InMsgQueue().Length() > 100 {
+					for s.InMsgQueue().Length() > 5 {
+						time.Sleep(100 * time.Millisecond)
 					}
 				}
+				time.Sleep(2 * time.Millisecond)
 			} else {
 				// os.Stderr.WriteString(fmt.Sprintf("%20s Last Block in database: %d\n", s.FactomNodeName, i))
 				break

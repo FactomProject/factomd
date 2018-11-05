@@ -77,6 +77,8 @@ func (s *State) LogPrintf(logName string, format string, more ...interface{}) {
 }
 func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 
+	s.LogPrintf("dbstateprocess", "Process executing %v", msg.String())
+
 	if msg.GetHash() == nil || reflect.ValueOf(msg.GetHash()).IsNil() {
 		s.LogMessage("badMsgs", "Nil hash in executeMsg", msg)
 		return false
@@ -115,8 +117,9 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 				Delta := blktime - msgtime
 				prev := s.GetDBState(s.LLeaderHeight - 1)
 				cur := s.GetDBState(s.LLeaderHeight)
-
-				s.LogPrintf("executeMsg", "prev %v", prev.DirectoryBlock.GetTimestamp().String())
+				if prev != nil {
+					s.LogPrintf("executeMsg", "prev %v", prev.DirectoryBlock.GetTimestamp().String())
+				}
 				if cur != nil {
 					s.LogPrintf("executeMsg", "curr %v ", cur.DirectoryBlock.GetTimestamp().String())
 				}
@@ -227,6 +230,7 @@ func (s *State) Process() (progress bool) {
 	}
 
 	s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
+
 	now := s.GetTimestamp().GetTimeMilli() // Timestamps are in milliseconds, so wait 20
 
 	// If we are not running the leader, then look to see if we have waited long enough to
@@ -265,18 +269,25 @@ func (s *State) Process() (progress bool) {
 	}
 
 	/** Process all the DBStates  that might be pending **/
+	hsb := s.GetHighestSavedBlk()
+	// Get the index of the next DBState
+	ix := int(hsb) - s.DBStatesReceivedBase + 1
+	// Make sure we are in range
+	if ix < 0 || ix >= len(s.DBStatesReceived) {
+		// We have nothing for the system, given its current height.
+	} else {
+		dbstate := s.DBStates.Get(int(hsb + 1))
+		if dbstate != nil && dbstate.DirectoryBlock.GetHeader().GetDBHeight() > hsb {
+			if dbstate.Locked && dbstate.Signed && dbstate.Saved {
+				s.LogPrintf("dbstateprocess", "Process clear s.DBStatesRecieved[ix] %v", dbstate)
+				s.DBStatesReceived[ix] = nil
+			}
+		}
+		if msg := s.DBStatesReceived[ix]; msg != nil {
+			s.executeMsg(vm, s.DBStatesReceived[ix])
+			return
+		}
 
-	for {
-		ix := int(s.GetHighestSavedBlk()) - s.DBStatesReceivedBase + 1
-		if ix < 0 || ix >= len(s.DBStatesReceived) {
-			break
-		}
-		msg := s.DBStatesReceived[ix]
-		if msg == nil {
-			break
-		}
-		process = append(process, msg)
-		s.DBStatesReceived[ix] = nil
 	}
 
 	preEmptyLoopTime := time.Now()
@@ -546,9 +557,10 @@ func (s *State) MoveStateToHeight(dbheight uint32) {
 	s.LogPrintf("dbstate", "MoveStateToHeight(%d) called from %s", dbheight, atomic.WhereAmIString(1))
 	if s.LLeaderHeight+1 != dbheight {
 		s.LogPrintf("dbstate", "State move between non-sequential heights from %d to %d", s.LLeaderHeight, dbheight)
-		if s.LLeaderHeight != dbheight {
-			fmt.Fprintf(os.Stderr, "State move between non-sequential heights from %d to %d\n", s.LLeaderHeight, dbheight)
+		if s.LLeaderHeight == dbheight {
+			fmt.Fprintf(os.Stderr, "State moved nowhere, LLeaderHeight %d to dbheight %d\n", s.LLeaderHeight, dbheight)
 		}
+		return
 	}
 	if s.CurrentMinute != 0 {
 		s.LogPrintf("dbstate", "CurrentMinute not 0 %d", s.CurrentMinute)
@@ -569,7 +581,7 @@ func (s *State) AddDBState(isNew bool,
 	eBlocks []interfaces.IEntryBlock,
 	entries []interfaces.IEBEntry) *DBState {
 
-	s.LogPrintf("dbstate", "AddDBState(isNew %v, directoryBlock %d %x, adminBlock %x, factoidBlock %x, entryCreditBlock %X, eBlocks %d, entries %d)",
+	s.LogPrintf("dbstateprocess", "AddDBState(isNew %v, directoryBlock %d %x, adminBlock %x, factoidBlock %x, entryCreditBlock %X, eBlocks %d, entries %d)",
 		isNew, directoryBlock.GetHeader().GetDBHeight(), directoryBlock.GetHash().Bytes()[:4],
 		adminBlock.GetHash().Bytes()[:4], factoidBlock.GetHash().Bytes()[:4], entryCreditBlock.GetHash().Bytes()[:4], len(eBlocks), len(entries))
 	dbState := s.DBStates.NewDBState(isNew, directoryBlock, adminBlock, factoidBlock, entryCreditBlock, eBlocks, entries)
@@ -589,13 +601,13 @@ func (s *State) AddDBState(isNew bool,
 
 	if ht == s.LLeaderHeight-1 || (ht == s.LLeaderHeight) {
 	} else {
-		s.LogPrintf("dbstate", "AddDBState out of order! at %d added %d", s.LLeaderHeight, ht)
+		s.LogPrintf("dbstateprocess", "AddDBState out of order! at %d added %d", s.LLeaderHeight, ht)
 		fmt.Fprintf(os.Stderr, "AddDBState() out of order! at %d added %d\n", s.LLeaderHeight, ht)
 		//panic("AddDBState out of order!")
 	}
 
 	if ht > s.LLeaderHeight {
-		s.LogPrintf("dbstate", "unexpected: ht > s.LLeaderHeight  at %d added %d", s.LLeaderHeight, ht)
+		s.LogPrintf("dbstateprocess", "unexpected: ht > s.LLeaderHeight  at %d added %d", s.LLeaderHeight, ht)
 		s.Syncing = false
 		//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s Add DBState: s.SigType(%v)", s.FactomNodeName, s.SigType))
 		s.CurrentMinute = 0
@@ -780,18 +792,29 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	//s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): Saved %d dbht: %d", saved, dbheight))
 
 	pdbstate := s.DBStates.Get(int(dbheight - 1))
-
-	switch pdbstate.ValidNext(s, dbstatemsg) {
+	valid := pdbstate.ValidNext(s, dbstatemsg)
+	s.LogPrintf("dbstateprocess", "FollowerExecuteDBState dbht %d valid %v", dbheight, valid)
+	switch valid {
 	case 0:
 		//s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): DBState might be valid %d", dbheight))
-
+		hsb := s.GetHighestSavedBlk()
 		// Don't add duplicate dbstate messages.
-		if s.DBStatesReceivedBase < int(s.GetHighestSavedBlk()) {
-			cut := int(s.GetHighestSavedBlk()) - s.DBStatesReceivedBase
-			if len(s.DBStatesReceived) > cut {
-				s.DBStatesReceived = append(make([]*messages.DBStateMsg, 0), s.DBStatesReceived[cut:]...)
+		if s.DBStatesReceivedBase < int(hsb) {
+			cut := 0
+			for _, dbs := range s.DBStates.DBStates {
+				if dbs.Locked && dbs.Signed && dbs.Saved {
+					cut++
+				} else {
+					break
+				}
 			}
-			s.DBStatesReceivedBase += cut
+			if cut >= len(s.DBStatesReceived) {
+				s.DBStatesReceived = s.DBStatesReceived[:0]
+				s.DBStatesReceivedBase = int(hsb + 1)
+			} else {
+				s.DBStatesReceived = append(make([]*messages.DBStateMsg, 0), s.DBStatesReceived[cut:]...)
+				s.DBStatesReceivedBase += cut
+			}
 		}
 		ix := int(dbheight) - s.DBStatesReceivedBase
 		if ix < 0 {
@@ -805,6 +828,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		s.DBStatesReceived[ix] = dbstatemsg
 		return
 	case -1:
+		s.LogPrintf("dbstateprocess", "FollowerExecuteDBState Invalid %d", dbheight)
 		//s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): DBState is invalid at ht %d", dbheight))
 		// Do nothing because this dbstate looks to be invalid
 		cntFail()
@@ -945,7 +969,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 
 			err := s.StateSaverStruct.SaveDBStateList(s.DBStates, s.Network)
 			if err != nil {
-				panic(err)
+				s.LogPrintf("dbstateprocess", "Error trying to save a DBStateList %e", err)
 			}
 		}
 	}
