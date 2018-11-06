@@ -1067,17 +1067,10 @@ func (s *State) Init() {
 				s.LogPrintf("faulting", "Database load failed %v", err)
 			}
 			if err == nil {
-				//var last *DBState
 				for _, dbstate := range s.DBStates.DBStates {
 					if dbstate != nil {
 						dbstate.SaveStruct.Commits.s = s
 					}
-					//if last != nil {
-					//	last.SaveStruct = nil
-					//}
-					//if dbstate != nil {
-					//	last = dbstate
-					//}
 				}
 			}
 		}
