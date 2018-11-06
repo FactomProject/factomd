@@ -3,12 +3,10 @@ package adminBlock_test
 import (
 	"bytes"
 	"encoding/hex"
+	"math/rand"
+	"sort"
 	"strings"
 	"testing"
-
-	"sort"
-
-	"math/rand"
 	"time"
 
 	. "github.com/FactomProject/factomd/common/adminBlock"
@@ -441,11 +439,10 @@ func TestAdminBlockSetHeader(t *testing.T) {
 }
 
 func TestAdminBlockMarshalUnmarshal(t *testing.T) {
-	blocks := []interfaces.IAdminBlock{}
-	blocks = append(blocks,
+	blocks := []interfaces.IAdminBlock{
 		createSmallTestAdminBlock(),
 		createTestAdminBlock(),
-	)
+	}
 
 	for b, block := range blocks {
 		binary, err := block.MarshalBinary()
@@ -509,8 +506,8 @@ func TestUnmarshalBadAblock(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	// create an incorrect MessageCount
-	p[75] = 0x01
+	// overwrite the MessageCount with incorrect value
+	p[75] = 0xff
 
 	block2 := new(AdminBlock)
 	err = block2.UnmarshalBinary(p)
