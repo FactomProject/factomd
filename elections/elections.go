@@ -445,7 +445,7 @@ func (e *Elections) IsSafeToReplaceFed(chainID interfaces.IHash) bool {
 			}
 		}
 	}
-	return removedFeds < len(pl.StartingFedServers) / 2
+	return len(startingFeds) - removedFeds - 1 >= len(currentFeds) / 2 + 1
 }
 
 // ProcessWaiting drains all waiting messages into the input

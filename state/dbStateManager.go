@@ -745,7 +745,6 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	startingFeds := currentPL.StartingFedServers
 	currentFeds := currentPL.FedServers
 	currentAuds := currentPL.AuditServers
-	removedFeds := 0
 
 	// Set the Start servers for the next block
 
@@ -786,23 +785,9 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 				demoteEntry := adminBlock.NewAddAuditServer(pf.GetChainID(), currentDBHeight+1)
 				d.AdminBlock.AddFirstABEntry(demoteEntry)
 				fmt.Printf("******* FUL: %12s %12s  Server %x, DBHeight: %d\n", "Demote", list.State.FactomNodeName, pf.GetChainID().Bytes()[3:6], d.DirectoryBlock.GetDatabaseHeight())
-				removedFeds++
 			}
 			_ = currentAuds
 		}
-	}
-
-	// TODO: add a condition where this is not checked until above a certain block height (there are likely old blocks that fail this rule)
-	// If we attempt to replace more than half of the federated servers in a single block,
-	// force a network stall. Better to stall than allow a coup.
-	if len(startingFeds) / 2 + 1 <= removedFeds {
-		// TODO: determine if a panic should be issued, or if returning false is enough
-		list.State.LogPrintf(
-			"dbstate",
-			"DBStateList.FixupLinks(): dbstate for height %d invalidated by removing more than half of starting feds",
-			d.DirectoryBlock.GetDatabaseHeight(),
-		)
-		return false
 	}
 
 	// Additional Admin block changed can be made from identity changes
@@ -1549,6 +1534,70 @@ func (list *DBStateList) UpdateState() (progress bool) {
 			p := list.FixupLinks(list.DBStates[i-1], d)
 			if p && !progress {
 				progress = p
+			}
+		}
+
+		// TODO: add a condition where this is not checked until above a certain block height (there are likely old blocks that fail this rule)
+		// check that the at least half of starting feds for next dbstate are not demoted
+		ht := d.DirectoryBlock.GetHeader().GetDBHeight()
+		pl := list.State.ProcessLists.Get(ht)
+		if pl != nil {
+			startingFeds := pl.StartingFedServers
+			startingFedsCount := len(startingFeds)
+			startingFedsRemaining := startingFedsCount
+			newFedsAdded := 0
+
+			var containsServerChainID func([]interfaces.IServer, interfaces.IHash) bool
+			containsServerChainID = func(haystack []interfaces.IServer, needle interfaces.IHash) bool {
+				for _, hay := range haystack {
+					if needle.IsSameAs(hay.GetChainID()) {
+						return true
+					}
+				}
+				return false
+			}
+
+			for _, adminEntry := range d.AdminBlock.GetABEntries() {
+				switch adminEntry.Type() {
+				case constants.TYPE_ADD_FED_SERVER:
+					// Double check the entry is a real add fed server message
+					ad, ok := adminEntry.(*adminBlock.AddFederatedServer)
+					if !ok {
+						continue
+					}
+					if containsServerChainID(startingFeds, ad.IdentityChainID) {
+						startingFedsRemaining++
+					} else {
+						newFedsAdded++
+					}
+				case constants.TYPE_REMOVE_FED_SERVER:
+					// Double check the entry is a real remove fed server message
+					ad, ok := adminEntry.(*adminBlock.RemoveFederatedServer)
+					if !ok {
+						continue
+					}
+					// See if this was one of our starting leaders
+					if containsServerChainID(startingFeds, ad.IdentityChainID) {
+						startingFedsRemaining--
+					}
+				case constants.TYPE_ADD_AUDIT_SERVER:
+					// This could be a demotion, so we need to reduce the fedcount
+					ad, ok := adminEntry.(*adminBlock.AddAuditServer)
+					if !ok {
+						continue
+					}
+					// See if this was one of our starting leaders
+					if containsServerChainID(startingFeds, ad.IdentityChainID) {
+						startingFedsRemaining--
+					}
+				}
+			}
+			// If we attempt to replace more than half of the federated servers in a single block,
+			// force a network stall. Better to stall than allow a coup.
+			if startingFedsCount > 1 && startingFedsRemaining < (startingFedsRemaining + newFedsAdded) / 2 + 1 {
+				// TODO: determine if a panic should be issued, or if returning false is enough
+				list.State.LogPrintf("dbstate", "updateState() return because the block's starting feds no longer have a majority")
+				return false
 			}
 		}
 

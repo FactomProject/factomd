@@ -349,9 +349,9 @@ func TestSignedDBStateValidate(t *testing.T) {
 	}
 }
 
-// Test that a DBStateMsg.Validate() will return invalid (-1) if more than half
-// of the starting federated servers from the last block were removed
-func TestDBStateValidateReplaceMoreThanHalfFeds(t *testing.T) {
+// Test that a DBStateMsg.Validate() will return invalid (-1) if the starting federated servers
+// no longer hold a majority in the next block due to replacements
+func TestDBStateValidateReplaceFeds(t *testing.T) {
 	type SmallIdentity struct {
 		ID  interfaces.IHash
 		Key primitives.PrivateKey
@@ -373,8 +373,8 @@ func TestDBStateValidateReplaceMoreThanHalfFeds(t *testing.T) {
 
 	timestamp := primitives.NewTimestampNow()
 
-	// test with fed server sets of size 5 to 50
-	for i := 4; i < 50; i++ {
+	// test with fed server sets of size 5 to 32
+	for i := 4; i < 32; i++ {
 		state := testHelper.CreateEmptyTestState()
 
 		// Throw in a geneis block
@@ -430,18 +430,22 @@ func TestDBStateValidateReplaceMoreThanHalfFeds(t *testing.T) {
 			prev = set
 		}
 
-		// Now try to make a message that removes more than half of the starting feds
-		for remove := 0; remove < fedsCount; remove++ {
+		// Make DBStateMsgs that replace a variable number of the starting feds, and make sure that it's validation
+		// returns -1 when the starting feds no longer have a majority
+		for replaced := 0; replaced < fedsCount; replaced++ {
 			var signers []SmallIdentity
 			var a *adminBlock.AdminBlock
 			a = testHelper.CreateTestAdminBlock(prev.ABlock)
-			for i := 1; i < fedsCount; i++ {
-				id := ids[i]
-				if i <= remove {
-					a.RemoveFederatedServer(id.ID)
+			for j := 1; j < fedsCount; j++ {
+				if j <= replaced {
+					// replace an old one with a new one
+					a.RemoveFederatedServer(ids[j].ID)
+					newID := ids[j + fedsCount]
+					a.AddFedServer(newID.ID)
+					a.AddFederatedServerSigningKey(newID.ID, newID.Key.Pub.Fixed())
+					signers = append(signers, newID)
 				} else {
-					//a.AddFederatedServerSigningKey(id.ID, id.Key.Pub.Fixed())
-					signers = append(signers, id)
+					signers = append(signers, ids[j])
 				}
 			}
 			a.InsertIdentityABEntries()
@@ -450,10 +454,9 @@ func TestDBStateValidateReplaceMoreThanHalfFeds(t *testing.T) {
 				t.Error(err)
 				continue
 			}
-			for i := 1; i < fedsCount; i++ {
-				if i <= remove {
-					state.ProcessLists.Get(set.DBlock.GetDatabaseHeight()).RemoveFedServerHash(ids[i].ID)
-				}
+			for j := 1; j <= replaced; j++ {
+				state.ProcessLists.Get(set.DBlock.GetDatabaseHeight()).RemoveFedServerHash(ids[j].ID)
+				state.ProcessLists.Get(set.DBlock.GetDatabaseHeight()).AddFedServer(ids[j + fedsCount].ID)
 			}
 			var dbSigList []interfaces.IFullSignature
 			for _, s := range signers {
@@ -464,12 +467,12 @@ func TestDBStateValidateReplaceMoreThanHalfFeds(t *testing.T) {
 			m := msg.(*DBStateMsg)
 			m.IgnoreSigs = true
 
-			if remove >= fedsCount / 2 + 1 {
+			if fedsCount - replaced < fedsCount / 2 + 1 {
 				if m.Validate(state) == 1 {
-					t.Errorf("Setup DBStateMsg should be invalid, removed %d of %d starting feds", remove, fedsCount)
+					t.Errorf("New DBStateMsg should be invalid, replaced %d of %d starting feds", replaced, fedsCount)
 				}
 			} else if m.Validate(state) != 1 {
-				t.Errorf("Setup DBStateMsg should be valid, only removed %d of %d starting feds", remove, fedsCount)
+				t.Errorf("New DBStateMsg should be valid, only replaced %d of %d starting feds", replaced, fedsCount)
 			}
 		}
 	}

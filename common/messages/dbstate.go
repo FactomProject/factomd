@@ -191,11 +191,13 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 	}
 
 	// TODO: add a condition where this is not checked until above a certain block height (there are likely old blocks that fail this rule)
-	// check that the at least half of starting feds for next dbstate are not demoted
-	startingFeds := state.GetFedServers(m.DirectoryBlock.GetDatabaseHeight() - 1)
-	removedFeds := 0
-	var containsServer func([]interfaces.IServer, interfaces.IHash) bool
-	containsServer = func(haystack []interfaces.IServer, needle interfaces.IHash) bool {
+	// check that the starting feds still hold a majority for the next block
+	startingFeds := state.GetFedServers(dbheight - 1)
+	startingFedsCount := len(startingFeds)
+	startingFedsRemaining := startingFedsCount
+	newFedsAdded := 0
+	var containsServerChainID func([]interfaces.IServer, interfaces.IHash) bool
+	containsServerChainID = func(haystack []interfaces.IServer, needle interfaces.IHash) bool {
 		for _, hay := range haystack {
 			if needle.IsSameAs(hay.GetChainID()) {
 				return true
@@ -205,6 +207,17 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 	}
 	for _, adminEntry := range m.AdminBlock.GetABEntries() {
 		switch adminEntry.Type() {
+		case constants.TYPE_ADD_FED_SERVER:
+			// Double check the entry is a real add fed server message
+			ad, ok := adminEntry.(*adminBlock.AddFederatedServer)
+			if !ok {
+				continue
+			}
+			if containsServerChainID(startingFeds, ad.IdentityChainID) {
+				startingFedsRemaining++
+			} else {
+				newFedsAdded++
+			}
 		case constants.TYPE_REMOVE_FED_SERVER:
 			// Double check the entry is a real remove fed server message
 			ad, ok := adminEntry.(*adminBlock.RemoveFederatedServer)
@@ -212,8 +225,8 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 				continue
 			}
 			// See if this was one of our starting leaders
-			if containsServer(startingFeds, ad.IdentityChainID) {
-				removedFeds++
+			if containsServerChainID(startingFeds, ad.IdentityChainID) {
+				startingFedsRemaining--
 			}
 		case constants.TYPE_ADD_AUDIT_SERVER:
 			// This could be a demotion, so we need to reduce the fedcount
@@ -222,17 +235,13 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 				continue
 			}
 			// See if this was one of our starting leaders
-			if containsServer(startingFeds, ad.IdentityChainID) {
-				removedFeds++
+			if containsServerChainID(startingFeds, ad.IdentityChainID) {
+				startingFedsRemaining--
 			}
 		}
 	}
-	if removedFeds >= len(startingFeds) / 2 + 1 {
-		state.LogPrintf(
-			"dbstate",
-			"DBStateMsg.Validate(): dbstate for height %d invalidated by removing more than half of starting feds",
-			m.DirectoryBlock.GetDatabaseHeight(),
-		)
+	if startingFedsCount > 1 && startingFedsRemaining < (startingFedsRemaining + newFedsAdded) / 2 + 1 {
+		state.AddStatus("DBStateMsg.Validate() Fail because the block's starting feds no longer have a majority")
 		return -1
 	}
 

@@ -1740,7 +1740,7 @@ func TestElectionReplacingMoreThanHalfOfFeds(t *testing.T) {
 	}
 	ranSimTest = true
 
-	state0 := SetupSim("LLLLLAAA", map[string]string{"--debuglog": ".", "--faulttimeout": "10"}, 8, 3, 3, t)
+	state0 := SetupSim("LLLLLAAA", map[string]string{"--debuglog": "", "--faulttimeout": "10"}, 8, 3, 3, t)
 	StatusEveryMinute(state0)
 	CheckAuthoritySet(t)
 
@@ -1782,6 +1782,47 @@ func TestElectionReplacingMoreThanHalfOfFeds(t *testing.T) {
 	runCmd("x") // should become audit after two blocks
 	runCmd("3")
 	runCmd("x") // should continue as a leader
+
+	WaitBlocks(state0, 2)
+	WaitForMinute(state0, 1)
+	WaitForAllNodes(state0)
+
+	shutDownEverything(t)
+}
+
+func TestDemotingMoreThanHalfOfFeds(t *testing.T) {
+	if ranSimTest {
+		return
+	}
+	ranSimTest = true
+
+	state0 := SetupSim("LLLLLAAA", map[string]string{"--debuglog": ".", "--faulttimeout": "10"}, 10, 3, 3, t)
+	StatusEveryMinute(state0)
+	CheckAuthoritySet(t)
+
+	state1 := GetFnodes()[1].State
+	state2 := GetFnodes()[2].State
+	state3 := GetFnodes()[3].State
+	if !state1.IsLeader() || !state2.IsLeader() || !state3.IsLeader() {
+		panic("Initial leader setup failed.")
+	}
+
+	WaitBlocks(state0, 1)
+	WaitForMinute(state0, 2)
+
+	// Demote more than half of feds offline
+	runCmd("1")
+	runCmd("z")
+	runCmd("2")
+	runCmd("z")
+	runCmd("3")
+	runCmd("z")
+	runCmd("5")
+	runCmd("l")
+	runCmd("6")
+	runCmd("l")
+	runCmd("7")
+	runCmd("l")
 
 	WaitBlocks(state0, 2)
 	WaitForMinute(state0, 1)
