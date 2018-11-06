@@ -10,6 +10,8 @@ import (
 	"os"
 	"sync"
 
+	"errors"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -95,25 +97,33 @@ func (sss *StateSaverStruct) LoadDBStateList(ss *DBStateList, networkName string
 	b, err := LoadFromFile(NetworkIDToFilename(networkName, sss.FastBootLocation))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "LoadDBStateList error:", err)
-		return nil
+		return err
 	}
 	if b == nil {
 		fmt.Fprintln(os.Stderr, "LoadDBStateList LoadFromFile returned nil")
-		return nil
+		return errors.New("failed to load from file")
 	}
 	h := primitives.NewZeroHash()
 	b, err = h.UnmarshalBinaryData(b)
 	if err != nil {
-		return nil
+		return err
 	}
 	h2 := primitives.Sha(b)
 	if h.IsSameAs(h2) == false {
 		fmt.Fprintf(os.Stderr, "LoadDBStateList - Integrity hashes do not match!")
-		return nil
+		return errors.New("fastboot file does not match its hash")
 		//return fmt.Errorf("Integrity hashes do not match")
 	}
 
-	return ss.UnmarshalBinary(b)
+	ss.UnmarshalBinary(b)
+	for _, v := range ss.DBStates {
+		if v.SaveStruct != nil {
+			v.SaveStruct.RestoreFactomdState(ss.State)
+			break
+		}
+	}
+
+	return nil
 }
 
 func NetworkIDToFilename(networkName string, fileLocation string) string {

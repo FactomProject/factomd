@@ -867,6 +867,7 @@ func (s *State) Init() {
 	s.RunLeader = false
 	s.IgnoreMissing = true
 	s.BootTime = s.GetTimestamp().GetTimeSeconds()
+	s.TimestampAtBoot = primitives.NewTimestampNow()
 
 	if s.LogPath == "stdout" {
 		wsapi.InitLogs(s.LogPath, s.LogLevel)
@@ -2586,6 +2587,10 @@ func (s *State) SetStringQueues() {
 	}
 
 	str = str + fmt.Sprintf(" %5d-:-%d", s.LLeaderHeight, s.CurrentMinute)
+
+	if list == nil {
+		return
+	}
 
 	if list.System.Height < len(list.System.List) {
 		str = str + fmt.Sprintf(" VM:%s %s", "?", "-nil-")

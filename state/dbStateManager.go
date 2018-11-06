@@ -5,7 +5,6 @@
 package state
 
 import (
-	"bytes"
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
@@ -508,13 +507,6 @@ func (dbsl *DBStateList) UnmarshalBinaryData(p []byte) (newData []byte, err erro
 
 	newData = buf.DeepCopyBytes()
 
-	for i := len(dbsl.DBStates) - 1; i >= 0; i-- {
-		if dbsl.DBStates[i].SaveStruct != nil {
-			dbsl.DBStates[i].SaveStruct.RestoreFactomdState(dbsl.State)
-			break
-		}
-	}
-
 	return
 }
 
@@ -546,7 +538,9 @@ func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 		return 1
 	}
 
-	if d == nil || !d.Saved {
+	// This node cannot be validated until the previous node (d) has been saved to disk, which means processed
+	// and signed as well.
+	if d == nil || !(d.Locked && d.Signed && d.Saved) {
 		return 0
 	}
 
@@ -659,6 +653,20 @@ func (ds *DBState) String() string {
 	return str
 }
 
+func (list *DBStateList) GetHighestLockedSignedAndSavesBlk() uint32 {
+	ht := list.Base
+	for i, dbstate := range list.DBStates {
+		if dbstate != nil && dbstate.Locked {
+			ht = list.Base + uint32(i)
+		} else {
+			if dbstate == nil {
+				break
+			}
+		}
+	}
+	return ht
+}
+
 func (list *DBStateList) GetHighestCompletedBlk() uint32 {
 	ht := list.Base
 	for i, dbstate := range list.DBStates {
@@ -689,7 +697,6 @@ func (list *DBStateList) GetHighestSignedBlk() uint32 {
 
 func (list *DBStateList) GetHighestSavedBlk() uint32 {
 	ht := list.Base
-
 	for i, dbstate := range list.DBStates {
 		if dbstate != nil && dbstate.Saved {
 			ht = list.Base + uint32(i)
@@ -907,7 +914,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	// its links patched, so we can't process it.  But if this is a repeat block (we have already processed
 	// at this height) then we simply return.
 	if d.Locked || d.IsNew || d.Repeat {
-		//		s.LogPrintf("dbstateprocess", "Skipping d.Locked(%v) || d.IsNew(%v) || d.Repeat(%v)", d.Locked, d.IsNew, d.Repeat)
+		s.LogPrintf("dbstateprocess", "Skipping d.Locked(%v) || d.IsNew(%v) || d.Repeat(%v)", d.Locked, d.IsNew, d.Repeat)
 		return
 	}
 
@@ -925,6 +932,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		if pd == nil {
 			s.LogPrintf("dbstateprocess", "Skipping Prev Block Missing")
 			s.LogPrintf("dbstateprocess", "list: %v", list.State.DBStates.String())
+
 			return // Can't process out of order
 		}
 		if !pd.Saved {
@@ -949,29 +957,6 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		return
 	}
 
-	s.LogPrintf("dbstateprocess", "Process DBState %d", ht)
-
-	var out bytes.Buffer
-	out.WriteString("=== AdminBlock.UpdateState() Start ===\n")
-	prt := func(lable string, pl *ProcessList) {
-		if !list.State.DebugConsensus {
-			return
-		}
-		out.WriteString(fmt.Sprintf("%19s %20s (%4d)", list.State.FactomNodeName, lable, pl.DBHeight))
-		out.WriteString("Fed: ")
-		for _, f := range pl.FedServers {
-			out.WriteString(fmt.Sprintf("%x ", f.GetChainID().Bytes()[3:6]))
-		}
-		out.WriteString("---Audit: ")
-		for _, f := range pl.AuditServers {
-			out.WriteString(fmt.Sprintf("%x ", f.GetChainID().Bytes()[3:6]))
-		}
-		out.WriteString("\n")
-	}
-
-	prt("pl 1st", pl)
-	prt("pln 1st", pln)
-
 	//
 	// ***** Apply the AdminBlock changes to the next DBState
 	//
@@ -985,14 +970,9 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		panic(err)
 	}
 
-	prt("pl 2st", pl)
-	prt("pln 2st", pln)
-
 	pln2 := list.State.ProcessLists.Get(ht + 2)
 	pln2.FedServers = append(pln2.FedServers[:0], pln.FedServers...)
 	pln2.AuditServers = append(pln2.AuditServers[:0], pln.AuditServers...)
-
-	prt("pln2 3st", pln2)
 
 	pln2.SortAuditServers()
 	pln2.SortFedServers()
@@ -1006,14 +986,14 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	pln.SetStartingAuthoritySet()
 	pln2.SetStartingAuthoritySet()
 
-	prt("pl 4th", pl)
-	prt("pln 4th", pln)
-	prt("pln2 4th", pln2)
+	// *******************
+	// Factoid Block Processing
+	// *******************
+	fs := list.State.GetFactoidState()
+	fs.(*FactoidState).DBHeight = dbht
 
-	if list.State.DebugConsensus {
-		out.WriteString("=== AdminBlock.UpdateState() End ===")
-		fmt.Println(out.String())
-	}
+	s.LogPrintf("dbstateprocess", "ProcessBlock Process Factoids dbht %d factoid ht %d",
+		dbht, fs.(*FactoidState).DBHeight)
 
 	// get all the prior balances of the Factoid addresses that may have changed
 	// in this block.  If you want the balance of the highest saved block, look to
@@ -1038,8 +1018,6 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	list.State.ECBalancesPMutex.Unlock()
 
 	// Process the Factoid End of Block
-	fs := list.State.GetFactoidState()
-	fs.(*FactoidState).DBHeight = dbht
 	err = fs.AddTransactionBlock(d.FactoidBlock)
 	if err != nil {
 		panic(err)
@@ -1082,6 +1060,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 
 	pln.SortFedServers()
 	pln.SortAuditServers()
+
 	authlistMsg := list.State.EFactory.NewAuthorityListInternal(pln.FedServers, pln.AuditServers, pln.DBHeight)
 	list.State.ElectionsQueue().Enqueue(authlistMsg)
 
@@ -1142,7 +1121,6 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	tbh := list.State.FactoidState.GetBalanceHash(true) // recompute temp balance hash here
 	list.State.Balancehash = fs.GetBalanceHash(false)
 	list.State.LogPrintf("dbstateprocess", "dbht %d BalanceHash P %x T %x", dbht, list.State.Balancehash.Bytes()[0:4], tbh.Bytes()[0:4])
-
 	// Saving our state so we can reset it if we need to.
 	d.TmpSaveStruct = SaveFactomdState(list.State, d)
 	return
@@ -1152,13 +1130,11 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 // If we do, we count that as progress.
 func (list *DBStateList) SignDB(d *DBState) (process bool) {
 	dbheight := d.DirectoryBlock.GetHeader().GetDBHeight()
-	//	list.State.LogPrintf("dbstateprocess", "SignDB(%d)", dbheight)
+	list.State.LogPrintf("dbstateprocess", "SignDB(%d)", dbheight)
 	if d.Signed {
-		s := list.State
-		if dbheight > s.LLeaderHeight {
-			s.MoveStateToHeight(dbheight+1, 0) // Move forward in time
-		}
-		//		list.State.LogPrintf("dbstateprocess", "SignDB(%d) already signed", dbheight)
+		//s := list.State
+		//		s.MoveStateToHeight(dbheight + 1)
+		list.State.LogPrintf("dbstateprocess", "SignDB(%d) already signed", d.DirectoryBlock.GetHeader().GetDBHeight())
 		return false
 	}
 
@@ -1166,44 +1142,44 @@ func (list *DBStateList) SignDB(d *DBState) (process bool) {
 	// have been checked, so we can consider this guy signed.
 	if dbheight == 0 || list.Get(int(dbheight+1)) != nil || d.Repeat == true {
 		s := list.State
+		d.Signed = true
 		s.MoveStateToHeight(dbheight+1, 0)
 		//		list.State.LogPrintf("dbstateprocess", "SignDB(%d) next blocks exists!", dbheight)
-		d.Signed = true
+
 		return false
 	}
 
 	pl := list.State.ProcessLists.Get(dbheight)
 	if pl == nil {
-		list.State.LogPrintf("dbstateprocess", "SignDB(%d) no processlist!", dbheight)
-		return false
-
-	} else if !pl.Complete() { // Check every VM is at minute 10 and has a list taht is height long or longer...
-		list.State.LogPrintf("dbstateprocess", "SignDB(%d) processlist not complete!", dbheight)
-		return false
+		list.State.LogPrintf("dbstateprocess", "SignDB(%d) no processlist!", d.DirectoryBlock.GetHeader().GetDBHeight())
+		return
+	} else if !pl.Complete() {
+		list.State.LogPrintf("dbstateprocess", "SignDB(%d) processlist not complete!", d.DirectoryBlock.GetHeader().GetDBHeight())
+		return
 	}
 
 	// If we don't have the next dbstate yet, see if we have all the signatures.
 	pl = list.State.ProcessLists.Get(dbheight + 1)
 	if pl == nil {
-		list.State.LogPrintf("dbstateprocess", "SignDB(%d) missing next processlist!", dbheight)
+		list.State.LogPrintf("dbstateprocess", "SignDB(%d) missing next processlist!", d.DirectoryBlock.GetHeader().GetDBHeight())
 		return
 	}
 
-	// Don't sign while syncing the EOM
-	// TODO: really only EOM 0 is interesting maybe add CurrentMinute < 1 &&
-	// Why is this not syncing DBSIG?
+	// Don't sign while negotiating the EOM
 	if list.State.EOM {
-		list.State.LogPrintf("dbstateprocess", "SignDB(%d) syncing EOM 0!", dbheight)
+		list.State.LogPrintf("dbstateprocess", "SignDB(%d) negotiating the EOM!", d.DirectoryBlock.GetHeader().GetDBHeight())
 		return
 	}
 
 	s := list.State
+	d.Signed = true
 	// once we start following by minutes ProcessLists.UpdateState will have already advanced the time
 	if s.GetLLeaderHeight() != dbheight+1 {
 		s.MoveStateToHeight(dbheight+1, 0)
 	}
-	d.Signed = true
-	return true
+
+	list.State.LogPrintf("dbstateprocess", "SignDB(%d) Signed! have sigs", dbheight)
+	return
 }
 
 var nowish int64 = time.Now().Unix()
@@ -1514,22 +1490,22 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 
 func (list *DBStateList) UpdateState() (progress bool) {
 	list.Catchup(false)
-	saved := 0
 
 	s := list.State
 	_ = s
-	//if len(list.DBStates) != 0 {
-	//	l := "["
-	//	for _, d := range list.DBStates {
-	//		if d == nil {
-	//			l += "nil "
-	//		} else {
-	//			l += fmt.Sprintf("%d, ", d.DirectoryBlock.GetHeader().GetDBHeight())
-	//		}
-	//	}
-	//	l += "]"
-	//	s.LogPrintf("dbstateprocess", "updateState() %d %s", list.Base, l)
-	//}
+	if len(list.DBStates) != 0 {
+		l := "["
+		for _, d := range list.DBStates {
+			if d == nil {
+				l += "nil "
+			} else {
+				l += fmt.Sprintf("%d, ", d.DirectoryBlock.GetHeader().GetDBHeight())
+			}
+		}
+		l += "]"
+		s.LogPrintf("dbstateprocess", "updateState() %d %s", list.Base, l)
+	}
+	saved := 0
 	for i, d := range list.DBStates {
 		// loop only thru this and future blocks
 		//for i := int(list.State.LLeaderHeight); i < int(list.Base)+len(list.DBStates); i++ {
@@ -1540,13 +1516,14 @@ func (list *DBStateList) UpdateState() (progress bool) {
 		if d == nil {
 			return
 		}
-
+		if d.Locked && d.Signed && d.Saved {
+			continue
+		}
 		dbHeight := d.DirectoryBlock.GetHeader().GetDBHeight()
 		if dbHeight <= list.State.GetHighestCompletedBlk() {
 			//			s.LogPrintf("dbstateprocess", "skip reprocessing %d", dbHeight)
 			continue // don't reprocess old blocks
 		}
-
 		// if this is not the first block then fixup the links
 		if i > 0 {
 			p := list.FixupLinks(list.DBStates[i-1], d)
@@ -1580,9 +1557,6 @@ func (list *DBStateList) UpdateState() (progress bool) {
 		if i-saved > 1 {
 			break
 		}
-		if !d.Locked {
-			return false // Didn't process the block
-		}
 	}
 	return
 }
@@ -1611,12 +1585,15 @@ func (list *DBStateList) Put(dbState *DBState) bool {
 	dblk := dbState.DirectoryBlock
 	dbheight := dblk.GetHeader().GetDBHeight()
 
-	// Count completed states, starting from the beginning (since base starts at
-	// zero.
+	list.State.LogPrintf("dbstateprocess", "DBStateList put dbstate dbht %d locked %v signed %v saved %v",
+		dbheight, dbState.Locked, dbState.Signed, dbState.Saved)
+
+	// Count completed, done, don't have to do anything more to states,
+	// starting from the beginning (since base starts at zero).
 	cnt := 0
 searchLoop:
 	for i, v := range list.DBStates {
-		if dbheight > 0 && (v == nil || v.DirectoryBlock == nil || !v.Saved) {
+		if dbheight > 0 && (v == nil || v.DirectoryBlock == nil || !(v.Saved && v.Locked && v.Signed)) {
 			list.DBStates[i] = nil
 			break searchLoop
 		}
