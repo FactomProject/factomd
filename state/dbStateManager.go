@@ -711,6 +711,16 @@ func containsServer(haystack []interfaces.IServer, needle interfaces.IServer) bo
 	return false
 }
 
+// does a set of servers contain a server with a given chain id
+func containsServerWithChainID(haystack []interfaces.IServer, needle interfaces.IHash) bool {
+	for _, hay := range haystack {
+		if needle.IsSameAs(hay.GetChainID()) {
+			return true
+		}
+	}
+	return false
+}
+
 // p is previous, d is current
 func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	// If this block is new, then make sure all hashes are fully computed.
@@ -1537,7 +1547,7 @@ func (list *DBStateList) UpdateState() (progress bool) {
 			}
 		}
 
-		// TODO: add a condition where this is not checked until above a certain block height (there are likely old blocks that fail this rule)
+		/*// TODO: add a condition where this is not checked until above a certain block height (there are likely old blocks that fail this rule)
 		// check that the at least half of starting feds for next dbstate are not demoted
 		ht := d.DirectoryBlock.GetHeader().GetDBHeight()
 		pl := list.State.ProcessLists.Get(ht)
@@ -1599,7 +1609,7 @@ func (list *DBStateList) UpdateState() (progress bool) {
 				list.State.LogPrintf("dbstate", "updateState() return because the block's starting feds no longer have a majority")
 				return false
 			}
-		}
+		}*/
 
 		p := list.ProcessBlocks(d) || progress
 		if p && !progress {

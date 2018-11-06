@@ -1810,17 +1810,21 @@ func TestDemotingMoreThanHalfOfFeds(t *testing.T) {
 	WaitBlocks(state0, 1)
 	WaitForMinute(state0, 2)
 
-	// Demote more than half of feds offline
+	// try to demote/replace 1, should work
 	runCmd("1")
-	runCmd("z")
-	runCmd("2")
-	runCmd("z")
-	runCmd("3")
-	runCmd("z")
+	runCmd("o")
 	runCmd("5")
 	runCmd("l")
+
+	// try to demote/replace 2, should work
+	runCmd("2")
+	runCmd("o")
 	runCmd("6")
 	runCmd("l")
+
+	// try to demote/replace 2, should not work
+	runCmd("3")
+	runCmd("o")
 	runCmd("7")
 	runCmd("l")
 
