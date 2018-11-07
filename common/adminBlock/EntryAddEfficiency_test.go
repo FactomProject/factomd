@@ -38,3 +38,20 @@ func TestAddEfficiency(t *testing.T) {
 		}
 	}
 }
+
+func TestAddBadEfficiency(t *testing.T) {
+	e1 := NewAddEfficiency(primitives.RandomHash(), uint16(5000))
+	p, err := e1.MarshalBinary()
+	if err != nil {
+		t.Error(err)
+	}
+	p[1] = 0xff // replace body lenght with bad value
+
+	e2 := new(AddEfficiency)
+	err = e2.UnmarshalBinary(p)
+	if err == nil {
+		t.Error("AddEfficiency should have errored on unmarshal", e2)
+	} else {
+		t.Log(err)
+	}
+}

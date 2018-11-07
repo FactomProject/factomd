@@ -1,12 +1,13 @@
 package adminBlock_test
 
 import (
+	"testing"
+
 	"bytes"
 	"encoding/hex"
 	"math/rand"
 	"sort"
 	"strings"
-	"testing"
 	"time"
 
 	. "github.com/FactomProject/factomd/common/adminBlock"
@@ -512,7 +513,7 @@ func TestUnmarshalBadAblock(t *testing.T) {
 	block2 := new(AdminBlock)
 	err = block2.UnmarshalBinary(p)
 	if err == nil {
-		t.Error("block should have errored on unmarshal", block2)
+		t.Error("AdminBlock should have errored on unmarshal", block2)
 	} else {
 		t.Log(err)
 	}

@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-
 	"sort"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -440,8 +439,11 @@ func (b *AdminBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	msgLimit := b.Header.GetBodySize() / 2
 	msgCount := b.Header.GetMessageCount()
 	if msgCount > msgLimit {
-		// TODO: replace this message with a proper error
-		return nil, fmt.Errorf("Error: AdminBlock.UnmarshalBinary: message count %d too high (uint underflow?)", msgCount)
+		return nil, fmt.Errorf(
+			"Error: AdminBlock.UnmarshalBinary: message count %d too high "+
+				"(uint underflow?)",
+			msgCount,
+		)
 	}
 
 	b.ABEntries = make([]interfaces.IABEntry, int(msgCount))
