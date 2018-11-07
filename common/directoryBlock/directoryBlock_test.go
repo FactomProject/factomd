@@ -82,6 +82,24 @@ func TestMarshalUnmarshalDirectoryBlock(t *testing.T) {
 	}
 }
 
+func TestMarshalUnmarshalBadDirectoryBlock(t *testing.T) {
+	dblock := createTestDirectoryBlock()
+	p, err := dblock.MarshalBinary()
+	if err != nil {
+		t.Error(err)
+	}
+
+	// set a bad Block Count in the dblock header
+	p[111] = 0xff
+
+	dblock2 := new(DirectoryBlock)
+	if err := dblock2.UnmarshalBinary(p); err == nil {
+		t.Error("DirectoryBlock should have errored on unmarshal", dblock2)
+	} else {
+		t.Log(err)
+	}
+}
+
 var WeDidPanic bool
 
 func CatchPanic() {
@@ -461,7 +479,7 @@ func TestBuildBlock(t *testing.T) {
 	expectedString3 := `
   dbheight:        0
   blockcount:      5
-entries: 
+entries:
     0 chainid: 000000000000000000000000000000000000000000000000000000000000000a
       keymr:   4fb409d5369fad6aa7768dc620f11cd219f9b885956b631ad050962ca934052e
     1 chainid: 000000000000000000000000000000000000000000000000000000000000000c

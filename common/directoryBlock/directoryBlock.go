@@ -256,7 +256,7 @@ func (e *DirectoryBlock) String() string {
 	out.WriteString(fmt.Sprintf("%20s %v\n", "fullhash:", fh.String()))
 
 	out.WriteString(e.GetHeader().String())
-	out.WriteString("entries: \n")
+	out.WriteString("entries:\n")
 	for i, entry := range e.DBEntries {
 		out.WriteString(fmt.Sprintf("%5d %s", i, entry.String()))
 	}
@@ -377,10 +377,14 @@ func (b *DirectoryBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	}
 	b.SetHeader(fbh)
 
+	entryLimit := uint32(len(newData) / 32)
 	entryCount := b.GetHeader().GetBlockCount()
-	if entryCount > 5000 {
-		// TODO: replace this message with a proper error
-		return nil, fmt.Errorf("Error: DirectoryBlock.UnmarshalBinary: entry count %d too high (uint underflow?)", entryCount)
+	if entryCount > entryLimit {
+		return nil, fmt.Errorf(
+			"Error: DirectoryBlock.UnmarshalBinary: Entry count %d is larger "+
+				"than body size %d. (uint underflow?)",
+			entryCount, entryLimit,
+		)
 	}
 
 	entries := make([]interfaces.IDBEntry, entryCount)
