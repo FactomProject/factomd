@@ -77,7 +77,6 @@ func (s *State) LogPrintf(logName string, format string, more ...interface{}) {
 }
 func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 
-	s.LogPrintf("dbstateprocess", "Process executing %v", msg.String())
 	if msg.GetHash() == nil || reflect.ValueOf(msg.GetHash()).IsNil() {
 		s.LogMessage("badMsgs", "Nil hash in executeMsg", msg)
 		return false
@@ -178,6 +177,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 				s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex)
 				TotalXReviewQueueInputs.Inc()
 				s.XReview = append(s.XReview, msg)
+				s.LogMessage("executeMsg", "XReview", msg)
 			} else {
 				s.LogMessage("executeMsg", "LeaderExecute", msg)
 				msg.LeaderExecute(s)
@@ -196,6 +196,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 			TotalHoldingQueueInputs.Inc()
 			TotalHoldingQueueRecycles.Inc()
 			s.Holding[msg.GetMsgHash().Fixed()] = msg
+			s.LogMessage("executeMsg", "hold", msg)
 		} else {
 			s.LogMessage("executeMsg", "drop, IReplay", msg)
 		}
@@ -845,6 +846,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		fmt.Print("got here")
 	}
 	// ignore if too old. If its under EntryDBHeightComplete
+	//todo: Is this better to be GetEntryDBHeightComplete()
 	if dbheight > 0 && dbheight <= s.GetHighestSavedBlk() && dbheight < s.EntryDBHeightComplete {
 		return
 	}
@@ -854,6 +856,15 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	pdbstate := s.DBStates.Get(int(dbheight - 1))
 
 	valid := pdbstate.ValidNext(s, dbstatemsg)
+	{
+		// debug code, I never expect a state to be a valid next if my lleaderheight doesn't match
+		if valid == 1 && dbheight != s.LLeaderHeight {
+			valid = pdbstate.ValidNext(s, dbstatemsg) // call it again so I can walk the code
+		}
+		if valid == 0 && dbheight == s.LLeaderHeight {
+			valid = pdbstate.ValidNext(s, dbstatemsg) // call it again so I can walk the code
+		}
+	}
 	s.LogPrintf("dbstateprocess", "FollowerExecuteDBState dbht %d valid %v", dbheight, valid)
 	switch valid {
 	case 0:

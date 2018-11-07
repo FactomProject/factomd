@@ -1810,3 +1810,24 @@ func TestNoMMR(t *testing.T) {
 	WaitForAllNodes(state0)
 	shutDownEverything(t)
 }
+
+func TestDBStateCatchuup(t *testing.T) {
+	if ranSimTest {
+		return
+	}
+	ranSimTest = true
+
+	state0 := SetupSim("LF", map[string]string{"--debuglog": "."}, 10, 0, 0, t)
+	state.MMR_enable = false // turn off MMR processing
+	StatusEveryMinute(state0)
+
+	runCmd("1")
+	runCmd("x") // knock the
+
+	runCmd("R10") // turn on some load
+
+	WaitBlocks(state0, 5)
+	runCmd("R0") // turn off load
+	WaitForAllNodes(state0)
+	shutDownEverything(t)
+}

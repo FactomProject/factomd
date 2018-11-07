@@ -1116,6 +1116,9 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	list.State.LogPrintf("dbstateprocess", "dbht %d BalanceHash P %x T %x", dbht, list.State.Balancehash.Bytes()[0:4], tbh.Bytes()[0:4])
 	// Saving our state so we can reset it if we need to.
 	d.TmpSaveStruct = SaveFactomdState(list.State, d)
+
+	// All done with this blcok move to the next height
+	s.MoveStateToHeight(dbht+1, 0)
 	return
 }
 
@@ -1128,40 +1131,41 @@ func (list *DBStateList) SignDB(d *DBState) (process bool) {
 		//s := list.State
 		//		s.MoveStateToHeight(dbheight + 1)
 		list.State.LogPrintf("dbstateprocess", "SignDB(%d) already signed", d.DirectoryBlock.GetHeader().GetDBHeight())
-		return false
+		return true
 	}
 
 	// If we have the next dbstate in the list, then all the signatures for this dbstate
 	// have been checked, so we can consider this guy signed.
 	if dbheight == 0 || list.Get(int(dbheight+1)) != nil || d.Repeat == true {
-		s := list.State
 		d.Signed = true
-		s.MoveStateToHeight(dbheight+1, 0)
-		//		list.State.LogPrintf("dbstateprocess", "SignDB(%d) next blocks exists!", dbheight)
+		//		s := list.State
+		//		s.MoveStateToHeight(dbheight+1, 0)
+		list.State.LogPrintf("dbstateprocess", "SignDB(%d) done, next block exists", dbheight)
 
-		return false
+		return true
 	}
 
 	pl := list.State.ProcessLists.Get(dbheight)
 	if pl == nil {
 		list.State.LogPrintf("dbstateprocess", "SignDB(%d) no processlist!", d.DirectoryBlock.GetHeader().GetDBHeight())
-		return
+		return false
 	} else if !pl.Complete() {
 		list.State.LogPrintf("dbstateprocess", "SignDB(%d) processlist not complete!", d.DirectoryBlock.GetHeader().GetDBHeight())
-		return
+		return false
 	}
 
 	// If we don't have the next dbstate yet, see if we have all the signatures.
 	pl = list.State.ProcessLists.Get(dbheight + 1)
 	if pl == nil {
 		list.State.LogPrintf("dbstateprocess", "SignDB(%d) missing next processlist!", d.DirectoryBlock.GetHeader().GetDBHeight())
-		return
+		return false
 	}
 
-	// Don't sign while negotiating the EOM
+	// Don't sign while negotiating the EOM 0
+	//todo: Can this be !list.State.DBSigDone?
 	if list.State.EOM {
 		list.State.LogPrintf("dbstateprocess", "SignDB(%d) negotiating the EOM!", d.DirectoryBlock.GetHeader().GetDBHeight())
-		return
+		return false
 	}
 
 	s := list.State
@@ -1513,7 +1517,8 @@ func (list *DBStateList) UpdateState() (progress bool) {
 			continue
 		}
 		dbHeight := d.DirectoryBlock.GetHeader().GetDBHeight()
-		if dbHeight <= list.State.GetHighestCompletedBlk() {
+		highestCompletedBlk := list.State.GetHighestCompletedBlk()
+		if dbHeight != 0 && dbHeight <= highestCompletedBlk {
 			//			s.LogPrintf("dbstateprocess", "skip reprocessing %d", dbHeight)
 			continue // don't reprocess old blocks
 		}
