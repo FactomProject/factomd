@@ -1,8 +1,10 @@
 package adminBlock_test
 
 import (
-	"math/rand"
 	"testing"
+
+	"encoding/hex"
+	"math/rand"
 	"time"
 
 	. "github.com/FactomProject/factomd/common/adminBlock"
@@ -42,5 +44,24 @@ func TestNewForwardCompatibleEntry(t *testing.T) {
 
 		b := NewForwardCompatibleEntry(0)
 		testHelper.TestMarshaling(a, b, rand.Intn(100), t)
+	}
+}
+
+func TestAddBadForwardCompatibleEntry(t *testing.T) {
+	// create bad ForwardCompatibleEntry binary
+	// AdminIDType = 0a
+	// Size        = ff
+	// Data        = deadbeef
+	p, err := hex.DecodeString("0affdeadbeef")
+	if err != nil {
+		t.Error(err)
+	}
+
+	f := new(ForwardCompatibleEntry)
+	err = f.UnmarshalBinary(p)
+	if err == nil {
+		t.Error("ForwardCompatibleEntry should have errored on unmarshal", f)
+	} else {
+		t.Log(err)
 	}
 }

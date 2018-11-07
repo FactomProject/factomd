@@ -33,7 +33,6 @@ func TestCancelCoinbaseDescriptorMarshal(t *testing.T) {
 
 		b := NewCancelCoinbaseDescriptor(0, 0)
 		testHelper.TestMarshaling(a, b, rand.Intn(100), t)
-
 	}
 
 }
