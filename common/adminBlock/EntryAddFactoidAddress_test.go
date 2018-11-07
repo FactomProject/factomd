@@ -41,3 +41,20 @@ func TestAddFactoidAddressMarshal(t *testing.T) {
 		}
 	}
 }
+
+func TestAddBadFactoidAddress(t *testing.T) {
+	f1 := NewAddFactoidAddress(primitives.RandomHash(), factoid.RandomAddress())
+	p, err := f1.MarshalBinary()
+	if err != nil {
+		t.Error(err)
+	}
+	p[1] = 0xff // replace body lenght with bad value
+
+	f2 := new(AddFactoidAddress)
+	err = f2.UnmarshalBinary(p)
+	if err == nil {
+		t.Error("AddFactoidAddress should have errored on unmarshal", f2)
+	} else {
+		t.Log(err)
+	}
+}
