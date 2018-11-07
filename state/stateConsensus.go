@@ -262,14 +262,14 @@ func (s *State) Process() (progress bool) {
 	}
 
 	hsb := s.GetHighestSavedBlk()
-	// process the entries in any pending dbstate messages
-	for ix := s.EntryDBHeightComplete; ix < hsb; ix++ {
-		dbstatemsg := s.DBStatesReceived[ix]
-		if dbstatemsg != nil {
-			// If we are missing entries at this DBState, we can apply the entries only
-			s.ExecuteEntriesInDBState(dbstatemsg)
-		}
-	}
+	//// process the entries in any pending dbstate messages
+	//for ix := s.EntryDBHeightComplete; ix < hsb; ix++ {
+	//	dbstatemsg := s.DBStatesReceived[ix]
+	//	if dbstatemsg != nil {
+	//		// If we are missing entries at this DBState, we can apply the entries only
+	//		s.ExecuteEntriesInDBState(dbstatemsg)
+	//	}
+	//}
 
 	// trim any received DBStatesReceived messages that are fully processed
 	completed := s.GetHighestLockedSignedAndSavesBlk()
@@ -287,26 +287,27 @@ func (s *State) Process() (progress bool) {
 	}
 
 	/** Process all the DBStatesReceived  that might be pending **/
-	for {
-		hsb := s.GetHighestSavedBlk()
-		// Get the index of the next DBState
-		ix := int(hsb) - s.DBStatesReceivedBase + 1
-		// Make sure we are in range
-		if ix < 0 || ix >= len(s.DBStatesReceived) {
-			break // We have nothing for the system, given its current height.
-		}
+	if len(s.DBStatesReceived) > 0 {
+		for {
+			hsb := s.GetHighestSavedBlk()
+			// Get the index of the next DBState
+			ix := int(hsb) - s.DBStatesReceivedBase + 1
+			// Make sure we are in range
+			if ix < 0 || ix >= len(s.DBStatesReceived) {
+				break // We have nothing for the system, given its current height.
+			}
 
-		if msg := s.DBStatesReceived[ix]; msg != nil {
-			s.LogPrintf("dbstateprocess", "Trying to process DBStatesReceived %d", s.DBStatesReceivedBase+ix)
-			s.executeMsg(vm, s.DBStatesReceived[ix])
-		}
+			if msg := s.DBStatesReceived[ix]; msg != nil {
+				s.LogPrintf("dbstateprocess", "Trying to process DBStatesReceived %d", s.DBStatesReceivedBase+ix)
+				s.executeMsg(vm, msg)
+			}
 
-		// if we can not process a DBStatesReceived then go process some messages
-		if hsb == s.GetHighestSavedBlk() {
-			break
+			// if we can not process a DBStatesReceived then go process some messages
+			if hsb == s.GetHighestSavedBlk() {
+				break
+			}
 		}
 	}
-
 	// Process inbound messages
 	preEmptyLoopTime := time.Now()
 emptyLoop:
@@ -839,6 +840,9 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 
 	dbheight := dbstatemsg.DirectoryBlock.GetHeader().GetDBHeight()
 
+	if dbheight == 164854 {
+		fmt.Print("got here")
+	}
 	// ignore if too old. If its under EntryDBHeightComplete
 	if dbheight > 0 && dbheight <= s.GetHighestSavedBlk() && dbheight < s.EntryDBHeightComplete {
 		return
@@ -853,6 +857,8 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	switch valid {
 	case 0:
 		//s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): DBState might be valid %d", dbheight))
+		hsb := s.GetHighestSavedBlk()
+		_ = hsb
 		ix := int(dbheight) - s.DBStatesReceivedBase
 		for len(s.DBStatesReceived) <= ix {
 			s.DBStatesReceived = append(s.DBStatesReceived, nil)
@@ -872,13 +878,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 
 	if dbstatemsg.IsLast { // this is the last DBState in this load
 		s.DBFinished = true // Normal case
-		// Attempted hack to fix a set where one leader was ahead of the others.
-		//if s.Leader {
-		//	dbstatemsg.SetLocal(false) // we are going to send it out to catch everyone up
-		//	dbstatemsg.SetPeer2Peer(false)
-		//	dbstatemsg.SetFullBroadcast(true)
-		//	dbstatemsg.SendOut(s, dbstatemsg)
-		//}
+
 	}
 	/**************************
 	for int(s.ProcessLists.DBHeightBase)+len(s.ProcessLists.Lists) > int(dbheight+1) {
@@ -886,13 +886,6 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		s.ProcessLists.Lists = s.ProcessLists.Lists[:len(s.ProcessLists.Lists)-1]
 	}
 	***************************/
-	if dbheight > 1 && dbheight >= s.ProcessLists.DBHeightBase {
-		dbs := s.DBStates.Get(int(dbheight))
-		if pdbstate.SaveStruct != nil {
-			//s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): Reset to previous state before applying at ht %d", dbheight))
-			pdbstate.SaveStruct.TrimBack(s, dbs)
-		}
-	}
 
 	dbstate := s.AddDBState(false,
 		dbstatemsg.DirectoryBlock,

@@ -590,10 +590,13 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 	// s.AddStatus(fmt.Sprintln("Index: ", index, "dbht:", ss.DBHeight, "lleaderheight", s.LLeaderHeight))
 
 	dindex := ss.DBHeight - s.DBStates.Base
-	s.DBStates.DBStates = s.DBStates.DBStates[:dindex] // Keep up to the state we are restoring too.
+	s.DBStates.DBStates = s.DBStates.DBStates[:dindex+1] // Keep up to the state we are restoring too.
+	s.DBStates.Complete = dindex                         // update the cached count of how many are complete
+	s.DBStates.ProcessHeight = ss.DBHeight               // Set the process height to where we are starting
+
 	//s.AddStatus(fmt.Sprintf("SAVESTATE Restoring the State to dbht: %d", ss.DBHeight))
 
-	s.LogPrintf("dbstatesProcess", "restoring to DBH %d", ss.DBHeight)
+	s.LogPrintf("dbstateprocess", "restoring to DBH %d", ss.DBHeight)
 	s.Replay = ss.Replay.Save()
 	s.Replay.s = s
 	s.Replay.name = "Replay"

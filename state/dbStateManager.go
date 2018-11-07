@@ -525,12 +525,8 @@ func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 
 	dirblk := next.DirectoryBlock
 	dbheight := dirblk.GetHeader().GetDBHeight()
-
 	// If we don't have the previous blocks processed yet, then let's wait on this one.
 	highestSavedBlk := state.GetHighestSavedBlk()
-	if dbheight > highestSavedBlk+1 {
-		return 0
-	}
 
 	if dbheight == 0 && highestSavedBlk == 0 {
 		//state.AddStatus(fmt.Sprintf("DBState.ValidNext: rtn 1 genesis block is valid dbht: %d", dbheight))
@@ -538,20 +534,17 @@ func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 		return 1
 	}
 
-	// This node cannot be validated until the previous node (d) has been saved to disk, which means processed
-	// and signed as well.
-	if d == nil || !(d.Locked && d.Signed && d.Saved) {
-		return 0
-	}
-
 	// Don't reload blocks!
 	if dbheight <= highestSavedBlk {
 		return -1
 	}
 
-	if d == nil {
-		//state.AddStatus(fmt.Sprintf("DBState.ValidNext: rtn 0 dbstate is nil or not saved dbht: %d", dbheight))
-		// Must be out of order.  Can't make the call if valid or not yet.
+	if dbheight > highestSavedBlk+1 {
+		return 0
+	}
+	// This node cannot be validated until the previous node (d) has been saved to disk, which means processed
+	// and signed as well.
+	if d == nil || !(d.Locked && d.Signed && d.Saved) {
 		return 0
 	}
 
@@ -656,7 +649,7 @@ func (ds *DBState) String() string {
 func (list *DBStateList) GetHighestLockedSignedAndSavesBlk() uint32 {
 	ht := list.Base
 	for i, dbstate := range list.DBStates {
-		if dbstate != nil && dbstate.Locked {
+		if dbstate != nil && dbstate.Locked && dbstate.Signed && dbstate.Saved {
 			ht = list.Base + uint32(i)
 		} else {
 			if dbstate == nil {
@@ -909,7 +902,6 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	dbht := d.DirectoryBlock.GetHeader().GetDBHeight()
 
 	s := list.State
-	s.LogPrintf("dbstateprocess", "ProcessBlock %d", d.DirectoryBlock.GetHeader().GetDBHeight())
 	// If we are locked, the block has already been processed.  If the block IsNew then it has not yet had
 	// its links patched, so we can't process it.  But if this is a repeat block (we have already processed
 	// at this height) then we simply return.
@@ -956,6 +948,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		s.LogPrintf("dbstateprocess", "Skipping No ProcessList")
 		return
 	}
+	s.LogPrintf("dbstateprocess", "ProcessBlock %d", d.DirectoryBlock.GetHeader().GetDBHeight())
 
 	//
 	// ***** Apply the AdminBlock changes to the next DBState
@@ -1592,9 +1585,8 @@ func (list *DBStateList) Put(dbState *DBState) bool {
 	// starting from the beginning (since base starts at zero).
 	cnt := 0
 searchLoop:
-	for i, v := range list.DBStates {
+	for _, v := range list.DBStates {
 		if dbheight > 0 && (v == nil || v.DirectoryBlock == nil || !(v.Saved && v.Locked && v.Signed)) {
-			list.DBStates[i] = nil
 			break searchLoop
 		}
 		cnt++

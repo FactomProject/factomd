@@ -42,27 +42,28 @@ func (lists *ProcessLists) UpdateState(dbheight uint32) (progress bool) {
 		newlist := append([]*ProcessList{}, lists.Lists[diff:]...)
 		lists.Lists = newlist
 	}
-	dbstate := lists.State.DBStates.Get(int(dbheight))
+	//dbstate := lists.State.DBStates.Get(int(dbheight))
 	pl := lists.Get(dbheight)
-	for pl.Complete() || (dbstate != nil && (dbstate.Signed || dbstate.Saved)) {
-		dbheight++
-		pl = lists.Get(dbheight)
-		dbstate = lists.State.DBStates.Get(int(dbheight))
-	}
-	if pl == nil {
-		return false
-	}
-	if dbheight > lists.State.LLeaderHeight {
-		s := lists.State
-		//fmt.Println(fmt.Sprintf("EOM PROCESS: %10s ProcessListManager: !s.EOM(%v)", s.FactomNodeName, s.EOM))
-
-		s.MoveStateToHeight(dbheight, 0)
-		s.EOMProcessed = 0
-		s.DBSigProcessed = 0
-		s.Syncing = false
-		s.EOM = false
-		s.DBSig = false
-	}
+	//for pl.Complete() || (dbstate != nil && dbstate.Locked && dbstate.Signed) {
+	//	dbheight++
+	//	lists.State.MoveStateToHeight(dbheight, 0)
+	//	pl = lists.Get(dbheight)
+	//	dbstate = lists.State.DBStates.Get(int(dbheight))
+	//}
+	//if pl == nil {
+	//	return false
+	//}
+	//if dbheight > lists.State.LLeaderHeight {
+	//	s := lists.State
+	//	//fmt.Println(fmt.Sprintf("EOM PROCESS: %10s ProcessListManager: !s.EOM(%v)", s.FactomNodeName, s.EOM))
+	//
+	//	s.MoveStateToHeight(dbheight, 0)
+	//	s.EOMProcessed = 0
+	//	s.DBSigProcessed = 0
+	//	s.Syncing = false
+	//	s.EOM = false
+	//	s.DBSig = false
+	//}
 	//lists.State.AddStatus(fmt.Sprintf("UpdateState: ProcessList Height %d", pl.DBHeight))
 	return pl.Process(lists.State)
 
