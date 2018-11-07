@@ -77,6 +77,7 @@ func (s *State) LogPrintf(logName string, format string, more ...interface{}) {
 }
 func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 
+	s.LogPrintf("dbstateprocess", "Process executing %v", msg.String())
 	if msg.GetHash() == nil || reflect.ValueOf(msg.GetHash()).IsNil() {
 		s.LogMessage("badMsgs", "Nil hash in executeMsg", msg)
 		return false
@@ -125,8 +126,8 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 
 				if Delta > tlim || -Delta > tlim {
 
-					//s.LogPrintf("executeMsg", "Block %d time %v Msg %x time %v delta %d",
-					//	s.LLeaderHeight, s.GetLeaderTimestamp().GetTime().String(), msg.GetHash(), msg.GetTimestamp().String(), Delta)
+					s.LogPrintf("executeMsg", "Block %d time %v Msg %x time %v delta %d",
+						s.LLeaderHeight, s.GetLeaderTimestamp().GetTime().String(), msg.GetHash(), msg.GetTimestamp().String(), Delta)
 
 					// Delta is is negative its greater than blktime then it is future.
 					if Delta < 0 {
