@@ -377,6 +377,7 @@ func (b *DirectoryBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	}
 	b.SetHeader(fbh)
 
+	// entryLimit is the maximum number of 32 byte entries that could fit in the body of the binary dblock
 	entryLimit := uint32(len(newData) / 32)
 	entryCount := b.GetHeader().GetBlockCount()
 	if entryCount > entryLimit {
