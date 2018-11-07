@@ -37,3 +37,20 @@ func TestCancelCoinbaseDescriptorMarshal(t *testing.T) {
 	}
 
 }
+
+func TestAddBadCancelCoinbaseDescriptor(t *testing.T) {
+	c1 := NewCancelCoinbaseDescriptor(1000, 2000)
+	p, err := c1.MarshalBinary()
+	if err != nil {
+		t.Error(err)
+	}
+	p[1] = 0xff // replace body lenght with bad value
+
+	c2 := new(CancelCoinbaseDescriptor)
+	err = c2.UnmarshalBinary(p)
+	if err == nil {
+		t.Error("CancelCoinbaseDescriptor should have errored on unmarshal", c2)
+	} else {
+		t.Log(err)
+	}
+}
