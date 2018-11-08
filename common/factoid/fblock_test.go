@@ -91,7 +91,7 @@ func TestMarshalUnmarshal(t *testing.T) {
 	}
 }
 
-func TestBadUnmarshal(t *testing.T) {
+func TestBadFBlockUnmarshal(t *testing.T) {
 	t1 := TestFBlock{}
 
 	//bad raw
@@ -108,10 +108,12 @@ func TestBadUnmarshal(t *testing.T) {
 	f2 := new(FBlock)
 	// we should get an error from unmarshal for the bad data: "uint underflow"
 	if err := f2.UnmarshalBinary(raw); err == nil {
-		t.Error("got no error when expecting error: transaction count too high")
+		t.Error("FBlock should have errored on unmarshal", f2)
+	} else {
+		t.Log(err)
 	}
-	fmt.Println(f2)
 }
+
 func TestGetEntryHashes(t *testing.T) {
 	f := GetDeterministicFBlock(t)
 	hashes := f.GetEntryHashes()
