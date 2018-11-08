@@ -9,14 +9,19 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strings"
+
+	"github.com/FactomProject/factomd/common/globals"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+
 	"github.com/FactomProject/web"
 )
 
 func HandleDebug(ctx *web.Context) {
+	_ = globals.Params
 	ServersMutex.Lock()
 	state := ctx.Server.Env["state"].(interfaces.IState)
 	ServersMutex.Unlock()
@@ -122,6 +127,8 @@ func HandleDebugRequest(
 	case "reload-configuration":
 		resp, jsonError = HandleReloadConfig(state, params)
 		break
+	case "sim-ctrl":
+		resp, jsonError = HandleSimControl(state, params)
 	default:
 		jsonError = NewMethodNotFoundError()
 		break
@@ -404,10 +411,33 @@ func HandleReloadConfig(
 	return state.GetCfg(), nil
 }
 
+func runCmd(cmd string) {
+	os.Stdout.WriteString("Executing: " + cmd + "\n")
+	os.Stderr.WriteString("Executing: " + cmd + "\n")
+	globals.InputChan <- cmd
+	return
+}
+func HandleSimControl(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	droprate := new(GetCommands)
+	err := MapToObject(params, droprate)
+	if err != nil {
+		return nil, NewInvalidParamsError()
+	}
+	fmt.Println("Params: ", droprate.Commands)
+	for i := 0; i < len(droprate.Commands); i++ {
+		fmt.Println("Command: ", droprate.Commands[i])
+	}
+	return nil, nil
+}
+
 type SetDelayRequest struct {
 	Delay int64 `json:"delay"`
 }
 
 type SetDropRateRequest struct {
 	DropRate int `json:"droprate"`
+}
+
+type GetCommands struct {
+	Commands []string `json:"commands"`
 }

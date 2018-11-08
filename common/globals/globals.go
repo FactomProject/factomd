@@ -5,7 +5,8 @@ import "time"
 var FnodeNames map[string]string = make(map[string]string) /// use by MessageTrace debug code
 var Params FactomParams
 var StartTime time.Time
-var LastDebugLogRegEx string // used to detect if FactomParams.DebugLogRegEx was changed by the control panel
+var LastDebugLogRegEx string      // used to detect if FactomParams.DebugLogRegEx was changed by the control panel
+var InputChan = make(chan string) // Get commands here
 
 type FactomParams struct {
 	AckbalanceHash           bool

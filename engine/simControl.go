@@ -17,6 +17,8 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/FactomProject/factomd/common/globals"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/identity"
@@ -43,8 +45,6 @@ var loadGenerator *LoadGenerator
 // Used for signing messages
 var LOCAL_NET_PRIV_KEY string = "4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d"
 
-var InputChan = make(chan string) // Get commands here
-
 var once bool
 
 func GetLine(listenToStdin bool) string {
@@ -61,7 +61,7 @@ func GetLine(listenToStdin bool) string {
 				// So, we will sleep before letting it check to see if Stdin has been reconnected
 				for {
 					if _, err = os.Stdin.Read(line); err == nil {
-						InputChan <- string(line)
+						globals.InputChan <- string(line)
 					} else {
 						if err == io.EOF {
 							return
@@ -76,7 +76,7 @@ func GetLine(listenToStdin bool) string {
 		}()
 	}
 
-	line := <-InputChan
+	line := <-globals.InputChan
 	return line
 }
 
