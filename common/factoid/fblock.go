@@ -322,6 +322,8 @@ func (b *FBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 		return nil, err
 	}
 
+	// txLimit is the maximum number of transactions (min 78 bytes) that could
+	// fit into the remaining unread portion of the buffer.
 	txLimit := uint32(buf.Len() / 78)
 	txCount, err := buf.PopUInt32()
 	if err != nil {
