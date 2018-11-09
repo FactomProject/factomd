@@ -660,6 +660,7 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 	s.DBSigProcessed = ss.DBSigProcessed
 	s.DBSigDone = ss.DBSigDone
 	s.DBSigSys = ss.DBSigSys
+	atomic.WhereAmI()
 	s.Saving = true
 	s.Syncing = false
 	s.HighestAck = ss.DBHeight + 1

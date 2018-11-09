@@ -418,6 +418,27 @@ func (m *DirectoryBlockSignature) MarshalBinary() (data []byte, err error) {
 	return resp, nil
 }
 
+// Remove newlines and consecutive blanks
+func stringCompress(s string) string {
+	var rval []byte
+	var blanks int
+	for _, c := range s {
+		if c == '\n' {
+			continue
+		}
+		if c != ' ' {
+			blanks = 0
+			rval = append(rval, byte(c))
+		} else {
+			if blanks == 0 {
+				rval = append(rval, byte(c))
+			}
+			blanks++
+		}
+	}
+	return string(rval)
+}
+
 func (m *DirectoryBlockSignature) String() string {
 	b, err := m.DirectoryBlockHeader.MarshalBinary()
 	if b != nil && err != nil {
@@ -439,7 +460,7 @@ func (m *DirectoryBlockSignature) String() string {
 		m.Timestamp,
 		m.Timestamp.String(),
 		m.GetHash().Bytes()[:3],
-		m.DirectoryBlockHeader.String())
+		stringCompress(m.DirectoryBlockHeader.String()))
 
 }
 

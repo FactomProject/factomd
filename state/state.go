@@ -13,6 +13,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -34,8 +35,6 @@ import (
 	"github.com/FactomProject/factomd/util/atomic"
 	"github.com/FactomProject/factomd/wsapi"
 	"github.com/FactomProject/logrustash"
-
-	"path/filepath"
 
 	"github.com/FactomProject/factomd/Utilities/CorrectChainHeads/correctChainHeads"
 	log "github.com/sirupsen/logrus"
@@ -502,7 +501,8 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 		newState.LocalServerPrivKey = clonePrivateKey.PrivateKeyString()
 	}
 
-	newState.SetLeaderTimestamp(s.GetLeaderTimestamp())
+	newState.LeaderTimestamp = primitives.NewTimestampFromMilliseconds(s.LeaderTimestamp.GetTimeMilliUInt64())
+	newState.TimestampAtBoot = primitives.NewTimestampFromMilliseconds(s.TimestampAtBoot.GetTimeMilliUInt64())
 
 	//serverPrivKey primitives.PrivateKey
 	//serverPubKey  primitives.PublicKey
@@ -863,11 +863,10 @@ func (s *State) Init() {
 	salt := fmt.Sprintf("The Instance ID of this node is %s\n", s.Salt.String()[:16])
 	fmt.Print(salt)
 
-	s.StartDelay = s.GetTimestamp().GetTimeMilli() // We can't start as a leader until we know we are upto date
+	s.StartDelay = s.GetTimestamp().GetTimeMilli() // We can't start as a leader until we know we are up to date
 	s.RunLeader = false
 	s.IgnoreMissing = true
 	s.BootTime = s.GetTimestamp().GetTimeSeconds()
-	s.TimestampAtBoot = primitives.NewTimestampNow()
 
 	if s.LogPath == "stdout" {
 		wsapi.InitLogs(s.LogPath, s.LogLevel)
@@ -1863,6 +1862,8 @@ func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBl
 }
 
 func (s *State) UpdateState() (progress bool) {
+	fmt.Print("U")
+
 	dbheight := s.GetHighestSavedBlk()
 	plbase := s.ProcessLists.DBHeightBase
 	if dbheight == 0 {
@@ -2176,14 +2177,45 @@ func (s *State) GetLeaderTimestamp() interfaces.Timestamp {
 	return s.LeaderTimestamp
 }
 
-func (s *State) SetLeaderTimestamp(ts interfaces.Timestamp) {
-	s.LeaderTimestamp = ts //SetLeaderTimestamp()
-	s.LogPrintf("executeMsg", "Set LeaderTimeStamp %d %v for %s", s.LLeaderHeight, s.LeaderTimestamp.String(), atomic.WhereAmIString(1))
+// the leader timestamp is used to filter messages from the past or before the replay filter.
+// We will not set it to a time that is before boot or more than one hour in the past.
+// this ensure messages from prior boot and messages that predate the current replay filter are
+// are dropped.
+func (s *State) SetLeaderTimestamp(requestedTs interfaces.Timestamp) {
+
+	oneHourAgo := primitives.NewTimestampNow() // now() - one hour
+	oneHourAgo.SetTimeMilli(oneHourAgo.GetTimeMilli() - 60*60*1000)
+
+	req := requestedTs.String()
+	oneH := oneHourAgo.String()
+	boot := s.TimestampAtBoot.String()
+
+	_ = req
+	_ = oneH
+	_ = boot
+
+	ts := requestedTs
+	if ts.GetTimeMilli() < s.TimestampAtBoot.GetTimeMilli() {
+		ts.SetTimestamp(s.TimestampAtBoot)
+	}
+
+	if ts.GetTimeMilli() < oneHourAgo.GetTimeMilli() {
+		ts.SetTimestamp(oneHourAgo)
+	}
+
+	if ts.GetTimeMilli() < s.LeaderTimestamp.GetTimeMilli() {
+		s.LogPrintf("executeMsg", "Set LeaderTimeStamp attempt to move backward in time from %s", atomic.WhereAmIString(1))
+		ts.SetTimestamp(s.LeaderTimestamp)
+	}
+
+	s.LeaderTimestamp.SetTimestamp(ts) //SetLeaderTimestamp()
+	s.LogPrintf("executeMsg", "Set LeaderTimeStamp(%s) @ dbht %d using %s for %s", requestedTs, s.LLeaderHeight, ts.String(), atomic.WhereAmIString(1))
 }
-func (s *State) SetLLeaderHeight(height int) {
-	s.LLeaderHeight = uint32(height) //SetLeaderHeight()
-	s.LogPrintf("executeMsg", "Set LeaderHeight %d for %s", s.LLeaderHeight, atomic.WhereAmIString(1))
-}
+
+//func (s *State) SetLLeaderHeight(height int) {
+//	s.LLeaderHeight = uint32(height) //SetLeaderHeight()
+//	s.LogPrintf("executeMsg", "Set LeaderHeight %d for %s", s.LLeaderHeight, atomic.WhereAmIString(1))
+//}
 
 func (s *State) SetFaultTimeout(timeout int) {
 	s.FaultTimeout = timeout

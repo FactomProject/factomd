@@ -925,11 +925,11 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 			s.LogPrintf("dbstateprocess", "Skipping Prev Block Missing")
 			s.LogPrintf("dbstateprocess", "list: %v", list.State.DBStates.String())
 
-			return // Can't process out of order
+			return false // Can't process out of order
 		}
 		if !pd.Saved {
 			s.LogPrintf("dbstateprocess", "Skipping Prev Block not saved")
-			return // can't process till the prev is saved
+			return false // can't process till the prev is saved
 		}
 	}
 
@@ -946,7 +946,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 
 	if pl == nil {
 		s.LogPrintf("dbstateprocess", "Skipping No ProcessList")
-		return
+		return false
 	}
 	s.LogPrintf("dbstateprocess", "ProcessBlock %d", d.DirectoryBlock.GetHeader().GetDBHeight())
 
@@ -1117,8 +1117,12 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	// Saving our state so we can reset it if we need to.
 	d.TmpSaveStruct = SaveFactomdState(list.State, d)
 
-	// All done with this blcok move to the next height
-	s.MoveStateToHeight(dbht+1, 0)
+	// All done with this block move to the next height
+	if s.LLeaderHeight == dbht {
+		// if we are following by blocks then this move us forward but if we are following by minutes the
+		// code in ProcessEOM for minute 10 will have moved us forward
+		s.MoveStateToHeight(dbht+1, 0)
+	}
 	return
 }
 
@@ -1131,7 +1135,7 @@ func (list *DBStateList) SignDB(d *DBState) (process bool) {
 		//s := list.State
 		//		s.MoveStateToHeight(dbheight + 1)
 		list.State.LogPrintf("dbstateprocess", "SignDB(%d) already signed", d.DirectoryBlock.GetHeader().GetDBHeight())
-		return true
+		return false
 	}
 
 	// If we have the next dbstate in the list, then all the signatures for this dbstate
@@ -1467,7 +1471,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	if list.State.StateSaverStruct.FastBoot {
 		d.SaveStruct = d.TmpSaveStruct
 		err := list.State.StateSaverStruct.SaveDBStateList(list.State.DBStates, list.State.Network)
-		list.State.LogPrintf("dbstatesprocess", "Error while saving Fastboot %v", err)
+		list.State.LogPrintf("dbstateprocess", "Error while saving Fastboot %v", err)
 	}
 	// Now that we have saved the perm balances, we can clear the api hashmaps that held the differences
 	// between the actual saved block prior, and this saved block.  If you are looking for balances of
@@ -1496,7 +1500,23 @@ func (list *DBStateList) UpdateState() (progress bool) {
 			if d == nil {
 				l += "nil "
 			} else {
-				l += fmt.Sprintf("%d, ", d.DirectoryBlock.GetHeader().GetDBHeight())
+				status := []byte("_____")
+				if d.Locked {
+					status[0] = 'L'
+				}
+				if d.ReadyToSave {
+					status[1] = 'R'
+				}
+				if d.Signed {
+					status[2] = 'S'
+				}
+				if d.Saved {
+					status[3] = 'V'
+				}
+				if d.Repeat {
+					status[4] = 'D'
+				}
+				l += fmt.Sprintf("%d%s, ", d.DirectoryBlock.GetHeader().GetDBHeight(), string(status))
 			}
 		}
 		l += "]"
@@ -1516,9 +1536,10 @@ func (list *DBStateList) UpdateState() (progress bool) {
 		if d.Locked && d.Signed && d.Saved {
 			continue
 		}
+		//todo: Make the for start here and move forward
 		dbHeight := d.DirectoryBlock.GetHeader().GetDBHeight()
-		highestCompletedBlk := list.State.GetHighestCompletedBlk()
-		if dbHeight != 0 && dbHeight <= highestCompletedBlk {
+		highestLockedSignedAndSavedBlk := list.State.GetHighestLockedSignedAndSavesBlk()
+		if dbHeight != 0 && dbHeight <= highestLockedSignedAndSavedBlk {
 			//			s.LogPrintf("dbstateprocess", "skip reprocessing %d", dbHeight)
 			continue // don't reprocess old blocks
 		}

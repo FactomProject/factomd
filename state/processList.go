@@ -896,7 +896,7 @@ func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces
 
 	if ack.DBHeight > s.HighestAck && ack.Minute > 0 {
 		s.HighestAck = ack.DBHeight
-		s.LogPrintf("processList", "Drop1")
+
 	}
 
 	TotalAcksInputs.Inc()
@@ -904,8 +904,9 @@ func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces
 	// If this is us, make sure we ignore (if old or in the ignore period) or die because two instances are running.
 	//
 	if !ack.Response && ack.LeaderChainID.IsSameAs(s.IdentityChainID) {
-		now := s.GetTimestamp()
-		if now.GetTimeSeconds()-ack.Timestamp.GetTimeSeconds() > 120 {
+		now := s.GetTimestamp().GetTimeSeconds()
+		ackSeconds := ack.Timestamp.GetTimeSeconds()
+		if now-ackSeconds > 120 {
 			s.LogPrintf("processList", "Drop1")
 			// Us and too old?  Just ignore.
 			return

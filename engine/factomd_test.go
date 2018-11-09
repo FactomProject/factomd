@@ -136,7 +136,6 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 	et := elections.FaultTimeout
 	startTime = time.Now()
 	state0 := Factomd(params, false).(*state.State)
-	//	statusState = state0
 	calctime := time.Duration(float64((height*blkt)+(electionsCnt*et)+(RoundsCnt*roundt))*1.1) * time.Second
 	endTime = time.Now().Add(calctime)
 	fmt.Println("endTime: ", endTime.String(), "duration:", calctime.String())
@@ -161,7 +160,7 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 	}()
 	state0.MessageTally = true
 	fmt.Printf("Starting timeout timer:  Expected test to take %s or %d blocks\n", calctime.String(), height)
-	//	StatusEveryMinute(state0)
+	StatusEveryMinute(state0)
 	WaitMinutes(state0, 1) // wait till initial DBState message for the genesis block is processed
 	creatingNodes(GivenNodes, state0)
 
@@ -1811,23 +1810,26 @@ func TestNoMMR(t *testing.T) {
 	shutDownEverything(t)
 }
 
-func TestDBStateCatchuup(t *testing.T) {
+func TestDBStateCatchup(t *testing.T) {
 	if ranSimTest {
 		return
 	}
 	ranSimTest = true
 
-	state0 := SetupSim("LF", map[string]string{"--debuglog": "."}, 10, 0, 0, t)
+	state0 := SetupSim("LF", map[string]string{"--debuglog": "."}, 100, 0, 0, t)
 	state.MMR_enable = false // turn off MMR processing
 	StatusEveryMinute(state0)
 
 	runCmd("1")
-	runCmd("x") // knock the
+	runCmd("x") // knock the follower offline
 
 	runCmd("R10") // turn on some load
 
 	WaitBlocks(state0, 5)
 	runCmd("R0") // turn off load
-	WaitForAllNodes(state0)
+
+	runCmd("x") // bring the follower online
+
+	WaitForAllNodes(state0) // if the follower isn't catching up this will timeout
 	shutDownEverything(t)
 }

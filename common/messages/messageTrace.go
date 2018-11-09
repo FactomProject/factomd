@@ -11,6 +11,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/util/atomic"
 )
 
 var (
@@ -191,8 +192,8 @@ func logMessage(name string, note string, msg interfaces.IMsg) {
 		var s string
 		switch i {
 		case 0:
-			s = fmt.Sprintf("%9d %02d:%02d:%02d.%03d %-30s M-%v|R-%v|H-%v|%p %26s[%2v]:%v\n", sequence, now.Hour()%24, now.Minute()%60, now.Second()%60, (now.Nanosecond()/1e6)%1000,
-				note, mhash, rhash, hash, msg, messageType, t, text)
+			s = fmt.Sprintf("%9d %02d:%02d:%02d.%03d %-30s M-%v|R-%v|H-%v|%p %26s[%2v]:%v <%s>\n", sequence, now.Hour()%24, now.Minute()%60, now.Second()%60, (now.Nanosecond()/1e6)%1000,
+				note, mhash, rhash, hash, msg, messageType, t, text, atomic.Goid())
 		case 1:
 			s = fmt.Sprintf("%9d %02d:%02d:%02d.%03d %-30s M-%v|R-%v|H-%v|%p %30s:%v\n", sequence, now.Hour()%24, now.Minute()%60, now.Second()%60, (now.Nanosecond()/1e6)%1000,
 				note, mhash, rhash, hash, msg, "continue:", text)
@@ -202,7 +203,7 @@ func logMessage(name string, note string, msg interfaces.IMsg) {
 	}
 
 	if embeddedMsg != nil {
-		logMessage(name, "EmbeddedMsg:", embeddedMsg)
+		logMessage(name, note+" EmbeddedMsg:", embeddedMsg)
 	}
 }
 
@@ -265,7 +266,7 @@ func LogPrintf(name string, format string, more ...interface{}) {
 		var s string
 		switch i {
 		case 0:
-			s = fmt.Sprintf("%9d %02d:%02d:%02d.%03d %s\n", sequence, now.Hour()%24, now.Minute()%60, now.Second()%60, (now.Nanosecond()/1e6)%1000, text)
+			s = fmt.Sprintf("%9d %02d:%02d:%02d.%03d %s <%s>\n", sequence, now.Hour()%24, now.Minute()%60, now.Second()%60, (now.Nanosecond()/1e6)%1000, text, atomic.Goid())
 		default:
 			s = fmt.Sprintf("%9d %02d:%02d:%02d.%03d %s\n", sequence, now.Hour()%24, now.Minute()%60, now.Second()%60, (now.Nanosecond()/1e6)%1000, text)
 		}

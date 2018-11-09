@@ -113,15 +113,6 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 
 				// Make sure we don't put in an old msg (outside our repeat range)
 				Delta := blktime - msgtime
-				prev := s.GetDBState(s.LLeaderHeight - 1)
-				cur := s.GetDBState(s.LLeaderHeight)
-
-				if prev != nil {
-					s.LogPrintf("executeMsg", "prev %v", prev.DirectoryBlock.GetTimestamp().String())
-				}
-				if cur != nil {
-					s.LogPrintf("executeMsg", "curr %v ", cur.DirectoryBlock.GetTimestamp().String())
-				}
 
 				if Delta > tlim || -Delta > tlim {
 
@@ -218,11 +209,16 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 }
 
 func (s *State) Process() (progress bool) {
+	fmt.Print("P")
 
 	if s.ResetRequest {
 		s.ResetRequest = false
 		s.DoReset()
 		return false
+	}
+
+	if s.LLeaderHeight == 2 {
+		fmt.Print("2")
 	}
 
 	s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
@@ -574,7 +570,9 @@ func (s *State) ReviewHolding() {
 
 func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 	s.LogPrintf("dbstateprocess", "MoveStateToHeight(%d-:-%d) called from %s", dbheight, newMinute, atomic.WhereAmIString(1))
-	if s.LLeaderHeight+1 != dbheight {
+	if (s.LLeaderHeight+1 == dbheight && newMinute == 0) || (s.LLeaderHeight == dbheight && s.CurrentMinute+1 == newMinute) {
+		// these are the allowed cases; move to nextblock-:-0 or move to next minute
+	} else {
 		s.LogPrintf("dbstateprocess", "State move between non-sequential heights from %d to %d", s.LLeaderHeight, dbheight)
 		if s.LLeaderHeight != dbheight {
 			fmt.Fprintf(os.Stderr, "State move between non-sequential heights from %d to %d\n", s.LLeaderHeight, dbheight)
@@ -588,43 +586,46 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 	}
 	// update cached values that change with height
 	if s.LLeaderHeight != dbheight {
-		s.SetLLeaderHeight(int(dbheight))                // Update leader height in MoveStateToHeight
-		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight) // fix up cached values
-		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
-		s.ProcessLists.Get(s.LLeaderHeight + 1) // Make sure next PL exists
 		// check if a DBState exists where we can get the timestamp
 		dbstate := s.DBStates.Get(int(dbheight))
+
+		// Setting the leader timestamp is as follows.
+		// If we have a dbstate use it's timestamp.
+		// If we don't have a DBState see if the database has a dblock
+		//  if not try the previous block
+		// there more complexity down in SetLeaderTimestamp where boot time and now-60 minutes get mixed
+		// the primary use of the timestamp is message filtering
 		if dbstate != nil {
 			s.SetLeaderTimestamp(dbstate.DirectoryBlock.GetTimestamp())
+		} else if dblock, err := s.DB.FetchDBlockByHeight(dbheight); dblock != nil && err == nil {
+			s.SetLeaderTimestamp(dblock.GetTimestamp())
+		} else if dbstate = s.DBStates.Get(int(dbheight - 1)); dbstate != nil {
+			s.SetLeaderTimestamp(dbstate.DirectoryBlock.GetTimestamp())
 		} else {
-			// check if the dbstate is in the database
-			dblock, err := s.DB.FetchDBlockByHeight(dbheight)
-
-			if dblock != nil && err == nil {
-				s.SetLeaderTimestamp(dblock.GetTimestamp())
-			} else {
-
-				// Use the time stamp of the prev block until DBSig VM0 arrives
-				dbstate := s.DBStates.Get(int(dbheight - 1))
-				if dbstate != nil {
-					s.SetLeaderTimestamp(dbstate.DirectoryBlock.GetTimestamp())
-				} else {
-					// if it's a clean boot the genisis block is not yet saved and is not in the dbstates list
-					if dbheight == 1 {
-						s.SetLeaderTimestamp(primitives.NewTimestampNow())
-					} else {
-						panic("No prior state")
-					}
-				}
-			}
+			// not 100% sure how this case can be but doing nothing seems to work and it does happen in sim tests.
+			//panic("No prior state")
 		}
 	}
 
+	//s.setCurrentMinute(newMinute)     // MoveStateToHeight() move minute
+	//s.SetLLeaderHeight(int(dbheight)) // Update leader height in MoveStateToHeight
+
 	// update cached values that change with current minute
-	if s.CurrentMinute != newMinute || s.LLeaderHeight != dbheight { // And minute
-		s.setCurrentMinute(newMinute) // MoveStateToHeight() move minute
-		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
+	if s.LLeaderHeight != dbheight {
+		s.CurrentMinute = newMinute               // Update height and minute
+		s.LLeaderHeight = uint32(dbheight)        // Update height and minute
+		s.LeaderPL = s.ProcessLists.Get(dbheight) // fix up cached values
+		if s.LLeaderHeight != s.LeaderPL.DBHeight {
+			panic("bad things rae happening")
+		}
+		s.ProcessLists.Get(dbheight + 1) // Make sure next PL exists
+	} else if s.CurrentMinute != newMinute { // And minute
+		s.CurrentMinute = newMinute // Update just the minute
+		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(newMinute, s.IdentityChainID)
 	}
+
+	// todo: All the stuff taht needs to be cleared to move to minute 0
+
 }
 
 // Adds blocks that are either pulled locally from a database, or acquired from peers.
@@ -796,7 +797,7 @@ func (s *State) ExecuteEntriesInDBState(dbmsg *messages.DBStateMsg) {
 		return
 	}
 
-	s.LogPrintf("dbstatesprocess", "Process entries in %d", height)
+	s.LogPrintf("dbstateprocess", "Process entries in %d", height)
 
 	// If no Eblocks, leave
 	if len(dbmsg.EBlocks) == 0 {
@@ -986,6 +987,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	s.EOMDone = false
 	s.DBSig = false
 	s.DBSigDone = false
+	atomic.WhereAmI()
 	s.Saving = true
 	s.Syncing = false
 
@@ -1265,17 +1267,17 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(s, ack, m)
 }
 
-func (s *State) setCurrentMinute(m int) {
-	if m != s.CurrentMinute && m != s.CurrentMinute+1 && !(m == 0 && s.CurrentMinute == 10) {
-		s.LogPrintf("dbsig-eom", " Jump s.CurrentMinute = %d, from %d %s", m, s.CurrentMinute, atomic.WhereAmIString(1))
-
-	} else {
-		if m != s.CurrentMinute {
-			s.LogPrintf("dbsig-eom", "s.CurrentMinute = %d from %s", m, atomic.WhereAmIString(1))
-		}
-	}
-	s.CurrentMinute = m
-}
+//func (s *State) setCurrentMinute(m int) {
+//	if m != s.CurrentMinute && m != s.CurrentMinute+1 && !(m == 0 && s.CurrentMinute == 10) {
+//		s.LogPrintf("dbsig-eom", " Jump s.CurrentMinute = %d, from %d %s", m, s.CurrentMinute, atomic.WhereAmIString(1))
+//
+//	} else {
+//		if m != s.CurrentMinute {
+//			s.LogPrintf("dbsig-eom", "s.CurrentMinute = %d from %s", m, atomic.WhereAmIString(1))
+//		}
+//	}
+//	s.CurrentMinute = m
+//}
 
 func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	LeaderEOMExecutions.Inc()
@@ -1896,8 +1898,8 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 				prev := s.DBStates.Get(dbht - 1)
 				s.DBStates.FixupLinks(prev, dbstate)
 			}
-			s.DBStates.ProcessBlocks(dbstate)
 
+			// used to call processblock here but it never did it because the dbsigs are not in yet
 			s.MoveStateToHeight(s.LLeaderHeight+1, 0)
 
 			s.GetAckChange()
@@ -1944,6 +1946,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 				s.LogMessage("executeMsg", "LeaderExec2", dbs)
 				dbs.LeaderExecute(s)
 			}
+			atomic.WhereAmI()
 			s.Saving = true
 		}
 
@@ -2202,6 +2205,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		}
 
 		s.ReviewHolding()
+		atomic.WhereAmI()
 		s.Saving = false
 		s.DBSigDone = true // p
 		//		s.LogPrintf("dbsig-eom", "DBSIGDone written %v @ %s", s.DBSigDone, atomic.WhereAmIString(0))

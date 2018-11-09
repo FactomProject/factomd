@@ -148,6 +148,10 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 		} // process all pending add before any ticks
 	}
 
+	// Postpone asking for the first 5 seconds so simulations get a chance to get started. Doesn't break things but
+	// there is a flurry of unhelpful MMR activity on start up of simulations with followers
+	time.Sleep(5 * time.Second)
+
 	// tick ever second to check the  pending MMRs
 	go func() {
 		for {
