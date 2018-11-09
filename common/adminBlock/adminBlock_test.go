@@ -506,6 +506,7 @@ func TestUnmarshalBadAblock(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+
 	// overwrite the MessageCount with incorrect value
 	p[75] = 0xff
 

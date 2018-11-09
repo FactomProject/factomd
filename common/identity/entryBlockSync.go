@@ -136,18 +136,24 @@ func (e *EntryBlockSync) UnmarshalBinaryData(p []byte) (newData []byte, err erro
 		return
 	}
 
-	l, err := buf.PopInt()
+	// blockLimit is the mazimum number of Entry Blocks that could fit in the
+	// buffer. Smallest possible Entry Block is 140 bytes.
+	blockLimit := buf.Len() / 140
+	blockCount, err := buf.PopInt()
 	if err != nil {
 		return
 	}
-	if l > 1000 {
-		// TODO: replace this message with a proper error
-		return nil, fmt.Errorf("Error: EntryBlockSync.UnmarshalBinary: EntryBlockMarker count %d too high (uint underflow?)", l)
+	if blockCount > blockLimit {
+		return nil, fmt.Errorf(
+			"Error: EntryBlockSync.UnmarshalBinary: block count %d is greater "+
+				"than remaining space in buffer %d (uint underflow?)",
+			blockCount, blockLimit,
+		)
 	}
 
-	e.BlocksToBeParsed = make([]EntryBlockMarker, l)
+	e.BlocksToBeParsed = make([]EntryBlockMarker, blockCount)
 
-	for i := 0; i < l; i++ {
+	for i := 0; i < blockCount; i++ {
 		var b EntryBlockMarker
 		err = buf.PopBinaryMarshallable(&b)
 		if err != nil {
