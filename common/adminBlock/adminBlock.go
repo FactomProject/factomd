@@ -441,7 +441,7 @@ func (b *AdminBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	if msgCount > msgLimit {
 		return nil, fmt.Errorf(
 			"Error: AdminBlock.UnmarshalBinary: message count %d is greater "+
-				"than remainins space in buffer %d (uint underflow?)",
+				"than remaining space in buffer %d (uint underflow?)",
 			msgCount, msgLimit,
 		)
 	}
