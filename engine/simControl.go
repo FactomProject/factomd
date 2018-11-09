@@ -47,6 +47,8 @@ var LOCAL_NET_PRIV_KEY string = "4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c
 
 var once bool
 
+var InputChan = make(chan string)
+
 func GetLine(listenToStdin bool) string {
 
 	if !once {
@@ -61,7 +63,7 @@ func GetLine(listenToStdin bool) string {
 				// So, we will sleep before letting it check to see if Stdin has been reconnected
 				for {
 					if _, err = os.Stdin.Read(line); err == nil {
-						globals.InputChan <- string(line)
+						InputChan <- string(line)
 					} else {
 						if err == io.EOF {
 							return
@@ -75,8 +77,9 @@ func GetLine(listenToStdin bool) string {
 			} // forever
 		}()
 	}
-
-	line := <-globals.InputChan
+	//fmt.Println("globals.InputChan ", <-InputChan)
+	line := <-InputChan
+	//fmt.Println("line ", line)
 	return line
 }
 
@@ -624,6 +627,7 @@ func SimControl(listenTo int, listenStdin bool) {
 					v := f.State.GetNetStateOff() // Toggle his network on/off state
 					if v {
 						os.Stderr.WriteString("Bring " + f.State.FactomNodeName + " Back onto the network\n")
+						globals.APIChan <- time.Now().Format("2006-01-02 15:04:05")
 					} else {
 						os.Stderr.WriteString("Take  " + f.State.FactomNodeName + " off the network\n")
 					}

@@ -412,9 +412,9 @@ func HandleReloadConfig(
 }
 
 func runCmd(cmd string) {
-	os.Stdout.WriteString("Executing: " + cmd + "\n")
+	//os.Stdout.WriteString("Executing: " + cmd + "\n")
 	os.Stderr.WriteString("Executing: " + cmd + "\n")
-	globals.InputChan <- cmd
+	//globals.InputChan <- cmd
 	return
 }
 func HandleSimControl(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
@@ -423,10 +423,10 @@ func HandleSimControl(state interfaces.IState, params interface{}) (interface{},
 	if err != nil {
 		return nil, NewInvalidParamsError()
 	}
-	fmt.Println("Params: ", droprate.Commands)
-	for i := 0; i < len(droprate.Commands); i++ {
-		fmt.Println("Command: ", droprate.Commands[i])
-	}
+
+	runCmd(droprate.Commands[0])
+
+	fmt.Println("globals.APIChan: ", globals.APIChan)
 	return nil, nil
 }
 

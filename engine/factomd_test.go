@@ -511,7 +511,7 @@ func TestSetupANetwork(t *testing.T) {
 	runCmd("a100")           // Shows Admin block for Node 100
 	runCmd("e100")           // Shows Entry credit block for Node 100
 	runCmd("d100")           // Shows Directory block
-	runCmd("f100")           // Shows Factoid block for Node 1
+	runCmd("f100")           // Shows Factoid block for Node 100
 	runCmd("yh")             // Nothing
 	runCmd("yc")             // Nothing
 	runCmd("r")              // Rotate the WSAPI around the nodes
