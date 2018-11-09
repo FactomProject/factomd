@@ -1,13 +1,12 @@
 package adminBlock_test
 
 import (
-	"testing"
-
 	"bytes"
 	"encoding/hex"
 	"math/rand"
 	"sort"
 	"strings"
+	"testing"
 	"time"
 
 	. "github.com/FactomProject/factomd/common/adminBlock"
