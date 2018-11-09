@@ -906,29 +906,38 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	// its links patched, so we can't process it.  But if this is a repeat block (we have already processed
 	// at this height) then we simply return.
 	if d.Locked || d.IsNew || d.Repeat {
-		s.LogPrintf("dbstateprocess", "Skipping d.Locked(%v) || d.IsNew(%v) || d.Repeat(%v)", d.Locked, d.IsNew, d.Repeat)
-		return
+		s.LogPrintf("dbstateprocess", "ProcessBlocks(%d) Skipping d.Locked(%v) || d.IsNew(%v) || d.Repeat(%v)", dbht, d.Locked, d.IsNew, d.Repeat)
+		return false
+	}
+
+	// If we detect that we have processed at this height, flag the dbstate as a repeat, progress is good, and
+	// go forward.
+	if dbht > 0 && dbht < list.ProcessHeight {
+		progress = true
+		d.Repeat = true
+		s.LogPrintf("dbstateprocess", "ProcessBlocks(%d) Skipping old(repeat) state", dbht)
+		return false
 	}
 
 	// If we detect that we have processed at this height, flag the dbstate as a repeat, progress is good, and
 	// go forward. If dbHeight == list.ProcessHeight and current minute is 0, we want don't want to mark as a repeat,
 	// so we can avoid the Election in Minute 9 bug.
-	if dbht > 0 && (dbht < list.ProcessHeight || (dbht == list.ProcessHeight && list.State.CurrentMinute != 0)) {
+	if dbht > 0 && dbht == list.ProcessHeight && list.State.CurrentMinute > 0 {
 		progress = true
 		d.Repeat = true
-		return
+		s.LogPrintf("dbstateprocess", "ProcessBlocks(%d) Skipping Repeated current block", dbht, d.Locked, d.IsNew, d.Repeat)
+		return false
 	}
 
 	if dbht > 1 {
 		pd := list.State.DBStates.Get(int(dbht - 1))
 		if pd == nil {
-			s.LogPrintf("dbstateprocess", "Skipping Prev Block Missing")
+			s.LogPrintf("dbstateprocess", "ProcessBlocks(%d) Skipping Prev Block Missing", dbht)
 			s.LogPrintf("dbstateprocess", "list: %v", list.State.DBStates.String())
-
 			return false // Can't process out of order
 		}
 		if !pd.Saved {
-			s.LogPrintf("dbstateprocess", "Skipping Prev Block not saved")
+			s.LogPrintf("dbstateprocess", "ProcessBlocks(%d) Skipping Prev Block not saved", dbht)
 			return false // can't process till the prev is saved
 		}
 	}
@@ -940,15 +949,15 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		PrintState(list.State)
 	}
 
-	ht := d.DirectoryBlock.GetHeader().GetDBHeight()
-	pl := list.State.ProcessLists.Get(ht)
-	pln := list.State.ProcessLists.Get(ht + 1)
+	pl := list.State.ProcessLists.Get(dbht)
+	pln := list.State.ProcessLists.Get(dbht + 1)
 
 	if pl == nil {
-		s.LogPrintf("dbstateprocess", "Skipping No ProcessList")
+		s.LogPrintf("dbstateprocess", "ProcessBlock(%d) Skipping No ProcessList", dbht)
 		return false
 	}
-	s.LogPrintf("dbstateprocess", "ProcessBlock %d", d.DirectoryBlock.GetHeader().GetDBHeight())
+
+	s.LogPrintf("dbstateprocess", "ProcessBlock(%d)", dbht)
 
 	//
 	// ***** Apply the AdminBlock changes to the next DBState
@@ -963,7 +972,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		panic(err)
 	}
 
-	pln2 := list.State.ProcessLists.Get(ht + 2)
+	pln2 := list.State.ProcessLists.Get(dbht + 2)
 	pln2.FedServers = append(pln2.FedServers[:0], pln.FedServers...)
 	pln2.AuditServers = append(pln2.AuditServers[:0], pln.AuditServers...)
 
@@ -985,7 +994,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	fs := list.State.GetFactoidState()
 	fs.(*FactoidState).DBHeight = dbht
 
-	s.LogPrintf("dbstateprocess", "ProcessBlock Process Factoids dbht %d factoid ht %d",
+	s.LogPrintf("dbstateprocess", "ProcessBlock(%d) Process Factoids dbht %d factoid",
 		dbht, fs.(*FactoidState).DBHeight)
 
 	// get all the prior balances of the Factoid addresses that may have changed
@@ -1113,11 +1122,11 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 
 	tbh := list.State.FactoidState.GetBalanceHash(true) // recompute temp balance hash here
 	list.State.Balancehash = fs.GetBalanceHash(false)
-	list.State.LogPrintf("dbstateprocess", "dbht %d BalanceHash P %x T %x", dbht, list.State.Balancehash.Bytes()[0:4], tbh.Bytes()[0:4])
-	// Saving our state so we can reset it if we need to.
+	list.State.LogPrintf("dbstateprocess", "ProcessBlock(%d) BalanceHash P %x T %x", dbht, list.State.Balancehash.Bytes()[0:4], tbh.Bytes()[0:4])
+
 	d.TmpSaveStruct = SaveFactomdState(list.State, d)
 
-	// All done with this block move to the next height
+	// All done with this block move to the next height if we are loading by blocks
 	if s.LLeaderHeight == dbht {
 		// if we are following by blocks then this move us forward but if we are following by minutes the
 		// code in ProcessEOM for minute 10 will have moved us forward
@@ -1134,7 +1143,7 @@ func (list *DBStateList) SignDB(d *DBState) (process bool) {
 	if d.Signed {
 		//s := list.State
 		//		s.MoveStateToHeight(dbheight + 1)
-		list.State.LogPrintf("dbstateprocess", "SignDB(%d) already signed", d.DirectoryBlock.GetHeader().GetDBHeight())
+		list.State.LogPrintf("dbstateprocess", "SignDB(%d) done, already signed", dbheight)
 		return false
 	}
 
@@ -1151,24 +1160,30 @@ func (list *DBStateList) SignDB(d *DBState) (process bool) {
 
 	pl := list.State.ProcessLists.Get(dbheight)
 	if pl == nil {
-		list.State.LogPrintf("dbstateprocess", "SignDB(%d) no processlist!", d.DirectoryBlock.GetHeader().GetDBHeight())
+		list.State.LogPrintf("dbstateprocess", "SignDB(%d) skip, no processlist!", d.DirectoryBlock.GetHeader().GetDBHeight())
 		return false
 	} else if !pl.Complete() {
-		list.State.LogPrintf("dbstateprocess", "SignDB(%d) processlist not complete!", d.DirectoryBlock.GetHeader().GetDBHeight())
+		list.State.LogPrintf("dbstateprocess", "SignDB(%d) skip, processlist not complete!", d.DirectoryBlock.GetHeader().GetDBHeight())
 		return false
 	}
 
 	// If we don't have the next dbstate yet, see if we have all the signatures.
 	pl = list.State.ProcessLists.Get(dbheight + 1)
 	if pl == nil {
-		list.State.LogPrintf("dbstateprocess", "SignDB(%d) missing next processlist!", d.DirectoryBlock.GetHeader().GetDBHeight())
+		list.State.LogPrintf("dbstateprocess", "SignDB(%d) skip, missing next processlist!", d.DirectoryBlock.GetHeader().GetDBHeight())
 		return false
 	}
 
+	//// Don't sign while negotiating the EOM 0
+	////todo: Can this be !list.State.DBSigDone?
+	//if list.State.EOM {
+	//	list.State.LogPrintf("dbstateprocess", "SignDB(%d) negotiating the EOM!", d.DirectoryBlock.GetHeader().GetDBHeight())
+	//	return false
+	//}
+
 	// Don't sign while negotiating the EOM 0
-	//todo: Can this be !list.State.DBSigDone?
-	if list.State.EOM {
-		list.State.LogPrintf("dbstateprocess", "SignDB(%d) negotiating the EOM!", d.DirectoryBlock.GetHeader().GetDBHeight())
+	if list.State.CurrentMinute == 0 {
+		list.State.LogPrintf("dbstateprocess", "SignDB(%d) Waiting for minute 1!", d.DirectoryBlock.GetHeader().GetDBHeight())
 		return false
 	}
 

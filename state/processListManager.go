@@ -30,7 +30,7 @@ func (lists *ProcessLists) LastList() *ProcessList {
 // is always the block above the HighestRecordedBlock, but we only care about messages that
 // are at the highest known block, as long as that is above the highest recorded block.
 func (lists *ProcessLists) UpdateState(dbheight uint32) (progress bool) {
-
+	fmt.Print("1")
 	// Look and see if we need to toss some previous blocks under construction.
 	diff := int(dbheight) - int(lists.DBHeightBase)
 	//TODO: Maybe the test about len(lists.list) is pointless
@@ -42,31 +42,30 @@ func (lists *ProcessLists) UpdateState(dbheight uint32) (progress bool) {
 		newlist := append([]*ProcessList{}, lists.Lists[diff:]...)
 		lists.Lists = newlist
 	}
-	//dbstate := lists.State.DBStates.Get(int(dbheight))
-	pl := lists.Get(dbheight)
-	//for pl.Complete() || (dbstate != nil && dbstate.Locked && dbstate.Signed) {
-	//	dbheight++
-	//	lists.State.MoveStateToHeight(dbheight, 0)
-	//	pl = lists.Get(dbheight)
-	//	dbstate = lists.State.DBStates.Get(int(dbheight))
-	//}
-	//if pl == nil {
-	//	return false
-	//}
-	//if dbheight > lists.State.LLeaderHeight {
-	//	s := lists.State
-	//	//fmt.Println(fmt.Sprintf("EOM PROCESS: %10s ProcessListManager: !s.EOM(%v)", s.FactomNodeName, s.EOM))
-	//
-	//	s.MoveStateToHeight(dbheight, 0)
-	//	s.EOMProcessed = 0
-	//	s.DBSigProcessed = 0
-	//	s.Syncing = false
-	//	s.EOM = false
-	//	s.DBSig = false
-	//}
-	//lists.State.AddStatus(fmt.Sprintf("UpdateState: ProcessList Height %d", pl.DBHeight))
-	return pl.Process(lists.State)
+	dbstate := lists.State.DBStates.Get(int(dbheight))
+	pl := lists.Get(lists.State.LLeaderHeight)
+	for pl.Complete() || (dbstate != nil && dbstate.Locked && dbstate.Signed) {
+		dbheight++
+		lists.State.MoveStateToHeight(dbheight, 0)
+		pl = lists.Get(dbheight)
+		dbstate = lists.State.DBStates.Get(int(dbheight))
+	}
+	if pl == nil {
+		return false
+	}
+	if dbheight > lists.State.LLeaderHeight {
+		s := lists.State
+		//fmt.Println(fmt.Sprintf("EOM PROCESS: %10s ProcessListManager: !s.EOM(%v)", s.FactomNodeName, s.EOM))
 
+		s.MoveStateToHeight(dbheight, 0)
+		s.EOMProcessed = 0
+		s.DBSigProcessed = 0
+		s.Syncing = false
+		s.EOM = false
+		s.DBSig = false
+	}
+	lists.State.AddStatus(fmt.Sprintf("UpdateState: ProcessList Height %d", pl.DBHeight))
+	return pl.Process(lists.State)
 }
 
 // Only gets an existing process list

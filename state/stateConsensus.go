@@ -332,6 +332,7 @@ ackLoop:
 				s.LogMessage("ackQueue", "Drop Invalid", ack)
 				continue
 			case 0:
+				s.LogMessage("ackQueue", "Hold", ack)
 				// toss the ack into holding and we will try again in a bit...
 				TotalHoldingQueueInputs.Inc()
 				TotalHoldingQueueRecycles.Inc()
@@ -612,20 +613,25 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 
 	// update cached values that change with current minute
 	if s.LLeaderHeight != dbheight {
-		s.CurrentMinute = newMinute               // Update height and minute
+		if newMinute != 0 {
+			panic("Can't jump to the middle of a block")
+		}
+		s.CurrentMinute = 0                       // Update height and minute
 		s.LLeaderHeight = uint32(dbheight)        // Update height and minute
 		s.LeaderPL = s.ProcessLists.Get(dbheight) // fix up cached values
 		if s.LLeaderHeight != s.LeaderPL.DBHeight {
-			panic("bad things rae happening")
+			panic("bad things are happening")
 		}
 		s.ProcessLists.Get(dbheight + 1) // Make sure next PL exists
+		s.EOMProcessed = 0
+		s.DBSigProcessed = 0
+		s.Syncing = false
+		s.EOM = false
+		s.DBSig = false
 	} else if s.CurrentMinute != newMinute { // And minute
 		s.CurrentMinute = newMinute // Update just the minute
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(newMinute, s.IdentityChainID)
 	}
-
-	// todo: All the stuff taht needs to be cleared to move to minute 0
-
 }
 
 // Adds blocks that are either pulled locally from a database, or acquired from peers.
@@ -1757,7 +1763,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			s.LogPrintf("dbsig-eom", "ProcessEOM wait prev dbstate == nil")
 			return false
 		}
-		if !dbstate.Saved {
+		if !dbstate.Saved && s.CurrentMinute > 0 {
 			//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s vm %2d DBState not saved: return on s.SigType(%v) && int(e.Minute(%v)) > s.EOMMinute(%v)", s.FactomNodeName, e.VMIndex, s.SigType, e.Minute, s.EOMMinute))
 			s.LogPrintf("dbsig-eom", "ProcessEOM wait prev !dbstate.Saved")
 			return false
@@ -1772,6 +1778,122 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			s.EOMProcessed = 0
 			s.SendHeartBeat() // Only do this once
 			s.LogPrintf("dbsig-eom", "ProcessEOM complete for %d", e.Minute)
+			if !s.Leader {
+				if s.CurrentMinute != int(e.Minute) {
+					s.LogPrintf("dbsig-eom", "Follower jump to minute %d from %d", s.CurrentMinute, int(e.Minute))
+				}
+				s.MoveStateToHeight(e.DBHeight, int(e.Minute+1))
+			} else {
+				s.MoveStateToHeight(s.LLeaderHeight, s.CurrentMinute+1)
+			}
+
+			s.CurrentMinuteStartTime = time.Now().UnixNano()
+
+			//TODO: I'm pretty sure this is bad. ONly sort on block boundrys  -- caly
+			// If an election took place, our lists will be unsorted. Fix that
+			pl.SortAuditServers()
+			pl.SortFedServers()
+
+			switch {
+			case s.CurrentMinute < 10:
+				if s.CurrentMinute == 1 {
+					dbstate := s.GetDBState(dbheight - 1)
+					// Panic had arose when leaders would reboot and the follower was on a future minute
+					if dbstate == nil {
+						// We recognize that this will leave us "Done" without finishing the process.  But
+						// a Follower can heal themselves by asking for a block, and overwriting this block.
+						return false
+					}
+					if !dbstate.Saved {
+						dbstate.ReadyToSave = true
+					}
+				}
+				s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
+				s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
+
+			case s.CurrentMinute == 10:
+				s.LogPrintf("dbsig-eom", "Start new block")
+				eBlocks := []interfaces.IEntryBlock{}
+				entries := []interfaces.IEBEntry{}
+				for _, v := range pl.NewEBlocks {
+					eBlocks = append(eBlocks, v)
+				}
+				for _, v := range pl.NewEntries {
+					entries = append(entries, v)
+				}
+
+				dbstate := s.AddDBState(true, s.LeaderPL.DirectoryBlock, s.LeaderPL.AdminBlock, s.GetFactoidState().GetCurrentBlock(), s.LeaderPL.EntryCreditBlock, eBlocks, entries)
+				if dbstate == nil {
+					dbstate = s.DBStates.Get(int(s.LeaderPL.DirectoryBlock.GetHeader().GetDBHeight()))
+				}
+				dbht := int(dbstate.DirectoryBlock.GetHeader().GetDBHeight())
+				if dbht > 0 {
+					prev := s.DBStates.Get(dbht - 1)
+					s.DBStates.FixupLinks(prev, dbstate)
+				}
+
+				// used to call processblock here but it never did it because the dbsigs are not in yet
+				s.MoveStateToHeight(s.LLeaderHeight+1, 0)
+
+				s.GetAckChange()
+				s.CheckForIDChange()
+
+				s.DBSigProcessed = 0
+				s.TempBalanceHash = s.FactoidState.GetBalanceHash(true)
+
+				// Note about dbsigs.... If we processed the previous minute, then we generate the DBSig for the next block.
+				// But if we didn't process the previous block, like we start from scratch, or we had to reset the entire
+				// network, then no dbsig exists.  This code doesn't execute, and so we have no dbsig.  In that case, on
+				// the next EOM, we see the block hasn't been signed, and we sign the block (That is the call to SendDBSig()
+				// above).
+				pldbs := s.ProcessLists.Get(s.LLeaderHeight)
+				if s.Leader && !pldbs.DBSigAlreadySent {
+					// dbstate is already set.
+					dbs := new(messages.DirectoryBlockSignature)
+					db := dbstate.DirectoryBlock
+					dbs.DirectoryBlockHeader = db.GetHeader()
+					dbs.ServerIdentityChainID = s.GetIdentityChainID()
+					dbs.DBHeight = s.LLeaderHeight
+					dbs.Timestamp = s.GetTimestamp()
+					dbs.SetVMHash(nil)
+					dbs.SetVMIndex(s.LeaderVMIndex)
+					dbs.SetLocal(true)
+					dbs.Sign(s)
+					err := dbs.Sign(s)
+					if err != nil {
+						panic(err)
+					}
+					//{ // debug
+					//	s.LogMessage("dbstateprocess", "currentminute=10", dbs)
+					//	dbs2, _ := s.CreateDBSig(s.LLeaderHeight, s.LeaderVMIndex)
+					//	dbs3 := dbs2.(*messages.DirectoryBlockSignature)
+					//	s.LogPrintf("dbstateprocess", "issameas()=%v", dbs.IsSameAs(dbs3))
+					//}
+					s.LogMessage("dbstateprocess", "currentminute=10", dbs)
+					s.LogPrintf("dbstateprocess", dbstate.String())
+					pldbs.DBSigAlreadySent = true
+
+					dbslog := consenLogger.WithFields(log.Fields{"func": "SendDBSig", "lheight": s.GetLeaderHeight(), "node-name": s.GetFactomNodeName()}).WithFields(dbs.LogFields())
+					dbslog.Infof("Generate DBSig")
+
+					s.LogMessage("executeMsg", "LeaderExec2", dbs)
+					dbs.LeaderExecute(s)
+				}
+				atomic.WhereAmI()
+				s.Saving = true
+			}
+
+			s.Commits.RemoveExpired(s)
+
+			for k := range s.Acks {
+				v := s.Acks[k].(*messages.Ack)
+				if v.DBHeight < s.LLeaderHeight {
+					TotalAcksOutputs.Inc()
+					delete(s.Acks, k)
+				}
+			}
+			//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s vm %2d Saving: return on s.SigType(%v) && int(e.Minute(%v)) > s.EOMMinute(%v)", s.FactomNodeName, e.VMIndex, s.SigType, e.Minute, s.EOMMinute))
+
 		}
 		return true
 	}
@@ -1847,119 +1969,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		mn := entryCreditBlock.NewMinuteNumber(e.Minute + 1)
 		ecbody.AddEntry(mn)
 
-		if !s.Leader {
-			if s.CurrentMinute != int(e.Minute) {
-				s.LogPrintf("dbsig-eom", "Follower jump to minute %d from %d", s.CurrentMinute, int(e.Minute))
-			}
-			s.MoveStateToHeight(e.DBHeight, int(e.Minute+1))
-		} else {
-			s.MoveStateToHeight(s.LLeaderHeight, s.CurrentMinute+1)
-		}
-
-		s.CurrentMinuteStartTime = time.Now().UnixNano()
-		// If an election took place, our lists will be unsorted. Fix that
-		pl.SortAuditServers()
-		pl.SortFedServers()
-
-		switch {
-		case s.CurrentMinute < 10:
-			if s.CurrentMinute == 1 {
-				dbstate := s.GetDBState(dbheight - 1)
-				// Panic had arose when leaders would reboot and the follower was on a future minute
-				if dbstate == nil {
-					// We recognize that this will leave us "Done" without finishing the process.  But
-					// a Follower can heal themselves by asking for a block, and overwriting this block.
-					return false
-				}
-				if !dbstate.Saved {
-					dbstate.ReadyToSave = true
-				}
-			}
-			s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
-			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
-
-		case s.CurrentMinute == 10:
-			s.LogPrintf("dbsig-eom", "Start new block")
-			eBlocks := []interfaces.IEntryBlock{}
-			entries := []interfaces.IEBEntry{}
-			for _, v := range pl.NewEBlocks {
-				eBlocks = append(eBlocks, v)
-			}
-			for _, v := range pl.NewEntries {
-				entries = append(entries, v)
-			}
-
-			dbstate := s.AddDBState(true, s.LeaderPL.DirectoryBlock, s.LeaderPL.AdminBlock, s.GetFactoidState().GetCurrentBlock(), s.LeaderPL.EntryCreditBlock, eBlocks, entries)
-			if dbstate == nil {
-				dbstate = s.DBStates.Get(int(s.LeaderPL.DirectoryBlock.GetHeader().GetDBHeight()))
-			}
-			dbht := int(dbstate.DirectoryBlock.GetHeader().GetDBHeight())
-			if dbht > 0 {
-				prev := s.DBStates.Get(dbht - 1)
-				s.DBStates.FixupLinks(prev, dbstate)
-			}
-
-			// used to call processblock here but it never did it because the dbsigs are not in yet
-			s.MoveStateToHeight(s.LLeaderHeight+1, 0)
-
-			s.GetAckChange()
-			s.CheckForIDChange()
-
-			s.DBSigProcessed = 0
-			s.TempBalanceHash = s.FactoidState.GetBalanceHash(true)
-
-			// Note about dbsigs.... If we processed the previous minute, then we generate the DBSig for the next block.
-			// But if we didn't process the previous block, like we start from scratch, or we had to reset the entire
-			// network, then no dbsig exists.  This code doesn't execute, and so we have no dbsig.  In that case, on
-			// the next EOM, we see the block hasn't been signed, and we sign the block (That is the call to SendDBSig()
-			// above).
-			pldbs := s.ProcessLists.Get(s.LLeaderHeight)
-			if s.Leader && !pldbs.DBSigAlreadySent {
-				// dbstate is already set.
-				dbs := new(messages.DirectoryBlockSignature)
-				db := dbstate.DirectoryBlock
-				dbs.DirectoryBlockHeader = db.GetHeader()
-				dbs.ServerIdentityChainID = s.GetIdentityChainID()
-				dbs.DBHeight = s.LLeaderHeight
-				dbs.Timestamp = s.GetTimestamp()
-				dbs.SetVMHash(nil)
-				dbs.SetVMIndex(s.LeaderVMIndex)
-				dbs.SetLocal(true)
-				dbs.Sign(s)
-				err := dbs.Sign(s)
-				if err != nil {
-					panic(err)
-				}
-				//{ // debug
-				//	s.LogMessage("dbstateprocess", "currentminute=10", dbs)
-				//	dbs2, _ := s.CreateDBSig(s.LLeaderHeight, s.LeaderVMIndex)
-				//	dbs3 := dbs2.(*messages.DirectoryBlockSignature)
-				//	s.LogPrintf("dbstateprocess", "issameas()=%v", dbs.IsSameAs(dbs3))
-				//}
-				s.LogMessage("dbstateprocess", "currentminute=10", dbs)
-				s.LogPrintf("dbstateprocess", dbstate.String())
-				pldbs.DBSigAlreadySent = true
-
-				dbslog := consenLogger.WithFields(log.Fields{"func": "SendDBSig", "lheight": s.GetLeaderHeight(), "node-name": s.GetFactomNodeName()}).WithFields(dbs.LogFields())
-				dbslog.Infof("Generate DBSig")
-
-				s.LogMessage("executeMsg", "LeaderExec2", dbs)
-				dbs.LeaderExecute(s)
-			}
-			atomic.WhereAmI()
-			s.Saving = true
-		}
-
-		s.Commits.RemoveExpired(s)
-
-		for k := range s.Acks {
-			v := s.Acks[k].(*messages.Ack)
-			if v.DBHeight < s.LLeaderHeight {
-				TotalAcksOutputs.Inc()
-				delete(s.Acks, k)
-			}
-		}
-		//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s vm %2d Saving: return on s.SigType(%v) && int(e.Minute(%v)) > s.EOMMinute(%v)", s.FactomNodeName, e.VMIndex, s.SigType, e.Minute, s.EOMMinute))
 	} else {
 		//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s vm %2d Do nothing: return on s.SigType(%v) && int(e.Minute(%v)) > s.EOMMinute(%v)", s.FactomNodeName, e.VMIndex, s.SigType, e.Minute, s.EOMMinute))
 	}

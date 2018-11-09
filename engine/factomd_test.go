@@ -281,6 +281,7 @@ func StatusEveryMinute(s *state.State) {
 				for _, n := range GetFnodes() {
 					n.State.SetString()
 				}
+
 				PrintOneStatus(0, 0)
 			}
 		}()
@@ -1816,9 +1817,12 @@ func TestDBStateCatchup(t *testing.T) {
 	}
 	ranSimTest = true
 
-	state0 := SetupSim("LF", map[string]string{"--debuglog": "."}, 100, 0, 0, t)
+	state0 := SetupSim("LFF", map[string]string{"--debuglog": ".", "--blktime": "10"}, 100, 0, 0, t)
 	state.MMR_enable = false // turn off MMR processing
-	StatusEveryMinute(state0)
+	state1 := GetFnodes()[1].State
+	StatusEveryMinute(state1)
+
+	WaitMinutes(state0, 2)
 
 	runCmd("1")
 	runCmd("x") // knock the follower offline
@@ -1827,9 +1831,11 @@ func TestDBStateCatchup(t *testing.T) {
 
 	WaitBlocks(state0, 5)
 	runCmd("R0") // turn off load
-
+	WaitMinutes(state0, 2)
 	runCmd("x") // bring the follower online
+	WaitBlocks(state0, 7)
 
 	WaitForAllNodes(state0) // if the follower isn't catching up this will timeout
+	PrintOneStatus(0, 0)
 	shutDownEverything(t)
 }

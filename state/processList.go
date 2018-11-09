@@ -101,7 +101,7 @@ type DBSig struct {
 type VM struct {
 	List            []interfaces.IMsg    // Lists of acknowledged messages
 	ListAck         []*messages.Ack      // Acknowledgements
-	Height          int                  // Height of messages that have been processed
+	Height          int                  // Height of first unprocessed message (count of messages processed)
 	EomMinuteIssued int                  // Last Minute Issued on this VM (from the leader, when we are the leader)
 	LeaderMinute    int                  // Where the leader is in acknowledging messages
 	Synced          bool                 // Is this VM synced yet?
@@ -665,6 +665,7 @@ var extraDebug bool = false
 
 // Process messages and update our state.
 func (p *ProcessList) Process(s *State) (progress bool) {
+	fmt.Print("p")
 	dbht := s.GetHighestSavedBlk()
 	if dbht >= p.DBHeight {
 		//s.AddStatus(fmt.Sprintf("ProcessList.Process: VM Height is %d and Saved height is %d", dbht, s.GetHighestSavedBlk()))

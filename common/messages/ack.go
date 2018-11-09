@@ -98,14 +98,14 @@ func (m *Ack) Validate(s interfaces.IState) int {
 
 	delta := (int(m.DBHeight)-int(s.GetLeaderPL().GetDBHeight()))*10 + (int(m.Minute) - int(s.GetCurrentMinute()))
 
-	if delta > 30 {
+	if delta > 50 {
 		s.LogMessage("ackQueue", "Drop ack from future", m)
 		// when we get caught up we will either get a DBState with this message or we will missing message it.
 		// but if it was malicious then we don't want to keep it around filling up queues.
 		return -1
 	}
 
-	if delta > 15 {
+	if delta > 30 {
 		return 0 // put this in the holding and validate it later
 	}
 

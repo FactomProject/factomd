@@ -20,7 +20,7 @@ read -d '' scriptVariable << 'EOF'
      msg = substr(rest,m);
      gsub(/^ +/,"",msg);
    }
-   printf("%s %-30s %-40s %s\n",seq, fname, note, msg);
+   printf("%s %-30s %-40s %s\\n",seq, fname, note, msg);
 }
 
 EOF
