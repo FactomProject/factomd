@@ -27,6 +27,7 @@ import (
 	elections2 "github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/wsapi"
+	"github.com/FactomProject/factomd/common/globals"
 )
 
 var _ = fmt.Print
@@ -45,7 +46,7 @@ var LOCAL_NET_PRIV_KEY string = "4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c
 
 var once bool
 
-var InputChan = make(chan string)
+//var InputChan = make(chan string)
 
 func GetLine(listenToStdin bool) string {
 
@@ -61,7 +62,7 @@ func GetLine(listenToStdin bool) string {
 				// So, we will sleep before letting it check to see if Stdin has been reconnected
 				for {
 					if _, err = os.Stdin.Read(line); err == nil {
-						InputChan <- string(line)
+						globals.InputChan <- string(line)
 					} else {
 						if err == io.EOF {
 							return
@@ -76,7 +77,7 @@ func GetLine(listenToStdin bool) string {
 		}()
 	}
 	//fmt.Println("globals.InputChan ", <-InputChan)
-	line := <-InputChan
+	line := <- globals.InputChan
 	//fmt.Println("line ", line)
 	return line
 }

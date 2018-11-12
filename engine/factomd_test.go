@@ -382,7 +382,7 @@ var ranSimTest = false
 func runCmd(cmd string) {
 	os.Stdout.WriteString("Executing: " + cmd + "\n")
 	os.Stderr.WriteString("Executing: " + cmd + "\n")
-	InputChan <- cmd
+	globals.InputChan <- cmd
 	return
 }
 

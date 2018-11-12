@@ -414,7 +414,7 @@ func HandleReloadConfig(
 func runCmd(cmd string) {
 	//os.Stdout.WriteString("Executing: " + cmd + "\n")
 	os.Stderr.WriteString("Executing: " + cmd + "\n")
-	//globals.InputChan <- cmd
+	globals.InputChan <- cmd
 	return
 }
 func HandleSimControl(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
