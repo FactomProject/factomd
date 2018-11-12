@@ -382,6 +382,7 @@ var ranSimTest = false
 func runCmd(cmd string) {
 	os.Stdout.WriteString("Executing: " + cmd + "\n")
 	os.Stderr.WriteString("Executing: " + cmd + "\n")
+	//globals.InputChan <- cmd
 	globals.InputChan <- cmd
 	return
 }
@@ -859,17 +860,17 @@ func TestMultiple3Election(t *testing.T) {
 
 }
 
-
 func TestSimCtrl(t *testing.T) {
 	if ranSimTest {
 		return
 	}
 	ranSimTest = true
 
+	state0 := SetupSim("LLLLLAAF", map[string]string{"--debuglog": ".*"}, 7, 2, 2, t)
+	CheckAuthoritySet(t)
+
 	type walletcallHelper struct {
-		CurrentHeight   uint32        `json:"currentheight"`
-		LastSavedHeight uint          `json:"lastsavedheight"`
-		Balances        []interface{} `json:"balances"`
+		Status string `json:"status"`
 	}
 	type walletcall struct {
 		Jsonrpc string           `json:"jsonrps"`
@@ -877,17 +878,31 @@ func TestSimCtrl(t *testing.T) {
 		Result  walletcallHelper `json:"result"`
 	}
 
-	state0 := SetupSim("LLLLLAAF", map[string]string{"--debuglog": ".*"}, 7, 2, 2, t)
-	CheckAuthoritySet(t)
-
 	apiCall := func(cmd string) {
 		url := "http://localhost:" + fmt.Sprint(state0.GetPort()) + "/debug"
-		var jsonStr= []byte(`{"jsonrpc": "2.0", "id": 0, "method": "sim-ctrl", "params":{"commands": ["` + cmd + `"]}}`)
+		var jsonStr = []byte(`{"jsonrpc": "2.0", "id": 0, "method": "sim-ctrl", "params":{"commands": ["` + cmd + `"]}}`)
 		req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
 		req.Header.Set("content-type", "text/plain;")
 		if err != nil {
 			t.Error(err)
 		}
+
+		client := &http.Client{}
+		resp, err := client.Do(req)
+		if err != nil {
+			t.Error(err)
+		}
+
+		defer resp.Body.Close()
+		body, _ := ioutil.ReadAll(resp.Body)
+
+		resp2 := new(walletcall)
+		err1 := json.Unmarshal([]byte(body), &resp2)
+		if err1 != nil {
+			t.Error(err1)
+		}
+
+		fmt.Println("resp2: ", resp2)
 	}
 
 	WaitForMinute(state0, 2)
@@ -901,10 +916,10 @@ func TestSimCtrl(t *testing.T) {
 	apiCall("2")
 	apiCall("x")
 
-	runCmd("E")
-	runCmd("F")
-	runCmd("0")
-	runCmd("p")
+	apiCall("E")
+	apiCall("F")
+	apiCall("0")
+	apiCall("p")
 
 	WaitBlocks(state0, 2)
 	WaitForMinute(state0, 1)

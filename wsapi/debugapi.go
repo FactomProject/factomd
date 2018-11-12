@@ -415,6 +415,7 @@ func runCmd(cmd string) {
 	//os.Stdout.WriteString("Executing: " + cmd + "\n")
 	os.Stderr.WriteString("Executing: " + cmd + "\n")
 	globals.InputChan <- cmd
+
 	return
 }
 func HandleSimControl(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
@@ -424,10 +425,17 @@ func HandleSimControl(state interfaces.IState, params interface{}) (interface{},
 		return nil, NewInvalidParamsError()
 	}
 
-	runCmd(string(droprate.Commands[0]))
+	for i := 0; i < len(droprate.Commands); i++ {
+		runCmd(string(droprate.Commands[i]))
+	}
 
-	//fmt.Println("globals.APIChan: ", <-globals.APIChan)
-	return nil, nil
+	type Success struct {
+		Status string `json:"status"`
+	}
+
+	r := new(Success)
+	r.Status = "Success!"
+	return r, nil
 }
 
 type SetDelayRequest struct {

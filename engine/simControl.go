@@ -17,6 +17,8 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/FactomProject/factomd/common/globals"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/identity"
@@ -27,7 +29,6 @@ import (
 	elections2 "github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/wsapi"
-	"github.com/FactomProject/factomd/common/globals"
 )
 
 var _ = fmt.Print
@@ -77,7 +78,8 @@ func GetLine(listenToStdin bool) string {
 		}()
 	}
 	//fmt.Println("globals.InputChan ", <-InputChan)
-	line := <- globals.InputChan
+	line := <-globals.InputChan
+
 	//fmt.Println("line ", line)
 	return line
 }
@@ -110,7 +112,6 @@ func SimControl(listenTo int, listenStdin bool) {
 		}
 		// cmd is not a list of the parameters, much like command line args show up in args[]
 		cmd := strings.FieldsFunc(GetLine(listenStdin), parseFunc)
-		// fmt.Printf("Parsing command, found %d elements.  The first element is: %+v / %s \n Full command: %+v\n", len(cmd), b[0], string(b), cmd)
 
 		switch {
 		case 0 < len(cmd):
@@ -124,6 +125,7 @@ func SimControl(listenTo int, listenStdin bool) {
 			}
 		}
 		b := string(cmd[0])
+		//fmt.Printf("Parsing command, found %d elements.  The first element is: %+v / %s \n Full command: %+v\n", len(cmd), b[0], string(b), cmd)
 
 		v, err := strconv.Atoi(string(b))
 		if err == nil && v >= 0 && v < len(fnodes) && fnodes[ListenTo].State != nil {
@@ -626,7 +628,6 @@ func SimControl(listenTo int, listenStdin bool) {
 					v := f.State.GetNetStateOff() // Toggle his network on/off state
 					if v {
 						os.Stderr.WriteString("Bring " + f.State.FactomNodeName + " Back onto the network\n")
-						//globals.APIChan <- time.Now().Format("2006-01-02 15:04:05")
 					} else {
 						os.Stderr.WriteString("Take  " + f.State.FactomNodeName + " off the network\n")
 					}
