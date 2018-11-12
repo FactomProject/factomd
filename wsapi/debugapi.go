@@ -424,9 +424,9 @@ func HandleSimControl(state interfaces.IState, params interface{}) (interface{},
 		return nil, NewInvalidParamsError()
 	}
 
-	runCmd(droprate.Commands[0])
+	runCmd(string(droprate.Commands[0]))
 
-	fmt.Println("globals.APIChan: ", globals.APIChan)
+	//fmt.Println("globals.APIChan: ", <-globals.APIChan)
 	return nil, nil
 }
 

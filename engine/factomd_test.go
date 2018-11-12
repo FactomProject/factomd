@@ -859,6 +859,60 @@ func TestMultiple3Election(t *testing.T) {
 
 }
 
+
+func TestSimCtrl(t *testing.T) {
+	if ranSimTest {
+		return
+	}
+	ranSimTest = true
+
+	type walletcallHelper struct {
+		CurrentHeight   uint32        `json:"currentheight"`
+		LastSavedHeight uint          `json:"lastsavedheight"`
+		Balances        []interface{} `json:"balances"`
+	}
+	type walletcall struct {
+		Jsonrpc string           `json:"jsonrps"`
+		Id      int              `json:"id"`
+		Result  walletcallHelper `json:"result"`
+	}
+
+	state0 := SetupSim("LLLLLAAF", map[string]string{"--debuglog": ".*"}, 7, 2, 2, t)
+	CheckAuthoritySet(t)
+
+	apiCall := func(cmd string) {
+		url := "http://localhost:" + fmt.Sprint(state0.GetPort()) + "/debug"
+		var jsonStr= []byte(`{"jsonrpc": "2.0", "id": 0, "method": "sim-ctrl", "params":{"commands": ["` + cmd + `"]}}`)
+		req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
+		req.Header.Set("content-type", "text/plain;")
+		if err != nil {
+			t.Error(err)
+		}
+	}
+
+	WaitForMinute(state0, 2)
+	apiCall("1")
+	apiCall("x")
+	apiCall("2")
+	apiCall("x")
+	WaitForMinute(state0, 1)
+	apiCall("1")
+	apiCall("x")
+	apiCall("2")
+	apiCall("x")
+
+	runCmd("E")
+	runCmd("F")
+	runCmd("0")
+	runCmd("p")
+
+	WaitBlocks(state0, 2)
+	WaitForMinute(state0, 1)
+	WaitForAllNodes(state0)
+	CheckAuthoritySet(t)
+	shutDownEverything(t)
+}
+
 func TestMultiple7Election(t *testing.T) {
 	if ranSimTest {
 		return

@@ -17,8 +17,6 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/FactomProject/factomd/common/globals"
-
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/identity"
@@ -627,7 +625,7 @@ func SimControl(listenTo int, listenStdin bool) {
 					v := f.State.GetNetStateOff() // Toggle his network on/off state
 					if v {
 						os.Stderr.WriteString("Bring " + f.State.FactomNodeName + " Back onto the network\n")
-						globals.APIChan <- time.Now().Format("2006-01-02 15:04:05")
+						//globals.APIChan <- time.Now().Format("2006-01-02 15:04:05")
 					} else {
 						os.Stderr.WriteString("Take  " + f.State.FactomNodeName + " off the network\n")
 					}
