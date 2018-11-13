@@ -250,15 +250,17 @@ type State struct {
 	Saving  bool // True if we are in the process of saving to the database
 	Syncing bool // Looking for messages from leaders to sync
 
-	NetStateOff     bool // Disable if true, Enable if false
-	DebugConsensus  bool // If true, dump consensus trace
-	FactoidTrans    int
-	ECCommits       int
-	ECommits        int
-	FCTSubmits      int
-	NewEntryChains  int
-	NewEntries      int
-	LeaderTimestamp interfaces.Timestamp
+	NetStateOff            bool // Disable if true, Enable if false
+	DebugConsensus         bool // If true, dump consensus trace
+	FactoidTrans           int
+	ECCommits              int
+	ECommits               int
+	FCTSubmits             int
+	NewEntryChains         int
+	NewEntries             int
+	LeaderTimestamp        interfaces.Timestamp
+	MessageFilterTimestamp interfaces.Timestamp
+
 	// Maps
 	// ====
 	// For Follower
@@ -502,6 +504,7 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 	}
 
 	newState.LeaderTimestamp = primitives.NewTimestampFromMilliseconds(s.LeaderTimestamp.GetTimeMilliUInt64())
+	newState.MessageFilterTimestamp = primitives.NewTimestampFromMilliseconds(s.LeaderTimestamp.GetTimeMilliUInt64())
 	newState.TimestampAtBoot = primitives.NewTimestampFromMilliseconds(s.TimestampAtBoot.GetTimeMilliUInt64())
 
 	//serverPrivKey primitives.PrivateKey
@@ -2176,11 +2179,18 @@ func (s *State) GetLeaderTimestamp() interfaces.Timestamp {
 	return s.LeaderTimestamp
 }
 
-// the leader timestamp is used to filter messages from the past or before the replay filter.
+func (s *State) GetMessageFilterTimestamp() interfaces.Timestamp {
+	if s.MessageFilterTimestamp == nil {
+		s.MessageFilterTimestamp.SetTimestamp(new(primitives.Timestamp))
+	}
+	return s.MessageFilterTimestamp
+}
+
+// the MessageFilterTimestamp  is used to filter messages from the past or before the replay filter.
 // We will not set it to a time that is before boot or more than one hour in the past.
 // this ensure messages from prior boot and messages that predate the current replay filter are
 // are dropped.
-func (s *State) SetLeaderTimestamp(requestedTs interfaces.Timestamp) {
+func (s *State) SetMessageFilterTimestamp(requestedTs interfaces.Timestamp) {
 
 	oneHourAgo := primitives.NewTimestampNow() // now() - one hour
 	oneHourAgo.SetTimeMilli(oneHourAgo.GetTimeMilli() - 60*60*1000)
@@ -2203,12 +2213,20 @@ func (s *State) SetLeaderTimestamp(requestedTs interfaces.Timestamp) {
 	}
 
 	if ts.GetTimeMilli() < s.LeaderTimestamp.GetTimeMilli() {
-		s.LogPrintf("executeMsg", "Set LeaderTimeStamp attempt to move backward in time from %s", atomic.WhereAmIString(1))
+		s.LogPrintf("executeMsg", "Set MessageFilterTimestamp attempt to move backward in time from %s", atomic.WhereAmIString(1))
 		ts.SetTimestamp(s.LeaderTimestamp)
 	}
 
 	s.LeaderTimestamp.SetTimestamp(ts) //SetLeaderTimestamp()
-	s.LogPrintf("executeMsg", "Set LeaderTimeStamp(%s) @ dbht %d using %s for %s", requestedTs, s.LLeaderHeight, ts.String(), atomic.WhereAmIString(1))
+	s.LogPrintf("executeMsg", "Set MessageFilterTimestamp(%s) @ dbht %d using %s for %s", requestedTs, s.LLeaderHeight, ts.String(), atomic.WhereAmIString(1))
+
+	s.MessageFilterTimestamp.SetTimestamp(ts)
+}
+
+func (s *State) SetLeaderTimestamp(requestedTs interfaces.Timestamp) {
+	s.LogPrintf("executeMsg", "Set SetLeaderTimestamp(%s) @ dbht %d to %s for  %s", requestedTs, s.LLeaderHeight, requestedTs.String(), atomic.WhereAmIString(1))
+	s.LeaderTimestamp.SetTimestamp(requestedTs) //SetLeaderTimestamp()
+	s.SetMessageFilterTimestamp(requestedTs)
 }
 
 //func (s *State) SetLLeaderHeight(height int) {

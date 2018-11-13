@@ -876,7 +876,7 @@ func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces
 	TotalProcessListInputs.Inc()
 
 	// Make sure we don't put in an old ack (outside our repeat range)
-	blktime := s.GetLeaderTimestamp().GetTime().UnixNano()
+	blktime := s.GetMessageFilterTimestamp().GetTime().UnixNano()
 	tlim := int64(Range * 60 * 1000000000)
 
 	if blktime != 0 {

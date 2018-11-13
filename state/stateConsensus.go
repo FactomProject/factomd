@@ -101,7 +101,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 	if valid == 1 {
 		if msg.Type() != constants.DBSTATE_MSG && msg.Type() != constants.DIRECTORY_BLOCK_SIGNATURE_MSG {
 			// Make sure we don't put in an old ack (outside our repeat range)
-			blktime := s.GetLeaderTimestamp().GetTime().UnixNano()
+			blktime := s.GetMessageFilterTimestamp().GetTime().UnixNano()
 			tlim := int64(Range * 60 * 1000000000)
 
 			if blktime != 0 {
@@ -2146,12 +2146,17 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 		if dbs.DirectoryBlockHeader.GetBodyMR().Fixed() != dblk.GetHeader().GetBodyMR().Fixed() {
 			pl.IncrementDiffSigTally()
-			s.LogPrintf("executeMsg", "Failed. DBlocks do not match Expected-Body-Mr: %x, Got: %x",
-				dblk.GetHeader().GetBodyMR().Fixed(), dbs.DirectoryBlockHeader.GetBodyMR().Fixed())
+			s.LogPrintf("processList", "Failed. DBSig and DBlocks do not match Expected-Body-Mr: [%d]%x, Got: [%d]%x",
+				dblk.GetHeader().GetDBHeight(), dblk.GetHeader().GetBodyMR().Fixed(), dbs.DirectoryBlockHeader.GetDBHeight(), dbs.DirectoryBlockHeader.GetBodyMR().Fixed())
 			// If the Directory block hash doesn't work for me, then the dbsig doesn't work for me, so
 			// toss it and ask our neighbors for another one.
 			vm.ListAck[0] = nil
 			vm.List[0] = nil
+			vm.HighestAsk = 0
+			vm.HighestNil = 0
+			s.LogMessage("processList", "drop from pl", vm.List[0])
+			s.LogMessage("processList", "drop from pl", vm.ListAck[0])
+
 			return false
 		}
 
@@ -2161,18 +2166,28 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			return false
 		}
 		if !dbs.DBSignature.Verify(data) {
+			s.LogPrintf("processList", "Failed. DBSig.DBSignature.Verify()")
 			// If the signature fails, then ask for another one.
 			vm.ListAck[0] = nil
 			vm.List[0] = nil
+			vm.HighestAsk = 0
+			vm.HighestNil = 0
+			s.LogMessage("processList", "drop from pl", vm.List[0])
+			s.LogMessage("processList", "drop from pl", vm.ListAck[0])
+
 			return false
 		}
 
 		valid, err := s.FastVerifyAuthoritySignature(data, dbs.DBSignature, dbs.DBHeight)
 		if err != nil || valid != 1 {
-			s.LogPrintf("executeMsg", "Failed. Invalid Auth Sig: Pubkey: %x", dbs.Signature.GetKey())
+			s.LogPrintf("processList", "Failed. DBSig Invalid Auth Sig: Pubkey: %x", dbs.Signature.GetKey())
 			// If the authority is bad, toss this signature and ask for another.
 			vm.ListAck[0] = nil
 			vm.List[0] = nil
+			vm.HighestAsk = 0
+			vm.HighestNil = 0
+			s.LogMessage("processList", "drop from pl", vm.List[0])
+			s.LogMessage("processList", "drop from pl", vm.ListAck[0])
 			return false
 		}
 
@@ -2223,7 +2238,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		}
 
 		s.ReviewHolding()
-		atomic.WhereAmI()
 		s.Saving = false
 		s.DBSigDone = true // p
 		//		s.LogPrintf("dbsig-eom", "DBSIGDone written %v @ %s", s.DBSigDone, atomic.WhereAmIString(0))
