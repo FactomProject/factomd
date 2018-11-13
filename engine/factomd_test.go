@@ -147,12 +147,12 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 				return
 			default:
 				if int(state0.GetLLeaderHeight()) > height {
-					fmt.Printf("Test Timeout: Expected %d blocks\n", height)
-					panic("Exceeded expected height")
+					fmt.Printf("Test Timeout: Expected %d blocks (%s)\n", height, calctime.String())
+					panic(fmt.Sprintf("Test Timeout: Expected %d blocks (%s)\n", height, calctime.String()))
 				}
 				if time.Now().After(endTime) {
-					fmt.Printf("Test Timeout: Expected it to take %s\n", calctime.String())
-					panic("TOOK TOO LONG")
+					fmt.Printf("Test Timeout: Expected it to take %s (%d blocks)\n", calctime.String(), height)
+					panic(fmt.Sprintf("Test Timeout: Expected it to take %s (%d blocks)\n", calctime.String(), height))
 				}
 				time.Sleep(1 * time.Second)
 			}

@@ -229,7 +229,17 @@ func (m *FedVoteLevelMsg) FollowerExecute(is interfaces.IState) {
 	}
 
 	// reset my leader variables, cause maybe we changed...
-	s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(int(m.Minute), s.IdentityChainID)
+	Leader, LeaderVMIndex := s.LeaderPL.GetVirtualServers(int(m.Minute), s.IdentityChainID)
+	{ // debug
+		if s.Leader != Leader {
+			s.LogPrintf("executeMsg", "FedVoteLevelMsg.FollowerExecute() unexpectedly setting s.Leader to %v", Leader)
+			s.Leader = Leader
+		}
+		if s.LeaderVMIndex != LeaderVMIndex {
+			s.LogPrintf("executeMsg", "FedVoteLevelMsg.FollowerExecute() unexpectedly setting s.LeaderVMIndex to %v", LeaderVMIndex)
+			s.LeaderVMIndex = LeaderVMIndex
+		}
+	}
 }
 
 var _ interfaces.IMsg = (*FedVoteVolunteerMsg)(nil)

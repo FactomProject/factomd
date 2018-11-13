@@ -212,7 +212,13 @@ func (s *State) Process() (progress bool) {
 		return false
 	}
 
-	s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
+	LeaderPL := s.ProcessLists.Get(s.LLeaderHeight)
+
+	if s.LeaderPL != LeaderPL {
+		s.LogPrintf("ExecuteMsg", "Unexpected change in LeaderPL")
+		s.LeaderPL = LeaderPL
+	}
+
 	now := s.GetTimestamp().GetTimeMilli() // Timestamps are in milliseconds, so wait 20
 
 	// If we are not running the leader, then look to see if we have waited long enough to
@@ -225,13 +231,15 @@ func (s *State) Process() (progress bool) {
 	} else {
 		Leader, LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
 	}
-	if Leader != s.Leader {
-		fmt.Print("cache fail")
-		s.Leader = Leader // fix it for now
-	}
-	if LeaderVMIndex != s.LeaderVMIndex {
-		fmt.Print("cache fail")
-		s.LeaderVMIndex = LeaderVMIndex
+	{ // debug
+		if s.Leader != Leader {
+			s.LogPrintf("executeMsg", "State.Process() unexpectedly setting s.Leader to %v", Leader)
+			s.Leader = Leader
+		}
+		if s.LeaderVMIndex != LeaderVMIndex {
+			s.LogPrintf("executeMsg", "State.Process()  unexpectedly setting s.LeaderVMIndex to %v", LeaderVMIndex)
+			s.LeaderVMIndex = LeaderVMIndex
+		}
 	}
 
 	if !s.RunLeader {
@@ -626,16 +634,24 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		if s.LLeaderHeight != s.LeaderPL.DBHeight {
 			panic("bad things are happening")
 		}
-		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(newMinute, s.IdentityChainID)
-		s.ProcessLists.Get(dbheight + 1) // Make sure next PL exists
-		s.EOMProcessed = 0
-		s.DBSigProcessed = 0
+		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(newMinute, s.IdentityChainID) // MoveStateToHeight block
+		s.ProcessLists.Get(dbheight + 1)                                                       // Make sure next PL exists
 		s.Syncing = false
 		s.EOM = false
 		s.DBSig = false
+		s.DBSigDone = false
+		s.EOMProcessed = 0
+		s.DBSigProcessed = 0
+		s.EOMLimit = len(s.LeaderPL.FedServers) // We add or remove server only on block boundaries
+		s.DBSigLimit = s.EOMLimit
+
 	} else if s.CurrentMinute != newMinute { // And minute
-		s.CurrentMinute = newMinute // Update just the minute
-		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(newMinute, s.IdentityChainID)
+		s.CurrentMinute = newMinute                                                            // Update just the minute
+		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(newMinute, s.IdentityChainID) // MoveStateToHeight minute
+		s.Syncing = false
+		s.EOM = false
+		s.EOMDone = false
+		s.EOMProcessed = 0
 	}
 
 	s.LogPrintf("dbstateprocess", "MoveStateToHeight(%d-:-%d) leader=%v leaderPL=%p, leaderVMIndex=%d", dbheight, newMinute, s.Leader, s.LeaderPL, s.LeaderVMIndex)
@@ -681,13 +697,14 @@ func (s *State) AddDBState(isNew bool,
 		s.Syncing = false
 		//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s Add DBState: s.SigType(%v)", s.FactomNodeName, s.SigType))
 		s.MoveStateToHeight(ht, 0) // AddDBState()
-		s.EOMProcessed = 0
-		s.DBSigProcessed = 0
 		s.StartDelay = s.GetTimestamp().GetTimeMilli()
-		s.EOM = false
-		s.DBSig = false
 		s.RunLeader = false
-		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
+		LeaderPL := s.ProcessLists.Get(s.LLeaderHeight)
+
+		if s.LeaderPL != LeaderPL {
+			s.LogPrintf("ExecuteMsg", "Unexpected chang in LeaderPL")
+			s.LeaderPL = LeaderPL
+		}
 
 		s.SetLeaderTimestamp(dbState.DirectoryBlock.GetTimestamp()) // move the leader timestamp to the start of the block
 		{
@@ -701,7 +718,18 @@ func (s *State) AddDBState(isNew bool,
 			s.LeaderPL.ECBalancesTMutex.Unlock()
 		}
 
-		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
+		Leader, LeaderVMIndex := s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
+		{ // debug
+			if s.Leader != Leader {
+				s.LogPrintf("executeMsg", "State.AddDBState() unexpectedly setting s.Leader to %v", Leader)
+				s.Leader = Leader
+			}
+			if s.LeaderVMIndex != LeaderVMIndex {
+				s.LogPrintf("executeMsg", "State.AddDBState()  unexpectedly setting s.LeaderVMIndex to %v", LeaderVMIndex)
+				s.LeaderVMIndex = LeaderVMIndex
+			}
+		}
+
 		for s.ProcessLists.UpdateState(s.LLeaderHeight) {
 		}
 	}
@@ -1001,7 +1029,6 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	s.EOMDone = false
 	s.DBSig = false
 	s.DBSigDone = false
-	atomic.WhereAmI()
 	s.Saving = true
 	s.Syncing = false
 
@@ -1755,6 +1782,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		return false
 	}
 
+	//todo: Why isn't this CurrentMinute?
 	if s.EOM && int(e.Minute) > s.EOMMinute {
 		//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s vm %2d Will Not Process: return on s.SigType(%v) && int(e.Minute(%v)) > s.EOMMinute(%v)", s.FactomNodeName, e.VMIndex, s.SigType, e.Minute, s.EOMMinute))
 		s.LogPrintf("dbsig-eom", "ProcessEOM skip EOM for a future minute e.Minute(%d) > s.EOMMinute(%d)", e.Minute, s.EOMMinute)
@@ -1762,7 +1790,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	}
 
 	if s.CurrentMinute == 0 && !s.DBSigDone {
-		s.LogPrintf("dbsig-eom", "ProcessEOM wait for DBSIg in minute 0")
+		s.LogPrintf("dbsig-eom", "ProcessEOM wait for DBSig in minute 0")
 		return false
 	}
 
@@ -1788,11 +1816,8 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		//fmt.Println(fmt.Sprintf("EOM PROCESS: %10s vm %2d Done! s.EOMDone(%v) && s.EOMSys(%v)", s.FactomNodeName, e.VMIndex, s.EOMDone, s.EOMSys))
 		s.EOMProcessed--
 		if s.EOMProcessed <= 0 { // why less than or equal?
-			s.EOM = false
-			s.EOMDone = false
-			s.Syncing = false
-			s.EOMProcessed = 0
-			s.SendHeartBeat() // Only do this once
+
+			s.SendHeartBeat() // Only do this once per minute
 			s.LogPrintf("dbsig-eom", "ProcessEOM complete for %d", e.Minute)
 			if !s.Leader {
 				if s.CurrentMinute != int(e.Minute) {
@@ -1803,12 +1828,20 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 				s.MoveStateToHeight(s.LLeaderHeight, s.CurrentMinute+1)
 			}
 
-			s.CurrentMinuteStartTime = time.Now().UnixNano()
+			if s.EOM || s.EOMDone || s.Syncing || s.EOMProcessed != 0 {
+				s.LogPrintf("executeMsg", "unexpected")
+				s.EOM = false
+				s.EOMDone = false
+				s.Syncing = false
+				s.EOMProcessed = 0
+			}
 
-			//TODO: I'm pretty sure this is bad. ONly sort on block boundrys  -- caly
-			// If an election took place, our lists will be unsorted. Fix that
-			pl.SortAuditServers()
-			pl.SortFedServers()
+			s.CurrentMinuteStartTime = time.Now().UnixNano()
+			//
+			////TODO: I'm pretty sure this is bad. Only sort on block boundaries  -- clay
+			//// If an election took place, our lists will be unsorted. Fix that
+			//pl.SortAuditServers()
+			//pl.SortFedServers()
 
 			switch {
 			case s.CurrentMinute < 10:
@@ -1824,8 +1857,23 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 						dbstate.ReadyToSave = true
 					}
 				}
-				s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
-				s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
+				LeaderPL := s.ProcessLists.Get(s.LLeaderHeight)
+				if s.LeaderPL != LeaderPL {
+					s.LogPrintf("ExecuteMsg", "Unexpected change in LeaderPL")
+					s.LeaderPL = LeaderPL
+				}
+
+				Leader, LeaderVMIndex := s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
+				{ // debug
+					if s.Leader != Leader {
+						s.LogPrintf("executeMsg", "State.ProcessEOM() unexpectedly setting s.Leader to %v", Leader)
+						s.Leader = Leader
+					}
+					if s.LeaderVMIndex != LeaderVMIndex {
+						s.LogPrintf("executeMsg", "State.ProcessEOM()  unexpectedly setting s.LeaderVMIndex to %v", LeaderVMIndex)
+						s.LeaderVMIndex = LeaderVMIndex
+					}
+				}
 
 			case s.CurrentMinute == 10:
 				s.LogPrintf("dbsig-eom", "Start new block")
@@ -1996,25 +2044,10 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	dbs := msg.(*messages.DirectoryBlockSignature)
 	//plog makes logging anything in ProcessDBSig() easier
 	//		The instantiation as a function makes it almost no overhead if you do not use it
-	plog := func(format string, args ...interface{}) {
-		consenLogger.WithFields(log.Fields{"func": "ProcessDBSig", "msgheight": dbs.DBHeight, "lheight": s.GetLeaderHeight(), "msg": msg.String()}).Errorf(format, args...)
-	}
-	// debug
-	if s.DebugExec() {
-		var ids string
-		if s.Syncing && s.DBSig && !s.DBSigDone {
-			p := s.ProcessLists.Get(dbheight - 1)
-			for i, l := range p.FedServers {
-				vm := p.VMs[i]
-				if !vm.Synced {
-					ids = ids + "," + l.GetChainID().String()[6:12]
-				}
-			}
-			if len(ids) > 0 {
-				s.LogPrintf("dbsig-eom", "Waiting for DBSIGs from %s", ids[1:])
-			}
-		}
-	}
+	//plog := func(format string, args ...interface{}) {
+	//	consenLogger.WithFields(log.Fields{"func": "ProcessDBSig", "msgheight": dbs.DBHeight, "lheight": s.GetLeaderHeight(), "msg": msg.String()}).Errorf(format, args...)
+	//}
+
 	// Don't process if syncing an EOM
 	if s.Syncing && !s.DBSig {
 		//fmt.Println(fmt.Sprintf("ProcessDBSig(): %10s Will Not Process: dbht: %d return on s.Syncing(%v) && !s.DBSig(%v)", s.FactomNodeName,
@@ -2079,7 +2112,8 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	if !vm.Synced {
 		s.LogPrintf("dbsig-eom", "ProcessDBSig Handle VM(%v) minute %d", msg.GetVMIndex(), dbs.Minute)
 
-		if s.LLeaderHeight > 0 && s.GetHighestCompletedBlk()+1 < s.LLeaderHeight {
+		highestCompletedBlk := s.GetHighestCompletedBlk()
+		if s.LLeaderHeight > 0 && highestCompletedBlk+1 < s.LLeaderHeight {
 
 			pl := s.ProcessLists.Get(dbs.DBHeight - 1)
 			if !pl.Complete() {
@@ -2112,7 +2146,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 		if dbs.DirectoryBlockHeader.GetBodyMR().Fixed() != dblk.GetHeader().GetBodyMR().Fixed() {
 			pl.IncrementDiffSigTally()
-			plog("Failed. DBlocks do not match Expected-Body-Mr: %x, Got: %x",
+			s.LogPrintf("executeMsg", "Failed. DBlocks do not match Expected-Body-Mr: %x, Got: %x",
 				dblk.GetHeader().GetBodyMR().Fixed(), dbs.DirectoryBlockHeader.GetBodyMR().Fixed())
 			// If the Directory block hash doesn't work for me, then the dbsig doesn't work for me, so
 			// toss it and ask our neighbors for another one.
