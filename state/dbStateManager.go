@@ -906,7 +906,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	// its links patched, so we can't process it.  But if this is a repeat block (we have already processed
 	// at this height) then we simply return.
 	if d.Locked || d.IsNew || d.Repeat {
-		s.LogPrintf("dbstateprocess", "ProcessBlocks(%d) Skipping d.Locked(%v) || d.IsNew(%v) || d.Repeat(%v)", dbht, d.Locked, d.IsNew, d.Repeat)
+		s.LogPrintf("dbstateprocess", "ProcessBlocks(%d) Skipping d.Locked(%v) || d.IsNew(%v) || d.Repeat(%v) : dbstate = %v", dbht, d.Locked, d.IsNew, d.Repeat, d.String())
 		return false
 	}
 
@@ -953,11 +953,11 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	pln := list.State.ProcessLists.Get(dbht + 1)
 
 	if pl == nil {
-		s.LogPrintf("dbstateprocess", "ProcessBlock(%d) Skipping No ProcessList", dbht)
+		s.LogPrintf("dbstateprocess", "ProcessBlocks(%d) Skipping No ProcessList", dbht)
 		return false
 	}
 
-	s.LogPrintf("dbstateprocess", "ProcessBlock(%d)", dbht)
+	s.LogPrintf("dbstateprocess", "ProcessBlocks(%d)", dbht)
 
 	//
 	// ***** Apply the AdminBlock changes to the next DBState
@@ -994,7 +994,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	fs := list.State.GetFactoidState()
 	fs.(*FactoidState).DBHeight = dbht
 
-	s.LogPrintf("dbstateprocess", "ProcessBlock(%d) Process Factoids dbht %d factoid",
+	s.LogPrintf("dbstateprocess", "ProcessBlocks(%d) Process Factoids dbht %d factoid",
 		dbht, fs.(*FactoidState).DBHeight)
 
 	// get all the prior balances of the Factoid addresses that may have changed
@@ -1296,7 +1296,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	if !d.Signed || !d.ReadyToSave || list.State.DB == nil {
 		return
 	}
-	//	list.State.LogPrintf("dbstateprocess", "SaveDBStateToDB(%d)", d.DirectoryBlock.GetHeader().GetDBHeight())
+	list.State.LogPrintf("dbstateprocess", "SaveDBStateToDB(%d)", d.DirectoryBlock.GetHeader().GetDBHeight())
 
 	// If this is a repeated block, and I have already saved at this height, then we can safely ignore
 	// this dbstate.
@@ -1690,9 +1690,7 @@ searchLoop:
 	for len(list.DBStates) <= index {
 		list.DBStates = append(list.DBStates, nil)
 	}
-	if list.DBStates[index] == nil {
-		list.DBStates[index] = dbState
-	}
+	list.DBStates[index] = dbState
 
 	return true
 }
