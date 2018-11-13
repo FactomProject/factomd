@@ -3,6 +3,7 @@ package messages
 import (
 	"fmt"
 	"os"
+	"reflect"
 	"regexp"
 	"strings"
 	"sync"
@@ -136,7 +137,7 @@ func logMessage(name string, note string, msg interfaces.IMsg) {
 	msgString := "-nil-"
 	var embeddedMsg interfaces.IMsg
 
-	if msg != nil {
+	if msg != nil || reflect.ValueOf(msg.GetHash()).IsNil() {
 		t = msg.Type()
 		msgString = msg.String()
 

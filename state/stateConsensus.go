@@ -597,29 +597,6 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		s.LogPrintf("dbstateprocess", "Jump in current minute from %d-:-%d to %d-:-%d", s.LLeaderHeight, s.CurrentMinute, dbheight, newMinute)
 		fmt.Fprintf(os.Stderr, "Jump in current minute from %d-:-%d to %d-:-%d\n", s.LLeaderHeight, s.CurrentMinute, dbheight, newMinute)
 	}
-	// update cached values that change with height
-	if s.LLeaderHeight != dbheight {
-		// check if a DBState exists where we can get the timestamp
-		dbstate := s.DBStates.Get(int(dbheight))
-
-		// Setting the leader timestamp is as follows.
-		// If we have a dbstate use it's timestamp.
-		// If we don't have a DBState see if the database has a dblock
-		//  if not try the previous block
-		// there more complexity down in SetLeaderTimestamp where boot time and now-60 minutes get mixed
-		// the primary use of the timestamp is message filtering
-		if dbstate != nil {
-			s.SetLeaderTimestamp(dbstate.DirectoryBlock.GetTimestamp())
-		} else if dblock, err := s.DB.FetchDBlockByHeight(dbheight); dblock != nil && err == nil {
-			s.SetLeaderTimestamp(dblock.GetTimestamp())
-		} else if dbstate = s.DBStates.Get(int(dbheight - 1)); dbstate != nil {
-			s.SetLeaderTimestamp(dbstate.DirectoryBlock.GetTimestamp())
-		} else {
-			// not 100% sure how this case can be but doing nothing seems to work and it does happen in sim tests.
-			//panic("No prior state")
-		}
-	}
-
 	//s.setCurrentMinute(newMinute)     // MoveStateToHeight() move minute
 	//s.SetLLeaderHeight(int(dbheight)) // Update leader height in MoveStateToHeight
 
@@ -644,6 +621,27 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		s.DBSigProcessed = 0
 		s.EOMLimit = len(s.LeaderPL.FedServers) // We add or remove server only on block boundaries
 		s.DBSigLimit = s.EOMLimit
+
+		// update cached values that change with height
+		// check if a DBState exists where we can get the timestamp
+		dbstate := s.DBStates.Get(int(dbheight))
+
+		// Setting the leader timestamp is as follows.
+		// If we have a dbstate use it's timestamp.
+		// If we don't have a DBState see if the database has a dblock
+		//  if not try the previous block
+		// there more complexity down in SetLeaderTimestamp where boot time and now-60 minutes get mixed
+		// the primary use of the timestamp is message filtering
+		if dbstate != nil {
+			s.SetLeaderTimestamp(dbstate.DirectoryBlock.GetTimestamp())
+		} else if dblock, err := s.DB.FetchDBlockByHeight(dbheight); dblock != nil && err == nil {
+			s.SetLeaderTimestamp(dblock.GetTimestamp())
+		} else if dbstate = s.DBStates.Get(int(dbheight - 1)); dbstate != nil {
+			s.SetLeaderTimestamp(dbstate.DirectoryBlock.GetTimestamp())
+		} else {
+			// not 100% sure how this case can be but doing nothing seems to work and it does happen in sim tests.
+			//panic("No prior state")
+		}
 
 	} else if s.CurrentMinute != newMinute { // And minute
 		s.CurrentMinute = newMinute                                                            // Update just the minute
@@ -2150,12 +2148,12 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 				dblk.GetHeader().GetDBHeight(), dblk.GetHeader().GetBodyMR().Fixed(), dbs.DirectoryBlockHeader.GetDBHeight(), dbs.DirectoryBlockHeader.GetBodyMR().Fixed())
 			// If the Directory block hash doesn't work for me, then the dbsig doesn't work for me, so
 			// toss it and ask our neighbors for another one.
+			s.LogMessage("processList", "drop from pl", vm.List[0])
+			s.LogMessage("processList", "drop from pl", vm.ListAck[0])
 			vm.ListAck[0] = nil
 			vm.List[0] = nil
 			vm.HighestAsk = 0
 			vm.HighestNil = 0
-			s.LogMessage("processList", "drop from pl", vm.List[0])
-			s.LogMessage("processList", "drop from pl", vm.ListAck[0])
 
 			return false
 		}
@@ -2168,12 +2166,12 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		if !dbs.DBSignature.Verify(data) {
 			s.LogPrintf("processList", "Failed. DBSig.DBSignature.Verify()")
 			// If the signature fails, then ask for another one.
+			s.LogMessage("processList", "drop from pl", vm.List[0])
+			s.LogMessage("processList", "drop from pl", vm.ListAck[0])
 			vm.ListAck[0] = nil
 			vm.List[0] = nil
 			vm.HighestAsk = 0
 			vm.HighestNil = 0
-			s.LogMessage("processList", "drop from pl", vm.List[0])
-			s.LogMessage("processList", "drop from pl", vm.ListAck[0])
 
 			return false
 		}
@@ -2182,12 +2180,12 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		if err != nil || valid != 1 {
 			s.LogPrintf("processList", "Failed. DBSig Invalid Auth Sig: Pubkey: %x", dbs.Signature.GetKey())
 			// If the authority is bad, toss this signature and ask for another.
+			s.LogMessage("processList", "drop from pl", vm.List[0])
+			s.LogMessage("processList", "drop from pl", vm.ListAck[0])
 			vm.ListAck[0] = nil
 			vm.List[0] = nil
 			vm.HighestAsk = 0
 			vm.HighestNil = 0
-			s.LogMessage("processList", "drop from pl", vm.List[0])
-			s.LogMessage("processList", "drop from pl", vm.ListAck[0])
 			return false
 		}
 

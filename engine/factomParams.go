@@ -70,7 +70,7 @@ func init() {
 	flag.IntVar(&p.ControlPanelPortOverride, "controlpanelport", 0, "Port for control panel webserver;  Default 8090")
 	flag.IntVar(&p.NetworkPortOverride, "networkport", 0, "Port for p2p network; default 8110")
 	flag.BoolVar(&p.Fast, "fast", true, "If true, Factomd will fast-boot from a file.")
-	flag.IntVar(&p.FastSaveRate, "fastsaverate", 24, "Save a fastboot file every so many blocks. Should be > 1000 for live systems.")
+	flag.IntVar(&p.FastSaveRate, "fastsaverate", 1000, "Save a fastboot file every so many blocks. Should be > 1000 for live systems.")
 	flag.StringVar(&p.FastLocation, "fastlocation", "", "Directory to put the Fast-boot file in.")
 	flag.StringVar(&p.Loglvl, "loglvl", "none", "Set log level to either: none, debug, info, warning, error, fatal or panic")
 	flag.BoolVar(&p.Logjson, "logjson", false, "Use to set logging to use a json formatting")
