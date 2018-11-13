@@ -339,7 +339,10 @@ func MakeMap(numberFedServers int, dbheight uint32) (serverMap [10][64]int) {
 }
 
 func (p *ProcessList) MakeMap() {
+	p.State.LogPrintf("executeMsg", "MakeMap(%d)", p.DBHeight)
 	p.ServerMap = MakeMap(len(p.FedServers), p.DBHeight)
+	p.State.LogPrintf("executeMsg", "%s", p.PrintMap())
+
 }
 
 // This function will be replaced by a calculation from the Matryoshka hashes from the servers
@@ -665,7 +668,6 @@ var extraDebug bool = false
 
 // Process messages and update our state.
 func (p *ProcessList) Process(s *State) (progress bool) {
-	fmt.Print("p")
 	dbht := s.GetHighestSavedBlk()
 	if dbht >= p.DBHeight {
 		//s.AddStatus(fmt.Sprintf("ProcessList.Process: VM Height is %d and Saved height is %d", dbht, s.GetHighestSavedBlk()))

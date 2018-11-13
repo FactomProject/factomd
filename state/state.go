@@ -1862,8 +1862,6 @@ func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBl
 }
 
 func (s *State) UpdateState() (progress bool) {
-	fmt.Print("U")
-
 	dbheight := s.LLeaderHeight
 	//	s.GetHighestSavedBlk()
 	plbase := s.ProcessLists.DBHeightBase

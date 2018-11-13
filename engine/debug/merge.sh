@@ -28,5 +28,5 @@ EOF
 # End of AWK Scripts           #
 ################################
 
-grep -E . "$@"  | awk  "$scriptVariable" | sort -n | less -R
+grep -HE . "$@"  | awk  "$scriptVariable" | sort -n | less -R
 

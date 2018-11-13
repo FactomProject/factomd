@@ -1132,6 +1132,43 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		// code in ProcessEOM for minute 10 will have moved us forward
 		s.MoveStateToHeight(dbht+1, 0)
 	}
+
+	// Note about dbsigs.... If we processed the previous minute, then we generate the DBSig for the next block.
+	// But if we didn't process the previous block, like we start from scratch, or we had to reset the entire
+	// network, then no dbsig exists.  This code doesn't execute, and so we have no dbsig.  In that case, on
+	// the next EOM, we see the block hasn't been signed, and we sign the block (That is the call to SendDBSig()
+	// above).
+	pldbs := s.ProcessLists.Get(s.LLeaderHeight)
+	if s.Leader && !pldbs.DBSigAlreadySent {
+		s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex) // ProcessBlocks()
+		//// dbstate is already set.
+		//dbs := new(messages.DirectoryBlockSignature)
+		//dbs.DirectoryBlockHeader = d.DirectoryBlock.GetHeader()
+		//dbs.ServerIdentityChainID = s.GetIdentityChainID()
+		//dbs.DBHeight = s.LLeaderHeight
+		//dbs.Timestamp = s.GetTimestamp()
+		//dbs.SetVMHash(nil)
+		//dbs.SetVMIndex(s.LeaderVMIndex)
+		//dbs.SetLocal(true)
+		//dbs.Sign(s)
+		//err := dbs.Sign(s)
+		//if err != nil {
+		//	panic(err)
+		//}
+		////{ // debug
+		////	s.LogMessage("dbstateprocess", "currentminute=10", dbs)
+		////	dbs2, _ := s.CreateDBSig(s.LLeaderHeight, s.LeaderVMIndex)
+		////	dbs3 := dbs2.(*messages.DirectoryBlockSignature)
+		////	s.LogPrintf("dbstateprocess", "issameas()=%v", dbs.IsSameAs(dbs3))
+		////}
+		//s.LogMessage("dbstateprocess", "currentminute=10", dbs)
+		//s.LogPrintf("dbstateprocess", d.String())
+		//pldbs.DBSigAlreadySent = true
+		//
+		//s.LogMessage("executeMsg", "LeaderExec2", dbs)
+		//dbs.LeaderExecute(s)
+	}
+
 	return
 }
 
@@ -1181,9 +1218,9 @@ func (list *DBStateList) SignDB(d *DBState) (process bool) {
 	//	return false
 	//}
 
-	// Don't sign while negotiating the EOM 0
-	if list.State.CurrentMinute == 0 {
-		list.State.LogPrintf("dbstateprocess", "SignDB(%d) Waiting for minute 1!", d.DirectoryBlock.GetHeader().GetDBHeight())
+	// Don't sign unless we are in minute 0
+	if list.State.CurrentMinute != 0 {
+		list.State.LogPrintf("dbstateprocess", "SignDB(%d) Waiting for minute 1!", dbheight)
 		return false
 	}
 

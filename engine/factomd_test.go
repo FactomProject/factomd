@@ -1365,7 +1365,7 @@ func TestDBSigElection(t *testing.T) {
 	}
 	ranSimTest = true
 
-	state0 := SetupSim("LLLAF", map[string]string{"--debuglog": "fault|badmsg|network|process|dbsig", "--faulttimeout": "10"}, 8, 1, 1, t)
+	state0 := SetupSim("LLLAF", map[string]string{"--debuglog": ".", "--faulttimeout": "10"}, 8, 1, 1, t)
 
 	s := GetFnodes()[2].State
 	if !s.IsLeader() {

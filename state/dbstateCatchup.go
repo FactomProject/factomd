@@ -24,7 +24,7 @@ func (list *DBStateList) Catchup(justDoIt bool) {
 	hk := int(list.State.GetHighestKnownBlock())
 
 	if hk > ha+2 {
-		ha = hk
+		ha = hk + 2
 	}
 
 	if hs < heightAtBoot {
