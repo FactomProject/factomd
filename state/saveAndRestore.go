@@ -649,6 +649,7 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 
 	ss.EOMsyncing = s.EOMsyncing
 
+	s.CurrentMinute = 0
 	s.EOM = false
 	s.EOMLimit = ss.EOMLimit
 	s.EOMProcessed = ss.EOMProcessed
