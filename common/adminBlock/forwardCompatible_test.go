@@ -1,10 +1,9 @@
 package adminBlock_test
 
 import (
-	"testing"
-
 	"encoding/hex"
 	"math/rand"
+	"testing"
 	"time"
 
 	. "github.com/FactomProject/factomd/common/adminBlock"
