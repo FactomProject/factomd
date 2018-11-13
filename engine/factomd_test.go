@@ -560,22 +560,22 @@ func TestLoad2(t *testing.T) {
 	ranSimTest = true
 
 	go runCmd("Re") // Turn on tight allocation of EC as soon as the simulator is up and running
-	state0 := SetupSim("LLLAAAFFF", map[string]string{"--debuglog": "."}, 24, 0, 0, t)
+	state0 := SetupSim("LLLAAAFFF", map[string]string{"--blktime": "20"}, 24, 0, 0, t)
 	StatusEveryMinute(state0)
 
-	runCmd("7") // select node 1
+	runCmd("7") // select node 7
 	runCmd("x") // take out 7 from the network
 	WaitBlocks(state0, 1)
 	WaitForMinute(state0, 1)
 
-	runCmd("R30") // Feed load
+	runCmd("R30") // Feed load at 30 tps
 	WaitBlocks(state0, 3)
-	runCmd("Rt60")
-	runCmd("T20")
-	runCmd("R.5")
+	runCmd("Rt60") // Offset FCT transaction into the future by 60 minutes
+	runCmd("T20")  // Set Block time to 20 seconds
+	runCmd("R.5")  // turn down the load
 	WaitBlocks(state0, 2)
 	runCmd("x")
-	runCmd("R0")
+	runCmd("R0") // turn off the load
 	WaitBlocks(state0, 3)
 	WaitMinutes(state0, 3)
 

@@ -881,7 +881,6 @@ func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces
 
 	if blktime != 0 {
 		acktime := ack.GetTimestamp().GetTime().UnixNano()
-		msgtime := m.GetTimestamp().GetTime().UnixNano()
 		Delta := blktime - acktime
 
 		if Delta > tlim || -Delta > tlim {
@@ -889,12 +888,13 @@ func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces
 			return
 		}
 
-		// Make sure we don't put in an old msg (outside our repeat range)
-		Delta = blktime - msgtime
-		if Delta > tlim || -Delta > tlim {
-			p.State.LogPrintf("processList", "Drop message pair, because the msg is out of range")
-			return
-		}
+		//// Make sure we don't put in an old msg (outside our repeat range)
+		//		msgtime := m.GetTimestamp().GetTime().UnixNano()
+		//Delta = blktime - msgtime
+		//if Delta > tlim || -Delta > tlim {
+		//	p.State.LogPrintf("processList", "Drop message pair, because the msg is out of range")
+		//	return
+		//}
 	}
 
 	if ack.DBHeight > s.HighestAck && ack.Minute > 0 {
