@@ -337,17 +337,17 @@ func NetworkOutputs(fnode *FactomNode) {
 		// by an updated version when the block is ready.
 		if msg.IsLocal() {
 			// todo: Should be a dead case. Add tracking code to see if it ever happens -- clay
-			fnode.State.LogMessage("NetworkOutputs", "Drop, local", msg)
+			fnode.State.LogMessage("NetworkOutputs", "drop, local", msg)
 			continue
 		}
 		// Don't do a rand int if drop rate is 0
 		if fnode.State.GetDropRate() > 0 && rand.Int()%1000 < fnode.State.GetDropRate() {
 			//drop the message, rather than processing it normally
-			fnode.State.LogMessage("NetworkOutputs", "Drop, simCtrl", msg)
+			fnode.State.LogMessage("NetworkOutputs", "drop, simCtrl", msg)
 			continue
 		}
 		if msg.GetRepeatHash() == nil {
-			fnode.State.LogMessage("NetworkOutputs", "Drop, no repeat hash", msg)
+			fnode.State.LogMessage("NetworkOutputs", "drop, no repeat hash", msg)
 			continue
 		}
 
@@ -385,10 +385,10 @@ func NetworkOutputs(fnode *FactomNode) {
 						fnode.State.TallySent(int(msg.Type()))
 					}
 				} else {
-					fnode.State.LogMessage("NetworkOutputs", "Drop, simCtrl X", msg)
+					fnode.State.LogMessage("NetworkOutputs", "drop, simCtrl X", msg)
 				}
 			} else {
-				fnode.State.LogMessage("NetworkOutputs", "Drop, no peers", msg)
+				fnode.State.LogMessage("NetworkOutputs", "drop, no peers", msg)
 			}
 		} else {
 			fnode.State.LogMessage("NetworkOutputs", "Send broadcast", msg)

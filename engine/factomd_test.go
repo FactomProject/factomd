@@ -70,7 +70,7 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 	// loop thru the test specific options and overwrite or append to the DefaultOptions
 	if UserAddedOptions != nil && len(UserAddedOptions) != 0 {
 		for key, value := range UserAddedOptions {
-			if key != "--debuglog" {
+			if key != "--debuglog" && value != "" {
 				CmdLineOptions[key] = value
 			} else {
 				CmdLineOptions[key] = CmdLineOptions[key] + "|" + value // add debug log flags to the default
@@ -160,7 +160,7 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 	}()
 	state0.MessageTally = true
 	fmt.Printf("Starting timeout timer:  Expected test to take %s or %d blocks\n", calctime.String(), height)
-	StatusEveryMinute(state0)
+	//StatusEveryMinute(state0)
 	WaitMinutes(state0, 1) // wait till initial DBState message for the genesis block is processed
 	creatingNodes(GivenNodes, state0)
 
@@ -375,13 +375,16 @@ func CheckAuthoritySet(t *testing.T) {
 	}
 
 	if leadercnt != leaders {
+		PrintOneStatus(0, 0)
 		t.Fatalf("found %d leaders, expected %d", leadercnt, leaders)
 	}
 	if auditcnt != audits {
+		PrintOneStatus(0, 0)
 		t.Fatalf("found %d audit servers, expected %d", auditcnt, audits)
 		t.Fail()
 	}
 	if followercnt != followers {
+		PrintOneStatus(0, 0)
 		t.Fatalf("found %d followers, expected %d", followercnt, followers)
 		t.Fail()
 	}
@@ -543,7 +546,7 @@ func TestLoad(t *testing.T) {
 	ranSimTest = true
 
 	// use a tree so the messages get reordered
-	state0 := SetupSim("LLF", map[string]string{"--debuglog": "."}, 15, 0, 0, t)
+	state0 := SetupSim("LLF", map[string]string{"--debuglog": ""}, 15, 0, 0, t)
 
 	runCmd("2")   // select 2
 	runCmd("R30") // Feed load
@@ -563,15 +566,13 @@ func TestTXTimestampsAndBlocks(t *testing.T) {
 	ranSimTest = true
 
 	go runCmd("Re") // Turn on tight allocation of EC as soon as the simulator is up and running
-	state0 := SetupSim("LLLAAAFFF", map[string]string{"--blktime": "10"}, 20, 0, 0, t)
+	state0 := SetupSim("LLLAAAFFF", map[string]string{"--blktime": "20"}, 24, 0, 0, t)
 	StatusEveryMinute(state0)
 
 	runCmd("7") // select node 7
 	runCmd("x") // take out 7 from the network
 	WaitBlocks(state0, 1)
 	WaitForMinute(state0, 1)
-	runCmd("R30")
-	WaitBlocks(state0, 3)
 	runCmd("Rt60") // Offset FCT transaction into the future by 60 minutes
 	runCmd("R.5")  // turn down the load
 	WaitBlocks(state0, 2)
@@ -834,7 +835,7 @@ func TestMultiple2Election(t *testing.T) {
 
 	ranSimTest = true
 
-	state0 := SetupSim("LLLLLAAF", map[string]string{"--debuglog": ".*"}, 7, 2, 2, t)
+	state0 := SetupSim("LLLLLAAF", map[string]string{"--debuglog": ""}, 7, 2, 2, t)
 
 	WaitForMinute(state0, 2)
 
@@ -867,7 +868,7 @@ func TestMultiple3Election(t *testing.T) {
 
 	ranSimTest = true
 
-	state0 := SetupSim("LLLLLLLAAAAF", map[string]string{"--debuglog": ".*"}, 9, 3, 3, t)
+	state0 := SetupSim("LLLLLLLAAAAF", map[string]string{"--debuglog": ""}, 9, 3, 3, t)
 
 	runCmd("1")
 	runCmd("x")
@@ -898,7 +899,7 @@ func TestMultiple7Election(t *testing.T) {
 
 	ranSimTest = true
 
-	state0 := SetupSim("LLLLLLLLLLLLLLLAAAAAAAF", map[string]string{"--blktime": "25"}, 7, 7, 7, t)
+	state0 := SetupSim("LLLLLLLLLLLLLLLAAAAAAAF", map[string]string{"--blktime": "35", "--debuglog": "."}, 7, 7, 7, t)
 
 	WaitForMinute(state0, 2)
 
@@ -1325,7 +1326,7 @@ func TestDBsigElectionEvery2Block_long(t *testing.T) {
 	ranSimTest = true
 
 	iterations := 1
-	state := SetupSim("LLLLLLAF", map[string]string{"--debuglog": "fault|badmsg|network|process|dbsig", "--faulttimeout": "10"}, 32, 6, 6, t)
+	state := SetupSim("LLLLLLAF", map[string]string{"--debuglog": "", "--faulttimeout": "10"}, 32, 6, 6, t)
 
 	runCmd("S10") // Set Drop Rate to 1.0 on everyone
 
@@ -1366,7 +1367,7 @@ func TestDBSigElection(t *testing.T) {
 	}
 	ranSimTest = true
 
-	state0 := SetupSim("LLLAF", map[string]string{"--debuglog": ".", "--faulttimeout": "10"}, 8, 1, 1, t)
+	state0 := SetupSim("LLLAF", map[string]string{"--debuglog": "", "--faulttimeout": "10"}, 8, 1, 1, t)
 
 	s := GetFnodes()[2].State
 	if !s.IsLeader() {
@@ -1405,7 +1406,7 @@ func TestGrants_long(t *testing.T) {
 
 	ranSimTest = true
 
-	state0 := SetupSim("LAF", map[string]string{"--debuglog": "fault|badmsg|network|process|dbsig", "--faulttimeout": "10", "--blktime": "5"}, 300, 0, 0, t)
+	state0 := SetupSim("LAF", map[string]string{"--debuglog": "", "--faulttimeout": "10", "--blktime": "5"}, 300, 0, 0, t)
 
 	grants := state.GetHardCodedGrants()
 
@@ -1661,7 +1662,7 @@ func TestTestNetCoinBaseActivation_long(t *testing.T) {
 	// reach into the activation an hack the TESTNET_COINBASE_PERIOD to be early so I can check it worked.
 	activations.ActivationMap[activations.TESTNET_COINBASE_PERIOD].ActivationHeight["LOCAL"] = 22
 
-	state0 := SetupSim("LAF", map[string]string{"--debuglog": "fault|badmsg|network|process|dbsig", "--faulttimeout": "10", "--blktime": "10"}, 168, 0, 0, t)
+	state0 := SetupSim("LAF", map[string]string{"--debuglog": "", "--faulttimeout": "10"}, 168, 0, 0, t)
 	fmt.Println("Simulation configured")
 	nextBlock := uint32(11 + constants.COINBASE_DECLARATION) // first grant is at 11 so it pays at 21
 	fmt.Println("Wait till first grant should payout")
@@ -1711,7 +1712,7 @@ func TestElection9(t *testing.T) {
 	}
 	ranSimTest = true
 
-	state0 := SetupSim("LLAL", map[string]string{"--debuglog": ".|fault|badmsg|network|process|dbsig", "--faulttimeout": "10"}, 8, 1, 1, t)
+	state0 := SetupSim("LLAL", map[string]string{"--debuglog": "", "--faulttimeout": "10"}, 8, 1, 1, t)
 	StatusEveryMinute(state0)
 	CheckAuthoritySet(t)
 
@@ -1774,7 +1775,7 @@ func TestFactoidDBState(t *testing.T) {
 	}
 	ranSimTest = true
 
-	state0 := SetupSim("LAF", map[string]string{"--debuglog": "fault|badmsg|network|process|dbsig", "--faulttimeout": "10", "--blktime": "5"}, 120, 0, 0, t)
+	state0 := SetupSim("LAF", map[string]string{"--debuglog": "", "--faulttimeout": "10", "--blktime": "5"}, 120, 0, 0, t)
 	WaitForBlock(state0, 5)
 
 	go func() {
@@ -1802,7 +1803,7 @@ func TestNoMMR(t *testing.T) {
 	}
 	ranSimTest = true
 
-	state0 := SetupSim("LLLAAFFFFF", map[string]string{"--debuglog": "fault|badmsg|network|process|exec|missing", "--blktime": "20"}, 10, 0, 0, t)
+	state0 := SetupSim("LLLAAFFFFF", map[string]string{"--debuglog": "", "--blktime": "20"}, 10, 0, 0, t)
 	state.MMR_enable = false // turn off MMR processing
 	StatusEveryMinute(state0)
 	runCmd("R10") // turn on some load
@@ -1818,7 +1819,7 @@ func TestDBStateCatchup(t *testing.T) {
 	}
 	ranSimTest = true
 
-	state0 := SetupSim("LFF", map[string]string{"--debuglog": ".", "--blktime": "10"}, 100, 0, 0, t)
+	state0 := SetupSim("LFF", map[string]string{"--debuglog": "", "--blktime": "10"}, 100, 0, 0, t)
 	state.MMR_enable = false // turn off MMR processing
 	state1 := GetFnodes()[1].State
 	StatusEveryMinute(state1)

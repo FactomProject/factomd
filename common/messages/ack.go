@@ -88,7 +88,7 @@ func (m *Ack) Validate(s interfaces.IState) int {
 	//	atomic.WhereAmI2("Ack.Validate()", 1)
 	// If too old, it isn't valid.
 	if m.DBHeight <= s.GetHighestSavedBlk() {
-		s.LogMessage("ackQueue", "Drop, from past", m)
+		s.LogMessage("ackQueue", "drop, from past", m)
 		return -1
 	}
 
@@ -99,7 +99,7 @@ func (m *Ack) Validate(s interfaces.IState) int {
 	delta := (int(m.DBHeight)-int(s.GetLeaderPL().GetDBHeight()))*10 + (int(m.Minute) - int(s.GetCurrentMinute()))
 
 	if delta > 50 {
-		s.LogMessage("ackQueue", "Drop ack from future", m)
+		s.LogMessage("ackQueue", "drop ack from future", m)
 		// when we get caught up we will either get a DBState with this message or we will missing message it.
 		// but if it was malicious then we don't want to keep it around filling up queues.
 		return -1

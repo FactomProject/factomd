@@ -160,7 +160,8 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 			} // time to die, no one is listening
 
 			ticker <- s.GetTimestamp().GetTimeMilli()
-			time.Sleep(20 * time.Millisecond)
+			askDelay := int64(s.DirectoryBlockInSeconds*1000) / 50
+			time.Sleep(time.Duration(askDelay) * time.Millisecond)
 		}
 	}()
 
@@ -214,14 +215,15 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 			for ref, when := range pending {
 				var index dbhvm = dbhvm{ref.DBH, ref.VM}
 				// if ask is expired or we have an MMR for this DBH/VM and it's not a brand new ask
-				if now > *when || (mmrs[index] != nil && now > (*when-4*askDelay/5)) {
+				if now > *when {
+
 					if mmrs[index] == nil { // If we don't have a message for this DBH/VM
 						mmrs[index] = messages.NewMissingMsg(s, ref.VM, uint32(ref.DBH), uint32(ref.H))
 					} else {
 						mmrs[index].ProcessListHeight = append(mmrs[index].ProcessListHeight, uint32(ref.H))
 					}
-					*when = *when + askDelay // update when we asked, set lsb to say we already asked...
-					//s.LogPrintf(logname, "mmr ask %d/%d/%d %d", ref.DBH, ref.VM, ref.H, len(pending))
+					*when = now + askDelay // update when we asked
+
 					// Maybe when asking for past the end of the list we should not ask again?
 				}
 			} //build a MMRs with all the expired asks in that VM at that DBH.

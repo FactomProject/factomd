@@ -12,7 +12,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"sort"
-	"time"
 
 	"github.com/FactomProject/factomd/activations"
 	"github.com/FactomProject/factomd/common/adminBlock"
@@ -393,7 +392,6 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 	fs.UpdateTransaction(true, t)
 
 	fs.DBHeight++
-	fs.State.CurrentBlockStartTime = time.Now().UnixNano()
 }
 
 // Returns an error message about what is wrong with the transaction if it is
