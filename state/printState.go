@@ -50,7 +50,7 @@ func PrintState(state *State) {
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "LocalServerPrivKey", state.LocalServerPrivKey)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "DirectoryBlockInSeconds", state.DirectoryBlockInSeconds)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "PortNumber", state.PortNumber)
-	str = fmt.Sprintf("%s %35s = %+v\n", str, "DropRate", state.DropRate)
+	str = fmt.Sprintf("%s %35s = %+v\n", str, "dropRate", state.DropRate)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "Delay", state.Delay)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "ControlPanelPort", state.ControlPanelPort)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "ControlPanelSetting", state.ControlPanelSetting)

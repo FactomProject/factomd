@@ -99,8 +99,8 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 
 	valid := msg.Validate(s)
 	if valid == 1 {
-		//	if msg.Type() != constants.DBSTATE_MSG && msg.Type() != constants.DIRECTORY_BLOCK_SIGNATURE_MSG {
-		if msg.Type() == constants.ACK_MSG {
+		// Sometimes we think the LoadDatabase() thread starts before the boottime gets set -- hack to be fixed
+		if msg.Type() != constants.DBSTATE_MSG {
 			// Make sure we don't put in an old ack (outside our repeat range)
 			blktime := s.GetMessageFilterTimestamp().GetTime().UnixNano()
 			tlim := int64(Range * 60 * 1000000000)
@@ -121,7 +121,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 						s.LogMessage("executeMsg", "Hold message from the future", msg)
 						valid = 0 // Future stuff I can hold for now.  It might be good later.
 					} else {
-						s.LogMessage("executeMsg", "Drop message because the msg is out of range", msg)
+						s.LogMessage("executeMsg", "drop message because the msg is out of range", msg)
 						valid = -1 // Old messages are bad.
 					}
 				}
@@ -131,7 +131,6 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 
 	switch valid {
 	case 1:
-		// The highest block for which we have received a message.  Sometimes the same as
 		msg.SendOut(s, msg)
 
 		switch msg.Type() {
@@ -139,6 +138,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 			if !s.NoEntryYet(msg.GetHash(), nil) {
 				delete(s.Holding, msg.GetHash().Fixed())
 				s.Commits.Delete(msg.GetHash().Fixed())
+				s.LogMessage("executeMsg", "drop, already committed", msg)
 				return true
 			}
 			s.Holding[msg.GetMsgHash().Fixed()] = msg
@@ -202,7 +202,6 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 	TotalExecuteMsgTime.Add(float64(executeMsgTime.Nanoseconds()))
 
 	return
-
 }
 
 func (s *State) Process() (progress bool) {
@@ -342,7 +341,7 @@ ackLoop:
 		case ack := <-s.ackQueue:
 			switch ack.Validate(s) {
 			case -1:
-				s.LogMessage("ackQueue", "Drop Invalid", ack)
+				s.LogMessage("ackQueue", "drop Invalid", ack)
 				continue
 			case 0:
 				s.LogMessage("ackQueue", "Hold", ack)
@@ -358,7 +357,7 @@ ackLoop:
 					s.LogMessage("ackQueue", "Execute", ack)
 					progress = s.executeMsg(vm, ack) || progress
 				} else {
-					s.LogMessage("ackQueue", "Drop Too Old", ack)
+					s.LogMessage("ackQueue", "drop Too Old", ack)
 				}
 				continue
 			}
@@ -1073,13 +1072,13 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 
 	if s.inMsgQueue.Length() > constants.INMSGQUEUE_HIGH {
-		s.LogMessage("executeMsg", "Drop INMSGQUEUE_HIGH", m)
+		s.LogMessage("executeMsg", "drop INMSGQUEUE_HIGH", m)
 		return
 	}
 	// Just ignore missing messages for a period after going off line or starting up.
 
 	if s.IgnoreMissing {
-		s.LogMessage("executeMsg", "Drop IgnoreMissing", m)
+		s.LogMessage("executeMsg", "drop IgnoreMissing", m)
 		return
 	}
 	// Drop the missing message response if it's already in the process list
@@ -1100,27 +1099,27 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 
 	// If we don't need this message, we don't have to do everything else.
 	if !ok {
-		s.LogMessage("executeMsg", "Drop no ack", m)
+		s.LogMessage("executeMsg", "drop no ack", m)
 		return
 	}
 
 	// If we don't need this message, we don't have to do everything else.
 	if ack.Validate(s) == -1 {
-		s.LogMessage("executeMsg", "Drop ack invalid", m)
+		s.LogMessage("executeMsg", "drop ack invalid", m)
 		return
 	}
 	ack.Response = true
 	msg := mmr.MsgResponse
 
 	if msg == nil {
-		s.LogMessage("executeMsg", "Drop nil message", m)
+		s.LogMessage("executeMsg", "drop nil message", m)
 		return
 	}
 
 	pl := s.ProcessLists.Get(ack.DBHeight)
 
 	if pl == nil {
-		s.LogMessage("executeMsg", "Drop No Processlist", m)
+		s.LogMessage("executeMsg", "drop No Processlist", m)
 		return
 	}
 	_, okm := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
@@ -1136,7 +1135,7 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 
 		s.MissingResponseAppliedCnt++
 	} else {
-		s.LogMessage("executeMsg", "Drop, INTERNAL_REPLAY", msg)
+		s.LogMessage("executeMsg", "drop, INTERNAL_REPLAY", msg)
 
 	}
 }
@@ -1311,7 +1310,7 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 		TotalHoldingQueueOutputs.Inc()
 		delete(s.Holding, m.GetMsgHash().Fixed())
 		if s.DebugExec() {
-			s.LogMessage("executeMsg", "Drop replay", m)
+			s.LogMessage("executeMsg", "drop replay", m)
 		}
 		return
 	}

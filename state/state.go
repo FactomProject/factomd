@@ -2498,7 +2498,7 @@ func (s *State) SummaryHeader() string {
 }
 
 func (s *State) SetStringConsensus() {
-	str := fmt.Sprintf("%10s[%x_%x] ", s.FactomNodeName, s.IdentityChainID.Bytes()[:2], s.IdentityChainID.Bytes()[2:5])
+	str := fmt.Sprintf("%10s[%x_%x] ", s.FactomNodeName, s.IdentityChainID.Bytes()[:2], s.IdentityChainID.Bytes()[3:6])
 
 	s.serverPrt = str
 }
