@@ -70,7 +70,7 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 	// loop thru the test specific options and overwrite or append to the DefaultOptions
 	if UserAddedOptions != nil && len(UserAddedOptions) != 0 {
 		for key, value := range UserAddedOptions {
-			if key != "--debuglog" {
+			if key != "--debuglog" && value != "" {
 				CmdLineOptions[key] = value
 			} else {
 				CmdLineOptions[key] = CmdLineOptions[key] + "|" + value // add debug log flags to the default
@@ -773,7 +773,7 @@ func TestDBsigEOMElection(t *testing.T) {
 
 	ranSimTest = true
 
-	state0 := SetupSim("LLLLLAAF", map[string]string{}, 9, 4, 4, t)
+	state0 := SetupSim("LLLLLAAF", map[string]string{"--debuglog": "."}, 9, 4, 4, t)
 
 	// get status from FNode02 because he is not involved in the elections
 	state2 := GetFnodes()[2].State
