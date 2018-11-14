@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+
 	//"github.com/FactomProject/factomd/state"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -103,6 +104,7 @@ func (m *FedVoteVolunteerMsg) FollowerExecute(is interfaces.IState) {
 	e := s.Elections.(*elections.Elections)
 	if e.Adapter == nil {
 		s.Holding[m.GetMsgHash().Fixed()] = m
+		s.LogMessage("holding", "add", m)
 		return
 	}
 

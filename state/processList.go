@@ -810,6 +810,7 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 
 					if msg.Type() == constants.REVEAL_ENTRY_MSG {
 						delete(s.Holding, msg.GetMsgHash().Fixed()) // We successfully executed the message, so take it out of holding if it is there.
+						s.LogMessage("holding", "deleted because message was executed", msg)
 						s.Commits.Delete(msg.GetMsgHash().Fixed())
 					}
 
@@ -829,7 +830,7 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 
 					delete(s.Acks, msgHashFixed)
 					delete(s.Holding, msgHashFixed)
-
+					s.LogMessage("holding", "deleted becuase no need to see it again", msg)
 				} else {
 					s.LogMessage("process", fmt.Sprintf("retry %v/%v/%v", p.DBHeight, i, j), msg)
 					//s.AddStatus(fmt.Sprintf("processList.Process(): Could not process entry dbht: %d VM: %d  msg: [[%s]]", p.DBHeight, i, msg.String()))
@@ -933,6 +934,8 @@ func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces
 		TotalHoldingQueueOutputs.Inc()
 		TotalAcksOutputs.Inc()
 		delete(s.Holding, msgHash.Fixed())
+		//s.LogMessage("holding", "deleted not sure why")
+		fmt.Println("WHY CANT PRINT ", msgHash.Fixed())
 		delete(s.Acks, msgHash.Fixed())
 	}
 
@@ -997,6 +1000,7 @@ func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces
 	TotalHoldingQueueOutputs.Inc()
 	TotalAcksOutputs.Inc()
 	delete(s.Holding, msgHash.Fixed())
+	s.LogMessage("holding", "deleted msgHash.Fixed()", m)
 	delete(s.Acks, msgHash.Fixed())
 	p.VMs[ack.VMIndex].List[ack.Height] = m
 	p.VMs[ack.VMIndex].ListAck[ack.Height] = ack

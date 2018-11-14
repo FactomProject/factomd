@@ -137,10 +137,12 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 		case constants.REVEAL_ENTRY_MSG, constants.COMMIT_ENTRY_MSG, constants.COMMIT_CHAIN_MSG:
 			if !s.NoEntryYet(msg.GetHash(), nil) {
 				delete(s.Holding, msg.GetHash().Fixed())
+				s.LogMessage("holding", "deleted commited or revealed", msg)
 				s.Commits.Delete(msg.GetHash().Fixed())
 				return true
 			}
 			s.Holding[msg.GetMsgHash().Fixed()] = msg
+			s.LogMessage("holding", "add", msg)
 		}
 
 		var vml int
@@ -183,6 +185,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 			TotalHoldingQueueInputs.Inc()
 			TotalHoldingQueueRecycles.Inc()
 			s.Holding[msg.GetMsgHash().Fixed()] = msg
+			s.LogMessage("holding", "add", msg)
 			s.LogMessage("executeMsg", "hold", msg)
 		} else {
 			s.LogMessage("executeMsg", "drop, IReplay", msg)
@@ -341,6 +344,7 @@ ackLoop:
 				TotalHoldingQueueInputs.Inc()
 				TotalHoldingQueueRecycles.Inc()
 				s.Holding[ack.GetMsgHash().Fixed()] = ack
+				s.LogMessage("holding", "add", ack)
 				continue
 			}
 
@@ -470,6 +474,8 @@ func (s *State) ReviewHolding() {
 			s.ExpireCnt++
 			TotalHoldingQueueOutputs.Inc()
 			delete(s.Holding, k)
+			s.LogMessage("holding", "deleted expire from holding", v)
+			fmt.Println("Thing that is actually deleted from s.Holding ", k)
 			continue
 		}
 
@@ -478,6 +484,8 @@ func (s *State) ReviewHolding() {
 			s.LogMessage("executeMsg", "invalid from holding", v)
 			TotalHoldingQueueOutputs.Inc()
 			delete(s.Holding, k)
+			s.LogMessage("holding", "deleted invalid from holding", v)
+			fmt.Println("Thing that is actually deleted from s.Holding ", k)
 			continue
 		case 0:
 			continue
@@ -488,12 +496,16 @@ func (s *State) ReviewHolding() {
 		if int(highest)-int(saved) > 1000 {
 			TotalHoldingQueueOutputs.Inc()
 			delete(s.Holding, k)
+			s.LogMessage("holding", "Deleted highest block - saved in > 1000", v)
+			fmt.Println("Thing that is actually deleted from s.Holding ", k)
 		}
 
 		eom, ok := v.(*messages.EOM)
 		if ok && ((eom.DBHeight <= saved && saved > 0) || int(eom.Minute) < s.CurrentMinute) {
 			TotalHoldingQueueOutputs.Inc()
 			delete(s.Holding, k)
+			s.LogMessage("holding", "Deleted (eom.DBHeight <= saved && saved > 0) || int(eom.Minute) < s.CurrentMinute", v)
+			fmt.Println("Thing that is actually deleted from s.Holding ", k)
 			continue
 		}
 
@@ -501,6 +513,8 @@ func (s *State) ReviewHolding() {
 		if ok && (dbsmsg.DirectoryBlock.GetHeader().GetDBHeight() < saved-1 && saved > 0) {
 			TotalHoldingQueueOutputs.Inc()
 			delete(s.Holding, k)
+			s.LogMessage("holding", "Deleted dbsmsg.DirectoryBlock.GetHeader().GetDBHeight() < saved-1 && saved > 0", v)
+			fmt.Println("Thing that is actually deleted from s.Holding ", k)
 			continue
 		}
 
@@ -508,6 +522,8 @@ func (s *State) ReviewHolding() {
 		if ok && ((dbsigmsg.DBHeight <= saved && saved > 0) || (dbsigmsg.DBHeight < highest-3 && highest > 2)) {
 			TotalHoldingQueueOutputs.Inc()
 			delete(s.Holding, k)
+			s.LogMessage("holding", "Deleted (dbsigmsg.DBHeight <= saved && saved > 0) || (dbsigmsg.DBHeight < highest-3 && highest > 2)", v)
+			fmt.Println("Thing that is actually deleted from s.Holding ", k)
 			continue
 		}
 
@@ -516,6 +532,8 @@ func (s *State) ReviewHolding() {
 		if !ok || !ok2 {
 			TotalHoldingQueueOutputs.Inc()
 			delete(s.Holding, k)
+			s.LogMessage("holding", "Deleted !s.Replay.Valid && !s.FReplay.IsHashUnique", v)
+			fmt.Println("Thing that is actually deleted from s.Holding ", k)
 			continue
 		}
 
@@ -527,6 +545,8 @@ func (s *State) ReviewHolding() {
 			if !x {
 				TotalHoldingQueueOutputs.Inc()
 				delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
+				s.LogMessage("holding", "Deleted Drop commits with the same entry hash from holding because they are blocked by a previous entry", v)
+				fmt.Println("Thing that is actually deleted from s.Holding ", k)
 				continue
 			}
 		}
@@ -539,6 +559,8 @@ func (s *State) ReviewHolding() {
 			if !x {
 				TotalHoldingQueueOutputs.Inc()
 				delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
+				s.LogMessage("holding", "Deleted Drop commits with the same entry hash from holding because they are blocked by a previous entry", v)
+				fmt.Println("Thing that is actually deleted from s.Holding ", k)
 				continue
 			}
 		}
@@ -547,6 +569,8 @@ func (s *State) ReviewHolding() {
 		if re, ok := v.(*messages.RevealEntryMsg); ok {
 			if !s.NoEntryYet(re.GetHash(), s.GetLeaderTimestamp()) {
 				delete(s.Holding, re.GetHash().Fixed())
+				s.LogMessage("holding", "deleted !s.NoEntryYet(re.GetHash())", re)
+				fmt.Println("Thing that is actually deleted from s.Holding ", k)
 				s.Commits.Delete(re.GetHash().Fixed())
 				continue
 			}
@@ -722,6 +746,7 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 	TotalHoldingQueueInputs.Inc()
 
 	s.Holding[m.GetMsgHash().Fixed()] = m
+	s.LogMessage("holding", "add", m)
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
 
 	if ack != nil {
@@ -759,6 +784,7 @@ func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
 	// add it to the holding queue in case AddToProcessList may remove it
 	TotalHoldingQueueInputs.Inc()
 	s.Holding[m.GetMsgHash().Fixed()] = m // FollowerExecuteEOM
+	s.LogMessage("holding", "add", m)
 
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
 	if ack != nil {
@@ -1001,7 +1027,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	s.EOMDone = false
 	s.DBSig = false
 	s.DBSigDone = false
-	atomic.WhereAmI()
+	//atomic.WhereAmI()
 	s.Saving = true
 	s.Syncing = false
 
@@ -1223,6 +1249,7 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 	TotalHoldingQueueInputs.Inc()
 
 	s.Holding[m.GetMsgHash().Fixed()] = m // hold in  FollowerExecuteRevealEntry
+	s.LogMessage("holding", "add", m)
 
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
 
@@ -1268,6 +1295,7 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 	if !ok {
 		TotalHoldingQueueOutputs.Inc()
 		delete(s.Holding, m.GetMsgHash().Fixed())
+		s.LogMessage("holding", "deleted !s.Replay.Valid(constants.INTERNAL_REPLAY, m.GetRepeatHash().Fixed(), m.GetTimestamp(), s.GetTimestamp()", m)
 		if s.DebugExec() {
 			s.LogMessage("executeMsg", "Drop replay", m)
 		}
@@ -1393,6 +1421,7 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
 		HoldingQueueDBSigOutputs.Inc()
 		delete(s.Holding, m.GetMsgHash().Fixed())
 		s.LogMessage("executeMsg", "drop INTERNAL_REPLAY", m)
+		s.LogMessage("holding", "deleted drop INTERNAL_REPLAY", m)
 		return
 	}
 

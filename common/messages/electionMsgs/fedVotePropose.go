@@ -15,6 +15,7 @@ import (
 	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/state"
 	log "github.com/sirupsen/logrus"
+
 	//"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/common/messages/msgbase"
 )
@@ -151,6 +152,7 @@ func (m *FedVoteProposalMsg) FollowerExecute(is interfaces.IState) {
 	s := is.(*state.State)
 	if s.Elections.(*elections.Elections).Adapter == nil {
 		s.Holding[m.GetMsgHash().Fixed()] = m
+		s.LogMessage("holding", "add", m)
 		return
 	}
 	is.ElectionsQueue().Enqueue(m)
