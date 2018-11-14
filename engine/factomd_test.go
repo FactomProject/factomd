@@ -4,332 +4,74 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/FactomProject/factomd/common/adminBlock"
+	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/primitives/random"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"runtime"
-	"strconv"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/FactomProject/factomd/activations"
-	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/globals"
+	"github.com/FactomProject/factomd/common/factoid"
+	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/common/primitives/random"
 	. "github.com/FactomProject/factomd/engine"
 	"github.com/FactomProject/factomd/state"
+	. "github.com/FactomProject/factomd/testHelper"
 	"github.com/FactomProject/factomd/wsapi"
 )
 
-var _ = Factomd
-
-// SetupSim()
-// SetupSim takes care of your options, and setting up nodes
-// pass in a string for nodes: 4 Leaders, 3 Audit, 4 Followers: "LLLLAAAFFFF" as the first argument
-// Pass in the Network type ex. "LOCAL" as the second argument
-// It has default but if you want just add it like "map[string]string{"--Other" : "Option"}" as the third argument
-// Pass in t for the testing as the 4th argument
-//
-//EX. state0 := SetupSim("LLLLLLLLLLLLLLLAAAAAAAAAA", "LOCAL", map[string]string {"--controlpanelsetting" : "readwrite"}, t)
-func SetupSim(GivenNodes string, NetworkType string, UserAddedOptions map[string]string, t *testing.T) *state.State {
-	return SetupSim2(GivenNodes, false, NetworkType, UserAddedOptions, t)
-}
-
-// SetupSim2()
-// new entrypoint into SetupSim to allow specifying "tight" transactions, where EC are bought as needed rather than in
-// large blocks.
-func SetupSim2(GivenNodes string, tight bool, NetworkType string, UserAddedOptions map[string]string, t *testing.T) *state.State {
-	l := len(GivenNodes)
-	DefaultOptions := map[string]string{
-		"--db":           "Map",
-		"--network":      fmt.Sprintf("%v", NetworkType),
-		"--net":          "alot+",
-		"--enablenet":    "false",
-		"--blktime":      "8",
-		"--faulttimeout": "2",
-		"--roundtimeout": "2",
-		"--count":        fmt.Sprintf("%v", l),
-		//"--debuglog=.*",
-		//"--debuglog=F.*",
-		"--startdelay": "1",
-		"--stdoutlog":  "out.txt",
-		"--stderrlog":  "err.txt",
-		"--checkheads": "false",
-	}
-
-	if UserAddedOptions != nil && len(UserAddedOptions) != 0 {
-		for key, value := range UserAddedOptions {
-			DefaultOptions[key] = value
-		}
-	}
-
-	returningSlice := []string{}
-	for key, value := range DefaultOptions {
-		returningSlice = append(returningSlice, key+"="+value)
-	}
-
-	params := ParseCmdLine(returningSlice)
-	state0 := Factomd(params, false).(*state.State)
-	state0.MessageTally = true
-	time.Sleep(3 * time.Second)
-	StatusEveryMinute(state0)
-	if tight {
-		runCmd("Re")
-	}
-
-	creatingNodes(GivenNodes, state0)
-
-	t.Logf("Allocated %d nodes", l)
-	lenFnodes := len(GetFnodes())
-	if lenFnodes != l {
-		t.Fatalf("Should have allocated %d nodes", l)
-		t.Fail()
-	}
-	return state0
-}
-
-// Wait for a specific blocks
-func WaitForBlock(s *state.State, newBlock int) {
-	fmt.Printf("WaitForBlocks(%d)\n", newBlock)
-	TimeNow(s)
-	sleepTime := time.Duration(globals.Params.BlkTime) * 1000 / 40 // Figure out how long to sleep in milliseconds
-	for i := int(s.LLeaderHeight); i < newBlock; i++ {
-		for int(s.LLeaderHeight) < i {
-			time.Sleep(sleepTime * time.Millisecond) // wake up and about 4 times per minute
-		}
-		TimeNow(s)
-	}
-}
-
-func creatingNodes(creatingNodes string, state0 *state.State) {
-	runCmd(fmt.Sprintf("g%d", len(creatingNodes)))
-	// Wait till all the entries from the g command are processed
-	simFnodes := GetFnodes()
-	for {
-		iq2 := 0
-		for _, s := range simFnodes {
-			iq2 += s.State.InMsgQueue2().Length()
-		}
-
-		holding := 0
-		for _, s := range simFnodes {
-			iq2 += s.State.InMsgQueue2().Length()
-		}
-
-		pendingCommits := 0
-		for _, s := range simFnodes {
-			pendingCommits += s.State.Commits.Len()
-		}
-		if iq2 == 0 && pendingCommits == 0 && holding == 0 {
-			break
-		}
-		fmt.Printf("Waiting for g to complete\n")
-		WaitMinutes(state0, 1)
-
-	}
-	WaitBlocks(state0, 1) // Wait for 1 block
-	WaitForMinute(state0, 1)
-	runCmd("0")
-	for i, c := range []byte(creatingNodes) {
-		fmt.Println(i)
-		switch c {
-		case 'L', 'l':
-			fmt.Println("L")
-			runCmd("l")
-		case 'A', 'a':
-			runCmd("o")
-		case 'F', 'f':
-			break
-		default:
-			panic("NOT L, A or F")
-		}
-	}
-	WaitBlocks(state0, 1) // Wait for 1 block
-	WaitForMinute(state0, 1)
-}
-
-func WaitForAllNodes(state *state.State) {
-	height := ""
-	simFnodes := GetFnodes()
-	for i := 0; i < len(simFnodes); i++ {
-		blk := state.LLeaderHeight
-		s := simFnodes[i].State
-		height = ""
-		if s.LLeaderHeight != blk { // if not caught up, start over
-			time.Sleep(100 * time.Millisecond)
-			i = 0 // start over
-			continue
-		}
-		height = fmt.Sprintf("%s%s:%d-%d\n", height, s.FactomNodeName, s.LLeaderHeight, s.CurrentMinute)
-	}
-	fmt.Printf("Wait for all nodes done\n%s", height)
-}
-
-func TimeNow(s *state.State) {
-	fmt.Printf("%s:%d/%d\n", s.FactomNodeName, int(s.LLeaderHeight), s.CurrentMinute)
-}
-
-// print the status for every minute for a state
-func StatusEveryMinute(s *state.State) {
-	go func() {
-		for {
-			newMinute := (s.CurrentMinute + 1) % 10
-			timeout := 8 // timeout if a minutes takes twice as long as expected
-			for s.CurrentMinute != newMinute && timeout > 0 {
-				sleepTime := time.Duration(globals.Params.BlkTime) * 1000 / 40 // Figure out how long to sleep in milliseconds
-				time.Sleep(sleepTime * time.Millisecond)                       // wake up and about 4 times per minute
-				timeout--
-			}
-			if timeout <= 0 {
-				fmt.Println("Stalled !!!")
-			}
-			// Make all the nodes update thier status
-			for _, n := range GetFnodes() {
-				n.State.SetString()
-			}
-			PrintOneStatus(0, 0)
-		}
-	}()
-}
-
-// Wait so many blocks
-func WaitBlocks(s *state.State, blks int) {
-	fmt.Printf("WaitBlocks(%d)\n", blks)
-	TimeNow(s)
-	newBlock := int(s.LLeaderHeight) + blks
-	for int(s.LLeaderHeight) < newBlock {
-		time.Sleep(time.Second)
-	}
-	TimeNow(s)
-}
-
-// Wait to a given minute.  If we are == to the minute or greater, then
-// we first wait to the start of the next block.
-func WaitForMinute(s *state.State, min int) {
-	fmt.Printf("WaitForMinute(%d)\n", min)
-	TimeNow(s)
-	if s.CurrentMinute >= min {
-		for s.CurrentMinute > 0 {
-			time.Sleep(500 * time.Millisecond)
-		}
-	}
-
-	for min > s.CurrentMinute {
-		time.Sleep(100 * time.Millisecond)
-	}
-	TimeNow(s)
-}
-
-// Wait some number of minutes
-func WaitMinutesQuite(s *state.State, min int) {
-	sleepTime := time.Duration(globals.Params.BlkTime) * 1000 / 40 // Figure out how long to sleep in milliseconds
-
-	newMinute := (s.CurrentMinute + min) % 10
-	newBlock := int(s.LLeaderHeight) + (s.CurrentMinute+min)/10
-	for int(s.LLeaderHeight) < newBlock {
-		time.Sleep(sleepTime * time.Millisecond) // wake up and about 4 times per minute
-	}
-	for s.CurrentMinute != newMinute {
-		time.Sleep(sleepTime * time.Millisecond) // wake up and about 4 times per minute
-	}
-}
-
-func WaitMinutes(s *state.State, min int) {
-	fmt.Printf("WaitMinutes(%d)\n", min)
-	TimeNow(s)
-	WaitMinutesQuite(s, min)
-	TimeNow(s)
-}
-
-// We can only run 1 simtest!
-var ranSimTest = false
-
-func runCmd(cmd string) {
-	os.Stderr.WriteString("Executing: " + cmd + "\n")
-	InputChan <- cmd
-	return
-}
-
-func v2Request(req *primitives.JSON2Request, port int) (*primitives.JSON2Response, error) {
-	j, err := json.Marshal(req)
-	if err != nil {
-		return nil, err
-	}
-
-	portStr := fmt.Sprintf("%d", port)
-	resp, err := http.Post(
-		"http://localhost:"+portStr+"/v2",
-		"application/json",
-		bytes.NewBuffer(j))
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	r := primitives.NewJSON2Response()
-	if err := json.Unmarshal(body, r); err != nil {
-		return nil, err
-	}
-	return nil, nil
-}
-
 func TestSetupANetwork(t *testing.T) {
-	if ranSimTest {
+	if RanSimTest {
 		return
 	}
 
-	ranSimTest = true
+	RanSimTest = true
 
-	state0 := SetupSim("LLLLAAAFFF", "LOCAL", map[string]string{"--logPort": "37000", "--port": "37001", "--controlpanelport": "37002", "--networkport": "37003"}, t)
+	state0 := SetupSim("LLLLAAAFFF", map[string]string{}, 14, 0, 0, t)
 
-	runCmd("s")  // Show the process lists and directory block states as
-	runCmd("9")  // Puts the focus on node 9
-	runCmd("x")  // Takes Node 9 Offline
-	runCmd("w")  // Point the WSAPI to send API calls to the current node.
-	runCmd("10") // Puts the focus on node 9
-	runCmd("8")  // Puts the focus on node 8
-	runCmd("w")  // Point the WSAPI to send API calls to the current node.
-	runCmd("7")
+	RunCmd("9")  // Puts the focus on node 9
+	RunCmd("x")  // Takes Node 9 Offline
+	RunCmd("w")  // Point the WSAPI to send API calls to the current node.
+	RunCmd("10") // Puts the focus on node 9
+	RunCmd("8")  // Puts the focus on node 8
+	RunCmd("w")  // Point the WSAPI to send API calls to the current node.
+	RunCmd("7")
 	WaitBlocks(state0, 1) // Wait for 1 block
 
-	CheckAuthoritySet(4, 3, t)
-
-	WaitForMinute(state0, 2) // Waits for 2 "Minutes"
-	runCmd("F100")           //  Set the Delay on messages from all nodes to 100 milliseconds
-	runCmd("S10")            // Set Drop Rate to 1.0 on everyone
-	runCmd("g10")            // Adds 10 identities to your identity pool.
+	WaitForMinute(state0, 2) // Waits for minute 2
+	RunCmd("F100")           //  Set the Delay on messages from all nodes to 100 milliseconds
+	RunCmd("S10")            // Set Drop Rate to 1.0 on everyone
+	RunCmd("g10")            // Adds 10 identities to your identity pool.
 
 	fn1 := GetFocus()
 	PrintOneStatus(0, 0)
 	if fn1.State.FactomNodeName != "FNode07" {
 		t.Fatalf("Expected FNode07, but got %s", fn1.State.FactomNodeName)
 	}
-	runCmd("g1")             // Adds 1 identities to your identity pool.
+	RunCmd("g1")             // Adds 1 identities to your identity pool.
 	WaitForMinute(state0, 3) // Waits for 3 "Minutes"
-	runCmd("g1")             // // Adds 1 identities to your identity pool.
+	RunCmd("g1")             // // Adds 1 identities to your identity pool.
 	WaitForMinute(state0, 4) // Waits for 4 "Minutes"
-	runCmd("g1")             // Adds 1 identities to your identity pool.
+	RunCmd("g1")             // Adds 1 identities to your identity pool.
 	WaitForMinute(state0, 5) // Waits for 5 "Minutes"
-	runCmd("g1")             // Adds 1 identities to your identity pool.
+	RunCmd("g1")             // Adds 1 identities to your identity pool.
 	WaitForMinute(state0, 6) // Waits for 6 "Minutes"
 	WaitBlocks(state0, 1)    // Waits for 1 block
 	WaitForMinute(state0, 1) // Waits for 1 "Minutes"
-	runCmd("g1")             // Adds 1 identities to your identity pool.
+	RunCmd("g1")             // Adds 1 identities to your identity pool.
 	WaitForMinute(state0, 2) // Waits for 2 "Minutes"
-	runCmd("g1")             // Adds 1 identities to your identity pool.
+	RunCmd("g1")             // Adds 1 identities to your identity pool.
 	WaitForMinute(state0, 3) // Waits for 3 "Minutes"
-	runCmd("g20")            // Adds 20 identities to your identity pool.
+	RunCmd("g20")            // Adds 20 identities to your identity pool.
 	WaitBlocks(state0, 1)
-	runCmd("9") // Focuses on Node 9
-	runCmd("x") // Brings Node 9 back Online
-	runCmd("8") // Focuses on Node 8
+	RunCmd("9") // Focuses on Node 9
+	RunCmd("x") // Brings Node 9 back Online
+	RunCmd("8") // Focuses on Node 8
 
 	time.Sleep(100 * time.Millisecond)
 
@@ -339,194 +81,188 @@ func TestSetupANetwork(t *testing.T) {
 		t.Fatalf("Expected FNode08, but got %s", fn1.State.FactomNodeName)
 	}
 
-	runCmd("i") // Shows the identities being monitored for change.
+	RunCmd("i") // Shows the identities being monitored for change.
 	// Test block recording lengths and error checking for pprof
-	runCmd("b100") // Recording delays due to blocked go routines longer than 100 ns (0 ms)
+	RunCmd("b100") // Recording delays due to blocked go routines longer than 100 ns (0 ms)
 
-	runCmd("b") // specifically how long a block will be recorded (in nanoseconds).  1 records all blocks.
+	RunCmd("b") // specifically how long a block will be recorded (in nanoseconds).  1 records all blocks.
 
-	runCmd("babc") // Not sure that this does anything besides return a message to use "bnnn"
+	RunCmd("babc") // Not sure that this does anything besides return a message to use "bnnn"
 
-	runCmd("b1000000") // Recording delays due to blocked go routines longer than 1000000 ns (1 ms)
+	RunCmd("b1000000") // Recording delays due to blocked go routines longer than 1000000 ns (1 ms)
 
-	runCmd("/") // Sort Status by Chain IDs
+	RunCmd("/") // Sort Status by Chain IDs
 
-	runCmd("/") // Sort Status by Node Name
+	RunCmd("/") // Sort Status by Node Name
 
-	runCmd("a1")             // Shows Admin block for Node 1
-	runCmd("e1")             // Shows Entry credit block for Node 1
-	runCmd("d1")             // Shows Directory block
-	runCmd("f1")             // Shows Factoid block for Node 1
-	runCmd("a100")           // Shows Admin block for Node 100
-	runCmd("e100")           // Shows Entry credit block for Node 100
-	runCmd("d100")           // Shows Directory block
-	runCmd("f100")           // Shows Factoid block for Node 1
-	runCmd("yh")             // Nothing
-	runCmd("yc")             // Nothing
-	runCmd("r")              // Rotate the WSAPI around the nodes
+	RunCmd("a1")             // Shows Admin block for Node 1
+	RunCmd("e1")             // Shows Entry credit block for Node 1
+	RunCmd("d1")             // Shows Directory block
+	RunCmd("f1")             // Shows Factoid block for Node 1
+	RunCmd("a100")           // Shows Admin block for Node 100
+	RunCmd("e100")           // Shows Entry credit block for Node 100
+	RunCmd("d100")           // Shows Directory block
+	RunCmd("f100")           // Shows Factoid block for Node 1
+	RunCmd("yh")             // Nothing
+	RunCmd("yc")             // Nothing
+	RunCmd("r")              // Rotate the WSAPI around the nodes
 	WaitForMinute(state0, 1) // Waits 1 "Minute"
 
-	runCmd("g1")             // Adds 1 identities to your identity pool.
+	RunCmd("g1")             // Adds 1 identities to your identity pool.
 	WaitForMinute(state0, 3) // Waits 3 "Minutes"
 	WaitBlocks(fn1.State, 3) // Waits for 3 blocks
 
-	t.Log("Shutting down the network")
-	for _, fn := range GetFnodes() {
-		fn.State.ShutdownChan <- 1
-	}
-
-	time.Sleep(10 * time.Second)
-	PrintOneStatus(0, 0)
-	dblim := 12
-	if state0.LLeaderHeight > uint32(dblim) {
-		t.Fatalf("Failed to shut down factomd via ShutdownChan expected DBHeight %d got %d", dblim, state0.LLeaderHeight)
-	}
-
+	ShutDownEverything(t)
 }
 
 func TestLoad(t *testing.T) {
-	if ranSimTest {
+	if RanSimTest {
 		return
 	}
 
-	ranSimTest = true
+	RanSimTest = true
 
-	state0 := SetupSim("LL", "LOCAL", map[string]string{}, t)
+	// use a tree so the messages get reordered
+	state0 := SetupSim("LLF", map[string]string{"--debuglog": "."}, 15, 0, 0, t)
 
-	runCmd("1") // select node 1
-	runCmd("l") // make 1 a leader
+	RunCmd("2")   // select 2
+	RunCmd("R30") // Feed load
+	WaitBlocks(state0, 10)
+	RunCmd("R0") // Stop load
 	WaitBlocks(state0, 1)
-	WaitForMinute(state0, 1)
-
-	CheckAuthoritySet(2, 0, t)
-
-	runCmd("2")   // select 2
-	runCmd("R30") // Feed load
-	WaitBlocks(state0, 30)
-	runCmd("R0") // Stop load
-	WaitBlocks(state0, 1)
-
+	ShutDownEverything(t)
 } // testLoad(){...}
 
 func TestLoad2(t *testing.T) {
-	if ranSimTest {
+	if RanSimTest {
 		return
 	}
+	RanSimTest = true
 
-	ranSimTest = true
+	go RunCmd("Re") // Turn on tight allocation of EC as soon as the simulator is up and running
+	state0 := SetupSim("LLLAAAFFF", map[string]string{"--debuglog": "."}, 24, 0, 0, t)
+	StatusEveryMinute(state0)
 
-	state0 := SetupSim2("LLLAAAFFF", true, "LOCAL", map[string]string{}, t)
-
-	runCmd("7") // select node 1
-	runCmd("x") // take out 7 from the network
+	RunCmd("7") // select node 1
+	RunCmd("x") // take out 7 from the network
 	WaitBlocks(state0, 1)
 	WaitForMinute(state0, 1)
 
-	CheckAuthoritySet(3, 3, t)
-
-	runCmd("R30") // Feed load
+	RunCmd("R30") // Feed load
 	WaitBlocks(state0, 3)
-	runCmd("Rt60")
-	runCmd("T20")
-	runCmd("R.5")
+	RunCmd("Rt60")
+	RunCmd("T20")
+	RunCmd("R.5")
 	WaitBlocks(state0, 2)
-	runCmd("x")
+	RunCmd("x")
+	RunCmd("R0")
 	WaitBlocks(state0, 3)
 	WaitMinutes(state0, 3)
 
 	ht7 := GetFnodes()[7].State.GetLLeaderHeight()
 	ht6 := GetFnodes()[6].State.GetLLeaderHeight()
+
 	if ht7 != ht6 {
 		t.Fatalf("Node 7 was at dbheight %d which didn't match Node 6 at dbheight %d", ht7, ht6)
 	}
+	ShutDownEverything(t)
+} // testLoad2(){...}
 
+// The intention of this test is to detect the EC overspend/duplicate commits (FD-566) bug.
+// the bug happened when the FCT transaction and the commits arrived in different orders on followers vs the leader.
+// Using a message delay, drop and tree network makes this likely
+//
+func TestLoadScrambled(t *testing.T) {
+	if RanSimTest {
+		return
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			t.Fatalf("TestLoadScrambled: %v", r)
+		}
+	}()
+
+	RanSimTest = true
+
+	// use a tree so the messages get reordered
+	state0 := SetupSim("LLFFFFFF", map[string]string{"--net": "tree"}, 32, 0, 0, t)
+	//TODO: Why does this run longer than expected?
+
+	RunCmd("2")     // select 2
+	RunCmd("F1000") // set the message delay
+	RunCmd("S10")   // delete 1% of the messages
+	RunCmd("r")     // rotate the load around the network
+	RunCmd("R3")    // Feed load
+	WaitBlocks(state0, 10)
+	RunCmd("R0") // Stop load
+	WaitBlocks(state0, 1)
+
+	ShutDownEverything(t)
 } // testLoad(){...}
 
 func TestMakeALeader(t *testing.T) {
-	if ranSimTest {
+
+
+	if RanSimTest {
 		return
 	}
 
-	ranSimTest = true
+	RanSimTest = true
 
-	state0 := SetupSim("LL", "LOCAL", map[string]string{}, t)
+	state0 := SetupSim("LF", map[string]string{}, 5, 0, 0, t)
 
-	runCmd("1") // select node 1
-	runCmd("l") // make him a leader
+	RunCmd("1") // select node 1
+	RunCmd("l") // make him a leader
 	WaitBlocks(state0, 1)
 	WaitForMinute(state0, 1)
 	WaitForAllNodes(state0)
-	CheckAuthoritySet(2, 0, t)
+	// Adjust expectations
+	Leaders++
+	Followers--
+	ShutDownEverything(t)
 }
 
 func TestActivationHeightElection(t *testing.T) {
-	if ranSimTest {
+	if RanSimTest {
 		return
 	}
 
-	ranSimTest = true
+	RanSimTest = true
 
-	var (
-		leaders   int = 5
-		audits    int = 2
-		followers int = 1
-	)
-
-	// Make a list of node statuses ex. LLLAAAFFF
-	nodeList := ""
-	for i := 0; i < leaders; i++ {
-		nodeList += "L"
-	}
-	for i := 0; i < audits; i++ {
-		nodeList += "A"
-	}
-	for i := 0; i < followers; i++ {
-		nodeList += "F"
-	}
-
-	state0 := SetupSim(nodeList, "LOCAL", map[string]string{"--logPort": "37000", "--port": "37001", "--controlpanelport": "37002", "--networkport": "37003"}, t)
-
-	StatusEveryMinute(state0)
-	WaitMinutes(state0, 2)
-	WaitBlocks(state0, 1)
-	WaitMinutes(state0, 1)
-	WaitBlocks(state0, 1)
-	WaitMinutes(state0, 2)
-	PrintOneStatus(0, 0)
-
-	CheckAuthoritySet(leaders, audits, t)
+	state0 := SetupSim("LLLLLAAF", map[string]string{}, 16, 2, 2, t)
 
 	// Kill the last two leader to cause a double election
-	runCmd(fmt.Sprintf("%d", leaders-2))
-	runCmd("x")
-	runCmd(fmt.Sprintf("%d", leaders-1))
-	runCmd("x")
+	RunCmd("3")
+	RunCmd("x")
+	RunCmd("4")
+	RunCmd("x")
 
 	WaitMinutes(state0, 2) // make sure they get faulted
 
 	// bring them back
-	runCmd(fmt.Sprintf("%d", leaders-2))
-	runCmd("x")
-	runCmd(fmt.Sprintf("%d", leaders-1))
-	runCmd("x")
-	WaitBlocks(state0, 3)
+	RunCmd("3")
+	RunCmd("x")
+	RunCmd("4")
+	RunCmd("x")
+	WaitBlocks(state0, 2)
 	WaitMinutes(state0, 1)
+	WaitForAllNodes(state0)
+	CheckAuthoritySet(t)
 
-	// PrintOneStatus(0, 0)
-	if GetFnodes()[leaders-2].State.Leader {
-		t.Fatalf("Node %d should not be a leader", leaders-2)
+	if GetFnodes()[3].State.Leader {
+		t.Fatalf("Node 3 should not be a leader")
 	}
-	if GetFnodes()[leaders-1].State.Leader {
-		t.Fatalf("Node %d should not be a leader", leaders-1)
+	if GetFnodes()[4].State.Leader {
+		t.Fatalf("Node 4 should not be a leader")
 	}
-	if !GetFnodes()[leaders].State.Leader {
-		t.Fatalf("Node %d should be a leader", leaders)
+	if !GetFnodes()[5].State.Leader {
+		t.Fatalf("Node 5 should be a leader")
 	}
-	if !GetFnodes()[leaders+1].State.Leader {
-		t.Fatalf("Node %d should be a leader", leaders+1)
+	if !GetFnodes()[6].State.Leader {
+		t.Fatalf("Node 6 should be a leader")
 	}
 
-	CheckAuthoritySet(leaders, audits, t)
+	CheckAuthoritySet(t)
 
 	if state0.IsActive(activations.ELECTION_NO_SORT) {
 		t.Fatalf("ELECTION_NO_SORT active too early")
@@ -539,162 +275,88 @@ func TestActivationHeightElection(t *testing.T) {
 	WaitForMinute(state0, 2) // Don't Fault at the end of a block
 
 	// Cause a new double elections by killing the new leaders
-	runCmd(fmt.Sprintf("%d", leaders))
-	runCmd("x")
-	runCmd(fmt.Sprintf("%d", leaders+1))
-	runCmd("x")
+	RunCmd("5")
+	RunCmd("x")
+	RunCmd("6")
+	RunCmd("x")
 	WaitMinutes(state0, 2) // make sure they get faulted
 	// bring them back
-	runCmd(fmt.Sprintf("%d", leaders))
-	runCmd("x")
-	runCmd(fmt.Sprintf("%d", leaders+1))
-	runCmd("x")
-	WaitBlocks(state0, 2)
+	RunCmd("5")
+	RunCmd("x")
+	RunCmd("6")
+	RunCmd("x")
+	WaitBlocks(state0, 3)
 	WaitMinutes(state0, 1)
 	WaitForAllNodes(state0)
+	CheckAuthoritySet(t)
 
-	if GetFnodes()[leaders].State.Leader {
-		t.Fatalf("Node %d should not be a leader", leaders)
+	if GetFnodes()[5].State.Leader {
+		t.Fatalf("Node 5 should not be a leader")
 	}
-	if GetFnodes()[leaders+1].State.Leader {
-		t.Fatalf("Node %d should not be a leader", leaders+1)
+	if GetFnodes()[6].State.Leader {
+		t.Fatalf("Node 6 should not be a leader")
 	}
-	if !GetFnodes()[leaders-1].State.Leader {
-		t.Fatalf("Node %d should be a leader", leaders-1)
+	if !GetFnodes()[3].State.Leader {
+		t.Fatalf("Node 3 should be a leader")
 	}
-	if !GetFnodes()[leaders-2].State.Leader {
-		t.Fatalf("Node %d should be a leader", leaders-2)
-	}
-
-	CheckAuthoritySet(leaders, audits, t)
-
-	t.Log("Shutting down the network")
-	for _, fn := range GetFnodes() {
-		fn.State.ShutdownChan <- 1
+	if !GetFnodes()[4].State.Leader {
+		t.Fatalf("Node 4 should be a leader")
 	}
 
-	// Sleep one block
-	time.Sleep(time.Duration(state0.DirectoryBlockInSeconds) * time.Second)
-	if state0.LLeaderHeight > 14 {
-		t.Fatal("Failed to shut down factomd via ShutdownChan")
-	}
+	ShutDownEverything(t)
 }
 
 func TestAnElection(t *testing.T) {
-	if ranSimTest {
+	if RanSimTest {
 		return
 	}
 
-	ranSimTest = true
+	RanSimTest = true
 
-	var (
-		leaders   int = 3
-		audits    int = 2
-		followers int = 1
-	)
-
-	nodeList := ""
-	for i := 0; i < leaders; i++ {
-		//runCmd("l")
-		nodeList += "L"
-	}
-
-	// Allocate audit servers
-	for i := 0; i < audits; i++ {
-		//runCmd("o")
-		nodeList += "A"
-	}
-
-	for i := 0; i < followers; i++ {
-		//runCmd("o")
-		nodeList += "F"
-	}
-
-	state0 := SetupSim(nodeList, "LOCAL", map[string]string{}, t)
-
+	state0 := SetupSim("LLLAAF", map[string]string{}, 9, 1, 1, t)
 	StatusEveryMinute(state0)
 	WaitMinutes(state0, 2)
 
-	for {
-		pendingCommits := 0
-		for _, s := range GetFnodes() {
-			pendingCommits += s.State.Commits.Len()
-		}
-		if pendingCommits == 0 {
-			break
-		}
-		fmt.Printf("Waiting for g6 to complete\n")
-		WaitMinutes(state0, 1)
-
-	}
-
-	WaitBlocks(state0, 1)
-	WaitMinutes(state0, 2)
-	PrintOneStatus(0, 0)
-	runCmd("2")
-	runCmd("w") // point the control panel at 2
-
-	CheckAuthoritySet(leaders, audits, t)
+	RunCmd("2")
+	RunCmd("w") // point the control panel at 2
 
 	// remove the last leader
-	runCmd(fmt.Sprintf("%d", leaders-1))
-	runCmd("x")
+	RunCmd("2")
+	RunCmd("x")
 	// wait for the election
 	WaitMinutes(state0, 2)
 	//bring him back
-	runCmd("x")
+	RunCmd("x")
 	// wait for him to update via dbstate and become an audit
 	WaitBlocks(state0, 2)
 	WaitMinutes(state0, 1)
 	WaitForAllNodes(state0)
 
 	// PrintOneStatus(0, 0)
-	if GetFnodes()[leaders-1].State.Leader {
-		t.Fatalf("Node %d should not be a leader", leaders-1)
+	if GetFnodes()[2].State.Leader {
+		t.Fatalf("Node 2 should not be a leader")
 	}
-	if !GetFnodes()[leaders].State.Leader && !GetFnodes()[leaders+1].State.Leader {
-		t.Fatalf("Node %d or %d should be a leader", leaders, leaders+1)
-	}
-
-	CheckAuthoritySet(leaders, audits, t)
-
-	WaitBlocks(state0, 1)
-
-	t.Log("Shutting down the network")
-	for _, fn := range GetFnodes() {
-		fn.State.ShutdownChan <- 1
+	if !GetFnodes()[3].State.Leader && !GetFnodes()[4].State.Leader {
+		t.Fatalf("Node 3 or 4  should be a leader")
 	}
 
-	// Sleep one block
-	time.Sleep(time.Duration(state0.DirectoryBlockInSeconds) * time.Second)
-	if state0.LLeaderHeight > 9 {
-		t.Fatal("Failed to shut down factomd via ShutdownChan")
-	}
+	WaitForAllNodes(state0)
+	ShutDownEverything(t)
 
 }
 
 func TestDBsigEOMElection(t *testing.T) {
-	if ranSimTest {
+	if RanSimTest {
 		return
 	}
 
-	ranSimTest = true
+	RanSimTest = true
 
-	state := SetupSim("LLLLLAA", "LOCAL", map[string]string{"--logPort": "37000", "--port": "37001", "--controlpanelport": "37002", "--networkport": "37003"}, t)
+	state0 := SetupSim("LLLLLAAF", map[string]string{}, 9, 4, 4, t)
 
-	state = GetFnodes()[2].State
-	state.MessageTally = true
-	StatusEveryMinute(state)
-	t.Log("Allocated 7 nodes")
-	if len(GetFnodes()) != 7 {
-		t.Fatal("Should have allocated 7 nodes")
-		t.Fail()
-	}
-
-	WaitBlocks(state, 1)
-	WaitForMinute(state, 2)
-
-	CheckAuthoritySet(5, 2, t)
+	// get status from FNode02 because he is not involved in the elections
+	state2 := GetFnodes()[2].State
+	StatusEveryMinute(state2)
 
 	var wait sync.WaitGroup
 	wait.Add(2)
@@ -702,7 +364,6 @@ func TestDBsigEOMElection(t *testing.T) {
 	// wait till after EOM 9 but before DBSIG
 	stop0 := func() {
 		s := GetFnodes()[0].State
-		WaitForMinute(state, 9)
 		// wait till minute flips
 		for s.CurrentMinute != 0 {
 			runtime.Gosched()
@@ -733,144 +394,123 @@ func TestDBsigEOMElection(t *testing.T) {
 	wait.Wait()
 	fmt.Println("Caused Elections")
 
-	WaitBlocks(state, 3)
+	WaitMinutes(state2, 1)
 	// bring them back
-	runCmd("0")
-	runCmd("x")
-	runCmd("1")
-	runCmd("x")
-	WaitBlocks(state, 2)
-	WaitForMinute(state, 1)
-	WaitForAllNodes(state)
-
-	CheckAuthoritySet(5, 2, t)
-
-	t.Log("Shutting down the network")
-	for _, fn := range GetFnodes() {
-		fn.State.ShutdownChan <- 1
-	}
+	RunCmd("0")
+	RunCmd("x")
+	RunCmd("1")
+	RunCmd("x")
+	// wait for him to update via dbstate and become an audit
+	WaitBlocks(state0, 2)
+	WaitMinutes(state0, 1)
+	WaitForAllNodes(state0)
+	ShutDownEverything(t)
 
 }
 
 func TestMultiple2Election(t *testing.T) {
-	if ranSimTest {
+	if RanSimTest {
 		return
 	}
 
-	ranSimTest = true
+	RanSimTest = true
 
-	state := SetupSim("LLLLLLLAAF", "LOCAL", map[string]string{}, t)
+	state0 := SetupSim("LLLLLAAF", map[string]string{"--debuglog": ".*"}, 7, 2, 2, t)
 
-	CheckAuthoritySet(7, 2, t)
+	WaitForMinute(state0, 2)
 
-	runCmd("1")
-	runCmd("x")
-	runCmd("2")
-	runCmd("x")
-	WaitForMinute(state, 1)
-	runCmd("1")
-	runCmd("x")
-	runCmd("2")
-	runCmd("x")
+	RunCmd("1")
+	RunCmd("x")
+	RunCmd("2")
+	RunCmd("x")
+	WaitForMinute(state0, 1)
+	RunCmd("1")
+	RunCmd("x")
+	RunCmd("2")
+	RunCmd("x")
 
-	runCmd("E")
-	runCmd("F")
-	runCmd("0")
-	runCmd("p")
+	RunCmd("E")
+	RunCmd("F")
+	RunCmd("0")
+	RunCmd("p")
 
-	WaitBlocks(state, 2)
-	WaitForMinute(state, 1)
-	WaitForAllNodes(state)
+	WaitBlocks(state0, 2)
+	WaitForMinute(state0, 1)
+	WaitForAllNodes(state0)
+	ShutDownEverything(t)
 
-	t.Log("Shutting down the network")
-	for _, fn := range GetFnodes() {
-		fn.State.ShutdownChan <- 1
-	}
 }
 
 func TestMultiple3Election(t *testing.T) {
-	if ranSimTest {
+	if RanSimTest {
 		return
 	}
 
-	ranSimTest = true
+	RanSimTest = true
 
-	state := SetupSim("LLLLLLLAAAAF", "LOCAL", map[string]string{}, t)
+	state0 := SetupSim("LLLLLLLAAAAF", map[string]string{"--debuglog": ".*"}, 9, 3, 3, t)
 
-	CheckAuthoritySet(7, 4, t)
-
-	runCmd("1")
-	runCmd("x")
-	runCmd("2")
-	runCmd("x")
-	runCmd("3")
-	runCmd("x")
-	runCmd("0")
-	WaitMinutes(state, 1)
-	runCmd("3")
-	runCmd("x")
-	runCmd("1")
-	runCmd("x")
-	runCmd("2")
-	runCmd("x")
-	WaitBlocks(state, 2)
-	WaitForMinute(state, 1)
-	WaitForAllNodes(state)
-
-	CheckAuthoritySet(7, 4, t)
-
-	t.Log("Shutting down the network")
-	for _, fn := range GetFnodes() {
-		fn.State.ShutdownChan <- 1
-	}
+	RunCmd("1")
+	RunCmd("x")
+	RunCmd("2")
+	RunCmd("x")
+	RunCmd("3")
+	RunCmd("x")
+	RunCmd("0")
+	WaitMinutes(state0, 1)
+	RunCmd("3")
+	RunCmd("x")
+	RunCmd("1")
+	RunCmd("x")
+	RunCmd("2")
+	RunCmd("x")
+	// Wait till they should have updated by DBSTATE
+	WaitBlocks(state0, 3)
+	WaitForMinute(state0, 1)
+	WaitForAllNodes(state0)
+	ShutDownEverything(t)
 
 }
 
 func TestMultiple7Election(t *testing.T) {
-	if ranSimTest {
+	if RanSimTest {
 		return
 	}
 
-	ranSimTest = true
+	RanSimTest = true
 
-	state := SetupSim("LLLLLLLLLLLLLLLAAAAAAAAAA", "LOCAL", map[string]string{"--controlpanelsetting": "readwrite"}, t)
+	state0 := SetupSim("LLLLLLLLLLLLLLLAAAAAAAF", map[string]string{"--blktime": "25"}, 7, 7, 7, t)
 
-	CheckAuthoritySet(15, 10, t)
+	WaitForMinute(state0, 2)
 
 	// Take 7 nodes off line
 	for i := 1; i < 8; i++ {
-		runCmd(fmt.Sprintf("%d", i))
-		runCmd("x")
+		RunCmd(fmt.Sprintf("%d", i))
+		RunCmd("x")
 	}
 	// force them all to be faulted
-	WaitMinutes(state, 1)
+	WaitMinutes(state0, 1)
 
 	// bring them back online
 	for i := 1; i < 8; i++ {
-		runCmd(fmt.Sprintf("%d", i))
-		runCmd("x")
+		RunCmd(fmt.Sprintf("%d", i))
+		RunCmd("x")
 	}
 
-	// Wait till the should have updated by DBSTATE
-	WaitBlocks(state, 2)
-	WaitForMinute(state, 1)
-	WaitForAllNodes(state)
-
-	CheckAuthoritySet(15, 10, t)
-
-	t.Log("Shutting down the network")
-	for _, fn := range GetFnodes() {
-		fn.State.ShutdownChan <- 1
-	}
+	// Wait till they should have updated by DBSTATE
+	WaitBlocks(state0, 2)
+	WaitMinutes(state0, 1)
+	WaitForAllNodes(state0)
+	ShutDownEverything(t)
 }
 
 func TestMultipleFTAccountsAPI(t *testing.T) {
-	if ranSimTest {
+	if RanSimTest {
 		return
 	}
-	ranSimTest = true
+	RanSimTest = true
 
-	state0 := SetupSim("LLLLAAAFFF", "LOCAL", map[string]string{"--logPort": "37000", "--port": "37001", "--controlpanelport": "37002", "--networkport": "37003"}, t)
+	state0 := SetupSim("LLLLAAAFFF", map[string]string{"--blktime": "15"}, 6, 0, 0, t)
 	WaitForMinute(state0, 1)
 
 	type walletcallHelper struct {
@@ -969,8 +609,14 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 			t.Fatalf("Who wrote this trash code?... Expected a current height of " + fmt.Sprint(currentHeight) + " and a saved height of " + fmt.Sprint(heighestSavedHeight) + " but got " + fmt.Sprint(resp2.Result.CurrentHeight) + ", " + fmt.Sprint(resp2.Result.LastSavedHeight))
 		}
 
-		if x["ack"] != float64(TempBalance) || x["saved"] != float64(PermBalance) || x["err"] != errNotAcc {
-			t.Fatalf("Expected " + fmt.Sprint(strconv.FormatInt(x["ack"].(int64), 10)) + ", " + fmt.Sprint(strconv.FormatInt(x["saved"].(int64), 10)) + ", but got " + strconv.FormatInt(TempBalance, 10) + "," + strconv.FormatInt(PermBalance, 10))
+		if x["err"].(string) != errNotAcc {
+			t.Fatalf("Expected err = \"%s\" but got \"%s\"", x["err"], errNotAcc)
+		}
+		if int64(x["ack"].(float64)) != TempBalance {
+			t.Fatalf("Expected temp[%d] but got X[%d]<%f> ", TempBalance, int64(x["ack"].(float64)), x["ack"].(float64))
+		}
+		if int64(x["saved"].(float64)) != PermBalance {
+			t.Fatalf("Expected perm[%d] but got X[%d]<%f>", PermBalance, int64(x["saved"].(float64)), x["saved"].(float64))
 		}
 	}
 	TimeNow(state0)
@@ -980,8 +626,11 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 	if ok != true {
 		fmt.Println(x)
 	}
-	if x["ack"] != x["saved"] {
-		t.Fatalf("Expected acknowledged and saved balances to be he same")
+	//if x["ack"] != x["saved"] {
+	//	t.Fatalf("Expected acknowledged and saved balances to be the same")
+	//}
+	if int64(x["ack"].(float64)) != int64(x["saved"].(float64)) {
+		t.Fatalf("Expected  temp[%d] to match perm[%d]", int64(x["ack"].(float64)), int64(x["saved"].(float64)))
 	}
 
 	TimeNow(state0)
@@ -1023,8 +672,12 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 		fmt.Println(x)
 	}
 
-	if x["ack"] == x["saved"] {
-		t.Fatalf("Expected acknowledged and saved balances to be different.")
+	//
+	//if x["ack"] == x["saved"] {
+	//	t.Fatalf("Expected acknowledged and saved balances to be different.")
+	//}
+	if int64(x["ack"].(float64)) == int64(x["saved"].(float64)) {
+		t.Fatalf("Expected  temp[%d] to not match perm[%d]", int64(x["ack"].(float64)), int64(x["saved"].(float64)))
 	}
 
 	WaitBlocks(state0, 1)
@@ -1036,17 +689,18 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 		fmt.Println(x)
 	}
 	if x["ack"] != x["saved"] {
-		t.Fatalf("Expected acknowledged and saved balances to be he same")
+		t.Fatalf("Expected acknowledged and saved balances to be the same")
 	}
+	ShutDownEverything(t)
 }
 
 func TestMultipleECAccountsAPI(t *testing.T) {
-	if ranSimTest {
+	if RanSimTest {
 		return
 	}
-	ranSimTest = true
+	RanSimTest = true
 
-	state0 := SetupSim("LLLLAAAFFF", "LOCAL", map[string]string{"--logPort": "37000", "--port": "8088", "--controlpanelport": "37002", "--networkport": "37003"}, t)
+	state0 := SetupSim("LLLLAAAFFF", map[string]string{"--blktime": "15"}, 6, 0, 0, t)
 	WaitForMinute(state0, 1)
 
 	type walletcallHelper struct {
@@ -1161,8 +815,18 @@ func TestMultipleECAccountsAPI(t *testing.T) {
 			t.Fatalf("Who wrote this trash code?... Expected a current height of " + fmt.Sprint(currentHeight) + " and a saved height of " + fmt.Sprint(heighestSavedHeight) + " but got " + fmt.Sprint(resp2.Result.CurrentHeight) + ", " + fmt.Sprint(resp2.Result.LastSavedHeight))
 		}
 
-		if x["ack"] != float64(TempBalance) || x["saved"] != float64(PermBalance) || x["err"] != errNotAcc {
-			t.Fatalf("Expected " + fmt.Sprint(strconv.FormatInt(x["ack"].(int64), 10)) + ", " + fmt.Sprint(strconv.FormatInt(x["saved"].(int64), 10)) + ", but got " + strconv.FormatInt(TempBalance, 10) + "," + strconv.FormatInt(PermBalance, 10))
+		//for i := range x {
+		//	fmt.Printf("%s: %v %T\n", i, x[i], x[i])
+		//}
+
+		if x["err"].(string) != errNotAcc {
+			t.Fatalf("Expected err = \"%s\" but got \"%s\"", x["err"], errNotAcc)
+		}
+		if int64(x["ack"].(float64)) != TempBalance {
+			t.Fatalf("Expected temp[%d] but got X[%d]<%f> ", TempBalance, int64(x["ack"].(float64)), x["ack"].(float64))
+		}
+		if int64(x["saved"].(float64)) != PermBalance {
+			t.Fatalf("Expected perm[%d] but got X[%d]<%f>", PermBalance, int64(x["saved"].(float64)), x["saved"].(float64))
 		}
 	}
 	TimeNow(state0)
@@ -1173,8 +837,8 @@ func TestMultipleECAccountsAPI(t *testing.T) {
 		fmt.Println(x)
 	}
 
-	if x["ack"] != x["saved"] {
-		t.Fatalf("Expected " + fmt.Sprint(x["ack"]) + ", " + fmt.Sprint(x["saved"]) + " but got " + fmt.Sprint(x["ack"]) + ", " + fmt.Sprint(x["saved"]))
+	if int64(x["ack"].(float64)) != int64(x["saved"].(float64)) {
+		t.Fatalf("Expected  temp[%d] to match perm[%d]", int64(x["ack"].(float64)), int64(x["saved"].(float64)))
 	}
 
 	TimeNow(state0)
@@ -1215,8 +879,8 @@ func TestMultipleECAccountsAPI(t *testing.T) {
 		fmt.Println(x)
 	}
 
-	if x["ack"] == x["saved"] {
-		t.Fatalf("Expected " + fmt.Sprint(x["ack"]) + ", " + fmt.Sprint(x["saved"]) + " but got " + fmt.Sprint(x["ack"]) + ", " + fmt.Sprint(x["saved"]))
+	if int64(x["ack"].(float64)) == int64(x["saved"].(float64)) {
+		t.Fatalf("Expected  temp[%d] to not match perm[%d]", int64(x["ack"].(float64)), int64(x["saved"].(float64)))
 	}
 
 	WaitBlocks(state0, 1)
@@ -1230,45 +894,23 @@ func TestMultipleECAccountsAPI(t *testing.T) {
 	if x["ack"] != x["saved"] {
 		t.Fatalf("Expected " + fmt.Sprint(x["ack"]) + ", " + fmt.Sprint(x["saved"]) + " but got " + fmt.Sprint(x["ack"]) + ", " + fmt.Sprint(x["saved"]))
 	}
+	WaitForAllNodes(state0)
+	ShutDownEverything(t)
 }
 
-func CheckAuthoritySet(leaders int, audits int, t *testing.T) {
-	leadercnt := 0
-	auditcnt := 0
-	for _, fn := range GetFnodes() {
-		s := fn.State
-		if s.Leader {
-			leadercnt++
-		}
-		list := s.ProcessLists.Get(s.LLeaderHeight)
-		if foundAudit, _ := list.GetAuditServerIndexHash(s.GetIdentityChainID()); foundAudit {
-			auditcnt++
-		}
-	}
-	if leadercnt != leaders {
-		t.Fatalf("found %d leaders, expected %d", leadercnt, leaders)
-	}
-	if auditcnt != audits {
-		t.Fatalf("found %d audit servers, expected %d", auditcnt, audits)
-		t.Fail()
-	}
-}
-
-func TestDBsigElectionEvery2Block(t *testing.T) {
-	if ranSimTest {
+func TestDBsigElectionEvery2Block_long(t *testing.T) {
+	if RanSimTest {
 		return
 	}
 
-	ranSimTest = true
+	RanSimTest = true
 
 	iterations := 1
-	state := SetupSim("LLLLLLAF", "LOCAL", map[string]string{"--debuglog": "fault|badmsg|network|process|dbsig", "--faulttimeout": "10"}, t)
+	state := SetupSim("LLLLLLAF", map[string]string{"--debuglog": "fault|badmsg|network|process|dbsig", "--faulttimeout": "10"}, 32, 6, 6, t)
 
-	runCmd("S10") // Set Drop Rate to 1.0 on everyone
+	RunCmd("S10") // Set Drop Rate to 1.0 on everyone
 
-	CheckAuthoritySet(6, 1, t)
-
-	for j := 0; j <= iterations; j++ {
+	for j := 0; j < iterations; j++ {
 		// for leader 1 thu 7 kill each in turn
 		for i := 1; i < 7; i++ {
 			s := GetFnodes()[i].State
@@ -1291,26 +933,21 @@ func TestDBsigElectionEvery2Block(t *testing.T) {
 			WaitForMinute(state, 1)
 			WaitForAllNodes(state)
 
-			CheckAuthoritySet(6, 1, t) // check the authority set is as expected
+			CheckAuthoritySet(t) // check the authority set is as expected
 		}
 	}
-	t.Log("Shutting down the network")
-	for _, fn := range GetFnodes() {
-		fn.State.ShutdownChan <- 1
-	}
+	WaitForAllNodes(state)
+	ShutDownEverything(t)
 
 }
 
 func TestDBSigElection(t *testing.T) {
-	if ranSimTest {
+	if RanSimTest {
 		return
 	}
-	ranSimTest = true
+	RanSimTest = true
 
-	state0 := SetupSim("LLLAF", "LOCAL", map[string]string{"--debuglog": "fault|badmsg|network|process|dbsig", "--faulttimeout": "10"}, t)
-	StatusEveryMinute(state0)
-
-	CheckAuthoritySet(3, 1, t)
+	state0 := SetupSim("LLLAF", map[string]string{"--debuglog": "fault|badmsg|network|process|dbsig", "--faulttimeout": "10"}, 8, 1, 1, t)
 
 	s := GetFnodes()[2].State
 	if !s.IsLeader() {
@@ -1323,7 +960,7 @@ func TestDBSigElection(t *testing.T) {
 	}
 	s.SetNetStateOff(true) // kill the victim
 	s.LogPrintf("faulting", "Stopped %s\n", s.FactomNodeName)
-	WaitForMinute(state0, 1) // Wait till FNode0 move ahead a minute (the election is over)
+	WaitForMinute(state0, 2) // Wait till FNode0 move ahead a minute (the election is over)
 	s.LogPrintf("faulting", "Start %s\n", s.FactomNodeName)
 	s.SetNetStateOff(false) // resurrect the victim
 
@@ -1331,26 +968,275 @@ func TestDBSigElection(t *testing.T) {
 	WaitForMinute(state0, 1) // Wait till ablock is loaded
 	WaitForAllNodes(state0)
 
-	CheckAuthoritySet(3, 1, t) // check the authority set is as expected
+	ShutDownEverything(t)
+}
 
-	t.Log("Shutting down the network")
-	for _, fn := range GetFnodes() {
-		fn.State.ShutdownChan <- 1
+func TestGrants_long(t *testing.T) {
+	if RanSimTest {
+		return
 	}
+
+	makeExpected := func (grants []state.HardGrant) []interfaces.ITransAddress {
+		var rval []interfaces.ITransAddress
+		for _, g := range grants {
+		rval = append(rval, factoid.NewOutAddress(g.Address, g.Amount))
+	}
+		return rval
+	}
+
+	RanSimTest = true
+
+	state0 := SetupSim("LAF", map[string]string{"--debuglog": "fault|badmsg|network|process|dbsig", "--faulttimeout": "10", "--blktime": "5"}, 300, 0, 0, t)
+
+	grants := state.GetHardCodedGrants()
+
+	// find all the heights we care about
+	heights := map[uint32][]state.HardGrant{}
+	min := uint32(9999999)
+	max := uint32(0)
+	grantBalances := map[string]int64{} // Compute the expected final balances
+	// TODO: (does not account for cancels)
+	for _, g := range grants {
+		heights[g.DBh] = append(heights[g.DBh], g)
+		if min > g.DBh {
+			min = g.DBh
+		}
+		if max < g.DBh {
+			max = g.DBh
+		}
+		// keep a list of grant addresses
+	}
+
+	// Build a list of grant addresses
+	for _, g := range grants {
+		userAddr := primitives.ConvertFctAddressToUserStr(g.Address)
+		_, ok := grantBalances[userAddr]
+		if !ok {
+			grantBalances[userAddr] = state0.FactoidState.GetFactoidBalance(g.Address.Fixed()) // Save initial balance
+		}
+		grantBalances[userAddr] += int64(g.Amount) // Add the grant amount
+	}
+
+	fmt.Println("Waiting for grant payout")
+	// run the state till we are past the 100 block delay and check the final balances
+	WaitBlocks(state0, int(max+1+constants.COINBASE_DECLARATION+constants.COINBASE_PAYOUT_FREQUENCY*2))
+
+	// check the final balances of the accounts
+	for addr, balance := range grantBalances {
+		factoidBalance := state0.FactoidState.GetFactoidBalance(factoid.NewAddress(primitives.ConvertUserStrToAddress(addr)).Fixed())
+		if balance != factoidBalance {
+			t.Errorf("FinalBalanceMismatch for %s. Got %d expected %d", addr, balance, factoidBalance)
+		}
+	}
+
+	// loop thru the dbheights  to get the admin block and check them and make sure the payouts get returned
+	for dbheight := uint32(min - constants.COINBASE_PAYOUT_FREQUENCY*2); dbheight <= uint32(max+constants.COINBASE_PAYOUT_FREQUENCY*2); dbheight++ {
+		expected := makeExpected(heights[dbheight])
+		gotGrants := state.GetGrantPayoutsFor(dbheight)
+		if len(expected) != len(gotGrants) {
+			t.Errorf("Expected %d grants but found %d", len(expected), len(gotGrants))
+		} else if len(expected) > 0 {
+			fmt.Printf("Got %d expected grants at %d\n", len(expected), dbheight)
+		}
+
+		for i, _ := range expected {
+			if !expected[i].GetAddress().IsSameAs(gotGrants[i].GetAddress()) ||
+				expected[i].GetAmount() != gotGrants[i].GetAmount() ||
+				expected[i].GetUserAddress() != gotGrants[i].GetUserAddress() {
+				t.Errorf("Expected: %v ", expected[i])
+				t.Errorf("but found %v for grant #%d at %d", gotGrants[i], i, dbheight)
+			} else {
+				fmt.Printf("Got grants %v\n", expected[i])
+			}
+			//fmt.Println(p.GetAmount(), p.GetUserAddress())
+		}
+		//descriptorHeight := dbheight - constants.COINBASE_DECLARATION
+
+		ablock, err := state0.DB.FetchABlockByHeight(dbheight)
+		if err != nil {
+			panic(fmt.Sprintf("Missing coinbase, admin block at height %d could not be retrieved", dbheight))
+		}
+
+		abe := ablock.FetchCoinbaseDescriptor()
+		if abe != nil {
+			desc := abe.(*adminBlock.CoinbaseDescriptor)
+			coinBaseOutputs := map[string]uint64{}
+			for _, o := range desc.Outputs {
+				coinBaseOutputs[primitives.ConvertFctAddressToUserStr(o.GetAddress())] = o.GetAmount()
+			}
+			if len(expected) != len(coinBaseOutputs) && !(len(coinBaseOutputs) == 1 && dbheight%constants.COINBASE_PAYOUT_FREQUENCY == 0) {
+				t.Errorf("Expected %d grants but found %d at height %d", len(expected), len(coinBaseOutputs), dbheight)
+				PrintList("coinbase", coinBaseOutputs)
+			}
+			for i, _ := range expected {
+				address := expected[i].GetUserAddress()
+				cbAmount := coinBaseOutputs[address]
+				amount := expected[i].GetAmount()
+				if amount != cbAmount {
+					t.Errorf("Expected: %v ", expected[i])
+					t.Errorf("but found %v:%v for grant #%d at %d", address, cbAmount, i, dbheight)
+				}
+				//fmt.Println(p.GetAmount(), p.GetUserAddress())
+			}
+		}
+	} // for all dbheights {...}
+
+	WaitForAllNodes(state0)
+
+	ShutDownEverything(t)
+}
+
+func TestCoinbaseCancel(t *testing.T) {
+	if RanSimTest {
+		return
+	}
+
+	RanSimTest = true
+
+	state0 := SetupSim("LFFFFF", map[string]string{"-blktime": "5"}, 30, 0, 0, t)
+	// Make it quicker
+	constants.COINBASE_PAYOUT_FREQUENCY = 2
+	constants.COINBASE_DECLARATION = constants.COINBASE_PAYOUT_FREQUENCY * 2
+
+	WaitMinutes(state0, 2)
+	RunCmd("g10") // Adds 10 identities to your identity pool.
+	WaitBlocks(state0, 1)
+	// Assign identities
+	RunCmd("1")
+	RunCmd("t")
+	RunCmd("2")
+	RunCmd("t")
+	RunCmd("3")
+	RunCmd("t")
+	RunCmd("4")
+	RunCmd("t")
+	RunCmd("5")
+	RunCmd("t")
+
+	WaitBlocks(state0, 2)
+	// Promotions, create 3 feds and 3 audits
+	RunCmd("1")
+	RunCmd("l")
+	RunCmd("2")
+	RunCmd("l")
+	RunCmd("3")
+	RunCmd("o")
+	RunCmd("4")
+	RunCmd("o")
+	RunCmd("5")
+	RunCmd("o")
+
+	WaitBlocks(state0, 3)
+	WaitForBlock(state0, 15)
+	WaitMinutes(state0, 1)
+	// Cancel coinbase of 18 (14+ delay of 4) with a majority of the authority set, should succeed
+	RunCmd("1")
+	RunCmd("L14.1")
+	RunCmd("2")
+	RunCmd("L14.1")
+	RunCmd("3")
+	RunCmd("L14.1")
+	RunCmd("4")
+	RunCmd("L14.1")
+	WaitForBlock(state0, 17)
+	WaitMinutes(state0, 1)
+
+	// attempt cancel coinbase of  20 (16+ delay of 4) without a majority of the authority set.  Should fail
+	// This tests 3 of 6 canceling, which is not a majority (but almost is)
+	// all feds
+	RunCmd("0")
+	RunCmd("L16.1")
+	RunCmd("1")
+	RunCmd("L16.1")
+	RunCmd("2")
+	RunCmd("L16.1")
+	WaitForBlock(state0, 21)
+	WaitForMinute(state0, 9)
+
+	// attempt cancel coinbase of  22 (18+ delay of 4) without a majority of the authority set.  Should fail
+	// This tests 3 of 6 canceling, which is not a majority (but almost is)
+	// all audits
+	RunCmd("3")
+	RunCmd("L18.1")
+	RunCmd("4")
+	RunCmd("L18.1")
+	RunCmd("5")
+	RunCmd("L18.1")
+	WaitForBlock(state0, 23)
+	WaitForMinute(state0, 2)
+
+	// attempt cancel coinbase of  24 (20+ delay of 4) without a majority of the authority set.  Should fail
+	// This tests 3 of 6 canceling, which is not a majority (but almost is)
+	// 2 audit 1 fed
+	RunCmd("2")
+	RunCmd("L20.1")
+	RunCmd("4")
+	RunCmd("L20.1")
+	RunCmd("5")
+	RunCmd("L20.1")
+	WaitForBlock(state0, 25)
+	WaitForMinute(state0, 2)
+
+	// Check the coinbase blocks for correct number of outputs, indicating a successful (or correctly ignored) coinbase cancels
+
+	hei := 18
+	expected := 4
+	f, err := state0.DB.FetchFBlockByHeight(uint32(hei))
+	if err != nil {
+		panic(fmt.Sprintf("Missing coinbase, admin block at height %d could not be retrieved", hei))
+	}
+	c := len(f.GetTransactions()[0].GetOutputs())
+	if c != expected {
+		t.Fatalf("Coinbase at height %d improperly cancelled.  should have %d outputs, but found %d", hei, expected, c)
+	}
+
+	hei = 20
+	expected = 5
+	f, err = state0.DB.FetchFBlockByHeight(uint32(hei))
+	if err != nil {
+		panic(fmt.Sprintf("Missing coinbase, admin block at height %d could not be retrieved", hei))
+	}
+	c = len(f.GetTransactions()[0].GetOutputs())
+	if c != expected {
+		t.Fatalf("Coinbase at height %d improperly cancelled.  should have %d outputs, but found %d", hei, expected, c)
+	}
+
+	hei = 22
+	expected = 5
+	f, err = state0.DB.FetchFBlockByHeight(uint32(hei))
+	if err != nil {
+		panic(fmt.Sprintf("Missing coinbase, admin block at height %d could not be retrieved", hei))
+	}
+	c = len(f.GetTransactions()[0].GetOutputs())
+	if c != expected {
+		t.Fatalf("Coinbase at height %d improperly cancelled.  should have %d outputs, but found %d", hei, expected, c)
+	}
+
+	hei = 24
+	expected = 5
+	f, err = state0.DB.FetchFBlockByHeight(uint32(hei))
+	if err != nil {
+		panic(fmt.Sprintf("Missing coinbase, admin block at height %d could not be retrieved", hei))
+	}
+	c = len(f.GetTransactions()[0].GetOutputs())
+	if c != expected {
+		t.Fatalf("Coinbase at height %d improperly cancelled.  should have %d outputs, but found %d", hei, expected, c)
+	}
+
+	//ShutDownEverythingWithoutAuthCheck(t)  see 9cf214e9140d767ea172b06a6e4b748475a9c494 for ShutDownEverythingWithoutAuthCheck()
 
 }
 
-func TestTestNetCoinBaseActivation(t *testing.T) {
-	if ranSimTest {
+func TestTestNetCoinBaseActivation_long(t *testing.T) {
+	if RanSimTest {
 		return
 	}
-	ranSimTest = true
+	RanSimTest = true
 
 	// reach into the activation an hack the TESTNET_COINBASE_PERIOD to be early so I can check it worked.
 	activations.ActivationMap[activations.TESTNET_COINBASE_PERIOD].ActivationHeight["LOCAL"] = 22
 
-	state0 := SetupSim("LAF", "LOCAL", map[string]string{"--debuglog": "fault|badmsg|network|process|dbsig", "--faulttimeout": "10", "--blktime": "5"}, t)
-	CheckAuthoritySet(1, 1, t)
+	state0 := SetupSim("LAF", map[string]string{"--debuglog": "fault|badmsg|network|process|dbsig", "--faulttimeout": "10", "--blktime": "10"}, 168, 0, 0, t)
 	fmt.Println("Simulation configured")
 	nextBlock := uint32(11 + constants.COINBASE_DECLARATION) // first grant is at 11 so it pays at 21
 	fmt.Println("Wait till first grant should payout")
@@ -1369,7 +1255,7 @@ func TestTestNetCoinBaseActivation(t *testing.T) {
 
 	fmt.Println("Wait till activation height")
 	WaitForBlock(state0, 25)
-	if constants.COINBASE_DECLARATION != 20 {
+	if constants.COINBASE_DECLARATION != 140 {
 		t.Fatalf("constants.COINBASE_DECLARATION = %d expect 140\n", constants.COINBASE_DECLARATION)
 	}
 
@@ -1388,45 +1274,157 @@ func TestTestNetCoinBaseActivation(t *testing.T) {
 	if len(CBT.GetOutputs()) != 0 {
 		t.Fatalf("Expected first payout at block %d\n", nextBlock)
 	}
+	fmt.Println("Wait to shut down")
+	StatusEveryMinute(state0)
+	WaitForAllNodes(state0)
+	ShutDownEverything(t)
+}
+
+func TestElection9(t *testing.T) {
+	if RanSimTest {
+		return
+	}
+	RanSimTest = true
+
+	state0 := SetupSim("LLAL", map[string]string{"--debuglog": ".|fault|badmsg|network|process|dbsig", "--faulttimeout": "10"}, 8, 1, 1, t)
+	StatusEveryMinute(state0)
+	CheckAuthoritySet(t)
+
+	state3 := GetFnodes()[3].State
+	if !state3.IsLeader() {
+		panic("Can't kill a audit and cause an election")
+	}
+	RunCmd("3")
+	WaitForMinute(state3, 9) // wait till the victim is at minute 9
+	RunCmd("x")
+	WaitMinutes(state0, 1) // Wait till fault completes
+	RunCmd("x")
+
+	WaitBlocks(state0, 2)    // wait till the victim is back as the audit server
+	WaitForMinute(state0, 1) // Wait till ablock is loaded
+	WaitForAllNodes(state0)
+
+	WaitForMinute(state3, 1) // Wait till node 3 is following by minutes
 
 	WaitForAllNodes(state0)
-	CheckAuthoritySet(1, 1, t) // check the authority set is as expected
-	t.Log("Shutting down the network")
-	for _, fn := range GetFnodes() {
-		fn.State.ShutdownChan <- 1
-	}
+	ShutDownEverything(t)
 }
 
 // Cheap tests for developing binary search commits algorithm
 
 func TestPass(t *testing.T) {
-	if ranSimTest {
+	if RanSimTest {
 		return
 	}
 
-	ranSimTest = true
+	RanSimTest = true
 
 }
 
 func TestFail(t *testing.T) {
-	if ranSimTest {
+	if RanSimTest {
 		return
 	}
 
-	ranSimTest = true
+	RanSimTest = true
 	t.Fatal("Failed")
 
 }
 
 func TestRandom(t *testing.T) {
-	if ranSimTest {
+	if RanSimTest {
 		return
 	}
 
-	ranSimTest = true
+	RanSimTest = true
 
 	if random.RandUInt8() > 200 {
 		t.Fatal("Failed")
 	}
+}
+
+func TestFactoidDBState(t *testing.T) {
+	if RanSimTest {
+		return
+	}
+	RanSimTest = true
+
+	state0 := SetupSim("LAF", map[string]string{"--debuglog": "fault|badmsg|network|process|dbsig", "--faulttimeout": "10", "--blktime": "5"}, 120, 0, 0, t)
+	WaitForBlock(state0, 5)
+
+	go func() {
+		for i := 0; i <= 1000; i++ {
+			FundWallet(state0, 10000)
+			time.Sleep(time.Duration(random.RandIntBetween(250, 1250)) * time.Millisecond)
+		}
+	}()
+
+	RunCmd("2")
+	for i := 0; i < 20; i++ {
+		WaitMinutes(state0, i)
+		RunCmd("x")
+		WaitMinutes(state0, 1+i)
+		RunCmd("x")
+		WaitBlocks(state0, 2)
+	}
+	WaitForAllNodes(state0)
+	ShutDownEverything(t)
+}
+
+func TestNoMMR(t *testing.T) {
+	if RanSimTest {
+		return
+	}
+	RanSimTest = true
+
+	state0 := SetupSim("LLLAAFFFFF", map[string]string{"--debuglog": "fault|badmsg|network|process|exec|missing", "--blktime": "20"}, 10, 0, 0, t)
+	state.MMR_enable = false // turn off MMR processing
+	StatusEveryMinute(state0)
+	RunCmd("R10") // turn on some load
+	WaitBlocks(state0, 5)
+	RunCmd("R0") // turn off load
+	WaitForAllNodes(state0)
+	ShutDownEverything(t)
+}
+
+func TestFeeTxnCreate(t *testing.T) {
+	var oneFct uint64 = 100000000 // Factoshis
+	var ecPrice uint64 = 10000
+
+	balance := oneFct
+	inUser := "Fs3E9gV6DXsYzf7Fqx1fVBQPQXV695eP3k5XbmHEZVRLkMdD9qCK" // FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q
+	outAddress := "FA2s2SJ5Cxmv4MzpbGxVS9zbNCjpNRJoTX4Vy7EZaTwLq3YTur4u"
+
+	for i := 0; i < 10; i++ {
+		txn, _ := NewTransaction(balance, inUser, outAddress, ecPrice)
+		fee, _ := txn.CalculateFee(ecPrice)
+		balance = balance - fee
+		AssertEquals(t, 12*ecPrice, fee)
+	}
+}
+
+func TestTxnCreate(t *testing.T) {
+	var amt uint64 = 100000000
+	var ecPrice uint64 = 10000
+
+	inUser := "Fs3E9gV6DXsYzf7Fqx1fVBQPQXV695eP3k5XbmHEZVRLkMdD9qCK" // FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q
+	//outUser := "Fs2GCfAa2HBKaGEUWCtw8eGDkN1CfyS6HhdgLv8783shkrCgvcpJ" // FA2s2SJ5Cxmv4MzpbGxVS9zbNCjpNRJoTX4Vy7EZaTwLq3YTur4u
+	outAddress := "FA2s2SJ5Cxmv4MzpbGxVS9zbNCjpNRJoTX4Vy7EZaTwLq3YTur4u"
+
+	txn, err := NewTransaction(amt, inUser, outAddress, ecPrice)
+	AssertNil(t, err)
+
+	err = txn.ValidateSignatures()
+	AssertNil(t, err)
+
+	err = txn.Validate(1)
+	AssertNil(t, err)
+
+	if err := txn.Validate(0); err == nil {
+		t.Fatalf("expected coinbase txn to error")
+	}
+
+	// test that we are sending to the address we thought
+	AssertEquals(t, outAddress, txn.Outputs[0].GetUserAddress())
 
 }
