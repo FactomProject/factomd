@@ -1063,9 +1063,6 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	pln.SortFedServers()
 	pln.SortAuditServers()
 
-	authlistMsg := list.State.EFactory.NewAuthorityListInternal(pln.FedServers, pln.AuditServers, pln.DBHeight)
-	list.State.ElectionsQueue().Enqueue(authlistMsg)
-
 	// Sync Identities
 	// 	Do the sync first, which will sync any Eblocks added from the prior block
 	//	Then add eblocks from this current block, they will be synced come the next block.

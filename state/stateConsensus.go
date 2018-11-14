@@ -645,6 +645,16 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		}
 		s.dbheights <- int(dbheight) // Notify MMR process we have moved on...
 
+		s.CurrentMinuteStartTime = time.Now().UnixNano()
+		s.CurrentBlockStartTime = s.CurrentMinuteStartTime
+
+		// If an we added or removed servers or elections tool place in minute 9, our lists will be unsorted. Fix that
+		s.LeaderPL.SortAuditServers()
+		s.LeaderPL.SortFedServers()
+		// update the elections thread
+		authlistMsg := s.EFactory.NewAuthorityListInternal(s.LeaderPL.FedServers, s.LeaderPL.AuditServers, s.LLeaderHeight)
+		s.ElectionsQueue().Enqueue(authlistMsg)
+
 	} else if s.CurrentMinute != newMinute { // And minute
 		s.CurrentMinute = newMinute                                                            // Update just the minute
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(newMinute, s.IdentityChainID) // MoveStateToHeight minute
@@ -652,6 +662,11 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		s.EOM = false
 		s.EOMDone = false
 		s.EOMProcessed = 0
+
+		s.CurrentMinuteStartTime = time.Now().UnixNano()
+		// If an election took place, our lists will be unsorted. Fix that
+		s.LeaderPL.SortAuditServers()
+		s.LeaderPL.SortFedServers()
 	}
 
 	s.LogPrintf("dbstateprocess", "MoveStateToHeight(%d-:-%d) leader=%v leaderPL=%p, leaderVMIndex=%d", dbheight, newMinute, s.Leader, s.LeaderPL, s.LeaderVMIndex)
@@ -1836,7 +1851,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 				s.EOMProcessed = 0
 			}
 
-			s.CurrentMinuteStartTime = time.Now().UnixNano()
 			//
 			////TODO: I'm pretty sure this is bad. Only sort on block boundaries  -- clay
 			//// If an election took place, our lists will be unsorted. Fix that

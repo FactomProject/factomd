@@ -202,11 +202,22 @@ func SortServers(servers []interfaces.IServer) []interfaces.IServer {
 }
 
 func (p *ProcessList) SortFedServers() {
-	p.FedServers = SortServers(p.FedServers)
+	s := p.State
+	changed := s.Elections.Sort(p.FedServers)
+	if changed {
+		s.LogPrintf("election", "Sort changed p.Federated in ProcessList.SortFedServers")
+		s.Elections.LogPrintLeaders("process")
+	}
 }
 
 func (p *ProcessList) SortAuditServers() {
-	p.AuditServers = SortServers(p.AuditServers)
+	s := p.State
+	changed := s.Elections.Sort(p.AuditServers)
+	if changed {
+		s.LogPrintf("election", "Sort changed p.Audit in ProcessList.SortAuditServers")
+		s.Elections.LogPrintLeaders("process")
+	}
+
 }
 
 func (p *ProcessList) SortDBSigs() {

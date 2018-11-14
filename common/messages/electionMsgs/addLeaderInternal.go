@@ -71,9 +71,9 @@ func (m *AddLeaderInternal) ElectionProcess(s interfaces.IState, elect interface
 		e.Federated = append(e.Federated, &state.Server{ChainID: m.ServerID, Online: true})
 		e.Round = append(e.Round, 0)
 		// TODO: If we reorder Federated[] do we need to reorder Round[]?
-		changed := elections.Sort(e.Federated)
+		changed := e.Sort(e.Federated)
 		if changed {
-			e.LogPrintf("election", "Sort changed leaders")
+			e.LogPrintf("election", "Sort changed e.Federated in AddLeaderInternal.ElectionProcess()")
 			e.LogPrintLeaders("election")
 		}
 
