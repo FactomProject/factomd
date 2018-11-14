@@ -7,25 +7,78 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/entryBlock"
+	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/mapdb"
+	"github.com/FactomProject/factomd/engine"
+
 	//"github.com/FactomProject/factomd/engine"
 	//"github.com/FactomProject/factomd/log"
 	"time"
+	"testing"
 
 	"github.com/FactomProject/factomd/state"
 	//"fmt"
 	"fmt"
 	"os"
-
 	"github.com/FactomProject/factomd/common/messages/electionMsgs"
 )
 
 var BlockCount int = 10
 var DefaultCoinbaseAmount uint64 = 100000000
+
+func AssertEquals(t *testing.T, a interface{}, b interface{}) {
+	AssertEqualsMsg(t, a, b, "")
+}
+
+func AssertEqualsMsg(t *testing.T, a interface{}, b interface{}, msg string) {
+	if a != b {
+		t.Fatalf("%v != %v  %s", a, b, msg)
+	}
+}
+
+func AssertNil(t *testing.T, a interface{}) {
+	AssertEquals(t, a, nil)
+}
+
+var statusState *state.State
+
+// print the status for every minute for a state
+func StatusEveryMinute(s *state.State) {
+	if statusState == nil {
+		fmt.Fprintf(os.Stdout, "Printing status from %s\n", s.FactomNodeName)
+		statusState = s
+		go func() {
+			for {
+				s := statusState
+				newMinute := (s.CurrentMinute + 1) % 10
+				timeout := 8 // timeout if a minutes takes twice as long as expected
+				for s.CurrentMinute != newMinute && timeout > 0 {
+					sleepTime := time.Duration(globals.Params.BlkTime) * 1000 / 40 // Figure out how long to sleep in milliseconds
+					time.Sleep(sleepTime * time.Millisecond)                       // wake up and about 4 times per minute
+					timeout--
+				}
+				if timeout <= 0 {
+					fmt.Println("Stalled !!!")
+				}
+				// Make all the nodes update their status
+				for _, n := range engine.GetFnodes() {
+					n.State.SetString()
+				}
+				engine.PrintOneStatus(0, 0)
+			}
+		}()
+	} else {
+		fmt.Fprintf(os.Stdout, "Printing status from %s", s.FactomNodeName)
+		statusState = s
+
+	}
+}
+
+
 
 func CreateEmptyTestState() *state.State {
 	s := new(state.State)
@@ -365,3 +418,10 @@ func CreateTestBlockSetWithNetworkID(prev *BlockSet, networkID uint32, transacti
 func CreateEmptyTestDatabaseOverlay() *databaseOverlay.Overlay {
 	return databaseOverlay.NewOverlay(new(mapdb.MapDB))
 }
+
+func PrintList(title string, list map[string]uint64) {
+	for addr, amt := range list {
+		fmt.Printf("%v - %v:%v\n", title, addr, amt)
+	}
+}
+
