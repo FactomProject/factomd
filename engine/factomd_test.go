@@ -8,6 +8,7 @@ import (
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/primitives/random"
+	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"net/http"
 	"runtime"
@@ -1400,7 +1401,7 @@ func TestFeeTxnCreate(t *testing.T) {
 		txn, _ := NewTransaction(balance, inUser, outAddress, ecPrice)
 		fee, _ := txn.CalculateFee(ecPrice)
 		balance = balance - fee
-		AssertEquals(t, 12*ecPrice, fee)
+		assert.Equal(t, 12*ecPrice, fee)
 	}
 }
 
@@ -1413,20 +1414,20 @@ func TestTxnCreate(t *testing.T) {
 	outAddress := "FA2s2SJ5Cxmv4MzpbGxVS9zbNCjpNRJoTX4Vy7EZaTwLq3YTur4u"
 
 	txn, err := NewTransaction(amt, inUser, outAddress, ecPrice)
-	AssertNil(t, err)
+	assert.Nil(t, err)
 
 	err = txn.ValidateSignatures()
-	AssertNil(t, err)
+	assert.Nil(t, err)
 
 	err = txn.Validate(1)
-	AssertNil(t, err)
+	assert.Nil(t, err)
 
 	if err := txn.Validate(0); err == nil {
 		t.Fatalf("expected coinbase txn to error")
 	}
 
 	// test that we are sending to the address we thought
-	AssertEquals(t, outAddress, txn.Outputs[0].GetUserAddress())
+	assert.Equal(t, outAddress, txn.Outputs[0].GetUserAddress())
 
 }
 
