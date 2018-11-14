@@ -604,7 +604,7 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 	// update cached values that change with current minute
 	if s.LLeaderHeight != dbheight {
 		if newMinute != 0 {
-			panic("Can't jump to the middle of a block")
+			panic(fmt.Sprintf("Can't jump to the middle of a block minute: %d", newMinute))
 		}
 		s.CurrentMinute = 0                       // Update height and minute
 		s.LLeaderHeight = uint32(dbheight)        // Update height and minute

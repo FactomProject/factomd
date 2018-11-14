@@ -553,25 +553,26 @@ func TestLoad(t *testing.T) {
 	shutDownEverything(t)
 } // testLoad(){...}
 
-func TestLoad2(t *testing.T) {
+// Test that we don't put invalid TX into a block.  This is done by creating transactions that are just outside
+// the time for the block, and we let the block catch up.  The code should validate against the block time of the
+// block to ensure that we don't record an invalid transaction in the block relative to the block time.
+func TestTXTimestampsAndBlocks(t *testing.T) {
 	if ranSimTest {
 		return
 	}
 	ranSimTest = true
 
 	go runCmd("Re") // Turn on tight allocation of EC as soon as the simulator is up and running
-	state0 := SetupSim("LLLAAAFFF", map[string]string{"--blktime": "20"}, 24, 0, 0, t)
+	state0 := SetupSim("LLLAAAFFF", map[string]string{"--blktime": "10"}, 20, 0, 0, t)
 	StatusEveryMinute(state0)
 
 	runCmd("7") // select node 7
 	runCmd("x") // take out 7 from the network
 	WaitBlocks(state0, 1)
 	WaitForMinute(state0, 1)
-
-	runCmd("R30") // Feed load at 30 tps
+	runCmd("R30")
 	WaitBlocks(state0, 3)
 	runCmd("Rt60") // Offset FCT transaction into the future by 60 minutes
-	runCmd("T20")  // Set Block time to 20 seconds
 	runCmd("R.5")  // turn down the load
 	WaitBlocks(state0, 2)
 	runCmd("x")
