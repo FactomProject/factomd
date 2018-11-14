@@ -375,13 +375,16 @@ func CheckAuthoritySet(t *testing.T) {
 	}
 
 	if leadercnt != leaders {
+		PrintOneStatus(0, 0)
 		t.Fatalf("found %d leaders, expected %d", leadercnt, leaders)
 	}
 	if auditcnt != audits {
+		PrintOneStatus(0, 0)
 		t.Fatalf("found %d audit servers, expected %d", auditcnt, audits)
 		t.Fail()
 	}
 	if followercnt != followers {
+		PrintOneStatus(0, 0)
 		t.Fatalf("found %d followers, expected %d", followercnt, followers)
 		t.Fail()
 	}
@@ -568,7 +571,7 @@ func TestLoad2(t *testing.T) {
 	WaitBlocks(state0, 1)
 	WaitForMinute(state0, 1)
 
-	runCmd("R30") // Feed load at 30 tps
+	runCmd("R30") // Feed load at 30 tps(burn up the pre-allocated ECs)
 	WaitBlocks(state0, 3)
 	runCmd("Rt60") // Offset FCT transaction into the future by 60 minutes
 	runCmd("T20")  // Set Block time to 20 seconds
@@ -897,7 +900,7 @@ func TestMultiple7Election(t *testing.T) {
 
 	ranSimTest = true
 
-	state0 := SetupSim("LLLLLLLLLLLLLLLAAAAAAAF", map[string]string{"--blktime": "25"}, 7, 7, 7, t)
+	state0 := SetupSim("LLLLLLLLLLLLLLLAAAAAAAF", map[string]string{"--blktime": "35", "--debuglog": "."}, 7, 7, 7, t)
 
 	WaitForMinute(state0, 2)
 

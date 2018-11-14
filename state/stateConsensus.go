@@ -1901,7 +1901,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 				s.DBSigProcessed = 0
 				s.TempBalanceHash = s.FactoidState.GetBalanceHash(true)
 
-				atomic.WhereAmI()
 				s.Saving = true
 			}
 
