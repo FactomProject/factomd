@@ -30,20 +30,6 @@ import (
 var BlockCount int = 10
 var DefaultCoinbaseAmount uint64 = 100000000
 
-func AssertEquals(t *testing.T, a interface{}, b interface{}) {
-	AssertEqualsMsg(t, a, b, "")
-}
-
-func AssertEqualsMsg(t *testing.T, a interface{}, b interface{}, msg string) {
-	if a != b {
-		t.Fatalf("%v != %v  %s", a, b, msg)
-	}
-}
-
-func AssertNil(t *testing.T, a interface{}) {
-	AssertEquals(t, a, nil)
-}
-
 var statusState *state.State
 
 // print the status for every minute for a state

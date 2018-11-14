@@ -5,8 +5,8 @@ import (
 	"github.com/FactomProject/factom"
 	. "github.com/FactomProject/factomd/engine"
 	. "github.com/FactomProject/factomd/testHelper"
-	"time"
 	"testing"
+	"time"
 )
 
 func TestChainedTransactions(t *testing.T) {
