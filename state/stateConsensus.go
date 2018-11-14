@@ -643,6 +643,7 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 			// not 100% sure how this case can be but doing nothing seems to work and it does happen in sim tests.
 			//panic("No prior state")
 		}
+		s.dbheights <- int(dbheight) // Notify MMR process we have moved on...
 
 	} else if s.CurrentMinute != newMinute { // And minute
 		s.CurrentMinute = newMinute                                                            // Update just the minute

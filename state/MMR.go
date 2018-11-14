@@ -160,7 +160,8 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 			} // time to die, no one is listening
 
 			ticker <- s.GetTimestamp().GetTimeMilli()
-			time.Sleep(20 * time.Millisecond)
+			askDelay := int64(s.DirectoryBlockInSeconds*1000) / 50
+			time.Sleep(time.Duration(askDelay) * time.Millisecond)
 		}
 	}()
 
