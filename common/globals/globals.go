@@ -30,6 +30,7 @@ type FactomParams struct {
 	LogPort                  string
 	BlkTime                  int
 	FaultTimeout             int
+	RoundTimeout             int
 	RuntimeLog               bool
 	Exclusive                bool
 	ExclusiveIn              bool
@@ -48,6 +49,7 @@ type FactomParams struct {
 	MemProfileRate           int
 	Fast                     bool
 	FastLocation             string
+	FastSaveRate             int
 	Loglvl                   string
 	Logjson                  bool
 	Svm                      bool
@@ -68,4 +70,5 @@ type FactomParams struct {
 	FixChainHeads            bool // Only matters if CheckChainHeads == true
 	ControlPanelSetting      string
 	WriteProcessedDBStates   bool // Write processed DBStates to debug file
+	FactomHome               string
 }

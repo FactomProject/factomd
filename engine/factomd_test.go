@@ -1378,7 +1378,7 @@ func TestNoMMR(t *testing.T) {
 	RanSimTest = true
 
 	state0 := SetupSim("LLLAAFFFFF", map[string]string{"--debuglog": "fault|badmsg|network|process|exec|missing", "--blktime": "20"}, 10, 0, 0, t)
-	state.MMR_enable = false // turn off MMR processing
+	//state.MMR_enable = false // turn off MMR processing
 	StatusEveryMinute(state0)
 	RunCmd("R10") // turn on some load
 	WaitBlocks(state0, 5)
