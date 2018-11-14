@@ -45,7 +45,7 @@ func TestAddBadEfficiency(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	p[1] = 0xff // replace body lenght with bad value
+	p[1] = 0xff // replace body length with bad value
 
 	e2 := new(AddEfficiency)
 	err = e2.UnmarshalBinary(p)
