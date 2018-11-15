@@ -152,6 +152,8 @@ func (m *FedVoteProposalMsg) FollowerExecute(is interfaces.IState) {
 	s := is.(*state.State)
 	if s.Elections.(*elections.Elections).Adapter == nil {
 		s.Holding[m.GetMsgHash().Fixed()] = m
+		m, ok := s.Holding[m.GetHash().Fixed()]
+		fmt.Println("OKKKK fedVoteProp 156", ok)
 		s.LogMessage("holding", "add", m)
 		return
 	}

@@ -136,13 +136,28 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 		switch msg.Type() {
 		case constants.REVEAL_ENTRY_MSG, constants.COMMIT_ENTRY_MSG, constants.COMMIT_CHAIN_MSG:
 			if !s.NoEntryYet(msg.GetHash(), nil) {
+				_, ok := s.Holding[msg.GetHash().Fixed()];
+
 				delete(s.Holding, msg.GetHash().Fixed())
-				s.LogMessage("holding", "deleted commited or revealed", msg)
+
+				_, ok2 := s.Holding[msg.GetHash().Fixed()]
+				if ok && !ok2 {
+					fmt.Println("YESSSSSSSSSS ", ok, ok2)
+					s.LogMessage("holding", "deleted commited or revealed", msg)
+				} else if ok && ok2 {
+					fmt.Println("NOOOOOO It wasnt deleted!!! ", ok, ok2)
+				} else if !ok {
+					fmt.Println("ITWAS NEVER IN HOLDING! ")
+				}
 				s.Commits.Delete(msg.GetHash().Fixed())
 				return true
 			}
+			_, ok := s.Holding[msg.GetHash().Fixed()]
+			fmt.Println("OKKKK stateConsensus 146", ok)
+			if !ok {
+				s.LogMessage("holding", "add", msg)
+			}
 			s.Holding[msg.GetMsgHash().Fixed()] = msg
-			s.LogMessage("holding", "add", msg)
 		}
 
 		var vml int

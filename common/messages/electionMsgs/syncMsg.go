@@ -157,6 +157,8 @@ func (m *SyncMsg) FollowerExecute(is interfaces.IState) {
 	}
 	if msg == nil { // TODO: What does this mean? -- clay
 		s.Holding[m.GetMsgHash().Fixed()] = m
+		m, ok := s.Holding[m.GetHash().Fixed()]
+		fmt.Println("OKKKK syncMsg 161", ok)
 		s.LogMessage("holding", "add", m)
 		return // Maybe we are not yet prepared to create an SigType...
 	}
