@@ -870,6 +870,7 @@ func (s *State) Init() {
 	s.RunLeader = false
 	s.IgnoreMissing = true
 	s.BootTime = s.GetTimestamp().GetTimeSeconds()
+	s.TimestampAtBoot = primitives.NewTimestampNow()
 
 	if s.LogPath == "stdout" {
 		wsapi.InitLogs(s.LogPath, s.LogLevel)
