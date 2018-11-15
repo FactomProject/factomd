@@ -716,7 +716,7 @@ func (s *State) AddDBState(isNew bool,
 		LeaderPL := s.ProcessLists.Get(s.LLeaderHeight)
 
 		if s.LeaderPL != LeaderPL {
-			s.LogPrintf("ExecuteMsg", "Unexpected chang in LeaderPL")
+			s.LogPrintf("ExecuteMsg", "Unexpected change in LeaderPL")
 			s.LeaderPL = LeaderPL
 		}
 
@@ -1506,7 +1506,7 @@ func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) bool {
 	as, ok := addServerMsg.(*messages.AddServerMsg)
 	if ok && !ProcessIdentityToAdminBlock(s, as.ServerChainID, as.ServerType) {
-		//s.AddStatus(fmt.Sprintf("Failed to add %x as server type %d", as.ServerChainID.Bytes()[2:5], as.ServerType))
+		s.LogPrintf("process", "Failed to add %x as server type %d", as.ServerChainID.Bytes()[3:6], as.ServerType)
 		return false
 	}
 	return true

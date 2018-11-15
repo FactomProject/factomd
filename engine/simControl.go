@@ -182,6 +182,7 @@ func SimControl(listenTo int, listenStdin bool) {
 					//	os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
 					//	break
 					//}
+					time.Sleep(1000 * time.Millisecond)
 					setUpAuthorities(fnodes[wsapiNode].State, true)
 					os.Stderr.WriteString(fmt.Sprintf("%d Authorities added to the stack and funds are in wallet\n", len(authStack)))
 				}

@@ -19,7 +19,6 @@ import (
 	"fmt"
 
 	log "github.com/sirupsen/logrus"
-	"os"
 )
 
 var _ = DecodeIdentityChainStructureFromExtIDs
@@ -156,7 +155,8 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 
 	err := st.AddIdentityFromChainID(chainID)
 	if err != nil {
-		os.Stderr.WriteString( fmt.Sprintf("Failed to process AddServerMessage for %s : %s", chainID.String()[:10], err.Error()))
+		flog.Errorf("Failed to process AddServerMessage for %s : %s", chainID.String()[:10], err.Error())
+		st.LogPrintf("process", "Failed to process AddServerMessage for %s : %s", chainID.String()[:10], err.Error())
 		return true
 	}
 
@@ -164,12 +164,14 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 
 	if id != nil {
 		if ok, err := id.IsPromteable(); !ok {
-			os.Stderr.WriteString( fmt.Sprintf("Failed to process AddServerMessage for %s : %s\n", chainID.String()[:10], err.Error()))
+			flog.Errorf("Failed to process AddServerMessage for %s : %s", chainID.String()[:10], err.Error())
+			st.LogPrintf("process", "Failed to process AddServerMessage for %s : %s", chainID.String()[:10], err.Error())
 			return true
 		}
 
 	} else {
 		flog.Errorf("Failed to process AddServerMessage: %s", "New Fed/Audit server ["+chainID.String()[:10]+"] does not have an identity associated to it")
+		st.LogPrintf("process", "Failed to process AddServerMessage: %s", "New Fed/Audit server ["+chainID.String()[:10]+"] does not have an identity associated to it")
 		return true
 	}
 
