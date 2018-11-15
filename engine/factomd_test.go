@@ -60,7 +60,7 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 		"--stderrlog":           "out.txt",
 		"--checkheads":          "false",
 		"--controlpanelsetting": "readwrite",
-		"--debuglog":            "faulting|bad",
+		"--debuglog":            ".|faulting|bad",
 		"--logPort":             "37000",
 		"--port":                "37001",
 		"--controlpanelport":    "37002",
@@ -136,6 +136,7 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 	et := elections.FaultTimeout
 	startTime = time.Now()
 	state0 := Factomd(params, false).(*state.State)
+	// allot 20% extra time to run
 	calctime := time.Duration(float64((height*blkt)+(electionsCnt*et)+(RoundsCnt*roundt))*1.2) * time.Second
 	endTime = time.Now().Add(calctime)
 	fmt.Println("endTime: ", endTime.String(), "duration:", calctime.String())
@@ -146,7 +147,7 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 			case <-quit:
 				return
 			default:
-				if int(state0.GetLLeaderHeight()) > height {
+				if int(state0.GetLLeaderHeight())-3 > height { // always give us 3 extra block to finish
 					fmt.Printf("Test Timeout: Expected %d blocks (%s)\n", height, calctime.String())
 					panic(fmt.Sprintf("Test Timeout: Expected %d blocks (%s)\n", height, calctime.String()))
 				}
