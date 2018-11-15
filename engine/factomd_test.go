@@ -60,7 +60,7 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 		"--stderrlog":           "out.txt",
 		"--checkheads":          "false",
 		"--controlpanelsetting": "readwrite",
-		"--debuglog":            ".|faulting|bad",
+		"--debuglog":            "faulting|bad",
 		"--logPort":             "37000",
 		"--port":                "37001",
 		"--controlpanelport":    "37002",
@@ -136,8 +136,8 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 	et := elections.FaultTimeout
 	startTime = time.Now()
 	state0 := Factomd(params, false).(*state.State)
-	// allot 20% extra time to run
-	calctime := time.Duration(float64((height*blkt)+(electionsCnt*et)+(RoundsCnt*roundt))*1.2) * time.Second
+	// allot 50% extra time to run
+	calctime := time.Duration(float64((height*blkt)+(electionsCnt*et)+(RoundsCnt*roundt))*1.5) * time.Second
 	endTime = time.Now().Add(calctime)
 	fmt.Println("endTime: ", endTime.String(), "duration:", calctime.String())
 
@@ -461,7 +461,7 @@ func TestSetupANetwork(t *testing.T) {
 
 	ranSimTest = true
 
-	state0 := SetupSim("LLLLAAAFFF", map[string]string{"--debuglog": "."}, 14, 0, 0, t)
+	state0 := SetupSim("LLLLAAAFFF", map[string]string{"--debuglog": "", "--blktime": "15"}, 14, 0, 0, t)
 
 	runCmd("9")  // Puts the focus on node 9
 	runCmd("x")  // Takes Node 9 Offline
