@@ -29,6 +29,8 @@ var DefaultCoinbaseAmount uint64 = 100000000
 
 func CreateEmptyTestState() *state.State {
 	s := new(state.State)
+	s.TimestampAtBoot = new(primitives.Timestamp)
+	s.TimestampAtBoot.SetTime(0)
 	s.EFactory = new(electionMsgs.ElectionsFactory)
 	s.LoadConfig("", "")
 	s.Network = "LOCAL"
@@ -59,6 +61,8 @@ func CreatePopulateAndExecuteTestState() *state.State {
 
 func CreateAndPopulateTestState() *state.State {
 	s := new(state.State)
+	s.TimestampAtBoot = new(primitives.Timestamp)
+	s.TimestampAtBoot.SetTime(0)
 	s.EFactory = new(electionMsgs.ElectionsFactory)
 	s.SetLeaderTimestamp(primitives.NewTimestampFromMilliseconds(0))
 	s.DB = CreateAndPopulateTestDatabaseOverlay()
