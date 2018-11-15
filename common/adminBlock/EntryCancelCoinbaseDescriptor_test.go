@@ -43,7 +43,7 @@ func TestAddBadCancelCoinbaseDescriptor(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	p[1] = 0xff // replace body lenght with bad value
+	p[1] = 0xff // replace body length with bad value
 
 	c2 := new(CancelCoinbaseDescriptor)
 	err = c2.UnmarshalBinary(p)

@@ -48,7 +48,7 @@ func TestAddBadFactoidAddress(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	p[1] = 0xff // replace body lenght with bad value
+	p[1] = 0xff // replace body length with bad value
 
 	f2 := new(AddFactoidAddress)
 	err = f2.UnmarshalBinary(p)
