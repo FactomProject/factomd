@@ -2219,13 +2219,21 @@ func (s *State) SetMessageFilterTimestamp(requestedTs interfaces.Timestamp) {
 	s.LeaderTimestamp.SetTimestamp(ts) //SetLeaderTimestamp()
 	s.LogPrintf("executeMsg", "Set MessageFilterTimestamp(%s) @ dbht %d using %s for %s", requestedTs, s.LLeaderHeight, ts.String(), atomic.WhereAmIString(1))
 
-	s.MessageFilterTimestamp.SetTimestamp(ts)
+	if s.MessageFilterTimestamp == nil {
+		s.MessageFilterTimestamp = primitives.NewTimestampFromMilliseconds(uint64(ts.GetTimeMilli()))
+	} else {
+		s.MessageFilterTimestamp.SetTimestamp(ts)
+	}
 }
 
-func (s *State) SetLeaderTimestamp(requestedTs interfaces.Timestamp) {
-	s.LogPrintf("executeMsg", "Set SetLeaderTimestamp(%s) @ dbht %d to %s for  %s", requestedTs, s.LLeaderHeight, requestedTs.String(), atomic.WhereAmIString(1))
-	s.LeaderTimestamp.SetTimestamp(requestedTs) //SetLeaderTimestamp()
-	s.SetMessageFilterTimestamp(requestedTs)
+func (s *State) SetLeaderTimestamp(ts interfaces.Timestamp) {
+	s.LogPrintf("executeMsg", "Set SetLeaderTimestamp(%s) @ dbht %d for %s", ts.String(), s.LLeaderHeight, atomic.WhereAmIString(1))
+	if s.LeaderTimestamp == nil {
+		s.LeaderTimestamp = primitives.NewTimestampFromMilliseconds(uint64(ts.GetTimeMilli()))
+	} else {
+		s.LeaderTimestamp.SetTimestamp(ts)
+	}
+	s.SetMessageFilterTimestamp(ts)
 }
 
 //func (s *State) SetLLeaderHeight(height int) {

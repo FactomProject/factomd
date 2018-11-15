@@ -160,7 +160,7 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 	}()
 	state0.MessageTally = true
 	fmt.Printf("Starting timeout timer:  Expected test to take %s or %d blocks\n", calctime.String(), height)
-	StatusEveryMinute(state0)
+	//StatusEveryMinute(state0)
 	WaitMinutes(state0, 1) // wait till initial DBState message for the genesis block is processed
 	creatingNodes(GivenNodes, state0)
 
@@ -226,6 +226,7 @@ func creatingNodes(creatingNodes string, state0 *state.State) {
 	}
 	WaitBlocks(state0, 1) // Wait for 1 block
 	WaitForMinute(state0, 1)
+	WaitForAllNodes(state0) // make sure everyone is caught up
 }
 
 func WaitForAllNodes(state *state.State) {
@@ -903,7 +904,7 @@ func TestMultiple7Election(t *testing.T) {
 
 	ranSimTest = true
 
-	state0 := SetupSim("LLLLLLLLLLLLLLLAAAAAAAF", map[string]string{"--blktime": "35", "--debuglog": "."}, 7, 7, 7, t)
+	state0 := SetupSim("LLLLLLLLLLLLLLLAAAAAAFA", map[string]string{"--blktime": "35", "--debuglog": "."}, 10, 7, 7, t)
 
 	WaitForMinute(state0, 2)
 
