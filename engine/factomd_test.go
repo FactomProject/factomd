@@ -556,7 +556,10 @@ func TestLoad(t *testing.T) {
 	shutDownEverything(t)
 } // testLoad(){...}
 
-func TestLoad2(t *testing.T) {
+// Test that we don't put invalid TX into a block.  This is done by creating transactions that are just outside
+// the time for the block, and we let the block catch up.  The code should validate against the block time of the
+// block to ensure that we don't record an invalid transaction in the block relative to the block time.
+func TestTXTimestampsAndBlocks(t *testing.T) {
 	if ranSimTest {
 		return
 	}
@@ -570,11 +573,7 @@ func TestLoad2(t *testing.T) {
 	runCmd("x") // take out 7 from the network
 	WaitBlocks(state0, 1)
 	WaitForMinute(state0, 1)
-
-	runCmd("R30") // Feed load at 30 tps(burn up the pre-allocated ECs)
-	WaitBlocks(state0, 3)
 	runCmd("Rt60") // Offset FCT transaction into the future by 60 minutes
-	runCmd("T20")  // Set Block time to 20 seconds
 	runCmd("R.5")  // turn down the load
 	WaitBlocks(state0, 2)
 	runCmd("x")
@@ -773,7 +772,7 @@ func TestDBsigEOMElection(t *testing.T) {
 
 	ranSimTest = true
 
-	state0 := SetupSim("LLLLLAAF", map[string]string{"--debuglog": "."}, 9, 4, 4, t)
+	state0 := SetupSim("LLLLLAAF", map[string]string{}, 9, 4, 4, t)
 
 	// get status from FNode02 because he is not involved in the elections
 	state2 := GetFnodes()[2].State
