@@ -460,7 +460,7 @@ func TestSetupANetwork(t *testing.T) {
 
 	ranSimTest = true
 
-	state0 := SetupSim("LLLLAAAFFF", map[string]string{}, 14, 0, 0, t)
+	state0 := SetupSim("LLLLAAAFFF", map[string]string{"--debuglog": "."}, 14, 0, 0, t)
 
 	runCmd("9")  // Puts the focus on node 9
 	runCmd("x")  // Takes Node 9 Offline
