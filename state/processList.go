@@ -809,8 +809,8 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 				if msg.Process(p.DBHeight, s) { // Try and Process this entry
 
 					if msg.Type() == constants.REVEAL_ENTRY_MSG {
-						delete(s.Holding, msg.GetMsgHash().Fixed()) // We successfully executed the message, so take it out of holding if it is there.
-						s.LogMessage("holding", "deleted because message was executed", msg)
+						//delete(s.Holding, msg.GetMsgHash().Fixed()) // We successfully executed the message, so take it out of holding if it is there.
+						s.DeleteFromHolding(msg.GetMsgHash().Fixed(), msg, "executed")
 						s.Commits.Delete(msg.GetMsgHash().Fixed())
 					}
 
@@ -829,8 +829,9 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 					s.Replay.IsTSValidAndUpdateState(constants.INTERNAL_REPLAY, msgHashFixed, msg.GetTimestamp(), now)
 
 					delete(s.Acks, msgHashFixed)
-					delete(s.Holding, msgHashFixed)
-					s.LogMessage("holding", "deleted becuase no need to see it again", msg)
+					//delete(s.Holding, msgHashFixed)
+
+					s.DeleteFromHolding(msg.GetMsgHash().Fixed(), msg, "already seen")
 				} else {
 					s.LogMessage("process", fmt.Sprintf("retry %v/%v/%v", p.DBHeight, i, j), msg)
 					//s.AddStatus(fmt.Sprintf("processList.Process(): Could not process entry dbht: %d VM: %d  msg: [[%s]]", p.DBHeight, i, msg.String()))
@@ -933,9 +934,11 @@ func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces
 		s.LogPrintf("processList", "Drop "+hint)
 		TotalHoldingQueueOutputs.Inc()
 		TotalAcksOutputs.Inc()
-		delete(s.Holding, msgHash.Fixed())
+		//delete(s.Holding, msgHash.Fixed())
+
+		s.DeleteFromHolding(m.GetMsgHash().Fixed(), m, "")
 		//s.LogMessage("holding", "deleted not sure why")
-		fmt.Println("WHY CANT PRINT ", msgHash.Fixed())
+		//fmt.Println("WHY CANT PRINT ", msgHash.Fixed())
 		delete(s.Acks, msgHash.Fixed())
 	}
 
@@ -999,7 +1002,8 @@ func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces
 	s.LogPrintf("executeMsg", "remove from holding M-%v|R-%v", m.GetMsgHash().String()[:6], m.GetRepeatHash().String()[:6])
 	TotalHoldingQueueOutputs.Inc()
 	TotalAcksOutputs.Inc()
-	delete(s.Holding, msgHash.Fixed())
+	//delete(s.Holding, msgHash.Fixed())
+	s.DeleteFromHolding(msgHash.Fixed(), m, "")
 	s.LogMessage("holding", "deleted msgHash.Fixed()", m)
 	delete(s.Acks, msgHash.Fixed())
 	p.VMs[ack.VMIndex].List[ack.Height] = m

@@ -198,10 +198,9 @@ func (m *FedVoteLevelMsg) FollowerExecute(is interfaces.IState) {
 	pl := s.ProcessLists.Get(m.DBHeight)
 	e := s.Elections.(*elections.Elections)
 	if pl == nil || e.Adapter == nil {
-		s.Holding[m.GetMsgHash().Fixed()] = m
-		m, ok := s.Holding[m.GetHash().Fixed()]
-		fmt.Println("OKKKK ", ok)
-		s.LogMessage("holding", "add", m)
+		//s.Holding[m.GetMsgHash().Fixed()] = m
+		s.AddToHolding(m.GetMsgHash().Fixed(), m)
+
 		return
 	}
 

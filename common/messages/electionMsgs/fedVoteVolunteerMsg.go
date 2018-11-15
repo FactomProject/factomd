@@ -103,10 +103,9 @@ func (m *FedVoteVolunteerMsg) FollowerExecute(is interfaces.IState) {
 	s := is.(*state.State)
 	e := s.Elections.(*elections.Elections)
 	if e.Adapter == nil {
-		s.Holding[m.GetMsgHash().Fixed()] = m
-		m, ok := s.Holding[m.GetHash().Fixed()]
-		fmt.Println("OKKKK fedVoteVol 108", ok)
-		s.LogMessage("holding", "add", m)
+		//s.Holding[m.GetMsgHash().Fixed()] = m
+		s.AddToHolding(m.GetMsgHash().Fixed(), m)
+
 		return
 	}
 

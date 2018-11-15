@@ -560,7 +560,7 @@ func TestLoad2(t *testing.T) {
 	ranSimTest = true
 
 	go runCmd("Re") // Turn on tight allocation of EC as soon as the simulator is up and running
-	state0 := SetupSim("LLLAAAFFF", map[string]string{"--debuglog": "."}, 24, 0, 0, t)
+	state0 := SetupSim("LLLAAAFFF", map[string]string{"--debuglog": "."}, 24, 10, 10, t)
 	StatusEveryMinute(state0)
 
 	runCmd("7") // select node 1
