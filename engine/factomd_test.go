@@ -160,7 +160,7 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 	}()
 	state0.MessageTally = true
 	fmt.Printf("Starting timeout timer:  Expected test to take %s or %d blocks\n", calctime.String(), height)
-	//StatusEveryMinute(state0)
+	StatusEveryMinute(state0)
 	WaitMinutes(state0, 1) // wait till initial DBState message for the genesis block is processed
 	creatingNodes(GivenNodes, state0)
 
@@ -359,16 +359,20 @@ func CheckAuthoritySet(t *testing.T) {
 	auditcnt := 0
 	followercnt := 0
 
-	for _, fn := range GetFnodes() {
+	for i, fn := range GetFnodes() {
 		s := fn.State
 		if s.Leader {
+			fmt.Printf("Found Leader   %d %x\n", i, s.GetIdentityChainID().Bytes()[3:6])
 			leadercnt++
 		} else {
 			list := s.ProcessLists.Get(s.LLeaderHeight)
 			foundAudit, _ := list.GetAuditServerIndexHash(s.GetIdentityChainID())
 			if foundAudit {
+				fmt.Printf("Found Audit     %d %x\n", i, s.GetIdentityChainID().Bytes()[3:6])
 				auditcnt++
 			} else {
+				fmt.Printf("Found Follower %d %x\n", i, s.GetIdentityChainID().Bytes()[3:6])
+
 				followercnt++
 			}
 		}

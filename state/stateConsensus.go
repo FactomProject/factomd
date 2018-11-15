@@ -1506,7 +1506,7 @@ func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) bool {
 	as, ok := addServerMsg.(*messages.AddServerMsg)
 	if ok && !ProcessIdentityToAdminBlock(s, as.ServerChainID, as.ServerType) {
-		//s.AddStatus(fmt.Sprintf("Failed to add %x as server type %d", as.ServerChainID.Bytes()[2:5], as.ServerType))
+		s.LogPrintf("process", "Failed to add %x as server type %d", as.ServerChainID.Bytes()[3:6], as.ServerType)
 		return false
 	}
 	return true
