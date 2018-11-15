@@ -3,8 +3,6 @@ package interfaces
 type IElections interface {
 	String() string
 	AdapterStatus() string
-	Sort(serv []IServer) bool
-	LogPrintLeaders(log string)
 }
 
 type IElectionAdapter interface {
