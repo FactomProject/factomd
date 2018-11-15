@@ -74,36 +74,17 @@ func (s *State) LogPrintf(logName string, format string, more ...interface{}) {
 
 func (s *State) AddToHolding(hash [32]byte, msg interfaces.IMsg) {
 	_, ok := s.Holding[hash]
-	fmt.Println("in holding? ", ok)
-
 	if !ok {
 		s.Holding[hash] = msg
-		fmt.Println("Holding ", "add", msg)
-	}
-
-	_, ok2 := s.Holding[hash]
-
-	if !ok && ok2 {
-		fmt.Println("YAY ADDED!!!!!")
 		s.LogMessage("holding", "add", msg)
-	} else if !ok && !ok2 {
-		fmt.Println("Unable to add??? ")
 	}
-
-	fmt.Println("")
 }
 
 func (s *State) DeleteFromHolding(hash [32]byte, msg interfaces.IMsg, reason string) {
 	_, ok := s.Holding[hash]
 	if ok {
 		delete(s.Holding, hash)
-	}
-	_, ok2 := s.Holding[hash]
-
-	if ok && !ok2 {
 		s.LogMessage("holding", "deleted", msg)
-	} else if !ok {
-		s.LogMessage("holding", "Non-deleted", msg)
 	}
 }
 
@@ -153,10 +134,10 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 
 					// Delta is is negative its greater than blktime then it is future.
 					if Delta < 0 {
-						s.LogMessage("executeMsg", "Hold message from the future", msg)
+						s.LogMessage("executeMsg", "Hold, future", msg)
 						valid = 0 // Future stuff I can hold for now.  It might be good later.
 					} else {
-						s.LogMessage("executeMsg", "Drop message because the msg is out of range", msg)
+						s.LogMessage("executeMsg", "Drop, old", msg)
 						valid = -1 // Old messages are bad.
 					}
 				}
@@ -174,8 +155,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 			if !s.NoEntryYet(msg.GetHash(), nil) {
 
 				//delete(s.Holding, msg.GetHash().Fixed())
-				s.DeleteFromHolding(msg.GetHash().Fixed(), msg, "")
-
+				s.DeleteFromHolding(msg.GetHash().Fixed(), msg, "AlreadyCommited")
 				s.Commits.Delete(msg.GetHash().Fixed())
 				return true
 			}
@@ -225,8 +205,6 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 			TotalHoldingQueueRecycles.Inc()
 			//s.Holding[msg.GetMsgHash().Fixed()] = msg
 			s.AddToHolding(msg.GetMsgHash().Fixed(), msg)
-
-			s.LogMessage("holding", "add", msg)
 			s.LogMessage("executeMsg", "hold", msg)
 		} else {
 			s.LogMessage("executeMsg", "drop, IReplay", msg)
@@ -546,7 +524,7 @@ func (s *State) ReviewHolding() {
 		if ok && ((eom.DBHeight <= saved && saved > 0) || int(eom.Minute) < s.CurrentMinute) {
 			TotalHoldingQueueOutputs.Inc()
 			//delete(s.Holding, k)
-			s.DeleteFromHolding(k, v, "")
+			s.DeleteFromHolding(k, v, "old EOM")
 
 			continue
 		}
@@ -555,7 +533,7 @@ func (s *State) ReviewHolding() {
 		if ok && (dbsmsg.DirectoryBlock.GetHeader().GetDBHeight() < saved-1 && saved > 0) {
 			TotalHoldingQueueOutputs.Inc()
 			//delete(s.Holding, k)
-			s.DeleteFromHolding(k, v, "")
+			s.DeleteFromHolding(k, v, "old DBState")
 
 			continue
 		}
@@ -564,17 +542,25 @@ func (s *State) ReviewHolding() {
 		if ok && ((dbsigmsg.DBHeight <= saved && saved > 0) || (dbsigmsg.DBHeight < highest-3 && highest > 2)) {
 			TotalHoldingQueueOutputs.Inc()
 			//delete(s.Holding, k)
-			s.DeleteFromHolding(k, v, "")
+			s.DeleteFromHolding(k, v, "Old DBSig")
 
 			continue
 		}
 
 		_, ok = s.Replay.Valid(constants.INTERNAL_REPLAY, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
-		ok2 := s.FReplay.IsHashUnique(constants.BLOCK_REPLAY, v.GetRepeatHash().Fixed())
-		if !ok || !ok2 {
+		if !ok {
 			TotalHoldingQueueOutputs.Inc()
 			//delete(s.Holding, k)
-			s.DeleteFromHolding(k, v, "")
+			s.DeleteFromHolding(k, v, "INTERNAL_REPLAY")
+
+			continue
+		}
+
+		ok2 := s.FReplay.IsHashUnique(constants.BLOCK_REPLAY, v.GetRepeatHash().Fixed())
+		if !ok2 {
+			TotalHoldingQueueOutputs.Inc()
+			//delete(s.Holding, k)
+			s.DeleteFromHolding(k, v, "BLOCK_REPLAY")
 
 			continue
 		}
@@ -587,7 +573,7 @@ func (s *State) ReviewHolding() {
 			if !x {
 				TotalHoldingQueueOutputs.Inc()
 				//delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
-				s.DeleteFromHolding(k, v, "blocked by a previous")
+				s.DeleteFromHolding(k, v, "already commited")
 
 				continue
 			}
@@ -601,7 +587,7 @@ func (s *State) ReviewHolding() {
 			if !x {
 				TotalHoldingQueueOutputs.Inc()
 				//delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
-				s.DeleteFromHolding(k, v, "duplicate chianCommit")
+				s.DeleteFromHolding(k, v, "already committed")
 
 				continue
 			}
@@ -611,7 +597,7 @@ func (s *State) ReviewHolding() {
 		if re, ok := v.(*messages.RevealEntryMsg); ok {
 			if !s.NoEntryYet(re.GetHash(), s.GetLeaderTimestamp()) {
 				//delete(s.Holding, re.GetHash().Fixed())
-				s.DeleteFromHolding(k, v, "processed Reveal Entry")
+				s.DeleteFromHolding(k, v, "already committed")
 
 				s.Commits.Delete(re.GetHash().Fixed())
 				continue
@@ -829,9 +815,6 @@ func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
 	//s.Holding[m.GetMsgHash().Fixed()] = m // FollowerExecuteEOM
 
 	s.AddToHolding(m.GetMsgHash().Fixed(), m)
-
-	s.LogMessage("holding", "add", m)
-
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
 	if ack != nil {
 		pl := s.ProcessLists.Get(ack.DBHeight)
@@ -1321,7 +1304,7 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 
 	// Check to make sure AddToProcessList removed it from holding (added it to the list)
 	if s.Holding[m.GetMsgHash().Fixed()] != nil {
-		s.LogMessage("executeMsg", "hold, no process list yet2", m)
+		s.LogMessage("executeMsg", "add to processlist failed", m)
 		return
 	}
 
@@ -1341,7 +1324,7 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 	if !ok {
 		TotalHoldingQueueOutputs.Inc()
 		//delete(s.Holding, m.GetMsgHash().Fixed())
-		s.DeleteFromHolding(m.GetMsgHash().Fixed(), m, "")
+		s.DeleteFromHolding(m.GetMsgHash().Fixed(), m, "INTERNAL_REPLAY")
 
 		if s.DebugExec() {
 			s.LogMessage("executeMsg", "Drop replay", m)
@@ -1467,7 +1450,7 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
 		TotalHoldingQueueOutputs.Inc()
 		HoldingQueueDBSigOutputs.Inc()
 		//delete(s.Holding, m.GetMsgHash().Fixed())
-		s.DeleteFromHolding(m.GetMsgHash().Fixed(), m, "drop internal replay")
+		s.DeleteFromHolding(m.GetMsgHash().Fixed(), m, "INTERNAL_REPLAY")
 		s.LogMessage("executeMsg", "drop INTERNAL_REPLAY", m)
 		return
 	}
