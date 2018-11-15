@@ -1004,7 +1004,7 @@ func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces
 	TotalAcksOutputs.Inc()
 	//delete(s.Holding, msgHash.Fixed())
 	s.DeleteFromHolding(msgHash.Fixed(), m, "")
-	s.LogMessage("holding", "deleted msgHash.Fixed()", m)
+	//s.LogMessage("holding", "deleted msgHash.Fixed()", m)
 	delete(s.Acks, msgHash.Fixed())
 	p.VMs[ack.VMIndex].List[ack.Height] = m
 	p.VMs[ack.VMIndex].ListAck[ack.Height] = ack

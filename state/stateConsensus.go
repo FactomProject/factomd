@@ -101,9 +101,9 @@ func (s *State) DeleteFromHolding(hash [32]byte, msg interfaces.IMsg, reason str
 	_, ok2 := s.Holding[hash]
 
 	if ok && !ok2 {
-		s.LogMessage("holding", "deleted -"+reason, msg)
+		s.LogMessage("holding", "deleted", msg)
 	} else if !ok {
-		s.LogMessage("holding", "Non-deleted -"+reason, msg)
+		s.LogMessage("holding", "Non-deleted", msg)
 	}
 }
 
