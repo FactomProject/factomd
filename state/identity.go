@@ -19,6 +19,7 @@ import (
 	"fmt"
 
 	log "github.com/sirupsen/logrus"
+	"os"
 )
 
 var _ = DecodeIdentityChainStructureFromExtIDs
@@ -155,7 +156,7 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 
 	err := st.AddIdentityFromChainID(chainID)
 	if err != nil {
-		flog.Errorf("Failed to process AddServerMessage for %s : %s", chainID.String()[:10], err.Error())
+		os.Stderr.WriteString( fmt.Sprintf("Failed to process AddServerMessage for %s : %s", chainID.String()[:10], err.Error()))
 		return true
 	}
 
@@ -163,7 +164,7 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 
 	if id != nil {
 		if ok, err := id.IsPromteable(); !ok {
-			flog.Errorf("Failed to process AddServerMessage for %s : %s", chainID.String()[:10], err.Error())
+			os.Stderr.WriteString( fmt.Sprintf("Failed to process AddServerMessage for %s : %s\n", chainID.String()[:10], err.Error()))
 			return true
 		}
 
