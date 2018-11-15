@@ -29,7 +29,7 @@ func (this *State) ProcessRecentFERChainEntries() {
 	//  Get the first eblock from the FERChain
 	entryBlock, err := this.DB.FetchEBlockHead(FERChainHash)
 	if err != nil {
-		packageLogger.Debugf("FER Chain head found to be nil", this.FERChainId)
+		packageLogger.Debugf("FER Chain head found to be nil %v", this.FERChainId)
 		// this.Println("Couldn't find the FER chain for id ", this.FERChainId)
 		return
 	}
