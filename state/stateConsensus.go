@@ -716,7 +716,7 @@ func (s *State) AddDBState(isNew bool,
 		LeaderPL := s.ProcessLists.Get(s.LLeaderHeight)
 
 		if s.LeaderPL != LeaderPL {
-			s.LogPrintf("ExecuteMsg", "Unexpected chang in LeaderPL")
+			s.LogPrintf("ExecuteMsg", "Unexpected change in LeaderPL")
 			s.LeaderPL = LeaderPL
 		}
 
