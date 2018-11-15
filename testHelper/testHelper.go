@@ -59,6 +59,8 @@ func CreatePopulateAndExecuteTestState() *state.State {
 
 func CreateAndPopulateTestState() *state.State {
 	s := new(state.State)
+	s.TimestampAtBoot = new(primitives.Timestamp)
+	s.TimestampAtBoot.SetTimeNow()
 	s.EFactory = new(electionMsgs.ElectionsFactory)
 	s.SetLeaderTimestamp(primitives.NewTimestampFromMilliseconds(0))
 	s.DB = CreateAndPopulateTestDatabaseOverlay()
