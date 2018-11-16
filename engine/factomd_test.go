@@ -210,6 +210,11 @@ func creatingNodes(creatingNodes string, state0 *state.State) {
 	WaitForMinute(state0, 1)
 	runCmd("0")
 	for i, c := range []byte(creatingNodes) {
+		if i == 0 {
+			leaders++
+			continue
+		}
+		runCmd(fmt.Sprintf("%d", i))
 		switch c {
 		case 'L', 'l':
 			runCmd("l")
