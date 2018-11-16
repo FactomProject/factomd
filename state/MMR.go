@@ -28,9 +28,6 @@ type MMRInfo struct {
 
 // starts the MMR processing for this state
 func (s *State) startMMR() {
-	s.asks = make(chan askRef, 1)
-	s.adds = make(chan plRef, 1)
-	s.dbheights = make(chan int, 1)
 	go s.makeMMRs(s.asks, s.adds, s.dbheights)
 }
 

@@ -30,8 +30,8 @@ grep -Eo " Test[^( ]+" factomd_test.go | grep -P "$pattern" | grep -Pv "$npatter
 go test -c github.com/FactomProject/factomd/engine -o test/factomd_test
 #run the tests
 
-grep -Eo " Test[^( ]+" factomd_test.go | grep -P "$pattern" | grep -Pv "$npattern" | sort | xargs -I TestMakeALeader -n1 bash -c  'mkdir -p test/TestMakeALeader; cd test/TestMakeALeader; ../factomd_test --test.v --test.timeout 30m  --test.run "^TestMakeALeader$" &> testlog.txt; pwd; grep -EH "PASS:|FAIL:|panic|bind| Timeout"  testlog.txt'
-find . -name testlog.txt | sort | xargs grep -EH "PASS:|FAIL:|panic|bind| Timeout"
+grep -Eo " Test[^( ]+" factomd_test.go | grep -P "$pattern" | grep -Pv "$npattern" | sort | xargs -I TestMakeALeader -n1 bash -c  'mkdir -p test/TestMakeALeader; cd test/TestMakeALeader; ../factomd_test --test.v --test.timeout 30m  --test.run "^TestMakeALeader$" &> testlog.txt; pwd; grep -EHm1 "PASS:|FAIL:|panic|bind| Timeout "  testlog.txt'
+find . -name testlog.txt | sort | xargs grep -EHm1 "PASS:|FAIL:|panic|bind| Timeout "
 
 
 

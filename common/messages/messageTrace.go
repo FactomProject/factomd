@@ -86,6 +86,7 @@ func getTraceFile(name string) (f *os.File) {
 			panic(err)
 		}
 		files[name] = f
+		f.WriteString(time.Now().String() + "\n")
 	}
 	return f
 }
@@ -201,10 +202,10 @@ func logMessage(name string, note string, msg interfaces.IMsg) {
 		var s string
 		switch i {
 		case 0:
-			s = fmt.Sprintf("%9d %02d:%02d:%02d.%03d %-30s M-%v|R-%v|H-%v|%p %26s[%2v]:%v %s\n", sequence, now.Hour()%24, now.Minute()%60, now.Second()%60, (now.Nanosecond()/1e6)%1000,
+			s = fmt.Sprintf("%9d %02d:%02d:%02d.%03d %-50s M-%v|R-%v|H-%v|%p %26s[%2v]:%v %s\n", sequence, now.Hour()%24, now.Minute()%60, now.Second()%60, (now.Nanosecond()/1e6)%1000,
 				note, mhash, rhash, hash, msg, messageType, t, text, where)
 		case 1:
-			s = fmt.Sprintf("%9d %02d:%02d:%02d.%03d %-30s M-%v|R-%v|H-%v|%p %30s:%v\n", sequence, now.Hour()%24, now.Minute()%60, now.Second()%60, (now.Nanosecond()/1e6)%1000,
+			s = fmt.Sprintf("%9d %02d:%02d:%02d.%03d %-50s M-%v|R-%v|H-%v|%p %30s:%v\n", sequence, now.Hour()%24, now.Minute()%60, now.Second()%60, (now.Nanosecond()/1e6)%1000,
 				note, mhash, rhash, hash, msg, "continue:", text)
 		}
 		s = addNodeNames(s)
