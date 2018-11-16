@@ -76,15 +76,28 @@ func (s *State) AddToHolding(hash [32]byte, msg interfaces.IMsg) {
 	_, ok := s.Holding[hash]
 	if !ok {
 		s.Holding[hash] = msg
-		s.LogMessage("holding", "add", msg)
+		s.LogMessage("holding", "+", msg)
+		TotalHoldingQueueInputs.Inc()
 	}
+
+	_, ok2 := s.Holding[hash]
+	if !ok2 {
+		s.LogMessage("holding", "!+", msg)
+	}
+
 }
 
 func (s *State) DeleteFromHolding(hash [32]byte, msg interfaces.IMsg, reason string) {
 	_, ok := s.Holding[hash]
 	if ok {
 		delete(s.Holding, hash)
-		s.LogMessage("holding", "deleted", msg)
+		s.LogMessage("holding", "- " + reason, msg)
+		TotalHoldingQueueOutputs.Inc()
+	}
+
+	_, ok2 := s.Holding[hash]
+	if ok2 {
+		s.LogMessage("holding", "!- " + reason, msg)
 	}
 }
 
@@ -201,7 +214,6 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 		// Sometimes messages we have already processed are in the msgQueue from holding when we execute them
 		// this check makes sure we don't put them back in holding after just deleting them
 		if _, valid := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp()); valid {
-			TotalHoldingQueueInputs.Inc()
 			TotalHoldingQueueRecycles.Inc()
 			//s.Holding[msg.GetMsgHash().Fixed()] = msg
 			s.AddToHolding(msg.GetMsgHash().Fixed(), msg)
