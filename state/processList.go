@@ -994,7 +994,7 @@ func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces
 	s.LogPrintf("executeMsg", "remove from holding M-%v|R-%v", m.GetMsgHash().String()[:6], m.GetRepeatHash().String()[:6])
 	TotalHoldingQueueOutputs.Inc()
 	TotalAcksOutputs.Inc()
-	s.DeleteFromHolding(msgHash.Fixed(), m, "AddPL")
+	s.DeleteFromHolding(msgHash.Fixed(), m, "")
 	delete(s.Acks, msgHash.Fixed())
 	p.VMs[ack.VMIndex].List[ack.Height] = m
 	p.VMs[ack.VMIndex].ListAck[ack.Height] = ack
