@@ -2450,10 +2450,16 @@ func (s *State) GetF(rt bool, adr [32]byte) (v int64) {
 	ok := false
 	if rt {
 		pl := s.ProcessLists.Get(s.LLeaderHeight)
+		pl2 := s.ProcessLists.Get(s.LLeaderHeight - 1)
 		if pl != nil {
 			pl.FactoidBalancesTMutex.Lock()
 			v, ok = pl.FactoidBalancesT[adr]
 			pl.FactoidBalancesTMutex.Unlock()
+			if !ok && pl2 != nil {
+				pl2.FactoidBalancesTMutex.Lock()
+				v, ok = pl2.FactoidBalancesT[adr]
+				pl2.FactoidBalancesTMutex.Unlock()
+			}
 		} else {
 			s.LogPrintf("factoids", "GetF(%v,%x<%s>) = %d -- no pl", rt, adr[:4],
 				primitives.ConvertFctAddressToUserStr(factoid.NewAddress(adr[:])), v)
@@ -2504,10 +2510,16 @@ func (s *State) GetE(rt bool, adr [32]byte) (v int64) {
 	ok := false
 	if rt {
 		pl := s.ProcessLists.Get(s.LLeaderHeight)
+		pl2 := s.ProcessLists.Get(s.LLeaderHeight - 1)
 		if pl != nil {
 			pl.ECBalancesTMutex.Lock()
 			v, ok = pl.ECBalancesT[adr]
 			pl.ECBalancesTMutex.Unlock()
+			if !ok && pl2 != nil {
+				pl2.ECBalancesTMutex.Lock()
+				v, ok = pl2.ECBalancesT[adr]
+				pl2.ECBalancesTMutex.Unlock()
+			}
 		} else {
 			s.LogPrintf("entrycredits", "GetE(%v,%x<%s>) = %d -- no pl", rt, adr[:4],
 				primitives.ConvertECAddressToUserStr(factoid.NewAddress(adr[:])), v)

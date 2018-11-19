@@ -1019,16 +1019,6 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	}
 	list.State.ECBalancesPMutex.Unlock()
 
-	// Process the Factoid End of Block
-	err = fs.AddTransactionBlock(d.FactoidBlock)
-	if err != nil {
-		panic(err)
-	}
-	err = fs.AddECBlock(d.EntryCreditBlock)
-	if err != nil {
-		panic(err)
-	}
-
 	if list.State.DBFinished {
 		list.State.Balancehash = fs.GetBalanceHash(false)
 	}
@@ -1314,6 +1304,8 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		}
 	}
 
+	fs := list.State.FactoidState
+
 	if d.Saved {
 		Havedblk, err := list.State.DB.DoesKeyExist(databaseOverlay.DIRECTORYBLOCK, d.DirectoryBlock.GetKeyMR().Bytes())
 		if err != nil || !Havedblk {
@@ -1331,6 +1323,16 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 				fct.GetSigHash().Fixed(),
 				fct.GetTimestamp(),
 				d.DirectoryBlock.GetHeader().GetTimestamp())
+		}
+
+		// Process the Factoid End of Block
+		err = fs.AddTransactionBlock(d.FactoidBlock)
+		if err != nil {
+			panic(err)
+		}
+		err = fs.AddECBlock(d.EntryCreditBlock)
+		if err != nil {
+			panic(err)
 		}
 
 		return
@@ -1497,6 +1499,16 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		if !good {
 			return
 		}
+	}
+
+	// Process the Factoid End of Block
+	err := fs.AddTransactionBlock(d.FactoidBlock)
+	if err != nil {
+		panic(err)
+	}
+	err = fs.AddECBlock(d.EntryCreditBlock)
+	if err != nil {
+		panic(err)
 	}
 
 	// Set the Block Replay flag for all these transactions we are saving to the database.
