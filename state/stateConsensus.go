@@ -231,7 +231,7 @@ func (s *State) Process() (progress bool) {
 	} else {
 		Leader, LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
 	}
-	{ // debug
+	if s.LLeaderHeight != 0 { // debug
 		if s.Leader != Leader {
 			s.LogPrintf("executeMsg", "State.Process() unexpectedly setting s.Leader to %v", Leader)
 			s.Leader = Leader
@@ -400,7 +400,7 @@ ackLoop:
 	for _, msg := range process {
 		newProgress := s.executeMsg(vm, msg)
 		progress = newProgress || progress //
-		s.LogMessage("executeMsg", fmt.Sprintf("From processq : %t", newProgress), msg)
+		//		s.LogMessage("executeMsg", fmt.Sprintf("From processq : %t", newProgress), msg)
 		s.UpdateState()
 	} // processLoop for{...}
 
@@ -715,7 +715,7 @@ func (s *State) AddDBState(isNew bool,
 		s.RunLeader = false
 		LeaderPL := s.ProcessLists.Get(s.LLeaderHeight)
 
-		if s.LeaderPL != LeaderPL {
+		if s.LLeaderHeight != 0 && s.LeaderPL != LeaderPL {
 			s.LogPrintf("ExecuteMsg", "Unexpected change in LeaderPL")
 			s.LeaderPL = LeaderPL
 		}
