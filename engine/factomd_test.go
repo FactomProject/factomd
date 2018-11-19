@@ -163,7 +163,7 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 	fmt.Printf("Starting timeout timer:  Expected test to take %s or %d blocks\n", calctime.String(), height)
 	StatusEveryMinute(state0)
 	WaitMinutes(state0, 1) // wait till initial DBState message for the genesis block is processed
-	creatingNodes(GivenNodes, state0)
+	creatingNodes(GivenNodes, state0, t)
 
 	t.Logf("Allocated %d nodes", l)
 	if len(GetFnodes()) != l {
@@ -174,12 +174,15 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 	return state0
 }
 
-func creatingNodes(creatingNodes string, state0 *state.State) {
+func creatingNodes(creatingNodes string, state0 *state.State, t *testing.T) {
 	runCmd(fmt.Sprintf("g%d", len(creatingNodes)))
 	WaitMinutes(state0, 1)
 	// Wait till all the entries from the g command are processed
 	simFnodes := GetFnodes()
 	nodes := len(simFnodes)
+	if len(creatingNodes) > nodes {
+		t.Fatalf("Should have allocated %d nodes", len(creatingNodes))
+	}
 	for {
 		iq := 0
 		for _, s := range simFnodes {
@@ -206,24 +209,23 @@ func creatingNodes(creatingNodes string, state0 *state.State) {
 		WaitMinutes(state0, 1)
 
 	}
-	WaitBlocks(state0, 1) // Wait for 1 block
+	WaitBlocks(state0, 2) // Wait for 2 blocks because ID scans is for block N-1
 	WaitForMinute(state0, 1)
-	runCmd("0")
 	for i, c := range []byte(creatingNodes) {
 		if i == 0 {
 			leaders++
 			continue
 		}
-		runCmd(fmt.Sprintf("%d", i))
 		switch c {
 		case 'L', 'l':
+			runCmd(fmt.Sprintf("%d", i))
 			runCmd("l")
 			leaders++
 		case 'A', 'a':
+			runCmd(fmt.Sprintf("%d", i))
 			runCmd("o")
 			audits++
 		case 'F', 'f':
-			runCmd(fmt.Sprintf("%d", (i+1)%nodes))
 			followers++
 			break
 		default:
@@ -406,7 +408,6 @@ var ranSimTest = false
 
 func runCmd(cmd string) {
 	os.Stdout.WriteString("Executing: " + cmd + "\n")
-	os.Stderr.WriteString("Executing: " + cmd + "\n")
 	InputChan <- cmd
 	return
 }
@@ -419,6 +420,8 @@ func shutDownEverything(t *testing.T) {
 	for _, fn := range GetFnodes() {
 		fn.State.ShutdownChan <- 1
 	}
+	// sleep long enough for everyone to see the shutdown.
+	time.Sleep(time.Duration(globals.Params.BlkTime) * time.Second)
 	fnodes := GetFnodes()
 	currentHeight := fnodes[0].State.LLeaderHeight
 	// Sleep one block
