@@ -1,5 +1,5 @@
-hash: 47800735ff9bb7c6aecfa35f3f7a8e74f2e2612bd9670db4d6f1a1e85546b97a
-updated: 2018-10-17T15:52:12.102037687-05:00
+hash: e8f68120ce8168ee17fd0a8130ecd515859d2802744318f6257fb50c4bdd4574
+updated: 2018-11-16T15:27:25.808760421-06:00
 imports:
 - name: github.com/beorn7/perks
   version: 3a771d992973f24aa725d07868b467d1ddfceafb
@@ -127,6 +127,10 @@ imports:
   version: 8d114be902bc9f08717804830a55c48378108a28
 - name: github.com/spf13/pflag
   version: 298182f68c66c05229eb03ac171abe6e309ee79a
+- name: github.com/stretchr/testify
+  version: f35b8ab0b5a2cef36673838d662e249dd9c94686
+  subpackages:
+  - assert
 - name: golang.org/x/crypto
   version: 0c41d7ab0a0ee717d4590a44bcb987dfd9e183eb
   subpackages:
@@ -207,7 +211,15 @@ imports:
 - name: gopkg.in/yaml.v2
   version: 5420a8b6744d3b0345ab293f6fcba19c978f1183
 testImports:
+- name: github.com/davecgh/go-spew
+  version: d8f796af33cc11cb798c1aaeb27a4ebc5099927d
+  subpackages:
+  - spew
 - name: github.com/FactomProject/go-spew
   version: ddfaec9b42f58fc8172b0cbb03b21c6668dd0a46
   subpackages:
   - spew
+- name: github.com/pmezard/go-difflib
+  version: 792786c7400a136282c1664665ae0a8db921c6c2
+  subpackages:
+  - difflib
