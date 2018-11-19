@@ -27,6 +27,7 @@ import (
 	"github.com/FactomProject/factomd/log"
 )
 
+// Keep these packages
 var _ = hex.EncodeToString
 var _ = fmt.Print
 var _ = time.Now()
