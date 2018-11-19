@@ -10,6 +10,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
+	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
@@ -240,12 +241,14 @@ func (m *CommitChainMsg) String() string {
 	if m.LeaderChainID == nil {
 		m.LeaderChainID = primitives.NewZeroHash()
 	}
-	str := fmt.Sprintf("%6s-VM%3d: entryhash[%x] hash[%x]",
+	fixed := m.CommitChain.ECPubKey.Fixed()
+	str := fmt.Sprintf("%6s-VM%3d: entryhash[%x] hash[%x] %s",
 		"CChain",
 		m.VMIndex,
 
 		m.CommitChain.EntryHash.Bytes()[:3],
-		m.GetHash().Bytes()[:3])
+		m.GetHash().Bytes()[:3],
+		primitives.ConvertECAddressToUserStr(factoid.CreateAddress(primitives.NewHash(fixed[:]))))
 	return str
 }
 

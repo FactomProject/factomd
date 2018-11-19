@@ -92,6 +92,7 @@ func TestMarshalUnmarshal(t *testing.T) {
 }
 
 func TestBadFBlockUnmarshal(t *testing.T) {
+
 	t1 := TestFBlock{}
 
 	//bad raw
@@ -112,6 +113,7 @@ func TestBadFBlockUnmarshal(t *testing.T) {
 	} else {
 		t.Log(err)
 	}
+
 }
 
 func TestGetEntryHashes(t *testing.T) {

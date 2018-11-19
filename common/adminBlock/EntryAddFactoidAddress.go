@@ -145,7 +145,7 @@ func (e *AddFactoidAddress) UnmarshalBinaryData(data []byte) ([]byte, error) {
 				"than binary size %d. (uint underflow?)",
 			bodySize, bodyLimit,
 		)
-	}
+
 
 	body := make([]byte, bodySize)
 	n, err := buf.Read(body)

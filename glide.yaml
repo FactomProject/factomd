@@ -1,76 +1,45 @@
 package: github.com/FactomProject/factomd
 homepage: https://github.com/FactomProject/factomd
 license: MIT
-owners:
-- name: Mahesh Paolini-Subramanya
-  email: mahesh@factom.com
-  homepage: https://factom.com
 import:
-- package: github.com/FactomProject/basen
-  version: master
 - package: github.com/FactomProject/bolt
-  version: master
 - package: github.com/FactomProject/btcutil
-  version: develop
   subpackages:
   - base58
   - certs
-- package: github.com/FactomProject/dynrsrc
-  version: master
 - package: github.com/FactomProject/ed25519
-  version: master
 - package: github.com/FactomProject/factom
   version: develop
-  subpackages:
-  - wallet
-  - wallet/wsapi
-- package: github.com/FactomProject/factom-walletd
-  version: develop
-- package: github.com/FactomProject/factom-cli
-  version: develop
-- package: github.com/FactomProject/fctwallet
-  version: develop
-- package: github.com/FactomProject/fsnotify
-  version: master
 - package: github.com/FactomProject/go-bip32
-  version: develop
 - package: github.com/FactomProject/go-bip39
-  version: develop
-- package: github.com/FactomProject/go-simplejson
-  version: master
-- package: github.com/FactomProject/go-spew
-  version: master
-  subpackages:
-  - spew
-- package: github.com/FactomProject/gocoding
-  version: master
 - package: github.com/FactomProject/goleveldb
-  version: master
   subpackages:
   - leveldb
+  - leveldb/errors
   - leveldb/opt
   - leveldb/util
+- package: github.com/FactomProject/logrustash
 - package: github.com/FactomProject/serveridentity
-  version: master
   subpackages:
   - identity
-- package: github.com/FactomProject/snappy-go
-  version: master
 - package: github.com/FactomProject/web
-  version: develop
-- package: github.com/btcsuitereleases/btcd
-  version: master
+- package: github.com/btcsuitereleases/btcutil
   subpackages:
-  - btcjson
-  - chaincfg
-  - txscript
-  - wire
-- package: github.com/btcsuitereleases/btcrpcclient
-  version: master
+  - base58
+- package: github.com/dustin/go-humanize
 - package: github.com/hashicorp/go-plugin
 - package: github.com/prometheus/client_golang
   subpackages:
   - prometheus
-- package: github.com/dustin/go-humanize
+- package: github.com/sirupsen/logrus
 - package: github.com/spf13/cobra
+- package: golang.org/x/crypto
+  subpackages:
+  - scrypt
+- package: gopkg.in/AlecAivazis/survey.v1
+- package: gopkg.in/gcfg.v1
 - package: gopkg.in/yaml.v2
+testImport:
+- package: github.com/FactomProject/go-spew
+  subpackages:
+  - spew

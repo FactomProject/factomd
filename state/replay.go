@@ -374,7 +374,6 @@ func PushBucketMap(b *primitives.Buffer, m map[[32]byte]int) error {
 	for k := range m {
 		keys = append(keys, k)
 	}
-
 	sort.Sort(ByKey(keys))
 
 	for _, k := range keys {

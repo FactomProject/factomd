@@ -88,7 +88,8 @@ func (m *Ack) Validate(s interfaces.IState) int {
 	//	atomic.WhereAmI2("Ack.Validate()", 1)
 	// If too old, it isn't valid.
 	if m.DBHeight <= s.GetHighestSavedBlk() {
-		s.LogMessage("ackQueue", "Drop, from past", m)
+
+		s.LogMessage("ackQueue", "drop, from past", m)
 		return -1
 	}
 
@@ -98,14 +99,14 @@ func (m *Ack) Validate(s interfaces.IState) int {
 
 	delta := (int(m.DBHeight)-int(s.GetLeaderPL().GetDBHeight()))*10 + (int(m.Minute) - int(s.GetCurrentMinute()))
 
-	if delta > 30 {
-		s.LogMessage("ackQueue", "Drop ack from future", m)
+	if delta > 50 {
+		s.LogMessage("ackQueue", "drop ack from future", m)
 		// when we get caught up we will either get a DBState with this message or we will missing message it.
 		// but if it was malicious then we don't want to keep it around filling up queues.
 		return -1
 	}
 
-	if delta > 15 {
+	if delta > 30 {
 		return 0 // put this in the holding and validate it later
 	}
 
@@ -129,7 +130,6 @@ func (m *Ack) Validate(s interfaces.IState) int {
 			//fmt.Println("Err is not nil on Ack sig check: ", err)
 			return -1
 		}
-		s.LogMessage("executeMsg", "Validate", m)
 		ackSigned, err := s.FastVerifyAuthoritySignature(bytes, m.Signature, m.DBHeight)
 
 		//ackSigned, err := m.VerifySignature()
@@ -145,6 +145,7 @@ func (m *Ack) Validate(s interfaces.IState) int {
 	}
 
 	m.authvalid = true
+	s.LogMessage("executeMsg", "Valid", m)
 	return 1
 }
 

@@ -137,41 +137,43 @@ func DeepStateDisplayCopyDifference(s *State, prev *DisplayState) (*DisplayState
 		ds.PublicKey = pubkey
 	}
 
-	vms := s.LeaderPL.VMs
-	for _, v := range vms {
-		list := v.List
-		for _, msg := range list {
-			if msg == nil {
-				continue
-			}
-			switch msg.Type() {
-			case constants.REVEAL_ENTRY_MSG:
-				rev := msg.(*messages.RevealEntryMsg)
-				var entry EntryTransaction
-				entry.ChainID = "Processing..."
-				entry.EntryHash = rev.Entry.GetHash().String()
-
-				ds.PLEntry = append(ds.PLEntry, entry)
-			case constants.FACTOID_TRANSACTION_MSG:
-				transMsg := msg.(*messages.FactoidTransaction)
-				trans := transMsg.Transaction
-				input, err := trans.TotalInputs()
-				if err != nil {
+	if s.LeaderPL != nil {
+		vms := s.LeaderPL.VMs
+		for _, v := range vms {
+			list := v.List
+			for _, msg := range list {
+				if msg == nil {
 					continue
 				}
-				totalInputs := len(trans.GetInputs())
-				totalOutputs := len(trans.GetECOutputs())
-				totalOutputs = totalOutputs + len(trans.GetOutputs())
-				inputStr := fmt.Sprintf("%f", float64(input)/1e8)
+				switch msg.Type() {
+				case constants.REVEAL_ENTRY_MSG:
+					rev := msg.(*messages.RevealEntryMsg)
+					var entry EntryTransaction
+					entry.ChainID = "Processing..."
+					entry.EntryHash = rev.Entry.GetHash().String()
 
-				ds.PLFactoid = append(ds.PLFactoid, struct {
-					TxID         string
-					Hash         string
-					TotalInput   string
-					Status       string
-					TotalInputs  int
-					TotalOutputs int
-				}{trans.GetSigHash().String(), trans.GetHash().String(), inputStr, "Process List", totalInputs, totalOutputs})
+					ds.PLEntry = append(ds.PLEntry, entry)
+				case constants.FACTOID_TRANSACTION_MSG:
+					transMsg := msg.(*messages.FactoidTransaction)
+					trans := transMsg.Transaction
+					input, err := trans.TotalInputs()
+					if err != nil {
+						continue
+					}
+					totalInputs := len(trans.GetInputs())
+					totalOutputs := len(trans.GetECOutputs())
+					totalOutputs = totalOutputs + len(trans.GetOutputs())
+					inputStr := fmt.Sprintf("%f", float64(input)/1e8)
+
+					ds.PLFactoid = append(ds.PLFactoid, struct {
+						TxID         string
+						Hash         string
+						TotalInput   string
+						Status       string
+						TotalInputs  int
+						TotalOutputs int
+					}{trans.GetSigHash().String(), trans.GetHash().String(), inputStr, "Process List", totalInputs, totalOutputs})
+				}
 			}
 		}
 	}
@@ -195,6 +197,9 @@ func DeepStateDisplayCopyDifference(s *State, prev *DisplayState) (*DisplayState
 			if b > 1 {
 				b--
 				pl = s.ProcessLists.Get(b)
+				if pl == nil {
+					return ds, nil
+				}
 			}
 		}
 	}
@@ -227,11 +232,13 @@ func DeepStateDisplayCopyDifference(s *State, prev *DisplayState) (*DisplayState
 
 	prt = ""
 	prt = prt + "\n" + s.Election0
-	for i, _ := range pl.FedServers {
-		prt = prt + fmt.Sprintf("%4d ", i)
-	}
-	for i, _ := range pl.AuditServers {
-		prt = prt + fmt.Sprintf("%4d ", i)
+	if pl != nil {
+		for i, _ := range pl.FedServers {
+			prt = prt + fmt.Sprintf("%4d ", i)
+		}
+		for i, _ := range pl.AuditServers {
+			prt = prt + fmt.Sprintf("%4d ", i)
+		}
 	}
 	prt = prt + "\n"
 	prt += "__ _ " // Active

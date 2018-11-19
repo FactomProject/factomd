@@ -6,10 +6,12 @@ package state
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"sort"
 
+	"github.com/FactomProject/factomd/common/factoid"
 	. "github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -303,6 +305,11 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 	ss.DBHeight = d.DirectoryBlock.GetHeader().GetDBHeight()
 	pl := state.ProcessLists.Get(ss.DBHeight)
 
+	// Need to ensure the dbstate is at the same height as the state.
+	if ss.DBHeight != state.LLeaderHeight {
+		//os.Stderr.WriteString(fmt.Sprintf("%10s dbht mismatch %d %d\n", state.GetFactomNodeName(), ss.DBHeight, state.LLeaderHeight))
+		return
+	}
 	if pl == nil {
 		return nil
 	}
@@ -349,19 +356,19 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 
 	ss.EOMsyncing = state.EOMsyncing
 
-	ss.EOM = state.EOM
-	ss.EOMLimit = state.EOMLimit
-	ss.EOMProcessed = state.EOMProcessed
-	ss.EOMDone = state.EOMDone
-	ss.EOMMinute = state.EOMMinute
-	ss.EOMSys = state.EOMSys
-	ss.DBSig = state.DBSig
-	ss.DBSigLimit = state.DBSigLimit
-	ss.DBSigProcessed = state.DBSigProcessed
-	ss.DBSigDone = state.DBSigDone
-	ss.DBSigSys = state.DBSigSys
-	ss.Saving = state.Saving
-	ss.Syncing = state.Syncing
+	ss.EOM = false
+	ss.EOMLimit = 0
+	ss.EOMProcessed = 0
+	ss.EOMDone = true
+	ss.EOMMinute = 0
+	ss.EOMSys = true
+	ss.DBSig = false
+	ss.DBSigLimit = 0
+	ss.DBSigProcessed = 0
+	ss.DBSigDone = false
+	ss.DBSigSys = true
+	ss.Saving = true
+	ss.Syncing = false
 
 	ss.Holding = make(map[[32]byte]interfaces.IMsg)
 	//for k := range state.Holding {
@@ -575,15 +582,22 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 	}
 	// Set this, as we know it to be true
 	s.DBHeightAtBoot = ss.DBHeight
+	s.ProcessLists.Lists = s.ProcessLists.Lists[:0]
+	// set DBHeightBase to avoid recursively loading process lists
+	s.ProcessLists.DBHeightBase = ss.DBHeight
 	pl := s.ProcessLists.Get(ss.DBHeight)
 
 	// s.AddStatus(fmt.Sprintln("Index: ", index, "dbht:", ss.DBHeight, "lleaderheight", s.LLeaderHeight))
 
 	dindex := ss.DBHeight - s.DBStates.Base
-	s.DBStates.DBStates = s.DBStates.DBStates[:dindex] // Keep up to the state we are restoring too.
+
+	s.DBStates.DBStates = s.DBStates.DBStates[:dindex+1] // Keep up to the state we are restoring too.
+	s.DBStates.Complete = dindex                         // update the cached count of how many are complete
+	s.DBStates.ProcessHeight = ss.DBHeight               // Set the process height to where we are starting
+
 	//s.AddStatus(fmt.Sprintf("SAVESTATE Restoring the State to dbht: %d", ss.DBHeight))
 
-	s.LogPrintf("dbstatesProcess", "restoring to DBH %d", ss.DBHeight)
+	s.LogPrintf("dbstateprocess", "restoring to DBH %d", ss.DBHeight)
 	s.Replay = ss.Replay.Save()
 	s.Replay.s = s
 	s.Replay.name = "Replay"
@@ -595,19 +609,23 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 	pl.FedServers = append(pl.FedServers, ss.FedServers...)
 	pl.AuditServers = append(pl.AuditServers, ss.AuditServers...)
 
-	s.LogPrintf("fct_transactions", "Loading %d FTC balances from DBH %d", len(ss.FactoidBalancesP), ss.DBHeight)
+
+	s.LogPrintf("factoids", "Loading %d FTC balances from DBH %d", len(ss.FactoidBalancesP), ss.DBHeight)
 	s.FactoidBalancesPMutex.Lock()
 	s.FactoidBalancesP = make(map[[32]byte]int64, len(ss.FactoidBalancesP))
 	for k := range ss.FactoidBalancesP {
 		s.FactoidBalancesP[k] = ss.FactoidBalancesP[k]
+		s.LogPrintf("factoids", "%x<%s> = %d", k, primitives.ConvertFctAddressToUserStr(factoid.NewAddress(k[:])), s.FactoidBalancesP[k])
 	}
 	s.FactoidBalancesPMutex.Unlock()
 
-	s.LogPrintf("ec_transactions", "Loading %d EC balances from DBH %d", len(ss.ECBalancesP), ss.DBHeight)
+
+	s.LogPrintf("entrycredits", "Loading %d EC balances from DBH %d", len(ss.ECBalancesP), ss.DBHeight)
 	s.ECBalancesPMutex.Lock()
 	s.ECBalancesP = make(map[[32]byte]int64, len(ss.ECBalancesP))
 	for k := range ss.ECBalancesP {
 		s.ECBalancesP[k] = ss.ECBalancesP[k]
+		s.LogPrintf("entrycredits", "%x<%s> = %d", k, primitives.ConvertECAddressToUserStr(factoid.NewAddress(k[:])), s.ECBalancesP[k])
 	}
 	s.ECBalancesPMutex.Unlock()
 
@@ -616,32 +634,27 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 
 	s.AuthorityServerCount = ss.AuthorityServerCount
 
-	s.SetLLeaderHeight(ss.LLeaderHeight)
-	s.CurrentMinute = ss.CurrentMinute
+	s.IdentityControl = ss.IdentityControl
+
 	if ss.CurrentMinute != 0 {
-		s.LogPrintf("executeMsg", "unexpected %s", s.LLeaderHeight, s.LeaderTimestamp.String(), atomic.WhereAmIString(0))
+		s.LogPrintf("executeMsg", "unexpected ss.CurrentMinute=%d  %s", ss.CurrentMinute, atomic.WhereAmIString(0))
 	}
 
-	s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
-	//	s.LeaderTimestamp = dbstate.DirectoryBlock.GetTimestamp()
+	ss.CurrentMinute = 0
 
-	s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
-	s.ProcessLists.Get(s.LLeaderHeight + 1) // make the current and future process list exist
-
-	s.LogPrintf("executeMsg", "Set LeaderTimeStamp %d %v for %s", s.LLeaderHeight, s.LeaderTimestamp.String(), atomic.WhereAmIString(0))
+	s.MoveStateToHeight(ss.LLeaderHeight, ss.CurrentMinute) // RestoreFactomdState
 
 	if ss.Leader != s.Leader {
-		s.LogPrintf("executeMsg", "unexpected %s", s.LLeaderHeight, s.LeaderTimestamp.String(), atomic.WhereAmIString(0))
+		s.LogPrintf("executeMsg", "unexpected ss.Leader=%v %s", ss.Leader, atomic.WhereAmIString(0))
 	}
-	s.Leader = ss.Leader
+
 	if ss.LeaderVMIndex != s.LeaderVMIndex {
-		s.LogPrintf("executeMsg", "unexpected %s", s.LLeaderHeight, s.LeaderTimestamp.String(), atomic.WhereAmIString(0))
+		s.LogPrintf("executeMsg", "unexpected  ss.LeaderVMIndex=%v %s", ss.LeaderVMIndex, atomic.WhereAmIString(0))
 	}
-	s.LeaderVMIndex = ss.LeaderVMIndex
-	//	s.LeaderPL = ss.LeaderPL can't restore pointers ...
 
 	ss.EOMsyncing = s.EOMsyncing
 
+	s.CurrentMinute = 0
 	s.EOM = false
 	s.EOMLimit = ss.EOMLimit
 	s.EOMProcessed = ss.EOMProcessed
@@ -653,11 +666,14 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 	s.DBSigProcessed = ss.DBSigProcessed
 	s.DBSigDone = ss.DBSigDone
 	s.DBSigSys = ss.DBSigSys
+	atomic.WhereAmI()
 	s.Saving = true
 	s.Syncing = false
 	s.HighestAck = ss.DBHeight + 1
 	s.HighestKnown = ss.DBHeight + 2
 	s.Holding = make(map[[32]byte]interfaces.IMsg)
+
+	//TODO: Rip all these maps and arrays out. they are not needed... famouus last words.
 	for k := range ss.Holding {
 		s.Holding[k] = ss.Holding[k]
 	}
@@ -690,6 +706,9 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 }
 
 func (ss *SaveState) MarshalBinary() (rval []byte, err error) {
+	if ss == nil {
+		return nil, errors.New("SaveState is nil")
+	}
 	defer func(pe *error) {
 		if *pe != nil {
 			fmt.Fprintf(os.Stderr, "SaveState.MarshalBinary err:%v", *pe)

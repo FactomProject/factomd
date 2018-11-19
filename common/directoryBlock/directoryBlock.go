@@ -386,6 +386,7 @@ func (b *DirectoryBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 				"than body size %d. (uint underflow?)",
 			entryCount, entryLimit,
 		)
+y
 	}
 
 	entries := make([]interfaces.IDBEntry, entryCount)

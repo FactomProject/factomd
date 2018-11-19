@@ -106,7 +106,7 @@ func Goid() string {
 	var buf [64]byte
 	n := runtime.Stack(buf[:], false)
 	s := string(buf[:n])
-	idField := s[:strings.Index(s, "[")]
+	idField := s[:strings.Index(s, "[")-1]
 	return idField
 }
 

@@ -177,6 +177,98 @@ func MessageName(Type byte) string {
 	}
 }
 
+func ShortMessageName(Type byte) string {
+	switch Type {
+	case EOM_MSG:
+		return "EOM"
+	case ACK_MSG:
+		return "ACK"
+	case AUDIT_SERVER_FAULT_MSG:
+		return "AFault"
+	case FED_SERVER_FAULT_MSG:
+		return "FFault"
+	case FULL_SERVER_FAULT_MSG:
+		return "SFault"
+	case COMMIT_CHAIN_MSG:
+		return "CC"
+	case COMMIT_ENTRY_MSG:
+		return "CE"
+	case DIRECTORY_BLOCK_SIGNATURE_MSG:
+		return "DBSig"
+	case EOM_TIMEOUT_MSG:
+		return "Timeout"
+	case FACTOID_TRANSACTION_MSG:
+		return "FCT"
+	case HEARTBEAT_MSG:
+		return "HBeat"
+	case INVALID_ACK_MSG:
+		return "InvalidA"
+	case INVALID_DIRECTORY_BLOCK_MSG:
+		return "InvalidDB"
+	case MISSING_MSG:
+		return "MMsg"
+	case MISSING_MSG_RESPONSE:
+		return "MMsgResp"
+	case MISSING_DATA:
+		return "MData"
+	case DATA_RESPONSE:
+		return "MDataRes"
+	case REVEAL_ENTRY_MSG:
+		return "REntry"
+	case REQUEST_BLOCK_MSG:
+		return "ReqBlk"
+	case SIGNATURE_TIMEOUT_MSG:
+		return "STimeout"
+	case DBSTATE_MISSING_MSG:
+		return "DMissing"
+	case ADDSERVER_MSG:
+		return "+SERVER"
+	case CHANGESERVER_KEY_MSG:
+		return "CHANGEKEY"
+	case REMOVESERVER_MSG:
+		return "-SERVER"
+	case DBSTATE_MSG:
+		return "DBState"
+	case BOUNCE_MSG:
+		return "Bounce"
+	case BOUNCEREPLY_MSG:
+		return "BncReply"
+	case MISSING_ENTRY_BLOCKS: // 27
+		return "MENTRY"
+	case ENTRY_BLOCK_RESPONSE: // 28
+		return "ME_RESP"
+	case VOLUNTEERAUDIT:
+		return "Volunteer"
+	case VOLUNTEERPROPOSAL:
+		return "Proposal"
+	case VOLUNTEERLEVELVOTE:
+		return "LevelVote"
+	case INTERNALADDLEADER:
+		return "I+LEADER"
+	case INTERNALREMOVELEADER:
+		return "I-LEADER"
+	case INTERNALADDAUDIT:
+		return "I+AUDIT"
+	case INTERNALAUTHLIST: // 35
+		return "IAUTHLIST"
+	case INTERNALREMOVEAUDIT:
+		return "I-AUDIT"
+	case INTERNALTIMEOUT:
+		return "ITIMEOUT"
+	case INTERNALEOMSIG:
+		return "IEOMSIG"
+	case FEDVOTE_MSG_BASE:
+		return "FEDVOTE"
+	case SYNC_MSG:
+		return "SyncMsg"
+	case INTERNALSTARTELECTION:
+		return "StartElec"
+
+	default:
+		return "Unk:" + fmt.Sprintf(" %d", Type)
+	}
+}
+
 // Not a constant because custom nets will modify these values
 var (
 	// Coinbase Related Constants
@@ -385,3 +477,7 @@ const (
 	// Time window for identity to require registration: 24hours = 144 blocks
 	IDENTITY_REGISTRATION_BLOCK_WINDOW uint32 = 144
 )
+
+//Fast boot save state version (savestate)
+//To be increased whenever the data being saved changes from the last version
+const SaveStateVersion = 10

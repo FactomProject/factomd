@@ -13,6 +13,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -34,8 +35,6 @@ import (
 	"github.com/FactomProject/factomd/util/atomic"
 	"github.com/FactomProject/factomd/wsapi"
 	"github.com/FactomProject/logrustash"
-
-	"path/filepath"
 
 	"github.com/FactomProject/factomd/Utilities/CorrectChainHeads/correctChainHeads"
 	log "github.com/sirupsen/logrus"
@@ -124,7 +123,7 @@ type State struct {
 	serverPrt   string
 	StatusMutex sync.Mutex
 	StatusStrs  []string
-	starttime   time.Time
+	Starttime   time.Time
 	transCnt    int
 	lasttime    time.Time
 	tps         float64
@@ -196,6 +195,8 @@ type State struct {
 	factomdTLSCertFile string
 	FactomdLocations   string
 
+	CorsDomains []string
+
 	// Server State
 	StartDelay      int64 // Time in Milliseconds since the last DBState was applied
 	StartDelayLimit int64
@@ -249,15 +250,17 @@ type State struct {
 	Saving  bool // True if we are in the process of saving to the database
 	Syncing bool // Looking for messages from leaders to sync
 
-	NetStateOff     bool // Disable if true, Enable if false
-	DebugConsensus  bool // If true, dump consensus trace
-	FactoidTrans    int
-	ECCommits       int
-	ECommits        int
-	FCTSubmits      int
-	NewEntryChains  int
-	NewEntries      int
-	LeaderTimestamp interfaces.Timestamp
+	NetStateOff            bool // Disable if true, Enable if false
+	DebugConsensus         bool // If true, dump consensus trace
+	FactoidTrans           int
+	ECCommits              int
+	ECommits               int
+	FCTSubmits             int
+	NewEntryChains         int
+	NewEntries             int
+	LeaderTimestamp        interfaces.Timestamp
+	MessageFilterTimestamp interfaces.Timestamp
+
 	// Maps
 	// ====
 	// For Follower
@@ -381,6 +384,7 @@ type State struct {
 	HighestCompletedTorrent uint32
 	FastBoot                bool
 	FastBootLocation        string
+	FastSaveRate            int
 
 	// These stats are collected when we write the dbstate to the database.
 	NumNewChains   int // Number of new Chains in this block
@@ -390,12 +394,18 @@ type State struct {
 	NumFCTTrans    int // Number of Factoid Transactions in this block
 
 	// debug message about state status rolling queue for ControlPanel
-	pstate              string
-	SyncingState        [256]string
-	SyncingStateCurrent int
-	processCnt          int64 // count of attempts to process .. so we can see if the thread is running
 
-	reportedActivations [activations.ACTIVATION_TYPE_COUNT + 1]bool // flags about which activations we have reported (+1 because we don't use 0)
+	pstate                string
+	SyncingState          [256]string
+	SyncingStateCurrent   int
+	ProcessListProcessCnt int64 // count of attempts to process .. so we can see if the thread is running
+	StateProcessCnt       int64
+	StateUpdateState      int64
+	ValidatorLoopSleepCnt int64
+	processCnt            int64 // count of attempts to process .. so we can see if the thread is running
+	MMRInfo                     // fields for MMR processing
+	reportedActivations   [activations.ACTIVATION_TYPE_COUNT + 1]bool // flags about which activations we have reported (+1 because we don't use 0)
+	validatorLoopThreadID string
 }
 
 var _ interfaces.IState = (*State)(nil)
@@ -497,7 +507,9 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 		newState.LocalServerPrivKey = clonePrivateKey.PrivateKeyString()
 	}
 
-	newState.SetLeaderTimestamp(s.GetLeaderTimestamp())
+	newState.LeaderTimestamp = primitives.NewTimestampFromMilliseconds(s.LeaderTimestamp.GetTimeMilliUInt64())
+	newState.MessageFilterTimestamp = primitives.NewTimestampFromMilliseconds(s.LeaderTimestamp.GetTimeMilliUInt64())
+	newState.TimestampAtBoot = primitives.NewTimestampFromMilliseconds(s.TimestampAtBoot.GetTimeMilliUInt64())
 
 	//serverPrivKey primitives.PrivateKey
 	//serverPubKey  primitives.PublicKey
@@ -518,6 +530,9 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 	newState.factomdTLSCertFile = s.factomdTLSCertFile
 	newState.FactomdLocations = s.FactomdLocations
 
+	newState.FastSaveRate = s.FastSaveRate
+	newState.CorsDomains = s.CorsDomains
+
 	switch newState.DBType {
 	case "LDB":
 		newState.StateSaverStruct.FastBoot = s.StateSaverStruct.FastBoot
@@ -531,7 +546,7 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 
 	if globals.Params.WriteProcessedDBStates {
 		path := filepath.Join(newState.LdbPath, newState.Network, "dbstates")
-		os.MkdirAll(path, 0777)
+		os.MkdirAll(path, 0775)
 	}
 
 	return newState
@@ -604,6 +619,10 @@ func (s *State) SetNetStateOff(net bool) {
 
 func (s *State) GetRpcUser() string {
 	return s.RpcUser
+}
+
+func (s *State) GetCorsDomains() []string {
+	return s.CorsDomains
 }
 
 func (s *State) GetRpcPass() string {
@@ -732,6 +751,22 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		s.FastBoot = cfg.App.FastBoot
 		s.FastBootLocation = cfg.App.FastBootLocation
 
+		// to test run curl -H "Origin: http://anotherexample.com" -H "Access-Control-Request-Method: POST" /
+		//     -H "Access-Control-Request-Headers: X-Requested-With" -X POST /
+		//     --data-binary '{"jsonrpc": "2.0", "id": 0, "method": "heights"}' -H 'content-type:text/plain;'  /
+		//     --verbose http://localhost:8088/v2
+
+		// while the config file has http://anotherexample.com in parameter CorsDomains the response should contain the string
+		// < Access-Control-Allow-Origin: http://anotherexample.com
+
+		if len(cfg.App.CorsDomains) > 0 {
+			domains := strings.Split(cfg.App.CorsDomains, ",")
+			s.CorsDomains = make([]string, len(domains))
+			for _, domain := range domains {
+				s.CorsDomains = append(s.CorsDomains, strings.Trim(domain, " "))
+			}
+		}
+
 		s.FactomdTLSEnable = cfg.App.FactomdTlsEnabled
 		if cfg.App.FactomdTlsPrivateKey == "/full/path/to/factomdAPIpriv.key" {
 			s.factomdTLSKeyFile = fmt.Sprint(cfg.App.HomeDir, "factomdAPIpriv.key")
@@ -835,10 +870,11 @@ func (s *State) Init() {
 	salt := fmt.Sprintf("The Instance ID of this node is %s\n", s.Salt.String()[:16])
 	fmt.Print(salt)
 
-	s.StartDelay = s.GetTimestamp().GetTimeMilli() // We can't start as a leader until we know we are upto date
+	s.StartDelay = s.GetTimestamp().GetTimeMilli() // We can't start as a leader until we know we are up to date
 	s.RunLeader = false
 	s.IgnoreMissing = true
 	s.BootTime = s.GetTimestamp().GetTimeSeconds()
+	s.TimestampAtBoot = primitives.NewTimestampNow()
 
 	if s.LogPath == "stdout" {
 		wsapi.InitLogs(s.LogPath, s.LogLevel)
@@ -1019,7 +1055,11 @@ func (s *State) Init() {
 		s.ExchangeRateAuthorityPublicKey = "3b6a27bcceb6a42d62a3a8d02a6f0d73653215771de243a63ac048a18b59da29"
 	}
 	// end of FER removal
-	s.starttime = time.Now()
+	s.Starttime = time.Now()
+	// Allocate the MMR queues
+	s.asks = make(chan askRef, 1)
+	s.adds = make(chan plRef, 1)
+	s.dbheights = make(chan int, 1)
 
 	if s.StateSaverStruct.FastBoot {
 		d, err := s.DB.FetchDBlockHead()
@@ -1027,20 +1067,28 @@ func (s *State) Init() {
 			panic(err)
 		}
 
-		if d == nil || d.GetDatabaseHeight() < 2000 {
-			//If we have less than 2k blocks, we wipe SaveState
+		if d == nil || int(d.GetDatabaseHeight()) < s.FastSaveRate {
+			//If we have less than whatever our block rate is, we wipe SaveState
 			//This is to ensure we don't accidentally keep SaveState while deleting a database
 			s.StateSaverStruct.DeleteSaveState(s.Network)
 		} else {
 			err = s.StateSaverStruct.LoadDBStateList(s.DBStates, s.Network)
 			if err != nil {
+				s.StateSaverStruct.DeleteSaveState(s.Network)
 				s.LogPrintf("faulting", "Database load failed %v", err)
 			}
 			if err == nil {
+				//var last *DBState
 				for _, dbstate := range s.DBStates.DBStates {
 					if dbstate != nil {
 						dbstate.SaveStruct.Commits.s = s
 					}
+					//if last != nil {
+					//	last.SaveStruct = nil
+					//}
+					//if dbstate != nil {
+					//	last = dbstate
+					//}
 				}
 			}
 		}
@@ -1055,7 +1103,7 @@ func (s *State) Init() {
 			log.Fatal(err)
 		}
 	}
-
+	s.startMMR()
 	if globals.Params.WriteProcessedDBStates {
 		path := filepath.Join(s.LdbPath, s.Network, "dbstates")
 		os.MkdirAll(path, 0777)
@@ -1825,14 +1873,15 @@ func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBl
 }
 
 func (s *State) UpdateState() (progress bool) {
-	dbheight := s.GetHighestSavedBlk()
+	dbheight := s.LLeaderHeight
+	//	s.GetHighestSavedBlk()
 	plbase := s.ProcessLists.DBHeightBase
-	if dbheight == 0 {
-		dbheight++
-	}
-	if dbheight > 1 {
-		dbheight--
-	}
+	//if dbheight == 0 {
+	//	dbheight++
+	//}
+	//if dbheight > 1 {
+	//	dbheight--
+	//}
 
 	ProcessLists := s.ProcessLists
 	if ProcessLists.SetString {
@@ -2138,14 +2187,68 @@ func (s *State) GetLeaderTimestamp() interfaces.Timestamp {
 	return s.LeaderTimestamp
 }
 
+func (s *State) GetMessageFilterTimestamp() interfaces.Timestamp {
+	if s.MessageFilterTimestamp == nil {
+		s.MessageFilterTimestamp.SetTimestamp(new(primitives.Timestamp))
+	}
+	return s.MessageFilterTimestamp
+}
+
+// the MessageFilterTimestamp  is used to filter messages from the past or before the replay filter.
+// We will not set it to a time that is before boot or more than one hour in the past.
+// this ensure messages from prior boot and messages that predate the current replay filter are
+// are dropped.
+func (s *State) SetMessageFilterTimestamp(requestedTs interfaces.Timestamp) {
+
+	oneHourAgo := primitives.NewTimestampNow() // now() - one hour
+	oneHourAgo.SetTimeMilli(oneHourAgo.GetTimeMilli() - 60*60*1000)
+
+	req := requestedTs.String()
+	oneH := oneHourAgo.String()
+	boot := s.TimestampAtBoot.String()
+
+	_ = req
+	_ = oneH
+	_ = boot
+
+	ts := requestedTs
+	if ts.GetTimeMilli() < s.TimestampAtBoot.GetTimeMilli() {
+		ts.SetTimestamp(s.TimestampAtBoot)
+	}
+
+	if ts.GetTimeMilli() < oneHourAgo.GetTimeMilli() {
+		ts.SetTimestamp(oneHourAgo)
+	}
+
+	if ts.GetTimeMilli() < s.LeaderTimestamp.GetTimeMilli() {
+		s.LogPrintf("executeMsg", "Set MessageFilterTimestamp attempt to move backward in time from %s", atomic.WhereAmIString(1))
+		ts.SetTimestamp(s.LeaderTimestamp)
+	}
+
+	s.LeaderTimestamp.SetTimestamp(ts) //SetLeaderTimestamp()
+	s.LogPrintf("executeMsg", "Set MessageFilterTimestamp(%s) @ dbht %d using %s for %s", requestedTs, s.LLeaderHeight, ts.String(), atomic.WhereAmIString(1))
+
+	if s.MessageFilterTimestamp == nil {
+		s.MessageFilterTimestamp = primitives.NewTimestampFromMilliseconds(uint64(ts.GetTimeMilli()))
+	} else {
+		s.MessageFilterTimestamp.SetTimestamp(ts)
+	}
+}
+
 func (s *State) SetLeaderTimestamp(ts interfaces.Timestamp) {
-	s.LeaderTimestamp = ts //SetLeaderTimestamp()
-	//s.LogPrintf("executeMsg", "Set LeaderTimeStamp %d %v for %s", s.LLeaderHeight, s.LeaderTimestamp.String(), atomic.WhereAmIString(1))
+	//	s.LogPrintf("executeMsg", "Set SetLeaderTimestamp(%s) @ dbht %d for %s", ts.String(), s.LLeaderHeight, atomic.WhereAmIString(1))
+	if s.LeaderTimestamp == nil {
+		s.LeaderTimestamp = primitives.NewTimestampFromMilliseconds(uint64(ts.GetTimeMilli()))
+	} else {
+		s.LeaderTimestamp.SetTimestamp(ts)
+	}
+	s.SetMessageFilterTimestamp(ts)
 }
-func (s *State) SetLLeaderHeight(height uint32) {
-	s.LLeaderHeight = height //SetLeaderHeight()
-	//s.LogPrintf("executeMsg", "Set LeaderHeight %d for %s", s.LLeaderHeight, atomic.WhereAmIString(1))
-}
+
+//func (s *State) SetLLeaderHeight(height int) {
+//	s.LLeaderHeight = uint32(height) //SetLeaderHeight()
+//	s.LogPrintf("executeMsg", "Set LeaderHeight %d for %s", s.LLeaderHeight, atomic.WhereAmIString(1))
+//}
 
 func (s *State) SetFaultTimeout(timeout int) {
 	s.FaultTimeout = timeout
@@ -2303,7 +2406,7 @@ func (s *State) InitLevelDB() error {
 	path := s.LdbPath + "/" + s.Network + "/" + "factoid_level.db"
 
 	s.Println("Database:", path)
-	fmt.Fprint(os.Stderr, "Database:", path)
+	fmt.Fprintln(os.Stderr, "Database:", path)
 
 	dbase, err := leveldb.NewLevelDB(path, false)
 
@@ -2412,7 +2515,7 @@ func (s *State) SummaryHeader() string {
 }
 
 func (s *State) SetStringConsensus() {
-	str := fmt.Sprintf("%10s[%x_%x] ", s.FactomNodeName, s.IdentityChainID.Bytes()[:2], s.IdentityChainID.Bytes()[2:5])
+	str := fmt.Sprintf("%10s[%x_%x] ", s.FactomNodeName, s.IdentityChainID.Bytes()[:2], s.IdentityChainID.Bytes()[3:6])
 
 	s.serverPrt = str
 }
@@ -2421,7 +2524,7 @@ func (s *State) SetStringConsensus() {
 //		totalTPS	: Transaction rate over life of node (totaltime / totaltrans)
 //		instantTPS	: Transaction rate weighted over last 3 seconds
 func (s *State) CalculateTransactionRate() (totalTPS float64, instantTPS float64) {
-	runtime := time.Since(s.starttime)
+	runtime := time.Since(s.Starttime)
 	total := s.FactoidTrans + s.NewEntryChains + s.NewEntries
 	tps := float64(total) / float64(runtime.Seconds())
 	TotalTransactionPerSecond.Set(tps) // Prometheus
@@ -2433,6 +2536,7 @@ func (s *State) CalculateTransactionRate() (totalTPS float64, instantTPS float64
 		s.transCnt = total                     // transactions accounted for
 		InstantTransactionPerSecond.Set(s.tps) // Prometheus
 	}
+
 	return tps, s.tps
 }
 
@@ -2548,6 +2652,10 @@ func (s *State) SetStringQueues() {
 	}
 
 	str = str + fmt.Sprintf(" %5d-:-%d", s.LLeaderHeight, s.CurrentMinute)
+
+	if list == nil {
+		return
+	}
 
 	if list.System.Height < len(list.System.List) {
 		str = str + fmt.Sprintf(" VM:%s %s", "?", "-nil-")
@@ -2768,6 +2876,11 @@ func (s *State) updateNetworkControllerConfig() {
 	}
 
 	s.NetworkController.ReloadSpecialPeers(newPeersConfig)
+}
+
+// Check and Add a hash to the network replay filter
+func (s *State) AddToReplayFilter(mask int, hash [32]byte, timestamp interfaces.Timestamp, systemtime interfaces.Timestamp) (rval bool) {
+	return s.Replay.IsTSValidAndUpdateState(constants.NETWORK_REPLAY, hash, timestamp, systemtime)
 }
 
 // Return if a feature is active for the current height

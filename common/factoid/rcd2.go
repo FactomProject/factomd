@@ -135,6 +135,7 @@ func (t *RCD_2) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 				"than space in binary %d (uint underflow?)",
 			t.M, sigLimit,
 		)
+
 	}
 
 	t.N_Addresses = make([]interfaces.IAddress, t.M, t.M)

@@ -149,7 +149,7 @@ func (e *EntryBlockSync) UnmarshalBinaryData(p []byte) (newData []byte, err erro
 				"than remaining space in buffer %d (uint underflow?)",
 			blockCount, blockLimit,
 		)
-	}
+
 
 	e.BlocksToBeParsed = make([]EntryBlockMarker, blockCount)
 

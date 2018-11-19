@@ -247,14 +247,14 @@ func (b *Buffer) PopString() (string, error) {
 
 func (b *Buffer) PopBytes() ([]byte, error) {
 	l, err := b.PopVarInt()
-	if err != nil {
+	if err != nil || int(l) < 0 {
 		return nil, err
 	}
 
-	answer := make([]byte, int(l))
 	if b.Len() < int(l) {
 		return nil, errors.New(fmt.Sprintf("End of Buffer Looking for %d but only have %d", l, b.Len()))
 	}
+	answer := make([]byte, int(l))
 	al, err := b.Read(answer)
 	if al != int(l) {
 		return nil, errors.New("2End of Buffer")

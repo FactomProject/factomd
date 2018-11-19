@@ -143,6 +143,7 @@ func (e *AddEfficiency) UnmarshalBinaryData(data []byte) ([]byte, error) {
 				"than binary size %d. (uint underflow?)",
 			bodySize, bodyLimit,
 		)
+
 	}
 
 	body := make([]byte, bodySize)

@@ -139,17 +139,19 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 	vlog := func(format string, args ...interface{}) {
 		dLogger.WithFields(log.Fields{"func": "Validate", "msgheight": m.DBHeight, "lheight": state.GetLeaderHeight()})
 	}
+
+	// if we already did all the checks just be valid
 	if m.IsValid() {
 		return 1
 	}
 
-	raw, _ := m.MarshalBinary()
+	// is the dbsig is old, just drop it
 	if m.DBHeight <= state.GetHighestSavedBlk() {
-		//	vlog("[1] Validate Fail %s -- RAW: %x", m.String(), raw)
-		//	// state.Logf("error", "DirectoryBlockSignature: Fail dbstate ht: %v < dbht: %v  %s\n  [%s] RAW: %x", m.DBHeight, state.GetHighestSavedBlk(), m.String(), m.GetMsgHash().String(), raw)
 		return -1
 	}
 
+	// get the raw binary to log if things are bad
+	raw, _ := m.MarshalBinary()
 	found, _ := state.GetVirtualServers(m.DBHeight, 9, m.ServerIdentityChainID)
 
 	if found == false {
@@ -160,11 +162,6 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 		return 0
 	}
 
-	if m.IsLocal() {
-		m.SetValid()
-		return 1
-	}
-
 	isVer, err := m.VerifySignature()
 	if err != nil || !isVer {
 		vlog("[2] Verify Sig Failed %s -- RAW: %x", m.String(), raw)
@@ -172,7 +169,33 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 		// if there is an error during signature verification
 		// or if the signature is invalid
 		// the message is considered invalid
+		if m.IsLocal() {
+			state.LogMessage("badMsgs", "Invalid Local DBSIG!", m)
+		}
 		return -1
+	}
+
+	// Adds DB Sig to be added to Admin block if passes sig checks
+	data, err := m.DirectoryBlockHeader.MarshalBinary()
+	if err != nil {
+		vlog("Unable to unmarshal Directory block header %s -- RAW: %x", m.String(), raw)
+		if m.IsLocal() {
+			state.LogMessage("badMsgs", "Invalid Local DBSIG!", m)
+		}
+		return -1
+	}
+
+	if !m.DBSignature.Verify(data) {
+		vlog("Unable to verify signature %s -- RAW: %x", m.String(), raw)
+		if m.IsLocal() {
+			state.LogMessage("badMsgs", "Invalid Local DBSIG!", m)
+		}
+		return -1
+	}
+
+	if m.IsLocal() {
+		m.SetValid()
+		return 1
 	}
 
 	marshalledMsg, _ := m.MarshalForSignature()
@@ -182,7 +205,7 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 		vlog("Fail to Verify Sig (not from a Fed Server) %s -- RAW: %x", m.String(), raw)
 		//state.Logf("error", "DirectoryBlockSignature: Fail to Verify Sig (not from a Fed Server) dbht: %v %s\n  [%s] RAW: %x", state.GetLLeaderHeight(), m.String(), m.GetMsgHash().String(), raw)
 		// state.AddStatus(fmt.Sprintf("DirectoryBlockSignature: Fail to Verify Sig (not from a Fed Server) dbht: %v %s", state.GetLLeaderHeight(), m.String()))
-		return authorityLevel
+		return -1
 	}
 
 	//state.Logf("info", "DirectoryBlockSignature: VALID  dbht: %v %s. MsgHash: %s\n [%s] RAW: %x ", state.GetLLeaderHeight(), m.String(), m.GetMsgHash().String(), m.GetMsgHash().String(), raw)
@@ -395,6 +418,27 @@ func (m *DirectoryBlockSignature) MarshalBinary() (data []byte, err error) {
 	return resp, nil
 }
 
+// Remove newlines and consecutive blanks
+func stringCompress(s string) string {
+	var rval []byte
+	var blanks int
+	for _, c := range s {
+		if c == '\n' {
+			continue
+		}
+		if c != ' ' {
+			blanks = 0
+			rval = append(rval, byte(c))
+		} else {
+			if blanks == 0 {
+				rval = append(rval, byte(c))
+			}
+			blanks++
+		}
+	}
+	return string(rval)
+}
+
 func (m *DirectoryBlockSignature) String() string {
 	b, err := m.DirectoryBlockHeader.MarshalBinary()
 	if b != nil && err != nil {
@@ -416,7 +460,7 @@ func (m *DirectoryBlockSignature) String() string {
 		m.Timestamp,
 		m.Timestamp.String(),
 		m.GetHash().Bytes()[:3],
-		m.DirectoryBlockHeader.String())
+		stringCompress(m.DirectoryBlockHeader.String()))
 
 }
 

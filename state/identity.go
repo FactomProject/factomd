@@ -156,7 +156,8 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 	err := st.AddIdentityFromChainID(chainID)
 	if err != nil {
 		flog.Errorf("Failed to process AddServerMessage for %s : %s", chainID.String()[:10], err.Error())
-		return true
+		st.LogPrintf("process", "Failed to process AddServerMessage for %s : %s", chainID.String()[:10], err.Error())
+		return false
 	}
 
 	id := st.IdentityControl.GetIdentity(chainID)
@@ -164,12 +165,14 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 	if id != nil {
 		if ok, err := id.IsPromteable(); !ok {
 			flog.Errorf("Failed to process AddServerMessage for %s : %s", chainID.String()[:10], err.Error())
-			return true
+			st.LogPrintf("process", "Failed to process AddServerMessage for %s : %s", chainID.String()[:10], err.Error())
+			return false
 		}
 
 	} else {
 		flog.Errorf("Failed to process AddServerMessage: %s", "New Fed/Audit server ["+chainID.String()[:10]+"] does not have an identity associated to it")
-		return true
+		st.LogPrintf("process", "Failed to process AddServerMessage: %s", "New Fed/Audit server ["+chainID.String()[:10]+"] does not have an identity associated to it")
+		return false
 	}
 
 	// Add to admin block

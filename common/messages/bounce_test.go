@@ -150,3 +150,4 @@ func TestUnmarshalBadBounce(t *testing.T) {
 		t.Log(err)
 	}
 }
+

@@ -120,6 +120,7 @@ func (e *ForwardCompatibleEntry) UnmarshalBinaryData(data []byte) ([]byte, error
 	e.Size = uint32(bodySize)
 
 	body := make([]byte, bodySize)
+
 	n, err := buf.Read(body)
 	if err != nil {
 		return nil, err

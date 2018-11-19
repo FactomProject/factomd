@@ -151,7 +151,7 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 	}
 
 	if m.IsInDB {
-		return 1
+		return 1 // accept any DBState from our database
 	}
 
 	dbheight := m.DirectoryBlock.GetHeader().GetDBHeight()
@@ -161,20 +161,20 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 		return 1
 	}
 
+	if dbheight < state.GetDBHeightAtBoot() {
+		state.LogMessage("dbstatesloaded", "drop, below dbheight at boot", m)
+		return -1 // already have this one
+	}
+
+	if dbheight < state.GetHighestSavedBlk() {
+		state.LogMessage("dbstatesloaded", "drop, already in database", m)
+		return -1 // already have this one
+	}
+
 	if state.GetNetworkID() != m.DirectoryBlock.GetHeader().GetNetworkID() {
 		state.AddStatus(fmt.Sprintf("DBStateMsg.Validate() Fail  ht: %d Expecting NetworkID %x and found %x",
 			dbheight, state.GetNetworkID(), m.DirectoryBlock.GetHeader().GetNetworkID()))
 		//Wrong network ID
-		return -1
-	}
-
-	// Difference of completed blocks, rather than just highest DBlock (might be missing entries)
-	diff := int(dbheight) - (int(state.GetEntryDBHeightComplete()))
-
-	// Look at saved heights if not too far from what we have saved.
-	if diff < -1 {
-		state.AddStatus(fmt.Sprintf("DBStateMsg.Validate() Fail dbstate dbht: %d Highest Saved %d diff %d",
-			dbheight, state.GetEntryDBHeightComplete(), diff))
 		return -1
 	}
 
@@ -695,6 +695,7 @@ func (m *DBStateMsg) MarshalBinary() (rval []byte, err error) {
 func (m *DBStateMsg) String() string {
 	data, _ := m.MarshalBinary()
 	return fmt.Sprintf("DBState: dbht:%3d [size: %11s] dblock %6x admin %6x fb %6x ec %6x hash %6x ts:%s InDB %v IsLast %v Sigs %d",
+
 		m.DirectoryBlock.GetHeader().GetDBHeight(),
 		primitives.AddCommas(int64(len(data))),
 		m.DirectoryBlock.GetKeyMR().Bytes()[:3],
@@ -702,6 +703,7 @@ func (m *DBStateMsg) String() string {
 		m.FactoidBlock.GetHash().Bytes()[:3],
 		m.EntryCreditBlock.GetHash().Bytes()[:3],
 		m.GetHash().Bytes()[:3], m.DirectoryBlock.GetTimestamp().String(), m.IsInDB, m.IsLast, m.SignatureList.Length)
+
 }
 
 func (m *DBStateMsg) LogFields() log.Fields {

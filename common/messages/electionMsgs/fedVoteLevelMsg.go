@@ -222,14 +222,24 @@ func (m *FedVoteLevelMsg) FollowerExecute(is interfaces.IState) {
 			pl.AuditServers[m.Volunteer.ServerIdx], pl.FedServers[m.Volunteer.FedIdx]
 
 		// Add to the process list and immediately process
-		pl.AddToProcessList(m.Volunteer.Ack.(*messages.Ack), m.Volunteer.Missing)
+		pl.AddToProcessList(pl.State, m.Volunteer.Ack.(*messages.Ack), m.Volunteer.Missing)
 		is.UpdateState()
 	} else {
 		is.ElectionsQueue().Enqueue(m)
 	}
 
 	// reset my leader variables, cause maybe we changed...
-	s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(int(m.Minute), s.IdentityChainID)
+	Leader, LeaderVMIndex := s.LeaderPL.GetVirtualServers(int(m.Minute), s.IdentityChainID)
+	{ // debug
+		if s.Leader != Leader {
+			s.LogPrintf("executeMsg", "FedVoteLevelMsg.FollowerExecute() unexpectedly setting s.Leader to %v", Leader)
+			s.Leader = Leader
+		}
+		if s.LeaderVMIndex != LeaderVMIndex {
+			s.LogPrintf("executeMsg", "FedVoteLevelMsg.FollowerExecute() unexpectedly setting s.LeaderVMIndex to %v", LeaderVMIndex)
+			s.LeaderVMIndex = LeaderVMIndex
+		}
+	}
 }
 
 var _ interfaces.IMsg = (*FedVoteVolunteerMsg)(nil)

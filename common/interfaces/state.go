@@ -49,6 +49,7 @@ type IState interface {
 	SetDirectoryBlockInSeconds(int)
 	GetFactomdVersion() string
 	GetDBHeightComplete() uint32
+	GetDBHeightAtBoot() uint32
 	DatabaseContains(hash IHash) bool
 	SetOut(bool)  // Output is turned on if set to true
 	GetOut() bool // Return true if Print or Println write output
@@ -77,6 +78,7 @@ type IState interface {
 	GetRpcAuthHash() []byte
 	GetTlsInfo() (bool, string, string)
 	GetFactomdLocations() string
+	GetCorsDomains() []string
 
 	// Routine for handling the syncroniztion of the leader and follower processes
 	// and how they process messages.
@@ -329,6 +331,8 @@ type IState interface {
 	GetHighestAck() uint32
 	SetHighestAck(uint32)
 	DebugExec() bool
+	CheckFileName(string) bool
+	AddToReplayFilter(mask int, hash [32]byte, timestamp Timestamp, systemtime Timestamp) bool
 
 	// Activations
 	IsActive(id activations.ActivationType) bool

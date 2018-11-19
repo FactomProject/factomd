@@ -298,6 +298,7 @@ func (e *Entry) UnmarshalBinaryData(data []byte) ([]byte, error) {
 					" underflow?)",
 				xsize,
 			)
+
 		}
 		x := make([]byte, xsize)
 		if n, err := buf.Read(x); err != nil {
@@ -394,6 +395,7 @@ func UnmarshalEntryList(data []byte) ([]interfaces.IEBEntry, []byte, error) {
 	}
 
 	list := make([]interfaces.IEBEntry, int(entryCount))
+
 	for i := range list {
 		e := NewEntry()
 		x, err := buf.PopBytes()

@@ -106,6 +106,10 @@ FactomdTlsPublicCert                  = "/full/path/to/factomdAPIpub.cert"
 FactomdRpcUser                        = ""
 FactomdRpcPass                        = ""
 
+; This paramater allows Cross-Origin Resource Sharing (CORS) so web browsers will use data returned from the API when called from the listed URLs
+; Example paramaters are "http://www.example.com, http://anotherexample.com, *"
+CorsDomains                           = ""
+
 ; Specifying when to stop or start ACKs for switching leader servers
 ChangeAcksHeight                      = 123
 
@@ -140,6 +144,10 @@ FactomdLocation                       = "localhost:8088"
 ; This is where factom-cli will find factom-walletd to create Factoid and Entry Credit transactions
 ; This value can also be updated to authorize an external ip or domain name when factom-walletd creates a TLS cert
 WalletdLocation                       = "localhost:8089"
+
+; Enables wallet database encryption on factom-walletd. If this option is enabled, an unencrypted database
+; cannot exist. If an unencrypted database exists, the wallet will exit.
+WalletEncrypted                       = false
 	`
 
 	var modifiedConfig string = `

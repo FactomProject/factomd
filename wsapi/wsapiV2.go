@@ -19,6 +19,7 @@ import (
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
+	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -71,6 +72,7 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 	var resp interface{}
 	var jsonError *primitives.JSONError
 	params := j.Params
+	state.LogPrintf("apilog", "request %v", j.String())
 	switch j.Method {
 	case "chain-head":
 		resp, jsonError = HandleV2ChainHead(state, params)
@@ -182,6 +184,7 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 		break
 	}
 	if jsonError != nil {
+		state.LogPrintf("apilog", "error %v", jsonError)
 		return nil, jsonError
 	}
 
@@ -189,6 +192,7 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 	jsonResp.ID = j.ID
 	jsonResp.Result = resp
 
+	state.LogPrintf("apilog", "responce %v", jsonResp.String())
 	return jsonResp, nil
 }
 
@@ -568,7 +572,6 @@ func HandleV2CommitChain(state interfaces.IState, params interface{}) (interface
 	if !state.IsHighestCommit(msg.CommitChain.GetEntryHash(), msg) {
 		return nil, NewRepeatCommitError(RepeatedEntryMessage{"A commit with equal or greater payment already exists", msg.CommitChain.GetEntryHash().String()})
 	}
-
 	state.APIQueue().Enqueue(msg)
 	state.IncECCommits()
 
@@ -596,7 +599,8 @@ func HandleV2CommitEntry(state interfaces.IState, params interface{}) (interface
 	}
 
 	commit := entryCreditBlock.NewCommitEntry()
-	if p, err := hex.DecodeString(commitEntryMsg.Message); err != nil {
+	p, err := hex.DecodeString(commitEntryMsg.Message)
+	if err != nil {
 		return nil, NewInvalidCommitEntryError()
 	} else {
 		_, err := commit.UnmarshalBinaryData(p)
@@ -965,6 +969,8 @@ func HandleV2CurrentMinute(state interfaces.IState, params interface{}) (interfa
 	h.CurrentMinuteStartTime = int64(state.GetCurrentMinuteStartTime())
 	h.DirectoryBlockInSeconds = int64(state.GetDirectoryBlockInSeconds())
 	h.StallDetected = state.IsStalled()
+	h.FaultTimeOut = int64(globals.Params.FaultTimeout)
+	h.RoundTimeOut = int64(globals.Params.RoundTimeout)
 
 	//h.LastBlockTime = state.GetTimestamp
 	return h, nil

@@ -183,6 +183,7 @@ func (m *Bounce) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 				"remaining space in buffer %d (uint underflow?)",
 			dataLen, dataLimit,
 		)
+
 	}
 
 	m.Data = make([]byte, dataLen)
