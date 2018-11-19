@@ -2,6 +2,7 @@ package engine_test
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -17,11 +18,12 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/activations"
-	"github.com/FactomProject/factomd/common/adminBlock"
-	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages"
+
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/primitives/random"
 	"github.com/FactomProject/factomd/elections"
@@ -40,6 +42,7 @@ var quit = make(chan struct{})
 // Pass in the Network type ex. "LOCAL" as the second argument
 // It has default but if you want just add it like "map[string]string{"--Other" : "Option"}" as the third argument
 // Pass in t for the testing as the 4th argument
+
 
 var expectedHeight, leaders, audits, followers int
 var startTime, endTime time.Time
@@ -160,6 +163,7 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 		}
 	}()
 	state0.MessageTally = true
+
 	fmt.Printf("Starting timeout timer:  Expected test to take %s or %d blocks\n", calctime.String(), height)
 	StatusEveryMinute(state0)
 	WaitMinutes(state0, 1) // wait till initial DBState message for the genesis block is processed
@@ -1671,10 +1675,6 @@ func TestTestNetCoinBaseActivation_long(t *testing.T) {
 	if ranSimTest {
 		return
 	}
-	ranSimTest = true
-
-	// reach into the activation an hack the TESTNET_COINBASE_PERIOD to be early so I can check it worked.
-	activations.ActivationMap[activations.TESTNET_COINBASE_PERIOD].ActivationHeight["LOCAL"] = 22
 
 	state0 := SetupSim("LAF", map[string]string{"--debuglog": "", "--faulttimeout": "10"}, 168, 0, 0, t)
 	fmt.Println("Simulation configured")
@@ -1699,12 +1699,9 @@ func TestTestNetCoinBaseActivation_long(t *testing.T) {
 		t.Fatalf("constants.COINBASE_DECLARATION = %d expect 140\n", constants.COINBASE_DECLARATION)
 	}
 
-	nextBlock += oldCBDelay + 1
-	fmt.Println("Wait till second grant should payout if the activation fails")
-	WaitForBlock(state0, int(nextBlock+1)) // next old payout passed activation (should not be paid)
-	CBT = factoidState0.GetCoinbaseTransaction(nextBlock, state0.GetLeaderTimestamp())
-	if len(CBT.GetOutputs()) != 0 {
-		t.Fatalf("because the payout delay changed there is no payout at block %d\n", nextBlock)
+func TestFail(t *testing.T) {
+	if ranSimTest {
+		return
 	}
 
 	nextBlock += constants.COINBASE_DECLARATION - oldCBDelay + 1
@@ -1750,27 +1747,6 @@ func TestElection9(t *testing.T) {
 	shutDownEverything(t)
 }
 
-// Cheap tests for developing binary search commits algorithm
-
-func TestPass(t *testing.T) {
-	if ranSimTest {
-		return
-	}
-
-	ranSimTest = true
-
-}
-
-func TestFail(t *testing.T) {
-	if ranSimTest {
-		return
-	}
-
-	ranSimTest = true
-	t.Fatal("Failed")
-
-}
-
 func TestRandom(t *testing.T) {
 	if ranSimTest {
 		return
@@ -1780,6 +1756,64 @@ func TestRandom(t *testing.T) {
 
 	if random.RandUInt8() > 200 {
 		t.Fatal("Failed")
+	}
+
+}
+
+func TestBadDBStateUnderflow(t *testing.T) {
+	if ranSimTest {
+		return
+	}
+
+	ranSimTest = true
+
+	state0 := SetupSim("LF", "LOCAL", map[string]string{}, t)
+
+	msg, err := state0.LoadDBState(state0.GetDBHeightComplete() - 1)
+	if err != nil {
+		panic(err)
+	}
+	dbs := msg.(*messages.DBStateMsg)
+	dbs.DirectoryBlock.GetHeader().(*directoryBlock.DBlockHeader).DBHeight += 2
+	m_dbs, err := dbs.MarshalBinary()
+	if err != nil {
+		panic(err)
+	}
+
+	// replace the length of transaction in the marshaled datta with 0xdeadbeef!
+	m_dbs = append(append(m_dbs[:659], []byte{0xde, 0xad, 0xbe, 0xef}...), m_dbs[663:]...)
+
+	// i := 659
+	// fmt.Printf("---%x---\n", m_dbs[i:i+4])
+
+	s := hex.EncodeToString(m_dbs)
+	wsapi.HandleV2SendRawMessage(state0, map[string]string{"message": s})
+
+	WaitForMinute(state0, 1)
+	WaitForAllNodes(state0)
+	CheckAuthoritySet(2, 0, t)
+}
+
+func TestBadDBStateMemLeak(t *testing.T) {
+	if ranSimTest {
+		return
+	}
+
+	ranSimTest = true
+
+	state0 := SetupSim("LF", "LOCAL", map[string]string{}, t)
+
+	msg, err := state0.LoadDBState(state0.GetDBHeightComplete() - 1)
+	if err != nil {
+		panic(err)
+	}
+	dbs := msg.(*messages.DBStateMsg)
+	dbs.DirectoryBlock.GetHeader().(*directoryBlock.DBlockHeader).DBHeight += 2
+
+	old_trans := dbs.FactoidBlock.(*factoid.FBlock).Transactions
+	dbs.FactoidBlock.(*factoid.FBlock).Transactions = make([]interfaces.ITransaction, 1000) // chew up 20MB of memory
+	for i, _ := range dbs.FactoidBlock.(*factoid.FBlock).Transactions {
+		dbs.FactoidBlock.(*factoid.FBlock).Transactions[i] = old_trans[0]
 	}
 }
 

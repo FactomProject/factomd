@@ -290,12 +290,15 @@ func (e *Entry) UnmarshalBinaryData(data []byte) ([]byte, error) {
 			err = fmt.Errorf("Error parsing external IDs")
 			return nil, err
 		}
-
 		// check that the payload size is not too big before we allocate the
-		// buffer.
+		// buffer. Max payload size is 10KB
 		if xsize > 10240 {
-			// TODO: replace this message with a proper error
-			return nil, fmt.Errorf("Error: entry.UnmarshalBinary: ExtIDs size too high (uint underflow?)")
+			return nil, fmt.Errorf(
+				"Error: entry.UnmarshalBinary: ExtIDs size %d too high (uint "+
+					" underflow?)",
+				xsize,
+			)
+
 		}
 		x := make([]byte, xsize)
 		if n, err := buf.Read(x); err != nil {
@@ -359,42 +362,43 @@ func NewEntry() *Entry {
 }
 
 func MarshalEntryList(list []interfaces.IEBEntry) ([]byte, error) {
-	b := primitives.NewBuffer(nil)
+	buf := primitives.NewBuffer(nil)
 	l := len(list)
-	b.PushVarInt(uint64(l))
+	buf.PushVarInt(uint64(l))
 	for _, v := range list {
 		bin, err := v.MarshalBinary()
 		if err != nil {
 			return nil, err
 		}
-		err = b.PushBytes(bin)
+		err = buf.PushBytes(bin)
 		if err != nil {
 			return nil, err
 		}
 	}
-	return b.DeepCopyBytes(), nil
+	return buf.DeepCopyBytes(), nil
 }
 
-func UnmarshalEntryList(bin []byte) ([]interfaces.IEBEntry, []byte, error) {
-	b := primitives.NewBuffer(bin)
+func UnmarshalEntryList(data []byte) ([]interfaces.IEBEntry, []byte, error) {
+	buf := primitives.NewBuffer(data)
 
-	l, err := b.PopVarInt()
+	entryLimit := uint64(buf.Len())
+	entryCount, err := buf.PopVarInt()
 	if err != nil {
 		return nil, nil, err
 	}
-	e := int(l)
-	// TODO: remove printing unmarshal count numbers once we have good data on
-	// what they should be.
-	//log.Print("UnmarshalEntryList unmarshaled entry count: ", e)
-	if e > 1000 {
-		// TODO: replace this message with a proper error
-		return nil, nil, fmt.Errorf("Error: UnmarshalEntryList: entry count too high (uint underflow?)")
+	if entryCount > entryLimit {
+		return nil, nil, fmt.Errorf(
+			"Error: UnmarshalEntryList: entry count %d higher than space in "+
+				"body %d (uint underflow?)",
+			entryCount, entryLimit,
+		)
 	}
 
-	list := make([]interfaces.IEBEntry, e)
+	list := make([]interfaces.IEBEntry, int(entryCount))
+
 	for i := range list {
 		e := NewEntry()
-		x, err := b.PopBytes()
+		x, err := buf.PopBytes()
 		if err != nil {
 			return nil, nil, err
 		}
@@ -405,5 +409,5 @@ func UnmarshalEntryList(bin []byte) ([]interfaces.IEBEntry, []byte, error) {
 		list[i] = e
 	}
 
-	return list, b.DeepCopyBytes(), nil
+	return list, buf.DeepCopyBytes(), nil
 }

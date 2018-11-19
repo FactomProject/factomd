@@ -85,6 +85,7 @@ func LoadDatabase(s *State) {
 					dbstate.IsLast = true // this is the last DBState in this load
 					// this will cause s.DBFinished to go true
 				}
+
 				s.LogMessage("InMsgQueue", "enqueue", msg)
 				msg.SetLocal(true)
 				s.InMsgQueue().Enqueue(msg)
@@ -116,6 +117,9 @@ func LoadDatabase(s *State) {
 			}
 		}
 		dblk, ablk, fblk, ecblk := GenerateGenesisBlocks(s.GetNetworkID(), customIdentity)
+
+		messages.LogPrintf("marshelsizes.txt", "FBlock unmarshaled transaction count: %d", len(fblk.GetTransactions()))
+
 		msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk, nil, nil, nil)
 		// last block, flag it.
 		dbstate, _ := msg.(*messages.DBStateMsg)

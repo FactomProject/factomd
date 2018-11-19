@@ -5,6 +5,7 @@
 package messages_test
 
 import (
+	"fmt"
 	"testing"
 
 	. "github.com/FactomProject/factomd/common/messages"
@@ -126,3 +127,27 @@ func TestMarshalUnmarshalBounce(t *testing.T) {
 		t.Error("unmarshaled bounce did not match original", b1, b2)
 	}
 }
+
+func TestUnmarshalBadBounce(t *testing.T) {
+	b := new(Bounce)
+	b.Timestamp = primitives.NewTimestampNow()
+	b.Data = append(b.Data, 1)
+
+	p, err := b.MarshalBinary()
+	if err != nil {
+		t.Error(err)
+	}
+
+	// write bad data length to the bounce
+	p[46] = 0xff
+	fmt.Printf("DEBUG: %x\n", p)
+
+	b2 := new(Bounce)
+	err = b2.UnmarshalBinary(p)
+	if err == nil {
+		t.Error("Bounce should have errored on unmarshal", b2)
+	} else {
+		t.Log(err)
+	}
+}
+

@@ -321,16 +321,20 @@ func (b *FBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 		return nil, err
 	}
 
+	// txLimit is the maximum number of transactions (min 78 bytes) that could
+	// fit into the remaining unread portion of the buffer.
+	txLimit := uint32(buf.Len() / 78)
+
 	txCount, err := buf.PopUInt32()
 	if err != nil {
 		return nil, err
 	}
-	// TODO: remove printing unmarshal count numbers once we have good data on
-	// what they should be.
-	//log.Print("FBlock unmarshaled transaction count: ", txCount)
-	if txCount > 1000 {
-		// TODO: replace this message with a proper error
-		return nil, fmt.Errorf("Error: fblock.UnmarshalBinary: transaction count too high (uint underflow?)")
+	if txCount > txLimit {
+		return nil, fmt.Errorf(
+			"Error: FBlock.Unmarshal: transaction count %d higher than space "+
+				"in body %d (uint underflow?)",
+			txCount, txLimit,
+		)
 	}
 
 	// Just skip the size... We don't really need it.

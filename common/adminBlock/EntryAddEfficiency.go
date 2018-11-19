@@ -123,40 +123,42 @@ func (e *AddEfficiency) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	buf := primitives.NewBuffer(data)
 	e.Init()
 
-	b, err := buf.PopByte()
+	t, err := buf.PopByte()
 	if err != nil {
 		return nil, err
 	}
 
-	if b != e.Type() {
+	if t != e.Type() {
 		return nil, fmt.Errorf("Invalid Entry type")
 	}
 
-	bl, err := buf.PopVarInt()
+	bodyLimit := uint64(buf.Len())
+	bodySize, err := buf.PopVarInt()
 	if err != nil {
 		return nil, err
 	}
-	// TODO: remove printing unmarshal count numbers once we have good data on
-	// what they should be.
-	//log.Print("AddEfficiency unmarshaled body length: ", bl)
-	if bl > 1000 {
-		// TODO: replace this message with a proper error
-		return nil, fmt.Errorf("Error: AddEfficiency.UnmarshalBinary: body length too long (uint underflow?)")
+	if bodySize > bodyLimit {
+		return nil, fmt.Errorf(
+			"Error: AddEfficiency.UnmarshalBinary: body size %d is larger "+
+				"than binary size %d. (uint underflow?)",
+			bodySize, bodyLimit,
+		)
+
 	}
 
-	body := make([]byte, bl)
+	body := make([]byte, bodySize)
 	n, err := buf.Read(body)
 	if err != nil {
 		return nil, err
 	}
 
-	if uint64(n) != bl {
-		return nil, fmt.Errorf("Expected to read %d bytes, but got %d", bl, n)
+	if uint64(n) != bodySize {
+		return nil, fmt.Errorf("Expected to read %d bytes, but got %d", bodySize, n)
 	}
 
 	bodyBuf := primitives.NewBuffer(body)
 
-	if uint64(n) != bl {
+	if uint64(n) != bodySize {
 		return nil, fmt.Errorf("Unable to unmarshal body")
 	}
 

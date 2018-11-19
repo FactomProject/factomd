@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-
 	"sort"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -434,13 +433,17 @@ func (b *AdminBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	}
 	b.Header = h
 
-	msgCount := b.GetHeader().GetMessageCount()
-	// TODO: remove printing unmarshal count numbers once we have good data on
-	// what they should be.
-	//log.Print("AdminBlock unmarshaled message count: ", msgCount)
-	if msgCount > 1000 {
-		// TODO: replace this message with a proper error
-		return nil, fmt.Errorf("Error: AdminBlock.UnmarshalBinary: message count too high (uint underflow?)")
+	// msgLimit is the theoretical maximum number of messages possible in the
+	// admin block. The limit is the body size divided by the smallest possible
+	// message size (2 bytes for a minute message {0x00, 0x0[0-9]})
+	msgLimit := b.Header.GetBodySize() / 2
+	msgCount := b.Header.GetMessageCount()
+	if msgCount > msgLimit {
+		return nil, fmt.Errorf(
+			"Error: AdminBlock.UnmarshalBinary: message count %d is greater "+
+				"than remaining space in buffer %d (uint underflow?)",
+			msgCount, msgLimit,
+		)
 	}
 
 	b.ABEntries = make([]interfaces.IABEntry, int(msgCount))

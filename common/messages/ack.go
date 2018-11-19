@@ -88,6 +88,7 @@ func (m *Ack) Validate(s interfaces.IState) int {
 	//	atomic.WhereAmI2("Ack.Validate()", 1)
 	// If too old, it isn't valid.
 	if m.DBHeight <= s.GetHighestSavedBlk() {
+
 		s.LogMessage("ackQueue", "drop, from past", m)
 		return -1
 	}

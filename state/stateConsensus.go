@@ -730,6 +730,7 @@ func (s *State) AddDBState(isNew bool,
 			s.LeaderPL.ECBalancesTMutex.Lock()
 			s.LeaderPL.ECBalancesT = map[[32]byte]int64{}
 			s.LeaderPL.ECBalancesTMutex.Unlock()
+
 		}
 
 		Leader, LeaderVMIndex := s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
@@ -1135,6 +1136,7 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 
 		s.MissingResponseAppliedCnt++
 	} else {
+
 		s.LogMessage("executeMsg", "drop, INTERNAL_REPLAY", msg)
 
 	}
@@ -2147,6 +2149,12 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		}
 
 		dblk, err := s.DB.FetchDBlockByHeight(dbheight - 1)
+		if dblk != nil {
+			hashes := dblk.GetEntryHashes()
+			if hashes != nil {
+				messages.LogPrintf("marshelsizes.txt", "DirectoryBlock unmarshaled entry count: %d", len(hashes))
+			}
+		}
 		if err != nil || dblk == nil {
 			dbstate := s.GetDBState(dbheight - 1)
 			if dbstate == nil || !(!dbstate.IsNew || dbstate.Locked || dbstate.Saved) {
@@ -2475,7 +2483,6 @@ func (s *State) GetF(rt bool, adr [32]byte) (v int64) {
 }
 
 // PutF()
-// PutF()
 // If rt == true, update the Temp balances.  Otherwise update the Permanent balances.
 // concurrency safe to call
 func (s *State) PutF(rt bool, adr [32]byte, v int64) {
@@ -2509,6 +2516,7 @@ func (s *State) GetE(rt bool, adr [32]byte) (v int64) {
 			v, ok = pl.ECBalancesT[adr]
 			pl.ECBalancesTMutex.Unlock()
 		} else {
+
 			s.LogPrintf("entrycredits", "GetE(%v,%x<%s>) = %d -- no pl", rt, adr[:4],
 				primitives.ConvertECAddressToUserStr(factoid.NewAddress(adr[:])), v)
 		}
@@ -2517,6 +2525,7 @@ func (s *State) GetE(rt bool, adr [32]byte) (v int64) {
 		s.ECBalancesPMutex.Lock()
 		v = s.ECBalancesP[adr]
 		s.ECBalancesPMutex.Unlock()
+
 		s.LogPrintf("entrycredits", "GetE(%v,%x<%s>) = %d using permanent balance", rt, adr[:4],
 			primitives.ConvertECAddressToUserStr(factoid.NewAddress(adr[:])), v)
 	} else {
@@ -2537,6 +2546,7 @@ func (s *State) PutE(rt bool, adr [32]byte, v int64) {
 			pl.ECBalancesTMutex.Lock()
 			pl.ECBalancesT[adr] = v
 			pl.ECBalancesTMutex.Unlock()
+
 			s.LogPrintf("entrycredits", "PutE(%v,%x<%s>, %d) using temporary balance", rt, adr[:4],
 				primitives.ConvertECAddressToUserStr(factoid.NewAddress(adr[:])), v)
 		} else {
@@ -2547,6 +2557,7 @@ func (s *State) PutE(rt bool, adr [32]byte, v int64) {
 		s.ECBalancesPMutex.Lock()
 		s.ECBalancesP[adr] = v
 		s.ECBalancesPMutex.Unlock()
+
 		s.LogPrintf("entrycredits", "PutE(%v,%x<%s>, %d) using permanent balance", rt, adr[:4],
 			primitives.ConvertECAddressToUserStr(factoid.NewAddress(adr[:])), v)
 	}

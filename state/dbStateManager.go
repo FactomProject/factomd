@@ -209,6 +209,12 @@ func (dbs *DBState) MarshalBinary() (rval []byte, err error) {
 			err = fmt.Errorf("Error Marshalling a dbstate %v", r)
 		}
 	}()
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "DBState.MarshalBinary err:%v", *pe)
+
+		}
+	}()
 	dbs.Init()
 	b := primitives.NewBuffer(nil)
 
@@ -902,16 +908,19 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	dbht := d.DirectoryBlock.GetHeader().GetDBHeight()
 
 	s := list.State
+
 	// If we are locked, the block has already been processed.  If the block IsNew then it has not yet had
 	// its links patched, so we can't process it.  But if this is a repeat block (we have already processed
 	// at this height) then we simply return.
 	if d.Locked || d.IsNew || d.Repeat {
+
 		s.LogPrintf("dbstateprocess", "ProcessBlocks(%d) Skipping d.Locked(%v) || d.IsNew(%v) || d.Repeat(%v) : dbstate = %v", dbht, d.Locked, d.IsNew, d.Repeat, d.String())
 		return false
 	}
 
 	// If we detect that we have processed at this height, flag the dbstate as a repeat, progress is good, and
 	// go forward.
+
 	if dbht > 0 && dbht < list.ProcessHeight {
 		progress = true
 		d.Repeat = true
@@ -931,6 +940,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 
 	if dbht > 1 {
 		pd := list.State.DBStates.Get(int(dbht - 1))
+
 		if pd == nil {
 			s.LogPrintf("dbstateprocess", "ProcessBlocks(%d) Skipping Prev Block Missing", dbht)
 			s.LogPrintf("dbstateprocess", "list: %v", list.State.DBStates.String())
@@ -953,6 +963,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	pln := list.State.ProcessLists.Get(dbht + 1)
 
 	if pl == nil {
+
 		s.LogPrintf("dbstateprocess", "ProcessBlocks(%d) Skipping No ProcessList", dbht)
 		return false
 	}
@@ -1119,6 +1130,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 
 	tbh := list.State.FactoidState.GetBalanceHash(true) // recompute temp balance hash here
 	list.State.Balancehash = fs.GetBalanceHash(false)
+
 	list.State.LogPrintf("dbstateprocess", "ProcessBlock(%d) BalanceHash P %x T %x", dbht, list.State.Balancehash.Bytes()[0:4], tbh.Bytes()[0:4])
 
 	d.TmpSaveStruct = SaveFactomdState(list.State, d)
@@ -1338,6 +1350,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 
 	// Past this point, we cannot Return without recording the transactions in the dbstate.  This is because we
 	// have marked them all as saved to disk!  So we gotta save them to disk.  Or panic trying.
+
 
 	//	list.State.LogPrintf("dbstateprocess", "SaveDBStateToDB(%d) %s\n", dbheight, d.String())
 	// Only trim when we are really saving.

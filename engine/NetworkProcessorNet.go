@@ -342,6 +342,7 @@ func NetworkOutputs(fnode *FactomNode) {
 		// Don't do a rand int if drop rate is 0
 		if fnode.State.GetDropRate() > 0 && rand.Int()%1000 < fnode.State.GetDropRate() {
 			//drop the message, rather than processing it normally
+
 			fnode.State.LogMessage("NetworkOutputs", "drop, simCtrl", msg)
 			continue
 		}
@@ -384,6 +385,7 @@ func NetworkOutputs(fnode *FactomNode) {
 						fnode.State.TallySent(int(msg.Type()))
 					}
 				} else {
+
 					fnode.State.LogMessage("NetworkOutputs", "drop, simCtrl X", msg)
 				}
 			} else {

@@ -15,9 +15,8 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives"
-
 	"github.com/FactomProject/factomd/common/messages/msgbase"
+	"github.com/FactomProject/factomd/common/primitives"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -176,18 +175,20 @@ func (m *Bounce) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 		m.Stamps = append(m.Stamps, ts)
 	}
 
-	lenData, newData := binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-	// TODO: remove printing unmarshal count numbers once we have good data on
-	// what they should be.
-	//log.Print("Bounce unmarshaled data length: ", lenData)
-	if lenData > 1000 {
-		// TODO: replace this message with a proper error
-		return nil, fmt.Errorf("Error: Bounce.UnmarshalBinary: data length too high (uint underflow?)")
+	dataLimit := uint32(len(data))
+	dataLen, newData := binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+	if dataLen > dataLimit {
+		return nil, fmt.Errorf(
+			"Error: Bounce.UnmarshalBinary: data length %d is greater than "+
+				"remaining space in buffer %d (uint underflow?)",
+			dataLen, dataLimit,
+		)
+
 	}
 
-	m.Data = make([]byte, lenData)
+	m.Data = make([]byte, dataLen)
 	copy(m.Data, newData)
-	newData = newData[lenData:]
+	newData = newData[dataLen:]
 
 	return
 }

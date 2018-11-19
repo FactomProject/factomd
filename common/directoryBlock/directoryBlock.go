@@ -7,10 +7,9 @@ package directoryBlock
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
-
-	"errors"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -257,7 +256,7 @@ func (e *DirectoryBlock) String() string {
 	out.WriteString(fmt.Sprintf("%20s %v\n", "fullhash:", fh.String()))
 
 	out.WriteString(e.GetHeader().String())
-	out.WriteString("entries: \n")
+	out.WriteString("entries:\n")
 	for i, entry := range e.DBEntries {
 		out.WriteString(fmt.Sprintf("%5d %s", i, entry.String()))
 	}
@@ -378,13 +377,16 @@ func (b *DirectoryBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	}
 	b.SetHeader(fbh)
 
+	// entryLimit is the maximum number of 32 byte entries that could fit in the body of the binary dblock
+	entryLimit := uint32(len(newData) / 32)
 	entryCount := b.GetHeader().GetBlockCount()
-	// TODO: remove printing unmarshal count numbers once we have good data on
-	// what they should be.
-	//log.Print("DirectoryBlock unmarshaled entry count: ", entryCount)
-	if entryCount > 1000 {
-		// TODO: replace this message with a proper error
-		return nil, fmt.Errorf("Error: DirectoryBlock.UnmarshalBinary: entry count too high (uint underflow?)")
+	if entryCount > entryLimit {
+		return nil, fmt.Errorf(
+			"Error: DirectoryBlock.UnmarshalBinary: Entry count %d is larger "+
+				"than body size %d. (uint underflow?)",
+			entryCount, entryLimit,
+		)
+y
 	}
 
 	entries := make([]interfaces.IDBEntry, entryCount)
