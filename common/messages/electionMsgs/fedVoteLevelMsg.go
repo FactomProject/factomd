@@ -18,6 +18,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/state"
 	log "github.com/sirupsen/logrus"
+
 	//"github.com/FactomProject/factomd/state"
 
 	"github.com/FactomProject/factomd/common/messages/msgbase"
@@ -198,7 +199,9 @@ func (m *FedVoteLevelMsg) FollowerExecute(is interfaces.IState) {
 	pl := s.ProcessLists.Get(m.DBHeight)
 	e := s.Elections.(*elections.Elections)
 	if pl == nil || e.Adapter == nil {
-		s.Holding[m.GetMsgHash().Fixed()] = m
+		//s.Holding[m.GetMsgHash().Fixed()] = m
+		s.AddToHolding(m.GetMsgHash().Fixed(), m)
+
 		return
 	}
 

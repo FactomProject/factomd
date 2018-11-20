@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"os"
 	"reflect"
-
 	//"github.com/FactomProject/factomd/state"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -104,7 +103,8 @@ func (m *FedVoteVolunteerMsg) FollowerExecute(is interfaces.IState) {
 	s := is.(*state.State)
 	e := s.Elections.(*elections.Elections)
 	if e.Adapter == nil {
-		s.Holding[m.GetMsgHash().Fixed()] = m
+		//s.Holding[m.GetMsgHash().Fixed()] = m
+		s.AddToHolding(m.GetMsgHash().Fixed(), m)
 		return
 	}
 
@@ -182,7 +182,6 @@ func (m *FedVoteVolunteerMsg) GetServerID() (rval interfaces.IHash) {
 			primitives.LogNilHashBug("FedVoteVolunteerMsg.GetServerID() saw an interface that was nil")
 		}
 	}()
-
 	return m.ServerID
 }
 
@@ -197,7 +196,6 @@ func (m *FedVoteVolunteerMsg) GetRepeatHash() (rval interfaces.IHash) {
 			primitives.LogNilHashBug("FedVoteVolunteerMsg.GetRepeatHash() saw an interface that was nil")
 		}
 	}()
-
 	return m.GetMsgHash()
 }
 
@@ -210,7 +208,6 @@ func (m *FedVoteVolunteerMsg) GetHash() (rval interfaces.IHash) {
 			primitives.LogNilHashBug("FedVoteVolunteerMsg.GetHash() saw an interface that was nil")
 		}
 	}()
-
 	return m.GetMsgHash()
 }
 
@@ -225,7 +222,6 @@ func (m *FedVoteVolunteerMsg) GetMsgHash() (rval interfaces.IHash) {
 			primitives.LogNilHashBug("FedVoteVolunteerMsg.GetMsgHash() saw an interface that was nil")
 		}
 	}()
-
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()
 		if err != nil {

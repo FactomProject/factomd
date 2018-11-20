@@ -185,7 +185,8 @@ func (m *SyncMsg) FollowerExecute(is interfaces.IState) {
 		msg, ack = s.CreateDBSig(m.DBHeight, m.VMIndex)
 	}
 	if msg == nil { // TODO: What does this mean? -- clay
-		s.Holding[m.GetMsgHash().Fixed()] = m
+		//s.Holding[m.GetMsgHash().Fixed()] = m
+		s.AddToHolding(m.GetMsgHash().Fixed(), m)
 		return // Maybe we are not yet prepared to create an SigType...
 	}
 	va := new(FedVoteVolunteerMsg)
