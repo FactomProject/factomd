@@ -328,7 +328,7 @@ func (c *AdminBlock) GetDatabaseHeight() uint32 {
 	return c.GetHeader().GetDBHeight()
 }
 
-func (c *AdminBlock) GetChainID()(rval interfaces.IHash) {
+func (c *AdminBlock) GetChainID() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {
 			rval = nil // convert an interface that is nil to a nil interface

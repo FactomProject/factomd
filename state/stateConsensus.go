@@ -44,7 +44,6 @@ func (s *State) CheckFileName(name string) bool {
 	return messages.CheckFileName(name)
 }
 
-
 func (s *State) DebugExec() (ret bool) {
 	return globals.Params.DebugLogRegEx != ""
 }
@@ -303,14 +302,14 @@ func (s *State) Process() (progress bool) {
 	/** Process all the DBStatesReceived  that might be pending **/
 	if len(s.DBStatesReceived) > 0 {
 
-	for {
+		for {
 			hsb := s.GetHighestSavedBlk()
 			// Get the index of the next DBState
 			ix := int(hsb) - s.DBStatesReceivedBase + 1
 			// Make sure we are in range
-		if ix < 0 || ix >= len(s.DBStatesReceived) {
+			if ix < 0 || ix >= len(s.DBStatesReceived) {
 				break // We have nothing for the system, given its current height.
-		}
+			}
 			if msg := s.DBStatesReceived[ix]; msg != nil {
 				s.LogPrintf("dbstateprocess", "Trying to process DBStatesReceived %d", s.DBStatesReceivedBase+ix)
 				s.executeMsg(vm, msg)
@@ -318,9 +317,9 @@ func (s *State) Process() (progress bool) {
 
 			// if we can not process a DBStatesReceived then go process some messages
 			if hsb == s.GetHighestSavedBlk() {
-			break
+				break
+			}
 		}
-	}
 	}
 	// Process inbound messages
 	preEmptyLoopTime := time.Now()
@@ -376,7 +375,6 @@ ackLoop:
 
 	ackLoopTime := time.Since(preAckLoopTime)
 	TotalAckLoopTime.Add(float64(ackLoopTime.Nanoseconds()))
-
 
 	preProcessXReviewTime := time.Now()
 	// Reprocess any stalled messages, but not so much compared inbound messages
@@ -676,6 +674,7 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 	s.LogPrintf("dbstateprocess", "MoveStateToHeight(%d-:-%d) leader=%v leaderPL=%p, leaderVMIndex=%d", dbheight, newMinute, s.Leader, s.LeaderPL, s.LeaderVMIndex)
 
 }
+
 // Adds blocks that are either pulled locally from a database, or acquired from peers.
 func (s *State) AddDBState(isNew bool,
 	directoryBlock interfaces.IDirectoryBlock,
@@ -1059,8 +1058,8 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 			dbstate.SaveStruct = SaveFactomdState(s, dbstate)
 
 			if dbstate.SaveStruct != nil {
-			err := s.StateSaverStruct.SaveDBStateList(s.DBStates, s.Network)
-			if err != nil {
+				err := s.StateSaverStruct.SaveDBStateList(s.DBStates, s.Network)
+				if err != nil {
 					s.LogPrintf("dbstateprocess", "Error trying to save a DBStateList %e", err)
 				}
 			}
@@ -1805,7 +1804,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		return false
 	}
 
-
 	s.LogMessage("dbsig-eom", "ProcessEOM ", msg)
 
 	// If I have done everything for all EOMs for all VMs, then and only then do I
@@ -1841,10 +1839,10 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 			if s.EOM || s.EOMDone || s.Syncing || s.EOMProcessed != 0 {
 				s.LogPrintf("executeMsg", "unexpected")
-			s.EOM = false
-			s.EOMDone = false
-			s.Syncing = false
-			s.EOMProcessed = 0
+				s.EOM = false
+				s.EOMDone = false
+				s.Syncing = false
+				s.EOMProcessed = 0
 			}
 
 			//
@@ -1978,7 +1976,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		return false
 	}
 
-
 	// After all EOM markers are processed, Claim we are done.  Now we can unwind
 
 	if s.EOMProcessed == s.EOMLimit && !s.EOMDone {
@@ -2001,121 +1998,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		mn := entryCreditBlock.NewMinuteNumber(e.Minute + 1)
 		ecbody.AddEntry(mn)
 
-		if !s.Leader {
-			if s.CurrentMinute != int(e.Minute) {
-				s.LogPrintf("dbsig-eom", "Follower jump to minute %d from %d", s.CurrentMinute, int(e.Minute))
-			}
-			s.setCurrentMinute(int(e.Minute))
-		}
-
-		s.setCurrentMinute(s.CurrentMinute + 1)
-		s.CurrentMinuteStartTime = time.Now().UnixNano()
-		// If an election took place, our lists will be unsorted. Fix that
-		pl.SortAuditServers()
-		pl.SortFedServers()
-
-		switch {
-		case s.CurrentMinute < 10:
-			if s.CurrentMinute == 1 {
-				dbstate := s.GetDBState(dbheight - 1)
-				// Panic had arose when leaders would reboot and the follower was on a future minute
-				if dbstate == nil {
-					// We recognize that this will leave us "Done" without finishing the process.  But
-					// a Follower can heal themselves by asking for a block, and overwriting this block.
-					return false
-				}
-				if !dbstate.Saved {
-					dbstate.ReadyToSave = true
-				}
-			}
-			s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
-			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
-
-		case s.CurrentMinute == 10:
-			s.LogPrintf("dbsig-eom", "Start new block")
-			eBlocks := []interfaces.IEntryBlock{}
-			entries := []interfaces.IEBEntry{}
-			for _, v := range pl.NewEBlocks {
-				eBlocks = append(eBlocks, v)
-			}
-			for _, v := range pl.NewEntries {
-				entries = append(entries, v)
-			}
-
-			dbstate := s.AddDBState(true, s.LeaderPL.DirectoryBlock, s.LeaderPL.AdminBlock, s.GetFactoidState().GetCurrentBlock(), s.LeaderPL.EntryCreditBlock, eBlocks, entries)
-			if dbstate == nil {
-				dbstate = s.DBStates.Get(int(s.LeaderPL.DirectoryBlock.GetHeader().GetDBHeight()))
-			}
-			dbht := int(dbstate.DirectoryBlock.GetHeader().GetDBHeight())
-			if dbht > 0 {
-				prev := s.DBStates.Get(dbht - 1)
-				s.DBStates.FixupLinks(prev, dbstate)
-			}
-			s.DBStates.ProcessBlocks(dbstate)
-
-			s.setCurrentMinute(0)
-			s.LLeaderHeight++
-
-			s.GetAckChange()
-			s.CheckForIDChange()
-
-			s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
-			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
-
-			s.DBSigProcessed = 0
-			s.TempBalanceHash = s.FactoidState.GetBalanceHash(true)
-
-			// Note about dbsigs.... If we processed the previous minute, then we generate the DBSig for the next block.
-			// But if we didn't process the previous block, like we start from scratch, or we had to reset the entire
-			// network, then no dbsig exists.  This code doesn't execute, and so we have no dbsig.  In that case, on
-			// the next EOM, we see the block hasn't been signed, and we sign the block (That is the call to SendDBSig()
-			// above).
-			pldbs := s.ProcessLists.Get(s.LLeaderHeight)
-			if s.Leader && !pldbs.DBSigAlreadySent {
-				// dbstate is already set.
-				dbs := new(messages.DirectoryBlockSignature)
-				db := dbstate.DirectoryBlock
-				dbs.DirectoryBlockHeader = db.GetHeader()
-				dbs.ServerIdentityChainID = s.GetIdentityChainID()
-				dbs.DBHeight = s.LLeaderHeight
-				dbs.Timestamp = s.GetTimestamp()
-				dbs.SetVMHash(nil)
-				dbs.SetVMIndex(s.LeaderVMIndex)
-				dbs.SetLocal(true)
-				dbs.Sign(s)
-				err := dbs.Sign(s)
-				if err != nil {
-					panic(err)
-				}
-				//{ // debug
-				//	s.LogMessage("dbstate", "currentminute=10", dbs)
-				//	dbs2, _ := s.CreateDBSig(s.LLeaderHeight, s.LeaderVMIndex)
-				//	dbs3 := dbs2.(*messages.DirectoryBlockSignature)
-				//	s.LogPrintf("dbstate", "issameas()=%v", dbs.IsSameAs(dbs3))
-				//}
-				s.LogMessage("dbstate", "currentminute=10", dbs)
-				s.LogPrintf("dbstate", dbstate.String())
-				pldbs.DBSigAlreadySent = true
-
-				dbslog := consenLogger.WithFields(log.Fields{"func": "SendDBSig", "lheight": s.GetLeaderHeight(), "node-name": s.GetFactomNodeName()}).WithFields(dbs.LogFields())
-				dbslog.Infof("Generate DBSig")
-
-				s.LogMessage("executeMsg", "LeaderExec2", dbs)
-				dbs.LeaderExecute(s)
-			}
-			s.Saving = true
-		}
-
-		s.Commits.RemoveExpired(s)
-
-		for k := range s.Acks {
-			v := s.Acks[k].(*messages.Ack)
-			if v.DBHeight < s.LLeaderHeight {
-				TotalAcksOutputs.Inc()
-				delete(s.Acks, k)
-			}
-		}
-		//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s vm %2d Saving: return on s.SigType(%v) && int(e.Minute(%v)) > s.EOMMinute(%v)", s.FactomNodeName, e.VMIndex, s.SigType, e.Minute, s.EOMMinute))
 	} else {
 		//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s vm %2d Do nothing: return on s.SigType(%v) && int(e.Minute(%v)) > s.EOMMinute(%v)", s.FactomNodeName, e.VMIndex, s.SigType, e.Minute, s.EOMMinute))
 	}
@@ -2529,6 +2411,7 @@ func (s *State) GetHighestSavedBlk() uint32 {
 func (s *State) GetDBHeightAtBoot() uint32 {
 	return s.DBHeightAtBoot
 }
+
 // This is the highest block signed off, but not necessarily validated.
 func (s *State) GetHighestCompletedBlk() uint32 {
 	v := s.DBStates.GetHighestCompletedBlk()
@@ -2541,6 +2424,7 @@ func (s *State) GetHighestLockedSignedAndSavesBlk() uint32 {
 	HighestCompleted.Set(float64(v))
 	return v
 }
+
 // This is lowest block currently under construction under the "leader".
 func (s *State) GetLeaderHeight() uint32 {
 	return s.LLeaderHeight

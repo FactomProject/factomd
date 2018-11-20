@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -35,7 +36,6 @@ import (
 	"github.com/FactomProject/factomd/util/atomic"
 	"github.com/FactomProject/factomd/wsapi"
 	"github.com/FactomProject/logrustash"
-
 
 	"github.com/FactomProject/factomd/Utilities/CorrectChainHeads/correctChainHeads"
 	log "github.com/sirupsen/logrus"
@@ -215,12 +215,12 @@ type State struct {
 	LeaderPL        *ProcessList
 	PLProcessHeight uint32
 	// Height cutoff where no missing messages below this height
-	DBHeightAtBoot uint32
+	DBHeightAtBoot  uint32
 	TimestampAtBoot interfaces.Timestamp
-	OneLeader      bool
-	OutputAllowed  bool
-	LeaderNewMin   int
-	CurrentMinute  int
+	OneLeader       bool
+	OutputAllowed   bool
+	LeaderNewMin    int
+	CurrentMinute   int
 
 	// These are the start times for blocks and minutes
 	CurrentMinuteStartTime int64
@@ -250,15 +250,15 @@ type State struct {
 	Saving  bool // True if we are in the process of saving to the database
 	Syncing bool // Looking for messages from leaders to sync
 
-	NetStateOff     bool // Disable if true, Enable if false
-	DebugConsensus  bool // If true, dump consensus trace
-	FactoidTrans    int
-	ECCommits       int
-	ECommits        int
-	FCTSubmits      int
-	NewEntryChains  int
-	NewEntries      int
-	LeaderTimestamp interfaces.Timestamp
+	NetStateOff            bool // Disable if true, Enable if false
+	DebugConsensus         bool // If true, dump consensus trace
+	FactoidTrans           int
+	ECCommits              int
+	ECommits               int
+	FCTSubmits             int
+	NewEntryChains         int
+	NewEntries             int
+	LeaderTimestamp        interfaces.Timestamp
 	MessageFilterTimestamp interfaces.Timestamp
 	// Maps
 	// ====
@@ -401,10 +401,10 @@ type State struct {
 	StateProcessCnt       int64
 	StateUpdateState      int64
 	ValidatorLoopSleepCnt int64
-	processCnt int64 // count of attempts to process .. so we can see if the thread is running
-	MMRInfo          // fields for MMR processing
+	processCnt            int64 // count of attempts to process .. so we can see if the thread is running
+	MMRInfo                     // fields for MMR processing
 
-	reportedActivations [activations.ACTIVATION_TYPE_COUNT + 1]bool // flags about which activations we have reported (+1 because we don't use 0)
+	reportedActivations   [activations.ACTIVATION_TYPE_COUNT + 1]bool // flags about which activations we have reported (+1 because we don't use 0)
 	validatorLoopThreadID string
 }
 
@@ -2233,7 +2233,7 @@ func (s *State) SetLeaderTimestamp(ts interfaces.Timestamp) {
 		s.LeaderTimestamp = primitives.NewTimestampFromMilliseconds(uint64(ts.GetTimeMilli()))
 	} else {
 		s.LeaderTimestamp.SetTimestamp(ts)
-}
+	}
 	s.SetMessageFilterTimestamp(ts)
 }
 
