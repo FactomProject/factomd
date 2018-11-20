@@ -206,15 +206,17 @@ func (a *DBState) IsSameAs(b *DBState) bool {
 func (dbs *DBState) MarshalBinary() (rval []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error Marshalling a dbstate %v", r)
+			err = fmt.Errorf("DBState.MarshalBinary panic Error Marshalling a dbstate %v", r)
 		}
 	}()
+
 	defer func(pe *error) {
 		if *pe != nil {
 			fmt.Fprintf(os.Stderr, "DBState.MarshalBinary err:%v", *pe)
 
 		}
-	}()
+	}(&err)
+
 	dbs.Init()
 	b := primitives.NewBuffer(nil)
 
@@ -1350,7 +1352,6 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 
 	// Past this point, we cannot Return without recording the transactions in the dbstate.  This is because we
 	// have marked them all as saved to disk!  So we gotta save them to disk.  Or panic trying.
-
 
 	//	list.State.LogPrintf("dbstateprocess", "SaveDBStateToDB(%d) %s\n", dbheight, d.String())
 	// Only trim when we are really saving.

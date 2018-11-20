@@ -609,7 +609,6 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 	pl.FedServers = append(pl.FedServers, ss.FedServers...)
 	pl.AuditServers = append(pl.AuditServers, ss.AuditServers...)
 
-
 	s.LogPrintf("factoids", "Loading %d FTC balances from DBH %d", len(ss.FactoidBalancesP), ss.DBHeight)
 	s.FactoidBalancesPMutex.Lock()
 	s.FactoidBalancesP = make(map[[32]byte]int64, len(ss.FactoidBalancesP))
@@ -618,7 +617,6 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 		s.LogPrintf("factoids", "%x<%s> = %d", k, primitives.ConvertFctAddressToUserStr(factoid.NewAddress(k[:])), s.FactoidBalancesP[k])
 	}
 	s.FactoidBalancesPMutex.Unlock()
-
 
 	s.LogPrintf("entrycredits", "Loading %d EC balances from DBH %d", len(ss.ECBalancesP), ss.DBHeight)
 	s.ECBalancesPMutex.Lock()

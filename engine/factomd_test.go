@@ -18,6 +18,8 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/activations"
+	"github.com/FactomProject/factomd/common/adminBlock"
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/globals"
@@ -42,7 +44,6 @@ var quit = make(chan struct{})
 // Pass in the Network type ex. "LOCAL" as the second argument
 // It has default but if you want just add it like "map[string]string{"--Other" : "Option"}" as the third argument
 // Pass in t for the testing as the 4th argument
-
 
 var expectedHeight, leaders, audits, followers int
 var startTime, endTime time.Time
@@ -1699,11 +1700,6 @@ func TestTestNetCoinBaseActivation_long(t *testing.T) {
 		t.Fatalf("constants.COINBASE_DECLARATION = %d expect 140\n", constants.COINBASE_DECLARATION)
 	}
 
-func TestFail(t *testing.T) {
-	if ranSimTest {
-		return
-	}
-
 	nextBlock += constants.COINBASE_DECLARATION - oldCBDelay + 1
 	fmt.Println("Wait till second grant should payout with the new activation height")
 	WaitForBlock(state0, int(nextBlock+1)) // next payout passed new activation (should be paid)
@@ -1767,7 +1763,7 @@ func TestBadDBStateUnderflow(t *testing.T) {
 
 	ranSimTest = true
 
-	state0 := SetupSim("LF", "LOCAL", map[string]string{}, t)
+	state0 := SetupSim("LF", map[string]string{}, 6, 0, 0, t)
 
 	msg, err := state0.LoadDBState(state0.GetDBHeightComplete() - 1)
 	if err != nil {
@@ -1791,30 +1787,7 @@ func TestBadDBStateUnderflow(t *testing.T) {
 
 	WaitForMinute(state0, 1)
 	WaitForAllNodes(state0)
-	CheckAuthoritySet(2, 0, t)
-}
-
-func TestBadDBStateMemLeak(t *testing.T) {
-	if ranSimTest {
-		return
-	}
-
-	ranSimTest = true
-
-	state0 := SetupSim("LF", "LOCAL", map[string]string{}, t)
-
-	msg, err := state0.LoadDBState(state0.GetDBHeightComplete() - 1)
-	if err != nil {
-		panic(err)
-	}
-	dbs := msg.(*messages.DBStateMsg)
-	dbs.DirectoryBlock.GetHeader().(*directoryBlock.DBlockHeader).DBHeight += 2
-
-	old_trans := dbs.FactoidBlock.(*factoid.FBlock).Transactions
-	dbs.FactoidBlock.(*factoid.FBlock).Transactions = make([]interfaces.ITransaction, 1000) // chew up 20MB of memory
-	for i, _ := range dbs.FactoidBlock.(*factoid.FBlock).Transactions {
-		dbs.FactoidBlock.(*factoid.FBlock).Transactions[i] = old_trans[0]
-	}
+	shutDownEverything(t)
 }
 
 func TestFactoidDBState(t *testing.T) {
