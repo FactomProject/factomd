@@ -113,6 +113,7 @@ func (m *DBStateMissing) send(dbheight uint32, state interfaces.IState) (msglen 
 	if send {
 		msg, err := state.LoadDBState(dbheight)
 		if err != nil {
+			state.LogPrintf("executeMsg", "DBStateMissing.send() %v", err)
 			return
 		}
 		if msg == nil {
@@ -127,6 +128,7 @@ func (m *DBStateMissing) send(dbheight uint32, state interfaces.IState) (msglen 
 
 		b, err := msg.MarshalBinary()
 		if err != nil {
+			state.LogPrintf("executeMsg", "DBStateMissing.send() %v", err)
 			return
 		}
 		msglen = len(b)
@@ -165,6 +167,16 @@ func (m *DBStateMissing) FollowerExecute(state interfaces.IState) {
 	// just give them what they ask for.
 	start := m.DBHeightStart
 	end := m.DBHeightEnd
+
+	hsb := state.GetHighestSavedBlk()
+
+	// Can't serve up block we don't have
+	if start >= hsb {
+		return
+	}
+	if end >= hsb {
+		end = hsb
+	}
 
 	if end == 0 {
 		return
