@@ -37,8 +37,6 @@ func humanizeDuration(duration time.Duration) string {
 func LoadDatabase(s *State) {
 	var blkCnt uint32
 
-	time.Sleep(10 * time.Second)
-
 	head, err := s.DB.FetchDBlockHead()
 	if err == nil && head != nil {
 		blkCnt = head.GetHeader().GetDBHeight()

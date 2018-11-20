@@ -348,6 +348,7 @@ func (b *FBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 
 	// txLimit is the maximum number of transactions (min 20 bytes for an empty
 	// coinbase tx) that could fit into the unread portion of the buffer.
+	// This is a reasonable limit to the tx limit, not the hard math to compute that limit.
 	l := buf.Len()
 	txLimit := uint32(l / 20)
 

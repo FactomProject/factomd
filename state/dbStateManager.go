@@ -1246,8 +1246,6 @@ func (list *DBStateList) SignDB(d *DBState) (process bool) {
 	return
 }
 
-var nowish int64 = time.Now().Unix()
-
 // WriteDBStateToDebugFile will write the marshaled dbstate to a file alongside the database.
 // This can be written on the processblocks, so in the event the block does not get written to disk
 // in the event of a stall, the dbstate can be analyzed. The written dbstate does NOT include entries.

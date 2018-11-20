@@ -339,9 +339,9 @@ func MakeMap(numberFedServers int, dbheight uint32) (serverMap [10][64]int) {
 }
 
 func (p *ProcessList) MakeMap() {
-	p.State.LogPrintf("executeMsg", "MakeMap(%d)", p.DBHeight)
+	//p.State.LogPrintf("executeMsg", "MakeMap(%d)", p.DBHeight)
 	p.ServerMap = MakeMap(len(p.FedServers), p.DBHeight)
-	p.State.LogPrintf("executeMsg", "%s", p.PrintMap())
+	//p.State.LogPrintf("executeMsg", "%s", p.PrintMap())
 
 }
 

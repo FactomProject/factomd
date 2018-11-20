@@ -1094,7 +1094,7 @@ func (s *State) Init() {
 	s.startMMR()
 	if globals.Params.WriteProcessedDBStates {
 		path := filepath.Join(s.LdbPath, s.Network, "dbstates")
-		os.MkdirAll(path, 0777)
+		os.MkdirAll(path, 0775)
 	}
 }
 
@@ -2196,14 +2196,6 @@ func (s *State) SetMessageFilterTimestamp(requestedTs interfaces.Timestamp) {
 	oneHourAgo := primitives.NewTimestampNow() // now() - one hour
 	oneHourAgo.SetTimeMilli(oneHourAgo.GetTimeMilli() - 60*60*1000)
 
-	req := requestedTs.String()
-	oneH := oneHourAgo.String()
-	boot := s.TimestampAtBoot.String()
-
-	_ = req
-	_ = oneH
-	_ = boot
-
 	ts := requestedTs
 	if ts.GetTimeMilli() < s.TimestampAtBoot.GetTimeMilli() {
 		ts.SetTimestamp(s.TimestampAtBoot)
@@ -2236,11 +2228,6 @@ func (s *State) SetLeaderTimestamp(ts interfaces.Timestamp) {
 	}
 	s.SetMessageFilterTimestamp(ts)
 }
-
-//func (s *State) SetLLeaderHeight(height int) {
-//	s.LLeaderHeight = uint32(height) //SetLeaderHeight()
-//	s.LogPrintf("executeMsg", "Set LeaderHeight %d for %s", s.LLeaderHeight, atomic.WhereAmIString(1))
-//}
 
 func (s *State) SetFaultTimeout(timeout int) {
 	s.FaultTimeout = timeout

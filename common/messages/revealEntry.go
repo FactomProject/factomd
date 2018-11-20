@@ -148,11 +148,9 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 		return -1
 	}
 
-	data, _ := m.Entry.MarshalBinary()
-	//	state.LogPrintf("executeMsg", "Size = %d %dk", len(data), m.Entry.KSize())
-
 	// Any entry over 10240 bytes will be rejected
 	if m.Entry.KSize() > 10 {
+		data, _ := m.Entry.MarshalBinary()
 		state.LogMessage("executeMsg", "drop, oversized", m)
 		state.LogPrintf("executeMsg", "Size = %d %dk", len(data), m.Entry.KSize())
 		return -1

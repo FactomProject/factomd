@@ -82,12 +82,6 @@ func (s *State) AddToHolding(hash [32]byte, msg interfaces.IMsg) {
 		s.LogMessage("holding", "add", msg)
 		TotalHoldingQueueInputs.Inc()
 	}
-
-	_, ok2 := s.Holding[hash]
-	if !ok2 {
-		s.LogMessage("holding", "!add", msg)
-	}
-
 }
 
 func (s *State) DeleteFromHolding(hash [32]byte, msg interfaces.IMsg, reason string) {
@@ -97,12 +91,8 @@ func (s *State) DeleteFromHolding(hash [32]byte, msg interfaces.IMsg, reason str
 		s.LogMessage("holding", "delete "+reason, msg)
 		TotalHoldingQueueOutputs.Inc()
 	}
-
-	_, ok2 := s.Holding[hash]
-	if ok2 {
-		s.LogMessage("holding", "!delete "+reason, msg)
-	}
 }
+
 func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 
 	if msg.GetHash() == nil || reflect.ValueOf(msg.GetHash()).IsNil() {
@@ -296,23 +286,9 @@ func (s *State) Process() (progress bool) {
 	var vm *VM
 	if s.Leader && s.RunLeader {
 		vm = s.LeaderPL.VMs[s.LeaderVMIndex]
-		//	if vm.Height == 0 { // Shouldn't send DBSigs out until we have fully loaded our db
-		//		if s.LeaderPL.DBHeight != s.LLeaderHeight {
-		//			fmt.Print("panic!")
-		//		}
-		//		s.SendDBSig(s.LeaderPL.DBHeight, s.LeaderVMIndex) // State.Process()
-		//	}
 	}
 
 	hsb := s.GetHighestSavedBlk()
-	//// process the entries in any pending dbstate messages
-	//for ix := s.EntryDBHeightComplete; ix < hsb; ix++ {
-	//	dbstatemsg := s.DBStatesReceived[ix]
-	//	if dbstatemsg != nil {
-	//		// If we are missing entries at this DBState, we can apply the entries only
-	//		s.ExecuteEntriesInDBState(dbstatemsg)
-	//	}
-	//}
 
 	// trim any received DBStatesReceived messages that are fully processed
 	completed := s.GetHighestLockedSignedAndSavesBlk()
@@ -950,9 +926,6 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 
 	dbheight := dbstatemsg.DirectoryBlock.GetHeader().GetDBHeight()
 
-	if dbheight == 164854 {
-		fmt.Print("got here")
-	}
 	// ignore if too old. If its under EntryDBHeightComplete
 	//todo: Is this better to be GetEntryDBHeightComplete()
 	if dbheight > 0 && dbheight <= s.GetHighestSavedBlk() && dbheight < s.EntryDBHeightComplete {
@@ -964,21 +937,11 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	pdbstate := s.DBStates.Get(int(dbheight - 1))
 
 	valid := pdbstate.ValidNext(s, dbstatemsg)
-	{
-		// debug code, I never expect a state to be a valid next if my lleaderheight doesn't match
-		if valid == 1 && dbheight != s.LLeaderHeight {
-			valid = pdbstate.ValidNext(s, dbstatemsg) // call it again so I can walk the code
-		}
-		if valid == 0 && dbheight == s.LLeaderHeight {
-			valid = pdbstate.ValidNext(s, dbstatemsg) // call it again so I can walk the code
-		}
-	}
+
 	s.LogPrintf("dbstateprocess", "FollowerExecuteDBState dbht %d valid %v", dbheight, valid)
 	switch valid {
 	case 0:
 		//s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): DBState might be valid %d", dbheight))
-		hsb := s.GetHighestSavedBlk()
-		_ = hsb
 		ix := int(dbheight) - s.DBStatesReceivedBase
 		for len(s.DBStatesReceived) <= ix {
 			s.DBStatesReceived = append(s.DBStatesReceived, nil)
@@ -1374,18 +1337,6 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 
 	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(s, ack, m)
 }
-
-//func (s *State) setCurrentMinute(m int) {
-//	if m != s.CurrentMinute && m != s.CurrentMinute+1 && !(m == 0 && s.CurrentMinute == 10) {
-//		s.LogPrintf("dbsig-eom", " Jump s.CurrentMinute = %d, from %d %s", m, s.CurrentMinute, atomic.WhereAmIString(1))
-//
-//	} else {
-//		if m != s.CurrentMinute {
-//			s.LogPrintf("dbsig-eom", "s.CurrentMinute = %d from %s", m, atomic.WhereAmIString(1))
-//		}
-//	}
-//	s.CurrentMinute = m
-//}
 
 func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	LeaderEOMExecutions.Inc()
@@ -1904,12 +1855,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 				s.EOMProcessed = 0
 			}
 
-			//
-			////TODO: I'm pretty sure this is bad. Only sort on block boundaries  -- clay
-			//// If an election took place, our lists will be unsorted. Fix that
-			//pl.SortAuditServers()
-			//pl.SortFedServers()
-
 			switch {
 			case s.CurrentMinute < 10:
 				if s.CurrentMinute == 1 {
@@ -2108,11 +2053,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	//fmt.Println(fmt.Sprintf("ProcessDBSig: %10s %s ", s.FactomNodeName, msg.String()))
 
 	dbs := msg.(*messages.DirectoryBlockSignature)
-	//plog makes logging anything in ProcessDBSig() easier
-	//		The instantiation as a function makes it almost no overhead if you do not use it
-	//plog := func(format string, args ...interface{}) {
-	//	consenLogger.WithFields(log.Fields{"func": "ProcessDBSig", "msgheight": dbs.DBHeight, "lheight": s.GetLeaderHeight(), "msg": msg.String()}).Errorf(format, args...)
-	//}
 
 	// Don't process if syncing an EOM
 	if s.Syncing && !s.DBSig {
