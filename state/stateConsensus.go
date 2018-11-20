@@ -2152,7 +2152,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		if dblk != nil {
 			hashes := dblk.GetEntryHashes()
 			if hashes != nil {
-				messages.LogPrintf("marshelsizes.txt", "DirectoryBlock unmarshaled entry count: %d", len(hashes))
+				messages.LogPrintf("marshalsizes.txt", "DirectoryBlock unmarshaled entry count: %d", len(hashes))
 			}
 		}
 		if err != nil || dblk == nil {
