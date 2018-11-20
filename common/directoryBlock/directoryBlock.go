@@ -282,13 +282,12 @@ func (e *DirectoryBlock) String() string {
 	out.WriteString(fmt.Sprintf("%20s %v\n", "fullhash:", fh.String()))
 
 	out.WriteString(e.GetHeader().String())
-	out.WriteString("entries: \n")
+	out.WriteString("entries:\n")
 	for i, entry := range e.DBEntries {
 		out.WriteString(fmt.Sprintf("%5d %s", i, entry.String()))
 	}
 
 	return (string)(out.DeepCopyBytes())
-
 }
 
 func (b *DirectoryBlock) MarshalBinary() (rval []byte, err error) {
