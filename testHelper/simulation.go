@@ -19,18 +19,21 @@ import (
 	"time"
 )
 
-// SetupSim takes care of your options, and setting up nodes
-// pass in a string for nodes: 4 Leaders, 3 Audit, 4 Followers: "LLLLAAAFFFF" as the first argument
-// Pass in the Network type ex. "LOCAL" as the second argument
-// It has default but if you want just add it like "map[string]string{"--Other" : "Option"}" as the third argument
-// Pass in t for the testing as the 4th argument
-
 var par = globals.FactomParams{}
 
 var quit = make(chan struct{})
 
 var ExpectedHeight, Leaders, Audits, Followers int
+
 var startTime, endTime time.Time
+// only run 1 sim test at a time
+var RanSimTest = false
+
+// SetupSim takes care of your options, and setting up nodes
+// pass in a string for nodes: 4 Leaders, 3 Audit, 4 Followers: "LLLLAAAFFFF" as the first argument
+// Pass in the Network type ex. "LOCAL" as the second argument
+// It has default but if you want just add it like "map[string]string{"--Other" : "Option"}" as the third argument
+// Pass in t for the testing as the 4th argument
 
 //EX. state0 := SetupSim("LLLLLLLLLLLLLLLAAAAAAAAAA",  map[string]string {"--controlpanelsetting" : "readwrite"}, t)
 func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int, electionsCnt int, RoundsCnt int, t *testing.T) *state.State {
@@ -232,9 +235,6 @@ func CheckAuthoritySet(t *testing.T) {
 		t.Fail()
 	}
 }
-
-// We can only run 1 simtest!
-var RanSimTest = false
 
 func RunCmd(cmd string) {
 	os.Stdout.WriteString("Executing: " + cmd + "\n")

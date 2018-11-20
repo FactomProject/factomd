@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/primitives/random"
 	"io/ioutil"
 	"net/http"
@@ -228,7 +229,6 @@ func TestLoadScrambled(t *testing.T) {
 } // testLoad(){...}
 
 func TestMakeALeader(t *testing.T) {
-
 	if RanSimTest {
 		return
 	}
@@ -1325,7 +1325,7 @@ func TestElection9(t *testing.T) {
 }
 
 func TestRandom(t *testing.T) {
-	if ranSimTest {
+	if RanSimTest {
 		return
 	}
 
@@ -1338,11 +1338,11 @@ func TestRandom(t *testing.T) {
 }
 
 func TestBadDBStateUnderflow(t *testing.T) {
-	if ranSimTest {
+	if RanSimTest {
 		return
 	}
 
-	ranSimTest = true
+	RanSimTest = true
 	state0 := SetupSim("LF", map[string]string{}, 6, 0, 0, t)
 
 	msg, err := state0.LoadDBState(state0.GetDBHeightComplete() - 1)
@@ -1367,7 +1367,7 @@ func TestBadDBStateUnderflow(t *testing.T) {
 
 	WaitForMinute(state0, 1)
 	WaitForAllNodes(state0)
-	shutDownEverything(t)
+	ShutDownEverything(t)
 }
 
 func TestFactoidDBState(t *testing.T) {
