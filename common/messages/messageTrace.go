@@ -3,6 +3,7 @@ package messages
 import (
 	"fmt"
 	"os"
+	"reflect"
 	"regexp"
 	"strings"
 	"sync"
@@ -85,6 +86,7 @@ func getTraceFile(name string) (f *os.File) {
 			panic(err)
 		}
 		files[name] = f
+		f.WriteString(time.Now().String() + "\n")
 	}
 	return f
 }
@@ -118,11 +120,19 @@ func LogMessage(name string, note string, msg interfaces.IMsg) {
 	logMessage(name, note, msg)
 }
 
+var logWhere bool = false // log GoID() of the caller.
+
 // Assumes called managed the locks so we can recurse for multi part messages
 func logMessage(name string, note string, msg interfaces.IMsg) {
 	myfile := getTraceFile(name)
 	if myfile == nil {
 		return
+	}
+
+	var where string
+
+	if logWhere {
+		where = fmt.Sprintf("<%s>", atomic.Goid())
 	}
 
 	sequence++
@@ -136,7 +146,7 @@ func logMessage(name string, note string, msg interfaces.IMsg) {
 	msgString := "-nil-"
 	var embeddedMsg interfaces.IMsg
 
-	if msg != nil {
+	if msg != nil || reflect.ValueOf(msg.GetHash()).IsNil() {
 		t = msg.Type()
 		msgString = msg.String()
 
@@ -192,10 +202,10 @@ func logMessage(name string, note string, msg interfaces.IMsg) {
 		var s string
 		switch i {
 		case 0:
-			s = fmt.Sprintf("%9d %02d:%02d:%02d.%03d %-30s M-%v|R-%v|H-%v|%p %26s[%2v]:%v <%s>\n", sequence, now.Hour()%24, now.Minute()%60, now.Second()%60, (now.Nanosecond()/1e6)%1000,
-				note, mhash, rhash, hash, msg, messageType, t, text, atomic.Goid())
+			s = fmt.Sprintf("%9d %02d:%02d:%02d.%03d %-50s M-%v|R-%v|H-%v|%p %26s[%2v]:%v %s\n", sequence, now.Hour()%24, now.Minute()%60, now.Second()%60, (now.Nanosecond()/1e6)%1000,
+				note, mhash, rhash, hash, msg, messageType, t, text, where)
 		case 1:
-			s = fmt.Sprintf("%9d %02d:%02d:%02d.%03d %-30s M-%v|R-%v|H-%v|%p %30s:%v\n", sequence, now.Hour()%24, now.Minute()%60, now.Second()%60, (now.Nanosecond()/1e6)%1000,
+			s = fmt.Sprintf("%9d %02d:%02d:%02d.%03d %-50s M-%v|R-%v|H-%v|%p %30s:%v\n", sequence, now.Hour()%24, now.Minute()%60, now.Second()%60, (now.Nanosecond()/1e6)%1000,
 				note, mhash, rhash, hash, msg, "continue:", text)
 		}
 		s = addNodeNames(s)
@@ -258,6 +268,13 @@ func LogPrintf(name string, format string, more ...interface{}) {
 	if myfile == nil {
 		return
 	}
+
+	var where string
+
+	if logWhere {
+		where = fmt.Sprintf("<%s>", atomic.Goid())
+	}
+
 	sequence++
 	// handle multi-line printf's
 	lines := strings.Split(fmt.Sprintf(format, more...), "\n")
@@ -266,7 +283,7 @@ func LogPrintf(name string, format string, more ...interface{}) {
 		var s string
 		switch i {
 		case 0:
-			s = fmt.Sprintf("%9d %02d:%02d:%02d.%03d %s <%s>\n", sequence, now.Hour()%24, now.Minute()%60, now.Second()%60, (now.Nanosecond()/1e6)%1000, text, atomic.Goid())
+			s = fmt.Sprintf("%9d %02d:%02d:%02d.%03d %s %s\n", sequence, now.Hour()%24, now.Minute()%60, now.Second()%60, (now.Nanosecond()/1e6)%1000, text, where)
 		default:
 			s = fmt.Sprintf("%9d %02d:%02d:%02d.%03d %s\n", sequence, now.Hour()%24, now.Minute()%60, now.Second()%60, (now.Nanosecond()/1e6)%1000, text)
 		}

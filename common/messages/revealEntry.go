@@ -115,16 +115,16 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 	m.CommitChain, okChain = commit.(*CommitChainMsg)
 	m.commitEntry, okEntry = commit.(*CommitEntryMsg)
 	if !okChain && !okEntry { // What is this trash doing here?  Not a commit at all!
-		state.LogMessage("executeMsg", "Drop, bad commit", m)
+		state.LogMessage("executeMsg", "drop, bad commit", m)
 		return -1
 	}
 
 	data, _ := m.Entry.MarshalBinary()
-	state.LogPrintf("executeMsg", "Size = %d %dk", len(data), m.Entry.KSize())
+	//	state.LogPrintf("executeMsg", "Size = %d %dk", len(data), m.Entry.KSize())
 
 	// Any entry over 10240 bytes will be rejected
 	if m.Entry.KSize() > 10 {
-		state.LogMessage("executeMsg", "Drop, oversized", m)
+		state.LogMessage("executeMsg", "drop, oversized", m)
 		state.LogPrintf("executeMsg", "Size = %d %dk", len(data), m.Entry.KSize())
 		return -1
 	}
@@ -171,7 +171,7 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 		}
 
 		if !CheckChainID(state, m.Entry.ExternalIDs(), m) {
-			state.LogMessage("executeMsg", "Drop, chainID does not match hash of ExtIDs", m)
+			state.LogMessage("executeMsg", "drop, chainID does not match hash of ExtIDs", m)
 			return -1
 		}
 	}

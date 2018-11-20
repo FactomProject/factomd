@@ -162,12 +162,12 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 	}
 
 	if dbheight < state.GetDBHeightAtBoot() {
-		state.LogMessage("dbstatesloaded", "Drop, below dbheight at boot", m)
+		state.LogMessage("dbstatesloaded", "drop, below dbheight at boot", m)
 		return -1 // already have this one
 	}
 
 	if dbheight < state.GetHighestSavedBlk() {
-		state.LogMessage("dbstatesloaded", "Drop, already in database", m)
+		state.LogMessage("dbstatesloaded", "drop, already in database", m)
 		return -1 // already have this one
 	}
 

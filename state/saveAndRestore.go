@@ -637,6 +637,8 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 		s.LogPrintf("executeMsg", "unexpected ss.CurrentMinute=%d  %s", ss.CurrentMinute, atomic.WhereAmIString(0))
 	}
 
+	ss.CurrentMinute = 0
+
 	s.MoveStateToHeight(ss.LLeaderHeight, ss.CurrentMinute) // RestoreFactomdState
 
 	if ss.Leader != s.Leader {
@@ -649,6 +651,7 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 
 	ss.EOMsyncing = s.EOMsyncing
 
+	s.CurrentMinute = 0
 	s.EOM = false
 	s.EOMLimit = ss.EOMLimit
 	s.EOMProcessed = ss.EOMProcessed

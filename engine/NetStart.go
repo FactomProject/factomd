@@ -595,8 +595,8 @@ func startServers(load bool) {
 		}
 		go fnode.State.GoSyncEntries()
 		go Timer(fnode.State)
-		go fnode.State.ValidatorLoop()
 		go elections.Run(fnode.State)
+		go fnode.State.ValidatorLoop()
 	}
 }
 

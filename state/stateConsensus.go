@@ -234,7 +234,6 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 	TotalExecuteMsgTime.Add(float64(executeMsgTime.Nanoseconds()))
 
 	return
-
 }
 
 func (s *State) Process() (progress bool) {

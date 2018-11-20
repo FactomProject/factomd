@@ -2,9 +2,9 @@ package elections
 
 import (
 	"fmt"
-	"sync"
 	"time"
 
+	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -79,9 +79,9 @@ func (e *Elections) AddFederatedServer(server interfaces.IServer) int {
 	e.RemoveAuditServer(server)
 
 	e.Federated = append(e.Federated, server)
-	changed := Sort(e.Federated)
+	changed := e.Sort(e.Federated)
 	if changed {
-		e.LogPrintf("election", "Sort changed leaders")
+		e.LogPrintf("election", "Sort changed e.Federated in Elections.AddFederatedServer")
 		e.LogPrintLeaders("election")
 	}
 
@@ -98,9 +98,9 @@ func (e *Elections) AddAuditServer(server interfaces.IServer) int {
 	e.RemoveFederatedServer(server)
 
 	e.Audit = append(e.Audit, server)
-	changed := Sort(e.Audit)
+	changed := e.Sort(e.Audit)
 	if changed {
-		e.LogPrintf("election", "Sort changed leaders")
+		e.LogPrintf("election", "Sort changed e.Audit in Elections.AddAuditServer")
 		e.LogPrintLeaders("election")
 	}
 
@@ -275,18 +275,8 @@ func (e *Elections) AuditPriority() int {
 	return auditIdx
 }
 
-var once sync.Once
-var debugExec_flag bool
-
 func (e *Elections) debugExec() (ret bool) {
-	s := e.State.(*state.State)
-	once.Do(func() {
-		debugExec_flag = messages.CheckFileName(s.FactomNodeName+"_"+"faulting"+".txt") ||
-			messages.CheckFileName(s.FactomNodeName+"_"+"election"+".txt")
-	})
-
-	//return s.FactomNodeName == "FNode0"
-	return debugExec_flag
+	return globals.Params.DebugLogRegEx != ""
 }
 
 func (e *Elections) LogMessage(logName string, comment string, msg interfaces.IMsg) {

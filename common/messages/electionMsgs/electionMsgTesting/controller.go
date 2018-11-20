@@ -73,7 +73,7 @@ func NewController(feds, auds int) *Controller {
 		for j := range c.feds {
 			e.Federated[j] = c.feds[j]
 		}
-		e.State.(*state.State).ProcessLists.Get(0).FedServers = e.Federated
+		e.State.(*state.State).ProcessLists.Get(1).FedServers = e.Federated
 	}
 
 	for _, e := range c.Elections {
@@ -81,7 +81,7 @@ func NewController(feds, auds int) *Controller {
 		for j := range c.auds {
 			e.Audit[j] = c.auds[j]
 		}
-		e.State.(*state.State).ProcessLists.Get(0).AuditServers = e.Audit
+		e.State.(*state.State).ProcessLists.Get(1).AuditServers = e.Audit
 	}
 
 	c.ElectionAdapters = make([]*electionMsgs.ElectionAdapter, len(c.Elections))

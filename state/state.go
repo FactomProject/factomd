@@ -250,15 +250,17 @@ type State struct {
 	Saving  bool // True if we are in the process of saving to the database
 	Syncing bool // Looking for messages from leaders to sync
 
-	NetStateOff     bool // Disable if true, Enable if false
-	DebugConsensus  bool // If true, dump consensus trace
-	FactoidTrans    int
-	ECCommits       int
-	ECommits        int
-	FCTSubmits      int
-	NewEntryChains  int
-	NewEntries      int
-	LeaderTimestamp interfaces.Timestamp
+	NetStateOff            bool // Disable if true, Enable if false
+	DebugConsensus         bool // If true, dump consensus trace
+	FactoidTrans           int
+	ECCommits              int
+	ECommits               int
+	FCTSubmits             int
+	NewEntryChains         int
+	NewEntries             int
+	LeaderTimestamp        interfaces.Timestamp
+	MessageFilterTimestamp interfaces.Timestamp
+
 	// Maps
 	// ====
 	// For Follower
@@ -392,11 +394,15 @@ type State struct {
 	NumFCTTrans    int // Number of Factoid Transactions in this block
 
 	// debug message about state status rolling queue for ControlPanel
-	pstate              string
-	SyncingState        [256]string
-	SyncingStateCurrent int
-	processCnt          int64 // count of attempts to process .. so we can see if the thread is running
-	MMRInfo                   // fields for MMR processing
+	pstate                string
+	SyncingState          [256]string
+	SyncingStateCurrent   int
+	ProcessListProcessCnt int64 // count of attempts to process .. so we can see if the thread is running
+	StateProcessCnt       int64
+	StateUpdateState      int64
+	ValidatorLoopSleepCnt int64
+	processCnt            int64 // count of attempts to process .. so we can see if the thread is running
+	MMRInfo                     // fields for MMR processing
 
 	reportedActivations   [activations.ACTIVATION_TYPE_COUNT + 1]bool // flags about which activations we have reported (+1 because we don't use 0)
 	validatorLoopThreadID string
@@ -502,6 +508,7 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 	}
 
 	newState.LeaderTimestamp = primitives.NewTimestampFromMilliseconds(s.LeaderTimestamp.GetTimeMilliUInt64())
+	newState.MessageFilterTimestamp = primitives.NewTimestampFromMilliseconds(s.LeaderTimestamp.GetTimeMilliUInt64())
 	newState.TimestampAtBoot = primitives.NewTimestampFromMilliseconds(s.TimestampAtBoot.GetTimeMilliUInt64())
 
 	//serverPrivKey primitives.PrivateKey
@@ -867,6 +874,7 @@ func (s *State) Init() {
 	s.RunLeader = false
 	s.IgnoreMissing = true
 	s.BootTime = s.GetTimestamp().GetTimeSeconds()
+	s.TimestampAtBoot = primitives.NewTimestampNow()
 
 	if s.LogPath == "stdout" {
 		wsapi.InitLogs(s.LogPath, s.LogLevel)
@@ -1048,6 +1056,10 @@ func (s *State) Init() {
 	}
 	// end of FER removal
 	s.Starttime = time.Now()
+	// Allocate the MMR queues
+	s.asks = make(chan askRef, 1)
+	s.adds = make(chan plRef, 1)
+	s.dbheights = make(chan int, 1)
 
 	if s.StateSaverStruct.FastBoot {
 		d, err := s.DB.FetchDBlockHead()
@@ -1091,7 +1103,6 @@ func (s *State) Init() {
 			log.Fatal(err)
 		}
 	}
-
 	s.startMMR()
 	if globals.Params.WriteProcessedDBStates {
 		path := filepath.Join(s.LdbPath, s.Network, "dbstates")
@@ -2176,11 +2187,18 @@ func (s *State) GetLeaderTimestamp() interfaces.Timestamp {
 	return s.LeaderTimestamp
 }
 
-// the leader timestamp is used to filter messages from the past or before the replay filter.
+func (s *State) GetMessageFilterTimestamp() interfaces.Timestamp {
+	if s.MessageFilterTimestamp == nil {
+		s.MessageFilterTimestamp.SetTimestamp(new(primitives.Timestamp))
+	}
+	return s.MessageFilterTimestamp
+}
+
+// the MessageFilterTimestamp  is used to filter messages from the past or before the replay filter.
 // We will not set it to a time that is before boot or more than one hour in the past.
 // this ensure messages from prior boot and messages that predate the current replay filter are
 // are dropped.
-func (s *State) SetLeaderTimestamp(requestedTs interfaces.Timestamp) {
+func (s *State) SetMessageFilterTimestamp(requestedTs interfaces.Timestamp) {
 
 	oneHourAgo := primitives.NewTimestampNow() // now() - one hour
 	oneHourAgo.SetTimeMilli(oneHourAgo.GetTimeMilli() - 60*60*1000)
@@ -2203,12 +2221,28 @@ func (s *State) SetLeaderTimestamp(requestedTs interfaces.Timestamp) {
 	}
 
 	if ts.GetTimeMilli() < s.LeaderTimestamp.GetTimeMilli() {
-		s.LogPrintf("executeMsg", "Set LeaderTimeStamp attempt to move backward in time from %s", atomic.WhereAmIString(1))
+		s.LogPrintf("executeMsg", "Set MessageFilterTimestamp attempt to move backward in time from %s", atomic.WhereAmIString(1))
 		ts.SetTimestamp(s.LeaderTimestamp)
 	}
 
 	s.LeaderTimestamp.SetTimestamp(ts) //SetLeaderTimestamp()
-	s.LogPrintf("executeMsg", "Set LeaderTimeStamp(%s) @ dbht %d using %s for %s", requestedTs, s.LLeaderHeight, ts.String(), atomic.WhereAmIString(1))
+	s.LogPrintf("executeMsg", "Set MessageFilterTimestamp(%s) @ dbht %d using %s for %s", requestedTs, s.LLeaderHeight, ts.String(), atomic.WhereAmIString(1))
+
+	if s.MessageFilterTimestamp == nil {
+		s.MessageFilterTimestamp = primitives.NewTimestampFromMilliseconds(uint64(ts.GetTimeMilli()))
+	} else {
+		s.MessageFilterTimestamp.SetTimestamp(ts)
+	}
+}
+
+func (s *State) SetLeaderTimestamp(ts interfaces.Timestamp) {
+	//	s.LogPrintf("executeMsg", "Set SetLeaderTimestamp(%s) @ dbht %d for %s", ts.String(), s.LLeaderHeight, atomic.WhereAmIString(1))
+	if s.LeaderTimestamp == nil {
+		s.LeaderTimestamp = primitives.NewTimestampFromMilliseconds(uint64(ts.GetTimeMilli()))
+	} else {
+		s.LeaderTimestamp.SetTimestamp(ts)
+	}
+	s.SetMessageFilterTimestamp(ts)
 }
 
 //func (s *State) SetLLeaderHeight(height int) {
@@ -2481,7 +2515,7 @@ func (s *State) SummaryHeader() string {
 }
 
 func (s *State) SetStringConsensus() {
-	str := fmt.Sprintf("%10s[%x_%x] ", s.FactomNodeName, s.IdentityChainID.Bytes()[:2], s.IdentityChainID.Bytes()[2:5])
+	str := fmt.Sprintf("%10s[%x_%x] ", s.FactomNodeName, s.IdentityChainID.Bytes()[:2], s.IdentityChainID.Bytes()[3:6])
 
 	s.serverPrt = str
 }
