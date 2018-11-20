@@ -9,6 +9,7 @@ import (
 	"time"
 )
 
+// FIXME: test runs > 40 min try to tune down to 10 min
 func TestChainedTransactions(t *testing.T) {
 	if RanSimTest {
 		return
@@ -22,14 +23,14 @@ func TestChainedTransactions(t *testing.T) {
 	var depositSecrets []string
 	var depositAddresses []string
 
-	for i:=0; i<120; i++  {
+	for i := 0; i < 120; i++ {
 		priv, addr := RandomFctAddressPair()
 		depositSecrets = append(depositSecrets, priv)
 		depositAddresses = append(depositAddresses, addr)
 	}
 
 	var maxBlocks = 500
-	state0 := SetupSim("LAF", map[string]string{"--debuglog": ".",}, maxBlocks+1, 0, 0, t)
+	state0 := SetupSim("LAF", map[string]string{"--debuglog": "."}, maxBlocks+1, 0, 0, t)
 	var ecPrice uint64 = state0.GetFactoshisPerEC() //10000
 	var oneFct uint64 = factom.FactoidToFactoshi("1")
 
@@ -41,7 +42,7 @@ func TestChainedTransactions(t *testing.T) {
 		for balance != int64(amt) {
 			waited = true
 			balance = GetBalance(state0, depositAddresses[i])
-			time.Sleep(time.Millisecond*100)
+			time.Sleep(time.Millisecond * 100)
 		}
 		if waited {
 			fmt.Printf("%v waitForDeposit %v %v - %v = diff: %v \n", i, depositAddresses[i], balance, amt, balance-int64(amt))
@@ -51,8 +52,8 @@ func TestChainedTransactions(t *testing.T) {
 	}
 	_ = waitForDeposit
 
-	initialBalance := 10*oneFct
-	fee := 12*ecPrice
+	initialBalance := 10 * oneFct
+	fee := 12 * ecPrice
 
 	prepareTransactions := func(bal uint64) ([]func(), uint64, int) {
 
@@ -63,7 +64,7 @@ func TestChainedTransactions(t *testing.T) {
 			bal -= fee
 
 			in := i
-			out := i+1
+			out := i + 1
 			send := bal
 
 			txn := func() {
@@ -88,7 +89,7 @@ func TestChainedTransactions(t *testing.T) {
 		var sent []int
 		var unblocked bool = false
 
-		for i:=1; i<len(transactions); i++ {
+		for i := 1; i < len(transactions); i++ {
 			sent = append(sent, i)
 			//fmt.Printf("offset: %v <=> i:%v", offset, i)
 			if i == offset {
@@ -98,7 +99,7 @@ func TestChainedTransactions(t *testing.T) {
 			}
 			transactions[i]()
 		}
-		if ! unblocked{
+		if !unblocked {
 			transactions[0]() // unblock the transactions
 		}
 		offset++ // next time start further in the future
@@ -109,9 +110,8 @@ func TestChainedTransactions(t *testing.T) {
 		SendTxn(state0, finalBalance-fee, depositSecrets[finalAddress], bankAddress, ecPrice)
 		waitForDeposit(finalAddress, 0)
 	}
-	_ = mkTransactions
 
-	for x:= 1; x<= 120; x++ {
+	for x := 1; x <= 120; x++ {
 		mkTransactions()
 		WaitBlocks(state0, 1)
 	}
