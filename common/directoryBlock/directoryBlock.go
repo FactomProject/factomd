@@ -7,9 +7,10 @@ package directoryBlock
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
+
+	"errors"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -175,7 +176,13 @@ func (c *DirectoryBlock) CheckDBEntries() error {
 	return nil
 }
 
-func (c *DirectoryBlock) GetKeyMR() interfaces.IHash {
+func (c *DirectoryBlock) GetKeyMR() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("DirectoryBlock.GetKeyMR() saw an interface that was nil")
+		}
+	}()
 	keyMR, err := c.BuildKeyMerkleRoot()
 	if err != nil {
 		panic("Failed to build the key MR")
@@ -222,15 +229,33 @@ func (c *DirectoryBlock) GetDatabaseHeight() uint32 {
 	return c.GetHeader().GetDBHeight()
 }
 
-func (c *DirectoryBlock) GetChainID() interfaces.IHash {
+func (c *DirectoryBlock) GetChainID() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("DirectoryBlock.GetChainID() saw an interface that was nil")
+		}
+	}()
 	return primitives.NewHash(constants.D_CHAINID)
 }
 
-func (c *DirectoryBlock) DatabasePrimaryIndex() interfaces.IHash {
+func (c *DirectoryBlock) DatabasePrimaryIndex() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("DirectoryBlock.DatabasePrimaryIndex() saw an interface that was nil")
+		}
+	}()
 	return c.GetKeyMR()
 }
 
-func (c *DirectoryBlock) DatabaseSecondaryIndex() interfaces.IHash {
+func (c *DirectoryBlock) DatabaseSecondaryIndex() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("DirectoryBlock.DatabaseSecondaryIndex() saw an interface that was nil")
+		}
+	}()
 	return c.GetHash()
 }
 
@@ -256,7 +281,7 @@ func (e *DirectoryBlock) String() string {
 	out.WriteString(fmt.Sprintf("%20s %v\n", "fullhash:", fh.String()))
 
 	out.WriteString(e.GetHeader().String())
-	out.WriteString("entries:\n")
+	out.WriteString("entries: \n")
 	for i, entry := range e.DBEntries {
 		out.WriteString(fmt.Sprintf("%5d %s", i, entry.String()))
 	}
@@ -328,7 +353,13 @@ func (b *DirectoryBlock) GetHeaderHash() (interfaces.IHash, error) {
 	return b.Header.GetHeaderHash()
 }
 
-func (b *DirectoryBlock) BodyKeyMR() interfaces.IHash {
+func (b *DirectoryBlock) BodyKeyMR() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("DirectoryBlock.BodyKeyMR() saw an interface that was nil")
+		}
+	}()
 	key, _ := b.BuildBodyMR()
 	return key
 }
@@ -419,11 +450,23 @@ func (b *DirectoryBlock) UnmarshalBinary(data []byte) (err error) {
 	return
 }
 
-func (b *DirectoryBlock) GetHash() interfaces.IHash {
+func (b *DirectoryBlock) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("DirectoryBlock.GetHash() saw an interface that was nil")
+		}
+	}()
 	return b.GetFullHash()
 }
 
-func (b *DirectoryBlock) GetFullHash() interfaces.IHash {
+func (b *DirectoryBlock) GetFullHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("DirectoryBlock.GetFullHash() saw an interface that was nil")
+		}
+	}()
 	binaryDblock, err := b.MarshalBinary()
 	if err != nil {
 		return nil
@@ -454,6 +497,7 @@ func NewDirectoryBlock(prev interfaces.IDirectoryBlock) interfaces.IDirectoryBlo
 
 	newdb.Header = new(DBlockHeader)
 	newdb.GetHeader().SetVersion(constants.VERSION_0)
+
 	if prev != nil {
 		newdb.GetHeader().SetPrevFullHash(prev.GetFullHash())
 		newdb.GetHeader().SetPrevKeyMR(prev.GetKeyMR())

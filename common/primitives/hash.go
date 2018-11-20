@@ -46,7 +46,6 @@ func LogNilHashBug(msg string) {
 func (h *Hash) IsHashNil() bool {
 	return h == nil || reflect.ValueOf(h).IsNil()
 }
-
 func RandomHash() interfaces.IHash {
 	h := random.RandByteSliceOfLen(constants.HASH_LENGTH)
 	answer := new(Hash)

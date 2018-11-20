@@ -1,9 +1,10 @@
 package adminBlock
 
 import (
-	"bytes"
 	"fmt"
 	"os"
+
+	"bytes"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -120,7 +121,6 @@ func (e *ForwardCompatibleEntry) UnmarshalBinaryData(data []byte) ([]byte, error
 	e.Size = uint32(bodySize)
 
 	body := make([]byte, bodySize)
-
 	n, err := buf.Read(body)
 	if err != nil {
 		return nil, err
@@ -164,7 +164,13 @@ func (e *ForwardCompatibleEntry) Interpret() string {
 	return ""
 }
 
-func (e *ForwardCompatibleEntry) Hash() interfaces.IHash {
+func (e *ForwardCompatibleEntry) Hash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("ForwardCompatibleEntry.Hash() saw an interface that was nil")
+		}
+	}()
 	bin, err := e.MarshalBinary()
 	if err != nil {
 		panic(err)

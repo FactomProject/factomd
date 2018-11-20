@@ -10,6 +10,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"os"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
@@ -106,11 +107,25 @@ func (a *DBStateMsg) IsSameAs(b *DBStateMsg) bool {
 	return true
 }
 
-func (m *DBStateMsg) GetRepeatHash() interfaces.IHash {
+func (m *DBStateMsg) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("DBStateMsg.GetRepeatHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.DirectoryBlock.GetHash()
 }
 
-func (m *DBStateMsg) GetHash() interfaces.IHash {
+func (m *DBStateMsg) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("DBStateMsg.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	//	data, _ := m.MarshalBinary()
 	//	return primitives.Sha(data)
 
@@ -118,7 +133,14 @@ func (m *DBStateMsg) GetHash() interfaces.IHash {
 	return m.GetMsgHash()
 }
 
-func (m *DBStateMsg) GetMsgHash() interfaces.IHash {
+func (m *DBStateMsg) GetMsgHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("DBStateMsg.GetMsgHash() saw an interface that was nil")
+		}
+	}()
+
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()
 		if err != nil {

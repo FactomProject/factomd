@@ -7,9 +7,10 @@ package adminBlock
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
+
+	"errors"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -90,7 +91,13 @@ func (b *ABlockHeader) SetBodySize(bodySize uint32) {
 	b.BodySize = bodySize
 }
 
-func (b *ABlockHeader) GetAdminChainID() interfaces.IHash {
+func (b *ABlockHeader) GetAdminChainID() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("ABlockHeader.GetAdminChainID() saw an interface that was nil")
+		}
+	}()
 	return primitives.NewHash(constants.ADMIN_CHAINID)
 }
 
@@ -106,7 +113,13 @@ func (b *ABlockHeader) GetHeaderExpansionSize() uint64 {
 	return b.HeaderExpansionSize
 }
 
-func (b *ABlockHeader) GetPrevBackRefHash() interfaces.IHash {
+func (b *ABlockHeader) GetPrevBackRefHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("ABlockHeader.GetPrevBackRefHash() saw an interface that was nil")
+		}
+	}()
 	b.Init()
 	return b.PrevBackRefHash
 }

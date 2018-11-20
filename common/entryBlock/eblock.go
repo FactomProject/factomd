@@ -7,6 +7,7 @@ package entryBlock
 import (
 	"fmt"
 	"os"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -72,7 +73,14 @@ func (c *EBlock) GetDatabaseHeight() uint32 {
 	return c.GetHeader().GetDBHeight()
 }
 
-func (c *EBlock) GetChainID() interfaces.IHash {
+func (c *EBlock) GetChainID() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("EBlock.GetChainID() saw an interface that was nil")
+		}
+	}()
+
 	return c.GetHeader().GetChainID()
 }
 
@@ -80,18 +88,39 @@ func (c *EBlock) GetHashOfChainID() []byte {
 	return primitives.DoubleSha(c.GetChainID().Bytes())
 }
 
-func (c *EBlock) GetHashOfChainIDHash() interfaces.IHash {
+func (c *EBlock) GetHashOfChainIDHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("EBlock.GetHashOfChainIDHash() saw an interface that was nil")
+		}
+	}()
+
 	hash := primitives.NewZeroHash()
 	hash.SetBytes(c.GetHashOfChainID())
 	return hash
 }
 
-func (c *EBlock) DatabasePrimaryIndex() interfaces.IHash {
+func (c *EBlock) DatabasePrimaryIndex() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("EBlock.DatabasePrimaryIndex() saw an interface that was nil")
+		}
+	}()
+
 	key, _ := c.KeyMR()
 	return key
 }
 
-func (c *EBlock) DatabaseSecondaryIndex() interfaces.IHash {
+func (c *EBlock) DatabaseSecondaryIndex() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("EBlock.DatabaseSecondaryIndex() saw an interface that was nil")
+		}
+	}()
+
 	h, _ := c.Hash()
 	return h
 }
@@ -138,7 +167,14 @@ func (e *EBlock) BuildHeader() error {
 	return nil
 }
 
-func (e *EBlock) GetHash() interfaces.IHash {
+func (e *EBlock) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("EBlock.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	h, _ := e.Hash()
 	return h
 }
@@ -163,7 +199,14 @@ func (e *EBlock) HeaderHash() (interfaces.IHash, error) {
 	return h, nil
 }
 
-func (e *EBlock) BodyKeyMR() interfaces.IHash {
+func (e *EBlock) BodyKeyMR() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("EBlock.BodyKeyMR() saw an interface that was nil")
+		}
+	}()
+
 	e.BuildHeader()
 	return e.GetHeader().GetBodyMR()
 }
