@@ -19,9 +19,8 @@ import (
 	"github.com/FactomProject/factomd/state"
 	//"fmt"
 	"fmt"
-	"os"
-
 	"github.com/FactomProject/factomd/common/messages/electionMsgs"
+	"os"
 )
 
 var BlockCount int = 10
@@ -368,4 +367,10 @@ func CreateTestBlockSetWithNetworkID(prev *BlockSet, networkID uint32, transacti
 
 func CreateEmptyTestDatabaseOverlay() *databaseOverlay.Overlay {
 	return databaseOverlay.NewOverlay(new(mapdb.MapDB))
+}
+
+func PrintList(title string, list map[string]uint64) {
+	for addr, amt := range list {
+		fmt.Printf("%v - %v:%v\n", title, addr, amt)
+	}
 }
