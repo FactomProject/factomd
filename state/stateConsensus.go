@@ -122,7 +122,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 	valid := msg.Validate(s)
 	if valid == 1 {
 		// Sometimes we think the LoadDatabase() thread starts before the boottime gets set -- hack to be fixed
-		if msg.Type() != constants.DBSTATE_MSG {
+		if msg.Type() != constants.DBSTATE_MSG && msg.Type() != constants.DATA_RESPONSE {
 			// Make sure we don't put in an old ack (outside our repeat range)
 			blktime := s.GetMessageFilterTimestamp().GetTime().UnixNano()
 			tlim := int64(Range * 60 * 1000000000)
