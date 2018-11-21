@@ -139,6 +139,7 @@ func (state *State) ValidatorLoop() {
 				// No messages? Sleep for a bit
 				for i := 0; i < 10 && state.InMsgQueue().Length() == 0; i++ {
 					time.Sleep(10 * time.Millisecond)
+					state.ValidatorLoopSleepCnt++
 				}
 
 			}
