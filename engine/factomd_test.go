@@ -5,10 +5,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/FactomProject/factomd/common/adminBlock"
-	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/directoryBlock"
-	"github.com/FactomProject/factomd/common/primitives/random"
 	"io/ioutil"
 	"net/http"
 	"runtime"
@@ -16,6 +12,11 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/FactomProject/factomd/common/adminBlock"
+	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/directoryBlock"
+	"github.com/FactomProject/factomd/common/primitives/random"
 
 	"github.com/FactomProject/factomd/activations"
 	"github.com/FactomProject/factomd/common/factoid"
@@ -1377,7 +1378,7 @@ func TestFactoidDBState(t *testing.T) {
 	RanSimTest = true
 
 	state0 := SetupSim("LAF", map[string]string{"--debuglog": "", "--faulttimeout": "10", "--blktime": "5"}, 120, 0, 0, t)
-	WaitForBlock(state0, 5)
+	WaitBlocks(state0, 1)
 
 	go func() {
 		for i := 0; i <= 1000; i++ {
