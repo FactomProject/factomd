@@ -216,13 +216,13 @@ func GetHardCodedGrants() []HardGrant {
 			HardGrant{168576, 800e8, validateAddress("FA27Y2fEsaBPeFsN87czeZxLsA9fxi3fcy4f4xHXdF58W7TgbaCB")},
 
 			// Sponsor 2a, Nic Robinette -- 298.9 FCT, prorated -- Sept 9 to Oct 12
-			HardGrant{168576, 2989e7, validateAddress("FA2TDwdBLoCtEKrWqf7gSDhXzw8F5GLTK2wFLgg3erC1Ms6jBWuk ")},
+			HardGrant{168576, 2989e7, validateAddress("FA2TDwdBLoCtEKrWqf7gSDhXzw8F5GLTK2wFLgg3erC1Ms6jBWuk")},
 
-			// Sponsor 2b, Nolan Bauer, replacing Nic Robinette -- 182.6 FCT
+			// Sponsor 2b, Nolan Bauer, replacing Nic Robinette -- 182.6 FCT, prorated -- Nov 19 to Dec 9
 			HardGrant{168576, 1826e7, validateAddress("FA2oecgJW3XWnXzHhQQoULmMeKC97uAgHcPd4kEowTb3csVkbDc9")},
 
-			// Sponsor 3, TBD  -- 182.6 FCT
-			HardGrant{168576, 1826e7, validateAddress("")},
+			// Sponsor 3, Factomatic -- 182.6 FCT, prorated -- Nov 19 to Dec 9
+			HardGrant{168576, 1826e7, validateAddress("FA2944TXTDQKdJDp3TLSANjgMjwK2pQnTSkzE3kQcHWKetCCphcH")},
 
 			// BIF 001 -- Factom Core Development
 			// 18,500 FCT
@@ -250,7 +250,7 @@ func GetHardCodedGrants() []HardGrant {
 			// BIF-Factomatic 001 -- Decentralized Identifiers (DIDs)
 
 			// BIF -- 4500 FCT
-			HardGrant{168576, 4500e8, validateAddress("FA2GqMAxcx8WonfEV8sNfeeQYa4fnNU3AhzDDzbz7FvjTvQ6tBCH:")},
+			HardGrant{168576, 4500e8, validateAddress("FA2GqMAxcx8WonfEV8sNfeeQYa4fnNU3AhzDDzbz7FvjTvQ6tBCH")},
 
 			// Factomatic -- 4000 FCT
 			HardGrant{168576, 4000e8, validateAddress("FA2944TXTDQKdJDp3TLSANjgMjwK2pQnTSkzE3kQcHWKetCCphcH")},
