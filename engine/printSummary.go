@@ -14,6 +14,10 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 	if *listenTo < 0 || *listenTo >= len(fnodes) {
 		return
 	}
+	// set everyone's ID
+	for i, f := range fnodes {
+		f.Index = i
+	}
 
 	for *summary == value {
 		PrintOneStatus(*listenTo, *wsapiNode)
@@ -26,12 +30,20 @@ var out string // previous status
 
 func PrintOneStatus(listenTo int, wsapiNode int) {
 	f := fnodes[listenTo]
+	s := f.State
 	prt := "===SummaryStart===\n\n"
-	prt = fmt.Sprintf("%sTime: %d %s Elapsed time:%s\n", prt, time.Now().Unix(), time.Now().String(), time.Since(globals.StartTime).String())
+	prt = fmt.Sprintf("%sTime: %d %s Elapsed time:%s\n", prt, time.Now().Unix(), time.Now().Format("2006-01-02 15:04:05"), time.Since(globals.StartTime).String())
 
-	for i, f := range fnodes {
-		f.Index = i
+	var stateProcessCnt, processListProcessCnt, stateUpdateState, validatorLoopSleepCnt int64
+
+	for _, f := range fnodes {
+		stateProcessCnt += f.State.StateProcessCnt
+		processListProcessCnt += s.ProcessListProcessCnt
+		stateUpdateState += s.StateUpdateState
+		validatorLoopSleepCnt += s.ValidatorLoopSleepCnt
 	}
+	downscale := int64(5000 * len(fnodes))
+	prt += fmt.Sprintf("P=%8d PL=%8d US=%8d Z=%8d", stateProcessCnt/downscale, processListProcessCnt/downscale, stateUpdateState/downscale, validatorLoopSleepCnt/downscale)
 
 	var pnodes []*FactomNode
 	pnodes = append(pnodes, fnodes...)
@@ -228,30 +240,44 @@ func PrintOneStatus(listenTo int, wsapiNode int) {
 	if f.State.MessageTally {
 		prt = prt + "\nType:"
 		NumMsgTypes := int(constants.NUM_MESSAGES)
-		for i := 0; i < NumMsgTypes/2; i++ {
-			prt = prt + fmt.Sprintf("%5d ", i)
+		for i := 0; i < NumMsgTypes/3; i++ {
+			prt = prt + fmt.Sprintf("%8s(%2d) ", constants.ShortMessageName(byte(i)), i)
 		}
 		prt = prt + "\nRecd:"
 
-		for i := 0; i < NumMsgTypes/2; i++ {
-			prt = prt + fmt.Sprintf("%5d ", f.State.GetMessageTalliesReceived(i))
+		for i := 0; i < NumMsgTypes/3; i++ {
+			prt = prt + fmt.Sprintf("%12d ", f.State.GetMessageTalliesReceived(i))
 		}
 		prt = prt + "\nSent:"
-		for i := 0; i < NumMsgTypes/2; i++ {
-			prt = prt + fmt.Sprintf("%5d ", f.State.GetMessageTalliesSent(i))
+		for i := 0; i < NumMsgTypes/3; i++ {
+			prt = prt + fmt.Sprintf("%12d ", f.State.GetMessageTalliesSent(i))
 		}
-		prt = prt + "\nType:"
-		for i := NumMsgTypes / 2; i < NumMsgTypes; i++ {
-			prt = prt + fmt.Sprintf("%5d ", i)
+		prt = prt + "\n\nType:"
+		for i := NumMsgTypes / 3; i < 2*NumMsgTypes/3; i++ {
+			prt = prt + fmt.Sprintf("%8s(%2d) ", constants.ShortMessageName(byte(i)), i)
 		}
 		prt = prt + "\nRecd:"
 
-		for i := NumMsgTypes / 2; i < NumMsgTypes; i++ {
-			prt = prt + fmt.Sprintf("%5d ", f.State.GetMessageTalliesReceived(i))
+		for i := NumMsgTypes / 3; i < 2*NumMsgTypes/3; i++ {
+			prt = prt + fmt.Sprintf("%12d ", f.State.GetMessageTalliesReceived(i))
 		}
 		prt = prt + "\nSent:"
-		for i := NumMsgTypes / 2; i < NumMsgTypes; i++ {
-			prt = prt + fmt.Sprintf("%5d ", f.State.GetMessageTalliesSent(i))
+		for i := NumMsgTypes / 3; i < 2*NumMsgTypes/3; i++ {
+			prt = prt + fmt.Sprintf("%12d ", f.State.GetMessageTalliesSent(i))
+		}
+
+		prt = prt + "\n\nType:"
+		for i := 2 * NumMsgTypes / 3; i < NumMsgTypes; i++ {
+			prt = prt + fmt.Sprintf("%8s(%2d) ", constants.ShortMessageName(byte(i)), i)
+		}
+		prt = prt + "\nRecd:"
+
+		for i := 2 * NumMsgTypes / 3; i < NumMsgTypes; i++ {
+			prt = prt + fmt.Sprintf("%12d ", f.State.GetMessageTalliesReceived(i))
+		}
+		prt = prt + "\nSent:"
+		for i := 2 * NumMsgTypes / 3; i < NumMsgTypes; i++ {
+			prt = prt + fmt.Sprintf("%12d ", f.State.GetMessageTalliesSent(i))
 		}
 
 	}

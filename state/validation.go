@@ -38,7 +38,8 @@ func (state *State) ValidatorLoop() {
 				status += fmt.Sprintf("Pending Entries %d ", pendingEntries) // cope with nil
 				status += fmt.Sprintf("Acks %d ", len(state.AcksMap))
 				status += fmt.Sprintf("MsgQueue %d ", len(state.msgQueue))
-				status += fmt.Sprintf("InMsgQueue %d ", state.inMsgQueue.Length())
+				status += fmt.Sprintf("InMsgQueue  %d ", state.inMsgQueue.Length())
+				status += fmt.Sprintf("InMsgQueue2 %d ", state.inMsgQueue2.Length())
 				status += fmt.Sprintf("APIQueue   %d ", state.apiQueue.Length())
 				status += fmt.Sprintf("AckQueue %d ", len(state.ackQueue))
 				status += fmt.Sprintf("TimerMsgQueue %d ", len(state.timerMsgQueue))
@@ -131,6 +132,7 @@ func (state *State) ValidatorLoop() {
 				// No messages? Sleep for a bit
 				for i := 0; i < 10 && state.InMsgQueue().Length() == 0; i++ {
 					time.Sleep(10 * time.Millisecond)
+					state.ValidatorLoopSleepCnt++
 				}
 
 			}

@@ -160,7 +160,7 @@ func StatusEveryMinute(s *state.State) {
 			if timeout <= 0 {
 				fmt.Println("Stalled !!!")
 			}
-			// Make all the nodes update thier status
+			// Make all the nodes update their status
 			for _, n := range GetFnodes() {
 				n.State.SetString()
 			}
@@ -1247,7 +1247,7 @@ func TestDBSigElection(t *testing.T) {
 	}
 	ranSimTest = true
 
-	state0 := SetupSim("LLLAF", "LOCAL", map[string]string{"--debuglog": "fault|badmsg|network|process|dbsig", "--faulttimeout": "10"}, t)
+	state0 := SetupSim("LLLAF", "LOCAL", map[string]string{"--debuglog": "graph|fault|badmsg|network|process|dbsig", "--faulttimeout": "10"}, t)
 	StatusEveryMinute(state0)
 
 	CheckAuthoritySet(3, 1, t)
