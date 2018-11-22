@@ -135,7 +135,7 @@ func GetHardCodedGrants() []HardGrant {
 
 			// Guide Payments September 7 - December 7
 			// Per the approved FACTOM-GRANT-GUIDES-002, payment is split up into two (2) 900 FCT payments for each
-			// Guide. The first payment is to take place at the same time as other grants (approx 2018-11-27T17:00 UTC)
+			// Guide. The first payment is to take place at the same time as other grants (approx 2018-11-28T15:00 UTC)
 			// and the second to happen at or around 2018-12-7T17:00 UTC.
 
 			// Payment 1 -- Immediate
