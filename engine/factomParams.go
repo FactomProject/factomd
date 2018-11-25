@@ -57,6 +57,7 @@ func ParseCmdLine(args []string) *FactomParams {
 	MemProfileRate := flag.Int("mpr", 512*1024, "Set the Memory Profile Rate to update profiling per X bytes allocated. Default 512K, set to 1 to profile everything, 0 to disable.")
 	exposeProfilePtr := flag.Bool("exposeprofiler", false, "Setting this exposes the profiling port to outside localhost.")
 	factomHomePtr := flag.String("factomhome", "", "Set the Factom home directory. The .factom folder will be placed here if set, otherwise it will default to $HOME")
+	nodeNamePtr := flag.String("nodename", "", "Assign a name to the node")
 
 	logportPtr := flag.String("logPort", "6060", "Port for pprof logging")
 	portOverridePtr := flag.Int("port", 0, "Port where we serve WSAPI;  default 8088")
@@ -149,6 +150,7 @@ func ParseCmdLine(args []string) *FactomParams {
 
 	p.UseLogstash = *logstash
 	p.LogstashURL = *LogstashURL
+	p.NodeName = *nodeNamePtr
 
 	p.Sync2 = *sync2Ptr
 

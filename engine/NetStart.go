@@ -18,18 +18,17 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/messages/electionMsgs"
+	"github.com/FactomProject/factomd/common/messages/msgsupport"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/controlPanel"
 	"github.com/FactomProject/factomd/database/leveldb"
+	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
-
-	"github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/common/messages/msgsupport"
-	"github.com/FactomProject/factomd/elections"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -260,6 +259,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	setupFirstAuthority(s)
 
 	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "Build", Build))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "Node name", p.NodeName))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "balancehash", messages.AckBalanceHash))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "FNode 0 Salt", s.Salt.String()[:16]))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "enablenet", p.EnableNet))
@@ -547,7 +547,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	leveldb.RegisterPrometheus()
 	RegisterPrometheus()
 
-	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelChannel, fnodes[0].State, connectionMetricsChannel, p2pNetwork, Build)
+	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelChannel, fnodes[0].State, connectionMetricsChannel, p2pNetwork, Build, p.NodeName)
 
 	go SimControl(p.ListenTo, listenToStdin)
 

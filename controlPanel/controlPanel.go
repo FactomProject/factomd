@@ -5,7 +5,6 @@ import (
 	"crypto/subtle"
 	"encoding/json"
 	"fmt"
-	//"io/ioutil"
 	"net/http"
 	"os"
 	"strconv"
@@ -26,10 +25,10 @@ import (
 
 // Initiates control panel variables and controls the http requests
 
-//Sends gitbuild and version to frontend
-type GitBuildAndVersion struct {
+type IndexTemplateData struct {
 	GitBuild string
 	Version  string
+	NodeName string
 }
 
 var (
@@ -42,10 +41,10 @@ var (
 	mux   *http.ServeMux
 	index int = 0
 
-	DisplayState state.DisplayState
-	StatePointer *state.State
-	Controller   *p2p.Controller // Used for Disconnect
-	GitAndVer    *GitBuildAndVersion
+	DisplayState      state.DisplayState
+	StatePointer      *state.State
+	Controller        *p2p.Controller // Used for Disconnect
+	indexTemplateData *IndexTemplateData
 
 	LastRequest     time.Time
 	TimeRequestHold float64 = 3 // Amount of time in seconds before can request data again
@@ -98,7 +97,7 @@ func InitTemplates() {
 }
 
 // Main function. This intiates appropriate variables and starts the control panel serving
-func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer *state.State, connections chan interface{}, controller *p2p.Controller, gitBuild string) {
+func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer *state.State, connections chan interface{}, controller *p2p.Controller, gitBuild string, nodeName string) {
 	defer func() {
 		if r := recover(); r != nil {
 			// The following recover string indicates an overwrite of existing http.ListenAndServe goroutine
@@ -127,9 +126,10 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 
 	go DisplayStateDrain(displayStateChannel)
 
-	GitAndVer = new(GitBuildAndVersion)
-	GitAndVer.GitBuild = gitBuild
-	GitAndVer.Version = statePointer.GetFactomdVersion()
+	indexTemplateData = new(IndexTemplateData)
+	indexTemplateData.GitBuild = gitBuild
+	indexTemplateData.NodeName = nodeName
+	indexTemplateData.Version = statePointer.GetFactomdVersion()
 	portStr := ":" + strconv.Itoa(port)
 	Controller = controller
 	InitTemplates()
@@ -205,10 +205,11 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	//templates.ParseGlob(FILES_PATH + "templates/index/*.html")
 	files.CustomParseGlob(templates, "templates/index/*.html")
-	if len(GitAndVer.GitBuild) == 0 {
-		GitAndVer.GitBuild = "Unknown (Must install with script)"
+	if len(indexTemplateData.GitBuild) == 0 {
+		indexTemplateData.GitBuild = "Unknown (Must install with script)"
 	}
-	err := templates.ExecuteTemplate(w, "indexPage", GitAndVer)
+
+	err := templates.ExecuteTemplate(w, "indexPage", indexTemplateData)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
