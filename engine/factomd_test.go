@@ -5,10 +5,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/FactomProject/factomd/common/adminBlock"
-	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/directoryBlock"
-	"github.com/FactomProject/factomd/common/primitives/random"
 	"io/ioutil"
 	"net/http"
 	"runtime"
@@ -16,6 +12,11 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/FactomProject/factomd/common/adminBlock"
+	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/directoryBlock"
+	"github.com/FactomProject/factomd/common/primitives/random"
 
 	"github.com/FactomProject/factomd/activations"
 	"github.com/FactomProject/factomd/common/factoid"

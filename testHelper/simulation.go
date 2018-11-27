@@ -5,11 +5,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/FactomProject/factomd/common/globals"
-	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/elections"
-	"github.com/FactomProject/factomd/engine"
-	"github.com/FactomProject/factomd/state"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -17,6 +12,12 @@ import (
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/FactomProject/factomd/common/globals"
+	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/elections"
+	"github.com/FactomProject/factomd/engine"
+	"github.com/FactomProject/factomd/state"
 )
 
 var par = globals.FactomParams{}
