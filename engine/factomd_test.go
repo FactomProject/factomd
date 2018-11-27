@@ -1378,7 +1378,7 @@ func TestFactoidDBState(t *testing.T) {
 	RanSimTest = true
 
 	state0 := SetupSim("LAF", map[string]string{"--debuglog": "", "--faulttimeout": "10", "--blktime": "5"}, 120, 0, 0, t)
-	WaitForBlock(state0, 5)
+	WaitBlocks(state0, 1)
 
 	go func() {
 		for i := 0; i <= 1000; i++ {
