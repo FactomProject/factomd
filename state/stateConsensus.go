@@ -1512,7 +1512,7 @@ func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) 
 	as, ok := addServerMsg.(*messages.AddServerMsg)
 	if ok && !ProcessIdentityToAdminBlock(s, as.ServerChainID, as.ServerType) {
 		s.LogPrintf("process", "Failed to add %x as server type %d", as.ServerChainID.Bytes()[3:6], as.ServerType)
-		return false
+		return true // If it fails it will never work so just move along.
 	}
 	return true
 }

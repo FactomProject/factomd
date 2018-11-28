@@ -127,7 +127,7 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 	startTime = time.Now()
 	state0 := engine.Factomd(params, false).(*state.State)
 	//	statusState = state0
-	calctime := time.Duration(float64((height*blkt)+(electionsCnt*et)+(RoundsCnt*roundt))*1.1) * time.Second
+	calctime := time.Duration(float64(((height+3)*blkt)+(electionsCnt*et)+(RoundsCnt*roundt))*1.1) * time.Second
 	endTime = time.Now().Add(calctime)
 	fmt.Println("endTime: ", endTime.String(), "duration:", calctime.String())
 

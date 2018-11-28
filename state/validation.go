@@ -21,6 +21,8 @@ func (state *State) ValidatorLoop() {
 	var prev time.Time
 	state.validatorLoopThreadID = atomic.Goid()
 	for {
+		s := state
+
 		if state.DebugExec() {
 			status := ""
 			now := time.Now()
@@ -51,6 +53,7 @@ func (state *State) ValidatorLoop() {
 				status += fmt.Sprintf("MissingEntries %d ", state.GetMissingEntryCount())
 				status += fmt.Sprintf("WriteEntry %d ", len(state.WriteEntry))
 
+				status += fmt.Sprintf("PL %8d, P %8d, U %8d, S%8d", s.ProcessListProcessCnt, s.StateProcessCnt, s.StateUpdateState, s.ValidatorLoopSleepCnt)
 				state.LogPrintf("executeMsg", "Status %s", status)
 				prev = now
 			}

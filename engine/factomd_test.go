@@ -176,7 +176,7 @@ func TestLoad2(t *testing.T) {
 	WaitBlocks(state0, 1)
 	WaitForMinute(state0, 1)
 
-	RunCmd("R30") // Feed load
+	RunCmd("R20") // Feed load
 	WaitBlocks(state0, 3)
 	RunCmd("Rt60")
 	RunCmd("T20")
