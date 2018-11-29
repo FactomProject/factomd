@@ -1068,19 +1068,6 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		s.DBStates.LastBegin = int(dbheight)
 	}
 	s.DBStates.TimeToAsk = nil
-
-	if dbstatemsg.IsLocal() {
-		if s.StateSaverStruct.FastBoot {
-			dbstate.SaveStruct = SaveFactomdState(s, dbstate)
-
-			if dbstate.SaveStruct != nil {
-				err := s.StateSaverStruct.SaveDBStateList(s.DBStates, s.Network)
-				if err != nil {
-					s.LogPrintf("dbstateprocess", "Error trying to save a DBStateList %e", err)
-				}
-			}
-		}
-	}
 }
 
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
