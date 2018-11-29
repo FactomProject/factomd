@@ -1052,7 +1052,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	}
 
 	// Make the current exchange rate whatever we had in the previous block.
-	// UNLESS there was a FER entry processed during this block  changeheight will be left at 1 on a change block
+	// UNLESS there was a FER entry processed during this block  change height will be left at 1 on a change block
 	if list.State.FERChangeHeight == 1 {
 		list.State.FERChangeHeight = 0
 	} else {
