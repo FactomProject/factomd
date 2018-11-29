@@ -450,7 +450,7 @@ func (dbsl *DBStateList) MarshalBinary() (rval []byte, err error) {
 		return nil, err
 	}
 	for _, v := range dbsl.DBStates {
-		if v.Saved {
+		if v.Saved && v.Locked {
 			if !v.Locked {
 				panic("unlocked save state")
 			}

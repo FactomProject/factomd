@@ -125,7 +125,6 @@ func (sss *StateSaverStruct) LoadDBStateList(statelist *DBStateList, networkName
 		}
 	}
 	statelist.DBStates[i].SaveStruct.RestoreFactomdState(statelist.State)
-	statelist.DBStates[i].Locked = false // Need to process this state.
 
 	return nil
 }
