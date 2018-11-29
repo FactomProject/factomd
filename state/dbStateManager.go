@@ -475,42 +475,50 @@ func (dbsl *DBStateList) UnmarshalBinaryData(p []byte) (newData []byte, err erro
 
 	x, err := buf.PopUInt32()
 	if err != nil {
+		dbsl.State.LogPrintf("dbstateprocess", "DBStateList.UnmarshalBinaryData LastEnd err: %v", err)
 		return
 	}
 	dbsl.LastEnd = int(x)
 	x, err = buf.PopUInt32()
 	if err != nil {
+		dbsl.State.LogPrintf("dbstateprocess", "DBStateList.UnmarshalBinaryData LastBegin err: %v", err)
 		return
 	}
 	dbsl.LastBegin = int(x)
 
 	dbsl.ProcessHeight, err = buf.PopUInt32()
 	if err != nil {
+		dbsl.State.LogPrintf("dbstateprocess", "DBStateList.UnmarshalBinaryData ProcessHeight err: %v", err)
 		return
 	}
 	dbsl.SavedHeight, err = buf.PopUInt32()
 	if err != nil {
+		dbsl.State.LogPrintf("dbstateprocess", "DBStateList.UnmarshalBinaryData SavedHeight err: %v", err)
 		return
 	}
 
 	//TODO: handle State
 	dbsl.Base, err = buf.PopUInt32()
 	if err != nil {
+		dbsl.State.LogPrintf("dbstateprocess", "DBStateList.UnmarshalBinaryData Base err: %v", err)
 		return
 	}
 	dbsl.Complete, err = buf.PopUInt32()
 	if err != nil {
+		dbsl.State.LogPrintf("dbstateprocess", "DBStateList.UnmarshalBinaryData Complete err: %v", err)
 		return
 	}
 
 	listLen, err := buf.PopVarInt()
 	if err != nil {
+		dbsl.State.LogPrintf("dbstateprocess", "DBStateList.UnmarshalBinaryData listLen err: %v", err)
 		return
 	}
 	for i := 0; i < int(listLen); i++ {
 		dbs := new(DBState)
 		err = buf.PopBinaryMarshallable(dbs)
 		if err != nil {
+			dbsl.State.LogPrintf("dbstateprocess", "DBStateList.UnmarshalBinaryData (%d) err: %v", int(dbsl.Base)+i, err)
 			return
 		}
 		dbsl.DBStates = append(dbsl.DBStates, dbs)
@@ -1310,7 +1318,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	if !d.Signed || !d.ReadyToSave || list.State.DB == nil {
 		return
 	}
-	list.State.LogPrintf("dbstateprocess", "SaveDBStateToDB(%d) Balance hash %x", d.DirectoryBlock.GetHeader().GetDBHeight())
+	list.State.LogPrintf("dbstateprocess", "SaveDBStateToDB(%d) Balance hash %x", d.DirectoryBlock.GetHeader().GetDBHeight(), list.State.Balancehash.Bytes()[:4])
 
 	// If this is a repeated block, and I have already saved at this height, then we can safely ignore
 	// this dbstate.
@@ -1537,6 +1545,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	if list.State.StateSaverStruct.FastBoot {
 		d.SaveStruct = d.TmpSaveStruct
 		err := list.State.StateSaverStruct.SaveDBStateList(list.State.DBStates, list.State.Network)
+
 		list.State.LogPrintf("dbstateprocess", "Error while saving Fastboot %v", err)
 	}
 	// Now that we have saved the perm balances, we can clear the api hashmaps that held the differences

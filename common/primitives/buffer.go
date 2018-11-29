@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/goleveldb/leveldb/errors"
@@ -59,7 +60,7 @@ func (b *Buffer) PushBinaryMarshallableMsgArray(bm []interfaces.IMsg) error {
 }
 
 func (b *Buffer) PushBinaryMarshallable(bm interfaces.BinaryMarshallable) error {
-	if bm == nil {
+	if bm == nil || reflect.ValueOf(bm).IsNil() {
 		return fmt.Errorf("BinaryMarshallable is nil")
 	}
 	bin, err := bm.MarshalBinary()
