@@ -277,8 +277,8 @@ func (dbs *DBState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 
 	dbs.IsNew = false
 
-	dbs.SaveStruct = new(SaveState)
-	err = b.PopBinaryMarshallable(dbs.SaveStruct)
+	SaveStruct := new(SaveState)
+	err = b.PopBinaryMarshallable(SaveStruct)
 	if err != nil {
 		return
 	}
@@ -328,6 +328,7 @@ func (dbs *DBState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 		return
 	}
 
+	dbs.SaveStruct = SaveStruct // OK, this worked so keep the save struct
 	newData = b.DeepCopyBytes()
 	return
 }
@@ -450,6 +451,9 @@ func (dbsl *DBStateList) MarshalBinary() (rval []byte, err error) {
 	}
 	for _, v := range dbsl.DBStates {
 		if v.Saved {
+			if !v.Locked {
+				panic("unlocked save state")
+			}
 			err = buf.PushBinaryMarshallable(v)
 			if err != nil {
 				return nil, err

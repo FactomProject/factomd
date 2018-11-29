@@ -103,11 +103,7 @@ func (state *State) ValidatorLoop() {
 				// This doesn't block so it intentionally returns nil, don't log nils
 				msg = state.InMsgQueue().Dequeue()
 				if msg != nil {
-					if msg.Type() != constants.HEARTBEAT_MSG {
-						state.LogMessage("InMsgQueue", "dequeue", msg)
-					} else {
-						state.LogMessage("InMsgQueue", "heartbeat", msg)
-					}
+					state.LogMessage("InMsgQueue", "dequeue", msg)
 
 				}
 				if msg == nil {
