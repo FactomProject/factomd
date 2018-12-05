@@ -1071,19 +1071,6 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		s.DBStates.LastBegin = int(dbheight)
 	}
 	s.DBStates.TimeToAsk = nil
-
-	if dbstatemsg.IsLocal() {
-		if s.StateSaverStruct.FastBoot {
-			dbstate.SaveStruct = SaveFactomdState(s, dbstate)
-
-			if dbstate.SaveStruct != nil {
-				err := s.StateSaverStruct.SaveDBStateList(s.DBStates, s.Network)
-				if err != nil {
-					s.LogPrintf("dbstateprocess", "Error trying to save a DBStateList %e", err)
-				}
-			}
-		}
-	}
 }
 
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
@@ -1515,7 +1502,7 @@ func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) 
 	as, ok := addServerMsg.(*messages.AddServerMsg)
 	if ok && !ProcessIdentityToAdminBlock(s, as.ServerChainID, as.ServerType) {
 		s.LogPrintf("process", "Failed to add %x as server type %d", as.ServerChainID.Bytes()[3:6], as.ServerType)
-		return false
+		return true // If it fails it will never work so just move along.
 	}
 	return true
 }

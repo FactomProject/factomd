@@ -2,11 +2,12 @@ package longtests
 
 import (
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/FactomProject/factom"
 	. "github.com/FactomProject/factomd/engine"
 	. "github.com/FactomProject/factomd/testHelper"
-	"testing"
-	"time"
 )
 
 // FIXME: test runs > 40 min try to tune down to 10 min

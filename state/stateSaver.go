@@ -93,9 +93,9 @@ func (sss *StateSaverStruct) DeleteSaveState(networkName string) error {
 	return DeleteFile(NetworkIDToFilename(networkName, sss.FastBootLocation))
 }
 
-func (sss *StateSaverStruct) LoadDBStateList(ss *DBStateList, networkName string) error {
+func (sss *StateSaverStruct) LoadDBStateList(statelist *DBStateList, networkName string) error {
 	filename := NetworkIDToFilename(networkName, sss.FastBootLocation)
-	fmt.Println(ss.State.FactomNodeName, "Loading from", filename)
+	fmt.Println(statelist.State.FactomNodeName, "Loading from", filename)
 	b, err := LoadFromFile(filename)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "LoadDBStateList error:", err)
@@ -117,13 +117,14 @@ func (sss *StateSaverStruct) LoadDBStateList(ss *DBStateList, networkName string
 		//return fmt.Errorf("Integrity hashes do not match")
 	}
 
-	ss.UnmarshalBinary(b)
-	for _, v := range ss.DBStates {
-		if v.SaveStruct != nil {
-			v.SaveStruct.RestoreFactomdState(ss.State)
+	statelist.UnmarshalBinary(b)
+	var i int
+	for i = len(statelist.DBStates) - 1; i >= 0; i-- {
+		if statelist.DBStates[i].SaveStruct != nil {
 			break
 		}
 	}
+	statelist.DBStates[i].SaveStruct.RestoreFactomdState(statelist.State)
 
 	return nil
 }
@@ -131,7 +132,6 @@ func (sss *StateSaverStruct) LoadDBStateList(ss *DBStateList, networkName string
 func NetworkIDToFilename(networkName string, fileLocation string) string {
 	file := fmt.Sprintf("FastBoot_%s_v%v.db", networkName, constants.SaveStateVersion)
 	if fileLocation != "" {
-
 		// Trim optional trailing / from file path
 		i := len(fileLocation) - 1
 		if fileLocation[i] == byte('/') {

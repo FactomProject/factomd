@@ -157,12 +157,17 @@ func (m *Ack) Validate(s interfaces.IState) int {
 		//ackSigned, err := m.VerifySignature()
 		if err != nil {
 			s.LogPrintf("executeMsg", "VerifyAuthoritySignature Failed %v", err)
-			//fmt.Println("Err is not nil on Ack sig check: ", err)
-			return -1
+			// Don't return fail here because the message might be a future message and thus become valid in the future.
 		}
 		if ackSigned <= 0 {
-			s.LogPrintf("executeMsg", "Not signed by a leader %v", err)
-			return -1
+			if m.DBHeight > s.GetLLeaderHeight() {
+				s.LogPrintf("executeMsg", "Hold, Not signed by a leader %v", err)
+				return 0 // This is for a future block so the auth set may change so hold on to it.
+			} else {
+
+				s.LogPrintf("executeMsg", "Drop, Not signed by a leader %v", err)
+				return -1
+			}
 		}
 	}
 

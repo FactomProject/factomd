@@ -2,6 +2,7 @@ package testHelper_test
 
 import (
 	"crypto/rand"
+
 	"github.com/FactomProject/factomd/engine"
 
 	"github.com/FactomProject/ed25519"

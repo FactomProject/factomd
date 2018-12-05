@@ -21,6 +21,7 @@ func (state *State) ValidatorLoop() {
 	var prev time.Time
 	state.validatorLoopThreadID = atomic.Goid()
 	for {
+		s := state
 		if state.DebugExec() {
 			status := ""
 			now := time.Now()
@@ -51,6 +52,7 @@ func (state *State) ValidatorLoop() {
 				status += fmt.Sprintf("MissingEntries %d ", state.GetMissingEntryCount())
 				status += fmt.Sprintf("WriteEntry %d ", len(state.WriteEntry))
 
+				status += fmt.Sprintf("PL %8d, P %8d, U %8d, S%8d", s.ProcessListProcessCnt, s.StateProcessCnt, s.StateUpdateState, s.ValidatorLoopSleepCnt)
 				state.LogPrintf("executeMsg", "Status %s", status)
 				prev = now
 			}
@@ -100,12 +102,7 @@ func (state *State) ValidatorLoop() {
 				// This doesn't block so it intentionally returns nil, don't log nils
 				msg = state.InMsgQueue().Dequeue()
 				if msg != nil {
-					if msg.Type() != constants.HEARTBEAT_MSG {
-						state.LogMessage("InMsgQueue", "dequeue", msg)
-					} else {
-						state.LogMessage("InMsgQueue", "heartbeat", msg)
-					}
-
+					state.LogMessage("InMsgQueue", "dequeue", msg)
 				}
 				if msg == nil {
 					// This doesn't block so it intentionally returns nil, don't log nils
@@ -172,7 +169,6 @@ func (t *Timer) timer(s *State, min int) {
 		eom.Sign(s)
 		eom.SetLocal(true)
 		consenLogger.WithFields(log.Fields{"func": "GenerateEOM", "lheight": s.GetLeaderHeight()}).WithFields(eom.LogFields()).Debug("Generate EOM")
-
 		s.LogMessage("MsgQueue", "enqueue", eom)
 
 		s.MsgQueue() <- eom

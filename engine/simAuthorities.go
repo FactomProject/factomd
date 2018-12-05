@@ -15,13 +15,13 @@ import (
 	"strings"
 	"time"
 
+	ed "github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factom"
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/identityEntries"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	ed "github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/wsapi"
 	"github.com/FactomProject/serveridentity/identity"
@@ -115,7 +115,6 @@ func copyOver(st *state.State) {
 		}
 	}
 }
-
 
 func setUpAuthorities(st *state.State, buildMain bool) []hardCodedAuthority {
 	authStack = make([]hardCodedAuthority, 0)

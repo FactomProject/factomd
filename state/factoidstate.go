@@ -127,6 +127,11 @@ func (fs *FactoidState) GetBalanceHash(includeTemp bool) (rval interfaces.IHash)
 	r := primitives.Sha(b)
 	// Debug aid for Balance Hashes
 	// fmt.Printf("%8d %x\n", fs.DBHeight, r.Bytes()[:16])
+
+	fs.State.LogPrintf("balanceHash", "dbht = %6d PF=%x PE=%x", fs.DBHeight, h1.Bytes()[:4], h2.Bytes()[:4])
+	if includeTemp {
+		fs.State.LogPrintf("balanceHash", "dbht = %6d TF=%x TE=%x", fs.DBHeight, h1.Bytes()[:4], h2.Bytes()[:4])
+	}
 	return r
 }
 

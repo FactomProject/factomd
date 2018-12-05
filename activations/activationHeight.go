@@ -51,7 +51,7 @@ func init() {
 			math.MaxInt32, // inactive unless overridden below
 			map[string]int{
 				"MAIN":                      math.MaxInt32,
-				"LOCAL":                     math.MaxInt32,
+				"LOCAL":                     25,
 				"CUSTOM:fct_community_test": 45335, //  Monday morning September 17
 			},
 		},
