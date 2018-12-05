@@ -49,7 +49,7 @@ func LoadDatabase(s *State) {
 	time.Sleep(time.Second)
 
 	//msg, err := s.LoadDBState(blkCnt)
-	start := s.GetDBHeightComplete()
+	start := s.GetDBHeightComplete() + 1
 
 	for i := int(start); i <= int(blkCnt); i++ {
 		if i > int(start)+500 && i%1000 == 0 {
