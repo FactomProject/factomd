@@ -121,8 +121,11 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 
 	valid := msg.Validate(s)
 	if valid == 1 {
-		// Sometimes we think the LoadDatabase() thread starts before the boottime gets set -- hack to be fixed
-		if msg.Type() != constants.DBSTATE_MSG && msg.Type() != constants.DATA_RESPONSE {
+		// Sometimes we think the LoadDatabase() thread starts before the boot time gets set -- hack to be fixed
+		switch msg.Type() {
+		case constants.DBSTATE_MSG, constants.DATA_RESPONSE, constants.MISSING_MSG, constants.MISSING_DATA, constants.MISSING_ENTRY_BLOCKS, constants.DBSTATE_MISSING_MSG, constants.ENTRY_BLOCK_RESPONSE:
+			// Allow these thru as they do not have ACk's (they don'tchange processlists)
+		default:
 			// Make sure we don't put in an old ack (outside our repeat range)
 			blktime := s.GetMessageFilterTimestamp().GetTime().UnixNano()
 			tlim := int64(Range * 60 * 1000000000)
