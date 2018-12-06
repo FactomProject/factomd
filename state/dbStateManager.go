@@ -1018,7 +1018,6 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	// Factoid Block Processing
 	// *******************
 	fs := list.State.GetFactoidState()
-	fs.(*FactoidState).DBHeight = dbht
 
 	s.LogPrintf("dbstateprocess", "ProcessBlocks(%d) Process Factoids dbht %d factoid",
 		dbht, fs.(*FactoidState).DBHeight)
@@ -1155,6 +1154,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		// if we are following by blocks then this move us forward but if we are following by minutes the
 		// code in ProcessEOM for minute 10 will have moved us forward
 		s.MoveStateToHeight(dbht+1, 0)
+		fs.(*FactoidState).DBHeight = dbht + 1
 	}
 
 	// Note about dbsigs.... If we processed the previous minute, then we generate the DBSig for the next block.

@@ -125,6 +125,10 @@ func (fs *FactoidState) GetBalanceHash(includeTemp bool) (rval interfaces.IHash)
 		b = append(b, h4.Bytes()...)
 	}
 	r := primitives.Sha(b)
+	hb := r.Fixed()
+	hb[0] = (byte(fs.DBHeight/1000) % 10 << 4) + (byte(fs.DBHeight/100) % 10)
+	hb[1] = (byte(fs.DBHeight/10) % 10 << 4) + (byte(fs.DBHeight) % 10)
+	r = primitives.NewHash(hb[:])
 	// Debug aid for Balance Hashes
 	// fmt.Printf("%8d %x\n", fs.DBHeight, r.Bytes()[:16])
 
@@ -135,48 +139,11 @@ func (fs *FactoidState) GetBalanceHash(includeTemp bool) (rval interfaces.IHash)
 	return r
 }
 
-// Reset this Factoid state to an empty state at a dbheight following the
-// given dbstate.
-func (fs *FactoidState) Reset(dbstate *DBState) {
-	ht := dbstate.DirectoryBlock.GetHeader().GetDBHeight()
-	if fs.DBHeight > ht+1 {
-		fs.DBHeight = ht
-
-		dbstate := fs.State.DBStates.Get(int(fs.DBHeight))
-
-		fBlock := factoid.NewFBlock(dbstate.FactoidBlock)
-		fBlock.SetExchRate(dbstate.FinalExchangeRate)
-
-		fs.CurrentBlock = fBlock
-
-		t := fs.GetCoinbaseTransaction(fs.CurrentBlock.GetDatabaseHeight(), dbstate.NextTimestamp)
-
-		fs.State.FactoshisPerEC = dbstate.FinalExchangeRate
-		fs.State.SetLeaderTimestamp(dbstate.NextTimestamp)
-
-		err := fs.CurrentBlock.AddCoinbase(t)
-		if err != nil {
-			panic(err.Error())
-		}
-		fs.UpdateTransaction(true, t)
-
-		fs.DBHeight++
-	}
-}
-
 func (fs *FactoidState) EndOfPeriod(period int) {
 	if period > 9 || period < 0 {
 		panic(fmt.Sprintf("Minute is out of range: %d", period))
 	}
 	fs.GetCurrentBlock().EndOfPeriod(period)
-}
-
-func (fs *FactoidState) GetWallet() interfaces.ISCWallet {
-	return fs.Wallet
-}
-
-func (fs *FactoidState) SetWallet(w interfaces.ISCWallet) {
-	fs.Wallet = w
 }
 
 func (fs *FactoidState) GetCurrentBlock() interfaces.IFBlock {
@@ -403,8 +370,6 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 		panic(err.Error())
 	}
 	fs.UpdateTransaction(true, t)
-
-	fs.DBHeight++
 }
 
 // Returns an error message about what is wrong with the transaction if it is
