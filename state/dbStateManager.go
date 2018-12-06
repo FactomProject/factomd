@@ -1055,6 +1055,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	}
 
 	if list.State.DBFinished {
+		fs.(*FactoidState).DBHeight = dbht
 		list.State.Balancehash = fs.GetBalanceHash(false)
 	}
 

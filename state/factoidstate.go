@@ -59,7 +59,7 @@ type element struct {
 	v   int64
 }
 
-func GetMapHash(dbheight uint32, bmap map[[32]byte]int64) interfaces.IHash {
+func GetMapHash(bmap map[[32]byte]int64) interfaces.IHash {
 	list := make([]*element, 0, len(bmap))
 
 	for k, v := range bmap {
@@ -74,9 +74,6 @@ func GetMapHash(dbheight uint32, bmap map[[32]byte]int64) interfaces.IHash {
 	sort.Sort(elementSortable(list))
 
 	var buff primitives.Buffer
-	if err := binary.Write(&buff, binary.BigEndian, &dbheight); err != nil {
-		return nil
-	}
 
 	for _, e := range list {
 		_, err := buff.Write(e.adr[:])
@@ -93,7 +90,9 @@ func GetMapHash(dbheight uint32, bmap map[[32]byte]int64) interfaces.IHash {
 	return h
 }
 
-func (fs *FactoidState) GetBalanceHash(includeTemp bool) (rval interfaces.IHash) {
+// GetBalanceHash()
+// Compute either a Hash of the temporary balance hash map, or the Permanent Balance hash map
+func (fs *FactoidState) GetBalanceHash(TempBalanceHash bool) (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {
 			rval = nil // convert an interface that is nil to a nil interface
@@ -101,29 +100,29 @@ func (fs *FactoidState) GetBalanceHash(includeTemp bool) (rval interfaces.IHash)
 		}
 	}()
 
-	h1 := GetMapHash(fs.DBHeight, fs.State.FactoidBalancesP)
-	h2 := GetMapHash(fs.DBHeight, fs.State.ECBalancesP)
-	h3 := h1
-	h4 := h2
-	if includeTemp {
+	var h1, h2 interfaces.IHash
+	if !TempBalanceHash {
+		fs.State.FactoidBalancesPMutex.Lock()
+		h1 = GetMapHash(fs.State.FactoidBalancesP)
+		fs.State.FactoidBalancesPMutex.Unlock()
+		fs.State.ECBalancesPMutex.Lock()
+		h2 = GetMapHash(fs.State.ECBalancesP)
+		fs.State.ECBalancesPMutex.Unlock()
+	} else {
 		pl := fs.State.ProcessLists.Get(fs.DBHeight)
 		if pl == nil {
 			return primitives.NewZeroHash()
 		}
-		pl.ECBalancesTMutex.Lock()
 		pl.FactoidBalancesTMutex.Lock()
-		h3 = GetMapHash(fs.DBHeight, pl.FactoidBalancesT)
-		h4 = GetMapHash(fs.DBHeight, pl.ECBalancesT)
-		pl.ECBalancesTMutex.Unlock()
+		h1 = GetMapHash(pl.FactoidBalancesT)
 		pl.FactoidBalancesTMutex.Unlock()
+		pl.ECBalancesTMutex.Lock()
+		h2 = GetMapHash(pl.ECBalancesT)
+		pl.ECBalancesTMutex.Unlock()
 	}
 	var b []byte
 	b = append(b, h1.Bytes()...)
 	b = append(b, h2.Bytes()...)
-	if includeTemp {
-		b = append(b, h3.Bytes()...)
-		b = append(b, h4.Bytes()...)
-	}
 	r := primitives.Sha(b)
 	hb := r.Fixed()
 	hb[0] = (byte(fs.DBHeight/1000) % 10 << 4) + (byte(fs.DBHeight/100) % 10)
@@ -133,7 +132,7 @@ func (fs *FactoidState) GetBalanceHash(includeTemp bool) (rval interfaces.IHash)
 	// fmt.Printf("%8d %x\n", fs.DBHeight, r.Bytes()[:16])
 
 	fs.State.LogPrintf("balanceHash", "dbht = %6d PF=%x PE=%x", fs.DBHeight, h1.Bytes()[:4], h2.Bytes()[:4])
-	if includeTemp {
+	if TempBalanceHash {
 		fs.State.LogPrintf("balanceHash", "dbht = %6d TF=%x TE=%x", fs.DBHeight, h1.Bytes()[:4], h2.Bytes()[:4])
 	}
 	return r

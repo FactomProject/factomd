@@ -1096,7 +1096,10 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 
 	ack, ok := mmr.AckResponse.(*messages.Ack)
 
-	if ack.DBHeight < s.DBHeightAtBoot+2 && ack.GetTimestamp().GetTimeMilli() < s.TimestampAtBoot.GetTimeMilli() {
+	// This prevents past messages from a previously running network from getting into a rebooted network and interfering with
+	// the new instance of the network.  We only allow messages after we have been booted, with a little bit of slack for
+	// messages generated only a bit before we booted (hence the -(60*1000) at the end there).
+	if ack.DBHeight < s.DBHeightAtBoot+2 && ack.GetTimestamp().GetTimeMilli() < s.TimestampAtBoot.GetTimeMilli()-(60*1000) {
 		s.LogMessage("executeMsg", "drop, too old", m)
 		return
 	}
