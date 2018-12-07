@@ -2178,12 +2178,12 @@ func (s *State) GetLeaderTimestamp() interfaces.Timestamp {
 	if s.LeaderTimestamp == nil {
 		s.SetLeaderTimestamp(new(primitives.Timestamp))
 	}
-	return s.LeaderTimestamp
+	return primitives.NewTimestampFromMilliseconds(s.LeaderTimestamp.GetTimeMilliUInt64())
 }
 
 func (s *State) GetMessageFilterTimestamp() interfaces.Timestamp {
 	if s.MessageFilterTimestamp == nil {
-		s.MessageFilterTimestamp.SetTimestamp(new(primitives.Timestamp))
+		s.MessageFilterTimestamp = primitives.NewTimestampNow()
 	}
 	return s.MessageFilterTimestamp
 }
@@ -2222,11 +2222,9 @@ func (s *State) SetMessageFilterTimestamp(requestedTs interfaces.Timestamp) {
 }
 func (s *State) SetLeaderTimestamp(ts interfaces.Timestamp) {
 	//	s.LogPrintf("executeMsg", "Set SetLeaderTimestamp(%s) @ dbht %d for %s", ts.String(), s.LLeaderHeight, atomic.WhereAmIString(1))
-	if s.LeaderTimestamp == nil {
-		s.LeaderTimestamp = primitives.NewTimestampFromMilliseconds(uint64(ts.GetTimeMilli()))
-	} else {
-		s.LeaderTimestamp.SetTimestamp(ts)
-	}
+
+	s.LeaderTimestamp = primitives.NewTimestampFromMilliseconds(ts.GetTimeMilliUInt64())
+
 	s.SetMessageFilterTimestamp(ts)
 }
 

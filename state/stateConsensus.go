@@ -665,7 +665,7 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		} else if dblock, err := s.DB.FetchDBlockByHeight(dbheight); dblock != nil && err == nil {
 			s.SetLeaderTimestamp(dblock.GetTimestamp())
 		} else if dbstate = s.DBStates.Get(int(dbheight - 1)); dbstate != nil {
-			s.SetLeaderTimestamp(dbstate.DirectoryBlock.GetTimestamp())
+			//		s.SetLeaderTimestamp(dbstate.DirectoryBlock.GetTimestamp())
 		} else {
 			// not 100% sure how this case can be but doing nothing seems to work and it does happen in sim tests.
 			//panic("No prior state")
@@ -2129,8 +2129,36 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 		//fmt.Println(fmt.Sprintf("ProcessDBSig(): %10s Process the %d DBSig: %v", s.FactomNodeName, s.DBSigProcessed, dbs.String()))
 		if dbs.VMIndex == 0 {
-			//fmt.Println(fmt.Sprintf("ProcessDBSig(): %10s Set Leader Timestamp to: %v %d", s.FactomNodeName, dbs.GetTimestamp().String(), dbs.GetTimestamp().GetTimeMilli()))
-			s.SetLeaderTimestamp(dbs.GetTimestamp())
+			dbsMilli := dbs.Timestamp.GetTimeMilliUInt64()
+			fs := s.FactoidState.(*FactoidState)
+			s.LogPrintf("dbsig", "ProcessDBSig(): %10s DBSig dbht %d leaderheight %d VMIndex %d Timestamp %x %d, leadertimestamp = %x %d",
+				s.FactomNodeName, dbs.DBHeight, s.LLeaderHeight, dbs.VMIndex, dbs.GetTimestamp().GetTimeMilli(), dbs.GetTimestamp().GetTimeMilli(), s.LeaderTimestamp.GetTimeMilliUInt64(), s.LeaderTimestamp.GetTimeMilliUInt64())
+
+			cbtx := fs.GetCurrentBlock().(*factoid.FBlock).Transactions[0].(*factoid.Transaction)
+
+			foo := cbtx.MilliTimestamp
+			lts := s.LeaderTimestamp.GetTimeMilliUInt64()
+			s.LogPrintf("dbsig", "first  cbtx before %d dbsig %d lts %d", foo, dbsMilli, lts)
+
+			s.SetLeaderTimestamp(primitives.NewTimestampFromMilliseconds(dbsMilli))
+
+			uInt64_3 := dbs.GetTimestamp().GetTimeMilliUInt64()
+			foo_3 := cbtx.MilliTimestamp
+			lts_3 := s.LeaderTimestamp.GetTimeMilliUInt64()
+			s.LogPrintf("dbsig", "second cbtx before %d dbsig %d lts %d", foo_3, uInt64_3, lts_3)
+			s.LogPrintf("dbsig", "p cbtx %p dbsig %p lts %p", cbtx.GetTimestamp().(*primitives.Timestamp), dbs.GetTimestamp().(*primitives.Timestamp), s.LeaderTimestamp.(*primitives.Timestamp))
+
+			txt, _ := cbtx.CustomMarshalText()
+			s.LogPrintf("dbsig", "coinbase before %s", string(txt))
+
+			uInt64 := dbs.GetTimestamp().GetTimeMilliUInt64()
+
+			foo2 := cbtx.MilliTimestamp
+			cbtx.MilliTimestamp = dbsMilli
+			s.LogPrintf("dbsig", "cbtx before %d dbsig %d cbtx after %d", foo2, uInt64, cbtx.MilliTimestamp)
+
+			txt, _ = cbtx.CustomMarshalText()
+			s.LogPrintf("dbsig", "coinbase after  %s", string(txt))
 		}
 
 		dblk, err := s.DB.FetchDBlockByHeight(dbheight - 1)
