@@ -1056,7 +1056,6 @@ func HandleV2FactoidSubmit(state interfaces.IState, params interface{}) (interfa
 }
 
 func HandleV2FactoidBalance(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	fmt.Println(params)
 	n := time.Now()
 	defer HandleV2APICallFABal.Observe(float64(time.Since(n).Nanoseconds()))
 
@@ -1336,7 +1335,6 @@ func HandleV2MultipleECBalances(state interfaces.IState, params interface{}) (in
 func HandleV2MultipleFCTBalances(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	x, ok := params.(map[string]interface{})
 	if ok != true {
-		fmt.Println(params)
 		return nil, NewCustomInvalidParamsError("ERROR! Invalid params passed in")
 	}
 

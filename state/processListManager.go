@@ -53,6 +53,12 @@ func (lists *ProcessLists) UpdateState(dbheight uint32) (progress bool) {
 	dbstate := lists.State.DBStates.Get(int(dbheight))
 	pl := lists.Get(dbheight)
 	for pl.Complete() || (dbstate != nil && (dbstate.Signed || dbstate.Saved)) {
+		s := lists.State
+		// OK, we processed this state, set our leader height and timestamp
+		if s.LLeaderHeight <= dbheight {
+			s.SetLLeaderHeight(dbheight)
+			s.SetLeaderTimestamp(pl.DirectoryBlock.GetTimestamp())
+		}
 		dbheight++
 		pl = lists.Get(dbheight)
 		dbstate = lists.State.DBStates.Get(int(dbheight))
@@ -63,18 +69,17 @@ func (lists *ProcessLists) UpdateState(dbheight uint32) (progress bool) {
 	if dbheight > lists.State.LLeaderHeight {
 		s := lists.State
 		//fmt.Println(fmt.Sprintf("EOM PROCESS: %10s ProcessListManager: !s.EOM(%v)", s.FactomNodeName, s.EOM))
-		s.LLeaderHeight = dbheight
-		s.ProcessLists.Get(dbheight + 1) // make the current and future process list exist
-
+		s.SetLLeaderHeight(dbheight)
 		s.CurrentMinute = 0
+		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
+		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
+		s.ProcessLists.Get(dbheight + 1) // make the current and future process list exist
+		// s.LeaderTimestamp will be wrong (prevblock time) until we process the VM 0 DBSig
+
 		s.EOMProcessed = 0
 		s.DBSigProcessed = 0
 		s.Syncing = false
 		s.EOM = false
-		s.DBSig = false
-		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
-		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
-
 		s.DBSig = false
 	}
 	//lists.State.AddStatus(fmt.Sprintf("UpdateState: ProcessList Height %d", pl.DBHeight))

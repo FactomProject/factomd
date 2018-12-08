@@ -194,7 +194,7 @@ func TestGetMapHash(t *testing.T) {
 }
 
 func TestUpdateECTransactionWithNegativeBalance(t *testing.T) {
-	s := testHelper.CreateAndPopulateTestState()
+	s := testHelper.CreateAndPopulateTestStateAndStartValidator()
 	fs := s.FactoidState
 
 	add1, err := primitives.HexToHash("0000000000000000000000000000000000000000000000000000000000000001")
@@ -230,7 +230,7 @@ func TestUpdateECTransactionWithNegativeBalance(t *testing.T) {
 		t.Errorf("No error returned when it should be")
 	}
 
-	s = testHelper.CreateAndPopulateTestState()
+	s = testHelper.CreateAndPopulateTestStateAndStartValidator()
 	fs = s.FactoidState
 	s.PutE(true, add1.Fixed(), 10)
 
@@ -261,7 +261,7 @@ func TestUpdateECTransactionWithNegativeBalance(t *testing.T) {
 }
 
 func TestUpdateTransactionWithNegativeBalance(t *testing.T) {
-	s := testHelper.CreateAndPopulateTestState()
+	s := testHelper.CreateAndPopulateTestStateAndStartValidator()
 	fs := s.FactoidState
 
 	add1, err := primitives.HexToHash("0000000000000000000000000000000000000000000000000000000000000001")

@@ -102,7 +102,7 @@ func Peers(fnode *FactomNode) {
 			case constants.MISSING_DATA:
 				if !fnode.State.DBFinished {
 					return true
-				} else if fnode.State.InMsgQueue().Length() > constants.INMSGQUEUE_MED {
+				} else if fnode.State.InMsgQueue().Length() > constants.INMSGQUEUE_HIGH {
 					// If > 4000, we won't get to this in time anyway. Just drop it since we are behind
 					return true
 				}
@@ -183,8 +183,8 @@ func Peers(fnode *FactomNode) {
 			fnode.State.LogMessage("NetworkInputs", "from API, Enqueue", msg)
 			if t := msg.Type(); t == constants.REVEAL_ENTRY_MSG || t == constants.COMMIT_CHAIN_MSG || t == constants.COMMIT_ENTRY_MSG {
 				fnode.State.LogMessage("NetworkInputs", "from API, Enqueue2", msg)
-				fnode.State.LogMessage("InMsgQueue2", "enqueue", msg)
-				fnode.State.InMsgQueue().Enqueue(msg)
+				fnode.State.LogMessage("InMsgQueue2", "enqueue2", msg)
+				fnode.State.InMsgQueue2().Enqueue(msg)
 			} else {
 				fnode.State.LogMessage("NetworkInputs", "from API, Enqueue", msg)
 				fnode.State.LogMessage("InMsgQueue", "enqueue", msg)
@@ -211,6 +211,13 @@ func Peers(fnode *FactomNode) {
 					fmt.Println("ERROR receiving message on", fnode.State.FactomNodeName+":", err)
 					// TODO: Maybe we should check the error type and/or count errors and change status to offline?
 					break // move to next peer
+				}
+
+				if fnode.State.LLeaderHeight < fnode.State.DBHeightAtBoot+2 {
+					if msg.GetTimestamp().GetTimeMilli() < fnode.State.TimestampAtBoot.GetTimeMilli() {
+						fnode.State.LogMessage("NetworkInputs", "drop, too old", msg)
+						continue
+					}
 				}
 
 				receiveTime := time.Since(preReceiveTime)
@@ -296,8 +303,8 @@ func Peers(fnode *FactomNode) {
 					fnode.State.LogMessage("NetworkInputs", fromPeer+", enqueue", msg)
 					if t := msg.Type(); t == constants.REVEAL_ENTRY_MSG || t == constants.COMMIT_CHAIN_MSG || t == constants.COMMIT_ENTRY_MSG {
 						fnode.State.LogMessage("NetworkInputs", fromPeer+", enqueue2", msg)
-						fnode.State.LogMessage("InMsgQueue", fromPeer+", enqueue", msg)
-						fnode.State.InMsgQueue().Enqueue(msg)
+						fnode.State.LogMessage("InMsgQueue2", fromPeer+", enqueue2", msg)
+						fnode.State.InMsgQueue2().Enqueue(msg)
 					} else {
 						fnode.State.LogMessage("NetworkInputs", fromPeer+", enqueue", msg)
 						fnode.State.LogMessage("InMsgQueue", fromPeer+", enqueue", msg)

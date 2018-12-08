@@ -214,11 +214,12 @@ type State struct {
 	LeaderPL        *ProcessList
 	PLProcessHeight uint32
 	// Height cutoff where no missing messages below this height
-	DBHeightAtBoot uint32
-	OneLeader      bool
-	OutputAllowed  bool
-	LeaderNewMin   int
-	CurrentMinute  int
+	DBHeightAtBoot  uint32
+	TimestampAtBoot interfaces.Timestamp
+	OneLeader       bool
+	OutputAllowed   bool
+	LeaderNewMin    int
+	CurrentMinute   int
 
 	// These are the start times for blocks and minutes
 	CurrentMinuteStartTime int64
@@ -942,6 +943,26 @@ func (s *State) Init() {
 	}
 
 	if s.CheckChainHeads.CheckChainHeads {
+		if s.CheckChainHeads.Fix {
+			// Set dblock head to 184 if 184 is present and head is not 184
+			d, err := s.DB.FetchDBlockHead()
+			if err != nil {
+				// We should have a dblock head...
+				panic(fmt.Errorf("Error loading dblock head: %s\n", err.Error()))
+			}
+
+			if d != nil {
+				if d.GetDatabaseHeight() == 160183 {
+					// Our head is less than 160184, do we have 160184?
+					if d2, err := s.DB.FetchDBlockByHeight(160184); d2 != nil && err == nil {
+						err := s.DB.(*databaseOverlay.Overlay).SaveDirectoryBlockHead(d2)
+						if err != nil {
+							panic(err)
+						}
+					}
+				}
+			}
+		}
 		correctChainHeads.FindHeads(s.DB.(*databaseOverlay.Overlay), correctChainHeads.CorrectChainHeadConfig{
 			PrintFreq: 5000,
 			Fix:       s.CheckChainHeads.Fix,
@@ -2113,13 +2134,18 @@ func (s *State) MsgQueue() chan interfaces.IMsg {
 
 func (s *State) GetLeaderTimestamp() interfaces.Timestamp {
 	if s.LeaderTimestamp == nil {
-		s.LeaderTimestamp = new(primitives.Timestamp)
+		s.SetLeaderTimestamp(new(primitives.Timestamp))
 	}
 	return s.LeaderTimestamp
 }
 
 func (s *State) SetLeaderTimestamp(ts interfaces.Timestamp) {
-	s.LeaderTimestamp = ts
+	s.LeaderTimestamp = ts //SetLeaderTimestamp()
+	//s.LogPrintf("executeMsg", "Set LeaderTimeStamp %d %v for %s", s.LLeaderHeight, s.LeaderTimestamp.String(), atomic.WhereAmIString(1))
+}
+func (s *State) SetLLeaderHeight(height uint32) {
+	s.LLeaderHeight = height //SetLeaderHeight()
+	//s.LogPrintf("executeMsg", "Set LeaderHeight %d for %s", s.LLeaderHeight, atomic.WhereAmIString(1))
 }
 
 func (s *State) SetFaultTimeout(timeout int) {
@@ -2282,6 +2308,7 @@ func (s *State) InitLevelDB() error {
 	path := s.LdbPath + "/" + s.Network + "/" + "factoid_level.db"
 
 	s.Println("Database:", path)
+	fmt.Fprint(os.Stderr, "Database:", path)
 
 	dbase, err := leveldb.NewLevelDB(path, false)
 
@@ -2400,18 +2427,17 @@ func (s *State) SetStringConsensus() {
 //		instantTPS	: Transaction rate weighted over last 3 seconds
 func (s *State) CalculateTransactionRate() (totalTPS float64, instantTPS float64) {
 	runtime := time.Since(s.starttime)
-	shorttime := time.Since(s.lasttime)
 	total := s.FactoidTrans + s.NewEntryChains + s.NewEntries
 	tps := float64(total) / float64(runtime.Seconds())
 	TotalTransactionPerSecond.Set(tps) // Prometheus
-	if shorttime > time.Second*3 {
+	shorttime := time.Since(s.lasttime)
+	if shorttime >= time.Second*3 {
 		delta := (s.FactoidTrans + s.NewEntryChains + s.NewEntries) - s.transCnt
 		s.tps = ((float64(delta) / float64(shorttime.Seconds())) + 2*s.tps) / 3
 		s.lasttime = time.Now()
 		s.transCnt = total                     // transactions accounted for
 		InstantTransactionPerSecond.Set(s.tps) // Prometheus
 	}
-
 	return tps, s.tps
 }
 

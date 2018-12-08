@@ -76,7 +76,7 @@ func TestDecodeTransactionToHashes(t *testing.T) {
 }
 
 func TestHandleV2FactoidACK(t *testing.T) {
-	state := testHelper.CreateAndPopulateTestState()
+	state := testHelper.CreateAndPopulateTestStateAndStartValidator()
 	blocks := testHelper.CreateFullTestBlockSet()
 
 	for _, block := range blocks {
@@ -174,7 +174,7 @@ func TestHandleV2FactoidACK(t *testing.T) {
 }
 
 func TestHandleV2EntryACK(t *testing.T) {
-	state := testHelper.CreateAndPopulateTestState()
+	state := testHelper.CreateAndPopulateTestStateAndStartValidator()
 	blocks := testHelper.CreateFullTestBlockSet()
 
 	for _, block := range blocks {

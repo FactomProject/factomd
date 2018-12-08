@@ -21,9 +21,10 @@ var _ = fmt.Print
 
 type DirectoryBlock struct {
 	//Not Marshalized
-	DBHash   interfaces.IHash `json:"dbhash"`
-	KeyMR    interfaces.IHash `json:"keymr"`
-	keyMRset bool             `json:"keymrset"`
+	DBHash     interfaces.IHash `json:"dbhash"`
+	KeyMR      interfaces.IHash `json:"keymr"`
+	HeaderHash interfaces.IHash `json:"headerhash"`
+	keyMRset   bool             `json:"keymrset"`
 
 	//Marshalized
 	Header    interfaces.IDirectoryBlockHeader `json:"header"`
@@ -323,13 +324,9 @@ func (b *DirectoryBlock) BuildBodyMR() (interfaces.IHash, error) {
 	return merkleRoot, nil
 }
 
-func (b *DirectoryBlock) HeaderHash() (interfaces.IHash, error) {
+func (b *DirectoryBlock) GetHeaderHash() (interfaces.IHash, error) {
 	b.Header.SetBlockCount(uint32(len(b.GetDBEntries())))
-	binaryEBHeader, err := b.GetHeader().MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-	return primitives.Sha(binaryEBHeader), nil
+	return b.Header.GetHeaderHash()
 }
 
 func (b *DirectoryBlock) BodyKeyMR() interfaces.IHash {
@@ -342,7 +339,7 @@ func (b *DirectoryBlock) BuildKeyMerkleRoot() (keyMR interfaces.IHash, err error
 
 	hashes := make([]interfaces.IHash, 0, 2)
 	bodyKeyMR := b.BodyKeyMR() //This needs to be called first to build the header properly!!
-	headerHash, err := b.HeaderHash()
+	headerHash, err := b.GetHeaderHash()
 	if err != nil {
 		return nil, err
 	}
@@ -448,7 +445,6 @@ func NewDirectoryBlock(prev interfaces.IDirectoryBlock) interfaces.IDirectoryBlo
 
 	newdb.Header = new(DBlockHeader)
 	newdb.GetHeader().SetVersion(constants.VERSION_0)
-
 	if prev != nil {
 		newdb.GetHeader().SetPrevFullHash(prev.GetFullHash())
 		newdb.GetHeader().SetPrevKeyMR(prev.GetKeyMR())
