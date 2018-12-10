@@ -12,10 +12,10 @@ import (
 )
 
 func (s *State) SimSetNewKeys(p *primitives.PrivateKey) {
-	s.serverPrivKey = p
-	s.serverPubKey = p.Pub
+	s.ServerPrivKey = p
+	s.ServerPubKey = p.Pub
 }
 
 func (s *State) SimGetSigKey() string {
-	return s.serverPrivKey.Pub.String()
+	return s.ServerPrivKey.Pub.String()
 }

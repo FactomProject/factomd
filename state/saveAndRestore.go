@@ -301,7 +301,7 @@ func (a *SaveState) IsSameAs(b *SaveState) bool {
 }
 
 func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
-	state.LogPrintf("dbstateprocess", "SaveFactomdState called from %s", atomic.WhereAmIString(1))
+	state.LogPrintf("dbstateprocess", "SaveFactomdState(%d) called from %s", d.DirectoryBlock.GetHeader().GetDBHeight(), atomic.WhereAmIString(1))
 
 	ss = new(SaveState)
 	ss.DBHeight = d.DirectoryBlock.GetHeader().GetDBHeight()

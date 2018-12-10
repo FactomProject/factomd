@@ -111,6 +111,7 @@ func (fs *FactoidState) GetBalanceHash(TempBalanceHash bool) (rval interfaces.IH
 	} else {
 		pl := fs.State.ProcessLists.Get(fs.DBHeight)
 		if pl == nil {
+			fs.State.LogPrintf("balanceHash", "no process list to get temp balances from")
 			return primitives.NewZeroHash()
 		}
 		pl.FactoidBalancesTMutex.Lock()
@@ -131,9 +132,10 @@ func (fs *FactoidState) GetBalanceHash(TempBalanceHash bool) (rval interfaces.IH
 	// Debug aid for Balance Hashes
 	// fmt.Printf("%8d %x\n", fs.DBHeight, r.Bytes()[:16])
 
-	fs.State.LogPrintf("balanceHash", "dbht = %6d PF=%x PE=%x", fs.DBHeight, h1.Bytes()[:4], h2.Bytes()[:4])
-	if TempBalanceHash {
-		fs.State.LogPrintf("balanceHash", "dbht = %6d TF=%x TE=%x", fs.DBHeight, h1.Bytes()[:4], h2.Bytes()[:4])
+	if !TempBalanceHash {
+		fs.State.LogPrintf("balanceHash", "GetBalanceHash(dbht = %6d,%v) PF=%x PE=%x", fs.DBHeight, TempBalanceHash, h1.Bytes()[:6], h2.Bytes()[:6])
+	} else {
+		fs.State.LogPrintf("balanceHash", "GetBalanceHash(dbht = %6d,%v) TF=%x TE=%x", fs.DBHeight, TempBalanceHash, h1.Bytes()[:6], h2.Bytes()[:6])
 	}
 	return r
 }

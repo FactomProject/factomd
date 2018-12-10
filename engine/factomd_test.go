@@ -1459,7 +1459,7 @@ func TestSaveState1(t *testing.T) {
 		fmt.Println("FactomNodeName: ", newState.FactomNodeName)
 		fmt.Println("	IdentityChainID: ", newState.IdentityChainID)
 		fmt.Println("	ServerPrivKey: ", newState.LocalServerPrivKey)
-		//		fmt.Println("	ServerPublicKey: ", newState.ServerPubKey)
+		fmt.Println("	ServerPublicKey: ", newState.ServerPubKey)
 	}
 	time.Sleep(10 * time.Second)
 }
@@ -1478,7 +1478,7 @@ func TestCreateDB_LLLLLLAAAAAFFFF(t *testing.T) {
 		fmt.Println("FactomNodeName: ", newState.FactomNodeName)
 		fmt.Println("	IdentityChainID: ", newState.IdentityChainID)
 		fmt.Println("	ServerPrivKey: ", newState.LocalServerPrivKey)
-		//		fmt.Println("	ServerPublicKey: ", newState.ServerPubKey)
+		fmt.Println("	ServerPublicKey: ", newState.ServerPubKey)
 	}
 	time.Sleep(10 * time.Second)
 }
@@ -1496,6 +1496,7 @@ func TestSaveState2(t *testing.T) {
 	// check we booted from database to the right state
 	Audits = 1
 	Leaders = 2
+	Followers = 1
 	CheckAuthoritySet(t)
 
 	StatusEveryMinute(state0)
@@ -1503,8 +1504,6 @@ func TestSaveState2(t *testing.T) {
 	WaitForAllNodes(state0)
 	PrintOneStatus(0, 0)
 
-	Audits = 1
-	Leaders = 2
 	CheckAuthoritySet(t)
 	ShutDownEverything(t)
 }

@@ -130,7 +130,7 @@ func HandleDebugRequest(
 		return nil, jsonError
 	}
 
-	fmt.Printf("API V2 method: <%v>  parameters: %v\n", j.Method, params)
+	//fmt.Printf("API V2 method: <%v>  parameters: %v\n", j.Method, params)
 
 	jsonResp := primitives.NewJSON2Response()
 	jsonResp.ID = j.ID

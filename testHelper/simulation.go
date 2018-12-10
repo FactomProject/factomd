@@ -36,6 +36,7 @@ var RanSimTest = false // only run 1 sim test at a time
 
 //EX. state0 := SetupSim("LLLLLLLLLLLLLLLAAAAAAAAAA",  map[string]string {"--controlpanelsetting" : "readwrite"}, t)
 func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int, electionsCnt int, RoundsCnt int, t *testing.T) *state.State {
+	fmt.Println("SetupSim(", GivenNodes, ",", UserAddedOptions, ",", height, ",", electionsCnt, ",", RoundsCnt, ")")
 	ExpectedHeight = height
 	l := len(GivenNodes)
 	CmdLineOptions := map[string]string{
@@ -161,7 +162,11 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 		t.Fatalf("Should have allocated %d nodes", l)
 		t.Fail()
 	}
-	CheckAuthoritySet(t)
+	if Audits == 0 && Leaders == 0 {
+		// if no requested promotions then assume we loaded from a database and the test will check
+	} else {
+		CheckAuthoritySet(t)
+	}
 	return state0
 }
 
@@ -174,43 +179,15 @@ func creatingNodes(creatingNodes string, state0 *state.State, t *testing.T) {
 	if len(creatingNodes) > nodes {
 		t.Fatalf("Should have allocated %d nodes", len(creatingNodes))
 	}
-	for {
-		iq := 0
-		for _, s := range simFnodes {
-			iq += s.State.InMsgQueue().Length()
-		}
-		iq2 := 0
-		for _, s := range simFnodes {
-			iq2 += s.State.InMsgQueue2().Length()
-		}
-
-		holding := 0
-		for _, s := range simFnodes {
-			holding += len(s.State.Holding)
-		}
-
-		pendingCommits := 0
-		for _, s := range simFnodes {
-			pendingCommits += s.State.Commits.Len()
-		}
-		if iq == 0 && iq2 == 0 && pendingCommits == 0 && holding == 0 {
-			break
-		}
-		fmt.Printf("Waiting for g to complete iq == %d && iq2 == %d && pendingCommits == %d && holding == %d\n", iq, iq2, pendingCommits, holding)
-		WaitMinutes(state0, 1)
-
-	}
 	WaitBlocks(state0, 2) // Wait for 2 blocks because ID scans is for block N-1
 	WaitForMinute(state0, 1)
 	for i, c := range []byte(creatingNodes) {
-		if i == 0 {
-			Leaders++
-			continue
-		}
 		switch c {
 		case 'L', 'l':
-			RunCmd(fmt.Sprintf("%d", i))
-			RunCmd("l")
+			if i == 0 {
+				RunCmd(fmt.Sprintf("%d", i))
+				RunCmd("l")
+			}
 			Leaders++
 		case 'A', 'a':
 			RunCmd(fmt.Sprintf("%d", i))

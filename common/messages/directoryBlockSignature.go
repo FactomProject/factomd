@@ -168,7 +168,8 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 	}
 
 	// is the dbsig is old, just drop it
-	if m.DBHeight <= state.GetHighestSavedBlk() {
+	highestSavedBlk := state.GetHighestSavedBlk()
+	if m.DBHeight <= highestSavedBlk {
 		return -1
 	}
 
