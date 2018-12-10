@@ -1386,42 +1386,47 @@ func HandleV2MultipleFCTBalances(state interfaces.IState, params interface{}) (i
 }
 
 func HandleV2Diagnostics(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	// General state information
+	resp := new(DiagnosticsResponse)
+	resp.Name = state.GetFactomNodeName()
+	resp.ID = state.GetIdentityChainID().String()
+	resp.PublicKey = state.GetServerPublicKeyString()
+
 	leaderHeight:= state.GetLLeaderHeight()
 	feds := state.GetFedServers(leaderHeight)
-	audits := state.GetAuditServers(leaderHeight)
-
 	fedCount := len(feds)
-	fedStrings := make([]string, fedCount)
-	for i := 0; i < fedCount; i++ {
-		fedStrings[i] = feds[i].GetChainID().String()
-	}
-	auditCount := len(audits)
-	auditStrings := make([]string, auditCount)
-	for i := 0; i < auditCount; i++ {
-		auditStrings[i] = audits[i].GetChainID().String()
+	audits := state.GetAuditServers(leaderHeight)
+	type AuditServerLiveness struct {
+		ID     string `json:"id"`
+		Online bool   `json:"online"`
 	}
 
-	role := "Follower"
-	for _, v := range feds {
-		if v.GetChainID().IsSameAs(state.GetIdentityChainID()) {
-			role = "Leader"
+	resp.AuthSet = new(AuthSet)
+	resp.Role = "Follower"
+	foundRole := false // tells us when to stop looking for the node's role
+	for _, fed := range feds {
+		resp.AuthSet.Leaders = append(resp.AuthSet.Leaders, fed.GetChainID().String())
+		if !foundRole && state.GetIdentityChainID().IsSameAs(fed.GetChainID()) {
+			resp.Role = "Leader"
+			foundRole = true
 		}
 	}
-	if role == "Follower" {
-		for _, v := range audits {
-			if v.GetChainID().IsSameAs(state.GetIdentityChainID()) {
-				role = "Audit"
-			}
+	for _, aud := range audits {
+		livenessStruct := AuditServerLiveness{aud.GetChainID().String(), aud.IsOnline()}
+		resp.AuthSet.Audits = append(resp.AuthSet.Audits, livenessStruct)
+		if !foundRole && state.GetIdentityChainID().IsSameAs(aud.GetChainID()) {
+			resp.Role = "Audit"
 		}
 	}
 
+	// Syncing information
 	syncInfo := new(SyncInfo)
 	if state.IsSyncingEOMs() || state.IsSyncingDBSigs() {
 		syncInfo.Status = "Syncing EOMs"
 		if state.IsSyncingDBSigs() {
 			syncInfo.Status = "Syncing DBSigs"
 		}
-		missing := state.GetUnsyncedServers(state.GetLLeaderHeight())
+		missing := state.GetUnsyncedServers(leaderHeight)
 		numberReceived := fedCount - len(missing)
 		syncInfo.Received = &numberReceived
 		syncInfo.Expected = &fedCount
@@ -1431,11 +1436,10 @@ func HandleV2Diagnostics(state interfaces.IState, params interface{}) (interface
 	} else {
 		syncInfo.Status = "Processing"
 	}
+	resp.SyncInfo = syncInfo
 
+	// Elections information
 	eInfo := new(ElectionInfo)
-	eInfo.StateAuthSet.Leaders = fedStrings
-	eInfo.StateAuthSet.Audits = auditStrings
-
 	e := state.GetElections()
 	electing := e.GetElecting()
 	if electing != -1 {
@@ -1446,25 +1450,10 @@ func HandleV2Diagnostics(state interfaces.IState, params interface{}) (interface
 		eInfo.FedID = e.GetFedID().String()
 		eInfo.Round = &e.GetRound()[electing]
 	}
-	for _, fed := range e.GetFederatedServers() {
-		eInfo.ElectionAuthSet.Leaders = append(eInfo.ElectionAuthSet.Leaders, fed.GetChainID().String())
-	}
-	for _, aud := range e.GetAuditServers() {
-		eInfo.ElectionAuthSet.Audits = append(eInfo.ElectionAuthSet.Leaders, aud.GetChainID().String())
-	}
-	for _, heartbeat := range state.GetAuditHeartBeats() {
-		eInfo.AuditHeartBeats = append(eInfo.AuditHeartBeats, heartbeat.String())
-	}
-
-	var vms []VM
-
-	resp := new(DiagnosticsResponse)
-	resp.Name = state.GetFactomNodeName()
-	resp.ID = state.GetIdentityChainID().String()
-	resp.PublicKey = state.GetServerPublicKeyString()
-	resp.Role = role
-	resp.SyncInfo = syncInfo
 	resp.ElectionInfo = eInfo
+
+	// VM information
+	var vms []VM
 	resp.VMs = vms
 
 	return resp, nil

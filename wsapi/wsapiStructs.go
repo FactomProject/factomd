@@ -311,32 +311,32 @@ type DiagnosticsResponse struct {
 	Role      string `json:"role"`
 
 	SyncInfo     *SyncInfo     `json:"syncing"`
+	AuthSet      *AuthSet      `json:"authset"`
 	ElectionInfo *ElectionInfo `json:"elections"`
 	VMs          []VM          `json:"vms"`
 }
 
 type SyncInfo struct {
-	Status   string    `json:"status"`
-	Received *int      `json:"received,omitempty"`
-	Expected *int      `json:"expected,omitempty"`
-	Missing  []string  `json:"missing,omitempty"`
+	Status   string   `json:"status"`
+	Received *int     `json:"received,omitempty"`
+	Expected *int     `json:"expected,omitempty"`
+	Missing  []string `json:"missing,omitempty"`
 }
 
 type ElectionInfo struct {
-	InProgress      bool     `json:"inprogress"`
-	StateAuthSet    AuthSet  `json:"stateauthset"`
-	ElectionAuthSet AuthSet  `json:"electionauthset"`
-	AuditHeartBeats []string `json:"auditheartbeats"`
-
-	VmIndex  *int   `json:"vmindex,omitempty"`
-	FedIndex *int   `json:"fedindex,omitempty"`
-	FedID    string `json:"fedid,omitempty"`
-	Round    *int   `json:"round,omitempty"`
+	InProgress bool   `json:"inprogress"`
+	VmIndex    *int   `json:"vmindex,omitempty"`
+	FedIndex   *int   `json:"fedindex,omitempty"`
+	FedID      string `json:"fedid,omitempty"`
+	Round      *int   `json:"round,omitempty"`
 }
 
 type AuthSet struct {
 	Leaders []string `json:"leaders"`
-	Audits  []string `json:"audits"`
+	Audits  []struct {
+		ID     string `json:"id"`
+		Online bool   `json:"online"`
+	} `json:"audits""`
 }
 
 type VM struct {
