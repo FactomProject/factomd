@@ -15,7 +15,7 @@ import (
 
 var _ = (*s.State)(nil)
 
-func Timer(state interfaces.IState) {
+func Timer(state interfaces.IState) func() error {
 	time.Sleep(2 * time.Second)
 
 	billion := int64(1000000000)
@@ -34,7 +34,7 @@ func Timer(state interfaces.IState) {
 
 	time.Sleep(time.Duration(wait))
 
-	for {
+	return func() error {
 		for i := 0; i < 10; i++ {
 			// Don't stuff messages into the system if the
 			// Leader is behind.
@@ -67,6 +67,8 @@ func Timer(state interfaces.IState) {
 			tenthPeriod = period / 10
 
 		}
+
+		return nil
 	}
 }
 

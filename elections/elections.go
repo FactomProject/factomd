@@ -418,7 +418,7 @@ func (e *Elections) ProcessWaiting() {
 }
 
 // Runs the main loop for elections for this instance of factomd
-func Run(s *state.State) {
+func ElectionWorker(s *state.State) func() error {
 	e := new(Elections)
 	s.Elections = e
 	e.State = s
@@ -432,7 +432,7 @@ func Run(s *state.State) {
 	e.Waiting = make(chan interfaces.IElectionMsg, 500)
 
 	// Actually run the elections
-	for {
+	return func() error {
 		msg := e.Input.BlockingDequeue().(interfaces.IElectionMsg)
 		e.LogMessage("election", fmt.Sprintf("exec %d", e.Electing), msg.(interfaces.IMsg))
 
@@ -440,7 +440,7 @@ func Run(s *state.State) {
 		switch valid {
 		case -1:
 			// Do not process
-			continue
+			return nil
 		case 0:
 			// Drop the oldest message if at capacity
 			if len(e.Waiting) > 9*cap(e.Waiting)/10 {
@@ -448,12 +448,13 @@ func Run(s *state.State) {
 			}
 			// Waiting will get drained when a new election begins, or we move forward
 			e.Waiting <- msg
-			continue
+			return nil
 		}
 		msg.ElectionProcess(s, e)
 
 		//if msg.(interfaces.IMsg).Type() != constants.INTERNALEOMSIG { // If it's not an EOM check the authority set
 		//	CheckAuthSetsMatch("election.Run", e, s)
 		//}
+		return nil
 	}
 }

@@ -285,6 +285,7 @@ type State struct {
 
 	// Database
 	DB     interfaces.DBOverlaySimple
+	dbase  *mapdb.MapDB
 	Anchor interfaces.IAnchor
 
 	// Directory Block State
@@ -500,8 +501,7 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 	newState.EOMfaultIndex = s.EOMfaultIndex
 
 	if !config {
-		newState.IdentityChainID = primitives.Sha([]byte(newState.FactomNodeName))
-		//generate and use a new deterministic PrivateKey for this clone
+		newState.IdentityChainID = primitives.Sha([]byte(newState.FactomNodeName)) //generate and use a new deterministic PrivateKey for this clone
 		shaHashOfNodeName := primitives.Sha([]byte(newState.FactomNodeName)) //seed the private key with node name
 		clonePrivateKey := primitives.NewPrivateKeyFromHexBytes(shaHashOfNodeName.Bytes())
 		newState.LocalServerPrivKey = clonePrivateKey.PrivateKeyString()
@@ -530,18 +530,21 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 	newState.factomdTLSCertFile = s.factomdTLSCertFile
 	newState.FactomdLocations = s.FactomdLocations
 
+	newState.FastBoot = s.FastBoot
+	newState.StateSaverStruct.FastBoot = s.FastBoot
+
 	newState.FastSaveRate = s.FastSaveRate
 	newState.CorsDomains = s.CorsDomains
+
 	switch newState.DBType {
 	case "LDB":
-		newState.StateSaverStruct.FastBoot = s.StateSaverStruct.FastBoot
 		newState.StateSaverStruct.FastBootLocation = newState.LdbPath
 		break
 	case "Bolt":
-		newState.StateSaverStruct.FastBoot = s.StateSaverStruct.FastBoot
 		newState.StateSaverStruct.FastBootLocation = newState.BoltDBPath
 		break
 	}
+
 	if globals.Params.WriteProcessedDBStates {
 		path := filepath.Join(newState.LdbPath, newState.Network, "dbstates")
 		os.MkdirAll(path, 0775)
@@ -2449,9 +2452,21 @@ func (s *State) InitMapDB() error {
 
 	dbase := new(mapdb.MapDB)
 	dbase.Init(nil)
+	return s.SetMapDB(dbase)
+}
+
+func (s *State) SetMapDB(dbase *mapdb.MapDB) error {
+	s.dbase = dbase
 	s.DB = databaseOverlay.NewOverlay(dbase)
 	return nil
 }
+
+// allow access to object behind DB Overlay
+// useful mostly for testing
+func (s *State) GetMapDB() *mapdb.MapDB {
+	return s.dbase
+}
+
 
 func (s *State) String() string {
 	str := "\n===============================================================\n" + s.serverPrt

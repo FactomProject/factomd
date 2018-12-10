@@ -36,6 +36,7 @@ func humanizeDuration(duration time.Duration) string {
 
 func LoadDatabase(s *State) {
 	var blkCnt uint32
+	fmt.Printf("LoadDatabase: %v\n", s.FactomNodeName)
 
 	head, err := s.DB.FetchDBlockHead()
 	if err == nil && head != nil {

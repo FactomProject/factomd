@@ -42,14 +42,14 @@ var _ = fmt.Print
 
 // This go routine checks every so often to see if we have any missing entries or entry blocks.  It then requests
 // them if it finds entries in the missing lists.
-func (s *State) MakeMissingEntryRequests() {
+func (s *State) MissingEntryRequestWorker() func() error {
 
 	missing := 0
 	found := 0
 
 	MissingEntryMap := make(map[[32]byte]*MissingEntry)
 
-	for {
+	return func() error {
 		now := time.Now()
 
 		newrequest := 0
@@ -164,12 +164,11 @@ func (s *State) MakeMissingEntryRequests() {
 				time.Sleep(20 * time.Second)
 			}
 		}
+		return nil
 	}
 }
 
-func (s *State) GoSyncEntries() {
-	go s.MakeMissingEntryRequests()
-
+func (s *State) SyncEntryWorker() func() error {
 	// Map to track what I know is missing
 	missingMap := make(map[[32]byte]interfaces.IHash)
 
@@ -189,7 +188,7 @@ func (s *State) GoSyncEntries() {
 
 	found := 0
 
-	for {
+	return func() error {
 
 		ESMissing.Set(float64(len(missingMap)))
 		ESMissingQueue.Set(float64(len(s.MissingEntries)))
@@ -291,6 +290,7 @@ func (s *State) GoSyncEntries() {
 				}
 			}
 
+			// REVIEW: should this use same setting as fastsaverate?
 			if s.EntryDBHeightComplete%1000 == 0 {
 				if firstMissing < 0 {
 					//Only save EntryDBHeightComplete IF it's a multiple of 1000 AND there are no missing entries
@@ -309,5 +309,6 @@ func (s *State) GoSyncEntries() {
 
 		time.Sleep(100 * time.Millisecond)
 
+		return nil
 	}
 }

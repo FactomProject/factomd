@@ -105,8 +105,12 @@ func (sss *StateSaverStruct) LoadDBStateList(statelist *DBStateList, networkName
 		fmt.Fprintln(os.Stderr, "LoadDBStateList LoadFromFile returned nil")
 		return errors.New("failed to load from file")
 	}
+	return sss.LoadDBStateListFromBin(statelist, b)
+}
+
+func (sss *StateSaverStruct) LoadDBStateListFromBin(statelist *DBStateList, b []byte) error {
 	h := primitives.NewZeroHash()
-	b, err = h.UnmarshalBinaryData(b)
+	b, err := h.UnmarshalBinaryData(b)
 	if err != nil {
 		return err
 	}
@@ -114,7 +118,6 @@ func (sss *StateSaverStruct) LoadDBStateList(statelist *DBStateList, networkName
 	if h.IsSameAs(h2) == false {
 		fmt.Fprintf(os.Stderr, "LoadDBStateList - Integrity hashes do not match!")
 		return errors.New("fastboot file does not match its hash")
-		//return fmt.Errorf("Integrity hashes do not match")
 	}
 
 	statelist.UnmarshalBinary(b)

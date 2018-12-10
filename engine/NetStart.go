@@ -41,11 +41,15 @@ type FactomNode struct {
 	Peers    []interfaces.IPeer
 	MLog     *MsgLog
 	P2PIndex int
+	Running  bool
+	workers  []chan int
 }
 
 var fnodes []*FactomNode
 
 var networkpattern string
+var networkpatternfile string
+
 var mLog = new(MsgLog)
 var p2pProxy *P2PProxy
 var p2pNetwork *p2p.Controller
@@ -311,13 +315,14 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	// Actually setup the Network
 	//************************************************
 
-	// Make p.cnt Factom nodes
+	fnodes = fnodes[:0]
+
 	for i := 0; i < p.Cnt; i++ {
 		makeServer(s) // We clone s to make all of our servers
 	}
 	// Modify Identities of new nodes
 	if len(fnodes) > 1 && len(s.Prefix) == 0 {
-		modifyLoadIdentities() // We clone s to make all of our servers
+		ModifyLoadIdentities() // We clone s to make all of our servers
 	}
 
 	// Setup the Skeleton Identity & Registration
@@ -405,10 +410,54 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	}
 
 	networkpattern = p.Net
+	networkpatternfile = p.Fnet
+	SetupNetwork()
 
-	switch p.Net {
+	// Initiate dbstate plugin if enabled. Only does so for first node,
+	// any more nodes on sim control will use default method
+	if p.TorManage {
+		fnodes[0].State.SetTorrentUploader(p.TorUpload)
+		fnodes[0].State.SetUseTorrent(true)
+		manager, err := LaunchDBStateManagePlugin(p.PluginPath, fnodes[0].State.InMsgQueue(), fnodes[0].State, fnodes[0].State.GetServerPrivateKey(), p.MemProfileRate)
+		if err != nil {
+			panic("Encountered an error while trying to use torrent DBState manager: " + err.Error())
+		}
+		fnodes[0].State.DBStateManager = manager
+	} else {
+		fnodes[0].State.SetUseTorrent(false)
+	}
+
+	if p.Journal != "" {
+		go LoadJournal(s, p.Journal)
+		startServers(false)
+	} else {
+		startServers(true)
+	}
+
+	// Start the webserver
+	wsapi.Start(fnodes[0].State)
+	if fnodes[0].State.DebugExec() && messages.CheckFileName("graphData.txt") {
+		go printGraphData("graphData.txt", 30)
+	}
+
+	// Start prometheus on port
+	launchPrometheus(9876)
+	// Start Package's prometheus
+	state.RegisterPrometheus()
+	p2p.RegisterPrometheus()
+	leveldb.RegisterPrometheus()
+	RegisterPrometheus()
+
+	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelChannel, fnodes[0].State, connectionMetricsChannel, p2pNetwork, Build)
+	go SimControl(p.ListenTo, listenToStdin)
+}
+
+func SetupNetwork() {
+	count := len(fnodes)
+
+	switch networkpattern {
 	case "file":
-		file, err := os.Open(p.Fnet)
+		file, err := os.Open(networkpatternfile)
 		if err != nil {
 			panic(fmt.Sprintf("File network.txt failed to open: %s", err.Error()))
 		} else if file == nil {
@@ -424,7 +473,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 			}
 		}
 	case "square":
-		side := int(math.Sqrt(float64(p.Cnt)))
+		side := int(math.Sqrt(float64(count)))
 
 		for i := 0; i < side; i++ {
 			AddSimPeer(fnodes, i*side, (i+1)*side-1)
@@ -438,20 +487,20 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		}
 	case "long":
 		fmt.Println("Using long Network")
-		for i := 1; i < p.Cnt; i++ {
+		for i := 1; i < count; i++ {
 			AddSimPeer(fnodes, i-1, i)
 		}
 		// Make long into a circle
 	case "loops":
 		fmt.Println("Using loops Network")
-		for i := 1; i < p.Cnt; i++ {
+		for i := 1; i < count; i++ {
 			AddSimPeer(fnodes, i-1, i)
 		}
-		for i := 0; (i+17)*2 < p.Cnt; i += 17 {
-			AddSimPeer(fnodes, i%p.Cnt, (i+5)%p.Cnt)
+		for i := 0; (i+17)*2 < count; i += 17 {
+			AddSimPeer(fnodes, i%count, (i+5)%count)
 		}
-		for i := 0; (i+13)*2 < p.Cnt; i += 13 {
-			AddSimPeer(fnodes, i%p.Cnt, (i+7)%p.Cnt)
+		for i := 0; (i+13)*2 < count; i += 13 {
+			AddSimPeer(fnodes, i%count, (i+7)%count)
 		}
 	case "alot":
 		n := len(fnodes)
@@ -507,7 +556,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		}
 	default:
 		fmt.Println("Didn't understand network type. Known types: mesh, long, circles, tree, loops.  Using a Long Network")
-		for i := 1; i < p.Cnt; i++ {
+		for i := 1; i < count; i++ {
 			AddSimPeer(fnodes, i-1, i)
 		}
 
@@ -521,44 +570,6 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		}
 		fmt.Printf("Paste the network info above into http://arborjs.org/halfviz to visualize the network\n")
 	}
-	// Initiate dbstate plugin if enabled. Only does so for first node,
-	// any more nodes on sim control will use default method
-	fnodes[0].State.SetTorrentUploader(p.TorUpload)
-	if p.TorManage {
-		fnodes[0].State.SetUseTorrent(true)
-		manager, err := LaunchDBStateManagePlugin(p.PluginPath, fnodes[0].State.InMsgQueue(), fnodes[0].State, fnodes[0].State.GetServerPrivateKey(), p.MemProfileRate)
-		if err != nil {
-			panic("Encountered an error while trying to use torrent DBState manager: " + err.Error())
-		}
-		fnodes[0].State.DBStateManager = manager
-	} else {
-		fnodes[0].State.SetUseTorrent(false)
-	}
-
-	if p.Journal != "" {
-		go LoadJournal(s, p.Journal)
-		startServers(false)
-	} else {
-		startServers(true)
-	}
-
-	// Start the webserver
-	wsapi.Start(fnodes[0].State)
-	if fnodes[0].State.DebugExec() && messages.CheckFileName("graphData.txt") {
-		go printGraphData("graphData.txt", 30)
-	}
-
-	// Start prometheus on port
-	launchPrometheus(9876)
-	// Start Package's prometheus
-	state.RegisterPrometheus()
-	p2p.RegisterPrometheus()
-	leveldb.RegisterPrometheus()
-	RegisterPrometheus()
-
-	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelChannel, fnodes[0].State, connectionMetricsChannel, p2pNetwork, Build)
-
-	go SimControl(p.ListenTo, listenToStdin)
 
 }
 
@@ -578,41 +589,107 @@ func printGraphData(filename string, period int) {
 // Functions that access variables in this method to set up Factom Nodes
 // and start the servers.
 //**********************************************************************
-func makeServer(s *state.State) *FactomNode {
+func makeServer(s *state.State) (*FactomNode, int) {
 	// All other states are clones of the first state.  Which this routine
 	// gets passed to it.
-	newState := s
+	var f  *FactomNode
 
-	if len(fnodes) > 0 {
-		newState = s.Clone(len(fnodes)).(*state.State)
-		newState.EFactory = new(electionMsgs.ElectionsFactory) // not an elegant place but before we let the messages hit the state
-		time.Sleep(10 * time.Millisecond)
-		newState.Init()
-		newState.EFactory = new(electionMsgs.ElectionsFactory)
+	newIndex := len(fnodes)
+	if newIndex == 0 {
+		f, _ = AddFnode(s)
+	} else {
+		f, _ = AddFnode(s.Clone(newIndex).(*state.State))
 	}
 
-	fnode := new(FactomNode)
-	fnode.State = newState
-	fnodes = append(fnodes, fnode)
-	fnode.MLog = mLog
-
-	return fnode
+	return f, newIndex
 }
 
-func startServers(load bool) {
-	for i, fnode := range fnodes {
-		if i > 0 {
-			fnode.State.Init()
-		}
-		go NetworkProcessorNet(fnode)
-		if load {
-			go state.LoadDatabase(fnode.State)
-		}
-		go fnode.State.GoSyncEntries()
-		go Timer(fnode.State)
-		go elections.Run(fnode.State)
-		go fnode.State.ValidatorLoop()
+// return fnode and it's index in fnodes list
+func AddFnode(s *state.State) (*FactomNode, int) {
+	fnode := new(FactomNode)
+	fnode.State = s
+	fnode.MLog = mLog
+	fnodeLen := len(fnodes)
+
+	if fnodeLen > 0 {
+		// not an elegant place but before we let the messages hit the state
+		fnode.State.EFactory = new(electionMsgs.ElectionsFactory)
+		time.Sleep(10 * time.Millisecond)
+		fnode.State.Init()
+		fnode.State.EFactory = new(electionMsgs.ElectionsFactory)
 	}
+
+	fnodes = append(fnodes, fnode)
+	return fnode, fnodeLen
+}
+
+func startServers(loadDB bool) {
+	for i := range fnodes {
+		StartFnode(i, loadDB)
+	}
+}
+
+// register workers with node
+func (fnode *FactomNode) addWorker(doWork func() error) {
+	quit := make(chan int)
+	fnode.workers = append(fnode.workers, quit)
+	var err error
+	//var workerID = len(fnode.workers)
+
+	go func() {
+		for {
+			select {
+			case <-quit:
+				return
+			default:
+				//fmt.Printf("Fnode:%v worker:%v\n", fnode.Index, workerID)
+				err = doWork()
+				if err != nil {
+					panic(err)
+				}
+			}
+		}
+	}()
+}
+
+func (fnode *FactomNode) stopWorker(i int) {
+	defer func() {
+		err := recover()
+		if err != nil {
+			fmt.Printf("stopWorker recovered: %v", err)
+		}
+	}()
+
+	fnode.workers[i] <- 0
+}
+
+func StartFnode(i int, loadDB bool) {
+	fnode := fnodes[i]
+
+	if loadDB {
+		state.LoadDatabase(fnode.State)
+	}
+
+	go func() {
+		fnode.Running = true
+		fmt.Printf("FNode%v: START\n", i)
+		fnode.State.ValidatorLoop() // blocks until there is a shutdown signal
+		for i := range fnode.workers {
+			go fnode.stopWorker(i) // workers exit when validator exits
+		}
+		fmt.Printf("FNode%v: STOP\n", i)
+		fnode.Running = false
+	}()
+
+	fnode.workers = fnode.workers[:0] // remove old channels
+
+	fnode.addWorker(PeersWorker(fnode))
+	fnode.addWorker(NetworkOutputWorker(fnode))
+	fnode.addWorker(InvalidOutputWorker(fnode))
+	fnode.addWorker(fnode.State.MissingEntryRequestWorker())
+	fnode.addWorker(fnode.State.SyncEntryWorker())
+	fnode.addWorker(Timer(fnode.State))
+	fnode.addWorker(elections.ElectionWorker(fnode.State))
 }
 
 func setupFirstAuthority(s *state.State) {

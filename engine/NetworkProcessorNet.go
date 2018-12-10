@@ -19,13 +19,7 @@ import (
 var _ = log.Printf
 var _ = fmt.Print
 
-func NetworkProcessorNet(fnode *FactomNode) {
-	go Peers(fnode)
-	go NetworkOutputs(fnode)
-	go InvalidOutputs(fnode)
-}
-
-func Peers(fnode *FactomNode) {
+func PeersWorker(fnode *FactomNode) func() error {
 	saltReplayFilterOn := true
 
 	crossBootIgnore := func(amsg interfaces.IMsg) bool {
@@ -117,7 +111,7 @@ func Peers(fnode *FactomNode) {
 		return false
 	} // func ignoreMsg(){...}
 
-	for {
+	return func() error {
 		if primitives.NewTimestampNow().GetTimeSeconds()-fnode.State.BootTime > int64(constants.CROSSBOOT_SALT_REPLAY_DURATION.Seconds()) {
 			saltReplayFilterOn = false
 		}
@@ -318,11 +312,12 @@ func Peers(fnode *FactomNode) {
 		if cnt == 0 {
 			time.Sleep(50 * time.Millisecond) // handled no message, sleep a bit
 		}
+		return nil
 	} // forever {...}
 }
 
-func NetworkOutputs(fnode *FactomNode) {
-	for {
+func NetworkOutputWorker(fnode *FactomNode) func() error {
+	return func() error {
 		// if len(fnode.State.NetworkOutMsgQueue()) > 500 {
 		// 	fmt.Print(fnode.State.GetFactomNodeName(), "-", len(fnode.State.NetworkOutMsgQueue()), " ")
 		// }
@@ -336,19 +331,18 @@ func NetworkOutputs(fnode *FactomNode) {
 		// by an updated version when the block is ready.
 		if msg.IsLocal() {
 			// todo: Should be a dead case. Add tracking code to see if it ever happens -- clay
-			fnode.State.LogMessage("NetworkOutputs", "drop, local", msg)
-			continue
+			fnode.State.LogMessage("NetworkOutputs", "Drop, local", msg)
+			return nil
 		}
 		// Don't do a rand int if drop rate is 0
 		if fnode.State.GetDropRate() > 0 && rand.Int()%1000 < fnode.State.GetDropRate() {
 			//drop the message, rather than processing it normally
-
-			fnode.State.LogMessage("NetworkOutputs", "drop, simCtrl", msg)
-			continue
+			fnode.State.LogMessage("NetworkOutputs", "Drop, simCtrl", msg)
+			return nil
 		}
 		if msg.GetRepeatHash() == nil {
-			fnode.State.LogMessage("NetworkOutputs", "drop, no repeat hash", msg)
-			continue
+			fnode.State.LogMessage("NetworkOutputs", "Drop, no repeat hash", msg)
+			return nil
 		}
 
 		//_, ok := msg.(*messages.Ack)
@@ -414,14 +408,20 @@ func NetworkOutputs(fnode *FactomNode) {
 				}
 			}
 		}
+		return nil
 	}
 }
 
-// Just throw away the trash
-func InvalidOutputs(fnode *FactomNode) {
-	for {
-		time.Sleep(1 * time.Millisecond)
-		_ = <-fnode.State.NetworkInvalidMsgQueue()
+func InvalidOutputWorker(fnode *FactomNode) func() error {
+	return func() error {
+		select {
+		case <-fnode.State.NetworkInvalidMsgQueue():
+			// Just throw away the trash
+			return nil
+		default:
+			time.Sleep(500 * time.Millisecond)
+			return nil
+		}
 		//fmt.Println(invalidMsg)
 
 		// The following code was giving a demerit for each instance of a message in the NetworkInvalidMsgQueue.

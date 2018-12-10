@@ -264,3 +264,22 @@ func (db *MapDB) DoesKeyExist(bucket, key []byte) (bool, error) {
 	}
 	return true, nil
 }
+
+// REVIEW: does this actually work?
+// may have seen errors when running in a sim test - currently not used by the test
+// primarily this is used to add new nodes while testing fastboot
+func (db *MapDB) Clone() (*MapDB, error) {
+	db.Sem.Lock()
+	defer db.Sem.Unlock()
+	n := new(MapDB)
+	n.Init(nil)
+	for b, m := range db.Cache {
+		n.Cache[b] = map[string][]byte{}
+		for k, v := range m {
+			c := []byte{}
+			copy(c, v)
+			n.Cache[b][k] = c
+		}
+	}
+	return n, nil
+}

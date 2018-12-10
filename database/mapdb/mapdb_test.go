@@ -3,6 +3,7 @@ package mapdb_test
 import (
 	"crypto/rand"
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
 	"time"
@@ -252,4 +253,16 @@ func TestGetAll(t *testing.T) {
 			t.Errorf("Wrong key length at index %v - %v", i, len(keys[i]))
 		}
 	}
+}
+
+func TestClone(t *testing.T) {
+	m := new(MapDB)
+	db0 := databaseOverlay.NewOverlay(m)
+	testHelper.PopulateTestDatabaseOverlay(db0)
+
+	snapshot, _ := m.Clone()
+	db1 := databaseOverlay.NewOverlay(snapshot)
+	k0, _ := db0.FetchAllECBlockKeys()
+	k1, _ := db1.FetchAllECBlockKeys()
+	assert.Equal(t, k0, k1)
 }

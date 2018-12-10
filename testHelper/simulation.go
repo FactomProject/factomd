@@ -449,3 +449,17 @@ func v2Request(req *primitives.JSON2Request, port int) (*primitives.JSON2Respons
 	}
 	return nil, nil
 }
+
+func StartNode(offset int) {
+	RunCmd(fmt.Sprintf("%v", offset))
+	RunCmd("x")
+	engine.StartFnode(offset, true)
+}
+
+func AddNode(s *state.State) (*engine.FactomNode, int) {
+	f, newIndex := engine.AddFnode(s)
+	Followers++
+	engine.SetupNetwork()
+	//engine.ModifyLoadIdentities()
+	return f, newIndex
+}

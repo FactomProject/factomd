@@ -834,7 +834,7 @@ func v2Request(req *primitives.JSON2Request, port int) (*primitives.JSON2Respons
 	return nil, nil
 }
 
-func modifyLoadIdentities() {
+func ModifyLoadIdentities() {
 	chainIDList := strings.Split(chainIDs, "#")
 
 	list := make([]interfaces.IHash, 0)
