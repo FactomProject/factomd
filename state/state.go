@@ -642,6 +642,18 @@ func (s *State) GetCurrentTime() int64 {
 	return time.Now().UnixNano()
 }
 
+func (s *State) IsSyncing() bool {
+	return s.Syncing
+}
+
+func (s *State) IsSyncingEOMs() bool {
+	return s.EOM
+}
+
+func (s *State) IsSyncingDBSigs() bool {
+	return s.DBSig
+}
+
 func (s *State) IncDBStateAnswerCnt() {
 	s.DBStateReplyCnt++
 }

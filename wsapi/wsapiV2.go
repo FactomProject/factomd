@@ -1415,10 +1415,18 @@ func HandleV2Diagnostics(state interfaces.IState, params interface{}) (interface
 		}
 	}
 
+	syncInfo := new(SyncInfo)
+	if state.IsSyncingEOMs() {
+		syncInfo.Status = "Syncing EOMs"
+	} else if state.IsSyncingDBSigs() {
+		syncInfo.Status = "Syncing DBSigs"
+	} else {
+		syncInfo.Status = "Processing"
+	}
+
 	eInfo := new(ElectionInfo)
 	eInfo.StateAuthSet.Leaders = fedStrings
 	eInfo.StateAuthSet.Audits = auditStrings
-	//e.CurrentAuthSet.AuditServerHeartbeat = audAlive
 
 	e := state.GetElections()
 	electing := e.GetElecting()
@@ -1436,21 +1444,20 @@ func HandleV2Diagnostics(state interfaces.IState, params interface{}) (interface
 	for _, aud := range e.GetAuditServers() {
 		eInfo.ElectionAuthSet.Audits = append(eInfo.ElectionAuthSet.Leaders, aud.GetChainID().String())
 	}
-
-	for _, msg := range state.GetAuditHeartBeats() {
-		str, err := msg.JSONString()
-		if err != nil {
-			return nil, NewCustomInternalError("Failed to unmarshal heartbeat message")
-		}
-		eInfo.AuditHeartBeats = append(eInfo.AuditHeartBeats, str)
+	for _, heartbeat := range state.GetAuditHeartBeats() {
+		eInfo.AuditHeartBeats = append(eInfo.AuditHeartBeats, heartbeat.String())
 	}
+
+	var vms []VM
 
 	resp := new(DiagnosticsResponse)
 	resp.Name = state.GetFactomNodeName()
 	resp.ID = state.GetIdentityChainID().String()
 	resp.PublicKey = state.GetServerPublicKeyString()
 	resp.Role = role
+	resp.SyncInfo = syncInfo
 	resp.ElectionInfo = eInfo
+	resp.VMs = vms
 
 	return resp, nil
 }

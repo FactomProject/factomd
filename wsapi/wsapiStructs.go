@@ -305,17 +305,21 @@ type MultipleECBalances struct {
 }
 
 type DiagnosticsResponse struct {
-	Name              string `json:"name"`
-	ID                string `json:"id,omitempty"`
-	PublicKey         string `json:"publickey,omitempty"`
-	Role              string `json:"role"`
-	SyncingState      string `json:"syncingstate"`
-	SyncingReceived   int    `json:"syncingreceived"`
-	SyncingExpected   int
-	SyncingMissingIDs []string `json:"missingnodesids"`
-	VMs               []VM     `json:"vms"`
+	Name      string `json:"name"`
+	ID        string `json:"id,omitempty"`
+	PublicKey string `json:"publickey,omitempty"`
+	Role      string `json:"role"`
 
+	SyncInfo     *SyncInfo     `json:"syncing"`
 	ElectionInfo *ElectionInfo `json:"elections"`
+	VMs          []VM          `json:"vms"`
+}
+
+type SyncInfo struct {
+	Status   string    `json:"status"`
+	Received *int      `json:"received,omitempty"`
+	Expected *int      `json:"expected,omitempty"`
+	Missing  []string  `json:"missing,omitempty"`
 }
 
 type ElectionInfo struct {

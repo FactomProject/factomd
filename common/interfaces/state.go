@@ -318,6 +318,9 @@ type IState interface {
 	GetDropRate() int
 	SetDropRate(int)
 	GetBootTime() int64
+	IsSyncing() bool
+	IsSyncingEOMs() bool
+	IsSyncingDBSigs() bool
 
 	// Access to Holding Queue
 	LoadHoldingMap() map[[32]byte]IMsg
