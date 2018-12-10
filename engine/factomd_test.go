@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
+	"os/exec"
 	"runtime"
 	"strings"
 	"sync"
@@ -448,11 +450,6 @@ func TestMultiple2Election(t *testing.T) {
 	RunCmd("x")
 	RunCmd("2")
 	RunCmd("x")
-
-	RunCmd("E")
-	RunCmd("F")
-	RunCmd("0")
-	RunCmd("p")
 
 	WaitBlocks(state0, 2)
 	WaitForMinute(state0, 1)
@@ -1113,7 +1110,7 @@ func TestCoinbaseCancel(t *testing.T) {
 
 	WaitMinutes(state0, 2)
 	RunCmd("g10") // Adds 10 identities to your identity pool.
-	WaitBlocks(state0, 1)
+	WaitBlocks(state0, 2)
 	// Assign identities
 	RunCmd("1")
 	RunCmd("t")
@@ -1139,7 +1136,6 @@ func TestCoinbaseCancel(t *testing.T) {
 	RunCmd("5")
 	RunCmd("o")
 
-	WaitBlocks(state0, 3)
 	WaitForBlock(state0, 15)
 	WaitMinutes(state0, 1)
 	// Cancel coinbase of 18 (14+ delay of 4) with a majority of the authority set, should succeed
@@ -1423,5 +1419,92 @@ func TestDBStateCatchup(t *testing.T) {
 
 	WaitForAllNodes(state0) // if the follower isn't catching up this will timeout
 	PrintOneStatus(0, 0)
+	ShutDownEverything(t)
+}
+
+func SystemCall(cmd string) {
+	fmt.Println("SystemCall(\"", cmd, "\")")
+	out, err := exec.Command("sh", "-c", cmd).Output()
+	if err != nil {
+		foo := err.Error()
+		fmt.Println(foo)
+		os.Exit(1)
+		panic(err)
+	}
+	fmt.Print(string(out))
+}
+
+func TestSaveState1(t *testing.T) {
+	if RanSimTest {
+		return
+	}
+	RanSimTest = true
+
+	// remove all the old database files
+	SystemCall("find  test/.factom/m2 -name LOCAL | xargs rm -rvf ")
+
+	state0 := SetupSim("LAFL", map[string]string{"--debuglog": ".", "--fastsaverate": "4", "--db": "LDB", "--factomhome": "test"}, 12, 0, 0, t)
+	StatusEveryMinute(state0)
+	WaitMinutes(state0, 2)
+	RunCmd("R5")
+	WaitForBlock(state0, 11)
+	WaitMinutes(state0, 1)
+	WaitForAllNodes(state0)
+	PrintOneStatus(0, 0)
+	ShutDownEverything(t)
+
+	for _, x := range GetFnodes() {
+		newState := x.State
+
+		fmt.Println("FactomNodeName: ", newState.FactomNodeName)
+		fmt.Println("	IdentityChainID: ", newState.IdentityChainID)
+		fmt.Println("	ServerPrivKey: ", newState.LocalServerPrivKey)
+		//		fmt.Println("	ServerPublicKey: ", newState.ServerPubKey)
+	}
+	time.Sleep(10 * time.Second)
+}
+
+func TestCreateDB_LLLLLLAAAAAFFFF(t *testing.T) {
+	// remove all the old database files
+	SystemCall("find  test/.factom/m2 -name LOCAL | xargs rm -rvf ")
+	state0 := SetupSim("LLLLLLAAAAAFFFF", map[string]string{"--db": "LDB", "--factomhome": "test", "--network": "CUSTOM", "--customnet": "devnet"}, 6, 0, 0, t)
+	WaitForAllNodes(state0)
+	PrintOneStatus(0, 0)
+	ShutDownEverything(t)
+
+	for _, x := range GetFnodes() {
+		newState := x.State
+
+		fmt.Println("FactomNodeName: ", newState.FactomNodeName)
+		fmt.Println("	IdentityChainID: ", newState.IdentityChainID)
+		fmt.Println("	ServerPrivKey: ", newState.LocalServerPrivKey)
+		//		fmt.Println("	ServerPublicKey: ", newState.ServerPubKey)
+	}
+	time.Sleep(10 * time.Second)
+}
+
+func TestSaveState2(t *testing.T) {
+	if RanSimTest {
+		return
+	}
+	RanSimTest = true
+
+	// remove fnode02's fastboot and fnode01's whole database
+	SystemCall("rm -vfr test/.factom/m2/local-database/ldb/Sim02/LOCAL/  test/.factom/m2/local-database/ldb/Sim01/FastBoot_LOCAL_v10.db")
+	state0 := SetupSim("FFFF", map[string]string{"--debuglog": ".", "--fastsaverate": "4", "--db": "LDB", "--factomhome": "test"}, 20, 0, 0, t)
+
+	// check we booted from database to the right state
+	Audits = 1
+	Leaders = 2
+	CheckAuthoritySet(t)
+
+	StatusEveryMinute(state0)
+	WaitForBlock(state0, 10)
+	WaitForAllNodes(state0)
+	PrintOneStatus(0, 0)
+
+	Audits = 1
+	Leaders = 2
+	CheckAuthoritySet(t)
 	ShutDownEverything(t)
 }
