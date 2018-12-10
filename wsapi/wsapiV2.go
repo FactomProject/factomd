@@ -1393,12 +1393,12 @@ func HandleV2Diagnostics(state interfaces.IState, params interface{}) (interface
 	fedCount := len(feds)
 	fedStrings := make([]string, fedCount)
 	for i := 0; i < fedCount; i++ {
-		fedStrings[i] = feds[i].String()
+		fedStrings[i] = feds[i].GetChainID().String()
 	}
 	auditCount := len(audits)
 	auditStrings := make([]string, auditCount)
 	for i := 0; i < auditCount; i++ {
-		auditStrings[i] = audits[i].String()
+		auditStrings[i] = audits[i].GetChainID().String()
 	}
 
 	role := "Follower"
@@ -1416,10 +1416,18 @@ func HandleV2Diagnostics(state interfaces.IState, params interface{}) (interface
 	}
 
 	syncInfo := new(SyncInfo)
-	if state.IsSyncingEOMs() {
+	if state.IsSyncingEOMs() || state.IsSyncingDBSigs() {
 		syncInfo.Status = "Syncing EOMs"
-	} else if state.IsSyncingDBSigs() {
-		syncInfo.Status = "Syncing DBSigs"
+		if state.IsSyncingDBSigs() {
+			syncInfo.Status = "Syncing DBSigs"
+		}
+		missing := state.GetUnsyncedServers(state.GetLLeaderHeight())
+		numberReceived := fedCount - len(missing)
+		syncInfo.Received = &numberReceived
+		syncInfo.Expected = &fedCount
+		for _, v := range missing {
+			syncInfo.Missing = append(syncInfo.Missing, v.String())
+		}
 	} else {
 		syncInfo.Status = "Processing"
 	}

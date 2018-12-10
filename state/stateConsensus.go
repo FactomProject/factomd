@@ -1640,7 +1640,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	// debug
 	if s.DebugExec() {
 		if s.Syncing && s.EOM && !s.EOMDone && s.DBSigDone {
-			ids := s.GetUnSyncedServers(dbheight)
+			ids := s.GetUnsyncedServersString(dbheight)
 			if len(ids) > 0 {
 				s.LogPrintf("dbsig-eom", "Waiting for EOMs from %s", ids)
 			}
@@ -1905,16 +1905,25 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	return false
 }
 
-// Return a string with the short IDs for all unsynced VMs
-func (s *State) GetUnSyncedServers(dbheight uint32) string {
-	var ids string
+// GetUnsyncedServers returns an array of the IDs for all unsynced VMs
+func (s *State) GetUnsyncedServers(dbheight uint32) []interfaces.IHash {
+	var ids []interfaces.IHash
 	p := s.ProcessLists.Get(dbheight)
 	for index, l := range s.GetFedServers(dbheight) {
 		vmIndex := p.ServerMap[s.CurrentMinute][index]
 		vm := p.VMs[vmIndex]
 		if !vm.Synced {
-			ids = ids + "," + l.GetChainID().String()[6:12]
+			ids = append(ids, l.GetChainID())
 		}
+	}
+	return ids
+}
+
+// GetUnsyncedServersString returns a string with the short IDs for all unsynced VMs
+func (s *State) GetUnsyncedServersString(dbheight uint32) string {
+	var ids string
+	for _, id := range s.GetUnsyncedServers(dbheight) {
+		ids = ids + "," + id.String()[6:12]
 	}
 	if len(ids) > 0 {
 		ids = ids[1:] // drop the leading comma
@@ -1987,7 +1996,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	// debug
 	if s.DebugExec() {
 		if s.Syncing && s.DBSig && !s.DBSigDone {
-			ids := s.GetUnSyncedServers(dbheight)
+			ids := s.GetUnsyncedServersString(dbheight)
 			if len(ids) > 0 {
 				s.LogPrintf("dbsig-eom", "Waiting for DBSigs from %s", ids)
 			}

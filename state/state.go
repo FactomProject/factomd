@@ -647,11 +647,11 @@ func (s *State) IsSyncing() bool {
 }
 
 func (s *State) IsSyncingEOMs() bool {
-	return s.EOM
+	return s.Syncing && s.EOM && !s.EOMDone
 }
 
 func (s *State) IsSyncingDBSigs() bool {
-	return s.DBSig
+	return s.Syncing && s.DBSig && !s.DBSigDone
 }
 
 func (s *State) IncDBStateAnswerCnt() {

@@ -321,6 +321,7 @@ type IState interface {
 	IsSyncing() bool
 	IsSyncingEOMs() bool
 	IsSyncingDBSigs() bool
+	GetUnsyncedServers(dbheight uint32) []IHash
 
 	// Access to Holding Queue
 	LoadHoldingMap() map[[32]byte]IMsg
