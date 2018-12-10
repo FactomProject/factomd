@@ -2176,14 +2176,15 @@ func (s *State) MsgQueue() chan interfaces.IMsg {
 
 func (s *State) GetLeaderTimestamp() interfaces.Timestamp {
 	if s.LeaderTimestamp == nil {
-		s.SetLeaderTimestamp(new(primitives.Timestamp))
+		// To leader timestamp?  Then use the boottime less a minute
+		s.SetLeaderTimestamp(primitives.NewTimestampFromMilliseconds(s.TimestampAtBoot.GetTimeMilliUInt64() - 60*1000))
 	}
-	return s.LeaderTimestamp
+	return primitives.NewTimestampFromMilliseconds(s.LeaderTimestamp.GetTimeMilliUInt64())
 }
 
 func (s *State) GetMessageFilterTimestamp() interfaces.Timestamp {
 	if s.MessageFilterTimestamp == nil {
-		s.MessageFilterTimestamp.SetTimestamp(new(primitives.Timestamp))
+		s.MessageFilterTimestamp = primitives.NewTimestampNow()
 	}
 	return s.MessageFilterTimestamp
 }
@@ -2194,18 +2195,17 @@ func (s *State) GetMessageFilterTimestamp() interfaces.Timestamp {
 // are dropped.
 func (s *State) SetMessageFilterTimestamp(requestedTs interfaces.Timestamp) {
 
-	oneHourAgo := primitives.NewTimestampNow() // now() - one hour
-	oneHourAgo.SetTimeMilli(oneHourAgo.GetTimeMilli() - 60*60*1000)
+	timenow := primitives.NewTimestampNow() // now() - one hour
+
 	ts := new(primitives.Timestamp)
 	ts.SetTimestamp(requestedTs)
 
-	//ts := requestedTs
 	if ts.GetTimeMilli() < s.TimestampAtBoot.GetTimeMilli() {
 		ts.SetTimestamp(s.TimestampAtBoot)
 	}
 
-	if ts.GetTimeMilli() < oneHourAgo.GetTimeMilli() {
-		ts.SetTimestamp(oneHourAgo)
+	if ts.GetTimeMilli() < timenow.GetTimeMilli() {
+		ts.SetTimestamp(timenow)
 	}
 
 	if ts.GetTimeMilli() < s.LeaderTimestamp.GetTimeMilli() {
@@ -2215,14 +2215,10 @@ func (s *State) SetMessageFilterTimestamp(requestedTs interfaces.Timestamp) {
 
 	s.LogPrintf("executeMsg", "Set MessageFilterTimestamp(%s) @ dbht %d using %s for %s", requestedTs, s.LLeaderHeight, ts.String(), atomic.WhereAmIString(1))
 
-	if s.MessageFilterTimestamp == nil {
-		s.MessageFilterTimestamp = primitives.NewTimestampFromMilliseconds(ts.GetTimeMilliUInt64())
-	} else {
-		s.MessageFilterTimestamp.SetTimestamp(ts)
-	}
+	s.MessageFilterTimestamp = primitives.NewTimestampFromMilliseconds(ts.GetTimeMilliUInt64())
 }
 func (s *State) SetLeaderTimestamp(ts interfaces.Timestamp) {
-	//	s.LogPrintf("executeMsg", "Set SetLeaderTimestamp(%s) @ dbht %d for %s", ts.String(), s.LLeaderHeight, atomic.WhereAmIString(1))
+	s.LogPrintf("executeMsg", "Set SetLeaderTimestamp(%s) @ dbht %d for %s", ts.String(), s.LLeaderHeight, atomic.WhereAmIString(1))
 	if s.LeaderTimestamp == nil {
 		s.LeaderTimestamp = primitives.NewTimestampFromMilliseconds(uint64(ts.GetTimeMilli()))
 	} else {

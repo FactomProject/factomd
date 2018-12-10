@@ -35,8 +35,7 @@ var _ = log.Print
 type DBState struct {
 	IsNew bool
 
-	TmpSaveStruct *SaveState
-	SaveStruct    *SaveState
+	SaveStruct *SaveState
 
 	DBHash interfaces.IHash
 	ABHash interfaces.IHash
@@ -1148,8 +1147,15 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 
 	list.State.LogPrintf("dbstateprocess", "ProcessBlock(%d) BalanceHash P %x T %x", dbht, list.State.Balancehash.Bytes()[0:4], tbh.Bytes()[0:4])
 
-	d.TmpSaveStruct = SaveFactomdState(list.State, d)
-
+	// We will only save blocks marked to be saved.  As such, this must follow
+	// the "d.saved = true" above
+	if list.State.StateSaverStruct.FastBoot {
+		d.SaveStruct = SaveFactomdState(list.State, d)
+		if d.SaveStruct != nil {
+			err := list.State.StateSaverStruct.SaveDBStateList(list.State.DBStates, list.State.Network)
+			list.State.LogPrintf("dbstateprocess", "Error while saving Fastboot %v", err)
+		}
+	}
 	// All done with this block move to the next height if we are loading by blocks
 	if s.LLeaderHeight == dbht {
 		// if we are following by blocks then this move us forward but if we are following by minutes the
@@ -1541,14 +1547,6 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	d.ReadyToSave = false
 	d.Saved = true
 
-	// We will only save blocks marked to be saved.  As such, this must follow
-	// the "d.saved = true" above
-	if list.State.StateSaverStruct.FastBoot {
-		d.SaveStruct = d.TmpSaveStruct
-		err := list.State.StateSaverStruct.SaveDBStateList(list.State.DBStates, list.State.Network)
-
-		list.State.LogPrintf("dbstateprocess", "Error while saving Fastboot %v", err)
-	}
 	// Now that we have saved the perm balances, we can clear the api hashmaps that held the differences
 	// between the actual saved block prior, and this saved block.  If you are looking for balances of
 	// the highest saved block, you first look to see that one of the "<fct or ec>Papi" maps exist, then

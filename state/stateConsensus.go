@@ -668,12 +668,7 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 			s.SetLeaderTimestamp(dbstate.DirectoryBlock.GetTimestamp())
 		} else if dblock, err := s.DB.FetchDBlockByHeight(dbheight); dblock != nil && err == nil {
 			s.SetLeaderTimestamp(dblock.GetTimestamp())
-		} else if dbstate = s.DBStates.Get(int(dbheight - 1)); dbstate != nil {
-			s.SetLeaderTimestamp(dbstate.DirectoryBlock.GetTimestamp())
-		} else {
-			// not 100% sure how this case can be but doing nothing seems to work and it does happen in sim tests.
-			//panic("No prior state")
-		}
+		} 
 		s.dbheights <- int(dbheight) // Notify MMR process we have moved on...
 
 		s.CurrentMinuteStartTime = time.Now().UnixNano()
