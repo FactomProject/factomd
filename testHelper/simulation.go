@@ -172,6 +172,7 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 
 func creatingNodes(creatingNodes string, state0 *state.State, t *testing.T) {
 	RunCmd(fmt.Sprintf("g%d", len(creatingNodes)))
+	WaitBlocks(state0, 3) // Wait for 2 blocks because ID scans is for block N-1
 	WaitMinutes(state0, 1)
 	// Wait till all the entries from the g command are processed
 	simFnodes := engine.GetFnodes()
@@ -179,12 +180,12 @@ func creatingNodes(creatingNodes string, state0 *state.State, t *testing.T) {
 	if len(creatingNodes) > nodes {
 		t.Fatalf("Should have allocated %d nodes", len(creatingNodes))
 	}
-	WaitBlocks(state0, 2) // Wait for 2 blocks because ID scans is for block N-1
 	WaitForMinute(state0, 1)
 	for i, c := range []byte(creatingNodes) {
+		fmt.Println("it:", i, c)
 		switch c {
 		case 'L', 'l':
-			if i == 0 {
+			if i != 0 {
 				RunCmd(fmt.Sprintf("%d", i))
 				RunCmd("l")
 			}
@@ -210,19 +211,18 @@ func WaitForAllNodes(state *state.State) {
 	simFnodes := engine.GetFnodes()
 	engine.PrintOneStatus(0, 0) // Print a status
 	fmt.Printf("Wait for all nodes done\n%s", height)
-	prevblk := state.LLeaderHeight
+	block := state.LLeaderHeight
+	minute := state.CurrentMinute
+	target := int(block*10) + minute
+
 	for i := 0; i < len(simFnodes); i++ {
-		blk := state.LLeaderHeight
-		if prevblk != blk {
-			engine.PrintOneStatus(0, 0)
-			prevblk = blk
-		}
 		s := simFnodes[i].State
-		height = ""
-		if s.LLeaderHeight != blk { // if not caught up, start over
+		h := int(s.LLeaderHeight*10) + s.CurrentMinute
+
+		if !s.GetNetStateOff() && h < target { // if not caught up, start over
+			fmt.Println("Waiting on ", i)
 			time.Sleep(100 * time.Millisecond)
-			i = 0 // start over
-			continue
+			i--
 		}
 		height = fmt.Sprintf("%s%s:%d-%d\n", height, s.FactomNodeName, s.LLeaderHeight, s.CurrentMinute)
 	}
