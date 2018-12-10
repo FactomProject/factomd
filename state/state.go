@@ -240,6 +240,8 @@ type State struct {
 	DBSigDone      bool
 	DBSigSys       bool // At least one DBSig has covered the System List
 
+	CreatedLastBlockFromDBState bool
+
 	// By default, this is false, which means DBstates are discarded
 	// when a majority of leaders disagree with the hash we have via DBSigs
 	KeepMismatch bool
@@ -652,6 +654,10 @@ func (s *State) IsSyncingEOMs() bool {
 
 func (s *State) IsSyncingDBSigs() bool {
 	return s.Syncing && s.DBSig && !s.DBSigDone
+}
+
+func (s *State) DidCreateLastBlockFromDBState() bool {
+	return s.CreatedLastBlockFromDBState
 }
 
 func (s *State) IncDBStateAnswerCnt() {

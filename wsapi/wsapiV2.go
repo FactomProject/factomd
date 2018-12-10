@@ -1421,6 +1421,7 @@ func HandleV2Diagnostics(state interfaces.IState, params interface{}) (interface
 
 	resp.BalanceHash = state.GetFactoidState().GetBalanceHash(false).String()
 	resp.TempBalanceHash = state.GetFactoidState().GetBalanceHash(true).String()
+	resp.LastBlockFromDBState = state.DidCreateLastBlockFromDBState()
 
 	// Syncing information
 	syncInfo := new(SyncInfo)

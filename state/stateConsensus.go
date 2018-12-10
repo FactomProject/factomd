@@ -587,6 +587,7 @@ func (s *State) AddDBState(isNew bool,
 		s.EOM = false
 		s.DBSig = false
 		s.SetLLeaderHeight(ht)
+		s.CreatedLastBlockFromDBState = true
 		s.ProcessLists.Get(ht + 1)
 		s.CurrentMinute = 0
 		s.EOMProcessed = 0
@@ -1836,6 +1837,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 			s.setCurrentMinute(0)
 			s.SetLLeaderHeight(s.LLeaderHeight + 1)
+			s.CreatedLastBlockFromDBState = false
 			//			s.SetLeaderTimestamp(s.GetTimestamp()) // start the new block now...Needs to be updated when we get the VM 0 DBSig.
 
 			s.GetAckChange()

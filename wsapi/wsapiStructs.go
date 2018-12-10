@@ -312,7 +312,7 @@ type DiagnosticsResponse struct {
 
 	BalanceHash          string `json:"balancehash"`
 	TempBalanceHash      string `json:"tempbalancehash"`
-	PrevBlockCreatedFrom string `json:"prevblockcreatedfrom"`
+	LastBlockFromDBState bool   `json:"lastblockfromdbstate"`
 
 	SyncInfo     *SyncInfo     `json:"syncing"`
 	AuthSet      *AuthSet      `json:"authset"`
