@@ -1419,6 +1419,9 @@ func HandleV2Diagnostics(state interfaces.IState, params interface{}) (interface
 		}
 	}
 
+	resp.BalanceHash = state.GetFactoidState().GetBalanceHash(false).String()
+	resp.TempBalanceHash = state.GetFactoidState().GetBalanceHash(true).String()
+
 	// Syncing information
 	syncInfo := new(SyncInfo)
 	if state.IsSyncingEOMs() || state.IsSyncingDBSigs() {

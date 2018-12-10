@@ -310,6 +310,10 @@ type DiagnosticsResponse struct {
 	PublicKey string `json:"publickey,omitempty"`
 	Role      string `json:"role"`
 
+	BalanceHash          string `json:"balancehash"`
+	TempBalanceHash      string `json:"tempbalancehash"`
+	PrevBlockCreatedFrom string `json:"prevblockcreatedfrom"`
+
 	SyncInfo     *SyncInfo     `json:"syncing"`
 	AuthSet      *AuthSet      `json:"authset"`
 	ElectionInfo *ElectionInfo `json:"elections"`
@@ -340,10 +344,7 @@ type AuthSet struct {
 }
 
 type VM struct {
-	CurrentProcessList struct {
-		Height  int    `json:"height"`
-		Length  int    `json:"length"`
-		NextNil string `json:"nextnil"`
-	} `json:"currentprocesslist"`
-	PrevBlockCreatedFrom string `json:"prevblockcreatedfrom"`
+	Height      int    `json:"height"`
+	ListLength  int    `json:"listlength"`
+	NextNil     string `json:"nextnil"`
 }
