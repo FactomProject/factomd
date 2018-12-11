@@ -1396,24 +1396,22 @@ func HandleV2Diagnostics(state interfaces.IState, params interface{}) (interface
 	feds := state.GetFedServers(leaderHeight)
 	fedCount := len(feds)
 	audits := state.GetAuditServers(leaderHeight)
-	type AuditServerLiveness struct {
-		ID     string `json:"id"`
-		Online bool   `json:"online"`
-	}
 
 	resp.AuthSet = new(AuthSet)
 	resp.Role = "Follower"
 	foundRole := false // tells us when to stop looking for the node's role
-	for _, fed := range feds {
-		resp.AuthSet.Leaders = append(resp.AuthSet.Leaders, fed.GetChainID().String())
+	for i, fed := range feds {
+		vmIndex, listHeight, listLength, nextNil := state.GetLeaderPL().GetVMStatsForFedServer(i)
+		status := LeaderStatus{fed.GetChainID().String(), vmIndex, listHeight, listLength, nextNil}
+		resp.AuthSet.Leaders = append(resp.AuthSet.Leaders, status)
 		if !foundRole && state.GetIdentityChainID().IsSameAs(fed.GetChainID()) {
 			resp.Role = "Leader"
 			foundRole = true
 		}
 	}
 	for _, aud := range audits {
-		livenessStruct := AuditServerLiveness{aud.GetChainID().String(), aud.IsOnline()}
-		resp.AuthSet.Audits = append(resp.AuthSet.Audits, livenessStruct)
+		status := AuditStatus{aud.GetChainID().String(), aud.IsOnline()}
+		resp.AuthSet.Audits = append(resp.AuthSet.Audits, status)
 		if !foundRole && state.GetIdentityChainID().IsSameAs(aud.GetChainID()) {
 			resp.Role = "Audit"
 		}
@@ -1455,10 +1453,6 @@ func HandleV2Diagnostics(state interfaces.IState, params interface{}) (interface
 		eInfo.Round = &e.GetRound()[electing]
 	}
 	resp.ElectionInfo = eInfo
-
-	// VM information
-	var vms []VM
-	resp.VMs = vms
 
 	return resp, nil
 }

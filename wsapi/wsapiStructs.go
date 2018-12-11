@@ -317,7 +317,6 @@ type DiagnosticsResponse struct {
 	SyncInfo     *SyncInfo     `json:"syncing"`
 	AuthSet      *AuthSet      `json:"authset"`
 	ElectionInfo *ElectionInfo `json:"elections"`
-	VMs          []VM          `json:"vms"`
 }
 
 type SyncInfo struct {
@@ -336,15 +335,19 @@ type ElectionInfo struct {
 }
 
 type AuthSet struct {
-	Leaders []string `json:"leaders"`
-	Audits  []struct {
-		ID     string `json:"id"`
-		Online bool   `json:"online"`
-	} `json:"audits""`
+	Leaders []LeaderStatus `json:"leaders"`
+	Audits  []AuditStatus  `json:"audits"`
 }
 
-type VM struct {
-	Height      int    `json:"height"`
-	ListLength  int    `json:"listlength"`
-	NextNil     string `json:"nextnil"`
+type LeaderStatus struct {
+	ID                string `json:"id"`
+	VM                int    `json:"vm"`
+	ProcessListHeight int    `json:"listheight"`
+	ListLength        int    `json:"listlength"`
+	NextNil           int    `json:"nextnil"`
+}
+
+type AuditStatus struct {
+	ID     string `json:"id"`
+	Online bool   `json:"online"`
 }

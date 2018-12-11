@@ -201,6 +201,19 @@ func (p *ProcessList) VMIndexFor(hash []byte) int {
 	return r
 }
 
+func (p *ProcessList) GetVMStatsForFedServer(index int) (vmIndex int, listHeight int, listLength int, nextNil int) {
+	vmIndex = FedServerVM(p.ServerMap, len(p.FedServers), p.State.GetCurrentMinute(), index)
+	if vmIndex < 0 {
+		return vmIndex, -1, -1, -1
+	}
+
+	listHeight = p.VMs[vmIndex].Height
+	listLength = len(p.VMs[vmIndex].List)
+	nextNil = p.VMs[vmIndex].HighestNil
+
+	return vmIndex, listHeight, listLength, nextNil
+}
+
 func SortServers(servers []interfaces.IServer) []interfaces.IServer {
 	for i := 0; i < len(servers)-1; i++ {
 		done := true
