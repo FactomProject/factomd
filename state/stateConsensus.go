@@ -668,7 +668,7 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 			s.SetLeaderTimestamp(dbstate.DirectoryBlock.GetTimestamp())
 		} else if dblock, err := s.DB.FetchDBlockByHeight(dbheight); dblock != nil && err == nil {
 			s.SetLeaderTimestamp(dblock.GetTimestamp())
-		} 
+		}
 		s.dbheights <- int(dbheight) // Notify MMR process we have moved on...
 
 		s.CurrentMinuteStartTime = time.Now().UnixNano()
