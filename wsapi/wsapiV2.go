@@ -1392,10 +1392,17 @@ func HandleV2Diagnostics(state interfaces.IState, params interface{}) (interface
 	resp.ID = state.GetIdentityChainID().String()
 	resp.PublicKey = state.GetServerPublicKeyString()
 
-	leaderHeight:= state.GetLLeaderHeight()
-	feds := state.GetFedServers(leaderHeight)
+	resp.LeaderHeight = state.GetLLeaderHeight()
+	resp.CurrentMinute = state.GetCurrentMinute()
+	resp.CurrentMinuteDuration = time.Now().UnixNano() - state.GetCurrentMinuteStartTime()
+	resp.PrevMinuteDuration = state.GetCurrentMinuteStartTime() - state.GetPreviousMinuteStartTime()
+	resp.BalanceHash = state.GetFactoidState().GetBalanceHash(false).String()
+	resp.TempBalanceHash = state.GetFactoidState().GetBalanceHash(true).String()
+	resp.LastBlockFromDBState = state.DidCreateLastBlockFromDBState()
+
+	feds := state.GetFedServers(resp.LeaderHeight)
 	fedCount := len(feds)
-	audits := state.GetAuditServers(leaderHeight)
+	audits := state.GetAuditServers(resp.LeaderHeight)
 
 	resp.AuthSet = new(AuthSet)
 	resp.Role = "Follower"
@@ -1417,10 +1424,6 @@ func HandleV2Diagnostics(state interfaces.IState, params interface{}) (interface
 		}
 	}
 
-	resp.BalanceHash = state.GetFactoidState().GetBalanceHash(false).String()
-	resp.TempBalanceHash = state.GetFactoidState().GetBalanceHash(true).String()
-	resp.LastBlockFromDBState = state.DidCreateLastBlockFromDBState()
-
 	// Syncing information
 	syncInfo := new(SyncInfo)
 	if state.IsSyncingEOMs() || state.IsSyncingDBSigs() {
@@ -1428,7 +1431,7 @@ func HandleV2Diagnostics(state interfaces.IState, params interface{}) (interface
 		if state.IsSyncingDBSigs() {
 			syncInfo.Status = "Syncing DBSigs"
 		}
-		missing := state.GetUnsyncedServers(leaderHeight)
+		missing := state.GetUnsyncedServers(resp.LeaderHeight)
 		numberReceived := fedCount - len(missing)
 		syncInfo.Received = &numberReceived
 		syncInfo.Expected = &fedCount

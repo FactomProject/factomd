@@ -311,6 +311,7 @@ type IState interface {
 	GetCurrentBlockStartTime() int64
 	GetCurrentMinute() int
 	GetCurrentMinuteStartTime() int64
+	GetPreviousMinuteStartTime() int64
 	GetCurrentTime() int64
 	IsStalled() bool
 	GetDelay() int64

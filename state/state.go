@@ -222,8 +222,9 @@ type State struct {
 	CurrentMinute   int
 
 	// These are the start times for blocks and minutes
-	CurrentMinuteStartTime int64
-	CurrentBlockStartTime  int64
+	PreviousMinuteStartTime int64
+	CurrentMinuteStartTime  int64
+	CurrentBlockStartTime   int64
 
 	EOMsyncing bool
 
@@ -638,6 +639,10 @@ func (s *State) GetCurrentMinute() int {
 
 func (s *State) GetCurrentMinuteStartTime() int64 {
 	return s.CurrentMinuteStartTime
+}
+
+func (s *State) GetPreviousMinuteStartTime() int64 {
+	return s.PreviousMinuteStartTime
 }
 
 func (s *State) GetCurrentTime() int64 {

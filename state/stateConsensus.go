@@ -1791,6 +1791,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		}
 
 		s.setCurrentMinute(s.CurrentMinute + 1)
+		s.PreviousMinuteStartTime = s.CurrentMinuteStartTime
 		s.CurrentMinuteStartTime = time.Now().UnixNano()
 		// If an election took place, our lists will be unsorted. Fix that
 		pl.SortAuditServers()
