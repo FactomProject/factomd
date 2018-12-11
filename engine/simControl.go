@@ -102,7 +102,7 @@ func SimControl(listenTo int, listenStdin bool) {
 	ListenTo = listenTo
 
 	if loadGenerator == nil {
-		loadGenerator = new(LoadGenerator)
+		loadGenerator = NewLoadGenerator()
 	}
 
 	for {
@@ -1187,7 +1187,7 @@ func SimControl(listenTo int, listenStdin bool) {
 			case 'R' == b[0]:
 				// load generation
 				if loadGenerator == nil && len(fnodes) > ListenTo {
-					loadGenerator = NewLoadGenerator(fnodes[ListenTo].State)
+					loadGenerator = NewLoadGenerator()
 				} else if loadGenerator == nil {
 					os.Stderr.WriteString("Currently no default State we can use for the load generator\n")
 					continue

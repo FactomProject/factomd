@@ -18,7 +18,6 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/primitives/random"
-	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/util/atomic"
 )
@@ -34,7 +33,7 @@ type LoadGenerator struct {
 }
 
 // NewLoadGenerator makes a new load generator. The state is used for funding the transaction
-func NewLoadGenerator(s *state.State) *LoadGenerator {
+func NewLoadGenerator() *LoadGenerator {
 	lg := new(LoadGenerator)
 	lg.ECKey, _ = primitives.NewPrivateKeyFromHex(ecSec)
 	lg.stop = make(chan bool, 5)
