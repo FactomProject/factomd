@@ -516,6 +516,9 @@ func (dbsl *DBStateList) UnmarshalBinaryData(p []byte) (newData []byte, err erro
 	for i := 0; i < int(listLen); i++ {
 		dbs := new(DBState)
 		err = buf.PopBinaryMarshallable(dbs)
+		if dbs.SaveStruct.IdentityControl == nil {
+			fmt.Println("got here")
+		}
 		if err != nil {
 			dbsl.State.LogPrintf("dbstateprocess", "DBStateList.UnmarshalBinaryData (%d) err: %v", int(dbsl.Base)+i, err)
 			return
@@ -1737,6 +1740,7 @@ func (list *DBStateList) NewDBState(isNew bool,
 	eBlocks []interfaces.IEntryBlock,
 	entries []interfaces.IEBEntry) *DBState {
 	dbState := new(DBState)
+	dbState.Init() // Creat all the sub structor...
 
 	dbState.DBHash = directoryBlock.DatabasePrimaryIndex()
 	dbState.ABHash = adminBlock.DatabasePrimaryIndex()
@@ -1755,6 +1759,10 @@ func (list *DBStateList) NewDBState(isNew bool,
 
 	// If we actually add this to the list, return the dbstate.
 	if list.Put(dbState) {
+		if dbState.SaveStruct.IdentityControl == nil {
+			fmt.Println("got here")
+		}
+
 		return dbState
 	} else {
 		ht := dbState.DirectoryBlock.GetHeader().GetDBHeight()
@@ -1762,6 +1770,9 @@ func (list *DBStateList) NewDBState(isNew bool,
 			index := int(ht) - int(list.State.DBStates.Base)
 			if index > 0 {
 				list.State.DBStates.DBStates[index] = dbState
+				if dbState.SaveStruct.IdentityControl == nil {
+					fmt.Println("got here")
+				}
 				pdbs := list.State.DBStates.Get(int(ht - 1))
 				if pdbs != nil {
 					pdbs.SaveStruct.TrimBack(list.State, dbState)
