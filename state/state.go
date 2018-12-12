@@ -2199,7 +2199,7 @@ func (s *State) SetMessageFilterTimestamp(requestedTs interfaces.Timestamp) {
 
 	ts := new(primitives.Timestamp)
 	ts.SetTimestamp(requestedTs)
-
+	/// this is pointless since boot is always before now.
 	if ts.GetTimeMilli() < s.TimestampAtBoot.GetTimeMilli() {
 		ts.SetTimestamp(s.TimestampAtBoot)
 	}
@@ -2208,7 +2208,7 @@ func (s *State) SetMessageFilterTimestamp(requestedTs interfaces.Timestamp) {
 		ts.SetTimestamp(timenow)
 	}
 
-	if ts.GetTimeMilli() < s.LeaderTimestamp.GetTimeMilli() {
+	if s.MessageFilterTimestamp != nil && ts.GetTimeMilli() < s.MessageFilterTimestamp.GetTimeMilli() {
 		s.LogPrintf("executeMsg", "Set MessageFilterTimestamp attempt to move backward in time from %s", atomic.WhereAmIString(1))
 		ts.SetTimestamp(s.LeaderTimestamp)
 	}
@@ -2223,7 +2223,7 @@ func (s *State) SetLeaderTimestamp(ts interfaces.Timestamp) {
 	if s.LeaderTimestamp == nil {
 		s.LeaderTimestamp = primitives.NewTimestampFromMilliseconds(uint64(ts.GetTimeMilli()))
 	} else {
-		s.LeaderTimestamp.SetTimestamp(ts)
+		s.LeaderTimestamp = primitives.NewTimestampFromMilliseconds(ts.GetTimeMilliUInt64())
 	}
 	s.SetMessageFilterTimestamp(ts)
 }

@@ -325,7 +325,7 @@ func (e *Entry) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	}
 
 	// ExtIDs
-	for i := int16(extSize); i > 0; {
+	for i := int(extSize); i > 0; {
 		var xsize int16
 		binary.Read(buf, binary.BigEndian, &xsize)
 		i -= 2
@@ -357,7 +357,7 @@ func (e *Entry) UnmarshalBinaryData(data []byte) ([]byte, error) {
 				return nil, err
 			}
 			e.ExtIDs = append(e.ExtIDs, ex)
-			i -= int16(n)
+			i -= n
 			if i < 0 {
 				err = fmt.Errorf("Error parsing external IDs")
 				return nil, err
