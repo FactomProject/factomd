@@ -54,6 +54,9 @@ func Factomd(params *FactomParams, listenToStdin bool) interfaces.IState {
 
 	state0 := new(state.State)
 	state0.IsRunning = true
+	// Setup the name to catch any early logging
+
+	state0.FactomNodeName = state0.Prefix + "FNode0"
 	state0.TimestampAtBoot = primitives.NewTimestampNow()
 	state0.SetLeaderTimestamp(state0.TimestampAtBoot)
 	state0.SetMessageFilterTimestamp(state0.TimestampAtBoot)

@@ -2217,6 +2217,7 @@ func (s *State) SetMessageFilterTimestamp(requestedTs interfaces.Timestamp) {
 
 	s.MessageFilterTimestamp = primitives.NewTimestampFromMilliseconds(ts.GetTimeMilliUInt64())
 }
+
 func (s *State) SetLeaderTimestamp(ts interfaces.Timestamp) {
 	s.LogPrintf("executeMsg", "Set SetLeaderTimestamp(%s) @ dbht %d for %s", ts.String(), s.LLeaderHeight, atomic.WhereAmIString(1))
 	if s.LeaderTimestamp == nil {

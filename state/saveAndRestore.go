@@ -347,7 +347,7 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 	}
 	state.ECBalancesPMutex.Unlock()
 
-	ss.IdentityControl = state.IdentityControl
+	ss.IdentityControl = state.IdentityControl.Clone()
 	ss.AuthorityServerCount = state.AuthorityServerCount
 
 	ss.LLeaderHeight = state.LLeaderHeight
