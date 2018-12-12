@@ -327,7 +327,6 @@ func (dbs *DBState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 		return
 	}
 
-	dbs.SaveStruct = SaveStruct // OK, this worked so keep the save struct
 	newData = b.DeepCopyBytes()
 	return
 }
@@ -1152,7 +1151,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	// the "d.saved = true" above
 	if list.State.StateSaverStruct.FastBoot {
 		d.SaveStruct = SaveFactomdState(list.State, d)
-		err := list.State.StateSaverStruct.SaveDBStateList(list.State.DBStates, list.State.Network)
+		err := list.State.StateSaverStruct.SaveDBStateList(list.State, list.State.DBStates, list.State.Network)
 
 		list.State.LogPrintf("dbstateprocess", "Error while saving Fastboot %v", err)
 	}
@@ -1737,7 +1736,6 @@ func (list *DBStateList) NewDBState(isNew bool,
 	eBlocks []interfaces.IEntryBlock,
 	entries []interfaces.IEBEntry) *DBState {
 	dbState := new(DBState)
-
 	dbState.DBHash = directoryBlock.DatabasePrimaryIndex()
 	dbState.ABHash = adminBlock.DatabasePrimaryIndex()
 	dbState.FBHash = factoidBlock.DatabasePrimaryIndex()

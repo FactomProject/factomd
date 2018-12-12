@@ -32,7 +32,7 @@ func (sss *StateSaverStruct) StopSaving() {
 	sss.Stop = true
 }
 
-func (sss *StateSaverStruct) SaveDBStateList(ss *DBStateList, networkName string) error {
+func (sss *StateSaverStruct) SaveDBStateList(s *State, ss *DBStateList, networkName string) error {
 	//For now, to file. Later - to DB
 	if sss.Stop == true {
 		return nil
@@ -49,7 +49,7 @@ func (sss *StateSaverStruct) SaveDBStateList(ss *DBStateList, networkName string
 	defer sss.Mutex.Unlock()
 	//Actually save data from previous cached state to prevent dealing with rollbacks
 	if len(sss.TmpState) > 0 {
-		err := SaveToFile(sss.TmpDBHt, sss.TmpState, NetworkIDToFilename(networkName, sss.FastBootLocation))
+		err := SaveToFile(s, sss.TmpDBHt, sss.TmpState, NetworkIDToFilename(networkName, sss.FastBootLocation))
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "SaveState SaveToFile Failed", err)
 			return err
@@ -93,10 +93,10 @@ func (sss *StateSaverStruct) DeleteSaveState(networkName string) error {
 	return DeleteFile(NetworkIDToFilename(networkName, sss.FastBootLocation))
 }
 
-func (sss *StateSaverStruct) LoadDBStateList(statelist *DBStateList, networkName string) error {
+func (sss *StateSaverStruct) LoadDBStateList(s *State, statelist *DBStateList, networkName string) error {
 	filename := NetworkIDToFilename(networkName, sss.FastBootLocation)
 	fmt.Println(statelist.State.FactomNodeName, "Loading from", filename)
-	b, err := LoadFromFile(filename)
+	b, err := LoadFromFile(s, filename)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "LoadDBStateList error:", err)
 		return err
@@ -142,21 +142,21 @@ func NetworkIDToFilename(networkName string, fileLocation string) string {
 	return file
 }
 
-func SaveToFile(dbht uint32, b []byte, filename string) error {
-	fmt.Fprintf(os.Stderr, "Saving %s for dbht %d\n", filename, dbht)
+func SaveToFile(s *State, dbht uint32, b []byte, filename string) error {
+	fmt.Fprintf(os.Stderr, "%20s Saving %s for dbht %d\n", s.FactomNodeName, filename, dbht)
 	err := ioutil.WriteFile(filename, b, 0644)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "%20s Saving FailrueError: %v\n", s.FactomNodeName, err)
 		return err
 	}
 	return nil
 }
 
-func LoadFromFile(filename string) ([]byte, error) {
-	fmt.Fprintf(os.Stderr, "Load state from %s\n", filename)
+func LoadFromFile(s *State, filename string) ([]byte, error) {
+	fmt.Fprintf(os.Stderr, "%20s Load state from %s\n", s.FactomNodeName, filename)
 	b, err := ioutil.ReadFile(filename)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "LoadFromFile error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "%20s LoadFromFile error: %v\n", s.FactomNodeName, err)
 		return nil, err
 	}
 	return b, nil

@@ -578,9 +578,9 @@ func (im *IdentityManager) Clone() *IdentityManager {
 	}
 
 	b.MaxAuthorityServerCount = im.MaxAuthorityServerCount
-	for k, v := range im.OldEntries {
-		copy := *v
-		b.OldEntries[k] = &copy
+	b.OldEntries = b.OldEntries[:0]
+	for _, v := range im.OldEntries {
+		b.OldEntries = append(b.OldEntries, v)
 	}
 
 	b.IdentityRegistrations = make(map[[32]byte]*identityEntries.RegisterFactomIdentityStructure, len(im.IdentityRegistrations))

@@ -1066,7 +1066,7 @@ func (s *State) Init() {
 			//This is to ensure we don't accidentally keep SaveState while deleting a database
 			s.StateSaverStruct.DeleteSaveState(s.Network)
 		} else {
-			err = s.StateSaverStruct.LoadDBStateList(s.DBStates, s.Network)
+			err = s.StateSaverStruct.LoadDBStateList(s, s.DBStates, s.Network)
 			if err != nil {
 				s.StateSaverStruct.DeleteSaveState(s.Network)
 				s.LogPrintf("faulting", "Database load failed %v", err)
