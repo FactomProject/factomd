@@ -1143,6 +1143,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	}
 
 	tbh := list.State.FactoidState.GetBalanceHash(true) // recompute temp balance hash here
+	fs.(*FactoidState).DBHeight = list.State.GetDirectoryBlock().GetHeader().GetDBHeight()
 	list.State.Balancehash = fs.GetBalanceHash(false)
 
 	list.State.LogPrintf("dbstateprocess", "ProcessBlock(%d) BalanceHash P %x T %x", dbht, list.State.Balancehash.Bytes()[0:4], tbh.Bytes()[0:4])
@@ -1151,11 +1152,11 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	// the "d.saved = true" above
 	if list.State.StateSaverStruct.FastBoot {
 		d.SaveStruct = SaveFactomdState(list.State, d)
-		if d.SaveStruct != nil {
-			err := list.State.StateSaverStruct.SaveDBStateList(list.State.DBStates, list.State.Network)
-			list.State.LogPrintf("dbstateprocess", "Error while saving Fastboot %v", err)
-		}
+		err := list.State.StateSaverStruct.SaveDBStateList(list.State.DBStates, list.State.Network)
+
+		list.State.LogPrintf("dbstateprocess", "Error while saving Fastboot %v", err)
 	}
+
 	// All done with this block move to the next height if we are loading by blocks
 	if s.LLeaderHeight == dbht {
 		// if we are following by blocks then this move us forward but if we are following by minutes the
