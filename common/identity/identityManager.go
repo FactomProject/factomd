@@ -578,6 +578,7 @@ func (im *IdentityManager) Clone() *IdentityManager {
 	}
 
 	b.MaxAuthorityServerCount = im.MaxAuthorityServerCount
+	b.OldEntries = make([]*OldEntry, len(im.OldEntries))
 	for k, v := range im.OldEntries {
 		copy := *v
 		b.OldEntries[k] = &copy
