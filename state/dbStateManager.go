@@ -35,7 +35,7 @@ var _ = log.Print
 type DBState struct {
 	IsNew bool
 
-	SaveStruct    *SaveState
+	SaveStruct *SaveState
 
 	DBHash interfaces.IHash
 	ABHash interfaces.IHash
@@ -1151,9 +1151,9 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	// the "d.saved = true" above
 	if list.State.StateSaverStruct.FastBoot {
 		d.SaveStruct = SaveFactomdState(list.State, d)
-			err := list.State.StateSaverStruct.SaveDBStateList(list.State.DBStates, list.State.Network)
-			list.State.LogPrintf("dbstateprocess", "Error while saving Fastboot %v", err)
-		}
+		err := list.State.StateSaverStruct.SaveDBStateList(list.State.DBStates, list.State.Network)
+		list.State.LogPrintf("dbstateprocess", "Error while saving Fastboot %v", err)
+	}
 
 	// All done with this block move to the next height if we are loading by blocks
 	if s.LLeaderHeight == dbht {
