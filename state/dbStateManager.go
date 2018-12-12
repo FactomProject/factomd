@@ -65,7 +65,6 @@ type DBState struct {
 var _ interfaces.BinaryMarshallable = (*DBState)(nil)
 
 func (dbs *DBState) Init() {
-
 	if dbs.SaveStruct == nil {
 		dbs.SaveStruct = new(SaveState)
 		dbs.SaveStruct.Init()
@@ -278,7 +277,6 @@ func (dbs *DBState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 
 	SaveStruct := new(SaveState)
 	SaveStruct.Init()
-
 	err = b.PopBinaryMarshallable(SaveStruct)
 	if err != nil {
 		return
@@ -1145,6 +1143,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	}
 
 	tbh := list.State.FactoidState.GetBalanceHash(true) // recompute temp balance hash here
+	fs.(*FactoidState).DBHeight = list.State.GetDirectoryBlock().GetHeader().GetDBHeight()
 	list.State.Balancehash = fs.GetBalanceHash(false)
 
 	list.State.LogPrintf("dbstateprocess", "ProcessBlock(%d) BalanceHash P %x T %x", dbht, list.State.Balancehash.Bytes()[0:4], tbh.Bytes()[0:4])
@@ -1153,7 +1152,8 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	// the "d.saved = true" above
 	if list.State.StateSaverStruct.FastBoot {
 		d.SaveStruct = SaveFactomdState(list.State, d)
-		err := list.State.StateSaverStruct.SaveDBStateList(list.State.DBStates, list.State.Network)
+		err := list.State.StateSaverStruct.SaveDBStateList(list.State, list.State.DBStates, list.State.Network)
+
 		list.State.LogPrintf("dbstateprocess", "Error while saving Fastboot %v", err)
 	}
 

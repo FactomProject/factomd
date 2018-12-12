@@ -1056,7 +1056,12 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	}
 
 	//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s Clear SigType follower execute DBState:  !s.SigType(%v)", s.FactomNodeName, s.SigType))
+	s.EOM = false
+	s.EOMDone = false
+	s.DBSig = false
+	s.DBSigDone = false
 	s.Saving = true
+	s.Syncing = false
 
 	// Hurry up our next ask.  When we get to where we have the data we asked for, then go ahead and ask for the next set.
 	if s.DBStates.LastEnd < int(dbheight) {
@@ -1074,7 +1079,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 			dbstate.SaveStruct = SaveFactomdState(s, dbstate)
 
 			if dbstate.SaveStruct != nil {
-				err := s.StateSaverStruct.SaveDBStateList(s.DBStates, s.Network)
+				err := s.StateSaverStruct.SaveDBStateList(s, s.DBStates, s.Network)
 				if err != nil {
 					s.LogPrintf("dbstateprocess", "Error trying to save a DBStateList %v", err)
 				}
@@ -2139,8 +2144,39 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 		//fmt.Println(fmt.Sprintf("ProcessDBSig(): %10s Process the %d DBSig: %v", s.FactomNodeName, s.DBSigProcessed, dbs.String()))
 		if dbs.VMIndex == 0 {
-			//fmt.Println(fmt.Sprintf("ProcessDBSig(): %10s Set Leader Timestamp to: %v %d", s.FactomNodeName, dbs.GetTimestamp().String(), dbs.GetTimestamp().GetTimeMilli()))
-			s.SetLeaderTimestamp(dbs.GetTimestamp())
+			dbsMilli := dbs.Timestamp.GetTimeMilliUInt64()
+			fs := s.FactoidState.(*FactoidState)
+			s.LogPrintf("dbsig", "1st ProcessDBSig(): %10s DBSig dbht %d leaderheight %d VMIndex %d Timestamp %x %d, leadertimestamp = %x %d",
+				s.FactomNodeName, dbs.DBHeight, s.LLeaderHeight, dbs.VMIndex, dbs.GetTimestamp().GetTimeMilli(), dbs.GetTimestamp().GetTimeMilli(), s.LeaderTimestamp.GetTimeMilliUInt64(), s.LeaderTimestamp.GetTimeMilliUInt64())
+
+			cbtx := fs.GetCurrentBlock().(*factoid.FBlock).Transactions[0].(*factoid.Transaction)
+
+			foo := cbtx.MilliTimestamp
+			lts := s.LeaderTimestamp.GetTimeMilliUInt64()
+			s.LogPrintf("dbsig", "ProcessDBSig(): first  cbtx before %d dbsig %d lts %d", foo, dbsMilli, lts)
+
+			s.LeaderTimestamp = primitives.NewTimestampFromMilliseconds(dbsMilli)
+
+			uInt64_3 := dbs.GetTimestamp().GetTimeMilliUInt64()
+			foo_3 := cbtx.MilliTimestamp
+			lts_3 := s.LeaderTimestamp.GetTimeMilliUInt64()
+			s.LogPrintf("dbsig", "ProcessDBSig(): second cbtx before %d dbsig %d lts %d", foo_3, uInt64_3, lts_3)
+			s.LogPrintf("dbsig", "ProcessDBSig(): p cbtx %p dbsig %p lts %p", cbtx.GetTimestamp().(*primitives.Timestamp), dbs.GetTimestamp().(*primitives.Timestamp), s.LeaderTimestamp.(*primitives.Timestamp))
+
+			txt, _ := cbtx.CustomMarshalText()
+			s.LogPrintf("dbsig", "ProcessDBSig(): coinbase before %s", string(txt))
+
+			uInt64 := dbs.GetTimestamp().GetTimeMilliUInt64()
+
+			foo2 := cbtx.MilliTimestamp
+			cbtx.MilliTimestamp = dbsMilli
+			s.LogPrintf("dbsig", "ProcessDBSig(): cbtx before %d dbsig %d cbtx after %d", foo2, uInt64, cbtx.MilliTimestamp)
+
+			txt, _ = cbtx.CustomMarshalText()
+			s.LogPrintf("dbsig", "ProcessDBSig(): coinbase after  %s", string(txt))
+
+			s.LogPrintf("dbsig", "ProcessDBSig(): 2nd ProcessDBSig(): %10s DBSig dbht %d leaderheight %d VMIndex %d Timestamp %x %d, leadertimestamp = %x %d",
+				s.FactomNodeName, dbs.DBHeight, s.LLeaderHeight, dbs.VMIndex, dbs.GetTimestamp().GetTimeMilli(), dbs.GetTimestamp().GetTimeMilli(), s.LeaderTimestamp.GetTimeMilliUInt64(), s.LeaderTimestamp.GetTimeMilliUInt64())
 		}
 
 		dblk, err := s.DB.FetchDBlockByHeight(dbheight - 1)
