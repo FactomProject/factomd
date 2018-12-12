@@ -79,8 +79,8 @@ func getTraceFile(name string) (f *os.File) {
 		if os.IsNotExist(err) {
 			// The file was deleted out from under us
 			f.Close() // close the old log
+			f = nil   // make the code reopen the file
 		}
-		f = nil // make the code reopen the file
 	}
 	if f == nil {
 		fmt.Println("Creating " + name)
