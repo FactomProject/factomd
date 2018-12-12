@@ -65,11 +65,11 @@ type DBState struct {
 var _ interfaces.BinaryMarshallable = (*DBState)(nil)
 
 func (dbs *DBState) Init() {
-	/*
-		if dbs.SaveStruct == nil {
-			dbs.SaveStruct = new(SaveState)
-		}
-	*/
+
+	if dbs.SaveStruct == nil {
+		dbs.SaveStruct = new(SaveState)
+		dbs.SaveStruct.Init()
+	}
 
 	if dbs.DBHash == nil {
 		dbs.DBHash = primitives.NewZeroHash()
@@ -277,6 +277,8 @@ func (dbs *DBState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 	dbs.IsNew = false
 
 	SaveStruct := new(SaveState)
+	SaveStruct.Init()
+
 	err = b.PopBinaryMarshallable(SaveStruct)
 	if err != nil {
 		return
