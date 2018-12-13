@@ -1077,9 +1077,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	//d := dbstate
 	//if dbstatemsg.IsLocal() {
 	//	if s.StateSaverStruct.FastBoot && d.DirectoryBlock.GetHeader().GetDBHeight() != 0 {
-	//		fmt.Printf("before dbht %d:%p save %p id %p\n", d.DirectoryBlock.GetHeader().GetDBHeight(), d, d.SaveStruct, d.SaveStruct.IdentityControl)
 	//		dbstate.SaveStruct = SaveFactomdState(s, dbstate)
-	//		fmt.Printf("after dbht %d:%p save %p id %p\n", d.DirectoryBlock.GetHeader().GetDBHeight(), d, d.SaveStruct, d.SaveStruct.IdentityControl)
 	//
 	//		if dbstate.SaveStruct != nil {
 	//			err := s.StateSaverStruct.SaveDBStateList(s, s.DBStates, s.Network)

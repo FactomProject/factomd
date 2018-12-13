@@ -68,7 +68,6 @@ var _ interfaces.BinaryMarshallable = (*DBState)(nil)
 
 func (dbs *DBState) Init() {
 	d := dbs
-	//	fmt.Printf("before2 dbht %d:%p save %p id %p\n", d.DirectoryBlock.GetHeader().GetDBHeight(), d, d.SaveStruct, d.SaveStruct.IdentityControl)
 
 	if dbs.SaveStruct == nil {
 		dbs.SaveStruct = new(SaveState)
@@ -110,7 +109,6 @@ func (dbs *DBState) Init() {
 	if dbs.NextTimestamp == nil {
 		dbs.NextTimestamp = primitives.NewTimestampFromMilliseconds(0)
 	}
-	fmt.Printf("after2 dbht %d:%p save %p id %p\n", d.DirectoryBlock.GetHeader().GetDBHeight(), d, d.SaveStruct, d.SaveStruct.IdentityControl)
 }
 
 func (a *DBState) IsSameAs(b *DBState) bool {
@@ -341,9 +339,7 @@ func (dbs *DBState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 	}
 
 	d := dbs
-	fmt.Printf("before1 dbht %d:%p save %p id %p\n", d.DirectoryBlock.GetHeader().GetDBHeight(), d, d.SaveStruct, d.SaveStruct.IdentityControl)
 	dbs.SaveStruct = SaveStruct // OK, this worked so keep the save struct
-	fmt.Printf("after1  dbht %d:%p save %p id %p\n", d.DirectoryBlock.GetHeader().GetDBHeight(), d, d.SaveStruct, d.SaveStruct.IdentityControl)
 
 	if dbs.SaveStruct.IdentityControl == nil {
 		atomic.WhereAmIMsg("no identity manager")
@@ -1176,9 +1172,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	// the "d.saved = true" above
 	if list.State.StateSaverStruct.FastBoot && d.DirectoryBlock.GetHeader().GetDBHeight() != 0 {
 
-		fmt.Printf("before3 dbht %d:%p save %p id %p\n", d.DirectoryBlock.GetHeader().GetDBHeight(), d, d.SaveStruct, d.SaveStruct.IdentityControl)
 		d.SaveStruct = SaveFactomdState(list.State, d)
-		fmt.Printf("after3  dbht %d:%p save %p id %p\n", d.DirectoryBlock.GetHeader().GetDBHeight(), d, d.SaveStruct, d.SaveStruct.IdentityControl)
 		err := list.State.StateSaverStruct.SaveDBStateList(list.State, list.State.DBStates, list.State.Network)
 		if err != nil {
 			list.State.LogPrintf("dbstateprocess", "Error while saving Fastboot %v", err)
@@ -1624,8 +1618,6 @@ func (list *DBStateList) UpdateState() (progress bool) {
 				}
 				l += fmt.Sprintf("%d%s, ", d.DirectoryBlock.GetHeader().GetDBHeight(), string(status))
 			}
-			fmt.Printf("dbht %d:%p save %p id %p\n", d.DirectoryBlock.GetHeader().GetDBHeight(), d, d.SaveStruct, d.SaveStruct.IdentityControl)
-
 		}
 		l += "]"
 		s.LogPrintf("dbstateprocess", "updateState() %d %s", list.Base, l)

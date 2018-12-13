@@ -322,15 +322,15 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 		return nil
 	}
 
-	// ToDo: Get paul to explain why he thinks this?
-	//Only check if we're not loading from the database
-	if state.DBFinished == true {
-		// If the timestamp is over a day old, then there is really no point in saving the state of
-		// historical data.
-		if int(state.GetHighestKnownBlock())-int(state.GetHighestSavedBlk()) > 144 {
-			return nil
-		}
-	}
+	//// ToDo: Get paul to explain why he thinks this?
+	////Only check if we're not loading from the database
+	//if state.DBFinished == true {
+	//	// If the timestamp is over a day old, then there is really no point in saving the state of
+	//	// historical data.
+	//	if int(state.GetHighestKnownBlock())-int(state.GetHighestSavedBlk()) > 144 {
+	//		return nil
+	//	}
+	//}
 
 	ss = new(SaveState)
 	ss.Init()
@@ -338,7 +338,7 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 		atomic.WhereAmIMsg("no identity manager")
 	}
 
-	// clone the IdentyControl for this savestate
+	// clone the IdentityControl for this savestate
 	ss.IdentityControl = state.IdentityControl.Clone()
 	if ss.IdentityControl == nil {
 		atomic.WhereAmIMsg("no identity manager")
