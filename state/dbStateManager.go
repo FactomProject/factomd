@@ -67,8 +67,6 @@ type DBState struct {
 var _ interfaces.BinaryMarshallable = (*DBState)(nil)
 
 func (dbs *DBState) Init() {
-	d := dbs
-
 	if dbs.SaveStruct == nil {
 		dbs.SaveStruct = new(SaveState)
 		dbs.SaveStruct.Init()
@@ -338,7 +336,6 @@ func (dbs *DBState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 		return
 	}
 
-	d := dbs
 	dbs.SaveStruct = SaveStruct // OK, this worked so keep the save struct
 
 	if dbs.SaveStruct.IdentityControl == nil {
