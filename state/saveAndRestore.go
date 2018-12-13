@@ -348,6 +348,9 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 	state.ECBalancesPMutex.Unlock()
 
 	ss.IdentityControl = state.IdentityControl.Clone()
+	if ss.IdentityControl == nil {
+		atomic.WhereAmI()
+	}
 	ss.AuthorityServerCount = state.AuthorityServerCount
 
 	ss.LLeaderHeight = state.LLeaderHeight

@@ -14,6 +14,8 @@ import (
 
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/globals"
+	"github.com/FactomProject/factomd/util/atomic"
+
 	// "github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
@@ -517,7 +519,7 @@ func (dbsl *DBStateList) UnmarshalBinaryData(p []byte) (newData []byte, err erro
 		dbs := new(DBState)
 		err = buf.PopBinaryMarshallable(dbs)
 		if dbs.SaveStruct.IdentityControl == nil {
-			fmt.Println("got here")
+			atomic.WhereAmIMsg("no identity control")
 		}
 		if err != nil {
 			dbsl.State.LogPrintf("dbstateprocess", "DBStateList.UnmarshalBinaryData (%d) err: %v", int(dbsl.Base)+i, err)
@@ -1717,6 +1719,9 @@ searchLoop:
 		list.DBStates = append(list.DBStates, nil)
 	}
 	list.DBStates[index] = dbState
+	if dbState.SaveStruct.IdentityControl == nil {
+		atomic.WhereAmIMsg("no identity control")
+	}
 
 	return true
 }
@@ -1760,7 +1765,7 @@ func (list *DBStateList) NewDBState(isNew bool,
 	// If we actually add this to the list, return the dbstate.
 	if list.Put(dbState) {
 		if dbState.SaveStruct.IdentityControl == nil {
-			fmt.Println("got here")
+			atomic.WhereAmIMsg("no identity control")
 		}
 
 		return dbState
@@ -1771,7 +1776,7 @@ func (list *DBStateList) NewDBState(isNew bool,
 			if index > 0 {
 				list.State.DBStates.DBStates[index] = dbState
 				if dbState.SaveStruct.IdentityControl == nil {
-					fmt.Println("got here")
+					atomic.WhereAmIMsg("no identity control")
 				}
 				pdbs := list.State.DBStates.Get(int(ht - 1))
 				if pdbs != nil {
