@@ -295,8 +295,7 @@ func UnmarshalEntry(data []byte) (interfaces.IEBEntry, error) {
 	return entry, nil
 }
 
-func (e *Entry) UnmarshalBinaryData(data []byte) ([]byte, error) {
-	var err error
+func (e *Entry) UnmarshalBinaryData(data []byte) (_ []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
