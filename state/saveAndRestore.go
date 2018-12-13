@@ -134,8 +134,15 @@ func (ss *SaveState) Init() {
 	if ss.IdentityControl == nil {
 		ss.IdentityControl = NewIdentityManager()
 	}
+	if ss.IdentityControl == nil {
+		atomic.WhereAmIMsg("no identity manager")
+	}
 
 	ss.IdentityControl.Init()
+
+	if ss.IdentityControl == nil {
+		atomic.WhereAmIMsg("no identity manager")
+	}
 
 }
 
@@ -303,19 +310,19 @@ func (a *SaveState) IsSameAs(b *SaveState) bool {
 func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 	state.LogPrintf("dbstateprocess", "SaveFactomdState(%d) called from %s", d.DirectoryBlock.GetHeader().GetDBHeight(), atomic.WhereAmIString(1))
 
-	ss = new(SaveState)
-	ss.DBHeight = d.DirectoryBlock.GetHeader().GetDBHeight()
-	pl := state.ProcessLists.Get(ss.DBHeight)
-
+	dbht := d.DirectoryBlock.GetHeader().GetDBHeight()
 	// Need to ensure the dbstate is at the same height as the state.
-	if ss.DBHeight != state.LLeaderHeight {
+	if dbht != state.LLeaderHeight {
 		//os.Stderr.WriteString(fmt.Sprintf("%10s dbht mismatch %d %d\n", state.GetFactomNodeName(), ss.DBHeight, state.LLeaderHeight))
-		return
+		return nil
 	}
+
+	pl := state.ProcessLists.Get(dbht)
 	if pl == nil {
 		return nil
 	}
 
+	// ToDo: Get paul to explain why he thinks this?
 	//Only check if we're not loading from the database
 	if state.DBFinished == true {
 		// If the timestamp is over a day old, then there is really no point in saving the state of
@@ -324,6 +331,20 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 			return nil
 		}
 	}
+
+	ss = new(SaveState)
+	ss.Init()
+	if ss.IdentityControl == nil {
+		atomic.WhereAmIMsg("no identity manager")
+	}
+
+	// clone the IdentyControl for this savestate
+	ss.IdentityControl = state.IdentityControl.Clone()
+	if ss.IdentityControl == nil {
+		atomic.WhereAmIMsg("no identity manager")
+	}
+
+	ss.DBHeight = dbht
 
 	// state.AddStatus(fmt.Sprintf("Save state at dbht: %d", ss.DBHeight))
 
@@ -349,8 +370,9 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 
 	ss.IdentityControl = state.IdentityControl.Clone()
 	if ss.IdentityControl == nil {
-		atomic.WhereAmI()
+		atomic.WhereAmIMsg("no identity manager")
 	}
+
 	ss.AuthorityServerCount = state.AuthorityServerCount
 
 	ss.LLeaderHeight = state.LLeaderHeight
@@ -412,8 +434,11 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 			panic(err)
 		}
 	*/
+	if ss.IdentityControl == nil {
+		atomic.WhereAmIMsg("no identity manager")
+	}
 
-	return
+	return ss
 }
 
 func (ss *SaveState) TrimBack(s *State, d *DBState) {
@@ -633,11 +658,13 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 	s.ECBalancesPMutex.Unlock()
 
 	// Restore IDControl
+	// TODO: Should this clone?
 	s.IdentityControl = ss.IdentityControl
+	if s.IdentityControl == nil {
+		atomic.WhereAmIMsg("Missing IdentityControl")
+	}
 
 	s.AuthorityServerCount = ss.AuthorityServerCount
-
-	s.IdentityControl = ss.IdentityControl
 
 	if ss.CurrentMinute != 0 {
 		s.LogPrintf("executeMsg", "unexpected ss.CurrentMinute=%d  %s", ss.CurrentMinute, atomic.WhereAmIString(0))
