@@ -55,6 +55,7 @@ func NewEncryptedDB(filename, dbtype, password string) (*EncryptedDB, error) {
 
 	err := e.initSecureDB(password)
 	if err != nil {
+		e.Close()
 		return nil, err
 	}
 

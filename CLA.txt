@@ -36,3 +36,4 @@ Sam Barnes                                 sambarnes                            
 Michael Beam                               michaelbeam                                  Factom Inc.
 Joshua Brigati                             JoshuaBrigati                                Factom Inc.
 Samuel Vanderwaal                          samuelvanderwaal                             Canonical Ledgers
+Adam S Levy                                AdamSLevy                                    Canonical Ledgers, LLC
