@@ -322,16 +322,6 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 		return nil
 	}
 
-	//// ToDo: Get paul to explain why he thinks this?
-	////Only check if we're not loading from the database
-	//if state.DBFinished == true {
-	//	// If the timestamp is over a day old, then there is really no point in saving the state of
-	//	// historical data.
-	//	if int(state.GetHighestKnownBlock())-int(state.GetHighestSavedBlk()) > 144 {
-	//		return nil
-	//	}
-	//}
-
 	ss = new(SaveState)
 	ss.Init()
 	if ss.IdentityControl == nil {
@@ -353,6 +343,7 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 
 	ss.FedServers = append(ss.FedServers, pl.FedServers...)
 	ss.AuditServers = append(ss.AuditServers, pl.AuditServers...)
+	state.LogPrintf("dbstateprocess", "SaveFactomdState(%d) saving  %d/%d authset", d.DirectoryBlock.GetHeader().GetDBHeight(), len(ss.FedServers), len(ss.AuditServers))
 
 	state.FactoidBalancesPMutex.Lock()
 	ss.FactoidBalancesP = make(map[[32]byte]int64, len(state.FactoidBalancesP))

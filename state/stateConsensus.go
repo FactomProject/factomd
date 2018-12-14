@@ -1705,7 +1705,7 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) (worked b
 func (s *State) CreateDBSig(dbheight uint32, vmIndex int) (interfaces.IMsg, interfaces.IMsg) {
 	dbstate := s.DBStates.Get(int(dbheight - 1))
 	if dbstate == nil && dbheight > 0 {
-		s.LogPrintf("executeMsg", "Can not create DBSig because %d because there is no dbstate", dbheight)
+		s.LogPrintf("executeMsg", "CreateDBSig:Can not create DBSig because %d because there is no dbstate", dbheight)
 		return nil, nil
 	}
 	dbs := new(messages.DirectoryBlockSignature)

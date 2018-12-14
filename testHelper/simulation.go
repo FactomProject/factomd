@@ -220,7 +220,7 @@ func WaitForAllNodes(state *state.State) {
 		h := int(s.LLeaderHeight*10) + s.CurrentMinute
 
 		if !s.GetNetStateOff() && h < target { // if not caught up, start over
-			fmt.Println("Waiting on ", i)
+			fmt.Printf("WaitForAllNodes: Waiting on FNode%2d\n", i)
 			time.Sleep(100 * time.Millisecond)
 			i--
 		}

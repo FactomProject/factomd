@@ -1006,6 +1006,9 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	//
 	//list.State.AddStatus(fmt.Sprintf("PROCESSBLOCKS:  Processing Admin Block at dbht: %d", d.AdminBlock.GetDBHeight()))
 	err := d.AdminBlock.UpdateState(list.State)
+
+	s.LogPrintf("dbstateprocess", "ProcessBlocks(%d) after update auth %d/%d ", dbht, len(pl.FedServers), len(pl.AuditServers))
+
 	if err != nil {
 		panic(err)
 	}
@@ -1181,6 +1184,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		// if we are following by blocks then this move us forward but if we are following by minutes the
 		// code in ProcessEOM for minute 10 will have moved us forward
 		s.MoveStateToHeight(dbht+1, 0)
+		// todo: is there a reason not to do this in MoveStateToHeight?
 		fs.(*FactoidState).DBHeight = dbht + 1
 	}
 
@@ -1214,7 +1218,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		////}
 		//s.LogMessage("dbstateprocess", "currentminute=10", dbs)
 		//s.LogPrintf("dbstateprocess", d.String())
-		//pldbs.DBSigAlreadySent = true
+		pldbs.DBSigAlreadySent = true
 		//
 		//s.LogMessage("executeMsg", "LeaderExec2", dbs)
 		//dbs.LeaderExecute(s)
