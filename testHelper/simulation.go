@@ -373,7 +373,7 @@ func CheckAuthoritySet(t *testing.T) {
 
 func RunCmd(cmd string) {
 	os.Stdout.WriteString("Executing: " + cmd + "\n")
-	engine.InputChan <- cmd
+	globals.InputChan <- cmd
 	return
 }
 

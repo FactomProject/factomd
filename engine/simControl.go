@@ -17,6 +17,8 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/FactomProject/factomd/common/globals"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/identity"
@@ -43,9 +45,9 @@ var loadGenerator *LoadGenerator
 // Used for signing messages
 var LOCAL_NET_PRIV_KEY string = "4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d"
 
-var InputChan = make(chan string) // Get commands here
-
 var once bool
+
+//var InputChan = make(chan string)
 
 func GetLine(listenToStdin bool) string {
 
@@ -61,7 +63,7 @@ func GetLine(listenToStdin bool) string {
 				// So, we will sleep before letting it check to see if Stdin has been reconnected
 				for {
 					if _, err = os.Stdin.Read(line); err == nil {
-						InputChan <- string(line)
+						globals.InputChan <- string(line)
 					} else {
 						if err == io.EOF {
 							return
@@ -75,8 +77,10 @@ func GetLine(listenToStdin bool) string {
 			} // forever
 		}()
 	}
+	//fmt.Println("globals.InputChan ", <-InputChan)
+	line := <-globals.InputChan
 
-	line := <-InputChan
+	//fmt.Println("line ", line)
 	return line
 }
 
@@ -112,7 +116,6 @@ func SimControl(listenTo int, listenStdin bool) {
 		}
 		// cmd is not a list of the parameters, much like command line args show up in args[]
 		cmd := strings.FieldsFunc(GetLine(listenStdin), parseFunc)
-		// fmt.Printf("Parsing command, found %d elements.  The first element is: %+v / %s \n Full command: %+v\n", len(cmd), b[0], string(b), cmd)
 
 		switch {
 		case 0 < len(cmd):
@@ -126,6 +129,7 @@ func SimControl(listenTo int, listenStdin bool) {
 			}
 		}
 		b := string(cmd[0])
+		//fmt.Printf("Parsing command, found %d elements.  The first element is: %+v / %s \n Full command: %+v\n", len(cmd), b[0], string(b), cmd)
 
 		v, err := strconv.Atoi(string(b))
 		if err == nil && v >= 0 && v < len(fnodes) && fnodes[ListenTo].State != nil {
