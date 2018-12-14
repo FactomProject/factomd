@@ -1491,7 +1491,7 @@ func TestSaveState2(t *testing.T) {
 
 	// remove fnode02's fastboot and fnode01's whole database
 	SystemCall("rm -vfr test/.factom/m2/local-database/ldb/Sim02/LOCAL/  test/.factom/m2/local-database/ldb/Sim01/FastBoot_LOCAL_v10.db")
-	state0 := SetupSim("FFFF", map[string]string{"--debuglog": ".", "--fastsaverate": "4", "--db": "LDB", "--factomhome": "test", "--blksize": "20"}, 20, 0, 0, t)
+	state0 := SetupSim("FFFF", map[string]string{"--debuglog": ".", "--fastsaverate": "4", "--db": "LDB", "--factomhome": "test", "--blktime": "20"}, 20, 0, 0, t)
 
 	// check we booted from database to the right state
 	Audits = 1
