@@ -14,6 +14,8 @@ import (
 
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/globals"
+	"github.com/FactomProject/factomd/util/atomic"
+
 	// "github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
@@ -65,11 +67,13 @@ type DBState struct {
 var _ interfaces.BinaryMarshallable = (*DBState)(nil)
 
 func (dbs *DBState) Init() {
-	/*
-		if dbs.SaveStruct == nil {
-			dbs.SaveStruct = new(SaveState)
-		}
-	*/
+	if dbs.SaveStruct == nil {
+		dbs.SaveStruct = new(SaveState)
+		dbs.SaveStruct.Init()
+	}
+	if dbs.SaveStruct.IdentityControl == nil {
+		atomic.WhereAmIMsg("no identity manager")
+	}
 
 	if dbs.DBHash == nil {
 		dbs.DBHash = primitives.NewZeroHash()
@@ -277,6 +281,11 @@ func (dbs *DBState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 	dbs.IsNew = false
 
 	SaveStruct := new(SaveState)
+	SaveStruct.Init()
+	if SaveStruct.IdentityControl == nil {
+		atomic.WhereAmIMsg("no identity manager")
+	}
+
 	err = b.PopBinaryMarshallable(SaveStruct)
 	if err != nil {
 		return
@@ -325,6 +334,12 @@ func (dbs *DBState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 	err = b.PopBinaryMarshallable(dbs.NextTimestamp)
 	if err != nil {
 		return
+	}
+
+	dbs.SaveStruct = SaveStruct // OK, this worked so keep the save struct
+
+	if dbs.SaveStruct.IdentityControl == nil {
+		atomic.WhereAmIMsg("no identity manager")
 	}
 
 	newData = b.DeepCopyBytes()
@@ -515,6 +530,9 @@ func (dbsl *DBStateList) UnmarshalBinaryData(p []byte) (newData []byte, err erro
 	for i := 0; i < int(listLen); i++ {
 		dbs := new(DBState)
 		err = buf.PopBinaryMarshallable(dbs)
+		if dbs.SaveStruct.IdentityControl == nil {
+			atomic.WhereAmIMsg("no identity control")
+		}
 		if err != nil {
 			dbsl.State.LogPrintf("dbstateprocess", "DBStateList.UnmarshalBinaryData (%d) err: %v", int(dbsl.Base)+i, err)
 			return
@@ -988,6 +1006,9 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	//
 	//list.State.AddStatus(fmt.Sprintf("PROCESSBLOCKS:  Processing Admin Block at dbht: %d", d.AdminBlock.GetDBHeight()))
 	err := d.AdminBlock.UpdateState(list.State)
+
+	s.LogPrintf("dbstateprocess", "ProcessBlocks(%d) after update auth %d/%d ", dbht, len(pl.FedServers), len(pl.AuditServers))
+
 	if err != nil {
 		panic(err)
 	}
@@ -1149,11 +1170,13 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 
 	// We will only save blocks marked to be saved.  As such, this must follow
 	// the "d.saved = true" above
-	if list.State.StateSaverStruct.FastBoot {
+	if list.State.StateSaverStruct.FastBoot && d.DirectoryBlock.GetHeader().GetDBHeight() != 0 {
+
 		d.SaveStruct = SaveFactomdState(list.State, d)
 		err := list.State.StateSaverStruct.SaveDBStateList(list.State, list.State.DBStates, list.State.Network)
-
-		list.State.LogPrintf("dbstateprocess", "Error while saving Fastboot %v", err)
+		if err != nil {
+			list.State.LogPrintf("dbstateprocess", "Error while saving Fastboot %v", err)
+		}
 	}
 
 	// All done with this block move to the next height if we are loading by blocks
@@ -1161,6 +1184,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		// if we are following by blocks then this move us forward but if we are following by minutes the
 		// code in ProcessEOM for minute 10 will have moved us forward
 		s.MoveStateToHeight(dbht+1, 0)
+		// todo: is there a reason not to do this in MoveStateToHeight?
 		fs.(*FactoidState).DBHeight = dbht + 1
 	}
 
@@ -1194,7 +1218,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		////}
 		//s.LogMessage("dbstateprocess", "currentminute=10", dbs)
 		//s.LogPrintf("dbstateprocess", d.String())
-		//pldbs.DBSigAlreadySent = true
+		pldbs.DBSigAlreadySent = true
 		//
 		//s.LogMessage("executeMsg", "LeaderExec2", dbs)
 		//dbs.LeaderExecute(s)
@@ -1574,7 +1598,7 @@ func (list *DBStateList) UpdateState() (progress bool) {
 			if d == nil {
 				l += "nil "
 			} else {
-				status := []byte("_____")
+				status := []byte("______")
 				if d.Locked {
 					status[0] = 'L'
 				}
@@ -1589,6 +1613,9 @@ func (list *DBStateList) UpdateState() (progress bool) {
 				}
 				if d.Repeat {
 					status[4] = 'D'
+				}
+				if d.SaveStruct != nil && d.SaveStruct.IdentityControl != nil {
+					status[5] = '!'
 				}
 				l += fmt.Sprintf("%d%s, ", d.DirectoryBlock.GetHeader().GetDBHeight(), string(status))
 			}
@@ -1713,6 +1740,11 @@ searchLoop:
 		list.DBStates = append(list.DBStates, nil)
 	}
 	list.DBStates[index] = dbState
+	if dbState.SaveStruct.IdentityControl == nil {
+		atomic.WhereAmIMsg("no identity control")
+	} else {
+
+	}
 
 	return true
 }
@@ -1736,6 +1768,8 @@ func (list *DBStateList) NewDBState(isNew bool,
 	eBlocks []interfaces.IEntryBlock,
 	entries []interfaces.IEBEntry) *DBState {
 	dbState := new(DBState)
+	dbState.Init() // Creat all the sub structor...
+
 	dbState.DBHash = directoryBlock.DatabasePrimaryIndex()
 	dbState.ABHash = adminBlock.DatabasePrimaryIndex()
 	dbState.FBHash = factoidBlock.DatabasePrimaryIndex()
@@ -1753,6 +1787,10 @@ func (list *DBStateList) NewDBState(isNew bool,
 
 	// If we actually add this to the list, return the dbstate.
 	if list.Put(dbState) {
+		if dbState.SaveStruct.IdentityControl == nil {
+			atomic.WhereAmIMsg("no identity control")
+		}
+
 		return dbState
 	} else {
 		ht := dbState.DirectoryBlock.GetHeader().GetDBHeight()
@@ -1760,6 +1798,9 @@ func (list *DBStateList) NewDBState(isNew bool,
 			index := int(ht) - int(list.State.DBStates.Base)
 			if index > 0 {
 				list.State.DBStates.DBStates[index] = dbState
+				if dbState.SaveStruct.IdentityControl == nil {
+					atomic.WhereAmIMsg("no identity control")
+				}
 				pdbs := list.State.DBStates.Get(int(ht - 1))
 				if pdbs != nil {
 					pdbs.SaveStruct.TrimBack(list.State, dbState)

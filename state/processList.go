@@ -1136,6 +1136,10 @@ func (p *ProcessList) String() string {
 					if index > 0 {
 						msgStr = msgStr[0:index]
 					}
+					index = len(msgStr)
+					if index > 128 {
+						msgStr = msgStr[0:125] + "..."
+					}
 					buf.WriteString("   " + leader + msgStr + "\n")
 				} else {
 					buf.WriteString("   <nil>\n")

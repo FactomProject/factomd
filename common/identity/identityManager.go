@@ -19,6 +19,7 @@ import (
 	"github.com/FactomProject/factomd/common/identityEntries"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/util/atomic"
 )
 
 type IdentityManager struct {
@@ -54,6 +55,10 @@ func NewIdentityManager() *IdentityManager {
 	im.IdentityRegistrations = make(map[[32]byte]*identityEntries.RegisterFactomIdentityStructure)
 	im.CancelManager = NewCoinbaseCancelManager(im)
 	im.CanceledCoinbaseOutputs = make(map[uint32][]uint32)
+	if im == nil {
+		atomic.WhereAmIMsg("no identity manager")
+	}
+
 	return im
 }
 
@@ -464,11 +469,19 @@ func (a *IdentityManager) IsSameAs(b *IdentityManager) bool {
 }
 
 func (e *IdentityManager) UnmarshalBinary(p []byte) error {
+	if e == nil {
+		atomic.WhereAmIMsg("no identity manager")
+	}
+
 	_, err := e.UnmarshalBinaryData(p)
 	return err
 }
 
 func (im *IdentityManager) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
+	if im == nil {
+		atomic.WhereAmIMsg("no identity manager")
+	}
+
 	buf := primitives.NewBuffer(p)
 	newData = p
 
@@ -525,6 +538,10 @@ func (im *IdentityManager) UnmarshalBinaryData(p []byte) (newData []byte, err er
 }
 
 func (im *IdentityManager) MarshalBinary() ([]byte, error) {
+	if im == nil {
+		atomic.WhereAmIMsg("no identity manager")
+	}
+
 	buf := primitives.NewBuffer(nil)
 	im.Init()
 
@@ -569,6 +586,9 @@ func (im *IdentityManager) MarshalBinary() ([]byte, error) {
 
 // Used when cloning state into sim nodes
 func (im *IdentityManager) Clone() *IdentityManager {
+	if im == nil {
+		atomic.WhereAmIMsg("no identity manager")
+	}
 	b := NewIdentityManager()
 	for k, v := range im.Authorities {
 		b.Authorities[k] = v.Clone()
@@ -578,14 +598,19 @@ func (im *IdentityManager) Clone() *IdentityManager {
 	}
 
 	b.MaxAuthorityServerCount = im.MaxAuthorityServerCount
-	b.OldEntries = b.OldEntries[:0]
-	for _, v := range im.OldEntries {
-		b.OldEntries = append(b.OldEntries, v)
+	b.OldEntries = make([]*OldEntry, len(im.OldEntries))
+	for k, v := range im.OldEntries {
+		copy := *v
+		b.OldEntries[k] = &copy
 	}
 
 	b.IdentityRegistrations = make(map[[32]byte]*identityEntries.RegisterFactomIdentityStructure, len(im.IdentityRegistrations))
 	for k, v := range im.IdentityRegistrations {
 		b.IdentityRegistrations[k] = v
+	}
+
+	if b == nil {
+		atomic.WhereAmIMsg("no identity manager")
 	}
 
 	return b

@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
+	"os/exec"
 	"runtime"
 	"strings"
 	"sync"
@@ -84,6 +86,7 @@ func TestSetupANetwork(t *testing.T) {
 	if fn2.State.FactomNodeName != "FNode08" {
 		t.Fatalf("Expected FNode08, but got %s", fn1.State.FactomNodeName)
 	}
+
 	RunCmd("i") // Shows the identities being monitored for change.
 	// Test block recording lengths and error checking for pprof
 	RunCmd("b100") // Recording delays due to blocked go routines longer than 100 ns (0 ms)
@@ -116,12 +119,14 @@ func TestSetupANetwork(t *testing.T) {
 	WaitBlocks(fn1.State, 3) // Waits for 3 blocks
 
 	ShutDownEverything(t)
+
 }
 
 func TestLoad(t *testing.T) {
 	if RanSimTest {
 		return
 	}
+
 	RanSimTest = true
 
 	// use a tree so the messages get reordered
@@ -193,7 +198,6 @@ func TestLoad2(t *testing.T) {
 	}
 	ShutDownEverything(t)
 } // testLoad2(){...}
-
 // The intention of this test is to detect the EC overspend/duplicate commits (FD-566) bug.
 // the bug happened when the FCT transaction and the commits arrived in different orders on followers vs the leader.
 // Using a message delay, drop and tree network makes this likely
@@ -329,7 +333,6 @@ func TestActivationHeightElection(t *testing.T) {
 
 	ShutDownEverything(t)
 }
-
 func TestAnElection(t *testing.T) {
 	if RanSimTest {
 		return
@@ -338,6 +341,7 @@ func TestAnElection(t *testing.T) {
 	RanSimTest = true
 
 	state0 := SetupSim("LLLAAF", map[string]string{}, 9, 1, 1, t)
+
 	StatusEveryMinute(state0)
 	WaitMinutes(state0, 2)
 
@@ -351,6 +355,7 @@ func TestAnElection(t *testing.T) {
 	WaitMinutes(state0, 2)
 	//bring him back
 	RunCmd("x")
+
 	// wait for him to update via dbstate and become an audit
 	WaitBlocks(state0, 2)
 	WaitMinutes(state0, 1)
@@ -363,9 +368,12 @@ func TestAnElection(t *testing.T) {
 	if !GetFnodes()[3].State.Leader && !GetFnodes()[4].State.Leader {
 		t.Fatalf("Node 3 or 4  should be a leader")
 	}
+
 	WaitForAllNodes(state0)
 	ShutDownEverything(t)
+
 }
+
 func TestDBsigEOMElection(t *testing.T) {
 	if RanSimTest {
 		return
@@ -449,11 +457,6 @@ func TestMultiple2Election(t *testing.T) {
 	RunCmd("2")
 	RunCmd("x")
 
-	RunCmd("E")
-	RunCmd("F")
-	RunCmd("0")
-	RunCmd("p")
-
 	WaitBlocks(state0, 2)
 	WaitForMinute(state0, 1)
 	WaitForAllNodes(state0)
@@ -488,6 +491,75 @@ func TestMultiple3Election(t *testing.T) {
 	WaitBlocks(state0, 3)
 	WaitForMinute(state0, 1)
 	WaitForAllNodes(state0)
+	ShutDownEverything(t)
+
+}
+
+func TestSimCtrl(t *testing.T) {
+	if RanSimTest {
+		return
+	}
+	RanSimTest = true
+
+	state0 := SetupSim("LLLLLAAF", map[string]string{"--debuglog": ".*"}, 7, 2, 2, t)
+	CheckAuthoritySet(t)
+
+	type walletcallHelper struct {
+		Status string `json:"status"`
+	}
+	type walletcall struct {
+		Jsonrpc string           `json:"jsonrps"`
+		Id      int              `json:"id"`
+		Result  walletcallHelper `json:"result"`
+	}
+
+	apiCall := func(cmd string) {
+		url := "http://localhost:" + fmt.Sprint(state0.GetPort()) + "/debug"
+		var jsonStr = []byte(`{"jsonrpc": "2.0", "id": 0, "method": "sim-ctrl", "params":{"commands": ["` + cmd + `"]}}`)
+		req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
+		req.Header.Set("content-type", "text/plain;")
+		if err != nil {
+			t.Error(err)
+		}
+
+		client := &http.Client{}
+		resp, err := client.Do(req)
+		if err != nil {
+			t.Error(err)
+		}
+
+		defer resp.Body.Close()
+		body, _ := ioutil.ReadAll(resp.Body)
+
+		resp2 := new(walletcall)
+		err1 := json.Unmarshal([]byte(body), &resp2)
+		if err1 != nil {
+			t.Error(err1)
+		}
+
+		fmt.Println("resp2: ", resp2)
+	}
+
+	WaitForMinute(state0, 2)
+	apiCall("1")
+	apiCall("x")
+	apiCall("2")
+	apiCall("x")
+	WaitForMinute(state0, 1)
+	apiCall("1")
+	apiCall("x")
+	apiCall("2")
+	apiCall("x")
+
+	apiCall("E")
+	apiCall("F")
+	apiCall("0")
+	apiCall("p")
+
+	WaitBlocks(state0, 2)
+	WaitForMinute(state0, 1)
+	WaitForAllNodes(state0)
+	CheckAuthoritySet(t)
 	ShutDownEverything(t)
 }
 
@@ -542,6 +614,7 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 		Id      int              `json:"id"`
 		Result  walletcallHelper `json:"result"`
 	}
+
 	type ackHelp struct {
 		Jsonrpc string                       `json:"jsonrps"`
 		Id      int                          `json:"id"`
@@ -559,6 +632,7 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
+
 		defer resp.Body.Close()
 		body, _ := ioutil.ReadAll(resp.Body)
 
@@ -567,6 +641,7 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 		if err1 != nil {
 			t.Error(err1)
 		}
+
 		return resp2
 	}
 
@@ -695,6 +770,7 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 	if int64(x["ack"].(float64)) == int64(x["saved"].(float64)) {
 		t.Fatalf("Expected  temp[%d] to not match perm[%d]", int64(x["ack"].(float64)), int64(x["saved"].(float64)))
 	}
+
 	WaitBlocks(state0, 1)
 	WaitMinutes(state0, 1)
 
@@ -772,6 +848,7 @@ func TestMultipleECAccountsAPI(t *testing.T) {
 		if err1 != nil {
 			t.Error(err1)
 		}
+
 		return resp2
 	}
 
@@ -1070,6 +1147,7 @@ func TestGrants_long(t *testing.T) {
 		if err != nil {
 			panic(fmt.Sprintf("Missing coinbase, admin block at height %d could not be retrieved", dbheight))
 		}
+
 		abe := ablock.FetchCoinbaseDescriptor()
 		if abe != nil {
 			desc := abe.(*adminBlock.CoinbaseDescriptor)
@@ -1103,7 +1181,6 @@ func TestCoinbaseCancel(t *testing.T) {
 	if RanSimTest {
 		return
 	}
-
 	RanSimTest = true
 
 	state0 := SetupSim("LFFFFF", map[string]string{"-blktime": "5"}, 30, 0, 0, t)
@@ -1113,7 +1190,7 @@ func TestCoinbaseCancel(t *testing.T) {
 
 	WaitMinutes(state0, 2)
 	RunCmd("g10") // Adds 10 identities to your identity pool.
-	WaitBlocks(state0, 1)
+	WaitBlocks(state0, 2)
 	// Assign identities
 	RunCmd("1")
 	RunCmd("t")
@@ -1139,7 +1216,6 @@ func TestCoinbaseCancel(t *testing.T) {
 	RunCmd("5")
 	RunCmd("o")
 
-	WaitBlocks(state0, 3)
 	WaitForBlock(state0, 15)
 	WaitMinutes(state0, 1)
 	// Cancel coinbase of 18 (14+ delay of 4) with a majority of the authority set, should succeed
@@ -1305,7 +1381,6 @@ func TestElection9(t *testing.T) {
 	WaitBlocks(state0, 2)    // wait till the victim is back as the audit server
 	WaitForMinute(state0, 1) // Wait till ablock is loaded
 	WaitForAllNodes(state0)
-
 	WaitForMinute(state3, 1) // Wait till node 3 is following by minutes
 
 	WaitForAllNodes(state0)
@@ -1382,6 +1457,7 @@ func TestFactoidDBState(t *testing.T) {
 	WaitForAllNodes(state0)
 	ShutDownEverything(t)
 }
+
 func TestNoMMR(t *testing.T) {
 	if RanSimTest {
 		return
@@ -1397,6 +1473,7 @@ func TestNoMMR(t *testing.T) {
 	WaitForAllNodes(state0)
 	ShutDownEverything(t)
 }
+
 func TestDBStateCatchup(t *testing.T) {
 	if RanSimTest {
 		return
@@ -1423,5 +1500,91 @@ func TestDBStateCatchup(t *testing.T) {
 
 	WaitForAllNodes(state0) // if the follower isn't catching up this will timeout
 	PrintOneStatus(0, 0)
+	ShutDownEverything(t)
+}
+
+func SystemCall(cmd string) {
+	fmt.Println("SystemCall(\"", cmd, "\")")
+	out, err := exec.Command("sh", "-c", cmd).Output()
+	if err != nil {
+		foo := err.Error()
+		fmt.Println(foo)
+		os.Exit(1)
+		panic(err)
+	}
+	fmt.Print(string(out))
+}
+
+func TestSaveState1(t *testing.T) {
+	if RanSimTest {
+		return
+	}
+	RanSimTest = true
+
+	// remove all the old database files
+	SystemCall("find  test/.factom/m2 -name LOCAL | xargs rm -rvf ")
+
+	state0 := SetupSim("LAFL", map[string]string{"--debuglog": ".", "--fastsaverate": "4", "--db": "LDB", "--factomhome": "test"}, 12, 0, 0, t)
+	StatusEveryMinute(state0)
+	WaitMinutes(state0, 2)
+	RunCmd("R5")
+	WaitForBlock(state0, 11)
+	WaitMinutes(state0, 1)
+	WaitForAllNodes(state0)
+	PrintOneStatus(0, 0)
+	ShutDownEverything(t)
+
+	for _, x := range GetFnodes() {
+		newState := x.State
+
+		fmt.Println("FactomNodeName: ", newState.FactomNodeName)
+		fmt.Println("	IdentityChainID: ", newState.IdentityChainID)
+		fmt.Println("	ServerPrivKey: ", newState.LocalServerPrivKey)
+		fmt.Println("	ServerPublicKey: ", newState.ServerPubKey)
+	}
+	time.Sleep(10 * time.Second)
+}
+
+func TestCreateDB_LLLLLLAAAAAFFFF(t *testing.T) {
+	// remove all the old database files
+	SystemCall("find  test/.factom/m2 -name LOCAL | xargs rm -rvf ")
+	state0 := SetupSim("LLLLLLAAAAAFFFF", map[string]string{"--db": "LDB", "--factomhome": "test", "--network": "CUSTOM", "--customnet": "devnet"}, 6, 0, 0, t)
+	WaitForAllNodes(state0)
+	PrintOneStatus(0, 0)
+	ShutDownEverything(t)
+
+	for _, x := range GetFnodes() {
+		newState := x.State
+
+		fmt.Println("FactomNodeName: ", newState.FactomNodeName)
+		fmt.Println("	IdentityChainID: ", newState.IdentityChainID)
+		fmt.Println("	ServerPrivKey: ", newState.LocalServerPrivKey)
+		fmt.Println("	ServerPublicKey: ", newState.ServerPubKey)
+	}
+	time.Sleep(10 * time.Second)
+}
+
+func TestSaveState2(t *testing.T) {
+	if RanSimTest {
+		return
+	}
+	RanSimTest = true
+
+	// remove fnode02's fastboot and fnode01's whole database
+	SystemCall("rm -vfr test/.factom/m2/local-database/ldb/Sim02/LOCAL/  test/.factom/m2/local-database/ldb/Sim01/FastBoot_LOCAL_v10.db")
+	state0 := SetupSim("FFFF", map[string]string{"--debuglog": ".", "--fastsaverate": "4", "--db": "LDB", "--factomhome": "test", "--blktime": "20"}, 20, 0, 0, t)
+
+	// check we booted from database to the right state
+	Audits = 1
+	Leaders = 2
+	Followers = 1
+	CheckAuthoritySet(t)
+
+	StatusEveryMinute(state0)
+	WaitForBlock(state0, 10)
+	WaitForAllNodes(state0)
+	PrintOneStatus(0, 0)
+
+	CheckAuthoritySet(t)
 	ShutDownEverything(t)
 }

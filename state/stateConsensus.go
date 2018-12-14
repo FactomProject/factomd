@@ -138,8 +138,11 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 
 				if Delta > tlim || -Delta > tlim {
 
-					s.LogPrintf("executeMsg", "Block %d time %v Msg %x time %v delta %d",
-						s.LLeaderHeight, s.GetLeaderTimestamp().GetTime().String(), msg.GetHash(), msg.GetTimestamp().String(), Delta)
+					s.LogPrintf("executeMsg", "block %d, filter %v Msg M-%x time %v delta %d",
+						s.LLeaderHeight, s.GetMessageFilterTimestamp().GetTime().String(), msg.GetHash().Bytes()[:4], msg.GetTimestamp().String(), Delta)
+
+					s.LogPrintf("executeMsg", "Leader  %s", s.GetLeaderTimestamp().GetTime().String())
+					s.LogPrintf("executeMsg", "Message %s", s.GetMessageFilterTimestamp().GetTime().String())
 
 					// Delta is is negative its greater than blktime then it is future.
 					if Delta < 0 {
@@ -641,14 +644,15 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		}
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(newMinute, s.IdentityChainID) // MoveStateToHeight block
 		s.ProcessLists.Get(dbheight + 1)                                                       // Make sure next PL exists
-		s.Syncing = false
-		s.EOM = false
-		s.DBSig = false
-		s.DBSigDone = false
-		s.EOMProcessed = 0
-		s.DBSigProcessed = 0
-		s.EOMLimit = len(s.LeaderPL.FedServers) // We add or remove server only on block boundaries
-		s.DBSigLimit = s.EOMLimit
+		s.Syncing = false                                                                      // movestatetoheight
+		s.EOM = false                                                                          // movestatetoheight
+		s.EOMDone = false                                                                      // movestatetoheight
+		s.DBSig = false                                                                        // movestatetoheight
+		s.DBSigDone = false                                                                    // movestatetoheight
+		s.EOMProcessed = 0                                                                     // movestatetoheight
+		s.DBSigProcessed = 0                                                                   // movestatetoheight
+		s.EOMLimit = len(s.LeaderPL.FedServers)                                                // We add or remove server only on block boundaries
+		s.DBSigLimit = s.EOMLimit                                                              // We add or remove server only on block boundaries
 
 		// update cached values that change with height
 		// check if a DBState exists where we can get the timestamp
@@ -664,11 +668,6 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 			s.SetLeaderTimestamp(dbstate.DirectoryBlock.GetTimestamp())
 		} else if dblock, err := s.DB.FetchDBlockByHeight(dbheight); dblock != nil && err == nil {
 			s.SetLeaderTimestamp(dblock.GetTimestamp())
-		} else if dbstate = s.DBStates.Get(int(dbheight - 1)); dbstate != nil {
-			//		s.SetLeaderTimestamp(dbstate.DirectoryBlock.GetTimestamp())
-		} else {
-			// not 100% sure how this case can be but doing nothing seems to work and it does happen in sim tests.
-			//panic("No prior state")
 		}
 		s.dbheights <- int(dbheight) // Notify MMR process we have moved on...
 
@@ -814,6 +813,7 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
 
 	if m.IsLocal() {
+		s.AddToHolding(m.GetMsgHash().Fixed(), m)
 		return // This is an internal EOM message.  We are not a leader so ignore.
 	}
 
@@ -1071,6 +1071,22 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		s.DBStates.LastBegin = int(dbheight)
 	}
 	s.DBStates.TimeToAsk = nil
+	// Ok, I just added a valid state to the list so go process it now so it doesn't have to wait on the other messages
+	s.DBStates.UpdateState()
+
+	//d := dbstate
+	//if dbstatemsg.IsLocal() {
+	//	if s.StateSaverStruct.FastBoot && d.DirectoryBlock.GetHeader().GetDBHeight() != 0 {
+	//		dbstate.SaveStruct = SaveFactomdState(s, dbstate)
+	//
+	//		if dbstate.SaveStruct != nil {
+	//			err := s.StateSaverStruct.SaveDBStateList(s, s.DBStates, s.Network)
+	//			if err != nil {
+	//				s.LogPrintf("dbstateprocess", "Error trying to save a DBStateList %v", err)
+	//			}
+	//		}
+	//	}
+	//}
 }
 
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
@@ -1689,7 +1705,7 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) (worked b
 func (s *State) CreateDBSig(dbheight uint32, vmIndex int) (interfaces.IMsg, interfaces.IMsg) {
 	dbstate := s.DBStates.Get(int(dbheight - 1))
 	if dbstate == nil && dbheight > 0 {
-		s.LogPrintf("executeMsg", "Can not create DBSig because %d because there is no dbstate", dbheight)
+		s.LogPrintf("executeMsg", "CreateDBSig:Can not create DBSig because %d because there is no dbstate", dbheight)
 		return nil, nil
 	}
 	dbs := new(messages.DirectoryBlockSignature)
@@ -2162,7 +2178,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 			s.LogPrintf("dbsig", "ProcessDBSig(): 2nd ProcessDBSig(): %10s DBSig dbht %d leaderheight %d VMIndex %d Timestamp %x %d, leadertimestamp = %x %d",
 				s.FactomNodeName, dbs.DBHeight, s.LLeaderHeight, dbs.VMIndex, dbs.GetTimestamp().GetTimeMilli(), dbs.GetTimestamp().GetTimeMilli(), s.LeaderTimestamp.GetTimeMilliUInt64(), s.LeaderTimestamp.GetTimeMilliUInt64())
-
 		}
 
 		dblk, err := s.DB.FetchDBlockByHeight(dbheight - 1)

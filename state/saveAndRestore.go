@@ -111,7 +111,7 @@ type SaveState struct {
 var _ interfaces.BinaryMarshallable = (*SaveState)(nil)
 var _ interfaces.Printable = (*SaveState)(nil)
 
-func (ss *SaveState) Init(s *State) {
+func (ss *SaveState) Init() {
 	if ss.FactoidBalancesP == nil {
 		ss.FactoidBalancesP = map[[32]byte]int64{}
 	}
@@ -125,7 +125,7 @@ func (ss *SaveState) Init(s *State) {
 		ss.Acks = map[[32]byte]interfaces.IMsg{}
 	}
 	if ss.Commits == nil {
-		ss.Commits = NewSafeMsgMap("sscommits", s) // map[[32]byte]interfaces.IMsg{}
+		ss.Commits = NewSafeMsgMap("sscommits", nil) // map[[32]byte]interfaces.IMsg{}
 	}
 	if ss.InvalidMessages == nil {
 		ss.InvalidMessages = map[[32]byte]interfaces.IMsg{}
@@ -134,8 +134,15 @@ func (ss *SaveState) Init(s *State) {
 	if ss.IdentityControl == nil {
 		ss.IdentityControl = NewIdentityManager()
 	}
+	if ss.IdentityControl == nil {
+		atomic.WhereAmIMsg("no identity manager")
+	}
 
 	ss.IdentityControl.Init()
+
+	if ss.IdentityControl == nil {
+		atomic.WhereAmIMsg("no identity manager")
+	}
 
 }
 
@@ -301,37 +308,43 @@ func (a *SaveState) IsSameAs(b *SaveState) bool {
 }
 
 func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
-	state.LogPrintf("dbstateprocess", "SaveFactomdState called from %s", atomic.WhereAmIString(1))
+	state.LogPrintf("dbstateprocess", "SaveFactomdState(%d) called from %s", d.DirectoryBlock.GetHeader().GetDBHeight(), atomic.WhereAmIString(1))
 
-	ss = new(SaveState)
-	ss.DBHeight = d.DirectoryBlock.GetHeader().GetDBHeight()
-	pl := state.ProcessLists.Get(ss.DBHeight)
-
+	dbht := d.DirectoryBlock.GetHeader().GetDBHeight()
 	// Need to ensure the dbstate is at the same height as the state.
-	if ss.DBHeight != state.LLeaderHeight {
+	if dbht != state.LLeaderHeight {
 		//os.Stderr.WriteString(fmt.Sprintf("%10s dbht mismatch %d %d\n", state.GetFactomNodeName(), ss.DBHeight, state.LLeaderHeight))
-		return
-	}
-	if pl == nil {
 		return nil
 	}
 
-	//Only check if we're not loading from the database
-	if state.DBFinished == true {
-		// If the timestamp is over a day old, then there is really no point in saving the state of
-		// historical data.
-		if int(state.GetHighestKnownBlock())-int(state.GetHighestSavedBlk()) > 144 {
-			return nil
-		}
+	pl := state.ProcessLists.Get(dbht)
+	pln := state.ProcessLists.Get(dbht + 1) // need the authorityset from the next block not this block
+	if pl == nil || pln == nil {
+		return nil
 	}
+
+	ss = new(SaveState)
+	ss.Init()
+	if ss.IdentityControl == nil {
+		atomic.WhereAmIMsg("no identity manager")
+	}
+
+	// clone the IdentityControl for this savestate
+	ss.IdentityControl = state.IdentityControl.Clone()
+	if ss.IdentityControl == nil {
+		atomic.WhereAmIMsg("no identity manager")
+	}
+
+	ss.DBHeight = dbht
 
 	// state.AddStatus(fmt.Sprintf("Save state at dbht: %d", ss.DBHeight))
 
 	ss.Replay = state.Replay.Save()
 	ss.LeaderTimestamp = d.DirectoryBlock.GetTimestamp()
 
-	ss.FedServers = append(ss.FedServers, pl.FedServers...)
-	ss.AuditServers = append(ss.AuditServers, pl.AuditServers...)
+	ss.FedServers = append(ss.FedServers, pln.FedServers...)
+	ss.AuditServers = append(ss.AuditServers, pln.AuditServers...)
+	state.LogPrintf("dbstateprocess", "SaveFactomdState(%d) saving  %d/%d authset", d.DirectoryBlock.GetHeader().GetDBHeight(), len(ss.FedServers), len(ss.AuditServers))
 
 	state.FactoidBalancesPMutex.Lock()
 	ss.FactoidBalancesP = make(map[[32]byte]int64, len(state.FactoidBalancesP))
@@ -347,7 +360,11 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 	}
 	state.ECBalancesPMutex.Unlock()
 
-	ss.IdentityControl = state.IdentityControl
+	ss.IdentityControl = state.IdentityControl.Clone()
+	if ss.IdentityControl == nil {
+		atomic.WhereAmIMsg("no identity manager")
+	}
+
 	ss.AuthorityServerCount = state.AuthorityServerCount
 
 	ss.LLeaderHeight = state.LLeaderHeight
@@ -409,8 +426,11 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 			panic(err)
 		}
 	*/
+	if ss.IdentityControl == nil {
+		atomic.WhereAmIMsg("no identity manager")
+	}
 
-	return
+	return ss
 }
 
 func (ss *SaveState) TrimBack(s *State, d *DBState) {
@@ -630,11 +650,13 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 	s.ECBalancesPMutex.Unlock()
 
 	// Restore IDControl
+	// TODO: Should this clone?
 	s.IdentityControl = ss.IdentityControl
+	if s.IdentityControl == nil {
+		atomic.WhereAmIMsg("Missing IdentityControl")
+	}
 
 	s.AuthorityServerCount = ss.AuthorityServerCount
-
-	s.IdentityControl = ss.IdentityControl
 
 	if ss.CurrentMinute != 0 {
 		s.LogPrintf("executeMsg", "unexpected ss.CurrentMinute=%d  %s", ss.CurrentMinute, atomic.WhereAmIString(0))

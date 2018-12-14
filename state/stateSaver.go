@@ -5,12 +5,11 @@
 package state
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"sync"
-
-	"errors"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -35,7 +34,7 @@ func (sss *StateSaverStruct) StopSaving() {
 func (sss *StateSaverStruct) SaveDBStateList(s *State, ss *DBStateList, networkName string) error {
 	//For now, to file. Later - to DB
 	if sss.Stop == true {
-		return nil
+		return nil // if we have closed the database then don't save
 	}
 
 	hsb := int(ss.GetHighestSavedBlk())
@@ -48,6 +47,7 @@ func (sss *StateSaverStruct) SaveDBStateList(s *State, ss *DBStateList, networkN
 	sss.Mutex.Lock()
 	defer sss.Mutex.Unlock()
 	//Actually save data from previous cached state to prevent dealing with rollbacks
+	// Save the N block old state and then make a new savestate for the next save
 	if len(sss.TmpState) > 0 {
 		err := SaveToFile(s, sss.TmpDBHt, sss.TmpState, NetworkIDToFilename(networkName, sss.FastBootLocation))
 		if err != nil {
@@ -68,24 +68,6 @@ func (sss *StateSaverStruct) SaveDBStateList(s *State, ss *DBStateList, networkN
 	sss.TmpState = b
 	sss.TmpDBHt = ss.State.LLeaderHeight
 
-	//{ /// Debug code, check if I can unmarshal the object myself.
-	//	test := new(DBStateList)
-	//	test.UnmarshalBinary(b)
-	//	if err != nil {
-	//		fmt.Fprintln(os.Stderr, "SaveState UnmarshalBinary Failed", err)
-	//	}
-	//
-	//	h := primitives.NewZeroHash()
-	//	b, err = h.UnmarshalBinaryData(b)
-	//	if err != nil {
-	//		return nil
-	//	}
-	//	h2 := primitives.Sha(b)
-	//	if h.IsSameAs(h2) == false {
-	//		fmt.Fprintln(os.Stderr, "LoadDBStateList - Integrity hashes do not match!")
-	//		return nil
-	//	}
-	//}
 	return nil
 }
 

@@ -45,8 +45,8 @@ func (lists *ProcessLists) UpdateState(dbheight uint32) (progress bool) {
 	pl := lists.Get(lists.State.LLeaderHeight)
 	for pl.Complete() || (dbstate != nil && dbstate.Locked && dbstate.Signed) {
 		dbheight++
-		lists.State.MoveStateToHeight(dbheight, 0)
 		pl = lists.Get(dbheight)
+		lists.State.MoveStateToHeight(dbheight, 0)
 		dbstate = lists.State.DBStates.Get(int(dbheight))
 	}
 	if pl == nil {
