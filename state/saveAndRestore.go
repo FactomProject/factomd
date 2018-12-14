@@ -318,7 +318,8 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 	}
 
 	pl := state.ProcessLists.Get(dbht)
-	if pl == nil {
+	pln := state.ProcessLists.Get(dbht + 1) // need the authorityset from the next block not this block
+	if pl == nil || pln == nil {
 		return nil
 	}
 
@@ -341,8 +342,8 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 	ss.Replay = state.Replay.Save()
 	ss.LeaderTimestamp = d.DirectoryBlock.GetTimestamp()
 
-	ss.FedServers = append(ss.FedServers, pl.FedServers...)
-	ss.AuditServers = append(ss.AuditServers, pl.AuditServers...)
+	ss.FedServers = append(ss.FedServers, pln.FedServers...)
+	ss.AuditServers = append(ss.AuditServers, pln.AuditServers...)
 	state.LogPrintf("dbstateprocess", "SaveFactomdState(%d) saving  %d/%d authset", d.DirectoryBlock.GetHeader().GetDBHeight(), len(ss.FedServers), len(ss.AuditServers))
 
 	state.FactoidBalancesPMutex.Lock()
