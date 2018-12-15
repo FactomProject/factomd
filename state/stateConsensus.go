@@ -244,7 +244,7 @@ func (s *State) Process() (progress bool) {
 	LeaderPL := s.ProcessLists.Get(s.LLeaderHeight)
 
 	if s.LeaderPL != LeaderPL {
-		s.LogPrintf("ExecuteMsg", "Unexpected change in LeaderPL")
+		s.LogPrintf("ExecuteMsg", "Process: Unexpected change in LeaderPL")
 		s.LeaderPL = LeaderPL
 	}
 
@@ -564,7 +564,7 @@ func (s *State) ReviewHolding() {
 			if !x {
 				TotalHoldingQueueOutputs.Inc()
 				//delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
-				s.DeleteFromHolding(k, v, "already commited")
+				s.DeleteFromHolding(k, v, "already committed")
 				continue
 			}
 		}
@@ -743,7 +743,7 @@ func (s *State) AddDBState(isNew bool,
 		LeaderPL := s.ProcessLists.Get(s.LLeaderHeight)
 
 		if s.LLeaderHeight != 0 && s.LeaderPL != LeaderPL {
-			s.LogPrintf("ExecuteMsg", "Unexpected change in LeaderPL")
+			s.LogPrintf("ExecuteMsg", "AddDBState: Unexpected change in LeaderPL")
 			s.LeaderPL = LeaderPL
 		}
 
@@ -957,7 +957,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		// Do nothing because this dbstate looks to be invalid
 		cntFail()
 		if dbstatemsg.IsLast { // this is the last DBState in this load
-			s.DBFinished = true // Just in case we toss the last one for some reason
+			panic("The last DBState saved to the database was not valid.")
 		}
 		return
 	}
@@ -1880,7 +1880,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 				}
 				LeaderPL := s.ProcessLists.Get(s.LLeaderHeight)
 				if s.LeaderPL != LeaderPL {
-					s.LogPrintf("ExecuteMsg", "Unexpected change in LeaderPL")
+					s.LogPrintf("ExecuteMsg", "ProcessEOM: Unexpected change in LeaderPL")
 					s.LeaderPL = LeaderPL
 				}
 
