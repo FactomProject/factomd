@@ -927,9 +927,9 @@ func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces
 
 	// Make sure we don't put in an old ack (outside our repeat range)
 	blktime := s.GetLeaderTimestamp().GetTime().UnixNano()
-	tlim := int64(Range * 60 * 1000000000)
+	tlim := int64(Range * 60 * 1000 * 1000 * 1000)
 
-	if blktime != 0 {
+	if blktime != 0 && m.Type() != constants.DIRECTORY_BLOCK_SIGNATURE_MSG {
 		acktime := ack.GetTimestamp().GetTime().UnixNano()
 		msgtime := m.GetTimestamp().GetTime().UnixNano()
 		Delta := blktime - acktime

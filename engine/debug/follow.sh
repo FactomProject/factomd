@@ -44,7 +44,7 @@ EOF
 
 (grep -HEm 1 "Send.*$pattern" fnode*_networkoutputs.txt  
 grep -HEm 1 "enqueue.*$pattern" fnode*_networkinputs.txt 
-ls fnode*_executeMsg.txt | xargs -n1 --delimiter "\n" -I%  sh -c "grep -HEm 1 \"Execute.*$pattern\" % | tail -1"
-grep -HEm 1 "Add.*$pattern" fnode*_processList.txt 
+ls fnode*_executemsg.txt | xargs -n1 --delimiter "\n" -I%  sh -c "grep -HEm 1 \"Execute.*$pattern\" % | tail -1"
+grep -HEm 1 "Add.*$pattern" fnode*_processlist.txt 
 grep -HEm 1 "done.*$pattern" fnode*_process.txt) |  awk "$scriptVariable" | sort -n | awk "$scriptVariable2" | grep -E "$pattern" --color='always' | less -R
 
