@@ -87,6 +87,7 @@ func init() {
 	flag.BoolVar(&p.WriteProcessedDBStates, "wrproc", true, "Write processed blocks to temporary debug file")
 	flag.StringVar(&p.CustomNetName, "customnet", "", "This string specifies a custom blockchain network ID.")
 	flag.StringVar(&p.FactomHome, "factomhome", "", "Set the Factom home directory. The .factom folder will be placed here if set, otherwise it will default to $HOME")
+	flag.StringVar(&p.NodeName, "nodename", "", "Assign a name to the node")
 	flag.StringVar(&p.ControlPanelSetting, "controlpanelsetting", "", "Can set to 'disabled', 'readonly', or 'readwrite' to overwrite config file")
 
 }
@@ -158,7 +159,6 @@ func isCompilerVersionOK() bool {
 	if strings.Contains(runtime.Version(), "1.11") {
 		goodenough = true
 	}
-
 	return goodenough
 }
 
