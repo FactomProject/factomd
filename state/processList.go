@@ -731,7 +731,7 @@ func (p *ProcessList) decodeState(Syncing bool, DBSig bool, EOM bool, DBSigDone 
 
 }
 
-var extraDebug bool = false
+var extraDebug bool = true
 
 // Process messages and update our state.
 func (p *ProcessList) Process(s *State) (progress bool) {
@@ -840,7 +840,7 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 			// Until the first couple signatures are processed, we will be 2 behind.
 			//TODO: Why is this in the execution per message per VM when it's global to the processlist -- clay
 			if s.WaitForEntries {
-				s.LogPrintf("processList", "s.WaitForEntries")
+				s.LogPrintf("processList", "s.WaitForEntries %d-:-%d [%d] > %d + 2", p.DBHeight, vm.LeaderMinute, s.EntryDBHeightComplete)
 				break VMListLoop // Don't process further in this list, go to the next.
 			}
 
@@ -900,6 +900,8 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 				}
 			} else {
 				s.LogMessage("process", "Waiting on saving", msg)
+				s.LogPrintf("EntrySync", "Waiting on saving EntryDBHeightComplete = %d", s.EntryDBHeightComplete)
+
 				// If we don't have the Entry Blocks (or we haven't processed the signatures) we can't do more.
 				// p.State.AddStatus(fmt.Sprintf("Can't do more: dbht: %d vm: %d vm-height: %d Entry Height: %d", p.DBHeight, i, j, s.EntryDBHeightComplete))
 				if extraDebug {

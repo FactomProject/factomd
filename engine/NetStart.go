@@ -249,12 +249,15 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 
 	if p.Sync2 >= 0 {
 		s.EntryDBHeightComplete = uint32(p.Sync2)
+		s.LogPrintf("EntrySync", "NetStart EntryDBHeightComplete = %d", s.EntryDBHeightComplete)
+
 	} else {
 		height, err := s.DB.FetchDatabaseEntryHeight()
 		if err != nil {
 			os.Stderr.WriteString(fmt.Sprintf("ERROR: %v", err))
 		} else {
 			s.EntryDBHeightComplete = height
+			s.LogPrintf("EntrySync", "NetStart EntryDBHeightComplete = %d", s.EntryDBHeightComplete)
 		}
 	}
 

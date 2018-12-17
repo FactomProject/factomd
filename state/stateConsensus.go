@@ -2160,7 +2160,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			lts := s.LeaderTimestamp.GetTimeMilliUInt64()
 			s.LogPrintf("dbsig", "ProcessDBSig(): first  cbtx before %d dbsig %d lts %d", foo, dbsMilli, lts)
 
-			s.LeaderTimestamp = primitives.NewTimestampFromMilliseconds(dbsMilli)
+			s.SetLeaderTimestamp(dbs.Timestamp)
 
 			uInt64_3 := dbs.GetTimestamp().GetTimeMilliUInt64()
 			foo_3 := cbtx.MilliTimestamp

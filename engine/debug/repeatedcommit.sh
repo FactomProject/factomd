@@ -1,5 +1,5 @@
 #/bin/bash
-set -x
+#set -x
 # repeatedly attempt repeating identical commits
 
 #killall factom-walletd
