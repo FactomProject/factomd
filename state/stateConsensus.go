@@ -598,11 +598,6 @@ func (s *State) ReviewHolding() {
 				continue // If we are a leader, but it isn't ours, and it isn't a new minute, ignore.
 			}
 		}
-		//TODO: Move this earlier!
-		// We don't reprocess messages if we are a leader, but it ain't ours!
-		if s.LeaderVMIndex != v.GetVMIndex() {
-			continue
-		}
 
 		TotalXReviewQueueInputs.Inc()
 		s.XReview = append(s.XReview, v)
@@ -2160,7 +2155,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			lts := s.LeaderTimestamp.GetTimeMilliUInt64()
 			s.LogPrintf("dbsig", "ProcessDBSig(): first  cbtx before %d dbsig %d lts %d", foo, dbsMilli, lts)
 
-			s.LeaderTimestamp = primitives.NewTimestampFromMilliseconds(dbsMilli)
+			s.SetLeaderTimestamp(dbs.Timestamp) // SetLeaderTimestamp also updates the Message Timestamp filter
 
 			uInt64_3 := dbs.GetTimestamp().GetTimeMilliUInt64()
 			foo_3 := cbtx.MilliTimestamp

@@ -132,9 +132,9 @@ func (state *State) ValidatorLoop() {
 				ackRoom = cap(state.ackQueue) - len(state.ackQueue)
 				msgRoom = cap(state.msgQueue) - len(state.msgQueue)
 			}
-			if !progress && state.InMsgQueue().Length() == 0 && state.InMsgQueue2().Length() == 0 {
+			if !progress && state.InMsgQueue().Length() == 0 && state.InMsgQueue2().Length() == 0 && len(s.Holding) < 5 {
 				// No messages? Sleep for a bit
-				for i := 0; i < 10 && state.InMsgQueue().Length() == 0; i++ {
+				for i := 0; i < 10 && state.InMsgQueue().Length() == 0 && state.InMsgQueue2().Length() == 0 && len(s.Holding) < 5; i++ {
 					time.Sleep(10 * time.Millisecond)
 					state.ValidatorLoopSleepCnt++
 				}
