@@ -501,9 +501,6 @@ func TestSimCtrl(t *testing.T) {
 	}
 	RanSimTest = true
 
-	state0 := SetupSim("LLLLLAAF", map[string]string{"--debuglog": ".*"}, 7, 2, 2, t)
-	CheckAuthoritySet(t)
-
 	type walletcallHelper struct {
 		Status string `json:"status"`
 	}
@@ -513,7 +510,7 @@ func TestSimCtrl(t *testing.T) {
 		Result  walletcallHelper `json:"result"`
 	}
 
-	apiCall := func(cmd string) {
+	apiCall := func(state0 *state.State, cmd string) {
 		url := "http://localhost:" + fmt.Sprint(state0.GetPort()) + "/debug"
 		var jsonStr = []byte(`{"jsonrpc": "2.0", "id": 0, "method": "sim-ctrl", "params":{"commands": ["` + cmd + `"]}}`)
 		req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
@@ -540,26 +537,27 @@ func TestSimCtrl(t *testing.T) {
 		fmt.Println("resp2: ", resp2)
 	}
 
-	WaitForMinute(state0, 2)
-	apiCall("1")
-	apiCall("x")
-	apiCall("2")
-	apiCall("x")
-	WaitForMinute(state0, 1)
-	apiCall("1")
-	apiCall("x")
-	apiCall("2")
-	apiCall("x")
+	state0 := SetupSim("LLLLLAAF", map[string]string{"--debuglog": "."}, 8, 2, 2, t)
 
-	apiCall("E")
-	apiCall("F")
-	apiCall("0")
-	apiCall("p")
+	WaitForMinute(state0, 2)
+	apiCall(state0, "1")
+	apiCall(state0, "x")
+	apiCall(state0, "2")
+	apiCall(state0, "x")
+	WaitForMinute(state0, 1)
+	apiCall(state0, "1")
+	apiCall(state0, "x")
+	apiCall(state0, "2")
+	apiCall(state0, "x")
+
+	apiCall(state0, "E")
+	apiCall(state0, "F")
+	apiCall(state0, "0")
+	apiCall(state0, "p")
 
 	WaitBlocks(state0, 2)
 	WaitForMinute(state0, 1)
 	WaitForAllNodes(state0)
-	CheckAuthoritySet(t)
 	ShutDownEverything(t)
 }
 
@@ -600,8 +598,9 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 		return
 	}
 	RanSimTest = true
-
-	state0 := SetupSim("LLLLAAAFFF", map[string]string{"--blktime": "15"}, 6, 0, 0, t)
+	// only have one leader because if you are not the leader responcible for the FCT transaction then
+	// you will return transACK before teh balance is updated which will make thsi test fail.
+	state0 := SetupSim("LAF", map[string]string{"--blktime": "15"}, 6, 0, 0, t)
 	WaitForMinute(state0, 1)
 
 	type walletcallHelper struct {
@@ -621,7 +620,7 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 		Result  wsapi.GeneralTransactionData `json:"result"`
 	}
 
-	apiCall := func(arrayOfFactoidAccounts []string) *walletcall {
+	apiCall := func(state0 *state.State, arrayOfFactoidAccounts []string) *walletcall {
 		url := "http://localhost:" + fmt.Sprint(state0.GetPort()) + "/v2"
 		var jsonStr = []byte(`{"jsonrpc": "2.0", "id": 0, "method": "multiple-fct-balances", "params":{"addresses":["` + strings.Join(arrayOfFactoidAccounts, `", "`) + `"]}}  `)
 		req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
@@ -646,7 +645,7 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 	}
 
 	arrayOfFactoidAccounts := []string{"FA1zT4aFpEvcnPqPCigB3fvGu4Q4mTXY22iiuV69DqE1pNhdF2MC", "FA3Y1tBWnFpyoZUPr9ZH51R1gSC8r5x5kqvkXL3wy4uRvzFnuWLB", "FA3Fsy2WPkR5z7qjpL8H1G51RvZLCiLDWASS6mByeQmHSwAws8K7"}
-	resp2 := apiCall(arrayOfFactoidAccounts)
+	resp2 := apiCall(state0, arrayOfFactoidAccounts)
 
 	// To check if the balances returned from the API are right
 	for i, a := range arrayOfFactoidAccounts {
@@ -712,7 +711,7 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 	}
 	TimeNow(state0)
 	ToTestPermAndTempBetweenBlocks := []string{"FA3EPZYqodgyEGXNMbiZKE5TS2x2J9wF8J9MvPZb52iGR78xMgCb", "FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q"}
-	resp3 := apiCall(ToTestPermAndTempBetweenBlocks)
+	resp3 := apiCall(state0, ToTestPermAndTempBetweenBlocks)
 	x, ok := resp3.Result.Balances[1].(map[string]interface{})
 	if ok != true {
 		fmt.Println(x)
@@ -757,7 +756,7 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 	}
 
 	// This call should show a different acknowledged balance than the Saved Balance
-	resp_5 := apiCall(ToTestPermAndTempBetweenBlocks)
+	resp_5 := apiCall(state0, ToTestPermAndTempBetweenBlocks)
 	x, ok = resp_5.Result.Balances[1].(map[string]interface{})
 	if ok != true {
 		fmt.Println(x)
@@ -774,7 +773,7 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 	WaitBlocks(state0, 1)
 	WaitMinutes(state0, 1)
 
-	resp_6 := apiCall(ToTestPermAndTempBetweenBlocks)
+	resp_6 := apiCall(state0, ToTestPermAndTempBetweenBlocks)
 	x, ok = resp_6.Result.Balances[1].(map[string]interface{})
 	if ok != true {
 		fmt.Println(x)
@@ -791,7 +790,9 @@ func TestMultipleECAccountsAPI(t *testing.T) {
 	}
 	RanSimTest = true
 
-	state0 := SetupSim("LLLLAAAFFF", map[string]string{"--blktime": "15"}, 6, 0, 0, t)
+	// only have one leader because if you are not the leader responcible for the FCT transaction then
+	// you will return transACK before teh balance is updated which will make thsi test fail.
+	state0 := SetupSim("LAF", map[string]string{"--blktime": "15"}, 6, 0, 0, t)
 	WaitForMinute(state0, 1)
 
 	type walletcallHelper struct {
@@ -828,7 +829,7 @@ func TestMultipleECAccountsAPI(t *testing.T) {
 		Result  wsapi.EntryStatus `json:"result"`
 	}
 
-	apiCall := func(arrayOfECAccounts []string) *walletcall {
+	apiCall := func(state0 *state.State, arrayOfECAccounts []string) *walletcall {
 		url := "http://localhost:" + fmt.Sprint(state0.GetPort()) + "/v2"
 		var jsonStr = []byte(`{"jsonrpc": "2.0", "id": 0, "method": "multiple-ec-balances", "params":{"addresses":["` + strings.Join(arrayOfECAccounts, `", "`) + `"]}}  `)
 		req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
@@ -853,7 +854,7 @@ func TestMultipleECAccountsAPI(t *testing.T) {
 	}
 
 	arrayOfECAccounts := []string{"EC1zGzM78psHhs5xVdv6jgVGmswvUaN6R3VgmTquGsdyx9W67Cqy", "EC1zGzM78psHhs5xVdv6jgVGmswvUaN6R3VgmTquGsdyx9W67Cqy"}
-	resp2 := apiCall(arrayOfECAccounts)
+	resp2 := apiCall(state0, arrayOfECAccounts)
 
 	// To check if the balances returned from the API are right
 	for i, a := range arrayOfECAccounts {
@@ -922,7 +923,7 @@ func TestMultipleECAccountsAPI(t *testing.T) {
 	}
 	TimeNow(state0)
 	ToTestPermAndTempBetweenBlocks := []string{"EC1zGzM78psHhs5xVdv6jgVGmswvUaN6R3VgmTquGsdyx9W67Cqy", "EC3Eh7yQKShgjkUSFrPbnQpboykCzf4kw9QHxi47GGz5P2k3dbab"}
-	resp3 := apiCall(ToTestPermAndTempBetweenBlocks)
+	resp3 := apiCall(state0, ToTestPermAndTempBetweenBlocks)
 	x, ok := resp3.Result.Balances[1].(map[string]interface{})
 	if ok != true {
 		fmt.Println(x)
@@ -964,12 +965,12 @@ func TestMultipleECAccountsAPI(t *testing.T) {
 	}
 
 	// This call should show a different acknowledged balance than the Saved Balance
-	resp_5 := apiCall(ToTestPermAndTempBetweenBlocks)
+	resp_5 := apiCall(state0, ToTestPermAndTempBetweenBlocks)
 	x, ok = resp_5.Result.Balances[1].(map[string]interface{})
 	if ok != true {
 		fmt.Println(x)
 	}
-
+	// looking at EC3Eh7yQKShgjkUSFrPbnQpboykCzf4kw9QHxi47GGz5P2k3dbab
 	if int64(x["ack"].(float64)) == int64(x["saved"].(float64)) {
 		t.Fatalf("Expected  temp[%d] to not match perm[%d]", int64(x["ack"].(float64)), int64(x["saved"].(float64)))
 	}
@@ -977,7 +978,7 @@ func TestMultipleECAccountsAPI(t *testing.T) {
 	WaitBlocks(state0, 1)
 	WaitMinutes(state0, 1)
 
-	resp_6 := apiCall(ToTestPermAndTempBetweenBlocks)
+	resp_6 := apiCall(state0, ToTestPermAndTempBetweenBlocks)
 	x, ok = resp_6.Result.Balances[1].(map[string]interface{})
 	if ok != true {
 		fmt.Println(x)
@@ -997,7 +998,7 @@ func TestDBsigElectionEvery2Block_long(t *testing.T) {
 	RanSimTest = true
 
 	iterations := 1
-	state := SetupSim("LLLLLLAF", map[string]string{"--debuglog": "", "--faulttimeout": "10"}, 32, 6, 6, t)
+	state := SetupSim("LLLLLLAF", map[string]string{"--debuglog": "", "--faulttimeout": "10"}, 35, 6, 6, t)
 
 	RunCmd("S10") // Set Drop Rate to 1.0 on everyone
 
@@ -1513,78 +1514,4 @@ func SystemCall(cmd string) {
 		panic(err)
 	}
 	fmt.Print(string(out))
-}
-
-func TestSaveState1(t *testing.T) {
-	if RanSimTest {
-		return
-	}
-	RanSimTest = true
-
-	// remove all the old database files
-	SystemCall("find  test/.factom/m2 -name LOCAL | xargs rm -rvf ")
-
-	state0 := SetupSim("LAFL", map[string]string{"--debuglog": ".", "--fastsaverate": "4", "--db": "LDB", "--factomhome": "test"}, 12, 0, 0, t)
-	StatusEveryMinute(state0)
-	WaitMinutes(state0, 2)
-	RunCmd("R5")
-	WaitForBlock(state0, 11)
-	WaitMinutes(state0, 1)
-	WaitForAllNodes(state0)
-	PrintOneStatus(0, 0)
-	ShutDownEverything(t)
-
-	for _, x := range GetFnodes() {
-		newState := x.State
-
-		fmt.Println("FactomNodeName: ", newState.FactomNodeName)
-		fmt.Println("	IdentityChainID: ", newState.IdentityChainID)
-		fmt.Println("	ServerPrivKey: ", newState.LocalServerPrivKey)
-		fmt.Println("	ServerPublicKey: ", newState.ServerPubKey)
-	}
-	time.Sleep(10 * time.Second)
-}
-
-func TestCreateDB_LLLLLLAAAAAFFFF(t *testing.T) {
-	// remove all the old database files
-	SystemCall("find  test/.factom/m2 -name LOCAL | xargs rm -rvf ")
-	state0 := SetupSim("LLLLLLAAAAAFFFF", map[string]string{"--db": "LDB", "--factomhome": "test", "--network": "CUSTOM", "--customnet": "devnet"}, 6, 0, 0, t)
-	WaitForAllNodes(state0)
-	PrintOneStatus(0, 0)
-	ShutDownEverything(t)
-
-	for _, x := range GetFnodes() {
-		newState := x.State
-
-		fmt.Println("FactomNodeName: ", newState.FactomNodeName)
-		fmt.Println("	IdentityChainID: ", newState.IdentityChainID)
-		fmt.Println("	ServerPrivKey: ", newState.LocalServerPrivKey)
-		fmt.Println("	ServerPublicKey: ", newState.ServerPubKey)
-	}
-	time.Sleep(10 * time.Second)
-}
-
-func TestSaveState2(t *testing.T) {
-	if RanSimTest {
-		return
-	}
-	RanSimTest = true
-
-	// remove fnode02's fastboot and fnode01's whole database
-	SystemCall("rm -vfr test/.factom/m2/local-database/ldb/Sim02/LOCAL/  test/.factom/m2/local-database/ldb/Sim01/FastBoot_LOCAL_v10.db")
-	state0 := SetupSim("FFFF", map[string]string{"--debuglog": ".", "--fastsaverate": "4", "--db": "LDB", "--factomhome": "test", "--blktime": "20"}, 20, 0, 0, t)
-
-	// check we booted from database to the right state
-	Audits = 1
-	Leaders = 2
-	Followers = 1
-	CheckAuthoritySet(t)
-
-	StatusEveryMinute(state0)
-	WaitForBlock(state0, 10)
-	WaitForAllNodes(state0)
-	PrintOneStatus(0, 0)
-
-	CheckAuthoritySet(t)
-	ShutDownEverything(t)
 }
