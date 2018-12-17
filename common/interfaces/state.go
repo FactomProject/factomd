@@ -4,7 +4,9 @@
 
 package interfaces
 
-import "github.com/FactomProject/factomd/activations"
+import (
+	"github.com/FactomProject/factomd/activations"
+)
 
 type DBStateSent struct {
 	DBHeight uint32
@@ -41,6 +43,7 @@ type IState interface {
 	Sign([]byte) IFullSignature
 	Log(level string, message string)
 	Logf(level string, format string, args ...interface{})
+	GetServerPublicKeyString() string
 
 	GetDBStatesSent() []*DBStateSent
 	SetDBStatesSent([]*DBStateSent)
@@ -298,6 +301,7 @@ type IState interface {
 
 	AddAuthorityDelta(changeString string)
 
+	GetElections() IElections
 	GetAuthorities() []IAuthority
 	GetAuthorityInterface(chainid IHash) IAuthority
 	GetLeaderPL() IProcessList
@@ -309,6 +313,7 @@ type IState interface {
 	GetCurrentBlockStartTime() int64
 	GetCurrentMinute() int
 	GetCurrentMinuteStartTime() int64
+	GetPreviousMinuteStartTime() int64
 	GetCurrentTime() int64
 	IsStalled() bool
 	GetDelay() int64
@@ -316,6 +321,11 @@ type IState interface {
 	GetDropRate() int
 	SetDropRate(int)
 	GetBootTime() int64
+	IsSyncing() bool
+	IsSyncingEOMs() bool
+	IsSyncingDBSigs() bool
+	DidCreateLastBlockFromDBState() bool
+	GetUnsyncedServers(dbheight uint32) []IHash
 
 	// Access to Holding Queue
 	LoadHoldingMap() map[[32]byte]IMsg

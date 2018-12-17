@@ -7,6 +7,7 @@ type IProcessList interface {
 	LenNewEntries() int
 	Complete() bool
 	VMIndexFor(hash []byte) int
+	GetVMStatsForFedServer(index int) (vmIndex int, listHeight int, listLength int, nextNil int)
 	SortFedServers()
 	SortAuditServers()
 	SortDBSigs()

@@ -223,8 +223,9 @@ type State struct {
 	CurrentMinute   int
 
 	// These are the start times for blocks and minutes
-	CurrentMinuteStartTime int64
-	CurrentBlockStartTime  int64
+	PreviousMinuteStartTime int64
+	CurrentMinuteStartTime  int64
+	CurrentBlockStartTime   int64
 
 	EOMsyncing bool
 
@@ -240,6 +241,8 @@ type State struct {
 	DBSigProcessed int // Number of DBSignatures received and processed.
 	DBSigDone      bool
 	DBSigSys       bool // At least one DBSig has covered the System List
+
+	CreatedLastBlockFromDBState bool
 
 	// By default, this is false, which means DBstates are discarded
 	// when a majority of leaders disagree with the hash we have via DBSigs
@@ -653,8 +656,28 @@ func (s *State) GetCurrentMinuteStartTime() int64 {
 	return s.CurrentMinuteStartTime
 }
 
+func (s *State) GetPreviousMinuteStartTime() int64 {
+	return s.PreviousMinuteStartTime
+}
+
 func (s *State) GetCurrentTime() int64 {
 	return time.Now().UnixNano()
+}
+
+func (s *State) IsSyncing() bool {
+	return s.Syncing
+}
+
+func (s *State) IsSyncingEOMs() bool {
+	return s.Syncing && s.EOM && !s.EOMDone
+}
+
+func (s *State) IsSyncingDBSigs() bool {
+	return s.Syncing && s.DBSig && !s.DBSigDone
+}
+
+func (s *State) DidCreateLastBlockFromDBState() bool {
+	return s.CreatedLastBlockFromDBState
 }
 
 func (s *State) IncDBStateAnswerCnt() {
@@ -2031,6 +2054,10 @@ func (s *State) GetServerPublicKey() *primitives.PublicKey {
 	return s.ServerPubKey
 }
 
+func (s *State) GetServerPublicKeyString() string {
+	return s.ServerPubKey.String()
+}
+
 func (s *State) GetAnchor() interfaces.IAnchor {
 	return s.Anchor
 }
@@ -2237,6 +2264,10 @@ func (s *State) SetFaultWait(wait int) {
 }
 
 //var _ IState = (*State)(nil)
+
+func (s *State) GetElections() interfaces.IElections {
+	return s.Elections
+}
 
 // GetAuthorities will return a list of the network authorities
 func (s *State) GetAuthorities() []interfaces.IAuthority {

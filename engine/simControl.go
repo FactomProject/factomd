@@ -17,10 +17,9 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/FactomProject/factomd/common/globals"
-
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/factoid"
+	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
@@ -48,7 +47,6 @@ var LOCAL_NET_PRIV_KEY string = "4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c
 var once bool
 
 //var InputChan = make(chan string)
-
 func GetLine(listenToStdin bool) string {
 
 	if !once {
