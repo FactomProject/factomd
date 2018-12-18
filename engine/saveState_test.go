@@ -40,6 +40,11 @@ func TestSaveState1(t *testing.T) {
 }
 
 func TestCreateDB_LLLLLLAAAAAFFFF(t *testing.T) {
+	if RanSimTest {
+		return
+	}
+	RanSimTest = true
+
 	// remove all the old database files
 	SystemCall("find  test/.factom/m2 -name LOCAL | xargs rm -rvf ")
 	state0 := SetupSim("LLLLLLAAAAAFFFF", map[string]string{"--db": "LDB", "--factomhome": "test", "--network": "CUSTOM", "--customnet": "devnet"}, 6, 0, 0, t)
