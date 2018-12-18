@@ -61,6 +61,7 @@ func (m *SecureDBMetaData) UnmarshalBinaryData(data []byte) (newData []byte, err
 	}
 	m.Challenge.Bytes = make([]byte, clen)
 	copy(m.Challenge.Bytes, newData[4:clen+4])
+	newData = newData[clen+4:]
 
 	return
 }
