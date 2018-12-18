@@ -172,8 +172,10 @@ func TestGetMapHash(t *testing.T) {
 	if h2 == nil {
 		t.Errorf("Hot nil hash")
 	}
-	if h2.String() != "fd9b4c42a47115af0bf1878c7de793e28b021415f82ed7151ab0cbb7db941b31" {
-		t.Errorf("Invalid hash - got %v, expected %v", h2.String(), "fd9b4c42a47115af0bf1878c7de793e28b021415f82ed7151ab0cbb7db941b31")
+	// b26a603681665b05acaa37627d037d8e6cb23e19161affedb3fd09f283494024,
+	s := h2.String()
+	if s != "fd9b4c42a47115af0bf1878c7de793e28b021415f82ed7151ab0cbb7db941b31" {
+		t.Errorf("Invalid hash - got %v, expected %v", s, "fd9b4c42a47115af0bf1878c7de793e28b021415f82ed7151ab0cbb7db941b31")
 	}
 
 	for i := 0; i < 1000; i++ {
