@@ -238,7 +238,7 @@ func (s *State) GoSyncEntries() {
 
 				eBlock, _ := s.DB.FetchEBlock(ebKeyMR)
 
-				// Dont have an eBlock?  Huh. We can go on, but we can't advance.  We just wait until it
+				// Don't have an eBlock?  Huh. We can go on, but we can't advance.  We just wait until it
 				// does show up.
 				for eBlock == nil {
 					time.Sleep(1 * time.Second)
@@ -307,7 +307,7 @@ func (s *State) GoSyncEntries() {
 			s.EntryDBHeightComplete = s.GetHighestSavedBlk()
 			s.LogPrintf("EntrySync", "firstMissing EntryDBHeightComplete = %d", s.EntryDBHeightComplete)
 
-			time.Sleep(5 * time.Second)
+			time.Sleep(500 * time.Millisecond)
 		}
 
 		time.Sleep(100 * time.Millisecond)
