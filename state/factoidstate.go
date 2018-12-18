@@ -84,9 +84,7 @@ func GetMapHash(bmap map[[32]byte]int64) interfaces.IHash {
 			return nil
 		}
 	}
-
 	h := primitives.Sha(buff.Bytes())
-
 	return h
 }
 
