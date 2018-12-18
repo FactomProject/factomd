@@ -2237,17 +2237,18 @@ func (s *State) SetMessageFilterTimestamp(requestedTs interfaces.Timestamp) {
 
 	if s.MessageFilterTimestamp != nil && ts.GetTimeMilli() < s.MessageFilterTimestamp.GetTimeMilli() {
 		s.LogPrintf("executeMsg", "Set MessageFilterTimestamp attempt to move backward in time from %s", atomic.WhereAmIString(1))
-		ts.SetTimestamp(s.LeaderTimestamp)
+		return
 	}
 
-	s.LogPrintf("executeMsg", "Set MessageFilterTimestamp(%s) @ dbht %d using %s for %s", requestedTs, s.LLeaderHeight, ts.String(), atomic.WhereAmIString(1))
+	s.LogPrintf("executeMsg", "SetMessageFilterTimestamp(%s) using %s ", requestedTs, ts.String())
 
 	s.MessageFilterTimestamp = primitives.NewTimestampFromMilliseconds(ts.GetTimeMilliUInt64())
 }
 
 func (s *State) SetLeaderTimestamp(ts interfaces.Timestamp) {
-	s.LogPrintf("executeMsg", "Set SetLeaderTimestamp(%s) @ dbht %d for %s", ts.String(), s.LLeaderHeight, atomic.WhereAmIString(1))
-		s.LeaderTimestamp = primitives.NewTimestampFromMilliseconds(ts.GetTimeMilliUInt64())
+	s.LogPrintf("executeMsg", "SetLeaderTimestamp(%s)", ts.String())
+
+	s.LeaderTimestamp = primitives.NewTimestampFromMilliseconds(ts.GetTimeMilliUInt64())
 	s.SetMessageFilterTimestamp(ts)
 }
 
@@ -2258,7 +2259,6 @@ func (s *State) SetFaultTimeout(timeout int) {
 func (s *State) SetFaultWait(wait int) {
 	s.FaultWait = wait
 }
-
 
 func (s *State) GetElections() interfaces.IElections {
 	return s.Elections
