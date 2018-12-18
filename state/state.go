@@ -438,7 +438,7 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 	}
 	if _, err := os.Stat(simConfigPath); os.IsNotExist(err) {
 		os.Stderr.WriteString("Creating simConfig directory\n")
-		os.MkdirAll(simConfigPath, 0777)
+		os.MkdirAll(simConfigPath, 0775)
 	}
 
 	config := false
@@ -898,7 +898,7 @@ func (s *State) Init() {
 		wsapi.InitLogs(s.LogPath, s.LogLevel)
 		//s.Logger = log.NewLogFromConfig(s.LogPath, s.LogLevel, "State")
 	} else {
-		er := os.MkdirAll(s.LogPath, 0777)
+		er := os.MkdirAll(s.LogPath, 0775)
 		if er != nil {
 			// fmt.Println("Could not create " + s.LogPath + "\n error: " + er.Error())
 		}
@@ -2247,9 +2247,7 @@ func (s *State) SetMessageFilterTimestamp(requestedTs interfaces.Timestamp) {
 
 func (s *State) SetLeaderTimestamp(ts interfaces.Timestamp) {
 	s.LogPrintf("executeMsg", "Set SetLeaderTimestamp(%s) @ dbht %d for %s", ts.String(), s.LLeaderHeight, atomic.WhereAmIString(1))
-
-	s.LeaderTimestamp = primitives.NewTimestampFromMilliseconds(ts.GetTimeMilliUInt64())
-
+		s.LeaderTimestamp = primitives.NewTimestampFromMilliseconds(ts.GetTimeMilliUInt64())
 	s.SetMessageFilterTimestamp(ts)
 }
 
@@ -2261,7 +2259,6 @@ func (s *State) SetFaultWait(wait int) {
 	s.FaultWait = wait
 }
 
-//var _ IState = (*State)(nil)
 
 func (s *State) GetElections() interfaces.IElections {
 	return s.Elections

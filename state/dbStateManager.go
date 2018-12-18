@@ -1326,7 +1326,7 @@ func (list *DBStateList) WriteDBStateToDebugFile(d *DBState) {
 }
 
 func ReadDBStateFromDebugFile(filename string) (*WholeBlock, error) {
-	file, err := os.OpenFile(filename, os.O_RDONLY, 0777)
+	file, err := os.OpenFile(filename, os.O_RDONLY, 0775)
 	if err != nil {
 		return nil, err
 	}
