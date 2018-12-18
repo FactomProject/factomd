@@ -731,7 +731,7 @@ func (p *ProcessList) decodeState(Syncing bool, DBSig bool, EOM bool, DBSigDone 
 
 }
 
-var extraDebug bool = true
+var extraDebug bool = false
 
 // Process messages and update our state.
 func (p *ProcessList) Process(s *State) (progress bool) {
@@ -771,9 +771,6 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 				s.SyncingStateCurrent = (s.SyncingStateCurrent + 1) % len(s.SyncingState)
 				s.SyncingState[s.SyncingStateCurrent] = x
 			}
-			if extraDebug {
-				s.LogMessage("process", fmt.Sprintf("Consider %v/%v/%v", p.DBHeight, i, j), vm.List[j])
-			}
 			if vm.List[j] == nil {
 				//p.State.AddStatus(fmt.Sprintf("ProcessList.go Process: Found nil list at vm %d vm height %d ", i, j))
 				cnt := 0
@@ -792,6 +789,10 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 
 				//				s.LogPrintf("process","nil  at  %v/%v/%v", p.DBHeight, i, j)
 				break VMListLoop
+			}
+
+			if extraDebug {
+				s.LogMessage("process", fmt.Sprintf("Consider %v/%v/%v", p.DBHeight, i, j), vm.List[j])
 			}
 
 			thisAck := vm.ListAck[j]

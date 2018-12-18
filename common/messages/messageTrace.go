@@ -100,7 +100,12 @@ func getTraceFile(name string) (f *os.File) {
 }
 
 func addmsg(msg interfaces.IMsg) {
-	hash := msg.GetMsgHash().Fixed()
+	mh := msg.GetMsgHash()
+	if mh == nil || reflect.ValueOf(mh).IsNil() {
+		return
+	}
+
+	hash := mh.Fixed()
 	if history == nil {
 		history = new([16384][32]byte)
 	}
@@ -154,25 +159,25 @@ func logMessage(name string, note string, msg interfaces.IMsg) {
 	msgString := "-nil-"
 	var embeddedMsg interfaces.IMsg
 
-	if msg != nil || reflect.ValueOf(msg.GetHash()).IsNil() {
+	if msg != nil {
 		t = msg.Type()
 		msgString = msg.String()
 
 		// work around message that don't have hashes yet ...
 		mh := msg.GetMsgHash()
-		if mh != nil {
+		if mh != nil && !reflect.ValueOf(mh).IsNil() {
 			mhash = mh.String()[:6]
 		}
 		h := msg.GetHash()
-		if h != nil {
+		if h != nil && !reflect.ValueOf(h).IsNil() {
 			hash = h.String()[:6]
 		}
-		mh = msg.GetRepeatHash()
-		if mh != nil {
-			rhash = mh.String()[:6]
+		rh := msg.GetRepeatHash()
+		if rh != nil && !reflect.ValueOf(rh).IsNil() {
+			rhash = rh.String()[:6]
 		}
 
-		if msg.Type() != constants.ACK_MSG && msg.Type() != constants.MISSING_DATA && msg.GetMsgHash() != nil {
+		if msg.Type() != constants.ACK_MSG && msg.Type() != constants.MISSING_DATA {
 			addmsg(msg) // Keep message we have seen for a while
 		}
 
@@ -212,7 +217,7 @@ func logMessage(name string, note string, msg interfaces.IMsg) {
 		case 0:
 			s = fmt.Sprintf("%9d %02d:%02d:%02d.%03d %-50s M-%v|R-%v|H-%v|%p %26s[%2v]:%v %s\n", sequence, now.Hour()%24, now.Minute()%60, now.Second()%60, (now.Nanosecond()/1e6)%1000,
 				note, mhash, rhash, hash, msg, messageType, t, text, where)
-		case 1:
+		default:
 			s = fmt.Sprintf("%9d %02d:%02d:%02d.%03d %-50s M-%v|R-%v|H-%v|%p %30s:%v\n", sequence, now.Hour()%24, now.Minute()%60, now.Second()%60, (now.Nanosecond()/1e6)%1000,
 				note, mhash, rhash, hash, msg, "continue:", text)
 		}
