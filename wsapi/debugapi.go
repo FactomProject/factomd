@@ -78,6 +78,8 @@ func HandleDebugRequest(
 	var resp interface{}
 	var jsonError *primitives.JSONError
 	params := j.Params
+	state.LogPrintf("apidebuglog", "request %v", j.String())
+
 	switch j.Method {
 	case "audit-servers":
 		resp, jsonError = HandleAuditServers(state, params)
@@ -134,6 +136,7 @@ func HandleDebugRequest(
 		break
 	}
 	if jsonError != nil {
+		state.LogPrintf("apidebuglog", "error %v", jsonError)
 		return nil, jsonError
 	}
 
@@ -142,6 +145,8 @@ func HandleDebugRequest(
 	jsonResp := primitives.NewJSON2Response()
 	jsonResp.ID = j.ID
 	jsonResp.Result = resp
+	state.LogPrintf("apidebuglog", "responce %v", jsonResp.String())
+
 	return jsonResp, nil
 }
 
