@@ -194,7 +194,7 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 	jsonResp.ID = j.ID
 	jsonResp.Result = resp
 
-	state.LogPrintf("apilog", "responce %v", jsonResp.String())
+	state.LogPrintf("apilog", "response %v", jsonResp.String())
 	return jsonResp, nil
 }
 

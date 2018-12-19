@@ -145,7 +145,7 @@ func HandleDebugRequest(
 	jsonResp := primitives.NewJSON2Response()
 	jsonResp.ID = j.ID
 	jsonResp.Result = resp
-	state.LogPrintf("apidebuglog", "responce %v", jsonResp.String())
+	state.LogPrintf("apidebuglog", "response %v", jsonResp.String())
 
 	return jsonResp, nil
 }
