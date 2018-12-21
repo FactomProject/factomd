@@ -28,7 +28,7 @@ func CreateMsg(messageType byte) interfaces.IMsg {
 	case constants.ACK_MSG:
 		return new(messages.Ack)
 	case constants.AUDIT_SERVER_FAULT_MSG:
-		return new(messages.AuditServerFault)
+
 	case constants.COMMIT_CHAIN_MSG:
 		return new(messages.CommitChainMsg)
 	case constants.COMMIT_ENTRY_MSG:
@@ -79,9 +79,8 @@ func CreateMsg(messageType byte) interfaces.IMsg {
 		msg := new(electionMsgs.FedVoteLevelMsg)
 		msg.SetFullBroadcast(true)
 		return msg
-	default:
-		return nil
 	}
+	return nil
 }
 
 func UnmarshalMessageData(data []byte) (newdata []byte, msg interfaces.IMsg, err error) {
