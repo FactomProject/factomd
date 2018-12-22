@@ -13,8 +13,8 @@ import (
 const (
 	EOM_MSG                       byte = iota // 0
 	ACK_MSG                                   // 1
-	FED_SERVER_FAULT_MSG                      // 2
-	AUDIT_SERVER_FAULT_MSG                    // 3
+	unused1                                   // 2
+	unused2                                   // 3
 	FULL_SERVER_FAULT_MSG                     // 4
 	COMMIT_CHAIN_MSG                          // 5
 	COMMIT_ENTRY_MSG                          // 6
@@ -91,10 +91,6 @@ func MessageName(Type byte) string {
 		return "EOM"
 	case ACK_MSG:
 		return "Ack"
-	case AUDIT_SERVER_FAULT_MSG:
-		return "Audit Server Fault"
-	case FED_SERVER_FAULT_MSG:
-		return "Fed Server Fault"
 	case FULL_SERVER_FAULT_MSG:
 		return "Full Server Fault"
 	case COMMIT_CHAIN_MSG:
@@ -183,10 +179,6 @@ func ShortMessageName(Type byte) string {
 		return "EOM"
 	case ACK_MSG:
 		return "ACK"
-	case AUDIT_SERVER_FAULT_MSG:
-		return "AFault"
-	case FED_SERVER_FAULT_MSG:
-		return "FFault"
 	case FULL_SERVER_FAULT_MSG:
 		return "SFault"
 	case COMMIT_CHAIN_MSG:
