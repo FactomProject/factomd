@@ -4,7 +4,6 @@ import (
 	"sync"
 
 	"github.com/FactomProject/factomd/common/interfaces"
-
 	"github.com/FactomProject/factomd/database/boltdb"
 	"github.com/FactomProject/factomd/database/leveldb"
 	"github.com/FactomProject/factomd/database/mapdb"
