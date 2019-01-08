@@ -1504,6 +1504,34 @@ func TestDBStateCatchup(t *testing.T) {
 	ShutDownEverything(t)
 }
 
+func TestDBState(t *testing.T) {
+	if RanSimTest {
+		return
+	}
+	RanSimTest = true
+
+	state0 := SetupSim("LLLFFFF", map[string]string{"--debuglog": "", "--blktime": "10"}, 100, 0, 0, t)
+	state1 := GetFnodes()[1].State
+	state4 := GetFnodes()[4].State // Get node 4
+	StatusEveryMinute(state1)
+
+	WaitMinutes(state0, 2)
+
+	RunCmd("R2")
+	WaitForMinute(state4, 0)
+	RunCmd("4")
+	RunCmd("x")
+	WaitBlocks(state0, 3)
+	RunCmd("T60")
+	WaitMinutes(state0, 3)
+	RunCmd("x")
+	WaitBlocks(state0, 2)
+
+	WaitForAllNodes(state0) // if the follower isn't catching up this will timeout
+	PrintOneStatus(0, 0)
+	ShutDownEverything(t)
+}
+
 func SystemCall(cmd string) {
 	fmt.Println("SystemCall(\"", cmd, "\")")
 	out, err := exec.Command("sh", "-c", cmd).Output()

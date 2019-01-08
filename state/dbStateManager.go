@@ -1045,10 +1045,28 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	// in this block.  If you want the balance of the highest saved block, look to
 	// list.State.FactoidBalancesPapi if it is not null.  If you have no entry there,
 	// then look to list.State.FactoidBalancesP
+
+	if s.RestoreFCT != nil {
+		for k, v := range s.RestoreFCT {
+			s.FactoidBalancesP[k] = v
+		}
+	}
+	if s.RestoreEC != nil {
+		for k, v := range s.RestoreEC {
+			s.ECBalancesP[k] = v
+		}
+	}
+
 	list.State.FactoidBalancesPMutex.Lock()
 	list.State.FactoidBalancesPapi = make(map[[32]byte]int64, len(pl.FactoidBalancesT))
+	list.State.RestoreFCT = make(map[[32]byte]int64, len(pl.FactoidBalancesT))
+	list.State.RestoreEC = make(map[[32]byte]int64, len(pl.FactoidBalancesT))
 	for k := range pl.FactoidBalancesT {
-		list.State.FactoidBalancesPapi[k] = list.State.FactoidBalancesP[k]
+		list.State.FactoidBalancesPapi[k] = list.State.FactoidBalancesP[k] // Capture the previous block balances for the APIs
+		list.State.RestoreFCT[k] = list.State.FactoidBalancesP[k]          // Capture the previous block balances to restore if we have to apply a dbstate over this block.
+	}
+	for k := range pl.ECBalancesT {
+		list.State.RestoreEC[k] = list.State.ECBalancesP[k]
 	}
 	list.State.FactoidBalancesPMutex.Unlock()
 
@@ -1369,6 +1387,9 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 			return
 		}
 	}
+
+	list.State.RestoreFCT = nil
+	list.State.RestoreEC = nil
 
 	if d.Saved {
 		Havedblk, err := list.State.DB.DoesKeyExist(databaseOverlay.DIRECTORYBLOCK, d.DirectoryBlock.GetKeyMR().Bytes())
