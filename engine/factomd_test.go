@@ -1510,22 +1510,24 @@ func TestDBState(t *testing.T) {
 	}
 	RanSimTest = true
 
-	state0 := SetupSim("LLLFFFF", map[string]string{"--debuglog": "", "--blktime": "10"}, 100, 0, 0, t)
+	state0 := SetupSim("LLLFFFF", map[string]string{"--net": "line", "--debuglog": ".", "--blktime": "10"}, 100, 0, 0, t)
 	state1 := GetFnodes()[1].State
-	state4 := GetFnodes()[4].State // Get node 4
+	state6 := GetFnodes()[6].State // Get node 4
 	StatusEveryMinute(state1)
 
-	WaitMinutes(state0, 2)
-
-	RunCmd("R2")
-	WaitForMinute(state4, 0)
-	RunCmd("4")
+	WaitForMinute(state0, 8)
+	RunCmd("Re")
+	RunCmd("R4")
+	RunCmd("F100")
+	RunCmd("6")
+	WaitForMinute(state6, 0)
 	RunCmd("x")
-	WaitBlocks(state0, 3)
-	RunCmd("T60")
-	WaitMinutes(state0, 3)
+	RunCmd("F0")
+	WaitBlocks(state0, 5)
 	RunCmd("x")
-	WaitBlocks(state0, 2)
+	WaitBlocks(state0, 5)
+	RunCmd("R0")
+	WaitBlocks(state0, 1)
 
 	WaitForAllNodes(state0) // if the follower isn't catching up this will timeout
 	PrintOneStatus(0, 0)
