@@ -35,3 +35,4 @@ Matt York                                  stackdump                            
 Sam Barnes                                 sambarnes                                    Factom Inc.
 Michael Beam                               michaelbeam                                  Factom Inc.
 Joshua Brigati                             JoshuaBrigati                                Factom Inc.
+Who Soup                                   WhoSoup                                      Factomize LLC
