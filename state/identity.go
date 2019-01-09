@@ -269,7 +269,11 @@ SyncIdentitiesLoop:
 			// synced it's management chain
 			eb := id.IdentityChainSync.NextEBlock()
 			if eb == nil {
-				panic(fmt.Sprintf("NextEblock was nil, but the identity chain was not fully synced. ID: %s", id.IdentityChainID.String()))
+				// The registration chain might not have eblocks to be parsed yet, since it is added on bootstrap
+				// and the db might yet have these blocks.
+				if id.Status != constants.IDENTITY_REGISTRATION_CHAIN {
+					panic(fmt.Sprintf("NextEblock was nil, but the identity chain was not fully synced. ID: %s", id.IdentityChainID.String()))
+				}
 				continue SyncIdentitiesLoop
 			}
 
@@ -340,8 +344,11 @@ func (st *State) AddIdentityEblocks(cid interfaces.IHash, rootChain bool) error 
 	if err != nil {
 		return fmt.Errorf("This is a problem. Eblocks were not able to be fetched for %s", cid.String()[:10])
 	}
-	markers := make([]EntryBlockMarker, len(eblocks))
-	for i, eb := range eblocks {
+	markers := make([]EntryBlockMarker, 0)
+	for _, eb := range eblocks {
+		if eb.GetDatabaseHeight() > st.LLeaderHeight {
+			continue
+		}
 		keymr, err := eb.KeyMR()
 		if err != nil {
 			return fmt.Errorf("Keymr of eblock was unable to be computed")
@@ -350,7 +357,8 @@ func (st *State) AddIdentityEblocks(cid interfaces.IHash, rootChain bool) error 
 		if err != nil {
 			return fmt.Errorf("DBlock at %d not found on disk", eb.GetDatabaseHeight())
 		}
-		markers[i] = EntryBlockMarker{keymr, eb.GetHeader().GetEBSequence(), eb.GetDatabaseHeight(), dblock.GetTimestamp()}
+		markers = append(markers, EntryBlockMarker{keymr, eb.GetHeader().GetEBSequence(), eb.GetDatabaseHeight(), dblock.GetTimestamp()})
+		//markers[i] = EntryBlockMarker{keymr, eb.GetHeader().GetEBSequence(), eb.GetDatabaseHeight(), dblock.GetTimestamp()}
 	}
 
 	sort.Sort(EntryBlockMarkerList(markers))

@@ -111,7 +111,10 @@ func (e *EntryBlockSync) MarshalBinary() (rval []byte, err error) {
 	}
 
 	for _, v := range e.BlocksToBeParsed {
-		buf.PushBinaryMarshallable(&v)
+		err = buf.PushBinaryMarshallable(&v)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return buf.DeepCopyBytes(), nil
