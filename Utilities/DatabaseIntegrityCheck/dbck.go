@@ -10,6 +10,7 @@ import (
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/hybridDB"
 )
@@ -19,6 +20,7 @@ var usage = "dbck [-b] DATABASE"
 func main() {
 	// parse the command line flags
 	bflag := flag.Bool("b", false, "analize a bolt database")
+	fflag := flag.Bool("f", false, "do not check for duplicate factoid transactions")
 	flag.Parse()
 	os.Args = flag.Args()
 
@@ -59,14 +61,21 @@ func main() {
 		return FetchBlockSet(db, dbhead.DatabasePrimaryIndex())
 	}()
 
+	// collect transaction hashes to detect duplicate transactions in the
+	// database
+	fcthashes := make(map[[32]byte]uint32)
+	sighashes := make(map[[32]byte]uint32)
+
+	// keep a list of read blocks to check against the DB index
+	blkMap := make(map[[32]byte]bool)
+
 	// cycle through all the blocks
 	for {
 		height := next.DBlock.GetHeader().GetDBHeight()
 		if height%1000 == 0 {
 			fmt.Println("DBHeight: ", height)
 			if height == 0 {
-				fmt.Println("Finished")
-				os.Exit(0)
+				break
 			}
 		}
 
@@ -75,26 +84,61 @@ func main() {
 		if err := directoryBlock.CheckBlockPairIntegrity(
 			next.DBlock, prev.DBlock,
 		); err != nil {
-			fmt.Println("ERROR:", err)
+			fmt.Println("ERROR: DBlock:", height, err)
+		} else {
+			blkMap[next.DBlock.DatabasePrimaryIndex().Fixed()] = true
 		}
 
 		if err := adminBlock.CheckBlockPairIntegrity(
 			next.ABlock, prev.ABlock,
 		); err != nil {
-			fmt.Println("ERROR:", err)
+			fmt.Println("ERROR: ABlock:", height, err)
+		} else {
+			blkMap[next.ABlock.DatabasePrimaryIndex().Fixed()] = true
 		}
 
 		if err := entryCreditBlock.CheckBlockPairIntegrity(
 			next.ECBlock, prev.ECBlock,
 		); err != nil {
-			fmt.Println("ERROR:", err)
+			fmt.Println("ERROR: ECBlock:", height, err)
+		} else {
+			blkMap[next.ECBlock.DatabasePrimaryIndex().Fixed()] = true
 		}
 
-		// TODO: check for duplicate fct transactions in the database
 		if err := factoid.CheckBlockPairIntegrity(
 			next.FBlock, prev.FBlock,
 		); err != nil {
-			fmt.Println("ERROR:", err)
+			fmt.Println("ERROR: FBlock:", height, err)
+		} else {
+			blkMap[next.FBlock.DatabasePrimaryIndex().Fixed()] = true
+		}
+
+		if !*fflag {
+			// check for duplicate factoid transactions
+			for _, fct := range next.FBlock.GetEntryHashes() {
+				if h, exists := fcthashes[fct.Fixed()]; exists {
+					fmt.Printf(
+						"ERROR: duplicate transactions found at heights %d and %d\n",
+						h, height,
+					)
+				} else {
+					// add the fcthash to the list
+					fcthashes[fct.Fixed()] = height
+				}
+			}
+
+			// check for duplicate transaction signatures hashes
+			for _, sig := range next.FBlock.GetEntrySigHashes() {
+				if h, exists := sighashes[sig.Fixed()]; exists {
+					fmt.Printf(
+						"ERROR: duplicate tx signatures found at height %d and %d\n",
+						h, height,
+					)
+				} else {
+					// add the sighash to the list
+					sighashes[sig.Fixed()] = height
+				}
+			}
 		}
 
 		if prev.DBlock == nil {
@@ -102,6 +146,30 @@ func main() {
 		}
 		next = prev
 	}
+
+	if !*fflag {
+		fmt.Println("total factoid transactions: ", len(fcthashes))
+	}
+
+	// check indexes for DBlocks
+	fmt.Println("Checking Drirectory Block index")
+	{
+		hs, ks, err := db.GetAll(
+			databaseOverlay.DIRECTORYBLOCK_NUMBER,
+			primitives.NewZeroHash(),
+		)
+		if err != nil {
+			fmt.Println(err)
+		}
+		for i, v := range hs {
+			h := v.(*primitives.Hash)
+			if !blkMap[h.Fixed()] {
+				fmt.Println("Invalid DBlock indexed", ks[i], h)
+			}
+		}
+	}
+
+	fmt.Println("Finished")
 }
 
 // BlockSet is a set of the index blocks at a given database height
