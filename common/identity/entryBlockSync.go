@@ -139,9 +139,10 @@ func (e *EntryBlockSync) UnmarshalBinaryData(p []byte) (newData []byte, err erro
 		return
 	}
 
-	// blockLimit is the mazimum number of Entry Blocks that could fit in the
-	// buffer. Smallest possible Entry Block is 140 bytes.
-	blockLimit := buf.Len() / 140
+	// blockLimit is the maximum number of Entry Blocks that could fit in the
+	// buffer.
+	tmp := NewEntryBlockMarker()
+	blockLimit := buf.Len() / tmp.Size()
 	blockCount, err := buf.PopInt()
 	if err != nil {
 		return
@@ -229,6 +230,7 @@ func (e *EntryBlockMarker) MarshalBinary() (rval []byte, err error) {
 		}
 	}(&err)
 	buf := primitives.NewBuffer(nil)
+
 	err = buf.PushIHash(e.KeyMr)
 	if err != nil {
 		return nil, err
@@ -250,6 +252,12 @@ func (e *EntryBlockMarker) MarshalBinary() (rval []byte, err error) {
 	}
 
 	return buf.DeepCopyBytes(), nil
+}
+
+// Returns the byte size when marshaled
+func (e *EntryBlockMarker) Size() int {
+	// If you count it, it's 46. However, PushIHash is actually 33 bytes. and PushTimestamp is actually 8, rather than 6.
+	return 49
 }
 
 func (e *EntryBlockMarker) UnmarshalBinary(p []byte) error {
