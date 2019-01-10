@@ -9,6 +9,8 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/FactomProject/factomd/common/globals"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
@@ -321,6 +323,7 @@ func Peers(fnode *FactomNode) {
 
 func NetworkOutputs(fnode *FactomNode) {
 	for {
+		fmt.Println("From NetworkOutputs ", globals.Params.OutputMessageRegEx)
 		// if len(fnode.State.NetworkOutMsgQueue()) > 500 {
 		// 	fmt.Print(fnode.State.GetFactomNodeName(), "-", len(fnode.State.NetworkOutMsgQueue()), " ")
 		// }

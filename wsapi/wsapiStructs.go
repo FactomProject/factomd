@@ -301,3 +301,7 @@ type MultipleECBalances struct {
 	LastSavedHeight uint32        `json:"lastsavedheight"`
 	Balances        []interface{} `json:"balances"`
 }
+
+type MessageFilter struct {
+	Params string `json:"params"`
+}

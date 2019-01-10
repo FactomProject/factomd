@@ -15,6 +15,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/FactomProject/factomd/common/globals"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
@@ -175,6 +177,8 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 		resp, jsonError = HandleV2MultipleFCTBalances(state, params)
 	case "multiple-ec-balances":
 		resp, jsonError = HandleV2MultipleECBalances(state, params)
+	case "message-filter":
+		resp, jsonError = HandleV2MessageFilter(state, params)
 		//case "factoid-accounts":
 		// resp, jsonError = HandleV2Accounts(state, params)
 	default:
@@ -1376,6 +1380,20 @@ func HandleV2MultipleFCTBalances(state interfaces.IState, params interface{}) (i
 	h.CurrentHeight = currentHeight
 	h.LastSavedHeight = savedHeight
 	h.Balances = totalBalances
+
+	return h, nil
+}
+
+func HandleV2MessageFilter(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	if params != nil {
+		fmt.Println("params", params)
+	}
+
+	t := fmt.Sprintf("%s", params)
+	globals.Params.OutputMessageRegEx = t
+
+	h := new(MessageFilter)
+	h.Params = t
 
 	return h, nil
 }
