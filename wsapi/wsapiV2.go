@@ -1385,15 +1385,24 @@ func HandleV2MultipleFCTBalances(state interfaces.IState, params interface{}) (i
 }
 
 func HandleV2MessageFilter(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	if params != nil {
-		fmt.Println("params", params)
+	x, ok := params.(map[string]interface{})
+	if !ok {
+		return nil, NewCustomInvalidParamsError("ERROR! Invalid params passed in")
 	}
 
-	t := fmt.Sprintf("%s", params)
-	globals.Params.OutputMessageRegEx = t
+	//listofparams := make([]string, 0)
+
+	fmt.Println(`x["output-time"]`, x["output-time"])
+	fmt.Println(`x[output-msg"]`, x["output-msg"])
+
+	outputTimeString := fmt.Sprintf("%s", x["output-time"])
+	globals.Params.OutputTimeRegEx = outputTimeString
+
+	outputMsgString := fmt.Sprintf("%s", x["output-msg"])
+	globals.Params.OutputMessageRegEx = outputMsgString
 
 	h := new(MessageFilter)
-	h.Params = t
+	//h.Params = t
 
 	return h, nil
 }

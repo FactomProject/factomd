@@ -69,4 +69,5 @@ type FactomParams struct {
 	ControlPanelSetting      string
 	WriteProcessedDBStates   bool // Write processed DBStates to debug file
 	OutputMessageRegEx       string
+	OutputTimeRegEx          string
 }

@@ -7,6 +7,7 @@ package engine
 import (
 	"fmt"
 	"math/rand"
+	"regexp"
 	"time"
 
 	"github.com/FactomProject/factomd/common/globals"
@@ -323,7 +324,6 @@ func Peers(fnode *FactomNode) {
 
 func NetworkOutputs(fnode *FactomNode) {
 	for {
-		fmt.Println("From NetworkOutputs ", globals.Params.OutputMessageRegEx)
 		// if len(fnode.State.NetworkOutMsgQueue()) > 500 {
 		// 	fmt.Print(fnode.State.GetFactomNodeName(), "-", len(fnode.State.NetworkOutMsgQueue()), " ")
 		// }
@@ -347,6 +347,22 @@ func NetworkOutputs(fnode *FactomNode) {
 				fnode.State.LogMessage("NetworkOutputs", "Drop, no repeat hash", msg)
 				continue
 			}
+
+			t := fmt.Sprintf("%7d-:-%d ", fnode.State.LLeaderHeight, fnode.State.CurrentMinute)
+			reTime := regexp.MustCompile(globals.Params.OutputTimeRegEx)
+			timeResult := reTime.MatchString(t)
+
+			msgString := msg.String()
+			fmt.Println("msgString", msgString)
+			reMessage := regexp.MustCompile(globals.Params.OutputTimeRegEx)
+			messageResult := reMessage.MatchString(msgString)
+
+			if timeResult || messageResult {
+				fmt.Println("found it! ", timeResult, messageResult)
+				msg = msg.SendOut()
+			}
+
+			//fmt.Println("From NetworkOutputs ", globals.Params.OutputMessageRegEx)
 
 			//_, ok := msg.(*messages.Ack)
 			//if ok {
