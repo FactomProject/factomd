@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"reflect"
+	"regexp"
 	"strings"
 	"time"
 
@@ -1392,22 +1393,37 @@ func HandleV2MessageFilter(state interfaces.IState, params interface{}) (interfa
 
 	//listofparams := make([]string, 0)
 
-	fmt.Println(`x["output-time"]`, x["output-time"])
-	fmt.Println(`x[output-msg"]`, x["output-msg"])
-	fmt.Println(`x["input-time"]`, x["input-time"])
-	fmt.Println(`x["input-msg"]`, x["input-msg"])
+	//fmt.Println(`x["output-time"]`, x["output-time"])
+	//fmt.Println(`x[output-msg"]`, x["output-msg"])
+	//fmt.Println(`x["input-time"]`, x["input-time"])
+	//fmt.Println(`x["input-msg"]`, x["input-msg"])
+	//
+	//outputTimeString := fmt.Sprintf("%s", x["output-time"])
+	//globals.Params.OutputTimeRegEx = outputTimeString
+	//
+	//outputMsgString := fmt.Sprintf("%s", x["output-msg"])
+	//globals.Params.OutputMessageRegEx = outputMsgString
+	//
+	//inputTimeString := fmt.Sprintf("%s", x["input-time"])
+	//globals.Params.InputTimeRegEx = inputTimeString
+	//
+	//inputMsgString := fmt.Sprintf("%s", x["output-msg"])
+	//globals.Params.InputMessageRegEx = inputMsgString
 
-	outputTimeString := fmt.Sprintf("%s", x["output-time"])
-	globals.Params.OutputTimeRegEx = outputTimeString
+	fmt.Println(`x["output-regex"]`, x["output-regex"])
+	fmt.Println(`x["input-regex"]`, x["input-regex"])
 
-	outputMsgString := fmt.Sprintf("%s", x["output-msg"])
-	globals.Params.OutputMessageRegEx = outputMsgString
+	OutputString := fmt.Sprintf("%s", x["output-regex"])
+	globals.OutputRegExString = OutputString
 
-	inputTimeString := fmt.Sprintf("%s", x["input-time"])
-	globals.Params.InputTimeRegEx = inputTimeString
+	OutputRegEx := regexp.MustCompile(OutputString)
+	globals.OutputRegEx = OutputRegEx
 
-	inputMsgString := fmt.Sprintf("%s", x["output-msg"])
-	globals.Params.InputMessageRegEx = inputMsgString
+	InputString := fmt.Sprintf("%s", x["input-regex"])
+	globals.InputRegExString = InputString
+
+	InputRegEx := regexp.MustCompile(InputString)
+	globals.InputRegEx = InputRegEx
 
 	h := new(MessageFilter)
 	//h.Params = t

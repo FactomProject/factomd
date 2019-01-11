@@ -7,7 +7,6 @@ package engine
 import (
 	"fmt"
 	"math/rand"
-	"regexp"
 	"time"
 
 	"github.com/FactomProject/factomd/common/globals"
@@ -133,6 +132,27 @@ func Peers(fnode *FactomNode) {
 			if msg == nil {
 				continue
 			}
+
+			//if globals.Params.InputTimeRegEx != "" {
+			//	t := fmt.Sprintf("%7d-:-%d ", fnode.State.LLeaderHeight, fnode.State.CurrentMinute)
+			//	reTime := regexp.MustCompile(globals.Params.InputTimeRegEx)
+			//	timeResult := reTime.MatchString(t)
+			//
+			//	if timeResult {
+			//		continue
+			//	}
+			//}
+			//
+			//if globals.Params.InputMessageRegEx != "" {
+			//	msgString := msg.String()
+			//	reMessage := regexp.MustCompile(globals.Params.InputMessageRegEx)
+			//	messageResult := reMessage.MatchString(msgString)
+			//
+			//	if messageResult {
+			//		continue
+			//	}
+			//}
+
 			if msg.GetHash() == nil {
 				fnode.State.LogMessage("badMsgs", "Nil hash from APIQueue", msg)
 				continue
@@ -285,6 +305,16 @@ func Peers(fnode *FactomNode) {
 					continue
 				}
 
+				if globals.InputRegEx != nil {
+					t := fmt.Sprintf("%7d-:-%d %s", fnode.State.LLeaderHeight, fnode.State.CurrentMinute, msg.String())
+					messageResult := globals.InputRegEx.MatchString(t)
+					if messageResult {
+						fmt.Println("found it NETWORK!", t)
+						fnode.State.LogMessage("NetworkInputs", "Drop, matched filter Regex", msg)
+						continue
+					}
+				}
+
 				//if state.GetOut() {
 				//	fnode.State.Println("In Coming!! ",msg)
 				//}
@@ -348,21 +378,18 @@ func NetworkOutputs(fnode *FactomNode) {
 				continue
 			}
 
-			t := fmt.Sprintf("%7d-:-%d ", fnode.State.LLeaderHeight, fnode.State.CurrentMinute)
-			reTime := regexp.MustCompile(globals.Params.OutputTimeRegEx)
-			timeResult := reTime.MatchString(t)
+			if globals.OutputRegEx != nil {
+				t := fmt.Sprintf("%7d-:-%d %s", fnode.State.LLeaderHeight, fnode.State.CurrentMinute, msg.String())
 
-			msgString := msg.String()
-			//fmt.Println("msgString", msgString)
-			reMessage := regexp.MustCompile(globals.Params.OutputTimeRegEx)
-			messageResult := reMessage.MatchString(msgString)
-
-			if timeResult || messageResult {
-				fmt.Println("found it! ", timeResult, messageResult)
-				continue;
+				//fmt.Println("HEEELLLLLOOOO", t)
+				//fmt.Println("MY REGEX", globals.OutputRegEx)
+				messageResult := globals.OutputRegEx.MatchString(t)
+				if messageResult {
+					fmt.Println("found it!", t)
+					fnode.State.LogMessage("NetworkOutputs", "Drop, matched filter Regex", msg)
+					continue
+				}
 			}
-
-			//fmt.Println("From NetworkOutputs ", globals.Params.OutputMessageRegEx)
 
 			//_, ok := msg.(*messages.Ack)
 			//if ok {

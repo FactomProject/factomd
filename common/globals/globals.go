@@ -1,11 +1,18 @@
 package globals
 
-import "time"
+import (
+	"regexp"
+	"time"
+)
 
 var FnodeNames map[string]string = make(map[string]string) /// use by MessageTrace debug code
 var Params FactomParams
 var StartTime time.Time
 var LastDebugLogRegEx string // used to detect if FactomParams.DebugLogRegEx was changed by the control panel
+var OutputRegEx *regexp.Regexp
+var OutputRegExString string
+var InputRegEx *regexp.Regexp
+var InputRegExString string
 
 type FactomParams struct {
 	AckbalanceHash           bool
@@ -68,8 +75,4 @@ type FactomParams struct {
 	FixChainHeads            bool // Only matters if CheckChainHeads == true
 	ControlPanelSetting      string
 	WriteProcessedDBStates   bool // Write processed DBStates to debug file
-	OutputMessageRegEx       string
-	OutputTimeRegEx          string
-	InputMessageRegEx       string
-	InputTimeRegEx          string
 }
