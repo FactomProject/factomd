@@ -70,4 +70,6 @@ type FactomParams struct {
 	WriteProcessedDBStates   bool // Write processed DBStates to debug file
 	OutputMessageRegEx       string
 	OutputTimeRegEx          string
+	InputMessageRegEx       string
+	InputTimeRegEx          string
 }

@@ -1394,12 +1394,20 @@ func HandleV2MessageFilter(state interfaces.IState, params interface{}) (interfa
 
 	fmt.Println(`x["output-time"]`, x["output-time"])
 	fmt.Println(`x[output-msg"]`, x["output-msg"])
+	fmt.Println(`x["input-time"]`, x["input-time"])
+	fmt.Println(`x["input-msg"]`, x["input-msg"])
 
 	outputTimeString := fmt.Sprintf("%s", x["output-time"])
 	globals.Params.OutputTimeRegEx = outputTimeString
 
 	outputMsgString := fmt.Sprintf("%s", x["output-msg"])
 	globals.Params.OutputMessageRegEx = outputMsgString
+
+	inputTimeString := fmt.Sprintf("%s", x["input-time"])
+	globals.Params.InputTimeRegEx = inputTimeString
+
+	inputMsgString := fmt.Sprintf("%s", x["output-msg"])
+	globals.Params.InputMessageRegEx = inputMsgString
 
 	h := new(MessageFilter)
 	//h.Params = t

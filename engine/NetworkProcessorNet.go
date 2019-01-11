@@ -353,13 +353,13 @@ func NetworkOutputs(fnode *FactomNode) {
 			timeResult := reTime.MatchString(t)
 
 			msgString := msg.String()
-			fmt.Println("msgString", msgString)
+			//fmt.Println("msgString", msgString)
 			reMessage := regexp.MustCompile(globals.Params.OutputTimeRegEx)
 			messageResult := reMessage.MatchString(msgString)
 
 			if timeResult || messageResult {
 				fmt.Println("found it! ", timeResult, messageResult)
-				msg = msg.SendOut()
+				continue;
 			}
 
 			//fmt.Println("From NetworkOutputs ", globals.Params.OutputMessageRegEx)
