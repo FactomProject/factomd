@@ -1,12 +1,12 @@
 package main
 
 import (
+	"errors"
 	"flag"
-	"os"
-
-	"io/ioutil"
 
 	"fmt"
+
+	"os"
 
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/state"
@@ -21,46 +21,49 @@ func main() {
 	flag.Parse()
 
 	s := testHelper.CreateEmptyTestState()
-	//dbs := new(state.DBStateList)
-	file, err := os.OpenFile(*filename, os.O_RDONLY, 0777)
+
+	statelist := s.DBStates
+	fmt.Println(statelist.State.FactomNodeName, "Loading from", filename)
+	b, err := state.LoadFromFile(s, *filename)
 	if err != nil {
+		fmt.Fprintln(os.Stderr, "LoadDBStateList error:", err)
 		panic(err)
 	}
-
-	data, err := ioutil.ReadAll(file)
-	if err != nil {
-		panic(err)
+	if b == nil {
+		fmt.Fprintln(os.Stderr, "LoadDBStateList LoadFromFile returned nil")
+		panic(errors.New("failed to load from file"))
 	}
-
 	h := primitives.NewZeroHash()
-	data, err = h.UnmarshalBinaryData(data)
+	b, err = h.UnmarshalBinaryData(b)
 	if err != nil {
 		panic(err)
 	}
-	h2 := primitives.Sha(data)
+	h2 := primitives.Sha(b)
 	if h.IsSameAs(h2) == false {
-		fmt.Printf("LoadDBStateList - Integrity hashes do not match!")
-		panic(err)
+		fmt.Fprintf(os.Stderr, "LoadDBStateList - Integrity hashes do not match!")
+		panic(errors.New("fastboot file does not match its hash"))
 		//return fmt.Errorf("Integrity hashes do not match")
 	}
 
-	nd, err := s.DBStates.UnmarshalBinaryData(data)
-	if err != nil {
-		panic(err)
+	statelist.UnmarshalBinary(b)
+	var i int
+	for i = len(statelist.DBStates) - 1; i >= 0; i-- {
+		if statelist.DBStates[i].SaveStruct != nil {
+			break
+		}
 	}
+	statelist.DBStates[i].SaveStruct.RestoreFactomdState(statelist.State)
 
-	if len(nd) != 0 {
-		panic("Left over bytes after savestate unmarshal")
-	}
+	//fmt.Println(s.IdentityControl)
 
 	state.PrintState(s)
 
-	h1 := state.GetMapHash(s.GetLLeaderHeight(), s.FactoidBalancesP)
-	h2 = state.GetMapHash(s.GetLLeaderHeight(), s.ECBalancesP)
+	h1 := state.GetMapHash(s.FactoidBalancesP)
+	h2 = state.GetMapHash(s.ECBalancesP)
 
-	var b []byte
-	b = append(b, h1.Bytes()...)
-	b = append(b, h2.Bytes()...)
+	var d []byte
+	d = append(d, h1.Bytes()...)
+	d = append(d, h2.Bytes()...)
 	r := primitives.Sha(b)
 
 	fmt.Printf("Balance Hash: DBHeight %d, FCTCount %d, ECCount %d, Hash %x\n", s.GetLLeaderHeight(), len(s.FactoidBalancesP), len(s.ECBalancesP), r.Bytes()[:])
@@ -73,4 +76,7 @@ func main() {
 		"EC Address Count: %d\n"+
 		"Balance Hash: %s\n",
 		s.LLeaderHeight, len(s.FactoidBalancesP), len(s.ECBalancesP), bh.String())
+
+	// Identity Related Info
+	fmt.Println(s.IdentityControl)
 }
