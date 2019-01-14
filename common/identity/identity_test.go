@@ -11,6 +11,31 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
+func TestMarshalEntryBlockSync(t *testing.T) {
+	e := NewEntryBlockSync()
+	e.Target = *NewEntryBlockMarker()
+	e.Current = *NewEntryBlockMarker()
+	e.BlocksToBeParsed = []EntryBlockMarker{*NewEntryBlockMarker(), *NewEntryBlockMarker(), *NewEntryBlockMarker()}
+
+	data, err := e.MarshalBinary()
+	if err != nil {
+		t.Error(err)
+	}
+
+	e2 := NewEntryBlockSync()
+	data, err = e2.UnmarshalBinaryData(data)
+	if err != nil {
+		t.Error(err)
+	}
+	if len(data) != 0 {
+		t.Errorf("%d bytes left after unmarshal", len(data))
+	}
+
+	if len(e2.BlocksToBeParsed) != 3 {
+		t.Errorf("Should be 3 in blocks to be parsed, found %d", len(e2.BlocksToBeParsed))
+	}
+}
+
 func TestIdentityMarshalUnmarshal(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		id := RandomIdentity()

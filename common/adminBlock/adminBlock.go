@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 
+	"reflect"
 	"sort"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -327,21 +328,45 @@ func (c *AdminBlock) GetDatabaseHeight() uint32 {
 	return c.GetHeader().GetDBHeight()
 }
 
-func (c *AdminBlock) GetChainID() interfaces.IHash {
+func (c *AdminBlock) GetChainID() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("AdminBlock.DatabasePrimaryIndex() saw an interface that was nil")
+		}
+	}()
 	return c.GetHeader().GetAdminChainID()
 }
 
-func (c *AdminBlock) DatabasePrimaryIndex() interfaces.IHash {
+func (c *AdminBlock) DatabasePrimaryIndex() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("AdminBlock.DatabasePrimaryIndex() saw an interface that was nil")
+		}
+	}()
 	key, _ := c.LookupHash()
 	return key
 }
 
-func (c *AdminBlock) DatabaseSecondaryIndex() interfaces.IHash {
+func (c *AdminBlock) DatabaseSecondaryIndex() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("AdminBlock.DatabaseSecondaryIndex() saw an interface that was nil")
+		}
+	}()
 	key, _ := c.BackReferenceHash()
 	return key
 }
 
-func (c *AdminBlock) GetHash() interfaces.IHash {
+func (c *AdminBlock) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("AdminBlock.GetHash() saw an interface that was nil")
+		}
+	}()
 	h, _ := c.GetKeyMR()
 	return h
 }
@@ -434,8 +459,21 @@ func (b *AdminBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	}
 	b.Header = h
 
-	b.ABEntries = make([]interfaces.IABEntry, int(b.GetHeader().GetMessageCount()))
-	for i := uint32(0); i < b.GetHeader().GetMessageCount(); i++ {
+	// msgLimit is the theoretical maximum number of messages possible in the
+	// admin block. The limit is the body size divided by the smallest possible
+	// message size (2 bytes for a minute message {0x00, 0x0[0-9]})
+	msgLimit := b.Header.GetBodySize() / 2
+	msgCount := b.Header.GetMessageCount()
+	if msgCount > msgLimit {
+		return nil, fmt.Errorf(
+			"Error: AdminBlock.UnmarshalBinary: message count %d is greater "+
+				"than remaining space in buffer %d (uint underflow?)",
+			msgCount, msgLimit,
+		)
+	}
+
+	b.ABEntries = make([]interfaces.IABEntry, int(msgCount))
+	for i := uint32(0); i < msgCount; i++ {
 		t, err := buf.PeekByte()
 		if err != nil {
 			return nil, err

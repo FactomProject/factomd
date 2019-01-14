@@ -121,6 +121,7 @@ func (lg *LoadGenerator) NewRevealEntry(entry *entryBlock.Entry) *messages.Revea
 }
 
 var cnt int
+var goingUp bool
 
 func (lg *LoadGenerator) GetECs(tight bool, c int) {
 	s := fnodes[wsapiNode].State
@@ -136,7 +137,15 @@ func (lg *LoadGenerator) GetECs(tight bool, c int) {
 	}
 
 	cnt++
-	if (ecBal > int64(c) && ecBal > 15) || (!tight && ecBal > 2000) {
+	if goingUp && ecBal > 500 {
+		if cnt%1000 == 0 {
+			os.Stderr.WriteString(fmt.Sprintf("%d purchases, not buying %d cause the balance is %d \n", cnt, c, ecBal))
+		}
+		goingUp = false
+		return
+	}
+
+	if !goingUp && ecBal > int64(c) {
 		if cnt%1000 == 0 {
 			os.Stderr.WriteString(fmt.Sprintf("%d purchases, not buying %d cause the balance is %d \n", cnt, c, ecBal))
 		}
@@ -146,6 +155,7 @@ func (lg *LoadGenerator) GetECs(tight bool, c int) {
 	os.Stderr.WriteString(fmt.Sprintf("%d purchases, buying %d and balance is %d \n", cnt, c, ecBal))
 
 	FundWalletTOFF(s, lg.txoffset, uint64(c)*ecPrice)
+	goingUp = true
 
 }
 
@@ -157,13 +167,12 @@ func (lg *LoadGenerator) NewCommitChain(entry *entryBlock.Entry) *messages.Commi
 	commit := entryCreditBlock.NewCommitChain()
 	data, _ := entry.MarshalBinary()
 	commit.Credits, _ = util.EntryCost(data)
-
 	commit.Credits += 10
 	lg.GetECs(lg.tight.Load(), int(commit.Credits))
 
 	commit.EntryHash = entry.GetHash()
 	var b6 primitives.ByteSlice6
-	copy(b6[:], milliTime()[:])
+	copy(b6[:], milliTime(lg.txoffset)[:])
 	commit.MilliTime = &b6
 	var b32 primitives.ByteSlice32
 	copy(b32[:], lg.ECKey.Pub[:])
@@ -192,7 +201,7 @@ func (lg *LoadGenerator) NewCommitEntry(entry *entryBlock.Entry) *messages.Commi
 
 	commit.EntryHash = entry.GetHash()
 	var b6 primitives.ByteSlice6
-	copy(b6[:], milliTime()[:])
+	copy(b6[:], milliTime(lg.txoffset)[:])
 	commit.MilliTime = &b6
 	var b32 primitives.ByteSlice32
 	copy(b32[:], lg.ECKey.Pub[:])
@@ -207,10 +216,10 @@ func (lg *LoadGenerator) NewCommitEntry(entry *entryBlock.Entry) *messages.Commi
 }
 
 // milliTime returns a 6 byte slice representing the unix time in milliseconds
-func milliTime() (r []byte) {
+func milliTime(offset int64) (r []byte) {
 	buf := new(bytes.Buffer)
 	t := time.Now().UnixNano()
-	m := t / 1e6
+	m := t/1e6 + offset
 	binary.Write(buf, binary.BigEndian, m)
 	return buf.Bytes()[2:]
 }

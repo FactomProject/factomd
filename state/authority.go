@@ -169,6 +169,11 @@ func (st *State) FastVerifyAuthoritySignature(msg []byte, sig interfaces.IFullSi
 			}
 		}
 	}
+
+	for i, f := range st.GetFedServers(st.LLeaderHeight) {
+		st.LogPrintf("executeMsg", "%d - %x", i, f.GetChainID().Bytes()[3:6])
+	}
+
 	return -1, fmt.Errorf("%s", "Signature Key Invalid or not Federated Server Key")
 }
 

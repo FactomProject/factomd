@@ -198,31 +198,31 @@ func (id *Identity) IsComplete() (bool, error) {
 
 	// Required for Admin Block
 	if isNil(id.SigningKey) {
-		missing = append(missing, "block signing key")
+		missing = append(missing, "id.SigningKey block signing key, ")
 	}
 
 	if len(id.AnchorKeys) == 0 {
-		missing = append(missing, "block signing key")
+		missing = append(missing, "id.AnchorKeys block signing key, ")
 
 	}
 
 	if isNil(id.MatryoshkaHash) {
-		missing = append(missing, "block signing key")
+		missing = append(missing, "id.MatryoshkaHash block signing key, ")
 	}
 
 	// There are additional requirements we will enforce
 	for c := range id.Keys {
 		if isNil(id.Keys[c]) {
-			missing = append(missing, fmt.Sprintf("id key %d", c+1))
+			missing = append(missing, fmt.Sprintf("id key %d, ", c+1))
 		}
 	}
 
 	if isNil(id.IdentityChainID) {
-		missing = append(missing, "identity chain")
+		missing = append(missing, "id.IdentityChainID identity chain, ")
 	}
 
 	if isNil(id.ManagementChainID) {
-		missing = append(missing, "identity chain")
+		missing = append(missing, "id.ManagementChainID identity chain, ")
 	}
 
 	if len(missing) > 0 {

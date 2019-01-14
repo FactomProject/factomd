@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"os"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -34,15 +35,36 @@ type ChangeServerKeyMsg struct {
 var _ interfaces.IMsg = (*ChangeServerKeyMsg)(nil)
 var _ interfaces.Signable = (*ChangeServerKeyMsg)(nil)
 
-func (m *ChangeServerKeyMsg) GetRepeatHash() interfaces.IHash {
+func (m *ChangeServerKeyMsg) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("ChangeServerKeyMsg.GetRepeatHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.GetMsgHash()
 }
 
-func (m *ChangeServerKeyMsg) GetHash() interfaces.IHash {
+func (m *ChangeServerKeyMsg) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("ChangeServerKeyMsg.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.GetMsgHash()
 }
 
-func (m *ChangeServerKeyMsg) GetMsgHash() interfaces.IHash {
+func (m *ChangeServerKeyMsg) GetMsgHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("ChangeServerKeyMsg.GetMsgHash() saw an interface that was nil")
+		}
+	}()
+
 	if m.MsgHash == nil {
 		data, err := m.MarshalForSignature()
 		if err != nil {

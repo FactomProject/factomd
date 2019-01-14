@@ -312,7 +312,6 @@ func RegisterPrometheus() {
 	// Holding
 	prometheus.MustRegister(TotalHoldingQueueInputs)
 	prometheus.MustRegister(TotalHoldingQueueOutputs)
-	prometheus.MustRegister(TotalHoldingQueueRecycles)
 	prometheus.MustRegister(HoldingQueueDBSigInputs)
 	prometheus.MustRegister(HoldingQueueDBSigOutputs)
 	prometheus.MustRegister(HoldingQueueCommitEntryInputs)

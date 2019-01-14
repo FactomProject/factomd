@@ -5,14 +5,14 @@
 package messages
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-
-	"bytes"
 
 	"github.com/FactomProject/factomd/common/messages/msgbase"
 	log "github.com/sirupsen/logrus"
@@ -80,11 +80,25 @@ func (m *Heartbeat) Process(uint32, interfaces.IState) bool {
 	return true
 }
 
-func (m *Heartbeat) GetRepeatHash() interfaces.IHash {
+func (m *Heartbeat) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("Heartbeat.GetRepeatHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.GetMsgHash()
 }
 
-func (m *Heartbeat) GetHash() interfaces.IHash {
+func (m *Heartbeat) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("Heartbeat.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	if m.hash == nil {
 		data, err := m.MarshalForSignature()
 		if err != nil {
@@ -95,7 +109,14 @@ func (m *Heartbeat) GetHash() interfaces.IHash {
 	return m.hash
 }
 
-func (m *Heartbeat) GetMsgHash() interfaces.IHash {
+func (m *Heartbeat) GetMsgHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("Heartbeat.GetMsgHash() saw an interface that was nil")
+		}
+	}()
+
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()
 		if err != nil {
@@ -223,7 +244,7 @@ func (m *Heartbeat) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *Heartbeat) String() string {
-	return fmt.Sprintf("HeartBeat ID[%x] dbht %d ts %d", m.IdentityChainID.Bytes()[3:6], m.DBHeight, m.Timestamp.GetTimeSeconds())
+	return fmt.Sprintf("HeartBeat ID[%x] dbht %d-:-%d ts %d", m.IdentityChainID.Bytes()[3:6], m.DBHeight, m.Minute, m.Timestamp.GetTimeSeconds())
 }
 
 func (m *Heartbeat) LogFields() log.Fields {

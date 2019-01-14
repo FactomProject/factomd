@@ -78,7 +78,7 @@ jobs:
       - run:
           name: Run tests!
           no_output_timeout: 2400
-          command: go test -v -vet=off $(glide nv | grep -v Utilities)
+          command: ./test.sh
 
 
       - save_cache:
@@ -123,7 +123,7 @@ jobs:
       - run:
           name: Go Test with Coverage
           no_output_timeout: 2400
-          command: go test $(glide nv | grep -v Utilities) -vet=off -v -cover -coverprofile=coverage.out
+          command: go test $(glide nv | grep -v Utilities | grep -v LongTests) -vet=off -v -cover -coverprofile=coverage.out
 
       - run:
           name: Coveralls!

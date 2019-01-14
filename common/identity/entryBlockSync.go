@@ -111,7 +111,10 @@ func (e *EntryBlockSync) MarshalBinary() (rval []byte, err error) {
 	}
 
 	for _, v := range e.BlocksToBeParsed {
-		buf.PushBinaryMarshallable(&v)
+		err = buf.PushBinaryMarshallable(&v)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return buf.DeepCopyBytes(), nil
@@ -136,14 +139,25 @@ func (e *EntryBlockSync) UnmarshalBinaryData(p []byte) (newData []byte, err erro
 		return
 	}
 
-	l, err := buf.PopInt()
+	// blockLimit is the maximum number of Entry Blocks that could fit in the
+	// buffer.
+	tmp := NewEntryBlockMarker()
+	blockLimit := buf.Len() / tmp.Size()
+	blockCount, err := buf.PopInt()
 	if err != nil {
 		return
 	}
+	if blockCount > blockLimit {
+		return nil, fmt.Errorf(
+			"Error: EntryBlockSync.UnmarshalBinary: block count %d is greater "+
+				"than remaining space in buffer %d (uint underflow?)",
+			blockCount, blockLimit,
+		)
+	}
 
-	e.BlocksToBeParsed = make([]EntryBlockMarker, l)
+	e.BlocksToBeParsed = make([]EntryBlockMarker, blockCount)
 
-	for i := 0; i < l; i++ {
+	for i := 0; i < blockCount; i++ {
 		var b EntryBlockMarker
 		err = buf.PopBinaryMarshallable(&b)
 		if err != nil {
@@ -161,9 +175,11 @@ type EntryBlockMarkerList []EntryBlockMarker
 func (p EntryBlockMarkerList) Len() int {
 	return len(p)
 }
+
 func (p EntryBlockMarkerList) Swap(i, j int) {
 	p[i], p[j] = p[j], p[i]
 }
+
 func (p EntryBlockMarkerList) Less(i, j int) bool {
 	return p[i].Sequence < p[j].Sequence
 }
@@ -214,6 +230,7 @@ func (e *EntryBlockMarker) MarshalBinary() (rval []byte, err error) {
 		}
 	}(&err)
 	buf := primitives.NewBuffer(nil)
+
 	err = buf.PushIHash(e.KeyMr)
 	if err != nil {
 		return nil, err
@@ -235,6 +252,12 @@ func (e *EntryBlockMarker) MarshalBinary() (rval []byte, err error) {
 	}
 
 	return buf.DeepCopyBytes(), nil
+}
+
+// Returns the byte size when marshaled
+func (e *EntryBlockMarker) Size() int {
+	// If you count it, it's 46. However, PushIHash is actually 33 bytes. and PushTimestamp is actually 8, rather than 6.
+	return 49
 }
 
 func (e *EntryBlockMarker) UnmarshalBinary(p []byte) error {
