@@ -779,7 +779,6 @@ func TestMultiple2Election(t *testing.T) {
 	runCmd("p")
 	//runCmd("p")
 
-
 	WaitBlocks(state, 2)
 	WaitForMinute(state, 1)
 	WaitForAllNodes(state)
@@ -1415,12 +1414,13 @@ func TestFilterAPI(t *testing.T) {
 
 	ranSimTest = true
 
-	state0 := SetupSim("LLLLLLLAAF", "LOCAL", map[string]string{}, t)
-	CheckAuthoritySet(7, 2, t)
-	WaitForMinute(state0, 1)
+	state0 := SetupSim("LLLLLLLAAF", "LOCAL", map[string]string{"--debuglog": "."}, t)
+
+	runCmd("1")
+	runCmd("w")
 
 	url := "http://localhost:" + fmt.Sprint(state0.GetPort()) + "/v2"
-	var jsonStr = []byte(`{"jsonrpc": "2.0", "id": 0, "method": "message-filter", "params":{"output-regex":"-:-[0-9] +EOM", "input-regex":"-:-[0-9] +DBState"}}`)
+	var jsonStr = []byte(`{"jsonrpc": "2.0", "id": 0, "method": "message-filter", "params":{"output-regex":"5-:-1.*EOM", "input-regex":""}}`)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
 	req.Header.Set("content-type", "text/plain;")
 
@@ -1430,30 +1430,30 @@ func TestFilterAPI(t *testing.T) {
 		t.Error(err)
 	}
 
-	WaitForMinute(state0, 1)
+	//WaitForMinute(state0, 1)
 
 	defer resp.Body.Close()
 	body, _ := ioutil.ReadAll(resp.Body)
 	//fmt.Println("Body From test!", body)
 
 	resp2 := new(filterHelper)
+
 	err1 := json.Unmarshal([]byte(body), &resp2)
 	if err1 != nil {
 		t.Error(err1)
 	}
+	fmt.Println("resp2 ", resp2)
 
-	runCmd("E")
-	runCmd("F")
-	runCmd("0")
-	runCmd("p")
+	//runCmd("E")
+	//runCmd("F")
+	//runCmd("0")
+	//runCmd("p")
 	//runCmd("p")
 
+	WaitBlocks(state0, 5)
+	//WaitForMinute(state0, 1)
+	//WaitForAllNodes(state0)
 
-	WaitBlocks(state0, 2)
-	WaitForMinute(state0, 1)
-	WaitForAllNodes(state0)
-
-	fmt.Println("resp2 ", resp2)
 }
 
 // Cheap tests for developing binary search commits algorithm

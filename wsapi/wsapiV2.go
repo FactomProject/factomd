@@ -16,8 +16,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/FactomProject/factomd/common/globals"
-
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
@@ -1414,19 +1412,29 @@ func HandleV2MessageFilter(state interfaces.IState, params interface{}) (interfa
 	fmt.Println(`x["input-regex"]`, x["input-regex"])
 
 	OutputString := fmt.Sprintf("%s", x["output-regex"])
-	globals.OutputRegExString = OutputString
+	if OutputString != "" {
+		//globals.OutputRegExString = OutputString
+		OutputRegEx := regexp.MustCompile(OutputString)
 
-	OutputRegEx := regexp.MustCompile(OutputString)
-	globals.OutputRegEx = OutputRegEx
+		state.PassOutputRegEx(OutputRegEx, OutputString)
+
+		//globals.OutputRegEx = OutputRegEx
+		//state.OutputRegEx(OutputRegEx)
+	}
 
 	InputString := fmt.Sprintf("%s", x["input-regex"])
-	globals.InputRegExString = InputString
+	if InputString != "" {
+		//globals.InputRegExString = InputString
+		InputRegEx := regexp.MustCompile(InputString)
 
-	InputRegEx := regexp.MustCompile(InputString)
-	globals.InputRegEx = InputRegEx
+		state.PassInputRegEx(InputRegEx, InputString)
+
+		//globals.InputRegEx = InputRegEx
+		//state.InputRegEx(InputRegEx)
+	}
 
 	h := new(MessageFilter)
-	//h.Params = t
+	h.Params = "Success"
 
 	return h, nil
 }

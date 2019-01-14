@@ -9,8 +9,6 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/FactomProject/factomd/common/globals"
-
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
@@ -305,9 +303,10 @@ func Peers(fnode *FactomNode) {
 					continue
 				}
 
-				if globals.InputRegEx != nil {
+				regex, _ := fnode.State.GetInputRegEx()
+				if regex != nil {
 					t := fmt.Sprintf("%7d-:-%d %s", fnode.State.LLeaderHeight, fnode.State.CurrentMinute, msg.String())
-					messageResult := globals.InputRegEx.MatchString(t)
+					messageResult := regex.MatchString(t)
 					if messageResult {
 						//fmt.Println("found it NETWORK!", t)
 						fnode.State.LogMessage("NetworkInputs", "Drop, matched filter Regex", msg)
@@ -378,12 +377,15 @@ func NetworkOutputs(fnode *FactomNode) {
 				continue
 			}
 
-			if globals.OutputRegEx != nil {
+			regex, _ := fnode.State.GetOutputRegEx()
+			//fmt.Println("FROM FANCY MADE FUNC", regex)
+			if regex != nil {
 				t := fmt.Sprintf("%7d-:-%d %s", fnode.State.LLeaderHeight, fnode.State.CurrentMinute, msg.String())
 
 				//fmt.Println("HEEELLLLLOOOO", t)
 				//fmt.Println("MY REGEX", globals.OutputRegEx)
-				messageResult := globals.OutputRegEx.MatchString(t)
+				//messageResult := globals.OutputRegEx.MatchString(t)
+				messageResult := regex.MatchString(t)
 				if messageResult {
 					//fmt.Println("found it!", t)
 					fnode.State.LogMessage("NetworkOutputs", "Drop, matched filter Regex", msg)

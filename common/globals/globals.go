@@ -1,7 +1,6 @@
 package globals
 
 import (
-	"regexp"
 	"time"
 )
 
@@ -9,10 +8,6 @@ var FnodeNames map[string]string = make(map[string]string) /// use by MessageTra
 var Params FactomParams
 var StartTime time.Time
 var LastDebugLogRegEx string // used to detect if FactomParams.DebugLogRegEx was changed by the control panel
-var OutputRegEx *regexp.Regexp
-var OutputRegExString string
-var InputRegEx *regexp.Regexp
-var InputRegExString string
 
 type FactomParams struct {
 	AckbalanceHash           bool
