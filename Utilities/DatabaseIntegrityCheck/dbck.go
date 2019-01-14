@@ -15,7 +15,7 @@ import (
 	"github.com/FactomProject/factomd/database/hybridDB"
 )
 
-var usage = "dbck [-b] DATABASE"
+var usage = "dbck [-bf] DATABASE"
 
 func main() {
 	// parse the command line flags
