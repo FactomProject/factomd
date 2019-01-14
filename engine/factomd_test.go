@@ -777,6 +777,8 @@ func TestMultiple2Election(t *testing.T) {
 	runCmd("F")
 	runCmd("0")
 	runCmd("p")
+	//runCmd("p")
+
 
 	WaitBlocks(state, 2)
 	WaitForMinute(state, 1)
@@ -1403,7 +1405,7 @@ func TestFilterAPI(t *testing.T) {
 	}
 
 	type walletcallHelper struct {
-		Params   string        `json:"params"`
+		Params string `json:"params"`
 	}
 	type filterHelper struct {
 		Jsonrpc string           `json:"jsonrps"`
@@ -1413,32 +1415,45 @@ func TestFilterAPI(t *testing.T) {
 
 	ranSimTest = true
 
-	state0 := SetupSim("LLLLAAAF", "LOCAL", map[string]string{"--logPort": "37000", "--port": "8088", "--controlpanelport": "37002", "--networkport": "37003"}, t)
+	state0 := SetupSim("LLLLLLLAAF", "LOCAL", map[string]string{}, t)
+	CheckAuthoritySet(7, 2, t)
 	WaitForMinute(state0, 1)
 
-		url := "http://localhost:" + fmt.Sprint(state0.GetPort()) + "/v2"
-		var jsonStr= []byte(`{"jsonrpc": "2.0", "id": 0, "method": "message-filter", "params":{"output-time":"-:-3", "output-msg":"hi", "input-time":"-:-8", "input-msg":"hello"}`)
-		req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
-		req.Header.Set("content-type", "text/plain;")
+	url := "http://localhost:" + fmt.Sprint(state0.GetPort()) + "/v2"
+	var jsonStr = []byte(`{"jsonrpc": "2.0", "id": 0, "method": "message-filter", "params":{"output-regex":"-:-[0-9] +EOM", "input-regex":"-:-[0-9] +DBState"}}`)
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
+	req.Header.Set("content-type", "text/plain;")
 
-		client := &http.Client{}
-		resp, err := client.Do(req)
-		if err != nil {
-			t.Error(err)
-		}
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		t.Error(err)
+	}
 
-		defer resp.Body.Close()
-		body, _ := ioutil.ReadAll(resp.Body)
-		//fmt.Println("Body From test!", body)
+	WaitForMinute(state0, 1)
 
-		resp2 := new(filterHelper)
-		err1 := json.Unmarshal([]byte(body), &resp2)
-		if err1 != nil {
-			t.Error(err1)
-		}
+	defer resp.Body.Close()
+	body, _ := ioutil.ReadAll(resp.Body)
+	//fmt.Println("Body From test!", body)
 
-		fmt.Println("resp2 ", resp2)
+	resp2 := new(filterHelper)
+	err1 := json.Unmarshal([]byte(body), &resp2)
+	if err1 != nil {
+		t.Error(err1)
+	}
 
+	runCmd("E")
+	runCmd("F")
+	runCmd("0")
+	runCmd("p")
+	//runCmd("p")
+
+
+	WaitBlocks(state0, 2)
+	WaitForMinute(state0, 1)
+	WaitForAllNodes(state0)
+
+	fmt.Println("resp2 ", resp2)
 }
 
 // Cheap tests for developing binary search commits algorithm

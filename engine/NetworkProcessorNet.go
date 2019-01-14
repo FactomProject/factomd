@@ -309,7 +309,7 @@ func Peers(fnode *FactomNode) {
 					t := fmt.Sprintf("%7d-:-%d %s", fnode.State.LLeaderHeight, fnode.State.CurrentMinute, msg.String())
 					messageResult := globals.InputRegEx.MatchString(t)
 					if messageResult {
-						fmt.Println("found it NETWORK!", t)
+						//fmt.Println("found it NETWORK!", t)
 						fnode.State.LogMessage("NetworkInputs", "Drop, matched filter Regex", msg)
 						continue
 					}
@@ -385,7 +385,7 @@ func NetworkOutputs(fnode *FactomNode) {
 				//fmt.Println("MY REGEX", globals.OutputRegEx)
 				messageResult := globals.OutputRegEx.MatchString(t)
 				if messageResult {
-					fmt.Println("found it!", t)
+					//fmt.Println("found it!", t)
 					fnode.State.LogMessage("NetworkOutputs", "Drop, matched filter Regex", msg)
 					continue
 				}
