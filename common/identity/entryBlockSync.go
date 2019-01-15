@@ -6,6 +6,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives/random"
 )
 
 // EntryBlockSync has the current eblock synced to, and the target Eblock
@@ -14,6 +15,19 @@ type EntryBlockSync struct {
 	Current          EntryBlockMarker
 	Target           EntryBlockMarker
 	BlocksToBeParsed []EntryBlockMarker
+}
+
+func RandomEntryBlockSync() *EntryBlockSync {
+	s := NewEntryBlockSync()
+
+	for i := 0; i < random.RandIntBetween(0, 10); i++ {
+		m := RandomEntryBlockMarker()
+		m.Sequence = uint32(i)
+		m.DBHeight = uint32(i)
+		s.AddNewHeadMarker(*m)
+	}
+
+	return s
 }
 
 func NewEntryBlockSync() *EntryBlockSync {
@@ -73,7 +87,7 @@ func (a *EntryBlockSync) IsSameAs(b *EntryBlockSync) bool {
 	}
 
 	for i := range a.BlocksToBeParsed {
-		if !a.BlocksToBeParsed[1].IsSameAs(&b.BlocksToBeParsed[i]) {
+		if !a.BlocksToBeParsed[i].IsSameAs(&b.BlocksToBeParsed[i]) {
 			return false
 		}
 	}
@@ -85,6 +99,12 @@ func (e *EntryBlockSync) Clone() *EntryBlockSync {
 	b := new(EntryBlockSync)
 	b.Current = *e.Current.Clone()
 	b.Target = *e.Target.Clone()
+
+	b.BlocksToBeParsed = make([]EntryBlockMarker, len(e.BlocksToBeParsed))
+	for i, eb := range e.BlocksToBeParsed {
+		b.BlocksToBeParsed[i] = *eb.Clone()
+	}
+
 	return b
 }
 
@@ -196,6 +216,13 @@ func NewEntryBlockMarker() *EntryBlockMarker {
 	e.KeyMr = primitives.NewZeroHash()
 	e.DblockTimestamp = new(primitives.Timestamp)
 	return e
+}
+
+func RandomEntryBlockMarker() *EntryBlockMarker {
+	m := NewEntryBlockMarker()
+	m.KeyMr = primitives.RandomHash()
+	m.DblockTimestamp = primitives.NewTimestampNow()
+	return m
 }
 
 func (a *EntryBlockMarker) IsSameAs(b *EntryBlockMarker) bool {

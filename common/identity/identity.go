@@ -123,6 +123,9 @@ func RandomIdentity() *Identity {
 	id.CoinbaseAddress = primitives.RandomHash()
 	id.Efficiency = uint16(rand.Intn(10000))
 
+	id.IdentityChainSync = *RandomEntryBlockSync()
+	id.ManagementChainSync = *RandomEntryBlockSync()
+
 	return id
 }
 
@@ -250,6 +253,7 @@ func (e *Identity) Clone() *Identity {
 	b.Efficiency = e.Efficiency
 	b.IdentityChainSync = *e.IdentityChainSync.Clone()
 	b.ManagementChainSync = *e.ManagementChainSync.Clone()
+	b.CoinbaseAddress = e.CoinbaseAddress.Copy()
 
 	b.AnchorKeys = make([]AnchorSigningKey, len(e.AnchorKeys))
 	for i := range e.AnchorKeys {
@@ -309,6 +313,12 @@ func (e *Identity) IsSameAs(b *Identity) bool {
 		if e.AnchorKeys[i].IsSameAs(&b.AnchorKeys[i]) == false {
 			return false
 		}
+	}
+	if !e.IdentityChainSync.IsSameAs(&b.IdentityChainSync) {
+		return false
+	}
+	if !e.ManagementChainSync.IsSameAs(&b.ManagementChainSync) {
+		return false
 	}
 	return true
 }
