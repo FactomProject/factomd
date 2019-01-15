@@ -56,7 +56,7 @@ func main() {
 
 	//fmt.Println(s.IdentityControl)
 
-	state.PrintState(s)
+	//state.PrintState(s)
 
 	h1 := state.GetMapHash(s.FactoidBalancesP)
 	h2 = state.GetMapHash(s.ECBalancesP)
@@ -78,5 +78,30 @@ func main() {
 		s.LLeaderHeight, len(s.FactoidBalancesP), len(s.ECBalancesP), bh.String())
 
 	// Identity Related Info
-	fmt.Println(s.IdentityControl)
+	//fmt.Println(s.IdentityControl)
+	fmt.Println("--- Will print any state inconsistencies, if they exits:")
+	errors := CheckForStateErrors(s)
+	for _, e := range errors {
+		fmt.Println(e)
+	}
+}
+
+// Find any inconsistency or errors with a savestate.
+func CheckForStateErrors(s *state.State) (errors []error) {
+	errors = append(errors, checkIdentityErrors(s)...)
+	return
+}
+
+func checkIdentityErrors(s *state.State) (errors []error) {
+	// Check for sync blocks having issues
+	ic := s.IdentityControl
+	for _, id := range ic.Identities {
+		if !id.IdentityChainSync.Current.IsSameAs(&id.IdentityChainSync.Target) && len(id.IdentityChainSync.BlocksToBeParsed) == 0 {
+			errors = append(errors, fmt.Errorf("Identity %x has no 'BlocksToBeParsed' when it should for identity sync", id.IdentityChainID.Bytes()[3:8]))
+		}
+		if !id.ManagementChainSync.Current.IsSameAs(&id.ManagementChainSync.Target) && len(id.ManagementChainSync.BlocksToBeParsed) == 0 {
+			errors = append(errors, fmt.Errorf("Identity %x has no 'BlocksToBeParsed' when it should for management sync", id.IdentityChainID.Bytes()[3:8]))
+		}
+	}
+	return
 }
