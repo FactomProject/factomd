@@ -1413,6 +1413,8 @@ func HandleV2MessageFilter(state interfaces.IState, params interface{}) (interfa
 
 	OutputString := fmt.Sprintf("%s", x["output-regex"])
 	if OutputString != "" {
+		fmt.Println(`Output String not ""`)
+
 		//globals.OutputRegExString = OutputString
 		OutputRegEx := regexp.MustCompile(OutputString)
 
@@ -1424,6 +1426,7 @@ func HandleV2MessageFilter(state interfaces.IState, params interface{}) (interfa
 
 	InputString := fmt.Sprintf("%s", x["input-regex"])
 	if InputString != "" {
+		fmt.Println(`Input String not ""`)
 		//globals.InputRegExString = InputString
 		InputRegEx := regexp.MustCompile(InputString)
 

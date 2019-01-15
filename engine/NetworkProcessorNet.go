@@ -383,11 +383,11 @@ func NetworkOutputs(fnode *FactomNode) {
 				t := fmt.Sprintf("%7d-:-%d %s", fnode.State.LLeaderHeight, fnode.State.CurrentMinute, msg.String())
 
 				//fmt.Println("HEEELLLLLOOOO", t)
-				//fmt.Println("MY REGEX", globals.OutputRegEx)
+				//fmt.Println("MY REGEX", regex)
 				//messageResult := globals.OutputRegEx.MatchString(t)
 				messageResult := regex.MatchString(t)
 				if messageResult {
-					//fmt.Println("found it!", t)
+					fmt.Println("found it!", t)
 					fnode.State.LogMessage("NetworkOutputs", "Drop, matched filter Regex", msg)
 					continue
 				}

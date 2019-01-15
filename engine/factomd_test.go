@@ -1414,9 +1414,13 @@ func TestFilterAPI(t *testing.T) {
 
 	ranSimTest = true
 
-	state0 := SetupSim("LLLLLLLAAF", "LOCAL", map[string]string{"--debuglog": "."}, t)
+	state0 := SetupSim("LLLLLAAF", "LOCAL", map[string]string{"--debuglog": "."}, t)
 
-	runCmd("1")
+	WaitBlocks(state0, 4)
+	fmt.Println("runCMD(1)")
+	runCmd("3")
+	WaitBlocks(state0, 1)
+
 	runCmd("w")
 
 	url := "http://localhost:" + fmt.Sprint(state0.GetPort()) + "/v2"
