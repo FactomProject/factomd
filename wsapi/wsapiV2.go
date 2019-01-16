@@ -1389,51 +1389,21 @@ func HandleV2MessageFilter(state interfaces.IState, params interface{}) (interfa
 		return nil, NewCustomInvalidParamsError("ERROR! Invalid params passed in")
 	}
 
-	//listofparams := make([]string, 0)
-
-	//fmt.Println(`x["output-time"]`, x["output-time"])
-	//fmt.Println(`x[output-msg"]`, x["output-msg"])
-	//fmt.Println(`x["input-time"]`, x["input-time"])
-	//fmt.Println(`x["input-msg"]`, x["input-msg"])
-	//
-	//outputTimeString := fmt.Sprintf("%s", x["output-time"])
-	//globals.Params.OutputTimeRegEx = outputTimeString
-	//
-	//outputMsgString := fmt.Sprintf("%s", x["output-msg"])
-	//globals.Params.OutputMessageRegEx = outputMsgString
-	//
-	//inputTimeString := fmt.Sprintf("%s", x["input-time"])
-	//globals.Params.InputTimeRegEx = inputTimeString
-	//
-	//inputMsgString := fmt.Sprintf("%s", x["output-msg"])
-	//globals.Params.InputMessageRegEx = inputMsgString
-
 	fmt.Println(`x["output-regex"]`, x["output-regex"])
 	fmt.Println(`x["input-regex"]`, x["input-regex"])
 
 	OutputString := fmt.Sprintf("%s", x["output-regex"])
 	if OutputString != "" {
-		fmt.Println(`Output String not ""`)
-
-		//globals.OutputRegExString = OutputString
 		OutputRegEx := regexp.MustCompile(OutputString)
 
 		state.PassOutputRegEx(OutputRegEx, OutputString)
-
-		//globals.OutputRegEx = OutputRegEx
-		//state.OutputRegEx(OutputRegEx)
 	}
 
 	InputString := fmt.Sprintf("%s", x["input-regex"])
 	if InputString != "" {
-		fmt.Println(`Input String not ""`)
-		//globals.InputRegExString = InputString
 		InputRegEx := regexp.MustCompile(InputString)
 
 		state.PassInputRegEx(InputRegEx, InputString)
-
-		//globals.InputRegEx = InputRegEx
-		//state.InputRegEx(InputRegEx)
 	}
 
 	h := new(MessageFilter)

@@ -1415,16 +1415,12 @@ func TestFilterAPI(t *testing.T) {
 	ranSimTest = true
 
 	state0 := SetupSim("LLLLLAAF", "LOCAL", map[string]string{"--debuglog": "."}, t)
-
-	WaitBlocks(state0, 4)
-	fmt.Println("runCMD(1)")
-	runCmd("3")
-	WaitBlocks(state0, 1)
+	runCmd("1")
 
 	runCmd("w")
 
 	url := "http://localhost:" + fmt.Sprint(state0.GetPort()) + "/v2"
-	var jsonStr = []byte(`{"jsonrpc": "2.0", "id": 0, "method": "message-filter", "params":{"output-regex":"5-:-1.*EOM", "input-regex":""}}`)
+	var jsonStr = []byte(`{"jsonrpc": "2.0", "id": 0, "method": "message-filter", "params":{"output-regex":"EOM.*5/.*minute 1", "input-regex":""}}`)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
 	req.Header.Set("content-type", "text/plain;")
 
@@ -1434,11 +1430,8 @@ func TestFilterAPI(t *testing.T) {
 		t.Error(err)
 	}
 
-	//WaitForMinute(state0, 1)
-
 	defer resp.Body.Close()
 	body, _ := ioutil.ReadAll(resp.Body)
-	//fmt.Println("Body From test!", body)
 
 	resp2 := new(filterHelper)
 
@@ -1448,16 +1441,13 @@ func TestFilterAPI(t *testing.T) {
 	}
 	fmt.Println("resp2 ", resp2)
 
-	//runCmd("E")
-	//runCmd("F")
-	//runCmd("0")
-	//runCmd("p")
-	//runCmd("p")
-
 	WaitBlocks(state0, 5)
-	//WaitForMinute(state0, 1)
-	//WaitForAllNodes(state0)
+	CheckAuthoritySet(5, 2, t)
 
+	t.Log("Shutting down the network")
+	for _, fn := range GetFnodes() {
+		fn.State.ShutdownChan <- 1
+	}
 }
 
 // Cheap tests for developing binary search commits algorithm
