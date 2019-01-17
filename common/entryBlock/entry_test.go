@@ -228,3 +228,28 @@ func TestMarshalUnmarshalEntryList(t *testing.T) {
 		}
 	}
 }
+
+func TestUnmarshalBadEntryList(t *testing.T) {
+	el := make([]interfaces.IEBEntry, 0)
+
+	for i := 0; i < 100; i++ {
+		l := random.RandIntBetween(0, 30)
+		for j := 0; j < l; j++ {
+			el = append(el, RandomEntry())
+		}
+	}
+
+	p, err := MarshalEntryList(el)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	// write bad value into list length
+	p[1] = 0xff
+
+	el2, p, err := UnmarshalEntryList(p)
+	if err == nil {
+		t.Error("EntryList should have errored on unmarshal", el2)
+	} else {
+		t.Logf("%x\n%s", p, err)
+	}
+}

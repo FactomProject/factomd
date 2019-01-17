@@ -130,7 +130,7 @@ func Peers(fnode *FactomNode) {
 			if msg == nil {
 				continue
 			}
-			if msg.GetHash() == nil {
+			if msg.GetHash().IsHashNil() {
 				fnode.State.LogMessage("badMsgs", "Nil hash from APIQueue", msg)
 				continue
 			}
@@ -180,7 +180,6 @@ func Peers(fnode *FactomNode) {
 			}
 
 			//fnode.MLog.add2(fnode, false, fnode.State.FactomNodeName, "API", true, msg)
-			fnode.State.LogMessage("NetworkInputs", "from API, Enqueue", msg)
 			if t := msg.Type(); t == constants.REVEAL_ENTRY_MSG || t == constants.COMMIT_CHAIN_MSG || t == constants.COMMIT_ENTRY_MSG {
 				fnode.State.LogMessage("NetworkInputs", "from API, Enqueue2", msg)
 				fnode.State.LogMessage("InMsgQueue2", "enqueue2", msg)
@@ -213,6 +212,13 @@ func Peers(fnode *FactomNode) {
 					break // move to next peer
 				}
 
+				if fnode.State.LLeaderHeight < fnode.State.DBHeightAtBoot+2 {
+					if msg.GetTimestamp().GetTimeMilli() < fnode.State.TimestampAtBoot.GetTimeMilli() {
+						fnode.State.LogMessage("NetworkInputs", "drop, too old", msg)
+						continue
+					}
+				}
+
 				receiveTime := time.Since(preReceiveTime)
 				TotalReceiveTime.Add(float64(receiveTime.Nanoseconds()))
 
@@ -222,7 +228,7 @@ func Peers(fnode *FactomNode) {
 					fnode.State.TallyReceived(int(msg.Type())) //TODO: Do we want to count dropped message?
 				}
 
-				if msg.GetHash() == nil {
+				if msg.GetHash().IsHashNil() {
 					fnode.State.LogMessage("badMsgs", "Nil hash from Peer", msg)
 					continue
 				}
@@ -288,12 +294,15 @@ func Peers(fnode *FactomNode) {
 				fnode.MLog.Add2(fnode, false, peer.GetNameTo(), fmt.Sprintf("%s %d", in, i+1), true, msg)
 
 				// don't resend peer to peer messages or responses
-				switch msg.Type() {
-				case constants.MISSING_DATA, constants.MISSING_MSG, constants.MISSING_MSG_RESPONSE, constants.DBSTATE_MISSING_MSG, constants.DATA_RESPONSE:
+				if constants.NormallyPeer2Peer(msg.Type()) {
+					msg.SetNoResend(true)
+				}
+				// check if any P2P msg types slip by
+				if msg.IsPeer2Peer() && !msg.GetNoResend() {
+					fnode.State.LogMessage("NetworkInputs", "unmarked P2P msg", msg)
 					msg.SetNoResend(true)
 				}
 				if !crossBootIgnore(msg) {
-					fnode.State.LogMessage("NetworkInputs", fromPeer+", enqueue", msg)
 					if t := msg.Type(); t == constants.REVEAL_ENTRY_MSG || t == constants.COMMIT_CHAIN_MSG || t == constants.COMMIT_ENTRY_MSG {
 						fnode.State.LogMessage("NetworkInputs", fromPeer+", enqueue2", msg)
 						fnode.State.LogMessage("InMsgQueue2", fromPeer+", enqueue2", msg)
@@ -327,17 +336,18 @@ func NetworkOutputs(fnode *FactomNode) {
 		// by an updated version when the block is ready.
 		if msg.IsLocal() {
 			// todo: Should be a dead case. Add tracking code to see if it ever happens -- clay
-			fnode.State.LogMessage("NetworkOutputs", "Drop, local", msg)
+			fnode.State.LogMessage("NetworkOutputs", "drop, local", msg)
 			continue
 		}
 		// Don't do a rand int if drop rate is 0
 		if fnode.State.GetDropRate() > 0 && rand.Int()%1000 < fnode.State.GetDropRate() {
 			//drop the message, rather than processing it normally
-			fnode.State.LogMessage("NetworkOutputs", "Drop, simCtrl", msg)
+
+			fnode.State.LogMessage("NetworkOutputs", "drop, simCtrl", msg)
 			continue
 		}
 		if msg.GetRepeatHash() == nil {
-			fnode.State.LogMessage("NetworkOutputs", "Drop, no repeat hash", msg)
+			fnode.State.LogMessage("NetworkOutputs", "drop, no repeat hash", msg)
 			continue
 		}
 
@@ -375,10 +385,11 @@ func NetworkOutputs(fnode *FactomNode) {
 						fnode.State.TallySent(int(msg.Type()))
 					}
 				} else {
-					fnode.State.LogMessage("NetworkOutputs", "Drop, simCtrl X", msg)
+
+					fnode.State.LogMessage("NetworkOutputs", "drop, simCtrl X", msg)
 				}
 			} else {
-				fnode.State.LogMessage("NetworkOutputs", "Drop, no peers", msg)
+				fnode.State.LogMessage("NetworkOutputs", "drop, no peers", msg)
 			}
 		} else {
 			fnode.State.LogMessage("NetworkOutputs", "Send broadcast", msg)

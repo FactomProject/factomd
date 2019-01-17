@@ -62,7 +62,7 @@ func (m *SafeMsgMap) Len() int {
 
 func (m *SafeMsgMap) Copy() *SafeMsgMap {
 	m2 := NewSafeMsgMap("copyOf"+m.name, m.s)
-
+	m2.s = m.s // for debug logging
 	m.RLock()
 	for k, v := range m.msgmap {
 		m2.msgmap[k] = v

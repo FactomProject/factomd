@@ -3,6 +3,7 @@ package messages
 import (
 	"fmt"
 	"os"
+	"reflect"
 	"regexp"
 	"strings"
 	"sync"
@@ -11,6 +12,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/util/atomic"
 )
 
 var (
@@ -21,7 +23,7 @@ var (
 	sequence   int
 	history    *([16384][32]byte) // Last 16k messages logged
 	h          int                // head of history
-	msgmap     map[[32]byte]string
+	msgmap     map[[32]byte]interfaces.IMsg
 )
 
 // Check a filename and see if logging is on for that filename
@@ -76,6 +78,14 @@ func getTraceFile(name string) (f *os.File) {
 		files = make(map[string]*os.File)
 	}
 	f, _ = files[name]
+	if f != nil {
+		_, err := os.Stat(name)
+		if os.IsNotExist(err) {
+			// The file was deleted out from under us
+			f.Close() // close the old log
+			f = nil   // make the code reopen the file
+		}
+	}
 	if f == nil {
 		fmt.Println("Creating " + name)
 		var err error
@@ -84,16 +94,23 @@ func getTraceFile(name string) (f *os.File) {
 			panic(err)
 		}
 		files[name] = f
+		f.WriteString(time.Now().String() + "\n")
 	}
 	return f
 }
 
-func addmsg(hash [32]byte, msg string) {
+func addmsg(msg interfaces.IMsg) {
+	mh := msg.GetMsgHash()
+	if mh == nil || reflect.ValueOf(mh).IsNil() {
+		return
+	}
+
+	hash := mh.Fixed()
 	if history == nil {
 		history = new([16384][32]byte)
 	}
 	if msgmap == nil {
-		msgmap = make(map[[32]byte]string)
+		msgmap = make(map[[32]byte]interfaces.IMsg)
 	}
 	remove := history[h] // get the oldest message
 	delete(msgmap, remove)
@@ -102,67 +119,66 @@ func addmsg(hash [32]byte, msg string) {
 	h = (h + 1) % cap(history) // move the head
 }
 
-func getmsg(hash [32]byte) string {
+func getmsg(hash [32]byte) interfaces.IMsg {
 	if msgmap == nil {
-		msgmap = make(map[[32]byte]string)
+		msgmap = make(map[[32]byte]interfaces.IMsg)
 	}
-	rval, ok := msgmap[hash]
-	if !ok {
-		rval = fmt.Sprintf("UnknownMsg: %x", hash[:3])
-	}
+	rval, _ := msgmap[hash]
 	return rval
 }
-func LogMessage(name string, note string, msg interfaces.IMsg) {
 
+func LogMessage(name string, note string, msg interfaces.IMsg) {
 	traceMutex.Lock()
 	defer traceMutex.Unlock()
+	logMessage(name, note, msg)
+}
+
+var logWhere bool = false // log GoID() of the caller.
+
+// Assumes called managed the locks so we can recurse for multi part messages
+func logMessage(name string, note string, msg interfaces.IMsg) {
 	myfile := getTraceFile(name)
 	if myfile == nil {
 		return
 	}
+
+	var where string
+
+	if logWhere {
+		where = fmt.Sprintf("<%s>", atomic.Goid())
+	}
+
 	sequence++
-	seq := sequence
 	embeddedHash := ""
 	to := ""
 	hash := "??????"
 	mhash := "??????"
 	rhash := "??????"
+	messageType := ""
 	t := byte(0)
 	msgString := "-nil-"
+	var embeddedMsg interfaces.IMsg
+
 	if msg != nil {
 		t = msg.Type()
 		msgString = msg.String()
+
 		// work around message that don't have hashes yet ...
 		mh := msg.GetMsgHash()
-		if mh != nil {
+		if mh != nil && !reflect.ValueOf(mh).IsNil() {
 			mhash = mh.String()[:6]
 		}
 		h := msg.GetHash()
-		if h != nil {
+		if h != nil && !reflect.ValueOf(h).IsNil() {
 			hash = h.String()[:6]
 		}
-		mh = msg.GetRepeatHash()
-		if mh != nil {
-			rhash = mh.String()[:6]
+		rh := msg.GetRepeatHash()
+		if rh != nil && !reflect.ValueOf(rh).IsNil() {
+			rhash = rh.String()[:6]
 		}
 
-		switch t {
-		case constants.ACK_MSG:
-			ack := msg.(*Ack)
-			byte := ack.GetHash().Fixed
-			embeddedHash = fmt.Sprintf(" EmbeddedMsg: %s", getmsg(byte()))
-			//case constants.MISSING_MSG_RESPONSE:
-			//	mm := msg.(*MissingMsgResponse)
-			//	embeddedHash = fmt.Sprintf(" EmbeddedMsg: %s | %s", mm.MsgResponse.String(), mm.AckResponse.String())
-		case constants.MISSING_DATA:
-			md := msg.(*MissingData)
-			embeddedHash = fmt.Sprintf(" EmbeddedMsg: %s", getmsg(md.RequestHash.Fixed()))
-
-		default:
-			if msg.GetMsgHash() != nil {
-				bytes := msg.GetMsgHash().Fixed()
-				addmsg(bytes, msgString) // Keep message we have seen for a while
-			}
+		if msg.Type() != constants.ACK_MSG && msg.Type() != constants.MISSING_DATA {
+			addmsg(msg) // Keep message we have seen for a while
 		}
 
 		if msg.IsPeer2Peer() {
@@ -175,16 +191,43 @@ func LogMessage(name string, note string, msg interfaces.IMsg) {
 		} else {
 			//to = "broadcast"
 		}
+		switch t {
+		case constants.ACK_MSG:
+			ack := msg.(*Ack)
+			embeddedHash = fmt.Sprintf(" EmbeddedMsg: %x", ack.GetHash().Bytes()[:3])
+			fixed := ack.GetHash().Fixed()
+			embeddedMsg = getmsg(fixed)
+			if embeddedMsg == nil {
+				embeddedHash += "(unknown)"
+			}
+		}
+		messageType = constants.MessageName(byte(t))
 	}
+
+	// handle multi-line printf's
+	lines := strings.Split(msgString, "\n")
+
+	lines[0] = lines[0] + embeddedHash + " " + to
 
 	now := time.Now().Local()
 
-	s := fmt.Sprintf("%7v %02d:%02d:%02d.%03d %-25s M-%v|R-%v|H-%v|%p %26s[%2v]:%v%v %v\n", seq, now.Hour()%24, now.Minute()%60, now.Second()%60, (now.Nanosecond()/1e6)%1000,
-		note, mhash, rhash, hash, msg, constants.MessageName(byte(t)), t,
-		msgString, embeddedHash, to)
-	s = addNodeNames(s)
+	for i, text := range lines {
+		var s string
+		switch i {
+		case 0:
+			s = fmt.Sprintf("%9d %02d:%02d:%02d.%03d %-50s M-%v|R-%v|H-%v|%p %26s[%2v]:%v %s\n", sequence, now.Hour()%24, now.Minute()%60, now.Second()%60, (now.Nanosecond()/1e6)%1000,
+				note, mhash, rhash, hash, msg, messageType, t, text, where)
+		default:
+			s = fmt.Sprintf("%9d %02d:%02d:%02d.%03d %-50s M-%v|R-%v|H-%v|%p %30s:%v\n", sequence, now.Hour()%24, now.Minute()%60, now.Second()%60, (now.Nanosecond()/1e6)%1000,
+				note, mhash, rhash, hash, msg, "continue:", text)
+		}
+		s = addNodeNames(s)
+		myfile.WriteString(s)
+	}
 
-	myfile.WriteString(s)
+	if embeddedMsg != nil {
+		logMessage(name, note+" EmbeddedMsg:", embeddedMsg)
+	}
 }
 
 var findHex *regexp.Regexp
@@ -238,11 +281,28 @@ func LogPrintf(name string, format string, more ...interface{}) {
 	if myfile == nil {
 		return
 	}
-	seq := sequence
+
+	var where string
+
+	if logWhere {
+		where = fmt.Sprintf("<%s>", atomic.Goid())
+	}
+
+	sequence++
+	// handle multi-line printf's
+	lines := strings.Split(fmt.Sprintf(format, more...), "\n")
 	now := time.Now().Local()
-	s := fmt.Sprintf("%7v %02d:%02d:%02d.%03d %s\n", seq, now.Hour()%24, now.Minute()%60, now.Second()%60, (now.Nanosecond()/1e6)%1000, fmt.Sprintf(format, more...))
-	s = addNodeNames(s)
-	myfile.WriteString(s)
+	for i, text := range lines {
+		var s string
+		switch i {
+		case 0:
+			s = fmt.Sprintf("%9d %02d:%02d:%02d.%03d %s %s\n", sequence, now.Hour()%24, now.Minute()%60, now.Second()%60, (now.Nanosecond()/1e6)%1000, text, where)
+		default:
+			s = fmt.Sprintf("%9d %02d:%02d:%02d.%03d %s\n", sequence, now.Hour()%24, now.Minute()%60, now.Second()%60, (now.Nanosecond()/1e6)%1000, text)
+		}
+		s = addNodeNames(s)
+		myfile.WriteString(s)
+	}
 }
 
 // stringify it in the caller to avoid having to deal with the import loop
@@ -262,14 +322,14 @@ func LogParcel(name string, note string, msg string) {
 // Log a message with a state timestamp
 func StateLogMessage(FactomNodeName string, DBHeight int, CurrentMinute int, logName string, comment string, msg interfaces.IMsg) {
 	logFileName := FactomNodeName + "_" + logName + ".txt"
-	t := fmt.Sprintf("%d-:-%d ", DBHeight, CurrentMinute)
+	t := fmt.Sprintf("%7d-:-%d ", DBHeight, CurrentMinute)
 	LogMessage(logFileName, t+comment, msg)
 }
 
 // Log a printf with a state timestamp
 func StateLogPrintf(FactomNodeName string, DBHeight int, CurrentMinute int, logName string, format string, more ...interface{}) {
 	logFileName := FactomNodeName + "_" + logName + ".txt"
-	t := fmt.Sprintf("%d-:-%d ", DBHeight, CurrentMinute)
+	t := fmt.Sprintf("%7d-:-%d ", DBHeight, CurrentMinute)
 	LogPrintf(logFileName, t+format, more...)
 }
 

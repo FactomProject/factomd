@@ -101,7 +101,7 @@ type DBSig struct {
 type VM struct {
 	List            []interfaces.IMsg    // Lists of acknowledged messages
 	ListAck         []*messages.Ack      // Acknowledgements
-	Height          int                  // Height of messages that have been processed
+	Height          int                  // Height of first unprocessed message (count of messages processed)
 	EomMinuteIssued int                  // Last Minute Issued on this VM (from the leader, when we are the leader)
 	LeaderMinute    int                  // Where the leader is in acknowledging messages
 	Synced          bool                 // Is this VM synced yet?
@@ -168,7 +168,8 @@ func (p *ProcessList) Complete() bool {
 
 // Returns the Virtual Server index for this hash for the given minute
 func (p *ProcessList) VMIndexFor(hash []byte) int {
-	if p.State.OneLeader {
+
+	if p == nil || p.State.OneLeader {
 		return 0
 	}
 
@@ -178,6 +179,19 @@ func (p *ProcessList) VMIndexFor(hash []byte) int {
 	}
 	r := int(v % uint64(len(p.FedServers)))
 	return r
+}
+
+func (p *ProcessList) GetVMStatsForFedServer(index int) (vmIndex int, listHeight int, listLength int, nextNil int) {
+	vmIndex = FedServerVM(p.ServerMap, len(p.FedServers), p.State.GetCurrentMinute(), index)
+	if vmIndex < 0 {
+		return vmIndex, -1, -1, -1
+	}
+
+	listHeight = p.VMs[vmIndex].Height
+	listLength = len(p.VMs[vmIndex].List)
+	nextNil = p.VMs[vmIndex].HighestNil
+
+	return vmIndex, listHeight, listLength, nextNil
 }
 
 func SortServers(servers []interfaces.IServer) []interfaces.IServer {
@@ -200,12 +214,66 @@ func SortServers(servers []interfaces.IServer) []interfaces.IServer {
 	return servers
 }
 
+// duplicate function in election but cannot import because of a dependency loop
+func Sort(serv []interfaces.IServer) bool {
+	changed := false
+	for i := 0; i < len(serv)-1; i++ {
+		allgood := true
+		for j := 0; j < len(serv)-1-i; j++ {
+			if bytes.Compare(serv[j].GetChainID().Bytes(), serv[j+1].GetChainID().Bytes()) > 0 {
+				s := serv[j]
+				serv[j] = serv[j+1]
+				serv[j+1] = s
+				allgood = false
+				changed = true
+			}
+		}
+		if allgood {
+			return changed
+		}
+	}
+	return changed
+}
+
+func (p *ProcessList) LogPrintLeaders(log string) {
+	s := p.State
+	s.LogPrintf(log, "%6s | %6s", "Fed", "Aud")
+	limit := len(p.FedServers)
+	if limit < len(p.AuditServers) {
+		limit = len(p.AuditServers)
+	}
+	for i := 0; i < limit; i++ {
+		f := ""
+		a := ""
+		if i < len(p.FedServers) {
+			f = fmt.Sprintf("%x", p.FedServers[i].GetChainID().Bytes()[3:6])
+		}
+		if i < len(p.AuditServers) {
+			a = fmt.Sprintf("%x", p.AuditServers[i].GetChainID().Bytes()[3:6])
+		}
+		s.LogPrintf(log, "%s | %s", f, a)
+	}
+}
 func (p *ProcessList) SortFedServers() {
-	p.FedServers = SortServers(p.FedServers)
+	s := p.State
+	if p.FedServers != nil {
+		changed := Sort(p.FedServers)
+		if changed {
+			s.LogPrintf("election", "Sort changed p.Federated in ProcessList.SortFedServers")
+			p.LogPrintLeaders("process")
+		}
+	}
 }
 
 func (p *ProcessList) SortAuditServers() {
-	p.AuditServers = SortServers(p.AuditServers)
+	s := p.State
+	if p.AuditServers != nil {
+		changed := Sort(p.AuditServers)
+		if changed {
+			s.LogPrintf("election", "Sort changed p.Audit in ProcessList.SortAuditServers")
+			p.LogPrintLeaders("process")
+		}
+	}
 }
 
 func (p *ProcessList) SortDBSigs() {
@@ -263,6 +331,7 @@ func FedServerVM(serverMap [10][64]int, numberOfFedServers int, minute int, fedI
 }
 
 func (p *ProcessList) GetVirtualServers(minute int, identityChainID interfaces.IHash) (found bool, index int) {
+	//fmt.Fprintf(os.Stderr, "GetVirtualServers(%d,%x)", minute, identityChainID.Bytes()[3:6])
 	found, fedIndex := p.GetFedServerIndexHash(identityChainID)
 	if !found {
 		return false, -1
@@ -270,6 +339,9 @@ func (p *ProcessList) GetVirtualServers(minute int, identityChainID interfaces.I
 
 	p.MakeMap()
 
+	if minute > 9 {
+		minute = 9 // in case we get called between blocks.
+	}
 	for i := 0; i < len(p.FedServers); i++ {
 		fedix := p.ServerMap[minute][i]
 		if fedix == fedIndex {
@@ -334,7 +406,10 @@ func MakeMap(numberFedServers int, dbheight uint32) (serverMap [10][64]int) {
 }
 
 func (p *ProcessList) MakeMap() {
+	//p.State.LogPrintf("executeMsg", "MakeMap(%d)", p.DBHeight)
 	p.ServerMap = MakeMap(len(p.FedServers), p.DBHeight)
+	//p.State.LogPrintf("executeMsg", "%s", p.PrintMap())
+
 }
 
 // This function will be replaced by a calculation from the Matryoshka hashes from the servers
@@ -650,9 +725,9 @@ func (p *ProcessList) decodeState(Syncing bool, DBSig bool, EOM bool, DBSigDone 
 		p.State.LogPrintf("process", "Unexpected 0x%03x %v", xx, x)
 		s = "Unknown"
 	}
-	// divide processCnt by a big number to make it not change the status string very often
+	// divide ProcessListProcessCnt by a big number to make it not change the status string very often
 	return fmt.Sprintf("SyncingStatus: %d-:-%d 0x%03x %25s EOM/DBSIG %02d/%02d of %02d -- %d",
-		p.State.LeaderPL.DBHeight, p.State.CurrentMinute, xx, s, EOMProcessed, DBSigProcessed, FedServers, p.State.processCnt/5000)
+		p.State.LeaderPL.DBHeight, p.State.CurrentMinute, xx, s, EOMProcessed, DBSigProcessed, FedServers, p.State.ProcessListProcessCnt/5000)
 
 }
 
@@ -686,7 +761,7 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 	VMListLoop:
 		for j := vm.Height; j < len(vm.List); j++ {
 
-			s.processCnt++
+			s.ProcessListProcessCnt++
 			x := p.decodeState(s.Syncing, s.DBSig, s.EOM, s.DBSigDone, s.EOMDone,
 				len(s.LeaderPL.FedServers), s.EOMProcessed, s.DBSigProcessed)
 
@@ -695,9 +770,6 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 				s.LogPrintf("processStatus", x)
 				s.SyncingStateCurrent = (s.SyncingStateCurrent + 1) % len(s.SyncingState)
 				s.SyncingState[s.SyncingStateCurrent] = x
-			}
-			if extraDebug {
-				s.LogMessage("process", fmt.Sprintf("Consider %v/%v/%v", p.DBHeight, i, j), vm.List[j])
 			}
 			if vm.List[j] == nil {
 				//p.State.AddStatus(fmt.Sprintf("ProcessList.go Process: Found nil list at vm %d vm height %d ", i, j))
@@ -719,6 +791,10 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 				break VMListLoop
 			}
 
+			if extraDebug {
+				s.LogMessage("process", fmt.Sprintf("Consider %v/%v/%v", p.DBHeight, i, j), vm.List[j])
+			}
+
 			thisAck := vm.ListAck[j]
 			thisMsg := vm.List[j]
 
@@ -731,7 +807,7 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 				last := vm.ListAck[vm.Height-1]
 				expectedSerialHash, err = primitives.CreateHash(last.MessageHash, thisAck.MessageHash)
 				if err != nil {
-					s.LogMessage("process", fmt.Sprintf("nil out message %v/%v/%v, hash INTERNAL_REPLAY", p.DBHeight, i, j), vm.List[j])
+					s.LogMessage("process", fmt.Sprintf("nil out message %v/%v/%v, hash INTERNAL_REPLAY", p.DBHeight, i, j), vm.List[j]) //todo: revisit message
 					vm.List[j] = nil
 					if vm.HighestNil > j {
 						vm.HighestNil = j // Drag report limit back
@@ -765,7 +841,7 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 			// Until the first couple signatures are processed, we will be 2 behind.
 			//TODO: Why is this in the execution per message per VM when it's global to the processlist -- clay
 			if s.WaitForEntries {
-				s.LogPrintf("processList", "s.WaitForEntries")
+				s.LogPrintf("processList", "s.WaitForEntries %d-:-%d [%d] > %d + 2", p.DBHeight, vm.LeaderMinute, s.EntryDBHeightComplete)
 				break VMListLoop // Don't process further in this list, go to the next.
 			}
 
@@ -800,17 +876,11 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 
 				if msg.Process(p.DBHeight, s) { // Try and Process this entry
 
-					if msg.Type() == constants.REVEAL_ENTRY_MSG {
-						delete(s.Holding, msg.GetMsgHash().Fixed()) // We successfully executed the message, so take it out of holding if it is there.
-						s.Commits.Delete(msg.GetMsgHash().Fixed())
-					}
-
 					p.State.LogMessage("processList", "done", msg)
-
 					vm.heartBeat = 0
 					vm.Height = j + 1 // Don't process it again if the process worked.
 					s.LogMessage("process", fmt.Sprintf("done %v/%v/%v", p.DBHeight, i, j), msg)
-					s.LogPrintf("process", "thisAck  %x", thisAck.SerialHash.Bytes())
+					//s.LogPrintf("process", "thisAck  %x", thisAck.SerialHash.Bytes())
 
 					progress = true
 
@@ -821,8 +891,9 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 					s.Replay.IsTSValidAndUpdateState(constants.INTERNAL_REPLAY, msgHashFixed, msg.GetTimestamp(), now)
 
 					delete(s.Acks, msgHashFixed)
-					delete(s.Holding, msgHashFixed)
+					//delete(s.Holding, msgHashFixed)
 
+					s.DeleteFromHolding(msgHashFixed, msg, "msg.Process done")
 				} else {
 					s.LogMessage("process", fmt.Sprintf("retry %v/%v/%v", p.DBHeight, i, j), msg)
 					//s.AddStatus(fmt.Sprintf("processList.Process(): Could not process entry dbht: %d VM: %d  msg: [[%s]]", p.DBHeight, i, msg.String()))
@@ -830,6 +901,8 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 				}
 			} else {
 				s.LogMessage("process", "Waiting on saving", msg)
+				s.LogPrintf("EntrySync", "Waiting on saving EntryDBHeightComplete = %d", s.EntryDBHeightComplete)
+
 				// If we don't have the Entry Blocks (or we haven't processed the signatures) we can't do more.
 				// p.State.AddStatus(fmt.Sprintf("Can't do more: dbht: %d vm: %d vm-height: %d Entry Height: %d", p.DBHeight, i, j, s.EntryDBHeightComplete))
 				if extraDebug {
@@ -868,9 +941,31 @@ func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces
 
 	TotalProcessListInputs.Inc()
 
+	// Make sure we don't put in an old ack (outside our repeat range)
+	blktime := s.GetLeaderTimestamp().GetTime().UnixNano()
+	tlim := int64(Range * 60 * 1000 * 1000 * 1000)
+
+	if blktime != 0 && m.Type() != constants.DIRECTORY_BLOCK_SIGNATURE_MSG {
+		acktime := ack.GetTimestamp().GetTime().UnixNano()
+		msgtime := m.GetTimestamp().GetTime().UnixNano()
+		Delta := blktime - acktime
+
+		if Delta > tlim || -Delta > tlim {
+			p.State.LogPrintf("processList", "Drop message pair, because the ack is out of range")
+			return
+		}
+
+		// Make sure we don't put in an old msg (outside our repeat range)
+		Delta = blktime - msgtime
+		if Delta > tlim || -Delta > tlim {
+			p.State.LogPrintf("processList", "Drop message pair, because the msg is out of range")
+			return
+		}
+	}
+
 	if ack.DBHeight > s.HighestAck && ack.Minute > 0 {
 		s.HighestAck = ack.DBHeight
-		s.LogPrintf("processList", "Drop1")
+
 	}
 
 	TotalAcksInputs.Inc()
@@ -878,9 +973,10 @@ func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces
 	// If this is us, make sure we ignore (if old or in the ignore period) or die because two instances are running.
 	//
 	if !ack.Response && ack.LeaderChainID.IsSameAs(s.IdentityChainID) {
-		now := s.GetTimestamp()
-		if now.GetTimeSeconds()-ack.Timestamp.GetTimeSeconds() > 120 {
-			s.LogPrintf("processList", "Drop1")
+		now := s.GetTimestamp().GetTimeSeconds()
+		ackSeconds := ack.Timestamp.GetTimeSeconds()
+		if now-ackSeconds > 120 {
+			s.LogPrintf("processList", "Drop old msg")
 			// Us and too old?  Just ignore.
 			return
 		}
@@ -902,7 +998,9 @@ func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces
 		s.LogPrintf("processList", "Drop "+hint)
 		TotalHoldingQueueOutputs.Inc()
 		TotalAcksOutputs.Inc()
-		delete(s.Holding, msgHash.Fixed())
+		//delete(s.Holding, msgHash.Fixed())
+
+		s.DeleteFromHolding(m.GetMsgHash().Fixed(), m, "Toss"+hint)
 		delete(s.Acks, msgHash.Fixed())
 	}
 
@@ -966,7 +1064,7 @@ func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces
 	s.LogPrintf("executeMsg", "remove from holding M-%v|R-%v", m.GetMsgHash().String()[:6], m.GetRepeatHash().String()[:6])
 	TotalHoldingQueueOutputs.Inc()
 	TotalAcksOutputs.Inc()
-	delete(s.Holding, msgHash.Fixed())
+	s.DeleteFromHolding(msgHash.Fixed(), m, "Process()")
 	delete(s.Acks, msgHash.Fixed())
 	p.VMs[ack.VMIndex].List[ack.Height] = m
 	p.VMs[ack.VMIndex].ListAck[ack.Height] = ack
@@ -1054,6 +1152,10 @@ func (p *ProcessList) String() string {
 					if index > 0 {
 						msgStr = msgStr[0:index]
 					}
+					index = len(msgStr)
+					if index > 128 {
+						msgStr = msgStr[0:125] + "..."
+					}
 					buf.WriteString("   " + leader + msgStr + "\n")
 				} else {
 					buf.WriteString("   <nil>\n")
@@ -1109,8 +1211,13 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	pl.AuditServers = make([]interfaces.IServer, 0)
 	//pl.Requests = make(map[[20]byte]*Request)
 
+	pl.FactoidBalancesTMutex.Lock()
 	pl.FactoidBalancesT = map[[32]byte]int64{}
+	pl.FactoidBalancesTMutex.Unlock()
+
+	pl.ECBalancesTMutex.Lock()
 	pl.ECBalancesT = map[[32]byte]int64{}
+	pl.ECBalancesTMutex.Unlock()
 
 	if previous != nil {
 		pl.FedServers = append(pl.FedServers, previous.FedServers...)
@@ -1166,13 +1273,22 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 		pl.AdminBlock = adminBlock.NewAdminBlock(previous.AdminBlock)
 		pl.EntryCreditBlock, err = entryCreditBlock.NextECBlock(previous.EntryCreditBlock)
 	} else {
-		pl.DirectoryBlock = directoryBlock.NewDirectoryBlock(nil)
-		pl.AdminBlock = adminBlock.NewAdminBlock(nil)
-		pl.EntryCreditBlock, err = entryCreditBlock.NextECBlock(nil)
+		if pl.DBHeight > 0 {
+			pl.DirectoryBlock, _ = state.GetDB().FetchDBlockByHeight(pl.DBHeight)
+			pl.AdminBlock, _ = state.GetDB().FetchABlockByHeight(pl.DBHeight)
+			pl.EntryCreditBlock, _ = state.GetDB().FetchECBlockByHeight(pl.DBHeight)
+		} else {
+			pl.DirectoryBlock = directoryBlock.NewDirectoryBlock(nil)
+			pl.AdminBlock = adminBlock.NewAdminBlock(nil)
+			pl.EntryCreditBlock, err = entryCreditBlock.NextECBlock(nil)
+		}
 	}
 
 	pl.ResetDiffSigTally()
 
+	if pl.DirectoryBlock != nil {
+		pl.DirectoryBlock.GetHeader().SetTimestamp(now) // Well this is awkwardly after it's created but ....
+	}
 	if err != nil {
 		panic(err.Error())
 	}

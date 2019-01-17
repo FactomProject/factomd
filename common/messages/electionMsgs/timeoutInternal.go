@@ -6,6 +6,7 @@ package electionMsgs
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -49,7 +50,14 @@ func (m *TimeoutInternal) MarshalBinary() (data []byte, err error) {
 	return data, nil
 }
 
-func (m *TimeoutInternal) GetMsgHash() interfaces.IHash {
+func (m *TimeoutInternal) GetMsgHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("TimeoutInternal.GetMsgHash() saw an interface that was nil")
+		}
+	}()
+
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()
 		if err != nil {
@@ -225,7 +233,14 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 
 }
 
-func (m *TimeoutInternal) GetServerID() interfaces.IHash {
+func (m *TimeoutInternal) GetServerID() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("TimeoutInternal.GetServerID() saw an interface that was nil")
+		}
+	}()
+
 	return nil
 }
 
@@ -233,12 +248,26 @@ func (m *TimeoutInternal) LogFields() log.Fields {
 	return log.Fields{"category": "message", "messagetype": "TimeoutInternal", "dbheight": m.DBHeight}
 }
 
-func (m *TimeoutInternal) GetRepeatHash() interfaces.IHash {
+func (m *TimeoutInternal) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("TimeoutInternal.GetRepeatHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.GetMsgHash()
 }
 
 // We have to return the hash of the underlying message.
-func (m *TimeoutInternal) GetHash() interfaces.IHash {
+func (m *TimeoutInternal) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("TimeoutInternal.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.MessageHash
 }
 

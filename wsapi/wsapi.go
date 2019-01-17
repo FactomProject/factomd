@@ -55,6 +55,7 @@ func Start(state interfaces.IState) {
 		server = web.NewServer()
 
 		server.Logger.SetOutput(ioutil.Discard)
+		server.Config.CorsDomains = state.GetCorsDomains()
 
 		Servers[state.GetPort()] = server
 		server.Env["state"] = state

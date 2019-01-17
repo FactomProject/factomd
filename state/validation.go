@@ -11,6 +11,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/util/atomic"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -18,7 +19,9 @@ func (state *State) ValidatorLoop() {
 	CheckGrants()
 	timeStruct := new(Timer)
 	var prev time.Time
+	state.validatorLoopThreadID = atomic.Goid()
 	for {
+		s := state
 		if state.DebugExec() {
 			status := ""
 			now := time.Now()
@@ -38,7 +41,7 @@ func (state *State) ValidatorLoop() {
 				status += fmt.Sprintf("Pending Entries %d ", pendingEntries) // cope with nil
 				status += fmt.Sprintf("Acks %d ", len(state.AcksMap))
 				status += fmt.Sprintf("MsgQueue %d ", len(state.msgQueue))
-				status += fmt.Sprintf("InMsgQueue  %d ", state.inMsgQueue.Length())
+				status += fmt.Sprintf("InMsgQueue %d ", state.inMsgQueue.Length())
 				status += fmt.Sprintf("InMsgQueue2 %d ", state.inMsgQueue2.Length())
 				status += fmt.Sprintf("APIQueue   %d ", state.apiQueue.Length())
 				status += fmt.Sprintf("AckQueue %d ", len(state.ackQueue))
@@ -49,6 +52,7 @@ func (state *State) ValidatorLoop() {
 				status += fmt.Sprintf("MissingEntries %d ", state.GetMissingEntryCount())
 				status += fmt.Sprintf("WriteEntry %d ", len(state.WriteEntry))
 
+				status += fmt.Sprintf("PL %8d, P %8d, U %8d, S%8d", s.ProcessListProcessCnt, s.StateProcessCnt, s.StateUpdateState, s.ValidatorLoopSleepCnt)
 				state.LogPrintf("executeMsg", "Status %s", status)
 				prev = now
 			}
@@ -71,7 +75,7 @@ func (state *State) ValidatorLoop() {
 		// Look for pending messages, and get one if there is one.
 		var msg interfaces.IMsg
 
-		for i := 0; i < 10; i++ {
+		for i := 0; i < 1; i++ {
 			//for state.Process() {}
 			//for state.UpdateState() {}
 			var progress bool
@@ -90,7 +94,7 @@ func (state *State) ValidatorLoop() {
 			default:
 			}
 
-			for i := 0; i < 1; i++ {
+			for i := 0; i < 50; i++ {
 				if ackRoom == 1 || msgRoom == 1 {
 					break // no room
 				}
@@ -128,10 +132,11 @@ func (state *State) ValidatorLoop() {
 				ackRoom = cap(state.ackQueue) - len(state.ackQueue)
 				msgRoom = cap(state.msgQueue) - len(state.msgQueue)
 			}
-			if !progress && state.InMsgQueue().Length() == 0 && state.InMsgQueue2().Length() == 0 {
+			if !progress && state.InMsgQueue().Length() == 0 && state.InMsgQueue2().Length() == 0 && len(s.Holding) < 5 {
 				// No messages? Sleep for a bit
-				for i := 0; i < 10 && state.InMsgQueue().Length() == 0; i++ {
+				for i := 0; i < 10 && state.InMsgQueue().Length() == 0 && state.InMsgQueue2().Length() == 0 && len(s.Holding) < 5; i++ {
 					time.Sleep(10 * time.Millisecond)
+					state.ValidatorLoopSleepCnt++
 				}
 
 			}
@@ -164,6 +169,7 @@ func (t *Timer) timer(s *State, min int) {
 		eom.Sign(s)
 		eom.SetLocal(true)
 		consenLogger.WithFields(log.Fields{"func": "GenerateEOM", "lheight": s.GetLeaderHeight()}).WithFields(eom.LogFields()).Debug("Generate EOM")
+		s.LogMessage("MsgQueue", "enqueue", eom)
 
 		s.MsgQueue() <- eom
 	}

@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"os"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -48,15 +49,36 @@ func (a *DBStateMissing) IsSameAs(b *DBStateMissing) bool {
 	return true
 }
 
-func (m *DBStateMissing) GetRepeatHash() interfaces.IHash {
+func (m *DBStateMissing) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("DBStateMissing.GetRepeatHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.GetMsgHash()
 }
 
-func (m *DBStateMissing) GetHash() interfaces.IHash {
+func (m *DBStateMissing) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("DBStateMissing.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.GetMsgHash()
 }
 
-func (m *DBStateMissing) GetMsgHash() interfaces.IHash {
+func (m *DBStateMissing) GetMsgHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("DBStateMissing.GetMsgHash() saw an interface that was nil")
+		}
+	}()
+
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()
 		if err != nil {
@@ -112,22 +134,36 @@ func (m *DBStateMissing) send(dbheight uint32, state interfaces.IState) (msglen 
 	}
 	if send {
 		msg, err := state.LoadDBState(dbheight)
-		if msg != nil && err == nil {
-			b, err := msg.MarshalBinary()
-			if err != nil {
-				return
-			}
-			msglen = len(b)
-			msg.SetOrigin(m.GetOrigin())
-			msg.SetNetworkOrigin(m.GetNetworkOrigin())
-			msg.SetNoResend(false)
-			msg.SendOut(state, msg)
-			state.IncDBStateAnswerCnt()
-			v := new(interfaces.DBStateSent)
-			v.DBHeight = dbheight
-			v.Sent = now
-			keeps = append(keeps, v)
+		if err != nil {
+			state.LogPrintf("executeMsg", "DBStateMissing.send() %v", err)
+			return
 		}
+		if msg == nil {
+			return
+		}
+
+		dbstatemsg := msg.(*DBStateMsg)
+		dbstatemsg.IsInDB = false // else validateSignatures would approve it automatically
+		if dbstatemsg.ValidateSignatures(state) != 1 {
+			return // the last DBState we have saved may not have any or all the signatures so we can't share
+		}
+
+		b, err := msg.MarshalBinary()
+		if err != nil {
+			state.LogPrintf("executeMsg", "DBStateMissing.send() %v", err)
+			return
+		}
+		msglen = len(b)
+		msg.SetOrigin(m.GetOrigin())
+		msg.SetNetworkOrigin(m.GetNetworkOrigin())
+		msg.SetNoResend(false)
+		msg.SendOut(state, msg)
+		state.IncDBStateAnswerCnt()
+		v := new(interfaces.DBStateSent)
+		v.DBHeight = dbheight
+		v.Sent = now
+		keeps = append(keeps, v)
+
 		state.SetDBStatesSent(keeps)
 	}
 	return
@@ -153,6 +189,16 @@ func (m *DBStateMissing) FollowerExecute(state interfaces.IState) {
 	// just give them what they ask for.
 	start := m.DBHeightStart
 	end := m.DBHeightEnd
+
+	hsb := state.GetHighestSavedBlk()
+
+	// Can't serve up block we don't have
+	if start >= hsb {
+		return
+	}
+	if end >= hsb {
+		end = hsb
+	}
 
 	if end == 0 {
 		return

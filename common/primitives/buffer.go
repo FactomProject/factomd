@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/goleveldb/leveldb/errors"
@@ -59,7 +60,7 @@ func (b *Buffer) PushBinaryMarshallableMsgArray(bm []interfaces.IMsg) error {
 }
 
 func (b *Buffer) PushBinaryMarshallable(bm interfaces.BinaryMarshallable) error {
-	if bm == nil {
+	if bm == nil || reflect.ValueOf(bm).IsNil() {
 		return fmt.Errorf("BinaryMarshallable is nil")
 	}
 	bin, err := bm.MarshalBinary()
@@ -247,14 +248,14 @@ func (b *Buffer) PopString() (string, error) {
 
 func (b *Buffer) PopBytes() ([]byte, error) {
 	l, err := b.PopVarInt()
-	if err != nil {
+	if err != nil || int(l) < 0 {
 		return nil, err
 	}
 
-	answer := make([]byte, int(l))
 	if b.Len() < int(l) {
 		return nil, errors.New(fmt.Sprintf("End of Buffer Looking for %d but only have %d", l, b.Len()))
 	}
+	answer := make([]byte, int(l))
 	al, err := b.Read(answer)
 	if al != int(l) {
 		return nil, errors.New("2End of Buffer")

@@ -28,9 +28,6 @@ type MMRInfo struct {
 
 // starts the MMR processing for this state
 func (s *State) startMMR() {
-	s.asks = make(chan askRef, 1)
-	s.adds = make(chan plRef, 1)
-	s.dbheights = make(chan int, 1)
 	go s.makeMMRs(s.asks, s.adds, s.dbheights)
 }
 
@@ -40,8 +37,8 @@ func (vm *VM) ReportMissing(height int, delay int64) {
 		return
 	}
 	now := vm.p.State.GetTimestamp().GetTimeMilli()
-	if delay < 50 {
-		delay = 50 // Floor for delays is 50ms so there is time to merge adjacent requests
+	if delay < 500 {
+		delay = 500 // Floor for delays is 500ms so there is time to merge adjacent requests
 	}
 	lenVMList := len(vm.List)
 	// ask for all missing messages
@@ -76,6 +73,9 @@ func (s *State) Ask(DBHeight int, vmIndex int, height int, when int64) {
 
 	return
 }
+
+// Used by debug code only
+var MMR_enable bool = true
 
 // Receive all asks and all process list adds and create missing message requests any ask that has expired
 // and still pending. Add 10 seconds to the ask.
@@ -145,6 +145,10 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 		} // process all pending add before any ticks
 	}
 
+	// Postpone asking for the first 5 seconds so simulations get a chance to get started. Doesn't break things but
+	// there is a flurry of unhelpful MMR activity on start up of simulations with followers
+	time.Sleep(5 * time.Second)
+
 	// tick ever second to check the  pending MMRs
 	go func() {
 		for {
@@ -153,7 +157,8 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 			} // time to die, no one is listening
 
 			ticker <- s.GetTimestamp().GetTimeMilli()
-			time.Sleep(20 * time.Millisecond)
+			askDelay := int64(s.DirectoryBlockInSeconds*1000) / 50
+			time.Sleep(time.Duration(askDelay) * time.Millisecond)
 		}
 	}()
 
@@ -167,8 +172,8 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 		//		This means on 10min block, 12 second delay
 		//					  1min block, 1.2 second delay
 
-		if askDelay < 50 { // Don't go below 50ms. That is just too much
-			askDelay = 50
+		if askDelay < 500 { // Don't go below 500ms. That is just too much
+			askDelay = 500
 		}
 
 		if askDelay != lastAskDelay {
@@ -207,14 +212,15 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 			for ref, when := range pending {
 				var index dbhvm = dbhvm{ref.DBH, ref.VM}
 				// if ask is expired or we have an MMR for this DBH/VM and it's not a brand new ask
-				if now > *when || (mmrs[index] != nil && now > (*when-4*askDelay/5)) {
+				if now > *when {
+
 					if mmrs[index] == nil { // If we don't have a message for this DBH/VM
 						mmrs[index] = messages.NewMissingMsg(s, ref.VM, uint32(ref.DBH), uint32(ref.H))
 					} else {
 						mmrs[index].ProcessListHeight = append(mmrs[index].ProcessListHeight, uint32(ref.H))
 					}
-					*when = *when + askDelay // update when we asked, set lsb to say we already asked...
-					//s.LogPrintf(logname, "mmr ask %d/%d/%d %d", ref.DBH, ref.VM, ref.H, len(pending))
+					*when = now + askDelay // update when we asked
+
 					// Maybe when asking for past the end of the list we should not ask again?
 				}
 			} //build a MMRs with all the expired asks in that VM at that DBH.
@@ -222,7 +228,9 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 			for index, mmr := range mmrs {
 				s.LogMessage(logname, "sendout", mmr)
 				s.MissingRequestAskCnt++
-				mmr.SendOut(s, mmr)
+				if MMR_enable {
+					mmr.SendOut(s, mmr)
+				}
 				delete(mmrs, index)
 			} // Send MMRs that were built
 

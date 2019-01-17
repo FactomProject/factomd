@@ -303,3 +303,55 @@ type MultipleECBalances struct {
 	LastSavedHeight uint32        `json:"lastsavedheight"`
 	Balances        []interface{} `json:"balances"`
 }
+
+type DiagnosticsResponse struct {
+	Name      string `json:"name"`
+	ID        string `json:"id,omitempty"`
+	PublicKey string `json:"publickey,omitempty"`
+	Role      string `json:"role"`
+
+	LeaderHeight          uint32 `json:"leaderheight"`
+	CurrentMinute         int    `json:"currentminute"`
+	CurrentMinuteDuration int64  `json:"currentminuteduration"`
+	PrevMinuteDuration    int64  `json:"previousminuteduration"`
+	BalanceHash           string `json:"balancehash"`
+	TempBalanceHash       string `json:"tempbalancehash"`
+	LastBlockFromDBState  bool   `json:"lastblockfromdbstate"`
+
+	SyncInfo     *SyncInfo     `json:"syncing"`
+	AuthSet      *AuthSet      `json:"authset"`
+	ElectionInfo *ElectionInfo `json:"elections"`
+}
+
+type SyncInfo struct {
+	Status   string   `json:"status"`
+	Received *int     `json:"received,omitempty"`
+	Expected *int     `json:"expected,omitempty"`
+	Missing  []string `json:"missing,omitempty"`
+}
+
+type ElectionInfo struct {
+	InProgress bool   `json:"inprogress"`
+	VmIndex    *int   `json:"vmindex,omitempty"`
+	FedIndex   *int   `json:"fedindex,omitempty"`
+	FedID      string `json:"fedid,omitempty"`
+	Round      *int   `json:"round,omitempty"`
+}
+
+type AuthSet struct {
+	Leaders []LeaderStatus `json:"leaders"`
+	Audits  []AuditStatus  `json:"audits"`
+}
+
+type LeaderStatus struct {
+	ID                string `json:"id"`
+	VM                int    `json:"vm"`
+	ProcessListHeight int    `json:"listheight"`
+	ListLength        int    `json:"listlength"`
+	NextNil           int    `json:"nextnil"`
+}
+
+type AuditStatus struct {
+	ID     string `json:"id"`
+	Online bool   `json:"online"`
+}

@@ -3,6 +3,7 @@ package adminBlock
 import (
 	"fmt"
 	"os"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -138,7 +139,14 @@ func (e *DBSignatureEntry) Interpret() string {
 	return ""
 }
 
-func (e *DBSignatureEntry) Hash() interfaces.IHash {
+func (e *DBSignatureEntry) Hash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("DBSignatureEntry.Hash() saw an interface that was nil")
+		}
+	}()
+
 	bin, err := e.MarshalBinary()
 	if err != nil {
 		panic(err)

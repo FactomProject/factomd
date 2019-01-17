@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 
+	"time"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/receipts"
@@ -21,108 +23,106 @@ func TestRegisterPrometheus(t *testing.T) {
 	RegisterPrometheus()
 }
 
-// Test discabled because of circleCI issues with it.
-//func TestHandleV2GetRaw(t *testing.T) {
-//
-//	type RawData struct {
-//		Hash1 string
-//		Hash2 string
-//		Raw   string
-//	}
-//
-//	toTest := []RawData{}
-//	var err error
-//
-//	blockSet := testHelper.CreateTestBlockSet(nil)
-//
-//	aBlock := blockSet.ABlock
-//	raw := RawData{}
-//	raw.Hash1 = aBlock.DatabasePrimaryIndex().String()
-//	raw.Hash2 = aBlock.DatabaseSecondaryIndex().String()
-//	hex, err := aBlock.MarshalBinary()
-//	if err != nil {
-//		panic(err)
-//	}
-//	raw.Raw = primitives.EncodeBinary(hex)
-//	toTest = append(toTest, raw) //1
-//
-//	eBlock := blockSet.EBlock
-//	raw = RawData{}
-//	raw.Hash1 = eBlock.DatabasePrimaryIndex().String()
-//	raw.Hash2 = eBlock.DatabaseSecondaryIndex().String()
-//	hex, err = eBlock.MarshalBinary()
-//	if err != nil {
-//		panic(err)
-//	}
-//	raw.Raw = primitives.EncodeBinary(hex)
-//	toTest = append(toTest, raw) //2
-//
-//	ecBlock := blockSet.ECBlock
-//	raw = RawData{}
-//	raw.Hash1 = ecBlock.(interfaces.DatabaseBatchable).DatabasePrimaryIndex().String()
-//	raw.Hash2 = ecBlock.(interfaces.DatabaseBatchable).DatabaseSecondaryIndex().String()
-//	hex, err = ecBlock.MarshalBinary()
-//	if err != nil {
-//		panic(err)
-//	}
-//	raw.Raw = primitives.EncodeBinary(hex)
-//	toTest = append(toTest, raw) //3
-//
-//	fBlock := blockSet.FBlock
-//	raw = RawData{}
-//	raw.Hash1 = fBlock.(interfaces.DatabaseBatchable).DatabasePrimaryIndex().String()
-//	raw.Hash2 = fBlock.(interfaces.DatabaseBatchable).DatabaseSecondaryIndex().String()
-//	hex, err = fBlock.MarshalBinary()
-//	if err != nil {
-//		panic(err)
-//	}
-//	raw.Raw = primitives.EncodeBinary(hex)
-//	toTest = append(toTest, raw) //4
-//
-//	dBlock := blockSet.DBlock
-//	raw = RawData{}
-//	raw.Hash1 = dBlock.DatabasePrimaryIndex().String()
-//	raw.Hash2 = dBlock.DatabaseSecondaryIndex().String()
-//	hex, err = dBlock.MarshalBinary()
-//	if err != nil {
-//		panic(err)
-//	}
-//	raw.Raw = primitives.EncodeBinary(hex)
-//	toTest = append(toTest, raw) //5
-//
-//	//initializing server
-//	state := testHelper.CreateAndPopulateTestState()
-//	Start(state)
-//
-//	for i, v := range toTest {
-//		data := new(HashRequest)
-//		data.Hash = v.Hash1
-//		req := primitives.NewJSON2Request("raw-data", 1, data)
-//
-//		time.Sleep(time.Millisecond * 100)
-//		resp, err := v2Request(req)
-//		if err != nil {
-//			t.Errorf("%v", err)
-//		}
-//
-//		if strings.Contains(resp.String(), v.Raw) == false {
-//			t.Errorf("Looking for %v but got %v", v.Hash1, v.Raw)
-//			t.Errorf("GetRaw %v/%v from Hash1 failed - %v", i, len(toTest), resp.String())
-//		}
-//
-//		data.Hash = v.Hash2
-//		req = primitives.NewJSON2Request("raw-data", 1, data)
-//		resp, err = v2Request(req)
-//		if err != nil {
-//			t.Errorf("%v", err)
-//		}
-//
-//		if strings.Contains(resp.String(), v.Raw) == false {
-//			t.Errorf("Looking for %v", v.Hash1)
-//			t.Errorf("GetRaw %v/%v from Hash2 failed - %v", i, len(toTest), resp.String())
-//		}
-//	}
-//}
+func TestHandleV2GetRaw(t *testing.T) {
+	type RawData struct {
+		Hash1 string
+		Hash2 string
+		Raw   string
+	}
+
+	toTest := []RawData{}
+	var err error
+
+	blockSet := testHelper.CreateTestBlockSet(nil)
+
+	aBlock := blockSet.ABlock
+	raw := RawData{}
+	raw.Hash1 = aBlock.DatabasePrimaryIndex().String()
+	raw.Hash2 = aBlock.DatabaseSecondaryIndex().String()
+	hex, err := aBlock.MarshalBinary()
+	if err != nil {
+		panic(err)
+	}
+	raw.Raw = primitives.EncodeBinary(hex)
+	toTest = append(toTest, raw) //1
+
+	eBlock := blockSet.EBlock
+	raw = RawData{}
+	raw.Hash1 = eBlock.DatabasePrimaryIndex().String()
+	raw.Hash2 = eBlock.DatabaseSecondaryIndex().String()
+	hex, err = eBlock.MarshalBinary()
+	if err != nil {
+		panic(err)
+	}
+	raw.Raw = primitives.EncodeBinary(hex)
+	toTest = append(toTest, raw) //2
+
+	ecBlock := blockSet.ECBlock
+	raw = RawData{}
+	raw.Hash1 = ecBlock.(interfaces.DatabaseBatchable).DatabasePrimaryIndex().String()
+	raw.Hash2 = ecBlock.(interfaces.DatabaseBatchable).DatabaseSecondaryIndex().String()
+	hex, err = ecBlock.MarshalBinary()
+	if err != nil {
+		panic(err)
+	}
+	raw.Raw = primitives.EncodeBinary(hex)
+	toTest = append(toTest, raw) //3
+
+	fBlock := blockSet.FBlock
+	raw = RawData{}
+	raw.Hash1 = fBlock.(interfaces.DatabaseBatchable).DatabasePrimaryIndex().String()
+	raw.Hash2 = fBlock.(interfaces.DatabaseBatchable).DatabaseSecondaryIndex().String()
+	hex, err = fBlock.MarshalBinary()
+	if err != nil {
+		panic(err)
+	}
+	raw.Raw = primitives.EncodeBinary(hex)
+	toTest = append(toTest, raw) //4
+
+	dBlock := blockSet.DBlock
+	raw = RawData{}
+	raw.Hash1 = dBlock.DatabasePrimaryIndex().String()
+	raw.Hash2 = dBlock.DatabaseSecondaryIndex().String()
+	hex, err = dBlock.MarshalBinary()
+	if err != nil {
+		panic(err)
+	}
+	raw.Raw = primitives.EncodeBinary(hex)
+	toTest = append(toTest, raw) //5
+
+	//initializing server
+	state := testHelper.CreateAndPopulateTestState()
+	Start(state)
+
+	for i, v := range toTest {
+		data := new(HashRequest)
+		data.Hash = v.Hash1
+		req := primitives.NewJSON2Request("raw-data", 1, data)
+
+		time.Sleep(time.Millisecond * 100)
+		resp, err := v2Request(req)
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+
+		if strings.Contains(resp.String(), v.Raw) == false {
+			t.Errorf("Looking for %v but got %v", v.Hash1, v.Raw)
+			t.Errorf("GetRaw %v/%v from Hash1 failed - %v", i, len(toTest), resp.String())
+		}
+
+		data.Hash = v.Hash2
+		req = primitives.NewJSON2Request("raw-data", 1, data)
+		resp, err = v2Request(req)
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+
+		if strings.Contains(resp.String(), v.Raw) == false {
+			t.Errorf("Looking for %v", v.Hash1)
+			t.Errorf("GetRaw %v/%v from Hash2 failed - %v", i, len(toTest), resp.String())
+		}
+	}
+}
 
 func v2Request(req *primitives.JSON2Request) (*primitives.JSON2Response, error) {
 	j, err := json.Marshal(req)
@@ -247,7 +247,7 @@ func TestHandleV2CommitChain(t *testing.T) {
 }
 
 func TestHandleV2GetReceipt(t *testing.T) {
-	state := testHelper.CreateAndPopulateTestState()
+	state := testHelper.CreateAndPopulateTestStateAndStartValidator()
 	//Start(state)
 
 	hashkey := new(HashRequest)
@@ -275,7 +275,7 @@ func TestHandleV2GetReceipt(t *testing.T) {
 }
 
 func TestHandleV2GetTranasction(t *testing.T) {
-	state := testHelper.CreateAndPopulateTestState()
+	state := testHelper.CreateAndPopulateTestStateAndStartValidator()
 	blocks := testHelper.CreateFullTestBlockSet()
 
 	for _, block := range blocks {
@@ -465,6 +465,7 @@ func Test_ecBlockToResp(t *testing.T) {
 		want  interface{}
 		want1 *primitives.JSONError
 	}{
+
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {

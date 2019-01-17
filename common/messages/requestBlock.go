@@ -6,6 +6,7 @@ package messages
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -43,11 +44,25 @@ func (a *RequestBlock) IsSameAs(b *RequestBlock) bool {
 
 func (m *RequestBlock) Process(uint32, interfaces.IState) bool { return true }
 
-func (m *RequestBlock) GetRepeatHash() interfaces.IHash {
+func (m *RequestBlock) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("RequestBlock.GetRepeatHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.GetMsgHash()
 }
 
-func (m *RequestBlock) GetHash() interfaces.IHash {
+func (m *RequestBlock) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("RequestBlock.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	if m.hash == nil {
 		data, err := m.MarshalForSignature()
 		if err != nil {
@@ -58,7 +73,14 @@ func (m *RequestBlock) GetHash() interfaces.IHash {
 	return m.hash
 }
 
-func (m *RequestBlock) GetMsgHash() interfaces.IHash {
+func (m *RequestBlock) GetMsgHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("RequestBlock.GetMsgHash() saw an interface that was nil")
+		}
+	}()
+
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()
 		if err != nil {
