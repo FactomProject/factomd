@@ -11,13 +11,22 @@ import (
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/database/boltdb"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
-	"github.com/FactomProject/factomd/database/hybridDB"
+	"github.com/FactomProject/factomd/database/leveldb"
+	// DEBUG: profiler
+	// "net/http"
+	// _ "net/http/pprof"
 )
 
 var usage = "dbck [-bf] DATABASE"
 
 func main() {
+	// DEBUG: run the profiler
+	// go func() {
+	// 	log.Println(http.ListenAndServe("localhost:6060", nil))
+	// }()
+
 	// parse the command line flags
 	bflag := flag.Bool("b", false, "analize a bolt database")
 	fflag := flag.Bool("f", false, "do not check for duplicate factoid transactions")
@@ -36,11 +45,11 @@ func main() {
 
 		if *bflag {
 			return databaseOverlay.NewOverlay(
-				hybridDB.NewBoltMapHybridDB(nil, path),
+				boltdb.NewBoltDB(nil, path),
 			)
 		}
 
-		d, err := hybridDB.NewLevelMapHybridDB(path, false)
+		d, err := leveldb.NewLevelDB(path, false)
 		if err != nil {
 			fmt.Println("ERROR:", err)
 		}
@@ -165,6 +174,24 @@ func main() {
 			h := v.(*primitives.Hash)
 			if !blkMap[h.Fixed()] {
 				fmt.Println("Invalid DBlock indexed", ks[i], h)
+			}
+		}
+	}
+
+	// check indexes for FBlocks
+	fmt.Println("Checking Factoid Block index")
+	{
+		hs, ks, err := db.GetAll(
+			databaseOverlay.FACTOIDBLOCK_NUMBER,
+			primitives.NewZeroHash(),
+		)
+		if err != nil {
+			fmt.Println(err)
+		}
+		for i, v := range hs {
+			h := v.(*primitives.Hash)
+			if !blkMap[h.Fixed()] {
+				fmt.Println("Invalid FBlock indexed", ks[i], h)
 			}
 		}
 	}
