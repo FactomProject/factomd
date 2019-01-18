@@ -178,6 +178,42 @@ func main() {
 		}
 	}
 
+	// check indexes for ABlocks
+	fmt.Println("Checking Admin Block index")
+	{
+		hs, ks, err := db.GetAll(
+			databaseOverlay.ADMINBLOCK_NUMBER,
+			primitives.NewZeroHash(),
+		)
+		if err != nil {
+			fmt.Println(err)
+		}
+		for i, v := range hs {
+			h := v.(*primitives.Hash)
+			if !blkMap[h.Fixed()] {
+				fmt.Println("Invalid ABlock indexed", ks[i], h)
+			}
+		}
+	}
+
+	// check indexes for ECBlocks
+	fmt.Println("Checking Entry Credit Block index")
+	{
+		hs, ks, err := db.GetAll(
+			databaseOverlay.ENTRYCREDITBLOCK_NUMBER,
+			primitives.NewZeroHash(),
+		)
+		if err != nil {
+			fmt.Println(err)
+		}
+		for i, v := range hs {
+			h := v.(*primitives.Hash)
+			if !blkMap[h.Fixed()] {
+				fmt.Println("Invalid ECBlock indexed", ks[i], h)
+			}
+		}
+	}
+
 	// check indexes for FBlocks
 	fmt.Println("Checking Factoid Block index")
 	{
