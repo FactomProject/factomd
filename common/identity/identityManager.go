@@ -13,6 +13,8 @@ import (
 
 	"sort"
 
+	"encoding/json"
+
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
@@ -46,6 +48,31 @@ type IdentityManagerWithoutMutex struct {
 	//		[descriptorheight]List of cancelled outputs
 	CanceledCoinbaseOutputs map[uint32][]uint32
 	OldEntries              []*OldEntry
+}
+
+// Full print of Identity Manager
+func (im *IdentityManager) String() string {
+	str := fmt.Sprintf("-- Identity Manager: %d Auths, %d Ids\n --", len(im.Authorities), len(im.Identities))
+	str += fmt.Sprintf("--- Identities ---\n")
+
+	pretty := func(d []byte) string {
+		var dst bytes.Buffer
+		json.Indent(&dst, d, "", "\t")
+		return dst.String()
+	}
+	for _, id := range im.Identities {
+		str += "----------------------------------------\n"
+		d, _ := id.JSONByte()
+		str += pretty(d) + "\n"
+		str += "IdentitySync : \n"
+		s, _ := json.Marshal(id.IdentityChainSync)
+		str += pretty(s) + "\n"
+		str += "ManagementSync : \n"
+		s, _ = json.Marshal(id.ManagementChainSync)
+		str += pretty(s) + "\n"
+	}
+
+	return str
 }
 
 func NewIdentityManager() *IdentityManager {

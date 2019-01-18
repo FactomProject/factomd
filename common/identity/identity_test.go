@@ -7,6 +7,8 @@ package identity_test
 import (
 	"testing"
 
+	"bytes"
+
 	. "github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -50,6 +52,30 @@ func TestIdentityMarshalUnmarshal(t *testing.T) {
 		}
 		if id.IsSameAs(id2) == false {
 			t.Errorf("Identities are not the same")
+		}
+	}
+}
+
+func TestIdentityClone(t *testing.T) {
+	for i := 0; i < 1000; i++ {
+		id := RandomIdentity()
+		id2 := id.Clone()
+		if id.IsSameAs(id2) == false {
+			t.Errorf("Identities are not the same")
+		}
+
+		// Check their marshalled values
+		d1, err := id.MarshalBinary()
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+		d2, err := id2.MarshalBinary()
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+
+		if bytes.Compare(d1, d2) != 0 {
+			t.Errorf("Identities are not the same when marshalled")
 		}
 	}
 }
