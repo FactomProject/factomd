@@ -296,7 +296,7 @@ type State struct {
 
 	// Directory Block State
 	DBStates *DBStateList // Holds all DBStates not yet processed.
-	// TODO: should rename to DBStates{Missing,Waiting,Received}
+	// TODO: mjb: should rename to DBStates{Missing,Waiting,Received}
 	StatesMissing  *StatesMissing
 	StatesWaiting  *StatesWaiting
 	StatesReceived *StatesReceived

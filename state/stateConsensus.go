@@ -1037,7 +1037,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	s.Saving = true
 	s.Syncing = false
 
-	// TODO: we may not need to call Catchup here
+	// TODO: mjb: we may not need to call Catchup here
 	// Hurry up our next ask.  When we get to where we have the data we asked for, then go ahead and ask for the next set.
 	if s.DBStates.LastEnd < int(dbheight) {
 		s.DBStates.Catchup()
