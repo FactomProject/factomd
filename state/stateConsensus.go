@@ -311,27 +311,11 @@ func (s *State) Process() (progress bool) {
 		}
 	}
 
-	/** Process all the DBStatesReceived  that might be pending **/
-	if len(s.DBStatesReceived) > 0 {
-
-		for {
-			hsb := s.GetHighestSavedBlk()
-			// Get the index of the next DBState
-			ix := int(hsb) - s.DBStatesReceivedBase + 1
-			// Make sure we are in range
-			if ix < 0 || ix >= len(s.DBStatesReceived) {
-				break // We have nothing for the system, given its current height.
-			}
-			if msg := s.DBStatesReceived[ix]; msg != nil {
-				s.LogPrintf("dbstateprocess", "Trying to process DBStatesReceived %d", s.DBStatesReceivedBase+ix)
-				s.executeMsg(vm, msg)
-			}
-
-			// if we can not process a DBStatesReceived then go process some messages
-			if hsb == s.GetHighestSavedBlk() {
-				break
-			}
-		}
+	// Add the next recieved states to process.
+	// GetNext returns nil if the next member of StatesReceived is not the next
+	// height that needs to be processed.
+	for r := s.StatesReceived.GetNext(); r != nil; r = s.StatesReceived.GetNext() {
+		process = append(process, r.Message())
 	}
 	// Process inbound messages
 	preEmptyLoopTime := time.Now()
@@ -415,7 +399,7 @@ ackLoop:
 	for _, msg := range process {
 		newProgress := s.executeMsg(vm, msg)
 		progress = newProgress || progress //
-		//		s.LogMessage("executeMsg", fmt.Sprintf("From processq : %t", newProgress), msg)
+		// s.LogMessage("executeMsg", fmt.Sprintf("From processq : %t", newProgress), msg)
 		s.UpdateState()
 	} // processLoop for{...}
 
@@ -1053,9 +1037,10 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	s.Saving = true
 	s.Syncing = false
 
+	// TODO: we may not need to call Catchup here
 	// Hurry up our next ask.  When we get to where we have the data we asked for, then go ahead and ask for the next set.
 	if s.DBStates.LastEnd < int(dbheight) {
-		s.DBStates.Catchup(true)
+		s.DBStates.Catchup()
 	}
 	if s.DBStates.LastBegin < int(dbheight)+1 {
 		s.DBStates.LastBegin = int(dbheight)

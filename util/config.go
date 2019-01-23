@@ -63,6 +63,8 @@ type FactomdConfig struct {
 		FactomdTlsPublicCert    string
 		FactomdRpcUser          string
 		FactomdRpcPass          string
+		RequestTimeout          int
+		RequestLimit            int
 		CorsDomains             string
 
 		ChangeAcksHeight uint32
@@ -161,6 +163,15 @@ FactomdTlsPublicCert                  = "/full/path/to/factomdAPIpub.cert"
 ; This file is also used by factom-cli and factom-walletd to determine what login to use
 FactomdRpcUser                        = ""
 FactomdRpcPass                        = ""
+
+; RequestTimeout is the amount of time in seconds before a pending request for a
+; missing DBState is considered too old and the state is put back into the
+; missing states list.
+RequestTimeout						= 120
+; RequestLimit is the maximum number of pending requests for missing states.
+; factomd will stop making DBStateMissing requests until current requests are
+; moved out of the waiting list
+RequestLimit						= 50
 
 ; This paramater allows Cross-Origin Resource Sharing (CORS) so web browsers will use data returned from the API when called from the listed URLs
 ; Example paramaters are "http://www.example.com, http://anotherexample.com, *"
