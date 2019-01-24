@@ -1037,15 +1037,14 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	s.Saving = true
 	s.Syncing = false
 
-	// TODO: mjb: we may not need to call Catchup here
 	// Hurry up our next ask.  When we get to where we have the data we asked for, then go ahead and ask for the next set.
-	if s.DBStates.LastEnd < int(dbheight) {
-		s.DBStates.Catchup()
-	}
-	if s.DBStates.LastBegin < int(dbheight)+1 {
-		s.DBStates.LastBegin = int(dbheight)
-	}
-	s.DBStates.TimeToAsk = nil
+	// if s.DBStates.LastEnd < int(dbheight) {
+	// 	s.DBStates.Catchup()
+	// }
+	// if s.DBStates.LastBegin < int(dbheight)+1 {
+	// 	s.DBStates.LastBegin = int(dbheight)
+	// }
+	// s.DBStates.TimeToAsk = nil
 	// Ok, I just added a valid state to the list so go process it now so it doesn't have to wait on the other messages
 	s.DBStates.UpdateState()
 

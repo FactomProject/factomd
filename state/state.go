@@ -296,7 +296,7 @@ type State struct {
 
 	// Directory Block State
 	DBStates *DBStateList // Holds all DBStates not yet processed.
-	// TODO: mjb: should rename to DBStates{Missing,Waiting,Received}
+
 	StatesMissing  *StatesMissing
 	StatesWaiting  *StatesWaiting
 	StatesReceived *StatesReceived
@@ -2583,7 +2583,6 @@ func (s *State) CalculateTransactionRate() (totalTPS float64, instantTPS float64
 	total := s.FactoidTrans + s.NewEntryChains + s.NewEntries
 	tps := float64(total) / float64(runtime.Seconds())
 	TotalTransactionPerSecond.Set(tps) // Prometheus
-	// TODO: mjb: what is shorttime for and what does it do?
 	shorttime := time.Since(s.lasttime)
 	if shorttime >= time.Second*3 {
 		delta := (s.FactoidTrans + s.NewEntryChains + s.NewEntries) - s.transCnt

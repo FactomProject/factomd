@@ -1611,9 +1611,6 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 }
 
 func (list *DBStateList) UpdateState() (progress bool) {
-	// TODO: mjb: we may not need to call Catchup here
-	list.Catchup()
-
 	s := list.State
 	_ = s
 	if len(list.DBStates) != 0 {

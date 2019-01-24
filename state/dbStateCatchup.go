@@ -205,7 +205,7 @@ func (l *StatesMissing) GetNext() *MissingState {
 	e := l.List.Front()
 	if e != nil {
 		s := e.Value.(*MissingState)
-		l.List.Remove(e)
+		l.Del(s.Height())
 		return s
 	}
 	return nil
