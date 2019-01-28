@@ -29,7 +29,6 @@ func main() {
 
 	// parse the command line flags
 	bflag := flag.Bool("b", false, "analize a bolt database")
-	fflag := flag.Bool("f", false, "do not check for duplicate factoid transactions")
 	flag.Parse()
 	os.Args = flag.Args()
 
@@ -70,10 +69,11 @@ func main() {
 		return FetchBlockSet(db, dbhead.DatabasePrimaryIndex())
 	}()
 
-	// collect transaction hashes to detect duplicate transactions in the
-	// database
+	// collect transaction and signature hashes to detect duplicate transactions
+	// and signatures in the database
 	fcthashes := make(map[[32]byte]uint32)
-	sighashes := make(map[[32]byte]uint32)
+	fblocksigs := make(map[[32]byte]uint32)
+	ablocksigs := make(map[[32]byte]uint32)
 
 	// keep a list of read blocks to check against the DB index
 	blkMap := make(map[[32]byte]bool)
@@ -122,31 +122,43 @@ func main() {
 			blkMap[next.FBlock.DatabasePrimaryIndex().Fixed()] = true
 		}
 
-		if !*fflag {
-			// check for duplicate factoid transactions
-			for _, fct := range next.FBlock.GetEntryHashes() {
-				if h, exists := fcthashes[fct.Fixed()]; exists {
-					fmt.Printf(
-						"ERROR: duplicate transactions found at heights %d and %d\n",
-						h, height,
-					)
-				} else {
-					// add the fcthash to the list
-					fcthashes[fct.Fixed()] = height
-				}
+		// check for duplicate factoid transactions
+		for _, fct := range next.FBlock.GetEntryHashes() {
+			if h, exists := fcthashes[fct.Fixed()]; exists {
+				fmt.Printf(
+					"ERROR: duplicate transactions found at heights %d and %d\n",
+					h, height,
+				)
+			} else {
+				// add the fcthash to the list
+				fcthashes[fct.Fixed()] = height
 			}
+		}
 
-			// check for duplicate transaction signatures hashes
-			for _, sig := range next.FBlock.GetEntrySigHashes() {
-				if h, exists := sighashes[sig.Fixed()]; exists {
-					fmt.Printf(
-						"ERROR: duplicate tx signatures found at height %d and %d\n",
-						h, height,
-					)
-				} else {
-					// add the sighash to the list
-					sighashes[sig.Fixed()] = height
-				}
+		// check for duplicate transaction signatures hashes
+		for _, sig := range next.FBlock.GetEntrySigHashes() {
+			if h, exists := fblocksigs[sig.Fixed()]; exists {
+				fmt.Printf(
+					"ERROR: duplicate tx signatures found at height %d and %d\n",
+					h, height,
+				)
+			} else {
+				// add the sighash to the list
+				fblocksigs[sig.Fixed()] = height
+			}
+		}
+
+		// check for duplicate ABlock signatures
+		for _, e := range next.ABlock.GetABEntries() {
+			absig := e.Hash().Fixed()
+			if h, exists := ablocksigs[absig]; exists {
+				fmt.Printf(
+					"ERROR: duplicate ABlock signature %x found at height %d and %d\n",
+					absig, h, height,
+				)
+			} else {
+				// add the signature to the list
+				ablocksigs[absig] = height
 			}
 		}
 
@@ -156,9 +168,7 @@ func main() {
 		next = prev
 	}
 
-	if !*fflag {
-		fmt.Println("total factoid transactions: ", len(fcthashes))
-	}
+	fmt.Println("total factoid transactions: ", len(fcthashes))
 
 	// check indexes for DBlocks
 	fmt.Println("Checking Drirectory Block index")
