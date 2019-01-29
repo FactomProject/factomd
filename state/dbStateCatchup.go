@@ -6,6 +6,7 @@ package state
 
 import (
 	"container/list"
+	"fmt"
 	"time"
 
 	"github.com/FactomProject/factomd/common/messages"
@@ -116,14 +117,45 @@ func (list *DBStateList) Catchup() {
 	// request missing states from the network
 	go func() {
 		for {
+			// TODO: replace waiting.Len with some kind of mechanism that tracks
+			// the number of batch requests instead of the number of waiting states
+			// e.g. there could be up to the batch limit number of waiting states
+			// represented by a single request
 			if waiting.Len() < requestLimit {
-				s := missing.GetNext()
-				if s != nil && !waiting.Has(s.Height()) {
-					msg := messages.NewDBStateMissing(list.State, s.Height(), s.Height())
-					if msg != nil {
-						msg.SendOut(list.State, msg)
-						waiting.Notify <- NewWaitingState(s.Height())
-					}
+				// s := missing.GetNext()
+				// if s != nil && !waiting.Has(s.Height()) {
+				// 	msg := messages.NewDBStateMissing(list.State, s.Height(), s.Height())
+				// 	if msg != nil {
+				// 		msg.SendOut(list.State, msg)
+				// 		waiting.Notify <- NewWaitingState(s.Height())
+				// 	}
+				// }
+
+				fmt.Println("DEBUG: waiting: ", waiting.Len())
+				fmt.Println("DEBUG: missing: ", missing.Len())
+
+				// TODO: the batch limit should probably be set by a configuration variable
+				b, e := missing.NextConsecutiveMissing(50)
+				fmt.Printf(
+					"DEBUG: requesting consecutive missing blocks %d to %d\n",
+					b, e,
+				)
+
+				if b == 0 && e == 0 {
+					time.Sleep(1 * time.Second)
+					continue
+				}
+
+				// make sure the end doesn't come befor the beginning
+				if e < b {
+					e = b
+				}
+
+				msg := messages.NewDBStateMissing(list.State, b, e)
+				msg.SendOut(list.State, msg)
+				for i := b; i <= e; i++ {
+					missing.Del(i)
+					waiting.Notify <- NewWaitingState(i)
 				}
 			} else {
 				time.Sleep(5 * time.Second)
@@ -198,6 +230,34 @@ func (l *StatesMissing) Get(height uint32) *MissingState {
 		}
 	}
 	return nil
+}
+
+func (l *StatesMissing) Len() int {
+	return l.List.Len()
+}
+
+// NextConsecutiveMissing returns the heights of the the next n or fewer
+// consecutive missing states
+func (l *StatesMissing) NextConsecutiveMissing(n int) (uint32, uint32) {
+	e := l.List.Front()
+	if e == nil {
+		return 0, 0
+	}
+	beg := e.Value.(*MissingState).Height()
+	end := beg
+	c := 0
+	for ; e != nil; e = e.Next() {
+		if e.Value.(*MissingState).Height() != end+1 {
+			break
+		}
+		end++
+		c++
+		// TODO: the batch limit should probably be set as a configuration variable
+		if c == n {
+			break
+		}
+	}
+	return beg, end
 }
 
 // GetNext pops the next MissingState from the list.
