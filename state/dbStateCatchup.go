@@ -17,8 +17,13 @@ func (list *DBStateList) Catchup() {
 	waiting := list.State.StatesWaiting
 	recieved := list.State.StatesReceived
 
-	requestTimeout := list.State.RequestTimeout
-	requestLimit := list.State.RequestLimit
+	// requestTimeout := list.State.RequestTimeout
+	// requestLimit := list.State.RequestLimit
+	requestTimeout, err := time.ParseDuration("20s")
+	if err != nil {
+		fmt.Println("DEBUG: ", err)
+	}
+	requestLimit := 50
 
 	// keep the lists up to date with the saved states.
 	go func() {
@@ -135,7 +140,7 @@ func (list *DBStateList) Catchup() {
 				fmt.Println("DEBUG: missing: ", missing.Len())
 
 				// TODO: the batch limit should probably be set by a configuration variable
-				b, e := missing.NextConsecutiveMissing(50)
+				b, e := missing.NextConsecutiveMissing(10)
 				fmt.Printf(
 					"DEBUG: requesting consecutive missing blocks %d to %d\n",
 					b, e,
@@ -146,7 +151,7 @@ func (list *DBStateList) Catchup() {
 					continue
 				}
 
-				// make sure the end doesn't come befor the beginning
+				// make sure the end doesn't come before the beginning
 				if e < b {
 					e = b
 				}
@@ -158,7 +163,7 @@ func (list *DBStateList) Catchup() {
 					waiting.Notify <- NewWaitingState(i)
 				}
 			} else {
-				time.Sleep(5 * time.Second)
+				time.Sleep(50 * time.Millisecond)
 			}
 		}
 	}()
@@ -239,15 +244,16 @@ func (l *StatesMissing) Len() int {
 // NextConsecutiveMissing returns the heights of the the next n or fewer
 // consecutive missing states
 func (l *StatesMissing) NextConsecutiveMissing(n int) (uint32, uint32) {
-	e := l.List.Front()
-	if e == nil {
+	f := l.List.Front()
+	if f == nil {
 		return 0, 0
 	}
-	beg := e.Value.(*MissingState).Height()
+	beg := f.Value.(*MissingState).Height()
 	end := beg
 	c := 0
-	for ; e != nil; e = e.Next() {
-		if e.Value.(*MissingState).Height() != end+1 {
+	for e := l.List.Front(); e != nil; e = e.Next() {
+		h := e.Value.(*MissingState).Height()
+		if h > end+1 {
 			break
 		}
 		end++
@@ -479,6 +485,9 @@ func (l *StatesReceived) Has(height uint32) bool {
 
 	for e := l.List.Front(); e != nil; e = e.Next() {
 		s := e.Value.(*ReceivedState)
+		if s == nil {
+			return false
+		}
 		if s.Height() == height {
 			return true
 		}
@@ -487,6 +496,9 @@ func (l *StatesReceived) Has(height uint32) bool {
 }
 
 func (l *StatesReceived) GetNext() *ReceivedState {
+	if l.List.Len() == 0 {
+		return nil
+	}
 	e := l.List.Front()
 	if e != nil {
 		s := e.Value.(*ReceivedState)
