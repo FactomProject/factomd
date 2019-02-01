@@ -19,11 +19,11 @@ func (list *DBStateList) Catchup() {
 
 	// requestTimeout := list.State.RequestTimeout
 	// requestLimit := list.State.RequestLimit
-	requestTimeout, err := time.ParseDuration("20s")
+	requestTimeout, err := time.ParseDuration("30s")
 	if err != nil {
 		fmt.Println("DEBUG: ", err)
 	}
-	requestLimit := 50
+	requestLimit := 150
 
 	// keep the lists up to date with the saved states.
 	go func() {
@@ -163,6 +163,16 @@ func (list *DBStateList) Catchup() {
 					waiting.Notify <- NewWaitingState(i)
 				}
 			} else {
+				// if the next missing state is a lower height than the last waiting
+				// state prune the waiting list
+				m := missing.GetFront()
+				w := waiting.GetEnd()
+				if m != nil && w != nil {
+					if m.Height() < w.Height() {
+						waiting.Del(w.Height())
+					}
+				}
+
 				time.Sleep(50 * time.Millisecond)
 			}
 		}
@@ -231,6 +241,17 @@ func (l *StatesMissing) Get(height uint32) *MissingState {
 	for e := l.List.Front(); e != nil; e = e.Next() {
 		s := e.Value.(*MissingState)
 		if s.Height() == height {
+			return s
+		}
+	}
+	return nil
+}
+
+func (l *StatesMissing) GetFront() *MissingState {
+	e := l.List.Front()
+	if e != nil {
+		s := e.Value.(*MissingState)
+		if s != nil {
 			return s
 		}
 	}
@@ -314,7 +335,22 @@ func NewStatesWaiting() *StatesWaiting {
 }
 
 func (l *StatesWaiting) Add(height uint32) {
-	l.List.PushBack(NewWaitingState(height))
+	// l.List.PushBack(NewWaitingState(height))
+	for e := l.List.Back(); e != nil; e = e.Prev() {
+		s := e.Value.(*WaitingState)
+		if s == nil {
+			n := NewWaitingState(height)
+			l.List.InsertAfter(n, e)
+			return
+		} else if height > s.Height() {
+			n := NewWaitingState(height)
+			l.List.InsertAfter(n, e)
+			return
+		} else if height == s.Height() {
+			return
+		}
+	}
+	l.List.PushFront(NewWaitingState(height))
 }
 
 func (l *StatesWaiting) Del(height uint32) {
@@ -330,6 +366,17 @@ func (l *StatesWaiting) Get(height uint32) *WaitingState {
 	for e := l.List.Front(); e != nil; e = e.Next() {
 		s := e.Value.(*WaitingState)
 		if s.Height() == height {
+			return s
+		}
+	}
+	return nil
+}
+
+func (l *StatesWaiting) GetEnd() *WaitingState {
+	e := l.List.Back()
+	if e != nil {
+		s := e.Value.(*WaitingState)
+		if s != nil {
 			return s
 		}
 	}
