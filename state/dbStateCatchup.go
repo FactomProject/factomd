@@ -419,6 +419,9 @@ func (l *StatesReceived) Has(height uint32) bool {
 
 	for e := l.List.Front(); e != nil; e = e.Next() {
 		s := e.Value.(*ReceivedState)
+		if s == nil {
+			return false
+		}
 		if s.Height() == height {
 			return true
 		}
