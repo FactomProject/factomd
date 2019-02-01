@@ -6,6 +6,7 @@ package state
 
 import (
 	"container/list"
+	"fmt"
 	"time"
 
 	"github.com/FactomProject/factomd/common/messages"
@@ -16,8 +17,13 @@ func (list *DBStateList) Catchup() {
 	waiting := list.State.StatesWaiting
 	recieved := list.State.StatesReceived
 
-	requestTimeout := list.State.RequestTimeout
-	requestLimit := list.State.RequestLimit
+	// requestTimeout := list.State.RequestTimeout
+	// requestLimit := list.State.RequestLimit
+	requestTimeout, err := time.ParseDuration("30s")
+	if err != nil {
+		fmt.Println("DEBUG: ", err)
+	}
+	requestLimit := 150
 
 	// keep the lists up to date with the saved states.
 	go func() {
@@ -116,17 +122,58 @@ func (list *DBStateList) Catchup() {
 	// request missing states from the network
 	go func() {
 		for {
+			// TODO: replace waiting.Len with some kind of mechanism that tracks
+			// the number of batch requests instead of the number of waiting states
+			// e.g. there could be up to the batch limit number of waiting states
+			// represented by a single request
 			if waiting.Len() < requestLimit {
-				s := missing.GetNext()
-				if s != nil && !waiting.Has(s.Height()) {
-					msg := messages.NewDBStateMissing(list.State, s.Height(), s.Height())
-					if msg != nil {
-						msg.SendOut(list.State, msg)
-						waiting.Notify <- NewWaitingState(s.Height())
-					}
+				// s := missing.GetNext()
+				// if s != nil && !waiting.Has(s.Height()) {
+				// 	msg := messages.NewDBStateMissing(list.State, s.Height(), s.Height())
+				// 	if msg != nil {
+				// 		msg.SendOut(list.State, msg)
+				// 		waiting.Notify <- NewWaitingState(s.Height())
+				// 	}
+				// }
+
+				fmt.Println("DEBUG: waiting: ", waiting.Len())
+				fmt.Println("DEBUG: missing: ", missing.Len())
+
+				// TODO: the batch limit should probably be set by a configuration variable
+				b, e := missing.NextConsecutiveMissing(10)
+				fmt.Printf(
+					"DEBUG: requesting consecutive missing blocks %d to %d\n",
+					b, e,
+				)
+
+				if b == 0 && e == 0 {
+					time.Sleep(1 * time.Second)
+					continue
+				}
+
+				// make sure the end doesn't come before the beginning
+				if e < b {
+					e = b
+				}
+
+				msg := messages.NewDBStateMissing(list.State, b, e)
+				msg.SendOut(list.State, msg)
+				for i := b; i <= e; i++ {
+					missing.Del(i)
+					waiting.Notify <- NewWaitingState(i)
 				}
 			} else {
-				time.Sleep(5 * time.Second)
+				// if the next missing state is a lower height than the last waiting
+				// state prune the waiting list
+				m := missing.GetFront()
+				w := waiting.GetEnd()
+				if m != nil && w != nil {
+					if m.Height() < w.Height() {
+						waiting.Del(w.Height())
+					}
+				}
+
+				time.Sleep(50 * time.Millisecond)
 			}
 		}
 	}()
@@ -200,6 +247,46 @@ func (l *StatesMissing) Get(height uint32) *MissingState {
 	return nil
 }
 
+func (l *StatesMissing) GetFront() *MissingState {
+	e := l.List.Front()
+	if e != nil {
+		s := e.Value.(*MissingState)
+		if s != nil {
+			return s
+		}
+	}
+	return nil
+}
+
+func (l *StatesMissing) Len() int {
+	return l.List.Len()
+}
+
+// NextConsecutiveMissing returns the heights of the the next n or fewer
+// consecutive missing states
+func (l *StatesMissing) NextConsecutiveMissing(n int) (uint32, uint32) {
+	f := l.List.Front()
+	if f == nil {
+		return 0, 0
+	}
+	beg := f.Value.(*MissingState).Height()
+	end := beg
+	c := 0
+	for e := l.List.Front(); e != nil; e = e.Next() {
+		h := e.Value.(*MissingState).Height()
+		if h > end+1 {
+			break
+		}
+		end++
+		c++
+		// TODO: the batch limit should probably be set as a configuration variable
+		if c == n {
+			break
+		}
+	}
+	return beg, end
+}
+
 // GetNext pops the next MissingState from the list.
 func (l *StatesMissing) GetNext() *MissingState {
 	e := l.List.Front()
@@ -248,7 +335,22 @@ func NewStatesWaiting() *StatesWaiting {
 }
 
 func (l *StatesWaiting) Add(height uint32) {
-	l.List.PushBack(NewWaitingState(height))
+	// l.List.PushBack(NewWaitingState(height))
+	for e := l.List.Back(); e != nil; e = e.Prev() {
+		s := e.Value.(*WaitingState)
+		if s == nil {
+			n := NewWaitingState(height)
+			l.List.InsertAfter(n, e)
+			return
+		} else if height > s.Height() {
+			n := NewWaitingState(height)
+			l.List.InsertAfter(n, e)
+			return
+		} else if height == s.Height() {
+			return
+		}
+	}
+	l.List.PushFront(NewWaitingState(height))
 }
 
 func (l *StatesWaiting) Del(height uint32) {
@@ -264,6 +366,17 @@ func (l *StatesWaiting) Get(height uint32) *WaitingState {
 	for e := l.List.Front(); e != nil; e = e.Next() {
 		s := e.Value.(*WaitingState)
 		if s.Height() == height {
+			return s
+		}
+	}
+	return nil
+}
+
+func (l *StatesWaiting) GetEnd() *WaitingState {
+	e := l.List.Back()
+	if e != nil {
+		s := e.Value.(*WaitingState)
+		if s != nil {
 			return s
 		}
 	}
@@ -430,6 +543,9 @@ func (l *StatesReceived) Has(height uint32) bool {
 }
 
 func (l *StatesReceived) GetNext() *ReceivedState {
+	if l.List.Len() == 0 {
+		return nil
+	}
 	e := l.List.Front()
 	if e != nil {
 		s := e.Value.(*ReceivedState)
