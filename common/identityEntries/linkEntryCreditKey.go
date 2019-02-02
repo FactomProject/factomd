@@ -74,7 +74,14 @@ func (leck *LinkEntryCreditKeyStructure) ToExternalIDs() [][]byte {
 	return extIDs
 }
 
-func (leck *LinkEntryCreditKeyStructure) GetChainID() interfaces.IHash {
+func (leck *LinkEntryCreditKeyStructure) GetChainID()(rval interfaces.IHash) {
+defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+		rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("LinkEntryCreditKeyStructure.GetChainID() saw an interface that was nil")
+		}
+	}()
+
 	extIDs := leck.ToExternalIDs()
 
 	return entryBlock.ExternalIDsToChainID(extIDs)

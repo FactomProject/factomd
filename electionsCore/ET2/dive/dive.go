@@ -421,7 +421,6 @@ func printState(depth int, msgs []*DirectedMessage, leaders []*election.Election
 		for i, v := range counter {
 			if i%16 == 0 {
 				fmt.Println("")
-				fmt.Print("=")
 			}
 			str := fmt.Sprintf("%s[%3d]", humanize.Comma(int64(v)), i)
 			fmt.Printf("%12s ", str)

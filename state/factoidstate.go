@@ -11,9 +11,8 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"runtime/debug"
+	"reflect"
 	"sort"
-	"time"
 
 	"github.com/FactomProject/factomd/activations"
 	"github.com/FactomProject/factomd/common/adminBlock"
@@ -23,8 +22,6 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
-
-var _ = debug.PrintStack
 
 var FACTOID_CHAINID_HASH = primitives.NewHash(constants.FACTOID_CHAINID)
 
@@ -62,7 +59,7 @@ type element struct {
 	v   int64
 }
 
-func GetMapHash(dbheight uint32, bmap map[[32]byte]int64) interfaces.IHash {
+func GetMapHash(bmap map[[32]byte]int64) interfaces.IHash {
 	list := make([]*element, 0, len(bmap))
 
 	for k, v := range bmap {
@@ -77,9 +74,6 @@ func GetMapHash(dbheight uint32, bmap map[[32]byte]int64) interfaces.IHash {
 	sort.Sort(elementSortable(list))
 
 	var buff primitives.Buffer
-	if err := binary.Write(&buff, binary.BigEndian, &dbheight); err != nil {
-		return nil
-	}
 
 	for _, e := range list {
 		_, err := buff.Write(e.adr[:])
@@ -90,69 +84,61 @@ func GetMapHash(dbheight uint32, bmap map[[32]byte]int64) interfaces.IHash {
 			return nil
 		}
 	}
-
 	h := primitives.Sha(buff.Bytes())
-
 	return h
 }
 
-func (fs *FactoidState) GetBalanceHash(includeTemp bool) interfaces.IHash {
-	h1 := GetMapHash(fs.DBHeight, fs.State.FactoidBalancesP)
-	h2 := GetMapHash(fs.DBHeight, fs.State.ECBalancesP)
-	h3 := h1
-	h4 := h2
-	if includeTemp {
+// GetBalanceHash()
+// Compute either a Hash of the temporary balance hash map, or the Permanent Balance hash map
+func (fs *FactoidState) GetBalanceHash(TempBalanceHash bool) (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("FactoidState.GetBalanceHash() saw an interface that was nil")
+		}
+	}()
+
+	var h1, h2 interfaces.IHash
+	if !TempBalanceHash {
+		fs.State.FactoidBalancesPMutex.Lock()
+		h1 = GetMapHash(fs.State.FactoidBalancesP)
+		fs.State.FactoidBalancesPMutex.Unlock()
+		fs.State.ECBalancesPMutex.Lock()
+		h2 = GetMapHash(fs.State.ECBalancesP)
+		fs.State.ECBalancesPMutex.Unlock()
+	} else {
 		pl := fs.State.ProcessLists.Get(fs.DBHeight)
 		if pl == nil {
 			return primitives.NewZeroHash()
 		}
-		pl.ECBalancesTMutex.Lock()
 		pl.FactoidBalancesTMutex.Lock()
-		h3 = GetMapHash(fs.DBHeight, pl.FactoidBalancesT)
-		h4 = GetMapHash(fs.DBHeight, pl.ECBalancesT)
-		pl.ECBalancesTMutex.Unlock()
+		h1 = GetMapHash(pl.FactoidBalancesT)
 		pl.FactoidBalancesTMutex.Unlock()
+		pl.ECBalancesTMutex.Lock()
+		h2 = GetMapHash(pl.ECBalancesT)
+		pl.ECBalancesTMutex.Unlock()
 	}
 	var b []byte
 	b = append(b, h1.Bytes()...)
 	b = append(b, h2.Bytes()...)
-	if includeTemp {
-		b = append(b, h3.Bytes()...)
-		b = append(b, h4.Bytes()...)
-	}
 	r := primitives.Sha(b)
+	hb := r.Fixed()
+	a1 := byte((fs.DBHeight / 1000) % 10)
+	b1 := byte((fs.DBHeight / 100) % 10)
+	hb[0] = a1<<4 + b1
+	a2 := byte((fs.DBHeight / 10) % 10)
+	b2 := byte(fs.DBHeight % 10)
+	hb[1] = a2<<4 + b2
+	r = primitives.NewHash(hb[:])
 	// Debug aid for Balance Hashes
 	// fmt.Printf("%8d %x\n", fs.DBHeight, r.Bytes()[:16])
-	return r
-}
 
-// Reset this Factoid state to an empty state at a dbheight following the
-// given dbstate.
-func (fs *FactoidState) Reset(dbstate *DBState) {
-	ht := dbstate.DirectoryBlock.GetHeader().GetDBHeight()
-	if fs.DBHeight > ht+1 {
-		fs.DBHeight = ht
-
-		dbstate := fs.State.DBStates.Get(int(fs.DBHeight))
-
-		fBlock := factoid.NewFBlock(dbstate.FactoidBlock)
-		fBlock.SetExchRate(dbstate.FinalExchangeRate)
-
-		fs.CurrentBlock = fBlock
-
-		t := fs.GetCoinbaseTransaction(fs.CurrentBlock.GetDatabaseHeight(), dbstate.NextTimestamp)
-
-		fs.State.FactoshisPerEC = dbstate.FinalExchangeRate
-		fs.State.SetLeaderTimestamp(dbstate.NextTimestamp)
-
-		err := fs.CurrentBlock.AddCoinbase(t)
-		if err != nil {
-			panic(err.Error())
-		}
-		fs.UpdateTransaction(true, t)
-
-		fs.DBHeight++
+	if !TempBalanceHash {
+		fs.State.LogPrintf("balanceHash", "GetBalanceHash(dbht = %6d,%v) PF=%x PE=%x", fs.DBHeight, TempBalanceHash, h1.Bytes()[:6], h2.Bytes()[:6])
+	} else {
+		fs.State.LogPrintf("balanceHash", "GetBalanceHash(dbht = %6d,%v) TF=%x TE=%x", fs.DBHeight, TempBalanceHash, h1.Bytes()[:6], h2.Bytes()[:6])
 	}
+	return r
 }
 
 func (fs *FactoidState) EndOfPeriod(period int) {
@@ -160,14 +146,6 @@ func (fs *FactoidState) EndOfPeriod(period int) {
 		panic(fmt.Sprintf("Minute is out of range: %d", period))
 	}
 	fs.GetCurrentBlock().EndOfPeriod(period)
-}
-
-func (fs *FactoidState) GetWallet() interfaces.ISCWallet {
-	return fs.Wallet
-}
-
-func (fs *FactoidState) SetWallet(w interfaces.ISCWallet) {
-	fs.Wallet = w
 }
 
 func (fs *FactoidState) GetCurrentBlock() interfaces.IFBlock {
@@ -193,12 +171,16 @@ func (fs *FactoidState) AddTransactionBlock(blk interfaces.IFBlock) error {
 	}
 
 	transactions := blk.GetTransactions()
+	fs.State.LogPrintf("factoids_trans", "Start Process Transactions for %d", fs.DBHeight)
 	for _, trans := range transactions {
+		fs.State.LogPrintf("factoids_trans", "%s", trans.String())
 		err := fs.UpdateTransaction(false, trans)
 		if err != nil {
+			fs.State.LogPrintf("factoids_trans", "Error: %v", err)
 			return err
 		}
 	}
+	fs.State.LogPrintf("factoids_trans", "End Process Transactions for %d", fs.DBHeight)
 	fs.CurrentBlock = blk
 	//fs.State.SetFactoshisPerEC(blk.GetExchRate())
 
@@ -208,12 +190,16 @@ func (fs *FactoidState) AddTransactionBlock(blk interfaces.IFBlock) error {
 func (fs *FactoidState) AddECBlock(blk interfaces.IEntryCreditBlock) error {
 	transactions := blk.GetBody().GetEntries()
 
+	fs.State.LogPrintf("entrycredits_trans", "Start Process Transactions for %d", fs.DBHeight)
 	for _, trans := range transactions {
+		fs.State.LogPrintf("entrycredits_trans", "%s", trans.String())
 		err := fs.UpdateECTransaction(false, trans)
 		if err != nil {
+			fs.State.LogPrintf("entrycredits_trans", "Error: %v", err)
 			return err
 		}
 	}
+	fs.State.LogPrintf("entrycredits_trans", "End Process Transactions for %d", fs.DBHeight)
 
 	return nil
 }
@@ -309,6 +295,7 @@ func (fs *FactoidState) UpdateECTransaction(rt bool, trans interfaces.IECBlockEn
 
 // Assumes validation has already been done.
 func (fs *FactoidState) UpdateTransaction(rt bool, trans interfaces.ITransaction) error {
+	fs.State.LogPrintf("factoids", "At %d process rt =%v %s", fs.DBHeight, rt, trans.String())
 
 	// First check all inputs are good.
 	for _, input := range trans.GetInputs() {
@@ -338,6 +325,9 @@ func (fs *FactoidState) UpdateTransaction(rt bool, trans interfaces.ITransaction
 		adr := output.GetAddress().Fixed()
 		oldv := fs.State.GetF(rt, adr)
 		fs.State.PutF(rt, adr, oldv+int64(output.GetAmount()))
+	}
+	if len(trans.GetECOutputs()) > 0 {
+		fs.State.LogPrintf("entrycredits", "At %d process %s", fs.DBHeight, trans.String())
 	}
 	for _, ecOut := range trans.GetECOutputs() {
 		ecbal := int64(ecOut.GetAmount()) / int64(fs.State.FactoshisPerEC)
@@ -382,9 +372,6 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 		panic(err.Error())
 	}
 	fs.UpdateTransaction(true, t)
-
-	fs.DBHeight++
-	fs.State.CurrentBlockStartTime = time.Now().UnixNano()
 }
 
 // Returns an error message about what is wrong with the transaction if it is

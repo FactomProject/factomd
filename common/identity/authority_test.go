@@ -7,6 +7,8 @@ package identity_test
 import (
 	"testing"
 
+	"bytes"
+
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -103,6 +105,30 @@ func TestAuthorityMarshalUnmarshal(t *testing.T) {
 		}
 		if a.IsSameAs(a2) == false {
 			t.Errorf("Authorities are not identical")
+		}
+	}
+}
+
+func TestAuthorityClone(t *testing.T) {
+	for i := 0; i < 1000; i++ {
+		auth := RandomAuthority()
+		auth2 := auth.Clone()
+		if auth.IsSameAs(auth2) == false {
+			t.Errorf("Authorities are not the same")
+		}
+
+		// Check their marshalled values
+		d1, err := auth.MarshalBinary()
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+		d2, err := auth2.MarshalBinary()
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+
+		if bytes.Compare(d1, d2) != 0 {
+			t.Errorf("Authorities are not the same when marshalled")
 		}
 	}
 }

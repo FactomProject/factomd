@@ -19,6 +19,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/factoid"
+	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
@@ -30,10 +31,10 @@ import (
 )
 
 var _ = fmt.Print
-var sortByID bool
-var verboseFaultOutput = false
-var verboseAuthoritySet = false
-var verboseAuthorityDeltas = false
+var SortByID bool
+var VerboseFaultOutput = false
+var VerboseAuthoritySet = false
+var VerboseAuthorityDeltas = false
 var totalServerFaults int
 var lastcmd []string
 var ListenTo int
@@ -43,10 +44,9 @@ var loadGenerator *LoadGenerator
 // Used for signing messages
 var LOCAL_NET_PRIV_KEY string = "4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d"
 
-var InputChan = make(chan string) // Get commands here
-
 var once bool
 
+//var InputChan = make(chan string)
 func GetLine(listenToStdin bool) string {
 
 	if !once {
@@ -61,7 +61,7 @@ func GetLine(listenToStdin bool) string {
 				// So, we will sleep before letting it check to see if Stdin has been reconnected
 				for {
 					if _, err = os.Stdin.Read(line); err == nil {
-						InputChan <- string(line)
+						globals.InputChan <- string(line)
 					} else {
 						if err == io.EOF {
 							return
@@ -75,8 +75,10 @@ func GetLine(listenToStdin bool) string {
 			} // forever
 		}()
 	}
+	//fmt.Println("globals.InputChan ", <-InputChan)
+	line := <-globals.InputChan
 
-	line := <-InputChan
+	//fmt.Println("line ", line)
 	return line
 }
 
@@ -102,7 +104,7 @@ func SimControl(listenTo int, listenStdin bool) {
 	ListenTo = listenTo
 
 	if loadGenerator == nil {
-		loadGenerator = new(LoadGenerator)
+		loadGenerator = NewLoadGenerator(fnodes[0].State)
 	}
 
 	for {
@@ -112,7 +114,6 @@ func SimControl(listenTo int, listenStdin bool) {
 		}
 		// cmd is not a list of the parameters, much like command line args show up in args[]
 		cmd := strings.FieldsFunc(GetLine(listenStdin), parseFunc)
-		// fmt.Printf("Parsing command, found %d elements.  The first element is: %+v / %s \n Full command: %+v\n", len(cmd), b[0], string(b), cmd)
 
 		switch {
 		case 0 < len(cmd):
@@ -126,6 +127,7 @@ func SimControl(listenTo int, listenStdin bool) {
 			}
 		}
 		b := string(cmd[0])
+		//fmt.Printf("Parsing command, found %d elements.  The first element is: %+v / %s \n Full command: %+v\n", len(cmd), b[0], string(b), cmd)
 
 		v, err := strconv.Atoi(string(b))
 		if err == nil && v >= 0 && v < len(fnodes) && fnodes[ListenTo].State != nil {
@@ -133,7 +135,7 @@ func SimControl(listenTo int, listenStdin bool) {
 			os.Stderr.WriteString(fmt.Sprintf("Switching to Node %d\n", ListenTo))
 			// Update which node will be displayed on the controlPanel page
 			connectionMetricsChannel := make(chan interface{}, p2p.StandardChannelSize)
-			go controlPanel.ServeControlPanel(fnodes[ListenTo].State.ControlPanelChannel, fnodes[ListenTo].State, connectionMetricsChannel, p2pNetwork, Build)
+			go controlPanel.ServeControlPanel(fnodes[ListenTo].State.ControlPanelChannel, fnodes[ListenTo].State, connectionMetricsChannel, p2pNetwork, Build, "")
 		} else {
 			switch {
 			case '!' == b[0]:
@@ -214,8 +216,8 @@ func SimControl(listenTo int, listenStdin bool) {
 					}
 				}
 			case '/' == b[0]:
-				sortByID = !sortByID
-				if sortByID {
+				SortByID = !SortByID
+				if SortByID {
 					os.Stderr.WriteString("Sort Status by Chain IDs\n")
 				} else {
 					os.Stderr.WriteString("Sort Status by Node Name\n")
@@ -470,11 +472,11 @@ func SimControl(listenTo int, listenStdin bool) {
 						os.Stderr.WriteString(fmt.Sprintf("Setting FaultWait of %10s to %d\n", fn.State.FactomNodeName, nnn))
 					}
 				} else {
-					if verboseFaultOutput {
-						verboseFaultOutput = false
+					if VerboseFaultOutput {
+						VerboseFaultOutput = false
 						os.Stderr.WriteString("Vnnn          Set full fault timeout to the given number of seconds. Helps debugging.\n")
 					} else {
-						verboseFaultOutput = true
+						VerboseFaultOutput = true
 						os.Stderr.WriteString("--VerboseFaultOutput On--\n")
 					}
 				}
@@ -508,22 +510,22 @@ func SimControl(listenTo int, listenStdin bool) {
 				}
 
 				if b[1] == 'l' || b[1] == 'L' {
-					if verboseAuthoritySet {
-						verboseAuthoritySet = false
+					if VerboseAuthoritySet {
+						VerboseAuthoritySet = false
 						os.Stderr.WriteString("--VerboseAuthoritySet Off--\n")
 					} else {
-						verboseAuthoritySet = true
+						VerboseAuthoritySet = true
 						os.Stderr.WriteString("--VerboseAuthoritySet On--\n")
 					}
 					break
 				}
 
 				if b[1] == 'd' || b[1] == 'D' {
-					if verboseAuthorityDeltas {
-						verboseAuthorityDeltas = false
+					if VerboseAuthorityDeltas {
+						VerboseAuthorityDeltas = false
 						os.Stderr.WriteString("--VerboseAuthorityDeltas Off--\n")
 					} else {
-						verboseAuthorityDeltas = true
+						VerboseAuthorityDeltas = true
 						os.Stderr.WriteString("--VerboseAuthorityDeltas On--\n")
 					}
 					break

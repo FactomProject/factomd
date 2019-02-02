@@ -7,6 +7,7 @@ package entryCreditBlock
 import (
 	"fmt"
 	"os"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -55,7 +56,14 @@ func (e *ServerIndexNumber) String() string {
 	return (string)(out.DeepCopyBytes())
 }
 
-func (e *ServerIndexNumber) Hash() interfaces.IHash {
+func (e *ServerIndexNumber) Hash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("ServerIndexNumber.Hash() saw an interface that was nil")
+		}
+	}()
+
 	bin, err := e.MarshalBinary()
 	if err != nil {
 		panic(err)
@@ -63,15 +71,36 @@ func (e *ServerIndexNumber) Hash() interfaces.IHash {
 	return primitives.Sha(bin)
 }
 
-func (e *ServerIndexNumber) GetHash() interfaces.IHash {
+func (e *ServerIndexNumber) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("ServerIndexNumber.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	return e.Hash()
 }
 
-func (a *ServerIndexNumber) GetEntryHash() interfaces.IHash {
+func (a *ServerIndexNumber) GetEntryHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("ServerIndexNumber.GetEntryHash() saw an interface that was nil")
+		}
+	}()
+
 	return nil
 }
 
-func (e *ServerIndexNumber) GetSigHash() interfaces.IHash {
+func (e *ServerIndexNumber) GetSigHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("ServerIndexNumber.GetSigHash() saw an interface that was nil")
+		}
+	}()
+
 	return nil
 }
 

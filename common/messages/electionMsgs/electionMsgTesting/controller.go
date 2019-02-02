@@ -2,6 +2,7 @@ package electionMsgTesting
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
@@ -73,7 +74,7 @@ func NewController(feds, auds int) *Controller {
 		for j := range c.feds {
 			e.Federated[j] = c.feds[j]
 		}
-		e.State.(*state.State).ProcessLists.Get(0).FedServers = e.Federated
+		e.State.(*state.State).ProcessLists.Get(1).FedServers = e.Federated
 	}
 
 	for _, e := range c.Elections {
@@ -81,7 +82,7 @@ func NewController(feds, auds int) *Controller {
 		for j := range c.auds {
 			e.Audit[j] = c.auds[j]
 		}
-		e.State.(*state.State).ProcessLists.Get(0).AuditServers = e.Audit
+		e.State.(*state.State).ProcessLists.Get(1).AuditServers = e.Audit
 	}
 
 	c.ElectionAdapters = make([]*electionMsgs.ElectionAdapter, len(c.Elections))
@@ -204,7 +205,14 @@ func (c *Controller) routeSingleNode(msg interfaces.IMsg, node int) {
 }
 
 // indexToAudID will take the human legible "Audit 1" and get the correct identity.
-func (c *Controller) indexToAudID(index int) interfaces.IHash {
+func (c *Controller) indexToAudID(index int) (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("Controller.indexToAudID() saw an interface that was nil")
+		}
+	}()
+
 	// TODO: Actually implement some logic if this changes
 	return c.auds[index].GetChainID()
 
@@ -220,7 +228,14 @@ func (c *Controller) fedIDtoIndex(id interfaces.IHash) int {
 }
 
 // indexToFedID will take the human legible "Leader 1" and get the correct identity
-func (c *Controller) indexToFedID(index int) interfaces.IHash {
+func (c *Controller) indexToFedID(index int) (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("Controller.indexToFedID() saw an interface that was nil")
+		}
+	}()
+
 	// TODO: Actually implement some logic if this changes
 	return c.feds[index].GetChainID()
 }

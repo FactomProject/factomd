@@ -7,6 +7,7 @@ package factoid
 import (
 	"fmt"
 	"os"
+	"reflect"
 	"runtime/debug"
 	"time"
 
@@ -120,11 +121,25 @@ func (*Transaction) GetVersion() uint64 {
 	return 2
 }
 
-func (t *Transaction) GetTxID() interfaces.IHash {
+func (t *Transaction) GetTxID() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("Transaction.GetTxID() saw an interface that was nil")
+		}
+	}()
+
 	return t.GetSigHash()
 }
 
-func (t *Transaction) GetHash() interfaces.IHash {
+func (t *Transaction) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("Transaction.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	m, err := t.MarshalBinary()
 	if err != nil {
 		return nil
@@ -658,8 +673,14 @@ func (t *Transaction) CustomMarshalText() (text []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
+
+	txid := fmt.Sprintf("%64s", "coinbase") //make it the same length as a real TXID
+	if t.Txid != nil {
+		txid = fmt.Sprintf("%x", t.Txid.Bytes())
+	}
+
 	var out primitives.Buffer
-	out.WriteString(fmt.Sprintf("Transaction (size %d):\n", len(data)))
+	out.WriteString(fmt.Sprintf("Transaction TXID: %s (size %d):\n", txid, len(data)))
 	out.WriteString("                 Version: ")
 	primitives.WriteNumber64(&out, uint64(t.GetVersion()))
 	out.WriteString("\n          MilliTimestamp: ")

@@ -33,9 +33,9 @@ func TestGettingFromProcessLists(t *testing.T) {
 	assertPlExists(t, pl)
 
 	pl = plls.Get(210)
-	assertPllsLength(t, plls, 211)
-	assertPlDoesNotExist(t, pl)
-
+	if pl != nil {
+		t.Error("process lists are only created for height +200 max")
+	}
 }
 
 func assertPlExists(t *testing.T, item *ProcessList) {

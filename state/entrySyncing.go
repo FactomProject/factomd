@@ -218,6 +218,7 @@ func (s *State) GoSyncEntries() {
 			if firstMissing < 0 {
 				if scan > 1 {
 					s.EntryDBHeightComplete = scan - 1
+					s.LogPrintf("EntrySync", "Scan EntryDBHeightComplete = %d", s.EntryDBHeightComplete)
 					start = scan
 				}
 			}
@@ -237,7 +238,7 @@ func (s *State) GoSyncEntries() {
 
 				eBlock, _ := s.DB.FetchEBlock(ebKeyMR)
 
-				// Dont have an eBlock?  Huh. We can go on, but we can't advance.  We just wait until it
+				// Don't have an eBlock?  Huh. We can go on, but we can't advance.  We just wait until it
 				// does show up.
 				for eBlock == nil {
 					time.Sleep(1 * time.Second)
@@ -304,7 +305,9 @@ func (s *State) GoSyncEntries() {
 		lastfirstmissing = firstMissing
 		if firstMissing < 0 {
 			s.EntryDBHeightComplete = s.GetHighestSavedBlk()
-			time.Sleep(5 * time.Second)
+			s.LogPrintf("EntrySync", "firstMissing EntryDBHeightComplete = %d", s.EntryDBHeightComplete)
+
+			time.Sleep(500 * time.Millisecond)
 		}
 
 		time.Sleep(100 * time.Millisecond)

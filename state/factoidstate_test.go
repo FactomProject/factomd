@@ -154,8 +154,6 @@ func TestBalanceHash(t *testing.T) {
 }
 
 func TestGetMapHash(t *testing.T) {
-	var dbHeight uint32 = 1234
-
 	bmap := map[[32]byte]int64{}
 
 	//using some arbitrary IDs
@@ -170,12 +168,16 @@ func TestGetMapHash(t *testing.T) {
 	h, _ = primitives.NewShaHash(constants.ZERO_HASH)
 	bmap[h.Fixed()] = 123456789
 
-	h2 := GetMapHash(dbHeight, bmap)
+	h2 := GetMapHash(bmap)
 	if h2 == nil {
 		t.Errorf("Hot nil hash")
 	}
-	if h2.String() != "fd9b4c42a47115af0bf1878c7de793e28b021415f82ed7151ab0cbb7db941b31" {
-		t.Errorf("Invalid hash - got %v, expected %v", h2.String(), "fd9b4c42a47115af0bf1878c7de793e28b021415f82ed7151ab0cbb7db941b31")
+	// expected := "fd9b4c42a47115af0bf1878c7de793e28b021415f82ed7151ab0cbb7db941b31" The expected valuie changes when we quite including the height
+	expected := "b26a603681665b05acaa37627d037d8e6cb23e19161affedb3fd09f283494024"
+
+	s := h2.String()
+	if s != expected {
+		t.Errorf("Invalid hash - got %v, expected %v", s, expected)
 	}
 
 	for i := 0; i < 1000; i++ {
@@ -184,9 +186,9 @@ func TestGetMapHash(t *testing.T) {
 		for j := 0; j < l; j++ {
 			bmap[primitives.RandomHash().Fixed()] = random.RandInt64()
 		}
-		h2 = GetMapHash(uint32(i), bmap)
+		h2 = GetMapHash(bmap)
 		for j := 0; j < 10; j++ {
-			if h2.IsSameAs(GetMapHash(uint32(i), bmap)) == false {
+			if h2.IsSameAs(GetMapHash(bmap)) == false {
 				t.Errorf("GetMapHash returns inconsistent hashes")
 			}
 		}

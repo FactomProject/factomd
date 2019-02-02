@@ -91,7 +91,7 @@ func TestHandleV2GetRaw(t *testing.T) {
 	toTest = append(toTest, raw) //5
 
 	//initializing server
-	state := testHelper.CreateAndPopulateTestStateAndStartValidator()
+	state := testHelper.CreateAndPopulateTestState()
 	Start(state)
 
 	for i, v := range toTest {
