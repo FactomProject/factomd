@@ -306,23 +306,26 @@ func Peers(fnode *FactomNode) {
 				regex, _ := fnode.State.GetInputRegEx()
 
 				if regex != nil {
-					t := fmt.Sprintf("%7d-:-%d %s", fnode.State.LLeaderHeight, fnode.State.CurrentMinute, msg.String())
+					t := ""
+					if mm ,ok := msg.(*messages.MissingMsgResponse); ok {
+						t = fmt.Sprintf("%7d-:-%d %s", fnode.State.LLeaderHeight, fnode.State.CurrentMinute, mm.MsgResponse.String())
+					} else {
+						t = fmt.Sprintf("%7d-:-%d %s", fnode.State.LLeaderHeight, fnode.State.CurrentMinute, msg.String())
+					}
 
 					if mm, ok := msg.(*messages.MissingMsgResponse); ok {
 						if eom, ok := mm.MsgResponse.(*messages.EOM); ok {
 							t2 := fmt.Sprintf("%7d-:-%d %s", fnode.State.LLeaderHeight, fnode.State.CurrentMinute, eom.String())
 							messageResult := regex.MatchString(t2)
 							if messageResult {
-								//fmt.Println("Found it! MMR", t2)
-								fnode.State.LogMessage("NetworkOutputs", "Drop, matched filter Regex", msg)
+								fnode.State.LogMessage("NetworkInputs", "Drop, matched filter Regex", msg)
 								continue
 							}
 						}
 					}
 					messageResult := regex.MatchString(t)
 					if messageResult {
-						//fmt.Println("Found it!", t)
-						fnode.State.LogMessage("NetworkOutputs", "Drop, matched filter Regex", msg)
+						fnode.State.LogMessage("NetworkInputs", "Drop, matched filter Regex", msg)
 						continue
 					}
 				}
@@ -392,14 +395,18 @@ func NetworkOutputs(fnode *FactomNode) {
 
 			regex, _ := fnode.State.GetOutputRegEx()
 			if regex != nil {
-				t := fmt.Sprintf("%7d-:-%d %s", fnode.State.LLeaderHeight, fnode.State.CurrentMinute, msg.String())
+				t := ""
+				if mm ,ok := msg.(*messages.MissingMsgResponse); ok {
+					t = fmt.Sprintf("%7d-:-%d %s", fnode.State.LLeaderHeight, fnode.State.CurrentMinute, mm.MsgResponse.String())
+				} else {
+					t = fmt.Sprintf("%7d-:-%d %s", fnode.State.LLeaderHeight, fnode.State.CurrentMinute, msg.String())
+				}
 
 				if mm, ok := msg.(*messages.MissingMsgResponse); ok {
 					if eom, ok := mm.MsgResponse.(*messages.EOM); ok {
 						t2 := fmt.Sprintf("%7d-:-%d %s", fnode.State.LLeaderHeight, fnode.State.CurrentMinute, eom.String())
 						messageResult := regex.MatchString(t2)
 						if messageResult {
-							//fmt.Println("Found it! MMR", t2)
 							fnode.State.LogMessage("NetworkOutputs", "Drop, matched filter Regex", msg)
 							continue
 						}
