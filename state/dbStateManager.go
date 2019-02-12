@@ -1181,11 +1181,13 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		list.WriteDBStateToDebugFile(d)
 	}
 
-	tbh := list.State.FactoidState.GetBalanceHash(true) // recompute temp balance hash here
 	fs.(*FactoidState).DBHeight = list.State.GetDirectoryBlock().GetHeader().GetDBHeight()
-	list.State.Balancehash = fs.GetBalanceHash(false)
 
-	list.State.LogPrintf("dbstateprocess", "ProcessBlock(%d) BalanceHash P %x T %x", dbht, list.State.Balancehash.Bytes()[0:4], tbh.Bytes()[0:4])
+	if list.State.DBFinished {
+		tbh := list.State.FactoidState.GetBalanceHash(true) // recompute temp balance hash here
+		list.State.Balancehash = fs.GetBalanceHash(false)
+		list.State.LogPrintf("dbstateprocess", "ProcessBlock(%d) BalanceHash P %x T %x", dbht, list.State.Balancehash.Bytes()[0:4], tbh.Bytes()[0:4])
+	}
 
 	// We will only save blocks marked to be saved.  As such, this must follow
 	// the "d.saved = true" above
@@ -1410,7 +1412,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 				fct.GetTimestamp(),
 				d.DirectoryBlock.GetHeader().GetTimestamp())
 		}
-
+		list.State.Saving = false
 		return
 	}
 
@@ -1543,13 +1545,13 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	}
 
 	// Not activated.  Set to true if you want extra checking of the data saved to the database.
-	if false {
+	if true {
 		good := true
 		mr, err := list.State.DB.FetchDBKeyMRByHeight(uint32(dbheight))
 		if err != nil {
 			list.State.LogPrintf("dbstateprocess", err.Error())
-			return
 			panic(fmt.Sprintf("%20s At Directory Block Height %d", list.State.FactomNodeName, dbheight))
+			return
 		}
 		if mr == nil {
 			list.State.LogPrintf("dbstateprocess", "There is no mr returned by list.State.DB.FetchDBKeyMRByHeight() at %d\n", dbheight)
@@ -1564,13 +1566,14 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 			} else {
 				list.State.LogPrintf("dbstateprocess", "Could not get directory block by primary key at Block Height %d\n", dbheight)
 			}
-			return
 			panic(fmt.Sprintf("%20s Error reading db by mr at Directory Block Height %d", list.State.FactomNodeName, dbheight))
+			return
 		}
 		if td.GetKeyMR().Fixed() != mr.Fixed() {
 			list.State.LogPrintf("dbstateprocess", "Key MR is wrong at Directory Block Height %d\n", dbheight)
-			return
+			fmt.Fprintln(os.Stderr, d.DirectoryBlock.String(), "\n==============================================\n Should be:\n", td.String())
 			panic(fmt.Sprintf("%20s KeyMR is wrong at Directory Block Height %d", list.State.FactomNodeName, dbheight))
+			return
 		}
 		if !good {
 			return
@@ -1589,6 +1592,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	list.State.NumFCTTrans += len(d.FactoidBlock.GetTransactions()) - 1
 
 	list.SavedHeight = uint32(dbheight)
+	list.State.Saving = false
 	progress = true
 	d.ReadyToSave = false
 	d.Saved = true

@@ -87,6 +87,9 @@ type ProcessList struct {
 	DBSigAlreadySent bool
 
 	NextHeightToProcess [64]int
+
+	// Cut overhead
+	stringCnt int
 }
 
 var _ interfaces.IProcessList = (*ProcessList)(nil)
@@ -362,9 +365,13 @@ func (p *ProcessList) GetFedServerIndexHash(identityChainID interfaces.IHash) (b
 
 	for i, fs := range p.FedServers {
 		// Find and remove
-		comp := bytes.Compare(scid, fs.GetChainID().Bytes())
-		if comp == 0 {
-			return true, i
+		// Check first byte first.
+		chainID := fs.GetChainID().Bytes()
+		if scid[20] == chainID[20] {
+			comp := bytes.Compare(scid, chainID)
+			if comp == 0 {
+				return true, i
+			}
 		}
 	}
 
@@ -701,6 +708,11 @@ var decodeMap map[foo]string = map[foo]string{
 
 func (p *ProcessList) decodeState(Syncing bool, DBSig bool, EOM bool, DBSigDone bool, EOMDone bool, FedServers int, EOMProcessed int, DBSigProcessed int) string {
 
+	p.stringCnt++
+	if p.stringCnt%100000 == 0 {
+		return ""
+	}
+
 	if EOMProcessed > FedServers || EOMProcessed < 0 {
 		p.State.LogPrintf("process", "Unexpected EOMProcessed %v of %v", EOMProcessed, FedServers)
 	}
@@ -762,11 +774,12 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 		for j := vm.Height; j < len(vm.List); j++ {
 
 			s.ProcessListProcessCnt++
+
 			x := p.decodeState(s.Syncing, s.DBSig, s.EOM, s.DBSigDone, s.EOMDone,
 				len(s.LeaderPL.FedServers), s.EOMProcessed, s.DBSigProcessed)
 
 			// Compute a syncing s string and report if it has changed
-			if s.SyncingState[s.SyncingStateCurrent] != x {
+			if x != "" && s.SyncingState[s.SyncingStateCurrent] != x {
 				s.LogPrintf("processStatus", x)
 				s.SyncingStateCurrent = (s.SyncingStateCurrent + 1) % len(s.SyncingState)
 				s.SyncingState[s.SyncingStateCurrent] = x
@@ -902,7 +915,18 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 			} else {
 				s.LogMessage("process", "Waiting on saving", msg)
 				s.LogPrintf("EntrySync", "Waiting on saving EntryDBHeightComplete = %d", s.EntryDBHeightComplete)
-
+				for s.InMsgQueue().Length() > 100 {
+					msg := s.InMsgQueue().Dequeue()
+					if msg.Type() == constants.DATA_RESPONSE {
+						msg.FollowerExecute(s)
+					}
+				}
+				for s.InMsgQueue2().Length() > 100 {
+					msg := s.InMsgQueue2().Dequeue()
+					if msg.Type() == constants.DATA_RESPONSE {
+						msg.FollowerExecute(s)
+					}
+				}
 				// If we don't have the Entry Blocks (or we haven't processed the signatures) we can't do more.
 				// p.State.AddStatus(fmt.Sprintf("Can't do more: dbht: %d vm: %d vm-height: %d Entry Height: %d", p.DBHeight, i, j, s.EntryDBHeightComplete))
 				if extraDebug {
