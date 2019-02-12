@@ -411,6 +411,8 @@ type State struct {
 
 	reportedActivations   [activations.ACTIVATION_TYPE_COUNT + 1]bool // flags about which activations we have reported (+1 because we don't use 0)
 	validatorLoopThreadID string
+	ChainCommits          Last100
+	Reveals               Last100
 }
 
 var _ interfaces.IState = (*State)(nil)
