@@ -307,7 +307,7 @@ func Peers(fnode *FactomNode) {
 	} // forever {...}
 }
 
-var cacheReveals bool = false
+var cacheReveals bool = true
 
 func sendToExecute(msg interfaces.IMsg, fnode *FactomNode, source string) {
 	t := msg.Type()
