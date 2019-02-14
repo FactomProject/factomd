@@ -1545,7 +1545,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	}
 
 	// Not activated.  Set to true if you want extra checking of the data saved to the database.
-	if true {
+	if false {
 		good := true
 		mr, err := list.State.DB.FetchDBKeyMRByHeight(uint32(dbheight))
 		if err != nil {
