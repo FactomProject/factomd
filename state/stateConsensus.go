@@ -341,11 +341,8 @@ func (s *State) Process() (progress bool) {
 	// is so we don't conflict with past version of the network if we have to reboot the network.
 	var Leader bool
 	var LeaderVMIndex int
-	if s.CurrentMinute > 9 {
-		Leader, LeaderVMIndex = s.LeaderPL.GetVirtualServers(9, s.IdentityChainID)
-	} else {
-		Leader, LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
-	}
+	Leader, LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
+
 	if s.LLeaderHeight != 0 { // debug
 		if s.Leader != Leader {
 			s.LogPrintf("executeMsg", "State.Process() unexpectedly setting s.Leader to %v", Leader)
