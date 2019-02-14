@@ -28,7 +28,7 @@ type MMRInfo struct {
 
 // starts the MMR processing for this state
 func (s *State) startMMR() {
-	go s.makeMMRs(s.asks, s.adds, s.dbheights)
+	go s.makeMMRs()
 }
 
 // Ask VM for an MMR for this height with delay ms before asking the network
@@ -80,7 +80,7 @@ var MMR_enable bool = true
 // Receive all asks and all process list adds and create missing message requests any ask that has expired
 // and still pending. Add 10 seconds to the ask.
 // Doesn't really use (can't use) the process list but I have it for debug
-func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan int) {
+func (s *State) makeMMRs() {
 	type dbhvm struct {
 		dbh int
 		vm  int
@@ -113,7 +113,7 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 	readasks:
 		for {
 			select {
-			case ask := <-asks:
+			case ask := <-s.asks:
 				addAsk(ask)
 			default:
 				break readasks
@@ -125,7 +125,7 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 	readadds:
 		for {
 			select {
-			case add := <-adds:
+			case add := <-s.adds:
 				addAdd(add)
 			default:
 				break readadds
@@ -182,7 +182,7 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 		}
 
 		select {
-		case dbheight = <-dbheights:
+		case dbheight = <-s.dbheights:
 			// toss any old pending requests when the height moves up
 			// todo: Keep asks in a  list so cleanup is more efficient
 			for ask, _ := range pending {
@@ -191,11 +191,11 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 					delete(pending, ask)
 				}
 			}
-		case ask := <-asks:
+		case ask := <-s.asks:
 			addAsk(ask)
 			addAllAsks()
 
-		case add := <-adds:
+		case add := <-s.adds:
 			addAllAsks() // process all pending asks before any adds
 			addAdd(add)
 
