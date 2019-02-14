@@ -391,18 +391,15 @@ ackLoop:
 
 	if s.RunLeader {
 		s.ReviewHolding()
-		for {
-			for _, msg := range s.XReview {
-				if msg == nil {
-					continue
-				}
-				if msg.GetVMIndex() == s.LeaderVMIndex {
-					process = append(process, msg)
-				}
+		for _, msg := range s.XReview {
+			if msg == nil {
+				continue
 			}
-			s.XReview = s.XReview[:0]
-			break
-		} // skip review
+			if msg.GetVMIndex() == s.LeaderVMIndex {
+				process = append(process, msg)
+			}
+		}
+		s.XReview = s.XReview[:0]
 	}
 
 	processXReviewTime := time.Since(preProcessXReviewTime)
