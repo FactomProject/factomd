@@ -223,12 +223,8 @@ func (m *FedVoteMsg) Validate(is interfaces.IState) int {
 
 	// Check to make sure the volunteer message can be put in our process list
 	if validVolunteer := m.ValidateVolunteer(*vol, is); validVolunteer != 1 {
-		if validVolunteer == -1 {
-			return -1
-		}
-
-		// Volunteer is not valid because the volunteer has a higher process list height
-		return 0
+		// 0 means Volunteer is not valid because the volunteer has a higher process list height
+		return validVolunteer
 	}
 
 	signed, err := sm.MarshalForSignature()
