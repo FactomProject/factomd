@@ -27,6 +27,9 @@ type CommitEntry struct {
 	Credits   uint8                   `json:"credits"`
 	ECPubKey  *primitives.ByteSlice32 `json:"ecpubkey"`
 	Sig       *primitives.ByteSlice64 `json:"sig"`
+
+	sighash    interfaces.IHash
+	commithash interfaces.IHash
 }
 
 var _ interfaces.Printable = (*CommitEntry)(nil)
