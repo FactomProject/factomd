@@ -198,9 +198,11 @@ func (c *CommitEntry) GetHash() (rval interfaces.IHash) {
 			primitives.LogNilHashBug("CommitEntry.GetHash() saw an interface that was nil")
 		}
 	}()
-
-	h, _ := c.MarshalBinary()
-	return primitives.Sha(h)
+	if c.commithash == nil {
+		ch, _ := c.MarshalBinary()
+		c.commithash = primitives.Sha(ch)
+	}
+	return c.commithash
 }
 
 func (c *CommitEntry) GetSigHash() (rval interfaces.IHash) {
@@ -210,9 +212,11 @@ func (c *CommitEntry) GetSigHash() (rval interfaces.IHash) {
 			primitives.LogNilHashBug("CommitEntry.GetSigHash() saw an interface that was nil")
 		}
 	}()
-
-	data := c.CommitMsg()
-	return primitives.Sha(data)
+	if c.sighash == nil {
+		data := c.CommitMsg()
+		c.sighash = primitives.Sha(data)
+	}
+	return c.sighash
 }
 
 func (c *CommitEntry) MarshalBinarySig() (rval []byte, err error) {
