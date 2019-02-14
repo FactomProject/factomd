@@ -18,10 +18,8 @@ import (
 // of primarily Commits and Balance Increases with Minute Markers and Server
 // Markers distributed throughout.
 type ECBlock struct {
-	Header     interfaces.IECBlockHeader `json:"header"`
-	Body       interfaces.IECBlockBody   `json:"body"`
-	fullhash   interfaces.IHash
-	headerhash interfaces.IHash
+	Header interfaces.IECBlockHeader `json:"header"`
+	Body   interfaces.IECBlockBody   `json:"body"`
 }
 
 var _ interfaces.Printable = (*ECBlock)(nil)
@@ -189,35 +187,30 @@ func (e *ECBlock) GetHash() (rval interfaces.IHash) {
 			primitives.LogNilHashBug("ECBlock.GetHash() saw an interface that was nil")
 		}
 	}()
+
 	h, _ := e.GetFullHash()
 	return h
 }
 
 // This is the FullHash.
 func (e *ECBlock) GetFullHash() (interfaces.IHash, error) {
-	if e.fullhash == nil {
-		p, err := e.MarshalBinary()
-		if err != nil {
-			return nil, err
-		}
-		e.fullhash = primitives.Sha(p)
+	p, err := e.MarshalBinary()
+	if err != nil {
+		return nil, err
 	}
-	return e.fullhash, nil
+	return primitives.Sha(p), nil
 }
 
 func (e *ECBlock) HeaderHash() (interfaces.IHash, error) {
-	if e.headerhash == nil {
-		if err := e.BuildHeader(); err != nil {
-			return nil, err
-		}
-
-		p, err := e.GetHeader().MarshalBinary()
-		if err != nil {
-			return nil, err
-		}
-		e.headerhash = primitives.Sha(p)
+	if err := e.BuildHeader(); err != nil {
+		return nil, err
 	}
-	return e.headerhash, nil
+
+	p, err := e.GetHeader().MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	return primitives.Sha(p), nil
 }
 
 func (e *ECBlock) MarshalBinary() (rval []byte, err error) {

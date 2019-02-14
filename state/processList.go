@@ -709,7 +709,7 @@ var decodeMap map[foo]string = map[foo]string{
 func (p *ProcessList) decodeState(Syncing bool, DBSig bool, EOM bool, DBSigDone bool, EOMDone bool, FedServers int, EOMProcessed int, DBSigProcessed int) string {
 
 	p.stringCnt++
-	if p.stringCnt%100000 == 0 {
+	if p.stringCnt%1000 == 0 {
 		return ""
 	}
 
