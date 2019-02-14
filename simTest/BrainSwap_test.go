@@ -35,7 +35,7 @@ func TestBrainSwap(t *testing.T) {
 
 		// FIXME update to match test data
 		params := map[string]string{
-			"--db":                  "LDB", // NOTE: using LEVELDB
+			"--db":                  "LDB", // NOTE: using MAP causes an occasional error see FD-825
 			"--network":             "LOCAL",
 			"--net":                 "alot+",
 			"--enablenet":           "true",
@@ -46,12 +46,12 @@ func TestBrainSwap(t *testing.T) {
 			"--checkheads":          "false",
 			"--controlpanelsetting": "readwrite",
 			//"--debuglog":            ".",
-			"--logPort":             "38000",
-			"--port":                "38001",
-			"--controlpanelport":    "38002",
-			"--networkport":         "38003",
-			"--peers":               peers,
-			"--factomhome": 		 factomHome,
+			"--logPort":          "38000",
+			"--port":             "38001",
+			"--controlpanelport": "38002",
+			"--networkport":      "38003",
+			"--peers":            peers,
+			"--factomhome":       factomHome,
 		}
 
 		state0 := SetupSim(givenNodes, params, int(maxBlocks), 0, 0, t)

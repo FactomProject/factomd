@@ -608,6 +608,11 @@ func (s *State) ReviewHolding() {
 }
 
 func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
+
+	if newMinute == 0 {
+		s.CheckForIDChange(dbheight)
+	}
+
 	s.LogPrintf("dbstateprocess", "MoveStateToHeight(%d-:-%d) called from %s", dbheight, newMinute, atomic.WhereAmIString(1))
 	if (s.LLeaderHeight+1 == dbheight && newMinute == 0) || (s.LLeaderHeight == dbheight && s.CurrentMinute+1 == newMinute) {
 		// these are the allowed cases; move to nextblock-:-0 or move to next minute
@@ -1844,6 +1849,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 					s.LogPrintf("dbsig-eom", "Follower jump to minute %d from %d", s.CurrentMinute, int(e.Minute))
 				}
 				s.MoveStateToHeight(e.DBHeight, int(e.Minute+1))
+
 			} else {
 				s.MoveStateToHeight(s.LLeaderHeight, s.CurrentMinute+1)
 			}
@@ -1908,9 +1914,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 					prev := s.DBStates.Get(dbht - 1)
 					s.DBStates.FixupLinks(prev, dbstate)
 				}
-
-				s.GetAckChange()
-				s.CheckForIDChange()
 
 				s.DBSigProcessed = 0
 				s.TempBalanceHash = s.FactoidState.GetBalanceHash(true)
@@ -2036,13 +2039,20 @@ func (s *State) GetUnsyncedServersString(dbheight uint32) string {
 	return ids
 }
 
-func (s *State) CheckForIDChange() {
+func (s *State) CheckForIDChange(targetHeight uint32) {
+	changed, _ := s.GetAckChange()
 	var reloadIdentity bool = false
-	if s.AckChange > 0 {
-		if s.LLeaderHeight >= s.AckChange {
+
+	if changed {
+		s.LogPrintf("AckChange", "AckChange %v", s.AckChange)
+	}
+
+	if s.AckChange >  0 { // NOTE: setting to 0 or negative disables identity reloading
+		if targetHeight >= s.AckChange {
 			reloadIdentity = true
 		}
 	}
+
 	if reloadIdentity {
 		config := util.ReadConfig(s.ConfigFilePath)
 		var err error
@@ -2052,6 +2062,7 @@ func (s *State) CheckForIDChange() {
 		}
 		s.LocalServerPrivKey = config.App.LocalServerPrivKey
 		s.initServerKeys()
+		s.LogPrintf("AckChange", "reloadIdentity local_priv: %v pub: %v, priv: %v", s.LocalServerPrivKey, s.GetServerPublicKey(), s.GetServerPrivateKey())
 	}
 }
 
