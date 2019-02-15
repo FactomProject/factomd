@@ -68,6 +68,7 @@ func CreateAndPopulateTestState() *state.State {
 	s.SetLeaderTimestamp(primitives.NewTimestampFromMilliseconds(0))
 	s.DB = CreateAndPopulateTestDatabaseOverlay()
 	s.LoadConfig("", "")
+	s.DBFinished = true
 
 	s.DirectoryBlockInSeconds = 20
 
