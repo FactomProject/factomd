@@ -450,7 +450,7 @@ func CheckDBKeyMR(s *State, ht uint32, hash string) error {
 func (s *State) ReviewHolding() {
 
 	preReviewHoldingTime := time.Now()
-	if len(s.XReview) > 0 || s.Syncing || s.Saving {
+	if len(s.XReview) > 0 || s.Syncing {
 		return
 	}
 
@@ -475,6 +475,10 @@ func (s *State) ReviewHolding() {
 
 	highest := s.GetHighestKnownBlock()
 	saved := s.GetHighestSavedBlk()
+	if saved > highest {
+		highest = saved + 1
+	}
+
 	for _, a := range s.Acks {
 		if s.Holding[a.GetHash().Fixed()] != nil {
 			a.FollowerExecute(s)
@@ -488,6 +492,12 @@ func (s *State) ReviewHolding() {
 
 	for k, v := range s.Holding {
 
+		if int(highest)-int(saved) > 1000 {
+			TotalHoldingQueueOutputs.Inc()
+			//delete(s.Holding, k)
+			s.DeleteFromHolding(k, v, "HKB-HSB>1000")
+		}
+
 		if v.Expire(s) {
 			s.LogMessage("executeMsg", "expire from holding", v)
 			s.ExpireCnt++
@@ -495,6 +505,32 @@ func (s *State) ReviewHolding() {
 			//delete(s.Holding, k)
 			s.DeleteFromHolding(k, v, "expired")
 			continue
+		}
+
+		eom, ok := v.(*messages.EOM)
+		if ok {
+			if (eom.DBHeight <= saved && saved > 0) || int(eom.Minute) < s.CurrentMinute {
+				TotalHoldingQueueOutputs.Inc()
+				//delete(s.Holding, k)
+				s.DeleteFromHolding(k, v, "old EOM")
+				continue
+			}
+			if !eom.IsLocal() && eom.DBHeight > saved {
+				s.HighestKnown = eom.DBHeight
+			}
+		}
+
+		dbsigmsg, ok := v.(*messages.DirectoryBlockSignature)
+		if ok {
+			if dbsigmsg.DBHeight < saved && saved > 0 {
+				TotalHoldingQueueOutputs.Inc()
+				//delete(s.Holding, k)
+				s.DeleteFromHolding(k, v, "Old DBSig")
+				continue
+			}
+			if !dbsigmsg.IsLocal() && dbsigmsg.DBHeight > saved {
+				s.HighestKnown = dbsigmsg.DBHeight
+			}
 		}
 
 		switch v.Validate(s) {
@@ -510,33 +546,12 @@ func (s *State) ReviewHolding() {
 
 		v.SendOut(s, v)
 
-		if int(highest)-int(saved) > 1000 {
-			TotalHoldingQueueOutputs.Inc()
-			//delete(s.Holding, k)
-			s.DeleteFromHolding(k, v, "HKB-HSB>1000")
-		}
-
-		eom, ok := v.(*messages.EOM)
-		if ok && ((eom.DBHeight <= saved && saved > 0) || int(eom.Minute) < s.CurrentMinute) {
-			TotalHoldingQueueOutputs.Inc()
-			//delete(s.Holding, k)
-			s.DeleteFromHolding(k, v, "old EOM")
-			continue
-		}
-
 		dbsmsg, ok := v.(*messages.DBStateMsg)
-		if ok && (dbsmsg.DirectoryBlock.GetHeader().GetDBHeight() < saved-1 && saved > 0) {
+		if ok && dbsmsg.DirectoryBlock.GetHeader().GetDBHeight() <= saved && saved > 0 {
+
 			TotalHoldingQueueOutputs.Inc()
 			//delete(s.Holding, k)
 			s.DeleteFromHolding(k, v, "old DBState")
-			continue
-		}
-
-		dbsigmsg, ok := v.(*messages.DirectoryBlockSignature)
-		if ok && ((dbsigmsg.DBHeight <= saved && saved > 0) || (dbsigmsg.DBHeight < highest-3 && highest > 2)) {
-			TotalHoldingQueueOutputs.Inc()
-			//delete(s.Holding, k)
-			s.DeleteFromHolding(k, v, "Old DBSig")
 			continue
 		}
 
@@ -621,7 +636,7 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 	// when following by minute we jump from minute 10 to minute 0
 	if s.LLeaderHeight != dbheight && s.CurrentMinute != 0 && s.CurrentMinute != 10 {
 		s.LogPrintf("dbstateprocess", "Jump in current minute from %d-:-%d to %d-:-%d", s.LLeaderHeight, s.CurrentMinute, dbheight, newMinute)
-		fmt.Fprintf(os.Stderr, "Jump in current minute from %d-:-%d to %d-:-%d\n", s.LLeaderHeight, s.CurrentMinute, dbheight, newMinute)
+		//fmt.Fprintf(os.Stderr, "Jump in current minute from %d-:-%d to %d-:-%d\n", s.LLeaderHeight, s.CurrentMinute, dbheight, newMinute)
 	}
 	//s.setCurrentMinute(newMinute)     // MoveStateToHeight() move minute
 	//s.SetLLeaderHeight(int(dbheight)) // Update leader height in MoveStateToHeight
@@ -703,9 +718,13 @@ func (s *State) AddDBState(isNew bool,
 	eBlocks []interfaces.IEntryBlock,
 	entries []interfaces.IEBEntry) *DBState {
 
-	s.LogPrintf("dbstateprocess", "AddDBState(isNew %v, directoryBlock %d %x, adminBlock %x, factoidBlock %x, entryCreditBlock %X, eBlocks %d, entries %d)",
-		isNew, directoryBlock.GetHeader().GetDBHeight(), directoryBlock.GetHash().Bytes()[:4],
-		adminBlock.GetHash().Bytes()[:4], factoidBlock.GetHash().Bytes()[:4], entryCreditBlock.GetHash().Bytes()[:4], len(eBlocks), len(entries))
+	// This is expensive, so only do this once the database is loaded.
+	if s.DBFinished {
+		s.LogPrintf("dbstateprocess", "AddDBState(isNew %v, directoryBlock %d %x, adminBlock %x, factoidBlock %x, entryCreditBlock %X, eBlocks %d, entries %d)",
+			isNew, directoryBlock.GetHeader().GetDBHeight(), directoryBlock.GetHash().Bytes()[:4],
+			adminBlock.GetHash().Bytes()[:4], factoidBlock.GetHash().Bytes()[:4], entryCreditBlock.GetHash().Bytes()[:4], len(eBlocks), len(entries))
+	}
+
 	dbState := s.DBStates.NewDBState(isNew, directoryBlock, adminBlock, factoidBlock, entryCreditBlock, eBlocks, entries)
 
 	if dbState == nil {
@@ -2493,20 +2512,12 @@ func (s *State) GetF(rt bool, adr [32]byte) (v int64) {
 			pl.FactoidBalancesTMutex.Lock()
 			v, ok = pl.FactoidBalancesT[adr]
 			pl.FactoidBalancesTMutex.Unlock()
-		} else {
-			s.LogPrintf("factoids", "GetF(%v,%x<%s>) = %d -- no pl", rt, adr[:4],
-				primitives.ConvertFctAddressToUserStr(factoid.NewAddress(adr[:])), v)
 		}
 	}
 	if !ok {
 		s.FactoidBalancesPMutex.Lock()
 		v = s.FactoidBalancesP[adr]
 		s.FactoidBalancesPMutex.Unlock()
-		s.LogPrintf("factoids", "GetF(%v,%x<%s>) = %d using permanent balance", rt, adr[:4],
-			primitives.ConvertFctAddressToUserStr(factoid.NewAddress(adr[:])), v)
-	} else {
-		s.LogPrintf("factoids", "GetF(%v,%x<%s>) = %d using temporary balance", rt, adr[:4],
-			primitives.ConvertFctAddressToUserStr(factoid.NewAddress(adr[:])), v)
 	}
 
 	return v
@@ -2523,18 +2534,11 @@ func (s *State) PutF(rt bool, adr [32]byte, v int64) {
 			pl.FactoidBalancesTMutex.Lock()
 			pl.FactoidBalancesT[adr] = v
 			pl.FactoidBalancesTMutex.Unlock()
-			s.LogPrintf("factoids", "PutF(%v,%x<%s>, %d) using temporary balance", rt, adr[:4],
-				primitives.ConvertFctAddressToUserStr(factoid.NewAddress(adr[:])), v)
-		} else {
-			s.LogPrintf("factoids", "PutF(%v,%x<%s>, %d) using temporary balance -- no pl", rt, adr[:4],
-				primitives.ConvertFctAddressToUserStr(factoid.NewAddress(adr[:])), v)
 		}
 	} else {
 		s.FactoidBalancesPMutex.Lock()
 		s.FactoidBalancesP[adr] = v
 		s.FactoidBalancesPMutex.Unlock()
-		s.LogPrintf("factoids", "PutF(%v,%x<%s>, %d) using permanent balance", rt, adr[:4],
-			primitives.ConvertFctAddressToUserStr(factoid.NewAddress(adr[:])), v)
 	}
 }
 
@@ -2546,20 +2550,12 @@ func (s *State) GetE(rt bool, adr [32]byte) (v int64) {
 			pl.ECBalancesTMutex.Lock()
 			v, ok = pl.ECBalancesT[adr]
 			pl.ECBalancesTMutex.Unlock()
-		} else {
-			s.LogPrintf("entrycredits", "GetE(%v,%x<%s>) = %d -- no pl", rt, adr[:4],
-				primitives.ConvertECAddressToUserStr(factoid.NewAddress(adr[:])), v)
 		}
 	}
 	if !ok {
 		s.ECBalancesPMutex.Lock()
 		v = s.ECBalancesP[adr]
 		s.ECBalancesPMutex.Unlock()
-		s.LogPrintf("entrycredits", "GetE(%v,%x<%s>) = %d using permanent balance", rt, adr[:4],
-			primitives.ConvertECAddressToUserStr(factoid.NewAddress(adr[:])), v)
-	} else {
-		s.LogPrintf("entrycredits", "GetE(%v,%x<%s>) = %d using temporary balance", rt, adr[:4],
-			primitives.ConvertECAddressToUserStr(factoid.NewAddress(adr[:])), v)
 	}
 	return v
 
@@ -2575,18 +2571,11 @@ func (s *State) PutE(rt bool, adr [32]byte, v int64) {
 			pl.ECBalancesTMutex.Lock()
 			pl.ECBalancesT[adr] = v
 			pl.ECBalancesTMutex.Unlock()
-			s.LogPrintf("entrycredits", "PutE(%v,%x<%s>, %d) using temporary balance", rt, adr[:4],
-				primitives.ConvertECAddressToUserStr(factoid.NewAddress(adr[:])), v)
-		} else {
-			s.LogPrintf("entrycredits", "PutE(%v,%x<%s>, %d) using temporary balance -- no pl", rt, adr[:4],
-				primitives.ConvertECAddressToUserStr(factoid.NewAddress(adr[:])), v)
 		}
 	} else {
 		s.ECBalancesPMutex.Lock()
 		s.ECBalancesP[adr] = v
 		s.ECBalancesPMutex.Unlock()
-		s.LogPrintf("entrycredits", "PutE(%v,%x<%s>, %d) using permanent balance", rt, adr[:4],
-			primitives.ConvertECAddressToUserStr(factoid.NewAddress(adr[:])), v)
 	}
 }
 

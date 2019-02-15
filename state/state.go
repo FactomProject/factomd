@@ -922,9 +922,9 @@ func (s *State) Init() {
 	s.ackQueue = make(chan interfaces.IMsg, 100)                   //queue of Leadership messages
 	s.msgQueue = make(chan interfaces.IMsg, 400)                   //queue of Follower messages
 	s.ShutdownChan = make(chan int, 1)                             //Channel to gracefully shut down.
-	s.MissingEntries = make(chan *MissingEntry, 1000)              //Entries I discover are missing from the database
+	s.MissingEntries = make(chan *MissingEntry, 10000)             //Entries I discover are missing from the database
 	s.UpdateEntryHash = make(chan *EntryUpdate, 10000)             //Handles entry hashes and updating Commit maps.
-	s.WriteEntry = make(chan interfaces.IEBEntry, 3000)            //Entries to be written to the database
+	s.WriteEntry = make(chan interfaces.IEBEntry, 20000)           //Entries to be written to the database
 
 	if s.Journaling {
 		f, err := os.Create(s.JournalFile)
@@ -2740,9 +2740,6 @@ func (s *State) GetTrueLeaderHeight() uint32 {
 	h := int(s.ProcessLists.DBHeightBase) + len(s.ProcessLists.Lists) - 3
 	if h < 0 {
 		h = 0
-	}
-	if h > 0 && uint32(h-1) > s.HighestKnown {
-		s.HighestKnown = uint32(h - 1)
 	}
 	return uint32(h)
 }
