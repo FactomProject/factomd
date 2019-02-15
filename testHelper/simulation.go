@@ -377,8 +377,7 @@ func RunCmd(cmd string) {
 	return
 }
 
-func ShutDownEverything(t *testing.T) {
-	CheckAuthoritySet(t)
+func Halt(t *testing.T) {
 	quit <- struct{}{}
 	close(quit)
 	t.Log("Shutting down the network")
@@ -387,6 +386,11 @@ func ShutDownEverything(t *testing.T) {
 	}
 	// sleep long enough for everyone to see the shutdown.
 	time.Sleep(time.Duration(globals.Params.BlkTime) * time.Second)
+}
+
+func ShutDownEverything(t *testing.T) {
+	CheckAuthoritySet(t)
+	Halt(t)
 	fnodes := engine.GetFnodes()
 	currentHeight := fnodes[0].State.LLeaderHeight
 	// Sleep one block
@@ -398,8 +402,8 @@ func ShutDownEverything(t *testing.T) {
 
 	engine.PrintOneStatus(0, 0) // Print a final status
 	fmt.Printf("Test took %d blocks and %s time\n", engine.GetFnodes()[0].State.LLeaderHeight, time.Now().Sub(startTime))
-
 }
+
 func v2Request(req *primitives.JSON2Request, port int) (*primitives.JSON2Response, error) {
 	j, err := json.Marshal(req)
 	if err != nil {

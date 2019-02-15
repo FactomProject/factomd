@@ -624,6 +624,13 @@ func (s *State) ReviewHolding() {
 
 func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 	s.LogPrintf("dbstateprocess", "MoveStateToHeight(%d-:-%d) called from %s", dbheight, newMinute, atomic.WhereAmIString(1))
+
+	// REVIEW: checking for a change-in-height causes brainswap not to work w/ older v6.1.0
+	// if  newMinute == 0 && s.LLeaderHeight != dbheight {
+	if  newMinute == 0 {
+		s.CheckForIDChange()
+	}
+
 	if (s.LLeaderHeight+1 == dbheight && newMinute == 0) || (s.LLeaderHeight == dbheight && s.CurrentMinute+1 == newMinute) {
 		// these are the allowed cases; move to nextblock-:-0 or move to next minute
 	} else {
@@ -1863,6 +1870,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 					s.LogPrintf("dbsig-eom", "Follower jump to minute %d from %d", s.CurrentMinute, int(e.Minute))
 				}
 				s.MoveStateToHeight(e.DBHeight, int(e.Minute+1))
+
 			} else {
 				s.MoveStateToHeight(s.LLeaderHeight, s.CurrentMinute+1)
 			}
@@ -1927,9 +1935,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 					prev := s.DBStates.Get(dbht - 1)
 					s.DBStates.FixupLinks(prev, dbstate)
 				}
-
-				s.GetAckChange()
-				s.CheckForIDChange()
 
 				s.DBSigProcessed = 0
 				s.TempBalanceHash = s.FactoidState.GetBalanceHash(true)
@@ -2056,13 +2061,11 @@ func (s *State) GetUnsyncedServersString(dbheight uint32) string {
 }
 
 func (s *State) CheckForIDChange() {
-	var reloadIdentity bool = false
-	if s.AckChange > 0 {
-		if s.LLeaderHeight >= s.AckChange {
-			reloadIdentity = true
-		}
+	changed, _ := s.GetAckChange()
+	if changed {
+		s.LogPrintf("AckChange", "AckChange %v", s.AckChange)
 	}
-	if reloadIdentity {
+	if s.AckChange > 0 && s.LLeaderHeight >= s.AckChange {
 		config := util.ReadConfig(s.ConfigFilePath)
 		var err error
 		s.IdentityChainID, err = primitives.NewShaHashFromStr(config.App.IdentityChainID)
@@ -2071,6 +2074,7 @@ func (s *State) CheckForIDChange() {
 		}
 		s.LocalServerPrivKey = config.App.LocalServerPrivKey
 		s.initServerKeys()
+		s.LogPrintf("AckChange", "ReloadIdentity local_priv: %v ident_chain: %v", s.LocalServerPrivKey, s.IdentityChainID)
 	}
 }
 

@@ -698,13 +698,15 @@ func (s *State) IncECommits() {
 	s.ECommits++
 }
 
-func (s *State) GetAckChange() error {
+func (s *State) GetAckChange() (bool, error) {
+	var flag bool
 	change, err := util.GetChangeAcksHeight(s.ConfigFilePath)
 	if err != nil {
-		return err
+		return flag, err
 	}
+	flag = s.AckChange != change
 	s.AckChange = change
-	return nil
+	return flag, nil
 }
 
 func (s *State) LoadConfig(filename string, networkFlag string) {
