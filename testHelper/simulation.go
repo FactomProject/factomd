@@ -377,11 +377,15 @@ func RunCmd(cmd string) {
 	return
 }
 
-func ShutDownEverything(t *testing.T) {
-	CheckAuthoritySet(t)
+func Halt(t *testing.T) {
 	quit <- struct{}{}
 	close(quit)
 	t.Log("Shutting down the network")
+}
+
+func ShutDownEverything(t *testing.T) {
+	CheckAuthoritySet(t)
+	Halt(t)
 	for _, fn := range engine.GetFnodes() {
 		fn.State.ShutdownChan <- 1
 	}

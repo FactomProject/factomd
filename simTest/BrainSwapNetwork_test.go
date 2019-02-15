@@ -18,7 +18,7 @@ func TestBrainSwap(t *testing.T) {
 		peers := os.Getenv("PEERS")
 
 		if factomHome == "" {
-			factomHome = "."
+			factomHome = ".sim/network"
 		}
 
 		if maxBlocks == 0 {
@@ -60,13 +60,16 @@ func TestBrainSwap(t *testing.T) {
 		t.Run("Wait For Identity Swap", func(t *testing.T) {
 			// NOTE: external scripts swap config files
 			// during this time
-			WaitForBlock(state0, 20)
+			WaitForBlock(state0, 12)
+			Followers++
+			Leaders--
+			WaitForAllNodes(state0)
+			CheckAuthoritySet(t)
 		})
 
 		t.Run("Verify Network", func(t *testing.T) {
-			WaitBlocks(state0, 1)
-			ShutDownEverything(t)
-			WaitForAllNodes(state0)
+			WaitBlocks(state0, 3)
+			Halt(t)
 		})
 
 	})
