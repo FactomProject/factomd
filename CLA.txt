@@ -36,3 +36,4 @@ Sam Barnes                                 sambarnes                            
 Michael Beam                               michaelbeam                                  Factom Inc.
 Joshua Brigati                             JoshuaBrigati                                Factom Inc.
 Who Soup                                   WhoSoup                                      Factomize LLC
+Thomas Meier                               ThomasMeier                                  LayerTech LLC
