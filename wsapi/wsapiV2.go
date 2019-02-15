@@ -1399,10 +1399,7 @@ func HandleV2MessageFilter(state interfaces.IState, params interface{}) (interfa
 		state.PassOutputRegEx(OutputRegEx, OutputString)
 
 	} else if OutputString == "off" {
-
-		OutputRegEx := regexp.MustCompile("")
-		state.PassOutputRegEx(OutputRegEx, "")
-
+		state.PassOutputRegEx(nil, "")
 	}
 
 	InputString := fmt.Sprintf("%s", x["input-regex"])
@@ -1411,9 +1408,7 @@ func HandleV2MessageFilter(state interfaces.IState, params interface{}) (interfa
 
 		state.PassInputRegEx(InputRegEx, InputString)
 	} else if OutputString == "off" {
-		InputRegEx := regexp.MustCompile("")
-
-		state.PassOutputRegEx(InputRegEx, "")
+		state.PassOutputRegEx(nil, "")
 	}
 
 	h := new(MessageFilter)
