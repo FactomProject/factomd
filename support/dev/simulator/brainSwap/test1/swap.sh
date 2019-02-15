@@ -17,6 +17,7 @@ function copy() { # and set AcksHeight
 
 function main() {
   copy 1 0
+  copy 4 1
 }
 
 main

@@ -9,9 +9,9 @@ import (
 
 var logName string = "simTest"
 
-func TestBrainSwap(t *testing.T) {
+func TestBrainSwapFollower(t *testing.T) {
 
-	t.Run("Run sim to create entries", func(t *testing.T) {
+	t.Run("Create Followers On Network", func(t *testing.T) {
 		givenNodes := os.Getenv("GIVEN_NODES")
 		factomHome := os.Getenv("FACTOM_HOME")
 		maxBlocks, _ := strconv.ParseInt(os.Getenv("MAX_BLOCKS"), 10, 64)
@@ -30,7 +30,7 @@ func TestBrainSwap(t *testing.T) {
 		}
 
 		if givenNodes == "" {
-			givenNodes = "F"
+			givenNodes = "FF"
 		}
 
 		// FIXME update to match test data
@@ -58,16 +58,19 @@ func TestBrainSwap(t *testing.T) {
 		state0.LogPrintf(logName, "GIVEN_NODES:%v", givenNodes)
 
 		t.Run("Wait For Identity Swap", func(t *testing.T) {
-			// NOTE: external scripts swap config files
-			// during this time
+			// FIXME: replace external scripts swap config files
 			WaitForBlock(state0, 12)
+			// brainswap leader
 			Followers--
 			Leaders++
+			// brainswap auditor
+			Followers--
+			Audits++
 			WaitForAllNodes(state0)
-			CheckAuthoritySet(t)
 		})
 
 		t.Run("Verify Network", func(t *testing.T) {
+			CheckAuthoritySet(t)
 			WaitBlocks(state0, 3)
 			Halt(t)
 		})
