@@ -1183,11 +1183,9 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 
 	fs.(*FactoidState).DBHeight = list.State.GetDirectoryBlock().GetHeader().GetDBHeight()
 
-	if list.State.DBFinished {
-		tbh := list.State.FactoidState.GetBalanceHash(true) // recompute temp balance hash here
-		list.State.Balancehash = fs.GetBalanceHash(false)
-		list.State.LogPrintf("dbstateprocess", "ProcessBlock(%d) BalanceHash P %x T %x", dbht, list.State.Balancehash.Bytes()[0:4], tbh.Bytes()[0:4])
-	}
+	tbh := list.State.FactoidState.GetBalanceHash(true) // recompute temp balance hash here
+	list.State.Balancehash = fs.GetBalanceHash(false)
+	list.State.LogPrintf("dbstateprocess", "ProcessBlock(%d) BalanceHash P %x T %x", dbht, list.State.Balancehash.Bytes()[0:4], tbh.Bytes()[0:4])
 
 	// We will only save blocks marked to be saved.  As such, this must follow
 	// the "d.saved = true" above
