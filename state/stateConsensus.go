@@ -608,12 +608,14 @@ func (s *State) ReviewHolding() {
 }
 
 func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
+	s.LogPrintf("dbstateprocess", "MoveStateToHeight(%d-:-%d) called from %s", dbheight, newMinute, atomic.WhereAmIString(1))
 
-	if newMinute == 0 {
-		s.CheckForIDChange(dbheight)
+	// REVIEW: checking for a change-in-height causes brainswap not to work w/ older v6.1.0
+	// if  newMinute == 0 && s.LLeaderHeight != dbheight {
+	if  newMinute == 0 {
+		s.CheckForIDChange()
 	}
 
-	s.LogPrintf("dbstateprocess", "MoveStateToHeight(%d-:-%d) called from %s", dbheight, newMinute, atomic.WhereAmIString(1))
 	if (s.LLeaderHeight+1 == dbheight && newMinute == 0) || (s.LLeaderHeight == dbheight && s.CurrentMinute+1 == newMinute) {
 		// these are the allowed cases; move to nextblock-:-0 or move to next minute
 	} else {
@@ -2039,21 +2041,12 @@ func (s *State) GetUnsyncedServersString(dbheight uint32) string {
 	return ids
 }
 
-func (s *State) CheckForIDChange(targetHeight uint32) {
+func (s *State) CheckForIDChange() {
 	changed, _ := s.GetAckChange()
-	var reloadIdentity bool = false
-
 	if changed {
 		s.LogPrintf("AckChange", "AckChange %v", s.AckChange)
 	}
-
-	if s.AckChange >  0 { // NOTE: setting to 0 or negative disables identity reloading
-		if targetHeight >= s.AckChange {
-			reloadIdentity = true
-		}
-	}
-
-	if reloadIdentity {
+	if s.AckChange > 0 && s.LLeaderHeight >= s.AckChange {
 		config := util.ReadConfig(s.ConfigFilePath)
 		var err error
 		s.IdentityChainID, err = primitives.NewShaHashFromStr(config.App.IdentityChainID)
@@ -2062,7 +2055,7 @@ func (s *State) CheckForIDChange(targetHeight uint32) {
 		}
 		s.LocalServerPrivKey = config.App.LocalServerPrivKey
 		s.initServerKeys()
-		s.LogPrintf("AckChange", "reloadIdentity local_priv: %v pub: %v, priv: %v", s.LocalServerPrivKey, s.GetServerPublicKey(), s.GetServerPrivateKey())
+		s.LogPrintf("AckChange", "ReloadIdentity local_priv: %v ident_chain: %v", s.LocalServerPrivKey, s.IdentityChainID)
 	}
 }
 

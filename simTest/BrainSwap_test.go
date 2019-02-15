@@ -39,7 +39,7 @@ func TestBrainSwap(t *testing.T) {
 			"--network":             "LOCAL",
 			"--net":                 "alot+",
 			"--enablenet":           "true",
-			"--blktime":             "10",
+			"--blktime":             "30",
 			"--startdelay":          "1",
 			"--stdoutlog":           "out.txt",
 			"--stderrlog":           "out.txt",

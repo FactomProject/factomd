@@ -9,7 +9,7 @@ function start_node() {
       --factomhome=$DIR \
 			--network=LOCAL \
 			--db=Map \
-			--blktime=10 \
+			--blktime=30 \
 			--net=alot+ \
 			--enablenet=true \
 			--count=1 \
