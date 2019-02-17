@@ -288,7 +288,7 @@ func GetHardCodedGrants() []HardGrant {
 			// ********************************
 			// **** Grant Round 3 (2019-1) ****
 			// ********************************
-			
+
 			// Governance Grants
 
 			// Guide Payments December 7 - March 7
@@ -344,7 +344,7 @@ func GetHardCodedGrants() []HardGrant {
 
 			// FACTOM-GRANT-EXCHANGE-COMMITTEE-001
 			// Exchange Committee Funding (held back on request in 2018-2 round, paid out during 2019-1 round, see above approved grant proposal)
-			HardGrant{tbd, 4276e8, validateAddress("FA3YtPXAJehncSQtA8CWgNSWPr5pyeqovGQb99uVdmdeRqKAeg24")},
+			HardGrant{tbd, 4276e8, validateAddress("FA2feHES9FUQwSDYHeGT8UasUKAPNb91fMDTi7qqpXqHedrKyDwv")},
 
 			// FACTOM-GRANT-EXCHANGE-COMMITTEE-003
 			// Exchange Committee Funding (2019-1 round)
