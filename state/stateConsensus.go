@@ -610,10 +610,6 @@ func (s *State) ReviewHolding() {
 func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 	s.LogPrintf("dbstateprocess", "MoveStateToHeight(%d-:-%d) called from %s", dbheight, newMinute, atomic.WhereAmIString(1))
 
-	if s.LLeaderHeight != dbheight && newMinute == 0 {
-		s.CheckForIDChange()
-	}
-
 	if (s.LLeaderHeight+1 == dbheight && newMinute == 0) || (s.LLeaderHeight == dbheight && s.CurrentMinute+1 == newMinute) {
 		// these are the allowed cases; move to nextblock-:-0 or move to next minute
 	} else {
@@ -639,6 +635,10 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		s.CurrentMinute = 0                       // Update height and minute
 		s.LLeaderHeight = uint32(dbheight)        // Update height and minute
 		s.LeaderPL = s.ProcessLists.Get(dbheight) // fix up cached values
+
+		// has to be after setting processlist because that is where logging get the height to report
+		s.CheckForIDChange() // when we change to a new block height check if we get a new identity
+
 		if s.LLeaderHeight != s.LeaderPL.DBHeight {
 			panic("bad things are happening")
 		}

@@ -110,7 +110,7 @@ func TestBrainSwap1(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			globals.Params.FactomHome = dir + "/TestBrainSwap1"
+			globals.Params.FactomHome = dir + "/TestBrainSwap"
 			os.Setenv("FACTOM_HOME", globals.Params.FactomHome)
 
 			t.Logf("Removing old run in %s", globals.Params.FactomHome)
