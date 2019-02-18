@@ -10,7 +10,7 @@ import (
 
 func TestBrainSwapNetwork(t *testing.T) {
 
-	t.Run("Run sim to create entries", func(t *testing.T) {
+	t.Run("Create Authority Set", func(t *testing.T) {
 		givenNodes := os.Getenv("GIVEN_NODES")
 		factomHome := os.Getenv("FACTOM_HOME")
 		maxBlocks, _ := strconv.ParseInt(os.Getenv("MAX_BLOCKS"), 10, 64)
@@ -32,7 +32,6 @@ func TestBrainSwapNetwork(t *testing.T) {
 			givenNodes = "LLLLAAA"
 		}
 
-		// FIXME update to match test data
 		params := map[string]string{
 			"--db":                  "LDB", // NOTE: using MAP causes an occasional error see FD-825
 			"--network":             "LOCAL",
@@ -56,16 +55,18 @@ func TestBrainSwapNetwork(t *testing.T) {
 		state0 := SetupSim(givenNodes, params, int(maxBlocks), 0, 0, t)
 
 		t.Run("Wait For Identity Swap", func(t *testing.T) {
-			// NOTE: external scripts swap config files
-			// during this time
 			WaitForBlock(state0, 12)
+			// brainswap leader
 			Followers++
 			Leaders--
+			// brainswap auditor
+			Followers++
+			Audits--
 			WaitForAllNodes(state0)
-			CheckAuthoritySet(t)
 		})
 
 		t.Run("Verify Network", func(t *testing.T) {
+			CheckAuthoritySet(t)
 			WaitBlocks(state0, 3)
 			Halt(t)
 		})

@@ -7,14 +7,23 @@ function start_node() {
   FACTOM_HOME=$DIR go test -v $SIM_TEST #> out1.txt
 }
 
-function copy_primary() {
-  cat "../../simConfig/factomd00${1}.conf" | sed 's/ChangeAcksHeight = 0/ChangeAcksHeight = 1/' > "${DIR}/.factom/m2/factomd.conf"
+function copy() { # and set AcksHeight
+
+  if [[ $2 = 0 ]] ; then
+    target="${DIR}/.factom/m2/factomd.conf"
+  else
+    target="${DIR}/.factom/m2/simConfig/factomd00${2}.conf"
+  fi
+
+  cat "../../simConfig/factomd00${1}.conf" \
+    | sed 's/ChangeAcksHeight = 0/ChangeAcksHeight = 10/' > $target
 }
 
 function config() {
   # copy config files
   mkdir -p $DIR/.factom/m2/simConfig
-  copy_primary 9
+  copy 9 0
+  copy 8 1
 }
 
 
