@@ -443,6 +443,7 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 		os.MkdirAll(simConfigPath, 0775)
 	}
 
+	newState.FactomNodeName = s.Prefix + "FNode" + number
 	config := false
 	if _, err := os.Stat(configfile); !os.IsNotExist(err) {
 		os.Stderr.WriteString(fmt.Sprintf("   Using the %s config file.\n", configfile))
@@ -712,7 +713,7 @@ func (s *State) GetAckChange() (bool, error) {
 }
 
 func (s *State) LoadConfig(filename string, networkFlag string) {
-	s.FactomNodeName = s.Prefix + "FNode0" // Default Factom Node Name for Simulation
+	//	s.FactomNodeName = s.Prefix + "FNode0" // Default Factom Node Name for Simulation
 
 	if len(filename) > 0 {
 		s.ConfigFilePath = filename

@@ -610,9 +610,7 @@ func (s *State) ReviewHolding() {
 func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 	s.LogPrintf("dbstateprocess", "MoveStateToHeight(%d-:-%d) called from %s", dbheight, newMinute, atomic.WhereAmIString(1))
 
-	// REVIEW: checking for a change-in-height causes brainswap not to work w/ older v6.1.0
-	// if  newMinute == 0 && s.LLeaderHeight != dbheight {
-	if newMinute == 0 {
+	if s.LLeaderHeight != dbheight && newMinute == 0 {
 		s.CheckForIDChange()
 	}
 
