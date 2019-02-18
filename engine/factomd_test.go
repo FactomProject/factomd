@@ -1512,7 +1512,7 @@ func TestDBState(t *testing.T) {
 
 	state0 := SetupSim("LLLFFFF", map[string]string{"--net": "line", "--debuglog": ".", "--blktime": "10"}, 100, 0, 0, t)
 	state1 := GetFnodes()[1].State
-	state6 := GetFnodes()[6].State // Get node 4
+	state6 := GetFnodes()[6].State // Get node 6
 	StatusEveryMinute(state1)
 
 	WaitForMinute(state0, 8)
