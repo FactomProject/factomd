@@ -508,6 +508,8 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 
 	if !config {
 		newState.IdentityChainID = primitives.Sha([]byte(newState.FactomNodeName))
+		s.LogPrintf("AckChange", "Default3 IdentityChainID %v", s.IdentityChainID.String())
+
 		//generate and use a new deterministic PrivateKey for this clone
 		shaHashOfNodeName := primitives.Sha([]byte(newState.FactomNodeName)) //seed the private key with node name
 		clonePrivateKey := primitives.NewPrivateKeyFromHexBytes(shaHashOfNodeName.Bytes())
@@ -816,8 +818,11 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		identity, err := primitives.HexToHash(cfg.App.IdentityChainID)
 		if err != nil {
 			s.IdentityChainID = primitives.Sha([]byte(s.FactomNodeName))
+			s.LogPrintf("AckChange", "Bad IdentityChainID  in config %v", cfg.App.IdentityChainID)
+			s.LogPrintf("AckChange", "Default2 IdentityChainID %v", s.IdentityChainID.String())
 		} else {
 			s.IdentityChainID = identity
+			s.LogPrintf("AckChange", "Load IdentityChainID %v", s.IdentityChainID.String())
 		}
 	} else {
 		s.LogPath = "database/"
@@ -852,6 +857,7 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 
 		// TODO:  Actually load the IdentityChainID from the config file
 		s.IdentityChainID = primitives.Sha([]byte(s.FactomNodeName))
+		s.LogPrintf("AckChange", "Default IdentityChainID %v", s.IdentityChainID.String())
 
 	}
 	s.JournalFile = s.LogPath + "/journal0" + ".log"
@@ -2039,6 +2045,9 @@ func (s *State) GetIdentityChainID() (rval interfaces.IHash) {
 }
 
 func (s *State) SetIdentityChainID(chainID interfaces.IHash) {
+	if !s.IdentityChainID.IsSameAs(chainID) {
+		s.LogPrintf("AckChange", "SetIdentityChainID %v", chainID.String())
+	}
 	s.IdentityChainID = chainID
 }
 

@@ -2046,7 +2046,7 @@ func (s *State) CheckForIDChange() {
 	if changed {
 		s.LogPrintf("AckChange", "AckChange %v", s.AckChange)
 	}
-	if s.AckChange > 0 && s.LLeaderHeight >= s.AckChange {
+	if s.LLeaderHeight == s.AckChange {
 		config := util.ReadConfig(s.ConfigFilePath)
 		var err error
 		s.IdentityChainID, err = primitives.NewShaHashFromStr(config.App.IdentityChainID)
@@ -2055,7 +2055,7 @@ func (s *State) CheckForIDChange() {
 		}
 		s.LocalServerPrivKey = config.App.LocalServerPrivKey
 		s.initServerKeys()
-		s.LogPrintf("AckChange", "ReloadIdentity local_priv: %v ident_chain: %v", s.LocalServerPrivKey, s.IdentityChainID)
+		s.LogPrintf("AckChange", "ReloadIdentity local_priv: %s ident_chain: %v", s.LocalServerPrivKey, s.IdentityChainID)
 	}
 }
 

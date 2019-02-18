@@ -8,9 +8,7 @@ import (
 	. "github.com/FactomProject/factomd/testHelper"
 )
 
-var logName string = "simTest"
-
-func TestBrainSwap(t *testing.T) {
+func TestBrainSwapFollower(t *testing.T) {
 
 	t.Run("Run sim to create entries", func(t *testing.T) {
 		givenNodes := os.Getenv("GIVEN_NODES")
@@ -56,7 +54,6 @@ func TestBrainSwap(t *testing.T) {
 		}
 
 		state0 := SetupSim(givenNodes, params, int(maxBlocks), 0, 0, t)
-		state0.LogPrintf(logName, "GIVEN_NODES:%v", givenNodes)
 
 		t.Run("Wait For Identity Swap", func(t *testing.T) {
 			// NOTE: external scripts swap config files
