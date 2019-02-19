@@ -27,13 +27,39 @@ func GetHardCodedGrants() []HardGrant {
 			HardGrant{21, 2, validateAddress("FA3oajkmHMfqkNMMShmqpwDThzMCuVrSsBwiXM2kYFVRz3MzxNAJ")}, // Pay Clay 2
 			HardGrant{31, 4, validateAddress("FA3Ga2XcaheS5NgQ3q22gBpLgE6tXmPu1GhjdU2FsdN2QPMzKJET")}, // Pay Bob 4
 			HardGrant{21, 3, validateAddress("FA3Ga2XcaheS5NgQ3q22gBpLgE6tXmPu1GhjdU2FsdN2QPMzKJET")}, // Pay Bob 3
-			HardGrant{11, 1, validateAddress("FA3GH7VEFKqTdJcmwGgDrcY4Xh9njQ4EWiJxhJeim6BCA7QuB388")}, // Pay Bill 1
+
+			// Note to future grant implementers.  To test the grants that you have coded up on mainnet before deployment on your local machine use this procedure.
+			// - Code all the grants and add them to the MAIN section. Use the correct activation height, where Height % 25 = 1
+			// - Next copy the new grants to this section, but substituing the activation height for one closer to zero.  the Height should be % 10 = 1
+			//   If the grants are activating on multiple different block heights, then use different heights in this section too.
+			// - Clear out the .factom/m2/local-database folder to start with a fresh blockchain
+			// - Compile and run like this: factomd -network=LOCAL
+			// - Open the control panel and wait until after the activation block has been signed.
+			// - Open the Admin block at that height (in this example 11) and make sure the coinbase constructor looks correct.  Repeat this for all the activation heights
+			// - Wait 10 more blocks and then open the factoid block which implements the grants and doublecheck that the addresses look correct.  Check that the total output balance looks right
+			// - To test the ability of the transaction to pass over DBstates do this:
+			// - Stop factomd and restart it with this command: factomd -network=LOCAL -count=2
+			// - Switch to the second simnode by pressing 1 <enter> in the simulator console
+			// - Check you are on the second node by pressing s <enter> to print out the summary.  It should show "1 f FNode01" to indicate focus is on the new simnode.  This means you are viewing that control panel now.
+			// - Refersh the control panel and make sure that it downloads the blockchain and is keeping up with the first simnode and is not stalled on either of the grant blocks.
+
+			// Copy (and replace) the new grants to be tested here:
+			// Centis BV total: 1200 FCT (300 FCT * 2 months) + (600 FCT * 1 month) = 1200 FCT lowered upon request
+			HardGrant{11, 1200e8, validateAddress("FA2hvRaci9Kks9cLNkEUFcxzUJuUFaaAE1eWYLqa2qk1k9pVFVBp")},
+			// The 42nd Factoid total: 1800 FCT
+			HardGrant{11, 1800e8, validateAddress("FA3AEL2H9XZy3n199USs2poCEJBkK1Egy6JXhLehfLJjUYMKh1zS")},
+			// Factom, Inc. total: 1800 FCT
+			HardGrant{11, 1800e8, validateAddress("FA2teRURMYTdYAA97zdh7rZDkxNtR1nhjryo34aaskjYqsqRSwZq")},
+			// Canonical Ledgers total: 1800 FCT
+			HardGrant{11, 1800e8, validateAddress("FA2PEXgRiPd14NzUP47XfVTgEnvjtLSebBZvnM8gM7cJAMuqWs89")},
+			// DBGrow total: 1800 FCT
+			HardGrant{11, 1800e8, validateAddress("FA3HSuFo9Soa5ZnG82JHqyKiRi4Pw17LxPTo9AsCaFNLCGkXkgsu")},
 		}
 	case "CUSTOM":
 		hardcodegrants = []HardGrant{}
 
 	case "MAIN":
-		// note to future grant implementors.  On mainnet, grants should be on blocks divisible by 25 + 1.  See function CheckGrants().
+		// Note to future grant implementers.  On mainnet, grants should be on blocks divisible by 25 + 1.  See function CheckGrants().
 		hardcodegrants = []HardGrant{
 			// Initial grants approved June 9, 2018 https://drive.google.com/drive/folders/1e_xmKgJb375EcAwwkz2d3mdYs0PVVih3
 			// https://factomize.com/forums/threads/implementing-the-initial-grants.428/
