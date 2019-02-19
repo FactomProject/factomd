@@ -6,12 +6,17 @@ import (
 
 	. "github.com/FactomProject/factomd/testHelper"
 )
+/*
+This test is part of a Network/Follower pair of tests used to test
+brainswapping between 2 different versions of factomd
 
+If you boot this simulator by itself - the tests will fail
+ */
 func TestBrainSwapNetwork(t *testing.T) {
 
 	t.Run("Network Sim", func(t *testing.T) {
 		maxBlocks := 30
-		peers := "127.0.0.1:37003"
+		peers := "127.0.0.1:37003" // follower peer uses standard unit testing port
 		givenNodes := "LLLLAAA"
 		outputNodes := "LLLAAFF"
 
@@ -40,7 +45,7 @@ func TestBrainSwapNetwork(t *testing.T) {
 			"--logPort":             "38000",
 			"--port":                "38001",
 			"--controlpanelport":    "38002",
-			"--networkport":         "38003",
+			"--networkport":         "38003", // Listen on 'non-standard' unit test port
 			"--peers":               peers,
 			"--factomhome":          globals.Params.FactomHome,
 		}
