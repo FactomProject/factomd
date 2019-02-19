@@ -6,7 +6,6 @@ package state
 
 import (
 	"container/list"
-	"fmt"
 	"time"
 
 	"github.com/FactomProject/factomd/common/messages"
@@ -17,13 +16,8 @@ func (list *DBStateList) Catchup() {
 	waiting := list.State.StatesWaiting
 	recieved := list.State.StatesReceived
 
-	// requestTimeout := list.State.RequestTimeout
-	// requestLimit := list.State.RequestLimit
-	requestTimeout, err := time.ParseDuration("30s")
-	if err != nil {
-		fmt.Println("DEBUG: ", err)
-	}
-	requestLimit := 150
+	requestTimeout := list.State.RequestTimeout
+	requestLimit := list.State.RequestLimit
 
 	// keep the lists up to date with the saved states.
 	go func() {
@@ -136,15 +130,8 @@ func (list *DBStateList) Catchup() {
 				// 	}
 				// }
 
-				fmt.Println("DEBUG: waiting: ", waiting.Len())
-				fmt.Println("DEBUG: missing: ", missing.Len())
-
 				// TODO: the batch limit should probably be set by a configuration variable
 				b, e := missing.NextConsecutiveMissing(10)
-				fmt.Printf(
-					"DEBUG: requesting consecutive missing blocks %d to %d\n",
-					b, e,
-				)
 
 				if b == 0 && e == 0 {
 					time.Sleep(1 * time.Second)
