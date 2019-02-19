@@ -284,7 +284,6 @@ func GetHardCodedGrants() []HardGrant {
 			// Sponsor, David Chapman -- 223 FCT
 			HardGrant{168576, 223e8, validateAddress("FA3YtPXAJehncSQtA8CWgNSWPr5pyeqovGQb99uVdmdeRqKAeg24")},
 
-
 			// ********************************
 			// **** Grant Round 3 (2019-1) ****
 			// ********************************
@@ -310,7 +309,6 @@ func GetHardCodedGrants() []HardGrant {
 			HardGrant{181001, 1800e8, validateAddress("FA3HSuFo9Soa5ZnG82JHqyKiRi4Pw17LxPTo9AsCaFNLCGkXkgsu")},
 			// --------------------------------------------------------
 
-
 			// Anchor and Oracle master grants
 
 			// Factom, Inc 007 -- Oracle Master Dec 9 2018 - Mar 9 2019
@@ -329,7 +327,6 @@ func GetHardCodedGrants() []HardGrant {
 			// 220 FCT per month for three months = 660 FCT
 			HardGrant{181001, 660e8, validateAddress("FA3jySUFtLXb1VdAJJ5NRVNYEtZ4EBSkDB7yn6LuKGQ4P1ntARhx")},
 			// --------------------------------------------------------
-
 
 			// Committee Grants
 
@@ -350,7 +347,6 @@ func GetHardCodedGrants() []HardGrant {
 			// Exchange Committee Funding (2019-1 round)
 			HardGrant{181001, 5000e8, validateAddress("FA2feHES9FUQwSDYHeGT8UasUKAPNb91fMDTi7qqpXqHedrKyDwv")},
 			// --------------------------------------------------------
-
 
 			// Core Development
 
@@ -391,7 +387,6 @@ func GetHardCodedGrants() []HardGrant {
 			HardGrant{181001, 500e8, validateAddress("FA2YFZrZkywe1TvSrsWCaZ5RyJ1ZXcN5a2x9WqCRobj5GQawpTNt")},
 			// --------------------------------------------------------
 
-
 			// Factom Open API
 
 			// FACTOM-GRANT-DEFACTO-001
@@ -401,7 +396,6 @@ func GetHardCodedGrants() []HardGrant {
 			// Jay Cheroske (Bedrock Solutions)
 			HardGrant{181001, 400e8, validateAddress("FA2FqYZPfBeRWq7fWSFEhassT5zpMQZm8jwus3yWbzeN3PZPWybm")},
 			// --------------------------------------------------------
-
 
 			// Factom Open Node
 
@@ -427,7 +421,6 @@ func GetHardCodedGrants() []HardGrant {
 			HardGrant{181001, 30e8, validateAddress("FA29wMUjN38BVLbJs6dR6gHHdBys2mpo3wy565JCjquUQTGqNZfb")},
 			// --------------------------------------------------------
 
-
 			// Blockchain Expo Global 2019
 
 			// FACTOM-GRANT-PRESTIGE_IT-001
@@ -435,14 +428,12 @@ func GetHardCodedGrants() []HardGrant {
 			HardGrant{181001, 682e8, validateAddress("FA3iRzBGA78gkkJ88PinKi3wwNfBhyoGExgzYx9btJZqo5or1o5A")},
 			// --------------------------------------------------------
 
-
 			// Marketing Videos
 
 			// FACTOM-GRANT-FACTOMIZE-001
 			// Factomize, Marketing videos
 			HardGrant{181001, 500e8, validateAddress("FA3XkRCucFVp2ZMnY5uSkxrzKojirkeY6KpwkJyNZPRJ4LsjmFDp")},
 			// --------------------------------------------------------
-
 
 			// FAT protocol
 
@@ -454,7 +445,6 @@ func GetHardCodedGrants() []HardGrant {
 			HardGrant{181001, 3200e8, validateAddress("FA3DikVW7pzhMkJXuP9xszf9o3aKrMHqEpPkLee2Nb6WewhupyM8")},
 			// Canonical Ledgers -- 4.000 FCT
 			HardGrant{181001, 4000e8, validateAddress("FA2nBeBX75R7ECdhZS61DLpP5apaS32zwSYQ7aRkahwAjy5bryFo")},
-
 		}
 
 	default:
