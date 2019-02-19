@@ -2224,29 +2224,31 @@ func (s *State) GetMessageFilterTimestamp() interfaces.Timestamp {
 // We will not set it to a time that is before boot or more than one hour in the past.
 // this ensure messages from prior boot and messages that predate the current replay filter are
 // are dropped.
-func (s *State) SetMessageFilterTimestamp(requestedTs interfaces.Timestamp) {
+func (s *State) SetMessageFilterTimestamp(leaderTS interfaces.Timestamp) {
 
-	timenow := primitives.NewTimestampNow() // now() - one hour
+	// make a copy of the time stamp so we don't change the source
+	requestedTS := new(primitives.Timestamp)
+	requestedTS.SetTimestamp(leaderTS)
 
-	ts := new(primitives.Timestamp)
-	ts.SetTimestamp(requestedTs)
-	/// this is pointless since boot is always before now.
-	if ts.GetTimeMilli() < s.TimestampAtBoot.GetTimeMilli() {
-		ts.SetTimestamp(s.TimestampAtBoot)
+	onehourago := new(primitives.Timestamp)
+	onehourago.SetTimeMilli(primitives.NewTimestampNow().GetTimeMilli() - 60*60*1000) // now() - one hour
+
+	if requestedTS.GetTimeMilli() < onehourago.GetTimeMilli() {
+		requestedTS.SetTimestamp(onehourago)
 	}
 
-	if ts.GetTimeMilli() < timenow.GetTimeMilli() {
-		ts.SetTimestamp(timenow)
+	if requestedTS.GetTimeMilli() < s.TimestampAtBoot.GetTimeMilli() {
+		requestedTS.SetTimestamp(s.TimestampAtBoot)
 	}
 
-	if s.MessageFilterTimestamp != nil && ts.GetTimeMilli() < s.MessageFilterTimestamp.GetTimeMilli() {
+	if s.MessageFilterTimestamp != nil && requestedTS.GetTimeMilli() < s.MessageFilterTimestamp.GetTimeMilli() {
 		s.LogPrintf("executeMsg", "Set MessageFilterTimestamp attempt to move backward in time from %s", atomic.WhereAmIString(1))
 		return
 	}
 
-	s.LogPrintf("executeMsg", "SetMessageFilterTimestamp(%s) using %s ", requestedTs, ts.String())
+	s.LogPrintf("executeMsg", "SetMessageFilterTimestamp(%s) using %s ", leaderTS, requestedTS.String())
 
-	s.MessageFilterTimestamp = primitives.NewTimestampFromMilliseconds(ts.GetTimeMilliUInt64())
+	s.MessageFilterTimestamp = primitives.NewTimestampFromMilliseconds(requestedTS.GetTimeMilliUInt64())
 }
 
 func (s *State) SetLeaderTimestamp(ts interfaces.Timestamp) {

@@ -627,7 +627,7 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 
 	// REVIEW: checking for a change-in-height causes brainswap not to work w/ older v6.1.0
 	// if  newMinute == 0 && s.LLeaderHeight != dbheight {
-	if  newMinute == 0 {
+	if newMinute == 0 {
 		s.CheckForIDChange()
 	}
 
@@ -673,19 +673,21 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 
 		// update cached values that change with height
 		// check if a DBState exists where we can get the timestamp
-		dbstate := s.DBStates.Get(int(dbheight))
-
-		// Setting the leader timestamp is as follows.
-		// If we have a dbstate use it's timestamp.
-		// If we don't have a DBState see if the database has a dblock
-		//  if not try the previous block
-		// there more complexity down in SetLeaderTimestamp where boot time and now-60 minutes get mixed
-		// the primary use of the timestamp is message filtering
-		if dbstate != nil {
-			s.SetLeaderTimestamp(dbstate.DirectoryBlock.GetTimestamp())
-		} else if dblock, err := s.DB.FetchDBlockByHeight(dbheight); dblock != nil && err == nil {
-			s.SetLeaderTimestamp(dblock.GetTimestamp())
-		}
+		//dbstate := s.DBStates.Get(int(dbheight))
+		//
+		//// Setting the leader timestamp is as follows.
+		//// If we have a dbstate use it's timestamp.
+		//// If we don't have a DBState see if the database has a dblock
+		////  if not try the previous block
+		//// there more complexity down in SetLeaderTimestamp where boot time and now-60 minutes get mixed
+		//// the primary use of the timestamp is message filtering
+		//if dbstate != nil {
+		//	s.SetLeaderTimestamp(dbstate.DirectoryBlock.GetTimestamp())
+		//} else if dblock, err := s.DB.FetchDBlockByHeight(dbheight); dblock != nil && err == nil {
+		//	s.SetLeaderTimestamp(dblock.GetTimestamp())
+		//} else {
+		//	fmt.Print("well, now what?")
+		//}
 		s.dbheights <- int(dbheight) // Notify MMR process we have moved on...
 
 		s.CurrentMinuteStartTime = time.Now().UnixNano()
