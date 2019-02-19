@@ -33,6 +33,7 @@ func GetHardCodedGrants() []HardGrant {
 		hardcodegrants = []HardGrant{}
 
 	case "MAIN":
+		// note to future grant implementors.  On mainnet, grants should be on blocks divisible by 25 + 1.  See function CheckGrants().
 		hardcodegrants = []HardGrant{
 			// Initial grants approved June 9, 2018 https://drive.google.com/drive/folders/1e_xmKgJb375EcAwwkz2d3mdYs0PVVih3
 			// https://factomize.com/forums/threads/implementing-the-initial-grants.428/
