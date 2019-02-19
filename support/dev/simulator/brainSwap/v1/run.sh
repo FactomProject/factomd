@@ -12,7 +12,7 @@ function start_node() {
 			--blktime=30 \
 			--net=alot+ \
 			--enablenet=true \
-			--count=1 \
+			--count=2 \
 			--startdelay=1 \
 			--stdoutlog=out.txt \
 			--stderrlog=out.txt \
@@ -35,7 +35,7 @@ function copy() { # and set AcksHeight
   fi
 
   cat "../../simConfig/factomd00${1}.conf" \
-    | sed 's/ChangeAcksHeight = 0/ChangeAcksHeight = 10/' > $target
+    | sed 's/ChangeAcksHeight = 0/ChangeAcksHeight = 1/' > $target
 }
 
 function config() {

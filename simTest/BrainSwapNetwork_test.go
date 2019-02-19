@@ -1,8 +1,7 @@
 package simtest
 
 import (
-	"os"
-	"strconv"
+	"github.com/FactomProject/factomd/common/globals"
 	"testing"
 
 	. "github.com/FactomProject/factomd/testHelper"
@@ -10,29 +9,23 @@ import (
 
 func TestBrainSwapNetwork(t *testing.T) {
 
-	t.Run("Create Authority Set", func(t *testing.T) {
-		givenNodes := os.Getenv("GIVEN_NODES")
-		factomHome := os.Getenv("FACTOM_HOME")
-		maxBlocks, _ := strconv.ParseInt(os.Getenv("MAX_BLOCKS"), 10, 64)
-		peers := os.Getenv("PEERS")
+	t.Run("Network Sim", func(t *testing.T) {
+		maxBlocks := 30
+		peers := "127.0.0.1:37003"
+		givenNodes := "LLLLAAA"
+		outputNodes := "LLLAAFF"
 
-		if factomHome == "" {
-			factomHome = ".sim/network"
-		}
+		t.Run("Setup Config Files", func(t *testing.T) {
+			ResetFactomHome(t, "network")
 
-		if maxBlocks == 0 {
-			maxBlocks = 30
-		}
-
-		if peers == "" {
-			peers = "127.0.0.1:37003"
-		}
-
-		if givenNodes == "" {
-			givenNodes = "LLLLAAA"
-		}
+			// build config files for the test
+			for i := 0; i < len(givenNodes); i++ {
+				WriteConfigFile(i, i, "ChangeAcksHeight = 1\n", t)
+			}
+		})
 
 		params := map[string]string{
+			"--prefix":              "v0",
 			"--db":                  "LDB", // NOTE: using MAP causes an occasional error see FD-825
 			"--network":             "LOCAL",
 			"--net":                 "alot+",
@@ -44,32 +37,29 @@ func TestBrainSwapNetwork(t *testing.T) {
 			"--checkheads":          "false",
 			"--controlpanelsetting": "readwrite",
 			//"--debuglog":            ".",
-			"--logPort":          "38000",
-			"--port":             "38001",
-			"--controlpanelport": "38002",
-			"--networkport":      "38003",
-			"--peers":            peers,
-			"--factomhome":       factomHome,
+			"--logPort":             "38000",
+			"--port":                "38001",
+			"--controlpanelport":    "38002",
+			"--networkport":         "38003",
+			"--peers":               peers,
+			"--factomhome":          globals.Params.FactomHome,
 		}
 
 		state0 := SetupSim(givenNodes, params, int(maxBlocks), 0, 0, t)
 
 		t.Run("Wait For Identity Swap", func(t *testing.T) {
-			WaitForBlock(state0, 12)
-			// brainswap leader
-			Followers++
-			Leaders--
-			// brainswap auditor
-			Followers++
-			Audits--
 			WaitForAllNodes(state0)
+			WriteConfigFile(9, 1, "ChangeAcksHeight = 10\n", t)
+			WriteConfigFile(8, 4, "ChangeAcksHeight = 10\n", t)
+			WaitForBlock(state0, 10)
+			AdjustAuthoritySet(outputNodes)
 		})
 
 		t.Run("Verify Network", func(t *testing.T) {
+			WaitBlocks(state0, 1)
 			CheckAuthoritySet(t)
-			WaitBlocks(state0, 3)
+			WaitBlocks(state0, 2)
 			Halt(t)
 		})
-
 	})
 }

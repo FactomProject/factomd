@@ -1,3 +1,2 @@
-v0: test0/run.sh
-v1: test1/run.sh
-swap: sleep 150 && ./test0/swap.sh && ./test1/swap.sh && tail -f /dev/null
+0: ./test0.sh
+1: ./test1.sh
