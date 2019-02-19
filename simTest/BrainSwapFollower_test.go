@@ -13,13 +13,14 @@ func TestBrainSwapFollower(t *testing.T) {
 	t.Run("Followers Sim", func(t *testing.T) {
 		maxBlocks := 30
 		peers := "127.0.0.1:38003"
-		givenNodes := "FF"
-		outputNodes := "LF"
+		// thsi sim is  8 9
+		given_Nodes := "FF"
+		outputNodes := "LA"
 
 		t.Run("Setup Config Files", func(t *testing.T) {
 			ResetFactomHome(t, "follower")
-			WriteConfigFile(9, 0, "ChangeAcksHeight = 1\n", t)
-			WriteConfigFile(8, 1, "ChangeAcksHeight = 1\n", t)
+			WriteConfigFile(9, 0, "", t)
+			WriteConfigFile(8, 1, "", t)
 		})
 
 		params := map[string]string{
@@ -35,15 +36,15 @@ func TestBrainSwapFollower(t *testing.T) {
 			"--checkheads":          "false",
 			"--controlpanelsetting": "readwrite",
 			//"--debuglog":            ".",
-			"--logPort":             "37000",
-			"--port":                "37001",
-			"--controlpanelport":    "37002",
-			"--networkport":         "37003",
-			"--peers":               peers,
-			"--factomhome":          globals.Params.FactomHome,
+			"--logPort":          "37000",
+			"--port":             "37001",
+			"--controlpanelport": "37002",
+			"--networkport":      "37003",
+			"--peers":            peers,
+			"--factomhome":       globals.Params.FactomHome,
 		}
 
-		state0 := SetupSim(givenNodes, params, int(maxBlocks), 0, 0, t)
+		state0 := SetupSim(given_Nodes, params, int(maxBlocks), 0, 0, t)
 
 		t.Run("Wait For Identity Swap", func(t *testing.T) {
 			WaitForAllNodes(state0)
