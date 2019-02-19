@@ -13,7 +13,7 @@ This test is part of a Network/Follower pair of tests used to test
 brainswapping between 2 different versions of factomd
 
 If you boot this simulator by itself - the simulation will not progress and will eventually time out
- */
+*/
 func TestBrainSwapFollower(t *testing.T) {
 
 	t.Run("Followers Sim", func(t *testing.T) {
@@ -42,12 +42,12 @@ func TestBrainSwapFollower(t *testing.T) {
 			"--checkheads":          "false",
 			"--controlpanelsetting": "readwrite",
 			//"--debuglog":            ".",
-			"--logPort":             "37000",
-			"--port":                "37001",
-			"--controlpanelport":    "37002",
-			"--networkport":         "37003",
-			"--peers":               peers,
-			"--factomhome":          globals.Params.FactomHome,
+			"--logPort":          "37000",
+			"--port":             "37001",
+			"--controlpanelport": "37002",
+			"--networkport":      "37003",
+			"--peers":            peers,
+			"--factomhome":       globals.Params.FactomHome,
 		}
 
 		state0 := SetupSim(given_Nodes, params, int(maxBlocks), 0, 0, t)
