@@ -7,8 +7,6 @@ import (
 	"testing"
 )
 
-var logName string = "simTest"
-
 func TestBrainSwapFollower(t *testing.T) {
 
 	t.Run("Create Followers On Network", func(t *testing.T) {
@@ -55,7 +53,6 @@ func TestBrainSwapFollower(t *testing.T) {
 		}
 
 		state0 := SetupSim(givenNodes, params, int(maxBlocks), 0, 0, t)
-		state0.LogPrintf(logName, "GIVEN_NODES:%v", givenNodes)
 
 		t.Run("Wait For Identity Swap", func(t *testing.T) {
 			// FIXME: replace external scripts swap config files

@@ -1202,6 +1202,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	if s.LLeaderHeight == dbht {
 		// if we are following by blocks then this move us forward but if we are following by minutes the
 		// code in ProcessEOM for minute 10 will have moved us forward
+		s.SetLeaderTimestamp(d.DirectoryBlock.GetTimestamp())
 		s.MoveStateToHeight(dbht+1, 0)
 		// todo: is there a reason not to do this in MoveStateToHeight?
 		fs.(*FactoidState).DBHeight = dbht + 1
