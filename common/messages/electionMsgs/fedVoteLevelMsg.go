@@ -200,7 +200,7 @@ func (m *FedVoteLevelMsg) FollowerExecute(is interfaces.IState) {
 	e := s.Elections.(*elections.Elections)
 	if pl == nil || e.Adapter == nil {
 		//s.Holding[m.GetMsgHash().Fixed()] = m
-		s.AddToHolding(m.GetMsgHash().Fixed(), m)
+		s.AddToHolding(m.GetMsgHash().Fixed(), m) // FedVoteLevelMsg.FollowerExecute
 
 		return
 	}
