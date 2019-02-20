@@ -1,4 +1,4 @@
-package longtests
+package longtest
 
 import (
 	"fmt"

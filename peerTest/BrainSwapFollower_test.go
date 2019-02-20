@@ -19,7 +19,7 @@ func TestBrainSwapFollower(t *testing.T) {
 		maxBlocks := 30
 		peers := "127.0.0.1:38003"
 		// thsi sim is  8 9
-		given_Nodes := "FF"
+		givenNodes := "FF"
 		outputNodes := "LA"
 
 		t.Run("Setup Config Files", func(t *testing.T) {
@@ -49,7 +49,7 @@ func TestBrainSwapFollower(t *testing.T) {
 			"--factomhome":       globals.Params.FactomHome,
 		}
 
-		state0 := SetupSim(given_Nodes, params, int(maxBlocks), 0, 0, t)
+		state0 := SetupSim(givenNodes, params, int(maxBlocks), 0, 0, t)
 
 		t.Run("Wait For Identity Swap", func(t *testing.T) {
 			WaitForAllNodes(state0)

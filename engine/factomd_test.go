@@ -1533,15 +1533,3 @@ func TestDBState(t *testing.T) {
 	PrintOneStatus(0, 0)
 	ShutDownEverything(t)
 }
-
-func SystemCall(cmd string) {
-	fmt.Println("SystemCall(\"", cmd, "\")")
-	out, err := exec.Command("sh", "-c", cmd).Output()
-	if err != nil {
-		foo := err.Error()
-		fmt.Println(foo)
-		os.Exit(1)
-		panic(err)
-	}
-	fmt.Print(string(out))
-}
