@@ -34,7 +34,11 @@ jobs:
             glide install
       - run:
           name: Build and install the executable
-          command: go install -v
+          command: go install -v && cp -r $GOPATH/ /tmp
+
+      - persist_to_workspace:
+          root: /tmp
+          paths: go
 
       - save_cache:
           key: v2-factomd-go-build-cache-{{ checksum "glide.lock" }}
@@ -42,49 +46,20 @@ jobs:
             - vendor
 
   test:
-    working_directory: /go/src/github.com/FactomProject/factomd
+    working_directory: /tmp
     docker:
       - image: circleci/golang:1.10
 
+    parallelism: 3
+
     steps:
-      - checkout
-
-      - restore_cache:
-          keys:
-            - v2-factomd-go-build-cache-{{ checksum "glide.lock" }}
+      - attach_workspace:
+          at: /tmp
 
       - run:
-          name: Get glide
-          command: |
-            go get -v github.com/Masterminds/glide
-            cd $GOPATH/src/github.com/Masterminds/glide
-            git checkout tags/v0.13.1
-            go install
-      - run:
-          name: Get goveralls
-          command: |
-            go get github.com/mattn/goveralls
-            cd $GOPATH/src/github.com/Masterminds/glide
-            git checkout tags/v0.13.1
-            go install
-      - run:
-          name: Get the dependencies
-          command: |
-            glide install
-      - run:
-          name: Build and install the executable
-          command: go install -v
-
-      - run:
-          name: Run tests!
+          name: Unit + Simulation Tests
           no_output_timeout: 2400
-          command: ./test.sh
-
-
-      - save_cache:
-          key: v2-factomd-go-build-cache-{{ checksum "glide.lock" }}
-          paths:
-            - vendor
+          command: PATH="/tmp/go/bin:$PATH" GOPATH=/tmp/go /tmp/go/src/github.com/FactomProject/factomd/test.sh sim
 
   coveralls:
     working_directory: /go/src/github.com/FactomProject/factomd
@@ -123,7 +98,7 @@ jobs:
       - run:
           name: Go Test with Coverage
           no_output_timeout: 2400
-          command: go test $(glide nv | grep -v Utilities | grep -v longTest | grep -v peerTest) -vet=off -v -cover -coverprofile=coverage.out
+          command: go test $(glide nv | grep -v Utilities | grep -v longTest | grep -v peerTest | grep -v simTest) -vet=off -v -cover -coverprofile=coverage.out
 
       - run:
           name: Coveralls!
