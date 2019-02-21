@@ -50,14 +50,14 @@ jobs:
     docker:
       - image: circleci/golang:1.10
 
-    parallelism: 3
+    parallelism: 8
 
     steps:
       - attach_workspace:
           at: /tmp
 
       - run:
-          name: Unit + Simulation Tests
+          name: Run Tests!
           no_output_timeout: 2400
           command: PATH="/tmp/go/bin:$PATH" GOPATH=/tmp/go /tmp/go/src/github.com/FactomProject/factomd/test.sh sim
 
