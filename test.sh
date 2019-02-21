@@ -13,28 +13,22 @@ function simTests() {
 	# NOTE: this command causes Circle.ci to run tests in parallel across several containers
 	TESTS=$(circleci tests glob "simTest/*_test.go" | circleci tests split --split-by=timings)
 
-	echo '---------------'
-	echo "${TESTS}"
-	echo '---------------'
-
 	if [[ "${TESTS}x" ==  "x" ]] ; then
-    # circleci seems to always spin up an added container with no arguments
-		echo "Default Unit Tests"
+    # when there is not test argument run default tests
+    echo '---------------'
+    echo "UnitTests"
+    echo '---------------'
     unitTests
 	else
+    echo '---------------'
+    echo "${TESTS}"
+    echo '---------------'
+
 		go test -v -vet=off $TESTS
 	fi
 }
 
-function brainswapTest() {
-  # first network runs in the BG
-  nohup ./support/dev/simulator/brainSwap/test0.sh &
-
-  # and foreground test runs followers that swap identities
-  ./support/dev/simulator/brainSwap/test1.sh
-}
-
-# run "safe" test suite in serial
+# run "safe" test suite in serial to avoid hitting memory limits on circle.ci containers
 function unitTests() {
 
 	PACKAGES=$(glide nv | grep -v Utilities | grep -v longTest | grep -v peerTest | grep -v simTest)
@@ -60,14 +54,15 @@ function runOnCircle() {
 	echo "runOnCircle: $1"
 
   case "$1" in
-    brainswap)
-        brainswapTest
-        ;;
     sim)
         simTests
         ;;
-    *)
+    unit)
         unitTests
+        ;;
+    *)
+        echo "Unknown test: '${1}'"
+        exit -1
   esac
 }
 

@@ -18,7 +18,7 @@ func TestBrainSwapFollower(t *testing.T) {
 	t.Run("Followers Sim", func(t *testing.T) {
 		maxBlocks := 30
 		peers := "127.0.0.1:38003"
-		// thsi sim is  8 9
+		// this sim starts with identities 8 & 9
 		givenNodes := "FF"
 		outputNodes := "LA"
 

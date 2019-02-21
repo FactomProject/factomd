@@ -9,8 +9,13 @@ import (
 	. "github.com/FactomProject/factomd/testHelper"
 )
 
-// Test brainswapping a follower and a leader and swap a follower and an audit at the same height in the same build
-func TestBrainSwap1(t *testing.T) {
+/*
+Test brainswapping F <-> L with no auditors
+
+This test is useful for catching a failure scenario where the timing between
+identity swap is off leading to a stall
+*/
+func TestLeaderBrainSwap(t *testing.T) {
 
 	t.Run("Run Sim", func(t *testing.T) {
 
@@ -20,7 +25,7 @@ func TestBrainSwap1(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			globals.Params.FactomHome = dir + "/TestBrainSwap"
+			globals.Params.FactomHome = dir + "/TestLeadersOnlyBrainSwap"
 			os.Setenv("FACTOM_HOME", globals.Params.FactomHome)
 
 			t.Logf("Removing old run in %s", globals.Params.FactomHome)
@@ -55,9 +60,10 @@ func TestBrainSwap1(t *testing.T) {
 		}
 
 		// start the 6 nodes running  012345
-		state0 := SetupSim("LLLAFF", params, 15, 0, 0, t)
+		state0 := SetupSim("LLLFFF", params, 15, 0, 0, t)
+		state1 := engine.GetFnodes()[1].State // Get node 1
 		state2 := engine.GetFnodes()[2].State // Get node 2
-		state3 := engine.GetFnodes()[3].State // Get node 3
+		state3 := engine.GetFnodes()[3].State // Get node 2
 		state4 := engine.GetFnodes()[4].State // Get node 4
 		state5 := engine.GetFnodes()[5].State // Get node 5
 
@@ -66,15 +72,14 @@ func TestBrainSwap1(t *testing.T) {
 			WaitForAllNodes(state0)
 			// rewrite the config to have brainswaps
 
+			WriteConfigFile(1, 5, "ChangeAcksHeight = 10\n", t) // Setup A brain swap between L1 and F5
+			WriteConfigFile(5, 1, "ChangeAcksHeight = 10\n", t)
+
 			WriteConfigFile(2, 4, "ChangeAcksHeight = 10\n", t) // Setup A brain swap between L2 and F4
 			WriteConfigFile(4, 2, "ChangeAcksHeight = 10\n", t)
-			WriteConfigFile(3, 5, "ChangeAcksHeight = 10\n", t) // Setup A brain swap between A3 and F5
-			WriteConfigFile(5, 3, "ChangeAcksHeight = 10\n", t)
-			WaitForBlock(state0, 9)
-			RunCmd("5") // make sure the follower is lagging the audit so he doesn't beat the auditor to the ID change and produce a heartbeat that will kill him
-			RunCmd("x")
-			WaitForBlock(state3, 10) // wait till should have 3 has brainswapped
-			RunCmd("x")
+
+			WaitForBlock(state3, 10)
+
 			WaitBlocks(state0, 1)
 			WaitForAllNodes(state0)
 			CheckAuthoritySet(t)
@@ -82,20 +87,17 @@ func TestBrainSwap1(t *testing.T) {
 
 		t.Run("Verify Network", func(t *testing.T) {
 
+			if state1.Leader {
+				t.Error("Node 1 did not become a follower")
+			}
 			if state2.Leader {
 				t.Error("Node 2 did not become a follower")
-			}
-			if state3.Leader {
-				t.Error("Node 3 did not become a follower")
 			}
 			if !state4.Leader {
 				t.Error("Node 4 did not become a leader")
 			}
-
-			list := state0.ProcessLists.Get(state0.LLeaderHeight)
-			foundAudit, _ := list.GetAuditServerIndexHash(state5.GetIdentityChainID())
-			if !foundAudit {
-				t.Error("Node 5 did not become an audit server")
+			if !state5.Leader {
+				t.Error("Node 5 did not become a leader")
 			}
 
 			Halt(t)

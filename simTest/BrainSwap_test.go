@@ -10,14 +10,12 @@ import (
 )
 
 /*
-Test brainswapping a F <-> A
+Test brainswapping F <-> L  and F <-> A
 
-follower and an audit when the audit is lagging behind
-
-This test is useful for verifying that Leaders can swap without rebooting
-And that Audits can reboot with lag (to prevent a panic if 2 nodes see the same audit heartbeat)
+follower and a leader + follower and an audit
+at the same height in the same build
 */
-func TestAuditBrainSwap(t *testing.T) {
+func TestBrainSwap(t *testing.T) {
 
 	t.Run("Run Sim", func(t *testing.T) {
 
@@ -63,6 +61,8 @@ func TestAuditBrainSwap(t *testing.T) {
 
 		// start the 6 nodes running  012345
 		state0 := SetupSim("LLLAFF", params, 15, 0, 0, t)
+		state2 := engine.GetFnodes()[2].State // Get node 2
+		state3 := engine.GetFnodes()[3].State // Get node 3
 		state4 := engine.GetFnodes()[4].State // Get node 4
 		state5 := engine.GetFnodes()[5].State // Get node 5
 
@@ -71,12 +71,14 @@ func TestAuditBrainSwap(t *testing.T) {
 			WaitForAllNodes(state0)
 			// rewrite the config to have brainswaps
 
+			WriteConfigFile(2, 4, "ChangeAcksHeight = 10\n", t) // Setup A brain swap between L2 and F4
+			WriteConfigFile(4, 2, "ChangeAcksHeight = 10\n", t)
 			WriteConfigFile(3, 5, "ChangeAcksHeight = 10\n", t) // Setup A brain swap between A3 and F5
 			WriteConfigFile(5, 3, "ChangeAcksHeight = 10\n", t)
 			WaitForBlock(state0, 9)
-			RunCmd("3") // make sure the Audit is lagging the audit if the heartbeats conflit one will panic
+			RunCmd("5") // make sure the follower is lagging the audit so he doesn't beat the auditor to the ID change and produce a heartbeat that will kill him
 			RunCmd("x")
-			WaitForBlock(state5, 10) // wait till 5 should have have brainswapped
+			WaitForBlock(state3, 10) // wait till should have 3 has brainswapped
 			RunCmd("x")
 			WaitBlocks(state0, 1)
 			WaitForAllNodes(state0)
@@ -85,6 +87,12 @@ func TestAuditBrainSwap(t *testing.T) {
 
 		t.Run("Verify Network", func(t *testing.T) {
 
+			if state2.Leader {
+				t.Error("Node 2 did not become a follower")
+			}
+			if state3.Leader {
+				t.Error("Node 3 did not become a follower")
+			}
 			if !state4.Leader {
 				t.Error("Node 4 did not become a leader")
 			}
