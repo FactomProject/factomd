@@ -123,7 +123,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 		// Sometimes we think the LoadDatabase() thread starts before the boot time gets set -- hack to be fixed
 		switch msg.Type() {
 		case constants.DBSTATE_MSG, constants.DATA_RESPONSE, constants.MISSING_MSG, constants.MISSING_DATA, constants.MISSING_ENTRY_BLOCKS, constants.DBSTATE_MISSING_MSG, constants.ENTRY_BLOCK_RESPONSE:
-			// Allow these thru as they do not have ACk's (they don'tchange processlists)
+			// Allow these thru as they do not have ACk's (they don't change processlists)
 		default:
 			// Make sure we don't put in an old ack (outside our repeat range)
 			blktime := s.GetMessageFilterTimestamp().GetTime().UnixNano()
@@ -625,6 +625,12 @@ func (s *State) ReviewHolding() {
 func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 	s.LogPrintf("dbstateprocess", "MoveStateToHeight(%d-:-%d) called from %s", dbheight, newMinute, atomic.WhereAmIString(1))
 
+	// REVIEW: checking for a change-in-height causes brainswap not to work w/ older v6.1.0
+	// if  newMinute == 0 && s.LLeaderHeight != dbheight {
+	if  newMinute == 0 {
+		s.CheckForIDChange()
+	}
+
 	if (s.LLeaderHeight+1 == dbheight && newMinute == 0) || (s.LLeaderHeight == dbheight && s.CurrentMinute+1 == newMinute) {
 		// these are the allowed cases; move to nextblock-:-0 or move to next minute
 	} else {
@@ -650,10 +656,6 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		s.CurrentMinute = 0                       // Update height and minute
 		s.LLeaderHeight = uint32(dbheight)        // Update height and minute
 		s.LeaderPL = s.ProcessLists.Get(dbheight) // fix up cached values
-
-		// has to be after setting processlist because that is where logging get the height to report
-		s.CheckForIDChange() // when we change to a new block height check if we get a new identity
-
 		if s.LLeaderHeight != s.LeaderPL.DBHeight {
 			panic("bad things are happening")
 		}
@@ -2063,7 +2065,7 @@ func (s *State) CheckForIDChange() {
 	if changed {
 		s.LogPrintf("AckChange", "AckChange %v", s.AckChange)
 	}
-	if s.LLeaderHeight == s.AckChange {
+	if s.AckChange > 0 && s.LLeaderHeight >= s.AckChange {
 		config := util.ReadConfig(s.ConfigFilePath)
 		var err error
 		s.IdentityChainID, err = primitives.NewShaHashFromStr(config.App.IdentityChainID)
@@ -2072,7 +2074,7 @@ func (s *State) CheckForIDChange() {
 		}
 		s.LocalServerPrivKey = config.App.LocalServerPrivKey
 		s.initServerKeys()
-		s.LogPrintf("AckChange", "ReloadIdentity local_priv: %s ident_chain: %v", s.LocalServerPrivKey, s.IdentityChainID)
+		s.LogPrintf("AckChange", "ReloadIdentity local_priv: %v ident_chain: %v", s.LocalServerPrivKey, s.IdentityChainID)
 	}
 }
 

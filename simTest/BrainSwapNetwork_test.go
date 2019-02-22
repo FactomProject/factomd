@@ -28,7 +28,8 @@ func TestBrainSwapNetwork(t *testing.T) {
 			// build config files for the test
 			for i := 0; i < len(given_Nodes); i++ {
 				WriteConfigFile(i, i, "", t)
-			}
+		}
+
 		})
 
 		params := map[string]string{
@@ -68,5 +69,6 @@ func TestBrainSwapNetwork(t *testing.T) {
 			WaitBlocks(state0, 2)
 			Halt(t)
 		})
+
 	})
 }

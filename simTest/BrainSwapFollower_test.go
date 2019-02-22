@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/FactomProject/factomd/common/globals"
-
 	. "github.com/FactomProject/factomd/testHelper"
 )
 
@@ -70,5 +69,6 @@ func TestBrainSwapFollower(t *testing.T) {
 			WaitBlocks(state0, 2)
 			Halt(t)
 		})
+
 	})
 }
