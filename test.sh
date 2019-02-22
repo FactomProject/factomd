@@ -9,14 +9,14 @@ cd $DIR
 
 function runTests() {
 
+
   if [[ "${CI}x" ==  "x" ]] ; then
-    TESTS=$(find . -name '*_test.go' \
-      | grep -v vendor | grep -v Utilities | grep -v longTest | grep -v peerTest | grep -v simTest)
+    TESTS=$(glide nv | grep -v Utilities | grep -v longTest | grep -v peerTest | grep -v simTest)
   else
-    # NOTE: this command causes Circle.ci to run tests in parallel across several containers
-    TESTS=$(find . -name '*_test.go' \
-      | grep -v vendor | grep -v Utilities | grep -v longTest | grep -v peerTest | grep -v simTest \
-      | circleci tests split --split-by=timings)
+    TESTS=$({ \
+      glide nv | grep -v Utilities | grep -v longTest | grep -v peerTest | grep -v simTest; \
+      circleci tests glob 'simTest/*_test.go'; \
+    } | circleci tests split --split-by=timings)
   fi
 
 	if [[ "${TESTS}x" ==  "x" ]] ; then
