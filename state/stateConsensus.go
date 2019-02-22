@@ -123,55 +123,57 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 		// Sometimes we think the LoadDatabase() thread starts before the boot time gets set -- hack to be fixed
 		switch msg.Type() {
 		case constants.DBSTATE_MSG, constants.DATA_RESPONSE, constants.MISSING_MSG, constants.MISSING_DATA, constants.MISSING_ENTRY_BLOCKS, constants.DBSTATE_MISSING_MSG, constants.ENTRY_BLOCK_RESPONSE:
-			// Allow these thru as they do not have ACk's (they don'tchange processlists)
+			// Allow these thru as they do not have Ack's (they don't change processlists)
 		default:
-			// Make sure we don't put in an old ack (outside our repeat range)
-			blktime := s.GetMessageFilterTimestamp().GetTime().UnixNano()
-			tlim := int64(Range * 60 * 1000000000)
+			// Make sure we don't put in an old ack'd message (outside our repeat filter range)
+			tlim := int64(Range * 60 * 2000000000)                        // Filter hold two hours of messages, one in the past one in the future
+			blktime := s.GetMessageFilterTimestamp().GetTime().UnixNano() // this is the start of the filter
 
-			if blktime != 0 {
-				msgtime := msg.GetTimestamp().GetTime().UnixNano()
+			if blktime == 0 {
+				panic("got 0 time")
+			}
 
-				// Make sure we don't put in an old msg (outside our repeat range)
+			msgtime := msg.GetTimestamp().GetTime().UnixNano()
+
+			// Make sure we don't put in an old msg (outside our repeat range)
+			{ // debug
 				Delta := blktime - msgtime
-
-				if Delta > tlim || -Delta > tlim {
+				if Delta < 0 || Delta > tlim {
 
 					s.LogPrintf("executeMsg", "block %d, filter %v Msg M-%x time %v delta %d",
 						s.LLeaderHeight, s.GetMessageFilterTimestamp().GetTime().String(), msg.GetHash().Bytes()[:4], msg.GetTimestamp().String(), Delta)
 
 					s.LogPrintf("executeMsg", "Leader  %s", s.GetLeaderTimestamp().GetTime().String())
 					s.LogPrintf("executeMsg", "Message %s", s.GetMessageFilterTimestamp().GetTime().String())
-
-					// Delta is is negative its greater than blktime then it is future.
-					if Delta < 0 {
-						s.LogMessage("executeMsg", "Hold message from the future", msg)
-						valid = 0 // Future stuff I can hold for now.  It might be good later.
-					} else {
-						s.LogMessage("executeMsg", "drop message because the msg is out of range", msg)
-						valid = -1 // Old messages are bad.
-					}
 				}
+			}
+			// messages before message filter timestamp it's an old message
+			if msgtime < blktime {
+				s.LogMessage("executeMsg", "drop message, more than an hour in the past", msg)
+				valid = -1 // Old messages are bad.
+			} else if msgtime > (blktime + tlim) {
+				s.LogMessage("executeMsg", "hold message from the future", msg)
+				valid = 0 // Future stuff I can hold for now.  It might be good later.
 			}
 		}
 	}
 
 	switch valid {
 	case 1:
-		msg.SendOut(s, msg)
-
 		switch msg.Type() {
 		case constants.REVEAL_ENTRY_MSG, constants.COMMIT_ENTRY_MSG, constants.COMMIT_CHAIN_MSG:
 			if !s.NoEntryYet(msg.GetHash(), nil) {
 				//delete(s.Holding, msg.GetHash().Fixed())
-				s.DeleteFromHolding(msg.GetHash().Fixed(), msg, "AlreadyCommited")
+				s.DeleteFromHolding(msg.GetMsgHash().Fixed(), msg, "AlreadyCommited") // delete commit
+				s.DeleteFromHolding(msg.GetHash().Fixed(), msg, "AlreadyCommited")    // delete reveal
 				s.Commits.Delete(msg.GetHash().Fixed())
 				s.LogMessage("executeMsg", "drop, already committed", msg)
 				return true
 			}
-			s.AddToHolding(msg.GetMsgHash().Fixed(), msg)
+			s.AddToHolding(msg.GetMsgHash().Fixed(), msg) // add valid commit/reveal to holding in case it fails to get added
 			//s.Holding[msg.GetMsgHash().Fixed()] = msg
 		}
+		msg.SendOut(s, msg)
 
 		var vml int
 		if vm == nil || vm.List == nil {
@@ -211,7 +213,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 		// this check makes sure we don't put them back in holding after just deleting them
 		if _, valid := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp()); valid {
 			//s.Holding[msg.GetMsgHash().Fixed()] = msg
-			s.AddToHolding(msg.GetMsgHash().Fixed(), msg)
+			s.AddToHolding(msg.GetMsgHash().Fixed(), msg) // Add message where valid==0
 			s.LogMessage("executeMsg", "hold", msg)
 		} else {
 			s.LogMessage("executeMsg", "drop, IReplay", msg)
@@ -363,7 +365,7 @@ ackLoop:
 				// toss the ack into holding and we will try again in a bit...
 				TotalHoldingQueueInputs.Inc()
 				//s.Holding[ack.GetMsgHash().Fixed()] = ack
-				s.AddToHolding(ack.GetMsgHash().Fixed(), ack)
+				s.AddToHolding(ack.GetMsgHash().Fixed(), ack) // Add ack where valid==0
 				continue
 			}
 
@@ -811,7 +813,7 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 	TotalHoldingQueueInputs.Inc()
 
 	//s.Holding[m.GetMsgHash().Fixed()] = m
-	s.AddToHolding(m.GetMsgHash().Fixed(), m)
+	s.AddToHolding(m.GetMsgHash().Fixed(), m) // FollowerExecuteMsg()
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
 
 	if ack != nil {
@@ -833,8 +835,8 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
 
 	if m.IsLocal() {
-		s.AddToHolding(m.GetMsgHash().Fixed(), m)
-		return // This is an internal EOM message.  We are not a leader so ignore.
+		s.AddToHolding(m.GetMsgHash().Fixed(), m) // follower execute local EOM
+		return                                    // This is an internal EOM message.  We are not a leader so ignore.
 	}
 
 	eom, ok := m.(*messages.EOM)
@@ -851,7 +853,7 @@ func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
 	TotalHoldingQueueInputs.Inc()
 	//s.Holding[m.GetMsgHash().Fixed()] = m // FollowerExecuteEOM
 
-	s.AddToHolding(m.GetMsgHash().Fixed(), m)
+	s.AddToHolding(m.GetMsgHash().Fixed(), m) // follower execute nonlocal EOM
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
 	if ack != nil {
 		pl := s.ProcessLists.Get(ack.DBHeight)
@@ -1305,7 +1307,7 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 	TotalHoldingQueueInputs.Inc()
 
 	//s.Holding[m.GetMsgHash().Fixed()] = m // hold in  FollowerExecuteRevealEntry
-	s.AddToHolding(m.GetMsgHash().Fixed(), m)
+	s.AddToHolding(m.GetMsgHash().Fixed(), m) // hold in  FollowerExecuteRevealEntry
 
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
 

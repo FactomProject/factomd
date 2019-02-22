@@ -1,10 +1,11 @@
 package simtest
 
 import (
-	. "github.com/FactomProject/factomd/testHelper"
 	"os"
 	"strconv"
 	"testing"
+
+	. "github.com/FactomProject/factomd/testHelper"
 )
 
 var logName string = "simTest"

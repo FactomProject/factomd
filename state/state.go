@@ -2224,6 +2224,7 @@ func (s *State) GetMessageFilterTimestamp() interfaces.Timestamp {
 // We will not set it to a time that is before boot or more than one hour in the past.
 // this ensure messages from prior boot and messages that predate the current replay filter are
 // are dropped.
+// It marks the start of the replay filter content
 func (s *State) SetMessageFilterTimestamp(leaderTS interfaces.Timestamp) {
 
 	// make a copy of the time stamp so we don't change the source
@@ -2255,7 +2256,7 @@ func (s *State) SetLeaderTimestamp(ts interfaces.Timestamp) {
 	s.LogPrintf("executeMsg", "SetLeaderTimestamp(%s)", ts.String())
 
 	s.LeaderTimestamp = primitives.NewTimestampFromMilliseconds(ts.GetTimeMilliUInt64())
-	s.SetMessageFilterTimestamp(ts)
+	s.SetMessageFilterTimestamp(primitives.NewTimestampFromMilliseconds(ts.GetTimeMilliUInt64() - 60*60*1000)) // set message filter to one hour before this block started.
 }
 
 func (s *State) SetFaultTimeout(timeout int) {
