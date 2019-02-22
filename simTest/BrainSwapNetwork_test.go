@@ -1,39 +1,38 @@
 package simtest
 
 import (
-	. "github.com/FactomProject/factomd/testHelper"
-	"os"
-	"strconv"
 	"testing"
+
+	"github.com/FactomProject/factomd/common/globals"
+	. "github.com/FactomProject/factomd/testHelper"
 )
 
-var logName string = "simTest"
+/*
+This test is part of a Network/Follower pair of tests used to test
+brainswapping between 2 different versions of factomd
 
+If you boot this simulator by itself - the tests will fail
+*/
 func TestBrainSwapNetwork(t *testing.T) {
 
-	t.Run("Create Authority Set", func(t *testing.T) {
-		givenNodes := os.Getenv("GIVEN_NODES")
-		factomHome := os.Getenv("FACTOM_HOME")
-		maxBlocks, _ := strconv.ParseInt(os.Getenv("MAX_BLOCKS"), 10, 64)
-		peers := os.Getenv("PEERS")
+	t.Run("Network Sim", func(t *testing.T) {
+		maxBlocks := 30
+		peers := "127.0.0.1:37003"
+		// nodes usage  0123456 nodes 8 and 9 are in a separate sim of TestBrainSwapFollower
+		given_Nodes := "LLLLAAA"
+		outputNodes := "LLLAAFF"
 
-		if factomHome == "" {
-			factomHome = ".sim/network"
-		}
+		t.Run("Setup Config Files", func(t *testing.T) {
+			ResetFactomHome(t, "network")
 
-		if maxBlocks == 0 {
-			maxBlocks = 30
-		}
-
-		if peers == "" {
-			peers = "127.0.0.1:37003"
-		}
-
-		if givenNodes == "" {
-			givenNodes = "LLLLAAA"
-		}
+			// build config files for the test
+			for i := 0; i < len(given_Nodes); i++ {
+				WriteConfigFile(i, i, "", t)
+			}
+		})
 
 		params := map[string]string{
+			"--prefix":              "v0",
 			"--db":                  "LDB", // NOTE: using MAP causes an occasional error see FD-825
 			"--network":             "LOCAL",
 			"--net":                 "alot+",
@@ -48,30 +47,26 @@ func TestBrainSwapNetwork(t *testing.T) {
 			"--logPort":          "38000",
 			"--port":             "38001",
 			"--controlpanelport": "38002",
-			"--networkport":      "38003",
+			"--networkport":      "38003", // Listen on 'non-standard' unit test port
 			"--peers":            peers,
-			"--factomhome":       factomHome,
+			"--factomhome":       globals.Params.FactomHome,
 		}
 
-		state0 := SetupSim(givenNodes, params, int(maxBlocks), 0, 0, t)
-		state0.LogPrintf(logName, "GIVEN_NODES:%v", givenNodes)
+		state0 := SetupSim(given_Nodes, params, int(maxBlocks), 0, 0, t)
 
 		t.Run("Wait For Identity Swap", func(t *testing.T) {
-			WaitForBlock(state0, 12)
-			// brainswap leader
-			Followers++
-			Leaders--
-			// brainswap auditor
-			Followers++
-			Audits--
 			WaitForAllNodes(state0)
+			WriteConfigFile(9, 1, "ChangeAcksHeight = 10\n", t)
+			WriteConfigFile(8, 4, "ChangeAcksHeight = 10\n", t)
+			WaitForBlock(state0, 10)
+			AdjustAuthoritySet(outputNodes)
 		})
 
 		t.Run("Verify Network", func(t *testing.T) {
+			WaitBlocks(state0, 1)
 			CheckAuthoritySet(t)
-			WaitBlocks(state0, 3)
+			WaitBlocks(state0, 2)
 			Halt(t)
 		})
-
 	})
 }
