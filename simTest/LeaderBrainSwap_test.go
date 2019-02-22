@@ -61,11 +61,7 @@ func TestLeaderBrainSwap(t *testing.T) {
 
 		// start the 6 nodes running  012345
 		state0 := SetupSim("LLLFFF", params, 15, 0, 0, t)
-		state1 := engine.GetFnodes()[1].State // Get node 1
-		state2 := engine.GetFnodes()[2].State // Get node 2
 		state3 := engine.GetFnodes()[3].State // Get node 2
-		state4 := engine.GetFnodes()[4].State // Get node 4
-		state5 := engine.GetFnodes()[5].State // Get node 5
 
 		t.Run("Wait For Identity Swap", func(t *testing.T) {
 			WaitForBlock(state0, 6)
