@@ -81,26 +81,12 @@ func TestLeaderBrainSwap(t *testing.T) {
 			WaitForBlock(state3, 10)
 
 			WaitBlocks(state0, 1)
-			WaitForAllNodes(state0)
-			CheckAuthoritySet(t)
 		})
 
 		t.Run("Verify Network", func(t *testing.T) {
-
-			if state1.Leader {
-				t.Error("Node 1 did not become a follower")
-			}
-			if state2.Leader {
-				t.Error("Node 2 did not become a follower")
-			}
-			if !state4.Leader {
-				t.Error("Node 4 did not become a leader")
-			}
-			if !state5.Leader {
-				t.Error("Node 5 did not become a leader")
-			}
-
-			Halt(t)
+			WaitForAllNodes(state0)
+			AssertAuthoritySet(t, "LFFFLL")
+			ShutDownEverything(t)
 		})
 
 	})

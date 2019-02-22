@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -381,6 +382,31 @@ func AdjustAuthoritySet(adjustingNodes string) {
 	Leaders = Leaders - lead
 	Audits = Audits - audit
 	Followers = Followers - follow
+}
+
+func isAuditor(fnode int) bool {
+	nodes := engine.GetFnodes()
+	list := nodes[0].State.ProcessLists.Get(nodes[0].State.LLeaderHeight)
+	foundAudit, _ := list.GetAuditServerIndexHash(nodes[fnode].State.GetIdentityChainID())
+	return foundAudit
+}
+
+func isFollower(fnode int) bool {
+	return ! (isAuditor(fnode)  || engine.GetFnodes()[fnode].State.Leader)
+}
+
+func AssertAuthoritySet(t *testing.T, givenNodes string) {
+	nodes := engine.GetFnodes()
+	for i, c := range []byte(givenNodes) {
+		switch c {
+		case 'L':
+			assert.True(t, nodes[i].State.Leader, "Expected node %v to be a leader", i)
+		case 'A':
+			assert.True(t, isAuditor(i), "Expected node %v to be an auditor", i)
+		default:
+			assert.True(t, isFollower(i), "Expected node %v to be a follower", i)
+		}
+	}
 }
 
 func CheckAuthoritySet(t *testing.T) {

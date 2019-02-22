@@ -63,7 +63,6 @@ func TestAuditBrainSwap(t *testing.T) {
 
 		// start the 6 nodes running  012345
 		state0 := SetupSim("LLLAFF", params, 15, 0, 0, t)
-		state4 := engine.GetFnodes()[4].State // Get node 4
 		state5 := engine.GetFnodes()[5].State // Get node 5
 
 		t.Run("Wait For Identity Swap", func(t *testing.T) {
@@ -84,18 +83,9 @@ func TestAuditBrainSwap(t *testing.T) {
 		})
 
 		t.Run("Verify Network", func(t *testing.T) {
-
-			if !state4.Leader {
-				t.Error("Node 4 did not become a leader")
-			}
-
-			list := state0.ProcessLists.Get(state0.LLeaderHeight)
-			foundAudit, _ := list.GetAuditServerIndexHash(state5.GetIdentityChainID())
-			if !foundAudit {
-				t.Error("Node 5 did not become an audit server")
-			}
-
-			Halt(t)
+			WaitForAllNodes(state0)
+			AssertAuthoritySet(t, "LLLFFA")
+			ShutDownEverything(t)
 		})
 
 	})

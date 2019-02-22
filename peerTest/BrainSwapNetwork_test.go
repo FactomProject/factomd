@@ -20,7 +20,7 @@ func TestBrainSwapNetwork(t *testing.T) {
 		peers := "127.0.0.1:37003"
 		// nodes usage  0123456 nodes 8 and 9 are in a separate sim of TestBrainSwapFollower
 		givenNodes := "LLLLAAA"
-		outputNodes := "LLLAAFF" // FIXME should work the same way as GivenNodes
+		outputNodes := "LFLLFAA"
 
 		t.Run("Setup Config Files", func(t *testing.T) {
 			ResetFactomHome(t, "network")
@@ -65,7 +65,7 @@ func TestBrainSwapNetwork(t *testing.T) {
 
 		t.Run("Verify Network", func(t *testing.T) {
 			WaitBlocks(state0, 3)
-			CheckAuthoritySet(t)
+			AssertAuthoritySet(t, outputNodes)
 			WaitBlocks(state0, 1)
 			Halt(t)
 		})

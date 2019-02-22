@@ -65,7 +65,7 @@ func TestBrainSwapFollower(t *testing.T) {
 
 		t.Run("Verify Network", func(t *testing.T) {
 			WaitBlocks(state0, 3)
-			CheckAuthoritySet(t)
+			AssertAuthoritySet(t, outputNodes)
 			WaitBlocks(state0, 1)
 			Halt(t)
 		})
