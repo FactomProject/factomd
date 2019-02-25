@@ -1382,14 +1382,14 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	vm.EomMinuteIssued = s.CurrentMinute + 1
 	eom.Sign(s)
 	eom.MsgHash = nil
-	ack := s.NewAck(m, nil).(*messages.Ack)
+	ack := s.NewAck(eom, nil).(*messages.Ack)
 
 	TotalAcksInputs.Inc()
 	s.Acks[eom.GetMsgHash().Fixed()] = ack
-	m.SetLocal(false)
+	eom.SetLocal(false)
 	ack.SendOut(s, ack)
-	m.SendOut(s, m)
-	s.FollowerExecuteEOM(m)
+	eom.SendOut(s, eom)
+	s.FollowerExecuteEOM(eom)
 	s.UpdateState()
 }
 
