@@ -140,11 +140,6 @@ func Peers(fnode *FactomNode) {
 				continue
 			}
 
-			if fnode.State.GetNetStateOff() {
-				fnode.State.LogMessage("NetworkInputs", "API drop, X'd by simCtrl", msg)
-				continue
-			}
-
 			repeatHash := msg.GetRepeatHash()
 			if repeatHash == nil || repeatHash.PFixed() == nil {
 				fnode.State.LogMessage("NetworkInputs", "API drop, Hash Error", msg)
