@@ -75,73 +75,70 @@ func (state *State) ValidatorLoop() {
 		// Look for pending messages, and get one if there is one.
 		var msg interfaces.IMsg
 
-		for i := 0; i < 1; i++ {
-			//for state.Process() {}
-			//for state.UpdateState() {}
-			var progress bool
-			//for i := 0; progress && i < 100; i++ {
-			for state.Process() {
-				progress = true
-			}
-			for state.UpdateState() {
-				progress = true
-			}
-			//}
+		//for state.Process() {}
+		//for state.UpdateState() {}
+		var progress bool
+		//for i := 0; progress && i < 100; i++ {
+		for state.Process() {
+			progress = true
+		}
+		for state.UpdateState() {
+			progress = true
+		}
+		//}
 
-			select {
-			case min := <-state.tickerQueue:
-				timeStruct.timer(state, min)
-			default:
-			}
-
-			for i := 0; i < 50; i++ {
-				if ackRoom == 1 || msgRoom == 1 {
-					break // no room
-				}
-
-				// This doesn't block so it intentionally returns nil, don't log nils
-				msg = state.InMsgQueue().Dequeue()
-				if msg != nil {
-					state.LogMessage("InMsgQueue", "dequeue", msg)
-				}
-				if msg == nil {
-					// This doesn't block so it intentionally returns nil, don't log nils
-					msg = state.InMsgQueue2().Dequeue()
-					if msg != nil {
-						state.LogMessage("InMsgQueue2", "dequeue", msg)
-					}
-				}
-
-				// This doesn't block so it intentionally returns nil, don't log nils
-
-				if msg != nil {
-					state.JournalMessage(msg)
-
-					// Sort the messages.
-					if state.IsReplaying == true {
-						state.ReplayTimestamp = msg.GetTimestamp()
-					}
-					if t := msg.Type(); t == constants.ACK_MSG {
-						state.LogMessage("ackQueue", "enqueue", msg)
-						state.ackQueue <- msg //
-					} else {
-						state.LogMessage("msgQueue", "enqueue", msg)
-						state.msgQueue <- msg //
-					}
-				}
-				ackRoom = cap(state.ackQueue) - len(state.ackQueue)
-				msgRoom = cap(state.msgQueue) - len(state.msgQueue)
-			}
-			if !progress && state.InMsgQueue().Length() == 0 && state.InMsgQueue2().Length() == 0 && len(s.Holding) < 5 {
-				// No messages? Sleep for a bit
-				for i := 0; i < 10 && state.InMsgQueue().Length() == 0 && state.InMsgQueue2().Length() == 0 && len(s.Holding) < 5; i++ {
-					time.Sleep(10 * time.Millisecond)
-					state.ValidatorLoopSleepCnt++
-				}
-
-			}
+		select {
+		case min := <-state.tickerQueue:
+			timeStruct.timer(state, min)
+		default:
 		}
 
+		for i := 0; i < 50; i++ {
+			if ackRoom == 1 || msgRoom == 1 {
+				break // no room
+			}
+
+			// This doesn't block so it intentionally returns nil, don't log nils
+			msg = state.InMsgQueue().Dequeue()
+			if msg != nil {
+				state.LogMessage("InMsgQueue", "dequeue", msg)
+			}
+			if msg == nil {
+				// This doesn't block so it intentionally returns nil, don't log nils
+				msg = state.InMsgQueue2().Dequeue()
+				if msg != nil {
+					state.LogMessage("InMsgQueue2", "dequeue", msg)
+				}
+			}
+
+			// This doesn't block so it intentionally returns nil, don't log nils
+
+			if msg != nil {
+				state.JournalMessage(msg)
+
+				// Sort the messages.
+				if state.IsReplaying == true {
+					state.ReplayTimestamp = msg.GetTimestamp()
+				}
+				if t := msg.Type(); t == constants.ACK_MSG {
+					state.LogMessage("ackQueue", "enqueue", msg)
+					state.ackQueue <- msg //
+				} else {
+					state.LogMessage("msgQueue", "enqueue", msg)
+					state.msgQueue <- msg //
+				}
+			}
+			ackRoom = cap(state.ackQueue) - len(state.ackQueue)
+			msgRoom = cap(state.msgQueue) - len(state.msgQueue)
+		}
+		if !progress && state.InMsgQueue().Length() == 0 && state.InMsgQueue2().Length() == 0 && len(s.Holding) < 5 {
+			// No messages? Sleep for a bit
+			for i := 0; i < 10 && state.InMsgQueue().Length() == 0 && state.InMsgQueue2().Length() == 0 && len(s.Holding) < 5; i++ {
+				time.Sleep(10 * time.Millisecond)
+				state.ValidatorLoopSleepCnt++
+			}
+
+		}
 	}
 }
 
