@@ -171,7 +171,7 @@ RequestTimeout						= 30
 ; RequestLimit is the maximum number of pending requests for missing states.
 ; factomd will stop making DBStateMissing requests until current requests are
 ; moved out of the waiting list
-RequestLimit						= 100
+RequestLimit						= 150
 
 ; This paramater allows Cross-Origin Resource Sharing (CORS) so web browsers will use data returned from the API when called from the listed URLs
 ; Example paramaters are "http://www.example.com, http://anotherexample.com, *"
