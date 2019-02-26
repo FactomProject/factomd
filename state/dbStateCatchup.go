@@ -121,15 +121,6 @@ func (list *DBStateList) Catchup() {
 			// e.g. there could be up to the batch limit number of waiting states
 			// represented by a single request
 			if waiting.Len() < requestLimit {
-				// s := missing.GetNext()
-				// if s != nil && !waiting.Has(s.Height()) {
-				// 	msg := messages.NewDBStateMissing(list.State, s.Height(), s.Height())
-				// 	if msg != nil {
-				// 		msg.SendOut(list.State, msg)
-				// 		waiting.Notify <- NewWaitingState(s.Height())
-				// 	}
-				// }
-
 				// TODO: the batch limit should probably be set by a configuration variable
 				b, e := missing.NextConsecutiveMissing(10)
 
