@@ -326,7 +326,9 @@ func (m *Heartbeat) FollowerExecute(is interfaces.IState) {
 		if auditServer.GetChainID().IsSameAs(m.IdentityChainID) {
 			if m.IdentityChainID.IsSameAs(is.GetIdentityChainID()) {
 				if m.SecretNumber != is.GetSalt(m.Timestamp) {
-					panic("We have seen a heartbeat using our Identity that isn't ours")
+					if is.GetDBHeightComplete() >= m.DBHeight {
+						panic("We have seen a heartbeat using our Identity that isn't ours")
+					}
 				}
 			}
 			auditServer.SetOnline(true)
