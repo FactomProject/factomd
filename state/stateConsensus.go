@@ -137,14 +137,10 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 
 			// Make sure we don't put in an old msg (outside our repeat range)
 			{ // debug
-				Delta := blktime - msgtime
-				if Delta < 0 || Delta > tlim {
-
-					s.LogPrintf("executeMsg", "block %d, filter %v Msg M-%x time %v delta %d",
-						s.LLeaderHeight, s.GetMessageFilterTimestamp().GetTime().String(), msg.GetHash().Bytes()[:4], msg.GetTimestamp().String(), Delta)
-
-					s.LogPrintf("executeMsg", "Leader  %s", s.GetLeaderTimestamp().GetTime().String())
-					s.LogPrintf("executeMsg", "Message %s", s.GetMessageFilterTimestamp().GetTime().String())
+				if msgtime < blktime || msgtime > (blktime+tlim) {
+					s.LogPrintf("executeMsg", "MsgFilter %s", s.GetMessageFilterTimestamp().GetTime().String())
+					s.LogPrintf("executeMsg", "Leader    %s", s.GetLeaderTimestamp().GetTime().String())
+					s.LogPrintf("executeMsg", "Message   %s", msg.GetTimestamp().GetTime().String())
 				}
 			}
 			// messages before message filter timestamp it's an old message
@@ -153,7 +149,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 				valid = -1 // Old messages are bad.
 			} else if msgtime > (blktime + tlim) {
 				s.LogMessage("executeMsg", "hold message from the future", msg)
-				valid = 0 // Future stuff I can hold for now.  It might be good later.
+				valid = 0 // Future stuff I can hold for now.  It might be good later?
 			}
 		}
 	}
