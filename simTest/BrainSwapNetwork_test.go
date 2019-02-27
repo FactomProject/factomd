@@ -28,7 +28,7 @@ func TestBrainSwapNetwork(t *testing.T) {
 			// build config files for the test
 			for i := 0; i < len(given_Nodes); i++ {
 				WriteConfigFile(i, i, "", t)
-		}
+			}
 
 		})
 

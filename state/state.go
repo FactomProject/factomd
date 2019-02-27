@@ -819,11 +819,11 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		identity, err := primitives.HexToHash(cfg.App.IdentityChainID)
 		if err != nil {
 			s.IdentityChainID = primitives.Sha([]byte(s.FactomNodeName))
-			s.LogPrintf("AckChange", "Bad IdentityChainID  in config %v", cfg.App.IdentityChainID)
-			s.LogPrintf("AckChange", "Default2 IdentityChainID %v", s.IdentityChainID.String())
+			s.LogPrintf("AckChange", "Bad IdentityChainID  in config \"%v\"", cfg.App.IdentityChainID)
+			s.LogPrintf("AckChange", "Default2 IdentityChainID \"%v\"", s.IdentityChainID.String())
 		} else {
 			s.IdentityChainID = identity
-			s.LogPrintf("AckChange", "Load IdentityChainID %v", s.IdentityChainID.String())
+			s.LogPrintf("AckChange", "Load IdentityChainID \"%v\"", s.IdentityChainID.String())
 		}
 	} else {
 		s.LogPath = "database/"

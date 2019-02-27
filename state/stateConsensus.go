@@ -54,10 +54,7 @@ func (s *State) LogMessage(logName string, comment string, msg interfaces.IMsg) 
 		if s == nil {
 			messages.StateLogMessage("unknown", 0, 0, logName, comment, msg)
 		} else {
-			if s.LeaderPL != nil {
-				dbh = int(s.LeaderPL.DBHeight)
-			}
-			messages.StateLogMessage(s.FactomNodeName, dbh, int(s.CurrentMinute), logName, comment, msg)
+			messages.StateLogMessage(s.FactomNodeName, int(s.LLeaderHeight), int(s.CurrentMinute), logName, comment, msg)
 		}
 	}
 }
@@ -67,11 +64,7 @@ func (s *State) LogPrintf(logName string, format string, more ...interface{}) {
 		if s == nil {
 			messages.StateLogPrintf("unknown", 0, 0, logName, format, more...)
 		} else {
-			var dbh int
-			if s.LeaderPL != nil {
-				dbh = int(s.LeaderPL.DBHeight)
-			}
-			messages.StateLogPrintf(s.FactomNodeName, dbh, int(s.CurrentMinute), logName, format, more...)
+			messages.StateLogPrintf(s.FactomNodeName, int(s.LLeaderHeight), int(s.CurrentMinute), logName, format, more...)
 		}
 	}
 }
@@ -132,9 +125,9 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 			if blktime == 0 {
 				panic("got 0 time")
 			}
-				msgtime := msg.GetTimestamp().GetTime().UnixNano()
+			msgtime := msg.GetTimestamp().GetTime().UnixNano()
 
-				// Make sure we don't put in an old msg (outside our repeat range)
+			// Make sure we don't put in an old msg (outside our repeat range)
 			{ // debug
 				Delta := blktime - msgtime
 
@@ -146,8 +139,8 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 					s.LogPrintf("executeMsg", "Leader  %s", s.GetLeaderTimestamp().GetTime().String())
 					s.LogPrintf("executeMsg", "Message %s", s.GetMessageFilterTimestamp().GetTime().String())
 
-					}
 				}
+			}
 			// messages before message filter timestamp it's an old message
 			if msgtime < blktime {
 				s.LogMessage("executeMsg", "drop message, more than an hour in the past", msg)
@@ -631,7 +624,7 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 
 	// REVIEW: checking for a change-in-height causes brainswap not to work w/ older v6.1.0
 	// if  newMinute == 0 && s.LLeaderHeight != dbheight {
-	if  newMinute == 0 {
+	if newMinute == 0 {
 		s.CheckForIDChange()
 	}
 
@@ -838,7 +831,7 @@ func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
 
 	if m.IsLocal() {
 		s.AddToHolding(m.GetMsgHash().Fixed(), m) // follower execute local EOM
-		return // This is an internal EOM message.  We are not a leader so ignore.
+		return                                    // This is an internal EOM message.  We are not a leader so ignore.
 	}
 
 	eom, ok := m.(*messages.EOM)
@@ -2074,13 +2067,16 @@ func (s *State) CheckForIDChange() {
 	if s.AckChange > 0 && s.LLeaderHeight >= s.AckChange {
 		config := util.ReadConfig(s.ConfigFilePath)
 		var err error
+		prev_ChainID := s.IdentityChainID
+		prev_LocalServerPrivKey := s.LocalServerPrivKey
+
 		s.IdentityChainID, err = primitives.NewShaHashFromStr(config.App.IdentityChainID)
 		if err != nil {
 			panic(err)
 		}
 		s.LocalServerPrivKey = config.App.LocalServerPrivKey
 		s.initServerKeys()
-		s.LogPrintf("AckChange", "ReloadIdentity local_priv: %v ident_chain: %v", s.LocalServerPrivKey, s.IdentityChainID)
+		s.LogPrintf("AckChange", "ReloadIdentity new local_priv: %v ident_chain: %v, prev local_priv: %v ident_chain: %v", s.LocalServerPrivKey, s.IdentityChainID, prev_LocalServerPrivKey, prev_ChainID)
 	}
 }
 
