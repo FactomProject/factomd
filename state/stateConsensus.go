@@ -646,6 +646,7 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		s.CurrentMinute = 0                // Update height and minute
 		s.LLeaderHeight = uint32(dbheight) // Update height and minute
 
+		// update cached values that change with height
 		s.LeaderPL = s.ProcessLists.Get(dbheight) // fix up cached values
 		if s.LLeaderHeight != s.LeaderPL.DBHeight {
 			panic("bad things are happening")
@@ -663,22 +664,7 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		s.DBSigLimit = s.EOMLimit               // We add or remove server only on block boundaries
 
 		// update cached values that change with height
-		// check if a DBState exists where we can get the timestamp
-		//dbstate := s.DBStates.Get(int(dbheight))
-		//
-		//// Setting the leader timestamp is as follows.
-		//// If we have a dbstate use it's timestamp.
-		//// If we don't have a DBState see if the database has a dblock
-		////  if not try the previous block
-		//// there more complexity down in SetLeaderTimestamp where boot time and now-60 minutes get mixed
-		//// the primary use of the timestamp is message filtering
-		//if dbstate != nil {
-		//	s.SetLeaderTimestamp(dbstate.DirectoryBlock.GetTimestamp())
-		//} else if dblock, err := s.DB.FetchDBlockByHeight(dbheight); dblock != nil && err == nil {
-		//	s.SetLeaderTimestamp(dblock.GetTimestamp())
-		//} else {
-		//	fmt.Print("well, now what?")
-		//}
+
 		s.dbheights <- int(dbheight) // Notify MMR process we have moved on...
 
 		s.CurrentMinuteStartTime = time.Now().UnixNano()
@@ -694,6 +680,10 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		s.ElectionsQueue().Enqueue(authlistMsg)
 
 		s.CheckForIDChange() // check for identity change every time we start a new block
+
+		if s.Leader && !s.LeaderPL.DBSigAlreadySent {
+			s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex) // MoveStateToHeight()
+		}
 
 	} else if s.CurrentMinute != newMinute { // And minute
 		s.CurrentMinute = newMinute                                                            // Update just the minute
@@ -1772,14 +1762,11 @@ func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
 	}
 
 	if !vm.Signed {
-
 		if !pl.DBSigAlreadySent {
-
 			dbs, _ := s.CreateDBSig(dbheight, vmIndex)
 			if dbs == nil {
 				return
 			}
-
 			dbslog.WithFields(dbs.LogFields()).WithFields(log.Fields{"lheight": s.GetLeaderHeight(), "node-name": s.GetFactomNodeName()}).Infof("Generate DBSig")
 			dbs.LeaderExecute(s)
 			vm.Signed = true

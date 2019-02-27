@@ -1216,32 +1216,6 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	pldbs := s.ProcessLists.Get(s.LLeaderHeight)
 	if s.Leader && !pldbs.DBSigAlreadySent {
 		s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex) // ProcessBlocks()
-		//// dbstate is already set.
-		//dbs := new(messages.DirectoryBlockSignature)
-		//dbs.DirectoryBlockHeader = d.DirectoryBlock.GetHeader()
-		//dbs.ServerIdentityChainID = s.GetIdentityChainID()
-		//dbs.DBHeight = s.LLeaderHeight
-		//dbs.Timestamp = s.GetTimestamp()
-		//dbs.SetVMHash(nil)
-		//dbs.SetVMIndex(s.LeaderVMIndex)
-		//dbs.SetLocal(true)
-		//dbs.Sign(s)
-		//err := dbs.Sign(s)
-		//if err != nil {
-		//	panic(err)
-		//}
-		////{ // debug
-		////	s.LogMessage("dbstateprocess", "currentminute=10", dbs)
-		////	dbs2, _ := s.CreateDBSig(s.LLeaderHeight, s.LeaderVMIndex)
-		////	dbs3 := dbs2.(*messages.DirectoryBlockSignature)
-		////	s.LogPrintf("dbstateprocess", "issameas()=%v", dbs.IsSameAs(dbs3))
-		////}
-		//s.LogMessage("dbstateprocess", "currentminute=10", dbs)
-		//s.LogPrintf("dbstateprocess", d.String())
-		pldbs.DBSigAlreadySent = true
-		//
-		//s.LogMessage("executeMsg", "LeaderExec2", dbs)
-		//dbs.LeaderExecute(s)
 	}
 
 	return
