@@ -2064,7 +2064,7 @@ func (s *State) CheckForIDChange() {
 	if changed {
 		s.LogPrintf("AckChange", "AckChange %v", s.AckChange)
 	}
-	if s.AckChange > 0 && s.LLeaderHeight >= s.AckChange {
+	if s.LLeaderHeight == s.AckChange {
 		config := util.ReadConfig(s.ConfigFilePath)
 		var err error
 		prev_ChainID := s.IdentityChainID
