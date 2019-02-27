@@ -627,12 +627,6 @@ func (s *State) ReviewHolding() {
 func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 	s.LogPrintf("dbstateprocess", "MoveStateToHeight(%d-:-%d) called from %s", dbheight, newMinute, atomic.WhereAmIString(1))
 
-	// REVIEW: checking for a change-in-height causes brainswap not to work w/ older v6.1.0
-	// if  newMinute == 0 && s.LLeaderHeight != dbheight {
-	if newMinute == 0 {
-		s.CheckForIDChange()
-	}
-
 	if (s.LLeaderHeight+1 == dbheight && newMinute == 0) || (s.LLeaderHeight == dbheight && s.CurrentMinute+1 == newMinute) {
 		// these are the allowed cases; move to nextblock-:-0 or move to next minute
 	} else {
@@ -655,23 +649,24 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		if newMinute != 0 {
 			panic(fmt.Sprintf("Can't jump to the middle of a block minute: %d", newMinute))
 		}
-		s.CurrentMinute = 0                       // Update height and minute
-		s.LLeaderHeight = uint32(dbheight)        // Update height and minute
+		s.CurrentMinute = 0                // Update height and minute
+		s.LLeaderHeight = uint32(dbheight) // Update height and minute
+
 		s.LeaderPL = s.ProcessLists.Get(dbheight) // fix up cached values
 		if s.LLeaderHeight != s.LeaderPL.DBHeight {
 			panic("bad things are happening")
 		}
-		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(newMinute, s.IdentityChainID) // MoveStateToHeight block
-		s.ProcessLists.Get(dbheight + 1)                                                       // Make sure next PL exists
-		s.Syncing = false                                                                      // movestatetoheight
-		s.EOM = false                                                                          // movestatetoheight
-		s.EOMDone = false                                                                      // movestatetoheight
-		s.DBSig = false                                                                        // movestatetoheight
-		s.DBSigDone = false                                                                    // movestatetoheight
-		s.EOMProcessed = 0                                                                     // movestatetoheight
-		s.DBSigProcessed = 0                                                                   // movestatetoheight
-		s.EOMLimit = len(s.LeaderPL.FedServers)                                                // We add or remove server only on block boundaries
-		s.DBSigLimit = s.EOMLimit                                                              // We add or remove server only on block boundaries
+
+		s.ProcessLists.Get(dbheight + 1)        // Make sure next PL exists
+		s.Syncing = false                       // movestatetoheight
+		s.EOM = false                           // movestatetoheight
+		s.EOMDone = false                       // movestatetoheight
+		s.DBSig = false                         // movestatetoheight
+		s.DBSigDone = false                     // movestatetoheight
+		s.EOMProcessed = 0                      // movestatetoheight
+		s.DBSigProcessed = 0                    // movestatetoheight
+		s.EOMLimit = len(s.LeaderPL.FedServers) // We add or remove server only on block boundaries
+		s.DBSigLimit = s.EOMLimit               // We add or remove server only on block boundaries
 
 		// update cached values that change with height
 		// check if a DBState exists where we can get the timestamp
@@ -698,9 +693,13 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		// If an we added or removed servers or elections tool place in minute 9, our lists will be unsorted. Fix that
 		s.LeaderPL.SortAuditServers()
 		s.LeaderPL.SortFedServers()
+		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID) // MoveStateToHeight block
+
 		// update the elections thread
 		authlistMsg := s.EFactory.NewAuthorityListInternal(s.LeaderPL.FedServers, s.LeaderPL.AuditServers, s.LLeaderHeight)
 		s.ElectionsQueue().Enqueue(authlistMsg)
+
+		s.CheckForIDChange() // check for identity change every time we start a new block
 
 	} else if s.CurrentMinute != newMinute { // And minute
 		s.CurrentMinute = newMinute                                                            // Update just the minute
@@ -782,8 +781,8 @@ func (s *State) AddDBState(isNew bool,
 			s.LeaderPL.ECBalancesTMutex.Unlock()
 		}
 
-		Leader, LeaderVMIndex := s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
-		{ // debug
+		Leader, LeaderVMIndex := s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID) // AddDBState()
+		{                                                                                         // debug
 			if s.Leader != Leader {
 				s.LogPrintf("executeMsg", "State.AddDBState() unexpectedly setting s.Leader to %v", Leader)
 				s.Leader = Leader
