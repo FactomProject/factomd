@@ -124,6 +124,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 			if filterTime == 0 {
 				panic("got 0 time")
 			}
+
 			msgtime := msg.GetTimestamp().GetTime().UnixNano()
 
 			// Make sure we don't put in an old msg (outside our repeat range)
@@ -131,9 +132,8 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 				if msgtime < filterTime || msgtime > (filterTime+tlim) {
 					s.LogPrintf("executeMsg", "MsgFilter %s", s.GetMessageFilterTimestamp().GetTime().String())
 
-					s.LogPrintf("executeMsg", "Leader  %s", s.GetLeaderTimestamp().GetTime().String())
+					s.LogPrintf("executeMsg", "Leader    %s", s.GetLeaderTimestamp().GetTime().String())
 					s.LogPrintf("executeMsg", "Message   %s", msg.GetTimestamp().GetTime().String())
-
 				}
 			}
 			// messages before message filter timestamp it's an old message
@@ -149,7 +149,6 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 
 	switch valid {
 	case 1:
-
 		switch msg.Type() {
 		case constants.REVEAL_ENTRY_MSG, constants.COMMIT_ENTRY_MSG, constants.COMMIT_CHAIN_MSG:
 			if !s.NoEntryYet(msg.GetHash(), nil) {
@@ -660,7 +659,6 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		s.DBSigLimit = s.EOMLimit               // We add or remove server only on block boundaries
 
 		// update cached values that change with height
-
 		s.dbheights <- int(dbheight) // Notify MMR process we have moved on...
 
 		s.CurrentMinuteStartTime = time.Now().UnixNano()
@@ -1758,11 +1756,14 @@ func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
 	}
 
 	if !vm.Signed {
+
 		if !pl.DBSigAlreadySent {
+
 			dbs, _ := s.CreateDBSig(dbheight, vmIndex)
 			if dbs == nil {
 				return
 			}
+
 			dbslog.WithFields(dbs.LogFields()).WithFields(log.Fields{"lheight": s.GetLeaderHeight(), "node-name": s.GetFactomNodeName()}).Infof("Generate DBSig")
 			dbs.LeaderExecute(s)
 			vm.Signed = true
@@ -2050,7 +2051,6 @@ func (s *State) CheckForIDChange() {
 		var err error
 		prev_ChainID := s.IdentityChainID
 		prev_LocalServerPrivKey := s.LocalServerPrivKey
-
 		s.IdentityChainID, err = primitives.NewShaHashFromStr(config.App.IdentityChainID)
 		if err != nil {
 			panic(err)
