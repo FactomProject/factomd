@@ -50,14 +50,10 @@ func (s *State) DebugExec() (ret bool) {
 
 func (s *State) LogMessage(logName string, comment string, msg interfaces.IMsg) {
 	if s.DebugExec() {
-		var dbh int
 		if s == nil {
 			messages.StateLogMessage("unknown", 0, 0, logName, comment, msg)
 		} else {
-			if s.LeaderPL != nil {
-				dbh = int(s.LeaderPL.DBHeight)
-			}
-			messages.StateLogMessage(s.FactomNodeName, dbh, int(s.CurrentMinute), logName, comment, msg)
+			messages.StateLogMessage(s.FactomNodeName, int(s.LLeaderHeight), int(s.CurrentMinute), logName, comment, msg)
 		}
 	}
 }
@@ -67,11 +63,7 @@ func (s *State) LogPrintf(logName string, format string, more ...interface{}) {
 		if s == nil {
 			messages.StateLogPrintf("unknown", 0, 0, logName, format, more...)
 		} else {
-			var dbh int
-			if s.LeaderPL != nil {
-				dbh = int(s.LeaderPL.DBHeight)
-			}
-			messages.StateLogPrintf(s.FactomNodeName, dbh, int(s.CurrentMinute), logName, format, more...)
+			messages.StateLogPrintf(s.FactomNodeName, int(s.LLeaderHeight), int(s.CurrentMinute), logName, format, more...)
 		}
 	}
 }
@@ -126,10 +118,10 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 			// Allow these thru as they do not have Ack's (they don't change processlists)
 		default:
 			// Make sure we don't put in an old ack'd message (outside our repeat filter range)
-			tlim := int64(Range * 60 * 2000000000)                        // Filter hold two hours of messages, one in the past one in the future
-			blktime := s.GetMessageFilterTimestamp().GetTime().UnixNano() // this is the start of the filter
+			tlim := int64(Range * 60 * 2 * 1000000000)                       // Filter hold two hours of messages, one in the past one in the future
+			filterTime := s.GetMessageFilterTimestamp().GetTime().UnixNano() // this is the start of the filter
 
-			if blktime == 0 {
+			if filterTime == 0 {
 				panic("got 0 time")
 			}
 
@@ -137,17 +129,17 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 
 			// Make sure we don't put in an old msg (outside our repeat range)
 			{ // debug
-				if msgtime < blktime || msgtime > (blktime+tlim) {
+				if msgtime < filterTime || msgtime > (filterTime+tlim) {
 					s.LogPrintf("executeMsg", "MsgFilter %s", s.GetMessageFilterTimestamp().GetTime().String())
 					s.LogPrintf("executeMsg", "Leader    %s", s.GetLeaderTimestamp().GetTime().String())
 					s.LogPrintf("executeMsg", "Message   %s", msg.GetTimestamp().GetTime().String())
 				}
 			}
 			// messages before message filter timestamp it's an old message
-			if msgtime < blktime {
+			if msgtime < filterTime {
 				s.LogMessage("executeMsg", "drop message, more than an hour in the past", msg)
 				valid = -1 // Old messages are bad.
-			} else if msgtime > (blktime + tlim) {
+			} else if msgtime > (filterTime + tlim) {
 				s.LogMessage("executeMsg", "hold message from the future", msg)
 				valid = 0 // Future stuff I can hold for now.  It might be good later?
 			}
@@ -648,6 +640,7 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		s.CurrentMinute = 0                // Update height and minute
 		s.LLeaderHeight = uint32(dbheight) // Update height and minute
 
+		// update cached values that change with height
 		s.LeaderPL = s.ProcessLists.Get(dbheight) // fix up cached values
 		if s.LLeaderHeight != s.LeaderPL.DBHeight {
 			panic("bad things are happening")
@@ -665,22 +658,6 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		s.DBSigLimit = s.EOMLimit               // We add or remove server only on block boundaries
 
 		// update cached values that change with height
-		// check if a DBState exists where we can get the timestamp
-		//dbstate := s.DBStates.Get(int(dbheight))
-		//
-		//// Setting the leader timestamp is as follows.
-		//// If we have a dbstate use it's timestamp.
-		//// If we don't have a DBState see if the database has a dblock
-		////  if not try the previous block
-		//// there more complexity down in SetLeaderTimestamp where boot time and now-60 minutes get mixed
-		//// the primary use of the timestamp is message filtering
-		//if dbstate != nil {
-		//	s.SetLeaderTimestamp(dbstate.DirectoryBlock.GetTimestamp())
-		//} else if dblock, err := s.DB.FetchDBlockByHeight(dbheight); dblock != nil && err == nil {
-		//	s.SetLeaderTimestamp(dblock.GetTimestamp())
-		//} else {
-		//	fmt.Print("well, now what?")
-		//}
 		s.dbheights <- int(dbheight) // Notify MMR process we have moved on...
 
 		s.CurrentMinuteStartTime = time.Now().UnixNano()
@@ -689,14 +666,17 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		// If an we added or removed servers or elections tool place in minute 9, our lists will be unsorted. Fix that
 		s.LeaderPL.SortAuditServers()
 		s.LeaderPL.SortFedServers()
+		// check for identity change every time we start a new block before we look up our VM
+		s.CheckForIDChange()
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID) // MoveStateToHeight block
 
 		// update the elections thread
 		authlistMsg := s.EFactory.NewAuthorityListInternal(s.LeaderPL.FedServers, s.LeaderPL.AuditServers, s.LLeaderHeight)
 		s.ElectionsQueue().Enqueue(authlistMsg)
 
-		s.CheckForIDChange() // check for identity change every time we start a new block
-
+		if s.Leader && !s.LeaderPL.DBSigAlreadySent {
+			s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex) // MoveStateToHeight()
+		}
 	} else if s.CurrentMinute != newMinute { // And minute
 		s.CurrentMinute = newMinute                                                            // Update just the minute
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(newMinute, s.IdentityChainID) // MoveStateToHeight minute
@@ -2064,16 +2044,18 @@ func (s *State) CheckForIDChange() {
 	if changed {
 		s.LogPrintf("AckChange", "AckChange %v", s.AckChange)
 	}
-	if s.AckChange > 0 && s.LLeaderHeight >= s.AckChange {
+	if s.LLeaderHeight == s.AckChange {
 		config := util.ReadConfig(s.ConfigFilePath)
 		var err error
+		prev_ChainID := s.IdentityChainID
+		prev_LocalServerPrivKey := s.LocalServerPrivKey
 		s.IdentityChainID, err = primitives.NewShaHashFromStr(config.App.IdentityChainID)
 		if err != nil {
 			panic(err)
 		}
 		s.LocalServerPrivKey = config.App.LocalServerPrivKey
 		s.initServerKeys()
-		s.LogPrintf("AckChange", "ReloadIdentity local_priv: %v ident_chain: %v", s.LocalServerPrivKey, s.IdentityChainID)
+		s.LogPrintf("AckChange", "ReloadIdentity new local_priv: %v ident_chain: %v, prev local_priv: %v ident_chain: %v", s.LocalServerPrivKey, s.IdentityChainID, prev_LocalServerPrivKey, prev_ChainID)
 	}
 }
 
