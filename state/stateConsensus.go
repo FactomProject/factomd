@@ -118,35 +118,31 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 			// Allow these thru as they do not have Ack's (they don't change processlists)
 		default:
 			// Make sure we don't put in an old ack'd message (outside our repeat filter range)
-			tlim := int64(Range * 60 * 2000000000)                        // Filter hold two hours of messages, one in the past one in the future
-			blktime := s.GetMessageFilterTimestamp().GetTime().UnixNano() // this is the start of the filter
+			tlim := int64(Range * 60 * 2 * 1000000000)                       // Filter hold two hours of messages, one in the past one in the future
+			filterTime := s.GetMessageFilterTimestamp().GetTime().UnixNano() // this is the start of the filter
 
-			if blktime == 0 {
+			if filterTime == 0 {
 				panic("got 0 time")
 			}
 			msgtime := msg.GetTimestamp().GetTime().UnixNano()
 
 			// Make sure we don't put in an old msg (outside our repeat range)
 			{ // debug
-				Delta := blktime - msgtime
-
-				if Delta < 0 || Delta > tlim {
-
-					s.LogPrintf("executeMsg", "block %d, filter %v Msg M-%x time %v delta %d",
-						s.LLeaderHeight, s.GetMessageFilterTimestamp().GetTime().String(), msg.GetHash().Bytes()[:4], msg.GetTimestamp().String(), Delta)
+				if msgtime < filterTime || msgtime > (filterTime+tlim) {
+					s.LogPrintf("executeMsg", "MsgFilter %s", s.GetMessageFilterTimestamp().GetTime().String())
 
 					s.LogPrintf("executeMsg", "Leader  %s", s.GetLeaderTimestamp().GetTime().String())
-					s.LogPrintf("executeMsg", "Message %s", s.GetMessageFilterTimestamp().GetTime().String())
+					s.LogPrintf("executeMsg", "Message   %s", msg.GetTimestamp().GetTime().String())
 
 				}
 			}
 			// messages before message filter timestamp it's an old message
-			if msgtime < blktime {
+			if msgtime < filterTime {
 				s.LogMessage("executeMsg", "drop message, more than an hour in the past", msg)
 				valid = -1 // Old messages are bad.
-			} else if msgtime > (blktime + tlim) {
+			} else if msgtime > (filterTime + tlim) {
 				s.LogMessage("executeMsg", "hold message from the future", msg)
-				valid = 0 // Future stuff I can hold for now.  It might be good later.
+				valid = 0 // Future stuff I can hold for now.  It might be good later?
 			}
 		}
 	}
@@ -673,7 +669,8 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		// If an we added or removed servers or elections tool place in minute 9, our lists will be unsorted. Fix that
 		s.LeaderPL.SortAuditServers()
 		s.LeaderPL.SortFedServers()
-		s.CheckForIDChange()                                                                         // check for identity change every time we start a new block
+		// check for identity change every time we start a new block before we look up our VM
+		s.CheckForIDChange()
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID) // MoveStateToHeight block
 
 		// update the elections thread
