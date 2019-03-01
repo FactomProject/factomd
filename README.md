@@ -1,6 +1,5 @@
 # Factom
 
-[![Build Status](https://travis-ci.org/FactomProject/factomd.svg?branch=develop)](https://travis-ci.org/FactomProject/factomd)
 [![CircleCI](https://circleci.com/gh/FactomProject/factomd/tree/develop.svg?style=shield)](https://circleci.com/gh/FactomProject/factomd/tree/develop)
 
 Factom is an Open-Source project that provides a way to build applications on the Bitcoin blockchain. 

@@ -64,25 +64,25 @@ func TestAuditBrainSwap(t *testing.T) {
 		// start the 6 nodes running  012345
 		state0 := SetupSim("LLLAFF", params, 15, 0, 0, t)
 		state5 := engine.GetFnodes()[5].State // Get node 5
-		_=state5
+		_ = state5
 
 		t.Run("Wait For Identity Swap", func(t *testing.T) {
 			t.Log("Disabled test while known bug exists FD-845")
 			/*
-			WaitForBlock(state0, 6)
-			WaitForAllNodes(state0)
-			// rewrite the config to have brainswaps
+				WaitForBlock(state0, 6)
+				WaitForAllNodes(state0)
+				// rewrite the config to have brainswaps
 
-			WriteConfigFile(3, 5, "ChangeAcksHeight = 10\n", t) // Setup A brain swap between A3 and F5
-			WriteConfigFile(5, 3, "ChangeAcksHeight = 10\n", t)
-			WaitForBlock(state0, 9)
-			RunCmd("3") // make sure the Audit is lagging the audit if the heartbeats conflict one will panic
-			RunCmd("x")
-			WaitForBlock(state5, 10) // wait till 5 should have have brainswapped
-			RunCmd("x")
-			WaitBlocks(state0, 1)
-			WaitForAllNodes(state0)
-			CheckAuthoritySet(t)
+				WriteConfigFile(3, 5, "ChangeAcksHeight = 10\n", t) // Setup A brain swap between A3 and F5
+				WriteConfigFile(5, 3, "ChangeAcksHeight = 10\n", t)
+				WaitForBlock(state0, 9)
+				RunCmd("3") // make sure the Audit is lagging the audit if the heartbeats conflict one will panic
+				RunCmd("x")
+				WaitForBlock(state5, 10) // wait till 5 should have have brainswapped
+				RunCmd("x")
+				WaitBlocks(state0, 1)
+				WaitForAllNodes(state0)
+				CheckAuthoritySet(t)
 			*/
 		})
 

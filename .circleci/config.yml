@@ -25,9 +25,6 @@ jobs:
           name: Get goveralls
           command: |
             go get github.com/mattn/goveralls
-            cd $GOPATH/src/github.com/Masterminds/glide
-            git checkout tags/v0.13.1
-            go install
       - run:
           name: Get the dependencies
           command: |

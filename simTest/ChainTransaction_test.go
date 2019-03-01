@@ -10,12 +10,7 @@ import (
 	. "github.com/FactomProject/factomd/testHelper"
 )
 
-// FIXME: test runs > 40 min try to tune down to 10 min
 func TestChainedTransactions(t *testing.T) {
-	if RanSimTest {
-		return
-	}
-	RanSimTest = true
 
 	// a genesis block address w/ funding
 	bankSecret := "Fs3E9gV6DXsYzf7Fqx1fVBQPQXV695eP3k5XbmHEZVRLkMdD9qCK"
@@ -24,14 +19,13 @@ func TestChainedTransactions(t *testing.T) {
 	var depositSecrets []string
 	var depositAddresses []string
 
-	for i := 0; i < 120; i++ {
+	for i := 0; i < 10; i++ {
 		priv, addr := RandomFctAddressPair()
 		depositSecrets = append(depositSecrets, priv)
 		depositAddresses = append(depositAddresses, addr)
 	}
 
-	var maxBlocks = 500
-	state0 := SetupSim("LAF", map[string]string{"--debuglog": "."}, maxBlocks+1, 0, 0, t)
+	state0 := SetupSim("LAF", map[string]string{"--debuglog": "."}, 200, 0, 0, t)
 	var ecPrice uint64 = state0.GetFactoshisPerEC() //10000
 	var oneFct uint64 = factom.FactoidToFactoshi("1")
 
@@ -112,7 +106,8 @@ func TestChainedTransactions(t *testing.T) {
 		waitForDeposit(finalAddress, 0)
 	}
 
-	for x := 1; x <= 120; x++ {
+	// run batches of transactions
+	for x := 1; x <= 10; x++ {
 		mkTransactions()
 		WaitBlocks(state0, 1)
 	}

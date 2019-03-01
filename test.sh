@@ -11,11 +11,16 @@ function runTests() {
 
 
   if [[ "${CI}x" ==  "x" ]] ; then
-    TESTS=$(glide nv | grep -v Utilities | grep -v longTest | grep -v peerTest | grep -v simTest)
+    TESTS=$({ \
+      glide nv | grep -v Utilities | grep -v longTest | grep -v peerTest | grep -v simTest; \
+      #ls simTest/*_test.go;\
+      #ls peerTest/*_test.go;\
+    })
   else
     TESTS=$({ \
       glide nv | grep -v Utilities | grep -v longTest | grep -v peerTest | grep -v simTest; \
       circleci tests glob 'simTest/*_test.go'; \
+      circleci tests glob 'peerTest/*Follower_test.go'; \
     } | circleci tests split --split-by=timings)
   fi
 
@@ -28,9 +33,25 @@ function runTests() {
     echo '---------------'
   fi
 
+  # NOTE: peer tests are expected to be named 
+  # in Follower/Network pairs
+  # Example:
+  #   BrainSwapFollower_test.go
+  #   BrainSwapNetwork_test.go
+  FOLLOWER="Follower"
+  NETWORK="Network"
   FAIL=""
+
   for TST in ${TESTS[*]} ; do
+    if [[ `dirname ${TST}` == "peerTest" ]] ; then
+      NETWORK_TEST=${TST/$FOLLOWER/$NETWORK}
+      TST=${TST/$NETWORK/$FOLLOWER}
+      echo "Concurrent Peer TEST: $NETWORK_TEST"
+      nohup go test -v -vet=off $NETWORK_TEST &
+    fi
+
     go test -v -vet=off $TST
+
     if [[ $? != 0 ]] ;  then
       FAIL=1
     fi

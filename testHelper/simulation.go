@@ -33,7 +33,8 @@ var quit = make(chan struct{})
 
 var ExpectedHeight, Leaders, Audits, Followers int
 var startTime, endTime time.Time
-var RanSimTest = false // only run 1 sim test at a time
+var RanSimTest = true // KLUDGE disables all sim tests during a group unit test run
+// NOTE: going forward breaking out a test into a file under ./simTest allows it to run on CI.
 
 //EX. state0 := SetupSim("LLLLLLLLLLLLLLLAAAAAAAAAA",  map[string]string {"--controlpanelsetting" : "readwrite"}, t)
 func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int, electionsCnt int, RoundsCnt int, t *testing.T) *state.State {
@@ -392,7 +393,7 @@ func isAuditor(fnode int) bool {
 }
 
 func isFollower(fnode int) bool {
-	return ! (isAuditor(fnode)  || engine.GetFnodes()[fnode].State.Leader)
+	return !(isAuditor(fnode) || engine.GetFnodes()[fnode].State.Leader)
 }
 
 func AssertAuthoritySet(t *testing.T, givenNodes string) {
