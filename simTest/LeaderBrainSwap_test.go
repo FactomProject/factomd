@@ -1,6 +1,7 @@
 package simtest
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
@@ -60,28 +61,46 @@ func TestLeaderBrainSwap(t *testing.T) {
 		}
 
 		// start the 6 nodes running  012345
-		state0 := SetupSim("LLLFFF", params, 15, 0, 0, t)
+		state0 := SetupSim("LLLFFF", params, 30, 0, 0, t)
 		state3 := engine.GetFnodes()[3].State // Get node 2
 
-		t.Run("Wait For Identity Swap", func(t *testing.T) {
-			WaitForBlock(state0, 6)
-			WaitForAllNodes(state0)
-			// rewrite the config to have brainswaps
+		WaitForAllNodes(state0)
+		WaitForBlock(state0, 9)
 
-			WriteConfigFile(1, 5, "ChangeAcksHeight = 10\n", t) // Setup A brain swap between L1 and F5
-			WriteConfigFile(5, 1, "ChangeAcksHeight = 10\n", t)
+		// rewrite the config to make consecutive brainswaps
+		// FIXME set to 10 batches
+		for batch := 0; batch < 10 ; batch++ {
 
-			WriteConfigFile(2, 4, "ChangeAcksHeight = 10\n", t) // Setup A brain swap between L2 and F4
-			WriteConfigFile(4, 2, "ChangeAcksHeight = 10\n", t)
+			t.Run(fmt.Sprintf("Wait For Identity Swap %v", batch), func(t *testing.T) {
+				target := batch+10
 
-			WaitForBlock(state3, 10)
+				change := fmt.Sprintf("ChangeAcksHeight = %v\n", target)
 
-			WaitBlocks(state0, 1)
-		})
+				if batch % 2 == 0 {
+
+					WriteConfigFile(1, 5, change, t) // Setup A brain swap between L1 and F5
+					WriteConfigFile(5, 1, change, t)
+
+					WriteConfigFile(2, 4, change, t) // Setup A brain swap between L2 and F4
+					WriteConfigFile(4, 2, change, t)
+
+				} else {
+					WriteConfigFile(5, 5, change, t) // Un-Swap
+					WriteConfigFile(1, 1, change, t)
+
+					WriteConfigFile(4, 4, change, t)
+					WriteConfigFile(2, 2, change, t)
+
+				}
+				WaitForBlock(state3, target)
+				WaitMinutes(state3, 1)
+			})
+		}
 
 		t.Run("Verify Network", func(t *testing.T) {
+			WaitBlocks(state0, 1)
+			//AssertAuthoritySet(t, "LFFFLL")
 			WaitForAllNodes(state0)
-			AssertAuthoritySet(t, "LFFFLL")
 			ShutDownEverything(t)
 		})
 
