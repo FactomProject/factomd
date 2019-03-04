@@ -2259,7 +2259,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		s.LogPrintf("dbsig-eom", "ProcessDBSig stop DBSig processing minute %d", s.CurrentMinute)
 		//fmt.Println(fmt.Sprintf("All DBSigs are processed: allfaults(%v), && !s.DBSigDone(%v) && s.DBSigProcessed(%v)>= s.DBSigLimit(%v)",
 		//	allfaults, s.DBSigDone, s.DBSigProcessed, s.DBSigLimit))
-		fails := 0
 		for i := range pl.FedServers {
 			vm := pl.VMs[i]
 			if len(vm.List) > 0 {
@@ -2269,10 +2268,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 					return false
 				}
 			}
-		}
-		if fails > 0 {
-			//fmt.Println("DBSig Fails Detected")
-			return false
 		}
 
 		// TODO: check signatures here.  Count what match and what don't.  Then if a majority
