@@ -110,6 +110,10 @@ func (st *State) VerifyAuthoritySignature(msg []byte, sig *[constants.SIGNATURE_
 //			0  -> Audit Signature
 //			-1 -> Neither Fed or Audit Signature
 func (st *State) FastVerifyAuthoritySignature(msg []byte, sig interfaces.IFullSignature, dbheight uint32) (int, error) {
+	if sig == nil { // no signature = not valid
+		return -1, fmt.Errorf("Message contained no signature")
+	}
+
 	feds := st.GetFedServers(dbheight)
 	if feds == nil {
 		return 0, fmt.Errorf("Federated Servers are unknown at directory block height %d", dbheight)

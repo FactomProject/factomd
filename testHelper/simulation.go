@@ -331,7 +331,7 @@ func WaitForMinute(s *state.State, newMinute int) {
 	TimeNow(s)
 }
 
-func CheckAuthoritySet(t *testing.T) {
+func CountAuthoritySet() (int, int, int) {
 	leadercnt := 0
 	auditcnt := 0
 	followercnt := 0
@@ -355,6 +355,38 @@ func CheckAuthoritySet(t *testing.T) {
 		}
 	}
 
+	return leadercnt, auditcnt, followercnt
+}
+
+func AdjustAuthoritySet(adjustingNodes string) {
+	lead := Leaders
+	audit := Audits
+	follow := Followers
+
+	for _, c := range []byte(adjustingNodes) {
+		switch c {
+		case 'L':
+			lead--
+		case 'A':
+			audit--
+		case 'F':
+			follow--
+			break
+		default:
+			panic("NOT L, A or F")
+		}
+	}
+
+	fmt.Printf("AdjustAuthoritySet DIFF: L: %v, F: %v, A: %v\n", lead, audit, follow)
+	Leaders = Leaders - lead
+	Audits = Audits - audit
+	Followers = Followers - follow
+}
+
+func CheckAuthoritySet(t *testing.T) {
+
+	leadercnt, auditcnt, followercnt := CountAuthoritySet()
+
 	if leadercnt != Leaders {
 		engine.PrintOneStatus(0, 0)
 		t.Fatalf("found %d leaders, expected %d", leadercnt, Leaders)
@@ -377,8 +409,7 @@ func RunCmd(cmd string) {
 	return
 }
 
-func ShutDownEverything(t *testing.T) {
-	CheckAuthoritySet(t)
+func Halt(t *testing.T) {
 	quit <- struct{}{}
 	close(quit)
 	t.Log("Shutting down the network")
@@ -387,6 +418,11 @@ func ShutDownEverything(t *testing.T) {
 	}
 	// sleep long enough for everyone to see the shutdown.
 	time.Sleep(time.Duration(globals.Params.BlkTime) * time.Second)
+}
+
+func ShutDownEverything(t *testing.T) {
+	CheckAuthoritySet(t)
+	Halt(t)
 	fnodes := engine.GetFnodes()
 	currentHeight := fnodes[0].State.LLeaderHeight
 	// Sleep one block
@@ -398,8 +434,8 @@ func ShutDownEverything(t *testing.T) {
 
 	engine.PrintOneStatus(0, 0) // Print a final status
 	fmt.Printf("Test took %d blocks and %s time\n", engine.GetFnodes()[0].State.LLeaderHeight, time.Now().Sub(startTime))
-
 }
+
 func v2Request(req *primitives.JSON2Request, port int) (*primitives.JSON2Response, error) {
 	j, err := json.Marshal(req)
 	if err != nil {
@@ -425,4 +461,19 @@ func v2Request(req *primitives.JSON2Request, port int) (*primitives.JSON2Respons
 		return nil, err
 	}
 	return nil, nil
+}
+
+func ResetFactomHome(t *testing.T, subDir string) {
+	dir, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	globals.Params.FactomHome = dir + "/.sim/" + subDir
+	os.Setenv("FACTOM_HOME", globals.Params.FactomHome)
+
+	t.Logf("Removing old run in %s", globals.Params.FactomHome)
+	if err := os.RemoveAll(globals.Params.FactomHome); err != nil {
+		t.Fatal(err)
+	}
 }
