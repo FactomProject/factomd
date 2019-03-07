@@ -186,8 +186,8 @@ func (m *SyncMsg) FollowerExecute(is interfaces.IState) {
 	}
 	if msg == nil { // TODO: What does this mean? -- clay
 		//s.Holding[m.GetMsgHash().Fixed()] = m
-		s.AddToHolding(m.GetMsgHash().Fixed(), m)
-		return // Maybe we are not yet prepared to create an SigType...
+		s.AddToHolding(m.GetMsgHash().Fixed(), m) // SyncMsg.FollowerExecute
+		return                                    // Maybe we are not yet prepared to create an SigType...
 	}
 	va := new(FedVoteVolunteerMsg)
 	va.Missing = msg

@@ -68,6 +68,9 @@ func (lg *LoadGenerator) Run() {
 			return
 		}
 		var chain interfaces.IHash = nil
+
+		sleep := 500 / top
+
 		for i := 0; i < top; i++ {
 			var c interfaces.IMsg
 			e := RandomEntry()
@@ -82,6 +85,8 @@ func (lg *LoadGenerator) Run() {
 
 			fnodes[wsapiNode].State.APIQueue().Enqueue(c)
 			fnodes[wsapiNode].State.APIQueue().Enqueue(r)
+
+			time.Sleep(time.Duration(sleep))
 		}
 	}
 }
@@ -92,7 +97,7 @@ func (lg *LoadGenerator) Stop() {
 
 func RandomEntry() *entryBlock.Entry {
 	entry := entryBlock.NewEntry()
-	entry.Content = primitives.ByteSlice{random.RandByteSliceOfLen(rand.Intn(4000))}
+	entry.Content = primitives.ByteSlice{random.RandByteSliceOfLen(rand.Intn(4000) + 128)}
 	entry.ExtIDs = make([]primitives.ByteSlice, rand.Intn(4)+1)
 	raw := make([][]byte, len(entry.ExtIDs))
 	for i := range entry.ExtIDs {

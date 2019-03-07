@@ -1,4 +1,4 @@
-FROM golang:1.11
+FROM golang:1.12
 
 # Get git
 RUN apt-get update \

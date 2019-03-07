@@ -39,6 +39,7 @@ func CreateEmptyTestState() *state.State {
 	s.Network = "LOCAL"
 	s.CheckChainHeads.CheckChainHeads = false
 	state.LoadDatabase(s)
+	s.DBFinished = true
 	return s
 }
 

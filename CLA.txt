@@ -38,3 +38,5 @@ Joshua Brigati                             JoshuaBrigati                        
 Samuel Vanderwaal                          samuelvanderwaal                             Canonical Ledgers
 Adam S Levy                                AdamSLevy                                    Canonical Ledgers, LLC
 Who Soup                                   WhoSoup                                      Factomize LLC
+Thomas Meier                               ThomasMeier                                  LayerTech LLC
+Niels Klomp                                nklomp                                       Centis BV, Sphereon BV, BIF
