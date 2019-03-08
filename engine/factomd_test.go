@@ -22,6 +22,7 @@ import (
 	. "github.com/FactomProject/factomd/engine"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/wsapi"
+	"os/exec"
 )
 
 var _ = Factomd
@@ -1403,21 +1404,13 @@ func TestFilterAPI(t *testing.T) {
 		return
 	}
 
-	type walletcallHelper struct {
-		Params string `json:"params"`
-	}
-	type filterHelper struct {
-		Jsonrpc string           `json:"jsonrps"`
-		Id      int              `json:"id"`
-		Result  walletcallHelper `json:"result"`
-	}
-
 	ranSimTest = true
 
 	state0 := SetupSim("LLLLLAAF", "LOCAL", map[string]string{"--debuglog": "."}, t)
-	runCmd("1")
 
+	runCmd("1")
 	runCmd("w")
+	runCmd("s")
 
 	url := "http://localhost:" + fmt.Sprint(state0.GetPort()) + "/v2"
 	var jsonStr = []byte(`{"jsonrpc": "2.0", "id": 0, "method": "message-filter", "params":{"output-regex":"EOM.*5/.*minute 1", "input-regex":""}}`)
@@ -1425,24 +1418,30 @@ func TestFilterAPI(t *testing.T) {
 	req.Header.Set("content-type", "text/plain;")
 
 	client := &http.Client{}
-	resp, err := client.Do(req)
+	_, err = client.Do(req)
 	if err != nil {
 		t.Error(err)
 	}
 
-	defer resp.Body.Close()
-	body, _ := ioutil.ReadAll(resp.Body)
-
-	resp2 := new(filterHelper)
-
-	err1 := json.Unmarshal([]byte(body), &resp2)
-	if err1 != nil {
-		t.Error(err1)
-	}
-	fmt.Println("resp2 ", resp2)
-
+	test := GetFnodes()[1].State;
+	fmt.Println("test: ", test.GetFactomNodeName());
 	WaitBlocks(state0, 5)
+	if test.Leader {
+		t.Fatalf("Node01 should not be leader!")
+	}
 	CheckAuthoritySet(5, 2, t)
+	out, err := exec.Command("sh", "-c", `grep "Drop, matched filter Regex" fnode01_networkoutputs.txt | grep -v "EOM.*5/.*minute 1" | wc -l`).Output()
+	if err != nil {
+		foo := err.Error()
+		fmt.Println("foo", foo)
+		os.Exit(1)
+		panic(err)
+	}
+	fmt.Println("out",string(out))
+
+	if string(out) != string(0) {
+		t.Fatalf("Filter missed let a message passed.")
+	}
 
 	t.Log("Shutting down the network")
 	for _, fn := range GetFnodes() {
