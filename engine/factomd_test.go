@@ -1437,11 +1437,20 @@ func TestFilterAPI(t *testing.T) {
 		os.Exit(1)
 		panic(err)
 	}
-	fmt.Println("out",string(out))
 
-	if string(out) != string(0) {
+	if strings.TrimSuffix(strings.Trim(string(out), " "), "\n") != string("0") {
 		t.Fatalf("Filter missed let a message passed.")
 	}
+
+	//out2, err2 := exec.Command("sh", "-c", `grep "Send broadcast" fnode01_networkoutputs.txt"`).Output()
+	//if err2 != nil {
+	//	foo := err2.Error()
+	//	fmt.Println("foo", foo)
+	//	os.Exit(1)
+	//	panic(err2)
+	//}
+	//
+	//fmt.Println(string(out2))
 
 	t.Log("Shutting down the network")
 	for _, fn := range GetFnodes() {
