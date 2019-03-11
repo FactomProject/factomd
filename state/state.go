@@ -2943,3 +2943,7 @@ func (s *State) IsActive(id activations.ActivationType) bool {
 
 	return rval
 }
+
+func (s *State) GetDBFinished() bool {
+	return s.DBFinished
+}

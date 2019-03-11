@@ -318,9 +318,10 @@ type DiagnosticsResponse struct {
 	TempBalanceHash       string `json:"tempbalancehash"`
 	LastBlockFromDBState  bool   `json:"lastblockfromdbstate"`
 
-	SyncInfo     *SyncInfo     `json:"syncing"`
-	AuthSet      *AuthSet      `json:"authset"`
-	ElectionInfo *ElectionInfo `json:"elections"`
+	SyncInfo         *SyncInfo     `json:"syncing"`
+	BootDromDiskDone bool          `json:"bootfromdiskdone"`
+	AuthSet          *AuthSet      `json:"authset"`
+	ElectionInfo     *ElectionInfo `json:"elections"`
 }
 
 type SyncInfo struct {

@@ -53,6 +53,7 @@ type IState interface {
 	GetFactomdVersion() string
 	GetDBHeightComplete() uint32
 	GetDBHeightAtBoot() uint32
+	GetDBFinished() bool
 	DatabaseContains(hash IHash) bool
 	SetOut(bool)  // Output is turned on if set to true
 	GetOut() bool // Return true if Print or Println write output
