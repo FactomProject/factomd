@@ -1412,8 +1412,10 @@ func TestFilterAPIOutput(t *testing.T) {
 	runCmd("w")
 	runCmd("s")
 
+	apiRegex := "EOM.*5/.*minute 1"
+
 	url := "http://localhost:" + fmt.Sprint(state0.GetPort()) + "/v2"
-	var jsonStr = []byte(`{"jsonrpc": "2.0", "id": 0, "method": "message-filter", "params":{"output-regex":"EOM.*5/.*minute 1", "input-regex":""}}`)
+	var jsonStr = []byte(`{"jsonrpc": "2.0", "id": 0, "method": "message-filter", "params":{"output-regex":"` + apiRegex + `", "input-regex":""}}`)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
 	req.Header.Set("content-type", "text/plain;")
 
@@ -1423,32 +1425,73 @@ func TestFilterAPIOutput(t *testing.T) {
 		t.Error(err)
 	}
 
-	test := GetFnodes()[1].State;
 	WaitBlocks(state0, 5)
-	if test.Leader {
+	if GetFnodes()[1].State.Leader {
 		t.Fatalf("Node01 should not be leader!")
 	}
 	CheckAuthoritySet(5, 2, t)
 
-	out, err := exec.Command("sh", "-c", `grep "Drop, matched filter Regex" fnode01_networkoutputs.txt | grep -v "EOM.*5/.*minute 1" | wc -l`).Output()
-	if err != nil {
-		foo := err.Error()
-		fmt.Println("foo", foo)
-		os.Exit(1)
-		panic(err)
-	}
+	out := SystemCall(`grep "Drop, matched filter Regex" fnode01_networkoutputs.txt | grep -v "` + apiRegex + `" | wc -l`)
 
 	if strings.TrimSuffix(strings.Trim(string(out), " "), "\n") != string("0") {
 		t.Fatalf("Filter missed let a message pass.")
 	}
 
-	out2, err2 := exec.Command("sh", "-c", `grep "Send broadcast" fnode01_networkoutputs.txt | grep "EOM.*5/.*minute 1" | grep -v "ACK-"`).Output()
-	if err2 != nil {
-		foo := err2.Error()
-		fmt.Println("foo", foo)
-		os.Exit(1)
-		panic(err2)
+	out2 := SystemCall(`grep "Send broadcast" fnode01_networkoutputs.txt | grep "` + apiRegex + `" | grep -v "ACK-" | wc -l`)
+
+	if strings.TrimSuffix(strings.Trim(string(out2), " "), "\n") != string("0") {
+		t.Fatalf("Filter missed let a message pass.")
 	}
+
+	WaitBlocks(state0, 1)
+
+	t.Log("Shutting down the network")
+	for _, fn := range GetFnodes() {
+		fn.State.ShutdownChan <- 1
+	}
+}
+
+func TestFilterAPIInput(t *testing.T) {
+	if ranSimTest {
+		return
+	}
+
+	ranSimTest = true
+
+	state0 := SetupSim("LLLLLAAF", "LOCAL", map[string]string{"--debuglog": "."}, t)
+
+	runCmd("1")
+	runCmd("w")
+	runCmd("s")
+
+	apiRegex := "EOM.*5/.*minute 1"
+
+	url := "http://localhost:" + fmt.Sprint(state0.GetPort()) + "/v2"
+	jsonStr := []byte(`{"jsonrpc": "2.0", "id": 0, "method": "message-filter", "params":{"output-regex":"", "input-regex":"` + apiRegex + `"}}`)
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
+	req.Header.Set("content-type", "text/plain;")
+
+	client := &http.Client{}
+	_, err = client.Do(req)
+	if err != nil {
+		t.Error(err)
+	}
+
+	WaitBlocks(state0, 5)
+
+	if GetFnodes()[1].State.Leader {
+		t.Fatalf("Node01 should not be leader!")
+	}
+
+	CheckAuthoritySet(5, 2, t)
+
+	out := SystemCall(`grep "enqueue" fnode01_networkinputs.txt | grep "` + apiRegex + `" | grep -v "ACK-" | wc -l`)
+
+	if strings.TrimSuffix(strings.Trim(string(out), " "), "\n") != string("0") {
+		t.Fatalf("Filter missed let a message pass.")
+	}
+
+	out2 := SystemCall(`grep "Drop, matched filter Regex" fnode01_networkinputs.txt | grep -v "` + apiRegex + `" | wc -l`)
 
 	if strings.TrimSuffix(strings.Trim(string(out2), " "), "\n") != string("0") {
 		t.Fatalf("Filter missed let a message pass.")
@@ -1494,4 +1537,17 @@ func TestRandom(t *testing.T) {
 		t.Fatal("Failed")
 	}
 
+}
+
+func SystemCall(cmd string) ([]byte){
+	fmt.Println("SystemCall(\"", cmd, "\")")
+	out, err := exec.Command("sh", "-c", cmd).Output()
+	if err != nil {
+		foo := err.Error()
+		fmt.Println(foo)
+		os.Exit(1)
+		panic(err)
+	}
+	fmt.Print(string(out))
+	return out;
 }
