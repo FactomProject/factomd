@@ -8,7 +8,6 @@ import (
 	"encoding/gob"
 	"fmt"
 	"hash/crc32"
-	"io"
 	"net"
 	"os"
 	"time"
@@ -465,16 +464,8 @@ func (c *Connection) handleCommand() {
 func (c *Connection) sendParcel(parcel Parcel) {
 
 	parcel.Header.NodeID = NodeID // Send it out with our ID for loopback.
-	c.conn.SetWriteDeadline(time.Now().Add(NetworkDeadline * 500))
-
-	//deadline := time.Now().Add(NetworkDeadline)
-	//if len(parcel.Payload) > 1000*10 {
-	//	ms := (len(parcel.Payload) * NetworkDeadline.Seconds())/1000
-	//	deadline = time.Now().Add(time.Duration(ms)*time.Millisecond)
-	//}
-	//c.conn.SetWriteDeadline(deadline)
-	encode := c.encoder
-	err := encode.Encode(parcel)
+	c.conn.SetWriteDeadline(time.Now().Add(NetworkDeadline))
+	err := c.encoder.Encode(parcel)
 	switch {
 	case nil == err:
 		c.metrics.BytesSent += parcel.Header.Length
@@ -504,14 +495,9 @@ func (c *Connection) processReceives() {
 		for c.state == ConnectionOnline {
 			var message Parcel
 
+			c.conn.SetReadDeadline(time.Now().Add(NetworkDeadline))
 			result := c.decoder.Decode(&message)
 			switch result {
-			case io.EOF: // nothing to decode
-				// TODO: This error is a starving loop. Does the error always mean the connection is closed?
-				// TODO: If so, we should pass it to the errors channel to kill this connection and stop reading.
-				// For now, just sleep to stop the starve
-				time.Sleep(500 * time.Millisecond)
-				continue
 			case nil: // successfully decoded
 				c.metrics.BytesReceived += message.Header.Length
 				c.metrics.MessagesReceived += 1
@@ -533,21 +519,16 @@ func (c *Connection) handleNetErrors(toss bool) {
 	for {
 		select {
 		case err := <-c.Errors:
-			nerr, isNetError := err.(net.Error)
-			switch {
-			case isNetError && nerr.Timeout(): /// buffer empty
-				return
-			default:
-				// Only go offline once per handleNetErrors call
-				if !toss && !done {
-					if err != nil {
-						c.logger.WithField("func", "HandleNetErrors").Warnf("Going offline due to -- %s", err.Error())
-					}
-					c.goOffline()
+			fmt.Println("DEBUG: NET ERROR", err)
+			// Only go offline once per handleNetErrors call
+			if !toss && !done {
+				if err != nil {
+					c.logger.WithField("func", "HandleNetErrors").Warnf("Going offline due to -- %s", err.Error())
 				}
-
-				done = true
+				c.goOffline()
 			}
+
+			done = true
 		default:
 			return
 		}
