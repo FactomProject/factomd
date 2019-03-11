@@ -509,6 +509,7 @@ func (c *Connection) processReceives() {
 				c.TimeLastpacket = time.Now()
 			default: // error
 				c.Errors <- result
+				time.Sleep(100 * time.Millisecond) // give some time to handle states
 			}
 		}
 		// If not online, give some time up to handle states that are not online, closed, or shuttingdown.
