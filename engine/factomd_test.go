@@ -1399,7 +1399,7 @@ func TestTestNetCoinBaseActivation(t *testing.T) {
 	}
 }
 
-func TestFilterAPI(t *testing.T) {
+func TestFilterAPIOutput(t *testing.T) {
 	if ranSimTest {
 		return
 	}
@@ -1424,12 +1424,12 @@ func TestFilterAPI(t *testing.T) {
 	}
 
 	test := GetFnodes()[1].State;
-	fmt.Println("test: ", test.GetFactomNodeName());
 	WaitBlocks(state0, 5)
 	if test.Leader {
 		t.Fatalf("Node01 should not be leader!")
 	}
 	CheckAuthoritySet(5, 2, t)
+
 	out, err := exec.Command("sh", "-c", `grep "Drop, matched filter Regex" fnode01_networkoutputs.txt | grep -v "EOM.*5/.*minute 1" | wc -l`).Output()
 	if err != nil {
 		foo := err.Error()
@@ -1439,18 +1439,22 @@ func TestFilterAPI(t *testing.T) {
 	}
 
 	if strings.TrimSuffix(strings.Trim(string(out), " "), "\n") != string("0") {
-		t.Fatalf("Filter missed let a message passed.")
+		t.Fatalf("Filter missed let a message pass.")
 	}
 
-	//out2, err2 := exec.Command("sh", "-c", `grep "Send broadcast" fnode01_networkoutputs.txt"`).Output()
-	//if err2 != nil {
-	//	foo := err2.Error()
-	//	fmt.Println("foo", foo)
-	//	os.Exit(1)
-	//	panic(err2)
-	//}
-	//
-	//fmt.Println(string(out2))
+	out2, err2 := exec.Command("sh", "-c", `grep "Send broadcast" fnode01_networkoutputs.txt | grep "EOM.*5/.*minute 1" | grep -v "ACK-"`).Output()
+	if err2 != nil {
+		foo := err2.Error()
+		fmt.Println("foo", foo)
+		os.Exit(1)
+		panic(err2)
+	}
+
+	if strings.TrimSuffix(strings.Trim(string(out2), " "), "\n") != string("0") {
+		t.Fatalf("Filter missed let a message pass.")
+	}
+
+	WaitBlocks(state0, 1)
 
 	t.Log("Shutting down the network")
 	for _, fn := range GetFnodes() {
