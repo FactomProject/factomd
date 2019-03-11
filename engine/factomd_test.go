@@ -1414,6 +1414,7 @@ func TestFilterAPIOutput(t *testing.T) {
 
 	apiRegex := "EOM.*5/.*minute 1"
 
+	// API call
 	url := "http://localhost:" + fmt.Sprint(state0.GetPort()) + "/v2"
 	var jsonStr = []byte(`{"jsonrpc": "2.0", "id": 0, "method": "message-filter", "params":{"output-regex":"` + apiRegex + `", "input-regex":""}}`)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
@@ -1426,17 +1427,21 @@ func TestFilterAPIOutput(t *testing.T) {
 	}
 
 	WaitBlocks(state0, 5)
+
+	// The message-filter call we did above should have caused an election and SO, Node01 should not be a leader anymore.
 	if GetFnodes()[1].State.Leader {
 		t.Fatalf("Node01 should not be leader!")
 	}
 	CheckAuthoritySet(5, 2, t)
 
+	// Check Node01 Network Output logs to make sure there are no Dropped messaged besides the ones for our Regex
 	out := SystemCall(`grep "Drop, matched filter Regex" fnode01_networkoutputs.txt | grep -v "` + apiRegex + `" | wc -l`)
 
 	if strings.TrimSuffix(strings.Trim(string(out), " "), "\n") != string("0") {
 		t.Fatalf("Filter missed let a message pass.")
 	}
 
+	// Checks Node01 Network Outputs to make sure there are no Sent broadcast including our Regex
 	out2 := SystemCall(`grep "Send broadcast" fnode01_networkoutputs.txt | grep "` + apiRegex + `" | grep -v "ACK-" | wc -l`)
 
 	if strings.TrimSuffix(strings.Trim(string(out2), " "), "\n") != string("0") {
@@ -1466,6 +1471,7 @@ func TestFilterAPIInput(t *testing.T) {
 
 	apiRegex := "EOM.*5/.*minute 1"
 
+	// API call
 	url := "http://localhost:" + fmt.Sprint(state0.GetPort()) + "/v2"
 	jsonStr := []byte(`{"jsonrpc": "2.0", "id": 0, "method": "message-filter", "params":{"output-regex":"", "input-regex":"` + apiRegex + `"}}`)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
@@ -1479,18 +1485,21 @@ func TestFilterAPIInput(t *testing.T) {
 
 	WaitBlocks(state0, 5)
 
+	// The message-filter call we did above should have caused an election and SO, Node01 should not be a leader anymore.
 	if GetFnodes()[1].State.Leader {
 		t.Fatalf("Node01 should not be leader!")
 	}
 
 	CheckAuthoritySet(5, 2, t)
 
+	// Check Node01 Network Input logs to make sure there are no enqueued including our Regex
 	out := SystemCall(`grep "enqueue" fnode01_networkinputs.txt | grep "` + apiRegex + `" | grep -v "ACK-" | wc -l`)
 
 	if strings.TrimSuffix(strings.Trim(string(out), " "), "\n") != string("0") {
 		t.Fatalf("Filter missed let a message pass.")
 	}
 
+	// Check Node01 Network Input logs to make sure there are no Dropped messaged besides the ones for our Regex
 	out2 := SystemCall(`grep "Drop, matched filter Regex" fnode01_networkinputs.txt | grep -v "` + apiRegex + `" | wc -l`)
 
 	if strings.TrimSuffix(strings.Trim(string(out2), " "), "\n") != string("0") {
