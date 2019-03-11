@@ -519,7 +519,6 @@ func (c *Connection) handleNetErrors(toss bool) {
 	for {
 		select {
 		case err := <-c.Errors:
-			fmt.Println("DEBUG: NET ERROR", err)
 			// Only go offline once per handleNetErrors call
 			if !toss && !done {
 				if err != nil {
