@@ -319,7 +319,7 @@ type DiagnosticsResponse struct {
 	LastBlockFromDBState  bool   `json:"lastblockfromdbstate"`
 
 	SyncInfo         *SyncInfo     `json:"syncing"`
-	BootDromDiskDone bool          `json:"bootfromdiskdone"`
+	BootFromDiskDone bool          `json:"bootfromdiskdone"`
 	AuthSet          *AuthSet      `json:"authset"`
 	ElectionInfo     *ElectionInfo `json:"elections"`
 }
