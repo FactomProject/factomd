@@ -41,7 +41,6 @@ const (
 )
 
 func (p *Peer) Init(address string, port string, quality int32, peerType uint8, connections int) *Peer {
-
 	p.logger = peerLogger.WithFields(log.Fields{
 		"address":  address,
 		"port":     port,
@@ -68,6 +67,16 @@ func (p *Peer) Init(address string, port string, quality int32, peerType uint8, 
 	return p
 }
 
+func (p *Peer) InitLogger() {
+	if p.logger == nil {
+		p.logger = peerLogger.WithFields(log.Fields{
+			"address":  p.Address,
+			"port":     p.Port,
+			"peerType": p.Type,
+		})
+	}
+}
+
 func (p *Peer) generatePeerHash() {
 	p.Hash = fmt.Sprintf("%s:%s %x", p.Address, p.Port, rand.Int63())
 }
@@ -87,9 +96,9 @@ func (p *Peer) PeerFixedIdent() string {
 
 func (p *Peer) PeerLogFields() log.Fields {
 	return log.Fields{
-		"address":   p.Address,
-		"port":      p.Port,
-		"peer_type": p.PeerTypeString(),
+		"address":  p.Address,
+		"port":     p.Port,
+		"peerType": p.PeerTypeString(),
 	}
 }
 
@@ -142,7 +151,7 @@ func (p *Peer) LocationFromAddress() (location uint32) {
 	location += uint32(ip[1]) << 16
 	location += uint32(ip[2]) << 8
 	location += uint32(ip[3])
-	p.logger.Debugf("peer", "Peer: %s has Location: %d", p.Hash, location)
+	p.logger.Debugf("Peer: %s has Location: %d", p.Hash, location)
 	return location
 }
 

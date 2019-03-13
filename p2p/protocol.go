@@ -68,6 +68,7 @@ var (
 	PeerSaveInterval                    = time.Second * 30
 	PeerRequestInterval                 = time.Second * 180
 	PeerDiscoveryInterval               = time.Hour * 4
+	PeerFreshnessMax                    = time.Hour * 168 // don't save peers we haven't connected to for this long
 
 	// Testing metrics
 	TotalMessagesReceived       uint64

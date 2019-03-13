@@ -22,6 +22,11 @@ import (
 
 var discoLogger = packageLogger.WithField("subpack", "discovery")
 
+// Discovery provides the code for sharing and managing peers,
+// namely keeping track of all the peers we know about (not just the ones
+// we are connected to.)  The discovery "service" is owned by the
+// Controller and its routines are called from the Controllers runloop()
+// This ensures that all shared memory is accessed from that goroutine.
 type Discovery struct {
 	knownPeers map[string]Peer // peers we know about indexed by hash
 
@@ -31,27 +36,23 @@ type Discovery struct {
 	seedURL       string     // URL to the source of a list of peers
 
 	// logging
-	logger *log.Entry
+	logger     *log.Entry
+	peerUpdate sync.RWMutex
 }
-
-var UpdateKnownPeers sync.Mutex
-
-// Discovery provides the code for sharing and managing peers,
-// namely keeping track of all the peers we know about (not just the ones
-// we are connected to.)  The discovery "service" is owned by the
-// Controller and its routines are called from the Controllers runloop()
-// This ensures that all shared memory is accessed from that goroutine.
 
 func (d *Discovery) Init(peersFile string, seed string) *Discovery {
 	d.logger = discoLogger
-	UpdateKnownPeers.Lock()
+	d.peerUpdate.Lock()
 	d.knownPeers = map[string]Peer{}
-	UpdateKnownPeers.Unlock()
+	d.peerUpdate.Unlock()
 	d.rng = rand.New(rand.NewSource(time.Now().UnixNano()))
 	d.peersFilePath = peersFile
 	d.seedURL = seed
-	//d.LoadPeers()
-	d.DiscoverPeersFromSeed()
+	d.LoadPeers()
+	if peerCount := d.PeerCount(); NumberPeersToConnect > peerCount {
+		d.logger.Infof("Only %d peers found in peers.json, supplementing from seed", peerCount)
+		d.DiscoverPeersFromSeed()
+	}
 	return d
 }
 
@@ -61,7 +62,8 @@ func (d *Discovery) Init(peersFile string, seed string) *Discovery {
 // UpdatePeer updates the values in our known peers. Creates peer if its not in there.
 func (d *Discovery) updatePeer(peer Peer) {
 	d.logger.Debugf("Updating peer: %v", peer)
-	UpdateKnownPeers.Lock()
+	d.peerUpdate.Lock()
+	defer d.peerUpdate.Unlock()
 
 	_, ok := d.knownPeers[peer.Address]
 	if !ok {
@@ -71,49 +73,55 @@ func (d *Discovery) updatePeer(peer Peer) {
 	}
 
 	d.knownPeers[peer.Address] = peer
-	UpdateKnownPeers.Unlock()
 }
 
 // getPeer returns a known peer, if present
-func (d *Discovery) getPeer(address string) Peer {
-	UpdateKnownPeers.Lock()
-	thePeer := d.knownPeers[address]
-	UpdateKnownPeers.Unlock()
-	return thePeer
+func (d *Discovery) getPeer(address string) (Peer, bool) {
+	d.peerUpdate.RLock()
+	defer d.peerUpdate.RUnlock()
+	peer, found := d.knownPeers[address]
+	return peer, found
 }
 
-// UpdatePeer updates the values in our known peers. Creates peer if its not in there.
+// isPeerPresent checks if a peer is already known to Discovery
 func (d *Discovery) isPeerPresent(peer Peer) bool {
-	UpdateKnownPeers.Lock()
+	d.peerUpdate.RLock()
+	defer d.peerUpdate.RUnlock()
 	_, present := d.knownPeers[peer.Address]
-	UpdateKnownPeers.Unlock()
 	return present
 }
 
-// LoadPeers loads the known peers from disk OVERWRITING PREVIOUS VALUES
+// PeerCount returns the amount of peers saved in discovery
+func (d *Discovery) PeerCount() int {
+	d.peerUpdate.RLock()
+	defer d.peerUpdate.RUnlock()
+	return len(d.knownPeers)
+}
+
+// LoadPeers loads the known peers from disk, OVERWRITING PREVIOUS VALUES
 func (d *Discovery) LoadPeers() {
 	file, err := os.Open(d.peersFilePath)
+	defer file.Close()
 	if nil != err {
 		d.logger.Errorf("Discover.LoadPeers() File read error on file: %s, Error: %+v", d.peersFilePath, err)
 		return
 	}
 	dec := json.NewDecoder(bufio.NewReader(file))
-	UpdateKnownPeers.Lock()
+	d.peerUpdate.Lock()
+	defer d.peerUpdate.Unlock()
 	dec.Decode(&d.knownPeers)
 	// since this is run at startup, reset quality scores.
 	for _, peer := range d.knownPeers {
+		peer.InitLogger() // required for LocationFromAddress()
 		peer.QualityScore = 0
 		peer.Location = peer.LocationFromAddress()
 		d.knownPeers[peer.Address] = peer
 	}
-	UpdateKnownPeers.Unlock()
 	d.logger.Debugf("LoadPeers() found %d peers in peers.josn", len(d.knownPeers))
-	file.Close()
 }
 
-// SavePeers just saves our known peers out to disk. Called periodically.
+// SavePeers saves our known peers to disk. Called periodically based on "PeerSaveInterval"
 func (d *Discovery) SavePeers() {
-	// save known peers to peers.json
 	d.lastPeerSave = time.Now()
 	file, err := os.Create(d.peersFilePath)
 	if nil != err {
@@ -124,7 +132,7 @@ func (d *Discovery) SavePeers() {
 	writer := bufio.NewWriter(file)
 	encoder := json.NewEncoder(writer)
 	var qualityPeers = map[string]Peer{}
-	UpdateKnownPeers.Lock()
+	d.peerUpdate.Lock()
 	for _, peer := range d.knownPeers {
 		switch {
 		case peer.IsSpecial(): // always save special peers, even if we haven't talked in awhile.
@@ -141,7 +149,7 @@ func (d *Discovery) SavePeers() {
 			qualityPeers[peer.AddressPort()] = peer
 		}
 	}
-	UpdateKnownPeers.Unlock()
+	d.peerUpdate.Unlock()
 	encoder.Encode(qualityPeers)
 	writer.Flush()
 	d.logger.Debugf("SavePeers() saved %d peers in peers.json. \n They were: %+v", len(qualityPeers), qualityPeers)
@@ -163,7 +171,7 @@ func (d *Discovery) LearnPeers(parcel Parcel) {
 		value.QualityScore = 0
 		switch d.isPeerPresent(value) {
 		case true:
-			alreadyKnownPeer := d.getPeer(value.Address)
+			alreadyKnownPeer, _ := d.getPeer(value.Address)
 			d.updatePeer(d.updatePeerSource(alreadyKnownPeer, parcel.Header.PeerAddress))
 		default:
 			value.Source = map[string]time.Time{parcel.Header.PeerAddress: time.Now()}
@@ -219,7 +227,7 @@ func (d *Discovery) filterForUniqueIPAdresses(peers []Peer) (filtered []Peer) {
 func (d *Discovery) GetOutgoingPeers() []Peer {
 	firstPassPeers := []Peer{}
 	selectedPeers := map[string]Peer{}
-	UpdateKnownPeers.Lock()
+	d.peerUpdate.RLock()
 	for _, peer := range d.knownPeers {
 		switch {
 		case OnlySpecialPeers && peer.IsSpecial():
@@ -229,7 +237,7 @@ func (d *Discovery) GetOutgoingPeers() []Peer {
 		default:
 		}
 	}
-	UpdateKnownPeers.Unlock()
+	d.peerUpdate.RUnlock()
 	secondPass := d.filterPeersFromOtherNetworks(firstPassPeers)
 	peerPool := d.filterForUniqueIPAdresses(secondPass)
 	sort.Sort(PeerDistanceSort(peerPool))
@@ -280,13 +288,13 @@ func (d *Discovery) getPeerSelection() []byte {
 	selectedPeers := []Peer{}
 	firstPassPeers := []Peer{}
 	specialPeersByLocation := map[uint32]Peer{}
-	UpdateKnownPeers.Lock()
+	d.peerUpdate.RLock()
 	for _, peer := range d.knownPeers {
 		if peer.QualityScore > MinumumSharingQualityScore { // Only share peers that have earned positive reputation
 			firstPassPeers = append(firstPassPeers, peer)
 		}
 	}
-	UpdateKnownPeers.Unlock()
+	d.peerUpdate.RUnlock()
 	peerPool := d.filterPeersFromOtherNetworks(firstPassPeers)
 	sort.Sort(PeerQualitySort(peerPool))
 	// Pull out special peers by location.  Use location because it should more accurately reflect IP address.
@@ -338,10 +346,12 @@ func (d *Discovery) DiscoverPeersFromSeed() {
 	for _, line := range lines {
 		address, port, err := net.SplitHostPort(line)
 		if err == nil {
-			peerp := new(Peer).Init(address, port, 0, RegularPeer, 0)
-			peer := *peerp
-			peer.LastContact = time.Now()
-			d.updatePeer(d.updatePeerSource(peer, "DNS-Seed"))
+			if _, ok := d.getPeer(address); !ok {
+				peerp := new(Peer).Init(address, port, 0, RegularPeer, 0)
+				peer := *peerp
+				peer.LastContact = time.Now()
+				d.updatePeer(d.updatePeerSource(peer, "DNS-Seed"))
+			}
 		} else {
 			bad++
 			d.logger.Errorf("Bad peer in " + d.seedURL + " [" + line + "]")
