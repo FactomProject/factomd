@@ -346,7 +346,9 @@ func (d *Discovery) DiscoverPeersFromSeed() {
 	for _, line := range lines {
 		address, port, err := net.SplitHostPort(line)
 		if err == nil {
-			if _, ok := d.getPeer(address); !ok {
+			if existing, ok := d.getPeer(address); ok {
+				d.updatePeer(d.updatePeerSource(existing, "DNS-Seed"))
+			} else { // new peer
 				peerp := new(Peer).Init(address, port, 0, RegularPeer, 0)
 				peer := *peerp
 				peer.LastContact = time.Now()
