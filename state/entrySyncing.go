@@ -241,7 +241,6 @@ func (s *State) GoSyncEntries() {
 							continue
 						}
 
-						// Only update the replay hashes in the last 24 hours.
 						ueh := new(EntryUpdate)
 						ueh.Hash = entryhash
 						ueh.Timestamp = db.GetTimestamp()
