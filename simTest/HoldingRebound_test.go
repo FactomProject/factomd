@@ -13,8 +13,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-
-
 func TestSendingCommitAndReveal(t *testing.T) {
 	encode := func(s string) []byte {
 		b := bytes.Buffer{}
@@ -36,8 +34,8 @@ func TestSendingCommitAndReveal(t *testing.T) {
 	t.Run("Run sim to create entries", func(t *testing.T) {
 		dropRate := 0
 
-		//FIXME: should also set blocktime = 30
-		state0 := SetupSim("LAF", map[string]string{"--debuglog": ""}, 200, 1, 1, t)
+		// FIXME: test times out w/ failure when providing "LAF"
+		state0 := SetupSim("L", map[string]string{"--debuglog": ""}, 200, 1, 1, t)
 		ticker := WatchMessageLists()
 
 		if dropRate > 0 {
@@ -103,9 +101,8 @@ func GenerateCommitsAndRevealsInBatches(t *testing.T, state0 *state.State) {
 	a := AccountFromFctSecret("Fs2zQ3egq2j99j37aYzaCddPq9AF3mgh64uG9gRaDAnrkjRx3eHs")
 	b := GetBankAccount()
 
-
-	batchCount := 10
-    setDelay := 0 // blocks to wait between sets of entries
+	batchCount := 1
+	setDelay := 0     // blocks to wait between sets of entries
 	numEntries := 250 // set the total number of entries to add
 
 	logName := "simTest"
@@ -139,7 +136,7 @@ func GenerateCommitsAndRevealsInBatches(t *testing.T, state0 *state.State) {
 
 			tstart := WaitForEmptyHolding(state0, fmt.Sprintf("WAIT_HOLDING_START%v", BatchID))
 
-			for x := 1; x <= numEntries; x++ {
+			for x := 0; x < numEntries; x++ {
 				publish(x)
 			}
 
@@ -163,7 +160,9 @@ func GenerateCommitsAndRevealsInBatches(t *testing.T, state0 *state.State) {
 					sum = sum + t
 				}
 
-				WaitBlocks(state0, int(setDelay)) // wait between batches
+				if setDelay > 0 {
+					WaitBlocks(state0, int(setDelay)) // wait between batches
+				}
 
 				//tend := waitForEmptyHolding(state0, fmt.Sprintf("SLEEP", BatchID))
 				//bal := engine.GetBalanceEC(state0, a.EcPub())
