@@ -240,13 +240,13 @@ func (s *State) GoSyncEntries() {
 						if entryhash.IsMinuteMarker() {
 							continue
 						}
-						if scan <= firstUpdate {
-							// Only update the replay hashes in the last 24 hours.
-							ueh := new(EntryUpdate)
-							ueh.Hash = entryhash
-							ueh.Timestamp = db.GetTimestamp()
-							s.UpdateEntryHash <- ueh
-						}
+
+						// Only update the replay hashes in the last 24 hours.
+						ueh := new(EntryUpdate)
+						ueh.Hash = entryhash
+						ueh.Timestamp = db.GetTimestamp()
+						s.UpdateEntryHash <- ueh
+
 					}
 				}
 			}
