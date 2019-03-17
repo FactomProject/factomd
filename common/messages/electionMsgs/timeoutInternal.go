@@ -316,17 +316,12 @@ func (e *TimeoutInternal) JSONString() (string, error) {
 }
 
 func (m *TimeoutInternal) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
-		}
-	}()
+	err = fmt.Errorf("TimeoutInternal is an internal message only")
 	return
 }
 
 func (m *TimeoutInternal) UnmarshalBinary(data []byte) error {
-	_, err := m.UnmarshalBinaryData(data)
-	return err
+	return fmt.Errorf("TimeoutInternal is an internal message only")
 }
 
 func (m *TimeoutInternal) String() string {
