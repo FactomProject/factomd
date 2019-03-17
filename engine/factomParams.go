@@ -52,7 +52,6 @@ func init() {
 	flag.StringVar(&p.NetworkName, "network", "", "Network to join: MAIN, TEST or LOCAL")
 	flag.StringVar(&p.Peers, "peers", "", "Array of peer addresses. ")
 	flag.IntVar(&p.BlkTime, "blktime", 0, "Seconds per block.  Production is 600.")
-	flag.BoolVar(&p.RuntimeLog, "runtimeLog", false, "If true, maintain runtime logs of messages passed.")
 	flag.BoolVar(&p.Exclusive, "exclusive", false, "If true, we only dial out to special/trusted peers.")
 	flag.BoolVar(&p.ExclusiveIn, "exclusive_in", false, "If true, we only dial out to special/trusted peers and no incoming connections are accepted.")
 	flag.StringVar(&p.Prefix, "prefix", "", "Prefix the Factom Node Names with this value; used to create leaderless networks.")
