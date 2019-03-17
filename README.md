@@ -110,8 +110,6 @@ Which will get you something like:
             If true, turn on the go Profiler to profile execution of Factomd
     -rotate
             If true, responsiblity is owned by one leader, and rotated over the leaders.
-    -runtimeLog
-            If true, maintain runtime logs of messages passed.
     -test.bench string
             regular expression to select benchmarks to run
     -test.benchmem

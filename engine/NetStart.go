@@ -285,7 +285,6 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%t\"\n", "exclusive_in", p.ExclusiveIn))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "block time", p.BlkTime))
 	//os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "faultTimeout", p.FaultTimeout)) // TODO old fault timeout mechanism to be removed
-	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "runtimeLog", p.RuntimeLog))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "rotate", p.Rotate))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "timeOffset", p.TimeOffset))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "keepMismatch", p.KeepMismatch))
