@@ -349,10 +349,12 @@ func (d *Discovery) DiscoverPeersFromSeed() {
 			if existing, ok := d.getPeer(address); ok {
 				d.updatePeer(d.updatePeerSource(existing, "DNS-Seed"))
 			} else { // new peer
-				peerp := new(Peer).Init(address, port, 0, RegularPeer, 0)
-				peer := *peerp
-				peer.LastContact = time.Now()
-				d.updatePeer(d.updatePeerSource(peer, "DNS-Seed"))
+				peerp, err := new(Peer).Init(address, port, 0, RegularPeer, 0)
+				if err == nil {
+					peer := *peerp
+					peer.LastContact = time.Now()
+					d.updatePeer(d.updatePeerSource(peer, "DNS-Seed"))
+				}
 			}
 		} else {
 			bad++

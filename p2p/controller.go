@@ -379,9 +379,13 @@ func (c *Controller) parseSpecialPeers(peersString string, peerType uint8) []*Pe
 		if err != nil {
 			c.logger.Errorf("%s is not a valid peer (%v), use format: 127.0.0.1:8999", peersString, err)
 		} else {
-			peer := new(Peer).Init(address, port, 0, peerType, 0)
-			peer.Source["Local-Configuration"] = time.Now()
-			peers = append(peers, peer)
+			peer, err := new(Peer).Init(address, port, 0, peerType, 0)
+			if err != nil {
+				c.logger.Errorf("Failed to initialize peer \"%s\": %v", peersString, err)
+			} else {
+				peer.Source["Local-Configuration"] = time.Now()
+				peers = append(peers, peer)
+			}
 		}
 	}
 
@@ -528,10 +532,12 @@ func (c *Controller) handleCommand(command interface{}) {
 		conn := parameters.conn // net.Conn
 		addPort := strings.Split(conn.RemoteAddr().String(), ":")
 		// Port initially stored will be the connection port (not the listen port), but peer will update it on first message.
-		peer := new(Peer).Init(addPort[0], addPort[1], 0, RegularPeer, 0)
-		peer.Source["Accept()"] = time.Now()
-		connection := new(Connection).InitWithConn(conn, *peer)
-		c.handleNewConnection(connection)
+		peer, err := new(Peer).Init(addPort[0], addPort[1], 0, RegularPeer, 0)
+		if err == nil {
+			peer.Source["Accept()"] = time.Now()
+			connection := new(Connection).InitWithConn(conn, *peer)
+			c.handleNewConnection(connection)
+		}
 	case CommandShutdown:
 		c.shutdown()
 	case CommandAdjustPeerQuality:
