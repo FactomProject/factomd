@@ -107,11 +107,13 @@ func (d *Discovery) LoadPeers() {
 		return
 	}
 	dec := json.NewDecoder(bufio.NewReader(file))
+	temporaryMap := make(map[string]Peer)
+	dec.Decode(&temporaryMap)
+
+	// since this is run at startup, reset quality scores.
 	d.peerUpdate.Lock()
 	defer d.peerUpdate.Unlock()
-	dec.Decode(&d.knownPeers)
-	// since this is run at startup, reset quality scores.
-	for _, peer := range d.knownPeers {
+	for _, peer := range temporaryMap {
 		peer.InitLogger() // required for LocationFromAddress()
 		peer.QualityScore = 0
 		peer.Location = peer.LocationFromAddress()
@@ -354,6 +356,8 @@ func (d *Discovery) DiscoverPeersFromSeed() {
 					peer := *peerp
 					peer.LastContact = time.Now()
 					d.updatePeer(d.updatePeerSource(peer, "DNS-Seed"))
+				} else {
+					d.logger.Errorf("Failed to initialize peer in %s [%s]: %v", d.seedURL, line, err)
 				}
 			}
 		} else {
