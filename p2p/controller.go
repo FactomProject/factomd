@@ -262,7 +262,7 @@ func (c *Controller) ReloadSpecialPeers(newPeersConfig string) {
 				)
 				continue
 			}
-			c.logger.Infof("Detected a peer removed from the config file: %s")
+			c.logger.Infof("Detected a peer removed from the config file: %s", address)
 			toBeRemoved = append(toBeRemoved, oldPeer)
 		}
 	}

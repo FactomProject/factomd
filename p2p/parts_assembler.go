@@ -110,7 +110,7 @@ func (assembler *PartsAssembler) cleanupOldPartialMessages() {
 		timeSinceFirst := time.Since(partial.firstPartReceived)
 		if timeWaiting > MaxTimeWaitingForReassembly {
 			delete(assembler.messages, appHash)
-			assembler.logger.Debugf("dropping message %d after %s secs, time since first part: %s secs",
+			assembler.logger.Debugf("dropping message %s after %d secs, time since first part: %d secs",
 				appHash, timeWaiting/time.Second, timeSinceFirst/time.Second)
 		}
 	}
