@@ -138,7 +138,7 @@ func (d *Discovery) SavePeers() {
 	for _, peer := range d.knownPeers {
 		switch {
 		case peer.IsSpecial(): // always save special peers, even if we haven't talked in awhile.
-			qualityPeers[peer.AddressPort()] = peer
+			qualityPeers[peer.Address] = peer
 			d.logger.Debugf("SavePeers() saved peer in peers.json: %+v", peer)
 
 		case time.Since(peer.LastContact) > time.Hour*168:
@@ -148,7 +148,7 @@ func (d *Discovery) SavePeers() {
 			d.logger.Debugf("SavePeers() DID NOT SAVE peer in peers.json. MinumumQualityScore: %d > Peer quality score.  Peer: %+v", MinumumQualityScore, peer)
 			break
 		default:
-			qualityPeers[peer.AddressPort()] = peer
+			qualityPeers[peer.Address] = peer
 		}
 	}
 	d.peerUpdate.Unlock()
