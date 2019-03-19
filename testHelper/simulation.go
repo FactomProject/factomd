@@ -504,3 +504,8 @@ func ResetFactomHome(t *testing.T, subDir string) {
 		t.Fatal(err)
 	}
 }
+
+func AddFNode() {
+	engine.AddNode()
+	Followers++
+}

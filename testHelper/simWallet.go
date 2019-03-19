@@ -334,4 +334,3 @@ func WatchMessageLists() *time.Ticker {
 
 	return ticker
 }
-

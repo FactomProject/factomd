@@ -69,14 +69,14 @@ func TestLeaderBrainSwap(t *testing.T) {
 
 		// rewrite the config to make consecutive brainswaps
 		// KLUDGE: set to 2 batches to ensure passing on CI
-		for batch := 0; batch < 2 ; batch++ {
+		for batch := 0; batch < 2; batch++ {
 
 			t.Run(fmt.Sprintf("Wait For Identity Swap %v", batch), func(t *testing.T) {
-				target := batch+10
+				target := batch + 10
 
 				change := fmt.Sprintf("ChangeAcksHeight = %v\n", target)
 
-				if batch % 2 == 0 {
+				if batch%2 == 0 {
 
 					WriteConfigFile(1, 5, change, t) // Setup A brain swap between L1 and F5
 					WriteConfigFile(5, 1, change, t)
