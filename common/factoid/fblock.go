@@ -586,11 +586,9 @@ func (b *FBlock) GetExchRate() uint64 {
 
 func (b FBlock) ValidateTransaction(index int, trans interfaces.ITransaction) error {
 	// Calculate the fee due.
-	{
-		err := trans.Validate(index)
-		if err != nil {
-			return err
-		}
+	err := trans.Validate(index)
+	if err != nil {
+		return err
 	}
 
 	//Ignore coinbase transaction's signatures
