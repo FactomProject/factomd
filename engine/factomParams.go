@@ -97,6 +97,15 @@ func init() {
 func ParseCmdLine(args []string) *FactomParams {
 	p := &Params // Global copy of decoded Params global.Params
 
+	for _, v := range os.Args[1:] {
+		if strings.Contains(string(v), "--debuglog=") && strings.Contains(string(v), string(os.PathSeparator)) {
+			i := strings.LastIndex(string(v), "/")
+			regex := string(v)[i+1:];
+		} else {
+			fmt.Println("no")
+		}
+	}
+
 	flag.CommandLine.Parse(args)
 
 	// Handle the global (not Factom server specific parameters
