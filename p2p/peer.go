@@ -40,7 +40,7 @@ const (
 	SpecialPeerCmdLine       // special peer defined via the cmd line params
 )
 
-func (p *Peer) Init(address string, port string, quality int32, peerType uint8, connections int) (*Peer, error) {
+func (p *Peer) Init(address string, port string, quality int32, peerType uint8, connections int) *Peer {
 	p.logger = peerLogger.WithFields(log.Fields{
 		"address":  address,
 		"port":     port,
@@ -50,7 +50,7 @@ func (p *Peer) Init(address string, port string, quality int32, peerType uint8, 
 		ipAddress, err := net.LookupHost(address)
 		if err != nil {
 			p.logger.Errorf("Init: LookupHost(%v) failed. %v ", address, err)
-			return nil, err
+			// is there a way to abandon this peer at this point? -- clay
 		} else {
 			address = ipAddress[0]
 		}
@@ -64,7 +64,7 @@ func (p *Peer) Init(address string, port string, quality int32, peerType uint8, 
 	p.Location = p.LocationFromAddress()
 	p.Source = map[string]time.Time{}
 	p.Network = CurrentNetwork
-	return p, nil
+	return p
 }
 
 func (p *Peer) InitLogger() {
