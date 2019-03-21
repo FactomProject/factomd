@@ -97,10 +97,13 @@ func init() {
 func ParseCmdLine(args []string) *FactomParams {
 	p := &Params // Global copy of decoded Params global.Params
 
-	for _, v := range os.Args[1:] {
+	for k, v := range os.Args {
 		if strings.Contains(string(v), "--debuglog=") && strings.Contains(string(v), string(os.PathSeparator)) {
-			i := strings.LastIndex(string(v), "/")
-			regex := string(v)[i+1:];
+			lastSlashIndex := strings.LastIndex(string(v), string(os.PathSeparator))
+			startofloca := strings.LastIndex(string(v), "=")
+			regex := string(v)[lastSlashIndex+1:];
+			dirloca := string(v)[startofloca+1:lastSlashIndex];
+			os.Args[k] = "--debuglog="+regex;
 		} else {
 			fmt.Println("no")
 		}
