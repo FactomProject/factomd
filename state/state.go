@@ -509,7 +509,7 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 
 	if !config {
 		newState.IdentityChainID = primitives.Sha([]byte(newState.FactomNodeName))
-		s.LogPrintf("AckChange", "Default3 IdentityChainID %v", s.IdentityChainID.String())
+		s.LogPrintf("AckChange", "Default IdentityChainID %v", s.IdentityChainID.String())
 
 		//generate and use a new deterministic PrivateKey for this clone
 		shaHashOfNodeName := primitives.Sha([]byte(newState.FactomNodeName)) //seed the private key with node name

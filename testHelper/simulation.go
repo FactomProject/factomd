@@ -490,6 +490,7 @@ func v2Request(req *primitives.JSON2Request, port int) (*primitives.JSON2Respons
 	return nil, nil
 }
 
+// TODO: this doesn't seem to work - fix along w/ AddFNodeTest
 func ResetFactomHome(t *testing.T, subDir string) {
 	dir, err := os.Getwd()
 	if err != nil {
