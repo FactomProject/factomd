@@ -63,7 +63,7 @@ func TestAddingFNode(t *testing.T) {
 		state0 := SetupSim("LLLF", params, 15, 0, 0, t)
 
 		t.Run("Create additional FNode", func(t *testing.T) {
-			// TODO: copy db from 2 -> 4
+			CloneFnodeData(2, 4, t)
 			AddFNode() // REVIEW: somehow the way the new node is added causes it to lag
 			// TODO Put the network under load & add dropped messages
 			WaitBlocks(state0, 1)

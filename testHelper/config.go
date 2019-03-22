@@ -3,6 +3,7 @@ package testHelper
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"testing"
 
 	"github.com/FactomProject/factomd/util"
@@ -69,6 +70,28 @@ IdentityChainID                       = 888888c0bc99166c1419f86911833a0a1c0b491e
 LocalServerPrivKey                    = 3838383838386330626339393136366331343139663836393131383333613061
 LocalServerPublicKey                  = 7eef4c8fac8907ad4f34a27c612a417344eb3c2fc1ec9b840693a2b4f90f0204
 `}
+
+
+// REVIEW: is there a build-in way better than this?
+func CopyDir(src, dst string) error {
+	cmd := exec.Command("cp", "-r", src, dst)
+	return cmd.Run()
+}
+
+func CloneFnodeData(fnode int, copyToNode int, t *testing.T ) {
+
+	simConfigPath := util.GetHomeDir() + "/.factom/m2/local-database/ldb/Sim0%v"
+	from := fmt.Sprintf(simConfigPath, fnode)
+	to := fmt.Sprintf(simConfigPath, copyToNode)
+
+	if err := os.RemoveAll(to); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := CopyDir(from, to); err != nil {
+		t.Fatal(err)
+	}
+}
 
 // Write an identity to a config file for an Fnode, optionally appending extra config data
 func WriteConfigFile(identityNumber int, fnode int, extra string, t *testing.T) {
