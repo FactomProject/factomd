@@ -1545,3 +1545,5 @@ func SystemCall(cmd string) {
 	}
 	fmt.Print(string(out))
 }
+
+func TestDebugLocation(t *testing.T) {}
