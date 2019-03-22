@@ -18,6 +18,7 @@ import (
 	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/engine"
 	"github.com/FactomProject/factomd/state"
+	"strings"
 )
 
 var par = globals.FactomParams{}
@@ -59,12 +60,22 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 	}
 
 	// loop thru the test specific options and overwrite or append to the DefaultOptions
+	fmt.Println("UserAddedOptions: ", UserAddedOptions)
 	if UserAddedOptions != nil && len(UserAddedOptions) != 0 {
 		for key, value := range UserAddedOptions {
 			if key != "--debuglog" && value != "" {
 				CmdLineOptions[key] = value
 			} else {
-				CmdLineOptions[key] = CmdLineOptions[key] + "|" + value // add debug log flags to the default
+				fmt.Println("debuglog key: ", key, value)
+				lastSlashIndex := strings.LastIndex(string(value), string(os.PathSeparator))
+				startofloca := strings.LastIndex(string(value), "=")
+				regex := string(value)[lastSlashIndex+1:];
+				dirloca := string(value)[startofloca+1:lastSlashIndex+1];
+				fmt.Println("dirloca: ", dirloca)
+				globals.Params.DebugLogLocation = dirloca;
+				//par.DebugLogLocation = dirloca
+				//UserAddedOptions[key] = regex;
+				CmdLineOptions[key] = CmdLineOptions[key] + "|" + regex // add debug log flags to the default
 			}
 			// remove options not supported by the current flags set so we can merge this update into older code bases
 		}

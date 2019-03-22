@@ -237,7 +237,7 @@ func TestMakeALeader(t *testing.T) {
 
 	RanSimTest = true
 
-	state0 := SetupSim("LF", map[string]string{}, 5, 0, 0, t)
+	state0 := SetupSim("LF", map[string]string{"--debuglog": "."}, 5, 0, 0, t)
 
 	RunCmd("1") // select node 1
 	RunCmd("l") // make him a leader
