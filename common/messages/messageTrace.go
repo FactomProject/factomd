@@ -71,7 +71,7 @@ func checkFileName(name string) bool {
 func getTraceFile(name string) (f *os.File) {
 	//traceMutex.Lock()	defer traceMutex.Unlock()
 	debugLogLocation := globals.Params.DebugLogLocation
-	name = strings.ToLower(name)
+	name = strings.ToLower(debugLogLocation+name)
 	if !checkFileName(name) {
 		return nil
 	}
@@ -88,9 +88,9 @@ func getTraceFile(name string) (f *os.File) {
 		}
 	}
 	if f == nil {
-		fmt.Println("Creating " + (debugLogLocation+name))
+		fmt.Println("Creating " + (name))
 		var err error
-		f, err = os.Create(debugLogLocation+name)
+		f, err = os.Create(name)
 		if err != nil {
 			panic(err)
 		}
