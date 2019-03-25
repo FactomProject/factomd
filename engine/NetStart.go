@@ -651,6 +651,6 @@ func AddNode() {
 	fnodes = GetFnodes()
 	fnodes[i].State.IntiateNetworkSkeletonIdentity()
 	fnodes[i].State.InitiateNetworkIdentityRegistration()
-	AddSimPeer(fnodes, i, 0) // make new node a peer w/ FNode0
+	AddSimPeer(fnodes, i, i-1) // KLUDGE peer w/ only last node
 	startServer(i, fnodes[i], true)
 }
