@@ -1553,6 +1553,7 @@ func TestDebugLocation(t *testing.T) {
 
 	RanSimTest = true
 
+	os.MkdirAll("../../logs", os.ModePerm)
 
 	state0 := SetupSim("LF", map[string]string{"--debuglog": "../../logs/."}, 5, 0, 0, t)
 
