@@ -1492,3 +1492,43 @@ func TestDBState(t *testing.T) {
 	PrintOneStatus(0, 0)
 	ShutDownEverything(t)
 }
+
+func TestDebugLocation(t *testing.T) {
+	if RanSimTest {
+		return
+	}
+
+	RanSimTest = true
+
+
+	state0 := SetupSim("LF", map[string]string{"--debuglog": "../../logs/."}, 5, 0, 0, t)
+
+	RunCmd("1") // select node 1
+	RunCmd("l") // make him a leader
+	WaitBlocks(state0, 1)
+	WaitForMinute(state0, 1)
+	WaitForAllNodes(state0)
+	// Adjust expectations
+	Leaders++
+	Followers--
+
+	DoesFileExists("../../logs/fnode0_holding.txt", t);
+	DoesFileExists("../../logs/fnode01_holding.txt", t);
+	DoesFileExists("../../logs/fnode0_networkinputs.txt", t);
+	DoesFileExists("../../logs/fnode01_networkinputs.txt", t);
+	DoesFileExists("../../logs/fnode0_election.txt", t);
+	DoesFileExists("../../logs/fnode01_election.txt", t);
+	DoesFileExists("../../logs/fnode0_ackqueue.txt", t);
+	DoesFileExists("../../logs/fnode01_ackqueue.txt", t);
+
+
+
+	ShutDownEverything(t)
+}
+
+func DoesFileExists(path string, t *testing.T) {
+	_, err := os.Stat(path)
+	if err != nil { t.Fatalf("Error checking for File: ", err) } else { fmt.Println("We good!") }
+	if os.IsNotExist(err) { t.Fatalf("File doesn't exist ")} else { fmt.Println("We good!") }
+
+}
