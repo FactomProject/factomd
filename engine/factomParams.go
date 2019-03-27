@@ -14,7 +14,7 @@ import (
 	"sync"
 	"time"
 
-	."github.com/FactomProject/factomd/common/globals"
+	. "github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/p2p"
@@ -96,17 +96,6 @@ func init() {
 
 func ParseCmdLine(args []string) *FactomParams {
 	p := &Params // Global copy of decoded Params global.Params
-
-	for k, v := range os.Args {
-		if strings.Contains(string(v), "--debuglog=") && strings.Contains(string(v), string(os.PathSeparator)) {
-			lastSlashIndex := strings.LastIndex(string(v), string(os.PathSeparator))
-			startofloca := strings.LastIndex(string(v), "=")
-			regex := string(v)[lastSlashIndex+1:];
-			dirloca := string(v)[startofloca+1:lastSlashIndex+1];
-			p.DebugLogLocation = dirloca
-			os.Args[k] = "--debuglog="+regex;
-		}
-	}
 
 	flag.CommandLine.Parse(args)
 

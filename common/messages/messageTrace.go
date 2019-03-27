@@ -41,7 +41,19 @@ func checkFileName(name string) bool {
 	}
 	// if  the regex string has changed ...
 	if globals.Params.DebugLogRegEx != globals.LastDebugLogRegEx {
+		lastSlashIndex := strings.LastIndex(string(globals.Params.DebugLogRegEx), string(os.PathSeparator))
+		var startofloca int
+		if strings.Contains(string(globals.Params.DebugLogRegEx), "|") {
+			startofloca = strings.LastIndex(string(globals.Params.DebugLogRegEx), "|")
+		} else {
+			startofloca = strings.LastIndex(string(globals.Params.DebugLogRegEx), "=")
+		}
+		regex := string(globals.Params.DebugLogRegEx)[lastSlashIndex+1:];
+		dirlocation := string(globals.Params.DebugLogRegEx)[startofloca+1 : lastSlashIndex+1];
+		globals.Params.DebugLogLocation = dirlocation
+		globals.Params.DebugLogRegEx = regex;
 
+		// Do parsing here!
 		TestRegex = nil // throw away the old regex
 		globals.LastDebugLogRegEx = globals.Params.DebugLogRegEx
 	}
@@ -71,7 +83,6 @@ func checkFileName(name string) bool {
 func getTraceFile(name string) (f *os.File) {
 	//traceMutex.Lock()	defer traceMutex.Unlock()
 	debugLogLocation := globals.Params.DebugLogLocation
-	name = strings.ToLower(debugLogLocation+name)
 	if !checkFileName(name) {
 		return nil
 	}
@@ -80,7 +91,7 @@ func getTraceFile(name string) (f *os.File) {
 	}
 	f, _ = files[name]
 	if f != nil {
-		_, err := os.Stat(name)
+		_, err := os.Stat(debugLogLocation + name)
 		if os.IsNotExist(err) {
 			// The file was deleted out from under us
 			f.Close() // close the old log
@@ -88,9 +99,9 @@ func getTraceFile(name string) (f *os.File) {
 		}
 	}
 	if f == nil {
-		fmt.Println("Creating " + (name))
+		fmt.Println("Creating " + (debugLogLocation + name))
 		var err error
-		f, err = os.Create(name)
+		f, err = os.Create(debugLogLocation + name)
 		if err != nil {
 			panic(err)
 		}

@@ -882,7 +882,7 @@ func (s *State) AddDBState(isNew bool,
 		}
 
 		Leader, LeaderVMIndex := s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID) // AddDBState()
-		{                                                                                         // debug
+		{ // debug
 			if s.Leader != Leader {
 				s.LogPrintf("executeMsg", "State.AddDBState() unexpectedly setting s.Leader to %v", Leader)
 				s.Leader = Leader
