@@ -62,7 +62,6 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 	}
 
 	// loop thru the test specific options and overwrite or append to the DefaultOptions
-	fmt.Println("UserAddedOptions: ", UserAddedOptions)
 	if UserAddedOptions != nil && len(UserAddedOptions) != 0 {
 		for key, value := range UserAddedOptions {
 			if key != "--debuglog" && value != "" {
