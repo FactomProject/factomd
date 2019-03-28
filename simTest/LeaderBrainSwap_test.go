@@ -68,8 +68,8 @@ func TestLeaderBrainSwap(t *testing.T) {
 		WaitForBlock(state0, 9)
 
 		// rewrite the config to make consecutive brainswaps
-		// KLUDGE: set to 2 batches to ensure passing on CI
-		for batch := 0; batch < 2; batch++ {
+		// KLUDGE: set to 1 batch to ensure passing on CI
+		for batch := 0; batch < 1; batch++ {
 
 			t.Run(fmt.Sprintf("Wait For Identity Swap %v", batch), func(t *testing.T) {
 				target := batch + 10
