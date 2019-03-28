@@ -378,7 +378,7 @@ func PrintList(title string, list map[string]uint64) {
 	}
 }
 
-func SystemCall(cmd string) {
+func SystemCall(cmd string) []byte {
 	fmt.Println("SystemCall(\"", cmd, "\")")
 	out, err := exec.Command("sh", "-c", cmd).Output()
 	if err != nil {
@@ -388,4 +388,5 @@ func SystemCall(cmd string) {
 		panic(err)
 	}
 	fmt.Print(string(out))
+	return out
 }

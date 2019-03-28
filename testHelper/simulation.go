@@ -33,7 +33,7 @@ var quit = make(chan struct{})
 
 var ExpectedHeight, Leaders, Audits, Followers int
 var startTime, endTime time.Time
-var RanSimTest = true // KLUDGE disables all sim tests during a group unit test run
+var RanSimTest = false // KLUDGE disables all sim tests during a group unit test run
 // NOTE: going forward breaking out a test into a file under ./simTest allows it to run on CI.
 
 //EX. state0 := SetupSim("LLLLLLLLLLLLLLLAAAAAAAAAA",  map[string]string {"--controlpanelsetting" : "readwrite"}, t)
