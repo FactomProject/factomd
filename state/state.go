@@ -39,6 +39,7 @@ import (
 
 	"github.com/FactomProject/factomd/Utilities/CorrectChainHeads/correctChainHeads"
 	log "github.com/sirupsen/logrus"
+	"regexp"
 )
 
 // packageLogger is the general logger for all package related logs. You can add additional fields,
@@ -411,6 +412,11 @@ type State struct {
 
 	reportedActivations   [activations.ACTIVATION_TYPE_COUNT + 1]bool // flags about which activations we have reported (+1 because we don't use 0)
 	validatorLoopThreadID string
+
+	OutputRegEx       *regexp.Regexp
+	OutputRegExString string
+	InputRegEx        *regexp.Regexp
+	InputRegExString  string
 }
 
 var _ interfaces.IState = (*State)(nil)
@@ -2942,4 +2948,22 @@ func (s *State) IsActive(id activations.ActivationType) bool {
 	}
 
 	return rval
+}
+
+func (s *State) PassOutputRegEx(RegEx *regexp.Regexp, RegExString string) {
+	s.OutputRegEx = RegEx
+	s.OutputRegExString = RegExString
+}
+
+func (s *State) GetOutputRegEx() (*regexp.Regexp, string) {
+	return s.OutputRegEx, s.OutputRegExString
+}
+
+func (s *State) PassInputRegEx(RegEx *regexp.Regexp, RegExString string) {
+	s.InputRegEx = RegEx
+	s.InputRegExString = RegExString
+}
+
+func (s *State) GetInputRegEx() (*regexp.Regexp, string) {
+	return s.InputRegEx, s.InputRegExString
 }

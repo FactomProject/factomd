@@ -355,3 +355,7 @@ type AuditStatus struct {
 	ID     string `json:"id"`
 	Online bool   `json:"online"`
 }
+
+type MessageFilter struct {
+	Params string `json:"params"`
+}
