@@ -1490,8 +1490,8 @@ func HandleV2MessageFilter(state interfaces.IState, params interface{}) (interfa
 		InputRegEx := regexp.MustCompile(InputString)
 
 		state.PassInputRegEx(InputRegEx, InputString)
-	} else if OutputString == "off" {
-		state.PassOutputRegEx(nil, "")
+	} else if InputString == "off" {
+		state.PassInputRegEx(nil, "")
 	}
 
 	h := new(MessageFilter)
