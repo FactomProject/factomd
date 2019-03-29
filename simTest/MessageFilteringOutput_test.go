@@ -55,10 +55,5 @@ func TestFilterAPIOutput(t *testing.T) {
 		t.Fatalf("Filter missed let a message pass 2.")
 	}
 
-	WaitBlocks(state0, 1)
-
-	t.Log("Shutting down the network")
-	for _, fn := range GetFnodes() {
-		fn.State.ShutdownChan <- 1
-	}
+	ShutDownEverything(t)
 }

@@ -67,9 +67,9 @@ func TestLeaderBrainSwap(t *testing.T) {
 		WaitForAllNodes(state0)
 		WaitForBlock(state0, 9)
 
-		// rewrite the config to make consecutive brainswaps
-		// KLUDGE: set to 1 batch to ensure passing on CI
-		for batch := 0; batch < 1; batch++ {
+		batchCount := 1 // FIXME
+
+		for batch := 0; batch < batchCount; batch++ {
 
 			t.Run(fmt.Sprintf("Wait For Identity Swap %v", batch), func(t *testing.T) {
 				target := batch + 10
@@ -99,6 +99,7 @@ func TestLeaderBrainSwap(t *testing.T) {
 
 		t.Run("Verify Network", func(t *testing.T) {
 			WaitBlocks(state0, 1)
+			// FIXME
 			//AssertAuthoritySet(t, "LFFFLL")
 			WaitForAllNodes(state0)
 			ShutDownEverything(t)
