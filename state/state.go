@@ -1918,6 +1918,7 @@ func (s *State) UpdateState() (progress bool) {
 	}
 
 	p2 := s.DBStates.UpdateState()
+	s.LogPrintf("updateIssues", "ProcessList progress %v DBStates progress %v", progress, p2)
 	progress = progress || p2
 
 	s.SetString()
@@ -1934,6 +1935,7 @@ func (s *State) UpdateState() (progress bool) {
 	s.fillHoldingMap()
 	s.fillAcksMap()
 
+	eupdates := false
 entryHashProcessing:
 	for {
 		select {
@@ -1943,11 +1945,14 @@ entryHashProcessing:
 			// If the SetHashNow worked, then we should prohibit any commit that might be pending.
 			// Remove any commit that might be around.
 			s.Commits.Delete(e.Hash.Fixed())
+			eupdates = true
 		default:
 			break entryHashProcessing
 		}
 	}
-
+	if eupdates {
+		s.LogPrintf("updateIssues", "entryProcessing")
+	}
 	return
 }
 
