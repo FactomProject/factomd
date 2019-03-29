@@ -63,7 +63,7 @@ func TestAddingFNode(t *testing.T) {
 		state0 := SetupSim("LLLF", params, 15, 0, 0, t)
 
 		t.Run("Create additional FNode", func(t *testing.T) {
-			WaitForBlock(state0, 6)
+			WaitForBlock(state0, 7)
 			CloneFnodeData(2, 4, t)
 			AddFNode() // REVIEW: somehow the way the new node is added causes it to lag
 		})
@@ -71,19 +71,12 @@ func TestAddingFNode(t *testing.T) {
 		state4 := engine.GetFnodes()[4].State // Get node 4
 
 		t.Run("Wait For Identity Swap", func(t *testing.T) { // REVIEW: setting changeAcksHeight to 7 causes a stall leader swap fails b/c new follower  is not up-to-date
-			WaitForBlock(state4, 6)
-			WriteConfigFile(2, 4, "ChangeAcksHeight = 8\n", t) // Setup A brain swap between L2 and F4
-			WriteConfigFile(4, 2, "ChangeAcksHeight = 8\n", t)
-			WaitForBlock(state4, 10)
+			WaitForBlock(state4, 7)
+			WriteConfigFile(2, 4, "ChangeAcksHeight = 9\n", t) // Setup A brain swap between L2 and F4
+			WriteConfigFile(4, 2, "ChangeAcksHeight = 9\n", t)
+			WaitForBlock(state4, 11)
 		})
 
-		// REVIEW - doesn't exit cleanly
-		_ = `
-                             0   1   2   3   4
-                    Review   0   0   0   0   0
-                   Holding   0   0   1   1   0
-                   Commits   0   0   0   0  37
-        `
 		t.Run("Verify Network", func(t *testing.T) {
 			WaitForAllNodes(state0)
 			AssertAuthoritySet(t, "LLFFL")
