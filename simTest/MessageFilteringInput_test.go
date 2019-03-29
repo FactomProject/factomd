@@ -1,9 +1,6 @@
 package simtest
 
 import (
-	"bytes"
-	"fmt"
-	"net/http"
 	"strings"
 	"testing"
 
@@ -20,18 +17,7 @@ func TestFilterAPIInput(t *testing.T) {
 	RunCmd("s")
 
 	apiRegex := "EOM.*5/.*minute 1"
-
-	// API call
-	url := "http://localhost:" + fmt.Sprint(state0.GetPort()) + "/v2"
-	jsonStr := []byte(`{"jsonrpc": "2.0", "id": 0, "method": "message-filter", "params":{"output-regex":"", "input-regex":"` + apiRegex + `"}}`)
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
-	req.Header.Set("content-type", "text/plain;")
-
-	client := &http.Client{}
-	_, err = client.Do(req)
-	if err != nil {
-		t.Error(err)
-	}
+	SetInputFilter(apiRegex)
 
 	WaitBlocks(state0, 5)
 
