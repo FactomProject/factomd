@@ -153,6 +153,9 @@ func (m *SyncMsg) Type() byte {
 }
 
 func (m *SyncMsg) Validate(state interfaces.IState) int {
+	if !m.IsLocal() { // FD-886, only accept local messages
+		return -1
+	}
 	//TODO: Must be validated
 	return 1
 }
