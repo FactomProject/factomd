@@ -307,16 +307,17 @@ const (
 	DBSTATE_REQUEST_LIM_HIGH = 200
 	DBSTATE_REQUEST_LIM_MED  = 50
 
+	///=============== The following are bit fields! ===================
 	// Replay -- Dynamic Replay filter based on messages as they are processed.
 	INTERNAL_REPLAY = 1
-	NETWORK_REPLAY  = 2
-	TIME_TEST       = 4 // Checks the time_stamp;  Don't put actual hashes into the map with this.
-	REVEAL_REPLAY   = 8 // Checks for Reveal Entry Replays ... No duplicate Entries within our 4 hours!
+	NETWORK_REPLAY  = 1 << 1
+	TIME_TEST       = 1 << 2 // Checks the time_stamp;  Don't put actual hashes into the map with this.
+	REVEAL_REPLAY   = 1 << 3 // Checks for Reveal Entry Replays ... No duplicate Entries within our 4 hours!
 
 	// FReplay -- Block based Replay filter constructed by processing the blocks, from the database
 	//            then from blocks either passed to a node, or constructed by messages.
-	BLOCK_REPLAY = 16 // Ensures we don't add the same transaction to multiple blocks.
-	//todo: Clay -- I changed this to not match in an experiment
+	BLOCK_REPLAY = 1 << 4 // Ensures we don't add the same transaction to multiple blocks.
+	//================ End of the bit fields ==========================
 
 	ADDRESS_LENGTH = 32 // Length of an Address or a Hash or Public Key
 	// length of a Private Key
