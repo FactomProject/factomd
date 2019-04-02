@@ -41,6 +41,8 @@ type P2PProxy struct {
 	bytesOut int // bandwidth used by application without network fan out
 	bytesIn  int // bandwidth received by application from network
 
+	msg interfaces.IMsg
+
 	// logging
 	logger *log.Entry
 }
@@ -50,6 +52,7 @@ type FactomMessage struct {
 	PeerHash string
 	AppHash  string
 	AppType  string
+	msg 	 interfaces.IMsg
 }
 
 func (e *FactomMessage) JSONByte() ([]byte, error) {
@@ -104,6 +107,8 @@ func (f *P2PProxy) GetNameTo() string {
 }
 
 func (f *P2PProxy) Send(msg interfaces.IMsg) error {
+	fmt.Println("COME ONNNNNNNNN ", msg)
+	f.msg = msg;
 	data, err := msg.MarshalBinary()
 	if err != nil {
 		f.logger.WithField("send-error", err).Error()
@@ -119,7 +124,7 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 	} else {
 		hash := fmt.Sprintf("%x", msg.GetMsgHash().Bytes())
 		appType := fmt.Sprintf("%d", msg.Type())
-		message := FactomMessage{Message: data, PeerHash: msg.GetNetworkOrigin(), AppHash: hash, AppType: appType}
+		message := FactomMessage{Message: data, PeerHash: msg.GetNetworkOrigin(), AppHash: hash, AppType: appType, msg: msg}
 		switch {
 		case !msg.IsPeer2Peer() && msg.IsFullBroadcast():
 			msgLogger.Debug("Sending full broadcast message")
@@ -133,6 +138,7 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 		default:
 			msgLogger.Debugf("Sending directed message to: %s", message.PeerHash)
 		}
+		fmt.Println("msg Passed in Send(): ", f.msg)
 		p2p.BlockFreeChannelSend(f.BroadcastOut, message)
 	}
 
@@ -208,12 +214,14 @@ func (p *P2PProxy) StopProxy() {
 
 // manageOutChannel takes messages from the f.broadcastOut channel and sends them to the network.
 func (f *P2PProxy) ManageOutChannel() {
+	msg := f.msg
+	fmt.Println("msg from channel MANAGEOUTCHANNEL : ", msg)
 	for data := range f.BroadcastOut {
 		switch data.(type) {
 		case FactomMessage:
 			fmessage := data.(FactomMessage)
 			// Wrap it in a parcel and send it out channel ToNetwork.
-			parcels := p2p.ParcelsForPayload(p2p.CurrentNetwork, fmessage.Message)
+			parcels := p2p.ParcelsForPayload(p2p.CurrentNetwork, fmessage.Message, msg)
 			for _, parcel := range parcels {
 				if parcel.Header.Type != p2p.TypeMessagePart {
 					parcel.Header.Type = p2p.TypeMessage

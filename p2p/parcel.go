@@ -10,6 +10,8 @@ import (
 	"hash/crc32"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/FactomProject/factomd/electionsCore/imessage"
+	"github.com/FactomProject/factomd/common/interfaces"
 )
 
 var parcelLogger = packageLogger.WithField("subpack", "connection")
@@ -19,6 +21,7 @@ var parcelLogger = packageLogger.WithField("subpack", "connection")
 type Parcel struct {
 	Header  ParcelHeader
 	Payload []byte
+	msg		imessage.IMessage
 }
 
 // ParcelHeaderSize is the number of bytes in a parcel header
@@ -79,7 +82,8 @@ func NewParcel(network NetworkID, payload []byte) *Parcel {
 	return parcel
 }
 
-func ParcelsForPayload(network NetworkID, payload []byte) []Parcel {
+func ParcelsForPayload(network NetworkID, payload []byte, msg interfaces.IMsg) []Parcel {
+	//fmt.Println("msg in ParcelsForPayload: ", msg)
 	parcelCount := (len(payload) / MaxPayloadSize) + 1
 	parcels := make([]Parcel, parcelCount)
 
