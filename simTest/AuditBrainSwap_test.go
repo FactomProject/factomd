@@ -9,7 +9,14 @@ import (
 	. "github.com/FactomProject/factomd/testHelper"
 )
 
-// Test brainswapping a follower  and an audit when the audit is lagging behind
+/*
+Test brainswapping a F <-> A
+
+follower and an audit when the audit is lagging behind
+
+This test is useful for verifying that Leaders can swap without rebooting
+And that Audits can reboot with lag (to prevent a panic if 2 nodes see the same audit heartbeat)
+*/
 func TestAuditBrainSwap(t *testing.T) {
 
 	t.Run("Run Sim", func(t *testing.T) {
@@ -56,39 +63,34 @@ func TestAuditBrainSwap(t *testing.T) {
 
 		// start the 6 nodes running  012345
 		state0 := SetupSim("LLLAFF", params, 15, 0, 0, t)
-		state4 := engine.GetFnodes()[4].State // Get node 4
 		state5 := engine.GetFnodes()[5].State // Get node 5
+		_ = state5
 
 		t.Run("Wait For Identity Swap", func(t *testing.T) {
-			WaitForBlock(state0, 6)
-			WaitForAllNodes(state0)
-			// rewrite the config to have brainswaps
+			t.Log("Disabled test while known bug exists FD-845")
+			/*
+				WaitForBlock(state0, 6)
+				WaitForAllNodes(state0)
+				// rewrite the config to have brainswaps
 
-			WriteConfigFile(3, 5, "ChangeAcksHeight = 10\n", t) // Setup A brain swap between A3 and F5
-			WriteConfigFile(5, 3, "ChangeAcksHeight = 10\n", t)
-			WaitForBlock(state0, 9)
-			RunCmd("3") // make sure the Audit is lagging the audit if the heartbeats conflit one will panic
-			RunCmd("x")
-			WaitForBlock(state5, 10) // wait till 5 should have have brainswapped
-			RunCmd("x")
-			WaitBlocks(state0, 1)
-			WaitForAllNodes(state0)
-			CheckAuthoritySet(t)
+				WriteConfigFile(3, 5, "ChangeAcksHeight = 10\n", t) // Setup A brain swap between A3 and F5
+				WriteConfigFile(5, 3, "ChangeAcksHeight = 10\n", t)
+				WaitForBlock(state0, 9)
+				RunCmd("3") // make sure the Audit is lagging the audit if the heartbeats conflict one will panic
+				RunCmd("x")
+				WaitForBlock(state5, 10) // wait till 5 should have have brainswapped
+				RunCmd("x")
+				WaitBlocks(state0, 1)
+				WaitForAllNodes(state0)
+				CheckAuthoritySet(t)
+			*/
 		})
 
 		t.Run("Verify Network", func(t *testing.T) {
-
-			if !state4.Leader {
-				t.Error("Node 4 did not become a leader")
-			}
-
-			list := state0.ProcessLists.Get(state0.LLeaderHeight)
-			foundAudit, _ := list.GetAuditServerIndexHash(state5.GetIdentityChainID())
-			if !foundAudit {
-				t.Error("Node 5 did not become an audit server")
-			}
-
-			Halt(t)
+			WaitForAllNodes(state0)
+			// FIXME: renable after FD-845
+			//AssertAuthoritySet(t, "LLLFFA")
+			ShutDownEverything(t)
 		})
 
 	})

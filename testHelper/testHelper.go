@@ -3,6 +3,8 @@ package testHelper
 //A package for functions used multiple times in tests that aren't useful in production code.
 
 import (
+	"os/exec"
+
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
@@ -12,14 +14,13 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/mapdb"
-	//"github.com/FactomProject/factomd/engine"
-	//"github.com/FactomProject/factomd/log"
+
 	"time"
 
-	"github.com/FactomProject/factomd/state"
-	//"fmt"
 	"fmt"
 	"os"
+
+	"github.com/FactomProject/factomd/state"
 
 	"github.com/FactomProject/factomd/common/messages/electionMsgs"
 )
@@ -375,4 +376,17 @@ func PrintList(title string, list map[string]uint64) {
 	for addr, amt := range list {
 		fmt.Printf("%v - %v:%v\n", title, addr, amt)
 	}
+}
+
+func SystemCall(cmd string) []byte {
+	fmt.Println("SystemCall(\"", cmd, "\")")
+	out, err := exec.Command("sh", "-c", cmd).Output()
+	if err != nil {
+		foo := err.Error()
+		fmt.Println(foo)
+		os.Exit(1)
+		panic(err)
+	}
+	fmt.Print(string(out))
+	return out
 }
