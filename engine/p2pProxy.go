@@ -107,7 +107,6 @@ func (f *P2PProxy) GetNameTo() string {
 }
 
 func (f *P2PProxy) Send(msg interfaces.IMsg) error {
-	fmt.Println("COME ONNNNNNNNN ", msg)
 	f.msg = msg;
 	data, err := msg.MarshalBinary()
 	if err != nil {
@@ -214,14 +213,12 @@ func (p *P2PProxy) StopProxy() {
 
 // manageOutChannel takes messages from the f.broadcastOut channel and sends them to the network.
 func (f *P2PProxy) ManageOutChannel() {
-	msg := f.msg
-	fmt.Println("msg from channel MANAGEOUTCHANNEL : ", msg)
 	for data := range f.BroadcastOut {
 		switch data.(type) {
 		case FactomMessage:
 			fmessage := data.(FactomMessage)
 			// Wrap it in a parcel and send it out channel ToNetwork.
-			parcels := p2p.ParcelsForPayload(p2p.CurrentNetwork, fmessage.Message, msg)
+			parcels := p2p.ParcelsForPayload(p2p.CurrentNetwork, fmessage.Message, fmessage.msg)
 			for _, parcel := range parcels {
 				if parcel.Header.Type != p2p.TypeMessagePart {
 					parcel.Header.Type = p2p.TypeMessage

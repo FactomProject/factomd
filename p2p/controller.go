@@ -661,7 +661,8 @@ func (c *Controller) shutdown() {
 // of regular peers (total max NumberPeersToBroadcast).
 func (c *Controller) broadcast(parcel Parcel, full bool) {
 	numSent := 0
-
+	msgHash := parcel.Msg.GetMsgHash().Fixed()
+	_ = msgHash
 	// always broadcast to special peers
 	for _, peer := range c.specialPeers {
 		connection, connected := c.connections.GetByHash(peer.Hash)
@@ -675,10 +676,10 @@ func (c *Controller) broadcast(parcel Parcel, full bool) {
 	// send also to a random selection of regular peers
 	var randomSelection []*Connection
 	if full {
-		randomSelection = c.connections.GetAllRegular()
+		randomSelection = c.connections.GetAllRegular(msgHash)
 	} else {
 		numToSendTo := NumberPeersToBroadcast - len(c.specialPeers)
-		randomSelection = c.connections.GetRandomRegular(numToSendTo)
+		randomSelection = c.connections.GetRandomRegular(numToSendTo, msgHash)
 	}
 
 	if len(randomSelection) == 0 {
@@ -687,8 +688,8 @@ func (c *Controller) broadcast(parcel Parcel, full bool) {
 	}
 	for _, connection := range randomSelection {
 		BlockFreeChannelSend(connection.SendChannel, ConnectionParcel{Parcel: parcel})
+		connection.peer.PrevMsgs.Add(msgHash)
 	}
-
 	SentToPeers.Set(float64(numSent))
 }
 
