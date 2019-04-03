@@ -197,6 +197,7 @@ func Peers(fnode *FactomNode) {
 
 				preReceiveTime := time.Now()
 
+
 				msg, err = peer.Receive()
 				if msg == nil {
 					// Receive is not blocking; nothing to do, we get a nil.
@@ -245,6 +246,9 @@ func Peers(fnode *FactomNode) {
 					fnode.State.LogMessage("NetworkInputs", fromPeer+" Drop, Hash Error", msg)
 					continue
 				}
+
+				fmt.Printf("Peers msg: %x \n", msg.GetMsgHash().Fixed())
+
 
 				msg.SetOrigin(i + 1) // Origin is 1 based but peer list is zero based.
 				hash := repeatHash.Fixed()
