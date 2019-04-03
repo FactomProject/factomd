@@ -10,7 +10,6 @@ import (
 	"hash/crc32"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/FactomProject/factomd/electionsCore/imessage"
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
@@ -21,7 +20,7 @@ var parcelLogger = packageLogger.WithField("subpack", "connection")
 type Parcel struct {
 	Header  ParcelHeader
 	Payload []byte
-	msg		imessage.IMessage
+	Msg		interfaces.IMsg
 }
 
 // ParcelHeaderSize is the number of bytes in a parcel header
@@ -81,6 +80,16 @@ func NewParcel(network NetworkID, payload []byte) *Parcel {
 	parcel.UpdateHeader() // Updates the header with info about payload.
 	return parcel
 }
+func NewParcelMsg(network NetworkID, payload []byte, msg interfaces.IMsg) *Parcel {
+	header := new(ParcelHeader).Init(network)
+	header.AppHash = "NetworkMessage"
+	header.AppType = "Network"
+	parcel := new(Parcel).Init(*header)
+	parcel.Payload = payload
+	parcel.Msg = msg
+	parcel.UpdateHeader() // Updates the header with info about payload.
+	return parcel
+}
 
 func ParcelsForPayload(network NetworkID, payload []byte, msg interfaces.IMsg) []Parcel {
 	//fmt.Println("msg in ParcelsForPayload: ", msg)
@@ -96,13 +105,12 @@ func ParcelsForPayload(network NetworkID, payload []byte, msg interfaces.IMsg) [
 		} else {
 			end = len(payload)
 		}
-		parcel := NewParcel(network, payload[start:end])
+		parcel := NewParcelMsg(network, payload[start:end], msg)
 		parcel.Header.Type = TypeMessagePart
 		parcel.Header.PartNo = uint16(i)
 		parcel.Header.PartsTotal = uint16(parcelCount)
 		parcels[i] = *parcel
 	}
-
 	return parcels
 }
 
