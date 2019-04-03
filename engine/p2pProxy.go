@@ -137,7 +137,6 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 		default:
 			msgLogger.Debugf("Sending directed message to: %s", message.PeerHash)
 		}
-		fmt.Println("msg Passed in Send(): ", f.msg)
 		p2p.BlockFreeChannelSend(f.BroadcastOut, message)
 	}
 
