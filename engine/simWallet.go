@@ -3,6 +3,7 @@ package engine
 import (
 	"encoding/hex"
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 
 	ed "github.com/FactomProject/ed25519"

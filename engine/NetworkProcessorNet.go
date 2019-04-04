@@ -388,7 +388,7 @@ func NetworkOutputs(fnode *FactomNode) {
 		regex, _ := fnode.State.GetOutputRegEx()
 		if regex != nil {
 			t := ""
-			if mm ,ok := msg.(*messages.MissingMsgResponse); ok {
+			if mm, ok := msg.(*messages.MissingMsgResponse); ok {
 				t = fmt.Sprintf("%7d-:-%d %s", fnode.State.LLeaderHeight, fnode.State.CurrentMinute, mm.MsgResponse.String())
 			} else {
 				t = fmt.Sprintf("%7d-:-%d %s", fnode.State.LLeaderHeight, fnode.State.CurrentMinute, msg.String())

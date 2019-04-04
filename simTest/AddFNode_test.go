@@ -62,7 +62,7 @@ func TestAddingFNode(t *testing.T) {
 
 		state0 := SetupSim("LLLLLAA", params, 25, 1, 1, t)
 
-		t.Run("Cause auditor to be promoted", func(t *testing.T){
+		t.Run("Cause auditor to be promoted", func(t *testing.T) {
 			// FIXME actually do this
 			//RunCmd("1")
 			//RunCmd("w")
@@ -77,7 +77,7 @@ func TestAddingFNode(t *testing.T) {
 			AddFNode() // REVIEW: somehow the way the new node is added causes it to lag
 		})
 
-		t.Run("Filter out Target ACK from new node", func(t *testing.T){
+		t.Run("Filter out Target ACK from new node", func(t *testing.T) {
 			// FIXME actually do this
 			//RunCmd("7")
 			//RunCmd("w")

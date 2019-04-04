@@ -71,14 +71,13 @@ LocalServerPrivKey                    = 3838383838386330626339393136366331343139
 LocalServerPublicKey                  = 7eef4c8fac8907ad4f34a27c612a417344eb3c2fc1ec9b840693a2b4f90f0204
 `}
 
-
 // REVIEW: is there a build-in way better than this?
 func CopyDir(src, dst string) error {
 	cmd := exec.Command("cp", "-r", src, dst)
 	return cmd.Run()
 }
 
-func CloneFnodeData(fnode int, copyToNode int, t *testing.T ) {
+func CloneFnodeData(fnode int, copyToNode int, t *testing.T) {
 
 	simConfigPath := util.GetHomeDir() + "/.factom/m2/local-database/ldb/Sim0%v"
 	from := fmt.Sprintf(simConfigPath, fnode)

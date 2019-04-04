@@ -15,6 +15,8 @@ import (
 	"strings"
 	"time"
 
+	"regexp"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
@@ -25,7 +27,6 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/receipts"
 	"github.com/FactomProject/web"
-	"regexp"
 )
 
 const API_VERSION string = "2.0"

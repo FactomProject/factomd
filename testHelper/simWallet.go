@@ -8,6 +8,9 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"text/template"
+	"time"
+
 	"github.com/FactomProject/factom"
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
@@ -17,8 +20,6 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/engine"
 	"github.com/FactomProject/factomd/state"
-	"text/template"
-	"time"
 )
 
 // struct to generate FCT or EC addresses

@@ -3,11 +3,12 @@ package simtest
 import (
 	"bytes"
 	"fmt"
+	"testing"
+
 	"github.com/FactomProject/factom"
 	"github.com/FactomProject/factomd/engine"
 	. "github.com/FactomProject/factomd/testHelper"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestCreatEntriesBeforeChain(t *testing.T) {

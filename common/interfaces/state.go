@@ -5,8 +5,9 @@
 package interfaces
 
 import (
-	"github.com/FactomProject/factomd/activations"
 	"regexp"
+
+	"github.com/FactomProject/factomd/activations"
 )
 
 type DBStateSent struct {
@@ -352,5 +353,4 @@ type IState interface {
 	GetOutputRegEx() (*regexp.Regexp, string)
 	PassInputRegEx(*regexp.Regexp, string)
 	GetInputRegEx() (*regexp.Regexp, string)
-
 }

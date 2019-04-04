@@ -37,9 +37,10 @@ import (
 	"github.com/FactomProject/factomd/wsapi"
 	"github.com/FactomProject/logrustash"
 
+	"regexp"
+
 	"github.com/FactomProject/factomd/Utilities/CorrectChainHeads/correctChainHeads"
 	log "github.com/sirupsen/logrus"
-	"regexp"
 )
 
 // packageLogger is the general logger for all package related logs. You can add additional fields,

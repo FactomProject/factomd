@@ -970,7 +970,7 @@ func TestDBSigElection(t *testing.T) {
 	ShutDownEverything(t)
 }
 
-func TestGrants_long (t *testing.T) {
+func TestGrants_long(t *testing.T) {
 	if RanSimTest {
 		return
 	}

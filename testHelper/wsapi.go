@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/FactomProject/factomd/engine"
 	"net/http"
+
+	"github.com/FactomProject/factomd/engine"
 
 	"github.com/FactomProject/web"
 )
