@@ -80,16 +80,16 @@ func TestLoad2(t *testing.T) {
 	state0 := SetupSim("LLLAAAFFF", map[string]string{"--debuglog": "."}, 24, 0, 0, t)
 	StatusEveryMinute(state0)
 
-	RunCmd("7") // select node 1
+	RunCmd("7") // select node 7
 	RunCmd("x") // take out 7 from the network
 	WaitBlocks(state0, 1)
 	WaitForMinute(state0, 1)
 
 	RunCmd("R20") // Feed load
-	WaitBlocks(state0, 3)
-	RunCmd("Rt60")
-	RunCmd("T20")
-	RunCmd("R.5")
+	WaitBlocks(state0, 1)
+	//	RunCmd("Rt60") // Set time stamps one hour into the future...
+	RunCmd("T20") // Change block time to 20 seconds...
+	RunCmd("R.5") // turn down load to let the system catch up.
 	WaitBlocks(state0, 2)
 	RunCmd("x")
 	RunCmd("R0")

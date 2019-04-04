@@ -10,16 +10,20 @@ import (
 
 func TestFilterAPIInput(t *testing.T) {
 
-	state0 := SetupSim("LLLLLAAF", map[string]string{"--debuglog": "."}, 25, 1, 1, t)
+	SetupSim("LLLLLAAF", map[string]string{"--debuglog": "."}, 10, 1, 1, t)
 
 	RunCmd("1")
-	RunCmd("w")
-	RunCmd("s")
+	RunCmd("w") // point the API at node 1
+	RunCmd("s") // print status
 
-	apiRegex := "EOM.*5/.*minute 1"
-	SetInputFilter(apiRegex)
+	apiRegex := "EOM.* DBh/VMh/h 6/.*minute 1"
+	SetInputFilter(apiRegex) // stop EOM's on input for node 1 for block 6 minute 1
+	// this should make him not produce EOM for 6-:-2
 
-	WaitBlocks(state0, 5)
+	state1 := GetFnodes()[1].State // Get node 1
+
+	WaitForBlock(state1, 8)
+	WaitMinutes(state1, 1)
 
 	// The message-filter call we did above should have caused an election and SO, Node01 should not be a leader anymore.
 	if GetFnodes()[1].State.Leader {
