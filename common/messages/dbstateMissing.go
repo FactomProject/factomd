@@ -194,6 +194,7 @@ func (m *DBStateMissing) FollowerExecute(state interfaces.IState) {
 
 	// Can't serve up block we don't have
 	if start >= hsb {
+		state.LogPrintf("executeMsg", "Can not respond because hsb = %d", hsb)
 		return
 	}
 	if end >= hsb {

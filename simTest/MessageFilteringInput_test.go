@@ -10,7 +10,7 @@ import (
 
 func TestFilterAPIInput(t *testing.T) {
 
-	SetupSim("LLLLLAAF", map[string]string{"--debuglog": "."}, 10, 1, 1, t)
+	SetupSim("LLLLLAAF", map[string]string{"--debuglog": "."}, 25, 1, 1, t)
 
 	RunCmd("1")
 	RunCmd("w") // point the API at node 1
