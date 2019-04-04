@@ -37,6 +37,7 @@ func StartProfiler(mpr int, expose bool) {
 }
 
 func launchPrometheus(port int) {
-	http.Handle("/metrics", prometheus.Handler())
-	go http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
+	mux := http.NewServeMux()
+	mux.Handle("/metrics", prometheus.Handler())
+	go http.ListenAndServe(fmt.Sprintf(":%d", port), mux)
 }
