@@ -790,7 +790,12 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		s.ControlPanelPort = cfg.App.ControlPanelPort
 		s.RpcUser = cfg.App.FactomdRpcUser
 		s.RpcPass = cfg.App.FactomdRpcPass
-		s.RequestTimeout = time.Duration(cfg.App.RequestTimeout) * time.Second
+		// if RequestTimeout is not set by the configuration set it to 1/10th of the block time by default
+		if cfg.App.RequestTimeout == 0 {
+			s.RequestTimeout = time.Duration(cfg.App.DirectoryBlockInSeconds/10) * time.Second
+		} else {
+			s.RequestTimeout = time.Duration(cfg.App.RequestTimeout) * time.Second
+		}
 		s.RequestLimit = cfg.App.RequestLimit
 		s.StateSaverStruct.FastBoot = cfg.App.FastBoot
 		s.StateSaverStruct.FastBootLocation = cfg.App.FastBootLocation
