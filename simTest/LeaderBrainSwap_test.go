@@ -67,7 +67,7 @@ func TestLeaderBrainSwap(t *testing.T) {
 		WaitForAllNodes(state0)
 		WaitForBlock(state0, 9)
 
-		batchCount := 1 // FIXME
+		batchCount := 50 // FIXME
 
 		for batch := 0; batch < batchCount; batch++ {
 
@@ -100,7 +100,7 @@ func TestLeaderBrainSwap(t *testing.T) {
 		t.Run("Verify Network", func(t *testing.T) {
 			WaitBlocks(state0, 1)
 			// FIXME
-			//AssertAuthoritySet(t, "LFFFLL")
+			AssertAuthoritySet(t, "LFFFLL")
 			WaitForAllNodes(state0)
 			ShutDownEverything(t)
 		})

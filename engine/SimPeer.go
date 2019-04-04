@@ -203,8 +203,8 @@ func AddSimPeer(fnodes []*FactomNode, i1 int, i2 int) {
 	f1.Peers = append(f1.Peers, peer12)
 	f2.Peers = append(f2.Peers, peer21)
 
-	for _, p := range f1.Peers {
-		fmt.Printf("%s's peer: %s\n", p.GetNameFrom(), p.GetNameTo())
-	}
+	//for _, p := range f1.Peers {
+	//	fmt.Printf("%s's peer: %s\n", p.GetNameFrom(), p.GetNameTo())
+	//}
 
 }

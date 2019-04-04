@@ -2018,7 +2018,7 @@ func (s *State) CheckForIDChange() {
 		}
 		s.LocalServerPrivKey = config.App.LocalServerPrivKey
 		s.initServerKeys()
-		s.LogPrintf("AckChange", "ReloadIdentity new local_priv: %v ident_chain: %v, prev local_priv: %v ident_chain: %v", s.LocalServerPrivKey, s.IdentityChainID, prev_LocalServerPrivKey, prev_ChainID)
+		s.LogPrintf("AckChange", "ReloadIdentity new local_priv: %x ident_chain: %x, prev local_priv: %x ident_chain: %x", s.LocalServerPrivKey, s.IdentityChainID, prev_LocalServerPrivKey, prev_ChainID)
 	}
 }
 

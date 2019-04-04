@@ -43,7 +43,7 @@ func TestAddingFNode(t *testing.T) {
 		params := map[string]string{
 			"--db":                  "LDB", // NOTE: using MAP causes an occasional error see FD-825
 			"--network":             "LOCAL",
-			"--net":                 "tree",
+			"--net":                 "alot+",
 			"--enablenet":           "false",
 			"--blktime":             "15",
 			"--startdelay":          "1",
@@ -64,11 +64,11 @@ func TestAddingFNode(t *testing.T) {
 
 		t.Run("Cause auditor to be promoted", func(t *testing.T) {
 			// FIXME actually do this
-			//RunCmd("1")
-			//RunCmd("w")
-			//RunCmd("s")
-			//apiRegex := "EOM.*9/.*minute 1"
-			//SetOutputFilter(apiRegex)
+			RunCmd("1")
+			RunCmd("w")
+			RunCmd("s")
+			apiRegex := "EOM.*9/.*minute 1"
+			SetOutputFilter(apiRegex)
 		})
 
 		t.Run("Create additional FNode", func(t *testing.T) {
