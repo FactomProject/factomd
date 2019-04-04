@@ -69,24 +69,25 @@ func (lg *LoadGenerator) Run() {
 		}
 		var chain interfaces.IHash = nil
 
-		sleep := 500 / top
+		if top > 0 {
+			sleep := 500 / top
+			for i := 0; i < top; i++ {
+				var c interfaces.IMsg
+				e := RandomEntry()
+				if chain == nil {
+					c = lg.NewCommitChain(e)
+					chain = e.ChainID
+				} else {
+					e.ChainID = chain
+					c = lg.NewCommitEntry(e)
+				}
+				r := lg.NewRevealEntry(e)
 
-		for i := 0; i < top; i++ {
-			var c interfaces.IMsg
-			e := RandomEntry()
-			if chain == nil {
-				c = lg.NewCommitChain(e)
-				chain = e.ChainID
-			} else {
-				e.ChainID = chain
-				c = lg.NewCommitEntry(e)
+				fnodes[wsapiNode].State.APIQueue().Enqueue(c)
+				fnodes[wsapiNode].State.APIQueue().Enqueue(r)
+
+				time.Sleep(time.Duration(sleep))
 			}
-			r := lg.NewRevealEntry(e)
-
-			fnodes[wsapiNode].State.APIQueue().Enqueue(c)
-			fnodes[wsapiNode].State.APIQueue().Enqueue(r)
-
-			time.Sleep(time.Duration(sleep))
 		}
 	}
 }

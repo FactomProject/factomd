@@ -36,7 +36,7 @@ func TestCreatEntriesBeforeChain(t *testing.T) {
 
 	// KLUDGE: using "LAF" causes timeout on CI
 	t.Run("Run sim to create entries", func(t *testing.T) {
-		state0 := SetupSim("L", map[string]string{"--debuglog": "."}, 8, 0, 0, t)
+		state0 := SetupSim("L", map[string]string{"--debuglog": ""}, 8, 0, 0, t)
 
 		stop := func() {
 			ShutDownEverything(t)

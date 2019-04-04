@@ -35,7 +35,7 @@ func TestSendingCommitAndReveal(t *testing.T) {
 		dropRate := 0
 
 		// FIXME: test times out w/ failure when providing "LAF"
-		state0 := SetupSim("L", map[string]string{"--debuglog": ""}, 9, 0, 0, t)
+		state0 := SetupSim("LAF", map[string]string{"--debuglog": ""}, 9, 0, 0, t)
 		ticker := WatchMessageLists()
 
 		if dropRate > 0 {

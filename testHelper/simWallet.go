@@ -28,7 +28,7 @@ type testAccount struct {
 	Priv *primitives.PrivateKey
 }
 
-var logName string = "simTest"
+var logName string = "simwallet"
 
 func (d *testAccount) FctPriv() string {
 	x, _ := primitives.PrivateKeyStringToHumanReadableFactoidPrivateKey(d.Priv.PrivateKeyString())
