@@ -836,14 +836,18 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		}
 		s.FERChainId = cfg.App.ExchangeRateChainId
 		s.ExchangeRateAuthorityPublicKey = cfg.App.ExchangeRateAuthorityPublicKey
-		identity, err := primitives.HexToHash(cfg.App.IdentityChainID)
-		if err != nil {
-			s.IdentityChainID = primitives.Sha([]byte(s.FactomNodeName))
-			s.LogPrintf("AckChange", "Bad IdentityChainID  in config \"%v\"", cfg.App.IdentityChainID)
-			s.LogPrintf("AckChange", "Default2 IdentityChainID \"%v\"", s.IdentityChainID.String())
+		if cfg.App.IdentityChainID != "" {
+			identity, err := primitives.HexToHash(cfg.App.IdentityChainID)
+			if err != nil {
+				s.IdentityChainID = primitives.Sha([]byte(s.FactomNodeName))
+				s.LogPrintf("AckChange", "Bad IdentityChainID  in config \"%v\"", cfg.App.IdentityChainID)
+			} else {
+				s.IdentityChainID = identity
+				s.LogPrintf("AckChange", "Load IdentityChainID \"%v\"", s.IdentityChainID.String())
+			}
 		} else {
-			s.IdentityChainID = identity
-			s.LogPrintf("AckChange", "Load IdentityChainID \"%v\"", s.IdentityChainID.String())
+			s.IdentityChainID = primitives.Sha([]byte(s.FactomNodeName))
+			s.LogPrintf("AckChange", "Default2 IdentityChainID \"%v\"", s.IdentityChainID.String())
 		}
 	} else {
 		s.LogPath = "database/"

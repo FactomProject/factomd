@@ -14,7 +14,7 @@ import (
 func TestCreatEntriesBeforeChain(t *testing.T) {
 
 	//FIXME test disabled
-	return
+	//return
 
 	encode := func(s string) []byte {
 		b := bytes.Buffer{}
@@ -36,7 +36,7 @@ func TestCreatEntriesBeforeChain(t *testing.T) {
 
 	// KLUDGE: using "LAF" causes timeout on CI
 	t.Run("Run sim to create entries", func(t *testing.T) {
-		state0 := SetupSim("L", map[string]string{"--debuglog": ""}, 200, 0, 0, t)
+		state0 := SetupSim("L", map[string]string{"--debuglog": "."}, 8, 0, 0, t)
 
 		stop := func() {
 			ShutDownEverything(t)
@@ -82,13 +82,13 @@ func TestCreatEntriesBeforeChain(t *testing.T) {
 		})
 
 		t.Run("Fund EC Address", func(t *testing.T) {
-			amt := uint64(numEntries + 10)
+			amt := uint64(numEntries + 11) // Chain costs 10 + 1 per k so our chain costs 11
 			engine.FundECWallet(state0, b.FctPrivHash(), a.EcAddr(), amt*state0.GetFactoshisPerEC())
 			WaitForAnyDeposit(state0, a.EcPub())
 		})
 
 		t.Run("End simulation", func(t *testing.T) {
-			WaitForZero(state0, a.EcPub())
+			//			WaitForZero(state0, a.EcPub())
 			ht := state0.GetDBHeightComplete()
 			WaitBlocks(state0, 1)
 			newHt := state0.GetDBHeightComplete()
@@ -102,7 +102,7 @@ func TestCreatEntriesBeforeChain(t *testing.T) {
 
 			bal := engine.GetBalanceEC(state0, a.EcPub())
 			//fmt.Printf("Bal: => %v", bal)
-			assert.Equal(t, bal, int64(0))
+			assert.Equal(t, int64(0), bal)
 
 			for _, v := range state0.Holding {
 				s, _ := v.JSONString()
