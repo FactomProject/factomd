@@ -38,10 +38,10 @@ func (list *DBStateList) Catchup() {
 			hk := func() uint32 {
 				a := list.State.GetHighestAck()
 				k := list.State.GetHighestKnownBlock()
-				if a > k {
-					return a
+				if k > a+2 {
+					return k
 				}
-				return k
+				return a
 			}()
 
 			if recieved.Base() < hs {
