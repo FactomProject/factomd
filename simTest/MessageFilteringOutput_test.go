@@ -8,7 +8,7 @@ import (
 	. "github.com/FactomProject/factomd/testHelper"
 )
 
-func TestFilterAPIOutput(t *testing.T) {
+func TestMessageFilteringOutput(t *testing.T) {
 
 	state0 := SetupSim("LLLLLAAF", map[string]string{"--debuglog": "."}, 25, 1, 1, t)
 	_ = state0

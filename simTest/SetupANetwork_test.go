@@ -92,5 +92,4 @@ func TestSetupANetwork(t *testing.T) {
 	WaitBlocks(fn1.State, 3) // Waits for 3 blocks
 
 	ShutDownEverything(t)
-
 }

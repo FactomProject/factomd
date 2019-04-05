@@ -67,7 +67,7 @@ func TestLeaderBrainSwap(t *testing.T) {
 		WaitForAllNodes(state0)
 		WaitForBlock(state0, 9)
 
-		batchCount := 50 // FIXME
+		batchCount := 5
 
 		for batch := 0; batch < batchCount; batch++ {
 
@@ -77,7 +77,6 @@ func TestLeaderBrainSwap(t *testing.T) {
 				change := fmt.Sprintf("ChangeAcksHeight = %v\n", target)
 
 				if batch%2 == 0 {
-
 					WriteConfigFile(1, 5, change, t) // Setup A brain swap between L1 and F5
 					WriteConfigFile(5, 1, change, t)
 
@@ -99,7 +98,7 @@ func TestLeaderBrainSwap(t *testing.T) {
 
 		t.Run("Verify Network", func(t *testing.T) {
 			WaitBlocks(state0, 1)
-			// FIXME
+			// FIXME check for original or swapped authories based on batch%2
 			AssertAuthoritySet(t, "LFFFLL")
 			WaitForAllNodes(state0)
 			ShutDownEverything(t)

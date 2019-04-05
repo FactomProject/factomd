@@ -11,10 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCreatEntriesBeforeChain(t *testing.T) {
-
-	//FIXME test disabled
-	//return
+func TestEntriesBeforeChain(t *testing.T) {
 
 	encode := func(s string) []byte {
 		b := bytes.Buffer{}
@@ -34,14 +31,8 @@ func TestCreatEntriesBeforeChain(t *testing.T) {
 		println(a.String())
 	})
 
-	// KLUDGE: using "LAF" causes timeout on CI
 	t.Run("Run sim to create entries", func(t *testing.T) {
 		state0 := SetupSim("L", map[string]string{"--debuglog": ""}, 8, 0, 0, t)
-
-		stop := func() {
-			ShutDownEverything(t)
-			WaitForAllNodes(state0)
-		}
 
 		t.Run("Create Entries Before Chain", func(t *testing.T) {
 
@@ -88,18 +79,15 @@ func TestCreatEntriesBeforeChain(t *testing.T) {
 		})
 
 		t.Run("End simulation", func(t *testing.T) {
-			//			WaitForZero(state0, a.EcPub())
+			WaitForZero(state0, a.EcPub())
 			ht := state0.GetDBHeightComplete()
 			WaitBlocks(state0, 1)
 			newHt := state0.GetDBHeightComplete()
-			//fmt.Printf("Old: %v New: %v", ht, newHt)
-			assert.True(t, ht < newHt, "block height should progress")
-			//assert.True(t, newHt >= uint32(11), "should be past block 10")
-			stop()
+			ShutDownEverything(t)
+			WaitForAllNodes(state0)
 		})
 
 		t.Run("Verify Entries", func(t *testing.T) {
-
 			bal := engine.GetBalanceEC(state0, a.EcPub())
 			//fmt.Printf("Bal: => %v", bal)
 			assert.Equal(t, int64(0), bal)

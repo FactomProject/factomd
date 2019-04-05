@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSendingCommitAndReveal(t *testing.T) {
+func TestHoldingRebound(t *testing.T) {
 	encode := func(s string) []byte {
 		b := bytes.Buffer{}
 		b.WriteString(s)
@@ -34,7 +34,6 @@ func TestSendingCommitAndReveal(t *testing.T) {
 	t.Run("Run sim to create entries", func(t *testing.T) {
 		dropRate := 0
 
-		// FIXME: test times out w/ failure when providing "LAF"
 		state0 := SetupSim("LAF", map[string]string{"--debuglog": ""}, 9, 0, 0, t)
 		ticker := WatchMessageLists()
 
@@ -143,7 +142,7 @@ func GenerateCommitsAndRevealsInBatches(t *testing.T, state0 *state.State) {
 			t.Run("Fund EC Address", func(t *testing.T) {
 				amt := uint64(numEntries)
 				engine.FundECWallet(state0, b.FctPrivHash(), a.EcAddr(), amt*state0.GetFactoshisPerEC())
-				//waitForAnyDeposit(state0, a.EcPub())
+				WaitForAnyDeposit(state0, a.EcPub())
 			})
 
 			tend := WaitForEmptyHolding(state0, fmt.Sprintf("WAIT_HOLDING_END%v", BatchID))
