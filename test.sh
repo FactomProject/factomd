@@ -12,13 +12,15 @@ function runTests() {
 
   if [[ "${CI}x" ==  "x" ]] ; then
     TESTS=$({ \
-      glide nv | grep -v Utilities | grep -v longTest | grep -v peerTest | grep -v simTest; \
+      glide nv | grep -v Utilities | grep -v longTest | grep -v peerTest | grep -v simTest ;\
+      cat engine/debug/whitelist.txt; \
       ls simTest/*_test.go; \
       ls peerTest/*_test.go; \
     })
   else
     TESTS=$({ \
-      glide nv | grep -v Utilities | grep -v longTest | grep -v peerTest | grep -v simTest; \
+      glide nv | grep -v Utilities | grep -v longTest | grep -v peerTest | grep -v simTest ;\
+      cat engine/debug/whitelist.txt; \
       circleci tests glob 'simTest/*_test.go'; \
       circleci tests glob 'peerTest/*A_test.go'; \
     } | circleci tests split --split-by=timings)
@@ -47,10 +49,16 @@ function runTests() {
       ATEST_FILE=${TST/$BTEST/$ATEST}
       TST=${TST/$ATEST/$BTEST}
       echo "Concurrent Peer TEST: $ATEST_FILE"
-      nohup go test -v -timeout=30m -vet=off $ATEST_FILE &
+      nohup go test -v -timeout=10m -vet=off $ATEST_FILE &
     fi
 
-    go test -v -timeout=30m -vet=off $TST
+    # run individual sim tests that have been whitelisted 
+    if [[ `dirname ${TST}` == "engine" && ${TST/engine\//} != '...' ]] ; then
+      TST="./engine/... -run ${TST/engine\//}"
+      echo "Testing: $TST"
+    fi
+
+    go test -v -timeout=10m -vet=off $TST
 
     if [[ $? != 0 ]] ;  then
       FAIL=1
