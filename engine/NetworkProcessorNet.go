@@ -91,6 +91,14 @@ func Peers(fnode *FactomNode) {
 		if fnode.State.GetHighestCompletedBlk() < fnode.State.GetTrueLeaderHeight()-35 {
 			// Discard all commits, reveals, and acks <= the highest ack height we have seen.
 			switch amsg.Type() {
+			case constants.COMMIT_CHAIN_MSG:
+				return true
+			case constants.REVEAL_ENTRY_MSG:
+				return true
+			case constants.COMMIT_ENTRY_MSG:
+				return true
+			case constants.EOM_MSG:
+				return true
 			case constants.MISSING_DATA:
 				if !fnode.State.DBFinished {
 					return true
@@ -104,8 +112,6 @@ func Peers(fnode *FactomNode) {
 				}
 				// Set the highest ack height seen and allow through
 				ackHeight = amsg.(*messages.Ack).DBHeight
-			default: // COMMIT_CHAIN_MSG, REVEAL_ENTRY_MSG, COMMIT_ENTRY_MSG, EOM_MSG
-				return true
 			}
 		}
 		return false
