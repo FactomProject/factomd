@@ -247,9 +247,6 @@ func Peers(fnode *FactomNode) {
 					continue
 				}
 
-				fmt.Printf("Peers msg: %x \n", msg.GetMsgHash().Fixed())
-
-
 				msg.SetOrigin(i + 1) // Origin is 1 based but peer list is zero based.
 				hash := repeatHash.Fixed()
 				timestamp := msg.GetTimestamp()
