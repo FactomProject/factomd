@@ -98,12 +98,18 @@ func WriteConfigFile(identityNumber int, fnode int, extra string, t *testing.T) 
 	var configfile string
 
 	if fnode == 0 {
-		simConfigPath = util.GetHomeDir() + "/.factom/m2"
+		home := util.GetHomeDir()
+		simConfigPath = home + "/.factom/m2"
 		configfile = fmt.Sprintf("%s/factomd.conf", simConfigPath)
 	} else {
 		simConfigPath = util.GetHomeDir() + "/.factom/m2/simConfig"
 		configfile = fmt.Sprintf("%s/factomd%03d.conf", simConfigPath, fnode)
 	}
+	err := os.MkdirAll(simConfigPath, 0755)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	if _, err := os.Stat(simConfigPath); os.IsNotExist(err) {
 		fmt.Fprintf(os.Stderr, "Creating directory"+simConfigPath+"\n")
 		os.MkdirAll(simConfigPath, 0775)

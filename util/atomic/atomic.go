@@ -2,6 +2,7 @@ package atomic
 
 import (
 	"fmt"
+	"os"
 	"runtime"
 	"strings"
 	"sync"
@@ -108,6 +109,13 @@ func Goid() string {
 	s := string(buf[:n])
 	idField := s[:strings.Index(s, "[")-1]
 	return idField
+}
+
+func GetTestHomeDir() string {
+	_, fn, line, _ := runtime.Caller(2)
+	fn = fn[prefix:]
+	testString := strings.ReplaceAll(fn, string(os.PathSeparator), "_")
+	return fmt.Sprintf("HOME%s_%d", strings.ReplaceAll(testString, ".go", ""), line)
 }
 
 func WhereAmIString(depth int) string {

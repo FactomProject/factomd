@@ -5,9 +5,12 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/FactomProject/factomd/util"
+	"github.com/FactomProject/factomd/util/atomic"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strconv"
 	"testing"
@@ -42,6 +45,12 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 	fmt.Println("SetupSim(", GivenNodes, ",", UserAddedOptions, ",", height, ",", electionsCnt, ",", RoundsCnt, ")")
 	ExpectedHeight = height
 	l := len(GivenNodes)
+
+	dirBase, _ := os.Getwd()
+	dirBase = filepath.Dir(dirBase + "/.sim/")
+	os.Mkdir(dirBase, 0600)
+	os.Setenv("FACTOM_HOME", filepath.Dir(dirBase+atomic.GetTestHomeDir()))
+
 	CmdLineOptions := map[string]string{
 		"--db":                  "Map",
 		"--network":             "LOCAL",
@@ -59,6 +68,7 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 		"--port":                "37001",
 		"--controlpanelport":    "37002",
 		"--networkport":         "37003",
+		"--factomhome":          util.GetHomeDir(),
 	}
 
 	// loop thru the test specific options and overwrite or append to the DefaultOptions
@@ -491,20 +501,21 @@ func v2Request(req *primitives.JSON2Request, port int) (*primitives.JSON2Respons
 	return nil, nil
 }
 
-// TODO: this doesn't seem to work - fix along w/ AddFNodeTest
-func ResetFactomHome(t *testing.T, subDir string) {
+func ResetFactomHome(t *testing.T) (string, error) {
 	dir, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	globals.Params.FactomHome = dir + "/.sim/" + subDir
-	os.Setenv("FACTOM_HOME", globals.Params.FactomHome)
+	homeDir := dir + "/.sim/" + atomic.GetTestHomeDir()
 
-	t.Logf("Removing old run in %s", globals.Params.FactomHome)
-	if err := os.RemoveAll(globals.Params.FactomHome); err != nil {
-		t.Fatal(err)
-	}
+	t.Logf("Removing old test run in %s", homeDir)
+	os.MkdirAll(homeDir, 0755)
+	os.RemoveAll(homeDir)
+
+	os.Setenv("FACTOM_HOME", homeDir)
+	os.MkdirAll(homeDir+"/.factom/m2", 0755)
+	return string(homeDir), nil
 }
 
 func AddFNode() {

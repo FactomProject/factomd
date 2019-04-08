@@ -2,28 +2,25 @@
 
 # this script is specified in .circleci/config.yml
 # to run as the 'tests' task
-#
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-cd $DIR
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )" # get dir containing this script
+cd $DIR # always from from script dir
 
 function runTests() {
-
-
   if [[ "${CI}x" ==  "x" ]] ; then
-    TESTS=$({ \
-      glide nv | grep -v Utilities | grep -v longTest | grep -v peerTest | grep -v simTest ;\
-      cat engine/debug/whitelist.txt; \
-      ls simTest/*_test.go; \
+    TESTS=$({ \ # run locally
+      glide nv | grep -v Utilities | grep -v longTest | grep -v peerTest | grep -v simTest ;\ # run test by go
+      cat engine/debug/whitelist.txt; \ # individual run of whitelisted sim tests in engine module
+      ls simTest/*_test.go; \ 
       ls peerTest/*_test.go; \
     })
   else
-    TESTS=$({ \
-      glide nv | grep -v Utilities | grep -v longTest | grep -v peerTest | grep -v simTest ;\
-      cat engine/debug/whitelist.txt; \
+    TESTS=$({ \ # run on circle
+      glide nv | grep -v Utilities | grep -v longTest | grep -v peerTest | grep -v simTest ;\ # run test by go
+      cat engine/debug/whitelist.txt; \ # individual run of whitelisted sim tests in engine module
       circleci tests glob 'simTest/*_test.go'; \
       circleci tests glob 'peerTest/*A_test.go'; \
-    } | circleci tests split --split-by=timings)
+    } | circleci tests split --split-by=timings) # Circle.CI black magic to split out test runs into multiple containers
   fi
 
 	if [[ "${TESTS}x" ==  "x" ]] ; then
@@ -42,9 +39,11 @@ function runTests() {
   #   BrainSwapB_test.go # 'B' test runs in foreground
   BTEST="B_"
   ATEST="A_"
+  FAILURES=()
   FAIL=""
 
   for TST in ${TESTS[*]} ; do
+    # start 'A' part of A/B test in background
     if [[ `dirname ${TST}` == "peerTest" ]] ; then
       ATEST_FILE=${TST/$BTEST/$ATEST}
       TST=${TST/$ATEST/$BTEST}
@@ -58,15 +57,24 @@ function runTests() {
       echo "Testing: $TST"
     fi
 
+    echo "START: ${TST}"
+    echo '---------------'
     go test -v -timeout=10m -vet=off $TST
+    echo "END: ${TST}"
+    echo '---------------'
 
     if [[ $? != 0 ]] ;  then
       FAIL=1
+      FAILURES+=($TST)
     fi
   done
 
   if [[ "${FAIL}x" != "x" ]] ; then
     echo "TESTS FAIL"
+    echo '---------------'
+    for F in ${FAILURES[*]} ; do
+      echo $F
+    done
     exit 1
   else
     echo "ALL TESTS PASS"

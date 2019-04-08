@@ -26,80 +26,60 @@ func TestEntriesBeforeChain(t *testing.T) {
 
 	numEntries := 250 // set the total number of entries to add
 
-	t.Run("generate accounts", func(t *testing.T) {
-		println(b.String())
-		println(a.String())
-	})
+	println(b.String()) // print factoid & ec addresses
+	println(a.String())
 
-	t.Run("Run sim to create entries", func(t *testing.T) {
-		state0 := SetupSim("L", map[string]string{"--debuglog": ""}, 8, 0, 0, t)
+	params := map[string]string{"--debuglog": ""}
+	state0 := SetupSim("L", params, 8, 0, 0, t)
 
-		t.Run("Create Entries Before Chain", func(t *testing.T) {
+	publish := func(i int) {
+		e := factom.Entry{
+			ChainID: id,
+			ExtIDs:  extids,
+			Content: encode(fmt.Sprintf("hello@%v", i)), // ensure no duplicate msg hashes
+		}
+		commit, _ := ComposeCommitEntryMsg(a.Priv, e)
+		reveal, _ := ComposeRevealEntryMsg(a.Priv, &e)
 
-			publish := func(i int) {
-				e := factom.Entry{
-					ChainID: id,
-					ExtIDs:  extids,
-					Content: encode(fmt.Sprintf("hello@%v", i)), // ensure no duplicate msg hashes
-				}
-				i++
+		state0.APIQueue().Enqueue(commit)
+		state0.APIQueue().Enqueue(reveal)
+	}
 
-				commit, _ := ComposeCommitEntryMsg(a.Priv, e)
-				reveal, _ := ComposeRevealEntryMsg(a.Priv, &e)
+	for x := 0; x < numEntries; x++ {
+		publish(x)
+	}
 
-				state0.APIQueue().Enqueue(commit)
-				state0.APIQueue().Enqueue(reveal)
-			}
+	e := factom.Entry{
+		ChainID: id,
+		ExtIDs:  extids,
+		Content: encode("Hello World!"),
+	}
 
-			for x := 0; x < numEntries; x++ {
-				publish(x)
-			}
-		})
+	c := factom.NewChain(&e)
 
-		t.Run("Create Chain", func(t *testing.T) {
-			e := factom.Entry{
-				ChainID: id,
-				ExtIDs:  extids,
-				Content: encode("Hello World!"),
-			}
+	commit, _ := ComposeChainCommit(a.Priv, c)
+	reveal, _ := ComposeRevealEntryMsg(a.Priv, c.FirstEntry)
 
-			c := factom.NewChain(&e)
+	state0.APIQueue().Enqueue(commit)
+	state0.APIQueue().Enqueue(reveal)
 
-			commit, _ := ComposeChainCommit(a.Priv, c)
-			reveal, _ := ComposeRevealEntryMsg(a.Priv, c.FirstEntry)
+	amt := uint64(numEntries + 11) // Chain costs 10 + 1 per k so our chain costs 11
+	engine.FundECWallet(state0, b.FctPrivHash(), a.EcAddr(), amt*state0.GetFactoshisPerEC())
+	WaitForAnyDeposit(state0, a.EcPub())
 
-			state0.APIQueue().Enqueue(commit)
-			state0.APIQueue().Enqueue(reveal)
-		})
+	WaitForZero(state0, a.EcPub())
+	ShutDownEverything(t)
+	WaitForAllNodes(state0)
 
-		t.Run("Fund EC Address", func(t *testing.T) {
-			amt := uint64(numEntries + 11) // Chain costs 10 + 1 per k so our chain costs 11
-			engine.FundECWallet(state0, b.FctPrivHash(), a.EcAddr(), amt*state0.GetFactoshisPerEC())
-			WaitForAnyDeposit(state0, a.EcPub())
-		})
+	bal := engine.GetBalanceEC(state0, a.EcPub())
+	//fmt.Printf("Bal: => %v", bal)
+	assert.Equal(t, int64(0), bal)
 
-		t.Run("End simulation", func(t *testing.T) {
-			WaitForZero(state0, a.EcPub())
-			ht := state0.GetDBHeightComplete()
-			WaitBlocks(state0, 1)
-			newHt := state0.GetDBHeightComplete()
-			ShutDownEverything(t)
-			WaitForAllNodes(state0)
-		})
+	for _, v := range state0.Holding {
+		s, _ := v.JSONString()
+		println(s)
+	}
 
-		t.Run("Verify Entries", func(t *testing.T) {
-			bal := engine.GetBalanceEC(state0, a.EcPub())
-			//fmt.Printf("Bal: => %v", bal)
-			assert.Equal(t, int64(0), bal)
+	assert.Equal(t, 0, len(state0.Holding), "messages stuck in holding")
 
-			for _, v := range state0.Holding {
-				s, _ := v.JSONString()
-				println(s)
-			}
-
-			// TODO: actually check for confirmed entries
-			assert.Equal(t, 0, len(state0.Holding), "messages stuck in holding")
-		})
-
-	})
 }
