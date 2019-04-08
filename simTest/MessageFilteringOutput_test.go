@@ -9,8 +9,7 @@ import (
 )
 
 func TestMessageFilteringOutput(t *testing.T) {
-	state0 := SetupSim("LLLLLAAF", map[string]string{"--debuglog": "."}, 25, 1, 1, t)
-	_ = state0
+	SetupSim("LLLLLAAF", map[string]string{"--debuglog": "."}, 25, 1, 1, t)
 
 	RunCmd("1")
 	RunCmd("w") // point API at node 1

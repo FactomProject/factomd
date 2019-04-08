@@ -9,7 +9,6 @@ import (
 )
 
 func TestMessageFilteringInput(t *testing.T) {
-
 	SetupSim("LLLLLAAF", map[string]string{"--debuglog": "."}, 25, 1, 1, t)
 
 	RunCmd("1")
