@@ -26,7 +26,6 @@ func NetworkProcessorNet(fnode *FactomNode) {
 }
 
 func Peers(fnode *FactomNode) {
-	saltReplayFilterOn := true
 
 	crossBootIgnore := func(amsg interfaces.IMsg) bool {
 		// If we are not syncing, we may ignore some old messages if we are rebooting based on salts
@@ -302,16 +301,20 @@ func Peers(fnode *FactomNode) {
 					fnode.State.LogMessage("NetworkInputs", "unmarked P2P msg", msg)
 					msg.SetNoResend(true)
 				}
-				if !crossBootIgnore(msg) {
-					if t := msg.Type(); t == constants.REVEAL_ENTRY_MSG || t == constants.COMMIT_CHAIN_MSG || t == constants.COMMIT_ENTRY_MSG {
-						fnode.State.LogMessage("NetworkInputs", fromPeer+", enqueue2", msg)
-						fnode.State.LogMessage("InMsgQueue2", fromPeer+", enqueue2", msg)
-						fnode.State.InMsgQueue2().Enqueue(msg)
-					} else {
-						fnode.State.LogMessage("NetworkInputs", fromPeer+", enqueue", msg)
-						fnode.State.LogMessage("InMsgQueue", fromPeer+", enqueue", msg)
-						fnode.State.InMsgQueue().Enqueue(msg)
-					}
+				if crossBootIgnore(msg) {
+					fnode.State.LogMessage("NetworkInputs", fromPeer+" Drop, crossBootIgnore()", msg)
+					continue
+
+				}
+
+				if t := msg.Type(); t == constants.REVEAL_ENTRY_MSG || t == constants.COMMIT_CHAIN_MSG || t == constants.COMMIT_ENTRY_MSG {
+					fnode.State.LogMessage("NetworkInputs", fromPeer+", enqueue2", msg)
+					fnode.State.LogMessage("InMsgQueue2", fromPeer+", enqueue2", msg)
+					fnode.State.InMsgQueue2().Enqueue(msg)
+				} else {
+					fnode.State.LogMessage("NetworkInputs", fromPeer+", enqueue", msg)
+					fnode.State.LogMessage("InMsgQueue", fromPeer+", enqueue", msg)
+					fnode.State.InMsgQueue().Enqueue(msg)
 				}
 			} // For a peer read up to 100 messages {...}
 		} // for each peer {...}

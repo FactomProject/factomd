@@ -29,8 +29,9 @@ type Replay struct {
 	Basetime int // hours since 1970
 	Center   int // Hour of the current time.
 	// debug
-	s    *State
-	name string
+	s      *State
+	name   string
+	center interfaces.Timestamp
 }
 
 var _ interfaces.BinaryMarshallable = (*Replay)(nil)
@@ -215,15 +216,21 @@ func (r *Replay) Recenter(systemtime interfaces.Timestamp) {
 	if r.Center == 0 {
 		r.Center = now
 		r.Basetime = r.Center - (numBuckets / 2)
+		r.center = new(primitives.Timestamp)
+		r.center.SetTimestamp(systemtime)
 	}
-	for r.Center < now {
-		for k := range r.Buckets[0] {
-			delete(r.Buckets[0], k)
+	if r.Center < now {
+		//		r.s.LogPrintf("replay", "Recenter from %s to %s", r.center.String(), systemtime.String())
+		r.center.SetTimestamp(systemtime)
+		for r.Center < now {
+			for k := range r.Buckets[0] {
+				delete(r.Buckets[0], k)
+			}
+			copy(r.Buckets[:], r.Buckets[1:])
+			r.Buckets[numBuckets-1] = make(map[[32]byte]int)
+			r.Center++
+			r.Basetime++
 		}
-		copy(r.Buckets[:], r.Buckets[1:])
-		r.Buckets[numBuckets-1] = make(map[[32]byte]int)
-		r.Center++
-		r.Basetime++
 	}
 
 }
@@ -299,15 +306,15 @@ func (r *Replay) IsTSValidAndUpdateState(mask int, hash [32]byte, timestamp inte
 		if mask != constants.TIME_TEST {
 			r.Buckets[index][hash] = r.Buckets[index][hash] | mask
 			r.Mutex.Unlock()
-			//r.s.LogPrintf("replay", "Add %x (%s) to %s from %s", hash[:3], maskToString(mask), r.Name, atomic.WhereAmIString(1))
-			return rval // true
+			//			r.s.LogPrintf("replay", "Add M-%x (%s) to %p from %s", hash[:3], maskToString(mask), r, atomic.WhereAmIString(1))
+			return true
 		}
 		r.Mutex.Unlock()
-		return rval // true
+		return true
 	}
 
 	r.Mutex.Unlock()
-	return rval // false
+	return false
 }
 
 // Returns True if there is no record of this hash in the Replay structures.
