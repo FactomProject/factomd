@@ -694,7 +694,7 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 	s.HighestKnown = ss.DBHeight + 2
 	s.Holding = make(map[[32]byte]interfaces.IMsg)
 
-	//TODO: Rip all these maps and arrays out. they are not needed... famouus last words.
+	//TODO: Rip all these maps and arrays out. they are not needed... famous last words.
 	for k := range ss.Holding {
 		s.Holding[k] = ss.Holding[k]
 	}

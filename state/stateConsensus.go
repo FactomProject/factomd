@@ -2405,8 +2405,12 @@ func (s *State) GetHighestAck() uint32 {
 }
 
 func (s *State) SetHighestAck(dbht uint32) {
+	if dbht-s.LLeaderHeight > 2000 { // cap at a relative 2000 due to fd-850
+		dbht = s.LLeaderHeight + 2000
+	}
+
 	if dbht > s.HighestAck {
-		s.HighestAck = dbht
+		s.HighestAck = dbht // SetHighestAck()
 	}
 }
 
