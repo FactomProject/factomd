@@ -114,8 +114,8 @@ func Goid() string {
 func GetTestHomeDir() string {
 	_, fn, line, _ := runtime.Caller(2)
 	fn = fn[prefix:]
-	testString := strings.ReplaceAll(fn, string(os.PathSeparator), "_")
-	return fmt.Sprintf("HOME%s_%d", strings.ReplaceAll(testString, ".go", ""), line)
+	testString := strings.Replace(fn, string(os.PathSeparator), "_", -1)
+	return fmt.Sprintf("HOME%s_%d", strings.Replace(testString, ".go", "", -1), line)
 }
 
 func WhereAmIString(depth int) string {
