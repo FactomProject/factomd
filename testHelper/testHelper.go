@@ -3,9 +3,9 @@ package testHelper
 //A package for functions used multiple times in tests that aren't useful in production code.
 
 import (
-	"github.com/FactomProject/factomd/util/atomic"
 	"os/exec"
 	"regexp"
+	"runtime"
 
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
@@ -393,9 +393,25 @@ func SystemCall(cmd string) []byte {
 	return out
 }
 
-var testNameRe = regexp.MustCompile(`\w+$`)
+var testNameRe = regexp.MustCompile(`\.Test\w+$`)
 
-// get the name of the test function that is being run
-func GetTestName() string {
-	return testNameRe.FindString(atomic.GetFrame(1).Function)
+// find Test Function name in stack
+func GetTestName() (name string) {
+	targetFrameIndex := 4 // limit caller frame depth to check for a test name
+
+	programCounters := make([]uintptr, targetFrameIndex+2)
+	n := runtime.Callers(0, programCounters)
+
+	if n > 0 {
+		frames := runtime.CallersFrames(programCounters[:n])
+		var frameCandidate runtime.Frame
+		for more, frameIndex := true, 0; more && frameIndex <= targetFrameIndex; frameIndex++ {
+			frameCandidate, more = frames.Next()
+			if testNameRe.MatchString(frameCandidate.Function) {
+				return testNameRe.FindString(frameCandidate.Function)[1:]
+			}
+		}
+	}
+
+	return name
 }
