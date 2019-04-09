@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/engine"
 	. "github.com/FactomProject/factomd/testHelper"
 )
@@ -21,18 +20,16 @@ func TestLeaderBrainSwap(t *testing.T) {
 		WriteConfigFile(i, i, "", t) // just write the minimal config
 	}
 
-	params := map[string]string{"--factomhome": globals.Params.FactomHome}
-
-	// start the 6 fnodes running "012345"
+	params := map[string]string{"--blktime": "10"}
 	state0 := SetupSim("LLLFFF", params, 30, 0, 0, t)
 	state3 := engine.GetFnodes()[3].State // Get node 2
 
 	WaitForAllNodes(state0)
 	WaitForBlock(state0, 6)
 
-	batchCount := 3 // use odd number to match LFFFLL as end condition
+	batches := 3 // use odd number to fulfill LFFFLL as end condition
 
-	for batch := 0; batch < batchCount; batch++ {
+	for batch := 0; batch < batches; batch++ {
 
 		target := batch + 7
 

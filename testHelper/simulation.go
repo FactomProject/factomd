@@ -5,12 +5,9 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/FactomProject/factomd/util"
-	"github.com/FactomProject/factomd/util/atomic"
 	"io/ioutil"
 	"net/http"
 	"os"
-	"path/filepath"
 	"reflect"
 	"strconv"
 	"testing"
@@ -47,9 +44,11 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 	l := len(GivenNodes)
 
 	dirBase, _ := os.Getwd()
-	dirBase = filepath.Dir(dirBase + "/.sim/")
+	dirBase = dirBase + "/.sim/"
 	os.Mkdir(dirBase, 0600)
-	os.Setenv("FACTOM_HOME", filepath.Dir(dirBase+atomic.GetTestHomeDir()))
+	//factomHome := dirBase+atomic.GetFrame(1)
+	factomHome := ""
+	os.Setenv("FACTOM_HOME", factomHome)
 
 	CmdLineOptions := map[string]string{
 		"--db":                  "Map",
@@ -68,7 +67,7 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 		"--port":                "37001",
 		"--controlpanelport":    "37002",
 		"--networkport":         "37003",
-		"--factomhome":          util.GetHomeDir(),
+		"--factomhome":          factomHome,
 	}
 
 	// loop thru the test specific options and overwrite or append to the DefaultOptions
@@ -501,13 +500,14 @@ func v2Request(req *primitives.JSON2Request, port int) (*primitives.JSON2Respons
 	return nil, nil
 }
 
+/*
 func ResetFactomHome(t *testing.T) (string, error) {
 	dir, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	homeDir := dir + "/.sim/" + atomic.GetTestHomeDir()
+	homeDir := dir + "/.sim/" + atomic.GetTestName()
 
 	t.Logf("Removing old test run in %s", homeDir)
 	os.MkdirAll(homeDir, 0755)
@@ -517,6 +517,7 @@ func ResetFactomHome(t *testing.T) (string, error) {
 	os.MkdirAll(homeDir+"/.factom/m2", 0755)
 	return string(homeDir), nil
 }
+*/
 
 func AddFNode() {
 	engine.AddNode()
