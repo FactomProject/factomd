@@ -1,20 +1,69 @@
 #!/usr/bin/env bash
 
-# run same tests as specified in .circleci/config.yml
-PACKAGES=$(glide nv | grep -v Utilities | grep -v LongTests)
-FAIL=""
+# this script is specified in .circleci/config.yml
+# to run as the 'tests' task
+#
 
-for PKG in ${PACKAGES[*]} ; do
-  go test -v -vet=off $PKG
-  if [[ $? != 0 ]] ;  then
-    FAIL=1
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+cd $DIR
+
+function runTests() {
+
+
+  if [[ "${CI}x" ==  "x" ]] ; then
+    TESTS=$({ \
+      glide nv | grep -v Utilities | grep -v longTest | grep -v peerTest | grep -v simTest; \
+      #ls simTest/*_test.go;\
+      #ls peerTest/*_test.go;\
+    })
+  else
+    TESTS=$({ \
+      glide nv | grep -v Utilities | grep -v longTest | grep -v peerTest | grep -v simTest; \
+      circleci tests glob 'simTest/*_test.go'; \
+      circleci tests glob 'peerTest/*Follower_test.go'; \
+    } | circleci tests split --split-by=timings)
   fi
-done
 
-if [[ "${FAIL}x" != "x" ]] ; then
-  echo "TESTS FAIL"
-  exit 1
-else
-  echo "ALL TESTS PASS"
-  exit 0
-fi
+	if [[ "${TESTS}x" ==  "x" ]] ; then
+    echo "No Tests"
+    exit 0
+  else
+    echo '---------------'
+    echo "${TESTS}"
+    echo '---------------'
+  fi
+
+  # NOTE: peer tests are expected to be named 
+  # in Follower/Network pairs
+  # Example:
+  #   BrainSwapFollower_test.go
+  #   BrainSwapNetwork_test.go
+  FOLLOWER="Follower"
+  NETWORK="Network"
+  FAIL=""
+
+  for TST in ${TESTS[*]} ; do
+    if [[ `dirname ${TST}` == "peerTest" ]] ; then
+      NETWORK_TEST=${TST/$FOLLOWER/$NETWORK}
+      TST=${TST/$NETWORK/$FOLLOWER}
+      echo "Concurrent Peer TEST: $NETWORK_TEST"
+      nohup go test -v -vet=off $NETWORK_TEST &
+    fi
+
+    go test -v -vet=off $TST
+
+    if [[ $? != 0 ]] ;  then
+      FAIL=1
+    fi
+  done
+
+  if [[ "${FAIL}x" != "x" ]] ; then
+    echo "TESTS FAIL"
+    exit 1
+  else
+    echo "ALL TESTS PASS"
+    exit 0
+  fi
+}
+
+runTests

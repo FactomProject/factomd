@@ -1,6 +1,5 @@
 # Factom
 
-[![Build Status](https://travis-ci.org/FactomProject/factomd.svg?branch=develop)](https://travis-ci.org/FactomProject/factomd)
 [![CircleCI](https://circleci.com/gh/FactomProject/factomd/tree/develop.svg?style=shield)](https://circleci.com/gh/FactomProject/factomd/tree/develop)
 
 Factom is an Open-Source project that provides a way to build applications on the Bitcoin blockchain. 
@@ -12,14 +11,14 @@ Factom leverages the Bitcoin Blockchain, but in a way that minimizes the amount 
 
 ## Getting Started
 
-You need to set up Go environment with golang 1.11 or higher. You also need git.  See the [Install from source](https://github.com/FactomProject/FactomDocs/blob/master/installFromSourceDirections.md) directions for more details and wallet installation instructions.
+You need to set up Go environment with golang 1.12 or higher (but not above the verion listed [here](https://github.com/FactomProject/factomd/blob/master/engine/factomParams.go#L140) ). You also need git.  See the [Install from source](https://github.com/FactomProject/FactomDocs/blob/master/installFromSourceDirections.md) directions for more details and wallet installation instructions.
 
 ### Install the dependency management program
 
-First check if golang 1.11 or higher is installed.  some operating systems install older versions.
+First check if golang 1.12 or higher is installed.  some operating systems install older versions.
 
 `go version` should return something like
-`go version go1.11 linux/amd64`
+`go version go1.12 linux/amd64`
 
 Next install Glide, which gets the dependencies for factomd and places them in the `$GOPATH/src/github/FactomProject/factomd/vendor` directory.
 

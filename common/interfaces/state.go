@@ -5,6 +5,8 @@
 package interfaces
 
 import (
+	"regexp"
+
 	"github.com/FactomProject/factomd/activations"
 )
 
@@ -346,4 +348,9 @@ type IState interface {
 
 	// Activations
 	IsActive(id activations.ActivationType) bool
+
+	PassOutputRegEx(*regexp.Regexp, string)
+	GetOutputRegEx() (*regexp.Regexp, string)
+	PassInputRegEx(*regexp.Regexp, string)
+	GetInputRegEx() (*regexp.Regexp, string)
 }

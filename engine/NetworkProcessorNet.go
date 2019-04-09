@@ -181,7 +181,6 @@ func Peers(fnode *FactomNode) {
 
 			//fnode.MLog.add2(fnode, false, fnode.State.FactomNodeName, "API", true, msg)
 			sendToExecute(msg, fnode, "from API")
-
 		} // for the api queue read up to 100 messages {...}
 
 		// Put any broadcasts from our peers into our BroadcastIn queue
@@ -274,6 +273,33 @@ func Peers(fnode *FactomNode) {
 					continue
 				}
 
+				regex, _ := fnode.State.GetInputRegEx()
+
+				if regex != nil {
+					t := ""
+					if mm, ok := msg.(*messages.MissingMsgResponse); ok {
+						t = fmt.Sprintf("%7d-:-%d %s", fnode.State.LLeaderHeight, fnode.State.CurrentMinute, mm.MsgResponse.String())
+					} else {
+						t = fmt.Sprintf("%7d-:-%d %s", fnode.State.LLeaderHeight, fnode.State.CurrentMinute, msg.String())
+					}
+
+					if mm, ok := msg.(*messages.MissingMsgResponse); ok {
+						if eom, ok := mm.MsgResponse.(*messages.EOM); ok {
+							t2 := fmt.Sprintf("%7d-:-%d %s", fnode.State.LLeaderHeight, fnode.State.CurrentMinute, eom.String())
+							messageResult := regex.MatchString(t2)
+							if messageResult {
+								fnode.State.LogMessage("NetworkInputs", "Drop, matched filter Regex", msg)
+								continue
+							}
+						}
+					}
+					messageResult := regex.MatchString(t)
+					if messageResult {
+						fnode.State.LogMessage("NetworkInputs", "Drop, matched filter Regex", msg)
+						continue
+					}
+				}
+
 				//if state.GetOut() {
 				//	fnode.State.Println("In Coming!! ",msg)
 				//}
@@ -290,15 +316,11 @@ func Peers(fnode *FactomNode) {
 				if constants.NormallyPeer2Peer(msg.Type()) {
 					msg.SetNoResend(true)
 				}
-				// check if any P2P msg types slip by
-				if msg.IsPeer2Peer() && !msg.GetNoResend() {
-					fnode.State.LogMessage("NetworkInputs", "unmarked P2P msg", msg)
-					msg.SetNoResend(true)
+				if crossBootIgnore(msg) {
+					fnode.State.LogMessage("NetworkInputs", "Drop, crossBootIgnore()", msg)
+					continue
 				}
-
-				if !crossBootIgnore(msg) {
-					sendToExecute(msg, fnode, fromPeer)
-				}
+				sendToExecute(msg, fnode, fromPeer)
 			} // For a peer read up to 100 messages {...}
 		} // for each peer {...}
 		if cnt == 0 {
@@ -310,6 +332,18 @@ func Peers(fnode *FactomNode) {
 var cacheReveals bool = true
 
 func sendToExecute(msg interfaces.IMsg, fnode *FactomNode, source string) {
+	if msg.Type() == constants.DBSTATE_MSG {
+		// notify the state that a new DBState has been received.
+		// TODO: send the msg to StatesReceived and only send to InMsgQueue when the next received message is ready.
+		fnode.State.StatesReceived.Notify <- msg.(*messages.DBStateMsg)
+	}
+
+	// check if any P2P msg types slip by
+	if msg.IsPeer2Peer() && !msg.GetNoResend() {
+		fnode.State.LogMessage("NetworkInputs", "unmarked P2P msg", msg)
+		msg.SetNoResend(true)
+	}
+
 	t := msg.Type()
 	switch t {
 	case constants.COMMIT_CHAIN_MSG:
@@ -319,7 +353,7 @@ func sendToExecute(msg interfaces.IMsg, fnode *FactomNode, source string) {
 			reveal := fnode.State.Reveals.Get(msg.GetHash().Fixed())
 			if reveal != nil {
 				Q1(fnode, source, reveal) // if we have it send it fast track
-				// it will still arive from thr slow track but thats ok.
+				// it will still arrive from thr slow track but thats ok.
 			}
 		}
 
@@ -383,6 +417,33 @@ func NetworkOutputs(fnode *FactomNode) {
 		if msg.GetRepeatHash() == nil {
 			fnode.State.LogMessage("NetworkOutputs", "drop, no repeat hash", msg)
 			continue
+		}
+
+		regex, _ := fnode.State.GetOutputRegEx()
+		if regex != nil {
+			t := ""
+			if mm, ok := msg.(*messages.MissingMsgResponse); ok {
+				t = fmt.Sprintf("%7d-:-%d %s", fnode.State.LLeaderHeight, fnode.State.CurrentMinute, mm.MsgResponse.String())
+			} else {
+				t = fmt.Sprintf("%7d-:-%d %s", fnode.State.LLeaderHeight, fnode.State.CurrentMinute, msg.String())
+			}
+
+			if mm, ok := msg.(*messages.MissingMsgResponse); ok {
+				if eom, ok := mm.MsgResponse.(*messages.EOM); ok {
+					t2 := fmt.Sprintf("%7d-:-%d %s", fnode.State.LLeaderHeight, fnode.State.CurrentMinute, eom.String())
+					messageResult := regex.MatchString(t2)
+					if messageResult {
+						fnode.State.LogMessage("NetworkOutputs", "Drop, matched filter Regex", msg)
+						continue
+					}
+				}
+			}
+			messageResult := regex.MatchString(t)
+			if messageResult {
+				//fmt.Println("Found it!", t)
+				fnode.State.LogMessage("NetworkOutputs", "Drop, matched filter Regex", msg)
+				continue
+			}
 		}
 
 		//_, ok := msg.(*messages.Ack)
