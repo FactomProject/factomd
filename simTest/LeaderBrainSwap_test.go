@@ -45,7 +45,7 @@ func TestLeaderBrainSwap(t *testing.T) {
 			"--network":             "LOCAL",
 			"--net":                 "alot+",
 			"--enablenet":           "true",
-			"--blktime":             "30",
+			"--blktime":             "10",
 			"--startdelay":          "1",
 			"--stdoutlog":           "out.txt",
 			"--stderrlog":           "out.txt",
@@ -60,19 +60,20 @@ func TestLeaderBrainSwap(t *testing.T) {
 			"--factomhome":          globals.Params.FactomHome,
 		}
 
+		batchCount := 5 // FIXME
+
 		// start the 6 nodes running  012345
-		state0 := SetupSim("LLLFFF", params, 30, 0, 0, t)
+		state0 := SetupSim("LLLFFF", params, 6+batchCount+2, 0, 0, t)
 		state3 := engine.GetFnodes()[3].State // Get node 2
 
 		WaitForAllNodes(state0)
-		WaitForBlock(state0, 9)
-
-		batchCount := 5 // FIXME
+		startSwaps := 6
+		WaitForBlock(state0, startSwaps)
 
 		for batch := 0; batch < batchCount; batch++ {
 
 			t.Run(fmt.Sprintf("Wait For Identity Swap %v", batch), func(t *testing.T) {
-				target := batch + 10
+				target := batch + startSwaps + 1 // swap next block.
 
 				change := fmt.Sprintf("ChangeAcksHeight = %v\n", target)
 
