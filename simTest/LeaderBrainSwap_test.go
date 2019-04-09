@@ -67,7 +67,7 @@ func TestLeaderBrainSwap(t *testing.T) {
 		WaitForAllNodes(state0)
 		WaitForBlock(state0, 9)
 
-		batchCount := 50 // FIXME
+		batchCount := 5 // FIXME
 
 		for batch := 0; batch < batchCount; batch++ {
 
