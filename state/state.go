@@ -37,6 +37,8 @@ import (
 	"github.com/FactomProject/factomd/wsapi"
 	"github.com/FactomProject/logrustash"
 
+	"regexp"
+
 	"github.com/FactomProject/factomd/Utilities/CorrectChainHeads/correctChainHeads"
 	log "github.com/sirupsen/logrus"
 )
@@ -209,6 +211,10 @@ type State struct {
 	IgnoreDone    bool
 	IgnoreMissing bool
 
+	// Timout and Limit for outstanding missing DBState requests
+	RequestTimeout time.Duration
+	RequestLimit   int
+
 	LLeaderHeight   uint32
 	Leader          bool
 	LeaderVMIndex   int
@@ -292,6 +298,10 @@ type State struct {
 
 	// Directory Block State
 	DBStates *DBStateList // Holds all DBStates not yet processed.
+
+	StatesMissing  *StatesMissing
+	StatesWaiting  *StatesWaiting
+	StatesReceived *StatesReceived
 
 	// Having all the state for a particular directory block stored in one structure
 	// makes creating the next state, updating the various states, and setting up the next
@@ -411,6 +421,11 @@ type State struct {
 
 	reportedActivations   [activations.ACTIVATION_TYPE_COUNT + 1]bool // flags about which activations we have reported (+1 because we don't use 0)
 	validatorLoopThreadID string
+
+	OutputRegEx       *regexp.Regexp
+	OutputRegExString string
+	InputRegEx        *regexp.Regexp
+	InputRegExString  string
 }
 
 var _ interfaces.IState = (*State)(nil)
@@ -509,7 +524,7 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 
 	if !config {
 		newState.IdentityChainID = primitives.Sha([]byte(newState.FactomNodeName))
-		s.LogPrintf("AckChange", "Default3 IdentityChainID %v", s.IdentityChainID.String())
+		s.LogPrintf("AckChange", "Default IdentityChainID %v", s.IdentityChainID.String())
 
 		//generate and use a new deterministic PrivateKey for this clone
 		shaHashOfNodeName := primitives.Sha([]byte(newState.FactomNodeName)) //seed the private key with node name
@@ -532,6 +547,9 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 	newState.RpcUser = s.RpcUser
 	newState.RpcPass = s.RpcPass
 	newState.RpcAuthHash = s.RpcAuthHash
+
+	newState.RequestTimeout = s.RequestTimeout
+	newState.RequestLimit = s.RequestLimit
 
 	newState.FactomdTLSEnable = s.FactomdTLSEnable
 	newState.factomdTLSKeyFile = s.factomdTLSKeyFile
@@ -772,6 +790,8 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		s.ControlPanelPort = cfg.App.ControlPanelPort
 		s.RpcUser = cfg.App.FactomdRpcUser
 		s.RpcPass = cfg.App.FactomdRpcPass
+		s.RequestTimeout = time.Duration(cfg.App.RequestTimeout) * time.Second
+		s.RequestLimit = cfg.App.RequestLimit
 		s.StateSaverStruct.FastBoot = cfg.App.FastBoot
 		s.StateSaverStruct.FastBootLocation = cfg.App.FastBootLocation
 		s.FastBoot = cfg.App.FastBoot
@@ -974,6 +994,12 @@ func (s *State) Init() {
 	s.DBStates = new(DBStateList)
 	s.DBStates.State = s
 	s.DBStates.DBStates = make([]*DBState, 0)
+
+	s.StatesMissing = NewStatesMissing()
+	s.StatesWaiting = NewStatesWaiting()
+	s.StatesReceived = NewStatesReceived()
+
+	s.DBStates.Catchup()
 
 	switch s.NodeMode {
 	case "FULL":
@@ -2947,4 +2973,22 @@ func (s *State) IsActive(id activations.ActivationType) bool {
 	}
 
 	return rval
+}
+
+func (s *State) PassOutputRegEx(RegEx *regexp.Regexp, RegExString string) {
+	s.OutputRegEx = RegEx
+	s.OutputRegExString = RegExString
+}
+
+func (s *State) GetOutputRegEx() (*regexp.Regexp, string) {
+	return s.OutputRegEx, s.OutputRegExString
+}
+
+func (s *State) PassInputRegEx(RegEx *regexp.Regexp, RegExString string) {
+	s.InputRegEx = RegEx
+	s.InputRegExString = RegExString
+}
+
+func (s *State) GetInputRegEx() (*regexp.Regexp, string) {
+	return s.InputRegEx, s.InputRegExString
 }

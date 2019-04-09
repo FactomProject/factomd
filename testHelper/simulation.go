@@ -13,6 +13,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/elections"
@@ -32,7 +34,8 @@ var quit = make(chan struct{})
 
 var ExpectedHeight, Leaders, Audits, Followers int
 var startTime, endTime time.Time
-var RanSimTest = false // only run 1 sim test at a time
+var RanSimTest = false // KLUDGE disables all sim tests during a group unit test run
+// NOTE: going forward breaking out a test into a file under ./simTest allows it to run on CI.
 
 //EX. state0 := SetupSim("LLLLLLLLLLLLLLLAAAAAAAAAA",  map[string]string {"--controlpanelsetting" : "readwrite"}, t)
 func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int, electionsCnt int, RoundsCnt int, t *testing.T) *state.State {
@@ -383,6 +386,31 @@ func AdjustAuthoritySet(adjustingNodes string) {
 	Followers = Followers - follow
 }
 
+func isAuditor(fnode int) bool {
+	nodes := engine.GetFnodes()
+	list := nodes[0].State.ProcessLists.Get(nodes[0].State.LLeaderHeight)
+	foundAudit, _ := list.GetAuditServerIndexHash(nodes[fnode].State.GetIdentityChainID())
+	return foundAudit
+}
+
+func isFollower(fnode int) bool {
+	return !(isAuditor(fnode) || engine.GetFnodes()[fnode].State.Leader)
+}
+
+func AssertAuthoritySet(t *testing.T, givenNodes string) {
+	nodes := engine.GetFnodes()
+	for i, c := range []byte(givenNodes) {
+		switch c {
+		case 'L':
+			assert.True(t, nodes[i].State.Leader, "Expected node %v to be a leader", i)
+		case 'A':
+			assert.True(t, isAuditor(i), "Expected node %v to be an auditor", i)
+		default:
+			assert.True(t, isFollower(i), "Expected node %v to be a follower", i)
+		}
+	}
+}
+
 func CheckAuthoritySet(t *testing.T) {
 
 	leadercnt, auditcnt, followercnt := CountAuthoritySet()
@@ -463,6 +491,7 @@ func v2Request(req *primitives.JSON2Request, port int) (*primitives.JSON2Respons
 	return nil, nil
 }
 
+// TODO: this doesn't seem to work - fix along w/ AddFNodeTest
 func ResetFactomHome(t *testing.T, subDir string) {
 	dir, err := os.Getwd()
 	if err != nil {
@@ -476,4 +505,9 @@ func ResetFactomHome(t *testing.T, subDir string) {
 	if err := os.RemoveAll(globals.Params.FactomHome); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func AddFNode() {
+	engine.AddNode()
+	Followers++
 }

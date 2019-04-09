@@ -26,6 +26,7 @@ func NetworkProcessorNet(fnode *FactomNode) {
 }
 
 func Peers(fnode *FactomNode) {
+	saltReplayFilterOn := true
 
 	crossBootIgnore := func(amsg interfaces.IMsg) bool {
 		// If we are not syncing, we may ignore some old messages if we are rebooting based on salts
@@ -142,11 +143,6 @@ func Peers(fnode *FactomNode) {
 
 			if fnode.State.InMsgQueue().Length() > constants.INMSGQUEUE_HIGH {
 				fnode.State.LogMessage("NetworkInputs", "API Drop, Too Full", msg)
-				continue
-			}
-
-			if fnode.State.GetNetStateOff() {
-				fnode.State.LogMessage("NetworkInputs", "API drop, X'd by simCtrl", msg)
 				continue
 			}
 
@@ -280,6 +276,32 @@ func Peers(fnode *FactomNode) {
 					continue
 				}
 
+				regex, _ := fnode.State.GetInputRegEx()
+
+				if regex != nil {
+					t := ""
+					if mm, ok := msg.(*messages.MissingMsgResponse); ok {
+						t = fmt.Sprintf("%7d-:-%d %s", fnode.State.LLeaderHeight, fnode.State.CurrentMinute, mm.MsgResponse.String())
+					} else {
+						t = fmt.Sprintf("%7d-:-%d %s", fnode.State.LLeaderHeight, fnode.State.CurrentMinute, msg.String())
+					}
+
+					if mm, ok := msg.(*messages.MissingMsgResponse); ok {
+						if eom, ok := mm.MsgResponse.(*messages.EOM); ok {
+							t2 := fmt.Sprintf("%7d-:-%d %s", fnode.State.LLeaderHeight, fnode.State.CurrentMinute, eom.String())
+							messageResult := regex.MatchString(t2)
+							if messageResult {
+								fnode.State.LogMessage("NetworkInputs", "Drop, matched filter Regex", msg)
+								continue
+							}
+						}
+					}
+					messageResult := regex.MatchString(t)
+					if messageResult {
+						fnode.State.LogMessage("NetworkInputs", "Drop, matched filter Regex", msg)
+						continue
+					}
+				}
 				//if state.GetOut() {
 				//	fnode.State.Println("In Coming!! ",msg)
 				//}
@@ -306,11 +328,17 @@ func Peers(fnode *FactomNode) {
 					continue
 
 				}
-
 				if t := msg.Type(); t == constants.REVEAL_ENTRY_MSG || t == constants.COMMIT_CHAIN_MSG || t == constants.COMMIT_ENTRY_MSG {
 					fnode.State.LogMessage("NetworkInputs", fromPeer+", enqueue2", msg)
 					fnode.State.LogMessage("InMsgQueue2", fromPeer+", enqueue2", msg)
 					fnode.State.InMsgQueue2().Enqueue(msg)
+				} else if msg.Type() == constants.DBSTATE_MSG {
+					// notify the state that a new DBState has been recieved.
+					// TODO: send the msg to StatesReceived and only send to InMsgQueue when the next received message is ready.
+					fnode.State.StatesReceived.Notify <- msg.(*messages.DBStateMsg)
+					fnode.State.LogMessage("NetworkInputs", fromPeer+", enqueue", msg)
+					fnode.State.LogMessage("InMsgQueue", fromPeer+", enqueue", msg)
+					fnode.State.InMsgQueue().Enqueue(msg)
 				} else {
 					fnode.State.LogMessage("NetworkInputs", fromPeer+", enqueue", msg)
 					fnode.State.LogMessage("InMsgQueue", fromPeer+", enqueue", msg)
@@ -352,6 +380,33 @@ func NetworkOutputs(fnode *FactomNode) {
 		if msg.GetRepeatHash() == nil {
 			fnode.State.LogMessage("NetworkOutputs", "drop, no repeat hash", msg)
 			continue
+		}
+
+		regex, _ := fnode.State.GetOutputRegEx()
+		if regex != nil {
+			t := ""
+			if mm, ok := msg.(*messages.MissingMsgResponse); ok {
+				t = fmt.Sprintf("%7d-:-%d %s", fnode.State.LLeaderHeight, fnode.State.CurrentMinute, mm.MsgResponse.String())
+			} else {
+				t = fmt.Sprintf("%7d-:-%d %s", fnode.State.LLeaderHeight, fnode.State.CurrentMinute, msg.String())
+			}
+
+			if mm, ok := msg.(*messages.MissingMsgResponse); ok {
+				if eom, ok := mm.MsgResponse.(*messages.EOM); ok {
+					t2 := fmt.Sprintf("%7d-:-%d %s", fnode.State.LLeaderHeight, fnode.State.CurrentMinute, eom.String())
+					messageResult := regex.MatchString(t2)
+					if messageResult {
+						fnode.State.LogMessage("NetworkOutputs", "Drop, matched filter Regex", msg)
+						continue
+					}
+				}
+			}
+			messageResult := regex.MatchString(t)
+			if messageResult {
+				//fmt.Println("Found it!", t)
+				fnode.State.LogMessage("NetworkOutputs", "Drop, matched filter Regex", msg)
+				continue
+			}
 		}
 
 		//_, ok := msg.(*messages.Ack)

@@ -216,7 +216,6 @@ func (dbs *DBState) MarshalBinary() (rval []byte, err error) {
 	defer func(pe *error) {
 		if *pe != nil {
 			fmt.Fprintf(os.Stderr, "DBState.MarshalBinary err:%v", *pe)
-
 		}
 	}(&err)
 
@@ -352,6 +351,7 @@ func (dbs *DBState) UnmarshalBinary(p []byte) error {
 }
 
 type DBStateList struct {
+	// TODO: mjb: get rid of LastBegin LastEnd and TimeToAsk
 	LastEnd       int
 	LastBegin     int
 	TimeToAsk     interfaces.Timestamp
@@ -522,12 +522,12 @@ func (dbsl *DBStateList) UnmarshalBinaryData(p []byte) (newData []byte, err erro
 		return
 	}
 
-	listLen, err := buf.PopVarInt()
+	l, err := buf.PopVarInt()
 	if err != nil {
 		dbsl.State.LogPrintf("dbstateprocess", "DBStateList.UnmarshalBinaryData listLen err: %v", err)
 		return
 	}
-	for i := 0; i < int(listLen); i++ {
+	for i := 0; i < int(l); i++ {
 		dbs := new(DBState)
 		err = buf.PopBinaryMarshallable(dbs)
 		if dbs.SaveStruct.IdentityControl == nil {
@@ -562,6 +562,7 @@ func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 	_ = s
 	dirblk := next.DirectoryBlock
 	dbheight := dirblk.GetHeader().GetDBHeight()
+
 	// If we don't have the previous blocks processed yet, then let's wait on this one.
 	highestSavedBlk := state.GetHighestSavedBlk()
 
@@ -1587,8 +1588,6 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 }
 
 func (list *DBStateList) UpdateState() (progress bool) {
-	list.Catchup(false)
-
 	s := list.State
 	_ = s
 	if len(list.DBStates) != 0 {

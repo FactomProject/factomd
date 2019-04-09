@@ -1,6 +1,7 @@
 package simtest
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
@@ -10,14 +11,12 @@ import (
 )
 
 /*
-Test brainswapping a F <-> A
+Test brainswapping F <-> L with no auditors
 
-follower and an audit when the audit is lagging behind
-
-This test is useful for verifying that Leaders can swap without rebooting
-And that Audits can reboot with lag (to prevent a panic if 2 nodes see the same audit heartbeat)
+This test is useful for catching a failure scenario where the timing between
+identity swap is off leading to a stall
 */
-func TestAuditBrainSwap(t *testing.T) {
+func TestLeaderBrainSwap(t *testing.T) {
 
 	t.Run("Run Sim", func(t *testing.T) {
 
@@ -27,7 +26,7 @@ func TestAuditBrainSwap(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			globals.Params.FactomHome = dir + "/TestBrainSwap"
+			globals.Params.FactomHome = dir + "/TestLeadersOnlyBrainSwap"
 			os.Setenv("FACTOM_HOME", globals.Params.FactomHome)
 
 			t.Logf("Removing old run in %s", globals.Params.FactomHome)
@@ -46,7 +45,7 @@ func TestAuditBrainSwap(t *testing.T) {
 			"--network":             "LOCAL",
 			"--net":                 "alot+",
 			"--enablenet":           "true",
-			"--blktime":             "10",
+			"--blktime":             "30",
 			"--startdelay":          "1",
 			"--stdoutlog":           "out.txt",
 			"--stderrlog":           "out.txt",
@@ -62,34 +61,47 @@ func TestAuditBrainSwap(t *testing.T) {
 		}
 
 		// start the 6 nodes running  012345
-		state0 := SetupSim("LLLAFF", params, 15, 0, 0, t)
-		state5 := engine.GetFnodes()[5].State // Get node 5
-		_ = state5
+		state0 := SetupSim("LLLFFF", params, 30, 0, 0, t)
+		state3 := engine.GetFnodes()[3].State // Get node 2
 
-		t.Run("Wait For Identity Swap", func(t *testing.T) {
-			t.Log("Disabled test while known bug exists FD-845")
-			/*
-				WaitForBlock(state0, 6)
-				WaitForAllNodes(state0)
-				// rewrite the config to have brainswaps
+		WaitForAllNodes(state0)
+		WaitForBlock(state0, 9)
 
-				WriteConfigFile(3, 5, "ChangeAcksHeight = 10\n", t) // Setup A brain swap between A3 and F5
-				WriteConfigFile(5, 3, "ChangeAcksHeight = 10\n", t)
-				WaitForBlock(state0, 9)
-				RunCmd("3") // make sure the Audit is lagging the audit if the heartbeats conflict one will panic
-				RunCmd("x")
-				WaitForBlock(state5, 10) // wait till 5 should have have brainswapped
-				RunCmd("x")
-				WaitBlocks(state0, 1)
-				WaitForAllNodes(state0)
-				CheckAuthoritySet(t)
-			*/
-		})
+		batchCount := 1 // FIXME
+
+		for batch := 0; batch < batchCount; batch++ {
+
+			t.Run(fmt.Sprintf("Wait For Identity Swap %v", batch), func(t *testing.T) {
+				target := batch + 10
+
+				change := fmt.Sprintf("ChangeAcksHeight = %v\n", target)
+
+				if batch%2 == 0 {
+
+					WriteConfigFile(1, 5, change, t) // Setup A brain swap between L1 and F5
+					WriteConfigFile(5, 1, change, t)
+
+					WriteConfigFile(2, 4, change, t) // Setup A brain swap between L2 and F4
+					WriteConfigFile(4, 2, change, t)
+
+				} else {
+					WriteConfigFile(5, 5, change, t) // Un-Swap
+					WriteConfigFile(1, 1, change, t)
+
+					WriteConfigFile(4, 4, change, t)
+					WriteConfigFile(2, 2, change, t)
+
+				}
+				WaitForBlock(state3, target)
+				WaitMinutes(state3, 1)
+			})
+		}
 
 		t.Run("Verify Network", func(t *testing.T) {
+			WaitBlocks(state0, 1)
+			// FIXME
+			//AssertAuthoritySet(t, "LFFFLL")
 			WaitForAllNodes(state0)
-			// FIXME: renable after FD-845
-			//AssertAuthoritySet(t, "LLLFFA")
 			ShutDownEverything(t)
 		})
 
