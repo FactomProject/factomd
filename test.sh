@@ -9,9 +9,9 @@ cd $DIR # always from from script dir
 function runTests() {
   if [[ "${CI}x" ==  "x" ]] ; then
     TESTS=$({ \ # run locally
-      glide nv | grep -v Utilities | grep -v longTest | grep -v peerTest | grep -v simTest ;\ # run test by go
-      cat engine/debug/whitelist.txt; \ # individual run of whitelisted sim tests in engine module
-      ls simTest/*_test.go; \ 
+      #glide nv | grep -v Utilities | grep -v longTest | grep -v peerTest | grep -v simTest ;\ # run test by go
+      #cat engine/debug/whitelist.txt; \ # individual run of whitelisted sim tests in engine module
+      #ls simTest/*_test.go; \ 
       ls peerTest/*_test.go; \
     })
   else
@@ -60,13 +60,13 @@ function runTests() {
     echo "START: ${TST}"
     echo '---------------'
     go test -v -timeout=10m -vet=off $TST
-    echo "END: ${TST}"
-    echo '---------------'
-
     if [[ $? != 0 ]] ;  then
       FAIL=1
       FAILURES+=($TST)
     fi
+    echo "END: ${TST}"
+    echo '---------------'
+
   done
 
   if [[ "${FAIL}x" != "x" ]] ; then
