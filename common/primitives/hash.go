@@ -5,6 +5,7 @@
 package primitives
 
 import (
+	"bufio"
 	"bytes"
 	"crypto/sha256"
 	"crypto/sha512"
@@ -17,6 +18,7 @@ import (
 	"runtime/debug"
 
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives/random"
 	"github.com/FactomProject/factomd/util/atomic"
@@ -272,6 +274,45 @@ func (e *Hash) JSONString() (string, error) {
 	return EncodeJSONString(e)
 }
 
+/****************************************************************
+	DEBUG logging to keep full hash. Turned on from command line
+ ****************************************************************/
+func Loghashfixed(h [32]byte) {
+	if !globals.Params.FullHashesLog {
+		return
+	}
+	if globals.Hashlog == nil {
+		f, err := os.Create("fullhashes.txt")
+		globals.Hashlog = bufio.NewWriter(f)
+		if err != nil {
+			panic(err)
+		}
+	}
+	globals.HashMutex.Lock()
+	defer globals.HashMutex.Unlock()
+	if globals.Hashes == nil {
+		globals.Hashes = make(map[[32]byte]bool)
+	}
+	_, exists := globals.Hashes[h]
+	if !exists {
+		fmt.Fprintf(globals.Hashlog, "%x\n", h)
+		x := random.RandIntBetween(0, len(globals.HashesInOrder))
+		if globals.HashesInOrder[x] != nil {
+			delete(globals.Hashes, *globals.HashesInOrder[x]) // delete the oldest hash
+		}
+		globals.Hashes[h] = true                                               // add the new hash
+		globals.HashesInOrder[globals.HashNext] = &h                           // add it to the ordered list
+		globals.HashNext = (globals.HashNext + 1) % len(globals.HashesInOrder) // wrap index at end of array
+	}
+}
+
+func Loghash(h interfaces.IHash) {
+	if h == nil {
+		return
+	}
+	Loghashfixed(h.Fixed())
+}
+
 /**********************
  * Support functions
  **********************/
@@ -281,6 +322,7 @@ func Sha(p []byte) interfaces.IHash {
 	h := new(Hash)
 	b := sha256.Sum256(p)
 	h.SetBytes(b[:])
+	Loghash(h)
 	return h
 }
 
@@ -308,6 +350,7 @@ func NewHash(b []byte) interfaces.IHash {
 func DoubleSha(data []byte) []byte {
 	h1 := sha256.Sum256(data)
 	h2 := sha256.Sum256(h1[:])
+	Loghashfixed(h2)
 	return h2[:]
 }
 
