@@ -9,9 +9,9 @@ cd $DIR # always from from script dir
 function runTests() {
   if [[ "${CI}x" ==  "x" ]] ; then
     TESTS=$({ \ # run locally
-      #glide nv | grep -v Utilities | grep -v longTest | grep -v peerTest | grep -v simTest ;\ # run test by go
-      #cat engine/debug/whitelist.txt; \ # individual run of whitelisted sim tests in engine module
-      #ls simTest/*_test.go; \ 
+      glide nv | grep -v Utilities | grep -v longTest | grep -v peerTest | grep -v simTest ;\ # run test by go
+      cat engine/debug/whitelist.txt; \ # individual run of whitelisted sim tests in engine module
+      ls simTest/*_test.go; \ 
       ls peerTest/*_test.go; \
     })
   else
@@ -48,7 +48,7 @@ function runTests() {
       ATEST_FILE=${TST/$BTEST/$ATEST}
       TST=${TST/$ATEST/$BTEST}
       echo "Concurrent Peer TEST: $ATEST_FILE"
-      nohup go test -v -timeout=10m -vet=off $ATEST_FILE &
+      nohup go test -v -timeout=10m -vet=off $ATEST_FILE &> testout.txt &
     fi
 
     # run individual sim tests that have been whitelisted 
@@ -59,7 +59,7 @@ function runTests() {
 
     echo "START: ${TST}"
     echo '---------------'
-    go test -v -timeout=10m -vet=off $TST
+    go test -v -timeout=10m -vet=off $TST | tee -a testout.txt | egrep 'PASS|FAIL|RUN' 
     if [[ $? != 0 ]] ;  then
       FAIL=1
       FAILURES+=($TST)
