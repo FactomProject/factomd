@@ -7,6 +7,7 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )" # get di
 cd $DIR # always from from script dir
 
 function runTests() {
+    # run locally
   if [[ "${CI}x" ==  "x" ]] ; then
     TESTS=$({ \ # run locally
       glide nv | grep -v Utilities | grep -v longTest | grep -v peerTest | grep -v simTest ;\
@@ -15,7 +16,8 @@ function runTests() {
       ls peerTest/*_test.go; \
     })
   else
-    TESTS=$({ \ # run on circle
+    # run on circle
+    TESTS=$({ \
       glide nv | grep -v Utilities | grep -v longTest | grep -v peerTest | grep -v simTest ; \
       cat engine/debug/whitelist.txt; \
       circleci tests glob 'simTest/*_test.go'; \
