@@ -9,24 +9,26 @@ Tests in this folder *will* be run on circle.ci.
 
 ## Naming Convention
 
-  Peer tests are expected to be named in Follower/Network pairs
+  Peer tests are expected to be named in A/B pairs
 
   ```
-  *Follower_test.go
-  *Network_test.go
+  *A_test.go
+  *B_test.go
   ```
 
   The network test will run in the background while the follower test executes in the foreground.
   see ./test.sh in the root of this repo for more details
 
-## BrainSwap
+## Example: BrainSwap
 
 Run these two tests simultaneously to observe
-an identy swap between go processes.
+an identy swap between two go processes.
+
+In the future, these scripts could allow testing between 2 different versions of factomd.
 
 These two tests are configured to be peers.
 
 ```
-nohup go test -v BrainSwapFollower_test.go &
-go test -v BrainSwapNetwork_test.go
+nohup go test -v BrainSwapA_test.go &
+go test -v BrainSwapB_test.go
 ```

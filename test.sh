@@ -9,18 +9,18 @@ cd $DIR # always from from script dir
 function runTests() {
   if [[ "${CI}x" ==  "x" ]] ; then
     TESTS=$({ \ # run locally
-      glide nv | grep -v Utilities | grep -v longTest | grep -v peerTest | grep -v simTest ;\ # run test by go
-      cat engine/debug/whitelist.txt; \ # individual run of whitelisted sim tests in engine module
+      glide nv | grep -v Utilities | grep -v longTest | grep -v peerTest | grep -v simTest ;\
+      cat engine/debug/whitelist.txt; \
       ls simTest/*_test.go; \ 
       ls peerTest/*_test.go; \
     })
   else
     TESTS=$({ \ # run on circle
-      glide nv | grep -v Utilities | grep -v longTest | grep -v peerTest | grep -v simTest ;\ # run test by go
-      cat engine/debug/whitelist.txt; \ # individual run of whitelisted sim tests in engine module
+      glide nv | grep -v Utilities | grep -v longTest | grep -v peerTest | grep -v simTest ; \
+      cat engine/debug/whitelist.txt; \
       circleci tests glob 'simTest/*_test.go'; \
       circleci tests glob 'peerTest/*A_test.go'; \
-    } | circleci tests split --split-by=timings) # Circle.CI black magic to split out test runs into multiple containers
+    } | circleci tests split --split-by=timings)
   fi
 
 	if [[ "${TESTS}x" ==  "x" ]] ; then
