@@ -3,7 +3,6 @@ package simtest
 import (
 	"testing"
 
-	"github.com/FactomProject/factomd/common/globals"
 	. "github.com/FactomProject/factomd/testHelper"
 )
 
@@ -13,7 +12,7 @@ brainswapping between 2 different versions of factomd
 
 If you boot this simulator by itself - the simulation will not progress and will eventually time out
 */
-func TestBrainSwapFollower(t *testing.T) {
+func TestBrainSwapB(t *testing.T) {
 
 	maxBlocks := 30
 	peers := "127.0.0.1:38003"
@@ -21,29 +20,21 @@ func TestBrainSwapFollower(t *testing.T) {
 	givenNodes := "FF"
 	outputNodes := "LA"
 
-	ResetFactomHome(t, "follower")
+	ResetFactomHome(t)
 	WriteConfigFile(9, 0, "", t)
 	WriteConfigFile(8, 1, "", t)
 
 	params := map[string]string{
-		"--prefix":              "v1",
-		"--db":                  "LDB", // NOTE: using MAP causes an occasional error see FD-825
-		"--network":             "LOCAL",
-		"--net":                 "alot+",
-		"--enablenet":           "true",
-		"--blktime":             "30",
-		"--startdelay":          "1",
-		"--stdoutlog":           "out.txt",
-		"--stderrlog":           "out.txt",
-		"--checkheads":          "false",
-		"--controlpanelsetting": "readwrite",
-		//"--debuglog":            ".",
+		"--db":               "LDB",
+		"--network":          "LOCAL",
+		"--net":              "alot+",
+		"--enablenet":        "true",
+		"--blktime":          "30",
 		"--logPort":          "37000",
 		"--port":             "37001",
 		"--controlpanelport": "37002",
 		"--networkport":      "37003",
 		"--peers":            peers,
-		"--factomhome":       globals.Params.FactomHome,
 	}
 
 	state0 := SetupSim(givenNodes, params, int(maxBlocks), 0, 0, t)
