@@ -49,6 +49,8 @@ func (list *DBStateList) Catchup() {
 			hk := func() uint32 {
 				a := list.State.GetHighestAck()
 				k := list.State.GetHighestKnownBlock()
+				// check that known is more than 2 ahead of acknowledged to make
+				// sure not to ask for blocks that haven't finished
 				if k > a+2 {
 					return k
 				}
