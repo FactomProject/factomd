@@ -7,14 +7,13 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )" # get di
 cd $DIR # always from from script dir
 
 function runTests() {
-    # run locally
   if [[ "${CI}x" ==  "x" ]] ; then
     # run locally
     TESTS=$({ \
       glide nv | grep -v Utilities | grep -v longTest | grep -v peerTest | grep -v simTest | grep -v elections | grep -v activations | grep -v netTest | grep "..." ; \
       cat engine/debug/whitelist.txt; \
       ls simTest/*_test.go; \ 
-      ls peerTest/*_test.go; \
+      ls peerTest/*A_test.go; \
     })
   else
     # run on circle
@@ -45,6 +44,9 @@ function runTests() {
   FAILURES=()
   FAIL=""
 
+  # exit code should fail if any part of the command fails
+  set -o pipefail
+
   for TST in ${TESTS[*]} ; do
     # start 'A' part of A/B test in background
     if [[ `dirname ${TST}` == "peerTest" ]] ; then
@@ -62,7 +64,7 @@ function runTests() {
 
     echo "START: ${TST}"
     echo '---------------'
-    #go test -v -timeout=10m -vet=off $TST | tee -a testout.txt | egrep 'PASS|FAIL|RUN' 
+    go test -v -timeout=10m -vet=off $TST | tee -a testout.txt | egrep 'PASS|FAIL|RUN' 
     if [[ $? != 0 ]] ;  then
       FAIL=1
       FAILURES+=($TST)
