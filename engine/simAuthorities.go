@@ -18,7 +18,6 @@ import (
 	ed "github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factom"
 	"github.com/FactomProject/factomd/common/entryBlock"
-	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/identityEntries"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -85,7 +84,7 @@ func copyOver(st *state.State) {
 	var err error
 	sec, _ := hex.DecodeString(ecSec)
 	ec, _ := factom.MakeECAddress(sec[:32])
-	fundWallet(st, 10)
+	FundWallet(st, 10)
 	chain, _ := primitives.HexToHash("1d1d1d1d07714fea910f9c6e42e5dc072c86491a3d80418855a2499e85b0039f")
 	ents, _ := st.DB.FetchAllEntriesByChainID(chain)
 	for i, e := range ents {
@@ -115,59 +114,6 @@ func copyOver(st *state.State) {
 			log.Println("Error in making identities: " + err.Error())
 		}
 	}
-}
-
-func fundWallet(st *state.State, amt uint64) error {
-	inSec, _ := primitives.HexToHash("FB3B471B1DCDADFEB856BD0B02D8BF49ACE0EDD372A3D9F2A95B78EC12A324D6")
-	outEC, _ := primitives.HexToHash("c23ae8eec2beb181a0da926bd2344e988149fbe839fbc7489f2096e7d6110243")
-	inHash, _ := primitives.HexToHash("646F3E8750C550E4582ECA5047546FFEF89C13A175985E320232BACAC81CC428")
-	var sec [64]byte
-	copy(sec[:32], inSec.Bytes())
-
-	pub := ed.GetPublicKey(&sec)
-	//inRcd := shad(inPub.Bytes())
-
-	rcd := factoid.NewRCD_1(pub[:])
-	inAdd := factoid.NewAddress(inHash.Bytes())
-	outAdd := factoid.NewAddress(outEC.Bytes())
-
-	trans := new(factoid.Transaction)
-	trans.AddInput(inAdd, amt)
-	trans.AddECOutput(outAdd, amt)
-
-	trans.AddRCD(rcd)
-	trans.AddAuthorization(rcd)
-	trans.SetTimestamp(primitives.NewTimestampNow())
-
-	fee, err := trans.CalculateFee(st.GetFactoshisPerEC())
-	if err != nil {
-		return err
-	}
-	input, err := trans.GetInput(0)
-	if err != nil {
-		return err
-	}
-	input.SetAmount(amt + fee)
-
-	dataSig, err := trans.MarshalBinarySig()
-	if err != nil {
-		return err
-	}
-	sig := factoid.NewSingleSignatureBlock(inSec.Bytes(), dataSig)
-	trans.SetSignatureBlock(0, sig)
-
-	t := new(wsapi.TransactionRequest)
-	data, _ := trans.MarshalBinary()
-	t.Transaction = hex.EncodeToString(data)
-	j := primitives.NewJSON2Request("factoid-submit", 0, t)
-	_, err = v2Request(j, st.GetPort())
-	//_, err = wsapi.HandleV2Request(st, j)
-	if err != nil {
-		return err
-	}
-	_ = err
-
-	return nil
 }
 
 func setUpAuthorities(st *state.State, buildMain bool) []hardCodedAuthority {

@@ -7,6 +7,7 @@ package state
 import (
 	"encoding/binary"
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -29,7 +30,14 @@ type FaultCore struct {
 	Timestamp     interfaces.Timestamp
 }
 
-func (fc *FaultCore) GetHash() interfaces.IHash {
+func (fc *FaultCore) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("FaultCore.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	data, err := fc.MarshalCore()
 	if err != nil {
 		return nil
@@ -159,51 +167,4 @@ func (s *State) Reset() {
 // Set to reprocess all messages and states
 func (s *State) DoReset() {
 	return
-	if s.ResetTryCnt > 0 {
-		return
-	}
-	s.ResetTryCnt++
-	//s.AddStatus(fmt.Sprintf("RESET: Trying to Reset for the %d time", s.ResetTryCnt))
-	index := len(s.DBStates.DBStates) - 1
-	if index < 2 {
-		//s.AddStatus("RESET: Failed to Reset because not enough dbstates")
-		return
-	}
-
-	dbs := s.DBStates.DBStates[index]
-	for {
-		if dbs == nil || dbs.DirectoryBlock == nil || dbs.AdminBlock == nil || dbs.FactoidBlock == nil || dbs.EntryCreditBlock == nil {
-			//s.AddStatus(fmt.Sprintf("RESET: Reset Failed, no dbstate at %d", index))
-			return
-		}
-		if dbs.Saved {
-			break
-		}
-		index--
-		dbs = s.DBStates.DBStates[index]
-	}
-	if index < 0 {
-		//s.AddStatus("RESET: Can't reset far enough back")
-		return
-	}
-	s.ResetCnt++
-	dbs = s.DBStates.DBStates[index-1]
-	s.DBStates.DBStates = s.DBStates.DBStates[:index]
-
-	dbs.AdminBlock = dbs.AdminBlock.New().(interfaces.IAdminBlock)
-	dbs.FactoidBlock = dbs.FactoidBlock.New().(interfaces.IFBlock)
-
-	plToReset := s.ProcessLists.Get(s.DBStates.Base + uint32(index) + 1)
-	plToReset.Reset()
-
-	s.DBStates.Complete--
-	//s.StartDelay = s.GetTimestamp().GetTimeMilli() // We can't start as a leader until we know we are upto date
-	//s.RunLeader = false
-	s.CurrentMinute = 0
-
-	s.SetLeaderTimestamp(dbs.NextTimestamp)
-
-	s.DBStates.ProcessBlocks(dbs)
-	faultLogger.WithFields(log.Fields{"func": "Reset", "count": s.ResetTryCnt}).Warn("DoReset complete")
-	//s.AddStatus("RESET: Complete")
 }

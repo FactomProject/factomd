@@ -1,8 +1,14 @@
 package interfaces
 
 type IElections interface {
+	GetFedID() IHash
+	GetElecting() int
+	GetVMIndex() int
+	GetRound() []int
+	GetFederatedServers() []IServer
+	GetAuditServers() []IServer
+	GetAdapter() IElectionAdapter
 	String() string
-	AdapterStatus() string
 }
 
 type IElectionAdapter interface {

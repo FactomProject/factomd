@@ -12,25 +12,23 @@ import (
 	"io/ioutil"
 	"math"
 	"os"
+	"strings"
 	"time"
 
+	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/messages/electionMsgs"
+	"github.com/FactomProject/factomd/common/messages/msgsupport"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/controlPanel"
 	"github.com/FactomProject/factomd/database/leveldb"
+	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
-
-	"strings"
-
-	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/common/messages/msgsupport"
-	"github.com/FactomProject/factomd/elections"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -101,6 +99,16 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		log.SetLevel(log.PanicLevel)
 	}
 
+	// Command line override if provided
+	switch p.ControlPanelSetting {
+	case "disabled":
+		s.ControlPanelSetting = 0
+	case "readonly":
+		s.ControlPanelSetting = 1
+	case "readwrite":
+		s.ControlPanelSetting = 2
+	}
+
 	if p.Logjson {
 		log.SetFormatter(&log.JSONFormatter{})
 	}
@@ -166,6 +174,10 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	if p.FastLocation != "" {
 		s.StateSaverStruct.FastBootLocation = p.FastLocation
 	}
+	if p.FastSaveRate < 2 || p.FastSaveRate > 5000 {
+		panic("FastSaveRate must be between 2 and 5000")
+	}
+	s.FastSaveRate = p.FastSaveRate
 
 	s.CheckChainHeads.CheckChainHeads = p.CheckChainHeads
 	s.CheckChainHeads.Fix = p.FixChainHeads
@@ -237,12 +249,15 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 
 	if p.Sync2 >= 0 {
 		s.EntryDBHeightComplete = uint32(p.Sync2)
+		s.LogPrintf("EntrySync", "NetStart EntryDBHeightComplete = %d", s.EntryDBHeightComplete)
+
 	} else {
 		height, err := s.DB.FetchDatabaseEntryHeight()
 		if err != nil {
 			os.Stderr.WriteString(fmt.Sprintf("ERROR: %v", err))
 		} else {
 			s.EntryDBHeightComplete = height
+			s.LogPrintf("EntrySync", "NetStart EntryDBHeightComplete = %d", s.EntryDBHeightComplete)
 		}
 	}
 
@@ -251,6 +266,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	setupFirstAuthority(s)
 
 	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "Build", Build))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "Node name", p.NodeName))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "balancehash", messages.AckBalanceHash))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "FNode 0 Salt", s.Salt.String()[:16]))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "enablenet", p.EnableNet))
@@ -258,6 +274,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "node", p.ListenTo))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "prefix", p.Prefix))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "node count", p.Cnt))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "FastSaveRate", p.FastSaveRate))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "net spec", pnet))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "Msgs droped", p.DropRate))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "journal", p.Journal))
@@ -279,6 +296,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "tls", s.FactomdTLSEnable))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "selfaddr", s.FactomdLocations))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "rpcuser", s.RpcUser))
+	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "corsdomains", s.CorsDomains))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "Start 2nd Sync at ht", s.EntryDBHeightComplete))
 
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "faultTimeout", elections.FaultTimeout))
@@ -334,9 +352,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 
 		// Also update the local constants for custom networks
 		fmt.Println("Running on the local network, use local coinbase constants")
-		constants.COINBASE_DECLARATION = 10
-		constants.COINBASE_PAYOUT_FREQUENCY = 5
-		constants.COINBASE_ACTIVATION = 0
+		constants.SetLocalCoinBaseConstants()
 	case "CUSTOM", "custom":
 		if bytes.Compare(p.CustomNet, []byte("\xe3\xb0\xc4\x42")) == 0 {
 			panic("Please specify a custom network with -customnet=<something unique here>")
@@ -352,9 +368,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 
 		// Also update the coinbase constants for custom networks
 		fmt.Println("Running on the custom network, use custom coinbase constants")
-		constants.COINBASE_DECLARATION = 10
-		constants.COINBASE_PAYOUT_FREQUENCY = 5
-		constants.COINBASE_ACTIVATION = 0
+		constants.SetCustomCoinBaseConstants()
 	default:
 		panic("Invalid Network choice in Config File or command line. Choose MAIN, TEST, LOCAL, or CUSTOM")
 	}
@@ -504,10 +518,13 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 
 	var colors []string = []string{"95cde5", "b01700", "db8e3c", "ffe35f"}
 
-	for i, s := range fnodes {
-		fmt.Printf("%d {color:#%v, shape:dot, label:%v}\n", i, colors[i%len(colors)], s.State.FactomNodeName)
+	if len(fnodes) > 2 {
+		for i, s := range fnodes {
+			fmt.Printf("%d {color:#%v, shape:dot, label:%v}\n", i, colors[i%len(colors)], s.State.FactomNodeName)
+		}
+		fmt.Printf("Paste the network info above into http://arborjs.org/halfviz to visualize the network\n")
 	}
-	// Initate dbstate plugin if enabled. Only does so for first node,
+	// Initiate dbstate plugin if enabled. Only does so for first node,
 	// any more nodes on sim control will use default method
 	fnodes[0].State.SetTorrentUploader(p.TorUpload)
 	if p.TorManage {
@@ -530,6 +547,9 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 
 	// Start the webserver
 	wsapi.Start(fnodes[0].State)
+	if fnodes[0].State.DebugExec() && messages.CheckFileName("graphData.txt") {
+		go printGraphData("graphData.txt", 30)
+	}
 
 	// Start prometheus on port
 	launchPrometheus(9876)
@@ -539,10 +559,22 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	leveldb.RegisterPrometheus()
 	RegisterPrometheus()
 
-	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelChannel, fnodes[0].State, connectionMetricsChannel, p2pNetwork, Build)
+	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelChannel, fnodes[0].State, connectionMetricsChannel, p2pNetwork, Build, p.NodeName)
 
-	SimControl(p.ListenTo, listenToStdin)
+	go SimControl(p.ListenTo, listenToStdin)
 
+}
+
+func printGraphData(filename string, period int) {
+	downscale := int64(1)
+	messages.LogPrintf(filename, "\t%9s\t%9s\t%9s\t%9s\t%9s\t%9s", "Dbh-:-min", "Node", "ProcessCnt", "ListPCnt", "UpdateState", "SleepCnt")
+	for {
+		for _, f := range fnodes {
+			s := f.State
+			messages.LogPrintf(filename, "\t%9s\t%9s\t%9d\t%9d\t%9d\t%9d", fmt.Sprintf("%d-:-%d", s.LLeaderHeight, s.CurrentMinute), s.FactomNodeName, s.StateProcessCnt/downscale, s.ProcessListProcessCnt/downscale, s.StateUpdateState/downscale, s.ValidatorLoopSleepCnt/downscale)
+		}
+		time.Sleep(time.Duration(period) * time.Second)
+	} // for ever ...
 }
 
 //**********************************************************************
@@ -581,8 +613,8 @@ func startServers(load bool) {
 		}
 		go fnode.State.GoSyncEntries()
 		go Timer(fnode.State)
-		go fnode.State.ValidatorLoop()
 		go elections.Run(fnode.State)
+		go fnode.State.ValidatorLoop()
 	}
 }
 
@@ -599,6 +631,6 @@ func setupFirstAuthority(s *state.State) {
 func networkHousekeeping() {
 	for {
 		time.Sleep(1 * time.Second)
-		p2pProxy.SetWeight(p2pNetwork.GetNumberConnections())
+		p2pProxy.SetWeight(p2pNetwork.GetNumberOfConnections())
 	}
 }

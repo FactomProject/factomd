@@ -3,6 +3,8 @@ package testHelper_test
 import (
 	"crypto/rand"
 
+	"github.com/FactomProject/factomd/engine"
+
 	"github.com/FactomProject/ed25519"
 	//"github.com/FactomProject/factomd/common/factoid/wallet"
 	"encoding/hex"
@@ -12,6 +14,7 @@ import (
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/primitives"
 	. "github.com/FactomProject/factomd/testHelper"
+	"github.com/stretchr/testify/assert"
 )
 
 /*
@@ -61,7 +64,7 @@ func Test(t *testing.T) {
 }
 
 func Test_DB_With_Ten_Blks(t *testing.T) {
-	state := CreateAndPopulateTestState()
+	state := CreateAndPopulateTestStateAndStartValidator()
 	t.Log("Highest Recorded Block: ", state.GetHighestSavedBlk())
 }
 
@@ -129,4 +132,46 @@ func TestNewCommitChain(t *testing.T) {
 	if anticipated_commit != cf {
 		t.Errorf("testhelper NewCommitChain comparison failed")
 	}
+}
+
+func TestFeeTxnCreate(t *testing.T) {
+	var oneFct uint64 = 100000000 // Factoshis
+	var ecPrice uint64 = 10000
+
+	balance := oneFct
+	inUser := "Fs3E9gV6DXsYzf7Fqx1fVBQPQXV695eP3k5XbmHEZVRLkMdD9qCK" // FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q
+	outAddress := "FA2s2SJ5Cxmv4MzpbGxVS9zbNCjpNRJoTX4Vy7EZaTwLq3YTur4u"
+
+	for i := 0; i < 10; i++ {
+		txn, _ := engine.NewTransaction(balance, inUser, outAddress, ecPrice)
+		fee, _ := txn.CalculateFee(ecPrice)
+		balance = balance - fee
+		assert.Equal(t, 12*ecPrice, fee)
+	}
+}
+
+func TestTxnCreate(t *testing.T) {
+	var amt uint64 = 100000000
+	var ecPrice uint64 = 10000
+
+	inUser := "Fs3E9gV6DXsYzf7Fqx1fVBQPQXV695eP3k5XbmHEZVRLkMdD9qCK" // FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q
+	//outUser := "Fs2GCfAa2HBKaGEUWCtw8eGDkN1CfyS6HhdgLv8783shkrCgvcpJ" // FA2s2SJ5Cxmv4MzpbGxVS9zbNCjpNRJoTX4Vy7EZaTwLq3YTur4u
+	outAddress := "FA2s2SJ5Cxmv4MzpbGxVS9zbNCjpNRJoTX4Vy7EZaTwLq3YTur4u"
+
+	txn, err := engine.NewTransaction(amt, inUser, outAddress, ecPrice)
+	assert.Nil(t, err)
+
+	err = txn.ValidateSignatures()
+	assert.Nil(t, err)
+
+	err = txn.Validate(1)
+	assert.Nil(t, err)
+
+	if err := txn.Validate(0); err == nil {
+		t.Fatalf("expected coinbase txn to error")
+	}
+
+	// test that we are sending to the address we thought
+	assert.Equal(t, outAddress, txn.Outputs[0].GetUserAddress())
+
 }

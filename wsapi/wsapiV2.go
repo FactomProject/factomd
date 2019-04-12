@@ -19,6 +19,7 @@ import (
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
+	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -71,6 +72,7 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 	var resp interface{}
 	var jsonError *primitives.JSONError
 	params := j.Params
+	state.LogPrintf("apilog", "request %v", j.String())
 	switch j.Method {
 	case "chain-head":
 		resp, jsonError = HandleV2ChainHead(state, params)
@@ -171,11 +173,20 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 		resp, jsonError = HandleV2TransactionRate(state, params)
 	case "ack":
 		resp, jsonError = HandleV2ACKWithChain(state, params)
+	case "multiple-fct-balances":
+		resp, jsonError = HandleV2MultipleFCTBalances(state, params)
+	case "multiple-ec-balances":
+		resp, jsonError = HandleV2MultipleECBalances(state, params)
+	case "diagnostics":
+		resp, jsonError = HandleV2Diagnostics(state, params)
+	//case "factoid-accounts":
+	// resp, jsonError = HandleV2Accounts(state, params)
 	default:
 		jsonError = NewMethodNotFoundError()
 		break
 	}
 	if jsonError != nil {
+		state.LogPrintf("apilog", "error %v", jsonError)
 		return nil, jsonError
 	}
 
@@ -183,6 +194,7 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 	jsonResp.ID = j.ID
 	jsonResp.Result = resp
 
+	state.LogPrintf("apilog", "response %v", jsonResp.String())
 	return jsonResp, nil
 }
 
@@ -562,7 +574,6 @@ func HandleV2CommitChain(state interfaces.IState, params interface{}) (interface
 	if !state.IsHighestCommit(msg.CommitChain.GetEntryHash(), msg) {
 		return nil, NewRepeatCommitError(RepeatedEntryMessage{"A commit with equal or greater payment already exists", msg.CommitChain.GetEntryHash().String()})
 	}
-
 	state.APIQueue().Enqueue(msg)
 	state.IncECCommits()
 
@@ -590,7 +601,8 @@ func HandleV2CommitEntry(state interfaces.IState, params interface{}) (interface
 	}
 
 	commit := entryCreditBlock.NewCommitEntry()
-	if p, err := hex.DecodeString(commitEntryMsg.Message); err != nil {
+	p, err := hex.DecodeString(commitEntryMsg.Message)
+	if err != nil {
 		return nil, NewInvalidCommitEntryError()
 	} else {
 		_, err := commit.UnmarshalBinaryData(p)
@@ -959,6 +971,8 @@ func HandleV2CurrentMinute(state interfaces.IState, params interface{}) (interfa
 	h.CurrentMinuteStartTime = int64(state.GetCurrentMinuteStartTime())
 	h.DirectoryBlockInSeconds = int64(state.GetDirectoryBlockInSeconds())
 	h.StallDetected = state.IsStalled()
+	h.FaultTimeOut = int64(globals.Params.FaultTimeout)
+	h.RoundTimeOut = int64(globals.Params.RoundTimeout)
 
 	//h.LastBlockTime = state.GetTimestamp
 	return h, nil
@@ -1268,3 +1282,224 @@ func HandleV2TransactionRate(state interfaces.IState, params interface{}) (inter
 	r.InstantTransactionRate = instant
 	return r, nil
 }
+
+func HandleV2MultipleECBalances(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	x, ok := params.(map[string]interface{})
+	if ok != true {
+		return nil, NewCustomInvalidParamsError("ERROR! Invalid params passed in")
+	}
+
+	if x["addresses"] == nil {
+		return nil, NewCustomInvalidParamsError("ERROR! Invalid params passed in, expected 'addresses'")
+	}
+
+	listofadd := (x["addresses"]).([]interface{})
+	totalBalances := make([]interface{}, len(listofadd))
+	var currentHeight uint32
+	var savedHeight uint32
+
+	// Converts readable accounts
+	for i, a := range listofadd {
+		if a.(string) == "" {
+			errStruct := new(interfaces.StructToReturnValues)
+			errStruct.PermBal = 0
+			errStruct.TempBal = 0
+			errStruct.Error = "No EC addresses"
+			totalBalances[i] = errStruct
+		} else if primitives.ValidateECUserStr(a.(string)) != true {
+			errStruct := new(interfaces.StructToReturnValues)
+			errStruct.PermBal = 0
+			errStruct.TempBal = 0
+			errStruct.Error = "Error decoding address"
+			totalBalances[i] = errStruct
+		} else {
+			covertedAdd := [32]byte{}
+			copy(covertedAdd[:], primitives.ConvertUserStrToAddress(a.(string)))
+			cHeight, sHeight, temp, perm, error := state.GetFactoidState().GetMultipleECBalances(covertedAdd)
+			currentHeight = cHeight
+			savedHeight = sHeight
+
+			valueStruct := new(interfaces.StructToReturnValues)
+			valueStruct.TempBal = temp
+			valueStruct.PermBal = perm
+			valueStruct.Error = error
+			totalBalances[i] = valueStruct
+		}
+	}
+	h := new(MultipleFTBalances)
+
+	h.CurrentHeight = currentHeight
+	h.LastSavedHeight = savedHeight
+	h.Balances = totalBalances
+
+	return h, nil
+}
+
+func HandleV2MultipleFCTBalances(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	x, ok := params.(map[string]interface{})
+	if ok != true {
+		return nil, NewCustomInvalidParamsError("ERROR! Invalid params passed in")
+	}
+
+	if x["addresses"] == nil {
+		return nil, NewCustomInvalidParamsError("ERROR! Invalid params passed in, expected 'addresses'")
+	}
+	listofadd := (x["addresses"]).([]interface{})
+
+	totalBalances := make([]interface{}, len(listofadd))
+	var currentHeight uint32
+	var savedHeight uint32
+
+	// Converts readable accounts
+	for i, a := range listofadd {
+		if a.(string) == "" {
+			errStruct := new(interfaces.StructToReturnValues)
+			errStruct.PermBal = 0
+			errStruct.TempBal = 0
+			errStruct.Error = "No FCT addresses"
+			totalBalances[i] = errStruct
+		} else if primitives.ValidateFUserStr(a.(string)) != true {
+			errStruct := new(interfaces.StructToReturnValues)
+			errStruct.PermBal = 0
+			errStruct.TempBal = 0
+			errStruct.Error = "Error decoding address"
+			totalBalances[i] = errStruct
+		} else {
+			covertedAdd := [32]byte{}
+			copy(covertedAdd[:], primitives.ConvertUserStrToAddress(a.(string)))
+			cHeight, sHeight, temp, perm, error := state.GetFactoidState().GetMultipleFactoidBalances(covertedAdd)
+			currentHeight = cHeight
+			savedHeight = sHeight
+
+			valueStruct := new(interfaces.StructToReturnValues)
+			valueStruct.TempBal = temp
+			valueStruct.PermBal = perm
+			valueStruct.Error = error
+			totalBalances[i] = valueStruct
+		}
+	}
+
+	h := new(MultipleFTBalances)
+
+	h.CurrentHeight = currentHeight
+	h.LastSavedHeight = savedHeight
+	h.Balances = totalBalances
+
+	return h, nil
+}
+
+func HandleV2Diagnostics(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	// General state information
+	resp := new(DiagnosticsResponse)
+	resp.Name = state.GetFactomNodeName()
+	resp.ID = state.GetIdentityChainID().String()
+	resp.PublicKey = state.GetServerPublicKeyString()
+
+	resp.LeaderHeight = state.GetLLeaderHeight()
+	resp.CurrentMinute = state.GetCurrentMinute()
+	resp.CurrentMinuteDuration = time.Now().UnixNano() - state.GetCurrentMinuteStartTime()
+	resp.PrevMinuteDuration = state.GetCurrentMinuteStartTime() - state.GetPreviousMinuteStartTime()
+	resp.BalanceHash = state.GetFactoidState().GetBalanceHash(false).String()
+	resp.TempBalanceHash = state.GetFactoidState().GetBalanceHash(true).String()
+	resp.LastBlockFromDBState = state.DidCreateLastBlockFromDBState()
+
+	feds := state.GetFedServers(resp.LeaderHeight)
+	fedCount := len(feds)
+	audits := state.GetAuditServers(resp.LeaderHeight)
+
+	resp.AuthSet = new(AuthSet)
+	resp.Role = "Follower"
+	foundRole := false // tells us when to stop looking for the node's role
+	for i, fed := range feds {
+		vmIndex, listHeight, listLength, nextNil := state.GetLeaderPL().GetVMStatsForFedServer(i)
+		status := LeaderStatus{fed.GetChainID().String(), vmIndex, listHeight, listLength, nextNil}
+		resp.AuthSet.Leaders = append(resp.AuthSet.Leaders, status)
+		if !foundRole && state.GetIdentityChainID().IsSameAs(fed.GetChainID()) {
+			resp.Role = "Leader"
+			foundRole = true
+		}
+	}
+	for _, aud := range audits {
+		status := AuditStatus{aud.GetChainID().String(), aud.IsOnline()}
+		resp.AuthSet.Audits = append(resp.AuthSet.Audits, status)
+		if !foundRole && state.GetIdentityChainID().IsSameAs(aud.GetChainID()) {
+			resp.Role = "Audit"
+		}
+	}
+
+	// Syncing information
+	syncInfo := new(SyncInfo)
+	if state.IsSyncingEOMs() || state.IsSyncingDBSigs() {
+		syncInfo.Status = "Syncing EOMs"
+		if state.IsSyncingDBSigs() {
+			syncInfo.Status = "Syncing DBSigs"
+		}
+		missing := state.GetUnsyncedServers(resp.LeaderHeight)
+		numberReceived := fedCount - len(missing)
+		syncInfo.Received = &numberReceived
+		syncInfo.Expected = &fedCount
+		for _, v := range missing {
+			syncInfo.Missing = append(syncInfo.Missing, v.String())
+		}
+	} else {
+		syncInfo.Status = "Processing"
+	}
+	resp.SyncInfo = syncInfo
+
+	// Elections information
+	eInfo := new(ElectionInfo)
+	e := state.GetElections()
+	electing := e.GetElecting()
+	if electing != -1 {
+		eInfo.InProgress = true
+		vm := e.GetVMIndex()
+		eInfo.VmIndex = &vm
+		eInfo.FedIndex = &electing
+		eInfo.FedID = e.GetFedID().String()
+		eInfo.Round = &e.GetRound()[electing]
+	}
+	resp.ElectionInfo = eInfo
+
+	return resp, nil
+}
+
+//func HandleV2Accounts(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+// height, acc, returnedLen, totalLen := state.GetFactoidState().GetFactiodAccounts(params)
+// h := new(FactiodAccounts)
+//
+// min, max := 0, 10
+//
+// if params != nil {
+//    ok := params.(map[string]interface{})
+//    numbStr := ok["accountsrequest"]
+//    s := strings.Split(numbStr.(string), "-")
+//    first, second := s[0], s[1]
+//    i, err := strconv.Atoi(first)
+//    j, err2 := strconv.Atoi(second)
+//    min, max = i, j
+//    if err != nil && err2 != nil {
+//       // handle error
+//       fmt.Println(err)
+//       os.Exit(2)
+//    }
+//
+//    // no more than 2000 should be returned
+//    if max-min > 2000 {
+//       max = 2000+min
+//    }
+//    if max > numberOfAccounts {
+//       max = numberOfAccounts
+//    }
+// }
+//
+// err := MapToObject(params, h)
+// if err != nil {
+//    return nil, NewInvalidParamsError()
+// }
+//
+// h.NumbOfAccounts = strings.Join([]string{"returned: ", strconv.Itoa(returnedLen), " total: ",strconv.Itoa(totalLen)}, "")
+// h.Height = height
+// h.Accounts = acc
+//
+// return h, nil
+//}

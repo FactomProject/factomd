@@ -8,6 +8,7 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
@@ -51,19 +52,47 @@ func (m *RevealEntryMsg) Process(dbheight uint32, state interfaces.IState) bool 
 	return state.ProcessRevealEntry(dbheight, m)
 }
 
-func (m *RevealEntryMsg) GetRepeatHash() interfaces.IHash {
+func (m *RevealEntryMsg) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("RevealEntryMsg.GetRepeatHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.Entry.GetHash()
 }
 
-func (m *RevealEntryMsg) GetHash() interfaces.IHash {
+func (m *RevealEntryMsg) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("RevealEntryMsg.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.Entry.GetHash()
 }
 
-func (m *RevealEntryMsg) GetMsgHash() interfaces.IHash {
+func (m *RevealEntryMsg) GetMsgHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("RevealEntryMsg.GetMsgHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.Entry.GetHash()
 }
 
-func (m *RevealEntryMsg) GetChainIDHash() interfaces.IHash {
+func (m *RevealEntryMsg) GetChainIDHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("RevealEntryMsg.GetChainIDHash() saw an interface that was nil")
+		}
+	}()
+
 	if m.chainIDHash == nil {
 		m.chainIDHash = primitives.Sha(m.Entry.GetChainID().Bytes())
 	}
@@ -115,7 +144,15 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 	m.CommitChain, okChain = commit.(*CommitChainMsg)
 	m.commitEntry, okEntry = commit.(*CommitEntryMsg)
 	if !okChain && !okEntry { // What is this trash doing here?  Not a commit at all!
-		state.LogMessage("executeMsg", "Drop, bad commit", m)
+		state.LogMessage("executeMsg", "drop, bad commit", m)
+		return -1
+	}
+
+	// Any entry over 10240 bytes will be rejected
+	if m.Entry.KSize() > 10 {
+		data, _ := m.Entry.MarshalBinary()
+		state.LogMessage("executeMsg", "drop, oversized", m)
+		state.LogPrintf("executeMsg", "Size = %d %dk", len(data), m.Entry.KSize())
 		return -1
 	}
 
@@ -124,11 +161,6 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 	if okEntry {
 		m.IsEntry = true
 		ECs := int(m.commitEntry.CommitEntry.Credits)
-		// Any entry over 10240 bytes will be rejected
-		if m.Entry.KSize() > 10 {
-			state.LogMessage("executeMsg", "Drop, oversized", m)
-			return -1
-		}
 
 		if m.Entry.KSize() > ECs {
 			state.LogMessage("executeMsg", "Hold, underpaid", m)
@@ -166,7 +198,7 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 		}
 
 		if !CheckChainID(state, m.Entry.ExternalIDs(), m) {
-			state.LogMessage("executeMsg", "Drop, chainID does not match hash of ExtIDs", m)
+			state.LogMessage("executeMsg", "drop, chainID does not match hash of ExtIDs", m)
 			return -1
 		}
 	}

@@ -28,12 +28,6 @@ func has(s *State, entry interfaces.IHash) bool {
 		if err != nil {
 			return false
 		}
-
-		entry, err2 := s.DB.FetchEntry(entry)
-		if err2 != nil || entry == nil {
-			panic("Should not happen;  key exists but not entry")
-			return false
-		}
 	}
 	return exists
 }
@@ -84,7 +78,7 @@ func (s *State) MakeMissingEntryRequests() {
 
 		// Keep our map of entries that we are asking for filled up.
 	fillMap:
-		for len(MissingEntryMap) < 3000 {
+		for len(MissingEntryMap) < 6000 {
 			select {
 			case et := <-s.MissingEntries:
 				missing++
@@ -107,7 +101,7 @@ func (s *State) MakeMissingEntryRequests() {
 					continue
 				}
 
-				max := 100
+				max := 3000
 				// If using torrent and the saved height is more than 750 behind, let torrent do it's work, and don't send out
 				// missing message requests
 				if s.UsingTorrent() && s.GetLeaderHeight() > 1000 && s.GetHighestSavedBlk() < s.GetLeaderHeight()-750 {
@@ -125,7 +119,7 @@ func (s *State) MakeMissingEntryRequests() {
 
 			}
 		} else {
-			time.Sleep(20 * time.Second)
+			time.Sleep(5 * time.Second)
 		}
 
 		// Insert the entries we have found into the database.
@@ -135,34 +129,29 @@ func (s *State) MakeMissingEntryRequests() {
 			select {
 
 			case entry := <-s.WriteEntry:
+				if !has(s, entry.GetHash()) {
 
-				asked := MissingEntryMap[entry.GetHash().Fixed()] != nil
-
-				if asked {
-					s.DB.StartMultiBatch()
-					err := s.DB.InsertEntryMultiBatch(entry)
-					if err != nil {
-						panic(err)
-					}
-					err = s.DB.ExecuteMultiBatch()
-					if err != nil {
-						panic(err)
+					if MissingEntryMap[entry.GetHash().Fixed()] != nil {
+						s.DB.StartMultiBatch()
+						err := s.DB.InsertEntryMultiBatch(entry)
+						if err != nil {
+							panic(err)
+						}
+						err = s.DB.ExecuteMultiBatch()
+						if err != nil {
+							panic(err)
+						}
 					}
 				}
+
+				delete(MissingEntryMap, entry.GetHash().Fixed())
 
 			default:
 				break InsertLoop
 			}
 		}
 		if sent == 0 {
-			if s.GetHighestKnownBlock()-s.GetHighestSavedBlk() > 100 {
-				time.Sleep(10 * time.Second)
-			} else {
-				time.Sleep(100 * time.Millisecond)
-			}
-			if s.EntryDBHeightComplete == s.GetHighestSavedBlk() {
-				time.Sleep(20 * time.Second)
-			}
+			time.Sleep(100 * time.Millisecond)
 		}
 	}
 }
@@ -184,6 +173,8 @@ func (s *State) GoSyncEntries() {
 
 	// If I find no missing entries, then the firstMissing will be -1
 	firstMissing := -1
+	// Fix the replay filter (only have to do this once, ever)
+	firstUpdate := uint32(0)
 
 	lastfirstmissing := 0
 
@@ -218,6 +209,7 @@ func (s *State) GoSyncEntries() {
 			if firstMissing < 0 {
 				if scan > 1 {
 					s.EntryDBHeightComplete = scan - 1
+					s.LogPrintf("EntrySync", "Scan EntryDBHeightComplete = %d", s.EntryDBHeightComplete)
 					start = scan
 				}
 			}
@@ -230,6 +222,35 @@ func (s *State) GoSyncEntries() {
 				db = s.GetDirectoryBlockByHeight(scan)
 			}
 
+			// Run through all the eblocks, and make sure we have updated the Entry Hash for every Entry
+			// Hash in the EBlocks.  This only has to be done one for all the EBlocks of a directory Block,
+			// and we have the entry hashes even if we don't yet have the entries, so this is really simple.
+			if scan > firstUpdate {
+				for _, ebKeyMR := range db.GetEntryHashes()[3:] {
+					eBlock, _ := s.DB.FetchEBlock(ebKeyMR)
+
+					// Don't have an eBlock?  Huh. We can go on, but we can't advance.  We just wait until it
+					// does show up.
+					for eBlock == nil {
+						time.Sleep(1 * time.Second)
+						eBlock, _ = s.DB.FetchEBlock(ebKeyMR)
+					}
+
+					for _, entryhash := range eBlock.GetEntryHashes() {
+						if entryhash.IsMinuteMarker() {
+							continue
+						}
+
+						ueh := new(EntryUpdate)
+						ueh.Hash = entryhash
+						ueh.Timestamp = db.GetTimestamp()
+						s.UpdateEntryHash <- ueh
+
+					}
+				}
+			}
+			firstUpdate = scan
+
 			for _, ebKeyMR := range db.GetEntryHashes()[3:] {
 				// The first three entries (0,1,2) in every directory block are blocks we already have by
 				// definition.  If we decide to not have Factoid blocks or Entry Credit blocks in some cases,
@@ -237,7 +258,7 @@ func (s *State) GoSyncEntries() {
 
 				eBlock, _ := s.DB.FetchEBlock(ebKeyMR)
 
-				// Dont have an eBlock?  Huh. We can go on, but we can't advance.  We just wait until it
+				// Don't have an eBlock?  Huh. We can go on, but we can't advance.  We just wait until it
 				// does show up.
 				for eBlock == nil {
 					time.Sleep(1 * time.Second)
@@ -248,14 +269,6 @@ func (s *State) GoSyncEntries() {
 				for _, entryhash := range eBlock.GetEntryHashes() {
 					if entryhash.IsMinuteMarker() {
 						continue
-					}
-
-					// Only update the replay hashes in the last 24 hours.
-					if time.Now().Unix()-db.GetTimestamp().GetTimeSeconds() < 24*60*60 {
-						ueh := new(EntryUpdate)
-						ueh.Hash = entryhash
-						ueh.Timestamp = db.GetTimestamp()
-						s.UpdateEntryHash <- ueh
 					}
 
 					// If I have the entry, then remove it from the Missing Entries list.
@@ -293,7 +306,8 @@ func (s *State) GoSyncEntries() {
 
 			if s.EntryDBHeightComplete%1000 == 0 {
 				if firstMissing < 0 {
-					//Only save EntryDBHeightComplete IF it's a multiple of 1000 AND there are no missing entries
+					start = scan + 1 // If nothing is missing at scan, make sure we don't process at scan again.
+					//Only save EntryDBHeightComplete IF it's a multiple of 100 AND there are no missing entries
 					err := s.DB.SaveDatabaseEntryHeight(s.EntryDBHeightComplete)
 					if err != nil {
 						fmt.Printf("ERROR: %v\n", err)
@@ -304,10 +318,8 @@ func (s *State) GoSyncEntries() {
 		lastfirstmissing = firstMissing
 		if firstMissing < 0 {
 			s.EntryDBHeightComplete = s.GetHighestSavedBlk()
-			time.Sleep(5 * time.Second)
+			s.LogPrintf("EntrySync", "firstMissing EntryDBHeightComplete = %d", s.EntryDBHeightComplete)
+			time.Sleep(10 * time.Millisecond)
 		}
-
-		time.Sleep(100 * time.Millisecond)
-
 	}
 }

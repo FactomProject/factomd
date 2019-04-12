@@ -7,6 +7,7 @@ type IProcessList interface {
 	LenNewEntries() int
 	Complete() bool
 	VMIndexFor(hash []byte) int
+	GetVMStatsForFedServer(index int) (vmIndex int, listHeight int, listLength int, nextNil int)
 	SortFedServers()
 	SortAuditServers()
 	SortDBSigs()
@@ -20,29 +21,7 @@ type IProcessList interface {
 	AddAuditServer(identityChainID IHash) int
 	RemoveFedServerHash(identityChainID IHash)
 	RemoveAuditServerHash(identityChainID IHash)
-	//GetAck(vmIndex int) IMsg
-	//GetAckAt(vmIndex int, height int) IMsg
-	HasMessage() bool
-	AddOldMsgs(m IMsg)
-	DeleteOldMsgs(key IHash)
-	GetOldMsgs(key IHash) IMsg
-	AddNewEBlocks(key IHash, value IEntryBlock)
-	GetNewEBlocks(key IHash) IEntryBlock
-	DeleteEBlocks(key IHash)
-	AddNewEntry(key IHash, value IEntry)
-	DeleteNewEntry(key IHash)
-	GetLeaderTimestamp() Timestamp
-	ResetDiffSigTally()
-	IncrementDiffSigTally()
-	CheckDiffSigTally() bool
-	//	Ask(vmIndex int, height int) int
-	TrimVMList(height uint32, vmIndex int)
-	//Process(state IState) (progress bool)
-	//AddToProcessList(ack IMsg, m IMsg)
-	ContainsDBSig(serverID IHash) bool
-	AddDBSig(serverID IHash, sig IFullSignature)
 	String() string
-	IsPendingChainHead(chainID IHash) bool
 	GetDBHeight() uint32
 }
 

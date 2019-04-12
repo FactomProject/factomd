@@ -106,6 +106,10 @@ FactomdTlsPublicCert                  = "/full/path/to/factomdAPIpub.cert"
 FactomdRpcUser                        = ""
 FactomdRpcPass                        = ""
 
+; This paramater allows Cross-Origin Resource Sharing (CORS) so web browsers will use data returned from the API when called from the listed URLs
+; Example paramaters are "http://www.example.com, http://anotherexample.com, *"
+CorsDomains                           = ""
+
 ; Specifying when to stop or start ACKs for switching leader servers
 ChangeAcksHeight                      = 123
 
@@ -140,6 +144,10 @@ FactomdLocation                       = "localhost:8088"
 ; This is where factom-cli will find factom-walletd to create Factoid and Entry Credit transactions
 ; This value can also be updated to authorize an external ip or domain name when factom-walletd creates a TLS cert
 WalletdLocation                       = "localhost:8089"
+
+; Enables wallet database encryption on factom-walletd. If this option is enabled, an unencrypted database
+; cannot exist. If an unencrypted database exists, the wallet will exit.
+WalletEncrypted                       = false
 	`
 
 	var modifiedConfig string = `
@@ -191,4 +199,33 @@ func TestReadConfig(t *testing.T) {
 	}
 	fconfig.String()
 	GetConfigFilename("")
+}
+
+// Check that the home directory is correctly prepended to bare files only
+func TestCheckConfigFileName(t *testing.T) {
+	checks := map[string]string{
+		"C:junk":  "C:junk",
+		"~/junk":  "~/junk",
+		"\\junk":  "\\junk",
+		"./junk":  "./junk",
+		"../junk": "../junk",
+		"junk":    GetHomeDir() + "/.factom/m2/" + "junk",
+	}
+	for i, o := range checks {
+		name := CheckConfigFileName(i)
+		if name != o {
+			t.Errorf("CheckConfigFileName(\"%s\")!=\"%s\" instead it it \"%s\"", i, o, name)
+		}
+	}
+}
+
+func Example_ReadConfig() {
+	_ = ReadConfig("///") // We know this is not a valid file name
+	// second time there should be no output
+	_ = ReadConfig("///") // We know this is not a valid file name
+	// Output:
+	// Reading from '///'
+	// Cannot open custom config file,
+	// Starting with default settings.
+	// read ///: is a directory
 }

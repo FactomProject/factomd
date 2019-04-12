@@ -37,4 +37,4 @@ EOF
 ################################
 
 
-grep -H "Dequeue" $@  | awk "$scriptVariable" 
+grep -H "Dequeue" $@ | grep -v "EmbeddedMsg" | awk "$scriptVariable" 

@@ -152,7 +152,7 @@ func ConvertDecimalToString(v uint64) string {
 	return fmt.Sprintf("%.8f", f)
 }
 
-// Take fixed point data and produce a nice decimial point
+// Take fixed point data and produce a nice decimal point
 // sort of output that users can handle.
 func ConvertDecimalToPaddedString(v uint64) string {
 	tv := v / 100000000
@@ -221,7 +221,8 @@ func ConvertFixedPoint(amt string) (string, error) {
 //  Creates the binary form.  Just needs the conversion to base58
 //  for display.
 func ConvertAddressToUser(prefix []byte, addr interfaces.IAddress) []byte {
-	dat := prefix
+	dat := make([]byte, 0, 64)
+	dat = append(dat, prefix...)
 	dat = append(dat, addr.Bytes()...)
 	sha256d := Sha(Sha(dat).Bytes()).Bytes()
 	userd := prefix

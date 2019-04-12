@@ -3,6 +3,7 @@ package adminBlock
 import (
 	"fmt"
 	"os"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/factoid"
@@ -77,7 +78,14 @@ func (e *AddFactoidAddress) Type() byte {
 	return constants.TYPE_ADD_FACTOID_ADDRESS
 }
 
-func (e *AddFactoidAddress) SortedIdentity() interfaces.IHash {
+func (e *AddFactoidAddress) SortedIdentity() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("AddFactoidAddress.SortedIdentity() saw an interface that was nil")
+		}
+	}()
+
 	return e.IdentityChainID
 }
 
@@ -125,33 +133,41 @@ func (e *AddFactoidAddress) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	buf := primitives.NewBuffer(data)
 	e.Init()
 
-	b, err := buf.PopByte()
+	t, err := buf.PopByte()
 	if err != nil {
 		return nil, err
 	}
 
-	if b != e.Type() {
+	if t != e.Type() {
 		return nil, fmt.Errorf("Invalid Entry type")
 	}
 
-	bl, err := buf.PopVarInt()
+	bodyLimit := uint64(buf.Len())
+	bodySize, err := buf.PopVarInt()
 	if err != nil {
 		return nil, err
 	}
+	if bodySize > bodyLimit {
+		return nil, fmt.Errorf(
+			"Error: AddFactoidAddress.UnmarshalBinary: body size %d is larger "+
+				"than binary size %d. (uint underflow?)",
+			bodySize, bodyLimit,
+		)
+	}
 
-	body := make([]byte, bl)
+	body := make([]byte, bodySize)
 	n, err := buf.Read(body)
 	if err != nil {
 		return nil, err
 	}
 
-	if uint64(n) != bl {
-		return nil, fmt.Errorf("Expected to read %d bytes, but got %d", bl, n)
+	if uint64(n) != bodySize {
+		return nil, fmt.Errorf("Expected to read %d bytes, but got %d", bodySize, n)
 	}
 
 	bodyBuf := primitives.NewBuffer(body)
 
-	if uint64(n) != bl {
+	if uint64(n) != bodySize {
 		return nil, fmt.Errorf("Unable to unmarshal body")
 	}
 
@@ -191,7 +207,14 @@ func (e *AddFactoidAddress) Interpret() string {
 	return ""
 }
 
-func (e *AddFactoidAddress) Hash() interfaces.IHash {
+func (e *AddFactoidAddress) Hash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("AddFactoidAddress.Hash() saw an interface that was nil")
+		}
+	}()
+
 	bin, err := e.MarshalBinary()
 	if err != nil {
 		panic(err)

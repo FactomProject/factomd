@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"os"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -48,16 +49,37 @@ var _ interfaces.IMsg = (*Ack)(nil)
 var _ interfaces.Signable = (*Ack)(nil)
 var AckBalanceHash = true
 
-func (m *Ack) GetRepeatHash() interfaces.IHash {
+func (m *Ack) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("Ack.GetRepeatHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.GetMsgHash()
 }
 
 // We have to return the hash of the underlying message.
-func (m *Ack) GetHash() interfaces.IHash {
+func (m *Ack) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("Ack.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.MessageHash
 }
 
-func (m *Ack) GetMsgHash() interfaces.IHash {
+func (m *Ack) GetMsgHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("Ack.GetMsgHash() saw an interface that was nil")
+		}
+	}()
+
 	if m.MsgHash == nil {
 		data, err := m.MarshalForSignature()
 		if err != nil {
@@ -88,31 +110,43 @@ func (m *Ack) Validate(s interfaces.IState) int {
 	//	atomic.WhereAmI2("Ack.Validate()", 1)
 	// If too old, it isn't valid.
 	if m.DBHeight <= s.GetHighestSavedBlk() {
-		return -1
-	}
 
-	if s.GetHighestAck() < m.DBHeight {
-		s.SetHighestAck(m.DBHeight) // assume the ack isn't lying. this will make us start requesting DBState blocks...
+		s.LogMessage("ackQueue", "drop, from past", m)
+		return -1
 	}
 
 	delta := (int(m.DBHeight)-int(s.GetLeaderPL().GetDBHeight()))*10 + (int(m.Minute) - int(s.GetCurrentMinute()))
 
-	if delta > 30 {
-		s.LogMessage("ackQueue", "Drop ack from future", m)
+	// Update the highest known ack to start requesting
+	// DBState blocks if necessary
+	if s.GetHighestAck() < m.DBHeight {
+		if delta > 2000 { // cap at a relative 2000 due to fd-850
+			s.SetHighestAck(s.GetLeaderPL().GetDBHeight() + 2000)
+		} else {
+			s.SetHighestAck(m.DBHeight)
+		}
+	}
+
+	if delta > 50 {
+		s.LogMessage("ackQueue", "drop ack from future", m)
 		// when we get caught up we will either get a DBState with this message or we will missing message it.
 		// but if it was malicious then we don't want to keep it around filling up queues.
 		return -1
 	}
 
-	if delta > 15 {
+	if delta > 30 {
 		return 0 // put this in the holding and validate it later
 	}
 
 	// Only new acks are valid. Of course, the VMIndex has to be valid too.
 	msg, _ := s.GetMsg(m.VMIndex, int(m.DBHeight), int(m.Height))
 	if msg != nil {
-		s.LogMessage("executeMsg", "Ack slot taken", m)
-		s.LogMessage("executeMsg", "found:", msg)
+		if msg == m {
+			s.LogMessage("executeMsg", "Ack slot taken", m)
+			s.LogMessage("executeMsg", "found:", msg)
+		} else {
+			s.LogPrintf("executeMsg", "duplicate at %d/%d/%d", int(m.DBHeight), m.VMIndex, int(m.Height))
+		}
 		return -1
 	}
 
@@ -120,23 +154,31 @@ func (m *Ack) Validate(s interfaces.IState) int {
 		// Check signature
 		bytes, err := m.MarshalForSignature()
 		if err != nil {
+			s.LogPrintf("executeMsg", "Validate Marshal Failed %v", err)
 			//fmt.Println("Err is not nil on Ack sig check: ", err)
 			return -1
 		}
-		s.LogMessage("executeMsg", "Validate", m)
 		ackSigned, err := s.FastVerifyAuthoritySignature(bytes, m.Signature, m.DBHeight)
 
 		//ackSigned, err := m.VerifySignature()
 		if err != nil {
-			//fmt.Println("Err is not nil on Ack sig check: ", err)
-			return -1
+			s.LogPrintf("executeMsg", "VerifyAuthoritySignature Failed %v", err)
+			// Don't return fail here because the message might be a future message and thus become valid in the future.
 		}
 		if ackSigned <= 0 {
-			return -1
+			if m.DBHeight > s.GetLLeaderHeight() {
+				s.LogPrintf("executeMsg", "Hold, Not signed by a leader")
+				return 0 // This is for a future block so the auth set may change so hold on to it.
+			} else {
+
+				s.LogPrintf("executeMsg", "Drop, Not signed by a leader")
+				return -1
+			}
 		}
 	}
 
 	m.authvalid = true
+	s.LogMessage("executeMsg", "Valid", m)
 	return 1
 }
 

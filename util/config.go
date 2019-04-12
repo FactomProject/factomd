@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"os"
 	"os/user"
+	"regexp"
 	"time"
 
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
-
-	"gopkg.in/gcfg.v1"
+	gcfg "gopkg.in/gcfg.v1"
 )
 
 var _ = fmt.Print
@@ -63,6 +63,7 @@ type FactomdConfig struct {
 		FactomdTlsPublicCert    string
 		FactomdRpcUser          string
 		FactomdRpcPass          string
+		CorsDomains             string
 
 		ChangeAcksHeight uint32
 	}
@@ -97,6 +98,7 @@ type FactomdConfig struct {
 		WalletTlsPublicCert string
 		FactomdLocation     string
 		WalletdLocation     string
+		WalletEncrypted     bool
 	}
 }
 
@@ -160,6 +162,10 @@ FactomdTlsPublicCert                  = "/full/path/to/factomdAPIpub.cert"
 FactomdRpcUser                        = ""
 FactomdRpcPass                        = ""
 
+; This paramater allows Cross-Origin Resource Sharing (CORS) so web browsers will use data returned from the API when called from the listed URLs
+; Example paramaters are "http://www.example.com, http://anotherexample.com, *"
+CorsDomains                           = ""
+
 ; Specifying when to change ACKs for switching leader servers
 ChangeAcksHeight                      = 0
 
@@ -195,6 +201,10 @@ FactomdLocation                       = "localhost:8088"
 ; This is where factom-cli will find factom-walletd to create Factoid and Entry Credit transactions
 ; This value can also be updated to authorize an external ip or domain name when factom-walletd creates a TLS cert
 WalletdLocation                       = "localhost:8089"
+
+; Enables wallet database encryption on factom-walletd. If this option is enabled, an unencrypted database
+; cannot exist. If an unencrypted database exists, the wallet will exit.
+WalletEncrypted                       = false
 `
 
 func (s *FactomdConfig) String() string {
@@ -257,6 +267,7 @@ func (s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\n    WalletTlsPublicCert     %v", s.Walletd.WalletTlsPublicCert))
 	out.WriteString(fmt.Sprintf("\n    FactomdLocation         %v", s.Walletd.FactomdLocation))
 	out.WriteString(fmt.Sprintf("\n    WalletdLocation         %v", s.Walletd.WalletdLocation))
+	out.WriteString(fmt.Sprintf("\n    WalletEncryption        %v", s.Walletd.WalletEncrypted))
 
 	return out.String()
 }
@@ -281,13 +292,35 @@ func GetChangeAcksHeight(filename string) (change uint32, err error) {
 	return config.App.ChangeAcksHeight, nil
 }
 
+// Check for absolute path on Windows or linux or Darwin(Mac)
+var pathPresent *regexp.Regexp
+
+func CheckConfigFileName(filename string) string {
+	// compile the regex if this is the first time.
+	if pathPresent == nil {
+		var err error
+		// paths may look like C: or c: or ~/ or ./ or ../ or / or \ at the start of a filename
+		pathPresent, err = regexp.Compile(`^([A-Za-z]:)|(~?(\.\.?)?[/\\])`)
+		if err != nil {
+			panic(err)
+		}
+	}
+	// Check for absolute path on Windows or linux or Darwin(Mac)
+	// if path is relative prepend the Factom Home path
+	if !pathPresent.MatchString(filename) {
+		filename = GetHomeDir() + "/.factom/m2/" + filename
+	}
+	return filename
+}
+
+// Track a filename-error pair so we don't report the same error repeatedly
+var reportedError map[string]string = make(map[string]string)
+
 func ReadConfig(filename string) *FactomdConfig {
 	if filename == "" {
 		filename = ConfigFilename()
 	}
-	if filename[0:1] != "/" {
-		filename = GetHomeDir() + "/.factom/m2/" + filename
-	}
+	filename = CheckConfigFileName(filename)
 
 	cfg := new(FactomdConfig)
 
@@ -298,12 +331,20 @@ func ReadConfig(filename string) *FactomdConfig {
 
 	err = gcfg.FatalOnly(gcfg.ReadFileInto(cfg, filename))
 	if err != nil {
-		log.Printfln("Reading from '%s'", filename)
-		log.Printfln("Cannot open custom config file,\nStarting with default settings.\n%v\n", err)
+		if reportedError[filename] != err.Error() {
+			log.Printfln("Reading from '%s'", filename)
+			log.Printfln("Cannot open custom config file,\nStarting with default settings.\n%v\n", err)
+			// Remember the error reported for this filename
+			reportedError[filename] = err.Error()
+		}
+
 		err = gcfg.ReadStringInto(cfg, defaultConfig)
 		if err != nil {
 			panic(err)
 		}
+	} else {
+		// Remember that there was no error reported for this filename
+		delete(reportedError, filename)
 	}
 
 	// Default to home directory if not set

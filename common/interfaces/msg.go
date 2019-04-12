@@ -112,7 +112,6 @@ type IMsg interface {
 
 	IsStalled() bool
 	SetStall(bool)
-	Resend(IState) bool
 	Expire(IState) bool
 
 	// Equivalent to String() for logging
