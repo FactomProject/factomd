@@ -87,6 +87,8 @@ func Start(state interfaces.IState) {
 		server.Post("/v2", HandleV2)
 		server.Get("/v2", HandleV2)
 
+		server.Get("/status", HandleStatus)
+
 		// start the debugging api if we are not on the main network
 		if state.GetNetworkName() != "MAIN" {
 			server.Post("/debug", HandleDebug)
@@ -799,6 +801,51 @@ func HandleHeights(ctx *web.Context) {
 		return
 	}
 	returnMsg(ctx, jsonResp.Result, true)
+}
+
+type statusResponse struct {
+	Version                      string
+	BootTime                     int64
+	CurrentTime                  int64
+	CurrentBlockStartTime        int64
+	CurrentMinuteStartTime       int64
+	CurrentMinute                int
+	LeaderHeight                 uint32
+	HighestSavedBlock            uint32
+	HighestKnownBlock            uint32
+	EntryBlockDBHeightComplete   uint32
+	EntryBlockDBHeightProcessing uint32
+	Syncing                      bool
+	SyncingEOMs                  bool
+	SyncingDBSigs                bool
+}
+
+func HandleStatus(ctx *web.Context) {
+	ServersMutex.Lock()
+	s := ctx.Server.Env["state"].(interfaces.IState)
+	ServersMutex.Unlock()
+
+	jsonResp := primitives.NewJSON2Response()
+	jsonResp.ID = 0
+	jsonResp.Result = statusResponse{
+		s.GetFactomdVersion(),
+		s.GetBootTime(),
+		s.GetCurrentTime(),
+		s.GetCurrentBlockStartTime(),
+		s.GetCurrentMinuteStartTime(),
+		s.GetCurrentMinute(),
+		s.GetLeaderHeight(),
+		s.GetHighestSavedBlk(),
+		s.GetHighestKnownBlock(),
+		s.GetEntryBlockDBHeightComplete(),
+		s.GetEntryBlockDBHeightProcessing(),
+		s.IsSyncing(),
+		s.IsSyncingEOMs(),
+		s.IsSyncingDBSigs(),
+	}
+
+	// REVIEW: should we only conditionally return status 200 if some precondition is met
+	ctx.Write([]byte(jsonResp.String()))
 }
 
 /*********************************************************
