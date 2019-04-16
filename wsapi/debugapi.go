@@ -133,7 +133,7 @@ func HandleDebugRequest(
 	case "sim-ctrl":
 		resp, jsonError = HandleSimControl(state, params)
 	case "message-filter":
-		resp, jsonError = HandleV2MessageFilter(state, params)
+		resp, jsonError = HandleMessageFilter(state, params)
 	default:
 		jsonError = NewMethodNotFoundError()
 		break
