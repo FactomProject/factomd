@@ -459,6 +459,7 @@ type GetCommands struct {
 }
 
 func HandleMessageFilter(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	fmt.Println("CAlled HANDLEMESSAGEFILTER")
 	x, ok := params.(map[string]interface{})
 	if !ok {
 		return nil, NewCustomInvalidParamsError("ERROR! Invalid params passed in")
