@@ -113,16 +113,11 @@ func GetBody(context *web.Context) string {
 }
 
 func getAPIUrl() string {
-	return "http://localhost:" + fmt.Sprint(engine.GetFnodes()[0].State.GetPort()) + "/v2"
-}
-
-func getDebugUrl() string {
-	fmt.Println(engine.GetFnodes()[0].State.GetPort())
 	return "http://localhost:" + fmt.Sprint(engine.GetFnodes()[0].State.GetPort()) + "/debug"
 }
 
 func postRequest(jsonStr string) (*http.Response, error) {
-	req, err := http.NewRequest("POST", getDebugUrl(), bytes.NewBuffer([]byte(jsonStr)))
+	req, err := http.NewRequest("POST", getAPIUrl(), bytes.NewBuffer([]byte(jsonStr)))
 	if err != nil {
 		return nil, err
 	}

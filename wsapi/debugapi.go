@@ -459,7 +459,7 @@ type GetCommands struct {
 }
 
 func HandleMessageFilter(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	fmt.Println("CAlled HANDLEMESSAGEFILTER")
+	fmt.Println("Factom Node Name: ", state.GetFactomNodeName());
 	x, ok := params.(map[string]interface{})
 	if !ok {
 		return nil, NewCustomInvalidParamsError("ERROR! Invalid params passed in")
@@ -470,7 +470,6 @@ func HandleMessageFilter(state interfaces.IState, params interface{}) (interface
 
 	OutputString := fmt.Sprintf("%s", x["output-regex"])
 	if OutputString != "" {
-
 		OutputRegEx := regexp.MustCompile(OutputString)
 		state.PassOutputRegEx(OutputRegEx, OutputString)
 
@@ -481,8 +480,8 @@ func HandleMessageFilter(state interfaces.IState, params interface{}) (interface
 	InputString := fmt.Sprintf("%s", x["input-regex"])
 	if InputString != "" {
 		InputRegEx := regexp.MustCompile(InputString)
-
 		state.PassInputRegEx(InputRegEx, InputString)
+
 	} else if InputString == "off" {
 		state.PassInputRegEx(nil, "")
 	}
