@@ -181,8 +181,6 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 		resp, jsonError = HandleV2MultipleECBalances(state, params)
 	case "diagnostics":
 		resp, jsonError = HandleV2Diagnostics(state, params)
-	case "message-filter":
-		resp, jsonError = HandleV2MessageFilter(state, params)
 		//case "factoid-accounts":
 		// resp, jsonError = HandleV2Accounts(state, params)
 	default:
