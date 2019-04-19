@@ -16,6 +16,7 @@ import (
 	"os"
 	"reflect"
 	"runtime/debug"
+	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/globals"
@@ -284,6 +285,7 @@ func Loghashfixed(h [32]byte) {
 	if globals.Hashlog == nil {
 		f, err := os.Create("fullhashes.txt")
 		globals.Hashlog = bufio.NewWriter(f)
+		f.WriteString(time.Now().String() + "\n")
 		if err != nil {
 			panic(err)
 		}
@@ -295,13 +297,24 @@ func Loghashfixed(h [32]byte) {
 	}
 	_, exists := globals.Hashes[h]
 	if !exists {
-		fmt.Fprintf(globals.Hashlog, "%x\n", h)
-		x := random.RandIntBetween(0, len(globals.HashesInOrder))
-		if globals.HashesInOrder[x] != nil {
-			delete(globals.Hashes, *globals.HashesInOrder[x]) // delete the oldest hash
+		//fmt.Fprintf(globals.Hashlog, "%x\n", h)
+		var x int
+		// turns out random is better than LRU because the leader/common chain hashes get used a lot and keep getting
+		// tossed. Probably better to add special handling for leader and known chains ...
+
+		if true {
+			x = globals.HashNext // Use LRU
+		} else {
+			x = random.RandIntBetween(0, len(globals.HashesInOrder)) // use random replacement
 		}
+		if globals.HashesInOrder[x] != nil {
+			fmt.Fprintf(globals.Hashlog, "delete [%4d] %x\n", x, *globals.HashesInOrder[x])
+			delete(globals.Hashes, *globals.HashesInOrder[x]) // delete the oldest hash
+			globals.HashesInOrder[x] = nil
+		}
+		fmt.Fprintf(globals.Hashlog, "add    [%4d] %x\n", x, h)
 		globals.Hashes[h] = true                                               // add the new hash
-		globals.HashesInOrder[globals.HashNext] = &h                           // add it to the ordered list
+		globals.HashesInOrder[x] = &h                                          // add it to the ordered list
 		globals.HashNext = (globals.HashNext + 1) % len(globals.HashesInOrder) // wrap index at end of array
 	}
 }
