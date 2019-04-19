@@ -805,6 +805,7 @@ func HandleHeights(ctx *web.Context) {
 
 type statusResponse struct {
 	Version                      string
+	NodeName                     string
 	BootTime                     int64
 	CurrentTime                  int64
 	CurrentBlockStartTime        int64
@@ -818,6 +819,8 @@ type statusResponse struct {
 	Syncing                      bool
 	SyncingEOMs                  bool
 	SyncingDBSigs                bool
+	Running                      bool
+	Role                         string
 }
 
 func HandleStatus(ctx *web.Context) {
@@ -825,10 +828,27 @@ func HandleStatus(ctx *web.Context) {
 	s := ctx.Server.Env["state"].(interfaces.IState)
 	ServersMutex.Unlock()
 
+	feds := s.GetFedServers(s.GetLLeaderHeight())
+	audits := s.GetAuditServers(s.GetLLeaderHeight())
+	role := "follower"
+	foundRole := false
+	for _, fed := range feds {
+		if !foundRole && s.GetIdentityChainID().IsSameAs(fed.GetChainID()) {
+			role = "leader"
+			break
+		}
+	}
+	for _, aud := range audits {
+		if !foundRole && s.GetIdentityChainID().IsSameAs(aud.GetChainID()) {
+			role = "audit"
+		}
+	}
+
 	jsonResp := primitives.NewJSON2Response()
 	jsonResp.ID = 0
 	jsonResp.Result = statusResponse{
 		s.GetFactomdVersion(),
+		s.GetFactomNodeName(),
 		s.GetBootTime(),
 		s.GetCurrentTime(),
 		s.GetCurrentBlockStartTime(),
@@ -842,6 +862,8 @@ func HandleStatus(ctx *web.Context) {
 		s.IsSyncing(),
 		s.IsSyncingEOMs(),
 		s.IsSyncingDBSigs(),
+		s.Running(),
+		role,
 	}
 
 	// REVIEW: should we only conditionally return status 200 if some precondition is met
