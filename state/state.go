@@ -2999,3 +2999,7 @@ func (s *State) PassInputRegEx(RegEx *regexp.Regexp, RegExString string) {
 func (s *State) GetInputRegEx() (*regexp.Regexp, string) {
 	return s.InputRegEx, s.InputRegExString
 }
+
+func (s *State) GetIgnoreDone() bool {
+	return s.IgnoreDone
+}
