@@ -820,6 +820,7 @@ type statusResponse struct {
 	SyncingEOMs                  bool
 	SyncingDBSigs                bool
 	Running                      bool
+	IgnoreDone                   bool
 	Role                         string
 }
 
@@ -863,6 +864,7 @@ func HandleStatus(ctx *web.Context) {
 		s.IsSyncingEOMs(),
 		s.IsSyncingDBSigs(),
 		s.Running(),
+		s.GetIgnoreDone(),
 		role,
 	}
 
