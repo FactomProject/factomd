@@ -326,6 +326,7 @@ type IState interface {
 	IsSyncingDBSigs() bool
 	DidCreateLastBlockFromDBState() bool
 	GetUnsyncedServers(dbheight uint32) []IHash
+	GetIgnoreDone() bool
 
 	// Access to Holding Queue
 	LoadHoldingMap() map[[32]byte]IMsg

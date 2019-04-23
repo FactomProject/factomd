@@ -2948,3 +2948,7 @@ func (s *State) IsActive(id activations.ActivationType) bool {
 
 	return rval
 }
+
+func (s *State) GetIgnoreDone() bool {
+	return s.IgnoreDone
+}
