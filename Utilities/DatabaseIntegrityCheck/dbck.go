@@ -19,7 +19,7 @@ import (
 	// _ "net/http/pprof"
 )
 
-var usage = "dbck [-bf] DATABASE"
+var usage = "dbck [-b] DATABASE"
 
 func main() {
 	// DEBUG: run the profiler
@@ -150,15 +150,17 @@ func main() {
 
 		// check for duplicate ABlock signatures
 		for _, e := range next.ABlock.GetABEntries() {
-			absig := e.Hash().Fixed()
-			if h, exists := ablocksigs[absig]; exists {
-				fmt.Printf(
-					"ERROR: duplicate ABlock signature %x found at height %d and %d\n",
-					absig, h, height,
-				)
-			} else {
-				// add the signature to the list
-				ablocksigs[absig] = height
+			if e.Type() == 0x01 || e.Type() == 0x02 {
+				absig := e.Hash().Fixed()
+				if h, exists := ablocksigs[absig]; exists {
+					fmt.Printf(
+						"ERROR: duplicate ABlock signature %x found at height %d and %d\n",
+						absig, h, height,
+					)
+				} else {
+					// add the signature to the list
+					ablocksigs[absig] = height
+				}
 			}
 		}
 
