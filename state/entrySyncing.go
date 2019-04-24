@@ -182,11 +182,12 @@ func (s *State) GoSyncEntries() {
 
 	for {
 
+		highestSavedBlk := s.GetHighestSavedBlk()
 		ESMissing.Set(float64(len(missingMap)))
 		ESMissingQueue.Set(float64(len(s.MissingEntries)))
 		ESDBHTComplete.Set(float64(s.EntryDBHeightComplete))
 		ESFirstMissing.Set(float64(lastfirstmissing))
-		ESHighestMissing.Set(float64(s.GetHighestSavedBlk()))
+		ESHighestMissing.Set(float64(highestSavedBlk))
 
 		entryMissing = 0
 
@@ -204,11 +205,13 @@ func (s *State) GoSyncEntries() {
 		firstMissing = -1
 
 	dirblkSearch:
-		for scan := start; scan <= s.GetHighestSavedBlk(); scan++ {
+		for scan := start; scan <= highestSavedBlk; scan++ {
 
 			if firstMissing < 0 {
 				if scan > 1 {
-					s.EntryDBHeightComplete = scan - 1
+					if s.EntryDBHeightComplete < scan - 1 {
+						s.EntryDBHeightComplete = scan - 1
+					}
 					s.LogPrintf("EntrySync", "Scan EntryDBHeightComplete = %d", s.EntryDBHeightComplete)
 					start = scan
 				}
@@ -304,10 +307,10 @@ func (s *State) GoSyncEntries() {
 				}
 			}
 
-			if s.EntryDBHeightComplete%1000 == 0 {
-				if firstMissing < 0 {
-					start = scan + 1 // If nothing is missing at scan, make sure we don't process at scan again.
-					//Only save EntryDBHeightComplete IF it's a multiple of 100 AND there are no missing entries
+			if firstMissing < 0 {
+				start = scan + 1 // If nothing is missing at scan, make sure we don't process at scan again.
+				if s.EntryDBHeightComplete%1000 == 0 {
+					// Only save EntryDBHeightComplete IF it's a multiple of 1000 AND there are no missing entries
 					err := s.DB.SaveDatabaseEntryHeight(s.EntryDBHeightComplete)
 					if err != nil {
 						fmt.Printf("ERROR: %v\n", err)
@@ -317,7 +320,7 @@ func (s *State) GoSyncEntries() {
 		}
 		lastfirstmissing = firstMissing
 		if firstMissing < 0 {
-			s.EntryDBHeightComplete = s.GetHighestSavedBlk()
+			s.EntryDBHeightComplete = highestSavedBlk
 			s.LogPrintf("EntrySync", "firstMissing EntryDBHeightComplete = %d", s.EntryDBHeightComplete)
 			time.Sleep(10 * time.Millisecond)
 		}
