@@ -331,7 +331,7 @@ type State struct {
 	// For Replay / journal
 	IsReplaying     bool
 	ReplayTimestamp interfaces.Timestamp
-	
+
 	// State for the Entry Syncing process
 	EntrySyncState EntrySync
 
