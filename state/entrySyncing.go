@@ -21,13 +21,11 @@ type ReCheck struct {
 type EntrySync struct {
 	CheckThese   chan interfaces.IHash // hashes of entries to be checked
 	EntryReCheck chan *ReCheck         // Still don't have these guys.  Recheck
-	Processing   chan *ReCheck         // Processing these guys (so we don't block)
 }
 
 func (es *EntrySync) Init() {
 	es.CheckThese = make(chan interfaces.IHash, 5000)
 	es.EntryReCheck = make(chan *ReCheck, 1000) // To avoid deadlocks, we queue requests here,
-	es.Processing = make(chan *ReCheck, 4000)   // and we process the ReChecks here.  Ensures there is room if
 } // we have to reprocess
 
 func has(s *State, entry interfaces.IHash) bool {
@@ -59,7 +57,7 @@ func (s *State) MakeMissingEntryRequests() {
 		if !has(s, entryHash) {
 			rc := new(ReCheck)
 			rc.EntryHash = entryHash
-			rc.TimeToCheck = time.Now().Unix() + 5 // Recheck in so many seconds
+			rc.TimeToCheck = time.Now().Unix() + int64(s.DirectoryBlockInSeconds/100) // Don't check again for seconds
 			s.EntrySyncState.EntryReCheck <- rc
 		}
 	}
@@ -91,21 +89,7 @@ func (s *State) RecheckMissingEntryRequests() {
 
 	// Check if they have shown up
 	for {
-
-		// First, look for new requests, and move them into processing
-	loadProcessing:
-		for cap(s.EntrySyncState.Processing) > len(s.EntrySyncState.Processing)+1 {
-			select {
-			case er := <-s.EntrySyncState.EntryReCheck:
-				s.EntrySyncState.Processing <- er
-			default:
-				break loadProcessing
-			}
-		}
-
-		// Now process one of the requests.  If we can't process it, then it goes back into Processing,
-		// and there is always room because only
-		rc := <-s.EntrySyncState.Processing
+		rc := <-s.EntrySyncState.EntryReCheck
 		now := time.Now().Unix()
 		if now < rc.TimeToCheck { // If we are not there yet, sleep
 			time.Sleep(time.Duration(rc.TimeToCheck-now) * time.Second) // until it is time to check this guy.
@@ -116,7 +100,7 @@ func (s *State) RecheckMissingEntryRequests() {
 			entryRequest := messages.NewMissingData(s, rc.EntryHash)
 			entryRequest.SendOut(s, entryRequest)
 			rc.TimeToCheck = time.Now().Unix() + int64(s.DirectoryBlockInSeconds/100) // Don't check again for seconds
-			s.EntrySyncState.Processing <- rc
+			go func() { s.EntrySyncState.EntryReCheck <- rc }()
 		}
 	}
 }
@@ -125,7 +109,7 @@ func (s *State) RecheckMissingEntryRequests() {
 // Start up all of our supporting go routines, and run through the directory blocks and make sure we have
 // all the entries they reference.
 func (s *State) GoSyncEntries() {
-	time.Sleep(20 * time.Second)
+	time.Sleep(5 * time.Second)
 	s.EntrySyncState.Init()         // Initialize our processes
 	go s.MakeMissingEntryRequests() // Start our go routines
 	go s.WriteEntries()
@@ -145,14 +129,13 @@ func (s *State) GoSyncEntries() {
 				len(s.EntrySyncState.Processing) == 0 {
 				s.EntryDBHeightComplete = highestSaved
 				s.EntryBlockDBHeightComplete = highestSaved
-				s.EntryDBHeightProcessing = 0
 			}
 			time.Sleep(time.Duration(s.DirectoryBlockInSeconds/20) * time.Second)
 			continue
 		}
 
 		for scan := highestChecked + 1; scan <= highestSaved; scan++ {
-
+			s.EntryBlockDBHeightProcessing = scan
 			s.EntryDBHeightProcessing = scan
 
 			db := s.GetDirectoryBlockByHeight(scan)

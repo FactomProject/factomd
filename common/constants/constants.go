@@ -306,6 +306,7 @@ const (
 
 	DBSTATE_REQUEST_LIM_HIGH = 200
 	DBSTATE_REQUEST_LIM_MED  = 50
+	ENTRY_REQUEST_LIMIT      = 100
 
 	///=============== The following are bit fields! ===================
 	// Replay -- Dynamic Replay filter based on messages as they are processed.
