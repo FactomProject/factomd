@@ -121,8 +121,9 @@ type IState interface {
 	// Consensus
 	APIQueue() IQueue    // Input Queue from the API
 	InMsgQueue() IQueue  // Read by Validate
-	AckQueue() chan IMsg // Leader Queue
-	MsgQueue() chan IMsg // Follower Queue
+	AckQueue() chan IMsg // Ack Message Queue
+	MsgQueue() chan IMsg // Other Messages Queue
+	EomQueue() chan IMsg // Eom Message Queue
 	ElectionsQueue() IQueue
 
 	// Lists and Maps

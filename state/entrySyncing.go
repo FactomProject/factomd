@@ -6,14 +6,29 @@ package state
 
 import (
 	"fmt"
-	"math/rand"
 	"time"
 
-	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 )
+
+type ReCheck struct {
+	TimeToCheck int64            //Time in seconds to recheck
+	EntryHash   interfaces.IHash //Entry Hash to check
+}
+
+type EntrySync struct {
+	CheckThese   chan interfaces.IHash // hashes of entries to be checked
+	EntryReCheck chan *ReCheck         // Still don't have these guys.  Recheck
+	Processing   chan *ReCheck         // Processing these guys (so we don't block)
+}
+
+func (es *EntrySync) Init() {
+	es.CheckThese = make(chan interfaces.IHash, 5000)
+	es.EntryReCheck = make(chan *ReCheck, 1000) // To avoid deadlocks, we queue requests here,
+	es.Processing = make(chan *ReCheck, 4000)   // and we process the ReChecks here.  Ensures there is room if
+} // we have to reprocess
 
 func has(s *State, entry interfaces.IHash) bool {
 	if s.GetHighestKnownBlock()-s.GetHighestSavedBlk() > 100 {
@@ -34,185 +49,111 @@ func has(s *State, entry interfaces.IHash) bool {
 
 var _ = fmt.Print
 
+// MakeMissingEntryRequests()
 // This go routine checks every so often to see if we have any missing entries or entry blocks.  It then requests
 // them if it finds entries in the missing lists.
 func (s *State) MakeMissingEntryRequests() {
-
-	missing := 0
-	found := 0
-
-	MissingEntryMap := make(map[[32]byte]*MissingEntry)
-
+	// Check our hard drive at full blast
 	for {
-		now := time.Now()
-
-		newrequest := 0
-
-		cnt := 0
-		sum := 0
-		avg := 0
-		highest := 0
-
-		// Look through our map, and remove any entries we now have in our database.
-		for k := range MissingEntryMap {
-			if has(s, MissingEntryMap[k].EntryHash) {
-				found++
-				delete(MissingEntryMap, k)
-			} else {
-				cnt++
-				sum += MissingEntryMap[k].Cnt
-				if MissingEntryMap[k].DBHeight > uint32(highest) {
-					highest = int(MissingEntryMap[k].DBHeight)
-				}
-			}
-		}
-		if cnt > 0 {
-			avg = (1000 * sum) / cnt
-		}
-
-		ESAsking.Set(float64(len(MissingEntryMap)))
-		ESAsking.Set(float64(cnt))
-		ESFound.Set(float64(found))
-		ESAvgRequests.Set(float64(avg) / 1000)
-		ESHighestAsking.Set(float64(highest))
-
-		// Keep our map of entries that we are asking for filled up.
-	fillMap:
-		for len(MissingEntryMap) < 6000 {
-			select {
-			case et := <-s.MissingEntries:
-				missing++
-				MissingEntryMap[et.EntryHash.Fixed()] = et
-			default:
-				break fillMap
-			}
-		}
-
-		sent := 0
-		if s.inMsgQueue.Length() < constants.INMSGQUEUE_MED {
-			// Make requests for entries we don't have.
-			for k := range MissingEntryMap {
-
-				et := MissingEntryMap[k]
-
-				if et.Cnt == 0 {
-					et.Cnt = 1
-					et.LastTime = now.Add(time.Duration((rand.Int() % 5000)) * time.Millisecond)
-					continue
-				}
-
-				max := 3000
-				// If using torrent and the saved height is more than 750 behind, let torrent do it's work, and don't send out
-				// missing message requests
-				if s.UsingTorrent() && s.GetLeaderHeight() > 1000 && s.GetHighestSavedBlk() < s.GetLeaderHeight()-750 {
-					max = 1
-				}
-
-				if now.Unix()-et.LastTime.Unix() > 5 && sent < max {
-					sent++
-					entryRequest := messages.NewMissingData(s, et.EntryHash)
-					entryRequest.SendOut(s, entryRequest)
-					newrequest++
-					et.LastTime = now.Add(time.Duration((rand.Int() % 5000)) * time.Millisecond)
-					et.Cnt++
-				}
-
-			}
-		} else {
-			time.Sleep(5 * time.Second)
-		}
-
-		// Insert the entries we have found into the database.
-	InsertLoop:
-		for {
-
-			select {
-
-			case entry := <-s.WriteEntry:
-				if !has(s, entry.GetHash()) {
-
-					if MissingEntryMap[entry.GetHash().Fixed()] != nil {
-						s.DB.StartMultiBatch()
-						err := s.DB.InsertEntryMultiBatch(entry)
-						if err != nil {
-							panic(err)
-						}
-						err = s.DB.ExecuteMultiBatch()
-						if err != nil {
-							panic(err)
-						}
-					}
-				}
-
-				delete(MissingEntryMap, entry.GetHash().Fixed())
-
-			default:
-				break InsertLoop
-			}
-		}
-		if sent == 0 {
-			time.Sleep(100 * time.Millisecond)
+		entryHash := <-s.EntrySyncState.CheckThese
+		if !has(s, entryHash) {
+			rc := new(ReCheck)
+			rc.EntryHash = entryHash
+			rc.TimeToCheck = time.Now().Unix() + 5 // Recheck in so many seconds
+			s.EntrySyncState.EntryReCheck <- rc
 		}
 	}
 }
 
-func (s *State) GoSyncEntries() {
-	go s.MakeMissingEntryRequests()
-
-	// Map to track what I know is missing
-	missingMap := make(map[[32]byte]interfaces.IHash)
-
-	// Once I have found all the entries, we quit searching so much for missing entries.
-	start := uint32(1)
-
-	if s.EntryDBHeightComplete > 0 {
-		start = s.EntryDBHeightComplete
-	}
-
-	entryMissing := 0
-
-	// If I find no missing entries, then the firstMissing will be -1
-	firstMissing := -1
-	// Fix the replay filter (only have to do this once, ever)
-	firstUpdate := uint32(0)
-
-	lastfirstmissing := 0
-
-	found := 0
+// WriteEntriesToTheDB()
+// As Entries come in and are validated, then write them to the database
+func (s *State) WriteEntries() {
 
 	for {
+		entry := <-s.WriteEntry
+		if !has(s, entry.GetHash()) {
+			s.DB.StartMultiBatch()
+			err := s.DB.InsertEntryMultiBatch(entry)
+			if err != nil {
+				panic(err)
+			}
+			err = s.DB.ExecuteMultiBatch()
+			if err != nil {
+				panic(err)
+			}
+		}
+	}
+}
 
-		ESMissing.Set(float64(len(missingMap)))
-		ESMissingQueue.Set(float64(len(s.MissingEntries)))
-		ESDBHTComplete.Set(float64(s.EntryDBHeightComplete))
-		ESFirstMissing.Set(float64(lastfirstmissing))
-		ESHighestMissing.Set(float64(s.GetHighestSavedBlk()))
+// RecheckMissingEntryRequests()
+// We were missing these entries.  Check to see if we have them yet.  If we don't then schedule to recheck.
+func (s *State) RecheckMissingEntryRequests() {
 
-		entryMissing = 0
+	// Check if they have shown up
+	for {
 
-		for k := range missingMap {
-			if has(s, missingMap[k]) {
-				found++
-				delete(missingMap, k)
+		// First, look for new requests, and move them into processing
+	loadProcessing:
+		for cap(s.EntrySyncState.Processing) > len(s.EntrySyncState.Processing)+1 {
+			select {
+			case er := <-s.EntrySyncState.EntryReCheck:
+				s.EntrySyncState.Processing <- er
+			default:
+				break loadProcessing
 			}
 		}
 
-		// Scan all the directory blocks, from start to the highest saved.  Once we catch up,
-		// start will be the last block saved.
+		// Now process one of the requests.  If we can't process it, then it goes back into Processing,
+		// and there is always room because only
+		rc := <-s.EntrySyncState.Processing
+		now := time.Now().Unix()
+		if now < rc.TimeToCheck { // If we are not there yet, sleep
+			time.Sleep(time.Duration(rc.TimeToCheck-now) * time.Second) // until it is time to check this guy.
+		} else { // Note all entries are in check order in the chan
+			time.Sleep(3 * time.Millisecond) // Limit requests to something like 300 per second
+		}
+		if !has(s, rc.EntryHash) {
+			entryRequest := messages.NewMissingData(s, rc.EntryHash)
+			entryRequest.SendOut(s, entryRequest)
+			rc.TimeToCheck = time.Now().Unix() + int64(s.DirectoryBlockInSeconds/100) // Don't check again for seconds
+			s.EntrySyncState.Processing <- rc
+		}
+	}
+}
 
-		// First reset first Missing back to -1 every time.
-		firstMissing = -1
+// GoSyncEntries()
+// Start up all of our supporting go routines, and run through the directory blocks and make sure we have
+// all the entries they reference.
+func (s *State) GoSyncEntries() {
+	time.Sleep(20 * time.Second)
+	s.EntrySyncState.Init()         // Initialize our processes
+	go s.MakeMissingEntryRequests() // Start our go routines
+	go s.WriteEntries()
+	go s.RecheckMissingEntryRequests()
 
-	dirblkSearch:
-		for scan := start; scan <= s.GetHighestSavedBlk(); scan++ {
+	highestChecked := s.EntryDBHeightComplete
+	for {
 
-			if firstMissing < 0 {
-				if scan > 1 {
-					s.EntryDBHeightComplete = scan - 1
-					s.LogPrintf("EntrySync", "Scan EntryDBHeightComplete = %d", s.EntryDBHeightComplete)
-					start = scan
-				}
+		if !s.DBFinished {
+			time.Sleep(time.Second / 30)
+		}
+
+		highestSaved := s.GetHighestSavedBlk()
+		if highestSaved <= highestChecked {
+			if len(s.EntrySyncState.CheckThese) == 0 &&
+				len(s.EntrySyncState.EntryReCheck) == 0 &&
+				len(s.EntrySyncState.Processing) == 0 {
+				s.EntryDBHeightComplete = highestSaved
+				s.EntryBlockDBHeightComplete = highestSaved
+				s.EntryDBHeightProcessing = 0
 			}
+			time.Sleep(time.Duration(s.DirectoryBlockInSeconds/20) * time.Second)
+			continue
+		}
+
+		for scan := highestChecked + 1; scan <= highestSaved; scan++ {
+
+			s.EntryDBHeightProcessing = scan
 
 			db := s.GetDirectoryBlockByHeight(scan)
 
@@ -225,37 +166,7 @@ func (s *State) GoSyncEntries() {
 			// Run through all the eblocks, and make sure we have updated the Entry Hash for every Entry
 			// Hash in the EBlocks.  This only has to be done one for all the EBlocks of a directory Block,
 			// and we have the entry hashes even if we don't yet have the entries, so this is really simple.
-			if scan > firstUpdate {
-				for _, ebKeyMR := range db.GetEntryHashes()[3:] {
-					eBlock, _ := s.DB.FetchEBlock(ebKeyMR)
-
-					// Don't have an eBlock?  Huh. We can go on, but we can't advance.  We just wait until it
-					// does show up.
-					for eBlock == nil {
-						time.Sleep(1 * time.Second)
-						eBlock, _ = s.DB.FetchEBlock(ebKeyMR)
-					}
-
-					for _, entryhash := range eBlock.GetEntryHashes() {
-						if entryhash.IsMinuteMarker() {
-							continue
-						}
-
-						ueh := new(EntryUpdate)
-						ueh.Hash = entryhash
-						ueh.Timestamp = db.GetTimestamp()
-						s.UpdateEntryHash <- ueh
-
-					}
-				}
-			}
-			firstUpdate = scan
-
 			for _, ebKeyMR := range db.GetEntryHashes()[3:] {
-				// The first three entries (0,1,2) in every directory block are blocks we already have by
-				// definition.  If we decide to not have Factoid blocks or Entry Credit blocks in some cases,
-				// then this assumption might not hold.  But it does for now.
-
 				eBlock, _ := s.DB.FetchEBlock(ebKeyMR)
 
 				// Don't have an eBlock?  Huh. We can go on, but we can't advance.  We just wait until it
@@ -265,61 +176,21 @@ func (s *State) GoSyncEntries() {
 					eBlock, _ = s.DB.FetchEBlock(ebKeyMR)
 				}
 
-				// Go through all the entry hashes.
 				for _, entryhash := range eBlock.GetEntryHashes() {
 					if entryhash.IsMinuteMarker() {
 						continue
 					}
 
-					// If I have the entry, then remove it from the Missing Entries list.
-					if has(s, entryhash) {
-						found++
-						delete(missingMap, entryhash.Fixed())
-						continue
-					}
+					// Make sure we remove any pending commits
+					ueh := new(EntryUpdate)
+					ueh.Hash = entryhash
+					ueh.Timestamp = db.GetTimestamp()
+					s.UpdateEntryHash <- ueh
 
-					if firstMissing < 0 {
-						firstMissing = int(scan)
-					}
-
-					eh := missingMap[entryhash.Fixed()]
-					if eh == nil {
-
-						// If we have a full queue, break so we don't stall.
-						// If we stall, we don't properly update the s.EntryDBHeightComplete state, and then we
-						// don't reasonably report the height of Entry Blocks scanned...
-						if cap(s.MissingEntries)-len(s.MissingEntries) < 2 {
-							break dirblkSearch
-						}
-
-						var v MissingEntry
-
-						v.DBHeight = eBlock.GetHeader().GetDBHeight()
-						v.EntryHash = entryhash
-						v.EBHash = ebKeyMR
-						entryMissing++
-						missingMap[entryhash.Fixed()] = entryhash
-						s.MissingEntries <- &v
-					}
-				}
-			}
-
-			if s.EntryDBHeightComplete%1000 == 0 {
-				if firstMissing < 0 {
-					start = scan + 1 // If nothing is missing at scan, make sure we don't process at scan again.
-					//Only save EntryDBHeightComplete IF it's a multiple of 100 AND there are no missing entries
-					err := s.DB.SaveDatabaseEntryHeight(s.EntryDBHeightComplete)
-					if err != nil {
-						fmt.Printf("ERROR: %v\n", err)
-					}
+					s.EntrySyncState.CheckThese <- entryhash
 				}
 			}
 		}
-		lastfirstmissing = firstMissing
-		if firstMissing < 0 {
-			s.EntryDBHeightComplete = s.GetHighestSavedBlk()
-			s.LogPrintf("EntrySync", "firstMissing EntryDBHeightComplete = %d", s.EntryDBHeightComplete)
-			time.Sleep(10 * time.Millisecond)
-		}
+		highestChecked = highestSaved
 	}
 }
