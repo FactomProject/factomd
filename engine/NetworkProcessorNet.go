@@ -214,7 +214,7 @@ func Peers(fnode *FactomNode) {
 
 				if fnode.State.LLeaderHeight < fnode.State.DBHeightAtBoot+2 {
 					if msg.GetTimestamp().GetTimeMilli() < fnode.State.TimestampAtBoot.GetTimeMilli() {
-						fnode.State.LogMessage("NetworkInputs", "drop, too old", msg)
+						fnode.State.LogMessage("NetworkInputs", "Drop, too old", msg)
 						continue
 					}
 				}
@@ -336,18 +336,11 @@ func NetworkOutputs(fnode *FactomNode) {
 		// by an updated version when the block is ready.
 		if msg.IsLocal() {
 			// todo: Should be a dead case. Add tracking code to see if it ever happens -- clay
-			fnode.State.LogMessage("NetworkOutputs", "drop, local", msg)
-			continue
-		}
-		// Don't do a rand int if drop rate is 0
-		if fnode.State.GetDropRate() > 0 && rand.Int()%1000 < fnode.State.GetDropRate() {
-			//drop the message, rather than processing it normally
-
-			fnode.State.LogMessage("NetworkOutputs", "drop, simCtrl", msg)
+			fnode.State.LogMessage("NetworkOutputs", "Drop, local", msg)
 			continue
 		}
 		if msg.GetRepeatHash() == nil {
-			fnode.State.LogMessage("NetworkOutputs", "drop, no repeat hash", msg)
+			fnode.State.LogMessage("NetworkOutputs", "Drop, no repeat hash", msg)
 			continue
 		}
 
@@ -376,20 +369,27 @@ func NetworkOutputs(fnode *FactomNode) {
 				peer := fnode.Peers[p]
 				fnode.MLog.Add2(fnode, true, peer.GetNameTo(), "P2P out", true, msg)
 				if !fnode.State.GetNetStateOff() { // don't Send p2p messages if he is OFF
-					preSendTime := time.Now()
-					fnode.State.LogMessage("NetworkOutputs", "Send P2P "+peer.GetNameTo(), msg)
-					peer.Send(msg)
-					sendTime := time.Since(preSendTime)
-					TotalSendTime.Add(float64(sendTime.Nanoseconds()))
-					if fnode.State.MessageTally {
-						fnode.State.TallySent(int(msg.Type()))
+					// Don't do a rand int if drop rate is 0
+					if fnode.State.GetDropRate() > 0 && rand.Int()%1000 < fnode.State.GetDropRate() {
+						//drop the message, rather than processing it normally
+
+						fnode.State.LogMessage("NetworkOutputs", "Drop, simCtrl", msg)
+					} else {
+						preSendTime := time.Now()
+						fnode.State.LogMessage("NetworkOutputs", "Send P2P "+peer.GetNameTo(), msg)
+						peer.Send(msg)
+						sendTime := time.Since(preSendTime)
+						TotalSendTime.Add(float64(sendTime.Nanoseconds()))
+						if fnode.State.MessageTally {
+							fnode.State.TallySent(int(msg.Type()))
+						}
 					}
 				} else {
 
-					fnode.State.LogMessage("NetworkOutputs", "drop, simCtrl X", msg)
+					fnode.State.LogMessage("NetworkOutputs", "Drop, simCtrl X", msg)
 				}
 			} else {
-				fnode.State.LogMessage("NetworkOutputs", "drop, no peers", msg)
+				fnode.State.LogMessage("NetworkOutputs", "Drop, no peers", msg)
 			}
 		} else {
 			fnode.State.LogMessage("NetworkOutputs", "Send broadcast", msg)
@@ -403,12 +403,18 @@ func NetworkOutputs(fnode *FactomNode) {
 					bco := fmt.Sprintf("%s/%d/%d", "BCast", p, i)
 					fnode.MLog.Add2(fnode, true, peer.GetNameTo(), bco, true, msg)
 					if !fnode.State.GetNetStateOff() { // Don't send him broadcast message if he is off
-						preSendTime := time.Now()
-						peer.Send(msg)
-						sendTime := time.Since(preSendTime)
-						TotalSendTime.Add(float64(sendTime.Nanoseconds()))
-						if fnode.State.MessageTally {
-							fnode.State.TallySent(int(msg.Type()))
+						if fnode.State.GetDropRate() > 0 && rand.Int()%1000 < fnode.State.GetDropRate() {
+							//drop the message, rather than processing it normally
+
+							fnode.State.LogMessage("NetworkOutputs", "Drop, simCtrl", msg)
+						} else {
+							preSendTime := time.Now()
+							peer.Send(msg)
+							sendTime := time.Since(preSendTime)
+							TotalSendTime.Add(float64(sendTime.Nanoseconds()))
+							if fnode.State.MessageTally {
+								fnode.State.TallySent(int(msg.Type()))
+							}
 						}
 					}
 				}
