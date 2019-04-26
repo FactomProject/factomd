@@ -333,7 +333,7 @@ type State struct {
 	ReplayTimestamp interfaces.Timestamp
 
 	// State for the Entry Syncing process
-	EntrySyncState EntrySync
+	EntrySyncState *EntrySync
 
 	MissingEntryBlockRepeat interfaces.Timestamp
 	// DBlock Height at which node has a complete set of eblocks+entries

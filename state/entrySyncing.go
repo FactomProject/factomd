@@ -16,16 +16,18 @@ import (
 type ReCheck struct {
 	TimeToCheck int64            //Time in seconds to recheck
 	EntryHash   interfaces.IHash //Entry Hash to check
+	DBHeight    int
+	NumEntries  int
 }
 
 type EntrySync struct {
-	CheckThese   chan interfaces.IHash // hashes of entries to be checked
-	EntryReCheck chan *ReCheck         // Still don't have these guys.  Recheck
+	EntryReCheck chan *ReCheck // Still don't have these guys.  Recheck
+	DBHeightBase int           // This is the highest block with entries not yet checked or are missing
+	EntryCounts  []int         // [0] -- highest block with entries to be checked, [1] is the next, etc.
 }
 
 // Maintain queues of what we want to test, and what we are currently testing.
 func (es *EntrySync) Init() {
-	es.CheckThese = make(chan interfaces.IHash, 5000)
 	es.EntryReCheck = make(chan *ReCheck, 1000) // To avoid deadlocks, we queue requests here,
 } // we have to reprocess
 
@@ -47,22 +49,6 @@ func has(s *State, entry interfaces.IHash) bool {
 }
 
 var _ = fmt.Print
-
-// MakeMissingEntryRequests()
-// This go routine checks every so often to see if we have any missing entries or entry blocks.  It then requests
-// them if it finds entries in the missing lists.
-func (s *State) MakeMissingEntryRequests() {
-	// Check our hard drive at full blast
-	for {
-		entryHash := <-s.EntrySyncState.CheckThese
-		if !has(s, entryHash) {
-			rc := new(ReCheck)
-			rc.EntryHash = entryHash
-			rc.TimeToCheck = time.Now().Unix() + int64(s.DirectoryBlockInSeconds/100) // Don't check again for seconds
-			s.EntrySyncState.EntryReCheck <- rc
-		}
-	}
-}
 
 // WriteEntriesToTheDB()
 // As Entries come in and are validated, then write them to the database
@@ -87,19 +73,55 @@ func (s *State) WriteEntries() {
 // RecheckMissingEntryRequests()
 // We were missing these entries.  Check to see if we have them yet.  If we don't then schedule to recheck.
 func (s *State) RecheckMissingEntryRequests() {
-
+	es := s.EntrySyncState
 	// Check if they have shown up
 	for {
-		rc := <-s.EntrySyncState.EntryReCheck
+		rc := <-es.EntryReCheck
+		idx := rc.DBHeight - es.DBHeightBase
+
+		// Make sure the request is reasonable, and die if it isn't
+		if idx < 0 {
+			panic("A Hash that we are checking should not be from a dbheight lower than our base height")
+		}
+
+		// Make sure our tracking covers the height.  New entries are negative.
+		for len(es.EntryCounts) <= idx {
+			es.EntryCounts = append(es.EntryCounts, -1)
+		}
+
+		// Update the entry if it is new with the number of entries for the directory block.
+		if es.EntryCounts[idx] == -1 {
+			es.EntryCounts[idx] = rc.NumEntries
+		}
+
 		now := time.Now().Unix()
 		if now < rc.TimeToCheck { // If we are not there yet, sleep
 			time.Sleep(time.Duration(rc.TimeToCheck-now) * time.Second) // until it is time to check this guy.
 		}
+
 		if !has(s, rc.EntryHash) {
 			entryRequest := messages.NewMissingData(s, rc.EntryHash)
 			entryRequest.SendOut(s, entryRequest)
 			rc.TimeToCheck = time.Now().Unix() + int64(s.DirectoryBlockInSeconds/100) // Don't check again for seconds
-			go func() { s.EntrySyncState.EntryReCheck <- rc }()
+			go func() { es.EntryReCheck <- rc }()
+		} else {
+			// If we have this entry, then great!  Knock it off the count for a directory block.
+			// When that goes to zero, we update the world the directory block if finished, if we can.
+			es.EntryCounts[idx]--
+
+			// Note that where idx == 0, further passes idx no longer indexes our rc's dbheight.  That's okay,
+			// we are just checking because our entrycount at idx went to zero.  We could add an if around
+			// our for loop, or we could just check it each pass (really cheap).  I'm doing the latter.
+			for idx == 0 && len(es.EntryCounts) > 0 && es.EntryCounts[0] == 0 {
+				// Copy the counts forward one slot, and reduce the size of the array
+				copy(es.EntryCounts[0:], es.EntryCounts[1:])
+				es.EntryCounts = es.EntryCounts[:len(es.EntryCounts)-1]
+				// Move the base Directory Block forward one.
+				es.DBHeightBase++
+				// Update the world that a Directory Block has been verified
+				s.EntryBlockDBHeightComplete = uint32(es.DBHeightBase - 1)
+				s.EntryDBHeightComplete = uint32(es.DBHeightBase - 1)
+			}
 		}
 	}
 }
@@ -109,8 +131,8 @@ func (s *State) RecheckMissingEntryRequests() {
 // all the entries they reference.
 func (s *State) GoSyncEntries() {
 	time.Sleep(5 * time.Second)
-	s.EntrySyncState.Init()         // Initialize our processes
-	go s.MakeMissingEntryRequests() // Start our go routines
+	s.EntrySyncState = new(EntrySync)
+	s.EntrySyncState.Init() // Initialize our processes
 	go s.WriteEntries()
 	go s.RecheckMissingEntryRequests()
 
@@ -123,16 +145,18 @@ func (s *State) GoSyncEntries() {
 
 		highestSaved := s.GetHighestSavedBlk()
 		if highestSaved <= highestChecked {
-			if len(s.EntrySyncState.CheckThese) == 0 &&
-				len(s.EntrySyncState.EntryReCheck) == 0 {
-				s.EntryDBHeightComplete = highestSaved
-				s.EntryBlockDBHeightComplete = highestSaved
-			}
 			time.Sleep(time.Duration(s.DirectoryBlockInSeconds/20) * time.Second)
 			continue
 		}
-
+		somethingMissing := false
 		for scan := highestChecked + 1; scan <= highestSaved; scan++ {
+			// Okay, stuff we pull from wherever but there is nothing missing, then update our variables.
+			if !somethingMissing && scan > 0 && s.EntryDBHeightComplete < scan-1 {
+				s.EntryBlockDBHeightComplete = scan - 1
+				s.EntryDBHeightComplete = scan - 1
+				s.EntrySyncState.DBHeightBase = int(scan) // The base is the height of the block that might have something missing.
+			}
+
 			s.EntryBlockDBHeightProcessing = scan
 			s.EntryDBHeightProcessing = scan
 
@@ -144,12 +168,18 @@ func (s *State) GoSyncEntries() {
 				db = s.GetDirectoryBlockByHeight(scan)
 			}
 
-			// Run through all the eblocks, and make sure we have updated the Entry Hash for every Entry
-			// Hash in the EBlocks.  This only has to be done one for all the EBlocks of a directory Block,
-			// and we have the entry hashes even if we don't yet have the entries, so this is really simple.
+			// Run through all the entry blocks and entries in each directory block.
+			// If any entries are missing, collect them.  Then stuff them into the EntryReCheck channel to
+			// collect from the network.
+			var entries []interfaces.IHash
 			for _, ebKeyMR := range db.GetEntryHashes()[3:] {
-				eBlock, _ := s.DB.FetchEBlock(ebKeyMR)
-
+				eBlock, err := s.DB.FetchEBlock(ebKeyMR)
+				if err != nil {
+					panic(err)
+				}
+				if err != nil {
+					panic(err)
+				}
 				// Don't have an eBlock?  Huh. We can go on, but we can't advance.  We just wait until it
 				// does show up.
 				for eBlock == nil {
@@ -157,19 +187,34 @@ func (s *State) GoSyncEntries() {
 					eBlock, _ = s.DB.FetchEBlock(ebKeyMR)
 				}
 
-				for _, entryhash := range eBlock.GetEntryHashes() {
-					if entryhash.IsMinuteMarker() {
+				hashes := eBlock.GetEntryHashes()
+				for _, entryHash := range hashes {
+					if entryHash.IsMinuteMarker() {
 						continue
 					}
 
 					// Make sure we remove any pending commits
 					ueh := new(EntryUpdate)
-					ueh.Hash = entryhash
+					ueh.Hash = entryHash
 					ueh.Timestamp = db.GetTimestamp()
 					s.UpdateEntryHash <- ueh
 
-					s.EntrySyncState.CheckThese <- entryhash
+					// MakeMissingEntryRequests()
+					// This go routine checks every so often to see if we have any missing entries or entry blocks.  It then requests
+					// them if it finds entries in the missing lists.
+					if !has(s, entryHash) {
+						entries = append(entries, entryHash)
+						somethingMissing = true
+					}
 				}
+			}
+			for _, entryHash := range entries {
+				rc := new(ReCheck)
+				rc.EntryHash = entryHash
+				rc.TimeToCheck = time.Now().Unix() + int64(s.DirectoryBlockInSeconds/100) // Don't check again for seconds
+				rc.DBHeight = int(scan)
+				rc.NumEntries = len(entries)
+				s.EntrySyncState.EntryReCheck <- rc
 			}
 		}
 		highestChecked = highestSaved
