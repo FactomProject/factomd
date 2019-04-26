@@ -23,6 +23,7 @@ type EntrySync struct {
 	EntryReCheck chan *ReCheck         // Still don't have these guys.  Recheck
 }
 
+// Maintain queues of what we want to test, and what we are currently testing.
 func (es *EntrySync) Init() {
 	es.CheckThese = make(chan interfaces.IHash, 5000)
 	es.EntryReCheck = make(chan *ReCheck, 1000) // To avoid deadlocks, we queue requests here,
@@ -33,7 +34,7 @@ func has(s *State, entry interfaces.IHash) bool {
 		if s.UsingTorrent() {
 			// Torrents complete second pass
 		} else {
-			time.Sleep(30 * time.Millisecond)
+			time.Sleep(3 * time.Millisecond)
 		}
 	}
 	exists, err := s.DB.DoesKeyExist(databaseOverlay.ENTRY, entry.Bytes())
@@ -93,8 +94,6 @@ func (s *State) RecheckMissingEntryRequests() {
 		now := time.Now().Unix()
 		if now < rc.TimeToCheck { // If we are not there yet, sleep
 			time.Sleep(time.Duration(rc.TimeToCheck-now) * time.Second) // until it is time to check this guy.
-		} else { // Note all entries are in check order in the chan
-			time.Sleep(3 * time.Millisecond) // Limit requests to something like 300 per second
 		}
 		if !has(s, rc.EntryHash) {
 			entryRequest := messages.NewMissingData(s, rc.EntryHash)
@@ -125,8 +124,7 @@ func (s *State) GoSyncEntries() {
 		highestSaved := s.GetHighestSavedBlk()
 		if highestSaved <= highestChecked {
 			if len(s.EntrySyncState.CheckThese) == 0 &&
-				len(s.EntrySyncState.EntryReCheck) == 0 &&
-				len(s.EntrySyncState.Processing) == 0 {
+				len(s.EntrySyncState.EntryReCheck) == 0 {
 				s.EntryDBHeightComplete = highestSaved
 				s.EntryBlockDBHeightComplete = highestSaved
 			}
