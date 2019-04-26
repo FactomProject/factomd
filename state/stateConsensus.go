@@ -160,7 +160,6 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 				return true
 			}
 			s.AddToHolding(msg.GetMsgHash().Fixed(), msg) // add valid commit/reveal to holding in case it fails to get added
-			//s.Holding[msg.GetMsgHash().Fixed()] = msg
 		}
 		msg.SendOut(s, msg)
 
@@ -352,8 +351,6 @@ ackLoop:
 			case 0:
 				s.LogMessage("ackQueue", "Hold", ack)
 				// toss the ack into holding and we will try again in a bit...
-				TotalHoldingQueueInputs.Inc()
-				//s.Holding[ack.GetMsgHash().Fixed()] = ack
 				s.AddToHolding(ack.GetMsgHash().Fixed(), ack) // Add ack where valid==0
 				continue
 			}
@@ -441,7 +438,7 @@ func CheckDBKeyMR(s *State, ht uint32, hash string) error {
 func (s *State) ReviewHolding() {
 
 	preReviewHoldingTime := time.Now()
-	if len(s.XReview) > 0 || s.Syncing {
+	if len(s.XReview) > 0 {
 		return
 	}
 
@@ -484,16 +481,13 @@ func (s *State) ReviewHolding() {
 	for k, v := range s.Holding {
 
 		if int(highest)-int(saved) > 1000 {
-			TotalHoldingQueueOutputs.Inc()
-			//delete(s.Holding, k)
 			s.DeleteFromHolding(k, v, "HKB-HSB>1000")
+			continue
 		}
 
 		if v.Expire(s) {
 			s.LogMessage("executeMsg", "expire from holding", v)
 			s.ExpireCnt++
-			TotalHoldingQueueOutputs.Inc()
-			//delete(s.Holding, k)
 			s.DeleteFromHolding(k, v, "expired")
 			continue
 		}
@@ -501,8 +495,6 @@ func (s *State) ReviewHolding() {
 		eom, ok := v.(*messages.EOM)
 		if ok {
 			if (eom.DBHeight <= saved && saved > 0) || int(eom.Minute) < s.CurrentMinute {
-				TotalHoldingQueueOutputs.Inc()
-				//delete(s.Holding, k)
 				s.DeleteFromHolding(k, v, "old EOM")
 				continue
 			}
@@ -514,9 +506,7 @@ func (s *State) ReviewHolding() {
 		dbsigmsg, ok := v.(*messages.DirectoryBlockSignature)
 		if ok {
 			if dbsigmsg.DBHeight < saved && saved > 0 {
-				TotalHoldingQueueOutputs.Inc()
-				//delete(s.Holding, k)
-				s.DeleteFromHolding(k, v, "Old DBSig")
+				s.DeleteFromHolding(k, v, "old DBSig")
 				continue
 			}
 			if !dbsigmsg.IsLocal() && dbsigmsg.DBHeight > saved {
@@ -527,8 +517,6 @@ func (s *State) ReviewHolding() {
 		switch v.Validate(s) {
 		case -1:
 			s.LogMessage("executeMsg", "invalid from holding", v)
-			TotalHoldingQueueOutputs.Inc()
-			//delete(s.Holding, k)
 			s.DeleteFromHolding(k, v, "invalid from holding")
 			continue
 		case 0:
@@ -540,36 +528,27 @@ func (s *State) ReviewHolding() {
 		dbsmsg, ok := v.(*messages.DBStateMsg)
 		if ok && dbsmsg.DirectoryBlock.GetHeader().GetDBHeight() <= saved && saved > 0 {
 
-			TotalHoldingQueueOutputs.Inc()
-			//delete(s.Holding, k)
 			s.DeleteFromHolding(k, v, "old DBState")
 			continue
 		}
 
 		_, ok = s.Replay.Valid(constants.INTERNAL_REPLAY, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
 		if !ok {
-			TotalHoldingQueueOutputs.Inc()
-			//delete(s.Holding, k)
 			s.DeleteFromHolding(k, v, "INTERNAL_REPLAY")
 
 			continue
 		}
 		ok2 := s.FReplay.IsHashUnique(constants.BLOCK_REPLAY, v.GetRepeatHash().Fixed())
 		if !ok2 {
-			TotalHoldingQueueOutputs.Inc()
-			//delete(s.Holding, k)
 			s.DeleteFromHolding(k, v, "BLOCK_REPLAY")
 			continue
 		}
 
 		// If it is an entryCommit/ChainCommit/RevealEntry and it has a duplicate hash to an existing entry throw it away here
-
 		ce, ok := v.(*messages.CommitEntryMsg)
 		if ok {
 			x := s.NoEntryYet(ce.CommitEntry.EntryHash, ce.CommitEntry.GetTimestamp())
 			if !x {
-				TotalHoldingQueueOutputs.Inc()
-				//delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
 				s.DeleteFromHolding(k, v, "already committed")
 				continue
 			}
@@ -581,9 +560,7 @@ func (s *State) ReviewHolding() {
 		if ok {
 			x := s.NoEntryYet(cc.CommitChain.EntryHash, cc.CommitChain.GetTimestamp())
 			if !x {
-				TotalHoldingQueueOutputs.Inc()
-				//delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
-				s.DeleteFromHolding(k, v, "already committed")
+				s.DeleteFromHolding(k, v, "already committed chain")
 				continue
 			}
 		}
@@ -591,7 +568,7 @@ func (s *State) ReviewHolding() {
 		// If a Reveal Entry has a commit available, then process the Reveal Entry and send it out.
 		if re, ok := v.(*messages.RevealEntryMsg); ok {
 			if !s.NoEntryYet(re.GetHash(), s.GetLeaderTimestamp()) {
-				delete(s.Holding, re.GetHash().Fixed())
+				s.DeleteFromHolding(re.GetHash().Fixed(), re, "already committed reveal")
 				s.Commits.Delete(re.GetHash().Fixed())
 				continue
 			}
@@ -607,7 +584,6 @@ func (s *State) ReviewHolding() {
 
 		TotalXReviewQueueInputs.Inc()
 		s.XReview = append(s.XReview, v)
-		TotalHoldingQueueOutputs.Inc()
 	}
 	reviewHoldingTime := time.Since(preReviewHoldingTime)
 	TotalReviewHoldingTime.Add(float64(reviewHoldingTime.Nanoseconds()))
@@ -787,9 +763,6 @@ func (s *State) AddDBState(isNew bool,
 func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 	FollowerExecutions.Inc()
 	// add it to the holding queue in case AddToProcessList may remove it
-	TotalHoldingQueueInputs.Inc()
-
-	//s.Holding[m.GetMsgHash().Fixed()] = m
 	s.AddToHolding(m.GetMsgHash().Fixed(), m) // FollowerExecuteMsg()
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
 
@@ -827,9 +800,6 @@ func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
 
 	FollowerEOMExecutions.Inc()
 	// add it to the holding queue in case AddToProcessList may remove it
-	TotalHoldingQueueInputs.Inc()
-	//s.Holding[m.GetMsgHash().Fixed()] = m // FollowerExecuteEOM
-
 	s.AddToHolding(m.GetMsgHash().Fixed(), m) // follower execute nonlocal EOM
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
 	if ack != nil {
@@ -1281,20 +1251,15 @@ func (s *State) FollowerExecuteCommitEntry(m interfaces.IMsg) {
 
 func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 	FollowerExecutions.Inc()
-	TotalHoldingQueueInputs.Inc()
 
-	//s.Holding[m.GetMsgHash().Fixed()] = m // hold in  FollowerExecuteRevealEntry
 	s.AddToHolding(m.GetMsgHash().Fixed(), m) // hold in  FollowerExecuteRevealEntry
-
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
 
 	if ack == nil {
-		// todo: prevent this log from double logging
 		s.LogMessage("executeMsg", "hold, no ack yet", m)
 		return
 	}
 
-	//ack.SendOut(s, ack)
 	m.SetLeaderChainID(ack.GetLeaderChainID())
 	m.SetMinute(ack.Minute)
 	m.SendOut(s, m)
@@ -1328,8 +1293,6 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 	LeaderExecutions.Inc()
 	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, m.GetRepeatHash().Fixed(), m.GetTimestamp(), s.GetTimestamp())
 	if !ok {
-		TotalHoldingQueueOutputs.Inc()
-		//delete(s.Holding, m.GetMsgHash().Fixed())
 		s.DeleteFromHolding(m.GetMsgHash().Fixed(), m, "INTERNAL_REPLAY")
 		if s.DebugExec() {
 			s.LogMessage("executeMsg", "drop replay", m)
@@ -1441,9 +1404,7 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
 
 	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, m.GetRepeatHash().Fixed(), m.GetTimestamp(), s.GetTimestamp())
 	if !ok {
-		TotalHoldingQueueOutputs.Inc()
 		HoldingQueueDBSigOutputs.Inc()
-		//delete(s.Holding, m.GetMsgHash().Fixed())
 		s.DeleteFromHolding(m.GetMsgHash().Fixed(), m, "INTERNAL_REPLAY")
 		s.LogMessage("executeMsg", "drop INTERNAL_REPLAY", m)
 		return
@@ -1585,7 +1546,6 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 			entry.SendOut(s, entry)
 			TotalXReviewQueueInputs.Inc()
 			s.XReview = append(s.XReview, entry)
-			TotalHoldingQueueOutputs.Inc()
 		}
 		pl.EntryCreditBlock.GetBody().AddEntry(c.CommitChain)
 		return true
@@ -1610,7 +1570,6 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 			entry.SendOut(s, entry)
 			TotalXReviewQueueInputs.Inc()
 			s.XReview = append(s.XReview, entry)
-			TotalHoldingQueueOutputs.Inc()
 		}
 		pl.EntryCreditBlock.GetBody().AddEntry(c.CommitEntry)
 		return true
@@ -1654,7 +1613,7 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) (worked b
 	}
 	// Handle the case that this is a Entry Chain create
 	// Must be built with CommitChain (i.e. !msg.IsEntry).  Also
-	// cannot have an existing chaing (eb and eb_db == nil)
+	// cannot have an existing chain (eb and eb_db == nil)
 	if !msg.IsEntry && eb == nil && eb_db == nil {
 		// Create a new Entry Block for a new Entry Block Chain
 		eb = entryBlock.NewEBlock()
@@ -2549,7 +2508,7 @@ func (s *State) GetE(rt bool, adr [32]byte) (v int64) {
 }
 
 // PutE()
-// If rt == true, update the Temp balances.  Otherwise update the Permenent balances.
+// If rt == true, update the Temp balances.  Otherwise update the Permanent balances.
 // concurrency safe to call
 func (s *State) PutE(rt bool, adr [32]byte, v int64) {
 	if rt {
