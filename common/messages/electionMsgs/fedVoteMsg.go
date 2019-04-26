@@ -175,7 +175,8 @@ func (m *FedVoteMsg) ElectionValidate(ie interfaces.IElections) int {
 
 	// Ignore all elections messages from the past
 	if int(m.DBHeight) < e.DBHeight || (int(m.DBHeight) == e.DBHeight && m.ComparisonMinute() < e.ComparisonMinute()) {
-		e.LogMessage("election", "Message is invalid (past)", m)
+		e.LogMessage("election", " taken"+
+			"Message is invalid (past)", m)
 		return -1
 	}
 
