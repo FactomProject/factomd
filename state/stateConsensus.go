@@ -91,14 +91,14 @@ func (s *State) Validate(msg interfaces.IMsg) (rval int) {
 	// check the time frame of messages with ACKs and reject any that are before the message filter time (before boot
 	// or outside the replay filter time frame)
 
-	defer func() {
-		switch *&rval {
-		case -1:
-			s.LogMessage("invalidMsg", "-1", msg)
-		case 0:
-			s.LogMessage("invalidMsg", " 0", msg)
-		}
-	}()
+	//defer func() {
+	//	switch *&rval {
+	//	case -1:
+	//		s.LogMessage("msgvalidation", "-1", msg)
+	//	case 0:
+	//		s.LogMessage("msgvalidation", " 0", msg)
+	//	}
+	//}()
 
 	switch msg.Type() {
 	case constants.DBSTATE_MSG, constants.DATA_RESPONSE, constants.MISSING_MSG, constants.MISSING_DATA, constants.MISSING_ENTRY_BLOCKS, constants.DBSTATE_MISSING_MSG, constants.ENTRY_BLOCK_RESPONSE:
