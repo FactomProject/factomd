@@ -28,7 +28,7 @@ type EntrySync struct {
 
 // Maintain queues of what we want to test, and what we are currently testing.
 func (es *EntrySync) Init() {
-	es.EntryReCheck = make(chan *ReCheck, 1000) // To avoid deadlocks, we queue requests here,
+	es.EntryReCheck = make(chan *ReCheck, 10000) // To avoid deadlocks, we queue requests here,
 } // we have to reprocess
 
 func has(s *State, entry interfaces.IHash) bool {
@@ -137,6 +137,7 @@ func (s *State) GoSyncEntries() {
 	go s.RecheckMissingEntryRequests()
 
 	highestChecked := s.EntryDBHeightComplete
+
 	for {
 
 		if !s.DBFinished {
@@ -207,6 +208,9 @@ func (s *State) GoSyncEntries() {
 						somethingMissing = true
 					}
 				}
+			}
+			for cap(s.EntrySyncState.EntryReCheck) < len(s.EntrySyncState.EntryReCheck)+cap(s.EntrySyncState.EntryReCheck)/1000 {
+				time.Sleep(time.Second)
 			}
 			for _, entryHash := range entries {
 				rc := new(ReCheck)
