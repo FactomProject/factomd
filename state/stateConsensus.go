@@ -387,7 +387,8 @@ ackLoop:
 				if msg == nil {
 					continue
 				}
-				if msg.GetVMIndex() == s.LeaderVMIndex {
+				// keep messages I need to process and any ack that are now valid
+				if msg.GetVMIndex() == s.LeaderVMIndex || msg.Type() == constants.ACK_MSG {
 					process = append(process, msg)
 				}
 			}
