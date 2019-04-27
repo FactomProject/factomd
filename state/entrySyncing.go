@@ -30,17 +30,10 @@ type EntrySync struct {
 
 // Maintain queues of what we want to test, and what we are currently testing.
 func (es *EntrySync) Init() {
-	es.MissingDBlockEntries = make(chan []*ReCheck, 10) // Check 10 directory blocks at a time.
+	es.MissingDBlockEntries = make(chan []*ReCheck, 10000) // Check 10 directory blocks at a time.
 } // we have to reprocess
 
 func has(s *State, entry interfaces.IHash) bool {
-	if s.GetHighestKnownBlock()-s.GetHighestSavedBlk() > 100 {
-		if s.UsingTorrent() {
-			// Torrents complete second pass
-		} else {
-			time.Sleep(3 * time.Millisecond)
-		}
-	}
 	exists, err := s.DB.DoesKeyExist(databaseOverlay.ENTRY, entry.Bytes())
 	if exists {
 		if err != nil {
@@ -76,30 +69,75 @@ func (s *State) WriteEntries() {
 // We were missing these entries.  Check to see if we have them yet.  If we don't then schedule to recheck.
 func (s *State) RequestAndCollectMissingEntries() {
 	es := s.EntrySyncState
+	delay := int64(10000000)
+	last := time.Now().UnixNano() / 1000 // Time in microseconds
+	avg := int64(0)
+	avgTries := int64(1000)
 	for {
-		dbht := 0
 		missing := true
+		dbrcs := <-es.MissingDBlockEntries
+		dbht := 0
+	get10:
+		for i := 0; i < 10000; { // 1000+ entries
+			select {
+			case dbrcs2 := <-es.MissingDBlockEntries:
+				dbrcs = append(dbrcs, dbrcs2...)
+				dbht = dbrcs2[0].DBHeight // keep the directory hieight of the last directory block in the set
+				i += dbrcs2[0].NumEntries // Add the entries in this directory block
+			default:
+				break get10
+			}
+		}
+		pass := 0
 		for missing {
-			dbrcs := <-es.MissingDBlockEntries
 			missing = false
-			found := 0
+			found := int64(1)
+			total := int64(len(dbrcs))
+			pass++
 			for i, rc := range dbrcs {
-				dbht = rc.DBHeight
-				if rc != nil && !has(s, rc.EntryHash) {
+				if rc == nil {
+					continue
+				}
+				if !has(s, rc.EntryHash) {
+					rc.Tries++
 					entryRequest := messages.NewMissingData(s, rc.EntryHash)
 					entryRequest.SendOut(s, entryRequest)
-					rc.Tries++
+					d := delay / ((total - found) + 1) * int64((rc.Tries/2)*10+1)
+					time.Sleep(time.Duration(d))
 					missing = true
 				} else {
 					found++
-					s.LogPrintf("entrysyncing", "%20s Entry:%x dbht:%6d tries:%d found:%6d/%6d",
-						"Found Entry",
-						rc.EntryHash.Bytes()[:6], rc.DBHeight, rc.Tries, found, len(dbrcs))
 					dbrcs[i] = nil
+					if rc.Tries > 0 {
+						now := time.Now().UnixNano() / 1000 // Time in microseconds
+						navg := (avg*20 + (now-last)*1000) / 21
+						navgTries := (avgTries*20 + int64(rc.Tries*1000)) / 21
+
+						if navgTries > 3000 {
+							delay = delay + delay/9995 + 1
+						}
+						if navgTries <= 3000 {
+							delay = delay - delay/9999 - 1
+							if delay < 0 {
+								delay = 10
+							}
+						}
+						d := delay / ((total - found) + 1) * int64(rc.Tries/2+1)
+						time.Sleep(time.Duration(d) * time.Microsecond)
+
+						avg = navg
+						avgTries = navgTries
+					}
+					s.LogPrintf("entrysyncing", "%20s %x dbht %d tries %6d avg %6d.%03d delay %d.%03d ms QueueLen: %d",
+						"Found Entry",
+						rc.EntryHash.Bytes()[:6],
+						rc.DBHeight,
+						rc.Tries,
+						avgTries/1000, avgTries%1000,
+						delay/1000, delay%1000,
+						len(es.MissingDBlockEntries))
 				}
-				rc.Tries++
 			}
-			time.Sleep(10 * time.Millisecond)
 		}
 		s.LogPrintf("entrysyncing", "%20s dbht %d",
 			"Found Entry", dbht)
@@ -127,10 +165,7 @@ func (s *State) GoSyncEntries() {
 		}
 
 		highestSaved := s.GetHighestSavedBlk()
-		if highestSaved <= highestChecked {
-			time.Sleep(time.Duration(s.DirectoryBlockInSeconds/20) * time.Second)
-			continue
-		}
+
 		somethingMissing := false
 		for scan := highestChecked + 1; scan <= highestSaved; scan++ {
 			// Okay, stuff we pull from wherever but there is nothing missing, then update our variables.
@@ -139,7 +174,7 @@ func (s *State) GoSyncEntries() {
 				s.EntryDBHeightComplete = scan - 1
 				s.EntrySyncState.DBHeightBase = int(scan) // The base is the height of the block that might have something missing.
 				if scan%100 == 0 {
-					s.LogPrintf("entrysyncing", "DBHeight Complete %d", scan-1)
+					//	s.LogPrintf("entrysyncing", "DBHeight Complete %d", scan-1)
 				}
 			}
 
@@ -201,8 +236,8 @@ func (s *State) GoSyncEntries() {
 
 			lookingfor += len(entries)
 			if scan%100 == 0 && lookingfor > 0 {
-				s.LogPrintf("entrysyncing", "Missing entries total %10d at height %10d: %10d Queue %10d",
-					lookingfor, scan, len(entries), len(s.EntrySyncState.MissingDBlockEntries))
+				//	s.LogPrintf("entrysyncing", "Missing entries total %10d at height %10d directory entries: %10d QueueLen %10d",
+				//		lookingfor, scan, len(entries), len(s.EntrySyncState.MissingDBlockEntries))
 			}
 
 			if len(entries) > 0 {
