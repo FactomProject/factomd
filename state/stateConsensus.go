@@ -84,69 +84,115 @@ func (s *State) DeleteFromHolding(hash [32]byte, msg interfaces.IMsg, reason str
 		TotalHoldingQueueOutputs.Inc()
 	}
 }
+
+// this is the common validation to all messages. they must not be a reply, they must not be out size the time window
+// for the replay filter.
+func (s *State) Validate(msg interfaces.IMsg) (rval int) {
+	// check the time frame of messages with ACKs and reject any that are before the message filter time (before boot
+	// or outside the replay filter time frame)
+
+	//defer func() {
+	//	switch *&rval {
+	//	case -1:
+	//		s.LogMessage("msgvalidation", "-1", msg)
+	//	case 0:
+	//		s.LogMessage("msgvalidation", " 0", msg)
+	//	}
+	//}()
+
+	switch msg.Type() {
+	case constants.DBSTATE_MSG, constants.DATA_RESPONSE, constants.MISSING_MSG, constants.MISSING_DATA, constants.MISSING_ENTRY_BLOCKS, constants.DBSTATE_MISSING_MSG, constants.ENTRY_BLOCK_RESPONSE:
+		// Allow these thru as they do not have Ack's (they don't change processlists)
+	default:
+		// Make sure we don't put in an old ack'd message (outside our repeat filter range)
+		tlim := int64(Range * 60 * 2 * 1000000000)                       // Filter hold two hours of messages, one in the past one in the future
+		filterTime := s.GetMessageFilterTimestamp().GetTime().UnixNano() // this is the start of the filter
+
+		if filterTime == 0 {
+			panic("got 0 time")
+		}
+
+		msgtime := msg.GetTimestamp().GetTime().UnixNano()
+
+		// Make sure we don't put in an old msg (outside our repeat range)
+		{ // debug
+			if msgtime < filterTime || msgtime > (filterTime+tlim) {
+				s.LogPrintf("executeMsg", "MsgFilter %s", s.GetMessageFilterTimestamp().GetTime().String())
+				s.LogPrintf("executeMsg", "Leader    %s", s.GetLeaderTimestamp().GetTime().String())
+				s.LogPrintf("executeMsg", "Message   %s", msg.GetTimestamp().GetTime().String())
+			}
+		}
+		// messages before message filter timestamp it's an old message
+		if msgtime < filterTime {
+			s.LogMessage("executeMsg", "drop message, more than an hour in the past", msg)
+			return -1 // Old messages are bad.
+		} else if msgtime > (filterTime + tlim) {
+			s.LogMessage("executeMsg", "hold message from the future", msg)
+			return 0 // Future stuff I can hold for now.  It might be good later?
+		}
+	}
+
+	// During boot ignore messages that are more than 15 minutes old...
+	if s.IgnoreMissing && msg.Type() != constants.DBSTATE_MSG {
+		now := s.GetTimestamp().GetTimeSeconds()
+		if now-msg.GetTimestamp().GetTimeSeconds() > 60*15 {
+			s.LogMessage("executeMsg", "ignoreMissing", msg)
+			return -1
+		}
+	}
+
+	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
+	if !ok {
+		consenLogger.WithFields(msg.LogFields()).Debug("executeMsg (Replay Invalid)")
+		s.LogMessage("executeMsg", "drop, INTERNAL_REPLAY", msg)
+		return -1
+	}
+
+	// Ok it passed all the common test have the message check itself for message specific details
+	return msg.Validate(s)
+}
+
 func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
+
+	if s.executeRecursionDetection == nil {
+		s.executeRecursionDetection = make(map[[32]byte]interfaces.IMsg, 10)
+	}
+
+	repeatHash := msg.GetRepeatHash().Fixed()
+	{
+		// detect if we recurse with the same message we are currently executing
+		_, ok := s.executeRecursionDetection[repeatHash]
+		if ok {
+			panic("executeMsg() recursed")
+		}
+		s.executeRecursionDetection[repeatHash] = msg
+		defer delete(s.executeRecursionDetection, repeatHash)
+	}
 
 	if msg.GetHash() == nil || reflect.ValueOf(msg.GetHash()).IsNil() {
 		s.LogMessage("badMsgs", "Nil hash in executeMsg", msg)
 		return false
 	}
 
-	preExecuteMsgTime := time.Now()
-	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
-	if !ok {
-		consenLogger.WithFields(msg.LogFields()).Debug("executeMsg (Replay Invalid)")
-		s.LogMessage("executeMsg", "replayInvalid", msg)
-		return
+	if s.Leader && s.RunLeader && vm != s.LeaderPL.VMs[s.LeaderVMIndex] {
+		// todo: This happens because startelection calls process to process all msgs as far as can be reached before
+		//  letting the election happens. Calling process can process EOMs and thus change the VM from the one that
+		//  was appropriate when called. The caller actually has no use for the VM so we should just look it up here
+		//  and not pass it in.
+		s.LogPrintf("executeMsg", "executeMsg() called with the wrong VM!")
 	}
+
+	// track how long we spend in executeMsg
+	preExecuteMsgTime := time.Now()
+	defer func() {
+		executeMsgTime := time.Since(preExecuteMsgTime)
+		TotalExecuteMsgTime.Add(float64(executeMsgTime.Nanoseconds()))
+	}()
+
 	s.SetString()
 	msg.ComputeVMIndex(s)
 
-	// never ignore DBState messages
-	if s.IgnoreMissing && msg.Type() != constants.DBSTATE_MSG {
-		now := s.GetTimestamp().GetTimeSeconds()
-		if now-msg.GetTimestamp().GetTimeSeconds() > 60*15 {
-			s.LogMessage("executeMsg", "ignoreMissing", msg)
-			return
-		}
-	}
-
-	valid := msg.Validate(s)
-	if valid == 1 {
-		// Sometimes we think the LoadDatabase() thread starts before the boot time gets set -- hack to be fixed
-		switch msg.Type() {
-		case constants.DBSTATE_MSG, constants.DATA_RESPONSE, constants.MISSING_MSG, constants.MISSING_DATA, constants.MISSING_ENTRY_BLOCKS, constants.DBSTATE_MISSING_MSG, constants.ENTRY_BLOCK_RESPONSE:
-			// Allow these thru as they do not have Ack's (they don't change processlists)
-		default:
-			// Make sure we don't put in an old ack'd message (outside our repeat filter range)
-			tlim := int64(Range * 60 * 2 * 1000000000)                       // Filter hold two hours of messages, one in the past one in the future
-			filterTime := s.GetMessageFilterTimestamp().GetTime().UnixNano() // this is the start of the filter
-
-			if filterTime == 0 {
-				panic("got 0 time")
-			}
-
-			msgtime := msg.GetTimestamp().GetTime().UnixNano()
-
-			// Make sure we don't put in an old msg (outside our repeat range)
-			{ // debug
-				if msgtime < filterTime || msgtime > (filterTime+tlim) {
-					s.LogPrintf("executeMsg", "MsgFilter %s", s.GetMessageFilterTimestamp().GetTime().String())
-
-					s.LogPrintf("executeMsg", "Leader    %s", s.GetLeaderTimestamp().GetTime().String())
-					s.LogPrintf("executeMsg", "Message   %s", msg.GetTimestamp().GetTime().String())
-				}
-			}
-			// messages before message filter timestamp it's an old message
-			if msgtime < filterTime {
-				s.LogMessage("executeMsg", "drop message, more than an hour in the past", msg)
-				valid = -1 // Old messages are bad.
-			} else if msgtime > (filterTime + tlim) {
-				s.LogMessage("executeMsg", "hold message from the future", msg)
-				valid = 0 // Future stuff I can hold for now.  It might be good later?
-			}
-		}
-	}
-
+	valid := s.Validate(msg)
 	switch valid {
 	case 1:
 		switch msg.Type() {
@@ -195,33 +241,24 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 			msg.FollowerExecute(s)
 		}
 
-		ret = true
+		return true
 
 	case 0:
 		// Sometimes messages we have already processed are in the msgQueue from holding when we execute them
 		// this check makes sure we don't put them back in holding after just deleting them
-		if _, valid := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp()); valid {
-			//s.Holding[msg.GetMsgHash().Fixed()] = msg
-			s.AddToHolding(msg.GetMsgHash().Fixed(), msg) // Add message where valid==0
-			s.LogMessage("executeMsg", "hold", msg)
-		} else {
-			s.LogMessage("executeMsg", "drop, IReplay", msg)
-		}
+		s.AddToHolding(msg.GetMsgHash().Fixed(), msg) // Add message where valid==0
+		s.LogMessage("executeMsg", "hold", msg)
+		return false
 
 	default:
 		s.LogMessage("executeMsg", "drop, InvalidMsg", msg)
 		if !msg.SentInvalid() {
 			msg.MarkSentInvalid(true)
-			s.LogMessage("executeMsg", "Send to InvalidMsgQueue", msg)
+			//			s.LogMessage("executeMsg", "Send to InvalidMsgQueue", msg)
 			s.networkInvalidMsgQueue <- msg
 		}
+		return true
 	}
-
-	executeMsgTime := time.Since(preExecuteMsgTime)
-	TotalExecuteMsgTime.Add(float64(executeMsgTime.Nanoseconds()))
-
-	return
-
 }
 
 func (s *State) Process() (progress bool) {
@@ -345,7 +382,7 @@ ackLoop:
 	for {
 		select {
 		case ack := <-s.ackQueue:
-			switch ack.Validate(s) {
+			switch s.Validate(ack) {
 			case -1:
 				s.LogMessage("ackQueue", "drop Invalid", ack)
 				continue
@@ -357,17 +394,6 @@ ackLoop:
 				s.AddToHolding(ack.GetMsgHash().Fixed(), ack) // Add ack where valid==0
 				continue
 			}
-
-			if s.IgnoreMissing {
-				if (now/1000 - ack.GetTimestamp().GetTimeSeconds()) < 60*15 {
-					s.LogMessage("ackQueue", "Execute", ack)
-					progress = s.executeMsg(vm, ack) || progress
-				} else {
-					s.LogMessage("ackQueue", "drop Too Old", ack)
-				}
-				continue
-			}
-
 			s.LogMessage("ackQueue", "Execute2", ack)
 			progress = s.executeMsg(vm, ack) || progress
 
@@ -390,7 +416,8 @@ ackLoop:
 				if msg == nil {
 					continue
 				}
-				if msg.GetVMIndex() == s.LeaderVMIndex {
+
+				if msg.GetVMIndex() == s.LeaderVMIndex || msg.Type() == constants.ACK_MSG {
 					process = append(process, msg)
 				}
 			}
@@ -406,7 +433,7 @@ ackLoop:
 	for _, msg := range process {
 		newProgress := s.executeMsg(vm, msg)
 		progress = newProgress || progress //
-		//		s.LogMessage("executeMsg", fmt.Sprintf("From processq : %t", newProgress), msg)
+		s.LogMessage("executeMsg", "From process", msg)
 		s.UpdateState()
 	} // processLoop for{...}
 
@@ -441,7 +468,7 @@ func CheckDBKeyMR(s *State, ht uint32, hash string) error {
 func (s *State) ReviewHolding() {
 
 	preReviewHoldingTime := time.Now()
-	if len(s.XReview) > 0 || s.Syncing {
+	if len(s.XReview) > 0 {
 		return
 	}
 
@@ -524,7 +551,7 @@ func (s *State) ReviewHolding() {
 			}
 		}
 
-		switch v.Validate(s) {
+		switch s.Validate(v) {
 		case -1:
 			s.LogMessage("executeMsg", "invalid from holding", v)
 			TotalHoldingQueueOutputs.Inc()
@@ -546,24 +573,18 @@ func (s *State) ReviewHolding() {
 			continue
 		}
 
-		_, ok = s.Replay.Valid(constants.INTERNAL_REPLAY, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
-		if !ok {
-			TotalHoldingQueueOutputs.Inc()
-			//delete(s.Holding, k)
-			s.DeleteFromHolding(k, v, "INTERNAL_REPLAY")
-
-			continue
-		}
-		ok2 := s.FReplay.IsHashUnique(constants.BLOCK_REPLAY, v.GetRepeatHash().Fixed())
-		if !ok2 {
-			TotalHoldingQueueOutputs.Inc()
-			//delete(s.Holding, k)
-			s.DeleteFromHolding(k, v, "BLOCK_REPLAY")
-			continue
+		// if it is a Factoid or entry credit transaction then check BLOCK_REPLAY
+		switch v.Type() {
+		case constants.FACTOID_TRANSACTION_MSG, constants.COMMIT_CHAIN_MSG, constants.COMMIT_ENTRY_MSG:
+			ok2 := s.FReplay.IsHashUnique(constants.BLOCK_REPLAY, v.GetRepeatHash().Fixed())
+			if !ok2 {
+				s.DeleteFromHolding(k, v, "BLOCK_REPLAY")
+				continue
+			}
+		default:
 		}
 
 		// If it is an entryCommit/ChainCommit/RevealEntry and it has a duplicate hash to an existing entry throw it away here
-
 		ce, ok := v.(*messages.CommitEntryMsg)
 		if ok {
 			x := s.NoEntryYet(ce.CommitEntry.EntryHash, ce.CommitEntry.GetTimestamp())
@@ -591,7 +612,7 @@ func (s *State) ReviewHolding() {
 		// If a Reveal Entry has a commit available, then process the Reveal Entry and send it out.
 		if re, ok := v.(*messages.RevealEntryMsg); ok {
 			if !s.NoEntryYet(re.GetHash(), s.GetLeaderTimestamp()) {
-				delete(s.Holding, re.GetHash().Fixed())
+				s.DeleteFromHolding(re.GetHash().Fixed(), re, "already committed reveal")
 				s.Commits.Delete(re.GetHash().Fixed())
 				continue
 			}
@@ -811,9 +832,14 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 // Returns true if it finds a match, puts the message in holding, or invalidates the message
 func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
 
-	if m.IsLocal() {
-		s.AddToHolding(m.GetMsgHash().Fixed(), m) // follower execute local EOM
-		return                                    // This is an internal EOM message.  We are not a leader so ignore.
+	if m.IsLocal() && !s.Leader {
+		return // This is an internal EOM message.  We are not a leader so ignore.
+	} else if m.IsLocal() {
+		go func() { // This is a trigger to issue the EOM, but we are still syncing.  Wait to retry.
+			time.Sleep(time.Duration(s.DirectoryBlockInSeconds) * time.Second / 600) // Once a second for 10 min block
+			s.MsgQueue() <- m                                                        // Goes in the "do this really fast" queue so we are prompt about EOM's while syncing
+		}()
+		return
 	}
 
 	eom, ok := m.(*messages.EOM)
@@ -1088,44 +1114,50 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 
-	if s.inMsgQueue.Length() > constants.INMSGQUEUE_HIGH {
-		s.LogMessage("executeMsg", "drop INMSGQUEUE_HIGH", m)
-		return
-	}
 	// Just ignore missing messages for a period after going off line or starting up.
-
 	if s.IgnoreMissing {
 		s.LogMessage("executeMsg", "drop IgnoreMissing", m)
-		return
-	}
-	// Drop the missing message response if it's already in the process list
-	_, valid := s.Replay.Valid(constants.INTERNAL_REPLAY, m.GetRepeatHash().Fixed(), m.GetTimestamp(), s.GetTimestamp())
-	if !valid {
-		s.LogMessage("executeMsg", "drop, INTERNAL_REPLAY", m)
 		return
 	}
 
 	mmr, _ := m.(*messages.MissingMsgResponse)
 
+	if mmr.AckResponse == nil {
+		s.LogMessage("executeMsg", "drop MMR ack is nil", m)
+		return
+	}
+
+	if mmr.MsgResponse == nil {
+		s.LogMessage("executeMsg", "drop MMR message is nil", m)
+		return
+	}
+
+	msg := mmr.MsgResponse
 	ack, ok := mmr.AckResponse.(*messages.Ack)
+
+// If we don't need this message, we don't have to do everything else.
+	if !ok {
+		s.LogMessage("executeMsg", "drop mmr ack is not an ack", m)
+		return
+	}
 
 	// This prevents past messages from a previously running network from getting into a rebooted network and interfering with
 	// the new instance of the network.  We only allow messages after we have been booted, with a little bit of slack for
 	// messages generated only a bit before we booted (hence the -(60*1000) at the end there).
 	if ack.DBHeight < s.DBHeightAtBoot+2 && ack.GetTimestamp().GetTimeMilli() < s.TimestampAtBoot.GetTimeMilli()-(60*1000) {
-		s.LogMessage("executeMsg", "drop, too old", m)
+		s.LogMessage("executeMsg", "drop, MMR ack too old", m)
 		return
 	}
 
 	// If we don't need this message, we don't have to do everything else.
-	if !ok {
-		s.LogMessage("executeMsg", "drop no ack", m)
+	if s.Validate(ack) < 0 {
+		s.LogMessage("executeMsg", "drop MMR ack invalid", m)
 		return
 	}
 
 	// If we don't need this message, we don't have to do everything else.
-	if ack.Validate(s) == -1 {
-		s.LogMessage("executeMsg", "drop ack invalid", m)
+	if s.Validate(msg) < 0 {
+		s.LogMessage("executeMsg", "drop MMR message invalid", m)
 		return
 	}
 	ack.Response = true
@@ -1146,18 +1178,13 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 
 	TotalAcksInputs.Inc()
 
-	if okm {
-		s.LogMessage("executeMsg", "FollowerExecute3", msg)
-		msg.FollowerExecute(s)
+	s.LogMessage("executeMsg", "FollowerExecute3(MMR)", msg)
+	msg.FollowerExecute(s)
 
-		s.LogMessage("executeMsg", "FollowerExecute4", ack)
-		ack.FollowerExecute(s)
+	s.LogMessage("executeMsg", "FollowerExecute4(MMR)", ack)
+	ack.FollowerExecute(s)
 
-		s.MissingResponseAppliedCnt++
-	} else {
-		s.LogMessage("executeMsg", "drop, INTERNAL_REPLAY", msg)
-
-	}
+	s.MissingResponseAppliedCnt++
 }
 
 func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
@@ -1325,6 +1352,15 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 }
 
 func (s *State) LeaderExecute(m interfaces.IMsg) {
+	vm := s.LeaderPL.VMs[s.LeaderVMIndex]
+	if len(vm.List) != vm.Height {
+		go func() { // We have some processing to do before we can schedule this.
+			time.Sleep(time.Duration(s.DirectoryBlockInSeconds) * time.Second / 600) // Once a second for 10 min block
+			s.InMsgQueue().Enqueue(m)
+		}()
+		return
+	}
+
 	LeaderExecutions.Inc()
 	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, m.GetRepeatHash().Fixed(), m.GetTimestamp(), s.GetTimestamp())
 	if !ok {
@@ -1458,6 +1494,18 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
 }
 
 func (s *State) LeaderExecuteCommitChain(m interfaces.IMsg) {
+
+	vm := s.LeaderPL.VMs[s.LeaderVMIndex]
+	if len(vm.List) != vm.Height {
+		go func() { // We can't process yet.  Wait and resort
+			time.Sleep(time.Duration(s.DirectoryBlockInSeconds) * time.Second / 600) // Once a second for 10 min block
+			s.InMsgQueue().Enqueue(m)
+			// Goes in the "resort" queue
+		}()
+return
+
+	}
+
 	cc := m.(*messages.CommitChainMsg)
 	// Check if this commit has more entry credits than any previous that we have.
 	if !s.IsHighestCommit(cc.GetHash(), m) {
@@ -1473,6 +1521,15 @@ func (s *State) LeaderExecuteCommitChain(m interfaces.IMsg) {
 }
 
 func (s *State) LeaderExecuteCommitEntry(m interfaces.IMsg) {
+	vm := s.LeaderPL.VMs[s.LeaderVMIndex]
+	if len(vm.List) != vm.Height {
+		go func() { // We can't process yet.  Wait and resort
+			time.Sleep(time.Duration(s.DirectoryBlockInSeconds) * time.Second / 600) // Once a second for 10 min block
+			s.InMsgQueue().Enqueue(m)                                                // Goes in the "resort" queue
+		}()
+return
+	}
+
 	ce := m.(*messages.CommitEntryMsg)
 
 	// Check if this commit has more entry credits than any previous that we have.
@@ -1492,6 +1549,14 @@ func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 	LeaderExecutions.Inc()
 	re := m.(*messages.RevealEntryMsg)
 	eh := re.Entry.GetHash()
+
+	vm := s.LeaderPL.VMs[s.LeaderVMIndex]
+	if len(vm.List) != vm.Height {
+		go func() { // We can't process yet.  Wait and resort
+			time.Sleep(time.Duration(s.DirectoryBlockInSeconds) * time.Second / 600) // Once a second for 10 min block
+			s.InMsgQueue().Enqueue(m)                                                // Goes in the "resort" queue
+		}()
+	}
 
 	ack := s.NewAck(m, nil).(*messages.Ack)
 
@@ -1654,7 +1719,7 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) (worked b
 	}
 	// Handle the case that this is a Entry Chain create
 	// Must be built with CommitChain (i.e. !msg.IsEntry).  Also
-	// cannot have an existing chaing (eb and eb_db == nil)
+	// cannot have an existing chain (eb and eb_db == nil)
 	if !msg.IsEntry && eb == nil && eb_db == nil {
 		// Create a new Entry Block for a new Entry Block Chain
 		eb = entryBlock.NewEBlock()
@@ -2549,7 +2614,7 @@ func (s *State) GetE(rt bool, adr [32]byte) (v int64) {
 }
 
 // PutE()
-// If rt == true, update the Temp balances.  Otherwise update the Permenent balances.
+// If rt == true, update the Temp balances.  Otherwise update the Permanent balances.
 // concurrency safe to call
 func (s *State) PutE(rt bool, adr [32]byte, v int64) {
 	if rt {
