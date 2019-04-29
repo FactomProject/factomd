@@ -97,7 +97,7 @@ func (s *State) RequestAndCollectMissingEntries() {
 				if dbht < rc.DBHeight {
 					dbht = rc.DBHeight
 				}
-				if !has(s, rc.EntryHash) {
+				if rc.EntryHash != nil && !has(s, rc.EntryHash) {
 					rc.Tries++
 					entryRequest := messages.NewMissingData(s, rc.EntryHash)
 					entryRequest.SendOut(s, entryRequest)
@@ -110,6 +110,9 @@ func (s *State) RequestAndCollectMissingEntries() {
 					time.Sleep(time.Duration(s) * time.Millisecond)
 					requests++
 				} else {
+					if rc.DBHeight > dbht {
+						dbht = rc.DBHeight
+					}
 					if rc.Tries == 0 {
 						total--
 					} else {
@@ -118,10 +121,16 @@ func (s *State) RequestAndCollectMissingEntries() {
 					}
 					dbrcs[j] = nil
 					sumTries += rc.Tries
+
+					// The dbht only entry has no entry hash.  Account for it here to print.
+					ebytes := []byte{}
+					if rc.EntryHash != nil {
+						ebytes = rc.EntryHash.Bytes()[:6]
+					}
 					s.LogPrintf("entrysyncing", "%20s %x dbht %8d found %6d/%6d tries %6d ==== "+
 						" total-found=%d QueueLen: %d Requests %d",
 						"Found Entry",
-						rc.EntryHash.Bytes()[:6],
+						ebytes,
 						rc.DBHeight,
 						found,
 						total,
@@ -237,12 +246,19 @@ func (s *State) GoSyncEntries() {
 			for _, entryHash := range entries {
 				rc := new(ReCheck)
 				rc.EntryHash = entryHash
-				rc.TimeToCheck = time.Now().Unix() + int64(s.DirectoryBlockInSeconds/100) // Don't check again for seconds
 				rc.DBHeight = int(scan)
 				rc.NumEntries = len(entries)
 				rcs = append(rcs, rc)
 			}
+			// Make sure we have at least one entry to ensure we set the status right.
+			// On mainnet we almost always have an entry, so to test to ensure this works, we always add it.
+			rc := new(ReCheck)
+			rc.DBHeight = int(scan)
+			rc.NumEntries = len(entries)
+			rcs = append(rcs, rc)
+
 			s.EntrySyncState.MissingDBlockEntries <- rcs
+
 			s.EntryBlockDBHeightProcessing = scan + 1
 			s.EntryDBHeightProcessing = scan + 1
 		}
