@@ -13,6 +13,11 @@ import (
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 )
 
+const (
+	pendingRequests               = 10000 // Lower bound on pending requests while syncing entries
+	secondsToSleepBetweenRequests = 5
+)
+
 type ReCheck struct {
 	TimeToCheck int64            //Time in seconds to recheck
 	EntryHash   interfaces.IHash //Entry Hash to check
@@ -22,16 +27,17 @@ type ReCheck struct {
 }
 
 type EntrySync struct {
-	MissingDBlockEntries chan []*ReCheck    // We don't have these entries.  Each list is from a directory block.
-	DBHeightBase         int                // This is the highest block with entries not yet checked or are missing
-	TotalEntries         int                // Total Entries in the database
-	SyncingBlocks        map[int][]*ReCheck // Map of Directory blocks by height
-	finishedDBlocks      chan int           // Channel of finished Directory blocks
-	finishedEntries      chan int           // We get a ping every time an entry is done
-	Processing           int                // Directory block we are processing
-	EntriesProcessing    int                // Total of Entries being processed
-	EntryRequests        int                // Requests made
-	EntriesFound         int                // Entries found
+	MissingDBlockEntries     chan []*ReCheck    // We don't have these entries.  Each list is from a directory block.
+	DBHeightBase             int                // This is the highest block with entries not yet checked or are missing
+	TotalEntries             int                // Total Entries in the database
+	SyncingBlocks            map[int][]*ReCheck // Map of Directory blocks by height
+	finishedDBlocks          chan int           // Channel of finished Directory blocks
+	finishedEntries          chan int           // We get a ping every time an entry is done
+	Processing               int                // Directory block we are processing
+	EntriesProcessing        int                // Total of Entries being processed
+	EntryRequests            int                // Requests made
+	EntriesFound             int                // Entries found
+	DirectoryBlocksInProcess int                // Number of Directory blocks we are processing
 }
 
 // Maintain queues of what we want to test, and what we are currently testing.
@@ -79,27 +85,11 @@ func (s *State) WriteEntries() {
 func (s *State) RequestAndCollectMissingEntries() {
 	es := s.EntrySyncState
 
-	biggest := func() (r int) {
-		for k, _ := range es.SyncingBlocks {
-			if k > r {
-				r = k
-			}
-		}
-		return
-	}
-
 	for {
 		select {
 		case dblock := <-es.finishedDBlocks:
+			es.DirectoryBlocksInProcess--
 			delete(es.SyncingBlocks, dblock)
-			for es.SyncingBlocks[es.Processing] == nil && len(es.SyncingBlocks) > 0 {
-				s.EntryBlockDBHeightComplete = uint32(es.Processing)
-				s.EntryDBHeightComplete = uint32(es.Processing)
-				es.Processing++
-				s.EntryBlockDBHeightProcessing = uint32(es.Processing)
-				s.EntryDBHeightProcessing = uint32(es.Processing)
-			}
-			s.LogPrintf("entrysyncing", "length %6d biggest %d", len(es.SyncingBlocks), biggest())
 			continue
 		case <-es.finishedEntries:
 			es.EntriesProcessing--
@@ -107,66 +97,83 @@ func (s *State) RequestAndCollectMissingEntries() {
 		default:
 		}
 
-		s.LogPrintf("entrysyncing", "Processing dbht %6d %6d Entries processinng %6d Requests %6d Found %6d queue %6d",
+		for es.SyncingBlocks[es.Processing] == nil && len(es.SyncingBlocks) > 0 {
+			s.EntryBlockDBHeightComplete = uint32(es.Processing)
+			s.EntryDBHeightComplete = uint32(es.Processing)
+			es.Processing++
+		}
+
+		s.LogPrintf("entrysyncing", "Processing dbht %6d %6d Entries processinng %6d Requests %6d Found %6d queue %6d DBlocks %6d Entries Found %d",
 			s.EntryDBHeightComplete,
 			es.Processing,
 			es.EntriesProcessing,
 			es.EntryRequests,
 			es.EntriesFound,
-			len(es.MissingDBlockEntries))
+			len(es.MissingDBlockEntries),
+			es.DirectoryBlocksInProcess,
+			es.EntriesFound)
 
-		for es.EntriesProcessing < 5000 && len(es.MissingDBlockEntries) > 0 {
+		for es.EntriesProcessing < pendingRequests && len(es.MissingDBlockEntries) > 0 {
 			dbrcs := <-es.MissingDBlockEntries
+			es.DirectoryBlocksInProcess++
 			es.SyncingBlocks[dbrcs[0].DBHeight] = dbrcs
 			es.EntriesProcessing += len(dbrcs)
 			go s.ProcessDBlock(es.finishedDBlocks, es.finishedEntries, dbrcs)
 		}
 
-		time.Sleep(1 * time.Second)
+		time.Sleep(3 * time.Second)
 	}
 }
 
 func (s *State) ProcessDBlock(finishedDBlocks chan int, finishedEntries chan int, dbrcs []*ReCheck) {
-	dbht := 0
-	missing := true
-	left := len(dbrcs)
-	for i := 0; missing && len(dbrcs) > 0; i++ {
-		missing = false
+	dbht := dbrcs[0].DBHeight
+mainloop:
+	for {
 
-		for j, rc := range dbrcs {
-			if rc == nil {
-				continue
+		// This function does one pass over our directory block's entries
+		LookForEntries := func() (sleep bool) {
+			for i, rc := range dbrcs {
+				switch {
+				case rc == nil:
+				case rc.EntryHash == nil:
+					dbrcs[i] = nil
+				case has(s, rc.EntryHash):
+					dbrcs[i] = nil
+					s.EntrySyncState.EntriesFound++
+					finishedEntries <- 0
+				default: // Have a valid rc, but no entry for the entry hash yet
+					//	s.LogPrintf("entrysyncing", "looking for %x [%6d] dbht %6d tries %6d",
+					//		rc.EntryHash.Bytes(), i, dbht, rc.Tries)
+
+					entryRequest := messages.NewMissingData(s, rc.EntryHash)
+
+					entryRequest.SendOut(s, entryRequest)
+					sleep = true
+					rc.Tries++
+					s.EntrySyncState.EntryRequests++
+
+				}
 			}
-			if dbht < rc.DBHeight {
-				dbht = rc.DBHeight
-			}
-			// Handle the optimistic case first.
-			if rc.EntryHash == nil || has(s, rc.EntryHash) {
-				s.EntrySyncState.EntriesFound++
-				if rc.DBHeight > dbht {
-					dbht = rc.DBHeight
+			return
+		}
+
+		// See if we have more to do.
+		for _, rc := range dbrcs {
+			// If I have a rc still, then I have more to do.
+			if rc != nil {
+				if LookForEntries() {
+					time.Sleep(secondsToSleepBetweenRequests * time.Second)
 				}
-				dbrcs[j] = nil
-				if rc.EntryHash != nil {
-					s.LogPrintf("entrysyncing", "Found %x dbht %6d tries %6d", rc.EntryHash.Bytes()[:6], dbht, rc.Tries)
-				}
-				left--
-				if left == 0 {
-					finishedDBlocks <- dbht
-					s.LogPrintf("entrysyncing", "Directory Block Complete %6d", dbht)
-				}
-				finishedEntries <- 1
-			} else {
-				rc.Tries++
-				s.EntrySyncState.EntryRequests++
-				entryRequest := messages.NewMissingData(s, rc.EntryHash)
-				entryRequest.SendOut(s, entryRequest)
-				missing = true
+				// We found work to do, so go back up to the top of the main loop, and keep working.
+				continue mainloop
 			}
 		}
-		time.Sleep(5 * time.Second)
+
+		// We get here if there is nothing left to do.  Tell our parent process what directory block we finished
+		finishedDBlocks <- dbht
+		s.LogPrintf("entrysyncing", "Directory Block Complete %6d all Entries found %6d", dbht, s.EntrySyncState.EntriesFound)
+		return
 	}
-	time.Sleep(time.Second)
 }
 
 // GoSyncEntries()
