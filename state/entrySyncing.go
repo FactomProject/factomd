@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	pendingRequests               = 10000 // Lower bound on pending requests while syncing entries
-	secondsToSleepBetweenRequests = 5
+	pendingRequests               = 1000 // Lower bound on pending requests while syncing entries
+	secondsToSleepBetweenRequests = 5000 // Milliseconds between requests
 )
 
 type ReCheck struct {
@@ -43,8 +43,8 @@ type EntrySync struct {
 // Maintain queues of what we want to test, and what we are currently testing.
 func (es *EntrySync) Init() {
 	es.MissingDBlockEntries = make(chan []*ReCheck, 1000) // Check 10 directory blocks at a time.
-	es.finishedEntries = make(chan int)
-	es.finishedDBlocks = make(chan int)
+	es.finishedEntries = make(chan int, 10000)
+	es.finishedDBlocks = make(chan int, 10000)
 	es.SyncingBlocks = make(map[int][]*ReCheck)
 } // we have to reprocess
 
@@ -90,11 +90,10 @@ func (s *State) RequestAndCollectMissingEntries() {
 		case dblock := <-es.finishedDBlocks:
 			es.DirectoryBlocksInProcess--
 			delete(es.SyncingBlocks, dblock)
-			continue
 		case <-es.finishedEntries:
 			es.EntriesProcessing--
-			continue
 		default:
+			time.Sleep(1 * time.Second)
 		}
 
 		for es.SyncingBlocks[es.Processing] == nil && len(es.SyncingBlocks) > 0 {
@@ -121,7 +120,6 @@ func (s *State) RequestAndCollectMissingEntries() {
 			go s.ProcessDBlock(es.finishedDBlocks, es.finishedEntries, dbrcs)
 		}
 
-		time.Sleep(3 * time.Second)
 	}
 }
 
@@ -162,7 +160,7 @@ mainloop:
 			// If I have a rc still, then I have more to do.
 			if rc != nil {
 				if LookForEntries() {
-					time.Sleep(secondsToSleepBetweenRequests * time.Second)
+					time.Sleep(secondsToSleepBetweenRequests * time.Millisecond)
 				}
 				// We found work to do, so go back up to the top of the main loop, and keep working.
 				continue mainloop
