@@ -22,15 +22,24 @@ type ReCheck struct {
 }
 
 type EntrySync struct {
-	MissingDBlockEntries chan []*ReCheck // We don't have these entries.  Each list is from a directory block.
-	DBHeightBase         int             // This is the highest block with entries not yet checked or are missing
-	TotalEntries         int             // Total Entries in the database
-
+	MissingDBlockEntries chan []*ReCheck    // We don't have these entries.  Each list is from a directory block.
+	DBHeightBase         int                // This is the highest block with entries not yet checked or are missing
+	TotalEntries         int                // Total Entries in the database
+	SyncingBlocks        map[int][]*ReCheck // Map of Directory blocks by height
+	finishedDBlocks      chan int           // Channel of finished Directory blocks
+	finishedEntries      chan int           // We get a ping every time an entry is done
+	Processing           int                // Directory block we are processing
+	EntriesProcessing    int                // Total of Entries being processed
+	EntryRequests        int                // Requests made
+	EntriesFound         int                // Entries found
 }
 
 // Maintain queues of what we want to test, and what we are currently testing.
 func (es *EntrySync) Init() {
 	es.MissingDBlockEntries = make(chan []*ReCheck, 1000) // Check 10 directory blocks at a time.
+	es.finishedEntries = make(chan int)
+	es.finishedDBlocks = make(chan int)
+	es.SyncingBlocks = make(map[int][]*ReCheck)
 } // we have to reprocess
 
 func has(s *State, entry interfaces.IHash) bool {
@@ -66,89 +75,98 @@ func (s *State) WriteEntries() {
 }
 
 // RequestAndCollectMissingEntries()
-// We were missing these entries.  Check to see if we have them yet.  If we don't then schedule to recheck.
+// Manage go routines that are requesting and checking for missing entries
 func (s *State) RequestAndCollectMissingEntries() {
 	es := s.EntrySyncState
 
-	for {
-
-		dbrcs := <-es.MissingDBlockEntries
-		dbht := 0
-		for len(es.MissingDBlockEntries) > 0 && len(dbrcs) < 5000 { // 1000+ entries
-			dbrcs2 := <-es.MissingDBlockEntries
-			dbrcs = append(dbrcs, dbrcs2...)
+	biggest := func() (r int) {
+		for k, _ := range es.SyncingBlocks {
+			if k > r {
+				r = k
+			}
 		}
-		pass := 0
-		total := int64(len(dbrcs))
-		totalfound := int64(0)
+		return
+	}
 
-		requests := 0
-		missing := true
-		for i := 0; missing && len(dbrcs) > 0; {
-			sumTries := 0
-			missing = false
-			found := int64(0)
-			pass++
+	for {
+		select {
+		case dblock := <-es.finishedDBlocks:
+			delete(es.SyncingBlocks, dblock)
+			for es.SyncingBlocks[es.Processing] == nil && len(es.SyncingBlocks) > 0 {
+				s.EntryBlockDBHeightComplete = uint32(es.Processing)
+				s.EntryDBHeightComplete = uint32(es.Processing)
+				es.Processing++
+				s.EntryBlockDBHeightProcessing = uint32(es.Processing)
+				s.EntryDBHeightProcessing = uint32(es.Processing)
+			}
+			s.LogPrintf("entrysyncing", "length %6d biggest %d", len(es.SyncingBlocks), biggest())
+			continue
+		case <-es.finishedEntries:
+			es.EntriesProcessing--
+			continue
+		default:
+		}
 
-			for j, rc := range dbrcs {
-				if rc == nil {
-					continue
-				}
-				if dbht < rc.DBHeight {
+		s.LogPrintf("entrysyncing", "Processing dbht %6d %6d Entries processinng %6d Requests %6d Found %6d queue %6d",
+			s.EntryDBHeightComplete,
+			es.Processing,
+			es.EntriesProcessing,
+			es.EntryRequests,
+			es.EntriesFound,
+			len(es.MissingDBlockEntries))
+
+		for es.EntriesProcessing < 5000 && len(es.MissingDBlockEntries) > 0 {
+			dbrcs := <-es.MissingDBlockEntries
+			es.SyncingBlocks[dbrcs[0].DBHeight] = dbrcs
+			es.EntriesProcessing += len(dbrcs)
+			go s.ProcessDBlock(es.finishedDBlocks, es.finishedEntries, dbrcs)
+		}
+
+		time.Sleep(1 * time.Second)
+	}
+}
+
+func (s *State) ProcessDBlock(finishedDBlocks chan int, finishedEntries chan int, dbrcs []*ReCheck) {
+	dbht := 0
+	missing := true
+	left := len(dbrcs)
+	for i := 0; missing && len(dbrcs) > 0; i++ {
+		missing = false
+
+		for j, rc := range dbrcs {
+			if rc == nil {
+				continue
+			}
+			if dbht < rc.DBHeight {
+				dbht = rc.DBHeight
+			}
+			// Handle the optimistic case first.
+			if rc.EntryHash == nil || has(s, rc.EntryHash) {
+				s.EntrySyncState.EntriesFound++
+				if rc.DBHeight > dbht {
 					dbht = rc.DBHeight
 				}
-				if rc.EntryHash != nil && !has(s, rc.EntryHash) {
-					rc.Tries++
-					entryRequest := messages.NewMissingData(s, rc.EntryHash)
-					entryRequest.SendOut(s, entryRequest)
-					missing = true
-					time.Sleep(time.Millisecond)
-					s := i * i * 100
-					if i > 2000 {
-						i = 2000
-					}
-					time.Sleep(time.Duration(s) * time.Millisecond)
-					requests++
-				} else {
-					if rc.DBHeight > dbht {
-						dbht = rc.DBHeight
-					}
-					if rc.Tries == 0 {
-						total--
-					} else {
-						totalfound++
-						found++
-					}
-					dbrcs[j] = nil
-					sumTries += rc.Tries
-
-					// The dbht only entry has no entry hash.  Account for it here to print.
-					ebytes := []byte{}
-					if rc.EntryHash != nil {
-						ebytes = rc.EntryHash.Bytes()[:6]
-					}
-					s.LogPrintf("entrysyncing", "%20s %x dbht %8d found %6d/%6d tries %6d ==== "+
-						" total-found=%d QueueLen: %d Requests %d",
-						"Found Entry",
-						ebytes,
-						rc.DBHeight,
-						found,
-						total,
-						rc.Tries,
-						total-totalfound,
-						len(es.MissingDBlockEntries),
-						requests)
+				dbrcs[j] = nil
+				if rc.EntryHash != nil {
+					s.LogPrintf("entrysyncing", "Found %x dbht %6d tries %6d", rc.EntryHash.Bytes()[:6], dbht, rc.Tries)
 				}
+				left--
+				if left == 0 {
+					finishedDBlocks <- dbht
+					s.LogPrintf("entrysyncing", "Directory Block Complete %6d", dbht)
+				}
+				finishedEntries <- 1
+			} else {
+				rc.Tries++
+				s.EntrySyncState.EntryRequests++
+				entryRequest := messages.NewMissingData(s, rc.EntryHash)
+				entryRequest.SendOut(s, entryRequest)
+				missing = true
 			}
-			s.LogPrintf("entrysyncing", "Requests %6d num Entries %6d dbht %6d", requests, len(dbrcs), dbht)
 		}
-		s.LogPrintf("entrysyncing", "%20s dbht %6d requests %6d",
-			"Found Entry", dbht, requests)
-		if dbht > 0 {
-			s.EntryDBHeightComplete = uint32(dbht)
-			s.EntryBlockDBHeightComplete = uint32(dbht)
-		}
+		time.Sleep(5 * time.Second)
 	}
+	time.Sleep(time.Second)
 }
 
 // GoSyncEntries()
@@ -158,6 +176,7 @@ func (s *State) GoSyncEntries() {
 	time.Sleep(5 * time.Second)
 	s.EntrySyncState = new(EntrySync)
 	s.EntrySyncState.Init() // Initialize our processes
+
 	go s.WriteEntries()
 	go s.RequestAndCollectMissingEntries()
 
@@ -166,27 +185,9 @@ func (s *State) GoSyncEntries() {
 	lookingfor := 0
 	for {
 
-		if !s.DBFinished {
-			time.Sleep(time.Second / 30)
-		} else {
-			time.Sleep(time.Duration(s.DirectoryBlockInSeconds/10) * time.Millisecond / 10)
-		}
 		highestSaved := s.GetHighestSavedBlk()
 
-		somethingMissing := false
 		for scan := highestChecked + 1; scan <= highestSaved; scan++ {
-			// Okay, stuff we pull from wherever but there is nothing missing, then update our variables.
-			if !somethingMissing && scan > 0 && s.EntryDBHeightComplete < scan-1 {
-				s.EntryBlockDBHeightComplete = scan - 1
-				s.EntryDBHeightComplete = scan - 1
-				s.EntrySyncState.DBHeightBase = int(scan) // The base is the height of the block that might have something missing.
-				if scan%100 == 0 {
-					//	s.LogPrintf("entrysyncing", "DBHeight Complete %d", scan-1)
-				}
-			}
-
-			s.EntryBlockDBHeightProcessing = scan
-			s.EntryDBHeightProcessing = scan
 
 			db := s.GetDirectoryBlockByHeight(scan)
 
@@ -194,6 +195,11 @@ func (s *State) GoSyncEntries() {
 			for db == nil {
 				time.Sleep(1 * time.Second)
 				db = s.GetDirectoryBlockByHeight(scan)
+			}
+
+			// If loading from the database, then give it a bit of preference by sleeping a bit
+			if !s.DBFinished {
+				time.Sleep(10 * time.Millisecond)
 			}
 
 			// Run through all the entry blocks and entries in each directory block.
@@ -233,7 +239,6 @@ func (s *State) GoSyncEntries() {
 					// them if it finds entries in the missing lists.
 					if !has(s, entryHash) {
 						entries = append(entries, entryHash)
-						somethingMissing = true
 					}
 				}
 			}
