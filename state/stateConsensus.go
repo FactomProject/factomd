@@ -1135,7 +1135,7 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 	msg := mmr.MsgResponse
 	ack, ok := mmr.AckResponse.(*messages.Ack)
 
-// If we don't need this message, we don't have to do everything else.
+	// If we don't need this message, we don't have to do everything else.
 	if !ok {
 		s.LogMessage("executeMsg", "drop mmr ack is not an ack", m)
 		return
@@ -1161,7 +1161,6 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 		return
 	}
 	ack.Response = true
-	msg := mmr.MsgResponse
 
 	if msg == nil {
 		s.LogMessage("executeMsg", "drop nil message", m)
@@ -1175,6 +1174,10 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 		return
 	}
 	_, okm := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
+	if !okm {
+		s.LogMessage("executeMsg", "drop, INTERNAL_REPLAY", msg)
+		return
+	}
 
 	TotalAcksInputs.Inc()
 
@@ -1502,7 +1505,7 @@ func (s *State) LeaderExecuteCommitChain(m interfaces.IMsg) {
 			s.InMsgQueue().Enqueue(m)
 			// Goes in the "resort" queue
 		}()
-return
+		return
 
 	}
 
@@ -1527,7 +1530,7 @@ func (s *State) LeaderExecuteCommitEntry(m interfaces.IMsg) {
 			time.Sleep(time.Duration(s.DirectoryBlockInSeconds) * time.Second / 600) // Once a second for 10 min block
 			s.InMsgQueue().Enqueue(m)                                                // Goes in the "resort" queue
 		}()
-return
+		return
 	}
 
 	ce := m.(*messages.CommitEntryMsg)
