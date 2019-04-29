@@ -71,37 +71,44 @@ func (s *State) RequestAndCollectMissingEntries() {
 	es := s.EntrySyncState
 
 	for {
-		missing := true
+
 		dbrcs := <-es.MissingDBlockEntries
 		dbht := 0
 		for len(es.MissingDBlockEntries) > 0 && len(dbrcs) < 5000 { // 1000+ entries
 			dbrcs2 := <-es.MissingDBlockEntries
 			dbrcs = append(dbrcs, dbrcs2...)
-			dbht = dbrcs2[0].DBHeight // keep the directory hieight of the last directory block in the set
 		}
 		pass := 0
 		total := int64(len(dbrcs))
 		totalfound := int64(0)
-		for missing {
+
+		requests := 0
+		missing := true
+		for i := 0; missing && len(dbrcs) > 0; {
 			sumTries := 0
 			missing = false
 			found := int64(0)
-
 			pass++
-			for i, rc := range dbrcs {
+
+			for j, rc := range dbrcs {
 				if rc == nil {
 					continue
 				}
-
+				if dbht < rc.DBHeight {
+					dbht = rc.DBHeight
+				}
 				if !has(s, rc.EntryHash) {
 					rc.Tries++
 					entryRequest := messages.NewMissingData(s, rc.EntryHash)
 					entryRequest.SendOut(s, entryRequest)
 					missing = true
 					time.Sleep(time.Millisecond)
-					if total-totalfound < 100 {
-						time.Sleep(10 * time.Millisecond)
+					s := i * i * 100
+					if i > 2000 {
+						i = 2000
 					}
+					time.Sleep(time.Duration(s) * time.Millisecond)
+					requests++
 				} else {
 					if rc.Tries == 0 {
 						total--
@@ -109,10 +116,10 @@ func (s *State) RequestAndCollectMissingEntries() {
 						totalfound++
 						found++
 					}
-					dbrcs[i] = nil
+					dbrcs[j] = nil
 					sumTries += rc.Tries
 					s.LogPrintf("entrysyncing", "%20s %x dbht %8d found %6d/%6d tries %6d ==== "+
-						" total-found=%d QueueLen: %d",
+						" total-found=%d QueueLen: %d Requests %d",
 						"Found Entry",
 						rc.EntryHash.Bytes()[:6],
 						rc.DBHeight,
@@ -120,14 +127,18 @@ func (s *State) RequestAndCollectMissingEntries() {
 						total,
 						rc.Tries,
 						total-totalfound,
-						len(es.MissingDBlockEntries))
+						len(es.MissingDBlockEntries),
+						requests)
 				}
 			}
+			s.LogPrintf("entrysyncing", "Requests %6d num Entries %6d dbht %6d", requests, len(dbrcs), dbht)
 		}
-		s.LogPrintf("entrysyncing", "%20s dbht %d",
-			"Found Entry", dbht)
-		s.EntryDBHeightComplete = uint32(dbht)
-		s.EntryBlockDBHeightComplete = uint32(dbht)
+		s.LogPrintf("entrysyncing", "%20s dbht %6d requests %6d",
+			"Found Entry", dbht, requests)
+		if dbht > 0 {
+			s.EntryDBHeightComplete = uint32(dbht)
+			s.EntryBlockDBHeightComplete = uint32(dbht)
+		}
 	}
 }
 
@@ -142,14 +153,15 @@ func (s *State) GoSyncEntries() {
 	go s.RequestAndCollectMissingEntries()
 
 	highestChecked := s.EntryDBHeightComplete
-	highestChecked = 94700
+
 	lookingfor := 0
 	for {
 
 		if !s.DBFinished {
 			time.Sleep(time.Second / 30)
+		} else {
+			time.Sleep(time.Duration(s.DirectoryBlockInSeconds/10) * time.Millisecond / 10)
 		}
-
 		highestSaved := s.GetHighestSavedBlk()
 
 		somethingMissing := false
@@ -216,26 +228,23 @@ func (s *State) GoSyncEntries() {
 					}
 				}
 			}
-			for cap(s.EntrySyncState.MissingDBlockEntries) < len(s.EntrySyncState.MissingDBlockEntries)+cap(s.EntrySyncState.MissingDBlockEntries)/1000 {
-				time.Sleep(time.Second)
-			}
 
 			lookingfor += len(entries)
 
-			if len(entries) > 0 {
-				//	s.LogPrintf("entrysyncing", "Missing entries total %10d at height %10d directory entries: %10d QueueLen %10d",
-				//		lookingfor, scan, len(entries), len(s.EntrySyncState.MissingDBlockEntries))
-				var rcs []*ReCheck
-				for _, entryHash := range entries {
-					rc := new(ReCheck)
-					rc.EntryHash = entryHash
-					rc.TimeToCheck = time.Now().Unix() + int64(s.DirectoryBlockInSeconds/100) // Don't check again for seconds
-					rc.DBHeight = int(scan)
-					rc.NumEntries = len(entries)
-					rcs = append(rcs, rc)
-				}
-				s.EntrySyncState.MissingDBlockEntries <- rcs
+			//	s.LogPrintf("entrysyncing", "Missing entries total %10d at height %10d directory entries: %10d QueueLen %10d",
+			//		lookingfor, scan, len(entries), len(s.EntrySyncState.MissingDBlockEntries))
+			var rcs []*ReCheck
+			for _, entryHash := range entries {
+				rc := new(ReCheck)
+				rc.EntryHash = entryHash
+				rc.TimeToCheck = time.Now().Unix() + int64(s.DirectoryBlockInSeconds/100) // Don't check again for seconds
+				rc.DBHeight = int(scan)
+				rc.NumEntries = len(entries)
+				rcs = append(rcs, rc)
 			}
+			s.EntrySyncState.MissingDBlockEntries <- rcs
+			s.EntryBlockDBHeightProcessing = scan + 1
+			s.EntryDBHeightProcessing = scan + 1
 		}
 		highestChecked = highestSaved
 	}
