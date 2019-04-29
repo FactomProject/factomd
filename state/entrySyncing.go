@@ -128,13 +128,21 @@ func (s *State) ProcessDBlock(finishedDBlocks chan int, finishedEntries chan int
 mainloop:
 	for {
 
+		// The empty directory block case.
+		if len(dbrcs) == 1 && dbrcs[0].EntryHash == nil {
+			s.EntrySyncState.finishedDBlocks <- dbrcs[0].DBHeight
+			s.EntrySyncState.finishedEntries <- 0
+			return
+		}
+
 		// This function does one pass over our directory block's entries
-		LookForEntries := func() (sleep bool) {
+		LookForEntries := func() (progress bool) {
 			for i, rc := range dbrcs {
 				switch {
 				case rc == nil:
 				case rc.EntryHash == nil:
 					dbrcs[i] = nil
+					finishedEntries <- 0 // It isn't a real entry, but we have to account for it.
 				case has(s, rc.EntryHash):
 					dbrcs[i] = nil
 					s.EntrySyncState.EntriesFound++
@@ -146,7 +154,7 @@ mainloop:
 					entryRequest := messages.NewMissingData(s, rc.EntryHash)
 
 					entryRequest.SendOut(s, entryRequest)
-					sleep = true
+					progress = true
 					rc.Tries++
 					s.EntrySyncState.EntryRequests++
 
@@ -161,9 +169,8 @@ mainloop:
 			if rc != nil {
 				if LookForEntries() {
 					time.Sleep(secondsToSleepBetweenRequests * time.Millisecond)
+					continue mainloop
 				}
-				// We found work to do, so go back up to the top of the main loop, and keep working.
-				continue mainloop
 			}
 		}
 
