@@ -1163,6 +1163,7 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 	msg, ok := m.(*messages.DataResponse)
 	if !ok {
+		s.LogMessage("executeMsg", "Drop, not a DR", msg)
 		return
 	}
 
@@ -1206,6 +1207,7 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 		}
 		if len(s.WriteEntry) < cap(s.WriteEntry) {
 			s.WriteEntry <- entry
+			s.LogMessage("executeMsg", "writeEntry", msg)
 		}
 	}
 }
