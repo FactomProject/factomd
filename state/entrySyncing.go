@@ -99,6 +99,7 @@ func (s *State) RequestAndCollectMissingEntries() {
 		for es.SyncingBlocks[es.Processing] == nil && len(es.SyncingBlocks) > 0 {
 			s.EntryBlockDBHeightComplete = uint32(es.Processing)
 			s.EntryDBHeightComplete = uint32(es.Processing)
+			s.DB.SaveDatabaseEntryHeight(uint32(es.Processing))
 			es.Processing++
 		}
 
