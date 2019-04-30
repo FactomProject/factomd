@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	pendingRequests               = 1000 // Lower bound on pending requests while syncing entries
-	secondsToSleepBetweenRequests = 5000 // Milliseconds between requests
+	pendingRequests               = 10000 // Lower bound on pending requests while syncing entries
+	secondsToSleepBetweenRequests = 5000  // Milliseconds between requests
 )
 
 type ReCheck struct {
@@ -211,6 +211,11 @@ func (s *State) GoSyncEntries() {
 
 		highestSaved := s.GetHighestSavedBlk()
 
+		// Sleep often if we are caught up (to the best of our knowledge)
+		if highestSaved == highestChecked {
+			time.Sleep(time.Second)
+		}
+
 		for scan := highestChecked + 1; scan <= highestSaved; scan++ {
 
 			db := s.GetDirectoryBlockByHeight(scan)
@@ -223,7 +228,7 @@ func (s *State) GoSyncEntries() {
 
 			// If loading from the database, then give it a bit of preference by sleeping a bit
 			if !s.DBFinished {
-				time.Sleep(10 * time.Millisecond)
+				time.Sleep(1 * time.Millisecond)
 			}
 
 			// Run through all the entry blocks and entries in each directory block.
