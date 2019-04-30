@@ -24,8 +24,7 @@ type ReCheck struct {
 	DBHeight    int
 	NumEntries  int
 	Tries       int
-}
-
+		}
 type EntrySync struct {
 	MissingDBlockEntries     chan []*ReCheck    // We don't have these entries.  Each list is from a directory block.
 	DBHeightBase             int                // This is the highest block with entries not yet checked or are missing
@@ -38,8 +37,7 @@ type EntrySync struct {
 	EntryRequests            int                // Requests made
 	EntriesFound             int                // Entries found
 	DirectoryBlocksInProcess int                // Number of Directory blocks we are processing
-}
-
+	}
 // Maintain queues of what we want to test, and what we are currently testing.
 func (es *EntrySync) Init() {
 	es.MissingDBlockEntries = make(chan []*ReCheck, 1000) // Check 10 directory blocks at a time.
@@ -71,14 +69,14 @@ func (s *State) WriteEntries() {
 			err := s.DB.InsertEntryMultiBatch(entry)
 			if err != nil {
 				panic(err)
-			}
+				}
 			err = s.DB.ExecuteMultiBatch()
 			if err != nil {
 				panic(err)
 			}
 		}
 	}
-}
+		}
 
 // RequestAndCollectMissingEntries()
 // Manage go routines that are requesting and checking for missing entries
@@ -88,7 +86,7 @@ func (s *State) RequestAndCollectMissingEntries() {
 	var highestDblock int
 
 	for {
-		select {
+			select {
 		case dblock := <-es.finishedDBlocks:
 			es.DirectoryBlocksInProcess--
 			if dblock > highestDblock {
@@ -97,7 +95,7 @@ func (s *State) RequestAndCollectMissingEntries() {
 			delete(es.SyncingBlocks, dblock)
 		case <-es.finishedEntries:
 			es.EntriesProcessing--
-		default:
+			default:
 			time.Sleep(1 * time.Second)
 		}
 
@@ -110,11 +108,12 @@ func (s *State) RequestAndCollectMissingEntries() {
 					s.EntryDBHeightComplete = uint32(es.Processing)
 					s.DB.SaveDatabaseEntryHeight(uint32(es.Processing))
 				}
+
 				es.Processing++
 			} else {
 				break
 			}
-		}
+				}
 
 		s.LogPrintf("entrysyncing", "Processing dbht %6d %6d Entries processing %6d Requests %6d Found %6d queue %6d DBlocks %6d Entries Found %d",
 			s.EntryDBHeightComplete,
@@ -132,15 +131,15 @@ func (s *State) RequestAndCollectMissingEntries() {
 			es.SyncingBlocks[dbrcs[0].DBHeight] = dbrcs
 			es.EntriesProcessing += len(dbrcs)
 			go s.ProcessDBlock(es.finishedDBlocks, es.finishedEntries, dbrcs)
-		}
+				}
 
-	}
-}
+			}
+		}
 
 func (s *State) ProcessDBlock(finishedDBlocks chan int, finishedEntries chan int, dbrcs []*ReCheck) {
 	dbht := dbrcs[0].DBHeight
 mainloop:
-	for {
+		for {
 
 		// The empty directory block case.
 		if len(dbrcs) == 1 && dbrcs[0].EntryHash == nil {
@@ -171,11 +170,10 @@ mainloop:
 					progress = true
 					rc.Tries++
 					s.EntrySyncState.EntryRequests++
-
-				}
-			}
+						}
+						}
 			return
-		}
+				}
 
 		// See if we have more to do.
 		for _, rc := range dbrcs {
@@ -184,10 +182,9 @@ mainloop:
 				if LookForEntries() {
 					time.Sleep(secondsToSleepBetweenRequests * time.Millisecond)
 					continue mainloop
-				}
 			}
 		}
-
+		}
 		// We get here if there is nothing left to do.  Tell our parent process what directory block we finished
 		finishedDBlocks <- dbht
 		s.LogPrintf("entrysyncing", "Directory Block Complete %6d all Entries found %6d", dbht, s.EntrySyncState.EntriesFound)
@@ -209,6 +206,7 @@ func (s *State) GoSyncEntries() {
 	highestChecked := s.EntryDBHeightComplete
 
 	lookingfor := 0
+
 	for {
 
 		highestSaved := s.GetHighestSavedBlk()
@@ -237,7 +235,7 @@ func (s *State) GoSyncEntries() {
 			// If any entries are missing, collect them.  Then stuff them into the MissingDBlockEntries channel to
 			// collect from the network.
 			var entries []interfaces.IHash
-			for _, ebKeyMR := range db.GetEntryHashes()[3:] {
+				for _, ebKeyMR := range db.GetEntryHashes()[3:] {
 				eBlock, err := s.DB.FetchEBlock(ebKeyMR)
 				if err != nil {
 					panic(err)
@@ -245,25 +243,26 @@ func (s *State) GoSyncEntries() {
 				if err != nil {
 					panic(err)
 				}
-				// Don't have an eBlock?  Huh. We can go on, but we can't advance.  We just wait until it
-				// does show up.
-				for eBlock == nil {
-					time.Sleep(1 * time.Second)
-					eBlock, _ = s.DB.FetchEBlock(ebKeyMR)
-				}
+
+					// Don't have an eBlock?  Huh. We can go on, but we can't advance.  We just wait until it
+					// does show up.
+					for eBlock == nil {
+						time.Sleep(1 * time.Second)
+						eBlock, _ = s.DB.FetchEBlock(ebKeyMR)
+					}
 
 				hashes := eBlock.GetEntryHashes()
 				s.EntrySyncState.TotalEntries += len(hashes)
 				for _, entryHash := range hashes {
 					if entryHash.IsMinuteMarker() {
-						continue
-					}
+							continue
+						}
 
 					// Make sure we remove any pending commits
-					ueh := new(EntryUpdate)
+						ueh := new(EntryUpdate)
 					ueh.Hash = entryHash
-					ueh.Timestamp = db.GetTimestamp()
-					s.UpdateEntryHash <- ueh
+						ueh.Timestamp = db.GetTimestamp()
+						s.UpdateEntryHash <- ueh
 
 					// MakeMissingEntryRequests()
 					// This go routine checks every so often to see if we have any missing entries or entry blocks.  It then requests
@@ -285,7 +284,7 @@ func (s *State) GoSyncEntries() {
 				rc.DBHeight = int(scan)
 				rc.NumEntries = len(entries)
 				rcs = append(rcs, rc)
-			}
+				}
 			// Make sure we have at least one entry to ensure we set the status right.
 			// On mainnet we almost always have an entry, so to test to ensure this works, we always add it.
 			rc := new(ReCheck)
@@ -297,7 +296,8 @@ func (s *State) GoSyncEntries() {
 
 			s.EntryBlockDBHeightProcessing = scan + 1
 			s.EntryDBHeightProcessing = scan + 1
-		}
+					}
+
 		highestChecked = highestSaved
 	}
 }
