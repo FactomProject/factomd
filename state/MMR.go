@@ -59,7 +59,7 @@ func (vm *VM) ReportMissing(height int, delay int64) {
 }
 
 func (s *State) Ask(DBHeight int, vmIndex int, height int, when int64) {
-
+	//todo: if check function true return
 	if s.asks == nil { // If it is nil, there is no makemmrs
 		return
 	}

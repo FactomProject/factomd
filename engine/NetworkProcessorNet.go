@@ -351,6 +351,14 @@ func Peers(fnode *FactomNode) {
 						fnode.State.InMsgQueue().Enqueue(msg)
 					}
 				}
+
+				if msg.Type() == constants.ACK_MSG {
+					fmt.Println("msg.Type: ", msg.Type(), "msg:", msg )
+
+					fnode.State.ACKSMap.Add(msg)
+					fmt.Println(fnode.State.ACKSMap.Get(msg))
+				}
+
 			} // For a peer read up to 100 messages {...}
 		} // for each peer {...}
 		if cnt == 0 {
