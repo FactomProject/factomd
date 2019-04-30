@@ -85,10 +85,15 @@ func (s *State) WriteEntries() {
 func (s *State) RequestAndCollectMissingEntries() {
 	es := s.EntrySyncState
 
+	var highestDblock int
+
 	for {
 		select {
 		case dblock := <-es.finishedDBlocks:
 			es.DirectoryBlocksInProcess--
+			if dblock > highestDblock {
+				highestDblock = dblock
+			}
 			delete(es.SyncingBlocks, dblock)
 		case <-es.finishedEntries:
 			es.EntriesProcessing--
@@ -96,14 +101,20 @@ func (s *State) RequestAndCollectMissingEntries() {
 			time.Sleep(1 * time.Second)
 		}
 
-		for es.SyncingBlocks[es.Processing] == nil && len(es.SyncingBlocks) > 0 {
-			s.EntryBlockDBHeightComplete = uint32(es.Processing)
-			s.EntryDBHeightComplete = uint32(es.Processing)
-			s.DB.SaveDatabaseEntryHeight(uint32(es.Processing))
-			es.Processing++
+		// Update es.Processing (which tracks what directory block we are working on) and the state variables
+		// others look at.
+		for es.SyncingBlocks[es.Processing] == nil {
+			if es.Processing <= highestDblock && highestDblock > 0 {
+				s.EntryBlockDBHeightComplete = uint32(es.Processing)
+				s.EntryDBHeightComplete = uint32(es.Processing)
+				s.DB.SaveDatabaseEntryHeight(uint32(es.Processing))
+				es.Processing++
+			} else {
+				break
+			}
 		}
 
-		s.LogPrintf("entrysyncing", "Processing dbht %6d %6d Entries processinng %6d Requests %6d Found %6d queue %6d DBlocks %6d Entries Found %d",
+		s.LogPrintf("entrysyncing", "Processing dbht %6d %6d Entries processing %6d Requests %6d Found %6d queue %6d DBlocks %6d Entries Found %d",
 			s.EntryDBHeightComplete,
 			es.Processing,
 			es.EntriesProcessing,
