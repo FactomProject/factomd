@@ -1,4 +1,4 @@
-#/bin/sh
+#!/bin/sh
 ################################
 # AWK scripts                  #
 ################################
@@ -123,7 +123,9 @@ END {
     PROCINFO["sorted_in"] ="@ind_num_asc";
     print "histogram of inflight requests in", sample_period, "second buckets"
     print "time          count";
-    for(i in histogram){printf("%s %d\\n", time2str(i * sample_period),histogram2[i]/count[i]);}
+    for(i in histogram2){
+       printf("%s %d\\n", time2str(i * sample_period),histogram2[i]/count[i]);
+    }
     print "---------------------"
 
     
