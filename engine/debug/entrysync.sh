@@ -127,7 +127,7 @@ END {
     print "---------------------"
 
     
-        for(i in stat) {print i, stats[i];}
+        #for(i in stat) {print i, stats[i];}
 
     
 }
