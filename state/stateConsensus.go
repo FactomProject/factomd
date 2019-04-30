@@ -153,6 +153,12 @@ func (s *State) Validate(msg interfaces.IMsg) (rval int) {
 }
 
 func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
+	// track how long we spend in executeMsg
+	preExecuteMsgTime := time.Now()
+	defer func() {
+		executeMsgTime := time.Since(preExecuteMsgTime)
+		TotalExecuteMsgTime.Add(float64(executeMsgTime.Nanoseconds()))
+	}()
 
 	if s.executeRecursionDetection == nil {
 		s.executeRecursionDetection = make(map[[32]byte]interfaces.IMsg, 10)
@@ -181,13 +187,6 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 		//  and not pass it in.
 		s.LogPrintf("executeMsg", "executeMsg() called with the wrong VM!")
 	}
-
-	// track how long we spend in executeMsg
-	preExecuteMsgTime := time.Now()
-	defer func() {
-		executeMsgTime := time.Since(preExecuteMsgTime)
-		TotalExecuteMsgTime.Add(float64(executeMsgTime.Nanoseconds()))
-	}()
 
 	s.SetString()
 	msg.ComputeVMIndex(s)
@@ -837,7 +836,7 @@ func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
 	} else if m.IsLocal() {
 		go func() { // This is a trigger to issue the EOM, but we are still syncing.  Wait to retry.
 			time.Sleep(time.Duration(s.DirectoryBlockInSeconds) * time.Second / 600) // Once a second for 10 min block
-			s.MsgQueue() <- m                                                        // Goes in the "do this really fast" queue so we are prompt about EOM's while syncing
+			s.InMsgQueue().Enqueue(m)                                                // Goes in the "do this really fast" queue so we are prompt about EOM's while syncing
 		}()
 		return
 	}
@@ -1134,22 +1133,11 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 
 	msg := mmr.MsgResponse
 	ack, ok := mmr.AckResponse.(*messages.Ack)
-
-	// If we don't need this message, we don't have to do everything else.
 	if !ok {
 		s.LogMessage("executeMsg", "drop mmr ack is not an ack", m)
 		return
 	}
 
-	// This prevents past messages from a previously running network from getting into a rebooted network and interfering with
-	// the new instance of the network.  We only allow messages after we have been booted, with a little bit of slack for
-	// messages generated only a bit before we booted (hence the -(60*1000) at the end there).
-	if ack.DBHeight < s.DBHeightAtBoot+2 && ack.GetTimestamp().GetTimeMilli() < s.TimestampAtBoot.GetTimeMilli()-(60*1000) {
-		s.LogMessage("executeMsg", "drop, MMR ack too old", m)
-		return
-	}
-
-	// If we don't need this message, we don't have to do everything else.
 	if s.Validate(ack) < 0 {
 		s.LogMessage("executeMsg", "drop MMR ack invalid", m)
 		return
@@ -1162,20 +1150,10 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 	}
 	ack.Response = true
 
-	if msg == nil {
-		s.LogMessage("executeMsg", "drop nil message", m)
-		return
-	}
-
 	pl := s.ProcessLists.Get(ack.DBHeight)
 
 	if pl == nil {
 		s.LogMessage("executeMsg", "drop No Processlist", m)
-		return
-	}
-	_, okm := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
-	if !okm {
-		s.LogMessage("executeMsg", "drop, INTERNAL_REPLAY", msg)
 		return
 	}
 
@@ -1390,13 +1368,30 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 		return
 	}
 
+	eom := m.(*messages.EOM)
+
+	if eom.DBHeight != s.LLeaderHeight {
+		go func() { // This is a trigger to issue the EOM, but we are still syncing.  Wait to retry.
+			time.Sleep(time.Duration(s.DirectoryBlockInSeconds) * time.Second / 600) // Once a second for 10 min block
+			s.InMsgQueue().Enqueue(m)                                                //
+		}()
+		return
+	}
+
 	// The zero based minute for the message is equal to
 	// the one based "LastMinute".  This way we know we are
 	// generating minutes in order.
 
-	eom := m.(*messages.EOM)
 	pl := s.ProcessLists.Get(s.LLeaderHeight)
 	vm := pl.VMs[s.LeaderVMIndex]
+
+	if len(vm.List) != vm.Height {
+		go func() { // We have some processing to do before we can schedule this.
+			time.Sleep(time.Duration(s.DirectoryBlockInSeconds) * time.Second / 600) // Once a second for 10 min block
+			s.InMsgQueue().Enqueue(m)
+		}()
+		return
+	}
 
 	// Put the System Height and Serial Hash into the EOM
 	eom.SysHeight = uint32(pl.System.Height)
@@ -1506,7 +1501,6 @@ func (s *State) LeaderExecuteCommitChain(m interfaces.IMsg) {
 			// Goes in the "resort" queue
 		}()
 		return
-
 	}
 
 	cc := m.(*messages.CommitChainMsg)
@@ -1559,6 +1553,7 @@ func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 			time.Sleep(time.Duration(s.DirectoryBlockInSeconds) * time.Second / 600) // Once a second for 10 min block
 			s.InMsgQueue().Enqueue(m)                                                // Goes in the "resort" queue
 		}()
+		return
 	}
 
 	ack := s.NewAck(m, nil).(*messages.Ack)
