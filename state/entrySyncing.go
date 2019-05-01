@@ -16,6 +16,7 @@ import (
 const (
 	pendingRequests               = 10000 // Lower bound on pending requests while syncing entries
 	secondsToSleepBetweenRequests = 5000  // Milliseconds between requests
+	timeBetweenRequests           = 30    // Seconds
 )
 
 type ReCheck struct {
@@ -156,27 +157,36 @@ mainloop:
 
 		// This function does one pass over our directory block's entries
 		LookForEntries := func() (progress bool) {
-			for i, rc := range dbrcs {
-				switch {
-				case rc == nil:
-				case rc.EntryHash == nil:
-					dbrcs[i] = nil
-					finishedEntries <- 0 // It isn't a real entry, but we have to account for it.
-				case has(s, rc.EntryHash):
-					dbrcs[i] = nil
-					s.EntrySyncState.EntriesFound++
-					finishedEntries <- 0
-				default: // Have a valid rc, but no entry for the entry hash yet
-					//	s.LogPrintf("entrysyncing", "looking for %x [%6d] dbht %6d tries %6d",
-					//		rc.EntryHash.Bytes(), i, dbht, rc.Tries)
+			allfound := false
+			for i := 0; i < 101 && !allfound; i++ {
+				allfound = true
+				for ipass, rc := range dbrcs {
+					switch {
+					case rc == nil:
+					case rc.EntryHash == nil:
+						dbrcs[ipass] = nil
+						finishedEntries <- 0 // It isn't a real entry, but we have to account for it.
+					case has(s, rc.EntryHash):
+						dbrcs[ipass] = nil
+						s.EntrySyncState.EntriesFound++
+						finishedEntries <- 0
+					case i == 0: // For only the first pass do we ask for missing entries
+						allfound = false // Only get here if the entryhash isn't found
+						//	s.LogPrintf("entrysyncing", "looking for %x [%6d] dbht %6d tries %6d",
+						//		rc.EntryHash.Bytes(), ipass, dbht, rc.Tries)
+						entryRequest := messages.NewMissingData(s, rc.EntryHash)
 
-					entryRequest := messages.NewMissingData(s, rc.EntryHash)
-
-					entryRequest.SendOut(s, entryRequest)
-					progress = true
-					rc.Tries++
-					s.EntrySyncState.EntryRequests++
+						entryRequest.SendOut(s, entryRequest)
+						progress = true
+						rc.Tries++
+						s.EntrySyncState.EntryRequests++
+					default: //Don't get here unless the entry isn't found, so say that we haven't found everything
+						allfound = false
+					}
 				}
+				// Sleep for 1/100 of our send frequency.  Convert our frequency to microseconds and divide
+				// by 1000 to get the 1/100 of our seconds in microseconds.  Then sleep that many microseconds.
+				time.Sleep(time.Duration(timeBetweenRequests*1000000/100) * time.Microsecond)
 			}
 			return
 		}
@@ -186,7 +196,6 @@ mainloop:
 			// If I have a rc still, then I have more to do.
 			if rc != nil {
 				if LookForEntries() {
-					time.Sleep(secondsToSleepBetweenRequests * time.Millisecond)
 					continue mainloop
 				}
 			}
