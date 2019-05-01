@@ -352,11 +352,18 @@ func Peers(fnode *FactomNode) {
 					}
 				}
 
+				fnode.State.MsgsMap.Add(msg)
+
 				if msg.Type() == constants.ACK_MSG {
 					fmt.Println("msg.Type: ", msg.Type(), "msg:", msg )
 
-					fnode.State.ACKSMap.Add(msg)
-					fmt.Println(fnode.State.ACKSMap.Get(msg))
+					fnode.State.MissingMessageResponse.AcksMap.Add(msg)
+					//ack := msg.(*messages.Ack)
+					//fmt.Println(fnode.State.MissingMessageResponse.AcksMap.Get(int(ack.DBHeight), ack.VMIndex, int(ack.Height)))
+				}
+
+				if msg.Type() == constants.MISSING_MSG {
+					fmt.Println("Missing Message", msg, msg.GetMsgHash())
 				}
 
 			} // For a peer read up to 100 messages {...}

@@ -1580,3 +1580,24 @@ func DoesFileExists(path string, t *testing.T) {
 	}
 
 }
+
+func TestMMR(t *testing.T) {
+	if RanSimTest {
+		return
+	}
+	RanSimTest = true
+
+	state0 := SetupSim("LL", map[string]string{"--net": "line", "--debuglog": ".", "--blktime": "360"}, 100, 0, 0, t)
+
+	WaitForMinute(state0, 2)
+
+	RunCmd("1")
+	RunCmd("x")
+	WaitBlocks(state0, 5)
+	RunCmd("x")
+	WaitBlocks(state0, 5)
+
+	WaitForAllNodes(state0) // if the follower isn't catching up this will timeout
+	PrintOneStatus(0, 0)
+	ShutDownEverything(t)
+}
