@@ -49,8 +49,9 @@ func max_index_of_array(a) {
 
  {}
 
-#   149355 08:46:33.139  189378-:-0 Send P2P P2P Network                   M-931c6a|R-931c6a|H-931c6a|0xc422020270               Missing Data[17]:MissingData: [fc73485610] RandomPeer 
+#   149355 08:46:33.139  189378-:-0 Send P2P Network                   M-931c6a|R-931c6a|H-931c6a|0xc422020270               Missing Data[17]:MissingData: [fc73485610] RandomPeer 
 /MissingData/ {
+    gsub("P2P P2P","P2P",$0); # account for mainnet vs sim message log format
     ts = time2sec($2);
     id = substr($10,2,10);
 #    print "md",id;
