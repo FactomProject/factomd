@@ -898,11 +898,14 @@ func (s *State) ExecuteEntriesInDBState(dbmsg *messages.DBStateMsg) {
 		consenLogger.WithFields(log.Fields{"func": "ExecuteEntriesInDBState", "height": height}).Errorf("Bad DBState. DBlock does not match found")
 		return // Bad DBlock
 	}
-
+	//todo: consider using func (s *State) WriteEntries()
 	s.DB.StartMultiBatch()
 	for _, e := range dbmsg.Entries {
 		if exists, _ := s.DB.DoesKeyExist(databaseOverlay.ENTRY, e.GetHash().Bytes()); !exists {
-			s.DB.InsertEntryMultiBatch(e)
+			s.LogPrintf("entrys.txt", "Add3 %x", e.GetHash().Bytes()[:4])
+			if err := s.DB.InsertEntryMultiBatch(e); err != nil {
+				panic(err.Error())
+			}
 		}
 	}
 	err = s.DB.ExecuteMultiBatch()
@@ -1208,10 +1211,10 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 		if len(s.WriteEntry) < cap(s.WriteEntry) {
 
 			if has(s, entry.GetHash()) {
-				s.LogPrintf("entrys.txt", "Duplicate DataResponce %x", entry.GetHash().Bytes()[:4])
+				s.LogPrintf("entrys.txt", "Duplicate DataResponse %x", entry.GetHash().Bytes()[:4])
 				return
 			}
-			s.WriteEntry <- entry
+			s.WriteEntry <- entry // DataResponse
 			s.LogMessage("executeMsg", "writeEntry", msg)
 		}
 	}

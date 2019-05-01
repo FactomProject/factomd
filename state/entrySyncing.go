@@ -47,6 +47,7 @@ func (es *EntrySync) Init() {
 	es.SyncingBlocks = make(map[int][]*ReCheck)
 } // we have to reprocess
 
+// todo: likely benefit if we cache the hash's last 1K written
 func has(s *State, entry interfaces.IHash) bool {
 	exists, err := s.DB.DoesKeyExist(databaseOverlay.ENTRY, entry.Bytes())
 	if exists {
@@ -65,14 +66,8 @@ func (s *State) WriteEntries() {
 
 	for {
 		entry := <-s.WriteEntry
-
-		if has(s, entry.GetHash()) {
-			s.LogPrintf("entrys.txt", "Has %x", entry.GetHash().Bytes()[:4])
-			continue
-		}
-		s.LogPrintf("entrys.txt", "Add %x", entry.GetHash().Bytes()[:4])
-
 		if !has(s, entry.GetHash()) {
+			// todo: try batching these as long as the channel is not empty or up to some lot size
 			s.DB.StartMultiBatch()
 			err := s.DB.InsertEntryMultiBatch(entry)
 			if err != nil {
@@ -82,6 +77,9 @@ func (s *State) WriteEntries() {
 			if err != nil {
 				panic(err)
 			}
+			s.LogPrintf("entrys.txt", "Add %x", entry.GetHash().Bytes()[:4])
+		} else {
+			s.LogPrintf("entrys.txt", "Has %x", entry.GetHash().Bytes()[:4])
 		}
 	}
 }

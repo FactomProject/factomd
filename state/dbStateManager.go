@@ -1467,6 +1467,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	for _, e := range d.Entries {
 		// If it's in the DBlock
 		if _, ok := allowedEntries[e.GetHash().Fixed()]; ok {
+			list.State.LogPrintf("entrys.txt", "Add1 %x", e.GetHash().Bytes()[:4])
 			if err := list.State.DB.InsertEntryMultiBatch(e); err != nil {
 				panic(err.Error())
 			}
@@ -1491,9 +1492,14 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 
 				for _, e := range eb.GetBody().GetEBEntries() {
 					if _, ok := allowedEntries[e.Fixed()]; ok {
+						// todo: consider if checking before adding is a per gain
+						//if exists, _ := list.State.DB.DoesKeyExist(databaseOverlay.ENTRY, e.Bytes()); !exists {
+						list.State.LogPrintf("entrys.txt", "Add2 %x", e.Bytes()[:4])
+
 						if err := list.State.DB.InsertEntryMultiBatch(pl.GetNewEntry(e.Fixed())); err != nil {
 							panic(err.Error())
 						}
+						//}
 					} else {
 						list.State.LogPrintf("dbstateprocess", "Error saving entry from process list, entry not allowed")
 					}
