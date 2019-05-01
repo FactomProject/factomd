@@ -78,9 +78,9 @@ func (s *State) WriteEntries() {
 			if err != nil {
 				panic(err)
 			}
-			s.LogPrintf("entrys.txt", "Add %x", entry.GetHash().Bytes()[:4])
+			s.LogPrintf("ehashes", "Add %x", entry.GetHash().Bytes()[:4])
 		} else {
-			s.LogPrintf("entrys.txt", "Has %x", entry.GetHash().Bytes()[:4])
+			s.LogPrintf("ehashes", "Has %x", entry.GetHash().Bytes()[:4])
 		}
 	}
 }

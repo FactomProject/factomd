@@ -902,7 +902,7 @@ func (s *State) ExecuteEntriesInDBState(dbmsg *messages.DBStateMsg) {
 	s.DB.StartMultiBatch()
 	for _, e := range dbmsg.Entries {
 		if exists, _ := s.DB.DoesKeyExist(databaseOverlay.ENTRY, e.GetHash().Bytes()); !exists {
-			s.LogPrintf("entrys.txt", "Add3 %x", e.GetHash().Bytes()[:4])
+			s.LogPrintf("ehashes", "Add3 %x", e.GetHash().Bytes()[:4])
 			if err := s.DB.InsertEntryMultiBatch(e); err != nil {
 				panic(err.Error())
 			}
@@ -1211,7 +1211,7 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 		if len(s.WriteEntry) < cap(s.WriteEntry) {
 
 			if has(s, entry.GetHash()) {
-				s.LogPrintf("entrys.txt", "Duplicate DataResponse %x", entry.GetHash().Bytes()[:4])
+				s.LogPrintf("ehashes", "Duplicate DataResponse %x", entry.GetHash().Bytes()[:4])
 				return
 			}
 			s.WriteEntry <- entry // DataResponse
