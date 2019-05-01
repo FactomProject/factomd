@@ -1163,7 +1163,7 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 	msg, ok := m.(*messages.DataResponse)
 	if !ok {
-		s.LogMessage("executeMsg", "Drop, not a DR", msg)
+		s.LogMessage("executeMsg", "Drop, not a DataResponce", msg)
 		return
 	}
 
@@ -1206,6 +1206,11 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 			return
 		}
 		if len(s.WriteEntry) < cap(s.WriteEntry) {
+
+			if has(s, entry.GetHash()) {
+				s.LogPrintf("entrys.txt", "Duplicate DataResponce %x", entry.GetHash().Bytes()[:4])
+				return
+			}
 			s.WriteEntry <- entry
 			s.LogMessage("executeMsg", "writeEntry", msg)
 		}

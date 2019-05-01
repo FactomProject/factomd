@@ -52,7 +52,8 @@ func max_index_of_array(a) {
 #   149355 08:46:33.139  189378-:-0 Send P2P P2P Network                   M-931c6a|R-931c6a|H-931c6a|0xc422020270               Missing Data[17]:MissingData: [fc73485610] RandomPeer 
 /MissingData/ {
     ts = time2sec($2);
-    id = substr($11,2,10);
+    id = substr($10,2,10);
+    print "md",id;
     asks[id]++;
     
     if(!(id in first_ask)) {
@@ -68,6 +69,7 @@ func max_index_of_array(a) {
 /DataResponse/ {
     ts = time2sec($2);
     id = substr($12,1,10);
+    print "dr",id;
     resps[id]++;
 
     if(!(id in first_resp)) {
@@ -82,15 +84,32 @@ func max_index_of_array(a) {
 END {
 
     sum_of_asks = sum_of_array(asks);
-    print "EntryRequests:   total=", sum_of_asks, "unique=", length(asks), "min=", min_of_array(asks), "aver=", sum_of_asks/length(asks), "max=", max_of_array(asks);
+    if(length(asks)==0) {
+      average_ask = "no asks"
+    } else {
+      average_ask = sum_of_asks/length(asks);
+    }
+    print "EntryRequests:   total=", sum_of_asks, "unique=", length(asks), "min=", min_of_array(asks), "aver=", average_ask, "max=", max_of_array(asks);
 
     sum_of_resps = sum_of_array(resps);
-    print "EntryResponces:  total=", sum_of_resps, "unique=", length(resps), "min=", min_of_array(resps), "aver=", sum_of_resps/length(resps), "max=", max_of_array(resps);
+    if(length(resps)==0) {
+      average_resp = "no resp"
+    } else {
+      average_resp = sum_of_resps/length(resps);
+    }
+    print "EntryResponces:  total=", sum_of_resps, "unique=", length(resps), "min=", min_of_array(resps), "aver=", average_resp, "max=", max_of_array(resps);
 
     sum_of_delay = sum_of_array(delay);
     max_delay = max_of_array(delay);
     min_delay =  min_of_array(delay);
-    printf("Time for reply:  total= %s        min=%g aver=%g max=%g\\n", time2str(sum_of_delay), min_delay, sum_of_delay/length(delay), max_delay);
+    
+    
+    if(length(delay)==0) {
+      average_delay = "no delays"
+    } else {
+      average_delay = sum_of_delay/length(delay)
+    }
+    printf("Time for reply:  total= %s        min=%g aver=%g max=%g\\n", time2str(sum_of_delay), min_delay, average_delay, max_delay);
 
     sample_period = (max_delay-min_delay)/10;
     
@@ -107,11 +126,17 @@ END {
     
     
     
+    sum_of_stat = sum_of_array(stat);
+    if(length(stat)==0) {
+      average_stat = "no stat"
+    } else {
+      average_stat = sum_of_delay/length(stat)
+    }
+    print "unique requests inflight average", average_stat, "max=", max_of_array(stat);
     
-    print "unique resuests inflight average", sum_of_array(stat)/length(stat), "max=", max_of_array(stat);
     min_inflight = min_index_of_array(stat); # time first ask 
     max_inflight = max_index_of_array(stat); # time of last responce
-    sample_period = (max_inflight-min_inflight)/10;
+    sample_period = (max_inflight-min_inflight)/10 +.000000001;
     
     print "Start of trace", time2str(min_inflight), "duration", time2str(max_inflight-min_inflight), "sample period", sample_period;
     for(i in stat) {
@@ -139,5 +164,5 @@ EOF
 ################################
 
  
-(grep -hE "Send.*MissingData" $1_networkoutputs.txt; grep -hE "enqueue.*DataResponse" $1_networkinputs.txt) | awk "$scriptVariable"
+(grep -hE "Send.*MissingData" $1_networkoutputs.txt; grep -hE "enqueue.*DataResponse" $1_networkinputs.txt) | sort -n | awk "$scriptVariable"
 

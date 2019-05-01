@@ -140,6 +140,28 @@ func TestLoad(t *testing.T) {
 	ShutDownEverything(t)
 } // testLoad(){...}
 
+func TestCatchup(t *testing.T) {
+	if RanSimTest {
+		return
+	}
+
+	RanSimTest = true
+
+	// use a tree so the messages get reordered
+	state0 := SetupSim("LF", map[string]string{"--debuglog": ""}, 15, 0, 0, t)
+
+	RunCmd("1") // select 2
+	RunCmd("x")
+	RunCmd("R5") // Feed load
+	WaitBlocks(state0, 10)
+	RunCmd("R0") // Stop load
+	RunCmd("x")
+	WaitBlocks(state0, 3)
+	//todo: check that the node01 caught up and finished 2nd pass sync
+
+	ShutDownEverything(t)
+} // testLoad(){...}
+
 // Test that we don't put invalid TX into a block.  This is done by creating transactions that are just outside
 // the time for the block, and we let the block catch up.  The code should validate against the block time of the
 // block to ensure that we don't record an invalid transaction in the block relative to the block time.

@@ -65,6 +65,13 @@ func (s *State) WriteEntries() {
 
 	for {
 		entry := <-s.WriteEntry
+
+		if has(s, entry.GetHash()) {
+			s.LogPrintf("entrys.txt", "Has %x", entry.GetHash().Bytes()[:4])
+			continue
+		}
+		s.LogPrintf("entrys.txt", "Add %x", entry.GetHash().Bytes()[:4])
+
 		if !has(s, entry.GetHash()) {
 			s.DB.StartMultiBatch()
 			err := s.DB.InsertEntryMultiBatch(entry)
