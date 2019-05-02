@@ -158,10 +158,19 @@ END {
     PROCINFO["sorted_in"] ="@val_num_desc";
     print "Asks ----------------"
     x =0;
-    for(i in asks) { print i, asks[i]; x++; if(x==10) break;}
+    for(i in asks) { print i, asks[i]; x++; if(x==15) break;}
     print "---------------------"
     
+    print "Delays --------------"
+    x =0;
+    for(i in delay) { print i, delay[i]; x++; if(x==10) break;}
+    print "---------------------"
     
+    print "inflight ------------"
+    x =0;
+    for(i in inflight) { print i, inflight[i]; x++; if(x==10) break;}
+    print "---------------------"
+     
         #for(i in stat) {print i, stats[i];}
 
     

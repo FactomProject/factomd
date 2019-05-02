@@ -20,7 +20,6 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/util/atomic"
 
@@ -901,12 +900,7 @@ func (s *State) ExecuteEntriesInDBState(dbmsg *messages.DBStateMsg) {
 	//todo: consider using func (s *State) WriteEntries()
 	s.DB.StartMultiBatch()
 	for _, e := range dbmsg.Entries {
-		if exists, _ := s.DB.DoesKeyExist(databaseOverlay.ENTRY, e.GetHash().Bytes()); !exists {
-			s.LogPrintf("ehashes", "Add3 %x", e.GetHash().Bytes()[:4])
-			if err := s.DB.InsertEntryMultiBatch(e); err != nil {
-				panic(err.Error())
-			}
-		}
+		s.WriteEntry <- e
 	}
 	err = s.DB.ExecuteMultiBatch()
 	if err != nil {

@@ -1466,14 +1466,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	}
 	for _, e := range d.Entries {
 		// If it's in the DBlock
-		if _, ok := allowedEntries[e.GetHash().Fixed()]; ok {
-			list.State.LogPrintf("ehashes", "Add1 %x", e.GetHash().Bytes()[:4])
-			if err := list.State.DB.InsertEntryMultiBatch(e); err != nil {
-				panic(err.Error())
-			}
-		} else {
-			list.State.LogPrintf("dbstateprocess", "Error saving entry from dbstate, entry not allowed")
-		}
+		list.State.WriteEntry <- e
 	}
 	list.State.NumEntries += len(d.Entries)
 	list.State.NumEntryBlocks += len(d.EntryBlocks)
@@ -1491,18 +1484,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 				}
 
 				for _, e := range eb.GetBody().GetEBEntries() {
-					if _, ok := allowedEntries[e.Fixed()]; ok {
-						// todo: consider if checking before adding is a per gain
-						//if exists, _ := list.State.DB.DoesKeyExist(databaseOverlay.ENTRY, e.Bytes()); !exists {
-						list.State.LogPrintf("ehashes", "Add2 %x", e.Bytes()[:4])
-
-						if err := list.State.DB.InsertEntryMultiBatch(pl.GetNewEntry(e.Fixed())); err != nil {
-							panic(err.Error())
-						}
-						//}
-					} else {
-						list.State.LogPrintf("dbstateprocess", "Error saving entry from process list, entry not allowed")
-					}
+					pl.State.WriteEntry <- pl.GetNewEntry(e.Fixed())
 				}
 			} else {
 				list.State.LogPrintf("dbstateprocess", "Error saving eblock from process list, eblock not allowed")

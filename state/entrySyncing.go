@@ -17,6 +17,7 @@ const (
 	pendingRequests               = 10000 // Lower bound on pending requests while syncing entries
 	secondsToSleepBetweenRequests = 5000  // Milliseconds between requests
 	timeBetweenRequests           = 30    // Seconds
+	purgeEveryXEntries            = 1000  // Every 1000 entries or so, go through the written map and purge old entries
 )
 
 type ReCheck struct {
@@ -27,17 +28,18 @@ type ReCheck struct {
 	Tries       int
 }
 type EntrySync struct {
-	MissingDBlockEntries     chan []*ReCheck    // We don't have these entries.  Each list is from a directory block.
-	DBHeightBase             int                // This is the highest block with entries not yet checked or are missing
-	TotalEntries             int                // Total Entries in the database
-	SyncingBlocks            map[int][]*ReCheck // Map of Directory blocks by height
-	finishedDBlocks          chan int           // Channel of finished Directory blocks
-	finishedEntries          chan int           // We get a ping every time an entry is done
-	Processing               int                // Directory block we are processing
-	EntriesProcessing        int                // Total of Entries being processed
-	EntryRequests            int                // Requests made
-	EntriesFound             int                // Entries found
-	DirectoryBlocksInProcess int                // Number of Directory blocks we are processing
+	MissingDBlockEntries     chan []*ReCheck            // We don't have these entries.  Each list is from a directory block.
+	DBHeightBase             int                        // This is the highest block with entries not yet checked or are missing
+	TotalEntries             int                        // Total Entries in the database
+	SyncingBlocks            map[int][]*ReCheck         // Map of Directory blocks by height
+	finishedDBlocks          chan int                   // Channel of finished Directory blocks
+	finishedEntries          chan int                   // We get a ping every time an entry is done
+	SendRequest              chan *messages.MissingData // Channel for messages being requested
+	Processing               int                        // Directory block we are processing
+	EntriesProcessing        int                        // Total of Entries being processed
+	EntryRequests            int                        // Requests made
+	EntriesFound             int                        // Entries found
+	DirectoryBlocksInProcess int                        // Number of Directory blocks we are processing
 }
 
 // Maintain queues of what we want to test, and what we are currently testing.
@@ -45,6 +47,8 @@ func (es *EntrySync) Init() {
 	es.MissingDBlockEntries = make(chan []*ReCheck, 1000) // Check 10 directory blocks at a time.
 	es.finishedEntries = make(chan int, 10000)
 	es.finishedDBlocks = make(chan int, 10000)
+	es.SendRequest = make(chan *messages.MissingData, 1000)
+
 	es.SyncingBlocks = make(map[int][]*ReCheck)
 } // we have to reprocess
 
@@ -67,21 +71,57 @@ func (s *State) WriteEntries() {
 
 	for {
 		entry := <-s.WriteEntry
-		if !has(s, entry.GetHash()) {
-			// todo: try batching these as long as the channel is not empty or up to some lot size
+		if entry != nil && !has(s, entry.GetHash()) {
 			s.DB.StartMultiBatch()
 			err := s.DB.InsertEntryMultiBatch(entry)
 			if err != nil {
 				panic(err)
 			}
+			s.LogPrintf("ehashes", "Add %x", entry.GetHash().Bytes()[:4])
 			err = s.DB.ExecuteMultiBatch()
 			if err != nil {
 				panic(err)
 			}
-			s.LogPrintf("ehashes", "Add %x", entry.GetHash().Bytes()[:4])
 		} else {
 			s.LogPrintf("ehashes", "Has %x", entry.GetHash().Bytes()[:4])
 		}
+	}
+}
+
+// SendManager keeps us from double sending entries on repeats.
+func (s *State) SendManager() {
+	es := s.EntrySyncState
+	var EntriesInFlight map[[32]byte]int64     // Time we last sent a request for this entry
+	EntriesInFlight = make(map[[32]byte]int64) // Make our map
+
+	purge := purgeEveryXEntries
+
+	for {
+		missingData := <-es.SendRequest
+		now := time.Now().UnixNano()
+
+		// Every 1000 messages or so, purge our hash map.
+		if purge <= 0 {
+			for k, v := range EntriesInFlight {
+				if (now-v)/1000000000 >= timeBetweenRequests {
+					delete(EntriesInFlight, k)
+				}
+			}
+			purge = purgeEveryXEntries
+		}
+		purge--
+
+		lastCall, ok := EntriesInFlight[missingData.RequestHash.Fixed()]
+		if !ok || (now-lastCall)/1000000000 < timeBetweenRequests {
+			if !has(s, missingData.RequestHash) {
+				EntriesInFlight[missingData.RequestHash.Fixed()] = now
+				missingData.SendOut(s, missingData)
+				s.EntrySyncState.EntryRequests++
+				continue
+			}
+		}
+
+		delete(EntriesInFlight, missingData.RequestHash.Fixed())
 	}
 }
 
@@ -122,15 +162,14 @@ func (s *State) RequestAndCollectMissingEntries() {
 			}
 		}
 
-		s.LogPrintf("entrysyncing", "Processing dbht %6d %6d Entries processing %6d Requests %6d Found %6d queue %6d DBlocks %6d Entries Found %d",
+		s.LogPrintf("entrysyncing", "Processing dbht %6d %6d Entries processing %6d Requests %6d Found %6d queue %6d DBlocks %6d",
 			s.EntryDBHeightComplete,
 			es.Processing,
 			es.EntriesProcessing,
 			es.EntryRequests,
 			es.EntriesFound,
 			len(es.MissingDBlockEntries),
-			es.DirectoryBlocksInProcess,
-			es.EntriesFound)
+			es.DirectoryBlocksInProcess)
 
 		for es.EntriesProcessing < pendingRequests && len(es.MissingDBlockEntries) > 0 {
 			dbrcs := <-es.MissingDBlockEntries
@@ -174,12 +213,10 @@ mainloop:
 						allfound = false // Only get here if the entryhash isn't found
 						//	s.LogPrintf("entrysyncing", "looking for %x [%6d] dbht %6d tries %6d",
 						//		rc.EntryHash.Bytes(), ipass, dbht, rc.Tries)
-						entryRequest := messages.NewMissingData(s, rc.EntryHash)
-
-						entryRequest.SendOut(s, entryRequest)
+						entryRequest := messages.NewMissingData(s, rc.EntryHash).(*messages.MissingData)
+						s.EntrySyncState.SendRequest <- entryRequest
 						progress = true
 						rc.Tries++
-						s.EntrySyncState.EntryRequests++
 					default: //Don't get here unless the entry isn't found, so say that we haven't found everything
 						allfound = false
 					}
@@ -216,6 +253,7 @@ func (s *State) GoSyncEntries() {
 	s.EntrySyncState.Init() // Initialize our processes
 
 	go s.WriteEntries()
+	go s.SendManager()
 	go s.RequestAndCollectMissingEntries()
 
 	highestChecked := s.EntryDBHeightComplete
