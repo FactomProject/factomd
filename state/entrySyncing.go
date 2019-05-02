@@ -14,9 +14,8 @@ import (
 )
 
 const (
-	pendingRequests     = 10000 // Lower bound on pending requests while syncing entries
-	timeBetweenRequests = 200   // Seconds
-	purgeEveryXEntries  = 1000  // Every 1000 entries or so, go through the written map and purge old entries
+	pendingRequests    = 10000 // Lower bound on pending requests while syncing entries
+	purgeEveryXEntries = 1000  // Every 1000 entries or so, go through the written map and purge old entries
 )
 
 type ReCheck struct {
@@ -76,15 +75,10 @@ func (s *State) WriteEntries() {
 			if err != nil {
 				panic(err)
 			}
-			s.LogPrintf("ehashes", "Add %x", entry.GetHash().Bytes()[:4])
 			err = s.DB.ExecuteMultiBatch()
 			if err != nil {
 				panic(err)
 			}
-		} else if entry != nil {
-			s.LogPrintf("ehashes", "Has %x", entry.GetHash().Bytes()[:4])
-		} else {
-			s.LogPrintf("ehashes", "Has a nil entry")
 		}
 	}
 }
@@ -104,7 +98,7 @@ func (s *State) SendManager() {
 		// Every 1000 messages or so, purge our hash map.
 		if purge <= 0 {
 			for k, v := range EntriesRequested {
-				if (now - v) >= timeBetweenRequests {
+				if (now - v) >= int64(s.DirectoryBlockInSeconds/2) {
 					delete(EntriesRequested, k)
 				}
 			}
@@ -113,7 +107,7 @@ func (s *State) SendManager() {
 		purge--
 
 		lastCall, ok := EntriesRequested[missingData.RequestHash.Fixed()]
-		if !ok || (now-lastCall) > timeBetweenRequests {
+		if !ok || (now-lastCall) > int64(s.DirectoryBlockInSeconds/2) {
 			if !has(s, missingData.RequestHash) {
 				EntriesRequested[missingData.RequestHash.Fixed()] = now
 				missingData.SendOut(s, missingData)
@@ -222,7 +216,7 @@ mainloop:
 				}
 				// Sleep for 1/100 of our send frequency.  Convert our frequency to microseconds and divide
 				// by 1000 to get the 1/100 of our seconds in microseconds.  Then sleep that many microseconds.
-				time.Sleep(time.Duration(timeBetweenRequests*1000000/100) * time.Microsecond)
+				time.Sleep(time.Duration(int64(s.DirectoryBlockInSeconds*1000/2)) * time.Millisecond)
 			}
 			return
 		}
