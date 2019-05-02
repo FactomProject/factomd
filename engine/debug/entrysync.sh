@@ -168,7 +168,7 @@ END {
     
     print "inflight ------------"
     x =0;
-    for(i in inflight) { print i, inflight[i]; x++; if(x==10) break;}
+    for(i in stat) { print i, stat[i]; x++; if(x==10) break;}
     print "---------------------"
      
         #for(i in stat) {print i, stats[i];}
