@@ -1,9 +1,10 @@
-#/bin/sh
+#!/usr/bin/env bash
+# show the details of how a node processed a given minute
+#showminute.sh <dbht> <minute> <node(s)>
 block="$1"
 shift
 minute="$1"
 shift
-
 (
 grep -E ".*DBh/VMh/h $block/./-- minute $minute" $1_networkinputs.txt | grep -v Drop; 
 grep -E ".*DBh/VMh/h $block/./-- minute $minute" $1_executemsg.txt; 

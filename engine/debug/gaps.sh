@@ -1,4 +1,6 @@
-#/bin/sh
+#!/usr/bin/env bash
+# identify gaps in a sepuence of long entries piped in
+# grep -E  "done.*EOM.*./0/" fnode0* | gaps.sh
 ################################
 # AWK scripts                  #
 ################################
