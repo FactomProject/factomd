@@ -82,8 +82,10 @@ func (s *State) WriteEntries() {
 			if err != nil {
 				panic(err)
 			}
-		} else {
+		} else if entry != nil {
 			s.LogPrintf("ehashes", "Has %x", entry.GetHash().Bytes()[:4])
+		} else {
+			s.LogPrintf("ehashes", "Has a nil entry")
 		}
 	}
 }
