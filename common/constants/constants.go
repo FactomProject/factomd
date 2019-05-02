@@ -300,7 +300,7 @@ func SetCustomCoinBaseConstants() {
 
 const (
 	// Limits for keeping inputs from flooding our execution
-	INMSGQUEUE_HIGH = 100000
+	INMSGQUEUE_HIGH = 10000
 	INMSGQUEUE_MED  = 5000
 	INMSGQUEUE_LOW  = 1000
 

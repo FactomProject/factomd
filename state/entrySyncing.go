@@ -16,7 +16,7 @@ import (
 const (
 	pendingRequests               = 10000 // Lower bound on pending requests while syncing entries
 	secondsToSleepBetweenRequests = 5000  // Milliseconds between requests
-	timeBetweenRequests           = 30    // Seconds
+	timeBetweenRequests           = 200   // Seconds
 	purgeEveryXEntries            = 1000  // Every 1000 entries or so, go through the written map and purge old entries
 )
 
