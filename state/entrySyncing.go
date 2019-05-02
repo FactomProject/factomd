@@ -14,9 +14,9 @@ import (
 )
 
 const (
-	pendingRequests               = 10000 // Lower bound on pending requests while syncing entries
-	timeBetweenRequests           = 200   // Seconds
-	purgeEveryXEntries            = 1000  // Every 1000 entries or so, go through the written map and purge old entries
+	pendingRequests     = 10000 // Lower bound on pending requests while syncing entries
+	timeBetweenRequests = 200   // Seconds
+	purgeEveryXEntries  = 1000  // Every 1000 entries or so, go through the written map and purge old entries
 )
 
 type ReCheck struct {
@@ -104,8 +104,8 @@ func (s *State) SendManager() {
 		// Every 1000 messages or so, purge our hash map.
 		if purge <= 0 {
 			for k, v := range EntriesRequested {
-				if (now-v) >= timeBetweenRequests {
-					delete(EntriesInFlight, k)
+				if (now - v) >= timeBetweenRequests {
+					delete(EntriesRequested, k)
 				}
 			}
 			purge = purgeEveryXEntries
@@ -119,8 +119,8 @@ func (s *State) SendManager() {
 				missingData.SendOut(s, missingData)
 				s.EntrySyncState.EntryRequests++
 				continue
-			} 
-		} 
+			}
+		}
 	} // forever ...
 }
 
