@@ -15,6 +15,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+var ValidationDebug bool = false
+
 func (state *State) ValidatorLoop() {
 	CheckGrants()
 	timeStruct := new(Timer)
@@ -83,14 +85,25 @@ func (state *State) ValidatorLoop() {
 			i1 := 0
 			i2 := 0
 
+			if ValidationDebug {
+				s.LogPrintf("executeMsg", "start validate.process")
+			}
 			for i1 = 0; p1 && i1 < 200; i1++ {
 				p1 = state.Process()
+			}
+			if ValidationDebug {
+				s.LogPrintf("executeMsg", "start validate.updatestate")
 			}
 			for i2 = 0; p2 && i2 < 200; i2++ {
 				p2 = state.UpdateState()
 			}
+			if ValidationDebug {
+				s.LogPrintf("executeMsg", "start validate.messagesort")
+			}
 
-			s.LogPrintf("updateIssues", "Validation messages %3d processlist %3d", i1, i2)
+			if ValidationDebug {
+				s.LogPrintf("updateIssues", "Validation messages %3d processlist %3d", i1, i2)
+			}
 
 			select {
 			case min := <-state.tickerQueue:
@@ -98,6 +111,7 @@ func (state *State) ValidatorLoop() {
 			default:
 			}
 
+			msgcnt := 0
 			for i := 0; i < 50; i++ {
 				if ackRoom == 1 || msgRoom == 1 {
 					break // no room
@@ -120,7 +134,7 @@ func (state *State) ValidatorLoop() {
 
 				if msg != nil {
 					state.JournalMessage(msg)
-
+					msgcnt++
 					// Sort the messages.
 					if state.IsReplaying == true {
 						state.ReplayTimestamp = msg.GetTimestamp()
@@ -136,6 +150,11 @@ func (state *State) ValidatorLoop() {
 				ackRoom = cap(state.ackQueue) - len(state.ackQueue)
 				msgRoom = cap(state.msgQueue) - len(state.msgQueue)
 			}
+			if ValidationDebug {
+				s.LogPrintf("executeMsg", "stop validate.messagesort sorted %d messages", msgcnt)
+			}
+
+			// if we are not making progress and there are no messages to sort  sleep a bit
 			if !(p1 || p2) && state.InMsgQueue().Length() == 0 && state.InMsgQueue2().Length() == 0 {
 				// No messages? Sleep for a bit
 				for i := 0; i < 10 && state.InMsgQueue().Length() == 0 && state.InMsgQueue2().Length() == 0; i++ {
@@ -144,6 +163,7 @@ func (state *State) ValidatorLoop() {
 				}
 
 			}
+
 		}
 
 	}
@@ -157,7 +177,7 @@ type Timer struct {
 func (t *Timer) timer(s *State, min int) {
 	t.lastMin = min
 
-	if s.RunLeader { // don't generate EOM if we are not a leader or are loading the DBState messages
+	if s.RunLeader && s.DBFinished { // don't generate EOM if we are not a leader or are loading the DBState messages
 		eom := new(messages.EOM)
 		eom.Timestamp = s.GetTimestamp()
 		eom.ChainID = s.GetIdentityChainID()

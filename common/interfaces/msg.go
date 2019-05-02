@@ -97,7 +97,7 @@ type IMsg interface {
 	// Returns true if able to process, false if process is waiting on something.
 	Process(dbheight uint32, state IState) bool
 
-	// Some Messages need to be processed on certain VMs.  We set this and querry
+	// Some Messages need to be processed on certain VMs.  We set this and query
 	// the indexes of these machines here.
 	GetVMIndex() int
 	SetVMIndex(int)
