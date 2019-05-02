@@ -214,9 +214,9 @@ mainloop:
 						allfound = false
 					}
 				}
-				// Sleep for 1/100 of our send frequency.  Convert our frequency to microseconds and divide
-				// by 1000 to get the 1/100 of our seconds in microseconds.  Then sleep that many microseconds.
-				time.Sleep(time.Duration(int64(s.DirectoryBlockInSeconds*1000/2)) * time.Millisecond)
+				// Sleep for 1/100 of our send frequency.  Convert our frequency (1/2 of the time for a directory block)
+				// and 1/100 of that to allow us to test for getting the entry more frequently than we send.
+				time.Sleep(time.Duration(int64(s.DirectoryBlockInSeconds*1000)/2/100) * time.Millisecond)
 			}
 			return
 		}
