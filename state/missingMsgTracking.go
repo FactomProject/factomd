@@ -14,7 +14,8 @@ type MsgHeight struct {
 
 type ACKMap struct {
 	Acks map[MsgHeight]interfaces.IMsg
-	MsgOrder [1000][32]byte
+	//MsgOrder [1000][32]byte
+	MsgOrder [100]interfaces.IMsg
 	N int
 }
 
@@ -37,13 +38,38 @@ func (l* ACKMap) Add(msg interfaces.IMsg) {
 		l.Acks = make(map[MsgHeight]interfaces.IMsg, 0)
 	}
 
-	fmt.Println("ACK length: ",len(l.Acks))
+	fmt.Println("len(l.Acks): ", len(l.Acks))
+	if len(l.Acks) == 100 {
+		holder := l.MsgOrder[(l.N - 100)%100]
+		ack2 := holder.(*messages.Ack)
+		oldHeights := MsgHeight{int(ack2.DBHeight), ack2.VMIndex, int(ack2.Height)}
+		fmt.Println("height of old: ", oldHeights)
+
+		var oldestHeight MsgHeight
+		for i, j := range l.Acks {
+			fmt.Println("i: ", i, " j: ", j)
+			fmt.Println("oldestHeight.Height: ", oldestHeight.Height)
+			fmt.Println("i.Height: ", i.Height)
+			if oldestHeight.DBHeight == 0 {
+				oldestHeight = i
+			}
+			if oldestHeight.Height > i.Height  {
+
+				oldestHeight = i
+			}
+		}
+		fmt.Println("oldest Height: ", oldestHeight)
+
+		fmt.Println("holder: ", holder)
+		//fmt.Println("Delete this???: ", l.Acks[holder])
+	}
 
 	//prevous := l.MsgOrder[l.N]
 	//delete(l.ACKS, prevous)
 	l.Acks[heights] = msg
-	l.MsgOrder[l.N] = msg.GetHash().Fixed()
-	l.N = (l.N + 1)%1000
+	//l.MsgOrder[l.N] = msg.GetHash().Fixed()
+	l.MsgOrder[l.N] = msg
+	l.N = (l.N + 1)%100
 }
 
 func (l* ACKMap) Get(DBHeight int, vmIndex int, height int) bool {
@@ -59,6 +85,7 @@ func (l* MSGMap) Add(msg interfaces.IMsg) {
 	//fmt.Println("Add heights: ", heights)
 
 	hash := msg.GetHash().Fixed()
+	fmt.Println("adding Message: ", msg.GetMsgHash())
 
 	if l.Msgs == nil {
 		l.Msgs = make(map[[32]byte]interfaces.IMsg, 0)
@@ -73,7 +100,6 @@ func (l* MSGMap) Add(msg interfaces.IMsg) {
 
 func (l* MSGMap) Get(msg interfaces.IMsg) bool {
 	hash := msg.GetHash().Fixed()
-
 	_, exists := l.Msgs[hash]
 	return exists
 }
