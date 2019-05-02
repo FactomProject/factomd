@@ -15,7 +15,6 @@ import (
 
 const (
 	pendingRequests               = 10000 // Lower bound on pending requests while syncing entries
-	secondsToSleepBetweenRequests = 5000  // Milliseconds between requests
 	timeBetweenRequests           = 200   // Seconds
 	purgeEveryXEntries            = 1000  // Every 1000 entries or so, go through the written map and purge old entries
 )
@@ -93,19 +92,19 @@ func (s *State) WriteEntries() {
 // SendManager keeps us from double sending entries on repeats.
 func (s *State) SendManager() {
 	es := s.EntrySyncState
-	var EntriesInFlight map[[32]byte]int64     // Time we last sent a request for this entry
-	EntriesInFlight = make(map[[32]byte]int64) // Make our map
+	var EntriesRequested map[[32]byte]int64     // Time we last sent a request for this entry
+	EntriesRequested = make(map[[32]byte]int64) // Make our map
 
 	purge := purgeEveryXEntries
 
 	for {
 		missingData := <-es.SendRequest
-		now := time.Now().UnixNano()
+		now := time.Now().Unix()
 
 		// Every 1000 messages or so, purge our hash map.
 		if purge <= 0 {
-			for k, v := range EntriesInFlight {
-				if (now-v)/1000000000 >= timeBetweenRequests {
+			for k, v := range EntriesRequested {
+				if (now-v) >= timeBetweenRequests {
 					delete(EntriesInFlight, k)
 				}
 			}
@@ -113,18 +112,16 @@ func (s *State) SendManager() {
 		}
 		purge--
 
-		lastCall, ok := EntriesInFlight[missingData.RequestHash.Fixed()]
-		if !ok || (now-lastCall)/1000000000 < timeBetweenRequests {
+		lastCall, ok := EntriesRequested[missingData.RequestHash.Fixed()]
+		if !ok || (now-lastCall) > timeBetweenRequests {
 			if !has(s, missingData.RequestHash) {
-				EntriesInFlight[missingData.RequestHash.Fixed()] = now
+				EntriesRequested[missingData.RequestHash.Fixed()] = now
 				missingData.SendOut(s, missingData)
 				s.EntrySyncState.EntryRequests++
 				continue
-			}
-		}
-
-		delete(EntriesInFlight, missingData.RequestHash.Fixed())
-	}
+			} 
+		} 
+	} // forever ...
 }
 
 // RequestAndCollectMissingEntries()
