@@ -850,6 +850,13 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 			s.IdentityChainID = identity
 			s.LogPrintf("AckChange", "Load IdentityChainID \"%v\"", s.IdentityChainID.String())
 		}
+
+		if cfg.App.P2PIncoming > 0 {
+			p2p.MaxNumberIncomingConnections = cfg.App.P2PIncoming
+		}
+		if cfg.App.P2POutgoing > 0 {
+			p2p.NumberPeersToConnect = cfg.App.P2POutgoing
+		}
 	} else {
 		s.LogPath = "database/"
 		s.LdbPath = "database/ldb"
