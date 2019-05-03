@@ -1466,13 +1466,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	}
 	for _, e := range d.Entries {
 		// If it's in the DBlock
-		if _, ok := allowedEntries[e.GetHash().Fixed()]; ok {
-			if err := list.State.DB.InsertEntryMultiBatch(e); err != nil {
-				panic(err.Error())
-			}
-		} else {
-			list.State.LogPrintf("dbstateprocess", "Error saving entry from dbstate, entry not allowed")
-		}
+		list.State.WriteEntry <- e
 	}
 	list.State.NumEntries += len(d.Entries)
 	list.State.NumEntryBlocks += len(d.EntryBlocks)
@@ -1490,13 +1484,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 				}
 
 				for _, e := range eb.GetBody().GetEBEntries() {
-					if _, ok := allowedEntries[e.Fixed()]; ok {
-						if err := list.State.DB.InsertEntryMultiBatch(pl.GetNewEntry(e.Fixed())); err != nil {
-							panic(err.Error())
-						}
-					} else {
-						list.State.LogPrintf("dbstateprocess", "Error saving entry from process list, entry not allowed")
-					}
+					pl.State.WriteEntry <- pl.GetNewEntry(e.Fixed())
 				}
 			} else {
 				list.State.LogPrintf("dbstateprocess", "Error saving eblock from process list, eblock not allowed")

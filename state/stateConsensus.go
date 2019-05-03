@@ -20,7 +20,6 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/util/atomic"
 
@@ -999,12 +998,10 @@ func (s *State) ExecuteEntriesInDBState(dbmsg *messages.DBStateMsg) {
 		consenLogger.WithFields(log.Fields{"func": "ExecuteEntriesInDBState", "height": height}).Errorf("Bad DBState. DBlock does not match found")
 		return // Bad DBlock
 	}
-
+	//todo: consider using func (s *State) WriteEntries()
 	s.DB.StartMultiBatch()
 	for _, e := range dbmsg.Entries {
-		if exists, _ := s.DB.DoesKeyExist(databaseOverlay.ENTRY, e.GetHash().Bytes()); !exists {
-			s.DB.InsertEntryMultiBatch(e)
-		}
+		s.WriteEntry <- e
 	}
 	err = s.DB.ExecuteMultiBatch()
 	if err != nil {
@@ -1250,6 +1247,7 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 	msg, ok := m.(*messages.DataResponse)
 	if !ok {
+		s.LogMessage("executeMsg", "Drop, not a DataResponce", msg)
 		return
 	}
 
@@ -1292,7 +1290,13 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 			return
 		}
 		if len(s.WriteEntry) < cap(s.WriteEntry) {
-			s.WriteEntry <- entry
+
+			if has(s, entry.GetHash()) {
+				s.LogPrintf("ehashes", "Duplicate DataResponse %x", entry.GetHash().Bytes()[:4])
+				return
+			}
+			s.WriteEntry <- entry // DataResponse
+			s.LogMessage("executeMsg", "writeEntry", msg)
 		}
 	}
 }
