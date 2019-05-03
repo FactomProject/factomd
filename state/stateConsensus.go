@@ -248,7 +248,7 @@ func (s *State) executeMsg(msg interfaces.IMsg) (ret bool) {
 
 		if s.RunLeader &&
 			s.Leader &&
-			!s.Saving &&
+			!s.Saving && // if not between blocks
 			vm != nil && int(vm.Height) == vml && // if we have processed to the end of the process list
 			(!s.Syncing || !vm.Synced) && // if not syncing or this VM is not yet synced
 			(local || vmi == s.LeaderVMIndex) && // if it's a local message or it a message for our VM
@@ -278,7 +278,6 @@ func (s *State) executeMsg(msg interfaces.IMsg) (ret bool) {
 	default:
 		if !msg.SentInvalid() {
 			msg.MarkSentInvalid(true)
-			//			s.LogMessage("executeMsg", "Send to InvalidMsgQueue", msg)
 			s.networkInvalidMsgQueue <- msg
 		}
 		return true
@@ -698,7 +697,9 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 	{ // debug
 		vmSync := false
 		for _, vm := range s.LeaderPL.VMs {
-			vmSync = vmSync || vm.Synced
+			if vm != nil {
+				vmSync = vmSync || vm.Synced
+			}
 		}
 
 		if s.Syncing || s.EOM || s.EOMDone || s.DBSig || (s.EOMProcessed != 0) || (s.DBSigProcessed != 0) || vmSync {
@@ -1454,7 +1455,7 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 
 	// If we have already issued an EOM for the minute being sync'd
 	// then this should be the next EOM but we can't do that just yet.
-	if s.Syncing && vm.EomMinuteIssued == s.CurrentMinute+1 {
+	if vm.EomMinuteIssued == s.CurrentMinute+1 {
 		go func() { // This is a trigger to issue the EOM, but we are still syncing.  Wait to retry.
 			time.Sleep(time.Duration(s.DirectoryBlockInSeconds) * time.Second / 600) // Once a second for 10 min block
 			s.LogMessage("InMsgQueue", "enqueue_LeaderExecuteEOM1", m)
@@ -1486,11 +1487,7 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 		return
 	}
 
-	if vm.EomMinuteIssued >= s.CurrentMinute+1 {
-		//os.Stderr.WriteString(fmt.Sprintf("Bump detected %s minute %2d\n", s.FactomNodeName, s.CurrentMinute))
-		return
-	}
-
+	// Commited to sending an EOM now
 	vm.EomMinuteIssued = s.CurrentMinute + 1
 
 	fix := false

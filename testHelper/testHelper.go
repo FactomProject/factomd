@@ -88,6 +88,7 @@ func CreateAndPopulateTestState() *state.State {
 	}*/
 	s.SetFactoshisPerEC(1)
 	state.LoadDatabase(s)
+	s.Process()
 	s.UpdateState()
 
 	return s
