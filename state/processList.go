@@ -915,18 +915,7 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 			} else {
 				s.LogMessage("process", "Waiting on saving", msg)
 				s.LogPrintf("EntrySync", "Waiting on saving EntryDBHeightComplete = %d", s.EntryDBHeightComplete)
-				for s.InMsgQueue().Length() > 100 {
-					msg := s.InMsgQueue().Dequeue()
-					if msg.Type() == constants.DATA_RESPONSE {
-						msg.FollowerExecute(s)
-					}
-				}
-				for s.InMsgQueue2().Length() > 100 {
-					msg := s.InMsgQueue2().Dequeue()
-					if msg.Type() == constants.DATA_RESPONSE {
-						msg.FollowerExecute(s)
-					}
-				}
+
 				// If we don't have the Entry Blocks (or we haven't processed the signatures) we can't do more.
 				// p.State.AddStatus(fmt.Sprintf("Can't do more: dbht: %d vm: %d vm-height: %d Entry Height: %d", p.DBHeight, i, j, s.EntryDBHeightComplete))
 				if extraDebug {
