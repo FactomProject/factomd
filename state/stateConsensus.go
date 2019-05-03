@@ -441,7 +441,7 @@ func CheckDBKeyMR(s *State, ht uint32, hash string) error {
 func (s *State) ReviewHolding() {
 
 	preReviewHoldingTime := time.Now()
-	if len(s.XReview) > 0 || s.Syncing {
+	if len(s.XReview) > 0 {
 		return
 	}
 
@@ -500,9 +500,7 @@ func (s *State) ReviewHolding() {
 
 		eom, ok := v.(*messages.EOM)
 		if ok {
-			if (eom.DBHeight <= saved && saved > 0) || int(eom.Minute) < s.CurrentMinute {
-				TotalHoldingQueueOutputs.Inc()
-				//delete(s.Holding, k)
+			if int(eom.DBHeight)*10+int(eom.Minute) < int(s.LLeaderHeight)*10+s.CurrentMinute {
 				s.DeleteFromHolding(k, v, "old EOM")
 				continue
 			}
