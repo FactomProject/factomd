@@ -21,6 +21,7 @@ func TestMessageFilteringInput(t *testing.T) {
 
 	state1 := GetFnodes()[1].State // Get node 1
 
+
 	WaitForBlock(state1, 8)
 	WaitMinutes(state1, 1)
 

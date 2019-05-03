@@ -113,7 +113,7 @@ func GetBody(context *web.Context) string {
 }
 
 func getAPIUrl() string {
-	return "http://localhost:" + fmt.Sprint(engine.GetFnodes()[0].State.GetPort()) + "/v2"
+	return "http://localhost:" + fmt.Sprint(engine.GetFnodes()[0].State.GetPort()) + "/debug"
 }
 
 func postRequest(jsonStr string) (*http.Response, error) {

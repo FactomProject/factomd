@@ -12,10 +12,14 @@ func TestMessageFilteringOutput(t *testing.T) {
 	SetupSim("LLLLLAAF", map[string]string{"--debuglog": "."}, 25, 1, 1, t)
 
 	RunCmd("1")
+
 	RunCmd("w") // point API at node 1
 	RunCmd("s") // print status
 
-	apiRegex := "EOM.* DBh/VMh/h 6/.*minute 1"
+	WaitBlocks(state0, 1)
+
+	apiRegex := "EOM.*6/.*minute 1"
+
 	SetOutputFilter(apiRegex)
 
 	state1 := GetFnodes()[1].State // Get node 1
