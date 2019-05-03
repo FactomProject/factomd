@@ -691,36 +691,6 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 	//s.setCurrentMinute(newMinute)     // MoveStateToHeight() move minute
 	//s.SetLLeaderHeight(int(dbheight)) // Update leader height in MoveStateToHeight
 
-	{ // debug
-		vmSync := false
-		for _, vm := range s.LeaderPL.VMs {
-			if vm != nil {
-				vmSync = vmSync || vm.Synced
-			}
-		}
-
-		if s.Syncing || s.EOM || s.EOMDone || s.DBSig || (s.EOMProcessed != 0) || (s.DBSigProcessed != 0) || vmSync {
-			s.LogPrintf("executeMsg", "resetting syncstate in moveToHeight")
-			s.LogPrintf("executeMsg", "s.Syncing=%v s.EOM=%v s.EOMDone=%v s.DBSig=%v s.DBSigDone=%v s.EOMProcessed=%d s.DBSigProcessed=%v, vmSync = %v",
-				s.Syncing, s.EOM, s.EOMDone, s.DBSig, s.DBSigDone, s.EOMProcessed, s.DBSigProcessed, vmSync)
-
-		}
-	}
-	s.Syncing = false    // movestatetoheight
-	s.EOM = false        // movestatetoheight
-	s.EOMDone = false    // movestatetoheight
-	s.DBSig = false      // movestatetoheight
-	s.EOMProcessed = 0   // movestatetoheight
-	s.DBSigProcessed = 0 // movestatetoheight
-	// leave s.DBSigDone alone unless it's a block change
-	for _, vm := range s.LeaderPL.VMs {
-		vm.Synced = false // movestatetoheight
-	}
-
-	// set the limits because we might have added servers
-	s.EOMLimit = len(s.LeaderPL.FedServers) // We add or remove server only on block boundaries
-	s.DBSigLimit = s.EOMLimit               // We add or remove server only on block boundaries
-
 	if s.LLeaderHeight != dbheight {
 		if s.DBSigDone == true {
 			s.LogPrintf("executeMsg", "reset s.DBSigDone in movetostate for block change")
@@ -781,6 +751,39 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		s.LeaderPL.SortAuditServers()
 		s.LeaderPL.SortFedServers()
 	}
+
+	{ // debug
+		vmSync := false
+		for _, vm := range s.LeaderPL.VMs {
+			if vm != nil {
+				vmSync = vmSync || vm.Synced
+			}
+		}
+
+		if s.Syncing || s.EOM || s.EOMDone || s.DBSig || (s.EOMProcessed != 0) || (s.DBSigProcessed != 0) || vmSync {
+			s.LogPrintf("executeMsg", "resetting syncstate in moveToHeight")
+			s.LogPrintf("executeMsg", "s.Syncing=%v s.EOM=%v s.EOMDone=%v s.DBSig=%v s.DBSigDone=%v s.EOMProcessed=%d s.DBSigProcessed=%v, vmSync = %v",
+				s.Syncing, s.EOM, s.EOMDone, s.DBSig, s.DBSigDone, s.EOMProcessed, s.DBSigProcessed, vmSync)
+
+		}
+	}
+
+	// force sync state to a ration state for between minutes
+	s.Syncing = false    // movestatetoheight
+	s.EOM = false        // movestatetoheight
+	s.EOMDone = false    // movestatetoheight
+	s.DBSig = false      // movestatetoheight
+	s.EOMProcessed = 0   // movestatetoheight
+	s.DBSigProcessed = 0 // movestatetoheight
+	// leave s.DBSigDone alone unless it's a block change
+
+	for _, vm := range s.LeaderPL.VMs {
+		vm.Synced = false // movestatetoheight
+	}
+
+	// set the limits because we might have added servers
+	s.EOMLimit = len(s.LeaderPL.FedServers) // We add or remove server only on block boundaries
+	s.DBSigLimit = s.EOMLimit               // We add or remove server only on block boundaries
 
 	s.LogPrintf("dbstateprocess", "MoveStateToHeight(%d-:-%d) leader=%v leaderPL=%p, leaderVMIndex=%d", dbheight, newMinute, s.Leader, s.LeaderPL, s.LeaderVMIndex)
 
