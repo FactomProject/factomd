@@ -495,7 +495,7 @@ func (s *State) ReviewHolding() {
 
 		eom, ok := v.(*messages.EOM)
 		if ok {
-			if (eom.DBHeight <= saved && saved > 0) || int(eom.Minute) < s.CurrentMinute {
+			if int(eom.DBHeight)*10+int(eom.Minute) < int(s.LLeaderHeight)*10+s.CurrentMinute {
 				s.DeleteFromHolding(k, v, "old EOM")
 				continue
 			}
