@@ -1,4 +1,6 @@
-#/bin/sh
+#!/usr/bin/env bash
+#Count the MMR traffic ina aset of log files
+#countMMR.sh fnode0_network*
 echo -n "Total requestes "
 grep "MissingMsg " $@ | grep Send  |  wc -l
 echo -n "Total unique messages requested "

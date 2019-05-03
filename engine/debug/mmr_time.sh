@@ -1,4 +1,6 @@
-#/bin/sh
+#!/usr/bin/env bash
+#time MMR traffic for a node
+#mmr_time.sh <nodename>
 ################################
 # AWK scripts                  #
 ################################

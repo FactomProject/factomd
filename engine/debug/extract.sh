@@ -1,4 +1,5 @@
-#/bin/sh
+#!/usr/bin/env bash
+# extract and rename Roberts logs tgz files
 ################################
 # AWK scripts                  #
 ################################

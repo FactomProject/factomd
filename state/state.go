@@ -411,6 +411,8 @@ type State struct {
 
 	reportedActivations   [activations.ACTIVATION_TYPE_COUNT + 1]bool // flags about which activations we have reported (+1 because we don't use 0)
 	validatorLoopThreadID string
+
+	executeRecursionDetection map[[32]byte]interfaces.IMsg
 }
 
 var _ interfaces.IState = (*State)(nil)
@@ -1444,7 +1446,7 @@ func (s *State) LoadHoldingMap() map[[32]byte]interfaces.IMsg {
 }
 
 // this is executed in the state maintenance processes where the holding queue is in scope and can be queried
-//  This is what fills the HoldingMap while locking it againstt a read while building
+//  This is what fills the HoldingMap while locking it against a read while building
 func (s *State) fillHoldingMap() {
 	// once a second is often enough to rebuild the Ack list exposed to api
 
