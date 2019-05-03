@@ -1,7 +1,6 @@
 package state
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/FactomProject/factomd/common/messages"
@@ -60,11 +59,9 @@ func (vm *VM) ReportMissing(height int, delay int64) {
 }
 
 func (s *State) Ask(DBHeight int, vmIndex int, height int, when int64) {
-	//todo: if check function true return
-	yesno := s.MissingMessageResponse.GetAckANDMsg(DBHeight, vmIndex, height)
+	doWeHaveAckandMsg := s.MissingMessageResponse.GetAckANDMsg(DBHeight, vmIndex, height)
 
-	if yesno {
-		fmt.Println("WE Already have that!!!!!!!!!!!!!!!")
+	if doWeHaveAckandMsg {
 		return
 	}
 	if s.asks == nil { // If it is nil, there is no makemmrs
