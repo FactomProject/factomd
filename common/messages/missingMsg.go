@@ -251,7 +251,8 @@ func (m *MissingMsg) Validate(state interfaces.IState) int {
 		return -1
 	}
 	// can't answer about the past before our earliest pl
-	if m.DBHeight < state.GetLLeaderHeight()-2 {
+	// use int so at height near 0 we can go negative
+	if int(m.DBHeight) < int(state.GetLLeaderHeight())-2 {
 		return -1
 	}
 	return 1
