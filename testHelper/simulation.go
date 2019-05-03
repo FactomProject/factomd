@@ -48,8 +48,8 @@ func StartSim(GivenNodes string, UserAddedOptions map[string]string) *state.Stat
 		"--network":             "LOCAL",
 		"--net":                 "alot+",
 		"--enablenet":           "false",
-		"--blktime":             "15",
-		"--count":               fmt.Sprintf("%v", len(GivenNodes)),
+		"--blktime":             "40",
+		"--count":               fmt.Sprintf("%v", l),
 		"--startdelay":          "1",
 		"--stdoutlog":           "out.txt",
 		"--stderrlog":           "out.txt",
@@ -269,22 +269,22 @@ func StatusEveryMinute(s *state.State) {
 				// If the state is no longer running, we can stop printing
 				s := statusState
 				if s != nil {
-					newMinute := (s.CurrentMinute + 1) % 10
-					timeout := 8 // timeout if a minutes takes twice as long as expected
-					for s.CurrentMinute != newMinute && timeout > 0 {
-						sleepTime := time.Duration(globals.Params.BlkTime) * 1000 / 40 // Figure out how long to sleep in milliseconds
-						time.Sleep(sleepTime * time.Millisecond)                       // wake up and about 4 times per minute
-						timeout--
-					}
-					if timeout <= 0 {
-						fmt.Println("Stalled !!!")
-					}
-					// Make all the nodes update their status
-					for _, n := range engine.GetFnodes() {
-						n.State.SetString()
-					}
+				newMinute := (s.CurrentMinute + 1) % 10
+				timeout := 8 // timeout if a minutes takes twice as long as expected
+				for s.CurrentMinute != newMinute && timeout > 0 {
+					sleepTime := time.Duration(globals.Params.BlkTime) * 1000 / 40 // Figure out how long to sleep in milliseconds
+					time.Sleep(sleepTime * time.Millisecond)                       // wake up and about 4 times per minute
+					timeout--
+				}
+				if timeout <= 0 {
+					fmt.Println("Stalled !!!")
+				}
+				// Make all the nodes update their status
+				for _, n := range engine.GetFnodes() {
+					n.State.SetString()
+				}
 
-					engine.PrintOneStatus(0, 0)
+				engine.PrintOneStatus(0, 0)
 				} else {
 					return
 				}

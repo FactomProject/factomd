@@ -106,7 +106,7 @@ func TestTXTimestampsAndBlocks(t *testing.T) {
 	RanSimTest = true
 
 	go RunCmd("Re") // Turn on tight allocation of EC as soon as the simulator is up and running
-	state0 := SetupSim("LLLAAAFFF", map[string]string{"--blktime": "20"}, 24, 0, 0, t)
+	state0 := SetupSim("LLLAAAFFF", map[string]string{}, 24, 0, 0, t)
 	StatusEveryMinute(state0)
 
 	RunCmd("7") // select node 7
@@ -595,7 +595,7 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 	RanSimTest = true
 	// only have one leader because if you are not the leader responcible for the FCT transaction then
 	// you will return transACK before teh balance is updated which will make thsi test fail.
-	state0 := SetupSim("LAF", map[string]string{"--blktime": "15"}, 6, 0, 0, t)
+	state0 := SetupSim("LAF", map[string]string{}, 6, 0, 0, t)
 	WaitForMinute(state0, 1)
 
 	type walletcallHelper struct {
@@ -787,7 +787,7 @@ func TestMultipleECAccountsAPI(t *testing.T) {
 
 	// only have one leader because if you are not the leader responcible for the FCT transaction then
 	// you will return transACK before teh balance is updated which will make thsi test fail.
-	state0 := SetupSim("LAF", map[string]string{"--blktime": "15"}, 6, 0, 0, t)
+	state0 := SetupSim("LAF", map[string]string{}, 6, 0, 0, t)
 	WaitForMinute(state0, 1)
 
 	type walletcallHelper struct {
@@ -1460,7 +1460,7 @@ func TestNoMMR(t *testing.T) {
 	}
 	RanSimTest = true
 
-	state0 := SetupSim("LLLAAFFFFF", map[string]string{"--debuglog": "", "--blktime": "20"}, 10, 0, 0, t)
+	state0 := SetupSim("LLLAAFFFFF", map[string]string{}, 10, 0, 0, t)
 	state.MMR_enable = false // turn off MMR processing
 	StatusEveryMinute(state0)
 	RunCmd("R10") // turn on some load
@@ -1476,7 +1476,7 @@ func TestDBStateCatchup(t *testing.T) {
 	}
 	RanSimTest = true
 
-	state0 := SetupSim("LFF", map[string]string{"--debuglog": "", "--blktime": "10"}, 100, 0, 0, t)
+	state0 := SetupSim("LFF", map[string]string{}, 100, 0, 0, t)
 	state.MMR_enable = false // turn off MMR processing
 	state1 := GetFnodes()[1].State
 	StatusEveryMinute(state1)
@@ -1505,7 +1505,7 @@ func TestDBState(t *testing.T) {
 	}
 	RanSimTest = true
 
-	state0 := SetupSim("LLLFFFF", map[string]string{"--net": "line", "--debuglog": ".", "--blktime": "10"}, 100, 0, 0, t)
+	state0 := SetupSim("LLLFFFF", map[string]string{"--net": "line"}, 100, 0, 0, t)
 	state1 := GetFnodes()[1].State
 	state6 := GetFnodes()[6].State // Get node 6
 	StatusEveryMinute(state1)
