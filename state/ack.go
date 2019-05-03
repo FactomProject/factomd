@@ -585,6 +585,9 @@ func (s *State) FetchPaidFor(hash interfaces.IHash) (interfaces.IHash, error) {
 	}
 
 	for _, pls := range s.ProcessLists.Lists {
+		if pls == nil {
+			continue
+		}
 		ecBlock := pls.EntryCreditBlock
 		for _, tx := range ecBlock.GetEntries() {
 			switch tx.ECID() {
