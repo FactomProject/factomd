@@ -86,7 +86,7 @@ func (s *State) DeleteFromHolding(hash [32]byte, msg interfaces.IMsg, reason str
 
 // this is the common validation to all messages. they must not be a reply, they must not be out size the time window
 // for the replay filter.
-func (s *State) Validate(msg interfaces.IMsg) (rval int) {
+func (s *State) Validate(msg interfaces.IMsg) (validToSend int, validMessage int) {
 	// check the time frame of messages with ACKs and reject any that are before the message filter time (before boot
 	// or outside the replay filter time frame)
 
@@ -100,13 +100,16 @@ func (s *State) Validate(msg interfaces.IMsg) (rval int) {
 	//}()
 
 	// During boot ignore messages that are more than 15 minutes old...
+	now := s.GetTimestamp().GetTimeSeconds()
 	if s.IgnoreMissing && msg.Type() != constants.DBSTATE_MSG {
-		now := s.GetTimestamp().GetTimeSeconds()
 		if now-msg.GetTimestamp().GetTimeSeconds() > 60*15 {
 			s.LogMessage("executeMsg", "ignoreMissing", msg)
-			return -1
+			return -1, -1
 		}
 	}
+
+	// Valid to send is a bit different from valid to execute.  Check for valid to send here.
+	validToSend = msg.Validate(s)
 
 	switch msg.Type() {
 	case constants.DBSTATE_MSG, constants.DATA_RESPONSE, constants.MISSING_MSG, constants.MISSING_DATA, constants.MISSING_ENTRY_BLOCKS, constants.DBSTATE_MISSING_MSG, constants.ENTRY_BLOCK_RESPONSE:
@@ -133,10 +136,10 @@ func (s *State) Validate(msg interfaces.IMsg) (rval int) {
 		// messages before message filter timestamp it's an old message
 		if msgtime < filterTime {
 			s.LogMessage("executeMsg", "drop message, more than an hour in the past", msg)
-			return -1 // Old messages are bad.
+			return -1, -1 // Old messages are bad.
 		} else if msgtime > (filterTime + tlim) {
 			s.LogMessage("executeMsg", "hold message from the future", msg)
-			return 0 // Future stuff I can hold for now.  It might be good later?
+			return validToSend, 0 // Future stuff I can hold for now.  It might be good later?
 		}
 
 	}
@@ -144,7 +147,8 @@ func (s *State) Validate(msg interfaces.IMsg) (rval int) {
 	msg.ComputeVMIndex(s)
 	vmIndex := msg.GetVMIndex()
 	local := msg.IsLocal()
-	if !local && (s.LeaderVMIndex != vmIndex) {
+	// If this isn't local && we either are not the leader, or this isn't the VM we are responsible for
+	if !local && (!s.Leader || s.LeaderVMIndex != vmIndex) {
 		switch msg.Type() {
 		case constants.COMMIT_ENTRY_MSG, constants.COMMIT_CHAIN_MSG, constants.REVEAL_ENTRY_MSG, constants.EOM_MSG, constants.DIRECTORY_BLOCK_SIGNATURE_MSG, constants.FACTOID_TRANSACTION_MSG:
 			// don't need to check for a matching ack for ACKs or local messages
@@ -152,13 +156,13 @@ func (s *State) Validate(msg interfaces.IMsg) (rval int) {
 			ack, _ := s.Acks[msg.GetMsgHash().Fixed()].(*messages.Ack)
 			if ack == nil {
 				s.LogMessage("executeMsg", "hold, no ack yet", msg)
-				return 0
+				return validToSend, 0
 			}
 
 			pl := s.ProcessLists.Get(ack.DBHeight)
 			if pl == nil {
 				s.LogMessage("executeMsg", "hold, no process list yet", msg)
-				return 0
+				return validToSend, 0
 			}
 		}
 	}
@@ -167,18 +171,17 @@ func (s *State) Validate(msg interfaces.IMsg) (rval int) {
 	if !ok {
 		consenLogger.WithFields(msg.LogFields()).Debug("executeMsg (Replay Invalid)")
 		s.LogMessage("executeMsg", "drop, INTERNAL_REPLAY", msg)
-		return -1
+		return -1, -1
 	}
 
 	// Ok it passed all the common test have the message check itself for message specific details
-	validate := msg.Validate(s)
-	switch validate {
+	switch validToSend {
 	case 0:
 		s.LogMessage("executeMsg", "hold, msg.validate=0", msg)
 	case -1:
 		s.LogMessage("executeMsg", "drop, msg.validate=-1", msg)
 	}
-	return validate
+	return validToSend, validToSend
 }
 
 func (s *State) executeMsg(msg interfaces.IMsg) (ret bool) {
@@ -212,8 +215,8 @@ func (s *State) executeMsg(msg interfaces.IMsg) (ret bool) {
 	s.SetString()
 	msg.ComputeVMIndex(s)
 
-	valid := s.Validate(msg)
-	switch valid {
+	validToSend, validToExecute := s.Validate(msg)
+	switch validToExecute {
 	case 1:
 		switch msg.Type() {
 		case constants.REVEAL_ENTRY_MSG, constants.COMMIT_ENTRY_MSG, constants.COMMIT_CHAIN_MSG:
@@ -225,7 +228,7 @@ func (s *State) executeMsg(msg interfaces.IMsg) (ret bool) {
 				s.LogMessage("executeMsg", "drop, already committed", msg)
 				return true
 			}
-			s.AddToHolding(msg.GetMsgHash().Fixed(), msg) // add valid commit/reveal to holding in case it fails to get added
+			s.AddToHolding(msg.GetMsgHash().Fixed(), msg) // add validToExecute commit/reveal to holding in case it fails to get added
 			//s.Holding[msg.GetMsgHash().Fixed()] = msg
 		}
 		msg.SendOut(s, msg)
@@ -271,7 +274,10 @@ func (s *State) executeMsg(msg interfaces.IMsg) (ret bool) {
 	case 0:
 		// Sometimes messages we have already processed are in the msgQueue from holding when we execute them
 		// this check makes sure we don't put them back in holding after just deleting them
-		s.AddToHolding(msg.GetMsgHash().Fixed(), msg) // Add message where valid==0
+		s.AddToHolding(msg.GetMsgHash().Fixed(), msg) // Add message where validToExecute==0
+		if validToSend == 1 {
+			msg.SendOut(s, msg)
+		}
 		return false
 
 	default:
@@ -404,7 +410,8 @@ ackLoop:
 	for {
 		select {
 		case ack := <-s.ackQueue:
-			switch s.Validate(ack) {
+			_, validToExecute := s.Validate(ack)
+			switch validToExecute {
 			case -1:
 				s.LogMessage("ackQueue", "drop Invalid", ack)
 				continue
@@ -556,6 +563,7 @@ func (s *State) ReviewHolding() {
 			TotalHoldingQueueOutputs.Inc()
 			//delete(s.Holding, k)
 			s.DeleteFromHolding(k, v, "HKB-HSB>1000")
+			continue
 		}
 
 		if v.Expire(s) {
@@ -580,7 +588,7 @@ func (s *State) ReviewHolding() {
 
 		dbsigmsg, ok := v.(*messages.DirectoryBlockSignature)
 		if ok {
-			if dbsigmsg.DBHeight < saved && saved > 0 {
+			if (dbsigmsg.DBHeight < s.LLeaderHeight+1 && saved > 0) || s.CurrentMinute > 0 {
 				TotalHoldingQueueOutputs.Inc()
 				//delete(s.Holding, k)
 				s.DeleteFromHolding(k, v, "Old DBSig")
@@ -590,19 +598,17 @@ func (s *State) ReviewHolding() {
 				s.HighestKnown = dbsigmsg.DBHeight
 			}
 		}
-
-		switch s.Validate(v) {
-		case -1:
+		validToSend, validToExecute := s.Validate(v)
+		if validToExecute == -1 {
 			s.LogMessage("executeMsg", "invalid from holding", v)
 			TotalHoldingQueueOutputs.Inc()
 			//delete(s.Holding, k)
 			s.DeleteFromHolding(k, v, "invalid from holding")
-			continue
-		case 0:
-			continue
 		}
 
-		v.SendOut(s, v)
+		if validToSend >= 0 {
+			v.SendOut(s, v)
+		}
 
 		dbsmsg, ok := v.(*messages.DBStateMsg)
 		if ok && dbsmsg.DirectoryBlock.GetHeader().GetDBHeight() <= saved && saved > 0 {
@@ -909,7 +915,7 @@ func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
 		go func() { // This is a trigger to issue the EOM, but we are still syncing.  Wait to retry.
 			time.Sleep(time.Duration(s.DirectoryBlockInSeconds) * time.Second / 600) // Once a second for 10 min block
 			s.LogMessage("InMsgQueue", "enqueue_FollowerExecuteEOM", m)
-			s.InMsgQueue().Enqueue(m) // Goes in the "do this really fast" queue so we are prompt about EOM's while syncing
+			s.msgQueue <- m // Goes in the "do this really fast" queue so we are prompt about EOM's while syncing
 		}()
 		return
 	}
@@ -1217,13 +1223,15 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 		return
 	}
 
-	if s.Validate(ack) < 0 {
+	_, validToExecute := s.Validate(ack)
+	if validToExecute < 0 {
 		s.LogMessage("executeMsg", "drop MMR ack invalid", m)
 		return
 	}
 
 	// If we don't need this message, we don't have to do everything else.
-	if s.Validate(msg) < 0 {
+	_, validToExecute = s.Validate(msg)
+	if validToExecute < 0 {
 		s.LogMessage("executeMsg", "drop MMR message invalid", m)
 		return
 	}
@@ -1424,7 +1432,7 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 		go func() { // We have some processing to do before we can schedule this.
 			time.Sleep(time.Duration(s.DirectoryBlockInSeconds) * time.Second / 600) // Once a second for 10 min block
 			s.LogMessage("InMsgQueue", "enqueue_LeaderExecute", m)
-			s.InMsgQueue().Enqueue(m)
+			s.msgQueue <- m
 		}()
 		return
 	}
@@ -1464,7 +1472,7 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 		go func() { // This is a trigger to issue the EOM, but we are still syncing.  Wait to retry.
 			time.Sleep(time.Duration(s.DirectoryBlockInSeconds) * time.Second / 600) // Once a second for 10 min block
 			s.LogMessage("InMsgQueue", "enqueue_LeaderExecuteEOM1", m)
-			s.InMsgQueue().Enqueue(m) //
+			s.msgQueue <- m //
 		}()
 		return
 	}
@@ -1477,7 +1485,7 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 		go func() { // We have some processing to do before we can schedule this.
 			time.Sleep(time.Duration(s.DirectoryBlockInSeconds) * time.Second / 600) // Once a second for 10 min block
 			s.LogMessage("InMsgQueue", "enqueue_LeaderExecuteEOM2", m)
-			s.InMsgQueue().Enqueue(m)
+			s.msgQueue <- m
 		}()
 		return
 	}
@@ -1570,7 +1578,7 @@ func (s *State) LeaderExecuteCommitChain(m interfaces.IMsg) {
 		go func() { // We can't process yet.  Wait and resort
 			time.Sleep(time.Duration(s.DirectoryBlockInSeconds) * time.Second / 600) // Once a second for 10 min block
 			s.LogMessage("InMsgQueue", "enqueue_LeaderExecuteCommitChain", m)
-			s.InMsgQueue().Enqueue(m)
+			s.msgQueue <- m
 			// Goes in the "resort" queue
 		}()
 		return
@@ -1596,7 +1604,7 @@ func (s *State) LeaderExecuteCommitEntry(m interfaces.IMsg) {
 		go func() { // We can't process yet.  Wait and resort
 			time.Sleep(time.Duration(s.DirectoryBlockInSeconds) * time.Second / 600) // Once a second for 10 min block
 			s.LogMessage("InMsgQueue", "enqueue_LeaderExecuteCommitEntry", m)
-			s.InMsgQueue().Enqueue(m) // Goes in the "resort" queue
+			s.msgQueue <- m
 		}()
 		return
 	}
@@ -1626,7 +1634,7 @@ func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 		go func() { // We can't process yet.  Wait and resort
 			time.Sleep(time.Duration(s.DirectoryBlockInSeconds) * time.Second / 600) // Once a second for 10 min block
 			s.LogMessage("InMsgQueue", "enqueue_LeaderExecuteRevealEntry", m)
-			s.InMsgQueue().Enqueue(m) // Goes in the "resort" queue
+			s.msgQueue <- m
 		}()
 		return
 	}

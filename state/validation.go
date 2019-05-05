@@ -71,9 +71,6 @@ func (state *State) ValidatorLoop() {
 		default:
 		}
 
-		ackRoom := cap(state.ackQueue) - len(state.ackQueue)
-		msgRoom := cap(state.msgQueue) - len(state.msgQueue)
-
 		// Look for pending messages, and get one if there is one.
 		var msg interfaces.IMsg
 
@@ -88,13 +85,13 @@ func (state *State) ValidatorLoop() {
 			if ValidationDebug {
 				s.LogPrintf("executeMsg", "start validate.process")
 			}
-			for i1 = 0; p1 && i1 < 200; i1++ {
+			for i1 = 0; p1 && i1 < 20; i1++ {
 				p1 = state.Process()
 			}
 			if ValidationDebug {
 				s.LogPrintf("executeMsg", "start validate.updatestate")
 			}
-			for i2 = 0; p2 && i2 < 200; i2++ {
+			for i2 = 0; p2 && i2 < 20; i2++ {
 				p2 = state.UpdateState()
 			}
 			if ValidationDebug {
@@ -113,15 +110,21 @@ func (state *State) ValidatorLoop() {
 
 			msgcnt := 0
 			for i := 0; i < 50; i++ {
-				if ackRoom == 1 || msgRoom == 1 {
+				ackRoom := cap(state.ackQueue) - len(state.ackQueue)
+				msgRoom := cap(state.msgQueue) - len(state.msgQueue)
+
+				if ackRoom <= 10 || msgRoom <= 10 {
 					break // no room
 				}
 
-				// This doesn't block so it intentionally returns nil, don't log nils
-				msg = state.InMsgQueue().Dequeue()
-				if msg != nil {
-					state.LogMessage("InMsgQueue", "dequeue", msg)
+				if i%5 != 0 {
+					// This doesn't block so it intentionally returns nil, don't log nils
+					msg = state.InMsgQueue().Dequeue()
+					if msg != nil {
+						state.LogMessage("InMsgQueue", "dequeue", msg)
+					}
 				}
+
 				if msg == nil {
 					// This doesn't block so it intentionally returns nil, don't log nils
 					msg = state.InMsgQueue2().Dequeue()
@@ -133,12 +136,8 @@ func (state *State) ValidatorLoop() {
 				// This doesn't block so it intentionally returns nil, don't log nils
 
 				if msg != nil {
-					state.JournalMessage(msg)
 					msgcnt++
 					// Sort the messages.
-					if state.IsReplaying == true {
-						state.ReplayTimestamp = msg.GetTimestamp()
-					}
 					if t := msg.Type(); t == constants.ACK_MSG {
 						state.LogMessage("ackQueue", "enqueue", msg)
 						state.ackQueue <- msg //
@@ -147,8 +146,6 @@ func (state *State) ValidatorLoop() {
 						state.msgQueue <- msg //
 					}
 				}
-				ackRoom = cap(state.ackQueue) - len(state.ackQueue)
-				msgRoom = cap(state.msgQueue) - len(state.msgQueue)
 			}
 			if ValidationDebug {
 				s.LogPrintf("executeMsg", "stop validate.messagesort sorted %d messages", msgcnt)
