@@ -352,6 +352,16 @@ func factomdQuery(item string, value string, batchQueried bool) []byte {
 		RequestData()
 	}
 	switch item {
+	case "ignoreDone":
+		DisplayStateMutex.RLock()
+		flag := DisplayState.IgnoreDone
+		DisplayStateMutex.RUnlock()
+
+		if flag {
+			return []byte(`{"IgnoreDone": true}`)
+		} else {
+			return []byte(`{"IgnoreDone": false}`)
+		}
 	case "myHeight":
 		DisplayStateMutex.RLock()
 		h := DisplayState.CurrentNodeHeight
