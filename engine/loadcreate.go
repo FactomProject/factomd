@@ -61,15 +61,13 @@ func (lg *LoadGenerator) Run() {
 		}
 		addSend := lg.PerSecond.Load()
 		lg.ToSend += addSend
-		top := lg.ToSend / 10
-		lg.ToSend = lg.ToSend % 10
+		top := lg.ToSend / 10      // ToSend is in tenths so get the integer part
+		lg.ToSend = lg.ToSend % 10 // save an fractional part for next iteration
 		if addSend == 0 {
 			lg.running.Store(false)
 			return
 		}
 		var chain interfaces.IHash = nil
-
-		sleep := 500 / top
 
 		for i := 0; i < top; i++ {
 			var c interfaces.IMsg
@@ -86,7 +84,7 @@ func (lg *LoadGenerator) Run() {
 			fnodes[wsapiNode].State.APIQueue().Enqueue(c)
 			fnodes[wsapiNode].State.APIQueue().Enqueue(r)
 
-			time.Sleep(time.Duration(sleep))
+			time.Sleep(time.Duration(800 / top)) // spread out the load across 800 milliseconds plus overhead
 		}
 	}
 }
