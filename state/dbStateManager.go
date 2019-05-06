@@ -599,8 +599,7 @@ func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 	valid := next.ValidateSignatures(state)
 	if !next.IsInDB && !next.IgnoreSigs && valid != 1 {
 		state.LogPrintf("dbstateprocess", "cannot validate dbstate at dbht %d (return %v) because "+
-			"!nextIsInDB %v && !next.IgnoreSigs %v",
-			dbheight, valid, next.IsInDB, next.IgnoreSigs)
+			"!nextIsInDB %v && !next.IgnoreSigs %v", dbheight, valid, next.IsInDB, next.IgnoreSigs)
 		return valid
 	}
 

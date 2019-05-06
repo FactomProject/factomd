@@ -1043,17 +1043,13 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		return
 	}
 
-	//s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): Saved %d dbht: %d", saved, dbheight))
-
 	pdbstate := s.DBStates.Get(int(dbheight - 1))
 
 	valid := pdbstate.ValidNext(s, dbstatemsg)
 
-	s.LogPrintf("dbstateprocess", "FollowerExecuteDBState dbht %d valid %v", dbheight, valid)
 	switch valid {
 	case 0:
-		//s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): DBState might be valid %d", dbheight))
-
+		s.LogPrintf("dbstateprocess", "FollowerExecuteDBState hold for later %d", dbheight)
 		ix := int(dbheight) - s.DBStatesReceivedBase
 		for len(s.DBStatesReceived) <= ix {
 			s.DBStatesReceived = append(s.DBStatesReceived, nil)
@@ -1062,8 +1058,6 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		return
 	case -1:
 		s.LogPrintf("dbstateprocess", "FollowerExecuteDBState Invalid %d", dbheight)
-		//s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): DBState is invalid at ht %d", dbheight))
-		// Do nothing because this dbstate looks to be invalid
 		cntFail()
 		if dbstatemsg.IsLast { // this is the last DBState in this load
 			panic(fmt.Sprintf("%20s The last DBState %d saved to the database was not valid.", s.FactomNodeName, dbheight))
