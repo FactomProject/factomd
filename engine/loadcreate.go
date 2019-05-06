@@ -84,7 +84,7 @@ func (lg *LoadGenerator) Run() {
 			fnodes[wsapiNode].State.APIQueue().Enqueue(c)
 			fnodes[wsapiNode].State.APIQueue().Enqueue(r)
 
-			time.Sleep(time.Duration(800 / top)) // spread out the load across 800 milliseconds plus overhead
+			time.Sleep(time.Duration(800/top) * time.Millisecond) // spread out the load across 800 milliseconds plus overhead
 		}
 	}
 }
