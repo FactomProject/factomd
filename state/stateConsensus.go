@@ -100,8 +100,8 @@ func (s *State) Validate(msg interfaces.IMsg) (validToSend int, validMessage int
 	//}()
 
 	// During boot ignore messages that are more than 15 minutes old...
-	now := s.GetTimestamp().GetTimeSeconds()
 	if s.IgnoreMissing && msg.Type() != constants.DBSTATE_MSG {
+		now := s.GetTimestamp().GetTimeSeconds()
 		if now-msg.GetTimestamp().GetTimeSeconds() > 60*15 {
 			s.LogMessage("executeMsg", "ignoreMissing", msg)
 			return -1, -1
@@ -228,7 +228,7 @@ func (s *State) executeMsg(msg interfaces.IMsg) (ret bool) {
 				s.LogMessage("executeMsg", "drop, already committed", msg)
 				return true
 			}
-			s.AddToHolding(msg.GetMsgHash().Fixed(), msg) // add validToExecute commit/reveal to holding in case it fails to get added
+			s.AddToHolding(msg.GetMsgHash().Fixed(), msg) // add valid commit/reveal to holding in case it fails to get added
 			//s.Holding[msg.GetMsgHash().Fixed()] = msg
 		}
 		msg.SendOut(s, msg)
@@ -525,7 +525,7 @@ func (s *State) ReviewHolding() {
 	if s.ResendHolding == nil {
 		s.ResendHolding = now
 	}
-	if now.GetTimeMilli()-s.ResendHolding.GetTimeMilli() < 100 {
+	if now.GetTimeMilli()-s.ResendHolding.GetTimeMilli() < 300 {
 		return
 	}
 
@@ -563,7 +563,7 @@ func (s *State) ReviewHolding() {
 			TotalHoldingQueueOutputs.Inc()
 			//delete(s.Holding, k)
 			s.DeleteFromHolding(k, v, "HKB-HSB>1000")
-			continue
+			continue // No point in executing if we think we can't hold this.
 		}
 
 		if v.Expire(s) {
@@ -572,7 +572,7 @@ func (s *State) ReviewHolding() {
 			TotalHoldingQueueOutputs.Inc()
 			//delete(s.Holding, k)
 			s.DeleteFromHolding(k, v, "expired")
-			continue
+			continue // If the message has expired, don't hold or execute
 		}
 
 		eom, ok := v.(*messages.EOM)
@@ -599,11 +599,15 @@ func (s *State) ReviewHolding() {
 			}
 		}
 		validToSend, validToExecute := s.Validate(v)
-		if validToExecute == -1 {
+		switch validToExecute {
+		case -1:
 			s.LogMessage("executeMsg", "invalid from holding", v)
 			TotalHoldingQueueOutputs.Inc()
 			//delete(s.Holding, k)
 			s.DeleteFromHolding(k, v, "invalid from holding")
+			continue
+		case 0:
+			continue
 		}
 
 		if validToSend >= 0 {
@@ -1062,7 +1066,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		// Do nothing because this dbstate looks to be invalid
 		cntFail()
 		if dbstatemsg.IsLast { // this is the last DBState in this load
-			panic("The last DBState saved to the database was not valid.")
+			panic(fmt.Sprintf("%20s The last DBState %d saved to the database was not valid.", s.FactomNodeName, dbheight))
 		}
 		return
 	}

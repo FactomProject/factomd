@@ -573,20 +573,34 @@ func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 
 	// Don't reload blocks!
 	if dbheight <= highestSavedBlk {
+		state.LogPrintf("dbstateprocess", "Invalid DBState because dbheight %d < highestSavedBlk %d",
+			dbheight, highestSavedBlk)
 		return -1
 	}
 
 	if dbheight > highestSavedBlk+1 {
+		state.LogPrintf("dbstateprocess", "Invalid DBState because dbheight %d > highestSavedBlk+1 %d",
+			dbheight, highestSavedBlk+1)
 		return 0
 	}
 	// This node cannot be validated until the previous node (d) has been saved to disk, which means processed
 	// and signed as well.
-	if d == nil || !(d.Locked && d.Signed && d.Saved) {
+	if d == nil {
+		state.LogPrintf("dbstateprocess", "Cannot validate because DBState is nil",
+			dbheight)
+		return 0
+	}
+	if !d.Locked || !d.Signed || !d.Saved {
+		state.LogPrintf("dbstateprocess", "Cannot validate dbstate at dbht %d because DBState is not locked %v, "+
+			"not Signed %v, or not saved %v", dbheight, d.Locked, d.Signed, d.Saved)
 		return 0
 	}
 
 	valid := next.ValidateSignatures(state)
 	if !next.IsInDB && !next.IgnoreSigs && valid != 1 {
+		state.LogPrintf("dbstateprocess", "cannot validate dbstate at dbht %d (return %v) because "+
+			"!nextIsInDB %v && !next.IgnoreSigs %v",
+			dbheight, valid, next.IsInDB, next.IgnoreSigs)
 		return valid
 	}
 
@@ -595,22 +609,19 @@ func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 	// Get the Previous KeyMR pointer in the possible new Directory Block
 	prevkeymr := dirblk.GetHeader().GetPrevKeyMR()
 	if !pkeymr.IsSameAs(prevkeymr) {
-
 		pdir, err := state.DB.FetchDBlockByHeight(dbheight - 1)
 		if err != nil {
+			state.LogPrintf("dbstateprocess", "Invalid dbstate at dbht %d because "+
+				"we can find no previous directory block at %d err: %v",
+				dbheight, dbheight-1, err)
 			return -1
 		}
 
-		if pkeymr.Fixed() == pdir.GetKeyMR().Fixed() {
-			//state.AddStatus(fmt.Sprintf("DBState.ValidNext: rtn -1 hashes don't match at first. dbht: %d dbstate had prev %x but we expected %x But on disk %x",
-			//	dbheight, prevkeymr.Bytes()[:3], pkeymr.Bytes()[:3], pdir.GetKeyMR().Bytes()[:3]))
-			return 1
+		if pkeymr.Fixed() != pdir.GetKeyMR().Fixed() {
+			state.LogPrintf("dbstateprocess", "At DBHeight %d the previous block in the database keymr %x does not match the dbstate %x ",
+				dbheight, pdir.GetKeyMR().Bytes(), pkeymr.Bytes())
+			return -1
 		}
-
-		//state.AddStatus(fmt.Sprintf("DBState.ValidNext: rtn -1 hashes don't match. dbht: %d dbstate had prev %x but we expected %x on disk %x",
-		//	dbheight, prevkeymr.Bytes()[:3], pkeymr.Bytes()[:3], pdir.GetKeyMR().Bytes()[:3]))
-		// If not the same, this is a bad new Directory Block
-		return -1
 	}
 
 	return 1
