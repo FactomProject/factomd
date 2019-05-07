@@ -15,7 +15,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var ValidationDebug bool = false
+var ValidationDebug bool = true
 
 func (state *State) ValidatorLoop() {
 	CheckGrants()
