@@ -113,10 +113,10 @@ func (state *State) ValidatorLoop() {
 				ackRoom := cap(state.ackQueue) - len(state.ackQueue)
 				msgRoom := cap(state.msgQueue) - len(state.msgQueue)
 
-				if ackRoom <= 10 || msgRoom <= 10 {
+				if ackRoom < 1 || msgRoom < 1 {
 					break // no room
 				}
-
+				msg = nil // use queue2 every 5th message
 				if i%5 != 0 {
 					// This doesn't block so it intentionally returns nil, don't log nils
 					msg = state.InMsgQueue().Dequeue()

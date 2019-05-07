@@ -1498,7 +1498,7 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 		return
 	}
 
-	// Commited to sending an EOM now
+	// Committed to sending an EOM now
 	vm.EomMinuteIssued = s.CurrentMinute + 1
 
 	fix := false
@@ -1509,7 +1509,7 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	// make sure EOM has the right data
 	eom.DBHeight = s.LLeaderHeight
 	eom.VMIndex = s.LeaderVMIndex
-	// eom.Minute is zerobased, while LeaderMinute is 1 based.  So
+	// eom.Minute is zero based, while LeaderMinute is 1 based.  So
 	// a simple assignment works.
 	eom.Minute = byte(s.CurrentMinute)
 	eom.Sign(s)
