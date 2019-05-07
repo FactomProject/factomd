@@ -1088,7 +1088,11 @@ func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces
 		s.adds <- plRef{int(p.DBHeight), ack.VMIndex, int(ack.Height)}
 	}
 
-	plLogger.WithFields(log.Fields{"func": "AddToProcessList", "node-name": s.GetFactomNodeName(), "plheight": ack.Height, "dbheight": p.DBHeight}).WithFields(m.LogFields()).Info("Add To Process List")
+	if ack.IsLocal() {
+		for p.Process(s) {
+		}
+	}
+
 	s.LogMessage("processList", fmt.Sprintf("Added at %d/%d/%d", ack.DBHeight, ack.VMIndex, ack.Height), m)
 }
 

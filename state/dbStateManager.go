@@ -572,7 +572,7 @@ func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 	}
 
 	// Don't reload blocks!
-	if dbheight <= highestSavedBlk {
+	if dbheight <= highestSavedBlk && !next.IsInDB {
 		state.LogPrintf("dbstateprocess", "Invalid DBState because dbheight %d < highestSavedBlk %d",
 			dbheight, highestSavedBlk)
 		return -1
@@ -956,7 +956,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	// at this height) then we simply return.
 	if d.Locked || d.IsNew || d.Repeat {
 
-		s.LogPrintf("dbstateprocess", "ProcessBlocks(%d) Skipping d.Locked(%v) || d.IsNew(%v) || d.Repeat(%v) : dbstate = %v", dbht, d.Locked, d.IsNew, d.Repeat, d.String())
+		s.LogPrintf("dbstateprocess", "ProcessBlocks(%d) Skipping d.Locked(%v) || d.IsNew(%v) || d.Repeat(%v) : ", dbht, d.Locked, d.IsNew, d.Repeat)
 		return false
 	}
 
@@ -985,7 +985,6 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 
 		if pd == nil {
 			s.LogPrintf("dbstateprocess", "ProcessBlocks(%d) Skipping Prev Block Missing", dbht)
-			s.LogPrintf("dbstateprocess", "list: %v", list.State.DBStates.String())
 			return false // Can't process out of order
 		}
 		if !pd.Saved {

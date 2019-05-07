@@ -1867,7 +1867,6 @@ func (s *State) CreateDBSig(dbheight uint32, vmIndex int) (interfaces.IMsg, inte
 	ack := s.NewAck(dbs, s.Balancehash).(*messages.Ack)
 
 	s.LogMessage("dbstateprocess", "CreateDBSig", dbs)
-	s.LogPrintf("dbstateprocess", dbstate.String())
 
 	return dbs, ack
 }
@@ -2778,6 +2777,8 @@ func (s *State) NewAck(msg interfaces.IMsg, balanceHash interfaces.IHash) interf
 	}
 
 	ack.Sign(s)
+
+	ack.SetLocal(true)
 
 	return ack
 }
