@@ -47,7 +47,7 @@ func max_index_of_array(a) {
 
 
 
- {}
+NR==1 {fts = time2sec($2)}
 
 #    87670 16:32:13.982       5-:-0 Send P2P FNode03                       M-76bd96|R-76bd96|H-76bd96|0xc43c2e0a00                Missing Msg[16]:MissingMsg --> 455b7b<FNode0> asking for DBh/VMh/h[5/0/1, ] Sys: 0 msgHash[76bd96] from peer-0  RandomPeer
 /MissingMsg / {
@@ -64,7 +64,7 @@ func max_index_of_array(a) {
           first_ask[id] = ts;
           first_ask_r[id] = $2;
           inflight++;
-          stat[ts]=inflight;
+          stat[ts-fts]=inflight;
         }
         last_ask[i] = ts;
       }
@@ -80,7 +80,7 @@ func max_index_of_array(a) {
         first_resp[id] = ts;
         delay[id] = ts - first_ask[id];
         inflight--;
-        stat[ts]=inflight;
+        stat[ts-fts]=inflight;
     }
     last_resp[id] = ts;
 }
@@ -134,7 +134,24 @@ END {
     }
     print "---------------------"
 
-    
+
+
+    PROCINFO["sorted_in"] ="@val_num_desc";
+    print "Asks ----------------"
+    x =0;
+    for(i in asks) { print i, asks[i]; x++; if(x==15) break;}
+    print "---------------------"
+
+    print "Delays --------------"
+    x =0;
+    for(i in delay) { print i, delay[i]; x++; if(x==10) break;}
+    print "---------------------"
+
+    print "inflight ------------"
+    x =0;
+    for(i in stat) { print i, stat[i]; x++; if(x==10) break;}
+    print "---------------------"
+
         #for(i in stat) {print i, stats[i];}
 
     
