@@ -149,5 +149,5 @@ EOF
 ################################
 
  
-(cat $1_missing_messages.txt; grep -h "MissingMsg " $1_networkoutputs.txt; grep -HEi "Send P2P.* $1 .*Missing Msg Response" fnode*_networkoutputs.txt) | awk "$scriptVariable"
+(cat $1_missing_messages.txt; grep -h "Send.*MissingMsg " $1_networkoutputs.txt; grep -HEi "enqueue.*Missing Msg Response" $1_networkinputs.txt) | awk "$scriptVariable"
 
