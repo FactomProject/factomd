@@ -1514,6 +1514,7 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	eom.Minute = byte(s.CurrentMinute)
 	eom.Sign(s)
 	eom.MsgHash = nil                       // delete any existing hash so it will be recomputed
+	eom.RepeatHash = nil                    // delete any existing hash so it will be recomputed
 	ack := s.NewAck(m, nil).(*messages.Ack) // LeaderExecuteEOM()
 	eom.SetLocal(false)
 
