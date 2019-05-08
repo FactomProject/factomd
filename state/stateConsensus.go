@@ -91,7 +91,7 @@ func (s *State) Validate(msg interfaces.IMsg) (validToSend int, validToExec int)
 	// or outside the replay filter time frame)
 
 	defer func() {
-		s.LogMessage("msgvalidation", fmt.Sprintf("send=%d execute=%d %s", *(&validToSend), *(&validToExec), atomic2.WhereAmIString(1)), msg)
+		s.LogMessage("msgvalidation", fmt.Sprintf("send=%d execute=%d %s", *(&validToSend), *(&validToExec), atomic.WhereAmIString(1)), msg)
 	}()
 
 	// During boot ignore messages that are more than 15 minutes old...
@@ -173,13 +173,6 @@ func (s *State) Validate(msg interfaces.IMsg) (validToSend int, validToExec int)
 		return -1, -1
 	case 0:
 		return 0, 0
-	}
-
-	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
-	if !ok {
-		consenLogger.WithFields(msg.LogFields()).Debug("executeMsg (Replay Invalid)")
-		s.LogMessage("executeMsg", "drop, INTERNAL_REPLAY", msg)
-		return -1, -1
 	}
 
 	// only valid to send messages past here
@@ -496,7 +489,7 @@ ackLoop:
 		} // skip review
 	}
 	if ValidationDebug {
-(??)		s.LogPrintf("executeMsg", "end reviewHolding %d", len(s.XReview))
+		s.LogPrintf("executeMsg", "end reviewHolding %d", len(s.XReview))
 	}
 
 	processXReviewTime := time.Since(preProcessXReviewTime)

@@ -1088,12 +1088,12 @@ func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces
 		s.adds <- plRef{int(p.DBHeight), ack.VMIndex, int(ack.Height)}
 	}
 
-        s.LogMessage("processList", fmt.Sprintf("Added at %d/%d/%d", ack.DBHeight, ack.VMIndex, ack.Height), m)
+	s.LogMessage("processList", fmt.Sprintf("Added at %d/%d/%d", ack.DBHeight, ack.VMIndex, ack.Height), m)
 	if ack.IsLocal() {
 		for p.Process(s) {
 		}
 	}
-	
+
 }
 
 func (p *ProcessList) ContainsDBSig(serverID interfaces.IHash) bool {

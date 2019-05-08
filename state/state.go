@@ -1924,8 +1924,7 @@ func (s *State) UpdateState() (progress bool) {
 		}
 	}
 
-        s.DBStates.Catchup(false)
-	
+	s.DBStates.Catchup(false)
 
 	s.SetString()
 	if s.ControlPanelDataRequest {
@@ -1941,7 +1940,6 @@ func (s *State) UpdateState() (progress bool) {
 	s.fillHoldingMap()
 	s.fillAcksMap()
 
-	eupdates := false
 entryHashProcessing:
 	for {
 		select {
@@ -1951,7 +1949,6 @@ entryHashProcessing:
 			// If the SetHashNow worked, then we should prohibit any commit that might be pending.
 			// Remove any commit that might be around.
 			s.Commits.Delete(e.Hash.Fixed())
-			eupdates = true
 		default:
 			break entryHashProcessing
 		}
