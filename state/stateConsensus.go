@@ -5,7 +5,6 @@
 package state
 
 import (
-	atomic2 "awesomeProject"
 	"errors"
 	"fmt"
 	"hash"
@@ -167,6 +166,24 @@ func (s *State) Validate(msg interfaces.IMsg) (validToSend int, validToExec int)
 		return 1, 1
 	}
 
+	// Valid to send is a bit different from valid to execute.  Check for valid to send here.
+	validToSend = msg.Validate(s)
+	switch validToSend {
+	case -1:
+		return -1, -1
+	case 0:
+		return 0, 0
+	}
+
+	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
+	if !ok {
+		consenLogger.WithFields(msg.LogFields()).Debug("executeMsg (Replay Invalid)")
+		s.LogMessage("executeMsg", "drop, INTERNAL_REPLAY", msg)
+		return -1, -1
+	}
+
+	// only valid to send messages past here
+
 	msg.ComputeVMIndex(s)
 	vmIndex := msg.GetVMIndex()
 	// If we are not the leader, or this isn't the VM we are responsible for ...
@@ -237,8 +254,8 @@ func (s *State) executeMsg(msg interfaces.IMsg) (ret bool) {
 		case constants.REVEAL_ENTRY_MSG, constants.COMMIT_ENTRY_MSG, constants.COMMIT_CHAIN_MSG:
 			if !s.NoEntryYet(msg.GetHash(), nil) {
 				//delete(s.Holding, msg.GetHash().Fixed())
-				s.DeleteFromHolding(msg.GetMsgHash().Fixed(), msg, "AlreadyCommited") // delete commit
-				s.DeleteFromHolding(msg.GetHash().Fixed(), msg, "AlreadyCommited")    // delete reveal
+				s.DeleteFromHolding(msg.GetMsgHash().Fixed(), msg, "AlreadyCommitted") // delete commit
+				s.DeleteFromHolding(msg.GetHash().Fixed(), msg, "AlreadyCommitted")    // delete reveal
 				s.Commits.Delete(msg.GetHash().Fixed())
 				s.LogMessage("executeMsg", "drop, already committed", msg)
 				return true
@@ -252,16 +269,18 @@ func (s *State) executeMsg(msg interfaces.IMsg) (ret bool) {
 			vm = s.LeaderPL.VMs[s.LeaderVMIndex]
 		}
 
-		var vmLength int
-		var vmHeight int
-		var vmSynced bool
+		var vml int = 0
+		var vmh int = 0
+		var vms bool = false
+
 		if vm != nil {
-			vmHeight = vm.Height
-			vmSynced = vm.Synced
+			vms = vm.Synced
+			vmh = int(vm.Height)
 			if vm.List != nil {
-				vmLength = len(vm.List)
+				vml = len(vm.List)
 			}
 		}
+
 		local := msg.IsLocal()
 		vmi := msg.GetVMIndex()
 		hkb := s.GetHighestKnownBlock()
@@ -269,11 +288,11 @@ func (s *State) executeMsg(msg interfaces.IMsg) (ret bool) {
 		if s.RunLeader &&
 			s.Leader &&
 			!s.Saving && // if not between blocks
-			vm != nil && int(vmHeight) == vmLength && // if we have processed to the end of the process list
-			(!s.Syncing || !vmSynced) && // if not syncing or this VM is not yet synced
+			vm != nil && vmh == vml && // if we have processed to the end of the process list
+			(!s.Syncing || !vms) && // if not syncing or this VM is not yet synced
 			(local || vmi == s.LeaderVMIndex) && // if it's a local message or it a message for our VM
 			s.LeaderPL.DBHeight+1 >= hkb {
-			if vmLength == 0 { // if we have not generated a DBSig ...
+			if vml == 0 { // if we have not generated a DBSig ...
 				s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex) // ExecuteMsg()
 				TotalXReviewQueueInputs.Inc()
 				s.XReview = append(s.XReview, msg)
@@ -284,12 +303,11 @@ func (s *State) executeMsg(msg interfaces.IMsg) (ret bool) {
 			}
 		} else {
 			s.LogMessage("executeMsg", "FollowerExecute", msg)
-			s.LogPrintf("executeMsg", "M-%x s.RunLeader (%v) && s.Leader (%v) && !s.Saving (%v) && vm != nil (%p)"+
-				" && vm.Height (%v) == vmLength (%v) && (!s.Syncing (%v) || !vm.Synced (%v)) && (local (%v) || vmi(%v) == s.LeaderVMIndex(%v)"+
-				" && s.LeaderPL.DBHeight(%v)+1 >= hkb(%v)", msg.GetMsgHash().Bytes()[:3],
-				s.RunLeader, s.Leader, s.Saving, vm, vmHeight, vmLength, s.Syncing, vmSynced, local, vmi, s.LeaderVMIndex,
-				s.LeaderPL.DBHeight, hkb)
-
+			s.LogPrintf("executeMsg", "cause:"+
+				" s.RunLeader(%v) && s.Leader(%v) && !s.Saving(%v) &&	vm(%p) != nil && vmh(%v) == vml(%v) && "+
+				"(!s.Syncing(%v) || !vms(%v)) && (local(%v) || vmi(%v) == s.LeaderVMIndex(%v)) && "+
+				"s.LeaderPL.DBHeight(%v)+1 >= hkb(%v)",
+				s.RunLeader, s.Leader, s.Saving, vm, vmh, vml, s.Syncing, vms, local, vmi, s.LeaderVMIndex, s.LeaderPL.DBHeight, hkb)
 			msg.FollowerExecute(s)
 		}
 
@@ -302,14 +320,7 @@ func (s *State) executeMsg(msg interfaces.IMsg) (ret bool) {
 		return false
 
 	default:
-		switch msg.Type() {
-		case constants.REVEAL_ENTRY_MSG, constants.COMMIT_ENTRY_MSG, constants.COMMIT_CHAIN_MSG:
-			//delete(s.Holding, msg.GetHash().Fixed())
-			s.DeleteFromHolding(msg.GetMsgHash().Fixed(), msg, "AlreadyCommited") // delete commit
-			s.DeleteFromHolding(msg.GetHash().Fixed(), msg, "AlreadyCommited")    // delete reveal
-			s.Commits.Delete(msg.GetHash().Fixed())
-		}
-		//todo: should we delete matching ACK here?
+		s.DeleteFromHolding(msg.GetMsgHash().Fixed(), msg, "InvalidMsg") // delete commit
 		if !msg.SentInvalid() {
 			msg.MarkSentInvalid(true)
 			s.networkInvalidMsgQueue <- msg
@@ -485,7 +496,7 @@ ackLoop:
 		} // skip review
 	}
 	if ValidationDebug {
-		s.LogPrintf("executeMsg", "end reviewHolding Xreview len = %d, process len = %d", len(s.XReview), len(process))
+(??)		s.LogPrintf("executeMsg", "end reviewHolding %d", len(s.XReview))
 	}
 
 	processXReviewTime := time.Since(preProcessXReviewTime)
@@ -557,8 +568,8 @@ func (s *State) ReviewHolding() {
 	}
 
 	if ValidationDebug {
-		s.LogPrintf("executeMsg", "Start reviewHolding holding len = %d", len(s.Holding))
-		defer s.LogPrintf("executeMsg", "end reviewHolding XReview len = %d", len(s.XReview))
+		s.LogPrintf("executeMsg", "Start reviewHolding")
+		defer s.LogPrintf("executeMsg", "end reviewHolding holding=%d, xreview=%d", len(s.Holding), len(s.XReview))
 	}
 
 	s.Commits.Cleanup(s)
@@ -631,11 +642,6 @@ func (s *State) ReviewHolding() {
 			}
 		}
 		validToSend, validToExecute := s.Validate(v)
-
-		if validToSend == 1 {
-			v.SendOut(s, v)
-		}
-
 		switch validToExecute {
 		case -1:
 			s.LogMessage("executeMsg", "invalid from holding", v)
@@ -645,6 +651,10 @@ func (s *State) ReviewHolding() {
 			continue
 		case 0:
 			continue
+		}
+
+		if validToSend >= 0 {
+			v.SendOut(s, v)
 		}
 
 		dbsmsg, ok := v.(*messages.DBStateMsg)
@@ -1524,7 +1534,7 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 		return
 	}
 
-	// Commited to sending an EOM now
+	// Committed to sending an EOM now
 	vm.EomMinuteIssued = s.CurrentMinute + 1
 
 	fix := false
@@ -1535,11 +1545,12 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	// make sure EOM has the right data
 	eom.DBHeight = s.LLeaderHeight
 	eom.VMIndex = s.LeaderVMIndex
-	// eom.Minute is zerobased, while LeaderMinute is 1 based.  So
+	// eom.Minute is zero based, while LeaderMinute is 1 based.  So
 	// a simple assignment works.
 	eom.Minute = byte(s.CurrentMinute)
 	eom.Sign(s)
 	eom.MsgHash = nil                       // delete any existing hash so it will be recomputed
+	eom.RepeatHash = nil                    // delete any existing hash so it will be recomputed
 	ack := s.NewAck(m, nil).(*messages.Ack) // LeaderExecuteEOM()
 	eom.SetLocal(false)
 

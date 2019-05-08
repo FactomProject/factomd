@@ -98,6 +98,10 @@ func (state *State) ValidatorLoop() {
 				s.LogPrintf("executeMsg", "start validate.messagesort")
 			}
 
+			if ValidationDebug {
+				s.LogPrintf("updateIssues", "Validation messages %3d processlist %3d", i1, i2)
+			}
+
 			select {
 			case min := <-state.tickerQueue:
 				timeStruct.timer(state, min)
@@ -109,7 +113,7 @@ func (state *State) ValidatorLoop() {
 				ackRoom := cap(state.ackQueue) - len(state.ackQueue)
 				msgRoom := cap(state.msgQueue) - len(state.msgQueue)
 
-				if ackRoom <= 10 || msgRoom <= 10 {
+				if ackRoom < 1 || msgRoom < 1 {
 					break // no room
 				}
 				msg = nil // in the i%5==0 we don't want to repeat the prev message
