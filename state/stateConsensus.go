@@ -747,8 +747,17 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		if s.Leader && !s.LeaderPL.DBSigAlreadySent {
 			s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex) // MoveStateToHeight()
 		}
+		s.DBStates.UpdateState() // call to get the state signed now that the DBSigs have processed
 
 	} else if s.CurrentMinute != newMinute { // And minute
+		if newMinute == 1 {
+			dbstate := s.GetDBState(dbheight - 1)
+			if dbstate != nil && !dbstate.Saved {
+				s.LogPrintf("dbstateprocess", "Set ReadyToSave %d", dbstate.DirectoryBlock.GetHeader().GetDBHeight())
+				dbstate.ReadyToSave = true
+			}
+			s.DBStates.UpdateState() // call to get the state signed now that the DBSigs have processed
+		}
 		s.CurrentMinute = newMinute                                                            // Update just the minute
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(newMinute, s.IdentityChainID) // MoveStateToHeight minute
 		// We are between blocks make sure we are setup to sync
@@ -761,9 +770,6 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		s.LeaderPL.SortAuditServers()
 		s.LeaderPL.SortFedServers()
 
-		if newMinute == 1 {
-			defer s.DBStates.UpdateState()
-		}
 	}
 
 	{ // debug
@@ -2015,15 +2021,11 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			switch {
 			case s.CurrentMinute < 10:
 				if s.CurrentMinute == 1 {
-					dbstate := s.GetDBState(dbheight - 1)
 					// Panic had arose when leaders would reboot and the follower was on a future minute
 					if dbstate == nil {
 						// We recognize that this will leave us "Done" without finishing the process.  But
 						// a Follower can heal themselves by asking for a block, and overwriting this block.
 						return false
-					}
-					if !dbstate.Saved {
-						dbstate.ReadyToSave = true
 					}
 				}
 				LeaderPL := s.ProcessLists.Get(s.LLeaderHeight)
