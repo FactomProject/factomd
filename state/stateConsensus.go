@@ -790,8 +790,17 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		if s.Leader && !s.LeaderPL.DBSigAlreadySent {
 			s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex) // MoveStateToHeight()
 		}
+		s.DBStates.UpdateState() // call to get the state signed now that the DBSigs have processed
 
 	} else if s.CurrentMinute != newMinute { // And minute
+		if newMinute == 1 {
+			dbstate := s.GetDBState(dbheight - 1)
+			if dbstate != nil && !dbstate.Saved {
+				s.LogPrintf("dbstateprocess", "Set ReadyToSave %d", dbstate.DirectoryBlock.GetHeader().GetDBHeight())
+				dbstate.ReadyToSave = true
+			}
+			s.DBStates.UpdateState() // call to get the state signed now that the DBSigs have processed
+		}
 		s.CurrentMinute = newMinute                                                            // Update just the minute
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(newMinute, s.IdentityChainID) // MoveStateToHeight minute
 		// We are between blocks make sure we are setup to sync
@@ -803,6 +812,7 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		// If an election took place, our lists will be unsorted. Fix that
 		s.LeaderPL.SortAuditServers()
 		s.LeaderPL.SortFedServers()
+
 	}
 
 	{ // debug
@@ -1197,7 +1207,6 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		dbstate.Locked = false
 		dbstate.Signed = true
 		s.DBStateAppliedCnt++
-		s.DBStates.UpdateState()
 	} else {
 		//s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): dbstate added from local db at ht %d", dbheight))
 		dbstate.Saved = true
@@ -1891,7 +1900,6 @@ func (s *State) CreateDBSig(dbheight uint32, vmIndex int) (interfaces.IMsg, inte
 	ack := s.NewAck(dbs, s.Balancehash).(*messages.Ack)
 
 	s.LogMessage("dbstateprocess", "CreateDBSig", dbs)
-	s.LogPrintf("dbstateprocess", dbstate.String())
 
 	return dbs, ack
 }
@@ -2037,15 +2045,11 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			switch {
 			case s.CurrentMinute < 10:
 				if s.CurrentMinute == 1 {
-					dbstate := s.GetDBState(dbheight - 1)
 					// Panic had arose when leaders would reboot and the follower was on a future minute
 					if dbstate == nil {
 						// We recognize that this will leave us "Done" without finishing the process.  But
 						// a Follower can heal themselves by asking for a block, and overwriting this block.
 						return false
-					}
-					if !dbstate.Saved {
-						dbstate.ReadyToSave = true
 					}
 				}
 				LeaderPL := s.ProcessLists.Get(s.LLeaderHeight)
@@ -2802,6 +2806,8 @@ func (s *State) NewAck(msg interfaces.IMsg, balanceHash interfaces.IHash) interf
 	}
 
 	ack.Sign(s)
+
+	ack.SetLocal(true)
 
 	return ack
 }

@@ -110,6 +110,7 @@ func (state *State) ValidatorLoop() {
 
 			msgcnt := 0
 			for i := 0; i < 50; i++ {
+				msg = nil
 				ackRoom := cap(state.ackQueue) - len(state.ackQueue)
 				msgRoom := cap(state.msgQueue) - len(state.msgQueue)
 

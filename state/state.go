@@ -1924,8 +1924,8 @@ func (s *State) UpdateState() (progress bool) {
 		}
 	}
 
-	p2 := s.DBStates.UpdateState()
-	progress = progress || p2
+        s.DBStates.Catchup(false)
+	
 
 	s.SetString()
 	if s.ControlPanelDataRequest {
