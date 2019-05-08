@@ -1641,26 +1641,21 @@ func (list *DBStateList) UpdateState() (progress bool) {
 			//			s.LogPrintf("dbstateprocess", "skip reprocessing %d", dbHeight)
 			continue // don't reprocess old blocks
 		}
+		var p bool = false
 		// if this is not the first block then fixup the links
 		if i > 0 {
-			p := list.FixupLinks(list.DBStates[i-1], d)
-			if p && !progress {
-				progress = p
-			}
+			p = list.FixupLinks(list.DBStates[i-1], d)
+			progress = p || progress
 		}
 
-		p := list.ProcessBlocks(d) || progress
-		if p && !progress {
-			progress = p
-		}
-		p = list.SignDB(d) || progress
-		if p && !progress {
-			progress = p
-		}
-		p = list.SaveDBStateToDB(d) || progress
-		if p && !progress {
-			progress = p
-		}
+		p = list.ProcessBlocks(d)
+		progress = p || progress
+
+		p = list.SignDB(d)
+		progress = p || progress
+
+		p = list.SaveDBStateToDB(d)
+		progress = p || progress
 
 		// Make sure we move forward the Adminblock state in the process lists
 		list.State.ProcessLists.Get(dbHeight + 1)
