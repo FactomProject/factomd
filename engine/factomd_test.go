@@ -1500,39 +1500,51 @@ func TestDebugLocation(t *testing.T) {
 
 	RanSimTest = true
 
-	state0 := SetupSim("LF", map[string]string{"--debuglog": "/tmp/logs/."}, 5, 0, 0, t)
+	tempdir := os.TempDir() + string(os.PathSeparator) + "logs" + string(os.PathSeparator) // get os agnostic path to the temp directory
 
-	RunCmd("1") // select node 1
-	RunCmd("l") // make him a leader
+	// toss any files that might preexist this run so we don't see old files
+	err := os.RemoveAll(tempdir)
+	if err != nil {
+		panic(err)
+	}
+
+	// make sure the directory exists
+	err = os.MkdirAll(tempdir, os.ModePerm)
+	if err != nil {
+		panic(err)
+	}
+
+	// start a sim with a select set of logs
+	state0 := SetupSim("LF", map[string]string{"--debuglog": tempdir + "holding|networkinputs|ackqueue"}, 6, 0, 0, t)
 	WaitBlocks(state0, 1)
-	WaitForMinute(state0, 1)
-	WaitForAllNodes(state0)
-	// Adjust expectations
-	Leaders++
-	Followers--
-
-	DoesFileExists("/tmp/logs/fnode0_holding.txt", t);
-	DoesFileExists("/tmp/logs/fnode01_holding.txt", t);
-	DoesFileExists("/tmp/logs/fnode0_networkinputs.txt", t);
-	DoesFileExists("/tmp/logs/fnode01_networkinputs.txt", t);
-	DoesFileExists("/tmp/logs/fnode0_election.txt", t);
-	DoesFileExists("/tmp/logs/fnode01_election.txt", t);
-	DoesFileExists("/tmp/logs/fnode0_ackqueue.txt", t);
-	DoesFileExists("/tmp/logs/fnode01_ackqueue.txt", t);
 	ShutDownEverything(t)
+
+	// check the logs exist where we wanted them
+	DoesFileExists(tempdir+"fnode0_holding.txt", t)
+	DoesFileExists(tempdir+"fnode01_holding.txt", t)
+	DoesFileExists(tempdir+"fnode0_networkinputs.txt", t)
+	DoesFileExists(tempdir+"fnode01_networkinputs.txt", t)
+	DoesFileExists(tempdir+"fnode01_ackqueue.txt", t)
+
+	// toss the files we created since they are no longer needed
+	err = os.RemoveAll(tempdir)
+	if err != nil {
+		panic(err)
+	}
+
 }
 
 func DoesFileExists(path string, t *testing.T) {
 	_, err := os.Stat(path)
 	if err != nil {
-		t.Fatalf("Error checking for File: ", err)
+		t.Fatalf("Error checking for File: %s", err)
 	} else {
-		fmt.Println("We good!")
+		t.Logf("Found file %s", path)
 	}
 	if os.IsNotExist(err) {
-		t.Fatalf("File doesn't exist ")
+		t.Fatalf("File %s doesn't exist", path)
 	} else {
-		fmt.Println("We good!")
+		t.Logf("Found file %s", path)
 	}
 
 }
