@@ -15,7 +15,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var ValidationDebug bool = false
+var ValidationDebug bool = true
 
 func (state *State) ValidatorLoop() {
 	CheckGrants()
@@ -98,10 +98,6 @@ func (state *State) ValidatorLoop() {
 				s.LogPrintf("executeMsg", "start validate.messagesort")
 			}
 
-			if ValidationDebug {
-				s.LogPrintf("updateIssues", "Validation messages %3d processlist %3d", i1, i2)
-			}
-
 			select {
 			case min := <-state.tickerQueue:
 				timeStruct.timer(state, min)
@@ -116,7 +112,7 @@ func (state *State) ValidatorLoop() {
 				if ackRoom <= 10 || msgRoom <= 10 {
 					break // no room
 				}
-
+				msg = nil // in the i%5==0 we don't want to repeat the prev message
 				if i%5 != 0 {
 					// This doesn't block so it intentionally returns nil, don't log nils
 					msg = state.InMsgQueue().Dequeue()
@@ -141,7 +137,7 @@ func (state *State) ValidatorLoop() {
 						state.LogMessage("ackQueue", "enqueue", msg)
 						state.ackQueue <- msg //
 					} else {
-						state.LogMessage("msgQueue", "enqueue", msg)
+						state.LogMessage("msgQueue", fmt.Sprintf("enqueue(%d)", len(state.msgQueue)), msg)
 						state.msgQueue <- msg //
 					}
 				}
@@ -153,11 +149,15 @@ func (state *State) ValidatorLoop() {
 			// if we are not making progress and there are no messages to sort  sleep a bit
 			if !(p1 || p2) && state.InMsgQueue().Length() == 0 && state.InMsgQueue2().Length() == 0 {
 				// No messages? Sleep for a bit
-				for i := 0; i < 10 && state.InMsgQueue().Length() == 0 && state.InMsgQueue2().Length() == 0; i++ {
+				i := 0
+				for ; i < 10 && state.InMsgQueue().Length() == 0 && state.InMsgQueue2().Length() == 0; i++ {
 					time.Sleep(10 * time.Millisecond)
 					state.ValidatorLoopSleepCnt++
 				}
 
+				if ValidationDebug {
+					s.LogPrintf("executeMsg", "slept %d times", i)
+				}
 			}
 
 		}
@@ -189,8 +189,8 @@ func (t *Timer) timer(s *State, min int) {
 		eom.Sign(s)
 		eom.SetLocal(true)
 		consenLogger.WithFields(log.Fields{"func": "GenerateEOM", "lheight": s.GetLeaderHeight()}).WithFields(eom.LogFields()).Debug("Generate EOM")
-		s.LogMessage("MsgQueue", "enqueue", eom)
+		s.LogMessage("MsgQueue", fmt.Sprintf("enqueueEOM(%d)", len(s.msgQueue)), eom)
 
-		s.MsgQueue() <- eom
+		go func() { s.MsgQueue() <- eom }()
 	}
 }

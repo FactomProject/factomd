@@ -1088,8 +1088,11 @@ func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces
 		s.adds <- plRef{int(p.DBHeight), ack.VMIndex, int(ack.Height)}
 	}
 
-	plLogger.WithFields(log.Fields{"func": "AddToProcessList", "node-name": s.GetFactomNodeName(), "plheight": ack.Height, "dbheight": p.DBHeight}).WithFields(m.LogFields()).Info("Add To Process List")
 	s.LogMessage("processList", fmt.Sprintf("Added at %d/%d/%d", ack.DBHeight, ack.VMIndex, ack.Height), m)
+	if s.Leader && (s.LeaderVMIndex == m.GetVMIndex() || m.Type() == constants.EOM_MSG || m.Type() == constants.DIRECTORY_BLOCK_SIGNATURE_MSG) {
+		for p.Process(s) {
+		}
+	}
 }
 
 func (p *ProcessList) ContainsDBSig(serverID interfaces.IHash) bool {

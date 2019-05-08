@@ -222,6 +222,7 @@ func TestLoad2(t *testing.T) {
 	}
 	ShutDownEverything(t)
 } // testLoad2(){...}
+
 // The intention of this test is to detect the EC overspend/duplicate commits (FD-566) bug.
 // the bug happened when the FCT transaction and the commits arrived in different orders on followers vs the leader.
 // Using a message delay, drop and tree network makes this likely

@@ -936,8 +936,8 @@ func (s *State) Init() {
 	s.inMsgQueue2 = NewInMsgQueue(constants.INMSGQUEUE_HIGH)                 //incoming message queue for Factom application messages
 	s.electionsQueue = NewElectionQueue(constants.INMSGQUEUE_HIGH)           //incoming message queue for Factom application messages
 	s.apiQueue = NewAPIQueue(constants.INMSGQUEUE_HIGH)                      //incoming message queue from the API
-	s.ackQueue = make(chan interfaces.IMsg, constants.INMSGQUEUE_HIGH)       //queue of Leadership messages
-	s.msgQueue = make(chan interfaces.IMsg, constants.INMSGQUEUE_HIGH)       //queue of Follower messages
+	s.ackQueue = make(chan interfaces.IMsg, 50)                              //queue of Leadership messages
+	s.msgQueue = make(chan interfaces.IMsg, 50)                              //queue of Follower messages
 	s.MissingEntries = make(chan *MissingEntry, constants.INMSGQUEUE_HIGH)   //Entries I discover are missing from the database
 	s.UpdateEntryHash = make(chan *EntryUpdate, constants.INMSGQUEUE_HIGH)   //Handles entry hashes and updating Commit maps.
 	s.WriteEntry = make(chan interfaces.IEBEntry, constants.INMSGQUEUE_HIGH) //Entries to be written to the database
@@ -1925,7 +1925,6 @@ func (s *State) UpdateState() (progress bool) {
 	}
 
 	p2 := s.DBStates.UpdateState()
-	s.LogPrintf("updateIssues", "ProcessList progress %v DBStates progress %v", progress, p2)
 	progress = progress || p2
 
 	s.SetString()
@@ -1956,9 +1955,6 @@ entryHashProcessing:
 		default:
 			break entryHashProcessing
 		}
-	}
-	if eupdates {
-		s.LogPrintf("updateIssues", "entryProcessing")
 	}
 	return
 }
