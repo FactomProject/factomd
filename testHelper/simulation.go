@@ -51,7 +51,7 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 		"--stderrlog":           "out.txt",
 		"--checkheads":          "false",
 		"--controlpanelsetting": "readwrite",
-		"--debuglog":            ".|faulting|bad",
+		"--debuglog":            "faulting|bad",
 		"--logPort":             "37000",
 		"--port":                "37001",
 		"--controlpanelport":    "37002",
@@ -64,7 +64,7 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 			if key != "--debuglog" && value != "" {
 				CmdLineOptions[key] = value
 			} else {
-				CmdLineOptions[key] = CmdLineOptions[key] + "|" + value // add debug log flags to the default
+				CmdLineOptions[key] = value + "|" + CmdLineOptions[key] // add debug log flags to the default
 			}
 			// remove options not supported by the current flags set so we can merge this update into older code bases
 		}
