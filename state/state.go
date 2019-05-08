@@ -433,7 +433,6 @@ type State struct {
 	executeRecursionDetection map[[32]byte]interfaces.IMsg
 	Hold                      HoldingList
 
-
 	MissingMessageResponse
 }
 

@@ -28,57 +28,57 @@ type MissingMessageResponse struct {
 	MsgsMap MSGMap
 }
 
-func (l* ACKMap) Add(msg interfaces.IMsg) {
+func (a * ACKMap) Add(msg interfaces.IMsg) {
 	ack := msg.(*messages.Ack)
 	heights := MsgHeight{int(ack.DBHeight), ack.VMIndex, int(ack.Height)}
-	if l.Acks == nil {
-		l.Acks = make(map[MsgHeight]interfaces.IMsg, 0)
+	if a.Acks == nil {
+		a.Acks = make(map[MsgHeight]interfaces.IMsg, 0)
 	}
 
-	if len(l.Acks) > 0 {
-		previous := l.MsgOrder[l.N]
+	if len(a.Acks) > 0 {
+		previous := a.MsgOrder[a.N]
 		if previous != nil {
 			prevAck := previous.(*messages.Ack)
 			prevHeights := MsgHeight{int(prevAck.DBHeight), prevAck.VMIndex, int(prevAck.Height)}
-			delete(l.Acks, prevHeights)
+			delete(a.Acks, prevHeights)
 		}
 	}
-	l.Acks[heights] = msg
-	l.MsgOrder[l.N] = msg
-	l.N = (l.N + 1)%1000
+	a.Acks[heights] = msg
+	a.MsgOrder[a.N] = msg
+	a.N = (a.N + 1)%1000
 }
 
-func (l* ACKMap) Get(DBHeight int, vmIndex int, height int) bool {
+func (a * ACKMap) Get(DBHeight int, vmIndex int, height int) bool {
 	heights := MsgHeight{DBHeight, vmIndex, height}
-	_, exists := l.Acks[heights]
+	_, exists := a.Acks[heights]
 	return exists
 }
 
-func (l* MSGMap) Add(msg interfaces.IMsg) {
+func (m * MSGMap) Add(msg interfaces.IMsg) {
 	hash := msg.GetHash().Fixed()
 
-	if l.Msgs == nil {
-		l.Msgs = make(map[[32]byte]interfaces.IMsg, 0)
+	if m.Msgs == nil {
+		m.Msgs = make(map[[32]byte]interfaces.IMsg, 0)
 	}
 
-	prevous := l.MsgOrder[l.N]
-	delete(l.Msgs, prevous)
-	l.Msgs[hash] = msg
-	l.MsgOrder[l.N] = hash
-	l.N = (l.N + 1)%1000
+	previous := m.MsgOrder[m.N]
+	delete(m.Msgs, previous)
+	m.Msgs[hash] = msg
+	m.MsgOrder[m.N] = hash
+	m.N = (m.N + 1)%1000
 }
 
-func (l* MSGMap) Get(msg interfaces.IMsg) bool {
+func (m * MSGMap) Get(msg interfaces.IMsg) bool {
 	hash := msg.GetHash().Fixed()
-	_, exists := l.Msgs[hash]
+	_, exists := m.Msgs[hash]
 	return exists
 }
 
-func (m* MissingMessageResponse) GetAckANDMsg(DBHeight int, vmIndex int, height int) bool {
+func (am* MissingMessageResponse) GetAckANDMsg(DBHeight int, vmIndex int, height int) bool {
 	heights := MsgHeight{DBHeight, vmIndex, height}
-	msg, exists := m.AcksMap.Acks[heights]
-	if (msg != nil && exists) {
-		msgExists := m.MsgsMap.Get(msg)
+	msg, exists := am.AcksMap.Acks[heights]
+	if msg != nil && exists {
+		msgExists := am.MsgsMap.Get(msg)
 		return msgExists
 	}
 	return exists
