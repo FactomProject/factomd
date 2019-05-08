@@ -929,7 +929,7 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 }
 
 func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces.IMsg) {
-	s.LogMessage("processList", "Message:", m)
+	//s.LogMessage("processList", "Message:", m) // also logged with the ack
 	s.LogMessage("processList", "Ack:", ack)
 	if p == nil {
 		s.LogPrintf("processList", "Drop no process list to add to")

@@ -15,7 +15,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var ValidationDebug bool = true
+var ValidationDebug bool = false
 
 func (state *State) ValidatorLoop() {
 	CheckGrants()
@@ -96,10 +96,6 @@ func (state *State) ValidatorLoop() {
 			}
 			if ValidationDebug {
 				s.LogPrintf("executeMsg", "start validate.messagesort")
-			}
-
-			if ValidationDebug {
-				s.LogPrintf("updateIssues", "Validation messages %3d processlist %3d", i1, i2)
 			}
 
 			select {

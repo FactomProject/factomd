@@ -90,9 +90,9 @@ func (s *State) Validate(msg interfaces.IMsg) (validToSend int, validToExec int)
 	// check the time frame of messages with ACKs and reject any that are before the message filter time (before boot
 	// or outside the replay filter time frame)
 
-	defer func() {
-		s.LogMessage("msgvalidation", fmt.Sprintf("send=%d execute=%d %s", *(&validToSend), *(&validToExec), atomic.WhereAmIString(1)), msg)
-	}()
+	//defer func() {
+	//	s.LogMessage("msgvalidation", fmt.Sprintf("send=%d execute=%d local=%v %s", *(&validToSend), *(&validToExec), msg.IsLocal(), atomic.WhereAmIString(1)), msg)
+	//}()
 
 	// During boot ignore messages that are more than 15 minutes old...
 	if s.IgnoreMissing && msg.Type() != constants.DBSTATE_MSG {
@@ -164,15 +164,6 @@ func (s *State) Validate(msg interfaces.IMsg) (validToSend int, validToExec int)
 	// if its local and valid to send, then execute it.
 	if msg.IsLocal() {
 		return 1, 1
-	}
-
-	// Valid to send is a bit different from valid to execute.  Check for valid to send here.
-	validToSend = msg.Validate(s)
-	switch validToSend {
-	case -1:
-		return -1, -1
-	case 0:
-		return 0, 0
 	}
 
 	// only valid to send messages past here
@@ -718,7 +709,8 @@ func (s *State) ReviewHolding() {
 }
 
 func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
-	s.LogPrintf("dbstateprocess", "MoveStateToHeight(%d-:-%d) called from %s", dbheight, newMinute, atomic.WhereAmIString(1))
+	//	s.LogPrintf("dbstateprocess", "MoveStateToHeight(%d-:-%d) called from %s", dbheight, newMinute, atomic.WhereAmIString(1))
+	s.LogPrintf("dbstateprocess", "MoveStateToHeight(%d-:-%d)", dbheight, newMinute)
 
 	if (s.LLeaderHeight+1 == dbheight && newMinute == 0) || (s.LLeaderHeight == dbheight && s.CurrentMinute+1 == newMinute) {
 		// these are the allowed cases; move to nextblock-:-0 or move to next minute
@@ -954,10 +946,11 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 }
 
 func (s *State) repost(m interfaces.IMsg) {
-	whereAmI := atomic.WhereAmIString(1)
+	//whereAmI := atomic.WhereAmIString(1)
 	go func() { // This is a trigger to issue the EOM, but we are still syncing.  Wait to retry.
 		time.Sleep(time.Duration(s.DirectoryBlockInSeconds) * time.Second / 600) // Once a second for 10 min block
-		s.LogMessage("MsgQueue", fmt.Sprintf("enqueue_%s(%d)", whereAmI, len(s.msgQueue)), m)
+		//s.LogMessage("MsgQueue", fmt.Sprintf("enqueue_%s(%d)", whereAmI, len(s.msgQueue)), m)
+		s.LogMessage("MsgQueue", fmt.Sprintf("enqueue (%d)", len(s.msgQueue)), m)
 		s.msgQueue <- m // Goes in the "do this really fast" queue so we are prompt about EOM's while syncing
 	}()
 }
@@ -1411,7 +1404,7 @@ func (s *State) FollowerExecuteCommitChain(m interfaces.IMsg) {
 	cc := m.(*messages.CommitChainMsg)
 	re := s.Holding[cc.CommitChain.EntryHash.Fixed()]
 	if re != nil {
-		re.FollowerExecute(s)
+		//		re.FollowerExecute(s)
 		re.SendOut(s, re)
 	}
 	m.SendOut(s, m)
@@ -1423,7 +1416,7 @@ func (s *State) FollowerExecuteCommitEntry(m interfaces.IMsg) {
 	s.FollowerExecuteMsg(m)
 	re := s.Holding[ce.CommitEntry.EntryHash.Fixed()]
 	if re != nil {
-		re.FollowerExecute(s)
+		//	re.FollowerExecute(s)
 		re.SendOut(s, re)
 	}
 	m.SendOut(s, m)
@@ -1751,7 +1744,7 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 		s.PutCommit(h, c)
 		entry := s.Holding[h.Fixed()]
 		if entry != nil {
-			entry.FollowerExecute(s)
+			//	entry.FollowerExecute(s)
 			entry.SendOut(s, entry)
 			TotalXReviewQueueInputs.Inc()
 			s.XReview = append(s.XReview, entry)
@@ -1776,7 +1769,7 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 		s.PutCommit(h, c)
 		entry := s.Holding[h.Fixed()]
 		if entry != nil && entry.Validate(s) == 1 {
-			entry.FollowerExecute(s)
+			//	entry.FollowerExecute(s)
 			entry.SendOut(s, entry)
 			TotalXReviewQueueInputs.Inc()
 			s.XReview = append(s.XReview, entry)
@@ -1901,7 +1894,7 @@ func (s *State) CreateDBSig(dbheight uint32, vmIndex int) (interfaces.IMsg, inte
 // that is missing the DBSig.  If the DBSig isn't our responsibility, then
 // this call will do nothing.  Assumes the state for the leader is set properly
 func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
-	s.LogPrintf("executeMsg", "SendDBSig(dbht=%d,vm=%d) from %s", dbheight, vmIndex, atomic.WhereAmIString(1))
+	s.LogPrintf("executeMsg", "SendDBSig(dbht=%d,vm=%d)", dbheight, vmIndex)
 	dbslog := consenLogger.WithFields(log.Fields{"func": "SendDBSig"})
 
 	ht := s.GetHighestSavedBlk()
