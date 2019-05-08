@@ -760,6 +760,10 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		// If an election took place, our lists will be unsorted. Fix that
 		s.LeaderPL.SortAuditServers()
 		s.LeaderPL.SortFedServers()
+
+		if newMinute == 1 {
+			defer s.DBStates.UpdateState()
+		}
 	}
 
 	{ // debug
