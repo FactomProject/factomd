@@ -1924,9 +1924,10 @@ func (s *State) UpdateState() (progress bool) {
 		}
 	}
 
-	p2 := s.DBStates.UpdateState()
-	s.LogPrintf("updateIssues", "ProcessList progress %v DBStates progress %v", progress, p2)
-	progress = progress || p2
+	s.DBStates.Catchup(false)
+
+	s.LogPrintf("updateIssues", "ProcessList progress %v DBStates", progress)
+	progress = progress
 
 	s.SetString()
 	if s.ControlPanelDataRequest {

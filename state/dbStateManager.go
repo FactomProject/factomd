@@ -1584,7 +1584,6 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 }
 
 func (list *DBStateList) UpdateState() (progress bool) {
-	list.Catchup(false)
 
 	s := list.State
 	_ = s
