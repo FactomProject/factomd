@@ -1,9 +1,12 @@
 package testHelper
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
+
+	"github.com/FactomProject/factomd/engine"
 
 	"github.com/FactomProject/web"
 )
@@ -107,4 +110,27 @@ func (t *TestResponseWriter) Write(b []byte) (int, error) {
 
 func GetBody(context *web.Context) string {
 	return context.ResponseWriter.(*TestResponseWriter).Body
+}
+
+func getAPIUrl() string {
+	return "http://localhost:" + fmt.Sprint(engine.GetFnodes()[0].State.GetPort()) + "/debug"
+}
+
+func postRequest(jsonStr string) (*http.Response, error) {
+	req, err := http.NewRequest("POST", getAPIUrl(), bytes.NewBuffer([]byte(jsonStr)))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("content-type", "text/plain;")
+
+	client := &http.Client{}
+	return client.Do(req)
+}
+
+func SetInputFilter(apiRegex string) (*http.Response, error) {
+	return postRequest(`{"jsonrpc": "2.0", "id": 0, "method": "message-filter", "params":{"output-regex":"", "input-regex":"` + apiRegex + `"}}`)
+}
+
+func SetOutputFilter(apiRegex string) (*http.Response, error) {
+	return postRequest(`{"jsonrpc": "2.0", "id": 0, "method": "message-filter", "params":{"output-regex":"` + apiRegex + `", "input-regex":""}}`)
 }
