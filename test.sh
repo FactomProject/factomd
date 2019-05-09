@@ -67,7 +67,7 @@ function runTests() {
     go test -v -timeout=10m -vet=off $TST | tee -a testout.txt | egrep 'PASS|FAIL|RUN' 
     if [[ $? != 0 ]] ;  then
       FAIL=1
-      FAILURES+=($TST)
+      FAILURES+=($TST) # FIXME doesn't work well when there are spaces in the test ./engine/... -run XXX
     fi
     echo "END: ${TST}"
     echo '---------------'
