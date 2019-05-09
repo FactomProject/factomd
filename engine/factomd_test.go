@@ -206,7 +206,7 @@ func TestLoad2(t *testing.T) {
 	state0 := SetupSim("LLLAF", map[string]string{"--blktime": "20", "--debuglog": ".", "--net": "tree"}, 24, 0, 0, t)
 	StatusEveryMinute(state0)
 
-	RunCmd("5") // select node 5
+	RunCmd("4") // select node 5
 	RunCmd("x") // take out 7 from the network
 	WaitBlocks(state0, 1)
 	WaitForMinute(state0, 1)
