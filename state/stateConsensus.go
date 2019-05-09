@@ -729,8 +729,10 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		s.DBSigProcessed = 0 // movestatetoheight
 		s.DBSigDone = false  // movestatetoheight
 
-		for _, vm := range s.LeaderPL.VMs {
-			vm.Synced = false // movestatetoheight
+		if s.LeaderPL != nil {
+			for _, vm := range s.LeaderPL.VMs {
+				vm.Synced = false // movestatetoheight
+			}
 		}
 
 	}
