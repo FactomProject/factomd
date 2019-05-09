@@ -110,7 +110,7 @@ func (state *State) ValidatorLoop() {
 				ackRoom := cap(state.ackQueue) - len(state.ackQueue)
 				msgRoom := cap(state.msgQueue) - len(state.msgQueue)
 
-				if ackRoom < 1 || msgRoom < 1 {
+				if ackRoom < 10 || msgRoom < 10 {
 					break // no room
 				}
 				msg = nil // in the i%5==0 we don't want to repeat the prev message

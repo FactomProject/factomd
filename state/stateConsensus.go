@@ -1404,7 +1404,7 @@ func (s *State) FollowerExecuteCommitChain(m interfaces.IMsg) {
 	cc := m.(*messages.CommitChainMsg)
 	re := s.Holding[cc.CommitChain.EntryHash.Fixed()]
 	if re != nil {
-		//		re.FollowerExecute(s)
+		re.FollowerExecute(s)
 		re.SendOut(s, re)
 	}
 	m.SendOut(s, m)
@@ -1416,7 +1416,7 @@ func (s *State) FollowerExecuteCommitEntry(m interfaces.IMsg) {
 	s.FollowerExecuteMsg(m)
 	re := s.Holding[ce.CommitEntry.EntryHash.Fixed()]
 	if re != nil {
-		//	re.FollowerExecute(s)
+		re.FollowerExecute(s)
 		re.SendOut(s, re)
 	}
 	m.SendOut(s, m)
@@ -1744,7 +1744,7 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 		s.PutCommit(h, c)
 		entry := s.Holding[h.Fixed()]
 		if entry != nil {
-			//	entry.FollowerExecute(s)
+			entry.FollowerExecute(s)
 			entry.SendOut(s, entry)
 			TotalXReviewQueueInputs.Inc()
 			s.XReview = append(s.XReview, entry)
@@ -1769,7 +1769,7 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 		s.PutCommit(h, c)
 		entry := s.Holding[h.Fixed()]
 		if entry != nil && entry.Validate(s) == 1 {
-			//	entry.FollowerExecute(s)
+			entry.FollowerExecute(s)
 			entry.SendOut(s, entry)
 			TotalXReviewQueueInputs.Inc()
 			s.XReview = append(s.XReview, entry)
