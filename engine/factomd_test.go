@@ -130,8 +130,6 @@ func TestLoad(t *testing.T) {
 	}
 
 	RanSimTest = true
-
-	// use a tree so the messages get reordered
 	state0 := SetupSim("LFF", map[string]string{"--debuglog": "." /*"--db": "LDB"*/}, 15, 0, 0, t)
 
 	RunCmd("2")    // select 2
@@ -141,6 +139,7 @@ func TestLoad(t *testing.T) {
 	WaitBlocks(state0, 5)
 	RunCmd("R0") // Stop load
 	WaitBlocks(state0, 5)
+	// should check holding and queues cleared out
 	ShutDownEverything(t)
 } // testLoad(){...}
 
@@ -153,15 +152,22 @@ func TestCatchup(t *testing.T) {
 
 	// use a tree so the messages get reordered
 	state0 := SetupSim("LF", map[string]string{"--debuglog": ""}, 15, 0, 0, t)
+	state1 := GetFnodes()[1].State
 
-	RunCmd("1") // select 2
+	RunCmd("1") // select 1
 	RunCmd("x")
 	RunCmd("R5") // Feed load
 	WaitBlocks(state0, 10)
-	RunCmd("R0") // Stop load
-	RunCmd("x")
-	WaitBlocks(state0, 3)
+	RunCmd("R0")          // Stop load
+	RunCmd("x")           // back online
+	WaitBlocks(state0, 3) // give him a few blocks to catch back up
 	//todo: check that the node01 caught up and finished 2nd pass sync
+	dbht0 := state0.GetLLeaderHeight()
+	dbht1 := state1.GetLLeaderHeight()
+
+	if dbht0 != dbht1 {
+		t.Fatalf("Node 7 was at dbheight %d which didn't match Node 6 at dbheight %d", dbht0, dbht1)
+	}
 
 	ShutDownEverything(t)
 } // TestCatchup(){...}
@@ -189,14 +195,15 @@ func TestTXTimestampsAndBlocks(t *testing.T) {
 	RunCmd("x")
 	RunCmd("R0") // turn off the load
 }
+
 func TestLoad2(t *testing.T) {
 	if RanSimTest {
 		return
 	}
 	RanSimTest = true
-
+	// use tree node setup so messages get reordered
 	go RunCmd("Re") // Turn on tight allocation of EC as soon as the simulator is up and running
-	state0 := SetupSim("LLLAF", map[string]string{"--blktime": "20", "--debuglog": "."}, 24, 0, 0, t)
+	state0 := SetupSim("LLLAF", map[string]string{"--blktime": "20", "--debuglog": ".", "--net": "tree"}, 24, 0, 0, t)
 	StatusEveryMinute(state0)
 
 	RunCmd("7") // select node 1
