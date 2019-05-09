@@ -157,7 +157,7 @@ func TestCatchup(t *testing.T) {
 	RunCmd("1") // select 1
 	RunCmd("x")
 	RunCmd("R5") // Feed load
-	WaitBlocks(state0, 10)
+	WaitBlocks(state0, 5)
 	RunCmd("R0")          // Stop load
 	RunCmd("x")           // back online
 	WaitBlocks(state0, 3) // give him a few blocks to catch back up
@@ -206,7 +206,7 @@ func TestLoad2(t *testing.T) {
 	state0 := SetupSim("LLLAF", map[string]string{"--blktime": "20", "--debuglog": ".", "--net": "tree"}, 24, 0, 0, t)
 	StatusEveryMinute(state0)
 
-	RunCmd("7") // select node 1
+	RunCmd("5") // select node 5
 	RunCmd("x") // take out 7 from the network
 	WaitBlocks(state0, 1)
 	WaitForMinute(state0, 1)
@@ -223,8 +223,8 @@ func TestLoad2(t *testing.T) {
 	WaitBlocks(state0, 3)
 	WaitMinutes(state0, 3)
 
-	ht7 := GetFnodes()[7].State.GetLLeaderHeight()
-	ht6 := GetFnodes()[6].State.GetLLeaderHeight()
+	ht7 := GetFnodes()[1].State.GetLLeaderHeight()
+	ht6 := GetFnodes()[4].State.GetLLeaderHeight()
 
 	if ht7 != ht6 {
 		t.Fatalf("Node 7 was at dbheight %d which didn't match Node 6 at dbheight %d", ht7, ht6)
