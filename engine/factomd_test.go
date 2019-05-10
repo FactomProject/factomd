@@ -218,7 +218,7 @@ func TestActivationHeightElection(t *testing.T) {
 
 	RanSimTest = true
 
-	state0 := SetupSim("LLLLLAAF", map[string]string{}, 16, 2, 2, t)
+	state0 := SetupSim("LLLLLAAF", map[string]string{}, 30, 2, 2, t)
 
 	// Kill the last two leader to cause a double election
 	RunCmd("3")
