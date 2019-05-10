@@ -70,12 +70,10 @@ func (s *State) WriteEntries() {
 	for {
 		entry := <-s.WriteEntry
 		if entry != nil && !has(s, entry.GetHash()) {
-			s.DB.StartMultiBatch()
-			err := s.DB.InsertEntryMultiBatch(entry)
+			err := s.DB.InsertEntry(entry)
 			if err != nil {
 				panic(err)
 			}
-			err = s.DB.ExecuteMultiBatch()
 			if err != nil {
 				panic(err)
 			}

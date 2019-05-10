@@ -115,24 +115,23 @@ func (f *SimPeer) computeBandwidth() {
 }
 
 func (f *SimPeer) Send(msg interfaces.IMsg) error {
-	go func() {
 
+	data, err := msg.MarshalBinary()
+	f.bytesOut += len(data)
+	f.computeBandwidth()
+	if err != nil {
+		return err
+	}
+
+	go func() {
 		if f.Delay > 0 {
 			// Sleep some random number of milliseconds, then send the packet
 			time.Sleep(time.Duration(rand.Intn(int(f.Delay))) * time.Millisecond)
 		}
-
-		data, err := msg.MarshalBinary()
-		f.bytesOut += len(data)
-		f.computeBandwidth()
-		if err != nil {
-			return
-		}
-
 		packet := SimPacket{data: data, sent: time.Now().UnixNano() / 1000000}
 		f.BroadcastOut <- &packet
-
 	}()
+
 	return nil
 }
 
