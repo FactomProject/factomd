@@ -626,6 +626,11 @@ func (s *State) ReviewHolding() {
 			}
 		}
 		validToSend, validToExecute := s.Validate(v)
+
+		if validToSend >= 0 {
+			v.SendOut(s, v)
+		}
+
 		switch validToExecute {
 		case -1:
 			s.LogMessage("executeMsg", "invalid from holding", v)
@@ -635,10 +640,6 @@ func (s *State) ReviewHolding() {
 			continue
 		case 0:
 			continue
-		}
-
-		if validToSend >= 0 {
-			v.SendOut(s, v)
 		}
 
 		dbsmsg, ok := v.(*messages.DBStateMsg)
