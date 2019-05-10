@@ -90,7 +90,7 @@ func TestSetupANetwork(t *testing.T) {
 	}
 
 	RunCmd("i") // Shows the identities being monitored for change.
-	// Test block recording lengths and error checking for pprof
+	//Test block recording lengths and error checking for pprof
 	RunCmd("b100") // Recording delays due to blocked go routines longer than 100 ns (0 ms)
 
 	RunCmd("b") // specifically how long a block will be recorded (in nanoseconds).  1 records all blocks.
@@ -141,7 +141,7 @@ func TestLoad(t *testing.T) {
 	WaitBlocks(state0, 5)
 	// should check holding and queues cleared out
 	ShutDownEverything(t)
-} // testLoad(){...}
+} //TestLoad(){...}
 
 func TestCatchup(t *testing.T) {
 	if RanSimTest {
@@ -170,7 +170,7 @@ func TestCatchup(t *testing.T) {
 	}
 
 	ShutDownEverything(t)
-} // TestCatchup(){...}
+} //TestCatchup(){...}
 
 // Test that we don't put invalid TX into a block.  This is done by creating transactions that are just outside
 // the time for the block, and we let the block catch up.  The code should validate against the block time of the
@@ -230,7 +230,7 @@ func TestLoad2(t *testing.T) {
 		t.Fatalf("Node 7 was at dbheight %d which didn't match Node 6 at dbheight %d", ht7, ht6)
 	}
 	ShutDownEverything(t)
-} // testLoad2(){...}
+} //TestLoad2(){...}
 
 // The intention of this test is to detect the EC overspend/duplicate commits (FD-566) bug.
 // the bug happened when the FCT transaction and the commits arrived in different orders on followers vs the leader.
@@ -262,7 +262,7 @@ func TestLoadScrambled(t *testing.T) {
 	WaitBlocks(state0, 1)
 
 	ShutDownEverything(t)
-} // TestLoadScrambled(){...}
+} //TestLoadScrambled(){...}
 
 func TestMakeALeader(t *testing.T) {
 	if RanSimTest {
@@ -367,6 +367,7 @@ func TestActivationHeightElection(t *testing.T) {
 
 	ShutDownEverything(t)
 }
+
 func TestAnElection(t *testing.T) {
 	if RanSimTest {
 		return
