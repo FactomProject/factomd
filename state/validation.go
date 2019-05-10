@@ -43,7 +43,7 @@ func (s *State) DoProcessing() {
 		for i2 = 0; p2 && i2 < 20; i2++ {
 			p2 = s.UpdateState()
 		}
-		if !p1 || p2 {
+		if !p1 && !p2 {
 			// No work? Sleep for a bit
 			time.Sleep(10 * time.Millisecond)
 			s.ValidatorLoopSleepCnt++
