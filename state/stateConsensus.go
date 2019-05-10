@@ -1044,8 +1044,12 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 	m, _ := s.Holding[ack.GetHash().Fixed()]
 	if m != nil {
 		// We have an ack and a matching message go execute the message!
-		s.LogMessage("executeMsg", "FollowerExecuteAck ", m)
-		m.FollowerExecute(s)
+		if m.Validate(s) == 1 {
+			s.LogMessage("executeMsg", "FollowerExecuteAck ", m)
+			m.FollowerExecute(s)
+		} else {
+			s.LogMessage("executeMsg", "Msg matches Ack, wait for validate", ack)
+		}
 	} else {
 		s.LogMessage("executeMsg", "No Msg, keep", ack)
 		//todo: should we ask MMR here?
@@ -1483,8 +1487,6 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 	// This is so the api can determine if a chainhead is about to be updated. It fixes a race condition
 	// on the api. MUST BE BEFORE THE REPLAY FILTER ADD
 	pl.PendingChainHeads.Put(msg.Entry.GetChainID().Fixed(), msg)
-	// Okay the Reveal has been recorded.  Record this as an entry that cannot be duplicated.
-	s.Replay.IsTSValidAndUpdateState(constants.REVEAL_REPLAY, msg.Entry.GetHash().Fixed(), msg.Timestamp, s.GetLeaderTimestamp())
 }
 
 func (s *State) LeaderExecute(m interfaces.IMsg) {
@@ -1667,8 +1669,6 @@ func (s *State) LeaderExecuteCommitEntry(m interfaces.IMsg) {
 
 func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 	LeaderExecutions.Inc()
-	re := m.(*messages.RevealEntryMsg)
-	eh := re.Entry.GetHash()
 
 	vm := s.LeaderPL.VMs[s.LeaderVMIndex]
 	if len(vm.List) != vm.Height {
@@ -1693,8 +1693,6 @@ func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 		return
 	}
 
-	// Okay the Reveal has been recorded.  Record this as an entry that cannot be duplicated.
-	s.Replay.IsTSValidAndUpdateState(constants.REVEAL_REPLAY, eh.Fixed(), m.GetTimestamp(), s.GetLeaderTimestamp())
 	TotalCommitsOutputs.Inc()
 }
 
