@@ -124,35 +124,6 @@ func TestSetupANetwork(t *testing.T) {
 
 }
 
-func TestLoad3(t *testing.T) {
-	if RanSimTest {
-		return
-	}
-
-	RanSimTest = true
-	state0 := SetupSim("LFF", map[string]string{"--debuglog": "." /*"--db": "LDB"*/}, 15, 0, 0, t)
-
-	RunCmd("2")    // select 2
-	RunCmd("w")    // feed load into follower
-	RunCmd("F200") // delay messages
-	RunCmd("R40")  // Feed load
-	WaitBlocks(state0, 10)
-	RunCmd("R0") // Stop load
-	WaitBlocks(state0, 5)
-	// should check holding and queues cleared out
-	ShutDownEverything(t)
-} //TestLoad3(){...}
-
-// sum up the holding and in flight message queues across all the node
-func workinflight() int {
-	sum := 0
-	for _, n := range GetFnodes() {
-		s := n.State
-		sum = sum + len(s.MsgQueue()) + len(s.AckQueue()) + s.InMsgQueue().Length() + s.InMsgQueue2().Length() + len(s.Holding)
-	}
-	return sum
-}
-
 func TestLoad(t *testing.T) {
 	if RanSimTest {
 		return
@@ -165,14 +136,9 @@ func TestLoad(t *testing.T) {
 	RunCmd("w")    // feed load into follower
 	RunCmd("F200") // delay messages
 	RunCmd("R40")  // Feed load
-	WaitBlocks(state0, 10)
+	WaitBlocks(state0, 5)
 	RunCmd("R0") // Stop load
-	for {
-		WaitBlocks(state0, 1)
-		if workinflight > 5 {
-
-		}
-	}
+	WaitBlocks(state0, 5)
 	// should check holding and queues cleared out
 	ShutDownEverything(t)
 } //TestLoad(){...}
@@ -192,10 +158,9 @@ func TestCatchup(t *testing.T) {
 	RunCmd("x")
 	RunCmd("R5") // Feed load
 	WaitBlocks(state0, 5)
-	RunCmd("R0")           // Stop load
-	RunCmd("x")            // back online
-	WaitBlocks(state0, 3)  // give him a few blocks to catch back up
-	WaitMinutes(state0, 1) // make sure we are a bit bast the block edge so random timing does cause mismatches
+	RunCmd("R0")          // Stop load
+	RunCmd("x")           // back online
+	WaitBlocks(state0, 3) // give him a few blocks to catch back up
 	//todo: check that the node01 caught up and finished 2nd pass sync
 	dbht0 := state0.GetLLeaderHeight()
 	dbht1 := state1.GetLLeaderHeight()

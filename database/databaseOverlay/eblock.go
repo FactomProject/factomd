@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-// ProcessEBlockBatche inserts the EBlock and update all it'S ebentries in DB
+// ProcessEBlockBatche inserts the EBlock and update all it's ebentries in DB
 func (db *Overlay) ProcessEBlockBatch(eblock interfaces.DatabaseBlockWithEntries, checkForDuplicateEntries bool) error {
 	//Each chain has its own number bucket, otherwise we would have conflicts
 	numberBucket := append(ENTRYBLOCK_CHAIN_NUMBER, eblock.GetChainID().Bytes()...)

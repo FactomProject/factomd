@@ -18,7 +18,6 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/blockExtractor"
-	"github.com/FactomProject/factomd/util/atomic"
 )
 
 // the "table" prefix
@@ -122,8 +121,6 @@ type Overlay struct {
 	BatchSemaphore sync.Mutex
 	MultiBatch     []interfaces.Record
 	BlockExtractor blockExtractor.BlockExtractor
-
-	S interfaces.IState
 }
 
 var _ interfaces.IDatabase = (*Overlay)(nil)
@@ -140,7 +137,6 @@ func (db *Overlay) SetExportData(path string) {
 }
 
 func (db *Overlay) StartMultiBatch() {
-	db.S.LogPrintf("database", "StartMultiBatch from %S", atomic.WhereAmIString(1))
 	db.BatchSemaphore.Lock()
 	db.MultiBatch = make([]interfaces.Record, 0, 128)
 }
@@ -150,8 +146,6 @@ func (db *Overlay) PutInMultiBatch(records []interfaces.Record) {
 }
 
 func (db *Overlay) ExecuteMultiBatch() error {
-	db.S.LogPrintf("database", "ExecuteMultiBatch from %S", atomic.WhereAmIString(1))
-
 	defer func() {
 		db.MultiBatch = nil
 		db.BatchSemaphore.Unlock()
@@ -160,7 +154,6 @@ func (db *Overlay) ExecuteMultiBatch() error {
 }
 
 func (db *Overlay) PutInBatch(records []interfaces.Record) error {
-	db.S.LogPrintf("database", "PutInBatch write %d items", len(records))
 	return db.DB.PutInBatch(records)
 }
 
@@ -200,10 +193,9 @@ func (db *Overlay) Delete(bucket, key []byte) error {
 	return db.DB.Delete(bucket, key)
 }
 
-func NewOverlay(db interfaces.IDatabase, s interfaces.IState) *Overlay {
+func NewOverlay(db interfaces.IDatabase) *Overlay {
 	answer := new(Overlay)
 	answer.DB = db
-	answer.S = s // Keep owning state for debugging access
 	return answer
 }
 

@@ -39,7 +39,7 @@ func NewDBReader(levelBolt string, path string) *databaseOverlay.Overlay {
 		}
 	}
 
-	dbo := databaseOverlay.NewOverlay(dbase, nil)
+	dbo := databaseOverlay.NewOverlay(dbase)
 	return dbo
 }
 
