@@ -14,7 +14,7 @@ import (
 )
 
 type Receipt struct {
-	Entry                *JSON                    `json:"entry,omitempty"`
+	Entry                *EntryJSON               `json:"entry,omitempty"`
 	MerkleBranch         []*primitives.MerkleNode `json:"merklebranch,omitempty"`
 	EntryBlockKeyMR      *primitives.Hash         `json:"entryblockkeymr,omitempty"`
 	DirectoryBlockKeyMR  *primitives.Hash         `json:"directoryblockkeymr,omitempty"`
@@ -215,26 +215,26 @@ func DecodeReceiptString(str string) (*Receipt, error) {
 	return receipt, nil
 }
 
-type JSON struct {
+type EntryJSON struct {
 	Raw       string `json:"raw,omitempty"`
 	EntryHash string `json:"entryhash,omitempty"`
-	Json      string `json:"json,omitempty"`
+	Timestamp int64  `json:"timestamp,omitempty"`
 }
 
-func (e *JSON) JSONByte() ([]byte, error) {
+func (e *EntryJSON) JSONByte() ([]byte, error) {
 	return primitives.EncodeJSON(e)
 }
 
-func (e *JSON) JSONString() (string, error) {
+func (e *EntryJSON) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
 }
 
-func (e *JSON) String() string {
+func (e *EntryJSON) String() string {
 	str, _ := e.JSONString()
 	return str
 }
 
-func (e *JSON) IsSameAs(r *JSON) bool {
+func (e *EntryJSON) IsSameAs(r *EntryJSON) bool {
 	if r == nil {
 		return false
 	}
@@ -244,7 +244,7 @@ func (e *JSON) IsSameAs(r *JSON) bool {
 	if e.EntryHash != r.EntryHash {
 		return false
 	}
-	if e.Json != r.Json {
+	if e.Timestamp != r.Timestamp {
 		return false
 	}
 	return true
@@ -267,7 +267,7 @@ func CreateMinimalReceipt(dbo interfaces.DBOverlaySimple, entryID interfaces.IHa
 
 func CreateReceipt(dbo interfaces.DBOverlaySimple, entryHash interfaces.IHash, includeRawEntry bool) (*Receipt, error) {
 	receipt := new(Receipt)
-	receipt.Entry = new(JSON)
+	receipt.Entry = new(EntryJSON)
 	receipt.Entry.EntryHash = entryHash.String()
 
 	// Optionally include the full marshalled entry in the receipt
@@ -286,7 +286,6 @@ func CreateReceipt(dbo interfaces.DBOverlaySimple, entryHash interfaces.IHash, i
 	}
 
 	// Entry Block
-
 	hash, err := dbo.FetchIncludedIn(entryHash)
 	if err != nil {
 		return nil, err
@@ -300,12 +299,11 @@ func CreateReceipt(dbo interfaces.DBOverlaySimple, entryHash interfaces.IHash, i
 	} else if eBlock == nil {
 		return nil, fmt.Errorf("EBlock not found")
 	}
-
 	hash = eBlock.DatabasePrimaryIndex()
 	receipt.EntryBlockKeyMR = hash.(*primitives.Hash)
 
-	entries := eBlock.GetEntryHashes()
-	branch := primitives.BuildMerkleBranchForHash(entries, entryHash, true)
+	eBlockEntries := eBlock.GetEntryHashes()
+	branch := primitives.BuildMerkleBranchForHash(eBlockEntries, entryHash, true)
 	blockNode := new(primitives.MerkleNode)
 	left, err := eBlock.HeaderHash()
 	if err != nil {
@@ -318,7 +316,6 @@ func CreateReceipt(dbo interfaces.DBOverlaySimple, entryHash interfaces.IHash, i
 	receipt.MerkleBranch = append(receipt.MerkleBranch, branch...)
 
 	// Directory Block
-
 	hash, err = dbo.FetchIncludedIn(hash)
 	if err != nil {
 		return nil, err
@@ -333,8 +330,8 @@ func CreateReceipt(dbo interfaces.DBOverlaySimple, entryHash interfaces.IHash, i
 		return nil, fmt.Errorf("DBlock not found")
 	}
 
-	entries = dBlock.GetEntryHashesForBranch()
-	branch = primitives.BuildMerkleBranchForHash(entries, receipt.EntryBlockKeyMR, true)
+	dBlockEntries := dBlock.GetEntryHashesForBranch()
+	branch = primitives.BuildMerkleBranchForHash(dBlockEntries, receipt.EntryBlockKeyMR, true)
 	blockNode = new(primitives.MerkleNode)
 	left, err = dBlock.GetHeaderHash()
 	if err != nil {
@@ -347,10 +344,28 @@ func CreateReceipt(dbo interfaces.DBOverlaySimple, entryHash interfaces.IHash, i
 	receipt.MerkleBranch = append(receipt.MerkleBranch, branch...)
 
 	// Directory Block Info
-
 	hash = dBlock.DatabasePrimaryIndex()
 	receipt.DirectoryBlockKeyMR = hash.(*primitives.Hash)
 	receipt.DirectoryBlockHeight = dBlock.GetDatabaseHeight()
+
+	// Now that we have enough info available, find entry timestamp
+	mins := make(map[string]uint8) // create a map of possible minute markers
+	for i := byte(1); i <= 10; i++ {
+		h := make([]byte, 32)
+		h[len(h)-1] = i
+		mins[hex.EncodeToString(h)] = i
+	}
+	entryFound := false
+	for _, v := range eBlockEntries {
+		if v.IsSameAs(entryHash) {
+			entryFound = true
+		}
+		if n, exist := mins[v.String()]; exist && entryFound {
+			// Found a minute marker and found the entry already, set the timestamp and break
+			receipt.Entry.Timestamp = int64(dBlock.GetHeader().GetTimestamp().GetTimeSeconds() + 60*int64(n))
+			break
+		}
+	}
 
 	return receipt, nil
 }
