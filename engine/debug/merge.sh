@@ -1,4 +1,5 @@
-#/bin/sh
+#!/usr/bin/env bash
+# merge multiple input log files
 ################################
 # AWK scripts                  #
 ################################

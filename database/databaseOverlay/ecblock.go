@@ -9,7 +9,7 @@ import (
 	"github.com/FactomProject/factomd/util"
 )
 
-// ProcessECBlockBatch inserts the ECBlock and update all it's cbentries in DB
+// ProcessECBlockBatch inserts the ECBlock and update all it'S cbentries in DB
 func (db *Overlay) ProcessECBlockBatch(block interfaces.IEntryCreditBlock, checkForDuplicateEntries bool) error {
 	err := db.ProcessBlockBatch(ENTRYCREDITBLOCK,
 		ENTRYCREDITBLOCK_NUMBER,

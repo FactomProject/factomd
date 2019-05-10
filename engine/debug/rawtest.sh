@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # fund ecaddress
 FADDRESS=$(factom-cli importaddress 'Fs2DNirmGDtnAZGXqca3XHkukTNMxoMGFFQxJA3bAjJnKzzsZBMH')
 echo $FADDRESS

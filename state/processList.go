@@ -915,18 +915,7 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 			} else {
 				s.LogMessage("process", "Waiting on saving", msg)
 				s.LogPrintf("EntrySync", "Waiting on saving EntryDBHeightComplete = %d", s.EntryDBHeightComplete)
-				for s.InMsgQueue().Length() > 100 {
-					msg := s.InMsgQueue().Dequeue()
-					if msg.Type() == constants.DATA_RESPONSE {
-						msg.FollowerExecute(s)
-					}
-				}
-				for s.InMsgQueue2().Length() > 100 {
-					msg := s.InMsgQueue2().Dequeue()
-					if msg.Type() == constants.DATA_RESPONSE {
-						msg.FollowerExecute(s)
-					}
-				}
+
 				// If we don't have the Entry Blocks (or we haven't processed the signatures) we can't do more.
 				// p.State.AddStatus(fmt.Sprintf("Can't do more: dbht: %d vm: %d vm-height: %d Entry Height: %d", p.DBHeight, i, j, s.EntryDBHeightComplete))
 				if extraDebug {
@@ -940,7 +929,7 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 }
 
 func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces.IMsg) {
-	s.LogMessage("processList", "Message:", m)
+	//s.LogMessage("processList", "Message:", m) // also logged with the ack
 	s.LogMessage("processList", "Ack:", ack)
 	if p == nil {
 		s.LogPrintf("processList", "Drop no process list to add to")
@@ -1099,8 +1088,12 @@ func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces
 		s.adds <- plRef{int(p.DBHeight), ack.VMIndex, int(ack.Height)}
 	}
 
-	plLogger.WithFields(log.Fields{"func": "AddToProcessList", "node-name": s.GetFactomNodeName(), "plheight": ack.Height, "dbheight": p.DBHeight}).WithFields(m.LogFields()).Info("Add To Process List")
-	s.LogMessage("processList", fmt.Sprintf("Added at %d/%d/%d", ack.DBHeight, ack.VMIndex, ack.Height), m)
+	s.LogMessage("processList", fmt.Sprintf("Added at %d/%d/%d by %s", ack.DBHeight, ack.VMIndex, ack.Height, atomic.WhereAmIString(1)), m)
+	if ack.IsLocal() {
+		for p.Process(s) {
+		}
+	}
+
 }
 
 func (p *ProcessList) ContainsDBSig(serverID interfaces.IHash) bool {

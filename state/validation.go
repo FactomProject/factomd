@@ -33,16 +33,18 @@ func (s *State) DoProcessing() {
 
 		if ValidationDebug {
 			s.LogPrintf("executeMsg", "start validate.process")
-		}
+			}
+
 		for i1 = 0; p1 && i1 < 20; i1++ {
 			p1 = s.Process()
-		}
+				}
+
 		if ValidationDebug {
 			s.LogPrintf("executeMsg", "start validate.updatestate")
-		}
+				}
 		for i2 = 0; p2 && i2 < 20; i2++ {
 			p2 = s.UpdateState()
-		}
+					}
 		if !p1 && !p2 {
 			// No work? Sleep for a bit
 			time.Sleep(10 * time.Millisecond)
@@ -54,9 +56,9 @@ func (s *State) DoProcessing() {
 			if ValidationDebug {
 				s.LogPrintf("executeMsg", "DoProcessing() slept %d times", i3)
 				i3 = 0
-			}
+				}
 
-		}
+			}
 
 	}
 	fmt.Println("Closing the Database on", s.GetFactomNodeName())
@@ -83,16 +85,17 @@ func (s *State) ValidatorLoop() {
 			if !s.RunLeader || !s.DBFinished { // don't generate EOM if we are not a leader or are loading the DBState messages
 				continue
 			}
-			eom := new(messages.EOM)
-			eom.Timestamp = s.GetTimestamp()
-			eom.ChainID = s.GetIdentityChainID()
-			{
-				// best guess info... may be wrong -- just for debug
-				eom.DBHeight = s.LLeaderHeight
-				eom.VMIndex = s.LeaderVMIndex
-				eom.Minute = byte(s.CurrentMinute)
-			}
-			eom.Sign(s)
+		eom := new(messages.EOM)
+		eom.Timestamp = s.GetTimestamp()
+		eom.ChainID = s.GetIdentityChainID()
+		{
+			// best guess info... may be wrong -- just for debug
+			eom.DBHeight = s.LLeaderHeight
+			eom.VMIndex = s.LeaderVMIndex
+			eom.Minute = byte(s.CurrentMinute)
+		}
+
+		eom.Sign(s)
 			eom.SetLocal(true) // local EOMs are really just timeout indicators that we need to generate an EOM
 			msg = eom
 		case msg = <-s.inMsgQueue:
@@ -108,6 +111,5 @@ func (s *State) ValidatorLoop() {
 			s.LogMessage("msgQueue", "enqueue", msg)
 			s.msgQueue <- msg
 		}
-
 	}
 }

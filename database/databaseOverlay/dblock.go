@@ -17,7 +17,7 @@ import (
 	"github.com/FactomProject/factomd/util"
 )
 
-// ProcessDBlockBatche inserts the DBlock and update all it's dbentries in DB
+// ProcessDBlockBatche inserts the DBlock and update all it'S dbentries in DB
 func (db *Overlay) ProcessDBlockBatch(dblock interfaces.DatabaseBlockWithEntries) error {
 	err := db.ProcessBlockBatch(DIRECTORYBLOCK,
 		DIRECTORYBLOCK_NUMBER,

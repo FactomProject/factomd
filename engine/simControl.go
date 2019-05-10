@@ -655,7 +655,7 @@ func SimControl(listenTo int, listenStdin bool) {
 							vf := v.Validate(f.State)
 							if v != nil {
 								repeat := f.State.Replay.IsHashUnique(constants.REVEAL_REPLAY, v.GetHash().Fixed())
-								os.Stderr.WriteString(fmt.Sprintf("%s v %d cnt %d notYet: %v\n", v.String(), vf, v.GetResendCnt(), repeat))
+								os.Stderr.WriteString(fmt.Sprintf("%s v %d cnt %d notYet: %v holdingKey-%x\n", v.String(), vf, v.GetResendCnt(), repeat, k[:6]))
 							} else {
 								os.Stderr.WriteString("<nul>\n")
 							}
@@ -667,7 +667,7 @@ func SimControl(listenTo int, listenStdin bool) {
 							if c != nil {
 								vf := c.Validate(f.State)
 								repeat := f.State.Replay.IsHashUnique(constants.REVEAL_REPLAY, c.GetHash().Fixed())
-								os.Stderr.WriteString(fmt.Sprintf("%s v %d %x cnt %d notYet: %v\n", c.String(), vf, k, c.GetResendCnt(), repeat))
+								os.Stderr.WriteString(fmt.Sprintf("%s v %d %x cnt %d notYet: %v commitKey-%x \n", c.String(), vf, k, c.GetResendCnt(), repeat, k[:6]))
 								cc, ok1 := c.(*messages.CommitChainMsg)
 								cm, ok2 := c.(*messages.CommitEntryMsg)
 								if ok1 && f.State.Holding[cc.CommitChain.EntryHash.Fixed()] != nil {

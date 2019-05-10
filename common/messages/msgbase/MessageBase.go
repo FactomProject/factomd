@@ -13,7 +13,6 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/util/atomic"
 )
 
 type MessageBase struct {
@@ -170,7 +169,7 @@ func (m *MessageBase) SendOut(s interfaces.IState, msg interfaces.IMsg) {
 
 	// debug code start ............
 	if !msg.IsPeer2Peer() && s.DebugExec() && s.CheckFileName(logname) { // if debug is on and this logfile is enabled
-		checkForDuplicateSend(s, msg, atomic.WhereAmIString(1))
+		//		checkForDuplicateSend(s, msg, atomic.WhereAmIString(1)) // turn off duplicate send check for now
 	}
 	// debug code end ............
 	s.LogMessage("NetworkOutputs", "Enqueue", msg)

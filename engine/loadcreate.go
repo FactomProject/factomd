@@ -69,8 +69,6 @@ func (lg *LoadGenerator) Run() {
 		}
 		var chain interfaces.IHash = nil
 
-		sleep := 500 / top
-
 		for i := 0; i < top; i++ {
 			var c interfaces.IMsg
 			e := RandomEntry()
@@ -86,7 +84,7 @@ func (lg *LoadGenerator) Run() {
 			fnodes[wsapiNode].State.APIQueue().Enqueue(c)
 			fnodes[wsapiNode].State.APIQueue().Enqueue(r)
 
-			time.Sleep(time.Duration(sleep))
+			time.Sleep(time.Duration(800/top) * time.Millisecond) // spread the load out over 800ms + overhead
 		}
 	}
 }
