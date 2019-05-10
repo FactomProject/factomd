@@ -1492,6 +1492,28 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 					panic(err.Error())
 				}
 
+			} else {
+				list.State.LogPrintf("dbstateprocess", "Error saving eblock from process list, eblock not allowed")
+			}
+		}
+	}
+
+	if err := list.State.DB.ProcessDBlockMultiBatch(d.DirectoryBlock); err != nil {
+		panic(err.Error())
+	}
+
+	if err := list.State.DB.ExecuteMultiBatch(); err != nil {
+		panic(err.Error())
+	}
+
+	// Info from ProcessList
+	if pl != nil {
+		for _, eb := range pl.NewEBlocks {
+			keymr, err := eb.KeyMR()
+			if err != nil {
+				panic(err)
+			}
+			if _, ok := allowedEBlocks[keymr.Fixed()]; ok {
 				for _, e := range eb.GetBody().GetEBEntries() {
 					pl.State.WriteEntry <- pl.GetNewEntry(e.Fixed())
 				}
@@ -1505,14 +1527,6 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 
 	d.EntryBlocks = make([]interfaces.IEntryBlock, 0)
 	d.Entries = make([]interfaces.IEBEntry, 0)
-
-	if err := list.State.DB.ProcessDBlockMultiBatch(d.DirectoryBlock); err != nil {
-		panic(err.Error())
-	}
-
-	if err := list.State.DB.ExecuteMultiBatch(); err != nil {
-		panic(err.Error())
-	}
 
 	// Not activated.  Set to true if you want extra checking of the data saved to the database.
 	if false {

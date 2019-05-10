@@ -105,6 +105,7 @@ func SimControl(listenTo int, listenStdin bool) {
 
 	if loadGenerator == nil {
 		loadGenerator = NewLoadGenerator(fnodes[0].State)
+		go loadGenerator.KeepUsFunded()
 	}
 
 	for {
@@ -166,8 +167,6 @@ func SimControl(listenTo int, listenStdin bool) {
 						break
 					}
 					if b[1] == 'f' {
-						loadGenerator.GetECs(true, 1000)
-						//FundWallet(fnodes[wsapiNode].State, uint64(200*5e7))
 						break
 					}
 				}
@@ -178,7 +177,6 @@ func SimControl(listenTo int, listenStdin bool) {
 				wsapi.SetState(fnodes[wsapiNode].State)
 
 				if nextAuthority == -1 {
-					loadGenerator.GetECs(true, 1000)
 					//err, _ := FundWallet(fnodes[wsapiNode].State, 2e7)
 					//if err != nil {
 					//	os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
@@ -199,7 +197,6 @@ func SimControl(listenTo int, listenStdin bool) {
 							os.Stderr.WriteString(fmt.Sprint("You can only pop a max of 100 off the stack at a time."))
 							count = 100
 						}
-						loadGenerator.GetECs(true, 1000)
 						//err := fundWallet(fnodes[wsapiNode].State, uint64(count*5e7))
 						//if err != nil {
 						//	os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
@@ -963,7 +960,6 @@ func SimControl(listenTo int, listenStdin bool) {
 					}
 					wsapiNode = ListenTo
 					wsapi.SetState(fnodes[wsapiNode].State)
-					loadGenerator.GetECs(true, 1000)
 
 					//err, _ := FundWallet(fnodes[ListenTo].State, 1e8)
 					//if err != nil {
@@ -1123,7 +1119,7 @@ func SimControl(listenTo int, listenStdin bool) {
 					for _, p := range f.Peers {
 						sim, ok := p.(*SimPeer)
 						if ok {
-							sim.Delay = nnn
+							sim.Delay = nnn // Set the delay in milliseconds
 						}
 					}
 				}
@@ -1188,9 +1184,7 @@ func SimControl(listenTo int, listenStdin bool) {
 				}
 			case 'R' == b[0]:
 				// load generation
-				if loadGenerator == nil && len(fnodes) > ListenTo {
-					loadGenerator = NewLoadGenerator(fnodes[ListenTo].State)
-				} else if loadGenerator == nil {
+				if loadGenerator == nil {
 					os.Stderr.WriteString("Currently no default State we can use for the load generator\n")
 					continue
 				}
@@ -1261,7 +1255,6 @@ func SimControl(listenTo int, listenStdin bool) {
 
 				wsapiNode = ListenTo
 				wsapi.SetState(fnodes[wsapiNode].State)
-				loadGenerator.GetECs(true, 1000)
 				//err = fundWallet(fnodes[ListenTo].State, 1e8)
 				//if err != nil {
 				//	os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
@@ -1291,7 +1284,6 @@ func SimControl(listenTo int, listenStdin bool) {
 
 				wsapiNode = ListenTo
 				wsapi.SetState(fnodes[wsapiNode].State)
-				loadGenerator.GetECs(true, 1000)
 				//err = fundWallet(fnodes[ListenTo].State, 1e8)
 				//if err != nil {
 				//	os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
