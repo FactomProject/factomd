@@ -34,11 +34,9 @@ func (s *State) DoProcessing() {
 		if ValidationDebug {
 			s.LogPrintf("executeMsg", "start validate.process")
 		}
-
 		for i1 = 0; p1 && i1 < 20; i1++ {
 			p1 = s.Process()
 		}
-
 		if ValidationDebug {
 			s.LogPrintf("executeMsg", "start validate.updatestate")
 		}
@@ -75,7 +73,6 @@ func (s *State) ValidatorLoop() {
 	// Look for pending messages, and get one if there is one.
 	for { // this is the message sort
 		var msg interfaces.IMsg
-
 		select {
 		case <-s.ShutdownChan: // Check if we should shut down.
 			s.IsRunning = false
@@ -85,6 +82,7 @@ func (s *State) ValidatorLoop() {
 			if !s.RunLeader || !s.DBFinished { // don't generate EOM if we are not a leader or are loading the DBState messages
 				continue
 			}
+
 			eom := new(messages.EOM)
 			eom.Timestamp = s.GetTimestamp()
 			eom.ChainID = s.GetIdentityChainID()

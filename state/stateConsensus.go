@@ -627,7 +627,7 @@ func (s *State) ReviewHolding() {
 		}
 		validToSend, validToExecute := s.Validate(v)
 
-		if validToSend >= 0 {
+		if validToSend >= 0 { // If valid to send, send away!
 			v.SendOut(s, v)
 		}
 
@@ -720,7 +720,6 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		if s.LLeaderHeight != dbheight {
 			fmt.Fprintf(os.Stderr, "State move between non-sequential heights from %d to %d\n", s.LLeaderHeight, dbheight)
 		}
-
 		//force sync state to a rational  state for between minutes
 		s.Syncing = false    // movestatetoheight
 		s.EOM = false        // movestatetoheight
@@ -735,7 +734,6 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 				vm.Synced = false // movestatetoheight
 			}
 		}
-
 	}
 	// normally when loading by DBStates we jump from minute 0 to minute 0
 	// when following by minute we jump from minute 10 to minute 0
@@ -747,15 +745,9 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 	//s.SetLLeaderHeight(int(dbheight)) // Update leader height in MoveStateToHeight
 
 	if s.LLeaderHeight != dbheight {
-		//if s.DBSigDone == true {
-		//	s.LogPrintf("executeMsg", "reset s.DBSigDone in MoveStateToHeight for block change")
-		//}
-		//
-		//s.DBSigDone = false // movestatetoheight (new block)
 		if newMinute != 0 {
 			panic(fmt.Sprintf("Can't jump to the middle of a block minute: %d", newMinute))
 		}
-		s.DBStates.UpdateState()
 
 		// update cached values that change with current minute
 		s.CurrentMinute = 0                // Update height and minute
@@ -786,7 +778,6 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		s.CheckForIDChange()
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID) // MoveStateToHeight block
 
-		s.LogPrintf("executeMsg", "MoveStateToHeight set leader=%v, vmIndex = %v", s.Leader, s.LeaderVMIndex)
 		// update the elections thread
 		authlistMsg := s.EFactory.NewAuthorityListInternal(s.LeaderPL.FedServers, s.LeaderPL.AuditServers, s.LLeaderHeight)
 		s.ElectionsQueue().Enqueue(authlistMsg)
@@ -794,7 +785,7 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		if s.Leader && !s.LeaderPL.DBSigAlreadySent {
 			s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex) // MoveStateToHeight()
 		}
-		s.DBStates.UpdateState() // go process the DBSigs
+		s.DBStates.UpdateState() // call to get the state signed now that the DBSigs have processed
 
 	} else if s.CurrentMinute != newMinute { // And minute
 		if newMinute == 1 {
@@ -807,8 +798,6 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		}
 		s.CurrentMinute = newMinute                                                            // Update just the minute
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(newMinute, s.IdentityChainID) // MoveStateToHeight minute
-
-		s.LogPrintf("executeMsg", "MoveStateToHeight set leader=%v, vmIndex = %v", s.LeaderExecute, s.LeaderVMIndex)
 		// We are between blocks make sure we are setup to sync
 		// should already be true but if a DBSTATE got processed mid block
 		// there might be a circumstance where we get here in a weird state
@@ -838,17 +827,7 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 	}
 
 	// force sync state to a ration state for between minutes
-	//s.Syncing = false    // movestatetoheight
-	//s.EOM = false        // movestatetoheight
-	//s.EOMDone = false    // movestatetoheight
-	//s.DBSig = false      // movestatetoheight
-	//s.EOMProcessed = 0   // movestatetoheight
-	//s.DBSigProcessed = 0 // movestatetoheight
 	// leave s.DBSigDone alone unless it's a block change
-
-	//for _, vm := range s.LeaderPL.VMs {
-	//	vm.Synced = false // movestatetoheight
-	//}
 
 	// set the limits because we might have added servers
 	s.EOMLimit = len(s.LeaderPL.FedServers) // We add or remove server only on block boundaries
