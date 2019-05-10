@@ -1123,7 +1123,7 @@ func SimControl(listenTo int, listenStdin bool) {
 					for _, p := range f.Peers {
 						sim, ok := p.(*SimPeer)
 						if ok {
-							sim.Delay = nnn
+							sim.Delay = nnn // Set the delay in milliseconds
 						}
 					}
 				}
