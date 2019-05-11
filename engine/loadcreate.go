@@ -8,9 +8,6 @@ import (
 
 	"crypto/sha256"
 
-	"fmt"
-	"os"
-
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
@@ -31,6 +28,7 @@ type LoadGenerator struct {
 	running   atomic.AtomicBool      // We are running
 	tight     atomic.AtomicBool      // Only allocate ECs as needed (more EC purchases)
 	txoffset  int64                  // Offset to be added to the timestamp of created tx to test time limits.
+	state     *state.State           // Access to logging
 }
 
 // NewLoadGenerator makes a new load generator. The state is used for funding the transaction
@@ -38,6 +36,7 @@ func NewLoadGenerator(s *state.State) *LoadGenerator {
 	lg := new(LoadGenerator)
 	lg.ECKey, _ = primitives.NewPrivateKeyFromHex(ecSec)
 	lg.stop = make(chan bool, 5)
+	lg.state = s
 
 	return lg
 }
@@ -46,6 +45,7 @@ func (lg *LoadGenerator) Run() {
 	if lg.running.Load() {
 		return
 	}
+
 	lg.running.Store(true)
 	//FundWallet(fnodes[wsapiNode].State, 15000e8)
 
@@ -84,7 +84,7 @@ func (lg *LoadGenerator) Run() {
 			fnodes[wsapiNode].State.APIQueue().Enqueue(c)
 			fnodes[wsapiNode].State.APIQueue().Enqueue(r)
 
-			time.Sleep(time.Duration(800/top) * time.Millisecond) // spread out the load across 800 milliseconds plus overhead
+			time.Sleep(time.Duration(800/top) * time.Millisecond) // spread the load out over 800ms + overhead
 		}
 	}
 }
@@ -126,40 +126,43 @@ func (lg *LoadGenerator) NewRevealEntry(entry *entryBlock.Entry) *messages.Revea
 var cnt int
 var goingUp bool
 
-func (lg *LoadGenerator) GetECs(tight bool, c int) {
-	s := fnodes[wsapiNode].State
-	outEC, _ := primitives.HexToHash("c23ae8eec2beb181a0da926bd2344e988149fbe839fbc7489f2096e7d6110243")
-	outAdd := factoid.NewAddress(outEC.Bytes())
-	ecBal := s.GetE(true, outAdd.Fixed())
-	ecPrice := s.GetFactoshisPerEC()
+func (lg *LoadGenerator) KeepUsFunded() {
+	time.Sleep(10 * time.Second)
 
-	if c == 0 || !tight {
-		c += 1000
-	} else {
-		c += 10
-	}
+	var level int64
 
-	cnt++
-	if goingUp && ecBal > 500 {
-		if cnt%1000 == 0 {
-			os.Stderr.WriteString(fmt.Sprintf("%d purchases, not buying %d cause the balance is %d \n", cnt, c, ecBal))
+	buys := 0
+	totalBought := 0
+	for i := 0; ; i++ {
+
+		if lg.tight.Load() {
+			level = 10
+		} else {
+			level = 5000
 		}
-		goingUp = false
-		return
-	}
 
-	if !goingUp && ecBal > int64(c) {
-		if cnt%1000 == 0 {
-			os.Stderr.WriteString(fmt.Sprintf("%d purchases, not buying %d cause the balance is %d \n", cnt, c, ecBal))
+		s := fnodes[wsapiNode].State
+		outEC, _ := primitives.HexToHash("c23ae8eec2beb181a0da926bd2344e988149fbe839fbc7489f2096e7d6110243")
+		outAdd := factoid.NewAddress(outEC.Bytes())
+		ecBal := s.GetE(true, outAdd.Fixed())
+		ecPrice := s.GetFactoshisPerEC()
+
+		if ecBal < level {
+			buys++
+			need := level - ecBal + level*2
+			totalBought += int(need)
+			FundWalletTOFF(s, lg.txoffset, uint64(need)*ecPrice)
 		}
-		return
+		if i%5 == 0 {
+			ts := "false"
+			if lg.tight.Load() {
+				ts = "true"
+			}
+			lg.state.LogPrintf("loadgenerator", "Tight %7s Total TX %6d for a total of %8d entry credits balance %d.",
+				ts, buys, totalBought, ecBal)
+		}
+		time.Sleep(100 * time.Millisecond)
 	}
-
-	os.Stderr.WriteString(fmt.Sprintf("%d purchases, buying %d and balance is %d \n", cnt, c, ecBal))
-
-	FundWalletTOFF(s, lg.txoffset, uint64(c)*ecPrice)
-	goingUp = true
-
 }
 
 func (lg *LoadGenerator) NewCommitChain(entry *entryBlock.Entry) *messages.CommitChainMsg {
@@ -171,7 +174,6 @@ func (lg *LoadGenerator) NewCommitChain(entry *entryBlock.Entry) *messages.Commi
 	data, _ := entry.MarshalBinary()
 	commit.Credits, _ = util.EntryCost(data)
 	commit.Credits += 10
-	lg.GetECs(lg.tight.Load(), int(commit.Credits))
 
 	commit.EntryHash = entry.GetHash()
 	var b6 primitives.ByteSlice6
@@ -200,7 +202,6 @@ func (lg *LoadGenerator) NewCommitEntry(entry *entryBlock.Entry) *messages.Commi
 	data, _ := entry.MarshalBinary()
 
 	commit.Credits, _ = util.EntryCost(data)
-	lg.GetECs(lg.tight.Load(), int(commit.Credits))
 
 	commit.EntryHash = entry.GetHash()
 	var b6 primitives.ByteSlice6

@@ -929,7 +929,7 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 }
 
 func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces.IMsg) {
-	s.LogMessage("processList", "Message:", m)
+	//s.LogMessage("processList", "Message:", m) // also logged with the ack
 	s.LogMessage("processList", "Ack:", ack)
 	if p == nil {
 		s.LogPrintf("processList", "Drop no process list to add to")
@@ -1088,8 +1088,12 @@ func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces
 		s.adds <- plRef{int(p.DBHeight), ack.VMIndex, int(ack.Height)}
 	}
 
-	plLogger.WithFields(log.Fields{"func": "AddToProcessList", "node-name": s.GetFactomNodeName(), "plheight": ack.Height, "dbheight": p.DBHeight}).WithFields(m.LogFields()).Info("Add To Process List")
-	s.LogMessage("processList", fmt.Sprintf("Added at %d/%d/%d", ack.DBHeight, ack.VMIndex, ack.Height), m)
+	s.LogMessage("processList", fmt.Sprintf("Added at %d/%d/%d by %s", ack.DBHeight, ack.VMIndex, ack.Height, atomic.WhereAmIString(1)), m)
+	if ack.IsLocal() {
+		for p.Process(s) {
+		}
+	}
+
 }
 
 func (p *ProcessList) ContainsDBSig(serverID interfaces.IHash) bool {
