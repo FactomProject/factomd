@@ -22,6 +22,7 @@ type MessageBase struct {
 	NetworkOrigin string // Hash of the network peer/connection where the message is from
 	Peer2Peer     bool   // The nature of this message type, not marshalled with the message
 	LocalOnly     bool   // This message is only a local message, is not broadcast and may skip verification
+	Network       bool   // If we got this message from the network, it is true.  Not marsheled.
 	FullBroadcast bool   // This is used for messages with no missing message support e.g. election related messages
 
 	NoResend  bool // Don't resend this message if true.
@@ -152,16 +153,14 @@ func (m *MessageBase) SendOut(s interfaces.IState, msg interfaces.IMsg) {
 	if msg.IsLocal() {
 		return
 	}
-	if m.ResendCnt > 4 { // If the first send fails, we need to try again
-		// TODO: Maybe have it not resend unless x time passed?
+	if m.ResendCnt > 10 { // If the first send fails, we need to try again
 		return
 	}
 
-	m1, m2 := fmt.Sprintf("%p", m), fmt.Sprintf("%p", msg)
-
-	if m1 != m2 {
-		panic("mismatch")
+	if msg.Validate(s) != 1 {
+		return
 	}
+
 	now := s.GetTimestamp()
 	m.ResendCnt++
 	m.resend = now.GetTimeMilli()
@@ -277,6 +276,14 @@ func (m *MessageBase) IsLocal() bool {
 
 func (m *MessageBase) SetLocal(v bool) {
 	m.LocalOnly = v
+}
+
+func (m *MessageBase) IsNetwork() bool {
+	return m.Network
+}
+
+func (m *MessageBase) SetNetwork(v bool) {
+	m.Network = v
 }
 
 func (m *MessageBase) IsFullBroadcast() bool {

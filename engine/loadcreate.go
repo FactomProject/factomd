@@ -80,10 +80,19 @@ func (lg *LoadGenerator) Run() {
 				c = lg.NewCommitEntry(e)
 			}
 			r := lg.NewRevealEntry(e)
+			s := fnodes[wsapiNode].State
+			go func() {
+				for i := 0; i < 1; i++ {
+					s.APIQueue().Enqueue(c)
+				}
+			}()
 
-			fnodes[wsapiNode].State.APIQueue().Enqueue(c)
-			fnodes[wsapiNode].State.APIQueue().Enqueue(r)
-
+			go func() {
+				for i := 0; i < 1; i++ {
+					time.Sleep(1 * time.Second)
+					s.APIQueue().Enqueue(r)
+				}
+			}()
 			time.Sleep(time.Duration(800/top) * time.Millisecond) // spread the load out over 800ms + overhead
 		}
 	}
