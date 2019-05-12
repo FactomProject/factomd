@@ -136,7 +136,8 @@ var cnt int
 var goingUp bool
 
 func (lg *LoadGenerator) KeepUsFunded() {
-	time.Sleep(10 * time.Second)
+
+	s := fnodes[wsapiNode].State
 
 	var level int64
 
@@ -144,13 +145,31 @@ func (lg *LoadGenerator) KeepUsFunded() {
 	totalBought := 0
 	for i := 0; ; i++ {
 
+		ts := "false"
+		if lg.tight.Load() {
+			ts = "true"
+		}
+
+		if lg.PerSecond == 0 {
+			if i%100 == 0 {
+            // Log our occasional realization that we have nothing to do.
+				outEC, _ := primitives.HexToHash("c23ae8eec2beb181a0da926bd2344e988149fbe839fbc7489f2096e7d6110243")
+				outAdd := factoid.NewAddress(outEC.Bytes())
+				ecBal := s.GetE(true, outAdd.Fixed())
+
+				lg.state.LogPrintf("loadgenerator", "Tight %7s Total TX %6d for a total of %8d entry credits balance %d.",
+					ts, buys, totalBought, ecBal)
+			}
+			time.Sleep(5 * time.Second)
+			continue
+		}
+
 		if lg.tight.Load() {
 			level = 10
 		} else {
-			level = 5000
+			level = 10000
 		}
 
-		s := fnodes[wsapiNode].State
 		outEC, _ := primitives.HexToHash("c23ae8eec2beb181a0da926bd2344e988149fbe839fbc7489f2096e7d6110243")
 		outAdd := factoid.NewAddress(outEC.Bytes())
 		ecBal := s.GetE(true, outAdd.Fixed())
@@ -163,10 +182,6 @@ func (lg *LoadGenerator) KeepUsFunded() {
 			FundWalletTOFF(s, lg.txoffset, uint64(need)*ecPrice)
 		}
 		if i%5 == 0 {
-			ts := "false"
-			if lg.tight.Load() {
-				ts = "true"
-			}
 			lg.state.LogPrintf("loadgenerator", "Tight %7s Total TX %6d for a total of %8d entry credits balance %d.",
 				ts, buys, totalBought, ecBal)
 		}

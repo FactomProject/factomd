@@ -625,22 +625,6 @@ func (s *State) ReviewHolding() {
 				s.HighestKnown = dbsigmsg.DBHeight
 			}
 		}
-		validToSend, validToExecute := s.Validate(v)
-
-		if validToSend >= 0 {
-			v.SendOut(s, v)
-		}
-
-		switch validToExecute {
-		case -1:
-			s.LogMessage("executeMsg", "invalid from holding", v)
-			TotalHoldingQueueOutputs.Inc()
-			//delete(s.Holding, k)
-			s.DeleteFromHolding(k, v, "invalid from holding")
-			continue
-		case 0:
-			continue
-		}
 
 		dbsmsg, ok := v.(*messages.DBStateMsg)
 		if ok && dbsmsg.DirectoryBlock.GetHeader().GetDBHeight() <= saved && saved > 0 {
@@ -649,17 +633,6 @@ func (s *State) ReviewHolding() {
 			//delete(s.Holding, k)
 			s.DeleteFromHolding(k, v, "old DBState")
 			continue
-		}
-
-		// if it is a Factoid or entry credit transaction then check BLOCK_REPLAY
-		switch v.Type() {
-		case constants.FACTOID_TRANSACTION_MSG, constants.COMMIT_CHAIN_MSG, constants.COMMIT_ENTRY_MSG:
-			ok2 := s.FReplay.IsHashUnique(constants.BLOCK_REPLAY, v.GetRepeatHash().Fixed())
-			if !ok2 {
-				s.DeleteFromHolding(k, v, "BLOCK_REPLAY")
-				continue
-			}
-		default:
 		}
 
 		// If it is an entryCommit/ChainCommit/RevealEntry and it has a duplicate hash to an existing entry throw it away here
@@ -685,6 +658,34 @@ func (s *State) ReviewHolding() {
 				s.DeleteFromHolding(k, v, "already committed")
 				continue
 			}
+		}
+
+		validToSend, validToExecute := s.Validate(v)
+
+		if validToSend > 0 {
+			v.SendOut(s, v)
+		}
+
+		switch validToExecute {
+		case -1:
+			s.LogMessage("executeMsg", "invalid from holding", v)
+			TotalHoldingQueueOutputs.Inc()
+			//delete(s.Holding, k)
+			s.DeleteFromHolding(k, v, "invalid from holding")
+			continue
+		case 0:
+			continue
+		}
+
+		// if it is a Factoid or entry credit transaction then check BLOCK_REPLAY
+		switch v.Type() {
+		case constants.FACTOID_TRANSACTION_MSG, constants.COMMIT_CHAIN_MSG, constants.COMMIT_ENTRY_MSG:
+			ok2 := s.FReplay.IsHashUnique(constants.BLOCK_REPLAY, v.GetRepeatHash().Fixed())
+			if !ok2 {
+				s.DeleteFromHolding(k, v, "BLOCK_REPLAY")
+				continue
+			}
+		default:
 		}
 
 		// If a Reveal Entry has a commit available, then process the Reveal Entry and send it out.

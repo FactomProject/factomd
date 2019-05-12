@@ -209,7 +209,6 @@ func Peers(fnode *FactomNode) {
 				}
 				if err != nil {
 					fnode.State.LogPrintf("NetworkInputs", "error on receive from %v: %v", peer.GetNameFrom(), err)
-					fmt.Println("ERROR receiving message on", fnode.State.FactomNodeName+":", err)
 					// TODO: Maybe we should check the error type and/or count errors and change status to offline?
 					break // move to next peer
 				}
