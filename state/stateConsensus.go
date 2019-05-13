@@ -615,7 +615,7 @@ func (s *State) ReviewHolding() {
 
 		dbsigmsg, ok := v.(*messages.DirectoryBlockSignature)
 		if ok {
-			if (dbsigmsg.DBHeight < s.LLeaderHeight+1 && saved > 0) || s.CurrentMinute > 0 {
+			if dbsigmsg.DBHeight < s.LLeaderHeight || (s.CurrentMinute > 0 && dbsigmsg.DBHeight == s.LLeaderHeight) {
 				TotalHoldingQueueOutputs.Inc()
 				//delete(s.Holding, k)
 				s.DeleteFromHolding(k, v, "Old DBSig")

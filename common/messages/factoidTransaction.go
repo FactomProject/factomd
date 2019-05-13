@@ -133,6 +133,17 @@ func (m *FactoidTransaction) Validate(state interfaces.IState) int {
 	if err != nil {
 		return 0 // Well, mumble.  Might be out of order.
 	}
+
+	// First check all inputs are good.
+	for _, input := range m.Transaction.GetInputs() {
+		adr := input.GetAddress().Fixed()
+		oldv := state.GetFactoidState().GetFactoidBalance(adr)
+		v := oldv - int64(input.GetAmount())
+		if v < 0 {
+			return 0
+		}
+	}
+
 	return 1
 }
 
