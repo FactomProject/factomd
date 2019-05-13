@@ -13,6 +13,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/elections"
@@ -32,13 +34,21 @@ var quit = make(chan struct{})
 
 var ExpectedHeight, Leaders, Audits, Followers int
 var startTime, endTime time.Time
-var RanSimTest = false // only run 1 sim test at a time
+var RanSimTest = false // only run 1 simtest during a group unit test run since they run in parallel
+// NOTE: going forward breaking out a test into a file under ./simTest allows it to run on CI.
 
 //EX. state0 := SetupSim("LLLLLLLLLLLLLLLAAAAAAAAAA",  map[string]string {"--controlpanelsetting" : "readwrite"}, t)
 func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int, electionsCnt int, RoundsCnt int, t *testing.T) *state.State {
 	fmt.Println("SetupSim(", GivenNodes, ",", UserAddedOptions, ",", height, ",", electionsCnt, ",", RoundsCnt, ")")
 	ExpectedHeight = height
 	l := len(GivenNodes)
+
+	dirBase, _ := os.Getwd()
+	dirBase = dirBase + "/.sim/"
+	os.Mkdir(dirBase, 0600)
+	factomHome := dirBase + GetTestName()
+	os.Setenv("FACTOM_HOME", factomHome)
+
 	CmdLineOptions := map[string]string{
 		"--db":                  "Map",
 		"--network":             "LOCAL",
@@ -56,6 +66,7 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 		"--port":                "37001",
 		"--controlpanelport":    "37002",
 		"--networkport":         "37003",
+		"--factomhome":          factomHome,
 	}
 
 	// loop thru the test specific options and overwrite or append to the DefaultOptions
@@ -244,24 +255,22 @@ func StatusEveryMinute(s *state.State) {
 		go func() {
 			for {
 				s := statusState
-				if s != nil {
-					newMinute := (s.CurrentMinute + 1) % 10
-					timeout := 8 // timeout if a minutes takes twice as long as expected
-					for s.CurrentMinute != newMinute && timeout > 0 {
-						sleepTime := time.Duration(globals.Params.BlkTime) * 1000 / 40 // Figure out how long to sleep in milliseconds
-						time.Sleep(sleepTime * time.Millisecond)                       // wake up and about 4 times per minute
-						timeout--
-					}
-					if timeout <= 0 {
-						fmt.Println("Stalled !!!")
-					}
-					// Make all the nodes update their status
-					for _, n := range engine.GetFnodes() {
-						n.State.SetString()
-					}
-
-					engine.PrintOneStatus(0, 0)
+				newMinute := (s.CurrentMinute + 1) % 10
+				timeout := 8 // timeout if a minutes takes twice as long as expected
+				for s.CurrentMinute != newMinute && timeout > 0 {
+					sleepTime := time.Duration(globals.Params.BlkTime) * 1000 / 40 // Figure out how long to sleep in milliseconds
+					time.Sleep(sleepTime * time.Millisecond)                       // wake up and about 4 times per minute
+					timeout--
 				}
+				if timeout <= 0 {
+					fmt.Println("Stalled !!!")
+				}
+				// Make all the nodes update their status
+				for _, n := range engine.GetFnodes() {
+					n.State.SetString()
+				}
+
+				engine.PrintOneStatus(0, 0)
 			}
 		}()
 	} else {
@@ -385,6 +394,31 @@ func AdjustAuthoritySet(adjustingNodes string) {
 	Followers = Followers - follow
 }
 
+func isAuditor(fnode int) bool {
+	nodes := engine.GetFnodes()
+	list := nodes[0].State.ProcessLists.Get(nodes[0].State.LLeaderHeight)
+	foundAudit, _ := list.GetAuditServerIndexHash(nodes[fnode].State.GetIdentityChainID())
+	return foundAudit
+}
+
+func isFollower(fnode int) bool {
+	return !(isAuditor(fnode) || engine.GetFnodes()[fnode].State.Leader)
+}
+
+func AssertAuthoritySet(t *testing.T, givenNodes string) {
+	nodes := engine.GetFnodes()
+	for i, c := range []byte(givenNodes) {
+		switch c {
+		case 'L':
+			assert.True(t, nodes[i].State.Leader, "Expected node %v to be a leader", i)
+		case 'A':
+			assert.True(t, isAuditor(i), "Expected node %v to be an auditor", i)
+		default:
+			assert.True(t, isFollower(i), "Expected node %v to be a follower", i)
+		}
+	}
+}
+
 func CheckAuthoritySet(t *testing.T) {
 
 	leadercnt, auditcnt, followercnt := CountAuthoritySet()
@@ -425,7 +459,6 @@ func Halt(t *testing.T) {
 func ShutDownEverything(t *testing.T) {
 	CheckAuthoritySet(t)
 	Halt(t)
-	statusState = nil // turn off status
 	fnodes := engine.GetFnodes()
 	currentHeight := fnodes[0].State.LLeaderHeight
 	// Sleep one block
@@ -466,17 +499,24 @@ func v2Request(req *primitives.JSON2Request, port int) (*primitives.JSON2Respons
 	return nil, nil
 }
 
-func ResetFactomHome(t *testing.T, subDir string) {
+func ResetFactomHome(t *testing.T) (string, error) {
 	dir, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	globals.Params.FactomHome = dir + "/.sim/" + subDir
-	os.Setenv("FACTOM_HOME", globals.Params.FactomHome)
+	homeDir := dir + "/.sim/" + GetTestName()
 
-	t.Logf("Removing old run in %s", globals.Params.FactomHome)
-	if err := os.RemoveAll(globals.Params.FactomHome); err != nil {
-		t.Fatal(err)
-	}
+	t.Logf("Removing old test run in %s", homeDir)
+	os.MkdirAll(homeDir, 0755)
+	os.RemoveAll(homeDir)
+
+	os.Setenv("FACTOM_HOME", homeDir)
+	os.MkdirAll(homeDir+"/.factom/m2", 0755)
+	return string(homeDir), nil
+}
+
+func AddFNode() {
+	engine.AddNode()
+	Followers++
 }
