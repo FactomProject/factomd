@@ -153,11 +153,6 @@ func (m *MessageBase) SendOut(s interfaces.IState, msg interfaces.IMsg) {
 	if msg.IsLocal() {
 		return
 	}
-   // If a message doesn't validate, then we don't send it, but we will send it if it suddenly becomes valid!
-	if msg.Validate(s) != 1 {
-		m.resend = 0
-		return
-	}
 
 	// Dont resend until its time.  If resend==0 send immediately (this is the first time), or if it has been long enough.
 	now := s.GetTimestamp()
@@ -165,23 +160,22 @@ func (m *MessageBase) SendOut(s interfaces.IState, msg interfaces.IMsg) {
 		return
 	}
 
-   // We only send at a slow rate, but keep doing it because in slow networks, we are pushing the message to the leader
-	if m.ResendCnt > 300 { // If the first send fails, we need to try again.  Give up eventually.
+	// We only send at a slow rate, but keep doing it because in slow networks, we are pushing the message to the leader
+	if m.ResendCnt > 3 { // If the first send fails, we need to try again.  Give up eventually.
 		return
 	}
 
 	m.ResendCnt++
 	sends++
 
-   // Send once every so often.
-	m.resend = now.GetTimeMilli() + 1*1000 
+	// Send once every so often.
+	m.resend = now.GetTimeMilli() + 1*1000
 
 	// debug code start ............
 	if !msg.IsPeer2Peer() && s.DebugExec() && s.CheckFileName(logname) { // if debug is on and this logfile is enabled
 		//		checkForDuplicateSend(s, msg, atomic.WhereAmIString(1)) // turn off duplicate send check for now
 	}
 	// debug code end ............
-
 	s.LogMessage("NetworkOutputs", "Enqueue", msg)
 	s.NetworkOutMsgQueue().Enqueue(msg)
 	// Add this to the network replay filter so we don't bother processing any echos

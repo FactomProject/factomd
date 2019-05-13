@@ -152,7 +152,7 @@ func (lg *LoadGenerator) KeepUsFunded() {
 
 		if lg.PerSecond == 0 {
 			if i%100 == 0 {
-            // Log our occasional realization that we have nothing to do.
+				// Log our occasional realization that we have nothing to do.
 				outEC, _ := primitives.HexToHash("c23ae8eec2beb181a0da926bd2344e988149fbe839fbc7489f2096e7d6110243")
 				outAdd := factoid.NewAddress(outEC.Bytes())
 				ecBal := s.GetE(true, outAdd.Fixed())

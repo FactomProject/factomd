@@ -231,11 +231,6 @@ func Peers(fnode *FactomNode) {
 
 				cnt++
 
-				// Don't accept network messages I can't execute, but let's take them latter if we can.
-				if msg.Validate(fnode.State) != 1 {
-					continue
-				}
-
 				if fnode.State.MessageTally {
 					fnode.State.TallyReceived(int(msg.Type())) //TODO: Do we want to count dropped message?
 				}

@@ -705,6 +705,9 @@ func (s *State) ReviewHolding() {
 		TotalXReviewQueueInputs.Inc()
 		s.XReview = append(s.XReview, v)
 		TotalHoldingQueueOutputs.Inc()
+		if len(s.XReview) > 200 {
+			break
+		}
 	}
 	reviewHoldingTime := time.Since(preReviewHoldingTime)
 	TotalReviewHoldingTime.Add(float64(reviewHoldingTime.Nanoseconds()))
