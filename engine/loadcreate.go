@@ -134,6 +134,7 @@ func (lg *LoadGenerator) NewRevealEntry(entry *entryBlock.Entry) *messages.Revea
 
 var cnt int
 var goingUp bool
+var limitBuys = true // We limit buys only after one attempted purchase, so people can fund identities in testing
 
 func (lg *LoadGenerator) KeepUsFunded() {
 
@@ -150,7 +151,7 @@ func (lg *LoadGenerator) KeepUsFunded() {
 			ts = "true"
 		}
 
-		if lg.PerSecond == 0 {
+		if lg.PerSecond == 0 && limitBuys {
 			if i%100 == 0 {
 				// Log our occasional realization that we have nothing to do.
 				outEC, _ := primitives.HexToHash("c23ae8eec2beb181a0da926bd2344e988149fbe839fbc7489f2096e7d6110243")
@@ -164,7 +165,9 @@ func (lg *LoadGenerator) KeepUsFunded() {
 			continue
 		}
 
-		if lg.tight.Load() {
+		if !limitBuys {
+			level = 200 // Only do this once, after that look for requests for load to drive EC buys.
+		} else if lg.tight.Load() {
 			level = 10
 		} else {
 			level = 10000
@@ -180,7 +183,10 @@ func (lg *LoadGenerator) KeepUsFunded() {
 			need := level - ecBal + level*2
 			totalBought += int(need)
 			FundWalletTOFF(s, lg.txoffset, uint64(need)*ecPrice)
+		} else {
+			limitBuys = true
 		}
+
 		if i%5 == 0 {
 			lg.state.LogPrintf("loadgenerator", "Tight %7s Total TX %6d for a total of %8d entry credits balance %d.",
 				ts, buys, totalBought, ecBal)

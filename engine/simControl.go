@@ -161,6 +161,7 @@ func SimControl(listenTo int, listenStdin bool) {
 				os.Stderr.WriteString(fmt.Sprintf("Recording delays due to blocked go routines longer than %d ns (%d ms)\n", delay, delay/1000000))
 
 			case 'g' == b[0]:
+				limitBuys = false
 				if len(b) > 1 {
 					if b[1] == 'c' {
 						copyOver(fnodes[ListenTo].State)
