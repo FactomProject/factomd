@@ -31,3 +31,4 @@ Paul Snow                                  PaulSnow                             
 Brian Deery                                carryforward                                 Factom Inc.
 Samuel Vanderwaal                          samuelvanderwaal                             Canonical Ledgers
 Niels Klomp                                nklomp                                       Centis BV, Sphereon BV, BIF
+Tor Hogne Paulsen                          Tor Hogne                                    The 42nd Factoid AS, TFA                     Factom Protocol Guide
