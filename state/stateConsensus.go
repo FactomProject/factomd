@@ -969,10 +969,13 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 	}
 }
 
-func (s *State) repost(m interfaces.IMsg) {
+// exeute a msg with an optional delay (in factom seconds)
+func (s *State) repost(m interfaces.IMsg, delay int) {
 	//whereAmI := atomic.WhereAmIString(1)
 	go func() { // This is a trigger to issue the EOM, but we are still syncing.  Wait to retry.
-		time.Sleep(time.Duration(s.DirectoryBlockInSeconds) * time.Second / 600) // Once a second for 10 min block
+		if delay > 0 {
+			time.Sleep((time.Duration(s.DirectoryBlockInSeconds*delay/600) * time.Second)) // delay in Factom seconds
+		}
 		//s.LogMessage("MsgQueue", fmt.Sprintf("enqueue_%s(%d)", whereAmI, len(s.msgQueue)), m)
 		s.LogMessage("MsgQueue", fmt.Sprintf("enqueue (%d)", len(s.msgQueue)), m)
 		s.msgQueue <- m // Goes in the "do this really fast" queue so we are prompt about EOM's while syncing
@@ -988,7 +991,7 @@ func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
 	if m.IsLocal() && !s.Leader {
 		return // This is an internal EOM message.  We are not a leader so ignore.
 	} else if m.IsLocal() {
-		s.repost(m) // Goes in the "do this really fast" queue so we are prompt about EOM's while syncing
+		s.repost(m, 1) // Goes in the "do this really fast" queue so we are prompt about EOM's while syncing
 		return
 	}
 
@@ -1496,7 +1499,7 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 func (s *State) LeaderExecute(m interfaces.IMsg) {
 	vm := s.LeaderPL.VMs[s.LeaderVMIndex]
 	if len(vm.List) != vm.Height {
-		s.repost(m) // Goes in the "do this really fast" queue so we are prompt about EOM's while syncing
+		s.repost(m, 1) // Goes in the "do this really fast" queue so we are prompt about EOM's while syncing
 		return
 	}
 
@@ -1547,7 +1550,7 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	// generating minutes in order.
 
 	if len(vm.List) != vm.Height {
-		s.repost(m)
+		s.repost(m, 1)
 		return
 	}
 
@@ -1637,7 +1640,7 @@ func (s *State) LeaderExecuteCommitChain(m interfaces.IMsg) {
 
 	vm := s.LeaderPL.VMs[s.LeaderVMIndex]
 	if len(vm.List) != vm.Height {
-		s.repost(m)
+		s.repost(m, 1)
 		return
 	}
 
@@ -1658,7 +1661,7 @@ func (s *State) LeaderExecuteCommitChain(m interfaces.IMsg) {
 func (s *State) LeaderExecuteCommitEntry(m interfaces.IMsg) {
 	vm := s.LeaderPL.VMs[s.LeaderVMIndex]
 	if len(vm.List) != vm.Height {
-		s.repost(m)
+		s.repost(m, 1)
 		return
 	}
 
@@ -1682,7 +1685,7 @@ func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 
 	vm := s.LeaderPL.VMs[s.LeaderVMIndex]
 	if len(vm.List) != vm.Height {
-		s.repost(m)
+		s.repost(m, 1)
 		return
 	}
 
@@ -1774,7 +1777,7 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 
 		entry := s.Holding[h.Fixed()]
 		if entry != nil {
-			entry.FollowerExecute(s)
+			s.repost(entry, 0) // Try and execute the reveal for this commit
 		}
 		return true
 	}
@@ -1795,8 +1798,8 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 		pl.EntryCreditBlock.GetBody().AddEntry(c.CommitEntry)
 
 		entry := s.Holding[h.Fixed()]
-		if entry != nil && entry.Validate(s) == 1 {
-			entry.FollowerExecute(s)
+		if entry != nil {
+			s.repost(entry, 0) // Try and execute the reveal for this commit
 		}
 		return true
 	}
