@@ -22,6 +22,7 @@ type MessageBase struct {
 	NetworkOrigin string // Hash of the network peer/connection where the message is from
 	Peer2Peer     bool   // The nature of this message type, not marshalled with the message
 	LocalOnly     bool   // This message is only a local message, is not broadcast and may skip verification
+	Network       bool   // If we got this message from the network, it is true.  Not marsheled.
 	FullBroadcast bool   // This is used for messages with no missing message support e.g. election related messages
 
 	NoResend  bool // Don't resend this message if true.
@@ -152,20 +153,23 @@ func (m *MessageBase) SendOut(s interfaces.IState, msg interfaces.IMsg) {
 	if msg.IsLocal() {
 		return
 	}
-	if m.ResendCnt > 4 { // If the first send fails, we need to try again
-		// TODO: Maybe have it not resend unless x time passed?
+
+	// Dont resend until its time.  If resend==0 send immediately (this is the first time), or if it has been long enough.
+	now := s.GetTimestamp()
+	if m.resend != 0 && m.resend > now.GetTimeMilli() {
 		return
 	}
 
-	m1, m2 := fmt.Sprintf("%p", m), fmt.Sprintf("%p", msg)
-
-	if m1 != m2 {
-		panic("mismatch")
+	// We only send at a slow rate, but keep doing it because in slow networks, we are pushing the message to the leader
+	if m.ResendCnt > 3 { // If the first send fails, we need to try again.  Give up eventually.
+		return
 	}
-	now := s.GetTimestamp()
+
 	m.ResendCnt++
-	m.resend = now.GetTimeMilli()
 	sends++
+
+	// Send once every so often.
+	m.resend = now.GetTimeMilli() + 1*1000
 
 	// debug code start ............
 	if !msg.IsPeer2Peer() && s.DebugExec() && s.CheckFileName(logname) { // if debug is on and this logfile is enabled
@@ -277,6 +281,14 @@ func (m *MessageBase) IsLocal() bool {
 
 func (m *MessageBase) SetLocal(v bool) {
 	m.LocalOnly = v
+}
+
+func (m *MessageBase) IsNetwork() bool {
+	return m.Network
+}
+
+func (m *MessageBase) SetNetwork(v bool) {
+	m.Network = v
 }
 
 func (m *MessageBase) IsFullBroadcast() bool {

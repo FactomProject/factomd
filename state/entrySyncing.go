@@ -253,14 +253,21 @@ func (s *State) GoSyncEntries() {
 
 	for {
 
-		highestSaved := s.GetHighestSavedBlk()
+		// Okay, we can scan what is on disk, but we can't update the state properly (maintain the commit map) if
+		// we get ahead of what has been processed while loading from disk.  So don't go past what has been
+		// processed, even if a directory block has been saved.
+		entryScanLimit := s.GetHighestSavedBlk()
+		p := s.DBStates.ProcessHeight
+		if entryScanLimit > p {
+			entryScanLimit = p
+		}
 
 		// Sleep often if we are caught up (to the best of our knowledge)
-		if highestSaved == highestChecked {
+		if entryScanLimit == highestChecked {
 			time.Sleep(time.Second)
 		}
 
-		for scan := highestChecked + 1; scan <= highestSaved; scan++ {
+		for scan := highestChecked + 1; scan <= entryScanLimit; scan++ {
 
 			db := s.GetDirectoryBlockByHeight(scan)
 
@@ -342,6 +349,6 @@ func (s *State) GoSyncEntries() {
 			s.EntryDBHeightProcessing = scan + 1
 		}
 
-		highestChecked = highestSaved
+		highestChecked = entryScanLimit
 	}
 }

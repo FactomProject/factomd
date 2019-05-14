@@ -25,6 +25,10 @@ type IMsg interface {
 	IsLocal() bool
 	SetLocal(bool)
 
+	// A local message is never broadcast to the greater network.
+	IsNetwork() bool
+	SetNetwork(bool)
+
 	// FullBroadcast means send to every node
 	IsFullBroadcast() bool
 	SetFullBroadcast(bool)
