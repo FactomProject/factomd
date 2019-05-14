@@ -1523,13 +1523,19 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 		return
 	}
 
+	// If we have not been working for at least half the period (half the minute) then ignore the ticker
+	// The following test is simply checking if we have used half our time (in nanoseconds) to process.
+	if s.EOMSyncTime != 0 && (time.Now().UnixNano()-s.EOMSyncTime) < int64(s.DirectoryBlockInSeconds)*time.Second.Nanoseconds()/10/2 {
+		return
+	}
+
 	pl := s.ProcessLists.Get(s.LLeaderHeight)
 	vm := pl.VMs[s.LeaderVMIndex]
 
 	// If we have already issued an EOM for the minute being sync'd
 	// then this should be the next EOM but we can't do that just yet.
 	if vm.EomMinuteIssued == s.CurrentMinute+1 {
-		s.repost(m)
+		//s.repost(m)
 		return
 	}
 
@@ -2177,6 +2183,8 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		//	e.VMIndex, allfaults, s.EOMProcessed, s.EOMLimit, s.EOMDone))
 
 		s.EOMDone = true // ProcessEOM
+		s.EOMSyncTime = time.Now().UnixNano()
+
 		s.LeaderNewMin = 0
 		for _, eb := range pl.NewEBlocks {
 			eb.AddEndOfMinuteMarker(byte(e.Minute + 1))
