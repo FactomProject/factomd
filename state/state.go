@@ -227,8 +227,8 @@ type State struct {
 	CurrentMinuteStartTime  int64
 	CurrentBlockStartTime   int64
 
-	EOMsyncing bool
-
+	EOMsyncing   bool
+	EOMSyncTime  int64
 	EOM          bool // Set to true when the first EOM is encountered
 	EOMLimit     int
 	EOMProcessed int
