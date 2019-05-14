@@ -356,3 +356,7 @@ func SignSignable(s interfaces.Signable, key interfaces.Signer) (interfaces.IFul
 	sig := key.Sign(toSign)
 	return sig, nil
 }
+
+func (m *MessageBase) InvalidateSignatures() {
+	m.Sigvalid = false
+}

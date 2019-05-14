@@ -811,6 +811,8 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 			thisAck := vm.ListAck[j]
 			thisMsg := vm.List[j]
 
+			//todo: Need to re-validate the signatures of the message and ACK at this point to make sure they are current federated servers
+
 			var expectedSerialHash interfaces.IHash
 			var err error
 
@@ -837,7 +839,10 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 				// compare the SerialHash of this acknowledgement with the
 				// expected serialHash (generated above)
 				if !expectedSerialHash.IsSameAs(thisAck.SerialHash) {
-					s.LogMessage("process", "Reset", vm.List[j])
+					s.LogMessage("process", "SerialHash Mismatch", thisMsg)
+					s.LogMessage("process", "This ACK", thisAck)
+					s.LogMessage("process", "Prev ACK", last)
+
 					s.LogPrintf("process", "expected %x", expectedSerialHash.Bytes())
 					s.LogPrintf("process", "thisAck  %x", thisAck.SerialHash.Bytes())
 					s.Reset() // This currently does nothing.. see comments in reset

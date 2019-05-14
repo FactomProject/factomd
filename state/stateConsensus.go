@@ -190,7 +190,6 @@ func (s *State) Validate(msg interfaces.IMsg) (validToSend int, validToExec int)
 		}
 	}
 
-	s.LogMessage("executeMsg", fmt.Sprintf("validation s.vm=%d,m.vm=%d", s.LeaderVMIndex, vmIndex), msg)
 	return 1, 1
 }
 
@@ -808,7 +807,7 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		s.CurrentMinute = newMinute                                                            // Update just the minute
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(newMinute, s.IdentityChainID) // MoveStateToHeight minute
 
-		s.LogPrintf("executeMsg", "MoveStateToHeight set leader=%v, vmIndex = %v", s.LeaderExecute, s.LeaderVMIndex)
+		s.LogPrintf("executeMsg", "MoveStateToHeight new minute set leader=%v, vmIndex = %v", s.Leader, s.LeaderVMIndex)
 		// We are between blocks make sure we are setup to sync
 		// should already be true but if a DBSTATE got processed mid block
 		// there might be a circumstance where we get here in a weird state
@@ -1761,15 +1760,12 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 		// save the Commit to match against the Reveal later
 		h := c.GetHash()
 		s.PutCommit(h, c)
+		pl.EntryCreditBlock.GetBody().AddEntry(c.CommitChain)
+
 		entry := s.Holding[h.Fixed()]
 		if entry != nil {
 			entry.FollowerExecute(s)
-			entry.SendOut(s, entry)
-			TotalXReviewQueueInputs.Inc()
-			s.XReview = append(s.XReview, entry)
-			TotalHoldingQueueOutputs.Inc()
 		}
-		pl.EntryCreditBlock.GetBody().AddEntry(c.CommitChain)
 		return true
 	}
 
@@ -1786,15 +1782,12 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 		// save the Commit to match against the Reveal later
 		h := c.GetHash()
 		s.PutCommit(h, c)
+		pl.EntryCreditBlock.GetBody().AddEntry(c.CommitEntry)
+
 		entry := s.Holding[h.Fixed()]
 		if entry != nil && entry.Validate(s) == 1 {
 			entry.FollowerExecute(s)
-			entry.SendOut(s, entry)
-			TotalXReviewQueueInputs.Inc()
-			s.XReview = append(s.XReview, entry)
-			TotalHoldingQueueOutputs.Inc()
 		}
-		pl.EntryCreditBlock.GetBody().AddEntry(c.CommitEntry)
 		return true
 	}
 	//s.AddStatus("Cannot Process Commit Entry")
@@ -1813,7 +1806,6 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) (worked b
 		if worked {
 			TotalProcessListProcesses.Inc()
 			TotalCommitsOutputs.Inc()
-			s.Commits.Delete(msg.Entry.GetHash().Fixed()) // 	delete(s.Commits, msg.Entry.GetHash().Fixed())
 			// This is so the api can determine if a chainhead is about to be updated. It fixes a race condition
 			// on the api. MUST BE BEFORE THE REPLAY FILTER ADD
 			pl.PendingChainHeads.Put(msg.Entry.GetChainID().Fixed(), msg)
