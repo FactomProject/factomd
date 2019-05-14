@@ -148,11 +148,6 @@ func Peers(fnode *FactomNode) {
 				continue // Toss any inputs from API
 			}
 
-			if fnode.State.InMsgQueue().Length() > constants.INMSGQUEUE_HIGH {
-				fnode.State.LogMessage("NetworkInputs", "API Drop, Too Full", msg)
-				continue
-			}
-
 			if fnode.State.GetNetStateOff() {
 				fnode.State.LogMessage("NetworkInputs", "API drop, X'd by simCtrl", msg)
 				continue
@@ -214,7 +209,6 @@ func Peers(fnode *FactomNode) {
 				}
 				if err != nil {
 					fnode.State.LogPrintf("NetworkInputs", "error on receive from %v: %v", peer.GetNameFrom(), err)
-					fmt.Println("ERROR receiving message on", fnode.State.FactomNodeName+":", err)
 					// TODO: Maybe we should check the error type and/or count errors and change status to offline?
 					break // move to next peer
 				}
@@ -249,11 +243,6 @@ func Peers(fnode *FactomNode) {
 				if fnode.State.GetNetStateOff() { // drop received message if he is off
 					fnode.State.LogMessage("NetworkInputs", fromPeer+" Drop, X'd by simCtrl", msg)
 					continue // Toss any inputs from this peer
-				}
-
-				if fnode.State.InMsgQueue().Length() > constants.INMSGQUEUE_HIGH {
-					fnode.State.LogMessage("NetworkInputs", fromPeer+" Drop, Too Full", msg)
-					continue
 				}
 
 				repeatHash := msg.GetRepeatHash()
@@ -315,6 +304,9 @@ func Peers(fnode *FactomNode) {
 					fnode.State.LogMessage("NetworkInputs", "unmarked P2P msg", msg)
 					msg.SetNoResend(true)
 				}
+
+				msg.SetNetwork(true)
+
 				if !crossBootIgnore(msg) {
 					if t := msg.Type(); t == constants.REVEAL_ENTRY_MSG || t == constants.COMMIT_CHAIN_MSG || t == constants.COMMIT_ENTRY_MSG {
 						fnode.State.LogMessage("NetworkInputs", fromPeer+", enqueue2", msg)

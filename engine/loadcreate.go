@@ -80,10 +80,19 @@ func (lg *LoadGenerator) Run() {
 				c = lg.NewCommitEntry(e)
 			}
 			r := lg.NewRevealEntry(e)
+			s := fnodes[wsapiNode].State
+			go func() {
+				for i := 0; i < 1; i++ {
+					s.APIQueue().Enqueue(c)
+				}
+			}()
 
-			fnodes[wsapiNode].State.APIQueue().Enqueue(c)
-			fnodes[wsapiNode].State.APIQueue().Enqueue(r)
-
+			go func() {
+				for i := 0; i < 1; i++ {
+					time.Sleep(1 * time.Second)
+					s.APIQueue().Enqueue(r)
+				}
+			}()
 			time.Sleep(time.Duration(800/top) * time.Millisecond) // spread the load out over 800ms + overhead
 		}
 	}
@@ -125,9 +134,11 @@ func (lg *LoadGenerator) NewRevealEntry(entry *entryBlock.Entry) *messages.Revea
 
 var cnt int
 var goingUp bool
+var limitBuys = true // We limit buys only after one attempted purchase, so people can fund identities in testing
 
 func (lg *LoadGenerator) KeepUsFunded() {
-	time.Sleep(10 * time.Second)
+
+	s := fnodes[wsapiNode].State
 
 	var level int64
 
@@ -135,13 +146,33 @@ func (lg *LoadGenerator) KeepUsFunded() {
 	totalBought := 0
 	for i := 0; ; i++ {
 
+		ts := "false"
 		if lg.tight.Load() {
-			level = 10
-		} else {
-			level = 5000
+			ts = "true"
 		}
 
-		s := fnodes[wsapiNode].State
+		if lg.PerSecond == 0 && limitBuys {
+			if i%100 == 0 {
+				// Log our occasional realization that we have nothing to do.
+				outEC, _ := primitives.HexToHash("c23ae8eec2beb181a0da926bd2344e988149fbe839fbc7489f2096e7d6110243")
+				outAdd := factoid.NewAddress(outEC.Bytes())
+				ecBal := s.GetE(true, outAdd.Fixed())
+
+				lg.state.LogPrintf("loadgenerator", "Tight %7s Total TX %6d for a total of %8d entry credits balance %d.",
+					ts, buys, totalBought, ecBal)
+			}
+			time.Sleep(5 * time.Second)
+			continue
+		}
+
+		if !limitBuys {
+			level = 200 // Only do this once, after that look for requests for load to drive EC buys.
+		} else if lg.tight.Load() {
+			level = 10
+		} else {
+			level = 10000
+		}
+
 		outEC, _ := primitives.HexToHash("c23ae8eec2beb181a0da926bd2344e988149fbe839fbc7489f2096e7d6110243")
 		outAdd := factoid.NewAddress(outEC.Bytes())
 		ecBal := s.GetE(true, outAdd.Fixed())
@@ -152,12 +183,11 @@ func (lg *LoadGenerator) KeepUsFunded() {
 			need := level - ecBal + level*2
 			totalBought += int(need)
 			FundWalletTOFF(s, lg.txoffset, uint64(need)*ecPrice)
+		} else {
+			limitBuys = true
 		}
+
 		if i%5 == 0 {
-			ts := "false"
-			if lg.tight.Load() {
-				ts = "true"
-			}
 			lg.state.LogPrintf("loadgenerator", "Tight %7s Total TX %6d for a total of %8d entry credits balance %d.",
 				ts, buys, totalBought, ecBal)
 		}
