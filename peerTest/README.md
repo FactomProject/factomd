@@ -7,6 +7,10 @@ by running 1 of each pair from previous/current builds.
 
 Tests in this folder *will* be run on circle.ci.
 
+## Add a test to circle.ci
+
+add the filename to `ci_whitelist` file in this directory
+
 ## Naming Convention
 
   Peer tests are expected to be named in A/B pairs

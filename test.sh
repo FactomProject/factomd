@@ -11,17 +11,13 @@ function runTests() {
     # run locally
     TESTS=$({ \
       glide nv | grep -v Utilities | grep -v longTest | grep -v peerTest | grep -v simTest | grep -v elections | grep -v activations | grep -v netTest | grep "..." ; \
-      cat engine/debug/whitelist.txt; \
-      ls simTest/*_test.go; \ 
-      ls peerTest/*A_test.go; \
+      cat */ci_whitelist; \
     })
   else
     # run on circle
     TESTS=$({ \
       glide nv | grep -v Utilities | grep -v longTest | grep -v peerTest | grep -v simTest | grep -v elections | grep -v activations | grep -v netTest | grep "..." ; \
-      cat engine/debug/whitelist.txt; \
-      circleci tests glob 'simTest/*_test.go'; \
-      circleci tests glob 'peerTest/*A_test.go'; \
+      cat */ci_whitelist; \
     } | circleci tests split --split-by=timings)
   fi
 
