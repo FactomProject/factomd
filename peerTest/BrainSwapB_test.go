@@ -20,7 +20,7 @@ func TestBrainSwapB(t *testing.T) {
 	givenNodes := "FF"
 	outputNodes := "LA"
 
-	ResetFactomHome(t)
+	ResetSimHome(t)
 	WriteConfigFile(9, 0, "", t)
 	WriteConfigFile(8, 1, "", t)
 

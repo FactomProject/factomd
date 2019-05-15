@@ -17,7 +17,7 @@ This test is useful for verifying that Leaders can swap without rebooting
 And that Audits can reboot with lag (to prevent a panic if 2 nodes see the same audit heartbeat)
 */
 func TestAuditBrainSwap(t *testing.T) {
-	ResetFactomHome(t)       // clear out old test home
+	ResetSimHome(t) // clear out old test home
 	for i := 0; i < 6; i++ { // build config files for the test
 		WriteConfigFile(i, i, "", t) // just write the minimal config
 	}

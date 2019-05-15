@@ -187,10 +187,10 @@ func TestGetName(t *testing.T) {
 }
 
 func TestResetFactomHome(t *testing.T) {
-	s := GetSimHome(t)
+	s := GetSimTestHome(t)
 	t.Logf("simhome: %v", s)
 
-	h, err := ResetFactomHome(t)
+	h, err := ResetSimHome(t)
 	assert.Nil(t, err)
 
 	t.Logf("reset home: %v", h)

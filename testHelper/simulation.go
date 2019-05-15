@@ -34,20 +34,12 @@ var quit = make(chan struct{})
 
 var ExpectedHeight, Leaders, Audits, Followers int
 var startTime, endTime time.Time
-var RanSimTest = false // only run 1 simtest during a group unit test run since they run in parallel
-// NOTE: going forward breaking out a test into a file under ./simTest allows it to run on CI.
+var RanSimTest = false // only run 1 sim test at a time
 
-//EX. state0 := SetupSim("LLLLLLLLLLLLLLLAAAAAAAAAA",  map[string]string {"--controlpanelsetting" : "readwrite"}, t)
-func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int, electionsCnt int, RoundsCnt int, t *testing.T) *state.State {
-	fmt.Println("SetupSim(", GivenNodes, ",", UserAddedOptions, ",", height, ",", electionsCnt, ",", RoundsCnt, ")")
-	ExpectedHeight = height
-	l := len(GivenNodes)
-
-	homeDir := GetSimHome(t)
-	err := os.MkdirAll(homeDir+"/.factom/m2", 0755)
-	if err != nil {
-		t.Fatal(err)
-	}
+// start simulation without promoting nodes to the authority set
+// this is useful for creating scripts that will start/stop a simulation outside of the context of a unit test
+// this allows for consistent tweaking of a simulation to induce load add message loss or adjust timing
+func StartSim(GivenNodes string, UserAddedOptions map[string]string) *state.State {
 
 	CmdLineOptions := map[string]string{
 		"--db":                  "Map",
@@ -55,7 +47,7 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 		"--net":                 "alot+",
 		"--enablenet":           "false",
 		"--blktime":             "10",
-		"--count":               fmt.Sprintf("%v", l),
+		"--count":               fmt.Sprintf("%v", len(GivenNodes)),
 		"--startdelay":          "1",
 		"--stdoutlog":           "out.txt",
 		"--stderrlog":           "out.txt",
@@ -66,7 +58,6 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 		"--port":                "37001",
 		"--controlpanelport":    "37002",
 		"--networkport":         "37003",
-		"--factomhome":          homeDir,
 	}
 
 	// loop thru the test specific options and overwrite or append to the DefaultOptions
@@ -132,12 +123,30 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 			typeOfT.Field(i).Name, f.Type(), f.Interface())
 	}
 	fmt.Println()
+	return engine.Factomd(params, false).(*state.State)
 
+}
+
+//EX. state0 := SetupSim("LLLLLLLLLLLLLLLAAAAAAAAAA",  map[string]string {"--controlpanelsetting" : "readwrite"}, t)
+func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int, electionsCnt int, RoundsCnt int, t *testing.T) *state.State {
+	fmt.Println("SetupSim(", GivenNodes, ",", UserAddedOptions, ",", height, ",", electionsCnt, ",", RoundsCnt, ")")
+
+	if UserAddedOptions["--factomhome"] == "" {
+		// default to create a new home dir for each sim test if not specificed
+		homeDir := GetSimTestHome(t)
+		err := os.MkdirAll(homeDir+"/.factom/m2", 0755)
+		if err != nil {
+			t.Fatal(err)
+		}
+		UserAddedOptions["--factomhome"] = homeDir
+	}
+
+	state0 := StartSim(GivenNodes, UserAddedOptions)
+	ExpectedHeight = height
 	blkt := globals.Params.BlkTime
 	roundt := elections.RoundTimeout
 	et := elections.FaultTimeout
 	startTime = time.Now()
-	state0 := engine.Factomd(params, false).(*state.State)
 	//	statusState = state0
 	calctime := time.Duration(float64(((height+3)*blkt)+(electionsCnt*et)+(RoundsCnt*roundt))*1.1) * time.Second
 	endTime = time.Now().Add(calctime)
@@ -168,6 +177,7 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 	WaitMinutes(state0, 1) // wait till initial DBState message for the genesis block is processed
 	creatingNodes(GivenNodes, state0, t)
 
+	l := len(GivenNodes)
 	t.Logf("Allocated %d nodes", l)
 	if len(engine.GetFnodes()) != l {
 		t.Fatalf("Should have allocated %d nodes", l)
@@ -499,7 +509,8 @@ func v2Request(req *primitives.JSON2Request, port int) (*primitives.JSON2Respons
 	return nil, nil
 }
 
-func GetSimHome(t *testing.T) string {
+// use a test specific dir for simTest
+func GetSimTestHome(t *testing.T) string {
 	dir, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
@@ -508,16 +519,27 @@ func GetSimHome(t *testing.T) string {
 	return dir + "/.sim/" + GetTestName()
 }
 
-func ResetFactomHome(t *testing.T) (string, error) {
-	homeDir := GetSimHome(t)
+// re-use a common dir for longTest
+func GetLongTestHome(t *testing.T) string {
+	dir, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
 
+	return dir + "/.sim"
+}
+
+// remove files from a home dir and remake .factom config dir
+func ResetTestHome(homeDir string, t *testing.T) {
 	t.Logf("Removing old test run in %s", homeDir)
-	os.MkdirAll(homeDir, 0755)
 	os.RemoveAll(homeDir)
-
-	os.Setenv("FACTOM_HOME", homeDir)
 	os.MkdirAll(homeDir+"/.factom/m2", 0755)
-	return string(homeDir), nil
+}
+
+func ResetSimHome(t *testing.T) string {
+	h := GetSimTestHome(t)
+	ResetTestHome(h, t)
+	return h
 }
 
 func AddFNode() {

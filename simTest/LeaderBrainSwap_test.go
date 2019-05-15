@@ -15,7 +15,7 @@ This test is useful for catching a failure scenario where the timing between
 identity swap is off leading to a stall
 */
 func TestLeaderBrainSwap(t *testing.T) {
-	ResetFactomHome(t)       // clear out old test home
+	ResetSimHome(t) // clear out old test home
 	for i := 0; i < 6; i++ { // build config files for the test
 		WriteConfigFile(i, i, "", t) // just write the minimal config
 	}

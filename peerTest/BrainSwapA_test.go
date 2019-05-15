@@ -20,7 +20,7 @@ func TestBrainSwapA(t *testing.T) {
 	givenNodes := "LLLLAAA"
 	outputNodes := "LFLLFAA"
 
-	ResetFactomHome(t)
+	ResetSimHome(t)
 
 	// build config files for the test
 	for i := 0; i < len(givenNodes); i++ {
