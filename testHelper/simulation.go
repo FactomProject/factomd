@@ -43,11 +43,11 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 	ExpectedHeight = height
 	l := len(GivenNodes)
 
-	dirBase, _ := os.Getwd()
-	dirBase = dirBase + "/.sim/"
-	os.Mkdir(dirBase, 0600)
-	factomHome := dirBase + GetTestName()
-	os.Setenv("FACTOM_HOME", factomHome)
+	homeDir := GetSimHome(t)
+	err := os.MkdirAll(homeDir+"/.factom/m2", 0755)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	CmdLineOptions := map[string]string{
 		"--db":                  "Map",
@@ -66,7 +66,7 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 		"--port":                "37001",
 		"--controlpanelport":    "37002",
 		"--networkport":         "37003",
-		"--factomhome":          factomHome,
+		"--factomhome":          homeDir,
 	}
 
 	// loop thru the test specific options and overwrite or append to the DefaultOptions
@@ -499,13 +499,17 @@ func v2Request(req *primitives.JSON2Request, port int) (*primitives.JSON2Respons
 	return nil, nil
 }
 
-func ResetFactomHome(t *testing.T) (string, error) {
+func GetSimHome(t *testing.T) string {
 	dir, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	homeDir := dir + "/.sim/" + GetTestName()
+	return dir + "/.sim/" + GetTestName()
+}
+
+func ResetFactomHome(t *testing.T) (string, error) {
+	homeDir := GetSimHome(t)
 
 	t.Logf("Removing old test run in %s", homeDir)
 	os.MkdirAll(homeDir, 0755)

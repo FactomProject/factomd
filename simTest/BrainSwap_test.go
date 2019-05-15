@@ -19,7 +19,7 @@ func TestBrainSwap(t *testing.T) {
 		WriteConfigFile(i, i, "", t) // just write the minimal config
 	}
 
-	params := map[string]string{"--blktime": "30"}
+	params := map[string]string{"--blktime": "15"}
 	state0 := SetupSim("LLLAFF", params, 15, 0, 0, t)
 	state3 := engine.GetFnodes()[3].State // Get node 3
 
