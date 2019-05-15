@@ -9,12 +9,20 @@ cd $DIR # always from from script dir
 function runTests() {
   if [[ "${CI}x" ==  "x" ]] ; then
     # run locally
+    # 1. all unit tests except filtered packages
+    # 2. engine sim tests that are whitelisted
+    # 3. all files in simTest package
+    # 4. all sets of A/B tests in peerTest package
     TESTS=$({ \
       glide nv | grep -v Utilities | grep -v longTest | grep -v peerTest | grep -v simTest | grep -v elections | grep -v activations | grep -v netTest | grep "..." ; \
-      cat */ci_whitelist; \
+      cat engine/ci_whitelist.txt; \
+      ls simTest/*_test.go; \
+      ls peerTest/*A_test.go; \
     })
   else
     # run on circle
+    # 1. run all unit tests
+    # 2. run only whitlisted tests in engine, peerTest, and simTest
     TESTS=$({ \
       glide nv | grep -v Utilities | grep -v longTest | grep -v peerTest | grep -v simTest | grep -v elections | grep -v activations | grep -v netTest | grep "..." ; \
       cat */ci_whitelist; \
