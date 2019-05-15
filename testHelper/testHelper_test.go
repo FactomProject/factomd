@@ -2,6 +2,8 @@ package testHelper_test
 
 import (
 	"crypto/rand"
+	"github.com/FactomProject/factomd/util"
+
 	"github.com/FactomProject/factomd/engine"
 
 	"github.com/FactomProject/ed25519"
@@ -182,4 +184,17 @@ func TestGetName(t *testing.T) {
 		return GetTestName()
 	}
 	assert.Equal(t, "TestGetName", TestGetFoo())
+}
+
+func TestResetFactomHome(t *testing.T) {
+	s := GetSimHome(t)
+	t.Logf("simhome: %v", s)
+
+	h, err := ResetFactomHome(t)
+	assert.Nil(t, err)
+
+	t.Logf("reset home: %v", h)
+	t.Logf("util home: %v", util.GetHomeDir())
+
+	assert.Equal(t, s, h)
 }
