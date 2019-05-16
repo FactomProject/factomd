@@ -1,6 +1,8 @@
 package state
 
 import (
+	"fmt"
+	"github.com/FactomProject/factomd/common/constants"
 	"time"
 
 	"github.com/FactomProject/factomd/common/messages"
@@ -28,7 +30,7 @@ type MMRInfo struct {
 
 // starts the MMR processing for this state
 func (s *State) startMMR() {
-	go s.makeMMRs()
+	go s.makeMMRs(s.asks, s.adds, s.dbheights)
 }
 
 // Ask VM for an MMR for this height with delay ms before asking the network
@@ -84,7 +86,7 @@ var MMR_enable bool = true
 // Receive all asks and all process list adds and create missing message requests any ask that has expired
 // and still pending. Add 10 seconds to the ask.
 // Doesn't really use (can't use) the process list but I have it for debug
-func (s *State) makeMMRs() {
+func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan int) {
 	type dbhvm struct {
 		dbh int
 		vm  int
@@ -98,6 +100,13 @@ func (s *State) makeMMRs() {
 	logname := "missing_messages"
 
 	addAsk := func(ask askRef) {
+		// checking if we already have message in our maps
+		doWeHaveAckandMsg := s.MissingMessageResponse.GetAckANDMsg(ask.DBH, ask.VM, ask.H)
+
+		if doWeHaveAckandMsg {
+			fmt.Println("We HAVE dont call addAdd(add)!!")
+			return
+		}
 		_, ok := pending[ask.plRef]
 		if !ok {
 			when := ask.When
@@ -117,7 +126,7 @@ func (s *State) makeMMRs() {
 	readasks:
 		for {
 			select {
-			case ask := <-s.asks:
+			case ask := <-asks:
 				addAsk(ask)
 			default:
 				break readasks
@@ -129,7 +138,7 @@ func (s *State) makeMMRs() {
 	readadds:
 		for {
 			select {
-			case add := <-s.adds:
+			case add := <-adds:
 				addAdd(add)
 			default:
 				break readadds
@@ -186,7 +195,16 @@ func (s *State) makeMMRs() {
 		}
 
 		select {
-		case dbheight = <-s.dbheights:
+		case msg := <- s.MissingMessageResponse.NewMsgs:
+			if msg.Type() == constants.ACK_MSG {
+				// adds Acks to a Ack map for MMR
+				s.MissingMessageResponse.AcksMap.Add(msg)
+			} else {
+				// adds messages to a message map for MMR
+				s.MsgsMap.Add(msg)
+			}
+
+		case dbheight = <-dbheights:
 			// toss any old pending requests when the height moves up
 			// todo: Keep asks in a  list so cleanup is more efficient
 			for ask, _ := range pending {
@@ -195,11 +213,11 @@ func (s *State) makeMMRs() {
 					delete(pending, ask)
 				}
 			}
-		case ask := <-s.asks:
+		case ask := <-asks:
 			addAsk(ask)
 			addAllAsks()
 
-		case add := <-s.adds:
+		case add := <-adds:
 			addAllAsks() // process all pending asks before any adds
 			addAdd(add)
 

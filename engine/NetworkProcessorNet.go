@@ -351,14 +351,12 @@ func Peers(fnode *FactomNode) {
 						fnode.State.InMsgQueue().Enqueue(msg)
 					}
 				}
-
-				// adds messages to a message map for MMR
-				fnode.State.MsgsMap.Add(msg)
-
-				// adds Acks to a Ack map for MMR
-				if msg.Type() == constants.ACK_MSG {
-					fnode.State.MissingMessageResponse.AcksMap.Add(msg)
+				if fnode.State.MissingMessageResponse.NewMsgs != nil {
+					fnode.State.MissingMessageResponse.NewMsgs = make(chan interfaces.IMsg, 100)
 				}
+				// send msg to MMRequest processing to suppress requests for messages we already have
+				fnode.State.MissingMessageResponse.NewMsgs <- msg
+
 			} // For a peer read up to 100 messages {...}
 		} // for each peer {...}
 		if cnt == 0 {
