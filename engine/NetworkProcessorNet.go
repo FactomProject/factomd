@@ -351,12 +351,12 @@ func Peers(fnode *FactomNode) {
 						fnode.State.InMsgQueue().Enqueue(msg)
 					}
 				}
-				if fnode.State.MissingMessageResponse.NewMsgs != nil {
+				if fnode.State.MissingMessageResponse.NewMsgs == nil {
 					fnode.State.MissingMessageResponse.NewMsgs = make(chan interfaces.IMsg, 100)
 				}
+
 				// send msg to MMRequest processing to suppress requests for messages we already have
 				fnode.State.MissingMessageResponse.NewMsgs <- msg
-
 			} // For a peer read up to 100 messages {...}
 		} // for each peer {...}
 		if cnt == 0 {
