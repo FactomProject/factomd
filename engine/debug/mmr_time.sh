@@ -1,4 +1,6 @@
-#/bin/sh
+#!/usr/bin/env bash
+#time MMR traffic for a node
+#mmr_time.sh <nodename>
 ################################
 # AWK scripts                  #
 ################################
@@ -147,5 +149,5 @@ EOF
 ################################
 
  
-(cat $1_missing_messages.txt; grep -h "MissingMsg " $1_NetworkOutputs.txt; grep -HE "Send P2P.* $1 .*Missing Msg Response" FNode*_NetworkOutputs.txt) | awk "$scriptVariable"
+(cat $1_missing_messages.txt; grep -h "Send.*MissingMsg " $1_networkoutputs.txt; grep -HEi "enqueue.*Missing Msg Response" $1_networkinputs.txt) | awk "$scriptVariable"
 

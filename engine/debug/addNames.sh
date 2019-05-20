@@ -1,3 +1,7 @@
+#!/usr/bin/env bash
+# replace node chain IDs with names in log files
+# addnames.sh <list of files>
+
 ################################
 # AWK scripts                  #
 ################################

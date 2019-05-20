@@ -133,11 +133,11 @@ func (fs *FactoidState) GetBalanceHash(TempBalanceHash bool) (rval interfaces.IH
 	// Debug aid for Balance Hashes
 	// fmt.Printf("%8d %x\n", fs.DBHeight, r.Bytes()[:16])
 
-	if !TempBalanceHash {
-		fs.State.LogPrintf("balanceHash", "GetBalanceHash(dbht = %6d,%v) PF=%x PE=%x", fs.DBHeight, TempBalanceHash, h1.Bytes()[:6], h2.Bytes()[:6])
-	} else {
-		fs.State.LogPrintf("balanceHash", "GetBalanceHash(dbht = %6d,%v) TF=%x TE=%x", fs.DBHeight, TempBalanceHash, h1.Bytes()[:6], h2.Bytes()[:6])
-	}
+	//if !TempBalanceHash {
+	//	fs.State.LogPrintf("balanceHash", "GetBalanceHash(dbht = %6d,%v) PF=%x PE=%x", fs.DBHeight, TempBalanceHash, h1.Bytes()[:6], h2.Bytes()[:6])
+	//} else {
+	//	fs.State.LogPrintf("balanceHash", "GetBalanceHash(dbht = %6d,%v) TF=%x TE=%x", fs.DBHeight, TempBalanceHash, h1.Bytes()[:6], h2.Bytes()[:6])
+	//}
 	return r
 }
 

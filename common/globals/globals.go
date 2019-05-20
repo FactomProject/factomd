@@ -1,6 +1,10 @@
 package globals
 
-import "time"
+import (
+	"io"
+	"sync"
+	"time"
+)
 
 var FnodeNames map[string]string = make(map[string]string) /// use by MessageTrace debug code
 var Params FactomParams
@@ -73,4 +77,14 @@ type FactomParams struct {
 	WriteProcessedDBStates   bool // Write processed DBStates to debug file
 	NodeName                 string
 	FactomHome               string
+	FullHashesLog            bool // Log all unique full hashes
 }
+
+/****************************************************************
+	DEBUG logging to keep full hash. Turned on from command line
+ ****************************************************************/
+var HashMutex sync.Mutex
+var Hashlog io.Writer
+var Hashes map[[32]byte]bool
+var HashesInOrder [10000]*[32]byte
+var HashNext int

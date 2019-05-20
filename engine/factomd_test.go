@@ -38,7 +38,7 @@ func TestSetupANetwork(t *testing.T) {
 
 	RanSimTest = true
 
-	state0 := SetupSim("LLLLAAAFFF", map[string]string{"--debuglog": "", "--blktime": "15"}, 14, 0, 0, t)
+	state0 := SetupSim("LLLLAAAFFF", map[string]string{"--debuglog": "", "--blktime": "20"}, 14, 0, 0, t)
 
 	RunCmd("9")  // Puts the focus on node 9
 	RunCmd("x")  // Takes Node 9 Offline
@@ -51,8 +51,10 @@ func TestSetupANetwork(t *testing.T) {
 
 	WaitForMinute(state0, 2) // Waits for minute 2
 	RunCmd("F100")           //  Set the Delay on messages from all nodes to 100 milliseconds
-	RunCmd("S10")            // Set Drop Rate to 1.0 on everyone
-	RunCmd("g10")            // Adds 10 identities to your identity pool.
+	// .15 second minutes is too fast for dropping messages until the dropping is fixed (FD-971) is fixed
+	// could change to 4 second minutes and turn this back on -- Clay
+	//	RunCmd("S10")            // Set Drop Rate to 1.0 on everyone
+	RunCmd("g10") // Adds 10 identities to your identity pool.
 
 	fn1 := GetFocus()
 	PrintOneStatus(0, 0)
@@ -88,7 +90,7 @@ func TestSetupANetwork(t *testing.T) {
 	}
 
 	RunCmd("i") // Shows the identities being monitored for change.
-	// Test block recording lengths and error checking for pprof
+	//Test block recording lengths and error checking for pprof
 	RunCmd("b100") // Recording delays due to blocked go routines longer than 100 ns (0 ms)
 
 	RunCmd("b") // specifically how long a block will be recorded (in nanoseconds).  1 records all blocks.
@@ -128,17 +130,47 @@ func TestLoad(t *testing.T) {
 	}
 
 	RanSimTest = true
+	state0 := SetupSim("LFF", map[string]string{"--debuglog": "." /*"--db": "LDB"*/}, 15, 0, 0, t)
+
+	RunCmd("2")    // select 2
+	RunCmd("w")    // feed load into follower
+	RunCmd("F200") // delay messages
+	RunCmd("R40")  // Feed load
+	WaitBlocks(state0, 5)
+	RunCmd("R0") // Stop load
+	WaitBlocks(state0, 5)
+	// should check holding and queues cleared out
+	ShutDownEverything(t)
+} //TestLoad(){...}
+
+func TestCatchup(t *testing.T) {
+	if RanSimTest {
+		return
+	}
+
+	RanSimTest = true
 
 	// use a tree so the messages get reordered
-	state0 := SetupSim("LLF", map[string]string{"--debuglog": ""}, 15, 0, 0, t)
+	state0 := SetupSim("LF", map[string]string{"--debuglog": ""}, 15, 0, 0, t)
+	state1 := GetFnodes()[1].State
 
-	RunCmd("2")   // select 2
-	RunCmd("R30") // Feed load
-	WaitBlocks(state0, 10)
-	RunCmd("R0") // Stop load
-	WaitBlocks(state0, 1)
+	RunCmd("1") // select 1
+	RunCmd("x")
+	RunCmd("R5") // Feed load
+	WaitBlocks(state0, 5)
+	RunCmd("R0")          // Stop load
+	RunCmd("x")           // back online
+	WaitBlocks(state0, 3) // give him a few blocks to catch back up
+	//todo: check that the node01 caught up and finished 2nd pass sync
+	dbht0 := state0.GetLLeaderHeight()
+	dbht1 := state1.GetLLeaderHeight()
+
+	if dbht0 != dbht1 {
+		t.Fatalf("Node 7 was at dbheight %d which didn't match Node 6 at dbheight %d", dbht0, dbht1)
+	}
+
 	ShutDownEverything(t)
-} // testLoad(){...}
+} //TestCatchup(){...}
 
 // Test that we don't put invalid TX into a block.  This is done by creating transactions that are just outside
 // the time for the block, and we let the block catch up.  The code should validate against the block time of the
@@ -163,17 +195,18 @@ func TestTXTimestampsAndBlocks(t *testing.T) {
 	RunCmd("x")
 	RunCmd("R0") // turn off the load
 }
+
 func TestLoad2(t *testing.T) {
 	if RanSimTest {
 		return
 	}
 	RanSimTest = true
-
+	// use tree node setup so messages get reordered
 	go RunCmd("Re") // Turn on tight allocation of EC as soon as the simulator is up and running
-	state0 := SetupSim("LLLAAAFFF", map[string]string{"--debuglog": "."}, 24, 0, 0, t)
+	state0 := SetupSim("LLLAF", map[string]string{"--blktime": "20", "--debuglog": ".", "--net": "tree"}, 24, 0, 0, t)
 	StatusEveryMinute(state0)
 
-	RunCmd("7") // select node 1
+	RunCmd("4") // select node 5
 	RunCmd("x") // take out 7 from the network
 	WaitBlocks(state0, 1)
 	WaitForMinute(state0, 1)
@@ -190,14 +223,15 @@ func TestLoad2(t *testing.T) {
 	WaitBlocks(state0, 3)
 	WaitMinutes(state0, 3)
 
-	ht7 := GetFnodes()[7].State.GetLLeaderHeight()
-	ht6 := GetFnodes()[6].State.GetLLeaderHeight()
+	ht7 := GetFnodes()[1].State.GetLLeaderHeight()
+	ht6 := GetFnodes()[4].State.GetLLeaderHeight()
 
 	if ht7 != ht6 {
 		t.Fatalf("Node 7 was at dbheight %d which didn't match Node 6 at dbheight %d", ht7, ht6)
 	}
 	ShutDownEverything(t)
-} // testLoad2(){...}
+} //TestLoad2(){...}
+
 // The intention of this test is to detect the EC overspend/duplicate commits (FD-566) bug.
 // the bug happened when the FCT transaction and the commits arrived in different orders on followers vs the leader.
 // Using a message delay, drop and tree network makes this likely
@@ -228,7 +262,29 @@ func TestLoadScrambled(t *testing.T) {
 	WaitBlocks(state0, 1)
 
 	ShutDownEverything(t)
-} // testLoad(){...}
+} //TestLoadScrambled(){...}
+
+func TestMinute9Election(t *testing.T) {
+	if RanSimTest {
+		return
+	}
+	RanSimTest = true
+
+	// use a tree so the messages get reordered
+	state0 := SetupSim("LLAL", map[string]string{"--debuglog": ".", "--net": "line"}, 10, 1, 1, t)
+	state3 := GetFnodes()[3].State
+
+	WaitForMinute(state3, 9)
+	RunCmd("3")
+	RunCmd("x")
+	WaitMinutes(state0, 1)
+	RunCmd("x")
+	WaitBlocks(state0, 2)
+	WaitMinutes(state0, 1)
+
+	WaitForAllNodes(state0)
+	ShutDownEverything(t)
+} //TestMinute9Election(){...}
 
 func TestMakeALeader(t *testing.T) {
 	if RanSimTest {
@@ -237,7 +293,7 @@ func TestMakeALeader(t *testing.T) {
 
 	RanSimTest = true
 
-	state0 := SetupSim("LF", map[string]string{}, 5, 0, 0, t)
+	state0 := SetupSim("LF", map[string]string{"--fullhasheslog": "true"}, 5, 0, 0, t)
 
 	RunCmd("1") // select node 1
 	RunCmd("l") // make him a leader
@@ -333,6 +389,7 @@ func TestActivationHeightElection(t *testing.T) {
 
 	ShutDownEverything(t)
 }
+
 func TestAnElection(t *testing.T) {
 	if RanSimTest {
 		return
