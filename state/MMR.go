@@ -1,7 +1,6 @@
 package state
 
 import (
-	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
 	"time"
 
@@ -104,7 +103,6 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 		doWeHaveAckandMsg := s.MissingMessageResponse.GetAckANDMsg(ask.DBH, ask.VM, ask.H, s)
 
 		if doWeHaveAckandMsg {
-			fmt.Println("We HAVE dont call addAdd(add)!!")
 			return
 		}
 		_, ok := pending[ask.plRef]
@@ -195,7 +193,6 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 			lastAskDelay = askDelay
 		}
 
-		//fmt.Println("in channel: ", s.MissingMessageResponse.NewMsgs)
 		select {
 
 		case msg := <- s.MissingMessageResponse.NewMsgs:
