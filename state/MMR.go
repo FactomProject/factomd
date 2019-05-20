@@ -29,7 +29,7 @@ type MMRInfo struct {
 }
 
 // starts the MMR processing for this state
-func (s *State) startMMR() {
+func (s *State) StartMMR() {
 	go s.makeMMRs(s.asks, s.adds, s.dbheights)
 }
 
@@ -101,7 +101,7 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 
 	addAsk := func(ask askRef) {
 		// checking if we already have message in our maps
-		doWeHaveAckandMsg := s.MissingMessageResponse.GetAckANDMsg(ask.DBH, ask.VM, ask.H)
+		doWeHaveAckandMsg := s.MissingMessageResponse.GetAckANDMsg(ask.DBH, ask.VM, ask.H, s)
 
 		if doWeHaveAckandMsg {
 			fmt.Println("We HAVE dont call addAdd(add)!!")
@@ -113,6 +113,7 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 			pending[ask.plRef] = &when // add the requests to the map
 			s.LogPrintf(logname, "Ask %d/%d/%d %d", ask.DBH, ask.VM, ask.H, len(pending))
 		} // don't update the when if it already existed...
+
 	}
 
 	addAdd := func(add plRef) {
@@ -194,14 +195,16 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 			lastAskDelay = askDelay
 		}
 
+		//fmt.Println("in channel: ", s.MissingMessageResponse.NewMsgs)
 		select {
+
 		case msg := <- s.MissingMessageResponse.NewMsgs:
 			if msg.Type() == constants.ACK_MSG {
 				// adds Acks to a Ack map for MMR
 				s.MissingMessageResponse.AcksMap.Add(msg)
 			} else {
 				// adds messages to a message map for MMR
-				s.MsgsMap.Add(msg)
+				s.MsgsMap.Add(msg, s)
 			}
 
 		case dbheight = <-dbheights:

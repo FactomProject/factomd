@@ -922,6 +922,7 @@ func (s *State) GetSalt(ts interfaces.Timestamp) uint32 {
 }
 
 func (s *State) Init() {
+	s.LogPrintf("WhereAmI", "Init %s", atomic.WhereAmIString(1))
 
 	if s.Salt == nil {
 		b := make([]byte, 32)
@@ -1172,7 +1173,6 @@ func (s *State) Init() {
 		}
 	}
 
-	s.startMMR()
 	if globals.Params.WriteProcessedDBStates {
 		path := filepath.Join(s.LdbPath, s.Network, "dbstates")
 		os.MkdirAll(path, 0775)

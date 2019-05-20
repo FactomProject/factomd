@@ -59,7 +59,8 @@ func (a * ACKMap) Get(DBHeight int, vmIndex int, height int) bool {
 
 // Adds messages to a map of the last 1000 messages
 // The map of messages will be used in tandem with the ack map when we get an MMR to ensure we dont ask for a message we already have.
-func (m * MSGMap) Add(msg interfaces.IMsg) {
+func (m * MSGMap) Add(msg interfaces.IMsg, s interfaces.IState) {
+	//s.LogPrintf("WhereAmI ", "ADD %s", atomic.WhereAmIString(1))
 	hash := msg.GetHash().Fixed()
 
 	if m.Msgs == nil {
@@ -73,18 +74,20 @@ func (m * MSGMap) Add(msg interfaces.IMsg) {
 	m.N = (m.N + 1)%1000  	// increment N by 1 each time and when it reaches 1000 start at 0 again.
 }
 
-func (m * MSGMap) Get(msg interfaces.IMsg) bool {
+func (m * MSGMap) Get(msg interfaces.IMsg, s interfaces.IState) bool {
+	//s.LogPrintf("WhereAmI ", "GET %s", atomic.WhereAmIString(2))
+
 	hash := msg.GetHash().Fixed()
 	_, exists := m.Msgs[hash]
 	return exists
 }
 
 // Called when we receive an ask for an MMR, we check to see if we have message in out Ask AND message maps and return true or false
-func (am* MissingMessageResponse) GetAckANDMsg(DBHeight int, vmIndex int, height int) bool {
+func (am* MissingMessageResponse) GetAckANDMsg(DBHeight int, vmIndex int, height int, s interfaces.IState) bool {
 	heights := MsgHeight{DBHeight, vmIndex, height}
 	msg, exists := am.AcksMap.Acks[heights]
 	if msg != nil && exists {
-		msgExists := am.MsgsMap.Get(msg)
+		msgExists := am.MsgsMap.Get(msg, s)
 		return msgExists
 	}
 	return exists
