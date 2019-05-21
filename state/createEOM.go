@@ -27,15 +27,6 @@ func (s *State) CreateEOM(force bool, m interfaces.IMsg, vmIdx int) (eom *messag
 	if !force && s.Syncing && vm.Synced {
 		return nil, nil
 	} else if !s.Syncing {
-		s.Syncing = true
-		//fmt.Println(fmt.Sprintf("EOM PROCESS: %10s LeaderExecuteEOM: !s.EOM(%v)", s.FactomNodeName, s.EOM))
-		s.EOM = true
-		s.EOMsyncing = true
-		s.EOMProcessed = 0
-		for _, vm := range pl.VMs {
-			vm.Synced = false
-		}
-		s.EOMLimit = len(pl.FedServers)
 		s.EOMMinute = int(s.CurrentMinute)
 	}
 

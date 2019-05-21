@@ -1,0 +1,11 @@
+to use these files, copy the simConfig folder to the ~/.factom/m2/ directory.
+
+start factomd with factomd -network=LOCAL -count=40
+
+in the simulator type g40 where 40 is the number of identities to load.
+
+factomd simulator will use the config files in the ~/.factom/m2/simConfig directory
+
+
+
+

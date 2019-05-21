@@ -13,6 +13,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -34,8 +36,6 @@ import (
 	"github.com/FactomProject/factomd/util/atomic"
 	"github.com/FactomProject/factomd/wsapi"
 	"github.com/FactomProject/logrustash"
-
-	"path/filepath"
 
 	"github.com/FactomProject/factomd/Utilities/CorrectChainHeads/correctChainHeads"
 	log "github.com/sirupsen/logrus"
@@ -124,7 +124,7 @@ type State struct {
 	serverPrt   string
 	StatusMutex sync.Mutex
 	StatusStrs  []string
-	starttime   time.Time
+	Starttime   time.Time
 	transCnt    int
 	lasttime    time.Time
 	tps         float64
@@ -181,8 +181,8 @@ type State struct {
 	JournalFile  string
 	Journaling   bool
 
-	serverPrivKey         *primitives.PrivateKey
-	serverPubKey          *primitives.PublicKey
+	ServerPrivKey         *primitives.PrivateKey
+	ServerPubKey          *primitives.PublicKey
 	serverPendingPrivKeys []*primitives.PrivateKey
 	serverPendingPubKeys  []*primitives.PublicKey
 
@@ -196,6 +196,7 @@ type State struct {
 	factomdTLSCertFile string
 	FactomdLocations   string
 
+	CorsDomains []string
 	// Server State
 	StartDelay      int64 // Time in Milliseconds since the last DBState was applied
 	StartDelayLimit int64
@@ -222,11 +223,12 @@ type State struct {
 	CurrentMinute   int
 
 	// These are the start times for blocks and minutes
-	CurrentMinuteStartTime int64
-	CurrentBlockStartTime  int64
+	PreviousMinuteStartTime int64
+	CurrentMinuteStartTime  int64
+	CurrentBlockStartTime   int64
 
-	EOMsyncing bool
-
+	EOMsyncing   bool
+	EOMSyncTime  int64
 	EOM          bool // Set to true when the first EOM is encountered
 	EOMLimit     int
 	EOMProcessed int
@@ -240,6 +242,8 @@ type State struct {
 	DBSigDone      bool
 	DBSigSys       bool // At least one DBSig has covered the System List
 
+	CreatedLastBlockFromDBState bool
+
 	// By default, this is false, which means DBstates are discarded
 	// when a majority of leaders disagree with the hash we have via DBSigs
 	KeepMismatch bool
@@ -249,15 +253,16 @@ type State struct {
 	Saving  bool // True if we are in the process of saving to the database
 	Syncing bool // Looking for messages from leaders to sync
 
-	NetStateOff     bool // Disable if true, Enable if false
-	DebugConsensus  bool // If true, dump consensus trace
-	FactoidTrans    int
-	ECCommits       int
-	ECommits        int
-	FCTSubmits      int
-	NewEntryChains  int
-	NewEntries      int
-	LeaderTimestamp interfaces.Timestamp
+	NetStateOff            bool // Disable if true, Enable if false
+	DebugConsensus         bool // If true, dump consensus trace
+	FactoidTrans           int
+	ECCommits              int
+	ECommits               int
+	FCTSubmits             int
+	NewEntryChains         int
+	NewEntries             int
+	LeaderTimestamp        interfaces.Timestamp
+	MessageFilterTimestamp interfaces.Timestamp
 	// Maps
 	// ====
 	// For Follower
@@ -309,6 +314,8 @@ type State struct {
 	NumTransactions int
 
 	// Permanent balances from processing blocks.
+	RestoreFCT            map[[32]byte]int64
+	RestoreEC             map[[32]byte]int64
 	FactoidBalancesPapi   map[[32]byte]int64
 	FactoidBalancesP      map[[32]byte]int64
 	FactoidBalancesPMutex sync.Mutex
@@ -324,6 +331,9 @@ type State struct {
 	// For Replay / journal
 	IsReplaying     bool
 	ReplayTimestamp interfaces.Timestamp
+
+	// State for the Entry Syncing process
+	EntrySyncState *EntrySync
 
 	MissingEntryBlockRepeat interfaces.Timestamp
 	// DBlock Height at which node has a complete set of eblocks+entries
@@ -381,6 +391,7 @@ type State struct {
 	HighestCompletedTorrent uint32
 	FastBoot                bool
 	FastBootLocation        string
+	FastSaveRate            int
 
 	// These stats are collected when we write the dbstate to the database.
 	NumNewChains   int // Number of new Chains in this block
@@ -389,13 +400,22 @@ type State struct {
 	NumEntryBlocks int // Number of Entry Blocks
 	NumFCTTrans    int // Number of Factoid Transactions in this block
 
-	// debug message
+	// debug message about state status rolling queue for ControlPanel
 	pstate              string
 	SyncingState        [256]string
 	SyncingStateCurrent int
-	processCnt          int64 // count of attempts to process .. so we can see if the thread is running
 
-	reportedActivations [activations.ACTIVATION_TYPE_COUNT + 1]bool // flags about which activations we have reported (+1 because we don't use 0)
+	ProcessListProcessCnt int64 // count of attempts to process .. so we can see if the thread is running
+	StateProcessCnt       int64
+	StateUpdateState      int64
+	ValidatorLoopSleepCnt int64
+	processCnt            int64 // count of attempts to process .. so we can see if the thread is running
+	MMRInfo                     // fields for MMR processing
+
+	reportedActivations   [activations.ACTIVATION_TYPE_COUNT + 1]bool // flags about which activations we have reported (+1 because we don't use 0)
+	validatorLoopThreadID string
+
+	executeRecursionDetection map[[32]byte]interfaces.IMsg
 }
 
 var _ interfaces.IState = (*State)(nil)
@@ -425,9 +445,10 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 	}
 	if _, err := os.Stat(simConfigPath); os.IsNotExist(err) {
 		os.Stderr.WriteString("Creating simConfig directory\n")
-		os.MkdirAll(simConfigPath, 0777)
+		os.MkdirAll(simConfigPath, 0775)
 	}
 
+	newState.FactomNodeName = s.Prefix + "FNode" + number
 	config := false
 	if _, err := os.Stat(configfile); !os.IsNotExist(err) {
 		os.Stderr.WriteString(fmt.Sprintf("   Using the %s config file.\n", configfile))
@@ -472,6 +493,8 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 	newState.CustomSpecialPeers = s.CustomSpecialPeers
 	newState.StartDelayLimit = s.StartDelayLimit
 	newState.CustomNetworkID = s.CustomNetworkID
+	newState.CustomBootstrapIdentity = s.CustomBootstrapIdentity
+	newState.CustomBootstrapKey = s.CustomBootstrapKey
 
 	newState.DirectoryBlockInSeconds = s.DirectoryBlockInSeconds
 	newState.PortNumber = s.PortNumber
@@ -491,16 +514,18 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 
 	if !config {
 		newState.IdentityChainID = primitives.Sha([]byte(newState.FactomNodeName))
+		s.LogPrintf("AckChange", "Default3 IdentityChainID %v", s.IdentityChainID.String())
+
 		//generate and use a new deterministic PrivateKey for this clone
-		shaHashOfNodeName := primitives.Sha([]byte(newState.FactomNodeName)) //seed the private key with node Name
+		shaHashOfNodeName := primitives.Sha([]byte(newState.FactomNodeName)) //seed the private key with node name
 		clonePrivateKey := primitives.NewPrivateKeyFromHexBytes(shaHashOfNodeName.Bytes())
 		newState.LocalServerPrivKey = clonePrivateKey.PrivateKeyString()
+		s.initServerKeys()
 	}
 
-	newState.SetLeaderTimestamp(s.GetLeaderTimestamp())
-
-	//serverPrivKey primitives.PrivateKey
-	//serverPubKey  primitives.PublicKey
+	newState.TimestampAtBoot = primitives.NewTimestampFromMilliseconds(s.TimestampAtBoot.GetTimeMilliUInt64())
+	newState.LeaderTimestamp = primitives.NewTimestampFromMilliseconds(s.LeaderTimestamp.GetTimeMilliUInt64())
+	newState.SetMessageFilterTimestamp(s.MessageFilterTimestamp)
 
 	newState.FactoshisPerEC = s.FactoshisPerEC
 
@@ -518,6 +543,8 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 	newState.factomdTLSCertFile = s.factomdTLSCertFile
 	newState.FactomdLocations = s.FactomdLocations
 
+	newState.FastSaveRate = s.FastSaveRate
+	newState.CorsDomains = s.CorsDomains
 	switch newState.DBType {
 	case "LDB":
 		newState.StateSaverStruct.FastBoot = s.StateSaverStruct.FastBoot
@@ -528,12 +555,10 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 		newState.StateSaverStruct.FastBootLocation = newState.BoltDBPath
 		break
 	}
-
 	if globals.Params.WriteProcessedDBStates {
 		path := filepath.Join(newState.LdbPath, newState.Network, "dbstates")
-		os.MkdirAll(path, 0777)
+		os.MkdirAll(path, 0775)
 	}
-
 	return newState
 }
 
@@ -606,6 +631,9 @@ func (s *State) GetRpcUser() string {
 	return s.RpcUser
 }
 
+func (s *State) GetCorsDomains() []string {
+	return s.CorsDomains
+}
 func (s *State) GetRpcPass() string {
 	return s.RpcPass
 }
@@ -638,8 +666,28 @@ func (s *State) GetCurrentMinuteStartTime() int64 {
 	return s.CurrentMinuteStartTime
 }
 
+func (s *State) GetPreviousMinuteStartTime() int64 {
+	return s.PreviousMinuteStartTime
+}
+
 func (s *State) GetCurrentTime() int64 {
 	return time.Now().UnixNano()
+}
+
+func (s *State) IsSyncing() bool {
+	return s.Syncing
+}
+
+func (s *State) IsSyncingEOMs() bool {
+	return s.Syncing && s.EOM && !s.EOMDone
+}
+
+func (s *State) IsSyncingDBSigs() bool {
+	return s.Syncing && s.DBSig && !s.DBSigDone
+}
+
+func (s *State) DidCreateLastBlockFromDBState() bool {
+	return s.CreatedLastBlockFromDBState
 }
 
 func (s *State) IncDBStateAnswerCnt() {
@@ -658,17 +706,19 @@ func (s *State) IncECommits() {
 	s.ECommits++
 }
 
-func (s *State) GetAckChange() error {
+func (s *State) GetAckChange() (bool, error) {
+	var flag bool
 	change, err := util.GetChangeAcksHeight(s.ConfigFilePath)
 	if err != nil {
-		return err
+		return flag, err
 	}
+	flag = s.AckChange != change
 	s.AckChange = change
-	return nil
+	return flag, nil
 }
 
 func (s *State) LoadConfig(filename string, networkFlag string) {
-	s.FactomNodeName = s.Prefix + "FNode0" // Default Factom Node Name for Simulation
+	//	s.FactomNodeName = s.Prefix + "FNode0" // Default Factom Node Name for Simulation
 
 	if len(filename) > 0 {
 		s.ConfigFilePath = filename
@@ -732,6 +782,21 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		s.FastBoot = cfg.App.FastBoot
 		s.FastBootLocation = cfg.App.FastBootLocation
 
+		// to test run curl -H "Origin: http://anotherexample.com" -H "Access-Control-Request-Method: POST" /
+		//     -H "Access-Control-Request-Headers: X-Requested-With" -X POST /
+		//     --data-binary '{"jsonrpc": "2.0", "id": 0, "method": "heights"}' -H 'content-type:text/plain;'  /
+		//     --verbose http://localhost:8088/v2
+
+		// while the config file has http://anotherexample.com in parameter CorsDomains the response should contain the string
+		// < Access-Control-Allow-Origin: http://anotherexample.com
+
+		if len(cfg.App.CorsDomains) > 0 {
+			domains := strings.Split(cfg.App.CorsDomains, ",")
+			s.CorsDomains = make([]string, len(domains))
+			for _, domain := range domains {
+				s.CorsDomains = append(s.CorsDomains, strings.Trim(domain, " "))
+			}
+		}
 		s.FactomdTLSEnable = cfg.App.FactomdTlsEnabled
 		if cfg.App.FactomdTlsPrivateKey == "/full/path/to/factomdAPIpriv.key" {
 			s.factomdTLSKeyFile = fmt.Sprint(cfg.App.HomeDir, "factomdAPIpriv.key")
@@ -759,8 +824,11 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		identity, err := primitives.HexToHash(cfg.App.IdentityChainID)
 		if err != nil {
 			s.IdentityChainID = primitives.Sha([]byte(s.FactomNodeName))
+			s.LogPrintf("AckChange", "Bad IdentityChainID  in config \"%v\"", cfg.App.IdentityChainID)
+			s.LogPrintf("AckChange", "Default2 IdentityChainID \"%v\"", s.IdentityChainID.String())
 		} else {
 			s.IdentityChainID = identity
+			s.LogPrintf("AckChange", "Load IdentityChainID \"%v\"", s.IdentityChainID.String())
 		}
 	} else {
 		s.LogPath = "database/"
@@ -795,6 +863,7 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 
 		// TODO:  Actually load the IdentityChainID from the config file
 		s.IdentityChainID = primitives.Sha([]byte(s.FactomNodeName))
+		s.LogPrintf("AckChange", "Default IdentityChainID %v", s.IdentityChainID.String())
 
 	}
 	s.JournalFile = s.LogPath + "/journal0" + ".log"
@@ -839,12 +908,13 @@ func (s *State) Init() {
 	s.RunLeader = false
 	s.IgnoreMissing = true
 	s.BootTime = s.GetTimestamp().GetTimeSeconds()
+	s.TimestampAtBoot = primitives.NewTimestampNow()
 
 	if s.LogPath == "stdout" {
 		wsapi.InitLogs(s.LogPath, s.LogLevel)
 		//s.Logger = log.NewLogFromConfig(s.LogPath, s.LogLevel, "State")
 	} else {
-		er := os.MkdirAll(s.LogPath, 0777)
+		er := os.MkdirAll(s.LogPath, 0775)
 		if er != nil {
 			// fmt.Println("Could not create " + s.LogPath + "\n error: " + er.Error())
 		}
@@ -852,23 +922,25 @@ func (s *State) Init() {
 		//s.Logger = log.NewLogFromConfig(s.LogPath, s.LogLevel, "State")
 	}
 
-	s.ControlPanelChannel = make(chan DisplayState, 20)
-	s.tickerQueue = make(chan int, 100)                        //ticks from a clock
-	s.timerMsgQueue = make(chan interfaces.IMsg, 100)          //incoming eom notifications, used by leaders
-	s.TimeOffset = new(primitives.Timestamp)                   //interfaces.Timestamp(int64(rand.Int63() % int64(time.Microsecond*10)))
-	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 100) //incoming message queue from the network messages
+	s.TimeOffset = new(primitives.Timestamp) //interfaces.Timestamp(int64(rand.Int63() % int64(time.Microsecond*10)))
+
 	s.InvalidMessages = make(map[[32]byte]interfaces.IMsg, 0)
-	s.networkOutMsgQueue = NewNetOutMsgQueue(5000)                 //Messages to be broadcast to the network
-	s.inMsgQueue = NewInMsgQueue(constants.INMSGQUEUE_HIGH + 100)  //incoming message queue for Factom application messages
-	s.inMsgQueue2 = NewInMsgQueue(constants.INMSGQUEUE_HIGH + 100) //incoming message queue for Factom application messages
-	s.electionsQueue = NewElectionQueue(10000)                     //incoming message queue for Factom application messages
-	s.apiQueue = NewAPIQueue(100)                                  //incoming message queue from the API
-	s.ackQueue = make(chan interfaces.IMsg, 100)                   //queue of Leadership messages
-	s.msgQueue = make(chan interfaces.IMsg, 400)                   //queue of Follower messages
-	s.ShutdownChan = make(chan int, 1)                             //Channel to gracefully shut down.
-	s.MissingEntries = make(chan *MissingEntry, 1000)              //Entries I discover are missing from the database
-	s.UpdateEntryHash = make(chan *EntryUpdate, 10000)             //Handles entry hashes and updating Commit maps.
-	s.WriteEntry = make(chan interfaces.IEBEntry, 3000)            //Entries to be written to the database
+
+	s.ShutdownChan = make(chan int, 1)                //Channel to gracefully shut down.
+	s.tickerQueue = make(chan int, 100)               //ticks from a clock
+	s.timerMsgQueue = make(chan interfaces.IMsg, 100) //incoming eom notifications, used by leaders
+	s.ControlPanelChannel = make(chan DisplayState, 20)
+	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 100)               //incoming message queue from the network messages
+	s.networkOutMsgQueue = NewNetOutMsgQueue(constants.INMSGQUEUE_MED)       //Messages to be broadcast to the network
+	s.inMsgQueue = NewInMsgQueue(constants.INMSGQUEUE_HIGH)                  //incoming message queue for Factom application messages
+	s.inMsgQueue2 = NewInMsgQueue(constants.INMSGQUEUE_HIGH)                 //incoming message queue for Factom application messages
+	s.electionsQueue = NewElectionQueue(constants.INMSGQUEUE_HIGH)           //incoming message queue for Factom application messages
+	s.apiQueue = NewAPIQueue(constants.INMSGQUEUE_HIGH)                      //incoming message queue from the API
+	s.ackQueue = make(chan interfaces.IMsg, 50)                              //queue of Leadership messages
+	s.msgQueue = make(chan interfaces.IMsg, 50)                              //queue of Follower messages
+	s.MissingEntries = make(chan *MissingEntry, constants.INMSGQUEUE_HIGH)   //Entries I discover are missing from the database
+	s.UpdateEntryHash = make(chan *EntryUpdate, constants.INMSGQUEUE_HIGH)   //Handles entry hashes and updating Commit maps.
+	s.WriteEntry = make(chan interfaces.IEBEntry, constants.INMSGQUEUE_HIGH) //Entries to be written to the database
 
 	if s.Journaling {
 		f, err := os.Create(s.JournalFile)
@@ -968,7 +1040,6 @@ func (s *State) Init() {
 			Fix:       s.CheckChainHeads.Fix,
 		})
 	}
-
 	if s.ExportData {
 		s.DB.SetExportData(s.ExportDataSubpath)
 	}
@@ -1019,7 +1090,11 @@ func (s *State) Init() {
 		s.ExchangeRateAuthorityPublicKey = "3b6a27bcceb6a42d62a3a8d02a6f0d73653215771de243a63ac048a18b59da29"
 	}
 	// end of FER removal
-	s.starttime = time.Now()
+	s.Starttime = time.Now()
+	// Allocate the MMR queues
+	s.asks = make(chan askRef, 1)
+	s.adds = make(chan plRef, 1)
+	s.dbheights = make(chan int, 1)
 
 	if s.StateSaverStruct.FastBoot {
 		d, err := s.DB.FetchDBlockHead()
@@ -1027,12 +1102,16 @@ func (s *State) Init() {
 			panic(err)
 		}
 
-		if d == nil || d.GetDatabaseHeight() < 2000 {
-			//If we have less than 2k blocks, we wipe SaveState
+		if d == nil || int(d.GetDatabaseHeight()) < s.FastSaveRate {
+			//If we have less than whatever our block rate is, we wipe SaveState
 			//This is to ensure we don't accidentally keep SaveState while deleting a database
 			s.StateSaverStruct.DeleteSaveState(s.Network)
 		} else {
-			err = s.StateSaverStruct.LoadDBStateList(s.DBStates, s.Network)
+			err = s.StateSaverStruct.LoadDBStateList(s, s.DBStates, s.Network)
+			if err != nil {
+				s.StateSaverStruct.DeleteSaveState(s.Network)
+				s.LogPrintf("faulting", "Database load failed %v", err)
+			}
 			if err == nil {
 				for _, dbstate := range s.DBStates.DBStates {
 					if dbstate != nil {
@@ -1043,7 +1122,7 @@ func (s *State) Init() {
 		}
 	}
 
-	s.Logger = log.WithFields(log.Fields{"node-Name": s.GetFactomNodeName(), "identity": s.GetIdentityChainID().String()})
+	s.Logger = log.WithFields(log.Fields{"node-name": s.GetFactomNodeName(), "identity": s.GetIdentityChainID().String()})
 
 	// Set up Logstash Hook for Logrus (if enabled)
 	if s.UseLogstash {
@@ -1053,11 +1132,11 @@ func (s *State) Init() {
 		}
 	}
 
+	s.startMMR()
 	if globals.Params.WriteProcessedDBStates {
 		path := filepath.Join(s.LdbPath, s.Network, "dbstates")
-		os.MkdirAll(path, 0777)
+		os.MkdirAll(path, 0775)
 	}
-
 }
 
 func (s *State) HookLogstash() error {
@@ -1110,7 +1189,13 @@ func (s *State) GetMissingEntryCount() uint32 {
 	return uint32(len(s.MissingEntries))
 }
 
-func (s *State) GetEBlockKeyMRFromEntryHash(entryHash interfaces.IHash) interfaces.IHash {
+func (s *State) GetEBlockKeyMRFromEntryHash(entryHash interfaces.IHash) (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("State.GetEBlockKeyMRFromEntryHash() saw an interface that was nil")
+		}
+	}()
 	entry, err := s.DB.FetchEntry(entryHash)
 	if err != nil {
 		return nil
@@ -1366,7 +1451,7 @@ func (s *State) LoadHoldingMap() map[[32]byte]interfaces.IMsg {
 }
 
 // this is executed in the state maintenance processes where the holding queue is in scope and can be queried
-//  This is what fills the HoldingMap while locking it againstt a read while building
+//  This is what fills the HoldingMap while locking it against a read while building
 func (s *State) fillHoldingMap() {
 	// once a second is often enough to rebuild the Ack list exposed to api
 
@@ -1822,14 +1907,10 @@ func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBl
 }
 
 func (s *State) UpdateState() (progress bool) {
-	dbheight := s.GetHighestSavedBlk()
+	s.StateUpdateState++
+	dbheight := s.LLeaderHeight
+	//	s.GetHighestSavedBlk()
 	plbase := s.ProcessLists.DBHeightBase
-	if dbheight == 0 {
-		dbheight++
-	}
-	if dbheight > 1 {
-		dbheight--
-	}
 
 	ProcessLists := s.ProcessLists
 	if ProcessLists.SetString {
@@ -1843,8 +1924,7 @@ func (s *State) UpdateState() (progress bool) {
 		}
 	}
 
-	p2 := s.DBStates.UpdateState()
-	progress = progress || p2
+	s.DBStates.Catchup(false)
 
 	s.SetString()
 	if s.ControlPanelDataRequest {
@@ -1856,7 +1936,7 @@ func (s *State) UpdateState() (progress bool) {
 		s.CalculateTransactionRate()
 	}
 
-	// check to see ig a holding queue list request has been made
+	// check to see if a holding queue list request has been made
 	s.fillHoldingMap()
 	s.fillAcksMap()
 
@@ -1873,7 +1953,6 @@ entryHashProcessing:
 			break entryHashProcessing
 		}
 	}
-
 	return
 }
 
@@ -1961,11 +2040,20 @@ func (s *State) SetFactoshisPerEC(factoshisPerEC uint64) {
 	s.FactoshisPerEC = factoshisPerEC
 }
 
-func (s *State) GetIdentityChainID() interfaces.IHash {
+func (s *State) GetIdentityChainID() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("State.GetIdentityChainID() saw an interface that was nil")
+		}
+	}()
 	return s.IdentityChainID
 }
 
 func (s *State) SetIdentityChainID(chainID interfaces.IHash) {
+	if !s.IdentityChainID.IsSameAs(chainID) {
+		s.LogPrintf("AckChange", "SetIdentityChainID %v", chainID.String())
+	}
 	s.IdentityChainID = chainID
 }
 
@@ -1978,11 +2066,15 @@ func (s *State) SetDirectoryBlockInSeconds(t int) {
 }
 
 func (s *State) GetServerPrivateKey() *primitives.PrivateKey {
-	return s.serverPrivKey
+	return s.ServerPrivKey
 }
 
 func (s *State) GetServerPublicKey() *primitives.PublicKey {
-	return s.serverPubKey
+	return s.ServerPubKey
+}
+
+func (s *State) GetServerPublicKeyString() string {
+	return s.ServerPubKey.String()
 }
 
 func (s *State) GetAnchor() interfaces.IAnchor {
@@ -2011,11 +2103,11 @@ func (s *State) GetFactomdVersion() string {
 
 func (s *State) initServerKeys() {
 	var err error
-	s.serverPrivKey, err = primitives.NewPrivateKeyFromHex(s.LocalServerPrivKey)
+	s.ServerPrivKey, err = primitives.NewPrivateKeyFromHex(s.LocalServerPrivKey)
 	if err != nil {
 		//panic("Cannot parse Server Private Key from configuration file: " + err.Error())
 	}
-	s.serverPubKey = s.serverPrivKey.Pub
+	s.ServerPubKey = s.ServerPrivKey.Pub
 }
 
 func (s *State) Log(level string, message string) {
@@ -2071,7 +2163,7 @@ func (s *State) GetTimeOffset() interfaces.Timestamp {
 }
 
 func (s *State) Sign(b []byte) interfaces.IFullSignature {
-	return s.serverPrivKey.Sign(b)
+	return s.ServerPrivKey.Sign(b)
 }
 
 func (s *State) GetFactoidState() interfaces.IFactoidState {
@@ -2130,18 +2222,56 @@ func (s *State) MsgQueue() chan interfaces.IMsg {
 
 func (s *State) GetLeaderTimestamp() interfaces.Timestamp {
 	if s.LeaderTimestamp == nil {
-		s.SetLeaderTimestamp(new(primitives.Timestamp))
+		// To leader timestamp?  Then use the boottime less a minute
+		s.SetLeaderTimestamp(primitives.NewTimestampFromMilliseconds(s.TimestampAtBoot.GetTimeMilliUInt64() - 60*1000))
 	}
-	return s.LeaderTimestamp
+	return primitives.NewTimestampFromMilliseconds(s.LeaderTimestamp.GetTimeMilliUInt64())
+}
+
+func (s *State) GetMessageFilterTimestamp() interfaces.Timestamp {
+	if s.MessageFilterTimestamp == nil {
+		s.MessageFilterTimestamp = primitives.NewTimestampNow()
+	}
+	return s.MessageFilterTimestamp
+}
+
+// the MessageFilterTimestamp  is used to filter messages from the past or before the replay filter.
+// We will not set it to a time that is before boot or more than one hour in the past.
+// this ensure messages from prior boot and messages that predate the current replay filter are
+// are dropped.
+// It marks the start of the replay filter content
+func (s *State) SetMessageFilterTimestamp(leaderTS interfaces.Timestamp) {
+
+	// make a copy of the time stamp so we don't change the source
+	requestedTS := new(primitives.Timestamp)
+	requestedTS.SetTimestamp(leaderTS)
+
+	onehourago := new(primitives.Timestamp)
+	onehourago.SetTimeMilli(primitives.NewTimestampNow().GetTimeMilli() - 60*60*1000) // now() - one hour
+
+	if requestedTS.GetTimeMilli() < onehourago.GetTimeMilli() {
+		requestedTS.SetTimestamp(onehourago)
+	}
+
+	if requestedTS.GetTimeMilli() < s.TimestampAtBoot.GetTimeMilli() {
+		requestedTS.SetTimestamp(s.TimestampAtBoot)
+	}
+
+	if s.MessageFilterTimestamp != nil && requestedTS.GetTimeMilli() < s.MessageFilterTimestamp.GetTimeMilli() {
+		s.LogPrintf("executeMsg", "Set MessageFilterTimestamp attempt to move backward in time from %s", atomic.WhereAmIString(1))
+		return
+	}
+
+	s.LogPrintf("executeMsg", "SetMessageFilterTimestamp(%s) using %s ", leaderTS, requestedTS.String())
+
+	s.MessageFilterTimestamp = primitives.NewTimestampFromMilliseconds(requestedTS.GetTimeMilliUInt64())
 }
 
 func (s *State) SetLeaderTimestamp(ts interfaces.Timestamp) {
-	s.LeaderTimestamp = ts //SetLeaderTimestamp()
-	//s.LogPrintf("executeMsg", "Set LeaderTimeStamp %d %v for %s", s.LLeaderHeight, s.LeaderTimestamp.String(), atomic.WhereAmIString(1))
-}
-func (s *State) SetLLeaderHeight(height uint32) {
-	s.LLeaderHeight = height //SetLeaderHeight()
-	//s.LogPrintf("executeMsg", "Set LeaderHeight %d for %s", s.LLeaderHeight, atomic.WhereAmIString(1))
+	s.LogPrintf("executeMsg", "SetLeaderTimestamp(%s)", ts.String())
+
+	s.LeaderTimestamp = primitives.NewTimestampFromMilliseconds(ts.GetTimeMilliUInt64())
+	s.SetMessageFilterTimestamp(primitives.NewTimestampFromMilliseconds(ts.GetTimeMilliUInt64() - 60*60*1000)) // set message filter to one hour before this block started.
 }
 
 func (s *State) SetFaultTimeout(timeout int) {
@@ -2152,7 +2282,9 @@ func (s *State) SetFaultWait(wait int) {
 	s.FaultWait = wait
 }
 
-//var _ IState = (*State)(nil)
+func (s *State) GetElections() interfaces.IElections {
+	return s.Elections
+}
 
 // GetAuthorities will return a list of the network authorities
 func (s *State) GetAuthorities() []interfaces.IAuthority {
@@ -2222,7 +2354,13 @@ func (s *State) GetNetworkID() uint32 {
 }
 
 // The initial public key that can sign the first block
-func (s *State) GetNetworkBootStrapKey() interfaces.IHash {
+func (s *State) GetNetworkBootStrapKey() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("State.GetNetworkBootStrapKey() saw an interface that was nil")
+		}
+	}()
 	switch s.NetworkNumber {
 	case constants.NETWORK_MAIN:
 		key, _ := primitives.HexToHash("0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a")
@@ -2244,7 +2382,13 @@ func (s *State) GetNetworkBootStrapKey() interfaces.IHash {
 }
 
 // The initial identity that can sign the first block
-func (s *State) GetNetworkBootStrapIdentity() interfaces.IHash {
+func (s *State) GetNetworkBootStrapIdentity() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("State.GetNetworkBootStrapIdentity() saw an interface that was nil")
+		}
+	}()
 	switch s.NetworkNumber {
 	case constants.NETWORK_MAIN:
 		return primitives.NewZeroHash()
@@ -2264,7 +2408,13 @@ func (s *State) GetNetworkBootStrapIdentity() interfaces.IHash {
 }
 
 // The identity for validating messages
-func (s *State) GetNetworkSkeletonIdentity() interfaces.IHash {
+func (s *State) GetNetworkSkeletonIdentity() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("State.GetNetworkSkeletonIdentity() saw an interface that was nil")
+		}
+	}()
 	switch s.NetworkNumber {
 	case constants.NETWORK_MAIN:
 		id, _ := primitives.HexToHash("8888882690706d0d45d49538e64e7c76571d9a9b331256b5b69d9fd2d7f1f14a")
@@ -2283,12 +2433,24 @@ func (s *State) GetNetworkSkeletonIdentity() interfaces.IHash {
 	return id
 }
 
-func (s *State) GetNetworkIdentityRegistrationChain() interfaces.IHash {
+func (s *State) GetNetworkIdentityRegistrationChain() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("State.GetNetworkIdentityRegistrationChain() saw an interface that was nil")
+		}
+	}()
 	id, _ := primitives.HexToHash("888888001750ede0eff4b05f0c3f557890b256450cabbb84cada937f9c258327")
 	return id
 }
 
-func (s *State) GetMatryoshka(dbheight uint32) interfaces.IHash {
+func (s *State) GetMatryoshka(dbheight uint32) (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("State.GetMatryoshka saw an interface thatwas nil")
+		}
+	}()
 	return nil
 }
 
@@ -2300,7 +2462,7 @@ func (s *State) InitLevelDB() error {
 	path := s.LdbPath + "/" + s.Network + "/" + "factoid_level.db"
 
 	s.Println("Database:", path)
-	fmt.Fprint(os.Stderr, "Database:", path)
+	fmt.Fprintln(os.Stderr, "Database:", path)
 
 	dbase, err := leveldb.NewLevelDB(path, false)
 
@@ -2409,7 +2571,7 @@ func (s *State) SummaryHeader() string {
 }
 
 func (s *State) SetStringConsensus() {
-	str := fmt.Sprintf("%10s[%x_%x] ", s.FactomNodeName, s.IdentityChainID.Bytes()[:2], s.IdentityChainID.Bytes()[2:5])
+	str := fmt.Sprintf("%10s[%x_%x] ", s.FactomNodeName, s.IdentityChainID.Bytes()[:2], s.IdentityChainID.Bytes()[3:6])
 
 	s.serverPrt = str
 }
@@ -2418,7 +2580,7 @@ func (s *State) SetStringConsensus() {
 //		totalTPS	: Transaction rate over life of node (totaltime / totaltrans)
 //		instantTPS	: Transaction rate weighted over last 3 seconds
 func (s *State) CalculateTransactionRate() (totalTPS float64, instantTPS float64) {
-	runtime := time.Since(s.starttime)
+	runtime := time.Since(s.Starttime)
 	total := s.FactoidTrans + s.NewEntryChains + s.NewEntries
 	tps := float64(total) / float64(runtime.Seconds())
 	TotalTransactionPerSecond.Set(tps) // Prometheus
@@ -2430,6 +2592,7 @@ func (s *State) CalculateTransactionRate() (totalTPS float64, instantTPS float64
 		s.transCnt = total                     // transactions accounted for
 		InstantTransactionPerSecond.Set(s.tps) // Prometheus
 	}
+
 	return tps, s.tps
 }
 
@@ -2545,6 +2708,9 @@ func (s *State) SetStringQueues() {
 	}
 
 	str = str + fmt.Sprintf(" %5d-:-%d", s.LLeaderHeight, s.CurrentMinute)
+	if list == nil {
+		return
+	}
 
 	if list.System.Height < len(list.System.List) {
 		str = str + fmt.Sprintf(" VM:%s %s", "?", "-nil-")
@@ -2594,9 +2760,6 @@ func (s *State) GetTrueLeaderHeight() uint32 {
 	h := int(s.ProcessLists.DBHeightBase) + len(s.ProcessLists.Lists) - 3
 	if h < 0 {
 		h = 0
-	}
-	if h > 0 && uint32(h-1) > s.HighestKnown {
-		s.HighestKnown = uint32(h - 1)
 	}
 	return uint32(h)
 }
@@ -2765,6 +2928,11 @@ func (s *State) updateNetworkControllerConfig() {
 	}
 
 	s.NetworkController.ReloadSpecialPeers(newPeersConfig)
+}
+
+// Check and Add a hash to the network replay filter
+func (s *State) AddToReplayFilter(mask int, hash [32]byte, timestamp interfaces.Timestamp, systemtime interfaces.Timestamp) (rval bool) {
+	return s.Replay.IsTSValidAndUpdateState(constants.NETWORK_REPLAY, hash, timestamp, systemtime)
 }
 
 // Return if a feature is active for the current height

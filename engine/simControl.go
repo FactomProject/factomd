@@ -19,6 +19,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/factoid"
+	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
@@ -30,10 +31,10 @@ import (
 )
 
 var _ = fmt.Print
-var sortByID bool
-var verboseFaultOutput = false
-var verboseAuthoritySet = false
-var verboseAuthorityDeltas = false
+var SortByID bool
+var VerboseFaultOutput = false
+var VerboseAuthoritySet = false
+var VerboseAuthorityDeltas = false
 var totalServerFaults int
 var lastcmd []string
 var ListenTo int
@@ -43,10 +44,9 @@ var loadGenerator *LoadGenerator
 // Used for signing messages
 var LOCAL_NET_PRIV_KEY string = "4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d"
 
-var InputChan = make(chan string) // Get commands here
-
 var once bool
 
+//var InputChan = make(chan string)
 func GetLine(listenToStdin bool) string {
 
 	if !once {
@@ -61,7 +61,7 @@ func GetLine(listenToStdin bool) string {
 				// So, we will sleep before letting it check to see if Stdin has been reconnected
 				for {
 					if _, err = os.Stdin.Read(line); err == nil {
-						InputChan <- string(line)
+						globals.InputChan <- string(line)
 					} else {
 						if err == io.EOF {
 							return
@@ -75,8 +75,10 @@ func GetLine(listenToStdin bool) string {
 			} // forever
 		}()
 	}
+	//fmt.Println("globals.InputChan ", <-InputChan)
+	line := <-globals.InputChan
 
-	line := <-InputChan
+	//fmt.Println("line ", line)
 	return line
 }
 
@@ -102,7 +104,8 @@ func SimControl(listenTo int, listenStdin bool) {
 	ListenTo = listenTo
 
 	if loadGenerator == nil {
-		loadGenerator = new(LoadGenerator)
+		loadGenerator = NewLoadGenerator(fnodes[0].State)
+		go loadGenerator.KeepUsFunded()
 	}
 
 	for {
@@ -112,7 +115,6 @@ func SimControl(listenTo int, listenStdin bool) {
 		}
 		// cmd is not a list of the parameters, much like command line args show up in args[]
 		cmd := strings.FieldsFunc(GetLine(listenStdin), parseFunc)
-		// fmt.Printf("Parsing command, found %d elements.  The first element is: %+v / %s \n Full command: %+v\n", len(cmd), b[0], string(b), cmd)
 
 		switch {
 		case 0 < len(cmd):
@@ -126,6 +128,7 @@ func SimControl(listenTo int, listenStdin bool) {
 			}
 		}
 		b := string(cmd[0])
+		//fmt.Printf("Parsing command, found %d elements.  The first element is: %+v / %s \n Full command: %+v\n", len(cmd), b[0], string(b), cmd)
 
 		v, err := strconv.Atoi(string(b))
 		if err == nil && v >= 0 && v < len(fnodes) && fnodes[ListenTo].State != nil {
@@ -133,7 +136,7 @@ func SimControl(listenTo int, listenStdin bool) {
 			os.Stderr.WriteString(fmt.Sprintf("Switching to Node %d\n", ListenTo))
 			// Update which node will be displayed on the controlPanel page
 			connectionMetricsChannel := make(chan interface{}, p2p.StandardChannelSize)
-			go controlPanel.ServeControlPanel(fnodes[ListenTo].State.ControlPanelChannel, fnodes[ListenTo].State, connectionMetricsChannel, p2pNetwork, Build)
+			go controlPanel.ServeControlPanel(fnodes[ListenTo].State.ControlPanelChannel, fnodes[ListenTo].State, connectionMetricsChannel, p2pNetwork, Build, "")
 		} else {
 			switch {
 			case '!' == b[0]:
@@ -158,14 +161,13 @@ func SimControl(listenTo int, listenStdin bool) {
 				os.Stderr.WriteString(fmt.Sprintf("Recording delays due to blocked go routines longer than %d ns (%d ms)\n", delay, delay/1000000))
 
 			case 'g' == b[0]:
+				limitBuys = false
 				if len(b) > 1 {
 					if b[1] == 'c' {
 						copyOver(fnodes[ListenTo].State)
 						break
 					}
 					if b[1] == 'f' {
-						loadGenerator.GetECs(true, 1000)
-						//FundWallet(fnodes[wsapiNode].State, uint64(200*5e7))
 						break
 					}
 				}
@@ -176,7 +178,6 @@ func SimControl(listenTo int, listenStdin bool) {
 				wsapi.SetState(fnodes[wsapiNode].State)
 
 				if nextAuthority == -1 {
-					loadGenerator.GetECs(true, 1000)
 					//err, _ := FundWallet(fnodes[wsapiNode].State, 2e7)
 					//if err != nil {
 					//	os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
@@ -197,7 +198,6 @@ func SimControl(listenTo int, listenStdin bool) {
 							os.Stderr.WriteString(fmt.Sprint("You can only pop a max of 100 off the stack at a time."))
 							count = 100
 						}
-						loadGenerator.GetECs(true, 1000)
 						//err := fundWallet(fnodes[wsapiNode].State, uint64(count*5e7))
 						//if err != nil {
 						//	os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
@@ -214,8 +214,8 @@ func SimControl(listenTo int, listenStdin bool) {
 					}
 				}
 			case '/' == b[0]:
-				sortByID = !sortByID
-				if sortByID {
+				SortByID = !SortByID
+				if SortByID {
 					os.Stderr.WriteString("Sort Status by Chain IDs\n")
 				} else {
 					os.Stderr.WriteString("Sort Status by Node Name\n")
@@ -470,11 +470,11 @@ func SimControl(listenTo int, listenStdin bool) {
 						os.Stderr.WriteString(fmt.Sprintf("Setting FaultWait of %10s to %d\n", fn.State.FactomNodeName, nnn))
 					}
 				} else {
-					if verboseFaultOutput {
-						verboseFaultOutput = false
+					if VerboseFaultOutput {
+						VerboseFaultOutput = false
 						os.Stderr.WriteString("Vnnn          Set full fault timeout to the given number of seconds. Helps debugging.\n")
 					} else {
-						verboseFaultOutput = true
+						VerboseFaultOutput = true
 						os.Stderr.WriteString("--VerboseFaultOutput On--\n")
 					}
 				}
@@ -508,22 +508,22 @@ func SimControl(listenTo int, listenStdin bool) {
 				}
 
 				if b[1] == 'l' || b[1] == 'L' {
-					if verboseAuthoritySet {
-						verboseAuthoritySet = false
+					if VerboseAuthoritySet {
+						VerboseAuthoritySet = false
 						os.Stderr.WriteString("--VerboseAuthoritySet Off--\n")
 					} else {
-						verboseAuthoritySet = true
+						VerboseAuthoritySet = true
 						os.Stderr.WriteString("--VerboseAuthoritySet On--\n")
 					}
 					break
 				}
 
 				if b[1] == 'd' || b[1] == 'D' {
-					if verboseAuthorityDeltas {
-						verboseAuthorityDeltas = false
+					if VerboseAuthorityDeltas {
+						VerboseAuthorityDeltas = false
 						os.Stderr.WriteString("--VerboseAuthorityDeltas Off--\n")
 					} else {
-						verboseAuthorityDeltas = true
+						VerboseAuthorityDeltas = true
 						os.Stderr.WriteString("--VerboseAuthorityDeltas On--\n")
 					}
 					break
@@ -653,7 +653,7 @@ func SimControl(listenTo int, listenStdin bool) {
 							vf := v.Validate(f.State)
 							if v != nil {
 								repeat := f.State.Replay.IsHashUnique(constants.REVEAL_REPLAY, v.GetHash().Fixed())
-								os.Stderr.WriteString(fmt.Sprintf("%s v %d cnt %d notYet: %v\n", v.String(), vf, v.GetResendCnt(), repeat))
+								os.Stderr.WriteString(fmt.Sprintf("%s v %d cnt %d notYet: %v holdingKey-%x\n", v.String(), vf, v.GetResendCnt(), repeat, k[:6]))
 							} else {
 								os.Stderr.WriteString("<nul>\n")
 							}
@@ -665,7 +665,7 @@ func SimControl(listenTo int, listenStdin bool) {
 							if c != nil {
 								vf := c.Validate(f.State)
 								repeat := f.State.Replay.IsHashUnique(constants.REVEAL_REPLAY, c.GetHash().Fixed())
-								os.Stderr.WriteString(fmt.Sprintf("%s v %d %x cnt %d notYet: %v\n", c.String(), vf, k, c.GetResendCnt(), repeat))
+								os.Stderr.WriteString(fmt.Sprintf("%s v %d %x cnt %d notYet: %v commitKey-%x \n", c.String(), vf, k, c.GetResendCnt(), repeat, k[:6]))
 								cc, ok1 := c.(*messages.CommitChainMsg)
 								cm, ok2 := c.(*messages.CommitEntryMsg)
 								if ok1 && f.State.Holding[cc.CommitChain.EntryHash.Fixed()] != nil {
@@ -961,7 +961,6 @@ func SimControl(listenTo int, listenStdin bool) {
 					}
 					wsapiNode = ListenTo
 					wsapi.SetState(fnodes[wsapiNode].State)
-					loadGenerator.GetECs(true, 1000)
 
 					//err, _ := FundWallet(fnodes[ListenTo].State, 1e8)
 					//if err != nil {
@@ -1121,7 +1120,7 @@ func SimControl(listenTo int, listenStdin bool) {
 					for _, p := range f.Peers {
 						sim, ok := p.(*SimPeer)
 						if ok {
-							sim.Delay = nnn
+							sim.Delay = nnn // Set the delay in milliseconds
 						}
 					}
 				}
@@ -1186,9 +1185,7 @@ func SimControl(listenTo int, listenStdin bool) {
 				}
 			case 'R' == b[0]:
 				// load generation
-				if loadGenerator == nil && len(fnodes) > ListenTo {
-					loadGenerator = NewLoadGenerator(fnodes[ListenTo].State)
-				} else if loadGenerator == nil {
+				if loadGenerator == nil {
 					os.Stderr.WriteString("Currently no default State we can use for the load generator\n")
 					continue
 				}
@@ -1259,7 +1256,6 @@ func SimControl(listenTo int, listenStdin bool) {
 
 				wsapiNode = ListenTo
 				wsapi.SetState(fnodes[wsapiNode].State)
-				loadGenerator.GetECs(true, 1000)
 				//err = fundWallet(fnodes[ListenTo].State, 1e8)
 				//if err != nil {
 				//	os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
@@ -1289,7 +1285,6 @@ func SimControl(listenTo int, listenStdin bool) {
 
 				wsapiNode = ListenTo
 				wsapi.SetState(fnodes[wsapiNode].State)
-				loadGenerator.GetECs(true, 1000)
 				//err = fundWallet(fnodes[ListenTo].State, 1e8)
 				//if err != nil {
 				//	os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))

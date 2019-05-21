@@ -5,6 +5,7 @@
 package primitives
 
 import (
+	"bufio"
 	"bytes"
 	"crypto/sha256"
 	"crypto/sha512"
@@ -13,12 +14,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"runtime"
+	"reflect"
 	"runtime/debug"
+	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives/random"
+	"github.com/FactomProject/factomd/util/atomic"
 )
 
 type Hash [constants.HASH_LENGTH]byte
@@ -30,6 +34,21 @@ var _ encoding.TextMarshaler = (*Hash)(nil)
 
 var ZeroHash interfaces.IHash = NewHash(constants.ZERO_HASH)
 
+var noRepeat map[string]int = make(map[string]int)
+
+func LogNilHashBug(msg string) {
+	whereAmI := atomic.WhereAmIString(2)
+	noRepeat[whereAmI]++
+
+	if noRepeat[whereAmI]%100 == 1 {
+		fmt.Fprintf(os.Stderr, "%s. Called from %s\n", msg, whereAmI)
+	}
+
+}
+
+func (h *Hash) IsHashNil() bool {
+	return h == nil || reflect.ValueOf(h).IsNil()
+}
 func RandomHash() interfaces.IHash {
 	h := random.RandByteSliceOfLen(constants.HASH_LENGTH)
 	answer := new(Hash)
@@ -37,7 +56,13 @@ func RandomHash() interfaces.IHash {
 	return answer
 }
 
-func (c *Hash) Copy() interfaces.IHash {
+func (c *Hash) Copy() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			LogNilHashBug("Hash.Copy() saw an interface that was nil")
+		}
+	}()
 	h := new(Hash)
 	err := h.SetBytes(c.Bytes())
 	if err != nil {
@@ -87,7 +112,6 @@ func (h *Hash) UnmarshalText(b []byte) error {
 func (h *Hash) Fixed() [constants.HASH_LENGTH]byte {
 	// Might change the error produced by IHash in FD-398
 	if h == nil {
-		runtime.Breakpoint()
 		panic("nil Hash")
 	}
 	return *h
@@ -251,6 +275,57 @@ func (e *Hash) JSONString() (string, error) {
 	return EncodeJSONString(e)
 }
 
+/****************************************************************
+	DEBUG logging to keep full hash. Turned on from command line
+ ****************************************************************/
+func Loghashfixed(h [32]byte) {
+	if !globals.Params.FullHashesLog {
+		return
+	}
+	if globals.Hashlog == nil {
+		f, err := os.Create("fullhashes.txt")
+		globals.Hashlog = bufio.NewWriter(f)
+		f.WriteString(time.Now().String() + "\n")
+		if err != nil {
+			panic(err)
+		}
+	}
+	globals.HashMutex.Lock()
+	defer globals.HashMutex.Unlock()
+	if globals.Hashes == nil {
+		globals.Hashes = make(map[[32]byte]bool)
+	}
+	_, exists := globals.Hashes[h]
+	if !exists {
+		//fmt.Fprintf(globals.Hashlog, "%x\n", h)
+		var x int
+		// turns out random is better than LRU because the leader/common chain hashes get used a lot and keep getting
+		// tossed. Probably better to add special handling for leader and known chains ...
+
+		if true {
+			x = globals.HashNext // Use LRU
+		} else {
+			x = random.RandIntBetween(0, len(globals.HashesInOrder)) // use random replacement
+		}
+		if globals.HashesInOrder[x] != nil {
+			fmt.Fprintf(globals.Hashlog, "delete [%4d] %x\n", x, *globals.HashesInOrder[x])
+			delete(globals.Hashes, *globals.HashesInOrder[x]) // delete the oldest hash
+			globals.HashesInOrder[x] = nil
+		}
+		fmt.Fprintf(globals.Hashlog, "add    [%4d] %x\n", x, h)
+		globals.Hashes[h] = true                                               // add the new hash
+		globals.HashesInOrder[x] = &h                                          // add it to the ordered list
+		globals.HashNext = (globals.HashNext + 1) % len(globals.HashesInOrder) // wrap index at end of array
+	}
+}
+
+func Loghash(h interfaces.IHash) {
+	if h == nil {
+		return
+	}
+	Loghashfixed(h.Fixed())
+}
+
 /**********************
  * Support functions
  **********************/
@@ -260,6 +335,7 @@ func Sha(p []byte) interfaces.IHash {
 	h := new(Hash)
 	b := sha256.Sum256(p)
 	h.SetBytes(b[:])
+	Loghash(h)
 	return h
 }
 
@@ -287,6 +363,7 @@ func NewHash(b []byte) interfaces.IHash {
 func DoubleSha(data []byte) []byte {
 	h1 := sha256.Sum256(data)
 	h2 := sha256.Sum256(h1[:])
+	Loghashfixed(h2)
 	return h2[:]
 }
 

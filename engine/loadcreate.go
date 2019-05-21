@@ -8,9 +8,6 @@ import (
 
 	"crypto/sha256"
 
-	"fmt"
-	"os"
-
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
@@ -31,6 +28,7 @@ type LoadGenerator struct {
 	running   atomic.AtomicBool      // We are running
 	tight     atomic.AtomicBool      // Only allocate ECs as needed (more EC purchases)
 	txoffset  int64                  // Offset to be added to the timestamp of created tx to test time limits.
+	state     *state.State           // Access to logging
 }
 
 // NewLoadGenerator makes a new load generator. The state is used for funding the transaction
@@ -38,6 +36,7 @@ func NewLoadGenerator(s *state.State) *LoadGenerator {
 	lg := new(LoadGenerator)
 	lg.ECKey, _ = primitives.NewPrivateKeyFromHex(ecSec)
 	lg.stop = make(chan bool, 5)
+	lg.state = s
 
 	return lg
 }
@@ -46,6 +45,7 @@ func (lg *LoadGenerator) Run() {
 	if lg.running.Load() {
 		return
 	}
+
 	lg.running.Store(true)
 	//FundWallet(fnodes[wsapiNode].State, 15000e8)
 
@@ -61,13 +61,14 @@ func (lg *LoadGenerator) Run() {
 		}
 		addSend := lg.PerSecond.Load()
 		lg.ToSend += addSend
-		top := lg.ToSend / 10
-		lg.ToSend = lg.ToSend % 10
+		top := lg.ToSend / 10      // ToSend is in tenths so get the integer part
+		lg.ToSend = lg.ToSend % 10 // save an fractional part for next iteration
 		if addSend == 0 {
 			lg.running.Store(false)
 			return
 		}
 		var chain interfaces.IHash = nil
+
 		for i := 0; i < top; i++ {
 			var c interfaces.IMsg
 			e := RandomEntry()
@@ -79,9 +80,10 @@ func (lg *LoadGenerator) Run() {
 				c = lg.NewCommitEntry(e)
 			}
 			r := lg.NewRevealEntry(e)
-
-			fnodes[wsapiNode].State.APIQueue().Enqueue(c)
-			fnodes[wsapiNode].State.APIQueue().Enqueue(r)
+			s := fnodes[wsapiNode].State
+			s.APIQueue().Enqueue(c)
+			s.APIQueue().Enqueue(r)
+			time.Sleep(time.Duration(800/top) * time.Millisecond) // spread the load out over 800ms + overhead
 		}
 	}
 }
@@ -92,7 +94,7 @@ func (lg *LoadGenerator) Stop() {
 
 func RandomEntry() *entryBlock.Entry {
 	entry := entryBlock.NewEntry()
-	entry.Content = primitives.ByteSlice{random.RandByteSliceOfLen(rand.Intn(4000))}
+	entry.Content = primitives.ByteSlice{random.RandByteSliceOfLen(rand.Intn(4000) + 128)}
 	entry.ExtIDs = make([]primitives.ByteSlice, rand.Intn(4)+1)
 	raw := make([][]byte, len(entry.ExtIDs))
 	for i := range entry.ExtIDs {
@@ -121,32 +123,66 @@ func (lg *LoadGenerator) NewRevealEntry(entry *entryBlock.Entry) *messages.Revea
 }
 
 var cnt int
+var goingUp bool
+var limitBuys = true // We limit buys only after one attempted purchase, so people can fund identities in testing
 
-func (lg *LoadGenerator) GetECs(tight bool, c int) {
+func (lg *LoadGenerator) KeepUsFunded() {
+
 	s := fnodes[wsapiNode].State
-	outEC, _ := primitives.HexToHash("c23ae8eec2beb181a0da926bd2344e988149fbe839fbc7489f2096e7d6110243")
-	outAdd := factoid.NewAddress(outEC.Bytes())
-	ecBal := s.GetE(true, outAdd.Fixed())
-	ecPrice := s.GetFactoshisPerEC()
 
-	if c == 0 || !tight {
-		c += 1000
-	} else {
-		c += 10
-	}
+	var level int64
 
-	cnt++
-	if (ecBal > int64(c) && ecBal > 15) || (!tight && ecBal > 2000) {
-		if cnt%1000 == 0 {
-			os.Stderr.WriteString(fmt.Sprintf("%d purchases, not buying %d cause the balance is %d \n", cnt, c, ecBal))
+	buys := 0
+	totalBought := 0
+	for i := 0; ; i++ {
+
+		ts := "false"
+		if lg.tight.Load() {
+			ts = "true"
 		}
-		return
+
+		if lg.PerSecond == 0 && limitBuys {
+			if i%100 == 0 {
+				// Log our occasional realization that we have nothing to do.
+				outEC, _ := primitives.HexToHash("c23ae8eec2beb181a0da926bd2344e988149fbe839fbc7489f2096e7d6110243")
+				outAdd := factoid.NewAddress(outEC.Bytes())
+				ecBal := s.GetE(true, outAdd.Fixed())
+
+				lg.state.LogPrintf("loadgenerator", "Tight %7s Total TX %6d for a total of %8d entry credits balance %d.",
+					ts, buys, totalBought, ecBal)
+			}
+			time.Sleep(5 * time.Second)
+			continue
+		}
+
+		if !limitBuys {
+			level = 200 // Only do this once, after that look for requests for load to drive EC buys.
+		} else if lg.tight.Load() {
+			level = 10
+		} else {
+			level = 10000
+		}
+
+		outEC, _ := primitives.HexToHash("c23ae8eec2beb181a0da926bd2344e988149fbe839fbc7489f2096e7d6110243")
+		outAdd := factoid.NewAddress(outEC.Bytes())
+		ecBal := s.GetE(true, outAdd.Fixed())
+		ecPrice := s.GetFactoshisPerEC()
+
+		if ecBal < level {
+			buys++
+			need := level - ecBal + level*2
+			totalBought += int(need)
+			FundWalletTOFF(s, lg.txoffset, uint64(need)*ecPrice)
+		} else {
+			limitBuys = true
+		}
+
+		if i%5 == 0 {
+			lg.state.LogPrintf("loadgenerator", "Tight %7s Total TX %6d for a total of %8d entry credits balance %d.",
+				ts, buys, totalBought, ecBal)
+		}
+		time.Sleep(100 * time.Millisecond)
 	}
-
-	os.Stderr.WriteString(fmt.Sprintf("%d purchases, buying %d and balance is %d \n", cnt, c, ecBal))
-
-	FundWalletTOFF(s, lg.txoffset, uint64(c)*ecPrice)
-
 }
 
 func (lg *LoadGenerator) NewCommitChain(entry *entryBlock.Entry) *messages.CommitChainMsg {
@@ -157,13 +193,11 @@ func (lg *LoadGenerator) NewCommitChain(entry *entryBlock.Entry) *messages.Commi
 	commit := entryCreditBlock.NewCommitChain()
 	data, _ := entry.MarshalBinary()
 	commit.Credits, _ = util.EntryCost(data)
-
 	commit.Credits += 10
-	lg.GetECs(lg.tight.Load(), int(commit.Credits))
 
 	commit.EntryHash = entry.GetHash()
 	var b6 primitives.ByteSlice6
-	copy(b6[:], milliTime()[:])
+	copy(b6[:], milliTime(lg.txoffset)[:])
 	commit.MilliTime = &b6
 	var b32 primitives.ByteSlice32
 	copy(b32[:], lg.ECKey.Pub[:])
@@ -188,11 +222,10 @@ func (lg *LoadGenerator) NewCommitEntry(entry *entryBlock.Entry) *messages.Commi
 	data, _ := entry.MarshalBinary()
 
 	commit.Credits, _ = util.EntryCost(data)
-	lg.GetECs(lg.tight.Load(), int(commit.Credits))
 
 	commit.EntryHash = entry.GetHash()
 	var b6 primitives.ByteSlice6
-	copy(b6[:], milliTime()[:])
+	copy(b6[:], milliTime(lg.txoffset)[:])
 	commit.MilliTime = &b6
 	var b32 primitives.ByteSlice32
 	copy(b32[:], lg.ECKey.Pub[:])
@@ -207,10 +240,10 @@ func (lg *LoadGenerator) NewCommitEntry(entry *entryBlock.Entry) *messages.Commi
 }
 
 // milliTime returns a 6 byte slice representing the unix time in milliseconds
-func milliTime() (r []byte) {
+func milliTime(offset int64) (r []byte) {
 	buf := new(bytes.Buffer)
 	t := time.Now().UnixNano()
-	m := t / 1e6
+	m := t/1e6 + offset
 	binary.Write(buf, binary.BigEndian, m)
 	return buf.Bytes()[2:]
 }

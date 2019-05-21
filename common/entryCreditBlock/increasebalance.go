@@ -7,6 +7,7 @@ package entryCreditBlock
 import (
 	"fmt"
 	"os"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -85,11 +86,25 @@ func NewIncreaseBalance() *IncreaseBalance {
 	return r
 }
 
-func (a *IncreaseBalance) GetEntryHash() interfaces.IHash {
+func (a *IncreaseBalance) GetEntryHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("IncreaseBalance.GetEntryHash() saw an interface that was nil")
+		}
+	}()
+
 	return nil
 }
 
-func (e *IncreaseBalance) Hash() interfaces.IHash {
+func (e *IncreaseBalance) Hash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("IncreaseBalance.Hash() saw an interface that was nil")
+		}
+	}()
+
 	bin, err := e.MarshalBinary()
 	if err != nil {
 		panic(err)
@@ -97,11 +112,25 @@ func (e *IncreaseBalance) Hash() interfaces.IHash {
 	return primitives.Sha(bin)
 }
 
-func (e *IncreaseBalance) GetHash() interfaces.IHash {
+func (e *IncreaseBalance) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("IncreaseBalance.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	return e.Hash()
 }
 
-func (e *IncreaseBalance) GetSigHash() interfaces.IHash {
+func (e *IncreaseBalance) GetSigHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("IncreaseBalance.GetSigHash() saw an interface that was nil")
+		}
+	}()
+
 	return nil
 }
 

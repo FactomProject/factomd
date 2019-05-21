@@ -6,6 +6,7 @@ package identityEntries
 
 import (
 	"fmt"
+	"reflect"
 
 	"encoding/binary"
 
@@ -145,7 +146,14 @@ func (ncas *NewCoinbaseCancelStruct) ToExternalIDs() [][]byte {
 	return extIDs
 }
 
-func (ncas *NewCoinbaseCancelStruct) GetChainID() interfaces.IHash {
+func (ncas *NewCoinbaseCancelStruct) GetChainID() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("NewCoinbaseCancelStruct.GetChainID() saw an interface that was nil")
+		}
+	}()
+
 	extIDs := ncas.ToExternalIDs()
 
 	return entryBlock.ExternalIDsToChainID(extIDs)

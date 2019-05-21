@@ -29,6 +29,8 @@ var DefaultCoinbaseAmount uint64 = 100000000
 
 func CreateEmptyTestState() *state.State {
 	s := new(state.State)
+	s.TimestampAtBoot = new(primitives.Timestamp)
+	s.TimestampAtBoot.SetTime(0)
 	s.EFactory = new(electionMsgs.ElectionsFactory)
 	s.LoadConfig("", "")
 	s.Network = "LOCAL"
@@ -37,6 +39,8 @@ func CreateEmptyTestState() *state.State {
 	s.Network = "LOCAL"
 	s.CheckChainHeads.CheckChainHeads = false
 	state.LoadDatabase(s)
+	s.Process()
+	s.DBFinished = true
 	return s
 }
 
@@ -59,6 +63,8 @@ func CreatePopulateAndExecuteTestState() *state.State {
 
 func CreateAndPopulateTestState() *state.State {
 	s := new(state.State)
+	s.TimestampAtBoot = new(primitives.Timestamp)
+	s.TimestampAtBoot.SetTime(0)
 	s.EFactory = new(electionMsgs.ElectionsFactory)
 	s.SetLeaderTimestamp(primitives.NewTimestampFromMilliseconds(0))
 	s.DB = CreateAndPopulateTestDatabaseOverlay()
@@ -83,6 +89,7 @@ func CreateAndPopulateTestState() *state.State {
 	}*/
 	s.SetFactoshisPerEC(1)
 	state.LoadDatabase(s)
+	s.Process()
 	s.UpdateState()
 
 	return s
@@ -364,4 +371,10 @@ func CreateTestBlockSetWithNetworkID(prev *BlockSet, networkID uint32, transacti
 
 func CreateEmptyTestDatabaseOverlay() *databaseOverlay.Overlay {
 	return databaseOverlay.NewOverlay(new(mapdb.MapDB))
+}
+
+func PrintList(title string, list map[string]uint64) {
+	for addr, amt := range list {
+		fmt.Printf("%v - %v:%v\n", title, addr, amt)
+	}
 }

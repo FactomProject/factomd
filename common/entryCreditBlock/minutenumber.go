@@ -7,6 +7,7 @@ package entryCreditBlock
 import (
 	"fmt"
 	"os"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -48,7 +49,14 @@ func (a *MinuteNumber) IsSameAs(b interfaces.IECBlockEntry) bool {
 	return true
 }
 
-func (e *MinuteNumber) Hash() interfaces.IHash {
+func (e *MinuteNumber) Hash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("MinuteNumber.Hash() saw an interface that was nil")
+		}
+	}()
+
 	bin, err := e.MarshalBinary()
 	if err != nil {
 		panic(err)
@@ -56,15 +64,36 @@ func (e *MinuteNumber) Hash() interfaces.IHash {
 	return primitives.Sha(bin)
 }
 
-func (e *MinuteNumber) GetHash() interfaces.IHash {
+func (e *MinuteNumber) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("MinuteNumber.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	return e.Hash()
 }
 
-func (e *MinuteNumber) GetSigHash() interfaces.IHash {
+func (e *MinuteNumber) GetSigHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("MinuteNumber.GetSigHash() saw an interface that was nil")
+		}
+	}()
+
 	return nil
 }
 
-func (a *MinuteNumber) GetEntryHash() interfaces.IHash {
+func (a *MinuteNumber) GetEntryHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("MinuteNumber.GetEntryHash() saw an interface that was nil")
+		}
+	}()
+
 	return nil
 }
 

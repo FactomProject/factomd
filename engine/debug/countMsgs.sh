@@ -1,3 +1,6 @@
+#!/usr/bin/env bash
+# Make a histogram of the types of messages used in a log
+# countMsgs.sh <logs>
 ################################
 # AWK scripts                  #
 ################################
@@ -37,4 +40,4 @@ EOF
 ################################
 
 
-grep -H "Dequeue" $@  | awk "$scriptVariable" 
+grep -H "Dequeue" $@ | grep -v "EmbeddedMsg" | awk "$scriptVariable" 

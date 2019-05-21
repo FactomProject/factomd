@@ -4,7 +4,9 @@
 
 package interfaces
 
-import "github.com/FactomProject/factomd/activations"
+import (
+	"github.com/FactomProject/factomd/activations"
+)
 
 type DBStateSent struct {
 	DBHeight uint32
@@ -41,6 +43,7 @@ type IState interface {
 	Sign([]byte) IFullSignature
 	Log(level string, message string)
 	Logf(level string, format string, args ...interface{})
+	GetServerPublicKeyString() string
 
 	GetDBStatesSent() []*DBStateSent
 	SetDBStatesSent([]*DBStateSent)
@@ -49,6 +52,7 @@ type IState interface {
 	SetDirectoryBlockInSeconds(int)
 	GetFactomdVersion() string
 	GetDBHeightComplete() uint32
+	GetDBHeightAtBoot() uint32
 	DatabaseContains(hash IHash) bool
 	SetOut(bool)  // Output is turned on if set to true
 	GetOut() bool // Return true if Print or Println write output
@@ -77,6 +81,7 @@ type IState interface {
 	GetRpcAuthHash() []byte
 	GetTlsInfo() (bool, string, string)
 	GetFactomdLocations() string
+	GetCorsDomains() []string
 
 	// Routine for handling the syncroniztion of the leader and follower processes
 	// and how they process messages.
@@ -116,8 +121,8 @@ type IState interface {
 	// Consensus
 	APIQueue() IQueue    // Input Queue from the API
 	InMsgQueue() IQueue  // Read by Validate
-	AckQueue() chan IMsg // Leader Queue
-	MsgQueue() chan IMsg // Follower Queue
+	AckQueue() chan IMsg // Ack Message Queue
+	MsgQueue() chan IMsg // Other Messages Queue
 	ElectionsQueue() IQueue
 
 	// Lists and Maps
@@ -296,6 +301,7 @@ type IState interface {
 
 	AddAuthorityDelta(changeString string)
 
+	GetElections() IElections
 	GetAuthorities() []IAuthority
 	GetAuthorityInterface(chainid IHash) IAuthority
 	GetLeaderPL() IProcessList
@@ -307,6 +313,7 @@ type IState interface {
 	GetCurrentBlockStartTime() int64
 	GetCurrentMinute() int
 	GetCurrentMinuteStartTime() int64
+	GetPreviousMinuteStartTime() int64
 	GetCurrentTime() int64
 	IsStalled() bool
 	GetDelay() int64
@@ -314,6 +321,12 @@ type IState interface {
 	GetDropRate() int
 	SetDropRate(int)
 	GetBootTime() int64
+	IsSyncing() bool
+	IsSyncingEOMs() bool
+	IsSyncingDBSigs() bool
+	DidCreateLastBlockFromDBState() bool
+	GetUnsyncedServers(dbheight uint32) []IHash
+	Validate(msg IMsg) (validToSend int, validToExecute int)
 
 	// Access to Holding Queue
 	LoadHoldingMap() map[[32]byte]IMsg
@@ -329,6 +342,8 @@ type IState interface {
 	GetHighestAck() uint32
 	SetHighestAck(uint32)
 	DebugExec() bool
+	CheckFileName(string) bool
+	AddToReplayFilter(mask int, hash [32]byte, timestamp Timestamp, systemtime Timestamp) bool
 
 	// Activations
 	IsActive(id activations.ActivationType) bool

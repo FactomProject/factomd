@@ -6,6 +6,7 @@ package electionMsgs
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -87,7 +88,14 @@ func (a *SyncMsg) IsSameAs(msg interfaces.IMsg) bool {
 	return true
 }
 
-func (m *SyncMsg) GetServerID() interfaces.IHash {
+func (m *SyncMsg) GetServerID() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("SyncMsg.GetServerID() saw an interface that was nil")
+		}
+	}()
+
 	return m.ServerID
 }
 
@@ -95,12 +103,26 @@ func (m *SyncMsg) LogFields() log.Fields {
 	return log.Fields{"category": "message", "messagetype": "FedVoteMsg", "dbheight": m.DBHeight, "newleader": m.ServerID.String()[4:12]}
 }
 
-func (m *SyncMsg) GetRepeatHash() interfaces.IHash {
+func (m *SyncMsg) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("SyncMsg.GetRepeatHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.GetMsgHash()
 }
 
 // We have to return the hash of the underlying message.
-func (m *SyncMsg) GetHash() interfaces.IHash {
+func (m *SyncMsg) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("SyncMsg.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.GetMsgHash()
 }
 
@@ -108,7 +130,14 @@ func (m *SyncMsg) GetTimestamp() interfaces.Timestamp {
 	return m.TS
 }
 
-func (m *SyncMsg) GetMsgHash() interfaces.IHash {
+func (m *SyncMsg) GetMsgHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("SyncMsg.GetMsgHash() saw an interface that was nil")
+		}
+	}()
+
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()
 		if err != nil {
@@ -124,6 +153,9 @@ func (m *SyncMsg) Type() byte {
 }
 
 func (m *SyncMsg) Validate(state interfaces.IState) int {
+	if !m.IsLocal() { // FD-886, only accept local messages
+		return -1
+	}
 	//TODO: Must be validated
 	return 1
 }
@@ -156,8 +188,9 @@ func (m *SyncMsg) FollowerExecute(is interfaces.IState) {
 		msg, ack = s.CreateDBSig(m.DBHeight, m.VMIndex)
 	}
 	if msg == nil { // TODO: What does this mean? -- clay
-		s.Holding[m.GetMsgHash().Fixed()] = m
-		return // Maybe we are not yet prepared to create an SigType...
+		//s.Holding[m.GetMsgHash().Fixed()] = m
+		s.AddToHolding(m.GetMsgHash().Fixed(), m) // SyncMsg.FollowerExecute
+		return                                    // Maybe we are not yet prepared to create an SigType...
 	}
 	va := new(FedVoteVolunteerMsg)
 	va.Missing = msg

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -127,10 +128,16 @@ func Peers(fnode *FactomNode) {
 		for i := 0; i < 100 && fnode.State.APIQueue().Length() > 0; i++ {
 			msg := fnode.State.APIQueue().Dequeue()
 
+			if globals.Params.FullHashesLog {
+				primitives.Loghash(msg.GetMsgHash())
+				primitives.Loghash(msg.GetHash())
+				primitives.Loghash(msg.GetRepeatHash())
+			}
+
 			if msg == nil {
 				continue
 			}
-			if msg.GetHash() == nil {
+			if msg.GetHash().IsHashNil() {
 				fnode.State.LogMessage("badMsgs", "Nil hash from APIQueue", msg)
 				continue
 			}
@@ -139,11 +146,6 @@ func Peers(fnode *FactomNode) {
 			if fnode.State.GetNetStateOff() { // drop received message if he is off
 				fnode.State.LogMessage("NetworkInputs", "API drop, X'd by simCtrl", msg)
 				continue // Toss any inputs from API
-			}
-
-			if fnode.State.InMsgQueue().Length() > constants.INMSGQUEUE_HIGH {
-				fnode.State.LogMessage("NetworkInputs", "API Drop, Too Full", msg)
-				continue
 			}
 
 			if fnode.State.GetNetStateOff() {
@@ -180,7 +182,6 @@ func Peers(fnode *FactomNode) {
 			}
 
 			//fnode.MLog.add2(fnode, false, fnode.State.FactomNodeName, "API", true, msg)
-			fnode.State.LogMessage("NetworkInputs", "from API, Enqueue", msg)
 			if t := msg.Type(); t == constants.REVEAL_ENTRY_MSG || t == constants.COMMIT_CHAIN_MSG || t == constants.COMMIT_ENTRY_MSG {
 				fnode.State.LogMessage("NetworkInputs", "from API, Enqueue2", msg)
 				fnode.State.LogMessage("InMsgQueue2", "enqueue2", msg)
@@ -208,9 +209,14 @@ func Peers(fnode *FactomNode) {
 				}
 				if err != nil {
 					fnode.State.LogPrintf("NetworkInputs", "error on receive from %v: %v", peer.GetNameFrom(), err)
-					fmt.Println("ERROR receiving message on", fnode.State.FactomNodeName+":", err)
 					// TODO: Maybe we should check the error type and/or count errors and change status to offline?
 					break // move to next peer
+				}
+
+				if globals.Params.FullHashesLog {
+					primitives.Loghash(msg.GetMsgHash())
+					primitives.Loghash(msg.GetHash())
+					primitives.Loghash(msg.GetRepeatHash())
 				}
 
 				if fnode.State.LLeaderHeight < fnode.State.DBHeightAtBoot+2 {
@@ -229,7 +235,7 @@ func Peers(fnode *FactomNode) {
 					fnode.State.TallyReceived(int(msg.Type())) //TODO: Do we want to count dropped message?
 				}
 
-				if msg.GetHash() == nil {
+				if msg.GetHash().IsHashNil() {
 					fnode.State.LogMessage("badMsgs", "Nil hash from Peer", msg)
 					continue
 				}
@@ -237,11 +243,6 @@ func Peers(fnode *FactomNode) {
 				if fnode.State.GetNetStateOff() { // drop received message if he is off
 					fnode.State.LogMessage("NetworkInputs", fromPeer+" Drop, X'd by simCtrl", msg)
 					continue // Toss any inputs from this peer
-				}
-
-				if fnode.State.InMsgQueue().Length() > constants.INMSGQUEUE_HIGH {
-					fnode.State.LogMessage("NetworkInputs", fromPeer+" Drop, Too Full", msg)
-					continue
 				}
 
 				repeatHash := msg.GetRepeatHash()
@@ -295,12 +296,18 @@ func Peers(fnode *FactomNode) {
 				fnode.MLog.Add2(fnode, false, peer.GetNameTo(), fmt.Sprintf("%s %d", in, i+1), true, msg)
 
 				// don't resend peer to peer messages or responses
-				switch msg.Type() {
-				case constants.MISSING_DATA, constants.MISSING_MSG, constants.MISSING_MSG_RESPONSE, constants.DBSTATE_MISSING_MSG, constants.DATA_RESPONSE:
+				if constants.NormallyPeer2Peer(msg.Type()) {
 					msg.SetNoResend(true)
 				}
+				// check if any P2P msg types slip by
+				if msg.IsPeer2Peer() && !msg.GetNoResend() {
+					fnode.State.LogMessage("NetworkInputs", "unmarked P2P msg", msg)
+					msg.SetNoResend(true)
+				}
+
+				msg.SetNetwork(true)
+
 				if !crossBootIgnore(msg) {
-					fnode.State.LogMessage("NetworkInputs", fromPeer+", enqueue", msg)
 					if t := msg.Type(); t == constants.REVEAL_ENTRY_MSG || t == constants.COMMIT_CHAIN_MSG || t == constants.COMMIT_ENTRY_MSG {
 						fnode.State.LogMessage("NetworkInputs", fromPeer+", enqueue2", msg)
 						fnode.State.LogMessage("InMsgQueue2", fromPeer+", enqueue2", msg)
@@ -326,6 +333,7 @@ func NetworkOutputs(fnode *FactomNode) {
 		// }
 		//msg := <-fnode.State.NetworkOutMsgQueue()
 		msg := fnode.State.NetworkOutMsgQueue().BlockingDequeue()
+
 		NetworkOutTotalDequeue.Inc()
 		fnode.State.LogMessage("NetworkOutputs", "Dequeue", msg)
 
@@ -334,71 +342,79 @@ func NetworkOutputs(fnode *FactomNode) {
 		// by an updated version when the block is ready.
 		if msg.IsLocal() {
 			// todo: Should be a dead case. Add tracking code to see if it ever happens -- clay
-			return
+			fnode.State.LogMessage("NetworkOutputs", "drop, local", msg)
+			continue
 		}
 		// Don't do a rand int if drop rate is 0
 		if fnode.State.GetDropRate() > 0 && rand.Int()%1000 < fnode.State.GetDropRate() {
 			//drop the message, rather than processing it normally
-		} else {
-			if msg.GetRepeatHash() == nil {
-				fnode.State.LogMessage("NetworkOutputs", "Drop, no repeat hash", msg)
-				continue
-			}
 
-			//_, ok := msg.(*messages.Ack)
-			//if ok {
-			//// We don't care about the result, but we do want to log that we have
-			//// seen this message before, because we might have generated the message
-			//// ourselves.
-			//	// Add the ack to our replay filter
-			//	fnode.State.Replay.IsTSValidAndUpdateState(
-			//		constants.NETWORK_REPLAY,
-			//		msg.GetRepeatHash().Fixed(),
-			//		msg.GetTimestamp(),
-			//		fnode.State.GetTimestamp())
-			//}
+			fnode.State.LogMessage("NetworkOutputs", "drop, simCtrl", msg)
+			continue
+		}
+		if msg.GetRepeatHash() == nil {
+			fnode.State.LogMessage("NetworkOutputs", "drop, no repeat hash", msg)
+			continue
+		}
 
-			p := msg.GetOrigin() - 1 // Origin is one based but peer list is zero based.
+		//_, ok := msg.(*messages.Ack)
+		//if ok {
+		//// We don't care about the result, but we do want to log that we have
+		//// seen this message before, because we might have generated the message
+		//// ourselves.
+		//	// Add the ack to our replay filter
+		//	fnode.State.Replay.IsTSValidAndUpdateState(
+		//		constants.NETWORK_REPLAY,
+		//		msg.GetRepeatHash().Fixed(),
+		//		msg.GetTimestamp(),
+		//		fnode.State.GetTimestamp())
+		//}
 
-			if msg.IsPeer2Peer() {
-				// Must have a Peer to send a message to a peer
-				if len(fnode.Peers) > 0 {
-					if p < 0 {
-						fnode.P2PIndex = (fnode.P2PIndex + 1) % len(fnode.Peers)
-						p = rand.Int() % len(fnode.Peers)
+		p := msg.GetOrigin() - 1 // Origin is one based but peer list is zero based.
+
+		if msg.IsPeer2Peer() {
+			// Must have a Peer to send a message to a peer
+			if len(fnode.Peers) > 0 {
+				if p < 0 {
+					fnode.P2PIndex = (fnode.P2PIndex + 1) % len(fnode.Peers)
+					p = rand.Int() % len(fnode.Peers)
+				}
+				peer := fnode.Peers[p]
+				fnode.MLog.Add2(fnode, true, peer.GetNameTo(), "P2P out", true, msg)
+				if !fnode.State.GetNetStateOff() { // don't Send p2p messages if he is OFF
+					preSendTime := time.Now()
+					fnode.State.LogMessage("NetworkOutputs", "Send P2P "+peer.GetNameTo(), msg)
+					peer.Send(msg)
+					sendTime := time.Since(preSendTime)
+					TotalSendTime.Add(float64(sendTime.Nanoseconds()))
+					if fnode.State.MessageTally {
+						fnode.State.TallySent(int(msg.Type()))
 					}
-					peer := fnode.Peers[p]
-					fnode.MLog.Add2(fnode, true, peer.GetNameTo(), "P2P out", true, msg)
-					if !fnode.State.GetNetStateOff() { // don't Send p2p messages if he is OFF
+				} else {
+
+					fnode.State.LogMessage("NetworkOutputs", "drop, simCtrl X", msg)
+				}
+			} else {
+				fnode.State.LogMessage("NetworkOutputs", "drop, no peers", msg)
+			}
+		} else {
+			fnode.State.LogMessage("NetworkOutputs", "Send broadcast", msg)
+			for i, peer := range fnode.Peers {
+				wt := 1
+				if p >= 0 {
+					wt = fnode.Peers[p].Weight()
+				}
+				// Don't resend to the node that sent it to you.
+				if i != p || wt > 1 {
+					bco := fmt.Sprintf("%s/%d/%d", "BCast", p, i)
+					fnode.MLog.Add2(fnode, true, peer.GetNameTo(), bco, true, msg)
+					if !fnode.State.GetNetStateOff() { // Don't send him broadcast message if he is off
 						preSendTime := time.Now()
-						fnode.State.LogMessage("NetworkOutputs", "Send P2P "+peer.GetNameTo(), msg)
 						peer.Send(msg)
 						sendTime := time.Since(preSendTime)
 						TotalSendTime.Add(float64(sendTime.Nanoseconds()))
 						if fnode.State.MessageTally {
 							fnode.State.TallySent(int(msg.Type()))
-						}
-					}
-				}
-			} else {
-				fnode.State.LogMessage("NetworkOutputs", "Send broadcast", msg)
-				for i, peer := range fnode.Peers {
-					wt := 1
-					if p >= 0 {
-						wt = fnode.Peers[p].Weight()
-					}
-					// Don't resend to the node that sent it to you.
-					if i != p || wt > 1 {
-						bco := fmt.Sprintf("%s/%d/%d", "BCast", p, i)
-						fnode.MLog.Add2(fnode, true, peer.GetNameTo(), bco, true, msg)
-						if !fnode.State.GetNetStateOff() { // Don't send him broadcast message if he is off
-							preSendTime := time.Now()
-							peer.Send(msg)
-							sendTime := time.Since(preSendTime)
-							TotalSendTime.Add(float64(sendTime.Nanoseconds()))
-							if fnode.State.MessageTally {
-								fnode.State.TallySent(int(msg.Type()))
-							}
 						}
 					}
 				}
