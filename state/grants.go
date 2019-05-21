@@ -78,7 +78,7 @@ func GetHardCodedGrants() []HardGrant {
 			// (2019-03-07 - 2019-04-07)
 			HardGrant{21, 600e8, validateAddress("FA2PEXgRiPd14NzUP47XfVTgEnvjtLSebBZvnM8gM7cJAMuqWs89")},
 
-			// TRGG3R LLC: 1200 FCT 
+			// TRGG3R LLC: 1200 FCT
 			// (2019-04-07 - 2019-06-07)
 			HardGrant{21, 1200e8, validateAddress("FA2oecgJW3XWnXzHhQQoULmMeKC97uAgHcPd4kEowTb3csVkbDc9")},
 			// --------------------------------------------------------
@@ -223,7 +223,7 @@ func GetHardCodedGrants() []HardGrant {
 			// Factomatic -- 7000 FCT
 			HardGrant{21, 7000e8, validateAddress("FA2944TXTDQKdJDp3TLSANjgMjwK2pQnTSkzE3kQcHWKetCCphcH")},
 			// BIF -- 1500 FCT
-			HardGrant{21, 1500e8, validateAddress("FA3kYLCT6zo3EvLSQTiBfLrQds77q3xFv9Yfq LDKFuchs8Lhh7iP​")},
+			HardGrant{21, 1500e8, validateAddress("FA3kYLCT6zo3EvLSQTiBfLrQds77q3xFv9YfqLDKFuchs8Lhh7iP")},
 
 
 
@@ -814,10 +814,11 @@ func GetHardCodedGrants() []HardGrant {
 
 			// BIF-Factomatic-003 -- 8500 FCT
 			// Verifiable Claims FIP
+
 			// Factomatic -- 7000 FCT
 			HardGrant{195126, 7000e8, validateAddress("FA2944TXTDQKdJDp3TLSANjgMjwK2pQnTSkzE3kQcHWKetCCphcH")},
 			// BIF -- 1500 FCT
-			HardGrant{195126, 1500e8, validateAddress("FA3kYLCT6zo3EvLSQTiBfLrQds77q3xFv9Yfq LDKFuchs8Lhh7iP​")},
+			HardGrant{195126, 1500e8, validateAddress("FA3kYLCT6zo3EvLSQTiBfLrQds77q3xFv9YfqLDKFuchs8Lhh7iP")},
 		}
 
 	default:
