@@ -472,6 +472,180 @@ func GetHardCodedGrants() []HardGrant {
 			HardGrant{181001, 3200e8, validateAddress("FA3DikVW7pzhMkJXuP9xszf9o3aKrMHqEpPkLee2Nb6WewhupyM8")},
 			// Canonical Ledgers -- 4.000 FCT
 			HardGrant{181001, 4000e8, validateAddress("FA2nBeBX75R7ECdhZS61DLpP5apaS32zwSYQ7aRkahwAjy5bryFo")},
+			// --------------------------------------------------------
+
+			// ********************************
+			// **** Grant Round (2019-2) ****
+			// ********************************
+
+			// Governance Grants
+
+			// FACTOM-GRANT-GUIDES-005 -- 9000 FCT
+			// Guide Payments 2019-03-07 - 2019-06-07
+
+			// The 42nd Factoid total: 1800 FCT
+			HardGrant{195126, 1800e8, validateAddress("FA3AEL2H9XZy3n199USs2poCEJBkK1Egy6JXhLehfLJjUYMKh1zS")},
+		
+			// Centis BV total: 1800 FCT
+			HardGrant{195126, 1800e8, validateAddress("FA2hvRaci9Kks9cLNkEUFcxzUJuUFaaAE1eWYLqa2qk1k9pVFVBp")},
+
+			// Factom Inc total: 1800 FCT
+			HardGrant{195126, 1800e8, validateAddress("FA2teRURMYTdYAA97zdh7rZDkxNtR1nhjryo34aaskjYqsqRSwZq")},
+
+			// DBGrow Inc total: 1800 FCT
+			HardGrant{195126, 1800e8, validateAddress("FA3HSuFo9Soa5ZnG82JHqyKiRi4Pw17LxPTo9AsCaFNLCGkXkgsu")},
+
+			// Canonical Ledgers: 600 FCT 
+			// (2019-03-07 - 2019-04-07)
+			HardGrant{195126, 600e8, validateAddress("FA2PEXgRiPd14NzUP47XfVTgEnvjtLSebBZvnM8gM7cJAMuqWs89")},
+
+			// TRGG3R LLC: 1200 FCT 
+			// (2019-04-07 - 2019-06-07)
+			HardGrant{195126, 1200e8, validateAddress("FA2oecgJW3XWnXzHhQQoULmMeKC97uAgHcPd4kEowTb3csVkbDc9")},
+			// --------------------------------------------------------
+			
+			// Anchor and Oracle master grants
+
+			// Factom-Inc-013 -- 900 FCT 
+			// Oracle Master -- (2019-06-09 - 2019-09-09)
+			HardGrant{195126, 900e8, validateAddress("FA3fpiZ91MCRRFjVGfNXK4pg7vx3BT3aSRyoVqgptZCX7N5BNR8P")},
+
+			// Factom-Inc-014 -- 660 FCT
+			// Anchor Master -- (2019-06-09 - 2019-09-09)
+			HardGrant{195126, 660e8, validateAddress("FA3jySUFtLXb1VdAJJ5NRVNYEtZ4EBSkDB7yn6LuKGQ4P1ntARhx")},
+			// --------------------------------------------------------
+
+			// Committee Grants
+
+			// The Core Committee has via grant Core-Committee-002 been awarded an additional 500 FCT grant 
+			// to be paid out in installments upon request from the committee. The current total amount set 
+			// aside for the Core Committee is 1000 FCT.
+			// --------------------------------------------------------
+
+			// Core Development
+
+			// Factom-Inc-015 -- 36494 FCT
+			// Protocol Development -- (2019-06-09 - 2019-09-09)
+			HardGrant{195126, 34694e8, validateAddress("FA3LwCDE3ZdFkr9nE1Keb5JcHgwXVWpEHydshT1x2qKFdvZELVQz")},
+			// Sponsor 1, Dominic Luxford -- 300 FCT
+			HardGrant{195126, 300e8, validateAddress("FA27Y2fEsaBPeFsN87czeZxLsA9fxi3fcy4f4xHXdF58W7TgbaCB")},
+			// Sponsor 2, Nolan Bauer -- 300 FCT
+			HardGrant{195126, 300e8, validateAddress("FA2oecgJW3XWnXzHhQQoULmMeKC97uAgHcPd4kEowTb3csVkbDc9")},
+			// Sponsor 3, Factomatic -- 300 FCT
+			HardGrant{195126, 300e8, validateAddress("FA2944TXTDQKdJDp3TLSANjgMjwK2pQnTSkzE3kQcHWKetCCphcH")},
+
+			// Factomize-004 -- 5225 FCT
+			// Core Development -- (3 months of development)
+			HardGrant{195126, 5225e8, validateAddress("FA3XkRCucFVp2ZMnY5uSkxrzKojirkeY6KpwkJyNZPRJ4LsjmFDp")},
+
+			// Layertech-002 -- 3600 FCT
+			// Core Development -- (3 months of development)
+			HardGrant{195126, 3600e8, validateAddress("FA2qGCTMiufU1cStopyx3NbNwG1Sawpo8MM9icvKXouzA6mSsFbA")},
+
+			// Sphereon-003 -- 6750 FCT
+			// Core Development -- (3 months of development)
+			HardGrant{195126, 6750e8, validateAddress("FA3j1ngrZAGHuiWPMbZFjHjvE9q4YUA2g5PKvJF63ZK5VHNeYbAJ")},
+			// --------------------------------------------------------
+
+			// Factom Open Node
+
+			// Bedrock-CryptoLogic-DeFacto-TFA-003 -- 360 FCT
+			// Open Node Hosting -- (2019-06-01 - 2019-08-31)
+			// Bedrock Solutions -- 90 FCT
+			HardGrant{195126, 90e8, validateAddress("FA2FqYZPfBeRWq7fWSFEhassT5zpMQZm8jwus3yWbzeN3PZPWybm")},
+			// De Facto -- 90 FCT
+			HardGrant{195126, 90e8, validateAddress("FA2YeMbN8Z1SsT7Yqw6Np85kWwtFVg2CyJKMDFnuXTawWuWPtzvX")},
+			// CryptoLogic -- 90 FCT
+			HardGrant{195126, 90e8, validateAddress("FA29wMUjN38BVLbJs6dR6gHHdBys2mpo3wy565JCjquUQTGqNZfb")},
+			// TFA -- 90 FCT
+			HardGrant{195126, 90e8, validateAddress("FA2LV4s7LKA9BTgWaJNvcr9Yq8rpiH2XD3vEPY3nwSiNSrnRgkpK")},
+
+			// Bedrock-Defacto-001/2 -- 926 FCT
+			// Open Node Enhancement (Leftover payment)
+			// Bedrock Solutions -- 428 FCT
+			HardGrant{195126, 428e8, validateAddress("FA2FqYZPfBeRWq7fWSFEhassT5zpMQZm8jwus3yWbzeN3PZPWybm")},
+			// De Facto -- 428 FCT
+			HardGrant{195126, 428e8, validateAddress("FA2YeMbN8Z1SsT7Yqw6Np85kWwtFVg2CyJKMDFnuXTawWuWPtzvX")},
+			// CryptoLogic - 70 FCT
+			HardGrant{195126, 70e8, validateAddress("FA29wMUjN38BVLbJs6dR6gHHdBys2mpo3wy565JCjquUQTGqNZfb")},
+			// --------------------------------------------------------
+
+			// FAT protocol related grants
+
+			// DBGrow-004 -- 3972 FCT
+			// FAT Development -- (3 months of development)
+			HardGrant{195126, 3972e8, validateAddress("FA3HSuFo9Soa5ZnG82JHqyKiRi4Pw17LxPTo9AsCaFNLCGkXkgsu")},
+
+			// DBGrow-Factom Inc-001 -- 4333 FCT
+			// FAT Smart Contracts
+			// DBGrow -- 3611 FCT
+			HardGrant{195126, 3611e8, validateAddress("FA3HSuFo9Soa5ZnG82JHqyKiRi4Pw17LxPTo9AsCaFNLCGkXkgsu")},
+			// Factom Inc -- 722 FCT
+			HardGrant{195126, 722e8, validateAddress("FA35Kd1Ac1aQXEHPxYTR6jNDPuwVoh6APQQGKViceQTedyE7J2vV")},
+			// Factomize LLC (Sponsor) -- 200 FCT
+			HardGrant{195126, 200e8, validateAddress("FA3XkRCucFVp2ZMnY5uSkxrzKojirkeY6KpwkJyNZPRJ4LsjmFDp")},
+
+			// TFA-002 -- 1560 FCT
+			// FAT-integration into TFA-explorer
+			HardGrant{195126, 1560e8, validateAddress("FA2TzC4d9s14zyXgZhpqgrkKQmL1Hf18dkAJYD5kU7b6sFJrGGHa")},
+
+			// LUCIAP-001 -- 1876 FCT
+			// FAT Wallet Ledger Nano Support
+			HardGrant{195126, 1876e8, validateAddress("FA2T1tgVwrHDVpMqHRRz5676x4CHkZqXGGp1CmBarYg5ZWcU85g4")},
+
+			// TFA-001 -- 4860
+			// FAT Firmware upgrade for Ledger Nano S and X 
+			HardGrant{195126, 4860e8, validateAddress("FA3sUHyYThjwJSSnun5jx91obexMJibaUCeGFoZ9S1SBzcY1xPCP")},
+			// --------------------------------------------------------
+
+			// Miscellaneous Grants 
+
+			// Go-Immutable-001 -- 20000 FCT
+			// Comprehensive Market Strategy & Execution
+			HardGrant{195126, 20000e8, validateAddress("FA2d94Yx4RwQ2bC7G1yLGQiuBoMHumJrpuZyunNmsyyyYfXACEvS")},
+
+			// Anchorblock-002 -- 260 FCT
+			// Daily Digest -- (3.5 months of previous work)
+			HardGrant{195126, 260e8, validateAddress("FA2WvyDhuKerk3RyVeSiTUonmcn7RuPRJGFQB6oCfroSys7NW3q2")},
+
+			// Federate-This-001 -- 3295 FCT
+			// Off-Blocks -- (2019-06-24 - 2019-07-21)
+			HardGrant{195126, 3295e8, validateAddress("FA2tCnVKbLMjnLfj9nJQCvQ2GyyuW64mYep1CzsQaL5WmFV5Vhdw")},
+
+			// Factomize-003 -- 1980 FCT
+			// Authomated Grant System
+			HardGrant{195126, 1980e8, validateAddress("FA3XkRCucFVp2ZMnY5uSkxrzKojirkeY6KpwkJyNZPRJ4LsjmFDp")},
+
+			// Defacto-001/2 -- 5000 FCT
+			// Factom Open API - Sprint 2 (Admin API, Web UI, Callbacks)
+			// De Facto -- 4700 FCT
+			HardGrant{195126, 4700e8, validateAddress("FA2rrwFVvkFYwyGFHVBMwRqTpycuZiagrQdcbPWzuoEwJQxjDwi3")},
+			// Bedrock Solutions -- 300 FCT
+			HardGrant{195126, 300e8, validateAddress("FA2FqYZPfBeRWq7fWSFEhassT5zpMQZm8jwus3yWbzeN3PZPWybm")},
+
+			// Sphereon-004 -- 6750 FCT
+			// Integration of DAML with Factom protocol
+			HardGrant{195126, 6750e8, validateAddress("FA2QWEguNjfme5EMyfe1Df4smyfPbJPQT2Ud6zmk5nh67tQm6xq2")},
+
+			// Sphereon-005 -- 3699 FCT
+			// Factom Badges
+			HardGrant{195126, 3699e8, validateAddress("FA3BM4Mp6L1uDHCLEy9yZXoW8MDUeyJ2tsY5pa4xrQb9EJqqx3Bf")},
+
+			// BIF-007 -- 1700 FCT
+			// Identity, DID and signing FIPs
+			HardGrant{195126, 1700e8, validateAddress("FA37dNuCWPPwAwWTVvUCGyMgoWQ8RV8ptmGqxKWHW3T9JC4eVPDR")},
+
+			// Triall-002 -- 4500 FCT
+			// DIDs for Alfresco
+			HardGrant{195126, 4500e8, validateAddress("FA2ncB92aLCcHRmHcNko6MSFyqYVhX67imtJmoZQskLYSMyXdFgq")},
+
+			// BIF-Factomatic-003 -- 8500 FCT
+			// Verifiable Claims FIP
+
+			// Factomatic -- 7000 FCT
+			HardGrant{195126, 7000e8, validateAddress("FA2944TXTDQKdJDp3TLSANjgMjwK2pQnTSkzE3kQcHWKetCCphcH")},
+			// BIF -- 1500 FCT
+			HardGrant{195126, 1500e8, validateAddress("FA3kYLCT6zo3EvLSQTiBfLrQds77q3xFv9YfqLDKFuchs8Lhh7iP")},
 		}
 
 	default:
