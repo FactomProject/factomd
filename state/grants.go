@@ -105,7 +105,7 @@ func GetHardCodedGrants() []HardGrant {
 
 			// Factom-Inc-015 -- 36494 FCT
 			// Protocol Development -- (2019-06-09 - 2019-09-09)
-			HardGrant{21, 35594e8, validateAddress("FA3LwCDE3ZdFkr9nE1Keb5JcHgwXVWpEHydshT1x2qKFdvZELVQz")},
+			HardGrant{21, 34694e8, validateAddress("FA3LwCDE3ZdFkr9nE1Keb5JcHgwXVWpEHydshT1x2qKFdvZELVQz")},
 			// Sponsor 1, Dominic Luxford -- 300 FCT
 			HardGrant{21, 300e8, validateAddress("FA27Y2fEsaBPeFsN87czeZxLsA9fxi3fcy4f4xHXdF58W7TgbaCB")},
 			// Sponsor 2, Nolan Bauer -- 300 FCT
@@ -699,7 +699,7 @@ func GetHardCodedGrants() []HardGrant {
 
 			// Factom-Inc-015 -- 36494 FCT
 			// Protocol Development -- (2019-06-09 - 2019-09-09)
-			HardGrant{195126, 35594e8, validateAddress("FA3LwCDE3ZdFkr9nE1Keb5JcHgwXVWpEHydshT1x2qKFdvZELVQz")},
+			HardGrant{195126, 34694e8, validateAddress("FA3LwCDE3ZdFkr9nE1Keb5JcHgwXVWpEHydshT1x2qKFdvZELVQz")},
 			// Sponsor 1, Dominic Luxford -- 300 FCT
 			HardGrant{195126, 300e8, validateAddress("FA27Y2fEsaBPeFsN87czeZxLsA9fxi3fcy4f4xHXdF58W7TgbaCB")},
 			// Sponsor 2, Nolan Bauer -- 300 FCT
