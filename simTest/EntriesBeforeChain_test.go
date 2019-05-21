@@ -64,6 +64,10 @@ func TestEntriesBeforeChain(t *testing.T) {
 	state0.APIQueue().Enqueue(reveal)
 
 	amt := uint64(numEntries + 11) // Chain costs 10 + 1 per k so our chain costs 11
+
+	// REVIEW is this a good enough test for holding
+	WaitMinutes(state0, 2) // ensure messages are reviewed in holding at least once
+
 	engine.FundECWallet(state0, b.FctPrivHash(), a.EcAddr(), amt*state0.GetFactoshisPerEC())
 	WaitForAnyDeposit(state0, a.EcPub())
 
@@ -81,5 +85,4 @@ func TestEntriesBeforeChain(t *testing.T) {
 	}
 
 	assert.Equal(t, 0, len(state0.Holding), "messages stuck in holding")
-
 }

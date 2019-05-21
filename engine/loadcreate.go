@@ -81,6 +81,8 @@ func (lg *LoadGenerator) Run() {
 			}
 			r := lg.NewRevealEntry(e)
 			s := fnodes[wsapiNode].State
+			// REVIEW: should these enqueue statements
+			// be run as go-routines?
 			s.APIQueue().Enqueue(c)
 			s.APIQueue().Enqueue(r)
 			time.Sleep(time.Duration(800/top) * time.Millisecond) // spread the load out over 800ms + overhead

@@ -268,7 +268,7 @@ func (fs *FactoidState) UpdateECTransaction(rt bool, trans interfaces.IECBlockEn
 				fs.State.GetE(rt, t.ECPubKey.Fixed()),
 				t.Credits)
 		}
-		fs.State.PutE(rt, t.ECPubKey.Fixed(), v)
+		fs.State.PutE(rt, t.ECPubKey.Fixed(), v) // deduct Chain Commit
 		fs.State.NumTransactions++
 		fs.State.Replay.IsTSValid(constants.INTERNAL_REPLAY, t.GetSigHash(), t.GetTimestamp())
 		fs.State.Replay.IsTSValid(constants.NETWORK_REPLAY, t.GetSigHash(), t.GetTimestamp())
@@ -282,10 +282,11 @@ func (fs *FactoidState) UpdateECTransaction(rt bool, trans interfaces.IECBlockEn
 				fs.State.GetE(rt, t.ECPubKey.Fixed()),
 				t.Credits)
 		}
-		fs.State.PutE(rt, t.ECPubKey.Fixed(), v)
+		fs.State.PutE(rt, t.ECPubKey.Fixed(), v) // deduct EntryCommit
 		fs.State.NumTransactions++
 		fs.State.Replay.IsTSValid(constants.INTERNAL_REPLAY, t.GetSigHash(), t.GetTimestamp())
 		fs.State.Replay.IsTSValid(constants.NETWORK_REPLAY, t.GetSigHash(), t.GetTimestamp())
+
 	default:
 		return fmt.Errorf("Unknown EC Transaction")
 	}
@@ -331,7 +332,12 @@ func (fs *FactoidState) UpdateTransaction(rt bool, trans interfaces.ITransaction
 	}
 	for _, ecOut := range trans.GetECOutputs() {
 		ecbal := int64(ecOut.GetAmount()) / int64(fs.State.FactoshisPerEC)
-		fs.State.PutE(rt, ecOut.GetAddress().Fixed(), fs.State.GetE(rt, ecOut.GetAddress().Fixed())+ecbal)
+		fs.State.PutE(rt, ecOut.GetAddress().Fixed(), fs.State.GetE(rt, ecOut.GetAddress().Fixed())+ecbal) // Add EC's from FCT
+
+		// execute any messages that were waiting on this EC address
+		if rt == true {
+			fs.State.ExecuteFromHolding(ecOut.GetAddress().Fixed())
+		}
 	}
 	fs.State.NumTransactions++
 	return nil

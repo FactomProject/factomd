@@ -253,7 +253,10 @@ func (m *CommitEntryMsg) Validate(state interfaces.IState) int {
 
 	ebal := state.GetFactoidState().GetECBalance(*m.CommitEntry.ECPubKey)
 	if int(m.CommitEntry.Credits) > int(ebal) {
-		return 0
+		// return 0  // old way add to scanned holding queue
+		// new holding mechanism added it to a list of messages dependent on the EC address
+		state.Add(m.CommitEntry.ECPubKey.Fixed(), m)
+		return -2 // claim it's invalid so it doesn't get into the old holding queue
 	}
 	return 1
 }

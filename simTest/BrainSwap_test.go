@@ -14,7 +14,7 @@ follower and a leader + follower and an audit
 at the same height in the same build
 */
 func TestBrainSwap(t *testing.T) {
-	ResetSimHome(t) // clear out old test home
+	ResetSimHome(t)          // clear out old test home
 	for i := 0; i < 6; i++ { // build config files for the test
 		WriteConfigFile(i, i, "", t) // just write the minimal config
 	}

@@ -13,7 +13,7 @@ This test is useful to exercise reboot behavior
 here we copy a db and boot up an additional follower
 */
 func TestAddFNode(t *testing.T) {
-	ResetSimHome(t) // clear out old test home
+	ResetSimHome(t)          // clear out old test home
 	for i := 0; i < 6; i++ { // build config files for the test
 		WriteConfigFile(i, i, "", t) // just write the minimal config
 	}

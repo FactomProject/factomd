@@ -84,15 +84,72 @@ func (s *State) DeleteFromHolding(hash [32]byte, msg interfaces.IMsg, reason str
 	}
 }
 
+// TODO: refactor these new functions used as part of dependent holding
+var FilterTimeLimit = int64(Range * 60 * 2 * 1000000000) // Filter hold two hours of messages, one in the past one in the future
+
+// TODO: refactor these new functions used as part of dependent holding
+func (s *State) GetFilterTimeNano() int64 {
+	t := s.GetMessageFilterTimestamp().GetTime().UnixNano() // this is the start of the filter
+	if t == 0 {
+		panic("got 0 time")
+	}
+	return t
+}
+
+// TODO: refactor these new functions used as part of dependent holding
+func (s *State) IsMsgStale(msg interfaces.IMsg) int {
+	// Make sure we don't put in an old ack'd message (outside our repeat filter range)
+	filterTime := s.GetFilterTimeNano()
+	msgtime := msg.GetTimestamp().GetTime().UnixNano()
+
+	// Make sure we don't put in an old msg (outside our repeat range)
+	{ // debug
+		if msgtime < filterTime || msgtime > (filterTime+FilterTimeLimit) {
+			s.LogPrintf("executeMsg", "MsgFilter %s", s.GetMessageFilterTimestamp().GetTime().String())
+			s.LogPrintf("executeMsg", "Leader    %s", s.GetLeaderTimestamp().GetTime().String())
+			s.LogPrintf("executeMsg", "Message   %s", msg.GetTimestamp().GetTime().String())
+		}
+	}
+
+	// messages before message filter timestamp it's an old message
+	if msgtime < filterTime {
+		s.LogMessage("executeMsg", "drop message, more than an hour in the past", msg)
+		return -1 // Old messages are bad.
+	}
+	if msgtime > (filterTime + FilterTimeLimit) {
+		s.LogMessage("executeMsg", "hold message from the future", msg)
+		return 0 // Future stuff I can hold for now.  It might be good later?
+	}
+
+	return 1
+}
+
+// TODO: refactor these new functions used as part of dependent holding
+func (s *State) IsMsgValid(msg interfaces.IMsg) int {
+	valid := msg.Validate(s)
+	if valid != 1 {
+		return valid
+	}
+
+	// Sometimes we think the LoadDatabase() thread starts before the boot time gets set -- hack to be fixed
+	switch msg.Type() {
+	case constants.DBSTATE_MSG, constants.DATA_RESPONSE, constants.MISSING_MSG, constants.MISSING_DATA, constants.MISSING_ENTRY_BLOCKS, constants.DBSTATE_MISSING_MSG, constants.ENTRY_BLOCK_RESPONSE:
+		// Allow these thru as they do not have Ack's (they don't change processlists)
+		return valid
+	default:
+		return s.IsMsgStale(msg)
+	}
+}
+
 // this is the common validation to all messages. they must not be a reply, they must not be out size the time window
 // for the replay filter.
 func (s *State) Validate(msg interfaces.IMsg) (validToSend int, validToExec int) {
 	// check the time frame of messages with ACKs and reject any that are before the message filter time (before boot
 	// or outside the replay filter time frame)
 
-	//defer func() {
-	//	s.LogMessage("msgvalidation", fmt.Sprintf("send=%d execute=%d local=%v %s", *(&validToSend), *(&validToExec), msg.IsLocal(), atomic.WhereAmIString(1)), msg)
-	//}()
+	defer func() {
+		s.LogMessage("msgvalidation", fmt.Sprintf("send=%d execute=%d local=%v %s", *(&validToSend), *(&validToExec), msg.IsLocal(), atomic.WhereAmIString(1)), msg)
+	}()
 
 	// During boot ignore messages that are more than 15 minutes old...
 	if s.IgnoreMissing && msg.Type() != constants.DBSTATE_MSG {
@@ -150,6 +207,14 @@ func (s *State) Validate(msg interfaces.IMsg) (validToSend int, validToExec int)
 	}
 	if validToSend == -1 { // if the msg says drop then we drop...
 		return -1, -1
+	}
+	if validToSend == -2 { // if the msg says New hold then we don't execute...
+		return 0, -2
+	}
+
+	if validToSend != 1 { // if the msg says anything other than valid
+		s.LogMessage("badmsgs", fmt.Sprintf("Invalid validity code %d", validToSend), msg)
+		panic("unexpected validity code")
 	}
 
 	// if it is valid to send then we check other stuff ...
@@ -300,6 +365,10 @@ func (s *State) executeMsg(msg interfaces.IMsg) (ret bool) {
 		// Sometimes messages we have already processed are in the msgQueue from holding when we execute them
 		// this check makes sure we don't put them back in holding after just deleting them
 		s.AddToHolding(msg.GetMsgHash().Fixed(), msg) // Add message where validToExecute==0
+		return false
+
+	case -2:
+		s.LogMessage("executeMsg", "new holding", msg)
 		return false
 
 	default:
@@ -969,7 +1038,7 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 	}
 }
 
-// exeute a msg with an optional delay (in factom seconds)
+// execute a msg with an optional delay (in factom seconds)
 func (s *State) repost(m interfaces.IMsg, delay int) {
 	//whereAmI := atomic.WhereAmIString(1)
 	go func() { // This is a trigger to issue the EOM, but we are still syncing.  Wait to retry.
