@@ -1,6 +1,7 @@
 package longtest
 
 import (
+	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
 
@@ -47,13 +48,18 @@ func TestLoadWith1pctDrop(t *testing.T) {
 	state0 := StartSim(nodesLoadWith1pctDrop, params)
 
 	// adjust simulation parameters
-	RunCmd("s")
-	RunCmd("Re")
-	RunCmd("r")
-	RunCmd("S10")
-	RunCmd("F500")
-	RunCmd("R5")
+	RunCmd("s") // show node state summary
+	RunCmd("Re") // keep reloading EC wallet on 'tight' schedule (only small amounts)
+	RunCmd("r") // reset all nodes in the simulation (maybe not needed)
+	RunCmd("S10") // message drop rate 1%
+	RunCmd("F500") // add 500 ms delay to all messages
+	RunCmd("R5") // Load 5 msgs/sec
 
 	time.Sleep(time.Second * 300) // wait 5 min
-	t.Logf("LLHT: %v<=>%v", state0.GetDBHeightAtBoot(), state0.GetDBHeightComplete())
+	startHt := state0.GetDBHeightAtBoot()
+	endHt := state0.GetDBHeightComplete()
+	t.Logf("LLHT: %v<=>%v", startHt, endHt)
+
+	// normally without load we expect to create 10 blocks over the span of 5 min
+	assert.True(t, endHt - startHt >= 5) // check that we created at least 1 block per min
 }

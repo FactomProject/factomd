@@ -15,7 +15,7 @@ function runTests() {
     # 4. all sets of A/B tests in peerTest package
     TESTS=$({ \
       glide nv | grep -v Utilities | grep -v longTest | grep -v peerTest | grep -v simTest | grep -v elections | grep -v activations | grep -v netTest | grep "..." ; \
-      cat engine/ci_whitelist.txt; \
+      cat engine/ci_whitelist; \
       ls simTest/*_test.go; \
       ls peerTest/*A_test.go; \
     })
