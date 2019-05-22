@@ -793,9 +793,11 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 			}
 		}
 		s.FactomdTLSEnable = cfg.App.FactomdTlsEnabled
+		s.factomdTLSKeyFile = cfg.App.FactomdTlsPrivateKey
 		if cfg.App.FactomdTlsPrivateKey == "/full/path/to/factomdAPIpriv.key" {
 			s.factomdTLSKeyFile = fmt.Sprint(cfg.App.HomeDir, "factomdAPIpriv.key")
 		}
+		s.factomdTLSCertFile = cfg.App.FactomdTlsPublicCert
 		if cfg.App.FactomdTlsPublicCert == "/full/path/to/factomdAPIpub.cert" {
 			s.factomdTLSCertFile = fmt.Sprint(cfg.App.HomeDir, "factomdAPIpub.cert")
 		}
