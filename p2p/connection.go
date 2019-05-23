@@ -8,9 +8,12 @@ import (
 	"encoding/gob"
 	"fmt"
 	"hash/crc32"
+	"io"
 	"net"
 	"os"
 	"time"
+
+	"github.com/FactomProject/factomd/common/messages"
 
 	"github.com/FactomProject/factomd/common/primitives"
 
@@ -232,6 +235,7 @@ func (c *Connection) runLoop() {
 	go c.processReceives()
 	p2pConnectionsRunLoop.Inc()
 	defer p2pConnectionsRunLoop.Dec()
+	var pstate uint8 = 255
 
 	for ConnectionClosed != c.state { // loop exits when we hit shutdown state
 		time.Sleep(100 * time.Millisecond) // This can be a tight loop, don't want to starve the application
@@ -251,6 +255,23 @@ func (c *Connection) runLoop() {
 			default:
 				break parcelloop
 			}
+		}
+
+		// log state changes on peers
+		if pstate != c.state {
+			switch c.state {
+			case ConnectionInitialized:
+				messages.LogPrintf("fnode0_peers.txt", "ConnectionInitialized(%s)", c.peer.Hash)
+			case ConnectionOnline:
+				messages.LogPrintf("fnode0_peers.txt", "ConnectionOnline(%s)", c.peer.Hash)
+			case ConnectionOffline:
+				messages.LogPrintf("fnode0_peers.txt", "ConnectionOffline(%s)", c.peer.Hash)
+			case ConnectionShuttingDown:
+				messages.LogPrintf("fnode0_peers.txt", "ConnectionShuttingDown(%s)", c.peer.Hash)
+			default:
+				messages.LogPrintf("fnode0_peers.txt", "ConnectionUnknownState(%s)", c.peer.Hash)
+			}
+			pstate = c.state
 		}
 
 		switch c.state {
@@ -295,6 +316,8 @@ func (c *Connection) runLoop() {
 			stateLogger.Error("runLoop() unknown state?")
 		}
 	}
+	messages.LogPrintf("fnode0_peers.txt", "ConnectionClosed(%s)", c.peer.Hash)
+
 }
 
 // dialLoop:  dials the connection until giving up. Called in offline or initializing states.
@@ -304,6 +327,8 @@ func (c *Connection) dialLoop() {
 	defer p2pConnectionDialLoop.Dec()
 
 	for {
+		messages.LogPrintf("fnode0_peers.txt", "Dial(%s)", c.peer.Hash)
+
 		c.timeLastAttempt = time.Now()
 		if c.dial() {
 			c.goOnline()
@@ -341,6 +366,7 @@ func (c *Connection) dial() bool {
 
 // Called when we are online and connected to the peer.
 func (c *Connection) goOnline() {
+	messages.LogPrintf("fnode0_peers.txt", "goOnline(%s)", c.peer.Hash)
 	c.logger.Info("Connected to a remote peer")
 	p2pConnectionOnlineCall.Inc()
 	now := time.Now()
@@ -365,6 +391,7 @@ func (c *Connection) goOnline() {
 }
 
 func (c *Connection) goOffline() {
+	messages.LogPrintf("fnode0_peers.txt", "goOffline(%s)", c.peer.Hash)
 	c.logger.Debug("Going offline")
 	p2pConnectionOfflineCall.Inc()
 	if nil != c.conn {
@@ -378,6 +405,7 @@ func (c *Connection) goOffline() {
 }
 
 func (c *Connection) goShutdown() {
+	messages.LogPrintf("fnode0_peers.txt", "goShutdown(%s)", c.peer.Hash)
 	c.logger.Debug("Connection shutting down")
 	c.goOffline()
 	c.updatePeer()
@@ -464,6 +492,7 @@ func (c *Connection) handleCommand() {
 }
 
 func (c *Connection) sendParcel(parcel Parcel) {
+	messages.LogPrintf("fnode0_peers.txt", "sendParcel(%s) M-%x", c.peer.Hash, parcel.Header.AppHash[:6])
 
 	parcel.Header.NodeID = NodeID // Send it out with our ID for loopback.
 	c.conn.SetWriteDeadline(time.Now().Add(NetworkDeadline))
@@ -473,6 +502,7 @@ func (c *Connection) sendParcel(parcel Parcel) {
 		c.metrics.BytesSent += parcel.Header.Length
 		c.metrics.MessagesSent += 1
 	default:
+		messages.LogPrintf("fnode0_peers.txt", "sendParcel(%s) M-%x error: %v", c.peer.Hash, parcel.Header.AppHash[:6], err.Error())
 		c.Errors <- err
 	}
 }
@@ -496,20 +526,29 @@ func (c *Connection) processReceives() {
 
 	for ConnectionClosed != c.state && c.state != ConnectionShuttingDown {
 		for c.state == ConnectionOnline {
-			var message Parcel
+			var parcel Parcel
 
-			c.conn.SetReadDeadline(time.Now().Add(NetworkDeadline))
-			result := c.decoder.Decode(&message)
-			switch result {
+			err := c.decoder.Decode(&parcel)
+			switch err {
+			case io.EOF: // nothing to decode
+				messages.LogPrintf("fnode0_peers.txt", "processReceives(%s) %s", c.peer.Hash, err.Error())
+
+				// TODO: This error is a starving loop. Does the error always mean the connection is closed?
+				// TODO: If so, we should pass it to the errors channel to kill this connection and stop reading.
+				// For now, just sleep to stop the starve
+				time.Sleep(500 * time.Millisecond)
+				continue
 			case nil: // successfully decoded
-				c.metrics.BytesReceived += message.Header.Length
+				messages.LogPrintf("fnode0_peers.txt", "processReceives(%s) M-%x error: %v", c.peer.Hash, parcel.Header.AppHash[:6], err.Error())
+
+				c.metrics.BytesReceived += parcel.Header.Length
 				c.metrics.MessagesReceived += 1
-				message.Header.PeerAddress = c.peer.Address
-				c.ReceiveParcel <- &message
+				parcel.Header.PeerAddress = c.peer.Address
+				c.ReceiveParcel <- &parcel
 				c.TimeLastpacket = time.Now()
 			default: // error
-				c.Errors <- result
-				time.Sleep(100 * time.Millisecond) // give some time to handle states
+				messages.LogPrintf("fnode0_peers.txt", "processReceives(%s) %s", c.peer.Hash, err.Error())
+				c.Errors <- err
 			}
 		}
 		// If not online, give some time up to handle states that are not online, closed, or shuttingdown.
@@ -523,15 +562,22 @@ func (c *Connection) handleNetErrors(toss bool) {
 	for {
 		select {
 		case err := <-c.Errors:
-			// Only go offline once per handleNetErrors call
-			if !toss && !done {
-				if err != nil {
-					c.logger.WithField("func", "HandleNetErrors").Warnf("Going offline due to -- %s", err.Error())
+			nerr, isNetError := err.(net.Error)
+			switch {
+			case isNetError && nerr.Timeout(): /// buffer empty
+				return
+			default:
+				// Only go offline once per handleNetErrors call
+				if !toss && !done {
+					if err != nil {
+						c.logger.WithField("func", "HandleNetErrors").Warnf("Going offline due to -- %s", err.Error())
+						messages.LogPrintf("fnode0_peers.txt", "HandleNetErrors(%s) Going offline due to error: %v", c.peer.Hash, err.Error())
+					}
+					c.goOffline()
 				}
-				c.goOffline()
-			}
 
-			done = true
+				done = true
+			}
 		default:
 			return
 		}
@@ -567,7 +613,7 @@ func (c *Connection) handleParcel(parcel Parcel) {
 		return
 	case ParcelValid:
 		parcel.LogEntry().Debug("Connection.handleParcel()-ParcelValid")
-		c.peer.LastContact = time.Now() // We only update for valid messages (incluidng pings and heartbeats)
+		c.peer.LastContact = time.Now() // We only update for valid messages (including pings and heartbeats)
 		c.attempts = 0                  // reset since we are clearly in touch now.
 		c.peer.merit()                  // Increase peer quality score.
 		c.logger.Debugf("Connection.handleParcel() got ParcelValid %s", parcel.MessageType())
