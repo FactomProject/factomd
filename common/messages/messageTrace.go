@@ -63,19 +63,19 @@ func checkForChangesInDebugRegex() {
 		globals.LastDebugLogRegEx = globals.Params.DebugLogRegEx
 	}
 	//strip quotes if they are included in the string
-	if globals.Params.DebugLogRegEx[0] == '"' || globals.Params.DebugLogRegEx[0] == '\'' {
+	if globals.Params.DebugLogRegEx != "" && (globals.Params.DebugLogRegEx[0] == '"' || globals.Params.DebugLogRegEx[0] == '\'') {
 		globals.Params.DebugLogRegEx = globals.Params.DebugLogRegEx[1 : len(globals.Params.DebugLogRegEx)-1] // Trim the "'s
 	}
 	// if we haven't compiled the regex ...
-	if TestRegex == nil {
+	if TestRegex == nil && globals.Params.DebugLogRegEx != "" {
 		theRegex, err := regexp.Compile("(?i)" + globals.Params.DebugLogRegEx) // force case insensitive
 		if err != nil {
 			panic(err)
 		}
 		enabled = make(map[string]bool) // create a clean cache of enabled files
 		TestRegex = theRegex
-		globals.LastDebugLogRegEx = globals.Params.DebugLogRegEx
 	}
+	globals.LastDebugLogRegEx = globals.Params.DebugLogRegEx
 }
 
 // assumes traceMutex is locked already
