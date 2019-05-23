@@ -1,8 +1,9 @@
 package state
 
 import (
-	"github.com/FactomProject/factomd/common/constants"
 	"time"
+
+	"github.com/FactomProject/factomd/common/constants"
 
 	"github.com/FactomProject/factomd/common/messages"
 )
@@ -102,16 +103,17 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 		// checking if we already have message in our maps
 		doWeHaveAckandMsg := s.MissingMessageResponse.GetAckANDMsg(ask.DBH, ask.VM, ask.H, s)
 
-		if doWeHaveAckandMsg {
-			return
+		if !doWeHaveAckandMsg {
+			_, ok := pending[ask.plRef]
+			if !ok {
+				//fmt.Println("pending[ask.plRef]: ", ok)
+				when := ask.When
+				pending[ask.plRef] = &when // add the requests to the map
+				s.LogPrintf(logname, "Ask %d/%d/%d %d", ask.DBH, ask.VM, ask.H, len(pending))
+			}
+		} else {
+			// todo: Send messages to execute
 		}
-		_, ok := pending[ask.plRef]
-		if !ok {
-			when := ask.When
-			pending[ask.plRef] = &when // add the requests to the map
-			s.LogPrintf(logname, "Ask %d/%d/%d %d", ask.DBH, ask.VM, ask.H, len(pending))
-		} // don't update the when if it already existed...
-
 	}
 
 	addAdd := func(add plRef) {
@@ -195,7 +197,7 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 
 		select {
 
-		case msg := <- s.MissingMessageResponse.NewMsgs:
+		case msg := <-s.MissingMessageResponse.NewMsgs:
 			if msg.Type() == constants.ACK_MSG {
 				// adds Acks to a Ack map for MMR
 				s.MissingMessageResponse.AcksMap.Add(msg)

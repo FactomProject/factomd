@@ -7,20 +7,20 @@ import (
 
 type MsgHeight struct {
 	DBHeight int
-	VM int
-	Height int
+	VM       int
+	Height   int
 }
 
 type ACKMap struct {
-	Acks  map[MsgHeight]interfaces.IMsg
+	Acks     map[MsgHeight]interfaces.IMsg
 	MsgOrder [1000]interfaces.IMsg
-	N int
+	N        int
 }
 
 type MSGMap struct {
-	Msgs map[[32]byte]interfaces.IMsg
+	Msgs     map[[32]byte]interfaces.IMsg
 	MsgOrder [1000][32]byte
-	N int
+	N        int
 }
 
 type MissingMessageResponse struct {
@@ -31,7 +31,7 @@ type MissingMessageResponse struct {
 
 // Adds Acks to a map of the last 1000 acks
 // The map of acks will be used in tandem with the message map when we get an MMR to ensure we dont ask for a message we already have.
-func (a * ACKMap) Add(msg interfaces.IMsg) {
+func (a *ACKMap) Add(msg interfaces.IMsg) {
 	ack := msg.(*messages.Ack)
 	heights := MsgHeight{int(ack.DBHeight), ack.VMIndex, int(ack.Height)}
 	if a.Acks == nil {
@@ -46,12 +46,12 @@ func (a * ACKMap) Add(msg interfaces.IMsg) {
 			delete(a.Acks, prevHeights)
 		}
 	}
-	a.Acks[heights] = msg 	  // stores a message by the messages DBHeight, VMIndex and Height.
-	a.MsgOrder[a.N] = msg    // keeps track of ACKMap.Acks message order
-	a.N = (a.N + 1)%1000  	// increment N by 1 each time and when it reaches 1000 start at 0 again.
+	a.Acks[heights] = msg  // stores a message by the messages DBHeight, VMIndex and Height.
+	a.MsgOrder[a.N] = msg  // keeps track of ACKMap.Acks message order
+	a.N = (a.N + 1) % 1000 // increment N by 1 each time and when it reaches 1000 start at 0 again.
 }
 
-func (a * ACKMap) Get(DBHeight int, vmIndex int, height int) bool {
+func (a *ACKMap) Get(DBHeight int, vmIndex int, height int) bool {
 	heights := MsgHeight{DBHeight, vmIndex, height}
 	_, exists := a.Acks[heights]
 	return exists
@@ -59,7 +59,7 @@ func (a * ACKMap) Get(DBHeight int, vmIndex int, height int) bool {
 
 // Adds messages to a map of the last 1000 messages
 // The map of messages will be used in tandem with the ack map when we get an MMR to ensure we dont ask for a message we already have.
-func (m * MSGMap) Add(msg interfaces.IMsg, s interfaces.IState) {
+func (m *MSGMap) Add(msg interfaces.IMsg, s interfaces.IState) {
 	hash := msg.GetHash().Fixed()
 
 	if m.Msgs == nil {
@@ -68,19 +68,19 @@ func (m * MSGMap) Add(msg interfaces.IMsg, s interfaces.IState) {
 
 	previous := m.MsgOrder[m.N]
 	delete(m.Msgs, previous)
-	m.Msgs[hash] = msg  	  // stores a message by its hash.
-	m.MsgOrder[m.N] = hash   // keeps track of MSGMap.Msgs message order
-	m.N = (m.N + 1)%1000  	// increment N by 1 each time and when it reaches 1000 start at 0 again.
+	m.Msgs[hash] = msg     // stores a message by its hash.
+	m.MsgOrder[m.N] = hash // keeps track of MSGMap.Msgs message order
+	m.N = (m.N + 1) % 1000 // increment N by 1 each time and when it reaches 1000 start at 0 again.
 }
 
-func (m * MSGMap) Get(msg interfaces.IMsg, s interfaces.IState) bool {
+func (m *MSGMap) Get(msg interfaces.IMsg, s interfaces.IState) bool {
 	hash := msg.GetHash().Fixed()
 	_, exists := m.Msgs[hash]
 	return exists
 }
 
 // Called when we receive an ask for an MMR, we check to see if we have message in out Ask AND message maps and return true or false
-func (am* MissingMessageResponse) GetAckANDMsg(DBHeight int, vmIndex int, height int, s interfaces.IState) bool {
+func (am *MissingMessageResponse) GetAckANDMsg(DBHeight int, vmIndex int, height int, s interfaces.IState) bool {
 	heights := MsgHeight{DBHeight, vmIndex, height}
 	msg, exists := am.AcksMap.Acks[heights]
 	if msg != nil && exists {
