@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
-
 	"github.com/FactomProject/factomd/common/messages"
 )
 
@@ -197,7 +196,7 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 
 		select {
 
-		case msg := <-s.MissingMessageResponse.NewMsgs:
+		case msg := <- s.MissingMessageResponse.NewMsgs:
 			if msg.Type() == constants.ACK_MSG {
 				// adds Acks to a Ack map for MMR
 				s.MissingMessageResponse.AcksMap.Add(msg)
