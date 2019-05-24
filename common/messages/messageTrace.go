@@ -200,6 +200,15 @@ func logMessage(name string, note string, msg interfaces.IMsg) {
 			if embeddedMsg == nil {
 				embeddedHash += "(unknown)"
 			}
+		case constants.VOLUNTEERAUDIT:
+			//fvm := msg.(*electionMsgs.FedVoteVolunteerMsg)
+			//ack := fvm.qAck
+			//embeddedHash = fmt.Sprintf(" EmbeddedMsg: %x", ack.GetHash().Bytes()[:3])
+			//fixed := ack.GetHash().Fixed()
+			//embeddedMsg = getmsg(fixed)
+			//if embeddedMsg == nil {
+			//	embeddedHash += "(unknown)"
+			//}
 		}
 		messageType = constants.MessageName(byte(t))
 	}

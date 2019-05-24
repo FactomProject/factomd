@@ -1324,7 +1324,7 @@ func TestElection9(t *testing.T) {
 	}
 	RanSimTest = true
 
-	state0 := SetupSim("LLAL", map[string]string{"--debuglog": "", "--faulttimeout": "10"}, 8, 1, 1, t)
+	state0 := SetupSim("LLAL", map[string]string{"--debuglog": "", "--faulttimeout": "10"}, 88888, 1, 1, t)
 	StatusEveryMinute(state0)
 	CheckAuthoritySet(t)
 
@@ -1335,7 +1335,7 @@ func TestElection9(t *testing.T) {
 	RunCmd("3")
 	WaitForMinute(state3, 9) // wait till the victim is at minute 9
 	RunCmd("x")
-	WaitMinutes(state0, 1) // Wait till fault completes
+	WaitMinutes(state0, 2) // Wait till fault completes
 	RunCmd("x")
 
 	WaitBlocks(state0, 2)    // wait till the victim is back as the audit server

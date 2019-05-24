@@ -10,6 +10,7 @@ import (
 	"hash"
 	"os"
 	"reflect"
+	"runtime"
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -67,6 +68,9 @@ func (s *State) LogPrintf(logName string, format string, more ...interface{}) {
 	}
 }
 func (s *State) AddToHolding(hash [32]byte, msg interfaces.IMsg) {
+	if msg.Type() == constants.VOLUNTEERAUDIT {
+		s.LogMessage("holding election?", "add", msg)
+	}
 	_, ok := s.Holding[hash]
 	if !ok {
 		s.Holding[hash] = msg
@@ -90,9 +94,9 @@ func (s *State) Validate(msg interfaces.IMsg) (validToSend int, validToExec int)
 	// check the time frame of messages with ACKs and reject any that are before the message filter time (before boot
 	// or outside the replay filter time frame)
 
-	//defer func() {
-	//	s.LogMessage("msgvalidation", fmt.Sprintf("send=%d execute=%d local=%v %s", *(&validToSend), *(&validToExec), msg.IsLocal(), atomic.WhereAmIString(1)), msg)
-	//}()
+	defer func() {
+		s.LogMessage("msgvalidation", fmt.Sprintf("send=%d execute=%d local=%v %s", *(&validToSend), *(&validToExec), msg.IsLocal(), atomic.WhereAmIString(1)), msg)
+	}()
 
 	// During boot ignore messages that are more than 15 minutes old...
 	if s.IgnoreMissing && msg.Type() != constants.DBSTATE_MSG {
@@ -267,6 +271,14 @@ func (s *State) executeMsg(msg interfaces.IMsg) (ret bool) {
 		vmi := msg.GetVMIndex()
 		hkb := s.GetHighestKnownBlock()
 
+		if vmh != vml {
+			s.LeaderPL.Process(s)
+			vmh = int(vm.Height)
+			if vmh == vml {
+				s.LogMessage("executemsg", "processed", vm.List[vmh-1])
+			}
+		}
+
 		if s.RunLeader &&
 			s.Leader &&
 			!s.Saving && // if not between blocks
@@ -390,7 +402,7 @@ func (s *State) Process() (progress bool) {
 		}
 	}
 
-	// Add the next recieved states to process.
+	// Add the next received states to process.
 	// GetNext returns nil if the next member of StatesReceived is not the next
 	// height that needs to be processed.
 	for r := s.StatesReceived.GetNext(); r != nil; r = s.StatesReceived.GetNext() {
@@ -453,8 +465,9 @@ ackLoop:
 				if msg == nil {
 					continue
 				}
-				// copy the messages we are responsible for and all ACKs to process to be executed
-				if msg.GetVMIndex() == s.LeaderVMIndex || msg.Type() == constants.ACK_MSG {
+				// copy the messages we are responsible for and all msg that don't need ack
+				// messages that need ack will get processed when thier ack arrives
+				if msg.GetVMIndex() == s.LeaderVMIndex || !constants.NeedsAck(msg.Type()) {
 					process = append(process, msg)
 				}
 			}
@@ -569,6 +582,11 @@ func (s *State) ReviewHolding() {
 	s.LeaderNewMin++ // Either way, don't do it again until the ProcessEOM resets LeaderNewMin
 
 	for k, v := range s.Holding {
+
+		if v.Type() == constants.VOLUNTEERAUDIT {
+			runtime.Breakpoint()
+		}
+
 		// TODO: Limit the run of reviewhholding to 100ms
 		if int(highest)-int(saved) > 1000 {
 			TotalHoldingQueueOutputs.Inc()

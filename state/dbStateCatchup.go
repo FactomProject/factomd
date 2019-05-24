@@ -6,6 +6,7 @@ package state
 
 import (
 	"container/list"
+	"runtime"
 	"time"
 
 	"github.com/FactomProject/factomd/common/messages"
@@ -14,7 +15,7 @@ import (
 func (list *DBStateList) Catchup() {
 	missing := list.State.StatesMissing
 	waiting := list.State.StatesWaiting
-	recieved := list.State.StatesReceived
+	received := list.State.StatesReceived
 
 	requestTimeout := list.State.RequestTimeout
 	requestLimit := list.State.RequestLimit
@@ -30,15 +31,15 @@ func (list *DBStateList) Catchup() {
 				hk = list.State.GetHighestKnownBlock()
 			}
 
-			if recieved.Base() < hs {
-				recieved.SetBase(hs)
+			if received.Base() < hs {
+				received.SetBase(hs)
 			}
 
 			// TODO: removing missing and waiting states could be done in parallel.
 			// remove any states from the missing list that have been saved.
 			for e := missing.List.Front(); e != nil; e = e.Next() {
 				s := e.Value.(*MissingState)
-				if recieved.Has(s.Height()) {
+				if received.Has(s.Height()) {
 					missing.Del(s.Height())
 				}
 			}
@@ -46,16 +47,16 @@ func (list *DBStateList) Catchup() {
 			// remove any states from the waiting list that have been saved.
 			for e := waiting.List.Front(); e != nil; e = e.Next() {
 				s := e.Value.(*WaitingState)
-				if recieved.Has(s.Height()) {
+				if received.Has(s.Height()) {
 					waiting.Del(s.Height())
 				}
 			}
 
-			// find gaps in the recieved list
-			for e := recieved.List.Front(); e != nil; e = e.Next() {
-				// if the height of the next recieved state is not equal to the
-				// height of the current recieved state plus one then there is a
-				// gap in the recieved state list.
+			// find gaps in the received list
+			for e := received.List.Front(); e != nil; e = e.Next() {
+				// if the height of the next received state is not equal to the
+				// height of the current received state plus one then there is a
+				// gap in the received state list.
 				if e.Next() != nil {
 					for n := e.Value.(*ReceivedState).Height(); n+1 < e.Next().Value.(*ReceivedState).Height(); n++ {
 						missing.Notify <- NewMissingState(n + 1)
@@ -63,8 +64,8 @@ func (list *DBStateList) Catchup() {
 				}
 			}
 
-			// add all known states after the last recieved to the missing list
-			for n := recieved.HeighestRecieved() + 1; n < hk; n++ {
+			// add all known states after the last received to the missing list
+			for n := received.Heighestreceived() + 1; n < hk; n++ {
 				missing.Notify <- NewMissingState(n)
 			}
 
@@ -77,6 +78,9 @@ func (list *DBStateList) Catchup() {
 	go func() {
 		for {
 			for e := waiting.List.Front(); e != nil; e = e.Next() {
+				if e.Value == nil {
+					runtime.Breakpoint()
+				}
 				s := e.Value.(*WaitingState)
 				if s.RequestAge() > requestTimeout {
 					waiting.Del(s.Height())
@@ -93,7 +97,7 @@ func (list *DBStateList) Catchup() {
 		for {
 			select {
 			case s := <-missing.Notify:
-				if recieved.Get(s.Height()) == nil {
+				if received.Get(s.Height()) == nil {
 					if !waiting.Has(s.Height()) {
 						missing.Add(s.Height())
 					}
@@ -102,12 +106,12 @@ func (list *DBStateList) Catchup() {
 				if !waiting.Has(s.Height()) {
 					waiting.Add(s.Height())
 				}
-			case m := <-recieved.Notify:
+			case m := <-received.Notify:
 				s := NewReceivedState(m)
 				if s != nil {
 					missing.Del(s.Height())
 					waiting.Del(s.Height())
-					recieved.Add(s.Height(), s.Message())
+					received.Add(s.Height(), s.Message())
 				}
 			}
 		}
@@ -191,18 +195,32 @@ func NewStatesMissing() *StatesMissing {
 	return l
 }
 
+func (l *StatesMissing) ListInsertAfter(n *MissingState, e *list.Element) {
+	if e.Value == nil {
+		runtime.Breakpoint()
+	}
+	l.List.InsertAfter(n, e)
+}
+
+func (l *StatesMissing) ListPushFront(n *MissingState) {
+	if n == nil {
+		runtime.Breakpoint()
+	}
+	l.List.PushFront(n)
+}
+
 // Add adds a new MissingState to the list.
 func (l *StatesMissing) Add(height uint32) {
 	for e := l.List.Back(); e != nil; e = e.Prev() {
 		s := e.Value.(*MissingState)
 		if height > s.Height() {
-			l.List.InsertAfter(NewMissingState(height), e)
+			l.ListInsertAfter(NewMissingState(height), e)
 			return
 		} else if height == s.Height() {
 			return
 		}
 	}
-	l.List.PushFront(NewMissingState(height))
+	l.ListPushFront(NewMissingState(height))
 }
 
 // Del removes a MissingState from the list.
@@ -312,23 +330,37 @@ func NewStatesWaiting() *StatesWaiting {
 	return l
 }
 
+func (l *StatesWaiting) ListInsertAfter(n *WaitingState, e *list.Element) {
+	if n == nil {
+		runtime.Breakpoint()
+	}
+	l.List.InsertAfter(n, e)
+}
+
+func (l *StatesWaiting) ListPushFront(n *WaitingState) {
+	if n == nil {
+		runtime.Breakpoint()
+	}
+	l.List.PushFront(n)
+}
+
 func (l *StatesWaiting) Add(height uint32) {
 	// l.List.PushBack(NewWaitingState(height))
 	for e := l.List.Back(); e != nil; e = e.Prev() {
 		s := e.Value.(*WaitingState)
 		if s == nil {
 			n := NewWaitingState(height)
-			l.List.InsertAfter(n, e)
+			l.ListInsertAfter(n, e)
 			return
 		} else if height > s.Height() {
 			n := NewWaitingState(height)
-			l.List.InsertAfter(n, e)
+			l.ListInsertAfter(n, e)
 			return
 		} else if height == s.Height() {
 			return
 		}
 	}
-	l.List.PushFront(NewWaitingState(height))
+	l.ListPushFront(NewWaitingState(height))
 }
 
 func (l *StatesWaiting) Del(height uint32) {
@@ -402,12 +434,26 @@ func (s *ReceivedState) Message() *messages.DBStateMsg {
 	return s.msg
 }
 
-// StatesReceived is the list of DBStates recieved from the network. "base"
+// StatesReceived is the list of DBStates received from the network. "base"
 // represents the height of known saved states.
 type StatesReceived struct {
 	List   *list.List
 	Notify chan *messages.DBStateMsg
 	base   uint32
+}
+
+func (l *StatesReceived) ListInsertAfter(n *ReceivedState, e *list.Element) {
+	if n == nil {
+		runtime.Breakpoint()
+	}
+	l.ListInsertAfter(n, e)
+}
+
+func (l *StatesReceived) ListPushFront(n *ReceivedState) {
+	if n == nil {
+		runtime.Breakpoint()
+	}
+	l.ListPushFront(n)
 }
 
 func NewStatesReceived() *StatesReceived {
@@ -438,8 +484,8 @@ func (l *StatesReceived) SetBase(height uint32) {
 	}
 }
 
-// HeighestRecieved returns the height of the last member in StatesReceived
-func (l *StatesReceived) HeighestRecieved() uint32 {
+// Heighestreceived returns the height of the last member in StatesReceived
+func (l *StatesReceived) Heighestreceived() uint32 {
 	height := uint32(0)
 	s := l.List.Back()
 	if s != nil {
@@ -451,7 +497,7 @@ func (l *StatesReceived) HeighestRecieved() uint32 {
 	return height
 }
 
-// Add adds a new recieved state to the list.
+// Add adds a new received state to the list.
 func (l *StatesReceived) Add(height uint32, msg *messages.DBStateMsg) {
 	if msg == nil {
 		return
@@ -461,17 +507,17 @@ func (l *StatesReceived) Add(height uint32, msg *messages.DBStateMsg) {
 		s := e.Value.(*ReceivedState)
 		if s == nil {
 			n := NewReceivedState(msg)
-			l.List.InsertAfter(n, e)
+			l.ListInsertAfter(n, e)
 			return
 		} else if height > s.Height() {
 			n := NewReceivedState(msg)
-			l.List.InsertAfter(n, e)
+			l.ListInsertAfter(n, e)
 			return
 		} else if height == s.Height() {
 			return
 		}
 	}
-	l.List.PushFront(NewReceivedState(msg))
+	l.ListPushFront(NewReceivedState(msg))
 }
 
 // Del removes a state from the StatesReceived list
