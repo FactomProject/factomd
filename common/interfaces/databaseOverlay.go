@@ -33,6 +33,7 @@ type DBOverlaySimple interface {
 	FetchPaidFor(hash IHash) (IHash, error)
 	FetchAllEBlocksByChain(IHash) ([]IEntryBlock, error)
 	InsertEntryMultiBatch(entry IEBEntry) error
+	InsertEntry(entry IEBEntry) error
 	ProcessABlockMultiBatch(block DatabaseBatchable) error
 	ProcessDBlockMultiBatch(block DatabaseBlockWithEntries) error
 	ProcessEBlockBatch(eblock DatabaseBlockWithEntries, checkForDuplicateEntries bool) error

@@ -210,7 +210,6 @@ type State struct {
 	// own messages from the previously executing network can confuse you.
 	IgnoreDone    bool
 	IgnoreMissing bool
-
 	// Timout and Limit for outstanding missing DBState requests
 	RequestTimeout time.Duration
 	RequestLimit   int
@@ -235,6 +234,7 @@ type State struct {
 
 	EOMsyncing bool
 
+	EOMSyncTime  int64
 	EOM          bool // Set to true when the first EOM is encountered
 	EOMLimit     int
 	EOMProcessed int
@@ -297,8 +297,7 @@ type State struct {
 	Anchor interfaces.IAnchor
 
 	// Directory Block State
-	DBStates *DBStateList // Holds all DBStates not yet processed.
-
+	DBStates       *DBStateList // Holds all DBStates not yet processed.
 	StatesMissing  *StatesMissing
 	StatesWaiting  *StatesWaiting
 	StatesReceived *StatesReceived
@@ -341,6 +340,8 @@ type State struct {
 	// For Replay / journal
 	IsReplaying     bool
 	ReplayTimestamp interfaces.Timestamp
+	// State for the Entry Syncing process
+	EntrySyncState *EntrySync
 
 	MissingEntryBlockRepeat interfaces.Timestamp
 	// DBlock Height at which node has a complete set of eblocks+entries
@@ -419,13 +420,13 @@ type State struct {
 	processCnt            int64 // count of attempts to process .. so we can see if the thread is running
 	MMRInfo                     // fields for MMR processing
 
-	reportedActivations   [activations.ACTIVATION_TYPE_COUNT + 1]bool // flags about which activations we have reported (+1 because we don't use 0)
-	validatorLoopThreadID string
-
-	OutputRegEx       *regexp.Regexp
-	OutputRegExString string
-	InputRegEx        *regexp.Regexp
-	InputRegExString  string
+	reportedActivations       [activations.ACTIVATION_TYPE_COUNT + 1]bool // flags about which activations we have reported (+1 because we don't use 0)
+	validatorLoopThreadID     string
+	OutputRegEx               *regexp.Regexp
+	OutputRegExString         string
+	InputRegEx                *regexp.Regexp
+	InputRegExString          string
+	executeRecursionDetection map[[32]byte]interfaces.IMsg
 }
 
 var _ interfaces.IState = (*State)(nil)
@@ -524,7 +525,7 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 
 	if !config {
 		newState.IdentityChainID = primitives.Sha([]byte(newState.FactomNodeName))
-		s.LogPrintf("AckChange", "Default IdentityChainID %v", s.IdentityChainID.String())
+		s.LogPrintf("AckChange", "Default3 IdentityChainID %v", s.IdentityChainID.String())
 
 		//generate and use a new deterministic PrivateKey for this clone
 		shaHashOfNodeName := primitives.Sha([]byte(newState.FactomNodeName)) //seed the private key with node name
@@ -550,7 +551,6 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 
 	newState.RequestTimeout = s.RequestTimeout
 	newState.RequestLimit = s.RequestLimit
-
 	newState.FactomdTLSEnable = s.FactomdTLSEnable
 	newState.factomdTLSKeyFile = s.factomdTLSKeyFile
 	newState.factomdTLSCertFile = s.factomdTLSCertFile
@@ -937,23 +937,25 @@ func (s *State) Init() {
 		//s.Logger = log.NewLogFromConfig(s.LogPath, s.LogLevel, "State")
 	}
 
-	s.ControlPanelChannel = make(chan DisplayState, 20)
-	s.tickerQueue = make(chan int, 100)                        //ticks from a clock
-	s.timerMsgQueue = make(chan interfaces.IMsg, 100)          //incoming eom notifications, used by leaders
-	s.TimeOffset = new(primitives.Timestamp)                   //interfaces.Timestamp(int64(rand.Int63() % int64(time.Microsecond*10)))
-	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 100) //incoming message queue from the network messages
+	s.TimeOffset = new(primitives.Timestamp) //interfaces.Timestamp(int64(rand.Int63() % int64(time.Microsecond*10)))
+
 	s.InvalidMessages = make(map[[32]byte]interfaces.IMsg, 0)
-	s.networkOutMsgQueue = NewNetOutMsgQueue(5000)                 //Messages to be broadcast to the network
-	s.inMsgQueue = NewInMsgQueue(constants.INMSGQUEUE_HIGH + 100)  //incoming message queue for Factom application messages
-	s.inMsgQueue2 = NewInMsgQueue(constants.INMSGQUEUE_HIGH + 100) //incoming message queue for Factom application messages
-	s.electionsQueue = NewElectionQueue(10000)                     //incoming message queue for Factom application messages
-	s.apiQueue = NewAPIQueue(100)                                  //incoming message queue from the API
-	s.ackQueue = make(chan interfaces.IMsg, 100)                   //queue of Leadership messages
-	s.msgQueue = make(chan interfaces.IMsg, 400)                   //queue of Follower messages
-	s.ShutdownChan = make(chan int, 1)                             //Channel to gracefully shut down.
-	s.MissingEntries = make(chan *MissingEntry, 10000)             //Entries I discover are missing from the database
-	s.UpdateEntryHash = make(chan *EntryUpdate, 10000)             //Handles entry hashes and updating Commit maps.
-	s.WriteEntry = make(chan interfaces.IEBEntry, 20000)           //Entries to be written to the database
+
+	s.ShutdownChan = make(chan int, 1)                //Channel to gracefully shut down.
+	s.tickerQueue = make(chan int, 100)               //ticks from a clock
+	s.timerMsgQueue = make(chan interfaces.IMsg, 100) //incoming eom notifications, used by leaders
+	s.ControlPanelChannel = make(chan DisplayState, 20)
+	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 100)               //incoming message queue from the network messages
+	s.networkOutMsgQueue = NewNetOutMsgQueue(constants.INMSGQUEUE_MED)       //Messages to be broadcast to the network
+	s.inMsgQueue = NewInMsgQueue(constants.INMSGQUEUE_HIGH)                  //incoming message queue for Factom application messages
+	s.inMsgQueue2 = NewInMsgQueue(constants.INMSGQUEUE_HIGH)                 //incoming message queue for Factom application messages
+	s.electionsQueue = NewElectionQueue(constants.INMSGQUEUE_HIGH)           //incoming message queue for Factom application messages
+	s.apiQueue = NewAPIQueue(constants.INMSGQUEUE_HIGH)                      //incoming message queue from the API
+	s.ackQueue = make(chan interfaces.IMsg, 50)                              //queue of Leadership messages
+	s.msgQueue = make(chan interfaces.IMsg, 50)                              //queue of Follower messages
+	s.MissingEntries = make(chan *MissingEntry, constants.INMSGQUEUE_HIGH)   //Entries I discover are missing from the database
+	s.UpdateEntryHash = make(chan *EntryUpdate, constants.INMSGQUEUE_HIGH)   //Handles entry hashes and updating Commit maps.
+	s.WriteEntry = make(chan interfaces.IEBEntry, constants.INMSGQUEUE_HIGH) //Entries to be written to the database
 
 	if s.Journaling {
 		f, err := os.Create(s.JournalFile)
@@ -994,7 +996,6 @@ func (s *State) Init() {
 	s.DBStates = new(DBStateList)
 	s.DBStates.State = s
 	s.DBStates.DBStates = make([]*DBState, 0)
-
 	s.StatesMissing = NewStatesMissing()
 	s.StatesWaiting = NewStatesWaiting()
 	s.StatesReceived = NewStatesReceived()
@@ -1470,7 +1471,7 @@ func (s *State) LoadHoldingMap() map[[32]byte]interfaces.IMsg {
 }
 
 // this is executed in the state maintenance processes where the holding queue is in scope and can be queried
-//  This is what fills the HoldingMap while locking it againstt a read while building
+//  This is what fills the HoldingMap while locking it against a read while building
 func (s *State) fillHoldingMap() {
 	// once a second is often enough to rebuild the Ack list exposed to api
 
@@ -1943,9 +1944,7 @@ func (s *State) UpdateState() (progress bool) {
 		}
 	}
 
-	p2 := s.DBStates.UpdateState()
-	s.LogPrintf("updateIssues", "ProcessList progress %v DBStates progress %v", progress, p2)
-	progress = progress || p2
+	s.DBStates.Catchup()
 
 	s.SetString()
 	if s.ControlPanelDataRequest {
@@ -1961,7 +1960,6 @@ func (s *State) UpdateState() (progress bool) {
 	s.fillHoldingMap()
 	s.fillAcksMap()
 
-	eupdates := false
 entryHashProcessing:
 	for {
 		select {
@@ -1971,13 +1969,9 @@ entryHashProcessing:
 			// If the SetHashNow worked, then we should prohibit any commit that might be pending.
 			// Remove any commit that might be around.
 			s.Commits.Delete(e.Hash.Fixed())
-			eupdates = true
 		default:
 			break entryHashProcessing
 		}
-	}
-	if eupdates {
-		s.LogPrintf("updateIssues", "entryProcessing")
 	}
 	return
 }

@@ -216,6 +216,7 @@ func (dbs *DBState) MarshalBinary() (rval []byte, err error) {
 	defer func(pe *error) {
 		if *pe != nil {
 			fmt.Fprintf(os.Stderr, "DBState.MarshalBinary err:%v", *pe)
+
 		}
 	}(&err)
 
@@ -522,12 +523,12 @@ func (dbsl *DBStateList) UnmarshalBinaryData(p []byte) (newData []byte, err erro
 		return
 	}
 
-	l, err := buf.PopVarInt()
+	listLen, err := buf.PopVarInt()
 	if err != nil {
 		dbsl.State.LogPrintf("dbstateprocess", "DBStateList.UnmarshalBinaryData listLen err: %v", err)
 		return
 	}
-	for i := 0; i < int(l); i++ {
+	for i := 0; i < int(listLen); i++ {
 		dbs := new(DBState)
 		err = buf.PopBinaryMarshallable(dbs)
 		if dbs.SaveStruct.IdentityControl == nil {
@@ -562,7 +563,6 @@ func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 	_ = s
 	dirblk := next.DirectoryBlock
 	dbheight := dirblk.GetHeader().GetDBHeight()
-
 	// If we don't have the previous blocks processed yet, then let's wait on this one.
 	highestSavedBlk := state.GetHighestSavedBlk()
 
@@ -573,21 +573,34 @@ func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 	}
 
 	// Don't reload blocks!
-	if dbheight <= highestSavedBlk {
+	if dbheight <= highestSavedBlk && !next.IsInDB {
+		state.LogPrintf("dbstateprocess", "Invalid DBState because dbheight %d < highestSavedBlk %d",
+			dbheight, highestSavedBlk)
 		return -1
 	}
 
 	if dbheight > highestSavedBlk+1 {
+		state.LogPrintf("dbstateprocess", "Invalid DBState because dbheight %d > highestSavedBlk+1 %d",
+			dbheight, highestSavedBlk+1)
 		return 0
 	}
 	// This node cannot be validated until the previous node (d) has been saved to disk, which means processed
 	// and signed as well.
-	if d == nil || !(d.Locked && d.Signed && d.Saved) {
+	if d == nil {
+		state.LogPrintf("dbstateprocess", "Cannot validate because DBState is nil",
+			dbheight)
+		return 0
+	}
+	if !d.Locked || !d.Signed || !d.Saved {
+		state.LogPrintf("dbstateprocess", "Cannot validate dbstate at dbht %d because DBState is not locked %v, "+
+			"not Signed %v, or not saved %v", dbheight, d.Locked, d.Signed, d.Saved)
 		return 0
 	}
 
 	valid := next.ValidateSignatures(state)
 	if !next.IsInDB && !next.IgnoreSigs && valid != 1 {
+		state.LogPrintf("dbstateprocess", "cannot validate dbstate at dbht %d (return %v) because "+
+			"!nextIsInDB %v && !next.IgnoreSigs %v", dbheight, valid, next.IsInDB, next.IgnoreSigs)
 		return valid
 	}
 
@@ -599,19 +612,17 @@ func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 
 		pdir, err := state.DB.FetchDBlockByHeight(dbheight - 1)
 		if err != nil {
+			state.LogPrintf("dbstateprocess", "Invalid dbstate at dbht %d because "+
+				"we can find no previous directory block at %d err: %v",
+				dbheight, dbheight-1, err)
 			return -1
 		}
 
-		if pkeymr.Fixed() == pdir.GetKeyMR().Fixed() {
-			//state.AddStatus(fmt.Sprintf("DBState.ValidNext: rtn -1 hashes don't match at first. dbht: %d dbstate had prev %x but we expected %x But on disk %x",
-			//	dbheight, prevkeymr.Bytes()[:3], pkeymr.Bytes()[:3], pdir.GetKeyMR().Bytes()[:3]))
-			return 1
+		if pkeymr.Fixed() != pdir.GetKeyMR().Fixed() {
+			state.LogPrintf("dbstateprocess", "At DBHeight %d the previous block in the database keymr %x does not match the dbstate %x ",
+				dbheight, pdir.GetKeyMR().Bytes(), pkeymr.Bytes())
+			return -1
 		}
-
-		//state.AddStatus(fmt.Sprintf("DBState.ValidNext: rtn -1 hashes don't match. dbht: %d dbstate had prev %x but we expected %x on disk %x",
-		//	dbheight, prevkeymr.Bytes()[:3], pkeymr.Bytes()[:3], pdir.GetKeyMR().Bytes()[:3]))
-		// If not the same, this is a bad new Directory Block
-		return -1
 	}
 
 	return 1
@@ -947,7 +958,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	// at this height) then we simply return.
 	if d.Locked || d.IsNew || d.Repeat {
 
-		s.LogPrintf("dbstateprocess", "ProcessBlocks(%d) Skipping d.Locked(%v) || d.IsNew(%v) || d.Repeat(%v) : dbstate = %v", dbht, d.Locked, d.IsNew, d.Repeat, d.String())
+		s.LogPrintf("dbstateprocess", "ProcessBlocks(%d) Skipping d.Locked(%v) || d.IsNew(%v) || d.Repeat(%v) : ", dbht, d.Locked, d.IsNew, d.Repeat)
 		return false
 	}
 
@@ -1467,13 +1478,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	}
 	for _, e := range d.Entries {
 		// If it's in the DBlock
-		if _, ok := allowedEntries[e.GetHash().Fixed()]; ok {
-			if err := list.State.DB.InsertEntryMultiBatch(e); err != nil {
-				panic(err.Error())
-			}
-		} else {
-			list.State.LogPrintf("dbstateprocess", "Error saving entry from dbstate, entry not allowed")
-		}
+		list.State.WriteEntry <- e
 	}
 	list.State.NumEntries += len(d.Entries)
 	list.State.NumEntryBlocks += len(d.EntryBlocks)
@@ -1490,14 +1495,28 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 					panic(err.Error())
 				}
 
+			} else {
+				list.State.LogPrintf("dbstateprocess", "Error saving eblock from process list, eblock not allowed")
+			}
+		}
+	}
+
+	if err := list.State.DB.ProcessDBlockMultiBatch(d.DirectoryBlock); err != nil {
+		panic(err.Error())
+	}
+	if err := list.State.DB.ExecuteMultiBatch(); err != nil {
+		panic(err.Error())
+	}
+	// Info from ProcessList
+	if pl != nil {
+		for _, eb := range pl.NewEBlocks {
+			keymr, err := eb.KeyMR()
+			if err != nil {
+				panic(err)
+			}
+			if _, ok := allowedEBlocks[keymr.Fixed()]; ok {
 				for _, e := range eb.GetBody().GetEBEntries() {
-					if _, ok := allowedEntries[e.Fixed()]; ok {
-						if err := list.State.DB.InsertEntryMultiBatch(pl.GetNewEntry(e.Fixed())); err != nil {
-							panic(err.Error())
-						}
-					} else {
-						list.State.LogPrintf("dbstateprocess", "Error saving entry from process list, entry not allowed")
-					}
+					pl.State.WriteEntry <- pl.GetNewEntry(e.Fixed())
 				}
 			} else {
 				list.State.LogPrintf("dbstateprocess", "Error saving eblock from process list, eblock not allowed")
@@ -1509,14 +1528,6 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 
 	d.EntryBlocks = make([]interfaces.IEntryBlock, 0)
 	d.Entries = make([]interfaces.IEBEntry, 0)
-
-	if err := list.State.DB.ProcessDBlockMultiBatch(d.DirectoryBlock); err != nil {
-		panic(err.Error())
-	}
-
-	if err := list.State.DB.ExecuteMultiBatch(); err != nil {
-		panic(err.Error())
-	}
 
 	// Not activated.  Set to true if you want extra checking of the data saved to the database.
 	if false {
@@ -1588,6 +1599,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 }
 
 func (list *DBStateList) UpdateState() (progress bool) {
+
 	s := list.State
 	_ = s
 	if len(list.DBStates) != 0 {
@@ -1642,26 +1654,21 @@ func (list *DBStateList) UpdateState() (progress bool) {
 			//			s.LogPrintf("dbstateprocess", "skip reprocessing %d", dbHeight)
 			continue // don't reprocess old blocks
 		}
+		var p bool = false
 		// if this is not the first block then fixup the links
 		if i > 0 {
-			p := list.FixupLinks(list.DBStates[i-1], d)
-			if p && !progress {
-				progress = p
-			}
+			p = list.FixupLinks(list.DBStates[i-1], d)
+			progress = p || progress
 		}
 
-		p := list.ProcessBlocks(d) || progress
-		if p && !progress {
-			progress = p
-		}
-		p = list.SignDB(d) || progress
-		if p && !progress {
-			progress = p
-		}
-		p = list.SaveDBStateToDB(d) || progress
-		if p && !progress {
-			progress = p
-		}
+		p = list.ProcessBlocks(d)
+		progress = p || progress
+
+		p = list.SignDB(d)
+		progress = p || progress
+
+		p = list.SaveDBStateToDB(d)
+		progress = p || progress
 
 		// Make sure we move forward the Adminblock state in the process lists
 		list.State.ProcessLists.Get(dbHeight + 1)

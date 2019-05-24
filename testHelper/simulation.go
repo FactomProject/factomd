@@ -247,22 +247,24 @@ func StatusEveryMinute(s *state.State) {
 		go func() {
 			for {
 				s := statusState
-				newMinute := (s.CurrentMinute + 1) % 10
-				timeout := 8 // timeout if a minutes takes twice as long as expected
-				for s.CurrentMinute != newMinute && timeout > 0 {
-					sleepTime := time.Duration(globals.Params.BlkTime) * 1000 / 40 // Figure out how long to sleep in milliseconds
-					time.Sleep(sleepTime * time.Millisecond)                       // wake up and about 4 times per minute
-					timeout--
-				}
-				if timeout <= 0 {
-					fmt.Println("Stalled !!!")
-				}
-				// Make all the nodes update their status
-				for _, n := range engine.GetFnodes() {
-					n.State.SetString()
-				}
+				if s != nil {
+					newMinute := (s.CurrentMinute + 1) % 10
+					timeout := 8 // timeout if a minutes takes twice as long as expected
+					for s.CurrentMinute != newMinute && timeout > 0 {
+						sleepTime := time.Duration(globals.Params.BlkTime) * 1000 / 40 // Figure out how long to sleep in milliseconds
+						time.Sleep(sleepTime * time.Millisecond)                       // wake up and about 4 times per minute
+						timeout--
+					}
+					if timeout <= 0 {
+						fmt.Println("Stalled !!!")
+					}
+					// Make all the nodes update their status
+					for _, n := range engine.GetFnodes() {
+						n.State.SetString()
+					}
 
-				engine.PrintOneStatus(0, 0)
+					engine.PrintOneStatus(0, 0)
+				}
 			}
 		}()
 	} else {
@@ -451,6 +453,7 @@ func Halt(t *testing.T) {
 func ShutDownEverything(t *testing.T) {
 	CheckAuthoritySet(t)
 	Halt(t)
+	statusState = nil // turn off status
 	fnodes := engine.GetFnodes()
 	currentHeight := fnodes[0].State.LLeaderHeight
 	// Sleep one block

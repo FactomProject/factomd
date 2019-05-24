@@ -1,4 +1,5 @@
-#/bin/sh
+#!/usr/bin/env bash
+# timeGossip.sh <pattern to match messages>  -- times how long a message takes to get across the network
 pattern="$1"
 shift
 ################################
