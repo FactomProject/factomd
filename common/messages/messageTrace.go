@@ -342,3 +342,12 @@ func Cleanup() {
 		f.Close()
 	}
 }
+
+type foo func(data []byte) (interfaces.IMsg, error)
+
+var FP func(data []byte) (interfaces.IMsg, error)
+
+func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
+	msg, err := FP(data)
+	return msg, err
+}

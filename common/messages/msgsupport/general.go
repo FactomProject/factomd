@@ -16,6 +16,10 @@ import (
 	"github.com/FactomProject/factomd/common/messages/electionMsgs"
 )
 
+func init() {
+	messages.FP = UnmarshalMessage
+}
+
 func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
 	_, msg, err := UnmarshalMessageData(data)
 	return msg, err
