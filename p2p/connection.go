@@ -5,7 +5,6 @@
 package p2p
 
 import (
-	atomic "awesomeProject"
 	"encoding/gob"
 	"fmt"
 	"hash/crc32"
@@ -14,9 +13,9 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/messages"
-
 	"github.com/FactomProject/factomd/common/primitives"
 
+	"github.com/FactomProject/factomd/util/atomic"
 	log "github.com/sirupsen/logrus"
 )
 
