@@ -6,6 +6,7 @@ package state
 
 import (
 	"fmt"
+	"github.com/FactomProject/factomd/common/constants/runstate"
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -16,10 +17,20 @@ import (
 )
 
 func (state *State) ValidatorLoop() {
+
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("A panic state occurred in ValidatorLoop.", r)
+			shutdown(state)
+		}
+	}()
+
 	CheckGrants()
 	timeStruct := new(Timer)
 	var prev time.Time
 	state.validatorLoopThreadID = atomic.Goid()
+	state.RunState = runstate.Running
+
 	for {
 		s := state
 		if state.DebugExec() {
@@ -57,16 +68,9 @@ func (state *State) ValidatorLoop() {
 				prev = now
 			}
 		}
-		// Check if we should shut down.
-		select {
-		case <-state.ShutdownChan:
-			fmt.Println("Closing the Database on", state.GetFactomNodeName())
-			state.DB.Close()
-			state.StateSaverStruct.StopSaving()
-			fmt.Println(state.GetFactomNodeName(), "closed")
-			state.IsRunning = false
+
+		if shouldShutdown(state) {
 			return
-		default:
 		}
 
 		ackRoom := cap(state.ackQueue) - len(state.ackQueue)
@@ -141,12 +145,33 @@ func (state *State) ValidatorLoop() {
 				for i := 0; i < 10 && state.InMsgQueue().Length() == 0 && state.InMsgQueue2().Length() == 0; i++ {
 					time.Sleep(10 * time.Millisecond)
 					state.ValidatorLoopSleepCnt++
+					if shouldShutdown(state) {
+						return
+					}
 				}
 
 			}
 		}
-
 	}
+}
+
+func shouldShutdown(state *State) bool {
+	select {
+	case <-state.ShutdownChan:
+		shutdown(state)
+		return true
+	default:
+		return false
+	}
+}
+
+func shutdown(state *State) {
+	state.RunState = runstate.Stopping
+	fmt.Println("Closing the Database on", state.GetFactomNodeName())
+	state.DB.Close()
+	state.StateSaverStruct.StopSaving() // Shouldn't this be done before closing the database?
+	fmt.Println("Database on", state.GetFactomNodeName(), "closed")
+	state.RunState = runstate.Stopped
 }
 
 type Timer struct {

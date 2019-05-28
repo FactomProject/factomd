@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/constants/runstate"
 	. "github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
@@ -190,10 +191,8 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 
 	AddInterruptHandler(func() {
 		fmt.Print("<Break>\n")
-		fmt.Print("Gracefully shutting down the server...\n")
 		for _, fnode := range fnodes {
-			fmt.Print("Shutting Down: ", fnode.State.FactomNodeName, "\r\n")
-			fnode.State.ShutdownChan <- 0
+			fnode.State.ShutdownNode(0)
 		}
 		if p.EnableNet {
 			p2pNetwork.NetworkStop()
@@ -604,6 +603,7 @@ func makeServer(s *state.State) *FactomNode {
 
 func startServers(load bool) {
 	for i, fnode := range fnodes {
+		fnode.State.RunState = runstate.Booting
 		if i > 0 {
 			fnode.State.Init()
 		}

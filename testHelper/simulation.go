@@ -251,6 +251,7 @@ func StatusEveryMinute(s *state.State) {
 					time.Sleep(sleepTime * time.Millisecond)                       // wake up and about 4 times per minute
 					timeout--
 				}
+
 				if timeout <= 0 {
 					fmt.Println("Stalled !!!")
 				}
@@ -414,8 +415,9 @@ func Halt(t *testing.T) {
 	close(quit)
 	t.Log("Shutting down the network")
 	for _, fn := range engine.GetFnodes() {
-		fn.State.ShutdownChan <- 1
+		fn.State.ShutdownNode(1)
 	}
+
 	// sleep long enough for everyone to see the shutdown.
 	time.Sleep(time.Duration(globals.Params.BlkTime) * time.Second)
 }

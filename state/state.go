@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/FactomProject/factomd/common/constants/runstate"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -49,7 +50,7 @@ var _ = fmt.Print
 
 type State struct {
 	Logger            *log.Entry
-	IsRunning         bool
+	RunState          runstate.RunState
 	NetworkController *p2p.Controller
 	Salt              interfaces.IHash
 	Cfg               interfaces.IFactomConfig
@@ -424,8 +425,8 @@ func (s *State) GetConfigPath() string {
 	return s.ConfigFilePath
 }
 
-func (s *State) Running() bool {
-	return s.IsRunning
+func (s *State) GetRunState() runstate.RunState {
+	return s.RunState
 }
 
 func (s *State) Clone(cloneNumber int) interfaces.IState {
@@ -459,6 +460,7 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 
 	newState.FactomNodeName = s.Prefix + "FNode" + number
 	newState.FactomdVersion = s.FactomdVersion
+	newState.RunState = runstate.New // reset runstate since this clone will be started by sim node
 	newState.DropRate = s.DropRate
 	newState.LdbPath = s.LdbPath + "/Sim" + number
 	newState.JournalFile = s.LogPath + "/journal" + number + ".log"
@@ -2947,4 +2949,10 @@ func (s *State) IsActive(id activations.ActivationType) bool {
 	}
 
 	return rval
+}
+
+func (s *State) ShutdownNode(exitCode int) {
+	fmt.Println(fmt.Sprintf("Initiating a graceful shutdown of node %s. The exit code is %v.", s.FactomNodeName, exitCode))
+	s.RunState = runstate.Stopping
+	s.ShutdownChan <- exitCode
 }
