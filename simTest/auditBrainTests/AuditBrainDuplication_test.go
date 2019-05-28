@@ -3,19 +3,19 @@ package auditBrainTests_test
 import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants/runstate"
-	"github.com/FactomProject/factomd/simTest/auditBrainTests"
 	"github.com/FactomProject/factomd/state"
 	. "github.com/FactomProject/factomd/testHelper"
+
 	"strconv"
 	"testing"
 )
 
-// Simulate a failed swap where and audit server is duplicated / the initial one is left online
+// Simulate bad node upgrade procedure where and audit server is duplicated / the initial one is left online or comes back online
 // In this test one of the nodes does not have ChangeAcksHeight set
 func TestAuditBrainDuplication1(t *testing.T) {
 	t.Run("Run Brain Duplication Sim 1", func(t *testing.T) {
-		t.Run("Setup Config Files", auditBrainTests.SetupConfigFiles)
-		states := auditBrainTests.SetupNodes(t, "LLLAFF")
+		t.Run("Setup Config Files", SetupConfigFiles)
+		states := SetupNodes(t, "LLLAFF")
 		duplicateIdentities(t, states, 0, 10)
 		verifyNetworkAfterDup(t, states, 3)
 	})
@@ -25,27 +25,20 @@ func TestAuditBrainDuplication1(t *testing.T) {
 // We need an extra audit node for the period that both node3&5 don't operate as audit nodes as time will halt when that happens
 func TestAuditBrainDuplication2(t *testing.T) {
 	t.Run("Run Brain Duplication Sim 2", func(t *testing.T) {
-		t.Run("Setup Config Files", auditBrainTests.SetupConfigFiles)
-		states := auditBrainTests.SetupNodes(t, "LLLAFFA")
+		t.Run("Setup Config Files", SetupConfigFiles)
+		states := SetupNodes(t, "LLLAFFA")
 		duplicateIdentities(t, states, 10, 10)
 		verifyNetworkAfterDup(t, states, 5)
 	})
 }
 
+// In this test both of the nodes have ChangeAcksHeight set to the same value
+// We need an extra audit node for the period that both node3&5 don't operate as audit nodes as time will halt when that happens
 func TestAuditBrainDuplication3(t *testing.T) {
 	t.Run("Run Brain Duplication Sim 3", func(t *testing.T) {
-		t.Run("Setup Config Files", auditBrainTests.SetupConfigFiles)
-		states := auditBrainTests.SetupNodes(t, "LLLAFFA")
+		t.Run("Setup Config Files", SetupConfigFiles)
+		states := SetupNodes(t, "LLLAFFA")
 		duplicateIdentities(t, states, 10, 11)
-		verifyNetworkAfterDup(t, states, 5)
-	})
-}
-
-func TestAuditBrainDuplication4(t *testing.T) {
-	t.Run("Run Brain Duplication Sim 4", func(t *testing.T) {
-		t.Run("Setup Config Files", auditBrainTests.SetupConfigFiles)
-		states := auditBrainTests.SetupNodes(t, "LLLAFFA")
-		duplicateIdentities(t, states, 11, 10)
 		verifyNetworkAfterDup(t, states, 5)
 	})
 }
@@ -111,7 +104,7 @@ func verifyNetworkAfterDup(t *testing.T, states map[int]*state.State, nodeExpect
 
 			RunCmd("6")
 			RunCmd("x")
-			states[6].ShutdownNode() // Shut down node 6
+			states[6].ShutdownNode(1) // Shut down node 6
 
 			WaitBlocks(states[0], 2)
 			AdjustAuthoritySet("LLLLFFF") // Node 3 should have been elected now

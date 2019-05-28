@@ -31,7 +31,7 @@ func SetupConfigFiles(t *testing.T) {
 
 func SetupNodes(t *testing.T, givenNodes string) map[int]*state.State {
 	states := map[int]*state.State{}
-	states[0] = SetupSim(givenNodes, buildParmList(), 18, 0, 0, t)
+	states[0] = SetupSim(givenNodes, buildParmList(), 16, 0, 0, t)
 	for i := 1; i <= len(givenNodes)-1; i++ {
 		states[i] = engine.GetFnodes()[i].State
 	}

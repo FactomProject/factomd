@@ -2,7 +2,6 @@ package auditBrainTests_test
 
 import (
 	"github.com/FactomProject/factomd/common/constants/servertype"
-	"github.com/FactomProject/factomd/simTest/auditBrainTests"
 	"github.com/FactomProject/factomd/state"
 	. "github.com/FactomProject/factomd/testHelper"
 	"testing"
@@ -11,8 +10,8 @@ import (
 // Test brainswapping a follower and an audit when the audit is lagging behind
 func TestAuditBrainSwap(t *testing.T) {
 	t.Run("Run Brain Swap Sim", func(t *testing.T) {
-		t.Run("Setup Config Files", auditBrainTests.SetupConfigFiles)
-		states := auditBrainTests.SetupNodes(t, "LLLAFF")
+		t.Run("Setup Config Files", SetupConfigFiles)
+		states := SetupNodes(t, "LLLAFF")
 		swapIdentities(t, states)
 		verifyNetworkAfterSwap(t, states)
 	})
