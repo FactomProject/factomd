@@ -6,6 +6,7 @@ package electionMsgs
 
 import (
 	"fmt"
+	"github.com/FactomProject/factomd/common/constants/runstate"
 	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -109,7 +110,8 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 
 	// We have advanced, so do nothing.  We can't reset anything because there
 	// can be a timeout process that started before we got here (with short minutes)
-	if e.DBHeight > m.DBHeight || e.ComparisonMinute() > m.ComparisonMinute() {
+	// Also stop executing this when the node is shut down
+	if e.DBHeight > m.DBHeight || e.ComparisonMinute() > m.ComparisonMinute() || s.RunState != runstate.Running {
 		return
 	}
 

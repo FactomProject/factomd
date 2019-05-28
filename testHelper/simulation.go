@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/FactomProject/factomd/common/constants/runstate"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -250,6 +251,9 @@ func StatusEveryMinute(s *state.State) {
 					sleepTime := time.Duration(globals.Params.BlkTime) * 1000 / 40 // Figure out how long to sleep in milliseconds
 					time.Sleep(sleepTime * time.Millisecond)                       // wake up and about 4 times per minute
 					timeout--
+				}
+				if s.RunState > runstate.Running {
+					return
 				}
 
 				if timeout <= 0 {

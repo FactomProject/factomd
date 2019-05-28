@@ -7,6 +7,7 @@ package state
 import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants/runstate"
+	"github.com/FactomProject/factomd/common/primitives"
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -163,10 +164,12 @@ func shouldShutdown(state *State) bool {
 
 func shutdown(state *State) {
 	state.RunState = runstate.Stopping
+	state.SetIdentityChainID(primitives.NewZeroHash()) // Stop being the designated node for this identity
+	state.Leader = false                               // Stop being a leader
 	fmt.Println("Closing the Database on", state.GetFactomNodeName())
 	state.DB.Close()
-	state.StateSaverStruct.StopSaving() // Shouldn't this be done before closing the database?
-	fmt.Println("Database on", state.GetFactomNodeName(), "closed")
+	state.StateSaverStruct.StopSaving()
+	fmt.Println(state.GetFactomNodeName(), "closed")
 	state.RunState = runstate.Stopped
 }
 

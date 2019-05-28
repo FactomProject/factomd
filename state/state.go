@@ -410,8 +410,9 @@ type State struct {
 	processCnt            int64 // count of attempts to process .. so we can see if the thread is running
 	MMRInfo                     // fields for MMR processing
 
-	reportedActivations   [activations.ACTIVATION_TYPE_COUNT + 1]bool // flags about which activations we have reported (+1 because we don't use 0)
-	validatorLoopThreadID string
+	reportedActivations         [activations.ACTIVATION_TYPE_COUNT + 1]bool // flags about which activations we have reported (+1 because we don't use 0)
+	validatorLoopThreadID       string
+	DuplicateIdDetectedAtHeight uint32
 }
 
 var _ interfaces.IState = (*State)(nil)
@@ -712,6 +713,22 @@ func (s *State) GetAckChange() (bool, error) {
 	flag = s.AckChange != change
 	s.AckChange = change
 	return flag, nil
+}
+
+func (s *State) GetAckChangeValue() uint32 {
+	change, err := util.GetChangeAcksHeight(s.ConfigFilePath)
+	if err != nil {
+		return 0
+	}
+	return change
+}
+
+func (s *State) SetDuplicateIdDetectedAtHeight(height uint32) {
+	s.DuplicateIdDetectedAtHeight = height
+}
+
+func (s *State) GetDuplicateIdDetectedAtHeight() uint32 {
+	return s.DuplicateIdDetectedAtHeight
 }
 
 func (s *State) LoadConfig(filename string, networkFlag string) {

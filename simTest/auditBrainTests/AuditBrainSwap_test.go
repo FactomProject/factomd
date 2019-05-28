@@ -2,9 +2,9 @@ package auditBrainTests_test
 
 import (
 	"github.com/FactomProject/factomd/common/constants/servertype"
+	"github.com/FactomProject/factomd/simTest/auditBrainTests"
 	"github.com/FactomProject/factomd/state"
 	. "github.com/FactomProject/factomd/testHelper"
-	"github.com/FactomProject/factomdtemp/simTest/auditBrainTests"
 	"testing"
 )
 
@@ -22,8 +22,8 @@ func swapIdentities(t *testing.T, states map[int]*state.State) bool {
 	return t.Run("Wait For Identity Swap", func(t *testing.T) {
 		WaitForBlock(states[0], 6)
 		WaitForAllNodes(states[0])
-
 		// rewrite the config to have brainswaps
+
 		WriteConfigFile(3, 5, "ChangeAcksHeight = 10\n", t) // Setup A brain swap between A3 and F5
 		WriteConfigFile(5, 3, "ChangeAcksHeight = 10\n", t)
 		WaitForBlock(states[0], 9)

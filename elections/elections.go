@@ -2,6 +2,7 @@ package elections
 
 import (
 	"fmt"
+	"github.com/FactomProject/factomd/common/constants/runstate"
 	"time"
 
 	"github.com/FactomProject/factomd/common/globals"
@@ -455,6 +456,9 @@ func Run(s *state.State) {
 	// Actually run the elections
 	for {
 		msg := e.Input.BlockingDequeue().(interfaces.IElectionMsg)
+		if s.RunState > runstate.Running {
+			return
+		}
 		e.LogMessage("election", fmt.Sprintf("exec %d", e.Electing), msg.(interfaces.IMsg))
 
 		valid := msg.ElectionValidate(e)

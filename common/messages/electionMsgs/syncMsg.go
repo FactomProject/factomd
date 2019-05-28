@@ -189,6 +189,14 @@ func (m *SyncMsg) FollowerExecute(is interfaces.IState) {
 		s.AddToHolding(m.GetMsgHash().Fixed(), m)
 		return // Maybe we are not yet prepared to create an SigType...
 	}
+
+	// When a duplicate id is detected one of the nodes will shut down soon but abstain from elections until this is confirmed
+	if is.GetDuplicateIdDetectedAtHeight() > 0 && is.GetLLeaderHeight() < is.GetDuplicateIdDetectedAtHeight()+2 ||
+		s.AckChange > s.DBHeightAtBoot && s.LLeaderHeight <= s.AckChange {
+		msg.FollowerExecute(is)
+		return
+	}
+
 	va := new(FedVoteVolunteerMsg)
 	va.Missing = msg
 	va.Ack = ack
