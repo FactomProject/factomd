@@ -347,4 +347,8 @@ type IState interface {
 
 	// Activations
 	IsActive(id activations.ActivationType) bool
+
+	GetAckChangeValue() uint32
+	SetDuplicateIdDetectedAtHeight(height uint32)
+	GetDuplicateIdDetectedAtHeight() uint32
 }
