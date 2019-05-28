@@ -192,23 +192,13 @@ func logMessage(name string, note string, msg interfaces.IMsg) {
 			//to = "broadcast"
 		}
 		switch t {
-		case constants.ACK_MSG:
-			ack := msg.(*Ack)
-			embeddedHash = fmt.Sprintf(" EmbeddedMsg: %x", ack.GetHash().Bytes()[:3])
-			fixed := ack.GetHash().Fixed()
+		case constants.VOLUNTEERAUDIT, constants.ACK_MSG:
+			embeddedHash = fmt.Sprintf(" EmbeddedMsg: %x", msg.GetHash().Bytes()[:3])
+			fixed := msg.GetHash().Fixed()
 			embeddedMsg = getmsg(fixed)
 			if embeddedMsg == nil {
 				embeddedHash += "(unknown)"
 			}
-		case constants.VOLUNTEERAUDIT:
-			//fvm := msg.(*electionMsgs.FedVoteVolunteerMsg)
-			//ack := fvm.qAck
-			//embeddedHash = fmt.Sprintf(" EmbeddedMsg: %x", ack.GetHash().Bytes()[:3])
-			//fixed := ack.GetHash().Fixed()
-			//embeddedMsg = getmsg(fixed)
-			//if embeddedMsg == nil {
-			//	embeddedHash += "(unknown)"
-			//}
 		}
 		messageType = constants.MessageName(byte(t))
 	}
