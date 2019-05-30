@@ -74,12 +74,20 @@ func (s *State) ExecuteFromHolding(h [32]byte) {
 	l := s.Get(h)
 	if l != nil {
 		// add the messages to the msgQueue so they get executed as space is available
+		/*
 		func() {
 			for _, m := range l {
 				s.LogMessage("msgQueue", "enqueue_from_holding", m)
 				s.msgQueue <- m
 			}
 		}()
+		 */
+		for _, m := range l {
+			// add dependents back to standard holding
+			s.Holding[m.GetMsgHash().Fixed()] = m
+			//s.LogMessage("msgQueue", "enqueue_from_holding", m)
+			//s.msgQueue <- m
+		}
 	}
 }
 
