@@ -137,8 +137,7 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 	if commit == nil {
 		state.LogMessage("executeMsg", "Hold, no commit", m)
 		// old holding return 0
-		state.Add(m.Entry.GetHash().Fixed(), m) // hold for a commit
-		return -2                               // dont hold in the old holding
+		return state.Add(m.Entry.GetHash().Fixed(), m) // hold for a commit
 
 	}
 	//
@@ -168,8 +167,7 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 		if m.Entry.KSize() > ECs {
 			state.LogMessage("executeMsg", "Hold, underpaid", m)
 			// old holding .... return 0 // not enough payments on the EC to reveal this entry.  Return 0 to wait on another commit
-			state.Add(m.Entry.GetHash().Fixed(), m) // hold for a new commit
-			return -2                               // dont hold in the old holding
+			return state.Add(m.Entry.GetHash().Fixed(), m) // hold for a new commit
 		}
 
 		// Make sure we have a chain.  If we don't, then bad things happen.
@@ -192,8 +190,7 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 			state.LogMessage("executeMsg", "Hold, no chain", m)
 			// No chain, we have to leave it be and maybe one will be made.
 			//old holding .., return 0
-			state.Add(m.Entry.GetChainID().Fixed(), m) // hold for a new commit
-			return -2                                  // dont hold in the old holding
+			return state.Add(m.Entry.GetChainID().Fixed(), m) // hold for a new commit
 
 		}
 		return 1
@@ -203,8 +200,7 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 		if m.Entry.KSize()+10 > ECs { // Discard commits that are not funded properly
 			state.LogMessage("executeMsg", "Hold, under paid", m)
 			// old holding .... return 0 // not enough payments on the EC to reveal this chain.  Return 0 to wait on another commit
-			state.Add(m.Entry.GetHash().Fixed(), m) // hold for a new commit
-			return -2                               // don't hold in the old holding
+			return state.Add(m.Entry.GetHash().Fixed(), m) // hold for a new commit
 		}
 
 		if !CheckChainID(state, m.Entry.ExternalIDs(), m) {
