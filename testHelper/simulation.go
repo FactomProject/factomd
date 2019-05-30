@@ -10,6 +10,7 @@ import (
 	"os"
 	"reflect"
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 
@@ -255,15 +256,27 @@ func TimeNow(s *state.State) {
 	fmt.Printf("%s:%d-:-%d Now %s of %s (remaining %s)\n", s.FactomNodeName, int(s.LLeaderHeight), s.CurrentMinute, now.Sub(startTime).String(), endTime.Sub(startTime).String(), endTime.Sub(now).String())
 }
 
+var statusMutes sync.Mutex
 var statusState *state.State
 
 // print the status for every minute for a state
 func StatusEveryMinute(s *state.State) {
-	if statusState == nil {
-		fmt.Fprintf(os.Stdout, "Printing status from %s\n", s.FactomNodeName)
-		statusState = s
+	statusMutes.Lock()
+	statusState = s
+	statusMutes.Unlock()
+
+	if s == nil {
+		fmt.Fprintf(os.Stdout, "StatusEveryMinute OFF\n")
+	} else {
+		fmt.Fprintf(os.Stdout, "Printing status from %s", s.FactomNodeName)
 		go func() {
 			for {
+				statusMutes.Lock()
+				s = statusState
+				statusMutes.Unlock()
+				if s == nil {
+					break // exit the routine
+				}
 				s := statusState
 				newMinute := (s.CurrentMinute + 1) % 10
 				timeout := 8 // timeout if a minutes takes twice as long as expected
@@ -279,14 +292,9 @@ func StatusEveryMinute(s *state.State) {
 				for _, n := range engine.GetFnodes() {
 					n.State.SetString()
 				}
-
-				engine.PrintOneStatus(0, 0)
 			}
+			engine.PrintOneStatus(0, 0)
 		}()
-	} else {
-		fmt.Fprintf(os.Stdout, "Printing status from %s", s.FactomNodeName)
-		statusState = s
-
 	}
 }
 
