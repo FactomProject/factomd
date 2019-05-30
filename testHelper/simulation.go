@@ -258,6 +258,7 @@ func TimeNow(s *state.State) {
 
 var statusMutes sync.Mutex
 var statusState *state.State
+var running bool
 
 // print the status for every minute for a state
 func StatusEveryMinute(s *state.State) {
@@ -269,32 +270,36 @@ func StatusEveryMinute(s *state.State) {
 		fmt.Fprintf(os.Stdout, "StatusEveryMinute OFF\n")
 	} else {
 		fmt.Fprintf(os.Stdout, "Printing status from %s", s.FactomNodeName)
-		go func() {
-			for {
-				statusMutes.Lock()
-				s = statusState
-				statusMutes.Unlock()
-				if s == nil {
-					break // exit the routine
+		if !running {
+			running = true
+			go func() {
+				for {
+					statusMutes.Lock()
+					s = statusState
+					statusMutes.Unlock()
+					if s == nil {
+						break // exit the routine
+					}
+					s := statusState
+					newMinute := (s.CurrentMinute + 1) % 10
+					timeout := 8 // timeout if a minutes takes twice as long as expected
+					for s.CurrentMinute != newMinute && timeout > 0 {
+						sleepTime := time.Duration(globals.Params.BlkTime) * 1000 / 40 // Figure out how long to sleep in milliseconds
+						time.Sleep(sleepTime * time.Millisecond)                       // wake up and about 4 times per minute
+						timeout--
+					}
+					if timeout <= 0 {
+						fmt.Println("Stalled !!!")
+					}
+					// Make all the nodes update their status
+					for _, n := range engine.GetFnodes() {
+						n.State.SetString()
+					}
 				}
-				s := statusState
-				newMinute := (s.CurrentMinute + 1) % 10
-				timeout := 8 // timeout if a minutes takes twice as long as expected
-				for s.CurrentMinute != newMinute && timeout > 0 {
-					sleepTime := time.Duration(globals.Params.BlkTime) * 1000 / 40 // Figure out how long to sleep in milliseconds
-					time.Sleep(sleepTime * time.Millisecond)                       // wake up and about 4 times per minute
-					timeout--
-				}
-				if timeout <= 0 {
-					fmt.Println("Stalled !!!")
-				}
-				// Make all the nodes update their status
-				for _, n := range engine.GetFnodes() {
-					n.State.SetString()
-				}
-			}
-			engine.PrintOneStatus(0, 0)
-		}()
+				engine.PrintOneStatus(0, 0)
+			}()
+			running = false
+		}
 	}
 }
 
