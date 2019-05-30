@@ -258,7 +258,7 @@ func TimeNow(s *state.State) {
 
 var statusMutes sync.Mutex
 var statusState *state.State
-var running bool
+var StatusEveryMinuteRunning bool
 
 // print the status for every minute for a state
 func StatusEveryMinute(s *state.State) {
@@ -270,8 +270,8 @@ func StatusEveryMinute(s *state.State) {
 		fmt.Fprintf(os.Stdout, "StatusEveryMinute OFF\n")
 	} else {
 		fmt.Fprintf(os.Stdout, "Printing status from %s", s.FactomNodeName)
-		if !running {
-			running = true
+		if !StatusEveryMinuteRunning {
+			StatusEveryMinuteRunning = true
 			go func() {
 				for {
 					statusMutes.Lock()
@@ -295,10 +295,10 @@ func StatusEveryMinute(s *state.State) {
 					for _, n := range engine.GetFnodes() {
 						n.State.SetString()
 					}
+					engine.PrintOneStatus(0, 0)
 				}
-				engine.PrintOneStatus(0, 0)
+				StatusEveryMinuteRunning = false
 			}()
-			running = false
 		}
 	}
 }
