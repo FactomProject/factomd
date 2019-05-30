@@ -1,9 +1,10 @@
 package longtest
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 
 	. "github.com/FactomProject/factomd/testHelper"
 )

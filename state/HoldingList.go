@@ -1,6 +1,7 @@
 package state
 
 import (
+	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
@@ -50,7 +51,7 @@ func (hl *HoldingList) Review() {
 		for _, msg := range l {
 			if hl.s.IsMsgStale(msg) < 0 {
 				hl.Get(h) // remove from holding
-				hl.s.LogMessage("holdinglist", "remove_from_holding", msg)
+				hl.s.LogMessage("newHolding", "RemoveFromDependantHolding()", msg)
 				continue
 			}
 		}
@@ -59,6 +60,7 @@ func (hl *HoldingList) Review() {
 
 // Add a message to a dependent holding list
 func (s *State) Add(h [32]byte, msg interfaces.IMsg) {
+	s.LogMessage("newHolding", fmt.Sprintf("AddToDependantHolding(%x)", h[:4]), msg)
 	s.Hold.Add(h, msg)
 }
 
@@ -73,13 +75,16 @@ func (s *State) ExecuteFromHolding(h [32]byte) {
 	// get the list of messages waiting on this hash
 	l := s.Get(h)
 	if l != nil {
+		s.LogPrintf("newHolding", "ExecuteFromDependantHolding(%x)[%d]", len(l), h[:4])
 		// add the messages to the msgQueue so they get executed as space is available
 		func() {
 			for _, m := range l {
-				s.LogMessage("msgQueue", "enqueue_from_holding", m)
+				s.LogMessage("msgQueue", "enqueue_from_dependant_holding", m)
 				s.msgQueue <- m
 			}
 		}()
+	} else {
+		s.LogPrintf("newHolding", "ExecuteFromDependantHolding(%x) nothing waiting", h[:4])
 	}
 }
 
