@@ -283,6 +283,7 @@ func StatusEveryMinute(s *state.State) {
 					s := statusState
 					newMinute := (s.CurrentMinute + 1) % 10
 					timeout := 8 // timeout if a minutes takes twice as long as expected
+					start := time.Now()
 					for s.CurrentMinute != newMinute && timeout > 0 {
 						sleepTime := time.Duration(globals.Params.BlkTime) * 1000 / 40 // Figure out how long to sleep in milliseconds
 						time.Sleep(sleepTime * time.Millisecond)                       // wake up and about 4 times per minute
@@ -290,6 +291,7 @@ func StatusEveryMinute(s *state.State) {
 					}
 					if timeout <= 0 {
 						fmt.Println("Stalled !!!")
+						fmt.Printf("took %s\n", time.Now().Sub(start).String())
 					}
 					// Make all the nodes update their status
 					for _, n := range engine.GetFnodes() {
