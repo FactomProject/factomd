@@ -131,7 +131,6 @@ func (c *AdminBlock) AddFedServer(identityChainID interfaces.IHash) error {
 	if identityChainID == nil {
 		return fmt.Errorf("No identityChainID provided")
 	}
-
 	entry := NewAddFederatedServer(identityChainID, c.GetHeader().GetDBHeight()+1) // Goes in the NEXT block
 	return c.AddEntry(entry)
 }

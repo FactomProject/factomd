@@ -327,6 +327,11 @@ func (s *State) executeMsg(msg interfaces.IMsg) (ret bool) {
 			if vm.List != nil {
 				vml = len(vm.List)
 			}
+			if vmh < vml {
+				for s.LeaderPL.Process(s) {
+				}
+			}
+			vmh = int(vm.Height)
 		}
 
 		local := msg.IsLocal()
