@@ -33,8 +33,6 @@ func TestHoldingRebound(t *testing.T) {
 	// REVIEW: changing simulation to LAF doesn't always pass cleanly on circle
 	// this may just mean we shouldn't check for empty holding
 	state0 := SetupSim("L", params, 9, 0, 0, t)
-	ticker := WatchMessageLists()
-	defer ticker.Stop()
 
 	e := factom.Entry{
 		ChainID: id,
