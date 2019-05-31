@@ -5,6 +5,8 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
+var UseDependentHolding = true
+
 // This hold a slice of messages dependent on a hash
 type HoldingList struct {
 	holding map[[32]byte][]interfaces.IMsg
@@ -20,6 +22,10 @@ func (l *HoldingList) Init(s *State) {
 	l.dependents = make(map[[32]byte]bool)
 }
 
+func (l *HoldingList) Messages() map[[32]byte][]interfaces.IMsg {
+	return l.holding
+}
+
 func (l *HoldingList) GetSize() int {
 	return l.size
 }
@@ -31,16 +37,17 @@ func (l *HoldingList) Exists(h [32]byte) bool {
 // Add a message to a dependent holding list
 func (l *HoldingList) Add(h [32]byte, msg interfaces.IMsg) bool {
 
+	if l.dependents[msg.GetMsgHash().Fixed()] {
+		return false
+	}
+
 	if l.holding[h] == nil {
 		l.holding[h] = []interfaces.IMsg{msg}
 	} else {
 		l.holding[h] = append(l.holding[h], msg)
 	}
-	if l.dependents[msg.GetHash().Fixed()] {
-		return false
-	}
 
-	l.dependents[msg.GetHash().Fixed()] = true
+	l.dependents[msg.GetMsgHash().Fixed()] = true
 	l.size++
 	return true
 }
@@ -52,7 +59,7 @@ func (l *HoldingList) Get(h [32]byte) []interfaces.IMsg {
 	delete(l.holding, h)
 
 	for _, msg := range rval {
-		delete(l.dependents, msg.GetHash().Fixed())
+		delete(l.dependents, msg.GetMsgHash().Fixed())
 	}
 	return rval
 }
@@ -80,7 +87,7 @@ func (s *State) Add(h [32]byte, msg interfaces.IMsg) int {
 		panic("Empty Message")
 	}
 
-	if s.LLeaderHeight == 1 {
+	if ! UseDependentHolding {
 		return 0
 	}
 
@@ -89,6 +96,7 @@ func (s *State) Add(h [32]byte, msg interfaces.IMsg) int {
 		s.LogMessage("newHolding", fmt.Sprintf("AddToDependantHolding(%x)", h[:4]), msg)
 		s.LogMessage("newHolding", fmt.Sprintf("DUP_AddToDependantHolding(%x)", h[:4]), msg)
 	}
+
 	return -2
 }
 

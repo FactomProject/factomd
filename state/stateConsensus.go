@@ -351,7 +351,7 @@ func (s *State) executeMsg(msg interfaces.IMsg) (ret bool) {
 		return false
 
 	case -2:
-		s.LogMessage("executeMsg", "new holding", msg)
+		s.LogMessage("executeMsg", "back to new holding from executeMsg", msg)
 		return false
 
 	default:
