@@ -11,14 +11,12 @@ var UseDependentHolding = true
 type HoldingList struct {
 	holding map[[32]byte][]interfaces.IMsg
 	s       *State // for debug logging
-	size    int
 	dependents map[[32]byte]bool
 }
 
 func (l *HoldingList) Init(s *State) {
 	l.holding = make(map[[32]byte][]interfaces.IMsg)
 	l.s = s
-	l.size = 0
 	l.dependents = make(map[[32]byte]bool)
 }
 
@@ -27,7 +25,7 @@ func (l *HoldingList) Messages() map[[32]byte][]interfaces.IMsg {
 }
 
 func (l *HoldingList) GetSize() int {
-	return l.size
+	return len(l.dependents)
 }
 
 func (l *HoldingList) Exists(h [32]byte) bool {
@@ -48,14 +46,12 @@ func (l *HoldingList) Add(h [32]byte, msg interfaces.IMsg) bool {
 	}
 
 	l.dependents[msg.GetMsgHash().Fixed()] = true
-	l.size++
 	return true
 }
 
 // get and remove the list of dependent message for a hash
 func (l *HoldingList) Get(h [32]byte) []interfaces.IMsg {
 	rval := l.holding[h]
-	l.size -= len(rval)
 	delete(l.holding, h)
 
 	for _, msg := range rval {
