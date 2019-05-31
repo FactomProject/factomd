@@ -2,7 +2,6 @@ package state
 
 import (
 	"fmt"
-
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
@@ -11,48 +10,64 @@ type HoldingList struct {
 	holding map[[32]byte][]interfaces.IMsg
 	s       *State // for debug logging
 	size    int
+	dependents map[[32]byte]bool
 }
 
 func (l *HoldingList) Init(s *State) {
 	l.holding = make(map[[32]byte][]interfaces.IMsg)
 	l.s = s
 	l.size = 0
+	l.dependents = make(map[[32]byte]bool)
 }
 
 func (l *HoldingList) GetSize() int {
 	return l.size
 }
 
-// Add a messsage to a dependent holding list
-func (l *HoldingList) Add(h [32]byte, msg interfaces.IMsg) {
+func (l *HoldingList) Exists(h [32]byte) bool {
+	return l.dependents[h]
+}
+
+// Add a message to a dependent holding list
+func (l *HoldingList) Add(h [32]byte, msg interfaces.IMsg) bool {
 
 	if l.holding[h] == nil {
 		l.holding[h] = []interfaces.IMsg{msg}
 	} else {
 		l.holding[h] = append(l.holding[h], msg)
 	}
+	if l.dependents[msg.GetHash().Fixed()] {
+		return false
+	}
+
+	l.dependents[msg.GetHash().Fixed()] = true
 	l.size++
+	return true
 }
 
 // get and remove the list of dependent message for a hash
 func (l *HoldingList) Get(h [32]byte) []interfaces.IMsg {
 	rval := l.holding[h]
 	l.size -= len(rval)
-	l.holding[h] = nil
+	delete(l.holding, h)
+
+	for _, msg := range rval {
+		delete(l.dependents, msg.GetHash().Fixed())
+	}
 	return rval
 }
 
 // clean stale messages from holding
-func (hl *HoldingList) Review() {
-	for h := range hl.holding {
-		l := hl.holding[h]
+func (l *HoldingList) Review() {
+	for h := range l.holding {
+		dh := l.holding[h]
 		if nil == l {
 			continue
 		}
-		for _, msg := range l {
-			if hl.s.IsMsgStale(msg) < 0 {
-				hl.Get(h) // remove from holding
-				hl.s.LogMessage("newHolding", "RemoveFromDependantHolding()", msg)
+		for _, msg := range dh {
+			if l.s.IsMsgStale(msg) < 0 {
+				l.Get(h) // remove from holding
+				l.s.LogMessage("newHolding", "RemoveFromDependantHolding()", msg)
 				continue
 			}
 		}
@@ -60,9 +75,21 @@ func (hl *HoldingList) Review() {
 }
 
 // Add a message to a dependent holding list
-func (s *State) Add(h [32]byte, msg interfaces.IMsg) {
-	s.LogMessage("newHolding", fmt.Sprintf("AddToDependantHolding(%x)", h[:4]), msg)
-	s.Hold.Add(h, msg)
+func (s *State) Add(h [32]byte, msg interfaces.IMsg) int {
+	if msg == nil {
+		panic("Empty Message")
+	}
+
+	if s.LLeaderHeight == 1 {
+		return 0
+	}
+
+	if s.Hold.Add(h, msg) {
+		// return negative value so message is marked invalid and not processed in standard holding
+		s.LogMessage("newHolding", fmt.Sprintf("AddToDependantHolding(%x)", h[:4]), msg)
+		s.LogMessage("newHolding", fmt.Sprintf("DUP_AddToDependantHolding(%x)", h[:4]), msg)
+	}
+	return -2
 }
 
 // get and remove the list of dependent message for a hash

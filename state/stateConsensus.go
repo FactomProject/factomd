@@ -84,10 +84,8 @@ func (s *State) DeleteFromHolding(hash [32]byte, msg interfaces.IMsg, reason str
 	}
 }
 
-// TODO: refactor these new functions used as part of dependent holding
 var FilterTimeLimit = int64(Range * 60 * 2 * 1000000000) // Filter hold two hours of messages, one in the past one in the future
 
-// TODO: refactor these new functions used as part of dependent holding
 func (s *State) GetFilterTimeNano() int64 {
 	t := s.GetMessageFilterTimestamp().GetTime().UnixNano() // this is the start of the filter
 	if t == 0 {
@@ -124,23 +122,6 @@ func (s *State) IsMsgStale(msg interfaces.IMsg) int {
 	return 1
 }
 
-// TODO: refactor these new functions used as part of dependent holding
-func (s *State) IsMsgValid(msg interfaces.IMsg) int {
-	valid := msg.Validate(s)
-	if valid != 1 {
-		return valid
-	}
-
-	// Sometimes we think the LoadDatabase() thread starts before the boot time gets set -- hack to be fixed
-	switch msg.Type() {
-	case constants.DBSTATE_MSG, constants.DATA_RESPONSE, constants.MISSING_MSG, constants.MISSING_DATA, constants.MISSING_ENTRY_BLOCKS, constants.DBSTATE_MISSING_MSG, constants.ENTRY_BLOCK_RESPONSE:
-		// Allow these thru as they do not have Ack's (they don't change processlists)
-		return valid
-	default:
-		return s.IsMsgStale(msg)
-	}
-}
-
 // this is the common validation to all messages. they must not be a reply, they must not be out size the time window
 // for the replay filter.
 func (s *State) Validate(msg interfaces.IMsg) (validToSend int, validToExec int) {
@@ -165,8 +146,7 @@ func (s *State) Validate(msg interfaces.IMsg) (validToSend int, validToExec int)
 		// Allow these thru as they do not have Ack's (they don't change processlists)
 	default:
 		// Make sure we don't put in an old ack'd message (outside our repeat filter range)
-		tlim := int64(Range * 60 * 2 * 1000000000)                       // Filter hold two hours of messages, one in the past one in the future
-		filterTime := s.GetMessageFilterTimestamp().GetTime().UnixNano() // this is the start of the filter
+		filterTime := s.GetFilterTimeNano()
 
 		if filterTime == 0 {
 			panic("got 0 time")
@@ -176,7 +156,7 @@ func (s *State) Validate(msg interfaces.IMsg) (validToSend int, validToExec int)
 
 		// Make sure we don't put in an old msg (outside our repeat range)
 		{ // debug
-			if msgtime < filterTime || msgtime > (filterTime+tlim) {
+			if msgtime < filterTime || msgtime > (filterTime+FilterTimeLimit) {
 				s.LogPrintf("executeMsg", "MsgFilter %s", s.GetMessageFilterTimestamp().GetTime().String())
 				s.LogPrintf("executeMsg", "Leader    %s", s.GetLeaderTimestamp().GetTime().String())
 				s.LogPrintf("executeMsg", "Message   %s", msg.GetTimestamp().GetTime().String())
@@ -186,7 +166,7 @@ func (s *State) Validate(msg interfaces.IMsg) (validToSend int, validToExec int)
 		if msgtime < filterTime {
 			s.LogMessage("executeMsg", "drop message, more than an hour in the past", msg)
 			return -1, -1 // Old messages are bad.
-		} else if msgtime > (filterTime + tlim) {
+		} else if msgtime > (filterTime + FilterTimeLimit) {
 			s.LogMessage("executeMsg", "hold message from the future", msg)
 			return 0, 0 // Far Future (>1H) stuff I can hold for now.  It might be good later?
 		}
@@ -301,7 +281,6 @@ func (s *State) executeMsg(msg interfaces.IMsg) (ret bool) {
 		switch msg.Type() {
 		case constants.REVEAL_ENTRY_MSG, constants.COMMIT_ENTRY_MSG, constants.COMMIT_CHAIN_MSG:
 			if !s.NoEntryYet(msg.GetHash(), nil) {
-				//delete(s.Holding, msg.GetHash().Fixed())
 				s.DeleteFromHolding(msg.GetMsgHash().Fixed(), msg, "AlreadyCommitted") // delete commit
 				s.DeleteFromHolding(msg.GetHash().Fixed(), msg, "AlreadyCommitted")    // delete reveal
 				s.Commits.Delete(msg.GetHash().Fixed())
@@ -309,7 +288,6 @@ func (s *State) executeMsg(msg interfaces.IMsg) (ret bool) {
 				return true
 			}
 			s.AddToHolding(msg.GetMsgHash().Fixed(), msg) // add valid commit/reveal to holding in case it fails to get added
-			//s.Holding[msg.GetMsgHash().Fixed()] = msg
 		}
 
 		var vm *VM = nil
@@ -516,7 +494,6 @@ ackLoop:
 				s.LogMessage("ackQueue", "Hold", ack)
 				// toss the ack into holding and we will try again in a bit...
 				TotalHoldingQueueInputs.Inc()
-				//s.Holding[ack.GetMsgHash().Fixed()] = ack
 				s.AddToHolding(ack.GetMsgHash().Fixed(), ack) // Add ack where valid==0
 				continue
 			}
@@ -1123,6 +1100,8 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 	s.Acks[ack.GetHash().Fixed()] = ack
 	// check if we have a message
 	m, _ := s.Holding[ack.GetHash().Fixed()]
+	s.LogMessage("newHolding", "FollowerExecuteAck ", m)
+
 	if m != nil {
 		// We have an ack and a matching message go execute the message!
 		if m.Validate(s) == 1 {
