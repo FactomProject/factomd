@@ -38,7 +38,7 @@ func (m *SafeMsgMap) Put(key [32]byte, msg interfaces.IMsg) {
 	m.Lock()
 	_, ok := m.msgmap[key]
 	if !ok {
-		defer m.s.LogMessage(m.name, "put", msg)
+		defer m.s.LogMessage(m.name, fmt.Sprintf("put from %s", atomic.WhereAmIString(1)), msg)
 	}
 	m.msgmap[key] = msg
 	m.Unlock()

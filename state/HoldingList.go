@@ -5,12 +5,13 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
+// Toggle this var to swap Old/New Holding
 var UseDependentHolding = true
 
 // This hold a slice of messages dependent on a hash
 type HoldingList struct {
-	holding map[[32]byte][]interfaces.IMsg
-	s       *State // for debug logging
+	holding    map[[32]byte][]interfaces.IMsg
+	s          *State // for debug logging
 	dependents map[[32]byte]bool
 }
 
@@ -55,6 +56,7 @@ func (l *HoldingList) Get(h [32]byte) []interfaces.IMsg {
 	delete(l.holding, h)
 
 	for _, msg := range rval {
+		l.s.LogMessage("newHolding", "DequeueFromDependantHolding()", msg)
 		delete(l.dependents, msg.GetMsgHash().Fixed())
 	}
 	return rval
@@ -83,7 +85,7 @@ func (s *State) Add(h [32]byte, msg interfaces.IMsg) int {
 		panic("Empty Message")
 	}
 
-	if ! UseDependentHolding {
+	if !UseDependentHolding {
 		return 0
 	}
 
