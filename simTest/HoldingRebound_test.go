@@ -127,7 +127,5 @@ func GenerateCommitsAndRevealsInBatches(t *testing.T, state0 *state.State) {
 		if setDelay > 0 {
 			WaitBlocks(state0, int(setDelay)) // wait between batches
 		}
-
-		// FIXME: actually check for writes
 	}
 }

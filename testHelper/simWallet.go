@@ -286,7 +286,7 @@ func WaitForEcBalance(s *state.State, ecPub string, target int64) int64 {
 
 	for {
 		bal := engine.GetBalanceEC(s, ecPub)
-		time.Sleep(time.Millisecond * 200)
+		time.Sleep(time.Millisecond * 20)
 		//fmt.Printf("WaitForBalance: %v => %v\n", ecPub, bal)
 
 		if (target == 0 && bal == 0) || (target > 0 && bal >= target) {
