@@ -325,6 +325,10 @@ func (fs *FactoidState) UpdateTransaction(rt bool, trans interfaces.ITransaction
 	for _, output := range trans.GetOutputs() {
 		adr := output.GetAddress().Fixed()
 		oldv := fs.State.GetF(rt, adr)
+
+		fs.State.LogPrintf("newHolding", "process FCT Deposit %x", trans.String())
+		fs.State.ExecuteFromHolding(adr) // Process deposit of FCT
+
 		fs.State.PutF(rt, adr, oldv+int64(output.GetAmount()))
 	}
 	if len(trans.GetECOutputs()) > 0 {
@@ -332,11 +336,13 @@ func (fs *FactoidState) UpdateTransaction(rt bool, trans interfaces.ITransaction
 	}
 	for _, ecOut := range trans.GetECOutputs() {
 		ecbal := int64(ecOut.GetAmount()) / int64(fs.State.FactoshisPerEC)
-		fs.State.PutE(rt, ecOut.GetAddress().Fixed(), fs.State.GetE(rt, ecOut.GetAddress().Fixed())+ecbal) // Add EC's from FCT
+		adr := ecOut.GetAddress().Fixed()
+		fs.State.PutE(rt, adr, fs.State.GetE(rt, adr)+ecbal) // Add EC's from FCT
 
 		// execute any messages that were waiting on this EC address
 		if rt == true {
-			fs.State.ExecuteFromHolding(ecOut.GetAddress().Fixed())
+			fs.State.LogPrintf("newHolding", "process EC Deposit %x", trans.String())
+			fs.State.ExecuteFromHolding(adr) // Process deposit of EC
 		}
 	}
 	fs.State.NumTransactions++
