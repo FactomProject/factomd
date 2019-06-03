@@ -3,14 +3,13 @@ package simtest
 import (
 	"bytes"
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
 
 	"github.com/FactomProject/factom"
-	"github.com/FactomProject/factomd/engine"
 	"github.com/FactomProject/factomd/state"
 	. "github.com/FactomProject/factomd/testHelper"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestHoldingRebound(t *testing.T) {
@@ -23,9 +22,7 @@ func TestHoldingRebound(t *testing.T) {
 	id := "92475004e70f41b94750f4a77bf7b430551113b25d3d57169eadca5692bb043d"
 	extids := [][]byte{encode("foo"), encode("bar")}
 	a := AccountFromFctSecret("Fs2zQ3egq2j99j37aYzaCddPq9AF3mgh64uG9gRaDAnrkjRx3eHs")
-	b := GetBankAccount()
 
-	println(b.String())
 	println(a.String())
 
 	params := map[string]string{"--debuglog": ""}
@@ -48,11 +45,10 @@ func TestHoldingRebound(t *testing.T) {
 	state0.APIQueue().Enqueue(commit)
 	state0.APIQueue().Enqueue(reveal)
 
-	amt := uint64(11)
-	engine.FundECWallet(state0, b.FctPrivHash(), a.EcAddr(), amt*state0.GetFactoshisPerEC())
-	WaitForAnyDeposit(state0, a.EcPub())
+	a.FundEC(11)
+	WaitForAnyDeposit(state0, a.EcPub()) // EC deposit goes through
+	WaitForZero(state0, a.EcPub()) // Account should be drained
 
-	WaitForZero(state0, a.EcPub())
 	GenerateCommitsAndRevealsInBatches(t, state0)
 	WaitForZero(state0, a.EcPub())
 	ht := state0.GetDBHeightComplete()
@@ -75,7 +71,6 @@ func GenerateCommitsAndRevealsInBatches(t *testing.T, state0 *state.State) {
 	// KLUDGE vars duplicated from original test - should refactor
 	id := "92475004e70f41b94750f4a77bf7b430551113b25d3d57169eadca5692bb043d"
 	a := AccountFromFctSecret("Fs2zQ3egq2j99j37aYzaCddPq9AF3mgh64uG9gRaDAnrkjRx3eHs")
-	b := GetBankAccount()
 
 	batchCount := 1
 	setDelay := 0     // blocks to wait between sets of entries
@@ -114,8 +109,7 @@ func GenerateCommitsAndRevealsInBatches(t *testing.T, state0 *state.State) {
 			publish(x)
 		}
 
-		amt := uint64(numEntries)
-		engine.FundECWallet(state0, b.FctPrivHash(), a.EcAddr(), amt*state0.GetFactoshisPerEC())
+		a.FundEC(numEntries)
 		WaitForAnyDeposit(state0, a.EcPub())
 
 		tend := WaitForEmptyHolding(state0, fmt.Sprintf("WAIT_HOLDING_END%v", BatchID))
@@ -134,12 +128,6 @@ func GenerateCommitsAndRevealsInBatches(t *testing.T, state0 *state.State) {
 			WaitBlocks(state0, int(setDelay)) // wait between batches
 		}
 
-		// FIXME: do a real test
-		// this may mean allowing for some types of entries to remain in holding
-
-		//tend := waitForEmptyHolding(state0, fmt.Sprintf("SLEEP", BatchID))
-		//bal := engine.GetBalanceEC(state0, a.EcPub())
-		//assert.Equal(t, bal, int64(0))
-		//assert.Equal(t, 0, len(state0.Holding), "messages stuck in holding")
+		// FIXME: actually check for writes
 	}
 }
