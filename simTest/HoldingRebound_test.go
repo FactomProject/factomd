@@ -28,11 +28,11 @@ func TestHoldingRebound(t *testing.T) {
 	println(b.String())
 	println(a.String())
 
-	params := map[string]string{"--debuglog": ""}
+	params := map[string]string{"--debuglog": "."}
 
 	// REVIEW: changing simulation to LAF doesn't always pass cleanly on circle
 	// this may just mean we shouldn't check for empty holding
-	state0 := SetupSim("L", params, 9, 0, 0, t)
+	state0 := SetupSim("L", params, 9999, 0, 0, t)
 
 	e := factom.Entry{
 		ChainID: id,
@@ -62,6 +62,12 @@ func TestHoldingRebound(t *testing.T) {
 
 	ShutDownEverything(t)
 	WaitForAllNodes(state0)
+
+	for _, ml := range state0.Hold.Messages() {
+		for _, m := range ml {
+			state0.LogMessage("simTest", "stuck", m)
+		}
+	}
 }
 
 func GenerateCommitsAndRevealsInBatches(t *testing.T, state0 *state.State) {

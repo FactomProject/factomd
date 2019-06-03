@@ -92,8 +92,7 @@ func (s *State) Add(h [32]byte, msg interfaces.IMsg) int {
 
 	if s.Hold.Add(h, msg) {
 		// return negative value so message is marked invalid and not processed in standard holding
-		s.LogMessage("newHolding", fmt.Sprintf("AddToDependantHolding(%x)", h[:4]), msg)
-		s.LogMessage("newHolding", fmt.Sprintf("DUP_AddToDependantHolding(%x)", h[:4]), msg)
+		s.LogMessage("newHolding", fmt.Sprintf("AddToDependantHolding(%x)", h[:6]), msg)
 	}
 
 	return -2
@@ -110,7 +109,7 @@ func (s *State) ExecuteFromHolding(h [32]byte) {
 	// get the list of messages waiting on this hash
 	l := s.Get(h)
 	if l != nil {
-		s.LogPrintf("newHolding", "ExecuteFromDependantHolding(%x)[%d]", len(l), h[:4])
+		s.LogPrintf("newHolding", "ExecuteFromDependantHolding(%x) H-%x", len(l), h[:6])
 		// add the messages to the msgQueue so they get executed as space is available
 		for _, m := range l {
 			s.LogPrintf("newHolding", "DeleteFromDependantHolding M-%x", m.GetMsgHash().Bytes()[:3])
@@ -123,7 +122,7 @@ func (s *State) ExecuteFromHolding(h [32]byte) {
 			}
 		}()
 	} else {
-		s.LogPrintf("newHolding", "ExecuteFromDependantHolding(%x) nothing waiting", h[:4])
+		s.LogPrintf("newHolding", "ExecuteFromDependantHolding(%x) nothing waiting", h[:6])
 	}
 }
 
