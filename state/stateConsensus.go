@@ -1832,6 +1832,8 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 		if entry != nil {
 			s.repost(entry, 0) // Try and execute the reveal for this commit
 		}
+		s.LogMessage("newHolding", "process", commitChain)
+		s.ExecuteFromHolding(commitChain.GetHash().Fixed())
 		return true
 	}
 
@@ -1854,6 +1856,8 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 		if entry != nil {
 			s.repost(entry, 0) // Try and execute the reveal for this commit
 		}
+		s.LogMessage("newHolding", "process", commitEntry)
+		s.ExecuteFromHolding(commitEntry.GetHash().Fixed())
 		return true
 	}
 	//s.AddStatus("Cannot Process Commit Entry")
