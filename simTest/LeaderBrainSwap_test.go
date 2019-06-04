@@ -29,7 +29,7 @@ func TestLeaderBrainSwap(t *testing.T) {
 	state3 := engine.GetFnodes()[3].State // Get node 2
 
 	WaitForAllNodes(state0)
-	RunCmd("R5") // Load 10 msgs/sec
+	RunCmd("R10") // Load 10 msgs/sec
 	WaitForBlock(state0, 6)
 
 	// FIXME https://factom.atlassian.net/browse/FD-950 - setting batch > 1 can occasionally cause failure
