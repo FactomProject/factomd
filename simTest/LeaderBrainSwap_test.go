@@ -24,7 +24,7 @@ func TestLeaderBrainSwap(t *testing.T) {
 	// must inclucde something like -timeout=XXXm to get past
 	batches := 101 // use odd number to fulfill LFFFLL as end condition
 
-	params := map[string]string{"--blktime": "10"}
+	params := map[string]string{"--blktime": "15"}
 	state0 := SetupSim("LLLFFF", params, batches+10, 0, 0, t)
 	state3 := engine.GetFnodes()[3].State // Get node 2
 
