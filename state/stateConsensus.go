@@ -94,34 +94,6 @@ func (s *State) GetFilterTimeNano() int64 {
 	return t
 }
 
-// TODO: refactor these new functions used as part of dependent holding
-func (s *State) IsMsgStale(msg interfaces.IMsg) int {
-	// Make sure we don't put in an old ack'd message (outside our repeat filter range)
-	filterTime := s.GetFilterTimeNano()
-	msgtime := msg.GetTimestamp().GetTime().UnixNano()
-
-	// Make sure we don't put in an old msg (outside our repeat range)
-	{ // debug
-		if msgtime < filterTime || msgtime > (filterTime+FilterTimeLimit) {
-			s.LogPrintf("executeMsg", "MsgFilter %s", s.GetMessageFilterTimestamp().GetTime().String())
-			s.LogPrintf("executeMsg", "Leader    %s", s.GetLeaderTimestamp().GetTime().String())
-			s.LogPrintf("executeMsg", "Message   %s", msg.GetTimestamp().GetTime().String())
-		}
-	}
-
-	// messages before message filter timestamp it's an old message
-	if msgtime < filterTime {
-		s.LogMessage("executeMsg", "drop message, more than an hour in the past", msg)
-		return -1 // Old messages are bad.
-	}
-	if msgtime > (filterTime + FilterTimeLimit) {
-		s.LogMessage("executeMsg", "hold message from the future", msg)
-		return 0 // Future stuff I can hold for now.  It might be good later?
-	}
-
-	return 1
-}
-
 // this is the common validation to all messages. they must not be a reply, they must not be out size the time window
 // for the replay filter.
 func (s *State) Validate(msg interfaces.IMsg) (validToSend int, validToExec int) {
@@ -908,6 +880,7 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 	s.EOMLimit = len(s.LeaderPL.FedServers) // We add or remove server only on block boundaries
 	s.DBSigLimit = s.EOMLimit               // We add or remove server only on block boundaries
 
+	s.Hold.Review() // cleanup expired messages from NewHolding
 	s.LogPrintf("dbstateprocess", "MoveStateToHeight(%d-:-%d) leader=%v leaderPL=%p, leaderVMIndex=%d", dbheight, newMinute, s.Leader, s.LeaderPL, s.LeaderVMIndex)
 
 }

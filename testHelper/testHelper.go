@@ -459,3 +459,17 @@ func GetTestName() (name string) {
 
 	return name
 }
+
+func WaitForEmptyHolding(s *state.State, msg string) time.Time {
+	t := time.Now()
+	s.LogPrintf(logName, "WaitForEmptyHolding %v", msg)
+
+	for len(s.Holding) > 0 {
+		time.Sleep(time.Millisecond * 10)
+	}
+
+	t = time.Now()
+	s.LogPrintf(logName, "EmptyHolding %v", msg)
+
+	return t
+}

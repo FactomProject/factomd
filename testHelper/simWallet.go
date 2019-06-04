@@ -74,6 +74,16 @@ func (d *testAccount) EcAddr() interfaces.IHash {
 	return x
 }
 
+func (d *testAccount) FundEC(amt int) {
+	state0 := engine.GetFnodes()[0].State
+	engine.FundECWallet(state0, GetBankAccount().FctPrivHash(), d.EcAddr(), uint64(amt)*state0.GetFactoshisPerEC())
+}
+
+func (d *testAccount) GetECBalance() int64 {
+	state0 := engine.GetFnodes()[0].State
+	return engine.GetBalanceEC(state0, d.EcPub())
+}
+
 var testFormat string = `
 FCT
   FctPriv: {{ .FctPriv }}
@@ -260,15 +270,8 @@ func ComposeChainCommit(pkey *primitives.PrivateKey, c *factom.Chain) (*messages
 	return m, nil
 }
 
-func ComposeChainReveal(pkey *primitives.PrivateKey) (*messages.RevealEntryMsg, error) {
-	//e := entryCreditBlock.NewCommitChain()
-
-	// FIXME
-	m := new(messages.RevealEntryMsg)
-	return m, nil
-}
-
 func WaitForAnyDeposit(s *state.State, ecPub string) int64 {
+	s.LogPrintf(logName, "WaitForAnyDeposit %v", ecPub)
 	return WaitForEcBalance(s, ecPub, 1)
 }
 
@@ -277,27 +280,13 @@ func WaitForZero(s *state.State, ecPub string) int64 {
 	return WaitForEcBalance(s, ecPub, 0)
 }
 
-func WaitForEmptyHolding(s *state.State, msg string) time.Time {
-	t := time.Now()
-	s.LogPrintf(logName, "WaitForEmptyHolding %v", msg)
-
-	for len(s.Holding) > 0 {
-		time.Sleep(time.Millisecond * 10)
-	}
-
-	t = time.Now()
-	s.LogPrintf(logName, "EmptyHolding %v", msg)
-
-	return t
-}
-
 func WaitForEcBalance(s *state.State, ecPub string, target int64) int64 {
 
 	s.LogPrintf(logName, "WaitForBalance%v:  %v", target, ecPub)
 
 	for {
 		bal := engine.GetBalanceEC(s, ecPub)
-		time.Sleep(time.Millisecond * 200)
+		time.Sleep(time.Millisecond * 20)
 		//fmt.Printf("WaitForBalance: %v => %v\n", ecPub, bal)
 
 		if (target == 0 && bal == 0) || (target > 0 && bal >= target) {
@@ -305,33 +294,4 @@ func WaitForEcBalance(s *state.State, ecPub string, target int64) int64 {
 			return bal
 		}
 	}
-}
-
-func WatchMessageLists() *time.Ticker {
-
-	ticker := time.NewTicker(1 * time.Second)
-
-	go func() {
-		for range ticker.C {
-			for _, n := range engine.GetFnodes() {
-
-				f := n.State
-
-				list := []interface{}{
-					len(f.Holding),
-					len(f.Acks),
-					len(f.MsgQueue()),
-					f.InMsgQueue().Length(),
-					f.APIQueue().Length(),
-					len(f.AckQueue()),
-					len(f.TimerMsgQueue()),
-				}
-
-				f.LogPrintf(logName, "LIST_SIZES Holding: %v, Acks: %v, MsgQueue: %v, InMsgQueue: %v, APIQueue: %v, AckQueue: %v, TimerMsg: %v ", list...)
-			}
-
-		}
-	}()
-
-	return ticker
 }

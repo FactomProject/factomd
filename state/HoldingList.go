@@ -6,9 +6,6 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
-// Toggle this var to swap Old/New Holding
-var UseDependentHolding = true
-
 // This hold a slice of messages dependent on a hash
 type HoldingList struct {
 	holding    map[[32]byte][]interfaces.IMsg
@@ -71,7 +68,7 @@ func (l *HoldingList) Review() {
 			continue
 		}
 		for _, msg := range dh {
-			if l.s.IsMsgStale(msg) < 0 {
+			if l.isMsgStale(msg) {
 				l.Get(h) // remove from holding
 				l.s.LogMessage("newHolding", "RemoveFromDependantHolding()", msg)
 				continue
@@ -80,22 +77,29 @@ func (l *HoldingList) Review() {
 	}
 }
 
+func (l *HoldingList) isMsgStale(msg interfaces.IMsg) bool {
+	filterTime := l.s.GetFilterTimeNano()
+	msgtime := msg.GetTimestamp().GetTime().UnixNano()
+
+	if msgtime < filterTime {
+		return true
+	}
+	return false
+}
+
 // Add a message to a dependent holding list
 func (s *State) Add(h [32]byte, msg interfaces.IMsg) int {
 	if msg == nil {
-		panic("Empty Message")
-	}
-
-	if !UseDependentHolding {
-		return 0
+		panic("Empty Message Added to Holding")
 	}
 
 	if s.Hold.Add(h, msg) {
 		// return negative value so message is marked invalid and not processed in standard holding
-		s.LogMessage("newHolding", fmt.Sprintf("AddToDependantHolding(%x)", h[:6]), msg)
+		s.LogMessage("newHolding", fmt.Sprintf("Add %x", h[:6]), msg)
 	}
 
-	return -2
+	// mark as invalid for validator loop
+	return -2 // ensures message is not processed in normal way
 }
 
 // get and remove the list of dependent message for a hash
@@ -103,27 +107,28 @@ func (s *State) Get(h [32]byte) []interfaces.IMsg {
 	return s.Hold.Get(h)
 }
 
-// Execute a list of messages from holding that are dependant on a hash
+// Execute a list of messages from holding that are dependent on a hash
 // the hash may be a EC address or a CainID or a height (ok heights are not really hashes but we cheat on that)
 func (s *State) ExecuteFromHolding(h [32]byte) {
 	// get the list of messages waiting on this hash
 	l := s.Get(h)
-	if l != nil {
-		s.LogPrintf("newHolding", "ExecuteFromDependantHolding(%x) H-%x", len(l), h[:6])
+	if l == nil {
+		s.LogPrintf("newHolding", "ExecuteFromDependantHolding(%x) nothing waiting", h[:6])
+		return
+	}
+	s.LogPrintf("newHolding", "ExecuteFromDependantHolding(%x)[%d]", len(l), h[:6])
+
+	for _, m := range l {
+		s.LogPrintf("newHolding", "Delete M-%x", m.GetMsgHash().Bytes()[:3])
+	}
+
+	go func() {
 		// add the messages to the msgQueue so they get executed as space is available
 		for _, m := range l {
-			s.LogPrintf("newHolding", "DeleteFromDependantHolding M-%x", m.GetMsgHash().Bytes()[:3])
+			s.LogMessage("msgQueue", "enqueue_from_dependent_holding", m)
+			s.msgQueue <- m
 		}
-
-		go func() {
-			for _, m := range l {
-				s.LogMessage("msgQueue", "enqueue_from_dependant_holding", m)
-				s.msgQueue <- m
-			}
-		}()
-	} else {
-		s.LogPrintf("newHolding", "ExecuteFromDependantHolding(%x) nothing waiting", h[:6])
-	}
+	}()
 }
 
 // put a height in the first 4 bytes of a hash so we can use it to look up dependent message in holding
