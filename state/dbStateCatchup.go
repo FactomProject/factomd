@@ -222,32 +222,18 @@ func NewStatesMissing() *StatesMissing {
 	return l
 }
 
-func (l *StatesMissing) ListInsertAfter(n *MissingState, e *list.Element) {
-	if e.Value == nil {
-		runtime.Breakpoint()
-	}
-	l.List.InsertAfter(n, e)
-}
-
-func (l *StatesMissing) ListPushFront(n *MissingState) {
-	if n == nil {
-		runtime.Breakpoint()
-	}
-	l.List.PushFront(n)
-}
-
 // Add adds a new MissingState to the list.
 func (l *StatesMissing) Add(height uint32) {
 	for e := l.List.Back(); e != nil; e = e.Prev() {
 		s := e.Value.(*MissingState)
 		if height > s.Height() {
-			l.ListInsertAfter(NewMissingState(height), e)
+			l.List.InsertAfter(NewMissingState(height), e)
 			return
 		} else if height == s.Height() {
 			return
 		}
 	}
-	l.ListPushFront(NewMissingState(height))
+	l.List.PushFront(NewMissingState(height))
 }
 
 // Del removes a MissingState from the list.
@@ -360,37 +346,23 @@ func NewStatesWaiting() *StatesWaiting {
 	return l
 }
 
-func (l *StatesWaiting) ListInsertAfter(n *WaitingState, e *list.Element) {
-	if n == nil {
-		runtime.Breakpoint()
-	}
-	l.List.InsertAfter(n, e)
-}
-
-func (l *StatesWaiting) ListPushFront(n *WaitingState) {
-	if n == nil {
-		runtime.Breakpoint()
-	}
-	l.List.PushFront(n)
-}
-
 func (l *StatesWaiting) Add(height uint32) {
 	// l.List.PushBack(NewWaitingState(height))
 	for e := l.List.Back(); e != nil; e = e.Prev() {
 		s := e.Value.(*WaitingState)
 		if s == nil {
 			n := NewWaitingState(height)
-			l.ListInsertAfter(n, e)
+			l.List.InsertAfter(n, e)
 			return
 		} else if height > s.Height() {
 			n := NewWaitingState(height)
-			l.ListInsertAfter(n, e)
+			l.List.InsertAfter(n, e)
 			return
 		} else if height == s.Height() {
 			return
 		}
 	}
-	l.ListPushFront(NewWaitingState(height))
+	l.List.PushFront(NewWaitingState(height))
 }
 
 func (l *StatesWaiting) Del(height uint32) {
@@ -472,20 +444,6 @@ type StatesReceived struct {
 	base   uint32
 }
 
-func (l *StatesReceived) ListInsertAfter(n *ReceivedState, e *list.Element) {
-	if n == nil {
-		runtime.Breakpoint()
-	}
-	l.ListInsertAfter(n, e)
-}
-
-func (l *StatesReceived) ListPushFront(n *ReceivedState) {
-	if n == nil {
-		runtime.Breakpoint()
-	}
-	l.ListPushFront(n)
-}
-
 func NewStatesReceived() *StatesReceived {
 	l := new(StatesReceived)
 	l.List = list.New()
@@ -537,17 +495,17 @@ func (l *StatesReceived) Add(height uint32, msg *messages.DBStateMsg) {
 		s := e.Value.(*ReceivedState)
 		if s == nil {
 			n := NewReceivedState(msg)
-			l.ListInsertAfter(n, e)
+			l.List.InsertAfter(n, e)
 			return
 		} else if height > s.Height() {
 			n := NewReceivedState(msg)
-			l.ListInsertAfter(n, e)
+			l.List.InsertAfter(n, e)
 			return
 		} else if height == s.Height() {
 			return
 		}
 	}
-	l.ListPushFront(NewReceivedState(msg))
+	l.List.PushFront(NewReceivedState(msg))
 }
 
 // Del removes a state from the StatesReceived list
