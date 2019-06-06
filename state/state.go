@@ -210,6 +210,7 @@ type State struct {
 	// own messages from the previously executing network can confuse you.
 	IgnoreDone    bool
 	IgnoreMissing bool
+
 	// Timout and Limit for outstanding missing DBState requests
 	RequestTimeout time.Duration
 	RequestLimit   int
@@ -232,8 +233,7 @@ type State struct {
 	CurrentMinuteStartTime  int64
 	CurrentBlockStartTime   int64
 
-	EOMsyncing bool
-
+	EOMsyncing   bool
 	EOMSyncTime  int64
 	EOM          bool // Set to true when the first EOM is encountered
 	EOMLimit     int
@@ -297,7 +297,8 @@ type State struct {
 	Anchor interfaces.IAnchor
 
 	// Directory Block State
-	DBStates       *DBStateList // Holds all DBStates not yet processed.
+	DBStates *DBStateList // Holds all DBStates not yet processed.
+
 	StatesMissing  *StatesMissing
 	StatesWaiting  *StatesWaiting
 	StatesReceived *StatesReceived
@@ -340,6 +341,7 @@ type State struct {
 	// For Replay / journal
 	IsReplaying     bool
 	ReplayTimestamp interfaces.Timestamp
+
 	// State for the Entry Syncing process
 	EntrySyncState *EntrySync
 
@@ -790,7 +792,12 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		s.ControlPanelPort = cfg.App.ControlPanelPort
 		s.RpcUser = cfg.App.FactomdRpcUser
 		s.RpcPass = cfg.App.FactomdRpcPass
-		s.RequestTimeout = time.Duration(cfg.App.RequestTimeout) * time.Second
+		// if RequestTimeout is not set by the configuration set it to 1/10th of the block time by default
+		if cfg.App.RequestTimeout == 0 {
+			s.RequestTimeout = time.Duration(cfg.App.DirectoryBlockInSeconds/10) * time.Second
+		} else {
+			s.RequestTimeout = time.Duration(cfg.App.RequestTimeout) * time.Second
+		}
 		s.RequestLimit = cfg.App.RequestLimit
 		s.StateSaverStruct.FastBoot = cfg.App.FastBoot
 		s.StateSaverStruct.FastBootLocation = cfg.App.FastBootLocation
@@ -996,6 +1003,7 @@ func (s *State) Init() {
 	s.DBStates = new(DBStateList)
 	s.DBStates.State = s
 	s.DBStates.DBStates = make([]*DBState, 0)
+
 	s.StatesMissing = NewStatesMissing()
 	s.StatesWaiting = NewStatesWaiting()
 	s.StatesReceived = NewStatesReceived()
@@ -1943,8 +1951,6 @@ func (s *State) UpdateState() (progress bool) {
 			progress = ProcessLists.UpdateState(dbheight)
 		}
 	}
-
-	s.DBStates.Catchup()
 
 	s.SetString()
 	if s.ControlPanelDataRequest {

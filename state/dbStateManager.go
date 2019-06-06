@@ -216,7 +216,6 @@ func (dbs *DBState) MarshalBinary() (rval []byte, err error) {
 	defer func(pe *error) {
 		if *pe != nil {
 			fmt.Fprintf(os.Stderr, "DBState.MarshalBinary err:%v", *pe)
-
 		}
 	}(&err)
 
@@ -523,12 +522,12 @@ func (dbsl *DBStateList) UnmarshalBinaryData(p []byte) (newData []byte, err erro
 		return
 	}
 
-	listLen, err := buf.PopVarInt()
+	l, err := buf.PopVarInt()
 	if err != nil {
 		dbsl.State.LogPrintf("dbstateprocess", "DBStateList.UnmarshalBinaryData listLen err: %v", err)
 		return
 	}
-	for i := 0; i < int(listLen); i++ {
+	for i := 0; i < int(l); i++ {
 		dbs := new(DBState)
 		err = buf.PopBinaryMarshallable(dbs)
 		if dbs.SaveStruct.IdentityControl == nil {
@@ -563,6 +562,7 @@ func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 	_ = s
 	dirblk := next.DirectoryBlock
 	dbheight := dirblk.GetHeader().GetDBHeight()
+
 	// If we don't have the previous blocks processed yet, then let's wait on this one.
 	highestSavedBlk := state.GetHighestSavedBlk()
 
@@ -609,7 +609,6 @@ func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 	// Get the Previous KeyMR pointer in the possible new Directory Block
 	prevkeymr := dirblk.GetHeader().GetPrevKeyMR()
 	if !pkeymr.IsSameAs(prevkeymr) {
-
 		pdir, err := state.DB.FetchDBlockByHeight(dbheight - 1)
 		if err != nil {
 			state.LogPrintf("dbstateprocess", "Invalid dbstate at dbht %d because "+
@@ -1507,6 +1506,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	if err := list.State.DB.ExecuteMultiBatch(); err != nil {
 		panic(err.Error())
 	}
+
 	// Info from ProcessList
 	if pl != nil {
 		for _, eb := range pl.NewEBlocks {
@@ -1599,7 +1599,6 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 }
 
 func (list *DBStateList) UpdateState() (progress bool) {
-
 	s := list.State
 	_ = s
 	if len(list.DBStates) != 0 {
