@@ -2,6 +2,8 @@ package state
 
 import (
 	"fmt"
+	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/messages"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 )
@@ -62,6 +64,10 @@ func (l *HoldingList) Get(h [32]byte) []interfaces.IMsg {
 
 // clean stale messages from holding
 func (l *HoldingList) Review() {
+
+	// execute messages held for latest height
+	l.s.ExecuteFromHolding(HeightToHash(l.s.LLeaderHeight))
+
 	for h := range l.holding {
 		dh := l.holding[h]
 		if nil == l {
@@ -69,7 +75,7 @@ func (l *HoldingList) Review() {
 		}
 		for _, msg := range dh {
 			if l.isMsgStale(msg) {
-				l.Get(h) // remove from holding
+				l.Get(h) // remove all from holding
 				l.s.LogMessage("newHolding", "RemoveFromDependantHolding()", msg)
 				continue
 			}
@@ -78,13 +84,38 @@ func (l *HoldingList) Review() {
 }
 
 func (l *HoldingList) isMsgStale(msg interfaces.IMsg) bool {
-	filterTime := l.s.GetFilterTimeNano()
-	msgtime := msg.GetTimestamp().GetTime().UnixNano()
 
-	if msgtime < filterTime {
+	/*
+	REVIEW:
+	Maybe we should treat the message stream as a votes on the "highest known block" where known servers trump unknown servers who disagree?
+
+	Consider setting HKB and HAB when we complete minute 1 of a block to the current leader height.
+	That at least would make us recover from a spoofed ack attack.
+	*/
+
+	switch msg.Type() {
+	case constants.EOM_MSG:
+		if msg.(*messages.EOM).DBHeight < l.s.GetHighestKnownBlock()-1 {
+			return true
+		}
+	case constants.ACK_MSG:
+		if msg.(*messages.Ack).DBHeight < l.s.GetHighestKnownBlock()-1 {
+			return true
+		}
+	}
+
+	if msg.GetTimestamp().GetTime().UnixNano() < l.s.GetFilterTimeNano() {
 		return true
 	}
+
 	return false
+}
+
+func (s *State) HoldForHeight(ht uint32 , msg interfaces.IMsg) int {
+	if s.GetLLeaderHeight()+1 == ht && s.GetCurrentMinute() >= 9 {
+		return 0 // send to old holding
+	}
+	return s.Add(HeightToHash(ht), msg) // add to new holding
 }
 
 // Add a message to a dependent holding list
@@ -93,13 +124,17 @@ func (s *State) Add(h [32]byte, msg interfaces.IMsg) int {
 		panic("Empty Message Added to Holding")
 	}
 
+	if h == [32]byte{} {
+		panic("Empty Hash Passed to New Holding")
+	}
+
 	if s.Hold.Add(h, msg) {
 		// return negative value so message is marked invalid and not processed in standard holding
 		s.LogMessage("newHolding", fmt.Sprintf("Add %x", h[:6]), msg)
 	}
 
 	// mark as invalid for validator loop
-	return -2 // ensures message is not processed in normal way
+	return -2 // ensures message is not sent to hold holding
 }
 
 // get and remove the list of dependent message for a hash

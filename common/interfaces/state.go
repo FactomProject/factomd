@@ -355,4 +355,6 @@ type IState interface {
 	Get(h [32]byte) []IMsg
 	// expire any dependent messages that are in holding but are older than limit
 	ExecuteFromHolding(h [32]byte)
+	// create a hash to hold messages that depend on height
+	HoldForHeight(ht uint32, msg IMsg) int
 }

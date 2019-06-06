@@ -227,7 +227,7 @@ func (fs *FactoidState) ValidateTransactionAge(trans interfaces.ITransaction) er
 
 // Only add valid transactions to the current
 func (fs *FactoidState) AddTransaction(index int, trans interfaces.ITransaction) error {
-	if err := fs.Validate(index, trans); err != nil {
+	if err, _ := fs.Validate(index, trans); err != nil {
 		return err
 	}
 	if err := fs.ValidateTransactionAge(trans); err != nil {
@@ -388,24 +388,26 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 
 // Returns an error message about what is wrong with the transaction if it is
 // invalid, otherwise you are good to go.
-func (fs *FactoidState) Validate(index int, trans interfaces.ITransaction) error {
+func (fs *FactoidState) Validate(index int, trans interfaces.ITransaction) (err error, holdAddr [32]byte) {
 	var sums = make(map[[32]byte]uint64, 10)  // Look at the sum of an address's inputs
 	for _, input := range trans.GetInputs() { //    to a transaction.
 		bal, err := factoid.ValidateAmounts(sums[input.GetAddress().Fixed()], input.GetAmount())
 		if err != nil {
-			return err
+			return err, holdAddr
 		}
 		curbal := fs.State.GetF(true, input.GetAddress().Fixed())
 		if int64(bal) > curbal {
-			return fmt.Errorf("%20s DBHT %d %s %d %s %d %s",
+			err = fmt.Errorf("%20s DBHT %d %s %d %s %d %s",
 				fs.State.GetFactomNodeName(),
 				fs.DBHeight, "Not enough funds in input addresses (", bal,
 				") to cover the transaction (", curbal, ")")
+
+			return err, input.GetAddress().Fixed()
 		}
 		sums[input.GetAddress().Fixed()] = bal
 	}
 
-	return nil
+	return nil, holdAddr
 }
 
 func (fs *FactoidState) GetCoinbaseTransaction(dbheight uint32, ftime interfaces.Timestamp) interfaces.ITransaction {
