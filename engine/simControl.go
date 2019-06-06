@@ -1094,14 +1094,21 @@ func SimControl(listenTo int, listenStdin bool) {
 				os.Stderr.WriteString(fmt.Sprintf("Setting drop rate of %10s to %2d.%01d percent\n", fnodes[ListenTo].State.FactomNodeName, nnn/10, nnn%10))
 
 			case 'T' == b[0]:
-				nn, err := strconv.Atoi(string(b[1:]))
-				if err != nil || nn < 5 || nn > 800 {
-					os.Stderr.WriteString("Specify a block time between 5 and 600 seconds\n")
-					break
-				}
-				os.Stderr.WriteString(fmt.Sprint("Setting the block time for all nodes to ", nn, "\n"))
-				for _, f := range fnodes {
-					f.State.SetDirectoryBlockInSeconds(nn)
+				if len(b) > 1 {
+					nn, err := strconv.Atoi(string(b[1:]))
+					if err != nil || nn < 5 || nn > 800 {
+						os.Stderr.WriteString("Specify a block time between 5 and 600 seconds\n")
+						break
+					}
+					os.Stderr.WriteString(fmt.Sprint("Setting the block time for all nodes to ", nn, "\n"))
+					for _, f := range fnodes {
+						f.State.SetDirectoryBlockInSeconds(nn)
+					}
+				} else {
+					os.Stderr.WriteString(fmt.Sprint("Randomizing the clocks by 1 second\n"))
+					for _, fn := range fnodes {
+						fn.State.TimeOffset = primitives.NewTimestampFromMilliseconds(uint64(rand.Intn(1000)))
+					}
 				}
 			case 'F' == b[0]:
 				nn, err := strconv.Atoi(string(b[1:]))

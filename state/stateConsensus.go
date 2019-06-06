@@ -542,7 +542,7 @@ func (s *State) ReviewHolding() {
 	if s.ResendHolding == nil {
 		s.ResendHolding = now
 	}
-	if now.GetTimeMilli()-s.ResendHolding.GetTimeMilli() < 300 {
+	if now.GetTimeMilli()-s.ResendHolding.GetTimeMilli() < 100 {
 		return
 	}
 
@@ -578,13 +578,39 @@ func (s *State) ReviewHolding() {
 		}
 	}
 
+	if len(s.HoldingList) == 0 {
+		for k, _ := range s.Holding {
+			if cap(s.HoldingList) <= len(s.HoldingList) {
+				break
+			}
+			s.HoldingList <- k
+		}
+	}
+
 	// Set this flag, so it acts as a constant.  We will set s.LeaderNewMin to false
 	// after processing the Holding Queue.  Ensures we only do this one per minute.
 	//	processMinute := s.LeaderNewMin // Have we processed this minute
 	s.LeaderNewMin++ // Either way, don't do it again until the ProcessEOM resets LeaderNewMin
+	cnt := 1
+processholdinglist:
+	for {
+		if cnt&0x3F == 0 && s.GetTimestamp().GetTimeMilli()-now.GetTimeMilli() > 50 {
+			break processholdinglist
+		}
+		cnt++
 
-	for k, v := range s.Holding {
-
+		var v interfaces.IMsg
+		var k [32]byte
+		select {
+		case k = <-s.HoldingList:
+			var ok bool
+			v, ok = s.HoldingMap[k]
+			if !ok {
+				continue processholdinglist
+			}
+		default:
+			break processholdinglist
+		}
 		if int(highest)-int(saved) > 1000 {
 			TotalHoldingQueueOutputs.Inc()
 			//delete(s.Holding, k)
@@ -704,9 +730,6 @@ func (s *State) ReviewHolding() {
 		TotalXReviewQueueInputs.Inc()
 		s.XReview = append(s.XReview, v)
 		TotalHoldingQueueOutputs.Inc()
-		if len(s.XReview) > 200 {
-			break
-		}
 	}
 	reviewHoldingTime := time.Since(preReviewHoldingTime)
 	TotalReviewHoldingTime.Add(float64(reviewHoldingTime.Nanoseconds()))
@@ -1828,8 +1851,6 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) (worked b
 		}
 	}()
 
-	myhash := msg.Entry.GetHash()
-
 	chainID := msg.Entry.GetChainID()
 
 	TotalCommitsOutputs.Inc()
@@ -1853,7 +1874,8 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) (worked b
 		eb.AddEBEntry(msg.Entry)
 		// Put it in our list of new Entry Blocks for this Directory Block
 		s.PutNewEBlocks(dbheight, chainID, eb)
-		s.PutNewEntries(dbheight, myhash, msg.Entry)
+
+		go func() { s.WriteEntry <- msg.Entry }()
 
 		s.IncEntryChains()
 		s.IncEntries()
@@ -1882,7 +1904,8 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) (worked b
 	eb.AddEBEntry(msg.Entry)
 	// Put it in our list of new Entry Blocks for this Directory Block
 	s.PutNewEBlocks(dbheight, chainID, eb)
-	s.PutNewEntries(dbheight, myhash, msg.Entry)
+
+	go func() { s.WriteEntry <- msg.Entry }()
 
 	s.IncEntries()
 	return true
@@ -2119,6 +2142,8 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			}
 			//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s vm %2d Saving: return on s.SigType(%v) && int(e.Minute(%v)) > s.EOMMinute(%v)", s.FactomNodeName, e.VMIndex, s.SigType, e.Minute, s.EOMMinute))
 		}
+
+		s.EOMSyncTime = time.Now().UnixNano()
 		return true
 	}
 
@@ -2142,7 +2167,9 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		s.EOMMinute = int(e.Minute)
 		s.EOMsyncing = true
 		//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s vm  %2d First SigType processed: return on s.SigType(%v) && int(e.Minute(%v)) > s.EOMMinute(%v)", s.FactomNodeName, e.VMIndex, s.SigType, e.Minute, s.EOMMinute))
-		return false
+
+		s.LeaderPL.Process(s) // Recurse a process, because other EOM's might be waiting on this.
+		return false          // We didn't process this EOM (waiting)
 	}
 
 	// What I do for each EOM
@@ -2169,7 +2196,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			s.LeaderPL.SysHighest = int(e.SysHeight)
 		}
 		//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s vm %2d Process this SigType: return on s.SigType(%v) && int(e.Minute(%v)) > s.EOMMinute(%v)", s.FactomNodeName, e.VMIndex, s.SigType, e.Minute, s.EOMMinute))
-		return false
 	}
 
 	// After all EOM markers are processed, Claim we are done.  Now we can unwind
@@ -2182,7 +2208,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		//	e.VMIndex, allfaults, s.EOMProcessed, s.EOMLimit, s.EOMDone))
 
 		s.EOMDone = true // ProcessEOM
-		s.EOMSyncTime = time.Now().UnixNano()
 
 		s.LeaderNewMin = 0
 		for _, eb := range pl.NewEBlocks {
@@ -2195,6 +2220,8 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		ecbody := ecblk.GetBody()
 		mn := entryCreditBlock.NewMinuteNumber(e.Minute + 1)
 		ecbody.AddEntry(mn)
+
+		s.LeaderPL.Process(s) // Did do work, so let's see if we are done!
 
 	} else {
 		//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s vm %2d Do nothing: return on s.SigType(%v) && int(e.Minute(%v)) > s.EOMMinute(%v)", s.FactomNodeName, e.VMIndex, s.SigType, e.Minute, s.EOMMinute))
