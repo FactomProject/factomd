@@ -47,11 +47,11 @@ func TestHoldingRebound(t *testing.T) {
 	state0.APIQueue().Enqueue(reveal)
 
 	a.FundEC(11)
-	WaitForAnyDeposit(state0, a.EcPub()) // EC deposit goes through
-	WaitForZero(state0, a.EcPub()) // Account should be drained
+	WaitForAnyEcBalance(state0, a.EcPub()) // EC deposit goes through
+	WaitForZeroEC(state0, a.EcPub())       // Account should be drained
 
 	GenerateCommitsAndRevealsInBatches(t, state0)
-	WaitForZero(state0, a.EcPub())
+	WaitForZeroEC(state0, a.EcPub())
 	ht := state0.GetDBHeightComplete()
 	WaitBlocks(state0, 2)
 	newHt := state0.GetDBHeightComplete()
@@ -116,8 +116,8 @@ func GenerateCommitsAndRevealsInBatches(t *testing.T, state0 *state.State) {
 			publish(x)
 		}
 
-		a.FundEC(numEntries)
-		WaitForAnyDeposit(state0, a.EcPub())
+		a.FundEC(uint64(numEntries))
+		WaitForAnyEcBalance(state0, a.EcPub())
 
 		tend := WaitForEmptyHolding(state0, fmt.Sprintf("WAIT_HOLDING_END%v", BatchID))
 

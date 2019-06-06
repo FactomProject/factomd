@@ -845,6 +845,7 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		s.LeaderPL.SortAuditServers()
 		s.LeaderPL.SortFedServers()
 
+		s.Hold.Review() // check for resolved dependents and cleanup new messages
 	}
 
 	{ // debug
@@ -880,7 +881,6 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 	s.EOMLimit = len(s.LeaderPL.FedServers) // We add or remove server only on block boundaries
 	s.DBSigLimit = s.EOMLimit               // We add or remove server only on block boundaries
 
-	s.Hold.Review() // cleanup expired messages from NewHolding
 	s.LogPrintf("dbstateprocess", "MoveStateToHeight(%d-:-%d) leader=%v leaderPL=%p, leaderVMIndex=%d", dbheight, newMinute, s.Leader, s.LeaderPL, s.LeaderVMIndex)
 
 }

@@ -63,10 +63,10 @@ func TestEntriesBeforeChain(t *testing.T) {
 	// REVIEW is this a good enough test for holding
 	WaitMinutes(state0, 2) // ensure messages are reviewed in holding at least once
 
-	a.FundEC(numEntries + 11) // Chain costs 10 + 1 per k so our chain costs 11
-	WaitForAnyDeposit(state0, a.EcPub())
+	a.FundEC(uint64(numEntries + 11)) // Chain costs 10 + 1 per k so our chain costs 11
+	WaitForAnyEcBalance(state0, a.EcPub())
 
-	WaitForZero(state0, a.EcPub())
+	WaitForZeroEC(state0, a.EcPub())
 	ShutDownEverything(t)
 	WaitForAllNodes(state0)
 
