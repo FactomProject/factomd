@@ -1091,12 +1091,17 @@ func SimControl(listenTo int, listenStdin bool) {
 				}
 
 				fnodes[ListenTo].State.DropRate = nnn
-				os.Stderr.WriteString(fmt.Sprintf("Setting drop rate of %10s to %2d.%01d percent\n", fnodes[ListenTo].State.FactomNodeName, nnn/10, nnn%10))
+				os.Stderr.WriteString(fmt.Sprintf("Setting drop rate of %10s to %2d.%01d percent\n",
+					fnodes[ListenTo].State.FactomNodeName, nnn/10, nnn%10))
 
 			case 'T' == b[0]:
-				if len(b) > 1 {
-					nn, err := strconv.Atoi(string(b[1:]))
-					if err != nil || nn < 5 || nn > 800 {
+				if len(b) < 2 {
+					os.Stderr.WriteString("Must provide either a time to specify a block time, or " +
+						"other 's' specifier for spreading clocks over the simulator.\n")
+				}
+				nn, err := strconv.Atoi(string(b[1:]))
+				if err != nil {
+					if nn < 5 || nn > 800 {
 						os.Stderr.WriteString("Specify a block time between 5 and 600 seconds\n")
 						break
 					}
@@ -1104,12 +1109,21 @@ func SimControl(listenTo int, listenStdin bool) {
 					for _, f := range fnodes {
 						f.State.SetDirectoryBlockInSeconds(nn)
 					}
-				} else {
-					os.Stderr.WriteString(fmt.Sprint("Randomizing the clocks by 1 second\n"))
+					break
+				}
+				switch b[1] {
+				case 's':
+					fmt.Fprintln(os.Stderr, "Start the Randomizing the clocks by 1 second (or re-randomize)\n")
 					for _, fn := range fnodes {
 						fn.State.TimeOffset = primitives.NewTimestampFromMilliseconds(uint64(rand.Intn(1000)))
 					}
+				case 'e':
+					fmt.Fprintln(os.Stderr, "End Randomizing the clocks by 1 second\n")
+					for _, fn := range fnodes {
+						fn.State.TimeOffset.SetTime(0)
+					}
 				}
+
 			case 'F' == b[0]:
 				nn, err := strconv.Atoi(string(b[1:]))
 				nnn := int64(nn)
@@ -1120,7 +1134,8 @@ func SimControl(listenTo int, listenStdin bool) {
 
 				for _, fn := range fnodes {
 					fn.State.Delay = nnn
-					os.Stderr.WriteString(fmt.Sprintf("Setting Delay on communications from %10s to %2d.%03d Seconds\n", fn.State.FactomNodeName, nnn/1000, nnn%1000))
+					fmt.Fprintf(os.Stderr, "Setting Delay on communications from %10s to %2d.%03d Seconds\n",
+						fn.State.FactomNodeName, nnn/1000, nnn%1000)
 				}
 
 				for _, f := range fnodes {
