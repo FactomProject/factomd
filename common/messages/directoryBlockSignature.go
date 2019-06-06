@@ -182,7 +182,8 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 			state.GetLLeaderHeight(),
 			m.ServerIdentityChainID.Bytes()[3:6],
 			m.String()))
-		return 0
+
+		return state.HoldForHeight(m.DBHeight, m)
 	}
 
 	isVer, err := m.VerifySignature()
