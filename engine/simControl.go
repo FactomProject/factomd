@@ -1094,13 +1094,14 @@ func SimControl(listenTo int, listenStdin bool) {
 				os.Stderr.WriteString(fmt.Sprintf("Setting drop rate of %10s to %2d.%01d percent\n",
 					fnodes[ListenTo].State.FactomNodeName, nnn/10, nnn%10))
 
+				// modify the blocktime or modify the effective clocks on leaders in a simulation
 			case 'T' == b[0]:
-				if len(b) < 2 {
-					os.Stderr.WriteString("Must provide either a time to specify a block time, or " +
-						"other 's' specifier for spreading clocks over the simulator.\n")
+				left := " "
+				if len(b) >= 2 {
+					left = b[1:]
 				}
-				nn, err := strconv.Atoi(string(b[1:]))
-				if err != nil {
+				nn, err := strconv.Atoi(string(left))
+				if err == nil {
 					if nn < 5 || nn > 800 {
 						os.Stderr.WriteString("Specify a block time between 5 and 600 seconds\n")
 						break
@@ -1111,7 +1112,7 @@ func SimControl(listenTo int, listenStdin bool) {
 					}
 					break
 				}
-				switch b[1] {
+				switch left[0] {
 				case 's':
 					fmt.Fprintln(os.Stderr, "Start the Randomizing the clocks by 1 second (or re-randomize)\n")
 					for _, fn := range fnodes {
@@ -1122,6 +1123,9 @@ func SimControl(listenTo int, listenStdin bool) {
 					for _, fn := range fnodes {
 						fn.State.TimeOffset.SetTime(0)
 					}
+				default:
+					os.Stderr.WriteString("Must provide either a time to specify a block time, or " +
+						"other 's' specifier for spreading clocks over the simulator.\n")
 				}
 
 			case 'F' == b[0]:
@@ -1405,6 +1409,8 @@ func SimControl(listenTo int, listenStdin bool) {
 				os.Stderr.WriteString("y             Dump what is in the Holding Map.  Can crash, but oh well.\n")
 				os.Stderr.WriteString("m             Show Messages as they are passed through the simulator.\n")
 				os.Stderr.WriteString("Tnnn          Set the block time to the given number of seconds.\n")
+				os.Stderr.WriteString("Ts            Set a random offset in the various machines in a simulation to vary the ticker timer for leaders\n")
+				os.Stderr.WriteString("Te            set the offset to zero in the various machines in a simulation to not vary the ticker timer for leaders\n")
 				os.Stderr.WriteString("c             Trace the Consensus Process\n")
 				os.Stderr.WriteString("s             Show the state of all nodes as their state changes in the simulator.\n")
 				os.Stderr.WriteString("Snnn          Print the last nnn status messages from the current node.\n")

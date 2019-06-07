@@ -23,6 +23,8 @@ import (
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/util/atomic"
 
+	"sort"
+
 	log "github.com/sirupsen/logrus"
 )
 
@@ -542,7 +544,7 @@ func (s *State) ReviewHolding() {
 	if s.ResendHolding == nil {
 		s.ResendHolding = now
 	}
-	if now.GetTimeMilli()-s.ResendHolding.GetTimeMilli() < 100 {
+	if now.GetTimeMilli()-s.ResendHolding.GetTimeMilli() < 200 {
 		return
 	}
 
@@ -579,11 +581,21 @@ func (s *State) ReviewHolding() {
 	}
 
 	if len(s.HoldingList) == 0 {
-		for k, _ := range s.Holding {
-			if cap(s.HoldingList) <= len(s.HoldingList) {
+		sorted := []interfaces.IMsg{}
+		for _, v := range s.Holding {
+			if cap(s.HoldingList) <= len(sorted) {
 				break
 			}
-			s.HoldingList <- k
+			sorted = append(sorted, v)
+		}
+		sort.Slice(sorted,
+			func(i, j int) bool {
+				a := sorted[i].GetTimestamp().GetTimeMilli()
+				b := sorted[j].GetTimestamp().GetTimeMilli()
+				return a < b
+			})
+		for _, v := range sorted {
+			s.HoldingList <- v.GetMsgHash().Fixed()
 		}
 	}
 
@@ -594,7 +606,7 @@ func (s *State) ReviewHolding() {
 	cnt := 1
 processholdinglist:
 	for {
-		if cnt&0x3F == 0 && s.GetTimestamp().GetTimeMilli()-now.GetTimeMilli() > 50 {
+		if cnt&0x1F == 0 && s.GetTimestamp().GetTimeMilli()-now.GetTimeMilli() > 50 {
 			break processholdinglist
 		}
 		cnt++
@@ -636,6 +648,8 @@ processholdinglist:
 			if !eom.IsLocal() && eom.DBHeight > saved {
 				s.HighestKnown = eom.DBHeight
 			}
+			go func() { s.msgQueue <- eom }()
+			continue
 		}
 
 		dbsigmsg, ok := v.(*messages.DirectoryBlockSignature)

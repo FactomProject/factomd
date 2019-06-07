@@ -931,17 +931,17 @@ func (s *State) Init() {
 	s.tickerQueue = make(chan int, 100)               //ticks from a clock
 	s.timerMsgQueue = make(chan interfaces.IMsg, 100) //incoming eom notifications, used by leaders
 	s.ControlPanelChannel = make(chan DisplayState, 20)
-	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 100)               //incoming message queue from the network messages
-	s.networkOutMsgQueue = NewNetOutMsgQueue(constants.INMSGQUEUE_MED)       //Messages to be broadcast to the network
-	s.inMsgQueue = NewInMsgQueue(constants.INMSGQUEUE_HIGH)                  //incoming message queue for Factom application messages
-	s.inMsgQueue2 = NewInMsgQueue(constants.INMSGQUEUE_HIGH)                 //incoming message queue for Factom application messages
-	s.electionsQueue = NewElectionQueue(constants.INMSGQUEUE_HIGH)           //incoming message queue for Factom application messages
-	s.apiQueue = NewAPIQueue(constants.INMSGQUEUE_HIGH)                      //incoming message queue from the API
-	s.ackQueue = make(chan interfaces.IMsg, 50)                              //queue of Leadership messages
-	s.msgQueue = make(chan interfaces.IMsg, 50)                              //queue of Follower messages
-	s.MissingEntries = make(chan *MissingEntry, constants.INMSGQUEUE_HIGH)   //Entries I discover are missing from the database
-	s.UpdateEntryHash = make(chan *EntryUpdate, constants.INMSGQUEUE_HIGH)   //Handles entry hashes and updating Commit maps.
-	s.WriteEntry = make(chan interfaces.IEBEntry, constants.INMSGQUEUE_HIGH) //Entries to be written to the database
+	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 100)                 //incoming message queue from the network messages
+	s.networkOutMsgQueue = NewNetOutMsgQueue(constants.INMSGQUEUE_MED)         //Messages to be broadcast to the network
+	s.inMsgQueue = NewInMsgQueue(constants.INMSGQUEUE_HIGH)                    //incoming message queue for Factom application messages
+	s.inMsgQueue2 = NewInMsgQueue(constants.INMSGQUEUE_HIGH)                   //incoming message queue for Factom application messages
+	s.electionsQueue = NewElectionQueue(constants.INMSGQUEUE_HIGH)             //incoming message queue for Factom application messages
+	s.apiQueue = NewAPIQueue(constants.INMSGQUEUE_HIGH)                        //incoming message queue from the API
+	s.ackQueue = make(chan interfaces.IMsg, 50)                                //queue of Leadership messages
+	s.msgQueue = make(chan interfaces.IMsg, 50)                                //queue of Follower messages
+	s.MissingEntries = make(chan *MissingEntry, constants.INMSGQUEUE_HIGH)     //Entries I discover are missing from the database
+	s.UpdateEntryHash = make(chan *EntryUpdate, constants.INMSGQUEUE_HIGH)     //Handles entry hashes and updating Commit maps.
+	s.WriteEntry = make(chan interfaces.IEBEntry, 5*constants.INMSGQUEUE_HIGH) //Entries to be written to the database
 
 	if s.Journaling {
 		f, err := os.Create(s.JournalFile)
@@ -962,7 +962,7 @@ func (s *State) Init() {
 
 	// Set up maps for the followers
 	s.Holding = make(map[[32]byte]interfaces.IMsg)
-	s.HoldingList = make(chan [32]byte, 500)
+	s.HoldingList = make(chan [32]byte, 10000)
 	s.Acks = make(map[[32]byte]interfaces.IMsg)
 	s.Commits = NewSafeMsgMap("commits", s) //make(map[[32]byte]interfaces.IMsg)
 
