@@ -609,7 +609,7 @@ func (s *State) ReviewHolding() {
 	cnt := 1
 processholdinglist:
 	for {
-		if cnt&0x1F == 0 && s.GetTimestamp().GetTimeMilli()-now.GetTimeMilli() > 300 {
+		if cnt&0x1F == 0 && s.GetTimestamp().GetTimeMilli()-now.GetTimeMilli() > 200 {
 			fmt.Print("cnt ", cnt, " ")
 			s.ResendHolding = s.GetTimestamp()
 			break processholdinglist
