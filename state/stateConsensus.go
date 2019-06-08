@@ -594,7 +594,10 @@ func (s *State) ReviewHolding() {
 				b := sorted[j].GetTimestamp().GetTimeMilli()
 				return a < b
 			})
-		for _, v := range sorted {
+		for k, v := range sorted {
+			if k >= cap(s.HoldingList) || k > 4000 {
+				break
+			}
 			s.HoldingList <- v.GetMsgHash().Fixed()
 		}
 	}
@@ -606,28 +609,30 @@ func (s *State) ReviewHolding() {
 	cnt := 1
 processholdinglist:
 	for {
-		if cnt&0x1F == 0 && s.GetTimestamp().GetTimeMilli()-now.GetTimeMilli() > 50 {
+		if cnt&0x1F == 0 && s.GetTimestamp().GetTimeMilli()-now.GetTimeMilli() > 300 {
+			fmt.Print("cnt ", cnt, " ")
+			s.ResendHolding = s.GetTimestamp()
 			break processholdinglist
 		}
 		cnt++
-
-		var v interfaces.IMsg
 		var k [32]byte
+		var v interfaces.IMsg
+		var ok bool
 		select {
 		case k = <-s.HoldingList:
-			var ok bool
-			v, ok = s.HoldingMap[k]
-			if !ok {
+			v, ok = s.Holding[k]
+			if !ok || v == nil {
 				continue processholdinglist
 			}
 		default:
 			break processholdinglist
 		}
+
 		if int(highest)-int(saved) > 1000 {
 			TotalHoldingQueueOutputs.Inc()
 			//delete(s.Holding, k)
 			s.DeleteFromHolding(k, v, "HKB-HSB>1000")
-			continue // No point in executing if we think we can't hold this.
+			continue processholdinglist // No point in executing if we think we can't hold this.
 		}
 
 		if v.Expire(s) {
@@ -636,20 +641,20 @@ processholdinglist:
 			TotalHoldingQueueOutputs.Inc()
 			//delete(s.Holding, k)
 			s.DeleteFromHolding(k, v, "expired")
-			continue // If the message has expired, don't hold or execute
+			continue processholdinglist // If the message has expired, don't hold or execute
 		}
 
 		eom, ok := v.(*messages.EOM)
 		if ok {
 			if int(eom.DBHeight)*10+int(eom.Minute) < int(s.LLeaderHeight)*10+s.CurrentMinute {
 				s.DeleteFromHolding(k, v, "old EOM")
-				continue
+				continue processholdinglist
 			}
 			if !eom.IsLocal() && eom.DBHeight > saved {
 				s.HighestKnown = eom.DBHeight
 			}
 			go func() { s.msgQueue <- eom }()
-			continue
+			continue processholdinglist
 		}
 
 		dbsigmsg, ok := v.(*messages.DirectoryBlockSignature)
@@ -658,7 +663,7 @@ processholdinglist:
 				TotalHoldingQueueOutputs.Inc()
 				//delete(s.Holding, k)
 				s.DeleteFromHolding(k, v, "Old DBSig")
-				continue
+				continue processholdinglist
 			}
 			if !dbsigmsg.IsLocal() && dbsigmsg.DBHeight > saved {
 				s.HighestKnown = dbsigmsg.DBHeight
@@ -671,7 +676,7 @@ processholdinglist:
 			TotalHoldingQueueOutputs.Inc()
 			//delete(s.Holding, k)
 			s.DeleteFromHolding(k, v, "old DBState")
-			continue
+			continue processholdinglist
 		}
 
 		// If it is an entryCommit/ChainCommit/RevealEntry and it has a duplicate hash to an existing entry throw it away here
@@ -682,7 +687,7 @@ processholdinglist:
 				TotalHoldingQueueOutputs.Inc()
 				//delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
 				s.DeleteFromHolding(k, v, "already committed")
-				continue
+				continue processholdinglist
 			}
 		}
 
@@ -695,7 +700,7 @@ processholdinglist:
 				TotalHoldingQueueOutputs.Inc()
 				//delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
 				s.DeleteFromHolding(k, v, "already committed")
-				continue
+				continue processholdinglist
 			}
 		}
 
@@ -711,9 +716,9 @@ processholdinglist:
 			TotalHoldingQueueOutputs.Inc()
 			//delete(s.Holding, k)
 			s.DeleteFromHolding(k, v, "invalid from holding")
-			continue
+			continue processholdinglist
 		case 0:
-			continue
+			continue processholdinglist
 		}
 
 		// if it is a Factoid or entry credit transaction then check BLOCK_REPLAY
@@ -722,7 +727,7 @@ processholdinglist:
 			ok2 := s.FReplay.IsHashUnique(constants.BLOCK_REPLAY, v.GetRepeatHash().Fixed())
 			if !ok2 {
 				s.DeleteFromHolding(k, v, "BLOCK_REPLAY")
-				continue
+				continue processholdinglist
 			}
 		default:
 		}
@@ -732,12 +737,12 @@ processholdinglist:
 			if !s.NoEntryYet(re.GetHash(), s.GetLeaderTimestamp()) {
 				s.DeleteFromHolding(re.GetHash().Fixed(), re, "already committed reveal")
 				s.Commits.Delete(re.GetHash().Fixed())
-				continue
+				continue processholdinglist
 			}
 
 			// Needs to be our VMIndex as well, or ignore.
 			if re.GetVMIndex() != s.LeaderVMIndex || !s.Leader {
-				continue // If we are a leader, but it isn't ours, and it isn't a new minute, ignore.
+				continue processholdinglist // If we are a leader, but it isn't ours, and it isn't a new minute, ignore.
 			}
 		}
 
@@ -1123,12 +1128,9 @@ func (s *State) ExecuteEntriesInDBState(dbmsg *messages.DBStateMsg) {
 		consenLogger.WithFields(log.Fields{"func": "ExecuteEntriesInDBState", "height": height}).Errorf("Bad DBState. DBlock does not match found")
 		return // Bad DBlock
 	}
-	//todo: consider using func (s *State) WriteEntries()
-	s.DB.StartMultiBatch()
 	for _, e := range dbmsg.Entries {
-		s.WriteEntry <- e
+		go func() { s.WriteEntry <- e }()
 	}
-	err = s.DB.ExecuteMultiBatch()
 	if err != nil {
 		consenLogger.WithFields(log.Fields{"func": "ExecuteEntriesInDBState", "height": height}).Errorf("Was unable to execute multibatch")
 		return
@@ -1409,15 +1411,8 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 		if !ok {
 			return
 		}
-		if len(s.WriteEntry) < cap(s.WriteEntry) {
-
-			if has(s, entry.GetHash()) {
-				s.LogPrintf("ehashes", "Duplicate DataResponse %x", entry.GetHash().Bytes()[:4])
-				return
-			}
-			s.WriteEntry <- entry // DataResponse
-			s.LogMessage("executeMsg", "writeEntry", msg)
-		}
+		go func() { s.WriteEntry <- entry }() // DataResponse
+		s.LogMessage("executeMsg", "writeEntry", msg)
 	}
 }
 
@@ -1865,8 +1860,6 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) (worked b
 		}
 	}()
 
-	myhash := msg.Entry.GetHash()
-
 	chainID := msg.Entry.GetChainID()
 
 	TotalCommitsOutputs.Inc()
@@ -1890,7 +1883,7 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) (worked b
 		eb.AddEBEntry(msg.Entry)
 		// Put it in our list of new Entry Blocks for this Directory Block
 		s.PutNewEBlocks(dbheight, chainID, eb)
-		s.PutNewEntries(dbheight, myhash, msg.Entry)
+		go func() { s.WriteEntry <- msg.Entry }()
 
 		s.IncEntryChains()
 		s.IncEntries()
@@ -1919,7 +1912,8 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) (worked b
 	eb.AddEBEntry(msg.Entry)
 	// Put it in our list of new Entry Blocks for this Directory Block
 	s.PutNewEBlocks(dbheight, chainID, eb)
-	s.PutNewEntries(dbheight, myhash, msg.Entry)
+
+	go func() { s.WriteEntry <- msg.Entry }()
 
 	s.IncEntries()
 	return true
