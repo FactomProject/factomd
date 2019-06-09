@@ -39,6 +39,7 @@ func CreateEmptyTestState() *state.State {
 	s.Network = "LOCAL"
 	s.CheckChainHeads.CheckChainHeads = false
 	state.LoadDatabase(s)
+	s.Process()
 	s.DBFinished = true
 	return s
 }
@@ -88,6 +89,7 @@ func CreateAndPopulateTestState() *state.State {
 	}*/
 	s.SetFactoshisPerEC(1)
 	state.LoadDatabase(s)
+	s.Process()
 	s.UpdateState()
 
 	return s

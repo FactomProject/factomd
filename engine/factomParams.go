@@ -89,7 +89,7 @@ func init() {
 	flag.StringVar(&p.FactomHome, "factomhome", "", "Set the Factom home directory. The .factom folder will be placed here if set, otherwise it will default to $HOME")
 	flag.StringVar(&p.NodeName, "nodename", "", "Assign a name to the node")
 	flag.StringVar(&p.ControlPanelSetting, "controlpanelsetting", "", "Can set to 'disabled', 'readonly', or 'readwrite' to overwrite config file")
-
+	flag.BoolVar(&p.FullHashesLog, "fullhasheslog", false, "true create a log of all unique hashes seen during processing")
 }
 
 func ParseCmdLine(args []string) *FactomParams {

@@ -1,4 +1,5 @@
-#/bin/sh
+#!/usr/bin/env bash
+
 pattern="$1"
 binsize="$2"
 shift

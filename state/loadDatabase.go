@@ -88,7 +88,7 @@ func LoadDatabase(s *State) {
 				// this will cause s.DBFinished to go true
 			}
 
-			s.LogMessage("InMsgQueue", "enqueue", msg)
+			s.LogMessage("InMsgQueue", "enqueue_LoadDatabase1", msg)
 			msg.SetLocal(true)
 			s.InMsgQueue().Enqueue(msg)
 			if s.InMsgQueue().Length() > 200 || len(s.DBStatesReceived) > 50 {
@@ -124,6 +124,7 @@ func LoadDatabase(s *State) {
 		// last block, flag it.
 		dbstate, _ := msg.(*messages.DBStateMsg)
 		dbstate.IsLast = true // this is the last DBState in this load
+		s.LogMessage("InMsgQueue", "enqueue_LoadDatabase1", msg)
 		// this will cause s.DBFinished to go true
 		s.InMsgQueue().Enqueue(msg)
 	}

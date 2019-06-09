@@ -7,6 +7,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/util/atomic"
 )
 
 var _ = fmt.Println
@@ -47,8 +48,10 @@ func (m *SafeMsgMap) Delete(key [32]byte) (msg interfaces.IMsg, found bool) {
 	m.Lock()
 	msg, ok := m.msgmap[key] // return the message being deleted
 	if ok {
-		defer m.s.LogMessage(m.name, "delete", msg)
+		defer m.s.LogMessage(m.name, fmt.Sprintf("delete from %s", atomic.WhereAmIString(1)), msg)
 		delete(m.msgmap, key)
+	} else {
+		defer m.s.LogPrintf(m.name, "nodelete from %s M-%x", atomic.WhereAmIString(1), key[:3])
 	}
 	m.Unlock()
 	return
