@@ -7,10 +7,10 @@ package engine
 import (
 	"bytes"
 	"fmt"
-	"math/rand"
 	"time"
 
-	"github.com/FactomProject/factomd/common/constants"
+	"math/rand"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages/msgsupport"
 )
@@ -115,56 +115,52 @@ func (f *SimPeer) computeBandwidth() {
 }
 
 func (f *SimPeer) Send(msg interfaces.IMsg) error {
+
 	data, err := msg.MarshalBinary()
 	f.bytesOut += len(data)
 	f.computeBandwidth()
 	if err != nil {
-		fmt.Println("ERROR on Send: ", err)
 		return err
 	}
-	if len(f.BroadcastOut) < 9000 {
+
+	go func() {
+		if f.Delay > 0 {
+			// Sleep some random number of milliseconds, then send the packet
+			time.Sleep(time.Duration(rand.Intn(int(f.Delay))) * time.Millisecond)
+		}
 		packet := SimPacket{data: data, sent: time.Now().UnixNano() / 1000000}
 		f.BroadcastOut <- &packet
-	}
+	}()
+
 	return nil
 }
 
 // Non-blocking return value from channel.
 func (f *SimPeer) Receive() (interfaces.IMsg, error) {
-	if f.Delayed == nil {
-		select {
-		case packet, ok := <-f.BroadcastIn:
-			if ok {
-				f.Delayed = packet
-			}
-		default:
-			return nil, nil // Nothing to do
-		}
-		if f.Delay > 0 {
-			f.DelayUse = rand.Int63n(f.Delay)
-		} else {
-			f.DelayUse = 0
-		}
 
+	// We want a packet from the network
+	var packet *SimPacket
+
+	// However, we do not want to wait if one isn't there.
+	select {
+	case packet = <-f.BroadcastIn:
+	default:
+		return nil, nil // Nothing to do
 	}
 
-	now := time.Now().UnixNano() / 1000000
+	// Count the overhead of packets
+	f.bytesIn += len(packet.data)
+	f.computeBandwidth()
 
-	if f.Delayed != nil && now-f.Delayed.sent > f.DelayUse {
-		data := f.Delayed.data
-		f.Delayed = nil
-		msg, err := msgsupport.UnmarshalMessage(data)
-		if err != nil {
-			fmt.Printf("SimPeer ERROR: %s %x %s\n", err.Error(), data[:8], constants.MessageName(data[0]))
-		}
-
-		f.bytesIn += len(data)
-		f.computeBandwidth()
-		return msg, err
-	} else {
-		// fmt.Println("dddd Delay: ", now-f.Delayed.sent)
+	// Unmarshal our message, and throw it a way if we have an error.
+	msg, err := msgsupport.UnmarshalMessage(packet.data)
+	if err != nil {
+		return nil, err
 	}
-	return nil, nil
+
+	// All is good.  Return our message.
+	return msg, err
+
 }
 
 func AddSimPeer(fnodes []*FactomNode, i1 int, i2 int) {

@@ -468,9 +468,9 @@ func TestBuildBlock(t *testing.T) {
            fullhash: 857d121b40c0763cd310c68963d23ebf6fa4241ef6ba26861d9b80aa71c9f3a9
   version:         0
   networkid:       0
-  bodymr:          01004ae2e96c0344a3c30a0704383c5c90ca2663921a9c1b8dc50658d52850a3
-  prevkeymr:       0000000000000000000000000000000000000000000000000000000000000000
-  prevfullhash:    0000000000000000000000000000000000000000000000000000000000000000
+  bodymr:          01004a
+  prevkeymr:       000000
+  prevfullhash:    000000
   timestamp:       0
   timestamp str:   `, k.String()) // Use KeyMR from above
 	epoch := time.Unix(0, 0)

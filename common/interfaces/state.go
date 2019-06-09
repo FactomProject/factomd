@@ -121,8 +121,8 @@ type IState interface {
 	// Consensus
 	APIQueue() IQueue    // Input Queue from the API
 	InMsgQueue() IQueue  // Read by Validate
-	AckQueue() chan IMsg // Leader Queue
-	MsgQueue() chan IMsg // Follower Queue
+	AckQueue() chan IMsg // Ack Message Queue
+	MsgQueue() chan IMsg // Other Messages Queue
 	ElectionsQueue() IQueue
 
 	// Lists and Maps
@@ -326,6 +326,7 @@ type IState interface {
 	IsSyncingDBSigs() bool
 	DidCreateLastBlockFromDBState() bool
 	GetUnsyncedServers(dbheight uint32) []IHash
+	Validate(msg IMsg) (validToSend int, validToExecute int)
 
 	// Access to Holding Queue
 	LoadHoldingMap() map[[32]byte]IMsg
