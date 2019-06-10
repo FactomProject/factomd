@@ -27,6 +27,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	. "github.com/FactomProject/factomd/engine"
 	"github.com/FactomProject/factomd/state"
+	"github.com/FactomProject/factomd/testHelper"
 	. "github.com/FactomProject/factomd/testHelper"
 	"github.com/FactomProject/factomd/wsapi"
 )
@@ -141,6 +142,9 @@ func TestLoad(t *testing.T) {
 	WaitBlocks(state0, 5)
 	// should check holding and queues cleared out
 	ShutDownEverything(t)
+
+	fmt.Println("------>", testHelper.DumpPrometheusCounter(state.TotalHoldingQueueInputs))
+
 } //TestLoad(){...}
 
 func TestCatchup(t *testing.T) {
@@ -1444,6 +1448,7 @@ func TestElection9(t *testing.T) {
 	WaitForAllNodes(state0)
 	ShutDownEverything(t)
 }
+
 func TestRandom(t *testing.T) {
 	if RanSimTest {
 		return

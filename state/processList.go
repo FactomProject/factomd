@@ -86,8 +86,6 @@ type ProcessList struct {
 	DBSignatures     []DBSig
 	DBSigAlreadySent bool
 
-	NextHeightToProcess [64]int
-
 	// Cut overhead
 	stringCnt int
 }
@@ -784,7 +782,9 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 				s.SyncingStateCurrent = (s.SyncingStateCurrent + 1) % len(s.SyncingState)
 				s.SyncingState[s.SyncingStateCurrent] = x
 			}
+
 			if vm.List[j] == nil {
+				// VM process height is nil, need to request for process list msgs
 				//p.State.AddStatus(fmt.Sprintf("ProcessList.go Process: Found nil list at vm %d vm height %d ", i, j))
 				cnt := 0
 				for k := j; k < len(vm.List); k++ {
@@ -870,7 +870,6 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 			// this prevent you from becoming a leader when you don't have complete identities
 			if (vm.LeaderMinute < 2 && diff <= 3) || diff <= 2 {
 				// If we can't process this entry (i.e. returns false) then we can't process any more.
-				p.NextHeightToProcess[i] = j + 1 // unused...
 
 				now := p.State.GetTimestamp()
 
@@ -898,7 +897,6 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 					vm.heartBeat = 0
 					vm.Height = j + 1 // Don't process it again if the process worked.
 					s.LogMessage("process", fmt.Sprintf("done %v/%v/%v", p.DBHeight, i, j), msg)
-					//s.LogPrintf("process", "thisAck  %x", thisAck.SerialHash.Bytes())
 
 					progress = true
 
@@ -909,8 +907,6 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 					s.Replay.IsTSValidAndUpdateState(constants.INTERNAL_REPLAY, msgHashFixed, msg.GetTimestamp(), now)
 
 					delete(s.Acks, msgHashFixed)
-					//delete(s.Holding, msgHashFixed)
-
 					s.DeleteFromHolding(msgHashFixed, msg, "msg.Process done")
 				} else {
 					s.LogMessage("process", fmt.Sprintf("retry %v/%v/%v", p.DBHeight, i, j), msg)
@@ -1063,16 +1059,13 @@ func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces
 	}
 
 	// Both the ack and the message hash to the same GetHash()
-	m.SetLocal(false)
-	ack.SetLocal(false)
+	m.SetLocal(false) // Set to false, otherwise the message will not be send out
 	ack.SetPeer2Peer(false)
 	m.SetPeer2Peer(false)
 
 	if ack.GetHash().Fixed() != m.GetMsgHash().Fixed() {
 		s.LogPrintf("executeMsg", "m/ack mismatch m-%x a-%x", m.GetMsgHash().Fixed(), ack.GetHash().Fixed())
 	}
-	m.SendOut(s, m)
-	ack.SendOut(s, ack)
 
 	for len(vm.List) <= int(ack.Height) {
 		vm.List = append(vm.List, nil)
@@ -1094,11 +1087,16 @@ func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces
 	}
 
 	s.LogMessage("processList", fmt.Sprintf("Added at %d/%d/%d by %s", ack.DBHeight, ack.VMIndex, ack.Height, atomic.WhereAmIString(1)), m)
+
+	// If the ack is local, we should also process the message in the vms, so the next executemsg can directly be added, and not hit holding.
 	if ack.IsLocal() {
+		// Setting local to false, otherwise the message will not be sent out
+		ack.SetLocal(false)
 		for p.Process(s) {
 		}
 	}
-
+	m.SendOut(s, m)
+	ack.SendOut(s, ack)
 }
 
 func (p *ProcessList) ContainsDBSig(serverID interfaces.IHash) bool {
