@@ -385,6 +385,8 @@ func (auth *Authority) MarshalJSON() (rval []byte, err error) {
 		SigningKey        string             `json:"signingkey"`
 		Status            string             `json:"status"`
 		AnchorKeys        []AnchorSigningKey `json:"anchorkeys"`
+		Efficiency        int                `json:"efficiency"`
+		CoinbaseAddress   string             `json:"coinbase_address"`
 	}{
 		AuthorityChainID:  auth.AuthorityChainID,
 		ManagementChainID: auth.ManagementChainID,
@@ -392,6 +394,8 @@ func (auth *Authority) MarshalJSON() (rval []byte, err error) {
 		SigningKey:        auth.SigningKey.String(),
 		Status:            statusToJSONString(auth.Status),
 		AnchorKeys:        auth.AnchorKeys,
+		Efficiency:        int(auth.Efficiency),
+		CoinbaseAddress:   primitives.ConvertFctAddressToUserStr(auth.CoinbaseAddress),
 	})
 }
 

@@ -5,11 +5,13 @@
 package identity_test
 
 import (
+	"encoding/json"
 	"testing"
 
 	"bytes"
 
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/factoid"
 	. "github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
@@ -241,6 +243,36 @@ func TestSameAuth(t *testing.T) {
 	}
 	a.KeyHistory = b.KeyHistory
 
+}
+
+func TestAuthorityJsonMarshal(t *testing.T) {
+	// Testing Human readable json marshal
+	a := NewAuthority()
+	a.CoinbaseAddress = factoid.NewAddress(make([]byte, 32))
+	a.Efficiency = 100
+
+	data, err := a.MarshalJSON()
+	if err != nil {
+		t.Error(err)
+	}
+
+	var dst bytes.Buffer
+	exp := `
+		{
+			"chainid": "0000000000000000000000000000000000000000000000000000000000000000",
+			"manageid": "0000000000000000000000000000000000000000000000000000000000000000",
+			"matroyshka": "0000000000000000000000000000000000000000000000000000000000000000",
+			"signingkey": "0000000000000000000000000000000000000000000000000000000000000000",
+			"status": "none",
+			"anchorkeys": null,
+			"efficiency": 100,
+			"coinbase_address": "FA1y5ZGuHSLmf2TqNf6hVMkPiNGyQpQDTFJvDLRkKQaoPo4bmbgu"
+		}
+	`
+	json.Compact(&dst, []byte(exp))
+	if bytes.Compare(dst.Bytes(), data) != 0 {
+		t.Errorf("Does not match expected")
+	}
 }
 
 func newAck(id interfaces.IHash, ts interfaces.Timestamp) *messages.Ack {
