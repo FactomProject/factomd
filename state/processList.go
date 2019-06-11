@@ -1064,15 +1064,13 @@ func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces
 
 	// Both the ack and the message hash to the same GetHash()
 	m.SetLocal(false)
-	ack.SetLocal(false)
+
 	ack.SetPeer2Peer(false)
 	m.SetPeer2Peer(false)
 
 	if ack.GetHash().Fixed() != m.GetMsgHash().Fixed() {
 		s.LogPrintf("executeMsg", "m/ack mismatch m-%x a-%x", m.GetMsgHash().Fixed(), ack.GetHash().Fixed())
 	}
-	m.SendOut(s, m)
-	ack.SendOut(s, ack)
 
 	for len(vm.List) <= int(ack.Height) {
 		vm.List = append(vm.List, nil)
@@ -1095,9 +1093,12 @@ func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces
 
 	s.LogMessage("processList", fmt.Sprintf("Added at %d/%d/%d by %s", ack.DBHeight, ack.VMIndex, ack.Height, atomic.WhereAmIString(1)), m)
 	if ack.IsLocal() {
+		ack.SetLocal(false)
 		for p.Process(s) {
 		}
 	}
+	m.SendOut(s, m)
+	ack.SendOut(s, ack)
 
 }
 
