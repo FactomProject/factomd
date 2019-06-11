@@ -62,11 +62,13 @@ func (l *HoldingList) Get(h [32]byte) []interfaces.IMsg {
 	return rval
 }
 
+func (l *HoldingList) ExecuteForNewHeight(ht uint32) {
+	l.s.ExecuteFromHolding(HeightToHash(ht))
+}
+
 // clean stale messages from holding
 func (l *HoldingList) Review() {
 
-	// execute messages held for latest height
-	l.s.ExecuteFromHolding(HeightToHash(l.s.LLeaderHeight))
 
 	for h := range l.holding {
 		dh := l.holding[h]
@@ -113,8 +115,10 @@ func (l *HoldingList) isMsgStale(msg interfaces.IMsg) bool {
 
 func (s *State) HoldForHeight(ht uint32 , msg interfaces.IMsg) int {
 	if s.GetLLeaderHeight()+1 == ht && s.GetCurrentMinute() >= 9 {
+		s.LogMessage("newHolding", fmt.Sprintf("SKIP_HoldForHeight %x", ht), msg)
 		return 0 // send to old holding
 	}
+	s.LogMessage("newHolding", fmt.Sprintf("HoldForHeight %x", ht), msg)
 	return s.Add(HeightToHash(ht), msg) // add to new holding
 }
 
@@ -151,7 +155,7 @@ func (s *State) ExecuteFromHolding(h [32]byte) {
 		s.LogPrintf("newHolding", "ExecuteFromDependantHolding(%x) nothing waiting", h[:6])
 		return
 	}
-	s.LogPrintf("newHolding", "ExecuteFromDependantHolding(%x)[%d]", len(l), h[:6])
+	s.LogPrintf("newHolding", "ExecuteFromDependantHolding(%d)[%x]", len(l), h[:6])
 
 	for _, m := range l {
 		s.LogPrintf("newHolding", "Delete M-%x", m.GetMsgHash().Bytes()[:3])

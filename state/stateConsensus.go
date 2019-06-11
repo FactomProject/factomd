@@ -822,7 +822,7 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		}
 		s.DBStates.UpdateState() // go process the DBSigs
 
-		s.Hold.Review() // check for resolved dependents and cleanup new messages
+		s.Hold.ExecuteForNewHeight(dbheight) // execute held messages
 	} else if s.CurrentMinute != newMinute { // And minute
 		if newMinute == 1 {
 			dbstate := s.GetDBState(dbheight - 1)
@@ -882,7 +882,7 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 	s.DBSigLimit = s.EOMLimit               // We add or remove server only on block boundaries
 
 	s.LogPrintf("dbstateprocess", "MoveStateToHeight(%d-:-%d) leader=%v leaderPL=%p, leaderVMIndex=%d", dbheight, newMinute, s.Leader, s.LeaderPL, s.LeaderVMIndex)
-
+	s.Hold.Review() // cleanup old messages
 }
 
 // Adds blocks that are either pulled locally from a database, or acquired from peers.
