@@ -7,7 +7,6 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
-	"fmt"
 	"text/template"
 	"time"
 
@@ -85,7 +84,6 @@ func (d *testAccount) ConvertEC(amt uint64) {
 	state0 := engine.GetFnodes()[0].State
 	engine.FundECWallet(state0, d.FctPrivHash(), d.EcAddr(), uint64(amt)*state0.GetFactoshisPerEC())
 }
-
 
 // get FCT from coinbase 'bank'
 func (d *testAccount) FundFCT(amt uint64) {
@@ -297,87 +295,84 @@ func ComposeChainCommit(pkey *primitives.PrivateKey, c *factom.Chain) (*messages
 
 // wait for non-zero EC balance
 func WaitForAnyEcBalance(s *state.State, ecPub string) int64 {
-	//s.LogPrintf(logName, "WaitForAnyEcBalance %v", ecPub)
-	return WaitForMinEcBalance(s, ecPub, 1)
+	s.LogPrintf(logName, "WaitForAnyEcBalance %v", ecPub)
+	return WaitForEcBalanceOver(s, ecPub, 0)
 }
 
 // wait for non-zero FCT balance
 func WaitForAnyFctBalance(s *state.State, fctPub string) int64 {
-	//s.LogPrintf(logName, "WaitForAnyEcBalance %v", fctPub)
-	return WaitForMinFctBalance(s, fctPub, 1)
+	s.LogPrintf(logName, "WaitForAnyFctBalance %v", fctPub)
+	return WaitForFctBalanceOver(s, fctPub, 0)
 }
 
 // wait for exactly Zero EC balance
+// REVIEW: should we ditch this?
 func WaitForZeroEC(s *state.State, ecPub string) int64 {
-	fmt.Println("Waiting for Zero Balance")
-	return WaitForMinEcBalance(s, ecPub, 0)
+	s.LogPrintf(logName, "WaitingForZeroEcBalance")
+	return WaitForEcBalanceUnder(s, ecPub, 1)
 }
 
 const balanceWaitInterval = time.Millisecond * 20
 
-// loop until balance is >= target
-func WaitForMinEcBalance(s *state.State, ecPub string, target int64) int64 {
+// loop until balance is < target
+func WaitForEcBalanceUnder(s *state.State, ecPub string, target int64) int64 {
 
-	//s.LogPrintf(logName, "WaitForMinEcBalance%v:  %v", target, ecPub)
-
-	for {
-		bal := engine.GetBalanceEC(s, ecPub)
-		time.Sleep(balanceWaitInterval)
-		//fmt.Printf("WaitForBalance: %v => %v\n", ecPub, bal)
-
-		if (target == 0 && bal == 0) || (target > 0 && bal >= target) {
-			//s.LogPrintf(logName, "FoundMinEcBalance%v: %v", target, bal)
-			return bal
-		}
-	}
-}
-
-// loop until balance is <= target
-func WaitForMaxEcBalance(s *state.State, ecPub string, target int64) int64 {
-
-	//s.LogPrintf(logName, "WaitForMaxEcBalance%v:  %v", target, ecPub)
+	s.LogPrintf(logName, "WaitForEcBalanceUnder%v:  %v", target, ecPub)
 
 	for {
 		bal := engine.GetBalanceEC(s, ecPub)
 		time.Sleep(balanceWaitInterval)
-		//fmt.Printf("WaitForBalance: %v => %v\n", ecPub, bal)
 
-		if (target == 0 && bal == 0) || (target > 0 && bal <= target) {
-			//s.LogPrintf(logName, "FoundMaxEcBalance%v: %v", target, bal)
+		if bal < target {
+			s.LogPrintf(logName, "FoundEcBalanceUnder%v: %v", target, bal)
 			return bal
 		}
 	}
 }
 
 // loop until balance is >= target
-func WaitForMinFctBalance(s *state.State, fctPub string, target int64) int64 {
+func WaitForEcBalanceOver(s *state.State, ecPub string, target int64) int64 {
 
-	//s.LogPrintf(logName, "WaitForMinFctBalance%v:  %v", target, fctPub)
+	s.LogPrintf(logName, "WaitForEcBalanceOver%v:  %v", target, ecPub)
+
+	for {
+		bal := engine.GetBalanceEC(s, ecPub)
+		time.Sleep(balanceWaitInterval)
+
+		if bal > target {
+			s.LogPrintf(logName, "FoundEcBalancerOver%v: %v", target, bal)
+			return bal
+		}
+	}
+}
+
+// loop until balance is >= target
+func WaitForFctBalanceUnder(s *state.State, fctPub string, target int64) int64 {
+
+	s.LogPrintf(logName, "WaitForFctBalanceUnder%v:  %v", target, fctPub)
 
 	for {
 		bal := engine.GetBalance(s, fctPub)
 		time.Sleep(balanceWaitInterval)
-		//s.LogPrintf(logName, "WaitForMinFctBalance: %v => %v\n", fctPub, bal)
 
-		if (target == 0 && bal == 0) || (target > 0 && bal >= target) {
-			//s.LogPrintf(logName, "FoundBalance%v: %v", target, bal)
+		if bal < target {
+			s.LogPrintf(logName, "FoundFctBalanceUnder%v: %v", target, bal)
 			return bal
 		}
 	}
 }
 
 // loop until balance is <= target
-func WaitForMaxFctBalance(s *state.State, fctPub string, target int64) int64 {
+func WaitForFctBalanceOver(s *state.State, fctPub string, target int64) int64 {
 
-	//s.LogPrintf(logName, "WaitForMaxFctBalance%v:  %v", target, fctPub)
+	s.LogPrintf(logName, "WaitForFctBalanceOver%v:  %v", target, fctPub)
 
 	for {
 		bal := engine.GetBalance(s, fctPub)
 		time.Sleep(balanceWaitInterval)
-		//s.LogPrintf(logName, "WaitForMaxFctBalance: %v => %v\n", fctPub, bal)
 
-		if (target == 0 && bal == 0) || (target > 0 && bal <= target) {
-			//s.LogPrintf(logName, "FoundMaxFctBalance%v: %v", target, bal)
+		if bal > target {
+			s.LogPrintf(logName, "FoundMaxFctBalanceOver%v: %v", target, bal)
 			return bal
 		}
 	}

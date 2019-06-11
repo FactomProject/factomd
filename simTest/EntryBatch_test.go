@@ -4,12 +4,11 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/engine"
+	"github.com/stretchr/testify/assert"
 	"testing"
 
 	"github.com/FactomProject/factom"
 	. "github.com/FactomProject/factomd/testHelper"
-	"github.com/stretchr/testify/assert"
 )
 
 // this applies chain & entry creation in 'proper' chronological order
@@ -35,29 +34,17 @@ func TestEntryBatch(t *testing.T) {
 	state0 := SetupSim("LLAAFF", params, 10, 0, 0, t)
 
 	var entries []interfaces.IMsg
+	var oneFct uint64 = factom.FactoidToFactoshi("1")
+	var ecMargin = 100 // amount of ec to have left
 
-	{ // funding the chain + entries
-		var oneFct uint64 = factom.FactoidToFactoshi("1")
-		b.FundFCT(oneFct*20) // transfer coinbase funds to b
-		b.SendFCT(a, oneFct*10) // use account b to fund a.ConvertEC() from above
-		a.ConvertEC(uint64(numEntries + 11)) // buy EC's needed for all actions
-		WaitForAnyEcBalance(state0, a.EcPub()) // wait for funding
-	}
+	{ // fund entries & chain create
+		WaitForZeroEC(state0, a.EcPub()) // assert we are starting from zero
 
-	{ // create the chain
-		e := factom.Entry{
-			ChainID: id,
-			ExtIDs:  extids,
-			Content: encode("Hello World!"),
-		}
+		b.FundFCT(oneFct * 20)                          // transfer coinbase funds to b
+		b.SendFCT(a, oneFct*10)                         // use account b to fund a.ConvertEC() from above
+		a.ConvertEC(uint64(numEntries + 11 + ecMargin)) // Chain costs 10 + 1 per k so our chain head costs 11
 
-		c := factom.NewChain(&e)
-
-		commit, _ := ComposeChainCommit(a.Priv, c)
-		reveal, _ := ComposeRevealEntryMsg(a.Priv, c.FirstEntry)
-
-		state0.APIQueue().Enqueue(commit)
-		state0.APIQueue().Enqueue(reveal)
+		WaitForEcBalanceOver(state0, a.EcPub(), int64(ecMargin-1)) // wait for all entries to process
 	}
 
 	{ // write entries
@@ -81,28 +68,49 @@ func TestEntryBatch(t *testing.T) {
 			state0.APIQueue().Enqueue(reveal)
 		}
 
-		//WaitMinutes(state0, 2) // ensure messages are reviewed in holding at least once
-		WaitForZeroEC(state0, a.EcPub()) // wait for all entries to be paid/written
 	}
 
-	WaitBlocks(state0, 1) // give time for holding to clear
+	WaitMinutes(state0, 1)
+
+	{ // create the chain
+		e := factom.Entry{
+			ChainID: id,
+			ExtIDs:  extids,
+			Content: encode("Hello World!"),
+		}
+
+		c := factom.NewChain(&e)
+
+		commit, _ := ComposeChainCommit(a.Priv, c)
+		reveal, _ := ComposeRevealEntryMsg(a.Priv, c.FirstEntry)
+
+		state0.APIQueue().Enqueue(commit)
+		state0.APIQueue().Enqueue(reveal)
+	}
+
+	WaitForEcBalanceUnder(state0, a.EcPub(), int64(ecMargin+1)) // wait for all entries to process
+	WaitBlocks(state0, 1)                                       // give time for holding to clear
 
 	ShutDownEverything(t)
 	WaitForAllNodes(state0)
 
-	{ // check outputs
-		assert.Equal(t, int64(0), a.GetECBalance())
+	assert.Equal(t, int64(ecMargin), a.GetECBalance()) // should have 100 extra EC's
 
-		for _, fnode := range engine.GetFnodes() {
-			s := fnode.State
-			for _, h := range state0.Hold.Messages() {
-				for _, m := range h {
-					s.LogMessage("newholding", "stuck", m)
+	/*
+		{ // check outputs
+			assert.Equal(t, int64(0), a.GetECBalance())
+
+			for _, fnode := range engine.GetFnodes() {
+				s := fnode.State
+				for _, h := range state0.Hold.Messages() {
+					for _, m := range h {
+						s.LogMessage("newholding", "stuck", m)
+					}
 				}
+				assert.Equal(t, 0, len(s.Holding), "messages stuck in holding")
+				assert.Equal(t, 0, s.Hold.GetSize(), "messages stuck in New Holding")
 			}
-			assert.Equal(t, 0, len(s.Holding), "messages stuck in holding")
-			assert.Equal(t, 0, s.Hold.GetSize(), "messages stuck in New Holding")
-		}
 
-	}
+		}
+	*/
 }
