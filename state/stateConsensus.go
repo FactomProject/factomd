@@ -822,6 +822,7 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		}
 		s.DBStates.UpdateState() // go process the DBSigs
 
+		s.Hold.Review() // check for resolved dependents and cleanup new messages
 	} else if s.CurrentMinute != newMinute { // And minute
 		if newMinute == 1 {
 			dbstate := s.GetDBState(dbheight - 1)
@@ -845,7 +846,6 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		s.LeaderPL.SortAuditServers()
 		s.LeaderPL.SortFedServers()
 
-		s.Hold.Review() // check for resolved dependents and cleanup new messages
 	}
 
 	{ // debug
