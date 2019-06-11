@@ -69,7 +69,6 @@ func (l *HoldingList) ExecuteForNewHeight(ht uint32) {
 // clean stale messages from holding
 func (l *HoldingList) Review() {
 
-
 	for h := range l.holding {
 		dh := l.holding[h]
 		if nil == l {
@@ -88,11 +87,11 @@ func (l *HoldingList) Review() {
 func (l *HoldingList) isMsgStale(msg interfaces.IMsg) bool {
 
 	/*
-	REVIEW:
-	Maybe we should treat the message stream as a votes on the "highest known block" where known servers trump unknown servers who disagree?
+		REVIEW:
+		Maybe we should treat the message stream as a votes on the "highest known block" where known servers trump unknown servers who disagree?
 
-	Consider setting HKB and HAB when we complete minute 1 of a block to the current leader height.
-	That at least would make us recover from a spoofed ack attack.
+		Consider setting HKB and HAB when we complete minute 1 of a block to the current leader height.
+		That at least would make us recover from a spoofed ack attack.
 	*/
 
 	switch msg.Type() {
@@ -113,7 +112,7 @@ func (l *HoldingList) isMsgStale(msg interfaces.IMsg) bool {
 	return false
 }
 
-func (s *State) HoldForHeight(ht uint32 , msg interfaces.IMsg) int {
+func (s *State) HoldForHeight(ht uint32, msg interfaces.IMsg) int {
 	if s.GetLLeaderHeight()+1 == ht && s.GetCurrentMinute() >= 9 {
 		s.LogMessage("newHolding", fmt.Sprintf("SKIP_HoldForHeight %x", ht), msg)
 		return 0 // send to old holding
