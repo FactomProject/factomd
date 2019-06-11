@@ -47,6 +47,24 @@ func TestEntryBatch(t *testing.T) {
 		WaitForEcBalanceOver(state0, a.EcPub(), int64(ecMargin-1)) // wait for all entries to process
 	}
 
+	{ // create the chain
+		e := factom.Entry{
+			ChainID: id,
+			ExtIDs:  extids,
+			Content: encode("Hello World!"),
+		}
+
+		c := factom.NewChain(&e)
+
+		commit, _ := ComposeChainCommit(a.Priv, c)
+		reveal, _ := ComposeRevealEntryMsg(a.Priv, c.FirstEntry)
+
+		state0.APIQueue().Enqueue(commit)
+		state0.APIQueue().Enqueue(reveal)
+	}
+
+	WaitMinutes(state0, 1)
+
 	{ // write entries
 
 		for i := 0; i < numEntries; i++ {
@@ -68,24 +86,6 @@ func TestEntryBatch(t *testing.T) {
 			state0.APIQueue().Enqueue(reveal)
 		}
 
-	}
-
-	WaitMinutes(state0, 1)
-
-	{ // create the chain
-		e := factom.Entry{
-			ChainID: id,
-			ExtIDs:  extids,
-			Content: encode("Hello World!"),
-		}
-
-		c := factom.NewChain(&e)
-
-		commit, _ := ComposeChainCommit(a.Priv, c)
-		reveal, _ := ComposeRevealEntryMsg(a.Priv, c.FirstEntry)
-
-		state0.APIQueue().Enqueue(commit)
-		state0.APIQueue().Enqueue(reveal)
 	}
 
 	WaitForEcBalanceUnder(state0, a.EcPub(), int64(ecMargin+1)) // wait for all entries to process
