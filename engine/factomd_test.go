@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"net/http"
 	"runtime"
@@ -302,7 +303,7 @@ func TestAnElection(t *testing.T) {
 
 	RanSimTest = true
 
-	state0 := SetupSim("LLLAAF", map[string]string{}, 9, 1, 1, t)
+	state0 := SetupSim("LLLAAF", map[string]string{}, 10, 1, 1, t)
 
 	StatusEveryMinute(state0)
 	WaitMinutes(state0, 2)
@@ -321,6 +322,23 @@ func TestAnElection(t *testing.T) {
 	// wait for him to update via dbstate and become an audit
 	WaitBlocks(state0, 2)
 	WaitMinutes(state0, 1)
+
+	WaitForBlock(state0, 8)
+
+	{ // debug holding queue
+
+		for _, fnode := range GetFnodes() {
+			s := fnode.State
+			for _, h := range s.Hold.Messages() {
+				for _, m := range h {
+					s.LogMessage("newholding", "stuck", m)
+				}
+			}
+			assert.Equal(t, 0, len(s.Holding), "messages stuck in holding")
+			assert.Equal(t, 0, s.Hold.GetSize(), "messages stuck in New Holding")
+		}
+	}
+
 	WaitForAllNodes(state0)
 
 	// PrintOneStatus(0, 0)
