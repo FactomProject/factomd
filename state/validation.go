@@ -14,7 +14,7 @@ import (
 	"github.com/FactomProject/factomd/util/atomic"
 )
 
-var ValidationDebug bool = true
+var ValidationDebug bool = false
 
 // This is the tread with access to state. It does process and update state
 func (s *State) DoProcessing() {

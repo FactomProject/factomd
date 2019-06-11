@@ -271,14 +271,6 @@ func (s *State) executeMsg(msg interfaces.IMsg) (ret bool) {
 		vmi := msg.GetVMIndex()
 		hkb := s.GetHighestKnownBlock()
 
-		if vmh != vml {
-			s.LeaderPL.Process(s)
-			vmh = int(vm.Height)
-			if vmh == vml {
-				s.LogMessage("executemsg", "processed", vm.List[vmh-1])
-			}
-		}
-
 		if s.RunLeader &&
 			s.Leader &&
 			!s.Saving && // if not between blocks
