@@ -96,7 +96,7 @@ func TestEntriesBeforeChain(t *testing.T) {
 
 	for _, fnode := range engine.GetFnodes() {
 		s := fnode.State
-		for _, h := range state0.Hold.Messages() {
+		for _, h := range s.Hold.Messages() {
 			for _, m := range h {
 				s.LogMessage("newholding", "stuck", m)
 			}
