@@ -143,7 +143,8 @@ func (list *DBStateList) Catchup() {
 	// request missing states from the network
 	go func() {
 		for {
-			if waiting.Len() < requestLimit {
+			wl := waiting.Len()
+			if wl < requestLimit && wl > 0 {
 				s := missing.GetNext()
 				if s != nil && !waiting.Has(s.Height()) {
 					msg := messages.NewDBStateMissing(list.State, s.Height(), s.Height())
