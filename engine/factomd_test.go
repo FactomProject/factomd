@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"net/http"
 	"runtime"
@@ -334,8 +333,6 @@ func TestAnElection(t *testing.T) {
 					s.LogMessage("newholding", "stuck", m)
 				}
 			}
-			assert.Equal(t, 0, len(s.Holding), "messages stuck in holding")
-			assert.Equal(t, 0, s.Hold.GetSize(), "messages stuck in New Holding")
 		}
 	}
 
