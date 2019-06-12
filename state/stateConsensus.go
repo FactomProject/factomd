@@ -10,7 +10,6 @@ import (
 	"hash"
 	"os"
 	"reflect"
-	"runtime"
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -574,11 +573,6 @@ func (s *State) ReviewHolding() {
 	s.LeaderNewMin++ // Either way, don't do it again until the ProcessEOM resets LeaderNewMin
 
 	for k, v := range s.Holding {
-
-		if v.Type() == constants.VOLUNTEERAUDIT {
-			runtime.Breakpoint()
-		}
-
 		// TODO: Limit the run of reviewhholding to 100ms
 		if int(highest)-int(saved) > 1000 {
 			TotalHoldingQueueOutputs.Inc()
