@@ -6,6 +6,7 @@ package state
 
 import (
 	"container/list"
+	"sync"
 	"time"
 
 	"github.com/FactomProject/factomd/common/messages"
@@ -205,6 +206,7 @@ func (s *MissingState) Height() uint32 {
 type StatesMissing struct {
 	List   *list.List
 	Notify chan *MissingState
+	lock   *sync.Mutex
 }
 
 // NewStatesMissing creates a new list of missing DBStates.
@@ -212,11 +214,15 @@ func NewStatesMissing() *StatesMissing {
 	l := new(StatesMissing)
 	l.List = list.New()
 	l.Notify = make(chan *MissingState)
+	l.lock = new(sync.Mutex)
 	return l
 }
 
 // Add adds a new MissingState to the list.
 func (l *StatesMissing) Add(height uint32) {
+	l.lock.Lock()
+	defer l.lock.Unlock()
+
 	for e := l.List.Back(); e != nil; e = e.Prev() {
 		s := e.Value.(*MissingState)
 		if height > s.Height() {
@@ -234,6 +240,10 @@ func (l *StatesMissing) Del(height uint32) {
 	if l == nil {
 		return
 	}
+
+	l.lock.Lock()
+	defer l.lock.Unlock()
+
 	for e := l.List.Front(); e != nil; e = e.Next() {
 		if e.Value.(*MissingState).Height() == height {
 			l.List.Remove(e)
@@ -330,17 +340,21 @@ func (s *WaitingState) ResetRequestAge() {
 type StatesWaiting struct {
 	List   *list.List
 	Notify chan *WaitingState
+	lock   *sync.Mutex
 }
 
 func NewStatesWaiting() *StatesWaiting {
 	l := new(StatesWaiting)
 	l.List = list.New()
 	l.Notify = make(chan *WaitingState)
+	l.lock = new(sync.Mutex)
 	return l
 }
 
 func (l *StatesWaiting) Add(height uint32) {
-	// l.List.PushBack(NewWaitingState(height))
+	l.lock.Lock()
+	defer l.lock.Unlock()
+
 	for e := l.List.Back(); e != nil; e = e.Prev() {
 		s := e.Value.(*WaitingState)
 		if s == nil {
@@ -359,10 +373,14 @@ func (l *StatesWaiting) Add(height uint32) {
 }
 
 func (l *StatesWaiting) Del(height uint32) {
+	l.lock.Lock()
+	defer l.lock.Unlock()
+
 	for e := l.List.Front(); e != nil; e = e.Next() {
 		s := e.Value.(*WaitingState)
 		if s.Height() == height {
 			l.List.Remove(e)
+			break
 		}
 	}
 }
@@ -435,12 +453,14 @@ type StatesReceived struct {
 	List   *list.List
 	Notify chan *messages.DBStateMsg
 	base   uint32
+	lock   *sync.Mutex
 }
 
 func NewStatesReceived() *StatesReceived {
 	l := new(StatesReceived)
 	l.List = list.New()
 	l.Notify = make(chan *messages.DBStateMsg)
+	l.lock = new(sync.Mutex)
 	return l
 }
 
@@ -484,6 +504,9 @@ func (l *StatesReceived) Add(height uint32, msg *messages.DBStateMsg) {
 		return
 	}
 
+	l.lock.Lock()
+	defer l.lock.Unlock()
+
 	for e := l.List.Back(); e != nil; e = e.Prev() {
 		s := e.Value.(*ReceivedState)
 		if s == nil {
@@ -503,6 +526,9 @@ func (l *StatesReceived) Add(height uint32, msg *messages.DBStateMsg) {
 
 // Del removes a state from the StatesReceived list
 func (l *StatesReceived) Del(height uint32) {
+	l.lock.Lock()
+	defer l.lock.Unlock()
+
 	for e := l.List.Back(); e != nil; e = e.Prev() {
 		s := e.Value.(*ReceivedState)
 		if s == nil {
@@ -548,6 +574,9 @@ func (l *StatesReceived) Has(height uint32) bool {
 }
 
 func (l *StatesReceived) GetNext() *ReceivedState {
+	l.lock.Lock()
+	defer l.lock.Unlock()
+
 	if l.List.Len() == 0 {
 		return nil
 	}
