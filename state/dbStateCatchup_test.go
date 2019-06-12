@@ -7,12 +7,54 @@ import (
 
 	"math/rand"
 
+	"github.com/FactomProject/factomd/common/directoryBlock"
+	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/state"
 )
 
-func TestListThreadSafety(t *testing.T) {
+// The lists that are sorted in an increasing order
+type GenericIncreasingList interface {
+	//Len() int
+	Add(uint32)
+	Del(uint32)
+}
+
+type RecievedOverrideList struct {
+	*state.StatesReceived
+}
+
+func (l *RecievedOverrideList) Add(height uint32) {
+	msg := new(messages.DBStateMsg)
+	newdb := new(directoryBlock.DirectoryBlock)
+	header := new(directoryBlock.DBlockHeader)
+	header.DBHeight = height
+	newdb.Header = header
+	msg.DirectoryBlock = newdb
+
+	l.StatesReceived.Add(height, msg)
+}
+
+func TestWaitingListThreadSafety(t *testing.T) {
+	list := state.NewStatesWaiting()
+	testListThreadSafety(list, t)
+}
+
+func TestRecievedListThreadSafety(t *testing.T) {
+	list := state.NewStatesReceived()
+	override := new(RecievedOverrideList)
+	override.StatesReceived = list
+	testListThreadSafety(override, t)
+}
+
+func TestMissingListThreadSafety(t *testing.T) {
 	list := state.NewStatesMissing()
+	testListThreadSafety(list, t)
+}
+
+func testListThreadSafety(list GenericIncreasingList, t *testing.T) {
 	done := false
+
+	added := make(chan int, 1000)
 
 	// Many random adds
 	adds := func() {
@@ -33,8 +75,8 @@ func TestListThreadSafety(t *testing.T) {
 				return
 			}
 
-			n, _ := list.NextConsecutiveMissing(1)
-			list.Del(n)
+			n := <-added
+			list.Del(uint32(n))
 			time.Sleep(time.Duration(rand.Intn(100)) * time.Microsecond)
 		}
 	}
