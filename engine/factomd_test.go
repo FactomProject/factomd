@@ -322,7 +322,7 @@ func TestAnElection(t *testing.T) {
 	WaitBlocks(state0, 2)
 	WaitMinutes(state0, 1)
 
-	WaitForBlock(state0, 8)
+
 
 	{ // debug holding queue
 
@@ -335,6 +335,9 @@ func TestAnElection(t *testing.T) {
 			}
 		}
 	}
+
+	state2 := GetFnodes()[2].State
+	WaitForBlock(state2, 6) // wait for sync w/ network
 
 	WaitForAllNodes(state0)
 
