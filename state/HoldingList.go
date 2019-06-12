@@ -8,6 +8,9 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
+// toggle to disable old/new for testing
+const useNewHolding = true
+
 // This hold a slice of messages dependent on a hash
 type HoldingList struct {
 	holding    map[[32]byte][]interfaces.IMsg
@@ -19,6 +22,10 @@ func (l *HoldingList) Init(s *State) {
 	l.holding = make(map[[32]byte][]interfaces.IMsg)
 	l.s = s
 	l.dependents = make(map[[32]byte]bool)
+
+	if ! useNewHolding {
+		l.s.LogPrintf("newHolding", "DISABLED")
+	}
 }
 
 func (l *HoldingList) Messages() map[[32]byte][]interfaces.IMsg {
@@ -69,6 +76,10 @@ func (l *HoldingList) ExecuteForNewHeight(ht uint32) {
 // clean stale messages from holding
 func (l *HoldingList) Review() {
 
+	if ! useNewHolding && l.GetSize() > 0 {
+		panic("found messages in new-holding while disabled")
+	}
+
 	for h := range l.holding {
 		dh := l.holding[h]
 		if nil == l {
@@ -84,7 +95,7 @@ func (l *HoldingList) Review() {
 	}
 }
 
-func (l *HoldingList) isMsgStale(msg interfaces.IMsg) bool {
+func (l *HoldingList) isMsgStale(msg interfaces.IMsg) (res bool) {
 
 	/*
 		REVIEW:
@@ -95,18 +106,22 @@ func (l *HoldingList) isMsgStale(msg interfaces.IMsg) bool {
 	*/
 
 	switch msg.Type() {
-	case constants.EOM_MSG:
+	case constants.EOM_MSG, constants.ACK_MSG, constants.DIRECTORY_BLOCK_SIGNATURE_MSG:
 		if msg.(*messages.EOM).DBHeight < l.s.GetHighestKnownBlock()-1 {
-			return true
+			res = true
 		}
-	case constants.ACK_MSG:
-		if msg.(*messages.Ack).DBHeight < l.s.GetHighestKnownBlock()-1 {
-			return true
-		}
+	default:
+		l.s.LogMessage("newHolding", "SKIP_DBHT_REVIEW", msg)
 	}
 
 	if msg.GetTimestamp().GetTime().UnixNano() < l.s.GetFilterTimeNano() {
-		return true
+		res = true
+	}
+
+	if res {
+		l.s.LogMessage("newHolding", "EXPIRE", msg)
+	} else {
+		l.s.LogMessage("newHolding", "NOT_EXPIRED", msg)
 	}
 
 	return false
@@ -123,6 +138,11 @@ func (s *State) HoldForHeight(ht uint32, msg interfaces.IMsg) int {
 
 // Add a message to a dependent holding list
 func (s *State) Add(h [32]byte, msg interfaces.IMsg) int {
+
+	if ! useNewHolding {
+		return 0
+	}
+
 	if msg == nil {
 		panic("Empty Message Added to Holding")
 	}
@@ -148,6 +168,10 @@ func (s *State) Get(h [32]byte) []interfaces.IMsg {
 // Execute a list of messages from holding that are dependent on a hash
 // the hash may be a EC address or a CainID or a height (ok heights are not really hashes but we cheat on that)
 func (s *State) ExecuteFromHolding(h [32]byte) {
+
+	if ! useNewHolding && s.Hold.GetSize() > 0 {
+		panic("found messages in new-holding while disabled")
+	}
 	// get the list of messages waiting on this hash
 	l := s.Get(h)
 	if l == nil {
