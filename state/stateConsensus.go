@@ -882,7 +882,7 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 	s.LogPrintf("dbstateprocess", "MoveStateToHeight(%d-:-%d) leader=%v leaderPL=%p, leaderVMIndex=%d", dbheight, newMinute, s.Leader, s.LeaderPL, s.LeaderVMIndex)
 
 	s.Hold.ExecuteForNewHeight(dbheight) // execute held messages
-	s.Hold.Review() // cleanup old messages
+	s.Hold.Review()                      // cleanup old messages
 }
 
 // Adds blocks that are either pulled locally from a database, or acquired from peers.

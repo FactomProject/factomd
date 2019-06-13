@@ -23,7 +23,7 @@ func (l *HoldingList) Init(s *State) {
 	l.s = s
 	l.dependents = make(map[[32]byte]bool)
 
-	if ! useNewHolding {
+	if !useNewHolding {
 		l.s.LogPrintf("newHolding", "DISABLED")
 	}
 }
@@ -76,7 +76,7 @@ func (l *HoldingList) ExecuteForNewHeight(ht uint32) {
 // clean stale messages from holding
 func (l *HoldingList) Review() {
 
-	if ! useNewHolding && l.GetSize() > 0 {
+	if !useNewHolding && l.GetSize() > 0 {
 		panic("found messages in new-holding while disabled")
 	}
 
@@ -139,7 +139,7 @@ func (s *State) HoldForHeight(ht uint32, msg interfaces.IMsg) int {
 // Add a message to a dependent holding list
 func (s *State) Add(h [32]byte, msg interfaces.IMsg) int {
 
-	if ! useNewHolding {
+	if !useNewHolding {
 		return 0
 	}
 
@@ -169,7 +169,7 @@ func (s *State) Get(h [32]byte) []interfaces.IMsg {
 // the hash may be a EC address or a CainID or a height (ok heights are not really hashes but we cheat on that)
 func (s *State) ExecuteFromHolding(h [32]byte) {
 
-	if ! useNewHolding && s.Hold.GetSize() > 0 {
+	if !useNewHolding && s.Hold.GetSize() > 0 {
 		panic("found messages in new-holding while disabled")
 	}
 	// get the list of messages waiting on this hash
