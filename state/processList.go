@@ -990,7 +990,7 @@ func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces
 
 	// If this is us, make sure we ignore (if old or in the ignore period) or die because two instances are running.
 	//
-	if !ack.Response && ack.LeaderChainID.IsSameAs(s.IdentityChainID) {
+	if !ack.Response && ack.LeaderChainID.IsSameAs(s.IdentityChainID) && ack.DBHeight <= s.LLeaderHeight {
 		now := s.GetTimestamp().GetTimeSeconds()
 		ackSeconds := ack.Timestamp.GetTimeSeconds()
 		if now-ackSeconds > 120 {
