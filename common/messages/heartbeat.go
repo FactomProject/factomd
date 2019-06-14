@@ -332,11 +332,10 @@ func (m *Heartbeat) FollowerExecute(is interfaces.IState) {
 					if ackChangeValue <= is.GetDBHeightAtBoot() ||
 						(lLeaderHeight >= ackChangeValue && m.DBHeight >= ackChangeValue && m.DBHeight <= lLeaderHeight) {
 						var b strings.Builder
-						b.WriteString("We have seen a heartbeat using our Identity that isn't ours.")
-						b.WriteString(fmt.Sprintf("\n    Node: %s", is.GetFactomNodeName()))
-						b.WriteString(fmt.Sprintf("\n    AckChange: %d", ackChangeValue))
-						b.WriteString(fmt.Sprintf("\n    LLeaderHeight: %d", lLeaderHeight))
-						b.WriteString(fmt.Sprintf("\n    Message dbHeight: %d", m.DBHeight))
+						fmt.Fprintf(&b, "We have seen a heartbeat using our Identity that isn't ours.\n")
+						fmt.Fprintf(&b, "    Node: %s\n", is.GetFactomNodeName())
+						fmt.Fprintf(&b, "    LLeaderHeight: %d\n", lLeaderHeight)
+						fmt.Fprintf(&b, "    Message dbHeight: %d\n", m.DBHeight)
 						panic(b.String())
 					} else {
 						is.SetDuplicateIdDetectedAtHeight(lLeaderHeight)
