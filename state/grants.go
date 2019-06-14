@@ -314,8 +314,11 @@ func CheckGrants() {
 
 //return a (possibly empty) of coinbase payouts to be scheduled at this height
 func GetGrantPayoutsFor(currentDBHeight uint32) []interfaces.ITransAddress {
-
 	outputs := make([]interfaces.ITransAddress, 0)
+
+	// Get combined limit of all hardcoded grants
+	totalGrantAmount := uint64(0)
+
 	// this is only but temporary, once the hard coded grants are payed this code will go away
 	// I can't modify the grant list because in simulation it is shared across nodes so for now I just
 	// scan the whole list once every 25 blocks
@@ -324,6 +327,14 @@ func GetGrantPayoutsFor(currentDBHeight uint32) []interfaces.ITransAddress {
 	// there is no need for activation height because the grants have inherent activation heights per grant
 	for _, g := range GetHardCodedGrants() { // check every hardcoded grant
 		if g.DBh == currentDBHeight { // if it's ready {...
+
+			// Calculate if the total grant amount does not exceed the total grant limit
+			totalGrantAmount += g.Amount
+			if totalGrantAmount > constants.COINBASE_PAYOUT_GRANT_LIMIT {
+				outputs = make([]interfaces.ITransAddress, 0)
+				return outputs
+			}
+
 			o := factoid.NewOutAddress(g.Address, g.Amount) // Create a payout
 			outputs = append(outputs, o)                    // and add it to the list
 		}

@@ -844,7 +844,7 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 				continue
 			}
 			amt := primitives.CalculateCoinbasePayout(ia.Efficiency)
-			if amt == 0 {
+			if amt == 0 || amt > constants.COINBASE_PAYOUT_SERVER_LIMIT {
 				continue
 			}
 

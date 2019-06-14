@@ -278,6 +278,12 @@ var (
 	// 		:: Default = 6.4*1e8
 	COINBASE_PAYOUT_AMOUNT = uint64(6.4 * 1e8)
 
+	// Limited number of 100 fed servers in the network at 0% efficiency
+	COINBASE_PAYOUT_SERVER_LIMIT = uint64(100) * COINBASE_PAYOUT_AMOUNT
+
+	// Total grant limit for one block, 9000000000000 is the highest ever recorded
+	COINBASE_PAYOUT_GRANT_LIMIT = uint64(9000000000000)
+
 	// The height at which coinbase transactions will activate.
 	//	 This is useful for updating without needing to take
 	// 	 down the network and giving an update period.

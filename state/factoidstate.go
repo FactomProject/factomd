@@ -436,6 +436,18 @@ func (fs *FactoidState) GetCoinbaseTransaction(dbheight uint32, ftime interfaces
 				m[v] = struct{}{}
 			}
 
+			totalGrantAmount := uint64(0)
+			for i, o := range desc.Outputs {
+				if _, ok := m[uint32(i)]; !ok {
+					totalGrantAmount += o.GetAmount()
+				}
+			}
+
+			// Auto-cancel when the total amount exceeds the grant limit
+			if totalGrantAmount > constants.COINBASE_PAYOUT_GRANT_LIMIT {
+				return coinbase
+			}
+
 			for i, o := range desc.Outputs {
 				// Only elements not in map are ok
 				if _, ok := m[uint32(i)]; !ok {
