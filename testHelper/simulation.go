@@ -247,9 +247,6 @@ func StatusEveryMinute(s *state.State) {
 		go func() {
 			for {
 				// If the state is no longer running, we can stop printing
-				if !s.Running() {
-					return
-				}
 				s := statusState
 				if s != nil {
 					newMinute := (s.CurrentMinute + 1) % 10
@@ -268,6 +265,8 @@ func StatusEveryMinute(s *state.State) {
 					}
 
 					engine.PrintOneStatus(0, 0)
+				} else {
+					return
 				}
 			}
 		}()
@@ -457,6 +456,7 @@ func Halt(t *testing.T) {
 func ShutDownEverything(t *testing.T) {
 	CheckAuthoritySet(t)
 	Halt(t)
+	fmt.Println("SHUTTTTTING DOWN")
 	statusState = nil // turn off status
 	fnodes := engine.GetFnodes()
 	currentHeight := fnodes[0].State.LLeaderHeight
