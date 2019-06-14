@@ -246,6 +246,10 @@ func StatusEveryMinute(s *state.State) {
 		statusState = s
 		go func() {
 			for {
+				// If the state is no longer running, we can stop printing
+				if !s.Running() {
+					return
+				}
 				s := statusState
 				if s != nil {
 					newMinute := (s.CurrentMinute + 1) % 10
