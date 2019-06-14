@@ -273,7 +273,7 @@ func WaitForAnyDeposit(s *state.State, ecPub string) int64 {
 }
 
 func WaitForZero(s *state.State, ecPub string) int64 {
-	fmt.Println("Waiting for Zero Balance")
+	fmt.Printf("Waiting for Zero Balance for %s\n", ecPub)
 	return WaitForEcBalance(s, ecPub, 0)
 }
 
@@ -305,6 +305,24 @@ func WaitForEcBalance(s *state.State, ecPub string, target int64) int64 {
 			return bal
 		}
 	}
+}
+
+func WaitForEntry(s *state.State, hash interfaces.IHash) bool {
+	s.LogPrintf(logName, "WaitForEntry:  %s", hash.String())
+	//hash, _ := primitives.NewShaHashFromStr(entryhash)
+
+	for {
+		entry, err := s.FetchEntryByHash(hash)
+		if err != nil {
+			panic(err)
+		}
+		if entry != nil {
+			return true
+		}
+
+		time.Sleep(time.Millisecond * 200)
+	}
+	return false
 }
 
 func WatchMessageLists() *time.Ticker {
