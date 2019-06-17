@@ -278,7 +278,7 @@ func TestAuthorityJsonMarshal(t *testing.T) {
 			"status": "none",
 			"anchorkeys": null,
 			"efficiency": 100,
-			"coinbase_address": "FA1y5ZGuHSLmf2TqNf6hVMkPiNGyQpQDTFJvDLRkKQaoPo4bmbgu"
+			"coinbaseaddress": "FA1y5ZGuHSLmf2TqNf6hVMkPiNGyQpQDTFJvDLRkKQaoPo4bmbgu"
 		}
 	`
 	json.Compact(&dst, []byte(exp))
