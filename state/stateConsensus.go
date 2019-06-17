@@ -448,21 +448,18 @@ ackLoop:
 
 	if s.RunLeader {
 		s.ReviewHolding()
-		for {
-			for _, msg := range s.XReview {
-				if msg == nil {
-					continue
-				}
-				// copy the messages we are responsible for and all msg that don't need ack
-				// messages that need ack will get processed when thier ack arrives
-				if msg.GetVMIndex() == s.LeaderVMIndex || !constants.NeedsAck(msg.Type()) {
-					process = append(process, msg)
-				}
+		for _, msg := range s.XReview {
+			if msg == nil {
+				continue
 			}
-			// toss everything else
-			s.XReview = s.XReview[:0]
-			break
-		} // skip review
+			// copy the messages we are responsible for and all msg that don't need ack
+			// messages that need ack will get processed when thier ack arrives
+			if msg.GetVMIndex() == s.LeaderVMIndex || !constants.NeedsAck(msg.Type()) {
+				process = append(process, msg)
+			}
+		}
+		// toss everything else
+		s.XReview = s.XReview[:0]
 	}
 	if ValidationDebug {
 		s.LogPrintf("executeMsg", "end reviewHolding %d", len(s.XReview))
