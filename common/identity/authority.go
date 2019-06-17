@@ -34,16 +34,16 @@ func (p AuthoritySort) Less(i, j int) bool {
 }
 
 type Authority struct {
-	AuthorityChainID  interfaces.IHash     `json:"identity_chainid"`
-	ManagementChainID interfaces.IHash     `json:"management_chaind"`
-	MatryoshkaHash    interfaces.IHash     `json:"matryoshka_hash"`
-	SigningKey        primitives.PublicKey `json:"signing_key"`
+	AuthorityChainID  interfaces.IHash     `json:"chainid"`
+	ManagementChainID interfaces.IHash     `json:"manageid"`
+	MatryoshkaHash    interfaces.IHash     `json:"matroyshka"`
+	SigningKey        primitives.PublicKey `json:"signingkey"`
 	Status            uint8                `json:"status"`
-	AnchorKeys        []AnchorSigningKey   `json:"anchor_keys"`
+	AnchorKeys        []AnchorSigningKey   `json:"anchorkeys"`
 
 	KeyHistory      []HistoricKey       `json:"-"`
 	Efficiency      uint16              `json:"efficiency"`
-	CoinbaseAddress interfaces.IAddress `json:"coinbase_address"`
+	CoinbaseAddress interfaces.IAddress `json:"coinbaseaddress"`
 }
 
 func NewAuthority() *Authority {
@@ -386,7 +386,7 @@ func (auth *Authority) MarshalJSON() (rval []byte, err error) {
 		Status            string             `json:"status"`
 		AnchorKeys        []AnchorSigningKey `json:"anchorkeys"`
 		Efficiency        int                `json:"efficiency"`
-		CoinbaseAddress   string             `json:"coinbase_address"`
+		CoinbaseAddress   string             `json:"coinbaseaddress"`
 	}{
 		AuthorityChainID:  auth.AuthorityChainID,
 		ManagementChainID: auth.ManagementChainID,
