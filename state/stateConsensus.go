@@ -341,11 +341,8 @@ func (s *State) Process() (progress bool) {
 	// is so we don't conflict with past version of the network if we have to reboot the network.
 	var Leader bool
 	var LeaderVMIndex int
-	if s.CurrentMinute > 9 {
-		Leader, LeaderVMIndex = s.LeaderPL.GetVirtualServers(9, s.IdentityChainID)
-	} else {
-		Leader, LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
-	}
+	Leader, LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
+
 	if s.LLeaderHeight != 0 { // debug
 		if s.Leader != Leader {
 			s.LogPrintf("executeMsg", "State.Process() unexpectedly setting s.Leader to %v", Leader)
@@ -451,21 +448,18 @@ ackLoop:
 
 	if s.RunLeader {
 		s.ReviewHolding()
-		for {
-			for _, msg := range s.XReview {
-				if msg == nil {
-					continue
-				}
-				// copy the messages we are responsible for and all msg that don't need ack
-				// messages that need ack will get processed when thier ack arrives
-				if msg.GetVMIndex() == s.LeaderVMIndex || !constants.NeedsAck(msg.Type()) {
-					process = append(process, msg)
-				}
+		for _, msg := range s.XReview {
+			if msg == nil {
+				continue
 			}
-			// toss everything else
-			s.XReview = s.XReview[:0]
-			break
-		} // skip review
+			// copy the messages we are responsible for and all msg that don't need ack
+			// messages that need ack will get processed when thier ack arrives
+			if msg.GetVMIndex() == s.LeaderVMIndex || !constants.NeedsAck(msg.Type()) {
+				process = append(process, msg)
+			}
+		}
+		// toss everything else
+		s.XReview = s.XReview[:0]
 	}
 	if ValidationDebug {
 		s.LogPrintf("executeMsg", "end reviewHolding %d", len(s.XReview))
@@ -2403,7 +2397,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		s.LogPrintf("dbsig-eom", "ProcessDBSig stop DBSig processing minute %d", s.CurrentMinute)
 		//fmt.Println(fmt.Sprintf("All DBSigs are processed: allfaults(%v), && !s.DBSigDone(%v) && s.DBSigProcessed(%v)>= s.DBSigLimit(%v)",
 		//	allfaults, s.DBSigDone, s.DBSigProcessed, s.DBSigLimit))
-		fails := 0
 		for i := range pl.FedServers {
 			vm := pl.VMs[i]
 			if len(vm.List) > 0 {
@@ -2413,10 +2406,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 					return false
 				}
 			}
-		}
-		if fails > 0 {
-			//fmt.Println("DBSig Fails Detected")
-			return false
 		}
 
 		// TODO: check signatures here.  Count what match and what don't.  Then if a majority

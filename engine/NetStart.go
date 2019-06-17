@@ -622,7 +622,7 @@ func startServer(i int, fnode *FactomNode, load bool) {
 	if i > 0 {
 		fnode.State.Init()
 	}
-	go NetworkProcessorNet(fnode)
+	NetworkProcessorNet(fnode)
 	if load {
 		go state.LoadDatabase(fnode.State)
 	}

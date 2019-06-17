@@ -110,9 +110,7 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 	StatePointer = statePointer
 	StatePointer.ControlPanelDataRequest = true // Request initial State
 	// Wait for initial State
-	select {
-	case DisplayState = <-displayStateChannel:
-	}
+	DisplayState = <-displayStateChannel
 
 	DisplayStateMutex.RLock()
 	controlPanelSetting := DisplayState.ControlPanelSetting
