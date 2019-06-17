@@ -31,7 +31,7 @@ func init() {
 	}
 }
 
-func (dbo *Overlay) RebuildDirBlockInfo() error {
+func (dbo *Overlay) ReparseAnchorChains() error {
 	btcChainID, err := primitives.NewShaHashFromStr(BitcoinAnchorChainID)
 	if err != nil {
 		panic(err)

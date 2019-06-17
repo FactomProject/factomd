@@ -191,7 +191,7 @@ func main() {
 	}
 
 	fmt.Printf("\t\tRebulding DirBlockInfo\n")
-	err = dbo.RebuildDirBlockInfo()
+	err = dbo.ReparseAnchorChains()
 	if err != nil {
 		panic(err)
 	}

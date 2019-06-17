@@ -23,6 +23,7 @@ import (
 	"github.com/FactomProject/factomd/common/messages/msgsupport"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/controlPanel"
+	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/leveldb"
 	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/p2p"
@@ -544,6 +545,13 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		startServers(false)
 	} else {
 		startServers(true)
+	}
+
+	if p.ReparseAnchorChains {
+		err := fnodes[0].State.GetDB().(*databaseOverlay.Overlay).ReparseAnchorChains()
+		if err != nil {
+			panic("Encountered an error while trying to re-parse anchor chains: " + err.Error())
+		}
 	}
 
 	// Start the webserver
