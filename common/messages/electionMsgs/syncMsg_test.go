@@ -12,7 +12,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-func TestUnmarshalfolunteerSyncMsg_test(t *testing.T) {
+func TestUnmarshalVolunteerSyncMsg_test(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
 			t.Errorf("Panic caught during the test - %v", r)
@@ -43,6 +43,8 @@ func TestMarshalUnmarshalSyncMsg(t *testing.T) {
 		}
 
 		_, err = msgsupport.UnmarshalMessage(hex)
+		// Expect an error, as sync messages are local only,
+		// 		and cannot be unmarshalled.
 		if err == nil {
 			t.Error(err)
 		}
