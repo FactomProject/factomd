@@ -22,7 +22,7 @@ func TestAuditBrainDuplication1(t *testing.T) {
 }
 
 // In this test both of the nodes have ChangeAcksHeight set to the same value
-// We need an extra audit node for the period that both node3&5 don't operate as audit nodes as time will halt when that happens
+// We need an extra audit node for this test otherwise we will get a stall
 func TestAuditBrainDuplication2(t *testing.T) {
 	t.Run("Run Brain Duplication Sim 2", func(t *testing.T) {
 		t.Run("Setup Config Files", SetupConfigFiles)
@@ -33,7 +33,7 @@ func TestAuditBrainDuplication2(t *testing.T) {
 }
 
 // In this test both of the nodes have ChangeAcksHeight set to the same value
-// We need an extra audit node for the period that both node3&5 don't operate as audit nodes as time will halt when that happens
+// We need an extra audit node for this test otherwise we will get a stall
 func TestAuditBrainDuplication3(t *testing.T) {
 	t.Run("Run Brain Duplication Sim 3", func(t *testing.T) {
 		t.Run("Setup Config Files", SetupConfigFiles)

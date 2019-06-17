@@ -284,6 +284,10 @@ var (
 	COINBASE_ACTIVATION = uint32(140200)
 )
 
+var (
+	VOLUNTEER_SAFETY_MARGIN = uint32(2)
+)
+
 // set the "constants" to values that are more useful for testing
 func SetLocalCoinBaseConstants() {
 	COINBASE_DECLARATION = 10
