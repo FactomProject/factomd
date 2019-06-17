@@ -23,7 +23,7 @@ func TestSendingCommitAndReveal(t *testing.T) {
 	logName := "simTest"
 	id := "92475004e70f41b94750f4a77bf7b430551113b25d3d57169eadca5692bb043d"
 	extids := [][]byte{encode("foo"), encode("bar")}
-	a := AccountFromFctSecret("Fs2zQ3egq2j99j37aYzaCddPq9AF3mgh64uG9gRaDAnrkjRx3eHs")
+	a := AccountFromFctSecret("Fs2Bz9DJn8ujMuD9BzL2bpXy3BFGakLucF2JDcLp8aguHE3JMoeH")
 	b := GetBankAccount()
 
 	t.Run("generate accounts", func(t *testing.T) {
@@ -67,7 +67,7 @@ func TestSendingCommitAndReveal(t *testing.T) {
 			t.Run("Fund ChainCommit Address", func(t *testing.T) {
 				amt := uint64(11)
 				engine.FundECWallet(state0, b.FctPrivHash(), a.EcAddr(), amt*state0.GetFactoshisPerEC())
-				WaitForAnyDeposit(state0, a.EcPub())
+				WaitForEntry(state0, reveal.GetHash())
 			})
 		})
 
