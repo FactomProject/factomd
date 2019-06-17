@@ -456,7 +456,6 @@ func Halt(t *testing.T) {
 func ShutDownEverything(t *testing.T) {
 	CheckAuthoritySet(t)
 	Halt(t)
-	fmt.Println("SHUTTTTTING DOWN")
 	statusState = nil // turn off status
 	fnodes := engine.GetFnodes()
 	currentHeight := fnodes[0].State.LLeaderHeight
