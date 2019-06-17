@@ -251,7 +251,7 @@ type DBOverlay interface {
 	SaveIncludedInMultiFromBlock(block DatabaseBlockWithEntries, checkForDuplicateEntries bool) error
 	SaveIncludedInMulti(entries []IHash, block IHash, checkForDuplicateEntries bool) error
 	FetchIncludedIn(hash IHash) (IHash, error)
-	RebuildDirBlockInfo() error
+	ReparseAnchorChains() error
 
 	FetchPaidFor(hash IHash) (IHash, error)
 

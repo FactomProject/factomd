@@ -277,7 +277,7 @@ func PopulateTestDatabaseOverlay(dbo *databaseOverlay.Overlay) {
 		}
 	}
 	/*
-		err = dbo.RebuildDirBlockInfo()
+		err = dbo.ReparseAnchorChains()
 		if err != nil {
 			panic(err)
 		}
