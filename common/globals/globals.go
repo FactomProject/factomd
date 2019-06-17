@@ -39,6 +39,8 @@ type FactomParams struct {
 	RuntimeLog               bool
 	Exclusive                bool
 	ExclusiveIn              bool
+	P2PIncoming              int
+	P2POutgoing              int
 	Prefix                   string
 	Rotate                   bool
 	TimeOffset               int

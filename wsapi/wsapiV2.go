@@ -15,8 +15,6 @@ import (
 	"strings"
 	"time"
 
-	"regexp"
-
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
@@ -181,8 +179,6 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 		resp, jsonError = HandleV2MultipleECBalances(state, params)
 	case "diagnostics":
 		resp, jsonError = HandleV2Diagnostics(state, params)
-	case "message-filter":
-		resp, jsonError = HandleV2MessageFilter(state, params)
 		//case "factoid-accounts":
 		// resp, jsonError = HandleV2Accounts(state, params)
 	default:
@@ -1465,40 +1461,6 @@ func HandleV2Diagnostics(state interfaces.IState, params interface{}) (interface
 	resp.ElectionInfo = eInfo
 
 	return resp, nil
-}
-
-func HandleV2MessageFilter(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	x, ok := params.(map[string]interface{})
-	if !ok {
-		return nil, NewCustomInvalidParamsError("ERROR! Invalid params passed in")
-	}
-
-	fmt.Println(`x["output-regex"]`, x["output-regex"])
-	fmt.Println(`x["input-regex"]`, x["input-regex"])
-
-	OutputString := fmt.Sprintf("%s", x["output-regex"])
-	if OutputString != "" {
-
-		OutputRegEx := regexp.MustCompile(OutputString)
-		state.PassOutputRegEx(OutputRegEx, OutputString)
-
-	} else if OutputString == "off" {
-		state.PassOutputRegEx(nil, "")
-	}
-
-	InputString := fmt.Sprintf("%s", x["input-regex"])
-	if InputString != "" {
-		InputRegEx := regexp.MustCompile(InputString)
-
-		state.PassInputRegEx(InputRegEx, InputString)
-	} else if InputString == "off" {
-		state.PassInputRegEx(nil, "")
-	}
-
-	h := new(MessageFilter)
-	h.Params = "Success"
-
-	return h, nil
 }
 
 //func HandleV2Accounts(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {

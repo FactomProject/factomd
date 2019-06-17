@@ -20,50 +20,25 @@
 
 read -d '' scriptVariable << 'EOF'
 
-/455b7b[^\\(]/ {x+= gsub(/455b7b/,"455b7b(fnode01)");}
-/367795[^\\(]/ {x+= gsub(/367795/,"367795(fnode02)");}
-/fc37fa[^\\(]/ {x+= gsub(/fc37fa/,"fc37fa(fnode03)");}
-/e23849[^\\(]/ {x+= gsub(/e23849/,"e23849(fnode04)");}
-/271203[^\\(]/ {x+= gsub(/271203/,"271203(fnode05)");}
-/a21d5a[^\\(]/ {x+= gsub(/a21d5a/,"a21d5a(fnode06)");}
-/15ac8a[^\\(]/ {x+= gsub(/15ac8a/,"15ac8a(fnode07)");}
-/f6e861[^\\(]/ {x+= gsub(/f6e861/,"f6e861(fnode08)");}
-/30a663[^\\(]/ {x+= gsub(/30a663/,"30a663(fnode09)");}
-/dfa8ac[^\\(]/ {x+= gsub(/dfa8ac/,"dfa8ac(fnode10)");}
-
-/455b / {x+= gsub(/455b/,"455b7b(fnode01)");}
-/15ac / {x+= gsub(/15ac/,"367795(fnode02)");}
-/2712 / {x+= gsub(/2712/,"fc37fa(fnode03)");}
-/3677 / {x+= gsub(/3677/,"e23849(fnode04)");}
-/a21d / {x+= gsub(/a21d/,"271203(fnode05)");}
-/e238 / {x+= gsub(/e238/,"a21d5a(fnode06)");}
-/fc37 / {x+= gsub(/fc37/,"15ac8a(fnode07)");}
-/a21d / {x+= gsub(/a21d/,"f6e861(fnode08)");}
-/e238 / {x+= gsub(/e238/,"30a663(fnode09)");}
-/fc37 / {x+= gsub(/fc37/,"dfa8ac(fnode10)");}
-
-/455b7b$/ {x+= gsub(/455b7b/,"455b7b(fnode01)");}
-/15ac8a$/ {x+= gsub(/367795/,"367795(fnode02)");}
-/271203$/ {x+= gsub(/fc37fa/,"fc37fa(fnode03)");}
-/367795$/ {x+= gsub(/e23849/,"e23849(fnode04)");}
-/a21d5a$/ {x+= gsub(/271203/,"271203(fnode05)");}
-/e23849$/ {x+= gsub(/a21d5a/,"a21d5a(fnode06)");}
-/fc37fa$/ {x+= gsub(/15ac8a/,"15ac8a(fnode07)");}
-/a21d5a$/ {x+= gsub(/f6e861/,"f6e861(fnode08)");}
-/e23849$/ {x+= gsub(/30a663/,"30a663(fnode09)");}
-/fc37fa$/ {x+= gsub(/dfa8ac/,"dfa8ac(fnode10)");}
-
-/34353562/ {x+= gsub(/34353562/,"455b7b(fnode01)");}
-/33363737/ {x+= gsub(/33363737/,"367795(fnode02)");} 
-/66633337/ {x+= gsub(/66633337/,"fc37fa(fnode03)");}
-/65323338/ {x+= gsub(/65323338/,"e23849(fnode04)");}
-/32373132/ {x+= gsub(/32373132/,"271203(fnode05)");}
-/61323164/ {x+= gsub(/61323164/,"a21d5a(fnode06)");}
-/31356163/ {x+= gsub(/31356163/,"15ac8a(fnode07)");}
-
- {if (x%1024 == 0) {printf("%40s:%d\\r", FILENAME, x)>"/dev/stderr";}}
+/455b7b[^\\(]/ {x+= gsub(/455b7b[a-f0-9]*/,"455b7b(fnode0)");}
+/367795[^\\(]/ {x+= gsub(/367795[a-f0-9]*/,"367795(fnode01)");}
+/fc37fa[^\\(]/ {x+= gsub(/fc37fa[a-f0-9]*/,"fc37fa(fnode02)");}
+/e23849[^\\(]/ {x+= gsub(/e23849[a-f0-9]*/,"e23849(fnode03)");}
+/271203[^\\(]/ {x+= gsub(/271203[a-f0-9]*/,"271203(fnode04)");}
+/a21d5a[^\\(]/ {x+= gsub(/a21d5a[a-f0-9]*/,"a21d5a(fnode05)");}
+/15ac8a[^\\(]/ {x+= gsub(/15ac8a[a-f0-9]*/,"15ac8a(fnode06)");}
+/f6e861[^\\(]/ {x+= gsub(/f6e861[a-f0-9]*/,"f6e861(fnode07)");}
+/30a663[^\\(]/ {x+= gsub(/30a663[a-f0-9]*/,"30a663(fnode08)");}
+/dfa8ac[^\\(]/ {x+= gsub(/dfa8ac[a-f0-9]*/,"dfa8ac(fnode09)");}
+                                                         
  {print;}
-   
+
+
+ # print warm fuzzy's to stderr
+ {if (FNR%1024 == 1) {printf("%40s:%d   \\r", FILENAME, x)>"/dev/stderr";}}
+
+ END{printf("%40s:%d\\n", FILENAME, x)>"/dev/stderr";}
+ 
 EOF
 ################################
 # End of AWK Scripts           #
