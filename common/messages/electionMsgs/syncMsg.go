@@ -14,7 +14,6 @@ import (
 	"github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/state"
-	"github.com/FactomProject/goleveldb/leveldb/errors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -229,53 +228,12 @@ func (e *SyncMsg) JSONString() (string, error) {
 }
 
 func (m *SyncMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
-		}
-	}()
-
-	buf := primitives.NewBuffer(data)
-
-	if t, e := buf.PopByte(); e != nil || t != constants.SYNC_MSG {
-		return nil, errors.New("Not a Sync Message Audit type")
-	}
-	if m.TS, err = buf.PopTimestamp(); err != nil {
-		return nil, err
-	}
-	if m.SigType, err = buf.PopBool(); err != nil {
-		return nil, err
-	}
-	if m.Name, err = buf.PopString(); err != nil {
-		return nil, err
-	}
-	if m.ServerIdx, err = buf.PopUInt32(); err != nil {
-		return nil, err
-	}
-	if m.ServerID, err = buf.PopIHash(); err != nil {
-		return nil, err
-	}
-	if m.Weight, err = buf.PopIHash(); err != nil {
-		return nil, err
-	}
-	if m.DBHeight, err = buf.PopUInt32(); err != nil {
-		return nil, err
-	}
-	if m.VMIndex, err = buf.PopInt(); err != nil {
-		return nil, err
-	}
-	if m.Round, err = buf.PopInt(); err != nil {
-		return nil, err
-	}
-	if m.Minute, err = buf.PopByte(); err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), err
+	err = fmt.Errorf("SyncMsg is an internal message only")
+	return
 }
 
 func (m *SyncMsg) UnmarshalBinary(data []byte) error {
-	_, err := m.UnmarshalBinaryData(data)
-	return err
+	return fmt.Errorf("SyncMsg is an internal message only")
 }
 
 func (m *SyncMsg) MarshalBinary() (data []byte, err error) {
