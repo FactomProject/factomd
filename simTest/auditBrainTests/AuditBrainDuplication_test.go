@@ -32,14 +32,14 @@ func TestAuditBrainDuplication2(t *testing.T) {
 	})
 }
 
-// In this test both of the nodes have ChangeAcksHeight set to the same value
+// In this test both of the nodes have ChangeAcksHeight set to the different values
 // We need an extra audit node for this test otherwise we will get a stall
 func TestAuditBrainDuplication3(t *testing.T) {
 	t.Run("Run Brain Duplication Sim 3", func(t *testing.T) {
 		t.Run("Setup Config Files", SetupConfigFiles)
 		states := SetupNodes(t, "LLLAFFA")
 		duplicateIdentities(t, states, 10, 11)
-		verifyNetworkAfterDup(t, states, 5)
+		verifyNetworkAfterDup(t, states, 3) // Node 3 should fail because node 5 swaps later
 	})
 }
 
@@ -54,13 +54,13 @@ func duplicateIdentities(t *testing.T, states map[int]*state.State, node3ChangeA
 		if node3ChangeAckHeight > 0 {
 			changeAckHeight = "ChangeAcksHeight = " + strconv.Itoa(node3ChangeAckHeight) + "\n"
 		}
-		WriteConfigFile(3, 3, changeAckHeight, t) // Setup A brain duplication from A3 to F5/A
+		WriteConfigFile(3, 3, changeAckHeight, t) // Setup A brain duplication from A3 to A5
 
 		changeAckHeight = ""
 		if node5ChangeAckHeight > 0 {
 			changeAckHeight = "ChangeAcksHeight = " + strconv.Itoa(node5ChangeAckHeight) + "\n"
 		}
-		WriteConfigFile(3, 5, changeAckHeight, t) // Setup A brain duplication from A3 to F5/A
+		WriteConfigFile(3, 5, changeAckHeight, t) // Setup A brain duplication from A3 to A5
 		WaitForBlock(states[0], 9)
 		RunCmd("3") // make sure the Audit is lagging the audit if the heartbeats conflicts one will panic
 		RunCmd("x")
@@ -77,31 +77,27 @@ func verifyNetworkAfterDup(t *testing.T, states map[int]*state.State, nodeExpect
 			t.Error(fmt.Sprintf("Node %d did didn't shut down", nodeExpectedToFail))
 		}
 
-		if nodeExpectedToFail == 3 {
-			AdjustAuthoritySet("LLLFFA")
-		} else {
-			if states[3].RunState == runstate.Running {
-				AdjustAuthoritySet("LLLAFFA")
-			} else {
+		for nodeId, itState := range states {
+			if nodeId != nodeExpectedToFail && itState.RunState >= runstate.Stopping {
 				// A rare but possible and observed outcome where both audit nodes shut down
+				fmt.Println("Node", nodeId, "also shut down, both heartbeat messages were sent out nearly simultaneously.")
 				AdjustAuthoritySet("LLLFFFA")
 				Halt(t)
 				return
 			}
 		}
+
+		determineAuthoritySetBeforeReelection(nodeExpectedToFail, states)
 		CheckAuthoritySet(t)
 
 		RunCmd("2") // Kill a leader to force an election
 		RunCmd("x")
 		WaitBlocks(states[0], 1)
 
-		if nodeExpectedToFail == 3 {
-			AdjustAuthoritySet("LLLFFL") // Node 5 should have been the only audit server and should be leader now
-			CheckAuthoritySet(t)
-		} else {
-			AdjustAuthoritySet("LLLAFFL") // Node 3 is abstaining from the election so node 6 will now be a leader
-			CheckAuthoritySet(t)
+		determineAuthoritySetAfterReelection(nodeExpectedToFail, states)
+		CheckAuthoritySet(t)
 
+		if len(states) > 6 {
 			RunCmd("6")
 			RunCmd("x")
 			states[6].ShutdownNode(1) // Shut down node 6
@@ -113,4 +109,48 @@ func verifyNetworkAfterDup(t *testing.T, states map[int]*state.State, nodeExpect
 
 		Halt(t)
 	})
+}
+
+func determineAuthoritySetBeforeReelection(nodeExpectedToFail int, states map[int]*state.State) {
+	switch nodeExpectedToFail {
+	case 3:
+		switch len(states) {
+		case 6:
+			AdjustAuthoritySet("LLLFFA")
+			break
+		case 7:
+			AdjustAuthoritySet("LLLFFAA")
+			break
+		}
+		break
+	case 5:
+		switch len(states) {
+		case 6:
+			AdjustAuthoritySet("LLLAFF")
+			break
+		case 7:
+			AdjustAuthoritySet("LLLAFFA")
+			break
+		}
+		break
+	}
+}
+
+func determineAuthoritySetAfterReelection(nodeExpectedToFail int, states map[int]*state.State) {
+	switch nodeExpectedToFail {
+	case 3:
+		if len(states) > 6 {
+			AdjustAuthoritySet("LLLFFAL") // Node 3 should be shut down and demoted to follower in the process
+		} else {
+			AdjustAuthoritySet("LLLFFL") // Node 5 should have been the only audit server and should be leader now
+		}
+		break
+	case 5:
+		if len(states) > 6 {
+			AdjustAuthoritySet("LLLAFFL") // Node 3 is abstaining from the election so node 6 will now be a leader
+		} else {
+			AdjustAuthoritySet("LLLAFF") // Node 5 should be shut down and demoted to follower in the process
+		}
+		break
+	}
 }

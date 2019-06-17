@@ -327,10 +327,10 @@ func (m *Heartbeat) FollowerExecute(is interfaces.IState) {
 		if auditServer.GetChainID().IsSameAs(m.IdentityChainID) {
 			if m.IdentityChainID.IsSameAs(is.GetIdentityChainID()) {
 				if m.SecretNumber != is.GetSalt(m.Timestamp) {
-					ackChangeValue := is.GetAckChangeValue()
 					lLeaderHeight := is.GetLLeaderHeight()
-					if ackChangeValue <= is.GetDBHeightAtBoot() ||
-						(lLeaderHeight >= ackChangeValue && m.DBHeight >= ackChangeValue && m.DBHeight <= lLeaderHeight) {
+					ackChangeValue := is.GetAckChangeValue()
+					ackChangeScheduled := ackChangeValue > is.GetDBHeightAtBoot() && lLeaderHeight <= ackChangeValue
+					if m.DBHeight == lLeaderHeight && (!ackChangeScheduled || is.GetDuplicateIdDetectedAtHeight() > ackChangeValue) {
 						var b strings.Builder
 						fmt.Fprintf(&b, "We have seen a heartbeat using our Identity that isn't ours.\n")
 						fmt.Fprintf(&b, "    Node: %s\n", is.GetFactomNodeName())
