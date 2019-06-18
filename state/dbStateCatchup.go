@@ -6,6 +6,7 @@ package state
 
 import (
 	"container/list"
+	"sync"
 	"time"
 
 	"github.com/FactomProject/factomd/common/messages"
@@ -14,7 +15,7 @@ import (
 func (list *DBStateList) Catchup() {
 	missing := list.State.StatesMissing
 	waiting := list.State.StatesWaiting
-	recieved := list.State.StatesReceived
+	received := list.State.StatesReceived
 
 	requestTimeout := list.State.RequestTimeout
 	requestLimit := list.State.RequestLimit
@@ -24,7 +25,18 @@ func (list *DBStateList) Catchup() {
 		for {
 			// get the height of the saved blocks
 			hs := func() uint32 {
+				// get the current block being built
 				l := list.State.GetLLeaderHeight()
+				// get the hightest block in the database
+				b := list.State.GetDBHeightAtBoot()
+
+				// don't request states that are in the database at boot time
+				if b > l {
+					return b
+				}
+
+				// if it is minute 0 don't request the prev block that hasn't
+				// been saved yet (l-1)
 				if list.State.GetCurrentMinute() == 0 {
 					if l < 2 {
 						return 0
@@ -38,21 +50,23 @@ func (list *DBStateList) Catchup() {
 			hk := func() uint32 {
 				a := list.State.GetHighestAck()
 				k := list.State.GetHighestKnownBlock()
+				// check that known is more than 2 ahead of acknowledged to make
+				// sure not to ask for blocks that haven't finished
 				if k > a+2 {
 					return k
 				}
 				return a
 			}()
 
-			if recieved.Base() < hs {
-				recieved.SetBase(hs)
+			if received.Base() < hs {
+				received.SetBase(hs)
 			}
 
 			// TODO: removing missing and waiting states could be done in parallel.
 			// remove any states from the missing list that have been saved.
 			for e := missing.List.Front(); e != nil; e = e.Next() {
 				s := e.Value.(*MissingState)
-				if recieved.Has(s.Height()) {
+				if received.Has(s.Height()) {
 					missing.Del(s.Height())
 				}
 			}
@@ -60,16 +74,16 @@ func (list *DBStateList) Catchup() {
 			// remove any states from the waiting list that have been saved.
 			for e := waiting.List.Front(); e != nil; e = e.Next() {
 				s := e.Value.(*WaitingState)
-				if recieved.Has(s.Height()) {
+				if received.Has(s.Height()) {
 					waiting.Del(s.Height())
 				}
 			}
 
-			// find gaps in the recieved list
-			for e := recieved.List.Front(); e != nil; e = e.Next() {
-				// if the height of the next recieved state is not equal to the
-				// height of the current recieved state plus one then there is a
-				// gap in the recieved state list.
+			// find gaps in the received list
+			for e := received.List.Front(); e != nil; e = e.Next() {
+				// if the height of the next received state is not equal to the
+				// height of the current received state plus one then there is a
+				// gap in the received state list.
 				if e.Next() != nil {
 					for n := e.Value.(*ReceivedState).Height(); n+1 < e.Next().Value.(*ReceivedState).Height(); n++ {
 						missing.Notify <- NewMissingState(n + 1)
@@ -77,8 +91,8 @@ func (list *DBStateList) Catchup() {
 				}
 			}
 
-			// add all known states after the last recieved to the missing list
-			for n := recieved.HeighestRecieved() + 1; n < hk; n++ {
+			// add all known states after the last received to the missing list
+			for n := received.Heighestreceived() + 1; n < hk; n++ {
 				missing.Notify <- NewMissingState(n)
 			}
 
@@ -107,7 +121,7 @@ func (list *DBStateList) Catchup() {
 		for {
 			select {
 			case s := <-missing.Notify:
-				if recieved.Get(s.Height()) == nil {
+				if received.Get(s.Height()) == nil {
 					if !waiting.Has(s.Height()) {
 						missing.Add(s.Height())
 					}
@@ -116,12 +130,12 @@ func (list *DBStateList) Catchup() {
 				if !waiting.Has(s.Height()) {
 					waiting.Add(s.Height())
 				}
-			case m := <-recieved.Notify:
+			case m := <-received.Notify:
 				s := NewReceivedState(m)
 				if s != nil {
 					missing.Del(s.Height())
 					waiting.Del(s.Height())
-					recieved.Add(s.Height(), s.Message())
+					received.Add(s.Height(), s.Message())
 				}
 			}
 		}
@@ -130,10 +144,6 @@ func (list *DBStateList) Catchup() {
 	// request missing states from the network
 	go func() {
 		for {
-			// TODO: replace waiting.Len with some kind of mechanism that tracks
-			// the number of batch requests instead of the number of waiting states
-			// e.g. there could be up to the batch limit number of waiting states
-			// represented by a single request
 			if waiting.Len() < requestLimit {
 				// TODO: the batch limit should probably be set by a configuration variable
 				b, e := missing.NextConsecutiveMissing(10)
@@ -150,6 +160,7 @@ func (list *DBStateList) Catchup() {
 
 				msg := messages.NewDBStateMissing(list.State, b, e)
 				msg.SendOut(list.State, msg)
+				list.State.DBStateAskCnt += int(e-b) + 1 // Total number of dbstates requested
 				for i := b; i <= e; i++ {
 					missing.Del(i)
 					waiting.Notify <- NewWaitingState(i)
@@ -195,6 +206,7 @@ func (s *MissingState) Height() uint32 {
 type StatesMissing struct {
 	List   *list.List
 	Notify chan *MissingState
+	lock   *sync.Mutex
 }
 
 // NewStatesMissing creates a new list of missing DBStates.
@@ -202,11 +214,15 @@ func NewStatesMissing() *StatesMissing {
 	l := new(StatesMissing)
 	l.List = list.New()
 	l.Notify = make(chan *MissingState)
+	l.lock = new(sync.Mutex)
 	return l
 }
 
 // Add adds a new MissingState to the list.
 func (l *StatesMissing) Add(height uint32) {
+	l.lock.Lock()
+	defer l.lock.Unlock()
+
 	for e := l.List.Back(); e != nil; e = e.Prev() {
 		s := e.Value.(*MissingState)
 		if height > s.Height() {
@@ -224,6 +240,10 @@ func (l *StatesMissing) Del(height uint32) {
 	if l == nil {
 		return
 	}
+
+	l.lock.Lock()
+	defer l.lock.Unlock()
+
 	for e := l.List.Front(); e != nil; e = e.Next() {
 		if e.Value.(*MissingState).Height() == height {
 			l.List.Remove(e)
@@ -320,17 +340,21 @@ func (s *WaitingState) ResetRequestAge() {
 type StatesWaiting struct {
 	List   *list.List
 	Notify chan *WaitingState
+	lock   *sync.Mutex
 }
 
 func NewStatesWaiting() *StatesWaiting {
 	l := new(StatesWaiting)
 	l.List = list.New()
 	l.Notify = make(chan *WaitingState)
+	l.lock = new(sync.Mutex)
 	return l
 }
 
 func (l *StatesWaiting) Add(height uint32) {
-	// l.List.PushBack(NewWaitingState(height))
+	l.lock.Lock()
+	defer l.lock.Unlock()
+
 	for e := l.List.Back(); e != nil; e = e.Prev() {
 		s := e.Value.(*WaitingState)
 		if s == nil {
@@ -349,10 +373,14 @@ func (l *StatesWaiting) Add(height uint32) {
 }
 
 func (l *StatesWaiting) Del(height uint32) {
+	l.lock.Lock()
+	defer l.lock.Unlock()
+
 	for e := l.List.Front(); e != nil; e = e.Next() {
 		s := e.Value.(*WaitingState)
 		if s.Height() == height {
 			l.List.Remove(e)
+			break
 		}
 	}
 }
@@ -419,18 +447,20 @@ func (s *ReceivedState) Message() *messages.DBStateMsg {
 	return s.msg
 }
 
-// StatesReceived is the list of DBStates recieved from the network. "base"
+// StatesReceived is the list of DBStates received from the network. "base"
 // represents the height of known saved states.
 type StatesReceived struct {
 	List   *list.List
 	Notify chan *messages.DBStateMsg
 	base   uint32
+	lock   *sync.Mutex
 }
 
 func NewStatesReceived() *StatesReceived {
 	l := new(StatesReceived)
 	l.List = list.New()
 	l.Notify = make(chan *messages.DBStateMsg)
+	l.lock = new(sync.Mutex)
 	return l
 }
 
@@ -455,8 +485,8 @@ func (l *StatesReceived) SetBase(height uint32) {
 	}
 }
 
-// HeighestRecieved returns the height of the last member in StatesReceived
-func (l *StatesReceived) HeighestRecieved() uint32 {
+// Heighestreceived returns the height of the last member in StatesReceived
+func (l *StatesReceived) Heighestreceived() uint32 {
 	height := uint32(0)
 	s := l.List.Back()
 	if s != nil {
@@ -468,11 +498,14 @@ func (l *StatesReceived) HeighestRecieved() uint32 {
 	return height
 }
 
-// Add adds a new recieved state to the list.
+// Add adds a new received state to the list.
 func (l *StatesReceived) Add(height uint32, msg *messages.DBStateMsg) {
 	if msg == nil {
 		return
 	}
+
+	l.lock.Lock()
+	defer l.lock.Unlock()
 
 	for e := l.List.Back(); e != nil; e = e.Prev() {
 		s := e.Value.(*ReceivedState)
@@ -493,6 +526,9 @@ func (l *StatesReceived) Add(height uint32, msg *messages.DBStateMsg) {
 
 // Del removes a state from the StatesReceived list
 func (l *StatesReceived) Del(height uint32) {
+	l.lock.Lock()
+	defer l.lock.Unlock()
+
 	for e := l.List.Back(); e != nil; e = e.Prev() {
 		s := e.Value.(*ReceivedState)
 		if s == nil {
@@ -538,6 +574,9 @@ func (l *StatesReceived) Has(height uint32) bool {
 }
 
 func (l *StatesReceived) GetNext() *ReceivedState {
+	l.lock.Lock()
+	defer l.lock.Unlock()
+
 	if l.List.Len() == 0 {
 		return nil
 	}

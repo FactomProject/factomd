@@ -19,8 +19,6 @@ import (
 	"github.com/FactomProject/factomd/state"
 	log "github.com/sirupsen/logrus"
 
-	//"github.com/FactomProject/factomd/state"
-
 	"github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/elections"
 )
@@ -156,6 +154,7 @@ func (m *FedVoteLevelMsg) processIfCommitted(is interfaces.IState, elect interfa
 
 		// Send for the state to do the swap. It will only be sent with this
 		// flag ONCE
+		is.LogMessage("InMsgQueue", "enqueue_FedVoteLevelMsg", m)
 		is.InMsgQueue().Enqueue(m)
 		// End the election by setting this to '-1'
 		e.Electing = -1
@@ -226,6 +225,8 @@ func (m *FedVoteLevelMsg) FollowerExecute(is interfaces.IState) {
 			pl.AuditServers[m.Volunteer.ServerIdx], pl.FedServers[m.Volunteer.FedIdx]
 
 		// Add to the process list and immediately process
+
+		is.LogMessage("executeMsg", "add to pl", m.Volunteer.Ack)
 		pl.AddToProcessList(pl.State, m.Volunteer.Ack.(*messages.Ack), m.Volunteer.Missing)
 		is.UpdateState()
 	} else {

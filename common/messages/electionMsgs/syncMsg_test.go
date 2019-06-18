@@ -7,15 +7,12 @@ package electionMsgs_test
 import (
 	"testing"
 
-	"fmt"
-
-	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/messages/electionMsgs"
 	"github.com/FactomProject/factomd/common/messages/msgsupport"
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-func TestUnmarshalfolunteerSyncMsg_test(t *testing.T) {
+func TestUnmarshalVolunteerSyncMsg_test(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
 			t.Errorf("Panic caught during the test - %v", r)
@@ -45,23 +42,11 @@ func TestMarshalUnmarshalSyncMsg(t *testing.T) {
 			t.Error(err)
 		}
 
-		va2, err := msgsupport.UnmarshalMessage(hex)
-		if err != nil {
+		_, err = msgsupport.UnmarshalMessage(hex)
+		// Expect an error, as sync messages are local only,
+		// 		and cannot be unmarshalled.
+		if err == nil {
 			t.Error(err)
-		}
-		_, err = va2.JSONString()
-		if err != nil {
-			t.Error(err)
-		}
-
-		if va2.Type() != constants.SYNC_MSG {
-			t.Error(num + " Invalid message type unmarshalled")
-		}
-
-		if sm.IsSameAs(va2) == false {
-			t.Error(num + " Acks are not the same")
-			fmt.Println(sm.String())
-			fmt.Println(va2.String())
 		}
 	}
 	sm := new(SyncMsg)
