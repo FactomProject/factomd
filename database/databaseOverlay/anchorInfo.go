@@ -5,6 +5,7 @@
 package databaseOverlay
 
 import (
+	"errors"
 	"github.com/FactomProject/factomd/anchor"
 	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -13,22 +14,35 @@ import (
 
 var BitcoinAnchorChainID = "df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604"
 var EthereumAnchorChainID = "6e4540d08d5ac6a1a394e982fb6a2ab8b516ee751c37420055141b94fe070bfe"
-var AnchorSigKeys = []string{
-	"0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a", //m1 key
-	"d569419348ed7056ec2ba54f0ecd9eea02648b260b26e0474f8c07fe9ac6bf83", //m2 key
-	// "547d837160766b9ca47e689e52ed55fdc05cb3430ad2328dcc431083db083ee6", // TODO: swap out this anchormaker test key
+var ValidAnchorChains = map[string]bool{
+	BitcoinAnchorChainID:  true,
+	EthereumAnchorChainID: true,
 }
-var AnchorSigPublicKeys []interfaces.Verifier
 
-func init() {
-	for _, v := range AnchorSigKeys {
-		pubKey := new(primitives.PublicKey)
-		err := pubKey.UnmarshalText([]byte(v))
+func (dbo *Overlay) SetBitcoinAnchorRecordPublicKeysFromHex(publicKeys []string) error {
+	dbo.BitcoinAnchorRecordPublicKeys = nil
+	for _, v := range publicKeys {
+		publicKey := new(primitives.PublicKey)
+		err := publicKey.UnmarshalText([]byte(v))
 		if err != nil {
-			panic(err)
+			return err
 		}
-		AnchorSigPublicKeys = append(AnchorSigPublicKeys, pubKey)
+		dbo.BitcoinAnchorRecordPublicKeys = append(dbo.BitcoinAnchorRecordPublicKeys, publicKey)
 	}
+	return nil
+}
+
+func (dbo *Overlay) SetEthereumAnchorRecordPublicKeysFromHex(publicKeys []string) error {
+	dbo.BitcoinAnchorRecordPublicKeys = nil
+	for _, v := range publicKeys {
+		publicKey := new(primitives.PublicKey)
+		err := publicKey.UnmarshalText([]byte(v))
+		if err != nil {
+			return err
+		}
+		dbo.EthereumAnchorRecordPublicKeys = append(dbo.EthereumAnchorRecordPublicKeys, publicKey)
+	}
+	return nil
 }
 
 func (dbo *Overlay) ReparseAnchorChains() error {
@@ -56,57 +70,48 @@ func (dbo *Overlay) ReparseAnchorChains() error {
 
 	entries := append(btcAnchorEntries, ethAnchorEntries...)
 	for _, entry := range entries {
-		_ = dbo.SaveAnchorInfoFromEntry(entry)
+		_ = dbo.SaveAnchorInfoFromEntry(entry, false)
 	}
 	return nil
 }
 
-func (dbo *Overlay) SaveAnchorInfoFromEntry(entry interfaces.IEBEntry) error {
-	if entry.DatabasePrimaryIndex().String() == "24674e6bc3094eb773297de955ee095a05830e431da13a37382dcdc89d73c7d7" {
-		return nil
+func (dbo *Overlay) SaveAnchorInfoFromEntry(entry interfaces.IEBEntry, multiBatch bool) error {
+	var anchorRecord *anchor.AnchorRecord
+	var ok bool
+	var err error
+
+	switch entry.GetChainID().String() {
+	case BitcoinAnchorChainID:
+		// Bitcoin has mixed v1 and v2 AnchorRecords
+		anchorRecord, ok, err = anchor.UnmarshalAndValidateAnchorEntryAnyVersion(entry, dbo.BitcoinAnchorRecordPublicKeys)
+	case EthereumAnchorChainID:
+		// Ethereum has v2 AnchorRecords only
+		anchorRecord, ok, err = anchor.UnmarshalAndValidateAnchorRecordV2(entry.GetContent(), entry.ExternalIDs(), dbo.EthereumAnchorRecordPublicKeys)
+	default:
+		// Given where this function is called from, we shouldn't hit this. But just in case...
+		return errors.New("unsupported anchor chain")
 	}
-	ar, ok, err := anchor.UnmarshalAndValidateAnchorEntryAnyVersion(entry, AnchorSigPublicKeys)
+
 	if err != nil {
 		return err
-	}
-	if ok == false {
+	} else if ok == false || anchorRecord == nil {
 		return nil
 	}
-	if ar == nil {
-		return nil
-	}
-	dbi, err := dbo.CreateUpdatedDirBlockInfoFromAnchorRecord(ar)
+
+	// We have a valid, signed anchor record entry
+	// Now either create the DirBlockInfo for this block or update the existing DirBlockInfo with new found data
+	dbi, err := dbo.CreateUpdatedDirBlockInfoFromAnchorRecord(anchorRecord)
 	if err != nil {
 		return err
 	}
 	if dbi.EthereumConfirmed && dbi.EthereumAnchorRecordEntryHash.IsSameAs(primitives.ZeroHash) {
 		dbi.EthereumAnchorRecordEntryHash = entry.GetHash()
+	}
+
+	if multiBatch {
+		return dbo.ProcessDirBlockInfoMultiBatch(dbi)
 	}
 	return dbo.ProcessDirBlockInfoBatch(dbi)
-}
-
-func (dbo *Overlay) SaveAnchorInfoFromEntryMultiBatch(entry interfaces.IEBEntry) error {
-	if entry.DatabasePrimaryIndex().String() == "24674e6bc3094eb773297de955ee095a05830e431da13a37382dcdc89d73c7d7" {
-		return nil
-	}
-	ar, ok, err := anchor.UnmarshalAndValidateAnchorEntryAnyVersion(entry, AnchorSigPublicKeys)
-	if err != nil {
-		return err
-	}
-	if ok == false {
-		return nil
-	}
-	if ar == nil {
-		return nil
-	}
-	dbi, err := dbo.CreateUpdatedDirBlockInfoFromAnchorRecord(ar)
-	if err != nil {
-		return err
-	}
-	if dbi.EthereumConfirmed && dbi.EthereumAnchorRecordEntryHash.IsSameAs(primitives.ZeroHash) {
-		dbi.EthereumAnchorRecordEntryHash = entry.GetHash()
-	}
-	return dbo.ProcessDirBlockInfoMultiBatch(dbi)
 }
 
 func (dbo *Overlay) CreateUpdatedDirBlockInfoFromAnchorRecord(ar *anchor.AnchorRecord) (*dbInfo.DirBlockInfo, error) {

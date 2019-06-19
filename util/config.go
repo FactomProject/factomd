@@ -40,6 +40,8 @@ type FactomdConfig struct {
 		ExchangeRateAuthorityPublicKeyMainNet  string
 		ExchangeRateAuthorityPublicKeyTestNet  string
 		ExchangeRateAuthorityPublicKeyLocalNet string
+		BitcoinAnchorRecordPublicKeys          []string
+		EthereumAnchorRecordPublicKeys         []string
 
 		// Network Configuration
 		Network                 string
@@ -150,6 +152,11 @@ ExchangeRateAuthorityPublicKeyTestNet   = 1d75de249c2fc0384fb6701b30dc86b39dc72e
 ; Private key all zeroes:
 ExchangeRateAuthorityPublicKeyLocalNet  = 3b6a27bcceb6a42d62a3a8d02a6f0d73653215771de243a63ac048a18b59da29
 
+; The public keys used to validate anchor records in either the Bitcoin or Ethereuem anchor chains
+BitcoinAnchorRecordPublicKeys         = "0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a" ; m1 key
+BitcoinAnchorRecordPublicKeys         = "d569419348ed7056ec2ba54f0ecd9eea02648b260b26e0474f8c07fe9ac6bf83" ; m2 key, currently in use
+EthereumAnchorRecordPublicKeys        = "a4a7905ab2226f267c6b44e1d5db2c97638b7bbba72fd1823d053ccff2892455"
+
 ; These define if the RPC and Control Panel connection to factomd should be encrypted, and if it is, what files
 ; are the secret key and the public certificate.  factom-cli and factom-walletd uses the certificate specified here if TLS is enabled.
 ; To use default files and paths leave /full/path/to/... in place.
@@ -253,6 +260,8 @@ func (s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\n    FactomdRpcUser          	%v", s.App.FactomdRpcUser))
 	out.WriteString(fmt.Sprintf("\n    FactomdRpcPass          	%v", s.App.FactomdRpcPass))
 	out.WriteString(fmt.Sprintf("\n    ChangeAcksHeight         %v", s.App.ChangeAcksHeight))
+	out.WriteString(fmt.Sprintf("\n    BitcoinAnchorRecordPublicKeys    %v", s.App.BitcoinAnchorRecordPublicKeys))
+	out.WriteString(fmt.Sprintf("\n    EthereumAnchorRecordPublicKeys    %v", s.App.EthereumAnchorRecordPublicKeys))
 
 	out.WriteString(fmt.Sprintf("\n  Log"))
 	out.WriteString(fmt.Sprintf("\n    LogPath                 %v", s.Log.LogPath))

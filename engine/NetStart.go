@@ -547,6 +547,20 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		startServers(true)
 	}
 
+	// Anchoring related configurations
+	config := s.Cfg.(*util.FactomdConfig)
+	if len(config.App.BitcoinAnchorRecordPublicKeys) > 0 {
+		err := s.GetDB().(*databaseOverlay.Overlay).SetBitcoinAnchorRecordPublicKeysFromHex(config.App.BitcoinAnchorRecordPublicKeys)
+		if err != nil {
+			panic("Encountered an error while trying to set custom Bitcoin anchor record keys from config")
+		}
+	}
+	if len(config.App.EthereumAnchorRecordPublicKeys) > 0 {
+		err := s.GetDB().(*databaseOverlay.Overlay).SetBitcoinAnchorRecordPublicKeysFromHex(config.App.BitcoinAnchorRecordPublicKeys)
+		if err != nil {
+			panic("Encountered an error while trying to set custom Ethereum anchor record keys from config")
+		}
+	}
 	if p.ReparseAnchorChains {
 		err := fnodes[0].State.GetDB().(*databaseOverlay.Overlay).ReparseAnchorChains()
 		if err != nil {

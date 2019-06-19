@@ -121,6 +121,9 @@ type Overlay struct {
 	BatchSemaphore sync.Mutex
 	MultiBatch     []interfaces.Record
 	BlockExtractor blockExtractor.BlockExtractor
+
+	BitcoinAnchorRecordPublicKeys  []interfaces.Verifier
+	EthereumAnchorRecordPublicKeys []interfaces.Verifier
 }
 
 var _ interfaces.IDatabase = (*Overlay)(nil)
@@ -196,6 +199,18 @@ func (db *Overlay) Delete(bucket, key []byte) error {
 func NewOverlay(db interfaces.IDatabase) *Overlay {
 	answer := new(Overlay)
 	answer.DB = db
+
+	// Set the default anchor record verification keys
+	var bitcoinDefaults = []string{
+		"0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a", // m1 key
+		"d569419348ed7056ec2ba54f0ecd9eea02648b260b26e0474f8c07fe9ac6bf83", // m2 key
+	}
+	var ethereumDefaults = []string{
+		"a4a7905ab2226f267c6b44e1d5db2c97638b7bbba72fd1823d053ccff2892455",
+	}
+	_ = answer.SetBitcoinAnchorRecordPublicKeysFromHex(bitcoinDefaults)
+	_ = answer.SetEthereumAnchorRecordPublicKeysFromHex(ethereumDefaults)
+
 	return answer
 }
 
