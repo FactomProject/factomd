@@ -46,6 +46,25 @@ func (dbo *Overlay) SetEthereumAnchorRecordPublicKeysFromHex(publicKeys []string
 }
 
 func (dbo *Overlay) ReparseAnchorChains() error {
+	// Delete all DirBlockInfo buckets
+	err := dbo.Clear(DIRBLOCKINFO)
+	if err != nil {
+		return err
+	}
+	err = dbo.Clear(DIRBLOCKINFO_UNCONFIRMED)
+	if err != nil {
+		return err
+	}
+	err = dbo.Clear(DIRBLOCKINFO_NUMBER)
+	if err != nil {
+		return err
+	}
+	err = dbo.Clear(DIRBLOCKINFO_SECONDARYINDEX)
+	if err != nil {
+		return err
+	}
+
+	// Fetch all potential anchor records
 	btcChainID, err := primitives.NewShaHashFromStr(BitcoinAnchorChainID)
 	if err != nil {
 		panic(err)
@@ -68,6 +87,7 @@ func (dbo *Overlay) ReparseAnchorChains() error {
 		return err
 	}
 
+	// Validate structure, verify signatures, and store in database
 	entries := append(btcAnchorEntries, ethAnchorEntries...)
 	for _, entry := range entries {
 		_ = dbo.SaveAnchorInfoFromEntry(entry, false)
