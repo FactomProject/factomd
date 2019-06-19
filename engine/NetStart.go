@@ -574,6 +574,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		}
 	}
 	if p.ReparseAnchorChains {
+		fmt.Println("Reparsing anchor chains...")
 		err := fnodes[0].State.GetDB().(*databaseOverlay.Overlay).ReparseAnchorChains()
 		if err != nil {
 			panic("Encountered an error while trying to re-parse anchor chains: " + err.Error())
