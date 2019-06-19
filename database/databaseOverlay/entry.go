@@ -24,8 +24,8 @@ func (db *Overlay) InsertEntry(entry interfaces.IEBEntry) error {
 	if err != nil {
 		return err
 	}
-	if entry.GetChainID().String() == BitcoinAnchorChainID || entry.GetChainID().String() == EthereumAnchorChainID {
-		db.SaveAnchorInfoFromEntry(entry)
+	if _, exists := ValidAnchorChains[entry.GetChainID().String()]; exists {
+		db.SaveAnchorInfoFromEntry(entry, false)
 	}
 	return nil
 }
@@ -44,8 +44,8 @@ func (db *Overlay) InsertEntryMultiBatch(entry interfaces.IEBEntry) error {
 	batch = append(batch, interfaces.Record{ENTRY, entry.DatabasePrimaryIndex().Bytes(), entry.GetChainIDHash()})
 
 	db.PutInMultiBatch(batch)
-	if entry.GetChainID().String() == BitcoinAnchorChainID || entry.GetChainID().String() == EthereumAnchorChainID {
-		db.SaveAnchorInfoFromEntryMultiBatch(entry)
+	if _, exists := ValidAnchorChains[entry.GetChainID().String()]; exists {
+		db.SaveAnchorInfoFromEntry(entry, true)
 	}
 	return nil
 }

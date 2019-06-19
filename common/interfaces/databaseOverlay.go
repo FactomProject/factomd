@@ -251,7 +251,10 @@ type DBOverlay interface {
 	SaveIncludedInMultiFromBlock(block DatabaseBlockWithEntries, checkForDuplicateEntries bool) error
 	SaveIncludedInMulti(entries []IHash, block IHash, checkForDuplicateEntries bool) error
 	FetchIncludedIn(hash IHash) (IHash, error)
+
 	ReparseAnchorChains() error
+	SetBitcoinAnchorRecordPublicKeysFromHex([]string) error
+	SetEthereumAnchorRecordPublicKeysFromHex([]string) error
 
 	FetchPaidFor(hash IHash) (IHash, error)
 

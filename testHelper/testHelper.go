@@ -215,19 +215,7 @@ func CreateTestDBStateList() []interfaces.IMsg {
 	return answer
 }
 
-func MakeSureAnchorValidationKeyIsPresent() {
-	priv := NewPrimitivesPrivateKey(0)
-	pub := priv.Pub
-	for _, v := range databaseOverlay.AnchorSigPublicKeys {
-		if v.String() == pub.String() {
-			return
-		}
-	}
-	databaseOverlay.AnchorSigPublicKeys = append(databaseOverlay.AnchorSigPublicKeys, pub)
-}
-
 func PopulateTestDatabaseOverlay(dbo *databaseOverlay.Overlay) {
-	MakeSureAnchorValidationKeyIsPresent()
 	var prev *BlockSet = nil
 	var err error
 
