@@ -769,7 +769,7 @@ func HandleV2Anchors(state interfaces.IState, params interface{}) (interface{}, 
 	}
 
 	directoryBlockKeyMR, err := dbo.FetchDBKeyMRByHeight(directoryBlockHeight)
-	if err != nil {
+	if err != nil || directoryBlockKeyMR == nil {
 		return nil, NewBlockNotFoundError()
 	}
 
