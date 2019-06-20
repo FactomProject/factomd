@@ -12,13 +12,11 @@ func TestFilterAPIInput(t *testing.T) {
 
 	state0 := SetupSim("LLLLLAAF", map[string]string{"--debuglog": "."}, 25, 1, 1, t)
 
-	RunCmd("s")
 	RunCmd("1")
 	RunCmd("w")
+	RunCmd("s")
 
-	WaitBlocks(state0, 1)
-
-	apiRegex := "EOM.*6/.*minute 4"
+	apiRegex := "EOM.*5/.*minute 1"
 	SetInputFilter(apiRegex)
 
 	WaitBlocks(state0, 5)

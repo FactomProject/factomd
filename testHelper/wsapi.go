@@ -112,6 +112,7 @@ func GetBody(context *web.Context) string {
 	return context.ResponseWriter.(*TestResponseWriter).Body
 }
 
+// REVIEW consider renaming since this is the debug url
 func getAPIUrl() string {
 	return "http://localhost:" + fmt.Sprint(engine.GetFnodes()[0].State.GetPort()) + "/debug"
 }

@@ -319,6 +319,24 @@ func TestAnElection(t *testing.T) {
 	// wait for him to update via dbstate and become an audit
 	WaitBlocks(state0, 2)
 	WaitMinutes(state0, 1)
+
+
+
+	{ // debug holding queue
+
+		for _, fnode := range GetFnodes() {
+			s := fnode.State
+			for _, h := range s.Hold.Messages() {
+				for _, m := range h {
+					s.LogMessage("newholding", "stuck", m)
+				}
+			}
+		}
+	}
+
+	state2 := GetFnodes()[2].State
+	WaitForBlock(state2, 7) // wait for sync w/ network
+
 	WaitForAllNodes(state0)
 
 	// PrintOneStatus(0, 0)
