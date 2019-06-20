@@ -22,6 +22,15 @@ func (list *DBStateList) Catchup() {
 
 	// keep the lists up to date with the saved states.
 	go func() {
+		// Notify missing will add the height to the missing
+		// if it is not received and not already requested.
+		notifyMissing := func(n uint32) {
+			if received.Get(n) == nil {
+				if !waiting.Has(n) {
+					missing.Add(n)
+				}
+			}
+		}
 		for {
 			// get the height of the saved blocks
 			hs := func() uint32 {
@@ -86,14 +95,16 @@ func (list *DBStateList) Catchup() {
 				// gap in the received state list.
 				if e.Next() != nil {
 					for n := e.Value.(*ReceivedState).Height(); n+1 < e.Next().Value.(*ReceivedState).Height(); n++ {
-						missing.Notify <- NewMissingState(n + 1)
+						// missing.Notify <- NewMissingState(n + 1)
+						notifyMissing(n + 1)
 					}
 				}
 			}
 
 			// add all known states after the last received to the missing list
 			for n := received.Heighestreceived() + 1; n < hk; n++ {
-				missing.Notify <- NewMissingState(n)
+				// missing.Notify <- NewMissingState(n)
+				notifyMissing(n)
 			}
 
 			time.Sleep(5 * time.Second)
@@ -108,7 +119,10 @@ func (list *DBStateList) Catchup() {
 				s := e.Value.(*WaitingState)
 				if s.RequestAge() > requestTimeout {
 					waiting.Del(s.Height())
-					missing.Notify <- NewMissingState(s.Height())
+					if received.Get(s.Height()) == nil {
+						missing.Add(s.Height())
+					}
+					// missing.Notify <- NewMissingState(s.Height())
 				}
 			}
 
@@ -120,16 +134,16 @@ func (list *DBStateList) Catchup() {
 	go func() {
 		for {
 			select {
-			case s := <-missing.Notify:
-				if received.Get(s.Height()) == nil {
-					if !waiting.Has(s.Height()) {
-						missing.Add(s.Height())
-					}
-				}
-			case s := <-waiting.Notify:
-				if !waiting.Has(s.Height()) {
-					waiting.Add(s.Height())
-				}
+			// case s := <-missing.Notify:
+			// 	if received.Get(s.Height()) == nil {
+			// 		if !waiting.Has(s.Height()) {
+			// 			missing.Add(s.Height())
+			// 		}
+			// 	}
+			// case s := <-waiting.Notify:
+			// 	if !waiting.Has(s.Height()) {
+			// 		waiting.Add(s.Height())
+			// 	}
 			case m := <-received.Notify:
 				s := NewReceivedState(m)
 				if s != nil {
@@ -163,7 +177,7 @@ func (list *DBStateList) Catchup() {
 				list.State.DBStateAskCnt += int(e-b) + 1 // Total number of dbstates requested
 				for i := b; i <= e; i++ {
 					missing.Del(i)
-					waiting.Notify <- NewWaitingState(i)
+					waiting.Add(i)
 				}
 			} else {
 				// if the next missing state is a lower height than the last waiting
@@ -204,16 +218,16 @@ func (s *MissingState) Height() uint32 {
 // replace the iteration with binary search
 
 type StatesMissing struct {
-	List   *list.List
-	Notify chan *MissingState
-	lock   *sync.Mutex
+	List *list.List
+	// Notify chan *MissingState
+	lock *sync.Mutex
 }
 
 // NewStatesMissing creates a new list of missing DBStates.
 func NewStatesMissing() *StatesMissing {
 	l := new(StatesMissing)
 	l.List = list.New()
-	l.Notify = make(chan *MissingState)
+	// l.Notify = make(chan *MissingState)
 	l.lock = new(sync.Mutex)
 	return l
 }
@@ -237,12 +251,15 @@ func (l *StatesMissing) Add(height uint32) {
 
 // Del removes a MissingState from the list.
 func (l *StatesMissing) Del(height uint32) {
+	l.lock.Lock()
+	defer l.lock.Unlock()
+	l.del(height)
+}
+
+func (l *StatesMissing) del(height uint32) {
 	if l == nil {
 		return
 	}
-
-	l.lock.Lock()
-	defer l.lock.Unlock()
 
 	for e := l.List.Front(); e != nil; e = e.Next() {
 		if e.Value.(*MissingState).Height() == height {
@@ -253,6 +270,9 @@ func (l *StatesMissing) Del(height uint32) {
 }
 
 func (l *StatesMissing) Get(height uint32) *MissingState {
+	l.lock.Lock()
+	defer l.lock.Unlock()
+
 	for e := l.List.Front(); e != nil; e = e.Next() {
 		s := e.Value.(*MissingState)
 		if s.Height() == height {
@@ -263,6 +283,9 @@ func (l *StatesMissing) Get(height uint32) *MissingState {
 }
 
 func (l *StatesMissing) GetFront() *MissingState {
+	l.lock.Lock()
+	defer l.lock.Unlock()
+
 	e := l.List.Front()
 	if e != nil {
 		s := e.Value.(*MissingState)
@@ -280,6 +303,9 @@ func (l *StatesMissing) Len() int {
 // NextConsecutiveMissing returns the heights of the the next n or fewer
 // consecutive missing states
 func (l *StatesMissing) NextConsecutiveMissing(n int) (uint32, uint32) {
+	l.lock.Lock()
+	defer l.lock.Unlock()
+
 	f := l.List.Front()
 	if f == nil {
 		return 0, 0
@@ -304,10 +330,13 @@ func (l *StatesMissing) NextConsecutiveMissing(n int) (uint32, uint32) {
 
 // GetNext pops the next MissingState from the list.
 func (l *StatesMissing) GetNext() *MissingState {
+	l.lock.Lock()
+	defer l.lock.Unlock()
+
 	e := l.List.Front()
 	if e != nil {
 		s := e.Value.(*MissingState)
-		l.Del(s.Height())
+		l.del(s.Height())
 		return s
 	}
 	return nil
@@ -338,15 +367,15 @@ func (s *WaitingState) ResetRequestAge() {
 }
 
 type StatesWaiting struct {
-	List   *list.List
-	Notify chan *WaitingState
-	lock   *sync.Mutex
+	List *list.List
+	// Notify chan *WaitingState
+	lock *sync.Mutex
 }
 
 func NewStatesWaiting() *StatesWaiting {
 	l := new(StatesWaiting)
 	l.List = list.New()
-	l.Notify = make(chan *WaitingState)
+	// l.Notify = make(chan *WaitingState)
 	l.lock = new(sync.Mutex)
 	return l
 }
@@ -386,6 +415,9 @@ func (l *StatesWaiting) Del(height uint32) {
 }
 
 func (l *StatesWaiting) Get(height uint32) *WaitingState {
+	l.lock.Lock()
+	defer l.lock.Unlock()
+
 	for e := l.List.Front(); e != nil; e = e.Next() {
 		s := e.Value.(*WaitingState)
 		if s.Height() == height {
@@ -396,6 +428,9 @@ func (l *StatesWaiting) Get(height uint32) *WaitingState {
 }
 
 func (l *StatesWaiting) GetEnd() *WaitingState {
+	l.lock.Lock()
+	defer l.lock.Unlock()
+
 	e := l.List.Back()
 	if e != nil {
 		s := e.Value.(*WaitingState)
@@ -407,6 +442,9 @@ func (l *StatesWaiting) GetEnd() *WaitingState {
 }
 
 func (l *StatesWaiting) Has(height uint32) bool {
+	l.lock.Lock()
+	defer l.lock.Unlock()
+
 	for e := l.List.Front(); e != nil; e = e.Next() {
 		s := e.Value.(*WaitingState)
 		if s.Height() == height {
@@ -470,6 +508,12 @@ func (l *StatesReceived) Base() uint32 {
 }
 
 func (l *StatesReceived) SetBase(height uint32) {
+	l.lock.Lock()
+	defer l.lock.Unlock()
+	l.setBase(height)
+}
+
+func (l *StatesReceived) setBase(height uint32) {
 	l.base = height
 
 	for e := l.List.Front(); e != nil; e = e.Next() {
@@ -487,6 +531,9 @@ func (l *StatesReceived) SetBase(height uint32) {
 
 // Heighestreceived returns the height of the last member in StatesReceived
 func (l *StatesReceived) Heighestreceived() uint32 {
+	l.lock.Lock()
+	defer l.lock.Unlock()
+
 	height := uint32(0)
 	s := l.List.Back()
 	if s != nil {
@@ -542,6 +589,9 @@ func (l *StatesReceived) Del(height uint32) {
 
 // Get returns a member from the StatesReceived list
 func (l *StatesReceived) Get(height uint32) *ReceivedState {
+	l.lock.Lock()
+	defer l.lock.Unlock()
+
 	for e := l.List.Back(); e != nil; e = e.Prev() {
 		s := e.Value.(*ReceivedState)
 		if s == nil {
@@ -557,6 +607,9 @@ func (l *StatesReceived) Get(height uint32) *ReceivedState {
 }
 
 func (l *StatesReceived) Has(height uint32) bool {
+	l.lock.Lock()
+	defer l.lock.Unlock()
+
 	if height <= l.Base() {
 		return true
 	}
@@ -590,7 +643,7 @@ func (l *StatesReceived) GetNext() *ReceivedState {
 		}
 
 		if s.Height() == l.Base()+1 {
-			l.SetBase(s.Height())
+			l.setBase(s.Height())
 			l.List.Remove(e)
 			return s
 		}
