@@ -113,11 +113,6 @@ func (cm *ConnectionManager) GetAllRegular(msgHash [32]byte) []*Connection {
 	selection := cm.getMatching(func(c *Connection) bool {
 
 		b := c.IsOnline() && !c.peer.IsSpecial() && c.metrics.BytesReceived > 0 && !c.peer.PrevMsgs.Get(msgHash)
-		if !c.peer.PrevMsgs.Get(msgHash) {
-			fmt.Printf("Dropped Repeated: M-%x, to %x \n", msgHash[:3], c.peer.Hash[:3])
-		} else {
-			fmt.Printf("Sent: M-%x,to %x \n", msgHash[:3], c.peer.Hash[:3])
-		}
 		return b
 	})
 

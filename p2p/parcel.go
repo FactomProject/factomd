@@ -92,7 +92,6 @@ func NewParcelMsg(network NetworkID, payload []byte, msg interfaces.IMsg) *Parce
 }
 
 func ParcelsForPayload(network NetworkID, payload []byte, msg interfaces.IMsg) []Parcel {
-	//fmt.Println("msg in ParcelsForPayload: ", msg)
 	parcelCount := (len(payload) / MaxPayloadSize) + 1
 	parcels := make([]Parcel, parcelCount)
 

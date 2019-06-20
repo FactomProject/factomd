@@ -202,7 +202,6 @@ func Peers(fnode *FactomNode) {
 
 				preReceiveTime := time.Now()
 
-
 				msg, err = peer.Receive()
 				if msg == nil {
 					// Receive is not blocking; nothing to do, we get a nil.
