@@ -568,7 +568,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		}
 	}
 	if len(config.App.EthereumAnchorRecordPublicKeys) > 0 {
-		err := s.GetDB().(*databaseOverlay.Overlay).SetBitcoinAnchorRecordPublicKeysFromHex(config.App.BitcoinAnchorRecordPublicKeys)
+		err := s.GetDB().(*databaseOverlay.Overlay).SetEthereumAnchorRecordPublicKeysFromHex(config.App.EthereumAnchorRecordPublicKeys)
 		if err != nil {
 			panic("Encountered an error while trying to set custom Ethereum anchor record keys from config")
 		}
