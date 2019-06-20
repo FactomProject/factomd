@@ -337,7 +337,6 @@ func Peers(fnode *FactomNode) {
 					} else if msg.Type() == constants.DBSTATE_MSG {
 						// notify the state that a new DBState has been recieved.
 						// TODO: send the msg to StatesReceived and only send to InMsgQueue when the next received message is ready.
-						fnode.State.StatesReceived.Notify <- msg.(*messages.DBStateMsg)
 						fnode.State.LogMessage("NetworkInputs", fromPeer+", enqueue", msg)
 						fnode.State.LogMessage("InMsgQueue", fromPeer+", enqueue", msg)
 						fnode.State.InMsgQueue().Enqueue(msg)
