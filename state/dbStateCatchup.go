@@ -47,6 +47,7 @@ func (list *DBStateList) Catchup() {
 			}
 			return false
 		}
+
 		for {
 			start := time.Now()
 			// get the height of the saved blocks
@@ -115,16 +116,21 @@ func (list *DBStateList) Catchup() {
 				}
 			}
 
+			// TODO: Better limit the number of asks based on what we already asked for.
+			// TODO: If implement that, ensure that we don't drop anything, as this covers any holes
+			// TODO:	that might be made
+			max := 3000 // Limit the number of new asks we will add for each iteration
 			// add all known states after the last received to the missing list
-			for n := received.Heighestreceived() + 1; n < hk; n++ {
+			for n := received.Heighestreceived() + 1; n < hk && max > 0; n++ {
+				max--
 				// missing.Notify <- NewMissingState(n)
 				r := notifyMissing(n)
 				list.State.LogPrintf("dbstatecatchup", "{hf} notify missing %d [%t]", n, r)
 			}
 
-			list.State.LogPrintf("dbstatecatchup", "height update took %s. Base:%d/%d, Wait [v_, ^%d, T%d], Miss[v%d, ^_, T%d], Rec[v%d, ^%d, T%d]",
+			list.State.LogPrintf("dbstatecatchup", "height update took %s. Base:%d/%d/%d, Wait [v_, ^%d, T%d], Miss[v%d, ^_, T%d], Rec[v%d, ^%d, T%d]",
 				time.Since(start),
-				received.Base(), list.State.GetDBHeightComplete(),
+				received.Base(), list.State.GetDBHeightComplete(), list.State.GetDBHeightAtBoot(),
 				getHeightSafe(waiting.GetEnd()), waiting.Len(),
 				getHeightSafe(missing.GetFront()), missing.Len(),
 				received.Base(), received.Heighestreceived(), received.List.Len())
