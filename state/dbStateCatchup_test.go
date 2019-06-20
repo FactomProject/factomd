@@ -9,6 +9,8 @@ import (
 
 	"math"
 
+	"container/list"
+
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/state"
@@ -19,17 +21,16 @@ type GenericList interface {
 	Len() int
 	Add(uint32)
 	Del(uint32)
-	Get(h uint32) GenericListItem
+	Get(h uint32) state.GenericListItem
 	Has(uint32) bool
+
+	// For testing
+	GetUnderyingList() *list.List
 }
 
 var _ GenericList = (*MissingOverrideList)(nil)
 var _ GenericList = (*RecievedOverrideList)(nil)
 var _ GenericList = (*WaitingOverrideList)(nil)
-
-type GenericListItem interface {
-	Height() uint32
-}
 
 type RecievedOverrideList struct {
 	*state.StatesReceived
@@ -46,7 +47,11 @@ func (l *RecievedOverrideList) Add(height uint32) {
 	l.StatesReceived.Add(height, msg)
 }
 
-func (l *RecievedOverrideList) Get(h uint32) GenericListItem {
+func (l *RecievedOverrideList) GetUnderyingList() *list.List {
+	return l.List
+}
+
+func (l *RecievedOverrideList) Get(h uint32) state.GenericListItem {
 	if v := l.StatesReceived.Get(h); v != nil {
 		return v
 	}
@@ -61,7 +66,11 @@ type MissingOverrideList struct {
 	*state.StatesMissing
 }
 
-func (l *MissingOverrideList) Get(h uint32) GenericListItem {
+func (l *MissingOverrideList) GetUnderyingList() *list.List {
+	return l.List
+}
+
+func (l *MissingOverrideList) Get(h uint32) state.GenericListItem {
 	if v := l.StatesMissing.Get(h); v != nil {
 		return v
 	}
@@ -77,7 +86,11 @@ type WaitingOverrideList struct {
 	*state.StatesWaiting
 }
 
-func (l *WaitingOverrideList) Get(h uint32) GenericListItem {
+func (l *WaitingOverrideList) GetUnderyingList() *list.List {
+	return l.List
+}
+
+func (l *WaitingOverrideList) Get(h uint32) state.GenericListItem {
 	if v := l.StatesWaiting.Get(h); v != nil {
 		return v
 	}
@@ -258,10 +271,35 @@ func testListThreadSafety(list GenericList, t *testing.T, testname string) {
 	// Unit test will panic if there is race conditions
 }
 
-// Testing list behavior
-func TestDBStateListAdditionsMissing(t *testing.T) {
-	list := state.NewStatesMissing()
+func TestWaitingListListAdditions(t *testing.T) {
+	t.Parallel()
 
+	list := state.NewStatesWaiting()
+	override := new(WaitingOverrideList)
+	override.StatesWaiting = list
+	testDBStateListAdditionsMissing(override, t, "TestWaitingListThreadSafety")
+}
+
+func TestRecievedListListAdditions(t *testing.T) {
+	t.Parallel()
+
+	list := state.NewStatesReceived()
+	override := new(RecievedOverrideList)
+	override.StatesReceived = list
+	testDBStateListAdditionsMissing(override, t, "TestRecievedListThreadSafety")
+}
+
+func TestMissingListListAdditions(t *testing.T) {
+	t.Parallel()
+
+	list := state.NewStatesMissing()
+	override := new(MissingOverrideList)
+	override.StatesMissing = list
+	testDBStateListAdditionsMissing(override, t, "TestMissingListThreadSafety")
+}
+
+// Testing list behavior
+func testDBStateListAdditionsMissing(list GenericList, t *testing.T, testname string) {
 	// Check overlapping adds and out of order
 	for i := 50; i < 100; i++ {
 		list.Add(uint32(i))
@@ -283,14 +321,19 @@ func TestDBStateListAdditionsMissing(t *testing.T) {
 		}
 	}
 
+	uList := list.GetUnderyingList()
+
 	// Check sorted list
+	h := uList.Front()
 	for i := 0; i < 100; i++ {
-		if h := list.GetNext(); h.Height() != uint32(i) {
-			t.Errorf("Exp %d, found %d", i, h.Height())
+		hI := h.Value.(state.GenericListItem)
+		if hI.Height() != uint32(i) {
+			t.Errorf("Exp %d, found %d", i, hI.Height())
 		}
+		h = h.Next()
 	}
 
-	if list.Len() != 0 {
-		t.Errorf("Exp len of 0, found %d", list.Len())
-	}
+	//if list.Len() != 0 {
+	//	t.Errorf("Exp len of 0, found %d", list.Len())
+	//}
 }

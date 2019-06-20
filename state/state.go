@@ -792,13 +792,12 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		s.ControlPanelPort = cfg.App.ControlPanelPort
 		s.RpcUser = cfg.App.FactomdRpcUser
 		s.RpcPass = cfg.App.FactomdRpcPass
-		// if RequestTimeout is not set by the configuration set it to 1/10th of the block time by default
-		if cfg.App.RequestTimeout == 0 {
-			s.RequestTimeout = time.Duration(cfg.App.DirectoryBlockInSeconds/10) * time.Second
-		} else {
-			s.RequestTimeout = time.Duration(cfg.App.RequestTimeout) * time.Second
-		}
+		// if RequestTimeout is not set by the configuration it will default to 0.
+		//		If it is 0, the loop that uses it will set it to the blocktime/10
+		//		We set it there, as blktime might change after this function (from mainnet selection)
+		s.RequestTimeout = time.Duration(cfg.App.RequestTimeout) * time.Second
 		s.RequestLimit = cfg.App.RequestLimit
+
 		s.StateSaverStruct.FastBoot = cfg.App.FastBoot
 		s.StateSaverStruct.FastBootLocation = cfg.App.FastBootLocation
 		s.FastBoot = cfg.App.FastBoot
@@ -1015,8 +1014,6 @@ func (s *State) Init() {
 	s.StatesWaiting = NewStatesWaiting()
 	s.StatesReceived = NewStatesReceived()
 
-	s.DBStates.Catchup()
-
 	switch s.NodeMode {
 	case "FULL":
 		s.Leader = false
@@ -1105,6 +1102,9 @@ func (s *State) Init() {
 	s.Println("\nRunning on the ", s.Network, "Network")
 	s.Println("\nExchange rate chain id set to ", s.FERChainId)
 	s.Println("\nExchange rate Authority Public Key set to ", s.ExchangeRateAuthorityPublicKey)
+
+	// We want this run after the network settings are configured
+	s.DBStates.Catchup()
 
 	s.AuditHeartBeats = make([]interfaces.IMsg, 0)
 

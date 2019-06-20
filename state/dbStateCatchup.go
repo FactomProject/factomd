@@ -9,8 +9,21 @@ import (
 	"sync"
 	"time"
 
+	"reflect"
+
 	"github.com/FactomProject/factomd/common/messages"
 )
+
+type GenericListItem interface {
+	Height() uint32
+}
+
+func getHeightSafe(i GenericListItem) int {
+	if i == nil || reflect.ValueOf(i).IsNil() {
+		return -1
+	}
+	return int(i.Height())
+}
 
 func (list *DBStateList) Catchup() {
 	missing := list.State.StatesMissing
@@ -18,24 +31,30 @@ func (list *DBStateList) Catchup() {
 	received := list.State.StatesReceived
 
 	requestTimeout := list.State.RequestTimeout
+	if requestTimeout < 1*time.Second {
+		requestTimeout = time.Duration(list.State.GetDirectoryBlockInSeconds()/10) * time.Second
+	}
 	requestLimit := list.State.RequestLimit
 
 	// keep the lists up to date with the saved states.
 	go func() {
 		// Notify missing will add the height to the missing
 		// if it is not received and not already requested.
-		notifyMissing := func(n uint32) {
-			if received.Get(n) == nil {
-				if !waiting.Has(n) {
-					missing.Add(n)
-				}
+		notifyMissing := func(n uint32) bool {
+			if !waiting.Has(n) {
+				missing.Add(n)
+				return true
 			}
+			return false
 		}
 		for {
+			start := time.Now()
 			// get the height of the saved blocks
 			hs := func() uint32 {
 				// get the current block being built
-				l := list.State.GetLLeaderHeight()
+				//l := list.State.GetLLeaderHeight()
+				l := list.State.GetDBHeightComplete()
+
 				// get the hightest block in the database
 				b := list.State.GetDBHeightAtBoot()
 
@@ -68,45 +87,47 @@ func (list *DBStateList) Catchup() {
 			}()
 
 			if received.Base() < hs {
+				list.State.LogPrintf("dbstatecatchup", "Received base set to %d", hs)
 				received.SetBase(hs)
 			}
 
-			// TODO: removing missing and waiting states could be done in parallel.
-			// remove any states from the missing list that have been saved.
-			for e := missing.List.Front(); e != nil; e = e.Next() {
-				s := e.Value.(*MissingState)
-				if received.Has(s.Height()) {
-					missing.Del(s.Height())
-				}
-			}
-
-			// remove any states from the waiting list that have been saved.
-			for e := waiting.List.Front(); e != nil; e = e.Next() {
-				s := e.Value.(*WaitingState)
-				if received.Has(s.Height()) {
-					waiting.Del(s.Height())
-				}
+			receivedSlice := received.ListAsSlice()
+			// TODO: Rewrite to stop redudundent looping over missing/waiting list
+			// TODO: for each delete
+			for _, h := range receivedSlice {
+				list.State.LogPrintf("dbstatecatchup", "missing & waiting delete %d", h)
+				// remove any states from the missing list that have been saved.
+				missing.del(h)
+				// remove any states from the waiting list that have been saved.
+				waiting.Del(h)
 			}
 
 			// find gaps in the received list
-			for e := received.List.Front(); e != nil; e = e.Next() {
+			for i := 0; i < len(receivedSlice)-1; i++ {
+				h := receivedSlice[i]
 				// if the height of the next received state is not equal to the
 				// height of the current received state plus one then there is a
 				// gap in the received state list.
-				if e.Next() != nil {
-					for n := e.Value.(*ReceivedState).Height(); n+1 < e.Next().Value.(*ReceivedState).Height(); n++ {
-						// missing.Notify <- NewMissingState(n + 1)
-						notifyMissing(n + 1)
-					}
+				for n := h; n+1 < receivedSlice[i+1]; n++ {
+					// missing.Notify <- NewMissingState(n + 1)
+					r := notifyMissing(n + 1)
+					list.State.LogPrintf("dbstatecatchup", "{gf} notify missing %d [%t]", n, r)
 				}
 			}
 
 			// add all known states after the last received to the missing list
 			for n := received.Heighestreceived() + 1; n < hk; n++ {
 				// missing.Notify <- NewMissingState(n)
-				notifyMissing(n)
+				r := notifyMissing(n)
+				list.State.LogPrintf("dbstatecatchup", "{hf} notify missing %d [%t]", n, r)
 			}
 
+			list.State.LogPrintf("dbstatecatchup", "height update took %s. Base:%d/%d, Wait [v_, ^%d, T%d], Miss[v%d, ^_, T%d], Rec[v%d, ^%d, T%d]",
+				time.Since(start),
+				received.Base(), list.State.GetDBHeightComplete(),
+				getHeightSafe(waiting.GetEnd()), waiting.Len(),
+				getHeightSafe(missing.GetFront()), missing.Len(),
+				received.Base(), received.Heighestreceived(), received.List.Len())
 			time.Sleep(5 * time.Second)
 		}
 	}()
@@ -115,11 +136,13 @@ func (list *DBStateList) Catchup() {
 	// into the missing list.
 	go func() {
 		for {
-			for e := waiting.List.Front(); e != nil; e = e.Next() {
-				s := e.Value.(*WaitingState)
+			waitingSlice := waiting.ListAsSlice()
+			//for e := waiting.List.Front(); e != nil; e = e.Next() {
+			for _, s := range waitingSlice {
 				if s.RequestAge() > requestTimeout {
 					waiting.Del(s.Height())
 					if received.Get(s.Height()) == nil {
+						list.State.LogPrintf("dbstatecatchup", "request timeout : waiting -> missing %d", s.Height())
 						missing.Add(s.Height())
 					}
 					// missing.Notify <- NewMissingState(s.Height())
@@ -147,6 +170,7 @@ func (list *DBStateList) Catchup() {
 			case m := <-received.Notify:
 				s := NewReceivedState(m)
 				if s != nil {
+					list.State.LogPrintf("dbstatecatchup", "dbstate received : missing & waiting delete, received add %d", s.Height())
 					missing.Del(s.Height())
 					waiting.Del(s.Height())
 					received.Add(s.Height(), s.Message())
@@ -176,6 +200,7 @@ func (list *DBStateList) Catchup() {
 				msg.SendOut(list.State, msg)
 				list.State.DBStateAskCnt += int(e-b) + 1 // Total number of dbstates requested
 				for i := b; i <= e; i++ {
+					list.State.LogPrintf("dbstatecatchup", "dbstate requested : missing -> waiting %d", i)
 					missing.Del(i)
 					waiting.Add(i)
 				}
@@ -186,6 +211,7 @@ func (list *DBStateList) Catchup() {
 				w := waiting.GetEnd()
 				if m != nil && w != nil {
 					if m.Height() < w.Height() {
+						list.State.LogPrintf("dbstatecatchup", "waiting delete, cleanup %d", w.Height())
 						waiting.Del(w.Height())
 					}
 				}
@@ -257,6 +283,7 @@ func (l *StatesMissing) Del(height uint32) {
 }
 
 func (l *StatesMissing) del(height uint32) {
+	// del does not lock the mutex, if called from another top level func
 	if l == nil {
 		return
 	}
@@ -270,6 +297,8 @@ func (l *StatesMissing) del(height uint32) {
 }
 
 func (l *StatesMissing) Get(height uint32) *MissingState {
+	// We want to lock here, as something can be deleted/added as we are iterating
+	// and mess up our for loop
 	l.lock.Lock()
 	defer l.lock.Unlock()
 
@@ -283,6 +312,8 @@ func (l *StatesMissing) Get(height uint32) *MissingState {
 }
 
 func (l *StatesMissing) GetFront() *MissingState {
+	// We want to lock here, as we first check the length, then grab the root.
+	// the root could be deleted after we checked the len.
 	l.lock.Lock()
 	defer l.lock.Unlock()
 
@@ -303,6 +334,8 @@ func (l *StatesMissing) Len() int {
 // NextConsecutiveMissing returns the heights of the the next n or fewer
 // consecutive missing states
 func (l *StatesMissing) NextConsecutiveMissing(n int) (uint32, uint32) {
+	// We want to lock here, as something can be deleted/added as we are iterating
+	// and mess up our for loop
 	l.lock.Lock()
 	defer l.lock.Unlock()
 
@@ -330,6 +363,8 @@ func (l *StatesMissing) NextConsecutiveMissing(n int) (uint32, uint32) {
 
 // GetNext pops the next MissingState from the list.
 func (l *StatesMissing) GetNext() *MissingState {
+	// We want to lock here, as we first check the length, then grab the root.
+	// the root could be deleted after we checked the len.
 	l.lock.Lock()
 	defer l.lock.Unlock()
 
@@ -380,6 +415,21 @@ func NewStatesWaiting() *StatesWaiting {
 	return l
 }
 
+func (l *StatesWaiting) ListAsSlice() []*WaitingState {
+	// Lock as we are iterating
+	l.lock.Lock()
+	defer l.lock.Unlock()
+
+	slice := make([]*WaitingState, l.List.Len())
+	i := 0
+	for e := l.List.Front(); e != nil; e = e.Next() {
+		slice[i] = e.Value.(*WaitingState)
+		i++
+	}
+	return slice
+
+}
+
 func (l *StatesWaiting) Add(height uint32) {
 	l.lock.Lock()
 	defer l.lock.Unlock()
@@ -415,6 +465,8 @@ func (l *StatesWaiting) Del(height uint32) {
 }
 
 func (l *StatesWaiting) Get(height uint32) *WaitingState {
+	// We want to lock here, as something can be deleted/added as we are iterating
+	// and mess up our for loop
 	l.lock.Lock()
 	defer l.lock.Unlock()
 
@@ -428,6 +480,8 @@ func (l *StatesWaiting) Get(height uint32) *WaitingState {
 }
 
 func (l *StatesWaiting) GetEnd() *WaitingState {
+	// We want to lock here, as check the length then grab the root.
+	// The root could be deleted after we checked for the length
 	l.lock.Lock()
 	defer l.lock.Unlock()
 
@@ -442,6 +496,8 @@ func (l *StatesWaiting) GetEnd() *WaitingState {
 }
 
 func (l *StatesWaiting) Has(height uint32) bool {
+	// We want to lock here, as something can be deleted/added as we are iterating
+	// and mess up our for loop
 	l.lock.Lock()
 	defer l.lock.Unlock()
 
@@ -531,6 +587,8 @@ func (l *StatesReceived) setBase(height uint32) {
 
 // Heighestreceived returns the height of the last member in StatesReceived
 func (l *StatesReceived) Heighestreceived() uint32 {
+	// We want to lock here, as we first check the length, then grab the root.
+	// the root could be deleted after we checked the len.
 	l.lock.Lock()
 	defer l.lock.Unlock()
 
@@ -543,6 +601,22 @@ func (l *StatesReceived) Heighestreceived() uint32 {
 		return l.Base()
 	}
 	return height
+}
+
+// ListAsSlice will return the list as a slice
+// to be iterated over in a threadsafe manner.
+func (l *StatesReceived) ListAsSlice() []uint32 {
+	// Lock as we are iterating
+	l.lock.Lock()
+	defer l.lock.Unlock()
+
+	slice := make([]uint32, l.List.Len())
+	i := 0
+	for e := l.List.Front(); e != nil; e = e.Next() {
+		slice[i] = e.Value.(*ReceivedState).Height()
+		i++
+	}
+	return slice
 }
 
 // Add adds a new received state to the list.
@@ -589,15 +663,16 @@ func (l *StatesReceived) Del(height uint32) {
 
 // Get returns a member from the StatesReceived list
 func (l *StatesReceived) Get(height uint32) *ReceivedState {
+	// We want to lock here, as something can be deleted/added as we are iterating
+	// and mess up our for loop
 	l.lock.Lock()
 	defer l.lock.Unlock()
 
 	for e := l.List.Back(); e != nil; e = e.Prev() {
 		s := e.Value.(*ReceivedState)
-		if s == nil {
-			return nil
-		}
+		if height > s.Height() {
 
+		}
 		if s.Height() == height {
 			return s
 		}
@@ -607,6 +682,8 @@ func (l *StatesReceived) Get(height uint32) *ReceivedState {
 }
 
 func (l *StatesReceived) Has(height uint32) bool {
+	// We want to lock here, as something can be deleted/added as we are iterating
+	// and mess up our for loop
 	l.lock.Lock()
 	defer l.lock.Unlock()
 
