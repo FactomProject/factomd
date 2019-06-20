@@ -58,7 +58,6 @@ func checkForChangesInDebugRegex() {
 		globals.Params.DebugLogLocation = dirlocation
 		globals.Params.DebugLogRegEx = regex
 
-		// Do parsing here!
 		TestRegex = nil // throw away the old regex
 		globals.LastDebugLogRegEx = globals.Params.DebugLogRegEx
 	}
