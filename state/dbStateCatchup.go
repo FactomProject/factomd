@@ -25,6 +25,8 @@ func getHeightSafe(i GenericListItem) int {
 	return int(i.Height())
 }
 
+// TODO: Redesign Catchup. Some assumptions were made that made this more
+// TODO: complex than it neeeded to be.
 func (list *DBStateList) Catchup() {
 	missing := list.State.StatesMissing
 	waiting := list.State.StatesWaiting
@@ -52,27 +54,27 @@ func (list *DBStateList) Catchup() {
 			start := time.Now()
 			// get the height of the saved blocks
 			hs := func() uint32 {
-				// get the current block being built
-				//l := list.State.GetLLeaderHeight()
-				l := list.State.GetHighestSavedBlk()
+				// Sets the floor for what we will be requesting
+				// AKA : What we have. In reality the receivedlist should
+				// indicate that we have it, however, because a dbstate
+				// is not fully validated before we get it, we cannot
+				// assume that.
+				floor := uint32(0)
+				// Once it is in the db, we can assume it's all good.
+				if d, err := list.State.DB.FetchDBlockHead(); err == nil && d != nil {
+					floor = d.GetDatabaseHeight() // If it is in our db, let's make sure to stop asking
+				}
 
-				// get the hightest block in the database
+				list.State.LogPrintf("dbstatecatchup", "Floor diff %d / %d", list.State.GetHighestSavedBlk(), floor)
+
+				// get the hightest block in the database at boot
 				b := list.State.GetDBHeightAtBoot()
 
 				// don't request states that are in the database at boot time
-				if b > l {
+				if b > floor {
 					return b
 				}
-
-				// if it is minute 0 don't request the prev block that hasn't
-				// been saved yet (l-1)
-				if list.State.GetCurrentMinute() == 0 {
-					if l < 2 {
-						return 0
-					}
-					return l - 2
-				}
-				return l - 1
+				return floor
 			}()
 
 			// get the hight of the known blocks
@@ -84,9 +86,13 @@ func (list *DBStateList) Catchup() {
 				if k > a+2 {
 					return k
 				}
-				return a
+				if a == 0 {
+					return a
+				}
+				return a - 1 // Acks are for height + 1 (sometimes +2 in min 0)
 			}()
 
+			// The base means anything below we can toss
 			base := received.Base()
 			if base < hs {
 				list.State.LogPrintf("dbstatecatchup", "Received base set to %d", hs)
@@ -95,21 +101,27 @@ func (list *DBStateList) Catchup() {
 			}
 
 			receivedSlice := received.ListAsSlice()
+
+			// When we pull the slice, we might be able to trim the receivedSlice for the next loop
+			sliceKeep := 0
 			// TODO: Rewrite to stop redudundent looping over missing/waiting list
-			// TODO: for each delete
-			for _, h := range receivedSlice {
+			// TODO: for each delete. It shouldn't be too bad atm, as most things are in order.
+			for i, h := range receivedSlice {
 				list.State.LogPrintf("dbstatecatchup", "missing & waiting delete %d", h)
 				// remove any states from the missing list that have been saved.
 				missing.del(h)
 				// remove any states from the waiting list that have been saved.
 				waiting.Del(h)
+				// Clean our our received list as well.
 				if h <= base {
+					sliceKeep = i
 					received.Del(h)
 				}
 			}
 
 			// find gaps in the received list
-			for i := 0; i < len(receivedSlice)-1; i++ {
+			// we can start at `sliceKeep` because everything below it was removed
+			for i := sliceKeep; i < len(receivedSlice)-1; i++ {
 				h := receivedSlice[i]
 				// if the height of the next received state is not equal to the
 				// height of the current received state plus one then there is a
@@ -122,7 +134,7 @@ func (list *DBStateList) Catchup() {
 			}
 
 			// TODO: Better limit the number of asks based on what we already asked for.
-			// TODO: If implement that, ensure that we don't drop anything, as this covers any holes
+			// TODO: If we implement that, ensure that we don't drop anything, as this covers any holes
 			// TODO:	that might be made
 			max := 3000 // Limit the number of new asks we will add for each iteration
 			// add all known states after the last received to the missing list
@@ -130,7 +142,7 @@ func (list *DBStateList) Catchup() {
 				max--
 				// missing.Notify <- NewMissingState(n)
 				r := notifyMissing(n)
-				list.State.LogPrintf("dbstatecatchup", "{hf} notify missing %d [%t]", n, r)
+				list.State.LogPrintf("dbstatecatchup", "{hf (%d, %d)} notify missing %d [%t]", hk, max, n, r)
 			}
 
 			list.State.LogPrintf("dbstatecatchup", "height update took %s. Base:%d/%d/%d, Miss[v%d, ^_, T%d], Wait [v_, ^%d, T%d], Rec[v%d, ^%d, T%d]",
@@ -162,7 +174,6 @@ func (list *DBStateList) Catchup() {
 						list.State.LogPrintf("dbstatecatchup", "request timeout : waiting -> missing %d", s.Height())
 						missing.Add(s.Height())
 					}
-					// missing.Notify <- NewMissingState(s.Height())
 				}
 			}
 
@@ -170,20 +181,10 @@ func (list *DBStateList) Catchup() {
 		}
 	}()
 
-	// manage the state lists
+	// manage received dbstates
 	go func() {
 		for {
 			select {
-			// case s := <-missing.Notify:
-			// 	if received.Get(s.Height()) == nil {
-			// 		if !waiting.Has(s.Height()) {
-			// 			missing.Add(s.Height())
-			// 		}
-			// 	}
-			// case s := <-waiting.Notify:
-			// 	if !waiting.Has(s.Height()) {
-			// 		waiting.Add(s.Height())
-			// 	}
 			case m := <-received.Notify:
 				s := NewReceivedState(m)
 				if s != nil {
@@ -256,9 +257,6 @@ func NewMissingState(height uint32) *MissingState {
 func (s *MissingState) Height() uint32 {
 	return s.height
 }
-
-// TODO: if StatesMissing takes a long time to seek through the list we should
-// replace the iteration with binary search
 
 type StatesMissing struct {
 	List *list.List
@@ -644,6 +642,12 @@ func (l *StatesReceived) Add(height uint32, msg *messages.DBStateMsg) {
 
 	l.lock.Lock()
 	defer l.lock.Unlock()
+
+	if height < l.base {
+		// We already know we had this height
+		// This should really never happen
+		return
+	}
 
 	for e := l.List.Back(); e != nil; e = e.Prev() {
 		s := e.Value.(*ReceivedState)
