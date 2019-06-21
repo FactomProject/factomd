@@ -51,12 +51,7 @@ func checkFileName(name string) bool {
 func checkForChangesInDebugRegex() {
 	// if  the regex string has changed ...
 	if globals.Params.DebugLogRegEx != globals.LastDebugLogRegEx {
-		lastSlashIndex := strings.LastIndex(globals.Params.DebugLogRegEx, string(os.PathSeparator))
-
-		regex := globals.Params.DebugLogRegEx[lastSlashIndex+1:]
-		dirlocation := globals.Params.DebugLogRegEx[0 : lastSlashIndex+1]
-		globals.Params.DebugLogLocation = dirlocation
-		globals.Params.DebugLogRegEx = regex
+		globals.Params.DebugLogLocation, globals.Params.DebugLogRegEx = SplitUpDebugLogRegEx(globals.Params.DebugLogRegEx)
 
 		TestRegex = nil // throw away the old regex
 		globals.LastDebugLogRegEx = globals.Params.DebugLogRegEx
@@ -75,6 +70,13 @@ func checkForChangesInDebugRegex() {
 		TestRegex = theRegex
 	}
 	globals.LastDebugLogRegEx = globals.Params.DebugLogRegEx
+}
+
+func SplitUpDebugLogRegEx(DebugLogRegEx string) (string, string) {
+	lastSlashIndex := strings.LastIndex(DebugLogRegEx, string(os.PathSeparator))
+	regex := DebugLogRegEx[lastSlashIndex+1:]
+	dirlocation := DebugLogRegEx[0 : lastSlashIndex+1]
+	return dirlocation, regex
 }
 
 // assumes traceMutex is locked already
