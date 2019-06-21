@@ -25,14 +25,16 @@ func getHeightSafe(i GenericListItem) int {
 	return int(i.Height())
 }
 
+func waitForLoaded(s *State) {
+	// Don't start until the db is finished loading.
+	for !s.DBFinished {
+		time.Sleep(1 * time.Second)
+	}
+}
+
 // TODO: Redesign Catchup. Some assumptions were made that made this more
 // TODO: complex than it neeeded to be.
 func (list *DBStateList) Catchup() {
-	// Don't start until the db is finished loading.
-	for !list.State.DBFinished {
-		time.Sleep(1 * time.Second)
-	}
-
 	missing := list.State.StatesMissing
 	waiting := list.State.StatesWaiting
 	received := list.State.StatesReceived
@@ -46,6 +48,9 @@ func (list *DBStateList) Catchup() {
 		list.State.RequestTimeout = requestTimeout
 	}
 	requestLimit := list.State.RequestLimit
+
+	// Wait for db to be loaded
+	waitForLoaded(list.State)
 
 	// keep the lists up to date with the saved states.
 	go func() {

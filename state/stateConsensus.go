@@ -1223,7 +1223,9 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	s.Saving = true
 
 	// At this point the block is good, make sure not to ask for it anymore
-	s.StatesReceived.Notify <- msg.(*messages.DBStateMsg)
+	if !dbstatemsg.IsInDB {
+		s.StatesReceived.Notify <- msg.(*messages.DBStateMsg)
+	}
 	s.DBStates.UpdateState()
 
 }

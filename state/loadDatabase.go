@@ -101,7 +101,7 @@ func LoadDatabase(s *State) {
 			// TODO: Should this block if we get dbstates from the future?
 			if s.InMsgQueue().Length() > 200 || len(s.DBStatesReceived) > 50 {
 				for s.InMsgQueue().Length() > 50 || len(s.DBStatesReceived) > 50 {
-					s.LogPrintf("InMsgQueue", "LoadDatabase1 blocked for 100ms :: %d - %d", s.InMsgQueue().Length(), len(s.DBStatesReceived))
+					s.LogPrintf("dbstatecatchup", "LoadDatabase1 blocked for 100ms :: %d - %d", s.InMsgQueue().Length(), len(s.DBStatesReceived))
 					time.Sleep(100 * time.Millisecond)
 				}
 			}
