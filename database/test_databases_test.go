@@ -9,6 +9,13 @@ import (
 	"os"
 	"testing"
 
+	"reflect"
+
+	"time"
+
+	"sync"
+
+	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/primitives/random"
@@ -51,9 +58,21 @@ var _ interfaces.BinaryMarshallable = (*TestData)(nil)
 
 var dbFilename = "testdb"
 
+func TestAllDatabase(t *testing.T) {
+	// Level
+	m, err := leveldb.NewLevelDB(dbFilename, true)
+	if err != nil {
+		t.Error(err)
+	}
+	testNilRetreive(t, m)
+	CleanupTest(t, m)
+}
+
 func TestAllDatabases(t *testing.T) {
+	totalTests := 5
+
 	// Secure Bolt
-	for i := 0; i < 5; i++ {
+	for i := 0; i < totalTests; i++ {
 		m, err := securedb.NewEncryptedDB(dbFilename, "Bolt", random.RandomString())
 		if err != nil {
 			t.Error(err)
@@ -63,7 +82,7 @@ func TestAllDatabases(t *testing.T) {
 	}
 
 	// Secure LDB
-	for i := 0; i < 5; i++ {
+	for i := 0; i < totalTests; i++ {
 		m, err := securedb.NewEncryptedDB(dbFilename, "LDB", random.RandomString())
 		if err != nil {
 			t.Error(err)
@@ -73,7 +92,7 @@ func TestAllDatabases(t *testing.T) {
 	}
 
 	// Secure Map
-	for i := 0; i < 5; i++ {
+	for i := 0; i < totalTests; i++ {
 		m, err := securedb.NewEncryptedDB(dbFilename, "Map", random.RandomString())
 		if err != nil {
 			t.Error(err)
@@ -83,14 +102,14 @@ func TestAllDatabases(t *testing.T) {
 	}
 
 	// Bolt
-	for i := 0; i < 5; i++ {
+	for i := 0; i < totalTests; i++ {
 		m := boltdb.NewBoltDB(nil, dbFilename)
 		testDB(t, m, i)
 		CleanupTest(t, m)
 	}
 
 	// Level
-	for i := 0; i < 5; i++ {
+	for i := 0; i < totalTests; i++ {
 		m, err := leveldb.NewLevelDB(dbFilename, true)
 		if err != nil {
 			t.Error(err)
@@ -100,7 +119,7 @@ func TestAllDatabases(t *testing.T) {
 	}
 
 	// Map
-	for i := 0; i < 5; i++ {
+	for i := 0; i < totalTests; i++ {
 		m := new(mapdb.MapDB)
 		testDB(t, m, i)
 		CleanupTest(t, m)
@@ -117,6 +136,8 @@ func testDB(t *testing.T, m interfaces.IDatabase, i int) {
 		testDoesKeyExist(t, m)
 	case 3:
 		testGetAll(t, m)
+	case 4:
+		testNilRetreive(t, m)
 	}
 }
 
@@ -290,4 +311,81 @@ func testGetAll(t *testing.T, m interfaces.IDatabase) {
 			t.Errorf("Wrong key length at index %v - %v", i, len(keys[i]))
 		}
 	}
+}
+
+func testNilRetreive(t *testing.T, m interfaces.IDatabase) {
+	o := databaseOverlay.NewOverlay(m)
+	//totalEntries := 10000
+
+	g := sync.WaitGroup{}
+
+	writer := func(s, l int) { // Writes
+		g.Add(1)
+		for k, _ := range filledMap(s, l) {
+			err := o.InsertEntry(entryBlock.DeterministicEntry(k))
+			if err != nil {
+				t.Errorf("%s", err.Error())
+			}
+			time.Sleep(5 * time.Millisecond)
+		}
+		g.Done()
+	}
+
+	reader := func(s, l int) { // Reads
+		g.Add(1)
+		for k, _ := range filledMap(s, l) {
+			f_e, err := o.FetchEntry(entryBlock.DeterministicEntry(k).GetHash())
+			if err != nil {
+				t.Errorf("%s", err.Error())
+			}
+			if f_e != nil && reflect.ValueOf(f_e).IsNil() {
+				t.Errorf("Expected a nil, got %v", f_e)
+			}
+			time.Sleep(5 * time.Millisecond)
+		}
+		g.Done()
+	}
+
+	for i := 0; i < 3; i++ {
+		go writer(0, 1000)
+		go writer(0, 10000)
+		go writer(0, 10000)
+
+		// Add contention on 0-1k
+		go reader(0, 1000)
+		go reader(0, 1000)
+		go reader(0, 1000)
+		go reader(0, 10000)
+		go reader(0, 10000)
+	}
+	// Kinda kulgy, but each goroutine adds itself to wait group.
+	// Give them a chance to add themselves
+	time.Sleep(10 * time.Millisecond)
+
+	g.Wait()
+
+	e := entryBlock.RandomEntry()
+	f_e, err := o.FetchEntry(e.GetHash())
+	if f_e != nil && reflect.ValueOf(f_e).IsNil() {
+		t.Errorf("Expected a nil, got %v", f_e)
+	}
+
+	err = o.InsertEntry(e)
+	if err != nil {
+		t.Errorf("%s", err.Error())
+	}
+
+	f_e, err = o.FetchEntry(e.GetHash())
+	if f_e != nil && reflect.ValueOf(f_e).IsNil() {
+		t.Errorf("Expected a nil, got %v", f_e)
+	}
+
+}
+
+func filledMap(start, length int) map[int]struct{} {
+	avail := make(map[int]struct{})
+	for i := start; i < start+length; i++ {
+		avail[i] = struct{}{}
+	}
+	return avail
 }
