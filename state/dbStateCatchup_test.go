@@ -142,7 +142,7 @@ func testListThreadSafety(list GenericList, t *testing.T, testname string) {
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
-				// This thread will panic on close. Just a support thread
+				// This thread will panic on r_close. Just a support thread
 			}
 		}()
 
