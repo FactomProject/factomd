@@ -58,8 +58,8 @@ var _ interfaces.BinaryMarshallable = (*TestData)(nil)
 
 var dbFilename = "testdb"
 
-func TestAllDatabase(t *testing.T) {
-	// Level
+func TestOneDatabase(t *testing.T) {
+	// Testing level
 	m, err := leveldb.NewLevelDB(dbFilename, true)
 	if err != nil {
 		t.Error(err)
@@ -69,7 +69,7 @@ func TestAllDatabase(t *testing.T) {
 }
 
 func TestAllDatabases(t *testing.T) {
-	totalTests := 5
+	totalTests := 4
 
 	// Secure Bolt
 	for i := 0; i < totalTests; i++ {
@@ -80,6 +80,7 @@ func TestAllDatabases(t *testing.T) {
 		testDB(t, m, i)
 		CleanupTest(t, m)
 	}
+	t.Log("Finished Secure Bolt DB (1/6)")
 
 	// Secure LDB
 	for i := 0; i < totalTests; i++ {
@@ -90,6 +91,7 @@ func TestAllDatabases(t *testing.T) {
 		testDB(t, m, i)
 		CleanupTest(t, m)
 	}
+	t.Log("Finished Secure LDB (2/6)")
 
 	// Secure Map
 	for i := 0; i < totalTests; i++ {
@@ -100,6 +102,7 @@ func TestAllDatabases(t *testing.T) {
 		testDB(t, m, i)
 		CleanupTest(t, m)
 	}
+	t.Log("Finished Secure Map (3/6)")
 
 	// Bolt
 	for i := 0; i < totalTests; i++ {
@@ -107,6 +110,7 @@ func TestAllDatabases(t *testing.T) {
 		testDB(t, m, i)
 		CleanupTest(t, m)
 	}
+	t.Log("Finished Bolt DB (4/6)")
 
 	// Level
 	for i := 0; i < totalTests; i++ {
@@ -117,6 +121,7 @@ func TestAllDatabases(t *testing.T) {
 		testDB(t, m, i)
 		CleanupTest(t, m)
 	}
+	t.Log("Finished LDB (5/6)")
 
 	// Map
 	for i := 0; i < totalTests; i++ {
@@ -124,6 +129,7 @@ func TestAllDatabases(t *testing.T) {
 		testDB(t, m, i)
 		CleanupTest(t, m)
 	}
+	t.Log("Finished Map (3/6)")
 }
 
 func testDB(t *testing.T, m interfaces.IDatabase, i int) {
@@ -136,8 +142,6 @@ func testDB(t *testing.T, m interfaces.IDatabase, i int) {
 		testDoesKeyExist(t, m)
 	case 3:
 		testGetAll(t, m)
-	case 4:
-		testNilRetreive(t, m)
 	}
 }
 
@@ -322,7 +326,8 @@ func testNilRetreive(t *testing.T, m interfaces.IDatabase) {
 	writer := func(s, l int) { // Writes
 		g.Add(1)
 		for k, _ := range filledMap(s, l) {
-			err := o.InsertEntry(entryBlock.DeterministicEntry(k))
+			e := entryBlock.DeterministicEntry(k)
+			err := o.InsertEntry(e)
 			if err != nil {
 				t.Errorf("%s", err.Error())
 			}
@@ -347,16 +352,16 @@ func testNilRetreive(t *testing.T, m interfaces.IDatabase) {
 	}
 
 	for i := 0; i < 3; i++ {
-		go writer(0, 1000)
-		go writer(0, 10000)
-		go writer(0, 10000)
+		go writer(0, 100)
+		go writer(0, 200)
+		go writer(0, 200)
 
 		// Add contention on 0-1k
-		go reader(0, 1000)
-		go reader(0, 1000)
-		go reader(0, 1000)
-		go reader(0, 10000)
-		go reader(0, 10000)
+		go reader(0, 100)
+		go reader(0, 100)
+		go reader(0, 100)
+		go reader(0, 200)
+		go reader(0, 200)
 	}
 	// Kinda kulgy, but each goroutine adds itself to wait group.
 	// Give them a chance to add themselves
