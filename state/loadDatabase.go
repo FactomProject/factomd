@@ -43,6 +43,7 @@ func LoadDatabase(s *State) {
 	}
 	// prevent MMR processing from happening for blocks being loaded from the database
 	s.DBHeightAtBoot = blkCnt
+	fmt.Fprintf(os.Stderr, "%20s Loading blocks from disk. Database load going from %d (savestate) to %d (disk)\n", s.GetFactomNodeName(), s.GetDBHeightComplete(), s.DBHeightAtBoot)
 
 	first := time.Now()
 	last := first
@@ -97,8 +98,10 @@ func LoadDatabase(s *State) {
 			s.LogMessage("InMsgQueue", "enqueue_LoadDatabase1", msg)
 			msg.SetLocal(true)
 			s.InMsgQueue().Enqueue(msg)
+			// TODO: Should this block if we get dbstates from the future?
 			if s.InMsgQueue().Length() > 200 || len(s.DBStatesReceived) > 50 {
 				for s.InMsgQueue().Length() > 50 || len(s.DBStatesReceived) > 50 {
+					s.LogPrintf("InMsgQueue", "LoadDatabase1 blocked for 100ms :: %d - %d", s.InMsgQueue().Length(), len(s.DBStatesReceived))
 					time.Sleep(100 * time.Millisecond)
 				}
 			}

@@ -1104,7 +1104,7 @@ func (s *State) Init() {
 	s.Println("\nExchange rate Authority Public Key set to ", s.ExchangeRateAuthorityPublicKey)
 
 	// We want this run after the network settings are configured
-	s.DBStates.Catchup()
+	go s.DBStates.Catchup() // Launch in go routine as it blocks until we are synced from disk
 
 	s.AuditHeartBeats = make([]interfaces.IMsg, 0)
 
