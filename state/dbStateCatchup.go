@@ -33,8 +33,11 @@ func (list *DBStateList) Catchup() {
 	received := list.State.StatesReceived
 
 	requestTimeout := list.State.RequestTimeout
-	if requestTimeout < 1*time.Second {
-		requestTimeout = time.Duration(list.State.GetDirectoryBlockInSeconds()/10) * time.Second
+	if requestTimeout < 1*time.Second { // If the timeout is 0 (default), base off blktime
+		// 10min block	== 30s timeout for a request.
+		// 5min block	== 15s timeout for a request.
+		// 1min block	== 3s  timeout for a request.
+		requestTimeout = time.Duration(list.State.GetDirectoryBlockInSeconds()/20) * time.Second
 	}
 	requestLimit := list.State.RequestLimit
 
