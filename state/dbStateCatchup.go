@@ -54,7 +54,7 @@ func (list *DBStateList) Catchup() {
 			hs := func() uint32 {
 				// get the current block being built
 				//l := list.State.GetLLeaderHeight()
-				l := list.State.GetDBHeightComplete()
+				l := list.State.GetHighestSavedBlk()
 
 				// get the hightest block in the database
 				b := list.State.GetDBHeightAtBoot()
@@ -87,9 +87,11 @@ func (list *DBStateList) Catchup() {
 				return a
 			}()
 
-			if received.Base() < hs {
+			base := received.Base()
+			if base < hs {
 				list.State.LogPrintf("dbstatecatchup", "Received base set to %d", hs)
 				received.SetBase(hs)
+				base = hs
 			}
 
 			receivedSlice := received.ListAsSlice()
@@ -101,6 +103,9 @@ func (list *DBStateList) Catchup() {
 				missing.del(h)
 				// remove any states from the waiting list that have been saved.
 				waiting.Del(h)
+				if h <= base {
+					received.Del(h)
+				}
 			}
 
 			// find gaps in the received list
@@ -142,9 +147,15 @@ func (list *DBStateList) Catchup() {
 	// into the missing list.
 	go func() {
 		for {
+			base := received.Base()
 			waitingSlice := waiting.ListAsSlice()
 			//for e := waiting.List.Front(); e != nil; e = e.Next() {
 			for _, s := range waitingSlice {
+				// Instead of choosing if to ask for it, just remove it
+				if s.Height() < base {
+					waiting.Del(s.Height())
+					continue
+				}
 				if s.RequestAge() > requestTimeout {
 					waiting.Del(s.Height())
 					if received.Get(s.Height()) == nil {

@@ -390,6 +390,29 @@ func (s *State) Process() (progress bool) {
 		}
 	}
 
+	/** Process all the DBStatesReceived  that might be pending **/
+	if len(s.DBStatesReceived) > 0 {
+
+		for {
+			hsb := s.GetHighestSavedBlk()
+			// Get the index of the next DBState
+			ix := int(hsb) - s.DBStatesReceivedBase + 1
+			// Make sure we are in range
+			if ix < 0 || ix >= len(s.DBStatesReceived) {
+				break // We have nothing for the system, given its current height.
+			}
+			if msg := s.DBStatesReceived[ix]; msg != nil {
+				ret := s.executeMsg(msg)
+				s.LogPrintf("dbstateprocess", "Trying to process DBStatesReceived %d, %t", s.DBStatesReceivedBase+ix, ret)
+			}
+
+			// if we can not process a DBStatesReceived then go process some messages
+			if hsb == s.GetHighestSavedBlk() {
+				break
+			}
+		}
+	}
+
 	// Add the next received states to process.
 	// GetNext returns nil if the next member of StatesReceived is not the next
 	// height that needs to be processed.
