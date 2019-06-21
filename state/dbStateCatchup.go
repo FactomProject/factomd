@@ -151,7 +151,7 @@ func (list *DBStateList) Catchup() {
 
 			list.State.LogPrintf("dbstatecatchup", "height update took %s. Base:%d/%d/%d, Miss[v%d, ^_, T%d], Wait [v_, ^%d, T%d], Rec[v%d, ^%d, T%d]",
 				time.Since(start),
-				received.Base(), list.State.GetDBHeightComplete(), list.State.GetDBHeightAtBoot(),
+				received.Base(), hs, list.State.GetDBHeightAtBoot(),
 				getHeightSafe(missing.GetFront()), missing.Len(),
 				getHeightSafe(waiting.GetEnd()), waiting.Len(),
 				received.Base(), received.Heighestreceived(), received.List.Len())

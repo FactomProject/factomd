@@ -50,6 +50,7 @@ func LoadDatabase(s *State) {
 
 	//msg, err := s.LoadDBState(blkCnt)
 	start := s.GetDBHeightComplete()
+	s.LogPrintf("dbstatecatchup", "LoadDatabase1 DBHeightAtBoot: %d, DBHeightComplete: %d", s.DBHeightAtBoot, start)
 
 	if start > 0 {
 		start++
@@ -74,6 +75,11 @@ func LoadDatabase(s *State) {
 		}
 
 		msg, err := s.LoadDBState(uint32(i))
+		es := "loaded"
+		if err != nil {
+			es = err.Error()
+		}
+		s.LogMessage("dbstatecatchup", fmt.Sprintf("LoadDatabase1 %d : %s", i, es), msg)
 		if err != nil {
 			s.Println(err.Error())
 			os.Stderr.WriteString(fmt.Sprintf("%20s Error reading database at block %d: %s\n", s.FactomNodeName, i, err.Error()))
