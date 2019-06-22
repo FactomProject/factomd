@@ -94,11 +94,11 @@ func (lg *LoadGenerator) Stop() {
 
 func RandomEntry() *entryBlock.Entry {
 	entry := entryBlock.NewEntry()
-	entry.Content = primitives.ByteSlice{random.RandByteSliceOfLen(rand.Intn(4000) + 128)}
+	entry.Content = primitives.ByteSlice{random.RandByteSliceOfLen(rand.Intn(128) + 128)}
 	entry.ExtIDs = make([]primitives.ByteSlice, rand.Intn(4)+1)
 	raw := make([][]byte, len(entry.ExtIDs))
 	for i := range entry.ExtIDs {
-		entry.ExtIDs[i] = primitives.ByteSlice{random.RandByteSliceOfLen(rand.Intn(300))}
+		entry.ExtIDs[i] = primitives.ByteSlice{random.RandByteSliceOfLen(rand.Intn(32) + 32)}
 		raw[i] = entry.ExtIDs[i].Bytes
 	}
 
@@ -141,6 +141,7 @@ func (lg *LoadGenerator) KeepUsFunded() {
 			ts = "true"
 		}
 
+		//EC3Eh7yQKShgjkUSFrPbnQpboykCzf4kw9QHxi47GGz5P2k3dbab is EC address
 		if lg.PerSecond == 0 && limitBuys {
 			if i%100 == 0 {
 				// Log our occasional realization that we have nothing to do.

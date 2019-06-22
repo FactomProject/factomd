@@ -81,8 +81,8 @@ func (m *TimeoutInternal) InitiateElectionAdapter(st interfaces.IState) bool {
 	msg.VMIndex = m.VMIndex
 	msg.Minute = m.Minute
 	msg.SigType = m.SigType
-	e.State.LogMessage("InMsgQueue", "enqueue_InitiateElectionAdapter", msg)
-	e.State.InMsgQueue().Enqueue(msg)
+	e.State.LogMessage("MsgQueue", "enqueue_InitiateElectionAdapter", msg)
+	e.State.MsgQueue() <- msg
 
 	// When we start a new election, we can process all messages that were being held
 	go e.ProcessWaiting()

@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
-	"os/exec"
 	"runtime"
 	"strings"
 	"sync"
@@ -31,117 +29,23 @@ import (
 	"github.com/FactomProject/factomd/wsapi"
 )
 
-func TestSetupANetwork(t *testing.T) {
-	if RanSimTest {
-		return
-	}
-
-	RanSimTest = true
-
-	state0 := SetupSim("LLLLAAAFFF", map[string]string{"--debuglog": "", "--blktime": "20"}, 14, 0, 0, t)
-
-	RunCmd("9")  // Puts the focus on node 9
-	RunCmd("x")  // Takes Node 9 Offline
-	RunCmd("w")  // Point the WSAPI to send API calls to the current node.
-	RunCmd("10") // Puts the focus on node 9
-	RunCmd("8")  // Puts the focus on node 8
-	RunCmd("w")  // Point the WSAPI to send API calls to the current node.
-	RunCmd("7")
-	WaitBlocks(state0, 1) // Wait for 1 block
-
-	WaitForMinute(state0, 2) // Waits for minute 2
-	RunCmd("F100")           //  Set the Delay on messages from all nodes to 100 milliseconds
-	// .15 second minutes is too fast for dropping messages until the dropping is fixed (FD-971) is fixed
-	// could change to 4 second minutes and turn this back on -- Clay
-	//	RunCmd("S10")            // Set Drop Rate to 1.0 on everyone
-	RunCmd("g10") // Adds 10 identities to your identity pool.
-
-	fn1 := GetFocus()
-	PrintOneStatus(0, 0)
-	if fn1.State.FactomNodeName != "FNode07" {
-		t.Fatalf("Expected FNode07, but got %s", fn1.State.FactomNodeName)
-	}
-	RunCmd("g1")             // Adds 1 identities to your identity pool.
-	WaitForMinute(state0, 3) // Waits for 3 "Minutes"
-	RunCmd("g1")             // // Adds 1 identities to your identity pool.
-	WaitForMinute(state0, 4) // Waits for 4 "Minutes"
-	RunCmd("g1")             // Adds 1 identities to your identity pool.
-	WaitForMinute(state0, 5) // Waits for 5 "Minutes"
-	RunCmd("g1")             // Adds 1 identities to your identity pool.
-	WaitForMinute(state0, 6) // Waits for 6 "Minutes"
-	WaitBlocks(state0, 1)    // Waits for 1 block
-	WaitForMinute(state0, 1) // Waits for 1 "Minutes"
-	RunCmd("g1")             // Adds 1 identities to your identity pool.
-	WaitForMinute(state0, 2) // Waits for 2 "Minutes"
-	RunCmd("g1")             // Adds 1 identities to your identity pool.
-	WaitForMinute(state0, 3) // Waits for 3 "Minutes"
-	RunCmd("g20")            // Adds 20 identities to your identity pool.
-	WaitBlocks(state0, 1)
-	RunCmd("9") // Focuses on Node 9
-	RunCmd("x") // Brings Node 9 back Online
-	RunCmd("8") // Focuses on Node 8
-
-	time.Sleep(100 * time.Millisecond)
-
-	fn2 := GetFocus()
-	PrintOneStatus(0, 0)
-	if fn2.State.FactomNodeName != "FNode08" {
-		t.Fatalf("Expected FNode08, but got %s", fn1.State.FactomNodeName)
-	}
-
-	RunCmd("i") // Shows the identities being monitored for change.
-	//Test block recording lengths and error checking for pprof
-	RunCmd("b100") // Recording delays due to blocked go routines longer than 100 ns (0 ms)
-
-	RunCmd("b") // specifically how long a block will be recorded (in nanoseconds).  1 records all blocks.
-
-	RunCmd("babc") // Not sure that this does anything besides return a message to use "bnnn"
-
-	RunCmd("b1000000") // Recording delays due to blocked go routines longer than 1000000 ns (1 ms)
-
-	RunCmd("/") // Sort Status by Chain IDs
-
-	RunCmd("/") // Sort Status by Node Name
-
-	RunCmd("a1")             // Shows Admin block for Node 1
-	RunCmd("e1")             // Shows Entry credit block for Node 1
-	RunCmd("d1")             // Shows Directory block
-	RunCmd("f1")             // Shows Factoid block for Node 1
-	RunCmd("a100")           // Shows Admin block for Node 100
-	RunCmd("e100")           // Shows Entry credit block for Node 100
-	RunCmd("d100")           // Shows Directory block
-	RunCmd("f100")           // Shows Factoid block for Node 1
-	RunCmd("yh")             // Nothing
-	RunCmd("yc")             // Nothing
-	RunCmd("r")              // Rotate the WSAPI around the nodes
-	WaitForMinute(state0, 1) // Waits 1 "Minute"
-
-	RunCmd("g1")             // Adds 1 identities to your identity pool.
-	WaitForMinute(state0, 3) // Waits 3 "Minutes"
-	WaitBlocks(fn1.State, 3) // Waits for 3 blocks
-
-	ShutDownEverything(t)
-
-}
-
 func TestLoad(t *testing.T) {
 	if RanSimTest {
 		return
 	}
 
 	RanSimTest = true
-	state0 := SetupSim("LFF", map[string]string{"--debuglog": "." /*"--db": "LDB"*/}, 15, 0, 0, t)
 
-	RunCmd("2")    // select 2
-	RunCmd("w")    // feed load into follower
-	RunCmd("F200") // delay messages
-	RunCmd("R40")  // Feed load
-	WaitBlocks(state0, 5)
+	// use a tree so the messages get reordered
+	state0 := SetupSim("LLF", map[string]string{"--debuglog": ""}, 15, 0, 0, t)
+
+	RunCmd("2")   // select 2
+	RunCmd("R30") // Feed load
+	WaitBlocks(state0, 10)
 	RunCmd("R0") // Stop load
-	WaitBlocks(state0, 5)
-	// should check holding and queues cleared out
+	WaitBlocks(state0, 1)
 	ShutDownEverything(t)
-} //TestLoad(){...}
+} // testLoad(){...}
 
 func TestCatchup(t *testing.T) {
 	if RanSimTest {
@@ -195,18 +99,18 @@ func TestTXTimestampsAndBlocks(t *testing.T) {
 	RunCmd("x")
 	RunCmd("R0") // turn off the load
 }
-
 func TestLoad2(t *testing.T) {
 	if RanSimTest {
 		return
 	}
 	RanSimTest = true
+
 	// use tree node setup so messages get reordered
 	go RunCmd("Re") // Turn on tight allocation of EC as soon as the simulator is up and running
 	state0 := SetupSim("LLLAF", map[string]string{"--blktime": "20", "--debuglog": ".", "--net": "tree"}, 24, 0, 0, t)
 	StatusEveryMinute(state0)
 
-	RunCmd("4") // select node 5
+	RunCmd("4") // select node 4
 	RunCmd("x") // take out 7 from the network
 	WaitBlocks(state0, 1)
 	WaitForMinute(state0, 1)
@@ -231,7 +135,6 @@ func TestLoad2(t *testing.T) {
 	}
 	ShutDownEverything(t)
 } //TestLoad2(){...}
-
 // The intention of this test is to detect the EC overspend/duplicate commits (FD-566) bug.
 // the bug happened when the FCT transaction and the commits arrived in different orders on followers vs the leader.
 // Using a message delay, drop and tree network makes this likely
@@ -389,7 +292,6 @@ func TestActivationHeightElection(t *testing.T) {
 
 	ShutDownEverything(t)
 }
-
 func TestAnElection(t *testing.T) {
 	if RanSimTest {
 		return
@@ -1422,7 +1324,7 @@ func TestElection9(t *testing.T) {
 	}
 	RanSimTest = true
 
-	state0 := SetupSim("LLAL", map[string]string{"--debuglog": "", "--faulttimeout": "10"}, 8, 1, 1, t)
+	state0 := SetupSim("LLAL", map[string]string{"--debuglog": "", "--faulttimeout": "10"}, 88888, 1, 1, t)
 	StatusEveryMinute(state0)
 	CheckAuthoritySet(t)
 
@@ -1433,7 +1335,7 @@ func TestElection9(t *testing.T) {
 	RunCmd("3")
 	WaitForMinute(state3, 9) // wait till the victim is at minute 9
 	RunCmd("x")
-	WaitMinutes(state0, 1) // Wait till fault completes
+	WaitMinutes(state0, 2) // Wait till fault completes
 	RunCmd("x")
 
 	WaitBlocks(state0, 2)    // wait till the victim is back as the audit server
@@ -1589,16 +1491,4 @@ func TestDBState(t *testing.T) {
 	WaitForAllNodes(state0) // if the follower isn't catching up this will timeout
 	PrintOneStatus(0, 0)
 	ShutDownEverything(t)
-}
-
-func SystemCall(cmd string) {
-	fmt.Println("SystemCall(\"", cmd, "\")")
-	out, err := exec.Command("sh", "-c", cmd).Output()
-	if err != nil {
-		foo := err.Error()
-		fmt.Println(foo)
-		os.Exit(1)
-		panic(err)
-	}
-	fmt.Print(string(out))
 }

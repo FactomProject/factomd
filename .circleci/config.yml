@@ -25,16 +25,17 @@ jobs:
           name: Get goveralls
           command: |
             go get github.com/mattn/goveralls
-            cd $GOPATH/src/github.com/Masterminds/glide
-            git checkout tags/v0.13.1
-            go install
       - run:
           name: Get the dependencies
           command: |
             glide install
       - run:
           name: Build and install the executable
-          command: go install -v
+          command: go install -v && cp -r $GOPATH/ /tmp
+
+      - persist_to_workspace:
+          root: /tmp
+          paths: go
 
       - save_cache:
           key: v2-factomd-go-build-cache-{{ checksum "glide.lock" }}
@@ -42,104 +43,43 @@ jobs:
             - vendor
 
   test:
-    working_directory: /go/src/github.com/FactomProject/factomd
+    working_directory: /tmp
     docker:
       - image: circleci/golang:1.10
 
+    parallelism: 8
+
     steps:
-      - checkout
-
-      - restore_cache:
-          keys:
-            - v2-factomd-go-build-cache-{{ checksum "glide.lock" }}
+      - attach_workspace:
+          at: /tmp
 
       - run:
-          name: Get glide
-          command: |
-            go get -v github.com/Masterminds/glide
-            cd $GOPATH/src/github.com/Masterminds/glide
-            git checkout tags/v0.13.1
-            go install
-      - run:
-          name: Get goveralls
-          command: |
-            go get github.com/mattn/goveralls
-            cd $GOPATH/src/github.com/Masterminds/glide
-            git checkout tags/v0.13.1
-            go install
-      - run:
-          name: Get the dependencies
-          command: |
-            glide install
-      - run:
-          name: Build and install the executable
-          command: go install -v
-
-      - run:
-          name: Run tests!
+          name: Run Tests!
           no_output_timeout: 2400
-          command: ./test.sh
-
-
-      - save_cache:
-          key: v2-factomd-go-build-cache-{{ checksum "glide.lock" }}
-          paths:
-            - vendor
+          command: |
+            export PATH="/tmp/go/bin:$PATH"
+            export GOPATH=/tmp/go
+            cd /tmp/go/src/github.com/FactomProject/factomd/
+            ./test.sh
 
   coveralls:
-    working_directory: /go/src/github.com/FactomProject/factomd
+    working_directory: /tmp
     docker:
       - image: circleci/golang:1.10
 
     steps:
-      - checkout
-
-      - restore_cache:
-          keys:
-            - v2-factomd-go-build-cache-{{ checksum "glide.lock" }}
-
-      - run:
-          name: Get glide
-          command: |
-            go get -v github.com/Masterminds/glide
-            cd $GOPATH/src/github.com/Masterminds/glide
-            git checkout tags/v0.13.1
-            go install
-      - run:
-          name: Get goveralls
-          command: |
-            go get github.com/mattn/goveralls
-            cd $GOPATH/src/github.com/Masterminds/glide
-            git checkout tags/v0.13.1
-            go install
-      - run:
-          name: Get the dependencies
-          command: |
-            glide install
-      - run:
-          name: Build and install the executable
-          command: go install -v
+      - attach_workspace:
+          at: /tmp
 
       - run:
           name: Go Test with Coverage
           no_output_timeout: 2400
-          command: go test $(glide nv | grep -v Utilities | grep -v LongTests  | grep -v simTest) -vet=off -v -cover -coverprofile=coverage.out
-
-      - run:
-          name: Coveralls!
-          no_output_timeout: 2400
-          command: goveralls -coverprofile=coverage.out -service=circle-ci -repotoken=$COVERALLS_TOKEN
-
-#      - run:
-#          name: Coveralls!
-#          no_output_timeout: 2400
-#          command: goveralls -v -flags "-vet=off" -ignore=$(paste -sd, .coverignore) -service=circle-ci -repotoken=$COVERALLS_TOKEN
-
-
-      - save_cache:
-          key: v2-factomd-go-build-cache-{{ checksum "glide.lock" }}
-          paths:
-            - vendor
+          command: |
+            export PATH="/tmp/go/bin:$PATH"
+            export GOPATH=/tmp/go
+            cd /tmp/go/src/github.com/FactomProject/factomd/
+            go test $(glide nv | grep -v Utilities | grep -v longTest | grep -v peerTest | grep -v simTest) -vet=off -v -cover -coverprofile=coverage.out
+            goveralls -coverprofile=coverage.out -service=circle-ci -repotoken=$COVERALLS_TOKEN
 
 
   # Docker builds

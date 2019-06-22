@@ -100,6 +100,7 @@ func SimControl(listenTo int, listenStdin bool) {
 	var faulting bool
 	var cancelheight int = -1
 	var cancelindex int = -1
+	var initchainCost = 11
 
 	ListenTo = listenTo
 
@@ -203,6 +204,13 @@ func SimControl(listenTo int, listenStdin bool) {
 						//	os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
 						//	break
 						//}
+
+						// Perfectly fund the g command
+						idcost := 13 + 15 + 1 // Cost for 1 ID : Root + Management + Register
+						need := (idcost * count) + initchainCost
+						FundWalletTOFF(fnodes[wsapiNode].State, 0, uint64(need)*fnodes[wsapiNode].State.GetFactoshisPerEC())
+
+						initchainCost = 0 // Init only happens once. We set to 0 to not count it again
 						auths, skipped, err := authorityToBlockchain(count, fnodes[wsapiNode].State)
 						if err != nil {
 							os.Stderr.WriteString(fmt.Sprintf("Error making authorities, %s\n", err.Error()))

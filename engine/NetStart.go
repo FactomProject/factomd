@@ -605,18 +605,22 @@ func makeServer(s *state.State) *FactomNode {
 
 func startServers(load bool) {
 	for i, fnode := range fnodes {
-		if i > 0 {
-			fnode.State.Init()
-		}
-		go NetworkProcessorNet(fnode)
-		if load {
-			go state.LoadDatabase(fnode.State)
-		}
-		go fnode.State.GoSyncEntries()
-		go Timer(fnode.State)
-		go elections.Run(fnode.State)
-		go fnode.State.ValidatorLoop()
+		startServer(i, fnode, load)
 	}
+}
+
+func startServer(i int, fnode *FactomNode, load bool) {
+	if i > 0 {
+		fnode.State.Init()
+	}
+	go NetworkProcessorNet(fnode)
+	if load {
+		go state.LoadDatabase(fnode.State)
+	}
+	go fnode.State.GoSyncEntries()
+	go Timer(fnode.State)
+	go elections.Run(fnode.State)
+	go fnode.State.ValidatorLoop()
 }
 
 func setupFirstAuthority(s *state.State) {
@@ -634,4 +638,20 @@ func networkHousekeeping() {
 		time.Sleep(1 * time.Second)
 		p2pProxy.SetWeight(p2pNetwork.GetNumberOfConnections())
 	}
+}
+
+func AddNode() {
+
+	fnodes := GetFnodes()
+	s := fnodes[0].State
+	i := len(fnodes)
+
+	makeServer(s)
+	modifyLoadIdentities()
+
+	fnodes = GetFnodes()
+	fnodes[i].State.IntiateNetworkSkeletonIdentity()
+	fnodes[i].State.InitiateNetworkIdentityRegistration()
+	AddSimPeer(fnodes, i, i-1) // KLUDGE peer w/ only last node
+	startServer(i, fnodes[i], true)
 }

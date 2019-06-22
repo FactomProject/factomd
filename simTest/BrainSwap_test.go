@@ -9,8 +9,13 @@ import (
 	. "github.com/FactomProject/factomd/testHelper"
 )
 
-// Test brainswapping a follower and a leader and swap a follower and an audit at the same height in the same build
-func TestBrainSwap1(t *testing.T) {
+/*
+Test brainswapping F <-> L  and F <-> A
+
+follower and a leader + follower and an audit
+at the same height in the same build
+*/
+func TestBrainSwap(t *testing.T) {
 
 	t.Run("Run Sim", func(t *testing.T) {
 
@@ -56,10 +61,7 @@ func TestBrainSwap1(t *testing.T) {
 
 		// start the 6 nodes running  012345
 		state0 := SetupSim("LLLAFF", params, 15, 0, 0, t)
-		state2 := engine.GetFnodes()[2].State // Get node 2
 		state3 := engine.GetFnodes()[3].State // Get node 3
-		state4 := engine.GetFnodes()[4].State // Get node 4
-		state5 := engine.GetFnodes()[5].State // Get node 5
 
 		t.Run("Wait For Identity Swap", func(t *testing.T) {
 			WaitForBlock(state0, 6)
@@ -76,29 +78,12 @@ func TestBrainSwap1(t *testing.T) {
 			WaitForBlock(state3, 10) // wait till should have 3 has brainswapped
 			RunCmd("x")
 			WaitBlocks(state0, 1)
-			WaitForAllNodes(state0)
-			CheckAuthoritySet(t)
 		})
 
 		t.Run("Verify Network", func(t *testing.T) {
-
-			if state2.Leader {
-				t.Error("Node 2 did not become a follower")
-			}
-			if state3.Leader {
-				t.Error("Node 3 did not become a follower")
-			}
-			if !state4.Leader {
-				t.Error("Node 4 did not become a leader")
-			}
-
-			list := state0.ProcessLists.Get(state0.LLeaderHeight)
-			foundAudit, _ := list.GetAuditServerIndexHash(state5.GetIdentityChainID())
-			if !foundAudit {
-				t.Error("Node 5 did not become an audit server")
-			}
-
-			Halt(t)
+			WaitForAllNodes(state0)
+			AssertAuthoritySet(t, "LLFFLA")
+			ShutDownEverything(t)
 		})
 
 	})
