@@ -1,5 +1,5 @@
 # Special build files
-engine/version.go
+engine/overrideversion.go
 # Executable
 factomd
 # Compiled Object files, Static and Dynamic libs (Shared Objects)
