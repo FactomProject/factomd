@@ -33,7 +33,7 @@ func TestPerfRebound(t *testing.T) {
 		startHt := state0.GetDBHeightComplete()
 
 		time.Sleep(time.Second * 20) // give some lead time
-		RunCmd("R5")                 // Set Load 10 tx/sec
+		RunCmd("R10")                // Set Load 10 tx/sec
 
 		time.Sleep(time.Second * 260) // Send Load
 
