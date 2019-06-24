@@ -1501,18 +1501,6 @@ func TestDebugLocation(t *testing.T) {
 	RanSimTest = true
 
 	tempdir := os.TempDir() + string(os.PathSeparator) + "logs" + string(os.PathSeparator) // get os agnostic path to the temp directory
-	stringsToCheck := []string{tempdir + "holding", tempdir + "networkinputs", tempdir + ".", tempdir + "ackqueue"}
-
-	for i := 0; i < len(stringsToCheck); i++ {
-		// Checks that the SplitUpDebugLogRegEx function works as expected
-		dirlocation, regex := messages.SplitUpDebugLogRegEx(stringsToCheck[i])
-		if dirlocation != tempdir {
-			t.Fatalf("Error SplitUpDebugLogRegEx() did not return the correct directory location.")
-		}
-		if strings.Contains(regex, string(os.PathSeparator)) {
-			t.Fatalf("Error SplitUpDebugLogRegEx() did not return the correct directory regex.")
-		}
-	}
 
 	// toss any files that might preexist this run so we don't see old files
 	err := os.RemoveAll(tempdir)
@@ -1544,6 +1532,22 @@ func TestDebugLocation(t *testing.T) {
 		panic(err)
 	}
 
+}
+
+func TestDebugLocationParse(t *testing.T) {
+	tempdir := os.TempDir() + string(os.PathSeparator) + "logs" + string(os.PathSeparator) // get os agnostic path to the temp directory
+	stringsToCheck := []string{tempdir + "holding", tempdir + "networkinputs", tempdir + ".", tempdir + "ackqueue"}
+
+	for i := 0; i < len(stringsToCheck); i++ {
+		// Checks that the SplitUpDebugLogRegEx function works as expected
+		dirlocation, regex := messages.SplitUpDebugLogRegEx(stringsToCheck[i])
+		if dirlocation != tempdir {
+			t.Fatalf("Error SplitUpDebugLogRegEx() did not return the correct directory location.")
+		}
+		if strings.Contains(regex, string(os.PathSeparator)) {
+			t.Fatalf("Error SplitUpDebugLogRegEx() did not return the correct directory regex.")
+		}
+	}
 }
 
 func DoesFileExists(path string, t *testing.T) {
