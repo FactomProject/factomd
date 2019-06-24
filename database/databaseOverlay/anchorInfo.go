@@ -33,7 +33,7 @@ func (dbo *Overlay) SetBitcoinAnchorRecordPublicKeysFromHex(publicKeys []string)
 }
 
 func (dbo *Overlay) SetEthereumAnchorRecordPublicKeysFromHex(publicKeys []string) error {
-	dbo.BitcoinAnchorRecordPublicKeys = nil
+	dbo.EthereumAnchorRecordPublicKeys = nil
 	for _, v := range publicKeys {
 		publicKey := new(primitives.PublicKey)
 		err := publicKey.UnmarshalText([]byte(v))
