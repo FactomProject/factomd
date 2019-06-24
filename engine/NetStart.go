@@ -328,6 +328,9 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	for i := 0; i < p.Cnt; i++ {
 		makeServer(s) // We clone s to make all of our servers
 	}
+
+	addFnodeName(0) // bootstrap id doesn't change
+
 	// Modify Identities of new nodes
 	if len(fnodes) > 1 && len(s.Prefix) == 0 {
 		modifyLoadIdentities() // We clone s to make all of our servers
