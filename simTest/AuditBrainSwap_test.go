@@ -63,6 +63,7 @@ func TestAuditBrainSwap(t *testing.T) {
 
 		// start the 6 nodes running  012345
 		state0 := SetupSim("LLLAFF", params, 15, 0, 0, t)
+		state3 := engine.GetFnodes()[3].State // Get node 3
 		state5 := engine.GetFnodes()[5].State // Get node 5
 		_ = state5
 
@@ -76,7 +77,7 @@ func TestAuditBrainSwap(t *testing.T) {
 				WriteConfigFile(3, 5, "ChangeAcksHeight = 10\n", t) // Setup A brain swap between A3 and F5
 				WriteConfigFile(5, 3, "ChangeAcksHeight = 10\n", t)
 				WaitForBlock(state0, 9)
-				RunCmd("3") // make sure the Audit is lagging the audit if the heartbeats conflict one will panic
+				RunCmd("3") // make sure the Audit is lagging, if the heartbeats conflict one will panic
 				RunCmd("x")
 				WaitForBlock(state5, 10) // wait till 5 should have have brainswapped
 				RunCmd("x")
@@ -87,10 +88,18 @@ func TestAuditBrainSwap(t *testing.T) {
 		})
 
 		t.Run("Verify Network", func(t *testing.T) {
-			WaitForAllNodes(state0)
-			// FIXME: renable after FD-845
-			//AssertAuthoritySet(t, "LLLFFA")
-			ShutDownEverything(t)
+			list := state0.ProcessLists.Get(state0.LLeaderHeight)
+			foundAudit, _ := list.GetAuditServerIndexHash(state3.GetIdentityChainID())
+			if foundAudit {
+				t.Error("Node 3 did not become a follower")
+			}
+
+			foundAudit, _ = list.GetAuditServerIndexHash(state5.GetIdentityChainID())
+			if !foundAudit {
+				t.Error("Node 5 did not become an audit server")
+			}
+
+			Halt(t)
 		})
 
 	})

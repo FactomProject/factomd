@@ -1513,6 +1513,7 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	// eom.Minute is zerobased, while LeaderMinute is 1 based.  So
 	// a simple assignment works.
 	eom.Minute = byte(s.CurrentMinute)
+	eom.SetLeaderChainID(s.IdentityChainID) // for debug only
 	eom.Sign(s)
 	eom.MsgHash = nil                       // delete any existing hash so it will be recomputed
 	eom.RepeatHash = nil                    // delete any existing hash so it will be recomputed
