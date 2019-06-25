@@ -97,9 +97,7 @@ func TestEntriesBeforeChain(t *testing.T) {
 
 	WaitBlocks(state0, 1) // give time for holding to clear
 	WaitForEcBalanceUnder(state0, a.EcPub(), int64(ecMargin+1))
-	// FIXME use this
-	//WaitForEntry(state0, lastentry)
-	_ = lastentry
+	WaitForEntry(state0, lastentry)
 
 	ShutDownEverything(t)
 	WaitForAllNodes(state0)

@@ -3,9 +3,10 @@ package simtest
 import (
 	"bytes"
 	"fmt"
+	"testing"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/stretchr/testify/assert"
-	"testing"
 
 	"github.com/FactomProject/factom"
 	. "github.com/FactomProject/factomd/testHelper"

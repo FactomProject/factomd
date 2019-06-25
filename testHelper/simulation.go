@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/FactomProject/factomd/common/interfaces"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -551,4 +552,22 @@ func ResetSimHome(t *testing.T) string {
 func AddFNode() {
 	engine.AddNode()
 	Followers++
+}
+
+func WaitForEntry(s *state.State, hash interfaces.IHash) bool {
+	s.LogPrintf(logName, "WaitForEntry:  %s", hash.String())
+	//hash, _ := primitives.NewShaHashFromStr(entryhash)
+
+	for {
+		entry, err := s.FetchEntryByHash(hash)
+		if err != nil {
+			panic(err)
+		}
+		if entry != nil {
+			return true
+		}
+
+		time.Sleep(time.Millisecond * 200)
+	}
+	return false
 }

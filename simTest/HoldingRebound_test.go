@@ -111,7 +111,7 @@ func GenerateCommitsAndRevealsInBatches(t *testing.T, state0 *state.State) {
 
 		{ // measure time it takes to process all messages by observing entry credit spend
 			tstart := time.Now()
-			a.FundEC(uint64(numEntries+1))
+			a.FundEC(uint64(numEntries + 1))
 			WaitForEcBalanceUnder(state0, a.EcPub(), int64(BatchID+2))
 			tend := time.Now()
 			batchTimes[BatchID] = tend.Sub(tstart)

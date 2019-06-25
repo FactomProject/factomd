@@ -320,8 +320,6 @@ func TestAnElection(t *testing.T) {
 	WaitBlocks(state0, 2)
 	WaitMinutes(state0, 1)
 
-
-
 	{ // debug holding queue
 
 		for _, fnode := range GetFnodes() {
