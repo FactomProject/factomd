@@ -165,7 +165,7 @@ func testListThreadSafety(list GenericList, t *testing.T, testname string) {
 
 	// Many random adds
 	adds := func() {
-		// make sure not to add the same number twice. That can mess up our del/reads
+		// make sure not to add the same number twice. That can mess up our DeleteLockless/reads
 		for {
 			if done {
 				return

@@ -124,13 +124,13 @@ func (list *DBStateList) Catchup() {
 			for i, h := range receivedSlice {
 				list.State.LogPrintf("dbstatecatchup", "missing & waiting delete %d", h)
 				// remove any states from the missing list that have been saved.
-				missing.Del(h)
+				missing.LockAndDelete(h)
 				// remove any states from the waiting list that have been saved.
-				waiting.Del(h)
+				waiting.LockAndDelete(h)
 				// Clean our our received list as well.
 				if h <= base {
 					sliceKeep = i
-					received.Del(h)
+					received.LockAndDelete(h)
 				}
 			}
 
@@ -180,11 +180,11 @@ func (list *DBStateList) Catchup() {
 			for _, s := range waitingSlice {
 				// Instead of choosing if to ask for it, just remove it
 				if s.Height() < base {
-					waiting.Del(s.Height())
+					waiting.LockAndDelete(s.Height())
 					continue
 				}
 				if s.RequestAge() > requestTimeout {
-					waiting.Del(s.Height())
+					waiting.LockAndDelete(s.Height())
 					if received.Get(s.Height()) == nil {
 						list.State.LogPrintf("dbstatecatchup", "request timeout : waiting -> missing %d", s.Height())
 						missing.Add(s.Height())
@@ -204,8 +204,8 @@ func (list *DBStateList) Catchup() {
 				s := NewReceivedState(m)
 				if s != nil {
 					list.State.LogPrintf("dbstatecatchup", "dbstate received : missing & waiting delete, received add %d", s.Height())
-					missing.Del(s.Height())
-					waiting.Del(s.Height())
+					missing.LockAndDelete(s.Height())
+					waiting.LockAndDelete(s.Height())
 					received.Add(s.Height(), s.Message())
 				}
 			}
@@ -234,7 +234,7 @@ func (list *DBStateList) Catchup() {
 				list.State.DBStateAskCnt += int(e-b) + 1 // Total number of dbstates requested
 				for i := b; i <= e; i++ {
 					list.State.LogPrintf("dbstatecatchup", "dbstate requested : missing -> waiting %d", i)
-					missing.Del(i)
+					missing.LockAndDelete(i)
 					waiting.Add(i)
 				}
 			} else {
@@ -245,7 +245,7 @@ func (list *DBStateList) Catchup() {
 				if m != nil && w != nil {
 					if m.Height() < w.Height() {
 						list.State.LogPrintf("dbstatecatchup", "waiting delete, cleanup %d", w.Height())
-						waiting.Del(w.Height())
+						waiting.LockAndDelete(w.Height())
 					}
 				}
 
@@ -305,15 +305,15 @@ func (l *StatesMissing) Add(height uint32) {
 	l.List.PushFront(NewMissingState(height))
 }
 
-// Del removes a MissingState from the list.
-func (l *StatesMissing) Del(height uint32) {
+// LockAndDelete removes a MissingState from the list.
+func (l *StatesMissing) LockAndDelete(height uint32) {
 	l.lock.Lock()
 	defer l.lock.Unlock()
-	l.del(height)
+	l.DeleteLockless(height)
 }
 
-func (l *StatesMissing) del(height uint32) {
-	// del does not lock the mutex, if called from another top level func
+func (l *StatesMissing) DeleteLockless(height uint32) {
+	// DeleteLockless does not lock the mutex, if called from another top level func
 	if l == nil {
 		return
 	}
@@ -401,7 +401,7 @@ func (l *StatesMissing) GetNext() *MissingState {
 	e := l.List.Front()
 	if e != nil {
 		s := e.Value.(*MissingState)
-		l.del(s.Height())
+		l.DeleteLockless(s.Height())
 		return s
 	}
 	return nil
@@ -481,7 +481,7 @@ func (l *StatesWaiting) Add(height uint32) {
 	l.List.PushFront(NewWaitingState(height))
 }
 
-func (l *StatesWaiting) Del(height uint32) {
+func (l *StatesWaiting) LockAndDelete(height uint32) {
 	l.lock.Lock()
 	defer l.lock.Unlock()
 
@@ -596,10 +596,10 @@ func (l *StatesReceived) Base() uint32 {
 func (l *StatesReceived) SetBase(height uint32) {
 	l.lock.Lock()
 	defer l.lock.Unlock()
-	l.setBase(height)
+	l.SetBaseLockless(height)
 }
 
-func (l *StatesReceived) setBase(height uint32) {
+func (l *StatesReceived) SetBaseLockless(height uint32) {
 	l.base = height
 
 	for e := l.List.Front(); e != nil; e = e.Next() {
@@ -681,8 +681,8 @@ func (l *StatesReceived) Add(height uint32, msg *messages.DBStateMsg) {
 	l.List.PushFront(NewReceivedState(msg))
 }
 
-// Del removes a state from the StatesReceived list
-func (l *StatesReceived) Del(height uint32) {
+// LockAndDelete removes a state from the StatesReceived list
+func (l *StatesReceived) LockAndDelete(height uint32) {
 	l.lock.Lock()
 	defer l.lock.Unlock()
 
@@ -756,7 +756,7 @@ func (l *StatesReceived) GetNext() *ReceivedState {
 		}
 
 		if s.Height() == l.Base()+1 {
-			l.setBase(s.Height())
+			l.SetBaseLockless(s.Height())
 			l.List.Remove(e)
 			return s
 		}
