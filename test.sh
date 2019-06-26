@@ -14,7 +14,7 @@ function runTests() {
     # 3. all files in simTest package
     # 4. all sets of A/B tests in peerTest package
     TESTS=$({ \
-      glide nv | grep -v Utilities | grep -v longTest | grep -v peerTest | grep -v simTest | grep -v elections | grep -v activations | grep -v netTest | grep "..." ; \
+      glide nv | grep -v Utilities | grep -v longTest | grep -v peerTest | grep -v simTest | grep -v elections | grep -v activations | grep -v netTest | grep "\.\.\." ; \
       cat engine/ci_whitelist; \
       ls simTest/*_test.go; \
       ls peerTest/*A_test.go; \
@@ -24,7 +24,7 @@ function runTests() {
     # 1. run all unit tests
     # 2. run only whitlisted tests in engine, peerTest, and simTest
     TESTS=$({ \
-      glide nv | grep -v Utilities | grep -v longTest | grep -v peerTest | grep -v simTest | grep -v elections | grep -v activations | grep -v netTest | grep "..." ; \
+      glide nv | grep -v Utilities | grep -v longTest | grep -v peerTest | grep -v simTest | grep -v elections | grep -v activations | grep -v netTest | grep "\.\.\." ; \
       cat */ci_whitelist; \
     } | circleci tests split --split-by=timings)
   fi
