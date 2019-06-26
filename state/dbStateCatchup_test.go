@@ -20,7 +20,7 @@ import (
 type GenericList interface {
 	Len() int
 	Add(uint32)
-	Del(uint32)
+	LockAndDelete(uint32)
 	Get(h uint32) state.GenericListItem
 	Has(uint32) bool
 
@@ -195,7 +195,7 @@ func testListThreadSafety(list GenericList, t *testing.T, testname string) {
 				return // Catch closed channel
 			}
 			// t.Logf("Deleted %d", n)
-			list.Del(uint32(n))
+			list.LockAndDelete(uint32(n))
 			time.Sleep(time.Duration(rand.Intn(100)) * time.Microsecond)
 		}
 	}
