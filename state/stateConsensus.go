@@ -413,12 +413,6 @@ func (s *State) Process() (progress bool) {
 		}
 	}
 
-	// Add the next received states to process.
-	// GetNext returns nil if the next member of StatesReceived is not the next
-	// height that needs to be processed.
-	//for r := s.StatesReceived.GetNext(); r != nil; r = s.StatesReceived.GetNext() {
-	//process = append(process, r.Message())
-	//}
 	// Process inbound messages
 	preEmptyLoopTime := time.Now()
 emptyLoop:

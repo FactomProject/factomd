@@ -6,10 +6,9 @@ package state
 
 import (
 	"container/list"
+	"reflect"
 	"sync"
 	"time"
-
-	"reflect"
 
 	"github.com/FactomProject/factomd/common/messages"
 )
@@ -39,12 +38,14 @@ func (list *DBStateList) Catchup() {
 	waiting := list.State.StatesWaiting
 	received := list.State.StatesReceived
 
+	factomSecond := time.Duration(list.State.GetDirectoryBlockInSeconds()) * time.Second / 600
+
 	requestTimeout := list.State.RequestTimeout
 	if requestTimeout < 1*time.Second { // If the timeout is 0 (default), base off blktime
 		// 10min block	== 30s timeout for a request.
 		// 5min block	== 15s timeout for a request.
 		// 1min block	== 3s  timeout for a request.
-		requestTimeout = time.Duration(list.State.GetDirectoryBlockInSeconds()/20) * time.Second
+		requestTimeout = factomSecond * 30
 		list.State.RequestTimeout = requestTimeout
 	}
 	requestLimit := list.State.RequestLimit
@@ -123,7 +124,7 @@ func (list *DBStateList) Catchup() {
 			for i, h := range receivedSlice {
 				list.State.LogPrintf("dbstatecatchup", "missing & waiting delete %d", h)
 				// remove any states from the missing list that have been saved.
-				missing.del(h)
+				missing.Del(h)
 				// remove any states from the waiting list that have been saved.
 				waiting.Del(h)
 				// Clean our our received list as well.
@@ -165,7 +166,7 @@ func (list *DBStateList) Catchup() {
 				getHeightSafe(missing.GetFront()), missing.Len(),
 				getHeightSafe(waiting.GetEnd()), waiting.Len(),
 				received.Base(), received.Heighestreceived(), received.List.Len())
-			time.Sleep(5 * time.Second)
+			time.Sleep(5 * factomSecond)
 		}
 	}()
 
@@ -191,7 +192,7 @@ func (list *DBStateList) Catchup() {
 				}
 			}
 
-			time.Sleep(1 * time.Second)
+			time.Sleep(requestTimeout / 4)
 		}
 	}()
 
