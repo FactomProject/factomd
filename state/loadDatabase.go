@@ -97,14 +97,7 @@ func LoadDatabase(s *State) {
 
 			s.LogMessage("InMsgQueue", "enqueue_LoadDatabase1", msg)
 			msg.SetLocal(true)
-			s.InMsgQueue().Enqueue(msg)
-			// TODO: Should this block if we get dbstates from the future?
-			if s.InMsgQueue().Length() > 200 || len(s.DBStatesReceived) > 50 {
-				for s.InMsgQueue().Length() > 50 || len(s.DBStatesReceived) > 50 {
-					s.LogPrintf("dbstatecatchup", "LoadDatabase1 blocked for 100ms :: %d - %d", s.InMsgQueue().Length(), len(s.DBStatesReceived))
-					time.Sleep(100 * time.Millisecond)
-				}
-			}
+			s.MsgQueue() <- msg
 		} else {
 			// os.Stderr.WriteString(fmt.Sprintf("%20s Last Block in database: %d\n", s.FactomNodeName, i))
 			break
