@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/FactomProject/factomd/common/interfaces"
+
 	"github.com/FactomProject/factom"
 	"github.com/FactomProject/factomd/engine"
 	. "github.com/FactomProject/factomd/testHelper"
@@ -12,10 +14,6 @@ import (
 )
 
 func TestCreatEntriesBeforeChain(t *testing.T) {
-
-	//FIXME test disabled
-	return
-
 	encode := func(s string) []byte {
 		b := bytes.Buffer{}
 		b.WriteString(s)
@@ -24,6 +22,7 @@ func TestCreatEntriesBeforeChain(t *testing.T) {
 
 	id := "92475004e70f41b94750f4a77bf7b430551113b25d3d57169eadca5692bb043d"
 	extids := [][]byte{encode("foo"), encode("bar")}
+	var lastentry interfaces.IHash
 	a := AccountFromFctSecret("Fs2zQ3egq2j99j37aYzaCddPq9AF3mgh64uG9gRaDAnrkjRx3eHs")
 	b := GetBankAccount()
 
@@ -58,6 +57,7 @@ func TestCreatEntriesBeforeChain(t *testing.T) {
 
 				state0.APIQueue().Enqueue(commit)
 				state0.APIQueue().Enqueue(reveal)
+				lastentry = reveal.Entry.GetHash()
 			}
 
 			for x := 0; x < numEntries; x++ {
@@ -82,9 +82,10 @@ func TestCreatEntriesBeforeChain(t *testing.T) {
 		})
 
 		t.Run("Fund EC Address", func(t *testing.T) {
-			amt := uint64(numEntries + 10)
+			amt := uint64(numEntries + 11) // We need 11 for the chain
 			engine.FundECWallet(state0, b.FctPrivHash(), a.EcAddr(), amt*state0.GetFactoshisPerEC())
-			WaitForAnyDeposit(state0, a.EcPub())
+			WaitForEntry(state0, lastentry)
+			//WaitForAnyDeposit(state0, a.EcPub())
 		})
 
 		t.Run("End simulation", func(t *testing.T) {
