@@ -149,6 +149,7 @@ func ExecuteAllBlocksFromDatabases(s *state.State) {
 	msgs := GetAllDBStateMsgsFromDatabase(s)
 	for _, dbs := range msgs {
 		dbs.(*messages.DBStateMsg).IgnoreSigs = true
+		dbs.(*messages.DBStateMsg).IsInDB = true
 
 		s.FollowerExecuteDBState(dbs)
 	}

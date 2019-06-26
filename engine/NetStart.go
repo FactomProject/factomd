@@ -276,7 +276,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "Build", Build))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "Node name", p.NodeName))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "balancehash", messages.AckBalanceHash))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "FNode 0 Salt", s.Salt.String()[:16]))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", fmt.Sprintf("%s Salt", s.GetFactomNodeName()), s.Salt.String()[:16]))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "enablenet", p.EnableNet))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "net incoming", p2p.MaxNumberIncomingConnections))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "net outgoing", p2p.NumberPeersToConnect))

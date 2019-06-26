@@ -390,12 +390,29 @@ func (s *State) Process() (progress bool) {
 		}
 	}
 
-	// Add the next received states to process.
-	// GetNext returns nil if the next member of StatesReceived is not the next
-	// height that needs to be processed.
-	for r := s.StatesReceived.GetNext(); r != nil; r = s.StatesReceived.GetNext() {
-		process = append(process, r.Message())
+	/** Process all the DBStatesReceived  that might be pending **/
+	if len(s.DBStatesReceived) > 0 {
+
+		for {
+			hsb := s.GetHighestSavedBlk()
+			// Get the index of the next DBState
+			ix := int(hsb) - s.DBStatesReceivedBase + 1
+			// Make sure we are in range
+			if ix < 0 || ix >= len(s.DBStatesReceived) {
+				break // We have nothing for the system, given its current height.
+			}
+			if msg := s.DBStatesReceived[ix]; msg != nil {
+				ret := s.executeMsg(msg)
+				s.LogPrintf("dbstateprocess", "Trying to process DBStatesReceived %d, %t", s.DBStatesReceivedBase+ix, ret)
+			}
+
+			// if we can not process a DBStatesReceived then go process some messages
+			if hsb == s.GetHighestSavedBlk() {
+				break
+			}
+		}
 	}
+
 	// Process inbound messages
 	preEmptyLoopTime := time.Now()
 emptyLoop:
@@ -1199,6 +1216,10 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	s.Syncing = false // FollowerExecuteDBState
 	s.Saving = true
 
+	// At this point the block is good, make sure not to ask for it anymore
+	if !dbstatemsg.IsInDB {
+		s.StatesReceived.Notify <- msg.(*messages.DBStateMsg)
+	}
 	s.DBStates.UpdateState()
 
 }
