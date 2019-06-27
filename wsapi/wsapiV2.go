@@ -779,14 +779,25 @@ func HandleV2Anchors(state interfaces.IState, params interface{}) (interface{}, 
 	response.Bitcoin = false
 	response.Ethereum = false
 
-	// Search for an AnchorRecord for the DBlock our entry is in
-	if dirBlockInfo, err := dbo.FetchDirBlockInfoByKeyMR(directoryBlockKeyMR); err != nil {
-		return nil, NewBlockNotFoundError()
-	} else if dirBlockInfo != nil {
-		// An anchor is already confirmed either Bitcoin or Ethereum for this directory block and was written back into Factom
-		dbi := dirBlockInfo.(*dbInfo.DirBlockInfo)
+	// Search for AnchorRecords for the requested DBlock
+	for i := directoryBlockHeight; i < directoryBlockHeight+1000; i++ {
+		tempKeyMR, err := dbo.FetchDBKeyMRByHeight(uint32(i))
+		if err != nil {
+			return nil, NewBlockNotFoundError()
+		} else if tempKeyMR == nil {
+			break
+		}
 
-		if dbi.BTCConfirmed {
+		dirBlockInfo, err := dbo.FetchDirBlockInfoByKeyMR(tempKeyMR)
+		if err != nil {
+			return nil, NewBlockNotFoundError()
+		} else if dirBlockInfo == nil {
+			continue
+		}
+
+		dbi := dirBlockInfo.(*dbInfo.DirBlockInfo)
+		// Only add the bitcoin anchor info if at the requested height. Remove the restriction once bitcoin anchors are windowed as well.
+		if i == directoryBlockHeight && dbi.BTCConfirmed {
 			bitcoin := new(BitcoinAnchorResponse)
 			bitcoin.TransactionHash = dbi.BTCTxHash.String()
 			bitcoin.BlockHash = dbi.BTCBlockHash.String()
@@ -822,59 +833,7 @@ func HandleV2Anchors(state interfaces.IState, params interface{}) (interface{}, 
 			}
 			eth.MerkleBranch = primitives.BuildMerkleBranchForHash(allWindowKeyMRs, directoryBlockKeyMR, true)
 			response.Ethereum = eth
-		}
-	}
-
-	// If we didn't find the Ethereum anchor in that block's DirBlockInfo, try checking following 999 DBlocks
-	if response.Ethereum == false {
-		for i := directoryBlockHeight + 1; i < directoryBlockHeight+1000; i++ {
-			dirBlockKeyMR, err := dbo.FetchDBKeyMRByHeight(uint32(i))
-			if err != nil {
-				return nil, NewBlockNotFoundError()
-			} else if dirBlockKeyMR == nil {
-				break
-			}
-
-			dirBlockInfo, err := dbo.FetchDirBlockInfoByKeyMR(dirBlockKeyMR)
-			if err != nil {
-				return nil, NewBlockNotFoundError()
-			} else if dirBlockInfo == nil {
-				continue
-			}
-
-			dbi := dirBlockInfo.(*dbInfo.DirBlockInfo)
-			if dbi.EthereumConfirmed && !dbi.EthereumAnchorRecordEntryHash.IsSameAs(primitives.ZeroHash) {
-				anchorRecordEntry, err := dbo.FetchEntry(dbi.EthereumAnchorRecordEntryHash)
-				if err != nil {
-					return nil, NewCustomInternalError(err)
-				}
-				anchorRecordJSON := anchorRecordEntry.GetContent()
-				anchorRecord, err := anchor.UnmarshalAnchorRecord(anchorRecordJSON)
-				if err != nil {
-					return nil, NewCustomInternalError(err)
-				}
-				eth := new(EthereumAnchorResponse)
-				eth.DBHeightMax = int64(anchorRecord.DBHeightMax)
-				eth.DBHeightMin = int64(anchorRecord.DBHeightMin)
-				eth.WindowMR = anchorRecord.WindowMR
-				eth.RecordHeight = int64(anchorRecord.RecordHeight)
-				eth.ContractAddress = anchorRecord.Ethereum.ContractAddress
-				eth.TxID = anchorRecord.Ethereum.TxID
-				eth.BlockHash = anchorRecord.Ethereum.BlockHash
-				eth.TxIndex = anchorRecord.Ethereum.TxIndex
-
-				var allWindowKeyMRs []interfaces.IHash
-				for i := eth.DBHeightMin; i <= eth.DBHeightMax; i++ {
-					keyMR, err := dbo.FetchDBKeyMRByHeight(uint32(i))
-					if err != nil {
-						return nil, NewCustomInternalError(err)
-					}
-					allWindowKeyMRs = append(allWindowKeyMRs, keyMR)
-				}
-				eth.MerkleBranch = primitives.BuildMerkleBranchForHash(allWindowKeyMRs, directoryBlockKeyMR, true)
-				response.Ethereum = eth
-				break
-			}
+			break
 		}
 	}
 
