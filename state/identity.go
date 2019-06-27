@@ -184,6 +184,7 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 	// Add to admin block
 	if servertype == 0 {
 		id.Status = constants.IDENTITY_PENDING_FEDERATED_SERVER
+		st.LogPrintf("executeMsg", "Add server 2 %x", chainID.Bytes()[3:6])
 		st.LeaderPL.AdminBlock.AddFedServer(chainID)
 	} else if servertype == 1 {
 		id.Status = constants.IDENTITY_PENDING_AUDIT_SERVER
@@ -201,6 +202,7 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 	}
 	st.LeaderPL.AdminBlock.AddEfficiency(chainID, id.Efficiency)
 
+	st.LogPrintf("executeMsg", "Added server %x", chainID.Bytes()[3:6])
 	return true
 }
 

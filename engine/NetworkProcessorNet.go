@@ -148,6 +148,11 @@ func Peers(fnode *FactomNode) {
 				continue // Toss any inputs from API
 			}
 
+			if fnode.State.GetNetStateOff() {
+				fnode.State.LogMessage("NetworkInputs", "API drop, X'd by simCtrl", msg)
+				continue
+			}
+
 			repeatHash := msg.GetRepeatHash()
 			if repeatHash == nil || repeatHash.PFixed() == nil {
 				fnode.State.LogMessage("NetworkInputs", "API drop, Hash Error", msg)
@@ -216,7 +221,7 @@ func Peers(fnode *FactomNode) {
 
 				if fnode.State.LLeaderHeight < fnode.State.DBHeightAtBoot+2 {
 					if msg.GetTimestamp().GetTimeMilli() < fnode.State.TimestampAtBoot.GetTimeMilli() {
-						fnode.State.LogMessage("NetworkInputs", "Drop, too old", msg)
+						fnode.State.LogMessage("NetworkInputs", "drop, too old", msg)
 						continue
 					}
 				}
