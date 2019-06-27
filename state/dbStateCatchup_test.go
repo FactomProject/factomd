@@ -339,6 +339,8 @@ func testDBStateListAdditionsMissing(list GenericList, t *testing.T, testname st
 }
 
 func TestMissingConsecutive(t *testing.T) {
+	testMissingConsecutive(t, []int{10, 11, 12, 13, 20}, 10, 10, 13)
+	testMissingConsecutive(t, []int{10, 11, 12, 13}, 10, 10, 13)
 	testMissingConsecutive(t, []int{10, 11, 12, 13, 15, 20}, 10, 10, 13)
 	testMissingConsecutive(t, []int{10, 11, 12, 13, 15, 20}, 2, 10, 12)
 	testMissingConsecutive(t, []int{1, 10, 11, 12, 13, 15, 20}, 10, 1, 1)
@@ -355,7 +357,7 @@ func testMissingConsecutive(t *testing.T, add []int, n, bExp, eExp int) {
 	}
 
 	b, e := m.NextConsecutiveMissing(n)
-	if b != uint32(bExp) && e != uint32(eExp) {
+	if b != uint32(bExp) || e != uint32(eExp) {
 		t.Errorf("Expected %d-%d, found %d-%d", bExp, eExp, b, e)
 	}
 }
