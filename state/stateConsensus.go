@@ -981,7 +981,6 @@ func (s *State) repost(m interfaces.IMsg, delay int) {
 }
 
 // FactomSecond finds the time duration of 1 second relative to 10min blocks.
-//	It will round to the millisecond
 //		Blktime			EOMs		Second
 //		600s			60s			1s
 //		300s			30s			0.5s
@@ -989,8 +988,8 @@ func (s *State) repost(m interfaces.IMsg, delay int) {
 //		 60s			 6s			0.1s
 //		 30s			 3s			0.05s
 func (s *State) FactomSecond() time.Duration {
-	blktimeMilli := s.DirectoryBlockInSeconds * 1000
-	return time.Duration(blktimeMilli/(600)) * time.Millisecond
+	// Convert to time.second, then divide by 600
+	return time.Duration(s.DirectoryBlockInSeconds) * time.Second / 600
 }
 
 // Messages that will go into the Process List must match an Acknowledgement.
