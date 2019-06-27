@@ -972,12 +972,25 @@ func (s *State) repost(m interfaces.IMsg, delay int) {
 	//whereAmI := atomic.WhereAmIString(1)
 	go func() { // This is a trigger to issue the EOM, but we are still syncing.  Wait to retry.
 		if delay > 0 {
-			time.Sleep((time.Duration(s.DirectoryBlockInSeconds*delay/600) * time.Second)) // delay in Factom seconds
+			time.Sleep(time.Duration(delay) * s.FactomSecond()) // delay in Factom seconds
 		}
 		//s.LogMessage("MsgQueue", fmt.Sprintf("enqueue_%s(%d)", whereAmI, len(s.msgQueue)), m)
 		s.LogMessage("MsgQueue", fmt.Sprintf("enqueue (%d)", len(s.msgQueue)), m)
 		s.msgQueue <- m // Goes in the "do this really fast" queue so we are prompt about EOM's while syncing
 	}()
+}
+
+// FactomSecond finds the time duration of 1 second relative to 10min blocks.
+//	It will round to the millisecond
+//		Blktime			EOMs		Second
+//		600s			60s			1s
+//		300s			30s			0.5s
+//		120s			12s			0.2s
+//		 60s			 6s			0.1s
+//		 30s			 3s			0.05s
+func (s *State) FactomSecond() time.Duration {
+	blktimeMilli := s.DirectoryBlockInSeconds * 1000
+	return time.Duration(blktimeMilli/(600)) * time.Millisecond
 }
 
 // Messages that will go into the Process List must match an Acknowledgement.
