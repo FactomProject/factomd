@@ -115,7 +115,7 @@ func (m *Ack) Validate(s interfaces.IState) int {
 		return -1
 	}
 
-	delta := (int(m.DBHeight)-int(s.GetLeaderPL().GetDBHeight()))*10 + (int(m.Minute) - int(s.GetCurrentMinute()))
+	delta := (int(m.DBHeight) - int(s.GetLeaderPL().GetDBHeight()))
 
 	// Update the highest known ack to start requesting
 	// DBState blocks if necessary
