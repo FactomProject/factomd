@@ -1,10 +1,11 @@
 package auditBrainTests_test
 
 import (
+	"testing"
+
 	"github.com/FactomProject/factomd/common/constants/servertype"
 	"github.com/FactomProject/factomd/state"
 	. "github.com/FactomProject/factomd/testHelper"
-	"testing"
 )
 
 // Test brainswapping a follower and an audit when the audit is lagging behind

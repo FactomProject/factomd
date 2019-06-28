@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/FactomProject/factomd/common/interfaces"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strconv"
 	"testing"
@@ -17,6 +17,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/FactomProject/factomd/common/globals"
+	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/engine"
@@ -135,7 +136,7 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 	if UserAddedOptions["--factomhome"] == "" {
 		// default to create a new home dir for each sim test if not specificed
 		homeDir := GetSimTestHome(t)
-		err := os.MkdirAll(homeDir+"/.factom/m2", 0755)
+		err := os.MkdirAll(filepath.Join(homeDir, "/.factom/m2"), 0755)
 		if err != nil {
 			t.Fatal(err)
 		}

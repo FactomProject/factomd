@@ -1,12 +1,13 @@
 package auditBrainTests_test
 
 import (
+	"os"
+	"testing"
+
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/engine"
 	"github.com/FactomProject/factomd/state"
 	. "github.com/FactomProject/factomd/testHelper"
-	"os"
-	"testing"
 )
 
 func SetupConfigFiles(t *testing.T) {
@@ -15,7 +16,7 @@ func SetupConfigFiles(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	globals.Params.FactomHome = dir + "/TestBrainSwap"
+	globals.Params.FactomHome = dir + "/.sim"
 	os.Setenv("FACTOM_HOME", globals.Params.FactomHome)
 
 	t.Logf("Removing old run in %s", globals.Params.FactomHome)
