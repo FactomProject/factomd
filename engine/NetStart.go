@@ -23,6 +23,7 @@ import (
 	"github.com/FactomProject/factomd/common/messages/msgsupport"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/controlPanel"
+	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/leveldb"
 	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/p2p"
@@ -556,6 +557,28 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		startServers(false)
 	} else {
 		startServers(true)
+	}
+
+	// Anchoring related configurations
+	config := s.Cfg.(*util.FactomdConfig)
+	if len(config.App.BitcoinAnchorRecordPublicKeys) > 0 {
+		err := s.GetDB().(*databaseOverlay.Overlay).SetBitcoinAnchorRecordPublicKeysFromHex(config.App.BitcoinAnchorRecordPublicKeys)
+		if err != nil {
+			panic("Encountered an error while trying to set custom Bitcoin anchor record keys from config")
+		}
+	}
+	if len(config.App.EthereumAnchorRecordPublicKeys) > 0 {
+		err := s.GetDB().(*databaseOverlay.Overlay).SetEthereumAnchorRecordPublicKeysFromHex(config.App.EthereumAnchorRecordPublicKeys)
+		if err != nil {
+			panic("Encountered an error while trying to set custom Ethereum anchor record keys from config")
+		}
+	}
+	if p.ReparseAnchorChains {
+		fmt.Println("Reparsing anchor chains...")
+		err := fnodes[0].State.GetDB().(*databaseOverlay.Overlay).ReparseAnchorChains()
+		if err != nil {
+			panic("Encountered an error while trying to re-parse anchor chains: " + err.Error())
+		}
 	}
 
 	// Start the webserver
