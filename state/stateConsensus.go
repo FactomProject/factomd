@@ -1325,7 +1325,7 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 		if !ok {
 			return
 		}
-		go func() { s.WriteEntry <- entry }() // DataResponse
+		s.WriteEntry <- entry // DataResponse
 
 	}
 }
@@ -1809,7 +1809,7 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) (worked b
 		// Put it in our list of new Entry Blocks for this Directory Block
 		s.PutNewEBlocks(dbheight, chainID, eb)
 		s.PutNewEntries(dbheight, myhash, msg.Entry)
-		go func() { s.WriteEntry <- msg.Entry }()
+		s.WriteEntry <- msg.Entry
 		s.IncEntryChains()
 		s.IncEntries()
 		s.LogMessage("newHolding", "process", m)
@@ -1841,7 +1841,7 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) (worked b
 	// Put it in our list of new Entry Blocks for this Directory Block
 	s.PutNewEBlocks(dbheight, chainID, eb)
 	s.PutNewEntries(dbheight, myhash, msg.Entry)
-	go func() { s.WriteEntry <- msg.Entry }()
+	s.WriteEntry <- msg.Entry
 
 	s.IncEntries()
 	return true
@@ -2043,9 +2043,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 				entries := []interfaces.IEBEntry{}
 				for _, v := range pl.NewEBlocks {
 					eBlocks = append(eBlocks, v)
-				}
-				for _, v := range pl.NewEntries {
-					entries = append(entries, v)
 				}
 
 				dbstate := s.AddDBState(true, s.LeaderPL.DirectoryBlock, s.LeaderPL.AdminBlock, s.GetFactoidState().GetCurrentBlock(), s.LeaderPL.EntryCreditBlock, eBlocks, entries)
