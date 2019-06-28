@@ -12,13 +12,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/FactomProject/factomd/common/constants/runstate"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/FactomProject/factomd/common/constants/runstate"
 
 	"github.com/FactomProject/factomd/activations"
 	"github.com/FactomProject/factomd/common/adminBlock"
@@ -3002,4 +3003,14 @@ func (s *State) PassInputRegEx(RegEx *regexp.Regexp, RegExString string) {
 
 func (s *State) GetInputRegEx() (*regexp.Regexp, string) {
 	return s.InputRegEx, s.InputRegExString
+}
+
+func (s *State) GetIgnoreDone() bool {
+	return s.IgnoreDone
+}
+
+func (s *State) ShutdownNode(exitCode int) {
+	fmt.Println(fmt.Sprintf("Initiating a graceful shutdown of node %s. The exit code is %v.", s.FactomNodeName, exitCode))
+	s.RunState = runstate.Stopping
+	s.ShutdownChan <- exitCode
 }
