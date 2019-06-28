@@ -1128,7 +1128,7 @@ func (s *State) ExecuteEntriesInDBState(dbmsg *messages.DBStateMsg) {
 	}
 
 	for _, e := range dbmsg.Entries {
-		go func() { s.WriteEntry <- e }()
+		s.WriteEntry <- e
 	}
 
 	if err != nil {

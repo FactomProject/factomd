@@ -1475,12 +1475,10 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 			list.State.LogPrintf("dbstateprocess", "Error saving eblock from dbstate, eblock not allowed")
 		}
 	}
-	go func() {
-		for _, e := range d.Entries {
-			// If it's in the DBlock
-			list.State.WriteEntry <- e
-		}
-	}()
+	for _, e := range d.Entries {
+		// If it's in the DBlock
+		list.State.WriteEntry <- e
+	}
 	list.State.NumEntries += len(d.Entries)
 	list.State.NumEntryBlocks += len(d.EntryBlocks)
 
@@ -1517,11 +1515,9 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 				panic(err)
 			}
 			if _, ok := allowedEBlocks[keymr.Fixed()]; ok {
-				go func() {
-					for _, e := range eb.GetBody().GetEBEntries() {
-						pl.State.WriteEntry <- pl.GetNewEntry(e.Fixed())
-					}
-				}()
+				for _, e := range eb.GetBody().GetEBEntries() {
+					pl.State.WriteEntry <- pl.GetNewEntry(e.Fixed())
+				}
 			} else {
 				list.State.LogPrintf("dbstateprocess", "Error saving eblock from process list, eblock not allowed")
 			}
