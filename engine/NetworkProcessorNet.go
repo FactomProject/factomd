@@ -119,11 +119,11 @@ func Peers(fnode *FactomNode) {
 	} // func ignoreMsg(){...}
 
 	for {
-		if primitives.NewTimestampNow().GetTimeSeconds()-fnode.State.BootTime > int64(constants.CROSSBOOT_SALT_REPLAY_DURATION.Seconds()) {
+		now := fnode.State.GetTimestamp()
+		if now.GetTimeSeconds()-fnode.State.BootTime > int64(constants.CROSSBOOT_SALT_REPLAY_DURATION.Seconds()) {
 			saltReplayFilterOn = false
 		}
 		cnt := 0
-		now := fnode.State.GetTimestamp()
 
 		for i := 0; i < 100 && fnode.State.APIQueue().Length() > 0; i++ {
 			msg := fnode.State.APIQueue().Dequeue()
@@ -146,6 +146,11 @@ func Peers(fnode *FactomNode) {
 			if fnode.State.GetNetStateOff() { // drop received message if he is off
 				fnode.State.LogMessage("NetworkInputs", "API drop, X'd by simCtrl", msg)
 				continue // Toss any inputs from API
+			}
+
+			if fnode.State.GetNetStateOff() {
+				fnode.State.LogMessage("NetworkInputs", "API drop, X'd by simCtrl", msg)
+				continue
 			}
 
 			repeatHash := msg.GetRepeatHash()
@@ -216,7 +221,7 @@ func Peers(fnode *FactomNode) {
 
 				if fnode.State.LLeaderHeight < fnode.State.DBHeightAtBoot+2 {
 					if msg.GetTimestamp().GetTimeMilli() < fnode.State.TimestampAtBoot.GetTimeMilli() {
-						fnode.State.LogMessage("NetworkInputs", "Drop, too old", msg)
+						fnode.State.LogMessage("NetworkInputs", "drop, too old", msg)
 						continue
 					}
 				}
@@ -337,7 +342,6 @@ func Peers(fnode *FactomNode) {
 					} else if msg.Type() == constants.DBSTATE_MSG {
 						// notify the state that a new DBState has been recieved.
 						// TODO: send the msg to StatesReceived and only send to InMsgQueue when the next received message is ready.
-						fnode.State.StatesReceived.Notify <- msg.(*messages.DBStateMsg)
 						fnode.State.LogMessage("NetworkInputs", fromPeer+", enqueue", msg)
 						fnode.State.LogMessage("InMsgQueue", fromPeer+", enqueue", msg)
 						fnode.State.InMsgQueue().Enqueue(msg)

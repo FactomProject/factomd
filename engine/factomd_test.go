@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"runtime"
 	"strings"
 	"sync"
@@ -318,6 +319,22 @@ func TestAnElection(t *testing.T) {
 	// wait for him to update via dbstate and become an audit
 	WaitBlocks(state0, 2)
 	WaitMinutes(state0, 1)
+
+	{ // debug holding queue
+
+		for _, fnode := range GetFnodes() {
+			s := fnode.State
+			for _, h := range s.Hold.Messages() {
+				for _, m := range h {
+					s.LogMessage("newholding", "stuck", m)
+				}
+			}
+		}
+	}
+
+	state2 := GetFnodes()[2].State
+	WaitForBlock(state2, 7) // wait for sync w/ network
+
 	WaitForAllNodes(state0)
 
 	// PrintOneStatus(0, 0)
@@ -1491,4 +1508,75 @@ func TestDBState(t *testing.T) {
 	WaitForAllNodes(state0) // if the follower isn't catching up this will timeout
 	PrintOneStatus(0, 0)
 	ShutDownEverything(t)
+}
+
+func TestDebugLocation(t *testing.T) {
+	if RanSimTest {
+		return
+	}
+	RanSimTest = true
+
+	tempdir := os.TempDir() + string(os.PathSeparator) + "logs" + string(os.PathSeparator) // get os agnostic path to the temp directory
+
+	// toss any files that might preexist this run so we don't see old files
+	err := os.RemoveAll(tempdir)
+	if err != nil {
+		panic(err)
+	}
+
+	// make sure the directory exists
+	err = os.MkdirAll(tempdir, os.ModePerm)
+	if err != nil {
+		panic(err)
+	}
+
+	// start a sim with a select set of logs
+	state0 := SetupSim("LF", map[string]string{"--debuglog": tempdir + "holding|networkinputs|ackqueue"}, 6, 0, 0, t)
+	WaitBlocks(state0, 1)
+	ShutDownEverything(t)
+
+	// check the logs exist where we wanted them
+	DoesFileExists(tempdir+"fnode0_holding.txt", t)
+	DoesFileExists(tempdir+"fnode01_holding.txt", t)
+	DoesFileExists(tempdir+"fnode0_networkinputs.txt", t)
+	DoesFileExists(tempdir+"fnode01_networkinputs.txt", t)
+	DoesFileExists(tempdir+"fnode01_ackqueue.txt", t)
+
+	// toss the files we created since they are no longer needed
+	err = os.RemoveAll(tempdir)
+	if err != nil {
+		panic(err)
+	}
+
+}
+
+func TestDebugLocationParse(t *testing.T) {
+	tempdir := os.TempDir() + string(os.PathSeparator) + "logs" + string(os.PathSeparator) // get os agnostic path to the temp directory
+	stringsToCheck := []string{tempdir + "holding", tempdir + "networkinputs", tempdir + ".", tempdir + "ackqueue"}
+
+	for i := 0; i < len(stringsToCheck); i++ {
+		// Checks that the SplitUpDebugLogRegEx function works as expected
+		dirlocation, regex := messages.SplitUpDebugLogRegEx(stringsToCheck[i])
+		if dirlocation != tempdir {
+			t.Fatalf("Error SplitUpDebugLogRegEx() did not return the correct directory location.")
+		}
+		if strings.Contains(regex, string(os.PathSeparator)) {
+			t.Fatalf("Error SplitUpDebugLogRegEx() did not return the correct directory regex.")
+		}
+	}
+}
+
+func DoesFileExists(path string, t *testing.T) {
+	_, err := os.Stat(path)
+	if err != nil {
+		t.Fatalf("Error checking for File: %s", err)
+	} else {
+		t.Logf("Found file %s", path)
+	}
+	if os.IsNotExist(err) {
+		t.Fatalf("File %s doesn't exist", path)
+	} else {
+		t.Logf("Found file %s", path)
+	}
+
 }

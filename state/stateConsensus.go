@@ -87,6 +87,16 @@ func (s *State) DeleteFromHolding(hash [32]byte, msg interfaces.IMsg, reason str
 	}
 }
 
+var FilterTimeLimit = int64(Range * 60 * 2 * 1000000000) // Filter hold two hours of messages, one in the past one in the future
+
+func (s *State) GetFilterTimeNano() int64 {
+	t := s.GetMessageFilterTimestamp().GetTime().UnixNano() // this is the start of the filter
+	if t == 0 {
+		panic("got 0 time")
+	}
+	return t
+}
+
 // this is the common validation to all messages. they must not be a reply, they must not be out size the time window
 // for the replay filter.
 func (s *State) Validate(msg interfaces.IMsg) (validToSend int, validToExec int) {
@@ -111,8 +121,7 @@ func (s *State) Validate(msg interfaces.IMsg) (validToSend int, validToExec int)
 		// Allow these thru as they do not have Ack's (they don't change processlists)
 	default:
 		// Make sure we don't put in an old ack'd message (outside our repeat filter range)
-		tlim := int64(Range * 60 * 2 * 1000000000)                       // Filter hold two hours of messages, one in the past one in the future
-		filterTime := s.GetMessageFilterTimestamp().GetTime().UnixNano() // this is the start of the filter
+		filterTime := s.GetFilterTimeNano()
 
 		if filterTime == 0 {
 			panic("got 0 time")
@@ -122,7 +131,7 @@ func (s *State) Validate(msg interfaces.IMsg) (validToSend int, validToExec int)
 
 		// Make sure we don't put in an old msg (outside our repeat range)
 		{ // debug
-			if msgtime < filterTime || msgtime > (filterTime+tlim) {
+			if msgtime < filterTime || msgtime > (filterTime+FilterTimeLimit) {
 				s.LogPrintf("executeMsg", "MsgFilter %s", s.GetMessageFilterTimestamp().GetTime().String())
 
 				s.LogPrintf("executeMsg", "Leader    %s", s.GetLeaderTimestamp().GetTime().String())
@@ -133,7 +142,7 @@ func (s *State) Validate(msg interfaces.IMsg) (validToSend int, validToExec int)
 		if msgtime < filterTime {
 			s.LogMessage("executeMsg", "drop message, more than an hour in the past", msg)
 			return -1, -1 // Old messages are bad.
-		} else if msgtime > (filterTime + tlim) {
+		} else if msgtime > (filterTime + FilterTimeLimit) {
 			s.LogMessage("executeMsg", "hold message from the future", msg)
 			return 0, 0 // Far Future (>1H) stuff I can hold for now.  It might be good later?
 		}
@@ -153,6 +162,14 @@ func (s *State) Validate(msg interfaces.IMsg) (validToSend int, validToExec int)
 	}
 	if validToSend == -1 { // if the msg says drop then we drop...
 		return -1, -1
+	}
+	if validToSend == -2 { // if the msg says New hold then we don't execute...
+		return 0, -2
+	}
+
+	if validToSend != 1 { // if the msg says anything other than valid
+		s.LogMessage("badmsgs", fmt.Sprintf("Invalid validity code %d", validToSend), msg)
+		panic("unexpected validity code")
 	}
 
 	// if it is valid to send then we check other stuff ...
@@ -239,7 +256,6 @@ func (s *State) executeMsg(msg interfaces.IMsg) (ret bool) {
 		switch msg.Type() {
 		case constants.REVEAL_ENTRY_MSG, constants.COMMIT_ENTRY_MSG, constants.COMMIT_CHAIN_MSG:
 			if !s.NoEntryYet(msg.GetHash(), nil) {
-				//delete(s.Holding, msg.GetHash().Fixed())
 				s.DeleteFromHolding(msg.GetMsgHash().Fixed(), msg, "AlreadyCommitted") // delete commit
 				s.DeleteFromHolding(msg.GetHash().Fixed(), msg, "AlreadyCommitted")    // delete reveal
 				s.Commits.Delete(msg.GetHash().Fixed())
@@ -247,7 +263,6 @@ func (s *State) executeMsg(msg interfaces.IMsg) (ret bool) {
 				return true
 			}
 			s.AddToHolding(msg.GetMsgHash().Fixed(), msg) // add valid commit/reveal to holding in case it fails to get added
-			//s.Holding[msg.GetMsgHash().Fixed()] = msg
 		}
 
 		var vm *VM = nil
@@ -304,6 +319,10 @@ func (s *State) executeMsg(msg interfaces.IMsg) (ret bool) {
 		s.AddToHolding(msg.GetMsgHash().Fixed(), msg) // Add message where validToExecute==0
 		return false
 
+	case -2:
+		s.LogMessage("executeMsg", "back to new holding from executeMsg", msg)
+		return false
+
 	default:
 		s.DeleteFromHolding(msg.GetMsgHash().Fixed(), msg, "InvalidMsg") // delete commit
 		if !msg.SentInvalid() {
@@ -341,8 +360,11 @@ func (s *State) Process() (progress bool) {
 	// is so we don't conflict with past version of the network if we have to reboot the network.
 	var Leader bool
 	var LeaderVMIndex int
-	Leader, LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
-
+	if s.CurrentMinute > 9 {
+		Leader, LeaderVMIndex = s.LeaderPL.GetVirtualServers(9, s.IdentityChainID)
+	} else {
+		Leader, LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
+	}
 	if s.LLeaderHeight != 0 { // debug
 		if s.Leader != Leader {
 			s.LogPrintf("executeMsg", "State.Process() unexpectedly setting s.Leader to %v", Leader)
@@ -390,12 +412,29 @@ func (s *State) Process() (progress bool) {
 		}
 	}
 
-	// Add the next received states to process.
-	// GetNext returns nil if the next member of StatesReceived is not the next
-	// height that needs to be processed.
-	for r := s.StatesReceived.GetNext(); r != nil; r = s.StatesReceived.GetNext() {
-		process = append(process, r.Message())
+	/** Process all the DBStatesReceived  that might be pending **/
+	if len(s.DBStatesReceived) > 0 {
+
+		for {
+			hsb := s.GetHighestSavedBlk()
+			// Get the index of the next DBState
+			ix := int(hsb) - s.DBStatesReceivedBase + 1
+			// Make sure we are in range
+			if ix < 0 || ix >= len(s.DBStatesReceived) {
+				break // We have nothing for the system, given its current height.
+			}
+			if msg := s.DBStatesReceived[ix]; msg != nil {
+				ret := s.executeMsg(msg)
+				s.LogPrintf("dbstateprocess", "Trying to process DBStatesReceived %d, %t", s.DBStatesReceivedBase+ix, ret)
+			}
+
+			// if we can not process a DBStatesReceived then go process some messages
+			if hsb == s.GetHighestSavedBlk() {
+				break
+			}
+		}
 	}
+
 	// Process inbound messages
 	preEmptyLoopTime := time.Now()
 emptyLoop:
@@ -426,7 +465,6 @@ ackLoop:
 				s.LogMessage("ackQueue", "Hold", ack)
 				// toss the ack into holding and we will try again in a bit...
 				TotalHoldingQueueInputs.Inc()
-				//s.Holding[ack.GetMsgHash().Fixed()] = ack
 				s.AddToHolding(ack.GetMsgHash().Fixed(), ack) // Add ack where valid==0
 				continue
 			}
@@ -818,6 +856,8 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 	s.DBSigLimit = s.EOMLimit               // We add or remove server only on block boundaries
 	s.LogPrintf("dbstateprocess", "MoveStateToHeight(%d-:-%d) leader=%v leaderPL=%p, leaderVMIndex=%d", dbheight, newMinute, s.Leader, s.LeaderPL, s.LeaderVMIndex)
 
+	s.Hold.ExecuteForNewHeight(dbheight) // execute held messages
+	s.Hold.Review()                      // cleanup old messages
 }
 
 // Adds blocks that are either pulled locally from a database, or acquired from peers.
@@ -927,7 +967,7 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 	}
 }
 
-// exeute a msg with an optional delay (in factom seconds)
+// execute a msg with an optional delay (in factom seconds)
 func (s *State) repost(m interfaces.IMsg, delay int) {
 	//whereAmI := atomic.WhereAmIString(1)
 	go func() { // This is a trigger to issue the EOM, but we are still syncing.  Wait to retry.
@@ -1007,6 +1047,8 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 	s.Acks[ack.GetHash().Fixed()] = ack
 	// check if we have a message
 	m, _ := s.Holding[ack.GetHash().Fixed()]
+	s.LogMessage("newHolding", "FollowerExecuteAck ", m)
+
 	if m != nil {
 		// We have an ack and a matching message go execute the message!
 		if m.Validate(s) == 1 {
@@ -1199,6 +1241,10 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	s.Syncing = false // FollowerExecuteDBState
 	s.Saving = true
 
+	// At this point the block is good, make sure not to ask for it anymore
+	if !dbstatemsg.IsInDB {
+		s.StatesReceived.Notify <- msg.(*messages.DBStateMsg)
+	}
 	s.DBStates.UpdateState()
 
 }
@@ -1721,6 +1767,8 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 		if entry != nil {
 			s.repost(entry, 0) // Try and execute the reveal for this commit
 		}
+		s.LogMessage("newHolding", "process", commitChain)
+		s.ExecuteFromHolding(commitChain.GetHash().Fixed()) // process CommitChain
 		return true
 	}
 
@@ -1742,6 +1790,8 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 		if entry != nil {
 			s.repost(entry, 0) // Try and execute the reveal for this commit
 		}
+		s.LogMessage("newHolding", "process", commitEntry)
+		s.ExecuteFromHolding(commitEntry.GetHash().Fixed()) // process CommitEntry
 		return true
 	}
 	//s.AddStatus("Cannot Process Commit Entry")
@@ -1798,6 +1848,9 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) (worked b
 
 		s.IncEntryChains()
 		s.IncEntries()
+		s.LogMessage("newHolding", "process", m)
+		s.ExecuteFromHolding(chainID.Fixed()) // Process Reveal for Chain
+
 		return true
 	}
 

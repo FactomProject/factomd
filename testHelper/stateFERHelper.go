@@ -161,7 +161,7 @@ func CreateAndPopulateTestDatabaseOverlayForFER(testEntries []FEREntryWithHeight
 		}
 	}
 
-	err = dbo.RebuildDirBlockInfo()
+	err = dbo.ReparseAnchorChains()
 	if err != nil {
 		panic(err)
 	}

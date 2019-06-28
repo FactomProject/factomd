@@ -430,6 +430,7 @@ type State struct {
 	InputRegEx                *regexp.Regexp
 	InputRegExString          string
 	executeRecursionDetection map[[32]byte]interfaces.IMsg
+	Hold                      HoldingList
 }
 
 var _ interfaces.IState = (*State)(nil)
@@ -794,13 +795,12 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		s.ControlPanelPort = cfg.App.ControlPanelPort
 		s.RpcUser = cfg.App.FactomdRpcUser
 		s.RpcPass = cfg.App.FactomdRpcPass
-		// if RequestTimeout is not set by the configuration set it to 1/10th of the block time by default
-		if cfg.App.RequestTimeout == 0 {
-			s.RequestTimeout = time.Duration(cfg.App.DirectoryBlockInSeconds/10) * time.Second
-		} else {
-			s.RequestTimeout = time.Duration(cfg.App.RequestTimeout) * time.Second
-		}
+		// if RequestTimeout is not set by the configuration it will default to 0.
+		//		If it is 0, the loop that uses it will set it to the blocktime/20
+		//		We set it there, as blktime might change after this function (from mainnet selection)
+		s.RequestTimeout = time.Duration(cfg.App.RequestTimeout) * time.Second
 		s.RequestLimit = cfg.App.RequestLimit
+
 		s.StateSaverStruct.FastBoot = cfg.App.FastBoot
 		s.StateSaverStruct.FastBootLocation = cfg.App.FastBootLocation
 		s.FastBoot = cfg.App.FastBoot
@@ -953,6 +953,7 @@ func (s *State) Init() {
 		//s.Logger = log.NewLogFromConfig(s.LogPath, s.LogLevel, "State")
 	}
 
+	s.Hold.Init(s)                           // setup the dependant holding map
 	s.TimeOffset = new(primitives.Timestamp) //interfaces.Timestamp(int64(rand.Int63() % int64(time.Microsecond*10)))
 
 	s.InvalidMessages = make(map[[32]byte]interfaces.IMsg, 0)
@@ -1016,8 +1017,6 @@ func (s *State) Init() {
 	s.StatesMissing = NewStatesMissing()
 	s.StatesWaiting = NewStatesWaiting()
 	s.StatesReceived = NewStatesReceived()
-
-	s.DBStates.Catchup()
 
 	switch s.NodeMode {
 	case "FULL":
@@ -1107,6 +1106,9 @@ func (s *State) Init() {
 	s.Println("\nRunning on the ", s.Network, "Network")
 	s.Println("\nExchange rate chain id set to ", s.FERChainId)
 	s.Println("\nExchange rate Authority Public Key set to ", s.ExchangeRateAuthorityPublicKey)
+
+	// We want this run after the network settings are configured
+	go s.DBStates.Catchup() // Launch in go routine as it blocks until we are synced from disk
 
 	s.AuditHeartBeats = make([]interfaces.IMsg, 0)
 
@@ -3000,10 +3002,4 @@ func (s *State) PassInputRegEx(RegEx *regexp.Regexp, RegExString string) {
 
 func (s *State) GetInputRegEx() (*regexp.Regexp, string) {
 	return s.InputRegEx, s.InputRegExString
-}
-
-func (s *State) ShutdownNode(exitCode int) {
-	fmt.Println(fmt.Sprintf("Initiating a graceful shutdown of node %s. The exit code is %v.", s.FactomNodeName, exitCode))
-	s.RunState = runstate.Stopping
-	s.ShutdownChan <- exitCode
 }
