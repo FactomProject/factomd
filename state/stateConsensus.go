@@ -1063,41 +1063,6 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 	}
 }
 
-func (s *State) ExecuteEntriesInDBState(dbmsg *messages.DBStateMsg) {
-	height := dbmsg.DirectoryBlock.GetDatabaseHeight()
-
-	if s.EntryDBHeightComplete > height {
-		return
-	}
-	s.LogPrintf("dbstateprocess", "Process entries in %d", height)
-	// If no Eblocks, leave
-	if len(dbmsg.EBlocks) == 0 {
-		return
-	}
-
-	// All DBStates that got here are valid, so just checking the DBlock hash works
-	dblock, err := s.DB.FetchDBlockByHeight(height)
-	if err != nil || dblock == nil {
-		consenLogger.WithFields(log.Fields{"func": "ExecuteEntriesInDBState", "height": height}).Warnf("Dblock fetched is nil")
-		return // This is a weird case
-	}
-
-	if !dbmsg.DirectoryBlock.GetHash().IsSameAs(dblock.GetHash()) {
-		consenLogger.WithFields(log.Fields{"func": "ExecuteEntriesInDBState", "height": height}).Errorf("Bad DBState. DBlock does not match found")
-		return // Bad DBlock
-	}
-
-	for _, e := range dbmsg.Entries {
-		s.WriteEntry <- e
-	}
-
-	if err != nil {
-		consenLogger.WithFields(log.Fields{"func": "ExecuteEntriesInDBState", "height": height}).Errorf("Was unable to execute multibatch")
-		return
-	}
-	// todo: Should we move the EntryDBHeightComplete here?
-}
-
 func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	dbstatemsg, _ := msg.(*messages.DBStateMsg)
 
