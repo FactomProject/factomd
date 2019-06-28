@@ -1514,11 +1514,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 			if err != nil {
 				panic(err)
 			}
-			if _, ok := allowedEBlocks[keymr.Fixed()]; ok {
-				for _, e := range eb.GetBody().GetEBEntries() {
-					pl.State.WriteEntry <- pl.GetNewEntry(e.Fixed())
-				}
-			} else {
+			if _, ok := allowedEBlocks[keymr.Fixed()]; !ok {
 				list.State.LogPrintf("dbstateprocess", "Error saving eblock from process list, eblock not allowed")
 			}
 		}
