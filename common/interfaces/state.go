@@ -329,6 +329,7 @@ type IState interface {
 	DidCreateLastBlockFromDBState() bool
 	GetUnsyncedServers(dbheight uint32) []IHash
 	Validate(msg IMsg) (validToSend int, validToExecute int)
+	GetIgnoreDone() bool
 
 	// Access to Holding Queue
 	LoadHoldingMap() map[[32]byte]IMsg
