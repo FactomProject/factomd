@@ -8,11 +8,12 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/FactomProject/factomd/common/constants/runstate"
-	. "github.com/FactomProject/factomd/engine"
 	"reflect"
 	"runtime"
 	"time"
+
+	"github.com/FactomProject/factomd/common/constants/runstate"
+	. "github.com/FactomProject/factomd/engine"
 )
 
 func main() {
@@ -44,7 +45,7 @@ func main() {
 	sim_Stdin := params.Sim_Stdin
 
 	state := Factomd(params, sim_Stdin)
-	for state.GetRunState() < runstate.Stopped {
+	for state.GetRunState() != runstate.Stopped {
 		time.Sleep(time.Second)
 	}
 	fmt.Println("Waiting to Shut Down") // This may not be necessary anymore with the new run state method

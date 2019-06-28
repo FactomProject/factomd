@@ -135,8 +135,8 @@ func shouldShutdown(state *State) bool {
 func shutdown(state *State) {
 	state.RunState = runstate.Stopping
 	fmt.Println("Closing the Database on", state.GetFactomNodeName())
+	state.StateSaverStruct.StopSaving()
 	state.DB.Close()
-	state.StateSaverStruct.StopSaving() // Shouldn't this be done before closing the database?
 	fmt.Println("Database on", state.GetFactomNodeName(), "closed")
 	state.RunState = runstate.Stopped
 }
