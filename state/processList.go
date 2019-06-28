@@ -911,6 +911,7 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 					delete(s.Acks, msgHashFixed)
 					//delete(s.Holding, msgHashFixed)
 
+					// REVIEW: does this leave msg in dependent holding?
 					s.DeleteFromHolding(msgHashFixed, msg, "msg.Process done")
 				} else {
 					s.LogMessage("process", fmt.Sprintf("retry %v/%v/%v", p.DBHeight, i, j), msg)

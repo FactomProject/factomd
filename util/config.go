@@ -58,6 +58,8 @@ type FactomdConfig struct {
 		CustomSpecialPeers      string
 		CustomBootstrapIdentity string
 		CustomBootstrapKey      string
+		P2PIncoming             int
+		P2POutgoing             int
 		FactomdTlsEnabled       bool
 		FactomdTlsPrivateKey    string
 		FactomdTlsPublicCert    string
@@ -142,6 +144,10 @@ CustomSeedURL        = ""
 CustomSpecialPeers   = ""
 CustomBootstrapIdentity     = 38bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9
 CustomBootstrapKey          = cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a
+; The maximum number of other peers dialing into this node that will be accepted
+P2PIncoming	= 200
+; The maximum number of peers this node will attempt to dial into
+P2POutgoing	= 32
 ; --------------- NodeMode: FULL | SERVER ----------------
 NodeMode                                = FULL
 LocalServerPrivKey                      = 4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d
@@ -172,7 +178,7 @@ FactomdRpcPass                        = ""
 ; RequestLimit is the maximum number of pending requests for missing states.
 ; factomd will stop making DBStateMissing requests until current requests are
 ; moved out of the waiting list
-RequestLimit						= 150
+RequestLimit						= 200
 
 ; This paramater allows Cross-Origin Resource Sharing (CORS) so web browsers will use data returned from the API when called from the listed URLs
 ; Example paramaters are "http://www.example.com, http://anotherexample.com, *"
@@ -252,6 +258,8 @@ func (s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\n    CustomSpecialPeers      %v", s.App.CustomSpecialPeers))
 	out.WriteString(fmt.Sprintf("\n    CustomBootstrapIdentity %v", s.App.CustomBootstrapIdentity))
 	out.WriteString(fmt.Sprintf("\n    CustomBootstrapKey      %v", s.App.CustomBootstrapKey))
+	out.WriteString(fmt.Sprintf("\n    P2PIncoming             %v", s.App.P2PIncoming))
+	out.WriteString(fmt.Sprintf("\n    P2POutgoing             %v", s.App.P2POutgoing))
 	out.WriteString(fmt.Sprintf("\n    NodeMode                %v", s.App.NodeMode))
 	out.WriteString(fmt.Sprintf("\n    IdentityChainID         %v", s.App.IdentityChainID))
 	out.WriteString(fmt.Sprintf("\n    LocalServerPrivKey      %v", s.App.LocalServerPrivKey))

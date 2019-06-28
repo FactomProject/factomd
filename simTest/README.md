@@ -2,7 +2,12 @@
 
 This folder contains simulation tests that can run alone in isolation.
 
-Tests in this folder will also run on circle.ci
+## Add a test to circle.ci
+
+add the filename to `ci_whitelist` file in this directory
+
+
+### Run a test
 
 NOTE: each `_test.go` file in this folder should be able to be run by itself
 

@@ -182,6 +182,13 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	s.CheckChainHeads.CheckChainHeads = p.CheckChainHeads
 	s.CheckChainHeads.Fix = p.FixChainHeads
 
+	if p.P2PIncoming > 0 {
+		p2p.MaxNumberIncomingConnections = p.P2PIncoming
+	}
+	if p.P2POutgoing > 0 {
+		p2p.NumberPeersToConnect = p.P2POutgoing
+	}
+
 	fmt.Println(">>>>>>>>>>>>>>>>")
 	fmt.Println(">>>>>>>>>>>>>>>> Net Sim Start!")
 	fmt.Println(">>>>>>>>>>>>>>>>")
@@ -269,8 +276,10 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "Build", Build))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "Node name", p.NodeName))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "balancehash", messages.AckBalanceHash))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "FNode 0 Salt", s.Salt.String()[:16]))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", fmt.Sprintf("%s Salt", s.GetFactomNodeName()), s.Salt.String()[:16]))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "enablenet", p.EnableNet))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "net incoming", p2p.MaxNumberIncomingConnections))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "net outgoing", p2p.NumberPeersToConnect))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "waitentries", p.WaitEntries))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "node", p.ListenTo))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "prefix", p.Prefix))
@@ -319,6 +328,9 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	for i := 0; i < p.Cnt; i++ {
 		makeServer(s) // We clone s to make all of our servers
 	}
+
+	addFnodeName(0) // bootstrap id doesn't change
+
 	// Modify Identities of new nodes
 	if len(fnodes) > 1 && len(s.Prefix) == 0 {
 		modifyLoadIdentities() // We clone s to make all of our servers
@@ -613,7 +625,7 @@ func startServer(i int, fnode *FactomNode, load bool) {
 	if i > 0 {
 		fnode.State.Init()
 	}
-	go NetworkProcessorNet(fnode)
+	NetworkProcessorNet(fnode)
 	if load {
 		go state.LoadDatabase(fnode.State)
 	}

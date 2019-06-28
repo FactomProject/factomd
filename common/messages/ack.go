@@ -134,8 +134,8 @@ func (m *Ack) Validate(s interfaces.IState) int {
 		return -1
 	}
 
-	if delta > 30 {
-		return 0 // put this in the holding and validate it later
+	if delta > 30 { // REVIEW: should we decrease this limit since msg goes to newHolding ?
+		return s.HoldForHeight(m.DBHeight, m)
 	}
 
 	// Only new acks are valid. Of course, the VMIndex has to be valid too.
@@ -168,7 +168,7 @@ func (m *Ack) Validate(s interfaces.IState) int {
 		if ackSigned <= 0 {
 			if m.DBHeight > s.GetLLeaderHeight() {
 				s.LogPrintf("executeMsg", "Hold, Not signed by a leader")
-				return 0 // This is for a future block so the auth set may change so hold on to it.
+				return s.HoldForHeight(m.DBHeight, m)
 			} else {
 
 				s.LogPrintf("executeMsg", "Drop, Not signed by a leader")

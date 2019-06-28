@@ -5,16 +5,14 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/FactomProject/factomd/common/interfaces"
+
 	"github.com/FactomProject/factom"
-	"github.com/FactomProject/factomd/engine"
 	. "github.com/FactomProject/factomd/testHelper"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCreatEntriesBeforeChain(t *testing.T) {
-
-	//FIXME test disabled
-	return
+func TestEntriesBeforeChain(t *testing.T) {
 
 	encode := func(s string) []byte {
 		b := bytes.Buffer{}
@@ -24,94 +22,98 @@ func TestCreatEntriesBeforeChain(t *testing.T) {
 
 	id := "92475004e70f41b94750f4a77bf7b430551113b25d3d57169eadca5692bb043d"
 	extids := [][]byte{encode("foo"), encode("bar")}
+	var lastentry interfaces.IHash
+
 	a := AccountFromFctSecret("Fs2zQ3egq2j99j37aYzaCddPq9AF3mgh64uG9gRaDAnrkjRx3eHs")
-	b := GetBankAccount()
+	b := AccountFromFctSecret("Fs2BNvoDgSoGJpWg4PvRUxqvLE28CQexp5FZM9X5qU6QvzFBUn6D")
 
-	numEntries := 250 // set the total number of entries to add
+	numEntries := 9 // set the total number of entries to add
 
-	t.Run("generate accounts", func(t *testing.T) {
-		println(b.String())
-		println(a.String())
-	})
+	params := map[string]string{"--debuglog": ""}
+	state0 := SetupSim("LLAAFF", params, 10, 0, 0, t)
 
-	// KLUDGE: using "LAF" causes timeout on CI
-	t.Run("Run sim to create entries", func(t *testing.T) {
-		state0 := SetupSim("L", map[string]string{"--debuglog": ""}, 200, 0, 0, t)
+	var entries []interfaces.IMsg
+	var oneFct uint64 = factom.FactoidToFactoshi("1")
+	var ecMargin = 100
 
-		stop := func() {
-			ShutDownEverything(t)
-			WaitForAllNodes(state0)
-		}
-
-		t.Run("Create Entries Before Chain", func(t *testing.T) {
-
-			publish := func(i int) {
-				e := factom.Entry{
-					ChainID: id,
-					ExtIDs:  extids,
-					Content: encode(fmt.Sprintf("hello@%v", i)), // ensure no duplicate msg hashes
-				}
-				i++
-
-				commit, _ := ComposeCommitEntryMsg(a.Priv, e)
-				reveal, _ := ComposeRevealEntryMsg(a.Priv, &e)
-
-				state0.APIQueue().Enqueue(commit)
-				state0.APIQueue().Enqueue(reveal)
-			}
-
-			for x := 0; x < numEntries; x++ {
-				publish(x)
-			}
-		})
-
-		t.Run("Create Chain", func(t *testing.T) {
+	{ // publish entries
+		publish := func(i int) {
 			e := factom.Entry{
 				ChainID: id,
 				ExtIDs:  extids,
-				Content: encode("Hello World!"),
+				Content: encode(fmt.Sprintf("hello@%v", i)), // ensure no duplicate msg hashes
 			}
+			commit, _ := ComposeCommitEntryMsg(a.Priv, e)
+			reveal, _ := ComposeRevealEntryMsg(a.Priv, &e)
 
-			c := factom.NewChain(&e)
+			state0.LogMessage("simtest", "commit", commit)
+			state0.LogMessage("simtest", "reveal", reveal)
 
-			commit, _ := ComposeChainCommit(a.Priv, c)
-			reveal, _ := ComposeRevealEntryMsg(a.Priv, c.FirstEntry)
+			entries = append(entries, commit)
+			entries = append(entries, reveal)
 
 			state0.APIQueue().Enqueue(commit)
 			state0.APIQueue().Enqueue(reveal)
-		})
+		}
 
-		t.Run("Fund EC Address", func(t *testing.T) {
-			amt := uint64(numEntries + 10)
-			engine.FundECWallet(state0, b.FctPrivHash(), a.EcAddr(), amt*state0.GetFactoshisPerEC())
-			WaitForAnyDeposit(state0, a.EcPub())
-		})
+		for x := 0; x < numEntries; x++ {
+			publish(x)
+		}
 
-		t.Run("End simulation", func(t *testing.T) {
-			WaitForZero(state0, a.EcPub())
-			ht := state0.GetDBHeightComplete()
-			WaitBlocks(state0, 1)
-			newHt := state0.GetDBHeightComplete()
-			//fmt.Printf("Old: %v New: %v", ht, newHt)
-			assert.True(t, ht < newHt, "block height should progress")
-			//assert.True(t, newHt >= uint32(11), "should be past block 10")
-			stop()
-		})
+	}
 
-		t.Run("Verify Entries", func(t *testing.T) {
+	{ // create chain
+		e := factom.Entry{
+			ChainID: id,
+			ExtIDs:  extids,
+			Content: encode("Hello World!"),
+		}
 
-			bal := engine.GetBalanceEC(state0, a.EcPub())
-			//fmt.Printf("Bal: => %v", bal)
-			assert.Equal(t, bal, int64(0))
+		c := factom.NewChain(&e)
 
-			for _, v := range state0.Holding {
-				s, _ := v.JSONString()
-				println(s)
+		commit, _ := ComposeChainCommit(a.Priv, c)
+		reveal, _ := ComposeRevealEntryMsg(a.Priv, c.FirstEntry)
+
+		state0.APIQueue().Enqueue(commit)
+		state0.APIQueue().Enqueue(reveal)
+		lastentry = reveal.Entry.GetHash()
+
+	}
+
+	// REVIEW is this a good enough test for holding
+	WaitMinutes(state0, 2) // ensure messages are reviewed in holding at least once
+
+	{ // fund FCT address & chain & entries
+
+		WaitForZeroEC(state0, a.EcPub())
+		// initially unfunded EC conversion
+		a.ConvertEC(uint64(numEntries + 11 + ecMargin)) // Chain costs 10 + 1 per k so our chain head costs 11
+
+		b.FundFCT(oneFct * 20)  // transfer coinbase funds to b
+		b.SendFCT(a, oneFct*10) // use account b to fund a.ConvertEC() from above
+
+		WaitForEcBalanceOver(state0, a.EcPub(), int64(ecMargin-1))
+	}
+
+	WaitBlocks(state0, 1) // give time for holding to clear
+	WaitForEcBalanceUnder(state0, a.EcPub(), int64(ecMargin+1))
+	WaitForEntry(state0, lastentry)
+
+	ShutDownEverything(t)
+	WaitForAllNodes(state0)
+
+	assert.Equal(t, int64(ecMargin), a.GetECBalance()) // should have 100 extra EC's
+
+	/*
+		for _, fnode := range engine.GetFnodes() {
+			s := fnode.State
+			for _, h := range s.Hold.Messages() {
+				for _, m := range h {
+					s.LogMessage("newholding", "stuck", m)
+				}
 			}
-
-			// TODO: actually check for confirmed entries
-			assert.Equal(t, 0, len(state0.Holding), "messages stuck in holding")
-		})
-
-	})
+			assert.Equal(t, 0, len(s.Holding), "messages stuck in holding")
+			assert.Equal(t, 0, s.Hold.GetSize(), "messages stuck in New Holding")
+		}
+	*/
 }

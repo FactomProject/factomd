@@ -119,11 +119,11 @@ func Peers(fnode *FactomNode) {
 	} // func ignoreMsg(){...}
 
 	for {
-		if primitives.NewTimestampNow().GetTimeSeconds()-fnode.State.BootTime > int64(constants.CROSSBOOT_SALT_REPLAY_DURATION.Seconds()) {
+		now := fnode.State.GetTimestamp()
+		if now.GetTimeSeconds()-fnode.State.BootTime > int64(constants.CROSSBOOT_SALT_REPLAY_DURATION.Seconds()) {
 			saltReplayFilterOn = false
 		}
 		cnt := 0
-		now := fnode.State.GetTimestamp()
 
 		for i := 0; i < 100 && fnode.State.APIQueue().Length() > 0; i++ {
 			msg := fnode.State.APIQueue().Dequeue()
@@ -342,7 +342,6 @@ func Peers(fnode *FactomNode) {
 					} else if msg.Type() == constants.DBSTATE_MSG {
 						// notify the state that a new DBState has been recieved.
 						// TODO: send the msg to StatesReceived and only send to InMsgQueue when the next received message is ready.
-						fnode.State.StatesReceived.Notify <- msg.(*messages.DBStateMsg)
 						fnode.State.LogMessage("NetworkInputs", fromPeer+", enqueue", msg)
 						fnode.State.LogMessage("InMsgQueue", fromPeer+", enqueue", msg)
 						fnode.State.InMsgQueue().Enqueue(msg)
@@ -376,18 +375,11 @@ func NetworkOutputs(fnode *FactomNode) {
 		// by an updated version when the block is ready.
 		if msg.IsLocal() {
 			// todo: Should be a dead case. Add tracking code to see if it ever happens -- clay
-			fnode.State.LogMessage("NetworkOutputs", "drop, local", msg)
-			continue
-		}
-		// Don't do a rand int if drop rate is 0
-		if fnode.State.GetDropRate() > 0 && rand.Int()%1000 < fnode.State.GetDropRate() {
-			//drop the message, rather than processing it normally
-
-			fnode.State.LogMessage("NetworkOutputs", "drop, simCtrl", msg)
+			fnode.State.LogMessage("NetworkOutputs", "Drop, local", msg)
 			continue
 		}
 		if msg.GetRepeatHash() == nil {
-			fnode.State.LogMessage("NetworkOutputs", "drop, no repeat hash", msg)
+			fnode.State.LogMessage("NetworkOutputs", "Drop, no repeat hash", msg)
 			continue
 		}
 
@@ -443,20 +435,27 @@ func NetworkOutputs(fnode *FactomNode) {
 				peer := fnode.Peers[p]
 				fnode.MLog.Add2(fnode, true, peer.GetNameTo(), "P2P out", true, msg)
 				if !fnode.State.GetNetStateOff() { // don't Send p2p messages if he is OFF
-					preSendTime := time.Now()
-					fnode.State.LogMessage("NetworkOutputs", "Send P2P "+peer.GetNameTo(), msg)
-					peer.Send(msg)
-					sendTime := time.Since(preSendTime)
-					TotalSendTime.Add(float64(sendTime.Nanoseconds()))
-					if fnode.State.MessageTally {
-						fnode.State.TallySent(int(msg.Type()))
+					// Don't do a rand int if drop rate is 0
+					if fnode.State.GetDropRate() > 0 && rand.Int()%1000 < fnode.State.GetDropRate() {
+						//drop the message, rather than processing it normally
+
+						fnode.State.LogMessage("NetworkOutputs", "Drop, simCtrl", msg)
+					} else {
+						preSendTime := time.Now()
+						fnode.State.LogMessage("NetworkOutputs", "Send P2P "+peer.GetNameTo(), msg)
+						peer.Send(msg)
+						sendTime := time.Since(preSendTime)
+						TotalSendTime.Add(float64(sendTime.Nanoseconds()))
+						if fnode.State.MessageTally {
+							fnode.State.TallySent(int(msg.Type()))
+						}
 					}
 				} else {
 
-					fnode.State.LogMessage("NetworkOutputs", "drop, simCtrl X", msg)
+					fnode.State.LogMessage("NetworkOutputs", "Drop, simCtrl X", msg)
 				}
 			} else {
-				fnode.State.LogMessage("NetworkOutputs", "drop, no peers", msg)
+				fnode.State.LogMessage("NetworkOutputs", "Drop, no peers", msg)
 			}
 		} else {
 			fnode.State.LogMessage("NetworkOutputs", "Send broadcast", msg)
@@ -470,12 +469,18 @@ func NetworkOutputs(fnode *FactomNode) {
 					bco := fmt.Sprintf("%s/%d/%d", "BCast", p, i)
 					fnode.MLog.Add2(fnode, true, peer.GetNameTo(), bco, true, msg)
 					if !fnode.State.GetNetStateOff() { // Don't send him broadcast message if he is off
-						preSendTime := time.Now()
-						peer.Send(msg)
-						sendTime := time.Since(preSendTime)
-						TotalSendTime.Add(float64(sendTime.Nanoseconds()))
-						if fnode.State.MessageTally {
-							fnode.State.TallySent(int(msg.Type()))
+						if fnode.State.GetDropRate() > 0 && rand.Int()%1000 < fnode.State.GetDropRate() && !msg.IsFullBroadcast() {
+							//drop the message, rather than processing it normally
+
+							fnode.State.LogMessage("NetworkOutputs", "Drop, simCtrl", msg)
+						} else {
+							preSendTime := time.Now()
+							peer.Send(msg)
+							sendTime := time.Since(preSendTime)
+							TotalSendTime.Add(float64(sendTime.Nanoseconds()))
+							if fnode.State.MessageTally {
+								fnode.State.TallySent(int(msg.Type()))
+							}
 						}
 					}
 				}
