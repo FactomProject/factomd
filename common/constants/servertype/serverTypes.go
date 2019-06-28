@@ -7,14 +7,14 @@ import (
 type ServerType string
 
 const (
-	Follower    ServerType = "follower"
-	AuditServer ServerType = "audit server"
-	Leader      ServerType = "leader"
+	Follower        ServerType = "follower"
+	AuditServer     ServerType = "audit server"
+	FederatedServer ServerType = "federated server"
 )
 
 func GetServerType(list *state.ProcessList, state *state.State) ServerType {
 	if state.Leader {
-		return Leader
+		return FederatedServer
 	}
 
 	foundAudit, _ := list.GetAuditServerIndexHash(state.GetIdentityChainID())
