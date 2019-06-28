@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"runtime"
 
+	"github.com/FactomProject/factomd/common/constants/runstate"
 	. "github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -45,9 +46,9 @@ func Factomd(params *FactomParams, listenToStdin bool) interfaces.IState {
 	fmt.Printf("Start time: %s\n", StartTime.String())
 
 	state0 := new(state.State)
-	state0.IsRunning = true
-	// Setup the name to catch any early logging
+	state0.RunState = runstate.New
 
+	// Setup the name to catch any early logging
 	state0.FactomNodeName = state0.Prefix + "FNode0"
 	state0.TimestampAtBoot = primitives.NewTimestampNow()
 	state0.SetLeaderTimestamp(state0.TimestampAtBoot)
