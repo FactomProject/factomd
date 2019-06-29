@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/FactomProject/factomd/common/interfaces"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -13,6 +12,8 @@ import (
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/FactomProject/factomd/common/interfaces"
 
 	"github.com/stretchr/testify/assert"
 

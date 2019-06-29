@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/messages"
 
@@ -14,8 +15,8 @@ const useNewHolding = true
 // This hold a slice of messages dependent on a hash
 type HoldingList struct {
 	holding    map[[32]byte][]interfaces.IMsg
-	s          *State // for debug logging
-	dependents map[[32]byte]bool
+	s          *State            // for debug logging
+	dependents map[[32]byte]bool // used to avoid duplicate entries in holding
 }
 
 func (l *HoldingList) Init(s *State) {
@@ -54,6 +55,7 @@ func (l *HoldingList) Add(h [32]byte, msg interfaces.IMsg) bool {
 	}
 
 	l.dependents[msg.GetMsgHash().Fixed()] = true
+	l.s.LogMessage("newHolding", "add", msg)
 	return true
 }
 
@@ -63,7 +65,7 @@ func (l *HoldingList) Get(h [32]byte) []interfaces.IMsg {
 	delete(l.holding, h)
 
 	for _, msg := range rval {
-		l.s.LogMessage("newHolding", "DequeueFromDependantHolding()", msg)
+		l.s.LogMessage("newHolding", "delete", msg)
 		delete(l.dependents, msg.GetMsgHash().Fixed())
 	}
 	return rval
@@ -88,7 +90,7 @@ func (l *HoldingList) Review() {
 		for _, msg := range dh {
 			if l.isMsgStale(msg) {
 				l.Get(h) // remove all from holding
-				l.s.LogMessage("newHolding", "RemoveFromDependantHolding()", msg)
+				//l.s.LogMessage("newHolding", "RemoveFromDependantHolding()", msg)
 				continue
 			}
 		}
@@ -119,7 +121,7 @@ func (l *HoldingList) isMsgStale(msg interfaces.IMsg) (res bool) {
 			res = true
 		}
 	default:
-		l.s.LogMessage("newHolding", "SKIP_DBHT_REVIEW", msg)
+		//		l.s.LogMessage("newHolding", "SKIP_DBHT_REVIEW", msg)
 	}
 
 	if msg.GetTimestamp().GetTime().UnixNano() < l.s.GetFilterTimeNano() {
@@ -129,7 +131,7 @@ func (l *HoldingList) isMsgStale(msg interfaces.IMsg) (res bool) {
 	if res {
 		l.s.LogMessage("newHolding", "EXPIRE", msg)
 	} else {
-		l.s.LogMessage("newHolding", "NOT_EXPIRED", msg)
+		//		l.s.LogMessage("newHolding", "NOT_EXPIRED", msg)
 	}
 
 	return res
@@ -160,8 +162,7 @@ func (s *State) Add(h [32]byte, msg interfaces.IMsg) int {
 	}
 
 	if s.Hold.Add(h, msg) {
-		// return negative value so message is marked invalid and not processed in standard holding
-		s.LogMessage("newHolding", fmt.Sprintf("Add %x", h[:6]), msg)
+		s.LogMessage("newHolding", fmt.Sprintf("add[%x]", h[:6]), msg)
 	}
 
 	// mark as invalid for validator loop
@@ -183,7 +184,7 @@ func (s *State) ExecuteFromHolding(h [32]byte) {
 	// get the list of messages waiting on this hash
 	l := s.Get(h)
 	if l == nil {
-		s.LogPrintf("newHolding", "ExecuteFromDependantHolding(%x) nothing waiting", h[:6])
+		//		s.LogPrintf("newHolding", "ExecuteFromDependantHolding(%x) nothing waiting", h[:6])
 		return
 	}
 	s.LogPrintf("newHolding", "ExecuteFromDependantHolding(%d)[%x]", len(l), h[:6])
