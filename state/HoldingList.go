@@ -55,7 +55,7 @@ func (l *HoldingList) Add(h [32]byte, msg interfaces.IMsg) bool {
 	}
 
 	l.dependents[msg.GetMsgHash().Fixed()] = true
-	l.s.LogMessage("newHolding", "add", msg)
+	//l.s.LogMessage("newHolding", "add", msg)
 	return true
 }
 
@@ -65,7 +65,7 @@ func (l *HoldingList) Get(h [32]byte) []interfaces.IMsg {
 	delete(l.holding, h)
 
 	for _, msg := range rval {
-		l.s.LogMessage("newHolding", "delete", msg)
+		//		l.s.LogMessage("newHolding", "delete", msg)
 		delete(l.dependents, msg.GetMsgHash().Fixed())
 	}
 	return rval
@@ -138,6 +138,7 @@ func (l *HoldingList) isMsgStale(msg interfaces.IMsg) (res bool) {
 }
 
 func (s *State) HoldForHeight(ht uint32, msg interfaces.IMsg) int {
+	// todo: test if this is necessary
 	if s.GetLLeaderHeight()+1 == ht && s.GetCurrentMinute() >= 9 {
 		s.LogMessage("newHolding", fmt.Sprintf("SKIP_HoldForHeight %x", ht), msg)
 		return 0 // send to old holding
