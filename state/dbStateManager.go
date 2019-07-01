@@ -1429,9 +1429,12 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		switch en.ECID() {
 		case constants.ECIDChainCommit:
 			list.State.NumNewChains++
+			list.State.ExecuteFromHolding(en.GetEntryHash().Fixed())
 		case constants.ECIDEntryCommit:
 			list.State.NumNewEntries++
+			list.State.ExecuteFromHolding(en.GetEntryHash().Fixed())
 		}
+
 	}
 
 	pl := list.State.ProcessLists.Get(uint32(dbheight))
@@ -1473,6 +1476,10 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 			}
 		} else {
 			list.State.LogPrintf("dbstateprocess", "Error saving eblock from dbstate, eblock not allowed")
+		}
+		// if this is chain head
+		if eb.GetHeader().GetEBSequence() == 0 {
+			list.State.ExecuteFromHolding(eb.GetHeader().GetChainID().Fixed())
 		}
 	}
 	for _, e := range d.Entries {

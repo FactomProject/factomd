@@ -605,7 +605,6 @@ func (s *State) ReviewHolding() {
 	s.LeaderNewMin++ // Either way, don't do it again until the ProcessEOM resets LeaderNewMin
 
 	for k, v := range s.Holding {
-		// TODO: Limit the run of reviewhholding to 100ms
 		if int(highest)-int(saved) > 1000 {
 			TotalHoldingQueueOutputs.Inc()
 			//delete(s.Holding, k)
@@ -1059,7 +1058,6 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 	s.Acks[ack.GetHash().Fixed()] = ack
 	// check if we have a message
 	m, _ := s.Holding[ack.GetHash().Fixed()]
-	s.LogMessage("newHolding", "FollowerExecuteAck ", m)
 
 	if m != nil {
 		// We have an ack and a matching message go execute the message!
@@ -1779,7 +1777,7 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 		if entry != nil {
 			s.repost(entry, 0) // Try and execute the reveal for this commit
 		}
-		s.LogMessage("newHolding", "process", commitChain)
+		//s.LogMessage("newHolding", "process", commitChain)
 		s.ExecuteFromHolding(commitChain.GetHash().Fixed()) // process CommitChain
 		return true
 	}
@@ -1802,7 +1800,7 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 		if entry != nil {
 			s.repost(entry, 0) // Try and execute the reveal for this commit
 		}
-		s.LogMessage("newHolding", "process", commitEntry)
+		//		s.LogMessage("newHolding", "process", commitEntry)
 		s.ExecuteFromHolding(commitEntry.GetHash().Fixed()) // process CommitEntry
 		return true
 	}
@@ -1860,7 +1858,7 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) (worked b
 
 		s.IncEntryChains()
 		s.IncEntries()
-		s.LogMessage("newHolding", "process", m)
+		//		s.LogMessage("newHolding", "process", m)
 		s.ExecuteFromHolding(chainID.Fixed()) // Process Reveal for Chain
 
 		return true

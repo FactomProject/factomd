@@ -137,7 +137,7 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 	if commit == nil {
 		state.LogMessage("executeMsg", "Hold, no commit", m)
 		// old holding return 0
-		state.LogPrintf("newHolding", "Hold, no commit M-%x is waiting on M-%x", m.GetMsgHash().Bytes()[:3], m.Entry.GetHash().Bytes()[:3])
+		state.LogPrintf("newHolding", "Hold, no commit M-%x is waiting on H-%x", m.GetMsgHash().Bytes()[:3], m.Entry.GetHash().Bytes()[:3])
 		return state.Add(m.Entry.GetHash().Fixed(), m) // hold for a commit
 
 	}
