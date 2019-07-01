@@ -59,6 +59,7 @@ func (list *DBStateList) Catchup() {
 		// if it is not received and not already requested.
 		notifyMissing := func(n uint32) bool {
 			if !waiting.Has(n) {
+				list.State.LogPrintf("dbstatecatchup", "{actual} notify missing %d", n)
 				missing.Add(n)
 				return true
 			}
@@ -153,7 +154,7 @@ func (list *DBStateList) Catchup() {
 			// TODO:	that might be made
 			max := 3000 // Limit the number of new asks we will add for each iteration
 			// add all known states after the last received to the missing list
-			for n := received.Heighestreceived() + 1; n < hk && max > 0; n++ {
+			for n := received.Heighestreceived() + 1; n <= hk && max > 0; n++ {
 				max--
 				// missing.Notify <- NewMissingState(n)
 				r := notifyMissing(n)
@@ -179,7 +180,7 @@ func (list *DBStateList) Catchup() {
 			//for e := waiting.List.Front(); e != nil; e = e.Next() {
 			for _, s := range waitingSlice {
 				// Instead of choosing if to ask for it, just remove it
-				if s.Height() < base {
+				if s.Height() <= base {
 					waiting.LockAndDelete(s.Height())
 					continue
 				}
@@ -218,6 +219,7 @@ func (list *DBStateList) Catchup() {
 			if waiting.Len() < requestLimit {
 				// TODO: the batch limit should probably be set by a configuration variable
 				b, e := missing.NextConsecutiveMissing(10)
+				list.State.LogPrintf("dbstatecatchup", "dbstate requesting from %d to %d", b, e)
 
 				if b == 0 && e == 0 {
 					time.Sleep(1 * time.Second)
@@ -231,9 +233,9 @@ func (list *DBStateList) Catchup() {
 
 				msg := messages.NewDBStateMissing(list.State, b, e)
 				msg.SendOut(list.State, msg)
-				list.State.DBStateAskCnt += int(e-b) + 1 // Total number of dbstates requested
+				list.State.DBStateAskCnt += 1 // Total number of dbstates requests
 				for i := b; i <= e; i++ {
-					list.State.LogPrintf("dbstatecatchup", "dbstate requested : missing -> waiting %d", i)
+					list.State.LogPrintf("dbstatecatchup", "\tdbstate requested : missing -> waiting %d", i)
 					missing.LockAndDelete(i)
 					waiting.Add(i)
 				}
@@ -376,9 +378,12 @@ func (l *StatesMissing) NextConsecutiveMissing(n int) (uint32, uint32) {
 	beg := f.Value.(*MissingState).Height()
 	end := beg
 	c := 0
-	for e := l.List.Front(); e != nil; e = e.Next() {
+	for e := f.Next(); e != nil; e = e.Next() {
 		h := e.Value.(*MissingState).Height()
-		if h > end+1 {
+		// We are looking to see if the consecutive height
+		// sequence is broken. Easy to check if h != the next one
+		// we are expecting.
+		if h != end+1 {
 			break
 		}
 		end++

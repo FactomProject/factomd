@@ -28,6 +28,9 @@ type DirBlockInfo struct {
 	DBMerkleRoot interfaces.IHash
 	// A flag to to show BTC anchor confirmation
 	BTCConfirmed bool
+
+	EthereumAnchorRecordEntryHash interfaces.IHash
+	EthereumConfirmed             bool
 }
 
 var _ interfaces.Printable = (*DirBlockInfo)(nil)
@@ -48,6 +51,9 @@ func (e *DirBlockInfo) Init() {
 	if e.DBMerkleRoot == nil {
 		e.DBMerkleRoot = primitives.NewZeroHash()
 	}
+	if e.EthereumAnchorRecordEntryHash == nil {
+		e.EthereumAnchorRecordEntryHash = primitives.NewZeroHash()
+	}
 }
 
 func NewDirBlockInfo() *DirBlockInfo {
@@ -56,6 +62,7 @@ func NewDirBlockInfo() *DirBlockInfo {
 	dbi.BTCTxHash = primitives.NewZeroHash()
 	dbi.BTCBlockHash = primitives.NewZeroHash()
 	dbi.DBMerkleRoot = primitives.NewZeroHash()
+	dbi.EthereumAnchorRecordEntryHash = primitives.NewZeroHash()
 	return dbi
 }
 
@@ -213,6 +220,9 @@ type dirBlockInfoCopy struct {
 	DBMerkleRoot interfaces.IHash
 	// A flag to to show BTC anchor confirmation
 	BTCConfirmed bool
+
+	EthereumAnchorRecordEntryHash interfaces.IHash
+	EthereumConfirmed             bool
 }
 
 func newDirBlockInfoCopyFromDBI(dbi *DirBlockInfo) *dirBlockInfoCopy {
@@ -226,6 +236,8 @@ func newDirBlockInfoCopyFromDBI(dbi *DirBlockInfo) *dirBlockInfoCopy {
 	dbic.BTCBlockHash = dbi.BTCBlockHash
 	dbic.DBMerkleRoot = dbi.DBMerkleRoot
 	dbic.BTCConfirmed = dbi.BTCConfirmed
+	dbic.EthereumAnchorRecordEntryHash = dbi.EthereumAnchorRecordEntryHash
+	dbic.EthereumConfirmed = dbi.EthereumConfirmed
 	return dbic
 }
 
@@ -235,6 +247,7 @@ func newDirBlockInfoCopy() *dirBlockInfoCopy {
 	dbi.BTCTxHash = primitives.NewZeroHash()
 	dbi.BTCBlockHash = primitives.NewZeroHash()
 	dbi.DBMerkleRoot = primitives.NewZeroHash()
+	dbi.EthereumAnchorRecordEntryHash = primitives.NewZeroHash()
 	return dbi
 }
 
@@ -248,6 +261,8 @@ func (dbic *DirBlockInfo) parseDirBlockInfoCopy(dbi *dirBlockInfoCopy) {
 	dbic.BTCBlockHash = dbi.BTCBlockHash
 	dbic.DBMerkleRoot = dbi.DBMerkleRoot
 	dbic.BTCConfirmed = dbi.BTCConfirmed
+	dbic.EthereumAnchorRecordEntryHash = dbi.EthereumAnchorRecordEntryHash
+	dbic.EthereumConfirmed = dbi.EthereumConfirmed
 }
 
 // NewDirBlockInfoFromDirBlock creates a DirDirBlockInfo from DirectoryBlock
@@ -260,5 +275,7 @@ func NewDirBlockInfoFromDirBlock(dirBlock interfaces.IDirectoryBlock) *DirBlockI
 	dbi.BTCTxHash = primitives.NewZeroHash()
 	dbi.BTCBlockHash = primitives.NewZeroHash()
 	dbi.BTCConfirmed = false
+	dbi.EthereumAnchorRecordEntryHash = primitives.NewZeroHash()
+	dbi.EthereumConfirmed = false
 	return dbi
 }
