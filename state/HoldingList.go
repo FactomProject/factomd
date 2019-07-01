@@ -191,7 +191,7 @@ func (s *State) ExecuteFromHolding(h [32]byte) {
 	s.LogPrintf("newHolding", "ExecuteFromDependantHolding(%d)[%x]", len(l), h[:6])
 
 	for _, m := range l {
-		s.LogPrintf("newHolding", "Delete M-%x", m.GetMsgHash().Bytes()[:3])
+		s.LogPrintf("newHolding", "delete R-%x", m.GetMsgHash().Bytes()[:3])
 	}
 
 	go func() {

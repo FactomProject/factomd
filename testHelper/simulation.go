@@ -14,8 +14,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/FactomProject/factomd/common/interfaces"
-
 	"github.com/stretchr/testify/assert"
 
 	"github.com/FactomProject/factomd/common/globals"
