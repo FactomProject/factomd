@@ -905,6 +905,18 @@ func HandleV2Entry(state interfaces.IState, params interface{}) (interface{}, *p
 		}
 	}
 
+	// With FD-795, we have optimistic entry writing.
+	// To ensure the entry actually exists, we need to try
+	// fetching the eblock hash. If it exists, then the entry exists
+	// in the blockchain.
+	included, err := state.GetDB().FetchIncludedIn(h)
+	if err != nil {
+		return nil, NewInternalError()
+	}
+	if included == nil {
+		return nil, NewEntryNotFoundError()
+	}
+
 	e.ChainID = entry.GetChainIDHash().String()
 	e.Content = hex.EncodeToString(entry.GetContent())
 	for _, v := range entry.ExternalIDs() {
