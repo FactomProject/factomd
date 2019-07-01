@@ -27,26 +27,22 @@ func TestAuditBrainSwap(t *testing.T) {
 	state5 := engine.GetFnodes()[5].State // Get node 5
 	_ = state5
 
-	t.Log("Disabled test while known bug exists FD-845")
-	/*
-	   WaitForBlock(state0, 6)
-	   WaitForAllNodes(state0)
-	   // rewrite the config to have brainswaps
+	WaitForBlock(state0, 6)
+	WaitForAllNodes(state0)
 
-	   WriteConfigFile(3, 5, "ChangeAcksHeight = 10\n", t) // Setup A brain swap between A3 and F5
-	   WriteConfigFile(5, 3, "ChangeAcksHeight = 10\n", t)
-	   WaitForBlock(state0, 9)
-	   RunCmd("3") // make sure the Audit is lagging the audit if the heartbeats conflict one will panic
-	   RunCmd("x")
-	   WaitForBlock(state5, 10) // wait till 5 should have have brainswapped
-	   RunCmd("x")
-	   WaitBlocks(state0, 1)
-	   WaitForAllNodes(state0)
-	   CheckAuthoritySet(t)
-	*/
+	// rewrite the config to have brainswaps
+	WriteConfigFile(3, 5, "ChangeAcksHeight = 10\n", t) // Setup A brain swap between A3 and F5
+	WriteConfigFile(5, 3, "ChangeAcksHeight = 10\n", t)
+	WaitForBlock(state0, 9)
+	RunCmd("3") // make sure the Audit is lagging the audit if the heartbeats conflict one will panic
+	RunCmd("x")
+	WaitForBlock(state5, 10) // wait till 5 should have have brainswapped
+	RunCmd("x")
+	WaitBlocks(state0, 1)
+	WaitForAllNodes(state0)
+	CheckAuthoritySet(t)
 
 	WaitForAllNodes(state0)
-	// FIXME
-	//AssertAuthoritySet(t, "LLLFFA")
+	AssertAuthoritySet(t, "LLLFFA")
 	ShutDownEverything(t)
 }

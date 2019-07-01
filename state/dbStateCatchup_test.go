@@ -337,3 +337,27 @@ func testDBStateListAdditionsMissing(list GenericList, t *testing.T, testname st
 	//	t.Errorf("Exp len of 0, found %d", list.Len())
 	//}
 }
+
+func TestMissingConsecutive(t *testing.T) {
+	testMissingConsecutive(t, []int{10, 11, 12, 13, 20}, 10, 10, 13)
+	testMissingConsecutive(t, []int{10, 11, 12, 13}, 10, 10, 13)
+	testMissingConsecutive(t, []int{10, 11, 12, 13, 15, 20}, 10, 10, 13)
+	testMissingConsecutive(t, []int{10, 11, 12, 13, 15, 20}, 2, 10, 12)
+	testMissingConsecutive(t, []int{1, 10, 11, 12, 13, 15, 20}, 10, 1, 1)
+	testMissingConsecutive(t, []int{10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21}, 10, 10, 20)
+	testMissingConsecutive(t, []int{}, 10, 0, 0)
+	testMissingConsecutive(t, []int{1, 2}, 10, 1, 2)
+
+}
+
+func testMissingConsecutive(t *testing.T, add []int, n, bExp, eExp int) {
+	m := state.NewStatesMissing()
+	for _, a := range add {
+		m.Add(uint32(a))
+	}
+
+	b, e := m.NextConsecutiveMissing(n)
+	if b != uint32(bExp) || e != uint32(eExp) {
+		t.Errorf("Expected %d-%d, found %d-%d", bExp, eExp, b, e)
+	}
+}

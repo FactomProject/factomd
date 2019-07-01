@@ -40,6 +40,8 @@ type FactomdConfig struct {
 		ExchangeRateAuthorityPublicKeyMainNet  string
 		ExchangeRateAuthorityPublicKeyTestNet  string
 		ExchangeRateAuthorityPublicKeyLocalNet string
+		BitcoinAnchorRecordPublicKeys          []string
+		EthereumAnchorRecordPublicKeys         []string
 
 		// Network Configuration
 		Network                 string
@@ -273,6 +275,8 @@ func (s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\n    FactomdRpcUser          	%v", s.App.FactomdRpcUser))
 	out.WriteString(fmt.Sprintf("\n    FactomdRpcPass          	%v", s.App.FactomdRpcPass))
 	out.WriteString(fmt.Sprintf("\n    ChangeAcksHeight         %v", s.App.ChangeAcksHeight))
+	out.WriteString(fmt.Sprintf("\n    BitcoinAnchorRecordPublicKeys    %v", s.App.BitcoinAnchorRecordPublicKeys))
+	out.WriteString(fmt.Sprintf("\n    EthereumAnchorRecordPublicKeys    %v", s.App.EthereumAnchorRecordPublicKeys))
 
 	out.WriteString(fmt.Sprintf("\n  Log"))
 	out.WriteString(fmt.Sprintf("\n    LogPath                 %v", s.Log.LogPath))
@@ -388,6 +392,18 @@ func ReadConfig(filename string) *FactomdConfig {
 	case "LOCAL":
 		cfg.App.ExchangeRateAuthorityPublicKey = cfg.App.ExchangeRateAuthorityPublicKeyLocalNet
 		break
+	}
+
+	if len(cfg.App.BitcoinAnchorRecordPublicKeys) == 0 {
+		cfg.App.BitcoinAnchorRecordPublicKeys = []string{
+			"0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a", // m1 key
+			"d569419348ed7056ec2ba54f0ecd9eea02648b260b26e0474f8c07fe9ac6bf83", // m2 key
+		}
+	}
+	if len(cfg.App.EthereumAnchorRecordPublicKeys) == 0 {
+		cfg.App.EthereumAnchorRecordPublicKeys = []string{
+			"a4a7905ab2226f267c6b44e1d5db2c97638b7bbba72fd1823d053ccff2892455",
+		}
 	}
 
 	return cfg

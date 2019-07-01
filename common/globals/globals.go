@@ -81,6 +81,7 @@ type FactomParams struct {
 	FactomHome               string
 	FullHashesLog            bool // Log all unique full hashes
 	DebugLogLocation         string
+	ReparseAnchorChains      bool
 }
 
 /****************************************************************

@@ -92,6 +92,7 @@ func init() {
 	flag.StringVar(&p.NodeName, "nodename", "", "Assign a name to the node")
 	flag.StringVar(&p.ControlPanelSetting, "controlpanelsetting", "", "Can set to 'disabled', 'readonly', or 'readwrite' to overwrite config file")
 	flag.BoolVar(&p.FullHashesLog, "fullhasheslog", false, "true create a log of all unique hashes seen during processing")
+	flag.BoolVar(&p.ReparseAnchorChains, "reparseanchorchains", false, "If true, reparse bitcoin and ethereum anchor chains in the database")
 }
 
 func ParseCmdLine(args []string) *FactomParams {
