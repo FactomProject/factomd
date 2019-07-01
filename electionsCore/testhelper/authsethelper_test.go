@@ -1,3 +1,5 @@
+// +build all 
+
 package testhelper_test
 
 import (

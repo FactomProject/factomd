@@ -1,3 +1,5 @@
+// +build all 
+
 package volunteercontrol_test
 
 import (

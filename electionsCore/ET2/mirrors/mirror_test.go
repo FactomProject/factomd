@@ -1,3 +1,5 @@
+// +build all 
+
 package mirrors_test
 
 import (

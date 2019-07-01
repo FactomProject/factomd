@@ -1,3 +1,5 @@
+// +build all 
+
 package entryCreditBlock_test
 
 import (

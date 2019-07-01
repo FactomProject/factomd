@@ -1,3 +1,5 @@
+// +build all 
+
 package securedb_test
 
 import (

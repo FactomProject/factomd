@@ -1,3 +1,5 @@
+// +build all 
+
 package primitives_test
 
 import (

@@ -1,3 +1,5 @@
+// +build all 
+
 package auditBrainTests_test
 
 import (

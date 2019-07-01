@@ -1,3 +1,5 @@
+// +build all 
+
 package wsapi_test
 
 import (

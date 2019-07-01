@@ -1,3 +1,5 @@
+// +build all 
+
 package adminBlock_test
 
 import (

@@ -1,3 +1,5 @@
+// +build all 
+
 package controller_test
 
 import (

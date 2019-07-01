@@ -1,3 +1,5 @@
+// +build all 
+
 package stack_test
 
 import (

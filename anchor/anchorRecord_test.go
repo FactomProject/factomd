@@ -1,3 +1,5 @@
+// +build all 
+
 package anchor_test
 
 import (

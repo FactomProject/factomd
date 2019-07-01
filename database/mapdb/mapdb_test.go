@@ -1,3 +1,5 @@
+// +build all 
+
 package mapdb_test
 
 import (

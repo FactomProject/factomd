@@ -1,3 +1,5 @@
+// +build all 
+
 package identity_test
 
 import (

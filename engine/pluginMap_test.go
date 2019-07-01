@@ -1,3 +1,5 @@
+// +build all 
+
 package engine_test
 
 import (

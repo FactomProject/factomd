@@ -1,3 +1,5 @@
+// +build all 
+
 package dbInfo_test
 
 import (
