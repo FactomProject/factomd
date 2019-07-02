@@ -1,4 +1,4 @@
-// +build all 
+// +build longtest
 
 package longtest
 

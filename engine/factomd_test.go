@@ -1,4 +1,4 @@
-// +build all 
+// +build simtest
 
 package engine_test
 

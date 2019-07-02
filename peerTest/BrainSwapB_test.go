@@ -1,6 +1,6 @@
-// +build all 
+// +build peertest
 
-package simtest
+package peertest
 
 import (
 	"testing"

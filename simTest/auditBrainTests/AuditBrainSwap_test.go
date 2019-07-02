@@ -1,6 +1,6 @@
-// +build all 
+// +build simtest
 
-package auditBrainTests_test
+package simtest
 
 import (
 	"testing"
