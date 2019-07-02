@@ -1,4 +1,4 @@
-// +build all 
+// +build all
 
 package p2p_test
 

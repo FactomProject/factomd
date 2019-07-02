@@ -1,4 +1,4 @@
-// +build all 
+// +build all
 
 package controlPanel_test
 

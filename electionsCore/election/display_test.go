@@ -1,3 +1,3 @@
-// +build all 
+// +build all
 
 package election_test

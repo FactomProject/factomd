@@ -1,4 +1,4 @@
-// +build all 
+// +build all
 
 package adminBlock_test
 

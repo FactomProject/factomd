@@ -1,4 +1,4 @@
-// +build all 
+// +build all
 
 package factoid_test
 

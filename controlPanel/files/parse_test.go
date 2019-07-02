@@ -1,4 +1,4 @@
-// +build all 
+// +build all
 
 package files_test
 
