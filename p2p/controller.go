@@ -508,7 +508,9 @@ func (c *Controller) handleConnectionCommand(command ConnectionCommand, connecti
 	case ConnectionIsClosed:
 		c.connections.Remove(connection)
 		delete(c.connectionMetrics, connection.peer.Hash)
-		go connection.goShutdown()
+		if connection.state != ConnectionOffline {
+			go func() { connection.goShutdown() }() // wrap in a func so we have a return address the debugger will show
+		}
 	case ConnectionUpdatingPeer:
 		c.discovery.updatePeer(command.Peer)
 	default:

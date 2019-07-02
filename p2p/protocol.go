@@ -55,7 +55,7 @@ var (
 	MinumumSharingQualityScore   int32  = 20          // if a peer's score is less than this we don't share them.
 	OnlySpecialPeers                    = false       // dial out to special peers only
 	AllowUnknownIncomingPeers           = true        // allow incoming connections from peers that are not in the special peer list
-	NetworkDeadline                     = time.Duration(30) * time.Second
+	NetworkDeadline                     = time.Duration(300) * time.Second
 	NumberPeersToConnect                = 32  // default value; changeable in cfg and cmd line
 	NumberPeersToBroadcast              = 16  // This gets overwritten by command line flag!
 	MaxNumberIncomingConnections        = 200 // default value; changeable in cfg and cmd line

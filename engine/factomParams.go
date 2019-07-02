@@ -60,7 +60,7 @@ func init() {
 	flag.IntVar(&p.TimeOffset, "timedelta", 0, "Maximum timeDelta in milliseconds to offset each node.  Simulates deltas in system clocks over a network.")
 	flag.BoolVar(&p.KeepMismatch, "keepmismatch", false, "If true, do not discard DBStates even when a majority of DBSignatures have a different hash")
 	flag.Int64Var(&p.StartDelay, "startdelay", 10, "Delay to start processing messages, in seconds")
-	flag.IntVar(&p.Deadline, "deadline", 1000, "Timeout Delay in milliseconds used on Reads and Writes to the network comm")
+	flag.IntVar(&p.Deadline, "deadline", 300000, "Timeout Delay in milliseconds used on Reads and Writes to the network comm")
 	flag.StringVar(&p.RpcUser, "rpcuser", "", "Username to protect factomd local API with simple HTTP authentication")
 	flag.StringVar(&p.RpcPassword, "rpcpass", "", "Password to protect factomd local API. Ignored if rpcuser is blank")
 	flag.BoolVar(&p.FactomdTLS, "tls", false, "Set to true to require encrypted connections to factomd API and Control Panel") //to get tls, run as "factomd -tls=true"

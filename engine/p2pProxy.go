@@ -213,7 +213,7 @@ func (f *P2PProxy) ManageOutChannel() {
 		case FactomMessage:
 			fmessage := data.(FactomMessage)
 			// Wrap it in a parcel and send it out channel ToNetwork.
-			parcels := p2p.ParcelsForPayload(p2p.CurrentNetwork, fmessage.Message)
+			parcels := p2p.ParcelsForPayload(p2p.CurrentNetwork, fmessage.Message, fmessage.AppType, fmessage.AppHash)
 			for _, parcel := range parcels {
 				if parcel.Header.Type != p2p.TypeMessagePart {
 					parcel.Header.Type = p2p.TypeMessage

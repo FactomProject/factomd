@@ -79,7 +79,7 @@ func NewParcel(network NetworkID, payload []byte) *Parcel {
 	return parcel
 }
 
-func ParcelsForPayload(network NetworkID, payload []byte) []Parcel {
+func ParcelsForPayload(network NetworkID, payload []byte, appType string, appHash string) []Parcel {
 	parcelCount := (len(payload) / MaxPayloadSize) + 1
 	parcels := make([]Parcel, parcelCount)
 
@@ -96,6 +96,8 @@ func ParcelsForPayload(network NetworkID, payload []byte) []Parcel {
 		parcel.Header.Type = TypeMessagePart
 		parcel.Header.PartNo = uint16(i)
 		parcel.Header.PartsTotal = uint16(parcelCount)
+		parcel.Header.AppHash = appHash
+		parcel.Header.AppType = appType
 		parcels[i] = *parcel
 	}
 
