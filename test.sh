@@ -11,13 +11,22 @@ set -o pipefail
 # base go test command
 GO_TEST="go test -v -timeout=10m -vet=off"
 
+# list modules for CI testing
+function listModules() {
+  glide nv | grep -v Utilities | grep -v longTest | grep -v peerTest | grep -v simTest | grep -v elections | grep -v activations | grep -v netTest | grep "\.\.\."
+}
+
 # load a list of tests to execute
 function loadTestList() {
   case $1 in
-    unittest ) # run only unit tests
-      TESTS=('all/unittests')
+    all ) # run all unit tests at once
+      TESTS=("./...")
       ;;
-
+    unittest ) # run unit test in batches
+      TESTS=$({ \
+        listModules ; \
+      })
+      ;;
     peertest ) # run only peer tests
       TESTS=$({ \
         ls peerTest/*A_test.go; \
@@ -33,14 +42,10 @@ function loadTestList() {
 
     "" ) # run everything
 
-      if [[ "${1}x" != "x" ]] ; then
-        echo "Unknown option" $1
-      fi
-
       if [[ "${CI}x" ==  "x" ]] ; then
         # running locally
         TESTS=$({ \
-          echo "all/unittests"; \
+          listModules ; \
           go test --tags=simtest --list=Test ./engine/... | awk '/^Test/ { print "engine/"$1 }' ; \
           go test --tags=simtest --list=Test ./simTest/... | awk '/^Test/ { print "simTest/"$1 }' ; \
           ls peerTest/*A_test.go; \
@@ -48,7 +53,7 @@ function loadTestList() {
       else
         # running on circle
         TESTS=$({ \
-          echo "all/unittests"; \
+          listModules ; \
           go test --tags=simtest --list=Test ./engine/... | awk '/^Test/ { print "engine/"$1 }' ; \
           go test --tags=simtest --list=Test ./simTest/... | awk '/^Test/ { print "simTest/"$1 }' ; \
           ls peerTest/*A_test.go; \
@@ -56,7 +61,7 @@ function loadTestList() {
       fi
       ;;
 
-    * ) # run everything
+    * )
       echo "Unknown option" $1
       exit -1
       ;;
@@ -76,9 +81,6 @@ function runTests() {
 
   for TST in ${TESTS[*]} ; do
     case `dirname $TST` in
-      all )
-        testAll
-        ;;
       engine )
         testEngine $TST
         ;;
@@ -88,9 +90,8 @@ function runTests() {
       peerTest )
         testPeer $TST
         ;;
-      * )
-        echo "unknown test type " $TST
-        exit -1
+      * ) # package name provided instead
+        unitTest $TST
         ;;
     esac
 
@@ -126,9 +127,9 @@ function testPeer() {
   $GO_TEST $B &> b_testout.txt
 }
 
-# run tests that have a tag = +build all
-function testAll() {
-  $GO_TEST -tags=all ./... | egrep 'PASS|FAIL|RUN'
+# run unit tests per module
+function unitTest() {
+  $GO_TEST -tags=all $1 | egrep 'PASS|FAIL|RUN'
 }
 
 # run a simtest 
