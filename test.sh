@@ -16,6 +16,21 @@ function listModules() {
   glide nv | grep -v Utilities | grep -v longTest | grep -v peerTest | grep -v simTest | grep -v elections | grep -v activations | grep -v netTest | grep "\.\.\."
 }
 
+# formatted list of engine/<testname>
+function listEngine() {
+  go test --tags=simtest --list=Test ./engine/... | awk '/^Test/ { print "engine/"$1 }'
+}
+
+# formatted list of simTest/<testname>
+function listSimTest() {
+  go test --tags=simtest --list=Test ./simTest/... | awk '/^Test/ { print "simTest/"$1 }'
+}
+
+# list of A/B Peer tests
+function listPeer() {
+  ls peerTest/*A_test.go
+}
+
 # load a list of tests to execute
 function loadTestList() {
   case $1 in
@@ -35,8 +50,8 @@ function loadTestList() {
 
     simtest ) # run only simulation tests
       TESTS=$({ \
-        go test --tags=simtest --list=Test ./engine/... | awk '/^Test/ { print "engine/"$1 }' ; \
-        go test --tags=simtest --list=Test ./simTest/... | awk '/^Test/ { print "simTest/"$1 }' ; \
+          listEngine ; \
+          listSimTest ; \
       })
       ;;
 
@@ -46,17 +61,17 @@ function loadTestList() {
         # running locally
         TESTS=$({ \
           listModules ; \
-          go test --tags=simtest --list=Test ./engine/... | awk '/^Test/ { print "engine/"$1 }' ; \
-          go test --tags=simtest --list=Test ./simTest/... | awk '/^Test/ { print "simTest/"$1 }' ; \
-          ls peerTest/*A_test.go; \
+          listEngine ; \
+          listSimTest ; \
+          listPeer ; \
         })
       else
         # running on circle
         TESTS=$({ \
           listModules ; \
-          go test --tags=simtest --list=Test ./engine/... | awk '/^Test/ { print "engine/"$1 }' ; \
-          go test --tags=simtest --list=Test ./simTest/... | awk '/^Test/ { print "simTest/"$1 }' ; \
-          ls peerTest/*A_test.go; \
+          listEngine ; \
+          listSimTest ; \
+          listPeer ; \
         } | circleci tests split ) # circleci helper spreads tests across containers
       fi
       ;;
