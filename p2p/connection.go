@@ -534,7 +534,7 @@ func (c *Connection) processReceives() {
 			err := c.decoder.Decode(&parcel)
 			switch err {
 			case nil: // successfully decoded
-				{ //debug
+				if messages.CheckFileName("peers.txt") { // Debug only if log file enabled
 					if parcel.Header.Type == TypeMessagePart {
 						msg, err := messages.Unmarshal_Message(parcel.Payload)
 						if err == nil {

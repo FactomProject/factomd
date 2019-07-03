@@ -30,6 +30,10 @@ var (
 // If it never ben see then check with the regex. If it has been seen then just look it up in the map
 // assumes traceMutex is locked already
 func CheckFileName(name string) bool {
+	// Test the early exit condition upfront before we lock a mutex
+	if globals.Params.DebugLogRegEx == "" {
+		return false
+	}
 	traceMutex.Lock()
 	defer traceMutex.Unlock()
 	return checkFileName(name)
