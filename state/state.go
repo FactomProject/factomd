@@ -557,6 +557,8 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 	newState.RpcPass = s.RpcPass
 	newState.RpcAuthHash = s.RpcAuthHash
 
+	newState.RequestTimeout = s.RequestTimeout
+	newState.RequestLimit = s.RequestLimit
 	newState.FactomdTLSEnable = s.FactomdTLSEnable
 	newState.factomdTLSKeyFile = s.factomdTLSKeyFile
 	newState.factomdTLSCertFile = s.factomdTLSCertFile
@@ -2985,4 +2987,32 @@ func (s *State) IsActive(id activations.ActivationType) bool {
 	}
 
 	return rval
+}
+
+func (s *State) PassOutputRegEx(RegEx *regexp.Regexp, RegExString string) {
+	s.OutputRegEx = RegEx
+	s.OutputRegExString = RegExString
+}
+
+func (s *State) GetOutputRegEx() (*regexp.Regexp, string) {
+	return s.OutputRegEx, s.OutputRegExString
+}
+
+func (s *State) PassInputRegEx(RegEx *regexp.Regexp, RegExString string) {
+	s.InputRegEx = RegEx
+	s.InputRegExString = RegExString
+}
+
+func (s *State) GetInputRegEx() (*regexp.Regexp, string) {
+	return s.InputRegEx, s.InputRegExString
+}
+
+func (s *State) GetIgnoreDone() bool {
+	return s.IgnoreDone
+}
+
+func (s *State) ShutdownNode(exitCode int) {
+	fmt.Println(fmt.Sprintf("Initiating a graceful shutdown of node %s. The exit code is %v.", s.FactomNodeName, exitCode))
+	s.RunState = runstate.Stopping
+	s.ShutdownChan <- exitCode
 }
