@@ -536,7 +536,7 @@ func (c *Connection) processReceives() {
 			case nil: // successfully decoded
 				{ //debug
 					if parcel.Header.Type == TypeMessagePart {
-						msg, err := messages.UnmarshalMessage(parcel.Payload)
+						msg, err := messages.Unmarshal_Message(parcel.Payload)
 						if err == nil {
 							parcel.Header.AppHash = fmt.Sprintf("%x", msg.GetMsgHash().Bytes())
 							parcel.Header.AppType = fmt.Sprintf("%d", msg.Type())

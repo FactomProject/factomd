@@ -359,7 +359,8 @@ type foo func(data []byte) (interfaces.IMsg, error)
 
 var FP func(data []byte) (interfaces.IMsg, error)
 
-func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
+// Hack to get around import loop
+func Unmarshal_Message(data []byte) (interfaces.IMsg, error) {
 	msg, err := FP(data)
 	return msg, err
 }
