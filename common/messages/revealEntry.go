@@ -136,7 +136,10 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 
 	if commit == nil {
 		state.LogMessage("executeMsg", "Hold, no commit", m)
-		return 0
+		// old holding return 0
+		state.LogPrintf("newHolding", "Hold, no commit M-%x is waiting on H-%x", m.GetMsgHash().Bytes()[:3], m.Entry.GetHash().Bytes()[:3])
+		return state.Add(m.Entry.GetHash().Fixed(), m) // hold for a commit
+
 	}
 	//
 	// Make sure one of the two proper commits got us here.
@@ -164,7 +167,9 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 
 		if m.Entry.KSize() > ECs {
 			state.LogMessage("executeMsg", "Hold, underpaid", m)
-			return 0 // not enough payments on the EC to reveal this entry.  Return 0 to wait on another commit
+			// old holding .... return 0 // not enough payments on the EC to reveal this entry.  Return 0 to wait on another commit
+			state.LogPrintf("newHolding", "Hold, underpaid M-%x is waiting on M-%x", m.GetMsgHash().Bytes()[:3], m.Entry.GetHash().Bytes()[:3])
+			return state.Add(m.Entry.GetHash().Fixed(), m) // hold for a new commit
 		}
 
 		// Make sure we have a chain.  If we don't, then bad things happen.
@@ -186,7 +191,10 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 		if eb == nil {
 			state.LogMessage("executeMsg", "Hold, no chain", m)
 			// No chain, we have to leave it be and maybe one will be made.
-			return 0
+			//old holding .., return 0
+			state.LogPrintf("newHolding", "Hold, No Chain M-%x is waiting on chain %x", m.GetMsgHash().Bytes()[:3], m.Entry.GetChainID().Bytes()[:3])
+			return state.Add(m.Entry.GetChainID().Fixed(), m) // hold for a new commit
+
 		}
 		return 1
 	} else {
@@ -194,7 +202,9 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 		ECs := int(m.CommitChain.CommitChain.Credits)
 		if m.Entry.KSize()+10 > ECs { // Discard commits that are not funded properly
 			state.LogMessage("executeMsg", "Hold, under paid", m)
-			return 0
+			// old holding .... return 0 // not enough payments on the EC to reveal this chain.  Return 0 to wait on another commit
+			state.LogPrintf("newHolding", "Hold, underpaid M-%x is waiting on M-%x", m.GetMsgHash().Bytes()[:3], m.Entry.GetHash().Bytes()[:3])
+			return state.Add(m.Entry.GetHash().Fixed(), m) // hold for a new commit
 		}
 
 		if !CheckChainID(state, m.Entry.ExternalIDs(), m) {

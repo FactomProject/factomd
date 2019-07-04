@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -118,14 +119,20 @@ func Peers(fnode *FactomNode) {
 	} // func ignoreMsg(){...}
 
 	for {
-		if primitives.NewTimestampNow().GetTimeSeconds()-fnode.State.BootTime > int64(constants.CROSSBOOT_SALT_REPLAY_DURATION.Seconds()) {
+		now := fnode.State.GetTimestamp()
+		if now.GetTimeSeconds()-fnode.State.BootTime > int64(constants.CROSSBOOT_SALT_REPLAY_DURATION.Seconds()) {
 			saltReplayFilterOn = false
 		}
 		cnt := 0
-		now := fnode.State.GetTimestamp()
 
 		for i := 0; i < 100 && fnode.State.APIQueue().Length() > 0; i++ {
 			msg := fnode.State.APIQueue().Dequeue()
+
+			if globals.Params.FullHashesLog {
+				primitives.Loghash(msg.GetMsgHash())
+				primitives.Loghash(msg.GetHash())
+				primitives.Loghash(msg.GetRepeatHash())
+			}
 
 			if msg == nil {
 				continue
@@ -139,11 +146,6 @@ func Peers(fnode *FactomNode) {
 			if fnode.State.GetNetStateOff() { // drop received message if he is off
 				fnode.State.LogMessage("NetworkInputs", "API drop, X'd by simCtrl", msg)
 				continue // Toss any inputs from API
-			}
-
-			if fnode.State.InMsgQueue().Length() > constants.INMSGQUEUE_HIGH {
-				fnode.State.LogMessage("NetworkInputs", "API Drop, Too Full", msg)
-				continue
 			}
 
 			if fnode.State.GetNetStateOff() {
@@ -207,14 +209,19 @@ func Peers(fnode *FactomNode) {
 				}
 				if err != nil {
 					fnode.State.LogPrintf("NetworkInputs", "error on receive from %v: %v", peer.GetNameFrom(), err)
-					fmt.Println("ERROR receiving message on", fnode.State.FactomNodeName+":", err)
 					// TODO: Maybe we should check the error type and/or count errors and change status to offline?
 					break // move to next peer
 				}
 
+				if globals.Params.FullHashesLog {
+					primitives.Loghash(msg.GetMsgHash())
+					primitives.Loghash(msg.GetHash())
+					primitives.Loghash(msg.GetRepeatHash())
+				}
+
 				if fnode.State.LLeaderHeight < fnode.State.DBHeightAtBoot+2 {
 					if msg.GetTimestamp().GetTimeMilli() < fnode.State.TimestampAtBoot.GetTimeMilli() {
-						fnode.State.LogMessage("NetworkInputs", "Drop, too old", msg)
+						fnode.State.LogMessage("NetworkInputs", "drop, too old", msg)
 						continue
 					}
 				}
@@ -236,11 +243,6 @@ func Peers(fnode *FactomNode) {
 				if fnode.State.GetNetStateOff() { // drop received message if he is off
 					fnode.State.LogMessage("NetworkInputs", fromPeer+" Drop, X'd by simCtrl", msg)
 					continue // Toss any inputs from this peer
-				}
-
-				if fnode.State.InMsgQueue().Length() > constants.INMSGQUEUE_HIGH {
-					fnode.State.LogMessage("NetworkInputs", fromPeer+" Drop, Too Full", msg)
-					continue
 				}
 
 				repeatHash := msg.GetRepeatHash()
@@ -329,6 +331,9 @@ func Peers(fnode *FactomNode) {
 					fnode.State.LogMessage("NetworkInputs", "unmarked P2P msg", msg)
 					msg.SetNoResend(true)
 				}
+
+				msg.SetNetwork(true)
+
 				if !crossBootIgnore(msg) {
 					if t := msg.Type(); t == constants.REVEAL_ENTRY_MSG || t == constants.COMMIT_CHAIN_MSG || t == constants.COMMIT_ENTRY_MSG {
 						fnode.State.LogMessage("NetworkInputs", fromPeer+", enqueue2", msg)
@@ -337,7 +342,6 @@ func Peers(fnode *FactomNode) {
 					} else if msg.Type() == constants.DBSTATE_MSG {
 						// notify the state that a new DBState has been recieved.
 						// TODO: send the msg to StatesReceived and only send to InMsgQueue when the next received message is ready.
-						fnode.State.StatesReceived.Notify <- msg.(*messages.DBStateMsg)
 						fnode.State.LogMessage("NetworkInputs", fromPeer+", enqueue", msg)
 						fnode.State.LogMessage("InMsgQueue", fromPeer+", enqueue", msg)
 						fnode.State.InMsgQueue().Enqueue(msg)
@@ -362,6 +366,7 @@ func NetworkOutputs(fnode *FactomNode) {
 		// }
 		//msg := <-fnode.State.NetworkOutMsgQueue()
 		msg := fnode.State.NetworkOutMsgQueue().BlockingDequeue()
+
 		NetworkOutTotalDequeue.Inc()
 		fnode.State.LogMessage("NetworkOutputs", "Dequeue", msg)
 

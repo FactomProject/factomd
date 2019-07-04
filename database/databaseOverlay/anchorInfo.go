@@ -5,160 +5,175 @@
 package databaseOverlay
 
 import (
-	//"fmt"
-	"sort"
-
+	"errors"
 	"github.com/FactomProject/factomd/anchor"
 	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-var AnchorBlockID string = "df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604"
-var AnchorSigKeys []string = []string{
-	"0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a", //m1 key
-	"d569419348ed7056ec2ba54f0ecd9eea02648b260b26e0474f8c07fe9ac6bf83", //m2 key
+var BitcoinAnchorChainID = "df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604"
+var EthereumAnchorChainID = "6e4540d08d5ac6a1a394e982fb6a2ab8b516ee751c37420055141b94fe070bfe"
+var ValidAnchorChains = map[string]bool{
+	BitcoinAnchorChainID:  true,
+	EthereumAnchorChainID: true,
 }
-var AnchorSigPublicKeys []interfaces.Verifier
 
-func init() {
-	for _, v := range AnchorSigKeys {
-		pubKey := new(primitives.PublicKey)
-		err := pubKey.UnmarshalText([]byte(v))
+func (dbo *Overlay) SetBitcoinAnchorRecordPublicKeysFromHex(publicKeys []string) error {
+	dbo.BitcoinAnchorRecordPublicKeys = nil
+	for _, v := range publicKeys {
+		publicKey := new(primitives.PublicKey)
+		err := publicKey.UnmarshalText([]byte(v))
 		if err != nil {
-			panic(err)
+			return err
 		}
-		AnchorSigPublicKeys = append(AnchorSigPublicKeys, pubKey)
+		dbo.BitcoinAnchorRecordPublicKeys = append(dbo.BitcoinAnchorRecordPublicKeys, publicKey)
 	}
-}
-
-func (dbo *Overlay) RebuildDirBlockInfo() error {
-	ars, err := dbo.FetchAllAnchorInfo()
-	if err != nil {
-		return err
-	}
-	err = dbo.SaveAnchorInfoAsDirBlockInfo(ars)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
-func (dbo *Overlay) SaveAnchorInfoFromEntry(entry interfaces.IEBEntry) error {
-	if entry.DatabasePrimaryIndex().String() == "24674e6bc3094eb773297de955ee095a05830e431da13a37382dcdc89d73c7d7" {
-		return nil
+func (dbo *Overlay) SetEthereumAnchorRecordPublicKeysFromHex(publicKeys []string) error {
+	dbo.EthereumAnchorRecordPublicKeys = nil
+	for _, v := range publicKeys {
+		publicKey := new(primitives.PublicKey)
+		err := publicKey.UnmarshalText([]byte(v))
+		if err != nil {
+			return err
+		}
+		dbo.EthereumAnchorRecordPublicKeys = append(dbo.EthereumAnchorRecordPublicKeys, publicKey)
 	}
-	ar, ok, err := anchor.UnmarshalAndValidateAnchorEntryAnyVersion(entry, AnchorSigPublicKeys)
+	return nil
+}
+
+func (dbo *Overlay) ReparseAnchorChains() error {
+	// Delete all DirBlockInfo buckets
+	err := dbo.Clear(DIRBLOCKINFO)
 	if err != nil {
 		return err
 	}
-	if ok == false {
-		return nil
-	}
-	if ar == nil {
-		return nil
-	}
-	dbi, err := AnchorRecordToDirBlockInfo(ar)
+	err = dbo.Clear(DIRBLOCKINFO_UNCONFIRMED)
 	if err != nil {
 		return err
+	}
+	err = dbo.Clear(DIRBLOCKINFO_NUMBER)
+	if err != nil {
+		return err
+	}
+	err = dbo.Clear(DIRBLOCKINFO_SECONDARYINDEX)
+	if err != nil {
+		return err
+	}
+
+	// Fetch all potential anchor records
+	btcChainID, err := primitives.NewShaHashFromStr(BitcoinAnchorChainID)
+	if err != nil {
+		panic(err)
+		return err
+	}
+	btcAnchorEntries, err := dbo.FetchAllEntriesByChainID(btcChainID)
+	if err != nil {
+		panic(err)
+		return err
+	}
+
+	ethChainID, err := primitives.NewShaHashFromStr(EthereumAnchorChainID)
+	if err != nil {
+		panic(err)
+		return err
+	}
+	ethAnchorEntries, err := dbo.FetchAllEntriesByChainID(ethChainID)
+	if err != nil {
+		panic(err)
+		return err
+	}
+
+	// Validate structure, verify signatures, and store in database
+	entries := append(btcAnchorEntries, ethAnchorEntries...)
+	for _, entry := range entries {
+		_ = dbo.SaveAnchorInfoFromEntry(entry, false)
+	}
+	return nil
+}
+
+func (dbo *Overlay) SaveAnchorInfoFromEntry(entry interfaces.IEBEntry, multiBatch bool) error {
+	var anchorRecord *anchor.AnchorRecord
+	var ok bool
+	var err error
+
+	switch entry.GetChainID().String() {
+	case BitcoinAnchorChainID:
+		// Bitcoin has mixed v1 and v2 AnchorRecords
+		anchorRecord, ok, err = anchor.UnmarshalAndValidateAnchorEntryAnyVersion(entry, dbo.BitcoinAnchorRecordPublicKeys)
+	case EthereumAnchorChainID:
+		// Ethereum has v2 AnchorRecords only
+		anchorRecord, ok, err = anchor.UnmarshalAndValidateAnchorRecordV2(entry.GetContent(), entry.ExternalIDs(), dbo.EthereumAnchorRecordPublicKeys)
+	default:
+		// Given where this function is called from, we shouldn't hit this. But just in case...
+		return errors.New("unsupported anchor chain")
+	}
+
+	if err != nil {
+		return err
+	} else if ok == false || anchorRecord == nil {
+		return nil
+	}
+
+	// We have a valid, signed anchor record entry
+	// Now either create the DirBlockInfo for this block or update the existing DirBlockInfo with new found data
+	dbi, err := dbo.CreateUpdatedDirBlockInfoFromAnchorRecord(anchorRecord)
+	if err != nil {
+		return err
+	}
+	if dbi.EthereumConfirmed && dbi.EthereumAnchorRecordEntryHash.IsSameAs(primitives.ZeroHash) {
+		dbi.EthereumAnchorRecordEntryHash = entry.GetHash()
+	}
+
+	if multiBatch {
+		return dbo.ProcessDirBlockInfoMultiBatch(dbi)
 	}
 	return dbo.ProcessDirBlockInfoBatch(dbi)
 }
 
-func (dbo *Overlay) SaveAnchorInfoFromEntryMultiBatch(entry interfaces.IEBEntry) error {
-	if entry.DatabasePrimaryIndex().String() == "24674e6bc3094eb773297de955ee095a05830e431da13a37382dcdc89d73c7d7" {
-		return nil
+func (dbo *Overlay) CreateUpdatedDirBlockInfoFromAnchorRecord(ar *anchor.AnchorRecord) (*dbInfo.DirBlockInfo, error) {
+	height := ar.DBHeight
+	if ar.DBHeightMax != 0 && ar.DBHeightMax != ar.DBHeight {
+		height = ar.DBHeightMax
 	}
-	ar, ok, err := anchor.UnmarshalAndValidateAnchorEntryAnyVersion(entry, AnchorSigPublicKeys)
+	dirBlockKeyMR, err := dbo.FetchDBKeyMRByHeight(height)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	if ok == false {
-		return nil
-	}
-	if ar == nil {
-		return nil
-	}
-	dbi, err := AnchorRecordToDirBlockInfo(ar)
-	if err != nil {
-		return err
-	}
-	return dbo.ProcessDirBlockInfoMultiBatch(dbi)
-}
 
-func (dbo *Overlay) FetchAllAnchorInfo() ([]*anchor.AnchorRecord, error) {
-	chainID, err := primitives.NewShaHashFromStr(AnchorBlockID)
+	dirBlockInfo, err := dbo.FetchDirBlockInfoByKeyMR(dirBlockKeyMR)
 	if err != nil {
-		panic(err)
 		return nil, err
 	}
-	entries, err := dbo.FetchAllEntriesByChainID(chainID)
-	if err != nil {
-		panic(err)
-		return nil, err
+
+	var dbi *dbInfo.DirBlockInfo
+	if dirBlockInfo == nil {
+		dbi = dbInfo.NewDirBlockInfo()
+		dbi.DBHash = dirBlockKeyMR
+		dbi.DBMerkleRoot = dirBlockKeyMR
+		dbi.DBHeight = height
+	} else {
+		dbi = dirBlockInfo.(*dbInfo.DirBlockInfo)
 	}
-	answer := []*anchor.AnchorRecord{}
-	for _, entry := range entries {
-		if entry.DatabasePrimaryIndex().String() == "24674e6bc3094eb773297de955ee095a05830e431da13a37382dcdc89d73c7d7" {
-			continue
-		}
-		content := entry.GetContent()
-		ar, err := anchor.UnmarshalAnchorRecord(content)
+
+	if ar.Bitcoin != nil {
+		dbi.BTCTxHash, err = primitives.NewShaHashFromStr(ar.Bitcoin.TXID)
 		if err != nil {
-			panic(err)
 			return nil, err
 		}
-		answer = append(answer, ar)
-	}
-	sort.Sort(ByAnchorDBHeightAscending(answer))
-	return answer, nil
-}
-
-func (dbo *Overlay) SaveAnchorInfoAsDirBlockInfo(ars []*anchor.AnchorRecord) error {
-	sort.Sort(ByAnchorDBHeightAscending(ars))
-
-	for _, v := range ars {
-		dbi, err := AnchorRecordToDirBlockInfo(v)
+		dbi.BTCTxOffset = ar.Bitcoin.Offset
+		dbi.BTCBlockHeight = ar.Bitcoin.BlockHeight
+		dbi.BTCBlockHash, err = primitives.NewShaHashFromStr(ar.Bitcoin.BlockHash)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		err = dbo.SaveDirBlockInfo(dbi)
-		if err != nil {
-			return err
-		}
+		dbi.BTCConfirmed = true
+	} else if ar.Ethereum != nil {
+		dbi.EthereumConfirmed = true
 	}
-
-	return nil
-}
-
-func AnchorRecordToDirBlockInfo(ar *anchor.AnchorRecord) (*dbInfo.DirBlockInfo, error) {
-	dbi := new(dbInfo.DirBlockInfo)
-	var err error
-
-	//TODO: fetch proper data
-	//dbi.DBHash =
-	dbi.DBHash, err = primitives.NewShaHashFromStr(ar.KeyMR)
-	if err != nil {
-		return nil, err
-	}
-	dbi.DBHeight = ar.DBHeight
-	//dbi.Timestamp =
-	dbi.BTCTxHash, err = primitives.NewShaHashFromStr(ar.Bitcoin.TXID)
-	if err != nil {
-		return nil, err
-	}
-	dbi.BTCTxOffset = ar.Bitcoin.Offset
-	dbi.BTCBlockHeight = ar.Bitcoin.BlockHeight
-	dbi.BTCBlockHash, err = primitives.NewShaHashFromStr(ar.Bitcoin.BlockHash)
-	if err != nil {
-		return nil, err
-	}
-	dbi.DBMerkleRoot, err = primitives.NewShaHashFromStr(ar.KeyMR)
-	if err != nil {
-		return nil, err
-	}
-	dbi.BTCConfirmed = true
 
 	return dbi, nil
 }

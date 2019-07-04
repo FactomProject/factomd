@@ -20,9 +20,14 @@ import (
 //AnchorRecord is used to construct anchor chain
 type AnchorRecord struct {
 	AnchorRecordVer int
-	DBHeight        uint32
-	KeyMR           string
-	RecordHeight    uint32 //the block height we intended to put the anchorrecod into
+	DBHeight        uint32 `json:",omitempty"` // The only directory block height included in this anchor
+	KeyMR           string `json:",omitempty"` // Merkle root of the only directory block included in this anchor
+
+	DBHeightMax uint32 `json:",omitempty"` // The highest directory block height included in this anchor window
+	DBHeightMin uint32 `json:",omitempty"` // The lowest directory block height included in this anchor window
+	WindowMR    string `json:",omitempty"` // Merkle root of all directory block KeyMRs from DBHeightMin to DBHeightMax
+
+	RecordHeight uint32 // Directory block height we intended to put the AnchorRecord into
 
 	Bitcoin  *BitcoinStruct  `json:",omitempty"`
 	Ethereum *EthereumStruct `json:",omitempty"`
@@ -37,11 +42,11 @@ type BitcoinStruct struct {
 }
 
 type EthereumStruct struct {
-	Address     string //0x30aa981f6d2fce81083e584c8ee2f822b548752f
-	TXID        string //0x50ea0effc383542811a58704a6d6842ed6d76439a2d942d941896ad097c06a78
-	BlockHeight int64  //293003
-	BlockHash   string //0x3b504616495fc9cf7be9b5b776692a9abbfb95491fa62abf62dcdf4d53ff5979
-	Offset      int64  //0
+	ContractAddress string // Address of the Ethereum anchor contract
+	TxID            string // Transaction ID of this particular anchor
+	BlockHeight     int64  // Ethereum block height that this anchor was included in
+	BlockHash       string // Hash of the Ethereum block that this anchor was included in
+	TxIndex         int64  // Where the anchor tx is located within that block
 }
 
 var _ interfaces.Printable = (*AnchorRecord)(nil)

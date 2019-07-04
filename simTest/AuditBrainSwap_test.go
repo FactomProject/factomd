@@ -1,7 +1,6 @@
 package simtest
 
 import (
-	"os"
 	"testing"
 
 	"github.com/FactomProject/factomd/common/globals"
@@ -18,80 +17,32 @@ This test is useful for verifying that Leaders can swap without rebooting
 And that Audits can reboot with lag (to prevent a panic if 2 nodes see the same audit heartbeat)
 */
 func TestAuditBrainSwap(t *testing.T) {
+	ResetSimHome(t)          // clear out old test home
+	for i := 0; i < 6; i++ { // build config files for the test
+		WriteConfigFile(i, i, "", t) // just write the minimal config
+	}
 
-	t.Run("Run Sim", func(t *testing.T) {
+	params := map[string]string{"--factomhome": globals.Params.FactomHome}
+	state0 := SetupSim("LLLAFF", params, 15, 0, 0, t)
+	state5 := engine.GetFnodes()[5].State // Get node 5
+	_ = state5
 
-		t.Run("Setup Config Files", func(t *testing.T) {
-			dir, err := os.Getwd()
-			if err != nil {
-				t.Fatal(err)
-			}
+	WaitForBlock(state0, 6)
+	WaitForAllNodes(state0)
 
-			globals.Params.FactomHome = dir + "/TestBrainSwap"
-			os.Setenv("FACTOM_HOME", globals.Params.FactomHome)
+	// rewrite the config to have brainswaps
+	WriteConfigFile(3, 5, "ChangeAcksHeight = 10\n", t) // Setup A brain swap between A3 and F5
+	WriteConfigFile(5, 3, "ChangeAcksHeight = 10\n", t)
+	WaitForBlock(state0, 9)
+	RunCmd("3") // make sure the Audit is lagging the audit if the heartbeats conflict one will panic
+	RunCmd("x")
+	WaitForBlock(state5, 10) // wait till 5 should have have brainswapped
+	RunCmd("x")
+	WaitBlocks(state0, 1)
+	WaitForAllNodes(state0)
+	CheckAuthoritySet(t)
 
-			t.Logf("Removing old run in %s", globals.Params.FactomHome)
-			if err := os.RemoveAll(globals.Params.FactomHome); err != nil {
-				t.Fatal(err)
-			}
-
-			// build config files for the test
-			for i := 0; i < 6; i++ {
-				WriteConfigFile(i, i, "", t) // just write the minimal config
-			}
-		})
-
-		params := map[string]string{
-			"--db":                  "LDB", // NOTE: using MAP causes an occasional error see FD-825
-			"--network":             "LOCAL",
-			"--net":                 "alot+",
-			"--enablenet":           "true",
-			"--blktime":             "10",
-			"--startdelay":          "1",
-			"--stdoutlog":           "out.txt",
-			"--stderrlog":           "out.txt",
-			"--checkheads":          "false",
-			"--controlpanelsetting": "readwrite",
-			"--debuglog":            ".",
-			"--logPort":             "38000",
-			"--port":                "38001",
-			"--controlpanelport":    "38002",
-			"--networkport":         "38003",
-			"--peers":               "127.0.0.1:37003",
-			"--factomhome":          globals.Params.FactomHome,
-		}
-
-		// start the 6 nodes running  012345
-		state0 := SetupSim("LLLAFF", params, 15, 0, 0, t)
-		state5 := engine.GetFnodes()[5].State // Get node 5
-		_ = state5
-
-		t.Run("Wait For Identity Swap", func(t *testing.T) {
-			t.Log("Disabled test while known bug exists FD-845")
-			/*
-				WaitForBlock(state0, 6)
-				WaitForAllNodes(state0)
-				// rewrite the config to have brainswaps
-
-				WriteConfigFile(3, 5, "ChangeAcksHeight = 10\n", t) // Setup A brain swap between A3 and F5
-				WriteConfigFile(5, 3, "ChangeAcksHeight = 10\n", t)
-				WaitForBlock(state0, 9)
-				RunCmd("3") // make sure the Audit is lagging the audit if the heartbeats conflict one will panic
-				RunCmd("x")
-				WaitForBlock(state5, 10) // wait till 5 should have have brainswapped
-				RunCmd("x")
-				WaitBlocks(state0, 1)
-				WaitForAllNodes(state0)
-				CheckAuthoritySet(t)
-			*/
-		})
-
-		t.Run("Verify Network", func(t *testing.T) {
-			WaitForAllNodes(state0)
-			// FIXME: renable after FD-845
-			//AssertAuthoritySet(t, "LLLFFA")
-			ShutDownEverything(t)
-		})
-
-	})
+	WaitForAllNodes(state0)
+	AssertAuthoritySet(t, "LLLFFA")
+	ShutDownEverything(t)
 }

@@ -66,6 +66,15 @@ func NormallyFullBroadcast(t byte) bool {
 	return false
 }
 
+// Check is they type needs an ACK to be processed.
+func NeedsAck(t byte) bool {
+	switch t {
+	case EOM_MSG, COMMIT_CHAIN_MSG, COMMIT_ENTRY_MSG, REVEAL_ENTRY_MSG, DIRECTORY_BLOCK_SIGNATURE_MSG, FACTOID_TRANSACTION_MSG, ADDSERVER_MSG, CHANGESERVER_KEY_MSG, REMOVESERVER_MSG:
+		return true
+	}
+	return false
+}
+
 // Election related messages are full broadcast
 func NormallyPeer2Peer(t byte) bool {
 	switch t {
@@ -300,12 +309,13 @@ func SetCustomCoinBaseConstants() {
 
 const (
 	// Limits for keeping inputs from flooding our execution
-	INMSGQUEUE_HIGH = 100000
+	INMSGQUEUE_HIGH = 10000
 	INMSGQUEUE_MED  = 5000
 	INMSGQUEUE_LOW  = 1000
 
 	DBSTATE_REQUEST_LIM_HIGH = 200
 	DBSTATE_REQUEST_LIM_MED  = 50
+	ENTRY_REQUEST_LIMIT      = 100
 
 	///=============== The following are bit fields! ===================
 	// Replay -- Dynamic Replay filter based on messages as they are processed.

@@ -78,8 +78,9 @@ jobs:
             export PATH="/tmp/go/bin:$PATH"
             export GOPATH=/tmp/go
             cd /tmp/go/src/github.com/FactomProject/factomd/
-            go test $(glide nv | grep -v Utilities | grep -v longTest | grep -v peerTest | grep -v simTest) -vet=off -v -cover -coverprofile=coverage.out
+            go test $(glide nv | grep -v Utilities | grep -v longTest | grep -v peerTest | grep -v simTest | grep '...') -vet=off -v -cover -coverprofile=coverage.out
             goveralls -coverprofile=coverage.out -service=circle-ci -repotoken=$COVERALLS_TOKEN
+            bash -c "exit 0" # coverage should never fail
 
 
   # Docker builds

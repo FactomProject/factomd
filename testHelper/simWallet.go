@@ -7,7 +7,6 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
-	"fmt"
 	"text/template"
 	"time"
 
@@ -74,6 +73,39 @@ func (d *testAccount) EcAddr() interfaces.IHash {
 	return x
 }
 
+// buy EC from coinbase 'bank'
+func (d *testAccount) FundEC(amt uint64) {
+	state0 := engine.GetFnodes()[0].State
+	engine.FundECWallet(state0, GetBankAccount().FctPrivHash(), d.EcAddr(), uint64(amt)*state0.GetFactoshisPerEC())
+}
+
+// buy EC from account
+func (d *testAccount) ConvertEC(amt uint64) {
+	state0 := engine.GetFnodes()[0].State
+	engine.FundECWallet(state0, d.FctPrivHash(), d.EcAddr(), uint64(amt)*state0.GetFactoshisPerEC())
+}
+
+// get FCT from coinbase 'bank'
+func (d *testAccount) FundFCT(amt uint64) {
+	state0 := engine.GetFnodes()[0].State
+	_, err := engine.SendTxn(state0, uint64(amt), GetBankAccount().FctPriv(), d.FctPub(), state0.GetFactoshisPerEC())
+	if err != nil {
+		panic(err)
+	}
+}
+
+// transfer FCT from account
+func (d *testAccount) SendFCT(a *testAccount, amt uint64) {
+	state0 := engine.GetFnodes()[0].State
+	engine.SendTxn(state0, uint64(amt), d.FctPriv(), a.FctPub(), state0.GetFactoshisPerEC())
+}
+
+// check EC balance
+func (d *testAccount) GetECBalance() int64 {
+	state0 := engine.GetFnodes()[0].State
+	return engine.GetBalanceEC(state0, d.EcPub())
+}
+
 var testFormat string = `
 FCT
   FctPriv: {{ .FctPriv }}
@@ -103,11 +135,12 @@ func AccountFromFctSecret(s string) *testAccount {
 	return d
 }
 
-// This account has a balance from inital coinbase
+// This account has a balance from initial coinbase
 func GetBankAccount() *testAccount {
 	return AccountFromFctSecret("Fs3E9gV6DXsYzf7Fqx1fVBQPQXV695eP3k5XbmHEZVRLkMdD9qCK")
 }
 
+// build addresses from random key
 func GetRandomAccount() *testAccount {
 	d := new(testAccount)
 	d.Priv = primitives.RandomPrivateKey()
@@ -260,78 +293,87 @@ func ComposeChainCommit(pkey *primitives.PrivateKey, c *factom.Chain) (*messages
 	return m, nil
 }
 
-func ComposeChainReveal(pkey *primitives.PrivateKey) (*messages.RevealEntryMsg, error) {
-	//e := entryCreditBlock.NewCommitChain()
-
-	// FIXME
-	m := new(messages.RevealEntryMsg)
-	return m, nil
+// wait for non-zero EC balance
+func WaitForAnyEcBalance(s *state.State, ecPub string) int64 {
+	s.LogPrintf(logName, "WaitForAnyEcBalance %v", ecPub)
+	return WaitForEcBalanceOver(s, ecPub, 0)
 }
 
-func WaitForAnyDeposit(s *state.State, ecPub string) int64 {
-	return WaitForEcBalance(s, ecPub, 1)
+// wait for non-zero FCT balance
+func WaitForAnyFctBalance(s *state.State, fctPub string) int64 {
+	s.LogPrintf(logName, "WaitForAnyFctBalance %v", fctPub)
+	return WaitForFctBalanceOver(s, fctPub, 0)
 }
 
-func WaitForZero(s *state.State, ecPub string) int64 {
-	fmt.Println("Waiting for Zero Balance")
-	return WaitForEcBalance(s, ecPub, 0)
+// wait for exactly Zero EC balance
+// REVIEW: should we ditch this?
+func WaitForZeroEC(s *state.State, ecPub string) int64 {
+	s.LogPrintf(logName, "WaitingForZeroEcBalance")
+	return WaitForEcBalanceUnder(s, ecPub, 1)
 }
 
-func WaitForEmptyHolding(s *state.State, msg string) time.Time {
-	t := time.Now()
-	s.LogPrintf(logName, "WaitForEmptyHolding %v", msg)
+const balanceWaitInterval = time.Millisecond * 20
 
-	for len(s.Holding) > 0 {
-		time.Sleep(time.Millisecond * 10)
-	}
+// loop until balance is < target
+func WaitForEcBalanceUnder(s *state.State, ecPub string, target int64) int64 {
 
-	t = time.Now()
-	s.LogPrintf(logName, "EmptyHolding %v", msg)
-
-	return t
-}
-
-func WaitForEcBalance(s *state.State, ecPub string, target int64) int64 {
-
-	s.LogPrintf(logName, "WaitForBalance%v:  %v", target, ecPub)
+	s.LogPrintf(logName, "WaitForEcBalanceUnder%v:  %v", target, ecPub)
 
 	for {
 		bal := engine.GetBalanceEC(s, ecPub)
-		time.Sleep(time.Millisecond * 200)
-		//fmt.Printf("WaitForBalance: %v => %v\n", ecPub, bal)
+		time.Sleep(balanceWaitInterval)
 
-		if (target == 0 && bal == 0) || (target > 0 && bal >= target) {
-			s.LogPrintf(logName, "FoundBalance%v: %v", target, bal)
+		if bal < target {
+			s.LogPrintf(logName, "FoundEcBalanceUnder%v: %v", target, bal)
 			return bal
 		}
 	}
 }
 
-func WatchMessageLists() *time.Ticker {
+// loop until balance is >= target
+func WaitForEcBalanceOver(s *state.State, ecPub string, target int64) int64 {
 
-	ticker := time.NewTicker(1 * time.Second)
+	s.LogPrintf(logName, "WaitForEcBalanceOver%v:  %v", target, ecPub)
 
-	go func() {
-		for range ticker.C {
-			for _, n := range engine.GetFnodes() {
+	for {
+		bal := engine.GetBalanceEC(s, ecPub)
+		time.Sleep(balanceWaitInterval)
 
-				f := n.State
-
-				list := []interface{}{
-					len(f.Holding),
-					len(f.Acks),
-					len(f.MsgQueue()),
-					f.InMsgQueue().Length(),
-					f.APIQueue().Length(),
-					len(f.AckQueue()),
-					len(f.TimerMsgQueue()),
-				}
-
-				f.LogPrintf(logName, "LIST_SIZES Holding: %v, Acks: %v, MsgQueue: %v, InMsgQueue: %v, APIQueue: %v, AckQueue: %v, TimerMsg: %v ", list...)
-			}
-
+		if bal > target {
+			s.LogPrintf(logName, "FoundEcBalancerOver%v: %v", target, bal)
+			return bal
 		}
-	}()
+	}
+}
 
-	return ticker
+// loop until balance is >= target
+func WaitForFctBalanceUnder(s *state.State, fctPub string, target int64) int64 {
+
+	s.LogPrintf(logName, "WaitForFctBalanceUnder%v:  %v", target, fctPub)
+
+	for {
+		bal := engine.GetBalance(s, fctPub)
+		time.Sleep(balanceWaitInterval)
+
+		if bal < target {
+			s.LogPrintf(logName, "FoundFctBalanceUnder%v: %v", target, bal)
+			return bal
+		}
+	}
+}
+
+// loop until balance is <= target
+func WaitForFctBalanceOver(s *state.State, fctPub string, target int64) int64 {
+
+	s.LogPrintf(logName, "WaitForFctBalanceOver%v:  %v", target, fctPub)
+
+	for {
+		bal := engine.GetBalance(s, fctPub)
+		time.Sleep(balanceWaitInterval)
+
+		if bal > target {
+			s.LogPrintf(logName, "FoundMaxFctBalanceOver%v: %v", target, bal)
+			return bal
+		}
+	}
 }

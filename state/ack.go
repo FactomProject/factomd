@@ -585,22 +585,21 @@ func (s *State) FetchPaidFor(hash interfaces.IHash) (interfaces.IHash, error) {
 	}
 
 	for _, pls := range s.ProcessLists.Lists {
-		if pls == nil {
-			continue
-		}
-		ecBlock := pls.EntryCreditBlock
-		for _, tx := range ecBlock.GetEntries() {
-			switch tx.ECID() {
-			case constants.ECIDEntryCommit:
-				if hash.IsSameAs(tx.(*entryCreditBlock.CommitEntry).EntryHash) {
-					return tx.GetSigHash(), nil
+		if pls != nil { // skip empty process lists
+			ecBlock := pls.EntryCreditBlock
+			for _, tx := range ecBlock.GetEntries() {
+				switch tx.ECID() {
+				case constants.ECIDEntryCommit:
+					if hash.IsSameAs(tx.(*entryCreditBlock.CommitEntry).EntryHash) {
+						return tx.GetSigHash(), nil
+					}
+					break
+				case constants.ECIDChainCommit:
+					if hash.IsSameAs(tx.(*entryCreditBlock.CommitChain).EntryHash) {
+						return tx.GetSigHash(), nil
+					}
+					break
 				}
-				break
-			case constants.ECIDChainCommit:
-				if hash.IsSameAs(tx.(*entryCreditBlock.CommitChain).EntryHash) {
-					return tx.GetSigHash(), nil
-				}
-				break
 			}
 		}
 	}
