@@ -7,6 +7,8 @@
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 cd $DIR
 export FACTOM_HOME=/dev/shm
+export FACTOM_DEBUG_LOG_PATH=/dev/shm/logs
+mkdir $FACTOM_DEBUG_LOG_PATH
 
 function runTests() {
 
@@ -48,10 +50,10 @@ function runTests() {
       NETWORK_TEST=${TST/$FOLLOWER/$NETWORK}
       TST=${TST/$NETWORK/$FOLLOWER}
       echo "Concurrent Peer TEST: $NETWORK_TEST"
-      nohup go test -v -vet=off $NETWORK_TEST -args -debuglogpath=/dev/shm &
+      nohup go test -v -vet=off $NETWORK_TEST
     fi
 
-    go test -v -vet=off $TST -args -debuglogpath=/dev/shm
+    go test -v -vet=off $TST
 
     if [[ $? != 0 ]] ;  then
       FAIL=1

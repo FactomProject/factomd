@@ -124,10 +124,22 @@ func ParseCmdLine(args []string) *FactomParams {
 		if set {
 			p.FactomHome = s
 		}
-
 	}
+
+	s, set = os.LookupEnv("FACTOM_DEBUG_LOG_PATH")
+	if p.DebugLogPath != "" {
+		os.Setenv("FACTOM_DEBUG_LOG_PATH", p.DebugLogPath)
+		if set {
+			fmt.Fprintf(os.Stderr, "Overriding environment variable %s to be \"%s\"\n", "FACTOM_DEBUG_LOG_PATH", p.DebugLogPath)
+		}
+	} else {
+		if set {
+			p.DebugLogPath = s
+		}
+	}
+
 	if !isCompilerVersionOK() {
-		fmt.Println("!!! !!! !!! ERROR: unsupported compiler version !!! !!! !!!")
+		fmt.Println("!!! !!! !!! ERROR: unsupported compiler version !!! !!! !!!", runtime.Version())
 		time.Sleep(3 * time.Second)
 		os.Exit(1)
 	}
