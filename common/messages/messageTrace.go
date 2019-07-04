@@ -77,9 +77,14 @@ func getTraceFile(name string) (f *os.File) {
 	if files == nil {
 		files = make(map[string]*os.File)
 	}
+	filePath := name
+	if len(globals.Params.DebugLogPath) > 0 {
+		filePath = globals.Params.DebugLogPath + "/" + filePath
+	}
+
 	f, _ = files[name]
 	if f != nil {
-		_, err := os.Stat(name)
+		_, err := os.Stat(filePath)
 		if os.IsNotExist(err) {
 			// The file was deleted out from under us
 			f.Close() // close the old log
@@ -88,8 +93,9 @@ func getTraceFile(name string) (f *os.File) {
 	}
 	if f == nil {
 		fmt.Println("Creating " + name)
+
 		var err error
-		f, err = os.Create(name)
+		f, err = os.Create(filePath)
 		if err != nil {
 			panic(err)
 		}

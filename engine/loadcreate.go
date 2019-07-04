@@ -62,6 +62,9 @@ func (lg *LoadGenerator) Run() {
 		addSend := lg.PerSecond.Load()
 		lg.ToSend += addSend
 		top := lg.ToSend / 10
+		if top == 0 {
+			top = 1
+		}
 		lg.ToSend = lg.ToSend % 10
 		if addSend == 0 {
 			lg.running.Store(false)
