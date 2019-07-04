@@ -184,9 +184,6 @@ func handleLogfiles(stdoutlog string, stderrlog string) {
 			if len(Params.DebugLogPath) > 0 && strings.IndexAny(stdoutlog, "/\\") < 0 {
 				stdoutlog = Params.DebugLogPath + "/" + stdoutlog
 			}
-			if len(Params.DebugLogPath) > 0 && strings.IndexAny(stderrlog, "/\\") < 0 {
-				stderrlog = Params.DebugLogPath + "/" + stderrlog
-			}
 
 			outfile, err = os.Create(stdoutlog)
 			if err != nil {
