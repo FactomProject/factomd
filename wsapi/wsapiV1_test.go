@@ -17,7 +17,6 @@ import (
 )
 
 func TestHandleGetRaw(t *testing.T) {
-	//initializing server
 	state := testHelper.CreateAndPopulateTestState()
 	Start(state)
 
@@ -119,11 +118,6 @@ func TestHandleDirectoryBlock(t *testing.T) {
 	dBlock := new(DBlock)
 	v1RequestGet(t, url, 200, dBlock)
 
-	if dBlock == nil {
-		t.Errorf("HandleDirectoryBlock returned empty block")
-		t.FailNow()
-	}
-
 	result, err := dBlock.JSONString()
 	if err != nil {
 		t.Errorf("HandleDirectoryBlock json not serializable")
@@ -175,7 +169,6 @@ func TestHandleDirectoryBlock(t *testing.T) {
 }
 
 func TestHandleEntryBlock(t *testing.T) {
-	//initializing server
 	state := testHelper.CreateAndPopulateTestState()
 	Start(state)
 
@@ -196,7 +189,7 @@ func TestHandleEntryBlock(t *testing.T) {
 		hash2 := b.(*entryBlock.EBlock).DatabaseSecondaryIndex().String()
 
 		eBlock := new(EBlock)
-		url := fmt.Sprintf("/v1/entry-block-by-keymr/%s/", hash)
+		url := fmt.Sprintf("/v1/entry-block-by-keymr/%s", hash)
 		v1RequestGet(t, url, 200, eBlock)
 
 		if eBlock.Header.ChainID != "df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604" {
@@ -208,7 +201,7 @@ func TestHandleEntryBlock(t *testing.T) {
 			t.Errorf("DBHeight is wrong - %v vs %v", eBlock.Header.DBHeight, b.(*entryBlock.EBlock).GetHeader().GetDBHeight())
 		}
 
-		url = fmt.Sprintf("/v1/entry-block-by-keymr/%s/", hash2)
+		url = fmt.Sprintf("/v1/entry-block-by-keymr/%s", hash2)
 		v1RequestGet(t, url, 200, eBlock)
 
 		if eBlock.Header.ChainID != "df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604" {
@@ -251,7 +244,6 @@ func TestHandleGetFee(t *testing.T) {
 }
 
 func TestDBlockList(t *testing.T) {
-	//initializing server
 	state := testHelper.CreateAndPopulateTestState()
 	Start(state)
 
@@ -271,7 +263,8 @@ func TestDBlockList(t *testing.T) {
 	dBlock := new(DBlock)
 	for _, l := range list {
 		url := fmt.Sprintf("/v1/directory-block-by-keymr/%s", l)
-		v1RequestGet(t, url, 200, dBlock)
+		// expect a NewBlockNotFoundError
+		v1RequestGet(t, url, 400, dBlock)
 	}
 
 	hash := "000000000000000000000000000000000000000000000000000000000000000d"
@@ -315,7 +308,6 @@ func TestBlockIteration(t *testing.T) {
 }
 
 func TestHandleGetReceipt(t *testing.T) {
-	//initializing server
 	state := testHelper.CreateAndPopulateTestState()
 	Start(state)
 
@@ -346,14 +338,13 @@ func TestHandleGetReceipt(t *testing.T) {
 }
 
 func TestHandleGetUnanchoredReceipt(t *testing.T) {
-	//initializing server
 	state := testHelper.CreateAndPopulateTestState()
 	Start(state)
 
 	hash := "68a503bd3d5b87d3a41a737e430d2ce78f5e556f6a9269859eeb1e053b7f92f7"
 
 	receipt := new(ReceiptResponse)
-	url := fmt.Sprintf("/v1/get-receipt/%s/", hash)
+	url := fmt.Sprintf("/v1/get-receipt/%s", hash)
 	v1RequestGet(t, url, 200, receipt)
 
 	err := receipt.Receipt.Validate()
@@ -371,7 +362,7 @@ func TestHandleGetUnanchoredReceipt(t *testing.T) {
 	}
 }
 
-func v1RequestGet(t *testing.T, url string, code int, result interface{}) {
+func v1RequestGet(t *testing.T, url string, expectedCode int, result interface{}) {
 	response, err := http.Get(fmt.Sprintf("http://localhost:8088/%s", url))
 	if err != nil {
 		t.Errorf("error: %v", err)
@@ -384,6 +375,11 @@ func v1RequestGet(t *testing.T, url string, code int, result interface{}) {
 		t.Errorf("error: \t%v", err)
 		t.Errorf("body: \t%v", string(body))
 		t.Errorf("response: \t%v", response)
+	}
+
+	if response.StatusCode != expectedCode {
+		t.Errorf("received wrong http code: \t%d != %d", response.StatusCode, expectedCode)
+		t.Errorf("body: \t%v", string(body))
 	}
 
 	if len(body) != 0 {

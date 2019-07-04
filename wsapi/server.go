@@ -13,15 +13,17 @@ import (
 )
 
 type Server struct {
-	State  interfaces.IState
+	State      interfaces.IState
 	httpServer *http.Server
-	router *mux.Router
+	router     *mux.Router
 }
 
-func InitServer(state interfaces.IState) *Server {
-	router := mux.NewRouter().StrictSlash(true)
+type Middleware func(http.HandlerFunc) http.HandlerFunc
 
-	server := Server{State: state, router:router}
+func InitServer(state interfaces.IState) *Server {
+	router := mux.NewRouter()
+
+	server := Server{State: state, router: router}
 
 	server.AddRootEndpoints()
 	server.AddV1Endpoints()
@@ -59,7 +61,7 @@ func InitServer(state interfaces.IState) *Server {
 }
 
 func (server *Server) Start() {
-	server.State.LogPrintf("apilog","Starting API server")
+	server.State.LogPrintf("apilog", "Starting API server")
 	go func() {
 		// returns ErrServerClosed on graceful close
 		if err := server.httpServer.ListenAndServe(); err != http.ErrServerClosed {
@@ -75,10 +77,6 @@ func (server *Server) Stop() {
 		panic(err) // failure/timeout shutting down the server gracefully
 	}
 }
-
-
-
-type Middleware func(http.HandlerFunc) http.HandlerFunc
 
 // Logging logs all requests with its path and the time it took to process
 func APILogger() Middleware {
@@ -120,13 +118,25 @@ func (server *Server) AddRootEndpoints() {
 		c := cors.New(cors.Options{
 			AllowedOrigins: state.GetCorsDomains(),
 		})
-		server.router.Handle("/", c.Handler(server.router))
-	} else {
-		server.router.Handle("/", server.router)
+
+		server.router.Use(c.Handler)
 	}
+
+	// for the v1 endpoints the default behavior of a not allowed method behaviour is different.
+	// for v2 and debug endpoints this isn't applicable as all methods accept both gets, and posts
+	server.router.MethodNotAllowedHandler = methodNotAllowedHandler()
 
 	// start the debugging api if we are not on the main network
 	if state.GetNetworkName() != "MAIN" {
 		server.addRoute("/debug", HandleDebug).Methods("GET", "POST")
 	}
 }
+
+// methodNotAllowed replies to the request with an HTTP status code 404 instead of default 405.
+func methodNotAllowed(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotFound)
+}
+
+// methodNotAllowedHandler returns a simple request handler
+// that replies to each request with a status code 404 instead of the default 405.
+func methodNotAllowedHandler() http.Handler { return http.HandlerFunc(methodNotAllowed) }
