@@ -5,7 +5,7 @@ jobs:
   build:
     working_directory: /go/src/github.com/FactomProject/factomd
     docker:
-      - image: circleci/golang:1.10
+      - image: circleci/golang:1.12
 
     steps:
       - checkout
@@ -45,7 +45,7 @@ jobs:
   test:
     working_directory: /tmp
     docker:
-      - image: circleci/golang:1.10
+      - image: circleci/golang:1.12
 
     parallelism: 8
 
@@ -65,7 +65,7 @@ jobs:
   coveralls:
     working_directory: /tmp
     docker:
-      - image: circleci/golang:1.10
+      - image: circleci/golang:1.12
 
     steps:
       - attach_workspace:
