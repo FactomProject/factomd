@@ -7,6 +7,7 @@ package wsapi
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/prometheus/common/log"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -16,29 +17,31 @@ import (
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-
-	"github.com/FactomProject/web"
 )
 
-func HandleDebug(ctx *web.Context) {
+func HandleDebug(writer http.ResponseWriter, request *http.Request) {
 	_ = globals.Params
-	ServersMutex.Lock()
-	state := ctx.Server.Env["state"].(interfaces.IState)
-	ServersMutex.Unlock()
 
-	if err := checkAuthHeader(state, ctx.Request); err != nil {
+	state, err := GetState(request)
+	if err != nil {
+		log.Fatalf("failed to extract port from request: %s", err)
+		writer.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if err := checkAuthHeader(state, request); err != nil {
 		remoteIP := ""
-		remoteIP += strings.Split(ctx.Request.RemoteAddr, ":")[0]
+		remoteIP += strings.Split(request.RemoteAddr, ":")[0]
 		fmt.Printf(
 			"Unauthorized V2 API client connection attempt from %s\n",
 			remoteIP,
 		)
-		ctx.ResponseWriter.Header().Add(
+		writer.Header().Add(
 			"WWW-Authenticate",
 			`Basic realm="factomd RPC"`,
 		)
 		http.Error(
-			ctx.ResponseWriter,
+			writer,
 			"401 Unauthorized.",
 			http.StatusUnauthorized,
 		)
@@ -46,30 +49,29 @@ func HandleDebug(ctx *web.Context) {
 		return
 	}
 
-	body, err := ioutil.ReadAll(ctx.Request.Body)
+	body, err := ioutil.ReadAll(request.Body)
 	if err != nil {
-		HandleV2Error(ctx, nil, NewInvalidRequestError())
+		HandleV2Error(writer, nil, NewInvalidRequestError())
 		return
 	}
 
 	j, err := primitives.ParseJSON2Request(string(body))
 	if err != nil {
-		HandleV2Error(ctx, nil, NewInvalidRequestError())
+		HandleV2Error(writer, nil, NewInvalidRequestError())
 		return
 	}
 
 	jsonResp, jsonError := HandleDebugRequest(state, j)
 
 	if jsonError != nil {
-		HandleV2Error(ctx, j, jsonError)
+		HandleV2Error(writer, j, jsonError)
 		return
 	}
 
-	ctx.Write([]byte(jsonResp.String()))
+	writer.Write([]byte(jsonResp.String()))
 }
 
-func HandleDebugRequest(
-	state interfaces.IState,
+func HandleDebugRequest(state interfaces.IState,
 	j *primitives.JSON2Request,
 ) (
 	*primitives.JSON2Response,

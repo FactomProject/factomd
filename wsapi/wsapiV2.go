@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/prometheus/common/log"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -24,51 +25,68 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/receipts"
-	"github.com/FactomProject/web"
 )
 
 const API_VERSION string = "2.0"
 
-func HandleV2(ctx *web.Context) {
+
+func (server *Server) AddV2Endpoints() {
+	server.addRoute("/v2", HandleV2)
+}
+
+func HandleV2(writer http.ResponseWriter, request *http.Request) {
 	n := time.Now()
 	defer HandleV2APICallGeneral.Observe(float64(time.Since(n).Nanoseconds()))
-	ServersMutex.Lock()
-	state := ctx.Server.Env["state"].(interfaces.IState)
-	ServersMutex.Unlock()
 
-	if err := checkAuthHeader(state, ctx.Request); err != nil {
+	state, err := GetState(request)
+	if err != nil {
+		log.Fatalf("failed to extract port from request: %s", err)
+		writer.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if err := checkAuthHeader(state, request); err != nil {
 		remoteIP := ""
-		remoteIP += strings.Split(ctx.Request.RemoteAddr, ":")[0]
+		remoteIP += strings.Split(request.RemoteAddr, ":")[0]
 		fmt.Printf("Unauthorized V2 API client connection attempt from %s\n", remoteIP)
-		ctx.ResponseWriter.Header().Add("WWW-Authenticate", `Basic realm="factomd RPC"`)
-		http.Error(ctx.ResponseWriter, "401 Unauthorized.", http.StatusUnauthorized)
+		writer.Header().Add("WWW-Authenticate", `Basic realm="factomd RPC"`)
+		http.Error(writer, "401 Unauthorized.", http.StatusUnauthorized)
 
 		return
 	}
 
-	body, err := ioutil.ReadAll(ctx.Request.Body)
+	body, err := ioutil.ReadAll(request.Body)
 	if err != nil {
-		HandleV2Error(ctx, nil, NewInvalidRequestError())
+		HandleV2Error(writer, nil, NewInvalidRequestError())
 		return
 	}
 
 	j, err := primitives.ParseJSON2Request(string(body))
 	if err != nil {
-		HandleV2Error(ctx, nil, NewInvalidRequestError())
+		HandleV2Error(writer, nil, NewInvalidRequestError())
 		return
 	}
 
-	jsonResp, jsonError := HandleV2Request(state, j)
+	jsonResp, jsonError := HandleV2JSONRequest(state, j)
 
 	if jsonError != nil {
-		HandleV2Error(ctx, j, jsonError)
+		HandleV2Error(writer, j, jsonError)
 		return
 	}
 
-	ctx.Write([]byte(jsonResp.String()))
+	writer.Write([]byte(jsonResp.String()))
 }
 
-func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*primitives.JSON2Response, *primitives.JSONError) {
+func HandleV2Request(writer http.ResponseWriter, request *http.Request, j *primitives.JSON2Request)  (*primitives.JSON2Response, *primitives.JSONError) {
+	state, err := GetState(request)
+	if err != nil {
+		log.Fatalf("failed to extract port from request: %s", err)
+		return nil, NewParseError()
+	}
+	return HandleV2JSONRequest(state, j)
+}
+
+func HandleV2JSONRequest(state interfaces.IState, j *primitives.JSON2Request) (*primitives.JSON2Response, *primitives.JSONError) {
 	var resp interface{}
 	var jsonError *primitives.JSONError
 	params := j.Params
@@ -489,7 +507,7 @@ func aBlockToResp(block interfaces.IAdminBlock) (interface{}, *primitives.JSONEr
 	return resp, nil
 }
 
-func HandleV2Error(ctx *web.Context, j *primitives.JSON2Request, err *primitives.JSONError) {
+func HandleV2Error(writer  http.ResponseWriter, j *primitives.JSON2Request, err *primitives.JSONError) {
 	resp := primitives.NewJSON2Response()
 	if j != nil {
 		resp.ID = j.ID
@@ -498,8 +516,8 @@ func HandleV2Error(ctx *web.Context, j *primitives.JSON2Request, err *primitives
 	}
 	resp.Error = err
 
-	ctx.WriteHeader(httpBad)
-	ctx.Write([]byte(resp.String()))
+	writer.WriteHeader(http.StatusBadRequest)
+	writer.Write([]byte(resp.String()))
 }
 
 func MapToObject(source interface{}, dst interface{}) error {

@@ -3,13 +3,16 @@ package testHelper
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/FactomProject/factomd/wsapi"
 	"net/http"
-
-	"github.com/FactomProject/web"
+	"strconv"
+	"testing"
 )
 
-func GetRespMap(context *web.Context) map[string]interface{} {
-	j := GetBody(context)
+const testPort = 8080
+
+func GetRespMap(writer http.ResponseWriter) map[string]interface{} {
+	j := GetBody(writer)
 
 	if j == "" {
 		return nil
@@ -23,8 +26,8 @@ func GetRespMap(context *web.Context) map[string]interface{} {
 	return unmarshalled
 }
 
-func UnmarshalResp(context *web.Context, dst interface{}) {
-	j := GetBody(context)
+func UnmarshalResp(writer http.ResponseWriter, dst interface{}) {
+	j := GetBody(writer)
 
 	type rtn struct {
 		Response interface{}
@@ -40,8 +43,8 @@ func UnmarshalResp(context *web.Context, dst interface{}) {
 	}
 }
 
-func UnmarshalRespDirectly(context *web.Context, dst interface{}) {
-	j := GetBody(context)
+func UnmarshalRespDirectly(writer http.ResponseWriter, dst interface{}) {
+	j := GetBody(writer)
 
 	err := json.Unmarshal([]byte(j), dst)
 	if err != nil {
@@ -50,8 +53,8 @@ func UnmarshalRespDirectly(context *web.Context, dst interface{}) {
 	}
 }
 
-func GetRespText(context *web.Context) string {
-	unmarshalled := GetRespMap(context)
+func GetRespText(writer http.ResponseWriter) string {
+	unmarshalled := GetRespMap(writer)
 	if unmarshalled["Response"] != nil {
 		marshalled, err := json.Marshal(unmarshalled["Response"])
 		if err != nil {
@@ -67,18 +70,42 @@ func GetRespText(context *web.Context) string {
 	}
 }
 
-func ClearContextResponseWriter(context *web.Context) {
-	context.ResponseWriter = new(TestResponseWriter)
+func InitTestState() {
+	state := CreateAndPopulateTestStateAndStartValidator()
+	state.SetPort(testPort)
+
+	if wsapi.Servers == nil {
+		wsapi.Servers = make(map[string]*wsapi.Server)
+	}
+
+	port := strconv.Itoa(testPort)
+	if wsapi.Servers[port] == nil {
+		server := wsapi.InitServer(state)
+		wsapi.Servers[port] = server
+	}
 }
 
-func CreateWebContext() *web.Context {
-	context := new(web.Context)
-	context.Server = new(web.Server)
-	context.Server.Env = map[string]interface{}{}
-	context.Server.Env["state"] = CreateAndPopulateTestStateAndStartValidator()
-	context.ResponseWriter = new(TestResponseWriter)
+func CreateWebContext(t *testing.T, url string) (http.ResponseWriter, *http.Request){
+	responseWriter := new(TestResponseWriter)
+	request := CreateWebTestGetRequest(t, url)
 
-	return context
+	InitTestState()
+
+	return responseWriter, request
+}
+
+func CreateWebTestGetRequest(t *testing.T, requestUrl string) *http.Request {
+	url := fmt.Sprintf("http://test:%d%s", testPort, requestUrl)
+	request, err := http.NewRequest("GET", url , nil)
+	if err != nil {
+		t.Errorf("failed to create test request: %v, %v", request, err)
+		t.FailNow()
+	}
+	return request
+}
+
+func CreateWebTestWriter() http.ResponseWriter{
+	return new(TestResponseWriter)
 }
 
 type TestResponseWriter struct {
@@ -105,6 +132,6 @@ func (t *TestResponseWriter) Write(b []byte) (int, error) {
 	return len(b), nil
 }
 
-func GetBody(context *web.Context) string {
-	return context.ResponseWriter.(*TestResponseWriter).Body
+func GetBody(writer http.ResponseWriter) string {
+	return writer.(*TestResponseWriter).Body
 }
