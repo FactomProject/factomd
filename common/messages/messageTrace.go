@@ -95,11 +95,10 @@ func getTraceFile(name string) (f *os.File) {
 	if files == nil {
 		files = make(map[string]*os.File)
 	}
-	filePath := name
 
 	f, _ = files[name]
 	if f != nil {
-		_, err := os.Stat(filePath)
+		_, err := os.Stat(name)
 		if os.IsNotExist(err) {
 			// The file was deleted out from under us
 			f.Close() // close the old log
