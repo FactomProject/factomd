@@ -32,6 +32,6 @@ RUN go install -ldflags "-X github.com/FactomProject/factomd/engine.Build=`git r
 RUN mkdir -p /root/.factom/m2
 COPY factomd.conf /root/.factom/m2/factomd.conf
 
-ENTRYPOINT ["/go/bin/factomd"]
+ENTRYPOINT ["/go/bin/factomd","-sim_stdin=false"]
 
 EXPOSE 8088 8090 8108 8109 8110
