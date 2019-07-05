@@ -51,7 +51,11 @@ func checkFileName(name string) bool {
 func checkForChangesInDebugRegex() {
 	// if  the regex string has changed ...
 	if globals.Params.DebugLogRegEx != globals.LastDebugLogRegEx {
-		globals.Params.DebugLogLocation, globals.Params.DebugLogRegEx = SplitUpDebugLogRegEx(globals.Params.DebugLogRegEx)
+		debugLogLocation, debuglogRexex := SplitUpDebugLogRegEx(globals.Params.DebugLogRegEx)
+		globals.Params.DebugLogRegEx = debuglogRexex
+		if debugLogLocation != "" {
+			globals.Params.DebugLogLocation = debugLogLocation
+		}
 
 		TestRegex = nil // throw away the old regex
 		globals.LastDebugLogRegEx = globals.Params.DebugLogRegEx
@@ -84,6 +88,7 @@ func getTraceFile(name string) (f *os.File) {
 	checkForChangesInDebugRegex()
 	//traceMutex.Lock()	defer traceMutex.Unlock()
 	name = globals.Params.DebugLogLocation + strings.ToLower(name)
+
 	if !checkFileName(name) {
 		return nil
 	}
@@ -91,9 +96,6 @@ func getTraceFile(name string) (f *os.File) {
 		files = make(map[string]*os.File)
 	}
 	filePath := name
-	if len(globals.Params.DebugLogPath) > 0 {
-		filePath = globals.Params.DebugLogPath + "/" + filePath
-	}
 
 	f, _ = files[name]
 	if f != nil {

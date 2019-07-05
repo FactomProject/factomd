@@ -27,7 +27,6 @@ func init() {
 	flag.StringVar(&p.StdoutLog, "stdoutlog", "", "Log stdout to a file")
 	flag.StringVar(&p.StderrLog, "stderrlog", "", "Log stderr to a file, optionally the same file as stdout")
 	flag.StringVar(&p.DebugLogRegEx, "debuglog", "", "regex to pick which logs to save")
-	flag.StringVar(&p.DebugLogPath, "debuglogpath", "", "The path where debug logs are saved")
 	flag.IntVar(&p.FaultTimeout, "faulttimeout", 120, "Seconds before considering Federated servers at-fault. Default is 120.")
 	flag.IntVar(&p.RoundTimeout, "roundtimeout", 30, "Seconds before audit servers will increment rounds and volunteer.")
 	flag.IntVar(&p2p.NumberPeersToBroadcast, "broadcastnum", 16, "Number of peers to broadcast to in the peer to peer networking")
@@ -100,6 +99,7 @@ func ParseCmdLine(args []string) *FactomParams {
 	p := &Params // Global copy of decoded Params global.Params
 
 	flag.CommandLine.Parse(args)
+	parseEnvVars(p)
 
 	// Handle the global (not Factom server specific parameters
 	if p.StdoutLog != "" || p.StderrLog != "" {
@@ -115,30 +115,6 @@ func ParseCmdLine(args []string) *FactomParams {
 
 	p.CustomNet = primitives.Sha([]byte(p.CustomNetName)).Bytes()[:4]
 
-	s, set := os.LookupEnv("FACTOM_HOME")
-	if p.FactomHome != "" {
-		os.Setenv("FACTOM_HOME", p.FactomHome)
-		if set {
-			fmt.Fprintf(os.Stderr, "Overriding environment variable %s to be \"%s\"\n", "FACTOM_HOME", p.FactomHome)
-		}
-	} else {
-		if set {
-			p.FactomHome = s
-		}
-	}
-
-	s, set = os.LookupEnv("FACTOM_DEBUG_LOG_PATH")
-	if p.DebugLogPath != "" {
-		os.Setenv("FACTOM_DEBUG_LOG_PATH", p.DebugLogPath)
-		if set {
-			fmt.Fprintf(os.Stderr, "Overriding environment variable %s to be \"%s\"\n", "FACTOM_DEBUG_LOG_PATH", p.DebugLogPath)
-		}
-	} else {
-		if set {
-			p.DebugLogPath = s
-		}
-	}
-
 	if !isCompilerVersionOK() {
 		fmt.Println("!!! !!! !!! ERROR: unsupported compiler version !!! !!! !!!", runtime.Version())
 		time.Sleep(3 * time.Second)
@@ -151,6 +127,31 @@ func ParseCmdLine(args []string) *FactomParams {
 	}
 
 	return p
+}
+
+func parseEnvVars(params *FactomParams) {
+	s, set := os.LookupEnv("FACTOM_HOME")
+	if params.FactomHome != "" {
+		os.Setenv("FACTOM_HOME", params.FactomHome)
+		if set {
+			fmt.Fprintf(os.Stderr, "Overriding environment variable %s to be \"%s\"\n", "FACTOM_HOME", params.FactomHome)
+		}
+	} else {
+		if set {
+			params.FactomHome = s
+		}
+	}
+	s, set = os.LookupEnv("FACTOM_DEBUG_LOG_LOCATION")
+	if params.DebugLogLocation != "" {
+		os.Setenv("FACTOM_DEBUG_LOG_LOCATION", params.DebugLogLocation)
+		if set {
+			fmt.Fprintf(os.Stderr, "Overriding environment variable %s to be \"%s\"\n", "FACTOM_DEBUG_LOG_LOCATION", params.DebugLogLocation)
+		}
+	} else {
+		if set {
+			params.DebugLogLocation = s
+		}
+	}
 }
 
 func isCompilerVersionOK() bool {
@@ -194,8 +195,8 @@ func handleLogfiles(stdoutlog string, stderrlog string) {
 
 		if stdoutlog != "" {
 			// start a go routine to tee stdout to out.txt
-			if len(Params.DebugLogPath) > 0 && strings.IndexAny(stdoutlog, "/\\") < 0 {
-				stdoutlog = Params.DebugLogPath + "/" + stdoutlog
+			if len(Params.DebugLogLocation) > 0 && strings.IndexAny(stdoutlog, "/\\") < 0 {
+				stdoutlog = Params.DebugLogLocation + "/" + stdoutlog
 			}
 
 			outfile, err = os.Create(stdoutlog)

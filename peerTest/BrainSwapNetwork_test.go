@@ -23,13 +23,10 @@ func TestBrainSwapNetwork(t *testing.T) {
 		outputNodes := "LFLLFAA"
 
 		t.Run("Setup Config Files", func(t *testing.T) {
-			ResetFactomHome(t, "network")
-
 			// build config files for the test
 			for i := 0; i < len(givenNodes); i++ {
 				WriteConfigFile(i, i, "", t)
 			}
-
 		})
 
 		params := map[string]string{

@@ -6,8 +6,8 @@
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )" # get dir containing this script
 cd $DIR # always from from script dir
 export FACTOM_HOME=/dev/shm
-export FACTOM_DEBUG_LOG_PATH=/dev/shm/logs
-mkdir $FACTOM_DEBUG_LOG_PATH
+export FACTOM_DEBUG_LOG_LOCATION=/dev/shm/logs
+mkdir $FACTOM_DEBUG_LOG_LOCATION
 
 function runTests() {
   if [[ "${CI}x" ==  "x" ]] ; then

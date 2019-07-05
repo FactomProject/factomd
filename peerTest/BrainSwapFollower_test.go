@@ -23,7 +23,6 @@ func TestBrainSwapFollower(t *testing.T) {
 		outputNodes := "LA"
 
 		t.Run("Setup Config Files", func(t *testing.T) {
-			ResetFactomHome(t, "follower")
 			WriteConfigFile(9, 0, "", t)
 			WriteConfigFile(8, 1, "", t)
 		})
