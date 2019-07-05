@@ -212,6 +212,7 @@ type State struct {
 	// own messages from the previously executing network can confuse you.
 	IgnoreDone    bool
 	IgnoreMissing bool
+
 	// Timout and Limit for outstanding missing DBState requests
 	RequestTimeout time.Duration
 	RequestLimit   int
@@ -234,8 +235,7 @@ type State struct {
 	CurrentMinuteStartTime  int64
 	CurrentBlockStartTime   int64
 
-	EOMsyncing bool
-
+	EOMsyncing   bool
 	EOMSyncTime  int64
 	EOM          bool // Set to true when the first EOM is encountered
 	EOMLimit     int
@@ -342,6 +342,7 @@ type State struct {
 	// For Replay / journal
 	IsReplaying     bool
 	ReplayTimestamp interfaces.Timestamp
+
 	// State for the Entry Syncing process
 	EntrySyncState *EntrySync
 
@@ -431,8 +432,13 @@ type State struct {
 	executeRecursionDetection map[[32]byte]interfaces.IMsg
 	Hold                      HoldingList
 
-	// struct for state/missingMsgTracking.go
+	// MissingMessageResponse is a cache of the last 1000 msgs we receive such that when
+	// we send out a missing message, we can find that message locally before we ask the net
 	RecentMessage
+
+	// MissingMessageResponseHandler is a cache of the last 2 blocks of processed acks.
+	// It can handle and respond to missing message requests on it's own thread.
+	MissingMessageResponseHandler *MissingMessageResponseCache
 }
 
 var _ interfaces.IState = (*State)(nil)
@@ -856,6 +862,7 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 			s.IdentityChainID = identity
 			s.LogPrintf("AckChange", "Load IdentityChainID \"%v\"", s.IdentityChainID.String())
 		}
+
 		if cfg.App.P2PIncoming > 0 {
 			p2p.MaxNumberIncomingConnections = cfg.App.P2PIncoming
 		}
@@ -922,6 +929,7 @@ func (s *State) GetSalt(ts interfaces.Timestamp) uint32 {
 }
 
 func (s *State) Init() {
+	s.LogPrintf("WhereAmI", "Init %s", atomic.WhereAmIString(1))
 
 	if s.Salt == nil {
 		b := make([]byte, 32)
@@ -983,7 +991,6 @@ func (s *State) Init() {
 		}
 		f.Close()
 	}
-
 	// Set up struct to stop replay attacks
 	s.Replay = new(Replay)
 	s.Replay.s = s
@@ -1136,6 +1143,9 @@ func (s *State) Init() {
 	s.asks = make(chan askRef, 1)
 	s.adds = make(chan plRef, 1)
 	s.dbheights = make(chan int, 1)
+
+	// Allocate the missing message handler
+	s.MissingMessageResponseHandler = NewMissingMessageReponseCache(s)
 
 	if s.StateSaverStruct.FastBoot {
 		d, err := s.DB.FetchDBlockHead()

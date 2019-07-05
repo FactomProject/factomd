@@ -657,7 +657,11 @@ func startServer(i int, fnode *FactomNode, load bool) {
 	go Timer(fnode.State)
 	go elections.Run(fnode.State)
 	go fnode.State.ValidatorLoop()
-	go fnode.State.StartMMR()
+
+	// moved StartMMR here to ensure Init goroutine only called once and not twice (removed from state.go)
+	fnode.State.StartMMR()
+	go fnode.State.MissingMessageResponseHandler.Run()
+
 }
 
 func setupFirstAuthority(s *state.State) {

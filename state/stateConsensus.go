@@ -1341,6 +1341,7 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 }
 
 func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
+	panic("Missing Messages should never execute")
 	// Don't respond to missing messages if we are behind.
 	if s.inMsgQueue.Length() > constants.INMSGQUEUE_LOW {
 		return

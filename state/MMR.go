@@ -1,13 +1,13 @@
 package state
 
 import (
+	"fmt"
 	"sort"
 	"time"
 
 	"github.com/FactomProject/factomd/common/interfaces"
-
-	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 // This identifies a specific process list slot
@@ -112,7 +112,6 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 
 	// Add an ask to the list of pending asks
 	addAsk := func(ask askRef) {
-
 		_, ok := pending[ask.plRef]
 		if !ok {
 			//fmt.Println("pending[ask.plRef]: ", ok)
@@ -273,25 +272,51 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 // It can create MissingMessageResponses to peer requests, and prevent us from asking the network
 // if we already have something locally.
 type MissingMessageResponseCache struct {
-	// NewMsgs is the channel on which we receive acked messages to cache
-	NewMsgs chan interfaces.IMsg
+	// MissingMsgRequests is the channel on which we receive acked messages to cache
+	MissingMsgRequests chan interfaces.IMsg
+	// ProcessedPairs is all the ack+msg pairs that we processed
+	ProcessedPairs chan *MsgPair
 
 	// ACKCache is the cached acks from the last 2 blocks
-	AckMessageCache     *AckCache
-	GeneralMessageCache *MsgCache
+	AckMessageCache *AckCache
+
+	// We will hold all missing requests for some timeout.
+	// If someone asks us for something, we might be able to respond soon.
+	recentRequests        *SortedMsgSlice
+	recentRequestsTimeout time.Duration
+	recentRequestsCheck   time.Duration
+
+	// We need the state for getting the current timestamp and for logging
+	// TODO: Separate logging and current time from state
+	localState *State
 
 	quit chan bool
 }
 
-func NewMissingMessageReponseCache() *MissingMessageResponseCache {
+func NewMissingMessageReponseCache(s *State) *MissingMessageResponseCache {
 	mmrc := new(MissingMessageResponseCache)
-	mmrc.NewMsgs = make(chan interfaces.IMsg, 20)
+	mmrc.MissingMsgRequests = make(chan interfaces.IMsg, 20)
+	mmrc.ProcessedPairs = make(chan *MsgPair, 5)
 	mmrc.AckMessageCache = NewAckCache()
-	mmrc.GeneralMessageCache = NewMsgCache()
+	mmrc.recentRequests = NewMsgCache()
 
 	mmrc.quit = make(chan bool, 1)
+	mmrc.localState = s
+	mmrc.recentRequestsCheck = time.Second
+	mmrc.recentRequestsTimeout = time.Second * 3
 
 	return mmrc
+}
+
+// NotifyPeerMissingMsg is the threadsafe way to notify that a peer sent us a missing message
+func (mmrc *MissingMessageResponseCache) NotifyPeerMissingMsg(missingMsg interfaces.IMsg) {
+	mmrc.MissingMsgRequests <- missingMsg
+}
+
+// NotifyNewMsgPair is the threadsafe way to include a new msg pair to respond to missing message requests
+// from peers
+func (mmrc *MissingMessageResponseCache) NotifyNewMsgPair(ack interfaces.IMsg, msg interfaces.IMsg) {
+	mmrc.ProcessedPairs <- &MsgPair{Ack: ack, Msg: msg}
 }
 
 func (mmrc *MissingMessageResponseCache) Close() {
@@ -301,28 +326,96 @@ func (mmrc *MissingMessageResponseCache) Close() {
 // Run will start the loop to read messages from the channel and build
 // the cache
 func (mmrc *MissingMessageResponseCache) Run() {
+	ticker := time.NewTicker(time.Second)
 	for {
 		select {
-		case newmsg := <-mmrc.NewMsgs:
-			var _ = newmsg
+		case <-ticker.C:
+			cutoff := primitives.NewTimestampFromMilliseconds(uint64(mmrc.localState.GetTimestamp().GetTimeMilli() - int64(mmrc.recentRequestsTimeout.Seconds()*1000)))
+			mmrc.recentRequests.TrimOlderThan(cutoff)
+			// Only keep 15 requests
+			l := len(mmrc.recentRequests.MessageSlice)
+			if l > 15 {
+				mmrc.recentRequests.TrimTo(l - 15)
+			}
+
+			// Every tick, update the missingmmsgs that were asked recently
+			for _, request := range mmrc.recentRequests.MessageSlice {
+				request.SetLocal(true) // TODO: Remove
+				mmrc.MissingMsgRequests <- request
+			}
+			mmrc.recentRequests.Clear()
+
+		case processedPair := <-mmrc.ProcessedPairs:
+			// A new ack/msg pair is processed and ready to respond to missing message requests
+			ack := processedPair.Ack.(*messages.Ack)
+			mmrc.localState.LogMessage("mmr_response", fmt.Sprintf("add_pair %d/%d/%d", ack.DBHeight, ack.VMIndex, ack.Height), processedPair.Ack)
+			mmrc.AckMessageCache.AddMsgPair(processedPair)
+		case requestI := <-mmrc.MissingMsgRequests:
+			// A missing msg request from a peer
+			var _ = requestI
+			request, ok := requestI.(*messages.MissingMsg)
+			if !ok {
+				break // Should never not be a request
+			}
+
+			defferedRequest := false
+			// Loop through all requested heights
+			for _, plHeight := range request.ProcessListHeight {
+				pair := mmrc.AckMessageCache.Get(int(request.DBHeight), request.VMIndex, int(plHeight))
+				if pair != nil {
+					if pair.Msg == nil || pair.Ack == nil {
+						panic("This should never happen")
+					}
+					ack := pair.Ack.(*messages.Ack)
+					// Pair exists, send out the response
+					response := messages.NewMissingMsgResponse(mmrc.localState, pair.Msg, pair.Ack)
+					response.SetOrigin(request.GetOrigin())
+					response.SetNetworkOrigin(request.GetNetworkOrigin())
+					response.SendOut(mmrc.localState, response)
+					mmrc.localState.MissingRequestReplyCnt++
+					mmrc.localState.LogMessage("mmr_response", fmt.Sprintf("request_fufilled %d/%d/%d, Recovered[%t]", ack.DBHeight, ack.VMIndex, ack.Height, request.IsLocal()), pair.Ack)
+				} else {
+					mmrc.localState.MissingRequestIgnoreCnt++
+					if !defferedRequest {
+						mmrc.recentRequests.InsertMsg(request)
+						defferedRequest = true
+					}
+					mmrc.localState.LogPrintf("mmr_response", "pair_not_found %d/%d/%d", request.DBHeight, request.VMIndex, plHeight)
+				}
+			}
 		case <-mmrc.quit:
+			// Close thread
 			return
 
 		}
 	}
 }
 
+// The pair of messages for a missing message response
+type MsgPair struct {
+	Ack interfaces.IMsg
+	Msg interfaces.IMsg
+}
+
 type AckCache struct {
-	CurrentHeight int
-	// AckMap will only contain ack messages
-	AckMap map[int]map[plRef]interfaces.IMsg
-	// TODO: Add paired messages here?
+	CurrentWorkingHeight int
+	// MsgPairMap will contain ack/msg pairs
+	MsgPairMap map[int]map[plRef]*MsgPair
 }
 
 func NewAckCache() *AckCache {
 	a := new(AckCache)
-	a.AckMap = make(map[int]map[plRef]interfaces.IMsg)
+	a.MsgPairMap = make(map[int]map[plRef]*MsgPair)
 	return a
+}
+
+// UpdateWorkingHeight will only update the height if it is new
+func (a *AckCache) UpdateWorkingHeight(newHeight int) {
+	// Update working height if it has changed
+	if a.CurrentWorkingHeight < int(newHeight) {
+		a.CurrentWorkingHeight = int(newHeight)
+		a.Expire(newHeight)
+	}
 }
 
 // Expire for the AckCache will expire all acks older than 2 blocks.
@@ -330,105 +423,107 @@ func NewAckCache() *AckCache {
 //			Technically we can just call delete NewHeight-2 as long as we always
 //			Update every height
 func (a *AckCache) Expire(newHeight int) {
-	a.CurrentHeight = newHeight
-	for h, _ := range a.AckMap {
+	a.CurrentWorkingHeight = newHeight
+	for h, _ := range a.MsgPairMap {
 		if a.HeightTooOld(h) {
-			delete(a.AckMap, h)
+			delete(a.MsgPairMap, h)
 		}
 	}
 }
 
-// AddAck will add an ack to the cache if it is not too old, and it is an ack
-func (a *AckCache) AddAck(m interfaces.IMsg) {
-	ack, ok := m.(*messages.Ack)
+// AddMsgPair will add an ack to the cache if it is not too old, and it is an ack+msg pair
+//	We assume that all msgs being added have been added to our processlist, and therefore
+//	the current working height and they are valid.
+func (a *AckCache) AddMsgPair(pair *MsgPair) {
+	ack, ok := pair.Ack.(*messages.Ack)
 	if !ok {
 		// Don't add non-acks
 		return
 	}
-	if a.HeightTooOld(int(ack.DBHeight)) || a.HeightTooFuture(int(ack.DBHeight)) {
-		return // Too old or too new to care about
+
+	// Verify ack and msg should be paired
+	if !ack.MessageHash.IsSameAs(pair.Msg.GetMsgHash()) {
+		return
 	}
+
+	// Attempt to update working height.
+	a.UpdateWorkingHeight(int(ack.DBHeight))
+
+	// Check if we still care about this height
+	//	This should never fail, as it is triggered
+	//	when we add to the processlist.
+	if a.HeightTooOld(int(ack.DBHeight)) {
+		// This should never happen
+		return // Too old
+	}
+
 	plLoc := plRef{int(ack.DBHeight), ack.VMIndex, int(ack.Height)}
 	a.ensure(plLoc.DBH)
-	a.AckMap[plLoc.DBH][plLoc] = ack
+	a.MsgPairMap[plLoc.DBH][plLoc] = pair
 }
 
-func (a *AckCache) Get(dbHeight, vmIndex, plHeight int) interfaces.IMsg {
-	if a.AckMap[dbHeight] == nil {
+func (a *AckCache) Get(dbHeight, vmIndex, plHeight int) *MsgPair {
+	if a.MsgPairMap[dbHeight] == nil {
 		return nil
 	}
-	return a.AckMap[dbHeight][plRef{dbHeight, vmIndex, plHeight}]
+	return a.MsgPairMap[dbHeight][plRef{dbHeight, vmIndex, plHeight}]
 }
 
 func (a *AckCache) ensure(height int) {
-	if a.AckMap[height] == nil {
-		a.AckMap[height] = make(map[plRef]interfaces.IMsg)
+	if a.MsgPairMap[height] == nil {
+		a.MsgPairMap[height] = make(map[plRef]*MsgPair)
 	}
-}
-
-func (a *AckCache) HeightTooFuture(height int) bool {
-	// If the ack is from too far in the future, we can also ignore it
-	// TODO: Determine this
-	return false
 }
 
 // HeightTooOld determines if the ack height is too old for the ackcache
 func (a *AckCache) HeightTooOld(height int) bool {
-	// Eg: CurrentHeight = 10, so saved height is minimum 8. Below 8, we delete
-	if height < a.CurrentHeight-2 {
+	// Eg: CurrentWorkingHeight = 10, so saved height is minimum 8. Below 8, we delete
+	if height < a.CurrentWorkingHeight-2 {
 		return true
 	}
 	return false
 }
 
-type MsgCache struct {
-	// MessageMap allows quick lookup for a message hash
-	MessageMap map[[32]byte]interfaces.IMsg
+type SortedMsgSlice struct {
 	// MessageSlice is the sorted slice of messages by time. This is useful for
 	// expiring messages from the map without having to iterate over the entire list.
 	MessageSlice []interfaces.IMsg
 }
 
-func NewMsgCache() *MsgCache {
-	c := new(MsgCache)
-	c.MessageMap = make(map[[32]byte]interfaces.IMsg)
+func NewMsgCache() *SortedMsgSlice {
+	c := new(SortedMsgSlice)
 	return c
+}
+
+func (c *SortedMsgSlice) Clear() {
+	c.MessageSlice = []interfaces.IMsg{}
+}
+
+func (c *SortedMsgSlice) TrimOlderThan(cutoff interfaces.Timestamp) {
+	for i := 0; i < len(c.MessageSlice); i++ {
+		if c.MessageSlice[i].GetTimestamp().GetTimeMilli() >= cutoff.GetTimeMilli() {
+			c.TrimTo(i)
+			break
+		}
+	}
 }
 
 // TrimTo will remove messages from 0 to the index (EXCLUSIVE) from the slice.
 // This is good for expiring all messages that are too old, since they are
 // sorted by time
 //		Result is slice[index:]
-func (c *MsgCache) TrimTo(index int) {
-	for j, _ := range c.MessageSlice {
-		if j >= index {
-			break // Only delete to index
-		}
-		delete(c.MessageMap, c.MessageSlice[j].GetMsgHash().Fixed())
-	}
+func (c *SortedMsgSlice) TrimTo(index int) {
 	c.MessageSlice = append([]interfaces.IMsg{}, c.MessageSlice[index:]...)
 }
 
 // RemoveMsg will remove a single message, but should be avoided in favor of
 // 'TrimTo' that can remove multiple messages
-func (c *MsgCache) RemoveMsg(index int) {
-	delete(c.MessageMap, c.MessageSlice[index].GetMsgHash().Fixed())
+func (c *SortedMsgSlice) RemoveMsg(index int) {
 	c.MessageSlice = append(c.MessageSlice[:index], c.MessageSlice[index+1:]...)
 }
 
-// AddMsg
-func (c *MsgCache) AddMsg(m interfaces.IMsg) {
-	// Only add messages that need an
-	if !constants.NeedsAck(m.Type()) {
-		return
-	}
-
-	c.MessageMap[m.GetMsgHash().Fixed()] = m
-	c.insertMsg(m)
-}
-
 // insertMsg inserts the message into the sorted slice
-func (c *MsgCache) insertMsg(m interfaces.IMsg) {
+func (c *SortedMsgSlice) InsertMsg(m interfaces.IMsg) {
 	index := sort.Search(len(c.MessageSlice), func(i int) bool {
 		return c.MessageSlice[i].GetTimestamp().GetTimeMilli() > m.GetTimestamp().GetTimeMilli()
 	})

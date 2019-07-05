@@ -33,7 +33,7 @@ type RecentMessage struct {
 	NewMsgs chan interfaces.IMsg
 }
 
-// Adds Acks to a AckMap
+// Adds Acks to a map of the last 1000 acks
 // The map of acks will be used in tandem with the message map when we get an MMR to ensure we don't ask for a message we already have.
 func (a *ACKMap) Add(msg interfaces.IMsg) {
 	if a.Acks == nil {
