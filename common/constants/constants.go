@@ -67,7 +67,9 @@ func NormallyFullBroadcast(t byte) bool {
 }
 
 // Check is they type needs an ACK to be processed.
-func NeedsAck(t byte) bool {
+// By making this a variable, we can overwrite it in unit tests that might
+// need a bounce message for example to be "NeedsAck"
+var NeedsAck = func(t byte) bool {
 	switch t {
 	case EOM_MSG, COMMIT_CHAIN_MSG, COMMIT_ENTRY_MSG, REVEAL_ENTRY_MSG, DIRECTORY_BLOCK_SIGNATURE_MSG, FACTOID_TRANSACTION_MSG, ADDSERVER_MSG, CHANGESERVER_KEY_MSG, REMOVESERVER_MSG:
 		return true

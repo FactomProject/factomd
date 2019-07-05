@@ -269,7 +269,7 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 	} // forever ...
 } // func  makeMMRs() {...}
 
-// MissingMessageResponseCache will cache all proceslist items from the last 2 blocks.
+// MissingMessageResponseCache will cache all processlist items from the last 2 blocks.
 // It can create MissingMessageResponses to peer requests, and prevent us from asking the network
 // if we already have something locally.
 type MissingMessageResponseCache struct {
@@ -277,14 +277,46 @@ type MissingMessageResponseCache struct {
 	NewMsgs chan interfaces.IMsg
 
 	// ACKCache is the cached acks from the last 2 blocks
-	AckMessageCache     AckCache
-	GeneralMessageCache MsgCache
+	AckMessageCache     *AckCache
+	GeneralMessageCache *MsgCache
+
+	quit chan bool
+}
+
+func NewMissingMessageReponseCache() *MissingMessageResponseCache {
+	mmrc := new(MissingMessageResponseCache)
+	mmrc.NewMsgs = make(chan interfaces.IMsg, 20)
+	mmrc.AckMessageCache = NewAckCache()
+	mmrc.GeneralMessageCache = NewMsgCache()
+
+	mmrc.quit = make(chan bool, 1)
+
+	return mmrc
+}
+
+func (mmrc *MissingMessageResponseCache) Close() {
+	mmrc.quit <- true
+}
+
+// Run will start the loop to read messages from the channel and build
+// the cache
+func (mmrc *MissingMessageResponseCache) Run() {
+	for {
+		select {
+		case newmsg := <-mmrc.NewMsgs:
+			var _ = newmsg
+		case <-mmrc.quit:
+			return
+
+		}
+	}
 }
 
 type AckCache struct {
 	CurrentHeight int
 	// AckMap will only contain ack messages
 	AckMap map[int]map[plRef]interfaces.IMsg
+	// TODO: Add paired messages here?
 }
 
 func NewAckCache() *AckCache {
@@ -363,6 +395,28 @@ func NewMsgCache() *MsgCache {
 	return c
 }
 
+// TrimTo will remove messages from 0 to the index (EXCLUSIVE) from the slice.
+// This is good for expiring all messages that are too old, since they are
+// sorted by time
+//		Result is slice[index:]
+func (c *MsgCache) TrimTo(index int) {
+	for j, _ := range c.MessageSlice {
+		if j >= index {
+			break // Only delete to index
+		}
+		delete(c.MessageMap, c.MessageSlice[j].GetMsgHash().Fixed())
+	}
+	c.MessageSlice = append([]interfaces.IMsg{}, c.MessageSlice[index:]...)
+}
+
+// RemoveMsg will remove a single message, but should be avoided in favor of
+// 'TrimTo' that can remove multiple messages
+func (c *MsgCache) RemoveMsg(index int) {
+	delete(c.MessageMap, c.MessageSlice[index].GetMsgHash().Fixed())
+	c.MessageSlice = append(c.MessageSlice[:index], c.MessageSlice[index+1:]...)
+}
+
+// AddMsg
 func (c *MsgCache) AddMsg(m interfaces.IMsg) {
 	// Only add messages that need an
 	if !constants.NeedsAck(m.Type()) {
@@ -370,12 +424,13 @@ func (c *MsgCache) AddMsg(m interfaces.IMsg) {
 	}
 
 	c.MessageMap[m.GetMsgHash().Fixed()] = m
-	c.InsertMsg(m)
+	c.insertMsg(m)
 }
 
-func (c *MsgCache) InsertMsg(m interfaces.IMsg) {
+// insertMsg inserts the message into the sorted slice
+func (c *MsgCache) insertMsg(m interfaces.IMsg) {
 	index := sort.Search(len(c.MessageSlice), func(i int) bool {
-		return c.MessageSlice[i].GetTimestamp().GetTimeMilli() < m.GetTimestamp().GetTimeMilli()
+		return c.MessageSlice[i].GetTimestamp().GetTimeMilli() > m.GetTimestamp().GetTimeMilli()
 	})
 	c.MessageSlice = append(c.MessageSlice, (interfaces.IMsg)(nil))
 	copy(c.MessageSlice[index+1:], c.MessageSlice[index:])
