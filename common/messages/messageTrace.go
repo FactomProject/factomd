@@ -108,7 +108,7 @@ func getTraceFile(name string) (f *os.File) {
 	if f == nil {
 		fmt.Println("Creating " + (name))
 		var err error
-		f, err = os.Create(filePath)
+		f, err = os.Create(name)
 		if err != nil {
 			panic(err)
 		}
