@@ -1140,8 +1140,8 @@ func (s *State) Init() {
 	// end of FER removal
 	s.Starttime = time.Now()
 	// Allocate the MMR queues
-	s.asks = make(chan askRef, 1)
-	s.adds = make(chan plRef, 1)
+	s.asks = make(chan askRef, 5)
+	s.adds = make(chan plRef, 5)
 	s.dbheights = make(chan int, 1)
 
 	// Allocate the missing message handler

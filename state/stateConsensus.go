@@ -293,6 +293,7 @@ func (s *State) executeMsg(msg interfaces.IMsg) (ret bool) {
 			(local || vmi == s.LeaderVMIndex) && // if it's a local message or it a message for our VM
 			s.LeaderPL.DBHeight+1 >= hkb {
 			if vml == 0 { // if we have not generated a DBSig ...
+
 				s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex) // ExecuteMsg()
 				TotalXReviewQueueInputs.Inc()
 				s.XReview = append(s.XReview, msg)
@@ -443,18 +444,6 @@ emptyLoop:
 		case msg := <-s.msgQueue:
 			s.LogMessage("msgQueue", "Execute", msg)
 			progress = s.executeMsg(msg) || progress
-		default:
-			break emptyLoop
-		}
-	}
-	emptyLoopTime := time.Since(preEmptyLoopTime)
-	TotalEmptyLoopTime.Add(float64(emptyLoopTime.Nanoseconds()))
-
-	preAckLoopTime := time.Now()
-	// Process acknowledgements if we have some.
-ackLoop:
-	for {
-		select {
 		case ack := <-s.ackQueue:
 			_, validToExecute := s.Validate(ack)
 			switch validToExecute {
@@ -471,14 +460,12 @@ ackLoop:
 
 			s.LogMessage("ackQueue", "Execute2", ack)
 			progress = s.executeMsg(ack) || progress
-
 		default:
-			break ackLoop
+			break emptyLoop
 		}
 	}
-
-	ackLoopTime := time.Since(preAckLoopTime)
-	TotalAckLoopTime.Add(float64(ackLoopTime.Nanoseconds()))
+	emptyLoopTime := time.Since(preEmptyLoopTime)
+	TotalEmptyLoopTime.Add(float64(emptyLoopTime.Nanoseconds()))
 
 	preProcessXReviewTime := time.Now()
 	// Reprocess any stalled messages, but not so much compared inbound messages
@@ -806,7 +793,8 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		authlistMsg := s.EFactory.NewAuthorityListInternal(s.LeaderPL.FedServers, s.LeaderPL.AuditServers, s.LLeaderHeight)
 		s.ElectionsQueue().Enqueue(authlistMsg)
 
-		if s.Leader && !s.LeaderPL.DBSigAlreadySent {
+		// Do not send out dbsigs while loading from disk
+		if s.Leader && !s.LeaderPL.DBSigAlreadySent && s.LLeaderHeight > s.DBHeightAtBoot {
 			s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex) // MoveStateToHeight()
 		}
 		s.DBStates.UpdateState() // go process the DBSigs
@@ -2364,7 +2352,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			s.LogMessage("processList", "drop from pl", vm.ListAck[0])
 			vm.ListAck[0] = nil
 			vm.List[0] = nil
-			vm.HighestAsk = 0
+			vm.HighestAsk = -1
 			vm.HighestNil = 0
 			return false
 		}
@@ -2381,7 +2369,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			s.LogMessage("processList", "drop from pl", vm.ListAck[0])
 			vm.ListAck[0] = nil
 			vm.List[0] = nil
-			vm.HighestAsk = 0
+			vm.HighestAsk = -1
 			vm.HighestNil = 0
 			return false
 		}
@@ -2395,7 +2383,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			s.LogMessage("processList", "drop from pl", vm.ListAck[0])
 			vm.ListAck[0] = nil
 			vm.List[0] = nil
-			vm.HighestAsk = 0
+			vm.HighestAsk = -1
 			vm.HighestNil = 0
 			return false
 		}

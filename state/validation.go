@@ -113,10 +113,10 @@ func (s *State) ValidatorLoop() {
 		}
 
 		if t := msg.Type(); t == constants.ACK_MSG {
-			s.LogMessage("ackQueue", "enqueue", msg)
+			s.LogMessage("ackQueue", "enqueue ValidatorLoop", msg)
 			s.ackQueue <- msg
 		} else {
-			s.LogMessage("msgQueue", "enqueue", msg)
+			s.LogMessage("msgQueue", "enqueue ValidatorLoop", msg)
 			s.msgQueue <- msg
 		}
 	}

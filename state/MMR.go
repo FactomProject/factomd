@@ -7,7 +7,6 @@ import (
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/common/primitives"
 )
 
 // This identifies a specific process list slot
@@ -39,9 +38,20 @@ func (s *State) StartMMR() {
 // Ask VM for an MMR for this height with delay ms before asking the network
 // called from validation thread to notify MMR that we are missing a message
 func (vm *VM) ReportMissing(height int, delay int64) {
-	if height < vm.HighestAsk { // Don't report the same height twice
+	if height <= vm.HighestAsk { // Don't report the same height twice
 		return
 	}
+
+	//	Currently if the asks are full, when we try to add, we will block
+	//	the asks could be blocked on adding into the ack or msg queue
+	//	from the recent messages. We report missing multiple times, so if
+	//	we exit, we will come around and ask again.
+	if len(vm.p.State.asks) == cap(vm.p.State.asks) {
+		return
+	}
+
+	vm.p.State.LogPrintf("mmr", "ReportMissing %d/%d/%d, delay %d", vm.p.DBHeight, vm.VmIndex, height, delay)
+
 	now := vm.p.State.GetTimestamp().GetTimeMilli()
 	if delay < 500 {
 		delay = 500 // Floor for delays is 500ms so there is time to merge adjacent requests
@@ -50,6 +60,9 @@ func (vm *VM) ReportMissing(height int, delay int64) {
 	// ask for all missing messages
 	var i int
 	for i = vm.HighestAsk; i < lenVMList; i++ {
+		if i < 0 { // -1 is the default highestask, as we have not asked yet. Obviously this index does not exist
+			continue
+		}
 		if vm.List[i] == nil {
 			vm.p.State.Ask(int(vm.p.DBHeight), vm.VmIndex, i, now+delay) // send it to the MMR thread
 			vm.HighestAsk = i                                            // We have asked for all nils up to this height
@@ -117,21 +130,33 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 			//fmt.Println("pending[ask.plRef]: ", ok)
 			when := ask.When
 			pending[ask.plRef] = &when // add the requests to the map
-			s.LogPrintf(logname, "Ask %d/%d/%d %d", ask.DBH, ask.VM, ask.H, len(pending))
+			s.LogPrintf(logname, "Ask %d/%d/%d %d", ask.DBH, ask.VM, ask.H)
+
+			// checking if we already have the "missing" message in our maps
+			ack, msg := s.RecentMessage.GetAckAndMsg(ask.DBH, ask.VM, ask.H, s)
+			if msg != nil && ack != nil {
+				// If the s.adds queue is backed up, we cannot block here, or the validator loop will be stalled.
+				// ReportMissing is ok to block here, as it ensure the asks queue is not filled before adding to it.
+				// The adds cannot be dropped, so we drop the msg to be executed, rather than the add.
+				if len(s.msgQueue) != cap(s.msgQueue) && len(s.ackQueue) != cap(s.ackQueue) && len(s.adds) == len(s.adds) {
+					// send them to be executed
+					s.LogPrintf("mmr", "Found Ask %d/%d/%d. Adding to queues: Msg %d:%d Ack %d:%d Add %d:%d", ask.DBH, ask.VM, ask.H, len(s.msgQueue), cap(s.msgQueue), len(s.ackQueue), cap(s.ackQueue), len(s.adds), cap(s.adds))
+
+					s.LogMessage("ackQueue", "enqueue makeMMRs_addAsk", msg)
+					s.LogMessage("msgQueue", "enqueue makeMMRs_addAsk", msg)
+
+					s.msgQueue <- msg
+					s.ackQueue <- ack
+				} else {
+					s.LogPrintf("mmr", "Found and Dropped Ask %d/%d/%d. Adding to queues: %d/%d %d/%d", ask.DBH, ask.VM, ask.H, len(s.msgQueue), cap(s.msgQueue), len(s.ackQueue), cap(s.ackQueue), len(s.adds), cap(s.adds))
+				}
+			}
 		} // don't update the when if it already existed...
-
-		// checking if we already have the "missing" message in our maps
-		ack, msg := s.RecentMessage.GetAckAndMsg(ask.DBH, ask.VM, ask.H, s)
-
-		if msg != nil && ack != nil {
-			// send them to be executed
-			s.msgQueue <- msg
-			s.ackQueue <- ack
-		}
 	}
 
 	// process all pending asks
 	addAllAsks := func() {
+		s.LogPrintf("mmr", "AddAllAsks %d asks", len(asks))
 	readasks:
 		for {
 			select {
@@ -170,17 +195,25 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 	// tick every "factom second" to check the  pending MMRs
 	go func() {
 		for {
-			if len(ticker) == cap(ticker) {
-				panic("MMR Processing Stalled")
-			} // time to die, no one is listening
-
-			ticker <- s.GetTimestamp().GetTimeMilli()
-			askDelay := int64(s.DirectoryBlockInSeconds*1000) / 600
-			if askDelay < 500 { // Don't go below 500ms. That is just too much
-				askDelay = 500
+			if s.RunState.IsTerminating() {
+				return // Factomd is stopping/stopped
 			}
 
-			time.Sleep(time.Duration(askDelay) * time.Millisecond)
+			if len(ticker) == cap(ticker) {
+				// If we add to the ticker, we will block forever, so just sleep
+				// and continue. If factomd is stopped, we will catch this on the continue
+				time.Sleep(1 * time.Second)
+				s.LogPrintf("mmr", "Ticker queue maxed, %d/%d", len(ticker), cap(ticker))
+				continue
+			}
+
+			ticker <- s.GetTimestamp().GetTimeMilli()
+			askDelay := s.FactomSecond()
+			if askDelay < time.Millisecond*500 { // Don't go below 500ms. That is just too much
+				askDelay = time.Millisecond * 500
+			}
+
+			time.Sleep(askDelay)
 		}
 	}()
 
@@ -249,6 +282,9 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 						mmrs[index] = messages.NewMissingMsg(s, ref.VM, uint32(ref.DBH), uint32(ref.H))
 					} else {
 						mmrs[index].ProcessListHeight = append(mmrs[index].ProcessListHeight, uint32(ref.H))
+						// Add an ask for each msg we ask for, even if we bundle the asks.
+						// This is so the accounting adds upp.
+						s.MissingRequestAskCnt++
 					}
 					*when = now + askDelay // update when we asked
 					// Maybe when asking for past the end of the list we should not ask again?
@@ -257,7 +293,6 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 
 			for index, mmr := range mmrs {
 				s.LogMessage(logname, "sendout", mmr)
-				s.MissingRequestAskCnt++
 				if MMR_enable {
 					mmr.SendOut(s, mmr)
 				}
@@ -323,27 +358,41 @@ func (mmrc *MissingMessageResponseCache) Close() {
 	mmrc.quit <- true
 }
 
+// answerRequest will attempt to construct a missing message response for a missing message request.
+// 		params:
+//			request
+func (mmrc *MissingMessageResponseCache) answerRequest(request *messages.MissingMsg) {
+	// Loop through all requested heights
+	for _, plHeight := range request.ProcessListHeight {
+		// Check if we have the response for a given plHeight
+		pair := mmrc.AckMessageCache.Get(int(request.DBHeight), request.VMIndex, int(plHeight))
+		if pair != nil { // Woo! Respond to that peer
+			if pair.Msg == nil || pair.Ack == nil {
+				panic("This should never happen")
+			}
+			ack := pair.Ack.(*messages.Ack)
+
+			// Pair exists, send out the response
+			response := messages.NewMissingMsgResponse(mmrc.localState, pair.Msg, pair.Ack)
+			response.SetOrigin(request.GetOrigin())
+			response.SetNetworkOrigin(request.GetNetworkOrigin())
+			response.SendOut(mmrc.localState, response)
+			mmrc.localState.MissingRequestReplyCnt++
+			mmrc.localState.LogMessage("mmr_response", fmt.Sprintf("request_fufilled %d/%d/%d", ack.DBHeight, ack.VMIndex, ack.Height), pair.Ack)
+		} else {
+			// If we are missing the plheight, we increment the ignore count as we don't have what
+			// the peer wanted.
+			mmrc.localState.MissingRequestIgnoreCnt++
+			mmrc.localState.LogPrintf("mmr_response", "pair_not_found %d/%d/%d", request.DBHeight, request.VMIndex, plHeight)
+		}
+	}
+}
+
 // Run will start the loop to read messages from the channel and build
-// the cache
+// the cache to respond to missing message requests
 func (mmrc *MissingMessageResponseCache) Run() {
-	ticker := time.NewTicker(time.Second)
 	for {
 		select {
-		case <-ticker.C:
-			cutoff := primitives.NewTimestampFromMilliseconds(uint64(mmrc.localState.GetTimestamp().GetTimeMilli() - int64(mmrc.recentRequestsTimeout.Seconds()*1000)))
-			mmrc.recentRequests.TrimOlderThan(cutoff)
-			// Only keep 15 requests
-			l := len(mmrc.recentRequests.MessageSlice)
-			if l > 15 {
-				mmrc.recentRequests.TrimTo(l - 15)
-			}
-
-			// Every tick, update the missingmmsgs that were asked recently
-			for _, request := range mmrc.recentRequests.MessageSlice {
-				request.SetLocal(true) // TODO: Remove
-				mmrc.MissingMsgRequests <- request
-			}
-			mmrc.recentRequests.Clear()
 
 		case processedPair := <-mmrc.ProcessedPairs:
 			// A new ack/msg pair is processed and ready to respond to missing message requests
@@ -358,31 +407,7 @@ func (mmrc *MissingMessageResponseCache) Run() {
 				break // Should never not be a request
 			}
 
-			defferedRequest := false
-			// Loop through all requested heights
-			for _, plHeight := range request.ProcessListHeight {
-				pair := mmrc.AckMessageCache.Get(int(request.DBHeight), request.VMIndex, int(plHeight))
-				if pair != nil {
-					if pair.Msg == nil || pair.Ack == nil {
-						panic("This should never happen")
-					}
-					ack := pair.Ack.(*messages.Ack)
-					// Pair exists, send out the response
-					response := messages.NewMissingMsgResponse(mmrc.localState, pair.Msg, pair.Ack)
-					response.SetOrigin(request.GetOrigin())
-					response.SetNetworkOrigin(request.GetNetworkOrigin())
-					response.SendOut(mmrc.localState, response)
-					mmrc.localState.MissingRequestReplyCnt++
-					mmrc.localState.LogMessage("mmr_response", fmt.Sprintf("request_fufilled %d/%d/%d, Recovered[%t]", ack.DBHeight, ack.VMIndex, ack.Height, request.IsLocal()), pair.Ack)
-				} else {
-					mmrc.localState.MissingRequestIgnoreCnt++
-					if !defferedRequest {
-						mmrc.recentRequests.InsertMsg(request)
-						defferedRequest = true
-					}
-					mmrc.localState.LogPrintf("mmr_response", "pair_not_found %d/%d/%d", request.DBHeight, request.VMIndex, plHeight)
-				}
-			}
+			mmrc.answerRequest(request)
 		case <-mmrc.quit:
 			// Close thread
 			return
@@ -495,6 +520,10 @@ func NewMsgCache() *SortedMsgSlice {
 	return c
 }
 
+func (c *SortedMsgSlice) Len() int {
+	return len(c.MessageSlice)
+}
+
 func (c *SortedMsgSlice) Clear() {
 	c.MessageSlice = []interfaces.IMsg{}
 }
@@ -513,7 +542,13 @@ func (c *SortedMsgSlice) TrimOlderThan(cutoff interfaces.Timestamp) {
 // sorted by time
 //		Result is slice[index:]
 func (c *SortedMsgSlice) TrimTo(index int) {
-	c.MessageSlice = append([]interfaces.IMsg{}, c.MessageSlice[index:]...)
+	c.Trim(0, index)
+}
+
+// TrimTo will remove messages from start to the stop (EXCLUSIVE) from the slice.
+//		Result is slice[index:]
+func (c *SortedMsgSlice) Trim(start, stop int) {
+	c.MessageSlice = append([]interfaces.IMsg{}, c.MessageSlice[start:stop]...)
 }
 
 // RemoveMsg will remove a single message, but should be avoided in favor of

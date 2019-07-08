@@ -1278,6 +1278,7 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 		pl.VMs[i].ProcessTime = now
 		pl.VMs[i].VmIndex = i
 		pl.VMs[i].p = pl
+		pl.VMs[i].HighestAsk = -1
 	}
 
 	pl.DBHeight = dbheight
