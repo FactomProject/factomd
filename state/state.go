@@ -212,7 +212,6 @@ type State struct {
 	// own messages from the previously executing network can confuse you.
 	IgnoreDone    bool
 	IgnoreMissing bool
-
 	// Timout and Limit for outstanding missing DBState requests
 	RequestTimeout time.Duration
 	RequestLimit   int
@@ -235,7 +234,8 @@ type State struct {
 	CurrentMinuteStartTime  int64
 	CurrentBlockStartTime   int64
 
-	EOMsyncing   bool
+	EOMsyncing bool
+
 	EOMSyncTime  int64
 	EOM          bool // Set to true when the first EOM is encountered
 	EOMLimit     int
@@ -299,8 +299,7 @@ type State struct {
 	Anchor interfaces.IAnchor
 
 	// Directory Block State
-	DBStates *DBStateList // Holds all DBStates not yet processed.
-
+	DBStates       *DBStateList // Holds all DBStates not yet processed.
 	StatesMissing  *StatesMissing
 	StatesWaiting  *StatesWaiting
 	StatesReceived *StatesReceived
@@ -343,7 +342,6 @@ type State struct {
 	// For Replay / journal
 	IsReplaying     bool
 	ReplayTimestamp interfaces.Timestamp
-
 	// State for the Entry Syncing process
 	EntrySyncState *EntrySync
 
@@ -433,7 +431,8 @@ type State struct {
 	executeRecursionDetection map[[32]byte]interfaces.IMsg
 	Hold                      HoldingList
 
-	MissingMessageResponse
+	// struct for state/missingMsgTracking.go
+	RecentMessage
 }
 
 var _ interfaces.IState = (*State)(nil)
@@ -857,7 +856,6 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 			s.IdentityChainID = identity
 			s.LogPrintf("AckChange", "Load IdentityChainID \"%v\"", s.IdentityChainID.String())
 		}
-
 		if cfg.App.P2PIncoming > 0 {
 			p2p.MaxNumberIncomingConnections = cfg.App.P2PIncoming
 		}
@@ -924,7 +922,6 @@ func (s *State) GetSalt(ts interfaces.Timestamp) uint32 {
 }
 
 func (s *State) Init() {
-	s.LogPrintf("WhereAmI", "Init %s", atomic.WhereAmIString(1))
 
 	if s.Salt == nil {
 		b := make([]byte, 32)
@@ -1022,6 +1019,7 @@ func (s *State) Init() {
 	s.StatesWaiting = NewStatesWaiting()
 	s.StatesReceived = NewStatesReceived()
 
+	s.DBStates.Catchup()
 	switch s.NodeMode {
 	case "FULL":
 		s.Leader = false

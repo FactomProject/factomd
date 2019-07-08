@@ -3,7 +3,6 @@ package state
 import (
 	"time"
 
-	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/messages"
 )
 
@@ -33,6 +32,7 @@ func (s *State) StartMMR() {
 }
 
 // Ask VM for an MMR for this height with delay ms before asking the network
+// called from validation thread to notify MMR that we are missing a message
 func (vm *VM) ReportMissing(height int, delay int64) {
 	if height < vm.HighestAsk { // Don't report the same height twice
 		return
@@ -46,25 +46,21 @@ func (vm *VM) ReportMissing(height int, delay int64) {
 	var i int
 	for i = vm.HighestAsk; i < lenVMList; i++ {
 		if vm.List[i] == nil {
-			vm.p.State.Ask(int(vm.p.DBHeight), vm.VmIndex, i, now+delay) // send it to the state
+			vm.p.State.Ask(int(vm.p.DBHeight), vm.VmIndex, i, now+delay) // send it to the MMR thread
 			vm.HighestAsk = i                                            // We have asked for all nils up to this height
 		}
 	}
 
 	// if we are asking above the current list
 	if height >= lenVMList {
-		vm.p.State.Ask(int(vm.p.DBHeight), vm.VmIndex, height, now+delay) // send it to the state
+		vm.p.State.Ask(int(vm.p.DBHeight), vm.VmIndex, height, now+delay) // send it to the MMR thread
 		vm.HighestAsk = height                                            // We have asked for all nils up to this height
 	}
 
 }
 
+// called from validation thread to notify MMR that we are missing a message
 func (s *State) Ask(DBHeight int, vmIndex int, height int, when int64) {
-	doWeHaveAckandMsg := s.MissingMessageResponse.GetAckANDMsg(DBHeight, vmIndex, height)
-
-	if doWeHaveAckandMsg {
-		return
-	}
 	if s.asks == nil { // If it is nil, there is no makemmrs
 		return
 	}
@@ -75,7 +71,6 @@ func (s *State) Ask(DBHeight int, vmIndex int, height int, when int64) {
 
 	ask := askRef{plRef{DBHeight, vmIndex, height}, when}
 	s.asks <- ask
-
 	return
 }
 
@@ -84,12 +79,15 @@ var MMR_enable bool = true
 
 // Receive all asks and all process list adds and create missing message requests any ask that has expired
 // and still pending. Add 10 seconds to the ask.
-// Doesn't really use (can't use) the process list but I have it for debug
 func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan int) {
 	type dbhvm struct {
 		dbh int
 		vm  int
 	}
+
+	// Postpone asking for the first 5 seconds so simulations get a chance to get started. Doesn't break things but
+	// there is a flurry of unhelpful MMR activity on start up of simulations with followers
+	time.Sleep(5 * time.Second)
 
 	var dbheight int // current process list height
 
@@ -97,89 +95,94 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 	ticker := make(chan int64, 50)               // this should deep enough you know that the reading thread is dead if it fills up
 	mmrs := make(map[dbhvm]*messages.MissingMsg) // an MMR per DBH/VM
 	logname := "missing_messages"
+	var now int64
 
-	addAsk := func(ask askRef) {
-		// checking if we already have message in our maps
-		doWeHaveAckandMsg := s.MissingMessageResponse.GetAckANDMsg(ask.DBH, ask.VM, ask.H, s)
-
-		if !doWeHaveAckandMsg {
-			_, ok := pending[ask.plRef]
-			if !ok {
-				//fmt.Println("pending[ask.plRef]: ", ok)
-				when := ask.When
-				pending[ask.plRef] = &when // add the requests to the map
-				s.LogPrintf(logname, "Ask %d/%d/%d %d", ask.DBH, ask.VM, ask.H, len(pending))
-			}
-		} else {
-			// todo: Send messages to execute
-		}
-	}
-
-	addAdd := func(add plRef) {
+	// Delete any pending ask for a message that was just added to the processlist
+	deletePendingAsk := func(add plRef) {
 		delete(pending, add) // Delete request that was just added to the process list in the map
 		s.LogPrintf(logname, "Add %d/%d/%d %d", add.DBH, add.VM, add.H, len(pending))
 	}
 
 	s.LogPrintf(logname, "Start MMR Process")
 
+	// Add an ask to the list of pending asks
+	addAsk := func(ask askRef) {
+
+		_, ok := pending[ask.plRef]
+		if !ok {
+			//fmt.Println("pending[ask.plRef]: ", ok)
+			when := ask.When
+			pending[ask.plRef] = &when // add the requests to the map
+			s.LogPrintf(logname, "Ask %d/%d/%d %d", ask.DBH, ask.VM, ask.H, len(pending))
+		} // don't update the when if it already existed...
+
+		// checking if we already have the "missing" message in our maps
+		ack, msg := s.RecentMessage.GetAckAndMsg(ask.DBH, ask.VM, ask.H, s)
+
+		if msg != nil && ack != nil {
+			// send them to be executed
+			s.msgQueue <- msg
+			s.ackQueue <- ack
+		}
+	}
+
+	// process all pending asks
 	addAllAsks := func() {
-	readasks:
 		for {
 			select {
 			case ask := <-asks:
 				addAsk(ask)
 			default:
-				break readasks
+				break
 			}
-		} // process all pending asks before any adds
+		}
 	}
 
+	// process all pending adds
 	addAllAdds := func() {
-	readadds:
 		for {
 			select {
 			case add := <-adds:
-				addAdd(add)
+				deletePendingAsk(add)
 			default:
-				break readadds
+				break
 			}
-		} // process all pending add before any ticks
+		}
 	}
 
 	// drain the ticker channel
 	readAllTickers := func() {
-	readalltickers:
 		for {
 			select {
-			case <-ticker:
+			case now = <-ticker:
 			default:
-				break readalltickers
+				break
 			}
 		} // process all pending add before any ticks
 	}
 
-	// Postpone asking for the first 5 seconds so simulations get a chance to get started. Doesn't break things but
-	// there is a flurry of unhelpful MMR activity on start up of simulations with followers
-	time.Sleep(5 * time.Second)
-
-	// tick ever second to check the  pending MMRs
+	// tick every "factom second" to check the  pending MMRs
 	go func() {
 		for {
+			ss := s
+			_ = ss
 			if len(ticker) == cap(ticker) {
-				return
+				panic("MMR Processing Stalled")
 			} // time to die, no one is listening
 
 			ticker <- s.GetTimestamp().GetTimeMilli()
-			askDelay := int64(s.DirectoryBlockInSeconds*1000) / 50
+			askDelay := int64(s.DirectoryBlockInSeconds*1000) / 600
+			if askDelay < 500 { // Don't go below 500ms. That is just too much
+				askDelay = 500
+			}
 			time.Sleep(time.Duration(askDelay) * time.Millisecond)
 		}
 	}()
 
 	lastAskDelay := int64(0)
 	for {
-		// You have to compute this at every cycle as you can change the block time
-		// in sim control.
-		// blocktime in milliseconds
+		// You have to compute this at every cycle as you can change the block time in sim control.
+
 		askDelay := int64(s.DirectoryBlockInSeconds*1000) / 50
 		// Take 1/5 of 1 minute boundary (DBlock is 10*min)
 		//		This means on 10min block, 12 second delay
@@ -194,18 +197,14 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 			lastAskDelay = askDelay
 		}
 
+		// process any incoming messages
 		select {
-
-		case msg := <- s.MissingMessageResponse.NewMsgs:
-			if msg.Type() == constants.ACK_MSG {
-				// adds Acks to a Ack map for MMR
-				s.MissingMessageResponse.AcksMap.Add(msg)
-			} else {
-				// adds messages to a message map for MMR
-				s.MsgsMap.Add(msg, s)
-			}
+		case msg := <-s.RecentMessage.NewMsgs:
+			s.LogPrintf("mmr", "start msg handling")
+			s.RecentMessage.Add(msg) // adds messages to a message map for MMR
 
 		case dbheight = <-dbheights:
+			s.LogPrintf("mmr", "start dbheight handling")
 			// toss any old pending requests when the height moves up
 			// todo: Keep asks in a  list so cleanup is more efficient
 			for ask, _ := range pending {
@@ -215,14 +214,18 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 				}
 			}
 		case ask := <-asks:
-			addAsk(ask)
-			addAllAsks()
+			s.LogPrintf("mmr", "start ask handling")
+			addAsk(ask)  // add this ask
+			addAllAsks() // add all pending asks
 
 		case add := <-adds:
-			addAllAsks() // process all pending asks before any adds
-			addAdd(add)
+			s.LogPrintf("mmr", "start add handling")
+			addAllAsks() // add all pending asks before any adds
+			s.LogPrintf("mmr", "asks done")
+			deletePendingAsk(add) // cancel any pending ask for the message just added to the process list
 
-		case now := <-ticker:
+		case now = <-ticker:
+			s.LogPrintf("mmr", "Ticker handling")
 			addAllAsks()     // process all pending asks before any adds
 			addAllAdds()     // process all pending add before any ticks
 			readAllTickers() // drain the ticker channel
@@ -243,7 +246,6 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 						mmrs[index].ProcessListHeight = append(mmrs[index].ProcessListHeight, uint32(ref.H))
 					}
 					*when = now + askDelay // update when we asked
-
 					// Maybe when asking for past the end of the list we should not ask again?
 				}
 			} //build a MMRs with all the expired asks in that VM at that DBH.
@@ -256,7 +258,7 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 				}
 				delete(mmrs, index)
 			} // Send MMRs that were built
-
-		}
+		} // select across all the channels, block till something happens
+		s.LogPrintf("mmr", "done")
 	} // forever ...
 } // func  makeMMRs() {...}

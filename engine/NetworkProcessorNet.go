@@ -148,11 +148,6 @@ func Peers(fnode *FactomNode) {
 				continue // Toss any inputs from API
 			}
 
-			if fnode.State.GetNetStateOff() {
-				fnode.State.LogMessage("NetworkInputs", "API drop, X'd by simCtrl", msg)
-				continue
-			}
-
 			repeatHash := msg.GetRepeatHash()
 			if repeatHash == nil || repeatHash.PFixed() == nil {
 				fnode.State.LogMessage("NetworkInputs", "API drop, Hash Error", msg)
@@ -180,6 +175,12 @@ func Peers(fnode *FactomNode) {
 				RepeatMsgs.Inc()
 				continue
 			}
+			if fnode.State.RecentMessage.NewMsgs == nil {
+				fnode.State.RecentMessage.NewMsgs = make(chan interfaces.IMsg, 100)
+			}
+
+			// send msg to MMRequest processing to suppress requests for messages we already have
+			fnode.State.RecentMessage.NewMsgs <- msg
 
 			//fnode.MLog.add2(fnode, false, fnode.State.FactomNodeName, "API", true, msg)
 			if t := msg.Type(); t == constants.REVEAL_ENTRY_MSG || t == constants.COMMIT_CHAIN_MSG || t == constants.COMMIT_ENTRY_MSG {
@@ -221,7 +222,7 @@ func Peers(fnode *FactomNode) {
 
 				if fnode.State.LLeaderHeight < fnode.State.DBHeightAtBoot+2 {
 					if msg.GetTimestamp().GetTimeMilli() < fnode.State.TimestampAtBoot.GetTimeMilli() {
-						fnode.State.LogMessage("NetworkInputs", "drop, too old", msg)
+						fnode.State.LogMessage("NetworkInputs", "Drop, too old", msg)
 						continue
 					}
 				}
@@ -351,12 +352,12 @@ func Peers(fnode *FactomNode) {
 						fnode.State.InMsgQueue().Enqueue(msg)
 					}
 				}
-				if fnode.State.MissingMessageResponse.NewMsgs == nil {
-					fnode.State.MissingMessageResponse.NewMsgs = make(chan interfaces.IMsg, 100)
+				if fnode.State.RecentMessage.NewMsgs == nil {
+					fnode.State.RecentMessage.NewMsgs = make(chan interfaces.IMsg, 100)
 				}
 
 				// send msg to MMRequest processing to suppress requests for messages we already have
-				fnode.State.MissingMessageResponse.NewMsgs <- msg
+				fnode.State.RecentMessage.NewMsgs <- msg
 			} // For a peer read up to 100 messages {...}
 		} // for each peer {...}
 		if cnt == 0 {
