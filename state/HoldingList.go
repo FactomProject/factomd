@@ -87,11 +87,14 @@ func (l *HoldingList) Review() {
 		if nil == dh {
 			continue
 		}
+
+		l.holding[h] = l.holding[h][:0]
+
 		for _, msg := range dh {
 			if l.isMsgStale(msg) {
-				l.Get(h) // remove all from holding
-				//l.s.LogMessage("newHolding", "RemoveFromDependantHolding()", msg)
-				continue
+				delete(l.dependents, msg.GetMsgHash().Fixed())
+			} else {
+				l.holding[h] = append(l.holding[h], msg)
 			}
 		}
 	}
