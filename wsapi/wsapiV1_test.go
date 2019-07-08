@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/receipts"
+	"github.com/stretchr/testify/assert"
 	"strings"
 	"testing"
 
@@ -92,18 +93,12 @@ func TestHandleGetRaw(t *testing.T) {
 		rawDataResponse := new(RawDataResponse)
 		v1RequestGet(t, url, 200, rawDataResponse)
 
-		if strings.Contains(rawDataResponse.Data, v.Raw) == false {
-			t.Errorf("Looking for %v", v.Hash1)
-			t.Errorf("GetRaw %v/%v from Hash1 failed - %v", i, len(toTest), rawDataResponse.Data)
-		}
+		assert.True(t, strings.Contains(rawDataResponse.Data, v.Raw), "Looking for %v \nGetRaw %v/%v from Hash1 failed - %v", v.Hash1, i, len(toTest), rawDataResponse.Data)
 
 		url = fmt.Sprintf("/v1/get-raw-data/%s", v.Hash2)
 		v1RequestGet(t, url, 200, rawDataResponse)
 
-		if strings.Contains(rawDataResponse.Data, v.Raw) == false {
-			t.Errorf("Looking for %v", v.Hash2)
-			t.Errorf("GetRaw %v/%v from Hash2 failed - %v", i, len(toTest), rawDataResponse.Data)
-		}
+		assert.True(t, strings.Contains(rawDataResponse.Data, v.Raw), "Looking for %v \nGetRaw %v/%v from Hash2 failed - %v", v.Hash2, i, len(toTest), rawDataResponse.Data)
 	}
 }
 
@@ -119,53 +114,19 @@ func TestHandleDirectoryBlock(t *testing.T) {
 	v1RequestGet(t, url, 200, dBlock)
 
 	result, err := dBlock.JSONString()
-	if err != nil {
-		t.Errorf("HandleDirectoryBlock json not serializable")
-		t.FailNow()
-	}
-	if strings.Contains(result, "000000000000000000000000000000000000000000000000000000000000000a") == false {
-		t.Errorf("%v", result)
-	}
 
-	if strings.Contains(result, testHelper.ABlockHeadPrimaryIndex) == false {
-		t.Errorf("%v", result)
-	}
-
-	if strings.Contains(result, "000000000000000000000000000000000000000000000000000000000000000c") == false {
-		t.Errorf("%v", result)
-	}
-
-	if strings.Contains(result, testHelper.ECBlockHeadPrimaryIndex) == false {
-		t.Errorf("%v", result)
-	}
-
-	if strings.Contains(result, "000000000000000000000000000000000000000000000000000000000000000f") == false {
-		t.Errorf("%v", result)
-	}
-
-	if strings.Contains(result, testHelper.FBlockHeadPrimaryIndex) == false {
-		t.Errorf("%v", result)
-	}
-
-	if strings.Contains(result, "6e7e64ac45ff57edbf8537a0c99fba2e9ee351ef3d3f4abd93af9f01107e592c") == false {
-		t.Errorf("%v", result)
-	}
-
-	if strings.Contains(result, testHelper.EBlockHeadPrimaryIndex) == false {
-		t.Errorf("%v", result)
-	}
-
-	if strings.Contains(result, "df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604") == false {
-		t.Errorf("%v", result)
-	}
-
-	if strings.Contains(result, testHelper.AnchorBlockHeadPrimaryIndex) == false {
-		t.Errorf("%v", result)
-	}
-
-	if strings.Contains(result, "\"timestamp\":74580") == false {
-		t.Errorf("%v", result)
-	}
+	assert.Nil(t, err, "HandleDirectoryBlock json not serializable")
+	assert.True(t, strings.Contains(result, "000000000000000000000000000000000000000000000000000000000000000a"), "%v", result)
+	assert.True(t, strings.Contains(result, testHelper.ABlockHeadPrimaryIndex), "%v", result)
+	assert.True(t, strings.Contains(result, "000000000000000000000000000000000000000000000000000000000000000c"), "%v", result)
+	assert.True(t, strings.Contains(result, testHelper.ECBlockHeadPrimaryIndex), "%v", result)
+	assert.True(t, strings.Contains(result, "000000000000000000000000000000000000000000000000000000000000000f"), "%v", result)
+	assert.True(t, strings.Contains(result, testHelper.FBlockHeadPrimaryIndex), "%v", result)
+	assert.True(t, strings.Contains(result, "6e7e64ac45ff57edbf8537a0c99fba2e9ee351ef3d3f4abd93af9f01107e592c"), "%v", result)
+	assert.True(t, strings.Contains(result, testHelper.EBlockHeadPrimaryIndex), "%v", result)
+	assert.True(t, strings.Contains(result, "df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604"), "%v", result)
+	assert.True(t, strings.Contains(result, testHelper.AnchorBlockHeadPrimaryIndex), "%v", result)
+	assert.True(t, strings.Contains(result, "\"timestamp\":74580"), "%v", result)
 }
 
 func TestHandleEntryBlock(t *testing.T) {
@@ -173,16 +134,13 @@ func TestHandleEntryBlock(t *testing.T) {
 	Start(state)
 
 	chain, err := primitives.HexToHash("df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604")
-	if err != nil {
-		t.Error(err)
-	}
+	assert.Nil(t, err)
 
 	dbo := state.GetDB()
 
 	blocks, err := dbo.FetchAllEBlocksByChain(chain)
-	if err != nil {
-		t.Error(err)
-	}
+	assert.Nil(t, err)
+
 	fetched := 0
 	for _, b := range blocks {
 		hash := b.(*entryBlock.EBlock).DatabasePrimaryIndex().String()
@@ -192,31 +150,18 @@ func TestHandleEntryBlock(t *testing.T) {
 		url := fmt.Sprintf("/v1/entry-block-by-keymr/%s", hash)
 		v1RequestGet(t, url, 200, eBlock)
 
-		if eBlock.Header.ChainID != "df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604" {
-			t.Errorf("Wrong ChainID - %v", eBlock.Header.ChainID)
-			t.Errorf("eBlock - %v", eBlock)
-		}
-
-		if eBlock.Header.DBHeight != int64(b.(*entryBlock.EBlock).GetHeader().GetDBHeight()) {
-			t.Errorf("DBHeight is wrong - %v vs %v", eBlock.Header.DBHeight, b.(*entryBlock.EBlock).GetHeader().GetDBHeight())
-		}
+		assert.Equal(t, "df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604", eBlock.Header.ChainID, "Wrong ChainID in eBlock - %v", eBlock)
+		assert.Equal(t, int64(b.(*entryBlock.EBlock).GetHeader().GetDBHeight()), eBlock.Header.DBHeight, "DBHeight is wrong - %v vs %v", eBlock.Header.DBHeight, b.(*entryBlock.EBlock).GetHeader().GetDBHeight())
 
 		url = fmt.Sprintf("/v1/entry-block-by-keymr/%s", hash2)
 		v1RequestGet(t, url, 200, eBlock)
 
-		if eBlock.Header.ChainID != "df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604" {
-			t.Errorf("Wrong ChainID - %v", eBlock.Header.ChainID)
-		}
-
-		if eBlock.Header.DBHeight != int64(b.(*entryBlock.EBlock).GetHeader().GetDBHeight()) {
-			t.Errorf("DBHeight is wrong - %v vs %v", eBlock.Header.DBHeight, b.(*entryBlock.EBlock).GetHeader().GetDBHeight())
-		}
+		assert.Equal(t, "df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604", eBlock.Header.ChainID, "Wrong ChainID in eBlock - %v", eBlock)
+		assert.Equal(t, int64(b.(*entryBlock.EBlock).GetHeader().GetDBHeight()), eBlock.Header.DBHeight, "DBHeight is wrong - %v vs %v", eBlock.Header.DBHeight, b.(*entryBlock.EBlock).GetHeader().GetDBHeight())
 
 		fetched++
 	}
-	if fetched != testHelper.BlockCount {
-		t.Errorf("Fetched %v blocks, expected %v", fetched, testHelper.BlockCount)
-	}
+	assert.Equal(t, testHelper.BlockCount, fetched, "Fetched %v blocks, expected %v", fetched, testHelper.BlockCount)
 }
 
 func TestHandleEntryBlockInvalidHash(t *testing.T) {
@@ -317,24 +262,15 @@ func TestHandleGetReceipt(t *testing.T) {
 	url := fmt.Sprintf("/v1/get-receipt/%s", hash)
 	v1RequestGet(t, url, 200, receipt)
 
-	if receipt.Receipt == nil {
-		t.Error("Receipt not found!")
-		return
-	}
+	assert.NotNil(t, receipt.Receipt, "Receipt not found!")
 
 	err := receipt.Receipt.Validate()
-	if err != nil {
-		t.Logf("failed to validate receipt - %v", receipt)
-		t.Error(err)
-	}
+	assert.Nil(t, err, "failed to validate receipt - %v", receipt)
 
 	dbo := state.GetDB()
 	receiptStr, _ := json.Marshal(receipt.Receipt)
 	err = receipts.VerifyFullReceipt(dbo, string(receiptStr))
-	if err != nil {
-		t.Logf("receipt - %v", receipt)
-		t.Error(err)
-	}
+	assert.Nil(t, err, "receipt - %v", receipt)
 }
 
 func TestHandleGetUnanchoredReceipt(t *testing.T) {
@@ -348,44 +284,72 @@ func TestHandleGetUnanchoredReceipt(t *testing.T) {
 	v1RequestGet(t, url, 200, receipt)
 
 	err := receipt.Receipt.Validate()
-	if err != nil {
-		t.Logf("failed to validate receipt - %v", receipt)
-		t.Error(err)
-	}
+	assert.Nil(t, err, "failed to validate receipt - %v", receipt)
 
 	dbo := state.GetDB()
 	receiptStr, _ := json.Marshal(receipt.Receipt)
 	err = receipts.VerifyFullReceipt(dbo, string(receiptStr))
-	if err != nil {
-		t.Logf("receipt - %v", receipt)
-		t.Error(err)
+	assert.Nil(t, err, "receipt - %v", receipt)
+}
+
+func TestHandleFactoidBalanceUnknownAddress(t *testing.T) {
+	state := testHelper.CreateAndPopulateTestState()
+	Start(state)
+
+	factoidBalanceResponse := new(FactoidBalanceResponse)
+	url := "/v1/factoid-balance/f1ba8879fcf63b596b60ccc4c69c7f6848475ac037fc63b080ba2d9502fe66a4"
+
+	v1RequestGet(t, url, 200, factoidBalanceResponse)
+
+	assert.Equal(t, int64(0), factoidBalanceResponse.Balance, "%v", factoidBalanceResponse)
+}
+
+func TestHandleProperties(t *testing.T) {
+	state := testHelper.CreateAndPopulateTestState()
+	Start(state)
+
+	type V1Properties struct {
+		Protocol_Version string
+		Factomd_Version  string
 	}
+
+	properties := new(V1Properties)
+	url := "/v1/properties/"
+	v1RequestGet(t, url, 200, properties)
+
+	assert.Equal(t, properties.Factomd_Version, state.GetFactomdVersion())
+	assert.Equal(t, "0.0.0.0", properties.Protocol_Version)
+}
+
+func TestHandleHeights(t *testing.T) {
+	state := testHelper.CreateAndPopulateTestState()
+	Start(state)
+
+	heightsResponse := new(HeightsResponse)
+	url := "/v1/heights/"
+	v1RequestGet(t, url, 200, heightsResponse)
+
+	assert.Equal(t, int64(state.GetTrueLeaderHeight()), heightsResponse.LeaderHeight)
+	assert.Equal(t, int64(state.GetHighestSavedBlk()), heightsResponse.DirectoryBlockHeight)
+	assert.Equal(t, int64(state.GetHighestSavedBlk()), heightsResponse.EntryBlockHeight)
+	assert.Equal(t, int64(state.GetEntryDBHeightComplete()), heightsResponse.EntryHeight)
+	assert.Equal(t, int64(state.GetMissingEntryCount()), heightsResponse.MissingEntryCount)
+	assert.Equal(t, int64(state.GetEntryBlockDBHeightProcessing()), heightsResponse.EntryBlockDBHeightProcessing)
+	assert.Equal(t, int64(state.GetEntryBlockDBHeightComplete()), heightsResponse.EntryBlockDBHeightComplete)
 }
 
 func v1RequestGet(t *testing.T, url string, expectedCode int, result interface{}) {
 	response, err := http.Get(fmt.Sprintf("http://localhost:8088/%s", url))
-	if err != nil {
-		t.Errorf("error: %v", err)
-		t.Errorf("response: %v", response)
-	}
+	assert.Nil(t, err, "response: %v", response)
 	defer response.Body.Close()
 
 	body, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		t.Errorf("error: \t%v", err)
-		t.Errorf("body: \t%v", string(body))
-		t.Errorf("response: \t%v", response)
-	}
 
-	if response.StatusCode != expectedCode {
-		t.Errorf("received wrong http code: \t%d != %d", response.StatusCode, expectedCode)
-		t.Errorf("body: \t%v", string(body))
-	}
+	assert.Nil(t, err, "body: \t%v", string(body))
+	assert.Equal(t, expectedCode, response.StatusCode, "body: \t%v", string(body))
 
 	if len(body) != 0 {
-		if err := json.Unmarshal(body, result); err != nil {
-			t.Errorf("body: %v", string(body))
-			t.Error(err)
-		}
+		err := json.Unmarshal(body, result)
+		assert.Nil(t, err)
 	}
 }
