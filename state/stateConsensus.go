@@ -1028,6 +1028,17 @@ func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
 	}
 }
 
+func (s *State) getMsgFromHolding(h [32]byte) interfaces.IMsg {
+	// check if we have a message
+	m := s.Holding[h]
+
+	if m != nil {
+		return m
+	} else {
+		return s.Hold.GetDependentMsg(h)
+	}
+}
+
 // Ack messages always match some message in the Process List.   That is
 // done here, though the only msg that should call this routine is the Ack
 // message.
@@ -1056,8 +1067,7 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 	// Add the ack to the list of acks
 	TotalAcksInputs.Inc()
 	s.Acks[ack.GetHash().Fixed()] = ack
-	// check if we have a message
-	m, _ := s.Holding[ack.GetHash().Fixed()]
+	m := s.getMsgFromHolding(ack.GetHash().Fixed())
 
 	if m != nil {
 		// We have an ack and a matching message go execute the message!

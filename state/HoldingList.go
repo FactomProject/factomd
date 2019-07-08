@@ -9,17 +9,22 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
+type heldMessage struct {
+	dependentHash[32]byte
+	offset int
+}
+
 // This hold a slice of messages dependent on a hash
 type HoldingList struct {
 	holding    map[[32]byte][]interfaces.IMsg
 	s          *State            // for debug logging
-	dependents map[[32]byte]bool // used to avoid duplicate entries in holding
+	dependents map[[32]byte]heldMessage // used to avoid duplicate entries & track position in holding
 }
 
 func (l *HoldingList) Init(s *State) {
 	l.holding = make(map[[32]byte][]interfaces.IMsg)
 	l.s = s
-	l.dependents = make(map[[32]byte]bool)
+	l.dependents = make(map[[32]byte]heldMessage)
 }
 
 func (l *HoldingList) Messages() map[[32]byte][]interfaces.IMsg {
@@ -30,14 +35,24 @@ func (l *HoldingList) GetSize() int {
 	return len(l.dependents)
 }
 
-func (l *HoldingList) Exists(h [32]byte) bool {
-	return l.dependents[h]
+// remove a single dependent msg from holding
+func (l *HoldingList) GetDependentMsg(h [32]byte) interfaces.IMsg {
+	d, ok := l.dependents[h]
+	if ! ok {
+		return nil
+	} else {
+		m := l.holding[d.dependentHash][d.offset]
+		l.holding[d.dependentHash][d.offset] = nil
+		delete(l.dependents, h)
+		return m
+	}
 }
 
 // Add a message to a dependent holding list
 func (l *HoldingList) Add(h [32]byte, msg interfaces.IMsg) bool {
 
-	if l.dependents[msg.GetMsgHash().Fixed()] {
+	_, found := l.dependents[msg.GetMsgHash().Fixed()]
+	if found {
 		return false
 	}
 
@@ -47,7 +62,7 @@ func (l *HoldingList) Add(h [32]byte, msg interfaces.IMsg) bool {
 		l.holding[h] = append(l.holding[h], msg)
 	}
 
-	l.dependents[msg.GetMsgHash().Fixed()] = true
+	l.dependents[msg.GetMsgHash().Fixed()] = heldMessage{h, len(l.holding[h])}
 	//l.s.LogMessage("DependentHolding", "add", msg)
 	return true
 }
@@ -71,22 +86,31 @@ func (l *HoldingList) ExecuteForNewHeight(ht uint32) {
 // clean stale messages from holding
 func (l *HoldingList) Review() {
 
+
 	for h := range l.holding {
 		dh := l.holding[h]
 		if nil == dh {
 			continue
 		}
 
-		l.holding[h] = l.holding[h][:0]
-
-		for _, msg := range dh {
+		inUse := false
+		for i, msg := range dh {
 			if l.isMsgStale(msg) {
+				l.holding[h][i] = nil // nil out the held message
 				delete(l.dependents, msg.GetMsgHash().Fixed())
-			} else {
-				l.holding[h] = append(l.holding[h], msg)
+				continue
+			}
+
+			if msg != nil {
+				inUse = true
 			}
 		}
+
+		if !inUse {
+			delete(l.holding, h)
+		}
 	}
+
 }
 
 func (l *HoldingList) isMsgStale(msg interfaces.IMsg) (res bool) {
@@ -177,6 +201,9 @@ func (s *State) ExecuteFromHolding(h [32]byte) {
 	go func() {
 		// add the messages to the msgQueue so they get executed as space is available
 		for _, m := range l {
+			if m == nil {
+				continue
+			}
 			s.LogMessage("msgQueue", "enqueue_from_dependent_holding", m)
 			s.msgQueue <- m
 		}
