@@ -657,6 +657,7 @@ func startServer(i int, fnode *FactomNode, load bool) {
 	go Timer(fnode.State)
 	go elections.Run(fnode.State)
 	go fnode.State.ValidatorLoop()
+	go fnode.State.StartMMR()
 }
 
 func setupFirstAuthority(s *state.State) {

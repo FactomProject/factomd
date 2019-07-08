@@ -128,35 +128,38 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 
 	// process all pending asks
 	addAllAsks := func() {
+	readasks:
 		for {
 			select {
 			case ask := <-asks:
 				addAsk(ask)
 			default:
-				break
+				break readasks
 			}
 		}
 	}
 
 	// process all pending adds
 	addAllAdds := func() {
+	readadds:
 		for {
 			select {
 			case add := <-adds:
 				deletePendingAsk(add)
 			default:
-				break
+				break readadds
 			}
 		}
 	}
 
 	// drain the ticker channel
 	readAllTickers := func() {
+	readalltickers:
 		for {
 			select {
 			case now = <-ticker:
 			default:
-				break
+				break readalltickers
 			}
 		} // process all pending add before any ticks
 	}
@@ -175,6 +178,7 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 			if askDelay < 500 { // Don't go below 500ms. That is just too much
 				askDelay = 500
 			}
+
 			time.Sleep(time.Duration(askDelay) * time.Millisecond)
 		}
 	}()
