@@ -1741,7 +1741,7 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 		if entry != nil {
 			s.repost(entry, 0) // Try and execute the reveal for this commit
 		}
-		//s.LogMessage("newHolding", "process", commitChain)
+		//s.LogMessage("dependentHolding", "process", commitChain)
 		s.ExecuteFromHolding(commitChain.GetHash().Fixed()) // process CommitChain
 		return true
 	}
@@ -1764,7 +1764,7 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 		if entry != nil {
 			s.repost(entry, 0) // Try and execute the reveal for this commit
 		}
-		//		s.LogMessage("newHolding", "process", commitEntry)
+		//		s.LogMessage("dependentHolding", "process", commitEntry)
 		s.ExecuteFromHolding(commitEntry.GetHash().Fixed()) // process CommitEntry
 		return true
 	}
@@ -1822,7 +1822,7 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) (worked b
 		s.WriteEntry <- msg.Entry
 		s.IncEntryChains()
 		s.IncEntries()
-		//		s.LogMessage("newHolding", "process", m)
+		//		s.LogMessage("dependentHolding", "process", m)
 		s.ExecuteFromHolding(chainID.Fixed()) // Process Reveal for Chain
 
 		return true

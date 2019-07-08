@@ -9,9 +9,6 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
-// toggle to disable old/new for testing
-const useNewHolding = true
-
 // This hold a slice of messages dependent on a hash
 type HoldingList struct {
 	holding    map[[32]byte][]interfaces.IMsg
@@ -23,10 +20,6 @@ func (l *HoldingList) Init(s *State) {
 	l.holding = make(map[[32]byte][]interfaces.IMsg)
 	l.s = s
 	l.dependents = make(map[[32]byte]bool)
-
-	if !useNewHolding {
-		l.s.LogPrintf("newHolding", "DISABLED")
-	}
 }
 
 func (l *HoldingList) Messages() map[[32]byte][]interfaces.IMsg {
@@ -55,7 +48,7 @@ func (l *HoldingList) Add(h [32]byte, msg interfaces.IMsg) bool {
 	}
 
 	l.dependents[msg.GetMsgHash().Fixed()] = true
-	//l.s.LogMessage("newHolding", "add", msg)
+	//l.s.LogMessage("DependentHolding", "add", msg)
 	return true
 }
 
@@ -65,7 +58,7 @@ func (l *HoldingList) Get(h [32]byte) []interfaces.IMsg {
 	delete(l.holding, h)
 
 	for _, msg := range rval {
-		//		l.s.LogMessage("newHolding", "delete", msg)
+		//		l.s.LogMessage("DependentHolding", "delete", msg)
 		delete(l.dependents, msg.GetMsgHash().Fixed())
 	}
 	return rval
@@ -77,10 +70,6 @@ func (l *HoldingList) ExecuteForNewHeight(ht uint32) {
 
 // clean stale messages from holding
 func (l *HoldingList) Review() {
-
-	if !useNewHolding && l.GetSize() > 0 {
-		panic("found messages in new-holding while disabled")
-	}
 
 	for h := range l.holding {
 		dh := l.holding[h]
@@ -124,7 +113,7 @@ func (l *HoldingList) isMsgStale(msg interfaces.IMsg) (res bool) {
 			res = true
 		}
 	default:
-		//		l.s.LogMessage("newHolding", "SKIP_DBHT_REVIEW", msg)
+		//		l.s.LogMessage("DependentHolding", "SKIP_DBHT_REVIEW", msg)
 	}
 
 	if msg.GetTimestamp().GetTime().UnixNano() < l.s.GetFilterTimeNano() {
@@ -132,45 +121,36 @@ func (l *HoldingList) isMsgStale(msg interfaces.IMsg) (res bool) {
 	}
 
 	if res {
-		l.s.LogMessage("newHolding", "EXPIRE", msg)
+		l.s.LogMessage("DependentHolding", "EXPIRE", msg)
 	} else {
-		//		l.s.LogMessage("newHolding", "NOT_EXPIRED", msg)
+		//		l.s.LogMessage("DependentHolding", "NOT_EXPIRED", msg)
 	}
 
 	return res
 }
 
 func (s *State) HoldForHeight(ht uint32, msg interfaces.IMsg) int {
-	// todo: test if this is necessary
-	if s.GetLLeaderHeight()+1 == ht && s.GetCurrentMinute() >= 9 {
-		s.LogMessage("newHolding", fmt.Sprintf("SKIP_HoldForHeight %x", ht), msg)
-		return 0 // send to old holding
-	}
-	s.LogMessage("newHolding", fmt.Sprintf("HoldForHeight %x", ht), msg)
+	s.LogMessage("DependentHolding", fmt.Sprintf("HoldForHeight %x", ht), msg)
 	return s.Add(HeightToHash(ht), msg) // add to new holding
 }
 
 // Add a message to a dependent holding list
 func (s *State) Add(h [32]byte, msg interfaces.IMsg) int {
 
-	if !useNewHolding {
-		return 0
-	}
-
-	if msg == nil {
+	if msg == nil { // REVIEW: consider removing paranoid check
 		panic("Empty Message Added to Holding")
 	}
 
-	if h == [32]byte{} {
+	if h == [32]byte{} { // REVIEW: consider removing paranoid check
 		panic("Empty Hash Passed to New Holding")
 	}
 
 	if s.Hold.Add(h, msg) {
-		s.LogMessage("newHolding", fmt.Sprintf("add[%x]", h[:6]), msg)
+		s.LogMessage("DependentHolding", fmt.Sprintf("add[%x]", h[:6]), msg)
 	}
 
 	// mark as invalid for validator loop
-	return -2 // ensures message is not sent to hold holding
+	return -2 // ensures message is not sent to old holding
 }
 
 // get and remove the list of dependent message for a hash
@@ -182,19 +162,16 @@ func (s *State) Get(h [32]byte) []interfaces.IMsg {
 // the hash may be a EC address or a CainID or a height (ok heights are not really hashes but we cheat on that)
 func (s *State) ExecuteFromHolding(h [32]byte) {
 
-	if !useNewHolding && s.Hold.GetSize() > 0 {
-		panic("found messages in new-holding while disabled")
-	}
 	// get the list of messages waiting on this hash
 	l := s.Get(h)
 	if l == nil {
-		//		s.LogPrintf("newHolding", "ExecuteFromDependantHolding(%x) nothing waiting", h[:6])
+		//		s.LogPrintf("DependentHolding", "ExecuteFromDependantHolding(%x) nothing waiting", h[:6])
 		return
 	}
-	s.LogPrintf("newHolding", "ExecuteFromDependantHolding(%d)[%x]", len(l), h[:6])
+	s.LogPrintf("DependentHolding", "ExecuteFromDependantHolding(%d)[%x]", len(l), h[:6])
 
 	for _, m := range l {
-		s.LogPrintf("newHolding", "delete R-%x", m.GetMsgHash().Bytes()[:3])
+		s.LogPrintf("DependentHolding", "delete R-%x", m.GetMsgHash().Bytes()[:3])
 	}
 
 	go func() {
@@ -205,6 +182,10 @@ func (s *State) ExecuteFromHolding(h [32]byte) {
 		}
 	}()
 }
+
+/*
+	REVIEW: Consider also including a way to wait for minute
+*/
 
 // put a height in the first 4 bytes of a hash so we can use it to look up dependent message in holding
 func HeightToHash(height uint32) [32]byte {
