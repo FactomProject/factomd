@@ -983,6 +983,7 @@ func (s *State) Init() {
 		}
 		f.Close()
 	}
+
 	// Set up struct to stop replay attacks
 	s.Replay = new(Replay)
 	s.Replay.s = s
@@ -1019,7 +1020,6 @@ func (s *State) Init() {
 	s.StatesWaiting = NewStatesWaiting()
 	s.StatesReceived = NewStatesReceived()
 
-	s.DBStates.Catchup()
 	switch s.NodeMode {
 	case "FULL":
 		s.Leader = false
