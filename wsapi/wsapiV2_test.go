@@ -3,6 +3,7 @@ package wsapi_test
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"net/http"
 	"reflect"
@@ -101,54 +102,34 @@ func TestHandleV2GetRaw(t *testing.T) {
 
 		time.Sleep(time.Millisecond * 100)
 		resp, err := v2Request(req)
-		if err != nil {
-			t.Errorf("%v", err)
-		}
-
-		if strings.Contains(resp.String(), v.Raw) == false {
-			t.Errorf("Looking for %v but got %v", v.Hash1, v.Raw)
-			t.Errorf("GetRaw %v/%v from Hash1 failed - %v", i, len(toTest), resp.String())
-		}
+		assert.Nil(t, err)
+		assert.True(t, strings.Contains(resp.String(), v.Raw), "Looking for %v but got %v \nGetRaw %v/%v from Hash1 failed - %v", v.Hash1, v.Raw, i, len(toTest), resp.String())
 
 		data.Hash = v.Hash2
 		req = primitives.NewJSON2Request("raw-data", 1, data)
 		resp, err = v2Request(req)
-		if err != nil {
-			t.Errorf("%v", err)
-		}
-
-		if strings.Contains(resp.String(), v.Raw) == false {
-			t.Errorf("Looking for %v", v.Hash1)
-			t.Errorf("GetRaw %v/%v from Hash2 failed - %v", i, len(toTest), resp.String())
-		}
+		assert.Nil(t, err)
+		assert.True(t, strings.Contains(resp.String(), v.Raw), "Looking for %v \nGetRaw %v/%v from Hash2 failed - %v", v.Hash1, i, len(toTest), resp.String())
 	}
 }
 
-func v2Request(req *primitives.JSON2Request) (*primitives.JSON2Response, error) {
-	j, err := json.Marshal(req)
-	if err != nil {
-		return nil, err
-	}
+func TestHandleV2CommitChain(t *testing.T) {
+	state := testHelper.CreateAndPopulateTestState()
+	Start(state)
 
-	resp, err := http.Post(
-		"http://localhost:8088/v2",
-		"application/json",
-		bytes.NewBuffer(j))
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
+	msg := new(MessageRequest)
+	// Can replace with any Chain message
+	msg.Message = "00015507b2f70bd0165d9fa19a28cfaafb6bc82f538955a98c7b7e60d79fbf92655c1bff1c76466cb3bc3f3cc68d8b2c111f4f24c88d9c031b4124395c940e5e2c5ea496e8aaa2f5c956749fc3eba4acc60fd485fb100e601070a44fcce54ff358d606698547340b3b6a27bcceb6a42d62a3a8d02a6f0d73653215771de243a63ac048a18b59da2946c901273e616bdbb166c535b26d0d446bc69b22c887c534297c7d01b2ac120237086112b5ef34fc6474e5e941d60aa054b465d4d770d7f850169170ef39150b"
+	req := primitives.NewJSON2Request("commit-chain", 0, msg)
+	resp, err := v2Request(req)
+	assert.Nil(t, err)
 
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	r := primitives.NewJSON2Response()
-	if err := json.Unmarshal(body, r); err != nil {
-		return nil, err
-	}
+	respObj := new(CommitChainResponse)
+	err = MapToObject(resp.Result, respObj)
+	assert.Nil(t, err)
 
-	return r, nil
+	txID := "76e123d133a841fe3e08c5e3f3d392f8431f2d7668890c03f003f541efa8fc61"
+	assert.Equal(t, txID, respObj.TxID, "Error: TxID returned during Commit Chain is incorrect - %v vs %v", respObj.TxID, txID)
 }
 
 /*
@@ -225,31 +206,6 @@ func TestV2HandleFactoidBalance(t *testing.T) {
 }
 */
 
-func TestHandleV2CommitChain(t *testing.T) {
-	//initializing server
-	state := testHelper.CreateAndPopulateTestState()
-	Start(state)
-
-	msg := new(MessageRequest)
-	// Can replace with any Chain message
-	msg.Message = "00015507b2f70bd0165d9fa19a28cfaafb6bc82f538955a98c7b7e60d79fbf92655c1bff1c76466cb3bc3f3cc68d8b2c111f4f24c88d9c031b4124395c940e5e2c5ea496e8aaa2f5c956749fc3eba4acc60fd485fb100e601070a44fcce54ff358d606698547340b3b6a27bcceb6a42d62a3a8d02a6f0d73653215771de243a63ac048a18b59da2946c901273e616bdbb166c535b26d0d446bc69b22c887c534297c7d01b2ac120237086112b5ef34fc6474e5e941d60aa054b465d4d770d7f850169170ef39150b"
-	req := primitives.NewJSON2Request("commit-chain", 0, msg)
-	resp, err := v2Request(req)
-	if err != nil {
-		t.Errorf("%v", err)
-	}
-
-	respObj := new(CommitChainResponse)
-	if err := MapToObject(resp.Result, respObj); err != nil {
-		t.Error(err)
-	}
-
-	txID := "76e123d133a841fe3e08c5e3f3d392f8431f2d7668890c03f003f541efa8fc61"
-	if respObj.TxID != txID {
-		t.Errorf("Error: TxID returned during Commit Chain is incorrect - %v vs %v", respObj.TxID, txID)
-	}
-}
-
 func TestHandleV2GetReceipt(t *testing.T) {
 	state := testHelper.CreateAndPopulateTestStateAndStartValidator()
 
@@ -257,24 +213,17 @@ func TestHandleV2GetReceipt(t *testing.T) {
 	hashkey.Hash = "be5fb8c3ba92c0436269fab394ff7277c67e9b2de4431b723ce5d89799c0b93a"
 
 	resp, jErr := HandleV2Receipt(state, hashkey)
-	if jErr != nil {
-		t.Errorf("%v", jErr)
-		return
-	}
+	assert.Nil(t, jErr)
 
 	dbo := state.GetDB()
 
 	marshalled, err := json.Marshal(resp.(*ReceiptResponse).Receipt)
-	if err != nil {
-		t.Error(err)
-	}
+	assert.Nil(t, err)
+
 	t.Logf("Resp - %s", marshalled)
 
 	err = receipts.VerifyFullReceipt(dbo, string(marshalled))
-	if err != nil {
-		t.Logf("receipt - %s", marshalled)
-		t.Error(err)
-	}
+	assert.Nil(t, err, "receipt - %s", marshalled)
 }
 
 func TestHandleV2GetTranasction(t *testing.T) {
@@ -287,31 +236,17 @@ func TestHandleV2GetTranasction(t *testing.T) {
 			hashkey.Hash = tx.GetFullHash().String()
 
 			resp, jErr := HandleV2GetTranasction(state, hashkey)
-			if jErr != nil {
-				t.Errorf("%v", jErr)
-				return
-			}
-			r := resp.(*TransactionResponse)
-			if r.ECTranasction != nil {
-				t.Errorf("ECTranasction != nil")
-			}
-			if r.Entry != nil {
-				t.Errorf("Entry != nil")
-			}
-			if r.FactoidTransaction.GetFullHash().String() != hashkey.Hash {
-				t.Errorf("Got wrong hash for FactoidTransaction")
-			}
+			assert.Nil(t, jErr)
 
-			if r.IncludedInTransactionBlock != block.FBlock.DatabasePrimaryIndex().String() {
-				t.Errorf("Invalid IncludedInTransactionBlock")
-			}
-			if r.IncludedInDirectoryBlock != block.DBlock.DatabasePrimaryIndex().String() {
-				t.Errorf("Invalid IncludedInDirectoryBlock")
-			}
-			if r.IncludedInDirectoryBlockHeight != int64(block.DBlock.GetDatabaseHeight()) {
-				t.Errorf("Invalid IncludedInDirectoryBlockHeight")
-			}
+			r := resp.(*TransactionResponse)
+			assert.Nil(t, r.ECTranasction)
+			assert.Nil(t, r.Entry)
+			assert.Equal(t, hashkey.Hash, r.FactoidTransaction.GetFullHash().String(), "Got wrong hash for FactoidTransaction")
+			assert.Equal(t, block.FBlock.DatabasePrimaryIndex().String(), r.IncludedInTransactionBlock, "Invalid IncludedInTransactionBlock")
+			assert.Equal(t, block.DBlock.DatabasePrimaryIndex().String(), r.IncludedInDirectoryBlock, "Invalid IncludedInDirectoryBlock")
+			assert.Equal(t, int64(block.DBlock.GetDatabaseHeight()), r.IncludedInDirectoryBlockHeight, "Invalid IncludedInDirectoryBlockHeight")
 		}
+
 		for _, h := range block.ECBlock.GetEntryHashes() {
 			if h.IsMinuteMarker() == true {
 				continue
@@ -320,31 +255,17 @@ func TestHandleV2GetTranasction(t *testing.T) {
 			hashkey.Hash = h.String()
 
 			resp, jErr := HandleV2GetTranasction(state, hashkey)
-			if jErr != nil {
-				t.Errorf("%v", jErr)
-				return
-			}
-			r := resp.(*TransactionResponse)
-			if r.FactoidTransaction != nil {
-				t.Errorf("FactoidTransaction != nil")
-			}
-			if r.Entry != nil {
-				t.Errorf("Entry != nil")
-			}
-			if r.ECTranasction.Hash().String() != hashkey.Hash {
-				t.Errorf("Got wrong hash for ECTranasction")
-			}
+			assert.Nil(t, jErr)
 
-			if r.IncludedInTransactionBlock != block.ECBlock.DatabasePrimaryIndex().String() {
-				t.Errorf("Invalid IncludedInTransactionBlock")
-			}
-			if r.IncludedInDirectoryBlock != block.DBlock.DatabasePrimaryIndex().String() {
-				t.Errorf("Invalid IncludedInDirectoryBlock")
-			}
-			if r.IncludedInDirectoryBlockHeight != int64(block.DBlock.GetDatabaseHeight()) {
-				t.Errorf("Invalid IncludedInDirectoryBlockHeight")
-			}
+			r := resp.(*TransactionResponse)
+			assert.Nil(t, r.FactoidTransaction)
+			assert.Nil(t, r.Entry)
+			assert.Equal(t, hashkey.Hash, r.ECTranasction.Hash().String(), "Got wrong hash for ECTranasction")
+			assert.Equal(t, block.ECBlock.DatabasePrimaryIndex().String(), r.IncludedInTransactionBlock, "Invalid IncludedInTransactionBlock")
+			assert.Equal(t, block.DBlock.DatabasePrimaryIndex().String(), r.IncludedInDirectoryBlock, "Invalid IncludedInDirectoryBlock")
+			assert.Equal(t, int64(block.DBlock.GetDatabaseHeight()), r.IncludedInDirectoryBlockHeight, "Invalid IncludedInDirectoryBlockHeight")
 		}
+
 		for _, tx := range block.EBlock.GetEntryHashes() {
 			if tx.IsMinuteMarker() == true {
 				continue
@@ -353,31 +274,17 @@ func TestHandleV2GetTranasction(t *testing.T) {
 			hashkey.Hash = tx.String()
 
 			resp, jErr := HandleV2GetTranasction(state, hashkey)
-			if jErr != nil {
-				t.Errorf("%v", jErr)
-				return
-			}
-			r := resp.(*TransactionResponse)
-			if r.ECTranasction != nil {
-				t.Errorf("ECTranasction != nil")
-			}
-			if r.FactoidTransaction != nil {
-				t.Errorf("FactoidTransaction != nil")
-			}
-			if r.Entry.GetHash().String() != hashkey.Hash {
-				t.Errorf("Got wrong hash for Entry")
-			}
+			assert.Nil(t, jErr)
 
-			if r.IncludedInTransactionBlock != block.EBlock.DatabasePrimaryIndex().String() {
-				t.Errorf("Invalid IncludedInTransactionBlock")
-			}
-			if r.IncludedInDirectoryBlock != block.DBlock.DatabasePrimaryIndex().String() {
-				t.Errorf("Invalid IncludedInDirectoryBlock")
-			}
-			if r.IncludedInDirectoryBlockHeight != int64(block.DBlock.GetDatabaseHeight()) {
-				t.Errorf("Invalid IncludedInDirectoryBlockHeight")
-			}
+			r := resp.(*TransactionResponse)
+			assert.Nil(t, r.ECTranasction)
+			assert.Nil(t, r.FactoidTransaction)
+			assert.Equal(t, hashkey.Hash, r.Entry.GetHash().String(), "Got wrong hash for Entry")
+			assert.Equal(t, block.EBlock.DatabasePrimaryIndex().String(), r.IncludedInTransactionBlock, "Invalid IncludedInTransactionBlock")
+			assert.Equal(t, block.DBlock.DatabasePrimaryIndex().String(), r.IncludedInDirectoryBlock, "Invalid IncludedInDirectoryBlock")
+			assert.Equal(t, int64(block.DBlock.GetDatabaseHeight()), r.IncludedInDirectoryBlockHeight, "Invalid IncludedInDirectoryBlockHeight")
 		}
+
 		for _, tx := range block.AnchorEBlock.GetEntryHashes() {
 			if tx.IsMinuteMarker() == true {
 				continue
@@ -386,30 +293,15 @@ func TestHandleV2GetTranasction(t *testing.T) {
 			hashkey.Hash = tx.String()
 
 			resp, jErr := HandleV2GetTranasction(state, hashkey)
-			if jErr != nil {
-				t.Errorf("%v", jErr)
-				return
-			}
-			r := resp.(*TransactionResponse)
-			if r.ECTranasction != nil {
-				t.Errorf("ECTranasction != nil")
-			}
-			if r.FactoidTransaction != nil {
-				t.Errorf("FactoidTransaction != nil")
-			}
-			if r.Entry.GetHash().String() != hashkey.Hash {
-				t.Errorf("Got wrong hash for Entry")
-			}
+			assert.Nil(t, jErr)
 
-			if r.IncludedInTransactionBlock != block.AnchorEBlock.DatabasePrimaryIndex().String() {
-				t.Errorf("Invalid IncludedInTransactionBlock")
-			}
-			if r.IncludedInDirectoryBlock != block.DBlock.DatabasePrimaryIndex().String() {
-				t.Errorf("Invalid IncludedInDirectoryBlock")
-			}
-			if r.IncludedInDirectoryBlockHeight != int64(block.DBlock.GetDatabaseHeight()) {
-				t.Errorf("Invalid IncludedInDirectoryBlockHeight")
-			}
+			r := resp.(*TransactionResponse)
+			assert.Nil(t, r.ECTranasction)
+			assert.Nil(t, r.FactoidTransaction)
+			assert.Equal(t, hashkey.Hash, r.Entry.GetHash().String(), "Got wrong hash for Entry")
+			assert.Equal(t, block.AnchorEBlock.DatabasePrimaryIndex().String(), r.IncludedInTransactionBlock, "Invalid IncludedInTransactionBlock")
+			assert.Equal(t, block.DBlock.DatabasePrimaryIndex().String(), r.IncludedInDirectoryBlock, "Invalid IncludedInDirectoryBlock")
+			assert.Equal(t, int64(block.DBlock.GetDatabaseHeight()), r.IncludedInDirectoryBlockHeight, "Invalid IncludedInDirectoryBlockHeight")
 		}
 	}
 }
@@ -419,43 +311,29 @@ func TestJSONString(t *testing.T) {
 	eblock.Header.BlockSequenceNumber = 5
 	eblock.Header.ChainID = "Findthis"
 
-	if s, err := eblock.JSONString(); err != nil {
-		t.Error(err)
-	} else {
-		if !strings.Contains(s, "Findthis") {
-			t.Error("Missing chainID")
-		}
-	}
+	s, err := eblock.JSONString()
+	assert.Nil(t, err)
+	assert.True(t, strings.Contains(s, "Findthis"), "Missing chainID")
 
 	e := new(EntryStruct)
 	e.ChainID = "Findthis"
-	if s, err := e.JSONString(); err != nil {
-		t.Error(err)
-	} else {
-		if !strings.Contains(s, "Findthis") {
-			t.Error("Missing chainID")
-		}
-	}
+
+	s, err = e.JSONString()
+	assert.Nil(t, err)
+	assert.True(t, strings.Contains(s, "Findthis"), "Missing chainID")
 
 	c := new(CHead)
 	c.ChainHead = "Findthis"
-	if s, err := c.JSONString(); err != nil {
-		t.Error(err)
-	} else {
-		if !strings.Contains(s, "Findthis") {
-			t.Error("Missing chainID")
-		}
-	}
+
+	s, err = e.JSONString()
+	assert.Nil(t, err)
+	assert.True(t, strings.Contains(s, "Findthis"), "Missing ChainHead")
 
 	d := new(DBlock)
 	d.Header.PrevBlockKeyMR = "Findthis"
-	if s, err := d.JSONString(); err != nil {
-		t.Error(err)
-	} else {
-		if !strings.Contains(s, "Findthis") {
-			t.Error("Missing chainID")
-		}
-	}
+	s, err = e.JSONString()
+	assert.Nil(t, err)
+	assert.True(t, strings.Contains(s, "Findthis"), "Missing PrevBlockKeyMR")
 }
 
 func Test_ecBlockToResp(t *testing.T) {
@@ -468,19 +346,41 @@ func Test_ecBlockToResp(t *testing.T) {
 		want  interface{}
 		want1 *primitives.JSONError
 	}{
-
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
 			got, got1 := ECBlockToResp(tt.args.block)
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("ecBlockToResp() got = %v, want %v", got, tt.want)
-			}
-			if !reflect.DeepEqual(got1, tt.want1) {
-				t.Errorf("ecBlockToResp() got1 = %v, want %v", got1, tt.want1)
-			}
+			assert.True(t, reflect.DeepEqual(got, tt.want), "ecBlockToResp() got = %v, want %v", got, tt.want)
+			assert.True(t, reflect.DeepEqual(got1, tt.want1), "ecBlockToResp() got1 = %v, want %v", got1, tt.want1)
 		})
 	}
+}
+
+func v2Request(req *primitives.JSON2Request) (*primitives.JSON2Response, error) {
+	j, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := http.Post(
+		"http://localhost:8088/v2",
+		"application/json",
+		bytes.NewBuffer(j))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	r := primitives.NewJSON2Response()
+	if err := json.Unmarshal(body, r); err != nil {
+		return nil, err
+	}
+
+	return r, nil
 }
