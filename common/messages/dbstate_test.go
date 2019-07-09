@@ -238,6 +238,7 @@ func TestSignedDBStateValidate(t *testing.T) {
 	}
 
 	state := testHelper.CreateEmptyTestState()
+	state.StartMMR() // Clear out the queues that are added too from here
 
 	// Throw in a geneis block
 	prev := testHelper.CreateTestBlockSetWithNetworkID(nil, state.GetNetworkID(), false)
