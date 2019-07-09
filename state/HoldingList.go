@@ -10,14 +10,14 @@ import (
 )
 
 type heldMessage struct {
-	dependentHash[32]byte
-	offset int
+	dependentHash [32]byte
+	offset        int
 }
 
 // This hold a slice of messages dependent on a hash
 type HoldingList struct {
 	holding    map[[32]byte][]interfaces.IMsg
-	s          *State            // for debug logging
+	s          *State                   // for debug logging
 	dependents map[[32]byte]heldMessage // used to avoid duplicate entries & track position in holding
 }
 
@@ -38,7 +38,7 @@ func (l *HoldingList) GetSize() int {
 // remove a single dependent msg from holding
 func (l *HoldingList) GetDependentMsg(h [32]byte) interfaces.IMsg {
 	d, ok := l.dependents[h]
-	if ! ok {
+	if !ok {
 		return nil
 	} else {
 		m := l.holding[d.dependentHash][d.offset]
@@ -62,7 +62,7 @@ func (l *HoldingList) Add(h [32]byte, msg interfaces.IMsg) bool {
 		l.holding[h] = append(l.holding[h], msg)
 	}
 
-	l.dependents[msg.GetMsgHash().Fixed()] = heldMessage{h, len(l.holding[h])-1}
+	l.dependents[msg.GetMsgHash().Fixed()] = heldMessage{h, len(l.holding[h]) - 1}
 	//l.s.LogMessage("DependentHolding", "add", msg)
 	return true
 }
@@ -74,7 +74,11 @@ func (l *HoldingList) Get(h [32]byte) []interfaces.IMsg {
 
 	for _, msg := range rval {
 		//		l.s.LogMessage("DependentHolding", "delete", msg)
-		delete(l.dependents, msg.GetMsgHash().Fixed())
+		if msg == nil {
+			continue
+		} else {
+			delete(l.dependents, msg.GetMsgHash().Fixed())
+		}
 	}
 	return rval
 }
@@ -86,7 +90,6 @@ func (l *HoldingList) ExecuteForNewHeight(ht uint32) {
 // clean stale messages from holding
 func (l *HoldingList) Review() {
 
-
 	for h := range l.holding {
 		dh := l.holding[h]
 		if nil == dh {
@@ -95,7 +98,8 @@ func (l *HoldingList) Review() {
 
 		inUse := false
 		for i, msg := range dh {
-			if l.isMsgStale(msg) {
+
+			if msg != nil && l.isMsgStale(msg) {
 				l.holding[h][i] = nil // nil out the held message
 				delete(l.dependents, msg.GetMsgHash().Fixed())
 				continue
@@ -195,6 +199,9 @@ func (s *State) ExecuteFromHolding(h [32]byte) {
 	s.LogPrintf("DependentHolding", "ExecuteFromDependantHolding(%d)[%x]", len(l), h[:6])
 
 	for _, m := range l {
+		if m == nil {
+			continue
+		}
 		s.LogPrintf("DependentHolding", "delete R-%x", m.GetMsgHash().Bytes()[:3])
 	}
 
