@@ -79,7 +79,6 @@ func (s *State) ValidatorLoop() {
 	CheckGrants()
 
 	go s.DoProcessing()
-
 	// Look for pending messages, and get one if there is one.
 	for { // this is the message sort
 		var msg interfaces.IMsg

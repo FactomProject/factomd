@@ -381,7 +381,7 @@ func (mmrc *MissingMessageResponseCache) answerRequest(request *messages.Missing
 			if pair.Msg == nil || pair.Ack == nil {
 				panic("This should never happen")
 			}
-			ack := pair.Ack.(*messages.Ack)
+			ack := pair.Ack.(*messages.Ack) // For logging, we want the dbheight, vm, and plheight of the ack
 
 			// Pair exists, send out the response
 			response := messages.NewMissingMsgResponse(mmrc.localState, pair.Msg, pair.Ack)
@@ -404,7 +404,6 @@ func (mmrc *MissingMessageResponseCache) answerRequest(request *messages.Missing
 func (mmrc *MissingMessageResponseCache) Run() {
 	for {
 		select {
-
 		case processedPair := <-mmrc.ProcessedPairs:
 			// A new ack/msg pair is processed and ready to respond to missing message requests
 			ack := processedPair.Ack.(*messages.Ack)
@@ -422,7 +421,6 @@ func (mmrc *MissingMessageResponseCache) Run() {
 		case <-mmrc.quit:
 			// Close thread
 			return
-
 		}
 	}
 }
