@@ -62,7 +62,7 @@ func (l *HoldingList) Add(h [32]byte, msg interfaces.IMsg) bool {
 		l.holding[h] = append(l.holding[h], msg)
 	}
 
-	l.dependents[msg.GetMsgHash().Fixed()] = heldMessage{h, len(l.holding[h])}
+	l.dependents[msg.GetMsgHash().Fixed()] = heldMessage{h, len(l.holding[h])-1}
 	//l.s.LogMessage("DependentHolding", "add", msg)
 	return true
 }
