@@ -332,8 +332,8 @@ type MissingMessageResponseCache struct {
 	// ProcessedPairs is all the ack+msg pairs that we processed
 	ProcessedPairs chan *MsgPair
 
-	// ACKCache is the cached acks from the last 2 blocks
-	AckMessageCache *AckCache
+	// AckMessageCache is the cached acks from the last 2 blocks
+	AckMessageCache *AckMsgPairCache
 
 	// We need the state for getting the current timestamp and for logging
 	// TODO: Separate logging and current time from state
@@ -346,7 +346,7 @@ func NewMissingMessageReponseCache(s *State) *MissingMessageResponseCache {
 	mmrc := new(MissingMessageResponseCache)
 	mmrc.MissingMsgRequests = make(chan interfaces.IMsg, 20)
 	mmrc.ProcessedPairs = make(chan *MsgPair, 5)
-	mmrc.AckMessageCache = NewAckCache()
+	mmrc.AckMessageCache = NewAckMsgCache()
 
 	mmrc.quit = make(chan bool, 1)
 	mmrc.localState = s
@@ -433,20 +433,20 @@ type MsgPair struct {
 	Msg interfaces.IMsg
 }
 
-type AckCache struct {
+type AckMsgPairCache struct {
 	CurrentWorkingHeight int
 	// MsgPairMap will contain ack/msg pairs
 	MsgPairMap map[int]map[plRef]*MsgPair
 }
 
-func NewAckCache() *AckCache {
-	a := new(AckCache)
+func NewAckMsgCache() *AckMsgPairCache {
+	a := new(AckMsgPairCache)
 	a.MsgPairMap = make(map[int]map[plRef]*MsgPair)
 	return a
 }
 
 // UpdateWorkingHeight will only update the height if it is new
-func (a *AckCache) UpdateWorkingHeight(newHeight int) {
+func (a *AckMsgPairCache) UpdateWorkingHeight(newHeight int) {
 	// Update working height if it has changed
 	if a.CurrentWorkingHeight < int(newHeight) {
 		a.CurrentWorkingHeight = int(newHeight)
@@ -454,11 +454,11 @@ func (a *AckCache) UpdateWorkingHeight(newHeight int) {
 	}
 }
 
-// Expire for the AckCache will expire all acks older than 2 blocks.
+// Expire for the AckMsgPairCache will expire all acks older than 2 blocks.
 //	TODO: Is iterating over a map extra cost? Should we have a sorted list?
 //			Technically we can just call delete NewHeight-2 as long as we always
 //			Update every height
-func (a *AckCache) Expire(newHeight int) {
+func (a *AckMsgPairCache) Expire(newHeight int) {
 	a.CurrentWorkingHeight = newHeight
 	for h, _ := range a.MsgPairMap {
 		if a.HeightTooOld(h) {
@@ -470,7 +470,7 @@ func (a *AckCache) Expire(newHeight int) {
 // AddMsgPair will add an ack to the cache if it is not too old, and it is an ack+msg pair
 //	We assume that all msgs being added have been added to our processlist, and therefore
 //	the current working height and they are valid.
-func (a *AckCache) AddMsgPair(pair *MsgPair) {
+func (a *AckMsgPairCache) AddMsgPair(pair *MsgPair) {
 	ack, ok := pair.Ack.(*messages.Ack)
 	if !ok {
 		// Don't add non-acks
@@ -498,21 +498,21 @@ func (a *AckCache) AddMsgPair(pair *MsgPair) {
 	a.MsgPairMap[plLoc.DBH][plLoc] = pair
 }
 
-func (a *AckCache) Get(dbHeight, vmIndex, plHeight int) *MsgPair {
+func (a *AckMsgPairCache) Get(dbHeight, vmIndex, plHeight int) *MsgPair {
 	if a.MsgPairMap[dbHeight] == nil {
 		return nil
 	}
 	return a.MsgPairMap[dbHeight][plRef{dbHeight, vmIndex, plHeight}]
 }
 
-func (a *AckCache) ensure(height int) {
+func (a *AckMsgPairCache) ensure(height int) {
 	if a.MsgPairMap[height] == nil {
 		a.MsgPairMap[height] = make(map[plRef]*MsgPair)
 	}
 }
 
 // HeightTooOld determines if the ack height is too old for the ackcache
-func (a *AckCache) HeightTooOld(height int) bool {
+func (a *AckMsgPairCache) HeightTooOld(height int) bool {
 	// Eg: CurrentWorkingHeight = 10, so saved height is minimum 8. Below 8, we delete
 	if height < a.CurrentWorkingHeight-2 {
 		return true
