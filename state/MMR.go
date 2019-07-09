@@ -44,6 +44,21 @@ func (s *State) StartMMR() {
 	go s.makeMMRs(s.asks, s.adds, s.dbheights)
 }
 
+// MMRDummy is for unit tests that populate the various mmr queues.
+// We need to drain the queues to ensure we don't block.
+//	ONLY FOR UNIT TESTS
+func (s *State) MMRDummy() {
+	go func() {
+		for {
+			select {
+			case <-s.asks:
+			case <-s.adds:
+			case <-s.dbheights:
+			}
+		}
+	}()
+}
+
 // Ask VM for an MMR for this height with delay ms before asking the network
 // called from validation thread to notify MMR that we are missing a message
 func (vm *VM) ReportMissing(height int, delay int64) {

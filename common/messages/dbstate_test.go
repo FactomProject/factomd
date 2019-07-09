@@ -238,7 +238,7 @@ func TestSignedDBStateValidate(t *testing.T) {
 	}
 
 	state := testHelper.CreateEmptyTestState()
-	state.StartMMR() // Clear out the queues that are added too from here
+	state.MMRDummy() // Need to start MMR to ensure queues don't fill up() // Clear out the queues that are added too from here
 
 	// Throw in a geneis block
 	prev := testHelper.CreateTestBlockSetWithNetworkID(nil, state.GetNetworkID(), false)
@@ -361,6 +361,7 @@ func TestPropSignedDBStateValidate(t *testing.T) {
 	}
 
 	state := testHelper.CreateEmptyTestState()
+	state.MMRDummy() // Need to start MMR to ensure queues don't fill up
 
 	ids := make([]SmallIdentity, 100)
 	for i := range ids {
