@@ -134,7 +134,7 @@ func (m *Ack) Validate(s interfaces.IState) int {
 		return -1
 	}
 
-	if delta > 30 { // REVIEW: should we decrease this limit since msg goes to newHolding ?
+	if delta > 30 { // REVIEW: should we decrease this limit since msg goes to dependentHolding ?
 		return s.HoldForHeight(m.DBHeight, m)
 	}
 

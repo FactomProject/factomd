@@ -326,7 +326,7 @@ func TestAnElection(t *testing.T) {
 			s := fnode.State
 			for _, h := range s.Hold.Messages() {
 				for _, m := range h {
-					s.LogMessage("newholding", "stuck", m)
+					s.LogMessage("dependentHolding", "stuck", m)
 				}
 			}
 		}

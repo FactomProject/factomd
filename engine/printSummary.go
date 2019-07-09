@@ -137,7 +137,7 @@ func GetSystemStatus(listenTo int, wsapiNode int) string {
 	for _, f := range pnodes {
 		list = list + fmt.Sprintf(" %3d", f.State.Hold.GetSize())
 	}
-	prt = prt + fmt.Sprintf(fmtstr, "NewHolding", list)
+	prt = prt + fmt.Sprintf(fmtstr, "DepHolding", list)
 
 	list = ""
 	for _, f := range pnodes {

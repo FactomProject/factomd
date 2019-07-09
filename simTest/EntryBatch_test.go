@@ -105,7 +105,7 @@ func TestEntryBatch(t *testing.T) {
 				s := fnode.State
 				for _, h := range state0.Hold.Messages() {
 					for _, m := range h {
-						s.LogMessage("newholding", "stuck", m)
+						s.LogMessage("dependentHolding", "stuck", m)
 					}
 				}
 				assert.Equal(t, 0, len(s.Holding), "messages stuck in holding")

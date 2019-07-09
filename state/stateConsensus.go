@@ -1028,6 +1028,17 @@ func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
 	}
 }
 
+func (s *State) getMsgFromHolding(h [32]byte) interfaces.IMsg {
+	// check if we have a message
+	m := s.Holding[h]
+
+	if m != nil {
+		return m
+	} else {
+		return s.Hold.GetDependentMsg(h)
+	}
+}
+
 // Ack messages always match some message in the Process List.   That is
 // done here, though the only msg that should call this routine is the Ack
 // message.
@@ -1056,8 +1067,7 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 	// Add the ack to the list of acks
 	TotalAcksInputs.Inc()
 	s.Acks[ack.GetHash().Fixed()] = ack
-	// check if we have a message
-	m, _ := s.Holding[ack.GetHash().Fixed()]
+	m := s.getMsgFromHolding(ack.GetHash().Fixed())
 
 	if m != nil {
 		// We have an ack and a matching message go execute the message!
@@ -1741,7 +1751,7 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 		if entry != nil {
 			s.repost(entry, 0) // Try and execute the reveal for this commit
 		}
-		//s.LogMessage("newHolding", "process", commitChain)
+		//s.LogMessage("dependentHolding", "process", commitChain)
 		s.ExecuteFromHolding(commitChain.GetHash().Fixed()) // process CommitChain
 		return true
 	}
@@ -1764,7 +1774,7 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 		if entry != nil {
 			s.repost(entry, 0) // Try and execute the reveal for this commit
 		}
-		//		s.LogMessage("newHolding", "process", commitEntry)
+		//		s.LogMessage("dependentHolding", "process", commitEntry)
 		s.ExecuteFromHolding(commitEntry.GetHash().Fixed()) // process CommitEntry
 		return true
 	}
@@ -1822,7 +1832,7 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) (worked b
 		s.WriteEntry <- msg.Entry
 		s.IncEntryChains()
 		s.IncEntries()
-		//		s.LogMessage("newHolding", "process", m)
+		//		s.LogMessage("dependentHolding", "process", m)
 		s.ExecuteFromHolding(chainID.Fixed()) // Process Reveal for Chain
 
 		return true
