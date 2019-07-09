@@ -23,6 +23,7 @@ type StateSaverStruct struct {
 	TmpState []byte
 	Mutex    sync.Mutex
 	Stop     bool
+	Saved    bool
 }
 
 func (sss *StateSaverStruct) StopSaving() {
@@ -49,10 +50,15 @@ func (sss *StateSaverStruct) SaveDBStateList(s *State, ss *DBStateList, networkN
 	//Actually save data from previous cached state to prevent dealing with rollbacks
 	// Save the N block old state and then make a new savestate for the next save
 	if len(sss.TmpState) > 0 {
-		err := SaveToFile(s, sss.TmpDBHt, sss.TmpState, NetworkIDToFilename(networkName, sss.FastBootLocation))
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "SaveState SaveToFile Failed", err)
-			return err
+		if !sss.Saved {
+			filename := NetworkIDToFilename(networkName, sss.FastBootLocation)
+			s.LogPrintf("executeMsg", "%d-:-%d %20s Saving %s for dbht %d", s.LLeaderHeight, s.CurrentMinute, s.FactomNodeName, filename, sss.TmpDBHt)
+			err := SaveToFile(s, sss.TmpDBHt, sss.TmpState, filename)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "SaveState SaveToFile Failed", err)
+				return err
+			}
+			sss.Saved = true
 		}
 	}
 
