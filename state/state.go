@@ -180,6 +180,10 @@ type State struct {
 	apiQueue               APIMSGQueue
 	ackQueue               chan interfaces.IMsg
 	msgQueue               chan interfaces.IMsg
+	// prioritizedMsgQueue contains messages we know we need for consensus. (missing from processlist)
+	//		Currently messages from MMR handling can be put in here to fast track
+	//		them to the front.
+	prioritizedMsgQueue chan interfaces.IMsg
 
 	ShutdownChan chan int // For gracefully halting Factom
 	JournalFile  string
@@ -979,6 +983,7 @@ func (s *State) Init() {
 	s.apiQueue = NewAPIQueue(constants.INMSGQUEUE_HIGH)                     //incoming message queue from the API
 	s.ackQueue = make(chan interfaces.IMsg, 50)                             //queue of Leadership messages
 	s.msgQueue = make(chan interfaces.IMsg, 50)                             //queue of Follower messages
+	s.prioritizedMsgQueue = make(chan interfaces.IMsg, 50)                  //a prioritized queue of Follower messages (from mmr.go)
 	s.MissingEntries = make(chan *MissingEntry, constants.INMSGQUEUE_HIGH)  //Entries I discover are missing from the database
 	s.UpdateEntryHash = make(chan *EntryUpdate, constants.INMSGQUEUE_HIGH)  //Handles entry hashes and updating Commit maps.
 	s.WriteEntry = make(chan interfaces.IEBEntry, constants.INMSGQUEUE_LOW) //Entries to be written to the database
@@ -2266,6 +2271,10 @@ func (s *State) AckQueue() chan interfaces.IMsg {
 
 func (s *State) MsgQueue() chan interfaces.IMsg {
 	return s.msgQueue
+}
+
+func (s *State) PrioritizedMsgQueue() chan interfaces.IMsg {
+	return s.prioritizedMsgQueue
 }
 
 func (s *State) GetLeaderTimestamp() interfaces.Timestamp {

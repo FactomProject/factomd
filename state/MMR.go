@@ -9,6 +9,16 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 )
 
+// NonBlockingChannelAdd will only add to the channel if the channel
+func NonBlockingChannelAdd(channel chan interfaces.IMsg, msg interfaces.IMsg) bool {
+	select {
+	case channel <- msg:
+		return true
+	default:
+		return false
+	}
+}
+
 // This identifies a specific process list slot
 type plRef struct {
 	DBH int
@@ -42,9 +52,8 @@ func (vm *VM) ReportMissing(height int, delay int64) {
 		return
 	}
 
-	//	Currently if the asks are full, when we try to add, we will block
-	//	the asks could be blocked on adding into the ack or msg queue
-	//	from the recent messages. We report missing multiple times, so if
+	//	Currently if the asks are full, we'd rather just skip
+	//	than block the thread. We report missing multiple times, so if
 	//	we exit, we will come around and ask again.
 	if len(vm.p.State.asks) == cap(vm.p.State.asks) {
 		return
@@ -135,20 +144,32 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 			// checking if we already have the "missing" message in our maps
 			ack, msg := s.RecentMessage.GetAckAndMsg(ask.DBH, ask.VM, ask.H, s)
 			if msg != nil && ack != nil {
-				// If the s.adds queue is backed up, we cannot block here, or the validator loop will be stalled.
-				// ReportMissing is ok to block here, as it ensure the asks queue is not filled before adding to it.
-				// The adds cannot be dropped, so we drop the msg to be executed, rather than the add.
-				if len(s.msgQueue) != cap(s.msgQueue) && len(s.ackQueue) != cap(s.ackQueue) && len(s.adds) == len(s.adds) {
-					// send them to be executed
-					s.LogPrintf("mmr", "Found Ask %d/%d/%d. Adding to queues: Msg %d:%d Ack %d:%d Add %d:%d", ask.DBH, ask.VM, ask.H, len(s.msgQueue), cap(s.msgQueue), len(s.ackQueue), cap(s.ackQueue), len(s.adds), cap(s.adds))
+				// send them to be executed
+				s.LogPrintf("mmr", "Found Ask %d/%d/%d. Adding to queues: Msg %d:%d Ack %d:%d Add %d:%d Ask %d:%d", ask.DBH, ask.VM, ask.H, len(s.msgQueue), cap(s.msgQueue), len(s.ackQueue), cap(s.ackQueue), len(s.adds), cap(s.adds), len(s.asks), cap(s.asks))
 
-					s.LogMessage("ackQueue", "enqueue makeMMRs_addAsk", msg)
-					s.LogMessage("msgQueue", "enqueue makeMMRs_addAsk", msg)
+				// Attempt to add the msg and ack to the prioritized message queue without blocking.
+				// If we end up dropping this message, there isn't much we can do without potentially blocking
+				// our asks and adds queue.
+				// If the s.adds/s.asks queue is backed up, we cannot block here, or the validator loop will be stalled.
+				droppedMsg := NonBlockingChannelAdd(s.PrioritizedMsgQueue(), msg)
+				ml, mc := len(s.PrioritizedMsgQueue()), cap(s.PrioritizedMsgQueue())
+				droppedAck := NonBlockingChannelAdd(s.PrioritizedMsgQueue(), ack)
+				al, ac := len(s.PrioritizedMsgQueue()), cap(s.PrioritizedMsgQueue())
 
-					s.msgQueue <- msg
-					s.ackQueue <- ack
+				// Logging
+				if droppedMsg {
+					s.LogMessage("PrioritizedMsgQueue",
+						fmt.Sprintf("enqueue msg makeMMRs_addAsk, PQ %d:%d", ml, mc), msg)
 				} else {
-					s.LogPrintf("mmr", "Found and Dropped Ask %d/%d/%d. Adding to queues: %d/%d %d/%d", ask.DBH, ask.VM, ask.H, len(s.msgQueue), cap(s.msgQueue), len(s.ackQueue), cap(s.ackQueue), len(s.adds), cap(s.adds))
+					s.LogMessage("PrioritizedMsgQueue",
+						fmt.Sprintf("dropped msg makeMMRs_addAsk, PQ %d:%d", ml, mc), msg)
+				}
+				if droppedAck {
+					s.LogMessage("PrioritizedMsgQueue",
+						fmt.Sprintf("enqueue ack makeMMRs_addAsk, PQ %d:%d", al, ac), msg)
+				} else {
+					s.LogMessage("PrioritizedMsgQueue",
+						fmt.Sprintf("dropped ack makeMMRs_addAsk, PQ %d:%d", al, ac), msg)
 				}
 			}
 		} // don't update the when if it already existed...

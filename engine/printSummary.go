@@ -180,6 +180,12 @@ func GetSystemStatus(listenTo int, wsapiNode int) string {
 
 	list = ""
 	for _, f := range pnodes {
+		list = list + fmt.Sprintf(" %3d", len(f.State.PrioritizedMsgQueue()))
+	}
+	prt = prt + fmt.Sprintf(fmtstr, "PrioritizedMsgQueue", list)
+
+	list = ""
+	for _, f := range pnodes {
 		list = list + fmt.Sprintf(" %3d", f.State.InMsgQueue().Length())
 	}
 	prt = prt + fmt.Sprintf(fmtstr, "InMsgQueue", list)

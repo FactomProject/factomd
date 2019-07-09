@@ -101,6 +101,7 @@ func PrintState(state *State) {
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "apiQueue", state.apiQueue)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "ackQueue", state.ackQueue)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "msgQueue", state.msgQueue)
+	str = fmt.Sprintf("%s %35s = %+v\n", str, "prioritizedMsgQueue", state.prioritizedMsgQueue)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "ShutdownChan", state.ShutdownChan)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "JournalFile", state.JournalFile)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "Journaling", state.Journaling)

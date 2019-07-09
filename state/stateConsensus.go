@@ -440,29 +440,22 @@ func (s *State) Process() (progress bool) {
 	preEmptyLoopTime := time.Now()
 emptyLoop:
 	for {
+		var msg interfaces.IMsg
 		select {
-		case msg := <-s.msgQueue:
+		// We have prioritizedMsgQueue listed twice, meaning it has 2 chances to be
+		// randomly selected to unblock and execute.
+		case msg = <-s.prioritizedMsgQueue:
+			s.LogMessage("prioritizedMsgQueue", "Execute", msg)
+		case msg = <-s.prioritizedMsgQueue:
+			s.LogMessage("prioritizedMsgQueue", "Execute", msg)
+		case msg = <-s.msgQueue:
 			s.LogMessage("msgQueue", "Execute", msg)
-			progress = s.executeMsg(msg) || progress
-		case ack := <-s.ackQueue:
-			_, validToExecute := s.Validate(ack)
-			switch validToExecute {
-			case -1:
-				s.LogMessage("ackQueue", "drop Invalid", ack)
-				continue
-			case 0:
-				s.LogMessage("ackQueue", "Hold", ack)
-				// toss the ack into holding and we will try again in a bit...
-				TotalHoldingQueueInputs.Inc()
-				s.AddToHolding(ack.GetMsgHash().Fixed(), ack) // Add ack where valid==0
-				continue
-			}
-
-			s.LogMessage("ackQueue", "Execute2", ack)
-			progress = s.executeMsg(ack) || progress
+		case msg = <-s.ackQueue:
+			s.LogMessage("ackQueue", "Execute", msg)
 		default:
 			break emptyLoop
 		}
+		progress = s.executeMsg(msg) || progress
 	}
 	emptyLoopTime := time.Since(preEmptyLoopTime)
 	TotalEmptyLoopTime.Add(float64(emptyLoopTime.Nanoseconds()))
