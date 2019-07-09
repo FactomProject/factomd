@@ -2,7 +2,6 @@ package state
 
 import (
 	"fmt"
-	"sort"
 	"time"
 
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -336,12 +335,6 @@ type MissingMessageResponseCache struct {
 	// ACKCache is the cached acks from the last 2 blocks
 	AckMessageCache *AckCache
 
-	// We will hold all missing requests for some timeout.
-	// If someone asks us for something, we might be able to respond soon.
-	recentRequests        *SortedMsgSlice
-	recentRequestsTimeout time.Duration
-	recentRequestsCheck   time.Duration
-
 	// We need the state for getting the current timestamp and for logging
 	// TODO: Separate logging and current time from state
 	localState *State
@@ -354,12 +347,9 @@ func NewMissingMessageReponseCache(s *State) *MissingMessageResponseCache {
 	mmrc.MissingMsgRequests = make(chan interfaces.IMsg, 20)
 	mmrc.ProcessedPairs = make(chan *MsgPair, 5)
 	mmrc.AckMessageCache = NewAckCache()
-	mmrc.recentRequests = NewMsgCache()
 
 	mmrc.quit = make(chan bool, 1)
 	mmrc.localState = s
-	mmrc.recentRequestsCheck = time.Second
-	mmrc.recentRequestsTimeout = time.Second * 3
 
 	return mmrc
 }
@@ -528,62 +518,4 @@ func (a *AckCache) HeightTooOld(height int) bool {
 		return true
 	}
 	return false
-}
-
-type SortedMsgSlice struct {
-	// MessageSlice is the sorted slice of messages by time. This is useful for
-	// expiring messages from the map without having to iterate over the entire list.
-	MessageSlice []interfaces.IMsg
-}
-
-func NewMsgCache() *SortedMsgSlice {
-	c := new(SortedMsgSlice)
-	return c
-}
-
-func (c *SortedMsgSlice) Len() int {
-	return len(c.MessageSlice)
-}
-
-func (c *SortedMsgSlice) Clear() {
-	c.MessageSlice = []interfaces.IMsg{}
-}
-
-func (c *SortedMsgSlice) TrimOlderThan(cutoff interfaces.Timestamp) {
-	for i := 0; i < len(c.MessageSlice); i++ {
-		if c.MessageSlice[i].GetTimestamp().GetTimeMilli() >= cutoff.GetTimeMilli() {
-			c.TrimTo(i)
-			break
-		}
-	}
-}
-
-// TrimTo will remove messages from 0 to the index (EXCLUSIVE) from the slice.
-// This is good for expiring all messages that are too old, since they are
-// sorted by time
-//		Result is slice[index:]
-func (c *SortedMsgSlice) TrimTo(index int) {
-	c.Trim(0, index)
-}
-
-// TrimTo will remove messages from start to the stop (EXCLUSIVE) from the slice.
-//		Result is slice[index:]
-func (c *SortedMsgSlice) Trim(start, stop int) {
-	c.MessageSlice = append([]interfaces.IMsg{}, c.MessageSlice[start:stop]...)
-}
-
-// RemoveMsg will remove a single message, but should be avoided in favor of
-// 'TrimTo' that can remove multiple messages
-func (c *SortedMsgSlice) RemoveMsg(index int) {
-	c.MessageSlice = append(c.MessageSlice[:index], c.MessageSlice[index+1:]...)
-}
-
-// insertMsg inserts the message into the sorted slice
-func (c *SortedMsgSlice) InsertMsg(m interfaces.IMsg) {
-	index := sort.Search(len(c.MessageSlice), func(i int) bool {
-		return c.MessageSlice[i].GetTimestamp().GetTimeMilli() > m.GetTimestamp().GetTimeMilli()
-	})
-	c.MessageSlice = append(c.MessageSlice, (interfaces.IMsg)(nil))
-	copy(c.MessageSlice[index+1:], c.MessageSlice[index:])
-	c.MessageSlice[index] = m
 }
