@@ -23,7 +23,6 @@ type StateSaverStruct struct {
 	TmpState []byte
 	Mutex    sync.Mutex
 	Stop     bool
-	Saved    bool
 }
 
 func (sss *StateSaverStruct) StopSaving() {
@@ -38,10 +37,8 @@ func (sss *StateSaverStruct) SaveDBStateList(s *State, ss *DBStateList, networkN
 		return nil // if we have closed the database then don't save
 	}
 
-	hsb := int(ss.GetHighestSavedBlk())
 	//Save only every FastSaveRate states
-
-	if hsb%ss.State.FastSaveRate != 0 || hsb < ss.State.FastSaveRate {
+	if int(s.LLeaderHeight)%ss.State.FastSaveRate != 0 || int(s.LLeaderHeight) < ss.State.FastSaveRate {
 		return nil
 	}
 
@@ -49,30 +46,29 @@ func (sss *StateSaverStruct) SaveDBStateList(s *State, ss *DBStateList, networkN
 	defer sss.Mutex.Unlock()
 	//Actually save data from previous cached state to prevent dealing with rollbacks
 	// Save the N block old state and then make a new savestate for the next save
-	if len(sss.TmpState) > 0 {
-		if !sss.Saved {
-			filename := NetworkIDToFilename(networkName, sss.FastBootLocation)
-			s.LogPrintf("executeMsg", "%d-:-%d %20s Saving %s for dbht %d", s.LLeaderHeight, s.CurrentMinute, s.FactomNodeName, filename, sss.TmpDBHt)
-			err := SaveToFile(s, sss.TmpDBHt, sss.TmpState, filename)
-			if err != nil {
-				fmt.Fprintln(os.Stderr, "SaveState SaveToFile Failed", err)
-				return err
-			}
-			sss.Saved = true
+	if sss.TmpDBHt != ss.State.LLeaderHeight && len(sss.TmpState) > 0 {
+		filename := NetworkIDToFilename(networkName, sss.FastBootLocation)
+		s.LogPrintf("executeMsg", "%d-:-%d %20s Saving %s for dbht %d", s.LLeaderHeight, s.CurrentMinute, s.FactomNodeName, filename, sss.TmpDBHt)
+		err := SaveToFile(s, sss.TmpDBHt, sss.TmpState, filename)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "SaveState SaveToFile Failed", err)
+			return err
 		}
 	}
 
-	//Marshal state for future saving
-	b, err := ss.MarshalBinary()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "SaveState MarshalBinary Failed", err)
-		return err
+	if sss.TmpDBHt != ss.State.LLeaderHeight {
+		//Marshal state for future saving
+		b, err := ss.MarshalBinary()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "SaveState MarshalBinary Failed", err)
+			return err
+		}
+		//adding an integrity check
+		h := primitives.Sha(b)
+		b = append(h.Bytes(), b...)
+		sss.TmpState = b
+		sss.TmpDBHt = ss.State.LLeaderHeight
 	}
-	//adding an integrity check
-	h := primitives.Sha(b)
-	b = append(h.Bytes(), b...)
-	sss.TmpState = b
-	sss.TmpDBHt = ss.State.LLeaderHeight
 
 	return nil
 }
