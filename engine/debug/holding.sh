@@ -59,7 +59,7 @@ BEGIN {count=0; bucks=100; typeOfLog[0]=0; holding[0]= "foo"; delete holding[0];
   { printf("%30s:%d                  \\r", FILENAME, FNR) > "/dev/stderr"; }
   { printf("%5d %s %d \\n", FNR, $3, length(holding)); }
 
-$4~/add/ {
+$4~/^add/ {
     count++;
     hash = substr($0,index($0,"R-"),8);   
 #    print "add", hash

@@ -1071,12 +1071,10 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 
 	if m != nil {
 		// We have an ack and a matching message go execute the message!
-		if m.Validate(s) == 1 {
-			s.LogMessage("executeMsg", "FollowerExecuteAck ", m)
-			m.FollowerExecute(s)
-		} else {
-			s.LogMessage("executeMsg", "Msg matches Ack, wait for validate", ack)
-		}
+		// we purposely skip validate which might put the message back in holding for unmet dependencies
+		// but it's ok since it will get validated before processing.
+		s.LogMessage("executeMsg", "FollowerExecuteAck ", m)
+		m.FollowerExecute(s)
 	} else {
 		s.LogMessage("executeMsg", "No Msg, keep", ack)
 		//todo: should we ask MMR here?
