@@ -6,6 +6,7 @@ package databaseOverlay
 
 import (
 	"errors"
+
 	"github.com/FactomProject/factomd/anchor"
 	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
 	"github.com/FactomProject/factomd/common/interfaces"

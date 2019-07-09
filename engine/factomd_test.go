@@ -30,6 +30,25 @@ import (
 	"github.com/FactomProject/factomd/wsapi"
 )
 
+func TestOne(t *testing.T) {
+	if RanSimTest {
+		return
+	}
+	state.MMR_enable = false // No MMR for you!
+
+	RanSimTest = true
+
+	// use a tree so the messages get reordered
+	state0 := SetupSim("LF", map[string]string{"--debuglog": "", "--fastsaverate": "5"}, 12, 0, 0, t)
+
+	RunCmd("0")   // select 2
+	RunCmd("R30") // Feed load
+	WaitBlocks(state0, 5)
+	RunCmd("R0") // Stop load
+	WaitBlocks(state0, 2)
+	ShutDownEverything(t)
+} // testOne(){...}
+
 func TestLoad(t *testing.T) {
 	if RanSimTest {
 		return
