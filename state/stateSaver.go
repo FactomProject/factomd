@@ -59,8 +59,6 @@ func (sss *StateSaverStruct) SaveDBStateList(s *State, ss *DBStateList, networkN
 				return err
 			}
 			sss.Saved = true
-		} else {
-			panic("Attempt to save already saved savestate")
 		}
 	}
 
