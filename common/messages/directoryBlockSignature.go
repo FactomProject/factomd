@@ -194,7 +194,7 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 		// or if the signature is invalid
 		// the message is considered invalid
 		if m.IsLocal() {
-			state.LogMessage("badMsgs", "Invalid Local DBSIG!", m)
+			state.LogMessage("badEvents", "Invalid Local DBSIG!", m)
 		}
 		return -1
 	}
@@ -204,7 +204,7 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 	if err != nil {
 		vlog("Unable to unmarshal Directory block header %s -- RAW: %x", m.String(), raw)
 		if m.IsLocal() {
-			state.LogMessage("badMsgs", "Invalid Local DBSIG!", m)
+			state.LogMessage("badEvents", "Invalid Local DBSIG!", m)
 		}
 		return -1
 	}
@@ -212,7 +212,7 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 	if !m.DBSignature.Verify(data) {
 		vlog("Unable to verify signature %s -- RAW: %x", m.String(), raw)
 		if m.IsLocal() {
-			state.LogMessage("badMsgs", "Invalid Local DBSIG!", m)
+			state.LogMessage("badEvents", "Invalid Local DBSIG!", m)
 		}
 		return -1
 	}

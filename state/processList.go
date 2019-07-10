@@ -1103,6 +1103,9 @@ func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces
 
 	m.SendOut(s, m)
 	ack.SendOut(s, ack)
+
+	// also add the msg and ack to our missing msg request handler
+	s.MissingMessageResponseHandler.NotifyNewMsgPair(ack, m)
 }
 
 func (p *ProcessList) ContainsDBSig(serverID interfaces.IHash) bool {
@@ -1275,6 +1278,7 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 		pl.VMs[i].ProcessTime = now
 		pl.VMs[i].VmIndex = i
 		pl.VMs[i].p = pl
+		pl.VMs[i].HighestAsk = -1
 	}
 
 	pl.DBHeight = dbheight

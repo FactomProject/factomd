@@ -138,7 +138,7 @@ func Peers(fnode *FactomNode) {
 				continue
 			}
 			if msg.GetHash().IsHashNil() {
-				fnode.State.LogMessage("badMsgs", "Nil hash from APIQueue", msg)
+				fnode.State.LogMessage("badEvents", "Nil hash from APIQueue", msg)
 				continue
 			}
 
@@ -146,11 +146,6 @@ func Peers(fnode *FactomNode) {
 			if fnode.State.GetNetStateOff() { // drop received message if he is off
 				fnode.State.LogMessage("NetworkInputs", "API drop, X'd by simCtrl", msg)
 				continue // Toss any inputs from API
-			}
-
-			if fnode.State.GetNetStateOff() {
-				fnode.State.LogMessage("NetworkInputs", "API drop, X'd by simCtrl", msg)
-				continue
 			}
 
 			repeatHash := msg.GetRepeatHash()
@@ -179,6 +174,11 @@ func Peers(fnode *FactomNode) {
 				fnode.State.LogMessage("NetworkInputs", "API Drop, NETWORK_REPLAY", msg)
 				RepeatMsgs.Inc()
 				continue
+			}
+
+			if constants.NeedsAck(msg.Type()) {
+				// send msg to MMRequest processing to suppress requests for messages we already have
+				fnode.State.RecentMessage.NewMsgs <- msg
 			}
 
 			//fnode.MLog.add2(fnode, false, fnode.State.FactomNodeName, "API", true, msg)
@@ -221,7 +221,7 @@ func Peers(fnode *FactomNode) {
 
 				if fnode.State.LLeaderHeight < fnode.State.DBHeightAtBoot+2 {
 					if msg.GetTimestamp().GetTimeMilli() < fnode.State.TimestampAtBoot.GetTimeMilli() {
-						fnode.State.LogMessage("NetworkInputs", "drop, too old", msg)
+						fnode.State.LogMessage("NetworkInputs", "Drop, too old", msg)
 						continue
 					}
 				}
@@ -236,7 +236,7 @@ func Peers(fnode *FactomNode) {
 				}
 
 				if msg.GetHash().IsHashNil() {
-					fnode.State.LogMessage("badMsgs", "Nil hash from Peer", msg)
+					fnode.State.LogMessage("badEvents", "Nil hash from Peer", msg)
 					continue
 				}
 
@@ -339,17 +339,19 @@ func Peers(fnode *FactomNode) {
 						fnode.State.LogMessage("NetworkInputs", fromPeer+", enqueue2", msg)
 						fnode.State.LogMessage("InMsgQueue2", fromPeer+", enqueue2", msg)
 						fnode.State.InMsgQueue2().Enqueue(msg)
-					} else if msg.Type() == constants.DBSTATE_MSG {
-						// notify the state that a new DBState has been recieved.
-						// TODO: send the msg to StatesReceived and only send to InMsgQueue when the next received message is ready.
-						fnode.State.LogMessage("NetworkInputs", fromPeer+", enqueue", msg)
-						fnode.State.LogMessage("InMsgQueue", fromPeer+", enqueue", msg)
-						fnode.State.InMsgQueue().Enqueue(msg)
+					} else if msg.Type() == constants.MISSING_MSG {
+						fnode.State.LogMessage("mmr_response", fmt.Sprintf(fromPeer+", enqueue %d", len(fnode.State.MissingMessageResponseHandler.MissingMsgRequests)), msg)
+						fnode.State.MissingMessageResponseHandler.NotifyPeerMissingMsg(msg)
 					} else {
 						fnode.State.LogMessage("NetworkInputs", fromPeer+", enqueue", msg)
 						fnode.State.LogMessage("InMsgQueue", fromPeer+", enqueue", msg)
 						fnode.State.InMsgQueue().Enqueue(msg)
 					}
+				}
+
+				if constants.NeedsAck(msg.Type()) {
+					// send msg to MMRequest processing to suppress requests for messages we already have
+					fnode.State.RecentMessage.NewMsgs <- msg
 				}
 			} // For a peer read up to 100 messages {...}
 		} // for each peer {...}

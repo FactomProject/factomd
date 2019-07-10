@@ -12,6 +12,11 @@ const (
 	Stopped  RunState = 4
 )
 
+// Returns if factomd is terminated or in the process of terminating
+func (runState RunState) IsTerminating() bool {
+	return runState > Stopping
+}
+
 func (runState RunState) String() string {
 	switch runState {
 	case New:

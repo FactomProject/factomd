@@ -168,7 +168,7 @@ func (s *State) Validate(msg interfaces.IMsg) (validToSend int, validToExec int)
 	}
 
 	if validToSend != 1 { // if the msg says anything other than valid
-		s.LogMessage("badmsgs", fmt.Sprintf("Invalid validity code %d", validToSend), msg)
+		s.LogMessage("badEvents", fmt.Sprintf("Invalid validity code %d", validToSend), msg)
 		panic("unexpected validity code")
 	}
 
@@ -238,7 +238,7 @@ func (s *State) executeMsg(msg interfaces.IMsg) (ret bool) {
 	}
 
 	if msg.GetHash() == nil || reflect.ValueOf(msg.GetHash()).IsNil() {
-		s.LogMessage("badMsgs", "Nil hash in executeMsg", msg)
+		s.LogMessage("badEvents", "Nil hash in executeMsg", msg)
 		return false
 	}
 
@@ -293,6 +293,7 @@ func (s *State) executeMsg(msg interfaces.IMsg) (ret bool) {
 			(local || vmi == s.LeaderVMIndex) && // if it's a local message or it a message for our VM
 			s.LeaderPL.DBHeight+1 >= hkb {
 			if vml == 0 { // if we have not generated a DBSig ...
+
 				s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex) // ExecuteMsg()
 				TotalXReviewQueueInputs.Inc()
 				s.XReview = append(s.XReview, msg)
@@ -439,46 +440,25 @@ func (s *State) Process() (progress bool) {
 	preEmptyLoopTime := time.Now()
 emptyLoop:
 	for {
+		var msg interfaces.IMsg
 		select {
-		case msg := <-s.msgQueue:
+		// We have prioritizedMsgQueue listed twice, meaning it has 2 chances to be
+		// randomly selected to unblock and execute.
+		case msg = <-s.prioritizedMsgQueue:
+			s.LogMessage("prioritizedMsgQueue", "Execute", msg)
+		case msg = <-s.prioritizedMsgQueue:
+			s.LogMessage("prioritizedMsgQueue", "Execute", msg)
+		case msg = <-s.msgQueue:
 			s.LogMessage("msgQueue", "Execute", msg)
-			progress = s.executeMsg(msg) || progress
+		case msg = <-s.ackQueue:
+			s.LogMessage("ackQueue", "Execute", msg)
 		default:
 			break emptyLoop
 		}
+		progress = s.executeMsg(msg) || progress
 	}
 	emptyLoopTime := time.Since(preEmptyLoopTime)
 	TotalEmptyLoopTime.Add(float64(emptyLoopTime.Nanoseconds()))
-
-	preAckLoopTime := time.Now()
-	// Process acknowledgements if we have some.
-ackLoop:
-	for {
-		select {
-		case ack := <-s.ackQueue:
-			_, validToExecute := s.Validate(ack)
-			switch validToExecute {
-			case -1:
-				s.LogMessage("ackQueue", "drop Invalid", ack)
-				continue
-			case 0:
-				s.LogMessage("ackQueue", "Hold", ack)
-				// toss the ack into holding and we will try again in a bit...
-				TotalHoldingQueueInputs.Inc()
-				s.AddToHolding(ack.GetMsgHash().Fixed(), ack) // Add ack where valid==0
-				continue
-			}
-
-			s.LogMessage("ackQueue", "Execute2", ack)
-			progress = s.executeMsg(ack) || progress
-
-		default:
-			break ackLoop
-		}
-	}
-
-	ackLoopTime := time.Since(preAckLoopTime)
-	TotalAckLoopTime.Add(float64(ackLoopTime.Nanoseconds()))
 
 	preProcessXReviewTime := time.Now()
 	// Reprocess any stalled messages, but not so much compared inbound messages
@@ -806,7 +786,8 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		authlistMsg := s.EFactory.NewAuthorityListInternal(s.LeaderPL.FedServers, s.LeaderPL.AuditServers, s.LLeaderHeight)
 		s.ElectionsQueue().Enqueue(authlistMsg)
 
-		if s.Leader && !s.LeaderPL.DBSigAlreadySent {
+		// Do not send out dbsigs while loading from disk
+		if s.Leader && !s.LeaderPL.DBSigAlreadySent && s.LLeaderHeight > s.DBHeightAtBoot {
 			s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex) // MoveStateToHeight()
 		}
 		s.DBStates.UpdateState() // go process the DBSigs
@@ -1349,47 +1330,7 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 }
 
 func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
-	// Don't respond to missing messages if we are behind.
-	if s.inMsgQueue.Length() > constants.INMSGQUEUE_LOW {
-		return
-	}
-
-	m := msg.(*messages.MissingMsg)
-
-	pl := s.ProcessLists.Get(m.DBHeight)
-
-	if pl == nil {
-		s.MissingRequestIgnoreCnt++
-		return
-	}
-	FollowerMissingMsgExecutions.Inc()
-	sent := false
-	if len(pl.System.List) > int(m.SystemHeight) && pl.System.List[m.SystemHeight] != nil {
-		msgResponse := messages.NewMissingMsgResponse(s, pl.System.List[m.SystemHeight], nil)
-		msgResponse.SetOrigin(m.GetOrigin())
-		msgResponse.SetNetworkOrigin(m.GetNetworkOrigin())
-		msgResponse.SendOut(s, msgResponse)
-		s.MissingRequestReplyCnt++
-		sent = true
-	}
-
-	for _, h := range m.ProcessListHeight {
-		missingmsg, ackMsg, err := s.LoadSpecificMsgAndAck(m.DBHeight, m.VMIndex, h)
-
-		if missingmsg != nil && ackMsg != nil && err == nil {
-			// If I don't have this message, ignore.
-			msgResponse := messages.NewMissingMsgResponse(s, missingmsg, ackMsg)
-			msgResponse.SetOrigin(m.GetOrigin())
-			msgResponse.SetNetworkOrigin(m.GetNetworkOrigin())
-			msgResponse.SendOut(s, msgResponse)
-			s.MissingRequestReplyCnt++
-			sent = true
-		}
-	}
-
-	if !sent {
-		s.MissingRequestIgnoreCnt++
-	}
+	s.LogMessage("badEvents", "follower executed missing message, should never happen", msg)
 	return
 }
 
@@ -2371,7 +2312,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			s.LogMessage("processList", "drop from pl", vm.ListAck[0])
 			vm.ListAck[0] = nil
 			vm.List[0] = nil
-			vm.HighestAsk = 0
+			vm.HighestAsk = -1
 			vm.HighestNil = 0
 			return false
 		}
@@ -2388,7 +2329,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			s.LogMessage("processList", "drop from pl", vm.ListAck[0])
 			vm.ListAck[0] = nil
 			vm.List[0] = nil
-			vm.HighestAsk = 0
+			vm.HighestAsk = -1
 			vm.HighestNil = 0
 			return false
 		}
@@ -2402,7 +2343,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			s.LogMessage("processList", "drop from pl", vm.ListAck[0])
 			vm.ListAck[0] = nil
 			vm.List[0] = nil
-			vm.HighestAsk = 0
+			vm.HighestAsk = -1
 			vm.HighestNil = 0
 			return false
 		}
