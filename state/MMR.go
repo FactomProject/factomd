@@ -397,7 +397,8 @@ func (mmrc *MissingMessageResponseCache) answerRequest(request *messages.Missing
 		pair := mmrc.AckMessageCache.Get(int(request.DBHeight), request.VMIndex, int(plHeight))
 		if pair != nil { // Woo! Respond to that peer
 			if pair.Msg == nil || pair.Ack == nil {
-				panic("This should never happen")
+				mmrc.localState.LogPrintf("mmr_response", "ackpair found, but the msgs were nil")
+				continue // This should never happen
 			}
 			ack := pair.Ack.(*messages.Ack) // For logging, we want the dbheight, vm, and plheight of the ack
 
@@ -407,7 +408,7 @@ func (mmrc *MissingMessageResponseCache) answerRequest(request *messages.Missing
 			response.SetNetworkOrigin(request.GetNetworkOrigin())
 			response.SendOut(mmrc.localState, response)
 			mmrc.localState.MissingRequestReplyCnt++
-			mmrc.localState.LogMessage("mmr_response", fmt.Sprintf("request_fufilled %d/%d/%d", ack.DBHeight, ack.VMIndex, ack.Height), pair.Ack)
+			mmrc.localState.LogMessage("mmr_response", fmt.Sprintf("request_fufilled %d/%d/%d", ack.DBHeight, ack.VMIndex, ack.Height), response)
 		} else {
 			// If we are missing the plheight, we increment the ignore count as we don't have what
 			// the peer wanted.
