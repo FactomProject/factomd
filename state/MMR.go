@@ -322,8 +322,8 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 						mmrs[index].ProcessListHeight = append(mmrs[index].ProcessListHeight, uint32(ref.H))
 						// Add an ask for each msg we ask for, even if we bundle the asks.
 						// This is so the accounting adds upp.
-						s.MissingRequestAskCnt++
 					}
+					s.MissingRequestAskCnt++
 					*when = now + askDelay // update when we asked
 					// Maybe when asking for past the end of the list we should not ask again?
 				}
