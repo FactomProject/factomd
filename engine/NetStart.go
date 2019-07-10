@@ -659,7 +659,7 @@ func startServer(i int, fnode *FactomNode, load bool) {
 	go fnode.State.ValidatorLoop()
 
 	// moved StartMMR here to ensure Init goroutine only called once and not twice (removed from state.go)
-	fnode.State.StartMMR()
+	go fnode.State.StartMMR()
 	go fnode.State.MissingMessageResponseHandler.Run()
 }
 

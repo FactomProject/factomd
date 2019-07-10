@@ -8,7 +8,7 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 )
 
-// NonBlockingChannelAdd will only add to the channel if the channel
+// NonBlockingChannelAdd will only add to the channel if the action is non-blocking
 func NonBlockingChannelAdd(channel chan interfaces.IMsg, msg interfaces.IMsg) bool {
 	select {
 	case channel <- msg:
@@ -41,7 +41,7 @@ type MMRInfo struct {
 // starts the MMR processing for this state
 func (s *State) StartMMR() {
 	// Missing message request handling.
-	go s.makeMMRs(s.asks, s.adds, s.dbheights)
+	s.makeMMRs(s.asks, s.adds, s.dbheights)
 }
 
 // MMRDummy is for unit tests that populate the various mmr queues.
@@ -246,7 +246,7 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 			}
 
 			ticker <- s.GetTimestamp().GetTimeMilli()
-			askDelay := s.FactomSecond()
+			askDelay := s.FactomSecond() * 10    // 1/6 of a minute
 			if askDelay < time.Millisecond*500 { // Don't go below 500ms. That is just too much
 				askDelay = time.Millisecond * 500
 			}
@@ -259,10 +259,10 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 	for {
 		// You have to compute this at every cycle as you can change the block time in sim control.
 
-		askDelay := int64(s.DirectoryBlockInSeconds*1000) / 50
-		// Take 1/5 of 1 minute boundary (DBlock is 10*min)
-		//		This means on 10min block, 12 second delay
-		//					  1min block, 1.2 second delay
+		// Take 1/6 of 1 minute boundary (DBlock is 10*min)
+		//		This means on 10min block, 10 second delay
+		//					  1min block, 1 second delay
+		askDelay := int64((s.FactomSecond() * 10).Seconds()) * 1000
 
 		if askDelay < 500 { // Don't go below 500ms. That is just too much
 			askDelay = 500
