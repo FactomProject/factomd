@@ -32,6 +32,7 @@ type Activation struct {
 var ActivationMap map[ActivationType]Activation
 var ActivationNameMap map[ActivationType]string
 
+// init initializes the two global variables ActivationMap and ActivationNameMap above
 func init() {
 
 	// unordered list of activations
@@ -70,7 +71,7 @@ func init() {
 	}
 }
 
-// convert an Activation ID to a name
+// String converts an Activation ID to a name
 func (id ActivationType) String() string {
 
 	n, ok := ActivationNameMap[id]
@@ -83,6 +84,8 @@ func (id ActivationType) String() string {
 var once bool
 var netName string
 
+// networkname returns the network name specified by the user at startup with the factomd '-network' option
+// see constants.go for options: MAIN / LOCAL / TEST / CUSTOM
 func networkname() string {
 	if !once {
 		once = true
@@ -95,6 +98,7 @@ func networkname() string {
 	return netName
 }
 
+// IsActive returns whether the input activation is 'on' at the input height
 func IsActive(id ActivationType, height int) bool {
 	netName := networkname()
 	a, ok := ActivationMap[id]
