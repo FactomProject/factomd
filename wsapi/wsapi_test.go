@@ -2,71 +2,181 @@ package wsapi_test
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
+	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/testHelper"
 	. "github.com/FactomProject/factomd/wsapi"
+	"github.com/stretchr/testify/assert"
+	"io/ioutil"
 	"net/http"
+	"os"
 	"testing"
 )
 
-func TestBaseUrl(t *testing.T) {
+func TestGetEndpoints(t *testing.T) {
 	state := testHelper.CreateAndPopulateTestState()
 	Start(state)
 
-	url := "http://localhost:8088"
-	response, err := http.Get(url)
-	if err != nil {
-		t.Errorf("error: %v", err)
-		t.Errorf("response: %v", response)
+	cases := map[string]struct {
+		Method   string
+		Url      string
+		Expected int
+	}{
+		"baseUrl":          {"GET", "http://localhost:8088", http.StatusNotFound},
+		"trailing-slashes": {"GET", "http://localhost:8088/v2/", http.StatusNotFound},
+		"wrong-method":     {"GET", "http://localhost:8088/v1/factoid-submit/", http.StatusNotFound},
 	}
 
-	if response.StatusCode != http.StatusNotFound {
-		t.Errorf("wrong status code: %v", response.StatusCode)
-	}
+	for name, testCase := range cases {
+		response, err := http.Get(testCase.Url)
 
-	url = "http://localhost:8088"
-	payload, err := json.Marshal("")
-	response, err = http.Post(url, "application/json", bytes.NewBuffer(payload))
-	if err != nil {
-		t.Errorf("error: %v", err)
-		t.Errorf("response: %v", response)
-	}
-
-	if response.StatusCode != http.StatusNotFound {
-		t.Errorf("wrong status code: %v", response.StatusCode)
+		if err != nil {
+			t.Errorf("test '%s' failed: %v \nresponse: %v", name, err, response)
+		} else if response == nil {
+			t.Errorf("test '%s' failed: response == nil", name)
+		} else if testCase.Expected != response.StatusCode {
+			t.Errorf("test '%s' failed: wrong status code expected '%d' != actual '%d'", name, testCase.Expected, response.StatusCode)
+		}
 	}
 }
 
-// the v2 endpoint ending on a slash with return a 404 not found
-func TestTailingSlashes(t *testing.T) {
+func TestPostEndpoints(t *testing.T) {
 	state := testHelper.CreateAndPopulateTestState()
 	Start(state)
 
-	url := "http://localhost:8088/v2/"
-	response, err := http.Get(url)
-	if err != nil {
-		t.Errorf("error: %v", err)
-		t.Errorf("response: %v", response)
+	cases := map[string]struct {
+		Url      string
+		Expected int
+		Body     string
+	}{
+		"baseUrl": {"http://localhost:8088", http.StatusNotFound, ""},
 	}
 
-	if response.StatusCode != http.StatusNotFound {
-		t.Errorf("wrong status code: %v", response.StatusCode)
+	for name, testCase := range cases {
+		payload, err := json.Marshal(testCase.Body)
+		response, err := http.Post(testCase.Url, "application/json", bytes.NewBuffer(payload))
+
+		if err != nil {
+			t.Errorf("test '%s' failed: %v \nresponse: %v", name, err, response)
+		} else if response == nil {
+			t.Errorf("test '%s' failed: response == nil", name)
+		} else if testCase.Expected != response.StatusCode {
+			t.Errorf("test '%s' failed: wrong status code expected '%d' != actual '%d'", name, testCase.Expected, response.StatusCode)
+		}
 	}
 }
 
-// test a method only available for a GET and not a POST
-func TestWrongHttpMethod(t *testing.T) {
+// use the mock state to override the GetTlsInfo
+type MockState struct {
+	state.State
+	mockTlsInfo func() (bool, string, string)
+}
+
+func (s *MockState) GetTlsInfo() (bool, string, string) {
+	return s.mockTlsInfo()
+}
+
+func TestHTTPS(t *testing.T) {
+	certFile, pkFile, cleanup := testSetupCertificateFiles(t)
+	defer cleanup()
+
 	state := testHelper.CreateAndPopulateTestState()
-	Start(state)
+	state.SetPort(10443)
+	mState := &MockState{
+		State: *state,
+		mockTlsInfo: func() (bool, string, string) {
+			return true, pkFile, certFile
+		},
+	}
 
-	url := "http://localhost:8088/v1/factoid-submit/"
-	response, err := http.Get(url)
+	Start(mState)
+
+	url := "https://localhost:10443/v1/heights/"
+	transCfg := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // ignore expired SSL certificates
+	}
+	client := &http.Client{Transport: transCfg}
+	response, err := client.Get(url)
+
+	assert.Nil(t, err, "%v", response)
+	if response != nil {
+		assert.Equal(t, http.StatusOK, response.StatusCode)
+	}
+}
+
+// an arbitrary self-signed certificate, generated with
+// `openssl req -x509 -nodes -days 365 -newkey rsa:1024 -keyout cert.pem -out cert.pem`
+var pkey = `-----BEGIN RSA PRIVATE KEY-----
+MIICXAIBAAKBgQDVBUw40q0zpF/zWzwBf0GFkXmnkw+YCNTiV8l7mso1DCv/VTYM
+cqtvy0g2KNBV7SFLC+NHuxJkNOAtJ8Fxx1EpeIw5A3KeCRNb4lo6ecAkuDLiPYGO
+qgAqjj8QmhmZA68qTIuWGYM1FTtUK3wO4wrHnqHEjs3cWNghmby6AgLHVQIDAQAB
+AoGAcy5GJINlu4KpjwBJ1dVlLD+YtA9EY0SDN0+YVglARKasM4dzjg+CuxQDm6U9
+4PgzBE0NO3/fVedxP3k7k7XeH73PosaxjWpfMawXR3wSLFKJBwxux/8gNdzeGRHN
+X1sYsJ70WiZLFOAPQ9jctF1ejUP6fpLHsti6ZHQj/R1xqBECQQDrHxmpMoviQL6n
+4CBR4HvlIRtd4Qr21IGEXtbjIcC5sgbkfne6qhqdv9/zxsoiPTi0859cr704Mf3y
+cA8LZ8c3AkEA5+/KjSoqgzPaUnvPZ0p9TNx6odxMsd5h1AMIVIbZPT6t2vffCaZ7
+R0ffim/KeWfoav8u9Cyz8eJpBG6OHROT0wJBAML54GLCCuROAozePI8JVFS3NqWM
+OHZl1R27NAHYfKTBMBwNkCYYZ8gHVKUoZXktQbg1CyNmjMhsFIYWTTONFNMCQFsL
+eBld2f5S1nrWex3y0ajgS4tKLRkNUJ2m6xgzLwepmRmBf54MKgxbHFb9dx+dOFD4
+Bvh2q9RhqhPBSiwDyV0CQBxN3GPbaa8V7eeXBpBYO5Evy4VxSWJTpgmMDtMH+RUp
+9eAJ8rUyhZ2OaElg1opGCRemX98s/o2R5JtzZvOx7so=
+-----END RSA PRIVATE KEY-----
+`
+
+var cert = `-----BEGIN CERTIFICATE-----
+MIIDXDCCAsWgAwIBAgIJAJqbbWPZgt0sMA0GCSqGSIb3DQEBBQUAMH0xCzAJBgNV
+BAYTAlVTMQswCQYDVQQIEwJDQTEWMBQGA1UEBxMNU2FuIEZyYW5jaXNjbzEPMA0G
+A1UEChMGV2ViLmdvMRcwFQYDVQQDEw5NaWNoYWVsIEhvaXNpZTEfMB0GCSqGSIb3
+DQEJARYQaG9pc2llQGdtYWlsLmNvbTAeFw0xMzA0MDgxNjIzMDVaFw0xNDA0MDgx
+NjIzMDVaMH0xCzAJBgNVBAYTAlVTMQswCQYDVQQIEwJDQTEWMBQGA1UEBxMNU2Fu
+IEZyYW5jaXNjbzEPMA0GA1UEChMGV2ViLmdvMRcwFQYDVQQDEw5NaWNoYWVsIEhv
+aXNpZTEfMB0GCSqGSIb3DQEJARYQaG9pc2llQGdtYWlsLmNvbTCBnzANBgkqhkiG
+9w0BAQEFAAOBjQAwgYkCgYEA1QVMONKtM6Rf81s8AX9BhZF5p5MPmAjU4lfJe5rK
+NQwr/1U2DHKrb8tINijQVe0hSwvjR7sSZDTgLSfBccdRKXiMOQNyngkTW+JaOnnA
+JLgy4j2BjqoAKo4/EJoZmQOvKkyLlhmDNRU7VCt8DuMKx56hxI7N3FjYIZm8ugIC
+x1UCAwEAAaOB4zCB4DAdBgNVHQ4EFgQURizcvrgUl8yhIEQvJT/1b5CzV8MwgbAG
+A1UdIwSBqDCBpYAURizcvrgUl8yhIEQvJT/1b5CzV8OhgYGkfzB9MQswCQYDVQQG
+EwJVUzELMAkGA1UECBMCQ0ExFjAUBgNVBAcTDVNhbiBGcmFuY2lzY28xDzANBgNV
+BAoTBldlYi5nbzEXMBUGA1UEAxMOTWljaGFlbCBIb2lzaWUxHzAdBgkqhkiG9w0B
+CQEWEGhvaXNpZUBnbWFpbC5jb22CCQCam21j2YLdLDAMBgNVHRMEBTADAQH/MA0G
+CSqGSIb3DQEBBQUAA4GBAGBPoVCReGMO1FrsIeVrPV/N6pSK7H3PLdxm7gmmvnO9
+K/LK0OKIT7UL3eus+eh0gt0/Tv/ksq4nSIzXBLPKyPggLmpC6Agf3ydNTpdLQ23J
+gWrxykqyLToIiAuL+pvC3Jv8IOPIiVFsY032rOqcwSGdVUyhTsG28+7KnR6744tM
+-----END CERTIFICATE-----
+`
+
+func testSetupCertificateFiles(t *testing.T) (string, string, func()) {
+	certificates := make([]tls.Certificate, 1)
+	var err error
+	certificates[0], err = tls.X509KeyPair([]byte(cert), []byte(pkey))
+
 	if err != nil {
-		t.Errorf("error: %v", err)
-		t.Errorf("response: %v", response)
+		t.Fatalf("failed to create certificate: %v", err)
 	}
 
-	if response.StatusCode != http.StatusNotFound {
-		t.Errorf("wrong status code: %v", response.StatusCode)
+	certFile, cleanCertFile := testTempFile(t, "cert", cert)
+	pkFile, cleanPKFile := testTempFile(t, "pk", pkey)
+
+	cleanup := func() {
+		cleanCertFile()
+		cleanPKFile()
 	}
+	return certFile, pkFile, cleanup
+}
+
+func testTempFile(t *testing.T, prefix string, content string) (string, func()) {
+	tmpFile, err := ioutil.TempFile(os.TempDir(), prefix)
+	if err != nil {
+		t.Fatalf("error creating temp file %v", err)
+	}
+	defer tmpFile.Close()
+
+	_, err = tmpFile.WriteString(content)
+	if err != nil {
+		t.Fatalf("error write to temp file %v", err)
+	}
+	cleanFile := func() { os.Remove(tmpFile.Name()) }
+
+	return tmpFile.Name(), cleanFile
 }

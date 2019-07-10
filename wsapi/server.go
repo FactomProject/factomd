@@ -16,31 +16,30 @@ type Server struct {
 	State      interfaces.IState
 	httpServer *http.Server
 	router     *mux.Router
+	tlsEnabled bool
+	certFile   string
+	keyFile    string
 }
 
 type Middleware func(http.HandlerFunc) http.HandlerFunc
 
 func InitServer(state interfaces.IState) *Server {
-	router := mux.NewRouter()
-
-	server := Server{State: state, router: router}
-
-	server.AddRootEndpoints()
-	server.AddV1Endpoints()
-	server.AddV2Endpoints()
-
+	tlsIsEnabled, keyFile, certFile := state.GetTlsInfo()
 	address := fmt.Sprintf(":%d", state.GetPort())
 
-	tlsIsEnabled, tlsPrivate, tlsPublic := state.GetTlsInfo()
+	router := mux.NewRouter()
+	server := Server{State: state, router: router, tlsEnabled: tlsIsEnabled, certFile: certFile, keyFile: keyFile}
+
 	if tlsIsEnabled {
-		log.Print("Starting encrypted API server")
-		if !fileExists(tlsPrivate) && !fileExists(tlsPublic) {
-			err := genCertPair(tlsPublic, tlsPrivate, state.GetFactomdLocations())
+		router.Schemes("HTTPS")
+		server.State.LogPrintf("apilog", "Starting encrypted API server")
+		if !fileExists(keyFile) && !fileExists(certFile) {
+			err := genCertPair(certFile, keyFile, state.GetFactomdLocations())
 			if err != nil {
 				panic(fmt.Sprintf("could not start encrypted API server with error: %v", err))
 			}
 		}
-		keypair, err := tls.LoadX509KeyPair(tlsPublic, tlsPrivate)
+		keypair, err := tls.LoadX509KeyPair(certFile, keyFile)
 		if err != nil {
 			panic(fmt.Sprintf("could not create TLS keypair with error: %v", err))
 		}
@@ -50,7 +49,6 @@ func InitServer(state interfaces.IState) *Server {
 		}
 
 		server.httpServer = &http.Server{Addr: address, Handler: router, TLSConfig: tlsConfig}
-
 	} else {
 		server.httpServer = &http.Server{Addr: address, Handler: router}
 	}
@@ -64,8 +62,14 @@ func (server *Server) Start() {
 	server.State.LogPrintf("apilog", "Starting API server")
 	go func() {
 		// returns ErrServerClosed on graceful close
-		if err := server.httpServer.ListenAndServe(); err != http.ErrServerClosed {
-			server.State.LogPrintf("apilog", "ListenAndServe %v", err)
+		if server.tlsEnabled {
+			if err := server.httpServer.ListenAndServeTLS(server.certFile, server.keyFile); err != http.ErrServerClosed {
+				server.State.LogPrintf("apilog", "ListenAndServeTLS %v", err)
+			}
+		} else {
+			if err := server.httpServer.ListenAndServe(); err != http.ErrServerClosed {
+				server.State.LogPrintf("apilog", "ListenAndServe %v", err)
+			}
 		}
 	}()
 }
@@ -133,7 +137,7 @@ func (server *Server) AddRootEndpoints() {
 }
 
 // methodNotAllowed replies to the request with an HTTP status code 404 instead of default 405.
-func methodNotAllowed(w http.ResponseWriter, r *http.Request) {
+func methodNotAllowed(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusNotFound)
 }
 

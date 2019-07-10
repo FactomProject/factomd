@@ -41,6 +41,10 @@ func Start(state interfaces.IState) {
 	port := strconv.Itoa(state.GetPort())
 	if Servers[port] == nil {
 		server := InitServer(state)
+		server.AddRootEndpoints()
+		server.AddV1Endpoints()
+		server.AddV2Endpoints()
+
 		Servers[port] = server
 
 		rpcUser := state.GetRpcUser()
@@ -103,7 +107,6 @@ func GetState(r *http.Request) (state interfaces.IState, err error) {
 		return nil, errors.New(fmt.Sprintf("failed to get state, server initialization on port: %s failed", port))
 	}
 }
-
 
 /*********************************************************
  * Support Functions

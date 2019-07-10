@@ -91,12 +91,12 @@ func TestHandleGetRaw(t *testing.T) {
 		url := fmt.Sprintf("/v1/get-raw-data/%s", v.Hash1)
 
 		rawDataResponse := new(RawDataResponse)
-		v1RequestGet(t, url, 200, rawDataResponse)
+		v1RequestGet(t, url, http.StatusOK, rawDataResponse)
 
 		assert.True(t, strings.Contains(rawDataResponse.Data, v.Raw), "Looking for %v \nGetRaw %v/%v from Hash1 failed - %v", v.Hash1, i, len(toTest), rawDataResponse.Data)
 
 		url = fmt.Sprintf("/v1/get-raw-data/%s", v.Hash2)
-		v1RequestGet(t, url, 200, rawDataResponse)
+		v1RequestGet(t, url, http.StatusOK, rawDataResponse)
 
 		assert.True(t, strings.Contains(rawDataResponse.Data, v.Raw), "Looking for %v \nGetRaw %v/%v from Hash2 failed - %v", v.Hash2, i, len(toTest), rawDataResponse.Data)
 	}
@@ -111,7 +111,7 @@ func TestHandleDirectoryBlock(t *testing.T) {
 	url := fmt.Sprintf("/v1/directory-block-by-keymr/%s", hash)
 
 	dBlock := new(DBlock)
-	v1RequestGet(t, url, 200, dBlock)
+	v1RequestGet(t, url, http.StatusOK, dBlock)
 
 	result, err := dBlock.JSONString()
 
@@ -148,13 +148,13 @@ func TestHandleEntryBlock(t *testing.T) {
 
 		eBlock := new(EBlock)
 		url := fmt.Sprintf("/v1/entry-block-by-keymr/%s", hash)
-		v1RequestGet(t, url, 200, eBlock)
+		v1RequestGet(t, url, http.StatusOK, eBlock)
 
 		assert.Equal(t, "df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604", eBlock.Header.ChainID, "Wrong ChainID in eBlock - %v", eBlock)
 		assert.Equal(t, int64(b.(*entryBlock.EBlock).GetHeader().GetDBHeight()), eBlock.Header.DBHeight, "DBHeight is wrong - %v vs %v", eBlock.Header.DBHeight, b.(*entryBlock.EBlock).GetHeader().GetDBHeight())
 
 		url = fmt.Sprintf("/v1/entry-block-by-keymr/%s", hash2)
-		v1RequestGet(t, url, 200, eBlock)
+		v1RequestGet(t, url, http.StatusOK, eBlock)
 
 		assert.Equal(t, "df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604", eBlock.Header.ChainID, "Wrong ChainID in eBlock - %v", eBlock)
 		assert.Equal(t, int64(b.(*entryBlock.EBlock).GetHeader().GetDBHeight()), eBlock.Header.DBHeight, "DBHeight is wrong - %v vs %v", eBlock.Header.DBHeight, b.(*entryBlock.EBlock).GetHeader().GetDBHeight())
@@ -170,7 +170,7 @@ func TestHandleEntryBlockInvalidHash(t *testing.T) {
 
 	url := "/v1/entry-block-by-keymr/invalid-hash"
 
-	v1RequestGet(t, url, 400, nil)
+	v1RequestGet(t, url, http.StatusBadRequest, nil)
 }
 
 func TestHandleGetFee(t *testing.T) {
@@ -181,7 +181,7 @@ func TestHandleGetFee(t *testing.T) {
 
 	type x struct{ Fee int64 }
 	fee := new(x)
-	v1RequestGet(t, url, 200, fee)
+	v1RequestGet(t, url, http.StatusOK, fee)
 
 	if fee.Fee < 1 {
 		t.Errorf("%v", fee)
@@ -209,17 +209,17 @@ func TestDBlockList(t *testing.T) {
 	for _, l := range list {
 		url := fmt.Sprintf("/v1/directory-block-by-keymr/%s", l)
 		// expect a NewBlockNotFoundError
-		v1RequestGet(t, url, 400, dBlock)
+		v1RequestGet(t, url, http.StatusBadRequest, dBlock)
 	}
 
 	hash := "000000000000000000000000000000000000000000000000000000000000000d"
 
 	head := new(CHead)
 	url := fmt.Sprintf("/v1/chain-head/%s", hash)
-	v1RequestGet(t, url, 200, head)
+	v1RequestGet(t, url, http.StatusOK, head)
 
 	url = fmt.Sprintf("/v1/directory-block-by-keymr/%s", head.ChainHead)
-	v1RequestGet(t, url, 200, dBlock)
+	v1RequestGet(t, url, http.StatusOK, dBlock)
 }
 
 func TestBlockIteration(t *testing.T) {
@@ -231,7 +231,7 @@ func TestBlockIteration(t *testing.T) {
 
 	head := new(CHead)
 	url := fmt.Sprintf("/v1/chain-head/%s", hash)
-	v1RequestGet(t, url, 200, head)
+	v1RequestGet(t, url, http.StatusOK, head)
 
 	prev := head.ChainHead
 	fetched := 0
@@ -242,7 +242,7 @@ func TestBlockIteration(t *testing.T) {
 
 		block := new(DBlock)
 		url := fmt.Sprintf("/v1/directory-block-by-keymr/%s", prev)
-		v1RequestGet(t, url, 200, block)
+		v1RequestGet(t, url, http.StatusOK, block)
 
 		prev = block.Header.PrevBlockKeyMR
 		fetched++
@@ -260,7 +260,7 @@ func TestHandleGetReceipt(t *testing.T) {
 
 	receipt := new(ReceiptResponse)
 	url := fmt.Sprintf("/v1/get-receipt/%s", hash)
-	v1RequestGet(t, url, 200, receipt)
+	v1RequestGet(t, url, http.StatusOK, receipt)
 
 	assert.NotNil(t, receipt.Receipt, "Receipt not found!")
 
@@ -281,7 +281,7 @@ func TestHandleGetUnanchoredReceipt(t *testing.T) {
 
 	receipt := new(ReceiptResponse)
 	url := fmt.Sprintf("/v1/get-receipt/%s", hash)
-	v1RequestGet(t, url, 200, receipt)
+	v1RequestGet(t, url, http.StatusOK, receipt)
 
 	err := receipt.Receipt.Validate()
 	assert.Nil(t, err, "failed to validate receipt - %v", receipt)
@@ -299,7 +299,7 @@ func TestHandleFactoidBalanceUnknownAddress(t *testing.T) {
 	factoidBalanceResponse := new(FactoidBalanceResponse)
 	url := "/v1/factoid-balance/f1ba8879fcf63b596b60ccc4c69c7f6848475ac037fc63b080ba2d9502fe66a4"
 
-	v1RequestGet(t, url, 200, factoidBalanceResponse)
+	v1RequestGet(t, url, http.StatusOK, factoidBalanceResponse)
 
 	assert.Equal(t, int64(0), factoidBalanceResponse.Balance, "%v", factoidBalanceResponse)
 }
@@ -315,7 +315,7 @@ func TestHandleProperties(t *testing.T) {
 
 	properties := new(V1Properties)
 	url := "/v1/properties/"
-	v1RequestGet(t, url, 200, properties)
+	v1RequestGet(t, url, http.StatusOK, properties)
 
 	assert.Equal(t, properties.Factomd_Version, state.GetFactomdVersion())
 	assert.Equal(t, "0.0.0.0", properties.Protocol_Version)
@@ -327,7 +327,7 @@ func TestHandleHeights(t *testing.T) {
 
 	heightsResponse := new(HeightsResponse)
 	url := "/v1/heights/"
-	v1RequestGet(t, url, 200, heightsResponse)
+	v1RequestGet(t, url, http.StatusOK, heightsResponse)
 
 	assert.Equal(t, int64(state.GetTrueLeaderHeight()), heightsResponse.LeaderHeight)
 	assert.Equal(t, int64(state.GetHighestSavedBlk()), heightsResponse.DirectoryBlockHeight)
