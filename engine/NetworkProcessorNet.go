@@ -344,7 +344,6 @@ func sendToExecute(msg interfaces.IMsg, fnode *FactomNode, source string) {
 	switch t {
 	case constants.MISSING_MSG:
 		fnode.State.LogMessage("mmr_response", fmt.Sprintf("%s, enqueue %d", source, len(fnode.State.MissingMessageResponseHandler.MissingMsgRequests)), msg)
-
 		fnode.State.MissingMessageResponseHandler.NotifyPeerMissingMsg(msg)
 
 	case constants.COMMIT_CHAIN_MSG:
@@ -354,14 +353,14 @@ func sendToExecute(msg interfaces.IMsg, fnode *FactomNode, source string) {
 			reveal := fnode.State.Reveals.Get(msg.GetHash().Fixed())
 			if reveal != nil {
 				Q1(fnode, source, reveal) // if we have it send it fast track
-				// it will still arive from thr slow track but thats ok.
+				// it will still arrive from thr slow track but that is ok.
 			}
 		}
 
 	case constants.REVEAL_ENTRY_MSG:
 		// if this is a chain commit reveal send it fast track to allow processing of dependant reveals
 		if fnode.State.ChainCommits.Get(msg.GetHash().Fixed()) != nil {
-			Q1(fnode, source, msg)
+			Q1(fnode, source, msg) // fast track chain reveals
 		} else {
 			Q2(fnode, source, msg) // all other reveals are slow track
 			if cacheReveals {
@@ -373,8 +372,9 @@ func sendToExecute(msg interfaces.IMsg, fnode *FactomNode, source string) {
 		Q2(fnode, source, msg) // slow track
 
 	default:
+		//todo: Probably should send EOM/DBSig and their ACKs on a faster yet track
+		// in general this makes ACKs more likely to arrive first.
 		Q1(fnode, source, msg) // fast track
-
 	}
 
 	if constants.NeedsAck(msg.Type()) {

@@ -26,7 +26,7 @@ func TestHoldingRebound(t *testing.T) {
 
 	println(a.String())
 
-	params := map[string]string{"--debuglog": "."}
+	params := map[string]string{}
 
 	state0 := SetupSim("L", params, 12, 0, 0, t)
 
