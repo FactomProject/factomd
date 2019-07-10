@@ -113,7 +113,7 @@ func (ar *AnchorRecord) MarshalAndSignV2(priv interfaces.Signer) ([]byte, []byte
 	return data, sig.Bytes(), nil
 }
 
-// Non-exported, refactored function - is it better to use *string return for nil, or ""??
+// Non-exported, refactored function that splits the AnchorRecord and its signature
 func splitAnchorAndSignature(data []byte) (string, string, error) {
 	if len(data) == 0 {
 		return "", "", fmt.Errorf("Invalid data passed")
@@ -254,7 +254,7 @@ func CreateAnchorRecordFromDBlock(dBlock interfaces.IDirectoryBlock) *AnchorReco
 
 // IsSame returns true iff all fields of BitcoinStructs bc==bc2
 func (bc *BitcoinStruct) IsSame(bc2 *BitcoinStruct) bool {
-	if bc.Address != bc2.Address || bc.TXID != bc2.TXID || bc.BlockHeight != bc2.BlockHeight || bc.BlockHash != bc2.BlockHash ||
+	if bc2 == nil || bc.Address != bc2.Address || bc.TXID != bc2.TXID || bc.BlockHeight != bc2.BlockHeight || bc.BlockHash != bc2.BlockHash ||
 		bc.Offset != bc2.Offset {
 		return false
 	}
@@ -263,9 +263,9 @@ func (bc *BitcoinStruct) IsSame(bc2 *BitcoinStruct) bool {
 
 // IsSame returns true iff all fields of EthereumStructs es==es2
 func (es *EthereumStruct) IsSame(es2 *EthereumStruct) bool {
-	if es.ContractAddress != es2.ContractAddress || es.TxID != es2.TxID || es.BlockHeight != es2.BlockHeight || es.BlockHash != es2.BlockHash ||
+	if es2 == nil || es.ContractAddress != es2.ContractAddress || es.TxID != es2.TxID || es.BlockHeight != es2.BlockHeight || es.BlockHash != es2.BlockHash ||
 		es.TxIndex != es.TxIndex {
 		return false
 	}
-	return false
+	return true
 }
