@@ -165,25 +165,28 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 				// If we end up dropping this message, there isn't much we can do without potentially blocking
 				// our asks and adds queue.
 				// If the s.adds/s.asks queue is backed up, we cannot block here, or the validator loop will be stalled.
-				droppedMsg := NonBlockingChannelAdd(s.PrioritizedMsgQueue(), msg)
+				successfulMsg := NonBlockingChannelAdd(s.PrioritizedMsgQueue(), msg)
 				ml, mc := len(s.PrioritizedMsgQueue()), cap(s.PrioritizedMsgQueue())
-				droppedAck := NonBlockingChannelAdd(s.PrioritizedMsgQueue(), ack)
+
+				// Only add the ack if the msg was successful
+				successfulAck := !successfulMsg || NonBlockingChannelAdd(s.PrioritizedMsgQueue(), ack)
 				al, ac := len(s.PrioritizedMsgQueue()), cap(s.PrioritizedMsgQueue())
 
-				// Logging
-				if droppedMsg {
-					s.LogMessage("PrioritizedMsgQueue",
-						fmt.Sprintf("enqueue msg makeMMRs_addAsk, PQ %d:%d", ml, mc), msg)
-				} else {
-					s.LogMessage("PrioritizedMsgQueue",
-						fmt.Sprintf("dropped msg makeMMRs_addAsk, PQ %d:%d", ml, mc), msg)
-				}
-				if droppedAck {
-					s.LogMessage("PrioritizedMsgQueue",
-						fmt.Sprintf("enqueue ack makeMMRs_addAsk, PQ %d:%d", al, ac), msg)
-				} else {
-					s.LogMessage("PrioritizedMsgQueue",
-						fmt.Sprintf("dropped ack makeMMRs_addAsk, PQ %d:%d", al, ac), msg)
+				{ // Logging/Debugging
+					if successfulMsg {
+						s.LogMessage("PrioritizedMsgQueue",
+							fmt.Sprintf("enqueue msg makeMMRs_addAsk, PQ %d:%d", ml, mc), msg)
+					} else {
+						s.LogMessage("PrioritizedMsgQueue",
+							fmt.Sprintf("dropped msg makeMMRs_addAsk, PQ %d:%d", ml, mc), msg)
+					}
+					if successfulMsg && successfulAck { // If the message was not successful, neither was the ack.
+						s.LogMessage("PrioritizedMsgQueue",
+							fmt.Sprintf("enqueue ack makeMMRs_addAsk, PQ %d:%d", al, ac), msg)
+					} else {
+						s.LogMessage("PrioritizedMsgQueue",
+							fmt.Sprintf("dropped ack makeMMRs_addAsk, PQ %d:%d", al, ac), msg)
+					}
 				}
 			}
 		} // don't update the when if it already existed...

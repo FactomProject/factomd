@@ -168,7 +168,7 @@ func (s *State) Validate(msg interfaces.IMsg) (validToSend int, validToExec int)
 	}
 
 	if validToSend != 1 { // if the msg says anything other than valid
-		s.LogMessage("badmsgs", fmt.Sprintf("Invalid validity code %d", validToSend), msg)
+		s.LogMessage("badEvents", fmt.Sprintf("Invalid validity code %d", validToSend), msg)
 		panic("unexpected validity code")
 	}
 
@@ -238,7 +238,7 @@ func (s *State) executeMsg(msg interfaces.IMsg) (ret bool) {
 	}
 
 	if msg.GetHash() == nil || reflect.ValueOf(msg.GetHash()).IsNil() {
-		s.LogMessage("badMsgs", "Nil hash in executeMsg", msg)
+		s.LogMessage("badEvents", "Nil hash in executeMsg", msg)
 		return false
 	}
 
@@ -1322,48 +1322,7 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 }
 
 func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
-	panic("Missing Messages should never execute")
-	// Don't respond to missing messages if we are behind.
-	if s.inMsgQueue.Length() > constants.INMSGQUEUE_LOW {
-		return
-	}
-
-	m := msg.(*messages.MissingMsg)
-
-	pl := s.ProcessLists.Get(m.DBHeight)
-
-	if pl == nil {
-		s.MissingRequestIgnoreCnt++
-		return
-	}
-	FollowerMissingMsgExecutions.Inc()
-	sent := false
-	if len(pl.System.List) > int(m.SystemHeight) && pl.System.List[m.SystemHeight] != nil {
-		msgResponse := messages.NewMissingMsgResponse(s, pl.System.List[m.SystemHeight], nil)
-		msgResponse.SetOrigin(m.GetOrigin())
-		msgResponse.SetNetworkOrigin(m.GetNetworkOrigin())
-		msgResponse.SendOut(s, msgResponse)
-		s.MissingRequestReplyCnt++
-		sent = true
-	}
-
-	for _, h := range m.ProcessListHeight {
-		missingmsg, ackMsg, err := s.LoadSpecificMsgAndAck(m.DBHeight, m.VMIndex, h)
-
-		if missingmsg != nil && ackMsg != nil && err == nil {
-			// If I don't have this message, ignore.
-			msgResponse := messages.NewMissingMsgResponse(s, missingmsg, ackMsg)
-			msgResponse.SetOrigin(m.GetOrigin())
-			msgResponse.SetNetworkOrigin(m.GetNetworkOrigin())
-			msgResponse.SendOut(s, msgResponse)
-			s.MissingRequestReplyCnt++
-			sent = true
-		}
-	}
-
-	if !sent {
-		s.MissingRequestIgnoreCnt++
-	}
+	s.LogMessage("badEvents", "follower executed missing message, should never happen", msg)
 	return
 }
 

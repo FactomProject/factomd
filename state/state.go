@@ -933,8 +933,6 @@ func (s *State) GetSalt(ts interfaces.Timestamp) uint32 {
 }
 
 func (s *State) Init() {
-	s.LogPrintf("WhereAmI", "Init %s", atomic.WhereAmIString(1))
-
 	if s.Salt == nil {
 		b := make([]byte, 32)
 		_, err := rand.Read(b)
@@ -987,6 +985,7 @@ func (s *State) Init() {
 	s.MissingEntries = make(chan *MissingEntry, constants.INMSGQUEUE_HIGH)  //Entries I discover are missing from the database
 	s.UpdateEntryHash = make(chan *EntryUpdate, constants.INMSGQUEUE_HIGH)  //Handles entry hashes and updating Commit maps.
 	s.WriteEntry = make(chan interfaces.IEBEntry, constants.INMSGQUEUE_LOW) //Entries to be written to the database
+	s.RecentMessage.NewMsgs = make(chan interfaces.IMsg, 100)
 
 	if s.Journaling {
 		f, err := os.Create(s.JournalFile)

@@ -138,7 +138,7 @@ func Peers(fnode *FactomNode) {
 				continue
 			}
 			if msg.GetHash().IsHashNil() {
-				fnode.State.LogMessage("badMsgs", "Nil hash from APIQueue", msg)
+				fnode.State.LogMessage("badEvents", "Nil hash from APIQueue", msg)
 				continue
 			}
 
@@ -175,12 +175,11 @@ func Peers(fnode *FactomNode) {
 				RepeatMsgs.Inc()
 				continue
 			}
-			if fnode.State.RecentMessage.NewMsgs == nil {
-				fnode.State.RecentMessage.NewMsgs = make(chan interfaces.IMsg, 100)
-			}
 
-			// send msg to MMRequest processing to suppress requests for messages we already have
-			fnode.State.RecentMessage.NewMsgs <- msg
+			if constants.NeedsAck(msg.Type()) {
+				// send msg to MMRequest processing to suppress requests for messages we already have
+				fnode.State.RecentMessage.NewMsgs <- msg
+			}
 
 			//fnode.MLog.add2(fnode, false, fnode.State.FactomNodeName, "API", true, msg)
 			if t := msg.Type(); t == constants.REVEAL_ENTRY_MSG || t == constants.COMMIT_CHAIN_MSG || t == constants.COMMIT_ENTRY_MSG {
@@ -237,7 +236,7 @@ func Peers(fnode *FactomNode) {
 				}
 
 				if msg.GetHash().IsHashNil() {
-					fnode.State.LogMessage("badMsgs", "Nil hash from Peer", msg)
+					fnode.State.LogMessage("badEvents", "Nil hash from Peer", msg)
 					continue
 				}
 
@@ -349,12 +348,11 @@ func Peers(fnode *FactomNode) {
 						fnode.State.InMsgQueue().Enqueue(msg)
 					}
 				}
-				if fnode.State.RecentMessage.NewMsgs == nil {
-					fnode.State.RecentMessage.NewMsgs = make(chan interfaces.IMsg, 100)
-				}
 
-				// send msg to MMRequest processing to suppress requests for messages we already have
-				fnode.State.RecentMessage.NewMsgs <- msg
+				if constants.NeedsAck(msg.Type()) {
+					// send msg to MMRequest processing to suppress requests for messages we already have
+					fnode.State.RecentMessage.NewMsgs <- msg
+				}
 			} // For a peer read up to 100 messages {...}
 		} // for each peer {...}
 		if cnt == 0 {
