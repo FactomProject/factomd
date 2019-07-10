@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/messages/electionMsgs"
@@ -71,7 +72,9 @@ func NewDBGenerator(c *DBGeneratorConfig) (*DBGenerator, error) {
 
 func NewGeneratorState(conf *DBGeneratorConfig, starttime interfaces.Timestamp) *state.State {
 	s := new(state.State)
+	s.TimestampAtBoot = starttime
 	s.SetLeaderTimestamp(starttime)
+	s.Balancehash = primitives.NewZeroHash()
 	var db interfaces.IDatabase
 	var err error
 	switch strings.ToLower(conf.DBType) {
@@ -137,12 +140,15 @@ func (g *DBGenerator) loadGenesis() {
 	g.FactomdState.DBStates.SaveDBStateToDB(sds)
 	sds.Saved = true
 	g.last = sds
+	g.FactomdState.DBStates.Last().Saved = true
 }
 
 // SaveDBState will save a dbstate to disk
 func (g *DBGenerator) SaveDBState(dbstate *state.DBState) {
 	dbstate.ReadyToSave = true
 	dbstate.Signed = true
+	dbstate.SaveStruct = new(state.SaveState)
+	dbstate.SaveStruct.IdentityControl = identity.NewIdentityManager()
 	g.FactomdState.DBStates.ProcessHeight = dbstate.DirectoryBlock.GetDatabaseHeight()
 	put := g.FactomdState.DBStates.Put(dbstate)
 	if !put {
@@ -152,6 +158,17 @@ func (g *DBGenerator) SaveDBState(dbstate *state.DBState) {
 	if !progress {
 		log.Warnf("%d Not saved to disk", dbstate.DirectoryBlock.GetDatabaseHeight())
 	}
+
+EntryLoop:
+	for {
+		select {
+		case ent := <-g.FactomdState.WriteEntry:
+			g.FactomdState.GetDB().InsertEntry(ent)
+		default:
+			break EntryLoop
+		}
+	}
+
 	dbstate.Saved = true
 	g.FactomdState.DBStates.Complete = dbstate.DirectoryBlock.GetDatabaseHeight() - g.FactomdState.DBStates.Base
 	g.FactomdState.ProcessLists.DBHeightBase = dbstate.DirectoryBlock.GetDatabaseHeight()
@@ -236,6 +253,7 @@ func (g *DBGenerator) CreateBlocks(amt int) error {
 
 		loopEntries += len(dbstate.Entries)
 		totalEntries += len(dbstate.Entries)
+
 		g.SaveDBState(dbstate)
 		g.last = dbstate
 

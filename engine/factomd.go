@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"runtime"
 
+	"github.com/FactomProject/factomd/common/constants/runstate"
 	. "github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -37,14 +38,6 @@ var _ = fmt.Print
 // or create more context loggers off of this
 var packageLogger = log.WithFields(log.Fields{"package": "engine"})
 
-// Build sets the factomd build id using git's SHA
-// Version sets the semantic version number of the build
-// $ go install -ldflags "-X github.com/FactomProject/factomd/engine.Build=`git rev-parse HEAD` -X github.com/FactomProject/factomd/engine.=`cat VERSION`"
-// It also seems to need to have the previous binary deleted if recompiling to have this message show up if no code has changed.
-// Since we are tracking code changes, then there is no need to delete the binary to use the latest message
-var Build string
-var FactomdVersion string = "BuiltWithoutVersion"
-
 func Factomd(params *FactomParams, listenToStdin bool) interfaces.IState {
 	fmt.Printf("Go compiler version: %s\n", runtime.Version())
 	fmt.Printf("Using build: %s\n", Build)
@@ -53,9 +46,9 @@ func Factomd(params *FactomParams, listenToStdin bool) interfaces.IState {
 	fmt.Printf("Start time: %s\n", StartTime.String())
 
 	state0 := new(state.State)
-	state0.IsRunning = true
-	// Setup the name to catch any early logging
+	state0.RunState = runstate.New
 
+	// Setup the name to catch any early logging
 	state0.FactomNodeName = state0.Prefix + "FNode0"
 	state0.TimestampAtBoot = primitives.NewTimestampNow()
 	state0.SetLeaderTimestamp(state0.TimestampAtBoot)
