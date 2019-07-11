@@ -133,6 +133,10 @@ func StartSim(GivenNodes string, UserAddedOptions map[string]string) *state.Stat
 func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int, electionsCnt int, RoundsCnt int, t *testing.T) *state.State {
 	fmt.Println("SetupSim(", GivenNodes, ",", UserAddedOptions, ",", height, ",", electionsCnt, ",", RoundsCnt, ")")
 
+	if UserAddedOptions == nil {
+		UserAddedOptions = make(map[string]string)
+	}
+
 	if UserAddedOptions["--factomhome"] == "" {
 		// default to create a new home dir for each sim test if not specificed
 		homeDir := GetSimTestHome(t)

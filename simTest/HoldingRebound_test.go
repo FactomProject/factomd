@@ -26,9 +26,7 @@ func TestHoldingRebound(t *testing.T) {
 
 	println(a.String())
 
-	params := map[string]string{"--debuglog": "."}
-
-	state0 := SetupSim("L", params, 12, 0, 0, t)
+	state0 := SetupSim("L", nil, 12, 0, 0, t)
 
 	e := factom.Entry{
 		ChainID: id,
