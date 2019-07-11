@@ -17,15 +17,12 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-// CurrentAnchorVersion is the current anchor version
-const CurrentAnchorVersion int = 1
-
 // AnchorRecord is used to construct the anchor chain. The Factom Protocol writes an anchor into
 // a parent blockchain (Bitcoin or Ethereum) approximately every 10 minutes. The accumulated entries
 // from the previous 10 minutes are organized into a Directory Block (DBlock). The information
 // from the directory block is stored in the AnchorRecord.
 type AnchorRecord struct {
-	AnchorRecordVer int    // the only supported version seems to be 1
+	AnchorRecordVer int    // version 1 places signature content in the field, version 2 uses external IDs for signature
 	DBHeight        uint32 // Factom Directory Block Height - the unique number associated with this DBlock
 	KeyMR           string // key merkle root of the directory block
 
@@ -33,11 +30,11 @@ type AnchorRecord struct {
 	DBHeightMin uint32 `json:",omitempty"` // The lowest directory block height included in this anchor window
 	WindowMR    string `json:",omitempty"` // Merkle root of all directory block KeyMRs from DBHeightMin to DBHeightMax
 
-	RecordHeight uint32 // This is the future DBlock height a confirmation of anchoring event X is
-	// written to (usually X+1). In principle, the confirmation status is available
-	// in the Bitcoin/Etherium structs, but RecordHeight acts as an internal syncing
-	// mechanism to ensure that all Factom servers are in sync and working on the same
-	// block (ie, not behind)
+	RecordHeight uint32 // Likely to be deprecated soon. This is the future DBlock height a confirmation of anchoring event X is
+	// **intended** to be written to (usually X+1). The field is fairly useless since you can't know for sure
+	// what block an entry will be included in until after the entry is confirmed, and by that point, you can
+	// get the block height from it's parent Entry Block.
+
 	Bitcoin  *BitcoinStruct  `json:",omitempty"`
 	Ethereum *EthereumStruct `json:",omitempty"`
 }
@@ -182,7 +179,7 @@ func verifyAnchorAndSignature(data []byte, sig *primitives.ByteSliceSig, publicK
 	return valid, nil
 }
 
-// UnmarshalAndValidateAnchorRecord unmarshals signed json data and verifies signature with public keys
+// UnmarshalAndValidateAnchorRecord unmarshals signed json data and verifies signature with public keys for AnchorRecord v1
 func UnmarshalAndValidateAnchorRecord(data []byte, publicKeys []interfaces.Verifier) (*AnchorRecord, bool, error) {
 	anchorStr, signatureStr, err := splitAnchorAndSignature(data)
 	if err != nil {
@@ -208,7 +205,7 @@ func UnmarshalAndValidateAnchorRecord(data []byte, publicKeys []interfaces.Verif
 	return ar, true, nil
 }
 
-// UnmarshalAndValidateAnchorRecordV2 unmarshals json data and verifies external signature with public keys
+// UnmarshalAndValidateAnchorRecordV2 unmarshals json data and verifies external signature with public keys using AnchorRecord v2
 func UnmarshalAndValidateAnchorRecordV2(data []byte, extIDs [][]byte, publicKeys []interfaces.Verifier) (*AnchorRecord, bool, error) {
 	if len(data) == 0 {
 		return nil, false, fmt.Errorf("Invalid data passed")
@@ -240,16 +237,6 @@ func UnmarshalAndValidateAnchorEntryAnyVersion(entry interfaces.IEBEntry, public
 		return ar, valid, err
 	}
 	return ar, valid, err
-}
-
-// CreateAnchorRecordFromDBlock creates new AnchorRecord from dBlock
-func CreateAnchorRecordFromDBlock(dBlock interfaces.IDirectoryBlock) *AnchorRecord {
-	ar := new(AnchorRecord)
-	ar.AnchorRecordVer = CurrentAnchorVersion
-	ar.DBHeight = dBlock.GetHeader().GetDBHeight()
-	ar.KeyMR = dBlock.DatabasePrimaryIndex().String()
-	ar.RecordHeight = ar.DBHeight
-	return ar
 }
 
 // IsSame returns true iff all fields of BitcoinStructs bc==bc2
