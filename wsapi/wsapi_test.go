@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
+	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/testHelper"
 	. "github.com/FactomProject/factomd/wsapi"
@@ -46,58 +47,56 @@ func TestGetEndpoints(t *testing.T) {
 	}
 }
 
-func body(content string) io.Reader {
-	payload, _ := json.Marshal(content)
-	body := bytes.NewBuffer(payload)
-	return body
-}
-
 func TestAuthenticatedUnauthorizedRequest(t *testing.T) {
-	state := testHelper.CreateAndPopulateTestState()
-	state.RpcUser = "user"
-	state.RpcPass = "password"
-	state.SetPort(18088)
-	Start(state)
-
-	url := "http://localhost:18088/v1/properties/"
-	response, err := http.Get(url)
-
-	assert.Nil(t, err)
-	if response != nil {
-		assert.Equal(t, http.StatusUnauthorized, response.StatusCode)
-
-		body, _ := ioutil.ReadAll(response.Body)
-		assert.Equal(t, "401 Unauthorized.\n", string(body))
-	} else {
-		t.Fatalf("no response")
-	}
-}
-
-func TestAuthenticatedRequest(t *testing.T) {
 	username := "user"
 	password := "password"
+
+	propertiesV2Body := body(primitives.NewJSON2Request("properties", 0, ""))
 
 	state := testHelper.CreateAndPopulateTestState()
 	state.RpcUser = username
 	state.RpcPass = password
+	state.SetPort(18088)
 	Start(state)
 
-	url := "http://localhost:8088/v1/properties/"
+	cases := map[string]struct {
+		Method       string
+		Url          string
+		Authenticate bool
+		Expected     int
+		Body         io.Reader
+	}{
+		"v1Authorized":   {"GET", "http://localhost:18088/v1/properties/", true, http.StatusOK, nil},
+		"v1Unauthorized": {"GET", "http://localhost:18088/v1/properties/", false, http.StatusUnauthorized, nil},
+		"v2Authorized":   {"POST", "http://localhost:18088/v2", true, http.StatusOK, propertiesV2Body},
+		"v2Unauthorized": {"POST", "http://localhost:18088/v2", false, http.StatusUnauthorized, propertiesV2Body},
+	}
 
 	client := &http.Client{}
-	request, err := http.NewRequest("GET", url, nil)
-	request.SetBasicAuth(username, password)
-	response, err := client.Do(request)
+	for name, testCase := range cases {
+		t.Logf("test case '%s'", name)
+		request, err := http.NewRequest(testCase.Method, testCase.Url, testCase.Body)
+		if testCase.Authenticate {
+			request.SetBasicAuth(username, password)
+		}
 
-	assert.Nil(t, err)
-	if response != nil {
-		assert.Equal(t, http.StatusOK, response.StatusCode)
+		response, err := client.Do(request)
 
-		body, _ := ioutil.ReadAll(response.Body)
-		assert.True(t, len(string(body)) > 0, "empty response %s", string(body))
-	} else {
-		t.Fatalf("no response")
+		if err != nil {
+			t.Errorf("test '%s' failed: %v \nresponse: %v", name, err, response)
+		} else if response == nil {
+			t.Errorf("test '%s' failed: response == nil", name)
+		} else if testCase.Expected != response.StatusCode {
+			body, _ := ioutil.ReadAll(response.Body)
+			t.Errorf("test '%s' failed: wrong status code expected '%d' != actual '%d', body: %s", name, testCase.Expected, response.StatusCode, string(body))
+		}
 	}
+}
+
+func body(content interface{}) io.Reader {
+	payload, _ := json.Marshal(content)
+	body := bytes.NewBuffer(payload)
+	return body
 }
 
 // use the mock state to override the GetTlsInfo
