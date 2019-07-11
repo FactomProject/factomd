@@ -113,6 +113,7 @@ func TestValidateAnchorRecordV2(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+	// This test is supposed to test v2 anchor records, but its using v1 in string below, however it fails if its changed to 2
 	signedRecord := `{"AnchorRecordVer":1,"DBHeight":46226,"KeyMR":"831287d96f9955ff438836b26219b8c937e01e668295e8334a5d140cdaacd2fd","RecordHeight":46226,"Bitcoin":{"Address":"1K2SXgApmo9uZoyahvsbSanpVWbzZWVVMF","TXID":"9a47f131677e135645cebe74085cd980044eda2abbb05ac09ee79ba8640f368d","BlockHeight":421417,"BlockHash":"000000000000000003781bf1b36dbaa1a71f94e23b4b9dc13024379aaf244d89","Offset":599}}`
 	sig, err := hex.DecodeString("e5d40b8673fbeba9e4e5a4322a514ec28989acef55b6fcdf49eae400b6d302852c2cf6659dc1f3298ffae60f6605666efbcef3ac4947333515084e1269ec0807")
 	if err != nil {
@@ -130,6 +131,7 @@ func TestValidateAnchorRecordV2(t *testing.T) {
 		t.Errorf("No anchor record returned!")
 	}
 
+	// This test is supposed to test v2 anchor records, but its using v1 in string below, however it fails if its changed to 2
 	invalidRecord := `{"AnchorRecordVer":1,"DBHeight":46226,"KeyMR":"831287d96f9955ff438836b26219b8c937e01e668295e8334a5d140cdaacd2fd","RecordHeight":46226,"Bitcoin":{"Address":"1K2SXgApmo9uZoyahvsbSanpVWbzZWVVMF","TXID":"9a47f131677e135645cebe74085cd980044eda2abbb05ac09ee79ba8640f368d","BlockHeight":421417,"BlockHash":"000000000000000003781bf1b36dbaa1a71f94e23b4b9dc13024379aaf244d89","Offset":599}}`
 	invalidSig, err := hex.DecodeString("e5d40b8673fbeba9e4e5a4322a514ec28989acef55b6fcdf49eae400b6d302852c2cf6659dc1f3298ffae60f6605666efbcef3ac4947333515084e1269ec0806")
 
