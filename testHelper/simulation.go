@@ -14,12 +14,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/FactomProject/factomd/elections"
+
 	"github.com/stretchr/testify/assert"
 
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/engine"
 	"github.com/FactomProject/factomd/state"
 )
@@ -41,7 +42,7 @@ var RanSimTest = false // only run 1 sim test at a time
 // start simulation without promoting nodes to the authority set
 // this is useful for creating scripts that will start/stop a simulation outside of the context of a unit test
 // this allows for consistent tweaking of a simulation to induce load add message loss or adjust timing
-func StartSim(GivenNodes string, UserAddedOptions map[string]string) *state.State {
+func StartSim(nodeCount int, UserAddedOptions map[string]string) *state.State {
 
 	CmdLineOptions := map[string]string{
 		"--db":                  "Map",
@@ -49,7 +50,7 @@ func StartSim(GivenNodes string, UserAddedOptions map[string]string) *state.Stat
 		"--net":                 "alot+",
 		"--enablenet":           "false",
 		"--blktime":             "40",
-		"--count":               fmt.Sprintf("%v", len(GivenNodes)),
+		"--count":               fmt.Sprintf("%v", nodeCount),
 		"--startdelay":          "1",
 		"--stdoutlog":           "out.txt",
 		"--stderrlog":           "out.txt",
@@ -129,34 +130,12 @@ func StartSim(GivenNodes string, UserAddedOptions map[string]string) *state.Stat
 
 }
 
-//EX. state0 := SetupSim("LLLLLLLLLLLLLLLAAAAAAAAAA",  map[string]string {"--controlpanelsetting" : "readwrite"}, t)
-func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int, electionsCnt int, RoundsCnt int, t *testing.T) *state.State {
-	fmt.Println("SetupSim(", GivenNodes, ",", UserAddedOptions, ",", height, ",", electionsCnt, ",", RoundsCnt, ")")
-
-	if UserAddedOptions == nil {
-		UserAddedOptions = make(map[string]string)
-	}
-
-	if UserAddedOptions["--factomhome"] == "" {
-		// default to create a new home dir for each sim test if not specificed
-		homeDir := GetSimTestHome(t)
-		err := os.MkdirAll(filepath.Join(homeDir, "/.factom/m2"), 0755)
-		if err != nil {
-			t.Fatal(err)
-		}
-		UserAddedOptions["--factomhome"] = homeDir
-	}
-
-	state0 := StartSim(GivenNodes, UserAddedOptions)
-	ExpectedHeight = height
-	blkt := globals.Params.BlkTime
-	roundt := elections.RoundTimeout
-	et := elections.FaultTimeout
+func setTestTimeouts(state0 *state.State, calcTime time.Duration) {
+	// init package vars
 	startTime = time.Now()
-	//	statusState = state0
-	calctime := time.Duration(float64(((height+3)*blkt)+(electionsCnt*et)+(RoundsCnt*roundt))*1.1) * time.Second
-	endTime = time.Now().Add(calctime)
-	fmt.Println("endTime: ", endTime.String(), "duration:", calctime.String())
+	endTime = time.Now().Add(calcTime)
+
+	fmt.Println("endTime: ", endTime.String(), "duration:", calcTime.String())
 
 	go func() {
 		for {
@@ -164,50 +143,76 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 			case <-quit:
 				return
 			default:
-				if int(state0.GetLLeaderHeight())-3 > height { // always give us 3 extra block to finish
-					fmt.Printf("Test Timeout: Expected %d blocks (%s)\n", height, calctime.String())
-					panic(fmt.Sprintf("Test Timeout: Expected %d blocks (%s)\n", height, calctime.String()))
+				if int(state0.GetLLeaderHeight())-3 > ExpectedHeight { // always give us 3 extra block to finish
+					fmt.Printf("Test Timeout: Expected %d blocks (%s)\n", ExpectedHeight, calcTime.String())
+					panic(fmt.Sprintf("Test Timeout: Expected %d blocks (%s)\n", ExpectedHeight, calcTime.String()))
 				}
 				if time.Now().After(endTime) {
-					fmt.Printf("Test Timeout: Expected it to take %s (%d blocks)\n", calctime.String(), height)
-					panic(fmt.Sprintf("Test Timeout: Expected it to take %s (%d blocks)\n", calctime.String(), height))
+					fmt.Printf("Test Timeout: Expected it to take %s (%d blocks)\n", calcTime.String(), ExpectedHeight)
+					panic(fmt.Sprintf("Test Timeout: Expected it to take %s (%d blocks)\n", calcTime.String(), ExpectedHeight))
 				}
 				time.Sleep(1 * time.Second)
 			}
 		}
 	}()
+
+	fmt.Printf("Starting timeout timer:  Expected test to take %s or %d blocks\n", calcTime.String(), ExpectedHeight)
+}
+
+//EX. state0 := SetupSim("LLLLLLLLLLLLLLLAAAAAAAAAA",  map[string]string {"--controlpanelsetting" : "readwrite"}, t)
+func SetupSim(givenNodes string, userAddedOptions map[string]string, height int, electionsCnt int, roundsCnt int, t *testing.T) *state.State {
+	fmt.Println("SetupSim(", givenNodes, ",", userAddedOptions, ",", height, ",", electionsCnt, ",", roundsCnt, ")")
+
+	if userAddedOptions["--factomhome"] == "" {
+		// default to create a new home dir for each sim test if not specified
+		homeDir := GetSimTestHome(t)
+		err := os.MkdirAll(filepath.Join(homeDir, "/.factom/m2"), 0755)
+		if err != nil {
+			t.Fatal(err)
+		}
+		userAddedOptions["--factomhome"] = homeDir
+	}
+
+	ExpectedHeight = height
+	nodeLen := setNodeCounts(givenNodes)
+	state0 := StartSim(nodeLen, userAddedOptions)
 	state0.MessageTally = true
 
-	fmt.Printf("Starting timeout timer:  Expected test to take %s or %d blocks\n", calctime.String(), height)
-	StatusEveryMinute(state0)
-	WaitMinutes(state0, 1) // wait till initial DBState message for the genesis block is processed
-	creatingNodes(GivenNodes, state0, t)
-
-	l := len(GivenNodes)
-	t.Logf("Allocated %d nodes", l)
-	if len(engine.GetFnodes()) != l {
-		t.Fatalf("Should have allocated %d nodes", l)
-		t.Fail()
+	{ // calculate & set test timeout
+		blkt := globals.Params.BlkTime
+		roundt := elections.RoundTimeout
+		et := elections.FaultTimeout
+		setTestTimeouts(state0, time.Duration(float64(((height+3)*blkt)+(electionsCnt*et)+(roundsCnt*roundt))*1.1)*time.Second)
 	}
-	if Audits == 0 && Leaders == 0 {
-		// if no requested promotions then assume we loaded from a database and the test will check
+
+	StatusEveryMinute(state0)
+
+	if state0.GetDBHeightAtBoot() != 0 {
+		if len(engine.GetFnodes()) != nodeLen {
+			t.Fatalf("Expected sim to boot with %d nodes", nodeLen)
+		} else {
+			t.Logf("Loading %d pre-existing nodes", nodeLen)
+		}
 	} else {
+
+		// TODO: swap out default leader identity
+
+		WaitMinutes(state0, 1) // wait till initial DBState message for the genesis block is processed
+		createNodes(givenNodes, state0, t)
+
+		t.Logf("Allocated %d nodes", nodeLen)
+		if len(engine.GetFnodes()) != nodeLen {
+			t.Fatalf("Should have allocated %d nodes", nodeLen)
+			t.Fail()
+		}
 		CheckAuthoritySet(t)
 	}
+
 	return state0
 }
 
-func creatingNodes(creatingNodes string, state0 *state.State, t *testing.T) {
-	RunCmd(fmt.Sprintf("g%d", len(creatingNodes)))
-	WaitBlocks(state0, 3) // Wait for 2 blocks because ID scans is for block N-1
-	WaitMinutes(state0, 1)
-	// Wait till all the entries from the g command are processed
-	simFnodes := engine.GetFnodes()
-	nodes := len(simFnodes)
-	if len(creatingNodes) > nodes {
-		t.Fatalf("Should have allocated %d nodes", len(creatingNodes))
-	}
-	WaitForMinute(state0, 1)
+func promoteNodes(creatingNodes string) int {
+
 	for i, c := range []byte(creatingNodes) {
 		fmt.Println("it:", i, c)
 		switch c {
@@ -216,18 +221,52 @@ func creatingNodes(creatingNodes string, state0 *state.State, t *testing.T) {
 				RunCmd(fmt.Sprintf("%d", i))
 				RunCmd("l")
 			}
-			Leaders++
 		case 'A', 'a':
 			RunCmd(fmt.Sprintf("%d", i))
 			RunCmd("o")
-			Audits++
 		case 'F', 'f':
-			Followers++
 			break
 		default:
 			panic("NOT L, A or F")
 		}
 	}
+
+	return Leaders + Followers + Audits
+}
+
+func setNodeCounts(creatingNodes string) int {
+	Leaders = 0
+	Followers = 0
+	Audits = 0
+
+	for _, c := range []byte(creatingNodes) {
+		switch c {
+		case 'L', 'l':
+			Leaders++
+		case 'A', 'a':
+			Audits++
+		case 'F', 'f':
+			Followers++
+		default:
+			panic("NOT L, A or F")
+		}
+	}
+
+	return Leaders + Followers + Audits
+}
+
+func createNodes(creatingNodes string, state0 *state.State, t *testing.T) {
+	RunCmd(fmt.Sprintf("g%d", len(creatingNodes)))
+	WaitBlocks(state0, 3) // Wait for 2 blocks because ID scans is for block N-1
+	WaitMinutes(state0, 1)
+	promoteNodes(creatingNodes)
+	// Wait till all the entries from the g command are processed
+	simFnodes := engine.GetFnodes()
+	nodes := len(simFnodes)
+	if len(creatingNodes) > nodes {
+		t.Fatalf("Should have allocated %d nodes", len(creatingNodes))
+	}
+	WaitForMinute(state0, 1)
 	WaitBlocks(state0, 1) // Wait for 1 block
 	WaitForMinute(state0, 1)
 	WaitForAllNodes(state0) // make sure everyone is caught up
@@ -364,30 +403,30 @@ func WaitForMinute(s *state.State, newMinute int) {
 }
 
 func CountAuthoritySet() (int, int, int) {
-	leadercnt := 0
-	auditcnt := 0
-	followercnt := 0
+	foundLeaders := 0
+	foundAuditors := 0
+	foundFollowers := 0
 
 	for i, fn := range engine.GetFnodes() {
 		s := fn.State
 		if s.Leader {
 			fmt.Printf("Found Leader   %d %x\n", i, s.GetIdentityChainID().Bytes()[3:6])
-			leadercnt++
+			foundLeaders++
 		} else {
 			list := s.ProcessLists.Get(s.LLeaderHeight)
 			foundAudit, _ := list.GetAuditServerIndexHash(s.GetIdentityChainID())
 			if foundAudit {
 				fmt.Printf("Found Audit     %d %x\n", i, s.GetIdentityChainID().Bytes()[3:6])
-				auditcnt++
+				foundAuditors++
 			} else {
 				fmt.Printf("Found Follower %d %x\n", i, s.GetIdentityChainID().Bytes()[3:6])
 
-				followercnt++
+				foundFollowers++
 			}
 		}
 	}
 
-	return leadercnt, auditcnt, followercnt
+	return foundLeaders, foundAuditors, foundFollowers
 }
 
 func AdjustAuthoritySet(adjustingNodes string) {

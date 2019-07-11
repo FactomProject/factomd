@@ -46,7 +46,7 @@ func TestLoadWith1pctDrop(t *testing.T) {
 		"--startdelay":   "2",
 		"--factomhome":   GetLongTestHome(t),
 	}
-	state0 := StartSim(nodesLoadWith1pctDrop, params)
+	state0 := StartSim(len(nodesLoadWith1pctDrop), params)
 
 	// adjust simulation parameters
 	RunCmd("s")    // show node state summary
