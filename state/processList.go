@@ -648,7 +648,12 @@ func (p *ProcessList) CheckDiffSigTally() bool {
 
 func (p *ProcessList) TrimVMList(h uint32, vmIndex int) {
 	height := int(h)
-	if len(p.VMs[vmIndex].List) < height {
+	if len(p.VMs[vmIndex].List) > height {
+		if p.VMs[vmIndex].Height > height {
+			// We can not trim beyond the highest processed message.
+			p.State.LogPrintf("processList", "Attempt to trim higher than processed list=%d p=%d h=%d", len(p.VMs[vmIndex].List), p.VMs[vmIndex].Height, height)
+			return
+		}
 		p.State.LogPrintf("processList", "TrimVMList() %d/%d/%d", p.DBHeight, vmIndex, height)
 		p.VMs[vmIndex].List = p.VMs[vmIndex].List[:height]
 		if p.State.DebugExec() {
@@ -661,8 +666,7 @@ func (p *ProcessList) TrimVMList(h uint32, vmIndex int) {
 			p.VMs[vmIndex].HighestAsk = height // Drag Ask limit back
 		}
 	} else {
-		p.State.LogPrintf("process", "Attempt to trim higher than list list=%d h=%d", len(p.VMs[vmIndex].List), height)
-
+		p.State.LogPrintf("processList", "Attempt to trim higher than list list=%d p=%d h=%d", len(p.VMs[vmIndex].List), p.VMs[vmIndex].Height, height)
 	}
 }
 func (p *ProcessList) GetDBHeight() uint32 {
@@ -892,8 +896,20 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 				}
 				vm.ProcessTime = now
 
-				if msg.Process(p.DBHeight, s) { // Try and Process this entry
-
+				valid := msg.Validate(p.State)
+				if valid == -1 { // TODO: Delete this repeated code block
+					s.LogMessage("process", fmt.Sprintf("drop %v/%v/%v, hash invalid msg", p.DBHeight, i, j), thisMsg)
+					vm.List[j] = nil // If we have seen this message, we don't process it again.  Ever.
+					if vm.HighestNil > j {
+						vm.HighestNil = j // Drag report limit back
+					}
+					if vm.HighestAsk > j {
+						vm.HighestAsk = j // Drag Ask limit back
+					}
+					//todo: report this... it's probably bad
+					vm.ReportMissing(j, 0)
+					break VMListLoop
+				} else if valid == 1 && msg.Process(p.DBHeight, s) { // Try and Process this entry
 					p.State.LogMessage("processList", "done", msg)
 					vm.heartBeat = 0
 					vm.Height = j + 1 // Don't process it again if the process worked.

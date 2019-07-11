@@ -1436,9 +1436,10 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 
 	// If we have not been working for at least half the period (half the minute) then ignore the ticker
 	// The following test is simply checking if we have used half our time (in nanoseconds) to process.
-	if s.EOMSyncTime != 0 && (time.Now().UnixNano()-s.EOMSyncTime) < int64(s.DirectoryBlockInSeconds)*time.Second.Nanoseconds()/10/2 {
-		return
-	}
+	//if s.EOMSyncTime != 0 && (time.Now().UnixNano()-s.EOMSyncTime) < int64(s.DirectoryBlockInSeconds)*time.Second.Nanoseconds()/10/2 {
+	//	s.LogMessage("executeMsg", fmt.Sprintf("drop, out of time %d" s.EOMSyncTime), m)
+	//	return
+	//}
 
 	pl := s.ProcessLists.Get(s.LLeaderHeight)
 	vm := pl.VMs[s.LeaderVMIndex]
@@ -1447,6 +1448,7 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	// then this should be the next EOM but we can't do that just yet.
 	if vm.EomMinuteIssued == s.CurrentMinute+1 {
 		//s.repost(m)
+		s.LogMessage("executeMsg", fmt.Sprintf("drop, eomminute issued != s.CurrentMinute+1 : %d - %d", vm.EomMinuteIssued, s.CurrentMinute+1), m)
 		return
 	}
 	// The zero based minute for the message is equal to
@@ -1454,6 +1456,7 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	// generating minutes in order.
 
 	if len(vm.List) != vm.Height {
+		s.LogMessage("executeMsg", "repost, not pl synced", m)
 		s.repost(m, 1)
 		return
 	}
@@ -1476,6 +1479,7 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 		s.LogPrintf("executeMsg", "EOM has wrong data expected DBH/VM/M %d/%d/%d", s.LLeaderHeight, s.LeaderVMIndex, s.CurrentMinute)
 		fix = true
 	}
+
 	// make sure EOM has the right data
 	eom.DBHeight = s.LLeaderHeight
 	eom.VMIndex = s.LeaderVMIndex

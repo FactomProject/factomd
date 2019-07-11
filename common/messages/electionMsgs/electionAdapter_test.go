@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/FactomProject/factomd/electionsCore/election"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	. "github.com/FactomProject/factomd/common/messages/electionMsgs"
@@ -32,6 +34,43 @@ func TestElectionAdapterMajority(t *testing.T) {
 	if !c.ElectionAdapters[0].SimulatedElection.Committed {
 		t.Errorf("Should be committed , %v", c.GlobalDisplay.String())
 	}
+}
+
+func TestElectionAdapterRespondToProposal(t *testing.T) {
+	c := electionMsgTesting.NewController(3, 1)
+
+	// Pass volunteer message to fed 0
+	c.RouteVolunteerMessage(0, []int{0})
+
+	// Let's route the propose to the fed 1 and check the response
+
+	// Pass propose from 0 -> 1
+	c.RouteLeaderSetVoteMessage([]int{0}, 0, []int{1})
+
+	c.RouteVolunteerMessage(0, []int{1})
+
+	if !c.RouteLeaderVoteMessage(1, 0, []int{}) {
+		t.Errorf("This leader should have made a volunteer msg")
+	}
+
+	// Check the msgs
+	ins := [][]*election.DepthLeaderLevel{
+		c.ElectionAdapters[0].SimulatedElection.MsgListIn,
+		c.ElectionAdapters[1].SimulatedElection.MsgListIn,
+		c.ElectionAdapters[2].SimulatedElection.MsgListIn,
+	}
+
+	outs := [][]*election.DepthLeaderLevel{
+		c.ElectionAdapters[0].SimulatedElection.MsgListOut,
+		c.ElectionAdapters[1].SimulatedElection.MsgListOut,
+		c.ElectionAdapters[2].SimulatedElection.MsgListOut,
+	}
+
+	fmt.Println(ins, outs)
+
+	//if !c.ElectionAdapters[0].SimulatedElection.Committed {
+	//	t.Errorf("Should be committed , %v", c.GlobalDisplay.String())
+	//}
 }
 
 func TestElectionAuditOrder(t *testing.T) {

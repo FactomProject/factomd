@@ -78,6 +78,9 @@ func (s *State) ValidatorLoop() {
 
 	CheckGrants()
 
+	// We should only generate 1 EOM for each height/minute/vmindex
+	lastHeight, lastMinute, lastVM := -1, -1, -1
+
 	go s.DoProcessing()
 	// Look for pending messages, and get one if there is one.
 	for { // this is the message sort
@@ -92,6 +95,12 @@ func (s *State) ValidatorLoop() {
 			if !s.RunLeader || !s.DBFinished { // don't generate EOM if we are not a leader or are loading the DBState messages
 				continue
 			}
+			if lastHeight == int(s.LLeaderHeight) && lastMinute == s.CurrentMinute && s.LeaderVMIndex == lastVM {
+				continue // Already generated this eom
+			}
+
+			lastHeight, lastMinute, lastVM = int(s.LLeaderHeight), s.CurrentMinute, s.LeaderVMIndex
+
 			eom := new(messages.EOM)
 			eom.Timestamp = s.GetTimestamp()
 			eom.ChainID = s.GetIdentityChainID()
@@ -105,6 +114,7 @@ func (s *State) ValidatorLoop() {
 			eom.Sign(s)
 			eom.SetLocal(true) // local EOMs are really just timeout indicators that we need to generate an EOM
 			msg = eom
+			s.LogMessage("validator", fmt.Sprintf("generated %d-:-%d %d", s.LLeaderHeight, s.CurrentMinute, s.LeaderVMIndex), eom)
 		case msg = <-s.inMsgQueue:
 			s.LogMessage("InMsgQueue", "dequeue", msg)
 		case msg = <-s.inMsgQueue2:
