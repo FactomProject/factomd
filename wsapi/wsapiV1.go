@@ -12,34 +12,64 @@ import (
 )
 
 func (server *Server) AddV1Endpoints() {
-	server.addRoute("/v1/factoid-submit/", HandleFactoidSubmit).Methods("POST")
-	server.addRoute("/v1/commit-chain/", HandleCommitChain).Methods("POST")
-	server.addRoute("/v1/reveal-chain/", HandleRevealChain).Methods("POST")
-	server.addRoute("/v1/commit-entry/", HandleCommitEntry).Methods("POST")
-	server.addRoute("/v1/reveal-entry/", HandleRevealEntry).Methods("POST")
+	server.addRoute("/v1/factoid-submit/", HandleFactoidSubmit, CheckHttpPasswordOkV1Middleware()).Methods("POST")
+	server.addRoute("/v1/commit-chain/", HandleCommitChain, CheckHttpPasswordOkV1Middleware()).Methods("POST")
+	server.addRoute("/v1/reveal-chain/", HandleRevealChain, CheckHttpPasswordOkV1Middleware()).Methods("POST")
+	server.addRoute("/v1/commit-entry/", HandleCommitEntry, CheckHttpPasswordOkV1Middleware()).Methods("POST")
+	server.addRoute("/v1/reveal-entry/", HandleRevealEntry, CheckHttpPasswordOkV1Middleware()).Methods("POST")
 
-	server.addRoute("/v1/directory-block-head/", HandleDirectoryBlockHead).Methods("GET")
-	server.addRoute("/v1/get-raw-data/{hash}", HandleGetRaw).Methods("GET")
-	server.addRoute("/v1/get-receipt/{hash}", HandleGetReceipt).Methods("GET")
-	server.addRoute("/v1/directory-block-by-keymr/{keymr}", HandleDirectoryBlock).Methods("GET")
-	server.addRoute("/v1/directory-block-height/", HandleDirectoryBlockHeight).Methods("GET")
-	server.addRoute("/v1/entry-block-by-keymr/{keymr}", HandleEntryBlock).Methods("GET")
-	server.addRoute("/v1/entry-by-hash/{hash}", HandleEntry).Methods("GET")
-	server.addRoute("/v1/chain-head/{chainid}", HandleChainHead).Methods("GET")
-	server.addRoute("/v1/entry-credit-balance/{address}", HandleEntryCreditBalance).Methods("GET")
-	server.addRoute("/v1/factoid-balance/{address}", HandleFactoidBalance).Methods("GET")
-	server.addRoute("/v1/factoid-get-fee/", HandleGetFee).Methods("GET")
-	server.addRoute("/v1/properties/", HandleProperties).Methods("GET")
-	server.addRoute("/v1/heights/", HandleHeights).Methods("GET")
+	server.addRoute("/v1/directory-block-head/", HandleDirectoryBlockHead, CheckHttpPasswordOkV1Middleware()).Methods("GET")
+	server.addRoute("/v1/get-raw-data/{hash}", HandleGetRaw, CheckHttpPasswordOkV1Middleware()).Methods("GET")
+	server.addRoute("/v1/get-receipt/{hash}", HandleGetReceipt, CheckHttpPasswordOkV1Middleware()).Methods("GET")
+	server.addRoute("/v1/directory-block-by-keymr/{keymr}", HandleDirectoryBlock, CheckHttpPasswordOkV1Middleware()).Methods("GET")
+	server.addRoute("/v1/directory-block-height/", HandleDirectoryBlockHeight, CheckHttpPasswordOkV1Middleware()).Methods("GET")
+	server.addRoute("/v1/entry-block-by-keymr/{keymr}", HandleEntryBlock, CheckHttpPasswordOkV1Middleware()).Methods("GET")
+	server.addRoute("/v1/entry-by-hash/{hash}", HandleEntry, CheckHttpPasswordOkV1Middleware()).Methods("GET")
+	server.addRoute("/v1/chain-head/{chainid}", HandleChainHead, CheckHttpPasswordOkV1Middleware()).Methods("GET")
+	server.addRoute("/v1/entry-credit-balance/{address}", HandleEntryCreditBalance, CheckHttpPasswordOkV1Middleware()).Methods("GET")
+	server.addRoute("/v1/factoid-balance/{address}", HandleFactoidBalance, CheckHttpPasswordOkV1Middleware()).Methods("GET")
+	server.addRoute("/v1/factoid-get-fee/", HandleGetFee, CheckHttpPasswordOkV1Middleware()).Methods("GET")
+	server.addRoute("/v1/properties/", HandleProperties, CheckHttpPasswordOkV1Middleware()).Methods("GET")
+	server.addRoute("/v1/heights/", HandleHeights, CheckHttpPasswordOkV1Middleware()).Methods("GET")
 
-	server.addRoute("/v1/dblock-by-height/{height:[0-9]+}", HandleDBlockByHeight).Methods("GET")
-	server.addRoute("/v1/ecblock-by-height/{height:[0-9]+}", HandleECBlockByHeight).Methods("GET")
-	server.addRoute("/v1/fblock-by-height/{height:[0-9]+}", HandleFBlockByHeight).Methods("GET")
-	server.addRoute("/v1/ablock-by-height/{height:[0-9]+}", HandleABlockByHeight).Methods("GET")
-	server.addRoute("/v1/dblock-by-height/{height:[0-9]+}", HandleDBlockByHeight).Methods("GET")
+	server.addRoute("/v1/dblock-by-height/{height:[0-9]+}", HandleDBlockByHeight, CheckHttpPasswordOkV1Middleware()).Methods("GET")
+	server.addRoute("/v1/ecblock-by-height/{height:[0-9]+}", HandleECBlockByHeight, CheckHttpPasswordOkV1Middleware()).Methods("GET")
+	server.addRoute("/v1/fblock-by-height/{height:[0-9]+}", HandleFBlockByHeight, CheckHttpPasswordOkV1Middleware()).Methods("GET")
+	server.addRoute("/v1/ablock-by-height/{height:[0-9]+}", HandleABlockByHeight, CheckHttpPasswordOkV1Middleware()).Methods("GET")
+	server.addRoute("/v1/dblock-by-height/{height:[0-9]+}", HandleDBlockByHeight, CheckHttpPasswordOkV1Middleware()).Methods("GET")
 }
 
-func extractURLHeightParam(writer http.ResponseWriter, request *http.Request) (param HeightRequest, err error) {
+// Check authentication header
+func CheckHttpPasswordOkV1Middleware() Middleware {
+	return func(f http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			if checkHttpPasswordOkV1(w, r) {
+				// Call the next middleware/handler in chain
+				f(w, r)
+			}
+		}
+	}
+}
+
+func checkHttpPasswordOkV1(writer http.ResponseWriter, request *http.Request) bool {
+	if state, err := GetState(request); err == nil {
+		if err := checkAuthHeader(state, request); err != nil {
+			remoteIP := ""
+			remoteIP += strings.Split(request.RemoteAddr, ":")[0]
+			fmt.Printf("Unauthorized V1 API client connection attempt from %s\n", remoteIP)
+			writer.Header().Add("WWW-Authenticate", `Basic realm="factomd RPC"`)
+			http.Error(writer, "401 Unauthorized.", http.StatusUnauthorized)
+			return false
+		}
+	} else {
+		fmt.Printf("failed to get state from request: %s", err)
+		writer.WriteHeader(http.StatusBadRequest)
+		return false
+	}
+	return true
+}
+
+func extractURLHeightParam(_ http.ResponseWriter, request *http.Request) (param HeightRequest, err error) {
 	params := mux.Vars(request)
 	height := params["height"]
 

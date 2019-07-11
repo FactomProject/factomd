@@ -8,6 +8,7 @@ import (
 	"github.com/FactomProject/factomd/testHelper"
 	. "github.com/FactomProject/factomd/wsapi"
 	"github.com/stretchr/testify/assert"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -22,14 +23,18 @@ func TestGetEndpoints(t *testing.T) {
 		Method   string
 		Url      string
 		Expected int
+		Body     io.Reader
 	}{
-		"baseUrl":          {"GET", "http://localhost:8088", http.StatusNotFound},
-		"trailing-slashes": {"GET", "http://localhost:8088/v2/", http.StatusNotFound},
-		"wrong-method":     {"GET", "http://localhost:8088/v1/factoid-submit/", http.StatusNotFound},
+		"baseGetUrl":       {"GET", "http://localhost:8088", http.StatusNotFound, nil},
+		"basePostUrl":      {"POST", "http://localhost:8088", http.StatusNotFound, body("")},
+		"trailing-slashes": {"GET", "http://localhost:8088/v2/", http.StatusNotFound, nil},
+		"wrong-method":     {"GET", "http://localhost:8088/v1/factoid-submit/", http.StatusNotFound, nil},
 	}
-
+	client := &http.Client{}
 	for name, testCase := range cases {
-		response, err := http.Get(testCase.Url)
+		t.Logf("test case '%s'", name)
+		request, err := http.NewRequest(testCase.Method, testCase.Url, testCase.Body)
+		response, err := client.Do(request)
 
 		if err != nil {
 			t.Errorf("test '%s' failed: %v \nresponse: %v", name, err, response)
@@ -41,29 +46,57 @@ func TestGetEndpoints(t *testing.T) {
 	}
 }
 
-func TestPostEndpoints(t *testing.T) {
+func body(content string) io.Reader {
+	payload, _ := json.Marshal(content)
+	body := bytes.NewBuffer(payload)
+	return body
+}
+
+func TestAuthenticatedUnauthorizedRequest(t *testing.T) {
 	state := testHelper.CreateAndPopulateTestState()
+	state.RpcUser = "user"
+	state.RpcPass = "password"
+	state.SetPort(18088)
 	Start(state)
 
-	cases := map[string]struct {
-		Url      string
-		Expected int
-		Body     string
-	}{
-		"baseUrl": {"http://localhost:8088", http.StatusNotFound, ""},
+	url := "http://localhost:18088/v1/properties/"
+	response, err := http.Get(url)
+
+	assert.Nil(t, err)
+	if response != nil {
+		assert.Equal(t, http.StatusUnauthorized, response.StatusCode)
+
+		body, _ := ioutil.ReadAll(response.Body)
+		assert.Equal(t, "401 Unauthorized.\n", string(body))
+	} else {
+		t.Fatalf("no response")
 	}
+}
 
-	for name, testCase := range cases {
-		payload, err := json.Marshal(testCase.Body)
-		response, err := http.Post(testCase.Url, "application/json", bytes.NewBuffer(payload))
+func TestAuthenticatedRequest(t *testing.T) {
+	username := "user"
+	password := "password"
 
-		if err != nil {
-			t.Errorf("test '%s' failed: %v \nresponse: %v", name, err, response)
-		} else if response == nil {
-			t.Errorf("test '%s' failed: response == nil", name)
-		} else if testCase.Expected != response.StatusCode {
-			t.Errorf("test '%s' failed: wrong status code expected '%d' != actual '%d'", name, testCase.Expected, response.StatusCode)
-		}
+	state := testHelper.CreateAndPopulateTestState()
+	state.RpcUser = username
+	state.RpcPass = password
+	Start(state)
+
+	url := "http://localhost:8088/v1/properties/"
+
+	client := &http.Client{}
+	request, err := http.NewRequest("GET", url, nil)
+	request.SetBasicAuth(username, password)
+	response, err := client.Do(request)
+
+	assert.Nil(t, err)
+	if response != nil {
+		assert.Equal(t, http.StatusOK, response.StatusCode)
+
+		body, _ := ioutil.ReadAll(response.Body)
+		assert.True(t, len(string(body)) > 0, "empty response %s", string(body))
+	} else {
+		t.Fatalf("no response")
 	}
 }
 

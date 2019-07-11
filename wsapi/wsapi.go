@@ -189,18 +189,6 @@ func checkAuthHeader(state interfaces.IState, request *http.Request) error {
 	return nil
 }
 
-func checkHttpPasswordOkV1(state interfaces.IState, writer http.ResponseWriter, request *http.Request) bool {
-	if err := checkAuthHeader(state, request); err != nil {
-		remoteIP := ""
-		remoteIP += strings.Split(request.RemoteAddr, ":")[0]
-		fmt.Printf("Unauthorized V1 API client connection attempt from %s\n", remoteIP)
-		writer.Header().Add("WWW-Authenticate", `Basic realm="factomd RPC"`)
-		http.Error(writer, "401 Unauthorized.", http.StatusUnauthorized)
-		return false
-	}
-	return true
-}
-
 func fileExists(name string) bool {
 	if _, err := os.Stat(name); err != nil {
 		if os.IsNotExist(err) {

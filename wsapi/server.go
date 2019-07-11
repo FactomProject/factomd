@@ -96,16 +96,13 @@ func APILogger() Middleware {
 	}
 }
 
-// Chain applies middlewares to a http.HandlerFunc
-func Chain(f http.HandlerFunc, middlewares ...Middleware) http.HandlerFunc {
+// add route and Chain applies middlewares to a http.HandlerFunc
+func (server *Server) addRoute(path string, f func(http.ResponseWriter, *http.Request), middlewares ...Middleware) *mux.Route {
+	middlewares = append(middlewares, APILogger())
 	for _, m := range middlewares {
 		f = m(f)
 	}
-	return f
-}
-
-func (server *Server) addRoute(path string, f func(http.ResponseWriter, *http.Request)) *mux.Route {
-	return server.router.HandleFunc(path, Chain(f, APILogger()))
+	return server.router.HandleFunc(path, f)
 }
 
 func (server *Server) AddRootEndpoints() {
