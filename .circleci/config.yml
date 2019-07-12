@@ -78,9 +78,25 @@ jobs:
             export PATH="/tmp/go/bin:$PATH"
             export GOPATH=/tmp/go
             cd /tmp/go/src/github.com/FactomProject/factomd/
-            #go test $(glide nv | grep -v Utilities | grep -v longTest | grep -v peerTest | grep -v simTest | grep '...') -vet=off -v -cover -coverprofile=coverage.out
-            #goveralls -coverprofile=coverage.out -service=circle-ci -repotoken=$COVERALLS_TOKEN
-            # FIXME eventually add coverage back in, test gofmt for now
+            go test $(glide nv | grep -v Utilities | grep -v longTest | grep -v peerTest | grep -v simTest | grep '...') -vet=off -v -cover -coverprofile=coverage.out
+            goveralls -coverprofile=coverage.out -service=circle-ci -repotoken=$COVERALLS_TOKEN
+
+  gofmt:
+    working_directory: /tmp
+    docker:
+      - image: circleci/golang:1.10
+
+    steps:
+      - attach_workspace:
+          at: /tmp
+
+      - run:
+          name: Gofmt test
+          no_output_timeout: 60
+          command: |
+            export PATH="/tmp/go/bin:$PATH"
+            export GOPATH=/tmp/go
+            cd /tmp/go/src/github.com/FactomProject/factomd/
             ./test.sh gofmt
 
 
@@ -351,7 +367,7 @@ workflows:
       - test:
           requires:
             - build
-      - coveralls:
+      - gofmt:
           requires:
             - test
       - docker_build:
