@@ -25,10 +25,9 @@ func TestHoldingRebound(t *testing.T) {
 	a := AccountFromFctSecret("Fs2zQ3egq2j99j37aYzaCddPq9AF3mgh64uG9gRaDAnrkjRx3eHs")
 
 	println(a.String())
-
 	params := map[string]string{}
-
 	state0 := SetupSim("L", params, 12, 0, 0, t)
+
 
 	e := factom.Entry{
 		ChainID: id,

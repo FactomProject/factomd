@@ -31,8 +31,7 @@ func TestEntryBatch(t *testing.T) {
 
 	println(a.String())
 
-	params := map[string]string{"--debuglog": ""}
-	state0 := SetupSim("LLAAFF", params, 10, 0, 0, t)
+	state0 := SetupSim("LLAAFF", nil, 10, 0, 0, t)
 
 	var entries []interfaces.IMsg
 	var oneFct uint64 = factom.FactoidToFactoshi("1")
