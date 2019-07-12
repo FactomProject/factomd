@@ -1449,6 +1449,7 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	if vm.EomMinuteIssued == s.CurrentMinute+1 {
 		//s.repost(m)
 		s.LogMessage("executeMsg", fmt.Sprintf("drop, eomminute issued != s.CurrentMinute+1 : %d - %d", vm.EomMinuteIssued, s.CurrentMinute+1), m)
+		s.repost(m, 1) // Do not drop the message, we only generate 1 local eom per height/min, let validate drop it
 		return
 	}
 	// The zero based minute for the message is equal to
@@ -1457,7 +1458,7 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 
 	if len(vm.List) != vm.Height {
 		s.LogMessage("executeMsg", "repost, not pl synced", m)
-		s.repost(m, 1)
+		s.repost(m, 1) // Do not drop the message, we only generate 1 local eom per height/min, let validate drop it
 		return
 	}
 	eom := m.(*messages.EOM)
@@ -1467,6 +1468,7 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 
 	if vm.Synced {
 		s.LogMessage("executeMsg", "drop, already sync'd", m)
+		s.repost(m, 1) // Do not drop the message, we only generate 1 local eom per height/min, let validate drop it
 		return
 	}
 

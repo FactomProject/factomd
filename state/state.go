@@ -2109,6 +2109,10 @@ func (s *State) SetIdentityChainID(chainID interfaces.IHash) {
 	s.IdentityChainID = chainID
 }
 
+func (s *State) GetMinuteDuration() time.Duration {
+	return time.Duration(s.DirectoryBlockInSeconds) * time.Second / 10
+}
+
 func (s *State) GetDirectoryBlockInSeconds() int {
 	return s.DirectoryBlockInSeconds
 }

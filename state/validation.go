@@ -91,11 +91,27 @@ func (s *State) ValidatorLoop() {
 			shutdown(s)
 			time.Sleep(10 * time.Second) // wait till database close is complete
 			return
-		case <-s.tickerQueue: // Look for pending messages, and get one if there is one.
+		case c := <-s.tickerQueue: // Look for pending messages, and get one if there is one.
 			if !s.RunLeader || !s.DBFinished { // don't generate EOM if we are not a leader or are loading the DBState messages
 				continue
 			}
 			if lastHeight == int(s.LLeaderHeight) && lastMinute == s.CurrentMinute && s.LeaderVMIndex == lastVM {
+				// This eom was already generated. We shouldn't generate it again.
+				// This does mean we missed an EOM boundary, and the next EOM won't occur for another
+				// "minute". This could cause some serious sliding, as minutes could be an addition 100%
+				// in length.
+				if c == -1 { // This means we received a normal eom cadence timer
+					c = 8 // Send 8 retries on a 1/10 of the normal minute period
+				}
+				if c > 0 {
+					go func() {
+						// We sleep for 1/10 of a minute, and try again
+						time.Sleep(s.GetMinuteDuration() / 10)
+						s.tickerQueue <- c - 1
+					}()
+				}
+				s.LogPrintf("timer", "retry %d", c)
+				s.LogPrintf("validator", "retry %d  %d-:-%d %d", c, s.LLeaderHeight, s.CurrentMinute, s.LeaderVMIndex)
 				continue // Already generated this eom
 			}
 
@@ -114,7 +130,7 @@ func (s *State) ValidatorLoop() {
 			eom.Sign(s)
 			eom.SetLocal(true) // local EOMs are really just timeout indicators that we need to generate an EOM
 			msg = eom
-			s.LogMessage("validator", fmt.Sprintf("generated %d-:-%d %d", s.LLeaderHeight, s.CurrentMinute, s.LeaderVMIndex), eom)
+			s.LogMessage("validator", fmt.Sprintf("generated c:%d  %d-:-%d %d", c, s.LLeaderHeight, s.CurrentMinute, s.LeaderVMIndex), eom)
 		case msg = <-s.inMsgQueue:
 			s.LogMessage("InMsgQueue", "dequeue", msg)
 		case msg = <-s.inMsgQueue2:
