@@ -7,12 +7,10 @@ package state
 import (
 	"errors"
 	"fmt"
-	"github.com/FactomProject/factomd/events"
-	"github.com/FactomProject/factomd/events/eventmessages"
+	eventMessages "github.com/FactomProject/factomd/common/messages/eventMsgs"
 	"hash"
 	"os"
 	"reflect"
-	"sort"
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -78,7 +76,6 @@ func (s *State) AddToHolding(hash [32]byte, msg interfaces.IMsg) {
 		s.Holding[hash] = msg
 		s.LogMessage("holding", "add", msg)
 		TotalHoldingQueueInputs.Inc()
-		emitEvent(eventmessages.EventSource_ADD_TO_HOLDING, msg, s)
 	}
 }
 
@@ -88,7 +85,6 @@ func (s *State) DeleteFromHolding(hash [32]byte, msg interfaces.IMsg, reason str
 		delete(s.Holding, hash)
 		s.LogMessage("holding", "delete "+reason, msg)
 		TotalHoldingQueueOutputs.Inc()
-		emitEvent(eventmessages.EventSource_DROP_FROM_HOLDING, msg, s)
 	}
 }
 
@@ -173,7 +169,7 @@ func (s *State) Validate(msg interfaces.IMsg) (validToSend int, validToExec int)
 	}
 
 	if validToSend != 1 { // if the msg says anything other than valid
-		s.LogMessage("badEvents", fmt.Sprintf("Invalid validity code %d", validToSend), msg)
+		s.LogMessage("badmsgs", fmt.Sprintf("Invalid validity code %d", validToSend), msg)
 		panic("unexpected validity code")
 	}
 
@@ -243,7 +239,7 @@ func (s *State) executeMsg(msg interfaces.IMsg) (ret bool) {
 	}
 
 	if msg.GetHash() == nil || reflect.ValueOf(msg.GetHash()).IsNil() {
-		s.LogMessage("badEvents", "Nil hash in executeMsg", msg)
+		s.LogMessage("badMsgs", "Nil hash in executeMsg", msg)
 		return false
 	}
 
@@ -315,6 +311,7 @@ func (s *State) executeMsg(msg interfaces.IMsg) (ret bool) {
 				s.RunLeader, s.Leader, s.Saving, vm, vmh, vml, s.Syncing, vms, local, vmi, s.LeaderVMIndex, s.LeaderPL.DBHeight, hkb)
 			msg.FollowerExecute(s)
 		}
+
 		return true
 
 	case 0:
@@ -389,10 +386,6 @@ func (s *State) Process() (progress bool) {
 					s.StartDelay = now // Reset StartDelay for Ignore Missing
 					s.IgnoreDone = true
 				}
-				if s.EventsService != nil {
-					event := events.NewInfoEventF("Node %s has finished syncing it's database", s.GetFactomNodeName())
-					s.EventsService.Send(event)
-				}
 			}
 		}
 	} else if s.IgnoreMissing {
@@ -447,25 +440,46 @@ func (s *State) Process() (progress bool) {
 	preEmptyLoopTime := time.Now()
 emptyLoop:
 	for {
-		var msg interfaces.IMsg
 		select {
-		// We have prioritizedMsgQueue listed twice, meaning it has 2 chances to be
-		// randomly selected to unblock and execute.
-		case msg = <-s.prioritizedMsgQueue:
-			s.LogMessage("prioritizedMsgQueue", "Execute", msg)
-		case msg = <-s.prioritizedMsgQueue:
-			s.LogMessage("prioritizedMsgQueue", "Execute", msg)
-		case msg = <-s.msgQueue:
+		case msg := <-s.msgQueue:
 			s.LogMessage("msgQueue", "Execute", msg)
-		case msg = <-s.ackQueue:
-			s.LogMessage("ackQueue", "Execute", msg)
+			progress = s.executeMsg(msg) || progress
 		default:
 			break emptyLoop
 		}
-		progress = s.executeMsg(msg) || progress
 	}
 	emptyLoopTime := time.Since(preEmptyLoopTime)
 	TotalEmptyLoopTime.Add(float64(emptyLoopTime.Nanoseconds()))
+
+	preAckLoopTime := time.Now()
+	// Process acknowledgements if we have some.
+ackLoop:
+	for {
+		select {
+		case ack := <-s.ackQueue:
+			_, validToExecute := s.Validate(ack)
+			switch validToExecute {
+			case -1:
+				s.LogMessage("ackQueue", "drop Invalid", ack)
+				continue
+			case 0:
+				s.LogMessage("ackQueue", "Hold", ack)
+				// toss the ack into holding and we will try again in a bit...
+				TotalHoldingQueueInputs.Inc()
+				s.AddToHolding(ack.GetMsgHash().Fixed(), ack) // Add ack where valid==0
+				continue
+			}
+
+			s.LogMessage("ackQueue", "Execute2", ack)
+			progress = s.executeMsg(ack) || progress
+
+		default:
+			break ackLoop
+		}
+	}
+
+	ackLoopTime := time.Since(preAckLoopTime)
+	TotalAckLoopTime.Add(float64(ackLoopTime.Nanoseconds()))
 
 	preProcessXReviewTime := time.Now()
 	// Reprocess any stalled messages, but not so much compared inbound messages
@@ -566,6 +580,11 @@ func (s *State) ReviewHolding() {
 	s.Commits.Cleanup(s)
 	s.DB.Trim()
 
+	// Set the resend time at the END of the function. This prevents the time it takes to execute this function
+	// from reducing the time we allow before another review
+	defer func() {
+		s.ResendHolding = now
+	}()
 	// Anything we are holding, we need to reprocess.
 	s.XReview = make([]interfaces.IMsg, 0)
 
@@ -581,51 +600,17 @@ func (s *State) ReviewHolding() {
 		}
 	}
 
-	if len(s.HoldingList) == 0 {
-		sorted := []interfaces.IMsg{}
-		for _, v := range s.Holding {
-			sorted = append(sorted, v)
-		}
-		sort.Slice(sorted,
-			func(i, j int) bool {
-				a := sorted[i].GetTimestamp().GetTimeMilli()
-				b := sorted[j].GetTimestamp().GetTimeMilli()
-				return a < b
-			})
-		for k, v := range sorted {
-			if k >= cap(s.HoldingList) {
-				break
-			}
-			s.HoldingList <- v.GetMsgHash().Fixed()
-		}
-	}
+	// Set this flag, so it acts as a constant.  We will set s.LeaderNewMin to false
+	// after processing the Holding Queue.  Ensures we only do this one per minute.
+	//	processMinute := s.LeaderNewMin // Have we processed this minute
+	s.LeaderNewMin++ // Either way, don't do it again until the ProcessEOM resets LeaderNewMin
 
-	cnt := 1
-processholdinglist:
-	for {
-		if cnt&0x1F == 0 && s.GetTimestamp().GetTimeMilli()-now.GetTimeMilli() > 200 {
-			fmt.Print("cnt ", cnt, " ")
-			break processholdinglist
-		}
-		cnt++
-		var k [32]byte
-		var v interfaces.IMsg
-		var ok bool
-		select {
-		case k = <-s.HoldingList:
-			v, ok = s.Holding[k]
-			if !ok || v == nil {
-				continue processholdinglist
-			}
-		default:
-			break processholdinglist
-		}
-
+	for k, v := range s.Holding {
 		if int(highest)-int(saved) > 1000 {
 			TotalHoldingQueueOutputs.Inc()
 			//delete(s.Holding, k)
 			s.DeleteFromHolding(k, v, "HKB-HSB>1000")
-			continue processholdinglist // No point in executing if we think we can't hold this.
+			continue // No point in executing if we think we can't hold this.
 		}
 
 		if v.Expire(s) {
@@ -634,14 +619,14 @@ processholdinglist:
 			TotalHoldingQueueOutputs.Inc()
 			//delete(s.Holding, k)
 			s.DeleteFromHolding(k, v, "expired")
-			continue processholdinglist // If the message has expired, don't hold or execute
+			continue // If the message has expired, don't hold or execute
 		}
 
 		eom, ok := v.(*messages.EOM)
 		if ok {
 			if int(eom.DBHeight)*10+int(eom.Minute) < int(s.LLeaderHeight)*10+s.CurrentMinute {
 				s.DeleteFromHolding(k, v, "old EOM")
-				continue processholdinglist
+				continue
 			}
 			if !eom.IsLocal() && eom.DBHeight > saved {
 				s.HighestKnown = eom.DBHeight
@@ -654,7 +639,7 @@ processholdinglist:
 				TotalHoldingQueueOutputs.Inc()
 				//delete(s.Holding, k)
 				s.DeleteFromHolding(k, v, "Old DBSig")
-				continue processholdinglist
+				continue
 			}
 			if !dbsigmsg.IsLocal() && dbsigmsg.DBHeight > saved {
 				s.HighestKnown = dbsigmsg.DBHeight
@@ -667,10 +652,11 @@ processholdinglist:
 			TotalHoldingQueueOutputs.Inc()
 			//delete(s.Holding, k)
 			s.DeleteFromHolding(k, v, "old DBState")
-			continue processholdinglist
+			continue
 		}
 
 		// If it is an entryCommit/ChainCommit/RevealEntry and it has a duplicate hash to an existing entry throw it away here
+
 		ce, ok := v.(*messages.CommitEntryMsg)
 		if ok {
 			x := s.NoEntryYet(ce.CommitEntry.EntryHash, ce.CommitEntry.GetTimestamp())
@@ -678,7 +664,7 @@ processholdinglist:
 				TotalHoldingQueueOutputs.Inc()
 				//delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
 				s.DeleteFromHolding(k, v, "already committed")
-				continue processholdinglist
+				continue
 			}
 		}
 
@@ -691,7 +677,7 @@ processholdinglist:
 				TotalHoldingQueueOutputs.Inc()
 				//delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
 				s.DeleteFromHolding(k, v, "already committed")
-				continue processholdinglist
+				continue
 			}
 		}
 
@@ -707,9 +693,9 @@ processholdinglist:
 			TotalHoldingQueueOutputs.Inc()
 			//delete(s.Holding, k)
 			s.DeleteFromHolding(k, v, "invalid from holding")
-			continue processholdinglist
+			continue
 		case 0:
-			continue processholdinglist
+			continue
 		}
 
 		// if it is a Factoid or entry credit transaction then check BLOCK_REPLAY
@@ -718,7 +704,7 @@ processholdinglist:
 			ok2 := s.FReplay.IsHashUnique(constants.BLOCK_REPLAY, v.GetRepeatHash().Fixed())
 			if !ok2 {
 				s.DeleteFromHolding(k, v, "BLOCK_REPLAY")
-				continue processholdinglist
+				continue
 			}
 		default:
 		}
@@ -727,19 +713,21 @@ processholdinglist:
 			if !s.NoEntryYet(re.GetHash(), s.GetLeaderTimestamp()) {
 				s.DeleteFromHolding(re.GetHash().Fixed(), re, "already committed reveal")
 				s.Commits.Delete(re.GetHash().Fixed())
-				continue processholdinglist
+				continue
 			}
 			// Needs to be our VMIndex as well, or ignore.
 			if re.GetVMIndex() != s.LeaderVMIndex || !s.Leader {
-				continue processholdinglist // If we are a leader, but it isn't ours, and it isn't a new minute, ignore.
+				continue // If we are a leader, but it isn't ours, and it isn't a new minute, ignore.
 			}
 		}
 
 		TotalXReviewQueueInputs.Inc()
 		s.XReview = append(s.XReview, v)
 		TotalHoldingQueueOutputs.Inc()
+		if len(s.XReview) > 200 {
+			break
+		}
 	}
-	s.ResendHolding = s.GetTimestamp()
 	reviewHoldingTime := time.Since(preReviewHoldingTime)
 	TotalReviewHoldingTime.Add(float64(reviewHoldingTime.Nanoseconds()))
 }
@@ -819,8 +807,7 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		authlistMsg := s.EFactory.NewAuthorityListInternal(s.LeaderPL.FedServers, s.LeaderPL.AuditServers, s.LLeaderHeight)
 		s.ElectionsQueue().Enqueue(authlistMsg)
 
-		// Do not send out dbsigs while loading from disk
-		if s.Leader && !s.LeaderPL.DBSigAlreadySent && s.LLeaderHeight > s.DBHeightAtBoot {
+		if s.Leader && !s.LeaderPL.DBSigAlreadySent {
 			s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex) // MoveStateToHeight()
 		}
 		s.DBStates.UpdateState() // go process the DBSigs
@@ -909,6 +896,47 @@ func (s *State) AddDBState(isNew bool,
 		s.LogPrintf("dbstateprocess", "AddDBState out of order! at %d added %d", s.LLeaderHeight, ht)
 		fmt.Fprintf(os.Stderr, "AddDBState() out of order! at %d added %d\n", s.LLeaderHeight, ht)
 		//panic("AddDBState out of order!")
+	}
+	if ht > s.LLeaderHeight {
+		s.LogPrintf("dbstateprocess", "unexpected: ht > s.LLeaderHeight  at %d added %d", s.LLeaderHeight, ht)
+		//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s Add DBState: s.SigType(%v)", s.FactomNodeName, s.SigType))
+		s.MoveStateToHeight(ht, 0) // AddDBState()
+		s.StartDelay = s.GetTimestamp().GetTimeMilli()
+		s.RunLeader = false
+		LeaderPL := s.ProcessLists.Get(s.LLeaderHeight)
+
+		if s.LLeaderHeight != 0 && s.LeaderPL != LeaderPL {
+			s.LogPrintf("ExecuteMsg", "AddDBState: Unexpected change in LeaderPL")
+			s.LeaderPL = LeaderPL
+		}
+		s.SetLeaderTimestamp(dbState.DirectoryBlock.GetTimestamp()) // move the leader timestamp to the start of the block
+		{
+			// Okay, we have just loaded a new DBState.  The temp balances are no longer valid, if they exist.  Nuke them.
+			s.LeaderPL.FactoidBalancesTMutex.Lock()
+			s.LeaderPL.FactoidBalancesT = map[[32]byte]int64{}
+			s.LeaderPL.FactoidBalancesTMutex.Unlock()
+
+			s.LeaderPL.ECBalancesTMutex.Lock()
+			s.LeaderPL.ECBalancesT = map[[32]byte]int64{}
+			s.LeaderPL.ECBalancesTMutex.Unlock()
+		}
+
+		Leader, LeaderVMIndex := s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID) // AddDBState()
+		{                                                                                         // debug
+			if s.Leader != Leader {
+				s.LogPrintf("executeMsg", "State.AddDBState() unexpectedly setting s.Leader to %v", Leader)
+				s.Leader = Leader
+			}
+			if s.LeaderVMIndex != LeaderVMIndex {
+				s.LogPrintf("executeMsg", "State.AddDBState()  unexpectedly setting s.LeaderVMIndex to %v", LeaderVMIndex)
+				s.LeaderVMIndex = LeaderVMIndex
+			}
+		}
+		for s.ProcessLists.UpdateState(s.LLeaderHeight) {
+		}
+	}
+	if ht == 0 && s.LLeaderHeight == 0 {
+		s.MoveStateToHeight(1, 0)
 	}
 
 	return dbState
@@ -1001,17 +1029,6 @@ func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
 	}
 }
 
-func (s *State) getMsgFromHolding(h [32]byte) interfaces.IMsg {
-	// check if we have a message
-	m := s.Holding[h]
-
-	if m != nil {
-		return m
-	} else {
-		return s.Hold.GetDependentMsg(h)
-	}
-}
-
 // Ack messages always match some message in the Process List.   That is
 // done here, though the only msg that should call this routine is the Ack
 // message.
@@ -1040,14 +1057,17 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 	// Add the ack to the list of acks
 	TotalAcksInputs.Inc()
 	s.Acks[ack.GetHash().Fixed()] = ack
-	m := s.getMsgFromHolding(ack.GetHash().Fixed())
+	// check if we have a message
+	m, _ := s.Holding[ack.GetHash().Fixed()]
 
 	if m != nil {
 		// We have an ack and a matching message go execute the message!
-		// we purposely skip validate which might put the message back in holding for unmet dependencies
-		// but it's ok since it will get validated before processing.
-		s.LogMessage("executeMsg", "FollowerExecuteAck ", m)
-		m.FollowerExecute(s)
+		if m.Validate(s) == 1 {
+			s.LogMessage("executeMsg", "FollowerExecuteAck ", m)
+			m.FollowerExecute(s)
+		} else {
+			s.LogMessage("executeMsg", "Msg matches Ack, wait for validate", ack)
+		}
 	} else {
 		s.LogMessage("executeMsg", "No Msg, keep", ack)
 		//todo: should we ask MMR here?
@@ -1202,7 +1222,9 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		s.StatesReceived.Notify <- msg.(*messages.DBStateMsg)
 	}
 	s.DBStates.UpdateState()
-	emitEvent(eventmessages.EventSource_COMMIT_DIRECTORY_BLOCK, dbstatemsg, s)
+
+	anchoredEvent := eventMessages.FromDBState(dbstatemsg)
+	anchoredEvent.Marshal()
 }
 
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
@@ -1317,11 +1339,52 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 			return
 		}
 		s.WriteEntry <- entry // DataResponse
+
 	}
 }
 
 func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
-	s.LogMessage("badEvents", "follower executed missing message, should never happen", msg)
+	// Don't respond to missing messages if we are behind.
+	if s.inMsgQueue.Length() > constants.INMSGQUEUE_LOW {
+		return
+	}
+
+	m := msg.(*messages.MissingMsg)
+
+	pl := s.ProcessLists.Get(m.DBHeight)
+
+	if pl == nil {
+		s.MissingRequestIgnoreCnt++
+		return
+	}
+	FollowerMissingMsgExecutions.Inc()
+	sent := false
+	if len(pl.System.List) > int(m.SystemHeight) && pl.System.List[m.SystemHeight] != nil {
+		msgResponse := messages.NewMissingMsgResponse(s, pl.System.List[m.SystemHeight], nil)
+		msgResponse.SetOrigin(m.GetOrigin())
+		msgResponse.SetNetworkOrigin(m.GetNetworkOrigin())
+		msgResponse.SendOut(s, msgResponse)
+		s.MissingRequestReplyCnt++
+		sent = true
+	}
+
+	for _, h := range m.ProcessListHeight {
+		missingmsg, ackMsg, err := s.LoadSpecificMsgAndAck(m.DBHeight, m.VMIndex, h)
+
+		if missingmsg != nil && ackMsg != nil && err == nil {
+			// If I don't have this message, ignore.
+			msgResponse := messages.NewMissingMsgResponse(s, missingmsg, ackMsg)
+			msgResponse.SetOrigin(m.GetOrigin())
+			msgResponse.SetNetworkOrigin(m.GetNetworkOrigin())
+			msgResponse.SendOut(s, msgResponse)
+			s.MissingRequestReplyCnt++
+			sent = true
+		}
+	}
+
+	if !sent {
+		s.MissingRequestIgnoreCnt++
+	}
 	return
 }
 
@@ -1425,14 +1488,19 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 		return
 	}
 
+	// If we have not been working for at least half the period (half the minute) then ignore the ticker
+	// The following test is simply checking if we have used half our time (in nanoseconds) to process.
+	if s.EOMSyncTime != 0 && (time.Now().UnixNano()-s.EOMSyncTime) < int64(s.DirectoryBlockInSeconds)*time.Second.Nanoseconds()/10/2 {
+		return
+	}
+
 	pl := s.ProcessLists.Get(s.LLeaderHeight)
 	vm := pl.VMs[s.LeaderVMIndex]
 
 	// If we have already issued an EOM for the minute being sync'd
 	// then this should be the next EOM but we can't do that just yet.
 	if vm.EomMinuteIssued == s.CurrentMinute+1 {
-		s.LogMessage("executeMsg", fmt.Sprintf("repost, eomminute issued != s.CurrentMinute+1 : %d - %d", vm.EomMinuteIssued, s.CurrentMinute+1), m)
-		s.repost(m, 1) // Do not drop the message, we only generate 1 local eom per height/min, let validate drop it
+		//s.repost(m)
 		return
 	}
 	// The zero based minute for the message is equal to
@@ -1440,8 +1508,7 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	// generating minutes in order.
 
 	if len(vm.List) != vm.Height {
-		s.LogMessage("executeMsg", "repost, not pl synced", m)
-		s.repost(m, 1) // Do not drop the message, we only generate 1 local eom per height/min, let validate drop it
+		s.repost(m, 1)
 		return
 	}
 	eom := m.(*messages.EOM)
@@ -1451,7 +1518,6 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 
 	if vm.Synced {
 		s.LogMessage("executeMsg", "drop, already sync'd", m)
-		s.repost(m, 1) // Do not drop the message, we only generate 1 local eom per height/min, let validate drop it
 		return
 	}
 
@@ -1464,7 +1530,6 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 		s.LogPrintf("executeMsg", "EOM has wrong data expected DBH/VM/M %d/%d/%d", s.LLeaderHeight, s.LeaderVMIndex, s.CurrentMinute)
 		fix = true
 	}
-
 	// make sure EOM has the right data
 	eom.DBHeight = s.LLeaderHeight
 	eom.VMIndex = s.LeaderVMIndex
@@ -1679,7 +1744,7 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 		if entry != nil {
 			s.repost(entry, 0) // Try and execute the reveal for this commit
 		}
-		//s.LogMessage("dependentHolding", "process", commitChain)
+		//s.LogMessage("newHolding", "process", commitChain)
 		s.ExecuteFromHolding(commitChain.GetHash().Fixed()) // process CommitChain
 		return true
 	}
@@ -1702,7 +1767,7 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 		if entry != nil {
 			s.repost(entry, 0) // Try and execute the reveal for this commit
 		}
-		//		s.LogMessage("dependentHolding", "process", commitEntry)
+		//		s.LogMessage("newHolding", "process", commitEntry)
 		s.ExecuteFromHolding(commitEntry.GetHash().Fixed()) // process CommitEntry
 		return true
 	}
@@ -1760,7 +1825,7 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) (worked b
 		s.WriteEntry <- msg.Entry
 		s.IncEntryChains()
 		s.IncEntries()
-		//		s.LogMessage("dependentHolding", "process", m)
+		//		s.LogMessage("newHolding", "process", m)
 		s.ExecuteFromHolding(chainID.Fixed()) // Process Reveal for Chain
 
 		return true
@@ -2066,6 +2131,9 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		//fmt.Println(fmt.Sprintf("EOM PROCESS: %10s vm %2d EOMProcessed++ (%2d)", s.FactomNodeName, e.VMIndex, s.EOMProcessed))
 		vm.Synced = true // ProcessEOM
 		markNoFault(pl, msg.GetVMIndex())
+		if s.LeaderPL.SysHighest < int(e.SysHeight) {
+			s.LeaderPL.SysHighest = int(e.SysHeight)
+		}
 		//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s vm %2d Process this SigType: return on s.SigType(%v) && int(e.Minute(%v)) > s.EOMMinute(%v)", s.FactomNodeName, e.VMIndex, s.SigType, e.Minute, s.EOMMinute))
 		return false
 	}
@@ -2081,6 +2149,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 		s.EOMDone = true // ProcessEOM
 		s.EOMSyncTime = time.Now().UnixNano()
+		s.LeaderNewMin = 0
 		for _, eb := range pl.NewEBlocks {
 			eb.AddEndOfMinuteMarker(byte(e.Minute + 1))
 		}
@@ -2297,7 +2366,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			s.LogMessage("processList", "drop from pl", vm.ListAck[0])
 			vm.ListAck[0] = nil
 			vm.List[0] = nil
-			vm.HighestAsk = -1
+			vm.HighestAsk = 0
 			vm.HighestNil = 0
 			return false
 		}
@@ -2314,7 +2383,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			s.LogMessage("processList", "drop from pl", vm.ListAck[0])
 			vm.ListAck[0] = nil
 			vm.List[0] = nil
-			vm.HighestAsk = -1
+			vm.HighestAsk = 0
 			vm.HighestNil = 0
 			return false
 		}
@@ -2328,7 +2397,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			s.LogMessage("processList", "drop from pl", vm.ListAck[0])
 			vm.ListAck[0] = nil
 			vm.List[0] = nil
-			vm.HighestAsk = -1
+			vm.HighestAsk = 0
 			vm.HighestNil = 0
 			return false
 		}
