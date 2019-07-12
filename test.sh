@@ -34,9 +34,6 @@ function listPeer() {
 # load a list of tests to execute
 function loadTestList() {
   case $1 in
-    all ) # run all unit tests at once
-      TESTS=("./...")
-      ;;
     unittest ) # run unit test in batches
       TESTS=$({ \
         listModules ; \
@@ -55,24 +52,38 @@ function loadTestList() {
       })
       ;;
 
-    "" ) # run everything
+    "" ) # no param
 
+      # running locally - default to all tests
       if [[ "${CI}x" ==  "x" ]] ; then
-        # running locally
-        TESTS=$({ \
-          listModules ; \
-          listEngine ; \
-          listSimTest ; \
-          listPeer ; \
-        })
-      else
-        # running on circle
-        TESTS=$({ \
-          listModules ; \
-          listEngine ; \
-          listSimTest ; \
-          listPeer ; \
-        } | circleci tests split ) # circleci helper spreads tests across containers
+
+          TESTS=$({ \
+            listModules ; \
+            listEngine ; \
+            listSimTest ; \
+            listPeer ; \
+          })
+
+      else # running on circle
+
+        # run all tests on tags and PRs
+        if [[ "${CIRCLE_TAG}${CIRCLE_PULL_REQUEST}x" !=  "x" ]] ; then
+
+          TESTS=$({ \
+            listModules ; \
+            listEngine ; \
+            listSimTest ; \
+            listPeer ; \
+          } | circleci tests split ) # circleci helper spreads tests across containers
+
+        else # run single sim + all unit tests on every commit
+
+          TESTS=$({ \
+            listModules ; \
+            echo "engine/TestAnElection" ; \
+          } | circleci tests split ) # circleci helper spreads tests across containers
+
+        fi
       fi
       ;;
 
@@ -83,12 +94,22 @@ function loadTestList() {
   esac
 }
 
+function testGoFmt() {
+  FILES=$( find . -name '*.go')
+
+  for FILE in ${FILES[*]} ; do
+    gofmt -w $FILE
+
+    if [[ $? != 0 ]] ;  then
+      FAIL=1
+      FAILURES+=($FILE)
+    fi
+  done
+
+}
+
 function runTests() {
-
   loadTestList $1
-
-  FAILURES=()
-  FAIL=""
 
   echo '---------------'
   echo "${TESTS}"
@@ -115,18 +136,6 @@ function runTests() {
       FAILURES+=($TST)
     fi
   done
-
-  if [[ "${FAIL}x" != "x" ]] ; then
-    echo "TESTS FAIL"
-    echo '---------------'
-    for F in ${FAILURES[*]} ; do
-      echo $F
-    done
-    exit 1
-  else
-    echo "ALL TESTS PASS"
-    exit 0
-  fi
 }
 
 # run A/B peer coodinated tests
@@ -142,7 +151,7 @@ function testPeer() {
   $GO_TEST $B &> b_testout.txt
 }
 
-# run unit tests per module
+# run unit tests per module this ignores all simtests
 function unitTest() {
   $GO_TEST -tags=all $1 | egrep 'PASS|FAIL|RUN'
 }
@@ -159,4 +168,29 @@ function testEngine() {
   $GO_TEST -tags=simtest -run=${1/engine\//} ./engine/... | egrep 'PASS|FAIL|RUN'
 }
 
-runTests $1
+function main() {
+  FAILURES=()
+  FAIL=""
+
+  if [[ "${1}" == "gofmt" ]] ; then
+    # check all files pass gofmt
+    testGoFmt
+  else
+    # run tests
+    runTests $1
+  fi
+
+  if [[ "${FAIL}x" != "x" ]] ; then
+    echo "TESTS FAIL"
+    echo '---------------'
+    for F in ${FAILURES[*]} ; do
+      echo $F
+    done
+    exit 1
+  else
+    echo "ALL TESTS PASS"
+    exit 0
+  fi
+}
+
+main $1
