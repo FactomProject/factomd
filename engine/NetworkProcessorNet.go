@@ -337,8 +337,6 @@ func Peers(fnode *FactomNode) {
 	} // forever {...}
 }
 
-var cacheReveals bool = true
-
 func sendToExecute(msg interfaces.IMsg, fnode *FactomNode, source string) {
 	t := msg.Type()
 	switch t {
@@ -349,12 +347,10 @@ func sendToExecute(msg interfaces.IMsg, fnode *FactomNode, source string) {
 	case constants.COMMIT_CHAIN_MSG:
 		fnode.State.ChainCommits.Add(msg) // keep last 100 chain commits
 		Q1(fnode, source, msg)            // send it fast track
-		if cacheReveals {                 // if we are caching reveals then look to see if we already have the matching reveal
-			reveal := fnode.State.Reveals.Get(msg.GetHash().Fixed())
-			if reveal != nil {
-				Q1(fnode, source, reveal) // if we have it send it fast track
-				// it will still arrive from thr slow track but that is ok.
-			}
+		reveal := fnode.State.Reveals.Get(msg.GetHash().Fixed())
+		if reveal != nil {
+			Q1(fnode, source, reveal) // if we have it send it fast track
+			// it will still arrive from thr slow track but that is ok.
 		}
 
 	case constants.REVEAL_ENTRY_MSG:
@@ -363,9 +359,7 @@ func sendToExecute(msg interfaces.IMsg, fnode *FactomNode, source string) {
 			Q1(fnode, source, msg) // fast track chain reveals
 		} else {
 			Q2(fnode, source, msg) // all other reveals are slow track
-			if cacheReveals {
-				fnode.State.Reveals.Add(msg)
-			}
+			fnode.State.Reveals.Add(msg)
 		}
 
 	case constants.COMMIT_ENTRY_MSG:

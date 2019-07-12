@@ -239,7 +239,7 @@ type State struct {
 	CurrentMinuteStartTime  int64
 	CurrentBlockStartTime   int64
 
-	EOMsyncing bool
+	EOMsyncing   bool
 	EOMSyncTime  int64
 	EOM          bool // Set to true when the first EOM is encountered
 	EOMLimit     int
@@ -303,7 +303,7 @@ type State struct {
 	Anchor interfaces.IAnchor
 
 	// Directory Block State
-	DBStates *DBStateList // Holds all DBStates not yet processed.
+	DBStates       *DBStateList // Holds all DBStates not yet processed.
 	StatesMissing  *StatesMissing
 	StatesWaiting  *StatesWaiting
 	StatesReceived *StatesReceived
@@ -427,8 +427,8 @@ type State struct {
 	processCnt            int64 // count of attempts to process .. so we can see if the thread is running
 	MMRInfo                     // fields for MMR processing
 
-	reportedActivations   [activations.ACTIVATION_TYPE_COUNT + 1]bool // flags about which activations we have reported (+1 because we don't use 0)
-	validatorLoopThreadID string
+	reportedActivations       [activations.ACTIVATION_TYPE_COUNT + 1]bool // flags about which activations we have reported (+1 because we don't use 0)
+	validatorLoopThreadID     string
 	OutputRegEx               *regexp.Regexp
 	OutputRegExString         string
 	InputRegEx                *regexp.Regexp
@@ -443,8 +443,8 @@ type State struct {
 	// MissingMessageResponseHandler is a cache of the last 2 blocks of processed acks.
 	// It can handle and respond to missing message requests on it's own thread.
 	MissingMessageResponseHandler *MissingMessageResponseCache
-	ChainCommits          Last100
-	Reveals               Last100
+	ChainCommits                  Last100
+	Reveals                       Last100
 }
 
 var _ interfaces.IState = (*State)(nil)
@@ -972,10 +972,10 @@ func (s *State) Init() {
 	s.InvalidMessages = make(map[[32]byte]interfaces.IMsg, 0)
 
 	s.ShutdownChan = make(chan int, 1)                //Channel to gracefully shut down.
-	s.tickerQueue = make(chan int, 100)                        //ticks from a clock
-	s.timerMsgQueue = make(chan interfaces.IMsg, 100)          //incoming eom notifications, used by leaders
+	s.tickerQueue = make(chan int, 100)               //ticks from a clock
+	s.timerMsgQueue = make(chan interfaces.IMsg, 100) //incoming eom notifications, used by leaders
 	s.ControlPanelChannel = make(chan DisplayState, 20)
-	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 100) //incoming message queue from the network messages
+	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 100)              //incoming message queue from the network messages
 	s.networkOutMsgQueue = NewNetOutMsgQueue(constants.INMSGQUEUE_MED)      //Messages to be broadcast to the network
 	s.inMsgQueue = NewInMsgQueue(constants.INMSGQUEUE_HIGH)                 //incoming message queue for Factom application messages
 	s.inMsgQueue2 = NewInMsgQueue(constants.INMSGQUEUE_HIGH)                //incoming message queue for Factom application messages
