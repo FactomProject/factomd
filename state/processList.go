@@ -656,6 +656,9 @@ func (p *ProcessList) TrimVMList(h uint32, vmIndex int) {
 		}
 		p.State.LogPrintf("processList", "TrimVMList() %d/%d/%d, trimmed %d", p.DBHeight, vmIndex, height, len(p.VMs[vmIndex].List)-height)
 		p.VMs[vmIndex].List = p.VMs[vmIndex].List[:height]
+		if len(p.VMs[vmIndex].ListAck) > height { // Also trim ListAck
+			p.VMs[vmIndex].ListAck = p.VMs[vmIndex].ListAck[:height]
+		}
 		if p.State.DebugExec() {
 			if p.VMs[vmIndex].HighestNil > height {
 				p.VMs[vmIndex].HighestNil = height // Drag report limit back

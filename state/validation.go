@@ -92,7 +92,7 @@ func (s *State) ValidatorLoop() {
 			time.Sleep(10 * time.Second) // wait till database close is complete
 			return
 		case c := <-s.tickerQueue: // Look for pending messages, and get one if there is one.
-			if !s.RunLeader || !s.DBFinished { // don't generate EOM if we are not a leader or are loading the DBState messages
+			if !s.RunLeader || !s.DBFinished { // don't generate EOM if we are not ready to execute as a leader or are loading the DBState messages
 				continue
 			}
 			if lastHeight == int(s.LLeaderHeight) && lastMinute == s.CurrentMinute && s.LeaderVMIndex == lastVM {
