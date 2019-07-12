@@ -43,10 +43,9 @@ type Controller struct {
 // NewController creates all the elections and initial volunteer messages
 func NewController(feds, auds int) *Controller {
 	c := new(Controller)
-	c.feds = make([]interfaces.IServer, 3)
-	c.auds = make([]interfaces.IServer, 3)
+	c.feds = make([]interfaces.IServer, feds)
+	c.auds = make([]interfaces.IServer, auds)
 	c.Elections = make([]*elections.Elections, len(c.feds))
-
 	for i := range c.feds {
 		e := new(elections.Elections)
 		s := state.Server{}
@@ -87,7 +86,7 @@ func NewController(feds, auds int) *Controller {
 
 	c.ElectionAdapters = make([]*electionMsgs.ElectionAdapter, len(c.Elections))
 	for i, e := range c.Elections {
-		c.ElectionAdapters[i] = electionMsgs.NewElectionAdapter(e, primitives.NewZeroHash())
+		c.ElectionAdapters[i] = electionMsgs.NewElectionAdapter(e, e.State.GetIdentityChainID())
 		c.ElectionAdapters[i].SimulatedElection.AddDisplay(nil)
 	}
 
