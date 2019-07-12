@@ -7,6 +7,7 @@ package state
 import (
 	"errors"
 	"fmt"
+	eventMessages "github.com/FactomProject/factomd/common/messages/eventMsgs"
 	"hash"
 	"os"
 	"reflect"
@@ -1196,6 +1197,8 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	}
 	s.DBStates.UpdateState()
 
+	anchoredEvent := eventMessages.FromDBState(dbstatemsg)
+	anchoredEvent.Marshal()
 }
 
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
