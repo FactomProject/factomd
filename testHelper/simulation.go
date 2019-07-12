@@ -48,7 +48,7 @@ func StartSim(GivenNodes string, UserAddedOptions map[string]string) *state.Stat
 		"--network":             "LOCAL",
 		"--net":                 "alot+",
 		"--enablenet":           "false",
-		"--blktime":             "15",
+		"--blktime":             "40",
 		"--count":               fmt.Sprintf("%v", len(GivenNodes)),
 		"--startdelay":          "1",
 		"--stdoutlog":           "out.txt",

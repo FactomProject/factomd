@@ -182,15 +182,8 @@ func Peers(fnode *FactomNode) {
 			}
 
 			//fnode.MLog.add2(fnode, false, fnode.State.FactomNodeName, "API", true, msg)
-			if t := msg.Type(); t == constants.REVEAL_ENTRY_MSG || t == constants.COMMIT_CHAIN_MSG || t == constants.COMMIT_ENTRY_MSG {
-				fnode.State.LogMessage("NetworkInputs", "from API, Enqueue2", msg)
-				fnode.State.LogMessage("InMsgQueue2", "enqueue2", msg)
-				fnode.State.InMsgQueue2().Enqueue(msg)
-			} else {
-				fnode.State.LogMessage("NetworkInputs", "from API, Enqueue", msg)
-				fnode.State.LogMessage("InMsgQueue", "enqueue", msg)
-				fnode.State.InMsgQueue().Enqueue(msg)
-			}
+			sendToExecute(msg, fnode, "from API")
+
 		} // for the api queue read up to 100 messages {...}
 
 		// Put any broadcasts from our peers into our BroadcastIn queue
@@ -333,25 +326,8 @@ func Peers(fnode *FactomNode) {
 				}
 
 				msg.SetNetwork(true)
-
 				if !crossBootIgnore(msg) {
-					if t := msg.Type(); t == constants.REVEAL_ENTRY_MSG || t == constants.COMMIT_CHAIN_MSG || t == constants.COMMIT_ENTRY_MSG {
-						fnode.State.LogMessage("NetworkInputs", fromPeer+", enqueue2", msg)
-						fnode.State.LogMessage("InMsgQueue2", fromPeer+", enqueue2", msg)
-						fnode.State.InMsgQueue2().Enqueue(msg)
-					} else if msg.Type() == constants.MISSING_MSG {
-						fnode.State.LogMessage("mmr_response", fmt.Sprintf(fromPeer+", enqueue %d", len(fnode.State.MissingMessageResponseHandler.MissingMsgRequests)), msg)
-						fnode.State.MissingMessageResponseHandler.NotifyPeerMissingMsg(msg)
-					} else {
-						fnode.State.LogMessage("NetworkInputs", fromPeer+", enqueue", msg)
-						fnode.State.LogMessage("InMsgQueue", fromPeer+", enqueue", msg)
-						fnode.State.InMsgQueue().Enqueue(msg)
-					}
-				}
-
-				if constants.NeedsAck(msg.Type()) {
-					// send msg to MMRequest processing to suppress requests for messages we already have
-					fnode.State.RecentMessage.NewMsgs <- msg
+					sendToExecute(msg, fnode, fromPeer)
 				}
 			} // For a peer read up to 100 messages {...}
 		} // for each peer {...}
@@ -359,6 +335,58 @@ func Peers(fnode *FactomNode) {
 			time.Sleep(50 * time.Millisecond) // handled no message, sleep a bit
 		}
 	} // forever {...}
+}
+
+func sendToExecute(msg interfaces.IMsg, fnode *FactomNode, source string) {
+	t := msg.Type()
+	switch t {
+	case constants.MISSING_MSG:
+		fnode.State.LogMessage("mmr_response", fmt.Sprintf("%s, enqueue %d", source, len(fnode.State.MissingMessageResponseHandler.MissingMsgRequests)), msg)
+		fnode.State.MissingMessageResponseHandler.NotifyPeerMissingMsg(msg)
+
+	case constants.COMMIT_CHAIN_MSG:
+		fnode.State.ChainCommits.Add(msg) // keep last 100 chain commits
+		Q1(fnode, source, msg)            // send it fast track
+		reveal := fnode.State.Reveals.Get(msg.GetHash().Fixed())
+		if reveal != nil {
+			Q1(fnode, source, reveal) // if we have it send it fast track
+			// it will still arrive from thr slow track but that is ok.
+		}
+
+	case constants.REVEAL_ENTRY_MSG:
+		// if this is a chain commit reveal send it fast track to allow processing of dependant reveals
+		if fnode.State.ChainCommits.Get(msg.GetHash().Fixed()) != nil {
+			Q1(fnode, source, msg) // fast track chain reveals
+		} else {
+			Q2(fnode, source, msg) // all other reveals are slow track
+			fnode.State.Reveals.Add(msg)
+		}
+
+	case constants.COMMIT_ENTRY_MSG:
+		Q2(fnode, source, msg) // slow track
+
+	default:
+		//todo: Probably should send EOM/DBSig and their ACKs on a faster yet track
+		// in general this makes ACKs more likely to arrive first.
+		Q1(fnode, source, msg) // fast track
+	}
+
+	if constants.NeedsAck(msg.Type()) {
+		// send msg to MMRequest processing to suppress requests for messages we already have
+		fnode.State.RecentMessage.NewMsgs <- msg
+	}
+}
+
+func Q1(fnode *FactomNode, source string, msg interfaces.IMsg) {
+	fnode.State.LogMessage("NetworkInputs", source+", enqueue", msg)
+	fnode.State.LogMessage("InMsgQueue", source+", enqueue", msg)
+	fnode.State.InMsgQueue().Enqueue(msg)
+}
+
+func Q2(fnode *FactomNode, source string, msg interfaces.IMsg) {
+	fnode.State.LogMessage("NetworkInputs", source+", enqueue2", msg)
+	fnode.State.LogMessage("InMsgQueue2", source+", enqueue2", msg)
+	fnode.State.InMsgQueue2().Enqueue(msg)
 }
 
 func NetworkOutputs(fnode *FactomNode) {
