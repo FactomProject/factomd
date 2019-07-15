@@ -106,8 +106,7 @@ func NewJSON2Response() *JSON2Response {
 
 // AddError sets the member Error with a new JSONError formed from the inputs
 func (j *JSON2Response) AddError(code int, message string, data interface{}) {
-	err := NewJSONError(code, message, data)
-	j.Error = err
+	j.Error = NewJSONError(code, message, data)
 }
 
 // JSONError is an JSON RPC error object used in factomd according to the specification for JSON RPC 2.0
