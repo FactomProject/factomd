@@ -581,11 +581,6 @@ func (s *State) ReviewHolding() {
 	s.Commits.Cleanup(s)
 	s.DB.Trim()
 
-	// Set the resend time at the END of the function. This prevents the time it takes to execute this function
-	// from reducing the time we allow before another review
-	defer func() {
-		s.ResendHolding = now
-	}()
 	// Anything we are holding, we need to reprocess.
 	s.XReview = make([]interfaces.IMsg, 0)
 
