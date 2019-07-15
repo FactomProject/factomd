@@ -1223,8 +1223,9 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	}
 	s.DBStates.UpdateState()
 
-	anchoredEvent := eventMessages.FromDBState(dbstatemsg)
-	anchoredEvent.Marshal()
+	anchoredEvent := eventMessages.AnchoredEventFromDBState(dbstatemsg)
+	s.EventsProxy.Send(anchoredEvent)
+
 }
 
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {

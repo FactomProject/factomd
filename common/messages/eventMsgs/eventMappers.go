@@ -4,9 +4,10 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/gogo/protobuf/types"
+	"github.com/golang/protobuf/proto"
 )
 
-func FromDBState(dbStateMessage *messages.DBStateMsg) *AnchoredEvent {
+func AnchoredEventFromDBState(dbStateMessage *messages.DBStateMsg) *AnchoredEvent {
 	event := &AnchoredEvent{}
 	event.DirectoryBlock = mapDirBlock(dbStateMessage.DirectoryBlock)
 	return event
@@ -15,6 +16,7 @@ func FromDBState(dbStateMessage *messages.DBStateMsg) *AnchoredEvent {
 func mapDirBlock(block interfaces.IDirectoryBlock) *DirectoryBlock {
 	result := &DirectoryBlock{}
 	result.Header = mapDirHeader(block.GetHeader())
+	result.Entries = mapDirEntries(block.GetDBEntries())
 	return result
 }
 
@@ -37,4 +39,35 @@ func mapDirHeader(header interfaces.IDirectoryBlockHeader) *DirectoryBlockHeader
 	}
 
 	return result
+}
+
+func mapDirEntries(entries []interfaces.IDBEntry) []*Entry {
+	result := make([]*Entry, len(entries))
+	for i, entry := range entries {
+		result[i] = mapDirEntry(entry)
+	}
+	return result
+}
+
+func mapDirEntry(entry interfaces.IDBEntry) *Entry {
+	result := &Entry{
+		ChainID: &Hash{
+			HashValue: entry.GetChainID().Bytes(),
+		},
+		KeyMerkleRoot: &Hash{
+			HashValue: entry.GetKeyMR().Bytes(),
+		},
+	}
+	return result
+}
+
+type Event interface {
+	Reset()
+	String() string
+	ProtoMessage()
+	XXX_Unmarshal(b []byte) error
+	XXX_Marshal(b []byte, deterministic bool) ([]byte, error)
+	XXX_Merge(src proto.Message)
+	XXX_Size() int
+	XXX_DiscardUnknown()
 }

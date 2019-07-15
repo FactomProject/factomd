@@ -433,8 +433,8 @@ type State struct {
 	InputRegExString          string
 	executeRecursionDetection map[[32]byte]interfaces.IMsg
 	Hold                      HoldingList
-	EventsService             events.EventService
-	EventsServiceControl      events.EventServiceControl
+
+	EventsProxy *events.EventProxy
 }
 
 var _ interfaces.IState = (*State)(nil)
@@ -564,7 +564,7 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 	newState.factomdTLSKeyFile = s.factomdTLSKeyFile
 	newState.factomdTLSCertFile = s.factomdTLSCertFile
 	newState.FactomdLocations = s.FactomdLocations
-	newState.EventsService = s.EventsService
+	newState.EventsProxy = s.EventsProxy
 
 	newState.FastSaveRate = s.FastSaveRate
 	newState.CorsDomains = s.CorsDomains
