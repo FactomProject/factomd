@@ -24,7 +24,7 @@ import (
 type AnchorRecord struct {
 	AnchorRecordVer int    // version 1 places signature content in the field, version 2 uses external IDs for signature
 	DBHeight        uint32 // Factom Directory Block Height - the unique number associated with this DBlock
-	KeyMR           string // key merkle root of the directory block
+	KeyMR           string `json:",omitempty"` // key merkle root of the directory block
 
 	DBHeightMax uint32 `json:",omitempty"` // The highest directory block height included in this anchor window
 	DBHeightMin uint32 `json:",omitempty"` // The lowest directory block height included in this anchor window
@@ -110,7 +110,8 @@ func (ar *AnchorRecord) MarshalAndSignV2(priv interfaces.Signer) ([]byte, []byte
 	return data, sig.Bytes(), nil
 }
 
-// Non-exported, refactored function that splits the AnchorRecord and its signature
+// splitAnchorAndSignature is a refactored function that splits the AnchorRecord and its signature, non-exported
+// for now, but no particular reason it can't be exported if needed in the future
 func splitAnchorAndSignature(data []byte) (string, string, error) {
 	if len(data) == 0 {
 		return "", "", fmt.Errorf("Invalid data passed")
@@ -162,7 +163,8 @@ func UnmarshalAnchorRecord(data []byte) (*AnchorRecord, error) {
 	return ar, nil
 }
 
-// verifyAnchorAndSignature verifies the data and signature from the public keys - unexported
+// verifyAnchorAndSignature verifies the data and signature from the public keys. Created during refactoring and is unexported for now
+// but no reason it couldn't be exported in the future
 func verifyAnchorAndSignature(data []byte, sig *primitives.ByteSliceSig, publicKeys []interfaces.Verifier) (bool, error) {
 	fixed, err := sig.GetFixed()
 	if err != nil {
