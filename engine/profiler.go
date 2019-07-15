@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	_ "net/http/pprof"
+	"net/http/pprof"
 	"runtime"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -24,11 +24,20 @@ func StartProfiler(mpr int, expose bool) {
 	if expose {
 		pre = ""
 	}
-	log.Println(http.ListenAndServe(fmt.Sprintf("%s:%s", pre, logPort), nil))
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/debug/pprof/", pprof.Index)
+	mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
+
+	log.Println(http.ListenAndServe(fmt.Sprintf("%s:%s", pre, logPort), mux))
 	//runtime.SetBlockProfileRate(100000)
 }
 
 func launchPrometheus(port int) {
-	http.Handle("/metrics", prometheus.Handler())
-	go http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
+	mux := http.NewServeMux()
+	mux.Handle("/metrics", prometheus.Handler())
+	go http.ListenAndServe(fmt.Sprintf(":%d", port), mux)
 }

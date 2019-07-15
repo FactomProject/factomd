@@ -19,14 +19,14 @@ func TestBrainSwapNetwork(t *testing.T) {
 		maxBlocks := 30
 		peers := "127.0.0.1:37003"
 		// nodes usage  0123456 nodes 8 and 9 are in a separate sim of TestBrainSwapFollower
-		given_Nodes := "LLLLAAA"
-		outputNodes := "LLLAAFF"
+		givenNodes := "LLLLAAA"
+		outputNodes := "LFLLFAA"
 
 		t.Run("Setup Config Files", func(t *testing.T) {
 			ResetFactomHome(t, "network")
 
 			// build config files for the test
-			for i := 0; i < len(given_Nodes); i++ {
+			for i := 0; i < len(givenNodes); i++ {
 				WriteConfigFile(i, i, "", t)
 			}
 
@@ -53,7 +53,7 @@ func TestBrainSwapNetwork(t *testing.T) {
 			"--factomhome":       globals.Params.FactomHome,
 		}
 
-		state0 := SetupSim(given_Nodes, params, int(maxBlocks), 0, 0, t)
+		state0 := SetupSim(givenNodes, params, int(maxBlocks), 0, 0, t)
 
 		t.Run("Wait For Identity Swap", func(t *testing.T) {
 			WaitForAllNodes(state0)
@@ -65,7 +65,7 @@ func TestBrainSwapNetwork(t *testing.T) {
 
 		t.Run("Verify Network", func(t *testing.T) {
 			WaitBlocks(state0, 3)
-			CheckAuthoritySet(t)
+			AssertAuthoritySet(t, outputNodes)
 			WaitBlocks(state0, 1)
 			Halt(t)
 		})

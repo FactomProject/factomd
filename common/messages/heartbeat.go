@@ -9,6 +9,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -326,7 +327,15 @@ func (m *Heartbeat) FollowerExecute(is interfaces.IState) {
 		if auditServer.GetChainID().IsSameAs(m.IdentityChainID) {
 			if m.IdentityChainID.IsSameAs(is.GetIdentityChainID()) {
 				if m.SecretNumber != is.GetSalt(m.Timestamp) {
-					panic("We have seen a heartbeat using our Identity that isn't ours")
+					lLeaderHeight := is.GetLLeaderHeight()
+					if m.DBHeight == lLeaderHeight {
+						var b strings.Builder
+						b.WriteString("We have seen a heartbeat using our Identity that isn't ours.")
+						b.WriteString(fmt.Sprintf("\n    Node: %s", is.GetFactomNodeName()))
+						b.WriteString(fmt.Sprintf("\n    LLeaderHeight: %d", lLeaderHeight))
+						b.WriteString(fmt.Sprintf("\n    Message dbHeight: %d", m.DBHeight))
+						panic(b.String())
+					}
 				}
 			}
 			auditServer.SetOnline(true)

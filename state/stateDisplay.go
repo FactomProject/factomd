@@ -55,6 +55,7 @@ type DisplayState struct {
 	SimElection         string
 	SyncingState        [256]string
 	SyncingStateCurrent int
+	IgnoreDone          bool
 }
 
 type FactoidTransaction struct {
@@ -257,6 +258,7 @@ func DeepStateDisplayCopyDifference(s *State, prev *DisplayState) (*DisplayState
 
 	ds.SyncingState = s.SyncingState
 	ds.SyncingStateCurrent = s.SyncingStateCurrent
+	ds.IgnoreDone = s.GetIgnoreDone()
 
 	return ds, nil
 }

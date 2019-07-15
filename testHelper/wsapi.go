@@ -1,6 +1,12 @@
 package testHelper
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"net/http"
+
+	"github.com/FactomProject/factomd/engine"
 	"github.com/FactomProject/factomd/wsapi"
 	"strconv"
 )
@@ -20,4 +26,9 @@ func InitTestState() {
 		server := wsapi.InitServer(state)
 		wsapi.Servers[port] = server
 	}
+}
+
+func getAPIUrl() string {
+	return "http://localhost:" + fmt.Sprint(engine.GetFnodes()[0].State.GetPort()) + "/debug"
+
 }

@@ -246,7 +246,13 @@ func (m *MissingMsg) Validate(state interfaces.IState) int {
 	if m.Asking == nil {
 		return -1
 	}
-	if m.Asking.IsZero() {
+	// can't answer about the future
+	if m.DBHeight > state.GetLLeaderHeight() {
+		return -1
+	}
+	// can't answer about the past before our earliest pl
+	// use int so at height near 0 we can go negative
+	if int(m.DBHeight) < int(state.GetLLeaderHeight())-2 {
 		return -1
 	}
 	return 1

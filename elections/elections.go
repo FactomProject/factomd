@@ -38,7 +38,6 @@ type Elections struct {
 	VMIndex   int               // VMIndex of this election
 	Msgs      []interfaces.IMsg // Messages we are collecting in this election.  Look here for what's missing.
 	Input     interfaces.IQueue
-	Output    interfaces.IQueue
 	Round     []int
 	Electing  int // This is the federated Server index that we are looking to replace
 	State     interfaces.IState
@@ -445,7 +444,6 @@ func Run(s *state.State) {
 	e.State = s
 	e.Name = s.FactomNodeName
 	e.Input = s.ElectionsQueue()
-	e.Output = s.InMsgQueue()
 	e.Electing = -1
 
 	e.Timeout = time.Duration(FaultTimeout) * time.Second

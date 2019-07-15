@@ -17,6 +17,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"regexp"
 )
 
 func HandleDebug(writer http.ResponseWriter, request *http.Request) {
@@ -133,6 +134,8 @@ func HandleDebugRequest(state interfaces.IState,
 		break
 	case "sim-ctrl":
 		resp, jsonError = HandleSimControl(state, params)
+	case "message-filter":
+		resp, jsonError = HandleMessageFilter(state, params)
 	default:
 		jsonError = NewMethodNotFoundError()
 		break
@@ -455,4 +458,38 @@ type SetDropRateRequest struct {
 
 type GetCommands struct {
 	Commands []string `json:"commands"`
+}
+
+func HandleMessageFilter(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	fmt.Println("Factom Node Name: ", state.GetFactomNodeName())
+	x, ok := params.(map[string]interface{})
+	if !ok {
+		return nil, NewCustomInvalidParamsError("ERROR! Invalid params passed in")
+	}
+
+	fmt.Println(`x["output-regex"]`, x["output-regex"])
+	fmt.Println(`x["input-regex"]`, x["input-regex"])
+
+	OutputString := fmt.Sprintf("%s", x["output-regex"])
+	if OutputString != "" {
+		OutputRegEx := regexp.MustCompile(OutputString)
+		state.PassOutputRegEx(OutputRegEx, OutputString)
+
+	} else if OutputString == "off" {
+		state.PassOutputRegEx(nil, "")
+	}
+
+	InputString := fmt.Sprintf("%s", x["input-regex"])
+	if InputString != "" {
+		InputRegEx := regexp.MustCompile(InputString)
+		state.PassInputRegEx(InputRegEx, InputString)
+
+	} else if InputString == "off" {
+		state.PassInputRegEx(nil, "")
+	}
+
+	h := new(MessageFilter)
+	h.Params = "Success"
+
+	return h, nil
 }

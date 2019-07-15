@@ -45,6 +45,21 @@ func RandomEntry() interfaces.IEBEntry {
 	return e
 }
 
+func DeterministicEntry(i int) interfaces.IEBEntry {
+	e := NewEntry()
+	e.Version = 0
+	bs := fmt.Sprintf("%x", i)
+	if len(bs)%2 == 1 {
+		bs = "0" + bs
+	}
+
+	e.ExtIDs = []primitives.ByteSlice{*primitives.StringToByteSlice(bs)}
+	//e.ExtIDs = append(e.ExtIDs, *primitives.StringToByteSlice(fmt.Sprintf("%d", i)))
+	e.ChainID = ExternalIDsToChainID([][]byte{e.ExtIDs[0].Bytes})
+
+	return e
+}
+
 func (c *Entry) IsSameAs(b interfaces.IEBEntry) bool {
 	if b == nil {
 		if c != nil {

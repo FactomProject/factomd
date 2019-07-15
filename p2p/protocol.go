@@ -56,10 +56,10 @@ var (
 	OnlySpecialPeers                    = false       // dial out to special peers only
 	AllowUnknownIncomingPeers           = true        // allow incoming connections from peers that are not in the special peer list
 	NetworkDeadline                     = time.Duration(30) * time.Second
-	NumberPeersToConnect                = 32
-	NumberPeersToBroadcast              = 8 // This gets overwritten by command line flag!
-	MaxNumberIncomingConnections        = 150
-	MaxNumberOfRedialAttempts           = 5 // How many missing pings (and other) before we give up and close.
+	NumberPeersToConnect                = 32  // default value; changeable in cfg and cmd line
+	NumberPeersToBroadcast              = 16  // This gets overwritten by command line flag!
+	MaxNumberIncomingConnections        = 200 // default value; changeable in cfg and cmd line
+	MaxNumberOfRedialAttempts           = 5   // How many missing pings (and other) before we give up and close.
 	StandardChannelSize                 = 5000
 	NetworkStatusInterval               = time.Second * 9
 	ConnectionStatusInterval            = time.Second * 122
