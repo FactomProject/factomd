@@ -23,7 +23,7 @@ import (
 // from the directory block is stored in the AnchorRecord.
 type AnchorRecord struct {
 	AnchorRecordVer int    // version 1 places signature content in the field, version 2 uses external IDs for signature
-	DBHeight        uint32 // Factom Directory Block Height - the unique number associated with this DBlock
+	DBHeight        uint32 `json:",omitempty"` // Factom Directory Block Height - the unique number associated with this DBlock
 	KeyMR           string `json:",omitempty"` // key merkle root of the directory block
 
 	DBHeightMax uint32 `json:",omitempty"` // The highest directory block height included in this anchor window
