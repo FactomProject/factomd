@@ -1219,16 +1219,6 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		fs.(*FactoidState).DBHeight = dbht + 1
 	}
 
-	// Note about dbsigs.... If we processed the previous minute, then we generate the DBSig for the next block.
-	// But if we didn't process the previous block, like we start from scratch, or we had to reset the entire
-	// network, then no dbsig exists.  This code doesn't execute, and so we have no dbsig.  In that case, on
-	// the next EOM, we see the block hasn't been signed, and we sign the block (That is the call to SendDBSig()
-	// above).
-	pldbs := s.ProcessLists.Get(s.LLeaderHeight)
-	if s.Leader && !pldbs.DBSigAlreadySent {
-		s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex) // ProcessBlocks()
-	}
-
 	return
 }
 
@@ -1429,9 +1419,12 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		switch en.ECID() {
 		case constants.ECIDChainCommit:
 			list.State.NumNewChains++
+			list.State.ExecuteFromHolding(en.GetEntryHash().Fixed())
 		case constants.ECIDEntryCommit:
 			list.State.NumNewEntries++
+			list.State.ExecuteFromHolding(en.GetEntryHash().Fixed())
 		}
+
 	}
 
 	pl := list.State.ProcessLists.Get(uint32(dbheight))
@@ -1474,6 +1467,10 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		} else {
 			list.State.LogPrintf("dbstateprocess", "Error saving eblock from dbstate, eblock not allowed")
 		}
+		// if this is chain head
+		if eb.GetHeader().GetEBSequence() == 0 {
+			list.State.ExecuteFromHolding(eb.GetHeader().GetChainID().Fixed())
+		}
 	}
 	for _, e := range d.Entries {
 		// If it's in the DBlock
@@ -1514,11 +1511,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 			if err != nil {
 				panic(err)
 			}
-			if _, ok := allowedEBlocks[keymr.Fixed()]; ok {
-				for _, e := range eb.GetBody().GetEBEntries() {
-					pl.State.WriteEntry <- pl.GetNewEntry(e.Fixed())
-				}
-			} else {
+			if _, ok := allowedEBlocks[keymr.Fixed()]; !ok {
 				list.State.LogPrintf("dbstateprocess", "Error saving eblock from process list, eblock not allowed")
 			}
 		}

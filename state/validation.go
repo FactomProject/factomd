@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/constants/runstate"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/util/atomic"
@@ -19,12 +20,12 @@ var ValidationDebug bool = false
 // This is the tread with access to state. It does process and update state
 func (s *State) DoProcessing() {
 	s.validatorLoopThreadID = atomic.Goid()
-	s.IsRunning = true
+	s.RunState = runstate.Running
 
 	slp := false
 	i3 := 0
 
-	for s.IsRunning {
+	for s.GetRunState() == runstate.Running {
 
 		p1 := true
 		p2 := true
@@ -68,17 +69,23 @@ func (s *State) DoProcessing() {
 }
 
 func (s *State) ValidatorLoop() {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("A panic state occurred in ValidatorLoop.", r)
+			shutdown(s)
+		}
+	}()
+
 	CheckGrants()
 
 	go s.DoProcessing()
-
 	// Look for pending messages, and get one if there is one.
 	for { // this is the message sort
 		var msg interfaces.IMsg
 
 		select {
 		case <-s.ShutdownChan: // Check if we should shut down.
-			s.IsRunning = false
+			shutdown(s)
 			time.Sleep(10 * time.Second) // wait till database close is complete
 			return
 		case <-s.tickerQueue: // Look for pending messages, and get one if there is one.
@@ -105,11 +112,30 @@ func (s *State) ValidatorLoop() {
 		}
 
 		if t := msg.Type(); t == constants.ACK_MSG {
-			s.LogMessage("ackQueue", "enqueue", msg)
+			s.LogMessage("ackQueue", "enqueue ValidatorLoop", msg)
 			s.ackQueue <- msg
 		} else {
-			s.LogMessage("msgQueue", "enqueue", msg)
+			s.LogMessage("msgQueue", "enqueue ValidatorLoop", msg)
 			s.msgQueue <- msg
 		}
 	}
+}
+
+func shouldShutdown(state *State) bool {
+	select {
+	case <-state.ShutdownChan:
+		shutdown(state)
+		return true
+	default:
+		return false
+	}
+}
+
+func shutdown(state *State) {
+	state.RunState = runstate.Stopping
+	fmt.Println("Closing the Database on", state.GetFactomNodeName())
+	state.StateSaverStruct.StopSaving()
+	state.DB.Close()
+	fmt.Println("Database on", state.GetFactomNodeName(), "closed")
+	state.RunState = runstate.Stopped
 }

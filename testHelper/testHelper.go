@@ -134,6 +134,7 @@ func CreateAndPopulateTestState() *state.State {
 		panic(err)
 	}*/
 	s.SetFactoshisPerEC(1)
+	s.MMRDummy() // Need to start MMR to ensure queues don't fill up
 	state.LoadDatabase(s)
 	s.Process()
 	s.UpdateState()
@@ -215,19 +216,7 @@ func CreateTestDBStateList() []interfaces.IMsg {
 	return answer
 }
 
-func MakeSureAnchorValidationKeyIsPresent() {
-	priv := NewPrimitivesPrivateKey(0)
-	pub := priv.Pub
-	for _, v := range databaseOverlay.AnchorSigPublicKeys {
-		if v.String() == pub.String() {
-			return
-		}
-	}
-	databaseOverlay.AnchorSigPublicKeys = append(databaseOverlay.AnchorSigPublicKeys, pub)
-}
-
 func PopulateTestDatabaseOverlay(dbo *databaseOverlay.Overlay) {
-	MakeSureAnchorValidationKeyIsPresent()
 	var prev *BlockSet = nil
 	var err error
 
@@ -277,7 +266,7 @@ func PopulateTestDatabaseOverlay(dbo *databaseOverlay.Overlay) {
 		}
 	}
 	/*
-		err = dbo.RebuildDirBlockInfo()
+		err = dbo.ReparseAnchorChains()
 		if err != nil {
 			panic(err)
 		}

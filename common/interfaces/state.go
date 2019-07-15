@@ -8,6 +8,7 @@ import (
 	"regexp"
 
 	"github.com/FactomProject/factomd/activations"
+	"github.com/FactomProject/factomd/common/constants/runstate"
 )
 
 type DBStateSent struct {
@@ -30,7 +31,7 @@ type IQueue interface {
 // can be logged about the execution of Factom.  Also ensures that we do not
 // accidentally
 type IState interface {
-	Running() bool // Returns true as long as this Factomd instance is running.
+	GetRunState() runstate.RunState
 	// Server
 	GetFactomNodeName() string
 	GetSalt(Timestamp) uint32 // A secret number computed from a TS that tests if a message was issued from this server or not
