@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"github.com/FactomProject/factomd/events"
 	"io/ioutil"
 	"math"
 	"os"
@@ -51,6 +52,7 @@ var mLog = new(MsgLog)
 var p2pProxy *P2PProxy
 var p2pNetwork *p2p.Controller
 var logPort string
+var EventsProxy *events.EventProxy
 
 func GetFnodes() []*FactomNode {
 	return fnodes
@@ -417,6 +419,13 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 
 		fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
 		p2pProxy.StartProxy()
+
+		if EventsProxy == nil {
+			EventsProxy = new(events.EventProxy).
+				Init().
+				StartProxy()
+		}
+		s.EventsProxy = EventsProxy
 
 		go networkHousekeeping() // This goroutine executes once a second to keep the proxy apprised of the network status.
 	}

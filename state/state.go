@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/FactomProject/factomd/events"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -444,6 +445,8 @@ type State struct {
 	MissingMessageResponseHandler *MissingMessageResponseCache
 	ChainCommits                  Last100
 	Reveals                       Last100
+
+	EventsProxy *events.EventProxy
 }
 
 var _ interfaces.IState = (*State)(nil)
@@ -573,6 +576,7 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 	newState.FactomdTLSKeyFile = s.FactomdTLSKeyFile
 	newState.FactomdTLSCertFile = s.FactomdTLSCertFile
 	newState.FactomdLocations = s.FactomdLocations
+	newState.EventsProxy = s.EventsProxy
 
 	newState.FastSaveRate = s.FastSaveRate
 	newState.CorsDomains = s.CorsDomains
