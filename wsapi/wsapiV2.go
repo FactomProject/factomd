@@ -8,7 +8,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/prometheus/common/log"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -31,7 +30,6 @@ import (
 
 const API_VERSION string = "2.0"
 
-
 func (server *Server) AddV2Endpoints() {
 	server.addRoute("/v2", HandleV2)
 }
@@ -42,7 +40,7 @@ func HandleV2(writer http.ResponseWriter, request *http.Request) {
 
 	state, err := GetState(request)
 	if err != nil {
-		log.Fatalf("failed to extract port from request: %s", err)
+		wsLog.Errorf("failed to extract port from request: %s", err)
 		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -50,10 +48,9 @@ func HandleV2(writer http.ResponseWriter, request *http.Request) {
 	if err := checkAuthHeader(state, request); err != nil {
 		remoteIP := ""
 		remoteIP += strings.Split(request.RemoteAddr, ":")[0]
-		fmt.Printf("Unauthorized V2 API client connection attempt from %s\n", remoteIP)
+		wsLog.Debugf("Unauthorized V2 API client connection attempt from %s\n", remoteIP)
 		writer.Header().Add("WWW-Authenticate", `Basic realm="factomd RPC"`)
 		http.Error(writer, "401 Unauthorized.", http.StatusUnauthorized)
-
 		return
 	}
 
@@ -79,10 +76,10 @@ func HandleV2(writer http.ResponseWriter, request *http.Request) {
 	writer.Write([]byte(jsonResp.String()))
 }
 
-func HandleV2Request(writer http.ResponseWriter, request *http.Request, j *primitives.JSON2Request)  (*primitives.JSON2Response, *primitives.JSONError) {
+func HandleV2Request(writer http.ResponseWriter, request *http.Request, j *primitives.JSON2Request) (*primitives.JSON2Response, *primitives.JSONError) {
 	state, err := GetState(request)
 	if err != nil {
-		log.Fatalf("failed to extract port from request: %s", err)
+		wsLog.Errorf("failed to extract port from request: %s", err)
 		return nil, NewParseError()
 	}
 	return HandleV2JSONRequest(state, j)
@@ -92,7 +89,7 @@ func HandleV2JSONRequest(state interfaces.IState, j *primitives.JSON2Request) (*
 	var resp interface{}
 	var jsonError *primitives.JSONError
 	params := j.Params
-	state.LogPrintf("apilog", "request %v", j.String())
+	wsLog.Infof("request %v", j.String())
 	switch j.Method {
 	case "anchors":
 		resp, jsonError = HandleV2Anchors(state, params)
@@ -176,7 +173,7 @@ func HandleV2JSONRequest(state interfaces.IState, j *primitives.JSON2Request) (*
 		jsonError = NewMethodNotFoundError()
 	}
 	if jsonError != nil {
-		state.LogPrintf("apilog", "error %v", jsonError)
+		wsLog.Errorf("error %v", jsonError)
 		return nil, jsonError
 	}
 
@@ -184,7 +181,7 @@ func HandleV2JSONRequest(state interfaces.IState, j *primitives.JSON2Request) (*
 	jsonResp.ID = j.ID
 	jsonResp.Result = resp
 
-	state.LogPrintf("apilog", "response %v", jsonResp.String())
+	wsLog.Infof("response %v", jsonResp.String())
 	return jsonResp, nil
 }
 
@@ -479,7 +476,7 @@ func aBlockToResp(block interfaces.IAdminBlock) (interface{}, *primitives.JSONEr
 	return resp, nil
 }
 
-func HandleV2Error(writer  http.ResponseWriter, j *primitives.JSON2Request, err *primitives.JSONError) {
+func HandleV2Error(writer http.ResponseWriter, j *primitives.JSON2Request, err *primitives.JSONError) {
 	resp := primitives.NewJSON2Response()
 	if j != nil {
 		resp.ID = j.ID

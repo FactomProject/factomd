@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/log"
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
 	"net/http"
@@ -32,7 +31,7 @@ func InitServer(state interfaces.IState) *Server {
 
 	if tlsIsEnabled {
 		router.Schemes("HTTPS")
-		server.State.LogPrintf("apilog", "Starting encrypted API server")
+		wsLog.Info("Starting encrypted API server")
 		if !fileExists(keyFile) && !fileExists(certFile) {
 			err := genCertPair(certFile, keyFile, state.GetFactomdLocations())
 			if err != nil {
@@ -53,22 +52,22 @@ func InitServer(state interfaces.IState) *Server {
 		server.httpServer = &http.Server{Addr: address, Handler: router}
 	}
 
-	state.LogPrintf("apilog", "Init API server at: %s\n", address)
+	wsLog.Infof("Init API server at: %s\n", address)
 
 	return &server
 }
 
 func (server *Server) Start() {
-	server.State.LogPrintf("apilog", "Starting API server")
+	wsLog.Info("Starting API server")
 	go func() {
 		// returns ErrServerClosed on graceful close
 		if server.tlsEnabled {
 			if err := server.httpServer.ListenAndServeTLS(server.certFile, server.keyFile); err != http.ErrServerClosed {
-				server.State.LogPrintf("apilog", "ListenAndServeTLS %v", err)
+				wsLog.Errorf("ListenAndServeTLS %v", err)
 			}
 		} else {
 			if err := server.httpServer.ListenAndServe(); err != http.ErrServerClosed {
-				server.State.LogPrintf("apilog", "ListenAndServe %v", err)
+				wsLog.Errorf("ListenAndServe %v", err)
 			}
 		}
 	}()
@@ -76,7 +75,7 @@ func (server *Server) Start() {
 
 func (server *Server) Stop() {
 	// close the server gracefully ("shutdown")
-	server.State.LogPrintf("apilog", "closing wsapi server")
+	wsLog.Info("closing wsapi server")
 	if err := server.httpServer.Shutdown(context.Background()); err != nil {
 		panic(err) // failure/timeout shutting down the server gracefully
 	}
@@ -86,9 +85,8 @@ func (server *Server) Stop() {
 func APILogger() Middleware {
 	return func(f http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
-			// TODO decide if logging every request is needed
 			start := time.Now()
-			log.Printf("%s\t%s\t%s\n", r.Method, r.RequestURI, time.Since(start))
+			wsLog.Debugf("%s\t%s\t%s\n", r.Method, r.RequestURI, time.Since(start))
 
 			// Call the next middleware/handler in chain
 			f(w, r)
@@ -106,14 +104,6 @@ func (server *Server) addRoute(path string, f func(http.ResponseWriter, *http.Re
 }
 
 func (server *Server) AddRootEndpoints() {
-	// TODO profiler in config was never set, are these endpoint needed?
-	/* if s.Config.Profiler {
-		router.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
-		router.HandleFunc("/debug/pprof/profile", pprof.Profile)
-		router.Handle("/debug/pprof/heap", pprof.Handler("heap"))
-		router.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
-	}*/
-
 	state := server.State
 	if len(state.GetCorsDomains()) > 0 {
 		c := cors.New(cors.Options{

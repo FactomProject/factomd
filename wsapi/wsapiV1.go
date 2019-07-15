@@ -56,13 +56,13 @@ func checkHttpPasswordOkV1(writer http.ResponseWriter, request *http.Request) bo
 		if err := checkAuthHeader(state, request); err != nil {
 			remoteIP := ""
 			remoteIP += strings.Split(request.RemoteAddr, ":")[0]
-			fmt.Printf("Unauthorized V1 API client connection attempt from %s\n", remoteIP)
+			wsLog.Debugf("Unauthorized V1 API client connection attempt from %s\n", remoteIP)
 			writer.Header().Add("WWW-Authenticate", `Basic realm="factomd RPC"`)
 			http.Error(writer, "401 Unauthorized.", http.StatusUnauthorized)
 			return false
 		}
 	} else {
-		fmt.Printf("failed to get state from request: %s", err)
+		wsLog.Errorf("failed to get state from request: %s", err)
 		writer.WriteHeader(http.StatusBadRequest)
 		return false
 	}
