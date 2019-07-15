@@ -176,7 +176,7 @@ func (k *PublicKey) MarshalText() (rval []byte, err error) {
 	return []byte(k.String()), nil
 }
 
-// UnmarshalText decodes the input []byte public key into 'pk'
+// UnmarshalText decodes the input []byte public key into 'k'
 func (k *PublicKey) UnmarshalText(b []byte) error {
 	p, err := hex.DecodeString(string(b))
 	if err != nil {
