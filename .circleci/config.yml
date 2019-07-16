@@ -362,16 +362,6 @@ workflows:
               only: /.*/
           requires:
             - build
-      - all_tests:
-          type: approval
-          requires:
-            - test
-      - test_full:
-          filters:
-            tags:
-              only: /.*/
-          requires:
-            - all_tests
       - gofmt:
           filters:
             tags:
@@ -392,19 +382,19 @@ workflows:
           cron: "20 5 * * *"
           filters:
             branches:
-              only: develop
+              only: /.*develop.*/
     jobs:
       - build
-      - test:
-          requires:
-            - build
       - gofmt:
           requires:
-            - test
+            - build
+      - test_full:
+          requires:
+            - build
       - docker_build:
           context: org-global
           requires:
-            - test
+            - test_full
 
 notify:
   webhooks:
