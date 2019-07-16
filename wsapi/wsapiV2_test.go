@@ -222,22 +222,6 @@ func TestHandleV2Requests(t *testing.T) {
 		},
 	}
 
-	cases = map[string]struct {
-		Method     string
-		Message    interface{}
-		StatusCode int
-		Expected   map[string]interface{}
-		Error      *primitives.JSONError
-	}{
-		"entry-credit-rate-invalid": {
-			"entry-credit-rate",
-			ReceiptRequest{EntryHash: "be5fb8c3ba92c0436269fab394ff7277c67e9b2de4431b723ce5d89799c0b93a"},
-			http.StatusOK,
-			map[string]interface{}{},
-			&primitives.JSONError{Code: -32600, Message: "Invalid Request"},
-		},
-	}
-
 	for name, testCase := range cases {
 		t.Logf("test case '%s'", name)
 
