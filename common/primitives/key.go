@@ -216,7 +216,7 @@ func (k *PublicKey) MarshalBinary() (rval []byte, err error) {
 }
 
 // UnmarshalBinaryData unmarshals the first section of input p of the size of a public key, and returns
-// the residual data p along with an error if needed
+// the residual data p
 func (k *PublicKey) UnmarshalBinaryData(p []byte) ([]byte, error) {
 	if len(p) < ed25519.PublicKeySize {
 		return nil, fmt.Errorf("Invalid data passed")
@@ -225,7 +225,7 @@ func (k *PublicKey) UnmarshalBinaryData(p []byte) ([]byte, error) {
 	return p[ed25519.PublicKeySize:], nil
 }
 
-// UnmarshalBinary unmarshals the input p into the public key k, returning an error if needed
+// UnmarshalBinary unmarshals the input p into the public key k
 func (k *PublicKey) UnmarshalBinary(p []byte) (err error) {
 	_, err = k.UnmarshalBinaryData(p)
 	return

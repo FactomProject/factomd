@@ -51,7 +51,7 @@ func DecodeJSON(data []byte, v interface{}) error {
 	return err
 }
 
-// EncodeJSON marshals data into Json format and returns a []byte
+// EncodeJSON marshals data into Json format
 func EncodeJSON(data interface{}) ([]byte, error) {
 	encoded, err := json.Marshal(data)
 	if err != nil {
@@ -60,7 +60,7 @@ func EncodeJSON(data interface{}) ([]byte, error) {
 	return encoded, nil
 }
 
-// EncodeJSONString marshals data into Json format and returns a string
+// EncodeJSONString marshals data into Json format
 func EncodeJSONString(data interface{}) (string, error) {
 	encoded, err := EncodeJSON(data)
 	if err != nil {
