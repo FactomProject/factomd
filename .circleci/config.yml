@@ -60,7 +60,26 @@ jobs:
             export PATH="/tmp/go/bin:$PATH"
             export GOPATH=/tmp/go
             cd /tmp/go/src/github.com/FactomProject/factomd/
-            ./test.sh
+            ./test.sh short
+  test_full:
+    working_directory: /tmp
+    docker:
+      - image: circleci/golang:1.10
+
+    parallelism: 8
+
+    steps:
+      - attach_workspace:
+          at: /tmp
+
+      - run:
+          name: Run Tests!
+          no_output_timeout: 2400
+          command: |
+            export PATH="/tmp/go/bin:$PATH"
+            export GOPATH=/tmp/go
+            cd /tmp/go/src/github.com/FactomProject/factomd/
+            ./test.sh long
 
   coveralls:
     working_directory: /tmp
@@ -324,6 +343,8 @@ jobs:
 #                   ---------- gofmt
 #                   |
 #                   ---------- docker_build
+#                   |
+#                   ---------- test_full
 #
 #
 
@@ -367,6 +388,10 @@ workflows:
       - test:
           requires:
             - build
+      - test_full:
+          type: approval
+          requires:
+            - test
       - gofmt:
           requires:
             - test

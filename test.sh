@@ -46,41 +46,48 @@ function loadTestList() {
       })
       ;;
 
-    "" ) # no param: run everything
+    short )
 
-      # running locally - default to all tests
-      if [[ "${CI}x" ==  "x" ]] ; then
+      # run on circle
+      if [[ "${CI}x" !=  "x" ]] ; then
+        TESTS=$({ \
+          listModules ; \
+          echo "simTest/TestAnElection" ; \
+        } | circleci tests split ) # circleci helper spreads tests across containers
 
-          TESTS=$({ \
-            listModules ; \
-            listSimTest ; \
-            listPeer ; \
-          })
+      else # run locally
+        TESTS=$({ \
+          listModules ; \
+          echo "simTest/TestAnElection" ; \
+        })
 
-      else # running on circle
-
-        # run all tests 
-        if [[ "${CIRCLE_TAG}${CIRCLE_PULL_REQUEST}x" !=  "x" ]] ; then
-
-          TESTS=$({ \
-            listModules ; \
-            listSimTest ; \
-            listPeer ; \
-          } | circleci tests split ) # circleci helper spreads tests across containers
-
-        else # run single sim + all unit tests on every commit
-
-          TESTS=$({ \
-            listModules ; \
-            echo "simTest/TestAnElection" ; \
-          } | circleci tests split ) # circleci helper spreads tests across containers
-
-        fi
       fi
+    ;;
+
+    long )
+      # run on circle
+      if [[ "${CI}x" !=  "x" ]] ; then
+
+        TESTS=$({ \
+          listModules ; \
+          listSimTest ; \
+          listPeer ; \
+        } | circleci tests split ) # circleci helper spreads tests across containers
+
+      else # run locally
+
+        TESTS=$({ \
+          listModules ; \
+          listSimTest ; \
+          listPeer ; \
+        })
+
+      fi
+
       ;;
 
     * )
-      echo "Unknown option" $1
+      echo "Unknown option '$1'"
       exit -1
       ;;
   esac
