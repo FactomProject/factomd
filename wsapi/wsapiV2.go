@@ -1579,15 +1579,15 @@ func HandleV2Diagnostics(state interfaces.IState, params interface{}) (interface
 
 	// Elections information
 	eInfo := new(ElectionInfo)
-	e := state.GetElections()
-	electing := e.GetElecting()
-	if electing != -1 {
-		eInfo.InProgress = true
-		vm := e.GetVMIndex()
-		eInfo.VmIndex = &vm
-		eInfo.FedIndex = &electing
-		eInfo.FedID = e.GetFedID().String()
-		eInfo.Round = &e.GetRound()[electing]
+	if e := state.GetElections(); e != nil {
+		if electing := e.GetElecting(); electing != -1 {
+			eInfo.InProgress = true
+			vm := e.GetVMIndex()
+			eInfo.VmIndex = &vm
+			eInfo.FedIndex = &electing
+			eInfo.FedID = e.GetFedID().String()
+			eInfo.Round = &e.GetRound()[electing]
+		}
 	}
 	resp.ElectionInfo = eInfo
 

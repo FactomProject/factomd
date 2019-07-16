@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"github.com/stretchr/testify/assert"
-	"io/ioutil"
 	"net/http"
 	"reflect"
 	"strings"
@@ -18,6 +17,245 @@ import (
 	"github.com/FactomProject/factomd/testHelper"
 	. "github.com/FactomProject/factomd/wsapi"
 )
+
+func TestHandleV2Requests(t *testing.T) {
+	state := testHelper.CreateAndPopulateTestState()
+	Start(state)
+
+	cases := map[string]struct {
+		Method     string
+		Message    interface{}
+		StatusCode int
+		Expected   map[string]interface{}
+		Error      *primitives.JSONError
+	}{
+		"commit-chain": {
+			"commit-chain",
+			MessageRequest{Message: "00015507b2f70bd0165d9fa19a28cfaafb6bc82f538955a98c7b7e60d79fbf92655c1bff1c76466cb3bc3f3cc68d8b2c111f4f24c88d9c031b4124395c940e5e2c5ea496e8aaa2f5c956749fc3eba4acc60fd485fb100e601070a44fcce54ff358d606698547340b3b6a27bcceb6a42d62a3a8d02a6f0d73653215771de243a63ac048a18b59da2946c901273e616bdbb166c535b26d0d446bc69b22c887c534297c7d01b2ac120237086112b5ef34fc6474e5e941d60aa054b465d4d770d7f850169170ef39150b"},
+			http.StatusOK,
+			map[string]interface{}{
+				"message":     "Chain Commit Success",
+				"chainidhash": "d0165d9fa19a28cfaafb6bc82f538955a98c7b7e60d79fbf92655c1bff1c7646",
+				"entryhash":   "f5c956749fc3eba4acc60fd485fb100e601070a44fcce54ff358d60669854734",
+				"txid":        "76e123d133a841fe3e08c5e3f3d392f8431f2d7668890c03f003f541efa8fc61",
+			},
+			nil,
+		},
+		"commit-entry": {
+			"commit-entry",
+			MessageRequest{Message: "00015507C1024BF5C956749FC3EBA4ACC60FD485FB100E601070A44FCCE54FF358D60669854734013B6A27BCCEB6A42D62A3A8D02A6F0D73653215771DE243A63AC048A18B59DA29F4CBD953E6EBE684D693FDCA270CE231783E8ECC62D630F983CD59E559C6253F84D1F54C8E8D8665D493F7B4A4C1864751E3CDEC885A64C2144E0938BF648A00"},
+			http.StatusOK,
+			map[string]interface{}{
+				"message":   "Entry Commit Success",
+				"txid":      "8b751bc182766e6187d39b1eca538d9ece0b8ff662e408cd4e45f89359f8c7e7",
+				"entryhash": "f5c956749fc3eba4acc60fd485fb100e601070a44fcce54ff358d60669854734",
+			},
+			nil,
+		},
+		"commit-entry-invalid": {
+			"commit-entry",
+			EntryRequest{Entry: "00015507b2f70bd0165d9fa19a28cfaafb6bc82f538955a98c7b7e60d79fbf92655c1bff1c76466cb3bc3f3cc68d8b2c111f4f24c88d9c031b4124395c940e5e2c5ea496e8aaa2f5c956749fc3eba4acc60fd485fb100e601070a44fcce54ff358d606698547340b3b6a27bcceb6a42d62a3a8d02a6f0d73653215771de243a63ac048a18b59da2946c901273e616bdbb166c535b26d0d446bc69b22c887c534297c7d01b2ac120237086112b5ef34fc6474e5e941d60aa054b465d4d770d7f850169170ef39150b"},
+			http.StatusOK,
+			map[string]interface{}{},
+			&primitives.JSONError{
+				Code:    -32602,
+				Message: "Invalid params",
+				Data:    "Invalid Commit Entry",
+			},
+		},
+		"factoid-balance": {
+			"factoid-balance",
+			AddressRequest{Address: testHelper.NewFactoidRCDAddressString(0)},
+			http.StatusOK,
+			map[string]interface{}{
+				"balance": number("199977800"),
+			},
+			nil,
+		},
+		"factoid-balance-nil": {
+			"factoid-balance",
+			nil,
+			http.StatusOK,
+			map[string]interface{}{},
+			&primitives.JSONError{Code: -32602, Message: "Invalid params", Data: "Invalid Address"},
+		},
+		"entry-credit-balance": {
+			"entry-credit-balance",
+			AddressRequest{Address: testHelper.NewECAddressPublicKeyString(0)},
+			http.StatusOK,
+			map[string]interface{}{
+				"balance": number("196"),
+			},
+			nil,
+		},
+		"entry-credit-rate": {
+			"entry-credit-rate",
+			nil,
+			http.StatusOK,
+			map[string]interface{}{
+				"rate": number("1"),
+			},
+			nil,
+		},
+		"entry-credit-rate-params": {
+			"entry-credit-rate",
+			ReceiptRequest{EntryHash: "be5fb8c3ba92c0436269fab394ff7277c67e9b2de4431b723ce5d89799c0b93a"},
+			http.StatusOK,
+			map[string]interface{}{
+				"rate": number("1"),
+			},
+			nil,
+		},
+		"receipt": {
+			"receipt",
+			ReceiptRequest{EntryHash: "be5fb8c3ba92c0436269fab394ff7277c67e9b2de4431b723ce5d89799c0b93a"},
+			http.StatusOK,
+			map[string]interface{}{
+				"receipt": map[string]interface{}{
+					"directoryblockheight": number("8"),
+					"directoryblockkeymr":  "0a30d74682b42cc4c3e6c6f8fcc8a353b39c57475cb89f9cdfec7f07cc195b67",
+					"entry": map[string]interface{}{
+						"entryhash": "be5fb8c3ba92c0436269fab394ff7277c67e9b2de4431b723ce5d89799c0b93a",
+						"timestamp": number("75060"),
+					},
+					"entryblockkeymr": "bcdbea5044d0ab6ca1f961a0075db69248a6d3d19abad612eb79e1ed1533486b",
+					"merklebranch": []interface{}{
+						map[string]interface{}{
+							"left":  "be5fb8c3ba92c0436269fab394ff7277c67e9b2de4431b723ce5d89799c0b93a",
+							"right": "0000000000000000000000000000000000000000000000000000000000000009",
+							"top":   "87e5cb6bf6aad44b83123f0b79c47a4cf44ee592a05ae30d54dfa54f69754401",
+						},
+						map[string]interface{}{
+							"left":  "53b5bc6f2abc3e7530bae3b5d799f916a1767e041b3240346624c2047be3153b",
+							"right": "87e5cb6bf6aad44b83123f0b79c47a4cf44ee592a05ae30d54dfa54f69754401",
+							"top":   "bcdbea5044d0ab6ca1f961a0075db69248a6d3d19abad612eb79e1ed1533486b",
+						},
+						map[string]interface{}{
+							"left":  "6e7e64ac45ff57edbf8537a0c99fba2e9ee351ef3d3f4abd93af9f01107e592c",
+							"right": "bcdbea5044d0ab6ca1f961a0075db69248a6d3d19abad612eb79e1ed1533486b",
+							"top":   "ae2b49bd6c561a3000c9688dc2a1518905520b719defd89e4e53911c6b396231",
+						},
+						map[string]interface{}{
+							"left":  "9f1c92629ac43a9f162dbd0a34ab166b35894178bbedcdcf93ed304619ef509d",
+							"right": "ae2b49bd6c561a3000c9688dc2a1518905520b719defd89e4e53911c6b396231",
+							"top":   "d3c0718340eab8e5ffbda23adefd6ffc044b4cd5b47bd271ddb7695dab306706",
+						},
+						map[string]interface{}{
+							"left":  "dacc48acfa3421f18ef812af94a02269ad9478c0c8593e7bfdad856a3b71d799",
+							"right": "d3c0718340eab8e5ffbda23adefd6ffc044b4cd5b47bd271ddb7695dab306706",
+							"top":   "349eb6210c01471dc1772ae334446771415c684faaa01db6a6c03650a2860d7a",
+						},
+						map[string]interface{}{
+							"left":  "349eb6210c01471dc1772ae334446771415c684faaa01db6a6c03650a2860d7a",
+							"right": "af7c351e6d8ab20ea21479624f05999b59a187da91fbdd852092292dafd327a1",
+							"top":   "5fd3cfa60fc76eb9180528bfc543b6343438c6d4997dd194b72582cef2a5e3b3",
+						},
+						map[string]interface{}{
+							"left":  "b20babddd9be6711c4d707bb7eb16bb1d2042832a1cbf49465903936ee0dff59",
+							"right": "5fd3cfa60fc76eb9180528bfc543b6343438c6d4997dd194b72582cef2a5e3b3",
+							"top":   "0a30d74682b42cc4c3e6c6f8fcc8a353b39c57475cb89f9cdfec7f07cc195b67",
+						},
+					},
+				},
+			},
+			nil,
+		},
+		"entry-block-invalid": {
+			"entry-block",
+			KeyMRRequest{KeyMR: "f5c956749fc3eba4acc60fd485fb100e601070a44fcce54ff358d60669854734"},
+			http.StatusOK,
+			map[string]interface{}{},
+			&primitives.JSONError{Code: -32008, Message: "Block not found", Data: nil},
+		},
+		"entry-block": {
+			"entry-block",
+			KeyMRRequest{KeyMR: "bcdbea5044d0ab6ca1f961a0075db69248a6d3d19abad612eb79e1ed1533486b"},
+			http.StatusOK,
+			map[string]interface{}{
+				"entrylist": []interface{}{
+					map[string]interface{}{
+						"entryhash": "be5fb8c3ba92c0436269fab394ff7277c67e9b2de4431b723ce5d89799c0b93a",
+						"timestamp": number("75060"),
+					},
+				},
+				"header": map[string]interface{}{
+					"blocksequencenumber": number("0"),
+					"chainid":             "6e7e64ac45ff57edbf8537a0c99fba2e9ee351ef3d3f4abd93af9f01107e592c",
+					"dbheight":            number("8"),
+					"prevkeymr":           "eb5da48561fbc26def7b6f17ac25af2c297b5b7ace0a57c3e278c05c52a42e3f",
+					"timestamp":           number("74520"),
+				},
+			},
+			nil,
+		},
+		"chain-head": {
+			"chain-head",
+			ChainIDRequest{ChainID: "6e7e64ac45ff57edbf8537a0c99fba2e9ee351ef3d3f4abd93af9f01107e592c"},
+			http.StatusOK,
+			map[string]interface{}{
+				"chainhead":          "e79fb46ad81f0b4fac7f1e66728b40b390f8fcc3806e93f94550eec041eecff2",
+				"chaininprocesslist": false,
+			},
+			nil,
+		},
+		"current-minute": {
+			"current-minute",
+			nil,
+			http.StatusOK,
+			map[string]interface{}{
+				"directoryblockheight":    number("0"),
+				"directoryblockinseconds": number("20"),
+				"leaderheight":            number("0"),
+			},
+			nil,
+		},
+		"diagnostics": {
+			"diagnostics",
+			nil,
+			http.StatusOK,
+			map[string]interface{}{
+				"balancehash":          "0000f65cd6d3ac9f2f94bd664d0e2a509ae4967b41254ab3ef327841cf759486",
+				"lastblockfromdbstate": false,
+				"role":                 "Follower",
+			},
+			nil,
+		},
+	}
+
+	cases = map[string]struct {
+		Method     string
+		Message    interface{}
+		StatusCode int
+		Expected   map[string]interface{}
+		Error      *primitives.JSONError
+	}{
+		"entry-credit-rate-invalid": {
+			"entry-credit-rate",
+			ReceiptRequest{EntryHash: "be5fb8c3ba92c0436269fab394ff7277c67e9b2de4431b723ce5d89799c0b93a"},
+			http.StatusOK,
+			map[string]interface{}{},
+			&primitives.JSONError{Code: -32600, Message: "Invalid Request"},
+		},
+	}
+
+	for name, testCase := range cases {
+		t.Logf("test case '%s'", name)
+
+		request := primitives.NewJSON2Request(testCase.Method, 0, testCase.Message)
+		response, err := v2Request(request)
+
+		assert.Nil(t, err, "test '%s' failed: %v \nresponse: %v", name, err, response)
+		assert.Equal(t, testCase.Error, response.Error, "test '%s' failed contains different error that expected: %v", name, response.Error)
+
+		if response.Result != nil {
+			result := response.Result.(map[string]interface{})
+
+			for k, v := range testCase.Expected {
+				assert.Equal(t, v, result[k], "test case '%s' assertion failed %s: %v != %v\nresponse:%v", name, k, v, result[k], response)
+			}
+		}
+	}
+}
 
 func TestRegisterPrometheus(t *testing.T) {
 	RegisterPrometheus()
@@ -113,99 +351,6 @@ func TestHandleV2GetRaw(t *testing.T) {
 	}
 }
 
-func TestHandleV2CommitChain(t *testing.T) {
-	state := testHelper.CreateAndPopulateTestState()
-	Start(state)
-
-	msg := new(MessageRequest)
-	// Can replace with any Chain message
-	msg.Message = "00015507b2f70bd0165d9fa19a28cfaafb6bc82f538955a98c7b7e60d79fbf92655c1bff1c76466cb3bc3f3cc68d8b2c111f4f24c88d9c031b4124395c940e5e2c5ea496e8aaa2f5c956749fc3eba4acc60fd485fb100e601070a44fcce54ff358d606698547340b3b6a27bcceb6a42d62a3a8d02a6f0d73653215771de243a63ac048a18b59da2946c901273e616bdbb166c535b26d0d446bc69b22c887c534297c7d01b2ac120237086112b5ef34fc6474e5e941d60aa054b465d4d770d7f850169170ef39150b"
-	req := primitives.NewJSON2Request("commit-chain", 0, msg)
-	resp, err := v2Request(req)
-	assert.Nil(t, err)
-
-	respObj := new(CommitChainResponse)
-	err = MapToObject(resp.Result, respObj)
-	assert.Nil(t, err)
-
-	txID := "76e123d133a841fe3e08c5e3f3d392f8431f2d7668890c03f003f541efa8fc61"
-	assert.Equal(t, txID, respObj.TxID, "Error: TxID returned during Commit Chain is incorrect - %v vs %v", respObj.TxID, txID)
-}
-
-/*
-func TestHandleV2CommitEntry(t *testing.T) {
-	msg := new(EntryRequest)
-	// Can replace with any Entry message
-	msg.Entry = "00015507C1024BF5C956749FC3EBA4ACC60FD485FB100E601070A44FCCE54FF358D60669854734013B6A27BCCEB6A42D62A3A8D02A6F0D73653215771DE243A63AC048A18B59DA29F4CBD953E6EBE684D693FDCA270CE231783E8ECC62D630F983CD59E559C6253F84D1F54C8E8D8665D493F7B4A4C1864751E3CDEC885A64C2144E0938BF648A00"
-	req := primitives.NewJSON2Request("commit-entry", 0, msg)
-	resp, err := v2Request(req)
-	if err != nil {
-		t.Errorf("%v", err)
-	}
-
-	respObj := new(CommitEntryResponse)
-	if err := MapToObject(resp.Result, respObj); err != nil {
-		t.Error(err)
-	}
-
-	txID := "8b751bc182766e6187d39b1eca538d9ece0b8ff662e408cd4e45f89359f8c7e7"
-	if respObj.TxID != txID {
-		t.Errorf("Error: TxID returned during Commit Entry is incorrect - %v vs %v", respObj.TxID, txID)
-	}
-}
-*/
-/*
-func TestV2HandleEntryCreditBalance(t *testing.T) {
-	state := testHelper.CreateAndPopulateTestState()
-	eckey := testHelper.NewECAddressPublicKeyString(0)
-	req := new(AddressRequest)
-	req.Address = eckey
-
-	resp, err := HandleV2EntryCreditBalance(state, req)
-	if err != nil {
-		t.Errorf("%v", err)
-	}
-
-	var expectedAmount int64 = 400
-
-	if resp.(*EntryCreditBalanceResponse).Balance != expectedAmount {
-		t.Errorf("Invalid balance returned - %v vs %v", resp.(*EntryCreditBalanceResponse).Balance, expectedAmount)
-	}
-
-	eckey = testHelper.NewECAddressString(0)
-	req = new(AddressRequest)
-	req.Address = eckey
-
-	resp, err = HandleV2EntryCreditBalance(state, req)
-	if err != nil {
-		t.Errorf("%v", err)
-	}
-
-	if resp.(*EntryCreditBalanceResponse).Balance != expectedAmount {
-		t.Errorf("Invalid balance returned - %v vs %v", resp.(*EntryCreditBalanceResponse).Balance, expectedAmount)
-	}
-}
-*/
-/*
-func TestV2HandleFactoidBalance(t *testing.T) {
-	state := testHelper.CreateAndPopulateTestState()
-	eckey := testHelper.NewFactoidRCDAddressString(0)
-	req := new(AddressRequest)
-	req.Address = eckey
-
-	resp, err := HandleV2FactoidBalance(state, req)
-	if err != nil {
-		t.Errorf("%v", err)
-	}
-
-	var expectedAmount int64 = 199977800
-
-	if resp.(*FactoidBalanceResponse).Balance != expectedAmount {
-		t.Errorf("Invalid balance returned - %v vs %v", resp.(*FactoidBalanceResponse).Balance, expectedAmount)
-	}
-}
-*/
-
 func TestHandleV2GetReceipt(t *testing.T) {
 	state := testHelper.CreateAndPopulateTestStateAndStartValidator()
 
@@ -226,7 +371,7 @@ func TestHandleV2GetReceipt(t *testing.T) {
 	assert.Nil(t, err, "receipt - %s", marshalled)
 }
 
-func TestHandleV2GetTranasction(t *testing.T) {
+func TestHandleV2GetTransaction(t *testing.T) {
 	state := testHelper.CreateAndPopulateTestStateAndStartValidator()
 	blocks := testHelper.CreateFullTestBlockSet()
 
@@ -364,23 +509,21 @@ func v2Request(req *primitives.JSON2Request) (*primitives.JSON2Response, error) 
 		return nil, err
 	}
 
-	resp, err := http.Post(
-		"http://localhost:8088/v2",
-		"application/json",
-		bytes.NewBuffer(j))
+	resp, err := http.Post("http://localhost:8088/v2", "application/json", bytes.NewBuffer(j))
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
 	r := primitives.NewJSON2Response()
-	if err := json.Unmarshal(body, r); err != nil {
+	d := json.NewDecoder(resp.Body)
+	d.UseNumber()
+	if err := d.Decode(r); err != nil {
 		return nil, err
 	}
 
 	return r, nil
+}
+
+func number(n string) json.Number {
+	return json.Number(n)
 }
