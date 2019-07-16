@@ -362,10 +362,16 @@ workflows:
               only: /.*/
           requires:
             - build
-      - test_full:
+      - all_tests:
           type: approval
           requires:
             - test
+      - test_full:
+          filters:
+            tags:
+              only: /.*/
+          requires:
+            - all_tests
       - gofmt:
           filters:
             tags:
@@ -392,10 +398,6 @@ workflows:
       - test:
           requires:
             - build
-      - test_full:
-          type: approval
-          requires:
-            - test
       - gofmt:
           requires:
             - test
