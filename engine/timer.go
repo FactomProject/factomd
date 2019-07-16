@@ -14,18 +14,17 @@ import (
 
 var _ = (*s.State)(nil)
 
-func Timer(state interfaces.IState) {
+func Timer(stateI interfaces.IState) {
+	state := stateI.(*s.State)
 	time.Sleep(2 * time.Second)
 
-	billion := int64(1000000000)
-	period := int64(state.GetDirectoryBlockInSeconds()) * billion
-	tenthPeriod := period / 10
+	tenthPeriod := state.GetMinuteDuration()
 
 	now := time.Now().UnixNano() // Time in billionths of a second
 
-	wait := tenthPeriod - (now % tenthPeriod)
+	wait := tenthPeriod.Nanoseconds() - (now % tenthPeriod.Nanoseconds())
 
-	next := now + wait + tenthPeriod
+	next := now + wait + tenthPeriod.Nanoseconds()
 
 	if state.GetOut() {
 		state.Print(fmt.Sprintf("Time: %v\r\n", time.Now()))
@@ -43,22 +42,21 @@ func Timer(state interfaces.IState) {
 
 			now = time.Now().UnixNano()
 			if now > next {
-				next += tenthPeriod
+				next += tenthPeriod.Nanoseconds()
 				wait = next - now
 			} else {
 				wait = next - now
-				next += tenthPeriod
+				next += tenthPeriod.Nanoseconds()
 			}
 			time.Sleep(time.Duration(wait))
 
 			// Delay some number of milliseconds.
 			time.Sleep(time.Duration(state.GetTimeOffset().GetTimeMilli()) * time.Millisecond)
 
-			state.TickerQueue() <- i
+			state.TickerQueue() <- -1 // -1 indicated this is real minute cadence
 
-			period = int64(state.GetDirectoryBlockInSeconds()) * billion
-			tenthPeriod = period / 10
-
+			tenthPeriod = state.GetMinuteDuration()
+			state.LogPrintf("ticker", "Tick! %d, wait=%s, tenthPeriod=%s", i, time.Duration(wait), time.Duration(tenthPeriod))
 		}
 	}
 }

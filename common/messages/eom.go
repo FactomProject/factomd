@@ -157,8 +157,14 @@ func (m *EOM) Validate(state interfaces.IState) int {
 	}
 
 	found, _ := state.GetVirtualServers(m.DBHeight, int(m.Minute), m.ChainID)
-	if !found { // Only EOM from federated servers are valid.
-		return -1
+	if !found {
+		if m.DBHeight > state.GetHighestSavedBlk() {
+			// msg from future may be a valid server when we get to this block
+			state.HoldForHeight(m.DBHeight, m)
+		} else {
+			// Only EOM from federated servers are valid.
+			return -1
+		}
 	}
 
 	// Check signature

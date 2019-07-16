@@ -648,9 +648,17 @@ func (p *ProcessList) CheckDiffSigTally() bool {
 
 func (p *ProcessList) TrimVMList(h uint32, vmIndex int) {
 	height := int(h)
-	if len(p.VMs[vmIndex].List) < height {
-		p.State.LogPrintf("processList", "TrimVMList() %d/%d/%d", p.DBHeight, vmIndex, height)
+	if len(p.VMs[vmIndex].List) > height {
+		if p.VMs[vmIndex].Height > height {
+			// We can not trim beyond the highest processed message.
+			p.State.LogPrintf("processList", "Attempt to trim higher than processed list=%d p=%d h=%d", len(p.VMs[vmIndex].List), p.VMs[vmIndex].Height, height)
+			return
+		}
+		p.State.LogPrintf("processList", "TrimVMList() %d/%d/%d, trimmed %d", p.DBHeight, vmIndex, height, len(p.VMs[vmIndex].List)-height)
 		p.VMs[vmIndex].List = p.VMs[vmIndex].List[:height]
+		if len(p.VMs[vmIndex].ListAck) > height { // Also trim ListAck
+			p.VMs[vmIndex].ListAck = p.VMs[vmIndex].ListAck[:height]
+		}
 		if p.State.DebugExec() {
 			if p.VMs[vmIndex].HighestNil > height {
 				p.VMs[vmIndex].HighestNil = height // Drag report limit back
@@ -661,8 +669,7 @@ func (p *ProcessList) TrimVMList(h uint32, vmIndex int) {
 			p.VMs[vmIndex].HighestAsk = height // Drag Ask limit back
 		}
 	} else {
-		p.State.LogPrintf("process", "Attempt to trim higher than list list=%d h=%d", len(p.VMs[vmIndex].List), height)
-
+		p.State.LogPrintf("processList", "Attempt to trim higher than list list=%d p=%d h=%d", len(p.VMs[vmIndex].List), p.VMs[vmIndex].Height, height)
 	}
 }
 func (p *ProcessList) GetDBHeight() uint32 {
@@ -892,8 +899,20 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 				}
 				vm.ProcessTime = now
 
-				if msg.Process(p.DBHeight, s) { // Try and Process this entry
-
+				valid := msg.Validate(p.State)
+				if valid == -1 { // TODO: Delete this repeated code block
+					s.LogMessage("process", fmt.Sprintf("drop %v/%v/%v, hash invalid msg", p.DBHeight, i, j), thisMsg)
+					vm.List[j] = nil // If we have seen this message, we don't process it again.  Ever.
+					if vm.HighestNil > j {
+						vm.HighestNil = j // Drag report limit back
+					}
+					if vm.HighestAsk > j {
+						vm.HighestAsk = j // Drag Ask limit back
+					}
+					//todo: report this... it's probably bad
+					vm.ReportMissing(j, 0)
+					break VMListLoop
+				} else if valid == 1 && msg.Process(p.DBHeight, s) { // Try and Process this entry
 					p.State.LogMessage("processList", "done", msg)
 					vm.heartBeat = 0
 					vm.Height = j + 1 // Don't process it again if the process worked.
@@ -911,6 +930,7 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 					delete(s.Acks, msgHashFixed)
 					//delete(s.Holding, msgHashFixed)
 
+					// REVIEW: does this leave msg in dependent holding?
 					s.DeleteFromHolding(msgHashFixed, msg, "msg.Process done")
 				} else {
 					s.LogMessage("process", fmt.Sprintf("retry %v/%v/%v", p.DBHeight, i, j), msg)
@@ -1062,17 +1082,9 @@ func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces
 		s.LogPrintf("executeMsg", "m/ack mismatch m-%x a-%x", m.GetMsgHash().Fixed(), ack.GetHash().Fixed())
 	}
 
-	// Both the ack and the message hash to the same GetHash()
-	m.SetLocal(false)
-	ack.SetLocal(false)
-	ack.SetPeer2Peer(false)
-	m.SetPeer2Peer(false)
-
 	if ack.GetHash().Fixed() != m.GetMsgHash().Fixed() {
 		s.LogPrintf("executeMsg", "m/ack mismatch m-%x a-%x", m.GetMsgHash().Fixed(), ack.GetHash().Fixed())
 	}
-	m.SendOut(s, m)
-	ack.SendOut(s, ack)
 
 	for len(vm.List) <= int(ack.Height) {
 		vm.List = append(vm.List, nil)
@@ -1094,11 +1106,25 @@ func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces
 	}
 
 	s.LogMessage("processList", fmt.Sprintf("Added at %d/%d/%d by %s", ack.DBHeight, ack.VMIndex, ack.Height, atomic.WhereAmIString(1)), m)
+
+	// If we add the message to the process list, ensure we actually process that
+	// message, so the next msg will be able to added without going into holding.
 	if ack.IsLocal() {
 		for p.Process(s) {
 		}
 	}
 
+	// Both the ack and the message hash to the same GetHash()
+	ack.SetLocal(false)
+	ack.SetPeer2Peer(false)
+	m.SetPeer2Peer(false)
+	m.SetLocal(false)
+
+	m.SendOut(s, m)
+	ack.SendOut(s, ack)
+
+	// also add the msg and ack to our missing msg request handler
+	s.MissingMessageResponseHandler.NotifyNewMsgPair(ack, m)
 }
 
 func (p *ProcessList) ContainsDBSig(serverID interfaces.IHash) bool {
@@ -1271,6 +1297,7 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 		pl.VMs[i].ProcessTime = now
 		pl.VMs[i].VmIndex = i
 		pl.VMs[i].p = pl
+		pl.VMs[i].HighestAsk = -1
 	}
 
 	pl.DBHeight = dbheight

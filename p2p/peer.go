@@ -142,7 +142,7 @@ func (p *Peer) LocationFromAddress() (location uint32) {
 	location += uint32(ip[1]) << 16
 	location += uint32(ip[2]) << 8
 	location += uint32(ip[3])
-	p.logger.Debugf("peer", "Peer: %s has Location: %d", p.Hash, location)
+	p.logger.Debugf("Peer: %s has Location: %d", p.Hash, location)
 	return location
 }
 

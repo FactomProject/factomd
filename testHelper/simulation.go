@@ -8,12 +8,16 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strconv"
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/FactomProject/factomd/common/globals"
+	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/engine"
@@ -34,24 +38,24 @@ var ExpectedHeight, Leaders, Audits, Followers int
 var startTime, endTime time.Time
 var RanSimTest = false // only run 1 sim test at a time
 
-//EX. state0 := SetupSim("LLLLLLLLLLLLLLLAAAAAAAAAA",  map[string]string {"--controlpanelsetting" : "readwrite"}, t)
-func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int, electionsCnt int, RoundsCnt int, t *testing.T) *state.State {
-	fmt.Println("SetupSim(", GivenNodes, ",", UserAddedOptions, ",", height, ",", electionsCnt, ",", RoundsCnt, ")")
-	ExpectedHeight = height
-	l := len(GivenNodes)
+// start simulation without promoting nodes to the authority set
+// this is useful for creating scripts that will start/stop a simulation outside of the context of a unit test
+// this allows for consistent tweaking of a simulation to induce load add message loss or adjust timing
+func StartSim(GivenNodes string, UserAddedOptions map[string]string) *state.State {
+
 	CmdLineOptions := map[string]string{
 		"--db":                  "Map",
 		"--network":             "LOCAL",
 		"--net":                 "alot+",
 		"--enablenet":           "false",
-		"--blktime":             "10",
-		"--count":               fmt.Sprintf("%v", l),
+		"--blktime":             "40",
+		"--count":               fmt.Sprintf("%v", len(GivenNodes)),
 		"--startdelay":          "1",
 		"--stdoutlog":           "out.txt",
 		"--stderrlog":           "out.txt",
 		"--checkheads":          "false",
 		"--controlpanelsetting": "readwrite",
-		"--debuglog":            ".|faulting|bad",
+		"--debuglog":            "faulting|bad",
 		"--logPort":             "37000",
 		"--port":                "37001",
 		"--controlpanelport":    "37002",
@@ -64,7 +68,7 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 			if key != "--debuglog" && value != "" {
 				CmdLineOptions[key] = value
 			} else {
-				CmdLineOptions[key] = CmdLineOptions[key] + "|" + value // add debug log flags to the default
+				CmdLineOptions[key] = value + "|" + CmdLineOptions[key] // add debug log flags to the default
 			}
 			// remove options not supported by the current flags set so we can merge this update into older code bases
 		}
@@ -121,12 +125,34 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 			typeOfT.Field(i).Name, f.Type(), f.Interface())
 	}
 	fmt.Println()
+	return engine.Factomd(params, false).(*state.State)
 
+}
+
+//EX. state0 := SetupSim("LLLLLLLLLLLLLLLAAAAAAAAAA",  map[string]string {"--controlpanelsetting" : "readwrite"}, t)
+func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int, electionsCnt int, RoundsCnt int, t *testing.T) *state.State {
+	fmt.Println("SetupSim(", GivenNodes, ",", UserAddedOptions, ",", height, ",", electionsCnt, ",", RoundsCnt, ")")
+
+	if UserAddedOptions == nil {
+		UserAddedOptions = make(map[string]string)
+	}
+
+	if UserAddedOptions["--factomhome"] == "" {
+		// default to create a new home dir for each sim test if not specificed
+		homeDir := GetSimTestHome(t)
+		err := os.MkdirAll(filepath.Join(homeDir, "/.factom/m2"), 0755)
+		if err != nil {
+			t.Fatal(err)
+		}
+		UserAddedOptions["--factomhome"] = homeDir
+	}
+
+	state0 := StartSim(GivenNodes, UserAddedOptions)
+	ExpectedHeight = height
 	blkt := globals.Params.BlkTime
 	roundt := elections.RoundTimeout
 	et := elections.FaultTimeout
 	startTime = time.Now()
-	state0 := engine.Factomd(params, false).(*state.State)
 	//	statusState = state0
 	calctime := time.Duration(float64(((height+3)*blkt)+(electionsCnt*et)+(RoundsCnt*roundt))*1.1) * time.Second
 	endTime = time.Now().Add(calctime)
@@ -157,6 +183,7 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 	WaitMinutes(state0, 1) // wait till initial DBState message for the genesis block is processed
 	creatingNodes(GivenNodes, state0, t)
 
+	l := len(GivenNodes)
 	t.Logf("Allocated %d nodes", l)
 	if len(engine.GetFnodes()) != l {
 		t.Fatalf("Should have allocated %d nodes", l)
@@ -243,6 +270,7 @@ func StatusEveryMinute(s *state.State) {
 		statusState = s
 		go func() {
 			for {
+				// If the state is no longer running, we can stop printing
 				s := statusState
 				if s != nil {
 					newMinute := (s.CurrentMinute + 1) % 10
@@ -261,6 +289,8 @@ func StatusEveryMinute(s *state.State) {
 					}
 
 					engine.PrintOneStatus(0, 0)
+				} else {
+					return
 				}
 			}
 		}()
@@ -385,6 +415,31 @@ func AdjustAuthoritySet(adjustingNodes string) {
 	Followers = Followers - follow
 }
 
+func isAuditor(fnode int) bool {
+	nodes := engine.GetFnodes()
+	list := nodes[0].State.ProcessLists.Get(nodes[0].State.LLeaderHeight)
+	foundAudit, _ := list.GetAuditServerIndexHash(nodes[fnode].State.GetIdentityChainID())
+	return foundAudit
+}
+
+func isFollower(fnode int) bool {
+	return !(isAuditor(fnode) || engine.GetFnodes()[fnode].State.Leader)
+}
+
+func AssertAuthoritySet(t *testing.T, givenNodes string) {
+	nodes := engine.GetFnodes()
+	for i, c := range []byte(givenNodes) {
+		switch c {
+		case 'L':
+			assert.True(t, nodes[i].State.Leader, "Expected node %v to be a leader", i)
+		case 'A':
+			assert.True(t, isAuditor(i), "Expected node %v to be an auditor", i)
+		default:
+			assert.True(t, isFollower(i), "Expected node %v to be a follower", i)
+		}
+	}
+}
+
 func CheckAuthoritySet(t *testing.T) {
 
 	leadercnt, auditcnt, followercnt := CountAuthoritySet()
@@ -416,8 +471,9 @@ func Halt(t *testing.T) {
 	close(quit)
 	t.Log("Shutting down the network")
 	for _, fn := range engine.GetFnodes() {
-		fn.State.ShutdownChan <- 1
+		fn.State.ShutdownNode(1)
 	}
+
 	// sleep long enough for everyone to see the shutdown.
 	time.Sleep(time.Duration(globals.Params.BlkTime) * time.Second)
 }
@@ -466,17 +522,58 @@ func v2Request(req *primitives.JSON2Request, port int) (*primitives.JSON2Respons
 	return nil, nil
 }
 
-func ResetFactomHome(t *testing.T, subDir string) {
+// use a test specific dir for simTest
+func GetSimTestHome(t *testing.T) string {
 	dir, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	globals.Params.FactomHome = dir + "/.sim/" + subDir
-	os.Setenv("FACTOM_HOME", globals.Params.FactomHome)
+	return dir + "/.sim/" + GetTestName()
+}
 
-	t.Logf("Removing old run in %s", globals.Params.FactomHome)
-	if err := os.RemoveAll(globals.Params.FactomHome); err != nil {
+// re-use a common dir for longTest
+func GetLongTestHome(t *testing.T) string {
+	dir, err := os.Getwd()
+	if err != nil {
 		t.Fatal(err)
 	}
+
+	return dir + "/.sim"
+}
+
+// remove files from a home dir and remake .factom config dir
+func ResetTestHome(homeDir string, t *testing.T) {
+	t.Logf("Removing old test run in %s", homeDir)
+	os.RemoveAll(homeDir)
+	os.MkdirAll(homeDir+"/.factom/m2", 0755)
+}
+
+func ResetSimHome(t *testing.T) string {
+	h := GetSimTestHome(t)
+	ResetTestHome(h, t)
+	return h
+}
+
+func AddFNode() {
+	engine.AddNode()
+	Followers++
+}
+
+func WaitForEntry(s *state.State, hash interfaces.IHash) bool {
+	s.LogPrintf(logName, "WaitForEntry:  %s", hash.String())
+	//hash, _ := primitives.NewShaHashFromStr(entryhash)
+
+	for {
+		entry, err := s.FetchEntryByHash(hash)
+		if err != nil {
+			panic(err)
+		}
+		if entry != nil {
+			return true
+		}
+
+		time.Sleep(time.Millisecond * 200)
+	}
+	return false
 }

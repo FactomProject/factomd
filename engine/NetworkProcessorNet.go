@@ -119,11 +119,11 @@ func Peers(fnode *FactomNode) {
 	} // func ignoreMsg(){...}
 
 	for {
-		if primitives.NewTimestampNow().GetTimeSeconds()-fnode.State.BootTime > int64(constants.CROSSBOOT_SALT_REPLAY_DURATION.Seconds()) {
+		now := fnode.State.GetTimestamp()
+		if now.GetTimeSeconds()-fnode.State.BootTime > int64(constants.CROSSBOOT_SALT_REPLAY_DURATION.Seconds()) {
 			saltReplayFilterOn = false
 		}
 		cnt := 0
-		now := fnode.State.GetTimestamp()
 
 		for i := 0; i < 100 && fnode.State.APIQueue().Length() > 0; i++ {
 			msg := fnode.State.APIQueue().Dequeue()
@@ -138,7 +138,7 @@ func Peers(fnode *FactomNode) {
 				continue
 			}
 			if msg.GetHash().IsHashNil() {
-				fnode.State.LogMessage("badMsgs", "Nil hash from APIQueue", msg)
+				fnode.State.LogMessage("badEvents", "Nil hash from APIQueue", msg)
 				continue
 			}
 
@@ -146,11 +146,6 @@ func Peers(fnode *FactomNode) {
 			if fnode.State.GetNetStateOff() { // drop received message if he is off
 				fnode.State.LogMessage("NetworkInputs", "API drop, X'd by simCtrl", msg)
 				continue // Toss any inputs from API
-			}
-
-			if fnode.State.GetNetStateOff() {
-				fnode.State.LogMessage("NetworkInputs", "API drop, X'd by simCtrl", msg)
-				continue
 			}
 
 			repeatHash := msg.GetRepeatHash()
@@ -181,16 +176,14 @@ func Peers(fnode *FactomNode) {
 				continue
 			}
 
-			//fnode.MLog.add2(fnode, false, fnode.State.FactomNodeName, "API", true, msg)
-			if t := msg.Type(); t == constants.REVEAL_ENTRY_MSG || t == constants.COMMIT_CHAIN_MSG || t == constants.COMMIT_ENTRY_MSG {
-				fnode.State.LogMessage("NetworkInputs", "from API, Enqueue2", msg)
-				fnode.State.LogMessage("InMsgQueue2", "enqueue2", msg)
-				fnode.State.InMsgQueue2().Enqueue(msg)
-			} else {
-				fnode.State.LogMessage("NetworkInputs", "from API, Enqueue", msg)
-				fnode.State.LogMessage("InMsgQueue", "enqueue", msg)
-				fnode.State.InMsgQueue().Enqueue(msg)
+			if constants.NeedsAck(msg.Type()) {
+				// send msg to MMRequest processing to suppress requests for messages we already have
+				fnode.State.RecentMessage.NewMsgs <- msg
 			}
+
+			//fnode.MLog.add2(fnode, false, fnode.State.FactomNodeName, "API", true, msg)
+			sendToExecute(msg, fnode, "from API")
+
 		} // for the api queue read up to 100 messages {...}
 
 		// Put any broadcasts from our peers into our BroadcastIn queue
@@ -221,7 +214,7 @@ func Peers(fnode *FactomNode) {
 
 				if fnode.State.LLeaderHeight < fnode.State.DBHeightAtBoot+2 {
 					if msg.GetTimestamp().GetTimeMilli() < fnode.State.TimestampAtBoot.GetTimeMilli() {
-						fnode.State.LogMessage("NetworkInputs", "drop, too old", msg)
+						fnode.State.LogMessage("NetworkInputs", "Drop, too old", msg)
 						continue
 					}
 				}
@@ -236,7 +229,7 @@ func Peers(fnode *FactomNode) {
 				}
 
 				if msg.GetHash().IsHashNil() {
-					fnode.State.LogMessage("badMsgs", "Nil hash from Peer", msg)
+					fnode.State.LogMessage("badEvents", "Nil hash from Peer", msg)
 					continue
 				}
 
@@ -283,6 +276,33 @@ func Peers(fnode *FactomNode) {
 					continue
 				}
 
+				regex, _ := fnode.State.GetInputRegEx()
+
+				if regex != nil {
+					t := ""
+					if mm, ok := msg.(*messages.MissingMsgResponse); ok {
+						t = fmt.Sprintf("%7d-:-%d %s", fnode.State.LLeaderHeight, fnode.State.CurrentMinute, mm.MsgResponse.String())
+					} else {
+						t = fmt.Sprintf("%7d-:-%d %s", fnode.State.LLeaderHeight, fnode.State.CurrentMinute, msg.String())
+					}
+
+					if mm, ok := msg.(*messages.MissingMsgResponse); ok {
+						if eom, ok := mm.MsgResponse.(*messages.EOM); ok {
+							t2 := fmt.Sprintf("%7d-:-%d %s", fnode.State.LLeaderHeight, fnode.State.CurrentMinute, eom.String())
+							messageResult := regex.MatchString(t2)
+							if messageResult {
+								fnode.State.LogMessage("NetworkInputs", "Drop, matched filter Regex", msg)
+								continue
+							}
+						}
+					}
+					messageResult := regex.MatchString(t)
+					if messageResult {
+						fnode.State.LogMessage("NetworkInputs", "Drop, matched filter Regex", msg)
+						continue
+					}
+				}
+
 				//if state.GetOut() {
 				//	fnode.State.Println("In Coming!! ",msg)
 				//}
@@ -306,17 +326,8 @@ func Peers(fnode *FactomNode) {
 				}
 
 				msg.SetNetwork(true)
-
 				if !crossBootIgnore(msg) {
-					if t := msg.Type(); t == constants.REVEAL_ENTRY_MSG || t == constants.COMMIT_CHAIN_MSG || t == constants.COMMIT_ENTRY_MSG {
-						fnode.State.LogMessage("NetworkInputs", fromPeer+", enqueue2", msg)
-						fnode.State.LogMessage("InMsgQueue2", fromPeer+", enqueue2", msg)
-						fnode.State.InMsgQueue2().Enqueue(msg)
-					} else {
-						fnode.State.LogMessage("NetworkInputs", fromPeer+", enqueue", msg)
-						fnode.State.LogMessage("InMsgQueue", fromPeer+", enqueue", msg)
-						fnode.State.InMsgQueue().Enqueue(msg)
-					}
+					sendToExecute(msg, fnode, fromPeer)
 				}
 			} // For a peer read up to 100 messages {...}
 		} // for each peer {...}
@@ -324,6 +335,58 @@ func Peers(fnode *FactomNode) {
 			time.Sleep(50 * time.Millisecond) // handled no message, sleep a bit
 		}
 	} // forever {...}
+}
+
+func sendToExecute(msg interfaces.IMsg, fnode *FactomNode, source string) {
+	t := msg.Type()
+	switch t {
+	case constants.MISSING_MSG:
+		fnode.State.LogMessage("mmr_response", fmt.Sprintf("%s, enqueue %d", source, len(fnode.State.MissingMessageResponseHandler.MissingMsgRequests)), msg)
+		fnode.State.MissingMessageResponseHandler.NotifyPeerMissingMsg(msg)
+
+	case constants.COMMIT_CHAIN_MSG:
+		fnode.State.ChainCommits.Add(msg) // keep last 100 chain commits
+		Q1(fnode, source, msg)            // send it fast track
+		reveal := fnode.State.Reveals.Get(msg.GetHash().Fixed())
+		if reveal != nil {
+			Q1(fnode, source, reveal) // if we have it send it fast track
+			// it will still arrive from thr slow track but that is ok.
+		}
+
+	case constants.REVEAL_ENTRY_MSG:
+		// if this is a chain commit reveal send it fast track to allow processing of dependant reveals
+		if fnode.State.ChainCommits.Get(msg.GetHash().Fixed()) != nil {
+			Q1(fnode, source, msg) // fast track chain reveals
+		} else {
+			Q2(fnode, source, msg) // all other reveals are slow track
+			fnode.State.Reveals.Add(msg)
+		}
+
+	case constants.COMMIT_ENTRY_MSG:
+		Q2(fnode, source, msg) // slow track
+
+	default:
+		//todo: Probably should send EOM/DBSig and their ACKs on a faster yet track
+		// in general this makes ACKs more likely to arrive first.
+		Q1(fnode, source, msg) // fast track
+	}
+
+	if constants.NeedsAck(msg.Type()) {
+		// send msg to MMRequest processing to suppress requests for messages we already have
+		fnode.State.RecentMessage.NewMsgs <- msg
+	}
+}
+
+func Q1(fnode *FactomNode, source string, msg interfaces.IMsg) {
+	fnode.State.LogMessage("NetworkInputs", source+", enqueue", msg)
+	fnode.State.LogMessage("InMsgQueue", source+", enqueue", msg)
+	fnode.State.InMsgQueue().Enqueue(msg)
+}
+
+func Q2(fnode *FactomNode, source string, msg interfaces.IMsg) {
+	fnode.State.LogMessage("NetworkInputs", source+", enqueue2", msg)
+	fnode.State.LogMessage("InMsgQueue2", source+", enqueue2", msg)
+	fnode.State.InMsgQueue2().Enqueue(msg)
 }
 
 func NetworkOutputs(fnode *FactomNode) {
@@ -342,19 +405,39 @@ func NetworkOutputs(fnode *FactomNode) {
 		// by an updated version when the block is ready.
 		if msg.IsLocal() {
 			// todo: Should be a dead case. Add tracking code to see if it ever happens -- clay
-			fnode.State.LogMessage("NetworkOutputs", "drop, local", msg)
-			continue
-		}
-		// Don't do a rand int if drop rate is 0
-		if fnode.State.GetDropRate() > 0 && rand.Int()%1000 < fnode.State.GetDropRate() {
-			//drop the message, rather than processing it normally
-
-			fnode.State.LogMessage("NetworkOutputs", "drop, simCtrl", msg)
+			fnode.State.LogMessage("NetworkOutputs", "Drop, local", msg)
 			continue
 		}
 		if msg.GetRepeatHash() == nil {
-			fnode.State.LogMessage("NetworkOutputs", "drop, no repeat hash", msg)
+			fnode.State.LogMessage("NetworkOutputs", "Drop, no repeat hash", msg)
 			continue
+		}
+
+		regex, _ := fnode.State.GetOutputRegEx()
+		if regex != nil {
+			t := ""
+			if mm, ok := msg.(*messages.MissingMsgResponse); ok {
+				t = fmt.Sprintf("%7d-:-%d %s", fnode.State.LLeaderHeight, fnode.State.CurrentMinute, mm.MsgResponse.String())
+			} else {
+				t = fmt.Sprintf("%7d-:-%d %s", fnode.State.LLeaderHeight, fnode.State.CurrentMinute, msg.String())
+			}
+
+			if mm, ok := msg.(*messages.MissingMsgResponse); ok {
+				if eom, ok := mm.MsgResponse.(*messages.EOM); ok {
+					t2 := fmt.Sprintf("%7d-:-%d %s", fnode.State.LLeaderHeight, fnode.State.CurrentMinute, eom.String())
+					messageResult := regex.MatchString(t2)
+					if messageResult {
+						fnode.State.LogMessage("NetworkOutputs", "Drop, matched filter Regex", msg)
+						continue
+					}
+				}
+			}
+			messageResult := regex.MatchString(t)
+			if messageResult {
+				//fmt.Println("Found it!", t)
+				fnode.State.LogMessage("NetworkOutputs", "Drop, matched filter Regex", msg)
+				continue
+			}
 		}
 
 		//_, ok := msg.(*messages.Ack)
@@ -382,20 +465,27 @@ func NetworkOutputs(fnode *FactomNode) {
 				peer := fnode.Peers[p]
 				fnode.MLog.Add2(fnode, true, peer.GetNameTo(), "P2P out", true, msg)
 				if !fnode.State.GetNetStateOff() { // don't Send p2p messages if he is OFF
-					preSendTime := time.Now()
-					fnode.State.LogMessage("NetworkOutputs", "Send P2P "+peer.GetNameTo(), msg)
-					peer.Send(msg)
-					sendTime := time.Since(preSendTime)
-					TotalSendTime.Add(float64(sendTime.Nanoseconds()))
-					if fnode.State.MessageTally {
-						fnode.State.TallySent(int(msg.Type()))
+					// Don't do a rand int if drop rate is 0
+					if fnode.State.GetDropRate() > 0 && rand.Int()%1000 < fnode.State.GetDropRate() {
+						//drop the message, rather than processing it normally
+
+						fnode.State.LogMessage("NetworkOutputs", "Drop, simCtrl", msg)
+					} else {
+						preSendTime := time.Now()
+						fnode.State.LogMessage("NetworkOutputs", "Send P2P "+peer.GetNameTo(), msg)
+						peer.Send(msg)
+						sendTime := time.Since(preSendTime)
+						TotalSendTime.Add(float64(sendTime.Nanoseconds()))
+						if fnode.State.MessageTally {
+							fnode.State.TallySent(int(msg.Type()))
+						}
 					}
 				} else {
 
-					fnode.State.LogMessage("NetworkOutputs", "drop, simCtrl X", msg)
+					fnode.State.LogMessage("NetworkOutputs", "Drop, simCtrl X", msg)
 				}
 			} else {
-				fnode.State.LogMessage("NetworkOutputs", "drop, no peers", msg)
+				fnode.State.LogMessage("NetworkOutputs", "Drop, no peers", msg)
 			}
 		} else {
 			fnode.State.LogMessage("NetworkOutputs", "Send broadcast", msg)
@@ -409,12 +499,18 @@ func NetworkOutputs(fnode *FactomNode) {
 					bco := fmt.Sprintf("%s/%d/%d", "BCast", p, i)
 					fnode.MLog.Add2(fnode, true, peer.GetNameTo(), bco, true, msg)
 					if !fnode.State.GetNetStateOff() { // Don't send him broadcast message if he is off
-						preSendTime := time.Now()
-						peer.Send(msg)
-						sendTime := time.Since(preSendTime)
-						TotalSendTime.Add(float64(sendTime.Nanoseconds()))
-						if fnode.State.MessageTally {
-							fnode.State.TallySent(int(msg.Type()))
+						if fnode.State.GetDropRate() > 0 && rand.Int()%1000 < fnode.State.GetDropRate() && !msg.IsFullBroadcast() {
+							//drop the message, rather than processing it normally
+
+							fnode.State.LogMessage("NetworkOutputs", "Drop, simCtrl", msg)
+						} else {
+							preSendTime := time.Now()
+							peer.Send(msg)
+							sendTime := time.Since(preSendTime)
+							TotalSendTime.Add(float64(sendTime.Nanoseconds()))
+							if fnode.State.MessageTally {
+								fnode.State.TallySent(int(msg.Type()))
+							}
 						}
 					}
 				}

@@ -1,4 +1,4 @@
-package longtests
+package longtest
 
 import (
 	"fmt"
@@ -11,12 +11,8 @@ import (
 )
 
 // FIXME: test runs > 40 min try to tune down to 10 min
+// TODO: refactor to use testAccount helpers
 func TestChainedTransactions(t *testing.T) {
-	if RanSimTest {
-		return
-	}
-	RanSimTest = true
-
 	// a genesis block address w/ funding
 	bankSecret := "Fs3E9gV6DXsYzf7Fqx1fVBQPQXV695eP3k5XbmHEZVRLkMdD9qCK"
 	bankAddress := "FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q"
@@ -31,7 +27,7 @@ func TestChainedTransactions(t *testing.T) {
 	}
 
 	var maxBlocks = 500
-	state0 := SetupSim("LAF", map[string]string{"--debuglog": "."}, maxBlocks+1, 0, 0, t)
+	state0 := SetupSim("LAF", map[string]string{}, maxBlocks+1, 0, 0, t)
 	var ecPrice uint64 = state0.GetFactoshisPerEC() //10000
 	var oneFct uint64 = factom.FactoidToFactoshi("1")
 
@@ -69,7 +65,6 @@ func TestChainedTransactions(t *testing.T) {
 			send := bal
 
 			txn := func() {
-				//fmt.Printf("TXN %v %v => %v \n", send, depositAddresses[in], depositAddresses[out])
 				SendTxn(state0, send, depositSecrets[in], depositAddresses[out], ecPrice)
 			}
 			transactions = append(transactions, txn)

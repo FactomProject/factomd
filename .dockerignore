@@ -1,2 +1,3 @@
 # Don't copy the glide vendor directory
 vendor
+.sim 

@@ -237,7 +237,7 @@ func (i *Interpreter) InterpretLine(line string) {
 } // till EOF or error
 
 func (i *Interpreter) Interpret(source io.Reader) {
-	defer func() { i.Input = i.Input }() // Reset i.Input when we exit
+	defer func(old *bufio.Reader) { i.Input = old }(i.Input) // Reset i.Input when we exit
 	defer func() {
 		if r := recover(); r != nil {
 			fmt.Println("Error:", r)

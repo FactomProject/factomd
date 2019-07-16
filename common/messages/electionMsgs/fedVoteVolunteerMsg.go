@@ -208,7 +208,7 @@ func (m *FedVoteVolunteerMsg) GetHash() (rval interfaces.IHash) {
 			primitives.LogNilHashBug("FedVoteVolunteerMsg.GetHash() saw an interface that was nil")
 		}
 	}()
-	return m.GetMsgHash()
+	return m.Missing.GetMsgHash()
 }
 
 func (m *FedVoteVolunteerMsg) GetTimestamp() interfaces.Timestamp {
@@ -451,12 +451,14 @@ func (m *FedVoteVolunteerMsg) String() string {
 	if m.LeaderChainID == nil {
 		m.LeaderChainID = primitives.NewZeroHash()
 	}
-	return fmt.Sprintf("%19s %20s %20s ID: %x weight %x serverIdx: %d vmIdx: %d round %d dbheight: %d minute: %d ",
+	return fmt.Sprintf("%19s %20s %20s ID: %x weight %x fedID: %x fedIdx: %d serverIdx: %d vmIdx: %d round %d dbheight: %d minute: %d ",
 		m.Name,
 		"Volunteer Audit",
 		m.TS.String(),
 		m.ServerID.Bytes()[3:6],
 		m.Weight.Bytes()[:3],
+		m.FedID.Bytes()[3:6],
+		m.FedIdx,
 		m.ServerIdx,
 		m.VMIndex,
 		m.Round,

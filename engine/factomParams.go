@@ -30,6 +30,8 @@ func init() {
 	flag.IntVar(&p.FaultTimeout, "faulttimeout", 120, "Seconds before considering Federated servers at-fault. Default is 120.")
 	flag.IntVar(&p.RoundTimeout, "roundtimeout", 30, "Seconds before audit servers will increment rounds and volunteer.")
 	flag.IntVar(&p2p.NumberPeersToBroadcast, "broadcastnum", 16, "Number of peers to broadcast to in the peer to peer networking")
+	flag.IntVar(&p.P2PIncoming, "p2pIncoming", 0, "Override the maximum number of other peers dialing into this node that will be accepted; default 200")
+	flag.IntVar(&p.P2POutgoing, "p2pOutgoing", 0, "Override the maximum number of peers this node will attempt to dial into; default 32")
 	flag.StringVar(&p.ConfigPath, "config", "", "Override the config file location (factomd.conf)")
 	flag.BoolVar(&p.CheckChainHeads, "checkheads", true, "Enables checking chain heads on boot")
 	flag.BoolVar(&p.FixChainHeads, "fixheads", true, "If --checkheads is enabled, then this will also correct any errors reported")
@@ -38,7 +40,7 @@ func init() {
 	flag.BoolVar(&p.WaitEntries, "waitentries", false, "Wait for Entries to be validated prior to execution of messages")
 	flag.IntVar(&p.ListenTo, "node", 0, "Node Number the simulator will set as the focus")
 	flag.IntVar(&p.Cnt, "count", 1, "The number of nodes to generate")
-	flag.StringVar(&p.Net, "net", "tree", "The default algorithm to build the network connections")
+	flag.StringVar(&p.Net, "net", "alot+", "The default algorithm to build the network connections")
 	flag.StringVar(&p.Fnet, "fnet", "", "Read the given file to build the network connections")
 	flag.IntVar(&p.DropRate, "drop", 0, "Number of messages to drop out of every thousand")
 	flag.StringVar(&p.Journal, "journal", "", "Rerun a Journal of messages")
@@ -90,6 +92,7 @@ func init() {
 	flag.StringVar(&p.NodeName, "nodename", "", "Assign a name to the node")
 	flag.StringVar(&p.ControlPanelSetting, "controlpanelsetting", "", "Can set to 'disabled', 'readonly', or 'readwrite' to overwrite config file")
 	flag.BoolVar(&p.FullHashesLog, "fullhasheslog", false, "true create a log of all unique hashes seen during processing")
+	flag.BoolVar(&p.ReparseAnchorChains, "reparseanchorchains", false, "If true, reparse bitcoin and ethereum anchor chains in the database")
 }
 
 func ParseCmdLine(args []string) *FactomParams {
