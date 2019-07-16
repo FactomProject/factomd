@@ -46,6 +46,7 @@ func NewController(feds, auds int) *Controller {
 	c.feds = make([]interfaces.IServer, feds)
 	c.auds = make([]interfaces.IServer, auds)
 	c.Elections = make([]*elections.Elections, len(c.feds))
+
 	for i := range c.feds {
 		e := new(elections.Elections)
 		s := state.Server{}
