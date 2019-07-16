@@ -73,7 +73,7 @@ jobs:
           at: /tmp
 
       - run:
-          name: Run Tests!
+          name: Run Full Tests!
           no_output_timeout: 2400
           command: |
             export PATH="/tmp/go/bin:$PATH"
@@ -362,6 +362,10 @@ workflows:
               only: /.*/
           requires:
             - build
+      - test_full:
+          type: approval
+          requires:
+            - test
       - gofmt:
           filters:
             tags:
