@@ -106,6 +106,7 @@ function runTests() {
   echo '---------------'
   echo "${TESTS}"
   echo '---------------'
+  env | grep ^CI
 
   for TST in ${TESTS[*]} ; do
     case `dirname $TST` in
