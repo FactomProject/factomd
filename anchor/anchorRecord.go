@@ -60,17 +60,17 @@ type EthereumStruct struct {
 var _ interfaces.Printable = (*AnchorRecord)(nil)
 var _ interfaces.IAnchorRecord = (*AnchorRecord)(nil)
 
-// JSONByte returns a []byte of the AnchorRecord encoded in Json: nil, error returned upon error
+// JSONByte returns a []byte of the AnchorRecord encoded in Json
 func (ar *AnchorRecord) JSONByte() ([]byte, error) {
 	return primitives.EncodeJSON(ar)
 }
 
-// JSONString returns a string of the AnchorRecord encoded in Json: "", error returned upon error
+// JSONString returns a string of the AnchorRecord encoded in Json
 func (ar *AnchorRecord) JSONString() (string, error) {
 	return primitives.EncodeJSONString(ar)
 }
 
-// String returns a string of AnchorRecord encoded in Json: "" returned upon error
+// String returns a string of AnchorRecord encoded in Json
 func (ar *AnchorRecord) String() string {
 	str, _ := ar.JSONString()
 	return str
