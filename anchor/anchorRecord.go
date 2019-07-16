@@ -110,8 +110,7 @@ func (ar *AnchorRecord) MarshalAndSignV2(priv interfaces.Signer) ([]byte, []byte
 	return data, sig.Bytes(), nil
 }
 
-// splitAnchorAndSignature is a refactored function that splits the AnchorRecord and its signature, non-exported
-// for now, but no particular reason it can't be exported if needed in the future
+// splitAnchorAndSignature is a refactored function that splits the AnchorRecord and its signature
 func splitAnchorAndSignature(data []byte) (string, string, error) {
 	if len(data) == 0 {
 		return "", "", fmt.Errorf("Invalid data passed")
@@ -163,8 +162,7 @@ func UnmarshalAnchorRecord(data []byte) (*AnchorRecord, error) {
 	return ar, nil
 }
 
-// verifyAnchorAndSignature verifies the data and signature from the public keys. Created during refactoring and is unexported for now
-// but no reason it couldn't be exported in the future
+// verifyAnchorAndSignature verifies the data and signature from the public keys
 func verifyAnchorAndSignature(data []byte, sig *primitives.ByteSliceSig, publicKeys []interfaces.Verifier) (bool, error) {
 	fixed, err := sig.GetFixed()
 	if err != nil {
