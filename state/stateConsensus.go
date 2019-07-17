@@ -896,47 +896,6 @@ func (s *State) AddDBState(isNew bool,
 		fmt.Fprintf(os.Stderr, "AddDBState() out of order! at %d added %d\n", s.LLeaderHeight, ht)
 		//panic("AddDBState out of order!")
 	}
-	if ht > s.LLeaderHeight {
-		s.LogPrintf("dbstateprocess", "unexpected: ht > s.LLeaderHeight  at %d added %d", s.LLeaderHeight, ht)
-		//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s Add DBState: s.SigType(%v)", s.FactomNodeName, s.SigType))
-		s.MoveStateToHeight(ht, 0) // AddDBState()
-		s.StartDelay = s.GetTimestamp().GetTimeMilli()
-		s.RunLeader = false
-		LeaderPL := s.ProcessLists.Get(s.LLeaderHeight)
-
-		if s.LLeaderHeight != 0 && s.LeaderPL != LeaderPL {
-			s.LogPrintf("ExecuteMsg", "AddDBState: Unexpected change in LeaderPL")
-			s.LeaderPL = LeaderPL
-		}
-		s.SetLeaderTimestamp(dbState.DirectoryBlock.GetTimestamp()) // move the leader timestamp to the start of the block
-		{
-			// Okay, we have just loaded a new DBState.  The temp balances are no longer valid, if they exist.  Nuke them.
-			s.LeaderPL.FactoidBalancesTMutex.Lock()
-			s.LeaderPL.FactoidBalancesT = map[[32]byte]int64{}
-			s.LeaderPL.FactoidBalancesTMutex.Unlock()
-
-			s.LeaderPL.ECBalancesTMutex.Lock()
-			s.LeaderPL.ECBalancesT = map[[32]byte]int64{}
-			s.LeaderPL.ECBalancesTMutex.Unlock()
-		}
-
-		Leader, LeaderVMIndex := s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID) // AddDBState()
-		{                                                                                         // debug
-			if s.Leader != Leader {
-				s.LogPrintf("executeMsg", "State.AddDBState() unexpectedly setting s.Leader to %v", Leader)
-				s.Leader = Leader
-			}
-			if s.LeaderVMIndex != LeaderVMIndex {
-				s.LogPrintf("executeMsg", "State.AddDBState()  unexpectedly setting s.LeaderVMIndex to %v", LeaderVMIndex)
-				s.LeaderVMIndex = LeaderVMIndex
-			}
-		}
-		for s.ProcessLists.UpdateState(s.LLeaderHeight) {
-		}
-	}
-	if ht == 0 && s.LLeaderHeight == 0 {
-		s.MoveStateToHeight(1, 0)
-	}
 
 	return dbState
 }
