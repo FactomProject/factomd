@@ -7,8 +7,15 @@ import (
 	"github.com/FactomProject/factomd/common/messages/eventMsgs"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/gogo/protobuf/proto"
+	"github.com/prometheus/common/log"
 	"io"
 	"net"
+)
+
+const (
+	defaultConnectionProtocol = "tcp"
+	defaultConnectionHost     = "127.0.0.1"
+	defaultConnectionPort     = "8040"
 )
 
 type EventProxy struct {
@@ -42,35 +49,40 @@ func (ep *EventProxy) processEventsChannel() {
 		}
 		writer := bufio.NewWriter(conn)
 
-		// TODO implement give-up / retry policy
+		// TODO determine and implement a proper give-up / retry policy
 		retry := 3
 		for {
 			messageBuffer, err := proto.Marshal(event)
-			if err == nil {
-				i := int32(len(messageBuffer))
-				err := binary.Write(writer, binary.LittleEndian, i)
-				if err != nil {
-					fmt.Println(err)
-				}
-				_, err = writer.Write(messageBuffer)
-				writer.Flush()
-				if err == io.EOF {
-					conn = redial(conn)
-					retry--
-					if retry > 0 {
-						continue
-					}
-				} else if err != nil {
-					fmt.Println("Event network error", err)
-				}
+			if err != nil {
+				log.Error("An error occurred when marshalling an event to a protocol buffer", err)
 				break
 			}
+
+			i := int32(len(messageBuffer))
+			err = binary.Write(writer, binary.LittleEndian, i)
+			if err != nil {
+				log.Error(err)
+				break
+			}
+			_, err = writer.Write(messageBuffer)
+			writer.Flush()
+			if err == io.EOF {
+				conn = redial(conn)
+				retry--
+				if retry > 0 {
+					continue
+				}
+			} else if err != nil {
+				fmt.Println("Event network error", err)
+			}
+			break
 		}
+
 	}
 }
 
 func dialServer() net.Conn {
-	conn, err := net.Dial("tcp", "127.0.0.1:8040")
+	conn, err := net.Dial(defaultConnectionProtocol, fmt.Sprintf("%s:%s", defaultConnectionHost, defaultConnectionPort))
 	if err != nil {
 		fmt.Println("Unable to dial event server")
 		return nil
