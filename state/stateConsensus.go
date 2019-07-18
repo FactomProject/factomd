@@ -76,6 +76,9 @@ func (s *State) AddToHolding(hash [32]byte, msg interfaces.IMsg) {
 		s.Holding[hash] = msg
 		s.LogMessage("holding", "add", msg)
 		TotalHoldingQueueInputs.Inc()
+
+		go emitAddToHoldingEvent(msg, s)
+
 	}
 }
 
@@ -311,7 +314,6 @@ func (s *State) executeMsg(msg interfaces.IMsg) (ret bool) {
 				s.RunLeader, s.Leader, s.Saving, vm, vmh, vml, s.Syncing, vms, local, vmi, s.LeaderVMIndex, s.LeaderPL.DBHeight, hkb)
 			msg.FollowerExecute(s)
 		}
-
 		return true
 
 	case 0:
@@ -961,6 +963,7 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 
 		pl := s.ProcessLists.Get(ack.DBHeight)
 		pl.AddToProcessList(s, ack, m)
+		go emitAddToProcessListEvent(m, s)
 
 		// Cross Boot Replay
 		s.CrossReplayAddSalt(ack.DBHeight, ack.Salt)
@@ -1222,13 +1225,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		s.StatesReceived.Notify <- msg.(*messages.DBStateMsg)
 	}
 	s.DBStates.UpdateState()
-
-	go emitEvent(dbstatemsg, s)
-}
-
-func emitEvent(dbstatemsg *messages.DBStateMsg, state *State) {
-	anchoredEvent := eventMessages.AnchoredEventFromDBState(dbstatemsg)
-	state.EventsProxy.Send(anchoredEvent)
+	go emitDirectoryBlockEvent(dbstatemsg, s)
 }
 
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
@@ -2783,4 +2780,19 @@ func (s *State) NewAck(msg interfaces.IMsg, balanceHash interfaces.IHash) interf
 	ack.SetLocal(true)
 
 	return ack
+}
+
+func emitDirectoryBlockEvent(dbstatemsg *messages.DBStateMsg, state *State) {
+	anchoredEvent := eventMessages.AnchoredEventFromDBState(dbstatemsg)
+	state.EventsProxy.Send(anchoredEvent)
+}
+
+func emitAddToProcessListEvent(msg interfaces.IMsg, state *State) {
+	addToHoldingEvent := eventMessages.AddIntermediateEventFromMessage(eventMessages.IntermediateEvent_ADD_TO_PROCESSLIST, msg)
+	state.EventsProxy.Send(addToHoldingEvent)
+}
+
+func emitAddToHoldingEvent(msg interfaces.IMsg, state *State) {
+	addToHoldingEvent := eventMessages.AddIntermediateEventFromMessage(eventMessages.IntermediateEvent_ADD_TO_HOLDING, msg)
+	state.EventsProxy.Send(addToHoldingEvent)
 }

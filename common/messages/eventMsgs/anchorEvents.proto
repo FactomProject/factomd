@@ -1,0 +1,122 @@
+syntax = "proto3";
+package eventMessages;
+
+import "google/protobuf/timestamp.proto";
+
+
+message AnchoredEvent {
+    DirectoryBlock directoryBlock = 1;
+    AdminBlock adminBlock = 2;
+    FactoidBlock factoidBlock = 3;
+    EntryCreditBlock entryCreditBlock = 4;
+}
+
+message IntermediateEvent {
+    enum EventSource {
+        ADD_TO_PROCESSLIST = 0;
+        ADD_TO_HOLDING = 1;
+    }
+
+    EventSource eventSource = 1;
+    oneof value {
+        CommitChain commitChain = 2;
+        CommitEntry commitEntry = 3;
+    }
+}
+
+
+message DirectoryBlock {
+    DirectoryBlockHeader header = 1;
+    repeated Entry entries = 2;
+}
+
+message DirectoryBlockHeader {
+    Hash BodyMerkleRoot = 1;
+    Hash PreviousKeyMerkleRoot = 2;
+    Hash PreviousFullHash = 3;
+    google.protobuf.Timestamp timestamp = 4;
+    uint32 DBHeight = 5;
+    uint32 BlockCount = 6;
+}
+
+
+message Entry {
+    Hash ChainID = 1;
+    Hash KeyMerkleRoot = 2;
+}
+
+
+message AdminBlock {
+    AdminBlockHeader header = 1;
+    repeated AdminBlockEntry entries = 2;
+}
+
+message FactoidBlock {
+
+}
+
+
+message EntryCreditBlock {
+
+}
+
+
+message AdminBlockHeader {
+    Hash PrevBackRefHash = 1;
+    uint32 DBHeight = 2;
+}
+
+message AdminBlockEntry {
+    oneof value {
+        DirectoryBlockSignatureEntry dbSignatureEntry = 1;
+        AddAuditServer addAuditServer = 2;
+        CoinbaseDescriptor coinbaseDescriptor = 3;
+    }
+}
+
+message AddAuditServer {
+    Hash IdentityChainID = 2;
+    uint32 DBHeight = 3;
+}
+
+message CoinbaseDescriptor {
+    repeated TransAddress outputs = 2;
+}
+
+message TransAddress {
+    uint64 amount = 1;
+    Hash address = 2;
+}
+
+message DirectoryBlockSignatureEntry {
+    Hash identityAdminChainID = 2;
+    Signature prevDBSignature = 3;
+}
+
+message Hash {
+    bytes hashValue = 1;
+}
+
+message Signature {
+    bytes publicKey = 1;
+    bytes signature = 2;
+}
+
+message CommitChain {
+    Hash ChainIDHash = 1;
+    Hash EntryHash = 2;
+    Hash Weld = 3;
+    google.protobuf.Timestamp timestamp = 4;
+    uint32 Credits = 5;
+    bytes ECPubKey = 6;
+    bytes Sig = 7;
+}
+
+message CommitEntry {
+    Hash EntryHash = 1;
+    google.protobuf.Timestamp timestamp = 2;
+    uint32 Credits = 3;
+    bytes ECPubKey = 4;
+    bytes Sig = 5;
+}
+
