@@ -62,7 +62,6 @@ func (ep *EventProxy) processEventsChannel() {
 		}
 
 		ep.sendEvent(&event)
-		ep.postponeRetryUntil = time.Now().Add(dialRetryPostponeDuration)
 	}
 }
 
