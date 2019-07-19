@@ -23,13 +23,13 @@ const (
 )
 
 type EventProxy struct {
-	eventsOutQueue     chan eventMessages.Event
+	eventsOutQueue     chan eventMessages.FactomEvent
 	postponeRetryUntil time.Time
 	connection         net.Conn
 }
 
 func (ep *EventProxy) Init() *EventProxy {
-	ep.eventsOutQueue = make(chan eventMessages.Event, p2p.StandardChannelSize)
+	ep.eventsOutQueue = make(chan eventMessages.FactomEvent, p2p.StandardChannelSize)
 	return ep
 }
 
@@ -38,9 +38,9 @@ func (ep *EventProxy) StartProxy() *EventProxy {
 	return ep
 }
 
-func (ep *EventProxy) Send(event eventMessages.Event) {
+func (ep *EventProxy) Send(event *eventMessages.FactomEvent) {
 	select {
-	case ep.eventsOutQueue <- event:
+	case ep.eventsOutQueue <- *event:
 	default:
 	}
 }
@@ -61,13 +61,12 @@ func (ep *EventProxy) processEventsChannel() {
 			continue
 		}
 
-		factomEvent := eventMessages.WrapInFactomEvent(event)
-		ep.sendEvent(factomEvent)
+		ep.sendEvent(&event)
 		ep.postponeRetryUntil = time.Now().Add(dialRetryPostponeDuration)
 	}
 }
 
-func (ep *EventProxy) sendEvent(event eventMessages.Event) {
+func (ep *EventProxy) sendEvent(event *eventMessages.FactomEvent) {
 	writer := bufio.NewWriter(ep.connection)
 	retry := 0
 	for {
