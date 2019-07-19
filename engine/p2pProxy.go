@@ -41,8 +41,6 @@ type P2PProxy struct {
 	bytesOut int // bandwidth used by application without network fan out
 	bytesIn  int // bandwidth received by application from network
 
-	msg interfaces.IMsg
-
 	// logging
 	logger *log.Entry
 }
@@ -52,7 +50,7 @@ type FactomMessage struct {
 	PeerHash string
 	AppHash  string
 	AppType  string
-	msg 	 interfaces.IMsg
+	msg      interfaces.IMsg // Keep the original message for debugging and peer selection optimization
 }
 
 func (e *FactomMessage) JSONByte() ([]byte, error) {
@@ -107,7 +105,6 @@ func (f *P2PProxy) GetNameTo() string {
 }
 
 func (f *P2PProxy) Send(msg interfaces.IMsg) error {
-	f.msg = msg;
 	data, err := msg.MarshalBinary()
 	if err != nil {
 		f.logger.WithField("send-error", err).Error()

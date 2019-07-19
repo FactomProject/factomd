@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"hash/crc32"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/FactomProject/factomd/common/interfaces"
+	log "github.com/sirupsen/logrus"
 )
 
 var parcelLogger = packageLogger.WithField("subpack", "connection")
@@ -20,7 +20,7 @@ var parcelLogger = packageLogger.WithField("subpack", "connection")
 type Parcel struct {
 	Header  ParcelHeader
 	Payload []byte
-	Msg		interfaces.IMsg
+	Msg     interfaces.IMsg // Keep the message for debugging
 }
 
 // ParcelHeaderSize is the number of bytes in a parcel header
@@ -86,7 +86,7 @@ func NewParcelMsg(network NetworkID, payload []byte, msg interfaces.IMsg) *Parce
 	header.AppType = "Network"
 	parcel := new(Parcel).Init(*header)
 	parcel.Payload = payload
-	parcel.Msg = msg
+	parcel.Msg = msg      // Keep the message for debugging
 	parcel.UpdateHeader() // Updates the header with info about payload.
 	return parcel
 }
