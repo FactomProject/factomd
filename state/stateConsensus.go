@@ -2075,9 +2075,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		//fmt.Println(fmt.Sprintf("EOM PROCESS: %10s vm %2d EOMProcessed++ (%2d)", s.FactomNodeName, e.VMIndex, s.EOMProcessed))
 		vm.Synced = true // ProcessEOM
 		markNoFault(pl, msg.GetVMIndex())
-		if s.LeaderPL.SysHighest < int(e.SysHeight) {
-			s.LeaderPL.SysHighest = int(e.SysHeight)
-		}
 		//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s vm %2d Process this SigType: return on s.SigType(%v) && int(e.Minute(%v)) > s.EOMMinute(%v)", s.FactomNodeName, e.VMIndex, s.SigType, e.Minute, s.EOMMinute))
 		return false
 	}
