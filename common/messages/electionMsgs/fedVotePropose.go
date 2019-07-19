@@ -58,7 +58,12 @@ func (m *FedVoteProposalMsg) ElectionProcess(is interfaces.IState, elect interfa
 	/******  Election Adapter Control   ******/
 	/**	Controlling the inner election state**/
 
-	// Response from non-leader is nil
+	// When we get a propose, we should first execute the volunteer msg. Then execute the
+	// propose. This is because the embedded information may be new to us.
+	m.Volunteer.ElectionProcess(is, elect)
+
+	// Leaders will respond with a message,
+	// followers will respond with nil
 	resp := e.Adapter.Execute(m)
 	if resp == nil {
 		return
@@ -306,5 +311,5 @@ func (m *FedVoteProposalMsg) MarshalForSignature() (data []byte, err error) {
 }
 
 func (m *FedVoteProposalMsg) String() string {
-	return "Fed Vote Proposal " + m.Volunteer.String()
+	return fmt.Sprintf("Fed Vote Proposal by %x, for %s", m.Signer.Bytes()[3:6], m.Volunteer.String())
 }

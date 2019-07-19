@@ -27,7 +27,7 @@ func TestChainedTransactions(t *testing.T) {
 	}
 
 	var maxBlocks = 500
-	state0 := SetupSim("LAF", map[string]string{"--debuglog": "."}, maxBlocks+1, 0, 0, t)
+	state0 := SetupSim("LAF", map[string]string{}, maxBlocks+1, 0, 0, t)
 	var ecPrice uint64 = state0.GetFactoshisPerEC() //10000
 	var oneFct uint64 = factom.FactoidToFactoshi("1")
 

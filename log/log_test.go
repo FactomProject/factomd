@@ -169,7 +169,7 @@ func BenchmarkDoubleFormat(b *testing.B) {
 
 func doBenchmark(b *testing.B, logger *FLogger, format string, args ...interface{}) {
 	for i := 0; i < b.N; i++ {
-		logger.Debugf(format, args)
+		logger.Debugf(format, args...)
 	}
 }
 func TestPrints(t *testing.T) {
