@@ -10,27 +10,12 @@ import (
 	"time"
 )
 
-func WrapInFactomEvent(event Event) *FactomEvent {
-	factomEvent := &FactomEvent{}
-	switch event.(type) {
-	case *AnchoredEvent:
-		factomEvent.Value = &FactomEvent_AnchoredEvent{AnchoredEvent: event.(*AnchoredEvent)}
-	case *IntermediateEvent:
-		factomEvent.Value = &FactomEvent_IntermediateEvent{IntermediateEvent: event.(*IntermediateEvent)}
-	}
-	return factomEvent
-}
-
-func AnchoredEventFromDBState(dbStateMessage *messages.DBStateMsg) *AnchoredEvent {
-	event := &AnchoredEvent{}
-	event.DirectoryBlock = mapDirBlock(dbStateMessage.DirectoryBlock)
-	return event
-}
-
-func IntermediateEventFromMessage(eventSource EventSource, msg interfaces.IMsg) *IntermediateEvent {
-	event := &IntermediateEvent{}
+func EventFromMessage(eventSource EventSource, msg interfaces.IMsg) *FactomEvent {
+	event := &FactomEvent{}
 	event.EventSource = eventSource
 	switch msg.(type) {
+	case *messages.DBStateMsg:
+		event.Value = mapDBState(msg.(*messages.DBStateMsg))
 	case *messages.CommitChainMsg:
 		event.Value = mapCommitChain(msg)
 	case *messages.CommitEntryMsg:
@@ -38,6 +23,13 @@ func IntermediateEventFromMessage(eventSource EventSource, msg interfaces.IMsg) 
 	default:
 		return nil
 	}
+	return event
+}
+
+func mapDBState(dbStateMessage *messages.DBStateMsg) *FactomEvent_AnchorEvent {
+	event := &FactomEvent_AnchorEvent{AnchorEvent: &AnchoredEvent{
+		DirectoryBlock: mapDirBlock(dbStateMessage.DirectoryBlock),
+	}}
 	return event
 }
 
@@ -89,12 +81,12 @@ func mapDirEntry(entry interfaces.IDBEntry) *Entry {
 	return result
 }
 
-func mapCommitChain(msg interfaces.IMsg) *IntermediateEvent_CommitChain {
+func mapCommitChain(msg interfaces.IMsg) *FactomEvent_CommitChain {
 	commitChain := msg.(*messages.CommitChainMsg).CommitChain
 	ecPubKey := commitChain.ECPubKey.Fixed()
 	sig := commitChain.Sig
 
-	result := &IntermediateEvent_CommitChain{
+	result := &FactomEvent_CommitChain{
 		CommitChain: &CommitChain{
 			ChainIDHash: &Hash{
 				HashValue: commitChain.ChainIDHash.Bytes()},
@@ -109,12 +101,12 @@ func mapCommitChain(msg interfaces.IMsg) *IntermediateEvent_CommitChain {
 	return result
 }
 
-func mapCommitEvent(msg interfaces.IMsg) *IntermediateEvent_CommitEntry {
+func mapCommitEvent(msg interfaces.IMsg) *FactomEvent_CommitEntry {
 	commitEntry := msg.(*messages.CommitEntryMsg).CommitEntry
 	ecPubKey := commitEntry.ECPubKey.Fixed()
 	sig := commitEntry.Sig
 
-	result := &IntermediateEvent_CommitEntry{
+	result := &FactomEvent_CommitEntry{
 		CommitEntry: &CommitEntry{
 			EntryHash: &Hash{
 				HashValue: commitEntry.EntryHash.Bytes(),

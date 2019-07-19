@@ -79,8 +79,7 @@ func (s *State) AddToHolding(hash [32]byte, msg interfaces.IMsg) {
 		s.LogMessage("holding", "add", msg)
 		TotalHoldingQueueInputs.Inc()
 
-		go emitAddToHoldingEvent(msg, s)
-
+		go emitEvent(eventMessages.EventSource_ADD_TO_HOLDING, msg, s)
 	}
 }
 
@@ -930,7 +929,7 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 
 		pl := s.ProcessLists.Get(ack.DBHeight)
 		pl.AddToProcessList(s, ack, m)
-		go emitAddToProcessListEvent(m, s)
+		go emitEvent(eventMessages.EventSource_ADD_TO_PROCESSLIST, m, s)
 
 		// Cross Boot Replay
 		s.CrossReplayAddSalt(ack.DBHeight, ack.Salt)
@@ -1200,7 +1199,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		s.StatesReceived.Notify <- msg.(*messages.DBStateMsg)
 	}
 	s.DBStates.UpdateState()
-	go emitDirectoryBlockEvent(dbstatemsg, s)
+	go emitEvent(eventMessages.EventSource_COMMIT_DIRECTORY_BLOCK, dbstatemsg, s)
 }
 
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
@@ -2710,20 +2709,8 @@ func (s *State) NewAck(msg interfaces.IMsg, balanceHash interfaces.IHash) interf
 	return ack
 }
 
-func emitDirectoryBlockEvent(dbstatemsg *messages.DBStateMsg, state *State) {
-	event := eventMessages.AnchoredEventFromDBState(dbstatemsg)
-	state.EventsProxy.Send(event)
-}
-
-func emitAddToProcessListEvent(msg interfaces.IMsg, state *State) {
-	event := eventMessages.IntermediateEventFromMessage(eventMessages.EventSource_ADD_TO_PROCESSLIST, msg)
-	if event != nil {
-		state.EventsProxy.Send(event)
-	}
-}
-
-func emitAddToHoldingEvent(msg interfaces.IMsg, state *State) {
-	event := eventMessages.IntermediateEventFromMessage(eventMessages.EventSource_ADD_TO_HOLDING, msg)
+func emitEvent(eventSource eventMessages.EventSource, msg interfaces.IMsg, state *State) {
+	event := eventMessages.EventFromMessage(eventSource, msg)
 	if event != nil {
 		state.EventsProxy.Send(event)
 	}

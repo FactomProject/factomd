@@ -4,14 +4,18 @@ package eventmessages;
 import "google/protobuf/timestamp.proto";
 
 enum EventSource {
-    ADD_TO_PROCESSLIST = 0;
-    ADD_TO_HOLDING = 1;
+    COMMIT_DIRECTORY_BLOCK = 0;
+    ADD_TO_PROCESSLIST = 1;
+    ADD_TO_HOLDING = 2;
 }
 
+
 message FactomEvent {
+    EventSource eventSource = 1;
     oneof value {
-        IntermediateEvent intermediateEvent = 1;
-        AnchoredEvent anchoredEvent = 2;
+        AnchoredEvent anchorEvent = 2;
+        CommitChain commitChain = 3;
+        CommitEntry commitEntry = 4;
     }
 }
 
@@ -21,14 +25,6 @@ message AnchoredEvent {
     AdminBlock adminBlock = 2;
     FactoidBlock factoidBlock = 3;
     EntryCreditBlock entryCreditBlock = 4;
-}
-
-message IntermediateEvent {
-    EventSource eventSource = 1;
-    oneof value {
-        CommitChain commitChain = 2;
-        CommitEntry commitEntry = 3;
-    }
 }
 
 
