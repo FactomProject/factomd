@@ -1,7 +1,19 @@
 syntax = "proto3";
-package eventMessages;
+package eventmessages;
 
 import "google/protobuf/timestamp.proto";
+
+enum EventSource {
+    ADD_TO_PROCESSLIST = 0;
+    ADD_TO_HOLDING = 1;
+}
+
+message FactomEvent {
+    oneof value {
+        IntermediateEvent intermediateEvent = 1;
+        AnchoredEvent anchoredEvent = 2;
+    }
+}
 
 
 message AnchoredEvent {
@@ -12,11 +24,6 @@ message AnchoredEvent {
 }
 
 message IntermediateEvent {
-    enum EventSource {
-        ADD_TO_PROCESSLIST = 0;
-        ADD_TO_HOLDING = 1;
-    }
-
     EventSource eventSource = 1;
     oneof value {
         CommitChain commitChain = 2;
