@@ -43,6 +43,10 @@ import:
   version: ^1.2.2
   subpackages:
   - assert
+- package: github.com/gogo/protobuf
+  version: ^1.2.1
+  subpackages:
+  - protoc-gen-gofast
 testImport:
 - package: github.com/FactomProject/go-spew
   subpackages:

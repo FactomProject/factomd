@@ -1,6 +1,7 @@
-package eventMessages
+package eventmessages
 
 import (
+	"encoding/binary"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -9,13 +10,24 @@ import (
 	"time"
 )
 
+func WrapInFactomEvent(event Event) *FactomEvent {
+	factomEvent := &FactomEvent{}
+	switch event.(type) {
+	case *AnchoredEvent:
+		factomEvent.Value = &FactomEvent_AnchoredEvent{AnchoredEvent: event.(*AnchoredEvent)}
+	case *IntermediateEvent:
+		factomEvent.Value = &FactomEvent_IntermediateEvent{IntermediateEvent: event.(*IntermediateEvent)}
+	}
+	return factomEvent
+}
+
 func AnchoredEventFromDBState(dbStateMessage *messages.DBStateMsg) *AnchoredEvent {
 	event := &AnchoredEvent{}
 	event.DirectoryBlock = mapDirBlock(dbStateMessage.DirectoryBlock)
 	return event
 }
 
-func AddIntermediateEventFromMessage(eventSource IntermediateEvent_EventSource, msg interfaces.IMsg) *IntermediateEvent {
+func IntermediateEventFromMessage(eventSource EventSource, msg interfaces.IMsg) *IntermediateEvent {
 	event := &IntermediateEvent{}
 	event.EventSource = eventSource
 	switch msg.(type) {
@@ -23,6 +35,8 @@ func AddIntermediateEventFromMessage(eventSource IntermediateEvent_EventSource, 
 		event.Value = mapCommitChain(msg)
 	case *messages.CommitEntryMsg:
 		event.Value = mapCommitEvent(msg)
+	default:
+		return nil
 	}
 	return event
 }
@@ -96,7 +110,7 @@ func mapCommitChain(msg interfaces.IMsg) *IntermediateEvent_CommitChain {
 }
 
 func mapCommitEvent(msg interfaces.IMsg) *IntermediateEvent_CommitEntry {
-	commitEntry := msg.(*messages.CommitChainMsg).CommitChain
+	commitEntry := msg.(*messages.CommitEntryMsg).CommitEntry
 	ecPubKey := commitEntry.ECPubKey.Fixed()
 	sig := commitEntry.Sig
 
@@ -114,7 +128,11 @@ func mapCommitEvent(msg interfaces.IMsg) *IntermediateEvent_CommitEntry {
 }
 
 func convertToTimestamp(milliTime *primitives.ByteSlice6) *types.Timestamp {
-	time := time.Now() // TODO convert ByteSlice6 back to timestamp
+	// TODO Is there an easier way to do this?
+	slice8 := make([]byte, 8)
+	copy(slice8[2:], milliTime[:])
+	millis := int64(binary.BigEndian.Uint64(slice8))
+	time := time.Unix(0, millis*1000000)
 	return &types.Timestamp{Seconds: int64(time.Second()), Nanos: int32(time.Nanosecond())}
 }
 

@@ -4,22 +4,28 @@ import (
 	"bufio"
 	"encoding/binary"
 	"fmt"
-	"github.com/FactomProject/factomd/common/messages/eventMsgs"
+	eventMessages "github.com/FactomProject/factomd/common/messages/eventmessages"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/gogo/protobuf/proto"
 	"github.com/prometheus/common/log"
 	"io"
 	"net"
+	"time"
 )
 
 const (
 	defaultConnectionProtocol = "tcp"
 	defaultConnectionHost     = "127.0.0.1"
 	defaultConnectionPort     = "8040"
+	sendRetries               = 3
+	dialRetryPostponeDuration = time.Minute
+	redialSleepDuration       = 5 * time.Second
 )
 
 type EventProxy struct {
-	eventsOutQueue chan eventMessages.Event
+	eventsOutQueue     chan eventMessages.Event
+	postponeRetryUntil time.Time
+	connection         net.Conn
 }
 
 func (ep *EventProxy) Init() *EventProxy {
@@ -40,58 +46,78 @@ func (ep *EventProxy) Send(event eventMessages.Event) {
 }
 
 func (ep *EventProxy) processEventsChannel() {
-	conn := dialServer()
+	ep.dialServer()
 
 	for event := range ep.eventsOutQueue {
 
-		if conn == nil {
-			conn = dialServer()
-		}
-		writer := bufio.NewWriter(conn)
-
-		// TODO determine and implement a proper give-up / retry policy
-		retry := 3
-		for {
-			messageBuffer, err := proto.Marshal(event)
-			if err != nil {
-				log.Error("An error occurred when marshalling an event to a protocol buffer", err)
-				break
-			}
-
-			i := int32(len(messageBuffer))
-			err = binary.Write(writer, binary.LittleEndian, i)
-			if err != nil {
-				log.Error(err)
-				break
-			}
-			_, err = writer.Write(messageBuffer)
-			writer.Flush()
-			if err == io.EOF {
-				conn = redial(conn)
-				retry--
-				if retry > 0 {
+		if ep.connection == nil {
+			if ep.postponeRetryUntil.IsZero() || time.Now().After(ep.postponeRetryUntil) {
+				ep.dialServer()
+				if ep.connection == nil {
+					ep.postponeRetryUntil = time.Now().Add(dialRetryPostponeDuration)
 					continue
 				}
-			} else if err != nil {
-				fmt.Println("Event network error", err)
 			}
+			continue
+		}
+
+		factomEvent := eventMessages.WrapInFactomEvent(event)
+		ep.sendEvent(factomEvent)
+		ep.postponeRetryUntil = time.Now().Add(dialRetryPostponeDuration)
+	}
+}
+
+func (ep *EventProxy) sendEvent(event eventMessages.Event) {
+	writer := bufio.NewWriter(ep.connection)
+	retry := 0
+	for {
+		messageBuffer, err := proto.Marshal(event)
+		if err != nil {
+			log.Error("An error occurred when marshalling an event to a protocol buffer", err)
 			break
 		}
 
+		i := int32(len(messageBuffer))
+		err = binary.Write(writer, binary.LittleEndian, i)
+		if err != nil {
+			log.Error(err)
+			break
+		}
+		_, err = writer.Write(messageBuffer)
+		writer.Flush()
+		if err == io.EOF {
+			ep.redial()
+			if ep.connection == nil {
+				time.Sleep(redialSleepDuration)
+			}
+			retry++
+			if retry < sendRetries {
+				continue
+			}
+		} else if err != nil {
+			fmt.Println("Event network error", err)
+		}
+		break
 	}
 }
 
-func dialServer() net.Conn {
-	conn, err := net.Dial(defaultConnectionProtocol, fmt.Sprintf("%s:%s", defaultConnectionHost, defaultConnectionPort))
+func (ep *EventProxy) dialServer() {
+
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("Unable to dial event server", r)
+		}
+	}()
+
+	var err error
+	ep.connection, err = net.Dial(defaultConnectionProtocol, fmt.Sprintf("%s:%s", defaultConnectionHost, defaultConnectionPort))
 	if err != nil {
-		fmt.Println("Unable to dial event server")
-		return nil
+		ep.connection = nil
+		panic(err)
 	}
-
-	return conn
 }
 
-func redial(conn net.Conn) net.Conn {
-	conn.Close()
-	return dialServer()
+func (ep *EventProxy) redial() {
+	ep.connection.Close()
+	ep.dialServer()
 }

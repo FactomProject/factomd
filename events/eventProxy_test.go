@@ -2,7 +2,7 @@ package events
 
 import (
 	"fmt"
-	. "github.com/FactomProject/factomd/common/messages/eventMsgs"
+	. "github.com/FactomProject/factomd/common/messages/eventmessages"
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gogo/protobuf/proto"
 	"github.com/gogo/protobuf/types"

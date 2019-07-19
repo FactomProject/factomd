@@ -7,7 +7,8 @@ package state
 import (
 	"errors"
 	"fmt"
-	eventMessages "github.com/FactomProject/factomd/common/messages/eventMsgs"
+	eventMessages "github.com/FactomProject/factomd/common/messages/eventmessages"
+
 	"hash"
 	"os"
 	"reflect"
@@ -2710,16 +2711,20 @@ func (s *State) NewAck(msg interfaces.IMsg, balanceHash interfaces.IHash) interf
 }
 
 func emitDirectoryBlockEvent(dbstatemsg *messages.DBStateMsg, state *State) {
-	anchoredEvent := eventMessages.AnchoredEventFromDBState(dbstatemsg)
-	state.EventsProxy.Send(anchoredEvent)
+	event := eventMessages.AnchoredEventFromDBState(dbstatemsg)
+	state.EventsProxy.Send(event)
 }
 
 func emitAddToProcessListEvent(msg interfaces.IMsg, state *State) {
-	addToHoldingEvent := eventMessages.AddIntermediateEventFromMessage(eventMessages.IntermediateEvent_ADD_TO_PROCESSLIST, msg)
-	state.EventsProxy.Send(addToHoldingEvent)
+	event := eventMessages.IntermediateEventFromMessage(eventMessages.EventSource_ADD_TO_PROCESSLIST, msg)
+	if event != nil {
+		state.EventsProxy.Send(event)
+	}
 }
 
 func emitAddToHoldingEvent(msg interfaces.IMsg, state *State) {
-	addToHoldingEvent := eventMessages.AddIntermediateEventFromMessage(eventMessages.IntermediateEvent_ADD_TO_HOLDING, msg)
-	state.EventsProxy.Send(addToHoldingEvent)
+	event := eventMessages.IntermediateEventFromMessage(eventMessages.EventSource_ADD_TO_HOLDING, msg)
+	if event != nil {
+		state.EventsProxy.Send(event)
+	}
 }
