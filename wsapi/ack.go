@@ -186,6 +186,16 @@ func handleAckByEntryHash(hash interfaces.IHash, state interfaces.IState) (inter
 			answer.CommitTxID = txid.String()
 			answer.CommitData.Status = constants.AckStatusString(constants.AckStatusDBlockConfirmed)
 		}
+		_, _, txTime, _, err := state.GetSpecificACKStatus(txid)
+		if err != nil {
+			return nil, NewInternalError()
+		}
+		if txTime != nil {
+			answer.CommitData.TransactionDate = txTime.GetTimeMilli()
+			if txTime.GetTimeMilli() > 0 {
+				answer.CommitData.TransactionDateString = txTime.String()
+			}
+		}
 
 		// Now we will exit, as any commit found below will be less than dblock confirmed.
 		return answer, nil
