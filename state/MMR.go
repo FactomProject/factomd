@@ -159,7 +159,7 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 			//fmt.Println("pending[ask.plRef]: ", ok)
 			when := ask.When
 			pending[ask.plRef] = &when // add the requests to the map
-			s.LogPrintf(logname, "Ask %d/%d/%d %d", ask.DBH, ask.VM, ask.H)
+			s.LogPrintf(logname, "Ask %d/%d/%d %d", ask.DBH, ask.VM, ask.H, len(pending))
 
 			// checking if we already have the "missing" message in our maps
 			ack, msg := s.RecentMessage.GetAckAndMsg(ask.DBH, ask.VM, ask.H, s)

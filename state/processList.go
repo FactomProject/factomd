@@ -749,7 +749,7 @@ func (p *ProcessList) decodeState(Syncing bool, DBSig bool, EOM bool, DBSigDone 
 
 }
 
-var extraDebug bool = false
+var extraDebug bool = true
 
 func (p *ProcessList) processVM(vm *VM) (progress bool) {
 
@@ -803,7 +803,7 @@ func (p *ProcessList) processVM(vm *VM) (progress bool) {
 		if vm.Height == 0 {
 			expectedSerialHash = ack.SerialHash
 		} else {
-			prevAck := vm.ListAck[vm.Height-1]
+			prevAck := vm.ListAck[j-1]
 			expectedSerialHash, err = primitives.CreateHash(prevAck.MessageHash, ack.MessageHash)
 			if err != nil {
 				p.RemoveFromPL(vm, j, "Error making hash "+err.Error())
@@ -864,6 +864,7 @@ func (p *ProcessList) processVM(vm *VM) (progress bool) {
 			s.DeleteFromHolding(msgHashFixed, msg, "msg.Process done")
 		} else {
 			s.LogMessage("process", fmt.Sprintf("retry %v/%v/%v", p.DBHeight, i, j), msg)
+			return progress
 		}
 	}
 	return progress
