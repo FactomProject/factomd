@@ -46,6 +46,8 @@ func msgToFactomEvent(eventSource EventSource, msg interfaces.IMsg) *FactomEvent
 		event.Value = mapCommitChain(msg)
 	case *messages.CommitEntryMsg:
 		event.Value = mapCommitEvent(msg)
+	case *messages.RevealEntryMsg:
+		event.Value = mapRevealEntryEvent(msg)
 	default:
 		return nil
 	}
@@ -54,7 +56,9 @@ func msgToFactomEvent(eventSource EventSource, msg interfaces.IMsg) *FactomEvent
 
 func mapDBState(dbStateMessage *messages.DBStateMsg) *FactomEvent_AnchorEvent {
 	event := &FactomEvent_AnchorEvent{AnchorEvent: &AnchoredEvent{
-		DirectoryBlock: mapDirBlock(dbStateMessage.DirectoryBlock),
+		DirectoryBlock:    mapDirBlock(dbStateMessage.DirectoryBlock),
+		EntryBlocks:       mapEntryBlocks(dbStateMessage.EBlocks),
+		EntryBlockEntries: mapEntryBlockEntries(dbStateMessage.Entries),
 	}}
 	return event
 }
@@ -80,7 +84,7 @@ func mapDirHeader(header interfaces.IDirectoryBlockHeader) *DirectoryBlockHeader
 			HashValue: header.GetPrevFullHash().Bytes(),
 		},
 		Timestamp:  &types.Timestamp{Seconds: int64(time.Second()), Nanos: int32(time.Nanosecond())},
-		DBHeight:   header.GetDBHeight(),
+		DbHeight:   header.GetDBHeight(),
 		BlockCount: header.GetBlockCount(),
 	}
 
@@ -119,9 +123,9 @@ func mapCommitChain(msg interfaces.IMsg) *FactomEvent_CommitChain {
 			EntryHash: &Hash{
 				HashValue: commitChain.EntryHash.Bytes(),
 			},
-			Timestamp: convertToTimestamp(commitChain.MilliTime),
+			Timestamp: convertByteSlice6ToTimestamp(commitChain.MilliTime),
 			Credits:   uint32(commitChain.Credits),
-			ECPubKey:  ecPubKey[:],
+			EcPubKey:  ecPubKey[:],
 			Sig:       sig[:],
 		}}
 	return result
@@ -137,20 +141,91 @@ func mapCommitEvent(msg interfaces.IMsg) *FactomEvent_CommitEntry {
 			EntryHash: &Hash{
 				HashValue: commitEntry.EntryHash.Bytes(),
 			},
-			Timestamp: convertToTimestamp(commitEntry.MilliTime),
+			Timestamp: convertByteSlice6ToTimestamp(commitEntry.MilliTime),
 			Credits:   uint32(commitEntry.Credits),
-			ECPubKey:  ecPubKey[:],
+			EcPubKey:  ecPubKey[:],
 			Sig:       sig[:],
 		}}
 	return result
 }
 
-func convertToTimestamp(milliTime *primitives.ByteSlice6) *types.Timestamp {
+func mapRevealEntryEvent(msg interfaces.IMsg) *FactomEvent_RevealEntry {
+	revealEntry := msg.(*messages.RevealEntryMsg)
+	return &FactomEvent_RevealEntry{
+		RevealEntry: &RevealEntry{
+			Entry:     mapEntryBlockEntry(revealEntry.Entry),
+			Timestamp: convertTimeToTimestamp(revealEntry.Timestamp.GetTime()),
+		},
+	}
+}
+
+func mapEntryBlocks(blocks []interfaces.IEntryBlock) []*EntryBlock {
+	result := make([]*EntryBlock, len(blocks))
+	for i, block := range blocks {
+		result[i] = &EntryBlock{
+			EntryBlockHeader: mapEntryBlockHeader(block.GetHeader()),
+			EntryHashes:      mapEntryBlockHashes(block.GetBody().GetEBEntries()),
+		}
+	}
+	return result
+}
+
+func mapEntryBlockHashes(entries []interfaces.IHash) []*Hash {
+	result := make([]*Hash, len(entries))
+	for i, entry := range entries {
+		result[i] = &Hash{
+			HashValue: entry.Bytes(),
+		}
+	}
+	return result
+}
+
+func mapEntryBlockHeader(header interfaces.IEntryBlockHeader) *EntryBlockHeader {
+	return &EntryBlockHeader{
+		BodyMerkleRoot:        &Hash{HashValue: header.GetBodyMR().Bytes()},
+		ChainID:               &Hash{HashValue: header.GetChainID().Bytes()},
+		PreviousFullHash:      &Hash{HashValue: header.GetPrevFullHash().Bytes()},
+		PreviousKeyMerkleRoot: &Hash{HashValue: header.GetPrevKeyMR().Bytes()},
+		DbHeight:              header.GetDBHeight(),
+		BlockSequence:         header.GetEBSequence(),
+		EntryCount:            header.GetEntryCount(),
+	}
+}
+
+func mapEntryBlockEntries(entries []interfaces.IEBEntry) []*EntryBlockEntry {
+	result := make([]*EntryBlockEntry, len(entries))
+	for i, entry := range entries {
+		result[i] = mapEntryBlockEntry(entry)
+	}
+	return result
+}
+
+func mapEntryBlockEntry(entry interfaces.IEBEntry) *EntryBlockEntry {
+	return &EntryBlockEntry{
+		Hash:        &Hash{HashValue: entry.GetHash().Bytes()},
+		ExternalIDs: mapExternalIds(entry.ExternalIDs()),
+		Content:     &Content{BinaryValue: entry.GetContent()},
+	}
+}
+
+func mapExternalIds(externalIds [][]byte) []*ExternalId {
+	result := make([]*ExternalId, len(externalIds))
+	for i, extId := range externalIds {
+		result[i] = &ExternalId{BinaryValue: extId}
+	}
+	return result
+}
+
+func convertByteSlice6ToTimestamp(milliTime *primitives.ByteSlice6) *types.Timestamp {
 	// TODO Is there an easier way to do this?
 	slice8 := make([]byte, 8)
 	copy(slice8[2:], milliTime[:])
 	millis := int64(binary.BigEndian.Uint64(slice8))
 	time := time.Unix(0, millis*1000000)
+	return convertTimeToTimestamp(time)
+}
+
+func convertTimeToTimestamp(time time.Time) *types.Timestamp {
 	return &types.Timestamp{Seconds: int64(time.Second()), Nanos: int32(time.Nanosecond())}
 }
 
