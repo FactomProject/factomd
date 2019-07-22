@@ -180,6 +180,10 @@ type State struct {
 	apiQueue               APIMSGQueue
 	ackQueue               chan interfaces.IMsg
 	msgQueue               chan interfaces.IMsg
+	// prioritizedMsgQueue contains messages we know we need for consensus. (missing from processlist)
+	//		Currently messages from MMR handling can be put in here to fast track
+	//		them to the front.
+	prioritizedMsgQueue chan interfaces.IMsg
 
 	ShutdownChan chan int // For gracefully halting Factom
 	JournalFile  string
@@ -299,8 +303,7 @@ type State struct {
 	Anchor interfaces.IAnchor
 
 	// Directory Block State
-	DBStates *DBStateList // Holds all DBStates not yet processed.
-
+	DBStates       *DBStateList // Holds all DBStates not yet processed.
 	StatesMissing  *StatesMissing
 	StatesWaiting  *StatesWaiting
 	StatesReceived *StatesReceived
@@ -432,6 +435,16 @@ type State struct {
 	InputRegExString          string
 	executeRecursionDetection map[[32]byte]interfaces.IMsg
 	Hold                      HoldingList
+
+	// MissingMessageResponse is a cache of the last 1000 msgs we receive such that when
+	// we send out a missing message, we can find that message locally before we ask the net
+	RecentMessage
+
+	// MissingMessageResponseHandler is a cache of the last 2 blocks of processed acks.
+	// It can handle and respond to missing message requests on it's own thread.
+	MissingMessageResponseHandler *MissingMessageResponseCache
+	ChainCommits                  Last100
+	Reveals                       Last100
 }
 
 var _ interfaces.IState = (*State)(nil)
@@ -922,7 +935,6 @@ func (s *State) GetSalt(ts interfaces.Timestamp) uint32 {
 }
 
 func (s *State) Init() {
-
 	if s.Salt == nil {
 		b := make([]byte, 32)
 		_, err := rand.Read(b)
@@ -971,9 +983,11 @@ func (s *State) Init() {
 	s.apiQueue = NewAPIQueue(constants.INMSGQUEUE_HIGH)                     //incoming message queue from the API
 	s.ackQueue = make(chan interfaces.IMsg, 50)                             //queue of Leadership messages
 	s.msgQueue = make(chan interfaces.IMsg, 50)                             //queue of Follower messages
+	s.prioritizedMsgQueue = make(chan interfaces.IMsg, 50)                  //a prioritized queue of Follower messages (from mmr.go)
 	s.MissingEntries = make(chan *MissingEntry, constants.INMSGQUEUE_HIGH)  //Entries I discover are missing from the database
 	s.UpdateEntryHash = make(chan *EntryUpdate, constants.INMSGQUEUE_HIGH)  //Handles entry hashes and updating Commit maps.
 	s.WriteEntry = make(chan interfaces.IEBEntry, constants.INMSGQUEUE_LOW) //Entries to be written to the database
+	s.RecentMessage.NewMsgs = make(chan interfaces.IMsg, 100)
 
 	if s.Journaling {
 		f, err := os.Create(s.JournalFile)
@@ -1132,9 +1146,12 @@ func (s *State) Init() {
 	// end of FER removal
 	s.Starttime = time.Now()
 	// Allocate the MMR queues
-	s.asks = make(chan askRef, 1)
-	s.adds = make(chan plRef, 1)
+	s.asks = make(chan askRef, 5)
+	s.adds = make(chan plRef, 5)
 	s.dbheights = make(chan int, 1)
+
+	// Allocate the missing message handler
+	s.MissingMessageResponseHandler = NewMissingMessageReponseCache(s)
 
 	if s.StateSaverStruct.FastBoot {
 		d, err := s.DB.FetchDBlockHead()
@@ -1172,7 +1189,6 @@ func (s *State) Init() {
 		}
 	}
 
-	s.startMMR()
 	if globals.Params.WriteProcessedDBStates {
 		path := filepath.Join(s.LdbPath, s.Network, "dbstates")
 		os.MkdirAll(path, 0775)
@@ -2095,6 +2111,10 @@ func (s *State) SetIdentityChainID(chainID interfaces.IHash) {
 	s.IdentityChainID = chainID
 }
 
+func (s *State) GetMinuteDuration() time.Duration {
+	return time.Duration(s.DirectoryBlockInSeconds) * time.Second / 10
+}
+
 func (s *State) GetDirectoryBlockInSeconds() int {
 	return s.DirectoryBlockInSeconds
 }
@@ -2256,6 +2276,10 @@ func (s *State) AckQueue() chan interfaces.IMsg {
 
 func (s *State) MsgQueue() chan interfaces.IMsg {
 	return s.msgQueue
+}
+
+func (s *State) PrioritizedMsgQueue() chan interfaces.IMsg {
+	return s.prioritizedMsgQueue
 }
 
 func (s *State) GetLeaderTimestamp() interfaces.Timestamp {

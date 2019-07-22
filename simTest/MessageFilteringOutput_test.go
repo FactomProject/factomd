@@ -10,7 +10,7 @@ import (
 
 func TestFilterAPIOutput(t *testing.T) {
 
-	state0 := SetupSim("LLLLLAAF", map[string]string{"--debuglog": "."}, 25, 1, 1, t)
+	state0 := SetupSim("LLLLLAAF", map[string]string{}, 25, 1, 1, t)
 
 	RunCmd("1")
 	RunCmd("w")
