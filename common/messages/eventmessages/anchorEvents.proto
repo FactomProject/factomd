@@ -16,6 +16,7 @@ message FactomEvent {
         AnchoredEvent anchorEvent = 2;
         CommitChain commitChain = 3;
         CommitEntry commitEntry = 4;
+        RevealEntry revealEntry = 5;
     }
 }
 
@@ -25,6 +26,8 @@ message AnchoredEvent {
     AdminBlock adminBlock = 2;
     FactoidBlock factoidBlock = 3;
     EntryCreditBlock entryCreditBlock = 4;
+    repeated EntryBlock entryBlocks = 5;
+    repeated EntryBlockEntry entryBlockEntries = 6;
 }
 
 
@@ -34,18 +37,38 @@ message DirectoryBlock {
 }
 
 message DirectoryBlockHeader {
-    Hash BodyMerkleRoot = 1;
-    Hash PreviousKeyMerkleRoot = 2;
-    Hash PreviousFullHash = 3;
+    Hash bodyMerkleRoot = 1;
+    Hash previousKeyMerkleRoot = 2;
+    Hash previousFullHash = 3;
     google.protobuf.Timestamp timestamp = 4;
-    uint32 DBHeight = 5;
-    uint32 BlockCount = 6;
+    uint32 dbHeight = 5;
+    uint32 blockCount = 6;
 }
 
+message EntryBlock {
+    EntryBlockHeader entryBlockHeader = 1;
+    repeated Hash entryHashes = 2;
+}
+
+message EntryBlockHeader {
+    Hash bodyMerkleRoot = 1;
+    Hash chainID = 2;
+    Hash previousFullHash = 3;
+    Hash previousKeyMerkleRoot = 4;
+    uint32 dbHeight = 5;
+    uint32 blockSequence = 6;
+    uint32 entryCount = 7;
+}
+
+message EntryBlockEntry {
+    Hash hash = 1;
+    repeated ExternalId externalIDs = 2;
+    Content content = 3;
+}
 
 message Entry {
-    Hash ChainID = 1;
-    Hash KeyMerkleRoot = 2;
+    Hash chainID = 1;
+    Hash keyMerkleRoot = 2;
 }
 
 
@@ -65,8 +88,8 @@ message EntryCreditBlock {
 
 
 message AdminBlockHeader {
-    Hash PrevBackRefHash = 1;
-    uint32 DBHeight = 2;
+    Hash prevBackRefHash = 1;
+    uint32 dbHeight = 2;
 }
 
 message AdminBlockEntry {
@@ -78,8 +101,8 @@ message AdminBlockEntry {
 }
 
 message AddAuditServer {
-    Hash IdentityChainID = 2;
-    uint32 DBHeight = 3;
+    Hash identityChainID = 2;
+    uint32 dbHeight = 3;
 }
 
 message CoinbaseDescriptor {
@@ -100,26 +123,39 @@ message Hash {
     bytes hashValue = 1;
 }
 
+message ExternalId {
+    bytes binaryValue = 1;
+}
+
+message Content {
+    bytes binaryValue = 1;
+}
+
 message Signature {
     bytes publicKey = 1;
     bytes signature = 2;
 }
 
 message CommitChain {
-    Hash ChainIDHash = 1;
-    Hash EntryHash = 2;
-    Hash Weld = 3;
+    Hash chainIDHash = 1;
+    Hash entryHash = 2;
+    Hash weld = 3;
     google.protobuf.Timestamp timestamp = 4;
-    uint32 Credits = 5;
-    bytes ECPubKey = 6;
-    bytes Sig = 7;
+    uint32 credits = 5;
+    bytes ecPubKey = 6;
+    bytes sig = 7;
 }
 
 message CommitEntry {
-    Hash EntryHash = 1;
+    Hash entryHash = 1;
     google.protobuf.Timestamp timestamp = 2;
-    uint32 Credits = 3;
-    bytes ECPubKey = 4;
-    bytes Sig = 5;
+    uint32 credits = 3;
+    bytes ecPubKey = 4;
+    bytes sig = 5;
+}
+
+message RevealEntry {
+    EntryBlockEntry entry = 1;
+    google.protobuf.Timestamp timestamp = 2;
 }
 
