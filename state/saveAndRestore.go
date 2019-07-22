@@ -732,7 +732,7 @@ func (ss *SaveState) MarshalBinary() (rval []byte, err error) {
 	}
 	defer func(pe *error) {
 		if *pe != nil {
-			fmt.Fprintf(os.Stderr, "SaveState.MarshalBinary err:%v", *pe)
+			fmt.Fprintf(os.Stderr, "SaveState.MarshalBinary err:%v\n", *pe)
 		}
 	}(&err)
 	buf := primitives.NewBuffer(nil)
