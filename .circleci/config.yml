@@ -395,8 +395,3 @@ workflows:
           context: org-global
           requires:
             - test_full
-
-notify:
-  webhooks:
-    - url: https://hooks.zapier.com/hooks/catch/2398659/i8hgb6/
-
