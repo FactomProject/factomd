@@ -309,6 +309,7 @@ func TestActivationHeightElection(t *testing.T) {
 
 	ShutDownEverything(t)
 }
+
 func TestAnElection(t *testing.T) {
 	if RanSimTest {
 		return
@@ -316,7 +317,7 @@ func TestAnElection(t *testing.T) {
 
 	RanSimTest = true
 
-	state0 := SetupSim("LLLAAF", map[string]string{"--debuglog": ".", "--blktime": "15"}, 9, 1, 1, t)
+	state0 := SetupSim("LLLAAF", map[string]string{"--blktime": "15"}, 9, 1, 1, t)
 
 	StatusEveryMinute(state0)
 	WaitMinutes(state0, 2)
@@ -335,22 +336,6 @@ func TestAnElection(t *testing.T) {
 	// wait for him to update via dbstate and become an audit
 	WaitBlocks(state0, 2)
 	WaitMinutes(state0, 1)
-
-	{ // debug holding queue
-
-		for _, fnode := range GetFnodes() {
-			s := fnode.State
-			for _, h := range s.Hold.Messages() {
-				for _, m := range h {
-					s.LogMessage("dependentHolding", "stuck", m)
-				}
-			}
-		}
-	}
-
-	state2 := GetFnodes()[2].State
-	WaitForBlock(state2, 7) // wait for sync w/ network
-
 	WaitForAllNodes(state0)
 
 	// PrintOneStatus(0, 0)
