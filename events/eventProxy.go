@@ -23,13 +23,13 @@ const (
 )
 
 type EventProxy struct {
-	eventsOutQueue     chan eventMessages.FactomEvent
+	eventsOutQueue     chan eventMessages.SourceEvent
 	postponeRetryUntil time.Time
 	connection         net.Conn
 }
 
 func (ep *EventProxy) Init() *EventProxy {
-	ep.eventsOutQueue = make(chan eventMessages.FactomEvent, p2p.StandardChannelSize)
+	ep.eventsOutQueue = make(chan eventMessages.SourceEvent, p2p.StandardChannelSize)
 	return ep
 }
 
@@ -38,7 +38,7 @@ func (ep *EventProxy) StartProxy() *EventProxy {
 	return ep
 }
 
-func (ep *EventProxy) Send(event *eventMessages.FactomEvent) {
+func (ep *EventProxy) Send(event *eventMessages.SourceEvent) {
 	select {
 	case ep.eventsOutQueue <- *event:
 	default:
@@ -61,7 +61,10 @@ func (ep *EventProxy) processEventsChannel() {
 			continue
 		}
 
-		ep.sendEvent(&event)
+		factomEvent := eventMessages.MapToFactomEvent(event)
+		if factomEvent != nil {
+			ep.sendEvent(factomEvent)
+		}
 	}
 }
 

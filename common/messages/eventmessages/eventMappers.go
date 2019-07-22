@@ -10,7 +10,33 @@ import (
 	"time"
 )
 
-func EventFromMessage(eventSource EventSource, msg interfaces.IMsg) *FactomEvent {
+type SourceEvent struct {
+	eventSource    EventSource
+	messagePayload interfaces.IMsg
+}
+
+func (srcEvent *SourceEvent) GetEventSource() EventSource {
+	return srcEvent.eventSource
+}
+
+func (srcEvent *SourceEvent) GetMessagePayload() interfaces.IMsg {
+	return srcEvent.messagePayload
+}
+
+func SourceEventFromMessage(eventSource EventSource, msg interfaces.IMsg) *SourceEvent {
+	return &SourceEvent{
+		eventSource:    eventSource,
+		messagePayload: msg}
+}
+
+func MapToFactomEvent(sourceEvent SourceEvent) *FactomEvent {
+	if sourceEvent.messagePayload != nil {
+		return msgToFactomEvent(sourceEvent.GetEventSource(), sourceEvent.messagePayload)
+	}
+	panic("No payload found in source event.")
+}
+
+func msgToFactomEvent(eventSource EventSource, msg interfaces.IMsg) *FactomEvent {
 	event := &FactomEvent{}
 	event.EventSource = eventSource
 	switch msg.(type) {
