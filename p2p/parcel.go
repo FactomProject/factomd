@@ -20,7 +20,7 @@ var parcelLogger = packageLogger.WithField("subpack", "connection")
 type Parcel struct {
 	Header  ParcelHeader
 	Payload []byte
-	Msg     interfaces.IMsg // Keep the message for debugging
+	Msg     interfaces.IMsg `json:"-"` // Keep the message for debugging
 }
 
 // ParcelHeaderSize is the number of bytes in a parcel header

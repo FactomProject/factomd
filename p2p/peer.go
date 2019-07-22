@@ -57,7 +57,7 @@ type Peer struct {
 	// logging
 	logger *log.Entry
 
-	PrevMsgs Last100
+	PrevMsgs Last100 `json:"-"`
 }
 
 const (
