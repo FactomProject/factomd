@@ -31,17 +31,22 @@ type askRef struct {
 	When int64 // in timestamp ms
 }
 
+type MSgPair struct {
+	msg, ask interfaces.IMsg
+}
+
 type MMRInfo struct {
 	// Channels for managing the missing message requests
-	asks      chan askRef // Requests to ask for missing messages
-	adds      chan plRef  // notices of slots filled in the process list
-	dbheights chan int    // Notice that this DBHeight is done
+	asks      chan askRef  // Requests to ask for missing messages
+	adds      chan plRef   // notices of slots filled in the process list
+	rejects   chan MsgPair // Messages rejected from process list
+	dbheights chan int     // Notice that this DBHeight is done
 }
 
 // starts the MMR processing for this state
 func (s *State) StartMMR() {
 	// Missing message request handling.
-	s.makeMMRs(s.asks, s.adds, s.dbheights)
+	s.makeMMRs(s.asks, s.adds, s.dbheights, s.rejects)
 }
 
 // MMRDummy is for unit tests that populate the various mmr queues.
@@ -54,6 +59,7 @@ func (s *State) MMRDummy() {
 			case <-s.asks:
 			case <-s.adds:
 			case <-s.dbheights:
+			case <-s.rejects:
 			}
 		}
 	}()
@@ -120,7 +126,7 @@ var MMR_enable bool = true
 
 // Receive all asks and all process list adds and create missing message requests any ask that has expired
 // and still pending. Add 10 seconds to the ask.
-func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan int) {
+func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan int, rejects <-chan MsgPair) {
 	type dbhvm struct {
 		dbh int
 		vm  int
@@ -275,6 +281,9 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 
 		// process any incoming messages
 		select {
+		case msgPair := <-rejects:
+			s.LogMessage("mmr", "Reject", msgPair.Ack)
+			s.RecentMessage.HandleRejection(msgPair.Msg, msgPair.Ack)
 		case msg := <-s.RecentMessage.NewMsgs:
 			s.LogPrintf("mmr", "start msg handling")
 			s.RecentMessage.Add(msg) // adds messages to a message map for MMR

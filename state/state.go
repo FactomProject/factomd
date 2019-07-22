@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -38,8 +39,6 @@ import (
 	"github.com/FactomProject/factomd/util/atomic"
 	"github.com/FactomProject/factomd/wsapi"
 	"github.com/FactomProject/logrustash"
-
-	"regexp"
 
 	"github.com/FactomProject/factomd/Utilities/CorrectChainHeads/correctChainHeads"
 	log "github.com/sirupsen/logrus"
@@ -1149,6 +1148,7 @@ func (s *State) Init() {
 	s.asks = make(chan askRef, 5)
 	s.adds = make(chan plRef, 5)
 	s.dbheights = make(chan int, 1)
+	s.rejects = make(chan MsgPair, 1) // Messages rejected from process list
 
 	// Allocate the missing message handler
 	s.MissingMessageResponseHandler = NewMissingMessageReponseCache(s)

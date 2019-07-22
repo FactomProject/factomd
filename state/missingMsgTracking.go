@@ -57,6 +57,17 @@ func (a *ACKMap) Get(DBHeight int, vmIndex int, height int) interfaces.IMsg {
 	return ack
 }
 
+// If a message is rejected we need to delete it from the recent message history so we will ask a neighbor
+func (m *RecentMessage) HandleRejection(msg interfaces.IMsg, iAck interfaces.IMsg) {
+	ack, ok := iAck.(*messages.Ack)
+	if ok {
+		delete(m.AcksMap.Acks, MsgHeight{int(ack.DBHeight), ack.VMIndex, int(ack.Height)})
+		delete(m.MsgsMap.Msgs, ack.GetMsgHash().Fixed())
+	} else {
+		panic("expected ack")
+	}
+}
+
 // Adds messages to a map
 // The map of messages will be used in tandem with the ack map when we get an MMR to ensure we don't ask for a message we already have.
 func (m *RecentMessage) Add(msg interfaces.IMsg) {
@@ -72,7 +83,7 @@ func (m *RecentMessage) Add(msg interfaces.IMsg) {
 			delete(m.MsgsMap.Msgs, oldHash)
 
 			// Add the new message
-			hash := msg.GetHash().Fixed()
+			hash := msg.GetMsgHash().Fixed()
 			m.MsgsMap.Msgs[hash] = msg             // stores a message by its hash.
 			m.MsgsMap.MsgOrder[m.MsgsMap.N] = hash // keeps track of MSGMap.Msgs message order
 			m.MsgsMap.N = (m.MsgsMap.N + 1) % 1000 // increment N by 1 each time and when it reaches 1000 start at 0 again.

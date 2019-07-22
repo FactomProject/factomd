@@ -809,6 +809,7 @@ func (p *ProcessList) processVM(vm *VM) (progress bool) {
 				p.RemoveFromPL(vm, j, "Error making hash "+err.Error())
 				return progress
 			}
+			s.LogPrintf("serialhashs", "%d/%d/%d\t%x %x", ack.DBHeight, ack.VMIndex, ack.Height, ack.SerialHash.Fixed(), expectedSerialHash.Fixed())
 
 			// compare the SerialHash of this acknowledgement with the
 			// expected serialHash (generated above)
@@ -888,6 +889,9 @@ func (p *ProcessList) ReportAllMissing(vm *VM) {
 
 func (p *ProcessList) RemoveFromPL(vm *VM, j int, reason string) {
 	p.State.LogMessage("process", fmt.Sprintf("nil out message %v/%v/%v, %s", p.DBHeight, vm.VmIndex, j, reason), vm.List[j]) //todo: revisit message
+
+	p.State.rejects <- MsgPair{vm.ListAck[j], vm.List[j]} // Notify MMR framework that we rejected this message
+
 	vm.List[j] = nil
 	if vm.HighestNil > j {
 		vm.HighestNil = j // Drag report limit back
