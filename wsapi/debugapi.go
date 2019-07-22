@@ -7,13 +7,10 @@ package wsapi
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/prometheus/common/log"
+	"github.com/FactomProject/factomd/common/globals"
 	"io/ioutil"
 	"net/http"
 	"os"
-	"strings"
-
-	"github.com/FactomProject/factomd/common/globals"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -25,28 +22,13 @@ func HandleDebug(writer http.ResponseWriter, request *http.Request) {
 
 	state, err := GetState(request)
 	if err != nil {
-		log.Fatalf("failed to extract port from request: %s", err)
+		wsDebugLog.Errorf("failed to extract port from request: %s", err)
 		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	if err := checkAuthHeader(state, request); err != nil {
-		remoteIP := ""
-		remoteIP += strings.Split(request.RemoteAddr, ":")[0]
-		fmt.Printf(
-			"Unauthorized V2 API client connection attempt from %s\n",
-			remoteIP,
-		)
-		writer.Header().Add(
-			"WWW-Authenticate",
-			`Basic realm="factomd RPC"`,
-		)
-		http.Error(
-			writer,
-			"401 Unauthorized.",
-			http.StatusUnauthorized,
-		)
-
+		handleUnauthorized(request, writer)
 		return
 	}
 
@@ -72,16 +54,11 @@ func HandleDebug(writer http.ResponseWriter, request *http.Request) {
 	writer.Write([]byte(jsonResp.String()))
 }
 
-func HandleDebugRequest(state interfaces.IState,
-	j *primitives.JSON2Request,
-) (
-	*primitives.JSON2Response,
-	*primitives.JSONError,
-) {
+func HandleDebugRequest(state interfaces.IState, j *primitives.JSON2Request) (*primitives.JSON2Response, *primitives.JSONError) {
 	var resp interface{}
 	var jsonError *primitives.JSONError
 	params := j.Params
-	state.LogPrintf("apidebuglog", "request %v", j.String())
+	wsDebugLog.Printf("request %v", j.String())
 
 	switch j.Method {
 	case "audit-servers":
@@ -141,27 +118,19 @@ func HandleDebugRequest(state interfaces.IState,
 		break
 	}
 	if jsonError != nil {
-		state.LogPrintf("apidebuglog", "error %v", jsonError)
+		wsDebugLog.Printf("error %v", jsonError)
 		return nil, jsonError
 	}
-
-	//fmt.Printf("API V2 method: <%v>  parameters: %v\n", j.Method, params)
 
 	jsonResp := primitives.NewJSON2Response()
 	jsonResp.ID = j.ID
 	jsonResp.Result = resp
-	state.LogPrintf("apidebuglog", "response %v", jsonResp.String())
+	wsDebugLog.Printf("response %v", jsonResp.String())
 
 	return jsonResp, nil
 }
 
-func HandleAuditServers(
-	state interfaces.IState,
-	params interface{},
-) (
-	interface{},
-	*primitives.JSONError,
-) {
+func HandleAuditServers(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	type ret struct {
 		AuditServers []interfaces.IServer
 	}
@@ -171,13 +140,7 @@ func HandleAuditServers(
 	return r, nil
 }
 
-func HandleAuthorities(
-	state interfaces.IState,
-	params interface{},
-) (
-	interface{},
-	*primitives.JSONError,
-) {
+func HandleAuthorities(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	type ret struct {
 		Authorities []interfaces.IAuthority `json: "authorities"`
 	}
@@ -187,23 +150,11 @@ func HandleAuthorities(
 	return r, nil
 }
 
-func HandleConfig(
-	state interfaces.IState,
-	params interface{},
-) (
-	interface{},
-	*primitives.JSONError,
-) {
+func HandleConfig(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	return state.GetCfg(), nil
 }
 
-func HandleCurrentMinute(
-	state interfaces.IState,
-	params interface{},
-) (
-	interface{},
-	*primitives.JSONError,
-) {
+func HandleCurrentMinute(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	type ret struct {
 		Minute int
 	}
@@ -213,13 +164,7 @@ func HandleCurrentMinute(
 	return r, nil
 }
 
-func HandleDelay(
-	state interfaces.IState,
-	params interface{},
-) (
-	interface{},
-	*primitives.JSONError,
-) {
+func HandleDelay(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	type ret struct {
 		Delay int64
 	}
@@ -229,13 +174,7 @@ func HandleDelay(
 	return r, nil
 }
 
-func HandleSetDelay(
-	state interfaces.IState,
-	params interface{},
-) (
-	interface{},
-	*primitives.JSONError,
-) {
+func HandleSetDelay(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	type ret struct {
 		Delay int64
 	}
@@ -253,13 +192,7 @@ func HandleSetDelay(
 	return r, nil
 }
 
-func HandleDropRate(
-	state interfaces.IState,
-	params interface{},
-) (
-	interface{},
-	*primitives.JSONError,
-) {
+func HandleDropRate(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	type ret struct {
 		DropRate int
 	}
@@ -269,13 +202,7 @@ func HandleDropRate(
 	return r, nil
 }
 
-func HandleSetDropRate(
-	state interfaces.IState,
-	params interface{},
-) (
-	interface{},
-	*primitives.JSONError,
-) {
+func HandleSetDropRate(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	type ret struct {
 		DropRate int
 	}
@@ -292,13 +219,7 @@ func HandleSetDropRate(
 	return r, nil
 }
 
-func HandleFedServers(
-	state interfaces.IState,
-	params interface{},
-) (
-	interface{},
-	*primitives.JSONError,
-) {
+func HandleFedServers(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	type ret struct {
 		FederatedServers []interfaces.IServer
 	}
@@ -308,13 +229,7 @@ func HandleFedServers(
 	return r, nil
 }
 
-func HandleHoldingQueue(
-	state interfaces.IState,
-	params interface{},
-) (
-	interface{},
-	*primitives.JSONError,
-) {
+func HandleHoldingQueue(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	type ret struct {
 		Messages []interfaces.IMsg
 	}
@@ -326,13 +241,7 @@ func HandleHoldingQueue(
 	return r, nil
 }
 
-func HandleMessages(
-	state interfaces.IState,
-	params interface{},
-) (
-	interface{},
-	*primitives.JSONError,
-) {
+func HandleMessages(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	type ret struct {
 		Messages []json.RawMessage
 	}
@@ -343,13 +252,7 @@ func HandleMessages(
 	return r, nil
 }
 
-func HandleNetworkInfo(
-	state interfaces.IState,
-	params interface{},
-) (
-	interface{},
-	*primitives.JSONError,
-) {
+func HandleNetworkInfo(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	type ret struct {
 		NetworkNumber int
 		NetworkName   string
@@ -362,13 +265,7 @@ func HandleNetworkInfo(
 	return r, nil
 }
 
-func HandleSummary(
-	state interfaces.IState,
-	params interface{},
-) (
-	interface{},
-	*primitives.JSONError,
-) {
+func HandleSummary(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	type ret struct {
 		Summary string
 	}
@@ -378,13 +275,7 @@ func HandleSummary(
 	return r, nil
 }
 
-func HandlePredictiveFER(
-	state interfaces.IState,
-	params interface{},
-) (
-	interface{},
-	*primitives.JSONError,
-) {
+func HandlePredictiveFER(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	type ret struct {
 		PredictiveFER uint64
 	}
@@ -393,13 +284,7 @@ func HandlePredictiveFER(
 	return r, nil
 }
 
-func HandleProcessList(
-	state interfaces.IState,
-	params interface{},
-) (
-	interface{},
-	*primitives.JSONError,
-) {
+func HandleProcessList(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	type ret struct {
 		ProcessList string
 	}
@@ -408,13 +293,7 @@ func HandleProcessList(
 	return r, nil
 }
 
-func HandleReloadConfig(
-	state interfaces.IState,
-	params interface{},
-) (
-	interface{},
-	*primitives.JSONError,
-) {
+func HandleReloadConfig(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	// LoacConfig with "" strings should load the default location
 	state.LoadConfig(state.GetConfigPath(), state.GetNetworkName())
 
@@ -461,14 +340,14 @@ type GetCommands struct {
 }
 
 func HandleMessageFilter(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	fmt.Println("Factom Node Name: ", state.GetFactomNodeName())
+	wsDebugLog.Println("Factom Node Name: ", state.GetFactomNodeName())
 	x, ok := params.(map[string]interface{})
 	if !ok {
 		return nil, NewCustomInvalidParamsError("ERROR! Invalid params passed in")
 	}
 
-	fmt.Println(`x["output-regex"]`, x["output-regex"])
-	fmt.Println(`x["input-regex"]`, x["input-regex"])
+	wsDebugLog.Println(`x["output-regex"]`, x["output-regex"])
+	wsDebugLog.Println(`x["input-regex"]`, x["input-regex"])
 
 	OutputString := fmt.Sprintf("%s", x["output-regex"])
 	if OutputString != "" {

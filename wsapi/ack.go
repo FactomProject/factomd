@@ -6,7 +6,6 @@ package wsapi
 
 import (
 	"encoding/hex"
-	"fmt"
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -313,7 +312,7 @@ func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{},
 			if eTxID == "" {
 				eHash, err := state.FetchEntryHashFromProcessListsByTxID(ackReq.TxID)
 				if err != nil {
-					fmt.Println("FetchEntryHashFromProcessListsByTxID:", err)
+					wsLog.Println("FetchEntryHashFromProcessListsByTxID:", err)
 				} else {
 					eTxID = eHash.String()
 				}
@@ -576,7 +575,6 @@ func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{},
 			break
 		default:
 			return nil, NewInternalError()
-			break
 		}
 	}
 

@@ -118,7 +118,10 @@ func returnMsg(writer http.ResponseWriter, msg interface{}, success bool) {
 		wsLog.Error(err)
 		return
 	} else {
-		writer.Write(p)
+		_, err := writer.Write(p)
+		if err != nil {
+			wsLog.Errorf("failed to write response: %v", err)
+		}
 	}
 }
 
@@ -129,7 +132,10 @@ func returnV1Msg(writer http.ResponseWriter, msg string, success bool) {
 	Deal with the responses in the call specific v1 handlers until they are depricated.
 	*/
 	bMsg := []byte(msg)
-	writer.Write(bMsg)
+	_, err := writer.Write(bMsg)
+	if err != nil {
+		wsLog.Errorf("failed to write v1 repsonse: %v", err)
+	}
 }
 
 func handleV1Error(writer http.ResponseWriter, err *primitives.JSONError) {
@@ -187,6 +193,14 @@ func checkAuthHeader(state interfaces.IState, request *http.Request) error {
 		return errors.New("bad auth")
 	}
 	return nil
+}
+
+func handleUnauthorized(request *http.Request, writer http.ResponseWriter) {
+	remoteIP := ""
+	remoteIP += strings.Split(request.RemoteAddr, ":")[0]
+	wsLog.Debugf("Unauthorized V2 API client connection attempt from %s\n", remoteIP)
+	writer.Header().Add("WWW-Authenticate", `Basic realm="factomd RPC"`)
+	http.Error(writer, "401 Unauthorized.", http.StatusUnauthorized)
 }
 
 func fileExists(name string) bool {

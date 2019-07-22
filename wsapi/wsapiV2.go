@@ -46,11 +46,7 @@ func HandleV2(writer http.ResponseWriter, request *http.Request) {
 	}
 
 	if err := checkAuthHeader(state, request); err != nil {
-		remoteIP := ""
-		remoteIP += strings.Split(request.RemoteAddr, ":")[0]
-		wsLog.Debugf("Unauthorized V2 API client connection attempt from %s\n", remoteIP)
-		writer.Header().Add("WWW-Authenticate", `Basic realm="factomd RPC"`)
-		http.Error(writer, "401 Unauthorized.", http.StatusUnauthorized)
+		handleUnauthorized(request, writer)
 		return
 	}
 
@@ -67,16 +63,20 @@ func HandleV2(writer http.ResponseWriter, request *http.Request) {
 	}
 
 	jsonResp, jsonError := HandleV2JSONRequest(state, j)
-
 	if jsonError != nil {
 		HandleV2Error(writer, j, jsonError)
 		return
 	}
 
-	writer.Write([]byte(jsonResp.String()))
+	_, err = writer.Write([]byte(jsonResp.String()))
+	if err != nil {
+		wsLog.Errorf("failed to write response: %v", err)
+		HandleV2Error(writer, nil, NewInternalError())
+		return
+	}
 }
 
-func HandleV2Request(writer http.ResponseWriter, request *http.Request, j *primitives.JSON2Request) (*primitives.JSON2Response, *primitives.JSONError) {
+func HandleV2Request(_ http.ResponseWriter, request *http.Request, j *primitives.JSON2Request) (*primitives.JSON2Response, *primitives.JSONError) {
 	state, err := GetState(request)
 	if err != nil {
 		wsLog.Errorf("failed to extract port from request: %s", err)
@@ -279,10 +279,6 @@ func ECBlockToResp(block interfaces.IEntryCreditBlock) (interface{}, *primitives
 	}
 
 	resp := new(EntryCreditBlockResponse)
-
-	if err != nil {
-		return nil, NewInternalError()
-	}
 	resp.ECBlock.Body = block.GetBody()
 	resp.ECBlock.Header = block.GetHeader()
 	resp.RawData = hex.EncodeToString(raw)
@@ -360,7 +356,7 @@ func HandleV2FBlockByHeight(state interfaces.IState, params interface{}) (interf
 	}
 
 	resp, jerr := fBlockToResp(block)
-	if err != nil {
+	if jerr != nil {
 		return nil, jerr
 	}
 
@@ -476,17 +472,20 @@ func aBlockToResp(block interfaces.IAdminBlock) (interface{}, *primitives.JSONEr
 	return resp, nil
 }
 
-func HandleV2Error(writer http.ResponseWriter, j *primitives.JSON2Request, err *primitives.JSONError) {
+func HandleV2Error(writer http.ResponseWriter, j *primitives.JSON2Request, jErr *primitives.JSONError) {
 	resp := primitives.NewJSON2Response()
 	if j != nil {
 		resp.ID = j.ID
 	} else {
 		resp.ID = nil
 	}
-	resp.Error = err
+	resp.Error = jErr
 
 	writer.WriteHeader(http.StatusBadRequest)
-	writer.Write([]byte(resp.String()))
+	_, err := writer.Write([]byte(resp.String()))
+	if err != nil {
+		wsLog.Errorf("failed to write error response: %v", err)
+	}
 }
 
 func MapToObject(source interface{}, dst interface{}) error {
