@@ -88,6 +88,7 @@ function loadTestList() {
 
 	*)
 		echo "Unknown option '$1'"
+		echo "usage: ./test.sh [unittest|peertest|simtest|short|full]"
 		exit -1
 		;;
 	esac
