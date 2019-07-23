@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	eventMessages "github.com/FactomProject/factomd/common/messages/eventmessages"
+	eventsinput "github.com/FactomProject/factomd/common/messages/eventmessages/input"
 	"hash"
 	"os"
 	"reflect"
@@ -2781,6 +2782,6 @@ func (s *State) NewAck(msg interfaces.IMsg, balanceHash interfaces.IHash) interf
 }
 
 func emitEvent(eventSource eventMessages.EventSource, msg interfaces.IMsg, state *State) {
-	event := eventMessages.SourceEventFromMessage(eventSource, msg)
+	event := eventsinput.SourceEventFromMessage(eventSource, msg)
 	state.EventsProxy.Send(event)
 }

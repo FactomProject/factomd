@@ -1,9 +1,9 @@
 package events
 
 import (
+	"encoding/json"
 	"fmt"
 	. "github.com/FactomProject/factomd/common/messages/eventmessages"
-	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gogo/protobuf/proto"
 	"github.com/gogo/protobuf/types"
 	"testing"
@@ -31,13 +31,12 @@ func BenchmarkMarshalAnchorEventToJSON(b *testing.B) {
 	b.StopTimer()
 	fmt.Println(fmt.Sprintf("Benchmarking AnchorEvent json marshalling %d cycles with %d entries", b.N, entries))
 	event := mockAnchorEvent()
-	marshaller := &jsonpb.Marshaler{}
-	msg, _ := marshaller.MarshalToString(event)
+	msg, _ := json.Marshal(event)
 	fmt.Println("Message size", len(msg))
 
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		_, err := marshaller.MarshalToString(event)
+		_, err := json.Marshal(event)
 		if err != nil {
 			panic(err)
 		}
@@ -76,7 +75,7 @@ func mockDirHeader() *DirectoryBlockHeader {
 			HashValue: testHash,
 		},
 		Timestamp:  &types.Timestamp{Seconds: int64(time.Second()), Nanos: int32(time.Nanosecond())},
-		DBHeight:   123,
+		DbHeight:   123,
 		BlockCount: 456,
 	}
 	return result

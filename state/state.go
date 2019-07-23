@@ -434,7 +434,7 @@ type State struct {
 	executeRecursionDetection map[[32]byte]interfaces.IMsg
 	Hold                      HoldingList
 
-	EventsProxy *events.EventProxy
+	EventsProxy events.IEventProxy
 }
 
 var _ interfaces.IState = (*State)(nil)
