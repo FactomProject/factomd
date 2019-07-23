@@ -177,6 +177,10 @@ func isDefaultSim(givenNodes string) bool {
 
 //EX. state0 := SetupSim("LLLLLLLLLLLLLLLAAAAAAAAAA",  map[string]string {"--controlpanelsetting" : "readwrite"}, t)
 func SetupSim(givenNodes string, userAddedOptions map[string]string, height int, electionsCnt int, roundsCnt int, t *testing.T) *state.State {
+	if userAddedOptions == nil {
+		userAddedOptions = make(map[string]string)
+	}
+
 	fmt.Println("SetupSim(", givenNodes, ",", userAddedOptions, ",", height, ",", electionsCnt, ",", roundsCnt, ")")
 
 	if userAddedOptions["--factomhome"] == "" {
@@ -285,7 +289,7 @@ func setNodeCounts(creatingNodes string) int {
 
 func createAuthoritySet(creatingNodes string, state0 *state.State, t *testing.T) {
 	RunCmd(fmt.Sprintf("g%d", len(creatingNodes)+1)) // makes nodeLen +1 identities
-	WaitBlocks(state0, 3) // Wait for 2 blocks because ID scans is for block N-1
+	WaitBlocks(state0, 3)                            // Wait for 2 blocks because ID scans is for block N-1
 	WaitMinutes(state0, 1)
 	promoteNodes(creatingNodes)
 	// Wait till all the entries from the g command are processed
