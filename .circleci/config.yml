@@ -79,7 +79,7 @@ jobs:
             export PATH="/tmp/go/bin:$PATH"
             export GOPATH=/tmp/go
             cd /tmp/go/src/github.com/FactomProject/factomd/
-            ./test.sh long
+            ./test.sh full
 
   coveralls:
     working_directory: /tmp
