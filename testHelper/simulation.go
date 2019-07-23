@@ -159,6 +159,22 @@ func setTestTimeouts(state0 *state.State, calcTime time.Duration) {
 	fmt.Printf("Starting timeout timer:  Expected test to take %s or %d blocks\n", calcTime.String(), ExpectedHeight)
 }
 
+func isDefaultSim(givenNodes string) bool {
+	nodeList := []rune(givenNodes)
+
+	if nodeList[0] != 'L' {
+		return false
+	}
+
+	for x := 1; x < len(givenNodes); x++ {
+		if nodeList[x] != 'F' {
+			return false
+		}
+	}
+
+	return true
+}
+
 //EX. state0 := SetupSim("LLLLLLLLLLLLLLLAAAAAAAAAA",  map[string]string {"--controlpanelsetting" : "readwrite"}, t)
 func SetupSim(givenNodes string, userAddedOptions map[string]string, height int, electionsCnt int, roundsCnt int, t *testing.T) *state.State {
 	fmt.Println("SetupSim(", givenNodes, ",", userAddedOptions, ",", height, ",", electionsCnt, ",", roundsCnt, ")")
@@ -187,25 +203,34 @@ func SetupSim(givenNodes string, userAddedOptions map[string]string, height int,
 
 	StatusEveryMinute(state0)
 
-	if state0.GetDBHeightAtBoot() != 0 {
-		if len(engine.GetFnodes()) != nodeLen {
-			t.Fatalf("Expected sim to boot with %d nodes", nodeLen)
-		} else {
-			t.Logf("Loading %d pre-existing nodes", nodeLen)
-		}
+	if isDefaultSim(givenNodes) || state0.GetDBHeightAtBoot() != 0 {
+		t.Logf("Skip Node Promotion", nodeLen)
 	} else {
-
-		// TODO: swap out default leader identity
-
 		WaitMinutes(state0, 1) // wait till initial DBState message for the genesis block is processed
-		createNodes(givenNodes, state0, t)
+		createAuthoritySet(givenNodes, state0, t)
 
-		t.Logf("Allocated %d nodes", nodeLen)
 		if len(engine.GetFnodes()) != nodeLen {
-			t.Fatalf("Should have allocated %d nodes", nodeLen)
 			t.Fail()
 		}
+
+		// swap identity if Fnode0 Should be a follower
+		if []rune(givenNodes)[0] == 'F' {
+			RunCmd(fmt.Sprintf("%d", 0))
+			RunCmd("z")
+			//WaitMinutes(state0, 2)
+			WaitBlocks(state0, 1)
+			RunCmd(fmt.Sprintf("%d", 0))
+			RunCmd(fmt.Sprintf("t%d", len(givenNodes)+1)) // attach the last generated Identity
+		}
+		// REVIEW: should we swap node0 identity & promote if configured for 'L' ?
+
 		CheckAuthoritySet(t)
+	}
+
+	if len(engine.GetFnodes()) != nodeLen {
+		t.Fatalf("Should have allocated %d nodes", nodeLen)
+	} else {
+		t.Logf("Allocated %d nodes", nodeLen)
 	}
 
 	return state0
@@ -216,15 +241,18 @@ func promoteNodes(creatingNodes string) int {
 	for i, c := range []byte(creatingNodes) {
 		fmt.Println("it:", i, c)
 		switch c {
-		case 'L', 'l':
+		case 'L':
 			if i != 0 {
 				RunCmd(fmt.Sprintf("%d", i))
 				RunCmd("l")
 			}
-		case 'A', 'a':
+		case 'A':
+			if i == 0 {
+				panic("setting Fnode0 to audit not supported")
+			}
 			RunCmd(fmt.Sprintf("%d", i))
 			RunCmd("o")
-		case 'F', 'f':
+		case 'F':
 			break
 		default:
 			panic("NOT L, A or F")
@@ -241,11 +269,11 @@ func setNodeCounts(creatingNodes string) int {
 
 	for _, c := range []byte(creatingNodes) {
 		switch c {
-		case 'L', 'l':
+		case 'L':
 			Leaders++
-		case 'A', 'a':
+		case 'A':
 			Audits++
-		case 'F', 'f':
+		case 'F':
 			Followers++
 		default:
 			panic("NOT L, A or F")
@@ -255,8 +283,8 @@ func setNodeCounts(creatingNodes string) int {
 	return Leaders + Followers + Audits
 }
 
-func createNodes(creatingNodes string, state0 *state.State, t *testing.T) {
-	RunCmd(fmt.Sprintf("g%d", len(creatingNodes)))
+func createAuthoritySet(creatingNodes string, state0 *state.State, t *testing.T) {
+	RunCmd(fmt.Sprintf("g%d", len(creatingNodes)+1)) // makes nodeLen +1 identities
 	WaitBlocks(state0, 3) // Wait for 2 blocks because ID scans is for block N-1
 	WaitMinutes(state0, 1)
 	promoteNodes(creatingNodes)
