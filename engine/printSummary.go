@@ -198,6 +198,12 @@ func GetSystemStatus(listenTo int, wsapiNode int) string {
 
 	list = ""
 	for _, f := range pnodes {
+		list = list + fmt.Sprintf(" %3d", len(f.State.MissingMessageResponseHandler.MissingMsgRequests))
+	}
+	prt = prt + fmt.Sprintf(fmtstr, "MissingMsgQueue", list)
+
+	list = ""
+	for _, f := range pnodes {
 		list = list + fmt.Sprintf(" %3d", f.State.APIQueue().Length())
 	}
 	prt = prt + fmt.Sprintf(fmtstr, "APIQueue", list)

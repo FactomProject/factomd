@@ -281,6 +281,14 @@ func SimControl(listenTo int, listenStdin bool) {
 					os.Stderr.WriteString("--Print Summary Off--\n")
 				}
 			case 'E' == b[0]:
+				if len(b) == 2 {
+					if b[1] == 's' {
+						if fnodes[listenTo].State.GetElections() != nil && fnodes[listenTo].State.GetElections().GetAdapter() != nil {
+							os.Stderr.WriteString(fnodes[listenTo].State.GetElections().GetAdapter().Status())
+							break
+						}
+					}
+				}
 				elections++
 				if elections%2 == 1 {
 					os.Stderr.WriteString("--Print Elections On--\n")

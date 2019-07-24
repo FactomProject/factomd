@@ -1035,6 +1035,17 @@ func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
 	}
 }
 
+func (s *State) getMsgFromHolding(h [32]byte) interfaces.IMsg {
+	// check if we have a message
+	m := s.Holding[h]
+
+	if m != nil {
+		return m
+	} else {
+		return s.Hold.GetDependentMsg(h)
+	}
+}
+
 // Ack messages always match some message in the Process List.   That is
 // done here, though the only msg that should call this routine is the Ack
 // message.
@@ -1063,57 +1074,18 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 	// Add the ack to the list of acks
 	TotalAcksInputs.Inc()
 	s.Acks[ack.GetHash().Fixed()] = ack
-	// check if we have a message
-	m, _ := s.Holding[ack.GetHash().Fixed()]
-	s.LogMessage("newHolding", "FollowerExecuteAck ", m)
+	m := s.getMsgFromHolding(ack.GetHash().Fixed())
 
 	if m != nil {
 		// We have an ack and a matching message go execute the message!
-		if m.Validate(s) == 1 {
-			s.LogMessage("executeMsg", "FollowerExecuteAck ", m)
-			m.FollowerExecute(s)
-		} else {
-			s.LogMessage("executeMsg", "Msg matches Ack, wait for validate", ack)
-		}
+		// we purposely skip validate which might put the message back in holding for unmet dependencies
+		// but it's ok since it will get validated before processing.
+		s.LogMessage("executeMsg", "FollowerExecuteAck ", m)
+		m.FollowerExecute(s)
 	} else {
 		s.LogMessage("executeMsg", "No Msg, keep", ack)
 		//todo: should we ask MMR here?
 	}
-}
-
-func (s *State) ExecuteEntriesInDBState(dbmsg *messages.DBStateMsg) {
-	height := dbmsg.DirectoryBlock.GetDatabaseHeight()
-
-	if s.EntryDBHeightComplete > height {
-		return
-	}
-	s.LogPrintf("dbstateprocess", "Process entries in %d", height)
-	// If no Eblocks, leave
-	if len(dbmsg.EBlocks) == 0 {
-		return
-	}
-
-	// All DBStates that got here are valid, so just checking the DBlock hash works
-	dblock, err := s.DB.FetchDBlockByHeight(height)
-	if err != nil || dblock == nil {
-		consenLogger.WithFields(log.Fields{"func": "ExecuteEntriesInDBState", "height": height}).Warnf("Dblock fetched is nil")
-		return // This is a weird case
-	}
-
-	if !dbmsg.DirectoryBlock.GetHash().IsSameAs(dblock.GetHash()) {
-		consenLogger.WithFields(log.Fields{"func": "ExecuteEntriesInDBState", "height": height}).Errorf("Bad DBState. DBlock does not match found")
-		return // Bad DBlock
-	}
-
-	for _, e := range dbmsg.Entries {
-		s.WriteEntry <- e
-	}
-
-	if err != nil {
-		consenLogger.WithFields(log.Fields{"func": "ExecuteEntriesInDBState", "height": height}).Errorf("Was unable to execute multibatch")
-		return
-	}
-	// todo: Should we move the EntryDBHeightComplete here?
 }
 
 func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
@@ -1378,54 +1350,12 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 		if !ok {
 			return
 		}
-		if len(s.WriteEntry) < cap(s.WriteEntry) {
-			s.WriteEntry <- entry // DataResponse
-		}
+		s.WriteEntry <- entry // DataResponse
 	}
 }
 
 func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
-	// Don't respond to missing messages if we are behind.
-	if s.inMsgQueue.Length() > constants.INMSGQUEUE_LOW {
-		return
-	}
-
-	m := msg.(*messages.MissingMsg)
-
-	pl := s.ProcessLists.Get(m.DBHeight)
-
-	if pl == nil {
-		s.MissingRequestIgnoreCnt++
-		return
-	}
-	FollowerMissingMsgExecutions.Inc()
-	sent := false
-	if len(pl.System.List) > int(m.SystemHeight) && pl.System.List[m.SystemHeight] != nil {
-		msgResponse := messages.NewMissingMsgResponse(s, pl.System.List[m.SystemHeight], nil)
-		msgResponse.SetOrigin(m.GetOrigin())
-		msgResponse.SetNetworkOrigin(m.GetNetworkOrigin())
-		msgResponse.SendOut(s, msgResponse)
-		s.MissingRequestReplyCnt++
-		sent = true
-	}
-
-	for _, h := range m.ProcessListHeight {
-		missingmsg, ackMsg, err := s.LoadSpecificMsgAndAck(m.DBHeight, m.VMIndex, h)
-
-		if missingmsg != nil && ackMsg != nil && err == nil {
-			// If I don't have this message, ignore.
-			msgResponse := messages.NewMissingMsgResponse(s, missingmsg, ackMsg)
-			msgResponse.SetOrigin(m.GetOrigin())
-			msgResponse.SetNetworkOrigin(m.GetNetworkOrigin())
-			msgResponse.SendOut(s, msgResponse)
-			s.MissingRequestReplyCnt++
-			sent = true
-		}
-	}
-
-	if !sent {
-		s.MissingRequestIgnoreCnt++
-	}
+	s.LogMessage("badEvents", "follower executed missing message, should never happen", msg)
 	return
 }
 
@@ -1529,19 +1459,14 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 		return
 	}
 
-	// If we have not been working for at least half the period (half the minute) then ignore the ticker
-	// The following test is simply checking if we have used half our time (in nanoseconds) to process.
-	if s.EOMSyncTime != 0 && (time.Now().UnixNano()-s.EOMSyncTime) < int64(s.DirectoryBlockInSeconds)*time.Second.Nanoseconds()/10/2 {
-		return
-	}
-
 	pl := s.ProcessLists.Get(s.LLeaderHeight)
 	vm := pl.VMs[s.LeaderVMIndex]
 
 	// If we have already issued an EOM for the minute being sync'd
 	// then this should be the next EOM but we can't do that just yet.
 	if vm.EomMinuteIssued == s.CurrentMinute+1 {
-		//s.repost(m)
+		s.LogMessage("executeMsg", fmt.Sprintf("repost, eomminute issued != s.CurrentMinute+1 : %d - %d", vm.EomMinuteIssued, s.CurrentMinute+1), m)
+		s.repost(m, 1) // Do not drop the message, we only generate 1 local eom per height/min, let validate drop it
 		return
 	}
 	// The zero based minute for the message is equal to
@@ -1549,7 +1474,8 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	// generating minutes in order.
 
 	if len(vm.List) != vm.Height {
-		s.repost(m, 1)
+		s.LogMessage("executeMsg", "repost, not pl synced", m)
+		s.repost(m, 1) // Do not drop the message, we only generate 1 local eom per height/min, let validate drop it
 		return
 	}
 	eom := m.(*messages.EOM)
@@ -1559,6 +1485,7 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 
 	if vm.Synced {
 		s.LogMessage("executeMsg", "drop, already sync'd", m)
+		s.repost(m, 1) // Do not drop the message, we only generate 1 local eom per height/min, let validate drop it
 		return
 	}
 
@@ -1571,6 +1498,7 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 		s.LogPrintf("executeMsg", "EOM has wrong data expected DBH/VM/M %d/%d/%d", s.LLeaderHeight, s.LeaderVMIndex, s.CurrentMinute)
 		fix = true
 	}
+
 	// make sure EOM has the right data
 	eom.DBHeight = s.LLeaderHeight
 	eom.VMIndex = s.LeaderVMIndex

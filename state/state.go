@@ -443,6 +443,8 @@ type State struct {
 	// MissingMessageResponseHandler is a cache of the last 2 blocks of processed acks.
 	// It can handle and respond to missing message requests on it's own thread.
 	MissingMessageResponseHandler *MissingMessageResponseCache
+	ChainCommits                  Last100
+	Reveals                       Last100
 }
 
 var _ interfaces.IState = (*State)(nil)
@@ -2108,6 +2110,10 @@ func (s *State) SetIdentityChainID(chainID interfaces.IHash) {
 		s.LogPrintf("AckChange", "SetIdentityChainID %v", chainID.String())
 	}
 	s.IdentityChainID = chainID
+}
+
+func (s *State) GetMinuteDuration() time.Duration {
+	return time.Duration(s.DirectoryBlockInSeconds) * time.Second / 10
 }
 
 func (s *State) GetDirectoryBlockInSeconds() int {
