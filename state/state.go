@@ -231,7 +231,6 @@ type State struct {
 	TimestampAtBoot interfaces.Timestamp
 	OneLeader       bool
 	OutputAllowed   bool
-	LeaderNewMin    int
 	CurrentMinute   int
 
 	// These are the start times for blocks and minutes
@@ -1007,7 +1006,7 @@ func (s *State) Init() {
 
 	// Set up maps for the followers
 	s.Holding = make(map[[32]byte]interfaces.IMsg)
-	s.HoldingList = make(chan [32]byte, 10000)
+	s.HoldingList = make(chan [32]byte, 4000)
 	s.Acks = make(map[[32]byte]interfaces.IMsg)
 	s.Commits = NewSafeMsgMap("commits", s) //make(map[[32]byte]interfaces.IMsg)
 

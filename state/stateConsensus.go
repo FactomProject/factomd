@@ -10,6 +10,7 @@ import (
 	"hash"
 	"os"
 	"reflect"
+	"sort"
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -22,8 +23,6 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/util/atomic"
-
-	"sort"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -578,9 +577,6 @@ func (s *State) ReviewHolding() {
 	if len(s.HoldingList) == 0 {
 		sorted := []interfaces.IMsg{}
 		for _, v := range s.Holding {
-			if cap(s.HoldingList) <= len(sorted) {
-				break
-			}
 			sorted = append(sorted, v)
 		}
 		sort.Slice(sorted,
@@ -590,23 +586,18 @@ func (s *State) ReviewHolding() {
 				return a < b
 			})
 		for k, v := range sorted {
-			if k >= cap(s.HoldingList) || k > 4000 {
+			if k >= cap(s.HoldingList) {
 				break
 			}
 			s.HoldingList <- v.GetMsgHash().Fixed()
 		}
 	}
 
-	// Set this flag, so it acts as a constant.  We will set s.LeaderNewMin to false
-	// after processing the Holding Queue.  Ensures we only do this one per minute.
-	//	processMinute := s.LeaderNewMin // Have we processed this minute
-	s.LeaderNewMin++ // Either way, don't do it again until the ProcessEOM resets LeaderNewMin
 	cnt := 1
 processholdinglist:
 	for {
 		if cnt&0x1F == 0 && s.GetTimestamp().GetTimeMilli()-now.GetTimeMilli() > 200 {
 			fmt.Print("cnt ", cnt, " ")
-			s.ResendHolding = s.GetTimestamp()
 			break processholdinglist
 		}
 		cnt++
@@ -623,128 +614,127 @@ processholdinglist:
 			break processholdinglist
 		}
 
-		for k, v := range s.Holding {
-			if int(highest)-int(saved) > 1000 {
-				TotalHoldingQueueOutputs.Inc()
-				//delete(s.Holding, k)
-				s.DeleteFromHolding(k, v, "HKB-HSB>1000")
-				continue processholdinglist // No point in executing if we think we can't hold this.
-			}
-
-			if v.Expire(s) {
-				s.LogMessage("executeMsg", "expire from holding", v)
-				s.ExpireCnt++
-				TotalHoldingQueueOutputs.Inc()
-				//delete(s.Holding, k)
-				s.DeleteFromHolding(k, v, "expired")
-				continue processholdinglist // If the message has expired, don't hold or execute
-			}
-
-			eom, ok := v.(*messages.EOM)
-			if ok {
-				if int(eom.DBHeight)*10+int(eom.Minute) < int(s.LLeaderHeight)*10+s.CurrentMinute {
-					s.DeleteFromHolding(k, v, "old EOM")
-					continue processholdinglist
-				}
-				if !eom.IsLocal() && eom.DBHeight > saved {
-					s.HighestKnown = eom.DBHeight
-				}
-			}
-
-			dbsigmsg, ok := v.(*messages.DirectoryBlockSignature)
-			if ok {
-				if dbsigmsg.DBHeight < s.LLeaderHeight || (s.CurrentMinute > 0 && dbsigmsg.DBHeight == s.LLeaderHeight) {
-					TotalHoldingQueueOutputs.Inc()
-					//delete(s.Holding, k)
-					s.DeleteFromHolding(k, v, "Old DBSig")
-					continue processholdinglist
-				}
-				if !dbsigmsg.IsLocal() && dbsigmsg.DBHeight > saved {
-					s.HighestKnown = dbsigmsg.DBHeight
-				}
-			}
-
-			dbsmsg, ok := v.(*messages.DBStateMsg)
-			if ok && dbsmsg.DirectoryBlock.GetHeader().GetDBHeight() <= saved && saved > 0 {
-
-				TotalHoldingQueueOutputs.Inc()
-				//delete(s.Holding, k)
-				s.DeleteFromHolding(k, v, "old DBState")
-				continue processholdinglist
-			}
-
-			// If it is an entryCommit/ChainCommit/RevealEntry and it has a duplicate hash to an existing entry throw it away here
-			ce, ok := v.(*messages.CommitEntryMsg)
-			if ok {
-				x := s.NoEntryYet(ce.CommitEntry.EntryHash, ce.CommitEntry.GetTimestamp())
-				if !x {
-					TotalHoldingQueueOutputs.Inc()
-					//delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
-					s.DeleteFromHolding(k, v, "already committed")
-					continue processholdinglist
-				}
-			}
-
-			// If it is an chainCommit and it has a duplicate hash to an existing entry throw it away here
-
-			cc, ok := v.(*messages.CommitChainMsg)
-			if ok {
-				x := s.NoEntryYet(cc.CommitChain.EntryHash, cc.CommitChain.GetTimestamp())
-				if !x {
-					TotalHoldingQueueOutputs.Inc()
-					//delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
-					s.DeleteFromHolding(k, v, "already committed")
-					continue processholdinglist
-				}
-			}
-
-			validToSend, validToExecute := s.Validate(v)
-
-			if validToSend > 0 {
-				v.SendOut(s, v)
-			}
-
-			switch validToExecute {
-			case -1:
-				s.LogMessage("executeMsg", "invalid from holding", v)
-				TotalHoldingQueueOutputs.Inc()
-				//delete(s.Holding, k)
-				s.DeleteFromHolding(k, v, "invalid from holding")
-				continue processholdinglist
-			case 0:
-				continue processholdinglist
-			}
-
-			// if it is a Factoid or entry credit transaction then check BLOCK_REPLAY
-			switch v.Type() {
-			case constants.FACTOID_TRANSACTION_MSG, constants.COMMIT_CHAIN_MSG, constants.COMMIT_ENTRY_MSG:
-				ok2 := s.FReplay.IsHashUnique(constants.BLOCK_REPLAY, v.GetRepeatHash().Fixed())
-				if !ok2 {
-					s.DeleteFromHolding(k, v, "BLOCK_REPLAY")
-					continue processholdinglist
-				}
-			default:
-			}
-			// If a Reveal Entry has a commit available, then process the Reveal Entry and send it out.
-			if re, ok := v.(*messages.RevealEntryMsg); ok {
-				if !s.NoEntryYet(re.GetHash(), s.GetLeaderTimestamp()) {
-					s.DeleteFromHolding(re.GetHash().Fixed(), re, "already committed reveal")
-					s.Commits.Delete(re.GetHash().Fixed())
-					continue processholdinglist
-				}
-				// Needs to be our VMIndex as well, or ignore.
-				if re.GetVMIndex() != s.LeaderVMIndex || !s.Leader {
-					continue processholdinglist // If we are a leader, but it isn't ours, and it isn't a new minute, ignore.
-				}
-			}
-
-			TotalXReviewQueueInputs.Inc()
-			s.XReview = append(s.XReview, v)
+		if int(highest)-int(saved) > 1000 {
 			TotalHoldingQueueOutputs.Inc()
+			//delete(s.Holding, k)
+			s.DeleteFromHolding(k, v, "HKB-HSB>1000")
+			continue processholdinglist // No point in executing if we think we can't hold this.
 		}
-		reviewHoldingTime := time.Since(preReviewHoldingTime)
-		TotalReviewHoldingTime.Add(float64(reviewHoldingTime.Nanoseconds()))
+
+		if v.Expire(s) {
+			s.LogMessage("executeMsg", "expire from holding", v)
+			s.ExpireCnt++
+			TotalHoldingQueueOutputs.Inc()
+			//delete(s.Holding, k)
+			s.DeleteFromHolding(k, v, "expired")
+			continue processholdinglist // If the message has expired, don't hold or execute
+		}
+
+		eom, ok := v.(*messages.EOM)
+		if ok {
+			if int(eom.DBHeight)*10+int(eom.Minute) < int(s.LLeaderHeight)*10+s.CurrentMinute {
+				s.DeleteFromHolding(k, v, "old EOM")
+				continue processholdinglist
+			}
+			if !eom.IsLocal() && eom.DBHeight > saved {
+				s.HighestKnown = eom.DBHeight
+			}
+		}
+
+		dbsigmsg, ok := v.(*messages.DirectoryBlockSignature)
+		if ok {
+			if dbsigmsg.DBHeight < s.LLeaderHeight || (s.CurrentMinute > 0 && dbsigmsg.DBHeight == s.LLeaderHeight) {
+				TotalHoldingQueueOutputs.Inc()
+				//delete(s.Holding, k)
+				s.DeleteFromHolding(k, v, "Old DBSig")
+				continue processholdinglist
+			}
+			if !dbsigmsg.IsLocal() && dbsigmsg.DBHeight > saved {
+				s.HighestKnown = dbsigmsg.DBHeight
+			}
+		}
+
+		dbsmsg, ok := v.(*messages.DBStateMsg)
+		if ok && dbsmsg.DirectoryBlock.GetHeader().GetDBHeight() <= saved && saved > 0 {
+
+			TotalHoldingQueueOutputs.Inc()
+			//delete(s.Holding, k)
+			s.DeleteFromHolding(k, v, "old DBState")
+			continue processholdinglist
+		}
+
+		// If it is an entryCommit/ChainCommit/RevealEntry and it has a duplicate hash to an existing entry throw it away here
+		ce, ok := v.(*messages.CommitEntryMsg)
+		if ok {
+			x := s.NoEntryYet(ce.CommitEntry.EntryHash, ce.CommitEntry.GetTimestamp())
+			if !x {
+				TotalHoldingQueueOutputs.Inc()
+				//delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
+				s.DeleteFromHolding(k, v, "already committed")
+				continue processholdinglist
+			}
+		}
+
+		// If it is an chainCommit and it has a duplicate hash to an existing entry throw it away here
+
+		cc, ok := v.(*messages.CommitChainMsg)
+		if ok {
+			x := s.NoEntryYet(cc.CommitChain.EntryHash, cc.CommitChain.GetTimestamp())
+			if !x {
+				TotalHoldingQueueOutputs.Inc()
+				//delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
+				s.DeleteFromHolding(k, v, "already committed")
+				continue processholdinglist
+			}
+		}
+
+		validToSend, validToExecute := s.Validate(v)
+
+		if validToSend > 0 {
+			v.SendOut(s, v)
+		}
+
+		switch validToExecute {
+		case -1:
+			s.LogMessage("executeMsg", "invalid from holding", v)
+			TotalHoldingQueueOutputs.Inc()
+			//delete(s.Holding, k)
+			s.DeleteFromHolding(k, v, "invalid from holding")
+			continue processholdinglist
+		case 0:
+			continue processholdinglist
+		}
+
+		// if it is a Factoid or entry credit transaction then check BLOCK_REPLAY
+		switch v.Type() {
+		case constants.FACTOID_TRANSACTION_MSG, constants.COMMIT_CHAIN_MSG, constants.COMMIT_ENTRY_MSG:
+			ok2 := s.FReplay.IsHashUnique(constants.BLOCK_REPLAY, v.GetRepeatHash().Fixed())
+			if !ok2 {
+				s.DeleteFromHolding(k, v, "BLOCK_REPLAY")
+				continue processholdinglist
+			}
+		default:
+		}
+		// If a Reveal Entry has a commit available, then process the Reveal Entry and send it out.
+		if re, ok := v.(*messages.RevealEntryMsg); ok {
+			if !s.NoEntryYet(re.GetHash(), s.GetLeaderTimestamp()) {
+				s.DeleteFromHolding(re.GetHash().Fixed(), re, "already committed reveal")
+				s.Commits.Delete(re.GetHash().Fixed())
+				continue processholdinglist
+			}
+			// Needs to be our VMIndex as well, or ignore.
+			if re.GetVMIndex() != s.LeaderVMIndex || !s.Leader {
+				continue processholdinglist // If we are a leader, but it isn't ours, and it isn't a new minute, ignore.
+			}
+		}
+
+		TotalXReviewQueueInputs.Inc()
+		s.XReview = append(s.XReview, v)
+		TotalHoldingQueueOutputs.Inc()
 	}
+	s.ResendHolding = s.GetTimestamp()
+	reviewHoldingTime := time.Since(preReviewHoldingTime)
+	TotalReviewHoldingTime.Add(float64(reviewHoldingTime.Nanoseconds()))
 }
 
 func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
@@ -2200,7 +2190,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 		s.EOMDone = true // ProcessEOM
 		s.EOMSyncTime = time.Now().UnixNano()
-		s.LeaderNewMin = 0
 		for _, eb := range pl.NewEBlocks {
 			eb.AddEndOfMinuteMarker(byte(e.Minute + 1))
 		}
