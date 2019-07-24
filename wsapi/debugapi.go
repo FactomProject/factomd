@@ -427,15 +427,16 @@ func runCmd(cmd string) {
 
 	return
 }
+
 func HandleSimControl(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	droprate := new(GetCommands)
-	err := MapToObject(params, droprate)
+	cmdLines := new(GetCommands)
+	err := MapToObject(params, cmdLines)
 	if err != nil {
 		return nil, NewInvalidParamsError()
 	}
 
-	for i := 0; i < len(droprate.Commands); i++ {
-		runCmd(string(droprate.Commands[i]))
+	for _, cmdStr := range cmdLines.Commands {
+		runCmd(cmdStr)
 	}
 
 	type Success struct {
