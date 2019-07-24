@@ -95,7 +95,11 @@ func (s *State) ValidatorLoop() {
 			if !s.RunLeader || !s.DBFinished { // don't generate EOM if we are not ready to execute as a leader or are loading the DBState messages
 				continue
 			}
-			if lastHeight == int(s.LLeaderHeight) && lastMinute == s.CurrentMinute && s.LeaderVMIndex == lastVM {
+			currentMinute := s.CurrentMinute
+			if currentMinute == 10 { // if we are between blocks
+				currentMinute = 9 // treat minute 10 as an extension of minute 9
+			}
+			if lastHeight == int(s.LLeaderHeight) && lastMinute == currentMinute && s.LeaderVMIndex == lastVM {
 				// This eom was already generated. We shouldn't generate it again.
 				// This does mean we missed an EOM boundary, and the next EOM won't occur for another
 				// "minute". This could cause some serious sliding, as minutes could be an addition 100%
@@ -111,11 +115,11 @@ func (s *State) ValidatorLoop() {
 					}()
 				}
 				s.LogPrintf("timer", "retry %d", c)
-				s.LogPrintf("validator", "retry %d  %d-:-%d %d", c, s.LLeaderHeight, s.CurrentMinute, s.LeaderVMIndex)
+				s.LogPrintf("validator", "retry %d  %d-:-%d %d", c, s.LLeaderHeight, currentMinute, s.LeaderVMIndex)
 				continue // Already generated this eom
 			}
 
-			lastHeight, lastMinute, lastVM = int(s.LLeaderHeight), s.CurrentMinute, s.LeaderVMIndex
+			lastHeight, lastMinute, lastVM = int(s.LLeaderHeight), currentMinute, s.LeaderVMIndex
 
 			eom := new(messages.EOM)
 			eom.Timestamp = s.GetTimestamp()
@@ -124,7 +128,7 @@ func (s *State) ValidatorLoop() {
 				// best guess info... may be wrong -- just for debug
 				eom.DBHeight = s.LLeaderHeight
 				eom.VMIndex = s.LeaderVMIndex
-				eom.Minute = byte(s.CurrentMinute)
+				eom.Minute = byte(currentMinute)
 			}
 
 			eom.Sign(s)
