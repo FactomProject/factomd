@@ -17,6 +17,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/primitives/random"
+	"github.com/FactomProject/factomd/util/atomic"
 
 	"github.com/FactomProject/factomd/activations"
 	"github.com/FactomProject/factomd/common/messages"
@@ -87,7 +88,7 @@ func TestCatchup(t *testing.T) {
 	dbht1 := state1.GetLLeaderHeight()
 
 	if dbht0 != dbht1 {
-		t.Fatalf("Node 7 was at dbheight %d which didn't match Node 6 at dbheight %d", dbht0, dbht1)
+		t.Fatalf("Node 0 was at dbheight %d which didn't match Node 1 at dbheight %d", dbht0, dbht1)
 	}
 
 	ShutDownEverything(t)
@@ -128,7 +129,7 @@ func TestLoad2(t *testing.T) {
 	StatusEveryMinute(state0)
 
 	RunCmd("4") // select node 4
-	RunCmd("x") // take out 7 from the network
+	RunCmd("x") // take out 4 from the network
 	WaitBlocks(state0, 1)
 	WaitForMinute(state0, 1)
 
@@ -144,11 +145,11 @@ func TestLoad2(t *testing.T) {
 	WaitBlocks(state0, 3)
 	WaitMinutes(state0, 3)
 
-	ht7 := GetFnodes()[1].State.GetLLeaderHeight()
-	ht6 := GetFnodes()[4].State.GetLLeaderHeight()
+	ht1 := GetFnodes()[1].State.GetLLeaderHeight()
+	ht4 := GetFnodes()[4].State.GetLLeaderHeight()
 
-	if ht7 != ht6 {
-		t.Fatalf("Node 7 was at dbheight %d which didn't match Node 6 at dbheight %d", ht7, ht6)
+	if ht1 != ht4 {
+		t.Fatalf("Node 1 was at dbheight %d which didn't match Node 4 at dbheight %d", ht1, ht4)
 	}
 	ShutDownEverything(t)
 } //TestLoad2(){...}
@@ -335,21 +336,6 @@ func TestAnElection(t *testing.T) {
 	// wait for him to update via dbstate and become an audit
 	WaitBlocks(state0, 2)
 	WaitMinutes(state0, 1)
-
-	{ // debug holding queue
-
-		for _, fnode := range GetFnodes() {
-			s := fnode.State
-			for _, h := range s.Hold.Messages() {
-				for _, m := range h {
-					s.LogMessage("dependentHolding", "stuck", m)
-				}
-			}
-		}
-	}
-
-	state2 := GetFnodes()[2].State
-	WaitForBlock(state2, 7) // wait for sync w/ network
 
 	WaitForAllNodes(state0)
 
@@ -1323,6 +1309,74 @@ func TestDBState(t *testing.T) {
 
 	WaitForAllNodes(state0) // if the follower isn't catching up this will timeout
 	PrintOneStatus(0, 0)
+	ShutDownEverything(t)
+}
+
+func TestCatchupEveryMinute(t *testing.T) {
+	if RanSimTest {
+		return
+	}
+
+	RanSimTest = true
+	//							  01234567890
+	state0 := SetupSim("LFFFFFFFFFF", map[string]string{"--debuglog": ".", "--blktime": "6"}, 20, 1, 1, t)
+
+	StatusEveryMinute(state0)
+
+	// knock followers off one per minute
+	for i := 0; i < 10; i++ {
+		s := GetFnodes()[i+1].State
+		RunCmd(fmt.Sprintf("%d", i+1))
+		WaitForMinute(s, i)
+		RunCmd("x")
+	}
+	state0.LogPrintf("test", "%s", atomic.WhereAmIString(0))
+	WaitBlocks(state0, 2) // wait till they cannot catch up by MMR
+	state0.LogPrintf("test", "%s", atomic.WhereAmIString(0))
+	WaitMinutes(state0, 1)
+	state0.LogPrintf("test", "%s", atomic.WhereAmIString(0))
+
+	RunCmd("T25") // switch to 25 second blocks because dbstate catchup code fails at 6 second blocks
+	// bring them all back
+	for i := 0; i < 10; i++ {
+		state0.LogPrintf("test", "%s %d %s", atomic.WhereAmIString(0), i)
+		RunCmd(fmt.Sprintf("%d", i+1))
+		WaitMinutes(state0, 1)
+		RunCmd("x")
+	}
+
+	WaitForAllNodes(state0)
+	ShutDownEverything(t)
+}
+
+func TestElectionEveryMinute(t *testing.T) {
+	if RanSimTest {
+		return
+	}
+
+	RanSimTest = true
+	//							  01234567890123456789012345678901
+	state0 := SetupSim("LLLLLLLLLLLLLLLLLLLLLAAAAAAAAAAF", map[string]string{"--debuglog": ".", "--blktime": "60"}, 20, 10, 1, t)
+
+	StatusEveryMinute(state0)
+	RunCmd("T120")
+	WaitMinutes(state0, 1)
+
+	// knock followers off one per minute
+	for i := 0; i < 10; i++ {
+		s := GetFnodes()[i+1].State
+		RunCmd(fmt.Sprintf("%d", i+1))
+		WaitForMinute(s, i+1) // wait for election to complete
+		RunCmd("x")
+	}
+	WaitMinutes(state0, 1)
+	// bring them all back
+	for i := 0; i < 10; i++ {
+		RunCmd(fmt.Sprintf("%d", i+1))
+		RunCmd("x")
+	}
+
+	WaitForAllNodes(state0)
 	ShutDownEverything(t)
 }
 
