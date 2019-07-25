@@ -231,7 +231,6 @@ type State struct {
 	TimestampAtBoot interfaces.Timestamp
 	OneLeader       bool
 	OutputAllowed   bool
-	LeaderNewMin    int
 	CurrentMinute   int
 
 	// These are the start times for blocks and minutes
@@ -279,6 +278,7 @@ type State struct {
 	// ====
 	// For Follower
 	ResendHolding interfaces.Timestamp         // Timestamp to gate resending holding to neighbors
+	HoldingList   chan [32]byte                // Queue to process Holding in order
 	Holding       map[[32]byte]interfaces.IMsg // Hold Messages
 	XReview       []interfaces.IMsg            // After the EOM, we must review the messages in Holding
 	Acks          map[[32]byte]interfaces.IMsg // Hold Acknowledgements
@@ -1008,6 +1008,7 @@ func (s *State) Init() {
 
 	// Set up maps for the followers
 	s.Holding = make(map[[32]byte]interfaces.IMsg)
+	s.HoldingList = make(chan [32]byte, 4000)
 	s.Acks = make(map[[32]byte]interfaces.IMsg)
 	s.Commits = NewSafeMsgMap("commits", s) //make(map[[32]byte]interfaces.IMsg)
 
