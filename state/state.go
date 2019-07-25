@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -38,8 +39,6 @@ import (
 	"github.com/FactomProject/factomd/util/atomic"
 	"github.com/FactomProject/factomd/wsapi"
 	"github.com/FactomProject/logrustash"
-
-	"regexp"
 
 	"github.com/FactomProject/factomd/Utilities/CorrectChainHeads/correctChainHeads"
 	log "github.com/sirupsen/logrus"
@@ -200,8 +199,8 @@ type State struct {
 	RpcAuthHash []byte
 
 	FactomdTLSEnable   bool
-	factomdTLSKeyFile  string
-	factomdTLSCertFile string
+	FactomdTLSKeyFile  string
+	FactomdTLSCertFile string
 	FactomdLocations   string
 
 	CorsDomains []string
@@ -571,8 +570,8 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 	newState.RequestTimeout = s.RequestTimeout
 	newState.RequestLimit = s.RequestLimit
 	newState.FactomdTLSEnable = s.FactomdTLSEnable
-	newState.factomdTLSKeyFile = s.factomdTLSKeyFile
-	newState.factomdTLSCertFile = s.factomdTLSCertFile
+	newState.FactomdTLSKeyFile = s.FactomdTLSKeyFile
+	newState.FactomdTLSCertFile = s.FactomdTLSCertFile
 	newState.FactomdLocations = s.FactomdLocations
 
 	newState.FastSaveRate = s.FastSaveRate
@@ -679,7 +678,7 @@ func (s *State) GetRpcAuthHash() []byte {
 }
 
 func (s *State) GetTlsInfo() (bool, string, string) {
-	return s.FactomdTLSEnable, s.factomdTLSKeyFile, s.factomdTLSCertFile
+	return s.FactomdTLSEnable, s.FactomdTLSKeyFile, s.FactomdTLSCertFile
 }
 
 func (s *State) GetFactomdLocations() string {
@@ -836,12 +835,36 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 			}
 		}
 		s.FactomdTLSEnable = cfg.App.FactomdTlsEnabled
+
+		FactomdTLSKeyFile := cfg.App.FactomdTlsPrivateKey
 		if cfg.App.FactomdTlsPrivateKey == "/full/path/to/factomdAPIpriv.key" {
-			s.factomdTLSKeyFile = fmt.Sprint(cfg.App.HomeDir, "factomdAPIpriv.key")
+			FactomdTLSKeyFile = fmt.Sprint(cfg.App.HomeDir, "factomdAPIpriv.key")
 		}
+		if s.FactomdTLSKeyFile != FactomdTLSKeyFile {
+			if s.FactomdTLSEnable {
+				if _, err := os.Stat(FactomdTLSKeyFile); os.IsNotExist(err) {
+					fmt.Fprint(os.Stderr, "Configured file does not exits: %s\n", FactomdTLSKeyFile)
+				}
+			}
+			s.FactomdTLSKeyFile = FactomdTLSKeyFile // set state
+		}
+
+		FactomdTLSCertFile := cfg.App.FactomdTlsPublicCert
 		if cfg.App.FactomdTlsPublicCert == "/full/path/to/factomdAPIpub.cert" {
-			s.factomdTLSCertFile = fmt.Sprint(cfg.App.HomeDir, "factomdAPIpub.cert")
+			s.FactomdTLSCertFile = fmt.Sprint(cfg.App.HomeDir, "factomdAPIpub.cert")
 		}
+		if s.FactomdTLSCertFile != FactomdTLSCertFile {
+			if s.FactomdTLSEnable {
+				if _, err := os.Stat(FactomdTLSCertFile); os.IsNotExist(err) {
+					fmt.Fprint(os.Stderr, "Configured file does not exits: %s\n", FactomdTLSCertFile)
+				}
+			}
+			s.FactomdTLSCertFile = FactomdTLSCertFile // set state
+		}
+
+		s.FactomdTLSEnable = cfg.App.FactomdTlsEnabled
+		s.FactomdTLSKeyFile = cfg.App.FactomdTlsPrivateKey
+
 		externalIP := strings.Split(cfg.Walletd.FactomdLocation, ":")[0]
 		if externalIP != "localhost" {
 			s.FactomdLocations = externalIP
