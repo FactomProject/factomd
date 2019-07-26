@@ -67,13 +67,12 @@ func (u *UploadController) Close() {
 // sortRequests sorts through the initial requests to toss out repeats
 func (u *UploadController) sortRequests() {
 	for {
-	backToTopSortRequests:
 		select {
 		// Avoid defering the lock, more overhead
 		case s := <-u.requestUploadQueue:
 			if _, ok := u.uploaded[s]; ok {
 				// Already uploaded, toss out
-				goto backToTopSortRequests
+				continue
 			}
 
 			u.uploaded[s] = struct{}{}

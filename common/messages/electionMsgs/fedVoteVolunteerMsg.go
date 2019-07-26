@@ -208,7 +208,7 @@ func (m *FedVoteVolunteerMsg) GetHash() (rval interfaces.IHash) {
 			primitives.LogNilHashBug("FedVoteVolunteerMsg.GetHash() saw an interface that was nil")
 		}
 	}()
-	return m.GetMsgHash()
+	return m.Missing.GetMsgHash()
 }
 
 func (m *FedVoteVolunteerMsg) GetTimestamp() interfaces.Timestamp {

@@ -60,7 +60,7 @@ func ExportEntryReceipt(entryID string, dbo interfaces.DBOverlaySimple) error {
 	if err != nil {
 		return err
 	}
-	receipt, err := CreateFullReceipt(dbo, h)
+	receipt, err := CreateFullReceipt(dbo, h, false)
 	if err != nil {
 		return err
 	}

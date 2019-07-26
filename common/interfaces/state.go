@@ -5,7 +5,10 @@
 package interfaces
 
 import (
+	"regexp"
+
 	"github.com/FactomProject/factomd/activations"
+	"github.com/FactomProject/factomd/common/constants/runstate"
 )
 
 type DBStateSent struct {
@@ -28,7 +31,7 @@ type IQueue interface {
 // can be logged about the execution of Factom.  Also ensures that we do not
 // accidentally
 type IState interface {
-	Running() bool // Returns true as long as this Factomd instance is running.
+	GetRunState() runstate.RunState
 	// Server
 	GetFactomNodeName() string
 	GetSalt(Timestamp) uint32 // A secret number computed from a TS that tests if a message was issued from this server or not
@@ -327,6 +330,7 @@ type IState interface {
 	DidCreateLastBlockFromDBState() bool
 	GetUnsyncedServers(dbheight uint32) []IHash
 	Validate(msg IMsg) (validToSend int, validToExecute int)
+	GetIgnoreDone() bool
 
 	// Access to Holding Queue
 	LoadHoldingMap() map[[32]byte]IMsg
@@ -345,6 +349,22 @@ type IState interface {
 	CheckFileName(string) bool
 	AddToReplayFilter(mask int, hash [32]byte, timestamp Timestamp, systemtime Timestamp) bool
 
-	// Activations
+	// Activations -------------------------------------------------------
 	IsActive(id activations.ActivationType) bool
+
+	// Holding of dependent messages -------------------------------------
+	// Add a messsage to a dependent holding list
+	Add(h [32]byte, msg IMsg) int
+	// get and remove the list of dependent message for a hash
+	Get(h [32]byte) []IMsg
+	// expire any dependent messages that are in holding but are older than limit
+	ExecuteFromHolding(h [32]byte)
+	// create a hash to hold messages that depend on height
+	HoldForHeight(ht uint32, msg IMsg) int
+
+	// test/debug filters
+	PassOutputRegEx(*regexp.Regexp, string)
+	GetOutputRegEx() (*regexp.Regexp, string)
+	PassInputRegEx(*regexp.Regexp, string)
+	GetInputRegEx() (*regexp.Regexp, string)
 }

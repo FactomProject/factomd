@@ -59,6 +59,7 @@ func main() {
 	fmt.Println("Usage:")
 	fmt.Println("BalanceFinder level/bolt/api DBFileLocation")
 	fmt.Println("Program will find balances")
+	fmt.Println("All balance hashes cannot be compared to those presented in factomd. Only compared to others made by the tool.")
 
 	if len(flag.Args()) < 2 {
 		fmt.Println("\nNot enough arguments passed")
@@ -180,8 +181,11 @@ func FindBalance(reader tools.Fetcher) (map[[32]byte]int64, map[[32]byte]int64, 
 		// Print the balance hash
 		if heightmap[i] == true {
 			{
-				h1 := state.GetMapHash(i, fctAddressMap)
-				h2 := state.GetMapHash(i, ecAddressMap)
+				// The dbheight was removed from the call, and the balance hash is
+				// added in another piece of code that we cannot easily access from this tool.
+				// So this tool's hashes can only be compared to other hashes made by this tool.
+				h1 := state.GetMapHash(fctAddressMap)
+				h2 := state.GetMapHash(ecAddressMap)
 
 				var b []byte
 				b = append(b, h1.Bytes()...)

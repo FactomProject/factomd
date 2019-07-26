@@ -83,6 +83,32 @@ type RawDataResponse struct {
 	//TODO: add
 }
 
+// For each chain: false or chain specific anchor response
+type AnchorsResponse struct {
+	Height   uint32      `json:"directoryblockheight"`
+	KeyMR    string      `json:"directoryblockkeymr"`
+	Bitcoin  interface{} `json:"bitcoin"`
+	Ethereum interface{} `json:"ethereum"`
+}
+
+type BitcoinAnchorResponse struct {
+	TransactionHash string `json:"transactionhash"`
+	BlockHash       string `json:"blockhash"`
+}
+
+type EthereumAnchorResponse struct {
+	RecordHeight int64                    `json:"recordheight"`
+	DBHeightMax  int64                    `json:"dbheightmax"`
+	DBHeightMin  int64                    `json:"dbheightmin"`
+	WindowMR     string                   `json:"windowmr"`
+	MerkleBranch []*primitives.MerkleNode `json:"merklebranch"`
+
+	ContractAddress string `json:"contractaddress"`
+	TxID            string `json:"txid"`
+	BlockHash       string `json:"blockhash"`
+	TxIndex         int64  `json:"txindex"`
+}
+
 type ReceiptResponse struct {
 	Receipt *receipts.Receipt `json:"receipt"`
 }
@@ -243,6 +269,11 @@ type HeightRequest struct {
 	Height int64 `json:"height"`
 }
 
+type HeightOrHashRequest struct {
+	Height *int64 `json:"height,omitempty"`
+	Hash   string `json:"hash,omitempty"`
+}
+
 type ChainIDRequest struct {
 	ChainID string `json:"chainid"`
 }
@@ -284,6 +315,13 @@ type TransactionRequest struct {
 
 type SendRawMessageRequest struct {
 	Message string `json:"message"`
+}
+
+// TODO: kept as "hash" for backwards compatibility (receipt call used to use the HashRequest),
+//       but in API v3 this should specify that its an entry hash
+type ReceiptRequest struct {
+	EntryHash       string `json:"hash"`
+	IncludeRawEntry bool   `json:"includerawentry"`
 }
 
 type FactiodAccounts struct {
@@ -354,4 +392,8 @@ type LeaderStatus struct {
 type AuditStatus struct {
 	ID     string `json:"id"`
 	Online bool   `json:"online"`
+}
+
+type MessageFilter struct {
+	Params string `json:"params"`
 }
