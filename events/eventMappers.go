@@ -43,16 +43,140 @@ func msgToFactomEvent(eventSource eventmessages.EventSource, msg interfaces.IMsg
 func mapDBState(dbStateMessage *messages.DBStateMsg) *eventmessages.FactomEvent_AnchorEvent {
 	event := &eventmessages.FactomEvent_AnchorEvent{AnchorEvent: &eventmessages.AnchoredEvent{
 		DirectoryBlock:    mapDirBlock(dbStateMessage.DirectoryBlock),
+		FactoidBlock:      mapFactoidBlock(dbStateMessage.FactoidBlock),
 		EntryBlocks:       mapEntryBlocks(dbStateMessage.EBlocks),
 		EntryBlockEntries: mapEntryBlockEntries(dbStateMessage.Entries),
 	}}
 	return event
 }
 
+func mapFactoidBlock(block interfaces.IFBlock) *eventmessages.FactoidBlock {
+	result := &eventmessages.FactoidBlock{
+		BodyMerkleRoot: &eventmessages.Hash{
+			HashValue: block.GetBodyMR().Bytes(),
+		},
+		PreviousKeyMerkleRoot: &eventmessages.Hash{
+			HashValue: block.GetPrevKeyMR().Bytes(),
+		},
+		PreviousLedgerKeyMerkleRoot: &eventmessages.Hash{
+			HashValue: block.GetLedgerKeyMR().Bytes(),
+		},
+		ExchRate:     block.GetExchRate(),
+		BlockHeight:  block.GetDBHeight(),
+		Transactions: mapTransactions(block.GetTransactions()),
+	}
+	return result
+}
+
+func mapTransactions(transactions []interfaces.ITransaction) []*eventmessages.Transaction {
+	result := make([]*eventmessages.Transaction, 0)
+	for _, transaction := range transactions {
+		err := transaction.ValidateSignatures()
+		if err == nil {
+			result = append(result, mapTransaction(transaction))
+		}
+	}
+	return result
+}
+
+func mapTransaction(transaction interfaces.ITransaction) *eventmessages.Transaction {
+	result := &eventmessages.Transaction{
+		TransactionId: &eventmessages.Hash{
+			HashValue: transaction.GetSigHash().Bytes(),
+		},
+		BlockHeight:        transaction.GetBlockHeight(),
+		Timestamp:          convertTimeToTimestamp(transaction.GetTimestamp().GetTime()),
+		Inputs:             mapTransactionAddresses(transaction.GetInputs()),
+		Outputs:            mapTransactionAddresses(transaction.GetOutputs()),
+		OutputEntryCredits: mapTransactionAddresses(transaction.GetECOutputs()),
+		RCds:               mapRCDs(transaction.GetRCDs()),
+		SignatureBlocks:    mapSignatureBlocks(transaction.GetSignatureBlocks()),
+	}
+	return result
+}
+
+func mapTransactionAddresses(inputs []interfaces.ITransAddress) []*eventmessages.TransactionAddress {
+	result := make([]*eventmessages.TransactionAddress, len(inputs))
+	for i, input := range inputs {
+		result[i] = mapTransactionAddress(input)
+	}
+	return result
+}
+
+func mapTransactionAddress(address interfaces.ITransAddress) *eventmessages.TransactionAddress {
+	result := &eventmessages.TransactionAddress{
+		Amount: address.GetAmount(),
+		Address: &eventmessages.Hash{
+			HashValue: address.GetAddress().Bytes(),
+		},
+	}
+	return result
+}
+
+func mapRCDs(rcds []interfaces.IRCD) []*eventmessages.RCD {
+	result := make([]*eventmessages.RCD, len(rcds))
+	for i, rcd := range rcds {
+		result[i] = mapRCD(rcd)
+	}
+	return result
+
+}
+
+func mapRCD(rcd interfaces.IRCD) *eventmessages.RCD {
+	result := &eventmessages.RCD{}
+	/* TODO research this more, the rcd1/2 structs and interfaces make me dizzy
+	https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#factoid-transaction
+
+	switch rcd.(type) {
+	case factoid.IRCD_1:
+		rcd1 := rcd.(factoid.IRCD_1)
+		result.Value = &eventmessages.RCD_Rcd1{
+			Rcd1: &eventmessages.RCD1{
+				PublicKey: rcd1.GetPublicKey(),
+			},
+		}
+
+	case factoid.IRCD:
+		rcd2 := rcd.(factoid.IRCD)
+		evRcd2 := eventmessages.RCD2{
+			M:          0,
+			N:          0,
+			NAddresses: rcd2.GetHash().Bytes(),
+		}
+		evRcd2Value := &eventmessages.RCD_Rcd2{Rcd2: evRcd2}
+		result.Value = evRcd2Value
+	}*/
+	return result
+}
+
+func mapSignatureBlocks(blocks []interfaces.ISignatureBlock) []*eventmessages.FactoidSignatureBlock {
+	result := make([]*eventmessages.FactoidSignatureBlock, len(blocks))
+	for i, block := range blocks {
+		result[i] = mapSignatureBlock(block)
+	}
+	return result
+}
+
+func mapSignatureBlock(block interfaces.ISignatureBlock) *eventmessages.FactoidSignatureBlock {
+	result := &eventmessages.FactoidSignatureBlock{
+		Signature: mapFactoidSignatureBlockSingatures(block.GetSignatures()),
+	}
+	return result
+}
+
+func mapFactoidSignatureBlockSingatures(signatures []interfaces.ISignature) []*eventmessages.FactoidSignature {
+	result := make([]*eventmessages.FactoidSignature, len(signatures))
+	for i, signature := range signatures {
+		result[i] = &eventmessages.FactoidSignature{
+			SignatureValue: signature.Bytes(),
+		}
+	}
+	return result
+}
+
 func mapDirBlock(block interfaces.IDirectoryBlock) *eventmessages.DirectoryBlock {
-	result := &eventmessages.DirectoryBlock{}
-	result.Header = mapDirHeader(block.GetHeader())
-	result.Entries = mapDirEntries(block.GetDBEntries())
+	result := &eventmessages.DirectoryBlock{Header: mapDirHeader(block.GetHeader()),
+		Entries: mapDirEntries(block.GetDBEntries())}
 	return result
 }
 
@@ -67,9 +191,9 @@ func mapDirHeader(header interfaces.IDirectoryBlockHeader) *eventmessages.Direct
 		PreviousFullHash: &eventmessages.Hash{
 			HashValue: header.GetPrevFullHash().Bytes(),
 		},
-		Timestamp:  convertTimeToTimestamp(header.GetTimestamp().GetTime()),
-		DbHeight:   header.GetDBHeight(),
-		BlockCount: header.GetBlockCount(),
+		Timestamp:   convertTimeToTimestamp(header.GetTimestamp().GetTime()),
+		BlockHeight: header.GetDBHeight(),
+		BlockCount:  header.GetBlockCount(),
 	}
 	return result
 }
@@ -169,7 +293,7 @@ func mapEntryBlockHeader(header interfaces.IEntryBlockHeader) *eventmessages.Ent
 		ChainID:               &eventmessages.Hash{HashValue: header.GetChainID().Bytes()},
 		PreviousFullHash:      &eventmessages.Hash{HashValue: header.GetPrevFullHash().Bytes()},
 		PreviousKeyMerkleRoot: &eventmessages.Hash{HashValue: header.GetPrevKeyMR().Bytes()},
-		DbHeight:              header.GetDBHeight(),
+		BlockHeight:           header.GetDBHeight(),
 		BlockSequence:         header.GetEBSequence(),
 		EntryCount:            header.GetEntryCount(),
 	}
