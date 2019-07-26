@@ -10,6 +10,7 @@ import (
 	"hash"
 	"os"
 	"reflect"
+	"sort"
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -293,7 +294,6 @@ func (s *State) executeMsg(msg interfaces.IMsg) (ret bool) {
 			(local || vmi == s.LeaderVMIndex) && // if it's a local message or it a message for our VM
 			s.LeaderPL.DBHeight+1 >= hkb {
 			if vml == 0 { // if we have not generated a DBSig ...
-
 				s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex) // ExecuteMsg()
 				TotalXReviewQueueInputs.Inc()
 				s.XReview = append(s.XReview, msg)
@@ -559,11 +559,6 @@ func (s *State) ReviewHolding() {
 	s.Commits.Cleanup(s)
 	s.DB.Trim()
 
-	// Set the resend time at the END of the function. This prevents the time it takes to execute this function
-	// from reducing the time we allow before another review
-	defer func() {
-		s.ResendHolding = now
-	}()
 	// Anything we are holding, we need to reprocess.
 	s.XReview = make([]interfaces.IMsg, 0)
 
@@ -579,17 +574,51 @@ func (s *State) ReviewHolding() {
 		}
 	}
 
-	// Set this flag, so it acts as a constant.  We will set s.LeaderNewMin to false
-	// after processing the Holding Queue.  Ensures we only do this one per minute.
-	//	processMinute := s.LeaderNewMin // Have we processed this minute
-	s.LeaderNewMin++ // Either way, don't do it again until the ProcessEOM resets LeaderNewMin
+	if len(s.HoldingList) == 0 {
+		sorted := []interfaces.IMsg{}
+		for _, v := range s.Holding {
+			sorted = append(sorted, v)
+		}
+		sort.Slice(sorted,
+			func(i, j int) bool {
+				a := sorted[i].GetTimestamp().GetTimeMilli()
+				b := sorted[j].GetTimestamp().GetTimeMilli()
+				return a < b
+			})
+		for k, v := range sorted {
+			if k >= cap(s.HoldingList) {
+				break
+			}
+			s.HoldingList <- v.GetMsgHash().Fixed()
+		}
+	}
 
-	for k, v := range s.Holding {
+	cnt := 1
+processholdinglist:
+	for {
+		if cnt&0x1F == 0 && s.GetTimestamp().GetTimeMilli()-now.GetTimeMilli() > 200 {
+			fmt.Print("cnt ", cnt, " ")
+			break processholdinglist
+		}
+		cnt++
+		var k [32]byte
+		var v interfaces.IMsg
+		var ok bool
+		select {
+		case k = <-s.HoldingList:
+			v, ok = s.Holding[k]
+			if !ok || v == nil {
+				continue processholdinglist
+			}
+		default:
+			break processholdinglist
+		}
+
 		if int(highest)-int(saved) > 1000 {
 			TotalHoldingQueueOutputs.Inc()
 			//delete(s.Holding, k)
 			s.DeleteFromHolding(k, v, "HKB-HSB>1000")
-			continue // No point in executing if we think we can't hold this.
+			continue processholdinglist // No point in executing if we think we can't hold this.
 		}
 
 		if v.Expire(s) {
@@ -598,14 +627,14 @@ func (s *State) ReviewHolding() {
 			TotalHoldingQueueOutputs.Inc()
 			//delete(s.Holding, k)
 			s.DeleteFromHolding(k, v, "expired")
-			continue // If the message has expired, don't hold or execute
+			continue processholdinglist // If the message has expired, don't hold or execute
 		}
 
 		eom, ok := v.(*messages.EOM)
 		if ok {
 			if int(eom.DBHeight)*10+int(eom.Minute) < int(s.LLeaderHeight)*10+s.CurrentMinute {
 				s.DeleteFromHolding(k, v, "old EOM")
-				continue
+				continue processholdinglist
 			}
 			if !eom.IsLocal() && eom.DBHeight > saved {
 				s.HighestKnown = eom.DBHeight
@@ -618,7 +647,7 @@ func (s *State) ReviewHolding() {
 				TotalHoldingQueueOutputs.Inc()
 				//delete(s.Holding, k)
 				s.DeleteFromHolding(k, v, "Old DBSig")
-				continue
+				continue processholdinglist
 			}
 			if !dbsigmsg.IsLocal() && dbsigmsg.DBHeight > saved {
 				s.HighestKnown = dbsigmsg.DBHeight
@@ -631,11 +660,10 @@ func (s *State) ReviewHolding() {
 			TotalHoldingQueueOutputs.Inc()
 			//delete(s.Holding, k)
 			s.DeleteFromHolding(k, v, "old DBState")
-			continue
+			continue processholdinglist
 		}
 
 		// If it is an entryCommit/ChainCommit/RevealEntry and it has a duplicate hash to an existing entry throw it away here
-
 		ce, ok := v.(*messages.CommitEntryMsg)
 		if ok {
 			x := s.NoEntryYet(ce.CommitEntry.EntryHash, ce.CommitEntry.GetTimestamp())
@@ -643,7 +671,7 @@ func (s *State) ReviewHolding() {
 				TotalHoldingQueueOutputs.Inc()
 				//delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
 				s.DeleteFromHolding(k, v, "already committed")
-				continue
+				continue processholdinglist
 			}
 		}
 
@@ -656,7 +684,7 @@ func (s *State) ReviewHolding() {
 				TotalHoldingQueueOutputs.Inc()
 				//delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
 				s.DeleteFromHolding(k, v, "already committed")
-				continue
+				continue processholdinglist
 			}
 		}
 
@@ -672,9 +700,9 @@ func (s *State) ReviewHolding() {
 			TotalHoldingQueueOutputs.Inc()
 			//delete(s.Holding, k)
 			s.DeleteFromHolding(k, v, "invalid from holding")
-			continue
+			continue processholdinglist
 		case 0:
-			continue
+			continue processholdinglist
 		}
 
 		// if it is a Factoid or entry credit transaction then check BLOCK_REPLAY
@@ -683,7 +711,7 @@ func (s *State) ReviewHolding() {
 			ok2 := s.FReplay.IsHashUnique(constants.BLOCK_REPLAY, v.GetRepeatHash().Fixed())
 			if !ok2 {
 				s.DeleteFromHolding(k, v, "BLOCK_REPLAY")
-				continue
+				continue processholdinglist
 			}
 		default:
 		}
@@ -692,21 +720,19 @@ func (s *State) ReviewHolding() {
 			if !s.NoEntryYet(re.GetHash(), s.GetLeaderTimestamp()) {
 				s.DeleteFromHolding(re.GetHash().Fixed(), re, "already committed reveal")
 				s.Commits.Delete(re.GetHash().Fixed())
-				continue
+				continue processholdinglist
 			}
 			// Needs to be our VMIndex as well, or ignore.
 			if re.GetVMIndex() != s.LeaderVMIndex || !s.Leader {
-				continue // If we are a leader, but it isn't ours, and it isn't a new minute, ignore.
+				continue processholdinglist // If we are a leader, but it isn't ours, and it isn't a new minute, ignore.
 			}
 		}
 
 		TotalXReviewQueueInputs.Inc()
 		s.XReview = append(s.XReview, v)
 		TotalHoldingQueueOutputs.Inc()
-		if len(s.XReview) > 200 {
-			break
-		}
 	}
+	s.ResendHolding = s.GetTimestamp()
 	reviewHoldingTime := time.Since(preReviewHoldingTime)
 	TotalReviewHoldingTime.Add(float64(reviewHoldingTime.Nanoseconds()))
 }
@@ -876,47 +902,6 @@ func (s *State) AddDBState(isNew bool,
 		s.LogPrintf("dbstateprocess", "AddDBState out of order! at %d added %d", s.LLeaderHeight, ht)
 		fmt.Fprintf(os.Stderr, "AddDBState() out of order! at %d added %d\n", s.LLeaderHeight, ht)
 		//panic("AddDBState out of order!")
-	}
-	if ht > s.LLeaderHeight {
-		s.LogPrintf("dbstateprocess", "unexpected: ht > s.LLeaderHeight  at %d added %d", s.LLeaderHeight, ht)
-		//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s Add DBState: s.SigType(%v)", s.FactomNodeName, s.SigType))
-		s.MoveStateToHeight(ht, 0) // AddDBState()
-		s.StartDelay = s.GetTimestamp().GetTimeMilli()
-		s.RunLeader = false
-		LeaderPL := s.ProcessLists.Get(s.LLeaderHeight)
-
-		if s.LLeaderHeight != 0 && s.LeaderPL != LeaderPL {
-			s.LogPrintf("ExecuteMsg", "AddDBState: Unexpected change in LeaderPL")
-			s.LeaderPL = LeaderPL
-		}
-		s.SetLeaderTimestamp(dbState.DirectoryBlock.GetTimestamp()) // move the leader timestamp to the start of the block
-		{
-			// Okay, we have just loaded a new DBState.  The temp balances are no longer valid, if they exist.  Nuke them.
-			s.LeaderPL.FactoidBalancesTMutex.Lock()
-			s.LeaderPL.FactoidBalancesT = map[[32]byte]int64{}
-			s.LeaderPL.FactoidBalancesTMutex.Unlock()
-
-			s.LeaderPL.ECBalancesTMutex.Lock()
-			s.LeaderPL.ECBalancesT = map[[32]byte]int64{}
-			s.LeaderPL.ECBalancesTMutex.Unlock()
-		}
-
-		Leader, LeaderVMIndex := s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID) // AddDBState()
-		{                                                                                         // debug
-			if s.Leader != Leader {
-				s.LogPrintf("executeMsg", "State.AddDBState() unexpectedly setting s.Leader to %v", Leader)
-				s.Leader = Leader
-			}
-			if s.LeaderVMIndex != LeaderVMIndex {
-				s.LogPrintf("executeMsg", "State.AddDBState()  unexpectedly setting s.LeaderVMIndex to %v", LeaderVMIndex)
-				s.LeaderVMIndex = LeaderVMIndex
-			}
-		}
-		for s.ProcessLists.UpdateState(s.LLeaderHeight) {
-		}
-	}
-	if ht == 0 && s.LLeaderHeight == 0 {
-		s.MoveStateToHeight(1, 0)
 	}
 
 	return dbState
@@ -1325,7 +1310,6 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 			return
 		}
 		s.WriteEntry <- entry // DataResponse
-
 	}
 }
 
@@ -2090,7 +2074,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 		s.EOMDone = true // ProcessEOM
 		s.EOMSyncTime = time.Now().UnixNano()
-		s.LeaderNewMin = 0
 		for _, eb := range pl.NewEBlocks {
 			eb.AddEndOfMinuteMarker(byte(e.Minute + 1))
 		}

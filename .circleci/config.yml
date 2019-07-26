@@ -5,7 +5,7 @@ jobs:
   build:
     working_directory: /go/src/github.com/FactomProject/factomd
     docker:
-      - image: circleci/golang:1.10
+      - image: circleci/golang:1.12
 
     steps:
       - checkout
@@ -45,7 +45,7 @@ jobs:
   test:
     working_directory: /tmp
     docker:
-      - image: circleci/golang:1.10
+      - image: circleci/golang:1.12
 
     parallelism: 8
 
@@ -64,7 +64,7 @@ jobs:
   test_full:
     working_directory: /tmp
     docker:
-      - image: circleci/golang:1.10
+      - image: circleci/golang:1.12
 
     parallelism: 8
 
@@ -79,12 +79,12 @@ jobs:
             export PATH="/tmp/go/bin:$PATH"
             export GOPATH=/tmp/go
             cd /tmp/go/src/github.com/FactomProject/factomd/
-            ./test.sh long
+            ./test.sh full
 
   coveralls:
     working_directory: /tmp
     docker:
-      - image: circleci/golang:1.10
+      - image: circleci/golang:1.12
 
     steps:
       - attach_workspace:
@@ -103,7 +103,7 @@ jobs:
   gofmt:
     working_directory: /tmp
     docker:
-      - image: circleci/golang:1.10
+      - image: circleci/golang:1.12
 
     steps:
       - attach_workspace:
@@ -395,8 +395,3 @@ workflows:
           context: org-global
           requires:
             - test_full
-
-notify:
-  webhooks:
-    - url: https://hooks.zapier.com/hooks/catch/2398659/i8hgb6/
-

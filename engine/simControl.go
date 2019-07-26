@@ -1107,18 +1107,43 @@ func SimControl(listenTo int, listenStdin bool) {
 				}
 
 				fnodes[ListenTo].State.DropRate = nnn
-				os.Stderr.WriteString(fmt.Sprintf("Setting drop rate of %10s to %2d.%01d percent\n", fnodes[ListenTo].State.FactomNodeName, nnn/10, nnn%10))
+				os.Stderr.WriteString(fmt.Sprintf("Setting drop rate of %10s to %2d.%01d percent\n",
+					fnodes[ListenTo].State.FactomNodeName, nnn/10, nnn%10))
 
+				// modify the blocktime or modify the effective clocks on leaders in a simulation
 			case 'T' == b[0]:
-				nn, err := strconv.Atoi(string(b[1:]))
-				if err != nil || nn < 5 || nn > 800 {
-					os.Stderr.WriteString("Specify a block time between 5 and 600 seconds\n")
+				left := " "
+				if len(b) >= 2 {
+					left = b[1:]
+				}
+				nn, err := strconv.Atoi(string(left))
+				if err == nil {
+					if nn < 5 || nn > 800 {
+						os.Stderr.WriteString("Specify a block time between 5 and 600 seconds\n")
+						break
+					}
+					os.Stderr.WriteString(fmt.Sprint("Setting the block time for all nodes to ", nn, "\n"))
+					for _, f := range fnodes {
+						f.State.SetDirectoryBlockInSeconds(nn)
+					}
 					break
 				}
-				os.Stderr.WriteString(fmt.Sprint("Setting the block time for all nodes to ", nn, "\n"))
-				for _, f := range fnodes {
-					f.State.SetDirectoryBlockInSeconds(nn)
+				switch left[0] {
+				case 's':
+					fmt.Fprintln(os.Stderr, "Start the Randomizing the clocks by 1 second (or re-randomize)\n")
+					for _, fn := range fnodes {
+						fn.State.TimeOffset = primitives.NewTimestampFromMilliseconds(uint64(rand.Intn(1000)))
+					}
+				case 'e':
+					fmt.Fprintln(os.Stderr, "End Randomizing the clocks by 1 second\n")
+					for _, fn := range fnodes {
+						fn.State.TimeOffset.SetTime(0)
+					}
+				default:
+					os.Stderr.WriteString("Must provide either a time to specify a block time, or " +
+						"other 's' specifier for spreading clocks over the simulator.\n")
 				}
+
 			case 'F' == b[0]:
 				nn, err := strconv.Atoi(string(b[1:]))
 				nnn := int64(nn)
@@ -1129,7 +1154,8 @@ func SimControl(listenTo int, listenStdin bool) {
 
 				for _, fn := range fnodes {
 					fn.State.Delay = nnn
-					os.Stderr.WriteString(fmt.Sprintf("Setting Delay on communications from %10s to %2d.%03d Seconds\n", fn.State.FactomNodeName, nnn/1000, nnn%1000))
+					fmt.Fprintf(os.Stderr, "Setting Delay on communications from %10s to %2d.%03d Seconds\n",
+						fn.State.FactomNodeName, nnn/1000, nnn%1000)
 				}
 
 				for _, f := range fnodes {
@@ -1399,6 +1425,8 @@ func SimControl(listenTo int, listenStdin bool) {
 				os.Stderr.WriteString("y             Dump what is in the Holding Map.  Can crash, but oh well.\n")
 				os.Stderr.WriteString("m             Show Messages as they are passed through the simulator.\n")
 				os.Stderr.WriteString("Tnnn          Set the block time to the given number of seconds.\n")
+				os.Stderr.WriteString("Ts            Set a random offset in the various machines in a simulation to vary the ticker timer for leaders\n")
+				os.Stderr.WriteString("Te            set the offset to zero in the various machines in a simulation to not vary the ticker timer for leaders\n")
 				os.Stderr.WriteString("c             Trace the Consensus Process\n")
 				os.Stderr.WriteString("s             Show the state of all nodes as their state changes in the simulator.\n")
 				os.Stderr.WriteString("Snnn          Print the last nnn status messages from the current node.\n")
