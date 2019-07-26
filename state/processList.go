@@ -749,7 +749,7 @@ func (p *ProcessList) decodeState(Syncing bool, DBSig bool, EOM bool, DBSigDone 
 
 }
 
-var extraDebug bool = true
+var extraDebug bool = false
 
 func (p *ProcessList) processVM(vm *VM) (progress bool) {
 
