@@ -1173,6 +1173,7 @@ func (s *State) Init() {
 	s.asks = make(chan askRef, 5)
 	s.adds = make(chan plRef, 5)
 	s.dbheights = make(chan int, 1)
+	s.rejects = make(chan MsgPair, 1) // Messages rejected from process list
 
 	// Allocate the missing message handler
 	s.MissingMessageResponseHandler = NewMissingMessageReponseCache(s)

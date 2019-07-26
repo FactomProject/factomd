@@ -310,6 +310,7 @@ func TestActivationHeightElection(t *testing.T) {
 
 	ShutDownEverything(t)
 }
+
 func TestAnElection(t *testing.T) {
 	if RanSimTest {
 		return
@@ -317,7 +318,7 @@ func TestAnElection(t *testing.T) {
 
 	RanSimTest = true
 
-	state0 := SetupSim("LLLAAF", map[string]string{}, 9, 1, 1, t)
+	state0 := SetupSim("LLLAAF", map[string]string{"--blktime": "15"}, 9, 1, 1, t)
 
 	StatusEveryMinute(state0)
 	WaitMinutes(state0, 2)
@@ -336,7 +337,6 @@ func TestAnElection(t *testing.T) {
 	// wait for him to update via dbstate and become an audit
 	WaitBlocks(state0, 2)
 	WaitMinutes(state0, 1)
-
 	WaitForAllNodes(state0)
 
 	// PrintOneStatus(0, 0)
