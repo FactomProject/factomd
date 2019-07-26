@@ -1,0 +1,127 @@
+syntax = "proto3";
+package eventmessages;
+
+import "common/messages/eventmessages/generalTypes.proto";
+import "common/messages/eventmessages/factoidBlock.proto";
+import "google/protobuf/timestamp.proto";
+
+
+message AdminBlock {
+    AdminBlockHeader header = 1;
+    repeated AdminBlockEntry entries = 2;
+}
+
+
+message AdminBlockHeader {
+    Hash previousBackRefHash = 1;
+    uint32 blockHeight = 2;
+}
+
+message AdminBlockEntry {
+    oneof value {
+        AddAuditServer addAuditServer = 1;
+        AddEfficiency addEfficiency = 2;
+        AddFactoidAddress addFactoidAddress = 3;
+        AddFederatedServer addFederatedServer = 4;
+        AddFederatedServerBitcoinAnchorKey addFederatedServerBitcoinAnchorKey = 5;
+        AddFederatedServerSigningKey addFederatedServerSigningKey = 6;
+        AddReplaceMatryoshkaHash addReplaceMatryoshkaHash = 7;
+        CancelCoinbaseDescriptor cancelCoinbaseDescriptor = 8;
+        CoinbaseDescriptor coinbaseDescriptor = 9;
+        DirectoryBlockSignatureEntry dbSignatureEntry = 10;
+        EndOfMinuteEntry endOfMinuteEntry = 11;
+        ForwardCompatibleEntry forwardCompatibleEntry = 12;
+        IncreaseServerCount increaseServerCount = 13;
+        RemoveFederatedServer removeFederatedServer = 14;
+        RevealMatryoshkaHash revealMatryoshkaHash = 15;
+        ServerFault serverFault = 16;
+    }
+}
+
+message AddAuditServer {
+    Hash identityChainID = 1;
+    uint32 blockHeight = 2;
+}
+
+message AddEfficiency {
+    Hash identityChainID = 1;
+    uint32 efficiency = 2;
+}
+
+message AddFactoidAddress {
+    Hash identityChainID = 1;
+    Hash address = 2;
+}
+
+message AddFederatedServer {
+    Hash identityChainID = 1;
+    uint32 blockHeight = 2;
+}
+
+message AddFederatedServerBitcoinAnchorKey {
+    Hash identityChainID = 1;
+    uint32 keyPriority = 2;
+    uint32 keyType = 3;
+    bytes ecdsaPublicKey = 4;
+}
+
+message AddFederatedServerSigningKey {
+    Hash identityChainID = 1;
+    uint32 keyPriority = 2;
+    bytes publicKey = 3;
+    uint32 blockHeight = 4;
+}
+
+message AddReplaceMatryoshkaHash {
+    Hash identityChainID = 1;
+    Hash matryoshkaHash = 2;
+    repeated TransactionAddress outputs = 3;
+
+}
+
+message CancelCoinbaseDescriptor {
+    uint32 descriptorHeight = 1;
+    uint32 descriptorIndex = 2;
+}
+
+message CoinbaseDescriptor {
+    repeated TransAddress outputs = 1;
+}
+
+message DirectoryBlockSignatureEntry {
+    Hash identityAdminChainID = 1;
+    Signature PrevDBSig = 2;
+}
+
+message EndOfMinuteEntry {
+    uint32 minuteNumber = 1;
+}
+
+message ForwardCompatibleEntry {
+    uint32 size = 1;
+    bytes data = 2;
+}
+
+message IncreaseServerCount {
+    uint32 amount = 1;
+}
+
+message RemoveFederatedServer {
+    Hash identityChainID = 1;
+    uint32 blockHeight = 2;
+}
+
+message RevealMatryoshkaHash {
+    Hash identityChainID = 1;
+    Hash matryoshkaHash = 2;
+}
+
+message ServerFault {
+    google.protobuf.Timestamp timestamp = 1;
+    Hash serverId = 2;
+    Hash auditServerId = 3;
+    uint32 vmIndex = 4;
+    uint32 blockHeight = 5;
+    uint32 height = 6;
+    repeated Signature signatureList = 7;
+}

@@ -1,12 +1,18 @@
 syntax = "proto3";
 package eventmessages;
 
+import "common/messages/eventmessages/generalTypes.proto";
+import "common/messages/eventmessages/adminBlock.proto";
+import "common/messages/eventmessages/factoidBlock.proto";
+import "common/messages/eventmessages/entryCredit.proto";
 import "google/protobuf/timestamp.proto";
+
 
 enum EventSource {
     COMMIT_DIRECTORY_BLOCK = 0;
     ADD_TO_PROCESSLIST = 1;
     ADD_TO_HOLDING = 2;
+    NODE_ERROR = 3;
 }
 
 
@@ -17,6 +23,7 @@ message FactomEvent {
         CommitChain commitChain = 3;
         CommitEntry commitEntry = 4;
         RevealEntry revealEntry = 5;
+        Error error = 6;
     }
 }
 
@@ -41,7 +48,7 @@ message DirectoryBlockHeader {
     Hash previousKeyMerkleRoot = 2;
     Hash previousFullHash = 3;
     google.protobuf.Timestamp timestamp = 4;
-    uint32 dbHeight = 5;
+    uint32 blockHeight = 5;
     uint32 blockCount = 6;
 }
 
@@ -55,7 +62,7 @@ message EntryBlockHeader {
     Hash chainID = 2;
     Hash previousFullHash = 3;
     Hash previousKeyMerkleRoot = 4;
-    uint32 dbHeight = 5;
+    uint32 blockHeight = 5;
     uint32 blockSequence = 6;
     uint32 entryCount = 7;
 }
@@ -69,89 +76,6 @@ message EntryBlockEntry {
 message Entry {
     Hash chainID = 1;
     Hash keyMerkleRoot = 2;
-}
-
-
-message AdminBlock {
-    AdminBlockHeader header = 1;
-    repeated AdminBlockEntry entries = 2;
-}
-
-message FactoidBlock {
-
-}
-
-
-message EntryCreditBlock {
-
-}
-
-
-message AdminBlockHeader {
-    Hash prevBackRefHash = 1;
-    uint32 dbHeight = 2;
-}
-
-message AdminBlockEntry {
-    oneof value {
-        DirectoryBlockSignatureEntry dbSignatureEntry = 1;
-        AddAuditServer addAuditServer = 2;
-        CoinbaseDescriptor coinbaseDescriptor = 3;
-    }
-}
-
-message AddAuditServer {
-    Hash identityChainID = 2;
-    uint32 dbHeight = 3;
-}
-
-message CoinbaseDescriptor {
-    repeated TransAddress outputs = 2;
-}
-
-message TransAddress {
-    uint64 amount = 1;
-    Hash address = 2;
-}
-
-message DirectoryBlockSignatureEntry {
-    Hash identityAdminChainID = 2;
-    Signature prevDBSignature = 3;
-}
-
-message Hash {
-    bytes hashValue = 1;
-}
-
-message ExternalId {
-    bytes binaryValue = 1;
-}
-
-message Content {
-    bytes binaryValue = 1;
-}
-
-message Signature {
-    bytes publicKey = 1;
-    bytes signature = 2;
-}
-
-message CommitChain {
-    Hash chainIDHash = 1;
-    Hash entryHash = 2;
-    Hash weld = 3;
-    google.protobuf.Timestamp timestamp = 4;
-    uint32 credits = 5;
-    bytes ecPubKey = 6;
-    bytes sig = 7;
-}
-
-message CommitEntry {
-    Hash entryHash = 1;
-    google.protobuf.Timestamp timestamp = 2;
-    uint32 credits = 3;
-    bytes ecPubKey = 4;
-    bytes sig = 5;
 }
 
 message RevealEntry {
