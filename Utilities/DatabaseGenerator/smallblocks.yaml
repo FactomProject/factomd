@@ -1,0 +1,21 @@
+dbpath: factoid_level.db
+dbtype: level
+factomdconfigpath: gen.conf
+customnetid: gen
+starttime: ""
+loopsperprint: 200
+entrygenerator: "incr"
+entrygenconfig:
+  entriespereblock:
+    min: 5
+    max: 10
+  entrysize:
+    min: 100
+    max: 250
+  eblocksperheight:
+    min: 1
+    max: 5
+  multithreaded: true
+  threadpoolcount: 8
+
+

@@ -27,13 +27,13 @@ imports:
   subpackages:
   - edwards25519
 - name: github.com/FactomProject/factom
-  version: 92b9a9bb5aa25574d8b950bf4e9daec78c8980b2
+  version: 8be07008a81f6a2aef8c8049f84bbb451f43aa1b
 - name: github.com/FactomProject/go-bip32
   version: 3b593af1c415abc1017648e4eb24a88c32fee0f3
 - name: github.com/FactomProject/go-bip39
   version: d1007fb78d9a7ec65314dad412973e63caf4c527
 - name: github.com/FactomProject/go-bip44
-  version: fd672f46ddc35bb381f497f7b64c9cf34f9e0703
+  version: b541a96d8da98567af7610ef96105a834e6ed46c
 - name: github.com/FactomProject/go-simplejson
   version: aabad6e819789e569bd6aabf444c935aa9ba1e44
 - name: github.com/FactomProject/goleveldb

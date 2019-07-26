@@ -141,6 +141,7 @@ func (lg *LoadGenerator) KeepUsFunded() {
 			ts = "true"
 		}
 
+		//EC3Eh7yQKShgjkUSFrPbnQpboykCzf4kw9QHxi47GGz5P2k3dbab is EC address
 		if lg.PerSecond == 0 && limitBuys {
 			if i%100 == 0 {
 				// Log our occasional realization that we have nothing to do.
