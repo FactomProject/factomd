@@ -8,6 +8,7 @@ import (
 	"fmt"
 )
 
+// A set of numbered errors used as the 'APIcode' in struct Error
 const (
 	ErrorBadMethod             = 0
 	ErrorNotAcceptable         = 1
@@ -33,19 +34,22 @@ const (
 	ErrorHTMLMarshal           = 21
 )
 
+// Error is a common struct used to return errors in factomd
 type Error struct {
-	APICode     uint
-	HTTPCode    int
-	Name        string
-	Description string
-	SupportURL  string
-	Message     string
+	APICode     uint   // One of the numbered codes above
+	HTTPCode    int    // HTTP error code (set by APIcode above): See https://www.restapitutorial.com/httpstatuscodes.html
+	Name        string // Name of the error (set by APIcode above)
+	Description string // Description of what happened (set by APIcode above)
+	SupportURL  string // This doesn't appear to be used anywhere (set by APIcode above)
+	Message     string // Client side message added to the error (it doesn't appear to be used anywhere)
 }
 
+// Error returns a string with the relevant details about the error
 func (r *Error) Error() string {
 	return fmt.Sprint(r.Name, "\n", r.Description, "\n", r.Message)
 }
 
+// CreateError creates and returns a new Error from the input parameters
 func CreateError(code uint, message string) *Error {
 	r := new(Error)
 
@@ -56,6 +60,7 @@ func CreateError(code uint, message string) *Error {
 	return r
 }
 
+// retreiveErrorParameters returns the relevant HTTP error code, name, description, and support url for the input error code
 func retreiveErrorParameters(code uint) (int, string, string, string) {
 	switch code {
 	case ErrorInternal:

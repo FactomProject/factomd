@@ -12,6 +12,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives/random"
 )
 
+// TestPushPopInt64 tests that 0,MaxInt64,MinInt64 and N random int64 numbers can be pushed and popped from the Buffer
 func TestPushPopInt64(t *testing.T) {
 	b := NewBuffer(nil)
 
@@ -70,6 +71,7 @@ func TestPushPopInt64(t *testing.T) {
 	}
 }
 
+// TestPushPopUInt64 tests that 0,MaxInt64 and N random uint64 numbers can be pushed and popped from the Buffer
 func TestPushPopUInt64(t *testing.T) {
 	b := NewBuffer(nil)
 
@@ -115,6 +117,7 @@ func TestPushPopUInt64(t *testing.T) {
 	}
 }
 
+// TestPushPopVarInt tests that 0,MaxInt64 and N random uint64 numbers can be pushed and popped from the Buffer
 func TestPushPopVarInt(t *testing.T) {
 	b := NewBuffer(nil)
 
@@ -160,6 +163,7 @@ func TestPushPopVarInt(t *testing.T) {
 	}
 }
 
+// TestPushPopString test that N random strings can be pushed and popped from the Buffer
 func TestPushPopString(t *testing.T) {
 	b := NewBuffer(nil)
 	for i := 0; i < 1000; i++ {
@@ -178,6 +182,7 @@ func TestPushPopString(t *testing.T) {
 	}
 }
 
+// TestPushPopBytes tests that N random ByteSlices can be pushed and popped from the Buffer
 func TestPushPopBytes(t *testing.T) {
 	buf := NewBuffer(nil)
 	for i := 0; i < 1000; i++ {
@@ -196,6 +201,7 @@ func TestPushPopBytes(t *testing.T) {
 	}
 }
 
+// TestPushPopUint32 tests that 0,MaxUint32 and N random uint32 numbers can be pushed and popped from the Buffer
 func TestPushPopUInt32(t *testing.T) {
 	b := NewBuffer(nil)
 
@@ -241,6 +247,7 @@ func TestPushPopUInt32(t *testing.T) {
 	}
 }
 
+// TestPushPopBinaryMarshallable tests that N random hashes can be pushed and popped from the Buffer
 func TestPushPopBinaryMarshallable(t *testing.T) {
 	b := NewBuffer(nil)
 	for i := 0; i < 1000; i++ {

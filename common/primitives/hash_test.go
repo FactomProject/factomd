@@ -17,6 +17,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives/random"
 )
 
+// TestUnmarshalNilHash checks that unmarshalling a nil hash returns proper errors
 func TestUnmarshalNilHash(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -36,6 +37,8 @@ func TestUnmarshalNilHash(t *testing.T) {
 	}
 }
 
+// TestHashCopyAndIsEqual checks that N random ByteSlices can be properly compared to be not-equal and equal
+// when copied or compared appropriately
 func TestHashCopyAndIsEqual(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		h := random.RandByteSliceOfLen(constants.HASH_LENGTH)
@@ -68,6 +71,7 @@ func TestHashCopyAndIsEqual(t *testing.T) {
 	}
 }
 
+// TestHashMarshalUnmarshal checks that N random hashs can be marshalled and unmarshalled properly
 func TestHashMarshalUnmarshal(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		h1 := RandomHash()
@@ -140,6 +144,7 @@ func TestSha512Half(t *testing.T) {
 	}
 }
 
+// TestHashStrings checks that the Hash can create proper strings and []byte arrays
 func TestHashStrings(t *testing.T) {
 	base := "ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a"
 	hash, err := HexToHash(base)
@@ -169,6 +174,7 @@ func TestHashStrings(t *testing.T) {
 	}
 }
 
+// TestIsSameAs checks that the same hash copied and replicated is recognized as such
 func TestIsSameAs(t *testing.T) {
 	base := "ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a"
 	hash, err := HexToHash(base)
@@ -193,6 +199,7 @@ func TestIsSameAs(t *testing.T) {
 	}
 }
 
+// TestMashMisc tests a variety of miscellaineous functions for the hash
 func TestHashMisc(t *testing.T) {
 	base := "4040404040404040404040404040404040404040404040404040404040404040"
 	hash, err := HexToHash(base)
@@ -243,6 +250,8 @@ func TestHashMisc(t *testing.T) {
 	}
 }
 
+// TestHashIsZero checks that almost zero hashs are properly recognized as NOT zero, and that a
+// zero hash is properly recognized
 func TestHashIsZero(t *testing.T) {
 	strs := []string{
 		"0000000000000000000000000000000000000000000000000000000000000001",
@@ -280,6 +289,8 @@ func TestHashIsZero(t *testing.T) {
 
 }
 
+// TestIsMinuteMarker checks that all valid minute markers are correctly identified as such, and that other
+// single non-zero digit markers are NOT idendified as minute markers
 func TestIsMinuteMarker(t *testing.T) {
 	strs := []string{
 		"0000000000000000000000000000000000000000000000000000000000000000",
@@ -390,6 +401,7 @@ func TestIsMinuteMarker(t *testing.T) {
 	}
 }
 
+// TestStringUnmarshaller checks that N random hashs unmarshal correctly
 func TestStringUnmarshaller(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		base := RandomHash().String()
@@ -419,6 +431,7 @@ func TestStringUnmarshaller(t *testing.T) {
 	}
 }
 
+// TestDoubleSha checks that various input strings correctly double has to their known values
 func TestDoubleSha(t *testing.T) {
 	testVector := map[string]string{
 		"abc": "4f8b42c22dd3729b519ba6f68d2da7cc5b2d606d05daed5ad5128cc03e6c6358",
@@ -439,6 +452,7 @@ func TestDoubleSha(t *testing.T) {
 	}
 }
 
+// TestNewShaHashFromStruct checks that various input strings correctly hash to their known values
 func TestNewShaHashFromStruct(t *testing.T) {
 	testVector := map[string]string{
 		"abc": "c127d30fe315d2d3f2dfeae6b9d57c6aa6322c73fb3fd868963660d6cdcd471f",
@@ -458,6 +472,8 @@ func TestNewShaHashFromStruct(t *testing.T) {
 	}
 }
 
+// TestCreateHash checks that multiple input strings all hash to the correct answer when
+// combined via CreateHash()
 func TestCreateHash(t *testing.T) {
 	strs := []string{
 		"0000000000000000000000000000000000000000000000000000000000000000",

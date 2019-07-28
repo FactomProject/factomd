@@ -13,6 +13,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives/random"
 )
 
+// TestUnmarshalNiliVarInt checks that unmarshalling a nil/empty var int returns the expected 0 value
 func TestUnmarshalNilVarInt(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -37,6 +38,7 @@ func TestUnmarshalNilVarInt(t *testing.T) {
 	}
 }
 
+// TestVarIntLength checks that the known variable integers lengths are returned correctly
 func TestVarIntLength(t *testing.T) {
 	var vector map[uint64]int = map[uint64]int{
 		0x00:               1,
@@ -68,6 +70,7 @@ func TestVarIntLength(t *testing.T) {
 	}
 }
 
+// TestVarInt checks that N random var ints arrays can be encoded and decoded correctly
 func TestVarInt(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		var out Buffer
@@ -115,6 +118,7 @@ func TestVarInt(t *testing.T) {
 	}
 }
 
+// TestRandomVarInt checks that N random var ints can be encoded and decoded properly
 func TestRandomVarInt(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		vi := RandomVarInt()
@@ -132,6 +136,8 @@ func TestRandomVarInt(t *testing.T) {
 	}
 }
 
+// TestRandomVarIntWithExtraData checks that N random var ints when encoded and extra is added, are properly
+// decoded and the extra is returned and identical to the input extra
 func TestRandomVarIntWithExtraData(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		vi := RandomVarInt()

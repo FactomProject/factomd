@@ -18,6 +18,7 @@ import (
 	"github.com/FactomProject/factomd/testHelper"
 )
 
+// TestCalculateCoinbasePayout given a set of input efficiencies and their known outputs
 func TestCalculateCoinbasePayout(t *testing.T) {
 	testIt := func(eff uint16, exp uint64) {
 		if CalculateCoinbasePayout(eff) != exp {
@@ -31,6 +32,7 @@ func TestCalculateCoinbasePayout(t *testing.T) {
 
 }
 
+// TestEfficiencyToString checks that input efficiencies are properly converted to strings
 func TestEfficiencyToString(t *testing.T) {
 	testIt := func(n uint16, e string) {
 		if EfficiencyToString(n) != e {
@@ -46,6 +48,7 @@ func TestEfficiencyToString(t *testing.T) {
 	testIt(10, "0.10")
 }
 
+// TestPrintHelp checks that input numbers will have commas inseted in the proper places
 func TestPrintHelp(test *testing.T) {
 	t := func(v int64, str string) {
 		s := AddCommas(v)
@@ -73,6 +76,7 @@ func TestPrintHelp(test *testing.T) {
 	t(-4300002100, "-4,300,002,100")
 }
 
+// TestConversions tests a variety of Factoid to Factoshi inputs
 func TestConversions(test *testing.T) {
 	v, err := ConvertFixedPoint(".999")
 	if err != nil || v != "99900000" {
@@ -96,6 +100,7 @@ func TestConversions(test *testing.T) {
 	}
 }
 
+// TestWriteNumber checks that the WriteNumber* functions work properly
 func TestWriteNumber(t *testing.T) {
 	out := new(Buffer)
 
@@ -110,7 +115,8 @@ func TestWriteNumber(t *testing.T) {
 	}
 }
 
-func TestConvertion(t *testing.T) {
+// TestConversion checsk that the Factoshi to Factoid conversion works properly
+func TestConversion(t *testing.T) {
 	var num uint64 = 123456789
 	if ConvertDecimalToString(num) != "1.23456789" {
 		t.Error("Failed ConvertDecimalToString")
@@ -120,9 +126,11 @@ func TestConvertion(t *testing.T) {
 	}
 }
 
-// func DecodeVarInt(data []byte)                   (uint64, []byte)
-// func EncodeVarInt(out *bytes.Buffer, v uint64)   error
-
+// TestVariable_Integers does the following 1000 time:
+// 1) create an array of 10 random rumbers of varying lengths and sizes
+// 2) writes them to a buffer using the varint
+// 3) decodes the array 1000 times (I don't know why it does this,
+//    if you can decode it 1 time, is it expected to change? Or is this a mis-written test)
 func TestVariable_Integers(test *testing.T) {
 	for i := 0; i < 1000; i++ {
 		var out Buffer
@@ -177,6 +185,8 @@ func TestVariable_Integers(test *testing.T) {
 	}
 }
 
+// TestValidateUserStr validates a set of fixed addresses, and creates 1000 FA addresses
+// and verifies them
 func TestValidateUserStr(t *testing.T) {
 	fctAdd := "FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q"
 	fctAddSecret := "Fs3E9gV6DXsYzf7Fqx1fVBQPQXV695eP3k5XbmHEZVRLkMdD9qCK"
@@ -217,6 +227,8 @@ func TestValidateUserStr(t *testing.T) {
 	}
 }
 
+// TestAddressConversions creates one each of FA, EC, Fs, and Es from a key and verifies that the expected
+// user facing address is returned
 func TestAddressConversions(t *testing.T) {
 	//https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#factoid-address
 	pub := "0000000000000000000000000000000000000000000000000000000000000000"
@@ -275,6 +287,9 @@ func TestAddressConversions(t *testing.T) {
 	}
 }
 
+// TestHumanReadableAddressConvert checks that the conversion from human readable to address works:
+// 1) Address -> Human Readable -> Address
+// 2) Human readable -> Address -> Human Readable
 func TestHumanReadableAddressConvert(t *testing.T) {
 	// Test going from Address -> Human Readable -> Address
 	for i := 0; i < 1000; i++ {

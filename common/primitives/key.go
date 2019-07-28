@@ -104,7 +104,7 @@ func (pk *PrivateKey) MarshalSign(msg interfaces.BinaryMarshallable) (sig interf
 	return pk.Sign(data)
 }
 
-//GenerateKey creates new PrivateKey / PublicKey pair or returns error
+//GenerateKey creates new random PrivateKey / PublicKey pair or returns error
 func (pk *PrivateKey) GenerateKey() error {
 	pub, priv, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {

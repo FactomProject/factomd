@@ -10,6 +10,7 @@ import (
 	. "github.com/FactomProject/factomd/common/primitives"
 )
 
+// TestErrors verifies that all supported error codes are generated correctly
 func TestErrors(t *testing.T) {
 	errs := []Error{
 		Error{ErrorInternal, 500, "Internal", "An internal error occurred", "", ""},

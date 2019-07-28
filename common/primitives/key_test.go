@@ -13,6 +13,7 @@ import (
 	. "github.com/FactomProject/factomd/common/primitives"
 )
 
+// TestInit checks that a new PrivateKey is initialized correctly
 func TestInit(t *testing.T) {
 	p := new(PrivateKey)
 	p.Init()
@@ -34,6 +35,7 @@ func TestInit(t *testing.T) {
 	}
 }
 
+// TestBadHex checks that bad hexidecimal strings are flagged with errors.
 func TestBadHex(t *testing.T) {
 	_, err := NewPrivateKeyFromHex("notgoodhex")
 	if err == nil {
@@ -52,6 +54,7 @@ func TestBadHex(t *testing.T) {
 
 }
 
+// TestUnmarshalNilPublicKey checks that public keys properly error when attempting to unmarshal nil/empty objects
 func TestUnmarshalNilPublicKey(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -71,6 +74,7 @@ func TestUnmarshalNilPublicKey(t *testing.T) {
 	}
 }
 
+// TestGenerateKey checks that a new random private key can be generated
 func TestGenerateKey(t *testing.T) {
 	priv := new(PrivateKey)
 
@@ -90,6 +94,7 @@ func TestGenerateKey(t *testing.T) {
 	t.Logf("Pub.Key - Hex: %v", hex.EncodeToString((*priv.Pub)[:]))
 }
 
+// TestSign checks that a new private key can be signed and verified.
 func TestSign(t *testing.T) {
 	priv := new(PrivateKey)
 
@@ -113,6 +118,8 @@ func TestSign(t *testing.T) {
 	}
 }
 
+// TestVerify creates two random new private keys and signs them. Then verifies the keys are proper and modifies them to check
+// they are flagged as improper as necessary
 func TestVerify(t *testing.T) {
 	priv1 := new(PrivateKey)
 	priv2 := new(PrivateKey)
@@ -190,6 +197,7 @@ func TestVerify(t *testing.T) {
 	}
 }
 
+// TestNewPrivateKeyFromHex checks that new private keys are generated correctly
 func TestNewPrivateKeyFromHex(t *testing.T) {
 	priv := "ec9f1cefa00406b80d46135a53504f1f4182d4c0f3fed6cca9281bc020eff973"
 	pub := "8bee2930cbe4772ae5454c4801d4ef366276f6e4cc65bac18be03607c00288c4"

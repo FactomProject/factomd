@@ -11,6 +11,7 @@ import (
 	. "github.com/FactomProject/factomd/common/primitives"
 )
 
+// TestJsonString checks that the string conversion functions work properly
 func TestJsonString(t *testing.T) {
 	var methods = []string{"a", "b", "c", "random", "somenumbers0214", "@#%&", "blank"}
 	for i, meth := range methods {
@@ -56,6 +57,7 @@ func TestJsonString(t *testing.T) {
 	}
 }
 
+// TestBadUnmarshal tests bad json requests are flagged as improper
 func TestBadUnmarshal(t *testing.T) {
 	_, err := ParseJSON2Request("baddata")
 	if err == nil {
@@ -68,6 +70,7 @@ func TestBadUnmarshal(t *testing.T) {
 	}
 }
 
+// TestJsonResp checks that various functions for the json response object work properly
 func TestJsonResp(t *testing.T) {
 	var errors = []string{"a", "b", "c", "random", "somenumbers0214", "@#%&", "blank"}
 	for i, er := range errors {

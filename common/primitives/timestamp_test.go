@@ -11,6 +11,8 @@ import (
 	. "github.com/FactomProject/factomd/common/primitives"
 )
 
+// TestUnmarshalNilTimestamp checks that nil/empty timestamps are flagged as errors when they are
+// unmarshalled
 func TestUnmarshalNilTimestamp(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -30,6 +32,7 @@ func TestUnmarshalNilTimestamp(t *testing.T) {
 	}
 }
 
+// TestTimestamp checks that timestamps can be marshalled and unmarshalled correctly
 func TestTimestamp(t *testing.T) {
 	ts := new(Timestamp)
 	ts.SetTimeNow()
@@ -73,6 +76,7 @@ func TestTimestamp(t *testing.T) {
 	}
 }
 
+// TestTimestamp2 checks that timestamps can be marshalled and unmarshalled correctly
 func TestTimestamp2(t *testing.T) {
 	ts := new(Timestamp)
 	ts.SetTime(0xFF22100122FF)
@@ -115,6 +119,7 @@ func TestTimestamp2(t *testing.T) {
 	}
 }
 
+// TestTimestamp3 checks that timestamps can be marshalled and unmarshalled correctly
 func TestTimestamp3(t *testing.T) {
 	ts := new(Timestamp)
 	ts.SetTime(0x000001)
@@ -157,6 +162,8 @@ func TestTimestamp3(t *testing.T) {
 	}
 }
 
+// TestTimestampMisc checks that N timestamps when converted to various time units (seconds/minutes/etc)
+// still have identical timestamp values.
 func TestTimestampMisc(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		ts := NewTimestampNow()

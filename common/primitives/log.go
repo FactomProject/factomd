@@ -60,7 +60,7 @@ func EncodeJSON(data interface{}) ([]byte, error) {
 	return encoded, nil
 }
 
-// EncodeJSONString marshals data into Json format
+// EncodeJSONString marshals data into Json format byte string
 func EncodeJSONString(data interface{}) (string, error) {
 	encoded, err := EncodeJSON(data)
 	if err != nil {

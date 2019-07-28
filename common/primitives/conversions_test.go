@@ -35,6 +35,7 @@ Corresponding to public key: 8bee2930-cbe4772a-e5454c48-01d4ef36-6276f6e4-cc65ba
 
 */
 
+// TestMnemonicStringToPrivateKey tests a known mnemonic string to ensure it transforms correctly into a private key
 func TestMnemonicStringToPrivateKey(t *testing.T) {
 	mnemonic := "salute umbrella proud setup delay ginger practice split toss jewel tuition stool"
 	privateKeyStr := "ec9f1cefa00406b80d46135a53504f1f4182d4c0f3fed6cca9281bc020eff973"
@@ -52,6 +53,7 @@ func TestMnemonicStringToPrivateKey(t *testing.T) {
 	}
 }
 
+// TestHumanReadablePrivateKeyToPrivateKey transforms a known private key to ensure it remains correct
 func TestHumanReadablePrivateKeyToPrivateKey(t *testing.T) {
 	priv, err := HumanReadableFactoidPrivateKeyToPrivateKey("Fs37iVGnZ7jShPudsXuB98qURxk35eLrmh9cgPuPpTXHAJEBkUTh")
 	if err != nil {
@@ -62,6 +64,8 @@ func TestHumanReadablePrivateKeyToPrivateKey(t *testing.T) {
 	}
 }
 
+// TestMnemonicValidation tests to make sure improper mnemonics are correctly flagged as invalid and are different
+// from the true private addres generated from the correct mnemonic
 func TestMnemonicValidation(t *testing.T) {
 	properMnemonic := "salute umbrella proud setup delay ginger practice split toss jewel tuition stool"
 	improperMnemonics := []string{
@@ -95,6 +99,7 @@ func TestMnemonicValidation(t *testing.T) {
 	}
 }
 
+// TestHumanReadablePrivateKeys ensures human readable keys are transformed correctly
 func TestHumanReadablePrivateKeys(t *testing.T) {
 	privateKeyStr := "ec9f1cefa00406b80d46135a53504f1f4182d4c0f3fed6cca9281bc020eff973"
 	human, err := PrivateKeyStringToHumanReadableFactoidPrivateKey(privateKeyStr)
@@ -128,6 +133,7 @@ func TestHumanReadablePrivateKeys(t *testing.T) {
 	}
 }
 
+// TestPrivateToPublic checks that the public key is correctly derived from the private key
 func TestPrivateToPublic(t *testing.T) {
 	pub, err := PrivateKeyStringToPublicKeyString("ec9f1cefa00406b80d46135a53504f1f4182d4c0f3fed6cca9281bc020eff973")
 	if err != nil {

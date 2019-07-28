@@ -12,6 +12,7 @@ import (
 	. "github.com/FactomProject/factomd/common/primitives"
 )
 
+// TestNextPowerOfTwo checks that the NextsPowerOfTwo returns the proper value
 func TestNextPowerOfTwo(t *testing.T) {
 	if NextPowerOfTwo(0) != 0 {
 		t.Error("TestNextPowerOfTwo failed for 0")
@@ -42,6 +43,7 @@ func TestNextPowerOfTwo(t *testing.T) {
 	}
 }
 
+// TestHashMerkleBranches checks that hashing a left and right node creates the proper root hash
 func TestHashMerkleBranches(t *testing.T) {
 	h1, err := NewShaHashFromStr("82501c1178fa0b222c1f3d474ec726b832013f0a532b44bb620cce8624a5feb1")
 	if err != nil {
@@ -63,6 +65,8 @@ func TestHashMerkleBranches(t *testing.T) {
 	}
 }
 
+// TestBuildMerkleTreeStore creates a Merkle tree from the test hash generators below, and compares the values to a fixed
+// expected value
 func TestBuildMerkleTreeStore(t *testing.T) {
 	max := 9
 	list := buildMerkleLeafs(max)
@@ -86,6 +90,7 @@ func TestBuildMerkleTreeStore(t *testing.T) {
 	}
 }
 
+// TestBuildMerkleBranch checks that Merkle branches are created correctly relative to a known tree size
 func TestBuildMerkleBranch(t *testing.T) {
 	max := 9
 	list := buildMerkleLeafs(max)
@@ -145,6 +150,8 @@ func TestBuildMerkleBranch(t *testing.T) {
 	}
 }
 
+// generateHash creates a bogus hash by repeating the input int into a string. Useful only for testing. If input
+// int is greater than a single digit, only the first part of the string is used to create the hash (ending ignored)
 func generateHash(n int) interfaces.IHash {
 	answer := ""
 	for i := 0; i < 64; i++ {
@@ -157,6 +164,7 @@ func generateHash(n int) interfaces.IHash {
 	return hash
 }
 
+// buildMerkleLeafs generates a list of bogus hashs for testing
 func buildMerkleLeafs(n int) []interfaces.IHash {
 	list := make([]interfaces.IHash, n)
 	for i := 0; i < n; i++ {
@@ -165,6 +173,7 @@ func buildMerkleLeafs(n int) []interfaces.IHash {
 	return list
 }
 
+// buildExpectedMerkleTree builds a Merkle tree to act as a baseline for an above test.
 func buildExpectedMerkleTree(hashes []interfaces.IHash) []interfaces.IHash {
 	if len(hashes) < 2 {
 		return hashes

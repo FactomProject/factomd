@@ -12,6 +12,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives/random"
 )
 
+// TestUnmarshalNilSignature checks that unmarshalling nil/empty signatures results in an error
 func TestUnmarshalNilSignature(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -31,6 +32,7 @@ func TestUnmarshalNilSignature(t *testing.T) {
 	}
 }
 
+// TestMarshalUnmarshalSignature checks that a signature cna be marshaled and unmarshalled correctly
 func TestMarshalUnmarshalSignature(t *testing.T) {
 	sigS := "0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a83efbcbed19b5842e5aa06e66c41d8b61826d95d50c1cbc8bd5373f986c370547133462a9ffa0dcff025a6ad26747c95f1bdd88e2596fc8c6eaa8a2993c72c050002"
 
@@ -49,6 +51,7 @@ func TestMarshalUnmarshalSignature(t *testing.T) {
 	}
 }
 
+// TestVerifySignature checks that a properly signed message is recognized as such
 func TestVerifySignature(t *testing.T) {
 	msg := "Test Message Sign"
 	sigS := "265ea436f627fc7817488f13bac6b10a4bf73a53f88de8b8b8de0aefb3fa5357e1770f6de3534f2671cbe69dd442c21800a61ef047e3393ca932743f75cf2506"
@@ -75,6 +78,8 @@ func TestVerifySignature(t *testing.T) {
 	}
 }
 
+// TestSignatureMisc verifies that properly signed messages verify correctly, and that improperly signed ones throw errors. Also
+// marshaling and unmarshaling preserves the data
 func TestSignatureMisc(t *testing.T) {
 	priv1 := new(PrivateKey)
 
@@ -126,6 +131,7 @@ func TestSignatureMisc(t *testing.T) {
 	}
 }
 
+// TestSignature checks that N random private keys combined with random ByteSlices can be signed and verified correctly
 func TestSignature(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		priv1 := new(PrivateKey)

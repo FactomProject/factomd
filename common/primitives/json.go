@@ -86,12 +86,12 @@ func (j *JSON2Response) JSONByte() ([]byte, error) {
 	return EncodeJSON(j)
 }
 
-// JSONString encodes object to a json string
+// JSONString encodes object to a json byte string
 func (j *JSON2Response) JSONString() (string, error) {
 	return EncodeJSONString(j)
 }
 
-// String encodes object to a json string
+// String encodes object to a json byte string
 func (j *JSON2Response) String() string {
 	str, _ := j.JSONString()
 	return str
