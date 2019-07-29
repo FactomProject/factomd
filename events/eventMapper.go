@@ -17,10 +17,10 @@ type EventMapper interface {
 }
 
 func MapToFactomEvent(eventInput *eventsinput.EventInput) (*eventmessages.FactomEvent, error) {
-	if eventInput.GetMessagePayload() != nil {
-		return msgToFactomEvent(eventInput.GetEventSource(), eventInput.GetMessagePayload())
-	} else if len(eventInput.GetMessage()) > 0 {
-		return stringToFactomEvent(eventInput.GetEventSource(), eventInput.GetMessage())
+	if eventInput.GetProcessMessage() != nil {
+		return msgToFactomEvent(eventInput.GetEventSource(), eventInput.GetProcessMessage())
+	} else if len(eventInput.GetNodeMessage()) > 0 {
+		return stringToFactomEvent(eventInput.GetEventSource(), eventInput.GetNodeMessage())
 	} else {
 		return nil, errors.New("no payload found in source event")
 	}

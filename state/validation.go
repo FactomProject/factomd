@@ -77,7 +77,7 @@ func (s *State) ValidatorLoop() {
 	defer func() {
 		if r := recover(); r != nil {
 			event := eventsinput.NewErrorEvent("A panic state occurred in ValidatorLoop.", r)
-			fmt.Println(event.GetMessage())
+			fmt.Println(event.GetNodeMessage())
 			shutdown(s)
 		}
 	}()
