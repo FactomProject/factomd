@@ -12,7 +12,7 @@ func TestInitDevNet(t *testing.T) {
 	state0 := SetupSim(givenNodes, map[string]string{"--blktime": "15", "--db": "LDB"}, 6, 0, 0, t)
 	WaitForAllNodes(state0)
 
-	addSpecialPeers := `LocalSpecialPeers                     = "factomd-0-0.factomd:8110, factomd-1-0.factomd:8110, factomd-2-0.factomd:8110, factomd-3-0.factomd:8110, factomd-4-0.factomd:8110"`
+	addSpecialPeers := `LocalSpecialPeers                     = "factomd-0-0.factomd:8110 factomd-1-0.factomd:8110 factomd-2-0.factomd:8110 factomd-3-0.factomd:8110 factomd-4-0.factomd:8110"`
 	// write identity keys out to config
 	for i := 0; i < len(givenNodes); i++ { // build config files for the test
 		if i == 0 {
