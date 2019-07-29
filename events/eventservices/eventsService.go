@@ -1,4 +1,4 @@
-package events
+package eventservices
 
 import (
 	"bufio"
@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants/runstate"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/events"
 	"github.com/FactomProject/factomd/events/eventmessages"
-	eventsinput "github.com/FactomProject/factomd/events/eventmessages/input"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/gogo/protobuf/proto"
 	"net"
@@ -23,13 +23,7 @@ const (
 	redialSleepDuration       = 5 * time.Second
 )
 
-type EventService interface {
-	Send(event *eventsinput.EventInput) error
-	HasQueuedMessages() bool
-	WaitForQueuedMessages()
-}
-
-type EventProxy struct {
+type eventServiceInstance struct {
 	eventsOutQueue     chan *eventmessages.FactomEvent
 	postponeRetryUntil time.Time
 	connection         net.Conn
@@ -38,22 +32,22 @@ type EventProxy struct {
 	owningState        interfaces.IState
 }
 
-func NewEventProxy(state interfaces.IState) EventService {
-	return NewEventProxyTo(defaultConnectionProtocol, fmt.Sprintf("%s:%s", defaultConnectionHost, defaultConnectionPort), state)
+func NewEventService(state interfaces.IState) events.EventService {
+	return NewEventServiceTo(defaultConnectionProtocol, fmt.Sprintf("%s:%s", defaultConnectionHost, defaultConnectionPort), state)
 }
 
-func NewEventProxyTo(protocol string, address string, state interfaces.IState) EventService {
-	eventProxy := &EventProxy{
+func NewEventServiceTo(protocol string, address string, state interfaces.IState) events.EventService {
+	eventServiceInstance := &eventServiceInstance{
 		eventsOutQueue: make(chan *eventmessages.FactomEvent, p2p.StandardChannelSize),
 		protocol:       protocol,
 		address:        address,
 		owningState:    state,
 	}
-	go eventProxy.processEventsChannel()
-	return eventProxy
+	go eventServiceInstance.processEventsChannel()
+	return eventServiceInstance
 }
 
-func (ep *EventProxy) Send(event *eventsinput.EventInput) error {
+func (ep *eventServiceInstance) Send(event events.EventInput) error {
 	if ep.owningState.GetRunState() > runstate.Running { // Stop queuing messages to the events channel when shutting down
 		return nil
 	}
@@ -71,13 +65,13 @@ func (ep *EventProxy) Send(event *eventsinput.EventInput) error {
 	return nil
 }
 
-func (ep *EventProxy) processEventsChannel() {
+func (ep *eventServiceInstance) processEventsChannel() {
 	for event := range ep.eventsOutQueue {
 		ep.sendEvent(event)
 	}
 }
 
-func (ep *EventProxy) sendEvent(event *eventmessages.FactomEvent) {
+func (ep *eventServiceInstance) sendEvent(event *eventmessages.FactomEvent) {
 	data, err := ep.marshallEvent(event)
 	if err != nil {
 		fmt.Printf("TODO error logging: %v", err)
@@ -108,7 +102,7 @@ func (ep *EventProxy) sendEvent(event *eventmessages.FactomEvent) {
 	}
 }
 
-func (ep *EventProxy) connect() error {
+func (ep *eventServiceInstance) connect() error {
 	if ep.connection == nil {
 		conn, err := net.Dial(ep.protocol, ep.address)
 		if err != nil {
@@ -120,7 +114,7 @@ func (ep *EventProxy) connect() error {
 	return nil
 }
 
-func (ep *EventProxy) marshallEvent(event *eventmessages.FactomEvent) (data []byte, err error) {
+func (ep *eventServiceInstance) marshallEvent(event *eventmessages.FactomEvent) (data []byte, err error) {
 	data, err = proto.Marshal(event)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshell event: %v", err)
@@ -128,7 +122,7 @@ func (ep *EventProxy) marshallEvent(event *eventmessages.FactomEvent) (data []by
 	return data, err
 }
 
-func (ep *EventProxy) writeEvent(data []byte) (err error) {
+func (ep *eventServiceInstance) writeEvent(data []byte) (err error) {
 	writer := bufio.NewWriter(ep.connection)
 
 	dataSize := int32(len(data))
@@ -145,12 +139,12 @@ func (ep *EventProxy) writeEvent(data []byte) (err error) {
 	return nil
 }
 
-func (ep *EventProxy) HasQueuedMessages() bool {
+func (ep *eventServiceInstance) HasQueuedMessages() bool {
 	return len(ep.eventsOutQueue) > 0
 }
 
-func (ep *EventProxy) WaitForQueuedMessages() {
+func (ep *eventServiceInstance) WaitForQueuedMessages() {
 	for ep.HasQueuedMessages() {
-		time.Sleep(25 & time.Millisecond)
+		time.Sleep(25 * time.Millisecond)
 	}
 }

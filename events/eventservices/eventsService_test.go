@@ -1,12 +1,13 @@
-package events
+package eventservices
 
 import (
 	"bufio"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	. "github.com/FactomProject/factomd/common/messages/eventmessages"
-	eventsinput "github.com/FactomProject/factomd/common/messages/eventmessages/input"
+	"github.com/FactomProject/factomd/common/constants/runstate"
+	"github.com/FactomProject/factomd/events"
+	"github.com/FactomProject/factomd/events/eventmessages"
 	state2 "github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/testHelper"
 	"github.com/gogo/protobuf/proto"
@@ -27,11 +28,13 @@ func TestNoReceivingServer(t *testing.T) {
 	protocol := "tcp"
 	address := ":12410"
 
-	eventProxy := NewEventProxyTo(protocol, address, state2.state)
+	state := &state2.State{}
+	state.RunState = runstate.Running
+	eventProxy := NewEventServiceTo(protocol, address, state)
 	msgs := testHelper.CreateTestDBStateList()
 
 	msg := msgs[0]
-	event := eventsinput.eventFromMessage(EventSource_ADD_TO_PROCESSLIST, msg)
+	event := events.EventFromMessage(eventmessages.EventSource_ADD_TO_PROCESSLIST, msg)
 	eventProxy.Send(event)
 
 	time.Sleep(2 * time.Second) // sleep less than the retry * redail sleep duration
@@ -53,7 +56,9 @@ func TestEventProxy_Send(t *testing.T) {
 	protocol := "tcp"
 	address := ":12409"
 
-	eventProxy := NewEventProxyTo(protocol, address, state2.state)
+	state := &state2.State{}
+	state.RunState = runstate.Running
+	eventProxy := NewEventServiceTo(protocol, address, state)
 	msgs := testHelper.CreateTestDBStateList()
 
 	// listen for results
@@ -67,7 +72,7 @@ func TestEventProxy_Send(t *testing.T) {
 
 	// send messages
 	for _, msg := range msgs {
-		event := eventsinput.eventFromMessage(EventSource_ADD_TO_PROCESSLIST, msg)
+		event := events.EventFromMessage(eventmessages.EventSource_ADD_TO_PROCESSLIST, msg)
 		eventProxy.Send(event)
 	}
 
@@ -147,40 +152,40 @@ func BenchmarkMockAnchorEvents(b *testing.B) {
 	}
 }
 
-func mockAnchorEvent() *AnchoredEvent {
-	result := &AnchoredEvent{}
+func mockAnchorEvent() *eventmessages.AnchoredEvent {
+	result := &eventmessages.AnchoredEvent{}
 	result.DirectoryBlock = mockDirectoryBlock()
 	return result
 }
 
-func mockDirectoryBlock() *DirectoryBlock {
-	result := &DirectoryBlock{}
+func mockDirectoryBlock() *eventmessages.DirectoryBlock {
+	result := &eventmessages.DirectoryBlock{}
 	result.Header = mockDirHeader()
 	result.Entries = mockDirEntries()
 	return result
 }
 
-func mockDirHeader() *DirectoryBlockHeader {
+func mockDirHeader() *eventmessages.DirectoryBlockHeader {
 	t := time.Now()
-	result := &DirectoryBlockHeader{
-		BodyMerkleRoot: &Hash{
+	result := &eventmessages.DirectoryBlockHeader{
+		BodyMerkleRoot: &eventmessages.Hash{
 			HashValue: testHash,
 		},
-		PreviousKeyMerkleRoot: &Hash{
+		PreviousKeyMerkleRoot: &eventmessages.Hash{
 			HashValue: testHash,
 		},
-		PreviousFullHash: &Hash{
+		PreviousFullHash: &eventmessages.Hash{
 			HashValue: testHash,
 		},
-		Timestamp:  &types.Timestamp{Seconds: int64(t.Second()), Nanos: int32(t.Nanosecond())},
-		DbHeight:   123,
-		BlockCount: 456,
+		Timestamp:   &types.Timestamp{Seconds: int64(t.Second()), Nanos: int32(t.Nanosecond())},
+		BlockHeight: 123,
+		BlockCount:  456,
 	}
 	return result
 }
 
-func mockDirEntries() []*Entry {
-	result := make([]*Entry, entries)
+func mockDirEntries() []*eventmessages.Entry {
+	result := make([]*eventmessages.Entry, entries)
 	for i := 0; i < entries; i++ {
 		result[i] = mockDirEntry()
 
@@ -188,12 +193,12 @@ func mockDirEntries() []*Entry {
 	return result
 }
 
-func mockDirEntry() *Entry {
-	result := &Entry{
-		ChainID: &Hash{
+func mockDirEntry() *eventmessages.Entry {
+	result := &eventmessages.Entry{
+		ChainID: &eventmessages.Hash{
 			HashValue: testHash,
 		},
-		KeyMerkleRoot: &Hash{
+		KeyMerkleRoot: &eventmessages.Hash{
 			HashValue: testHash,
 		},
 	}

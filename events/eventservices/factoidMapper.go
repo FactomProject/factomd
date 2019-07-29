@@ -1,4 +1,4 @@
-package events
+package eventservices
 
 import (
 	"github.com/FactomProject/factomd/common/interfaces"

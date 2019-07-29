@@ -7,8 +7,8 @@ package state
 import (
 	"errors"
 	"fmt"
+	"github.com/FactomProject/factomd/events"
 	"github.com/FactomProject/factomd/events/eventmessages"
-	eventsinput "github.com/FactomProject/factomd/events/eventmessages/input"
 	"hash"
 	"os"
 	"reflect"
@@ -389,7 +389,7 @@ func (s *State) Process() (progress bool) {
 					s.IgnoreDone = true
 				}
 
-				event := eventsinput.NewInfoEventF("Node %s has finished syncing it's database", s.GetFactomNodeName())
+				event := events.NewInfoEventF("Node %s has finished syncing it's database", s.GetFactomNodeName())
 				s.EventsService.Send(event)
 			}
 		}
@@ -2712,6 +2712,6 @@ func (s *State) NewAck(msg interfaces.IMsg, balanceHash interfaces.IHash) interf
 }
 
 func emitEvent(eventSource eventmessages.EventSource, msg interfaces.IMsg, state *State) {
-	event := eventsinput.EventFromMessage(eventSource, msg)
+	event := events.EventFromMessage(eventSource, msg)
 	state.EventsService.Send(event)
 }

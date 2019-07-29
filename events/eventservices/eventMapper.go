@@ -1,35 +1,37 @@
-package events
+package eventservices
 
 import (
 	"encoding/binary"
 	"errors"
-	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/events"
 	"github.com/FactomProject/factomd/events/eventmessages"
-	eventsinput "github.com/FactomProject/factomd/events/eventmessages/input"
 	"github.com/gogo/protobuf/types"
 	"time"
 )
 
 type EventMapper interface {
-	MapToFactomEvent(eventInput *eventsinput.EventInput) (*eventmessages.FactomEvent, error)
+	MapToFactomEvent(eventInput events.EventInput) (*eventmessages.FactomEvent, error)
 }
 
-func MapToFactomEvent(eventInput *eventsinput.EventInput) (*eventmessages.FactomEvent, error) {
-	if eventInput.GetProcessMessage() != nil {
-		return msgToFactomEvent(eventInput.GetEventSource(), eventInput.GetProcessMessage())
-	} else if len(eventInput.GetNodeMessage()) > 0 {
-		return stringToFactomEvent(eventInput.GetEventSource(), eventInput.GetNodeMessage())
-	} else {
+func MapToFactomEvent(eventInput events.EventInput) (*eventmessages.FactomEvent, error) {
+	switch eventInput.(type) {
+	case events.ProcessEvent:
+		processEvent := eventInput.(events.ProcessEvent)
+		return mapProcessEvent(processEvent)
+	case events.NodeEvent:
+		nodeEvent := eventInput.(events.NodeEvent)
+		return mapNodeEvent(nodeEvent)
+	default:
 		return nil, errors.New("no payload found in source event")
 	}
-
 }
 
-func msgToFactomEvent(eventSource eventmessages.EventSource, msg interfaces.IMsg) (*eventmessages.FactomEvent, error) {
+func mapProcessEvent(processEvent events.ProcessEvent) (*eventmessages.FactomEvent, error) {
 	event := &eventmessages.FactomEvent{}
-	event.EventSource = eventSource
+	event.EventSource = processEvent.GetEventSource()
+	msg := processEvent.GetPayload()
 	switch msg.(type) {
 	case *messages.DBStateMsg:
 		event.Value = mapDBState(msg.(*messages.DBStateMsg))
@@ -45,10 +47,10 @@ func msgToFactomEvent(eventSource eventmessages.EventSource, msg interfaces.IMsg
 	return event, nil
 }
 
-func stringToFactomEvent(eventSource eventmessages.EventSource, message string) (*eventmessages.FactomEvent, error) {
+func mapNodeEvent(nodeEvent events.NodeEvent) (*eventmessages.FactomEvent, error) {
 	event := &eventmessages.FactomEvent{
-		EventSource: eventSource,
-		Value:       &eventmessages.FactomEvent_NodeMessage{NodeMessage: message},
+		EventSource: nodeEvent.GetEventSource(),
+		Value:       &eventmessages.FactomEvent_NodeMessage{NodeMessage: nodeEvent.GetPayload()},
 	}
 	return event, nil
 }

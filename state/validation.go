@@ -6,7 +6,7 @@ package state
 
 import (
 	"fmt"
-	eventsinput "github.com/FactomProject/factomd/events/eventmessages/input"
+	"github.com/FactomProject/factomd/events"
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -22,7 +22,7 @@ var ValidationDebug bool = false
 func (s *State) DoProcessing() {
 	s.validatorLoopThreadID = atomic.Goid()
 
-	event := eventsinput.NewInfoEventF("Node %s startup complete", s.GetFactomNodeName())
+	event := events.NewInfoEventF("Node %s startup complete", s.GetFactomNodeName())
 	s.EventsService.Send(event)
 	s.RunState = runstate.Running
 
@@ -76,8 +76,8 @@ func (s *State) DoProcessing() {
 func (s *State) ValidatorLoop() {
 	defer func() {
 		if r := recover(); r != nil {
-			event := eventsinput.NewErrorEvent("A panic state occurred in ValidatorLoop.", r)
-			fmt.Println(event.GetNodeMessage())
+			event := events.NewErrorEvent("A panic state occurred in ValidatorLoop.", r)
+			event.Println()
 			shutdown(s)
 		}
 	}()
@@ -168,7 +168,7 @@ func shouldShutdown(state *State) bool {
 }
 
 func shutdown(state *State) {
-	event := eventsinput.NewInfoEventF("Node %s is shutting down", state.GetFactomNodeName())
+	event := events.NewInfoEventF("Node %s is shutting down", state.GetFactomNodeName())
 	state.EventsService.Send(event)
 
 	state.RunState = runstate.Stopping
