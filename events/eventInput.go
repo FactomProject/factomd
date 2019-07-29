@@ -31,6 +31,7 @@ func (processEvent ProcessEvent) GetPayload() interfaces.IMsg {
 func (nodeEvent NodeEvent) GetEventSource() eventmessages.EventSource {
 	return nodeEvent.eventSource
 }
+
 func (nodeEvent NodeEvent) GetPayload() string {
 	return nodeEvent.payload
 }
