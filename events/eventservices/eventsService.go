@@ -3,65 +3,48 @@ package eventservices
 import (
 	"bufio"
 	"encoding/binary"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants/runstate"
-	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/events"
 	"github.com/FactomProject/factomd/events/eventmessages"
-	"github.com/FactomProject/factomd/events/eventoutputformat"
 	"github.com/FactomProject/factomd/p2p"
-	"github.com/FactomProject/factomd/util"
 	"github.com/gogo/protobuf/proto"
-	log "github.com/sirupsen/logrus"
 	"net"
 	"time"
 )
 
-var eventService events.EventService
-var eventServiceControl events.EventServiceControl
-
 const (
-	defaultProtocol           = "tcp"
+	defaultConnectionProtocol = "tcp"
 	defaultConnectionHost     = "127.0.0.1"
-	defaultConnectionPort     = 8040
-	defaultOutputFormat       = eventoutputformat.Protobuf
+	defaultConnectionPort     = "8040"
 	sendRetries               = 3
-	dialRetryPostponeDuration = 5 * time.Minute
-	redialSleepDuration       = 10 * time.Second
+	dialRetryPostponeDuration = time.Minute
+	redialSleepDuration       = 5 * time.Second
 )
 
 type eventServiceInstance struct {
-	eventsOutQueue       chan *eventmessages.FactomEvent
-	postponeSendingUntil time.Time
-	connection           net.Conn
-	protocol             string
-	address              string
-	outputFormat         eventoutputformat.Format
-	owningState          interfaces.IState
+	eventsOutQueue     chan *eventmessages.FactomEvent
+	postponeRetryUntil time.Time
+	connection         net.Conn
+	protocol           string
+	address            string
+	owningState        interfaces.IState
 }
 
-func NewEventService(state interfaces.IState, config *util.FactomdConfig, params *globals.FactomParams) (events.EventService, events.EventServiceControl) {
-	protocol, address, outputFormat := selectParameters(params, config)
-	return NewEventServiceTo(state, protocol, address, outputFormat)
+func NewEventService(state interfaces.IState) events.EventService {
+	return NewEventServiceTo(defaultConnectionProtocol, fmt.Sprintf("%s:%s", defaultConnectionHost, defaultConnectionPort), state)
 }
 
-func NewEventServiceTo(state interfaces.IState, protocol string, address string, format eventoutputformat.Format) (events.EventService, events.EventServiceControl) {
-	if eventService == nil {
-		eventServiceInstance := &eventServiceInstance{
-			eventsOutQueue: make(chan *eventmessages.FactomEvent, p2p.StandardChannelSize),
-			protocol:       protocol,
-			address:        address,
-			owningState:    state,
-			outputFormat:   format,
-		}
-		eventService = eventServiceInstance
-		eventServiceControl = eventServiceInstance
-		go eventServiceInstance.processEventsChannel()
+func NewEventServiceTo(protocol string, address string, state interfaces.IState) events.EventService {
+	eventServiceInstance := &eventServiceInstance{
+		eventsOutQueue: make(chan *eventmessages.FactomEvent, p2p.StandardChannelSize),
+		protocol:       protocol,
+		address:        address,
+		owningState:    state,
 	}
-	return eventService, eventServiceControl
+	go eventServiceInstance.processEventsChannel()
+	return eventServiceInstance
 }
 
 func (ep *eventServiceInstance) Send(event events.EventInput) error {
@@ -83,19 +66,15 @@ func (ep *eventServiceInstance) Send(event events.EventInput) error {
 }
 
 func (ep *eventServiceInstance) processEventsChannel() {
-	ep.connect()
-
 	for event := range ep.eventsOutQueue {
-		if ep.postponeSendingUntil.IsZero() || ep.postponeSendingUntil.Before(time.Now()) {
-			ep.sendEvent(event)
-		}
+		ep.sendEvent(event)
 	}
 }
 
 func (ep *eventServiceInstance) sendEvent(event *eventmessages.FactomEvent) {
-	data, err := ep.marshallMessage(event)
+	data, err := ep.marshallEvent(event)
 	if err != nil {
-		log.Errorf("An error occurred while serializing factom event of type %s: %v", event.EventSource.String(), err)
+		fmt.Printf("TODO error logging: %v", err)
 		return
 	}
 
@@ -103,7 +82,8 @@ func (ep *eventServiceInstance) sendEvent(event *eventmessages.FactomEvent) {
 	sendSuccessful := false
 	for retry := 0; retry < sendRetries && !sendSuccessful; retry++ {
 		if err = ep.connect(); err != nil {
-			log.Errorf("An error occurred while connecting to receiver %s: %v, retry %d", ep.address, err, retry)
+			// TODO handle error
+			fmt.Printf("TODO error logging: %v", err)
 			time.Sleep(redialSleepDuration)
 			continue
 		}
@@ -112,62 +92,26 @@ func (ep *eventServiceInstance) sendEvent(event *eventmessages.FactomEvent) {
 		if err = ep.writeEvent(data); err == nil {
 			sendSuccessful = true
 		} else {
-			log.Errorf("An error occurred while sending a message to receiver %s: %v, retry %d", ep.address, err, retry)
+			// TODO handle / log error
+			fmt.Printf("TODO error logging: %v\n", err)
 
 			// reset connection and retry
-			ep.disconnect()
 			time.Sleep(redialSleepDuration)
 			ep.connection = nil
 		}
 	}
-
-	if !sendSuccessful {
-		ep.postponeSendingUntil = time.Now().Add(dialRetryPostponeDuration)
-	}
-}
-
-func (ep *eventServiceInstance) marshallMessage(event *eventmessages.FactomEvent) ([]byte, error) {
-	var data []byte
-	var err error
-	switch ep.outputFormat {
-	case eventoutputformat.Protobuf:
-		data, err = ep.marshallEvent(event)
-	case eventoutputformat.Json:
-		data, err = json.Marshal(event)
-	default:
-		return nil, errors.New("Unsupported event format " + ep.outputFormat.String())
-	}
-	return data, err
 }
 
 func (ep *eventServiceInstance) connect() error {
-	defer catchConnectPanics()
-
 	if ep.connection == nil {
-		fmt.Println("Connecting to ", ep.address)
 		conn, err := net.Dial(ep.protocol, ep.address)
 		if err != nil {
 			return fmt.Errorf("failed to connect: %v", err)
 		}
 		ep.connection = conn
-		ep.postponeSendingUntil = time.Time{}
+		ep.postponeRetryUntil = time.Unix(0, 0)
 	}
 	return nil
-}
-
-func catchConnectPanics() error {
-	if r := recover(); r != nil {
-		return errors.New(fmt.Sprintf("failed to connect to receiver: %v", r))
-	}
-	return nil
-}
-
-func (ep *eventServiceInstance) disconnect() {
-	log.Infoln("Closing connection to receiver", ep.address)
-	err := ep.connection.Close()
-	if err != nil {
-		log.Warnln("An error occurred while closing connection to receiver", ep.address)
-	}
 }
 
 func (ep *eventServiceInstance) marshallEvent(event *eventmessages.FactomEvent) (data []byte, err error) {
@@ -179,38 +123,28 @@ func (ep *eventServiceInstance) marshallEvent(event *eventmessages.FactomEvent) 
 }
 
 func (ep *eventServiceInstance) writeEvent(data []byte) (err error) {
-	defer catchSendPanics()
-
 	writer := bufio.NewWriter(ep.connection)
 
 	dataSize := int32(len(data))
 	err = binary.Write(writer, binary.LittleEndian, dataSize)
 	if err != nil {
-		return fmt.Errorf("failed to write data size header: %v", err)
+		return fmt.Errorf("failed to write data size: %v", err)
 	}
 
-	bytesWritten, err := writer.Write(data)
-	if err != nil {
-		return fmt.Errorf("failed to write data: %v. Bytes written: %d", err, bytesWritten)
-	}
-	err = writer.Flush()
+	_, err = writer.Write(data)
 	if err != nil {
 		return fmt.Errorf("failed to write data: %v", err)
 	}
+	err = writer.Flush()
 	return nil
 }
 
-func catchSendPanics() error {
-	if r := recover(); r != nil {
-		return errors.New(fmt.Sprintf("failed to write data: %v", r))
-	}
-	return nil
+func (ep *eventServiceInstance) HasQueuedMessages() bool {
+	return len(ep.eventsOutQueue) > 0
 }
 
-func (ep *eventServiceInstance) Shutdown() {
-	log.Infoln("Waiting until queued event messages have been dispatched.")
-	for len(ep.eventsOutQueue) > 0 {
+func (ep *eventServiceInstance) WaitForQueuedMessages() {
+	for ep.HasQueuedMessages() {
 		time.Sleep(25 * time.Millisecond)
 	}
-	ep.disconnect()
 }

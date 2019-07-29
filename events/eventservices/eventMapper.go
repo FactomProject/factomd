@@ -17,18 +17,18 @@ type EventMapper interface {
 
 func MapToFactomEvent(eventInput events.EventInput) (*eventmessages.FactomEvent, error) {
 	switch eventInput.(type) {
-	case *events.ProcessEvent:
-		processEvent := eventInput.(*events.ProcessEvent)
+	case events.ProcessEvent:
+		processEvent := eventInput.(events.ProcessEvent)
 		return mapProcessEvent(processEvent)
-	case *events.NodeEvent:
-		nodeEvent := eventInput.(*events.NodeEvent)
+	case events.NodeEvent:
+		nodeEvent := eventInput.(events.NodeEvent)
 		return mapNodeEvent(nodeEvent)
 	default:
 		return nil, errors.New("no payload found in source event")
 	}
 }
 
-func mapProcessEvent(processEvent *events.ProcessEvent) (*eventmessages.FactomEvent, error) {
+func mapProcessEvent(processEvent events.ProcessEvent) (*eventmessages.FactomEvent, error) {
 	event := &eventmessages.FactomEvent{}
 	event.EventSource = processEvent.GetEventSource()
 	msg := processEvent.GetPayload()
@@ -47,7 +47,7 @@ func mapProcessEvent(processEvent *events.ProcessEvent) (*eventmessages.FactomEv
 	return event, nil
 }
 
-func mapNodeEvent(nodeEvent *events.NodeEvent) (*eventmessages.FactomEvent, error) {
+func mapNodeEvent(nodeEvent events.NodeEvent) (*eventmessages.FactomEvent, error) {
 	event := &eventmessages.FactomEvent{
 		EventSource: nodeEvent.GetEventSource(),
 		Value:       &eventmessages.FactomEvent_NodeMessage{NodeMessage: nodeEvent.GetPayload()},
