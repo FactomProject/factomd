@@ -22,8 +22,10 @@ var ValidationDebug bool = false
 func (s *State) DoProcessing() {
 	s.validatorLoopThreadID = atomic.Goid()
 
-	event := events.NewInfoEventF("Node %s startup complete", s.GetFactomNodeName())
-	s.EventsService.Send(event)
+	if s.EventsService != nil {
+		event := events.NewInfoEventF("Node %s startup complete", s.GetFactomNodeName())
+		s.EventsService.Send(event)
+	}
 	s.RunState = runstate.Running
 
 	slp := false
@@ -168,8 +170,10 @@ func shouldShutdown(state *State) bool {
 }
 
 func shutdown(state *State) {
-	event := events.NewInfoEventF("Node %s is shutting down", state.GetFactomNodeName())
-	state.EventsService.Send(event)
+	if state.EventsService != nil {
+		event := events.NewInfoEventF("Node %s is shutting down", state.GetFactomNodeName())
+		state.EventsService.Send(event)
+	}
 
 	state.RunState = runstate.Stopping
 	fmt.Println("Closing the Database on", state.GetFactomNodeName())
@@ -177,9 +181,9 @@ func shutdown(state *State) {
 	state.DB.Close()
 	fmt.Println("Database on", state.GetFactomNodeName(), "closed")
 
-	if state.EventsService.HasQueuedMessages() {
+	if state.EventsServiceControl != nil && state.EventsServiceControl.HasQueuedMessages() {
 		fmt.Println("Waiting for queued event messages in node ", state.GetFactomNodeName())
-		state.EventsService.WaitForQueuedMessages()
+		state.EventsServiceControl.WaitForQueuedMessages()
 	}
 	state.RunState = runstate.Stopped
 }

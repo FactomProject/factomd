@@ -1,4 +1,4 @@
-package eventservices
+package eventservices_test
 
 import (
 	"bufio"
@@ -8,6 +8,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants/runstate"
 	"github.com/FactomProject/factomd/events"
 	"github.com/FactomProject/factomd/events/eventmessages"
+	"github.com/FactomProject/factomd/events/eventservices"
 	state2 "github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/testHelper"
 	"github.com/gogo/protobuf/proto"
@@ -30,12 +31,12 @@ func TestNoReceivingServer(t *testing.T) {
 
 	state := &state2.State{}
 	state.RunState = runstate.Running
-	eventProxy := NewEventServiceTo(protocol, address, state)
+	eventService, _ := eventservices.NewEventServiceTo(protocol, address, state)
 	msgs := testHelper.CreateTestDBStateList()
 
 	msg := msgs[0]
 	event := events.EventFromMessage(eventmessages.EventSource_ADD_TO_PROCESSLIST, msg)
-	eventProxy.Send(event)
+	eventService.Send(event)
 
 	time.Sleep(2 * time.Second) // sleep less than the retry * redail sleep duration
 
@@ -58,7 +59,7 @@ func TestEventProxy_Send(t *testing.T) {
 
 	state := &state2.State{}
 	state.RunState = runstate.Running
-	eventProxy := NewEventServiceTo(protocol, address, state)
+	eventService, _ := eventservices.NewEventServiceTo(protocol, address, state)
 	msgs := testHelper.CreateTestDBStateList()
 
 	// listen for results
@@ -73,7 +74,7 @@ func TestEventProxy_Send(t *testing.T) {
 	// send messages
 	for _, msg := range msgs {
 		event := events.EventFromMessage(eventmessages.EventSource_ADD_TO_PROCESSLIST, msg)
-		eventProxy.Send(event)
+		eventService.Send(event)
 	}
 
 	waitOnEvents(&correctSendEvents, len(msgs), 10*time.Second)
