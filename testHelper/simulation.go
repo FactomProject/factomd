@@ -219,6 +219,7 @@ func SetupSim(givenNodes string, userAddedOptions map[string]string, height int,
 			WaitBlocks(state0, 1)
 			RunCmd(fmt.Sprintf("%d", 0))
 			RunCmd(fmt.Sprintf("t%d", len(givenNodes)+1)) // attach the last generated Identity
+			WaitBlocks(state0, 1)
 		}
 		// REVIEW: should we swap node0 identity & promote if configured for 'L' ?
 		CheckAuthoritySet(t)
