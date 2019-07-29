@@ -5,8 +5,8 @@ Mgoogle/protobuf/duration.proto=github.com/gogo/protobuf/types,\
 Mgoogle/protobuf/struct.proto=github.com/gogo/protobuf/types,\
 Mgoogle/protobuf/timestamp.proto=github.com/gogo/protobuf/types,\
 Mgoogle/protobuf/wrappers.proto=github.com/gogo/protobuf/types:. \
-common/messages/eventmessages/generalTypes.proto \
-common/messages/eventmessages/factoidBlock.proto \
-common/messages/eventmessages/adminBlock.proto \
-common/messages/eventmessages/entryCredit.proto \
-common/messages/eventmessages/factomEvents.proto
+events/eventmessages/generalTypes.proto \
+events/eventmessages/factoidBlock.proto \
+events/eventmessages/adminBlock.proto \
+events/eventmessages/entryCredit.proto \
+events/eventmessages/factomEvents.proto

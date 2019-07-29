@@ -1,7 +1,9 @@
 syntax = "proto3";
 package eventmessages;
+option go_package = "eventmessages";
+option java_package = "com.factom.factomd.eventmessages";
 
-import "common/messages/eventmessages/generalTypes.proto";
+import "events/eventmessages/generalTypes.proto";
 import "google/protobuf/timestamp.proto";
 
 

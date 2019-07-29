@@ -52,7 +52,7 @@ var mLog = new(MsgLog)
 var p2pProxy *P2PProxy
 var p2pNetwork *p2p.Controller
 var logPort string
-var EventsProxy *events.EventProxy
+var EventsProxy events.EventService
 
 func GetFnodes() []*FactomNode {
 	return fnodes
@@ -421,11 +421,9 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		p2pProxy.StartProxy()
 
 		if EventsProxy == nil {
-			EventsProxy = new(events.EventProxy).
-				Init().
-				StartProxy()
+			EventsProxy = events.NewEventProxy(s)
 		}
-		s.EventsProxy = EventsProxy
+		s.EventsService = EventsProxy
 
 		go networkHousekeeping() // This goroutine executes once a second to keep the proxy apprised of the network status.
 	}
@@ -666,10 +664,6 @@ func startServer(i int, fnode *FactomNode, load bool) {
 	go Timer(fnode.State)
 	go elections.Run(fnode.State)
 	go fnode.State.ValidatorLoop()
-
-	// moved StartMMR here to ensure Init goroutine only called once and not twice (removed from state.go)
-	go fnode.State.StartMMR()
-	go fnode.State.MissingMessageResponseHandler.Run()
 }
 
 func setupFirstAuthority(s *state.State) {

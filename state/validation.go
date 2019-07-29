@@ -6,6 +6,7 @@ package state
 
 import (
 	"fmt"
+	eventsinput "github.com/FactomProject/factomd/events/eventmessages/input"
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -20,6 +21,9 @@ var ValidationDebug bool = false
 // This is the tread with access to state. It does process and update state
 func (s *State) DoProcessing() {
 	s.validatorLoopThreadID = atomic.Goid()
+
+	event := eventsinput.NewInfoEventF("Node %s startup complete", s.GetFactomNodeName())
+	s.EventsService.Send(event)
 	s.RunState = runstate.Running
 
 	slp := false
@@ -62,7 +66,8 @@ func (s *State) DoProcessing() {
 		}
 
 	}
-	fmt.Println("Closing the Database on", s.GetFactomNodeName())
+
+	fmt.Println("Closing the Database on", s.GetFactomNodeName()) // Do we need to close the db here too? validatorLoop already handles this
 	s.DB.Close()
 	s.StateSaverStruct.StopSaving()
 	fmt.Println(s.GetFactomNodeName(), "closed")
@@ -71,7 +76,8 @@ func (s *State) DoProcessing() {
 func (s *State) ValidatorLoop() {
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Println("A panic state occurred in ValidatorLoop.", r)
+			event := eventsinput.NewErrorEvent("A panic state occurred in ValidatorLoop.", r)
+			fmt.Println(event.GetMessage())
 			shutdown(s)
 		}
 	}()
@@ -162,10 +168,18 @@ func shouldShutdown(state *State) bool {
 }
 
 func shutdown(state *State) {
+	event := eventsinput.NewInfoEventF("Node %s is shutting down", state.GetFactomNodeName())
+	state.EventsService.Send(event)
+
 	state.RunState = runstate.Stopping
 	fmt.Println("Closing the Database on", state.GetFactomNodeName())
 	state.StateSaverStruct.StopSaving()
 	state.DB.Close()
 	fmt.Println("Database on", state.GetFactomNodeName(), "closed")
+
+	if state.EventsService.HasQueuedMessages() {
+		fmt.Println("Waiting for queued event messages in node ", state.GetFactomNodeName())
+		state.EventsService.WaitForQueuedMessages()
+	}
 	state.RunState = runstate.Stopped
 }

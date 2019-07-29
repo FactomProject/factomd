@@ -7,8 +7,8 @@ package state
 import (
 	"errors"
 	"fmt"
-	eventMessages "github.com/FactomProject/factomd/common/messages/eventmessages"
-	eventsinput "github.com/FactomProject/factomd/common/messages/eventmessages/input"
+	"github.com/FactomProject/factomd/events/eventmessages"
+	eventsinput "github.com/FactomProject/factomd/events/eventmessages/input"
 	"hash"
 	"os"
 	"reflect"
@@ -78,7 +78,7 @@ func (s *State) AddToHolding(hash [32]byte, msg interfaces.IMsg) {
 		s.Holding[hash] = msg
 		s.LogMessage("holding", "add", msg)
 		TotalHoldingQueueInputs.Inc()
-		emitEvent(eventMessages.EventSource_ADD_TO_HOLDING, msg, s)
+		emitEvent(eventmessages.EventSource_ADD_TO_HOLDING, msg, s)
 	}
 }
 
@@ -388,6 +388,9 @@ func (s *State) Process() (progress bool) {
 					s.StartDelay = now // Reset StartDelay for Ignore Missing
 					s.IgnoreDone = true
 				}
+
+				event := eventsinput.NewInfoEventF("Node %s has finished syncing it's database", s.GetFactomNodeName())
+				s.EventsService.Send(event)
 			}
 		}
 	} else if s.IgnoreMissing {
@@ -928,7 +931,7 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 
 		pl := s.ProcessLists.Get(ack.DBHeight)
 		pl.AddToProcessList(s, ack, m)
-		emitEvent(eventMessages.EventSource_ADD_TO_PROCESSLIST, m, s)
+		emitEvent(eventmessages.EventSource_ADD_TO_PROCESSLIST, m, s)
 
 		// Cross Boot Replay
 		s.CrossReplayAddSalt(ack.DBHeight, ack.Salt)
@@ -1198,7 +1201,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		s.StatesReceived.Notify <- msg.(*messages.DBStateMsg)
 	}
 	s.DBStates.UpdateState()
-	emitEvent(eventMessages.EventSource_COMMIT_DIRECTORY_BLOCK, dbstatemsg, s)
+	emitEvent(eventmessages.EventSource_COMMIT_DIRECTORY_BLOCK, dbstatemsg, s)
 }
 
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
@@ -2708,7 +2711,7 @@ func (s *State) NewAck(msg interfaces.IMsg, balanceHash interfaces.IHash) interf
 	return ack
 }
 
-func emitEvent(eventSource eventMessages.EventSource, msg interfaces.IMsg, state *State) {
-	event := eventsinput.SourceEventFromMessage(eventSource, msg)
-	state.EventsProxy.Send(event)
+func emitEvent(eventSource eventmessages.EventSource, msg interfaces.IMsg, state *State) {
+	event := eventsinput.EventFromMessage(eventSource, msg)
+	state.EventsService.Send(event)
 }
