@@ -6,7 +6,7 @@ package state
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/events"
+	eventsinput "github.com/FactomProject/factomd/events/eventmessages/input"
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -22,10 +22,8 @@ var ValidationDebug bool = false
 func (s *State) DoProcessing() {
 	s.validatorLoopThreadID = atomic.Goid()
 
-	if s.EventsService != nil {
-		event := events.NewInfoEventF("Node %s startup complete", s.GetFactomNodeName())
-		s.EventsService.Send(event)
-	}
+	event := eventsinput.NewInfoEventF("Node %s startup complete", s.GetFactomNodeName())
+	s.EventsService.Send(event)
 	s.RunState = runstate.Running
 
 	slp := false
@@ -78,17 +76,16 @@ func (s *State) DoProcessing() {
 func (s *State) ValidatorLoop() {
 	defer func() {
 		if r := recover(); r != nil {
-			events.NewErrorEvent("A panic state occurred in ValidatorLoop.", r)
+			event := eventsinput.NewErrorEvent("A panic state occurred in ValidatorLoop.", r)
+			fmt.Println(event.GetMessage())
 			shutdown(s)
 		}
 	}()
 
 	CheckGrants()
 
-	// We should only generate 1 EOM for each height/minute/vmindex
-	lastHeight, lastMinute, lastVM := -1, -1, -1
-
 	go s.DoProcessing()
+
 	// Look for pending messages, and get one if there is one.
 	for { // this is the message sort
 		var msg interfaces.IMsg
@@ -98,36 +95,10 @@ func (s *State) ValidatorLoop() {
 			shutdown(s)
 			time.Sleep(10 * time.Second) // wait till database close is complete
 			return
-		case c := <-s.tickerQueue: // Look for pending messages, and get one if there is one.
-			if !s.RunLeader || !s.DBFinished { // don't generate EOM if we are not ready to execute as a leader or are loading the DBState messages
+		case <-s.tickerQueue: // Look for pending messages, and get one if there is one.
+			if !s.RunLeader || !s.DBFinished { // don't generate EOM if we are not a leader or are loading the DBState messages
 				continue
 			}
-			currentMinute := s.CurrentMinute
-			if currentMinute == 10 { // if we are between blocks
-				currentMinute = 9 // treat minute 10 as an extension of minute 9
-			}
-			if lastHeight == int(s.LLeaderHeight) && lastMinute == currentMinute && s.LeaderVMIndex == lastVM {
-				// This eom was already generated. We shouldn't generate it again.
-				// This does mean we missed an EOM boundary, and the next EOM won't occur for another
-				// "minute". This could cause some serious sliding, as minutes could be an addition 100%
-				// in length.
-				if c == -1 { // This means we received a normal eom cadence timer
-					c = 8 // Send 8 retries on a 1/10 of the normal minute period
-				}
-				if c > 0 {
-					go func() {
-						// We sleep for 1/10 of a minute, and try again
-						time.Sleep(s.GetMinuteDuration() / 10)
-						s.tickerQueue <- c - 1
-					}()
-				}
-				s.LogPrintf("timer", "retry %d", c)
-				s.LogPrintf("validator", "retry %d  %d-:-%d %d", c, s.LLeaderHeight, currentMinute, s.LeaderVMIndex)
-				continue // Already generated this eom
-			}
-
-			lastHeight, lastMinute, lastVM = int(s.LLeaderHeight), currentMinute, s.LeaderVMIndex
-
 			eom := new(messages.EOM)
 			eom.Timestamp = s.GetTimestamp()
 			eom.ChainID = s.GetIdentityChainID()
@@ -135,13 +106,12 @@ func (s *State) ValidatorLoop() {
 				// best guess info... may be wrong -- just for debug
 				eom.DBHeight = s.LLeaderHeight
 				eom.VMIndex = s.LeaderVMIndex
-				eom.Minute = byte(currentMinute)
+				eom.Minute = byte(s.CurrentMinute)
 			}
 
 			eom.Sign(s)
 			eom.SetLocal(true) // local EOMs are really just timeout indicators that we need to generate an EOM
 			msg = eom
-			s.LogMessage("validator", fmt.Sprintf("generated c:%d  %d-:-%d %d", c, s.LLeaderHeight, s.CurrentMinute, s.LeaderVMIndex), eom)
 		case msg = <-s.inMsgQueue:
 			s.LogMessage("InMsgQueue", "dequeue", msg)
 		case msg = <-s.inMsgQueue2:
@@ -149,10 +119,10 @@ func (s *State) ValidatorLoop() {
 		}
 
 		if t := msg.Type(); t == constants.ACK_MSG {
-			s.LogMessage("ackQueue", "enqueue ValidatorLoop", msg)
+			s.LogMessage("ackQueue", "enqueue", msg)
 			s.ackQueue <- msg
 		} else {
-			s.LogMessage("msgQueue", "enqueue ValidatorLoop", msg)
+			s.LogMessage("msgQueue", "enqueue", msg)
 			s.msgQueue <- msg
 		}
 	}
@@ -169,10 +139,8 @@ func shouldShutdown(state *State) bool {
 }
 
 func shutdown(state *State) {
-	if state.EventsService != nil {
-		event := events.NewInfoEventF("Node %s is shutting down", state.GetFactomNodeName())
-		state.EventsService.Send(event)
-	}
+	event := eventsinput.NewInfoEventF("Node %s is shutting down", state.GetFactomNodeName())
+	state.EventsService.Send(event)
 
 	state.RunState = runstate.Stopping
 	fmt.Println("Closing the Database on", state.GetFactomNodeName())
@@ -180,8 +148,9 @@ func shutdown(state *State) {
 	state.DB.Close()
 	fmt.Println("Database on", state.GetFactomNodeName(), "closed")
 
-	if state.EventsServiceControl != nil {
-		state.EventsServiceControl.Shutdown()
+	if state.EventsService.HasQueuedMessages() {
+		fmt.Println("Waiting for queued event messages in node ", state.GetFactomNodeName())
+		state.EventsService.WaitForQueuedMessages()
 	}
 	state.RunState = runstate.Stopped
 }
