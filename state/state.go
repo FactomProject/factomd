@@ -433,8 +433,8 @@ type State struct {
 	InputRegExString          string
 	executeRecursionDetection map[[32]byte]interfaces.IMsg
 	Hold                      HoldingList
-
-	EventsService events.EventService
+	EventsService             events.EventService
+	EventsServiceControl      events.EventServiceControl
 }
 
 var _ interfaces.IState = (*State)(nil)

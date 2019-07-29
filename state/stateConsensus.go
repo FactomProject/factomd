@@ -387,9 +387,10 @@ func (s *State) Process() (progress bool) {
 					s.StartDelay = now // Reset StartDelay for Ignore Missing
 					s.IgnoreDone = true
 				}
-
-				event := events.NewInfoEventF("Node %s has finished syncing it's database", s.GetFactomNodeName())
-				s.EventsService.Send(event)
+				if s.EventsService != nil {
+					event := events.NewInfoEventF("Node %s has finished syncing it's database", s.GetFactomNodeName())
+					s.EventsService.Send(event)
+				}
 			}
 		}
 	} else if s.IgnoreMissing {
@@ -2785,6 +2786,8 @@ func (s *State) NewAck(msg interfaces.IMsg, balanceHash interfaces.IHash) interf
 }
 
 func emitEvent(eventSource eventmessages.EventSource, msg interfaces.IMsg, state *State) {
-	event := events.EventFromMessage(eventSource, msg)
-	state.EventsService.Send(event)
+	if state.EventsService != nil {
+		event := events.EventFromMessage(eventSource, msg)
+		state.EventsService.Send(event)
+	}
 }

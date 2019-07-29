@@ -14,6 +14,9 @@ import (
 	"time"
 )
 
+var eventService events.EventService
+var eventServiceControl events.EventServiceControl
+
 const (
 	defaultConnectionProtocol = "tcp"
 	defaultConnectionHost     = "127.0.0.1"
@@ -32,19 +35,23 @@ type eventServiceInstance struct {
 	owningState        interfaces.IState
 }
 
-func NewEventService(state interfaces.IState) events.EventService {
+func NewEventService(state interfaces.IState) (events.EventService, events.EventServiceControl) {
 	return NewEventServiceTo(defaultConnectionProtocol, fmt.Sprintf("%s:%s", defaultConnectionHost, defaultConnectionPort), state)
 }
 
-func NewEventServiceTo(protocol string, address string, state interfaces.IState) events.EventService {
-	eventServiceInstance := &eventServiceInstance{
-		eventsOutQueue: make(chan *eventmessages.FactomEvent, p2p.StandardChannelSize),
-		protocol:       protocol,
-		address:        address,
-		owningState:    state,
+func NewEventServiceTo(protocol string, address string, state interfaces.IState) (events.EventService, events.EventServiceControl) {
+	if eventService == nil {
+		eventServiceInstance := &eventServiceInstance{
+			eventsOutQueue: make(chan *eventmessages.FactomEvent, p2p.StandardChannelSize),
+			protocol:       protocol,
+			address:        address,
+			owningState:    state,
+		}
+		eventService = eventServiceInstance
+		eventServiceControl = eventServiceInstance
+		go eventServiceInstance.processEventsChannel()
 	}
-	go eventServiceInstance.processEventsChannel()
-	return eventServiceInstance
+	return eventService, eventServiceControl
 }
 
 func (ep *eventServiceInstance) Send(event events.EventInput) error {
