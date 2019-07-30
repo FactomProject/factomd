@@ -9,7 +9,7 @@ import (
 func TestInitDevNet(t *testing.T) {
 	home := ResetSimHome(t) // clear out old test home
 	givenNodes := "FFFFL"
-	state0 := SetupSim(givenNodes, map[string]string{"--blktime": "15", "--db": "LDB"}, 6, 0, 0, t)
+	state0 := SetupSim(givenNodes, map[string]string{"--blktime": "15", "--db": "LDB"}, 12, 0, 0, t)
 	WaitForAllNodes(state0)
 
 	addSpecialPeers := `LocalSpecialPeers                     = "factomd-0-0.factomd:8110 factomd-1-0.factomd:8110 factomd-2-0.factomd:8110 factomd-3-0.factomd:8110 factomd-4-0.factomd:8110"`
@@ -26,7 +26,7 @@ func TestInitDevNet(t *testing.T) {
 	}
 
 	// wait one more block
-	WaitBlocks(state0, 1)
+	WaitBlocks(state0, 2)
 	AssertAuthoritySet(t, givenNodes)
 	ShutDownEverything(t)
 	t.Logf("generated DB's & config here: %s/.factom", home)
