@@ -62,8 +62,6 @@ imports:
   - utils
 - name: github.com/FactomProject/snappy-go
   version: f2f83b22c29e5abc60e3a95062ce1491d3b95371
-- name: github.com/FactomProject/web
-  version: 5bb394cc64239b77f571bbddc9a47c80c4d2283f
 - name: github.com/golang/protobuf
   version: ddf22928ea3c56eb4292a0adbbf5001b1e8e7d0d
   subpackages:
@@ -219,6 +217,8 @@ testImports:
   version: ddfaec9b42f58fc8172b0cbb03b21c6668dd0a46
   subpackages:
   - spew
+- name: github.com/gorilla/mux
+  version: e67b3c02c7195c052acff13261f0c9fd1ba53011
 - name: github.com/pmezard/go-difflib
   version: 792786c7400a136282c1664665ae0a8db921c6c2
   subpackages:
