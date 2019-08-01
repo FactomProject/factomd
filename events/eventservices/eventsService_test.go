@@ -32,7 +32,7 @@ func TestNoReceivingServer(t *testing.T) {
 
 	state := &state2.State{}
 	state.RunState = runstate.Running
-	eventService, _ := eventservices.NewEventServiceTo(protocol, address, eventoutputformat.Protobuf, state)
+	eventService, _ := eventservices.NewEventServiceTo(state, protocol, address, eventoutputformat.Protobuf)
 	msgs := testHelper.CreateTestDBStateList()
 
 	msg := msgs[0]
@@ -60,7 +60,7 @@ func TestEventProxy_Send(t *testing.T) {
 
 	state := &state2.State{}
 	state.RunState = runstate.Running
-	eventService, _ := eventservices.NewEventServiceTo(protocol, address, eventoutputformat.Protobuf, state)
+	eventService, _ := eventservices.NewEventServiceTo(state, protocol, address, eventoutputformat.Protobuf)
 	msgs := testHelper.CreateTestDBStateList()
 
 	// listen for results

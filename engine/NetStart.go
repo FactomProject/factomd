@@ -419,9 +419,13 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
 		p2pProxy.StartProxy()
 
-		s.EventsService, s.EventsServiceControl = eventservices.NewEventService(s, p)
-
 		go networkHousekeeping() // This goroutine executes once a second to keep the proxy apprised of the network status.
+	}
+
+	// Start live feed service
+	config := s.Cfg.(*util.FactomdConfig)
+	if config.LiveFeedAPI.EnableLiveFeedAPI || p.EnableLiveFeedAPI {
+		s.EventsService, s.EventsServiceControl = eventservices.NewEventService(s, config, p)
 	}
 
 	networkpattern = p.Net
@@ -563,7 +567,6 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	}
 
 	// Anchoring related configurations
-	config := s.Cfg.(*util.FactomdConfig)
 	if len(config.App.BitcoinAnchorRecordPublicKeys) > 0 {
 		err := s.GetDB().(*databaseOverlay.Overlay).SetBitcoinAnchorRecordPublicKeysFromHex(config.App.BitcoinAnchorRecordPublicKeys)
 		if err != nil {
