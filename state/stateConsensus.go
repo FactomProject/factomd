@@ -88,7 +88,7 @@ func (s *State) DeleteFromHolding(hash [32]byte, msg interfaces.IMsg, reason str
 		delete(s.Holding, hash)
 		s.LogMessage("holding", "delete "+reason, msg)
 		TotalHoldingQueueOutputs.Inc()
-		emitEvent(eventmessages.EventSource_DELETE_FROM_HOLDING, msg, s)
+		emitEvent(eventmessages.EventSource_DROP_FROM_HOLDING, msg, s)
 	}
 }
 

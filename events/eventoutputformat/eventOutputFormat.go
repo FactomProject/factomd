@@ -15,9 +15,9 @@ const (
 func (outputFormat Format) String() string {
 	switch outputFormat {
 	case Protobuf:
-		return "Protocol buffers"
+		return "Protobuf"
 	case Json:
-		return "JSON"
+		return "Json"
 	default:
 		return fmt.Sprintf("Unknown output format %d", int(outputFormat))
 	}
@@ -25,9 +25,9 @@ func (outputFormat Format) String() string {
 
 func FormatFrom(value string, defaultFormat Format) Format {
 	switch strings.ToLower(value) {
-	case "protobof":
+	case Protobuf.String():
 		return Protobuf
-	case "json":
+	case Json.String():
 		return Json
 	default:
 		return defaultFormat

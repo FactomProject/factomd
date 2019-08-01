@@ -14,7 +14,7 @@ enum EventSource {
     COMMIT_DIRECTORY_BLOCK = 0;
     ADD_TO_PROCESSLIST = 1;
     ADD_TO_HOLDING = 2;
-    DELETE_FROM_HOLDING = 3;
+    DROP_FROM_HOLDING = 3;
     NODE_INFO = 4;
     NODE_ERROR = 5;
 }

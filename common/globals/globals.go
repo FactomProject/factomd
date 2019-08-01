@@ -32,10 +32,11 @@ type FactomParams struct {
 	NetworkName              string
 	NetworkPortOverride      int
 	ControlPanelPortOverride int
+	EnableLiveFeedAPI        bool
 	EventReceiverProtocol    string
 	EventReceiverAddress     string
 	EventReceiverPort        int
-	EventReceiverEventFormat string
+	EventFormat              string
 	LogPort                  string
 	BlkTime                  int
 	FaultTimeout             int
