@@ -5,6 +5,5 @@ type EventService interface {
 }
 
 type EventServiceControl interface {
-	HasQueuedMessages() bool
-	WaitForQueuedMessages()
+	Shutdown()
 }

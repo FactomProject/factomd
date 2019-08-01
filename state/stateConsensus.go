@@ -87,6 +87,7 @@ func (s *State) DeleteFromHolding(hash [32]byte, msg interfaces.IMsg, reason str
 		delete(s.Holding, hash)
 		s.LogMessage("holding", "delete "+reason, msg)
 		TotalHoldingQueueOutputs.Inc()
+		emitEvent(eventmessages.EventSource_DELETE_FROM_HOLDING, msg, s)
 	}
 }
 
@@ -966,7 +967,6 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 
 		pl := s.ProcessLists.Get(ack.DBHeight)
 		pl.AddToProcessList(s, ack, m)
-		emitEvent(eventmessages.EventSource_ADD_TO_PROCESSLIST, m, s)
 
 		// Cross Boot Replay
 		s.CrossReplayAddSalt(ack.DBHeight, ack.Salt)
@@ -2783,11 +2783,4 @@ func (s *State) NewAck(msg interfaces.IMsg, balanceHash interfaces.IHash) interf
 	ack.SetLocal(true)
 
 	return ack
-}
-
-func emitEvent(eventSource eventmessages.EventSource, msg interfaces.IMsg, state *State) {
-	if state.EventsService != nil {
-		event := events.EventFromMessage(eventSource, msg)
-		state.EventsService.Send(event)
-	}
 }
