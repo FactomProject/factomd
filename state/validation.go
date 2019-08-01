@@ -78,8 +78,7 @@ func (s *State) DoProcessing() {
 func (s *State) ValidatorLoop() {
 	defer func() {
 		if r := recover(); r != nil {
-			event := events.NewErrorEvent("A panic state occurred in ValidatorLoop.", r)
-			event.Println()
+			events.NewErrorEvent("A panic state occurred in ValidatorLoop.", r)
 			shutdown(s)
 		}
 	}()
@@ -181,9 +180,8 @@ func shutdown(state *State) {
 	state.DB.Close()
 	fmt.Println("Database on", state.GetFactomNodeName(), "closed")
 
-	if state.EventsServiceControl != nil && state.EventsServiceControl.HasQueuedMessages() {
-		fmt.Println("Waiting for queued event messages in node ", state.GetFactomNodeName())
-		state.EventsServiceControl.WaitForQueuedMessages()
+	if state.EventsServiceControl != nil {
+		state.EventsServiceControl.Shutdown()
 	}
 	state.RunState = runstate.Stopped
 }

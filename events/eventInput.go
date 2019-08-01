@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/events/eventmessages"
+	log "github.com/sirupsen/logrus"
 )
 
 type EventInput interface {
@@ -36,10 +37,6 @@ func (nodeEvent NodeEvent) GetPayload() string {
 	return nodeEvent.payload
 }
 
-func (nodeEvent NodeEvent) Println() {
-	fmt.Println(nodeEvent.GetPayload())
-}
-
 func EventFromMessage(eventSource eventmessages.EventSource, msg interfaces.IMsg) *ProcessEvent {
 	return &ProcessEvent{
 		eventSource: eventSource,
@@ -61,8 +58,11 @@ func NewInfoEventF(format string, values ...interface{}) *NodeEvent {
 }
 
 func NewErrorEvent(message string, error interface{}) *NodeEvent {
-	return &NodeEvent{
+	errorMsg := fmt.Sprint(message, error)
+	event := &NodeEvent{
 		eventSource: eventmessages.EventSource_NODE_ERROR,
-		payload:     fmt.Sprint(message, error),
+		payload:     errorMsg,
 	}
+	log.Errorln(errorMsg)
+	return event
 }
