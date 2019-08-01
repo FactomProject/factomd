@@ -32,6 +32,10 @@ type FactomParams struct {
 	NetworkName              string
 	NetworkPortOverride      int
 	ControlPanelPortOverride int
+	EventReceiverProtocol    string
+	EventReceiverAddress     string
+	EventReceiverPort        int
+	EventReceiverEventFormat string
 	LogPort                  string
 	BlkTime                  int
 	FaultTimeout             int

@@ -3,12 +3,15 @@ package eventservices
 import (
 	"bufio"
 	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants/runstate"
+	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/events"
 	"github.com/FactomProject/factomd/events/eventmessages"
+	"github.com/FactomProject/factomd/events/eventoutputformat"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/gogo/protobuf/proto"
 	log "github.com/sirupsen/logrus"
@@ -20,9 +23,10 @@ var eventService events.EventService
 var eventServiceControl events.EventServiceControl
 
 const (
-	defaultConnectionProtocol = "tcp"
+	defaultProtocol           = "tcp"
 	defaultConnectionHost     = "127.0.0.1"
 	defaultConnectionPort     = "8040"
+	defaultOutputFormat       = eventoutputformat.Protobuf
 	sendRetries               = 3
 	dialRetryPostponeDuration = 5 * time.Minute
 	redialSleepDuration       = 10 * time.Second
@@ -34,20 +38,35 @@ type eventServiceInstance struct {
 	connection           net.Conn
 	protocol             string
 	address              string
+	outputFormat         eventoutputformat.Format
 	owningState          interfaces.IState
 }
 
-func NewEventService(state interfaces.IState) (events.EventService, events.EventServiceControl) {
-	return NewEventServiceTo(defaultConnectionProtocol, fmt.Sprintf("%s:%s", defaultConnectionHost, defaultConnectionPort), state)
+func NewEventService(state interfaces.IState, params *globals.FactomParams) (events.EventService, events.EventServiceControl) {
+	var protocol string // TODO add test code for FactomParams configuration
+	if len(params.EventReceiverProtocol) > 0 {
+		protocol = params.EventReceiverProtocol
+	} else {
+		protocol = defaultProtocol
+	}
+	var address string
+	if len(params.EventReceiverAddress) > 0 && params.EventReceiverPort > 0 {
+		address = fmt.Sprintf("%s:%s", params.EventReceiverAddress, params.EventReceiverPort)
+	} else {
+		address = fmt.Sprintf("%s:%s", defaultConnectionHost, defaultConnectionPort)
+	}
+	outputFormat := eventoutputformat.FormatFrom(params.EventReceiverEventFormat, defaultOutputFormat)
+	return NewEventServiceTo(protocol, address, outputFormat, state)
 }
 
-func NewEventServiceTo(protocol string, address string, state interfaces.IState) (events.EventService, events.EventServiceControl) {
+func NewEventServiceTo(protocol string, address string, format eventoutputformat.Format, state interfaces.IState) (events.EventService, events.EventServiceControl) {
 	if eventService == nil {
 		eventServiceInstance := &eventServiceInstance{
 			eventsOutQueue: make(chan *eventmessages.FactomEvent, p2p.StandardChannelSize),
 			protocol:       protocol,
 			address:        address,
 			owningState:    state,
+			outputFormat:   format,
 		}
 		eventService = eventServiceInstance
 		eventServiceControl = eventServiceInstance
@@ -85,7 +104,7 @@ func (ep *eventServiceInstance) processEventsChannel() {
 }
 
 func (ep *eventServiceInstance) sendEvent(event *eventmessages.FactomEvent) {
-	data, err := ep.marshallEvent(event)
+	data, err := ep.marshallMessage(event)
 	if err != nil {
 		log.Errorf("An error occurred while serializing factom event of type %s: %v", event.EventSource.String(), err)
 		return
@@ -116,6 +135,20 @@ func (ep *eventServiceInstance) sendEvent(event *eventmessages.FactomEvent) {
 	if !sendSuccessful {
 		ep.postponeSendingUntil = time.Now().Add(dialRetryPostponeDuration)
 	}
+}
+
+func (ep *eventServiceInstance) marshallMessage(event *eventmessages.FactomEvent) ([]byte, error) {
+	var data []byte
+	var err error
+	switch ep.outputFormat {
+	case eventoutputformat.Protobuf:
+		data, err = ep.marshallEvent(event)
+	case eventoutputformat.Json:
+		data, err = json.Marshal(event)
+	default:
+		return nil, errors.New("Unsupported event format " + ep.outputFormat.String())
+	}
+	return data, err
 }
 
 func (ep *eventServiceInstance) connect() error {
