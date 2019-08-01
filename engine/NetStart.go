@@ -419,7 +419,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
 		p2pProxy.StartProxy()
 
-		s.EventsService, s.EventsServiceControl = eventservices.NewEventService(s)
+		s.EventsService, s.EventsServiceControl = eventservices.NewEventService(s, p)
 
 		go networkHousekeeping() // This goroutine executes once a second to keep the proxy apprised of the network status.
 	}

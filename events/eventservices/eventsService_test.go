@@ -8,6 +8,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants/runstate"
 	"github.com/FactomProject/factomd/events"
 	"github.com/FactomProject/factomd/events/eventmessages"
+	"github.com/FactomProject/factomd/events/eventoutputformat"
 	"github.com/FactomProject/factomd/events/eventservices"
 	state2 "github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/testHelper"
@@ -31,7 +32,7 @@ func TestNoReceivingServer(t *testing.T) {
 
 	state := &state2.State{}
 	state.RunState = runstate.Running
-	eventService, _ := eventservices.NewEventServiceTo(protocol, address, state)
+	eventService, _ := eventservices.NewEventServiceTo(protocol, address, eventoutputformat.Protobuf, state)
 	msgs := testHelper.CreateTestDBStateList()
 
 	msg := msgs[0]
@@ -59,7 +60,7 @@ func TestEventProxy_Send(t *testing.T) {
 
 	state := &state2.State{}
 	state.RunState = runstate.Running
-	eventService, _ := eventservices.NewEventServiceTo(protocol, address, state)
+	eventService, _ := eventservices.NewEventServiceTo(protocol, address, eventoutputformat.Protobuf, state)
 	msgs := testHelper.CreateTestDBStateList()
 
 	// listen for results
