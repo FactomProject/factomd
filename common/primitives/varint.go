@@ -10,8 +10,9 @@ import (
 	"github.com/FactomProject/factomd/common/primitives/random"
 )
 
+// RandomVarInt returns a random variable integer
 func RandomVarInt() uint64 {
-	length := random.RandIntBetween(1, 10)
+	length := random.RandIntBetween(1, 11) // generates [1,11) --> 1-10
 
 	switch length {
 	case 1:
@@ -41,21 +42,25 @@ func RandomVarInt() uint64 {
 	return 0
 }
 
+// VarIntLength returns the length of the variable integer when encoded as a var int
 func VarIntLength(v uint64) uint64 {
 	buf := new(Buffer)
 	EncodeVarInt(buf, v)
 	return uint64(buf.Len())
 }
 
+// DecodeVarInt decodes a variable integer from the given data buffer.
+// We use the algorithm used by Go, only BigEndian.
 func DecodeVarInt(data []byte) (uint64, []byte) {
 	return DecodeVarIntGo(data)
 }
 
+// EncodeVarInt encodes an integer as a variable int into the given data buffer.
 func EncodeVarInt(out *Buffer, v uint64) error {
 	return EncodeVarIntGo(out, v)
 }
 
-// Decode a variable integer from the given data buffer.
+// DecodeVarIntGo decodes a variable integer from the given data buffer.
 // We use the algorithm used by Go, only BigEndian.
 func DecodeVarIntGo(data []byte) (uint64, []byte) {
 	if data == nil || len(data) < 1 {
@@ -74,7 +79,7 @@ func DecodeVarIntGo(data []byte) (uint64, []byte) {
 	return v, data[cnt+1:]
 }
 
-// Encode an integer as a variable int into the given data buffer.
+// EncodeVarIntGo encodes an integer as a variable int into the given data buffer.
 func EncodeVarIntGo(out *Buffer, v uint64) error {
 	if v == 0 {
 		out.WriteByte(0)
