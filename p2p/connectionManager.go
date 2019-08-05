@@ -107,14 +107,11 @@ func (cm *ConnectionManager) GetRandom() *Connection {
 	return onlineActive[rand.Intn(len(onlineActive))]
 }
 
-// Get connections for all online who have not sent me a copy of the message I'm about to send,
-// active regular peers, but in random order.
-func (cm *ConnectionManager) GetAllRegular(msgHash [32]byte) []*Connection {
+// Get connections for all online, active regular peers, but in random order.
+func (cm *ConnectionManager) GetAllRegular() []*Connection {
 
 	selection := cm.getMatching(func(c *Connection) bool {
-
-		b := c.IsOnline() && !c.peer.IsSpecial() && c.metrics.BytesReceived > 0 && !c.peer.PrevMsgs.Get(msgHash)
-		return b
+		return c.IsOnline() && !c.peer.IsSpecial() && c.metrics.BytesReceived > 0
 	})
 
 	shuffle(len(selection), func(i, j int) {
@@ -124,13 +121,13 @@ func (cm *ConnectionManager) GetAllRegular(msgHash [32]byte) []*Connection {
 	return selection
 }
 
-// Get a set of random connections from all the online who have not sent me a copy of the message I'm about to send.
-func (cm *ConnectionManager) GetRandomRegular(sampleSize int, msgHash [32]byte) []*Connection {
+// Get a set of random connections from all the online, active regular peers we have.
+func (cm *ConnectionManager) GetRandomRegular(sampleSize int) []*Connection {
 	if sampleSize <= 0 {
 		return make([]*Connection, 0)
 	}
 
-	selection := cm.GetAllRegular(msgHash)
+	selection := cm.GetAllRegular()
 	resultSize := min(sampleSize, len(selection))
 	return selection[:resultSize]
 }

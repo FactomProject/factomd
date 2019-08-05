@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"hash/crc32"
 
-	"github.com/FactomProject/factomd/common/interfaces"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -20,7 +19,6 @@ var parcelLogger = packageLogger.WithField("subpack", "connection")
 type Parcel struct {
 	Header  ParcelHeader
 	Payload []byte
-	Msg     interfaces.IMsg `json:"-"` // Keep the message for debugging
 }
 
 // ParcelHeaderSize is the number of bytes in a parcel header
@@ -80,18 +78,8 @@ func NewParcel(network NetworkID, payload []byte) *Parcel {
 	parcel.UpdateHeader() // Updates the header with info about payload.
 	return parcel
 }
-func NewParcelMsg(network NetworkID, payload []byte, msg interfaces.IMsg) *Parcel {
-	header := new(ParcelHeader).Init(network)
-	header.AppHash = "NetworkMessage"
-	header.AppType = "Network"
-	parcel := new(Parcel).Init(*header)
-	parcel.Payload = payload
-	parcel.Msg = msg      // Keep the message for debugging
-	parcel.UpdateHeader() // Updates the header with info about payload.
-	return parcel
-}
 
-func ParcelsForPayload(network NetworkID, payload []byte, msg interfaces.IMsg) []Parcel {
+func ParcelsForPayload(network NetworkID, payload []byte) []Parcel {
 	parcelCount := (len(payload) / MaxPayloadSize) + 1
 	parcels := make([]Parcel, parcelCount)
 
@@ -104,12 +92,13 @@ func ParcelsForPayload(network NetworkID, payload []byte, msg interfaces.IMsg) [
 		} else {
 			end = len(payload)
 		}
-		parcel := NewParcelMsg(network, payload[start:end], msg)
+		parcel := NewParcel(network, payload[start:end])
 		parcel.Header.Type = TypeMessagePart
 		parcel.Header.PartNo = uint16(i)
 		parcel.Header.PartsTotal = uint16(parcelCount)
 		parcels[i] = *parcel
 	}
+
 	return parcels
 }
 
