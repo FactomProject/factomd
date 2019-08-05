@@ -144,6 +144,7 @@ func (ep *eventServiceInstance) connect() error {
 	defer catchConnectPanics()
 
 	if ep.connection == nil {
+		fmt.Println("Connecting to ", ep.address)
 		conn, err := net.Dial(ep.protocol, ep.address)
 		if err != nil {
 			return fmt.Errorf("failed to connect: %v", err)
@@ -188,9 +189,9 @@ func (ep *eventServiceInstance) writeEvent(data []byte) (err error) {
 		return fmt.Errorf("failed to write data size header: %v", err)
 	}
 
-	_, err = writer.Write(data)
+	bytesWritten, err := writer.Write(data)
 	if err != nil {
-		return fmt.Errorf("failed to write data: %v", err)
+		return fmt.Errorf("failed to write data: %v. Bytes written: %d", err, bytesWritten)
 	}
 	err = writer.Flush()
 	if err != nil {

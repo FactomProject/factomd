@@ -1,8 +1,10 @@
+/**
+		===== IMPORTANT only run these tests one by one, not the entire package =====
+**/
+
 package eventservices_test
 
 import (
-	"bufio"
-	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants/runstate"
@@ -15,7 +17,6 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/gogo/protobuf/types"
 	"github.com/stretchr/testify/assert"
-	"net"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -26,51 +27,19 @@ var (
 	testHash = []byte("12345678901234567890123456789012")
 )
 
-func TestNoReceivingServer(t *testing.T) {
-	protocol := "tcp"
-	address := ":12410"
-
-	state := &state2.State{}
-	state.RunState = runstate.Running
-	eventService, _ := eventservices.NewEventServiceTo(state, protocol, address, eventoutputformat.Protobuf)
-	msgs := testHelper.CreateTestDBStateList()
-
-	msg := msgs[0]
-	event := events.EventFromMessage(eventmessages.EventSource_ADD_TO_PROCESSLIST, msg)
-	eventService.Send(event)
-
-	time.Sleep(2 * time.Second) // sleep less than the retry * redail sleep duration
-
-	// listen for results
-	var correctSendEvents int32 = 0
-	listener, err := net.Listen(protocol, address)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer listener.Close()
-	go listenForEvents(t, listener, &correctSendEvents, len(msgs))
-
-	waitOnEvents(&correctSendEvents, 1, 10*time.Second)
-	assert.EqualValues(t, 1, correctSendEvents, "failed to receive the correct number of events %d != %d", 1, correctSendEvents)
-}
-
 func TestEventProxy_Send(t *testing.T) {
-	protocol := "tcp"
-	address := ":12409"
-
 	state := &state2.State{}
 	state.RunState = runstate.Running
-	eventService, _ := eventservices.NewEventServiceTo(state, protocol, address, eventoutputformat.Protobuf)
 	msgs := testHelper.CreateTestDBStateList()
 
-	// listen for results
-	var correctSendEvents int32 = 0
-	listener, err := net.Listen(protocol, address)
-	if err != nil {
-		t.Fatal(err)
+	sim := &EventServerSim{
+		Protocol:       "tcp",
+		Address:        ":12409",
+		ExpectedEvents: len(msgs),
+		test:           t,
 	}
-	defer listener.Close()
-	go listenForEvents(t, listener, &correctSendEvents, len(msgs))
+	sim.Start()
+	eventService, _ := eventservices.NewEventServiceTo(state, sim.Protocol, sim.Address, eventoutputformat.Protobuf)
 
 	// send messages
 	for _, msg := range msgs {
@@ -78,45 +47,72 @@ func TestEventProxy_Send(t *testing.T) {
 		eventService.Send(event)
 	}
 
-	waitOnEvents(&correctSendEvents, len(msgs), 10*time.Second)
+	waitOnEvents(&sim.CorrectSendEvents, len(msgs), 10*time.Second)
 
-	assert.EqualValues(t, len(msgs), correctSendEvents, "failed to receive the correct number of events %d != %d", len(msgs), correctSendEvents)
+	assert.EqualValues(t, len(msgs), sim.CorrectSendEvents,
+		"failed to receive the correct number of events %d != %d", len(msgs), sim.CorrectSendEvents)
+}
+
+func TestNoReceivingServer(t *testing.T) {
+	state := &state2.State{}
+	state.RunState = runstate.Running
+	msgs := testHelper.CreateTestDBStateList()
+
+	sim := &EventServerSim{
+		Protocol:       "tcp",
+		Address:        ":12410",
+		ExpectedEvents: len(msgs),
+		test:           t,
+	}
+	eventService, _ := eventservices.NewEventServiceTo(state, sim.Protocol, sim.Address, eventoutputformat.Protobuf)
+
+	msg := msgs[0]
+	event := events.EventFromMessage(eventmessages.EventSource_ADD_TO_PROCESSLIST, msg)
+	eventService.Send(event)
+
+	time.Sleep(2 * time.Second) // sleep less than the retry * redail sleep duration
+	sim.Start()
+	waitOnEvents(&sim.CorrectSendEvents, 1, 25*time.Second)
+	assert.EqualValues(t, 1, sim.CorrectSendEvents,
+		"failed to receive the correct number of events %d != %d", 1, sim.CorrectSendEvents)
+}
+
+func TestReceivingServerRestarted(t *testing.T) {
+	state := &state2.State{}
+	state.RunState = runstate.Running
+	msgs := testHelper.CreateTestDBStateList()
+
+	sim := &EventServerSim{
+		Protocol:       "tcp",
+		Address:        ":12411",
+		ExpectedEvents: len(msgs),
+		test:           t,
+	}
+	sim.Start()
+	eventService, _ := eventservices.NewEventServiceTo(state, sim.Protocol, sim.Address, eventoutputformat.Protobuf)
+
+	msg := msgs[0]
+	event := events.EventFromMessage(eventmessages.EventSource_ADD_TO_PROCESSLIST, msg)
+	eventService.Send(event)
+
+	// Restart the simulator
+	sim.Stop()
+
+	// We have to wait quite some time for the listener to really die,
+	// if we open a new listener too earlier the client's messages will go into the endless void
+	// In real life when the process dies we won't see this issue
+	time.Sleep(122 * time.Second)
+	sim.Start()
+	eventService.Send(event)
+	waitOnEvents(&sim.CorrectSendEvents, 1, 25*time.Second)
+	assert.EqualValues(t, 1, sim.CorrectSendEvents,
+		"failed to receive the correct number of events %d != %d", 1, sim.CorrectSendEvents)
 }
 
 func waitOnEvents(correctSendEvents *int32, n int, timeLimit time.Duration) {
 	deadline := time.Now().Add(timeLimit)
 	for int(atomic.LoadInt32(correctSendEvents)) != n && time.Now().Before(deadline) {
 		time.Sleep(100 * time.Millisecond)
-	}
-}
-
-func listenForEvents(t *testing.T, listener net.Listener, correctSendEvents *int32, n int) {
-	conn, err := listener.Accept()
-	if err != nil {
-		fmt.Printf("failed to accept connection: %v\n", err)
-		return
-	}
-	defer conn.Close()
-	reader := bufio.NewReader(conn)
-
-	for i := atomic.LoadInt32(correctSendEvents); i < int32(n); i++ {
-		fmt.Printf("read event: %d/%d\n", i, n)
-		var dataSize int32
-		if err := binary.Read(reader, binary.LittleEndian, &dataSize); err != nil {
-			fmt.Printf("failed to read data size: %v\n", err)
-		}
-
-		if dataSize < 1 {
-			fmt.Printf("data size incorrect: %d\n", dataSize)
-		}
-		data := make([]byte, dataSize)
-		bytesRead, err := reader.Read(data)
-		if err != nil {
-			fmt.Printf("failed to read data: %v\n", err)
-		}
-
-		t.Logf("%v", data[0:bytesRead])
-		atomic.AddInt32(correctSendEvents, 1)
 	}
 }
 
