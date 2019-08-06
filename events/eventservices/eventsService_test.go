@@ -99,7 +99,7 @@ func TestReceivingServerRestarted(t *testing.T) {
 	sim.Stop()
 
 	// We have to wait quite some time for the listener to really die,
-	// if we open a new listener too earlier the client's messages will go into the endless void
+	// if we open a new listener too early the client's messages will go into the endless void
 	// In real life when the process dies we won't see this issue
 	time.Sleep(122 * time.Second)
 	sim.Start()
