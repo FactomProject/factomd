@@ -17,30 +17,6 @@ var peerLogger = packageLogger.WithField("subpack", "peer")
 
 // Data structures and functions related to peers (eg other nodes in the network)
 
-// Keep a short history of messages
-type Last100 struct {
-	Msgs     map[[32]byte]bool // Look up messages by hash
-	MsgOrder [100][32]byte     // keep a list of the order they were added
-	N        int
-}
-
-func (l *Last100) Add(hash [32]byte) {
-	if l.Msgs == nil {
-		l.Msgs = make(map[[32]byte]bool, 0)
-	}
-	previous := l.MsgOrder[l.N] // get the oldest message
-	delete(l.Msgs, previous)    // Delete it for the map
-	l.MsgOrder[l.N] = hash      // replace it with the new message
-	l.Msgs[hash] = true         // Add new the message to the map
-	l.N = (l.N + 1) % 100       // move and wrap the index
-}
-
-//Check if we have a message in the short history
-func (l *Last100) Get(hash [32]byte) bool {
-	_, exists := l.Msgs[hash]
-	return exists
-}
-
 type Peer struct {
 	QualityScore int32     // 0 is neutral quality, negative is a bad peer.
 	Address      string    // Must be in form of x.x.x.x
@@ -56,8 +32,6 @@ type Peer struct {
 
 	// logging
 	logger *log.Entry
-
-	PrevMsgs Last100 `json:"-"`
 }
 
 const (
