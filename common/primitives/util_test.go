@@ -94,6 +94,11 @@ func TestConversions(test *testing.T) {
 		fmt.Println("4", v, err)
 		test.Fail()
 	}
+	v, err = ConvertFixedPoint("999")
+	if err != nil || v != "99900000000" {
+		fmt.Println("5", v, err)
+		test.Fail()
+	}
 }
 
 func TestWriteNumber(t *testing.T) {
