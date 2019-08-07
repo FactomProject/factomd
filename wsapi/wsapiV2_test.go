@@ -68,7 +68,7 @@ func TestHandleV2Requests(t *testing.T) {
 			AddressRequest{Address: testHelper.NewFactoidRCDAddressString(0)},
 			http.StatusOK,
 			map[string]interface{}{
-				"balance": number("199977800"),
+				"balance": number("99988900"),
 			},
 			nil,
 		},
@@ -84,7 +84,7 @@ func TestHandleV2Requests(t *testing.T) {
 			AddressRequest{Address: testHelper.NewECAddressPublicKeyString(0)},
 			http.StatusOK,
 			map[string]interface{}{
-				"balance": number("196"),
+				"balance": number("98"),
 			},
 			nil,
 		},
@@ -214,7 +214,7 @@ func TestHandleV2Requests(t *testing.T) {
 			nil,
 			http.StatusOK,
 			map[string]interface{}{
-				"balancehash":          "0000f65cd6d3ac9f2f94bd664d0e2a509ae4967b41254ab3ef327841cf759486",
+				"balancehash":          "0001a47afb76d6e134294c8e6afc42bb04d54f27c5b41fd03446085c884e90ac",
 				"lastblockfromdbstate": false,
 				"role":                 "Follower",
 			},
