@@ -1,504 +1,214 @@
 package wsapi_test
 
 import (
+	"bytes"
+	"crypto/tls"
 	"encoding/json"
-	//"fmt"
-	"strings"
-	"testing"
-
-	"fmt"
-
-	"github.com/FactomProject/factomd/common/entryBlock"
-	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/receipts"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/testHelper"
 	. "github.com/FactomProject/factomd/wsapi"
+	"github.com/stretchr/testify/assert"
+	"io"
+	"io/ioutil"
+	"net/http"
+	"os"
+	"testing"
 )
 
-/*
-func TestHandleDirectoryBlockHead(t *testing.T) {
-	context := testHelper.CreateWebContext()
+func TestGetEndpoints(t *testing.T) {
+	state := testHelper.CreateAndPopulateTestState()
+	Start(state)
 
-	HandleDirectoryBlockHead(context)
-	expectedHead := testHelper.DBlockHeadPrimaryIndex
+	cases := map[string]struct {
+		Method   string
+		Url      string
+		Expected int
+		Body     io.Reader
+	}{
+		"baseGetUrl":       {"GET", "http://localhost:8088", http.StatusNotFound, nil},
+		"basePostUrl":      {"POST", "http://localhost:8088", http.StatusNotFound, body("")},
+		"trailing-slashes": {"GET", "http://localhost:8088/v2/", http.StatusNotFound, nil},
+		"wrong-method":     {"GET", "http://localhost:8088/v1/factoid-submit/", http.StatusNotFound, nil},
+	}
+	client := &http.Client{}
+	for name, testCase := range cases {
+		t.Logf("test case '%s'", name)
+		request, err := http.NewRequest(testCase.Method, testCase.Url, testCase.Body)
+		response, err := client.Do(request)
 
-	if strings.Contains(testHelper.GetBody(context), expectedHead) == false {
-		t.Errorf("Context does not contain proper DBlock Head - %v vs %v", testHelper.GetBody(context), expectedHead)
+		if err != nil {
+			t.Errorf("test '%s' failed: %v \nresponse: %v", name, err, response)
+		} else if response == nil {
+			t.Errorf("test '%s' failed: response == nil", name)
+		} else if testCase.Expected != response.StatusCode {
+			t.Errorf("test '%s' failed: wrong status code expected '%d' != actual '%d'", name, testCase.Expected, response.StatusCode)
+		}
 	}
 }
-*/
 
-func TestHandleGetRaw(t *testing.T) {
-	type RawData struct {
-		Hash1 string
-		Hash2 string
-		Raw   string
+func TestAuthenticatedUnauthorizedRequest(t *testing.T) {
+	username := "user"
+	password := "password"
+
+	propertiesV2Body := body(primitives.NewJSON2Request("properties", 0, ""))
+
+	state := testHelper.CreateAndPopulateTestState()
+	state.RpcUser = username
+	state.RpcPass = password
+	state.SetPort(18088)
+	Start(state)
+
+	cases := map[string]struct {
+		Method       string
+		Url          string
+		Authenticate bool
+		Expected     int
+		Body         io.Reader
+	}{
+		"v1Authorized":   {"GET", "http://localhost:18088/v1/properties/", true, http.StatusOK, nil},
+		"v1Unauthorized": {"GET", "http://localhost:18088/v1/properties/", false, http.StatusUnauthorized, nil},
+		"v2Authorized":   {"POST", "http://localhost:18088/v2", true, http.StatusOK, propertiesV2Body},
+		"v2Unauthorized": {"POST", "http://localhost:18088/v2", false, http.StatusUnauthorized, propertiesV2Body},
 	}
 
-	toTest := []RawData{}
+	client := &http.Client{}
+	for name, testCase := range cases {
+		t.Logf("test case '%s'", name)
+		request, err := http.NewRequest(testCase.Method, testCase.Url, testCase.Body)
+		if testCase.Authenticate {
+			request.SetBasicAuth(username, password)
+		}
+
+		response, err := client.Do(request)
+
+		if err != nil {
+			t.Errorf("test '%s' failed: %v \nresponse: %v", name, err, response)
+		} else if response == nil {
+			t.Errorf("test '%s' failed: response == nil", name)
+		} else if testCase.Expected != response.StatusCode {
+			body, _ := ioutil.ReadAll(response.Body)
+			t.Errorf("test '%s' failed: wrong status code expected '%d' != actual '%d', body: %s", name, testCase.Expected, response.StatusCode, string(body))
+		}
+	}
+}
+
+func body(content interface{}) io.Reader {
+	payload, _ := json.Marshal(content)
+	body := bytes.NewBuffer(payload)
+	return body
+}
+
+// use the mock state to override the GetTlsInfo
+type MockState struct {
+	state.State
+	mockTlsInfo func() (bool, string, string)
+}
+
+func (s *MockState) GetTlsInfo() (bool, string, string) {
+	return s.mockTlsInfo()
+}
+
+func TestHTTPS(t *testing.T) {
+	certFile, pkFile, cleanup := testSetupCertificateFiles(t)
+	defer cleanup()
+
+	state := testHelper.CreateAndPopulateTestState()
+	state.SetPort(10443)
+	mState := &MockState{
+		State: *state,
+		mockTlsInfo: func() (bool, string, string) {
+			return true, pkFile, certFile
+		},
+	}
+
+	Start(mState)
+
+	url := "https://localhost:10443/v1/heights/"
+	transCfg := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // ignore expired SSL certificates
+	}
+	client := &http.Client{Transport: transCfg}
+	response, err := client.Get(url)
+
+	assert.Nil(t, err, "%v", response)
+	if response != nil {
+		assert.Equal(t, http.StatusOK, response.StatusCode)
+	}
+}
+
+// an arbitrary self-signed certificate, generated with
+// `openssl req -x509 -nodes -days 365 -newkey rsa:1024 -keyout cert.pem -out cert.pem`
+var pkey = `-----BEGIN RSA PRIVATE KEY-----
+MIICXAIBAAKBgQDVBUw40q0zpF/zWzwBf0GFkXmnkw+YCNTiV8l7mso1DCv/VTYM
+cqtvy0g2KNBV7SFLC+NHuxJkNOAtJ8Fxx1EpeIw5A3KeCRNb4lo6ecAkuDLiPYGO
+qgAqjj8QmhmZA68qTIuWGYM1FTtUK3wO4wrHnqHEjs3cWNghmby6AgLHVQIDAQAB
+AoGAcy5GJINlu4KpjwBJ1dVlLD+YtA9EY0SDN0+YVglARKasM4dzjg+CuxQDm6U9
+4PgzBE0NO3/fVedxP3k7k7XeH73PosaxjWpfMawXR3wSLFKJBwxux/8gNdzeGRHN
+X1sYsJ70WiZLFOAPQ9jctF1ejUP6fpLHsti6ZHQj/R1xqBECQQDrHxmpMoviQL6n
+4CBR4HvlIRtd4Qr21IGEXtbjIcC5sgbkfne6qhqdv9/zxsoiPTi0859cr704Mf3y
+cA8LZ8c3AkEA5+/KjSoqgzPaUnvPZ0p9TNx6odxMsd5h1AMIVIbZPT6t2vffCaZ7
+R0ffim/KeWfoav8u9Cyz8eJpBG6OHROT0wJBAML54GLCCuROAozePI8JVFS3NqWM
+OHZl1R27NAHYfKTBMBwNkCYYZ8gHVKUoZXktQbg1CyNmjMhsFIYWTTONFNMCQFsL
+eBld2f5S1nrWex3y0ajgS4tKLRkNUJ2m6xgzLwepmRmBf54MKgxbHFb9dx+dOFD4
+Bvh2q9RhqhPBSiwDyV0CQBxN3GPbaa8V7eeXBpBYO5Evy4VxSWJTpgmMDtMH+RUp
+9eAJ8rUyhZ2OaElg1opGCRemX98s/o2R5JtzZvOx7so=
+-----END RSA PRIVATE KEY-----
+`
+
+var cert = `-----BEGIN CERTIFICATE-----
+MIIDXDCCAsWgAwIBAgIJAJqbbWPZgt0sMA0GCSqGSIb3DQEBBQUAMH0xCzAJBgNV
+BAYTAlVTMQswCQYDVQQIEwJDQTEWMBQGA1UEBxMNU2FuIEZyYW5jaXNjbzEPMA0G
+A1UEChMGV2ViLmdvMRcwFQYDVQQDEw5NaWNoYWVsIEhvaXNpZTEfMB0GCSqGSIb3
+DQEJARYQaG9pc2llQGdtYWlsLmNvbTAeFw0xMzA0MDgxNjIzMDVaFw0xNDA0MDgx
+NjIzMDVaMH0xCzAJBgNVBAYTAlVTMQswCQYDVQQIEwJDQTEWMBQGA1UEBxMNU2Fu
+IEZyYW5jaXNjbzEPMA0GA1UEChMGV2ViLmdvMRcwFQYDVQQDEw5NaWNoYWVsIEhv
+aXNpZTEfMB0GCSqGSIb3DQEJARYQaG9pc2llQGdtYWlsLmNvbTCBnzANBgkqhkiG
+9w0BAQEFAAOBjQAwgYkCgYEA1QVMONKtM6Rf81s8AX9BhZF5p5MPmAjU4lfJe5rK
+NQwr/1U2DHKrb8tINijQVe0hSwvjR7sSZDTgLSfBccdRKXiMOQNyngkTW+JaOnnA
+JLgy4j2BjqoAKo4/EJoZmQOvKkyLlhmDNRU7VCt8DuMKx56hxI7N3FjYIZm8ugIC
+x1UCAwEAAaOB4zCB4DAdBgNVHQ4EFgQURizcvrgUl8yhIEQvJT/1b5CzV8MwgbAG
+A1UdIwSBqDCBpYAURizcvrgUl8yhIEQvJT/1b5CzV8OhgYGkfzB9MQswCQYDVQQG
+EwJVUzELMAkGA1UECBMCQ0ExFjAUBgNVBAcTDVNhbiBGcmFuY2lzY28xDzANBgNV
+BAoTBldlYi5nbzEXMBUGA1UEAxMOTWljaGFlbCBIb2lzaWUxHzAdBgkqhkiG9w0B
+CQEWEGhvaXNpZUBnbWFpbC5jb22CCQCam21j2YLdLDAMBgNVHRMEBTADAQH/MA0G
+CSqGSIb3DQEBBQUAA4GBAGBPoVCReGMO1FrsIeVrPV/N6pSK7H3PLdxm7gmmvnO9
+K/LK0OKIT7UL3eus+eh0gt0/Tv/ksq4nSIzXBLPKyPggLmpC6Agf3ydNTpdLQ23J
+gWrxykqyLToIiAuL+pvC3Jv8IOPIiVFsY032rOqcwSGdVUyhTsG28+7KnR6744tM
+-----END CERTIFICATE-----
+`
+
+func testSetupCertificateFiles(t *testing.T) (string, string, func()) {
+	certificates := make([]tls.Certificate, 1)
 	var err error
+	certificates[0], err = tls.X509KeyPair([]byte(cert), []byte(pkey))
 
-	blockSet := testHelper.CreateTestBlockSet(nil)
-
-	aBlock := blockSet.ABlock
-	raw := RawData{}
-	raw.Hash1 = aBlock.DatabasePrimaryIndex().String()
-	raw.Hash2 = aBlock.DatabaseSecondaryIndex().String()
-	hex, err := aBlock.MarshalBinary()
 	if err != nil {
-		panic(err)
+		t.Fatalf("failed to create certificate: %v", err)
 	}
-	raw.Raw = primitives.EncodeBinary(hex)
-	toTest = append(toTest, raw) //1
 
-	eBlock := blockSet.EBlock
-	raw = RawData{}
-	raw.Hash1 = eBlock.DatabasePrimaryIndex().String()
-	raw.Hash2 = eBlock.DatabaseSecondaryIndex().String()
-	hex, err = eBlock.MarshalBinary()
-	if err != nil {
-		panic(err)
+	certFile, cleanCertFile := testTempFile(t, "cert", cert)
+	pkFile, cleanPKFile := testTempFile(t, "pk", pkey)
+
+	cleanup := func() {
+		cleanCertFile()
+		cleanPKFile()
 	}
-	raw.Raw = primitives.EncodeBinary(hex)
-	toTest = append(toTest, raw) //2
-
-	ecBlock := blockSet.ECBlock
-	raw = RawData{}
-	raw.Hash1 = ecBlock.(interfaces.DatabaseBatchable).DatabasePrimaryIndex().String()
-	raw.Hash2 = ecBlock.(interfaces.DatabaseBatchable).DatabaseSecondaryIndex().String()
-	hex, err = ecBlock.MarshalBinary()
-	if err != nil {
-		panic(err)
-	}
-	raw.Raw = primitives.EncodeBinary(hex)
-	toTest = append(toTest, raw) //3
-
-	fBlock := blockSet.FBlock
-	raw = RawData{}
-	raw.Hash1 = fBlock.(interfaces.DatabaseBatchable).DatabasePrimaryIndex().String()
-	raw.Hash2 = fBlock.(interfaces.DatabaseBatchable).DatabaseSecondaryIndex().String()
-	hex, err = fBlock.MarshalBinary()
-	if err != nil {
-		panic(err)
-	}
-	raw.Raw = primitives.EncodeBinary(hex)
-	toTest = append(toTest, raw) //4
-
-	dBlock := blockSet.DBlock
-	raw = RawData{}
-	raw.Hash1 = dBlock.DatabasePrimaryIndex().String()
-	raw.Hash2 = dBlock.DatabaseSecondaryIndex().String()
-	hex, err = dBlock.MarshalBinary()
-	if err != nil {
-		panic(err)
-	}
-	raw.Raw = primitives.EncodeBinary(hex)
-	toTest = append(toTest, raw) //5
-
-	context := testHelper.CreateWebContext()
-	for i, v := range toTest {
-		testHelper.ClearContextResponseWriter(context)
-		HandleGetRaw(context, v.Hash1)
-
-		if strings.Contains(testHelper.GetBody(context), v.Raw) == false {
-			t.Errorf("Looking for %v", v.Hash1)
-			t.Errorf("GetRaw %v/%v from Hash1 failed - %v", i, len(toTest), testHelper.GetBody(context))
-		}
-
-		testHelper.ClearContextResponseWriter(context)
-		HandleGetRaw(context, v.Hash2)
-
-		if strings.Contains(testHelper.GetBody(context), v.Raw) == false {
-			t.Errorf("Looking for %v", v.Hash2)
-			t.Errorf("GetRaw %v/%v from Hash2 failed - %v", i, len(toTest), testHelper.GetBody(context))
-		}
-	}
+	return certFile, pkFile, cleanup
 }
 
-func TestHandleDirectoryBlock(t *testing.T) {
-	context := testHelper.CreateWebContext()
-	hash := testHelper.DBlockHeadPrimaryIndex
-
-	HandleDirectoryBlock(context, hash)
-
-	if testHelper.GetBody(context) == "" {
-		t.Errorf("HandleDirectoryBlock returned empty block")
-		t.FailNow()
-	}
-
-	if strings.Contains(testHelper.GetBody(context), "000000000000000000000000000000000000000000000000000000000000000a") == false {
-		t.Errorf("%v", testHelper.GetBody(context))
-	}
-
-	if strings.Contains(testHelper.GetBody(context), testHelper.ABlockHeadPrimaryIndex) == false {
-		t.Errorf("%v", testHelper.GetBody(context))
-	}
-
-	if strings.Contains(testHelper.GetBody(context), "000000000000000000000000000000000000000000000000000000000000000c") == false {
-		t.Errorf("%v", testHelper.GetBody(context))
-	}
-
-	if strings.Contains(testHelper.GetBody(context), testHelper.ECBlockHeadPrimaryIndex) == false {
-		t.Errorf("%v", testHelper.GetBody(context))
-	}
-
-	if strings.Contains(testHelper.GetBody(context), "000000000000000000000000000000000000000000000000000000000000000f") == false {
-		t.Errorf("%v", testHelper.GetBody(context))
-	}
-
-	if strings.Contains(testHelper.GetBody(context), testHelper.FBlockHeadPrimaryIndex) == false {
-		t.Errorf("%v", testHelper.GetBody(context))
-	}
-
-	if strings.Contains(testHelper.GetBody(context), "6e7e64ac45ff57edbf8537a0c99fba2e9ee351ef3d3f4abd93af9f01107e592c") == false {
-		t.Errorf("%v", testHelper.GetBody(context))
-	}
-
-	if strings.Contains(testHelper.GetBody(context), testHelper.EBlockHeadPrimaryIndex) == false {
-		t.Errorf("%v", testHelper.GetBody(context))
-	}
-
-	if strings.Contains(testHelper.GetBody(context), "df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604") == false {
-		t.Errorf("%v", testHelper.GetBody(context))
-	}
-
-	if strings.Contains(testHelper.GetBody(context), testHelper.AnchorBlockHeadPrimaryIndex) == false {
-		t.Errorf("%v", testHelper.GetBody(context))
-	}
-
-	if strings.Contains(testHelper.GetBody(context), "\"Timestamp\":74580") == false {
-		t.Errorf("%v", testHelper.GetBody(context))
-	}
-
-}
-
-func TestHandleEntryBlock(t *testing.T) {
-	context := testHelper.CreateWebContext()
-	chain, err := primitives.HexToHash("df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604")
+func testTempFile(t *testing.T, prefix string, content string) (string, func()) {
+	tmpFile, err := ioutil.TempFile(os.TempDir(), prefix)
 	if err != nil {
-		t.Error(err)
+		t.Fatalf("error creating temp file %v", err)
 	}
+	defer tmpFile.Close()
 
-	dbo := context.Server.Env["state"].(interfaces.IState).GetDB()
-	//defer context.Server.Env["state"].(interfaces.IState).UnlockDB()
-
-	blocks, err := dbo.FetchAllEBlocksByChain(chain)
+	_, err = tmpFile.WriteString(content)
 	if err != nil {
-		t.Error(err)
+		t.Fatalf("error write to temp file %v", err)
 	}
-	fetched := 0
-	for _, b := range blocks {
-		hash := b.(*entryBlock.EBlock).DatabasePrimaryIndex().String()
-		hash2 := b.(*entryBlock.EBlock).DatabaseSecondaryIndex().String()
+	cleanFile := func() { os.Remove(tmpFile.Name()) }
 
-		testHelper.ClearContextResponseWriter(context)
-		HandleEntryBlock(context, hash)
-
-		eBlock := new(EBlock)
-
-		testHelper.UnmarshalRespDirectly(context, eBlock)
-
-		if eBlock.Header.ChainID != "df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604" {
-			t.Errorf("Wrong ChainID - %v", eBlock.Header.ChainID)
-			t.Errorf("eBlock - %v", eBlock)
-			t.Errorf("%v", testHelper.GetBody(context))
-		}
-
-		if eBlock.Header.DBHeight != int64(b.(*entryBlock.EBlock).GetHeader().GetDBHeight()) {
-			t.Errorf("DBHeight is wrong - %v vs %v", eBlock.Header.DBHeight, b.(*entryBlock.EBlock).GetHeader().GetDBHeight())
-		}
-
-		testHelper.ClearContextResponseWriter(context)
-		HandleEntryBlock(context, hash2)
-
-		eBlock = new(EBlock)
-
-		testHelper.UnmarshalRespDirectly(context, eBlock)
-
-		if eBlock.Header.ChainID != "df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604" {
-			t.Errorf("Wrong ChainID - %v", eBlock.Header.ChainID)
-			t.Errorf("%v", testHelper.GetBody(context))
-		}
-
-		if eBlock.Header.DBHeight != int64(b.(*entryBlock.EBlock).GetHeader().GetDBHeight()) {
-			t.Errorf("DBHeight is wrong - %v vs %v", eBlock.Header.DBHeight, b.(*entryBlock.EBlock).GetHeader().GetDBHeight())
-		}
-
-		fetched++
-	}
-	if fetched != testHelper.BlockCount {
-		t.Errorf("Fetched %v blocks, expected %v", fetched, testHelper.BlockCount)
-	}
-}
-
-/*
-func TestHandleEntry(t *testing.T) {
-	context := testHelper.CreateWebContext()
-	hash := ""
-
-	HandleEntry(context, hash)
-
-	if strings.Contains(testHelper.GetBody(context), "") == false {
-		t.Errorf("%v", testHelper.GetBody(context))
-	}
-}
-*/
-func TestHandleChainHead(t *testing.T) {
-	context := testHelper.CreateWebContext()
-	hash := "000000000000000000000000000000000000000000000000000000000000000d"
-
-	HandleChainHead(context, hash)
-
-	if strings.Contains(testHelper.GetBody(context), testHelper.DBlockHeadPrimaryIndex) == false {
-		t.Errorf("Invalid directory block head: %v", testHelper.GetBody(context))
-	}
-
-	hash = "000000000000000000000000000000000000000000000000000000000000000a"
-
-	testHelper.ClearContextResponseWriter(context)
-	HandleChainHead(context, hash)
-
-	s := context.Server.Env["state"]
-	st := s.(*state.State)
-	a, _ := st.DB.FetchABlockByHeight(0)
-	fmt.Println(a)
-	fmt.Println(string(testHelper.GetBody(context)))
-
-	if strings.Contains(testHelper.GetBody(context), testHelper.ABlockHeadPrimaryIndex) == false {
-		t.Errorf("Invalid admin block head: %v", testHelper.GetBody(context))
-	}
-
-	hash = "000000000000000000000000000000000000000000000000000000000000000c"
-
-	testHelper.ClearContextResponseWriter(context)
-	HandleChainHead(context, hash)
-
-	if strings.Contains(testHelper.GetBody(context), testHelper.ECBlockHeadPrimaryIndex) == false {
-		t.Errorf("Invalid entry credit block head: %v", testHelper.GetBody(context))
-	}
-
-	hash = "000000000000000000000000000000000000000000000000000000000000000f"
-
-	testHelper.ClearContextResponseWriter(context)
-	HandleChainHead(context, hash)
-
-	if strings.Contains(testHelper.GetBody(context), testHelper.FBlockHeadPrimaryIndex) == false {
-		t.Errorf("Invalid factoid block head: %v", testHelper.GetBody(context))
-	}
-
-	hash = "6e7e64ac45ff57edbf8537a0c99fba2e9ee351ef3d3f4abd93af9f01107e592c"
-
-	testHelper.ClearContextResponseWriter(context)
-	HandleChainHead(context, hash)
-
-	if strings.Contains(testHelper.GetBody(context), testHelper.EBlockHeadSecondaryIndex) == false {
-		t.Errorf("Invalid entry block head: %v", testHelper.GetBody(context))
-	}
-
-	hash = "df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604"
-
-	testHelper.ClearContextResponseWriter(context)
-	HandleChainHead(context, hash)
-
-	if strings.Contains(testHelper.GetBody(context), testHelper.AnchorBlockHeadSecondaryIndex) == false {
-		t.Errorf("Invalid anchor entry block head: %v", testHelper.GetBody(context))
-	}
-}
-
-/*
-func TestHandleEntryCreditBalance(t *testing.T) {
-	context := testHelper.CreateWebContext()
-	eckey := testHelper.NewECAddressPublicKeyString(0)
-
-	HandleEntryCreditBalance(context, eckey)
-
-	expectedAmount := "400"
-	if strings.Contains(testHelper.GetBody(context), expectedAmount) == false {
-		t.Errorf("%v", testHelper.GetBody(context))
-	}
-	testHelper.ClearContextResponseWriter(context)
-
-	eckey = testHelper.NewECAddressString(0)
-
-	HandleEntryCreditBalance(context, eckey)
-
-	if strings.Contains(testHelper.GetBody(context), expectedAmount) == false {
-		t.Errorf("%v", testHelper.GetBody(context))
-	}
-}
-*/
-/*
-func TestHandleFactoidBalance(t *testing.T) {
-	context := testHelper.CreateWebContext()
-	eckey := testHelper.NewFactoidRCDAddressString(0)
-
-	//t.Logf("%v\n", eckey)
-
-	HandleFactoidBalance(context, eckey)
-
-	//expectedAmount := fmt.Sprintf("%v", uint64(testHelper.BlockCount)*testHelper.DefaultCoinbaseAmount)
-	expectedAmount := "199977800"
-	if strings.Contains(testHelper.GetBody(context), expectedAmount) == false {
-		t.Errorf("%v", testHelper.GetBody(context))
-	}
-}
-*/
-
-func TestHandleGetFee(t *testing.T) {
-	context := testHelper.CreateWebContext()
-
-	HandleGetFee(context)
-
-	if strings.Contains(testHelper.GetBody(context), "") == false {
-		t.Errorf("%v", testHelper.GetBody(context))
-	}
-}
-
-func TestDBlockList(t *testing.T) {
-	list := []string{
-		"508e19f65a7fc7e9cfa5a73281b5e08115ed25a1af5723350e5c21fc92c39b40", //9
-		"aeffa5d5c02498d958b88fab12672054c2729da46621b381793995ad9c47e4d3", //8
-		"cd63b26d12e9d397a545fd50e26b53ab8b1fb555f824edb1f71937a6288d5901", //7
-		"15f625a8b73f1d3d226ae957728537f084ba8f8d0b0867178a24efb5dc1bdd49", //6
-		"c4effa44e5b42d8c4ea78866b9ac99e603d13615780c0f31346fa775fd5cc5f6", //5
-		"4f4bbe848b8998f73a4eb940791302cf81733f7f9827865c846fee4f6edd98e2", //4
-		"5038b4f268fdc2e779553e70ac6a03a784c2958dbc2489affef52dafbdb073c7", //3
-		"f9fac92c710620e1e3dbfeadbc040ad0f2e5cbdd110c65455e168a09c922998f", //2
-		"3d451d1aace4dcbaa111106041d956ad3e6973aed945ec8cda5015fa356cf88c", //1
-		"dcc95bfa721ebb11297ecd390a5b1c21632b40c00e84ac0729b393b2de7633a7", //0
-	}
-
-	context := testHelper.CreateWebContext()
-	for i, l := range list {
-		testHelper.ClearContextResponseWriter(context)
-		HandleDirectoryBlock(context, l)
-
-		j := testHelper.GetRespText(context)
-		block := new(DBlock)
-		err := primitives.DecodeJSONString(j, block)
-		if err != nil {
-			t.Errorf("Error loading DBlock %v - %v", i, err)
-		}
-	}
-
-	hash := "000000000000000000000000000000000000000000000000000000000000000d"
-
-	testHelper.ClearContextResponseWriter(context)
-	HandleChainHead(context, hash)
-
-	j := testHelper.GetRespText(context)
-	head := new(CHead)
-	err := primitives.DecodeJSONString(j, head)
-	if err != nil {
-		panic(err)
-	}
-
-	testHelper.ClearContextResponseWriter(context)
-	HandleDirectoryBlock(context, head.ChainHead)
-
-	j = testHelper.GetRespText(context)
-	block := new(DBlock)
-	err = primitives.DecodeJSONString(j, block)
-	if err != nil {
-		panic(err)
-	}
-
-	//t.Errorf("%s", j)
-}
-
-func TestBlockIteration(t *testing.T) {
-	context := testHelper.CreateWebContext()
-	hash := "000000000000000000000000000000000000000000000000000000000000000d"
-
-	HandleChainHead(context, hash)
-
-	j := testHelper.GetRespText(context)
-	head := new(CHead)
-	err := primitives.DecodeJSONString(j, head)
-	if err != nil {
-		panic(err)
-	}
-
-	prev := head.ChainHead
-	fetched := 0
-	for {
-		if prev == "0000000000000000000000000000000000000000000000000000000000000000" || prev == "" {
-			break
-		}
-		testHelper.ClearContextResponseWriter(context)
-		HandleDirectoryBlock(context, prev)
-
-		j = testHelper.GetRespText(context)
-		block := new(DBlock)
-		err = primitives.DecodeJSONString(j, block)
-		if err != nil {
-			panic(err)
-		}
-		//t.Errorf("\n%v\n", j)
-		prev = block.Header.PrevBlockKeyMR
-		fetched++
-	}
-	if fetched != testHelper.BlockCount {
-		t.Errorf("DBlock only found %v blocks, was expecting %v", fetched, testHelper.BlockCount)
-	}
-}
-
-func TestHandleGetReceipt(t *testing.T) {
-	context := testHelper.CreateWebContext()
-	hash := "be5fb8c3ba92c0436269fab394ff7277c67e9b2de4431b723ce5d89799c0b93a"
-
-	HandleGetReceipt(context, hash)
-
-	j := testHelper.GetRespMap(context)
-
-	if j == nil {
-		t.Error("Receipt not found!")
-		return
-	}
-
-	dbo := context.Server.Env["state"].(interfaces.IState).GetDB()
-	//defer context.Server.Env["state"].(interfaces.IState).UnlockDB()
-
-	receipt := j["receipt"].(map[string]interface{})
-	marshalled, err := json.Marshal(receipt)
-	if err != nil {
-		t.Error(err)
-	}
-
-	err = receipts.VerifyFullReceipt(dbo, string(marshalled))
-	if err != nil {
-		t.Logf("receipt - %v", j)
-		t.Error(err)
-	}
-}
-
-func TestHandleGetUnanchoredReceipt(t *testing.T) {
-	context := testHelper.CreateWebContext()
-	hash := "68a503bd3d5b87d3a41a737e430d2ce78f5e556f6a9269859eeb1e053b7f92f7"
-
-	HandleGetReceipt(context, hash)
-
-	j := testHelper.GetRespMap(context)
-
-	if j == nil {
-		t.Error("Receipt not found!")
-		return
-	}
-
-	dbo := context.Server.Env["state"].(interfaces.IState).GetDB()
-	//defer context.Server.Env["state"].(interfaces.IState).UnlockDB()
-
-	receipt := j["receipt"].(map[string]interface{})
-	marshalled, err := json.Marshal(receipt)
-	if err != nil {
-		t.Error(err)
-	}
-
-	err = receipts.VerifyFullReceipt(dbo, string(marshalled))
-	if err != nil {
-		t.Logf("receipt - %v", j)
-		t.Error(err)
-	}
+	return tmpFile.Name(), cleanFile
 }
