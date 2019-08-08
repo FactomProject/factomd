@@ -37,6 +37,7 @@ type FactomParams struct {
 	EventReceiverAddress     string
 	EventReceiverPort        int
 	EventFormat              string
+	MuteEventsDuringStartup  bool
 	LogPort                  string
 	BlkTime                  int
 	FaultTimeout             int

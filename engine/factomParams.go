@@ -40,7 +40,7 @@ func init() {
 	flag.BoolVar(&p.WaitEntries, "waitentries", false, "Wait for Entries to be validated prior to execution of messages")
 	flag.IntVar(&p.ListenTo, "node", 0, "Node Number the simulator will set as the focus")
 	flag.IntVar(&p.Cnt, "count", 1, "The number of nodes to generate")
-	flag.StringVar(&p.Net, "net", "tree", "The default algorithm to build the network connections")
+	flag.StringVar(&p.Net, "net", "alot+", "The default algorithm to build the network connections")
 	flag.StringVar(&p.Fnet, "fnet", "", "Read the given file to build the network connections")
 	flag.IntVar(&p.DropRate, "drop", 0, "Number of messages to drop out of every thousand")
 	flag.StringVar(&p.Journal, "journal", "", "Rerun a Journal of messages")
@@ -76,6 +76,7 @@ func init() {
 	flag.StringVar(&p.EventReceiverAddress, "eventreceiveraddress", "", "Address for the events receiver; default 127.0.0.1")
 	flag.IntVar(&p.EventReceiverPort, "eventreceiverport", 0, "Port for the events receiver; default 8040")
 	flag.StringVar(&p.EventFormat, "eventformat", "", "Event format for the events receiver, protobuf|json; default protobuf")
+	flag.BoolVar(&p.MuteEventsDuringStartup, "muteeventsduringstartup", false, "Enable life feed events service; default false")
 	flag.BoolVar(&p.Fast, "fast", true, "If true, Factomd will fast-boot from a file.")
 	flag.IntVar(&p.FastSaveRate, "fastsaverate", 1000, "Save a fastboot file every so many blocks. Should be > 1000 for live systems.")
 	flag.StringVar(&p.FastLocation, "fastlocation", "", "Directory to put the Fast-boot file in.")
@@ -104,7 +105,6 @@ func ParseCmdLine(args []string) *FactomParams {
 	p := &Params // Global copy of decoded Params global.Params
 
 	flag.CommandLine.Parse(args)
-	parseEnvVars(p)
 
 	// Handle the global (not Factom server specific parameters
 	if p.StdoutLog != "" || p.StderrLog != "" {
@@ -120,8 +120,20 @@ func ParseCmdLine(args []string) *FactomParams {
 
 	p.CustomNet = primitives.Sha([]byte(p.CustomNetName)).Bytes()[:4]
 
+	s, set := os.LookupEnv("FACTOM_HOME")
+	if p.FactomHome != "" {
+		os.Setenv("FACTOM_HOME", p.FactomHome)
+		if set {
+			fmt.Fprintf(os.Stderr, "Overriding environment variable %s to be \"%s\"\n", "FACTOM_HOME", p.FactomHome)
+		}
+	} else {
+		if set {
+			p.FactomHome = s
+		}
+
+	}
 	if !isCompilerVersionOK() {
-		fmt.Println("!!! !!! !!! ERROR: unsupported compiler version !!! !!! !!!", runtime.Version())
+		fmt.Println("!!! !!! !!! ERROR: unsupported compiler version !!! !!! !!!")
 		time.Sleep(3 * time.Second)
 		os.Exit(1)
 	}
@@ -132,31 +144,6 @@ func ParseCmdLine(args []string) *FactomParams {
 	}
 
 	return p
-}
-
-func parseEnvVars(params *FactomParams) {
-	s, set := os.LookupEnv("FACTOM_HOME")
-	if params.FactomHome != "" {
-		os.Setenv("FACTOM_HOME", params.FactomHome)
-		if set {
-			fmt.Fprintf(os.Stderr, "Overriding environment variable %s to be \"%s\"\n", "FACTOM_HOME", params.FactomHome)
-		}
-	} else {
-		if set {
-			params.FactomHome = s
-		}
-	}
-	s, set = os.LookupEnv("FACTOM_DEBUG_LOG_LOCATION")
-	if params.DebugLogLocation != "" {
-		os.Setenv("FACTOM_DEBUG_LOG_LOCATION", params.DebugLogLocation)
-		if set {
-			fmt.Fprintf(os.Stderr, "Overriding environment variable %s to be \"%s\"\n", "FACTOM_DEBUG_LOG_LOCATION", params.DebugLogLocation)
-		}
-	} else {
-		if set {
-			params.DebugLogLocation = s
-		}
-	}
 }
 
 func isCompilerVersionOK() bool {
@@ -200,10 +187,6 @@ func handleLogfiles(stdoutlog string, stderrlog string) {
 
 		if stdoutlog != "" {
 			// start a go routine to tee stdout to out.txt
-			if len(Params.DebugLogLocation) > 0 && strings.IndexAny(stdoutlog, "/\\") < 0 {
-				stdoutlog = Params.DebugLogLocation + "/" + stdoutlog
-			}
-
 			outfile, err = os.Create(stdoutlog)
 			if err != nil {
 				panic(err)

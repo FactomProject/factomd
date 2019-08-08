@@ -1,12 +1,6 @@
-hash: bebfe1f23c263b2c715744f40c02d327c920c0a3248c32e25ab56dd6b0aa7ca3
-updated: 2019-07-19T10:40:55.618511917+02:00
+hash: e8f68120ce8168ee17fd0a8130ecd515859d2802744318f6257fb50c4bdd4574
+updated: 2018-11-16T15:27:25.808760421-06:00
 imports:
-- name: github.com/alecthomas/template
-  version: fb15b899a75114aa79cc930e33c46b577cc664b1
-  subpackages:
-  - parse
-- name: github.com/alecthomas/units
-  version: c3de453c63f4bdb4dadffab9805ec00426c505f7
 - name: github.com/beorn7/perks
   version: 3a771d992973f24aa725d07868b467d1ddfceafb
   subpackages:
@@ -15,10 +9,6 @@ imports:
   version: f2b1058a82554c0c7c3b8809c5956c38374604d8
   subpackages:
   - base58
-- name: github.com/davecgh/go-spew
-  version: d8f796af33cc11cb798c1aaeb27a4ebc5099927d
-  subpackages:
-  - spew
 - name: github.com/dustin/go-humanize
   version: 9f541cc9db5d55bce703bd99987c9d5cb8eea45e
 - name: github.com/FactomProject/basen
@@ -37,7 +27,7 @@ imports:
   subpackages:
   - edwards25519
 - name: github.com/FactomProject/factom
-  version: e7717c4ab0726249c9fb9be4c9a07f62611d8b2e
+  version: 8be07008a81f6a2aef8c8049f84bbb451f43aa1b
 - name: github.com/FactomProject/go-bip32
   version: 3b593af1c415abc1017648e4eb24a88c32fee0f3
 - name: github.com/FactomProject/go-bip39
@@ -74,14 +64,6 @@ imports:
   version: f2f83b22c29e5abc60e3a95062ce1491d3b95371
 - name: github.com/FactomProject/web
   version: 5bb394cc64239b77f571bbddc9a47c80c4d2283f
-- name: github.com/gogo/protobuf
-  version: ba06b47c162d49f2af050fb4c75bcbc86a159d5c
-  subpackages:
-  - jsonpb
-  - proto
-  - protoc-gen-gofast
-  - sortkeys
-  - types
 - name: github.com/golang/protobuf
   version: ddf22928ea3c56eb4292a0adbbf5001b1e8e7d0d
   subpackages:
@@ -116,10 +98,6 @@ imports:
   version: 6d0b8010fcc857872e42fc6c931227569016843c
 - name: github.com/oklog/run
   version: 6934b124db28979da51d3470dadfa34d73d72652
-- name: github.com/pmezard/go-difflib
-  version: 792786c7400a136282c1664665ae0a8db921c6c2
-  subpackages:
-  - difflib
 - name: github.com/prometheus/client_golang
   version: 1cafe34db7fdec6022e17e00e1c1ea501022f3e4
   subpackages:
@@ -134,7 +112,6 @@ imports:
   subpackages:
   - expfmt
   - internal/bitbucket.org/ww/goautoneg
-  - log
   - model
 - name: github.com/prometheus/procfs
   version: 185b4288413d2a0dd0806f78c90dde719829e5ae
@@ -151,7 +128,7 @@ imports:
 - name: github.com/spf13/pflag
   version: 298182f68c66c05229eb03ac171abe6e309ee79a
 - name: github.com/stretchr/testify
-  version: ffdc059bfe9ce6a4e144ba849dbedead332c6053
+  version: f35b8ab0b5a2cef36673838d662e249dd9c94686
   subpackages:
   - assert
 - name: golang.org/x/crypto
@@ -177,8 +154,6 @@ imports:
   subpackages:
   - unix
   - windows
-  - windows/registry
-  - windows/svc/eventlog
 - name: golang.org/x/text
   version: 4d1c5fb19474adfe9562c9847ba425e7da817e81
   subpackages:
@@ -225,8 +200,6 @@ imports:
   subpackages:
   - core
   - terminal
-- name: gopkg.in/alecthomas/kingpin.v2
-  version: 947dcec5ba9c011838740e680966fd7087a71d0d
 - name: gopkg.in/gcfg.v1
   version: 61b2c08bc8f6068f7c5ca684372f9a6cb1c45ebe
   subpackages:
@@ -238,7 +211,16 @@ imports:
 - name: gopkg.in/yaml.v2
   version: 5420a8b6744d3b0345ab293f6fcba19c978f1183
 testImports:
+- name: github.com/davecgh/go-spew
+  version: d8f796af33cc11cb798c1aaeb27a4ebc5099927d
+  subpackages:
+  - spew
 - name: github.com/FactomProject/go-spew
   version: ddfaec9b42f58fc8172b0cbb03b21c6668dd0a46
   subpackages:
   - spew
+- name: github.com/pmezard/go-difflib
+  version: 792786c7400a136282c1664665ae0a8db921c6c2
+  subpackages:
+  - difflib
+

@@ -39,7 +39,7 @@ func TestEventProxy_Send(t *testing.T) {
 		test:           t,
 	}
 	sim.Start()
-	eventService, _ := eventservices.NewEventServiceTo(state, sim.Protocol, sim.Address, eventoutputformat.Protobuf)
+	eventService, _ := eventservices.NewEventServiceTo(state, buildParams(sim))
 
 	// send messages
 	for _, msg := range msgs {
@@ -64,7 +64,7 @@ func TestNoReceivingServer(t *testing.T) {
 		ExpectedEvents: len(msgs),
 		test:           t,
 	}
-	eventService, _ := eventservices.NewEventServiceTo(state, sim.Protocol, sim.Address, eventoutputformat.Protobuf)
+	eventService, _ := eventservices.NewEventServiceTo(state, buildParams(sim))
 
 	msg := msgs[0]
 	event := events.EventFromMessage(eventmessages.EventSource_ADD_TO_PROCESSLIST, msg)
@@ -89,7 +89,7 @@ func TestReceivingServerRestarted(t *testing.T) {
 		test:           t,
 	}
 	sim.Start()
-	eventService, _ := eventservices.NewEventServiceTo(state, sim.Protocol, sim.Address, eventoutputformat.Protobuf)
+	eventService, _ := eventservices.NewEventServiceTo(state, buildParams(sim))
 
 	msg := msgs[0]
 	event := events.EventFromMessage(eventmessages.EventSource_ADD_TO_PROCESSLIST, msg)
@@ -201,4 +201,15 @@ func mockDirEntry() *eventmessages.Entry {
 		},
 	}
 	return result
+}
+
+func buildParams(sim *EventServerSim) *eventservices.EventServiceParams {
+	params := &eventservices.EventServiceParams{
+		EnableLiveFeedAPI:       true,
+		Protocol:                sim.Protocol,
+		Address:                 sim.Address,
+		OutputFormat:            eventoutputformat.Protobuf,
+		MuteEventsDuringStartup: false,
+	}
+	return params
 }

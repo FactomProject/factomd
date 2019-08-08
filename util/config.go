@@ -107,11 +107,12 @@ type FactomdConfig struct {
 		WalletEncrypted     bool
 	}
 	LiveFeedAPI struct {
-		EnableLiveFeedAPI     bool
-		EventReceiverProtocol string
-		EventReceiverAddress  string
-		EventReceiverPort     int
-		EventFormat           string
+		EnableLiveFeedAPI       bool
+		EventReceiverProtocol   string
+		EventReceiverAddress    string
+		EventReceiverPort       int
+		EventFormat             string
+		MuteEventsDuringStartup bool
 	}
 }
 
@@ -242,6 +243,7 @@ EventReceiverProtocol                 = tcp
 EventReceiverAddress                  = 127.0.0.1
 EventReceiverPort                     = 8040
 EventFormat                           = protobuf
+MuteEventsDuringStartup               = false
 `
 
 func (s *FactomdConfig) String() string {
@@ -316,6 +318,7 @@ func (s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\n    EventReceiverAddress    %v", s.LiveFeedAPI.EventReceiverAddress))
 	out.WriteString(fmt.Sprintf("\n    EventReceiverPort       %v", s.LiveFeedAPI.EventReceiverPort))
 	out.WriteString(fmt.Sprintf("\n    EventFormat             %v", s.LiveFeedAPI.EventFormat))
+	out.WriteString(fmt.Sprintf("\n    MuteEventsDuringStartup %v", s.LiveFeedAPI.MuteEventsDuringStartup))
 
 	return out.String()
 }

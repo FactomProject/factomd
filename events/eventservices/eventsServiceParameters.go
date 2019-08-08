@@ -7,30 +7,40 @@ import (
 	"github.com/FactomProject/factomd/util"
 )
 
-func selectParameters(params *globals.FactomParams, config *util.FactomdConfig) (string, string, eventoutputformat.Format) {
-	var protocol string
-	if len(params.EventReceiverProtocol) > 0 {
-		protocol = params.EventReceiverProtocol
+type EventServiceParams struct {
+	EnableLiveFeedAPI       bool
+	Protocol                string
+	Address                 string
+	OutputFormat            eventoutputformat.Format
+	MuteEventsDuringStartup bool
+}
+
+func selectParameters(factomParams *globals.FactomParams, config *util.FactomdConfig) *EventServiceParams {
+	params := new(EventServiceParams)
+	if len(factomParams.EventReceiverProtocol) > 0 {
+		params.Protocol = factomParams.EventReceiverProtocol
 	} else if len(config.LiveFeedAPI.EventReceiverProtocol) > 0 {
-		protocol = config.LiveFeedAPI.EventReceiverProtocol
+		params.Protocol = config.LiveFeedAPI.EventReceiverProtocol
 	} else {
-		protocol = defaultProtocol
+		params.Protocol = defaultProtocol
 	}
-	var address string
-	if len(params.EventReceiverAddress) > 0 && params.EventReceiverPort > 0 {
-		address = params.EventReceiverAddress
+	if len(factomParams.EventReceiverAddress) > 0 && factomParams.EventReceiverPort > 0 {
+		params.Address = factomParams.EventReceiverAddress
 	} else if len(config.LiveFeedAPI.EventReceiverAddress) > 0 && config.LiveFeedAPI.EventReceiverPort > 0 {
-		address = fmt.Sprintf("%s:%d", config.LiveFeedAPI.EventReceiverAddress, config.LiveFeedAPI.EventReceiverPort)
+		params.Address = fmt.Sprintf("%s:%d", config.LiveFeedAPI.EventReceiverAddress, config.LiveFeedAPI.EventReceiverPort)
 	} else {
-		address = fmt.Sprintf("%s:%d", defaultConnectionHost, defaultConnectionPort)
+		params.Address = fmt.Sprintf("%s:%d", defaultConnectionHost, defaultConnectionPort)
 	}
-	var outputFormat eventoutputformat.Format
-	if len(params.EventFormat) > 0 {
-		outputFormat = eventoutputformat.FormatFrom(params.EventFormat, defaultOutputFormat)
+	if len(factomParams.EventFormat) > 0 {
+		params.OutputFormat = eventoutputformat.FormatFrom(factomParams.EventFormat, defaultOutputFormat)
 	} else if len(config.LiveFeedAPI.EventFormat) > 0 {
-		outputFormat = eventoutputformat.FormatFrom(config.LiveFeedAPI.EventFormat, defaultOutputFormat)
+		params.OutputFormat = eventoutputformat.FormatFrom(config.LiveFeedAPI.EventFormat, defaultOutputFormat)
 	} else {
-		outputFormat = defaultOutputFormat
+		params.OutputFormat = defaultOutputFormat
 	}
-	return protocol, address, outputFormat
+
+	params.EnableLiveFeedAPI = factomParams.EnableLiveFeedAPI || config.LiveFeedAPI.EnableLiveFeedAPI
+	params.MuteEventsDuringStartup = factomParams.MuteEventsDuringStartup || config.LiveFeedAPI.MuteEventsDuringStartup
+
+	return params
 }

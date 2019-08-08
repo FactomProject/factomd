@@ -172,6 +172,7 @@ type IState interface {
 	// and what lists they are responsible for.
 	ComputeVMIndex(hash []byte) int // Returns the VMIndex determined by some hash (usually) for the current processlist
 	IsLeader() bool                 // Returns true if this is the leader in the current minute
+	IsRunLeader() bool              // Returns true if the node is finished syncing up it's database
 	GetLeaderVM() int               // Get the Leader VM (only good within a minute)
 	// Returns the list of VirtualServers at a given directory block height and minute
 	GetVirtualServers(dbheight uint32, minute int, identityChainID IHash) (found bool, index int)
