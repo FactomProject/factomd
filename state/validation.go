@@ -23,7 +23,7 @@ func (s *State) DoProcessing() {
 	s.validatorLoopThreadID = atomic.Goid()
 
 	if s.EventsService != nil {
-		event := events.NewInfoEventF("Node %s startup complete", s.GetFactomNodeName())
+		event := events.NodeInfoEventF("Node %s startup complete", s.GetFactomNodeName())
 		s.EventsService.Send(event)
 	}
 	s.RunState = runstate.Running
@@ -78,7 +78,7 @@ func (s *State) DoProcessing() {
 func (s *State) ValidatorLoop() {
 	defer func() {
 		if r := recover(); r != nil {
-			events.NewErrorEvent("A panic state occurred in ValidatorLoop.", r)
+			events.NodeErrorEvent("A panic state occurred in ValidatorLoop.", r)
 			shutdown(s)
 		}
 	}()
@@ -141,7 +141,7 @@ func shouldShutdown(state *State) bool {
 
 func shutdown(state *State) {
 	if state.EventsService != nil {
-		event := events.NewInfoEventF("Node %s is shutting down", state.GetFactomNodeName())
+		event := events.NodeInfoEventF("Node %s is shutting down", state.GetFactomNodeName())
 		state.EventsService.Send(event)
 	}
 

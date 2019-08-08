@@ -15,8 +15,9 @@ enum EventSource {
     ADD_TO_PROCESSLIST = 1;
     ADD_TO_HOLDING = 2;
     DROP_FROM_HOLDING = 3;
-    NODE_INFO = 4;
-    NODE_ERROR = 5;
+    PROCESS_INFO = 4;
+    NODE_INFO = 5;
+    NODE_ERROR = 6;
 }
 
 
@@ -27,7 +28,7 @@ message FactomEvent {
         CommitChain commitChain = 3;
         CommitEntry commitEntry = 4;
         RevealEntry revealEntry = 5;
-        string nodeMessage = 6;
+        string message = 6;
     }
 }
 

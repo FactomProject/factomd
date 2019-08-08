@@ -50,7 +50,7 @@ func mapProcessEvent(processEvent *events.ProcessEvent) (*eventmessages.FactomEv
 func mapNodeEvent(nodeEvent *events.NodeEvent) (*eventmessages.FactomEvent, error) {
 	event := &eventmessages.FactomEvent{
 		EventSource: nodeEvent.GetEventSource(),
-		Value:       &eventmessages.FactomEvent_NodeMessage{NodeMessage: nodeEvent.GetPayload()},
+		Value:       &eventmessages.FactomEvent_Message{Message: nodeEvent.GetPayload()},
 	}
 	return event, nil
 }

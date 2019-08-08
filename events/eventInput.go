@@ -43,21 +43,35 @@ func EventFromMessage(eventSource eventmessages.EventSource, msg interfaces.IMsg
 		payload:     msg}
 }
 
-func NewInfoEvent(message string) *NodeEvent {
+func ProcessInfoEvent(message string) *NodeEvent {
+	return &NodeEvent{
+		eventSource: eventmessages.EventSource_PROCESS_INFO,
+		payload:     message,
+	}
+}
+
+func ProcessInfoEventF(format string, values ...interface{}) *NodeEvent {
+	return &NodeEvent{
+		eventSource: eventmessages.EventSource_PROCESS_INFO,
+		payload:     fmt.Sprintf(format, values),
+	}
+}
+
+func NodeInfoEvent(message string) *NodeEvent {
 	return &NodeEvent{
 		eventSource: eventmessages.EventSource_NODE_INFO,
 		payload:     message,
 	}
 }
 
-func NewInfoEventF(format string, values ...interface{}) *NodeEvent {
+func NodeInfoEventF(format string, values ...interface{}) *NodeEvent {
 	return &NodeEvent{
 		eventSource: eventmessages.EventSource_NODE_INFO,
 		payload:     fmt.Sprintf(format, values),
 	}
 }
 
-func NewErrorEvent(message string, error interface{}) *NodeEvent {
+func NodeErrorEvent(message string, error interface{}) *NodeEvent {
 	errorMsg := fmt.Sprint(message, error)
 	event := &NodeEvent{
 		eventSource: eventmessages.EventSource_NODE_ERROR,

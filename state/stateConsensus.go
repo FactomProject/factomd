@@ -389,7 +389,7 @@ func (s *State) Process() (progress bool) {
 					s.IgnoreDone = true
 				}
 				if s.EventsService != nil {
-					event := events.NewInfoEventF("Node %s has finished syncing it's database", s.GetFactomNodeName())
+					event := events.NodeInfoEventF("Node %s has finished syncing it's database", s.GetFactomNodeName())
 					s.EventsService.Send(event)
 				}
 			}
@@ -818,6 +818,13 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		}
 		s.DBStates.UpdateState() // go process the DBSigs
 
+		if s.EventsService != nil && s.RunLeader {
+			event := events.ProcessInfoEventF("New block height %d", dbheight)
+			s.EventsService.Send(event)
+			event = events.ProcessInfoEventF("New minute %d", newMinute)
+			s.EventsService.Send(event)
+		}
+
 	} else if s.CurrentMinute != newMinute { // And minute
 		if newMinute == 1 {
 			dbstate := s.GetDBState(dbheight - 1)
@@ -839,6 +846,11 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		// If an election took place, our lists will be unsorted. Fix that
 		s.LeaderPL.SortAuditServers()
 		s.LeaderPL.SortFedServers()
+
+		if s.EventsService != nil {
+			event := events.ProcessInfoEventF("New minute %d", newMinute)
+			s.EventsService.Send(event)
+		}
 	}
 
 	{ // debug
