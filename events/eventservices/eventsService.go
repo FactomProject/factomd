@@ -214,4 +214,6 @@ func (esi *eventServiceInstance) Shutdown() {
 		time.Sleep(25 * time.Millisecond)
 	}
 	esi.disconnect()
+	eventService = nil
+	eventServiceControl = nil
 }

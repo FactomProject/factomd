@@ -391,7 +391,7 @@ func (s *State) Process() (progress bool) {
 					s.IgnoreDone = true
 				}
 				if s.EventsService != nil {
-					event := events.NodeInfoEventF("Node %s has finished syncing it's database", s.GetFactomNodeName())
+					event := events.NodeInfoEventF("Node %s has finished syncing up it's database", s.GetFactomNodeName())
 					s.EventsService.Send(event)
 				}
 			}

@@ -1,18 +1,15 @@
-/**
-		===== IMPORTANT only run these tests one by one, not the entire package =====
-**/
-
 package eventservices_test
 
 import (
 	"encoding/json"
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants/runstate"
+	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/events"
 	"github.com/FactomProject/factomd/events/eventmessages"
 	"github.com/FactomProject/factomd/events/eventoutputformat"
 	"github.com/FactomProject/factomd/events/eventservices"
-	state2 "github.com/FactomProject/factomd/state"
+	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/testHelper"
 	"github.com/gogo/protobuf/proto"
 	"github.com/gogo/protobuf/types"
@@ -27,86 +24,104 @@ var (
 	testHash = []byte("12345678901234567890123456789012")
 )
 
-func TestEventProxy_Send(t *testing.T) {
-	state := &state2.State{}
-	state.RunState = runstate.Running
-	msgs := testHelper.CreateTestDBStateList()
+func TestEventService(t *testing.T) {
+	t.Run("Event service sim-tests", func(t *testing.T) {
+		dbStateList := testHelper.CreateTestDBStateList()
 
-	sim := &EventServerSim{
-		Protocol:       "tcp",
-		Address:        ":12409",
-		ExpectedEvents: len(msgs),
-		test:           t,
-	}
-	sim.Start()
-	eventService, _ := eventservices.NewEventServiceTo(state, buildParams(sim))
+		testSend(t, dbStateList)
+		testLateReceivingServer(t, dbStateList)
+		testReceivingServerRestart(t, dbStateList)
+	})
+}
 
-	// send messages
-	for _, msg := range msgs {
+func testSend(t *testing.T, msgs []interfaces.IMsg) {
+	t.Run("Test receiving running normally", func(t *testing.T) {
+		state := &state.State{}
+		state.RunState = runstate.Running
+
+		sim := &EventServerSim{
+			Protocol:       "tcp",
+			Address:        ":12409",
+			ExpectedEvents: len(msgs),
+			test:           t,
+		}
+		sim.Start()
+		eventService, eventServiceControl := eventservices.NewEventServiceTo(state, buildParams(sim))
+		defer eventServiceControl.Shutdown()
+
+		// send messages
+		for _, msg := range msgs {
+			event := events.EventFromMessage(eventmessages.EventSource_ADD_TO_PROCESSLIST, msg)
+			eventService.Send(event)
+		}
+
+		waitOnEvents(&sim.CorrectSendEvents, len(msgs), 10*time.Second)
+		assert.EqualValues(t, len(msgs), sim.CorrectSendEvents,
+			"failed to receive the correct number of events %d != %d", len(msgs), sim.CorrectSendEvents)
+	})
+}
+
+func testLateReceivingServer(t *testing.T, msgs []interfaces.IMsg) {
+	t.Run("Test receiving late start", func(t *testing.T) {
+		state := &state.State{}
+		state.RunState = runstate.Running
+		msgs := testHelper.CreateTestDBStateList()
+
+		sim := &EventServerSim{
+			Protocol:       "tcp",
+			Address:        ":12410",
+			ExpectedEvents: len(msgs),
+			test:           t,
+		}
+		eventService, eventServiceControl := eventservices.NewEventServiceTo(state, buildParams(sim))
+		defer eventServiceControl.Shutdown()
+
+		msg := msgs[0]
 		event := events.EventFromMessage(eventmessages.EventSource_ADD_TO_PROCESSLIST, msg)
 		eventService.Send(event)
-	}
 
-	waitOnEvents(&sim.CorrectSendEvents, len(msgs), 10*time.Second)
-
-	assert.EqualValues(t, len(msgs), sim.CorrectSendEvents,
-		"failed to receive the correct number of events %d != %d", len(msgs), sim.CorrectSendEvents)
+		time.Sleep(2 * time.Second) // sleep less than the retry * redial sleep duration
+		sim.Start()
+		waitOnEvents(&sim.CorrectSendEvents, 1, 25*time.Second)
+		assert.EqualValues(t, 1, sim.CorrectSendEvents,
+			"failed to receive the correct number of events %d != %d", 1, sim.CorrectSendEvents)
+	})
 }
 
-func TestNoReceivingServer(t *testing.T) {
-	state := &state2.State{}
-	state.RunState = runstate.Running
-	msgs := testHelper.CreateTestDBStateList()
+func testReceivingServerRestart(t *testing.T, msgs []interfaces.IMsg) {
+	t.Run("Test receiving server restart", func(t *testing.T) {
 
-	sim := &EventServerSim{
-		Protocol:       "tcp",
-		Address:        ":12410",
-		ExpectedEvents: len(msgs),
-		test:           t,
-	}
-	eventService, _ := eventservices.NewEventServiceTo(state, buildParams(sim))
+		state := &state.State{}
+		state.RunState = runstate.Running
+		msgs := testHelper.CreateTestDBStateList()
 
-	msg := msgs[0]
-	event := events.EventFromMessage(eventmessages.EventSource_ADD_TO_PROCESSLIST, msg)
-	eventService.Send(event)
+		sim := &EventServerSim{
+			Protocol:       "tcp",
+			Address:        ":12411",
+			ExpectedEvents: len(msgs),
+			test:           t,
+		}
+		sim.Start()
+		eventService, eventServiceControl := eventservices.NewEventServiceTo(state, buildParams(sim))
+		defer eventServiceControl.Shutdown()
 
-	time.Sleep(2 * time.Second) // sleep less than the retry * redail sleep duration
-	sim.Start()
-	waitOnEvents(&sim.CorrectSendEvents, 1, 25*time.Second)
-	assert.EqualValues(t, 1, sim.CorrectSendEvents,
-		"failed to receive the correct number of events %d != %d", 1, sim.CorrectSendEvents)
-}
+		msg := msgs[0]
+		event := events.EventFromMessage(eventmessages.EventSource_ADD_TO_PROCESSLIST, msg)
+		eventService.Send(event)
 
-func TestReceivingServerRestarted(t *testing.T) {
-	state := &state2.State{}
-	state.RunState = runstate.Running
-	msgs := testHelper.CreateTestDBStateList()
+		// Restart the simulator
+		sim.Stop()
 
-	sim := &EventServerSim{
-		Protocol:       "tcp",
-		Address:        ":12411",
-		ExpectedEvents: len(msgs),
-		test:           t,
-	}
-	sim.Start()
-	eventService, _ := eventservices.NewEventServiceTo(state, buildParams(sim))
-
-	msg := msgs[0]
-	event := events.EventFromMessage(eventmessages.EventSource_ADD_TO_PROCESSLIST, msg)
-	eventService.Send(event)
-
-	// Restart the simulator
-	sim.Stop()
-
-	// We have to wait quite some time for the listener to really die,
-	// if we open a new listener too early the client's messages will go into the endless void
-	// In real life when the process dies we won't see this issue
-	time.Sleep(122 * time.Second)
-	sim.Start()
-	eventService.Send(event)
-	waitOnEvents(&sim.CorrectSendEvents, 1, 25*time.Second)
-	assert.EqualValues(t, 1, sim.CorrectSendEvents,
-		"failed to receive the correct number of events %d != %d", 1, sim.CorrectSendEvents)
+		// We have to wait quite some time for the listener to really die,
+		// if we open a new listener too early the client's messages will go into the endless void
+		// In real life when the process dies we won't see this issue
+		time.Sleep(122 * time.Second)
+		sim.Start()
+		eventService.Send(event)
+		waitOnEvents(&sim.CorrectSendEvents, 1, 25*time.Second)
+		assert.EqualValues(t, 1, sim.CorrectSendEvents,
+			"failed to receive the correct number of events %d != %d", 1, sim.CorrectSendEvents)
+	})
 }
 
 func waitOnEvents(correctSendEvents *int32, n int, timeLimit time.Duration) {
