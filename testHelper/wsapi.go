@@ -49,3 +49,7 @@ func SetInputFilter(apiRegex string) (*http.Response, error) {
 func SetOutputFilter(apiRegex string) (*http.Response, error) {
 	return postRequest(`{"jsonrpc": "2.0", "id": 0, "method": "message-filter", "params":{"output-regex":"` + apiRegex + `", "input-regex":""}}`)
 }
+
+func DebugCall(method string, params string) (*http.Response, error){
+	return postRequest(fmt.Sprintf(`{"jsonrpc": "2.0", "id": 0, "method": "%s", "params":%s}`, method, params))
+}

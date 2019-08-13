@@ -19,6 +19,10 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
+type success struct {
+	Status string `json:"status"`
+}
+
 func HandleDebug(writer http.ResponseWriter, request *http.Request) {
 	_ = globals.Params
 
@@ -113,8 +117,22 @@ func HandleDebugRequest(state interfaces.IState, j *primitives.JSON2Request) (*p
 		break
 	case "sim-ctrl":
 		resp, jsonError = HandleSimControl(state, params)
+		break
+	case "wait-blocks":
+		resp, jsonError = HandleWaitBlocks(state, params)
+		break
+	case "wait-for-block":
+		resp, jsonError = HandleWaitForBlock(state, params)
+		break
+	case "wait-minutes":
+		resp, jsonError = HandleWaitMinutes(state, params)
+		break
+	case "wait-for-minute":
+		resp, jsonError = HandleWaitForMinute(state, params)
+		break
 	case "message-filter":
 		resp, jsonError = HandleMessageFilter(state, params)
+		break
 	default:
 		jsonError = NewMethodNotFoundError()
 		break
@@ -321,11 +339,7 @@ func HandleSimControl(state interfaces.IState, params interface{}) (interface{},
 		runCmd(cmdStr)
 	}
 
-	type Success struct {
-		Status string `json:"status"`
-	}
-
-	r := new(Success)
+	r := new(success)
 	r.Status = "Success!"
 	return r, nil
 }
@@ -374,4 +388,95 @@ func HandleMessageFilter(state interfaces.IState, params interface{}) (interface
 	h.Params = "Success"
 
 	return h, nil
+}
+
+func getParamMap(params interface{}) (x map[string]interface{}, ok bool) {
+	x, ok = params.(map[string]interface{})
+	return x, ok
+}
+
+func HandleWaitMinutes(s interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	x, _ := getParamMap(params)
+	min := int(x["min"].(float64))
+	newTime := int(s.GetLLeaderHeight())*10 + s.GetCurrentMinute() + min
+	newBlock := newTime / 10
+	newMinute := newTime % 10
+	waitForQuiet(s, newBlock, newMinute)
+
+	r := new(success)
+	r.Status = "Success!"
+	return r, nil
+}
+
+func HandleWaitBlocks(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+
+	x, _ := getParamMap(params)
+	blks := int(x["blocks"].(float64))
+	waitForQuiet(state, blks+int(state.GetLLeaderHeight()), 0)
+
+	r := new(success)
+	r.Status = "Success!"
+	return r, nil
+}
+
+func HandleWaitForBlock(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+
+	x, _ := getParamMap(params)
+	waitForQuiet(state, int(x["block"].(float64)), 0)
+
+	r := new(success)
+	r.Status = "Success!"
+	return r, nil
+}
+
+func HandleWaitForMinute(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+
+	x, _ := getParamMap(params)
+	newMinute := int(x["blocks"].(float64))
+	if newMinute > 10 {
+		panic("invalid minute")
+	}
+	newBlock := int(state.GetLLeaderHeight())
+	if state.GetCurrentMinute() > newMinute {
+		newBlock++
+	}
+	waitForQuiet(state, newBlock, newMinute)
+
+	r := new(success)
+	r.Status = "Success!"
+	return r, nil
+}
+
+func waitForQuiet(s interfaces.IState, newBlock int, newMinute int) {
+	//	fmt.Printf("%s: %d-:-%d WaitFor(%d-:-%d)\n", s.FactomNodeName, s.LLeaderHeight, s.CurrentMinute, newBlock, newMinute)
+	sleepTime := time.Duration(globals.Params.BlkTime) * 1000 / 40 // Figure out how long to sleep in milliseconds
+	if newBlock*10+newMinute < int(s.GetLLeaderHeight())*10+s.GetCurrentMinute() {
+		panic("Wait for the past")
+	}
+
+	fmt.Printf("wait for quiet : %v", newBlock)
+
+	for int(s.GetLLeaderHeight()) < newBlock {
+		x := int(s.GetLLeaderHeight())
+		// wait for the next block
+		for int(s.GetLLeaderHeight()) == x {
+			time.Sleep(sleepTime * time.Millisecond) // wake up and about 4 times per minute
+		}
+	}
+
+	// wait for the right minute
+	for s.GetCurrentMinute() != newMinute {
+		time.Sleep(sleepTime * time.Millisecond) // wake up and about 4 times per minute
+	}
+}
+
+func waitForMinute(s interfaces.IState, newMinute int) {
+	if newMinute > 10 {
+		panic("invalid minute")
+	}
+	newBlock := int(s.GetLLeaderHeight())
+	if s.GetCurrentMinute() > newMinute {
+		newBlock++
+	}
+	waitForQuiet(s, newBlock, newMinute)
 }
