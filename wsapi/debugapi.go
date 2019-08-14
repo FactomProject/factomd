@@ -397,7 +397,7 @@ func getParamMap(params interface{}) (x map[string]interface{}, ok bool) {
 
 func HandleWaitMinutes(s interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	x, _ := getParamMap(params)
-	min := int(x["min"].(float64))
+	min := int(x["minutes"].(float64))
 	newTime := int(s.GetLLeaderHeight())*10 + s.GetCurrentMinute() + min
 	newBlock := newTime / 10
 	newMinute := newTime % 10
@@ -432,7 +432,7 @@ func HandleWaitForBlock(state interfaces.IState, params interface{}) (interface{
 func HandleWaitForMinute(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 
 	x, _ := getParamMap(params)
-	newMinute := int(x["blocks"].(float64))
+	newMinute := int(x["minute"].(float64))
 	if newMinute > 10 {
 		panic("invalid minute")
 	}
@@ -470,13 +470,3 @@ func waitForQuiet(s interfaces.IState, newBlock int, newMinute int) {
 	}
 }
 
-func waitForMinute(s interfaces.IState, newMinute int) {
-	if newMinute > 10 {
-		panic("invalid minute")
-	}
-	newBlock := int(s.GetLLeaderHeight())
-	if s.GetCurrentMinute() > newMinute {
-		newBlock++
-	}
-	waitForQuiet(s, newBlock, newMinute)
-}
