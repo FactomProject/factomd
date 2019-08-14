@@ -1,6 +1,7 @@
 package nettest
 
 import (
+	"encoding/json"
 	"testing"
 )
 
@@ -9,9 +10,11 @@ func TestDebugApi(t *testing.T) {
 	n := SetupNode(t)
 	_ = n
 
-	//rpc("wait-for-block", `{ "block": 3 }`)
-	//rpc("wait-for-minute", `{ "minute": 5 }`)
-	rpc("wait-blocks", `{ "blocks": 10 }`)
-	//rpc("wait-minutes", `{ "minutes": 1 }`)
+	// KLUDGE: waiting on factomd_0
+	// needs to be  more explicit
+	n.WaitBlocks(1)
+	peers := n.GetPeers()
+	d, _ := json.Marshal(peers)
+	t.Logf("%s", d)
 
 }

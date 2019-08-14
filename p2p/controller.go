@@ -704,3 +704,7 @@ func (c *Controller) sendToRandomPeer(parcel Parcel) {
 	parcel.Header.TargetPeer = randomConn.peer.Hash
 	c.doDirectedSend(parcel)
 }
+
+func (c *Controller) GetKnownPeers() map[string]Peer {
+	return c.discovery.knownPeers
+}

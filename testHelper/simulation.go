@@ -165,7 +165,6 @@ func isDefaultSim(givenNodes string) bool {
 	return true
 }
 
-
 // SetupSim takes care of your options, and setting up nodes
 // pass in a string for nodes: 4 Leaders, 3 Audit, 4 Followers: "LLLLAAAFFFF" as the first argument
 // Pass in the Network type ex. "LOCAL" as the second argument

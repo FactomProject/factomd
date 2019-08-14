@@ -469,4 +469,3 @@ func waitForQuiet(s interfaces.IState, newBlock int, newMinute int) {
 		time.Sleep(sleepTime * time.Millisecond) // wake up and about 4 times per minute
 	}
 }
-
