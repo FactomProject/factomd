@@ -3,18 +3,20 @@ package wsapi_test
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
+	"testing"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/receipts"
 	"github.com/stretchr/testify/assert"
-	"strings"
-	"testing"
+
+	"io/ioutil"
+	"net/http"
 
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/testHelper"
 	. "github.com/FactomProject/factomd/wsapi"
-	"io/ioutil"
-	"net/http"
 )
 
 func TestHandleGetRaw(t *testing.T) {

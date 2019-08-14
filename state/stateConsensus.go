@@ -464,7 +464,23 @@ emptyLoop:
 	// Reprocess any stalled messages, but not so much compared inbound messages
 	// Process last first
 
-	if s.RunLeader {
+	// Check for Ack'd items in holding
+	func() {
+		count := 0
+		if ValidationDebug {
+			s.LogPrintf("executeMsg", "Start reviewAcks")
+			defer s.LogPrintf("executeMsg", "end reviewAcks executed %d", count)
+		}
+		for _, a := range s.Acks {
+			if s.Holding[a.GetHash().Fixed()] != nil {
+				a.FollowerExecute(s)
+				count++
+			}
+		}
+	}()
+
+	// only review holding if I am a leader
+	if s.RunLeader && s.Leader {
 		s.ReviewHolding()
 		for _, msg := range s.XReview {
 			if msg == nil {
@@ -556,8 +572,10 @@ func (s *State) ReviewHolding() {
 		s.LogPrintf("executeMsg", "Start reviewHolding")
 		defer s.LogPrintf("executeMsg", "end reviewHolding holding=%d, xreview=%d", len(s.Holding), len(s.XReview))
 	}
-	s.Commits.Cleanup(s)
-	s.DB.Trim()
+
+	// moved to once per block in move state to height
+	//s.Commits.Cleanup(s)
+	//s.DB.Trim()
 
 	// Anything we are holding, we need to reprocess.
 	s.XReview = make([]interfaces.IMsg, 0)
@@ -566,12 +584,6 @@ func (s *State) ReviewHolding() {
 	saved := s.GetHighestSavedBlk()
 	if saved > highest {
 		highest = saved + 1
-	}
-
-	for _, a := range s.Acks {
-		if s.Holding[a.GetHash().Fixed()] != nil {
-			a.FollowerExecute(s)
-		}
 	}
 
 	if len(s.HoldingList) == 0 {
@@ -817,6 +829,10 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 			s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex) // MoveStateToHeight()
 		}
 		s.DBStates.UpdateState() // go process the DBSigs
+
+		// Expire old commits and stuff ...
+		s.Commits.Cleanup(s)
+		s.DB.Trim()
 
 	} else if s.CurrentMinute != newMinute { // And minute
 		if newMinute == 1 {

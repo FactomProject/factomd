@@ -3,10 +3,11 @@ package testHelper
 import (
 	"bytes"
 	"fmt"
-	"github.com/FactomProject/factomd/engine"
-	"github.com/FactomProject/factomd/wsapi"
 	"net/http"
 	"strconv"
+
+	"github.com/FactomProject/factomd/engine"
+	"github.com/FactomProject/factomd/wsapi"
 )
 
 const defaultTestPort = 8080
