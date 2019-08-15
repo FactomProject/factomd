@@ -1,6 +1,7 @@
 package eventservices
 
 import (
+	"github.com/FactomProject/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/events/eventmessages"
 )
@@ -79,9 +80,6 @@ func mapRCDs(rcds []interfaces.IRCD) []*eventmessages.RCD {
 
 func mapRCD(rcd interfaces.IRCD) *eventmessages.RCD {
 	result := &eventmessages.RCD{}
-	/* TODO research this more, the rcd1/2 structs and interfaces make me dizzy
-	https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#factoid-transaction
-
 	switch rcd.(type) {
 	case factoid.IRCD_1:
 		rcd1 := rcd.(factoid.IRCD_1)
@@ -92,15 +90,15 @@ func mapRCD(rcd interfaces.IRCD) *eventmessages.RCD {
 		}
 
 	case factoid.IRCD:
-		rcd2 := rcd.(factoid.IRCD)
-		evRcd2 := eventmessages.RCD2{
-			M:          0,
-			N:          0,
-			NAddresses: rcd2.GetHash().Bytes(),
-		}
-		evRcd2Value := &eventmessages.RCD_Rcd2{Rcd2: evRcd2}
-		result.Value = evRcd2Value
-	}*/
+		/*		rcd2 := rcd.(factoid.IRCD)  TODO rcd2 is not implemented?
+				evRcd2 := eventmessages.RCD2{
+					M:          rcd.M,
+					N:          rcd.NumberOfSignatures(),
+					NAddresses: rcd2.GetHash().Bytes(),
+				}
+				evRcd2Value := &eventmessages.RCD_Rcd2{Rcd2: evRcd2}
+				result.Value = evRcd2Value*/
+	}
 	return result
 }
 
