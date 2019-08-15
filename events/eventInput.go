@@ -51,6 +51,7 @@ func EventFromNetworkMessage(eventSource eventmessages.EventSource, msg interfac
 
 func ProcessInfoMessage(messageCode eventmessages.ProcessMessageCode, message string) *ProcessEvent {
 	return &ProcessEvent{
+		eventSource: eventmessages.EventSource_PROCESS_EVENT,
 		processMessage: &eventmessages.ProcessMessage{
 			MessageCode: messageCode,
 			Level:       eventmessages.Level_INFO,
@@ -65,6 +66,7 @@ func ProcessInfoEventF(messageCode eventmessages.ProcessMessageCode, format stri
 
 func NodeInfoMessage(messageCode eventmessages.NodeMessageCode, message string) *NodeEvent {
 	return &NodeEvent{
+		eventSource: eventmessages.EventSource_NODE_EVENT,
 		nodeMessage: &eventmessages.NodeMessage{
 			MessageCode: messageCode,
 			Level:       eventmessages.Level_INFO,
@@ -80,6 +82,7 @@ func NodeInfoMessageF(messageCode eventmessages.NodeMessageCode, format string, 
 func NodeErrorMessage(messageCode eventmessages.NodeMessageCode, message string, values interface{}) *NodeEvent {
 	errorMsg := fmt.Sprint(message, values)
 	event := &NodeEvent{
+		eventSource: eventmessages.EventSource_NODE_EVENT,
 		nodeMessage: &eventmessages.NodeMessage{
 			MessageCode: messageCode,
 			Level:       eventmessages.Level_ERROR,

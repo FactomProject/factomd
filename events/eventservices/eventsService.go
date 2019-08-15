@@ -64,7 +64,7 @@ func (esi *eventServiceInstance) Send(event events.EventInput) error {
 		return nil
 	}
 
-	// Only send node info/errors when MuteEventsDuringStartup is enabled
+	// Only send info messages when MuteEventsDuringStartup is enabled
 	if esi.params.MuteEventsDuringStartup && !esi.owningState.IsRunLeader() &&
 		event.GetEventSource() != eventmessages.EventSource_NODE_EVENT && event.GetEventSource() != eventmessages.EventSource_PROCESS_EVENT {
 		return nil
