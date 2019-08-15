@@ -74,7 +74,9 @@ func (esi *eventServiceInstance) Send(event events.EventInput) error {
 	if err != nil {
 		return fmt.Errorf("failed to map to factom event: %v\n", err)
 	}
-
+	factomEvent.IdentityChainID = &eventmessages.Hash{
+		HashValue: esi.owningState.GetIdentityChainID().Bytes(),
+	}
 	select {
 	case esi.eventsOutQueue <- factomEvent:
 	default:

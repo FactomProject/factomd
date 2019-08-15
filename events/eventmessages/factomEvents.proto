@@ -22,13 +22,14 @@ enum EventSource {
 
 message FactomEvent {
     EventSource eventSource = 1;
+    Hash IdentityChainID = 2;
     oneof value {
-        AnchoredEvent anchorEvent = 2;
-        CommitChain commitChain = 3;
-        CommitEntry commitEntry = 4;
-        RevealEntry revealEntry = 5;
-        ProcessMessage processEvent = 6;
-        NodeMessage nodeEvent = 7;
+        AnchoredEvent anchorEvent = 3;
+        CommitChain commitChain = 4;
+        CommitEntry commitEntry = 5;
+        RevealEntry revealEntry = 6;
+        ProcessMessage processEvent = 7;
+        NodeMessage nodeEvent = 8;
     }
 }
 
