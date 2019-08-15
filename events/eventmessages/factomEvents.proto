@@ -15,8 +15,8 @@ enum EventSource {
     ADD_TO_PROCESSLIST = 1;
     ADD_TO_HOLDING = 2;
     DROP_FROM_HOLDING = 3;
-    PROCESS_EVENT = 4;
-    NODE_EVENT = 5;
+    PROCESS_MESSAGE = 4;
+    NODE_MESSAGE = 5;
 }
 
 
