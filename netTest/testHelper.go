@@ -3,28 +3,38 @@ package nettest
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
-	"net/http"
-	"testing"
-
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/testHelper"
+	"io/ioutil"
+	"net/http"
+	"strconv"
+	"strings"
+	"testing"
 )
 
+type remoteNode struct {
+	address string
+}
 type testNode struct {
-	state *state.State
+	state  *state.State
+	fnodes map[int]remoteNode
 }
 
-var default_ip string = "10.7.0.1" // KLUDGE: this is the network address from docker
+// extract last number of ipv4 as an int
+func ipLastOctet(addr string) int {
+	i, _ := strconv.ParseInt(strings.Split(addr, ".")[3], 10, 64)
+	return int(i)
+}
 
-func SetupNode(t *testing.T) testNode {
+func SetupNode(seedNode string, t *testing.T) testNode {
 
 	homeDir := testHelper.ResetSimHome(t)
 
 	// Use identity 9
 	testHelper.WriteConfigFile(9, 0, "", t)
 
+	// use config that mirrors docker-compose from ./support/dev/docker-compose
 	CmdLineOptions := map[string]string{
 		"--db":                  "Map",
 		"--network":             "CUSTOM",
@@ -42,23 +52,37 @@ func SetupNode(t *testing.T) testNode {
 		"--port":                "39001",
 		"--controlpanelport":    "39002",
 		"--networkport":         "39003",
-		"--peers":               fmt.Sprintf("%s:8110", default_ip),
+		"--peers":               seedNode,
 		"--factomhome":          homeDir,
 	}
 
-	n := testNode{testHelper.StartSim(1, CmdLineOptions)}
+	n := testNode{state: testHelper.StartSim(1, CmdLineOptions)}
 
-	testHelper.WaitForBlock(n.state, 1) // wait until we are processing blocks
+	testHelper.WaitForBlock(n.state, 1)
+
+	peers := n.GetPeers()
+
+	for len(peers) == 0 {
+		peers = n.GetPeers()
+		testHelper.WaitBlocks(n.state, 1) // let more time pass to discover peers
+	}
+
+	n.fnodes = make(map[int]remoteNode)
+
+	for _, p := range peers {
+		// REVIEW: may need to set node order by port or
+		// maybe a config setting from the target node instead
+		i := ipLastOctet(p.Address)
+
+		// offset from 0 - ip's usually won't start at 0
+		n.fnodes[i-1] = remoteNode{address: p.Address}
+	}
 
 	return n
 }
 
-func getAPIUrl() string {
-	return "http://" + default_ip + ":8088/debug"
-}
-
-func postRequest(jsonStr string) (*http.Response, error) {
-	req, err := http.NewRequest("POST", getAPIUrl(), bytes.NewBuffer([]byte(jsonStr)))
+func postRequest(debugUrl string, jsonStr string) (*http.Response, error) {
+	req, err := http.NewRequest("POST", debugUrl, bytes.NewBuffer([]byte(jsonStr)))
 	if err != nil {
 		return nil, err
 	}
@@ -69,35 +93,44 @@ func postRequest(jsonStr string) (*http.Response, error) {
 }
 
 // make calls to the debug api
-func rpc(method string, params string) []byte {
-	r, _ := postRequest(fmt.Sprintf(`{"jsonrpc": "2.0", "id": 0, "method": "%s", "params":%s}`, method, params))
+func rpc(apiUrl string, method string, params string) []byte {
+	r, err := postRequest(apiUrl, fmt.Sprintf(`{"jsonrpc": "2.0", "id": 0, "method": "%s", "params":%s}`, method, params))
 	defer r.Body.Close()
+
+	if err != nil { panic(err) }
+
 	body, _ := ioutil.ReadAll(r.Body)
 	fmt.Printf("BODY: %s", body)
 
-	// FIXME  add better error handling
+	// FIXME add better error handling
 	// for example wait-for-block in past triggers an error & returns w/ empty body
 	return body
 }
-
-// FIXME: these functions need to be able to specify which node is being waited on
 
 func (n testNode) GetPeers() map[string]p2p.Peer {
 	return n.state.NetworkController.GetKnownPeers()
 }
 
-func (testNode) WaitForBlock(newBlock int) {
-	rpc("wait-for-block", fmt.Sprintf(`{ "block": %v }`, newBlock))
+func (r remoteNode) getAPIUrl() string {
+	if r.address == "" {
+		panic("remoteNode is nil")
+	}
+	return "http://" + r.address + ":8088/debug"
 }
 
-func (testNode) WaitBlocks(blks int) {
-	rpc("wait-blocks", fmt.Sprintf(`{ "blocks": %v }`, blks))
+func (r remoteNode) WaitForBlock(newBlock int) {
+	url := r.getAPIUrl()
+	rpc(url,"wait-for-block", fmt.Sprintf(`{ "block": %v }`, newBlock))
 }
 
-func (testNode) WaitForMinute(minute int) {
-	rpc("wait-for-minute", fmt.Sprintf(`{ "minute": %v }`, minute))
+func (r remoteNode) WaitBlocks(blks int) {
+	rpc(r.getAPIUrl(), "wait-blocks", fmt.Sprintf(`{ "blocks": %v }`, blks))
 }
 
-func (testNode) WaitMinutes(minutes int) {
-	rpc("wait-minutes", fmt.Sprintf(`{ "minutes": %v }`, minutes))
+func (r remoteNode) WaitForMinute(minute int) {
+	rpc(r.getAPIUrl(), "wait-for-minute", fmt.Sprintf(`{ "minute": %v }`, minute))
+}
+
+func (r remoteNode) WaitMinutes(minutes int) {
+	rpc(r.getAPIUrl(), "wait-minutes", fmt.Sprintf(`{ "minutes": %v }`, minutes))
 }
