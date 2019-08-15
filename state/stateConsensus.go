@@ -156,6 +156,10 @@ func (s *State) Validate(msg interfaces.IMsg) (validToSend int, validToExec int)
 		}
 	}
 
+	// if it has an ack it's good to go...
+	if constants.NeedsAck(msg.Type()) && s.Acks[msg.GetMsgHash().Fixed()] != nil {
+		return 1, 1
+	}
 	// Valid to send is a bit different from valid to execute.  Check for valid to send here.
 	validToSend = msg.Validate(s)
 	if validToSend == 0 { // if the msg says hold then we hold...
@@ -199,6 +203,7 @@ func (s *State) Validate(msg interfaces.IMsg) (validToSend int, validToExec int)
 			// for messages that get ACK make sure we can expect to process them
 			ack, _ := s.Acks[msg.GetMsgHash().Fixed()].(*messages.Ack)
 			if ack == nil {
+				s.LogPrintf("executeMsg", "LeaderVm = %d, msg vm = %d M-%x", s.LeaderVMIndex, vmIndex, msg.GetMsgHash().Bytes()[:3])
 				s.LogMessage("executeMsg", "hold, no ack yet", msg)
 				return 1, 0
 			}
@@ -255,12 +260,20 @@ func (s *State) executeMsg(msg interfaces.IMsg) (ret bool) {
 	switch validToExecute {
 	case 1:
 		switch msg.Type() {
-		case constants.REVEAL_ENTRY_MSG, constants.COMMIT_ENTRY_MSG, constants.COMMIT_CHAIN_MSG:
+		case constants.REVEAL_ENTRY_MSG:
 			if !s.NoEntryYet(msg.GetHash(), nil) {
-				s.DeleteFromHolding(msg.GetMsgHash().Fixed(), msg, "AlreadyCommitted") // delete commit
-				s.DeleteFromHolding(msg.GetHash().Fixed(), msg, "AlreadyCommitted")    // delete reveal
+				s.DeleteFromHolding(msg.GetMsgHash().Fixed(), msg, "AlreadyCommitted1") // delete reveal
 				s.Commits.Delete(msg.GetHash().Fixed())
-				s.LogMessage("executeMsg", "drop, already committed", msg)
+				s.LogMessage("executeMsg", "drop_reveal, already committed", msg)
+				return true
+			}
+			s.AddToHolding(msg.GetMsgHash().Fixed(), msg) // add valid commit/reveal to holding in case it fails to get added
+		case constants.COMMIT_ENTRY_MSG, constants.COMMIT_CHAIN_MSG:
+			if !s.NoEntryYet(msg.GetHash(), nil) {
+				s.DeleteFromHolding(msg.GetMsgHash().Fixed(), msg, "AlreadyCommitted2") // delete commit
+				s.DeleteFromHolding(msg.GetHash().Fixed(), msg, "AlreadyCommitted3")    // delete reveal
+				s.Commits.Delete(msg.GetHash().Fixed())
+				s.LogMessage("executeMsg", "drop_commit, already committed", msg)
 				return true
 			}
 			s.AddToHolding(msg.GetMsgHash().Fixed(), msg) // add valid commit/reveal to holding in case it fails to get added
@@ -299,16 +312,18 @@ func (s *State) executeMsg(msg interfaces.IMsg) (ret bool) {
 				s.XReview = append(s.XReview, msg)
 				s.LogMessage("executeMsg", "Missing DBSig use XReview", msg)
 			} else {
-				s.LogMessage("executeMsg", "LeaderExecute", msg)
+				s.LogMessage("executeMsg", fmt.Sprintf("LeaderExecute[%d]", s.LeaderVMIndex), msg)
 				msg.LeaderExecute(s)
 			}
 		} else {
-			s.LogMessage("executeMsg", "FollowerExecute", msg)
-			s.LogPrintf("executeMsg", "cause:"+
-				" s.RunLeader(%v) && s.Leader(%v) && !s.Saving(%v) &&	vm(%p) != nil && vmh(%v) == vml(%v) && "+
-				"(!s.Syncing(%v) || !vms(%v)) && (local(%v) || vmi(%v) == s.LeaderVMIndex(%v)) && "+
-				"s.LeaderPL.DBHeight(%v)+1 >= hkb(%v)",
-				s.RunLeader, s.Leader, s.Saving, vm, vmh, vml, s.Syncing, vms, local, vmi, s.LeaderVMIndex, s.LeaderPL.DBHeight, hkb)
+			s.LogMessage("executeMsg", fmt.Sprintf("FollowerExecute[%d]", s.LeaderVMIndex), msg)
+			if s.Leader {
+				s.LogPrintf("executeMsg", "cause:"+
+					" s.RunLeader(%v) && s.Leader(%v) && !s.Saving(%v) &&	vm(%p) != nil && vmh(%v) == vml(%v) && "+
+					"(!s.Syncing(%v) || !vms(%v)) && (local(%v) || vmi(%v) == s.LeaderVMIndex(%v)) && "+
+					"s.LeaderPL.DBHeight(%v)+1 >= hkb(%v)",
+					s.RunLeader, s.Leader, s.Saving, vm, vmh, vml, s.Syncing, vms, local, vmi, s.LeaderVMIndex, s.LeaderPL.DBHeight, hkb)
+			}
 			msg.FollowerExecute(s)
 		}
 
@@ -586,10 +601,14 @@ func (s *State) ReviewHolding() {
 		highest = saved + 1
 	}
 
-	if len(s.HoldingList) == 0 {
+	// if the sorted holding is empty or built for the wrong VM
+	if len(s.HoldingList) == 0 || s.HoldingVM != s.LeaderVMIndex {
+		s.HoldingVM = s.LeaderVMIndex // save the VM I used in making this sorted list
 		sorted := []interfaces.IMsg{}
 		for _, v := range s.Holding {
-			sorted = append(sorted, v)
+			if v.GetVMIndex() == s.LeaderVMIndex || !constants.NeedsAck(v.Type()) {
+				sorted = append(sorted, v)
+			}
 		}
 		sort.Slice(sorted,
 			func(i, j int) bool {
@@ -730,7 +749,7 @@ processholdinglist:
 		// If a Reveal Entry has a commit available, then process the Reveal Entry and send it out.
 		if re, ok := v.(*messages.RevealEntryMsg); ok {
 			if !s.NoEntryYet(re.GetHash(), s.GetLeaderTimestamp()) {
-				s.DeleteFromHolding(re.GetHash().Fixed(), re, "already committed reveal")
+				s.DeleteFromHolding(re.GetMsgHash().Fixed(), re, "already committed reveal")
 				s.Commits.Delete(re.GetHash().Fixed())
 				continue processholdinglist
 			}
