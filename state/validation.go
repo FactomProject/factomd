@@ -7,6 +7,7 @@ package state
 import (
 	"fmt"
 	"github.com/FactomProject/factomd/events"
+	"github.com/FactomProject/factomd/events/eventmessages"
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -23,7 +24,7 @@ func (s *State) DoProcessing() {
 	s.validatorLoopThreadID = atomic.Goid()
 
 	if s.EventsService != nil {
-		event := events.NodeInfoEventF("Node %s startup complete", s.GetFactomNodeName())
+		event := events.NodeInfoMessageF(eventmessages.NodeMessageCode_STARTED, "Node %s startup complete", s.GetFactomNodeName())
 		s.EventsService.Send(event)
 	}
 	s.RunState = runstate.Running
@@ -77,7 +78,12 @@ func (s *State) DoProcessing() {
 func (s *State) ValidatorLoop() {
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Println("A panic state occurred in ValidatorLoop.", r)
+			if s.EventsService != nil {
+				event := events.NodeErrorMessage(eventmessages.NodeMessageCode_OTHER_N,
+					"A panic state occurred in ValidatorLoop.", r)
+				s.EventsService.Send(event)
+			}
+
 			shutdown(s)
 		}
 	}()
@@ -169,7 +175,8 @@ func shouldShutdown(state *State) bool {
 
 func shutdown(state *State) {
 	if state.EventsService != nil {
-		event := events.NodeInfoEventF("Node %s is shutting down", state.GetFactomNodeName())
+		event := events.NodeInfoMessageF(eventmessages.NodeMessageCode_SHUTDOWN,
+			"Node %s is shutting down", state.GetFactomNodeName())
 		state.EventsService.Send(event)
 	}
 

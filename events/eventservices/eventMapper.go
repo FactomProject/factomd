@@ -32,17 +32,23 @@ func mapProcessEvent(processEvent *events.ProcessEvent) (*eventmessages.FactomEv
 	event := &eventmessages.FactomEvent{}
 	event.EventSource = processEvent.GetEventSource()
 	msg := processEvent.GetPayload()
-	switch msg.(type) {
-	case *messages.DBStateMsg:
-		event.Value = mapDBState(msg.(*messages.DBStateMsg))
-	case *messages.CommitChainMsg:
-		event.Value = mapCommitChain(msg)
-	case *messages.CommitEntryMsg:
-		event.Value = mapCommitEntryEvent(msg)
-	case *messages.RevealEntryMsg:
-		event.Value = mapRevealEntryEvent(msg)
-	default:
-		return nil, errors.New("unknown message type")
+	if msg != nil {
+		switch msg.(type) {
+		case *messages.DBStateMsg:
+			event.Value = mapDBState(msg.(*messages.DBStateMsg))
+		case *messages.CommitChainMsg:
+			event.Value = mapCommitChain(msg)
+		case *messages.CommitEntryMsg:
+			event.Value = mapCommitEntryEvent(msg)
+		case *messages.RevealEntryMsg:
+			event.Value = mapRevealEntryEvent(msg)
+		default:
+			return nil, errors.New("unknown message type")
+		}
+	} else {
+		event.Value = &eventmessages.FactomEvent_ProcessEvent{
+			ProcessEvent: processEvent.GetProcessMessage(),
+		}
 	}
 	return event, nil
 }
@@ -50,7 +56,9 @@ func mapProcessEvent(processEvent *events.ProcessEvent) (*eventmessages.FactomEv
 func mapNodeEvent(nodeEvent *events.NodeEvent) (*eventmessages.FactomEvent, error) {
 	event := &eventmessages.FactomEvent{
 		EventSource: nodeEvent.GetEventSource(),
-		Value:       &eventmessages.FactomEvent_Message{Message: nodeEvent.GetPayload()},
+		Value: &eventmessages.FactomEvent_NodeEvent{
+			NodeEvent: nodeEvent.GetNodeEvent(),
+		},
 	}
 	return event, nil
 }

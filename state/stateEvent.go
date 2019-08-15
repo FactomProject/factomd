@@ -8,7 +8,7 @@ import (
 
 func emitEvent(eventSource eventmessages.EventSource, msg interfaces.IMsg, state *State) {
 	if state.EventsService != nil {
-		event := events.EventFromMessage(eventSource, msg)
+		event := events.EventFromNetworkMessage(eventSource, msg)
 		state.EventsService.Send(event)
 	}
 }

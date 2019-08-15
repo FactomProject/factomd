@@ -25,7 +25,7 @@ func TestDBStateMapping(t *testing.T) {
 	data, _ := msg.MarshalBinary()
 	assert.Len(t, data, 2409, msgChangedMessage("DBStateMsg"))
 
-	inputEvent := events.EventFromMessage(eventmessages.EventSource_COMMIT_DIRECTORY_BLOCK, msg)
+	inputEvent := events.EventFromNetworkMessage(eventmessages.EventSource_COMMIT_DIRECTORY_BLOCK, msg)
 	event, err := eventservices.MapToFactomEvent(inputEvent)
 	if err != nil {
 		t.Error(err)
@@ -124,7 +124,7 @@ func TestCommitChainMapping(t *testing.T) {
 	data, _ := msg.MarshalBinary()
 	assert.Len(t, data, 201, msgChangedMessage("CommitChainMsg"))
 
-	inputEvent := events.EventFromMessage(eventmessages.EventSource_ADD_TO_PROCESSLIST, msg)
+	inputEvent := events.EventFromNetworkMessage(eventmessages.EventSource_ADD_TO_PROCESSLIST, msg)
 	event, err := eventservices.MapToFactomEvent(inputEvent)
 	if err != nil {
 		t.Error(err)
@@ -155,7 +155,7 @@ func TestCommitEntryMapping(t *testing.T) {
 	data, _ := msg.MarshalBinary()
 	assert.Len(t, data, 137, msgChangedMessage("CommitEntryMsg"))
 
-	inputEvent := events.EventFromMessage(eventmessages.EventSource_ADD_TO_HOLDING, msg)
+	inputEvent := events.EventFromNetworkMessage(eventmessages.EventSource_ADD_TO_HOLDING, msg)
 	event, err := eventservices.MapToFactomEvent(inputEvent)
 	if err != nil {
 		t.Error(err)
@@ -187,7 +187,7 @@ func TestRevealEntryMapping(t *testing.T) {
 	data, _ := msg.MarshalBinary()
 	assert.Len(t, data, 60, msgChangedMessage("CommitEntryMsg"))
 
-	inputEvent := events.EventFromMessage(eventmessages.EventSource_ADD_TO_PROCESSLIST, msg)
+	inputEvent := events.EventFromNetworkMessage(eventmessages.EventSource_ADD_TO_PROCESSLIST, msg)
 	event, err := eventservices.MapToFactomEvent(inputEvent)
 	if err != nil {
 		t.Error(err)

@@ -12,70 +12,79 @@ type EventInput interface {
 }
 
 type ProcessEvent struct {
-	eventSource eventmessages.EventSource
-	payload     interfaces.IMsg
+	eventSource    eventmessages.EventSource
+	processMessage *eventmessages.ProcessMessage
+	payload        interfaces.IMsg
 }
 
 type NodeEvent struct {
 	eventSource eventmessages.EventSource
-	payload     string
+	nodeMessage *eventmessages.NodeMessage
+	payload     interfaces.IMsg
 }
 
 func (processEvent ProcessEvent) GetEventSource() eventmessages.EventSource {
 	return processEvent.eventSource
 }
 
-func (processEvent ProcessEvent) GetPayload() interfaces.IMsg {
-	return processEvent.payload
-}
-
 func (nodeEvent NodeEvent) GetEventSource() eventmessages.EventSource {
 	return nodeEvent.eventSource
 }
 
-func (nodeEvent NodeEvent) GetPayload() string {
-	return nodeEvent.payload
+func (processEvent ProcessEvent) GetProcessMessage() *eventmessages.ProcessMessage {
+	return processEvent.processMessage
 }
 
-func EventFromMessage(eventSource eventmessages.EventSource, msg interfaces.IMsg) *ProcessEvent {
+func (processEvent ProcessEvent) GetPayload() interfaces.IMsg {
+	return processEvent.payload
+}
+
+func (nodeEvent NodeEvent) GetNodeEvent() *eventmessages.NodeMessage {
+	return nodeEvent.nodeMessage
+}
+
+func EventFromNetworkMessage(eventSource eventmessages.EventSource, msg interfaces.IMsg) *ProcessEvent {
 	return &ProcessEvent{
 		eventSource: eventSource,
 		payload:     msg}
 }
 
-func ProcessInfoEvent(message string) *NodeEvent {
-	return &NodeEvent{
-		eventSource: eventmessages.EventSource_PROCESS_INFO,
-		payload:     message,
+func ProcessInfoMessage(messageCode eventmessages.ProcessMessageCode, message string) *ProcessEvent {
+	return &ProcessEvent{
+		processMessage: &eventmessages.ProcessMessage{
+			MessageCode: messageCode,
+			Level:       eventmessages.Level_INFO,
+			MessageText: message,
+		},
 	}
 }
 
-func ProcessInfoEventF(format string, values ...interface{}) *NodeEvent {
+func ProcessInfoEventF(messageCode eventmessages.ProcessMessageCode, format string, values ...interface{}) *ProcessEvent {
+	return ProcessInfoMessage(messageCode, fmt.Sprintf(format, values))
+}
+
+func NodeInfoMessage(messageCode eventmessages.NodeMessageCode, message string) *NodeEvent {
 	return &NodeEvent{
-		eventSource: eventmessages.EventSource_PROCESS_INFO,
-		payload:     fmt.Sprintf(format, values),
+		nodeMessage: &eventmessages.NodeMessage{
+			MessageCode: messageCode,
+			Level:       eventmessages.Level_INFO,
+			MessageText: message,
+		},
 	}
 }
 
-func NodeInfoEvent(message string) *NodeEvent {
-	return &NodeEvent{
-		eventSource: eventmessages.EventSource_NODE_INFO,
-		payload:     message,
-	}
+func NodeInfoMessageF(messageCode eventmessages.NodeMessageCode, format string, values ...interface{}) *NodeEvent {
+	return NodeInfoMessage(messageCode, fmt.Sprintf(format, values))
 }
 
-func NodeInfoEventF(format string, values ...interface{}) *NodeEvent {
-	return &NodeEvent{
-		eventSource: eventmessages.EventSource_NODE_INFO,
-		payload:     fmt.Sprintf(format, values),
-	}
-}
-
-func NodeErrorEvent(message string, error interface{}) *NodeEvent {
-	errorMsg := fmt.Sprint(message, error)
+func NodeErrorMessage(messageCode eventmessages.NodeMessageCode, message string, values interface{}) *NodeEvent {
+	errorMsg := fmt.Sprint(message, values)
 	event := &NodeEvent{
-		eventSource: eventmessages.EventSource_NODE_ERROR,
-		payload:     errorMsg,
+		nodeMessage: &eventmessages.NodeMessage{
+			MessageCode: messageCode,
+			Level:       eventmessages.Level_ERROR,
+			MessageText: errorMsg,
+		},
 	}
 	log.Errorln(errorMsg)
 	return event

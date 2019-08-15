@@ -51,7 +51,7 @@ func testSend(t *testing.T, msgs []interfaces.IMsg) {
 
 		// send messages
 		for _, msg := range msgs {
-			event := events.EventFromMessage(eventmessages.EventSource_ADD_TO_PROCESSLIST, msg)
+			event := events.EventFromNetworkMessage(eventmessages.EventSource_ADD_TO_PROCESSLIST, msg)
 			eventService.Send(event)
 		}
 
@@ -77,7 +77,7 @@ func testLateReceivingServer(t *testing.T, msgs []interfaces.IMsg) {
 		defer eventServiceControl.Shutdown()
 
 		msg := msgs[0]
-		event := events.EventFromMessage(eventmessages.EventSource_ADD_TO_PROCESSLIST, msg)
+		event := events.EventFromNetworkMessage(eventmessages.EventSource_ADD_TO_PROCESSLIST, msg)
 		eventService.Send(event)
 
 		time.Sleep(2 * time.Second) // sleep less than the retry * redial sleep duration
@@ -106,7 +106,7 @@ func testReceivingServerRestart(t *testing.T, msgs []interfaces.IMsg) {
 		defer eventServiceControl.Shutdown()
 
 		msg := msgs[0]
-		event := events.EventFromMessage(eventmessages.EventSource_ADD_TO_PROCESSLIST, msg)
+		event := events.EventFromNetworkMessage(eventmessages.EventSource_ADD_TO_PROCESSLIST, msg)
 		eventService.Send(event)
 
 		// Restart the simulator

@@ -391,7 +391,8 @@ func (s *State) Process() (progress bool) {
 					s.IgnoreDone = true
 				}
 				if s.EventsService != nil {
-					event := events.NodeInfoEventF("Node %s has finished syncing up it's database", s.GetFactomNodeName())
+					event := events.NodeInfoMessageF(eventmessages.NodeMessageCode_SYNC_COMPLETE,
+						"Node %s has finished syncing up it's database", s.GetFactomNodeName())
 					s.EventsService.Send(event)
 				}
 			}
@@ -834,6 +835,15 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 				dbstate.ReadyToSave = true
 			}
 			s.DBStates.UpdateState() // call to get the state signed now that the DBSigs have processed
+			if s.EventsService != nil {
+				event := events.ProcessInfoEventF(eventmessages.ProcessMessageCode_NEW_BLOCK, "New block %d", dbheight)
+				s.EventsService.Send(event)
+			}
+		} else {
+			if s.EventsService != nil {
+				event := events.ProcessInfoEventF(eventmessages.ProcessMessageCode_NEW_MINUTE, "New minute %d", newMinute)
+				s.EventsService.Send(event)
+			}
 		}
 		s.CurrentMinute = newMinute                                                            // Update just the minute
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(newMinute, s.IdentityChainID) // MoveStateToHeight minute
@@ -847,11 +857,6 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		// If an election took place, our lists will be unsorted. Fix that
 		s.LeaderPL.SortAuditServers()
 		s.LeaderPL.SortFedServers()
-
-		if s.EventsService != nil {
-			event := events.ProcessInfoEventF("New minute %d", newMinute)
-			s.EventsService.Send(event)
-		}
 	}
 
 	{ // debug
