@@ -2,6 +2,7 @@ package nettest
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/state"
@@ -27,7 +28,7 @@ func ipLastOctet(addr string) int {
 	return int(i)
 }
 
-func SetupNode(seedNode string, t *testing.T) testNode {
+func SetupNode(seedNode string, minPeers int, t *testing.T) testNode {
 
 	homeDir := testHelper.ResetSimHome(t)
 
@@ -62,12 +63,15 @@ func SetupNode(seedNode string, t *testing.T) testNode {
 
 	peers := n.GetPeers()
 
-	for len(peers) == 0 {
+	for len(peers) < minPeers {
 		peers = n.GetPeers()
+		fmt.Printf("%v", peers)
 		testHelper.WaitBlocks(n.state, 1) // let more time pass to discover peers
 	}
 
+	// KLUDGE: always keep the seed peer
 	n.fnodes = make(map[int]remoteNode)
+	n.fnodes[0] = remoteNode{seedNode}
 
 	for _, p := range peers {
 		// REVIEW: may need to set node order by port or
@@ -75,7 +79,13 @@ func SetupNode(seedNode string, t *testing.T) testNode {
 		i := ipLastOctet(p.Address)
 
 		// offset from 0 - ip's usually won't start at 0
-		n.fnodes[i-1] = remoteNode{address: p.Address}
+		r := remoteNode{address: p.Address}
+		info, err := r.NetworkInfo()
+		if err == nil {
+			// keep this node
+			_ = info
+			n.fnodes[i-1] = r
+		}
 	}
 
 	return n
@@ -93,18 +103,21 @@ func postRequest(debugUrl string, jsonStr string) (*http.Response, error) {
 }
 
 // make calls to the debug api
-func rpc(apiUrl string, method string, params string) []byte {
+func rpc(apiUrl string, method string, params string) (body []byte, err error) {
 	r, err := postRequest(apiUrl, fmt.Sprintf(`{"jsonrpc": "2.0", "id": 0, "method": "%s", "params":%s}`, method, params))
+
+	if err != nil {
+		return body, err
+	}
+
 	defer r.Body.Close()
 
-	if err != nil { panic(err) }
-
-	body, _ := ioutil.ReadAll(r.Body)
-	fmt.Printf("BODY: %s", body)
+	body, _ = ioutil.ReadAll(r.Body)
+	fmt.Printf("\nrpc => %s", body)
 
 	// FIXME add better error handling
 	// for example wait-for-block in past triggers an error & returns w/ empty body
-	return body
+	return body, err
 }
 
 func (n testNode) GetPeers() map[string]p2p.Peer {
@@ -118,6 +131,22 @@ func (r remoteNode) getAPIUrl() string {
 	return "http://" + r.address + ":8088/debug"
 }
 
+func (r remoteNode) NetworkInfo() (info map[string]interface{}, err error) {
+	url := r.getAPIUrl()
+	res, err := rpc(url,"network-info","{}")
+
+	if err !=nil {
+		return info, err
+	}
+
+	info = make(map[string]interface{})
+	json.Unmarshal(res, info)
+	fmt.Sprintf("\nINFO: %v", info)
+
+	return info, nil
+}
+
+// FIXME: add a return code for waiting
 func (r remoteNode) WaitForBlock(newBlock int) {
 	url := r.getAPIUrl()
 	rpc(url,"wait-for-block", fmt.Sprintf(`{ "block": %v }`, newBlock))

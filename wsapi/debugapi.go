@@ -274,11 +274,13 @@ func HandleMessages(state interfaces.IState, params interface{}) (interface{}, *
 
 func HandleNetworkInfo(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	type ret struct {
+		NodeName      string
 		NetworkNumber int
 		NetworkName   string
 		NetworkID     uint32
 	}
 	r := new(ret)
+	r.NodeName = state.GetFactomNodeName()
 	r.NetworkNumber = state.GetNetworkNumber()
 	r.NetworkName = state.GetNetworkName()
 	r.NetworkID = state.GetNetworkID()

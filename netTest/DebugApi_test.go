@@ -8,7 +8,7 @@ import (
 func TestDebugApi(t *testing.T) {
 
 	// address hardcoded to point a docker network
-	n := SetupNode("10.7.0.1:8110", t)
+	n := SetupNode("10.7.0.1", 3, t)
 	_ = n
 
 	// KLUDGE: waiting on factomd_0
