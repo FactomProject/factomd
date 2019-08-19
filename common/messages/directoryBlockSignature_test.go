@@ -153,8 +153,8 @@ func TestInvalidSignature(t *testing.T) {
 	m.Signature = m2.Signature
 	v = m.Validate(s)
 
-	if v != -1 {
-		t.Errorf("Expected -1, found %d", v)
+	if v != -2 {
+		t.Errorf("Expected -2, found %d", v)
 	}
 }
 
