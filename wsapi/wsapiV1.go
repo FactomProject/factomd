@@ -3,12 +3,13 @@ package wsapi
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/gorilla/mux"
 	"io/ioutil"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/gorilla/mux"
 )
 
 func (server *Server) AddV1Endpoints() {

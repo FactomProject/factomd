@@ -4,11 +4,12 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"net/http"
+	"time"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
-	"net/http"
-	"time"
 )
 
 type Server struct {

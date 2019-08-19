@@ -7,14 +7,16 @@ package wsapi
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/FactomProject/factomd/common/globals"
 	"io/ioutil"
 	"net/http"
 	"os"
 
+	"github.com/FactomProject/factomd/common/globals"
+
+	"regexp"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"regexp"
 )
 
 func HandleDebug(writer http.ResponseWriter, request *http.Request) {

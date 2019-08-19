@@ -4,16 +4,17 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
-	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/state"
-	"github.com/FactomProject/factomd/testHelper"
-	. "github.com/FactomProject/factomd/wsapi"
-	"github.com/stretchr/testify/assert"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"testing"
+
+	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/state"
+	"github.com/FactomProject/factomd/testHelper"
+	. "github.com/FactomProject/factomd/wsapi"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetEndpoints(t *testing.T) {
