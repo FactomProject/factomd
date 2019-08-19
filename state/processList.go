@@ -1119,10 +1119,13 @@ func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces
 
 	// If we add the message to the process list, ensure we actually process that
 	// message, so the next msg will be able to added without going into holding.
-	if ack.IsLocal() {
-		for p.Process(s) {
-		}
+	//if ack.IsLocal() {
+	for p.Process(s) {
 	}
+	//}
+
+	//// Process on the VM I just added a message to.
+	//p.processVM(p.VMs[ack.VMIndex])
 
 	// Both the ack and the message hash to the same GetHash()
 	ack.SetLocal(false)
