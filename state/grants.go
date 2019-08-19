@@ -485,7 +485,7 @@ func GetHardCodedGrants() []HardGrant {
 
 			// The 42nd Factoid total: 1800 FCT
 			HardGrant{194126, 1800e8, validateAddress("FA3AEL2H9XZy3n199USs2poCEJBkK1Egy6JXhLehfLJjUYMKh1zS")},
-		
+
 			// Centis BV total: 1800 FCT
 			HardGrant{194126, 1800e8, validateAddress("FA2hvRaci9Kks9cLNkEUFcxzUJuUFaaAE1eWYLqa2qk1k9pVFVBp")},
 
@@ -495,18 +495,18 @@ func GetHardCodedGrants() []HardGrant {
 			// DBGrow Inc total: 1800 FCT
 			HardGrant{194126, 1800e8, validateAddress("FA3HSuFo9Soa5ZnG82JHqyKiRi4Pw17LxPTo9AsCaFNLCGkXkgsu")},
 
-			// Canonical Ledgers: 600 FCT 
+			// Canonical Ledgers: 600 FCT
 			// (2019-03-07 - 2019-04-07)
 			HardGrant{194126, 600e8, validateAddress("FA2PEXgRiPd14NzUP47XfVTgEnvjtLSebBZvnM8gM7cJAMuqWs89")},
 
-			// TRGG3R LLC: 1200 FCT 
+			// TRGG3R LLC: 1200 FCT
 			// (2019-04-07 - 2019-06-07)
 			HardGrant{194126, 1200e8, validateAddress("FA2oecgJW3XWnXzHhQQoULmMeKC97uAgHcPd4kEowTb3csVkbDc9")},
 			// --------------------------------------------------------
-			
+
 			// Anchor and Oracle master grants
 
-			// Factom-Inc-013 -- 900 FCT 
+			// Factom-Inc-013 -- 900 FCT
 			// Oracle Master -- (2019-06-09 - 2019-09-09)
 			HardGrant{194126, 900e8, validateAddress("FA3fpiZ91MCRRFjVGfNXK4pg7vx3BT3aSRyoVqgptZCX7N5BNR8P")},
 
@@ -517,8 +517,8 @@ func GetHardCodedGrants() []HardGrant {
 
 			// Committee Grants
 
-			// The Core Committee has via grant Core-Committee-002 been awarded an additional 500 FCT grant 
-			// to be paid out in installments upon request from the committee. The current total amount set 
+			// The Core Committee has via grant Core-Committee-002 been awarded an additional 500 FCT grant
+			// to be paid out in installments upon request from the committee. The current total amount set
 			// aside for the Core Committee is 1000 FCT.
 			// --------------------------------------------------------
 
@@ -594,11 +594,11 @@ func GetHardCodedGrants() []HardGrant {
 			HardGrant{194126, 1876e8, validateAddress("FA2T1tgVwrHDVpMqHRRz5676x4CHkZqXGGp1CmBarYg5ZWcU85g4")},
 
 			// TFA-001 -- 4860
-			// FAT Firmware upgrade for Ledger Nano S and X 
+			// FAT Firmware upgrade for Ledger Nano S and X
 			HardGrant{194126, 4860e8, validateAddress("FA3sUHyYThjwJSSnun5jx91obexMJibaUCeGFoZ9S1SBzcY1xPCP")},
 			// --------------------------------------------------------
 
-			// Miscellaneous Grants 
+			// Miscellaneous Grants
 
 			// Go-Immutable-001 -- 20000 FCT
 			// Comprehensive Market Strategy & Execution
