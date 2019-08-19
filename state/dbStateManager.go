@@ -563,12 +563,11 @@ func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 	dirblk := next.DirectoryBlock
 	dbheight := dirblk.GetHeader().GetDBHeight()
 
-	// If we don't have the previous blocks processed yet, then let's wait on this one.
 	highestSavedBlk := state.GetHighestSavedBlk()
 
+	// The genesis block is valid by definition. SO don't do any other tests.
 	if dbheight == 0 && highestSavedBlk == 0 {
 		//state.AddStatus(fmt.Sprintf("DBState.ValidNext: rtn 1 genesis block is valid dbht: %d", dbheight))
-		// The genesis block is valid by definition.
 		return 1
 	}
 
@@ -576,6 +575,13 @@ func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 	if dbheight <= highestSavedBlk && !next.IsInDB {
 		state.LogPrintf("dbstateprocess", "Invalid DBState because dbheight %d < highestSavedBlk %d",
 			dbheight, highestSavedBlk)
+		return -1
+	}
+
+	// Check if we have already process a block for this height and do not replace it if we have.
+	dbstate := s.DBStates.Get(int(dbheight))
+	if dbstate != nil && dbstate.Locked {
+		state.LogPrintf("dbstateprocess", "Invalid DBState because we have already process a block at this height")
 		return -1
 	}
 
@@ -1314,6 +1320,7 @@ func (list *DBStateList) WriteDBStateToDebugFile(d *DBState) {
 		fmt.Printf("An error has occurred while writing the DBState to disk: %s\n", err.Error())
 		return
 	}
+	list.State.LogPrintf("saved_blocks", "Saved %s", path)
 
 	file.Write(data)
 	file.Close()
