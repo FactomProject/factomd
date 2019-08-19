@@ -5,11 +5,11 @@
 package constants
 
 const (
-	// MaxAckHeightMinuteDelta is the maximum number of minute in the
+	// MaxAckHeightMinuteDelta is the maximum number of blocks in the
 	//	future we will set our HighestAckHeight too. This means
-	// 	2000/10 = max number of blocks to set the max height too ontop
+	// 	200 = max number of blocks to set the max height too on top
 	//	of our current block height.
-	MaxAckHeightMinuteDelta = 2000
+	MaxAckHeightMinuteDelta = 200
 )
 
 // Ack status levels
