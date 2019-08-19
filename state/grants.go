@@ -720,7 +720,7 @@ func GetHardCodedGrants() []HardGrant {
 			// --------------------------------------------------------
 
 			// --------------------------------------------------------
-			// [Factom Inc.-18] Protocol Development -- 38640 FCT
+			// [Factom Inc.-18] Protocol Development -- 38940 FCT
 
 			// Note: 300 FCT to be paid for a third sponsor has been removed from this grant due to
 			// a sponsor not being presented by Factom Inc. prior to this PR being submitted.
@@ -730,6 +730,9 @@ func GetHardCodedGrants() []HardGrant {
 
 			// factomatic total: 300 FCT
 			HardGrant{207325, 300e8, validateAddress("FA2944TXTDQKdJDp3TLSANjgMjwK2pQnTSkzE3kQcHWKetCCphcH")},
+
+			// David Kuiper total: 300 FCT
+			HardGrant{207325, 300e8, validateAddress("FA2FqYZPfBeRWq7fWSFEhassT5zpMQZm8jwus3yWbzeN3PZPWybm")},
 
 			// Factom Inc. total: 38040 FCT
 			HardGrant{207325, 38040e8, validateAddress("FA3LwCDE3ZdFkr9nE1Keb5JcHgwXVWpEHydshT1x2qKFdvZELVQz")},
