@@ -117,7 +117,7 @@ func (m *CommitChainMsg) GetMsgHash() (rval interfaces.IHash) {
 }
 
 func (m *CommitChainMsg) GetTimestamp() interfaces.Timestamp {
-	return m.CommitChain.GetTimestamp()
+	return m.CommitChain.GetTimestamp().Clone()
 }
 
 func (m *CommitChainMsg) Type() byte {

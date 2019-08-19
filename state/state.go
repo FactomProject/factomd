@@ -2310,7 +2310,7 @@ func (s *State) PrioritizedMsgQueue() chan interfaces.IMsg {
 
 func (s *State) GetLeaderTimestamp() interfaces.Timestamp {
 	if s.LeaderTimestamp == nil {
-		// To leader timestamp?  Then use the boottime less a minute
+		// To leader timestamp?  Then use the boot time less a minute
 		s.SetLeaderTimestamp(primitives.NewTimestampFromMilliseconds(s.TimestampAtBoot.GetTimeMilliUInt64() - 60*1000))
 	}
 	return primitives.NewTimestampFromMilliseconds(s.LeaderTimestamp.GetTimeMilliUInt64())
@@ -2320,7 +2320,7 @@ func (s *State) GetMessageFilterTimestamp() interfaces.Timestamp {
 	if s.MessageFilterTimestamp == nil {
 		s.MessageFilterTimestamp = primitives.NewTimestampNow()
 	}
-	return s.MessageFilterTimestamp
+	return primitives.NewTimestampFromMilliseconds(s.MessageFilterTimestamp.GetTimeMilliUInt64())
 }
 
 // the MessageFilterTimestamp  is used to filter messages from the past or before the replay filter.

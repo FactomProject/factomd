@@ -95,7 +95,7 @@ func (m *Ack) Type() byte {
 }
 
 func (m *Ack) GetTimestamp() interfaces.Timestamp {
-	return m.Timestamp
+	return m.Timestamp.Clone()
 }
 
 func (m *Ack) VerifySignature() (bool, error) {

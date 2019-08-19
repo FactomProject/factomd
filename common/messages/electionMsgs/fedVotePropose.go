@@ -130,7 +130,7 @@ func (m *FedVoteProposalMsg) GetHash() (rval interfaces.IHash) {
 }
 
 func (m *FedVoteProposalMsg) GetTimestamp() interfaces.Timestamp {
-	return m.TS
+	return m.TS.Clone()
 }
 
 func (m *FedVoteProposalMsg) GetMsgHash() (rval interfaces.IHash) {

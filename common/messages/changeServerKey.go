@@ -80,7 +80,7 @@ func (m *ChangeServerKeyMsg) Type() byte {
 }
 
 func (m *ChangeServerKeyMsg) GetTimestamp() interfaces.Timestamp {
-	return m.Timestamp
+	return m.Timestamp.Clone()
 }
 
 func (m *ChangeServerKeyMsg) Validate(state interfaces.IState) int {

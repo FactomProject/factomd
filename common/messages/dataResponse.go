@@ -118,7 +118,7 @@ func (m *DataResponse) Type() byte {
 }
 
 func (m *DataResponse) GetTimestamp() interfaces.Timestamp {
-	return m.Timestamp
+	return m.Timestamp.Clone()
 }
 
 // Validate the message, given the state.  Three possible results:
