@@ -736,12 +736,12 @@ func GetHardCodedGrants() []HardGrant {
 			// --------------------------------------------------------
 
 			// --------------------------------------------------------
-			// [Matt York-Paul Bernier-DBGrow-Canonical Ledgers-1] FAT Smart Contracts 2 - Development -- 13750 FCT
+			// [Matt York-Luciap Technology Inc.-DBGrow-Canonical Ledgers-1] FAT Smart Contracts 2 - Development -- 13750 FCT
 
 			// David Chapman total: 300 FCT
 			HardGrant{207325, 300e8, validateAddress("FA3nsSjUy5uSkqMEug8t3VcehZn5w2ciSMpgqFEEsMRwMrHoa9k3")},
 
-			// Paul Bernier total: 200 FCT
+			// Luciap Technology Inc. total: 200 FCT
 			HardGrant{207325, 200e8, validateAddress("FA2kWsMnSXTV9RS2yEGkEGP2yUFrawZQVj5Hp8WqPnZUUBFCpiaH")},
 
 			// Matt York total: 200 FCT
