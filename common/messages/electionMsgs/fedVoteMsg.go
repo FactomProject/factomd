@@ -96,7 +96,7 @@ func (m *FedVoteMsg) ComparisonMinute() int {
 }
 
 func (m *FedVoteMsg) GetTimestamp() interfaces.Timestamp {
-	return m.TS
+	return m.TS.Clone()
 }
 
 func (m *FedVoteMsg) LogFields() log.Fields {

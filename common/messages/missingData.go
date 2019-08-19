@@ -94,7 +94,7 @@ func (m *MissingData) GetMsgHash() (rval interfaces.IHash) {
 }
 
 func (m *MissingData) GetTimestamp() interfaces.Timestamp {
-	return m.Timestamp
+	return m.Timestamp.Clone()
 }
 
 func (m *MissingData) Type() byte {

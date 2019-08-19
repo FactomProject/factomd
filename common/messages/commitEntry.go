@@ -120,7 +120,7 @@ func (m *CommitEntryMsg) GetMsgHash() (rval interfaces.IHash) {
 }
 
 func (m *CommitEntryMsg) GetTimestamp() interfaces.Timestamp {
-	return m.CommitEntry.GetTimestamp()
+	return m.CommitEntry.GetTimestamp().Clone()
 }
 
 func (m *CommitEntryMsg) Type() byte {

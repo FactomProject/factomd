@@ -131,7 +131,7 @@ func (b *FBlock) GetCoinbaseTimestamp() interfaces.Timestamp {
 	if len(b.Transactions) == 0 {
 		return nil
 	}
-	return b.Transactions[0].GetTimestamp()
+	return b.Transactions[0].GetTimestamp().Clone()
 }
 
 func (b *FBlock) EndOfPeriod(period int) {

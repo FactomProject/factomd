@@ -84,7 +84,7 @@ func (m *BounceReply) Type() byte {
 }
 
 func (m *BounceReply) GetTimestamp() interfaces.Timestamp {
-	return m.Timestamp
+	return m.Timestamp.Clone()
 }
 
 func (m *BounceReply) VerifySignature() (bool, error) {

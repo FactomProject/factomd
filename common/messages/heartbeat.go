@@ -129,7 +129,7 @@ func (m *Heartbeat) GetMsgHash() (rval interfaces.IHash) {
 }
 
 func (m *Heartbeat) GetTimestamp() interfaces.Timestamp {
-	return m.Timestamp
+	return m.Timestamp.Clone()
 }
 
 func (m *Heartbeat) Type() byte {
