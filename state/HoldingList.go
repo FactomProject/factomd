@@ -83,8 +83,8 @@ func (l *HoldingList) Get(h [32]byte) []interfaces.IMsg {
 	return rval
 }
 
-func (l *HoldingList) ExecuteForNewHeight(ht uint32) {
-	l.s.ExecuteFromHolding(HeightToHash(ht))
+func (l *HoldingList) ExecuteForNewHeight(ht uint32, minute int) {
+	l.s.ExecuteFromHolding(HeightToHash(ht, minute))
 }
 
 // clean stale messages from holding
@@ -129,15 +129,15 @@ func (l *HoldingList) isMsgStale(msg interfaces.IMsg) (res bool) {
 
 	switch msg.Type() {
 	case constants.EOM_MSG:
-		if msg.(*messages.EOM).DBHeight < l.s.GetHighestKnownBlock()-1 {
+		if uint32(msg.(*messages.EOM).DBHeight)*10+uint32(msg.(*messages.EOM).Minute) < l.s.GetLLeaderHeight()*10+uint32(l.s.CurrentMinute) {
 			res = true
 		}
 	case constants.ACK_MSG:
-		if msg.(*messages.Ack).DBHeight < l.s.GetHighestKnownBlock()-1 {
+		if msg.(*messages.Ack).DBHeight < l.s.GetLLeaderHeight() {
 			res = true
 		}
 	case constants.DIRECTORY_BLOCK_SIGNATURE_MSG:
-		if msg.(*messages.DirectoryBlockSignature).DBHeight < l.s.GetHighestKnownBlock()-1 {
+		if msg.(*messages.DirectoryBlockSignature).DBHeight < l.s.GetLLeaderHeight() {
 			res = true
 		}
 	default:
@@ -157,9 +157,9 @@ func (l *HoldingList) isMsgStale(msg interfaces.IMsg) (res bool) {
 	return res
 }
 
-func (s *State) HoldForHeight(ht uint32, msg interfaces.IMsg) int {
+func (s *State) HoldForHeight(ht uint32, minute int, msg interfaces.IMsg) int {
 	s.LogMessage("DependentHolding", fmt.Sprintf("HoldForHeight %x", ht), msg)
-	return s.Add(HeightToHash(ht), msg) // add to new holding
+	return s.Add(HeightToHash(ht, minute), msg) // add to new holding
 }
 
 // Add a message to a dependent holding list
@@ -187,7 +187,7 @@ func (s *State) Get(h [32]byte) []interfaces.IMsg {
 }
 
 // Execute a list of messages from holding that are dependent on a hash
-// the hash may be a EC address or a CainID or a height (ok heights are not really hashes but we cheat on that)
+// the hash may be a EC address or a ChainID or a height (ok heights are not really hashes but we cheat on that)
 func (s *State) ExecuteFromHolding(h [32]byte) {
 
 	// get the list of messages waiting on this hash
@@ -221,12 +221,13 @@ func (s *State) ExecuteFromHolding(h [32]byte) {
 	REVIEW: Consider also including a way to wait for minute
 */
 
-// put a height in the first 4 bytes of a hash so we can use it to look up dependent message in holding
-func HeightToHash(height uint32) [32]byte {
+// put a height in the first 5 bytes of a hash so we can use it to look up dependent message in holding
+func HeightToHash(height uint32, minute int) [32]byte {
 	var h [32]byte
 	h[0] = byte((height >> 24) & 0xFF)
 	h[1] = byte((height >> 16) & 0xFF)
 	h[2] = byte((height >> 8) & 0xFF)
 	h[3] = byte((height >> 0) & 0xFF)
+	h[4] = byte(minute)
 	return h
 }

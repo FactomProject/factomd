@@ -360,7 +360,7 @@ type IState interface {
 	// expire any dependent messages that are in holding but are older than limit
 	ExecuteFromHolding(h [32]byte)
 	// create a hash to hold messages that depend on height
-	HoldForHeight(ht uint32, msg IMsg) int
+	HoldForHeight(ht uint32, minute int, msg IMsg) int
 
 	// test/debug filters
 	PassOutputRegEx(*regexp.Regexp, string)
