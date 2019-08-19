@@ -96,7 +96,7 @@ func (m *FactoidTransaction) GetMsgHash() (rval interfaces.IHash) {
 }
 
 func (m *FactoidTransaction) GetTimestamp() interfaces.Timestamp {
-	return m.Transaction.GetTimestamp()
+	return m.Transaction.GetTimestamp().Clone()
 }
 
 func (m *FactoidTransaction) GetTransaction() interfaces.ITransaction {

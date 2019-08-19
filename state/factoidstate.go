@@ -12,7 +12,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"reflect"
-	"runtime"
 	"sort"
 
 	"github.com/FactomProject/factomd/activations"
@@ -21,9 +20,7 @@ import (
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/util/atomic"
 )
 
 var FACTOID_CHAINID_HASH = primitives.NewHash(constants.FACTOID_CHAINID)
@@ -152,18 +149,6 @@ func (fs *FactoidState) EndOfPeriod(period int) {
 }
 
 func (fs *FactoidState) GetCurrentBlock() interfaces.IFBlock {
-	if fs.CurrentBlock == nil {
-		runtime.Breakpoint()
-		fs.CurrentBlock = factoid.NewFBlock(nil)
-		fs.CurrentBlock.SetExchRate(fs.State.GetFactoshisPerEC())
-		fs.CurrentBlock.SetDBHeight(fs.DBHeight)
-		t := fs.GetCoinbaseTransaction(fs.CurrentBlock.GetDatabaseHeight(), fs.State.GetLeaderTimestamp())
-		err := fs.CurrentBlock.AddCoinbase(t)
-		if err != nil {
-			panic(err.Error())
-		}
-		fs.UpdateTransaction(true, t)
-	}
 	return fs.CurrentBlock
 }
 
@@ -369,13 +354,14 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 	fBlock := factoid.NewFBlock(fs.CurrentBlock)
 	fBlock.SetExchRate(fs.State.GetFactoshisPerEC())
 
-	fs.CurrentBlock = fBlock
-
 	leaderTS := fs.State.GetLeaderTimestamp()
-
 	t := fs.GetCoinbaseTransaction(fs.CurrentBlock.GetDatabaseHeight(), leaderTS)
+	err := fBlock.AddCoinbase(t)
+	if err != nil {
+		panic(err.Error())
+	}
 
-	messages.LogPrintf("timestamps.txt", "%s: Create coinbase transaction DBHT %d %p set to %d @ %s", fs.State.FactomNodeName, fs.DBHeight, t, t.GetTimestamp().GetTimeMilliUInt64(), atomic.WhereAmIString(1))
+	fs.CurrentBlock = fBlock
 
 	dbstate := fs.State.DBStates.Get(int(fs.DBHeight))
 	if dbstate != nil {
@@ -383,10 +369,6 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 		dbstate.NextTimestamp = leaderTS
 	}
 
-	err := fs.CurrentBlock.AddCoinbase(t)
-	if err != nil {
-		panic(err.Error())
-	}
 	fs.UpdateTransaction(true, t)
 }
 
@@ -417,8 +399,6 @@ func (fs *FactoidState) Validate(index int, trans interfaces.ITransaction) (err 
 func (fs *FactoidState) GetCoinbaseTransaction(dbheight uint32, ftime interfaces.Timestamp) interfaces.ITransaction {
 	coinbase := new(factoid.Transaction)
 	coinbase.SetTimestamp(ftime)
-
-	messages.LogPrintf("timestamps.txt", "Coinbase transaction %p set to %d @ %s", coinbase, coinbase.MilliTimestamp, atomic.WhereAmIString(1))
 
 	if fs.State.IsActive(activations.TESTNET_COINBASE_PERIOD) {
 		// testnet wants payout to be a day delayed instead of 50 minutes
