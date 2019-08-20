@@ -61,7 +61,9 @@ func TestLoad(t *testing.T) {
 	RunCmd("R25") // Feed load
 	WaitBlocks(state0, 3)
 	RunCmd("R0") // Stop load
-	WaitBlocks(state0, 1)
+	for state0.Hold.GetSize() > 10 || len(state0.Holding) > 10 {
+		WaitBlocks(state0, 1)
+	}
 	ShutDownEverything(t)
 } // testLoad(){...}
 
