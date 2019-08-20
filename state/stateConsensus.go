@@ -86,6 +86,9 @@ func (s *State) DeleteFromHolding(hash [32]byte, msg interfaces.IMsg, reason str
 		s.LogMessage("holding", "delete "+reason, msg)
 		TotalHoldingQueueOutputs.Inc()
 	}
+
+	s.Hold.RemoveDependentMsg(hash, reason)
+
 }
 
 var FilterTimeLimit = int64(Range * 60 * 2 * 1000000000) // Filter hold two hours of messages, one in the past one in the future
@@ -1071,18 +1074,16 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 
 	// Add the ack to the list of acks
 	TotalAcksInputs.Inc()
-	s.Acks[ack.GetHash().Fixed()] = ack
-	m := s.getMsgFromHolding(ack.GetHash().Fixed())
+	s.Acks[ack.GetHash().Fixed()] = ack // Add the ack to the ask list incase we can't execute the msg yet.
 
+	m := s.getMsgFromHolding(ack.GetHash().Fixed()) // check for a matching message
 	if m != nil {
 		// We have an ack and a matching message go execute the message!
-		// we purposely skip validate which might put the message back in holding for unmet dependencies
-		// but it's ok since it will get validated before processing.
 		s.LogMessage("executeMsg", "FollowerExecuteAck ", m)
-		m.FollowerExecute(s)
+		s.executeMsg(m) // Try executing the message, if dependencies are met then it will execute
 	} else {
 		s.LogMessage("executeMsg", "No Msg, keep", ack)
-		//todo: should we ask MMR here?
+		pl.VMs[ack.VMIndex].ReportMissing(int(ack.Height), 0) // Ask for it now
 	}
 }
 
@@ -1746,9 +1747,20 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) (worked bool) {
 	pl := s.ProcessLists.Get(dbheight)
 	if pl == nil {
+		s.LogMessage("process", "Hold, no processlist", m)
 		return false
 	}
+
 	msg := m.(*messages.RevealEntryMsg)
+	myhash := msg.Entry.GetHash()
+	chainID := msg.Entry.GetChainID()
+
+	// Removed because all dependencies are met prior to adding to the process list
+	//commit := s.NextCommit(msg.Entry.GetHash())
+	//if commit == nil {
+	//	s.LogMessage("process", "Hold, no commit", m)
+	//	return false // hold for a commit
+	//}
 
 	defer func() {
 		if worked {
@@ -1762,10 +1774,6 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) (worked b
 			s.Commits.Delete(msg.Entry.GetHash().Fixed()) // delete(s.Commits, msg.Entry.GetHash().Fixed())
 		}
 	}()
-
-	myhash := msg.Entry.GetHash()
-
-	chainID := msg.Entry.GetChainID()
 
 	TotalCommitsOutputs.Inc()
 
