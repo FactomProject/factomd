@@ -278,6 +278,7 @@ type State struct {
 	// For Follower
 	ResendHolding interfaces.Timestamp         // Timestamp to gate resending holding to neighbors
 	HoldingList   chan [32]byte                // Queue to process Holding in order
+	HoldingVM     int                          // VM used to build current holding list
 	Holding       map[[32]byte]interfaces.IMsg // Hold Messages
 	XReview       []interfaces.IMsg            // After the EOM, we must review the messages in Holding
 	Acks          map[[32]byte]interfaces.IMsg // Hold Acknowledgements
@@ -2309,7 +2310,7 @@ func (s *State) PrioritizedMsgQueue() chan interfaces.IMsg {
 
 func (s *State) GetLeaderTimestamp() interfaces.Timestamp {
 	if s.LeaderTimestamp == nil {
-		// To leader timestamp?  Then use the boottime less a minute
+		// To leader timestamp?  Then use the boot time less a minute
 		s.SetLeaderTimestamp(primitives.NewTimestampFromMilliseconds(s.TimestampAtBoot.GetTimeMilliUInt64() - 60*1000))
 	}
 	return primitives.NewTimestampFromMilliseconds(s.LeaderTimestamp.GetTimeMilliUInt64())
@@ -2319,7 +2320,7 @@ func (s *State) GetMessageFilterTimestamp() interfaces.Timestamp {
 	if s.MessageFilterTimestamp == nil {
 		s.MessageFilterTimestamp = primitives.NewTimestampNow()
 	}
-	return s.MessageFilterTimestamp
+	return primitives.NewTimestampFromMilliseconds(s.MessageFilterTimestamp.GetTimeMilliUInt64())
 }
 
 // the MessageFilterTimestamp  is used to filter messages from the past or before the replay filter.

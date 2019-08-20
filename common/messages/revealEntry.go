@@ -103,7 +103,7 @@ func (m *RevealEntryMsg) GetTimestamp() interfaces.Timestamp {
 	if m.Timestamp == nil {
 		m.Timestamp = new(primitives.Timestamp)
 	}
-	return m.Timestamp
+	return m.Timestamp.Clone()
 }
 
 func (m *RevealEntryMsg) Type() byte {

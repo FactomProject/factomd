@@ -149,17 +149,6 @@ func (fs *FactoidState) EndOfPeriod(period int) {
 }
 
 func (fs *FactoidState) GetCurrentBlock() interfaces.IFBlock {
-	if fs.CurrentBlock == nil {
-		fs.CurrentBlock = factoid.NewFBlock(nil)
-		fs.CurrentBlock.SetExchRate(fs.State.GetFactoshisPerEC())
-		fs.CurrentBlock.SetDBHeight(fs.DBHeight)
-		t := fs.GetCoinbaseTransaction(fs.CurrentBlock.GetDatabaseHeight(), fs.State.GetLeaderTimestamp())
-		err := fs.CurrentBlock.AddCoinbase(t)
-		if err != nil {
-			panic(err.Error())
-		}
-		fs.UpdateTransaction(true, t)
-	}
 	return fs.CurrentBlock
 }
 
@@ -365,11 +354,14 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 	fBlock := factoid.NewFBlock(fs.CurrentBlock)
 	fBlock.SetExchRate(fs.State.GetFactoshisPerEC())
 
-	fs.CurrentBlock = fBlock
-
 	leaderTS := fs.State.GetLeaderTimestamp()
-
 	t := fs.GetCoinbaseTransaction(fs.CurrentBlock.GetDatabaseHeight(), leaderTS)
+	err := fBlock.AddCoinbase(t)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	fs.CurrentBlock = fBlock
 
 	dbstate := fs.State.DBStates.Get(int(fs.DBHeight))
 	if dbstate != nil {
@@ -377,10 +369,6 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 		dbstate.NextTimestamp = leaderTS
 	}
 
-	err := fs.CurrentBlock.AddCoinbase(t)
-	if err != nil {
-		panic(err.Error())
-	}
 	fs.UpdateTransaction(true, t)
 }
 

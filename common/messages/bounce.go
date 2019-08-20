@@ -99,7 +99,7 @@ func (m *Bounce) Type() byte {
 }
 
 func (m *Bounce) GetTimestamp() interfaces.Timestamp {
-	return m.Timestamp
+	return m.Timestamp.Clone()
 }
 
 func (m *Bounce) VerifySignature() (bool, error) {

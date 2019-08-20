@@ -135,7 +135,7 @@ func (m *EOM) GetTimestamp() interfaces.Timestamp {
 	if m.Timestamp == nil {
 		m.Timestamp = new(primitives.Timestamp)
 	}
-	return m.Timestamp
+	return m.Timestamp.Clone()
 }
 
 func (m *EOM) Type() byte {

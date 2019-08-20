@@ -78,7 +78,7 @@ func (m *AddServerMsg) Type() byte {
 }
 
 func (m *AddServerMsg) GetTimestamp() interfaces.Timestamp {
-	return m.Timestamp
+	return m.Timestamp.Clone()
 }
 
 func (m *AddServerMsg) Validate(state interfaces.IState) int {
