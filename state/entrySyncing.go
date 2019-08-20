@@ -84,19 +84,21 @@ func (s *State) WriteEntries() {
 // SendManager keeps us from double sending entries on repeats.
 func (s *State) SendManager() {
 	es := s.EntrySyncState
-	var EntriesRequested map[[32]byte]int64     // Time we last sent a request for this entry
-	EntriesRequested = make(map[[32]byte]int64) // Make our map
+	var EntriesRequested map[[32]byte]time.Time     // Time we last sent a request for this entry
+	EntriesRequested = make(map[[32]byte]time.Time) // Make our map
 
 	purge := purgeEveryXEntries
 
 	for {
 		missingData := <-es.SendRequest
-		now := time.Now().Unix()
+		now := time.Now()
+		tenSeconds := s.FactomSecond() * 10
 
 		// Every 1000 messages or so, purge our hash map.
 		if purge <= 0 {
 			for k, v := range EntriesRequested {
-				if (now - v) >= int64(s.DirectoryBlockInSeconds/2) {
+				delay := now.Sub(v)
+				if delay >= tenSeconds {
 					delete(EntriesRequested, k)
 				}
 			}
@@ -105,7 +107,7 @@ func (s *State) SendManager() {
 		purge--
 
 		lastCall, ok := EntriesRequested[missingData.RequestHash.Fixed()]
-		if !ok || (now-lastCall) > int64(s.DirectoryBlockInSeconds/2) {
+		if !ok || now.Sub(lastCall) > tenSeconds {
 			if !has(s, missingData.RequestHash) {
 				EntriesRequested[missingData.RequestHash.Fixed()] = now
 				missingData.SendOut(s, missingData)
