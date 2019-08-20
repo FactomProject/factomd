@@ -722,9 +722,6 @@ func GetHardCodedGrants() []HardGrant {
 			// --------------------------------------------------------
 			// [Factom Inc.-18] Protocol Development -- 38940 FCT
 
-			// Note: 300 FCT to be paid for a third sponsor has been removed from this grant due to
-			// a sponsor not being presented by Factom Inc. prior to this PR being submitted.
-
 			// Nolan Bauer total: 300 FCT
 			HardGrant{207326, 300e8, validateAddress("FA2oecgJW3XWnXzHhQQoULmMeKC97uAgHcPd4kEowTb3csVkbDc9")},
 
