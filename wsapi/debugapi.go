@@ -275,12 +275,14 @@ func HandleMessages(state interfaces.IState, params interface{}) (interface{}, *
 func HandleNetworkInfo(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	type ret struct {
 		NodeName      string
+		Role          string
 		NetworkNumber int
 		NetworkName   string
 		NetworkID     uint32
 	}
 	r := new(ret)
 	r.NodeName = state.GetFactomNodeName()
+	r.Role = getRole(state)
 	r.NetworkNumber = state.GetNetworkNumber()
 	r.NetworkName = state.GetNetworkName()
 	r.NetworkID = state.GetNetworkID()
@@ -470,4 +472,23 @@ func waitForQuiet(s interfaces.IState, newBlock int, newMinute int) {
 	for s.GetCurrentMinute() != newMinute {
 		time.Sleep(sleepTime * time.Millisecond) // wake up and about 4 times per minute
 	}
+}
+
+func getRole(s interfaces.IState) string {
+	feds := s.GetFedServers(s.GetLLeaderHeight())
+	audits := s.GetAuditServers(s.GetLLeaderHeight())
+	role := "Follower"
+	foundRole := false
+	for _, fed := range feds {
+		if !foundRole && s.GetIdentityChainID().IsSameAs(fed.GetChainID()) {
+			role = "Leader"
+			break
+		}
+	}
+	for _, aud := range audits {
+		if !foundRole && s.GetIdentityChainID().IsSameAs(aud.GetChainID()) {
+			role = "Audit"
+		}
+	}
+	return role
 }
