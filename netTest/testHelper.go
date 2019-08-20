@@ -9,32 +9,30 @@ import (
 	"github.com/FactomProject/factomd/testHelper"
 	"io/ioutil"
 	"net/http"
-	"strconv"
-	"strings"
 	"testing"
 )
 
 type remoteNode struct {
 	address string
-	rpcPort	int
+	rpcPort int
 }
 type testNode struct {
-	state  *state.State
-	fnodes map[int]remoteNode
+	state       *state.State
+	fnodes      map[int]remoteNode
+	seedAddress string
 }
 
-// extract last number of ipv4 as an int
-func ipLastOctet(addr string) int {
-	i, _ := strconv.ParseInt(strings.Split(addr, ".")[3], 10, 64)
-	return int(i)
-}
+var DOCKER_NETWORK string = "10.7.0.1:8110" // docker network
+var SINGLE_NODE string = "127.0.0.1:39001"  // local netTest simulator
 
-func SetupNode(seedNode string, minPeers int, t *testing.T) testNode {
+func SetupNode(seedNode string, minPeers int, t *testing.T) *testNode {
 
 	homeDir := testHelper.ResetSimHome(t)
 
-	// Use identity 9
-	testHelper.WriteConfigFile(9, 0, "", t)
+	if seedNode != SINGLE_NODE {
+		// Use identity 9 to run a follower
+		testHelper.WriteConfigFile(9, 0, "", t)
+	}
 
 	// use config that mirrors docker-compose from ./support/dev/docker-compose
 	CmdLineOptions := map[string]string{
@@ -58,48 +56,31 @@ func SetupNode(seedNode string, minPeers int, t *testing.T) testNode {
 		"--factomhome":          homeDir,
 	}
 
-	n := testNode{state: testHelper.StartSim(1, CmdLineOptions)}
+	n := &testNode{state: testHelper.StartSim(1, CmdLineOptions)}
 
 	testHelper.WaitForBlock(n.state, 1)
+	n.seedAddress = seedNode
+	n.DiscoverPeers(minPeers)
+	return n
+}
 
+func (n *testNode) DiscoverPeers(minPeers int) {
 	peers := n.GetPeers()
 
 	for len(peers) < minPeers {
 		peers = n.GetPeers()
-		//fmt.Printf("%v", peers)
 		testHelper.WaitBlocks(n.state, 1) // let more time pass to discover peers
 	}
 
-	/*
-	REVIEW: automatic peer discovery should be re-visited after DevNet setup includes VPN
-
-	n.fnodes = make(map[int]remoteNode)
-	n.fnodes[0] = remoteNode{seedNode}
-
-	for _, p := range peers {
-		i := ipLastOctet(p.Address)
-
-		// offset from 0 - ip's usually won't start at 0
-		r := remoteNode{address: p.Address}
-		info, err := r.NetworkInfo()
-		if err == nil {
-			// keep this node
-			_ = info
-			n.fnodes[i-1] = r
-		}
-	}
-	 */
-
-	switch seedNode {
-	case "10.7.0.1:8110": // docker network
-		t.Logf("Using Hardcoded Docker peers")
-
+	// KLUDGE: hardcoded networks
+	switch n.seedAddress {
+	case DOCKER_NETWORK:
 		n.fnodes = map[int]remoteNode{
 			0: remoteNode{"10.7.0.1", 8088},
 			1: remoteNode{"10.7.0.2", 8088},
 			2: remoteNode{"10.7.0.3", 8088},
 		}
-	case "127.0.0.1:39001": // local simulator
+	case SINGLE_NODE: // local simulator
 		if minPeers != 0 {
 			panic("local testing only")
 		}
@@ -107,46 +88,21 @@ func SetupNode(seedNode string, minPeers int, t *testing.T) testNode {
 			0: remoteNode{"127.0.0.1", 39001},
 		}
 	default:
+		/*
+		   	REVIEW: automatic peer discovery should be re-visited after DevNet setup includes VPN
+		       main blocker currently is that DevNet is setup to forward ports to loopback
+		       so we cannot target the RPC api using this discovered IP Address
+		*/
 		panic("netTest only support hardcoded networks")
 	}
-
-	return n
 }
 
-func postRequest(debugUrl string, jsonStr string) (*http.Response, error) {
-	req, err := http.NewRequest("POST", debugUrl, bytes.NewBuffer([]byte(jsonStr)))
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("content-type", "text/plain;")
-
-	client := &http.Client{}
-	return client.Do(req)
-}
-
-// make calls to the debug api
-func rpc(apiUrl string, method string, params string) (response map[string]*json.RawMessage, err error) {
-	r, err := postRequest(apiUrl, fmt.Sprintf(`{"jsonrpc": "2.0", "id": 0, "method": "%s", "params":%s}`, method, params))
-
-	if err != nil {
-		return response, err
-	}
-
-	defer r.Body.Close()
-
-	body, _ := ioutil.ReadAll(r.Body)
-	fmt.Printf("\nrpc => %s", body)
-
-	// FIXME add better error handling
-	// for example wait-for-block in past triggers an error & returns w/ empty body
-	err = json.Unmarshal(body, &response)
-	return response, err
-}
-
-func (n testNode) GetPeers() map[string]p2p.Peer {
+// get list of peers from our local node
+func (n *testNode) GetPeers() map[string]p2p.Peer {
 	return n.state.NetworkController.GetKnownPeers()
 }
 
+// build url for debug API
 func (r remoteNode) getAPIUrl() string {
 	if r.address == "" {
 		panic("remoteNode is nil")
@@ -164,7 +120,7 @@ type netInfo struct {
 
 func (r remoteNode) NetworkInfo() (info netInfo) {
 	url := r.getAPIUrl()
-	res, err := rpc(url,"network-info","{}")
+	res, err := rpc(url, "network-info", "{}")
 
 	if err != nil {
 		panic(err)
@@ -177,7 +133,7 @@ func (r remoteNode) NetworkInfo() (info netInfo) {
 
 // FIXME: add a return code for waiting
 func (r remoteNode) WaitForBlock(newBlock int) {
-	rpc(r.getAPIUrl(),"wait-for-block", fmt.Sprintf(`{ "block": %v }`, newBlock))
+	rpc(r.getAPIUrl(), "wait-for-block", fmt.Sprintf(`{ "block": %v }`, newBlock))
 }
 
 func (r remoteNode) WaitBlocks(blks int) {
@@ -192,6 +148,44 @@ func (r remoteNode) WaitMinutes(minutes int) {
 	rpc(r.getAPIUrl(), "wait-minutes", fmt.Sprintf(`{ "minutes": %v }`, minutes))
 }
 
-func (r remoteNode) RunCmd(cmd string) {
-	rpc(r.getAPIUrl(), "sim-ctrl", fmt.Sprintf(`{ "Commands": ["%v"] }`, cmd))
+func (r remoteNode) RunCmd(cmd string) error {
+	_, err := rpc(r.getAPIUrl(), "sim-ctrl", fmt.Sprintf(`{ "Commands": ["%v"] }`, cmd))
+	return err
+}
+
+func (r remoteNode) WriteConfig(identityNumber int, extra string) error {
+	c := make(map[string]string)
+	c["Config"] = testHelper.GetConfig(identityNumber, extra)
+	cfg, _ := json.Marshal(c)
+	_, err := rpc(r.getAPIUrl(), "write-configuration", string(cfg))
+	return err
+}
+
+// make HTTP post
+func postRequest(debugUrl string, jsonStr string) (*http.Response, error) {
+	req, err := http.NewRequest("POST", debugUrl, bytes.NewBuffer([]byte(jsonStr)))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("content-type", "text/plain;")
+
+	client := &http.Client{}
+	return client.Do(req)
+}
+
+// make calls to the debug api
+func rpc(apiUrl string, method string, params string) (response map[string]*json.RawMessage, err error) {
+	//fmt.Printf("\nsend => %s", params)
+	r, err := postRequest(apiUrl, fmt.Sprintf(`{"jsonrpc": "2.0", "id": 0, "method": "%s", "params": %s}`, method, params))
+	defer r.Body.Close()
+
+	if err != nil {
+		return response, err
+	}
+
+	body, _ := ioutil.ReadAll(r.Body)
+	//fmt.Printf("\nrpc => %s", body)
+
+	err = json.Unmarshal(body, &response)
+	return response, err
 }

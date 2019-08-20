@@ -112,6 +112,9 @@ func HandleDebugRequest(state interfaces.IState, j *primitives.JSON2Request) (*p
 	case "process-list":
 		resp, jsonError = HandleProcessList(state, params)
 		break
+	case "write-configuration":
+		resp, jsonError = HandleWriteConfig(state, params)
+		break
 	case "reload-configuration":
 		resp, jsonError = HandleReloadConfig(state, params)
 		break
@@ -324,9 +327,27 @@ func HandleReloadConfig(state interfaces.IState, params interface{}) (interface{
 	return state.GetCfg(), nil
 }
 
+func HandleWriteConfig(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	fmt.Sprintf("WRITE_CONFIG: %v", params)
+
+	type testCfg struct {
+		Config string
+	}
+
+	newCfg := new(testCfg)
+	MapToObject(params, newCfg)
+
+	cfgPath := state.GetConfigPath()
+	f, err := os.Create(cfgPath)
+	if err == nil {
+		f.WriteString(fmt.Sprintf("%s", newCfg.Config))
+	}
+
+	return  new(success), nil
+}
+
 func runCmd(cmd string) {
-	//os.Stdout.WriteString("Executing: " + cmd + "\n")
-	os.Stderr.WriteString("Executing: " + cmd + "\n")
+	//os.Stderr.WriteString("Executing: " + cmd + "\n")
 	globals.InputChan <- cmd
 
 	return
@@ -476,19 +497,17 @@ func waitForQuiet(s interfaces.IState, newBlock int, newMinute int) {
 
 func getRole(s interfaces.IState) string {
 	feds := s.GetFedServers(s.GetLLeaderHeight())
-	audits := s.GetAuditServers(s.GetLLeaderHeight())
-	role := "Follower"
-	foundRole := false
 	for _, fed := range feds {
-		if !foundRole && s.GetIdentityChainID().IsSameAs(fed.GetChainID()) {
-			role = "Leader"
-			break
+		if s.GetIdentityChainID().IsSameAs(fed.GetChainID()) {
+			return "Leader"
 		}
 	}
+
+	audits := s.GetAuditServers(s.GetLLeaderHeight())
 	for _, aud := range audits {
-		if !foundRole && s.GetIdentityChainID().IsSameAs(aud.GetChainID()) {
-			role = "Audit"
+		if s.GetIdentityChainID().IsSameAs(aud.GetChainID()) {
+			return "Audit"
 		}
 	}
-	return role
+	return "Follower"
 }
