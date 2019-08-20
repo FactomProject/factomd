@@ -159,10 +159,6 @@ func (s *State) Validate(msg interfaces.IMsg) (validToSend int, validToExec int)
 		}
 	}
 
-	// if it has an ack it's good to go...
-	if constants.NeedsAck(msg.Type()) && s.Acks[msg.GetMsgHash().Fixed()] != nil {
-		return 1, 1
-	}
 	// Valid to send is a bit different from valid to execute.  Check for valid to send here.
 	validToSend = msg.Validate(s)
 	if validToSend == 0 { // if the msg says hold then we hold...
