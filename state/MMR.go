@@ -72,14 +72,7 @@ func (vm *VM) ReportMissing(height int, delay int64) {
 		return
 	}
 
-	//	Currently if the asks are full, we'd rather just skip
-	//	than block the thread. We report missing multiple times, so if
-	//	we exit, we will come around and ask again.
-	if len(vm.p.State.asks) == cap(vm.p.State.asks) {
-		return
-	}
-
-	vm.p.State.LogPrintf("mmr", "ReportMissing %d/%d/%d, delay %d", vm.p.DBHeight, vm.VmIndex, height, delay)
+	vm.p.State.LogPrintf("missing_messages", "ReportMissing %d/%d/%d, delay %d", vm.p.DBHeight, vm.VmIndex, height, delay)
 
 	now := vm.p.State.GetTimestamp().GetTimeMilli()
 	if delay < 500 {
@@ -94,14 +87,12 @@ func (vm *VM) ReportMissing(height int, delay int64) {
 		}
 		if vm.List[i] == nil {
 			vm.p.State.Ask(int(vm.p.DBHeight), vm.VmIndex, i, now+delay) // send it to the MMR thread
-			vm.HighestAsk = i                                            // We have asked for all nils up to this height
 		}
 	}
 
 	// if we are asking above the current list
 	if height >= lenVMList {
 		vm.p.State.Ask(int(vm.p.DBHeight), vm.VmIndex, height, now+delay) // send it to the MMR thread
-		vm.HighestAsk = height                                            // We have asked for all nils up to this height
 	}
 
 }
@@ -115,7 +106,24 @@ func (s *State) Ask(DBHeight int, vmIndex int, height int, when int64) {
 	if DBHeight < int(s.LLeaderHeight) || DBHeight > int(s.LLeaderHeight)+1 || DBHeight < int(s.DBHeightAtBoot) {
 		return
 	}
+	vm := s.LeaderPL.VMs[vmIndex]
 
+	if height <= vm.HighestAsk { // Don't report the same height twice
+		return
+	}
+
+	//	Currently if the asks are full, we'd rather just skip
+	//	than block the thread. We report missing multiple times, so if
+	//	we exit, we will come around and ask again.
+	// We have to do this because MMR can provide messages from inmsgqueue by pushing them into msg queue
+	// if msgqueue is full then the two threads can deadlock
+
+	if len(vm.p.State.asks) == cap(vm.p.State.asks) {
+		vm.p.State.LogPrintf("missing_messages", "drop, asks full %d/%d/%d", vm.p.DBHeight, vm.VmIndex, height)
+		return
+	}
+
+	vm.HighestAsk = height // We have asked for all nils up to this height
 	ask := askRef{plRef{DBHeight, vmIndex, height}, when}
 	s.asks <- ask
 	return
