@@ -156,9 +156,10 @@ func (m *EOM) Validate(state interfaces.IState) int {
 		return -1
 	}
 
-	if uint32(m.DBHeight)*10+uint32(m.Minute) > state.GetLLeaderHeight()*10+uint32(state.GetCurrentMinute()) {
+	// Hold future minutes till the minute before they are due
+	if uint32(m.DBHeight)*10+uint32(m.Minute) > state.GetLLeaderHeight()*10+uint32(state.GetCurrentMinute()+1) {
 		// msg from future may be a valid server when we get to this block
-		return state.HoldForHeight(m.DBHeight, int(m.Minute), m)
+		return state.HoldForHeight(m.DBHeight, int(m.Minute)-1, m)
 	}
 
 	found, _ := state.GetVirtualServers(m.DBHeight, int(m.Minute), m.ChainID)

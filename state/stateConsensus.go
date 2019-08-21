@@ -335,7 +335,7 @@ func (s *State) executeMsg(msg interfaces.IMsg) (ret bool) {
 		return false
 
 	case -2:
-		s.LogMessage("executeMsg", "back to new holding from executeMsg", msg)
+		s.LogMessage("executeMsg", "dependant_hold executeMsg", msg)
 		return false
 
 	default:
@@ -1269,15 +1269,23 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 	}
 
 	_, validToExecute := s.Validate(ack)
-	if validToExecute < 0 {
-		s.LogMessage("executeMsg", "drop MMR ack invalid", m)
+	if validToExecute == -1 {
+		s.LogMessage("executeMsg", "drop MMR ack invalid", ack)
+		return
+	}
+	if validToExecute == -2 {
+		s.LogMessage("executeMsg", "dependent_hold", ack)
 		return
 	}
 
 	// If we don't need this message, we don't have to do everything else.
 	_, validToExecute = s.Validate(msg)
-	if validToExecute < 0 {
+	if validToExecute == -1 {
 		s.LogMessage("executeMsg", "drop MMR message invalid", m)
+		return
+	}
+	if validToExecute == -2 {
+		s.LogMessage("executeMsg", "dependent_hold", m)
 		return
 	}
 	ack.Response = true
