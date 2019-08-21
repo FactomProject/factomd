@@ -45,7 +45,7 @@ func (list *DBStateList) Catchup() {
 		// 10min block	== 30s timeout for a request.
 		// 5min block	== 15s timeout for a request.
 		// 1min block	== 3s  timeout for a request.
-		requestTimeout = factomSecond * 30
+		requestTimeout = factomSecond * 5
 		list.State.RequestTimeout = requestTimeout
 	}
 	requestLimit := list.State.RequestLimit
@@ -167,7 +167,7 @@ func (list *DBStateList) Catchup() {
 				getHeightSafe(missing.GetFront()), missing.Len(),
 				getHeightSafe(waiting.GetEnd()), waiting.Len(),
 				received.Base(), received.Heighestreceived(), received.List.Len())
-			time.Sleep(5 * factomSecond)
+			time.Sleep(factomSecond)
 		}
 	}()
 
@@ -193,7 +193,7 @@ func (list *DBStateList) Catchup() {
 				}
 			}
 
-			time.Sleep(requestTimeout / 4)
+			time.Sleep(requestTimeout)
 		}
 	}()
 
