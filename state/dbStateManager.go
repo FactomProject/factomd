@@ -580,8 +580,8 @@ func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 
 	// Check if we have already process a block for this height and do not replace it if we have.
 	dbstate := s.DBStates.Get(int(dbheight))
-	if dbstate != nil && dbstate.Locked {
-		state.LogPrintf("dbstateprocess", "Invalid DBState because we have already process a block at this height")
+	if dbstate != nil && dbstate.Saved {
+		state.LogPrintf("dbstateprocess", "Invalid DBState because we have already saved a block at this height")
 		return -1
 	}
 
