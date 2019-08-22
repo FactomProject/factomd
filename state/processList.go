@@ -784,7 +784,7 @@ func (p *ProcessList) processVM(vm *VM) (progress bool) {
 		s.ProcessListProcessCnt++
 
 		if vm.List[j] == nil {
-			p.ReportAllMissing(vm)
+			vm.ReportMissing(j, 0)
 			return progress
 		}
 
@@ -869,24 +869,6 @@ func (p *ProcessList) processVM(vm *VM) (progress bool) {
 	}
 	return progress
 } // processVM(){...}
-
-// scan the process and report all the missing messages
-func (p *ProcessList) ReportAllMissing(vm *VM) {
-	s := p.State
-	cnt := 0
-	for k := vm.Height; k < len(vm.List); k++ {
-		if vm.List[k] == nil {
-			cnt++
-			vm.ReportMissing(k, 0)
-		}
-	}
-	if s.DebugExec() {
-		if vm.HighestNil < vm.Height {
-			s.LogPrintf("process", "%d nils  at  %v/%v/%v", cnt, p.DBHeight, vm.VmIndex, vm.Height)
-			vm.HighestNil = vm.Height
-		}
-	}
-}
 
 func (p *ProcessList) RemoveFromPL(vm *VM, j int, reason string) {
 	p.State.LogMessage("process", fmt.Sprintf("nil out message %v/%v/%v, %s", p.DBHeight, vm.VmIndex, j, reason), vm.List[j]) //todo: revisit message
