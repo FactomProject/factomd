@@ -335,7 +335,7 @@ func (s *State) executeMsg(msg interfaces.IMsg) (ret bool) {
 		return false
 
 	case -2:
-		s.LogMessage("executeMsg", "dependant_hold executeMsg", msg)
+		s.LogMessage("executeMsg", "dependent_hold executeMsg", msg)
 		return false
 
 	default:

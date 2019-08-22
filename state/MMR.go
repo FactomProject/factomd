@@ -327,25 +327,31 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 
 			// time offset to pick asks to
 
-			//build MMRs with all the asks expired asks.
-			for ref, when := range pending {
-				var index dbhvm = dbhvm{ref.DBH, ref.VM}
-				// if ask is expired or we have an MMR for this DBH/VM and it's not a brand new ask
-				if now > *when {
-
-					if mmrs[index] == nil { // If we don't have a message for this DBH/VM
-						mmrs[index] = messages.NewMissingMsg(s, ref.VM, uint32(ref.DBH), uint32(ref.H))
-					} else {
-						mmrs[index].ProcessListHeight = append(mmrs[index].ProcessListHeight, uint32(ref.H))
-						// Add an ask for each msg we ask for, even if we bundle the asks.
-						// This is so the accounting adds upp.
+			//build MMRs with all the asks expired asks if we are not in ignore.
+			if !s.IgnoreMissing {
+				for ref, when := range pending {
+					var index dbhvm = dbhvm{ref.DBH, ref.VM}
+					// Drop any MMR request that are before the current height
+					if ref.DBH < int(s.LLeaderHeight) {
+						deletePendingAsk(ref)
+						continue
 					}
-					s.MissingRequestAskCnt++
-					*when = now + askDelay // update when we asked
-					// Maybe when asking for past the end of the list we should not ask again?
-				}
-			} //build a MMRs with all the expired asks in that VM at that DBH.
+					// if ask is expired or we have an MMR for this DBH/VM and it's not a brand new ask
+					if now > *when {
 
+						if mmrs[index] == nil { // If we don't have a message for this DBH/VM
+							mmrs[index] = messages.NewMissingMsg(s, ref.VM, uint32(ref.DBH), uint32(ref.H))
+						} else {
+							mmrs[index].ProcessListHeight = append(mmrs[index].ProcessListHeight, uint32(ref.H))
+							// Add an ask for each msg we ask for, even if we bundle the asks.
+							// This is so the accounting adds upp.
+						}
+						s.MissingRequestAskCnt++
+						*when = now + askDelay // update when we asked
+						// Maybe when asking for past the end of the list we should not ask again?
+					}
+				} //build a MMRs with all the expired asks in that VM at that DBH.
+			}
 			for index, mmr := range mmrs {
 				s.LogMessage(logname, "sendout", mmr)
 				if MMR_enable {

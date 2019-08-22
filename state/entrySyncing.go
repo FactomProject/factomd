@@ -177,64 +177,51 @@ func (s *State) RequestAndCollectMissingEntries() {
 
 func (s *State) ProcessDBlock(finishedDBlocks chan int, finishedEntries chan int, dbrcs []*ReCheck) {
 	dbht := dbrcs[0].DBHeight
-mainloop:
-	for {
-
-		// The empty directory block case.
-		if len(dbrcs) == 1 && dbrcs[0].EntryHash == nil {
-			s.EntrySyncState.finishedDBlocks <- dbrcs[0].DBHeight
-			s.EntrySyncState.finishedEntries <- 0
-			return
-		}
-
-		// This function does one pass over our directory block's entries
-		LookForEntries := func() (progress bool) {
-			allfound := false
-			for i := 0; i < 101 && !allfound; i++ {
-				allfound = true
-				for ipass, rc := range dbrcs {
-					switch {
-					case rc == nil:
-					case rc.EntryHash == nil:
-						dbrcs[ipass] = nil
-						finishedEntries <- 0 // It isn't a real entry, but we have to account for it.
-					case has(s, rc.EntryHash):
-						dbrcs[ipass] = nil
-						s.EntrySyncState.EntriesFound++
-						finishedEntries <- 0
-					case i == 0: // For only the first pass do we ask for missing entries
-						allfound = false // Only get here if the entryhash isn't found
-						//	s.LogPrintf("entrysyncing", "looking for %x [%6d] dbht %6d tries %6d",
-						//		rc.EntryHash.Bytes(), ipass, dbht, rc.Tries)
-						entryRequest := messages.NewMissingData(s, rc.EntryHash).(*messages.MissingData)
-						s.EntrySyncState.SendRequest <- entryRequest
-						progress = true
-						rc.Tries++
-					default: //Don't get here unless the entry isn't found, so say that we haven't found everything
-						allfound = false
-					}
-				}
-				// Sleep for 1/100 of our send frequency.  Convert our frequency (1/2 of the time for a directory block)
-				// and 1/100 of that to allow us to test for getting the entry more frequently than we send.
-				time.Sleep(time.Duration(int64(s.DirectoryBlockInSeconds*1000)/2/100) * time.Millisecond)
-			}
-			return
-		}
-
-		// See if we have more to do.
-		for _, rc := range dbrcs {
-			// If I have a rc still, then I have more to do.
-			if rc != nil {
-				if LookForEntries() {
-					continue mainloop
-				}
-			}
-		}
-		// We get here if there is nothing left to do.  Tell our parent process what directory block we finished
-		finishedDBlocks <- dbht
-		s.LogPrintf("entrysyncing", "Directory Block Complete %6d all Entries found %6d", dbht, s.EntrySyncState.EntriesFound)
+	// The empty directory block case.
+	if len(dbrcs) == 1 && dbrcs[0].EntryHash == nil {
+		s.EntrySyncState.finishedDBlocks <- dbht
+		s.EntrySyncState.finishedEntries <- 0
 		return
 	}
+
+	// This function does one pass over our directory block's entries
+	// Returns true if the directory block is complete, and false if
+	// more entries need to be asked for.
+	LookForEntries := func() (Complete bool) {
+		Complete = true
+		for ipass, rc := range dbrcs {
+			switch {
+			case rc == nil:
+			case rc.EntryHash == nil:
+				dbrcs[ipass] = nil
+				finishedEntries <- 0 // It isn't a real entry, but we have to account for it.
+			case has(s, rc.EntryHash):
+				dbrcs[ipass] = nil
+				s.EntrySyncState.EntriesFound++
+				finishedEntries <- 0
+			default: // For only the first pass do we ask for missing entries
+				//	s.LogPrintf("entrysyncing", "looking for %x [%6d] dbht %6d tries %6d",
+				//		rc.EntryHash.Bytes(), ipass, dbht, rc.Tries)
+				entryRequest := messages.NewMissingData(s, rc.EntryHash).(*messages.MissingData)
+				s.EntrySyncState.SendRequest <- entryRequest
+				Complete = false
+				rc.Tries++
+			}
+		}
+		return
+	}
+
+	// See if we have more to do.
+	for {
+		// If I have a rc still, then I have more to do.
+		if LookForEntries() {
+			break
+		}
+	}
+	// We get here if there is nothing left to do.  Tell our parent process what directory block we finished
+	finishedDBlocks <- dbht
+	s.LogPrintf("entrysyncing", "Directory Block Complete %6d all Entries found %6d", dbht, s.EntrySyncState.EntriesFound)
+	return
 }
 
 // GoSyncEntries()
