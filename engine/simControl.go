@@ -1130,12 +1130,12 @@ func SimControl(listenTo int, listenStdin bool) {
 				}
 				switch left[0] {
 				case 's':
-					fmt.Fprintln(os.Stderr, "Start the Randomizing the clocks by 1 second (or re-randomize)\n")
+					fmt.Fprintln(os.Stderr, "Start the Randomizing the clocks by 1 second (or re-randomize)")
 					for _, fn := range fnodes {
 						fn.State.TimeOffset = primitives.NewTimestampFromMilliseconds(uint64(rand.Intn(1000)))
 					}
 				case 'e':
-					fmt.Fprintln(os.Stderr, "End Randomizing the clocks by 1 second\n")
+					fmt.Fprintln(os.Stderr, "End Randomizing the clocks by 1 second")
 					for _, fn := range fnodes {
 						fn.State.TimeOffset.SetTime(0)
 					}
