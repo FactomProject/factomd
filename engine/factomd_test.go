@@ -130,18 +130,40 @@ func TestLoad(t *testing.T) {
 	}
 
 	RanSimTest = true
-	state0 := SetupSim("LFF", map[string]string{"--debuglog": "." /*"--db": "LDB"*/}, 15, 0, 0, t)
+	state0 := SetupSim("LLLFF", map[string]string{"--debuglog": ".", "--db": "LDB", "--fastsaverate": "4"}, 15, 0, 0, t)
 
 	RunCmd("2")    // select 2
 	RunCmd("w")    // feed load into follower
 	RunCmd("F200") // delay messages
-	RunCmd("R40")  // Feed load
+	RunCmd("R0")   // Feed load
 	WaitBlocks(state0, 5)
 	RunCmd("R0") // Stop load
 	WaitBlocks(state0, 5)
 	// should check holding and queues cleared out
 	ShutDownEverything(t)
 } //TestLoad(){...}
+
+func TestErr(t *testing.T) {
+	if RanSimTest {
+		return
+	}
+
+	RanSimTest = true
+	state0 := SetupSim("LF", map[string]string{"--debuglog": ".", "--db": "LDB", "--controlpanelsetting": "readwrite",
+		"--network": "LOCAL", "--fastsaverate": "4", "--checkheads": "false", "--net": "alot",
+		"--blktime": "15", "--faulttimeout": "120000", "--enablenet": "false", "--startdelay": "1"},
+		150, 0, 0, t)
+
+	RunCmd("2")    // select 2
+	RunCmd("w")    // feed load into follower
+	RunCmd("F200") // delay messages
+	RunCmd("R0")   // Feed load
+	WaitBlocks(state0, 5)
+	RunCmd("R0") // Stop load
+	WaitBlocks(state0, 5)
+	// should check holding and queues cleared out
+	ShutDownEverything(t)
+} //TestErr(){...}
 
 func TestCatchup(t *testing.T) {
 	if RanSimTest {
