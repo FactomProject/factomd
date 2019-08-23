@@ -22,6 +22,7 @@ type testNode struct {
 	seedAddress string
 }
 
+var DEV_NET string = "127.0.0.1:18110" // devnet port forward to fnode0 peer
 var DOCKER_NETWORK string = "10.7.0.1:8110" // docker network
 var SINGLE_NODE string = "127.0.0.1:39001"  // local netTest simulator
 
@@ -29,9 +30,19 @@ func SetupNode(seedNode string, minPeers int, t *testing.T) *testNode {
 
 	homeDir := testHelper.ResetSimHome(t)
 
-	if seedNode != SINGLE_NODE {
-		// Use identity 9 to run a follower
+	exclusive := "false"
+	exclusiveIn := "false"
+
+	// Use identity 9 to run a follower
+	if seedNode == DOCKER_NETWORK {
 		testHelper.WriteConfigFile(9, 0, "", t)
+	}
+
+	// when interfacing w/ devnet don't talk to other peers
+	if seedNode == DEV_NET {
+		testHelper.WriteConfigFile(9, 0, fmt.Sprintf(`LocalSpecialPeers =		"%s"`, seedNode), t)
+		//exclusive = "true"
+		//exclusiveIn = "true"
 	}
 
 	// use config that mirrors docker-compose from ./support/dev/docker-compose
@@ -40,28 +51,55 @@ func SetupNode(seedNode string, minPeers int, t *testing.T) *testNode {
 		"--network":             "CUSTOM",
 		"--customnet":           "net",
 		"--enablenet":           "true",
-		"--blktime":             "15",
+		"--blktime":             "30", // REVIEW: should this be configurable from a test
 		"--count":               "1",
 		"--startdelay":          "0",
 		"--stdoutlog":           "out.txt",
 		"--stderrlog":           "out.txt",
 		"--checkheads":          "false",
 		"--controlpanelsetting": "readwrite",
-		"--debuglog":            "faulting|bad",
+		"--debuglog":            ".*",
 		"--logPort":             "39000",
 		"--port":                "39001",
 		"--controlpanelport":    "39002",
 		"--networkport":         "39003",
 		"--peers":               seedNode,
 		"--factomhome":          homeDir,
+		"--exclusive":			 exclusive,
+		"--exclusive_in":		 exclusiveIn,
 	}
 
 	n := &testNode{state: testHelper.StartSim(1, CmdLineOptions)}
 
+	t.Log("Waiting for first block")
 	testHelper.WaitForBlock(n.state, 1)
 	n.seedAddress = seedNode
+	t.Log("Discovering Peers")
 	n.DiscoverPeers(minPeers)
 	return n
+}
+
+// status every minute for this local node
+func (n *testNode) StatusEveryMinute() {
+	// REVIEW: this could hit the RPC port to pull summary from remote nodes
+	// instead of simply reporting on local fnode
+	testHelper.StatusEveryMinute(n.state)
+}
+
+
+// wait minutes on this local node
+func (n *testNode) WaitMinutes(minutes int) {
+	testHelper.WaitMinutes(n.state, minutes)
+}
+
+// wait blocks on this local node
+func (n *testNode) WaitBlocks(blocks int) {
+	testHelper.WaitBlocks(n.state, blocks)
+}
+
+// wait for block on this local node
+func (n *testNode) WaitForBlock(block int) {
+	testHelper.WaitForBlock(n.state, block)
 }
 
 func (n *testNode) DiscoverPeers(minPeers int) {
@@ -72,20 +110,30 @@ func (n *testNode) DiscoverPeers(minPeers int) {
 		testHelper.WaitBlocks(n.state, 1) // let more time pass to discover peers
 	}
 
-	// KLUDGE: hardcoded networks
 	switch n.seedAddress {
-	case DOCKER_NETWORK:
-		n.fnodes = map[int]remoteNode{
-			0: remoteNode{"10.7.0.1", 8088},
-			1: remoteNode{"10.7.0.2", 8088},
-			2: remoteNode{"10.7.0.3", 8088},
-		}
 	case SINGLE_NODE: // local simulator
 		if minPeers != 0 {
 			panic("local testing only")
 		}
 		n.fnodes = map[int]remoteNode{
 			0: remoteNode{"127.0.0.1", 39001},
+		}
+	case DOCKER_NETWORK: // using ./support/dev/docker-compose.json
+		n.fnodes = map[int]remoteNode{
+			0: remoteNode{"10.7.0.1", 8088},
+			1: remoteNode{"10.7.0.2", 8088},
+			2: remoteNode{"10.7.0.3", 8088},
+		}
+	case DEV_NET: // using devnet port forwards
+		if minPeers != 0 {
+			panic("local testing only")
+		}
+		n.fnodes = map[int]remoteNode{
+			0: remoteNode{"127.0.0.1", 8000},
+			1: remoteNode{"127.0.0.1", 8001},
+			2: remoteNode{"127.0.0.1", 8002},
+			3: remoteNode{"127.0.0.1", 8003},
+			4: remoteNode{"127.0.0.1", 8004},
 		}
 	default:
 		/*
@@ -175,7 +223,7 @@ func postRequest(debugUrl string, jsonStr string) (*http.Response, error) {
 
 // make calls to the debug api
 func rpc(apiUrl string, method string, params string) (response map[string]*json.RawMessage, err error) {
-	//fmt.Printf("\nsend => %s", params)
+	fmt.Printf("\nsend => %s", params)
 	r, err := postRequest(apiUrl, fmt.Sprintf(`{"jsonrpc": "2.0", "id": 0, "method": "%s", "params": %s}`, method, params))
 	defer r.Body.Close()
 
@@ -184,7 +232,7 @@ func rpc(apiUrl string, method string, params string) (response map[string]*json
 	}
 
 	body, _ := ioutil.ReadAll(r.Body)
-	//fmt.Printf("\nrpc => %s", body)
+	fmt.Printf("\nrpc => %s", body)
 
 	err = json.Unmarshal(body, &response)
 	return response, err

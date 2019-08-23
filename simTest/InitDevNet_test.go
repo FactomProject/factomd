@@ -8,7 +8,7 @@ import (
 // create Stub DBs & configs for DevNet Testing
 func TestInitDevNet(t *testing.T) {
 	home := ResetSimHome(t) // clear out old test home
-	givenNodes := "FFFFL"
+	givenNodes := "FAALL"
 	state0 := SetupSim(givenNodes, map[string]string{"--blktime": "15", "--db": "LDB"}, 12, 0, 0, t)
 	WaitForAllNodes(state0)
 
@@ -25,8 +25,11 @@ func TestInitDevNet(t *testing.T) {
 
 	}
 
-	// wait one more block
-	WaitBlocks(state0, 2)
+	// KLUDGE make fnode0 an audit
+	RunCmd("0")
+	RunCmd("o")
+	WaitBlocks(state0, 1)
+
 	AssertAuthoritySet(t, givenNodes)
 	ShutDownEverything(t)
 	t.Logf("generated DB's & config here: %s/.factom", home)

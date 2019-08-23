@@ -343,7 +343,7 @@ func HandleWriteConfig(state interfaces.IState, params interface{}) (interface{}
 		f.WriteString(fmt.Sprintf("%s", newCfg.Config))
 	}
 
-	return  new(success), nil
+	return new(success), nil
 }
 
 func runCmd(cmd string) {
