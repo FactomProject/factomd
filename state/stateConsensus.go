@@ -1256,6 +1256,7 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 	_, validToExecute := s.Validate(ack)
 	if validToExecute < 0 {
 		s.LogMessage("executeMsg", "drop MMR ack invalid", m)
+		s.Validate(ack)
 		return
 	}
 

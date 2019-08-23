@@ -467,6 +467,7 @@ func (dbsl *DBStateList) MarshalBinary() (rval []byte, err error) {
 			if !v.Locked {
 				panic("unlocked save state")
 			}
+
 			err = buf.PushBinaryMarshallable(v)
 			if err != nil {
 				return nil, err
@@ -1198,8 +1199,8 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	// We will only save blocks marked to be saved.  As such, this must follow
 	// the "d.saved = true" above
 	if list.State.StateSaverStruct.FastBoot && d.DirectoryBlock.GetHeader().GetDBHeight() != 0 {
-
 		d.SaveStruct = SaveFactomdState(list.State, d)
+
 		err := list.State.StateSaverStruct.SaveDBStateList(list.State, list.State.DBStates, list.State.Network)
 		if err != nil {
 			list.State.LogPrintf("dbstateprocess", "Error while saving Fastboot %v", err)

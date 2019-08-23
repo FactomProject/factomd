@@ -157,7 +157,7 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 	WaitMinutes(state0, 1) // wait till initial DBState message for the genesis block is processed
 	creatingNodes(GivenNodes, state0, t)
 
-	t.Logf("Allocated %d nodes", l)
+	t.Logf("Allocated %d nodes", len(engine.GetFnodes()))
 	if len(engine.GetFnodes()) != l {
 		t.Fatalf("Should have allocated %d nodes", l)
 		t.Fail()
