@@ -50,6 +50,7 @@ func LoadDatabase(s *State) {
 
 	//msg, err := s.LoadDBState(blkCnt)
 	start := s.GetDBHeightComplete()
+	numberOfBlocksLoaded := 0 // The number of blocks we load off disk
 
 	if start > 0 {
 		start++
@@ -90,6 +91,7 @@ func LoadDatabase(s *State) {
 
 			s.LogMessage("InMsgQueue", "enqueue_LoadDatabase1", msg)
 			msg.SetLocal(true)
+			numberOfBlocksLoaded++
 			s.InMsgQueue().Enqueue(msg)
 			if s.InMsgQueue().Length() > 200 || len(s.DBStatesReceived) > 50 {
 				for s.InMsgQueue().Length() > 50 || len(s.DBStatesReceived) > 50 {
@@ -104,7 +106,7 @@ func LoadDatabase(s *State) {
 		s.Print("\r", "\\|/-"[i%4:i%4+1])
 	}
 
-	if blkCnt == 0 {
+	if numberOfBlocksLoaded == 0 { // No blocks loaded from disk, therefore generate the genesis
 		s.Println("\n***********************************")
 		s.Println("******* New Database **************")
 		s.Println("***********************************\n")

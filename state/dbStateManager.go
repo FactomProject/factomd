@@ -955,7 +955,6 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	// its links patched, so we can't process it.  But if this is a repeat block (we have already processed
 	// at this height) then we simply return.
 	if d.Locked || d.IsNew || d.Repeat {
-
 		s.LogPrintf("dbstateprocess", "ProcessBlocks(%d) Skipping d.Locked(%v) || d.IsNew(%v) || d.Repeat(%v) : ", dbht, d.Locked, d.IsNew, d.Repeat)
 		return false
 	}
@@ -1212,9 +1211,9 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		// if we are following by blocks then this move us forward but if we are following by minutes the
 		// code in ProcessEOM for minute 10 will have moved us forward
 		s.SetLeaderTimestamp(d.DirectoryBlock.GetTimestamp())
-		s.MoveStateToHeight(dbht+1, 0)
 		// todo: is there a reason not to do this in MoveStateToHeight?
 		fs.(*FactoidState).DBHeight = dbht + 1
+		s.MoveStateToHeight(dbht+1, 0)
 	}
 
 	// Note about dbsigs.... If we processed the previous minute, then we generate the DBSig for the next block.
