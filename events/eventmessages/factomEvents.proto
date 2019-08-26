@@ -47,7 +47,7 @@ message DirBlockConsensus {
 }
 
 message StateChanged {
-    Hash entryHash = 1;
+    Hash entityHash = 1;
     EntityState entityState = 2;
 }
 
