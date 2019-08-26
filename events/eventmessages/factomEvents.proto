@@ -29,7 +29,7 @@ message FactomEvent {
     oneof value {
         ChainRegistration chainRegistration = 3;
         EntryRegistration entryRegistration = 4;
-        StateChanged stateChange = 5;
+        StateChange stateChange = 5;
         DirBlockConsensus dirBlockConsensus = 6;
         ProcessMessage processEvent = 7;
         NodeMessage nodeEvent = 8;
@@ -46,7 +46,7 @@ message DirBlockConsensus {
     repeated EntryBlockEntry entryBlockEntries = 6;
 }
 
-message StateChanged {
+message StateChange {
     Hash entityHash = 1;
     EntityState entityState = 2;
 }
