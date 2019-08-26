@@ -3,6 +3,8 @@ package eventmessages;
 option go_package = "eventmessages";
 option java_package = "com.factom.factomd.eventmessages";
 
+import "google/protobuf/timestamp.proto";
+
 message Hash {
     bytes hashValue = 1;
 }
@@ -24,3 +26,34 @@ message TransAddress {
     uint64 amount = 1;
     Hash address = 2;
 }
+
+message EntryBlockEntry {
+    Hash hash = 1;
+    repeated ExternalId externalIDs = 2;
+    Content content = 3;
+}
+
+message Entry {
+    Hash chainID = 1;
+    Hash keyMerkleRoot = 2;
+}
+
+message ChainRegistration {
+    Hash chainIDHash = 1;
+    Hash entryHash = 2;
+    Hash weld = 3;
+    google.protobuf.Timestamp timestamp = 4;
+    uint32 credits = 5;
+    bytes ecPubKey = 6;
+    bytes sig = 7;
+}
+
+message EntryRegistration {
+    Hash entryHash = 1;
+    EntryBlockEntry entry = 2;
+    google.protobuf.Timestamp timestamp = 3;
+    uint32 credits = 4;
+    bytes ecPubKey = 5;
+    bytes sig = 6;
+}
+

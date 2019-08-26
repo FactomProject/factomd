@@ -10,31 +10,35 @@ import "events/eventmessages/entryCredit.proto";
 import "google/protobuf/timestamp.proto";
 
 
-enum EventSource {
-    COMMIT_DIRECTORY_BLOCK = 0;
+enum StreamSource {
+    LIVE = 0;
+    REPLAY = 1;
+}
+
+enum EntityState {
+    NEW_REGISTRATION = 0;
     ADD_TO_PROCESSLIST = 1;
     ADD_TO_HOLDING = 2;
     DROP_FROM_HOLDING = 3;
-    PROCESS_MESSAGE = 4;
-    NODE_MESSAGE = 5;
+    COMMIT_DIRECTORY_BLOCK = 4;
 }
 
 
 message FactomEvent {
-    EventSource eventSource = 1;
-    Hash IdentityChainID = 2;
+    StreamSource streamSource = 1;
+    Hash identityChainID = 2;
     oneof value {
-        AnchoredEvent anchorEvent = 3;
-        CommitChain commitChain = 4;
-        CommitEntry commitEntry = 5;
-        RevealEntry revealEntry = 6;
+        ChainRegistration chainRegistration = 3;
+        EntryRegistration entryRegistration = 4;
+        StateChanged stateChanged = 5;
+        DirBlockConsensus dirBlockConsensus = 6;
         ProcessMessage processEvent = 7;
         NodeMessage nodeEvent = 8;
     }
 }
 
 
-message AnchoredEvent {
+message DirBlockConsensus {
     DirectoryBlock directoryBlock = 1;
     AdminBlock adminBlock = 2;
     FactoidBlock factoidBlock = 3;
@@ -43,6 +47,10 @@ message AnchoredEvent {
     repeated EntryBlockEntry entryBlockEntries = 6;
 }
 
+message StateChanged {
+    Hash entryHash = 1;
+    EntityState entityState = 2;
+}
 
 message DirectoryBlock {
     DirectoryBlockHeader header = 1;
@@ -73,21 +81,6 @@ message EntryBlockHeader {
     uint32 entryCount = 7;
 }
 
-message EntryBlockEntry {
-    Hash hash = 1;
-    repeated ExternalId externalIDs = 2;
-    Content content = 3;
-}
-
-message Entry {
-    Hash chainID = 1;
-    Hash keyMerkleRoot = 2;
-}
-
-message RevealEntry {
-    EntryBlockEntry entry = 1;
-    google.protobuf.Timestamp timestamp = 2;
-}
 
 enum Level {
     INFO = 0;

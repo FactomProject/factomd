@@ -4,7 +4,6 @@ option go_package = "eventmessages";
 option java_package = "com.factom.factomd.eventmessages";
 
 import "events/eventmessages/generalTypes.proto";
-import "google/protobuf/timestamp.proto";
 
 
 message EntryCreditBlock {
@@ -25,32 +24,12 @@ message EntryCreditBlockHeader {
 
 message EntryCreditBlockEntry {
     oneof value {
-        CommitChain commitChain = 1;
-        CommitEntry commitEntry = 2;
+        ChainRegistration commitChain = 1;
+        EntryRegistration commitEntry = 2;
         IncreaseBalance increaseBalance = 3;
         uint32 minuteNumber = 4;
         uint32 serverIndexNumber = 5;
     }
-}
-
-
-
-message CommitChain {
-    Hash chainIDHash = 1;
-    Hash entryHash = 2;
-    Hash weld = 3;
-    google.protobuf.Timestamp timestamp = 4;
-    uint32 credits = 5;
-    bytes ecPubKey = 6;
-    bytes sig = 7;
-}
-
-message CommitEntry {
-    Hash entryHash = 1;
-    google.protobuf.Timestamp timestamp = 2;
-    uint32 credits = 3;
-    bytes ecPubKey = 4;
-    bytes sig = 5;
 }
 
 
