@@ -16,13 +16,12 @@ import (
 
 	"github.com/FactomProject/factomd/elections"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/engine"
 	"github.com/FactomProject/factomd/state"
+	"github.com/stretchr/testify/assert"
 )
 
 var par = globals.FactomParams{}
@@ -43,7 +42,6 @@ var RanSimTest = false // only run 1 sim test at a time
 // this is useful for creating scripts that will start/stop a simulation outside of the context of a unit test
 // this allows for consistent tweaking of a simulation to induce load add message loss or adjust timing
 func StartSim(nodeCount int, UserAddedOptions map[string]string) *state.State {
-
 	CmdLineOptions := map[string]string{
 		"--db":                  "Map",
 		"--network":             "LOCAL",
@@ -155,7 +153,6 @@ func setTestTimeouts(state0 *state.State, calcTime time.Duration) {
 			}
 		}
 	}()
-
 	fmt.Printf("Starting timeout timer:  Expected test to take %s or %d blocks\n", calcTime.String(), ExpectedHeight)
 }
 
@@ -204,9 +201,7 @@ func SetupSim(givenNodes string, userAddedOptions map[string]string, height int,
 		et := elections.FaultTimeout
 		setTestTimeouts(state0, time.Duration(float64(((height+3)*blkt)+(electionsCnt*et)+(roundsCnt*roundt))*1.1)*time.Second)
 	}
-
 	StatusEveryMinute(state0)
-
 	if isDefaultSim(givenNodes) || state0.GetDBHeightAtBoot() != 0 {
 		t.Logf("Skip Node Promotion", nodeLen)
 	} else {
@@ -216,7 +211,6 @@ func SetupSim(givenNodes string, userAddedOptions map[string]string, height int,
 		if len(engine.GetFnodes()) != nodeLen {
 			t.Fail()
 		}
-
 		// swap identity if Fnode0 Should be a follower
 		if []rune(givenNodes)[0] == 'F' {
 			RunCmd(fmt.Sprintf("%d", 0))
@@ -227,21 +221,17 @@ func SetupSim(givenNodes string, userAddedOptions map[string]string, height int,
 			RunCmd(fmt.Sprintf("t%d", len(givenNodes)+1)) // attach the last generated Identity
 		}
 		// REVIEW: should we swap node0 identity & promote if configured for 'L' ?
-
 		CheckAuthoritySet(t)
 	}
-
 	if len(engine.GetFnodes()) != nodeLen {
 		t.Fatalf("Should have allocated %d nodes", nodeLen)
 	} else {
 		t.Logf("Allocated %d nodes", nodeLen)
 	}
-
 	return state0
 }
 
 func promoteNodes(creatingNodes string) int {
-
 	for i, c := range []byte(creatingNodes) {
 		fmt.Println("it:", i, c)
 		switch c {
@@ -283,7 +273,6 @@ func setNodeCounts(creatingNodes string) int {
 			panic("NOT L, A or F")
 		}
 	}
-
 	return Leaders + Followers + Audits
 }
 
@@ -510,7 +499,6 @@ func AssertAuthoritySet(t *testing.T, givenNodes string) {
 		}
 	}
 }
-
 func CheckAuthoritySet(t *testing.T) {
 
 	leadercnt, auditcnt, followercnt := CountAuthoritySet()
@@ -544,7 +532,6 @@ func Halt(t *testing.T) {
 	for _, fn := range engine.GetFnodes() {
 		fn.State.ShutdownNode(1)
 	}
-
 	// sleep long enough for everyone to see the shutdown.
 	time.Sleep(time.Duration(globals.Params.BlkTime) * time.Second)
 }
@@ -609,7 +596,6 @@ func GetLongTestHome(t *testing.T) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	return dir + "/.sim"
 }
 

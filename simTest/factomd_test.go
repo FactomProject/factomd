@@ -44,7 +44,9 @@ func TestOne(t *testing.T) {
 	WaitBlocks(state0, 5)
 	RunCmd("R0") // Stop load
 	WaitBlocks(state0, 2)
+
 	ShutDownEverything(t)
+
 } // testOne(){...}
 
 func TestLoad(t *testing.T) {
@@ -53,12 +55,13 @@ func TestLoad(t *testing.T) {
 	}
 
 	RanSimTest = true
-
 	// use a tree so the messages get reordered
 	state0 := SetupSim("LLLLFFFF", map[string]string{"--debuglog": ".", "--blktime": "30"}, 15, 0, 0, t)
 
-	RunCmd("2")   // select 2
-	RunCmd("R25") // Feed load
+	RunCmd("2")    // select 2
+	RunCmd("w")    // feed load into follower
+	RunCmd("F200") // delay messages
+	RunCmd("R25")  // Feed load
 	WaitBlocks(state0, 3)
 	RunCmd("R0") // Stop load
 	for state0.Hold.GetSize() > 10 || len(state0.Holding) > 10 {
@@ -66,6 +69,29 @@ func TestLoad(t *testing.T) {
 	}
 	ShutDownEverything(t)
 } // testLoad(){...}
+
+// Test replicates a savestate restore bug when run twice. First run must complete 10 blocks.
+func TestErr(t *testing.T) {
+	if RanSimTest {
+		return
+	}
+
+	RanSimTest = true
+	state0 := SetupSim("LF", map[string]string{"--debuglog": ".", "--db": "LDB", "--controlpanelsetting": "readwrite",
+		"--network": "LOCAL", "--fastsaverate": "4", "--checkheads": "false", "--net": "alot",
+		"--blktime": "15", "--faulttimeout": "120000", "--enablenet": "false", "--startdelay": "1"},
+		150, 0, 0, t)
+
+	RunCmd("2")    // select 2
+	RunCmd("w")    // feed load into follower
+	RunCmd("F200") // delay messages
+	RunCmd("R0")   // Feed load
+	WaitBlocks(state0, 5)
+	RunCmd("R0") // Stop load
+	WaitBlocks(state0, 5)
+	// should check holding and queues cleared out
+	ShutDownEverything(t)
+} //TestErr(){...}
 
 func TestCatchup(t *testing.T) {
 	if RanSimTest {
@@ -119,12 +145,12 @@ func TestTXTimestampsAndBlocks(t *testing.T) {
 	RunCmd("x")
 	RunCmd("R0") // turn off the load
 }
+
 func TestLoad2(t *testing.T) {
 	if RanSimTest {
 		return
 	}
 	RanSimTest = true
-
 	// use tree node setup so messages get reordered
 	go RunCmd("Re") // Turn on tight allocation of EC as soon as the simulator is up and running
 	state0 := SetupSim("LLLAF", map[string]string{"--blktime": "20", "--net": "tree"}, 24, 0, 0, t)
@@ -155,6 +181,7 @@ func TestLoad2(t *testing.T) {
 	}
 	ShutDownEverything(t)
 } //TestLoad2(){...}
+
 // The intention of this test is to detect the EC overspend/duplicate commits (FD-566) bug.
 // the bug happened when the FCT transaction and the commits arrived in different orders on followers vs the leader.
 // Using a message delay, drop and tree network makes this likely
@@ -1145,7 +1172,7 @@ func TestElection9(t *testing.T) {
 	}
 	RanSimTest = true
 
-	state0 := SetupSim("LLAL", map[string]string{"--faulttimeout": "10"}, 88888, 1, 1, t)
+	state0 := SetupSim("LLAL", map[string]string{"--debuglog": "", "--faulttimeout": "10"}, 8, 1, 1, t)
 	StatusEveryMinute(state0)
 	CheckAuthoritySet(t)
 
@@ -1393,7 +1420,6 @@ func TestDebugLocation(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-
 	// make sure the directory exists
 	err = os.MkdirAll(tempdir, os.ModePerm)
 	if err != nil {
@@ -1448,5 +1474,4 @@ func DoesFileExists(path string, t *testing.T) {
 	} else {
 		t.Logf("Found file %s", path)
 	}
-
 }
