@@ -49,6 +49,32 @@ func TestOne(t *testing.T) {
 
 } // testOne(){...}
 
+func TestDualElections(t *testing.T) {
+	if RanSimTest {
+		return
+	}
+	state.MMR_enable = false // No MMR for you!
+
+	RanSimTest = true
+
+	// 							  01234567
+	state0 := SetupSim("LALLLALFFLLFFFF", map[string]string{"--debuglog": ".", "--blktime": "20"}, 12, 0, 0, t)
+
+	WaitMinutes(state0, 1)
+	RunCmd("2")            // select 2
+	RunCmd("x")            // off the net
+	RunCmd("6")            // select 6
+	RunCmd("x")            // off the net
+	WaitMinutes(state0, 1) // wait for elections
+	RunCmd("2")            // select 2
+	RunCmd("x")            // on the net
+	RunCmd("6")            // select 6
+	RunCmd("x")            // on the net
+	WaitBlocks(state0, 2)  // wait till nodes should have updated by dbstate
+	WaitForAllNodes(state0)
+	ShutDownEverything(t)
+} // TestDualElections(){...}
+
 func TestLoad(t *testing.T) {
 	if RanSimTest {
 		return
