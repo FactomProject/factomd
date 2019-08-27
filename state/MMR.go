@@ -86,7 +86,10 @@ func (vm *VM) ReportMissing(height int, delay int64) {
 			continue
 		}
 		if vm.List[i] == nil {
-			vm.p.State.Ask(int(vm.p.DBHeight), vm.VmIndex, i, now+delay) // send it to the MMR thread
+			ok := vm.p.State.Ask(int(vm.p.DBHeight), vm.VmIndex, i, now+delay) // send it to the MMR thread
+			if !ok {
+				return // If we can't ask for one then don't try the next or highest ask might be set wrong
+			}
 		}
 	}
 
@@ -98,18 +101,19 @@ func (vm *VM) ReportMissing(height int, delay int64) {
 }
 
 // Ask is called from ReportMissing which comes from validation thread to notify MMR that we are missing a message
-func (s *State) Ask(DBHeight int, vmIndex int, height int, when int64) {
+// return false if we are unable to ask
+func (s *State) Ask(DBHeight int, vmIndex int, height int, when int64) bool {
 	if s.asks == nil { // If it is nil, there is no makemmrs
-		return
+		return false
 	}
 	// do not ask for things in the past or very far into the future
 	if DBHeight < int(s.LLeaderHeight) || DBHeight > int(s.LLeaderHeight)+1 || DBHeight < int(s.DBHeightAtBoot) {
-		return
+		return false
 	}
 	vm := s.LeaderPL.VMs[vmIndex]
 
 	if height <= vm.HighestAsk { // Don't report the same height twice
-		return
+		return false
 	}
 
 	//	Currently if the asks are full, we'd rather just skip
@@ -120,13 +124,13 @@ func (s *State) Ask(DBHeight int, vmIndex int, height int, when int64) {
 
 	if len(vm.p.State.asks) == cap(vm.p.State.asks) {
 		vm.p.State.LogPrintf("missing_messages", "drop, asks full %d/%d/%d", vm.p.DBHeight, vm.VmIndex, height)
-		return
+		return false
 	}
 
 	vm.HighestAsk = height // We have asked for all nils up to this height
 	ask := askRef{plRef{DBHeight, vmIndex, height}, when}
 	s.asks <- ask
-	return
+	return true
 }
 
 // Used by debug code only
