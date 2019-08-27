@@ -38,7 +38,7 @@ BEGIN {
 /enqueue.*DataResponse/ {
   hash = substr($12,1,10);
 #  print hash;
-  if(hash in requests) {
+  if(!(hash in respcount)) {
     inflight--;
     response[hash]=time2sec($2);
     respcount[hash] = 1;
