@@ -2258,6 +2258,10 @@ func (s *State) SetMessageFilterTimestamp(leaderTS interfaces.Timestamp) {
 
 func (s *State) GotHeartbeat(heartbeatTS interfaces.Timestamp, dbheight uint32) {
 
+	if ! s.DBFinished {
+		return
+	}
+
 	newTS := heartbeatTS.GetTimeMilli()
 	leaderTime := s.GetLeaderTimestamp().GetTimeMilli()
 
@@ -2282,8 +2286,7 @@ func (s *State) SetLeaderTimestamp(ts interfaces.Timestamp) {
 	s.LogPrintf("executeMsg", "SetLeaderTimestamp(%s)", ts.String())
 
 	s.LeaderTimestamp = primitives.NewTimestampFromMilliseconds(ts.GetTimeMilliUInt64())
-	// REVIEW: do we want to keep this? or only set via Heartbeat?
-	//s.SetMessageFilterTimestamp(primitives.NewTimestampFromMilliseconds(ts.GetTimeMilliUInt64() - 60*60*1000)) // set message filter to one hour before this block started.
+	s.SetMessageFilterTimestamp(primitives.NewTimestampFromMilliseconds(ts.GetTimeMilliUInt64() - 60*60*1000)) // set message filter to one hour before this block started.
 }
 
 func (s *State) SetFaultTimeout(timeout int) {
@@ -2959,4 +2962,8 @@ func (s *State) IsActive(id activations.ActivationType) bool {
 	}
 
 	return rval
+}
+
+func (s *State) GetDBFinished() bool {
+	return s.DBFinished
 }
