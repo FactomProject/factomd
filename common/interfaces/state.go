@@ -346,8 +346,10 @@ type IState interface {
 
 	// Filters
 	AddToReplayFilter(mask int, hash [32]byte, timestamp Timestamp, systemtime Timestamp) bool
-	GotHeartbeat(heartbeatTS Timestamp, dbheight uint32)
 
 	// Activations
 	IsActive(id activations.ActivationType) bool
+
+	GotHeartbeat(heartbeatTS Timestamp, dbheight uint32)
+	GetDBFinished() bool
 }

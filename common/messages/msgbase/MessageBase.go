@@ -144,6 +144,12 @@ func checkForDuplicateSend(s interfaces.IState, msg interfaces.IMsg, whereAmI st
 }
 
 func (m *MessageBase) SendOut(s interfaces.IState, msg interfaces.IMsg) {
+
+	// Don't broadcast messages until we finished loading DB
+	if !s.GetDBFinished() {
+		return
+	}
+
 	if msg.GetNoResend() {
 		return
 	}
