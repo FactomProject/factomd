@@ -608,7 +608,7 @@ func (s *State) ReviewHolding() {
 				continue
 			}
 			if !eom.IsLocal() && eom.DBHeight > saved {
-				s.highestKnown = eom.DBHeight
+				s.SetHighestKnownBlock(eom.DBHeight)
 			}
 		}
 
@@ -621,7 +621,7 @@ func (s *State) ReviewHolding() {
 				continue
 			}
 			if !dbsigmsg.IsLocal() && dbsigmsg.DBHeight > saved {
-				s.highestKnown = dbsigmsg.DBHeight
+				s.SetHighestKnownBlock(dbsigmsg.DBHeight)
 			}
 		}
 
@@ -983,8 +983,8 @@ func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
 func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 	ack := msg.(*messages.Ack)
 
-	if ack.DBHeight > s.highestKnown {
-		s.highestKnown = ack.DBHeight
+	if ack.DBHeight > s.GetHighestKnownBlock() {
+		s.SetHighestKnownBlock(ack.DBHeight)
 	}
 
 	pl := s.ProcessLists.Get(ack.DBHeight)

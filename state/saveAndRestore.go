@@ -690,8 +690,8 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 	s.DBSigSys = ss.DBSigSys
 	s.Saving = true
 	s.Syncing = false
-	s.highestAck = ss.DBHeight + 1
-	s.highestKnown = ss.DBHeight + 2
+	s.SetHighestAck(ss.DBHeight + 1)
+	s.SetHighestKnownBlock(ss.DBHeight + 2)
 	s.Holding = make(map[[32]byte]interfaces.IMsg)
 
 	//TODO: Rip all these maps and arrays out. they are not needed... famouus last words.

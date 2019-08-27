@@ -199,5 +199,6 @@ func TestHeartbeat_FollowerExecute(t *testing.T) {
 		t.Errorf("Exp %d found %d", 1, h.Validate(s))
 	}
 
+	// TODO: test message filtering
 	h.FollowerExecute(s)
 }
