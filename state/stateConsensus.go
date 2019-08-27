@@ -608,7 +608,7 @@ func (s *State) ReviewHolding() {
 				continue
 			}
 			if !eom.IsLocal() && eom.DBHeight > saved {
-				s.HighestKnown = eom.DBHeight
+				s.highestKnown = eom.DBHeight
 			}
 		}
 
@@ -621,7 +621,7 @@ func (s *State) ReviewHolding() {
 				continue
 			}
 			if !dbsigmsg.IsLocal() && dbsigmsg.DBHeight > saved {
-				s.HighestKnown = dbsigmsg.DBHeight
+				s.highestKnown = dbsigmsg.DBHeight
 			}
 		}
 
@@ -983,8 +983,8 @@ func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
 func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 	ack := msg.(*messages.Ack)
 
-	if ack.DBHeight > s.HighestKnown {
-		s.HighestKnown = ack.DBHeight
+	if ack.DBHeight > s.highestKnown {
+		s.highestKnown = ack.DBHeight
 	}
 
 	pl := s.ProcessLists.Get(ack.DBHeight)
@@ -2589,12 +2589,16 @@ func (s *State) PutCommit(hash interfaces.IHash, msg interfaces.IMsg) {
 }
 
 func (s *State) GetHighestAck() uint32 {
-	return s.HighestAck
+	return s.highestAck
 }
 
 func (s *State) SetHighestAck(dbht uint32) {
-	if dbht > s.HighestAck {
-		s.HighestAck = dbht
+	switch {
+	case dbht > s.highestAck + 200 :
+		s.highestAck = s.highestAck + 200
+		break
+	case dbht > s.highestAck:
+		s.highestAck = dbht
 	}
 }
 
@@ -2633,8 +2637,18 @@ func (s *State) GetHighestKnownBlock() uint32 {
 	if s.ProcessLists == nil {
 		return 0
 	}
-	HighestKnown.Set(float64(s.HighestKnown))
-	return s.HighestKnown
+	HighestKnown.Set(float64(s.highestKnown))
+	return s.highestKnown
+}
+
+func (s *State) SetHighestKnownBlock( dbht uint32 ){
+	switch {
+	case dbht > s.highestKnown + 200 :
+		s.highestKnown = s.highestKnown + 200
+		break
+	case dbht > s.highestKnown:
+		s.highestKnown = dbht
+	}
 }
 
 // GetF()

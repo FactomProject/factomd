@@ -170,3 +170,34 @@ func TestValidHeatbeat(t *testing.T) {
 		t.Errorf("Exp %d found %d", 1, h.Validate(s))
 	}
 }
+
+func TestHeartbeat_FollowerExecute(t *testing.T) {
+	// heartbeat should alter the message filter when it is processed
+	s := testHelper.CreateAndPopulateTestState()
+	a := identity.RandomAuthority()
+
+	pkey := primitives.RandomPrivateKey()
+	a.SigningKey = *pkey.Pub
+
+	s.IdentityControl.Authorities[a.AuthorityChainID.Fixed()] = a
+
+	h := newSignedHeartbeat()
+	// To pass validate, we need
+	// 	The timestamp to be near state timestamp
+	//	The height to be high
+	h.IdentityChainID = a.AuthorityChainID
+	h.DBHeight = 100
+	h.Timestamp = s.GetTimestamp()
+
+	h.Signature = nil
+	err := h.Sign(pkey)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if h.Validate(s) != 1 {
+		t.Errorf("Exp %d found %d", 1, h.Validate(s))
+	}
+
+	h.FollowerExecute(s)
+}

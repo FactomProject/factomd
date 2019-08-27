@@ -981,8 +981,8 @@ func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces
 		}
 	}
 
-	if ack.DBHeight > s.HighestAck && ack.Minute > 0 {
-		s.HighestAck = ack.DBHeight
+	if ack.DBHeight > s.highestAck && ack.Minute > 0 {
+		s.highestAck = ack.DBHeight
 
 	}
 

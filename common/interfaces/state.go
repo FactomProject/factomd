@@ -343,7 +343,10 @@ type IState interface {
 	SetHighestAck(uint32)
 	DebugExec() bool
 	CheckFileName(string) bool
+
+	// Filters
 	AddToReplayFilter(mask int, hash [32]byte, timestamp Timestamp, systemtime Timestamp) bool
+	GotHeartbeat(heartbeatTS Timestamp, dbheight uint32)
 
 	// Activations
 	IsActive(id activations.ActivationType) bool
