@@ -69,7 +69,7 @@ func (s *State) LogPrintf(logName string, format string, more ...interface{}) {
 }
 func (s *State) AddToHolding(hash [32]byte, msg interfaces.IMsg) {
 	if msg.Type() == constants.VOLUNTEERAUDIT {
-		s.LogMessage("holding election?", "add", msg)
+		s.LogMessage("holding", "add", msg)
 	}
 	_, ok := s.Holding[hash]
 	if !ok {
