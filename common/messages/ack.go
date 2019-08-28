@@ -107,7 +107,6 @@ func (m *Ack) VerifySignature() (bool, error) {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *Ack) Validate(s interfaces.IState) int {
-	//	atomic.WhereAmI2("Ack.Validate()", 1)
 	// If too old, it isn't valid.
 	if m.DBHeight < s.GetLLeaderHeight() {
 		s.LogMessage("executeMsg", "drop, from past", m)
@@ -117,11 +116,7 @@ func (m *Ack) Validate(s interfaces.IState) int {
 	// Update the highest known ack to start requesting
 	// DBState blocks if necessary
 	if s.GetHighestAck() < m.DBHeight {
-		if m.DBHeight-s.GetLLeaderHeight() > constants.MaxAckHeightMinuteDelta { // cap at a relative 200 blks due to fd-850
-			s.SetHighestAck(s.GetLeaderPL().GetDBHeight() + constants.MaxAckHeightMinuteDelta)
-		} else {
-			s.SetHighestAck(m.DBHeight)
-		}
+		s.SetHighestAck(m.DBHeight)
 	}
 
 	if m.DBHeight-s.GetLLeaderHeight() > 5 {
@@ -130,7 +125,7 @@ func (m *Ack) Validate(s interfaces.IState) int {
 	}
 
 	if m.DBHeight > s.GetLLeaderHeight() {
-		return s.HoldForHeight(m.DBHeight, 0, m) // release the ACKs at the start of minute 0 of thier block
+		return s.HoldForHeight(m.DBHeight, 0, m) // release the ACKs at the start of minute 0 of their block
 	}
 
 	// Only new acks are valid. Of course, the VMIndex has to be valid too.

@@ -119,11 +119,12 @@ func (s *State) Validate(msg interfaces.IMsg) (validToSend int, validToExec int)
 			return -1, -1
 		}
 	}
+	// Pokemon bug protection.  Ignore any msg without a valid GetMsgHash()
+	if msg.GetMsgHash() == nil || msg.GetHash() == nil || msg.GetRepeatHash() == nil {
+		return -1, -1
+	}
 
-	switch msg.Type() {
-	case constants.DBSTATE_MSG, constants.DATA_RESPONSE, constants.MISSING_MSG, constants.MISSING_DATA, constants.MISSING_ENTRY_BLOCKS, constants.DBSTATE_MISSING_MSG, constants.ENTRY_BLOCK_RESPONSE:
-		// Allow these thru as they do not have Ack's (they don't change processlists)
-	default:
+	if constants.NeedsAck(msg.Type()) {
 		// Make sure we don't put in an old ack'd message (outside our repeat filter range)
 		filterTime := s.GetFilterTimeNano()
 
@@ -2573,8 +2574,8 @@ func (s *State) GetHighestAck() uint32 {
 
 func (s *State) SetHighestAck(dbht uint32) {
 	switch {
-	case dbht > s.highestAck + 200 :
-		s.highestAck = s.highestAck + 200
+	case dbht > s.highestAck+constants.MaxAckHeightDelta:
+		s.highestAck = s.highestAck + constants.MaxAckHeightDelta
 		break
 	case dbht > s.highestAck:
 		s.highestAck = dbht
@@ -2620,10 +2621,10 @@ func (s *State) GetHighestKnownBlock() uint32 {
 	return s.highestKnown
 }
 
-func (s *State) SetHighestKnownBlock( dbht uint32 ){
+func (s *State) SetHighestKnownBlock(dbht uint32) {
 	switch {
-	case dbht > s.highestKnown + 200 :
-		s.highestKnown = s.highestKnown + 200
+	case dbht > s.highestKnown+constants.MaxAckHeightDelta:
+		s.highestKnown = s.highestKnown + constants.MaxAckHeightDelta
 		break
 	case dbht > s.highestKnown:
 		s.highestKnown = dbht
