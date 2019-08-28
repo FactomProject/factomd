@@ -118,7 +118,7 @@ func (s *State) Validate(msg interfaces.IMsg) (validToSend int, validToExec int)
 	}
 
 	// Pokemon bug protection.  Ignore any msg without a valid GetMsgHash()
-	if msg.GetMsgHash() == nil {
+	if msg.GetMsgHash() == nil || msg.GetHash() == nil || msg.GetRepeatHash() == nil {
 		return -1, -1
 	}
 
