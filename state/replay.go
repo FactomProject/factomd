@@ -236,7 +236,6 @@ func (r *Replay) validate(mask int, hash [32]byte, timestamp interfaces.Timestam
 	now := Minutes(systemtime.GetTimeSeconds())
 	t := Minutes(timestamp.GetTimeSeconds())
 
-	// REVIEW: should this be removed so that only Heartbeat are needed to move this forward?
 	r.Recenter(systemtime) // Move the center of our replay list to the current time.
 
 	diff := now - t
