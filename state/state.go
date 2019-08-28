@@ -2258,7 +2258,7 @@ func (s *State) SetMessageFilterTimestamp(leaderTS interfaces.Timestamp) {
 
 func (s *State) GotHeartbeat(heartbeatTS interfaces.Timestamp, dbheight uint32) {
 
-	if ! s.DBFinished {
+	if !s.DBFinished {
 		return
 	}
 
@@ -2279,7 +2279,7 @@ func (s *State) GotHeartbeat(heartbeatTS interfaces.Timestamp, dbheight uint32) 
 	s.SetHighestKnownBlock(dbheight)
 
 	// re-center replay filter
-	s.Replay.Recenter(primitives.NewTimestampFromMilliseconds(uint64(newTS - 60*60*1000)))
+	s.Replay.Recenter(primitives.NewTimestampFromMilliseconds(uint64(newTS)))
 }
 
 func (s *State) SetLeaderTimestamp(ts interfaces.Timestamp) {
