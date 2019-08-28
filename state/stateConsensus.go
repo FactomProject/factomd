@@ -127,18 +127,15 @@ func (s *State) Validate(msg interfaces.IMsg) (validToSend int, validToExec int)
 	if constants.NeedsAck(msg.Type()) {
 		// Make sure we don't put in an old ack'd message (outside our repeat filter range)
 		filterTime := s.GetFilterTimeNano()
-
 		if filterTime == 0 {
 			panic("got 0 time")
 		}
-
 		msgtime := msg.GetTimestamp().GetTime().UnixNano()
 
 		// Make sure we don't put in an old msg (outside our repeat range)
 		{ // debug
 			if msgtime < filterTime || msgtime > (filterTime+FilterTimeLimit) {
 				s.LogPrintf("executeMsg", "MsgFilter %s", s.GetMessageFilterTimestamp().GetTime().String())
-
 				s.LogPrintf("executeMsg", "Leader    %s", s.GetLeaderTimestamp().GetTime().String())
 				s.LogPrintf("executeMsg", "Message   %s", msg.GetTimestamp().GetTime().String())
 			}
