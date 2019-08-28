@@ -2336,6 +2336,20 @@ func (s *State) SetMessageFilterTimestamp(leaderTS interfaces.Timestamp) {
 	requestedTS := new(primitives.Timestamp)
 	requestedTS.SetTimestamp(leaderTS)
 
+	onehourago := new(primitives.Timestamp)
+	onehourago.SetTimeMilli(primitives.NewTimestampNow().GetTimeMilli() - 60*60*1000) // now() - one hour
+
+	if requestedTS.GetTimeMilli() < onehourago.GetTimeMilli() {
+		requestedTS.SetTimestamp(onehourago)
+	}
+
+	// build a timestamp 20 minutes before boot so we will accept messages from nodes who booted before us.
+	preBootTime := new(primitives.Timestamp)
+	preBootTime.SetTimeMilli(s.TimestampAtBoot.GetTimeMilli() - 20*60*1000)
+
+	if requestedTS.GetTimeMilli() < preBootTime.GetTimeMilli() {
+		requestedTS.SetTimestamp(preBootTime)
+	}
 	if s.messageFilterTimestamp != nil && requestedTS.GetTimeMilli() < s.messageFilterTimestamp.GetTimeMilli() {
 		s.LogPrintf("executeMsg", "Set MessageFilterTimestamp attempt to move backward in time from %s", atomic.WhereAmIString(1))
 		return

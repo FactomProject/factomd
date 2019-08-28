@@ -148,11 +148,6 @@ func (m *MessageBase) SendOut(s interfaces.IState, msg interfaces.IMsg) {
 		return
 	}
 
-	// Don't broadcast messages until we finished loading DB
-	if !s.GetDBFinished() {
-		return
-	}
-
 	if msg.GetNoResend() {
 		return
 	}
