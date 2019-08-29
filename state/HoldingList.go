@@ -87,7 +87,7 @@ func (l *HoldingList) Get(h [32]byte) []interfaces.IMsg {
 		if msg == nil {
 			continue
 		} else {
-			l.s.LogPrintf("DependentHolding", fmt.Sprintf("delete[%x]", h[:6]), msg)
+			l.s.LogMessage("DependentHolding", fmt.Sprintf("delete[%x]", h[:6]), msg)
 			delete(l.dependents, msg.GetMsgHash().Fixed())
 		}
 	}
@@ -201,6 +201,13 @@ func (s *State) ExecuteFromHolding(h [32]byte) {
 		return
 	}
 	s.LogPrintf("DependentHolding", "ExecuteFromDependantHolding(%d)[%x]", len(l), h[:6])
+
+	for _, m := range l {
+		if m == nil {
+			continue
+		}
+		s.LogPrintf("DependentHolding", "delete R-%x", m.GetMsgHash().Bytes()[:3])
+	}
 
 	go func() {
 		// add the messages to the msgQueue so they get executed as space is available

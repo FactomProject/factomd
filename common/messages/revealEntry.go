@@ -192,7 +192,7 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 			state.LogMessage("executeMsg", "Hold, no chain", m)
 			// No chain, we have to leave it be and maybe one will be made.
 			//old holding .., return 0
-			state.LogPrintf("dependentHolding", "Hold, No Chain M-%x is waiting on chain %x", m.GetMsgHash().Bytes()[:3], m.Entry.GetChainID().Bytes()[:3])
+			state.LogPrintf("dependentHolding", "Hold, No Chain M-%x is waiting on chain %x", m.GetMsgHash().Bytes()[:3], m.Entry.GetChainID().Bytes()[:6])
 			return state.Add(m.Entry.GetChainID().Fixed(), m) // hold for a new commit
 
 		}
