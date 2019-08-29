@@ -2025,10 +2025,11 @@ entryHashProcessing:
 		select {
 		case e := <-s.UpdateEntryHash:
 			// Save the entry hash, and remove from commits IF this hash is valid in this current timeframe.
-			s.Replay.SetHashNow(constants.REVEAL_REPLAY, e.Hash.Fixed(), e.Timestamp)
-			// If the SetHashNow worked, then we should prohibit any commit that might be pending.
-			// Remove any commit that might be around.
-			s.Commits.Delete(e.Hash.Fixed())
+			if s.Replay.SetHashNow(constants.REVEAL_REPLAY, e.Hash.Fixed(), e.Timestamp) {
+				// If the SetHashNow worked, then we should prohibit any commit that might be pending.
+				// Remove any commit that might be around.
+				s.Commits.Delete(e.Hash.Fixed())
+			}
 		default:
 			break entryHashProcessing
 		}
