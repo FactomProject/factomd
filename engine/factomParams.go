@@ -71,12 +71,6 @@ func init() {
 	flag.IntVar(&p.PortOverride, "port", 0, "Port where we serve WSAPI;  default 8088")
 	flag.IntVar(&p.ControlPanelPortOverride, "controlpanelport", 0, "Port for control panel webserver;  Default 8090")
 	flag.IntVar(&p.NetworkPortOverride, "networkport", 0, "Port for p2p network; default 8110")
-	flag.BoolVar(&p.EnableLiveFeedAPI, "enablelivefeedapi", false, "Enable life feed events service; default false")
-	flag.StringVar(&p.EventReceiverProtocol, "eventreceiverprotocol", "", "Transport protocol for the events receiver; default tcp")
-	flag.StringVar(&p.EventReceiverAddress, "eventreceiveraddress", "", "Address for the events receiver; default 127.0.0.1")
-	flag.IntVar(&p.EventReceiverPort, "eventreceiverport", 0, "Port for the events receiver; default 8040")
-	flag.StringVar(&p.EventFormat, "eventformat", "", "Event format for the events receiver, protobuf|json; default protobuf")
-	flag.BoolVar(&p.MuteEventsDuringStartup, "muteeventsduringstartup", false, "Enable life feed events service; default false")
 	flag.BoolVar(&p.Fast, "fast", true, "If true, Factomd will fast-boot from a file.")
 	flag.IntVar(&p.FastSaveRate, "fastsaverate", 1000, "Save a fastboot file every so many blocks. Should be > 1000 for live systems.")
 	flag.StringVar(&p.FastLocation, "fastlocation", "", "Directory to put the Fast-boot file in.")
@@ -99,6 +93,17 @@ func init() {
 	flag.StringVar(&p.ControlPanelSetting, "controlpanelsetting", "", "Can set to 'disabled', 'readonly', or 'readwrite' to overwrite config file")
 	flag.BoolVar(&p.FullHashesLog, "fullhasheslog", false, "true create a log of all unique hashes seen during processing")
 	flag.BoolVar(&p.ReparseAnchorChains, "reparseanchorchains", false, "If true, reparse bitcoin and ethereum anchor chains in the database")
+
+	// Live feed API params
+	flag.BoolVar(&p.EnableLiveFeedAPI, "enablelivefeedapi", false, "Enable life feed events service; default false")
+	flag.StringVar(&p.EventReceiverProtocol, "eventreceiverprotocol", "", "Transport protocol for the events receiver; default tcp")
+	flag.StringVar(&p.EventReceiverAddress, "eventreceiveraddress", "", "Address for the events receiver; default 127.0.0.1")
+	flag.IntVar(&p.EventReceiverPort, "eventreceiverport", 0, "Port for the events receiver; default 8040")
+	flag.StringVar(&p.EventFormat, "eventformat", "", "Event format for the events receiver, protobuf|json; default protobuf")
+	flag.BoolVar(&p.MuteReplayDuringStartup, "mutereplayduringstartup", false, "Mute event replay; default false")
+	flag.BoolVar(&p.ResendRegistrationsOnStateChange, "muteeventsduringstartup", false, "Resend registrations for every state change; default false")
+	flag.StringVar(&p.ContentFilterMode, "ContentFilterMode", "", "Settings for including content in the event messages SendAlways|SendOnRegistration|SendNever; default SendOnce")
+
 }
 
 func ParseCmdLine(args []string) *FactomParams {

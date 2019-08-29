@@ -5,6 +5,15 @@ option java_package = "com.factom.factomd.eventmessages";
 
 import "google/protobuf/timestamp.proto";
 
+
+enum EntityState {
+    PLACED_IN_HOLDING = 0;
+    ACCEPTED = 1;
+    REJECTED = 2;
+    COMMITTED_TO_DIRECTORY_BLOCK = 3;
+}
+
+
 message Hash {
     bytes hashValue = 1;
 }
@@ -39,21 +48,28 @@ message Entry {
 }
 
 message ChainRegistration {
-    Hash chainIDHash = 1;
-    Hash entryHash = 2;
-    Hash weld = 3;
-    google.protobuf.Timestamp timestamp = 4;
-    uint32 credits = 5;
-    bytes ecPubKey = 6;
-    bytes sig = 7;
+    EntityState entityState = 1;
+    Hash chainIDHash = 2;
+    Hash entryHash = 3;
+    Hash weld = 4;
+    google.protobuf.Timestamp timestamp = 5;
+    uint32 credits = 6;
+    bytes ecPubKey = 7;
+    bytes sig = 8;
 }
 
 message EntryRegistration {
-    Hash entryHash = 1;
-    EntryBlockEntry entry = 2;
+    EntityState entityState = 1;
+    Hash entryHash = 2;
     google.protobuf.Timestamp timestamp = 3;
     uint32 credits = 4;
     bytes ecPubKey = 5;
     bytes sig = 6;
+}
+
+message EntryContentRegistration {
+    EntityState entityState = 1;
+    EntryBlockEntry entry = 2;
+    google.protobuf.Timestamp timestamp = 3;
 }
 

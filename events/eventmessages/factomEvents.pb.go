@@ -23,60 +23,29 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
-type EventSource int32
+type StreamSource int32
 
 const (
-	EventSource_LIVE   EventSource = 0
-	EventSource_REPLAY EventSource = 1
+	StreamSource_LIVE   StreamSource = 0
+	StreamSource_REPLAY StreamSource = 1
 )
 
-var EventSource_name = map[int32]string{
+var StreamSource_name = map[int32]string{
 	0: "LIVE",
 	1: "REPLAY",
 }
 
-var EventSource_value = map[string]int32{
+var StreamSource_value = map[string]int32{
 	"LIVE":   0,
 	"REPLAY": 1,
 }
 
-func (x EventSource) String() string {
-	return proto.EnumName(EventSource_name, int32(x))
+func (x StreamSource) String() string {
+	return proto.EnumName(StreamSource_name, int32(x))
 }
 
-func (EventSource) EnumDescriptor() ([]byte, []int) {
+func (StreamSource) EnumDescriptor() ([]byte, []int) {
 	return fileDescriptor_1671448ba58a28d0, []int{0}
-}
-
-type EntityState int32
-
-const (
-	EntityState_COMMIT_DIRECTORY_BLOCK EntityState = 0
-	EntityState_ADD_TO_PROCESSLIST     EntityState = 1
-	EntityState_ADD_TO_HOLDING         EntityState = 2
-	EntityState_DROP_FROM_HOLDING      EntityState = 3
-)
-
-var EntityState_name = map[int32]string{
-	0: "COMMIT_DIRECTORY_BLOCK",
-	1: "ADD_TO_PROCESSLIST",
-	2: "ADD_TO_HOLDING",
-	3: "DROP_FROM_HOLDING",
-}
-
-var EntityState_value = map[string]int32{
-	"COMMIT_DIRECTORY_BLOCK": 0,
-	"ADD_TO_PROCESSLIST":     1,
-	"ADD_TO_HOLDING":         2,
-	"DROP_FROM_HOLDING":      3,
-}
-
-func (x EntityState) String() string {
-	return proto.EnumName(EntityState_name, int32(x))
-}
-
-func (EntityState) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_1671448ba58a28d0, []int{1}
 }
 
 type Level int32
@@ -104,7 +73,7 @@ func (x Level) String() string {
 }
 
 func (Level) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_1671448ba58a28d0, []int{2}
+	return fileDescriptor_1671448ba58a28d0, []int{1}
 }
 
 type ProcessMessageCode int32
@@ -132,7 +101,7 @@ func (x ProcessMessageCode) String() string {
 }
 
 func (ProcessMessageCode) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_1671448ba58a28d0, []int{3}
+	return fileDescriptor_1671448ba58a28d0, []int{2}
 }
 
 type NodeMessageCode int32
@@ -163,19 +132,20 @@ func (x NodeMessageCode) String() string {
 }
 
 func (NodeMessageCode) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_1671448ba58a28d0, []int{4}
+	return fileDescriptor_1671448ba58a28d0, []int{3}
 }
 
 type FactomEvent struct {
-	EventSource     EventSource `protobuf:"varint,1,opt,name=eventSource,proto3,enum=eventmessages.EventSource" json:"eventSource,omitempty"`
-	IdentityChainID *Hash       `protobuf:"bytes,2,opt,name=identityChainID,proto3" json:"identityChainID,omitempty"`
+	StreamSource    StreamSource `protobuf:"varint,1,opt,name=streamSource,proto3,enum=eventmessages.StreamSource" json:"streamSource,omitempty"`
+	IdentityChainID *Hash        `protobuf:"bytes,2,opt,name=identityChainID,proto3" json:"identityChainID,omitempty"`
 	// Types that are valid to be assigned to Value:
 	//	*FactomEvent_ChainRegistration
 	//	*FactomEvent_EntryRegistration
-	//	*FactomEvent_StateChanged
-	//	*FactomEvent_DirBlockConsensus
-	//	*FactomEvent_ProcessEvent
-	//	*FactomEvent_NodeEvent
+	//	*FactomEvent_EntryContentRegistration
+	//	*FactomEvent_StateChange
+	//	*FactomEvent_BlockCommit
+	//	*FactomEvent_ProcessMessage
+	//	*FactomEvent_NodeMessage
 	Value                isFactomEvent_Value `protobuf_oneof:"value"`
 	XXX_NoUnkeyedLiteral struct{}            `json:"-"`
 	XXX_unrecognized     []byte              `json:"-"`
@@ -227,25 +197,29 @@ type FactomEvent_ChainRegistration struct {
 type FactomEvent_EntryRegistration struct {
 	EntryRegistration *EntryRegistration `protobuf:"bytes,4,opt,name=entryRegistration,proto3,oneof"`
 }
-type FactomEvent_StateChanged struct {
-	StateChanged *StateChanged `protobuf:"bytes,5,opt,name=stateChanged,proto3,oneof"`
+type FactomEvent_EntryContentRegistration struct {
+	EntryContentRegistration *EntryContentRegistration `protobuf:"bytes,5,opt,name=entryContentRegistration,proto3,oneof"`
 }
-type FactomEvent_DirBlockConsensus struct {
-	DirBlockConsensus *DirBlockConsensus `protobuf:"bytes,6,opt,name=dirBlockConsensus,proto3,oneof"`
+type FactomEvent_StateChange struct {
+	StateChange *StateChange `protobuf:"bytes,6,opt,name=stateChange,proto3,oneof"`
 }
-type FactomEvent_ProcessEvent struct {
-	ProcessEvent *ProcessMessage `protobuf:"bytes,7,opt,name=processEvent,proto3,oneof"`
+type FactomEvent_BlockCommit struct {
+	BlockCommit *BlockCommit `protobuf:"bytes,7,opt,name=blockCommit,proto3,oneof"`
 }
-type FactomEvent_NodeEvent struct {
-	NodeEvent *NodeMessage `protobuf:"bytes,8,opt,name=nodeEvent,proto3,oneof"`
+type FactomEvent_ProcessMessage struct {
+	ProcessMessage *ProcessMessage `protobuf:"bytes,8,opt,name=processMessage,proto3,oneof"`
+}
+type FactomEvent_NodeMessage struct {
+	NodeMessage *NodeMessage `protobuf:"bytes,9,opt,name=nodeMessage,proto3,oneof"`
 }
 
-func (*FactomEvent_ChainRegistration) isFactomEvent_Value() {}
-func (*FactomEvent_EntryRegistration) isFactomEvent_Value() {}
-func (*FactomEvent_StateChanged) isFactomEvent_Value()      {}
-func (*FactomEvent_DirBlockConsensus) isFactomEvent_Value() {}
-func (*FactomEvent_ProcessEvent) isFactomEvent_Value()      {}
-func (*FactomEvent_NodeEvent) isFactomEvent_Value()         {}
+func (*FactomEvent_ChainRegistration) isFactomEvent_Value()        {}
+func (*FactomEvent_EntryRegistration) isFactomEvent_Value()        {}
+func (*FactomEvent_EntryContentRegistration) isFactomEvent_Value() {}
+func (*FactomEvent_StateChange) isFactomEvent_Value()              {}
+func (*FactomEvent_BlockCommit) isFactomEvent_Value()              {}
+func (*FactomEvent_ProcessMessage) isFactomEvent_Value()           {}
+func (*FactomEvent_NodeMessage) isFactomEvent_Value()              {}
 
 func (m *FactomEvent) GetValue() isFactomEvent_Value {
 	if m != nil {
@@ -254,11 +228,11 @@ func (m *FactomEvent) GetValue() isFactomEvent_Value {
 	return nil
 }
 
-func (m *FactomEvent) GetEventSource() EventSource {
+func (m *FactomEvent) GetStreamSource() StreamSource {
 	if m != nil {
-		return m.EventSource
+		return m.StreamSource
 	}
-	return EventSource_LIVE
+	return StreamSource_LIVE
 }
 
 func (m *FactomEvent) GetIdentityChainID() *Hash {
@@ -282,30 +256,37 @@ func (m *FactomEvent) GetEntryRegistration() *EntryRegistration {
 	return nil
 }
 
-func (m *FactomEvent) GetStateChanged() *StateChanged {
-	if x, ok := m.GetValue().(*FactomEvent_StateChanged); ok {
-		return x.StateChanged
+func (m *FactomEvent) GetEntryContentRegistration() *EntryContentRegistration {
+	if x, ok := m.GetValue().(*FactomEvent_EntryContentRegistration); ok {
+		return x.EntryContentRegistration
 	}
 	return nil
 }
 
-func (m *FactomEvent) GetDirBlockConsensus() *DirBlockConsensus {
-	if x, ok := m.GetValue().(*FactomEvent_DirBlockConsensus); ok {
-		return x.DirBlockConsensus
+func (m *FactomEvent) GetStateChange() *StateChange {
+	if x, ok := m.GetValue().(*FactomEvent_StateChange); ok {
+		return x.StateChange
 	}
 	return nil
 }
 
-func (m *FactomEvent) GetProcessEvent() *ProcessMessage {
-	if x, ok := m.GetValue().(*FactomEvent_ProcessEvent); ok {
-		return x.ProcessEvent
+func (m *FactomEvent) GetBlockCommit() *BlockCommit {
+	if x, ok := m.GetValue().(*FactomEvent_BlockCommit); ok {
+		return x.BlockCommit
 	}
 	return nil
 }
 
-func (m *FactomEvent) GetNodeEvent() *NodeMessage {
-	if x, ok := m.GetValue().(*FactomEvent_NodeEvent); ok {
-		return x.NodeEvent
+func (m *FactomEvent) GetProcessMessage() *ProcessMessage {
+	if x, ok := m.GetValue().(*FactomEvent_ProcessMessage); ok {
+		return x.ProcessMessage
+	}
+	return nil
+}
+
+func (m *FactomEvent) GetNodeMessage() *NodeMessage {
+	if x, ok := m.GetValue().(*FactomEvent_NodeMessage); ok {
+		return x.NodeMessage
 	}
 	return nil
 }
@@ -315,10 +296,11 @@ func (*FactomEvent) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) e
 	return _FactomEvent_OneofMarshaler, _FactomEvent_OneofUnmarshaler, _FactomEvent_OneofSizer, []interface{}{
 		(*FactomEvent_ChainRegistration)(nil),
 		(*FactomEvent_EntryRegistration)(nil),
-		(*FactomEvent_StateChanged)(nil),
-		(*FactomEvent_DirBlockConsensus)(nil),
-		(*FactomEvent_ProcessEvent)(nil),
-		(*FactomEvent_NodeEvent)(nil),
+		(*FactomEvent_EntryContentRegistration)(nil),
+		(*FactomEvent_StateChange)(nil),
+		(*FactomEvent_BlockCommit)(nil),
+		(*FactomEvent_ProcessMessage)(nil),
+		(*FactomEvent_NodeMessage)(nil),
 	}
 }
 
@@ -336,24 +318,29 @@ func _FactomEvent_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
 		if err := b.EncodeMessage(x.EntryRegistration); err != nil {
 			return err
 		}
-	case *FactomEvent_StateChanged:
+	case *FactomEvent_EntryContentRegistration:
 		_ = b.EncodeVarint(5<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.StateChanged); err != nil {
+		if err := b.EncodeMessage(x.EntryContentRegistration); err != nil {
 			return err
 		}
-	case *FactomEvent_DirBlockConsensus:
+	case *FactomEvent_StateChange:
 		_ = b.EncodeVarint(6<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.DirBlockConsensus); err != nil {
+		if err := b.EncodeMessage(x.StateChange); err != nil {
 			return err
 		}
-	case *FactomEvent_ProcessEvent:
+	case *FactomEvent_BlockCommit:
 		_ = b.EncodeVarint(7<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.ProcessEvent); err != nil {
+		if err := b.EncodeMessage(x.BlockCommit); err != nil {
 			return err
 		}
-	case *FactomEvent_NodeEvent:
+	case *FactomEvent_ProcessMessage:
 		_ = b.EncodeVarint(8<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.NodeEvent); err != nil {
+		if err := b.EncodeMessage(x.ProcessMessage); err != nil {
+			return err
+		}
+	case *FactomEvent_NodeMessage:
+		_ = b.EncodeVarint(9<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.NodeMessage); err != nil {
 			return err
 		}
 	case nil:
@@ -382,37 +369,45 @@ func _FactomEvent_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Bu
 		err := b.DecodeMessage(msg)
 		m.Value = &FactomEvent_EntryRegistration{msg}
 		return true, err
-	case 5: // value.stateChanged
+	case 5: // value.entryContentRegistration
 		if wire != proto.WireBytes {
 			return true, proto.ErrInternalBadWireType
 		}
-		msg := new(StateChanged)
+		msg := new(EntryContentRegistration)
 		err := b.DecodeMessage(msg)
-		m.Value = &FactomEvent_StateChanged{msg}
+		m.Value = &FactomEvent_EntryContentRegistration{msg}
 		return true, err
-	case 6: // value.dirBlockConsensus
+	case 6: // value.stateChange
 		if wire != proto.WireBytes {
 			return true, proto.ErrInternalBadWireType
 		}
-		msg := new(DirBlockConsensus)
+		msg := new(StateChange)
 		err := b.DecodeMessage(msg)
-		m.Value = &FactomEvent_DirBlockConsensus{msg}
+		m.Value = &FactomEvent_StateChange{msg}
 		return true, err
-	case 7: // value.processEvent
+	case 7: // value.blockCommit
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(BlockCommit)
+		err := b.DecodeMessage(msg)
+		m.Value = &FactomEvent_BlockCommit{msg}
+		return true, err
+	case 8: // value.processMessage
 		if wire != proto.WireBytes {
 			return true, proto.ErrInternalBadWireType
 		}
 		msg := new(ProcessMessage)
 		err := b.DecodeMessage(msg)
-		m.Value = &FactomEvent_ProcessEvent{msg}
+		m.Value = &FactomEvent_ProcessMessage{msg}
 		return true, err
-	case 8: // value.nodeEvent
+	case 9: // value.nodeMessage
 		if wire != proto.WireBytes {
 			return true, proto.ErrInternalBadWireType
 		}
 		msg := new(NodeMessage)
 		err := b.DecodeMessage(msg)
-		m.Value = &FactomEvent_NodeEvent{msg}
+		m.Value = &FactomEvent_NodeMessage{msg}
 		return true, err
 	default:
 		return false, nil
@@ -433,23 +428,28 @@ func _FactomEvent_OneofSizer(msg proto.Message) (n int) {
 		n += 1 // tag and wire
 		n += proto.SizeVarint(uint64(s))
 		n += s
-	case *FactomEvent_StateChanged:
-		s := proto.Size(x.StateChanged)
+	case *FactomEvent_EntryContentRegistration:
+		s := proto.Size(x.EntryContentRegistration)
 		n += 1 // tag and wire
 		n += proto.SizeVarint(uint64(s))
 		n += s
-	case *FactomEvent_DirBlockConsensus:
-		s := proto.Size(x.DirBlockConsensus)
+	case *FactomEvent_StateChange:
+		s := proto.Size(x.StateChange)
 		n += 1 // tag and wire
 		n += proto.SizeVarint(uint64(s))
 		n += s
-	case *FactomEvent_ProcessEvent:
-		s := proto.Size(x.ProcessEvent)
+	case *FactomEvent_BlockCommit:
+		s := proto.Size(x.BlockCommit)
 		n += 1 // tag and wire
 		n += proto.SizeVarint(uint64(s))
 		n += s
-	case *FactomEvent_NodeEvent:
-		s := proto.Size(x.NodeEvent)
+	case *FactomEvent_ProcessMessage:
+		s := proto.Size(x.ProcessMessage)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *FactomEvent_NodeMessage:
+		s := proto.Size(x.NodeMessage)
 		n += 1 // tag and wire
 		n += proto.SizeVarint(uint64(s))
 		n += s
@@ -460,7 +460,7 @@ func _FactomEvent_OneofSizer(msg proto.Message) (n int) {
 	return n
 }
 
-type DirBlockConsensus struct {
+type BlockCommit struct {
 	DirectoryBlock       *DirectoryBlock    `protobuf:"bytes,1,opt,name=directoryBlock,proto3" json:"directoryBlock,omitempty"`
 	AdminBlock           *AdminBlock        `protobuf:"bytes,2,opt,name=adminBlock,proto3" json:"adminBlock,omitempty"`
 	FactoidBlock         *FactoidBlock      `protobuf:"bytes,3,opt,name=factoidBlock,proto3" json:"factoidBlock,omitempty"`
@@ -472,18 +472,18 @@ type DirBlockConsensus struct {
 	XXX_sizecache        int32              `json:"-"`
 }
 
-func (m *DirBlockConsensus) Reset()         { *m = DirBlockConsensus{} }
-func (m *DirBlockConsensus) String() string { return proto.CompactTextString(m) }
-func (*DirBlockConsensus) ProtoMessage()    {}
-func (*DirBlockConsensus) Descriptor() ([]byte, []int) {
+func (m *BlockCommit) Reset()         { *m = BlockCommit{} }
+func (m *BlockCommit) String() string { return proto.CompactTextString(m) }
+func (*BlockCommit) ProtoMessage()    {}
+func (*BlockCommit) Descriptor() ([]byte, []int) {
 	return fileDescriptor_1671448ba58a28d0, []int{1}
 }
-func (m *DirBlockConsensus) XXX_Unmarshal(b []byte) error {
+func (m *BlockCommit) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
-func (m *DirBlockConsensus) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+func (m *BlockCommit) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	if deterministic {
-		return xxx_messageInfo_DirBlockConsensus.Marshal(b, m, deterministic)
+		return xxx_messageInfo_BlockCommit.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
 		n, err := m.MarshalTo(b)
@@ -493,80 +493,80 @@ func (m *DirBlockConsensus) XXX_Marshal(b []byte, deterministic bool) ([]byte, e
 		return b[:n], nil
 	}
 }
-func (m *DirBlockConsensus) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_DirBlockConsensus.Merge(m, src)
+func (m *BlockCommit) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_BlockCommit.Merge(m, src)
 }
-func (m *DirBlockConsensus) XXX_Size() int {
+func (m *BlockCommit) XXX_Size() int {
 	return m.Size()
 }
-func (m *DirBlockConsensus) XXX_DiscardUnknown() {
-	xxx_messageInfo_DirBlockConsensus.DiscardUnknown(m)
+func (m *BlockCommit) XXX_DiscardUnknown() {
+	xxx_messageInfo_BlockCommit.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_DirBlockConsensus proto.InternalMessageInfo
+var xxx_messageInfo_BlockCommit proto.InternalMessageInfo
 
-func (m *DirBlockConsensus) GetDirectoryBlock() *DirectoryBlock {
+func (m *BlockCommit) GetDirectoryBlock() *DirectoryBlock {
 	if m != nil {
 		return m.DirectoryBlock
 	}
 	return nil
 }
 
-func (m *DirBlockConsensus) GetAdminBlock() *AdminBlock {
+func (m *BlockCommit) GetAdminBlock() *AdminBlock {
 	if m != nil {
 		return m.AdminBlock
 	}
 	return nil
 }
 
-func (m *DirBlockConsensus) GetFactoidBlock() *FactoidBlock {
+func (m *BlockCommit) GetFactoidBlock() *FactoidBlock {
 	if m != nil {
 		return m.FactoidBlock
 	}
 	return nil
 }
 
-func (m *DirBlockConsensus) GetEntryCreditBlock() *EntryCreditBlock {
+func (m *BlockCommit) GetEntryCreditBlock() *EntryCreditBlock {
 	if m != nil {
 		return m.EntryCreditBlock
 	}
 	return nil
 }
 
-func (m *DirBlockConsensus) GetEntryBlocks() []*EntryBlock {
+func (m *BlockCommit) GetEntryBlocks() []*EntryBlock {
 	if m != nil {
 		return m.EntryBlocks
 	}
 	return nil
 }
 
-func (m *DirBlockConsensus) GetEntryBlockEntries() []*EntryBlockEntry {
+func (m *BlockCommit) GetEntryBlockEntries() []*EntryBlockEntry {
 	if m != nil {
 		return m.EntryBlockEntries
 	}
 	return nil
 }
 
-type StateChanged struct {
-	EntryHash            *Hash       `protobuf:"bytes,1,opt,name=entryHash,proto3" json:"entryHash,omitempty"`
+type StateChange struct {
+	EntityHash           *Hash       `protobuf:"bytes,1,opt,name=entityHash,proto3" json:"entityHash,omitempty"`
 	EntityState          EntityState `protobuf:"varint,2,opt,name=entityState,proto3,enum=eventmessages.EntityState" json:"entityState,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
 	XXX_unrecognized     []byte      `json:"-"`
 	XXX_sizecache        int32       `json:"-"`
 }
 
-func (m *StateChanged) Reset()         { *m = StateChanged{} }
-func (m *StateChanged) String() string { return proto.CompactTextString(m) }
-func (*StateChanged) ProtoMessage()    {}
-func (*StateChanged) Descriptor() ([]byte, []int) {
+func (m *StateChange) Reset()         { *m = StateChange{} }
+func (m *StateChange) String() string { return proto.CompactTextString(m) }
+func (*StateChange) ProtoMessage()    {}
+func (*StateChange) Descriptor() ([]byte, []int) {
 	return fileDescriptor_1671448ba58a28d0, []int{2}
 }
-func (m *StateChanged) XXX_Unmarshal(b []byte) error {
+func (m *StateChange) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
-func (m *StateChanged) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+func (m *StateChange) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	if deterministic {
-		return xxx_messageInfo_StateChanged.Marshal(b, m, deterministic)
+		return xxx_messageInfo_StateChange.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
 		n, err := m.MarshalTo(b)
@@ -576,30 +576,30 @@ func (m *StateChanged) XXX_Marshal(b []byte, deterministic bool) ([]byte, error)
 		return b[:n], nil
 	}
 }
-func (m *StateChanged) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_StateChanged.Merge(m, src)
+func (m *StateChange) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_StateChange.Merge(m, src)
 }
-func (m *StateChanged) XXX_Size() int {
+func (m *StateChange) XXX_Size() int {
 	return m.Size()
 }
-func (m *StateChanged) XXX_DiscardUnknown() {
-	xxx_messageInfo_StateChanged.DiscardUnknown(m)
+func (m *StateChange) XXX_DiscardUnknown() {
+	xxx_messageInfo_StateChange.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_StateChanged proto.InternalMessageInfo
+var xxx_messageInfo_StateChange proto.InternalMessageInfo
 
-func (m *StateChanged) GetEntryHash() *Hash {
+func (m *StateChange) GetEntityHash() *Hash {
 	if m != nil {
-		return m.EntryHash
+		return m.EntityHash
 	}
 	return nil
 }
 
-func (m *StateChanged) GetEntityState() EntityState {
+func (m *StateChange) GetEntityState() EntityState {
 	if m != nil {
 		return m.EntityState
 	}
-	return EntityState_COMMIT_DIRECTORY_BLOCK
+	return EntityState_PLACED_IN_HOLDING
 }
 
 type DirectoryBlock struct {
@@ -1021,14 +1021,13 @@ func (m *NodeMessage) GetMessageText() string {
 }
 
 func init() {
-	proto.RegisterEnum("eventmessages.EventSource", EventSource_name, EventSource_value)
-	proto.RegisterEnum("eventmessages.EntityState", EntityState_name, EntityState_value)
+	proto.RegisterEnum("eventmessages.StreamSource", StreamSource_name, StreamSource_value)
 	proto.RegisterEnum("eventmessages.Level", Level_name, Level_value)
 	proto.RegisterEnum("eventmessages.ProcessMessageCode", ProcessMessageCode_name, ProcessMessageCode_value)
 	proto.RegisterEnum("eventmessages.NodeMessageCode", NodeMessageCode_name, NodeMessageCode_value)
 	proto.RegisterType((*FactomEvent)(nil), "eventmessages.FactomEvent")
-	proto.RegisterType((*DirBlockConsensus)(nil), "eventmessages.DirBlockConsensus")
-	proto.RegisterType((*StateChanged)(nil), "eventmessages.StateChanged")
+	proto.RegisterType((*BlockCommit)(nil), "eventmessages.BlockCommit")
+	proto.RegisterType((*StateChange)(nil), "eventmessages.StateChange")
 	proto.RegisterType((*DirectoryBlock)(nil), "eventmessages.DirectoryBlock")
 	proto.RegisterType((*DirectoryBlockHeader)(nil), "eventmessages.DirectoryBlockHeader")
 	proto.RegisterType((*EntryBlock)(nil), "eventmessages.EntryBlock")
@@ -1042,77 +1041,73 @@ func init() {
 }
 
 var fileDescriptor_1671448ba58a28d0 = []byte{
-	// 1108 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x96, 0x4f, 0x6f, 0xe3, 0xc4,
-	0x1b, 0xc7, 0xe3, 0xa4, 0x69, 0x36, 0x4f, 0x9a, 0xac, 0xfb, 0xfc, 0x76, 0x57, 0xf9, 0x15, 0x91,
-	0x0d, 0x59, 0xfe, 0x2c, 0x91, 0x48, 0xc5, 0x22, 0x24, 0xa0, 0xa0, 0xdd, 0xd4, 0x71, 0x49, 0xd4,
-	0x24, 0x8e, 0x26, 0x5e, 0xaa, 0x72, 0x89, 0xdc, 0x78, 0x36, 0xb5, 0x36, 0xb1, 0x8b, 0xed, 0x54,
-	0xf4, 0x80, 0x78, 0x0b, 0x1c, 0xb9, 0x70, 0xe2, 0xce, 0xeb, 0xe0, 0x82, 0xc4, 0x9d, 0x0b, 0x2a,
-	0xef, 0x80, 0x57, 0x80, 0x3c, 0x9e, 0xc4, 0x63, 0xc7, 0xed, 0x0a, 0xad, 0x38, 0x25, 0x33, 0xf3,
-	0x79, 0xbe, 0x7e, 0xfc, 0xfc, 0x1b, 0xc3, 0x7b, 0xf4, 0x92, 0xda, 0xbe, 0xb7, 0xcf, 0x7e, 0x16,
-	0xd4, 0xf3, 0x8c, 0x19, 0xf5, 0xf6, 0x5f, 0x18, 0x53, 0xdf, 0x59, 0xa8, 0xec, 0xa8, 0x75, 0xe1,
-	0x3a, 0xbe, 0x83, 0xe5, 0x18, 0xb1, 0x97, 0x6e, 0x37, 0xa3, 0x36, 0x75, 0x8d, 0xb9, 0x7e, 0x75,
-	0x41, 0xb9, 0xdd, 0xde, 0x3b, 0xa9, 0xa0, 0x61, 0x2e, 0x2c, 0xfb, 0x70, 0xee, 0x4c, 0x5f, 0x72,
-	0xec, 0x16, 0x3f, 0x2c, 0x53, 0x04, 0xdf, 0x4d, 0x05, 0xa9, 0xed, 0xbb, 0x57, 0x8a, 0x4b, 0x4d,
-	0xcb, 0xe7, 0xdc, 0xc3, 0x99, 0xe3, 0xcc, 0xe6, 0x74, 0x9f, 0xad, 0xce, 0x96, 0x2f, 0xf6, 0x7d,
-	0x6b, 0x41, 0x3d, 0xdf, 0x58, 0x5c, 0x84, 0x40, 0xe3, 0xb7, 0x2d, 0x28, 0x1d, 0x45, 0xef, 0x89,
-	0x9f, 0x43, 0x89, 0x69, 0x8e, 0x9d, 0xa5, 0x3b, 0xa5, 0x55, 0xa9, 0x2e, 0x3d, 0xae, 0x3c, 0xd9,
-	0x6b, 0xc5, 0x9e, 0xd3, 0x52, 0x23, 0x82, 0x88, 0x38, 0x7e, 0x01, 0x77, 0x2d, 0x93, 0xda, 0xbe,
-	0xe5, 0x5f, 0x29, 0xe7, 0x86, 0x65, 0xf7, 0x3a, 0xd5, 0x6c, 0x5d, 0x7a, 0x5c, 0x7a, 0xf2, 0xbf,
-	0x84, 0x42, 0xd7, 0xf0, 0xce, 0x49, 0x92, 0xc5, 0x11, 0xec, 0x4e, 0x83, 0xbf, 0x84, 0xce, 0x2c,
-	0xcf, 0x77, 0x0d, 0xdf, 0x72, 0xec, 0x6a, 0x8e, 0x09, 0xd4, 0x13, 0x02, 0x4a, 0x92, 0xeb, 0x66,
-	0xc8, 0xa6, 0x71, 0xa0, 0xc8, 0x82, 0x12, 0x53, 0xdc, 0x4a, 0x55, 0x54, 0x93, 0x5c, 0xa0, 0xb8,
-	0x61, 0x8c, 0x6d, 0xd8, 0xf1, 0x7c, 0xc3, 0xa7, 0xca, 0xb9, 0x61, 0xcf, 0xa8, 0x59, 0xcd, 0x33,
-	0xb1, 0x37, 0x12, 0x62, 0x63, 0x01, 0xe9, 0x66, 0x48, 0xcc, 0x24, 0x70, 0xca, 0xb4, 0x5c, 0x96,
-	0x4e, 0xc5, 0xb1, 0x3d, 0x6a, 0x7b, 0x4b, 0xaf, 0xba, 0x9d, 0xea, 0x54, 0x27, 0xc9, 0x05, 0x4e,
-	0x6d, 0x18, 0xa3, 0x02, 0x3b, 0x17, 0xae, 0x33, 0xa5, 0x9e, 0xc7, 0x52, 0x53, 0x2d, 0x30, 0xb1,
-	0x37, 0x13, 0x62, 0xa3, 0x10, 0x19, 0x84, 0xeb, 0xc0, 0x2d, 0xd1, 0x08, 0x3f, 0x83, 0xa2, 0xed,
-	0x98, 0x34, 0x54, 0xb8, 0xc3, 0x14, 0x92, 0x89, 0x1f, 0x3a, 0x26, 0x8d, 0xcc, 0x23, 0xfc, 0xb0,
-	0x00, 0xf9, 0x4b, 0x63, 0xbe, 0xa4, 0x8d, 0x5f, 0x72, 0xb0, 0xbb, 0xe1, 0x34, 0xaa, 0x50, 0x31,
-	0x2d, 0x97, 0x4e, 0x7d, 0xc7, 0xbd, 0x62, 0x47, 0xac, 0xb0, 0x36, 0x3d, 0xec, 0xc4, 0x20, 0x92,
-	0x30, 0xc2, 0x4f, 0x01, 0xa2, 0x96, 0xe1, 0x95, 0xf5, 0xff, 0x84, 0x44, 0x7b, 0x0d, 0x10, 0x01,
-	0xc6, 0xa7, 0xb0, 0x23, 0xb6, 0x11, 0xaf, 0xaa, 0x64, 0xda, 0x8e, 0x04, 0x84, 0xc4, 0x0c, 0xf0,
-	0x18, 0x64, 0xa1, 0xbd, 0x42, 0x91, 0xb0, 0x90, 0x1e, 0xa6, 0x15, 0x92, 0x80, 0x91, 0x0d, 0x43,
-	0x3c, 0x80, 0x12, 0xdb, 0x63, 0x2b, 0xaf, 0x9a, 0xaf, 0xe7, 0x52, 0xde, 0x44, 0x5d, 0x13, 0x44,
-	0xa4, 0xb1, 0xcf, 0x6b, 0x9a, 0x2d, 0x03, 0xc8, 0xa2, 0x41, 0xf9, 0x04, 0x12, 0xb5, 0x1b, 0x25,
-	0xc2, 0xea, 0xde, 0x34, 0x6c, 0x7c, 0x0f, 0x3b, 0x62, 0xb1, 0xe2, 0x87, 0x50, 0x64, 0x50, 0xd0,
-	0xa1, 0x3c, 0x4b, 0xa9, 0xcd, 0x1b, 0x51, 0x6c, 0x66, 0xb0, 0x3e, 0x66, 0x42, 0x2c, 0x2f, 0x29,
-	0x33, 0x23, 0x22, 0x88, 0x88, 0x37, 0xbe, 0x83, 0x4a, 0x3c, 0xed, 0x78, 0x00, 0xdb, 0xe7, 0xd4,
-	0x30, 0xa9, 0xcb, 0x9f, 0xff, 0xe8, 0xd6, 0x2a, 0xe9, 0x32, 0x94, 0x70, 0x13, 0x6c, 0x41, 0x81,
-	0xf2, 0x98, 0x64, 0x59, 0x4c, 0xee, 0xa5, 0xf6, 0xf9, 0x0a, 0x6a, 0xfc, 0x91, 0x85, 0x7b, 0x69,
-	0x82, 0x78, 0x00, 0x95, 0x33, 0xc7, 0xbc, 0x1a, 0x50, 0xf7, 0xe5, 0x9c, 0x12, 0xc7, 0xf1, 0x6f,
-	0x8b, 0x46, 0x02, 0xc5, 0x1e, 0xdc, 0xbf, 0x70, 0xe9, 0xa5, 0xe5, 0x2c, 0xbd, 0x63, 0x2a, 0x6a,
-	0xdc, 0x32, 0x0e, 0xd3, 0x2d, 0xf0, 0x29, 0xc8, 0xab, 0x83, 0xa3, 0xe5, 0x7c, 0xce, 0xf2, 0x92,
-	0xbb, 0x59, 0x65, 0x03, 0xc6, 0x4f, 0xa0, 0xb8, 0x9e, 0xfa, 0xbc, 0x64, 0xf7, 0x5a, 0xe1, 0xbd,
-	0xd0, 0x5a, 0xdd, 0x0b, 0x2d, 0x7d, 0x45, 0x90, 0x08, 0xc6, 0x3a, 0x94, 0xce, 0xc2, 0x88, 0x58,
-	0xb3, 0x73, 0x9f, 0x8d, 0xba, 0x32, 0x11, 0xb7, 0xb0, 0x06, 0x70, 0x16, 0xb6, 0xfa, 0xd2, 0xf6,
-	0xd9, 0x0c, 0x2b, 0x13, 0x61, 0xa7, 0xf1, 0x83, 0x04, 0x10, 0x15, 0xe1, 0xba, 0x89, 0x84, 0x38,
-	0xf3, 0xa8, 0x3e, 0xbc, 0xb1, 0x72, 0x79, 0x7e, 0x37, 0x0c, 0xf1, 0x63, 0xde, 0x44, 0xc1, 0x4b,
-	0xae, 0xb3, 0x9d, 0x1a, 0x13, 0x91, 0x6b, 0xfc, 0x9d, 0x05, 0x39, 0xa9, 0xfe, 0x7a, 0xc9, 0xfe,
-	0x00, 0x0a, 0xd3, 0x57, 0xdf, 0x76, 0x2b, 0xe6, 0xf5, 0x13, 0x7a, 0x63, 0x71, 0x6d, 0xfd, 0xeb,
-	0xe2, 0x7a, 0x75, 0x86, 0xdf, 0x86, 0x32, 0x5b, 0x8e, 0xe9, 0x37, 0x4b, 0x6a, 0x4f, 0x29, 0x4f,
-	0x72, 0x7c, 0x33, 0xa8, 0x83, 0x70, 0xc8, 0xb1, 0x3a, 0x28, 0x84, 0x75, 0x10, 0xed, 0x34, 0x7e,
-	0x96, 0xa0, 0x12, 0xbf, 0x7e, 0x50, 0x81, 0x12, 0x77, 0x51, 0x71, 0xcc, 0xd5, 0x97, 0xc6, 0x5b,
-	0xb7, 0x5e, 0x59, 0x01, 0x48, 0x44, 0x2b, 0x6c, 0x42, 0x7e, 0x4e, 0x2f, 0xe9, 0x9c, 0x0f, 0x9d,
-	0x64, 0xaf, 0xf7, 0x83, 0x33, 0x12, 0x22, 0xc1, 0xbb, 0xf2, 0x03, 0x9d, 0x7e, 0xeb, 0xb3, 0x90,
-	0x17, 0x89, 0xb8, 0xd5, 0xf8, 0x49, 0x82, 0x92, 0x70, 0xc5, 0xe1, 0xb3, 0x34, 0x17, 0x6b, 0x37,
-	0xdf, 0x89, 0xff, 0xb1, 0x7f, 0xcd, 0x47, 0x50, 0x12, 0x3e, 0xbd, 0xf0, 0x0e, 0x6c, 0xf5, 0x7b,
-	0x5f, 0xa9, 0x72, 0x06, 0x01, 0xb6, 0x89, 0x3a, 0xea, 0xb7, 0x4f, 0x65, 0xa9, 0x39, 0x87, 0x92,
-	0x30, 0x6b, 0x71, 0x0f, 0x1e, 0x28, 0xda, 0x60, 0xd0, 0xd3, 0x27, 0x9d, 0x1e, 0x51, 0x15, 0x5d,
-	0x23, 0xa7, 0x93, 0xc3, 0xbe, 0xa6, 0x1c, 0xcb, 0x19, 0x7c, 0x00, 0xd8, 0xee, 0x74, 0x26, 0xba,
-	0x36, 0x19, 0x11, 0x4d, 0x51, 0xc7, 0xe3, 0x7e, 0x6f, 0xac, 0xcb, 0x12, 0x22, 0x54, 0xf8, 0x7e,
-	0x57, 0xeb, 0x77, 0x7a, 0xc3, 0x2f, 0xe5, 0x2c, 0xde, 0x87, 0xdd, 0x0e, 0xd1, 0x46, 0x93, 0x23,
-	0xa2, 0x0d, 0xd6, 0xdb, 0xb9, 0xe6, 0xfb, 0x90, 0x67, 0x2f, 0x11, 0x38, 0xd3, 0x1b, 0x1e, 0x69,
-	0x72, 0x06, 0x4b, 0x50, 0x38, 0x69, 0x93, 0x61, 0x70, 0x2e, 0x61, 0x11, 0xf2, 0x2a, 0x21, 0x1a,
-	0x91, 0xb3, 0xcd, 0x67, 0x80, 0x9b, 0xe9, 0x0c, 0x68, 0x4d, 0xef, 0xaa, 0x64, 0x32, 0x92, 0x33,
-	0x58, 0x86, 0xe2, 0x50, 0x3d, 0xe1, 0xfe, 0x49, 0x58, 0x01, 0x08, 0x96, 0x83, 0xde, 0xf0, 0xb9,
-	0xae, 0xca, 0xd9, 0x66, 0x1f, 0xee, 0x26, 0xa2, 0x1d, 0x99, 0x0f, 0xc3, 0x27, 0x8f, 0xf5, 0x36,
-	0xd1, 0xd5, 0x8e, 0x2c, 0xe1, 0x2e, 0x94, 0xc7, 0xa7, 0x43, 0x65, 0xa2, 0x68, 0x83, 0x51, 0x5f,
-	0x0d, 0xec, 0x71, 0x07, 0xee, 0x8c, 0xbb, 0xcf, 0xf5, 0x8e, 0x76, 0x32, 0x94, 0x73, 0x87, 0xed,
-	0x5f, 0xaf, 0x6b, 0xd2, 0xef, 0xd7, 0x35, 0xe9, 0xcf, 0xeb, 0x9a, 0xf4, 0xe3, 0x5f, 0xb5, 0x0c,
-	0xd4, 0xa7, 0xce, 0xa2, 0x15, 0x7e, 0xf5, 0xf3, 0x1f, 0x33, 0x9e, 0xb0, 0xaf, 0xe3, 0xdf, 0xff,
-	0x67, 0xdb, 0x6c, 0x7e, 0x7e, 0xf4, 0x4f, 0x00, 0x00, 0x00, 0xff, 0xff, 0x4a, 0xcc, 0xb5, 0x68,
-	0x40, 0x0c, 0x00, 0x00,
+	// 1056 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x96, 0x4d, 0x8f, 0x22, 0x45,
+	0x18, 0xc7, 0x69, 0x66, 0x18, 0x86, 0x87, 0x81, 0xed, 0x2d, 0xd7, 0x04, 0xc7, 0xc8, 0x20, 0xae,
+	0xee, 0x4a, 0x22, 0x93, 0xec, 0xc6, 0x44, 0x33, 0xea, 0x2e, 0xf4, 0xf4, 0x2c, 0x64, 0x18, 0x20,
+	0x05, 0xeb, 0x64, 0xbd, 0x4c, 0x7a, 0xe8, 0x5a, 0xe8, 0x2c, 0x74, 0x63, 0x77, 0x31, 0x91, 0x83,
+	0x89, 0x1f, 0xc1, 0xa3, 0x17, 0x4f, 0x5e, 0x8c, 0x9f, 0xc4, 0xa3, 0x77, 0x2f, 0x66, 0xfc, 0x06,
+	0x7e, 0x02, 0x53, 0xd5, 0x05, 0x5d, 0xfd, 0x02, 0x1b, 0xb3, 0xf1, 0x34, 0xd3, 0xd5, 0xbf, 0xff,
+	0x9f, 0xa7, 0x9e, 0x97, 0xaa, 0x86, 0x07, 0xe4, 0x86, 0xd8, 0xd4, 0x3b, 0xe6, 0x7f, 0x66, 0xc4,
+	0xf3, 0x8c, 0x31, 0xf1, 0x8e, 0x5f, 0x1a, 0x23, 0xea, 0xcc, 0x74, 0xfe, 0xaa, 0x3e, 0x77, 0x1d,
+	0xea, 0xa0, 0x42, 0x88, 0x38, 0x4c, 0xd6, 0x8d, 0x89, 0x4d, 0x5c, 0x63, 0x3a, 0x5c, 0xce, 0x89,
+	0xd0, 0x1d, 0x7e, 0x98, 0x08, 0x1a, 0xe6, 0xcc, 0xb2, 0x9b, 0x53, 0x67, 0xf4, 0x4a, 0x60, 0x5b,
+	0xe2, 0xb0, 0x4c, 0x19, 0xfc, 0x28, 0x11, 0x24, 0x36, 0x75, 0x97, 0x9a, 0x4b, 0x4c, 0x8b, 0x0a,
+	0xee, 0x68, 0xec, 0x38, 0xe3, 0x29, 0x39, 0xe6, 0x4f, 0xd7, 0x8b, 0x97, 0xc7, 0xd4, 0x9a, 0x11,
+	0x8f, 0x1a, 0xb3, 0xb9, 0x0f, 0x54, 0x7f, 0xcb, 0x40, 0xfe, 0x2c, 0xd8, 0x27, 0x7a, 0x02, 0x07,
+	0x1e, 0x75, 0x89, 0x31, 0x1b, 0x38, 0x0b, 0x77, 0x44, 0x4a, 0x4a, 0x45, 0x79, 0x58, 0x7c, 0xf4,
+	0x6e, 0x3d, 0xf4, 0x43, 0xf5, 0x81, 0x84, 0xe0, 0x90, 0x00, 0x7d, 0x09, 0x77, 0x2c, 0x93, 0xd8,
+	0xd4, 0xa2, 0x4b, 0x6d, 0x62, 0x58, 0x76, 0xfb, 0xb4, 0x94, 0xae, 0x28, 0x0f, 0xf3, 0x8f, 0xde,
+	0x8a, 0x78, 0xb4, 0x0c, 0x6f, 0x82, 0xa3, 0x2c, 0xea, 0xc3, 0xdd, 0x11, 0xfb, 0x17, 0x93, 0xb1,
+	0xe5, 0x51, 0xd7, 0xa0, 0x96, 0x63, 0x97, 0x76, 0xb8, 0x41, 0x25, 0x62, 0xa0, 0x45, 0xb9, 0x56,
+	0x0a, 0xc7, 0xc5, 0xcc, 0x91, 0xe7, 0x25, 0xe4, 0xb8, 0x9b, 0xe8, 0xa8, 0x47, 0x39, 0xe6, 0x18,
+	0x13, 0x23, 0x02, 0x25, 0x3f, 0xd3, 0x8e, 0x4d, 0x89, 0x4d, 0x43, 0xc6, 0x19, 0x6e, 0xfc, 0x20,
+	0xc9, 0x38, 0x01, 0x6f, 0xa5, 0xf0, 0x46, 0x2b, 0xf4, 0x15, 0xe4, 0x3d, 0x6a, 0x50, 0xa2, 0x4d,
+	0x0c, 0x7b, 0x4c, 0x4a, 0x7b, 0xdc, 0xf9, 0x30, 0x56, 0x89, 0x35, 0xd1, 0x4a, 0x61, 0x59, 0xc0,
+	0xf4, 0xd7, 0xac, 0x65, 0x34, 0x67, 0x36, 0xb3, 0x68, 0x29, 0x9b, 0xa8, 0x6f, 0x06, 0x04, 0xd3,
+	0x4b, 0x02, 0xf4, 0x0c, 0x8a, 0x73, 0xd7, 0x19, 0x11, 0xcf, 0xbb, 0xf0, 0xe9, 0xd2, 0x3e, 0xb7,
+	0x78, 0x2f, 0x62, 0xd1, 0x0f, 0x41, 0xad, 0x14, 0x8e, 0xc8, 0x58, 0x20, 0xb6, 0x63, 0x92, 0x95,
+	0x4b, 0x2e, 0x31, 0x90, 0x6e, 0x40, 0xb0, 0x40, 0x24, 0x41, 0x33, 0x0b, 0x99, 0x1b, 0x63, 0xba,
+	0x20, 0xd5, 0x5f, 0x77, 0x20, 0x2f, 0x05, 0x8c, 0x74, 0x28, 0x9a, 0x96, 0x4b, 0x46, 0xd4, 0x71,
+	0x97, 0x7c, 0x9d, 0xb7, 0x6b, 0x3c, 0xc2, 0xd3, 0x10, 0x84, 0x23, 0x22, 0xf4, 0x39, 0x40, 0x30,
+	0x89, 0xa2, 0x5b, 0xdf, 0x89, 0x58, 0x34, 0xd6, 0x00, 0x96, 0x60, 0x36, 0x2e, 0xf2, 0x74, 0x8a,
+	0x4e, 0x8d, 0x8e, 0xcb, 0x99, 0x84, 0xe0, 0x90, 0x00, 0x9d, 0x83, 0x2a, 0x4d, 0xad, 0x6f, 0xe2,
+	0x37, 0xe7, 0x51, 0x62, 0x0f, 0x05, 0x18, 0x8e, 0x09, 0xd1, 0x09, 0xe4, 0xf9, 0x1a, 0x7f, 0xf2,
+	0x4a, 0x99, 0xca, 0x4e, 0xc2, 0x4e, 0xf4, 0x35, 0x81, 0x65, 0x1a, 0x75, 0xc4, 0x9c, 0xf0, 0x47,
+	0x06, 0x59, 0xc4, 0x2b, 0xed, 0x71, 0x8b, 0xf2, 0x46, 0x0b, 0x7f, 0x62, 0xe2, 0xc2, 0xea, 0x0f,
+	0x0a, 0xe4, 0xa5, 0xde, 0x44, 0x8f, 0x01, 0xfc, 0x41, 0x67, 0x63, 0x2f, 0xca, 0x94, 0x78, 0x22,
+	0x48, 0x18, 0xfa, 0x82, 0xef, 0xc7, 0xa2, 0x4b, 0xee, 0xc4, 0x2b, 0x53, 0x8c, 0x35, 0x8e, 0x1e,
+	0x10, 0x58, 0xc6, 0xab, 0xdf, 0x43, 0x31, 0x5c, 0x78, 0x74, 0x02, 0x7b, 0x13, 0x62, 0x98, 0xc4,
+	0x15, 0x01, 0x7c, 0xb0, 0xb5, 0x4f, 0x5a, 0x1c, 0xc5, 0x42, 0x82, 0xea, 0x90, 0x25, 0x22, 0x2b,
+	0x69, 0x9e, 0x95, 0x7b, 0x89, 0xa7, 0xc7, 0x0a, 0xaa, 0xfe, 0x99, 0x86, 0x7b, 0x49, 0x86, 0xe8,
+	0x04, 0x8a, 0xd7, 0x8e, 0xb9, 0xbc, 0x20, 0xee, 0xab, 0x29, 0xc1, 0x8e, 0x43, 0xb7, 0xa5, 0x23,
+	0x82, 0xa2, 0x36, 0xbc, 0x3d, 0x77, 0xc9, 0x8d, 0xe5, 0x2c, 0xbc, 0x73, 0x22, 0x7b, 0x6c, 0x39,
+	0x64, 0x93, 0x15, 0xe8, 0x09, 0xa8, 0xab, 0x17, 0x67, 0x8b, 0xe9, 0x94, 0x17, 0x66, 0x67, 0xb3,
+	0x4b, 0x0c, 0x46, 0x9f, 0x41, 0x6e, 0x7d, 0x9d, 0x88, 0xa6, 0x3d, 0xac, 0xfb, 0x17, 0x4e, 0x7d,
+	0x75, 0xe1, 0xd4, 0x87, 0x2b, 0x02, 0x07, 0x30, 0xaa, 0x88, 0xa3, 0xa9, 0x45, 0xac, 0xf1, 0x84,
+	0xf2, 0x43, 0xb3, 0x80, 0xe5, 0x25, 0x54, 0x06, 0x10, 0x67, 0xd1, 0xc2, 0xa6, 0xfc, 0xec, 0x2b,
+	0x60, 0x69, 0xa5, 0xfa, 0xa3, 0x02, 0x10, 0xb4, 0xe1, 0x7a, 0x8c, 0xa4, 0x3c, 0x8b, 0xac, 0x1e,
+	0x6d, 0xec, 0x5d, 0x51, 0xdf, 0x98, 0x10, 0x7d, 0x2a, 0xc6, 0x88, 0x6d, 0x72, 0x5d, 0xed, 0xc4,
+	0x9c, 0xc8, 0x5c, 0xf5, 0x9f, 0x34, 0xa8, 0x51, 0xf7, 0x37, 0x2b, 0xf6, 0x27, 0x90, 0x1d, 0xbd,
+	0xfe, 0x0e, 0x5d, 0x31, 0x6f, 0x5e, 0xd0, 0x8d, 0xcd, 0xb5, 0xfb, 0x9f, 0x9b, 0xeb, 0xf5, 0x15,
+	0xbe, 0x0f, 0x05, 0xfe, 0x38, 0x20, 0xdf, 0x2e, 0x88, 0x3d, 0x22, 0xa2, 0xc8, 0xe1, 0x45, 0xd6,
+	0x07, 0xe2, 0x82, 0x64, 0x7d, 0x90, 0xf5, 0xfb, 0x20, 0x58, 0xa9, 0xfe, 0xa2, 0x40, 0x31, 0x7c,
+	0x01, 0x21, 0x0d, 0xf2, 0x22, 0x44, 0xcd, 0x31, 0x57, 0x5f, 0x30, 0xef, 0x6f, 0xbd, 0xb4, 0x18,
+	0x88, 0x65, 0x15, 0xaa, 0x41, 0x66, 0x4a, 0x6e, 0xc8, 0x54, 0x1c, 0x3a, 0xd1, 0x59, 0xef, 0xb0,
+	0x77, 0xd8, 0x47, 0xd8, 0x5e, 0xc5, 0x8b, 0x21, 0xf9, 0x8e, 0xf2, 0x94, 0xe7, 0xb0, 0xbc, 0x54,
+	0xfd, 0x59, 0x81, 0xbc, 0x74, 0xc1, 0xa1, 0xa7, 0x49, 0x21, 0x96, 0x37, 0xdf, 0x88, 0xff, 0x73,
+	0x7c, 0xb5, 0xfb, 0x70, 0x20, 0x7f, 0xd2, 0xa1, 0x7d, 0xd8, 0xed, 0xb4, 0xbf, 0xd6, 0xd5, 0x14,
+	0x02, 0xd8, 0xc3, 0x7a, 0xbf, 0xd3, 0x78, 0xa1, 0x2a, 0xb5, 0x8f, 0x21, 0xc3, 0x7d, 0xd9, 0xeb,
+	0x76, 0xf7, 0xac, 0xa7, 0xa6, 0x50, 0x1e, 0xb2, 0x97, 0x0d, 0xdc, 0x6d, 0x77, 0x9f, 0xa9, 0x0a,
+	0xca, 0x41, 0x46, 0xc7, 0xb8, 0x87, 0xd5, 0x74, 0xed, 0x29, 0xa0, 0x78, 0x86, 0x19, 0xdd, 0x1b,
+	0xb6, 0x74, 0x7c, 0xd5, 0x57, 0x53, 0xa8, 0x00, 0xb9, 0xae, 0x7e, 0x79, 0xd5, 0xec, 0xf4, 0xb4,
+	0x73, 0x55, 0x41, 0x45, 0x00, 0xf6, 0x78, 0xd1, 0xee, 0x3e, 0x1f, 0xea, 0x6a, 0xba, 0xd6, 0x81,
+	0x3b, 0x91, 0x04, 0x04, 0xf2, 0xae, 0xff, 0xcb, 0x83, 0x61, 0x03, 0x0f, 0xf5, 0x53, 0x55, 0x41,
+	0x77, 0xa1, 0x30, 0x78, 0xd1, 0xd5, 0xae, 0xb4, 0xde, 0x45, 0xbf, 0xa3, 0x33, 0x3d, 0x3a, 0x80,
+	0xfd, 0x41, 0xeb, 0xf9, 0xf0, 0xb4, 0x77, 0xd9, 0x55, 0x77, 0x9a, 0x8d, 0xdf, 0x6f, 0xcb, 0xca,
+	0x1f, 0xb7, 0x65, 0xe5, 0xaf, 0xdb, 0xb2, 0xf2, 0xd3, 0xdf, 0xe5, 0x14, 0x54, 0x46, 0xce, 0xac,
+	0xee, 0x7f, 0xe1, 0x8b, 0x3f, 0x66, 0x38, 0x87, 0xdf, 0x84, 0xbf, 0xf5, 0xaf, 0xf7, 0xf8, 0x91,
+	0xf6, 0xf8, 0xdf, 0x00, 0x00, 0x00, 0xff, 0xff, 0xf0, 0xdb, 0x91, 0x65, 0x2c, 0x0c, 0x00, 0x00,
 }
 
 func (m *FactomEvent) Marshal() (dAtA []byte, err error) {
@@ -1130,10 +1125,10 @@ func (m *FactomEvent) MarshalTo(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if m.EventSource != 0 {
+	if m.StreamSource != 0 {
 		dAtA[i] = 0x8
 		i++
-		i = encodeVarintFactomEvents(dAtA, i, uint64(m.EventSource))
+		i = encodeVarintFactomEvents(dAtA, i, uint64(m.StreamSource))
 	}
 	if m.IdentityChainID != nil {
 		dAtA[i] = 0x12
@@ -1186,13 +1181,13 @@ func (m *FactomEvent_EntryRegistration) MarshalTo(dAtA []byte) (int, error) {
 	}
 	return i, nil
 }
-func (m *FactomEvent_StateChanged) MarshalTo(dAtA []byte) (int, error) {
+func (m *FactomEvent_EntryContentRegistration) MarshalTo(dAtA []byte) (int, error) {
 	i := 0
-	if m.StateChanged != nil {
+	if m.EntryContentRegistration != nil {
 		dAtA[i] = 0x2a
 		i++
-		i = encodeVarintFactomEvents(dAtA, i, uint64(m.StateChanged.Size()))
-		n5, err5 := m.StateChanged.MarshalTo(dAtA[i:])
+		i = encodeVarintFactomEvents(dAtA, i, uint64(m.EntryContentRegistration.Size()))
+		n5, err5 := m.EntryContentRegistration.MarshalTo(dAtA[i:])
 		if err5 != nil {
 			return 0, err5
 		}
@@ -1200,13 +1195,13 @@ func (m *FactomEvent_StateChanged) MarshalTo(dAtA []byte) (int, error) {
 	}
 	return i, nil
 }
-func (m *FactomEvent_DirBlockConsensus) MarshalTo(dAtA []byte) (int, error) {
+func (m *FactomEvent_StateChange) MarshalTo(dAtA []byte) (int, error) {
 	i := 0
-	if m.DirBlockConsensus != nil {
+	if m.StateChange != nil {
 		dAtA[i] = 0x32
 		i++
-		i = encodeVarintFactomEvents(dAtA, i, uint64(m.DirBlockConsensus.Size()))
-		n6, err6 := m.DirBlockConsensus.MarshalTo(dAtA[i:])
+		i = encodeVarintFactomEvents(dAtA, i, uint64(m.StateChange.Size()))
+		n6, err6 := m.StateChange.MarshalTo(dAtA[i:])
 		if err6 != nil {
 			return 0, err6
 		}
@@ -1214,13 +1209,13 @@ func (m *FactomEvent_DirBlockConsensus) MarshalTo(dAtA []byte) (int, error) {
 	}
 	return i, nil
 }
-func (m *FactomEvent_ProcessEvent) MarshalTo(dAtA []byte) (int, error) {
+func (m *FactomEvent_BlockCommit) MarshalTo(dAtA []byte) (int, error) {
 	i := 0
-	if m.ProcessEvent != nil {
+	if m.BlockCommit != nil {
 		dAtA[i] = 0x3a
 		i++
-		i = encodeVarintFactomEvents(dAtA, i, uint64(m.ProcessEvent.Size()))
-		n7, err7 := m.ProcessEvent.MarshalTo(dAtA[i:])
+		i = encodeVarintFactomEvents(dAtA, i, uint64(m.BlockCommit.Size()))
+		n7, err7 := m.BlockCommit.MarshalTo(dAtA[i:])
 		if err7 != nil {
 			return 0, err7
 		}
@@ -1228,13 +1223,13 @@ func (m *FactomEvent_ProcessEvent) MarshalTo(dAtA []byte) (int, error) {
 	}
 	return i, nil
 }
-func (m *FactomEvent_NodeEvent) MarshalTo(dAtA []byte) (int, error) {
+func (m *FactomEvent_ProcessMessage) MarshalTo(dAtA []byte) (int, error) {
 	i := 0
-	if m.NodeEvent != nil {
+	if m.ProcessMessage != nil {
 		dAtA[i] = 0x42
 		i++
-		i = encodeVarintFactomEvents(dAtA, i, uint64(m.NodeEvent.Size()))
-		n8, err8 := m.NodeEvent.MarshalTo(dAtA[i:])
+		i = encodeVarintFactomEvents(dAtA, i, uint64(m.ProcessMessage.Size()))
+		n8, err8 := m.ProcessMessage.MarshalTo(dAtA[i:])
 		if err8 != nil {
 			return 0, err8
 		}
@@ -1242,7 +1237,21 @@ func (m *FactomEvent_NodeEvent) MarshalTo(dAtA []byte) (int, error) {
 	}
 	return i, nil
 }
-func (m *DirBlockConsensus) Marshal() (dAtA []byte, err error) {
+func (m *FactomEvent_NodeMessage) MarshalTo(dAtA []byte) (int, error) {
+	i := 0
+	if m.NodeMessage != nil {
+		dAtA[i] = 0x4a
+		i++
+		i = encodeVarintFactomEvents(dAtA, i, uint64(m.NodeMessage.Size()))
+		n9, err9 := m.NodeMessage.MarshalTo(dAtA[i:])
+		if err9 != nil {
+			return 0, err9
+		}
+		i += n9
+	}
+	return i, nil
+}
+func (m *BlockCommit) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -1252,7 +1261,7 @@ func (m *DirBlockConsensus) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *DirBlockConsensus) MarshalTo(dAtA []byte) (int, error) {
+func (m *BlockCommit) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
@@ -1261,41 +1270,41 @@ func (m *DirBlockConsensus) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0xa
 		i++
 		i = encodeVarintFactomEvents(dAtA, i, uint64(m.DirectoryBlock.Size()))
-		n9, err9 := m.DirectoryBlock.MarshalTo(dAtA[i:])
-		if err9 != nil {
-			return 0, err9
-		}
-		i += n9
-	}
-	if m.AdminBlock != nil {
-		dAtA[i] = 0x12
-		i++
-		i = encodeVarintFactomEvents(dAtA, i, uint64(m.AdminBlock.Size()))
-		n10, err10 := m.AdminBlock.MarshalTo(dAtA[i:])
+		n10, err10 := m.DirectoryBlock.MarshalTo(dAtA[i:])
 		if err10 != nil {
 			return 0, err10
 		}
 		i += n10
 	}
-	if m.FactoidBlock != nil {
-		dAtA[i] = 0x1a
+	if m.AdminBlock != nil {
+		dAtA[i] = 0x12
 		i++
-		i = encodeVarintFactomEvents(dAtA, i, uint64(m.FactoidBlock.Size()))
-		n11, err11 := m.FactoidBlock.MarshalTo(dAtA[i:])
+		i = encodeVarintFactomEvents(dAtA, i, uint64(m.AdminBlock.Size()))
+		n11, err11 := m.AdminBlock.MarshalTo(dAtA[i:])
 		if err11 != nil {
 			return 0, err11
 		}
 		i += n11
 	}
-	if m.EntryCreditBlock != nil {
-		dAtA[i] = 0x22
+	if m.FactoidBlock != nil {
+		dAtA[i] = 0x1a
 		i++
-		i = encodeVarintFactomEvents(dAtA, i, uint64(m.EntryCreditBlock.Size()))
-		n12, err12 := m.EntryCreditBlock.MarshalTo(dAtA[i:])
+		i = encodeVarintFactomEvents(dAtA, i, uint64(m.FactoidBlock.Size()))
+		n12, err12 := m.FactoidBlock.MarshalTo(dAtA[i:])
 		if err12 != nil {
 			return 0, err12
 		}
 		i += n12
+	}
+	if m.EntryCreditBlock != nil {
+		dAtA[i] = 0x22
+		i++
+		i = encodeVarintFactomEvents(dAtA, i, uint64(m.EntryCreditBlock.Size()))
+		n13, err13 := m.EntryCreditBlock.MarshalTo(dAtA[i:])
+		if err13 != nil {
+			return 0, err13
+		}
+		i += n13
 	}
 	if len(m.EntryBlocks) > 0 {
 		for _, msg := range m.EntryBlocks {
@@ -1327,7 +1336,7 @@ func (m *DirBlockConsensus) MarshalTo(dAtA []byte) (int, error) {
 	return i, nil
 }
 
-func (m *StateChanged) Marshal() (dAtA []byte, err error) {
+func (m *StateChange) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -1337,20 +1346,20 @@ func (m *StateChanged) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *StateChanged) MarshalTo(dAtA []byte) (int, error) {
+func (m *StateChange) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.EntryHash != nil {
+	if m.EntityHash != nil {
 		dAtA[i] = 0xa
 		i++
-		i = encodeVarintFactomEvents(dAtA, i, uint64(m.EntryHash.Size()))
-		n13, err13 := m.EntryHash.MarshalTo(dAtA[i:])
-		if err13 != nil {
-			return 0, err13
+		i = encodeVarintFactomEvents(dAtA, i, uint64(m.EntityHash.Size()))
+		n14, err14 := m.EntityHash.MarshalTo(dAtA[i:])
+		if err14 != nil {
+			return 0, err14
 		}
-		i += n13
+		i += n14
 	}
 	if m.EntityState != 0 {
 		dAtA[i] = 0x10
@@ -1382,11 +1391,11 @@ func (m *DirectoryBlock) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0xa
 		i++
 		i = encodeVarintFactomEvents(dAtA, i, uint64(m.Header.Size()))
-		n14, err14 := m.Header.MarshalTo(dAtA[i:])
-		if err14 != nil {
-			return 0, err14
+		n15, err15 := m.Header.MarshalTo(dAtA[i:])
+		if err15 != nil {
+			return 0, err15
 		}
-		i += n14
+		i += n15
 	}
 	if len(m.Entries) > 0 {
 		for _, msg := range m.Entries {
@@ -1425,41 +1434,41 @@ func (m *DirectoryBlockHeader) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0xa
 		i++
 		i = encodeVarintFactomEvents(dAtA, i, uint64(m.BodyMerkleRoot.Size()))
-		n15, err15 := m.BodyMerkleRoot.MarshalTo(dAtA[i:])
-		if err15 != nil {
-			return 0, err15
-		}
-		i += n15
-	}
-	if m.PreviousKeyMerkleRoot != nil {
-		dAtA[i] = 0x12
-		i++
-		i = encodeVarintFactomEvents(dAtA, i, uint64(m.PreviousKeyMerkleRoot.Size()))
-		n16, err16 := m.PreviousKeyMerkleRoot.MarshalTo(dAtA[i:])
+		n16, err16 := m.BodyMerkleRoot.MarshalTo(dAtA[i:])
 		if err16 != nil {
 			return 0, err16
 		}
 		i += n16
 	}
-	if m.PreviousFullHash != nil {
-		dAtA[i] = 0x1a
+	if m.PreviousKeyMerkleRoot != nil {
+		dAtA[i] = 0x12
 		i++
-		i = encodeVarintFactomEvents(dAtA, i, uint64(m.PreviousFullHash.Size()))
-		n17, err17 := m.PreviousFullHash.MarshalTo(dAtA[i:])
+		i = encodeVarintFactomEvents(dAtA, i, uint64(m.PreviousKeyMerkleRoot.Size()))
+		n17, err17 := m.PreviousKeyMerkleRoot.MarshalTo(dAtA[i:])
 		if err17 != nil {
 			return 0, err17
 		}
 		i += n17
 	}
-	if m.Timestamp != nil {
-		dAtA[i] = 0x22
+	if m.PreviousFullHash != nil {
+		dAtA[i] = 0x1a
 		i++
-		i = encodeVarintFactomEvents(dAtA, i, uint64(m.Timestamp.Size()))
-		n18, err18 := m.Timestamp.MarshalTo(dAtA[i:])
+		i = encodeVarintFactomEvents(dAtA, i, uint64(m.PreviousFullHash.Size()))
+		n18, err18 := m.PreviousFullHash.MarshalTo(dAtA[i:])
 		if err18 != nil {
 			return 0, err18
 		}
 		i += n18
+	}
+	if m.Timestamp != nil {
+		dAtA[i] = 0x22
+		i++
+		i = encodeVarintFactomEvents(dAtA, i, uint64(m.Timestamp.Size()))
+		n19, err19 := m.Timestamp.MarshalTo(dAtA[i:])
+		if err19 != nil {
+			return 0, err19
+		}
+		i += n19
 	}
 	if m.BlockHeight != 0 {
 		dAtA[i] = 0x28
@@ -1496,11 +1505,11 @@ func (m *EntryBlock) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0xa
 		i++
 		i = encodeVarintFactomEvents(dAtA, i, uint64(m.EntryBlockHeader.Size()))
-		n19, err19 := m.EntryBlockHeader.MarshalTo(dAtA[i:])
-		if err19 != nil {
-			return 0, err19
+		n20, err20 := m.EntryBlockHeader.MarshalTo(dAtA[i:])
+		if err20 != nil {
+			return 0, err20
 		}
-		i += n19
+		i += n20
 	}
 	if len(m.EntryHashes) > 0 {
 		for _, msg := range m.EntryHashes {
@@ -1539,41 +1548,41 @@ func (m *EntryBlockHeader) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0xa
 		i++
 		i = encodeVarintFactomEvents(dAtA, i, uint64(m.BodyMerkleRoot.Size()))
-		n20, err20 := m.BodyMerkleRoot.MarshalTo(dAtA[i:])
-		if err20 != nil {
-			return 0, err20
-		}
-		i += n20
-	}
-	if m.ChainID != nil {
-		dAtA[i] = 0x12
-		i++
-		i = encodeVarintFactomEvents(dAtA, i, uint64(m.ChainID.Size()))
-		n21, err21 := m.ChainID.MarshalTo(dAtA[i:])
+		n21, err21 := m.BodyMerkleRoot.MarshalTo(dAtA[i:])
 		if err21 != nil {
 			return 0, err21
 		}
 		i += n21
 	}
-	if m.PreviousFullHash != nil {
-		dAtA[i] = 0x1a
+	if m.ChainID != nil {
+		dAtA[i] = 0x12
 		i++
-		i = encodeVarintFactomEvents(dAtA, i, uint64(m.PreviousFullHash.Size()))
-		n22, err22 := m.PreviousFullHash.MarshalTo(dAtA[i:])
+		i = encodeVarintFactomEvents(dAtA, i, uint64(m.ChainID.Size()))
+		n22, err22 := m.ChainID.MarshalTo(dAtA[i:])
 		if err22 != nil {
 			return 0, err22
 		}
 		i += n22
 	}
-	if m.PreviousKeyMerkleRoot != nil {
-		dAtA[i] = 0x22
+	if m.PreviousFullHash != nil {
+		dAtA[i] = 0x1a
 		i++
-		i = encodeVarintFactomEvents(dAtA, i, uint64(m.PreviousKeyMerkleRoot.Size()))
-		n23, err23 := m.PreviousKeyMerkleRoot.MarshalTo(dAtA[i:])
+		i = encodeVarintFactomEvents(dAtA, i, uint64(m.PreviousFullHash.Size()))
+		n23, err23 := m.PreviousFullHash.MarshalTo(dAtA[i:])
 		if err23 != nil {
 			return 0, err23
 		}
 		i += n23
+	}
+	if m.PreviousKeyMerkleRoot != nil {
+		dAtA[i] = 0x22
+		i++
+		i = encodeVarintFactomEvents(dAtA, i, uint64(m.PreviousKeyMerkleRoot.Size()))
+		n24, err24 := m.PreviousKeyMerkleRoot.MarshalTo(dAtA[i:])
+		if err24 != nil {
+			return 0, err24
+		}
+		i += n24
 	}
 	if m.BlockHeight != 0 {
 		dAtA[i] = 0x28
@@ -1685,8 +1694,8 @@ func (m *FactomEvent) Size() (n int) {
 	}
 	var l int
 	_ = l
-	if m.EventSource != 0 {
-		n += 1 + sovFactomEvents(uint64(m.EventSource))
+	if m.StreamSource != 0 {
+		n += 1 + sovFactomEvents(uint64(m.StreamSource))
 	}
 	if m.IdentityChainID != nil {
 		l = m.IdentityChainID.Size()
@@ -1725,55 +1734,67 @@ func (m *FactomEvent_EntryRegistration) Size() (n int) {
 	}
 	return n
 }
-func (m *FactomEvent_StateChanged) Size() (n int) {
+func (m *FactomEvent_EntryContentRegistration) Size() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
-	if m.StateChanged != nil {
-		l = m.StateChanged.Size()
+	if m.EntryContentRegistration != nil {
+		l = m.EntryContentRegistration.Size()
 		n += 1 + l + sovFactomEvents(uint64(l))
 	}
 	return n
 }
-func (m *FactomEvent_DirBlockConsensus) Size() (n int) {
+func (m *FactomEvent_StateChange) Size() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
-	if m.DirBlockConsensus != nil {
-		l = m.DirBlockConsensus.Size()
+	if m.StateChange != nil {
+		l = m.StateChange.Size()
 		n += 1 + l + sovFactomEvents(uint64(l))
 	}
 	return n
 }
-func (m *FactomEvent_ProcessEvent) Size() (n int) {
+func (m *FactomEvent_BlockCommit) Size() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
-	if m.ProcessEvent != nil {
-		l = m.ProcessEvent.Size()
+	if m.BlockCommit != nil {
+		l = m.BlockCommit.Size()
 		n += 1 + l + sovFactomEvents(uint64(l))
 	}
 	return n
 }
-func (m *FactomEvent_NodeEvent) Size() (n int) {
+func (m *FactomEvent_ProcessMessage) Size() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
-	if m.NodeEvent != nil {
-		l = m.NodeEvent.Size()
+	if m.ProcessMessage != nil {
+		l = m.ProcessMessage.Size()
 		n += 1 + l + sovFactomEvents(uint64(l))
 	}
 	return n
 }
-func (m *DirBlockConsensus) Size() (n int) {
+func (m *FactomEvent_NodeMessage) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.NodeMessage != nil {
+		l = m.NodeMessage.Size()
+		n += 1 + l + sovFactomEvents(uint64(l))
+	}
+	return n
+}
+func (m *BlockCommit) Size() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -1813,14 +1834,14 @@ func (m *DirBlockConsensus) Size() (n int) {
 	return n
 }
 
-func (m *StateChanged) Size() (n int) {
+func (m *StateChange) Size() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
-	if m.EntryHash != nil {
-		l = m.EntryHash.Size()
+	if m.EntityHash != nil {
+		l = m.EntityHash.Size()
 		n += 1 + l + sovFactomEvents(uint64(l))
 	}
 	if m.EntityState != 0 {
@@ -2028,9 +2049,9 @@ func (m *FactomEvent) Unmarshal(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field EventSource", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field StreamSource", wireType)
 			}
-			m.EventSource = 0
+			m.StreamSource = 0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowFactomEvents
@@ -2040,7 +2061,7 @@ func (m *FactomEvent) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.EventSource |= EventSource(b&0x7F) << shift
+				m.StreamSource |= StreamSource(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2153,7 +2174,7 @@ func (m *FactomEvent) Unmarshal(dAtA []byte) error {
 			iNdEx = postIndex
 		case 5:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field StateChanged", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field EntryContentRegistration", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -2180,15 +2201,15 @@ func (m *FactomEvent) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			v := &StateChanged{}
+			v := &EntryContentRegistration{}
 			if err := v.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
-			m.Value = &FactomEvent_StateChanged{v}
+			m.Value = &FactomEvent_EntryContentRegistration{v}
 			iNdEx = postIndex
 		case 6:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field DirBlockConsensus", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field StateChange", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -2215,15 +2236,50 @@ func (m *FactomEvent) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			v := &DirBlockConsensus{}
+			v := &StateChange{}
 			if err := v.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
-			m.Value = &FactomEvent_DirBlockConsensus{v}
+			m.Value = &FactomEvent_StateChange{v}
 			iNdEx = postIndex
 		case 7:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ProcessEvent", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field BlockCommit", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowFactomEvents
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthFactomEvents
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthFactomEvents
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			v := &BlockCommit{}
+			if err := v.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			m.Value = &FactomEvent_BlockCommit{v}
+			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ProcessMessage", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -2254,11 +2310,11 @@ func (m *FactomEvent) Unmarshal(dAtA []byte) error {
 			if err := v.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
-			m.Value = &FactomEvent_ProcessEvent{v}
+			m.Value = &FactomEvent_ProcessMessage{v}
 			iNdEx = postIndex
-		case 8:
+		case 9:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field NodeEvent", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field NodeMessage", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -2289,7 +2345,7 @@ func (m *FactomEvent) Unmarshal(dAtA []byte) error {
 			if err := v.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
-			m.Value = &FactomEvent_NodeEvent{v}
+			m.Value = &FactomEvent_NodeMessage{v}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -2316,7 +2372,7 @@ func (m *FactomEvent) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *DirBlockConsensus) Unmarshal(dAtA []byte) error {
+func (m *BlockCommit) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -2339,10 +2395,10 @@ func (m *DirBlockConsensus) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: DirBlockConsensus: wiretype end group for non-group")
+			return fmt.Errorf("proto: BlockCommit: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: DirBlockConsensus: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: BlockCommit: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -2582,7 +2638,7 @@ func (m *DirBlockConsensus) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *StateChanged) Unmarshal(dAtA []byte) error {
+func (m *StateChange) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -2605,15 +2661,15 @@ func (m *StateChanged) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: StateChanged: wiretype end group for non-group")
+			return fmt.Errorf("proto: StateChange: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: StateChanged: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: StateChange: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field EntryHash", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field EntityHash", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -2640,10 +2696,10 @@ func (m *StateChanged) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if m.EntryHash == nil {
-				m.EntryHash = &Hash{}
+			if m.EntityHash == nil {
+				m.EntityHash = &Hash{}
 			}
-			if err := m.EntryHash.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+			if err := m.EntityHash.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

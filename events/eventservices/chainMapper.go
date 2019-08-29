@@ -6,13 +6,14 @@ import (
 	"github.com/FactomProject/factomd/events/eventmessages"
 )
 
-func mapCommitChain(msg interfaces.IMsg) *eventmessages.FactomEvent_CommitChain {
+func mapCommitChain(entityState eventmessages.EntityState, msg interfaces.IMsg) *eventmessages.FactomEvent_ChainRegistration {
 	commitChain := msg.(*messages.CommitChainMsg).CommitChain
 	ecPubKey := commitChain.ECPubKey.Fixed()
 	sig := commitChain.Sig
 
-	result := &eventmessages.FactomEvent_CommitChain{
-		CommitChain: &eventmessages.CommitChain{
+	result := &eventmessages.FactomEvent_ChainRegistration{
+		ChainRegistration: &eventmessages.ChainRegistration{
+			EntityState: entityState,
 			ChainIDHash: &eventmessages.Hash{
 				HashValue: commitChain.ChainIDHash.Bytes()},
 			EntryHash: &eventmessages.Hash{
@@ -23,5 +24,17 @@ func mapCommitChain(msg interfaces.IMsg) *eventmessages.FactomEvent_CommitChain 
 			EcPubKey:  ecPubKey[:],
 			Sig:       sig[:],
 		}}
+	return result
+}
+
+func mapCommitChainState(state eventmessages.EntityState, msg interfaces.IMsg) *eventmessages.FactomEvent_StateChange {
+	commitChain := msg.(*messages.CommitChainMsg).CommitChain
+	result := &eventmessages.FactomEvent_StateChange{
+		StateChange: &eventmessages.StateChange{
+			EntityHash: &eventmessages.Hash{
+				HashValue: commitChain.ChainIDHash.Bytes()},
+			EntityState: state,
+		},
+	}
 	return result
 }

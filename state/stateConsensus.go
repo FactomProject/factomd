@@ -78,7 +78,7 @@ func (s *State) AddToHolding(hash [32]byte, msg interfaces.IMsg) {
 		s.Holding[hash] = msg
 		s.LogMessage("holding", "add", msg)
 		TotalHoldingQueueInputs.Inc()
-		emitEvent(eventmessages.EventSource_ADD_TO_HOLDING, msg, s)
+		EmitStateChangeEvent(msg, eventmessages.EntityState_PLACED_IN_HOLDING, s)
 	}
 }
 
@@ -88,7 +88,9 @@ func (s *State) DeleteFromHolding(hash [32]byte, msg interfaces.IMsg, reason str
 		delete(s.Holding, hash)
 		s.LogMessage("holding", "delete "+reason, msg)
 		TotalHoldingQueueOutputs.Inc()
-		emitEvent(eventmessages.EventSource_DROP_FROM_HOLDING, msg, s)
+		if reason != "Process()" {
+			EmitStateChangeEvent(msg, eventmessages.EntityState_REJECTED, s)
+		}
 	}
 }
 
@@ -254,6 +256,7 @@ func (s *State) executeMsg(msg interfaces.IMsg) (ret bool) {
 
 	if validToSend == 1 {
 		msg.SendOut(s, msg)
+		EmitRegistrationEvent(msg, s)
 	}
 
 	switch validToExecute {
@@ -836,12 +839,12 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 			}
 			s.DBStates.UpdateState() // call to get the state signed now that the DBSigs have processed
 			if s.EventsService != nil {
-				event := events.ProcessInfoEventF(eventmessages.ProcessMessageCode_NEW_BLOCK, "New block %d", dbheight)
+				event := events.ProcessInfoEventF(GetStreamSource(s), eventmessages.ProcessMessageCode_NEW_BLOCK, "New block %d", dbheight)
 				s.EventsService.Send(event)
 			}
 		} else {
 			if s.EventsService != nil {
-				event := events.ProcessInfoEventF(eventmessages.ProcessMessageCode_NEW_MINUTE, "New minute %d", newMinute)
+				event := events.ProcessInfoEventF(GetStreamSource(s), eventmessages.ProcessMessageCode_NEW_MINUTE, "New minute %d", newMinute)
 				s.EventsService.Send(event)
 			}
 		}
@@ -1213,7 +1216,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		s.StatesReceived.Notify <- msg.(*messages.DBStateMsg)
 	}
 	s.DBStates.UpdateState()
-	emitEvent(eventmessages.EventSource_COMMIT_DIRECTORY_BLOCK, dbstatemsg, s)
+	EmitStateChangeEvent(dbstatemsg, eventmessages.EntityState_COMMITTED_TO_DIRECTORY_BLOCK, s)
 }
 
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {

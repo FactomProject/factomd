@@ -32,12 +32,6 @@ type FactomParams struct {
 	NetworkName              string
 	NetworkPortOverride      int
 	ControlPanelPortOverride int
-	EnableLiveFeedAPI        bool
-	EventReceiverProtocol    string
-	EventReceiverAddress     string
-	EventReceiverPort        int
-	EventFormat              string
-	MuteEventsDuringStartup  bool
 	LogPort                  string
 	BlkTime                  int
 	FaultTimeout             int
@@ -88,6 +82,16 @@ type FactomParams struct {
 	FullHashesLog            bool // Log all unique full hashes
 	DebugLogLocation         string
 	ReparseAnchorChains      bool
+
+	// LiveFeed API params
+	EnableLiveFeedAPI                bool
+	EventReceiverProtocol            string
+	EventReceiverAddress             string
+	EventReceiverPort                int
+	EventFormat                      string
+	MuteReplayDuringStartup          bool
+	ResendRegistrationsOnStateChange bool
+	ContentFilterMode                string
 }
 
 /****************************************************************

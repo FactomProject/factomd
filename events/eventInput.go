@@ -8,50 +8,81 @@ import (
 )
 
 type EventInput interface {
-	GetEventSource() eventmessages.EventSource
+	GetStreamSource() eventmessages.StreamSource
 }
 
-type ProcessEvent struct {
-	eventSource    eventmessages.EventSource
+type RegistrationEvent struct {
+	streamSource eventmessages.StreamSource
+	payload      interfaces.IMsg
+}
+
+type StateChangeEvent struct {
+	streamSource eventmessages.StreamSource
+	entityState  eventmessages.EntityState
+	payload      interfaces.IMsg
+}
+
+type ProcessMessageEvent struct {
+	streamSource   eventmessages.StreamSource
 	processMessage *eventmessages.ProcessMessage
-	payload        interfaces.IMsg
 }
 
-type NodeEvent struct {
-	eventSource eventmessages.EventSource
-	nodeMessage *eventmessages.NodeMessage
-	payload     interfaces.IMsg
+type NodeMessageEvent struct {
+	streamSource eventmessages.StreamSource
+	nodeMessage  *eventmessages.NodeMessage
 }
 
-func (processEvent ProcessEvent) GetEventSource() eventmessages.EventSource {
-	return processEvent.eventSource
+func (event RegistrationEvent) GetStreamSource() eventmessages.StreamSource {
+	return event.streamSource
 }
 
-func (nodeEvent NodeEvent) GetEventSource() eventmessages.EventSource {
-	return nodeEvent.eventSource
+func (event RegistrationEvent) GetPayload() interfaces.IMsg {
+	return event.payload
 }
 
-func (processEvent ProcessEvent) GetProcessMessage() *eventmessages.ProcessMessage {
-	return processEvent.processMessage
+func (event StateChangeEvent) GetStreamSource() eventmessages.StreamSource {
+	return event.streamSource
 }
 
-func (processEvent ProcessEvent) GetPayload() interfaces.IMsg {
-	return processEvent.payload
+func (event StateChangeEvent) GetEntityState() eventmessages.EntityState {
+	return event.entityState
 }
 
-func (nodeEvent NodeEvent) GetNodeEvent() *eventmessages.NodeMessage {
-	return nodeEvent.nodeMessage
+func (event StateChangeEvent) GetPayload() interfaces.IMsg {
+	return event.payload
 }
 
-func EventFromNetworkMessage(eventSource eventmessages.EventSource, msg interfaces.IMsg) *ProcessEvent {
-	return &ProcessEvent{
-		eventSource: eventSource,
-		payload:     msg}
+func (event ProcessMessageEvent) GetStreamSource() eventmessages.StreamSource {
+	return event.streamSource
 }
 
-func ProcessInfoMessage(messageCode eventmessages.ProcessMessageCode, message string) *ProcessEvent {
-	return &ProcessEvent{
-		eventSource: eventmessages.EventSource_PROCESS_MESSAGE,
+func (event ProcessMessageEvent) GetProcessMessage() *eventmessages.ProcessMessage {
+	return event.processMessage
+}
+
+func (event NodeMessageEvent) GetStreamSource() eventmessages.StreamSource {
+	return event.streamSource
+}
+
+func (event NodeMessageEvent) GetNodeMessage() *eventmessages.NodeMessage {
+	return event.nodeMessage
+}
+
+func NewRegistrationEvent(streamSource eventmessages.StreamSource, msg interfaces.IMsg) *RegistrationEvent {
+	return &RegistrationEvent{
+		streamSource: streamSource,
+		payload:      msg}
+}
+
+func NewStateChangeEvent(streamSource eventmessages.StreamSource, entityState eventmessages.EntityState, msg interfaces.IMsg) *StateChangeEvent {
+	return &StateChangeEvent{
+		streamSource: streamSource,
+		payload:      msg}
+}
+
+func ProcessInfoMessage(streamSource eventmessages.StreamSource, messageCode eventmessages.ProcessMessageCode, message string) *ProcessMessageEvent {
+	return &ProcessMessageEvent{
+		streamSource: streamSource,
 		processMessage: &eventmessages.ProcessMessage{
 			MessageCode: messageCode,
 			Level:       eventmessages.Level_INFO,
@@ -60,13 +91,13 @@ func ProcessInfoMessage(messageCode eventmessages.ProcessMessageCode, message st
 	}
 }
 
-func ProcessInfoEventF(messageCode eventmessages.ProcessMessageCode, format string, values ...interface{}) *ProcessEvent {
-	return ProcessInfoMessage(messageCode, fmt.Sprintf(format, values))
+func ProcessInfoEventF(streamSource eventmessages.StreamSource, messageCode eventmessages.ProcessMessageCode, format string, values ...interface{}) *ProcessMessageEvent {
+	return ProcessInfoMessage(streamSource, messageCode, fmt.Sprintf(format, values))
 }
 
-func NodeInfoMessage(messageCode eventmessages.NodeMessageCode, message string) *NodeEvent {
-	return &NodeEvent{
-		eventSource: eventmessages.EventSource_NODE_MESSAGE,
+func NodeInfoMessage(messageCode eventmessages.NodeMessageCode, message string) *NodeMessageEvent {
+	return &NodeMessageEvent{
+		streamSource: eventmessages.StreamSource_LIVE,
 		nodeMessage: &eventmessages.NodeMessage{
 			MessageCode: messageCode,
 			Level:       eventmessages.Level_INFO,
@@ -75,14 +106,13 @@ func NodeInfoMessage(messageCode eventmessages.NodeMessageCode, message string) 
 	}
 }
 
-func NodeInfoMessageF(messageCode eventmessages.NodeMessageCode, format string, values ...interface{}) *NodeEvent {
+func NodeInfoMessageF(messageCode eventmessages.NodeMessageCode, format string, values ...interface{}) *NodeMessageEvent {
 	return NodeInfoMessage(messageCode, fmt.Sprintf(format, values))
 }
 
-func NodeErrorMessage(messageCode eventmessages.NodeMessageCode, message string, values interface{}) *NodeEvent {
+func NodeErrorMessage(messageCode eventmessages.NodeMessageCode, message string, values interface{}) *NodeMessageEvent {
 	errorMsg := fmt.Sprint(message, values)
-	event := &NodeEvent{
-		eventSource: eventmessages.EventSource_NODE_MESSAGE,
+	event := &NodeMessageEvent{
 		nodeMessage: &eventmessages.NodeMessage{
 			MessageCode: messageCode,
 			Level:       eventmessages.Level_ERROR,

@@ -10,6 +10,7 @@ import (
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/events"
+	"github.com/FactomProject/factomd/events/contentfiltermode"
 	"github.com/FactomProject/factomd/events/eventmessages"
 	"github.com/FactomProject/factomd/events/eventoutputformat"
 	"github.com/FactomProject/factomd/p2p"
@@ -17,6 +18,7 @@ import (
 	"github.com/gogo/protobuf/proto"
 	log "github.com/sirupsen/logrus"
 	"net"
+	"reflect"
 	"time"
 )
 
@@ -64,10 +66,15 @@ func (esi *eventServiceInstance) Send(event events.EventInput) error {
 		return nil
 	}
 
-	// Only send info messages when MuteEventsDuringStartup is enabled
-	if esi.params.MuteEventsDuringStartup && !esi.owningState.IsRunLeader() &&
-		event.GetEventSource() != eventmessages.EventSource_NODE_MESSAGE && event.GetEventSource() != eventmessages.EventSource_PROCESS_MESSAGE {
-		return nil
+	// Only send info messages when MuteReplayDuringStartup is enabled
+	if esi.params.MuteEventReplayDuringStartup && !esi.owningState.IsRunLeader() {
+
+		switch event.(type) {
+		case *events.ProcessMessageEvent:
+			return nil
+		case *events.NodeMessageEvent:
+			return nil
+		}
 	}
 
 	factomEvent, err := MapToFactomEvent(event)
@@ -98,7 +105,7 @@ func (esi *eventServiceInstance) processEventsChannel() {
 func (esi *eventServiceInstance) sendEvent(event *eventmessages.FactomEvent) {
 	data, err := esi.marshallMessage(event)
 	if err != nil {
-		log.Errorf("An error occurred while serializing factom event of type %s: %v", event.EventSource.String(), err)
+		log.Errorf("An error occurred while serializing factom event of type %s: %v", reflect.TypeOf(event), err)
 		return
 	}
 
@@ -208,6 +215,14 @@ func catchSendPanics() error {
 		return errors.New(fmt.Sprintf("failed to write data: %v", r))
 	}
 	return nil
+}
+
+func (esi *eventServiceInstance) GetContentFilterMode() contentfiltermode.ContentFilterMode {
+	return esi.params.ContentFilterMode
+}
+
+func (esi *eventServiceInstance) IsResendRegistrationsOnStateChange() bool {
+	return esi.params.ResendRegistrationsOnStateChange
 }
 
 func (esi *eventServiceInstance) Shutdown() {

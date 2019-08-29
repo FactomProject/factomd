@@ -3,9 +3,11 @@ package eventservices
 import (
 	"encoding/binary"
 	"errors"
+	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/events"
+	"github.com/FactomProject/factomd/events/contentfiltermode"
 	"github.com/FactomProject/factomd/events/eventmessages"
 	"github.com/gogo/protobuf/types"
 	"time"
@@ -17,58 +19,106 @@ type EventMapper interface {
 
 func MapToFactomEvent(eventInput events.EventInput) (*eventmessages.FactomEvent, error) {
 	switch eventInput.(type) {
-	case *events.ProcessEvent:
-		processEvent := eventInput.(*events.ProcessEvent)
-		return mapProcessEvent(processEvent)
-	case *events.NodeEvent:
-		nodeEvent := eventInput.(*events.NodeEvent)
-		return mapNodeEvent(nodeEvent)
+	case *events.RegistrationEvent:
+		registrationEvent := eventInput.(*events.RegistrationEvent)
+		return mapRegistrationEvent(registrationEvent)
+	case *events.StateChangeEvent:
+		stateChangeEvent := eventInput.(*events.StateChangeEvent)
+		return mapStateChangeEvent(stateChangeEvent)
+	case *events.ProcessMessageEvent:
+		processMessageEvent := eventInput.(*events.ProcessMessageEvent)
+		return mapProcessMessageEvent(processMessageEvent)
+	case *events.NodeMessageEvent:
+		nodeMessageEvent := eventInput.(*events.NodeMessageEvent)
+		return mapNodeMessageEvent(nodeMessageEvent)
 	default:
 		return nil, errors.New("no payload found in source event")
 	}
 }
 
-func mapProcessEvent(processEvent *events.ProcessEvent) (*eventmessages.FactomEvent, error) {
+func mapRegistrationEvent(registrationEvent *events.RegistrationEvent) (*eventmessages.FactomEvent, error) {
 	event := &eventmessages.FactomEvent{}
-	event.EventSource = processEvent.GetEventSource()
-	msg := processEvent.GetPayload()
+	event.StreamSource = registrationEvent.GetStreamSource()
+	msg := registrationEvent.GetPayload()
 	if msg != nil {
+		shouldIncludeContent := eventServiceControl.GetContentFilterMode() > contentfiltermode.SendNever
+
 		switch msg.(type) {
-		case *messages.DBStateMsg:
-			event.Value = mapDBState(msg.(*messages.DBStateMsg))
 		case *messages.CommitChainMsg:
-			event.Value = mapCommitChain(msg)
+			event.Value = mapCommitChain(eventmessages.EntityState_REQUESTED, msg)
 		case *messages.CommitEntryMsg:
-			event.Value = mapCommitEntryEvent(msg)
+			event.Value = mapCommitEntryEvent(eventmessages.EntityState_REQUESTED, msg)
 		case *messages.RevealEntryMsg:
-			event.Value = mapRevealEntryEvent(msg)
+			event.Value = mapRevealEntryEvent(eventmessages.EntityState_REQUESTED, msg, shouldIncludeContent)
 		default:
 			return nil, errors.New("unknown message type")
-		}
-	} else {
-		event.Value = &eventmessages.FactomEvent_ProcessEvent{
-			ProcessEvent: processEvent.GetProcessMessage(),
 		}
 	}
 	return event, nil
 }
 
-func mapNodeEvent(nodeEvent *events.NodeEvent) (*eventmessages.FactomEvent, error) {
+func mapStateChangeEvent(stateChangeEvent *events.StateChangeEvent) (*eventmessages.FactomEvent, error) {
+	event := &eventmessages.FactomEvent{}
+	event.StreamSource = stateChangeEvent.GetStreamSource()
+	msg := stateChangeEvent.GetPayload()
+	if msg != nil {
+		shouldIncludeContent := eventServiceControl.GetContentFilterMode() > contentfiltermode.SendOnRegistration
+		resendRegistrations := eventServiceControl.IsResendRegistrationsOnStateChange()
+		switch msg.(type) {
+		case *messages.CommitChainMsg:
+			if resendRegistrations {
+				event.Value = mapCommitChain(stateChangeEvent.GetEntityState(), msg)
+			} else {
+				event.Value = mapCommitChainState(stateChangeEvent.GetEntityState(), msg)
+			}
+		case *messages.CommitEntryMsg:
+			if resendRegistrations {
+				event.Value = mapCommitEntryEvent(stateChangeEvent.GetEntityState(), msg)
+			} else {
+				event.Value = mapCommitEntryEventState(stateChangeEvent.GetEntityState(), msg)
+			}
+		case *messages.RevealEntryMsg:
+			if resendRegistrations {
+				event.Value = mapRevealEntryEvent(stateChangeEvent.GetEntityState(), msg, shouldIncludeContent)
+			} else {
+				event.Value = mapRevealEntryEventState(stateChangeEvent.GetEntityState(), msg)
+			}
+		case *messages.DBStateMsg:
+			event.Value = mapDBState(msg, shouldIncludeContent)
+		default:
+			return nil, errors.New("unknown message type")
+		}
+	}
+	return event, nil
+}
+
+func mapProcessMessageEvent(processMessageEvent *events.ProcessMessageEvent) (*eventmessages.FactomEvent, error) {
 	event := &eventmessages.FactomEvent{
-		EventSource: nodeEvent.GetEventSource(),
-		Value: &eventmessages.FactomEvent_NodeEvent{
-			NodeEvent: nodeEvent.GetNodeEvent(),
+		StreamSource: processMessageEvent.GetStreamSource(),
+		Value: &eventmessages.FactomEvent_ProcessMessage{
+			ProcessMessage: processMessageEvent.GetProcessMessage(),
 		},
 	}
 	return event, nil
 }
 
-func mapDBState(dbStateMessage *messages.DBStateMsg) *eventmessages.FactomEvent_AnchorEvent {
-	event := &eventmessages.FactomEvent_AnchorEvent{AnchorEvent: &eventmessages.AnchoredEvent{
+func mapNodeMessageEvent(nodeMessageEvent *events.NodeMessageEvent) (*eventmessages.FactomEvent, error) {
+	event := &eventmessages.FactomEvent{
+		StreamSource: nodeMessageEvent.GetStreamSource(),
+		Value: &eventmessages.FactomEvent_NodeMessage{
+			NodeMessage: nodeMessageEvent.GetNodeMessage(),
+		},
+	}
+	return event, nil
+}
+
+func mapDBState(msg interfaces.IMsg, shouldIncludeContent bool) *eventmessages.FactomEvent_BlockCommit {
+	dbStateMessage := msg.(*messages.DBStateMsg)
+	event := &eventmessages.FactomEvent_BlockCommit{BlockCommit: &eventmessages.BlockCommit{
 		DirectoryBlock:    mapDirBlock(dbStateMessage.DirectoryBlock),
 		FactoidBlock:      mapFactoidBlock(dbStateMessage.FactoidBlock),
 		EntryBlocks:       mapEntryBlocks(dbStateMessage.EBlocks),
-		EntryBlockEntries: mapEntryBlockEntries(dbStateMessage.Entries),
+		EntryBlockEntries: mapEntryBlockEntries(dbStateMessage.Entries, shouldIncludeContent),
 	}}
 	return event
 }

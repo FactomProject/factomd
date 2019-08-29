@@ -15,12 +15,6 @@ enum StreamSource {
     REPLAY = 1;
 }
 
-enum EntityState {
-    ADD_TO_PROCESSLIST = 0;
-    ADD_TO_HOLDING = 1;
-    DROP_FROM_HOLDING = 2;
-    COMMITTED_TO_DIRECTORY_BLOCK = 3;
-}
 
 
 message FactomEvent {
@@ -29,15 +23,16 @@ message FactomEvent {
     oneof value {
         ChainRegistration chainRegistration = 3;
         EntryRegistration entryRegistration = 4;
-        StateChange stateChange = 5;
-        DirBlockConsensus dirBlockConsensus = 6;
-        ProcessMessage processEvent = 7;
-        NodeMessage nodeEvent = 8;
+        EntryContentRegistration entryContentRegistration = 5;
+        StateChange stateChange = 6;
+        BlockCommit blockCommit = 7;
+        ProcessMessage processMessage = 8;
+        NodeMessage nodeMessage = 9;
     }
 }
 
 
-message DirBlockConsensus {
+message BlockCommit {
     DirectoryBlock directoryBlock = 1;
     AdminBlock adminBlock = 2;
     FactoidBlock factoidBlock = 3;
