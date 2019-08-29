@@ -117,7 +117,7 @@ func (m *CommitChainMsg) GetMsgHash() (rval interfaces.IHash) {
 }
 
 func (m *CommitChainMsg) GetTimestamp() interfaces.Timestamp {
-	return m.CommitChain.GetTimestamp()
+	return m.CommitChain.GetTimestamp().Clone()
 }
 
 func (m *CommitChainMsg) Type() byte {
@@ -137,7 +137,9 @@ func (m *CommitChainMsg) Validate(state interfaces.IState) int {
 	ebal := state.GetFactoidState().GetECBalance(*m.CommitChain.ECPubKey)
 	v := int(ebal) - int(m.CommitChain.Credits)
 	if v < 0 {
-		return 0
+		// return 0  // old way add to scanned holding queue
+		// new holding mechanism added it to a list of messages dependent on the EC address
+		return state.Add(m.CommitChain.ECPubKey.Fixed(), m)
 	}
 
 	return 1

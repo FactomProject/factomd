@@ -135,7 +135,7 @@ func (m *EOM) GetTimestamp() interfaces.Timestamp {
 	if m.Timestamp == nil {
 		m.Timestamp = new(primitives.Timestamp)
 	}
-	return m.Timestamp
+	return m.Timestamp.Clone()
 }
 
 func (m *EOM) Type() byte {
@@ -152,13 +152,18 @@ func (m *EOM) Validate(state interfaces.IState) int {
 	}
 
 	// Ignore old EOM
-	if m.DBHeight <= state.GetHighestSavedBlk() {
+	if uint32(m.DBHeight)*10+uint32(m.Minute) < state.GetLLeaderHeight()*10+uint32(state.GetCurrentMinute()) {
 		return -1
 	}
 
+	if uint32(m.DBHeight)*10+uint32(m.Minute) > state.GetLLeaderHeight()*10+uint32(state.GetCurrentMinute()) {
+		// msg from future may be a valid server when we get to this block
+		return state.HoldForHeight(m.DBHeight, int(m.Minute), m)
+	}
+
 	found, _ := state.GetVirtualServers(m.DBHeight, int(m.Minute), m.ChainID)
-	if !found { // Only EOM from federated servers are valid.
-		return -1
+	if !found {
+		return -1 // Only EOM from federated servers are valid.
 	}
 
 	// Check signature

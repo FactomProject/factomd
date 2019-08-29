@@ -150,9 +150,14 @@ func TestInvalidSignature(t *testing.T) {
 		panic(err)
 	}
 
-	m.Signature = m2.Signature
+	m.Signature = m2.Signature       // make message signature bad
+	s.LLeaderHeight = m.DBHeight - 1 // make message in the future
 	v = m.Validate(s)
-
+	if v != -2 {
+		t.Errorf("Expected -2, found %d", v)
+	}
+	s.LLeaderHeight = m.DBHeight // make message current but a bad signature
+	v = m.Validate(s)
 	if v != -1 {
 		t.Errorf("Expected -1, found %d", v)
 	}

@@ -19,8 +19,6 @@ import (
 	"github.com/FactomProject/factomd/state"
 	log "github.com/sirupsen/logrus"
 
-	//"github.com/FactomProject/factomd/state"
-
 	"github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/elections"
 )
@@ -226,9 +224,13 @@ func (m *FedVoteLevelMsg) FollowerExecute(is interfaces.IState) {
 		pl.FedServers[m.Volunteer.FedIdx], pl.AuditServers[m.Volunteer.ServerIdx] =
 			pl.AuditServers[m.Volunteer.ServerIdx], pl.FedServers[m.Volunteer.FedIdx]
 
-		// Add to the process list and immediately process
+		// Trim the processlist for all messages above this height. They are signed by the old leader, and have
+		// not yet been processed.
+		pl.TrimVMList(m.Volunteer.Ack.(*messages.Ack).Height, m.VMIndex)
+
+		// Add to the process list (which will get immediately processed)
+		is.LogMessage("executeMsg", "add to pl", m.Volunteer.Ack)
 		pl.AddToProcessList(pl.State, m.Volunteer.Ack.(*messages.Ack), m.Volunteer.Missing)
-		is.UpdateState()
 	} else {
 		is.ElectionsQueue().Enqueue(m)
 	}
@@ -350,7 +352,7 @@ func (m *FedVoteLevelMsg) GetHash() (rval interfaces.IHash) {
 }
 
 func (m *FedVoteLevelMsg) GetTimestamp() interfaces.Timestamp {
-	return m.TS
+	return m.TS.Clone()
 }
 
 func (m *FedVoteLevelMsg) GetMsgHash() (rval interfaces.IHash) {

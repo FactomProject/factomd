@@ -110,9 +110,7 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 	StatePointer = statePointer
 	StatePointer.ControlPanelDataRequest = true // Request initial State
 	// Wait for initial State
-	select {
-	case DisplayState = <-displayStateChannel:
-	}
+	DisplayState = <-displayStateChannel
 
 	DisplayStateMutex.RLock()
 	controlPanelSetting := DisplayState.ControlPanelSetting
@@ -145,11 +143,12 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 	go doEvery(10*time.Second, getRecentTransactions)
 	go manageConnections(connections)
 
-	http.HandleFunc("/", static(indexHandler))
-	http.HandleFunc("/search", searchHandler)
-	http.HandleFunc("/post", postHandler)
-	http.HandleFunc("/factomd", factomdHandler)
-	http.HandleFunc("/factomdBatch", factomdBatchHandler)
+	controlPanelMux := http.NewServeMux()
+	controlPanelMux.HandleFunc("/", static(indexHandler))
+	controlPanelMux.HandleFunc("/search", searchHandler)
+	controlPanelMux.HandleFunc("/post", postHandler)
+	controlPanelMux.HandleFunc("/factomd", factomdHandler)
+	controlPanelMux.HandleFunc("/factomdBatch", factomdBatchHandler)
 
 	tlsIsEnabled, tlsPrivate, tlsPublic := StatePointer.GetTlsInfo()
 	if tlsIsEnabled {
@@ -165,10 +164,10 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 			time.Sleep(100 * time.Millisecond)
 		}
 		fmt.Println("Starting encrypted Control Panel on https://localhost" + portStr + "/  Please note the HTTPS in the browser.")
-		http.ListenAndServeTLS(portStr, tlsPublic, tlsPrivate, nil)
+		http.ListenAndServeTLS(portStr, tlsPublic, tlsPrivate, controlPanelMux)
 	} else {
 		fmt.Println("Starting Control Panel on http://localhost" + portStr + "/")
-		http.ListenAndServe(portStr, nil)
+		http.ListenAndServe(portStr, controlPanelMux)
 	}
 }
 
@@ -353,6 +352,16 @@ func factomdQuery(item string, value string, batchQueried bool) []byte {
 		RequestData()
 	}
 	switch item {
+	case "ignoreDone":
+		DisplayStateMutex.RLock()
+		flag := DisplayState.IgnoreDone
+		DisplayStateMutex.RUnlock()
+
+		if flag {
+			return []byte(`{"IgnoreDone": true}`)
+		} else {
+			return []byte(`{"IgnoreDone": false}`)
+		}
 	case "myHeight":
 		DisplayStateMutex.RLock()
 		h := DisplayState.CurrentNodeHeight

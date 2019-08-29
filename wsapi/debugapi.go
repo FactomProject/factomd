@@ -10,75 +10,57 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"strings"
 
 	"github.com/FactomProject/factomd/common/globals"
 
+	"regexp"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-
-	"github.com/FactomProject/web"
 )
 
-func HandleDebug(ctx *web.Context) {
+func HandleDebug(writer http.ResponseWriter, request *http.Request) {
 	_ = globals.Params
-	ServersMutex.Lock()
-	state := ctx.Server.Env["state"].(interfaces.IState)
-	ServersMutex.Unlock()
 
-	if err := checkAuthHeader(state, ctx.Request); err != nil {
-		remoteIP := ""
-		remoteIP += strings.Split(ctx.Request.RemoteAddr, ":")[0]
-		fmt.Printf(
-			"Unauthorized V2 API client connection attempt from %s\n",
-			remoteIP,
-		)
-		ctx.ResponseWriter.Header().Add(
-			"WWW-Authenticate",
-			`Basic realm="factomd RPC"`,
-		)
-		http.Error(
-			ctx.ResponseWriter,
-			"401 Unauthorized.",
-			http.StatusUnauthorized,
-		)
-
+	state, err := GetState(request)
+	if err != nil {
+		wsDebugLog.Errorf("failed to extract port from request: %s", err)
+		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	body, err := ioutil.ReadAll(ctx.Request.Body)
+	if err := checkAuthHeader(state, request); err != nil {
+		handleUnauthorized(request, writer)
+		return
+	}
+
+	body, err := ioutil.ReadAll(request.Body)
 	if err != nil {
-		HandleV2Error(ctx, nil, NewInvalidRequestError())
+		HandleV2Error(writer, nil, NewInvalidRequestError())
 		return
 	}
 
 	j, err := primitives.ParseJSON2Request(string(body))
 	if err != nil {
-		HandleV2Error(ctx, nil, NewInvalidRequestError())
+		HandleV2Error(writer, nil, NewInvalidRequestError())
 		return
 	}
 
 	jsonResp, jsonError := HandleDebugRequest(state, j)
 
 	if jsonError != nil {
-		HandleV2Error(ctx, j, jsonError)
+		HandleV2Error(writer, j, jsonError)
 		return
 	}
 
-	ctx.Write([]byte(jsonResp.String()))
+	writer.Write([]byte(jsonResp.String()))
 }
 
-func HandleDebugRequest(
-	state interfaces.IState,
-	j *primitives.JSON2Request,
-) (
-	*primitives.JSON2Response,
-	*primitives.JSONError,
-) {
+func HandleDebugRequest(state interfaces.IState, j *primitives.JSON2Request) (*primitives.JSON2Response, *primitives.JSONError) {
 	var resp interface{}
 	var jsonError *primitives.JSONError
 	params := j.Params
-	state.LogPrintf("apidebuglog", "request %v", j.String())
+	wsDebugLog.Printf("request %v", j.String())
 
 	switch j.Method {
 	case "audit-servers":
@@ -131,32 +113,26 @@ func HandleDebugRequest(
 		break
 	case "sim-ctrl":
 		resp, jsonError = HandleSimControl(state, params)
+	case "message-filter":
+		resp, jsonError = HandleMessageFilter(state, params)
 	default:
 		jsonError = NewMethodNotFoundError()
 		break
 	}
 	if jsonError != nil {
-		state.LogPrintf("apidebuglog", "error %v", jsonError)
+		wsDebugLog.Printf("error %v", jsonError)
 		return nil, jsonError
 	}
-
-	//fmt.Printf("API V2 method: <%v>  parameters: %v\n", j.Method, params)
 
 	jsonResp := primitives.NewJSON2Response()
 	jsonResp.ID = j.ID
 	jsonResp.Result = resp
-	state.LogPrintf("apidebuglog", "response %v", jsonResp.String())
+	wsDebugLog.Printf("response %v", jsonResp.String())
 
 	return jsonResp, nil
 }
 
-func HandleAuditServers(
-	state interfaces.IState,
-	params interface{},
-) (
-	interface{},
-	*primitives.JSONError,
-) {
+func HandleAuditServers(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	type ret struct {
 		AuditServers []interfaces.IServer
 	}
@@ -166,13 +142,7 @@ func HandleAuditServers(
 	return r, nil
 }
 
-func HandleAuthorities(
-	state interfaces.IState,
-	params interface{},
-) (
-	interface{},
-	*primitives.JSONError,
-) {
+func HandleAuthorities(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	type ret struct {
 		Authorities []interfaces.IAuthority `json: "authorities"`
 	}
@@ -182,23 +152,11 @@ func HandleAuthorities(
 	return r, nil
 }
 
-func HandleConfig(
-	state interfaces.IState,
-	params interface{},
-) (
-	interface{},
-	*primitives.JSONError,
-) {
+func HandleConfig(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	return state.GetCfg(), nil
 }
 
-func HandleCurrentMinute(
-	state interfaces.IState,
-	params interface{},
-) (
-	interface{},
-	*primitives.JSONError,
-) {
+func HandleCurrentMinute(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	type ret struct {
 		Minute int
 	}
@@ -208,13 +166,7 @@ func HandleCurrentMinute(
 	return r, nil
 }
 
-func HandleDelay(
-	state interfaces.IState,
-	params interface{},
-) (
-	interface{},
-	*primitives.JSONError,
-) {
+func HandleDelay(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	type ret struct {
 		Delay int64
 	}
@@ -224,13 +176,7 @@ func HandleDelay(
 	return r, nil
 }
 
-func HandleSetDelay(
-	state interfaces.IState,
-	params interface{},
-) (
-	interface{},
-	*primitives.JSONError,
-) {
+func HandleSetDelay(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	type ret struct {
 		Delay int64
 	}
@@ -248,13 +194,7 @@ func HandleSetDelay(
 	return r, nil
 }
 
-func HandleDropRate(
-	state interfaces.IState,
-	params interface{},
-) (
-	interface{},
-	*primitives.JSONError,
-) {
+func HandleDropRate(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	type ret struct {
 		DropRate int
 	}
@@ -264,13 +204,7 @@ func HandleDropRate(
 	return r, nil
 }
 
-func HandleSetDropRate(
-	state interfaces.IState,
-	params interface{},
-) (
-	interface{},
-	*primitives.JSONError,
-) {
+func HandleSetDropRate(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	type ret struct {
 		DropRate int
 	}
@@ -287,13 +221,7 @@ func HandleSetDropRate(
 	return r, nil
 }
 
-func HandleFedServers(
-	state interfaces.IState,
-	params interface{},
-) (
-	interface{},
-	*primitives.JSONError,
-) {
+func HandleFedServers(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	type ret struct {
 		FederatedServers []interfaces.IServer
 	}
@@ -303,13 +231,7 @@ func HandleFedServers(
 	return r, nil
 }
 
-func HandleHoldingQueue(
-	state interfaces.IState,
-	params interface{},
-) (
-	interface{},
-	*primitives.JSONError,
-) {
+func HandleHoldingQueue(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	type ret struct {
 		Messages []interfaces.IMsg
 	}
@@ -321,13 +243,7 @@ func HandleHoldingQueue(
 	return r, nil
 }
 
-func HandleMessages(
-	state interfaces.IState,
-	params interface{},
-) (
-	interface{},
-	*primitives.JSONError,
-) {
+func HandleMessages(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	type ret struct {
 		Messages []json.RawMessage
 	}
@@ -338,13 +254,7 @@ func HandleMessages(
 	return r, nil
 }
 
-func HandleNetworkInfo(
-	state interfaces.IState,
-	params interface{},
-) (
-	interface{},
-	*primitives.JSONError,
-) {
+func HandleNetworkInfo(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	type ret struct {
 		NetworkNumber int
 		NetworkName   string
@@ -357,13 +267,7 @@ func HandleNetworkInfo(
 	return r, nil
 }
 
-func HandleSummary(
-	state interfaces.IState,
-	params interface{},
-) (
-	interface{},
-	*primitives.JSONError,
-) {
+func HandleSummary(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	type ret struct {
 		Summary string
 	}
@@ -373,13 +277,7 @@ func HandleSummary(
 	return r, nil
 }
 
-func HandlePredictiveFER(
-	state interfaces.IState,
-	params interface{},
-) (
-	interface{},
-	*primitives.JSONError,
-) {
+func HandlePredictiveFER(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	type ret struct {
 		PredictiveFER uint64
 	}
@@ -388,13 +286,7 @@ func HandlePredictiveFER(
 	return r, nil
 }
 
-func HandleProcessList(
-	state interfaces.IState,
-	params interface{},
-) (
-	interface{},
-	*primitives.JSONError,
-) {
+func HandleProcessList(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	type ret struct {
 		ProcessList string
 	}
@@ -403,13 +295,7 @@ func HandleProcessList(
 	return r, nil
 }
 
-func HandleReloadConfig(
-	state interfaces.IState,
-	params interface{},
-) (
-	interface{},
-	*primitives.JSONError,
-) {
+func HandleReloadConfig(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	// LoacConfig with "" strings should load the default location
 	state.LoadConfig(state.GetConfigPath(), state.GetNetworkName())
 
@@ -423,15 +309,16 @@ func runCmd(cmd string) {
 
 	return
 }
+
 func HandleSimControl(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	droprate := new(GetCommands)
-	err := MapToObject(params, droprate)
+	cmdLines := new(GetCommands)
+	err := MapToObject(params, cmdLines)
 	if err != nil {
 		return nil, NewInvalidParamsError()
 	}
 
-	for i := 0; i < len(droprate.Commands); i++ {
-		runCmd(string(droprate.Commands[i]))
+	for _, cmdStr := range cmdLines.Commands {
+		runCmd(cmdStr)
 	}
 
 	type Success struct {
@@ -453,4 +340,38 @@ type SetDropRateRequest struct {
 
 type GetCommands struct {
 	Commands []string `json:"commands"`
+}
+
+func HandleMessageFilter(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	wsDebugLog.Println("Factom Node Name: ", state.GetFactomNodeName())
+	x, ok := params.(map[string]interface{})
+	if !ok {
+		return nil, NewCustomInvalidParamsError("ERROR! Invalid params passed in")
+	}
+
+	wsDebugLog.Println(`x["output-regex"]`, x["output-regex"])
+	wsDebugLog.Println(`x["input-regex"]`, x["input-regex"])
+
+	OutputString := fmt.Sprintf("%s", x["output-regex"])
+	if OutputString != "" {
+		OutputRegEx := regexp.MustCompile(OutputString)
+		state.PassOutputRegEx(OutputRegEx, OutputString)
+
+	} else if OutputString == "off" {
+		state.PassOutputRegEx(nil, "")
+	}
+
+	InputString := fmt.Sprintf("%s", x["input-regex"])
+	if InputString != "" {
+		InputRegEx := regexp.MustCompile(InputString)
+		state.PassInputRegEx(InputRegEx, InputString)
+
+	} else if InputString == "off" {
+		state.PassInputRegEx(nil, "")
+	}
+
+	h := new(MessageFilter)
+	h.Params = "Success"
+
+	return h, nil
 }

@@ -96,7 +96,7 @@ func (m *FactoidTransaction) GetMsgHash() (rval interfaces.IHash) {
 }
 
 func (m *FactoidTransaction) GetTimestamp() interfaces.Timestamp {
-	return m.Transaction.GetTimestamp()
+	return m.Transaction.GetTimestamp().Clone()
 }
 
 func (m *FactoidTransaction) GetTransaction() interfaces.ITransaction {
@@ -129,9 +129,14 @@ func (m *FactoidTransaction) Validate(state interfaces.IState) int {
 	}
 
 	// Is the transaction valid at this point in time?
-	err = state.GetFactoidState().Validate(1, m.Transaction)
+	holdAddr := [32]byte{}
+	err, holdAddr = state.GetFactoidState().Validate(1, m.Transaction)
 	if err != nil {
-		return 0 // Well, mumble.  Might be out of order.
+		if holdAddr != [32]byte{} { // hold for an address that is short
+			state.Add(holdAddr, m)
+		} else {
+			return -1 // message was invalid for another reason
+		}
 	}
 
 	// First check all inputs are good.

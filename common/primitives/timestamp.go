@@ -138,3 +138,10 @@ func (t *Timestamp) String() string {
 func (t *Timestamp) UTCString() string {
 	return t.GetTime().UTC().Format("2006-01-02 15:04:05")
 }
+
+// Clone()
+// Functions that return timestamps in structures should clone said timestamps so users
+// don't change the timestamp in the structures.
+func (t Timestamp) Clone() interfaces.Timestamp {
+	return &t
+}

@@ -467,7 +467,6 @@ func (dbsl *DBStateList) MarshalBinary() (rval []byte, err error) {
 			if !v.Locked {
 				panic("unlocked save state")
 			}
-
 			err = buf.PushBinaryMarshallable(v)
 			if err != nil {
 				return nil, err
@@ -956,6 +955,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	// its links patched, so we can't process it.  But if this is a repeat block (we have already processed
 	// at this height) then we simply return.
 	if d.Locked || d.IsNew || d.Repeat {
+
 		s.LogPrintf("dbstateprocess", "ProcessBlocks(%d) Skipping d.Locked(%v) || d.IsNew(%v) || d.Repeat(%v) : ", dbht, d.Locked, d.IsNew, d.Repeat)
 		return false
 	}
@@ -1217,15 +1217,6 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		s.MoveStateToHeight(dbht+1, 0)
 	}
 
-	// Note about dbsigs.... If we processed the previous minute, then we generate the DBSig for the next block.
-	// But if we didn't process the previous block, like we start from scratch, or we had to reset the entire
-	// network, then no dbsig exists.  This code doesn't execute, and so we have no dbsig.  In that case, on
-	// the next EOM, we see the block hasn't been signed, and we sign the block (That is the call to SendDBSig()
-	// above).
-	pldbs := s.ProcessLists.Get(s.LLeaderHeight)
-	if s.Leader && !pldbs.DBSigAlreadySent {
-		s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex) // ProcessBlocks()
-	}
 
 	return
 }
@@ -1427,8 +1418,10 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		switch en.ECID() {
 		case constants.ECIDChainCommit:
 			list.State.NumNewChains++
+			list.State.ExecuteFromHolding(en.GetEntryHash().Fixed())
 		case constants.ECIDEntryCommit:
 			list.State.NumNewEntries++
+			list.State.ExecuteFromHolding(en.GetEntryHash().Fixed())
 		}
 	}
 
@@ -1471,6 +1464,10 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 			}
 		} else {
 			list.State.LogPrintf("dbstateprocess", "Error saving eblock from dbstate, eblock not allowed")
+		}
+		// if this is chain head
+		if eb.GetHeader().GetEBSequence() == 0 {
+			list.State.ExecuteFromHolding(eb.GetHeader().GetChainID().Fixed())
 		}
 	}
 	for _, e := range d.Entries {
