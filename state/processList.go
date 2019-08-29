@@ -759,8 +759,8 @@ func (p *ProcessList) processVM(vm *VM) (progress bool) {
 
 	if vm.Height == len(vm.List) {
 		// if we are syncing EOMs ...
-		if s.EOM {
-			// means that we are missing an EOM
+		if s.EOM || s.DBSig {
+			// means that we are missing an EOM or DBSig
 			vm.ReportMissing(vm.Height, 0) // ask for it now
 		}
 		// If we haven't heard anything from a VM in 2 seconds, ask for a message at the last-known height
@@ -1046,7 +1046,6 @@ func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces
 		s.LogPrintf("processList", "Drop "+hint)
 		TotalHoldingQueueOutputs.Inc()
 		TotalAcksOutputs.Inc()
-		//delete(s.Holding, msgHash.Fixed())
 
 		s.DeleteFromHolding(m.GetMsgHash().Fixed(), m, "Toss"+hint)
 		delete(s.Acks, msgHash.Fixed())

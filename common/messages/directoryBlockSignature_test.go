@@ -153,6 +153,7 @@ func TestInvalidSignature(t *testing.T) {
 	m.Signature = m2.Signature       // make message signature bad
 	s.LLeaderHeight = m.DBHeight - 1 // make message in the future
 	v = m.Validate(s)
+
 	if v != -2 {
 		t.Errorf("Expected -2, found %d", v)
 	}
