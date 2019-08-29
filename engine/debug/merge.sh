@@ -32,8 +32,9 @@ EOF
 ################################
 # End of AWK Scripts           #
 ################################
-echo 0
-if [ "$#" -ne 0 ]; then
+
+if [ "$#" -ne 0 ]
+then
 grep -HE . "$@"  | awk  "$scriptVariable" | sort -nk2 | less -R
 else
 awk  "$scriptVariable" | sort -nk2 | less -R

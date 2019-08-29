@@ -224,6 +224,22 @@ func (m *FedVoteLevelMsg) FollowerExecute(is interfaces.IState) {
 		pl.FedServers[m.Volunteer.FedIdx], pl.AuditServers[m.Volunteer.ServerIdx] =
 			pl.AuditServers[m.Volunteer.ServerIdx], pl.FedServers[m.Volunteer.FedIdx]
 
+		s.LogPrintf("executeMsg", "Pre  Election s.Leader=%v s.LeaderVMIndex to %v", s.Leader, s.LeaderVMIndex)
+
+		// reset my leader variables, cause maybe we changed...
+		Leader, LeaderVMIndex := s.LeaderPL.GetVirtualServers(int(s.CurrentMinute), s.IdentityChainID)
+		{ // debug
+			if s.Leader != Leader {
+				s.LogPrintf("executeMsg", "FedVoteLevelMsg.FollowerExecute() changed s.Leader to %v", Leader)
+				s.Leader = Leader
+			}
+			if s.LeaderVMIndex != LeaderVMIndex {
+				s.LogPrintf("executeMsg", "FedVoteLevelMsg.FollowerExecute() changed s.LeaderVMIndex to %v", LeaderVMIndex)
+				s.LeaderVMIndex = LeaderVMIndex
+			}
+		}
+		s.LogPrintf("executeMsg", "Post Election s.Leader=%v s.LeaderVMIndex to %v", s.Leader, s.LeaderVMIndex)
+
 		// Trim the processlist for all messages above this height. They are signed by the old leader, and have
 		// not yet been processed.
 		pl.TrimVMList(m.Volunteer.Ack.(*messages.Ack).Height, m.VMIndex)
@@ -233,19 +249,6 @@ func (m *FedVoteLevelMsg) FollowerExecute(is interfaces.IState) {
 		pl.AddToProcessList(pl.State, m.Volunteer.Ack.(*messages.Ack), m.Volunteer.Missing)
 	} else {
 		is.ElectionsQueue().Enqueue(m)
-	}
-
-	// reset my leader variables, cause maybe we changed...
-	Leader, LeaderVMIndex := s.LeaderPL.GetVirtualServers(int(m.Minute), s.IdentityChainID)
-	{ // debug
-		if s.Leader != Leader {
-			s.LogPrintf("executeMsg", "FedVoteLevelMsg.FollowerExecute() unexpectedly setting s.Leader to %v", Leader)
-			s.Leader = Leader
-		}
-		if s.LeaderVMIndex != LeaderVMIndex {
-			s.LogPrintf("executeMsg", "FedVoteLevelMsg.FollowerExecute() unexpectedly setting s.LeaderVMIndex to %v", LeaderVMIndex)
-			s.LeaderVMIndex = LeaderVMIndex
-		}
 	}
 }
 
