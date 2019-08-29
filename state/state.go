@@ -3097,3 +3097,7 @@ func (s *State) ShutdownNode(exitCode int) {
 func (s *State) GetDBFinished() bool {
 	return s.DBFinished
 }
+
+func (s *State) GetRunLeader() bool {
+	return s.RunLeader
+}

@@ -32,6 +32,7 @@ type IQueue interface {
 // accidentally
 type IState interface {
 	GetRunState() runstate.RunState
+	GetRunLeader() bool
 	// Server
 	GetFactomNodeName() string
 	GetSalt(Timestamp) uint32 // A secret number computed from a TS that tests if a message was issued from this server or not

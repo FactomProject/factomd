@@ -181,9 +181,21 @@ func (m *MessageBase) SendOut(s interfaces.IState, msg interfaces.IMsg) {
 	}
 	// debug code end ............
 	s.LogMessage("NetworkOutputs", "Enqueue", msg)
-	s.NetworkOutMsgQueue().Enqueue(msg)
-	// Add this to the network replay filter so we don't bother processing any echos
 
+	if s.GetRunLeader() { // true means - we are not in wait period
+		s.NetworkOutMsgQueue().Enqueue(msg)
+	} else {
+		q := s.NetworkOutMsgQueue()
+		if q.Length() < q.Cap() {
+			q.Enqueue(msg)
+		} else {
+			popped := s.NetworkOutMsgQueue().BlockingDequeue()
+			s.LogMessage("NetworkOutputs", "Popped & dropped", popped)
+			q.Enqueue(msg)
+		}
+	}
+
+	// Add this to the network replay filter so we don't bother processing any echos
 	s.AddToReplayFilter(constants.NETWORK_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), now)
 }
 
