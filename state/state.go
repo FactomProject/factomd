@@ -1005,8 +1005,8 @@ func (s *State) Init() {
 	s.inMsgQueue2 = NewInMsgQueue(constants.INMSGQUEUE_HIGH)                //incoming message queue for Factom application messages
 	s.electionsQueue = NewElectionQueue(constants.INMSGQUEUE_HIGH)          //incoming message queue for Factom application messages
 	s.apiQueue = NewAPIQueue(constants.INMSGQUEUE_HIGH)                     //incoming message queue from the API
-	s.ackQueue = make(chan interfaces.IMsg, 50)                             //queue of Leadership messages
-	s.msgQueue = make(chan interfaces.IMsg, 50)                             //queue of Follower messages
+	s.ackQueue = make(chan interfaces.IMsg, 500)                            //queue of Leadership messages
+	s.msgQueue = make(chan interfaces.IMsg, 500)                            //queue of Follower messages
 	s.prioritizedMsgQueue = make(chan interfaces.IMsg, 50)                  //a prioritized queue of Follower messages (from mmr.go)
 	s.MissingEntries = make(chan *MissingEntry, constants.INMSGQUEUE_HIGH)  //Entries I discover are missing from the database
 	s.UpdateEntryHash = make(chan *EntryUpdate, constants.INMSGQUEUE_HIGH)  //Handles entry hashes and updating Commit maps.

@@ -349,6 +349,7 @@ func (r *Replay) SetHashNow(mask int, hash [32]byte, now interfaces.Timestamp) b
 		//r.s.LogPrintf("replay", "Add2 %x (%s) to %s from %s", hash[:3], maskToString(mask), r.Name, atomic.WhereAmIString(1))
 		return true
 	}
+	return false
 }
 
 func (r *Replay) Clear(mask int, hash [32]byte) {
