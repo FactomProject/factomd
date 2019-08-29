@@ -65,7 +65,7 @@ func TestDualElections(t *testing.T) {
 	RunCmd("x")            // off the net
 	RunCmd("6")            // select 6
 	RunCmd("x")            // off the net
-	WaitMinutes(state0, 1) // wait for elections
+	WaitMinutes(state0, 2) // wait for elections
 	RunCmd("2")            // select 2
 	RunCmd("x")            // on the net
 	RunCmd("6")            // select 6

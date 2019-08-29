@@ -859,9 +859,7 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 			}
 			s.DBStates.UpdateState() // call to get the state signed now that the DBSigs have processed
 		}
-		s.CurrentMinute = newMinute                                                            // Update just the minute
-		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(newMinute, s.IdentityChainID) // MoveStateToHeight minute
-		s.LogPrintf("executeMsg", "MoveStateToHeight new minute set leader=%v, vmIndex = %v", s.Leader, s.LeaderVMIndex)
+		s.CurrentMinute = newMinute // Update just the minute
 		// We are between blocks make sure we are setup to sync
 		// should already be true but if a DBSTATE got processed mid block
 		// there might be a circumstance where we get here in a weird state
@@ -871,6 +869,9 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		// If an election took place, our lists will be unsorted. Fix that
 		s.LeaderPL.SortAuditServers()
 		s.LeaderPL.SortFedServers()
+
+		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(newMinute, s.IdentityChainID) // MoveStateToHeight minute
+		s.LogPrintf("executeMsg", "MoveStateToHeight new minute set leader=%v, vmIndex = %v", s.Leader, s.LeaderVMIndex)
 	}
 
 	{ // debug

@@ -42,7 +42,7 @@ function print_processlists(){
     }
 }
 
-#{print NR,$0;}
+# {print NR,$0;}
 
 BEGIN {
     if(time ~ /[0-9][0-9]:[0-9][0-9]:[0-9][0-9](.[0-9])?/) {
@@ -63,6 +63,13 @@ $0 ~ time_regex {
     print_processlists();
     exit(0);
 }
+
+END {
+    print_processlists();
+    exit(0);
+}
+
+
 
 #  1616362 00:04:54.018  205916-:-0 Added 205917/10/5                  M-da9376|R-bbae5d|H-da9376|0xc008c9b7c0                        EOM[ 0]:   EOM-DBh/VMh/h 205917/10/-- minute 4 FF  0 --Leader[598240] hash[da9376]   
 
@@ -93,4 +100,4 @@ EOF
 
 echo grep -hE -E "${time:-max}|Added ${height:-[0-9]+}/${vms:-[0-9]+}/|done ${height:-[0-9]+}/${vms:-[0-9]+}/" ${fnode:-fnode0}_processlist.txt 
 
-grep -hE -E "${time:-max}|Added ${height:-[0-9]+}/${vms:-[0-9]+}/|done ${height:-[0-9]+}/${vms:-[0-9]+}/" ${fnode:-fnode0}_processlist.txt | tee x | awk -v time=${time:-max} -v height=${height:-[0-9]+} -v vms=${vms:-[0-9]+} "$scriptVariable"
+grep -hE "${time:-max}|Added ${height:-[0-9]+}/${vms:-[0-9]+}/|done ${height:-[0-9]+}/${vms:-[0-9]+}/" ${fnode:-fnode0}_processlist.txt | tee x | awk -v time=${time:-max} -v height=${height:-[0-9]+} -v vms=${vms:-[0-9]+} "$scriptVariable"
