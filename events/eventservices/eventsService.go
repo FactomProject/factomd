@@ -16,6 +16,7 @@ import (
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/util"
 	"github.com/gogo/protobuf/proto"
+	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 	"net"
 	"reflect"
@@ -36,11 +37,13 @@ const (
 )
 
 type eventServiceInstance struct {
-	params               *EventServiceParams
-	eventsOutQueue       chan *eventmessages.FactomEvent
-	postponeSendingUntil time.Time
-	connection           net.Conn
-	owningState          interfaces.IState
+	params                  *EventServiceParams
+	eventsOutQueue          chan *eventmessages.FactomEvent
+	postponeSendingUntil    time.Time
+	connection              net.Conn
+	owningState             interfaces.IState
+	droppedFromQueueCounter prometheus.Counter
+	notSentCounter          prometheus.Counter
 }
 
 func NewEventService(state interfaces.IState, config *util.FactomdConfig, factomParams *globals.FactomParams) (events.EventService, events.EventServiceControl) {
@@ -56,6 +59,16 @@ func NewEventServiceTo(state interfaces.IState, params *EventServiceParams) (eve
 		}
 		eventService = eventServiceInstance
 		eventServiceControl = eventServiceInstance
+
+		eventServiceInstance.droppedFromQueueCounter = prometheus.NewCounter(prometheus.CounterOpts{
+			Name: "factomd_livefeed_dropped_from_queue_counter",
+			Help: "Number of times we dropped events due of a full the event queue",
+		})
+		eventServiceInstance.notSentCounter = prometheus.NewCounter(prometheus.CounterOpts{
+			Name: "factomd_livefeed_not_send_counter",
+			Help: "Number of times we couldn't send out an event",
+		})
+
 		go eventServiceInstance.processEventsChannel()
 	}
 	return eventService, eventServiceControl
@@ -87,6 +100,7 @@ func (esi *eventServiceInstance) Send(event events.EventInput) error {
 	select {
 	case esi.eventsOutQueue <- factomEvent:
 	default:
+		esi.droppedFromQueueCounter.Inc()
 	}
 
 	return nil
@@ -98,6 +112,8 @@ func (esi *eventServiceInstance) processEventsChannel() {
 	for event := range esi.eventsOutQueue {
 		if esi.postponeSendingUntil.IsZero() || esi.postponeSendingUntil.Before(time.Now()) {
 			esi.sendEvent(event)
+		} else {
+			esi.notSentCounter.Inc()
 		}
 	}
 }
@@ -106,6 +122,7 @@ func (esi *eventServiceInstance) sendEvent(event *eventmessages.FactomEvent) {
 	data, err := esi.marshallMessage(event)
 	if err != nil {
 		log.Errorf("An error occurred while serializing factom event of type %s: %v", reflect.TypeOf(event), err)
+		esi.notSentCounter.Inc()
 		return
 	}
 
@@ -123,6 +140,7 @@ func (esi *eventServiceInstance) sendEvent(event *eventmessages.FactomEvent) {
 			sendSuccessful = true
 		} else {
 			log.Errorf("An error occurred while sending a message to receiver %s: %v, retry %d", esi.params.Address, err, retry)
+			esi.notSentCounter.Inc()
 
 			// reset connection and retry
 			esi.disconnect()

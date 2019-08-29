@@ -49,7 +49,9 @@ func mapRegistrationEvent(registrationEvent *events.RegistrationEvent) (*eventme
 		case *messages.CommitEntryMsg:
 			event.Value = mapCommitEntryEvent(eventmessages.EntityState_REQUESTED, msg)
 		case *messages.RevealEntryMsg:
-			event.Value = mapRevealEntryEvent(eventmessages.EntityState_REQUESTED, msg, shouldIncludeContent)
+			if shouldIncludeContent {
+				event.Value = mapRevealEntryEvent(eventmessages.EntityState_REQUESTED, msg)
+			}
 		default:
 			return nil, errors.New("unknown message type")
 		}
@@ -79,7 +81,7 @@ func mapStateChangeEvent(stateChangeEvent *events.StateChangeEvent) (*eventmessa
 			}
 		case *messages.RevealEntryMsg:
 			if resendRegistrations {
-				event.Value = mapRevealEntryEvent(stateChangeEvent.GetEntityState(), msg, shouldIncludeContent)
+				event.Value = mapRevealEntryEvent(stateChangeEvent.GetEntityState(), msg)
 			} else {
 				event.Value = mapRevealEntryEventState(stateChangeEvent.GetEntityState(), msg)
 			}

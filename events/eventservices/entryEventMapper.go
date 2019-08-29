@@ -37,12 +37,12 @@ func mapCommitEntryEventState(state eventmessages.EntityState, msg interfaces.IM
 	return result
 }
 
-func mapRevealEntryEvent(entityState eventmessages.EntityState, msg interfaces.IMsg, shouldIncludeContent bool) *eventmessages.FactomEvent_EntryContentRegistration {
+func mapRevealEntryEvent(entityState eventmessages.EntityState, msg interfaces.IMsg) *eventmessages.FactomEvent_EntryContentRegistration {
 	revealEntry := msg.(*messages.RevealEntryMsg)
 	return &eventmessages.FactomEvent_EntryContentRegistration{
 		EntryContentRegistration: &eventmessages.EntryContentRegistration{
 			EntityState: entityState,
-			Entry:       mapEntryBlockEntry(revealEntry.Entry, shouldIncludeContent),
+			Entry:       mapEntryBlockEntry(revealEntry.Entry, true),
 			Timestamp:   convertTimeToTimestamp(revealEntry.Timestamp.GetTime()),
 		},
 	}
