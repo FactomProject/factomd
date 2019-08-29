@@ -987,7 +987,11 @@ func (s *State) repost(m interfaces.IMsg, delay int) {
 //		 30s			 3s			0.05s
 func (s *State) FactomSecond() time.Duration {
 	// Convert to time.second, then divide by 600
-	return time.Duration(s.DirectoryBlockInSeconds) * time.Second / 600
+	factomsecond := time.Duration(s.DirectoryBlockInSeconds) * time.Second / 600
+	if factomsecond < time.Duration(250*time.Millisecond) {
+		factomsecond = time.Duration(250 * time.Millisecond) // for really fast block we lie ...
+	}
+	return factomsecond
 }
 
 // Messages that will go into the Process List must match an Acknowledgement.

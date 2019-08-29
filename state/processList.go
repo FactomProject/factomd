@@ -10,6 +10,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
@@ -764,8 +765,8 @@ func (p *ProcessList) processVM(vm *VM) (progress bool) {
 			vm.ReportMissing(vm.Height, 0) // ask for it now
 		}
 		// If we haven't heard anything from a VM in 2 seconds, ask for a message at the last-known height
-		if now.GetTimeMilli()-vm.ProcessTime.GetTimeMilli() > 2000 { // TODO: use FactomSeconds
-			vm.ReportMissing(vm.Height, 2000) // Ask for one past the end of the list
+		if now.GetTimeMilli()-vm.ProcessTime.GetTimeMilli() > int64(s.FactomSecond()/time.Millisecond) {
+			vm.ReportMissing(vm.Height, int64(2*s.FactomSecond()/time.Millisecond)) // Ask for one past the end of the list
 		}
 		return false
 	}
