@@ -1217,7 +1217,6 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		s.MoveStateToHeight(dbht+1, 0)
 	}
 
-
 	return
 }
 

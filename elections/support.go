@@ -6,11 +6,13 @@ import (
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/util/atomic"
 )
 
 var _ = fmt.Print
 
-func (*Elections) Sort(serv []interfaces.IServer) bool {
+func (e *Elections) Sort(serv []interfaces.IServer) bool {
+	e.LogPrintf("election", "Sort AuthoritySet %s", atomic.WhereAmIString(1))
 	changed := false
 	for i := 0; i < len(serv)-1; i++ {
 		allgood := true

@@ -130,6 +130,7 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 	if is.IsActive(activations.ELECTION_NO_SORT) {
 		if int(m.DBHeight) > e.DBHeight {
 			// Sort leaders, on block boundaries
+			e.LogPrintf("election", "Sort AuthoritySet")
 			changed := e.Sort(e.Federated)
 			if changed {
 				e.LogPrintf("election", "Sort changed e.Federated in EomSigInternal.ElectionProcess")

@@ -218,8 +218,8 @@ func (m *FedVoteLevelMsg) FollowerExecute(is interfaces.IState) {
 			m.Volunteer.ServerIdx, m.Volunteer.ServerID.Bytes()[3:6])
 
 		s.LogPrintf("executeMsg", "LeaderSwapState %d/%d/%d", m.DBHeight, m.VMIndex, m.Minute)
-		s.LogPrintf("executeMsg", "Demote  %x", pl.FedServers[m.Volunteer.FedIdx].GetChainID().Bytes()[3:6])
-		s.LogPrintf("executeMsg", "Promote %x", pl.AuditServers[m.Volunteer.ServerIdx].GetChainID().Bytes()[3:6])
+		s.LogPrintf("executeMsg", "Demote  %d[%x]", m.Volunteer.FedIdx, pl.FedServers[m.Volunteer.FedIdx].GetChainID().Bytes()[3:6])
+		s.LogPrintf("executeMsg", "Promote %d[%x]", m.Volunteer.ServerIdx, pl.AuditServers[m.Volunteer.ServerIdx].GetChainID().Bytes()[3:6])
 
 		pl.FedServers[m.Volunteer.FedIdx], pl.AuditServers[m.Volunteer.ServerIdx] =
 			pl.AuditServers[m.Volunteer.ServerIdx], pl.FedServers[m.Volunteer.FedIdx]

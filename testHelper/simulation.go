@@ -16,12 +16,12 @@ import (
 
 	"github.com/FactomProject/factomd/elections"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/engine"
 	"github.com/FactomProject/factomd/state"
+	"github.com/stretchr/testify/assert"
 )
 
 var par = globals.FactomParams{}
@@ -205,12 +205,12 @@ func SetupSim(givenNodes string, userAddedOptions map[string]string, height int,
 	if isDefaultSim(givenNodes) || state0.GetDBHeightAtBoot() != 0 {
 		t.Logf("Skip Node Promotion", nodeLen)
 	} else {
-	WaitMinutes(state0, 1) // wait till initial DBState message for the genesis block is processed
+		WaitMinutes(state0, 1) // wait till initial DBState message for the genesis block is processed
 		createAuthoritySet(givenNodes, state0, t)
 
 		if len(engine.GetFnodes()) != nodeLen {
-		t.Fail()
-	}
+			t.Fail()
+		}
 		// swap identity if Fnode0 Should be a follower
 		if []rune(givenNodes)[0] == 'F' {
 			RunCmd(fmt.Sprintf("%d", 0))

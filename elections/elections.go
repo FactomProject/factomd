@@ -102,6 +102,7 @@ func (e *Elections) AddFederatedServer(server interfaces.IServer) int {
 	e.RemoveAuditServer(server)
 
 	e.Federated = append(e.Federated, server)
+
 	changed := e.Sort(e.Federated)
 	if changed {
 		e.LogPrintf("election", "Sort changed e.Federated in Elections.AddFederatedServer")

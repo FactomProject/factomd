@@ -259,6 +259,7 @@ func (p *ProcessList) LogPrintLeaders(log string) {
 func (p *ProcessList) SortFedServers() {
 	s := p.State
 	if p.FedServers != nil {
+		s.LogPrintf("election", "Process Sort AuthoritySet %s", atomic.WhereAmIString(1))
 		changed := Sort(p.FedServers)
 		if changed {
 			s.LogPrintf("election", "Sort changed p.Federated in ProcessList.SortFedServers")
@@ -269,6 +270,7 @@ func (p *ProcessList) SortFedServers() {
 
 func (p *ProcessList) SortAuditServers() {
 	s := p.State
+	s.LogPrintf("election", "Process Sort AuthoritySet %s", atomic.WhereAmIString(1))
 	if p.AuditServers != nil {
 		changed := Sort(p.AuditServers)
 		if changed {

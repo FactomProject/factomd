@@ -2159,6 +2159,7 @@ func (s *State) GetUnsyncedServersString(dbheight uint32) string {
 	if len(ids) > 0 {
 		ids = ids[1:] // drop the leading comma
 	}
+
 	return ids
 }
 
