@@ -218,7 +218,7 @@ func SortServers(servers []interfaces.IServer) []interfaces.IServer {
 }
 
 // duplicate function in election but cannot import because of a dependency loop
-func Sort(serv []interfaces.IServer) bool {
+func (p *ProcessList) Sort(serv []interfaces.IServer) bool {
 	changed := false
 	for i := 0; i < len(serv)-1; i++ {
 		allgood := true
@@ -260,7 +260,8 @@ func (p *ProcessList) LogPrintLeaders(log string) {
 func (p *ProcessList) SortFedServers() {
 	s := p.State
 	if p.FedServers != nil {
-		changed := Sort(p.FedServers)
+		s.LogPrintf("executeMsg", "Process Sort FedServers")
+		changed := p.Sort(p.FedServers)
 		if changed {
 			s.LogPrintf("election", "Sort changed p.Federated in ProcessList.SortFedServers")
 			p.LogPrintLeaders("process")
@@ -271,7 +272,8 @@ func (p *ProcessList) SortFedServers() {
 func (p *ProcessList) SortAuditServers() {
 	s := p.State
 	if p.AuditServers != nil {
-		changed := Sort(p.AuditServers)
+		s.LogPrintf("executeMsg", "Process Sort AuditServers")
+		changed := p.Sort(p.AuditServers)
 		if changed {
 			s.LogPrintf("election", "Sort changed p.Audit in ProcessList.SortAuditServers")
 			p.LogPrintLeaders("process")

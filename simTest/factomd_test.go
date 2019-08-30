@@ -14,17 +14,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/FactomProject/factomd/activations"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
-	"github.com/FactomProject/factomd/common/primitives/random"
-	"github.com/FactomProject/factomd/util/atomic"
-
-	"github.com/FactomProject/factomd/activations"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives/random"
 	. "github.com/FactomProject/factomd/engine"
 	"github.com/FactomProject/factomd/state"
 	. "github.com/FactomProject/factomd/testHelper"
+	"github.com/FactomProject/factomd/util/atomic"
 	"github.com/FactomProject/factomd/wsapi"
 )
 
@@ -60,7 +59,7 @@ func TestDualElections(t *testing.T) {
 	// 							  01234567
 	state0 := SetupSim("LALLLALFFLLFFFF", map[string]string{"--debuglog": ".", "--blktime": "20"}, 12, 0, 0, t)
 
-	WaitMinutes(state0, 1)
+	WaitMinutes(state0, 8)
 	RunCmd("2")            // select 2
 	RunCmd("x")            // off the net
 	RunCmd("6")            // select 6
@@ -74,6 +73,54 @@ func TestDualElections(t *testing.T) {
 	WaitForAllNodes(state0)
 	ShutDownEverything(t)
 } // TestDualElections(){...}
+
+func TestTripleElections(t *testing.T) {
+	if RanSimTest {
+		return
+	}
+	state.MMR_enable = false // No MMR for you!
+
+	RanSimTest = true
+
+	state0 := SetupSim("LLLLLLLAAAFF", map[string]string{"--debuglog": ".", "--blktime": "20"}, 40, 0, 0, t)
+
+	for minute := 0; minute < 10; minute += 2 {
+		WaitForMinute(state0, minute)
+		RunCmd("1")            // select 1
+		RunCmd("x")            // off the net
+		RunCmd("2")            // select 2
+		RunCmd("x")            // off the net
+		RunCmd("3")            // select 3
+		RunCmd("x")            // off the net
+		WaitMinutes(state0, 2) // wait for elections
+		RunCmd("1")            // select 1
+		RunCmd("x")            // on the net
+		RunCmd("2")            // select 2
+		RunCmd("x")            // on the net
+		RunCmd("3")            // select 3
+		RunCmd("x")            // on the net
+		WaitBlocks(state0, 2)  // wait till nodes should have updated by dbstate
+
+		WaitForMinute(state0, minute+1)
+		RunCmd("4")            // select 1
+		RunCmd("x")            // off the net
+		RunCmd("5")            // select 2
+		RunCmd("x")            // off the net
+		RunCmd("6")            // select 3
+		RunCmd("x")            // off the net
+		WaitMinutes(state0, 2) // wait for elections
+		RunCmd("4")            // select 1
+		RunCmd("x")            // on the net
+		RunCmd("5")            // select 2
+		RunCmd("x")            // on the net
+		RunCmd("6")            // select 3
+		RunCmd("x")            // on the net
+		WaitBlocks(state0, 2)  // wait till nodes should have updated by dbstate
+
+	}
+	WaitForAllNodes(state0)
+	ShutDownEverything(t)
+} // TestTripleElections(){...}
 
 func TestLoad(t *testing.T) {
 	if RanSimTest {
@@ -533,7 +580,6 @@ func TestSimCtrl(t *testing.T) {
 		return
 	}
 	RanSimTest = true
-
 	type walletcallHelper struct {
 		Status string `json:"status"`
 	}
@@ -542,7 +588,6 @@ func TestSimCtrl(t *testing.T) {
 		Id      int              `json:"id"`
 		Result  walletcallHelper `json:"result"`
 	}
-
 	apiCall := func(state0 *state.State, cmd string) {
 		url := "http://localhost:" + fmt.Sprint(state0.GetPort()) + "/debug"
 		var jsonStr = []byte(`{"jsonrpc": "2.0", "id": 0, "method": "sim-ctrl", "params":{"commands": ["` + cmd + `"]}}`)
@@ -635,7 +680,6 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 	// you will return transACK before teh balance is updated which will make thsi test fail.
 	state0 := SetupSim("LAF", map[string]string{}, 6, 0, 0, t)
 	WaitForMinute(state0, 1)
-
 	type walletcallHelper struct {
 		CurrentHeight   uint32        `json:"currentheight"`
 		LastSavedHeight uint          `json:"lastsavedheight"`
@@ -652,7 +696,6 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 		Id      int                          `json:"id"`
 		Result  wsapi.GeneralTransactionData `json:"result"`
 	}
-
 	apiCall := func(state0 *state.State, arrayOfFactoidAccounts []string) *walletcall {
 		url := "http://localhost:" + fmt.Sprint(state0.GetPort()) + "/v2"
 		var jsonStr = []byte(`{"jsonrpc": "2.0", "id": 0, "method": "multiple-fct-balances", "params":{"addresses":["` + strings.Join(arrayOfFactoidAccounts, `", "`) + `"]}}  `)
@@ -827,7 +870,6 @@ func TestMultipleECAccountsAPI(t *testing.T) {
 	// you will return transACK before teh balance is updated which will make thsi test fail.
 	state0 := SetupSim("LAF", map[string]string{}, 6, 0, 0, t)
 	WaitForMinute(state0, 1)
-
 	type walletcallHelper struct {
 		CurrentHeight   uint32        `json:"currentheight"`
 		LastSavedHeight uint          `json:"lastsavedheight"`
@@ -861,7 +903,6 @@ func TestMultipleECAccountsAPI(t *testing.T) {
 		Id      int               `json:"id"`
 		Result  wsapi.EntryStatus `json:"result"`
 	}
-
 	apiCall := func(state0 *state.State, arrayOfECAccounts []string) *walletcall {
 		url := "http://localhost:" + fmt.Sprint(state0.GetPort()) + "/v2"
 		var jsonStr = []byte(`{"jsonrpc": "2.0", "id": 0, "method": "multiple-ec-balances", "params":{"addresses":["` + strings.Join(arrayOfECAccounts, `", "`) + `"]}}  `)

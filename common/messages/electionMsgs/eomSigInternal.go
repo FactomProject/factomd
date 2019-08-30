@@ -130,6 +130,8 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 	if is.IsActive(activations.ELECTION_NO_SORT) {
 		if int(m.DBHeight) > e.DBHeight {
 			// Sort leaders, on block boundaries
+			s := e.State
+			s.LogPrintf("elections", "Election Sort FedServers EomSigInternal")
 			changed := e.Sort(e.Federated)
 			if changed {
 				e.LogPrintf("election", "Sort changed e.Federated in EomSigInternal.ElectionProcess")
@@ -159,6 +161,8 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 		// We stop sorting on 6/28/18 at 12pm ...
 		if !is.IsActive(activations.ELECTION_NO_SORT) {
 			// Sort leaders, on block boundaries
+			s := e.State
+			s.LogPrintf("elections", "Election Sort FedServers EomSigInternal2")
 			changed := e.Sort(e.Federated)
 			if changed {
 				e.LogPrintf("election", "Sort changed e.Federated in EomSigInternal.ElectionProcess")
