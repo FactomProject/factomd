@@ -14,7 +14,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/FactomProject/factomd/activations"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/messages"
@@ -81,39 +80,39 @@ func TestTripleElections(t *testing.T) {
 	state.MMR_enable = false // No MMR for you!
 
 	RanSimTest = true
-
-	state0 := SetupSim("LLLLLLLAAAFF", map[string]string{"--debuglog": ".", "--blktime": "20"}, 40, 0, 0, t)
+	//                            0123456789AB
+	state0 := SetupSim("LALALALLLLFF", map[string]string{"--debuglog": ".", "--blktime": "20"}, 360, 30, 30, t)
 
 	for minute := 0; minute < 10; minute += 2 {
 		WaitForMinute(state0, minute)
-		RunCmd("1")            // select 1
+		RunCmd("2")            // select 1
 		RunCmd("x")            // off the net
-		RunCmd("2")            // select 2
+		RunCmd("4")            // select 2
 		RunCmd("x")            // off the net
-		RunCmd("3")            // select 3
+		RunCmd("6")            // select 3
 		RunCmd("x")            // off the net
 		WaitMinutes(state0, 2) // wait for elections
-		RunCmd("1")            // select 1
+		RunCmd("2")            // select 1
 		RunCmd("x")            // on the net
-		RunCmd("2")            // select 2
+		RunCmd("4")            // select 2
 		RunCmd("x")            // on the net
-		RunCmd("3")            // select 3
+		RunCmd("6")            // select 3
 		RunCmd("x")            // on the net
 		WaitBlocks(state0, 2)  // wait till nodes should have updated by dbstate
 
 		WaitForMinute(state0, minute+1)
-		RunCmd("4")            // select 1
+		RunCmd("1")            // select 1
 		RunCmd("x")            // off the net
-		RunCmd("5")            // select 2
+		RunCmd("3")            // select 2
 		RunCmd("x")            // off the net
-		RunCmd("6")            // select 3
+		RunCmd("5")            // select 3
 		RunCmd("x")            // off the net
 		WaitMinutes(state0, 2) // wait for elections
-		RunCmd("4")            // select 1
+		RunCmd("1")            // select 1
 		RunCmd("x")            // on the net
-		RunCmd("5")            // select 2
+		RunCmd("3")            // select 2
 		RunCmd("x")            // on the net
-		RunCmd("6")            // select 3
+		RunCmd("5")            // select 3
 		RunCmd("x")            // on the net
 		WaitBlocks(state0, 2)  // wait till nodes should have updated by dbstate
 
@@ -329,89 +328,89 @@ func TestMakeALeader(t *testing.T) {
 	ShutDownEverything(t)
 }
 
-func TestActivationHeightElection(t *testing.T) {
-	if RanSimTest {
-		return
-	}
-
-	RanSimTest = true
-
-	state0 := SetupSim("LLLLLAAF", map[string]string{}, 16, 2, 2, t)
-
-	// Kill the last two leader to cause a double election
-	RunCmd("3")
-	RunCmd("x")
-	RunCmd("4")
-	RunCmd("x")
-
-	WaitMinutes(state0, 2) // make sure they get faulted
-
-	// bring them back
-	RunCmd("3")
-	RunCmd("x")
-	RunCmd("4")
-	RunCmd("x")
-	WaitBlocks(state0, 2)
-	WaitMinutes(state0, 1)
-	WaitForAllNodes(state0)
-	CheckAuthoritySet(t)
-
-	if GetFnodes()[3].State.Leader {
-		t.Fatalf("Node 3 should not be a leader")
-	}
-	if GetFnodes()[4].State.Leader {
-		t.Fatalf("Node 4 should not be a leader")
-	}
-	if !GetFnodes()[5].State.Leader {
-		t.Fatalf("Node 5 should be a leader")
-	}
-	if !GetFnodes()[6].State.Leader {
-		t.Fatalf("Node 6 should be a leader")
-	}
-
-	CheckAuthoritySet(t)
-
-	if state0.IsActive(activations.ELECTION_NO_SORT) {
-		t.Fatalf("ELECTION_NO_SORT active too early")
-	}
-
-	for !state0.IsActive(activations.ELECTION_NO_SORT) {
-		WaitBlocks(state0, 1)
-	}
-
-	WaitForMinute(state0, 2) // Don't Fault at the end of a block
-
-	// Cause a new double elections by killing the new leaders
-	RunCmd("5")
-	RunCmd("x")
-	RunCmd("6")
-	RunCmd("x")
-	WaitMinutes(state0, 2) // make sure they get faulted
-	// bring them back
-	RunCmd("5")
-	RunCmd("x")
-	RunCmd("6")
-	RunCmd("x")
-	WaitBlocks(state0, 3)
-	WaitMinutes(state0, 1)
-	WaitForAllNodes(state0)
-	CheckAuthoritySet(t)
-
-	if GetFnodes()[5].State.Leader {
-		t.Fatalf("Node 5 should not be a leader")
-	}
-	if GetFnodes()[6].State.Leader {
-		t.Fatalf("Node 6 should not be a leader")
-	}
-	if !GetFnodes()[3].State.Leader {
-		t.Fatalf("Node 3 should be a leader")
-	}
-	if !GetFnodes()[4].State.Leader {
-		t.Fatalf("Node 4 should be a leader")
-	}
-
-	ShutDownEverything(t)
-}
+//func TestActivationHeightElection(t *testing.T) {
+//	if RanSimTest {
+//		return
+//	}
+//
+//	RanSimTest = true
+//
+//	state0 := SetupSim("LLLLLAAF", map[string]string{}, 16, 2, 2, t)
+//
+//	// Kill the last two leader to cause a double election
+//	RunCmd("3")
+//	RunCmd("x")
+//	RunCmd("4")
+//	RunCmd("x")
+//
+//	WaitMinutes(state0, 2) // make sure they get faulted
+//
+//	// bring them back
+//	RunCmd("3")
+//	RunCmd("x")
+//	RunCmd("4")
+//	RunCmd("x")
+//	WaitBlocks(state0, 2)
+//	WaitMinutes(state0, 1)
+//	WaitForAllNodes(state0)
+//	CheckAuthoritySet(t)
+//
+//	if GetFnodes()[3].State.Leader {
+//		t.Fatalf("Node 3 should not be a leader")
+//	}
+//	if GetFnodes()[4].State.Leader {
+//		t.Fatalf("Node 4 should not be a leader")
+//	}
+//	if !GetFnodes()[5].State.Leader {
+//		t.Fatalf("Node 5 should be a leader")
+//	}
+//	if !GetFnodes()[6].State.Leader {
+//		t.Fatalf("Node 6 should be a leader")
+//	}
+//
+//	CheckAuthoritySet(t)
+//
+//	if state0.IsActive(activations.ELECTION_NO_SORT) {
+//		t.Fatalf("ELECTION_NO_SORT active too early")
+//	}
+//
+//	for !state0.IsActive(activations.ELECTION_NO_SORT) {
+//		WaitBlocks(state0, 1)
+//	}
+//
+//	WaitForMinute(state0, 2) // Don't Fault at the end of a block
+//
+//	// Cause a new double elections by killing the new leaders
+//	RunCmd("5")
+//	RunCmd("x")
+//	RunCmd("6")
+//	RunCmd("x")
+//	WaitMinutes(state0, 2) // make sure they get faulted
+//	// bring them back
+//	RunCmd("5")
+//	RunCmd("x")
+//	RunCmd("6")
+//	RunCmd("x")
+//	WaitBlocks(state0, 3)
+//	WaitMinutes(state0, 1)
+//	WaitForAllNodes(state0)
+//	CheckAuthoritySet(t)
+//
+//	if GetFnodes()[5].State.Leader {
+//		t.Fatalf("Node 5 should not be a leader")
+//	}
+//	if GetFnodes()[6].State.Leader {
+//		t.Fatalf("Node 6 should not be a leader")
+//	}
+//	if !GetFnodes()[3].State.Leader {
+//		t.Fatalf("Node 3 should be a leader")
+//	}
+//	if !GetFnodes()[4].State.Leader {
+//		t.Fatalf("Node 4 should be a leader")
+//	}
+//
+//	ShutDownEverything(t)
+//}
 
 func TestAnElection(t *testing.T) {
 	if RanSimTest {

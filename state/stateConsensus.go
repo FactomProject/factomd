@@ -1924,7 +1924,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	// debug
 	if s.DebugExec() {
 		if s.Syncing && s.EOM && !s.EOMDone && s.DBSigDone {
-			ids := s.GetUnsyncedServersString(dbheight)
+			ids := s.GetUnsyncedServersString()
 			if len(ids) > 0 {
 				s.LogPrintf("dbsig-eom", "Waiting for EOMs from %s", ids)
 			}
@@ -2143,28 +2143,30 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 }
 
 // GetUnsyncedServers returns an array of the IDs for all unsynced VMs
-func (s *State) GetUnsyncedServers(dbheight uint32) []interfaces.IHash {
-	var ids []interfaces.IHash
-	p := s.ProcessLists.Get(dbheight)
-	for index, l := range s.GetFedServers(dbheight) {
-		c := s.CurrentMinute
-		if c == 10 {
-			c = 9
-		}
-		vmIndex := p.ServerMap[c][index]
+// when you are not in a sync phase, no VM is considered sync'd
+func (s *State) GetUnsyncedServers() (ids []interfaces.IHash, vms []int) {
+	p := s.LeaderPL
+	c := s.CurrentMinute
+	if c == 10 {
+		return ids, vms // Must be all sync'd in minute 10
+	}
+	for index, l := range p.FedServers {
+		vmIndex := FedServerVM(p.ServerMap, len(p.FedServers), c, index)
 		vm := p.VMs[vmIndex]
 		if !vm.Synced {
 			ids = append(ids, l.GetChainID())
+			vms = append(vms, vmIndex)
 		}
 	}
-	return ids
+	return ids, vms
 }
 
 // GetUnsyncedServersString returns a string with the short IDs for all unsynced VMs
-func (s *State) GetUnsyncedServersString(dbheight uint32) string {
+func (s *State) GetUnsyncedServersString() string {
 	var ids string
-	for _, id := range s.GetUnsyncedServers(dbheight) {
-		ids = ids + "," + id.String()[6:12]
+	servers, vms := s.GetUnsyncedServers()
+	for index, id := range servers {
+		ids = ids + "," + id.String()[6:12] + fmt.Sprintf("[%d]{%d}", index, vms[index])
 	}
 	if len(ids) > 0 {
 		ids = ids[1:] // drop the leading comma
@@ -2217,7 +2219,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	// debug
 	if s.DebugExec() {
 		if s.Syncing && s.DBSig && !s.DBSigDone {
-			ids := s.GetUnsyncedServersString(dbheight)
+			ids := s.GetUnsyncedServersString()
 			if len(ids) > 0 {
 				s.LogPrintf("dbsig-eom", "Waiting for DBSigs from %s", ids)
 			}

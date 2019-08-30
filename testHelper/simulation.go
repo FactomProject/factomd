@@ -197,8 +197,8 @@ func SetupSim(givenNodes string, userAddedOptions map[string]string, height int,
 
 	{ // calculate & set test timeout
 		blkt := globals.Params.BlkTime
-		roundt := elections.RoundTimeout
-		et := elections.FaultTimeout
+		roundt := 2 * elections.RoundTimeout
+		et := 2 * elections.FaultTimeout
 		setTestTimeouts(state0, time.Duration(float64(((height+3)*blkt)+(electionsCnt*et)+(roundsCnt*roundt))*1.1)*time.Second)
 	}
 	StatusEveryMinute(state0)

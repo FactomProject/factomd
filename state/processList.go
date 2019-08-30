@@ -841,7 +841,7 @@ func (p *ProcessList) processVM(vm *VM) (progress bool) {
 
 		valid := msg.Validate(p.State)
 		if valid == -1 {
-			p.RemoveFromPL(vm, j, "hash invalid msg")
+			p.RemoveFromPL(vm, j, "invalid msg")
 			return progress
 		}
 
