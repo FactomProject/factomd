@@ -10,7 +10,6 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/FactomProject/factomd/activations"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages/msgbase"
@@ -126,22 +125,24 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 		return // EOM but not from a server, just ignore it.
 	}
 
-	// We start sorting here on 6/28/18 at 12pm ...
-	if is.IsActive(activations.ELECTION_NO_SORT) {
-		if int(m.DBHeight) > e.DBHeight {
-			// Sort leaders, on block boundaries
-			changed := e.Sort(e.Federated)
-			if changed {
-				e.LogPrintf("election", "Sort changed e.Federated in EomSigInternal.ElectionProcess")
-				e.LogPrintLeaders("election")
-			}
-			changed = e.Sort(e.Audit)
-			if changed {
-				e.LogPrintf("election", "Sort changed e.Audit in EomSigInternal.ElectionProcess")
-				e.LogPrintLeaders("election")
-			}
-		}
-	}
+	//// We start sorting here on 6/28/18 at 12pm ...
+	//if is.IsActive(activations.ELECTION_NO_SORT) {
+	//	if int(m.DBHeight) > e.DBHeight {
+	//		// Sort leaders, on block boundaries
+	//		s := e.State
+	//		s.LogPrintf("elections", "Election Sort FedServers EomSigInternal")
+	//		changed := e.Sort(e.Federated)
+	//		if changed {
+	//			e.LogPrintf("election", "Sort changed e.Federated in EomSigInternal.ElectionProcess")
+	//			e.LogPrintLeaders("election")
+	//		}
+	//		changed = e.Sort(e.Audit)
+	//		if changed {
+	//			e.LogPrintf("election", "Sort changed e.Audit in EomSigInternal.ElectionProcess")
+	//			e.LogPrintLeaders("election")
+	//		}
+	//	}
+	//}
 
 	// We only do this once, as we transition into a sync event.
 	// Either the height has incremented, or the minute has incremented.
@@ -156,19 +157,17 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 			e.Electing = -1
 		}
 
-		// We stop sorting on 6/28/18 at 12pm ...
-		if !is.IsActive(activations.ELECTION_NO_SORT) {
-			// Sort leaders, on block boundaries
-			changed := e.Sort(e.Federated)
-			if changed {
-				e.LogPrintf("election", "Sort changed e.Federated in EomSigInternal.ElectionProcess")
-				e.LogPrintLeaders("election")
-			}
-			changed = e.Sort(e.Audit)
-			if changed {
-				e.LogPrintf("election", "Sort changed e.Audit in EomSigInternal.ElectionProcess")
-				e.LogPrintLeaders("election")
-			}
+		// Sort leaders, on block boundaries
+		s.LogPrintf("elections", "Election Sort FedServers EomSigInternal2")
+		changed := e.Sort(e.Federated)
+		if changed {
+			e.LogPrintf("election", "Sort changed e.Federated in EomSigInternal.ElectionProcess")
+			e.LogPrintLeaders("election")
+		}
+		changed = e.Sort(e.Audit)
+		if changed {
+			e.LogPrintf("election", "Sort changed e.Audit in EomSigInternal.ElectionProcess")
+			e.LogPrintLeaders("election")
 
 		}
 
