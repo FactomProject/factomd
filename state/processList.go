@@ -217,7 +217,7 @@ func SortServers(servers []interfaces.IServer) []interfaces.IServer {
 }
 
 // duplicate function in election but cannot import because of a dependency loop
-func Sort(serv []interfaces.IServer) bool {
+func (p *ProcessList) Sort(serv []interfaces.IServer) bool {
 	changed := false
 	for i := 0; i < len(serv)-1; i++ {
 		allgood := true
@@ -259,7 +259,8 @@ func (p *ProcessList) LogPrintLeaders(log string) {
 func (p *ProcessList) SortFedServers() {
 	s := p.State
 	if p.FedServers != nil {
-		changed := Sort(p.FedServers)
+		s.LogPrintf("executeMsg", "Process Sort FedServers")
+		changed := p.Sort(p.FedServers)
 		if changed {
 			s.LogPrintf("election", "Sort changed p.Federated in ProcessList.SortFedServers")
 			p.LogPrintLeaders("process")
@@ -270,7 +271,8 @@ func (p *ProcessList) SortFedServers() {
 func (p *ProcessList) SortAuditServers() {
 	s := p.State
 	if p.AuditServers != nil {
-		changed := Sort(p.AuditServers)
+		s.LogPrintf("executeMsg", "Process Sort AuditServers")
+		changed := p.Sort(p.AuditServers)
 		if changed {
 			s.LogPrintf("election", "Sort changed p.Audit in ProcessList.SortAuditServers")
 			p.LogPrintLeaders("process")
@@ -838,12 +840,12 @@ func (p *ProcessList) processVM(vm *VM) (progress bool) {
 
 		valid := msg.Validate(p.State)
 		if valid == -1 {
-			p.RemoveFromPL(vm, j, "hash invalid msg")
+			p.RemoveFromPL(vm, j, "invalid msg")
 			return progress
 		}
 
 		if msg.Process(p.DBHeight, s) { // Try and Process this entry
-			p.State.LogMessage("processList", "done", msg)
+			p.State.LogMessage("processList", fmt.Sprintf("done %v/%v/%v", p.DBHeight, i, j), msg)
 			vm.heartBeat = 0
 			vm.Height = j + 1 // Don't process it again if the process worked.
 			s.LogMessage("process", fmt.Sprintf("done %v/%v/%v", p.DBHeight, i, j), msg)
@@ -1114,7 +1116,7 @@ func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces
 		s.adds <- plRef{int(p.DBHeight), ack.VMIndex, int(ack.Height)}
 	}
 
-	s.LogMessage("processList", fmt.Sprintf("Added at %d/%d/%d by %s", ack.DBHeight, ack.VMIndex, ack.Height, atomic.WhereAmIString(1)), m)
+	s.LogMessage("processList", fmt.Sprintf("Added %d/%d/%d", ack.DBHeight, ack.VMIndex, ack.Height), m)
 
 	// If we add the message to the process list, ensure we actually process that
 	// message, so the next msg will be able to added without going into holding.

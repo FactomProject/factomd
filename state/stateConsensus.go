@@ -68,8 +68,8 @@ func (s *State) LogPrintf(logName string, format string, more ...interface{}) {
 	}
 }
 func (s *State) AddToHolding(hash [32]byte, msg interfaces.IMsg) {
-	if msg.Type() == constants.VOLUNTEERAUDIT {
-		s.LogMessage("holding election?", "add", msg)
+	if !constants.NeedsAck(msg.Type()) {
+		s.LogMessage("holding", "add non-ack'd", msg)
 	}
 	_, ok := s.Holding[hash]
 	if !ok {
@@ -331,11 +331,12 @@ func (s *State) executeMsg(msg interfaces.IMsg) (ret bool) {
 	case 0:
 		// Sometimes messages we have already processed are in the msgQueue from holding when we execute them
 		// this check makes sure we don't put them back in holding after just deleting them
+		s.LogMessage("executeMsg", "hold executeMsg", msg)
 		s.AddToHolding(msg.GetMsgHash().Fixed(), msg) // Add message where validToExecute==0
 		return false
 
 	case -2:
-		s.LogMessage("executeMsg", "back to new holding from executeMsg", msg)
+		s.LogMessage("executeMsg", "dependent_hold executeMsg", msg)
 		return false
 
 	default:
@@ -1269,15 +1270,23 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 	}
 
 	_, validToExecute := s.Validate(ack)
-	if validToExecute < 0 {
-		s.LogMessage("executeMsg", "drop MMR ack invalid", m)
+	if validToExecute == -1 {
+		s.LogMessage("executeMsg", "drop MMR ack invalid", ack)
+		return
+	}
+	if validToExecute == -2 {
+		s.LogMessage("executeMsg", "dependent_hold", ack)
 		return
 	}
 
 	// If we don't need this message, we don't have to do everything else.
 	_, validToExecute = s.Validate(msg)
-	if validToExecute < 0 {
+	if validToExecute == -1 {
 		s.LogMessage("executeMsg", "drop MMR message invalid", m)
+		return
+	}
+	if validToExecute == -2 {
+		s.LogMessage("executeMsg", "dependent_hold", m)
 		return
 	}
 	ack.Response = true
@@ -1917,7 +1926,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	// debug
 	if s.DebugExec() {
 		if s.Syncing && s.EOM && !s.EOMDone && s.DBSigDone {
-			ids := s.GetUnsyncedServersString(dbheight)
+			ids := s.GetUnsyncedServersString()
 			if len(ids) > 0 {
 				s.LogPrintf("dbsig-eom", "Waiting for EOMs from %s", ids)
 			}
@@ -2136,28 +2145,30 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 }
 
 // GetUnsyncedServers returns an array of the IDs for all unsynced VMs
-func (s *State) GetUnsyncedServers(dbheight uint32) []interfaces.IHash {
-	var ids []interfaces.IHash
-	p := s.ProcessLists.Get(dbheight)
-	for index, l := range s.GetFedServers(dbheight) {
-		c := s.CurrentMinute
-		if c == 10 {
-			c = 9
-		}
-		vmIndex := p.ServerMap[c][index]
+// when you are not in a sync phase, no VM is considered sync'd
+func (s *State) GetUnsyncedServers() (ids []interfaces.IHash, vms []int) {
+	p := s.LeaderPL
+	c := s.CurrentMinute
+	if c == 10 {
+		return ids, vms // Must be all sync'd in minute 10
+	}
+	for index, l := range p.FedServers {
+		vmIndex := FedServerVM(p.ServerMap, len(p.FedServers), c, index)
 		vm := p.VMs[vmIndex]
 		if !vm.Synced {
 			ids = append(ids, l.GetChainID())
+			vms = append(vms, vmIndex)
 		}
 	}
-	return ids
+	return ids, vms
 }
 
 // GetUnsyncedServersString returns a string with the short IDs for all unsynced VMs
-func (s *State) GetUnsyncedServersString(dbheight uint32) string {
+func (s *State) GetUnsyncedServersString() string {
 	var ids string
-	for _, id := range s.GetUnsyncedServers(dbheight) {
-		ids = ids + "," + id.String()[6:12]
+	servers, vms := s.GetUnsyncedServers()
+	for index, id := range servers {
+		ids = ids + "," + id.String()[6:12] + fmt.Sprintf("[%d]{%d}", index, vms[index])
 	}
 	if len(ids) > 0 {
 		ids = ids[1:] // drop the leading comma
@@ -2204,13 +2215,13 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	vm := s.ProcessLists.Get(dbheight).VMs[msg.GetVMIndex()]
 
 	// debug
-	s.LogPrintf("dbsig-eom", "ProcessDBSig@%d/%d/%d minute %d, Syncing %v , DBSID %v, DBSigDone %v, DBSigProcessed %v, DBSigLimit %v DBSigDone %v",
+	s.LogPrintf("dbsig-eom", "ProcessDBSig@%d/%d/%d minute %d, Syncing %v , DBSig %v, DBSigDone %v, DBSigProcessed %v, DBSigLimit %v DBSigDone %v",
 		dbheight, msg.GetVMIndex(), len(vm.List), s.CurrentMinute, s.Syncing, s.DBSig, s.DBSigDone, s.DBSigProcessed, s.DBSigLimit, s.DBSigDone)
 
 	// debug
 	if s.DebugExec() {
 		if s.Syncing && s.DBSig && !s.DBSigDone {
-			ids := s.GetUnsyncedServersString(dbheight)
+			ids := s.GetUnsyncedServersString()
 			if len(ids) > 0 {
 				s.LogPrintf("dbsig-eom", "Waiting for DBSigs from %s", ids)
 			}
