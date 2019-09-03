@@ -314,12 +314,14 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 	// Need to ensure the dbstate is at the same height as the state.
 	if dbht != state.LLeaderHeight {
 		//os.Stderr.WriteString(fmt.Sprintf("%10s dbht mismatch %d %d\n", state.GetFactomNodeName(), ss.DBHeight, state.LLeaderHeight))
+		state.LogPrintf("savestate", "LeaderHeight Mismatch %d vs %d", dbht, state.LLeaderHeight)
 		return nil
 	}
 
 	pl := state.ProcessLists.Get(dbht)
 	pln := state.ProcessLists.Get(dbht + 1) // need the authorityset from the next block not this block
 	if pl == nil || pln == nil {
+		state.LogPrintf("savestate", "No processlist %p %p", pl, pln)
 		return nil
 	}
 
@@ -664,7 +666,7 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 
 	ss.CurrentMinute = 0
 
-	s.MoveStateToHeight(ss.LLeaderHeight, ss.CurrentMinute) // RestoreFactomdState
+	s.MoveStateToHeight(ss.LLeaderHeight+1, ss.CurrentMinute) // RestoreFactomdState
 
 	if ss.Leader != s.Leader {
 		s.LogPrintf("executeMsg", "unexpected ss.Leader=%v %s", ss.Leader, atomic.WhereAmIString(0))
