@@ -3068,3 +3068,11 @@ func (s *State) ShutdownNode(exitCode int) {
 	s.RunState = runstate.Stopping
 	s.ShutdownChan <- exitCode
 }
+
+func (s *State) GetDBFinished() bool {
+	return s.DBFinished
+}
+
+func (s *State) GetRunLeader() bool {
+	return s.RunLeader
+}
