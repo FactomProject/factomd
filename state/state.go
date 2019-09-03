@@ -2324,7 +2324,7 @@ func (s *State) GetMessageFilterTimestamp() interfaces.Timestamp {
 }
 
 // the MessageFilterTimestamp  is used to filter messages from the past or before the replay filter.
-// We will not set it to a time that is before boot or more than one hour in the past.
+// We will not set it to a time that is before (20 minutes before) boot or more than one hour in the past.
 // this ensure messages from prior boot and messages that predate the current replay filter are
 // are dropped.
 // It marks the start of the replay filter content
@@ -2341,8 +2341,12 @@ func (s *State) SetMessageFilterTimestamp(leaderTS interfaces.Timestamp) {
 		requestedTS.SetTimestamp(onehourago)
 	}
 
-	if requestedTS.GetTimeMilli() < s.TimestampAtBoot.GetTimeMilli() {
-		requestedTS.SetTimestamp(s.TimestampAtBoot)
+	// build a timestamp 20 minutes before boot so we will accept messages from nodes who booted before us.
+	preBootTime := new(primitives.Timestamp)
+	preBootTime.SetTimeMilli(s.TimestampAtBoot.GetTimeMilli() - 20*60*1000)
+
+	if requestedTS.GetTimeMilli() < preBootTime.GetTimeMilli() {
+		requestedTS.SetTimestamp(preBootTime)
 	}
 
 	if s.MessageFilterTimestamp != nil && requestedTS.GetTimeMilli() < s.MessageFilterTimestamp.GetTimeMilli() {
