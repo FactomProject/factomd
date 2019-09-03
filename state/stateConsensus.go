@@ -68,8 +68,8 @@ func (s *State) LogPrintf(logName string, format string, more ...interface{}) {
 	}
 }
 func (s *State) AddToHolding(hash [32]byte, msg interfaces.IMsg) {
-	if msg.Type() == constants.VOLUNTEERAUDIT {
-		s.LogMessage("holding", "add", msg)
+	if !constants.NeedsAck(msg.Type()) {
+		s.LogMessage("holding", "add non-ack'd", msg)
 	}
 	_, ok := s.Holding[hash]
 	if !ok {
@@ -107,9 +107,9 @@ func (s *State) Validate(msg interfaces.IMsg) (validToSend int, validToExec int)
 	// check the time frame of messages with ACKs and reject any that are before the message filter time (before boot
 	// or outside the replay filter time frame)
 
-	//defer func() {
-	//	s.LogMessage("msgvalidation", fmt.Sprintf("send=%d execute=%d local=%v %s", *(&validToSend), *(&validToExec), msg.IsLocal(), atomic.WhereAmIString(1)), msg)
-	//}()
+	defer func() {
+		s.LogMessage("msgvalidation", fmt.Sprintf("send=%d execute=%d local=%v %s", *(&validToSend), *(&validToExec), msg.IsLocal(), atomic.WhereAmIString(1)), msg)
+	}()
 
 	// During boot ignore messages that are more than 15 minutes old...
 	if s.IgnoreMissing && msg.Type() != constants.DBSTATE_MSG {
@@ -190,8 +190,7 @@ func (s *State) Validate(msg interfaces.IMsg) (validToSend int, validToExec int)
 	vmIndex := msg.GetVMIndex()
 	// If we are not the leader, or this isn't the VM we are responsible for ...
 	if !s.Leader || (s.LeaderVMIndex != vmIndex) {
-		switch msg.Type() {
-		case constants.COMMIT_ENTRY_MSG, constants.COMMIT_CHAIN_MSG, constants.REVEAL_ENTRY_MSG, constants.EOM_MSG, constants.DIRECTORY_BLOCK_SIGNATURE_MSG, constants.FACTOID_TRANSACTION_MSG:
+		if constants.NeedsAck(msg.Type()) {
 			// don't need to check for a matching ack for ACKs or local messages
 			// for messages that get ACK make sure we can expect to process them
 			ack, _ := s.Acks[msg.GetMsgHash().Fixed()].(*messages.Ack)
@@ -319,12 +318,12 @@ func (s *State) executeMsg(msg interfaces.IMsg) (ret bool) {
 			}
 			msg.FollowerExecute(s)
 		}
-
 		return true
 
 	case 0:
 		// Sometimes messages we have already processed are in the msgQueue from holding when we execute them
 		// this check makes sure we don't put them back in holding after just deleting them
+		s.LogMessage("executeMsg", "hold executeMsg", msg)
 		s.AddToHolding(msg.GetMsgHash().Fixed(), msg) // Add message where validToExecute==0
 		return false
 
