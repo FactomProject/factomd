@@ -844,7 +844,7 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		if s.FactomdTLSKeyFile != FactomdTLSKeyFile {
 			if s.FactomdTLSEnable {
 				if _, err := os.Stat(FactomdTLSKeyFile); os.IsNotExist(err) {
-					fmt.Fprint(os.Stderr, "Configured file does not exits: %s\n", FactomdTLSKeyFile)
+					fmt.Fprintf(os.Stderr, "Configured file does not exits: %s\n", FactomdTLSKeyFile)
 				}
 			}
 			s.FactomdTLSKeyFile = FactomdTLSKeyFile // set state
@@ -857,7 +857,7 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		if s.FactomdTLSCertFile != FactomdTLSCertFile {
 			if s.FactomdTLSEnable {
 				if _, err := os.Stat(FactomdTLSCertFile); os.IsNotExist(err) {
-					fmt.Fprint(os.Stderr, "Configured file does not exits: %s\n", FactomdTLSCertFile)
+					fmt.Fprintf(os.Stderr, "Configured file does not exits: %s\n", FactomdTLSCertFile)
 				}
 			}
 			s.FactomdTLSCertFile = FactomdTLSCertFile // set state
@@ -1171,8 +1171,8 @@ func (s *State) Init() {
 	// end of FER removal
 	s.Starttime = time.Now()
 	// Allocate the MMR queues
-	s.asks = make(chan askRef, 5)
-	s.adds = make(chan plRef, 5)
+	s.asks = make(chan askRef, 50) // Should be > than the number of VMs so each VM can have at least one outstanding ask.
+	s.adds = make(chan plRef, 50)  // No good rule of thumb on the size of this
 	s.dbheights = make(chan int, 1)
 	s.rejects = make(chan MsgPair, 1) // Messages rejected from process list
 
