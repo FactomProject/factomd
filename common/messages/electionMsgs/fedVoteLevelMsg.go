@@ -132,8 +132,8 @@ func (m *FedVoteLevelMsg) processIfCommitted(is interfaces.IState, elect interfa
 			m.Volunteer.ServerIdx, m.Volunteer.ServerID.Bytes()[3:6])
 
 		e.LogPrintf("election", "LeaderSwapState %d/%d/%d", m.DBHeight, m.VMIndex, m.Minute)
-		e.LogPrintf("election", "Demote  %x", e.Federated[m.Volunteer.FedIdx].GetChainID().Bytes()[3:6])
-		e.LogPrintf("election", "Promote %x", e.Audit[m.Volunteer.ServerIdx].GetChainID().Bytes()[3:6])
+		e.LogPrintf("election", "Demote  %x[%d]", e.Federated[m.Volunteer.FedIdx].GetChainID().Bytes()[3:6], m.Volunteer.FedIdx)
+		e.LogPrintf("election", "Promote %x[%d]", e.Audit[m.Volunteer.ServerIdx].GetChainID().Bytes()[3:6], m.Volunteer.ServerIdx)
 
 		e.Federated[m.Volunteer.FedIdx], e.Audit[m.Volunteer.ServerIdx] =
 			e.Audit[m.Volunteer.ServerIdx], e.Federated[m.Volunteer.FedIdx]
@@ -218,8 +218,8 @@ func (m *FedVoteLevelMsg) FollowerExecute(is interfaces.IState) {
 			m.Volunteer.ServerIdx, m.Volunteer.ServerID.Bytes()[3:6])
 
 		s.LogPrintf("executeMsg", "LeaderSwapState %d/%d/%d", m.DBHeight, m.VMIndex, m.Minute)
-		s.LogPrintf("executeMsg", "Demote  %x", pl.FedServers[m.Volunteer.FedIdx].GetChainID().Bytes()[3:6])
-		s.LogPrintf("executeMsg", "Promote %x", pl.AuditServers[m.Volunteer.ServerIdx].GetChainID().Bytes()[3:6])
+		s.LogPrintf("executeMsg", "Demote  %x[%d]", pl.FedServers[m.Volunteer.FedIdx].GetChainID().Bytes()[3:6], m.Volunteer.FedIdx)
+		s.LogPrintf("executeMsg", "Promote %x[%d]", pl.AuditServers[m.Volunteer.ServerIdx].GetChainID().Bytes()[3:6], m.Volunteer.ServerIdx)
 
 		pl.FedServers[m.Volunteer.FedIdx], pl.AuditServers[m.Volunteer.ServerIdx] =
 			pl.AuditServers[m.Volunteer.ServerIdx], pl.FedServers[m.Volunteer.FedIdx]
