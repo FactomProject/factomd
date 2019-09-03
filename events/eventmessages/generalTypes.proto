@@ -7,10 +7,11 @@ import "google/protobuf/timestamp.proto";
 
 
 enum EntityState {
-    PLACED_IN_HOLDING = 0;
-    ACCEPTED = 1;
-    REJECTED = 2;
-    COMMITTED_TO_DIRECTORY_BLOCK = 3;
+    REQUESTED = 0;
+    PLACED_IN_HOLDING = 1;
+    ACCEPTED = 2;
+    REJECTED = 3;
+    COMMITTED_TO_DIRECTORY_BLOCK = 4;
 }
 
 

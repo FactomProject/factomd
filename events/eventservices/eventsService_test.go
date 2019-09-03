@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants/runstate"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/events"
 	"github.com/FactomProject/factomd/events/eventmessages"
 	"github.com/FactomProject/factomd/events/eventoutputformat"
@@ -26,18 +27,20 @@ var (
 
 func TestEventService(t *testing.T) {
 	t.Run("Event service sim-tests", func(t *testing.T) {
-		dbStateList := testHelper.CreateTestDBStateList()
+		blockCommitList := testHelper.CreateTestBlockCommitList()
 
-		testSend(t, dbStateList)
-		testLateReceivingServer(t, dbStateList)
-		testReceivingServerRestart(t, dbStateList)
+		testSend(t, blockCommitList)
+		testLateReceivingServer(t, blockCommitList)
+		testReceivingServerRestart(t, blockCommitList)
 	})
 }
 
 func testSend(t *testing.T, msgs []interfaces.IMsg) {
 	t.Run("Test receiving running normally", func(t *testing.T) {
-		state := &state.State{}
-		state.RunState = runstate.Running
+		state := &state.State{
+			IdentityChainID: primitives.NewZeroHash(),
+			RunState:        runstate.Running,
+		}
 
 		sim := &EventServerSim{
 			Protocol:       "tcp",
@@ -51,7 +54,7 @@ func testSend(t *testing.T, msgs []interfaces.IMsg) {
 
 		// send messages
 		for _, msg := range msgs {
-			event := events.EventFromNetworkMessage(msg, eventmessages.EventSource_ADD_TO_PROCESSLIST)
+			event := events.NewStateChangeEvent(eventmessages.StreamSource_LIVE, eventmessages.EntityState_COMMITTED_TO_DIRECTORY_BLOCK, msg)
 			eventService.Send(event)
 		}
 
@@ -63,9 +66,11 @@ func testSend(t *testing.T, msgs []interfaces.IMsg) {
 
 func testLateReceivingServer(t *testing.T, msgs []interfaces.IMsg) {
 	t.Run("Test receiving late start", func(t *testing.T) {
-		state := &state.State{}
-		state.RunState = runstate.Running
-		msgs := testHelper.CreateTestDBStateList()
+		state := &state.State{
+			IdentityChainID: primitives.NewZeroHash(),
+			RunState:        runstate.Running,
+		}
+		msgs := testHelper.CreateTestBlockCommitList()
 
 		sim := &EventServerSim{
 			Protocol:       "tcp",
@@ -77,7 +82,7 @@ func testLateReceivingServer(t *testing.T, msgs []interfaces.IMsg) {
 		defer eventServiceControl.Shutdown()
 
 		msg := msgs[0]
-		event := events.EventFromNetworkMessage(msg, eventmessages.EventSource_ADD_TO_PROCESSLIST)
+		event := events.NewStateChangeEvent(eventmessages.StreamSource_LIVE, eventmessages.EntityState_ACCEPTED, msg)
 		eventService.Send(event)
 
 		time.Sleep(2 * time.Second) // sleep less than the retry * redial sleep duration
@@ -91,9 +96,11 @@ func testLateReceivingServer(t *testing.T, msgs []interfaces.IMsg) {
 func testReceivingServerRestart(t *testing.T, msgs []interfaces.IMsg) {
 	t.Run("Test receiving server restart", func(t *testing.T) {
 
-		state := &state.State{}
-		state.RunState = runstate.Running
-		msgs := testHelper.CreateTestDBStateList()
+		state := &state.State{
+			IdentityChainID: primitives.NewZeroHash(),
+			RunState:        runstate.Running,
+		}
+		msgs := testHelper.CreateTestBlockCommitList()
 
 		sim := &EventServerSim{
 			Protocol:       "tcp",
@@ -106,7 +113,7 @@ func testReceivingServerRestart(t *testing.T, msgs []interfaces.IMsg) {
 		defer eventServiceControl.Shutdown()
 
 		msg := msgs[0]
-		event := events.EventFromNetworkMessage(msg, eventmessages.EventSource_ADD_TO_PROCESSLIST)
+		event := events.NewStateChangeEvent(eventmessages.StreamSource_LIVE, eventmessages.EntityState_ACCEPTED, msg)
 		eventService.Send(event)
 
 		// Restart the simulator
@@ -134,7 +141,7 @@ func waitOnEvents(correctSendEvents *int32, n int, timeLimit time.Duration) {
 func BenchmarkMarshalAnchorEventToBinary(b *testing.B) {
 	b.StopTimer()
 	fmt.Println(fmt.Sprintf("Benchmarking AnchorEvent binary marshalling %d cycles with %d entries", b.N, entries))
-	event := mockAnchorEvent()
+	event := mockBlockCommitEvent()
 	bytes, _ := proto.Marshal(event)
 	fmt.Println("Message size", len(bytes))
 	b.StartTimer()
@@ -146,7 +153,7 @@ func BenchmarkMarshalAnchorEventToBinary(b *testing.B) {
 func BenchmarkMarshalAnchorEventToJSON(b *testing.B) {
 	b.StopTimer()
 	fmt.Println(fmt.Sprintf("Benchmarking AnchorEvent json marshalling %d cycles with %d entries", b.N, entries))
-	event := mockAnchorEvent()
+	event := mockBlockCommitEvent()
 	msg, _ := json.Marshal(event)
 	fmt.Println("Message size", len(msg))
 
@@ -161,12 +168,12 @@ func BenchmarkMarshalAnchorEventToJSON(b *testing.B) {
 
 func BenchmarkMockAnchorEvents(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		mockAnchorEvent()
+		mockBlockCommitEvent()
 	}
 }
 
-func mockAnchorEvent() *eventmessages.AnchoredEvent {
-	result := &eventmessages.AnchoredEvent{}
+func mockBlockCommitEvent() *eventmessages.BlockCommit {
+	result := &eventmessages.BlockCommit{}
 	result.DirectoryBlock = mockDirectoryBlock()
 	return result
 }

@@ -3,7 +3,7 @@ package eventmessages;
 option go_package = "eventmessages";
 option java_package = "com.factom.factomd.eventmessages";
 
-import "events/eventmessages/generalTypes.proto";
+import "eventmessages/generalTypes.proto";
 
 
 message EntryCreditBlock {

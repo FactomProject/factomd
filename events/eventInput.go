@@ -77,6 +77,7 @@ func NewRegistrationEvent(streamSource eventmessages.StreamSource, msg interface
 func NewStateChangeEvent(streamSource eventmessages.StreamSource, entityState eventmessages.EntityState, msg interfaces.IMsg) *StateChangeEvent {
 	return &StateChangeEvent{
 		streamSource: streamSource,
+		entityState:  entityState,
 		payload:      msg}
 }
 

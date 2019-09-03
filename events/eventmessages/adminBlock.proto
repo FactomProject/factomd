@@ -3,8 +3,8 @@ package eventmessages;
 option go_package = "eventmessages";
 option java_package = "com.factom.factomd.eventmessages";
 
-import "events/eventmessages/generalTypes.proto";
-import "events/eventmessages/factoidBlock.proto";
+import "eventmessages/generalTypes.proto";
+import "eventmessages/factoidBlock.proto";
 import "google/protobuf/timestamp.proto";
 
 

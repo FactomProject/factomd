@@ -3,10 +3,10 @@ package eventmessages;
 option go_package = "eventmessages";
 option java_package = "com.factom.factomd.eventmessages";
 
-import "events/eventmessages/generalTypes.proto";
-import "events/eventmessages/adminBlock.proto";
-import "events/eventmessages/factoidBlock.proto";
-import "events/eventmessages/entryCredit.proto";
+import "eventmessages/generalTypes.proto";
+import "eventmessages/adminBlock.proto";
+import "eventmessages/factoidBlock.proto";
+import "eventmessages/entryCredit.proto";
 import "google/protobuf/timestamp.proto";
 
 
@@ -14,7 +14,6 @@ enum StreamSource {
     LIVE = 0;
     REPLAY = 1;
 }
-
 
 
 message FactomEvent {

@@ -191,10 +191,12 @@ func catchConnectPanics() error {
 }
 
 func (esi *eventServiceInstance) disconnect() {
-	log.Infoln("Closing connection to receiver", esi.params.Address)
-	err := esi.connection.Close()
-	if err != nil {
-		log.Warnln("An error occurred while closing connection to receiver", esi.params.Address)
+	if esi.connection != nil {
+		log.Infoln("Closing connection to receiver", esi.params.Address)
+		err := esi.connection.Close()
+		if err != nil {
+			log.Warnln("An error occurred while closing connection to receiver", esi.params.Address)
+		}
 	}
 }
 
