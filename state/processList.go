@@ -840,12 +840,12 @@ func (p *ProcessList) processVM(vm *VM) (progress bool) {
 
 		valid := msg.Validate(p.State)
 		if valid == -1 {
-			p.RemoveFromPL(vm, j, "hash invalid msg")
+			p.RemoveFromPL(vm, j, "invalid msg")
 			return progress
 		}
 
 		if msg.Process(p.DBHeight, s) { // Try and Process this entry
-			p.State.LogMessage("processList", "done", msg)
+			p.State.LogMessage("processList", fmt.Sprintf("done %v/%v/%v", p.DBHeight, i, j), msg)
 			vm.heartBeat = 0
 			vm.Height = j + 1 // Don't process it again if the process worked.
 			s.LogMessage("process", fmt.Sprintf("done %v/%v/%v", p.DBHeight, i, j), msg)
@@ -1116,7 +1116,7 @@ func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces
 		s.adds <- plRef{int(p.DBHeight), ack.VMIndex, int(ack.Height)}
 	}
 
-	s.LogMessage("processList", fmt.Sprintf("Added at %d/%d/%d by %s", ack.DBHeight, ack.VMIndex, ack.Height, atomic.WhereAmIString(1)), m)
+	s.LogMessage("processList", fmt.Sprintf("Added %d/%d/%d", ack.DBHeight, ack.VMIndex, ack.Height), m)
 
 	// If we add the message to the process list, ensure we actually process that
 	// message, so the next msg will be able to added without going into holding.

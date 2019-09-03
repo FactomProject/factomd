@@ -1,9 +1,12 @@
-#/bin/sh
+#/bin/bash
 ################################
 # AWK scripts                  #
 ################################
 read -d '' scriptVariable << 'EOF'
-/[0-9]{4}-[0-9]{2}-[0-9]{2} / {next;} # drop file time stamp
+/^[0-9]{4}-[0-9]{2}-[0-9]{2} / {next;} # drop file time stamp
+
+NR==2 {if(!($1~/^[a-zA-Z0-9_\.]+:/)) {printf("Please grep with -H\\n<%s>\\n",$1)>"/dev/stderr"; exit(1);}}
+
 {
    sub(/from /,"")
    l = index($0,":") # find the end of the file name
@@ -29,7 +32,9 @@ EOF
 ################################
 # End of AWK Scripts           #
 ################################
-if [$# -ne 0]; then
+
+if [ "$#" -ne 0 ]
+then
 grep -HE . "$@"  | awk  "$scriptVariable" | sort -nk2 | less -R
 else
 awk  "$scriptVariable" | sort -nk2 | less -R
