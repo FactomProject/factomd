@@ -328,7 +328,7 @@ type IState interface {
 	IsSyncingEOMs() bool
 	IsSyncingDBSigs() bool
 	DidCreateLastBlockFromDBState() bool
-	GetUnsyncedServers(dbheight uint32) []IHash
+	GetUnsyncedServers() (ids []IHash, vms []int)
 	Validate(msg IMsg) (validToSend int, validToExecute int)
 	GetIgnoreDone() bool
 

@@ -1564,7 +1564,7 @@ func HandleV2Diagnostics(state interfaces.IState, params interface{}) (interface
 		if state.IsSyncingDBSigs() {
 			syncInfo.Status = "Syncing DBSigs"
 		}
-		missing := state.GetUnsyncedServers(resp.LeaderHeight)
+		missing, _ := state.GetUnsyncedServers()
 		numberReceived := fedCount - len(missing)
 		syncInfo.Received = &numberReceived
 		syncInfo.Expected = &fedCount
