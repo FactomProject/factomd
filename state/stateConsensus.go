@@ -2212,7 +2212,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	vm := s.ProcessLists.Get(dbheight).VMs[msg.GetVMIndex()]
 
 	// debug
-	s.LogPrintf("dbsig-eom", "ProcessDBSig@%d/%d/%d minute %d, Syncing %v , DBSID %v, DBSigDone %v, DBSigProcessed %v, DBSigLimit %v DBSigDone %v",
+	s.LogPrintf("dbsig-eom", "ProcessDBSig@%d/%d/%d minute %d, Syncing %v , DBSig %v, DBSigDone %v, DBSigProcessed %v, DBSigLimit %v DBSigDone %v",
 		dbheight, msg.GetVMIndex(), len(vm.List), s.CurrentMinute, s.Syncing, s.DBSig, s.DBSigDone, s.DBSigProcessed, s.DBSigLimit, s.DBSigDone)
 
 	// debug
