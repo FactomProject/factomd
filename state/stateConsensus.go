@@ -68,8 +68,8 @@ func (s *State) LogPrintf(logName string, format string, more ...interface{}) {
 	}
 }
 func (s *State) AddToHolding(hash [32]byte, msg interfaces.IMsg) {
-	if msg.Type() == constants.VOLUNTEERAUDIT {
-		s.LogMessage("holding election?", "add", msg)
+	if !constants.NeedsAck(msg.Type()) {
+		s.LogMessage("holding", "add non-ack'd", msg)
 	}
 	_, ok := s.Holding[hash]
 	if !ok {
@@ -331,11 +331,12 @@ func (s *State) executeMsg(msg interfaces.IMsg) (ret bool) {
 	case 0:
 		// Sometimes messages we have already processed are in the msgQueue from holding when we execute them
 		// this check makes sure we don't put them back in holding after just deleting them
+		s.LogMessage("executeMsg", "hold executeMsg", msg)
 		s.AddToHolding(msg.GetMsgHash().Fixed(), msg) // Add message where validToExecute==0
 		return false
 
 	case -2:
-		s.LogMessage("executeMsg", "back to new holding from executeMsg", msg)
+		s.LogMessage("executeMsg", "dependent_hold executeMsg", msg)
 		return false
 
 	default:
@@ -992,7 +993,11 @@ func (s *State) repost(m interfaces.IMsg, delay int) {
 //		 30s			 3s			0.05s
 func (s *State) FactomSecond() time.Duration {
 	// Convert to time.second, then divide by 600
-	return time.Duration(s.DirectoryBlockInSeconds) * time.Second / 600
+	factomsecond := time.Duration(s.DirectoryBlockInSeconds) * time.Second / 600
+	if factomsecond < time.Duration(250*time.Millisecond) {
+		factomsecond = time.Duration(250 * time.Millisecond) // for really fast block we lie ...
+	}
+	return factomsecond
 }
 
 // Messages that will go into the Process List must match an Acknowledgement.
@@ -1269,15 +1274,23 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 	}
 
 	_, validToExecute := s.Validate(ack)
-	if validToExecute < 0 {
-		s.LogMessage("executeMsg", "drop MMR ack invalid", m)
+	if validToExecute == -1 {
+		s.LogMessage("executeMsg", "drop MMR ack invalid", ack)
+		return
+	}
+	if validToExecute == -2 {
+		s.LogMessage("executeMsg", "dependent_hold", ack)
 		return
 	}
 
 	// If we don't need this message, we don't have to do everything else.
 	_, validToExecute = s.Validate(msg)
-	if validToExecute < 0 {
+	if validToExecute == -1 {
 		s.LogMessage("executeMsg", "drop MMR message invalid", m)
+		return
+	}
+	if validToExecute == -2 {
+		s.LogMessage("executeMsg", "dependent_hold", m)
 		return
 	}
 	ack.Response = true
