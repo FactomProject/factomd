@@ -419,7 +419,7 @@ func TestAnElection(t *testing.T) {
 
 	RanSimTest = true
 
-	state0 := SetupSim("LLLAAF", map[string]string{"--blktime": "15"}, 9, 1, 1, t)
+	state0 := SetupSim("LLLAAF", map[string]string{"--debuglog": ".", "--blktime": "15"}, 9, 1, 1, t)
 
 	StatusEveryMinute(state0)
 	WaitMinutes(state0, 2)
@@ -1451,15 +1451,19 @@ func TestElectionEveryMinute(t *testing.T) {
 
 	RanSimTest = true
 	//							  01234567890123456789012345678901
-	state0 := SetupSim("LLLLLLLLLLLLLLLLLLLLLAAAAAAAAAAF", map[string]string{"--debuglog": ".", "--blktime": "30"}, 20, 10, 1, t)
+	state0 := SetupSim("LLLLLLLLLLLLLLLLLLLLLAAAAAAAAAAF", map[string]string{"--debuglog": ".", "--blktime": "60"}, 20, 10, 1, t)
 
 	StatusEveryMinute(state0)
-	RunCmd("T60")
+
+	s := GetFnodes()[1].State
+	WaitMinutes(s, 1) // wait for start of next minute on fnode01
+
 	// knock followers off one per minute
+	start := s.CurrentMinute
 	for i := 0; i < 10; i++ {
 		s := GetFnodes()[i+1].State
 		RunCmd(fmt.Sprintf("%d", i+1))
-		WaitForMinute(s, (i+1)%10) // wait for election to complete
+		WaitForMinute(s, (start+i+1)%10) // wait for selected minute
 		RunCmd("x")
 	}
 	WaitMinutes(state0, 1)
@@ -1469,7 +1473,7 @@ func TestElectionEveryMinute(t *testing.T) {
 		RunCmd("x")
 	}
 
-	WaitForAllNodes(state0)
+	WaitForAllNodes(state0) /// wait till everyone catches up
 	ShutDownEverything(t)
 }
 
