@@ -272,7 +272,7 @@ type State struct {
 	NewEntryChains         int
 	NewEntries             int
 	LeaderTimestamp        interfaces.Timestamp
-	MessageFilterTimestamp interfaces.Timestamp
+	messageFilterTimestamp interfaces.Timestamp
 	// Maps
 	// ====
 	// For Follower
@@ -320,8 +320,8 @@ type State struct {
 
 	ResetRequest    bool // Set to true to trigger a reset
 	ProcessLists    *ProcessLists
-	HighestKnown    uint32
-	HighestAck      uint32
+	highestKnown    uint32
+	highestAck      uint32
 	AuthorityDeltas string
 
 	// Factom State
@@ -555,7 +555,7 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 
 	newState.TimestampAtBoot = primitives.NewTimestampFromMilliseconds(s.TimestampAtBoot.GetTimeMilliUInt64())
 	newState.LeaderTimestamp = primitives.NewTimestampFromMilliseconds(s.LeaderTimestamp.GetTimeMilliUInt64())
-	newState.SetMessageFilterTimestamp(s.MessageFilterTimestamp)
+	newState.SetMessageFilterTimestamp(s.GetMessageFilterTimestamp())
 
 	newState.FactoshisPerEC = s.FactoshisPerEC
 
@@ -844,7 +844,7 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		if s.FactomdTLSKeyFile != FactomdTLSKeyFile {
 			if s.FactomdTLSEnable {
 				if _, err := os.Stat(FactomdTLSKeyFile); os.IsNotExist(err) {
-					fmt.Fprint(os.Stderr, "Configured file does not exits: %s\n", FactomdTLSKeyFile)
+					fmt.Fprintf(os.Stderr, "Configured file does not exits: %s\n", FactomdTLSKeyFile)
 				}
 			}
 			s.FactomdTLSKeyFile = FactomdTLSKeyFile // set state
@@ -857,7 +857,7 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		if s.FactomdTLSCertFile != FactomdTLSCertFile {
 			if s.FactomdTLSEnable {
 				if _, err := os.Stat(FactomdTLSCertFile); os.IsNotExist(err) {
-					fmt.Fprint(os.Stderr, "Configured file does not exits: %s\n", FactomdTLSCertFile)
+					fmt.Fprintf(os.Stderr, "Configured file does not exits: %s\n", FactomdTLSCertFile)
 				}
 			}
 			s.FactomdTLSCertFile = FactomdTLSCertFile // set state
@@ -1171,8 +1171,8 @@ func (s *State) Init() {
 	// end of FER removal
 	s.Starttime = time.Now()
 	// Allocate the MMR queues
-	s.asks = make(chan askRef, 5)
-	s.adds = make(chan plRef, 5)
+	s.asks = make(chan askRef, 50) // Should be > than the number of VMs so each VM can have at least one outstanding ask.
+	s.adds = make(chan plRef, 50)  // No good rule of thumb on the size of this
 	s.dbheights = make(chan int, 1)
 	s.rejects = make(chan MsgPair, 1) // Messages rejected from process list
 
@@ -2025,10 +2025,11 @@ entryHashProcessing:
 		select {
 		case e := <-s.UpdateEntryHash:
 			// Save the entry hash, and remove from commits IF this hash is valid in this current timeframe.
-			s.Replay.SetHashNow(constants.REVEAL_REPLAY, e.Hash.Fixed(), e.Timestamp)
-			// If the SetHashNow worked, then we should prohibit any commit that might be pending.
-			// Remove any commit that might be around.
-			s.Commits.Delete(e.Hash.Fixed())
+			if s.Replay.SetHashNow(constants.REVEAL_REPLAY, e.Hash.Fixed(), e.Timestamp) {
+				// If the SetHashNow worked, then we should prohibit any commit that might be pending.
+				// Remove any commit that might be around.
+				s.Commits.Delete(e.Hash.Fixed())
+			}
 		default:
 			break entryHashProcessing
 		}
@@ -2317,14 +2318,15 @@ func (s *State) GetLeaderTimestamp() interfaces.Timestamp {
 }
 
 func (s *State) GetMessageFilterTimestamp() interfaces.Timestamp {
-	if s.MessageFilterTimestamp == nil {
-		s.MessageFilterTimestamp = primitives.NewTimestampNow()
+	if s.messageFilterTimestamp == nil {
+		s.messageFilterTimestamp = primitives.NewTimestampNow()
 	}
-	return primitives.NewTimestampFromMilliseconds(s.MessageFilterTimestamp.GetTimeMilliUInt64())
+
+	return s.messageFilterTimestamp
 }
 
 // the MessageFilterTimestamp  is used to filter messages from the past or before the replay filter.
-// We will not set it to a time that is before boot or more than one hour in the past.
+// We will not set it to a time that is before (20 minutes before) boot or more than one hour in the past.
 // this ensure messages from prior boot and messages that predate the current replay filter are
 // are dropped.
 // It marks the start of the replay filter content
@@ -2341,18 +2343,46 @@ func (s *State) SetMessageFilterTimestamp(leaderTS interfaces.Timestamp) {
 		requestedTS.SetTimestamp(onehourago)
 	}
 
-	if requestedTS.GetTimeMilli() < s.TimestampAtBoot.GetTimeMilli() {
-		requestedTS.SetTimestamp(s.TimestampAtBoot)
-	}
+	// build a timestamp 20 minutes before boot so we will accept messages from nodes who booted before us.
+	preBootTime := new(primitives.Timestamp)
+	preBootTime.SetTimeMilli(s.TimestampAtBoot.GetTimeMilli() - 20*60*1000)
 
-	if s.MessageFilterTimestamp != nil && requestedTS.GetTimeMilli() < s.MessageFilterTimestamp.GetTimeMilli() {
+	if requestedTS.GetTimeMilli() < preBootTime.GetTimeMilli() {
+		requestedTS.SetTimestamp(preBootTime)
+	}
+	if s.messageFilterTimestamp != nil && requestedTS.GetTimeMilli() < s.messageFilterTimestamp.GetTimeMilli() {
 		s.LogPrintf("executeMsg", "Set MessageFilterTimestamp attempt to move backward in time from %s", atomic.WhereAmIString(1))
 		return
 	}
 
 	s.LogPrintf("executeMsg", "SetMessageFilterTimestamp(%s) using %s ", leaderTS, requestedTS.String())
+	s.messageFilterTimestamp = primitives.NewTimestampFromMilliseconds(requestedTS.GetTimeMilliUInt64())
+}
 
-	s.MessageFilterTimestamp = primitives.NewTimestampFromMilliseconds(requestedTS.GetTimeMilliUInt64())
+func (s *State) GotHeartbeat(heartbeatTS interfaces.Timestamp, dbheight uint32) {
+
+	if !s.DBFinished {
+		return
+	}
+
+	newTS := heartbeatTS.GetTimeMilli()
+	leaderTime := s.GetLeaderTimestamp().GetTimeMilli()
+
+	if leaderTime > newTS {
+		newTS = leaderTime
+	}
+
+	s.LogPrintf("executeMsg", "GotHeartbeat(%s, %s)", heartbeatTS, dbheight)
+
+	// set filter to one hour before target
+	s.SetMessageFilterTimestamp(primitives.NewTimestampFromMilliseconds(uint64(newTS - 60*60*1000)))
+
+	// set Highest Ack & Known blocks
+	s.SetHighestAck(dbheight)
+	s.SetHighestKnownBlock(dbheight)
+
+	// re-center replay filter
+	s.Replay.Recenter(primitives.NewTimestampFromMilliseconds(uint64(newTS)))
 }
 
 func (s *State) SetLeaderTimestamp(ts interfaces.Timestamp) {
@@ -3063,4 +3093,12 @@ func (s *State) ShutdownNode(exitCode int) {
 	fmt.Println(fmt.Sprintf("Initiating a graceful shutdown of node %s. The exit code is %v.", s.FactomNodeName, exitCode))
 	s.RunState = runstate.Stopping
 	s.ShutdownChan <- exitCode
+}
+
+func (s *State) GetDBFinished() bool {
+	return s.DBFinished
+}
+
+func (s *State) GetRunLeader() bool {
+	return s.RunLeader
 }

@@ -16,13 +16,12 @@ import (
 
 	"github.com/FactomProject/factomd/elections"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/engine"
 	"github.com/FactomProject/factomd/state"
+	"github.com/stretchr/testify/assert"
 )
 
 var par = globals.FactomParams{}
@@ -200,8 +199,8 @@ func SetupSim(givenNodes string, userAddedOptions map[string]string, height int,
 
 	{ // calculate & set test timeout
 		blkt := globals.Params.BlkTime
-		roundt := elections.RoundTimeout
-		et := elections.FaultTimeout
+		roundt := 2 * elections.RoundTimeout
+		et := 2 * elections.FaultTimeout
 		setTestTimeouts(state0, time.Duration(float64(((height+3)*blkt)+(electionsCnt*et)+(roundsCnt*roundt))*1.1)*time.Second)
 	}
 

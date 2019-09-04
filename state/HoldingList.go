@@ -35,17 +35,27 @@ func (l *HoldingList) GetSize() int {
 	return len(l.dependents)
 }
 
-// remove a single dependent msg from holding
+// Get a single msg from dependent holding
 func (l *HoldingList) GetDependentMsg(h [32]byte) interfaces.IMsg {
 	d, ok := l.dependents[h]
 	if !ok {
 		return nil
-	} else {
-		m := l.holding[d.dependentHash][d.offset]
-		l.holding[d.dependentHash][d.offset] = nil
-		delete(l.dependents, h)
-		return m
 	}
+	m := l.holding[d.dependentHash][d.offset]
+	return m
+}
+
+// remove a single msg from  dependent holding (done when we add it to the process list).
+func (l *HoldingList) RemoveDependentMsg(h [32]byte, reason string) {
+	d, ok := l.dependents[h]
+	if !ok {
+		return
+	}
+	msg := l.holding[d.dependentHash][d.offset]
+	l.holding[d.dependentHash][d.offset] = nil
+	delete(l.dependents, h)
+	l.s.LogMessage("DependentHolding", "delete "+reason, msg)
+	return
 }
 
 // Add a message to a dependent holding list
@@ -55,6 +65,7 @@ func (l *HoldingList) Add(h [32]byte, msg interfaces.IMsg) bool {
 	if found {
 		return false
 	}
+	l.s.LogMessage("DependentHolding", fmt.Sprintf("add[%x]", h[:6]), msg)
 
 	if l.holding[h] == nil {
 		l.holding[h] = []interfaces.IMsg{msg}
@@ -63,7 +74,6 @@ func (l *HoldingList) Add(h [32]byte, msg interfaces.IMsg) bool {
 	}
 
 	l.dependents[msg.GetMsgHash().Fixed()] = heldMessage{h, len(l.holding[h]) - 1}
-	//l.s.LogMessage("DependentHolding", "add", msg)
 	return true
 }
 
@@ -72,11 +82,12 @@ func (l *HoldingList) Get(h [32]byte) []interfaces.IMsg {
 	rval := l.holding[h]
 	delete(l.holding, h)
 
+	// delete all the individual messages from the list
 	for _, msg := range rval {
-		//		l.s.LogMessage("DependentHolding", "delete", msg)
 		if msg == nil {
 			continue
 		} else {
+			l.s.LogMessage("DependentHolding", fmt.Sprintf("delete[%x]", h[:6]), msg)
 			delete(l.dependents, msg.GetMsgHash().Fixed())
 		}
 	}
@@ -158,7 +169,7 @@ func (l *HoldingList) isMsgStale(msg interfaces.IMsg) (res bool) {
 }
 
 func (s *State) HoldForHeight(ht uint32, minute int, msg interfaces.IMsg) int {
-	s.LogMessage("DependentHolding", fmt.Sprintf("HoldForHeight %x", ht), msg)
+	//	s.LogMessage("DependentHolding", fmt.Sprintf("HoldForHeight %x", ht), msg)
 	return s.Add(HeightToHash(ht, minute), msg) // add to new holding
 }
 
@@ -173,37 +184,23 @@ func (s *State) Add(h [32]byte, msg interfaces.IMsg) int {
 		panic("Empty Hash Passed to New Holding")
 	}
 
-	if s.Hold.Add(h, msg) {
-		s.LogMessage("DependentHolding", fmt.Sprintf("add[%x]", h[:6]), msg)
-	}
+	s.Hold.Add(h, msg)
 
 	// mark as invalid for validator loop
 	return -2 // ensures message is not sent to old holding
-}
-
-// get and remove the list of dependent message for a hash
-func (s *State) Get(h [32]byte) []interfaces.IMsg {
-	return s.Hold.Get(h)
 }
 
 // Execute a list of messages from holding that are dependent on a hash
 // the hash may be a EC address or a ChainID or a height (ok heights are not really hashes but we cheat on that)
 func (s *State) ExecuteFromHolding(h [32]byte) {
 
-	// get the list of messages waiting on this hash
-	l := s.Get(h)
+	// get and delete the list of messages waiting on this hash
+	l := s.Hold.Get(h)
 	if l == nil {
 		//		s.LogPrintf("DependentHolding", "ExecuteFromDependantHolding(%x) nothing waiting", h[:6])
 		return
 	}
 	s.LogPrintf("DependentHolding", "ExecuteFromDependantHolding(%d)[%x]", len(l), h[:6])
-
-	for _, m := range l {
-		if m == nil {
-			continue
-		}
-		s.LogPrintf("DependentHolding", "delete R-%x", m.GetMsgHash().Bytes()[:3])
-	}
 
 	go func() {
 		// add the messages to the msgQueue so they get executed as space is available
