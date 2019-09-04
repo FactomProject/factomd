@@ -272,7 +272,7 @@ type State struct {
 	NewEntryChains         int
 	NewEntries             int
 	LeaderTimestamp        interfaces.Timestamp
-	MessageFilterTimestamp interfaces.Timestamp
+	messageFilterTimestamp interfaces.Timestamp
 	// Maps
 	// ====
 	// For Follower
@@ -320,8 +320,8 @@ type State struct {
 
 	ResetRequest    bool // Set to true to trigger a reset
 	ProcessLists    *ProcessLists
-	HighestKnown    uint32
-	HighestAck      uint32
+	highestKnown    uint32
+	highestAck      uint32
 	AuthorityDeltas string
 
 	// Factom State
@@ -555,7 +555,7 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 
 	newState.TimestampAtBoot = primitives.NewTimestampFromMilliseconds(s.TimestampAtBoot.GetTimeMilliUInt64())
 	newState.LeaderTimestamp = primitives.NewTimestampFromMilliseconds(s.LeaderTimestamp.GetTimeMilliUInt64())
-	newState.SetMessageFilterTimestamp(s.MessageFilterTimestamp)
+	newState.SetMessageFilterTimestamp(s.GetMessageFilterTimestamp())
 
 	newState.FactoshisPerEC = s.FactoshisPerEC
 
@@ -2318,10 +2318,10 @@ func (s *State) GetLeaderTimestamp() interfaces.Timestamp {
 }
 
 func (s *State) GetMessageFilterTimestamp() interfaces.Timestamp {
-	if s.MessageFilterTimestamp == nil {
-		s.MessageFilterTimestamp = primitives.NewTimestampNow()
+	if s.messageFilterTimestamp == nil {
+		s.messageFilterTimestamp = primitives.NewTimestampNow()
 	}
-	return primitives.NewTimestampFromMilliseconds(s.MessageFilterTimestamp.GetTimeMilliUInt64())
+	return s.messageFilterTimestamp
 }
 
 // the MessageFilterTimestamp  is used to filter messages from the past or before the replay filter.
@@ -2350,14 +2350,39 @@ func (s *State) SetMessageFilterTimestamp(leaderTS interfaces.Timestamp) {
 		requestedTS.SetTimestamp(preBootTime)
 	}
 
-	if s.MessageFilterTimestamp != nil && requestedTS.GetTimeMilli() < s.MessageFilterTimestamp.GetTimeMilli() {
+	if s.messageFilterTimestamp != nil && requestedTS.GetTimeMilli() < s.messageFilterTimestamp.GetTimeMilli() {
 		s.LogPrintf("executeMsg", "Set MessageFilterTimestamp attempt to move backward in time from %s", atomic.WhereAmIString(1))
 		return
 	}
 
 	s.LogPrintf("executeMsg", "SetMessageFilterTimestamp(%s) using %s ", leaderTS, requestedTS.String())
+	s.messageFilterTimestamp = primitives.NewTimestampFromMilliseconds(requestedTS.GetTimeMilliUInt64())
+}
 
-	s.MessageFilterTimestamp = primitives.NewTimestampFromMilliseconds(requestedTS.GetTimeMilliUInt64())
+func (s *State) GotHeartbeat(heartbeatTS interfaces.Timestamp, dbheight uint32) {
+
+	if !s.DBFinished {
+		return
+	}
+
+	newTS := heartbeatTS.GetTimeMilli()
+	leaderTime := s.GetLeaderTimestamp().GetTimeMilli()
+
+	if leaderTime > newTS {
+		newTS = leaderTime
+	}
+
+	s.LogPrintf("executeMsg", "GotHeartbeat(%s, %s)", heartbeatTS, dbheight)
+
+	// set filter to one hour before target
+	s.SetMessageFilterTimestamp(primitives.NewTimestampFromMilliseconds(uint64(newTS - 60*60*1000)))
+
+	// set Highest Ack & Known blocks
+	s.SetHighestAck(dbheight)
+	s.SetHighestKnownBlock(dbheight)
+
+	// re-center replay filter
+	s.Replay.Recenter(primitives.NewTimestampFromMilliseconds(uint64(newTS)))
 }
 
 func (s *State) SetLeaderTimestamp(ts interfaces.Timestamp) {

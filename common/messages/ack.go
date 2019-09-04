@@ -116,11 +116,7 @@ func (m *Ack) Validate(s interfaces.IState) int {
 	// Update the highest known ack to start requesting
 	// DBState blocks if necessary
 	if s.GetHighestAck() < m.DBHeight {
-		if m.DBHeight-s.GetLLeaderHeight() > constants.MaxAckHeightMinuteDelta { // cap at a relative 200 blks due to fd-850
-			s.SetHighestAck(s.GetLeaderPL().GetDBHeight() + constants.MaxAckHeightMinuteDelta)
-		} else {
-			s.SetHighestAck(m.DBHeight)
-		}
+		s.SetHighestAck(m.DBHeight)
 	}
 
 	if m.DBHeight-s.GetLLeaderHeight() > 5 {

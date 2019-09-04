@@ -339,6 +339,7 @@ func (m *Heartbeat) FollowerExecute(is interfaces.IState) {
 				}
 			}
 			auditServer.SetOnline(true)
+			is.GotHeartbeat(m.Timestamp, m.DBHeight)
 		}
 	}
 }
