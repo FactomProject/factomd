@@ -206,7 +206,7 @@ func (s *State) ExecuteFromHolding(h [32]byte) {
 		if m == nil {
 			continue
 		}
-		s.LogPrintf("DependentHolding", "delete R-%x", m.GetMsgHash().Bytes()[:3])
+		s.LogPrintf("DependentHolding", "delete M-%x", m.GetMsgHash().Bytes()[:3])
 	}
 
 	go func() {
