@@ -202,10 +202,10 @@ func SetupSim(givenNodes string, userAddedOptions map[string]string, height int,
 		setTestTimeouts(state0, time.Duration(float64(((height+3)*blkt)+(electionsCnt*et)+(roundsCnt*roundt))*1.1)*time.Second)
 	}
 	StatusEveryMinute(state0)
+	WaitMinutes(state0, 1) // wait till initial DBState message for the genesis block is processed
 	if isDefaultSim(givenNodes) || state0.GetDBHeightAtBoot() != 0 {
-		t.Logf("Skip Node Promotion", nodeLen)
+		t.Logf("Skip Node Promotion")
 	} else {
-		WaitMinutes(state0, 1) // wait till initial DBState message for the genesis block is processed
 		createAuthoritySet(givenNodes, state0, t)
 
 		if len(engine.GetFnodes()) != nodeLen {

@@ -315,8 +315,10 @@ func TestMakeALeader(t *testing.T) {
 
 	RanSimTest = true
 
-	state0 := SetupSim("LF", map[string]string{"--fullhasheslog": "true"}, 5, 0, 0, t)
-
+	state0 := SetupSim("LF", map[string]string{}, 5, 0, 0, t)
+	RunCmd("g1")
+	WaitBlocks(state0, 2)
+	WaitMinutes(state0, 1)
 	RunCmd("1") // select node 1
 	RunCmd("l") // make him a leader
 	WaitBlocks(state0, 1)
