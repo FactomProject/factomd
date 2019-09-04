@@ -1262,17 +1262,6 @@ func TestElection9(t *testing.T) {
 	WaitForAllNodes(state0)
 	ShutDownEverything(t)
 }
-func TestRandom(t *testing.T) {
-	if RanSimTest {
-		return
-	}
-	RanSimTest = true
-
-	if random.RandUInt8() > 200 {
-		t.Fatal("Failed")
-	}
-
-}
 
 func TestBadDBStateUnderflow(t *testing.T) {
 	if RanSimTest {
@@ -1281,6 +1270,9 @@ func TestBadDBStateUnderflow(t *testing.T) {
 
 	RanSimTest = true
 	state0 := SetupSim("LF", map[string]string{}, 6, 0, 0, t)
+	RunCmd("g1")
+	WaitBlocks(state0, 2)
+	WaitMinutes(state0, 1)
 
 	msg, err := state0.LoadDBState(state0.GetDBHeightComplete() - 1)
 	if err != nil {
@@ -1453,7 +1445,7 @@ func TestElectionEveryMinute(t *testing.T) {
 
 	RanSimTest = true
 	//							  01234567890123456789012345678901
-	state0 := SetupSim("LLLLLLLLLLLLLLLLLLLLLAAAAAAAAAAF", map[string]string{"--debuglog": ".", "--blktime": "60"}, 20, 10, 1, t)
+	state0 := SetupSim("LLLLLLLLLLLLLLLLLLLLLAAAAAAAAAAF", map[string]string{"--blktime": "60"}, 20, 10, 1, t)
 
 	StatusEveryMinute(state0)
 
