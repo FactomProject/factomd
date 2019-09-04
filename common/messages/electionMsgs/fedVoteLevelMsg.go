@@ -217,32 +217,16 @@ func (m *FedVoteLevelMsg) FollowerExecute(is interfaces.IState) {
 			m.Volunteer.FedIdx, m.Volunteer.FedID.Bytes()[3:6],
 			m.Volunteer.ServerIdx, m.Volunteer.ServerID.Bytes()[3:6])
 
+		s.LogPrintf("executeMsg", "Pre  Election s.Leader=%v s.LeaderVMIndex to %v", s.Leader, s.LeaderVMIndex)
 		s.LogPrintf("executeMsg", "LeaderSwapState %d/%d/%d", m.DBHeight, m.VMIndex, m.Minute)
 		s.LogPrintf("executeMsg", "Demote  %x[%d]", pl.FedServers[m.Volunteer.FedIdx].GetChainID().Bytes()[3:6], m.Volunteer.FedIdx)
 		s.LogPrintf("executeMsg", "Promote %x[%d]", pl.AuditServers[m.Volunteer.ServerIdx].GetChainID().Bytes()[3:6], m.Volunteer.ServerIdx)
 
 		pl.FedServers[m.Volunteer.FedIdx], pl.AuditServers[m.Volunteer.ServerIdx] =
 			pl.AuditServers[m.Volunteer.ServerIdx], pl.FedServers[m.Volunteer.FedIdx]
-		s.LogPrintf("executeMsg", "Pre  Election s.Leader=%v s.LeaderVMIndex to %v", s.Leader, s.LeaderVMIndex)
 
 		// reset my leader variables, cause maybe we changed...
 		Leader, LeaderVMIndex := s.LeaderPL.GetVirtualServers(int(s.CurrentMinute), s.IdentityChainID)
-		{ // debug
-			if s.Leader != Leader {
-				s.LogPrintf("executeMsg", "FedVoteLevelMsg.FollowerExecute() changed s.Leader to %v", Leader)
-				s.Leader = Leader
-			}
-			if s.LeaderVMIndex != LeaderVMIndex {
-				s.LogPrintf("executeMsg", "FedVoteLevelMsg.FollowerExecute() changed s.LeaderVMIndex to %v", LeaderVMIndex)
-				s.LeaderVMIndex = LeaderVMIndex
-			}
-		}
-		s.LogPrintf("executeMsg", "Post Election s.Leader=%v s.LeaderVMIndex to %v", s.Leader, s.LeaderVMIndex)
-
-		s.LogPrintf("executeMsg", "Pre  Election s.Leader=%v s.LeaderVMIndex to %v", s.Leader, s.LeaderVMIndex)
-
-		// reset my leader variables, cause maybe we changed...
-		Leader, LeaderVMIndex = s.LeaderPL.GetVirtualServers(int(s.CurrentMinute), s.IdentityChainID)
 		{ // debug
 			if s.Leader != Leader {
 				s.LogPrintf("executeMsg", "FedVoteLevelMsg.FollowerExecute() changed s.Leader to %v", Leader)

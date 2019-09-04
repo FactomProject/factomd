@@ -10,6 +10,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/testHelper"
@@ -53,6 +54,7 @@ func TestAuthenticatedUnauthorizedRequest(t *testing.T) {
 	password := "password"
 
 	propertiesV2Body := body(primitives.NewJSON2Request("properties", 0, ""))
+	globals.Params.NetworkName = "LOCAL"
 
 	state := testHelper.CreateAndPopulateTestState()
 	state.RpcUser = username
