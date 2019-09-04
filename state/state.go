@@ -844,7 +844,7 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		if s.FactomdTLSKeyFile != FactomdTLSKeyFile {
 			if s.FactomdTLSEnable {
 				if _, err := os.Stat(FactomdTLSKeyFile); os.IsNotExist(err) {
-					fmt.Fprint(os.Stderr, "Configured file does not exits: %s\n", FactomdTLSKeyFile)
+					fmt.Fprintf(os.Stderr, "Configured file does not exits: %s\n", FactomdTLSKeyFile)
 				}
 			}
 			s.FactomdTLSKeyFile = FactomdTLSKeyFile // set state
@@ -857,7 +857,7 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		if s.FactomdTLSCertFile != FactomdTLSCertFile {
 			if s.FactomdTLSEnable {
 				if _, err := os.Stat(FactomdTLSCertFile); os.IsNotExist(err) {
-					fmt.Fprint(os.Stderr, "Configured file does not exits: %s\n", FactomdTLSCertFile)
+					fmt.Fprintf(os.Stderr, "Configured file does not exits: %s\n", FactomdTLSCertFile)
 				}
 			}
 			s.FactomdTLSCertFile = FactomdTLSCertFile // set state
@@ -3063,4 +3063,12 @@ func (s *State) ShutdownNode(exitCode int) {
 	fmt.Println(fmt.Sprintf("Initiating a graceful shutdown of node %s. The exit code is %v.", s.FactomNodeName, exitCode))
 	s.RunState = runstate.Stopping
 	s.ShutdownChan <- exitCode
+}
+
+func (s *State) GetDBFinished() bool {
+	return s.DBFinished
+}
+
+func (s *State) GetRunLeader() bool {
+	return s.RunLeader
 }

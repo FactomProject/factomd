@@ -32,6 +32,7 @@ type IQueue interface {
 // accidentally
 type IState interface {
 	GetRunState() runstate.RunState
+	GetRunLeader() bool
 	// Server
 	GetFactomNodeName() string
 	GetSalt(Timestamp) uint32 // A secret number computed from a TS that tests if a message was issued from this server or not
@@ -328,7 +329,7 @@ type IState interface {
 	IsSyncingEOMs() bool
 	IsSyncingDBSigs() bool
 	DidCreateLastBlockFromDBState() bool
-	GetUnsyncedServers(dbheight uint32) []IHash
+	GetUnsyncedServers() (ids []IHash, vms []int)
 	Validate(msg IMsg) (validToSend int, validToExecute int)
 	GetIgnoreDone() bool
 
