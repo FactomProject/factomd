@@ -242,7 +242,7 @@ func (m *FedVoteLevelMsg) FollowerExecute(is interfaces.IState) {
 		s.LogPrintf("executeMsg", "Pre  Election s.Leader=%v s.LeaderVMIndex to %v", s.Leader, s.LeaderVMIndex)
 
 		// reset my leader variables, cause maybe we changed...
-		Leader, LeaderVMIndex := s.LeaderPL.GetVirtualServers(int(s.CurrentMinute), s.IdentityChainID)
+		Leader, LeaderVMIndex = s.LeaderPL.GetVirtualServers(int(s.CurrentMinute), s.IdentityChainID)
 		{ // debug
 			if s.Leader != Leader {
 				s.LogPrintf("executeMsg", "FedVoteLevelMsg.FollowerExecute() changed s.Leader to %v", Leader)
