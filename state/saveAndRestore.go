@@ -666,7 +666,7 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 
 	ss.CurrentMinute = 0
 
-	s.MoveStateToHeight(ss.LLeaderHeight, ss.CurrentMinute) // RestoreFactomdState
+	s.MoveStateToHeight(ss.LLeaderHeight+1, ss.CurrentMinute) // RestoreFactomdState
 
 	if ss.Leader != s.Leader {
 		s.LogPrintf("executeMsg", "unexpected ss.Leader=%v %s", ss.Leader, atomic.WhereAmIString(0))

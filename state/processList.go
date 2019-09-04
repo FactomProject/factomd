@@ -10,6 +10,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
@@ -766,8 +767,8 @@ func (p *ProcessList) processVM(vm *VM) (progress bool) {
 			vm.ReportMissing(vm.Height, 0) // ask for it now
 		}
 		// If we haven't heard anything from a VM in 2 seconds, ask for a message at the last-known height
-		if now.GetTimeMilli()-vm.ProcessTime.GetTimeMilli() > 2000 { // TODO: use FactomSeconds
-			vm.ReportMissing(vm.Height, 2000) // Ask for one past the end of the list
+		if now.GetTimeMilli()-vm.ProcessTime.GetTimeMilli() > int64(s.FactomSecond()/time.Millisecond) {
+			vm.ReportMissing(vm.Height, int64(2*s.FactomSecond()/time.Millisecond)) // Ask for one past the end of the list
 		}
 		return false
 	}
@@ -786,7 +787,7 @@ func (p *ProcessList) processVM(vm *VM) (progress bool) {
 		s.ProcessListProcessCnt++
 
 		if vm.List[j] == nil {
-			p.ReportAllMissing(vm)
+			vm.ReportMissing(j, 0)
 			return progress
 		}
 
@@ -840,12 +841,12 @@ func (p *ProcessList) processVM(vm *VM) (progress bool) {
 
 		valid := msg.Validate(p.State)
 		if valid == -1 {
-			p.RemoveFromPL(vm, j, "hash invalid msg")
+			p.RemoveFromPL(vm, j, "invalid msg")
 			return progress
 		}
 
 		if msg.Process(p.DBHeight, s) { // Try and Process this entry
-			p.State.LogMessage("processList", "done", msg)
+			p.State.LogMessage("processList", fmt.Sprintf("done %v/%v/%v", p.DBHeight, i, j), msg)
 			vm.heartBeat = 0
 			vm.Height = j + 1 // Don't process it again if the process worked.
 			s.LogMessage("process", fmt.Sprintf("done %v/%v/%v", p.DBHeight, i, j), msg)
@@ -871,24 +872,6 @@ func (p *ProcessList) processVM(vm *VM) (progress bool) {
 	}
 	return progress
 } // processVM(){...}
-
-// scan the process and report all the missing messages
-func (p *ProcessList) ReportAllMissing(vm *VM) {
-	s := p.State
-	cnt := 0
-	for k := vm.Height; k < len(vm.List); k++ {
-		if vm.List[k] == nil {
-			cnt++
-			vm.ReportMissing(k, 0)
-		}
-	}
-	if s.DebugExec() {
-		if vm.HighestNil < vm.Height {
-			s.LogPrintf("process", "%d nils  at  %v/%v/%v", cnt, p.DBHeight, vm.VmIndex, vm.Height)
-			vm.HighestNil = vm.Height
-		}
-	}
-}
 
 func (p *ProcessList) RemoveFromPL(vm *VM, j int, reason string) {
 	p.State.LogMessage("process", fmt.Sprintf("nil out message %v/%v/%v, %s", p.DBHeight, vm.VmIndex, j, reason), vm.List[j]) //todo: revisit message
@@ -1116,7 +1099,7 @@ func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces
 		s.adds <- plRef{int(p.DBHeight), ack.VMIndex, int(ack.Height)}
 	}
 
-	s.LogMessage("processList", fmt.Sprintf("Added at %d/%d/%d by %s", ack.DBHeight, ack.VMIndex, ack.Height, atomic.WhereAmIString(1)), m)
+	s.LogMessage("processList", fmt.Sprintf("Added %d/%d/%d", ack.DBHeight, ack.VMIndex, ack.Height), m)
 
 	// If we add the message to the process list, ensure we actually process that
 	// message, so the next msg will be able to added without going into holding.

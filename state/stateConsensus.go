@@ -120,10 +120,7 @@ func (s *State) Validate(msg interfaces.IMsg) (validToSend int, validToExec int)
 		}
 	}
 
-	switch msg.Type() {
-	case constants.DBSTATE_MSG, constants.DATA_RESPONSE, constants.MISSING_MSG, constants.MISSING_DATA, constants.MISSING_ENTRY_BLOCKS, constants.DBSTATE_MISSING_MSG, constants.ENTRY_BLOCK_RESPONSE:
-		// Allow these thru as they do not have Ack's (they don't change processlists)
-	default:
+	if constants.NeedsAck(msg.Type()) {
 		// Make sure we don't put in an old ack'd message (outside our repeat filter range)
 		filterTime := s.GetFilterTimeNano()
 
@@ -196,8 +193,7 @@ func (s *State) Validate(msg interfaces.IMsg) (validToSend int, validToExec int)
 	vmIndex := msg.GetVMIndex()
 	// If we are not the leader, or this isn't the VM we are responsible for ...
 	if !s.Leader || (s.LeaderVMIndex != vmIndex) {
-		switch msg.Type() {
-		case constants.COMMIT_ENTRY_MSG, constants.COMMIT_CHAIN_MSG, constants.REVEAL_ENTRY_MSG, constants.EOM_MSG, constants.DIRECTORY_BLOCK_SIGNATURE_MSG, constants.FACTOID_TRANSACTION_MSG:
+		if constants.NeedsAck(msg.Type()) {
 			// don't need to check for a matching ack for ACKs or local messages
 			// for messages that get ACK make sure we can expect to process them
 			ack, _ := s.Acks[msg.GetMsgHash().Fixed()].(*messages.Ack)
@@ -331,11 +327,12 @@ func (s *State) executeMsg(msg interfaces.IMsg) (ret bool) {
 	case 0:
 		// Sometimes messages we have already processed are in the msgQueue from holding when we execute them
 		// this check makes sure we don't put them back in holding after just deleting them
+		s.LogMessage("executeMsg", "hold executeMsg", msg)
 		s.AddToHolding(msg.GetMsgHash().Fixed(), msg) // Add message where validToExecute==0
 		return false
 
 	case -2:
-		s.LogMessage("executeMsg", "back to new holding from executeMsg", msg)
+		s.LogMessage("executeMsg", "dependent_hold executeMsg", msg)
 		return false
 
 	default:
@@ -875,6 +872,7 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		// If an election took place, our lists will be unsorted. Fix that
 		s.LeaderPL.SortAuditServers()
 		s.LeaderPL.SortFedServers()
+
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(newMinute, s.IdentityChainID) // MoveStateToHeight minute
 		s.LogPrintf("executeMsg", "MoveStateToHeight new minute set leader=%v, vmIndex = %v", s.Leader, s.LeaderVMIndex)
 	}
@@ -992,7 +990,11 @@ func (s *State) repost(m interfaces.IMsg, delay int) {
 //		 30s			 3s			0.05s
 func (s *State) FactomSecond() time.Duration {
 	// Convert to time.second, then divide by 600
-	return time.Duration(s.DirectoryBlockInSeconds) * time.Second / 600
+	factomsecond := time.Duration(s.DirectoryBlockInSeconds) * time.Second / 600
+	if factomsecond < time.Duration(250*time.Millisecond) {
+		factomsecond = time.Duration(250 * time.Millisecond) // for really fast block we lie ...
+	}
+	return factomsecond
 }
 
 // Messages that will go into the Process List must match an Acknowledgement.
@@ -1269,15 +1271,23 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 	}
 
 	_, validToExecute := s.Validate(ack)
-	if validToExecute < 0 {
-		s.LogMessage("executeMsg", "drop MMR ack invalid", m)
+	if validToExecute == -1 {
+		s.LogMessage("executeMsg", "drop MMR ack invalid", ack)
+		return
+	}
+	if validToExecute == -2 {
+		s.LogMessage("executeMsg", "dependent_hold", ack)
 		return
 	}
 
 	// If we don't need this message, we don't have to do everything else.
 	_, validToExecute = s.Validate(msg)
-	if validToExecute < 0 {
+	if validToExecute == -1 {
 		s.LogMessage("executeMsg", "drop MMR message invalid", m)
+		return
+	}
+	if validToExecute == -2 {
+		s.LogMessage("executeMsg", "dependent_hold", m)
 		return
 	}
 	ack.Response = true
