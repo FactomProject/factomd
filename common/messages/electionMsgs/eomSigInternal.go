@@ -168,6 +168,7 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 		if changed {
 			e.LogPrintf("election", "Sort changed e.Audit in EomSigInternal.ElectionProcess")
 			e.LogPrintLeaders("election")
+
 		}
 
 		e.DBHeight = int(m.DBHeight)

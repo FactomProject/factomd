@@ -355,6 +355,7 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 						// Maybe when asking for past the end of the list we should not ask again?
 					}
 				} //build a MMRs with all the expired asks in that VM at that DBH.
+
 			}
 			for index, mmr := range mmrs {
 				s.LogMessage(logname, "sendout", mmr)

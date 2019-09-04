@@ -277,7 +277,6 @@ func (m *MissingMsgResponse) Validate(state interfaces.IState) int {
 	if m.MsgResponse == nil {
 		return -1
 	}
-
 	ack, ok := m.AckResponse.(*Ack)
 	if !ok {
 		return -1
@@ -285,7 +284,6 @@ func (m *MissingMsgResponse) Validate(state interfaces.IState) int {
 	if ack.DBHeight < state.GetLLeaderHeight() || ack.DBHeight == state.GetLLeaderHeight() && int(ack.Minute) < int(state.GetCurrentMinute()) {
 		return -1
 	}
-
 	return 1
 }
 

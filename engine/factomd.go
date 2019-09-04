@@ -52,12 +52,10 @@ func Factomd(params *FactomParams, listenToStdin bool) interfaces.IState {
 	state0.FactomNodeName = state0.Prefix + "FNode0"
 	state0.TimestampAtBoot = primitives.NewTimestampNow()
 	state0.SetLeaderTimestamp(state0.TimestampAtBoot)
-
 	// build a timestamp 20 minutes before boot so we will accept messages from nodes who booted before us.
 	preBootTime := new(primitives.Timestamp)
 	preBootTime.SetTimeMilli(state0.TimestampAtBoot.GetTimeMilli() - 20*60*1000)
 	state0.SetMessageFilterTimestamp(preBootTime)
-
 	state0.EFactory = new(electionMsgs.ElectionsFactory)
 
 	NetStart(state0, params, listenToStdin)

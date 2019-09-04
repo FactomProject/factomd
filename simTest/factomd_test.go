@@ -42,9 +42,7 @@ func TestOne(t *testing.T) {
 	WaitBlocks(state0, 5)
 	RunCmd("R0") // Stop load
 	WaitBlocks(state0, 2)
-
 	ShutDownEverything(t)
-
 } // testOne(){...}
 
 func TestDualElections(t *testing.T) {
@@ -120,13 +118,13 @@ func TestTripleElections(t *testing.T) {
 	WaitForAllNodes(state0)
 	ShutDownEverything(t)
 } // TestTripleElections(){...}
-
 func TestLoad(t *testing.T) {
 	if RanSimTest {
 		return
 	}
 
 	RanSimTest = true
+
 	// use a tree so the messages get reordered
 	state0 := SetupSim("LLLLFFFF", map[string]string{"--debuglog": ".", "--blktime": "30"}, 15, 0, 0, t)
 
@@ -164,7 +162,6 @@ func TestErr(t *testing.T) {
 	// should check holding and queues cleared out
 	ShutDownEverything(t)
 } //TestErr(){...}
-
 func TestCatchup(t *testing.T) {
 	if RanSimTest {
 		return
@@ -217,12 +214,12 @@ func TestTXTimestampsAndBlocks(t *testing.T) {
 	RunCmd("x")
 	RunCmd("R0") // turn off the load
 }
-
 func TestLoad2(t *testing.T) {
 	if RanSimTest {
 		return
 	}
 	RanSimTest = true
+
 	// use tree node setup so messages get reordered
 	go RunCmd("Re") // Turn on tight allocation of EC as soon as the simulator is up and running
 	state0 := SetupSim("LLLAF", map[string]string{"--blktime": "20", "--net": "tree"}, 24, 0, 0, t)
@@ -253,7 +250,6 @@ func TestLoad2(t *testing.T) {
 	}
 	ShutDownEverything(t)
 } //TestLoad2(){...}
-
 // The intention of this test is to detect the EC overspend/duplicate commits (FD-566) bug.
 // the bug happened when the FCT transaction and the commits arrived in different orders on followers vs the leader.
 // Using a message delay, drop and tree network makes this likely
@@ -319,6 +315,7 @@ func TestMakeALeader(t *testing.T) {
 	RunCmd("g1")
 	WaitBlocks(state0, 2)
 	WaitMinutes(state0, 1)
+
 	RunCmd("1") // select node 1
 	RunCmd("l") // make him a leader
 	WaitBlocks(state0, 1)
@@ -421,7 +418,7 @@ func TestAnElection(t *testing.T) {
 
 	RanSimTest = true
 
-	state0 := SetupSim("LLLAAF", map[string]string{"--debuglog": ".", "--blktime": "15"}, 9, 1, 1, t)
+	state0 := SetupSim("LLLAAF", map[string]string{"--blktime": "15"}, 9, 1, 1, t)
 
 	StatusEveryMinute(state0)
 	WaitMinutes(state0, 2)
@@ -581,6 +578,7 @@ func TestSimCtrl(t *testing.T) {
 		return
 	}
 	RanSimTest = true
+
 	type walletcallHelper struct {
 		Status string `json:"status"`
 	}
@@ -589,6 +587,7 @@ func TestSimCtrl(t *testing.T) {
 		Id      int              `json:"id"`
 		Result  walletcallHelper `json:"result"`
 	}
+
 	apiCall := func(state0 *state.State, cmd string) {
 		url := "http://localhost:" + fmt.Sprint(state0.GetPort()) + "/debug"
 		var jsonStr = []byte(`{"jsonrpc": "2.0", "id": 0, "method": "sim-ctrl", "params":{"commands": ["` + cmd + `"]}}`)
@@ -681,6 +680,7 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 	// you will return transACK before teh balance is updated which will make thsi test fail.
 	state0 := SetupSim("LAF", map[string]string{}, 6, 0, 0, t)
 	WaitForMinute(state0, 1)
+
 	type walletcallHelper struct {
 		CurrentHeight   uint32        `json:"currentheight"`
 		LastSavedHeight uint          `json:"lastsavedheight"`
@@ -697,6 +697,7 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 		Id      int                          `json:"id"`
 		Result  wsapi.GeneralTransactionData `json:"result"`
 	}
+
 	apiCall := func(state0 *state.State, arrayOfFactoidAccounts []string) *walletcall {
 		url := "http://localhost:" + fmt.Sprint(state0.GetPort()) + "/v2"
 		var jsonStr = []byte(`{"jsonrpc": "2.0", "id": 0, "method": "multiple-fct-balances", "params":{"addresses":["` + strings.Join(arrayOfFactoidAccounts, `", "`) + `"]}}  `)
@@ -871,6 +872,7 @@ func TestMultipleECAccountsAPI(t *testing.T) {
 	// you will return transACK before teh balance is updated which will make thsi test fail.
 	state0 := SetupSim("LAF", map[string]string{}, 6, 0, 0, t)
 	WaitForMinute(state0, 1)
+
 	type walletcallHelper struct {
 		CurrentHeight   uint32        `json:"currentheight"`
 		LastSavedHeight uint          `json:"lastsavedheight"`
@@ -904,6 +906,7 @@ func TestMultipleECAccountsAPI(t *testing.T) {
 		Id      int               `json:"id"`
 		Result  wsapi.EntryStatus `json:"result"`
 	}
+
 	apiCall := func(state0 *state.State, arrayOfECAccounts []string) *walletcall {
 		url := "http://localhost:" + fmt.Sprint(state0.GetPort()) + "/v2"
 		var jsonStr = []byte(`{"jsonrpc": "2.0", "id": 0, "method": "multiple-ec-balances", "params":{"addresses":["` + strings.Join(arrayOfECAccounts, `", "`) + `"]}}  `)
@@ -1261,6 +1264,7 @@ func TestElection9(t *testing.T) {
 
 	WaitForAllNodes(state0)
 	ShutDownEverything(t)
+
 }
 
 func TestBadDBStateUnderflow(t *testing.T) {
@@ -1448,10 +1452,8 @@ func TestElectionEveryMinute(t *testing.T) {
 	state0 := SetupSim("LLLLLLLLLLLLLLLLLLLLLAAAAAAAAAAF", map[string]string{"--blktime": "60"}, 20, 10, 1, t)
 
 	StatusEveryMinute(state0)
-
 	s := GetFnodes()[1].State
 	WaitMinutes(s, 1) // wait for start of next minute on fnode01
-
 	// knock followers off one per minute
 	start := s.CurrentMinute
 	for i := 0; i < 10; i++ {
@@ -1484,6 +1486,7 @@ func TestDebugLocation(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
+
 	// make sure the directory exists
 	err = os.MkdirAll(tempdir, os.ModePerm)
 	if err != nil {
@@ -1538,4 +1541,5 @@ func DoesFileExists(path string, t *testing.T) {
 	} else {
 		t.Logf("Found file %s", path)
 	}
+
 }
