@@ -1262,17 +1262,6 @@ func TestElection9(t *testing.T) {
 	WaitForAllNodes(state0)
 	ShutDownEverything(t)
 }
-func TestRandom(t *testing.T) {
-	if RanSimTest {
-		return
-	}
-	RanSimTest = true
-
-	if random.RandUInt8() > 200 {
-		t.Fatal("Failed")
-	}
-
-}
 
 func TestBadDBStateUnderflow(t *testing.T) {
 	if RanSimTest {
