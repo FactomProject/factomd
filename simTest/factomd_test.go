@@ -312,7 +312,10 @@ func TestMakeALeader(t *testing.T) {
 
 	RanSimTest = true
 
-	state0 := SetupSim("LF", map[string]string{"--fullhasheslog": "true"}, 5, 0, 0, t)
+	state0 := SetupSim("LF", map[string]string{}, 5, 0, 0, t)
+	RunCmd("g1")
+	WaitBlocks(state0, 2)
+	WaitMinutes(state0, 1)
 
 	RunCmd("1") // select node 1
 	RunCmd("l") // make him a leader
@@ -1262,16 +1265,6 @@ func TestElection9(t *testing.T) {
 
 	WaitForAllNodes(state0)
 	ShutDownEverything(t)
-}
-func TestRandom(t *testing.T) {
-	if RanSimTest {
-		return
-	}
-	RanSimTest = true
-
-	if random.RandUInt8() > 200 {
-		t.Fatal("Failed")
-	}
 
 }
 
@@ -1282,6 +1275,9 @@ func TestBadDBStateUnderflow(t *testing.T) {
 
 	RanSimTest = true
 	state0 := SetupSim("LF", map[string]string{}, 6, 0, 0, t)
+	RunCmd("g1")
+	WaitBlocks(state0, 2)
+	WaitMinutes(state0, 1)
 
 	msg, err := state0.LoadDBState(state0.GetDBHeightComplete() - 1)
 	if err != nil {
@@ -1454,15 +1450,17 @@ func TestElectionEveryMinute(t *testing.T) {
 
 	RanSimTest = true
 	//							  01234567890123456789012345678901
-	state0 := SetupSim("LLLLLLLLLLLLLLLLLLLLLAAAAAAAAAAF", map[string]string{"--debuglog": ".", "--blktime": "30"}, 20, 10, 1, t)
+	state0 := SetupSim("LLLLLLLLLLLLLLLLLLLLLAAAAAAAAAAF", map[string]string{"--blktime": "60"}, 20, 10, 1, t)
 
 	StatusEveryMinute(state0)
-	RunCmd("T60")
+	s := GetFnodes()[1].State
+	WaitMinutes(s, 1) // wait for start of next minute on fnode01
 	// knock followers off one per minute
+	start := s.CurrentMinute
 	for i := 0; i < 10; i++ {
 		s := GetFnodes()[i+1].State
 		RunCmd(fmt.Sprintf("%d", i+1))
-		WaitForMinute(s, (i+1)%10) // wait for election to complete
+		WaitForMinute(s, (start+i+1)%10) // wait for selected minute
 		RunCmd("x")
 	}
 	WaitMinutes(state0, 1)
@@ -1472,7 +1470,7 @@ func TestElectionEveryMinute(t *testing.T) {
 		RunCmd("x")
 	}
 
-	WaitForAllNodes(state0)
+	WaitForAllNodes(state0) /// wait till everyone catches up
 	ShutDownEverything(t)
 }
 

@@ -203,19 +203,16 @@ func SetupSim(givenNodes string, userAddedOptions map[string]string, height int,
 		et := 2 * elections.FaultTimeout
 		setTestTimeouts(state0, time.Duration(float64(((height+3)*blkt)+(electionsCnt*et)+(roundsCnt*roundt))*1.1)*time.Second)
 	}
-
 	StatusEveryMinute(state0)
-
+	WaitMinutes(state0, 1) // wait till initial DBState message for the genesis block is processed
 	if isDefaultSim(givenNodes) || state0.GetDBHeightAtBoot() != 0 {
-		t.Logf("Skip Node Promotion", nodeLen)
+		t.Logf("Skip Node Promotion")
 	} else {
-		WaitMinutes(state0, 1) // wait till initial DBState message for the genesis block is processed
 		createAuthoritySet(givenNodes, state0, t)
 
 		if len(engine.GetFnodes()) != nodeLen {
 			t.Fail()
 		}
-
 		// swap identity if Fnode0 Should be a follower
 		if []rune(givenNodes)[0] == 'F' {
 			RunCmd(fmt.Sprintf("%d", 0))
@@ -226,21 +223,17 @@ func SetupSim(givenNodes string, userAddedOptions map[string]string, height int,
 			RunCmd(fmt.Sprintf("t%d", len(givenNodes)+1)) // attach the last generated Identity
 		}
 		// REVIEW: should we swap node0 identity & promote if configured for 'L' ?
-
 		CheckAuthoritySet(t)
 	}
-
 	if len(engine.GetFnodes()) != nodeLen {
 		t.Fatalf("Should have allocated %d nodes", nodeLen)
 	} else {
 		t.Logf("Allocated %d nodes", nodeLen)
 	}
-
 	return state0
 }
 
 func promoteNodes(creatingNodes string) int {
-
 	for i, c := range []byte(creatingNodes) {
 		fmt.Println("it:", i, c)
 		switch c {
@@ -282,7 +275,6 @@ func setNodeCounts(creatingNodes string) int {
 			panic("NOT L, A or F")
 		}
 	}
-
 	return Leaders + Followers + Audits
 }
 
@@ -509,7 +501,6 @@ func AssertAuthoritySet(t *testing.T, givenNodes string) {
 		}
 	}
 }
-
 func CheckAuthoritySet(t *testing.T) {
 
 	leadercnt, auditcnt, followercnt := CountAuthoritySet()
@@ -543,7 +534,6 @@ func Halt(t *testing.T) {
 	for _, fn := range engine.GetFnodes() {
 		fn.State.ShutdownNode(1)
 	}
-
 	// sleep long enough for everyone to see the shutdown.
 	time.Sleep(time.Duration(globals.Params.BlkTime) * time.Second)
 }
@@ -608,7 +598,6 @@ func GetLongTestHome(t *testing.T) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	return dir + "/.sim"
 }
 

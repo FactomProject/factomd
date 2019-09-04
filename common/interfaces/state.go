@@ -348,6 +348,8 @@ type IState interface {
 	SetHighestAck(uint32)
 	DebugExec() bool
 	CheckFileName(string) bool
+
+	// Filters
 	AddToReplayFilter(mask int, hash [32]byte, timestamp Timestamp, systemtime Timestamp) bool
 
 	// Activations -------------------------------------------------------
@@ -367,4 +369,6 @@ type IState interface {
 	GetOutputRegEx() (*regexp.Regexp, string)
 	PassInputRegEx(*regexp.Regexp, string)
 	GetInputRegEx() (*regexp.Regexp, string)
+	GotHeartbeat(heartbeatTS Timestamp, dbheight uint32)
+	GetDBFinished() bool
 }

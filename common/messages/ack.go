@@ -116,11 +116,7 @@ func (m *Ack) Validate(s interfaces.IState) int {
 	// Update the highest known ack to start requesting
 	// DBState blocks if necessary
 	if s.GetHighestAck() < m.DBHeight {
-		if m.DBHeight-s.GetLLeaderHeight() > constants.MaxAckHeightMinuteDelta { // cap at a relative 200 blks due to fd-850
-			s.SetHighestAck(s.GetLeaderPL().GetDBHeight() + constants.MaxAckHeightMinuteDelta)
-		} else {
-			s.SetHighestAck(m.DBHeight)
-		}
+		s.SetHighestAck(m.DBHeight)
 	}
 
 	if m.DBHeight-s.GetLLeaderHeight() > 5 {
@@ -135,7 +131,7 @@ func (m *Ack) Validate(s interfaces.IState) int {
 	// Only new acks are valid. Of course, the VMIndex has to be valid too.
 	msg, _ := s.GetMsg(m.VMIndex, int(m.DBHeight), int(m.Height))
 	if msg != nil {
-		if msg != m {
+		if !msg.GetMsgHash().IsSameAs(m.GetHash()) {
 			s.LogMessage("executeMsg", "Ack slot taken", m)
 			s.LogMessage("executeMsg", "found:", msg)
 		} else {

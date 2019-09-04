@@ -119,22 +119,23 @@ func (s *State) Validate(msg interfaces.IMsg) (validToSend int, validToExec int)
 			return -1, -1
 		}
 	}
+	// Pokemon bug protection.  Ignore any msg without a valid GetMsgHash()
+	if msg.GetMsgHash() == nil || msg.GetHash() == nil || msg.GetRepeatHash() == nil {
+		return -1, -1
+	}
 
 	if constants.NeedsAck(msg.Type()) {
 		// Make sure we don't put in an old ack'd message (outside our repeat filter range)
 		filterTime := s.GetFilterTimeNano()
-
 		if filterTime == 0 {
 			panic("got 0 time")
 		}
-
 		msgtime := msg.GetTimestamp().GetTime().UnixNano()
 
 		// Make sure we don't put in an old msg (outside our repeat range)
 		{ // debug
 			if msgtime < filterTime || msgtime > (filterTime+FilterTimeLimit) {
 				s.LogPrintf("executeMsg", "MsgFilter %s", s.GetMessageFilterTimestamp().GetTime().String())
-
 				s.LogPrintf("executeMsg", "Leader    %s", s.GetLeaderTimestamp().GetTime().String())
 				s.LogPrintf("executeMsg", "Message   %s", msg.GetTimestamp().GetTime().String())
 			}
@@ -668,7 +669,7 @@ processholdinglist:
 				continue processholdinglist
 			}
 			if !eom.IsLocal() && eom.DBHeight > saved {
-				s.HighestKnown = eom.DBHeight
+				s.SetHighestKnownBlock(eom.DBHeight)
 			}
 		}
 
@@ -681,7 +682,7 @@ processholdinglist:
 				continue processholdinglist
 			}
 			if !dbsigmsg.IsLocal() && dbsigmsg.DBHeight > saved {
-				s.HighestKnown = dbsigmsg.DBHeight
+				s.SetHighestKnownBlock(dbsigmsg.DBHeight)
 			}
 		}
 
@@ -1051,8 +1052,8 @@ func (s *State) getMsgFromHolding(h [32]byte) interfaces.IMsg {
 func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 	ack := msg.(*messages.Ack)
 
-	if ack.DBHeight > s.HighestKnown {
-		s.HighestKnown = ack.DBHeight
+	if ack.DBHeight > s.GetHighestKnownBlock() {
+		s.SetHighestKnownBlock(ack.DBHeight)
 	}
 
 	pl := s.ProcessLists.Get(ack.DBHeight)
@@ -2203,6 +2204,11 @@ func (s *State) CheckForIDChange() {
 func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	//fmt.Println(fmt.Sprintf("ProcessDBSig: %10s %s ", s.FactomNodeName, msg.String()))
 
+	// Avoid a race where we try to process DBSig for VM0 before the factoidState is setup.
+	if msg.(*messages.DirectoryBlockSignature).VMIndex == 0 && s.FactoidState == nil { // can't process till factoid state is setup
+		return false // fix panic in TestMultipleElection7
+	}
+
 	dbs := msg.(*messages.DirectoryBlockSignature)
 	// Don't process if syncing an EOM
 	if s.Syncing && !s.DBSig {
@@ -2293,7 +2299,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 				s.FactomNodeName, dbs.DBHeight, s.LLeaderHeight, dbs.VMIndex, dbs.GetTimestamp().GetTimeMilli(), dbs.GetTimestamp().GetTimeMilli(), s.LeaderTimestamp.GetTimeMilliUInt64(), s.LeaderTimestamp.GetTimeMilliUInt64())
 
 			cbtx := fs.GetCurrentBlock().(*factoid.FBlock).Transactions[0].(*factoid.Transaction)
-
 			foo := cbtx.MilliTimestamp
 			lts := s.LeaderTimestamp.GetTimeMilliUInt64()
 			s.LogPrintf("dbsig", "ProcessDBSig(): first  cbtx before %d dbsig %d lts %d", foo, dbsMilli, lts)
@@ -2572,12 +2577,16 @@ func (s *State) PutCommit(hash interfaces.IHash, msg interfaces.IMsg) {
 }
 
 func (s *State) GetHighestAck() uint32 {
-	return s.HighestAck
+	return s.highestAck
 }
 
 func (s *State) SetHighestAck(dbht uint32) {
-	if dbht > s.HighestAck {
-		s.HighestAck = dbht
+	switch {
+	case dbht > s.highestAck+constants.MaxAckHeightDelta:
+		s.highestAck = s.highestAck + constants.MaxAckHeightDelta
+		break
+	case dbht > s.highestAck:
+		s.highestAck = dbht
 	}
 }
 
@@ -2616,8 +2625,18 @@ func (s *State) GetHighestKnownBlock() uint32 {
 	if s.ProcessLists == nil {
 		return 0
 	}
-	HighestKnown.Set(float64(s.HighestKnown))
-	return s.HighestKnown
+	HighestKnown.Set(float64(s.highestKnown))
+	return s.highestKnown
+}
+
+func (s *State) SetHighestKnownBlock(dbht uint32) {
+	switch {
+	case dbht > s.highestKnown+constants.MaxAckHeightDelta:
+		s.highestKnown = s.highestKnown + constants.MaxAckHeightDelta
+		break
+	case dbht > s.highestKnown:
+		s.highestKnown = dbht
+	}
 }
 
 // GetF()
