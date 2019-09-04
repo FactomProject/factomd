@@ -42,7 +42,6 @@ var RanSimTest = false // only run 1 sim test at a time
 // this is useful for creating scripts that will start/stop a simulation outside of the context of a unit test
 // this allows for consistent tweaking of a simulation to induce load add message loss or adjust timing
 func StartSim(nodeCount int, UserAddedOptions map[string]string) *state.State {
-
 	CmdLineOptions := map[string]string{
 		"--db":                  "Map",
 		"--network":             "LOCAL",
@@ -154,7 +153,6 @@ func setTestTimeouts(state0 *state.State, calcTime time.Duration) {
 			}
 		}
 	}()
-
 	fmt.Printf("Starting timeout timer:  Expected test to take %s or %d blocks\n", calcTime.String(), ExpectedHeight)
 }
 

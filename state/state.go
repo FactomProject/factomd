@@ -2321,8 +2321,7 @@ func (s *State) GetMessageFilterTimestamp() interfaces.Timestamp {
 	if s.messageFilterTimestamp == nil {
 		s.messageFilterTimestamp = primitives.NewTimestampNow()
 	}
-
-	return s.messageFilterTimestamp
+	return primitives.NewTimestampFromMilliseconds(s.messageFilterTimestamp.GetTimeMilliUInt64())
 }
 
 // the MessageFilterTimestamp  is used to filter messages from the past or before the replay filter.
@@ -2350,6 +2349,7 @@ func (s *State) SetMessageFilterTimestamp(leaderTS interfaces.Timestamp) {
 	if requestedTS.GetTimeMilli() < preBootTime.GetTimeMilli() {
 		requestedTS.SetTimestamp(preBootTime)
 	}
+
 	if s.messageFilterTimestamp != nil && requestedTS.GetTimeMilli() < s.messageFilterTimestamp.GetTimeMilli() {
 		s.LogPrintf("executeMsg", "Set MessageFilterTimestamp attempt to move backward in time from %s", atomic.WhereAmIString(1))
 		return

@@ -202,6 +202,13 @@ func (s *State) ExecuteFromHolding(h [32]byte) {
 	}
 	s.LogPrintf("DependentHolding", "ExecuteFromDependantHolding(%d)[%x]", len(l), h[:6])
 
+	for _, m := range l {
+		if m == nil {
+			continue
+		}
+		s.LogPrintf("DependentHolding", "delete M-%x", m.GetMsgHash().Bytes()[:3])
+	}
+
 	go func() {
 		// add the messages to the msgQueue so they get executed as space is available
 		for _, m := range l {

@@ -118,7 +118,6 @@ func TestTripleElections(t *testing.T) {
 	WaitForAllNodes(state0)
 	ShutDownEverything(t)
 } // TestTripleElections(){...}
-
 func TestLoad(t *testing.T) {
 	if RanSimTest {
 		return
