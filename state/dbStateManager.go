@@ -351,7 +351,6 @@ func (dbs *DBState) UnmarshalBinary(p []byte) error {
 }
 
 type DBStateList struct {
-	// TODO: mjb: get rid of LastBegin LastEnd and TimeToAsk
 	LastEnd       int
 	LastBegin     int
 	TimeToAsk     interfaces.Timestamp

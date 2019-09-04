@@ -87,7 +87,7 @@ func (l *HoldingList) Get(h [32]byte) []interfaces.IMsg {
 		if msg == nil {
 			continue
 		} else {
-			l.s.LogPrintf("DependentHolding", fmt.Sprintf("delete[%x]", h[:6]), msg)
+			l.s.LogMessage("DependentHolding", fmt.Sprintf("delete[%x]", h[:6]), msg)
 			delete(l.dependents, msg.GetMsgHash().Fixed())
 		}
 	}
