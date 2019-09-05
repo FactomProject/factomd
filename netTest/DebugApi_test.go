@@ -23,3 +23,9 @@ func TestDebugAPI(t *testing.T) {
 		assert.Nil(t, err)
 	})
 }
+
+func TestDevNetForwardedPort(t *testing.T) {
+	n := SetupNode(DEV_NET, 0, t)
+	r := n.fnodes[0].NetworkInfo()
+	assert.Equal(t, "FNode0", r.NodeName)
+}

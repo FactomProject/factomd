@@ -31,17 +31,42 @@ var ExpectedHeight, Leaders, Audits, Followers int
 var startTime, endTime time.Time
 var RanSimTest = false // only run 1 sim test at a time
 
-// start simulation without promoting nodes to the authority set
-// this is useful for creating scripts that will start/stop a simulation outside of the context of a unit test
-// this allows for consistent tweaking of a simulation to induce load add message loss or adjust timing
-func StartSim(nodeCount int, UserAddedOptions map[string]string) *state.State {
+func optionsToCmdLine(CmdLineOptions map[string]string) (returningSlice []string) {
+	// default the fault time and round time based on the blk time out
+	blktime, err := strconv.Atoi(CmdLineOptions["--blktime"])
+	if err != nil {
+		panic(err)
+	}
+
+	if CmdLineOptions["--faulttimeout"] == "" {
+		CmdLineOptions["--faulttimeout"] = fmt.Sprintf("%d", blktime/5) // use 2 minutes ...
+	}
+
+	if CmdLineOptions["--roundtimeout"] == "" {
+		CmdLineOptions["--roundtimeout"] = fmt.Sprintf("%d", blktime/5)
+	}
+
+	// built the fake command line
+	for key, value := range CmdLineOptions {
+		returningSlice = append(returningSlice, key+"="+value)
+	}
+
+	fmt.Println("Command Line Arguments:")
+	for _, v := range returningSlice {
+		fmt.Printf("\t%s\n", v)
+	}
+
+	return returningSlice
+}
+
+// add sensible defaults for simtest
+func optionsToParams(UserAddedOptions map[string]string) *globals.FactomParams {
 	CmdLineOptions := map[string]string{
 		"--db":                  "Map",
 		"--network":             "LOCAL",
 		"--net":                 "alot+",
 		"--enablenet":           "false",
 		"--blktime":             "15",
-		"--count":               fmt.Sprintf("%v", nodeCount),
 		"--startdelay":          "1",
 		"--stdoutlog":           "out.txt",
 		"--stderrlog":           "out.txt",
@@ -80,31 +105,7 @@ func StartSim(nodeCount int, UserAddedOptions map[string]string) *state.State {
 		}
 	}
 
-	// default the fault time and round time based on the blk time out
-	blktime, err := strconv.Atoi(CmdLineOptions["--blktime"])
-	if err != nil {
-		panic(err)
-	}
-
-	if CmdLineOptions["--faulttimeout"] == "" {
-		CmdLineOptions["--faulttimeout"] = fmt.Sprintf("%d", blktime/5) // use 2 minutes ...
-	}
-
-	if CmdLineOptions["--roundtimeout"] == "" {
-		CmdLineOptions["--roundtimeout"] = fmt.Sprintf("%d", blktime/5)
-	}
-
-	// built the fake command line
-	returningSlice := []string{}
-	for key, value := range CmdLineOptions {
-		returningSlice = append(returningSlice, key+"="+value)
-	}
-
-	fmt.Println("Command Line Arguments:")
-	for _, v := range returningSlice {
-		fmt.Printf("\t%s\n", v)
-	}
-	params := engine.ParseCmdLine(returningSlice)
+	params := engine.ParseCmdLine(optionsToCmdLine(CmdLineOptions))
 	fmt.Println()
 
 	fmt.Println("Parameter:")
@@ -117,8 +118,24 @@ func StartSim(nodeCount int, UserAddedOptions map[string]string) *state.State {
 			typeOfT.Field(i).Name, f.Type(), f.Interface())
 	}
 	fmt.Println()
-	return engine.Factomd(params, false).(*state.State)
 
+	return params
+
+}
+
+// start a single node meant to connect to an existing network
+func StartPeer(CmdLineOptions map[string]string) *state.State {
+	params := engine.ParseCmdLine(optionsToCmdLine(CmdLineOptions))
+	return engine.Factomd(params, false).(*state.State)
+}
+
+// start simulation without promoting nodes to the authority set
+// this is useful for creating scripts that will start/stop a simulation outside of the context of a unit test
+// this allows for consistent tweaking of a simulation to induce load add message loss or adjust timing
+func StartSim(nodeCount int, UserAddedOptions map[string]string) *state.State {
+	UserAddedOptions["--count"] = fmt.Sprintf("%v", nodeCount)
+	params := optionsToParams(UserAddedOptions)
+	return engine.Factomd(params, false).(*state.State)
 }
 
 func setTestTimeouts(state0 *state.State, calcTime time.Duration) {

@@ -1,38 +1,35 @@
 package nettest
 
 import (
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
 func TestAnElection(t *testing.T) {
-	// Assume network has booted up w/ FLALL roles
 	n := SetupNode(DEV_NET, 0, t)
 
-	target := 1
+	target := 0
 
-	n.StatusEveryMinute()
-	n.WaitBlocks(2)
+	// Find Leader to demote
+	for i:= 0; i < 5; i++ {
+		if n.fnodes[i].NetworkInfo().Role == "Leader" {
+			target = i
+			break
+		}
+	}
 
-	n.fnodes[0].WaitMinutes(1)
+	assert.Equal(t, "Leader", n.fnodes[target].NetworkInfo().Role) // assert we target a Leader
 
-	// remove the last leader
-	n.fnodes[target].RunCmd("x")
+	// NOTE: this step can take awhile if devnet has been running for awhile
+	n.WaitBlocks(2) // make sure local node is progressing
 
-	// wait for the election
-	n.WaitMinutes(2)
+	n.fnodes[target].RunCmd("x") // x-out the targeted leader
 
-	//bring him back
-	n.fnodes[target].RunCmd("x")
+	// REVIEW: perhaps we need to assert that node is in isolation mode?
+	n.WaitBlocks(2) // wait for election & chain to progress
 
-	// wait for him to update via dbstate and become an audit
-	n.WaitBlocks(2)
-	n.WaitMinutes(1)
+	n.fnodes[target].RunCmd("x") //bring him back
+	n.WaitBlocks(2) // wait of leader to update via dbstate and become an audit
 
-	//// PrintOneStatus(0, 0)
-	//if GetFnodes()[2].State.Leader {
-	//	t.Fatalf("Node 2 should not be a leader")
-	//}
-	//if !GetFnodes()[3].State.Leader && !GetFnodes()[4].State.Leader {
-	//	t.Fatalf("Node 3 or 4  should be a leader")
-	//}
+	assert.Equal(t, "Audit", n.fnodes[target].NetworkInfo().Role)
 }

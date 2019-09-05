@@ -127,6 +127,6 @@ func WriteConfigFile(identityNumber int, fnode int, extra string, t *testing.T) 
 	return
 }
 
-func GetConfig(identityNumber int, extra string)  string {
+func GetConfig(identityNumber int, extra string) string {
 	return nodeIDs[identityNumber] + extra
 }

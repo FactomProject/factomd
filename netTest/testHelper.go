@@ -22,54 +22,67 @@ type testNode struct {
 	seedAddress string
 }
 
-var DEV_NET string = "127.0.0.1:18110" // devnet port forward to fnode0 peer
+var DEV_NET string = "127.0.0.1:18110"      // devnet port forward to fnode0 peer
 var DOCKER_NETWORK string = "10.7.0.1:8110" // docker network
 var SINGLE_NODE string = "127.0.0.1:39001"  // local netTest simulator
+
+var DEV_NET_CONFIG string = `
+LocalSpecialPeers                     = "127.0.0.1:18110"
+Exclusive                             =  true 
+`
 
 func SetupNode(seedNode string, minPeers int, t *testing.T) *testNode {
 
 	homeDir := testHelper.ResetSimHome(t)
 
-	exclusive := "false"
-	exclusiveIn := "false"
+	var CmdLineOptions map[string]string
 
 	// Use identity 9 to run a follower
 	if seedNode == DOCKER_NETWORK {
 		testHelper.WriteConfigFile(9, 0, "", t)
+
+		// use config that mirrors docker-compose from ./support/dev/docker-compose
+		CmdLineOptions = map[string]string{
+			"--db":                  "Map",
+			"--network":             "CUSTOM",
+			"--customnet":           "net",
+			"--enablenet":           "true",
+			"--blktime":             "30",
+			"--count":               "1",
+			"--startdelay":          "0",
+			"--stdoutlog":           "out.txt",
+			"--stderrlog":           "out.txt",
+			"--checkheads":          "false",
+			"--controlpanelsetting": "readwrite",
+			"--debuglog":            "",
+			"--logPort":             "39000",
+			"--port":                "39001",
+			"--controlpanelport":    "39002",
+			"--networkport":         "39003",
+			"--peers":               seedNode,
+			"--factomhome":          homeDir,
+		}
 	}
 
 	// when interfacing w/ devnet don't talk to other peers
 	if seedNode == DEV_NET {
-		testHelper.WriteConfigFile(9, 0, fmt.Sprintf(`LocalSpecialPeers =		"%s"`, seedNode), t)
-		//exclusive = "true"
-		//exclusiveIn = "true"
+		testHelper.WriteConfigFile(9, 0, DEV_NET_CONFIG, t)
+
+		CmdLineOptions = map[string]string{
+			"--db":               "Map",
+			"--network":          "LOCAL",
+			"--enablenet":        "true",
+			"--blktime":          "30",
+			"--debuglog":         "",
+			"--logPort":          "39000",
+			"--port":             "39001",
+			"--controlpanelport": "39002",
+			"--networkport":      "39003",
+			"--factomhome":       homeDir,
+		}
 	}
 
-	// use config that mirrors docker-compose from ./support/dev/docker-compose
-	CmdLineOptions := map[string]string{
-		"--db":                  "Map",
-		"--network":             "CUSTOM",
-		"--customnet":           "net",
-		"--enablenet":           "true",
-		"--blktime":             "30", // REVIEW: should this be configurable from a test
-		"--count":               "1",
-		"--startdelay":          "0",
-		"--stdoutlog":           "out.txt",
-		"--stderrlog":           "out.txt",
-		"--checkheads":          "false",
-		"--controlpanelsetting": "readwrite",
-		"--debuglog":            ".*",
-		"--logPort":             "39000",
-		"--port":                "39001",
-		"--controlpanelport":    "39002",
-		"--networkport":         "39003",
-		"--peers":               seedNode,
-		"--factomhome":          homeDir,
-		"--exclusive":			 exclusive,
-		"--exclusive_in":		 exclusiveIn,
-	}
-
-	n := &testNode{state: testHelper.StartSim(1, CmdLineOptions)}
+	n := &testNode{state: testHelper.StartPeer(CmdLineOptions)}
 
 	t.Log("Waiting for first block")
 	testHelper.WaitForBlock(n.state, 1)
@@ -85,7 +98,6 @@ func (n *testNode) StatusEveryMinute() {
 	// instead of simply reporting on local fnode
 	testHelper.StatusEveryMinute(n.state)
 }
-
 
 // wait minutes on this local node
 func (n *testNode) WaitMinutes(minutes int) {
@@ -216,6 +228,7 @@ func postRequest(debugUrl string, jsonStr string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header.Set("content-type", "text/plain;")
+	req.Host = "localhost:8088" // KLUDGE: mux routing expects this to match the bound port
 
 	client := &http.Client{}
 	return client.Do(req)

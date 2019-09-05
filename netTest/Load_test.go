@@ -2,17 +2,17 @@ package nettest
 
 import (
 	"testing"
-
 )
 
 func TestLoad(t *testing.T) {
-	// use a tree so the messages get reordered
-	//state0 := SetupSim("LLF", map[string]string{}, 15, 0, 0, t)
+	n := SetupNode(DEV_NET, 0, t)
 
-	//RunCmd("2")   // select 2
-	//RunCmd("R30") // Feed load
-	//WaitBlocks(state0, 10)
-	//RunCmd("R0") // Stop load
-	//WaitBlocks(state0, 1)
-	//ShutDownEverything(t)
+	// NOTE: this step can take awhile if devnet has been running for awhile
+	n.WaitBlocks(2) // make sure local node is progressing
+
+	n.fnodes[2].RunCmd("R30") // start for 30 EPS on node2
+	n.WaitBlocks(10)
+	n.fnodes[2].RunCmd("R0") // stop load
+
+	// TODO: improve to check health of network
 }
