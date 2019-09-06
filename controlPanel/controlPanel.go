@@ -21,6 +21,8 @@ import (
 	"github.com/FactomProject/factomd/controlPanel/files"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/state"
+
+	llog "github.com/FactomProject/factomd/log"
 )
 
 // Initiates control panel variables and controls the http requests
@@ -104,6 +106,7 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 			if r != "http: multiple registrations for /" {
 				fmt.Println("Control Panel has encountered a panic in ServeControlPanel.\n", r)
 			}
+			llog.LogPrintf("recovery", "Control Panel has encountered a panic in ServeControlPanel. %v", r)
 		}
 	}()
 
@@ -195,6 +198,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		if r := recover(); r != nil {
 			fmt.Println("Control Panel has encountered a panic in IndexHandler.\n", r)
+			llog.LogPrintf("recovery", "Control Panel has encountered a panic in IndexHandler. %v", r)
 		}
 	}()
 	TemplateMutex.Lock()
@@ -220,6 +224,7 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		if r := recover(); r != nil {
 			fmt.Println("Control Panel has encountered a panic in PostHandler.\n", r)
+			llog.LogPrintf("recovery", "Control Panel has encountered a panic in PostHandler. %v", r)
 		}
 	}()
 	if false == checkControlPanelPassword(w, r) {
@@ -267,6 +272,7 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		if r := recover(); r != nil {
 			fmt.Println("Control Panel has encountered a panic in SearchHandler.\n", r)
+			llog.LogPrintf("recovery", "Control Panel has encountered a panic in SearchHandler. %v", r)
 		}
 	}()
 	if false == checkControlPanelPassword(w, r) {
@@ -312,6 +318,7 @@ func factomdHandler(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		if r := recover(); r != nil {
 			fmt.Println("Control Panel has encountered a panic in FactomdHandler.\n", r)
+			llog.LogPrintf("recovery", "Control Panel has encountered a panic in FactomdHandler. %v", r)
 		}
 	}()
 	if false == checkControlPanelPassword(w, r) {

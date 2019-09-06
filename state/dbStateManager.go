@@ -13,19 +13,19 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/adminBlock"
-	"github.com/FactomProject/factomd/common/globals"
-	"github.com/FactomProject/factomd/util/atomic"
-
-	// "github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
+	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
+	"github.com/FactomProject/factomd/util/atomic"
+
+	llog "github.com/FactomProject/factomd/log"
 )
 
 var _ = hex.EncodeToString
@@ -208,6 +208,7 @@ func (dbs *DBState) MarshalBinary() (rval []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("DBState.MarshalBinary panic Error Marshalling a dbstate %v", r)
+			llog.LogPrintf("recovery", "DBState.MarshalBinary panic Error Marshalling a dbstate %v", r)
 		}
 	}()
 

@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/primitives"
+
+	llog "github.com/FactomProject/factomd/log"
 	gcfg "gopkg.in/gcfg.v1"
 )
 
@@ -307,6 +309,7 @@ func GetChangeAcksHeight(filename string) (change uint32, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error getting acks - %v\n", r)
+			llog.LogPrintf("recovery", "Error getting acks - %v", r)
 		}
 	}()
 
