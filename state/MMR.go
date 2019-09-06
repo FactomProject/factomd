@@ -75,6 +75,11 @@ func (vm *VM) ReportMissing(height int, delay int64) {
 	vm.p.State.LogPrintf("missing_messages", "ReportMissing %d/%d/%d, delay %d", vm.p.DBHeight, vm.VmIndex, height, delay)
 
 	now := vm.p.State.GetTimestamp().GetTimeMilli()
+
+	if delay == 0 {
+		vm.p.State.Ask(height, vm.VmIndex, height, now+delay) // send it to the MMR thread to bump up the priority
+	}
+
 	if delay < 500 {
 		delay = 500 // Floor for delays is 500ms so there is time to merge adjacent requests
 	}
@@ -82,7 +87,7 @@ func (vm *VM) ReportMissing(height int, delay int64) {
 	// ask for all missing messages
 	var i int
 	for i = vm.HighestAsk; i < lenVMList; i++ {
-		if i < 0 { // -1 is the default highestask, as we have not asked yet. Obviously this index does not exist
+		if i < 0 || i == height { // -1 is the default highestask, as we have not asked yet. Obviously this index does not exist
 			continue
 		}
 		if vm.List[i] == nil {
@@ -94,7 +99,7 @@ func (vm *VM) ReportMissing(height int, delay int64) {
 	}
 
 	// if we are asking above the current list
-	if height >= lenVMList {
+	if height >= lenVMList && delay != 0 {
 		vm.p.State.Ask(int(vm.p.DBHeight), vm.VmIndex, height, now+delay) // send it to the MMR thread
 	}
 

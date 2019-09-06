@@ -1433,3 +1433,42 @@ func DoesFileExists(path string, t *testing.T) {
 	}
 
 }
+
+func LaggingAuditElection(t *testing.T, lag int, recovery int) {
+	state0 := SetupSim("LLLAF", map[string]string{"--debuglog": ".", "--blktime": "15"}, 15, 0, 0, t)
+	WaitForBlock(state0, 6)
+	WaitForAllNodes(state0)
+
+	RunCmd("3")
+	RunCmd("x")
+	WaitBlocks(state0, lag) // make audit lag behind
+
+	RunCmd("1")
+	RunCmd("x") // take out a leader
+
+	RunCmd("3")
+	RunCmd("x") // bring back audit
+
+	WaitMinutes(state0, 2) // wait for audit to be elected
+
+	RunCmd("1")
+	RunCmd("x") // bring back leader-should become Audit
+
+	// Do we need to wait by timeclock? rather than waitblocks
+	WaitBlocks(state0, recovery) // give time to come back
+
+	WaitForAllNodes(state0) // REVIEW: is this desired? rather than using WaitBlocks as above?
+
+	AssertAuthoritySet(t, "LALLF") // leader
+	Halt(t)
+}
+
+// test electing an audit that is 1 block behind
+func TestLaggingAuditElection1(t *testing.T) {
+	LaggingAuditElection(t, 1, 2) // KLUDGE: fails when recovery = 2
+}
+
+// test electing an audit that is 2 blocks behind
+func TestLaggingAuditElection2(t *testing.T) {
+	LaggingAuditElection(t, 2, 2)
+}
