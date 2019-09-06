@@ -14,10 +14,24 @@ read -d '' scriptVariable << 'EOF'
 
 func time2sec(t) {    
     x = split(t,ary,":");
-    if(x!=3) {printf("time2sec(%s) bad split got %d fields. %s:%d", t , x ,FILENAME,FNR); print $0; exit;}
+    if(x!=3) {
+        printf("time2sec(%s) bad split got %d fields.\\n",t, x)
+        printf("Line:  %s:%d\\n", FILENAME,FNR); 
+        print "<"$0">"; 
+        exit;
+    }
     sec = (ary[1]*60+ary[2])*60+ary[3];
     #printf("time2sec(%s) %02d:%02d:%02d= %d\\n",t, ary[1]+0, ary[2]+0,ary[3]+0,sec);
     return sec;
+}
+
+func timeDiff(t1,t2){
+
+    tDiff = time2sec(t1)-time2sec(t2);
+    if(tDiff < 0) {
+        tDiff = tDiff+24*60*60;
+    }
+    return sprintf("%d seconds %2d:%02d:%02d.%03d H:M:S", tDiff, (tDiff/(60*60)),(tDiff/60)%60,tDiff%60,(tDiff - int(tDiff))*1000 );
 }
 
 
@@ -63,16 +77,16 @@ END {
 
     print "LoadFromDisk";
     print "saveStateBlock   ","DBHT:", saveStateBlock, saveStateBlockTime;
-    print "topOfDataBase    ","DBHT:", topOfDataBase, topOfDataBaseTime, time2sec(topOfDataBaseTime)-time2sec(saveStateBlockTime),"seconds";
+    print "topOfDataBase    ","DBHT:", topOfDataBase, topOfDataBaseTime, timeDiff(topOfDataBaseTime, saveStateBlockTime);
     print "FirstPassSync";
     print "firstBlockFromNet","DBHT:", firstBlockFromNet, firstBlockFromNetTime;
-    print "lastBlockFromNet ","DBHT:", lastBlockFromNet, lastBlockFromNetTime, time2sec(lastBlockFromNetTime)-time2sec(firstBlockFromNetTime),"seconds";;
+    print "lastBlockFromNet ","DBHT:", lastBlockFromNet, lastBlockFromNetTime, timeDiff(lastBlockFromNetTime, firstBlockFromNetTime);;
     print "SecondPassSync";
     print "firstMissingDataTime:", firstMissingDataTime;
-    print "lastMissingDataTime: ", lastMissingDataTime, time2sec(lastMissingDataTime)-time2sec(firstMissingDataTime),"seconds";;
+    print "lastMissingDataTime: ", lastMissingDataTime, timeDiff(lastMissingDataTime, firstMissingDataTime);;
     print "FollowByMinutes";    
     print "firstBuiltBlock  ","DBHT:", firstBuiltBlock, firstBuiltBlockTime;
-    print "lastBuiltBlock   ","DBHT:", lastBuiltBlock, lastBuiltBlockTime, time2sec(lastBuiltBlockTime)-time2sec(firstBuiltBlockTime),"seconds";;
+    print "lastBuiltBlock   ","DBHT:", lastBuiltBlock, lastBuiltBlockTime, timeDiff(lastBuiltBlockTime, firstBuiltBlockTime);;
      
 }
 
