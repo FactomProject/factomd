@@ -4,10 +4,11 @@ import (
 	"github.com/FactomProject/factomd/engine"
 	. "github.com/FactomProject/factomd/testHelper"
 	"testing"
+	"time"
 )
 
 func LaggingAuditElection(t *testing.T, lag int, recovery int) {
-	state0 := SetupSim("LAFL", map[string]string{ "--blktime": "30"}, 15, 0, 0, t)
+	state0 := SetupSim("LAFL", map[string]string{ "--blktime": "30", "--falttimeout": "30"}, 15, 0, 0, t)
 	state1 := engine.GetFnodes()[1].State
 
 	WaitForBlock(state0, 6)
@@ -16,20 +17,22 @@ func LaggingAuditElection(t *testing.T, lag int, recovery int) {
 	RunCmd("1")
 	RunCmd("x") // take out audit
 
-    WaitBlocks(state0, lag) // make audit lag behind
+	time.Sleep(120*time.Second) // make audit lag behind
 
 	RunCmd("0")
 	RunCmd("x") // take out a leader
+
+	time.Sleep(120*time.Second) // make audit lag behind
 
 	RunCmd("1")
 	RunCmd("x") // bring back audit
 
 	WaitForAllNodes(state1)
 
-	WaitBlocks(state1, recovery) // give time to come back
-
 	RunCmd("0")
 	RunCmd("x") // bring back leader-should become Audit
+
+	WaitBlocks(state1, recovery) // give time to come back
 
 	AssertAuthoritySet(t, "ALFL")
 	Halt(t)
