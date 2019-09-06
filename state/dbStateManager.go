@@ -26,13 +26,11 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
-	"github.com/FactomProject/factomd/log"
 )
 
 var _ = hex.EncodeToString
 var _ = fmt.Print
 var _ = time.Now()
-var _ = log.Print
 
 type DBState struct {
 	IsNew bool
