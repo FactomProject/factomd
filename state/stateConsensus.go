@@ -561,6 +561,53 @@ func CheckDBKeyMR(s *State, ht uint32, hash string) error {
 // Consensus Methods
 //***************************************************************
 
+func (s *State) ExpireHolding() {
+	highest := s.GetHighestKnownBlock()
+	saved := s.GetHighestSavedBlk()
+	if saved > highest {
+		highest = saved + 1
+	}
+	for _, v := range s.Holding {
+		if v.Expire(s) {
+			s.ExpireCnt++
+			s.DeleteFromHolding(v.GetMsgHash().Fixed(), v, "expired")
+			continue // If the message has expired, don't hold or execute
+		}
+
+		eom, ok := v.(*messages.EOM)
+		if ok {
+			if int(eom.DBHeight)*10+int(eom.Minute) < int(s.LLeaderHeight)*10+s.CurrentMinute {
+				s.ExpireCnt++
+				s.DeleteFromHolding(v.GetMsgHash().Fixed(), v, "old EOM")
+				continue
+			}
+			if !eom.IsLocal() && eom.DBHeight > saved {
+				s.SetHighestKnownBlock(eom.DBHeight)
+			}
+		}
+
+		dbsigmsg, ok := v.(*messages.DirectoryBlockSignature)
+		if ok {
+			if dbsigmsg.DBHeight < s.LLeaderHeight || (s.CurrentMinute > 0 && dbsigmsg.DBHeight == s.LLeaderHeight) {
+				s.ExpireCnt++
+				s.DeleteFromHolding(v.GetMsgHash().Fixed(), v, "old DBSig")
+				continue
+			}
+			if !dbsigmsg.IsLocal() && dbsigmsg.DBHeight > saved {
+				s.SetHighestKnownBlock(dbsigmsg.DBHeight)
+			}
+		}
+
+		dbsmsg, ok := v.(*messages.DBStateMsg)
+		if ok && dbsmsg.DirectoryBlock.GetHeader().GetDBHeight() <= saved && saved > 0 {
+			s.ExpireCnt++
+			s.DeleteFromHolding(v.GetMsgHash().Fixed(), v, "old DBState")
+			continue
+		}
+
+	}
+}
+
 // Places the entries in the holding map back into the XReview list for
 // review if this is a leader, and those messages are that leader's
 // responsibility
@@ -646,52 +693,8 @@ processholdinglist:
 		}
 
 		if int(highest)-int(saved) > 1000 {
-			TotalHoldingQueueOutputs.Inc()
-			//delete(s.Holding, k)
 			s.DeleteFromHolding(k, v, "HKB-HSB>1000")
 			continue processholdinglist // No point in executing if we think we can't hold this.
-		}
-
-		if v.Expire(s) {
-			s.LogMessage("executeMsg", "expire from holding", v)
-			s.ExpireCnt++
-			TotalHoldingQueueOutputs.Inc()
-			//delete(s.Holding, k)
-			s.DeleteFromHolding(k, v, "expired")
-			continue processholdinglist // If the message has expired, don't hold or execute
-		}
-
-		eom, ok := v.(*messages.EOM)
-		if ok {
-			if int(eom.DBHeight)*10+int(eom.Minute) < int(s.LLeaderHeight)*10+s.CurrentMinute {
-				s.DeleteFromHolding(k, v, "old EOM")
-				continue processholdinglist
-			}
-			if !eom.IsLocal() && eom.DBHeight > saved {
-				s.SetHighestKnownBlock(eom.DBHeight)
-			}
-		}
-
-		dbsigmsg, ok := v.(*messages.DirectoryBlockSignature)
-		if ok {
-			if dbsigmsg.DBHeight < s.LLeaderHeight || (s.CurrentMinute > 0 && dbsigmsg.DBHeight == s.LLeaderHeight) {
-				TotalHoldingQueueOutputs.Inc()
-				//delete(s.Holding, k)
-				s.DeleteFromHolding(k, v, "Old DBSig")
-				continue processholdinglist
-			}
-			if !dbsigmsg.IsLocal() && dbsigmsg.DBHeight > saved {
-				s.SetHighestKnownBlock(dbsigmsg.DBHeight)
-			}
-		}
-
-		dbsmsg, ok := v.(*messages.DBStateMsg)
-		if ok && dbsmsg.DirectoryBlock.GetHeader().GetDBHeight() <= saved && saved > 0 {
-
-			TotalHoldingQueueOutputs.Inc()
-			//delete(s.Holding, k)
-			s.DeleteFromHolding(k, v, "old DBState")
-			continue processholdinglist
 		}
 
 		// If it is an entryCommit/ChainCommit/RevealEntry and it has a duplicate hash to an existing entry throw it away here
@@ -699,8 +702,6 @@ processholdinglist:
 		if ok {
 			x := s.NoEntryYet(ce.CommitEntry.EntryHash, ce.CommitEntry.GetTimestamp())
 			if !x {
-				TotalHoldingQueueOutputs.Inc()
-				//delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
 				s.DeleteFromHolding(k, v, "already committed")
 				continue processholdinglist
 			}
@@ -712,8 +713,6 @@ processholdinglist:
 		if ok {
 			x := s.NoEntryYet(cc.CommitChain.EntryHash, cc.CommitChain.GetTimestamp())
 			if !x {
-				TotalHoldingQueueOutputs.Inc()
-				//delete(s.Holding, k) // Drop commits with the same entry hash from holding because they are blocked by a previous entry
 				s.DeleteFromHolding(k, v, "already committed")
 				continue processholdinglist
 			}
@@ -728,8 +727,6 @@ processholdinglist:
 		switch validToExecute {
 		case -1:
 			s.LogMessage("executeMsg", "invalid from holding", v)
-			TotalHoldingQueueOutputs.Inc()
-			//delete(s.Holding, k)
 			s.DeleteFromHolding(k, v, "invalid from holding")
 			continue processholdinglist
 		case 0:
@@ -854,13 +851,16 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		s.DB.Trim()
 
 	} else if s.CurrentMinute != newMinute { // And minute
-		if newMinute == 1 {
+		switch newMinute {
+		case 1:
 			dbstate := s.GetDBState(dbheight - 1)
 			if dbstate != nil && !dbstate.Saved {
 				s.LogPrintf("dbstateprocess", "Set ReadyToSave %d", dbstate.DirectoryBlock.GetHeader().GetDBHeight())
 				dbstate.ReadyToSave = true
 			}
 			s.DBStates.UpdateState() // call to get the state signed now that the DBSigs have processed
+		case 2:
+			s.ExpireHolding() // expire anything in holding that is old.
 		}
 		s.CurrentMinute = newMinute // Update just the minute
 		// We are between blocks make sure we are setup to sync
@@ -1072,7 +1072,7 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 
 	// Add the ack to the list of acks
 	TotalAcksInputs.Inc()
-	s.Acks[ack.GetHash().Fixed()] = ack // Add the ack to the ask list incase we can't execute the msg yet.
+	s.Acks[ack.GetHash().Fixed()] = ack // Add the ack to the ask list in case we can't execute the msg yet.
 
 	m := s.getMsgFromHolding(ack.GetHash().Fixed()) // check for a matching message
 	if m != nil {
