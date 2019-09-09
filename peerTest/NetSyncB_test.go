@@ -22,7 +22,7 @@ func TestSyncB(t *testing.T) {
 		"--db":               "LDB",
 		"--network":          "LOCAL",
 		"--nodename":         "TestB",
-		//"--debuglog":         "/tmp/test_b|."
+		"--debuglog":         "/tmp/test_b/|.",
 		"--net":              "alot+",
 		"--enablenet":        "true",
 		"--blktime":          "30",

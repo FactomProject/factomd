@@ -18,7 +18,7 @@ func TestNetSyncA(t *testing.T) {
 	params := map[string]string{
 		"--db":               "LDB",
 		"--network":          "LOCAL",
-		//"--debuglog":         "/tmp/test_a|."
+		"--debuglog":         "/tmp/test_a/|.",
 		"--nodename":         "TestA",
 		"--net":              "alot+",
 		"--enablenet":        "true",
