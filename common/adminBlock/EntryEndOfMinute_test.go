@@ -7,6 +7,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 )
 
+// TestEndOfMinuteEntryGetHash checks that an empty object has the correct hash
 func TestEndOfMinuteEntryGetHash(t *testing.T) {
 	a := new(EndOfMinuteEntry)
 	h := a.Hash()
@@ -16,6 +17,8 @@ func TestEndOfMinuteEntryGetHash(t *testing.T) {
 	}
 }
 
+// TestEndOfMinuteEntryTypeIDCheck checks that an empty object can be marshalled and unmarshalled correctly, and
+// that a corrupted marshalled object throws an error when unmarshalled
 func TestEndOfMinuteEntryTypeIDCheck(t *testing.T) {
 	a := new(EndOfMinuteEntry)
 	b, err := a.MarshalBinary()
@@ -38,6 +41,7 @@ func TestEndOfMinuteEntryTypeIDCheck(t *testing.T) {
 	}
 }
 
+// TestUnmarshalNilEndOfMinuteEntry checks that the nil and empty interfaces throw errors when they are unmarshalled
 func TestUnmarshalNilEndOfMinuteEntry(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -57,6 +61,7 @@ func TestUnmarshalNilEndOfMinuteEntry(t *testing.T) {
 	}
 }
 
+// TestEOMMisc checks that smaller member functions return proper values
 func TestEOMMisc(t *testing.T) {
 	eom := new(EndOfMinuteEntry)
 	if eom.IsInterpretable() != true {
@@ -71,6 +76,7 @@ func TestEOMMisc(t *testing.T) {
 	}
 }
 
+// TestEOMMarshalUnmarshal checks that marshalled data can be unmarshaled correctly
 func TestEOMMarshalUnmarshal(t *testing.T) {
 	tmp := []byte{constants.TYPE_MINUTE_NUM, 0x01, 0x02}
 	eom := new(EndOfMinuteEntry)
@@ -117,6 +123,7 @@ func TestEOMMarshalUnmarshal(t *testing.T) {
 	}
 }
 
+// TestEOMjsonMisc checks that various strings are returns properly from the object
 func TestEOMjsonMisc(t *testing.T) {
 	a := new(EndOfMinuteEntry)
 	if a.String() != "    E:                    EndOfMinuteEntry --            Minute 0" {

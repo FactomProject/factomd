@@ -10,16 +10,17 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-// DB Signature Entry -------------------------
+// DBSignatureEntry contains information for a directory block Signature Entry -------------------------
 type DBSignatureEntry struct {
-	AdminIDType          uint32               `json:"adminidtype"`
-	IdentityAdminChainID interfaces.IHash     `json:"identityadminchainid"`
-	PrevDBSig            primitives.Signature `json:"prevdbsig"`
+	AdminIDType          uint32               `json:"adminidtype"`          //  the type of action in this admin block entry: uint32(TYPE_DB_SIGNATURE)
+	IdentityAdminChainID interfaces.IHash     `json:"identityadminchainid"` // Server 32 byte identity chain id
+	PrevDBSig            primitives.Signature `json:"prevdbsig"`            // Contains a 32 byte Ed25519 public key and a 64 byte signature of the previous directory blocks header
 }
 
 var _ interfaces.IABEntry = (*DBSignatureEntry)(nil)
 var _ interfaces.BinaryMarshallable = (*DBSignatureEntry)(nil)
 
+// Init initializes the IdentityAdminChainID to the zero hash if nil
 func (e *DBSignatureEntry) Init() {
 	if e.IdentityAdminChainID == nil {
 		e.IdentityAdminChainID = primitives.NewZeroHash()
@@ -28,12 +29,13 @@ func (e *DBSignatureEntry) Init() {
 	e.AdminIDType = uint32(e.Type())
 }
 
-func (c *DBSignatureEntry) UpdateState(state interfaces.IState) error {
+// UpdateState always returns an error, this function should not be called
+func (e *DBSignatureEntry) UpdateState(state interfaces.IState) error {
 	return fmt.Errorf("Should not be called alone!")
 	//return nil
 }
 
-// Create a new DB Signature Entry
+// NewDBSignatureEntry creates a new directory block signature entry
 func NewDBSignatureEntry(identityAdminChainID interfaces.IHash, sig interfaces.IFullSignature) (*DBSignatureEntry, error) {
 	if identityAdminChainID == nil {
 		return nil, fmt.Errorf("No identityAdminChainID provided")
@@ -57,10 +59,12 @@ func NewDBSignatureEntry(identityAdminChainID interfaces.IHash, sig interfaces.I
 	return e, nil
 }
 
+// Type always returns TYPE_DB_SIGNATURE
 func (e *DBSignatureEntry) Type() byte {
 	return constants.TYPE_DB_SIGNATURE
 }
 
+// MarshalBinary marshals the DBSignatureEntry
 func (e *DBSignatureEntry) MarshalBinary() (rval []byte, err error) {
 	defer func(pe *error) {
 		if *pe != nil {
@@ -86,6 +90,7 @@ func (e *DBSignatureEntry) MarshalBinary() (rval []byte, err error) {
 	return buf.DeepCopyBytes(), nil
 }
 
+// UnmarshalBinaryData unmarshals the input data into this DBSignatureEntry
 func (e *DBSignatureEntry) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	buf := primitives.NewBuffer(data)
 	b, err := buf.PopByte()
@@ -105,21 +110,25 @@ func (e *DBSignatureEntry) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	return buf.DeepCopyBytes(), nil
 }
 
+// UnmarshalBinary unmarshals the input data into this DBSignatureEntry
 func (e *DBSignatureEntry) UnmarshalBinary(data []byte) (err error) {
 	_, err = e.UnmarshalBinaryData(data)
 	return
 }
 
+// JSONByte returns the json encoded byte array
 func (e *DBSignatureEntry) JSONByte() ([]byte, error) {
 	e.AdminIDType = uint32(e.Type())
 	return primitives.EncodeJSON(e)
 }
 
+// JSONString returns the sjon encoded string
 func (e *DBSignatureEntry) JSONString() (string, error) {
 	e.AdminIDType = uint32(e.Type())
 	return primitives.EncodeJSONString(e)
 }
 
+// String returns the string of the DBSignatureEntry
 func (e *DBSignatureEntry) String() string {
 	e.Init()
 	var out primitives.Buffer
@@ -131,14 +140,17 @@ func (e *DBSignatureEntry) String() string {
 	return (string)(out.DeepCopyBytes())
 }
 
+// IsInterpretable always returns false
 func (e *DBSignatureEntry) IsInterpretable() bool {
 	return false
 }
 
+// Interpret always returns the empty string ""
 func (e *DBSignatureEntry) Interpret() string {
 	return ""
 }
 
+// Hash marshals the DBSignatureEntry and calculates its hashS
 func (e *DBSignatureEntry) Hash() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {

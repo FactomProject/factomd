@@ -11,19 +11,22 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-// CoinbaseDescriptor Entry -------------------------
+// CoinbaseDescriptor is an admin block entry which specifies a future coinbase transaction after 1000 directory blocks have passed.
+// The CoinbaseDescriptor entry should occur every 25 blocks, in blocks whose number is divisible by 25.
 type CoinbaseDescriptor struct {
-	AdminIDType uint32 `json:"adminidtype"`
-	Outputs     []interfaces.ITransAddress
+	AdminIDType uint32                     `json:"adminidtype"` //  the type of action in this admin block entry: uint32(TYPE_COINBASE_DESCRIPTOR)
+	Outputs     []interfaces.ITransAddress // An array containing a pair of factoid_value1 to increase a at a specific factoid_address1, ... to factoid_valueN at factoid_addressN
 }
 
 var _ interfaces.IABEntry = (*CoinbaseDescriptor)(nil)
 var _ interfaces.BinaryMarshallable = (*CoinbaseDescriptor)(nil)
 
+// Init sets the admin id type to TYPE_COINBASE_DESCRIPTOR
 func (e *CoinbaseDescriptor) Init() {
 	e.AdminIDType = uint32(e.Type())
 }
 
+// IsSameAs returns true iff the input coinbase descriptor is identical to this coinbase descriptor
 func (a *CoinbaseDescriptor) IsSameAs(b *CoinbaseDescriptor) bool {
 	if a.Type() != b.Type() {
 		return false
@@ -37,6 +40,7 @@ func (a *CoinbaseDescriptor) IsSameAs(b *CoinbaseDescriptor) bool {
 	return true
 }
 
+// String returns this coinbase descriptor as a string
 func (e *CoinbaseDescriptor) String() string {
 	e.Init()
 	var out primitives.Buffer
@@ -46,11 +50,13 @@ func (e *CoinbaseDescriptor) String() string {
 	return (string)(out.DeepCopyBytes())
 }
 
-func (c *CoinbaseDescriptor) UpdateState(state interfaces.IState) error {
-	c.Init()
+// UpdateState initializes this descriptor and always returns nil
+func (e *CoinbaseDescriptor) UpdateState(state interfaces.IState) error {
+	e.Init()
 	return nil
 }
 
+// NewCoinbaseDescriptor creates a new coinbase descriptor with the input factoid values and addresses
 func NewCoinbaseDescriptor(outputs []interfaces.ITransAddress) (e *CoinbaseDescriptor) {
 	e = new(CoinbaseDescriptor)
 	e.Init()
@@ -58,10 +64,12 @@ func NewCoinbaseDescriptor(outputs []interfaces.ITransAddress) (e *CoinbaseDescr
 	return
 }
 
+// Type returns the hardcoded TYPE_COINBASE_DESCRIPTOR
 func (e *CoinbaseDescriptor) Type() byte {
 	return constants.TYPE_COINBASE_DESCRIPTOR
 }
 
+// MarshalBinary marshals the coinbase descriptor
 func (e *CoinbaseDescriptor) MarshalBinary() (rval []byte, err error) {
 	defer func(pe *error) {
 		if *pe != nil {
@@ -98,6 +106,7 @@ func (e *CoinbaseDescriptor) MarshalBinary() (rval []byte, err error) {
 	return buf.DeepCopyBytes(), nil
 }
 
+// UnmarshalBinaryData unmarshals the input data into this coinbase descriptor
 func (e *CoinbaseDescriptor) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	buf := primitives.NewBuffer(data)
 	e.Init()
@@ -155,29 +164,35 @@ func (e *CoinbaseDescriptor) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	return buf.DeepCopyBytes(), nil
 }
 
+// UnmarshalBinary unmarshals the input data into this coinbase descriptor
 func (e *CoinbaseDescriptor) UnmarshalBinary(data []byte) (err error) {
 	_, err = e.UnmarshalBinaryData(data)
 	return
 }
 
+// JSONByte returns the json encoded byte array
 func (e *CoinbaseDescriptor) JSONByte() ([]byte, error) {
 	e.AdminIDType = uint32(e.Type())
 	return primitives.EncodeJSON(e)
 }
 
+// JSONString returns the json encoded string
 func (e *CoinbaseDescriptor) JSONString() (string, error) {
 	e.AdminIDType = uint32(e.Type())
 	return primitives.EncodeJSONString(e)
 }
 
+// IsInterpretable always returns false
 func (e *CoinbaseDescriptor) IsInterpretable() bool {
 	return false
 }
 
+// Interpret always returns the empty string ""
 func (e *CoinbaseDescriptor) Interpret() string {
 	return ""
 }
 
+// Hash marshals the coinbase descriptor and takes its hash
 func (e *CoinbaseDescriptor) Hash() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {

@@ -13,6 +13,8 @@ import (
 	"github.com/FactomProject/factomd/testHelper"
 )
 
+// TestNewForwardCompatibleEntry checks that 100 coinbase descriptors, coinbase addresses, and efficiencies created with N random addresses
+// or entries can be marshalled and unmarshalled correctly into the ForwardCompatibleEntry to produce the same results.
 func TestNewForwardCompatibleEntry(t *testing.T) {
 	rand.Seed(time.Now().UnixNano())
 	// Coinbase Descriptor
@@ -46,6 +48,7 @@ func TestNewForwardCompatibleEntry(t *testing.T) {
 	}
 }
 
+// TestAddBadForwardCompatibileEntry checks that a bad ForwardCompatibleEntry throws an error when unmarshaled
 func TestAddBadForwardCompatibleEntry(t *testing.T) {
 	// create bad ForwardCompatibleEntry binary
 	// AdminIDType = 0a

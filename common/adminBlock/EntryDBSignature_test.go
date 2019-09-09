@@ -9,6 +9,7 @@ import (
 	"github.com/FactomProject/factomd/state"
 )
 
+// TestDBSignatureEntryGetHash checks the empty DBSignature has the correct hash
 func TestDBSignatureEntryGetHash(t *testing.T) {
 	a := new(DBSignatureEntry)
 	h := a.Hash()
@@ -18,6 +19,8 @@ func TestDBSignatureEntryGetHash(t *testing.T) {
 	}
 }
 
+// TestDBSignatureEntryTypeIDCheck checks an empty DBSignature as the correct type, can be unmarshalled properly, and
+// can detect a corrupted byte
 func TestDBSignatureEntryTypeIDCheck(t *testing.T) {
 	a := new(DBSignatureEntry)
 	b, err := a.MarshalBinary()
@@ -40,6 +43,7 @@ func TestDBSignatureEntryTypeIDCheck(t *testing.T) {
 	}
 }
 
+// TestUnmarshalNilDBSignatureEntry checks that unmarshalling nil or an empty interface throws the proper error
 func TestUnmarshalNilDBSignatureEntry(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -59,6 +63,7 @@ func TestUnmarshalNilDBSignatureEntry(t *testing.T) {
 	}
 }
 
+// TestDBSEMisc checks that IsInterpretable and Interpret return the expected hard coded values
 func TestDBSEMisc(t *testing.T) {
 	dbse := new(DBSignatureEntry)
 	if dbse.IsInterpretable() != false {
@@ -69,6 +74,7 @@ func TestDBSEMisc(t *testing.T) {
 	}
 }
 
+// TestDBSEGenesisBlock tests GenerateGenesisBlocks works correctly
 func TestDBSEGenesisBlock(t *testing.T) {
 	str := "0100000000000000000000000000000000000000000000000000000000000000000426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a83efbcbed19b5842e5aa06e66c41d8b61826d95d50c1cbc8bd5373f986c370547133462a9ffa0dcff025a6ad26747c95f1bdd88e2596fc8c6eaa8a2993c72c05"
 	h, _ := hex.DecodeString(str)
@@ -92,6 +98,7 @@ func TestDBSEGenesisBlock(t *testing.T) {
 	}
 }
 
+// TestDBSigMisc checks that the empty DBSignatureEntry returns proper strings and byte arrays
 func TestDBsigMisc(t *testing.T) {
 	a := new(DBSignatureEntry)
 	if a.String() != "    E:         DB Signature --   IdentityChainID   000000       PubKey 00000000    Signature 3030303030303030" {

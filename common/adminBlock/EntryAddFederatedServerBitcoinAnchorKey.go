@@ -10,18 +10,19 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-// DB Signature Entry -------------------------
+// AddFederatedServerBitcoinAnchorKey is an admin block entry adds a Bitcoin public key hash to the federated server
 type AddFederatedServerBitcoinAnchorKey struct {
-	AdminIDType     uint32                 `json:"adminidtype"`
-	IdentityChainID interfaces.IHash       `json:"identitychainid"`
-	KeyPriority     byte                   `json:"keypriority"`
-	KeyType         byte                   `json:"keytype"` //0=P2PKH 1=P2SH
-	ECDSAPublicKey  primitives.ByteSlice20 `json:"ecdsapublickey"`
+	AdminIDType     uint32                 `json:"adminidtype"`     // the type of action in this admin block entry: uint32(TYPE_ADD_BTC_ANCHOR_KEY)
+	IdentityChainID interfaces.IHash       `json:"identitychainid"` // the server identity chain id affected by this action
+	KeyPriority     byte                   `json:"keypriority"`     //
+	KeyType         byte                   `json:"keytype"`         // 0=P2PKH 1=P2SH, "Pay 2 PublicKey Hash" or "Pay 2 Script Hash"
+	ECDSAPublicKey  primitives.ByteSlice20 `json:"ecdsapublickey"`  // the bitcoin public key
 }
 
 var _ interfaces.IABEntry = (*AddFederatedServerBitcoinAnchorKey)(nil)
 var _ interfaces.BinaryMarshallable = (*AddFederatedServerBitcoinAnchorKey)(nil)
 
+// Init initializes any nil hashes to the zero hash and sets the object's type
 func (e *AddFederatedServerBitcoinAnchorKey) Init() {
 	if e.IdentityChainID == nil {
 		e.IdentityChainID = primitives.NewZeroHash()
@@ -29,6 +30,7 @@ func (e *AddFederatedServerBitcoinAnchorKey) Init() {
 	e.AdminIDType = uint32(e.Type())
 }
 
+// SortedIdentity returns the server identity chain id
 func (e *AddFederatedServerBitcoinAnchorKey) SortedIdentity() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {
@@ -40,6 +42,7 @@ func (e *AddFederatedServerBitcoinAnchorKey) SortedIdentity() (rval interfaces.I
 	return e.IdentityChainID
 }
 
+// String returns this objects string
 func (e *AddFederatedServerBitcoinAnchorKey) String() string {
 	e.Init()
 	var out primitives.Buffer
@@ -52,13 +55,14 @@ func (e *AddFederatedServerBitcoinAnchorKey) String() string {
 	return (string)(out.DeepCopyBytes())
 }
 
-func (c *AddFederatedServerBitcoinAnchorKey) UpdateState(state interfaces.IState) error {
-	c.Init()
-	state.UpdateAuthorityFromABEntry(c)
+// UpdateState updates the factomd state with information about this object
+func (e *AddFederatedServerBitcoinAnchorKey) UpdateState(state interfaces.IState) error {
+	e.Init()
+	state.UpdateAuthorityFromABEntry(e)
 	return nil
 }
 
-// Create a new DB Signature Entry
+// NewAddFederatedServerBitcoinAnchorKey returns a new object containing the input data
 func NewAddFederatedServerBitcoinAnchorKey(identityChainID interfaces.IHash, keyPriority byte, keyType byte, ecdsaPublicKey primitives.ByteSlice20) (e *AddFederatedServerBitcoinAnchorKey) {
 	e = new(AddFederatedServerBitcoinAnchorKey)
 	e.IdentityChainID = identityChainID
@@ -68,10 +72,12 @@ func NewAddFederatedServerBitcoinAnchorKey(identityChainID interfaces.IHash, key
 	return
 }
 
+// Type returns the hardcoded TYPE_ADD_BTC_ANCHOR_KEY
 func (e *AddFederatedServerBitcoinAnchorKey) Type() byte {
 	return constants.TYPE_ADD_BTC_ANCHOR_KEY
 }
 
+// MarshalBinary marshals this object
 func (e *AddFederatedServerBitcoinAnchorKey) MarshalBinary() (rval []byte, err error) {
 	defer func(pe *error) {
 		if *pe != nil {
@@ -106,6 +112,7 @@ func (e *AddFederatedServerBitcoinAnchorKey) MarshalBinary() (rval []byte, err e
 	return buf.DeepCopyBytes(), nil
 }
 
+// UnmarshalBinaryData unmarshals the input data into this object
 func (e *AddFederatedServerBitcoinAnchorKey) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	buf := primitives.NewBuffer(data)
 	b, err := buf.PopByte()
@@ -137,29 +144,35 @@ func (e *AddFederatedServerBitcoinAnchorKey) UnmarshalBinaryData(data []byte) ([
 	return buf.DeepCopyBytes(), nil
 }
 
+// UnmarshalBinary unmarshals the input data into this object
 func (e *AddFederatedServerBitcoinAnchorKey) UnmarshalBinary(data []byte) (err error) {
 	_, err = e.UnmarshalBinaryData(data)
 	return
 }
 
+// JSONByte returns the json encoded byte array
 func (e *AddFederatedServerBitcoinAnchorKey) JSONByte() ([]byte, error) {
 	e.AdminIDType = uint32(e.Type())
 	return primitives.EncodeJSON(e)
 }
 
+// JSONString returns the json encoded string
 func (e *AddFederatedServerBitcoinAnchorKey) JSONString() (string, error) {
 	e.AdminIDType = uint32(e.Type())
 	return primitives.EncodeJSONString(e)
 }
 
+// IsInterpretable always returns false
 func (e *AddFederatedServerBitcoinAnchorKey) IsInterpretable() bool {
 	return false
 }
 
+// Interpret always returns the empty string ""
 func (e *AddFederatedServerBitcoinAnchorKey) Interpret() string {
 	return ""
 }
 
+// Hash marshals the object and computes its hash
 func (e *AddFederatedServerBitcoinAnchorKey) Hash() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {

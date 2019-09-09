@@ -13,6 +13,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
+// TestUnmarshalNilDBlockHeader checks that unmarshalling nil or an empty interface throws the proper error
 func TestUnmarshalNilDBlockHeader(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -32,6 +33,7 @@ func TestUnmarshalNilDBlockHeader(t *testing.T) {
 	}
 }
 
+// TestVersion checks that setting and getting the version produce consistent results
 func TestVersion(t *testing.T) {
 	dbh := new(DBlockHeader)
 
@@ -52,6 +54,7 @@ func TestVersion(t *testing.T) {
 	}
 }
 
+// TestNetID checks that setting and getting the network id produces the correct result
 func TestNetID(t *testing.T) {
 	dbh := new(DBlockHeader)
 
@@ -64,6 +67,8 @@ func TestNetID(t *testing.T) {
 	}
 }
 
+// TestMRs checks that that initialized hash values are zero, and the set and get functions for the hashes when
+// set to real values are consistent
 func TestMRs(t *testing.T) {
 	dbh := new(DBlockHeader)
 
@@ -106,6 +111,7 @@ func TestMRs(t *testing.T) {
 
 }
 
+// TestTimestamp checks that the set and get timestamps are consistent, as well as conversions between minutes/seconds
 func TestTimestamp(t *testing.T) {
 	dbh := new(DBlockHeader)
 	ts := primitives.NewTimestampFromMinutes(24018960) //genesis block time in minutes
@@ -118,6 +124,7 @@ func TestTimestamp(t *testing.T) {
 	}
 }
 
+// TestHeight chcks that setting and getting the directory block height are consistent
 func TestHeight(t *testing.T) {
 	dbh := new(DBlockHeader)
 
@@ -130,6 +137,7 @@ func TestHeight(t *testing.T) {
 
 }
 
+// TestPrints checks that the return string of a newly initialized directory block is correct for String() JSONString() and JSONByte()
 func TestPrints(t *testing.T) {
 	dbh := new(DBlockHeader)
 	dbh.Init()

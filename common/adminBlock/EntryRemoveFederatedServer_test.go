@@ -8,6 +8,7 @@ import (
 	"github.com/FactomProject/factomd/testHelper"
 )
 
+// TestRemoveFederatedServerGetHash checks that an new, empty RemoveFederatedServer has the proper hash
 func TestRemoveFederatedServerGetHash(t *testing.T) {
 	a := new(RemoveFederatedServer)
 	h := a.Hash()
@@ -17,6 +18,8 @@ func TestRemoveFederatedServerGetHash(t *testing.T) {
 	}
 }
 
+// TestRemoveFederatedServerTypeIDCheck checks that an empty RemoveFederatedServer can be unmarshaled correctly, and that a corrupted object
+// will throw an error when unmarshaled
 func TestRemoveFederatedServerTypeIDCheck(t *testing.T) {
 	a := new(RemoveFederatedServer)
 	b, err := a.MarshalBinary()
@@ -39,6 +42,7 @@ func TestRemoveFederatedServerTypeIDCheck(t *testing.T) {
 	}
 }
 
+// TestUnmarshalNilRemoveFederatedServer checks that nil and empty interfaces throw errors when unmarshalled
 func TestUnmarshalNilRemoveFederatedServer(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -58,6 +62,8 @@ func TestUnmarshalNilRemoveFederatedServer(t *testing.T) {
 	}
 }
 
+// TestRemoveFederatedServerMarshalUnmarshal checks that a RemoveFederatedServer is correctly created, and can be marshaled and unmarshalled
+// correctly
 func TestRemoveFederatedServerMarshalUnmarshal(t *testing.T) {
 	identity := testHelper.NewRepeatingHash(0xAB)
 	var dbHeight uint32 = 0xAABBCCDD
@@ -93,6 +99,7 @@ func TestRemoveFederatedServerMarshalUnmarshal(t *testing.T) {
 	}
 }
 
+// TestRemoveServerMisc checks that the various strings and smaller member functions return proper values
 func TestRemoveServerMisc(t *testing.T) {
 	a := new(RemoveFederatedServer)
 	if a.String() != "    E:             Remove Federated Server --   IdentityChainID   000000     DBHeight        0" {

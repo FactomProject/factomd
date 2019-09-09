@@ -10,16 +10,17 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-// DB Signature Entry -------------------------
+// RemoveFederatedServer is an admin block entry which instructs factomd to remove a federated server at an upcoming block height
 type RemoveFederatedServer struct {
-	AdminIDType     uint32           `json:"adminidtype"`
-	IdentityChainID interfaces.IHash `json:"identitychainid"`
-	DBHeight        uint32           `json:"dbheight"`
+	AdminIDType     uint32           `json:"adminidtype"`     //  the type of action in this admin block entry: uint32(TYPE_REMOVE_FED_SERVER)
+	IdentityChainID interfaces.IHash `json:"identitychainid"` // The identity of the federated server to be removed
+	DBHeight        uint32           `json:"dbheight"`        // The directory block height when the system should remove the federated server
 }
 
 var _ interfaces.IABEntry = (*RemoveFederatedServer)(nil)
 var _ interfaces.BinaryMarshallable = (*RemoveFederatedServer)(nil)
 
+// Init initializes any nil hashes in the RemoveFederatedServer to the zero hash and sets AdminIDType to is hardcoded value
 func (e *RemoveFederatedServer) Init() {
 	if e.IdentityChainID == nil {
 		e.IdentityChainID = primitives.NewZeroHash()
@@ -27,6 +28,7 @@ func (e *RemoveFederatedServer) Init() {
 	e.AdminIDType = uint32(e.Type())
 }
 
+// String returns the RemoveFederatedServer string
 func (e *RemoveFederatedServer) String() string {
 	e.Init()
 	var out primitives.Buffer
@@ -39,22 +41,23 @@ func (e *RemoveFederatedServer) String() string {
 	return (string)(out.DeepCopyBytes())
 }
 
-func (c *RemoveFederatedServer) UpdateState(state interfaces.IState) error {
-	c.Init()
-	if len(state.GetFedServers(c.DBHeight)) != 0 {
-		state.RemoveFedServer(c.DBHeight, c.IdentityChainID)
+// UpdateState updates the factomd state to removed the federated server at the specific directory block height
+func (e *RemoveFederatedServer) UpdateState(state interfaces.IState) error {
+	e.Init()
+	if len(state.GetFedServers(e.DBHeight)) != 0 {
+		state.RemoveFedServer(e.DBHeight, e.IdentityChainID)
 	}
 	if state.GetOut() {
-		state.Println(fmt.Sprintf("Removed Federated Server: %x", c.IdentityChainID.Bytes()[:4]))
+		state.Println(fmt.Sprintf("Removed Federated Server: %x", e.IdentityChainID.Bytes()[:4]))
 	}
-	authorityDeltaString := fmt.Sprintf("AdminBlock (RemoveFedMsg DBHt: %d) \n v %s", c.DBHeight, c.IdentityChainID.String()[5:10])
+	authorityDeltaString := fmt.Sprintf("AdminBlock (RemoveFedMsg DBHt: %d) \n v %s", e.DBHeight, e.IdentityChainID.String()[5:10])
 	state.AddStatus(authorityDeltaString)
 	state.AddAuthorityDelta(authorityDeltaString)
-	state.UpdateAuthorityFromABEntry(c)
+	state.UpdateAuthorityFromABEntry(e)
 	return nil
 }
 
-// Create a new DB Signature Entry
+// NewRemoveFederatedServer creates a new RemoveFederatedServer object with the inputs
 func NewRemoveFederatedServer(identityChainID interfaces.IHash, dbheight uint32) (e *RemoveFederatedServer) {
 	if identityChainID == nil {
 		return nil
@@ -65,10 +68,12 @@ func NewRemoveFederatedServer(identityChainID interfaces.IHash, dbheight uint32)
 	return
 }
 
+// Type returns the hardcoded TYPE_REMOVE_FED_SERVER
 func (e *RemoveFederatedServer) Type() byte {
 	return constants.TYPE_REMOVE_FED_SERVER
 }
 
+// MarshalBinary marshals this RemoveFederatedServer object
 func (e *RemoveFederatedServer) MarshalBinary() (rval []byte, err error) {
 	defer func(pe *error) {
 		if *pe != nil {
@@ -94,6 +99,7 @@ func (e *RemoveFederatedServer) MarshalBinary() (rval []byte, err error) {
 	return buf.DeepCopyBytes(), nil
 }
 
+// UnmarshalBinaryData unmarshals the input data into this RemoveFederatedServer
 func (e *RemoveFederatedServer) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	buf := primitives.NewBuffer(data)
 	b, err := buf.PopByte()
@@ -114,29 +120,35 @@ func (e *RemoveFederatedServer) UnmarshalBinaryData(data []byte) ([]byte, error)
 	return buf.DeepCopyBytes(), nil
 }
 
+// UnmarshalBinary unmarshals the input data into this RemoveFederatedServer
 func (e *RemoveFederatedServer) UnmarshalBinary(data []byte) (err error) {
 	_, err = e.UnmarshalBinaryData(data)
 	return
 }
 
+// JSONByte returns the json encoded byte array
 func (e *RemoveFederatedServer) JSONByte() ([]byte, error) {
 	e.AdminIDType = uint32(e.Type())
 	return primitives.EncodeJSON(e)
 }
 
+// JSONString returns the json encoded string
 func (e *RemoveFederatedServer) JSONString() (string, error) {
 	e.AdminIDType = uint32(e.Type())
 	return primitives.EncodeJSONString(e)
 }
 
+// IsInterpretable always returns false
 func (e *RemoveFederatedServer) IsInterpretable() bool {
 	return false
 }
 
+// Interpret always returns the empty string ""
 func (e *RemoveFederatedServer) Interpret() string {
 	return ""
 }
 
+// Hash marshals this RemoveFederatedServer and computes its hash
 func (e *RemoveFederatedServer) Hash() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {

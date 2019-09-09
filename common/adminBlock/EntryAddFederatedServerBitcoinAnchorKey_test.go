@@ -9,6 +9,7 @@ import (
 	"github.com/FactomProject/factomd/testHelper"
 )
 
+// TestAddFederatedServerBitcoinAnchorKeyGetHash checks that an empty object has the correct hash
 func TestAddFederatedServerBitcoinAnchorKeyGetHash(t *testing.T) {
 	a := new(AddFederatedServerBitcoinAnchorKey)
 	h := a.Hash()
@@ -18,6 +19,8 @@ func TestAddFederatedServerBitcoinAnchorKeyGetHash(t *testing.T) {
 	}
 }
 
+// TestAddFederatedServerBitcoinAnchorKeyTypeIDCheck checks that an empty object can be marshalled and unmarshalled correctly, and
+// that a corrupted marshalled object throws an error when unmarshalled
 func TestAddFederatedServerBitcoinAnchorKeyTypeIDCheck(t *testing.T) {
 	a := new(AddFederatedServerBitcoinAnchorKey)
 	b, err := a.MarshalBinary()
@@ -40,6 +43,7 @@ func TestAddFederatedServerBitcoinAnchorKeyTypeIDCheck(t *testing.T) {
 	}
 }
 
+// TestUnmarshalNilAddFederatedServerBitcoinAnchorKey checks that the nil and empty interfaces throw errors when they are unmarshalled
 func TestUnmarshalNilAddFederatedServerBitcoinAnchorKey(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -59,6 +63,7 @@ func TestUnmarshalNilAddFederatedServerBitcoinAnchorKey(t *testing.T) {
 	}
 }
 
+// TestAddFederatedServerBitcoinAnchorKeyMarshalUnmarshal checks that marshalled data can be unmarshaled correctly
 func TestAddFederatedServerBitcoinAnchorKeyMarshalUnmarshal(t *testing.T) {
 	identity := testHelper.NewRepeatingHash(0xAB)
 	pub := new(primitives.ByteSlice20)
@@ -109,6 +114,7 @@ func TestAddFederatedServerBitcoinAnchorKeyMarshalUnmarshal(t *testing.T) {
 	}
 }
 
+// TestAddFedServerBTCMisc checks that the various strings and smaller member functions return proper values
 func TestAddFedServerBTCMisc(t *testing.T) {
 	a := new(AddFederatedServerBitcoinAnchorKey)
 	if a.String() != "    E:  AddFederatedServerBitcoinAnchorKey --   IdentityChainID   000000  KeyPriority        0      KeyType        0 ECDSAPublicKey 00000000" {

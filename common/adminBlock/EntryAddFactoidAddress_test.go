@@ -13,6 +13,8 @@ import (
 	"github.com/FactomProject/factomd/testHelper"
 )
 
+// TestAddFactoidAddressMarshal checks that 100 randomly generated AddFactoidAddress objects can be marshalled and unmarshalled properly, and
+// also tests the empty AddFactoidAddress
 func TestAddFactoidAddressMarshal(t *testing.T) {
 	rand.Seed(time.Now().UnixNano())
 	for i := 0; i < 100; i++ {
@@ -42,6 +44,7 @@ func TestAddFactoidAddressMarshal(t *testing.T) {
 	}
 }
 
+// TestAddBadFactoidAddress checks that marshalled data which becomes corrupted, will throw an error when unmarshalled
 func TestAddBadFactoidAddress(t *testing.T) {
 	f1 := NewAddFactoidAddress(primitives.RandomHash(), factoid.RandomAddress())
 	p, err := f1.MarshalBinary()

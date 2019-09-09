@@ -8,6 +8,7 @@ import (
 	"github.com/FactomProject/factomd/testHelper"
 )
 
+// TestAddFederatedServerSigningKeyGetHash checks that an empty object has the correct hash
 func TestAddFederatedServerSigningKeyGetHash(t *testing.T) {
 	a := new(AddFederatedServerSigningKey)
 	h := a.Hash()
@@ -17,6 +18,8 @@ func TestAddFederatedServerSigningKeyGetHash(t *testing.T) {
 	}
 }
 
+// TestAddFederatedServerSigningKeyTypeIDCheck checks that an empty object can be marshalled and unmarshalled correctly, and
+// that a corrupted marshalled object throws an error when unmarshalled
 func TestAddFederatedServerSigningKeyTypeIDCheck(t *testing.T) {
 	a := new(AddFederatedServerSigningKey)
 	b, err := a.MarshalBinary()
@@ -39,6 +42,7 @@ func TestAddFederatedServerSigningKeyTypeIDCheck(t *testing.T) {
 	}
 }
 
+// TestUnmarshalNilAddFederatedServerSigningKey checks that the nil and empty interfaces throw errors when they are unmarshalled
 func TestUnmarshalNilAddFederatedServerSigningKey(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -58,6 +62,7 @@ func TestUnmarshalNilAddFederatedServerSigningKey(t *testing.T) {
 	}
 }
 
+// TestAddFederatedServerSigningKeyMarshalUnmarshal checks that marshalled data can be unmarshaled correctly
 func TestAddFederatedServerSigningKeyMarshalUnmarshal(t *testing.T) {
 	identity := testHelper.NewRepeatingHash(0xAB)
 	priv := testHelper.NewPrimitivesPrivateKey(1)
@@ -98,6 +103,7 @@ func TestAddFederatedServerSigningKeyMarshalUnmarshal(t *testing.T) {
 	}
 }
 
+// TestAddFedServerSignMisc checks that the various strings and smaller member functions return proper values
 func TestAddFedServerSignMisc(t *testing.T) {
 	a := new(AddFederatedServerSigningKey)
 	if a.String() != "    E:        AddFederatedServerSigningKey --   IdentityChainID   000000  KeyPriority        0    PublicKey 00000000     DBHeight 0" {

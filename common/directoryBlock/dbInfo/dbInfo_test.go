@@ -8,6 +8,7 @@ import (
 	"github.com/FactomProject/factomd/testHelper"
 )
 
+// TestMarshalUnmarshal checks that a DirBlockInfo can be marshalled and unmarshalled properly
 func TestMarshalUnmarshal(t *testing.T) {
 	var prev *DirBlockInfo = nil
 	for i := 0; i < 10; i++ {

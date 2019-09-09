@@ -10,6 +10,7 @@ import (
 	"github.com/FactomProject/factomd/testHelper"
 )
 
+// TestAddAuditServerGetHash checks that an empty AddAuditServer has the correct hash
 func TestAddAuditServerGetHash(t *testing.T) {
 	a := new(AddAuditServer)
 	h := a.Hash()
@@ -19,6 +20,7 @@ func TestAddAuditServerGetHash(t *testing.T) {
 	}
 }
 
+// TestAddAuditServerTypeIDCheck checks that the AddAuditServer is marshalled correctly
 func TestAddAuditServerTypeIDCheck(t *testing.T) {
 	a := new(AddAuditServer)
 	b, err := a.MarshalBinary()
@@ -41,6 +43,7 @@ func TestAddAuditServerTypeIDCheck(t *testing.T) {
 	}
 }
 
+// TestUnmarshalNilAddAuditServer checks that unmarshalling nil or an empty interface results in an error
 func TestUnmarshalNilAddAuditServer(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -60,6 +63,7 @@ func TestUnmarshalNilAddAuditServer(t *testing.T) {
 	}
 }
 
+// TestAddAuditServerMarshalUnmarshal checks that an AddAuditServer can be marshalled and unmarshalled correctly
 func TestAddAuditServerMarshalUnmarshal(t *testing.T) {
 	identity := testHelper.NewRepeatingHash(0xAB)
 	var dbHeight uint32 = 0xAABBCCDD
@@ -95,6 +99,7 @@ func TestAddAuditServerMarshalUnmarshal(t *testing.T) {
 	}
 }
 
+// TestAddAuditServerMisc checks that various other functions of AddAuditServer function as expected
 func TestAddAuditServerMisc(t *testing.T) {
 	a := new(AddAuditServer)
 	if strings.Compare(a.String(), "    E:       AddAuditServer --   IdentityChainID   000000     DBHeight        0") != 0 {

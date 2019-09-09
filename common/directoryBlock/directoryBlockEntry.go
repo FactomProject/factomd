@@ -15,6 +15,8 @@ import (
 
 var _ = fmt.Print
 
+// DBEntry is a struct containing the information for an arbitrary directory block entry. It includes a chain id (a hash) and a key
+// Merkle root (another hash)
 type DBEntry struct {
 	ChainID interfaces.IHash `json:"chainid"`
 	KeyMR   interfaces.IHash `json:"keymr"` // Different MR in EBlockHeader
@@ -24,6 +26,7 @@ var _ interfaces.Printable = (*DBEntry)(nil)
 var _ interfaces.BinaryMarshallable = (*DBEntry)(nil)
 var _ interfaces.IDBEntry = (*DBEntry)(nil)
 
+// Init initializes the DBentry hashes to zero if they are nil
 func (c *DBEntry) Init() {
 	if c.ChainID == nil {
 		c.ChainID = primitives.NewZeroHash()
@@ -33,6 +36,7 @@ func (c *DBEntry) Init() {
 	}
 }
 
+// IsSameAs returns true iff the input DBEntry is identical to this DBEntry
 func (a *DBEntry) IsSameAs(b interfaces.IDBEntry) bool {
 	if a == nil || b == nil {
 		if a == nil && b == nil {
@@ -50,6 +54,7 @@ func (a *DBEntry) IsSameAs(b interfaces.IDBEntry) bool {
 	return true
 }
 
+// GetChainID returns the chain id of the directory block entry
 func (c *DBEntry) GetChainID() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {
@@ -61,10 +66,12 @@ func (c *DBEntry) GetChainID() (rval interfaces.IHash) {
 	return c.ChainID
 }
 
+// SetChainID sets the chain id to the input hash
 func (c *DBEntry) SetChainID(chainID interfaces.IHash) {
 	c.ChainID = chainID
 }
 
+// GetKeyMR returns the key Merkle root of the directory block entry
 func (c *DBEntry) GetKeyMR() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {
@@ -76,25 +83,27 @@ func (c *DBEntry) GetKeyMR() (rval interfaces.IHash) {
 	return c.KeyMR
 }
 
+// SetKeyMR sets the key Merkle root to the input hash
 func (c *DBEntry) SetKeyMR(keyMR interfaces.IHash) {
 	c.KeyMR = keyMR
 }
 
-func (e *DBEntry) MarshalBinary() (rval []byte, err error) {
+// MarshalBinary marshals the directory block entry
+func (c *DBEntry) MarshalBinary() (rval []byte, err error) {
 	defer func(pe *error) {
 		if *pe != nil {
 			fmt.Fprintf(os.Stderr, "DBEntry.MarshalBinary err:%v", *pe)
 		}
 	}(&err)
-	e.Init()
+	c.Init()
 	buf := primitives.NewBuffer(nil)
 
-	err = buf.PushBinaryMarshallable(e.ChainID)
+	err = buf.PushBinaryMarshallable(c.ChainID)
 	if err != nil {
 		return nil, err
 	}
 
-	err = buf.PushBinaryMarshallable(e.KeyMR)
+	err = buf.PushBinaryMarshallable(c.KeyMR)
 	if err != nil {
 		return nil, err
 	}
@@ -102,16 +111,17 @@ func (e *DBEntry) MarshalBinary() (rval []byte, err error) {
 	return buf.DeepCopyBytes(), nil
 }
 
-func (e *DBEntry) UnmarshalBinaryData(data []byte) ([]byte, error) {
-	e.Init()
+// UnmarshalBinaryData unmarshals the input into the directory block entry
+func (c *DBEntry) UnmarshalBinaryData(data []byte) ([]byte, error) {
+	c.Init()
 	newData := data
 	var err error
 
-	newData, err = e.ChainID.UnmarshalBinaryData(newData)
+	newData, err = c.ChainID.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
 	}
-	newData, err = e.KeyMR.UnmarshalBinaryData(newData)
+	newData, err = c.KeyMR.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
 	}
@@ -119,12 +129,14 @@ func (e *DBEntry) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	return newData, nil
 }
 
-func (e *DBEntry) UnmarshalBinary(data []byte) (err error) {
-	_, err = e.UnmarshalBinaryData(data)
+// UnmarshalBinary unmarshals the input into the directory block entry
+func (c *DBEntry) UnmarshalBinary(data []byte) (err error) {
+	_, err = c.UnmarshalBinaryData(data)
 	return
 }
 
-func (e *DBEntry) ShaHash() (rval interfaces.IHash) {
+// ShaHash marshals the directory block entry and returns its hash
+func (c *DBEntry) ShaHash() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {
 			rval = nil // convert an interface that is nil to a nil interface
@@ -132,18 +144,21 @@ func (e *DBEntry) ShaHash() (rval interfaces.IHash) {
 		}
 	}()
 
-	byteArray, _ := e.MarshalBinary()
+	byteArray, _ := c.MarshalBinary()
 	return primitives.Sha(byteArray)
 }
 
-func (e *DBEntry) JSONByte() ([]byte, error) {
-	return primitives.EncodeJSON(e)
+// JSONByte returns the json encoded byte array for the directory block entry
+func (c *DBEntry) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(c)
 }
 
-func (e *DBEntry) JSONString() (string, error) {
-	return primitives.EncodeJSONString(e)
+// JSONString returns the json encoded string for the directory block entry
+func (c *DBEntry) JSONString() (string, error) {
+	return primitives.EncodeJSONString(c)
 }
 
+// String returns the formatted string for the directory block entry
 func (e *DBEntry) String() string {
 	var out primitives.Buffer
 	out.WriteString("chainid: " + e.GetChainID().String() + "\n")

@@ -10,16 +10,20 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
+// RevealMatryoshkaHash is a DEPRECATED type of entry in the admin block which reveals the Matryoshka Hash.
+// According to 'Who', the Matryoshka hash is not used any longer, although its unclear if it may make an appearance
+// in older sections of the block chain.
 type RevealMatryoshkaHash struct {
-	AdminIDType     uint32           `json:"adminidtype"`
-	IdentityChainID interfaces.IHash `json:"identitychainid"`
-	MHash           interfaces.IHash `json:"mhash"`
+	AdminIDType     uint32           `json:"adminidtype"`     //  the type of action in this admin block entry: uint32(TYPE_REVEAL_MATRYOSHKA)
+	IdentityChainID interfaces.IHash `json:"identitychainid"` // Server 32 byte identity chain id
+	MHash           interfaces.IHash `json:"mhash"`           // the MatryoshkaHash
 }
 
 var _ interfaces.Printable = (*RevealMatryoshkaHash)(nil)
 var _ interfaces.BinaryMarshallable = (*RevealMatryoshkaHash)(nil)
 var _ interfaces.IABEntry = (*RevealMatryoshkaHash)(nil)
 
+// Init initializes the internal hashes to the zero hash if they are nil
 func (e *RevealMatryoshkaHash) Init() {
 	if e.IdentityChainID == nil {
 		e.IdentityChainID = primitives.NewZeroHash()
@@ -30,10 +34,12 @@ func (e *RevealMatryoshkaHash) Init() {
 	e.AdminIDType = uint32(e.Type())
 }
 
-func (m *RevealMatryoshkaHash) Type() byte {
+// Type returns a hardcoded TYPE_REVEAL_MATRYOSHKA
+func (e *RevealMatryoshkaHash) Type() byte {
 	return constants.TYPE_REVEAL_MATRYOSHKA
 }
 
+// NewRevealMatryoshkaHash creates a new RevealMatryoshkaHash with the input chain id and mHash
 func NewRevealMatryoshkaHash(identityChainID interfaces.IHash, mHash interfaces.IHash) *RevealMatryoshkaHash {
 	e := new(RevealMatryoshkaHash)
 	e.IdentityChainID = identityChainID
@@ -41,11 +47,13 @@ func NewRevealMatryoshkaHash(identityChainID interfaces.IHash, mHash interfaces.
 	return e
 }
 
-func (c *RevealMatryoshkaHash) UpdateState(state interfaces.IState) error {
-	c.Init()
+// UpdateState initializes internal hashes to the zero hash if they are nil but does not touch the input state
+func (e *RevealMatryoshkaHash) UpdateState(state interfaces.IState) error {
+	e.Init()
 	return nil
 }
 
+// MarshalBinary marshals thee RevealMatryoshkaHash
 func (e *RevealMatryoshkaHash) MarshalBinary() (rval []byte, err error) {
 	defer func(pe *error) {
 		if *pe != nil {
@@ -71,6 +79,7 @@ func (e *RevealMatryoshkaHash) MarshalBinary() (rval []byte, err error) {
 	return buf.DeepCopyBytes(), nil
 }
 
+// UnmarshalBinaryData unmarshals the input data into this RevealMatryoshkaHash
 func (e *RevealMatryoshkaHash) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	buf := primitives.NewBuffer(data)
 	b, err := buf.PopByte()
@@ -95,21 +104,25 @@ func (e *RevealMatryoshkaHash) UnmarshalBinaryData(data []byte) (newData []byte,
 	return buf.DeepCopyBytes(), nil
 }
 
+// UnmarshalBinary unmarshals the input data into this RevealMatryoshkaHash
 func (e *RevealMatryoshkaHash) UnmarshalBinary(data []byte) (err error) {
 	_, err = e.UnmarshalBinaryData(data)
 	return
 }
 
+// JSONByte returns the json encoded byte string
 func (e *RevealMatryoshkaHash) JSONByte() ([]byte, error) {
 	e.AdminIDType = uint32(e.Type())
 	return primitives.EncodeJSON(e)
 }
 
+// JSONString returns the json encoded string
 func (e *RevealMatryoshkaHash) JSONString() (string, error) {
 	e.AdminIDType = uint32(e.Type())
 	return primitives.EncodeJSONString(e)
 }
 
+// String returns the string of this RevealMatryoshkaHash
 func (e *RevealMatryoshkaHash) String() string {
 	e.Init()
 	str := fmt.Sprintf("    E: %35s -- %17s %8x %12s %x",
@@ -119,14 +132,17 @@ func (e *RevealMatryoshkaHash) String() string {
 	return str
 }
 
+// IsInterpretable always returns false
 func (e *RevealMatryoshkaHash) IsInterpretable() bool {
 	return false
 }
 
+// Interpret always returns the empty string ""
 func (e *RevealMatryoshkaHash) Interpret() string {
 	return ""
 }
 
+// Hash marshals this object and takes its hash
 func (e *RevealMatryoshkaHash) Hash() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {

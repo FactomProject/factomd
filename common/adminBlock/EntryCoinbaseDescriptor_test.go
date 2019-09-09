@@ -13,6 +13,8 @@ import (
 	"github.com/FactomProject/factomd/testHelper"
 )
 
+// TestCoinbaseDescriptorMarshal checks that 100 coinbase descriptors created with N random addresses can be marshalled and
+// unmarshalled correctly to produce the same results
 func TestCoinbaseDescriptorMarshal(t *testing.T) {
 	rand.Seed(time.Now().UnixNano())
 	for i := 0; i < 100; i++ {

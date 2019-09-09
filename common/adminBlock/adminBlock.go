@@ -17,16 +17,17 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-// Administrative Block
+// AdminBlock - Administrative Block
 // This is a special block which accompanies this Directory Block.
 // It contains the signatures and organizational data needed to validate previous and future Directory Blocks.
 // This block is included in the DB body. It appears there with a pair of the Admin AdminChainID:SHA256 of the block.
 // For more details, please go to:
 // https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#administrative-block
+//
 type AdminBlock struct {
 	//Marshalized
-	Header            interfaces.IABlockHeader      `json:"header"`
-	ABEntries         []interfaces.IABEntry         `json:"abentries"` //Interface
+	Header            interfaces.IABlockHeader      `json:"header"`    // the admin block header
+	ABEntries         []interfaces.IABEntry         `json:"abentries"` // array of admin block entries
 	identityABEntries []interfaces.IIdentityABEntry // This is all identity related entries. They are sorted before added
 }
 
@@ -35,6 +36,7 @@ var _ interfaces.Printable = (*AdminBlock)(nil)
 var _ interfaces.BinaryMarshallableAndCopyable = (*AdminBlock)(nil)
 var _ interfaces.DatabaseBatchable = (*AdminBlock)(nil)
 
+// Init initializes the admin block if the header is nil
 func (c *AdminBlock) Init() {
 	if c.Header == nil {
 		h := new(ABlockHeader)
@@ -44,6 +46,7 @@ func (c *AdminBlock) Init() {
 	}
 }
 
+// IsSameAs returns true iff the input admin block header is identical to this admin block header, and the AB entry lengths are the same
 func (a *AdminBlock) IsSameAs(b interfaces.IAdminBlock) bool {
 	if !a.Header.IsSameAs(b.GetHeader()) {
 		return false
@@ -54,6 +57,7 @@ func (a *AdminBlock) IsSameAs(b interfaces.IAdminBlock) bool {
 	return true
 }
 
+// String writes the admin block to a string
 func (c *AdminBlock) String() string {
 	c.Init()
 	var out primitives.Buffer
@@ -74,6 +78,7 @@ func (c *AdminBlock) String() string {
 	return (string)(out.DeepCopyBytes())
 }
 
+// UpdateState updates the factomd state based on the admin block entries
 func (c *AdminBlock) UpdateState(state interfaces.IState) error {
 	c.Init()
 	if state == nil {
@@ -102,6 +107,7 @@ func (c *AdminBlock) UpdateState(state interfaces.IState) error {
 	return nil
 }
 
+// FetchCoinbaseDescriptor returns the first admin block entry associated with the coinbase descriptor
 func (c *AdminBlock) FetchCoinbaseDescriptor() interfaces.IABEntry {
 	for _, e := range c.ABEntries {
 		if e.Type() == constants.TYPE_COINBASE_DESCRIPTOR {
@@ -111,6 +117,7 @@ func (c *AdminBlock) FetchCoinbaseDescriptor() interfaces.IABEntry {
 	return nil
 }
 
+// AddDBSig creates and adds a new DBSignatureEntry to the admin block given the input server identity
 func (c *AdminBlock) AddDBSig(serverIdentity interfaces.IHash, sig interfaces.IFullSignature) error {
 	if serverIdentity == nil {
 		return fmt.Errorf("No serverIdentity provided")
@@ -126,6 +133,7 @@ func (c *AdminBlock) AddDBSig(serverIdentity interfaces.IHash, sig interfaces.IF
 	return c.AddEntry(entry)
 }
 
+// AddFedServer adds a new entry to add a federated server with the input chain id
 func (c *AdminBlock) AddFedServer(identityChainID interfaces.IHash) error {
 	c.Init()
 	if identityChainID == nil {
@@ -136,6 +144,7 @@ func (c *AdminBlock) AddFedServer(identityChainID interfaces.IHash) error {
 	return c.AddEntry(entry)
 }
 
+// AddAuditServer adds a new entry to add an audit server with the input chain id
 func (c *AdminBlock) AddAuditServer(identityChainID interfaces.IHash) error {
 	c.Init()
 	if identityChainID == nil {
@@ -146,6 +155,7 @@ func (c *AdminBlock) AddAuditServer(identityChainID interfaces.IHash) error {
 	return c.AddEntry(entry)
 }
 
+// RemoveFederatedServer adds an entry to remove the federated server with the input chain id
 func (c *AdminBlock) RemoveFederatedServer(identityChainID interfaces.IHash) error {
 	c.Init()
 	if identityChainID == nil {
@@ -156,6 +166,7 @@ func (c *AdminBlock) RemoveFederatedServer(identityChainID interfaces.IHash) err
 	return c.AddEntry(entry)
 }
 
+// AddCancelCoinbaseDescriptor adds an entry to cancel the a previous coinbase descriptor
 func (c *AdminBlock) AddCancelCoinbaseDescriptor(descriptorHeight, index uint32) error {
 	c.Init()
 	entry := NewCancelCoinbaseDescriptor(descriptorHeight, index)
@@ -164,10 +175,10 @@ func (c *AdminBlock) AddCancelCoinbaseDescriptor(descriptorHeight, index uint32)
 }
 
 // InsertIdentityABEntries will prepare the identity entries and add them into the adminblock
-func (a *AdminBlock) InsertIdentityABEntries() error {
-	sort.Sort(interfaces.IIdentityABEntrySort(a.identityABEntries))
-	for _, v := range a.identityABEntries {
-		err := a.AddEntry(v)
+func (c *AdminBlock) InsertIdentityABEntries() error {
+	sort.Sort(interfaces.IIdentityABEntrySort(c.identityABEntries))
+	for _, v := range c.identityABEntries {
+		err := c.AddEntry(v)
 		if err != nil {
 			return fmt.Errorf("No identityChainID provided")
 		}
@@ -175,6 +186,7 @@ func (a *AdminBlock) InsertIdentityABEntries() error {
 	return nil
 }
 
+// AddMatryoshkaHash adds an entry to add a Matryoshka hash to the input server identity chain
 func (c *AdminBlock) AddMatryoshkaHash(identityChainID interfaces.IHash, mHash interfaces.IHash) error {
 	if identityChainID == nil {
 		return fmt.Errorf("No identityChainID provided")
@@ -187,6 +199,7 @@ func (c *AdminBlock) AddMatryoshkaHash(identityChainID interfaces.IHash, mHash i
 	return c.AddIdentityEntry(entry)
 }
 
+// AddFederatedServerSigningKey adds an entry to add a signing key to the input server identity chain
 func (c *AdminBlock) AddFederatedServerSigningKey(identityChainID interfaces.IHash, publicKey [32]byte) error {
 	c.Init()
 	if identityChainID == nil {
@@ -202,6 +215,7 @@ func (c *AdminBlock) AddFederatedServerSigningKey(identityChainID interfaces.IHa
 	return c.AddIdentityEntry(entry)
 }
 
+// AddFederatedServerBitcoinAnchorKey adds an entry to add a BTC key to the specific server identity chain
 func (c *AdminBlock) AddFederatedServerBitcoinAnchorKey(identityChainID interfaces.IHash, keyPriority byte, keyType byte, ecdsaPublicKey [20]byte) error {
 	if identityChainID == nil {
 		return fmt.Errorf("No identityChainID provided")
@@ -216,6 +230,7 @@ func (c *AdminBlock) AddFederatedServerBitcoinAnchorKey(identityChainID interfac
 	return c.AddIdentityEntry(entry)
 }
 
+// AddCoinbaseDescriptor adds an entry to add a coinbase descriptor
 func (c *AdminBlock) AddCoinbaseDescriptor(outputs []interfaces.ITransAddress) error {
 	c.Init()
 	if outputs == nil {
@@ -226,6 +241,7 @@ func (c *AdminBlock) AddCoinbaseDescriptor(outputs []interfaces.ITransAddress) e
 	return c.AddEntry(entry)
 }
 
+// AddEfficiency adds an entry to add an efficiency to the input server identity chain
 func (c *AdminBlock) AddEfficiency(chain interfaces.IHash, efficiency uint16) error {
 	c.Init()
 	if chain == nil {
@@ -236,6 +252,7 @@ func (c *AdminBlock) AddEfficiency(chain interfaces.IHash, efficiency uint16) er
 	return c.AddIdentityEntry(entry)
 }
 
+// AddCoinbaseAddress adds an entry to add a factoid address for coinbase transactions associated with the input server identity chain
 func (c *AdminBlock) AddCoinbaseAddress(chain interfaces.IHash, add interfaces.IAddress) error {
 	c.Init()
 	if chain == nil {
@@ -246,15 +263,17 @@ func (c *AdminBlock) AddCoinbaseAddress(chain interfaces.IHash, add interfaces.I
 	return c.AddIdentityEntry(entry)
 }
 
-func (a *AdminBlock) AddIdentityEntry(entry interfaces.IIdentityABEntry) error {
+// AddIdentityEntry appends a new identity entry to the array
+func (c *AdminBlock) AddIdentityEntry(entry interfaces.IIdentityABEntry) error {
 	if entry == nil {
 		return fmt.Errorf("No entry provided")
 	}
 	// These get sorted when you call the InsertIdentityABEntries function
-	a.identityABEntries = append(a.identityABEntries, entry)
+	c.identityABEntries = append(c.identityABEntries, entry)
 	return nil
 }
 
+// AddEntry adds a new admin block entry to the array
 func (c *AdminBlock) AddEntry(entry interfaces.IABEntry) error {
 	if entry == nil {
 		return fmt.Errorf("No entry provided")
@@ -276,6 +295,7 @@ func (c *AdminBlock) AddEntry(entry interfaces.IABEntry) error {
 	return nil
 }
 
+// AddServerFault adds an entry for a server fault
 func (c *AdminBlock) AddServerFault(serverFault interfaces.IABEntry) error {
 	if serverFault == nil {
 		return fmt.Errorf("No serverFault provided")
@@ -299,35 +319,43 @@ func (c *AdminBlock) AddServerFault(serverFault interfaces.IABEntry) error {
 	return nil
 }
 
+// GetHeader returns the admin block header
 func (c *AdminBlock) GetHeader() interfaces.IABlockHeader {
 	c.Init()
 	return c.Header
 }
 
+// SetHeader sets the admin block header
 func (c *AdminBlock) SetHeader(header interfaces.IABlockHeader) {
 	c.Header = header
 }
 
+// GetABEntries returns the admin block entry array
 func (c *AdminBlock) GetABEntries() []interfaces.IABEntry {
 	return c.ABEntries
 }
 
+// GetDBHeight returns the directory block height associated with this admin block
 func (c *AdminBlock) GetDBHeight() uint32 {
 	return c.GetHeader().GetDBHeight()
 }
 
+// SetABEntries sets the admin block entry array to the input entries
 func (c *AdminBlock) SetABEntries(abentries []interfaces.IABEntry) {
 	c.ABEntries = abentries
 }
 
+// New returns a new empty admin block
 func (c *AdminBlock) New() interfaces.BinaryMarshallableAndCopyable {
 	return NewAdminBlock(nil)
 }
 
+// GetDatabaseHeight returns the directory block height associated with this admin block
 func (c *AdminBlock) GetDatabaseHeight() uint32 {
 	return c.GetHeader().GetDBHeight()
 }
 
+// GetChainID returns the hardcoded admin block chain id 0x0a
 func (c *AdminBlock) GetChainID() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {
@@ -338,6 +366,7 @@ func (c *AdminBlock) GetChainID() (rval interfaces.IHash) {
 	return c.GetHeader().GetAdminChainID()
 }
 
+// DatabasePrimaryIndex returns the SHA256 hash for the admin block
 func (c *AdminBlock) DatabasePrimaryIndex() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {
@@ -349,6 +378,7 @@ func (c *AdminBlock) DatabasePrimaryIndex() (rval interfaces.IHash) {
 	return key
 }
 
+// DatabaseSecondaryIndex returns the SHA512Half hash for the admin block
 func (c *AdminBlock) DatabaseSecondaryIndex() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {
@@ -360,6 +390,7 @@ func (c *AdminBlock) DatabaseSecondaryIndex() (rval interfaces.IHash) {
 	return key
 }
 
+// GetHash returns the key Merkle root of the admin block
 func (c *AdminBlock) GetHash() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {
@@ -371,65 +402,66 @@ func (c *AdminBlock) GetHash() (rval interfaces.IHash) {
 	return h
 }
 
+// GetKeyMR returns the key Merkle root of the admin block
 func (c *AdminBlock) GetKeyMR() (interfaces.IHash, error) {
 	return c.BackReferenceHash()
 }
 
-// Returns the SHA512Half hash for the admin block
-func (b *AdminBlock) BackReferenceHash() (interfaces.IHash, error) {
+// BackReferenceHash returns the SHA512Half hash for the admin block
+func (c *AdminBlock) BackReferenceHash() (interfaces.IHash, error) {
 	var binaryAB []byte
-	binaryAB, err := b.MarshalBinary()
+	binaryAB, err := c.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
 	return primitives.Sha512Half(binaryAB), nil
 }
 
-// Returns the SHA256 hash for the admin block
-func (b *AdminBlock) LookupHash() (interfaces.IHash, error) {
+// LookupHash returns the SHA256 hash for the admin block
+func (c *AdminBlock) LookupHash() (interfaces.IHash, error) {
 	var binaryAB []byte
-	binaryAB, err := b.MarshalBinary()
+	binaryAB, err := c.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
 	return primitives.Sha(binaryAB), nil
 }
 
-// Add an Admin Block entry to the block
-func (b *AdminBlock) AddABEntry(e interfaces.IABEntry) error {
-	return b.AddEntry(e)
+// AddABEntry adds an Admin Block entry to the block
+func (c *AdminBlock) AddABEntry(e interfaces.IABEntry) error {
+	return c.AddEntry(e)
 }
 
-// Add an Admin Block entry to the start of the block entries
-func (b *AdminBlock) AddFirstABEntry(e interfaces.IABEntry) (err error) {
-	b.ABEntries = append(b.ABEntries, nil)
-	copy(b.ABEntries[1:], b.ABEntries[:len(b.ABEntries)-1])
-	b.ABEntries[0] = e
+// AddFirstABEntry adds an Admin Block entry to the start of the block entries
+func (c *AdminBlock) AddFirstABEntry(e interfaces.IABEntry) (err error) {
+	c.ABEntries = append(c.ABEntries, nil)
+	copy(c.ABEntries[1:], c.ABEntries[:len(c.ABEntries)-1])
+	c.ABEntries[0] = e
 	return
 }
 
-// Write out the AdminBlock to binary.
-func (b *AdminBlock) MarshalBinary() (rval []byte, err error) {
+// MarshalBinary marshals the object to binary
+func (c *AdminBlock) MarshalBinary() (rval []byte, err error) {
 	defer func(pe *error) {
 		if *pe != nil {
 			fmt.Fprintf(os.Stderr, "AdminBlock.MarshalBinary err:%v", *pe)
 		}
 	}(&err)
-	b.Init()
+	c.Init()
 	// Marshal all the entries into their own thing (need the size)
 	var buf2 primitives.Buffer
-	for _, v := range b.ABEntries {
+	for _, v := range c.ABEntries {
 		err := buf2.PushBinaryMarshallable(v)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	b.GetHeader().SetMessageCount(uint32(len(b.ABEntries)))
-	b.GetHeader().SetBodySize(uint32(buf2.Len()))
+	c.GetHeader().SetMessageCount(uint32(len(c.ABEntries)))
+	c.GetHeader().SetBodySize(uint32(buf2.Len()))
 
 	var buf primitives.Buffer
-	err = buf.PushBinaryMarshallable(b.GetHeader())
+	err = buf.PushBinaryMarshallable(c.GetHeader())
 	if err != nil {
 		return nil, err
 	}
@@ -440,6 +472,7 @@ func (b *AdminBlock) MarshalBinary() (rval []byte, err error) {
 	return buf.DeepCopyBytes(), err
 }
 
+// UnmarshalABlock unmarshals the input data to a new admin block
 func UnmarshalABlock(data []byte) (interfaces.IAdminBlock, error) {
 	block := NewAdminBlock(nil)
 	err := block.UnmarshalBinary(data)
@@ -450,20 +483,21 @@ func UnmarshalABlock(data []byte) (interfaces.IAdminBlock, error) {
 	return block, nil
 }
 
-func (b *AdminBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
+// UnmarshalBinaryData unmarshals the input data to this admin block
+func (c *AdminBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	buf := primitives.NewBuffer(data)
 	h := new(ABlockHeader)
 	err := buf.PopBinaryMarshallable(h)
 	if err != nil {
 		return nil, err
 	}
-	b.Header = h
+	c.Header = h
 
 	// msgLimit is the theoretical maximum number of messages possible in the
 	// admin block. The limit is the body size divided by the smallest possible
 	// message size (2 bytes for a minute message {0x00, 0x0[0-9]})
-	msgLimit := b.Header.GetBodySize() / 2
-	msgCount := b.Header.GetMessageCount()
+	msgLimit := c.Header.GetBodySize() / 2
+	msgCount := c.Header.GetMessageCount()
 	if msgCount > msgLimit {
 		return nil, fmt.Errorf(
 			"Error: AdminBlock.UnmarshalBinary: message count %d is greater "+
@@ -472,7 +506,7 @@ func (b *AdminBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 		)
 	}
 
-	b.ABEntries = make([]interfaces.IABEntry, int(msgCount))
+	c.ABEntries = make([]interfaces.IABEntry, int(msgCount))
 	for i := uint32(0); i < msgCount; i++ {
 		t, err := buf.PeekByte()
 		if err != nil {
@@ -480,44 +514,44 @@ func (b *AdminBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 		}
 		switch t {
 		case constants.TYPE_MINUTE_NUM:
-			b.ABEntries[i] = new(EndOfMinuteEntry)
+			c.ABEntries[i] = new(EndOfMinuteEntry)
 		case constants.TYPE_DB_SIGNATURE:
-			b.ABEntries[i] = new(DBSignatureEntry)
+			c.ABEntries[i] = new(DBSignatureEntry)
 		case constants.TYPE_REVEAL_MATRYOSHKA:
-			b.ABEntries[i] = new(RevealMatryoshkaHash)
+			c.ABEntries[i] = new(RevealMatryoshkaHash)
 		case constants.TYPE_ADD_MATRYOSHKA:
-			b.ABEntries[i] = new(AddReplaceMatryoshkaHash)
+			c.ABEntries[i] = new(AddReplaceMatryoshkaHash)
 		case constants.TYPE_ADD_SERVER_COUNT:
-			b.ABEntries[i] = new(IncreaseServerCount)
+			c.ABEntries[i] = new(IncreaseServerCount)
 		case constants.TYPE_ADD_FED_SERVER:
-			b.ABEntries[i] = new(AddFederatedServer)
+			c.ABEntries[i] = new(AddFederatedServer)
 		case constants.TYPE_ADD_AUDIT_SERVER:
-			b.ABEntries[i] = new(AddAuditServer)
+			c.ABEntries[i] = new(AddAuditServer)
 		case constants.TYPE_REMOVE_FED_SERVER:
-			b.ABEntries[i] = new(RemoveFederatedServer)
+			c.ABEntries[i] = new(RemoveFederatedServer)
 		case constants.TYPE_ADD_FED_SERVER_KEY:
-			b.ABEntries[i] = new(AddFederatedServerSigningKey)
+			c.ABEntries[i] = new(AddFederatedServerSigningKey)
 		case constants.TYPE_ADD_BTC_ANCHOR_KEY:
-			b.ABEntries[i] = new(AddFederatedServerBitcoinAnchorKey)
+			c.ABEntries[i] = new(AddFederatedServerBitcoinAnchorKey)
 		case constants.TYPE_SERVER_FAULT:
-			b.ABEntries[i] = new(ServerFault)
+			c.ABEntries[i] = new(ServerFault)
 		case constants.TYPE_COINBASE_DESCRIPTOR:
-			b.ABEntries[i] = new(CoinbaseDescriptor)
+			c.ABEntries[i] = new(CoinbaseDescriptor)
 		case constants.TYPE_COINBASE_DESCRIPTOR_CANCEL:
-			b.ABEntries[i] = new(CancelCoinbaseDescriptor)
+			c.ABEntries[i] = new(CancelCoinbaseDescriptor)
 		case constants.TYPE_ADD_FACTOID_ADDRESS:
-			b.ABEntries[i] = new(AddFactoidAddress)
+			c.ABEntries[i] = new(AddFactoidAddress)
 		case constants.TYPE_ADD_FACTOID_EFFICIENCY:
-			b.ABEntries[i] = new(AddEfficiency)
+			c.ABEntries[i] = new(AddEfficiency)
 		default:
 			// Undefined types are > 0x09 and are not defined yet, but we have placeholder code to deal with them.
 			// This allows for future updates to the admin block with backwards compatibility
-			fmt.Printf("AB UNDEFINED ENTRY %x for block %v. Using Forward Compatible holder\n", t, b.GetHeader().GetDBHeight())
-			b.ABEntries[i] = new(ForwardCompatibleEntry)
+			fmt.Printf("AB UNDEFINED ENTRY %x for block %v. Using Forward Compatible holder\n", t, c.GetHeader().GetDBHeight())
+			c.ABEntries[i] = new(ForwardCompatibleEntry)
 
 			//panic("Undefined Admin Block Entry Type")
 		}
-		err = buf.PopBinaryMarshallable(b.ABEntries[i])
+		err = buf.PopBinaryMarshallable(c.ABEntries[i])
 		if err != nil {
 			return nil, err
 		}
@@ -526,41 +560,43 @@ func (b *AdminBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	return buf.DeepCopyBytes(), nil
 }
 
-// Read in the binary into the Admin block.
-func (b *AdminBlock) UnmarshalBinary(data []byte) (err error) {
-	_, err = b.UnmarshalBinaryData(data)
+// UnmarshalBinary unmarshals the input data into this admin block.
+func (c *AdminBlock) UnmarshalBinary(data []byte) (err error) {
+	_, err = c.UnmarshalBinaryData(data)
 	return
 }
 
-// Read in the binary into the Admin block.
-func (b *AdminBlock) GetDBSignature() interfaces.IABEntry {
-	b.Init()
-	for i := uint32(0); i < b.GetHeader().GetMessageCount(); i++ {
-		if b.ABEntries[i].Type() == constants.TYPE_DB_SIGNATURE {
-			return b.ABEntries[i]
+// GetDBSignature returns the first DBSignature object in the admin block entry array
+func (c *AdminBlock) GetDBSignature() interfaces.IABEntry {
+	c.Init()
+	for i := uint32(0); i < c.GetHeader().GetMessageCount(); i++ {
+		if c.ABEntries[i].Type() == constants.TYPE_DB_SIGNATURE {
+			return c.ABEntries[i]
 		}
 	}
 
 	return nil
 }
 
-func (e *AdminBlock) JSONByte() ([]byte, error) {
-	return primitives.EncodeJSON(e)
+// JSONByte returns the json encoded byte array
+func (c *AdminBlock) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(c)
 }
 
-func (e *AdminBlock) JSONString() (string, error) {
-	return primitives.EncodeJSONString(e)
+// JSONString returns the json encoded string
+func (c *AdminBlock) JSONString() (string, error) {
+	return primitives.EncodeJSONString(c)
 }
 
 type ExpandedABlock AdminBlock
 
-func (e AdminBlock) MarshalJSON() ([]byte, error) {
-	backRefHash, err := e.BackReferenceHash()
+func (c AdminBlock) MarshalJSON() ([]byte, error) {
+	backRefHash, err := c.BackReferenceHash()
 	if err != nil {
 		return nil, err
 	}
 
-	lookupHash, err := e.LookupHash()
+	lookupHash, err := c.LookupHash()
 	if err != nil {
 		return nil, err
 	}
@@ -570,7 +606,7 @@ func (e AdminBlock) MarshalJSON() ([]byte, error) {
 		BackReferenceHash string `json:"backreferencehash"`
 		LookupHash        string `json:"lookuphash"`
 	}{
-		ExpandedABlock:    ExpandedABlock(e),
+		ExpandedABlock:    ExpandedABlock(c),
 		BackReferenceHash: backRefHash.String(),
 		LookupHash:        lookupHash.String(),
 	})
@@ -580,6 +616,7 @@ func (e AdminBlock) MarshalJSON() ([]byte, error) {
  * Support
  *********************************************************************/
 
+// NewAdminBlock returns a new admin block which comes after the input admin block
 func NewAdminBlock(prev interfaces.IAdminBlock) interfaces.IAdminBlock {
 	block := new(AdminBlock)
 	block.Init()
@@ -592,6 +629,7 @@ func NewAdminBlock(prev interfaces.IAdminBlock) interfaces.IAdminBlock {
 	return block
 }
 
+// CheckBlockPairIntegrity checks that two admin blocks are sequential with the previous admin block coming before the current
 func CheckBlockPairIntegrity(block interfaces.IAdminBlock, prev interfaces.IAdminBlock) error {
 	if block == nil {
 		return fmt.Errorf("No block specified")

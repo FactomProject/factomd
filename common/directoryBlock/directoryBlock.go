@@ -20,16 +20,28 @@ import (
 
 var _ = fmt.Print
 
+// DirectoryBlock holds all the information related to a directory block, which covers a ~10 minute period of time.
+// A directory block is the fundamental unit of the Factom blockchain and contains two main data objects:
+// a header and its entries. The header simply contains information about where this directory block fits
+// within the larger block chain. While the entries contain specific information entered into the block chain.
+// Each directory block always contains an admin block (organizational information for the block chain), and
+// EC block (entry credit transactions occuring during the ~10mins), a Factoid block (Factoid transactions occuring
+// during the ~10mins), and finally an unknown number of standard entry blocks (Each Entry Block contains all of the
+// entries for a particular Chain during a 10 minute period)
 type DirectoryBlock struct {
-	//Not Marshalized
-	DBHash     interfaces.IHash `json:"dbhash"`
-	KeyMR      interfaces.IHash `json:"keymr"`
-	HeaderHash interfaces.IHash `json:"headerhash"`
-	keyMRset   bool             `json:"keymrset"`
+	//Not Marshalized - hashing information related to the main entries below
+	DBHash     interfaces.IHash `json:"dbhash"`     // Hash of the 'body' of the DirctoryBlock (entries only)
+	KeyMR      interfaces.IHash `json:"keymr"`      // Merkle root of the HeaderHash and DBHash combined
+	HeaderHash interfaces.IHash `json:"headerhash"` // Hash of the header of the directory block
+	keyMRset   bool             `json:"keymrset"`   // has the key Merkle Root already computed
 
-	//Marshalized
-	Header    interfaces.IDirectoryBlockHeader `json:"header"`
-	DBEntries []interfaces.IDBEntry            `json:"dbentries"`
+	//Marshalized - These are the main contents of the DirectoryBlock
+	Header    interfaces.IDirectoryBlockHeader `json:"header"`    // Contains the header information for this directory block
+	DBEntries []interfaces.IDBEntry            `json:"dbentries"` // A list of directory block entries
+	// [0] is always the admin block
+	// [1] is always the ec block
+	// [2] is always the factoid block
+	// [3+] is standard entry blocks
 }
 
 var _ interfaces.Printable = (*DirectoryBlock)(nil)
@@ -38,6 +50,7 @@ var _ interfaces.IDirectoryBlock = (*DirectoryBlock)(nil)
 var _ interfaces.DatabaseBatchable = (*DirectoryBlock)(nil)
 var _ interfaces.DatabaseBlockWithEntries = (*DirectoryBlock)(nil)
 
+// Init creates a new Header for the internal object if its currently nil
 func (c *DirectoryBlock) Init() {
 	if c.Header == nil {
 		h := new(DBlockHeader)
@@ -46,6 +59,7 @@ func (c *DirectoryBlock) Init() {
 	}
 }
 
+// IsSameAs checks the input objects header and its entries are identical to this directory block
 func (a *DirectoryBlock) IsSameAs(b interfaces.IDirectoryBlock) bool {
 	if a == nil || b == nil {
 		if a == nil && b == nil {
@@ -69,6 +83,8 @@ func (a *DirectoryBlock) IsSameAs(b interfaces.IDirectoryBlock) bool {
 	return true
 }
 
+// SetEntryHash adds a new entry to the directory block, expanding the entry array if needed
+// to fit the new entry at the specified index
 func (c *DirectoryBlock) SetEntryHash(hash, chainID interfaces.IHash, index int) {
 	if len(c.DBEntries) <= index {
 		ent := make([]interfaces.IDBEntry, index+1)
@@ -81,24 +97,28 @@ func (c *DirectoryBlock) SetEntryHash(hash, chainID interfaces.IHash, index int)
 	c.DBEntries[index] = dbe
 }
 
+// SetABlockHash sets the input admin block as the first (0th) entry in the directory block
 func (c *DirectoryBlock) SetABlockHash(aBlock interfaces.IAdminBlock) error {
 	hash := aBlock.DatabasePrimaryIndex()
 	c.SetEntryHash(hash, aBlock.GetChainID(), 0)
 	return nil
 }
 
+// SetECBlockHash sets the input entry credit block to the second entry in the directory block
 func (c *DirectoryBlock) SetECBlockHash(ecBlock interfaces.IEntryCreditBlock) error {
 	hash := ecBlock.DatabasePrimaryIndex()
 	c.SetEntryHash(hash, ecBlock.GetChainID(), 1)
 	return nil
 }
 
+// SetFBlockHash sets the input Factoid block to the third entry in the directory block
 func (c *DirectoryBlock) SetFBlockHash(fBlock interfaces.IFBlock) error {
 	hash := fBlock.DatabasePrimaryIndex()
 	c.SetEntryHash(hash, fBlock.GetChainID(), 2)
 	return nil
 }
 
+// GetEntryHashes returns a copy of the entry block array
 func (c *DirectoryBlock) GetEntryHashes() []interfaces.IHash {
 	entries := c.DBEntries[:]
 	answer := make([]interfaces.IHash, len(entries))
@@ -108,11 +128,12 @@ func (c *DirectoryBlock) GetEntryHashes() []interfaces.IHash {
 	return answer
 }
 
+// GetEntrySigHashes always returns nil
 func (c *DirectoryBlock) GetEntrySigHashes() []interfaces.IHash {
 	return nil
 }
 
-//bubble sort
+//Sort uses bubble sort to sort the standard chain entries (non admin, ec, or factoid blocks)
 func (c *DirectoryBlock) Sort() {
 	done := false
 	for i := 3; !done && i < len(c.DBEntries)-1; i++ {
@@ -130,6 +151,8 @@ func (c *DirectoryBlock) Sort() {
 	}
 }
 
+// GetEntryHashesForBranch expands the entry blocks into a single array consisting of paired hashes
+// (chainID,keyMR) resulting in an array that is 2x the length of the DBEntries
 func (c *DirectoryBlock) GetEntryHashesForBranch() []interfaces.IHash {
 	entries := c.DBEntries[:]
 	answer := make([]interfaces.IHash, 2*len(entries))
@@ -140,43 +163,51 @@ func (c *DirectoryBlock) GetEntryHashesForBranch() []interfaces.IHash {
 	return answer
 }
 
+// GetDBEntries returns the array of entry blocks
 func (c *DirectoryBlock) GetDBEntries() []interfaces.IDBEntry {
 	return c.DBEntries
 }
 
+// GetEBlockDBEntries returns the non special entry blocks (omitting admin, ec, and factoid blocks)
 func (c *DirectoryBlock) GetEBlockDBEntries() []interfaces.IDBEntry {
 	answer := []interfaces.IDBEntry{}
 	for _, v := range c.DBEntries {
 		if v.GetChainID().String() == "000000000000000000000000000000000000000000000000000000000000000a" {
-			continue
+			continue // Ignore the admin block
 		}
 		if v.GetChainID().String() == "000000000000000000000000000000000000000000000000000000000000000f" {
-			continue
+			continue // Ignore the factoid block
 		}
 		if v.GetChainID().String() == "000000000000000000000000000000000000000000000000000000000000000c" {
-			continue
+			continue // Ignore the ec block
 		}
 		answer = append(answer, v)
 	}
 	return answer
 }
 
+// CheckDBEntries checks the first three special entry blocks: admin, ec, and factoid blocks, to make sure
+// their chain IDs are properly set
 func (c *DirectoryBlock) CheckDBEntries() error {
 	if len(c.DBEntries) < 3 {
 		return fmt.Errorf("Not enough entries - %v", len(c.DBEntries))
 	}
+	// Admin block is always in the 0th position
 	if c.DBEntries[0].GetChainID().String() != "000000000000000000000000000000000000000000000000000000000000000a" {
 		return fmt.Errorf("Invalid ChainID at position 0 - %v", c.DBEntries[0].GetChainID().String())
 	}
+	// EC block is always in the 1st position
 	if c.DBEntries[1].GetChainID().String() != "000000000000000000000000000000000000000000000000000000000000000c" {
 		return fmt.Errorf("Invalid ChainID at position 1 - %v", c.DBEntries[1].GetChainID().String())
 	}
+	// Factoid block is always in the 2nd position
 	if c.DBEntries[2].GetChainID().String() != "000000000000000000000000000000000000000000000000000000000000000f" {
 		return fmt.Errorf("Invalid ChainID at position 2 - %v", c.DBEntries[2].GetChainID().String())
 	}
 	return nil
 }
 
+// GetKeyMR returns the key Merkle Root of the directory block
 func (c *DirectoryBlock) GetKeyMR() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {
@@ -199,15 +230,18 @@ func (c *DirectoryBlock) GetKeyMR() (rval interfaces.IHash) {
 	return c.KeyMR
 }
 
+// GetHeader returns the directory block header (initializing it if needed so its never nil)
 func (c *DirectoryBlock) GetHeader() interfaces.IDirectoryBlockHeader {
 	c.Init()
 	return c.Header
 }
 
+// SetHeader sets the directory block header to the input header
 func (c *DirectoryBlock) SetHeader(header interfaces.IDirectoryBlockHeader) {
 	c.Header = header
 }
 
+// SetDBEntries wholesale replaces the entire internal entry block array with the input array
 func (c *DirectoryBlock) SetDBEntries(dbEntries []interfaces.IDBEntry) error {
 	if dbEntries == nil {
 		return errors.New("dbEntries cannot be nil")
@@ -217,6 +251,7 @@ func (c *DirectoryBlock) SetDBEntries(dbEntries []interfaces.IDBEntry) error {
 	return nil
 }
 
+// New returns a new directory block initialized to empty/zero hashes
 func (c *DirectoryBlock) New() interfaces.BinaryMarshallableAndCopyable {
 	dBlock := new(DirectoryBlock)
 	dBlock.Header = NewDBlockHeader()
@@ -225,11 +260,13 @@ func (c *DirectoryBlock) New() interfaces.BinaryMarshallableAndCopyable {
 	return dBlock
 }
 
+// GetDatabaseHeight returns the block height for this directory block from the header
 func (c *DirectoryBlock) GetDatabaseHeight() uint32 {
 	c.Init()
 	return c.GetHeader().GetDBHeight()
 }
 
+// GetChainID returns the directory block chain id
 func (c *DirectoryBlock) GetChainID() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {
@@ -240,6 +277,7 @@ func (c *DirectoryBlock) GetChainID() (rval interfaces.IHash) {
 	return primitives.NewHash(constants.D_CHAINID)
 }
 
+// DatabasePrimaryIndex returns the key Merkle root of the directory block
 func (c *DirectoryBlock) DatabasePrimaryIndex() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {
@@ -250,6 +288,7 @@ func (c *DirectoryBlock) DatabasePrimaryIndex() (rval interfaces.IHash) {
 	return c.GetKeyMR()
 }
 
+// DatabaseSecondaryIndex returns the hash of the directory block
 func (c *DirectoryBlock) DatabaseSecondaryIndex() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {
@@ -260,58 +299,62 @@ func (c *DirectoryBlock) DatabaseSecondaryIndex() (rval interfaces.IHash) {
 	return c.GetHash()
 }
 
-func (e *DirectoryBlock) JSONByte() ([]byte, error) {
-	return primitives.EncodeJSON(e)
+// JSONByte returns the json encoded byte array
+func (c *DirectoryBlock) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(c)
 }
 
-func (e *DirectoryBlock) JSONString() (string, error) {
-	return primitives.EncodeJSONString(e)
+// JSONString returns the json encoded string
+func (c *DirectoryBlock) JSONString() (string, error) {
+	return primitives.EncodeJSONString(c)
 }
 
-func (e *DirectoryBlock) String() string {
-	e.Init()
+// String returns the DirectoryBlock as a string
+func (c *DirectoryBlock) String() string {
+	c.Init()
 	var out primitives.Buffer
 
-	kmr := e.GetKeyMR()
+	kmr := c.GetKeyMR()
 	out.WriteString(fmt.Sprintf("%20s %v\n", "keymr:", kmr.String()))
 
-	kmr = e.BodyKeyMR()
+	kmr = c.BodyKeyMR()
 	out.WriteString(fmt.Sprintf("%20s %v\n", "bodymr:", kmr.String()))
 
-	fh := e.GetFullHash()
+	fh := c.GetFullHash()
 	out.WriteString(fmt.Sprintf("%20s %v\n", "fullhash:", fh.String()))
 
-	out.WriteString(e.GetHeader().String())
+	out.WriteString(c.GetHeader().String())
 	out.WriteString("entries:\n")
-	for i, entry := range e.DBEntries {
+	for i, entry := range c.DBEntries {
 		out.WriteString(fmt.Sprintf("%5d %s", i, entry.String()))
 	}
 
 	return (string)(out.DeepCopyBytes())
 }
 
-func (b *DirectoryBlock) MarshalBinary() (rval []byte, err error) {
+// MarshalBinary marshals the directory block
+func (c *DirectoryBlock) MarshalBinary() (rval []byte, err error) {
 	defer func(pe *error) {
 		if *pe != nil {
 			fmt.Fprintf(os.Stderr, "DirectoryBlock.MarshalBinary err:%v", *pe)
 		}
 	}(&err)
-	b.Init()
-	b.Sort()
-	_, err = b.BuildBodyMR()
+	c.Init()
+	c.Sort()
+	_, err = c.BuildBodyMR()
 	if err != nil {
 		return nil, err
 	}
 
 	buf := primitives.NewBuffer(nil)
 
-	err = buf.PushBinaryMarshallable(b.GetHeader())
+	err = buf.PushBinaryMarshallable(c.GetHeader())
 	if err != nil {
 		return nil, err
 	}
 
-	for i := uint32(0); i < b.Header.GetBlockCount(); i++ {
-		err = buf.PushBinaryMarshallable(b.GetDBEntries()[i])
+	for i := uint32(0); i < c.Header.GetBlockCount(); i++ {
+		err = buf.PushBinaryMarshallable(c.GetDBEntries()[i])
 		if err != nil {
 			return nil, err
 		}
@@ -320,15 +363,17 @@ func (b *DirectoryBlock) MarshalBinary() (rval []byte, err error) {
 	return buf.DeepCopyBytes(), err
 }
 
-func (b *DirectoryBlock) BuildBodyMR() (interfaces.IHash, error) {
-	count := uint32(len(b.GetDBEntries()))
-	b.GetHeader().SetBlockCount(count)
+// BuildBodyMR builds the Merkle root of the 'body' (entries only) of the directory block, and both stores the
+// Merkle root in the header and returns its to the user
+func (c *DirectoryBlock) BuildBodyMR() (interfaces.IHash, error) {
+	count := uint32(len(c.GetDBEntries()))
+	c.GetHeader().SetBlockCount(count)
 	if count == 0 {
 		panic("Zero block size!")
 	}
 
-	hashes := make([]interfaces.IHash, len(b.GetDBEntries()))
-	for i, entry := range b.GetDBEntries() {
+	hashes := make([]interfaces.IHash, len(c.GetDBEntries()))
+	for i, entry := range c.GetDBEntries() {
 		data, err := entry.MarshalBinary()
 		if err != nil {
 			return nil, err
@@ -343,33 +388,38 @@ func (b *DirectoryBlock) BuildBodyMR() (interfaces.IHash, error) {
 	merkleTree := primitives.BuildMerkleTreeStore(hashes)
 	merkleRoot := merkleTree[len(merkleTree)-1]
 
-	b.GetHeader().SetBodyMR(merkleRoot)
+	c.GetHeader().SetBodyMR(merkleRoot)
 
 	return merkleRoot, nil
 }
 
-func (b *DirectoryBlock) GetHeaderHash() (interfaces.IHash, error) {
-	b.Header.SetBlockCount(uint32(len(b.GetDBEntries())))
-	return b.Header.GetHeaderHash()
+// GetHeaderHash returns the hash of the directory block header
+func (c *DirectoryBlock) GetHeaderHash() (interfaces.IHash, error) {
+	c.Header.SetBlockCount(uint32(len(c.GetDBEntries())))
+	return c.Header.GetHeaderHash()
 }
 
-func (b *DirectoryBlock) BodyKeyMR() (rval interfaces.IHash) {
+// BodyKeyMR builds the Merkle root of the 'body' (entries only) of the directory block, and both stores the
+// Merkle root in the header and returns its to the user
+func (c *DirectoryBlock) BodyKeyMR() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {
 			rval = nil // convert an interface that is nil to a nil interface
 			primitives.LogNilHashBug("DirectoryBlock.BodyKeyMR() saw an interface that was nil")
 		}
 	}()
-	key, _ := b.BuildBodyMR()
+	key, _ := c.BuildBodyMR()
 	return key
 }
 
-func (b *DirectoryBlock) BuildKeyMerkleRoot() (keyMR interfaces.IHash, err error) {
+// BuildKeyMerkleRoot returns the Merkle root by of the header hash and the DirectoryBlock body hash
+// and also stores the Merkle root in the Directory block
+func (c *DirectoryBlock) BuildKeyMerkleRoot() (keyMR interfaces.IHash, err error) {
 	// Create the Entry Block Key Merkle Root from the hash of Header and the Body Merkle Root
 
 	hashes := make([]interfaces.IHash, 0, 2)
-	bodyKeyMR := b.BodyKeyMR() //This needs to be called first to build the header properly!!
-	headerHash, err := b.GetHeaderHash()
+	bodyKeyMR := c.BodyKeyMR() //This needs to be called first to build the header properly!!
+	headerHash, err := c.GetHeaderHash()
 	if err != nil {
 		return nil, err
 	}
@@ -378,13 +428,14 @@ func (b *DirectoryBlock) BuildKeyMerkleRoot() (keyMR interfaces.IHash, err error
 	merkle := primitives.BuildMerkleTreeStore(hashes)
 	keyMR = merkle[len(merkle)-1] // MerkleRoot is not marshalized in Dir Block
 
-	b.KeyMR = keyMR
+	c.KeyMR = keyMR
 
-	b.GetFullHash() // Create the Full Hash when we create the keyMR
+	c.GetFullHash() // Create the Full Hash when we create the keyMR
 
 	return primitives.NewHash(keyMR.Bytes()), nil
 }
 
+// UnmarshalDBlock returns a new DirectoryBlock with the input data unmarshalled into it
 func UnmarshalDBlock(data []byte) (interfaces.IDirectoryBlock, error) {
 	dBlock := new(DirectoryBlock)
 	dBlock.Header = NewDBlockHeader()
@@ -397,7 +448,8 @@ func UnmarshalDBlock(data []byte) (interfaces.IDirectoryBlock, error) {
 	return dBlock, nil
 }
 
-func (b *DirectoryBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
+// UnmarshalBinaryData unmarshals the input data into the directory block
+func (c *DirectoryBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	newData := data
 	var err error
 	var fbh interfaces.IDirectoryBlockHeader = new(DBlockHeader)
@@ -406,11 +458,11 @@ func (b *DirectoryBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	b.SetHeader(fbh)
+	c.SetHeader(fbh)
 
 	// entryLimit is the maximum number of 32 byte entries that could fit in the body of the binary dblock
 	entryLimit := uint32(len(newData) / 32)
-	entryCount := b.GetHeader().GetBlockCount()
+	entryCount := c.GetHeader().GetBlockCount()
 	if entryCount > entryLimit {
 		return nil, fmt.Errorf(
 			"Error: DirectoryBlock.UnmarshalBinary: Entry count %d is larger "+
@@ -428,12 +480,12 @@ func (b *DirectoryBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 		}
 	}
 
-	err = b.SetDBEntries(entries)
+	err = c.SetDBEntries(entries)
 	if err != nil {
 		return nil, err
 	}
 
-	err = b.CheckDBEntries()
+	err = c.CheckDBEntries()
 	if err != nil {
 		return nil, err
 	}
@@ -441,57 +493,63 @@ func (b *DirectoryBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	return newData, nil
 }
 
-func (h *DirectoryBlock) GetTimestamp() interfaces.Timestamp {
-	return h.GetHeader().GetTimestamp().Clone()
+// GetTimestamp returns the timestamp from the header
+func (c *DirectoryBlock) GetTimestamp() interfaces.Timestamp {
+	return c.GetHeader().GetTimestamp()
 }
 
-func (b *DirectoryBlock) UnmarshalBinary(data []byte) (err error) {
-	_, err = b.UnmarshalBinaryData(data)
+// UnmarshalBinary unmarshals the input data into this directory block
+func (c *DirectoryBlock) UnmarshalBinary(data []byte) (err error) {
+	_, err = c.UnmarshalBinaryData(data)
 	return
 }
 
-func (b *DirectoryBlock) GetHash() (rval interfaces.IHash) {
+// GetHash marshals the directory block and returns the SHA hash of the marshalled data
+func (c *DirectoryBlock) GetHash() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {
 			rval = nil // convert an interface that is nil to a nil interface
 			primitives.LogNilHashBug("DirectoryBlock.GetHash() saw an interface that was nil")
 		}
 	}()
-	return b.GetFullHash()
+	return c.GetFullHash()
 }
 
-func (b *DirectoryBlock) GetFullHash() (rval interfaces.IHash) {
+// GetFullHash marshals the directory block and returns the SHA hash of the marshalled data
+func (c *DirectoryBlock) GetFullHash() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {
 			rval = nil // convert an interface that is nil to a nil interface
 			primitives.LogNilHashBug("DirectoryBlock.GetFullHash() saw an interface that was nil")
 		}
 	}()
-	binaryDblock, err := b.MarshalBinary()
+	binaryDblock, err := c.MarshalBinary()
 	if err != nil {
 		return nil
 	}
-	b.DBHash = primitives.Sha(binaryDblock)
-	return b.DBHash
+	c.DBHash = primitives.Sha(binaryDblock)
+	return c.DBHash
 }
 
-func (b *DirectoryBlock) AddEntry(chainID interfaces.IHash, keyMR interfaces.IHash) error {
+// AddEntry creates and appends a new entry into the directory block given the input chainID and keyMR
+func (c *DirectoryBlock) AddEntry(chainID interfaces.IHash, keyMR interfaces.IHash) error {
 	var dbentry interfaces.IDBEntry
 	dbentry = new(DBEntry)
 	dbentry.SetChainID(chainID)
 	dbentry.SetKeyMR(keyMR)
 
-	if b.DBEntries == nil {
-		b.DBEntries = []interfaces.IDBEntry{}
+	if c.DBEntries == nil {
+		c.DBEntries = []interfaces.IDBEntry{}
 	}
 
-	return b.SetDBEntries(append(b.DBEntries, dbentry))
+	return c.SetDBEntries(append(c.DBEntries, dbentry))
 }
 
 /*********************************************************************
  * Support
  *********************************************************************/
 
+// NewDirectoryBlock creates a new directory block whose previous block is the input prev
 func NewDirectoryBlock(prev interfaces.IDirectoryBlock) interfaces.IDirectoryBlock {
 	newdb := new(DirectoryBlock)
 
@@ -517,12 +575,14 @@ func NewDirectoryBlock(prev interfaces.IDirectoryBlock) interfaces.IDirectoryBlo
 	return newdb
 }
 
+// CheckBlockPairIntegrity returns nil iff the input block's previous pointer matches the input prev values
+// and the input block is the 'next' block after the prev
 func CheckBlockPairIntegrity(block interfaces.IDirectoryBlock, prev interfaces.IDirectoryBlock) error {
 	if block == nil {
 		return fmt.Errorf("No block specified")
 	}
 
-	if prev == nil {
+	if prev == nil { // If we are the first directory block
 		if block.GetHeader().GetPrevKeyMR().IsZero() == false {
 			return fmt.Errorf("Invalid PrevKeyMR")
 		}
@@ -549,9 +609,12 @@ func CheckBlockPairIntegrity(block interfaces.IDirectoryBlock, prev interfaces.I
 
 type ExpandedDBlock DirectoryBlock
 
-func (e DirectoryBlock) MarshalJSON() ([]byte, error) {
-	e.GetKeyMR()
-	e.GetFullHash()
-
-	return json.Marshal(ExpandedDBlock(e))
+// MarshalJSON marshals the directory block into json
+func (c DirectoryBlock) MarshalJSON() ([]byte, error) {
+	// Calculate the Merkle Root first
+	c.GetKeyMR()
+	// Calculate the hash of the directory block
+	c.GetFullHash()
+	// Now marshal the data
+	return json.Marshal(ExpandedDBlock(c))
 }

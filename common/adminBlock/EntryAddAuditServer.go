@@ -10,16 +10,17 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-// DB Signature Entry -------------------------
+// AddAuditServer is an admin block entry which instructs factomd to add a new audit server at a specified directory block height
 type AddAuditServer struct {
-	AdminIDType     uint32           `json:"adminidtype"`
-	IdentityChainID interfaces.IHash `json:"identitychainid"`
-	DBHeight        uint32           `json:"dbheight"`
+	AdminIDType     uint32           `json:"adminidtype"`     // the type of action in this admin block entry: uint32(TYPE_ADD_AUDIT_SERVER)
+	IdentityChainID interfaces.IHash `json:"identitychainid"` // the server identity of the new audit server to be added
+	DBHeight        uint32           `json:"dbheight"`        // the directory block height when the new audit server should be added
 }
 
 var _ interfaces.IABEntry = (*AddAuditServer)(nil)
 var _ interfaces.BinaryMarshallable = (*AddAuditServer)(nil)
 
+// Init sets all nil hashs to the zero hash and sets the hardcoded AdminIDType
 func (e *AddAuditServer) Init() {
 	if e.IdentityChainID == nil {
 		e.IdentityChainID = primitives.NewZeroHash()
@@ -27,6 +28,7 @@ func (e *AddAuditServer) Init() {
 	e.AdminIDType = uint32(e.Type())
 }
 
+// String returns the AddAuditServer string
 func (e *AddAuditServer) String() string {
 	e.Init()
 	var out primitives.Buffer
@@ -37,6 +39,7 @@ func (e *AddAuditServer) String() string {
 	return (string)(out.DeepCopyBytes())
 }
 
+// UpdateState updates the factomd state to include the new audit server information
 func (c *AddAuditServer) UpdateState(state interfaces.IState) error {
 	c.Init()
 	state.AddAuditServer(c.DBHeight, c.IdentityChainID)
@@ -47,7 +50,7 @@ func (c *AddAuditServer) UpdateState(state interfaces.IState) error {
 	return nil
 }
 
-// Create a new DB Signature Entry
+// NewAddAuditServer creates a new AddAuditServer object with the specified inputs
 func NewAddAuditServer(identityChainID interfaces.IHash, dbheight uint32) (e *AddAuditServer) {
 	if identityChainID == nil {
 		return nil
@@ -58,10 +61,12 @@ func NewAddAuditServer(identityChainID interfaces.IHash, dbheight uint32) (e *Ad
 	return
 }
 
+// Type returns the hardcoded TYPE_ADD_AUDIT_SERVER
 func (e *AddAuditServer) Type() byte {
 	return constants.TYPE_ADD_AUDIT_SERVER
 }
 
+// MarshalBinary marshals the AddAuditServer
 func (e *AddAuditServer) MarshalBinary() (rval []byte, err error) {
 	defer func(pe *error) {
 		if *pe != nil {
@@ -89,6 +94,7 @@ func (e *AddAuditServer) MarshalBinary() (rval []byte, err error) {
 	return buf.DeepCopyBytes(), nil
 }
 
+// UnmarshalBinaryData unmarshals the input data into this AddAuditServer
 func (e *AddAuditServer) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	buf := primitives.NewBuffer(data)
 
@@ -115,29 +121,35 @@ func (e *AddAuditServer) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	return buf.DeepCopyBytes(), nil
 }
 
+// UnmarshalBinary unmarshals the input data into this AddAuditServer
 func (e *AddAuditServer) UnmarshalBinary(data []byte) (err error) {
 	_, err = e.UnmarshalBinaryData(data)
 	return
 }
 
+// JSONByte returns the json encoded byte array
 func (e *AddAuditServer) JSONByte() ([]byte, error) {
 	e.AdminIDType = uint32(e.Type())
 	return primitives.EncodeJSON(e)
 }
 
+// JSONString returns the json encoded string
 func (e *AddAuditServer) JSONString() (string, error) {
 	e.AdminIDType = uint32(e.Type())
 	return primitives.EncodeJSONString(e)
 }
 
+// IsInterpretable always returns false
 func (e *AddAuditServer) IsInterpretable() bool {
 	return false
 }
 
+// Interpret always returns the empty string ""
 func (e *AddAuditServer) Interpret() string {
 	return ""
 }
 
+// Hash marshals the AddAuditServer and computes its hash
 func (e *AddAuditServer) Hash() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {

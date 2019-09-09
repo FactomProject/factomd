@@ -7,6 +7,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 )
 
+// TestIncreaseServerCountGetHash checks that an empty object has the correct hash
 func TestIncreaseServerCountGetHash(t *testing.T) {
 	a := new(IncreaseServerCount)
 	h := a.Hash()
@@ -16,6 +17,8 @@ func TestIncreaseServerCountGetHash(t *testing.T) {
 	}
 }
 
+// TestIncreaseServerCountTypeIDCheck checks that an empty object can be marshalled and unmarshalled correctly, and
+// that a corrupted marshalled object throws an error when unmarshalled
 func TestIncreaseServerCountTypeIDCheck(t *testing.T) {
 	a := new(IncreaseServerCount)
 	b, err := a.MarshalBinary()
@@ -38,6 +41,7 @@ func TestIncreaseServerCountTypeIDCheck(t *testing.T) {
 	}
 }
 
+// TestUnmarshalNilIncreaseServerCount checks that the nil and empty interfaces throw errors when they are unmarshalled
 func TestUnmarshalNilIncreaseServerCount(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -57,6 +61,7 @@ func TestUnmarshalNilIncreaseServerCount(t *testing.T) {
 	}
 }
 
+// TestIncreaseServerCountMarshalUnmarshal checks that marshalled data can be unmarshaled correctly
 func TestIncreaseServerCountMarshalUnmarshal(t *testing.T) {
 	tmp := []byte{constants.TYPE_ADD_SERVER_COUNT, 0x01, 0x02}
 	isc := new(IncreaseServerCount)
@@ -103,6 +108,7 @@ func TestIncreaseServerCountMarshalUnmarshal(t *testing.T) {
 	}
 }
 
+// TestIncreaseServerMisc checks that the various strings and smaller member functions return proper values
 func TestIncreaseServerMisc(t *testing.T) {
 	a := new(IncreaseServerCount)
 	if a.String() != "    E:               Increase Server Count -- by 0" {

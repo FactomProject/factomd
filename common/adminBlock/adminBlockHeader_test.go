@@ -13,6 +13,8 @@ import (
 
 var _ = fmt.Print
 
+// TestUnmarshalNilABlockHeader marshals and unmarshals an empty ABlockHeader, as well as checks that nil or empty interfaces throw an error
+// when unmarshalling
 func TestUnmarshalNilABlockHeader(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -45,6 +47,7 @@ func TestUnmarshalNilABlockHeader(t *testing.T) {
 	}
 }
 
+// TestUnmarshalNilABlockHeaderWithAdminBlk marshals a test admin block and unmarshals, checking its the same
 func TestUnmarshalNilABlockHeaderWithAdminBlk(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {

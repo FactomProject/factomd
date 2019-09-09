@@ -11,16 +11,18 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-// AddFactoidAddress Entry -------------------------
+// AddFactoidAddress is an admin block entry containing a server identity and a factoid address where coinbase payouts will be sent for that
+// server
 type AddFactoidAddress struct {
-	AdminIDType     uint32 `json:"adminidtype"`
-	IdentityChainID interfaces.IHash
-	FactoidAddress  interfaces.IAddress
+	AdminIDType     uint32              `json:"adminidtype"` // the type of action in this admin block entry: uint32(TYPE_ADD_FACTOID_ADDRESS)
+	IdentityChainID interfaces.IHash    // the server identity
+	FactoidAddress  interfaces.IAddress // the factoid address for this server
 }
 
 var _ interfaces.IABEntry = (*AddFactoidAddress)(nil)
 var _ interfaces.BinaryMarshallable = (*AddFactoidAddress)(nil)
 
+// Init initializes any nil hashes to the zero hash and sets the objects type
 func (e *AddFactoidAddress) Init() {
 	e.AdminIDType = uint32(e.Type())
 	if e.IdentityChainID == nil {
@@ -32,6 +34,7 @@ func (e *AddFactoidAddress) Init() {
 	}
 }
 
+// IsSameAs returns true iff the input is identital to this object
 func (a *AddFactoidAddress) IsSameAs(b *AddFactoidAddress) bool {
 	if a.Type() != b.Type() {
 		return false
@@ -48,6 +51,7 @@ func (a *AddFactoidAddress) IsSameAs(b *AddFactoidAddress) bool {
 	return true
 }
 
+// String returns the AddFactoidAddress string
 func (e *AddFactoidAddress) String() string {
 	e.Init()
 	var out primitives.Buffer
@@ -58,14 +62,16 @@ func (e *AddFactoidAddress) String() string {
 	return (string)(out.DeepCopyBytes())
 }
 
-func (c *AddFactoidAddress) UpdateState(state interfaces.IState) error {
-	c.Init()
+// UpdateState updates the factomd state with the new entry information
+func (e *AddFactoidAddress) UpdateState(state interfaces.IState) error {
+	e.Init()
 	//state.AddAuditServer(c.DBHeight, c.IdentityChainID)
-	state.UpdateAuthorityFromABEntry(c)
+	state.UpdateAuthorityFromABEntry(e)
 
 	return nil
 }
 
+// NewAddFactoidAddress creates a new AddFactoidAddress
 func NewAddFactoidAddress(chainID interfaces.IHash, add interfaces.IAddress) (e *AddFactoidAddress) {
 	e = new(AddFactoidAddress)
 	e.Init()
@@ -74,10 +80,12 @@ func NewAddFactoidAddress(chainID interfaces.IHash, add interfaces.IAddress) (e 
 	return
 }
 
+// Type returns the hardcoded TYPE_ADD_FACTOID_ADDRESS
 func (e *AddFactoidAddress) Type() byte {
 	return constants.TYPE_ADD_FACTOID_ADDRESS
 }
 
+// SortedIdentity returns the server identity of for the AddFactoidAddress
 func (e *AddFactoidAddress) SortedIdentity() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {
@@ -89,6 +97,7 @@ func (e *AddFactoidAddress) SortedIdentity() (rval interfaces.IHash) {
 	return e.IdentityChainID
 }
 
+// MarshalBinary marshals the AddFactoidAddress
 func (e *AddFactoidAddress) MarshalBinary() (rval []byte, err error) {
 	defer func(pe *error) {
 		if *pe != nil {
@@ -129,6 +138,7 @@ func (e *AddFactoidAddress) MarshalBinary() (rval []byte, err error) {
 	return buf.DeepCopyBytes(), nil
 }
 
+// UnmarshalBinaryData unmarshals the input data into this AddFactoidAddress
 func (e *AddFactoidAddress) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	buf := primitives.NewBuffer(data)
 	e.Init()
@@ -184,29 +194,35 @@ func (e *AddFactoidAddress) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	return buf.DeepCopyBytes(), nil
 }
 
+// UnmarshalBinary unmarshals the input data into this AddFactoidAddress
 func (e *AddFactoidAddress) UnmarshalBinary(data []byte) (err error) {
 	_, err = e.UnmarshalBinaryData(data)
 	return
 }
 
+// JSONByte returns the json encoded byte array
 func (e *AddFactoidAddress) JSONByte() ([]byte, error) {
 	e.AdminIDType = uint32(e.Type())
 	return primitives.EncodeJSON(e)
 }
 
+// JSONString returns the json encoded string
 func (e *AddFactoidAddress) JSONString() (string, error) {
 	e.AdminIDType = uint32(e.Type())
 	return primitives.EncodeJSONString(e)
 }
 
+// IsInterpretable always returns false
 func (e *AddFactoidAddress) IsInterpretable() bool {
 	return false
 }
 
+// Interpret always returns the empty string ""
 func (e *AddFactoidAddress) Interpret() string {
 	return ""
 }
 
+// Hash marshals the object and takes its hash
 func (e *AddFactoidAddress) Hash() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {

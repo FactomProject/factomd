@@ -10,6 +10,8 @@ import (
 	"github.com/FactomProject/factomd/testHelper"
 )
 
+// TestCancelCoinbaseDescriptorMarshal creates 100 random CancelCoinbaseDescriptors and checks they can be marshaled and unmarshaled correctly.
+// It also tests the an empty CancelCoinbaseDescriptor
 func TestCancelCoinbaseDescriptorMarshal(t *testing.T) {
 	rand.Seed(time.Now().UnixNano())
 	for i := 0; i < 100; i++ {
@@ -37,6 +39,7 @@ func TestCancelCoinbaseDescriptorMarshal(t *testing.T) {
 
 }
 
+// TestAddBadCancelCoinbaseDescriptor deliberately corrupts a marshaled CancelCoinbasDescriptor and confirms it errors out upon unmarshalling
 func TestAddBadCancelCoinbaseDescriptor(t *testing.T) {
 	c1 := NewCancelCoinbaseDescriptor(1000, 2000)
 	p, err := c1.MarshalBinary()

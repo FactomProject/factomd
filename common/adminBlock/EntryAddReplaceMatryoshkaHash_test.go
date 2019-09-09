@@ -8,6 +8,7 @@ import (
 	"github.com/FactomProject/factomd/testHelper"
 )
 
+// TestAddReplaceMatryoshkaHashGetHash checks that an empty object has the correct hash
 func TestAddReplaceMatryoshkaHashGetHash(t *testing.T) {
 	a := new(AddReplaceMatryoshkaHash)
 	h := a.Hash()
@@ -17,6 +18,8 @@ func TestAddReplaceMatryoshkaHashGetHash(t *testing.T) {
 	}
 }
 
+// TestAddReplaceMatryoshkaHashTypeIDCheck checks that an empty object can be marshalled and unmarshalled correctly, and
+// that a corrupted marshalled object throws an error when unmarshalled
 func TestAddReplaceMatryoshkaHashTypeIDCheck(t *testing.T) {
 	a := new(AddReplaceMatryoshkaHash)
 	b, err := a.MarshalBinary()
@@ -39,6 +42,7 @@ func TestAddReplaceMatryoshkaHashTypeIDCheck(t *testing.T) {
 	}
 }
 
+// TestUnmarshalNilAddReplaceMatryoshkaHash checks that the nil and empty interfaces throw errors when they are unmarshalled
 func TestUnmarshalNilAddReplaceMatryoshkaHash(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -58,6 +62,7 @@ func TestUnmarshalNilAddReplaceMatryoshkaHash(t *testing.T) {
 	}
 }
 
+// TestAddReplaceMatryoshkaHashMarshalUnmarshal checks that marshalled data can be unmarshaled correctly
 func TestAddReplaceMatryoshkaHashMarshalUnmarshal(t *testing.T) {
 	identity := testHelper.NewRepeatingHash(0xAB)
 	mhash := testHelper.NewRepeatingHash(0xCD)
@@ -93,6 +98,7 @@ func TestAddReplaceMatryoshkaHashMarshalUnmarshal(t *testing.T) {
 	}
 }
 
+// TestAddMatryoshkaHashMisc checks that the various strings and smaller member functions return proper values
 func TestAddMatryoshkaHashMisc(t *testing.T) {
 	a := new(AddReplaceMatryoshkaHash)
 	if a.String() != "    E:            AddReplaceMatryoshkaHash --   IdentityChainID   000000        MHash 00000000" {

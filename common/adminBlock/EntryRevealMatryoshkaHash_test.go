@@ -8,6 +8,7 @@ import (
 	"github.com/FactomProject/factomd/testHelper"
 )
 
+// TestRevealMatryoshkaHashGetHash checks that an new, empty RevealMatryoshkaHash has the proper hash
 func TestRevealMatryoshkaHashGetHash(t *testing.T) {
 	a := new(RevealMatryoshkaHash)
 	h := a.Hash()
@@ -17,6 +18,8 @@ func TestRevealMatryoshkaHashGetHash(t *testing.T) {
 	}
 }
 
+// TestRevealMatryoshkaHashTypeIDCheck checks that an empty RevealMatryoshkaHash can be unmarshaled correctly, and that a corrupted object
+// will throw an error when unmarshaled
 func TestRevealMatryoshkaHashTypeIDCheck(t *testing.T) {
 	a := new(RevealMatryoshkaHash)
 	b, err := a.MarshalBinary()
@@ -39,6 +42,7 @@ func TestRevealMatryoshkaHashTypeIDCheck(t *testing.T) {
 	}
 }
 
+// TestUnmarshalNilRevealMatryoshkaHash checks that nil and empty interfaces throw errors when unmarshalled
 func TestUnmarshalNilRevealMatryoshkaHash(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -58,6 +62,8 @@ func TestUnmarshalNilRevealMatryoshkaHash(t *testing.T) {
 	}
 }
 
+// TestRevealMatryoshkaHashMarshalUnmarshal checks that a RevealMatryoshkaHash is correctly created, and can be marshaled and unmarshalled
+// correctly
 func TestRevealMatryoshkaHashMarshalUnmarshal(t *testing.T) {
 	identity := testHelper.NewRepeatingHash(0xAB)
 	mhash := testHelper.NewRepeatingHash(0xCD)
@@ -93,6 +99,7 @@ func TestRevealMatryoshkaHashMarshalUnmarshal(t *testing.T) {
 	}
 }
 
+// TestRevealMhashMisc checks that the various strings and smaller member functions return proper values
 func TestRevealMhashMisc(t *testing.T) {
 	a := new(RevealMatryoshkaHash)
 	if a.String() != "    E:                RevealMatryoshkaHash --   IdentityChainID   000000         Hash 0000000000" {

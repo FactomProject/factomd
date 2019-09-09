@@ -18,10 +18,10 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-// Admin Block Header
+// ABlockHeader contains header information for the Admin Block
 type ABlockHeader struct {
 	PrevBackRefHash interfaces.IHash `json:"prevbackrefhash"`
-	DBHeight        uint32           `json:"dbheight"`
+	DBHeight        uint32           `json:"dbheight"` // The directory block height where this admin block is located
 
 	HeaderExpansionSize uint64 `json:"headerexpansionsize"`
 	HeaderExpansionArea []byte `json:"headerexpansionarea"`
@@ -32,66 +32,74 @@ type ABlockHeader struct {
 var _ interfaces.Printable = (*ABlockHeader)(nil)
 var _ interfaces.BinaryMarshallable = (*ABlockHeader)(nil)
 
-func (e *ABlockHeader) IsSameAs(e2 interfaces.IABlockHeader) bool {
-	if !e.PrevBackRefHash.IsSameAs(e2.GetPrevBackRefHash()) {
+// IsSameAs returns true iff the input object is identical to this object
+func (b *ABlockHeader) IsSameAs(b2 interfaces.IABlockHeader) bool {
+	if !b.PrevBackRefHash.IsSameAs(b2.GetPrevBackRefHash()) {
 		return false
 	}
-	if e.DBHeight != e2.GetDBHeight() {
+	if b.DBHeight != b2.GetDBHeight() {
 		return false
 	}
-	if int(e.HeaderExpansionSize) != len(e2.GetHeaderExpansionArea()) {
+	if int(b.HeaderExpansionSize) != len(b2.GetHeaderExpansionArea()) {
 		return false
 	}
-	if e.MessageCount != e2.GetMessageCount() {
+	if b.MessageCount != b2.GetMessageCount() {
 		return false
 	}
-	if e.BodySize != e2.GetBodySize() {
+	if b.BodySize != b2.GetBodySize() {
 		return false
 	}
-	if bytes.Compare(e.HeaderExpansionArea, e2.GetHeaderExpansionArea()) != 0 {
+	if bytes.Compare(b.HeaderExpansionArea, b2.GetHeaderExpansionArea()) != 0 {
 		return false
 	}
 	return true
 }
 
-func (e *ABlockHeader) Init() {
-	if e.PrevBackRefHash == nil {
-		e.PrevBackRefHash = primitives.NewZeroHash()
+// Init initializes all nil hashes to the zero hash, and makes all arrays
+func (b *ABlockHeader) Init() {
+	if b.PrevBackRefHash == nil {
+		b.PrevBackRefHash = primitives.NewZeroHash()
 	}
-	if e.HeaderExpansionSize == 0 {
-		e.HeaderExpansionArea = make([]byte, 0)
+	if b.HeaderExpansionSize == 0 {
+		b.HeaderExpansionArea = make([]byte, 0)
 	}
 }
 
-func (e *ABlockHeader) String() string {
-	e.Init()
+// String returns this objects string
+func (b *ABlockHeader) String() string {
+	b.Init()
 	var out primitives.Buffer
 	out.WriteString("  Admin Block Header\n")
-	out.WriteString(fmt.Sprintf("    %20s: %10v\n", "PrevBackRefHash", e.PrevBackRefHash.String()))
-	out.WriteString(fmt.Sprintf("    %20s: %10v\n", "DBHeight", e.DBHeight))
-	out.WriteString(fmt.Sprintf("    %20s: %10v\n", "HeaderExpansionSize", e.HeaderExpansionSize))
-	out.WriteString(fmt.Sprintf("    %20s: %x\n", "HeaderExpansionArea", e.HeaderExpansionArea))
-	out.WriteString(fmt.Sprintf("    %20s: %x\n", "MessageCount", e.MessageCount))
-	out.WriteString(fmt.Sprintf("    %20s: %x\n", "BodySize", e.BodySize))
+	out.WriteString(fmt.Sprintf("    %20s: %10v\n", "PrevBackRefHash", b.PrevBackRefHash.String()))
+	out.WriteString(fmt.Sprintf("    %20s: %10v\n", "DBHeight", b.DBHeight))
+	out.WriteString(fmt.Sprintf("    %20s: %10v\n", "HeaderExpansionSize", b.HeaderExpansionSize))
+	out.WriteString(fmt.Sprintf("    %20s: %x\n", "HeaderExpansionArea", b.HeaderExpansionArea))
+	out.WriteString(fmt.Sprintf("    %20s: %x\n", "MessageCount", b.MessageCount))
+	out.WriteString(fmt.Sprintf("    %20s: %x\n", "BodySize", b.BodySize))
 	return (string)(out.DeepCopyBytes())
 }
 
+// GetMessageCount returns the current message count
 func (b *ABlockHeader) GetMessageCount() uint32 {
 	return b.MessageCount
 }
 
+// SetMessageCount sets the message count to the incoming value
 func (b *ABlockHeader) SetMessageCount(messageCount uint32) {
 	b.MessageCount = messageCount
 }
 
+// GetBodySize returns the body size
 func (b *ABlockHeader) GetBodySize() uint32 {
 	return b.BodySize
 }
 
+// SetBodySize sets the body size to the incoming value
 func (b *ABlockHeader) SetBodySize(bodySize uint32) {
 	b.BodySize = bodySize
 }
 
+// GetAdminChainID returns the admin chain id 0x0a
 func (b *ABlockHeader) GetAdminChainID() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {
@@ -102,18 +110,22 @@ func (b *ABlockHeader) GetAdminChainID() (rval interfaces.IHash) {
 	return primitives.NewHash(constants.ADMIN_CHAINID)
 }
 
+// GetDBHeight returns the directory block height this admin block header is associated with
 func (b *ABlockHeader) GetDBHeight() uint32 {
 	return b.DBHeight
 }
 
+// GetHeaderExpansionArea returns the header expansion area
 func (b *ABlockHeader) GetHeaderExpansionArea() []byte {
 	return b.HeaderExpansionArea
 }
 
+// GetHeaderExpansionSize returns the header expansion size
 func (b *ABlockHeader) GetHeaderExpansionSize() uint64 {
 	return b.HeaderExpansionSize
 }
 
+// GetPrevBackRefHash returns the previous back reference hash
 func (b *ABlockHeader) GetPrevBackRefHash() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {
@@ -125,20 +137,23 @@ func (b *ABlockHeader) GetPrevBackRefHash() (rval interfaces.IHash) {
 	return b.PrevBackRefHash
 }
 
+// SetDBHeight sets the directory block height
 func (b *ABlockHeader) SetDBHeight(dbheight uint32) {
 	b.DBHeight = dbheight
 }
 
+// SetHeaderExpansionArea sets the header expansion area and size based on the input byte array
 func (b *ABlockHeader) SetHeaderExpansionArea(area []byte) {
 	b.HeaderExpansionArea = area
 	b.HeaderExpansionSize = uint64(len(area))
 }
 
+// SetPrevBackRefHash sets the previous back reference hash
 func (b *ABlockHeader) SetPrevBackRefHash(BackRefHash interfaces.IHash) {
 	b.PrevBackRefHash = BackRefHash
 }
 
-// Write out the ABlockHeader to binary.
+// MarshalBinary marshals the object
 func (b *ABlockHeader) MarshalBinary() (rval []byte, err error) {
 	defer func(pe *error) {
 		if *pe != nil {
@@ -182,6 +197,7 @@ func (b *ABlockHeader) MarshalBinary() (rval []byte, err error) {
 	return buf.DeepCopyBytes(), err
 }
 
+// UnmarshalBinaryData unmarshals the input data to this object
 func (b *ABlockHeader) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	buf := primitives.NewBuffer(data)
 	h := primitives.NewZeroHash()
@@ -227,18 +243,20 @@ func (b *ABlockHeader) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	return buf.DeepCopyBytes(), nil
 }
 
-// Read in the binary into the ABlockHeader.
+// UnmarshalBinary unmarshals the input data into this object
 func (b *ABlockHeader) UnmarshalBinary(data []byte) (err error) {
 	_, err = b.UnmarshalBinaryData(data)
 	return
 }
 
-func (e *ABlockHeader) JSONByte() ([]byte, error) {
-	return primitives.EncodeJSON(e)
+// JSONByte returns the json encoded byte array
+func (b *ABlockHeader) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(b)
 }
 
-func (e *ABlockHeader) JSONString() (string, error) {
-	return primitives.EncodeJSONString(e)
+// JSONString returns the json encoded string
+func (b *ABlockHeader) JSONString() (string, error) {
+	return primitives.EncodeJSONString(b)
 }
 
 type ExpandedABlockHeader ABlockHeader

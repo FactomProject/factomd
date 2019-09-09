@@ -17,6 +17,8 @@ import (
 	"github.com/FactomProject/factomd/testHelper"
 )
 
+// TestAdminBlockUnmarshalComplexBlock creates a vector of blank admin block entries (of various types), adds them to the admin block,
+// and marshals it. It then unmarshals the data and verifies the new admin block entries have the same type as the input.
 func TestAdminBlockUnmarshalComplexBlock(t *testing.T) {
 	a := NewAdminBlock(nil)
 
@@ -61,6 +63,7 @@ func TestAdminBlockUnmarshalComplexBlock(t *testing.T) {
 	}
 }
 
+// TestAdminBlockGetHash checks that an empty AdminBlock has the correct hash
 func TestAdminBlockGetHash(t *testing.T) {
 	a := new(AdminBlock)
 	h := a.GetHash()
@@ -70,6 +73,7 @@ func TestAdminBlockGetHash(t *testing.T) {
 	}
 }
 
+// TestUnmarshalNilAdminBlcok checks that unmarshalling nil or an empty interface results in an error
 func TestUnmarshalNilAdminBlock(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -89,6 +93,7 @@ func TestUnmarshalNilAdminBlock(t *testing.T) {
 	}
 }
 
+// TestNilFunctions checks that AdminBlock functions error out properly when nil is passed in
 func TestNilFunctions(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -130,6 +135,8 @@ func TestNilFunctions(t *testing.T) {
 	}
 }
 
+// TestAddDBSig creates a vector of 1000 random DBSignatureEntrys and adds them to the admin block, and verifies the admin block
+// has and the vector of entries are the same
 func TestAddDBSig(t *testing.T) {
 	testVector := []*DBSignatureEntry{}
 	for i := 0; i < 1000; i++ {
@@ -156,6 +163,8 @@ func TestAddDBSig(t *testing.T) {
 	}
 }
 
+// TestAddFedServer creates a vector of 1000 random hashes and adds them to the admin block as federated servers with sequential
+// directory block numbers, and verifies the admin block entries and the vector of entries are the same
 func TestAddFedServer(t *testing.T) {
 	testVector := []interfaces.IHash{}
 	for i := 0; i < 1000; i++ {
@@ -180,6 +189,8 @@ func TestAddFedServer(t *testing.T) {
 	}
 }
 
+// TestAddAuditServer creates a vector of 1000 random hashes and adds them to the admin block as audit servers with sequential
+// directory block numbers, and verifies the admin block entries and the vector of entries are the same
 func TestAddAuditServer(t *testing.T) {
 	testVector := []interfaces.IHash{}
 	for i := 0; i < 1000; i++ {
@@ -204,6 +215,8 @@ func TestAddAuditServer(t *testing.T) {
 	}
 }
 
+// TestRemoveFederatedServer creates a vector of 1000 random hashes and adds them to the admin block as removed federated servers with sequential
+// directory block numbers, and verifies the admin block entries and the vector of entries are the same
 func TestRemoveFederatedServer(t *testing.T) {
 	testVector := []interfaces.IHash{}
 	for i := 0; i < 1000; i++ {
@@ -228,6 +241,8 @@ func TestRemoveFederatedServer(t *testing.T) {
 	}
 }
 
+// TestAddMatryoshkaHash creates a vector of 1000 random AddMatryoshkaHashs and adds them to the admin block
+// and verifies the admin block entries and the vector of entries are the same
 func TestAddMatryoshkaHash(t *testing.T) {
 	testVector := []interfaces.IIdentityABEntry{}
 	for i := 0; i < 1000; i++ {
@@ -259,6 +274,8 @@ func TestAddMatryoshkaHash(t *testing.T) {
 	}
 }
 
+// TestAddFederatedServerSigningKey creates a vector of 1000 random AddFederatedServerSigningKeys and adds them to the admin block
+// and verifies the admin block entries and the vector of entries are the same
 func TestAddFederatedServerSigningKey(t *testing.T) {
 	testVector := []interfaces.IIdentityABEntry{}
 	for i := 0; i < 1000; i++ {
@@ -290,6 +307,8 @@ func TestAddFederatedServerSigningKey(t *testing.T) {
 	}
 }
 
+// TestAddFedereatedServerBitcoinAnchorKey creates a vector of 1000 random AddFederatedServerBitcoinAnchorKeys and adds them to the admin block
+// and verifies the admin block entries and the vector of entries are the same
 func TestAddFederatedServerBitcoinAnchorKey(t *testing.T) {
 	testVector := []interfaces.IIdentityABEntry{}
 	for i := 0; i < 1000; i++ {
@@ -429,6 +448,7 @@ func TestAdminBlockHash(t *testing.T) {
 	}
 }
 
+// TestAdminBlockSetHeader tests the SetHeader function
 func TestAdminBlockSetHeader(t *testing.T) {
 	block := createTestAdminBlock()
 	h := createTestAdminHeader()
@@ -438,6 +458,7 @@ func TestAdminBlockSetHeader(t *testing.T) {
 	}
 }
 
+// TestAdminBlockMarshalUnmarshal checks that an admin block can be marshaled and unmarshaled properly
 func TestAdminBlockMarshalUnmarshal(t *testing.T) {
 	blocks := []interfaces.IAdminBlock{
 		createSmallTestAdminBlock(),
@@ -499,6 +520,7 @@ func TestAdminBlockMarshalUnmarshal(t *testing.T) {
 	}
 }
 
+// TestUnmarshalBadAblock checks that a marshaled admin block which has been corrupted throws an error when unmarshalled
 func TestUnmarshalBadAblock(t *testing.T) {
 	block := createTestAdminBlock()
 
@@ -519,6 +541,7 @@ func TestUnmarshalBadAblock(t *testing.T) {
 	}
 }
 
+// TestABlockHeaderMarshalUnmarshal checks that the ABlockHeader may be marshaled and unmarshaled properly
 func TestABlockHeaderMarshalUnmarshal(t *testing.T) {
 	header := createTestAdminHeader()
 
@@ -570,6 +593,7 @@ type TestABlock struct {
 	Hash  string
 }
 
+// TestUnmarshalABlock checks that 3 test structures can have their data decoded and unmarshaled properly
 func TestUnmarshalABlock(t *testing.T) {
 	ts := []TestABlock{}
 
@@ -626,6 +650,8 @@ func CatchPanic() {
 	}
 }
 
+// TestInvalidAblockHeaderUnmarshal checks that unmarshaling nil and the empty interface produce errors and doesn't panic. Also checks
+// that the marshaled admin block header when cut short, cannot be unmarshaled without an error
 func TestInvalidABlockHeaderUnmarshal(t *testing.T) {
 	WeDidPanic = false
 	defer CatchPanic()
@@ -671,6 +697,8 @@ func TestInvalidABlockHeaderUnmarshal(t *testing.T) {
 	}
 }
 
+// TestInvalidAdminBlockUnmarshal checks that unmarshaling nil or the empty interface throws an error but doesn't panic. Also checks
+// that a marshaled admin block when cut short, cannot be unmarshalled without an error
 func TestInvalidAdminBlockUnmarshal(t *testing.T) {
 	WeDidPanic = false
 	defer CatchPanic()
@@ -716,6 +744,7 @@ func TestInvalidAdminBlockUnmarshal(t *testing.T) {
 	}
 }
 
+// TestExpandedABlockHeader checks that a newly created admin block has the admin chain id in it, and the header also contains the info
 func TestExpandedABlockHeader(t *testing.T) {
 	block := createTestAdminBlock()
 	j, err := block.JSONString()
@@ -731,6 +760,8 @@ func TestExpandedABlockHeader(t *testing.T) {
 	}
 }
 
+// TestAddServerFault checks that server faults added to the admin block are correctly sorted by timestamp and properly
+// positioned from other entries even when their addition to the admin block is out of order
 func TestAddServerFault(t *testing.T) {
 	block := createTestAdminBlock().(*AdminBlock)
 
@@ -821,6 +852,7 @@ func TestAddServerFault(t *testing.T) {
 	}
 }
 
+// createTestAdminBlock creates an admin block for testing
 func createTestAdminBlock() (block interfaces.IAdminBlock) {
 	block = new(AdminBlock)
 	block.(*AdminBlock).Init()
@@ -844,6 +876,7 @@ func createTestAdminBlock() (block interfaces.IAdminBlock) {
 	return block
 }
 
+// createSmallTestAdminBlock creates a small admin block for testing
 func createSmallTestAdminBlock() (block interfaces.IAdminBlock) {
 	block = new(AdminBlock)
 	block.(*AdminBlock).Init()
@@ -852,6 +885,7 @@ func createSmallTestAdminBlock() (block interfaces.IAdminBlock) {
 	return block
 }
 
+// createTestAdminHeader creates an admin block header for testing
 func createTestAdminHeader() *ABlockHeader {
 	header := new(ABlockHeader)
 
@@ -868,6 +902,7 @@ func createTestAdminHeader() *ABlockHeader {
 	return header
 }
 
+// createSmallTestAdminHeader creates a small admin block header for testing
 func createSmallTestAdminHeader() *ABlockHeader {
 	header := new(ABlockHeader)
 
@@ -884,7 +919,11 @@ func createSmallTestAdminHeader() *ABlockHeader {
 	return header
 }
 
+// TestABlockVec sets two strings that contain the same data, but with a few pieces whose order are switched, and then
+// unmarshals each into a new admin block. Then checks to make sure the admin block is the same, due to internal sorting
+// which should correct the order
 func TestABlockVec(t *testing.T) {
+	// Test two lines are VERY close to being the same, but different. Search for "888888" along the line and you'll eventually find the differenceg
 	vec1 := "000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000000000009c00000000090000035c018888881570f89283f3a516b6e5ed240f43f5ad7cb05132378c4a006abe7c2b93803b318b23ec15de43db470200c1afb5d1b6156184e247ed035a8f0b6879155b17eb2403f90fe408aa2d83e748a70809299ac7b22b3e92d261b36552d0f7169ccd5044adcdd74e299b2c21bbb586626c20289267ff625d6bb1ee525dbba7490f018888888da6ed14ec63e623cab6917c66b954b361d530770b3f5f5188f87f173811cae6d21e92d9ac0ee83e00f89a3aabde7e3c6f90824339281cfeb93c1377cdba244108175cf299f4db909821adaa42e3346a8b199df30ea391b570bf1cdcbcbb4de04a80de9b8e91885038089bed9046b9c919c90b2da3c0800f89826e3b0d01888888aeaac80d825ac9675cf3a6591916883bd9947e16ab752d39164d80a60815688e940b854d71411dd8dead29843932fc79c9c99cfb69ca6888b29cd13237c7f20041a9d8cd306036253e778a6f833ef75c526aaaf996e6fe8472cc5b7b6b2c58f3695b828550ec247f1c337567a2ab8d184c5c37dd4cf7ae5fb6c98045050138bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a7119b2b8a031ff1ed1a3ce913ab91faf98a3ced5718cf6ce839aef61197c56a7babdb9a09d4f88f22ffa14da4120cd8e95302cb9ac10256b518c2c92b3637a070d4120888888f0b7e308974afc34b2c7f703f25ed2699cb05f818e84e8745644896c551ac603582c31ba6f72a329cea154637d3b372ad538c43a52d3bf3c269cee00240d41208888887020255b631764fc0fd524dac89ae96db264c572391a3f19fcf0f8991e126cf7a9192bae19b3f6920c5f4e0508b87f4d852958641c9b262d5f1727fd520d41208888888da6ed14ec63e623cab6917c66b954b361d530770b3f5f5188f87f17382dd83759f2b90e2083c90399ff8cc5b272b9633b0782bb1daa7a6c11f1b0393f0d4120888888aeaac80d825ac9675cf3a6591916883bd9947e16ab752d39164d80a6089c503dc3d7729b328ad5fc78b43e88ba06bc22736a8c4dc34e3a16a2e2e557e50b4a82a8a9d800641a03e954418966623b4cd6d1477da2cda11ef13d7ed9efb3e1364b1f8c707a82a7fedc001056f38d2e49abf8520f2d447c7b4f8c046add2d2244be5f95a973b6d423e428"
 	vec2 := "000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000000000009c00000000090000035c018888881570f89283f3a516b6e5ed240f43f5ad7cb05132378c4a006abe7c2b93803b318b23ec15de43db470200c1afb5d1b6156184e247ed035a8f0b6879155b17eb2403f90fe408aa2d83e748a70809299ac7b22b3e92d261b36552d0f7169ccd5044adcdd74e299b2c21bbb586626c20289267ff625d6bb1ee525dbba7490f018888888da6ed14ec63e623cab6917c66b954b361d530770b3f5f5188f87f173811cae6d21e92d9ac0ee83e00f89a3aabde7e3c6f90824339281cfeb93c1377cdba244108175cf299f4db909821adaa42e3346a8b199df30ea391b570bf1cdcbcbb4de04a80de9b8e91885038089bed9046b9c919c90b2da3c0800f89826e3b0d01888888aeaac80d825ac9675cf3a6591916883bd9947e16ab752d39164d80a60815688e940b854d71411dd8dead29843932fc79c9c99cfb69ca6888b29cd13237c7f20041a9d8cd306036253e778a6f833ef75c526aaaf996e6fe8472cc5b7b6b2c58f3695b828550ec247f1c337567a2ab8d184c5c37dd4cf7ae5fb6c98045050138bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a7119b2b8a031ff1ed1a3ce913ab91faf98a3ced5718cf6ce839aef61197c56a7babdb9a09d4f88f22ffa14da4120cd8e95302cb9ac10256b518c2c92b3637a070d41208888888da6ed14ec63e623cab6917c66b954b361d530770b3f5f5188f87f17382dd83759f2b90e2083c90399ff8cc5b272b9633b0782bb1daa7a6c11f1b0393f0d4120888888aeaac80d825ac9675cf3a6591916883bd9947e16ab752d39164d80a6089c503dc3d7729b328ad5fc78b43e88ba06bc22736a8c4dc34e3a16a2e2e557e50d4120888888f0b7e308974afc34b2c7f703f25ed2699cb05f818e84e8745644896c551ac603582c31ba6f72a329cea154637d3b372ad538c43a52d3bf3c269cee00240d41208888887020255b631764fc0fd524dac89ae96db264c572391a3f19fcf0f8991e126cf7a9192bae19b3f6920c5f4e0508b87f4d852958641c9b262d5f1727fd520b4a82a8a9d800641a03e954418966623b4cd6d1477da2cda11ef13d7ed9efb3e1364b1f8c707a82a7fedc001056f38d2e49abf8520f2d447c7b4f8c046add2d2244be5f95a973b6d423e428"
 
@@ -919,6 +958,7 @@ func TestABlockVec(t *testing.T) {
 
 }
 
+// TestSortOrder constructs two parallel admin blocks and marshals them, then checks whether the marshalled data are identical, implying
 func TestSortOrder(t *testing.T) {
 	rand.Seed(time.Now().UnixNano())
 	a := NewAdminBlock(nil)

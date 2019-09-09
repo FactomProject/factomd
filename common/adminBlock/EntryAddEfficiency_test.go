@@ -11,6 +11,8 @@ import (
 	"github.com/FactomProject/factomd/testHelper"
 )
 
+// TestAddEfficiency checks that 100 randomly generated AddEfficiency objects can be marshalled and unmarshalled properly, and
+// also tests the empty AddEfficiency
 func TestAddEfficiency(t *testing.T) {
 	rand.Seed(time.Now().UnixNano())
 	for i := 0; i < 100; i++ {
@@ -39,6 +41,7 @@ func TestAddEfficiency(t *testing.T) {
 	}
 }
 
+// TestAddBadEfficiency checks that marshalled data which becomes corrupted, will throw an error when unmarshalled
 func TestAddBadEfficiency(t *testing.T) {
 	e1 := NewAddEfficiency(primitives.RandomHash(), uint16(5000))
 	p, err := e1.MarshalBinary()

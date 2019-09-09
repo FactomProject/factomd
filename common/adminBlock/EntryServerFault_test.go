@@ -8,6 +8,7 @@ import (
 	"github.com/FactomProject/factomd/testHelper"
 )
 
+// TestServerFaultGetHash checks that an new, empty ServerFault has the proper hash
 func TestServerFaultGetHash(t *testing.T) {
 	a := new(ServerFault)
 	h := a.Hash()
@@ -17,6 +18,8 @@ func TestServerFaultGetHash(t *testing.T) {
 	}
 }
 
+// TestServerFaultTypeIDCheck checks that an empty ServerFault can be unmarshaled correctly, and that a corrupted object
+// will throw an error when unmarshaled
 func TestServerFaultTypeIDCheck(t *testing.T) {
 	a := new(ServerFault)
 	b, err := a.MarshalBinary()
@@ -39,6 +42,7 @@ func TestServerFaultTypeIDCheck(t *testing.T) {
 	}
 }
 
+// TestUnmarshalNilServerFault checks that nil and empty interfaces throw errors when unmarshalled
 func TestUnmarshalNilServerFault(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -58,6 +62,8 @@ func TestUnmarshalNilServerFault(t *testing.T) {
 	}
 }
 
+// TestServerFaultMarshalUnmarshal checks that a ServerFault is correctly created, and can be marshaled and unmarshalled
+// correctly
 func TestServerFaultMarshalUnmarshal(t *testing.T) {
 	sf := new(ServerFault)
 
@@ -130,6 +136,7 @@ func TestServerFaultMarshalUnmarshal(t *testing.T) {
 	}
 }
 
+// TestFaultMisc checks that the various strings and smaller member functions return proper values
 func TestFaultMisc(t *testing.T) {
 	a := new(ServerFault)
 	if a.String() != "    E:                    EntryServerFault -- DBheight 0s FedID   000000 AuditServer   000000, #sigs 0, VMIndex 0" {

@@ -8,6 +8,7 @@ import (
 	"github.com/FactomProject/factomd/testHelper"
 )
 
+// TestAddFederatedServerGetHash checks that an empty AddFederatedServer has the correct hash
 func TestAddFederatedServerGetHash(t *testing.T) {
 	a := new(AddFederatedServer)
 	h := a.Hash()
@@ -17,6 +18,7 @@ func TestAddFederatedServerGetHash(t *testing.T) {
 	}
 }
 
+// TestAddFederatedServerTypeIDCheck checks that the AddFederatedServer is marshalled correctly
 func TestAddFederatedServerTypeIDCheck(t *testing.T) {
 	a := new(AddFederatedServer)
 	b, err := a.MarshalBinary()
@@ -39,6 +41,7 @@ func TestAddFederatedServerTypeIDCheck(t *testing.T) {
 	}
 }
 
+// TestUnmarshalNilAddFederatedServer checks that unmarshalling nil or an empty interface results in an error
 func TestUnmarshalNilAddFederatedServer(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -58,6 +61,7 @@ func TestUnmarshalNilAddFederatedServer(t *testing.T) {
 	}
 }
 
+// TestAddFederatedServerMarshalUnmarshal checks that an AddFederatedServer can be marshalled and unmarshalled correctly
 func TestAddFederatedServerMarshalUnmarshal(t *testing.T) {
 	identity := testHelper.NewRepeatingHash(0xAB)
 	var dbHeight uint32 = 0xAABBCCDD
@@ -93,6 +97,7 @@ func TestAddFederatedServerMarshalUnmarshal(t *testing.T) {
 	}
 }
 
+// TestAddFedServerMisc checks that various other functions of AddFederatedServer function as expected
 func TestAddFedServerMisc(t *testing.T) {
 	a := new(AddFederatedServer)
 	if a.String() != "    E:                        AddFedServer --   IdentityChainID   000000     DBHeight        0" {

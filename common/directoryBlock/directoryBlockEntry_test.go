@@ -12,6 +12,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
+// TestUnmarshalNilDBEntry checks that unmarshalling a nil or empty interface returns the proper error
 func TestUnmarshalNilDBEntry(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -31,6 +32,7 @@ func TestUnmarshalNilDBEntry(t *testing.T) {
 	}
 }
 
+// TestDBSEMisc checks that setting and getting both the chain id and key Merkle root are consistent
 func TestDBSEMisc(t *testing.T) {
 	dbe := new(DBEntry)
 	hash, err := primitives.HexToHash("000000000000000000000000000000000000000000000000000000000000000a")
@@ -75,6 +77,7 @@ func TestDBSEMisc(t *testing.T) {
 	*/
 }
 
+// TestDBSEMarshalUnmarshal checks that a directory block entry can be marshalled and unmarshalled correctly
 func TestDBSEMarshalUnmarshal(t *testing.T) {
 	dbe := new(DBEntry)
 
@@ -116,6 +119,7 @@ func TestDBSEMarshalUnmarshal(t *testing.T) {
 	}
 }
 
+// TestHash checks that the marshalled directory block entry returns the proper hash
 func TestHash(t *testing.T) {
 	dbe := new(DBEntry)
 
@@ -134,6 +138,7 @@ func TestHash(t *testing.T) {
 	}
 }
 
+// TestPrintsE checks that the String, JSONString, and JSONByte functions return the proper strings
 func TestPrintsE(t *testing.T) {
 	dbe := new(DBEntry)
 	h, _ := primitives.HexToHash("3e3eb61fb20e71d8211882075d404f5929618a189d23aba8c892b22228aa0d71")
@@ -171,6 +176,7 @@ func TestPrintsE(t *testing.T) {
 	}
 }
 
+// TestCheckErrorsMarshal checks that a directory block entry can still be marshalled without its key Merkle root
 func TestCheckErrorsMarshal(t *testing.T) {
 	dbe := new(DBEntry)
 

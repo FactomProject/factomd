@@ -10,16 +10,18 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-// AddEfficiency Entry -------------------------
+// AddEfficiency is an admin block entry which contains a server identity and an efficiency for that server. The efficiency is specified in
+// hundredths of a percent. So 0% would be specified as 0, 52.34% is specified as 5234, and 100% is specified as 10000.
 type AddEfficiency struct {
-	AdminIDType     uint32 `json:"adminidtype"`
-	IdentityChainID interfaces.IHash
-	Efficiency      uint16
+	AdminIDType     uint32           `json:"adminidtype"` // the type of action in this admin block entry: uint32(TYPE_ADD_FACTOID_EFFICIENCY)
+	IdentityChainID interfaces.IHash // the server identity whose efficiency will be updated
+	Efficiency      uint16           // the efficiency this server will run at from 0 to 10000 (0% to 100.00%)
 }
 
 var _ interfaces.IABEntry = (*AddEfficiency)(nil)
 var _ interfaces.BinaryMarshallable = (*AddEfficiency)(nil)
 
+// Init initializes any nil hashes to the zero hash and sets the object type
 func (e *AddEfficiency) Init() {
 	e.AdminIDType = uint32(e.Type())
 	if e.IdentityChainID == nil {
@@ -27,6 +29,7 @@ func (e *AddEfficiency) Init() {
 	}
 }
 
+// IsSameAs returns true iff the input object is identical to this object
 func (a *AddEfficiency) IsSameAs(b *AddEfficiency) bool {
 	if a.Type() != b.Type() {
 		return false
@@ -43,6 +46,7 @@ func (a *AddEfficiency) IsSameAs(b *AddEfficiency) bool {
 	return true
 }
 
+// SortedIdentity returns the server identity associated with the efficiency change
 func (e *AddEfficiency) SortedIdentity() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {
@@ -54,6 +58,7 @@ func (e *AddEfficiency) SortedIdentity() (rval interfaces.IHash) {
 	return e.IdentityChainID
 }
 
+// String returns the AddEfficiency string
 func (e *AddEfficiency) String() string {
 	e.Init()
 	var out primitives.Buffer
@@ -64,14 +69,17 @@ func (e *AddEfficiency) String() string {
 	return (string)(out.DeepCopyBytes())
 }
 
-func (c *AddEfficiency) UpdateState(state interfaces.IState) error {
-	c.Init()
+// UpdateState updates factomd's state with information on the new efficiency
+func (e *AddEfficiency) UpdateState(state interfaces.IState) error {
+	e.Init()
 	//state.AddAuditServer(c.DBHeight, c.IdentityChainID)
-	state.UpdateAuthorityFromABEntry(c)
+	state.UpdateAuthorityFromABEntry(e)
 
 	return nil
 }
 
+// NewAddEfficiency creates a new AddEfficiency from the inputs. Efficiencies above 10000 (100%)
+// are truncated to 10000
 func NewAddEfficiency(chainID interfaces.IHash, efficiency uint16) (e *AddEfficiency) {
 	e = new(AddEfficiency)
 	e.Init()
@@ -83,10 +91,12 @@ func NewAddEfficiency(chainID interfaces.IHash, efficiency uint16) (e *AddEffici
 	return
 }
 
+// Type returns the hardcoded TYPE_ADD_FACTOID_EFFICIENCY
 func (e *AddEfficiency) Type() byte {
 	return constants.TYPE_ADD_FACTOID_EFFICIENCY
 }
 
+// MarshalBinary marshals the object
 func (e *AddEfficiency) MarshalBinary() (rval []byte, err error) {
 	defer func(pe *error) {
 		if *pe != nil {
@@ -127,6 +137,7 @@ func (e *AddEfficiency) MarshalBinary() (rval []byte, err error) {
 	return buf.DeepCopyBytes(), nil
 }
 
+// UnmarshalBinaryData unmarshals the input data into this object
 func (e *AddEfficiency) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	buf := primitives.NewBuffer(data)
 	e.Init()
@@ -183,29 +194,35 @@ func (e *AddEfficiency) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	return buf.DeepCopyBytes(), nil
 }
 
+// UnmarshalBinary unmarshals the input data into this object
 func (e *AddEfficiency) UnmarshalBinary(data []byte) (err error) {
 	_, err = e.UnmarshalBinaryData(data)
 	return
 }
 
+// JSONByte returns the json encoded byte array
 func (e *AddEfficiency) JSONByte() ([]byte, error) {
 	e.AdminIDType = uint32(e.Type())
 	return primitives.EncodeJSON(e)
 }
 
+// JSONString returns the json encoded string
 func (e *AddEfficiency) JSONString() (string, error) {
 	e.AdminIDType = uint32(e.Type())
 	return primitives.EncodeJSONString(e)
 }
 
+// IsInterpretable always returns false
 func (e *AddEfficiency) IsInterpretable() bool {
 	return false
 }
 
+// Interpret always returns the empty string ""
 func (e *AddEfficiency) Interpret() string {
 	return ""
 }
 
+// Hash marshals the object and takes its hash
 func (e *AddEfficiency) Hash() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {

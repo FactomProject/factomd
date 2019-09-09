@@ -22,6 +22,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
+// TestUnmarshalNilDirectoryBlock ensures unmarshalling nil or empty interfaces return proper errors
 func TestUnmarshalNilDirectoryBlock(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -41,6 +42,8 @@ func TestUnmarshalNilDirectoryBlock(t *testing.T) {
 	}
 }
 
+// TestMarshalUnmarshalDirectoryBlockHeader checks that a directory block header can be marshalled
+// and unmarshalled properly, returning the same data
 func TestMarshalUnmarshalDirectoryBlockHeader(t *testing.T) {
 	header := createTestDirectoryBlockHeader()
 
@@ -62,6 +65,8 @@ func TestMarshalUnmarshalDirectoryBlockHeader(t *testing.T) {
 
 }
 
+// TestMarshalUnmarshalDirctoryBlock checks that a directory block may be marshalled and
+// unmarshalled properly, returning the same data
 func TestMarshalUnmarshalDirectoryBlock(t *testing.T) {
 	dblock := createTestDirectoryBlock()
 
@@ -82,6 +87,8 @@ func TestMarshalUnmarshalDirectoryBlock(t *testing.T) {
 	}
 }
 
+// TestMarshalUnmarshalBadDirectoryBlock checks that a corrupted marshalled object
+// will unmarshal and throw an error
 func TestMarshalUnmarshalBadDirectoryBlock(t *testing.T) {
 	dblock := createTestDirectoryBlock()
 	p, err := dblock.MarshalBinary()
@@ -102,12 +109,15 @@ func TestMarshalUnmarshalBadDirectoryBlock(t *testing.T) {
 
 var WeDidPanic bool
 
+// CatchPanic sets the Global WeDidPanic to true if a panic was caught
 func CatchPanic() {
 	if r := recover(); r != nil {
 		WeDidPanic = true
 	}
 }
 
+// TestInvalidUnmarshalDirectoryBlockHeader checks unmarshalling nil/empty header objects results
+// in an error. Also checks that incomplete data being unmarshalled throws an error
 func TestInvalidUnmarshalDirectoryBlockHeader(t *testing.T) {
 	header := createTestDirectoryBlockHeader()
 
@@ -153,6 +163,8 @@ func TestInvalidUnmarshalDirectoryBlockHeader(t *testing.T) {
 	}
 }
 
+// TestInvalidUnmarshalDirectoryBlock checks unmarshalling nil/empty directory block objects results
+// in an error. Also checks that incomplete data being unmarshalled throws an error
 func TestInvalidUnmarshalDirectoryBlock(t *testing.T) {
 	dblock := createTestDirectoryBlock()
 
@@ -198,6 +210,7 @@ func TestInvalidUnmarshalDirectoryBlock(t *testing.T) {
 	}
 }
 
+// TestMakeSureBlockCountIsNotDuplicates checks that the block count variable isn't written multiple times
 func TestMakeSureBlockCountIsNotDuplicates(t *testing.T) {
 	block := createTestDirectoryBlock()
 	min := 1000
@@ -240,6 +253,7 @@ func TestMakeSureBlockCountIsNotDuplicates(t *testing.T) {
 	}
 }
 
+// createTestDirectoryBlock is a helper function to easily create a directory block for testing
 func createTestDirectoryBlock() *DirectoryBlock {
 	dblock := new(DirectoryBlock)
 
@@ -262,6 +276,7 @@ func createTestDirectoryBlock() *DirectoryBlock {
 	return dblock
 }
 
+// createTestDirectoryBlockHeader is a helper function to easily create a directory block header for testing
 func createTestDirectoryBlockHeader() *DBlockHeader {
 	header := new(DBlockHeader)
 
@@ -277,6 +292,7 @@ func createTestDirectoryBlockHeader() *DBlockHeader {
 	return header
 }
 
+// TestKeyMRs checks that the computed Merkle root of a specific directory block is correct to a fixed baseline
 func TestKeyMRs(t *testing.T) {
 	entries := []string{"44c9f3a6d6f6b2ab5efb29e7d6159c4e3fca13fc5dd03b94ae3dea8bf30173cb",
 		"41a36ab01a9b8e8d78d6b43b8e7e6671916a93b43b8fec48a627d0cb51f012f1",
@@ -312,6 +328,7 @@ func TestKeyMRs(t *testing.T) {
 	}
 }
 
+// TestDBlockTimestamp checks that the timestamp after unmarshalling is valid
 func TestDBlockTimestamp(t *testing.T) {
 	dbStr := "010000ffff45acc1e2847302b80d0558aac1504c54253c28293a92bab6c7f8bb984a1e696fcd63b26d12e9d397a545fd50e26b53ab8b1fb555f824edb1f71937a6288d59014d1b7854253ec712124c9862f3aece068fe8b56b33e540dd6e8f7bb30efdb4f7000004da0000000800000005000000000000000000000000000000000000000000000000000000000000000a44a3b5f89f8f861815930b8442ed143d61163a8d5ad4cc3f792847c6c26e3543000000000000000000000000000000000000000000000000000000000000000c9d149c5213f91502ad50d9136792974987ad086309bf4d1462c68fe982284245000000000000000000000000000000000000000000000000000000000000000f1a708e863af21b5492563f6440cabfd2932653864f77cf4519cf361b107e4ce86e7e64ac45ff57edbf8537a0c99fba2e9ee351ef3d3f4abd93af9f01107e592c25c9e5963917c97ed988c571e703104b34d11f2f6241c0c69d9cfd6ad94491dbdf3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604027710061c785d0ffbf15f2fe4a42a744f78ef6a0ca39bcf38ed4ead6ab0cded"
 	dbHex, err := hex.DecodeString(dbStr)
@@ -354,6 +371,7 @@ func TestDBlockTimestamp(t *testing.T) {
 }
 */
 
+// TestExpandedDBlockHeader tests the expanded directory block header
 func TestExpandedDBlockHeader(t *testing.T) {
 	block := createTestDirectoryBlock()
 	j, err := block.JSONString()
@@ -366,6 +384,9 @@ func TestExpandedDBlockHeader(t *testing.T) {
 	}
 }
 
+// TestBuildBlock checks a ton of items related to a constructed directory block: 1) merkle root is
+// computed correctly, 2) the probing functions work correctly, 3) the string functions return the expected
+// strings
 func TestBuildBlock(t *testing.T) {
 	db1 := NewDirectoryBlock(nil)
 	db1.(*DirectoryBlock).Init()
@@ -588,6 +609,7 @@ entries:
 	}
 }
 
+// TestSortFunc checks that the sorting of the entries works properly
 func TestSortFunc(t *testing.T) {
 	db1 := NewDirectoryBlock(nil)
 	db1.(*DirectoryBlock).Init()
@@ -618,6 +640,7 @@ func TestSortFunc(t *testing.T) {
 	}
 }
 
+// TestMerkleTree checks that the merkle root of the directory block is computed properly
 func TestMerkleTree(t *testing.T) {
 	db1 := NewDirectoryBlock(nil)
 	db1.(*DirectoryBlock).Init()
@@ -651,6 +674,7 @@ func TestMerkleTree(t *testing.T) {
 	}
 }
 
+// TestSameAs checks that the IsSameAs function works properly
 func TestSameAs(t *testing.T) {
 	//block 1000
 	db1kbytes, _ := hex.DecodeString("00fa92e5a2f2eaf170a2da9e4956a40231ed7255c6c6e5ada1ed746fc5ab3a0b79b8c700367a49467be900ba00daedd7d9cf2b1a07f839360e859e1f3d78c46701d3ad1507974595bf9b73dbec9ff5d5744cbf6410d66b837924208a0b8b84e54fc4aad660016ea716000003e800000004000000000000000000000000000000000000000000000000000000000000000a3d92dc70f4cfd4fe464e18962057d71924679cc866fe37f4b8023d292d9f34ce000000000000000000000000000000000000000000000000000000000000000c0526c1fdb9e0813e297a331891815ed893cb5a9cff15529197f13932ed9f9547000000000000000000000000000000000000000000000000000000000000000f526aca5f63bfb59188bae1fc367411a123bcc1d5a3c23c710b66b46703542855df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604f08c42bc44c09ac26c349bef8ee80d2ffb018cfa3e769107b2413792fa9bd642")
@@ -686,6 +710,8 @@ type TestDBlock struct {
 	Hash  string
 }
 
+// TestMarshalUnmarshalFixedDirectoryBlocks checks that fixed directory blocks can be marshalled and
+// unmarshalled properly
 func TestMarshalUnmarshalFixedDirectoryBlocks(t *testing.T) {
 	ts := []TestDBlock{}
 
