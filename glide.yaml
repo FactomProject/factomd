@@ -43,6 +43,9 @@ import:
   version: ^1.2.2
   subpackages:
   - assert
+- package: github.com/golang/protobuf
+  version: ^1.3.2
+- package: github.com/opsee/protobuf/opseeproto
 testImport:
 - package: github.com/FactomProject/go-spew
   subpackages:

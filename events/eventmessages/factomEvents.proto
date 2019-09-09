@@ -3,14 +3,14 @@ package eventmessages;
 option go_package = "eventmessages";
 option java_package = "com.factom.factomd.eventmessages";
 
-import "github.com/opsee/protobuf/opseeproto/opsee.proto";
-import "github.com/opsee/protobuf/opseeproto/types/timestamp.proto";
+import "github.com/bi-foundation/protobuf-graphql-extension/graphqlproto/graphql.proto";
+import "github.com/bi-foundation/protobuf-graphql-extension/graphqlproto/types/timestamp.proto";
 import "eventmessages/generalTypes.proto";
 import "eventmessages/adminBlock.proto";
 import "eventmessages/factoidBlock.proto";
 import "eventmessages/entryCredit.proto";
 
-option (opseeproto.graphql) = true;
+option (graphqlproto.graphql) = true;
 
 enum StreamSource {
     LIVE = 0;
@@ -48,7 +48,7 @@ message ChainRegistration {
     Hash chainIDHash = 2;
     Hash entryHash = 3;
     Hash weld = 4;
-    opsee.types.Timestamp timestamp = 5;
+    graphqlproto.types.Timestamp timestamp = 5;
     uint32 credits = 6;
     bytes ecPubKey = 7;
     bytes sig = 8;
@@ -57,7 +57,7 @@ message ChainRegistration {
 message EntryRegistration {
     EntityState entityState = 1;
     Hash entryHash = 2;
-    opsee.types.Timestamp timestamp = 3;
+    graphqlproto.types.Timestamp timestamp = 3;
     uint32 credits = 4;
     bytes ecPubKey = 5;
     bytes sig = 6;
@@ -66,7 +66,7 @@ message EntryRegistration {
 message EntryContentRegistration {
     EntityState entityState = 1;
     EntryBlockEntry entry = 2;
-    opsee.types.Timestamp timestamp = 3;
+    graphqlproto.types.Timestamp timestamp = 3;
 }
 
 message StateChange {
@@ -84,7 +84,7 @@ message DirectoryBlockHeader {
     Hash bodyMerkleRoot = 1;
     Hash previousKeyMerkleRoot = 2;
     Hash previousFullHash = 3;
-    opsee.types.Timestamp timestamp = 4;
+    graphqlproto.types.Timestamp timestamp = 4;
     uint32 blockHeight = 5;
     uint32 blockCount = 6;
 }

@@ -4,10 +4,10 @@ option go_package = "eventmessages";
 option java_package = "com.factom.factomd.eventmessages";
 
 import "eventmessages/generalTypes.proto";
-import "github.com/opsee/protobuf/opseeproto/opsee.proto";
-import "github.com/opsee/protobuf/opseeproto/types/timestamp.proto";
+import "github.com/bi-foundation/protobuf-graphql-extension/graphqlproto/graphql.proto";
+import "github.com/bi-foundation/protobuf-graphql-extension/graphqlproto/types/timestamp.proto";
 
-option (opseeproto.graphql) = true;
+option (graphqlproto.graphql) = true;
 
 message EntryCreditBlock {
     EntryCreditBlockHeader header = 1;
@@ -41,7 +41,7 @@ message EntryCreditChainRegistration {
     Hash chainIDHash = 2;
     Hash entryHash = 3;
     Hash weld = 4;
-    opsee.types.Timestamp timestamp = 5;
+    graphqlproto.types.Timestamp timestamp = 5;
     uint32 credits = 6;
     bytes ecPubKey = 7;
     bytes sig = 8;
@@ -50,7 +50,7 @@ message EntryCreditChainRegistration {
 message EntryCreditEntryRegistration {
     EntityState entityState = 1;
     Hash entryHash = 2;
-    opsee.types.Timestamp timestamp = 3;
+    graphqlproto.types.Timestamp timestamp = 3;
     uint32 credits = 4;
     bytes ecPubKey = 5;
     bytes sig = 6;

@@ -5,10 +5,10 @@ option java_package = "com.factom.factomd.eventmessages";
 
 import "eventmessages/generalTypes.proto";
 import "eventmessages/factoidBlock.proto";
-import "github.com/opsee/protobuf/opseeproto/opsee.proto";
-import "github.com/opsee/protobuf/opseeproto/types/timestamp.proto";
+import "github.com/bi-foundation/protobuf-graphql-extension/graphqlproto/graphql.proto";
+import "github.com/bi-foundation/protobuf-graphql-extension/graphqlproto/types/timestamp.proto";
 
-option (opseeproto.graphql) = true;
+option (graphqlproto.graphql) = true;
 
 message AdminBlock {
     AdminBlockHeader header = 1;
@@ -121,7 +121,7 @@ message RevealMatryoshkaHash {
 }
 
 message ServerFault {
-    opsee.types.Timestamp timestamp = 1;
+    graphqlproto.types.Timestamp timestamp = 1;
     Hash serverId = 2;
     Hash auditServerId = 3;
     uint32 vmIndex = 4;
