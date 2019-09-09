@@ -8,8 +8,8 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/events"
 	"github.com/FactomProject/factomd/events/contentfiltermode"
-	"github.com/FactomProject/factomd/events/eventmessages"
-	"github.com/gogo/protobuf/types"
+	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
+	opsee_types "github.com/opsee/protobuf/opseeproto/types"
 	"time"
 )
 
@@ -125,7 +125,7 @@ func mapDBState(msg interfaces.IMsg, shouldIncludeContent bool) *eventmessages.F
 	return event
 }
 
-func convertByteSlice6ToTimestamp(milliTime *primitives.ByteSlice6) *types.Timestamp {
+func convertByteSlice6ToTimestamp(milliTime *primitives.ByteSlice6) *opsee_types.Timestamp {
 	// TODO Is there an easier way to do this?
 	slice8 := make([]byte, 8)
 	copy(slice8[2:], milliTime[:])
@@ -134,6 +134,6 @@ func convertByteSlice6ToTimestamp(milliTime *primitives.ByteSlice6) *types.Times
 	return convertTimeToTimestamp(t)
 }
 
-func convertTimeToTimestamp(time time.Time) *types.Timestamp {
-	return &types.Timestamp{Seconds: int64(time.Second()), Nanos: int32(time.Nanosecond())}
+func convertTimeToTimestamp(time time.Time) *opsee_types.Timestamp {
+	return &opsee_types.Timestamp{Seconds: int64(time.Second()), Nanos: int32(time.Nanosecond())}
 }

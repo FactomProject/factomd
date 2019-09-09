@@ -2,7 +2,7 @@ package eventservices
 
 import (
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/events/eventmessages"
+	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 )
 
 func mapDirBlock(block interfaces.IDirectoryBlock) *eventmessages.DirectoryBlock {

@@ -3,7 +3,7 @@ package events
 import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/events/eventmessages"
+	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 	log "github.com/sirupsen/logrus"
 )
 

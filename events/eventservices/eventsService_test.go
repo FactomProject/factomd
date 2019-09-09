@@ -7,13 +7,13 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/events"
-	"github.com/FactomProject/factomd/events/eventmessages"
+	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 	"github.com/FactomProject/factomd/events/eventoutputformat"
 	"github.com/FactomProject/factomd/events/eventservices"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/testHelper"
 	"github.com/gogo/protobuf/proto"
-	"github.com/gogo/protobuf/types"
+	opsee_types "github.com/opsee/protobuf/opseeproto/types"
 	"github.com/stretchr/testify/assert"
 	"sync/atomic"
 	"testing"
@@ -197,7 +197,7 @@ func mockDirHeader() *eventmessages.DirectoryBlockHeader {
 		PreviousFullHash: &eventmessages.Hash{
 			HashValue: testHash,
 		},
-		Timestamp:   &types.Timestamp{Seconds: int64(t.Second()), Nanos: int32(t.Nanosecond())},
+		Timestamp:   &opsee_types.Timestamp{Seconds: int64(t.Second()), Nanos: int32(t.Nanosecond())},
 		BlockHeight: 123,
 		BlockCount:  456,
 	}

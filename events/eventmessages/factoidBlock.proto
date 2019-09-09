@@ -4,14 +4,17 @@ option go_package = "eventmessages";
 option java_package = "com.factom.factomd.eventmessages";
 
 import "eventmessages/generalTypes.proto";
-import "google/protobuf/timestamp.proto";
+import "github.com/opsee/protobuf/opseeproto/opsee.proto";
+import "github.com/opsee/protobuf/opseeproto/types/timestamp.proto";
+
+option (opseeproto.graphql) = true;
 
 
 message FactoidBlock {
     Hash bodyMerkleRoot = 1;
     Hash previousKeyMerkleRoot = 2;
     Hash previousLedgerKeyMerkleRoot = 3;
-    uint64 ExchRate = 4;
+    uint64 exchRate = 4;
     uint32 blockHeight = 5;
     repeated Transaction transactions = 6;
 }
@@ -19,11 +22,11 @@ message FactoidBlock {
 message Transaction {
     Hash transactionId = 1;
     uint32 blockHeight = 2;
-    google.protobuf.Timestamp timestamp = 3;
+    opsee.types.Timestamp timestamp = 3;
     repeated TransactionAddress inputs = 4;
     repeated TransactionAddress outputs = 5;
     repeated TransactionAddress outputEntryCredits = 6;
-    repeated RCD rCds = 7;
+    repeated RCD rcds = 7;
     repeated FactoidSignatureBlock signatureBlocks = 8;
 }
 

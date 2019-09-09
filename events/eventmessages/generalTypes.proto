@@ -3,7 +3,10 @@ package eventmessages;
 option go_package = "eventmessages";
 option java_package = "com.factom.factomd.eventmessages";
 
-import "google/protobuf/timestamp.proto";
+import "github.com/opsee/protobuf/opseeproto/opsee.proto";
+import "github.com/opsee/protobuf/opseeproto/types/timestamp.proto";
+
+option (opseeproto.graphql) = true;
 
 
 enum EntityState {
@@ -46,31 +49,5 @@ message EntryBlockEntry {
 message Entry {
     Hash chainID = 1;
     Hash keyMerkleRoot = 2;
-}
-
-message ChainRegistration {
-    EntityState entityState = 1;
-    Hash chainIDHash = 2;
-    Hash entryHash = 3;
-    Hash weld = 4;
-    google.protobuf.Timestamp timestamp = 5;
-    uint32 credits = 6;
-    bytes ecPubKey = 7;
-    bytes sig = 8;
-}
-
-message EntryRegistration {
-    EntityState entityState = 1;
-    Hash entryHash = 2;
-    google.protobuf.Timestamp timestamp = 3;
-    uint32 credits = 4;
-    bytes ecPubKey = 5;
-    bytes sig = 6;
-}
-
-message EntryContentRegistration {
-    EntityState entityState = 1;
-    EntryBlockEntry entry = 2;
-    google.protobuf.Timestamp timestamp = 3;
 }
 

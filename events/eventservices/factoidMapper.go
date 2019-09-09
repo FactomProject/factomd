@@ -3,7 +3,7 @@ package eventservices
 import (
 	"github.com/FactomProject/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/events/eventmessages"
+	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 )
 
 func mapFactoidBlock(block interfaces.IFBlock) *eventmessages.FactoidBlock {
@@ -45,7 +45,7 @@ func mapTransaction(transaction interfaces.ITransaction) *eventmessages.Transact
 		Inputs:             mapTransactionAddresses(transaction.GetInputs()),
 		Outputs:            mapTransactionAddresses(transaction.GetOutputs()),
 		OutputEntryCredits: mapTransactionAddresses(transaction.GetECOutputs()),
-		RCds:               mapRCDs(transaction.GetRCDs()),
+		Rcds:               mapRCDs(transaction.GetRCDs()),
 		SignatureBlocks:    mapSignatureBlocks(transaction.GetSignatureBlocks()),
 	}
 	return result

@@ -5,8 +5,10 @@ option java_package = "com.factom.factomd.eventmessages";
 
 import "eventmessages/generalTypes.proto";
 import "eventmessages/factoidBlock.proto";
-import "google/protobuf/timestamp.proto";
+import "github.com/opsee/protobuf/opseeproto/opsee.proto";
+import "github.com/opsee/protobuf/opseeproto/types/timestamp.proto";
 
+option (opseeproto.graphql) = true;
 
 message AdminBlock {
     AdminBlockHeader header = 1;
@@ -92,7 +94,7 @@ message CoinbaseDescriptor {
 
 message DirectoryBlockSignatureEntry {
     Hash identityAdminChainID = 1;
-    Signature PrevDBSig = 2;
+    Signature prevDBSig = 2;
 }
 
 message EndOfMinuteEntry {
@@ -119,7 +121,7 @@ message RevealMatryoshkaHash {
 }
 
 message ServerFault {
-    google.protobuf.Timestamp timestamp = 1;
+    opsee.types.Timestamp timestamp = 1;
     Hash serverId = 2;
     Hash auditServerId = 3;
     uint32 vmIndex = 4;

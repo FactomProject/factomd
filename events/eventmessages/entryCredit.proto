@@ -4,7 +4,10 @@ option go_package = "eventmessages";
 option java_package = "com.factom.factomd.eventmessages";
 
 import "eventmessages/generalTypes.proto";
+import "github.com/opsee/protobuf/opseeproto/opsee.proto";
+import "github.com/opsee/protobuf/opseeproto/types/timestamp.proto";
 
+option (opseeproto.graphql) = true;
 
 message EntryCreditBlock {
     EntryCreditBlockHeader header = 1;
@@ -16,7 +19,7 @@ message EntryCreditBlockHeader {
     Hash previousHeaderHash = 2;
     Hash previousFullHash = 3;
     uint32 blockHeight = 4;
-    bytes HeaderExpansionArea = 5;
+    bytes headerExpansionArea = 5;
     uint64 objectCount = 6;
     uint64 bodySize = 7;
 }
@@ -24,14 +27,34 @@ message EntryCreditBlockHeader {
 
 message EntryCreditBlockEntry {
     oneof value {
-        ChainRegistration commitChain = 1;
-        EntryRegistration commitEntry = 2;
+        EntryCreditChainRegistration commitChain = 1;
+        EntryCreditEntryRegistration commitEntry = 2;
         IncreaseBalance increaseBalance = 3;
-        uint32 minuteNumber = 4;
-        uint32 serverIndexNumber = 5;
+        MinuteNumber minuteNumber = 4;
+        ServerIndexNumber serverIndexNumber = 5;
     }
 }
 
+
+message EntryCreditChainRegistration {
+    EntityState entityState = 1;
+    Hash chainIDHash = 2;
+    Hash entryHash = 3;
+    Hash weld = 4;
+    opsee.types.Timestamp timestamp = 5;
+    uint32 credits = 6;
+    bytes ecPubKey = 7;
+    bytes sig = 8;
+}
+
+message EntryCreditEntryRegistration {
+    EntityState entityState = 1;
+    Hash entryHash = 2;
+    opsee.types.Timestamp timestamp = 3;
+    uint32 credits = 4;
+    bytes ecPubKey = 5;
+    bytes sig = 6;
+}
 
 message IncreaseBalance {
     bytes ecPubKey = 1;
@@ -40,3 +63,10 @@ message IncreaseBalance {
     uint64 ecAmount = 4;
 }
 
+message MinuteNumber {
+    uint32 minuteNumber = 1;
+}
+
+message ServerIndexNumber {
+    uint32 serverIndexNumber = 1;
+}

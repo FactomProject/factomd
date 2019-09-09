@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/FactomProject/factomd/events"
-	"github.com/FactomProject/factomd/events/eventmessages"
+	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 	"hash"
 	"os"
 	"reflect"
