@@ -27,6 +27,7 @@ func TestBrainSwapB(t *testing.T) {
 	params := map[string]string{
 		"--db":               "LDB",
 		"--network":          "LOCAL",
+		"--nodename":         "TestB",
 		"--net":              "alot+",
 		"--enablenet":        "true",
 		"--blktime":          "30",
