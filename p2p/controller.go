@@ -661,7 +661,7 @@ func (c *Controller) shutdown() {
 // of regular peers (total max NumberPeersToBroadcast).
 func (c *Controller) broadcast(parcel Parcel, full bool) {
 	numSent := 0
-	msgHash := parcel.Msg.GetMsgHash().Fixed()
+	msgHash := parcel.msg.GetMsgHash().Fixed()
 
 	// always broadcast to special peers
 	for _, peer := range c.specialPeers {

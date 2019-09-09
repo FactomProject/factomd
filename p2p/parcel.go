@@ -20,7 +20,7 @@ var parcelLogger = packageLogger.WithField("subpack", "connection")
 type Parcel struct {
 	Header  ParcelHeader
 	Payload []byte
-	Msg     interfaces.IMsg `json:"-"` // Keep the message for debugging
+	msg     interfaces.IMsg `json:"-"` // Keep the message for debugging
 }
 
 // ParcelHeaderSize is the number of bytes in a parcel header
@@ -86,7 +86,7 @@ func NewParcelMsg(network NetworkID, payload []byte, msg interfaces.IMsg) *Parce
 	header.AppType = "Network"
 	parcel := new(Parcel).Init(*header)
 	parcel.Payload = payload
-	parcel.Msg = msg      // Keep the message for debugging
+	parcel.msg = msg      // Keep the message for debugging
 	parcel.UpdateHeader() // Updates the header with info about payload.
 	return parcel
 }
