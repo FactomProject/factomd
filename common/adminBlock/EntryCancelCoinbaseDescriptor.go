@@ -9,11 +9,12 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-// CancelCoinbaseDescriptor Entry -------------------------
+// CancelCoinbaseDescriptor is an admin block entry which cancels a specific output in a previously created coinbase descriptor.
+// The cancelled factoids go to the grant pool intead of the specified address in the previous coinbase descriptor
 type CancelCoinbaseDescriptor struct {
-	AdminIDType      uint32 `json:"adminidtype"`
-	DescriptorHeight uint32 `json:"descriptor_height"`
-	DescriptorIndex  uint32 `json:descriptor_index`
+	AdminIDType      uint32 `json:"adminidtype"`       //  the type of action in this admin block entry: uint32(TYPE_COINBASE_DESCRIPTOR_CANCEL)
+	DescriptorHeight uint32 `json:"descriptor_height"` // The previous directory block height the original coinbase descriptor is present
+	DescriptorIndex  uint32 `json:"descriptor_index"`  // The specific index into the coinbase output array to be cancelled at the directory block height above
 
 	// Not marshalled
 	hash interfaces.IHash // cache
@@ -22,10 +23,12 @@ type CancelCoinbaseDescriptor struct {
 var _ interfaces.IABEntry = (*CancelCoinbaseDescriptor)(nil)
 var _ interfaces.BinaryMarshallable = (*CancelCoinbaseDescriptor)(nil)
 
+// Init initializes the CancelCoinbaseDescriptor to TYPE_COINBASE_DESCRIPTOR_CANCEL
 func (e *CancelCoinbaseDescriptor) Init() {
 	e.AdminIDType = uint32(e.Type())
 }
 
+// IsSameAs returns true iff the input CancelCoinbaseDescriptor is indentical to this one
 func (a *CancelCoinbaseDescriptor) IsSameAs(b *CancelCoinbaseDescriptor) bool {
 	if a.Type() != b.Type() {
 		return false
@@ -42,6 +45,7 @@ func (a *CancelCoinbaseDescriptor) IsSameAs(b *CancelCoinbaseDescriptor) bool {
 	return true
 }
 
+// String returns this CancelCoinbaseDescriptor as a string
 func (e *CancelCoinbaseDescriptor) String() string {
 	e.Init()
 	var out primitives.Buffer
@@ -52,12 +56,14 @@ func (e *CancelCoinbaseDescriptor) String() string {
 	return (string)(out.DeepCopyBytes())
 }
 
-func (c *CancelCoinbaseDescriptor) UpdateState(state interfaces.IState) error {
-	c.Init()
-	state.UpdateAuthorityFromABEntry(c)
+// UpdateState updates the factomd d state with information about the cancelled coinbase request
+func (e *CancelCoinbaseDescriptor) UpdateState(state interfaces.IState) error {
+	e.Init()
+	state.UpdateAuthorityFromABEntry(e)
 	return nil
 }
 
+// NewCancelCoinbaseDescriptor creates a new CancelCoinbaseDescriptor with the given inputs
 func NewCancelCoinbaseDescriptor(height, index uint32) *CancelCoinbaseDescriptor {
 	e := new(CancelCoinbaseDescriptor)
 	e.Init()
@@ -66,6 +72,7 @@ func NewCancelCoinbaseDescriptor(height, index uint32) *CancelCoinbaseDescriptor
 	return e
 }
 
+// Type returns the hardcoded TYPE_COINBASE_DESCRIPTOR_CANCEL
 func (e *CancelCoinbaseDescriptor) Type() byte {
 	return constants.TYPE_COINBASE_DESCRIPTOR_CANCEL
 }
@@ -82,6 +89,7 @@ func (e *CancelCoinbaseDescriptor) SortedIdentity() (rval interfaces.IHash) {
 	return e.Hash()
 }
 
+// MarshalBinary marshals the the CancelCoinbaseDescriptor object
 func (e *CancelCoinbaseDescriptor) MarshalBinary() ([]byte, error) {
 	e.Init()
 	var buf primitives.Buffer
@@ -116,6 +124,7 @@ func (e *CancelCoinbaseDescriptor) MarshalBinary() ([]byte, error) {
 	return buf.DeepCopyBytes(), nil
 }
 
+// UnmarshalBinaryData unmarshals the input data into this CancelCoinbaseDescriptor
 func (e *CancelCoinbaseDescriptor) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	buf := primitives.NewBuffer(data)
 	e.Init()
@@ -178,29 +187,35 @@ func (e *CancelCoinbaseDescriptor) UnmarshalBinaryData(data []byte) ([]byte, err
 	return buf.DeepCopyBytes(), nil
 }
 
+// UnmarshalBinary unmarshals the input data into this CancelCoinbaseDescriptor
 func (e *CancelCoinbaseDescriptor) UnmarshalBinary(data []byte) (err error) {
 	_, err = e.UnmarshalBinaryData(data)
 	return
 }
 
+// JSONByte returns the json encoded byte array
 func (e *CancelCoinbaseDescriptor) JSONByte() ([]byte, error) {
 	e.AdminIDType = uint32(e.Type())
 	return primitives.EncodeJSON(e)
 }
 
+// JSONString returns the json encoded string
 func (e *CancelCoinbaseDescriptor) JSONString() (string, error) {
 	e.AdminIDType = uint32(e.Type())
 	return primitives.EncodeJSONString(e)
 }
 
+// IsInterpretable always returns false
 func (e *CancelCoinbaseDescriptor) IsInterpretable() bool {
 	return false
 }
 
+// Interpret always returns the empty string ""
 func (e *CancelCoinbaseDescriptor) Interpret() string {
 	return ""
 }
 
+// Hash marshals the CancelCoinbaseDescriptor and computes its hash
 func (e *CancelCoinbaseDescriptor) Hash() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {
