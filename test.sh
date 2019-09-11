@@ -26,6 +26,12 @@ function listPeer() {
 	ls peerTest/*A_test.go
 }
 
+# add a file called ./ci_tests
+# to make nightly run only run a subset of all tests
+function hardcodedList() {
+	cat ci_tests
+}
+
 # load a list of tests to execute
 function loadTestList() {
 	case $1 in
@@ -68,11 +74,18 @@ function loadTestList() {
 		# run on circle
 		if [[ "${CI}x" != "x" ]]; then
 
-			TESTS=$({
-				listModules
-				listSimTest
-				listPeer
-			} | circleci tests split) # circleci helper spreads tests across containers
+			# Just run failing tests if ci_tests file is present
+			if [[ -f ci_tests ]]; then
+				TESTS=$({
+					hardcodedList # limit the tests to a hardcoded list
+				} | circleci tests split)
+			else
+				TESTS=$({
+					listModules
+					listSimTest
+					listPeer
+				} | circleci tests split) # circleci helper spreads tests across containers
+			fi
 
 		else # run locally
 
