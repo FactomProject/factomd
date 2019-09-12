@@ -432,9 +432,9 @@ var testNameRe = regexp.MustCompile(`\.Test\w+$`)
 
 // find Test Function name in stack
 func GetTestName() (name string) {
-	targetFrameIndex := 4 // limit caller frame depth to check for a test name
+	targetFrameIndex := 7 // limit caller frame depth to check for a test name
 
-	programCounters := make([]uintptr, targetFrameIndex+2)
+	programCounters := make([]uintptr, targetFrameIndex)
 	n := runtime.Callers(0, programCounters)
 
 	if n > 0 {

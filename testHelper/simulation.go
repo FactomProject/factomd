@@ -587,7 +587,12 @@ func GetSimTestHome(t *testing.T) string {
 		t.Fatal(err)
 	}
 
-	return dir + "/.sim/" + GetTestName()
+	testName := GetTestName()
+	if testName == "" {
+		panic("failed to get test name")
+	}
+
+	return dir + "/.sim/" + testName
 }
 
 // re-use a common dir for longTest
