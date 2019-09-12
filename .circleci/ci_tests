@@ -37,7 +37,6 @@ simTest/TestDBsigEOMElection
 simTest/TestMultiple2Election
 simTest/TestMultiple3Election
 simTest/TestSimCtrl
-simTest/TestMultiple7Election
 simTest/TestMultipleFTAccountsAPI
 simTest/TestMultipleECAccountsAPI
 simTest/TestDBSigElection
