@@ -21,38 +21,38 @@ function listSimTest() {
 	go test --list=Test ./simTest/... | awk '/^Test/ { print "simTest/"$1 }'
 }
 
-# list of A/B Peer tests
+# list of A/B Peer tests that need to be run concurrently
 function listPeer() {
 	ls peerTest/*A_test.go
 }
 
-# add a file called ./ci_tests
-# to make nightly run only run a subset of all tests
+# read a list of tests from a file called .ci_tests
 function hardcodedList() {
-	cat ci_tests
+	cat .circleci/ci_tests
 }
 
 # load a list of tests to execute
 function loadTestList() {
 	case $1 in
-	unittest) # run unit test in batches
+	unittest) # run unit test in batches - manually triggered
 		TESTS=$({
 			listModules
 		})
 		;;
-	peertest) # run only peer tests
+	peertest) # run only peer tests - manually triggered
 		TESTS=$({
 			ls peerTest/*A_test.go
 		})
 		;;
 
-	simtest) # run only simulation tests
+	simtest) # run only simulation tests - manually triggered
+
 		TESTS=$({
 			listSimTest
 		})
 		;;
 
-	short)
+	short) # triggered on every commit
 
 		# run on circle
 		if [[ "${CI}x" != "x" ]]; then
@@ -70,12 +70,12 @@ function loadTestList() {
 		fi
 		;;
 
-	full)
-		# run on circle
+	full) # run on circle triggered on develop branch nightly
+
 		if [[ "${CI}x" != "x" ]]; then
 
-			# Just run failing tests if ci_tests file is present
-			if [[ -f ci_tests ]]; then
+			# Just run failing tests if .circleci/ci_tests file is present
+			if [[ -f .circleci/ci_tests ]]; then
 				TESTS=$({
 					hardcodedList # limit the tests to a hardcoded list
 				} | circleci tests split)
@@ -127,7 +127,6 @@ function runTests() {
 	echo '---------------'
 	echo "${TESTS}"
 	echo '---------------'
-	env | grep ^CI
 
 	for TST in ${TESTS[*]}; do
 		case $(dirname $TST) in
@@ -173,17 +172,41 @@ function testSim() {
 	$GO_TEST -run=${1/simTest\//} ./simTest/... | egrep "PASS|FAIL|panic|bind|Timeout"
 }
 
+function writeTestList() {
+    > .circleci/ci_tests
+	for TST in ${TESTS[*]}; do
+        echo $TST >> .circleci/ci_tests
+    done
+    echo "Wrote .circleci/ci_tests"
+}
+
 function main() {
 	FAILURES=()
 	FAIL=""
 
-	if [[ "${1}" == "gofmt" ]]; then
+	case $1 in
+
+	mklist)
+        # writelist of all tests to a file
+        # so full test run can be customized for a given build
+	    loadTestList full
+        writeTestList
+        ;;
+	gofmt)
 		# check all go files pass gofmt
 		testGoFmt
-	else
-		# run tests
-		runTests $1
-	fi
+		;;
+	*)
+		if [[ $CIRCLE_BRANCH =~ _ci$ ]]; then
+			# if branch name ends in _ci
+			# force 'full' test run
+			runTests full
+		else
+			# otherwise run tests as specified
+			runTests $1
+		fi
+		;;
+	esac
 
 	if [[ "${FAIL}x" != "x" ]]; then
 		echo "TESTS FAIL"
