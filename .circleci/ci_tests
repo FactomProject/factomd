@@ -11,7 +11,6 @@
 ./util/...
 ./state/...
 simTest/TestAddFNode
-simTest/TestAuditBrainSwap
 simTest/TestBrainSwap
 simTest/TestDemoteBootstrap
 simTest/TestEntriesBeforeChain
@@ -52,6 +51,5 @@ simTest/TestDBState
 simTest/TestCatchupEveryMinute
 simTest/TestDebugLocation
 simTest/TestDebugLocationParse
-simTest/TestAuditBrainSwap
 peerTest/BrainSwapA_test.go
 peerTest/NetSyncA_test.go
