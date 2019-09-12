@@ -71,53 +71,6 @@ func TestDualElections(t *testing.T) {
 	ShutDownEverything(t)
 } // TestDualElections(){...}
 
-func TestTripleElections(t *testing.T) {
-	if RanSimTest {
-		return
-	}
-	state.MMR_enable = false // No MMR for you!
-
-	RanSimTest = true
-	//                            0123456789AB
-	state0 := SetupSim("LALALALLLLFF", map[string]string{"--debuglog": ".", "--blktime": "20"}, 360, 30, 30, t)
-
-	for minute := 0; minute < 10; minute += 2 {
-		WaitForMinute(state0, minute)
-		RunCmd("2")            // select 1
-		RunCmd("x")            // off the net
-		RunCmd("4")            // select 2
-		RunCmd("x")            // off the net
-		RunCmd("6")            // select 3
-		RunCmd("x")            // off the net
-		WaitMinutes(state0, 2) // wait for elections
-		RunCmd("2")            // select 1
-		RunCmd("x")            // on the net
-		RunCmd("4")            // select 2
-		RunCmd("x")            // on the net
-		RunCmd("6")            // select 3
-		RunCmd("x")            // on the net
-		WaitBlocks(state0, 2)  // wait till nodes should have updated by dbstate
-
-		WaitForMinute(state0, minute+1)
-		RunCmd("1")            // select 1
-		RunCmd("x")            // off the net
-		RunCmd("3")            // select 2
-		RunCmd("x")            // off the net
-		RunCmd("5")            // select 3
-		RunCmd("x")            // off the net
-		WaitMinutes(state0, 2) // wait for elections
-		RunCmd("1")            // select 1
-		RunCmd("x")            // on the net
-		RunCmd("3")            // select 2
-		RunCmd("x")            // on the net
-		RunCmd("5")            // select 3
-		RunCmd("x")            // on the net
-		WaitBlocks(state0, 2)  // wait till nodes should have updated by dbstate
-
-	}
-	WaitForAllNodes(state0)
-	ShutDownEverything(t)
-} // TestTripleElections(){...}
 func TestLoad(t *testing.T) {
 	if RanSimTest {
 		return
@@ -635,38 +588,6 @@ func TestSimCtrl(t *testing.T) {
 
 	WaitBlocks(state0, 2)
 	WaitForMinute(state0, 1)
-	WaitForAllNodes(state0)
-	ShutDownEverything(t)
-}
-
-func TestMultiple7Election(t *testing.T) {
-	if RanSimTest {
-		return
-	}
-
-	RanSimTest = true
-
-	state0 := SetupSim("LLLLLLLLLFLLFLFLLLFLAAFAAAAFA", map[string]string{"--blktime": "60"}, 10, 7, 7, t)
-
-	WaitForMinute(state0, 2)
-
-	// Take 7 nodes off line
-	for i := 1; i < 8; i++ {
-		RunCmd(fmt.Sprintf("%d", i))
-		RunCmd("x")
-	}
-	// force them all to be faulted
-	WaitMinutes(state0, 1)
-
-	// bring them back online
-	for i := 1; i < 8; i++ {
-		RunCmd(fmt.Sprintf("%d", i))
-		RunCmd("x")
-	}
-
-	// Wait till they should have updated by DBSTATE
-	WaitBlocks(state0, 2)
-	WaitMinutes(state0, 1)
 	WaitForAllNodes(state0)
 	ShutDownEverything(t)
 }
@@ -1439,37 +1360,6 @@ func TestCatchupEveryMinute(t *testing.T) {
 	}
 
 	WaitForAllNodes(state0)
-	ShutDownEverything(t)
-}
-
-func TestElectionEveryMinute(t *testing.T) {
-	if RanSimTest {
-		return
-	}
-
-	RanSimTest = true
-	//							  01234567890123456789012345678901
-	state0 := SetupSim("LLLLLLLLLLLLLLLLLLLLLAAAAAAAAAAF", map[string]string{"--blktime": "60"}, 20, 10, 1, t)
-
-	StatusEveryMinute(state0)
-	s := GetFnodes()[1].State
-	WaitMinutes(s, 1) // wait for start of next minute on fnode01
-	// knock followers off one per minute
-	start := s.CurrentMinute
-	for i := 0; i < 10; i++ {
-		s := GetFnodes()[i+1].State
-		RunCmd(fmt.Sprintf("%d", i+1))
-		WaitForMinute(s, (start+i+1)%10) // wait for selected minute
-		RunCmd("x")
-	}
-	WaitMinutes(state0, 1)
-	// bring them all back
-	for i := 0; i < 10; i++ {
-		RunCmd(fmt.Sprintf("%d", i+1))
-		RunCmd("x")
-	}
-
-	WaitForAllNodes(state0) /// wait till everyone catches up
 	ShutDownEverything(t)
 }
 
