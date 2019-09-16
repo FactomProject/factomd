@@ -27,8 +27,8 @@ message EntryCreditBlockHeader {
 
 message EntryCreditBlockEntry {
     oneof value {
-        EntryCreditChainRegistration commitChain = 1;
-        EntryCreditEntryRegistration commitEntry = 2;
+        EntryCreditChainCommit entryCreditChainCommit = 1;
+        EntryCreditEntryCommit entryCreditEntryCommit = 2;
         IncreaseBalance increaseBalance = 3;
         MinuteNumber minuteNumber = 4;
         ServerIndexNumber serverIndexNumber = 5;
@@ -36,31 +36,31 @@ message EntryCreditBlockEntry {
 }
 
 
-message EntryCreditChainRegistration {
+message EntryCreditChainCommit {
     EntityState entityState = 1;
     Hash chainIDHash = 2;
     Hash entryHash = 3;
     Hash weld = 4;
     graphqlproto.types.Timestamp timestamp = 5;
     uint32 credits = 6;
-    bytes ecPubKey = 7;
-    bytes sig = 8;
+    bytes entryCreditPublicKey = 7;
+    bytes signature = 8;
 }
 
-message EntryCreditEntryRegistration {
+message EntryCreditEntryCommit {
     EntityState entityState = 1;
     Hash entryHash = 2;
     graphqlproto.types.Timestamp timestamp = 3;
     uint32 credits = 4;
-    bytes ecPubKey = 5;
-    bytes sig = 6;
+    bytes entryCreditPublicKey = 5;
+    bytes signature = 6;
 }
 
 message IncreaseBalance {
     bytes ecPubKey = 1;
-    Hash txID = 2;
+    Hash transactionID = 2;
     uint64 index = 3;
-    uint64 ecAmount = 4;
+    uint64 amount = 4;
 }
 
 message MinuteNumber {

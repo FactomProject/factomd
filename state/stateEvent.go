@@ -28,9 +28,9 @@ func EmitStateChangeEvent(msg interfaces.IMsg, entityState eventmessages.EntityS
 }
 
 func GetStreamSource(state *State) eventmessages.StreamSource {
-	if state.IsRunLeader() { // FIXME this is only true during startup
+	if state.IsRunLeader() {
 		return eventmessages.StreamSource_LIVE
 	} else {
-		return eventmessages.StreamSource_REPLAY
+		return eventmessages.StreamSource_REPLAY_BOOT
 	}
 }

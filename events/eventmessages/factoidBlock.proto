@@ -14,7 +14,7 @@ message FactoidBlock {
     Hash bodyMerkleRoot = 1;
     Hash previousKeyMerkleRoot = 2;
     Hash previousLedgerKeyMerkleRoot = 3;
-    uint64 exchRate = 4;
+    uint64 exchangeRate = 4;
     uint32 blockHeight = 5;
     repeated Transaction transactions = 6;
 }
@@ -26,7 +26,7 @@ message Transaction {
     repeated TransactionAddress inputs = 4;
     repeated TransactionAddress outputs = 5;
     repeated TransactionAddress outputEntryCredits = 6;
-    repeated RCD rcds = 7;
+    repeated RCD redeemConditionDatastructures = 7; // too long?
     repeated FactoidSignatureBlock signatureBlocks = 8;
 }
 
@@ -39,7 +39,7 @@ message TransactionAddress {
 message RCD {
     oneof value {
         RCD1 rcd1 = 1;
-        RCD2 rcd2 = 2;
+        //        RCD2 rcd2 = 2; Not supported yet
     }
 }
 
@@ -47,11 +47,13 @@ message RCD1 {
     bytes publicKey = 1;
 }
 
-message RCD2 {
+/*
+message RCD2 {  Not supported yet
     int32 m = 1;
     int32 n = 2;
-    repeated Hash nAddresses = 3;
+    repeated Hash numberOfAddresses = 3;
 }
+*/
 
 message FactoidSignatureBlock {
     repeated FactoidSignature signature = 1;

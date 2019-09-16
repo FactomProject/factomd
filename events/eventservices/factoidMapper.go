@@ -17,7 +17,7 @@ func mapFactoidBlock(block interfaces.IFBlock) *eventmessages.FactoidBlock {
 		PreviousLedgerKeyMerkleRoot: &eventmessages.Hash{
 			HashValue: block.GetLedgerKeyMR().Bytes(),
 		},
-		ExchRate:     block.GetExchRate(),
+		ExchangeRate: block.GetExchRate(),
 		BlockHeight:  block.GetDBHeight(),
 		Transactions: mapTransactions(block.GetTransactions()),
 	}
@@ -40,13 +40,13 @@ func mapTransaction(transaction interfaces.ITransaction) *eventmessages.Transact
 		TransactionId: &eventmessages.Hash{
 			HashValue: transaction.GetSigHash().Bytes(),
 		},
-		BlockHeight:        transaction.GetBlockHeight(),
-		Timestamp:          convertTimeToTimestamp(transaction.GetTimestamp().GetTime()),
-		Inputs:             mapTransactionAddresses(transaction.GetInputs()),
-		Outputs:            mapTransactionAddresses(transaction.GetOutputs()),
-		OutputEntryCredits: mapTransactionAddresses(transaction.GetECOutputs()),
-		Rcds:               mapRCDs(transaction.GetRCDs()),
-		SignatureBlocks:    mapSignatureBlocks(transaction.GetSignatureBlocks()),
+		BlockHeight:                   transaction.GetBlockHeight(),
+		Timestamp:                     convertTimeToTimestamp(transaction.GetTimestamp().GetTime()),
+		Inputs:                        mapTransactionAddresses(transaction.GetInputs()),
+		Outputs:                       mapTransactionAddresses(transaction.GetOutputs()),
+		OutputEntryCredits:            mapTransactionAddresses(transaction.GetECOutputs()),
+		RedeemConditionDatastructures: mapRCDs(transaction.GetRCDs()),
+		SignatureBlocks:               mapSignatureBlocks(transaction.GetSignatureBlocks()),
 	}
 	return result
 }

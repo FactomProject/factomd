@@ -78,7 +78,7 @@ func (s *State) AddToHolding(hash [32]byte, msg interfaces.IMsg) {
 		s.Holding[hash] = msg
 		s.LogMessage("holding", "add", msg)
 		TotalHoldingQueueInputs.Inc()
-		EmitStateChangeEvent(msg, eventmessages.EntityState_PLACED_IN_HOLDING, s)
+		EmitStateChangeEvent(msg, eventmessages.EntityState_HOLDING_QUEUE, s)
 	}
 }
 
@@ -394,7 +394,7 @@ func (s *State) Process() (progress bool) {
 					s.IgnoreDone = true
 				}
 				if s.EventsService != nil {
-					event := events.NodeInfoMessageF(eventmessages.NodeMessageCode_SYNC_COMPLETE,
+					event := events.NodeInfoMessageF(eventmessages.NodeMessageCode_SYNCED,
 						"Node %s has finished syncing up it's database", s.GetFactomNodeName())
 					s.EventsService.Send(event)
 				}

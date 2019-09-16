@@ -11,7 +11,7 @@ option (graphqlproto.graphql) = true;
 
 enum EntityState {
     REQUESTED = 0;
-    PLACED_IN_HOLDING = 1;
+    HOLDING_QUEUE = 1;
     ACCEPTED = 2;
     REJECTED = 3;
     COMMITTED_TO_DIRECTORY_BLOCK = 4;

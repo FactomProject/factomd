@@ -27,7 +27,7 @@ var eventService events.EventService
 var eventServiceControl events.EventServiceControl
 
 const (
-	defaultProtocol           = "tcp"
+	defaultProtocol           = "udp"
 	defaultConnectionHost     = "127.0.0.1"
 	defaultConnectionPort     = 8040
 	defaultOutputFormat       = eventoutputformat.Protobuf
@@ -172,7 +172,7 @@ func (esi *eventServiceInstance) connect() error {
 	defer catchConnectPanics()
 
 	if esi.connection == nil {
-		fmt.Println("Connecting to ", esi.params.Address)
+		log.Infoln("Connecting to ", esi.params.Address)
 		conn, err := net.Dial(esi.params.Protocol, esi.params.Address)
 		if err != nil {
 			return fmt.Errorf("failed to connect: %v", err)

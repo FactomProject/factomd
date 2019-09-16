@@ -28,7 +28,7 @@ func TestEventMappers(t *testing.T) {
 		t.Run("TestCommitChainMapping", testCommitChainMapping)
 		t.Run("TestCommitEntryMapping", testCommitEntryMapping)
 		t.Run("TestStateChangeMapping", testStateChangeMapping)
-		t.Run("TestEntryContentRegistrationMapping", testEntryContentRegistrationMapping)
+		t.Run("TestEntryRevealMapping", testEntryRevealMapping)
 		testState.EventsServiceControl.Shutdown()
 	})
 }
@@ -51,8 +51,8 @@ func testDBStateMapping(t *testing.T) {
 		t.Error(err)
 	}
 
-	assert.IsType(t, &eventmessages.FactomEvent_BlockCommit{}, event.Value)
-	anchorEvent := event.Value.(*eventmessages.FactomEvent_BlockCommit).BlockCommit
+	assert.IsType(t, &eventmessages.FactomEvent_DirectoryBlockCommit{}, event.Value)
+	anchorEvent := event.Value.(*eventmessages.FactomEvent_DirectoryBlockCommit).DirectoryBlockCommit
 	assert.NotNil(t, anchorEvent.DirectoryBlock)
 	assertFactoidBlock(t, anchorEvent.FactoidBlock)
 	assertEntryBlocks(t, anchorEvent.EntryBlocks)
@@ -67,7 +67,7 @@ func assertFactoidBlock(t *testing.T, factoidBlock *eventmessages.FactoidBlock) 
 	assert.NotNil(t, factoidBlock.BodyMerkleRoot)
 	assert.NotNil(t, factoidBlock.PreviousKeyMerkleRoot)
 	assert.NotNil(t, factoidBlock.PreviousLedgerKeyMerkleRoot)
-	assert.NotNil(t, factoidBlock.ExchRate)
+	assert.NotNil(t, factoidBlock.ExchangeRate)
 	assert.NotNil(t, factoidBlock.BlockHeight)
 	assertTransactions(t, factoidBlock.Transactions)
 }
@@ -90,7 +90,7 @@ func assertEntryBlocks(t *testing.T, entryBlocks []*eventmessages.EntryBlock) {
 	assert.NotNil(t, entryBlocks)
 	for _, entryBlock := range entryBlocks {
 		assert.NotNil(t, entryBlock)
-		assert.NotNil(t, entryBlock.EntryBlockHeader)
+		assert.NotNil(t, entryBlock.Header)
 		assertHashes(t, entryBlock.EntryHashes)
 	}
 }
@@ -150,12 +150,12 @@ func testCommitChainMapping(t *testing.T) {
 		t.Error(err)
 	}
 
-	assert.IsType(t, &eventmessages.FactomEvent_ChainRegistration{}, event.Value)
-	commitChainEvent := event.Value.(*eventmessages.FactomEvent_ChainRegistration).ChainRegistration
+	assert.IsType(t, &eventmessages.FactomEvent_ChainCommit{}, event.Value)
+	commitChainEvent := event.Value.(*eventmessages.FactomEvent_ChainCommit).ChainCommit
 	assert.NotNil(t, commitChainEvent.ChainIDHash)
-	assert.NotNil(t, commitChainEvent.EcPubKey)
+	assert.NotNil(t, commitChainEvent.EntryCreditPublicKey)
 	assert.NotNil(t, commitChainEvent.Credits)
-	assert.NotNil(t, commitChainEvent.Sig)
+	assert.NotNil(t, commitChainEvent.Signature)
 	assert.NotNil(t, commitChainEvent.Timestamp)
 	assert.True(t, commitChainEvent.Timestamp.Nanos > 0)
 	_, err = commitChainEvent.Marshal()
@@ -181,12 +181,12 @@ func testCommitEntryMapping(t *testing.T) {
 		t.Error(err)
 	}
 
-	assert.IsType(t, &eventmessages.FactomEvent_EntryRegistration{}, event.Value)
-	commitEntryEvent := event.Value.(*eventmessages.FactomEvent_EntryRegistration).EntryRegistration
+	assert.IsType(t, &eventmessages.FactomEvent_EntryCommit{}, event.Value)
+	commitEntryEvent := event.Value.(*eventmessages.FactomEvent_EntryCommit).EntryCommit
 	assert.NotNil(t, commitEntryEvent.EntryHash)
-	assert.NotNil(t, commitEntryEvent.EcPubKey)
+	assert.NotNil(t, commitEntryEvent.EntryCreditPublicKey)
 	assert.NotNil(t, commitEntryEvent.Credits)
-	assert.NotNil(t, commitEntryEvent.Sig)
+	assert.NotNil(t, commitEntryEvent.Signature)
 	assert.NotNil(t, commitEntryEvent.Timestamp)
 	assert.True(t, commitEntryEvent.Timestamp.Nanos > 0)
 
@@ -202,10 +202,10 @@ func newCommitEntryMsg() *messages.CommitEntryMsg {
 	return msg
 }
 
-func testEntryContentRegistrationMapping(t *testing.T) {
-	msg := newEntryContentRegistrationMsg()
+func testEntryRevealMapping(t *testing.T) {
+	msg := newEntryRevealMsg()
 	data, _ := msg.MarshalBinary()
-	assert.Len(t, data, 60, msgChangedMessage("CommitEntryMsg"))
+	assert.Len(t, data, 60, msgChangedMessage("RevealEntryMsg"))
 
 	inputEvent := events.NewRegistrationEvent(eventmessages.StreamSource_LIVE, msg)
 	event, err := eventservices.MapToFactomEvent(inputEvent)
@@ -213,17 +213,17 @@ func testEntryContentRegistrationMapping(t *testing.T) {
 		t.Error(err)
 	}
 
-	assert.IsType(t, &eventmessages.FactomEvent_EntryContentRegistration{}, event.Value)
-	entryContentRegistration := event.Value.(*eventmessages.FactomEvent_EntryContentRegistration).EntryContentRegistration
-	assert.NotNil(t, entryContentRegistration.Entry)
-	assert.NotNil(t, entryContentRegistration.Timestamp)
-	assert.True(t, entryContentRegistration.Timestamp.Nanos > 0)
+	assert.IsType(t, &eventmessages.FactomEvent_EntryReveal{}, event.Value)
+	entryCommit := event.Value.(*eventmessages.FactomEvent_EntryReveal).EntryReveal
+	assert.NotNil(t, entryCommit.Entry)
+	assert.NotNil(t, entryCommit.Timestamp)
+	assert.True(t, entryCommit.Timestamp.Nanos > 0)
 
-	_, err = entryContentRegistration.Marshal()
+	_, err = entryCommit.Marshal()
 	assert.Nil(t, err)
 }
 
-func newEntryContentRegistrationMsg() *messages.RevealEntryMsg {
+func newEntryRevealMsg() *messages.RevealEntryMsg {
 	msg := new(messages.RevealEntryMsg)
 	eBlock, _ := testHelper.CreateTestEntryBlock(nil)
 	eBlock, _ = testHelper.CreateTestEntryBlock(eBlock) // Create a second entry to make sure we have a time

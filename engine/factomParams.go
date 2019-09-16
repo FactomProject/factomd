@@ -96,13 +96,13 @@ func init() {
 
 	// Live feed API params
 	flag.BoolVar(&p.EnableLiveFeedAPI, "enablelivefeedapi", false, "Enable life feed events service; default false")
-	flag.StringVar(&p.EventReceiverProtocol, "eventreceiverprotocol", "", "Transport protocol for the events receiver; default tcp")
+	flag.StringVar(&p.EventReceiverProtocol, "eventreceiverprotocol", "", "Transport protocol for the events receiver; default udp")
 	flag.StringVar(&p.EventReceiverAddress, "eventreceiveraddress", "", "Address for the events receiver; default 127.0.0.1")
 	flag.IntVar(&p.EventReceiverPort, "eventreceiverport", 0, "Port for the events receiver; default 8040")
 	flag.StringVar(&p.EventFormat, "eventformat", "", "Event format for the events receiver, protobuf|json; default protobuf")
 	flag.BoolVar(&p.MuteReplayDuringStartup, "mutereplayduringstartup", false, "Mute event replay; default false")
 	flag.BoolVar(&p.ResendRegistrationsOnStateChange, "muteeventsduringstartup", false, "Resend registrations for every state change; default false")
-	flag.StringVar(&p.ContentFilterMode, "ContentFilterMode", "", "Settings for including content in the event messages SendAlways|SendOnRegistration|SendNever; default SendOnce")
+	flag.StringVar(&p.ContentFilterMode, "contentfiltermode", "", "Settings for including content in the event messages SendAlways|SendOnRegistration|SendNever; default SendOnce")
 
 }
 

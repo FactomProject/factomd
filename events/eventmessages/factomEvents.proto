@@ -14,7 +14,8 @@ option (graphqlproto.graphql) = true;
 
 enum StreamSource {
     LIVE = 0;
-    REPLAY = 1;
+    REPLAY_BOOT = 1;
+    REPLAY_JOB = 2; // If were going to support it this way in the future
 }
 
 
@@ -23,18 +24,19 @@ message FactomEvent {
     string factomNodeName = 2;
     Hash identityChainID = 3;
     oneof value {
-        ChainRegistration chainRegistration = 4;
-        EntryRegistration entryRegistration = 5;
-        EntryContentRegistration entryContentRegistration = 6;
+        ChainCommit chainCommit = 4;
+        EntryCommit entryCommit = 5;
+        EntryReveal entryReveal = 6;
         StateChange stateChange = 7;
-        BlockCommit blockCommit = 8;
+        DirectoryBlockCommit directoryBlockCommit = 8;
         ProcessMessage processMessage = 9;
         NodeMessage nodeMessage = 10;
     }
+    uint64 replayJobId = 11; // If were going to support it this way in the future
 }
 
 
-message BlockCommit {
+message DirectoryBlockCommit {
     DirectoryBlock directoryBlock = 1;
     AdminBlock adminBlock = 2;
     FactoidBlock factoidBlock = 3;
@@ -43,27 +45,27 @@ message BlockCommit {
     repeated EntryBlockEntry entryBlockEntries = 6;
 }
 
-message ChainRegistration {
+message ChainCommit {
     EntityState entityState = 1;
     Hash chainIDHash = 2;
     Hash entryHash = 3;
     Hash weld = 4;
     graphqlproto.types.Timestamp timestamp = 5;
     uint32 credits = 6;
-    bytes ecPubKey = 7;
-    bytes sig = 8;
+    bytes entryCreditPublicKey = 7;
+    bytes signature = 8;
 }
 
-message EntryRegistration {
+message EntryCommit {
     EntityState entityState = 1;
     Hash entryHash = 2;
     graphqlproto.types.Timestamp timestamp = 3;
     uint32 credits = 4;
-    bytes ecPubKey = 5;
-    bytes sig = 6;
+    bytes entryCreditPublicKey = 5;
+    bytes signature = 6;
 }
 
-message EntryContentRegistration {
+message EntryReveal {
     EntityState entityState = 1;
     EntryBlockEntry entry = 2;
     graphqlproto.types.Timestamp timestamp = 3;
@@ -90,7 +92,7 @@ message DirectoryBlockHeader {
 }
 
 message EntryBlock {
-    EntryBlockHeader entryBlockHeader = 1;
+    EntryBlockHeader header = 1;
     repeated Hash entryHashes = 2;
 }
 
@@ -113,9 +115,8 @@ enum Level {
 
 
 enum ProcessMessageCode {
-    OTHER_P = 0;
-    NEW_BLOCK = 1;
-    NEW_MINUTE = 2;
+    NEW_BLOCK = 0;
+    NEW_MINUTE = 1;
 }
 
 
@@ -127,9 +128,9 @@ message ProcessMessage {
 
 
 enum NodeMessageCode {
-    OTHER_N = 0;
+    GENERAL = 0;
     STARTED = 1;
-    SYNC_COMPLETE = 2;
+    SYNCED = 2;
     SHUTDOWN = 3;
 }
 

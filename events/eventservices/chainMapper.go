@@ -6,23 +6,23 @@ import (
 	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 )
 
-func mapCommitChain(entityState eventmessages.EntityState, msg interfaces.IMsg) *eventmessages.FactomEvent_ChainRegistration {
+func mapCommitChain(entityState eventmessages.EntityState, msg interfaces.IMsg) *eventmessages.FactomEvent_ChainCommit {
 	commitChain := msg.(*messages.CommitChainMsg).CommitChain
 	ecPubKey := commitChain.ECPubKey.Fixed()
 	sig := commitChain.Sig
 
-	result := &eventmessages.FactomEvent_ChainRegistration{
-		ChainRegistration: &eventmessages.ChainRegistration{
+	result := &eventmessages.FactomEvent_ChainCommit{
+		ChainCommit: &eventmessages.ChainCommit{
 			EntityState: entityState,
 			ChainIDHash: &eventmessages.Hash{
 				HashValue: commitChain.ChainIDHash.Bytes()},
 			EntryHash: &eventmessages.Hash{
 				HashValue: commitChain.EntryHash.Bytes(),
 			},
-			Timestamp: convertByteSlice6ToTimestamp(commitChain.MilliTime),
-			Credits:   uint32(commitChain.Credits),
-			EcPubKey:  ecPubKey[:],
-			Sig:       sig[:],
+			Timestamp:            convertByteSlice6ToTimestamp(commitChain.MilliTime),
+			Credits:              uint32(commitChain.Credits),
+			EntryCreditPublicKey: ecPubKey[:],
+			Signature:            sig[:],
 		}}
 	return result
 }

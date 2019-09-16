@@ -94,7 +94,7 @@ message CoinbaseDescriptor {
 
 message DirectoryBlockSignatureEntry {
     Hash identityAdminChainID = 1;
-    Signature prevDBSig = 2;
+    Signature previousDirectoryBlockSignature = 2;
 }
 
 message EndOfMinuteEntry {
@@ -123,7 +123,7 @@ message RevealMatryoshkaHash {
 message ServerFault {
     graphqlproto.types.Timestamp timestamp = 1;
     Hash serverId = 2;
-    Hash auditServerId = 3;
+    Hash auditServerID = 3;
     uint32 vmIndex = 4;
     uint32 blockHeight = 5;
     uint32 height = 6;

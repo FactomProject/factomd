@@ -12,8 +12,8 @@ import (
 	"github.com/FactomProject/factomd/events/eventservices"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/testHelper"
+	graphqlproto_types "github.com/bi-foundation/protobuf-graphql-extension/graphqlproto/types"
 	"github.com/gogo/protobuf/proto"
-	opsee_types "github.com/opsee/protobuf/opseeproto/types"
 	"github.com/stretchr/testify/assert"
 	"sync/atomic"
 	"testing"
@@ -172,8 +172,8 @@ func BenchmarkMockAnchorEvents(b *testing.B) {
 	}
 }
 
-func mockBlockCommitEvent() *eventmessages.BlockCommit {
-	result := &eventmessages.BlockCommit{}
+func mockBlockCommitEvent() *eventmessages.DirectoryBlockCommit {
+	result := &eventmessages.DirectoryBlockCommit{}
 	result.DirectoryBlock = mockDirectoryBlock()
 	return result
 }
@@ -197,7 +197,7 @@ func mockDirHeader() *eventmessages.DirectoryBlockHeader {
 		PreviousFullHash: &eventmessages.Hash{
 			HashValue: testHash,
 		},
-		Timestamp:   &opsee_types.Timestamp{Seconds: int64(t.Second()), Nanos: int32(t.Nanosecond())},
+		Timestamp:   &graphqlproto_types.Timestamp{Seconds: int64(t.Second()), Nanos: int32(t.Nanosecond())},
 		BlockHeight: 123,
 		BlockCount:  456,
 	}

@@ -22,7 +22,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
 type EntryCreditBlock struct {
 	Header               *EntryCreditBlockHeader  `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
@@ -46,7 +46,7 @@ func (m *EntryCreditBlock) XXX_Marshal(b []byte, deterministic bool) ([]byte, er
 		return xxx_messageInfo_EntryCreditBlock.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -106,7 +106,7 @@ func (m *EntryCreditBlockHeader) XXX_Marshal(b []byte, deterministic bool) ([]by
 		return xxx_messageInfo_EntryCreditBlockHeader.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -176,8 +176,8 @@ func (m *EntryCreditBlockHeader) GetBodySize() uint64 {
 
 type EntryCreditBlockEntry struct {
 	// Types that are valid to be assigned to Value:
-	//	*EntryCreditBlockEntry_CommitChain
-	//	*EntryCreditBlockEntry_CommitEntry
+	//	*EntryCreditBlockEntry_EntryCreditChainCommit
+	//	*EntryCreditBlockEntry_EntryCreditEntryCommit
 	//	*EntryCreditBlockEntry_IncreaseBalance
 	//	*EntryCreditBlockEntry_MinuteNumber
 	//	*EntryCreditBlockEntry_ServerIndexNumber
@@ -201,7 +201,7 @@ func (m *EntryCreditBlockEntry) XXX_Marshal(b []byte, deterministic bool) ([]byt
 		return xxx_messageInfo_EntryCreditBlockEntry.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -226,27 +226,27 @@ type isEntryCreditBlockEntry_Value interface {
 	Size() int
 }
 
-type EntryCreditBlockEntry_CommitChain struct {
-	CommitChain *EntryCreditChainRegistration `protobuf:"bytes,1,opt,name=commitChain,proto3,oneof" json:"commitChain,omitempty"`
+type EntryCreditBlockEntry_EntryCreditChainCommit struct {
+	EntryCreditChainCommit *EntryCreditChainCommit `protobuf:"bytes,1,opt,name=entryCreditChainCommit,proto3,oneof"`
 }
-type EntryCreditBlockEntry_CommitEntry struct {
-	CommitEntry *EntryCreditEntryRegistration `protobuf:"bytes,2,opt,name=commitEntry,proto3,oneof" json:"commitEntry,omitempty"`
+type EntryCreditBlockEntry_EntryCreditEntryCommit struct {
+	EntryCreditEntryCommit *EntryCreditEntryCommit `protobuf:"bytes,2,opt,name=entryCreditEntryCommit,proto3,oneof"`
 }
 type EntryCreditBlockEntry_IncreaseBalance struct {
-	IncreaseBalance *IncreaseBalance `protobuf:"bytes,3,opt,name=increaseBalance,proto3,oneof" json:"increaseBalance,omitempty"`
+	IncreaseBalance *IncreaseBalance `protobuf:"bytes,3,opt,name=increaseBalance,proto3,oneof"`
 }
 type EntryCreditBlockEntry_MinuteNumber struct {
-	MinuteNumber *MinuteNumber `protobuf:"bytes,4,opt,name=minuteNumber,proto3,oneof" json:"minuteNumber,omitempty"`
+	MinuteNumber *MinuteNumber `protobuf:"bytes,4,opt,name=minuteNumber,proto3,oneof"`
 }
 type EntryCreditBlockEntry_ServerIndexNumber struct {
-	ServerIndexNumber *ServerIndexNumber `protobuf:"bytes,5,opt,name=serverIndexNumber,proto3,oneof" json:"serverIndexNumber,omitempty"`
+	ServerIndexNumber *ServerIndexNumber `protobuf:"bytes,5,opt,name=serverIndexNumber,proto3,oneof"`
 }
 
-func (*EntryCreditBlockEntry_CommitChain) isEntryCreditBlockEntry_Value()       {}
-func (*EntryCreditBlockEntry_CommitEntry) isEntryCreditBlockEntry_Value()       {}
-func (*EntryCreditBlockEntry_IncreaseBalance) isEntryCreditBlockEntry_Value()   {}
-func (*EntryCreditBlockEntry_MinuteNumber) isEntryCreditBlockEntry_Value()      {}
-func (*EntryCreditBlockEntry_ServerIndexNumber) isEntryCreditBlockEntry_Value() {}
+func (*EntryCreditBlockEntry_EntryCreditChainCommit) isEntryCreditBlockEntry_Value() {}
+func (*EntryCreditBlockEntry_EntryCreditEntryCommit) isEntryCreditBlockEntry_Value() {}
+func (*EntryCreditBlockEntry_IncreaseBalance) isEntryCreditBlockEntry_Value()        {}
+func (*EntryCreditBlockEntry_MinuteNumber) isEntryCreditBlockEntry_Value()           {}
+func (*EntryCreditBlockEntry_ServerIndexNumber) isEntryCreditBlockEntry_Value()      {}
 
 func (m *EntryCreditBlockEntry) GetValue() isEntryCreditBlockEntry_Value {
 	if m != nil {
@@ -255,16 +255,16 @@ func (m *EntryCreditBlockEntry) GetValue() isEntryCreditBlockEntry_Value {
 	return nil
 }
 
-func (m *EntryCreditBlockEntry) GetCommitChain() *EntryCreditChainRegistration {
-	if x, ok := m.GetValue().(*EntryCreditBlockEntry_CommitChain); ok {
-		return x.CommitChain
+func (m *EntryCreditBlockEntry) GetEntryCreditChainCommit() *EntryCreditChainCommit {
+	if x, ok := m.GetValue().(*EntryCreditBlockEntry_EntryCreditChainCommit); ok {
+		return x.EntryCreditChainCommit
 	}
 	return nil
 }
 
-func (m *EntryCreditBlockEntry) GetCommitEntry() *EntryCreditEntryRegistration {
-	if x, ok := m.GetValue().(*EntryCreditBlockEntry_CommitEntry); ok {
-		return x.CommitEntry
+func (m *EntryCreditBlockEntry) GetEntryCreditEntryCommit() *EntryCreditEntryCommit {
+	if x, ok := m.GetValue().(*EntryCreditBlockEntry_EntryCreditEntryCommit); ok {
+		return x.EntryCreditEntryCommit
 	}
 	return nil
 }
@@ -290,212 +290,332 @@ func (m *EntryCreditBlockEntry) GetServerIndexNumber() *ServerIndexNumber {
 	return nil
 }
 
-// XXX_OneofWrappers is for the internal use of the proto package.
-func (*EntryCreditBlockEntry) XXX_OneofWrappers() []interface{} {
-	return []interface{}{
-		(*EntryCreditBlockEntry_CommitChain)(nil),
-		(*EntryCreditBlockEntry_CommitEntry)(nil),
+// XXX_OneofFuncs is for the internal use of the proto package.
+func (*EntryCreditBlockEntry) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
+	return _EntryCreditBlockEntry_OneofMarshaler, _EntryCreditBlockEntry_OneofUnmarshaler, _EntryCreditBlockEntry_OneofSizer, []interface{}{
+		(*EntryCreditBlockEntry_EntryCreditChainCommit)(nil),
+		(*EntryCreditBlockEntry_EntryCreditEntryCommit)(nil),
 		(*EntryCreditBlockEntry_IncreaseBalance)(nil),
 		(*EntryCreditBlockEntry_MinuteNumber)(nil),
 		(*EntryCreditBlockEntry_ServerIndexNumber)(nil),
 	}
 }
 
-type EntryCreditChainRegistration struct {
+func _EntryCreditBlockEntry_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
+	m := msg.(*EntryCreditBlockEntry)
+	// value
+	switch x := m.Value.(type) {
+	case *EntryCreditBlockEntry_EntryCreditChainCommit:
+		_ = b.EncodeVarint(1<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.EntryCreditChainCommit); err != nil {
+			return err
+		}
+	case *EntryCreditBlockEntry_EntryCreditEntryCommit:
+		_ = b.EncodeVarint(2<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.EntryCreditEntryCommit); err != nil {
+			return err
+		}
+	case *EntryCreditBlockEntry_IncreaseBalance:
+		_ = b.EncodeVarint(3<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.IncreaseBalance); err != nil {
+			return err
+		}
+	case *EntryCreditBlockEntry_MinuteNumber:
+		_ = b.EncodeVarint(4<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.MinuteNumber); err != nil {
+			return err
+		}
+	case *EntryCreditBlockEntry_ServerIndexNumber:
+		_ = b.EncodeVarint(5<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.ServerIndexNumber); err != nil {
+			return err
+		}
+	case nil:
+	default:
+		return fmt.Errorf("EntryCreditBlockEntry.Value has unexpected type %T", x)
+	}
+	return nil
+}
+
+func _EntryCreditBlockEntry_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
+	m := msg.(*EntryCreditBlockEntry)
+	switch tag {
+	case 1: // value.entryCreditChainCommit
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(EntryCreditChainCommit)
+		err := b.DecodeMessage(msg)
+		m.Value = &EntryCreditBlockEntry_EntryCreditChainCommit{msg}
+		return true, err
+	case 2: // value.entryCreditEntryCommit
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(EntryCreditEntryCommit)
+		err := b.DecodeMessage(msg)
+		m.Value = &EntryCreditBlockEntry_EntryCreditEntryCommit{msg}
+		return true, err
+	case 3: // value.increaseBalance
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(IncreaseBalance)
+		err := b.DecodeMessage(msg)
+		m.Value = &EntryCreditBlockEntry_IncreaseBalance{msg}
+		return true, err
+	case 4: // value.minuteNumber
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(MinuteNumber)
+		err := b.DecodeMessage(msg)
+		m.Value = &EntryCreditBlockEntry_MinuteNumber{msg}
+		return true, err
+	case 5: // value.serverIndexNumber
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(ServerIndexNumber)
+		err := b.DecodeMessage(msg)
+		m.Value = &EntryCreditBlockEntry_ServerIndexNumber{msg}
+		return true, err
+	default:
+		return false, nil
+	}
+}
+
+func _EntryCreditBlockEntry_OneofSizer(msg proto.Message) (n int) {
+	m := msg.(*EntryCreditBlockEntry)
+	// value
+	switch x := m.Value.(type) {
+	case *EntryCreditBlockEntry_EntryCreditChainCommit:
+		s := proto.Size(x.EntryCreditChainCommit)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *EntryCreditBlockEntry_EntryCreditEntryCommit:
+		s := proto.Size(x.EntryCreditEntryCommit)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *EntryCreditBlockEntry_IncreaseBalance:
+		s := proto.Size(x.IncreaseBalance)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *EntryCreditBlockEntry_MinuteNumber:
+		s := proto.Size(x.MinuteNumber)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *EntryCreditBlockEntry_ServerIndexNumber:
+		s := proto.Size(x.ServerIndexNumber)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case nil:
+	default:
+		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
+	}
+	return n
+}
+
+type EntryCreditChainCommit struct {
 	EntityState          EntityState      `protobuf:"varint,1,opt,name=entityState,proto3,enum=eventmessages.EntityState" json:"entityState,omitempty"`
 	ChainIDHash          *Hash            `protobuf:"bytes,2,opt,name=chainIDHash,proto3" json:"chainIDHash,omitempty"`
 	EntryHash            *Hash            `protobuf:"bytes,3,opt,name=entryHash,proto3" json:"entryHash,omitempty"`
 	Weld                 *Hash            `protobuf:"bytes,4,opt,name=weld,proto3" json:"weld,omitempty"`
 	Timestamp            *types.Timestamp `protobuf:"bytes,5,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
 	Credits              uint32           `protobuf:"varint,6,opt,name=credits,proto3" json:"credits,omitempty"`
-	EcPubKey             []byte           `protobuf:"bytes,7,opt,name=ecPubKey,proto3" json:"ecPubKey,omitempty"`
-	Sig                  []byte           `protobuf:"bytes,8,opt,name=sig,proto3" json:"sig,omitempty"`
+	EntryCreditPublicKey []byte           `protobuf:"bytes,7,opt,name=entryCreditPublicKey,proto3" json:"entryCreditPublicKey,omitempty"`
+	Signature            []byte           `protobuf:"bytes,8,opt,name=signature,proto3" json:"signature,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}         `json:"-"`
 	XXX_unrecognized     []byte           `json:"-"`
 	XXX_sizecache        int32            `json:"-"`
 }
 
-func (m *EntryCreditChainRegistration) Reset()         { *m = EntryCreditChainRegistration{} }
-func (m *EntryCreditChainRegistration) String() string { return proto.CompactTextString(m) }
-func (*EntryCreditChainRegistration) ProtoMessage()    {}
-func (*EntryCreditChainRegistration) Descriptor() ([]byte, []int) {
+func (m *EntryCreditChainCommit) Reset()         { *m = EntryCreditChainCommit{} }
+func (m *EntryCreditChainCommit) String() string { return proto.CompactTextString(m) }
+func (*EntryCreditChainCommit) ProtoMessage()    {}
+func (*EntryCreditChainCommit) Descriptor() ([]byte, []int) {
 	return fileDescriptor_2805fc15da93467e, []int{3}
 }
-func (m *EntryCreditChainRegistration) XXX_Unmarshal(b []byte) error {
+func (m *EntryCreditChainCommit) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
-func (m *EntryCreditChainRegistration) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+func (m *EntryCreditChainCommit) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	if deterministic {
-		return xxx_messageInfo_EntryCreditChainRegistration.Marshal(b, m, deterministic)
+		return xxx_messageInfo_EntryCreditChainCommit.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
 		return b[:n], nil
 	}
 }
-func (m *EntryCreditChainRegistration) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_EntryCreditChainRegistration.Merge(m, src)
+func (m *EntryCreditChainCommit) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_EntryCreditChainCommit.Merge(m, src)
 }
-func (m *EntryCreditChainRegistration) XXX_Size() int {
+func (m *EntryCreditChainCommit) XXX_Size() int {
 	return m.Size()
 }
-func (m *EntryCreditChainRegistration) XXX_DiscardUnknown() {
-	xxx_messageInfo_EntryCreditChainRegistration.DiscardUnknown(m)
+func (m *EntryCreditChainCommit) XXX_DiscardUnknown() {
+	xxx_messageInfo_EntryCreditChainCommit.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_EntryCreditChainRegistration proto.InternalMessageInfo
+var xxx_messageInfo_EntryCreditChainCommit proto.InternalMessageInfo
 
-func (m *EntryCreditChainRegistration) GetEntityState() EntityState {
+func (m *EntryCreditChainCommit) GetEntityState() EntityState {
 	if m != nil {
 		return m.EntityState
 	}
 	return EntityState_REQUESTED
 }
 
-func (m *EntryCreditChainRegistration) GetChainIDHash() *Hash {
+func (m *EntryCreditChainCommit) GetChainIDHash() *Hash {
 	if m != nil {
 		return m.ChainIDHash
 	}
 	return nil
 }
 
-func (m *EntryCreditChainRegistration) GetEntryHash() *Hash {
+func (m *EntryCreditChainCommit) GetEntryHash() *Hash {
 	if m != nil {
 		return m.EntryHash
 	}
 	return nil
 }
 
-func (m *EntryCreditChainRegistration) GetWeld() *Hash {
+func (m *EntryCreditChainCommit) GetWeld() *Hash {
 	if m != nil {
 		return m.Weld
 	}
 	return nil
 }
 
-func (m *EntryCreditChainRegistration) GetTimestamp() *types.Timestamp {
+func (m *EntryCreditChainCommit) GetTimestamp() *types.Timestamp {
 	if m != nil {
 		return m.Timestamp
 	}
 	return nil
 }
 
-func (m *EntryCreditChainRegistration) GetCredits() uint32 {
+func (m *EntryCreditChainCommit) GetCredits() uint32 {
 	if m != nil {
 		return m.Credits
 	}
 	return 0
 }
 
-func (m *EntryCreditChainRegistration) GetEcPubKey() []byte {
+func (m *EntryCreditChainCommit) GetEntryCreditPublicKey() []byte {
 	if m != nil {
-		return m.EcPubKey
+		return m.EntryCreditPublicKey
 	}
 	return nil
 }
 
-func (m *EntryCreditChainRegistration) GetSig() []byte {
+func (m *EntryCreditChainCommit) GetSignature() []byte {
 	if m != nil {
-		return m.Sig
+		return m.Signature
 	}
 	return nil
 }
 
-type EntryCreditEntryRegistration struct {
+type EntryCreditEntryCommit struct {
 	EntityState          EntityState      `protobuf:"varint,1,opt,name=entityState,proto3,enum=eventmessages.EntityState" json:"entityState,omitempty"`
 	EntryHash            *Hash            `protobuf:"bytes,2,opt,name=entryHash,proto3" json:"entryHash,omitempty"`
 	Timestamp            *types.Timestamp `protobuf:"bytes,3,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
 	Credits              uint32           `protobuf:"varint,4,opt,name=credits,proto3" json:"credits,omitempty"`
-	EcPubKey             []byte           `protobuf:"bytes,5,opt,name=ecPubKey,proto3" json:"ecPubKey,omitempty"`
-	Sig                  []byte           `protobuf:"bytes,6,opt,name=sig,proto3" json:"sig,omitempty"`
+	EntryCreditPublicKey []byte           `protobuf:"bytes,5,opt,name=entryCreditPublicKey,proto3" json:"entryCreditPublicKey,omitempty"`
+	Signature            []byte           `protobuf:"bytes,6,opt,name=signature,proto3" json:"signature,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}         `json:"-"`
 	XXX_unrecognized     []byte           `json:"-"`
 	XXX_sizecache        int32            `json:"-"`
 }
 
-func (m *EntryCreditEntryRegistration) Reset()         { *m = EntryCreditEntryRegistration{} }
-func (m *EntryCreditEntryRegistration) String() string { return proto.CompactTextString(m) }
-func (*EntryCreditEntryRegistration) ProtoMessage()    {}
-func (*EntryCreditEntryRegistration) Descriptor() ([]byte, []int) {
+func (m *EntryCreditEntryCommit) Reset()         { *m = EntryCreditEntryCommit{} }
+func (m *EntryCreditEntryCommit) String() string { return proto.CompactTextString(m) }
+func (*EntryCreditEntryCommit) ProtoMessage()    {}
+func (*EntryCreditEntryCommit) Descriptor() ([]byte, []int) {
 	return fileDescriptor_2805fc15da93467e, []int{4}
 }
-func (m *EntryCreditEntryRegistration) XXX_Unmarshal(b []byte) error {
+func (m *EntryCreditEntryCommit) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
-func (m *EntryCreditEntryRegistration) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+func (m *EntryCreditEntryCommit) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	if deterministic {
-		return xxx_messageInfo_EntryCreditEntryRegistration.Marshal(b, m, deterministic)
+		return xxx_messageInfo_EntryCreditEntryCommit.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
 		return b[:n], nil
 	}
 }
-func (m *EntryCreditEntryRegistration) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_EntryCreditEntryRegistration.Merge(m, src)
+func (m *EntryCreditEntryCommit) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_EntryCreditEntryCommit.Merge(m, src)
 }
-func (m *EntryCreditEntryRegistration) XXX_Size() int {
+func (m *EntryCreditEntryCommit) XXX_Size() int {
 	return m.Size()
 }
-func (m *EntryCreditEntryRegistration) XXX_DiscardUnknown() {
-	xxx_messageInfo_EntryCreditEntryRegistration.DiscardUnknown(m)
+func (m *EntryCreditEntryCommit) XXX_DiscardUnknown() {
+	xxx_messageInfo_EntryCreditEntryCommit.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_EntryCreditEntryRegistration proto.InternalMessageInfo
+var xxx_messageInfo_EntryCreditEntryCommit proto.InternalMessageInfo
 
-func (m *EntryCreditEntryRegistration) GetEntityState() EntityState {
+func (m *EntryCreditEntryCommit) GetEntityState() EntityState {
 	if m != nil {
 		return m.EntityState
 	}
 	return EntityState_REQUESTED
 }
 
-func (m *EntryCreditEntryRegistration) GetEntryHash() *Hash {
+func (m *EntryCreditEntryCommit) GetEntryHash() *Hash {
 	if m != nil {
 		return m.EntryHash
 	}
 	return nil
 }
 
-func (m *EntryCreditEntryRegistration) GetTimestamp() *types.Timestamp {
+func (m *EntryCreditEntryCommit) GetTimestamp() *types.Timestamp {
 	if m != nil {
 		return m.Timestamp
 	}
 	return nil
 }
 
-func (m *EntryCreditEntryRegistration) GetCredits() uint32 {
+func (m *EntryCreditEntryCommit) GetCredits() uint32 {
 	if m != nil {
 		return m.Credits
 	}
 	return 0
 }
 
-func (m *EntryCreditEntryRegistration) GetEcPubKey() []byte {
+func (m *EntryCreditEntryCommit) GetEntryCreditPublicKey() []byte {
 	if m != nil {
-		return m.EcPubKey
+		return m.EntryCreditPublicKey
 	}
 	return nil
 }
 
-func (m *EntryCreditEntryRegistration) GetSig() []byte {
+func (m *EntryCreditEntryCommit) GetSignature() []byte {
 	if m != nil {
-		return m.Sig
+		return m.Signature
 	}
 	return nil
 }
 
 type IncreaseBalance struct {
 	EcPubKey             []byte   `protobuf:"bytes,1,opt,name=ecPubKey,proto3" json:"ecPubKey,omitempty"`
-	TxID                 *Hash    `protobuf:"bytes,2,opt,name=txID,proto3" json:"txID,omitempty"`
+	TransactionID        *Hash    `protobuf:"bytes,2,opt,name=transactionID,proto3" json:"transactionID,omitempty"`
 	Index                uint64   `protobuf:"varint,3,opt,name=index,proto3" json:"index,omitempty"`
-	EcAmount             uint64   `protobuf:"varint,4,opt,name=ecAmount,proto3" json:"ecAmount,omitempty"`
+	Amount               uint64   `protobuf:"varint,4,opt,name=amount,proto3" json:"amount,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -515,7 +635,7 @@ func (m *IncreaseBalance) XXX_Marshal(b []byte, deterministic bool) ([]byte, err
 		return xxx_messageInfo_IncreaseBalance.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -541,9 +661,9 @@ func (m *IncreaseBalance) GetEcPubKey() []byte {
 	return nil
 }
 
-func (m *IncreaseBalance) GetTxID() *Hash {
+func (m *IncreaseBalance) GetTransactionID() *Hash {
 	if m != nil {
-		return m.TxID
+		return m.TransactionID
 	}
 	return nil
 }
@@ -555,9 +675,9 @@ func (m *IncreaseBalance) GetIndex() uint64 {
 	return 0
 }
 
-func (m *IncreaseBalance) GetEcAmount() uint64 {
+func (m *IncreaseBalance) GetAmount() uint64 {
 	if m != nil {
-		return m.EcAmount
+		return m.Amount
 	}
 	return 0
 }
@@ -583,7 +703,7 @@ func (m *MinuteNumber) XXX_Marshal(b []byte, deterministic bool) ([]byte, error)
 		return xxx_messageInfo_MinuteNumber.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -630,7 +750,7 @@ func (m *ServerIndexNumber) XXX_Marshal(b []byte, deterministic bool) ([]byte, e
 		return xxx_messageInfo_ServerIndexNumber.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -660,8 +780,8 @@ func init() {
 	proto.RegisterType((*EntryCreditBlock)(nil), "eventmessages.EntryCreditBlock")
 	proto.RegisterType((*EntryCreditBlockHeader)(nil), "eventmessages.EntryCreditBlockHeader")
 	proto.RegisterType((*EntryCreditBlockEntry)(nil), "eventmessages.EntryCreditBlockEntry")
-	proto.RegisterType((*EntryCreditChainRegistration)(nil), "eventmessages.EntryCreditChainRegistration")
-	proto.RegisterType((*EntryCreditEntryRegistration)(nil), "eventmessages.EntryCreditEntryRegistration")
+	proto.RegisterType((*EntryCreditChainCommit)(nil), "eventmessages.EntryCreditChainCommit")
+	proto.RegisterType((*EntryCreditEntryCommit)(nil), "eventmessages.EntryCreditEntryCommit")
 	proto.RegisterType((*IncreaseBalance)(nil), "eventmessages.IncreaseBalance")
 	proto.RegisterType((*MinuteNumber)(nil), "eventmessages.MinuteNumber")
 	proto.RegisterType((*ServerIndexNumber)(nil), "eventmessages.ServerIndexNumber")
@@ -670,63 +790,64 @@ func init() {
 func init() { proto.RegisterFile("eventmessages/entryCredit.proto", fileDescriptor_2805fc15da93467e) }
 
 var fileDescriptor_2805fc15da93467e = []byte{
-	// 787 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xa4, 0x56, 0xcd, 0x6e, 0xdb, 0x46,
-	0x10, 0x16, 0xf5, 0x6b, 0xaf, 0xe4, 0xda, 0x5e, 0xb7, 0x05, 0xa1, 0xb6, 0x32, 0x41, 0xb4, 0xb0,
-	0x80, 0xd6, 0x54, 0xab, 0xa2, 0xa7, 0xfe, 0x41, 0x96, 0x5d, 0x48, 0x2d, 0xea, 0x18, 0x6b, 0x23,
-	0x87, 0xdc, 0x96, 0xd4, 0x58, 0xda, 0x84, 0x3f, 0x0a, 0xb9, 0x54, 0xa4, 0x3c, 0x41, 0xae, 0x01,
-	0x72, 0xc8, 0x39, 0x79, 0x91, 0x1c, 0x73, 0xcc, 0x23, 0x24, 0xce, 0x2b, 0xe4, 0x01, 0x02, 0x2e,
-	0x29, 0x89, 0xa4, 0x28, 0x3b, 0x88, 0x4f, 0xd2, 0xcc, 0x7e, 0xdf, 0xa7, 0x9d, 0x6f, 0x76, 0x06,
-	0x42, 0xfb, 0x30, 0x01, 0x9b, 0x5b, 0xe0, 0x79, 0x74, 0x08, 0x5e, 0x0b, 0x6c, 0xee, 0xce, 0xba,
-	0x2e, 0x0c, 0x18, 0xd7, 0xc6, 0xae, 0xc3, 0x1d, 0xbc, 0x95, 0x00, 0xd4, 0x95, 0x24, 0x7e, 0x08,
-	0x36, 0xb8, 0xd4, 0xbc, 0x98, 0x8d, 0xc1, 0x0b, 0x09, 0xf5, 0xd3, 0x21, 0xe3, 0x23, 0x5f, 0xd7,
-	0x0c, 0xc7, 0x6a, 0xe9, 0xec, 0xf0, 0xd2, 0xf1, 0xed, 0x01, 0xe5, 0xcc, 0xb1, 0x5b, 0xe2, 0x5c,
-	0xf7, 0x2f, 0x0f, 0x87, 0x2e, 0x1d, 0x8f, 0x1e, 0x9a, 0x87, 0x30, 0xe5, 0x60, 0x7b, 0xc1, 0x51,
-	0x94, 0x11, 0x88, 0x79, 0x10, 0xe9, 0xdd, 0xbd, 0xb5, 0x1e, 0x0f, 0x6e, 0xd7, 0xe2, 0xcc, 0x02,
-	0x8f, 0x53, 0x6b, 0x1c, 0xea, 0xaa, 0x4f, 0x25, 0xb4, 0x73, 0xb2, 0x2c, 0xf7, 0xc8, 0x74, 0x8c,
-	0x07, 0xf8, 0x4f, 0x54, 0x1e, 0x01, 0x1d, 0x80, 0x2b, 0x4b, 0x8a, 0xd4, 0xac, 0xb6, 0x7f, 0xd0,
-	0x12, 0xf5, 0x6a, 0x69, 0x42, 0x4f, 0x80, 0x49, 0x44, 0xc2, 0x7f, 0xa1, 0x4a, 0xe0, 0x20, 0x03,
-	0x4f, 0xce, 0x2b, 0x85, 0x66, 0xb5, 0xfd, 0xfd, 0x0d, 0x7c, 0x11, 0x93, 0x39, 0x49, 0x7d, 0x97,
-	0x47, 0x5f, 0x67, 0xff, 0x04, 0x6e, 0xa1, 0x0d, 0xdd, 0x19, 0xcc, 0x7a, 0xd4, 0x1b, 0x45, 0x77,
-	0xdb, 0x4b, 0x69, 0x07, 0x47, 0x64, 0x01, 0xc2, 0x5d, 0x84, 0xc7, 0x2e, 0x4c, 0x98, 0xe3, 0x7b,
-	0xa1, 0x84, 0xa0, 0xe6, 0xd7, 0x53, 0x33, 0xe0, 0xf8, 0x6f, 0xb4, 0x33, 0xcf, 0xfe, 0xe3, 0x9b,
-	0xa6, 0x90, 0x28, 0xac, 0x97, 0x58, 0x01, 0x63, 0x05, 0x55, 0xf5, 0xb0, 0x0a, 0x36, 0x1c, 0x71,
-	0xb9, 0xa8, 0x48, 0xcd, 0x2d, 0x12, 0x4f, 0xe1, 0x9f, 0xd1, 0x5e, 0xe8, 0xde, 0xc9, 0x74, 0x4c,
-	0x45, 0xf7, 0x3a, 0x2e, 0x50, 0xb9, 0xa4, 0x48, 0xcd, 0x1a, 0xc9, 0x3a, 0x0a, 0x34, 0x1d, 0xfd,
-	0x3e, 0x18, 0xbc, 0xeb, 0xf8, 0x36, 0x97, 0xcb, 0x8a, 0xd4, 0x2c, 0x92, 0x78, 0x0a, 0xd7, 0x43,
-	0xb3, 0xce, 0xd9, 0x63, 0x90, 0x2b, 0xe2, 0x78, 0x11, 0xab, 0x2f, 0x0b, 0xe8, 0xab, 0xcc, 0x36,
-	0xe0, 0x3b, 0xa8, 0x6a, 0x38, 0x96, 0xc5, 0x78, 0x77, 0x44, 0x99, 0x1d, 0xb9, 0xfc, 0xe3, 0xfa,
-	0x0e, 0x0a, 0x18, 0x81, 0x21, 0xf3, 0xb8, 0x2b, 0x5e, 0x64, 0x2f, 0x47, 0xe2, 0x0a, 0x4b, 0x41,
-	0x41, 0x8a, 0xbc, 0xbf, 0x46, 0x30, 0x7c, 0x0d, 0x99, 0x82, 0xe1, 0x0d, 0xff, 0x45, 0xdb, 0xcc,
-	0x36, 0x5c, 0xa0, 0x1e, 0x1c, 0x51, 0x93, 0xda, 0x06, 0x44, 0xdd, 0x68, 0xa4, 0x44, 0xfb, 0x49,
-	0x54, 0x2f, 0x47, 0xd2, 0x44, 0xdc, 0x41, 0x35, 0x8b, 0xd9, 0x3e, 0x87, 0x53, 0xdf, 0xd2, 0xc1,
-	0x15, 0xad, 0xa9, 0xb6, 0xbf, 0x49, 0x09, 0xfd, 0x1f, 0x83, 0xf4, 0x72, 0x24, 0x41, 0xc1, 0x67,
-	0x68, 0xd7, 0x03, 0x77, 0x02, 0x6e, 0xdf, 0x1e, 0xc0, 0x34, 0xd2, 0x29, 0x09, 0x1d, 0x25, 0xa5,
-	0x73, 0x9e, 0xc6, 0xf5, 0x72, 0x64, 0x95, 0x7c, 0x54, 0x41, 0xa5, 0x09, 0x35, 0x7d, 0x50, 0x3f,
-	0xe4, 0xd1, 0xb7, 0xd7, 0x59, 0x8d, 0xff, 0x40, 0x55, 0xb0, 0x39, 0xe3, 0xb3, 0x73, 0x4e, 0x39,
-	0x88, 0x66, 0x7d, 0xd1, 0xae, 0xaf, 0x7a, 0x3b, 0x47, 0x90, 0x38, 0x1c, 0xff, 0x86, 0xaa, 0x46,
-	0x20, 0xd9, 0x3f, 0xbe, 0x69, 0x2a, 0xe2, 0x38, 0xfc, 0x0b, 0xda, 0x14, 0x1b, 0xf2, 0xa6, 0x39,
-	0x58, 0xa2, 0xf0, 0x01, 0x2a, 0x3e, 0x02, 0x73, 0x10, 0xd9, 0x9b, 0x89, 0x16, 0x00, 0xfc, 0x3b,
-	0xda, 0x5c, 0xac, 0xa8, 0xc8, 0xc4, 0xef, 0xb4, 0xf8, 0x1e, 0xd3, 0xc4, 0x1e, 0xd3, 0x2e, 0xe6,
-	0x20, 0xb2, 0xc4, 0x63, 0x19, 0x55, 0x0c, 0x61, 0x94, 0x27, 0xc6, 0x61, 0x8b, 0xcc, 0xc3, 0x60,
-	0x14, 0xc0, 0x38, 0xf3, 0xf5, 0xff, 0x60, 0x26, 0x46, 0xa1, 0x46, 0x16, 0x31, 0xde, 0x41, 0x05,
-	0x8f, 0x0d, 0xe5, 0x0d, 0x91, 0x0e, 0xbe, 0xaa, 0xcf, 0x92, 0xb6, 0xaf, 0x3c, 0xc8, 0x5b, 0xda,
-	0x9e, 0xf0, 0x2f, 0xff, 0x49, 0xfe, 0x25, 0x6c, 0x29, 0x7c, 0xbe, 0x2d, 0xc5, 0xf5, 0xb6, 0x94,
-	0xb2, 0x6d, 0x29, 0x2f, 0x6d, 0x79, 0x22, 0xa1, 0xed, 0xd4, 0x48, 0x25, 0x14, 0xa4, 0x94, 0xc2,
-	0x01, 0x2a, 0xf2, 0x69, 0xff, 0xf8, 0xba, 0x12, 0x05, 0x00, 0x7f, 0x89, 0x4a, 0x2c, 0x78, 0xfe,
-	0xa2, 0xb2, 0x22, 0x09, 0x83, 0x50, 0xba, 0x63, 0x89, 0xed, 0x56, 0x0c, 0xd7, 0xd7, 0x3c, 0x56,
-	0xdb, 0xa8, 0x16, 0x9f, 0x49, 0xac, 0xa6, 0xc6, 0x58, 0x12, 0x75, 0x26, 0x72, 0x6a, 0x07, 0xed,
-	0xae, 0xcc, 0x1f, 0xfe, 0x29, 0x6b, 0x78, 0x43, 0x76, 0xc6, 0x60, 0x9e, 0xbc, 0xbe, 0x6a, 0x48,
-	0x6f, 0xae, 0x1a, 0xd2, 0xdb, 0xab, 0x86, 0xf4, 0xfc, 0x7d, 0x23, 0xf7, 0xea, 0xc5, 0xbe, 0x84,
-	0x14, 0xc3, 0xb1, 0xb4, 0x4b, 0x6a, 0xf0, 0xc5, 0xc7, 0x20, 0x59, 0xeb, 0xbd, 0xe4, 0xdf, 0x07,
-	0xbd, 0x2c, 0x5a, 0xf6, 0xeb, 0xc7, 0x00, 0x00, 0x00, 0xff, 0xff, 0xc5, 0x9a, 0xef, 0x0f, 0x77,
+	// 803 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xa4, 0x56, 0xcd, 0x6e, 0xd3, 0x4a,
+	0x14, 0x8e, 0xf3, 0xdb, 0x4e, 0x92, 0xdb, 0x76, 0xda, 0x5b, 0x59, 0xb9, 0xf7, 0xa6, 0x96, 0x75,
+	0x11, 0x59, 0x50, 0x07, 0x82, 0x58, 0x20, 0xfe, 0xd4, 0xa6, 0x45, 0x09, 0x88, 0xaa, 0x72, 0x2b,
+	0x16, 0x6c, 0xd0, 0xd8, 0x39, 0x4d, 0x06, 0xfc, 0x13, 0xec, 0x71, 0x68, 0x78, 0x0b, 0x58, 0x20,
+	0xd6, 0x3c, 0x02, 0x4f, 0x80, 0xc4, 0x86, 0x25, 0x8f, 0x00, 0xe5, 0x45, 0x90, 0xc7, 0x4e, 0x62,
+	0x3b, 0x2e, 0xa9, 0xe8, 0xaa, 0x3a, 0xe7, 0x7c, 0xdf, 0x37, 0x9e, 0xef, 0xcc, 0x39, 0x0d, 0xda,
+	0x82, 0x11, 0x58, 0xcc, 0x04, 0xd7, 0x25, 0x7d, 0x70, 0x9b, 0x60, 0x31, 0x67, 0xdc, 0x76, 0xa0,
+	0x47, 0x99, 0x32, 0x74, 0x6c, 0x66, 0xe3, 0x6a, 0x0c, 0x50, 0x93, 0xe2, 0xf8, 0x3e, 0x58, 0xe0,
+	0x10, 0xe3, 0x78, 0x3c, 0x04, 0x37, 0x20, 0xd4, 0x0e, 0xfa, 0x94, 0x0d, 0x3c, 0x4d, 0xd1, 0x6d,
+	0xb3, 0xa9, 0xd1, 0xed, 0x13, 0xdb, 0xb3, 0x7a, 0x84, 0x51, 0xdb, 0x6a, 0xf2, 0xba, 0xe6, 0x9d,
+	0x6c, 0xf7, 0x1d, 0x32, 0x1c, 0xbc, 0x32, 0xb6, 0xe1, 0x94, 0x81, 0xe5, 0xfa, 0xa5, 0x30, 0xc3,
+	0x11, 0x93, 0x20, 0xd4, 0x7b, 0x7a, 0x69, 0x3d, 0xe6, 0x7f, 0x5d, 0x93, 0x51, 0x13, 0x5c, 0x46,
+	0xcc, 0x61, 0xa0, 0x2b, 0xbf, 0x15, 0xd0, 0xea, 0xfe, 0xec, 0xba, 0xbb, 0x86, 0xad, 0xbf, 0xc4,
+	0xf7, 0x50, 0x71, 0x00, 0xa4, 0x07, 0x8e, 0x28, 0x48, 0x42, 0xa3, 0xdc, 0xba, 0xa2, 0xc4, 0xee,
+	0xab, 0x24, 0x09, 0x1d, 0x0e, 0x56, 0x43, 0x12, 0xbe, 0x8f, 0x4a, 0xbe, 0x83, 0x14, 0x5c, 0x31,
+	0x2b, 0xe5, 0x1a, 0xe5, 0xd6, 0xff, 0x0b, 0xf8, 0x3c, 0x56, 0x27, 0x24, 0xf9, 0x47, 0x16, 0x6d,
+	0xa6, 0x1f, 0x81, 0x9b, 0x68, 0x49, 0xb3, 0x7b, 0xe3, 0x0e, 0x71, 0x07, 0xe1, 0xb7, 0xad, 0x27,
+	0xb4, 0xfd, 0x92, 0x3a, 0x05, 0xe1, 0x36, 0xc2, 0x43, 0x07, 0x46, 0xd4, 0xf6, 0xdc, 0x40, 0x82,
+	0x53, 0xb3, 0xe7, 0x53, 0x53, 0xe0, 0xf8, 0x01, 0x5a, 0x9d, 0x64, 0x1f, 0x7a, 0x86, 0xc1, 0x25,
+	0x72, 0xe7, 0x4b, 0xcc, 0x81, 0xb1, 0x84, 0xca, 0x5a, 0x70, 0x0b, 0xda, 0x1f, 0x30, 0x31, 0x2f,
+	0x09, 0x8d, 0xaa, 0x1a, 0x4d, 0xe1, 0xeb, 0x68, 0x3d, 0x70, 0x6f, 0xff, 0x74, 0x48, 0x78, 0xf7,
+	0x76, 0x1c, 0x20, 0x62, 0x41, 0x12, 0x1a, 0x15, 0x35, 0xad, 0xe4, 0x6b, 0xda, 0xda, 0x0b, 0xd0,
+	0x59, 0xdb, 0xf6, 0x2c, 0x26, 0x16, 0x25, 0xa1, 0x91, 0x57, 0xa3, 0x29, 0x5c, 0x0b, 0xcc, 0x3a,
+	0xa2, 0x6f, 0x40, 0x2c, 0xf1, 0xf2, 0x34, 0x96, 0xbf, 0xe4, 0xd0, 0xdf, 0xa9, 0x6d, 0xc0, 0xcf,
+	0xd1, 0x66, 0xe4, 0xfd, 0xb7, 0x07, 0x84, 0x5a, 0x6d, 0xdb, 0x34, 0x29, 0x5b, 0xfc, 0x18, 0x22,
+	0xe0, 0x4e, 0x46, 0x3d, 0x47, 0x26, 0x71, 0x40, 0x40, 0x0f, 0x0e, 0xc8, 0x2e, 0x3a, 0x20, 0x02,
+	0x4e, 0x1c, 0x10, 0xa9, 0xe0, 0x47, 0x68, 0x85, 0x5a, 0xba, 0x03, 0xc4, 0x85, 0x5d, 0x62, 0x10,
+	0x4b, 0x87, 0xb0, 0x5b, 0xf5, 0x84, 0x72, 0x37, 0x8e, 0xea, 0x64, 0xd4, 0x24, 0x11, 0xef, 0xa0,
+	0x8a, 0x49, 0x2d, 0x8f, 0xc1, 0x81, 0x67, 0x6a, 0xe0, 0xf0, 0xd6, 0x95, 0x5b, 0xff, 0x24, 0x84,
+	0x9e, 0x44, 0x20, 0x9d, 0x8c, 0x1a, 0xa3, 0xe0, 0x43, 0xb4, 0xe6, 0x82, 0x33, 0x02, 0xa7, 0x6b,
+	0xf5, 0xe0, 0x34, 0xd4, 0x29, 0x70, 0x1d, 0x29, 0xa1, 0x73, 0x94, 0xc4, 0x75, 0x32, 0xea, 0x3c,
+	0x79, 0xb7, 0x84, 0x0a, 0x23, 0x62, 0x78, 0x20, 0xbf, 0xcb, 0xc5, 0x26, 0x25, 0xea, 0xf2, 0x5d,
+	0x54, 0x06, 0x8b, 0x51, 0x36, 0x3e, 0x62, 0x84, 0x01, 0xef, 0xdd, 0x5f, 0xad, 0xda, 0xbc, 0xb5,
+	0x13, 0x84, 0x1a, 0x85, 0xe3, 0x5b, 0xa8, 0xac, 0xfb, 0x62, 0xdd, 0xbd, 0x45, 0xf3, 0x12, 0xc5,
+	0xe1, 0x1b, 0x68, 0x99, 0xf7, 0x64, 0xd1, 0x84, 0xcc, 0x50, 0xf8, 0x2a, 0xca, 0xbf, 0x06, 0xa3,
+	0x17, 0x1a, 0x9b, 0x8a, 0xe6, 0x00, 0x7c, 0x07, 0x2d, 0x4f, 0x97, 0x57, 0x68, 0xdf, 0x7f, 0x4a,
+	0x74, 0xc3, 0x29, 0x7c, 0xc3, 0x29, 0xc7, 0x13, 0x90, 0x3a, 0xc3, 0x63, 0x11, 0x95, 0x74, 0x6e,
+	0x91, 0xcb, 0x07, 0xa5, 0xaa, 0x4e, 0x42, 0xdc, 0x42, 0x1b, 0x91, 0x67, 0x74, 0xe8, 0x69, 0x06,
+	0xd5, 0x1f, 0xc3, 0x98, 0x0f, 0x4c, 0x45, 0x4d, 0xad, 0xe1, 0x7f, 0xd1, 0xb2, 0x4b, 0xfb, 0x16,
+	0x61, 0x9e, 0x03, 0xe2, 0x12, 0x07, 0xce, 0x12, 0xf2, 0xa7, 0xf8, 0xfa, 0x8a, 0xbe, 0xcc, 0xcb,
+	0x35, 0x25, 0xe6, 0x6e, 0xf6, 0x42, 0xee, 0xc6, 0x4c, 0xcb, 0xfd, 0xb9, 0x69, 0xf9, 0x8b, 0x99,
+	0x56, 0xb8, 0xa8, 0x69, 0xc5, 0xa4, 0x69, 0xef, 0x05, 0xb4, 0x92, 0x18, 0x47, 0x7f, 0x7f, 0x81,
+	0x7e, 0xe8, 0x69, 0xbe, 0xb2, 0xc0, 0x09, 0xd3, 0x18, 0xdf, 0x46, 0x55, 0xe6, 0x10, 0xcb, 0x25,
+	0xba, 0xff, 0x4f, 0xb0, 0xbb, 0xf7, 0x3b, 0x3f, 0xe2, 0x48, 0xbc, 0x81, 0x0a, 0xd4, 0x1f, 0x26,
+	0xee, 0x47, 0x5e, 0x0d, 0x02, 0xbc, 0x89, 0x8a, 0xc4, 0xe4, 0x9b, 0x34, 0xcf, 0xd3, 0x61, 0x24,
+	0xb7, 0x50, 0x25, 0x3a, 0xdd, 0x58, 0x4e, 0x2c, 0x04, 0x81, 0x3b, 0x13, 0xcb, 0xc9, 0x3b, 0x68,
+	0x6d, 0x6e, 0x92, 0xf1, 0xb5, 0xb4, 0x35, 0x10, 0xb0, 0x53, 0x46, 0x7c, 0xff, 0xeb, 0x59, 0x5d,
+	0xf8, 0x76, 0x56, 0x17, 0xbe, 0x9f, 0xd5, 0x85, 0x0f, 0x3f, 0xeb, 0x99, 0xcf, 0x1f, 0xb7, 0x04,
+	0x24, 0xe9, 0xb6, 0xa9, 0x9c, 0x10, 0x9d, 0x4d, 0xff, 0xf4, 0xe2, 0x17, 0x7e, 0x16, 0xff, 0xa1,
+	0xa2, 0x15, 0x79, 0x93, 0x6f, 0xfe, 0x0a, 0x00, 0x00, 0xff, 0xff, 0x04, 0x2d, 0xaf, 0x2f, 0xe1,
 	0x08, 0x00, 0x00,
 }
 
 func (m *EntryCreditBlock) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -734,52 +855,42 @@ func (m *EntryCreditBlock) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *EntryCreditBlock) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *EntryCreditBlock) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
+	if m.Header != nil {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintEntryCredit(dAtA, i, uint64(m.Header.Size()))
+		n1, err1 := m.Header.MarshalTo(dAtA[i:])
+		if err1 != nil {
+			return 0, err1
+		}
+		i += n1
 	}
 	if len(m.Entries) > 0 {
-		for iNdEx := len(m.Entries) - 1; iNdEx >= 0; iNdEx-- {
-			{
-				size, err := m.Entries[iNdEx].MarshalToSizedBuffer(dAtA[:i])
-				if err != nil {
-					return 0, err
-				}
-				i -= size
-				i = encodeVarintEntryCredit(dAtA, i, uint64(size))
-			}
-			i--
+		for _, msg := range m.Entries {
 			dAtA[i] = 0x12
-		}
-	}
-	if m.Header != nil {
-		{
-			size, err := m.Header.MarshalToSizedBuffer(dAtA[:i])
+			i++
+			i = encodeVarintEntryCredit(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
 			if err != nil {
 				return 0, err
 			}
-			i -= size
-			i = encodeVarintEntryCredit(dAtA, i, uint64(size))
+			i += n
 		}
-		i--
-		dAtA[i] = 0xa
 	}
-	return len(dAtA) - i, nil
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
 }
 
 func (m *EntryCreditBlockHeader) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -787,84 +898,71 @@ func (m *EntryCreditBlockHeader) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *EntryCreditBlockHeader) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *EntryCreditBlockHeader) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
-	}
-	if m.BodySize != 0 {
-		i = encodeVarintEntryCredit(dAtA, i, uint64(m.BodySize))
-		i--
-		dAtA[i] = 0x38
-	}
-	if m.ObjectCount != 0 {
-		i = encodeVarintEntryCredit(dAtA, i, uint64(m.ObjectCount))
-		i--
-		dAtA[i] = 0x30
-	}
-	if len(m.HeaderExpansionArea) > 0 {
-		i -= len(m.HeaderExpansionArea)
-		copy(dAtA[i:], m.HeaderExpansionArea)
-		i = encodeVarintEntryCredit(dAtA, i, uint64(len(m.HeaderExpansionArea)))
-		i--
-		dAtA[i] = 0x2a
-	}
-	if m.BlockHeight != 0 {
-		i = encodeVarintEntryCredit(dAtA, i, uint64(m.BlockHeight))
-		i--
-		dAtA[i] = 0x20
-	}
-	if m.PreviousFullHash != nil {
-		{
-			size, err := m.PreviousFullHash.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintEntryCredit(dAtA, i, uint64(size))
+	if m.BodyHash != nil {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintEntryCredit(dAtA, i, uint64(m.BodyHash.Size()))
+		n2, err2 := m.BodyHash.MarshalTo(dAtA[i:])
+		if err2 != nil {
+			return 0, err2
 		}
-		i--
-		dAtA[i] = 0x1a
+		i += n2
 	}
 	if m.PreviousHeaderHash != nil {
-		{
-			size, err := m.PreviousHeaderHash.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintEntryCredit(dAtA, i, uint64(size))
-		}
-		i--
 		dAtA[i] = 0x12
-	}
-	if m.BodyHash != nil {
-		{
-			size, err := m.BodyHash.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintEntryCredit(dAtA, i, uint64(size))
+		i++
+		i = encodeVarintEntryCredit(dAtA, i, uint64(m.PreviousHeaderHash.Size()))
+		n3, err3 := m.PreviousHeaderHash.MarshalTo(dAtA[i:])
+		if err3 != nil {
+			return 0, err3
 		}
-		i--
-		dAtA[i] = 0xa
+		i += n3
 	}
-	return len(dAtA) - i, nil
+	if m.PreviousFullHash != nil {
+		dAtA[i] = 0x1a
+		i++
+		i = encodeVarintEntryCredit(dAtA, i, uint64(m.PreviousFullHash.Size()))
+		n4, err4 := m.PreviousFullHash.MarshalTo(dAtA[i:])
+		if err4 != nil {
+			return 0, err4
+		}
+		i += n4
+	}
+	if m.BlockHeight != 0 {
+		dAtA[i] = 0x20
+		i++
+		i = encodeVarintEntryCredit(dAtA, i, uint64(m.BlockHeight))
+	}
+	if len(m.HeaderExpansionArea) > 0 {
+		dAtA[i] = 0x2a
+		i++
+		i = encodeVarintEntryCredit(dAtA, i, uint64(len(m.HeaderExpansionArea)))
+		i += copy(dAtA[i:], m.HeaderExpansionArea)
+	}
+	if m.ObjectCount != 0 {
+		dAtA[i] = 0x30
+		i++
+		i = encodeVarintEntryCredit(dAtA, i, uint64(m.ObjectCount))
+	}
+	if m.BodySize != 0 {
+		dAtA[i] = 0x38
+		i++
+		i = encodeVarintEntryCredit(dAtA, i, uint64(m.BodySize))
+	}
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
 }
 
 func (m *EntryCreditBlockEntry) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -872,314 +970,243 @@ func (m *EntryCreditBlockEntry) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *EntryCreditBlockEntry) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *EntryCreditBlockEntry) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
-	}
 	if m.Value != nil {
-		{
-			size := m.Value.Size()
-			i -= size
-			if _, err := m.Value.MarshalTo(dAtA[i:]); err != nil {
-				return 0, err
-			}
+		nn5, err5 := m.Value.MarshalTo(dAtA[i:])
+		if err5 != nil {
+			return 0, err5
 		}
+		i += nn5
 	}
-	return len(dAtA) - i, nil
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
 }
 
-func (m *EntryCreditBlockEntry_CommitChain) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *EntryCreditBlockEntry_CommitChain) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	if m.CommitChain != nil {
-		{
-			size, err := m.CommitChain.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintEntryCredit(dAtA, i, uint64(size))
-		}
-		i--
+func (m *EntryCreditBlockEntry_EntryCreditChainCommit) MarshalTo(dAtA []byte) (int, error) {
+	i := 0
+	if m.EntryCreditChainCommit != nil {
 		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-func (m *EntryCreditBlockEntry_CommitEntry) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *EntryCreditBlockEntry_CommitEntry) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	if m.CommitEntry != nil {
-		{
-			size, err := m.CommitEntry.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintEntryCredit(dAtA, i, uint64(size))
+		i++
+		i = encodeVarintEntryCredit(dAtA, i, uint64(m.EntryCreditChainCommit.Size()))
+		n6, err6 := m.EntryCreditChainCommit.MarshalTo(dAtA[i:])
+		if err6 != nil {
+			return 0, err6
 		}
-		i--
-		dAtA[i] = 0x12
+		i += n6
 	}
-	return len(dAtA) - i, nil
+	return i, nil
+}
+func (m *EntryCreditBlockEntry_EntryCreditEntryCommit) MarshalTo(dAtA []byte) (int, error) {
+	i := 0
+	if m.EntryCreditEntryCommit != nil {
+		dAtA[i] = 0x12
+		i++
+		i = encodeVarintEntryCredit(dAtA, i, uint64(m.EntryCreditEntryCommit.Size()))
+		n7, err7 := m.EntryCreditEntryCommit.MarshalTo(dAtA[i:])
+		if err7 != nil {
+			return 0, err7
+		}
+		i += n7
+	}
+	return i, nil
 }
 func (m *EntryCreditBlockEntry_IncreaseBalance) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *EntryCreditBlockEntry_IncreaseBalance) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	i := 0
 	if m.IncreaseBalance != nil {
-		{
-			size, err := m.IncreaseBalance.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintEntryCredit(dAtA, i, uint64(size))
-		}
-		i--
 		dAtA[i] = 0x1a
+		i++
+		i = encodeVarintEntryCredit(dAtA, i, uint64(m.IncreaseBalance.Size()))
+		n8, err8 := m.IncreaseBalance.MarshalTo(dAtA[i:])
+		if err8 != nil {
+			return 0, err8
+		}
+		i += n8
 	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 func (m *EntryCreditBlockEntry_MinuteNumber) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *EntryCreditBlockEntry_MinuteNumber) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	i := 0
 	if m.MinuteNumber != nil {
-		{
-			size, err := m.MinuteNumber.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintEntryCredit(dAtA, i, uint64(size))
-		}
-		i--
 		dAtA[i] = 0x22
+		i++
+		i = encodeVarintEntryCredit(dAtA, i, uint64(m.MinuteNumber.Size()))
+		n9, err9 := m.MinuteNumber.MarshalTo(dAtA[i:])
+		if err9 != nil {
+			return 0, err9
+		}
+		i += n9
 	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 func (m *EntryCreditBlockEntry_ServerIndexNumber) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *EntryCreditBlockEntry_ServerIndexNumber) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	i := 0
 	if m.ServerIndexNumber != nil {
-		{
-			size, err := m.ServerIndexNumber.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintEntryCredit(dAtA, i, uint64(size))
-		}
-		i--
 		dAtA[i] = 0x2a
+		i++
+		i = encodeVarintEntryCredit(dAtA, i, uint64(m.ServerIndexNumber.Size()))
+		n10, err10 := m.ServerIndexNumber.MarshalTo(dAtA[i:])
+		if err10 != nil {
+			return 0, err10
+		}
+		i += n10
 	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
-func (m *EntryCreditChainRegistration) Marshal() (dAtA []byte, err error) {
+func (m *EntryCreditChainCommit) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
 	return dAtA[:n], nil
 }
 
-func (m *EntryCreditChainRegistration) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *EntryCreditChainRegistration) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+func (m *EntryCreditChainCommit) MarshalTo(dAtA []byte) (int, error) {
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
-	}
-	if len(m.Sig) > 0 {
-		i -= len(m.Sig)
-		copy(dAtA[i:], m.Sig)
-		i = encodeVarintEntryCredit(dAtA, i, uint64(len(m.Sig)))
-		i--
-		dAtA[i] = 0x42
-	}
-	if len(m.EcPubKey) > 0 {
-		i -= len(m.EcPubKey)
-		copy(dAtA[i:], m.EcPubKey)
-		i = encodeVarintEntryCredit(dAtA, i, uint64(len(m.EcPubKey)))
-		i--
-		dAtA[i] = 0x3a
-	}
-	if m.Credits != 0 {
-		i = encodeVarintEntryCredit(dAtA, i, uint64(m.Credits))
-		i--
-		dAtA[i] = 0x30
-	}
-	if m.Timestamp != nil {
-		{
-			size, err := m.Timestamp.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintEntryCredit(dAtA, i, uint64(size))
-		}
-		i--
-		dAtA[i] = 0x2a
-	}
-	if m.Weld != nil {
-		{
-			size, err := m.Weld.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintEntryCredit(dAtA, i, uint64(size))
-		}
-		i--
-		dAtA[i] = 0x22
-	}
-	if m.EntryHash != nil {
-		{
-			size, err := m.EntryHash.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintEntryCredit(dAtA, i, uint64(size))
-		}
-		i--
-		dAtA[i] = 0x1a
+	if m.EntityState != 0 {
+		dAtA[i] = 0x8
+		i++
+		i = encodeVarintEntryCredit(dAtA, i, uint64(m.EntityState))
 	}
 	if m.ChainIDHash != nil {
-		{
-			size, err := m.ChainIDHash.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintEntryCredit(dAtA, i, uint64(size))
-		}
-		i--
 		dAtA[i] = 0x12
+		i++
+		i = encodeVarintEntryCredit(dAtA, i, uint64(m.ChainIDHash.Size()))
+		n11, err11 := m.ChainIDHash.MarshalTo(dAtA[i:])
+		if err11 != nil {
+			return 0, err11
+		}
+		i += n11
 	}
-	if m.EntityState != 0 {
-		i = encodeVarintEntryCredit(dAtA, i, uint64(m.EntityState))
-		i--
-		dAtA[i] = 0x8
+	if m.EntryHash != nil {
+		dAtA[i] = 0x1a
+		i++
+		i = encodeVarintEntryCredit(dAtA, i, uint64(m.EntryHash.Size()))
+		n12, err12 := m.EntryHash.MarshalTo(dAtA[i:])
+		if err12 != nil {
+			return 0, err12
+		}
+		i += n12
 	}
-	return len(dAtA) - i, nil
+	if m.Weld != nil {
+		dAtA[i] = 0x22
+		i++
+		i = encodeVarintEntryCredit(dAtA, i, uint64(m.Weld.Size()))
+		n13, err13 := m.Weld.MarshalTo(dAtA[i:])
+		if err13 != nil {
+			return 0, err13
+		}
+		i += n13
+	}
+	if m.Timestamp != nil {
+		dAtA[i] = 0x2a
+		i++
+		i = encodeVarintEntryCredit(dAtA, i, uint64(m.Timestamp.Size()))
+		n14, err14 := m.Timestamp.MarshalTo(dAtA[i:])
+		if err14 != nil {
+			return 0, err14
+		}
+		i += n14
+	}
+	if m.Credits != 0 {
+		dAtA[i] = 0x30
+		i++
+		i = encodeVarintEntryCredit(dAtA, i, uint64(m.Credits))
+	}
+	if len(m.EntryCreditPublicKey) > 0 {
+		dAtA[i] = 0x3a
+		i++
+		i = encodeVarintEntryCredit(dAtA, i, uint64(len(m.EntryCreditPublicKey)))
+		i += copy(dAtA[i:], m.EntryCreditPublicKey)
+	}
+	if len(m.Signature) > 0 {
+		dAtA[i] = 0x42
+		i++
+		i = encodeVarintEntryCredit(dAtA, i, uint64(len(m.Signature)))
+		i += copy(dAtA[i:], m.Signature)
+	}
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
 }
 
-func (m *EntryCreditEntryRegistration) Marshal() (dAtA []byte, err error) {
+func (m *EntryCreditEntryCommit) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
 	return dAtA[:n], nil
 }
 
-func (m *EntryCreditEntryRegistration) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *EntryCreditEntryRegistration) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+func (m *EntryCreditEntryCommit) MarshalTo(dAtA []byte) (int, error) {
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
-	}
-	if len(m.Sig) > 0 {
-		i -= len(m.Sig)
-		copy(dAtA[i:], m.Sig)
-		i = encodeVarintEntryCredit(dAtA, i, uint64(len(m.Sig)))
-		i--
-		dAtA[i] = 0x32
-	}
-	if len(m.EcPubKey) > 0 {
-		i -= len(m.EcPubKey)
-		copy(dAtA[i:], m.EcPubKey)
-		i = encodeVarintEntryCredit(dAtA, i, uint64(len(m.EcPubKey)))
-		i--
-		dAtA[i] = 0x2a
-	}
-	if m.Credits != 0 {
-		i = encodeVarintEntryCredit(dAtA, i, uint64(m.Credits))
-		i--
-		dAtA[i] = 0x20
-	}
-	if m.Timestamp != nil {
-		{
-			size, err := m.Timestamp.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintEntryCredit(dAtA, i, uint64(size))
-		}
-		i--
-		dAtA[i] = 0x1a
+	if m.EntityState != 0 {
+		dAtA[i] = 0x8
+		i++
+		i = encodeVarintEntryCredit(dAtA, i, uint64(m.EntityState))
 	}
 	if m.EntryHash != nil {
-		{
-			size, err := m.EntryHash.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintEntryCredit(dAtA, i, uint64(size))
-		}
-		i--
 		dAtA[i] = 0x12
+		i++
+		i = encodeVarintEntryCredit(dAtA, i, uint64(m.EntryHash.Size()))
+		n15, err15 := m.EntryHash.MarshalTo(dAtA[i:])
+		if err15 != nil {
+			return 0, err15
+		}
+		i += n15
 	}
-	if m.EntityState != 0 {
-		i = encodeVarintEntryCredit(dAtA, i, uint64(m.EntityState))
-		i--
-		dAtA[i] = 0x8
+	if m.Timestamp != nil {
+		dAtA[i] = 0x1a
+		i++
+		i = encodeVarintEntryCredit(dAtA, i, uint64(m.Timestamp.Size()))
+		n16, err16 := m.Timestamp.MarshalTo(dAtA[i:])
+		if err16 != nil {
+			return 0, err16
+		}
+		i += n16
 	}
-	return len(dAtA) - i, nil
+	if m.Credits != 0 {
+		dAtA[i] = 0x20
+		i++
+		i = encodeVarintEntryCredit(dAtA, i, uint64(m.Credits))
+	}
+	if len(m.EntryCreditPublicKey) > 0 {
+		dAtA[i] = 0x2a
+		i++
+		i = encodeVarintEntryCredit(dAtA, i, uint64(len(m.EntryCreditPublicKey)))
+		i += copy(dAtA[i:], m.EntryCreditPublicKey)
+	}
+	if len(m.Signature) > 0 {
+		dAtA[i] = 0x32
+		i++
+		i = encodeVarintEntryCredit(dAtA, i, uint64(len(m.Signature)))
+		i += copy(dAtA[i:], m.Signature)
+	}
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
 }
 
 func (m *IncreaseBalance) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -1187,55 +1214,46 @@ func (m *IncreaseBalance) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *IncreaseBalance) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *IncreaseBalance) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
+	if len(m.EcPubKey) > 0 {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintEntryCredit(dAtA, i, uint64(len(m.EcPubKey)))
+		i += copy(dAtA[i:], m.EcPubKey)
 	}
-	if m.EcAmount != 0 {
-		i = encodeVarintEntryCredit(dAtA, i, uint64(m.EcAmount))
-		i--
-		dAtA[i] = 0x20
+	if m.TransactionID != nil {
+		dAtA[i] = 0x12
+		i++
+		i = encodeVarintEntryCredit(dAtA, i, uint64(m.TransactionID.Size()))
+		n17, err17 := m.TransactionID.MarshalTo(dAtA[i:])
+		if err17 != nil {
+			return 0, err17
+		}
+		i += n17
 	}
 	if m.Index != 0 {
-		i = encodeVarintEntryCredit(dAtA, i, uint64(m.Index))
-		i--
 		dAtA[i] = 0x18
+		i++
+		i = encodeVarintEntryCredit(dAtA, i, uint64(m.Index))
 	}
-	if m.TxID != nil {
-		{
-			size, err := m.TxID.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintEntryCredit(dAtA, i, uint64(size))
-		}
-		i--
-		dAtA[i] = 0x12
+	if m.Amount != 0 {
+		dAtA[i] = 0x20
+		i++
+		i = encodeVarintEntryCredit(dAtA, i, uint64(m.Amount))
 	}
-	if len(m.EcPubKey) > 0 {
-		i -= len(m.EcPubKey)
-		copy(dAtA[i:], m.EcPubKey)
-		i = encodeVarintEntryCredit(dAtA, i, uint64(len(m.EcPubKey)))
-		i--
-		dAtA[i] = 0xa
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
 	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 
 func (m *MinuteNumber) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -1243,31 +1261,25 @@ func (m *MinuteNumber) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *MinuteNumber) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *MinuteNumber) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
-	}
 	if m.MinuteNumber != 0 {
-		i = encodeVarintEntryCredit(dAtA, i, uint64(m.MinuteNumber))
-		i--
 		dAtA[i] = 0x8
+		i++
+		i = encodeVarintEntryCredit(dAtA, i, uint64(m.MinuteNumber))
 	}
-	return len(dAtA) - i, nil
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
 }
 
 func (m *ServerIndexNumber) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -1275,37 +1287,29 @@ func (m *ServerIndexNumber) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *ServerIndexNumber) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *ServerIndexNumber) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
-	}
 	if m.ServerIndexNumber != 0 {
-		i = encodeVarintEntryCredit(dAtA, i, uint64(m.ServerIndexNumber))
-		i--
 		dAtA[i] = 0x8
+		i++
+		i = encodeVarintEntryCredit(dAtA, i, uint64(m.ServerIndexNumber))
 	}
-	return len(dAtA) - i, nil
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
 }
 
 func encodeVarintEntryCredit(dAtA []byte, offset int, v uint64) int {
-	offset -= sovEntryCredit(v)
-	base := offset
 	for v >= 1<<7 {
 		dAtA[offset] = uint8(v&0x7f | 0x80)
 		v >>= 7
 		offset++
 	}
 	dAtA[offset] = uint8(v)
-	return base
+	return offset + 1
 }
 func (m *EntryCreditBlock) Size() (n int) {
 	if m == nil {
@@ -1381,26 +1385,26 @@ func (m *EntryCreditBlockEntry) Size() (n int) {
 	return n
 }
 
-func (m *EntryCreditBlockEntry_CommitChain) Size() (n int) {
+func (m *EntryCreditBlockEntry_EntryCreditChainCommit) Size() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
-	if m.CommitChain != nil {
-		l = m.CommitChain.Size()
+	if m.EntryCreditChainCommit != nil {
+		l = m.EntryCreditChainCommit.Size()
 		n += 1 + l + sovEntryCredit(uint64(l))
 	}
 	return n
 }
-func (m *EntryCreditBlockEntry_CommitEntry) Size() (n int) {
+func (m *EntryCreditBlockEntry_EntryCreditEntryCommit) Size() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
-	if m.CommitEntry != nil {
-		l = m.CommitEntry.Size()
+	if m.EntryCreditEntryCommit != nil {
+		l = m.EntryCreditEntryCommit.Size()
 		n += 1 + l + sovEntryCredit(uint64(l))
 	}
 	return n
@@ -1441,7 +1445,7 @@ func (m *EntryCreditBlockEntry_ServerIndexNumber) Size() (n int) {
 	}
 	return n
 }
-func (m *EntryCreditChainRegistration) Size() (n int) {
+func (m *EntryCreditChainCommit) Size() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -1469,11 +1473,11 @@ func (m *EntryCreditChainRegistration) Size() (n int) {
 	if m.Credits != 0 {
 		n += 1 + sovEntryCredit(uint64(m.Credits))
 	}
-	l = len(m.EcPubKey)
+	l = len(m.EntryCreditPublicKey)
 	if l > 0 {
 		n += 1 + l + sovEntryCredit(uint64(l))
 	}
-	l = len(m.Sig)
+	l = len(m.Signature)
 	if l > 0 {
 		n += 1 + l + sovEntryCredit(uint64(l))
 	}
@@ -1483,7 +1487,7 @@ func (m *EntryCreditChainRegistration) Size() (n int) {
 	return n
 }
 
-func (m *EntryCreditEntryRegistration) Size() (n int) {
+func (m *EntryCreditEntryCommit) Size() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -1503,11 +1507,11 @@ func (m *EntryCreditEntryRegistration) Size() (n int) {
 	if m.Credits != 0 {
 		n += 1 + sovEntryCredit(uint64(m.Credits))
 	}
-	l = len(m.EcPubKey)
+	l = len(m.EntryCreditPublicKey)
 	if l > 0 {
 		n += 1 + l + sovEntryCredit(uint64(l))
 	}
-	l = len(m.Sig)
+	l = len(m.Signature)
 	if l > 0 {
 		n += 1 + l + sovEntryCredit(uint64(l))
 	}
@@ -1527,15 +1531,15 @@ func (m *IncreaseBalance) Size() (n int) {
 	if l > 0 {
 		n += 1 + l + sovEntryCredit(uint64(l))
 	}
-	if m.TxID != nil {
-		l = m.TxID.Size()
+	if m.TransactionID != nil {
+		l = m.TransactionID.Size()
 		n += 1 + l + sovEntryCredit(uint64(l))
 	}
 	if m.Index != 0 {
 		n += 1 + sovEntryCredit(uint64(m.Index))
 	}
-	if m.EcAmount != 0 {
-		n += 1 + sovEntryCredit(uint64(m.EcAmount))
+	if m.Amount != 0 {
+		n += 1 + sovEntryCredit(uint64(m.Amount))
 	}
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
@@ -1987,7 +1991,7 @@ func (m *EntryCreditBlockEntry) Unmarshal(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CommitChain", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field EntryCreditChainCommit", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -2014,15 +2018,15 @@ func (m *EntryCreditBlockEntry) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			v := &EntryCreditChainRegistration{}
+			v := &EntryCreditChainCommit{}
 			if err := v.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
-			m.Value = &EntryCreditBlockEntry_CommitChain{v}
+			m.Value = &EntryCreditBlockEntry_EntryCreditChainCommit{v}
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CommitEntry", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field EntryCreditEntryCommit", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -2049,11 +2053,11 @@ func (m *EntryCreditBlockEntry) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			v := &EntryCreditEntryRegistration{}
+			v := &EntryCreditEntryCommit{}
 			if err := v.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
-			m.Value = &EntryCreditBlockEntry_CommitEntry{v}
+			m.Value = &EntryCreditBlockEntry_EntryCreditEntryCommit{v}
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
@@ -2185,7 +2189,7 @@ func (m *EntryCreditBlockEntry) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *EntryCreditChainRegistration) Unmarshal(dAtA []byte) error {
+func (m *EntryCreditChainCommit) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -2208,10 +2212,10 @@ func (m *EntryCreditChainRegistration) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: EntryCreditChainRegistration: wiretype end group for non-group")
+			return fmt.Errorf("proto: EntryCreditChainCommit: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: EntryCreditChainRegistration: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: EntryCreditChainCommit: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -2398,7 +2402,7 @@ func (m *EntryCreditChainRegistration) Unmarshal(dAtA []byte) error {
 			}
 		case 7:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field EcPubKey", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field EntryCreditPublicKey", wireType)
 			}
 			var byteLen int
 			for shift := uint(0); ; shift += 7 {
@@ -2425,14 +2429,14 @@ func (m *EntryCreditChainRegistration) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.EcPubKey = append(m.EcPubKey[:0], dAtA[iNdEx:postIndex]...)
-			if m.EcPubKey == nil {
-				m.EcPubKey = []byte{}
+			m.EntryCreditPublicKey = append(m.EntryCreditPublicKey[:0], dAtA[iNdEx:postIndex]...)
+			if m.EntryCreditPublicKey == nil {
+				m.EntryCreditPublicKey = []byte{}
 			}
 			iNdEx = postIndex
 		case 8:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Sig", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Signature", wireType)
 			}
 			var byteLen int
 			for shift := uint(0); ; shift += 7 {
@@ -2459,9 +2463,9 @@ func (m *EntryCreditChainRegistration) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Sig = append(m.Sig[:0], dAtA[iNdEx:postIndex]...)
-			if m.Sig == nil {
-				m.Sig = []byte{}
+			m.Signature = append(m.Signature[:0], dAtA[iNdEx:postIndex]...)
+			if m.Signature == nil {
+				m.Signature = []byte{}
 			}
 			iNdEx = postIndex
 		default:
@@ -2489,7 +2493,7 @@ func (m *EntryCreditChainRegistration) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *EntryCreditEntryRegistration) Unmarshal(dAtA []byte) error {
+func (m *EntryCreditEntryCommit) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -2512,10 +2516,10 @@ func (m *EntryCreditEntryRegistration) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: EntryCreditEntryRegistration: wiretype end group for non-group")
+			return fmt.Errorf("proto: EntryCreditEntryCommit: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: EntryCreditEntryRegistration: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: EntryCreditEntryCommit: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -2630,7 +2634,7 @@ func (m *EntryCreditEntryRegistration) Unmarshal(dAtA []byte) error {
 			}
 		case 5:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field EcPubKey", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field EntryCreditPublicKey", wireType)
 			}
 			var byteLen int
 			for shift := uint(0); ; shift += 7 {
@@ -2657,14 +2661,14 @@ func (m *EntryCreditEntryRegistration) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.EcPubKey = append(m.EcPubKey[:0], dAtA[iNdEx:postIndex]...)
-			if m.EcPubKey == nil {
-				m.EcPubKey = []byte{}
+			m.EntryCreditPublicKey = append(m.EntryCreditPublicKey[:0], dAtA[iNdEx:postIndex]...)
+			if m.EntryCreditPublicKey == nil {
+				m.EntryCreditPublicKey = []byte{}
 			}
 			iNdEx = postIndex
 		case 6:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Sig", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Signature", wireType)
 			}
 			var byteLen int
 			for shift := uint(0); ; shift += 7 {
@@ -2691,9 +2695,9 @@ func (m *EntryCreditEntryRegistration) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Sig = append(m.Sig[:0], dAtA[iNdEx:postIndex]...)
-			if m.Sig == nil {
-				m.Sig = []byte{}
+			m.Signature = append(m.Signature[:0], dAtA[iNdEx:postIndex]...)
+			if m.Signature == nil {
+				m.Signature = []byte{}
 			}
 			iNdEx = postIndex
 		default:
@@ -2786,7 +2790,7 @@ func (m *IncreaseBalance) Unmarshal(dAtA []byte) error {
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field TxID", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field TransactionID", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -2813,10 +2817,10 @@ func (m *IncreaseBalance) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if m.TxID == nil {
-				m.TxID = &Hash{}
+			if m.TransactionID == nil {
+				m.TransactionID = &Hash{}
 			}
-			if err := m.TxID.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+			if err := m.TransactionID.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -2841,9 +2845,9 @@ func (m *IncreaseBalance) Unmarshal(dAtA []byte) error {
 			}
 		case 4:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field EcAmount", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Amount", wireType)
 			}
-			m.EcAmount = 0
+			m.Amount = 0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowEntryCredit
@@ -2853,7 +2857,7 @@ func (m *IncreaseBalance) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.EcAmount |= uint64(b&0x7F) << shift
+				m.Amount |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
