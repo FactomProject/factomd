@@ -36,7 +36,7 @@ message EntryCreditBlockEntry {
 }
 
 
-message EntryCreditChainCommit {
+message EntryCreditChainCommit {  // This message was duplicated from ChainCommit because of a limitation by the GraphQL generator. (It's not checking imports.)
     EntityState entityState = 1;
     Hash chainIDHash = 2;
     Hash entryHash = 3;
@@ -47,7 +47,7 @@ message EntryCreditChainCommit {
     bytes signature = 8;
 }
 
-message EntryCreditEntryCommit {
+message EntryCreditEntryCommit {  // This message was duplicated from EntryCommit because of a limitation by the GraphQL generator. (It's not checking imports.)
     EntityState entityState = 1;
     Hash entryHash = 2;
     graphqlproto.types.Timestamp timestamp = 3;
