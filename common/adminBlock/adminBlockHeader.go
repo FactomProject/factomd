@@ -20,13 +20,12 @@ import (
 
 // ABlockHeader contains header information for the Admin Block
 type ABlockHeader struct {
-	PrevBackRefHash interfaces.IHash `json:"prevbackrefhash"`
-	DBHeight        uint32           `json:"dbheight"` // The directory block height where this admin block is located
-
-	HeaderExpansionSize uint64 `json:"headerexpansionsize"`
-	HeaderExpansionArea []byte `json:"headerexpansionarea"`
-	MessageCount        uint32 `json:"messagecount"`
-	BodySize            uint32 `json:"bodysize"`
+	PrevBackRefHash     interfaces.IHash `json:"prevbackrefhash"`
+	DBHeight            uint32           `json:"dbheight"` // The directory block height where this admin block is located
+	HeaderExpansionSize uint64           `json:"headerexpansionsize"`
+	HeaderExpansionArea []byte           `json:"headerexpansionarea"`
+	MessageCount        uint32           `json:"messagecount"`
+	BodySize            uint32           `json:"bodysize"`
 }
 
 var _ interfaces.Printable = (*ABlockHeader)(nil)
