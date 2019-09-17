@@ -13,25 +13,25 @@ import (
 // DirBlockInfo holds the information for a factom directory block
 type DirBlockInfo struct {
 	// Serial hash for the directory block
-	DBHash    interfaces.IHash
-	DBHeight  uint32 //directory block height
-	Timestamp int64  // time of this dir block info being created in milliseconds
+	DBHash    interfaces.IHash `json:"dbhash"`
+	DBHeight  uint32           `json:"dbheight"`  //directory block height
+	Timestamp int64            `json:"timestamp"` // time of this dir block info being created in milliseconds
 	// BTCTxHash is the Tx hash returned from rpcclient.SendRawTransaction
-	BTCTxHash interfaces.IHash // use string or *btcwire.ShaHash ???
+	BTCTxHash interfaces.IHash `json:"btctxhash"` // use string or *btcwire.ShaHash ???
 	// BTCTxOffset is the index of the TX in this BTC block
-	BTCTxOffset int32
+	BTCTxOffset int32 `json:"btctxoffset"`
 	// BTCBlockHeight is the height of the block where this TX is stored in BTC
-	BTCBlockHeight int32
+	BTCBlockHeight int32 `json:"btcblockheight"`
 	//BTCBlockHash is the hash of the block where this TX is stored in BTC
-	BTCBlockHash interfaces.IHash // use string or *btcwire.ShaHash ???
+	BTCBlockHash interfaces.IHash `json:"btcblockhash"` // use string or *btcwire.ShaHash ???
 	// DBMerkleRoot is the merkle root of the Directory Block
 	// and is written into BTC as OP_RETURN data
-	DBMerkleRoot interfaces.IHash
+	DBMerkleRoot interfaces.IHash `json:"dbmerkleroot"`
 	// A flag to to show BTC anchor confirmation
-	BTCConfirmed bool
+	BTCConfirmed bool `json:"btcconfirmed"`
 
-	EthereumAnchorRecordEntryHash interfaces.IHash
-	EthereumConfirmed             bool
+	EthereumAnchorRecordEntryHash interfaces.IHash `json:"ethereumanchorrecordentryhash"`
+	EthereumConfirmed             bool             `json:"ethereumconfirmed"`
 }
 
 var _ interfaces.Printable = (*DirBlockInfo)(nil)

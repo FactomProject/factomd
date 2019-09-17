@@ -14,8 +14,8 @@ import (
 // ForwardCompatibleEntry is an admin block entry with generic size and generic data
 type ForwardCompatibleEntry struct {
 	AdminIDType uint32 `json:"adminidtype"` // the type of action in this admin block entry
-	Size        uint32 // the length of the byte array
-	Data        []byte // the data for this entry
+	Size        uint32 `json:"size"`        // the length of the byte array
+	Data        []byte `json:"data"`        // the data for this entry
 }
 
 var _ interfaces.IABEntry = (*CoinbaseDescriptor)(nil)
@@ -27,16 +27,16 @@ func (e *ForwardCompatibleEntry) Init() {
 }
 
 // IsSameAs returns true iff the input object is identical to this object
-func (a *ForwardCompatibleEntry) IsSameAs(b *ForwardCompatibleEntry) bool {
-	if a.Type() != b.Type() {
+func (e *ForwardCompatibleEntry) IsSameAs(b *ForwardCompatibleEntry) bool {
+	if e.Type() != b.Type() {
 		return false
 	}
 
-	if a.Size != b.Size {
+	if e.Size != b.Size {
 		return false
 	}
 
-	if bytes.Compare(a.Data, b.Data) != 0 {
+	if bytes.Compare(e.Data, b.Data) != 0 {
 		return false
 	}
 
@@ -54,8 +54,8 @@ func (e *ForwardCompatibleEntry) String() string {
 }
 
 // UpdateState does not interact with the input state object, merely initilizes this object and returns nil
-func (c *ForwardCompatibleEntry) UpdateState(state interfaces.IState) error {
-	c.Init()
+func (e *ForwardCompatibleEntry) UpdateState(state interfaces.IState) error {
+	e.Init()
 	return nil
 }
 

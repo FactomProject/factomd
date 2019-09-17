@@ -11,7 +11,8 @@ import (
 )
 
 // EndOfMinuteEntry is an admin block entry which specifies a minute number. All preceding data was acknowledged before this minute.
-// THIS OBJECT IS DEPRECATED AS OF MILESTONE 2
+//
+// Deprecated: No longer used in admin blocks past milestone 2
 type EndOfMinuteEntry struct {
 	AdminIDType  uint32 `json:"adminidtype"`  //  the type of action in this admin block entry: uint32(TYPE_MINUTE_NUM)
 	MinuteNumber byte   `json:"minutenumber"` // the minute number

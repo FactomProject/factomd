@@ -10,7 +10,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-// AddFederatedServer is a directory block entry which instructs the system to add a federated server at a specified directory block height
+// AddFederatedServer is an admin block entry which instructs the system to add a federated server at a specified directory block height
 type AddFederatedServer struct {
 	AdminIDType     uint32           `json:"adminidtype"`     // the type of action in this admin block entry: uint32(TYPE_ADD_FED_SERVER)
 	IdentityChainID interfaces.IHash `json:"identitychainid"` // The federated server id to be added

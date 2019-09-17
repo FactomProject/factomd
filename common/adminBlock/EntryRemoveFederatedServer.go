@@ -10,7 +10,8 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-// RemoveFederatedServer is an admin block entry which instructs factomd to remove a federated server at an upcoming block height
+// RemoveFederatedServer is an admin block entry which instructs factomd to remove a federated or audit server at an upcoming block height. This
+// entry is used to remove servers completely from the authority set (ie, in the event an ANO is removed)
 type RemoveFederatedServer struct {
 	AdminIDType     uint32           `json:"adminidtype"`     //  the type of action in this admin block entry: uint32(TYPE_REMOVE_FED_SERVER)
 	IdentityChainID interfaces.IHash `json:"identitychainid"` // The identity of the federated server to be removed

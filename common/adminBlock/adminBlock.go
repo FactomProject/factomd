@@ -47,11 +47,11 @@ func (c *AdminBlock) Init() {
 }
 
 // IsSameAs returns true iff the input admin block header is identical to this admin block header, and the AB entry lengths are the same
-func (a *AdminBlock) IsSameAs(b interfaces.IAdminBlock) bool {
-	if !a.Header.IsSameAs(b.GetHeader()) {
+func (c *AdminBlock) IsSameAs(b interfaces.IAdminBlock) bool {
+	if !c.Header.IsSameAs(b.GetHeader()) {
 		return false
 	}
-	if len(a.ABEntries) != len(b.GetABEntries()) {
+	if len(c.ABEntries) != len(b.GetABEntries()) {
 		return false
 	}
 	return true

@@ -14,9 +14,9 @@ import (
 // AddFactoidAddress is an admin block entry containing a server identity and a factoid address where coinbase payouts will be sent for that
 // server
 type AddFactoidAddress struct {
-	AdminIDType     uint32              `json:"adminidtype"` // the type of action in this admin block entry: uint32(TYPE_ADD_FACTOID_ADDRESS)
-	IdentityChainID interfaces.IHash    // the server identity
-	FactoidAddress  interfaces.IAddress // the factoid address for this server
+	AdminIDType     uint32              `json:"adminidtype"`     // the type of action in this admin block entry: uint32(TYPE_ADD_FACTOID_ADDRESS)
+	IdentityChainID interfaces.IHash    `json:"identitychainid"` // the server identity
+	FactoidAddress  interfaces.IAddress `json:"factoidaddress"`  // the factoid address for this server
 }
 
 var _ interfaces.IABEntry = (*AddFactoidAddress)(nil)
@@ -35,16 +35,16 @@ func (e *AddFactoidAddress) Init() {
 }
 
 // IsSameAs returns true iff the input is identital to this object
-func (a *AddFactoidAddress) IsSameAs(b *AddFactoidAddress) bool {
-	if a.Type() != b.Type() {
+func (e *AddFactoidAddress) IsSameAs(b *AddFactoidAddress) bool {
+	if e.Type() != b.Type() {
 		return false
 	}
 
-	if !a.IdentityChainID.IsSameAs(b.IdentityChainID) {
+	if !e.IdentityChainID.IsSameAs(b.IdentityChainID) {
 		return false
 	}
 
-	if !a.FactoidAddress.IsSameAs(b.FactoidAddress) {
+	if !e.FactoidAddress.IsSameAs(b.FactoidAddress) {
 		return false
 	}
 

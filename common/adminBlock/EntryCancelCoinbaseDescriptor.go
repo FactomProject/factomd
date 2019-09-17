@@ -10,7 +10,8 @@ import (
 )
 
 // CancelCoinbaseDescriptor is an admin block entry which cancels a specific output in a previously created coinbase descriptor.
-// The cancelled factoids go to the grant pool intead of the specified address in the previous coinbase descriptor
+// The cancelled factoids go to the grant pool intead of the specified address in the previous coinbase descriptor. This entry is
+// triggered by a majority of authrity nodes voting for it
 type CancelCoinbaseDescriptor struct {
 	AdminIDType      uint32 `json:"adminidtype"`       //  the type of action in this admin block entry: uint32(TYPE_COINBASE_DESCRIPTOR_CANCEL)
 	DescriptorHeight uint32 `json:"descriptor_height"` // The previous directory block height the original coinbase descriptor is present
@@ -29,16 +30,16 @@ func (e *CancelCoinbaseDescriptor) Init() {
 }
 
 // IsSameAs returns true iff the input CancelCoinbaseDescriptor is indentical to this one
-func (a *CancelCoinbaseDescriptor) IsSameAs(b *CancelCoinbaseDescriptor) bool {
-	if a.Type() != b.Type() {
+func (e *CancelCoinbaseDescriptor) IsSameAs(b *CancelCoinbaseDescriptor) bool {
+	if e.Type() != b.Type() {
 		return false
 	}
 
-	if a.DescriptorHeight != b.DescriptorHeight {
+	if e.DescriptorHeight != b.DescriptorHeight {
 		return false
 	}
 
-	if a.DescriptorIndex != b.DescriptorIndex {
+	if e.DescriptorIndex != b.DescriptorIndex {
 		return false
 	}
 

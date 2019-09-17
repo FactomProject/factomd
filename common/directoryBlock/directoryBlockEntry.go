@@ -37,18 +37,18 @@ func (c *DBEntry) Init() {
 }
 
 // IsSameAs returns true iff the input DBEntry is identical to this DBEntry
-func (a *DBEntry) IsSameAs(b interfaces.IDBEntry) bool {
-	if a == nil || b == nil {
-		if a == nil && b == nil {
+func (c *DBEntry) IsSameAs(b interfaces.IDBEntry) bool {
+	if c == nil || b == nil {
+		if c == nil && b == nil {
 			return true
 		}
 		return false
 	}
 
-	if a.ChainID.IsSameAs(b.GetChainID()) == false {
+	if c.ChainID.IsSameAs(b.GetChainID()) == false {
 		return false
 	}
-	if a.KeyMR.IsSameAs(b.GetKeyMR()) == false {
+	if c.KeyMR.IsSameAs(b.GetKeyMR()) == false {
 		return false
 	}
 	return true

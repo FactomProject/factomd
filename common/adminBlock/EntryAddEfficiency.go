@@ -11,7 +11,8 @@ import (
 )
 
 // AddEfficiency is an admin block entry which contains a server identity and an efficiency for that server. The efficiency is specified in
-// hundredths of a percent. So 0% would be specified as 0, 52.34% is specified as 5234, and 100% is specified as 10000.
+// hundredths of a percent. So 0% would be specified as 0, 52.34% is specified as 5234, and 100% is specified as 10000. The efficiency
+// is the percent of factoids delivered to the grant pool, rather than the servers owner. So 100% efficiency pays all factoids to the grant pool
 type AddEfficiency struct {
 	AdminIDType     uint32           `json:"adminidtype"` // the type of action in this admin block entry: uint32(TYPE_ADD_FACTOID_EFFICIENCY)
 	IdentityChainID interfaces.IHash // the server identity whose efficiency will be updated
@@ -30,16 +31,16 @@ func (e *AddEfficiency) Init() {
 }
 
 // IsSameAs returns true iff the input object is identical to this object
-func (a *AddEfficiency) IsSameAs(b *AddEfficiency) bool {
-	if a.Type() != b.Type() {
+func (e *AddEfficiency) IsSameAs(b *AddEfficiency) bool {
+	if e.Type() != b.Type() {
 		return false
 	}
 
-	if !a.IdentityChainID.IsSameAs(b.IdentityChainID) {
+	if !e.IdentityChainID.IsSameAs(b.IdentityChainID) {
 		return false
 	}
 
-	if a.Efficiency != b.Efficiency {
+	if e.Efficiency != b.Efficiency {
 		return false
 	}
 

@@ -40,13 +40,13 @@ func (e *AddAuditServer) String() string {
 }
 
 // UpdateState updates the factomd state to include the new audit server information
-func (c *AddAuditServer) UpdateState(state interfaces.IState) error {
-	c.Init()
-	state.AddAuditServer(c.DBHeight, c.IdentityChainID)
-	authorityDeltaString := fmt.Sprintf("AdminBlock (AddAudMsg DBHt: %d) \n v %s", c.DBHeight, c.IdentityChainID.String()[5:10])
+func (e *AddAuditServer) UpdateState(state interfaces.IState) error {
+	e.Init()
+	state.AddAuditServer(e.DBHeight, e.IdentityChainID)
+	authorityDeltaString := fmt.Sprintf("AdminBlock (AddAudMsg DBHt: %d) \n v %s", e.DBHeight, e.IdentityChainID.String()[5:10])
 	state.AddStatus(authorityDeltaString)
 	state.AddAuthorityDelta(authorityDeltaString)
-	state.UpdateAuthorityFromABEntry(c)
+	state.UpdateAuthorityFromABEntry(e)
 	return nil
 }
 

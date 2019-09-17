@@ -10,6 +10,7 @@ import (
 	"os"
 	"reflect"
 
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -18,20 +19,15 @@ var _ = fmt.Print
 
 // DBlockHeader contains information related to a specific directory block.
 type DBlockHeader struct {
-	Version   byte   `json:"version"`   // The nework version, only supported version seems to be constants.VERSION_0
-	NetworkID uint32 `json:"networkid"` // Three supported networks in constants: MAIN_NETWORK_ID, TEST_NETWORK_ID, LOCAL_NETWORK_ID
-
+	Version      byte             `json:"version"`      // The nework version, only supported version seems to be constants.VERSION_0
+	NetworkID    uint32           `json:"networkid"`    // Three supported networks in constants: MAIN_NETWORK_ID, TEST_NETWORK_ID, LOCAL_NETWORK_ID
 	BodyMR       interfaces.IHash `json:"bodymr"`       // The Merkle root of the 'body' (entries only) of this directory block
 	PrevKeyMR    interfaces.IHash `json:"prevkeymr"`    // The key Merkle root of the previous directory block
 	PrevFullHash interfaces.IHash `json:"prevfullhash"` // The FullHash of the previous directory block
-
-	Timestamp  uint32 `json:"timestamp"`  // In theory, the timestamp the directory block was created, in minutes
-	DBHeight   uint32 `json:"dbheight"`   // The directory block height this header information is relevant to
-	BlockCount uint32 `json:"blockcount"` // The number of entry blocks in this directory block
+	Timestamp    uint32           `json:"timestamp"`    // In theory, the timestamp the directory block was created, in minutes
+	DBHeight     uint32           `json:"dbheight"`     // The directory block height this header information is relevant to
+	BlockCount   uint32           `json:"blockcount"`   // The number of entry blocks in this directory block
 }
-
-// MaxDirectoryBlockEntryCount is the maximum number of entry blocks in any directory block
-var MaxDirectoryBlockEntryCount = uint32(100000)
 
 var _ interfaces.Printable = (*DBlockHeader)(nil)
 var _ interfaces.BinaryMarshallable = (*DBlockHeader)(nil)
@@ -64,9 +60,9 @@ func (h *DBlockHeader) GetHeaderHash() (interfaces.IHash, error) {
 }
 
 // IsSameAs returns true iff the input header is identical to this DBlockHeader
-func (a *DBlockHeader) IsSameAs(b interfaces.IDirectoryBlockHeader) bool {
-	if a == nil || b == nil {
-		if a == nil && b == nil {
+func (h *DBlockHeader) IsSameAs(b interfaces.IDirectoryBlockHeader) bool {
+	if h == nil || b == nil {
+		if h == nil && b == nil {
 			return true
 		}
 		return false
@@ -77,30 +73,30 @@ func (a *DBlockHeader) IsSameAs(b interfaces.IDirectoryBlockHeader) bool {
 		return false
 	}
 
-	if a.Version != bb.Version {
+	if h.Version != bb.Version {
 		return false
 	}
-	if a.NetworkID != bb.NetworkID {
-		return false
-	}
-
-	if a.BodyMR.IsSameAs(bb.BodyMR) == false {
-		return false
-	}
-	if a.PrevKeyMR.IsSameAs(bb.PrevKeyMR) == false {
-		return false
-	}
-	if a.PrevFullHash.IsSameAs(bb.PrevFullHash) == false {
+	if h.NetworkID != bb.NetworkID {
 		return false
 	}
 
-	if a.Timestamp != bb.Timestamp {
+	if h.BodyMR.IsSameAs(bb.BodyMR) == false {
 		return false
 	}
-	if a.DBHeight != bb.DBHeight {
+	if h.PrevKeyMR.IsSameAs(bb.PrevKeyMR) == false {
 		return false
 	}
-	if a.BlockCount != bb.BlockCount {
+	if h.PrevFullHash.IsSameAs(bb.PrevFullHash) == false {
+		return false
+	}
+
+	if h.Timestamp != bb.Timestamp {
+		return false
+	}
+	if h.DBHeight != bb.DBHeight {
+		return false
+	}
+	if h.BlockCount != bb.BlockCount {
 		return false
 	}
 
@@ -278,7 +274,7 @@ func (h *DBlockHeader) MarshalBinary() (rval []byte, err error) {
 		return nil, err
 	}
 
-	if h.BlockCount > MaxDirectoryBlockEntryCount {
+	if h.BlockCount > constants.MaxDirectoryBlockEntryCount {
 		panic("Send: Blockcount too great in directory block")
 	}
 
@@ -328,7 +324,7 @@ func (h *DBlockHeader) UnmarshalBinaryData(data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	if h.BlockCount > MaxDirectoryBlockEntryCount {
+	if h.BlockCount > constants.MaxDirectoryBlockEntryCount {
 		panic("Receive: Blockcount too great in directory block" + fmt.Sprintf(":::: %d", h.BlockCount))
 	}
 

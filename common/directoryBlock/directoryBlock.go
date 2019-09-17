@@ -30,10 +30,10 @@ var _ = fmt.Print
 // entries for a particular Chain during a 10 minute period)
 type DirectoryBlock struct {
 	//Not Marshalized - hashing information related to the main entries below
-	DBHash     interfaces.IHash `json:"dbhash"`     // Hash of the 'body' of the DirctoryBlock (entries only)
-	KeyMR      interfaces.IHash `json:"keymr"`      // Merkle root of the HeaderHash and DBHash combined
-	HeaderHash interfaces.IHash `json:"headerhash"` // Hash of the header of the directory block
-	keyMRset   bool             `json:"keymrset"`   // has the key Merkle Root already computed
+	DBHash     interfaces.IHash `json:"-"` // Hash of the 'body' of the DirctoryBlock (entries only)
+	KeyMR      interfaces.IHash `json:"-"` // Merkle root of the HeaderHash and DBHash combined
+	HeaderHash interfaces.IHash `json:"-"` // Hash of the header of the directory block
+	keyMRset   bool             `json:"-"` // has the key Merkle Root already computed
 
 	//Marshalized - These are the main contents of the DirectoryBlock
 	Header    interfaces.IDirectoryBlockHeader `json:"header"`    // Contains the header information for this directory block
@@ -60,23 +60,23 @@ func (c *DirectoryBlock) Init() {
 }
 
 // IsSameAs checks the input objects header and its entries are identical to this directory block
-func (a *DirectoryBlock) IsSameAs(b interfaces.IDirectoryBlock) bool {
-	if a == nil || b == nil {
-		if a == nil && b == nil {
+func (c *DirectoryBlock) IsSameAs(b interfaces.IDirectoryBlock) bool {
+	if c == nil || b == nil {
+		if c == nil && b == nil {
 			return true
 		}
 		return false
 	}
 
-	if a.Header.IsSameAs(b.GetHeader()) == false {
+	if c.Header.IsSameAs(b.GetHeader()) == false {
 		return false
 	}
 	bDBEntries := b.GetDBEntries()
-	if len(a.DBEntries) != len(bDBEntries) {
+	if len(c.DBEntries) != len(bDBEntries) {
 		return false
 	}
-	for i := range a.DBEntries {
-		if a.DBEntries[i].IsSameAs(bDBEntries[i]) == false {
+	for i := range c.DBEntries {
+		if c.DBEntries[i].IsSameAs(bDBEntries[i]) == false {
 			return false
 		}
 	}

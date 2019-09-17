@@ -9,6 +9,9 @@ import (
 	"time"
 )
 
+// MaxDirectoryBlockEntryCount is the maximum number of entry blocks in any directory block
+const MaxDirectoryBlockEntryCount = uint32(100000)
+
 // Messages
 const (
 	EOM_MSG                       byte = iota // 0
@@ -66,7 +69,7 @@ func NormallyFullBroadcast(t byte) bool {
 	return false
 }
 
-// Check is they type needs an ACK to be processed.
+// NeedsAck checks if the type needs an ACK to be processed.
 func NeedsAck(t byte) bool {
 	switch t {
 	case EOM_MSG, COMMIT_CHAIN_MSG, COMMIT_ENTRY_MSG, REVEAL_ENTRY_MSG, DIRECTORY_BLOCK_SIGNATURE_MSG, FACTOID_TRANSACTION_MSG, ADDSERVER_MSG, CHANGESERVER_KEY_MSG, REMOVESERVER_MSG:
@@ -75,7 +78,7 @@ func NeedsAck(t byte) bool {
 	return false
 }
 
-// Election related messages are full broadcast
+// NormallyPeer2Peer returns true of an input type is peer to peer
 func NormallyPeer2Peer(t byte) bool {
 	switch t {
 	case MISSING_MSG, MISSING_DATA, DATA_RESPONSE, MISSING_MSG_RESPONSE, BOUNCE_MSG, BOUNCEREPLY_MSG,
@@ -94,6 +97,7 @@ const (
 	ECIDBalanceIncrease               // 4
 )
 
+// MessageName returns the name string for the input type
 func MessageName(Type byte) string {
 	switch Type {
 	case EOM_MSG:
@@ -182,6 +186,7 @@ func MessageName(Type byte) string {
 	}
 }
 
+// ShortMessageName returns the shortened name string for the input type
 func ShortMessageName(Type byte) string {
 	switch Type {
 	case EOM_MSG:
@@ -274,12 +279,12 @@ func ShortMessageName(Type byte) string {
 var (
 	// Coinbase Related Constants
 
-	// How often to create coinbase transactions
+	// How often to create coinbase transactions (in blocks)
 	//		:: Default = 25
 	COINBASE_PAYOUT_FREQUENCY = uint32(25)
 
 	// How many blocks before the coinbase does the coinbase
-	// have to appear in the admin block
+	// have to appear in the admin block (a delay between initiating and executing the coinbase transaction)
 	//		:: Default = COINBASE_PAYOUT_FREQUENCY*40
 	COINBASE_DECLARATION = uint32(COINBASE_PAYOUT_FREQUENCY * 40)
 
@@ -449,6 +454,7 @@ const (
 	IDENTITY_REGISTRATION_CHAIN                    // 8
 )
 
+// IdentityStatusString returns the identity status type as a string
 func IdentityStatusString(i uint8) string {
 	var stat string
 	stat = "Unknown"

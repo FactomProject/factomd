@@ -11,7 +11,7 @@ import (
 )
 
 // ServerFault is an admin block entry which contains all the information and messages from an election, which includes the removal and
-// promotion of a server from and to the federated set
+// promotion of a server from and to the federated set. Note: this is not currently used, but may be revisited again in the future
 type ServerFault struct {
 	AdminIDType uint32               `json:"adminidtype"` //  the type of action in this admin block entry: uint32(TYPE_SERVER_FAULT)
 	Timestamp   interfaces.Timestamp `json:"timestamp"`

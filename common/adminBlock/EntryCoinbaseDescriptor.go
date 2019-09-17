@@ -15,7 +15,7 @@ import (
 // The CoinbaseDescriptor entry should occur every 25 blocks, in blocks whose number is divisible by 25.
 type CoinbaseDescriptor struct {
 	AdminIDType uint32                     `json:"adminidtype"` //  the type of action in this admin block entry: uint32(TYPE_COINBASE_DESCRIPTOR)
-	Outputs     []interfaces.ITransAddress // An array containing a pair of factoid_value1 to increase a at a specific factoid_address1, ... to factoid_valueN at factoid_addressN
+	Outputs     []interfaces.ITransAddress `json:"outputs"`     // An array containing a pair of factoid_value1 to increase a at a specific factoid_address1, ... to factoid_valueN at factoid_addressN
 }
 
 var _ interfaces.IABEntry = (*CoinbaseDescriptor)(nil)
@@ -27,13 +27,13 @@ func (e *CoinbaseDescriptor) Init() {
 }
 
 // IsSameAs returns true iff the input coinbase descriptor is identical to this coinbase descriptor
-func (a *CoinbaseDescriptor) IsSameAs(b *CoinbaseDescriptor) bool {
-	if a.Type() != b.Type() {
+func (e *CoinbaseDescriptor) IsSameAs(b *CoinbaseDescriptor) bool {
+	if e.Type() != b.Type() {
 		return false
 	}
 
-	for i := range a.Outputs {
-		if !a.Outputs[i].IsSameAs(b.Outputs[i]) {
+	for i := range e.Outputs {
+		if !e.Outputs[i].IsSameAs(b.Outputs[i]) {
 			return false
 		}
 	}

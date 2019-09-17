@@ -10,9 +10,11 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-// AddReplaceMatryoshkaHash is a DEPRECATED admin block entry that adds a Matryoshka Hash to the specified server.
-// According to 'Who', the Matryoshka hash is not used any longer, although its unclear if it may make an appearance
-// in older sections of the block chain.
+// AddReplaceMatryoshkaHash is an admin block entry that adds a Matryoshka Hash to the specified server.
+//
+// Deprecated: The Matryoshka hash is still required to be a valid identity, however it has never been used, and will likely never
+// be used. The Matryoshka hash's primary function intended to be used at the launch of M2 and would affect the
+// authority node to VM mapping, but it was replaced with a more simple rotating order.
 type AddReplaceMatryoshkaHash struct {
 	AdminIDType     uint32           `json:"adminidtype"` // the type of action in this admin block entry: uint32(TYPE_ADD_MATRYOSHKA)
 	IdentityChainID interfaces.IHash `json:"identitychainid"`

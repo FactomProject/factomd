@@ -10,9 +10,9 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-// RevealMatryoshkaHash is a DEPRECATED type of entry in the admin block which reveals the Matryoshka Hash.
-// According to 'Who', the Matryoshka hash is not used any longer, although its unclear if it may make an appearance
-// in older sections of the block chain.
+// RevealMatryoshkaHash is a type of entry in the admin block which reveals the Matryoshka Hash.
+//
+// Deprecated: the Matryoshka hash is not used any longer,see comments under AddReplaceMatryoshkaHash
 type RevealMatryoshkaHash struct {
 	AdminIDType     uint32           `json:"adminidtype"`     //  the type of action in this admin block entry: uint32(TYPE_REVEAL_MATRYOSHKA)
 	IdentityChainID interfaces.IHash `json:"identitychainid"` // Server 32 byte identity chain id
