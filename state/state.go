@@ -2372,7 +2372,8 @@ func (s *State) GotHeartbeat(heartbeatTS interfaces.Timestamp, dbheight uint32) 
 		newTS = leaderTime
 	}
 
-	s.LogPrintf("executeMsg", "GotHeartbeat(%s, %s)", heartbeatTS, dbheight)
+	s.LogPrintf("executeMsg", "GotHeartbeat(%s, dbht:"+
+		"%d)", heartbeatTS, dbheight)
 
 	// set filter to one hour before target
 	s.SetMessageFilterTimestamp(primitives.NewTimestampFromMilliseconds(uint64(newTS - 60*60*1000)))

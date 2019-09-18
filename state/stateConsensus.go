@@ -1984,6 +1984,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		s.EOMProcessed--
 		if s.EOMProcessed <= 0 { // why less than or equal?
 			s.SendHeartBeat() // Only do this once per minute
+
 			s.LogPrintf("dbsig-eom", "ProcessEOM complete for %d", e.Minute)
 			// setup to sync next minute ...
 			s.Syncing = false  // ProcessEOM (EOM complete)
