@@ -34,7 +34,7 @@ const (
 	sendRetries               = 3
 	dialRetryPostponeDuration = 5 * time.Minute
 	redialSleepDuration       = 10 * time.Second
-	protocolVersion           = 1
+	protocolVersion           = byte(1)
 )
 
 type eventServiceInstance struct {
