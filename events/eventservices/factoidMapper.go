@@ -37,15 +37,15 @@ func mapTransactions(transactions []interfaces.ITransaction) []*eventmessages.Tr
 
 func mapTransaction(transaction interfaces.ITransaction) *eventmessages.Transaction {
 	result := &eventmessages.Transaction{
-		TransactionId: &eventmessages.Hash{
+		TransactionID: &eventmessages.Hash{
 			HashValue: transaction.GetSigHash().Bytes(),
 		},
 		BlockHeight:                   transaction.GetBlockHeight(),
 		Timestamp:                     convertTimeToTimestamp(transaction.GetTimestamp().GetTime()),
-		Inputs:                        mapTransactionAddresses(transaction.GetInputs()),
-		Outputs:                       mapTransactionAddresses(transaction.GetOutputs()),
-		OutputEntryCredits:            mapTransactionAddresses(transaction.GetECOutputs()),
-		RedeemConditionDatastructures: mapRCDs(transaction.GetRCDs()),
+		FactoidInputs:                 mapTransactionAddresses(transaction.GetInputs()),
+		FactoidOutputs:                mapTransactionAddresses(transaction.GetOutputs()),
+		EntryCreditOutputs:            mapTransactionAddresses(transaction.GetECOutputs()),
+		RedeemConditionDataStructures: mapRCDs(transaction.GetRCDs()),
 		SignatureBlocks:               mapSignatureBlocks(transaction.GetSignatureBlocks()),
 	}
 	return result
@@ -90,7 +90,7 @@ func mapRCD(rcd interfaces.IRCD) *eventmessages.RCD {
 		}
 
 	case factoid.IRCD:
-		/*		rcd2 := rcd.(factoid.IRCD)  TODO rcd2 is not implemented?
+		/*		rcd2 := rcd.(factoid.IRCD)  rcd2 is not supported yet
 				evRcd2 := eventmessages.RCD2{
 					M:          rcd.M,
 					N:          rcd.NumberOfSignatures(),

@@ -27,10 +27,10 @@ func EmitStateChangeEvent(msg interfaces.IMsg, entityState eventmessages.EntityS
 	}
 }
 
-func GetStreamSource(state *State) eventmessages.StreamSource {
+func GetStreamSource(state *State) eventmessages.EventSource {
 	if state.IsRunLeader() {
-		return eventmessages.StreamSource_LIVE
+		return eventmessages.EventSource_LIVE
 	} else {
-		return eventmessages.StreamSource_REPLAY_BOOT
+		return eventmessages.EventSource_REPLAY_BOOT
 	}
 }

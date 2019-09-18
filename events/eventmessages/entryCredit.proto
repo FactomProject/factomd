@@ -57,7 +57,7 @@ message EntryCreditEntryCommit {  // This message was duplicated from EntryCommi
 }
 
 message IncreaseBalance {
-    bytes ecPubKey = 1;
+    bytes entryCreditPublicKey = 1;
     Hash transactionID = 2;
     uint64 index = 3;
     uint64 amount = 4;

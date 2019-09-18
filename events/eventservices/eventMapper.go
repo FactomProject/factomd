@@ -38,7 +38,7 @@ func MapToFactomEvent(eventInput events.EventInput) (*eventmessages.FactomEvent,
 
 func mapRegistrationEvent(registrationEvent *events.RegistrationEvent) (*eventmessages.FactomEvent, error) {
 	event := &eventmessages.FactomEvent{}
-	event.StreamSource = registrationEvent.GetStreamSource()
+	event.EventSource = registrationEvent.GetStreamSource()
 	msg := registrationEvent.GetPayload()
 	if msg != nil {
 		shouldIncludeContent := eventServiceControl.GetContentFilterMode() > contentfiltermode.SendNever
@@ -61,7 +61,7 @@ func mapRegistrationEvent(registrationEvent *events.RegistrationEvent) (*eventme
 
 func mapStateChangeEvent(stateChangeEvent *events.StateChangeEvent) (*eventmessages.FactomEvent, error) {
 	event := &eventmessages.FactomEvent{}
-	event.StreamSource = stateChangeEvent.GetStreamSource()
+	event.EventSource = stateChangeEvent.GetStreamSource()
 	msg := stateChangeEvent.GetPayload()
 	if msg != nil {
 		shouldIncludeContent := eventServiceControl.GetContentFilterMode() > contentfiltermode.SendOnRegistration
@@ -96,7 +96,7 @@ func mapStateChangeEvent(stateChangeEvent *events.StateChangeEvent) (*eventmessa
 
 func mapProcessMessageEvent(processMessageEvent *events.ProcessMessageEvent) (*eventmessages.FactomEvent, error) {
 	event := &eventmessages.FactomEvent{
-		StreamSource: processMessageEvent.GetStreamSource(),
+		EventSource: processMessageEvent.GetStreamSource(),
 		Value: &eventmessages.FactomEvent_ProcessMessage{
 			ProcessMessage: processMessageEvent.GetProcessMessage(),
 		},
@@ -106,7 +106,7 @@ func mapProcessMessageEvent(processMessageEvent *events.ProcessMessageEvent) (*e
 
 func mapNodeMessageEvent(nodeMessageEvent *events.NodeMessageEvent) (*eventmessages.FactomEvent, error) {
 	event := &eventmessages.FactomEvent{
-		StreamSource: nodeMessageEvent.GetStreamSource(),
+		EventSource: nodeMessageEvent.GetStreamSource(),
 		Value: &eventmessages.FactomEvent_NodeMessage{
 			NodeMessage: nodeMessageEvent.GetNodeMessage(),
 		},

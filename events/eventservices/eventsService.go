@@ -27,13 +27,14 @@ var eventService events.EventService
 var eventServiceControl events.EventServiceControl
 
 const (
-	defaultProtocol           = "udp"
+	defaultProtocol           = "tcp"
 	defaultConnectionHost     = "127.0.0.1"
 	defaultConnectionPort     = 8040
 	defaultOutputFormat       = eventoutputformat.Protobuf
 	sendRetries               = 3
 	dialRetryPostponeDuration = 5 * time.Minute
 	redialSleepDuration       = 10 * time.Second
+	protocolVersion           = 1
 )
 
 type eventServiceInstance struct {
@@ -212,6 +213,7 @@ func (esi *eventServiceInstance) writeEvent(data []byte) (err error) {
 	defer catchSendPanics()
 
 	writer := bufio.NewWriter(esi.connection)
+	writer.WriteByte(protocolVersion)
 
 	dataSize := int32(len(data))
 	err = binary.Write(writer, binary.LittleEndian, dataSize)

@@ -12,6 +12,8 @@ import (
 	"time"
 )
 
+const supportedProtocolVersion = 1
+
 type EventServerSim struct {
 	Protocol          string
 	Address           string
@@ -69,6 +71,16 @@ func (sim *EventServerSim) listenForEvents() {
 
 	for i := atomic.LoadInt32(&sim.CorrectSendEvents); i < int32(sim.ExpectedEvents) && sim.runState < runstate.Stopping; i++ {
 		fmt.Printf("read event: %d/%d\n", i, sim.ExpectedEvents)
+		protocolVersion, err := reader.ReadByte()
+		if err != nil {
+			fmt.Printf("failed to read protocol version: %v\n", err)
+			return
+		}
+		if protocolVersion != supportedProtocolVersion {
+			fmt.Printf("unsupported protocol version: %d\n", protocolVersion)
+			return
+		}
+
 		var dataSize int32
 		if err := binary.Read(reader, binary.LittleEndian, &dataSize); err != nil {
 			fmt.Printf("failed to read data size: %v\n", err)

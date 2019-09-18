@@ -5,3 +5,4 @@ eventmessages/factoidBlock.proto \
 eventmessages/adminBlock.proto \
 eventmessages/entryCredit.proto \
 eventmessages/factomEvents.proto
+plantuml ./complete_model.puml

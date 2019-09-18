@@ -32,7 +32,7 @@ message AdminBlockEntry {
         AddReplaceMatryoshkaHash addReplaceMatryoshkaHash = 7;
         CancelCoinbaseDescriptor cancelCoinbaseDescriptor = 8;
         CoinbaseDescriptor coinbaseDescriptor = 9;
-        DirectoryBlockSignatureEntry dbSignatureEntry = 10;
+        DirectoryBlockSignatureEntry directoryBlockSignatureEntry = 10;
         EndOfMinuteEntry endOfMinuteEntry = 11;
         ForwardCompatibleEntry forwardCompatibleEntry = 12;
         IncreaseServerCount increaseServerCount = 13;
@@ -79,7 +79,7 @@ message AddFederatedServerSigningKey {
 message AddReplaceMatryoshkaHash {
     Hash identityChainID = 1;
     Hash matryoshkaHash = 2;
-    repeated TransactionAddress outputs = 3;
+    repeated TransactionAddress factoidOutputs = 3;
 
 }
 
@@ -89,7 +89,7 @@ message CancelCoinbaseDescriptor {
 }
 
 message CoinbaseDescriptor {
-    repeated TransAddress outputs = 1;
+    repeated TransAddress factoidOutputs = 1;
 }
 
 message DirectoryBlockSignatureEntry {
@@ -122,10 +122,10 @@ message RevealMatryoshkaHash {
 
 message ServerFault {
     graphqlproto.types.Timestamp timestamp = 1;
-    Hash serverId = 2;
+    Hash serverID = 2;
     Hash auditServerID = 3;
     uint32 vmIndex = 4;
     uint32 blockHeight = 5;
-    uint32 height = 6;
+    uint32 messageEntryHeight = 6;
     repeated Signature signatureList = 7;
 }

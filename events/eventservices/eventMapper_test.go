@@ -45,7 +45,7 @@ func testDBStateMapping(t *testing.T) {
 	data, _ := msg.MarshalBinary()
 	assert.Len(t, data, 2409, msgChangedMessage("DBStateMsg"))
 
-	inputEvent := events.NewStateChangeEvent(eventmessages.StreamSource_LIVE, eventmessages.EntityState_COMMITTED_TO_DIRECTORY_BLOCK, msg)
+	inputEvent := events.NewStateChangeEvent(eventmessages.EventSource_LIVE, eventmessages.EntityState_COMMITTED_TO_DIRECTORY_BLOCK, msg)
 	event, err := eventservices.MapToFactomEvent(inputEvent)
 	if err != nil {
 		t.Error(err)
@@ -76,10 +76,10 @@ func assertTransactions(t *testing.T, transactions []*eventmessages.Transaction)
 	assert.NotNil(t, transactions)
 	for _, transaction := range transactions {
 		assert.NotNil(t, transaction)
-		assert.NotNil(t, transaction.TransactionId)
+		assert.NotNil(t, transaction.TransactionID)
 		assert.NotNil(t, transaction.BlockHeight)
-		assert.NotNil(t, transaction.Outputs)
-		for _, output := range transaction.Outputs {
+		assert.NotNil(t, transaction.FactoidOutputs)
+		for _, output := range transaction.FactoidOutputs {
 			assert.True(t, output.Amount > 0)
 			assert.NotNil(t, output.Address)
 		}
@@ -144,7 +144,7 @@ func testCommitChainMapping(t *testing.T) {
 	data, _ := msg.MarshalBinary()
 	assert.Len(t, data, 201, msgChangedMessage("CommitChainMsg"))
 
-	inputEvent := events.NewRegistrationEvent(eventmessages.StreamSource_LIVE, msg)
+	inputEvent := events.NewRegistrationEvent(eventmessages.EventSource_LIVE, msg)
 	event, err := eventservices.MapToFactomEvent(inputEvent)
 	if err != nil {
 		t.Error(err)
@@ -175,7 +175,7 @@ func testCommitEntryMapping(t *testing.T) {
 	data, _ := msg.MarshalBinary()
 	assert.Len(t, data, 137, msgChangedMessage("CommitEntryMsg"))
 
-	inputEvent := events.NewRegistrationEvent(eventmessages.StreamSource_LIVE, msg)
+	inputEvent := events.NewRegistrationEvent(eventmessages.EventSource_LIVE, msg)
 	event, err := eventservices.MapToFactomEvent(inputEvent)
 	if err != nil {
 		t.Error(err)
@@ -207,7 +207,7 @@ func testEntryRevealMapping(t *testing.T) {
 	data, _ := msg.MarshalBinary()
 	assert.Len(t, data, 60, msgChangedMessage("RevealEntryMsg"))
 
-	inputEvent := events.NewRegistrationEvent(eventmessages.StreamSource_LIVE, msg)
+	inputEvent := events.NewRegistrationEvent(eventmessages.EventSource_LIVE, msg)
 	event, err := eventservices.MapToFactomEvent(inputEvent)
 	if err != nil {
 		t.Error(err)
@@ -238,7 +238,7 @@ func testStateChangeMapping(t *testing.T) {
 	data, _ := msg.MarshalBinary()
 	assert.Len(t, data, 137, msgChangedMessage("CommitEntryMsg"))
 
-	inputEvent := events.NewStateChangeEvent(eventmessages.StreamSource_LIVE, eventmessages.EntityState_ACCEPTED, msg)
+	inputEvent := events.NewStateChangeEvent(eventmessages.EventSource_LIVE, eventmessages.EntityState_ACCEPTED, msg)
 	event, err := eventservices.MapToFactomEvent(inputEvent)
 	if err != nil {
 		t.Error(err)

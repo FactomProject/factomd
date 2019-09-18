@@ -20,13 +20,13 @@ message FactoidBlock {
 }
 
 message Transaction {
-    Hash transactionId = 1;
+    Hash transactionID = 1;
     uint32 blockHeight = 2;
     graphqlproto.types.Timestamp timestamp = 3;
-    repeated TransactionAddress inputs = 4;
-    repeated TransactionAddress outputs = 5;
-    repeated TransactionAddress outputEntryCredits = 6;
-    repeated RCD redeemConditionDatastructures = 7; // too long?
+    repeated TransactionAddress factoidInputs = 4;
+    repeated TransactionAddress factoidOutputs = 5;
+    repeated TransactionAddress entryCreditOutputs = 6;
+    repeated RCD redeemConditionDataStructures = 7;
     repeated FactoidSignatureBlock signatureBlocks = 8;
 }
 
