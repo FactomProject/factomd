@@ -179,6 +179,7 @@ type State struct {
 	apiQueue               APIMSGQueue
 	ackQueue               chan interfaces.IMsg
 	msgQueue               chan interfaces.IMsg
+	dataQueue              chan interfaces.IMsg
 	// prioritizedMsgQueue contains messages we know we need for consensus. (missing from processlist)
 	//		Currently messages from MMR handling can be put in here to fast track
 	//		them to the front.
@@ -1009,6 +1010,7 @@ func (s *State) Init() {
 	s.msgQueue = make(chan interfaces.IMsg, 50)                             //queue of Follower messages
 	s.prioritizedMsgQueue = make(chan interfaces.IMsg, 50)                  //a prioritized queue of Follower messages (from mmr.go)
 	s.MissingEntries = make(chan *MissingEntry, constants.INMSGQUEUE_HIGH)  //Entries I discover are missing from the database
+	s.dataQueue = NewInMsgQueue(constants.INMSGQUEUE_HIGH)                  //incoming requests for missing data
 	s.UpdateEntryHash = make(chan *EntryUpdate, constants.INMSGQUEUE_HIGH)  //Handles entry hashes and updating Commit maps.
 	s.WriteEntry = make(chan interfaces.IEBEntry, constants.INMSGQUEUE_LOW) //Entries to be written to the database
 	s.RecentMessage.NewMsgs = make(chan interfaces.IMsg, 100)
@@ -2289,8 +2291,13 @@ func (s *State) InMsgQueue() interfaces.IQueue {
 func (s *State) InMsgQueue2() interfaces.IQueue {
 	return s.inMsgQueue2
 }
+
 func (s *State) ElectionsQueue() interfaces.IQueue {
 	return s.electionsQueue
+}
+
+func (s *State) DataMsgQueue() chan interfaces.IMsg {
+	return s.dataQueue
 }
 
 func (s *State) APIQueue() interfaces.IQueue {

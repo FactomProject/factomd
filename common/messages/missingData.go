@@ -183,6 +183,10 @@ func (m *MissingData) LeaderExecute(state interfaces.IState) {
 }
 
 func (m *MissingData) FollowerExecute(state interfaces.IState) {
+	panic("deprecated") // go routine in NetworkProcessorNet now handles this
+}
+
+func (m *MissingData) SendResponse(state interfaces.IState) {
 	var dataObject interfaces.BinaryMarshallable
 	//var dataHash interfaces.IHash
 	rawObject, dataType, err := state.LoadDataByHash(m.RequestHash)
