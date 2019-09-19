@@ -20,8 +20,8 @@ type ServerFault struct {
 	ServerID      interfaces.IHash `json:"serverid"`
 	AuditServerID interfaces.IHash `json:"auditserverid"`
 	VMIndex       byte             `json:"vmindex"`
-	DBHeight      uint32           `json:"dbheight"`
-	Height        uint32           `json:"height"`
+	DBHeight      uint32           `json:"dbheight"` // Directory block height where the server fault occurred
+	Height        uint32           `json:"height"`   // The entry in the process list where the server fault occurred
 
 	SignatureList SigList `json:"signaturelist"`
 }
