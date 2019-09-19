@@ -93,7 +93,7 @@ func ProcessInfoMessage(streamSource eventmessages.EventSource, messageCode even
 }
 
 func ProcessInfoEventF(streamSource eventmessages.EventSource, messageCode eventmessages.ProcessMessageCode, format string, values ...interface{}) *ProcessMessageEvent {
-	return ProcessInfoMessage(streamSource, messageCode, fmt.Sprintf(format, values))
+	return ProcessInfoMessage(streamSource, messageCode, fmt.Sprintf(format, values...))
 }
 
 func NodeInfoMessage(messageCode eventmessages.NodeMessageCode, message string) *NodeMessageEvent {
@@ -108,7 +108,7 @@ func NodeInfoMessage(messageCode eventmessages.NodeMessageCode, message string) 
 }
 
 func NodeInfoMessageF(messageCode eventmessages.NodeMessageCode, format string, values ...interface{}) *NodeMessageEvent {
-	return NodeInfoMessage(messageCode, fmt.Sprintf(format, values))
+	return NodeInfoMessage(messageCode, fmt.Sprintf(format, values...))
 }
 
 func NodeErrorMessage(messageCode eventmessages.NodeMessageCode, message string, values interface{}) *NodeMessageEvent {

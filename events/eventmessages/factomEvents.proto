@@ -5,18 +5,11 @@ option java_package = "com.factom.factomd.eventmessages";
 
 import "github.com/bi-foundation/protobuf-graphql-extension/graphqlproto/graphql.proto";
 import "github.com/bi-foundation/protobuf-graphql-extension/graphqlproto/types/timestamp.proto";
-import "eventmessages/generalTypes.proto";
+import "eventmessages/sharedTypes.proto";
 import "eventmessages/adminBlock.proto";
 import "eventmessages/factoidBlock.proto";
-import "eventmessages/entryCredit.proto";
 
 option (graphqlproto.graphql) = true;
-
-enum EventSource {
-    LIVE = 0;
-    REPLAY_BOOT = 1;
-}
-
 
 message FactomEvent {
     EventSource eventSource = 1;
@@ -34,15 +27,6 @@ message FactomEvent {
 }
 
 
-message DirectoryBlockCommit {
-    DirectoryBlock directoryBlock = 1;
-    AdminBlock adminBlock = 2;
-    FactoidBlock factoidBlock = 3;
-    EntryCreditBlock entryCreditBlock = 4;
-    repeated EntryBlock entryBlocks = 5;
-    repeated EntryBlockEntry entryBlockEntries = 6;
-}
-
 message ChainCommit {
     EntityState entityState = 1;
     Hash chainIDHash = 2;
@@ -54,6 +38,7 @@ message ChainCommit {
     bytes signature = 8;
 }
 
+
 message EntryCommit {
     EntityState entityState = 1;
     Hash entryHash = 2;
@@ -63,11 +48,13 @@ message EntryCommit {
     bytes signature = 6;
 }
 
+
 message EntryReveal {
     EntityState entityState = 1;
     EntryBlockEntry entry = 2;
     graphqlproto.types.Timestamp timestamp = 3;
 }
+
 
 message StateChange {
     Hash entityHash = 1;
@@ -75,9 +62,19 @@ message StateChange {
     uint32 blockHeight = 3;
 }
 
+
+message DirectoryBlockCommit {
+    DirectoryBlock directoryBlock = 1;
+    AdminBlock adminBlock = 2;
+    FactoidBlock factoidBlock = 3;
+    EntryCreditBlock entryCreditBlock = 4;
+    repeated EntryBlock entryBlocks = 5;
+    repeated EntryBlockEntry entryBlockEntries = 6;
+}
+
 message DirectoryBlock {
     DirectoryBlockHeader header = 1;
-    repeated Entry entries = 2;
+    repeated DirectoryBlockEntry entries = 2;
 }
 
 message DirectoryBlockHeader {
@@ -87,6 +84,11 @@ message DirectoryBlockHeader {
     graphqlproto.types.Timestamp timestamp = 4;
     uint32 blockHeight = 5;
     uint32 blockCount = 6;
+}
+
+message DirectoryBlockEntry {
+    Hash chainID = 1;
+    Hash keyMerkleRoot = 2;
 }
 
 message EntryBlock {
@@ -104,17 +106,50 @@ message EntryBlockHeader {
     uint32 entryCount = 7;
 }
 
-
-enum Level {
-    INFO = 0;
-    WARNING = 1;
-    ERROR = 2;
+message EntryBlockEntry {
+    Hash hash = 1;
+    repeated ExternalId externalIDs = 2;
+    Content content = 3;
 }
 
+message EntryCreditBlock {
+    EntryCreditBlockHeader header = 1;
+    repeated EntryCreditBlockEntry entries = 2;
+}
 
-enum ProcessMessageCode {
-    NEW_BLOCK = 0;
-    NEW_MINUTE = 1;
+message EntryCreditBlockHeader {
+    Hash bodyHash = 1;
+    Hash previousHeaderHash = 2;
+    Hash previousFullHash = 3;
+    uint32 blockHeight = 4;
+    bytes headerExpansionArea = 5;
+    uint64 objectCount = 6;
+    uint64 bodySize = 7;
+}
+
+message EntryCreditBlockEntry {
+    oneof value {
+        ChainCommit chainCommit = 1;
+        EntryCommit entryCommit = 2;
+        IncreaseBalance increaseBalance = 3;
+        MinuteNumber minuteNumber = 4;
+        ServerIndexNumber serverIndexNumber = 5;
+    }
+}
+
+message IncreaseBalance {
+    bytes entryCreditPublicKey = 1;
+    Hash transactionID = 2;
+    uint64 index = 3;
+    uint64 amount = 4;
+}
+
+message MinuteNumber {
+    uint32 minuteNumber = 1;
+}
+
+message ServerIndexNumber {
+    uint32 serverIndexNumber = 1;
 }
 
 
@@ -125,15 +160,41 @@ message ProcessMessage {
 }
 
 
+message NodeMessage {
+    NodeMessageCode messageCode = 1;
+    Level level = 2;
+    string messageText = 3;
+}
+
+
+// ====  ENUMS =====
+enum EventSource {
+    LIVE = 0;
+    REPLAY_BOOT = 1;
+}
+
+enum EntityState {
+    REQUESTED = 0;
+    HOLDING_QUEUE = 1;
+    ACCEPTED = 2;
+    REJECTED = 3;
+    COMMITTED_TO_DIRECTORY_BLOCK = 4;
+}
+
+enum Level {
+    INFO = 0;
+    WARNING = 1;
+    ERROR = 2;
+}
+
+enum ProcessMessageCode {
+    NEW_BLOCK = 0;
+    NEW_MINUTE = 1;
+}
+
 enum NodeMessageCode {
     GENERAL = 0;
     STARTED = 1;
     SYNCED = 2;
     SHUTDOWN = 3;
-}
-
-message NodeMessage {
-    NodeMessageCode messageCode = 1;
-    Level level = 2;
-    string messageText = 3;
 }

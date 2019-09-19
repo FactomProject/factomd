@@ -29,16 +29,16 @@ func mapDirHeader(header interfaces.IDirectoryBlockHeader) *eventmessages.Direct
 	return result
 }
 
-func mapDirEntries(entries []interfaces.IDBEntry) []*eventmessages.Entry {
-	result := make([]*eventmessages.Entry, len(entries))
+func mapDirEntries(entries []interfaces.IDBEntry) []*eventmessages.DirectoryBlockEntry {
+	result := make([]*eventmessages.DirectoryBlockEntry, len(entries))
 	for i, entry := range entries {
 		result[i] = mapDirEntry(entry)
 	}
 	return result
 }
 
-func mapDirEntry(entry interfaces.IDBEntry) *eventmessages.Entry {
-	result := &eventmessages.Entry{
+func mapDirEntry(entry interfaces.IDBEntry) *eventmessages.DirectoryBlockEntry {
+	result := &eventmessages.DirectoryBlockEntry{
 		ChainID: &eventmessages.Hash{
 			HashValue: entry.GetChainID().Bytes(),
 		},

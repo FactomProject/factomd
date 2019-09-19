@@ -204,8 +204,8 @@ func mockDirHeader() *eventmessages.DirectoryBlockHeader {
 	return result
 }
 
-func mockDirEntries() []*eventmessages.Entry {
-	result := make([]*eventmessages.Entry, entries)
+func mockDirEntries() []*eventmessages.DirectoryBlockEntry {
+	result := make([]*eventmessages.DirectoryBlockEntry, entries)
 	for i := 0; i < entries; i++ {
 		result[i] = mockDirEntry()
 
@@ -213,8 +213,8 @@ func mockDirEntries() []*eventmessages.Entry {
 	return result
 }
 
-func mockDirEntry() *eventmessages.Entry {
-	result := &eventmessages.Entry{
+func mockDirEntry() *eventmessages.DirectoryBlockEntry {
+	result := &eventmessages.DirectoryBlockEntry{
 		ChainID: &eventmessages.Hash{
 			HashValue: testHash,
 		},

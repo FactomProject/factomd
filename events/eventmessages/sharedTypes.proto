@@ -4,17 +4,9 @@ option go_package = "eventmessages";
 option java_package = "com.factom.factomd.eventmessages";
 
 import "github.com/bi-foundation/protobuf-graphql-extension/graphqlproto/graphql.proto";
+import "github.com/bi-foundation/protobuf-graphql-extension/graphqlproto/types/timestamp.proto";
 
 option (graphqlproto.graphql) = true;
-
-
-enum EntityState {
-    REQUESTED = 0;
-    HOLDING_QUEUE = 1;
-    ACCEPTED = 2;
-    REJECTED = 3;
-    COMMITTED_TO_DIRECTORY_BLOCK = 4;
-}
 
 
 message Hash {
@@ -38,15 +30,3 @@ message TransAddress {
     uint64 amount = 1;
     Hash address = 2;
 }
-
-message EntryBlockEntry {
-    Hash hash = 1;
-    repeated ExternalId externalIDs = 2;
-    Content content = 3;
-}
-
-message Entry {
-    Hash chainID = 1;
-    Hash keyMerkleRoot = 2;
-}
-

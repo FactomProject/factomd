@@ -3,7 +3,7 @@ package eventmessages;
 option go_package = "eventmessages";
 option java_package = "com.factom.factomd.eventmessages";
 
-import "eventmessages/generalTypes.proto";
+import "eventmessages/sharedTypes.proto";
 import "github.com/bi-foundation/protobuf-graphql-extension/graphqlproto/graphql.proto";
 import "github.com/bi-foundation/protobuf-graphql-extension/graphqlproto/types/timestamp.proto";
 
