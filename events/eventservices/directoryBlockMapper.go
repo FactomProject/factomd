@@ -25,6 +25,8 @@ func mapDirHeader(header interfaces.IDirectoryBlockHeader) *eventmessages.Direct
 		Timestamp:   convertTimeToTimestamp(header.GetTimestamp().GetTime()),
 		BlockHeight: header.GetDBHeight(),
 		BlockCount:  header.GetBlockCount(),
+		Version:     uint32(header.GetVersion()),
+		NetworkID:   header.GetNetworkID(),
 	}
 	return result
 }
