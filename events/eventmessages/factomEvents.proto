@@ -84,6 +84,8 @@ message DirectoryBlockHeader {
     graphqlproto.types.Timestamp timestamp = 4;
     uint32 blockHeight = 5;
     uint32 blockCount = 6;
+    uint32 version = 7;
+    uint32 NetworkID = 8;
 }
 
 message DirectoryBlockEntry {
