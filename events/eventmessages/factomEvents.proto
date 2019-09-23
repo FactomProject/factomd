@@ -85,7 +85,7 @@ message DirectoryBlockHeader {
     uint32 blockHeight = 5;
     uint32 blockCount = 6;
     uint32 version = 7;
-    uint32 NetworkID = 8;
+    uint32 networkID = 8;
 }
 
 message DirectoryBlockEntry {
