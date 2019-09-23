@@ -24,6 +24,7 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
+// ====  ADMIN BLOCK STRUCTURES =====
 type AdminBlock struct {
 	Header               *AdminBlockHeader  `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
 	Entries              []*AdminBlockEntry `protobuf:"bytes,2,rep,name=entries,proto3" json:"entries,omitempty"`

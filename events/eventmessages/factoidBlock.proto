@@ -9,7 +9,7 @@ import "github.com/bi-foundation/protobuf-graphql-extension/graphqlproto/types/t
 
 option (graphqlproto.graphql) = true;
 
-
+// ====  FACTOID BLOCK STRUCTURES =====
 message FactoidBlock {
     Hash bodyMerkleRoot = 1;
     Hash previousKeyMerkleRoot = 2;
@@ -29,7 +29,6 @@ message Transaction {
     repeated RCD redeemConditionDataStructures = 7;
     repeated FactoidSignatureBlock signatureBlocks = 8;
 }
-
 
 
 message RCD {

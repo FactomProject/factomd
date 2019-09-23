@@ -11,6 +11,7 @@ import "eventmessages/factoidBlock.proto";
 
 option (graphqlproto.graphql) = true;
 
+// ====  ROOT EVENT =====
 message FactomEvent {
     EventSource eventSource = 1;
     string factomNodeName = 2;
@@ -26,7 +27,7 @@ message FactomEvent {
     }
 }
 
-
+// ====  FACTOM EVENT VALUES =====
 message ChainCommit {
     EntityState entityState = 1;
     Hash chainIDHash = 2;
@@ -74,6 +75,7 @@ message DirectoryBlockCommit {
     repeated EntryBlockEntry entryBlockEntries = 6;
 }
 
+// ====  DIRECTORY BLOCK DETAILS =====
 message DirectoryBlock {
     DirectoryBlockHeader header = 1;
     repeated DirectoryBlockEntry entries = 2;
@@ -157,7 +159,7 @@ message ServerIndexNumber {
     uint32 serverIndexNumber = 1;
 }
 
-
+// ====  MESSAGE EVENTS =====
 message ProcessMessage {
     ProcessMessageCode messageCode = 1;
     Level level = 2;
@@ -170,7 +172,6 @@ message NodeMessage {
     Level level = 2;
     string messageText = 3;
 }
-
 
 // ====  ENUMS =====
 enum EventSource {

@@ -168,6 +168,7 @@ func (NodeMessageCode) EnumDescriptor() ([]byte, []int) {
 	return fileDescriptor_d6566f2e3579336b, []int{4}
 }
 
+// ====  ROOT EVENT =====
 type FactomEvent struct {
 	EventSource     EventSource `protobuf:"varint,1,opt,name=eventSource,proto3,enum=eventmessages.EventSource" json:"eventSource,omitempty"`
 	FactomNodeName  string      `protobuf:"bytes,2,opt,name=factomNodeName,proto3" json:"factomNodeName,omitempty"`
@@ -501,6 +502,7 @@ func _FactomEvent_OneofSizer(msg proto.Message) (n int) {
 	return n
 }
 
+// ====  FACTOM EVENT VALUES =====
 type ChainCommit struct {
 	EntityState          EntityState      `protobuf:"varint,1,opt,name=entityState,proto3,enum=eventmessages.EntityState" json:"entityState,omitempty"`
 	ChainIDHash          *Hash            `protobuf:"bytes,2,opt,name=chainIDHash,proto3" json:"chainIDHash,omitempty"`
@@ -920,6 +922,7 @@ func (m *DirectoryBlockCommit) GetEntryBlockEntries() []*EntryBlockEntry {
 	return nil
 }
 
+// ====  DIRECTORY BLOCK DETAILS =====
 type DirectoryBlock struct {
 	Header               *DirectoryBlockHeader  `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
 	Entries              []*DirectoryBlockEntry `protobuf:"bytes,2,rep,name=entries,proto3" json:"entries,omitempty"`
@@ -1916,6 +1919,7 @@ func (m *ServerIndexNumber) GetServerIndexNumber() uint32 {
 	return 0
 }
 
+// ====  MESSAGE EVENTS =====
 type ProcessMessage struct {
 	MessageCode          ProcessMessageCode `protobuf:"varint,1,opt,name=messageCode,proto3,enum=eventmessages.ProcessMessageCode" json:"messageCode,omitempty"`
 	Level                Level              `protobuf:"varint,2,opt,name=level,proto3,enum=eventmessages.Level" json:"level,omitempty"`

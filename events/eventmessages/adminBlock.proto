@@ -9,6 +9,7 @@ import "github.com/bi-foundation/protobuf-graphql-extension/graphqlproto/types/t
 
 option (graphqlproto.graphql) = true;
 
+// ====  ADMIN BLOCK STRUCTURES =====
 message AdminBlock {
     AdminBlockHeader header = 1;
     repeated AdminBlockEntry entries = 2;

@@ -24,6 +24,7 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
+// ====  SHARED STRUCTURES =====
 type Hash struct {
 	HashValue            []byte   `protobuf:"bytes,1,opt,name=hashValue,proto3" json:"hashValue,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
