@@ -14,10 +14,8 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/log"
 )
 
-var _ = log.Printf
 var _ = fmt.Print
 
 func NetworkProcessorNet(fnode *FactomNode) {
