@@ -88,7 +88,7 @@ type FactomParams struct {
 	EventReceiverProtocol            string
 	EventReceiverAddress             string
 	EventReceiverPort                int
-	EventFormat                      string
+	OutputFormat                     string
 	MuteReplayDuringStartup          bool
 	ResendRegistrationsOnStateChange bool
 	ContentFilterMode                string

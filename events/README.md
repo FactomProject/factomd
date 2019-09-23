@@ -27,7 +27,7 @@ EnableLiveFeedAPI                     = true
 EventReceiverProtocol                 = tcp
 EventReceiverAddress                  = 127.0.0.1
 EventReceiverPort                     = 8040
-EventFormat                           = protobuf
+OutputFormat                           = protobuf
 MuteReplayDuringStartup               = false
 ResendRegistrationsOnStateChange      = true
 ContentFilterMode                     = OnRegistration 
@@ -41,7 +41,7 @@ Here is an overview of these options:
 |  EventReceiverProtocol            | The network protocol that is used to send event messages over the network.     | tcp &#124; udp |
 |  EventReceiverAddress             | The receiver endpoint address.                                                | DNS name &#124; IP address |
 |  EventReceiverPort                | The receiver endpoint port.                                                  | port number |
-|  EventFormat                      | The output format in which the event sent.                                      | protobuf &#124; json |
+|  OutputFormat                      | The output format in which the event sent.                                      | protobuf &#124; json |
 |  MuteReplayDuringStartup          | At startup factomd can replay all the events that were stored since that last fastboot snapshot. Use this property to turn that on/off.   | true &#124; false |
 |  ResendRegistrationsOnStateChange | It’s possible to choose whether the chain and entry commit registrations should only be sent once, followed by state change events vs resending them for every state change. The first option reduces overhead & network traffic, but requires the implementer to track which state changes belong to which chain or entry.| true &#124; false |
 |  ContentFilterMode                | This option will determine whether the external ID’s and content will be included in the event stream. There are three level settings for this. Please note that the combination of ResendRegistrationsOnStateChange = true and ContentFilterMode=Always will resend all dataon every state change. The maximum content size per entry is only 10KB, however with a large number of transactions per second this may add up to an undesirable amount of data. | Always &#124; OnRegistration &#124; Never |

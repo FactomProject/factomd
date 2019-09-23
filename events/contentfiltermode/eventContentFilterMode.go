@@ -28,11 +28,11 @@ func Parse(value string) ContentFilterMode {
 func (contentFilterMode ContentFilterMode) String() string {
 	switch contentFilterMode {
 	case SendAlways:
-		return "send alwyas"
+		return "SendAlways"
 	case SendOnRegistration:
-		return "send once"
+		return "SendOnRegistration"
 	case SendNever:
-		return "never send"
+		return "SendNever"
 	default:
 		return fmt.Sprintf("Unknown mode %d", int(contentFilterMode))
 	}

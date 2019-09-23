@@ -111,7 +111,7 @@ type FactomdConfig struct {
 		EventReceiverProtocol            string
 		EventReceiverAddress             string
 		EventReceiverPort                int
-		EventFormat                      string
+		OutputFormat                     string
 		MuteReplayDuringStartup          bool
 		ResendRegistrationsOnStateChange bool
 		ContentFilterMode                string
@@ -244,7 +244,7 @@ EnableLiveFeedAPI                     = false
 EventReceiverProtocol                 = tcp
 EventReceiverAddress                  = 127.0.0.1
 EventReceiverPort                     = 8040
-EventFormat                           = protobuf
+OutputFormat                           = protobuf
 MuteReplayDuringStartup               = false
 ResendRegistrationsOnStateChange      = false
 ContentFilterMode                     = SendOnRegistration 
@@ -321,7 +321,7 @@ func (s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\n    EventReceiverProtocol   %v", s.LiveFeedAPI.EventReceiverProtocol))
 	out.WriteString(fmt.Sprintf("\n    EventReceiverAddress    %v", s.LiveFeedAPI.EventReceiverAddress))
 	out.WriteString(fmt.Sprintf("\n    EventReceiverPort       %v", s.LiveFeedAPI.EventReceiverPort))
-	out.WriteString(fmt.Sprintf("\n    EventFormat             %v", s.LiveFeedAPI.EventFormat))
+	out.WriteString(fmt.Sprintf("\n    OutputFormat             %v", s.LiveFeedAPI.OutputFormat))
 	out.WriteString(fmt.Sprintf("\n    MuteReplayDuringStartup %v", s.LiveFeedAPI.MuteReplayDuringStartup))
 
 	return out.String()

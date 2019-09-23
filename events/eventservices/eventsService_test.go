@@ -25,17 +25,29 @@ var (
 	testHash = []byte("12345678901234567890123456789012")
 )
 
-func TestEventService(t *testing.T) {
-	t.Run("Event service sim-tests", func(t *testing.T) {
+func TestEventServiceProtobuf(t *testing.T) {
+	outputFormat := eventoutputformat.Protobuf
+	t.Run("Event service sim-tests protobuf", func(t *testing.T) {
 		blockCommitList := testHelper.CreateTestBlockCommitList()
 
-		testSend(t, blockCommitList)
-		testLateReceivingServer(t, blockCommitList)
-		testReceivingServerRestart(t, blockCommitList)
+		testSend(t, blockCommitList, outputFormat)
+		testLateReceivingServer(t, blockCommitList, outputFormat)
+		testReceivingServerRestart(t, blockCommitList, outputFormat)
 	})
 }
 
-func testSend(t *testing.T, msgs []interfaces.IMsg) {
+func TestEventServiceJson(t *testing.T) {
+	outputFormat := eventoutputformat.Json
+	t.Run("Event service sim-tests json", func(t *testing.T) {
+		blockCommitList := testHelper.CreateTestBlockCommitList()
+
+		testSend(t, blockCommitList, outputFormat)
+		testLateReceivingServer(t, blockCommitList, outputFormat)
+		testReceivingServerRestart(t, blockCommitList, outputFormat)
+	})
+}
+
+func testSend(t *testing.T, msgs []interfaces.IMsg, outputFormat eventoutputformat.Format) {
 	t.Run("Test receiving running normally", func(t *testing.T) {
 		state := &state.State{
 			IdentityChainID: primitives.NewZeroHash(),
@@ -49,7 +61,7 @@ func testSend(t *testing.T, msgs []interfaces.IMsg) {
 			test:           t,
 		}
 		sim.Start()
-		eventService, eventServiceControl := eventservices.NewEventServiceTo(state, buildParams(sim))
+		eventService, eventServiceControl := eventservices.NewEventServiceTo(state, buildParams(sim, outputFormat))
 		defer eventServiceControl.Shutdown()
 
 		// send messages
@@ -64,7 +76,7 @@ func testSend(t *testing.T, msgs []interfaces.IMsg) {
 	})
 }
 
-func testLateReceivingServer(t *testing.T, msgs []interfaces.IMsg) {
+func testLateReceivingServer(t *testing.T, msgs []interfaces.IMsg, outputFormat eventoutputformat.Format) {
 	t.Run("Test receiving late start", func(t *testing.T) {
 		state := &state.State{
 			IdentityChainID: primitives.NewZeroHash(),
@@ -78,7 +90,7 @@ func testLateReceivingServer(t *testing.T, msgs []interfaces.IMsg) {
 			ExpectedEvents: len(msgs),
 			test:           t,
 		}
-		eventService, eventServiceControl := eventservices.NewEventServiceTo(state, buildParams(sim))
+		eventService, eventServiceControl := eventservices.NewEventServiceTo(state, buildParams(sim, outputFormat))
 		defer eventServiceControl.Shutdown()
 
 		msg := msgs[0]
@@ -93,7 +105,7 @@ func testLateReceivingServer(t *testing.T, msgs []interfaces.IMsg) {
 	})
 }
 
-func testReceivingServerRestart(t *testing.T, msgs []interfaces.IMsg) {
+func testReceivingServerRestart(t *testing.T, msgs []interfaces.IMsg, outputFormat eventoutputformat.Format) {
 	t.Run("Test receiving server restart", func(t *testing.T) {
 
 		state := &state.State{
@@ -109,7 +121,7 @@ func testReceivingServerRestart(t *testing.T, msgs []interfaces.IMsg) {
 			test:           t,
 		}
 		sim.Start()
-		eventService, eventServiceControl := eventservices.NewEventServiceTo(state, buildParams(sim))
+		eventService, eventServiceControl := eventservices.NewEventServiceTo(state, buildParams(sim, outputFormat))
 		defer eventServiceControl.Shutdown()
 
 		msg := msgs[0]
@@ -225,12 +237,12 @@ func mockDirEntry() *eventmessages.DirectoryBlockEntry {
 	return result
 }
 
-func buildParams(sim *EventServerSim) *eventservices.EventServiceParams {
+func buildParams(sim *EventServerSim, format eventoutputformat.Format) *eventservices.EventServiceParams {
 	params := &eventservices.EventServiceParams{
 		EnableLiveFeedAPI:            true,
 		Protocol:                     sim.Protocol,
 		Address:                      sim.Address,
-		OutputFormat:                 eventoutputformat.Protobuf,
+		OutputFormat:                 format,
 		MuteEventReplayDuringStartup: false,
 	}
 	return params

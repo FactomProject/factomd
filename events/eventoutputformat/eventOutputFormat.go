@@ -25,9 +25,9 @@ func (outputFormat Format) String() string {
 
 func FormatFrom(value string, defaultFormat Format) Format {
 	switch strings.ToLower(value) {
-	case Protobuf.String():
+	case strings.ToLower(Protobuf.String()):
 		return Protobuf
-	case Json.String():
+	case strings.ToLower(Json.String()):
 		return Json
 	default:
 		return defaultFormat

@@ -34,10 +34,10 @@ func selectParameters(factomParams *globals.FactomParams, config *util.FactomdCo
 	} else {
 		params.Address = fmt.Sprintf("%s:%d", defaultConnectionHost, defaultConnectionPort)
 	}
-	if len(factomParams.EventFormat) > 0 {
-		params.OutputFormat = eventoutputformat.FormatFrom(factomParams.EventFormat, defaultOutputFormat)
-	} else if len(config.LiveFeedAPI.EventFormat) > 0 {
-		params.OutputFormat = eventoutputformat.FormatFrom(config.LiveFeedAPI.EventFormat, defaultOutputFormat)
+	if len(factomParams.OutputFormat) > 0 {
+		params.OutputFormat = eventoutputformat.FormatFrom(factomParams.OutputFormat, defaultOutputFormat)
+	} else if len(config.LiveFeedAPI.OutputFormat) > 0 {
+		params.OutputFormat = eventoutputformat.FormatFrom(config.LiveFeedAPI.OutputFormat, defaultOutputFormat)
 	} else {
 		params.OutputFormat = defaultOutputFormat
 	}
