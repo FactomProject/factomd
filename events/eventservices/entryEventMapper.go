@@ -1,6 +1,7 @@
 package eventservices
 
 import (
+	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
@@ -21,6 +22,7 @@ func mapCommitEntryEvent(entityState eventmessages.EntityState, msg interfaces.I
 			Credits:              uint32(commitEntry.Credits),
 			EntryCreditPublicKey: ecPubKey[:],
 			Signature:            sig[:],
+			Version:              uint32(commitEntry.Version),
 		}}
 	return result
 }
@@ -101,13 +103,16 @@ func mapEntryBlockEntries(entries []interfaces.IEBEntry, shouldIncludeContent bo
 	return result
 }
 
-func mapEntryBlockEntry(entry interfaces.IEBEntry, shouldIncludeContent bool) *eventmessages.EntryBlockEntry {
+func mapEntryBlockEntry(iEntry interfaces.IEBEntry, shouldIncludeContent bool) *eventmessages.EntryBlockEntry {
+	entry := iEntry.(*entryBlock.Entry)
+
 	blockEntry := &eventmessages.EntryBlockEntry{
 		Hash: &eventmessages.Hash{HashValue: entry.GetHash().Bytes()},
 	}
 	if shouldIncludeContent {
 		blockEntry.ExternalIDs = mapExternalIds(entry.ExternalIDs())
 		blockEntry.Content = &eventmessages.Content{BinaryValue: entry.GetContent()}
+		blockEntry.Version = uint32(entry.Version)
 	}
 	return blockEntry
 }

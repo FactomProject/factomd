@@ -23,6 +23,7 @@ func mapCommitChain(entityState eventmessages.EntityState, msg interfaces.IMsg) 
 			Credits:              uint32(commitChain.Credits),
 			EntryCreditPublicKey: ecPubKey[:],
 			Signature:            sig[:],
+			Version:              uint32(commitChain.Version),
 		}}
 	return result
 }
