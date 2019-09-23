@@ -31,29 +31,16 @@ message Transaction {
 }
 
 
-message TransactionAddress {
-    uint64 amount = 1;
-    Hash address = 2;
-}
 
 message RCD {
     oneof value {
         RCD1 rcd1 = 1;
-        //        RCD2 rcd2 = 2; Not supported yet
     }
 }
 
 message RCD1 {
     bytes publicKey = 1;
 }
-
-/*
-message RCD2 {  Not supported yet
-    int32 m = 1;
-    int32 n = 2;
-    repeated Hash numberOfAddresses = 3;
-}
-*/
 
 message FactoidSignatureBlock {
     repeated FactoidSignature signature = 1;

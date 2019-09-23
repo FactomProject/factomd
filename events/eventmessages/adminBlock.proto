@@ -4,7 +4,6 @@ option go_package = "eventmessages";
 option java_package = "com.factom.factomd.eventmessages";
 
 import "eventmessages/sharedTypes.proto";
-import "eventmessages/factoidBlock.proto";
 import "github.com/bi-foundation/protobuf-graphql-extension/graphqlproto/graphql.proto";
 import "github.com/bi-foundation/protobuf-graphql-extension/graphqlproto/types/timestamp.proto";
 
@@ -89,7 +88,7 @@ message CancelCoinbaseDescriptor {
 }
 
 message CoinbaseDescriptor {
-    repeated TransAddress factoidOutputs = 1;
+    repeated TransactionAddress factoidOutputs = 1;
 }
 
 message DirectoryBlockSignatureEntry {
