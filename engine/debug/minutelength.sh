@@ -23,7 +23,7 @@ func timeDiff(t1,t2){
     if(tDiff < 0) {
         tDiff = tDiff+24*60*60;
     }
-    return sprintf("%d seconds %2d:%02d:%02d.%03d H:M:S", tDiff, (tDiff/(60*60)),(tDiff/60)%60,tDiff%60,(tDiff - int(tDiff))*1000 );
+    return sprintf("%9.3f seconds %2d:%02d:%02d.%03d H:M:S", tDiff, (tDiff/(60*60)),(tDiff/60)%60,tDiff%60,(tDiff - int(tDiff))*1000 );
 }
 
  { sub(/\\(standard input\\):/,"");
@@ -39,7 +39,7 @@ NR == 1 {prev = $2;}
    delay = timeDiff(now,prev);
    gap[delay]++;
    gapsrc[delay] = $0;
-   printf("%7.2f %s\\n", delay, $0);
+   printf("%s %s\\n", delay, $0);
    prev = now;
  }
 
