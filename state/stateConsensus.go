@@ -2067,6 +2067,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			}
 			//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s vm %2d Saving: return on s.SigType(%v) && int(e.Minute(%v)) > s.EOMMinute(%v)", s.FactomNodeName, e.VMIndex, s.SigType, e.Minute, s.EOMMinute))
 		}
+		s.highestAck = s.LLeaderHeight // if someone lied by sending a future ACK fix us by making this height be the highest ACK.
 		return true
 	}
 
@@ -2579,10 +2580,14 @@ func (s *State) GetHighestAck() uint32 {
 	return s.highestAck
 }
 
+// Set highest ACK tracked the highest ACK we have seen and may lie if someone produces bogus future ACKs
+// to keep it from generating excess process lists we limit it to jumps of 200 blocks into our future
+// when we execute an EOM we know that is our height and we force highest ACK to that height which repairs
+// any lie we have believed.
 func (s *State) SetHighestAck(dbht uint32) {
 	switch {
-	case dbht > s.highestAck+constants.MaxAckHeightDelta:
-		s.highestAck = s.highestAck + constants.MaxAckHeightDelta
+	case dbht > s.highestAck && dbht > s.LLeaderHeight+constants.MaxAckHeightDelta:
+		s.highestAck = s.LLeaderHeight + constants.MaxAckHeightDelta
 		break
 	case dbht > s.highestAck:
 		s.highestAck = dbht
@@ -2628,11 +2633,10 @@ func (s *State) GetHighestKnownBlock() uint32 {
 	return s.highestKnown
 }
 
+// highest know block is set by signed messages that have passed signature check so we trust them
+// and don't need to limit the rate at which they push up the height.
 func (s *State) SetHighestKnownBlock(dbht uint32) {
 	switch {
-	case dbht > s.highestKnown+constants.MaxAckHeightDelta:
-		s.highestKnown = s.highestKnown + constants.MaxAckHeightDelta
-		break
 	case dbht > s.highestKnown:
 		s.highestKnown = dbht
 	}
