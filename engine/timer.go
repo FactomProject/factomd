@@ -5,6 +5,8 @@
 package engine
 
 import (
+	"fmt"
+	"os"
 	"time"
 
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -16,7 +18,6 @@ import (
 // leaders.
 func Timer(stateI interfaces.IState) {
 	s := stateI.(*state.State)
-	time.Sleep(2 * time.Second)
 
 	for {
 		for i := 0; i < 10; i++ {
@@ -28,9 +29,15 @@ func Timer(stateI interfaces.IState) {
 			// Leaders running with slightly different minutes in test environments.
 			time.Sleep(time.Duration(s.GetTimeOffset().GetTimeMilli()) * time.Millisecond)
 
-			s.TickerQueue() <- -1 // -1 indicated this is real minute cadence
+			if s.LastSyncTime.Nanoseconds() > tenthPeriod*9/10 && s.Leader {
+				s.LastSyncTime = 0
+				_, _ = os.Stderr.WriteString(fmt.Sprintf("Slipping a minute %10s %d  dbht %5d\n", s.FactomNodeName, s.CurrentMinute, s.LLeaderHeight))
 
-			s.LogPrintf("ticker", "Tick! %d, tenthPeriod=%s", i, time.Duration(tenthPeriod))
+			} else {
+				s.TickerQueue() <- -1 // -1 indicated this is real minute cadence
+
+				s.LogPrintf("ticker", "Tick! %d, tenthPeriod=%s", i, time.Duration(tenthPeriod))
+			}
 		}
 	}
 }

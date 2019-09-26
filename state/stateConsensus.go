@@ -1504,6 +1504,8 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 		fix = true
 	}
 
+	s.SyncStart = time.Now() // Track how long it takes to sync EOM from the EOM we issue until the last.
+
 	// make sure EOM has the right data
 	eom.DBHeight = s.LLeaderHeight
 	eom.VMIndex = s.LeaderVMIndex
@@ -2004,6 +2006,9 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 				s.MoveStateToHeight(s.LLeaderHeight, s.CurrentMinute+1)
 			}
 
+			s.SyncEnd = time.Now()
+			s.LastSyncTime = s.SyncEnd.Sub(s.SyncStart)
+
 			switch {
 			case s.CurrentMinute < 10:
 				if s.CurrentMinute == 1 {
@@ -2127,7 +2132,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		//	e.VMIndex, allfaults, s.EOMProcessed, s.EOMLimit, s.EOMDone))
 
 		s.EOMDone = true // ProcessEOM
-		s.EOMSyncTime = time.Now().UnixNano()
+
 		for _, eb := range pl.NewEBlocks {
 			eb.AddEndOfMinuteMarker(byte(e.Minute + 1))
 		}
