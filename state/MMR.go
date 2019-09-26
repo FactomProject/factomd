@@ -72,7 +72,7 @@ func (vm *VM) ReportMissing(height int, delay int64) {
 		return
 	}
 
-	vm.p.State.LogPrintf("missing_messages", "ReportMissing %d/%d/%d, delay %d", vm.p.DBHeight, vm.VmIndex, height, delay)
+	vm.p.State.LogPrintf("missing_messages", "ReportMissing %d/%02d/%d, delay %d", vm.p.DBHeight, vm.VmIndex, height, delay)
 
 	now := vm.p.State.GetTimestamp().GetTimeMilli()
 	if delay < 500 {
@@ -123,7 +123,7 @@ func (s *State) Ask(DBHeight int, vmIndex int, height int, when int64) bool {
 	// if msgqueue is full then the two threads can deadlock
 
 	if len(vm.p.State.asks) == cap(vm.p.State.asks) {
-		vm.p.State.LogPrintf("missing_messages", "drop, asks full %d/%d/%d", vm.p.DBHeight, vm.VmIndex, height)
+		vm.p.State.LogPrintf("missing_messages", "drop, asks full %d/%02d/%d", vm.p.DBHeight, vm.VmIndex, height)
 		return false
 	}
 
@@ -159,7 +159,7 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 	// Delete any pending ask for a message that was just added to the processlist
 	deletePendingAsk := func(add plRef) {
 		delete(pending, add) // Delete request that was just added to the process list in the map
-		s.LogPrintf(logname, "Add %d/%d/%d %d", add.DBH, add.VM, add.H, len(pending))
+		s.LogPrintf(logname, "Add %d/%02d/%d %d", add.DBH, add.VM, add.H, len(pending))
 	}
 
 	s.LogPrintf(logname, "Start MMR Process")
@@ -171,13 +171,13 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 			//fmt.Println("pending[ask.plRef]: ", ok)
 			when := ask.When
 			pending[ask.plRef] = &when // add the requests to the map
-			s.LogPrintf(logname, "Ask %d/%d/%d %d", ask.DBH, ask.VM, ask.H, len(pending))
+			s.LogPrintf(logname, "Ask %d/%02d/%d %d", ask.DBH, ask.VM, ask.H, len(pending))
 
 			// checking if we already have the "missing" message in our maps
 			ack, msg := s.RecentMessage.GetAckAndMsg(ask.DBH, ask.VM, ask.H, s)
 			if msg != nil && ack != nil {
 				// send them to be executed
-				s.LogPrintf("mmr", "Found Ask %d/%d/%d. Adding to queues: Msg %d:%d Ack %d:%d Add %d:%d Ask %d:%d", ask.DBH, ask.VM, ask.H, len(s.msgQueue), cap(s.msgQueue), len(s.ackQueue), cap(s.ackQueue), len(s.adds), cap(s.adds), len(s.asks), cap(s.asks))
+				s.LogPrintf("mmr", "Found Ask %d/%02d/%d. Adding to queues: Msg %d:%d Ack %d:%d Add %d:%d Ask %d:%d", ask.DBH, ask.VM, ask.H, len(s.msgQueue), cap(s.msgQueue), len(s.ackQueue), cap(s.ackQueue), len(s.adds), cap(s.adds), len(s.asks), cap(s.asks))
 
 				// Attempt to add the msg and ack to the prioritized message queue without blocking.
 				// If we end up dropping this message, there isn't much we can do without potentially blocking
@@ -306,7 +306,7 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 			// todo: Keep asks in a  list so cleanup is more efficient
 			for ask, _ := range pending {
 				if int(ask.DBH) < dbheight {
-					s.LogPrintf(logname, "Expire %d/%d/%d %d", ask.DBH, ask.VM, ask.H, len(pending))
+					s.LogPrintf(logname, "Expire %d/%02d/%d %d", ask.DBH, ask.VM, ask.H, len(pending))
 					delete(pending, ask)
 				}
 			}
