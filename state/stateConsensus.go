@@ -976,7 +976,7 @@ func (s *State) repost(m interfaces.IMsg, delay int) {
 			time.Sleep(time.Duration(delay) * s.FactomSecond()) // delay in Factom seconds
 		}
 		//s.LogMessage("MsgQueue", fmt.Sprintf("enqueue_%s(%d)", whereAmI, len(s.msgQueue)), m)
-		s.LogMessage("MsgQueue", fmt.Sprintf("enqueue (%d)", len(s.msgQueue)), m)
+		s.LogMessage("MsgQueue", fmt.Sprintf("repost enqueue (%d)", len(s.msgQueue)), m)
 		s.msgQueue <- m // Goes in the "do this really fast" queue so we are prompt about EOM's while syncing
 	}()
 }
@@ -1528,6 +1528,7 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	ack.SendOut(s, ack)
 	eom.SendOut(s, eom)
 	s.FollowerExecuteEOM(eom)
+	s.LogMessage("executeMsg", "issue EOM", eom)
 	s.UpdateState()
 }
 
@@ -1923,7 +1924,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	vmIndex := msg.GetVMIndex()
 	vm := pl.VMs[vmIndex]
 
-	s.LogPrintf("dbsig-eom", "ProcessEOM@%d/%d/%d minute %d, Syncing %v , EOM %v, EOMDone %v, EOMProcessed %v, EOMLimit %v DBSigDone %v",
+	s.LogPrintf("dbsig-eom", "ProcessEOM@%d/%02d/%d minute %2d, Syncing %v , EOM %v, EOMDone %v, EOMProcessed %v, EOMLimit %v DBSigDone %v",
 		dbheight, msg.GetVMIndex(), len(vm.List), s.CurrentMinute, s.Syncing, s.EOM, s.EOMDone, s.EOMProcessed, s.EOMLimit, s.DBSigDone)
 
 	// debug
@@ -1986,7 +1987,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		s.EOMProcessed--
 		if s.EOMProcessed <= 0 { // why less than or equal?
 			s.SendHeartBeat() // Only do this once per minute
-
 			s.LogPrintf("dbsig-eom", "ProcessEOM complete for %d", e.Minute)
 			// setup to sync next minute ...
 			s.Syncing = false  // ProcessEOM (EOM complete)
@@ -2073,6 +2073,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			}
 			//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s vm %2d Saving: return on s.SigType(%v) && int(e.Minute(%v)) > s.EOMMinute(%v)", s.FactomNodeName, e.VMIndex, s.SigType, e.Minute, s.EOMMinute))
 		}
+		s.highestAck = s.LLeaderHeight // if someone lied by sending a future ACK fix us by making this height be the highest ACK.
 		return true
 	}
 
@@ -2227,7 +2228,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	vm := s.ProcessLists.Get(dbheight).VMs[msg.GetVMIndex()]
 
 	// debug
-	s.LogPrintf("dbsig-eom", "ProcessDBSig@%d/%d/%d minute %d, Syncing %v , DBSig %v, DBSigDone %v, DBSigProcessed %v, DBSigLimit %v DBSigDone %v",
+	s.LogPrintf("dbsig-eom", "ProcessDBSig@%d/%02d/%d minute %2d, Syncing %v , DBSig %v, DBSigDone %v, DBSigProcessed %v, DBSigLimit %v DBSigDone %v",
 		dbheight, msg.GetVMIndex(), len(vm.List), s.CurrentMinute, s.Syncing, s.DBSig, s.DBSigDone, s.DBSigProcessed, s.DBSigLimit, s.DBSigDone)
 
 	// debug
@@ -2585,10 +2586,14 @@ func (s *State) GetHighestAck() uint32 {
 	return s.highestAck
 }
 
+// Set highest ACK tracked the highest ACK we have seen and may lie if someone produces bogus future ACKs
+// to keep it from generating excess process lists we limit it to jumps of 200 blocks into our future
+// when we execute an EOM we know that is our height and we force highest ACK to that height which repairs
+// any lie we have believed.
 func (s *State) SetHighestAck(dbht uint32) {
 	switch {
-	case dbht > s.highestAck+constants.MaxAckHeightDelta:
-		s.highestAck = s.highestAck + constants.MaxAckHeightDelta
+	case dbht > s.highestAck && dbht > s.LLeaderHeight+constants.MaxAckHeightDelta:
+		s.highestAck = s.LLeaderHeight + constants.MaxAckHeightDelta
 		break
 	case dbht > s.highestAck:
 		s.highestAck = dbht
@@ -2634,11 +2639,10 @@ func (s *State) GetHighestKnownBlock() uint32 {
 	return s.highestKnown
 }
 
+// highest know block is set by signed messages that have passed signature check so we trust them
+// and don't need to limit the rate at which they push up the height.
 func (s *State) SetHighestKnownBlock(dbht uint32) {
 	switch {
-	case dbht > s.highestKnown+constants.MaxAckHeightDelta:
-		s.highestKnown = s.highestKnown + constants.MaxAckHeightDelta
-		break
 	case dbht > s.highestKnown:
 		s.highestKnown = dbht
 	}
