@@ -1,5 +1,16 @@
 #!/usr/bin/env bash
 #grep "done.*EOM.*./0/" fnode0_processlist.txt  | ./minutelength.sh
+
+
+column=$1
+shift
+format=$1
+shift
+
+
+echo "| minutelength.sh" ${column:-2} ${format:-sec}
+
+
 ################################
 # AWK scripts                  #
 ################################
@@ -23,8 +34,14 @@ func timeDiff(t1,t2){
     if(tDiff < 0) {
         tDiff = tDiff+24*60*60;
     }
-    return sprintf("%d seconds %2d:%02d:%02d.%03d H:M:S", tDiff, (tDiff/(60*60)),(tDiff/60)%60,tDiff%60,(tDiff - int(tDiff))*1000 );
+    if(format == "hms" || format == "HMS") {
+       return sprintf("%2d:%02d:%02d.%03d", (tDiff/(60*60)),(tDiff/60)%60,tDiff%60,(tDiff - int(tDiff))*1000 );
+    } else {
+       return sprintf("%9.3f", tDiff);
+    }
 }
+
+ BEGIN { print "using column:", column, "format:",format;}
 
  { sub(/\\(standard input\\):/,"");
    
@@ -33,21 +50,29 @@ func timeDiff(t1,t2){
    if(NR%1000==0) {printf("\\r%7d",NR)>"/dev/stderr";}
 }
 
-NR == 1 {prev = $2;}
+NR == 1 {prev = $(column);}
 
- { now = $2;
+ { now = $(column);
    delay = timeDiff(now,prev);
    gap[delay]++;
    gapsrc[delay] = $0;
-   printf("%7.2f %s\\n", delay, $0);
+   printf("%s %s\\n", delay, $0);
    prev = now;
  }
 
 END {
-  PROCINFO["sorted_in"] ="@ind_num_desc";
+  if(format == "hms" || format == "HMS") {
+     PROCINFO["sorted_in"] ="@ind_num_desc";
+  } else {
+     PROCINFO["sorted_in"] ="@ind_str_desc";
+  }
   print "Gaps in log"
    for(i in gap) {
-       printf("%7.2f %4d %s\\n", i, gap[i], gapsrc[i]);
+     if(format == "hms" || format == "HMS") {
+       printf("%s %4d %s\\n", i, gap[i], gapsrc[i]);
+    } else {
+       printf("%9.2f %4d %s\\n", i, gap[i], gapsrc[i]);
+    }
        if(j++>10) {break;}
    }
  
@@ -59,5 +84,5 @@ EOF
 # End of AWK Scripts           #
 ################################
 
- awk "$scriptVariable"
+ awk -v column=${column:-2} -v format=${format:-sec} "$scriptVariable"
 

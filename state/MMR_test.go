@@ -124,6 +124,48 @@ func TestMissingMessageReponseCache(t *testing.T) {
 				}
 			}
 		}
+
+	})
+
+	t.Run("highest ack return", func(t *testing.T) {
+		ackmap := state.NewAckMsgCache()
+		numMsgs := 500
+		dbht := 10
+		vm := 0
+
+		for i := 1; i <= numMsgs; i++ {
+			msg := randomTimedBounceMessage()
+			pair := &state.MsgPair{
+				Ack: ackBounce(dbht,
+					vm,
+					i, msg),
+				Msg: msg}
+			ackmap.AddMsgPair(pair)
+		}
+
+		// The highest for the vm should be the numMsgs
+		msg := ackmap.GetHighestMsg(dbht, vm)
+		if msg == nil {
+			t.Error("exp a msg")
+		}
+
+		if msg.Ack.(*messages.Ack).Height != uint32(numMsgs) {
+			t.Errorf("exp %d, found %d", numMsgs, msg.Ack.(*messages.Ack).Height)
+		}
+	})
+
+	t.Run("msgbase copy", func(t *testing.T) {
+		m := ackBounce(1, 1, 1, randomTimedBounceMessage())
+		m.ResendCnt = 10
+		mi := interfaces.IMsg(m)
+
+		newAck := *(mi.(*messages.Ack))
+		newAckP := &newAck
+		newAckP.ResendCnt = 1
+
+		if m.ResendCnt != 10 || newAckP.ResendCnt != 1 {
+			t.Errorf("copy of msgbase values failed")
+		}
 	})
 
 	//m.Run()

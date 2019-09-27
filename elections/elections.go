@@ -103,7 +103,7 @@ func (e *Elections) AddFederatedServer(server interfaces.IServer) int {
 
 	e.Federated = append(e.Federated, server)
 	s := e.State
-	s.LogPrintf("elections", "Election Sort FedServers AddFederatedServer")
+	s.LogPrintf("election", "Election Sort FedServers AddFederatedServer")
 	changed := e.Sort(e.Federated)
 	if changed {
 		e.LogPrintf("election", "Sort changed e.Federated in Elections.AddFederatedServer")

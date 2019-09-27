@@ -2481,6 +2481,7 @@ func (s *State) SendHeartBeat() {
 			hb.SecretNumber = s.GetSalt(hb.Timestamp)
 			hb.DBlockHash = dbstate.DBHash
 			hb.IdentityChainID = s.IdentityChainID
+			hb.Minute = byte(s.GetCurrentMinute())
 			hb.Sign(s.GetServerPrivateKey())
 			hb.SendOut(s, hb)
 		}

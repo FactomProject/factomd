@@ -119,7 +119,8 @@ func (m *Ack) Validate(s interfaces.IState) int {
 		s.SetHighestAck(m.DBHeight)
 	}
 
-	if m.DBHeight-s.GetLLeaderHeight() > 5 {
+	// drop future acks that are far in the future and not near the block we expect to build as soon as the boot finishes.
+	if m.DBHeight-s.GetLLeaderHeight() > 5 && m.DBHeight != s.GetHighestKnownBlock() && m.DBHeight != s.GetHighestKnownBlock()+1 {
 		s.LogMessage("executeMsg", "drop, from far future", m)
 		return -1
 	}
@@ -407,7 +408,7 @@ func (m *Ack) MarshalBinary() (data []byte, err error) {
 func (m *Ack) String() string {
 	return fmt.Sprintf("%6s-%27s -- Leader[%x] hash[%x]",
 		"ACK",
-		fmt.Sprintf("DBh/VMh/h %d/%d/%d       ", m.DBHeight, m.VMIndex, m.Height),
+		fmt.Sprintf("DBh/VMh/h %d/%02d/%d       ", m.DBHeight, m.VMIndex, m.Height),
 		m.LeaderChainID.Bytes()[3:6],
 		m.GetHash().Bytes()[:3])
 

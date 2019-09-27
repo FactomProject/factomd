@@ -72,7 +72,7 @@ func (vm *VM) ReportMissing(height int, delay int64) {
 		return
 	}
 
-	vm.p.State.LogPrintf("missing_messages", "ReportMissing %d/%d/%d, delay %d", vm.p.DBHeight, vm.VmIndex, height, delay)
+	vm.p.State.LogPrintf("missing_messages", "ReportMissing %d/%02d/%d, delay %d", vm.p.DBHeight, vm.VmIndex, height, delay)
 
 	now := vm.p.State.GetTimestamp().GetTimeMilli()
 	if delay < 500 {
@@ -123,7 +123,7 @@ func (s *State) Ask(DBHeight int, vmIndex int, height int, when int64) bool {
 	// if msgqueue is full then the two threads can deadlock
 
 	if len(vm.p.State.asks) == cap(vm.p.State.asks) {
-		vm.p.State.LogPrintf("missing_messages", "drop, asks full %d/%d/%d", vm.p.DBHeight, vm.VmIndex, height)
+		vm.p.State.LogPrintf("missing_messages", "drop, asks full %d/%02d/%d", vm.p.DBHeight, vm.VmIndex, height)
 		return false
 	}
 
@@ -159,7 +159,7 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 	// Delete any pending ask for a message that was just added to the processlist
 	deletePendingAsk := func(add plRef) {
 		delete(pending, add) // Delete request that was just added to the process list in the map
-		s.LogPrintf(logname, "Add %d/%d/%d %d", add.DBH, add.VM, add.H, len(pending))
+		s.LogPrintf(logname, "Add %d/%02d/%d %d", add.DBH, add.VM, add.H, len(pending))
 	}
 
 	s.LogPrintf(logname, "Start MMR Process")
@@ -171,13 +171,13 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 			//fmt.Println("pending[ask.plRef]: ", ok)
 			when := ask.When
 			pending[ask.plRef] = &when // add the requests to the map
-			s.LogPrintf(logname, "Ask %d/%d/%d %d", ask.DBH, ask.VM, ask.H, len(pending))
+			s.LogPrintf(logname, "Ask %d/%02d/%d %d", ask.DBH, ask.VM, ask.H, len(pending))
 
 			// checking if we already have the "missing" message in our maps
 			ack, msg := s.RecentMessage.GetAckAndMsg(ask.DBH, ask.VM, ask.H, s)
 			if msg != nil && ack != nil {
 				// send them to be executed
-				s.LogPrintf("mmr", "Found Ask %d/%d/%d. Adding to queues: Msg %d:%d Ack %d:%d Add %d:%d Ask %d:%d", ask.DBH, ask.VM, ask.H, len(s.msgQueue), cap(s.msgQueue), len(s.ackQueue), cap(s.ackQueue), len(s.adds), cap(s.adds), len(s.asks), cap(s.asks))
+				s.LogPrintf("mmr", "Found Ask %d/%02d/%d. Adding to queues: Msg %d:%d Ack %d:%d Add %d:%d Ask %d:%d", ask.DBH, ask.VM, ask.H, len(s.msgQueue), cap(s.msgQueue), len(s.ackQueue), cap(s.ackQueue), len(s.adds), cap(s.adds), len(s.asks), cap(s.asks))
 
 				// Attempt to add the msg and ack to the prioritized message queue without blocking.
 				// If we end up dropping this message, there isn't much we can do without potentially blocking
@@ -306,7 +306,7 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 			// todo: Keep asks in a  list so cleanup is more efficient
 			for ask, _ := range pending {
 				if int(ask.DBH) < dbheight {
-					s.LogPrintf(logname, "Expire %d/%d/%d %d", ask.DBH, ask.VM, ask.H, len(pending))
+					s.LogPrintf(logname, "Expire %d/%02d/%d %d", ask.DBH, ask.VM, ask.H, len(pending))
 					delete(pending, ask)
 				}
 			}
@@ -444,6 +444,25 @@ func (mmrc *MissingMessageResponseCache) answerRequest(request *messages.Missing
 			mmrc.localState.LogPrintf("mmr_response", "pair_not_found %d/%d/%d", request.DBHeight, request.VMIndex, plHeight)
 		}
 	}
+
+	// At this point we have answered all the specific MMR requests. If they requested for a block below our current
+	// working height, we will also send them an ack for the highest plheight for the vm they asked for. This is to
+	// speed up their sync, as acks for block n-1 are not going around the network to set their highest height for
+	// them to sync.
+	if request.DBHeight < uint32(mmrc.AckMessageCache.CurrentWorkingHeight) {
+		// Send the highest ack for that ht+vm
+		if pair := mmrc.AckMessageCache.GetHighestMsg(int(request.DBHeight), request.VMIndex); pair != nil {
+			// Make the message.Ack a value, rather than a reference, so we get a copy of the messagebase fields.
+			newAck := *(pair.Ack.(*messages.Ack))
+
+			newAckP := &newAck
+			newAckP.ResendCnt = 0
+			newAckP.Peer2Peer = true
+			newAckP.SetOrigin(request.GetOrigin())
+			newAckP.SetNetworkOrigin(request.GetNetworkOrigin())
+			newAckP.SendOut(mmrc.localState, newAckP)
+		}
+	}
 }
 
 // Run will start the loop to read messages from the channel and build
@@ -482,11 +501,25 @@ type AckMsgPairCache struct {
 	CurrentWorkingHeight int
 	// MsgPairMap will contain ack/msg pairs
 	MsgPairMap map[int]map[plRef]*MsgPair
+
+	// HighestMsgMap keeps the highest message found for
+	// a given dbheight + vm. This means if someone requests
+	// us for a dbht/vm/height, we can not only reply with what
+	// they asked for, but also send the highest ack we have
+	// to let them quickly jump to the top of that dbht+vm and sync
+	// quicker.
+	//	Keys:
+	//      map[int][int]plRef
+	//           |    |    └──> Key for the highest msg to be used in the MsgPairMap
+	//           |    └──> VM
+	//           └──> DB Height
+	HighestMsgMap map[int]map[int]plRef
 }
 
 func NewAckMsgCache() *AckMsgPairCache {
 	a := new(AckMsgPairCache)
 	a.MsgPairMap = make(map[int]map[plRef]*MsgPair)
+	a.HighestMsgMap = make(map[int]map[int]plRef)
 	return a
 }
 
@@ -508,6 +541,7 @@ func (a *AckMsgPairCache) Expire(newHeight int) {
 	for h, _ := range a.MsgPairMap {
 		if a.HeightTooOld(h) {
 			delete(a.MsgPairMap, h)
+			delete(a.HighestMsgMap, h)
 		}
 	}
 }
@@ -539,8 +573,34 @@ func (a *AckMsgPairCache) AddMsgPair(pair *MsgPair) {
 	}
 
 	plLoc := plRef{int(ack.DBHeight), ack.VMIndex, int(ack.Height)}
-	a.ensure(plLoc.DBH)
-	a.MsgPairMap[plLoc.DBH][plLoc] = pair
+	a.ensure(plLoc.DBH)                   // Ensure the maps are initialized, and we don't add to a nil map
+	a.MsgPairMap[plLoc.DBH][plLoc] = pair // Add the msg to our msg cache
+
+	// Update the highest msg map if this is the highest msg we have found for this height + vm
+	if c, ok := a.HighestMsgMap[plLoc.DBH][plLoc.VM]; !ok {
+		// If we didn't have anything set, then this is the highest
+		a.HighestMsgMap[plLoc.DBH][plLoc.VM] = plLoc
+	} else {
+		// We have something set, is ours higher?
+		if plLoc.H > c.H {
+			a.HighestMsgMap[plLoc.DBH][plLoc.VM] = plLoc
+		}
+	}
+}
+
+// GetHighestMsg returns the highest message pair found for a given height + vm.
+func (a *AckMsgPairCache) GetHighestMsg(dbHeight, vmindex int) *MsgPair {
+	if a.HighestMsgMap[dbHeight] == nil {
+		return nil // We don't have this height
+	}
+
+	loc, ok := a.HighestMsgMap[dbHeight][vmindex]
+	if !ok {
+		// don't have anything for this dbht + vm
+		return nil
+	}
+
+	return a.MsgPairMap[dbHeight][loc]
 }
 
 func (a *AckMsgPairCache) Get(dbHeight, vmIndex, plHeight int) *MsgPair {
@@ -553,6 +613,9 @@ func (a *AckMsgPairCache) Get(dbHeight, vmIndex, plHeight int) *MsgPair {
 func (a *AckMsgPairCache) ensure(height int) {
 	if a.MsgPairMap[height] == nil {
 		a.MsgPairMap[height] = make(map[plRef]*MsgPair)
+	}
+	if a.HighestMsgMap[height] == nil {
+		a.HighestMsgMap[height] = make(map[int]plRef)
 	}
 }
 

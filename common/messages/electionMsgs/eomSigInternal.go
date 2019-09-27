@@ -130,7 +130,7 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 	//	if int(m.DBHeight) > e.DBHeight {
 	//		// Sort leaders, on block boundaries
 	//		s := e.State
-	//		s.LogPrintf("elections", "Election Sort FedServers EomSigInternal")
+	//		s.LogPrintf("election", "Election Sort FedServers EomSigInternal")
 	//		changed := e.Sort(e.Federated)
 	//		if changed {
 	//			e.LogPrintf("election", "Sort changed e.Federated in EomSigInternal.ElectionProcess")
@@ -158,7 +158,7 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 		}
 
 		// Sort leaders, on block boundaries
-		s.LogPrintf("elections", "Election Sort FedServers EomSigInternal2")
+		s.LogPrintf("election", "Election Sort FedServers EomSigInternal2")
 		changed := e.Sort(e.Federated)
 		if changed {
 			e.LogPrintf("election", "Sort changed e.Federated in EomSigInternal.ElectionProcess")
