@@ -325,6 +325,7 @@ func (s *State) executeMsg(msg interfaces.IMsg) (ret bool) {
 		return true
 
 	case 0:
+		msg.SendOut(s, msg)
 		// Sometimes messages we have already processed are in the msgQueue from holding when we execute them
 		// this check makes sure we don't put them back in holding after just deleting them
 		s.LogMessage("executeMsg", "hold executeMsg", msg)
@@ -332,6 +333,7 @@ func (s *State) executeMsg(msg interfaces.IMsg) (ret bool) {
 		return false
 
 	case -2:
+		msg.SendOut(s, msg)
 		s.LogMessage("executeMsg", "dependent_hold executeMsg", msg)
 		return false
 
@@ -343,7 +345,6 @@ func (s *State) executeMsg(msg interfaces.IMsg) (ret bool) {
 		}
 		return true
 	}
-
 }
 
 func (s *State) Process() (progress bool) {
@@ -2475,7 +2476,7 @@ func (s *State) SendHeartBeat() {
 			hb.SecretNumber = s.GetSalt(hb.Timestamp)
 			hb.DBlockHash = dbstate.DBHash
 			hb.IdentityChainID = s.IdentityChainID
-			hb.Minute = s.GetCurrentMinute()
+			hb.Minute = byte(s.GetCurrentMinute())
 			hb.Sign(s.GetServerPrivateKey())
 			hb.SendOut(s, hb)
 		}
