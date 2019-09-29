@@ -184,9 +184,10 @@ func (m *MessageBase) SendOut(s interfaces.IState, msg interfaces.IMsg) {
 	s.LogMessage("NetworkOutputs", "Enqueue", msg)
 
 	{ // ugly hack
+		h := s.GetLLeaderHeight()
 		go func() {
 			time.Sleep(1 * time.Minute)
-			for s.GetLLeaderHeight() < 212081 {
+			for s.GetLLeaderHeight() <= h+2 {
 				time.Sleep(10 * time.Second)
 				msg.SendOut(s, msg)
 			}
