@@ -1600,37 +1600,22 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 }
 
 func sendDBState(dbheight uint32, state interfaces.IState) {
-	send := true
-	now := state.GetTimestamp()
-	sents := state.GetDBStatesSent()
-	var keeps []*interfaces.DBStateSent
-
-	for _, v := range sents {
-		if now.GetTimeSeconds()-v.Sent.GetTimeSeconds() < 10 {
-			if v.DBHeight == dbheight {
-				send = false
-			}
-			keeps = append(keeps, v)
-		}
+	msg, err := state.LoadDBState(dbheight)
+	if err != nil {
+		state.LogPrintf("executeMsg", "DBStateMissing.send() %v", err)
+		return
 	}
-	if send {
-		msg, err := state.LoadDBState(dbheight)
-		if err != nil {
-			state.LogPrintf("executeMsg", "DBStateMissing.send() %v", err)
-			return
-		}
-		if msg == nil {
-			return
-		}
-
-		_, err = msg.MarshalBinary()
-		if err != nil {
-			state.LogPrintf("executeMsg", "DBStateMissing.send() %v", err)
-			return
-		}
-		msg.SetNoResend(false)
-		msg.SendOut(state, msg)
+	if msg == nil {
+		return
 	}
+
+	_, err = msg.MarshalBinary()
+	if err != nil {
+		state.LogPrintf("executeMsg", "DBStateMissing.send() %v", err)
+		return
+	}
+	msg.SetNoResend(false)
+	msg.SendOut(state, msg)
 }
 
 func (list *DBStateList) UpdateState() (progress bool) {
