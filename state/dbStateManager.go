@@ -1581,6 +1581,8 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	d.ReadyToSave = false
 	d.Saved = true
 
+	sendDBState(uint32(dbheight), list.State)
+
 	// Now that we have saved the perm balances, we can clear the api hashmaps that held the differences
 	// between the actual saved block prior, and this saved block.  If you are looking for balances of
 	// the highest saved block, you first look to see that one of the "<fct or ec>Papi" maps exist, then
@@ -1597,8 +1599,41 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	return
 }
 
-func (list *DBStateList) UpdateState() (progress bool) {
+func sendDBState(dbheight uint32, state interfaces.IState) {
+	send := true
+	now := state.GetTimestamp()
+	sents := state.GetDBStatesSent()
+	var keeps []*interfaces.DBStateSent
 
+	for _, v := range sents {
+		if now.GetTimeSeconds()-v.Sent.GetTimeSeconds() < 10 {
+			if v.DBHeight == dbheight {
+				send = false
+			}
+			keeps = append(keeps, v)
+		}
+	}
+	if send {
+		msg, err := state.LoadDBState(dbheight)
+		if err != nil {
+			state.LogPrintf("executeMsg", "DBStateMissing.send() %v", err)
+			return
+		}
+		if msg == nil {
+			return
+		}
+
+		_, err = msg.MarshalBinary()
+		if err != nil {
+			state.LogPrintf("executeMsg", "DBStateMissing.send() %v", err)
+			return
+		}
+		msg.SetNoResend(false)
+		msg.SendOut(state, msg)
+	}
+}
+
+func (list *DBStateList) UpdateState() (progress bool) {
 	s := list.State
 	_ = s
 	if len(list.DBStates) != 0 {
@@ -1764,13 +1799,8 @@ func (list *DBStateList) Get(height int) *DBState {
 	return list.DBStates[i]
 }
 
-func (list *DBStateList) NewDBState(isNew bool,
-	directoryBlock interfaces.IDirectoryBlock,
-	adminBlock interfaces.IAdminBlock,
-	factoidBlock interfaces.IFBlock,
-	entryCreditBlock interfaces.IEntryCreditBlock,
-	eBlocks []interfaces.IEntryBlock,
-	entries []interfaces.IEBEntry) *DBState {
+func (list *DBStateList) NewDBState(isNew bool, directoryBlock interfaces.IDirectoryBlock, adminBlock interfaces.IAdminBlock, factoidBlock interfaces.IFBlock,
+	entryCreditBlock interfaces.IEntryCreditBlock, eBlocks []interfaces.IEntryBlock, entries []interfaces.IEBEntry) *DBState {
 	dbState := new(DBState)
 	dbState.Init() // Creat all the sub structor...
 
