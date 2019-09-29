@@ -213,7 +213,8 @@ func Peers(fnode *FactomNode) {
 				}
 
 				if fnode.State.LLeaderHeight < fnode.State.DBHeightAtBoot+2 {
-					if msg.GetTimestamp().GetTimeMilli() < fnode.State.TimestampAtBoot.GetTimeMilli() {
+					s := fnode.State
+					if s.GetMessageFilterTimestamp() != nil && msg.GetTimestamp().GetTimeMilli() < s.GetMessageFilterTimestamp().GetTimeMilli() {
 						fnode.State.LogMessage("NetworkInputs", "Drop, too old", msg)
 						continue
 					}
