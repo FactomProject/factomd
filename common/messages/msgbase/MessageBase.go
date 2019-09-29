@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"reflect"
 	"sync"
+	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -181,6 +182,16 @@ func (m *MessageBase) SendOut(s interfaces.IState, msg interfaces.IMsg) {
 	}
 	// debug code end ............
 	s.LogMessage("NetworkOutputs", "Enqueue", msg)
+
+	{ // ugly hack
+		go func() {
+			time.Sleep(1 * time.Minute)
+			for s.GetLLeaderHeight() < 212081 {
+				time.Sleep(10 * time.Second)
+				msg.SendOut(s, msg)
+			}
+		}()
+	}
 
 	if s.GetRunLeader() { // true means - we are not in wait period
 		s.NetworkOutMsgQueue().Enqueue(msg)
