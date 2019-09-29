@@ -149,6 +149,17 @@ func (fs *FactoidState) EndOfPeriod(period int) {
 }
 
 func (fs *FactoidState) GetCurrentBlock() interfaces.IFBlock {
+	if fs.CurrentBlock == nil {
+		fs.CurrentBlock = factoid.NewFBlock(nil)
+		fs.CurrentBlock.SetExchRate(fs.State.GetFactoshisPerEC())
+		fs.CurrentBlock.SetDBHeight(fs.DBHeight)
+		t := fs.GetCoinbaseTransaction(fs.CurrentBlock.GetDatabaseHeight(), fs.State.GetLeaderTimestamp())
+		err := fs.CurrentBlock.AddCoinbase(t)
+		if err != nil {
+			panic(err.Error())
+		}
+		fs.UpdateTransaction(true, t)
+	}
 	return fs.CurrentBlock
 }
 

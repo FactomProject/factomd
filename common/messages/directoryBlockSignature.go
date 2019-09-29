@@ -482,7 +482,7 @@ func (m *DirectoryBlockSignature) String() string {
 		m.DirectoryBlockHeader.GetPrevKeyMR().Bytes()[:3],
 		headerHash.Bytes()[:3],
 		m.DirectoryBlockHeader.GetBodyMR().Bytes()[:3],
-		m.Timestamp,
+		m.Timestamp.GetTimeMilli(),
 		m.Timestamp.String(),
 		m.GetHash().Bytes()[:3],
 		stringCompress(m.DirectoryBlockHeader.String()))
