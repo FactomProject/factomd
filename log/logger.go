@@ -30,6 +30,33 @@ var (
 	msgmap     map[[32]byte]interfaces.IMsg
 )
 
+/*
+types for logger functions
+*/
+type tLogPrintf func(name string, format string, more ...interface{})
+type tLogMessage func(name string, note string, msg interfaces.IMsg)
+type tStateLogMessage func(FactomNodeName string, DBHeight int, CurrentMinute int, logName string, comment string, msg interfaces.IMsg)
+type tStateLogPrintf func(FactomNodeName string, DBHeight int, CurrentMinute int, logName string, format string, more ...interface{})
+
+// logger handle
+type Log struct {
+	LogPrintf tLogPrintf
+	LogMessage tLogMessage
+	StateLogMessage tStateLogMessage
+	StateLogPrintf tStateLogPrintf
+}
+
+/*
+KLUDGE: expose as a var we can re-use and export
+eventually this may be thread specific and/or use some locally scoped vars
+*/
+var ThreadLogger = Log{
+	LogPrintf,
+	LogMessage,
+	StateLogMessage,
+	StateLogPrintf,
+}
+
 // Check a filename and see if logging is on for that filename
 // If it never ben see then check with the regex. If it has been seen then just look it up in the map
 // assumes traceMutex is locked already
