@@ -776,6 +776,7 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		if s.LLeaderHeight != dbheight {
 			fmt.Fprintf(os.Stderr, "State move between non-sequential heights from %d to %d\n", s.LLeaderHeight, dbheight)
 		}
+
 		//force sync state to a rational  state for between minutes
 		s.Syncing = false    // movestatetoheight
 		s.EOM = false        // movestatetoheight
