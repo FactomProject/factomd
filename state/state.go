@@ -210,9 +210,8 @@ type State struct {
 	DBFinished      bool
 	RunLeader       bool
 	BootTime        int64 // Time in seconds that we last booted
-	SyncStart       time.Time
-	SyncEnd         time.Time
-	LastSyncTime    time.Duration
+	EOMIssueTime    int64
+	EOMSyncEnd      int64
 
 	// Ignore missing messages for a period to allow rebooting a network where your
 	// own messages from the previously executing network can confuse you.

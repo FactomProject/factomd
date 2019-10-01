@@ -17,24 +17,34 @@ import (
 func Timer(stateI interfaces.IState) {
 	s := stateI.(*state.State)
 
+	var last int64
 	for {
-		for i := 0; i < 10; i++ {
-			tenthPeriod := s.GetMinuteDuration().Nanoseconds()       // The length of the minute can change, so do this each time
-			now := time.Now().UnixNano()                             // Get the current time
-			time.Sleep(time.Duration(tenthPeriod - now%tenthPeriod)) // Sleep the length of time from now to the next minute
+		tenthPeriod := s.GetMinuteDuration().Nanoseconds() // The length of the minute can change, so do this each time
+		now := time.Now().UnixNano()                       // Get the current time
+		sleep := tenthPeriod - now%tenthPeriod
+		time.Sleep(time.Duration(sleep)) // Sleep the length of time from now to the next minute
 
-			// Delay some number of milliseconds.  This is a debugging tool for testing how well we handle
-			// Leaders running with slightly different minutes in test environments.
-			time.Sleep(time.Duration(s.GetTimeOffset().GetTimeMilli()) * time.Millisecond)
+		// Delay some number of milliseconds.  This is a debugging tool for testing how well we handle
+		// Leaders running with slightly different minutes in test environments.
+		time.Sleep(time.Duration(s.GetTimeOffset().GetTimeMilli()) * time.Millisecond)
 
-			if s.LastSyncTime.Nanoseconds() > tenthPeriod*8/10 && s.Leader {
-				s.LastSyncTime = 0
-				s.LogPrintf("ticker", "Pause because it took %d on a %d second block", s.LastSyncTime.Seconds(), tenthPeriod/100000000)
-			} else {
-				s.TickerQueue() <- -1 // -1 indicated this is real minute cadence
+		if s.Leader {
+			now = time.Now().UnixNano()
+			issueTime := last
+			if s.EOMSyncEnd > s.EOMIssueTime {
+				issueTime = s.EOMIssueTime
+			}
+			last = s.EOMIssueTime
 
-				s.LogPrintf("ticker", "Tick! %d, tenthPeriod=%s", i, time.Duration(tenthPeriod))
+			if s.EOMIssueTime-issueTime > tenthPeriod*8/100 {
+				s.EOMIssueTime = 0 // Don't skip more than one ticker
+				s.LogPrintf("ticker", "10%s Skip ticker Sleep %4.2f", s.FactomNodeName, float64(sleep)/1000000000)
+				continue
 			}
 		}
+		s.LogPrintf("ticker", "10%s send ticker Sleep %4.2f", s.FactomNodeName, float64(sleep)/1000000000)
+		s.EOMSyncEnd = 0
+
+		s.TickerQueue() <- -1 // -1 indicated this is real minute cadence
 	}
 }
