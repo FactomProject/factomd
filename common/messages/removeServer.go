@@ -78,7 +78,7 @@ func (m *RemoveServerMsg) Type() byte {
 }
 
 func (m *RemoveServerMsg) GetTimestamp() interfaces.Timestamp {
-	return m.Timestamp
+	return m.Timestamp.Clone()
 }
 
 func (m *RemoveServerMsg) Validate(state interfaces.IState) int {

@@ -165,8 +165,8 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 			sync = "eom"
 		}
 
-		e.LogPrintf("election", "**** Start an Election for %d[%x] missing %s ****", e.Electing, e.FedID.Bytes()[3:6], sync)
-		e.LogPrintf("faulting", "**** Start an Election for %d[%x] missing %s ****", e.Electing, e.FedID.Bytes()[3:6], sync)
+		e.LogPrintf("election", "**** Start an Election for %d[%x] missing %s %d/%d-:- min %d ****", e.Electing, e.FedID.Bytes()[3:6], sync, m.DBHeight, e.VMIndex, e.Minute)
+		e.LogPrintf("faulting", "**** Start an Election for %d[%x] missing %s %d/%d-:- min %d ****", e.Electing, e.FedID.Bytes()[3:6], sync, m.DBHeight, e.VMIndex, e.Minute)
 		e.LogPrintLeaders("election")
 
 		// Begin a new Election for a specific vm/min/height

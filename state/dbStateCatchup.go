@@ -29,23 +29,26 @@ func waitForLoaded(s *State) {
 	for !s.DBFinished {
 		time.Sleep(1 * time.Second)
 	}
+	if s.highestKnown < s.DBHeightAtBoot {
+		s.highestKnown = s.DBHeightAtBoot + 1 // Make sure we ask for the next block after the database at startup.
+	}
 }
 
 // TODO: Redesign Catchup. Some assumptions were made that made this more
-// TODO: complex than it neeeded to be.
+// TODO: complex than it needed to be.
 func (list *DBStateList) Catchup() {
 	missing := list.State.StatesMissing
 	waiting := list.State.StatesWaiting
 	received := list.State.StatesReceived
 
-	factomSecond := time.Duration(list.State.GetDirectoryBlockInSeconds()) * time.Second / 600
+	factomSecond := list.State.FactomSecond()
 
 	requestTimeout := list.State.RequestTimeout
 	if requestTimeout < 1*time.Second { // If the timeout is 0 (default), base off blktime
 		// 10min block	== 30s timeout for a request.
 		// 5min block	== 15s timeout for a request.
 		// 1min block	== 3s  timeout for a request.
-		requestTimeout = factomSecond * 30
+		requestTimeout = factomSecond * 5
 		list.State.RequestTimeout = requestTimeout
 	}
 	requestLimit := list.State.RequestLimit
@@ -66,48 +69,64 @@ func (list *DBStateList) Catchup() {
 			return false
 		}
 
+		var hs, hk uint32
+		hsf := func() (rval uint32) {
+			defer func() {
+				if hs != rval {
+					list.State.LogPrintf("dbstatecatchup", "HS = %d", rval)
+				}
+			}()
+			// Sets the floor for what we will be requesting
+			// AKA : What we have. In reality the receivedlist should
+			// indicate that we have it, however, because a dbstate
+			// is not fully validated before we get it, we cannot
+			// assume that.
+			floor := uint32(0)
+			// Once it is in the db, we can assume it's all good.
+			if d, err := list.State.DB.FetchDBlockHead(); err == nil && d != nil {
+				floor = d.GetDatabaseHeight() // If it is in our db, let's make sure to stop asking
+			}
+
+			list.State.LogPrintf("dbstatecatchup", "Floor diff %d / %d", list.State.GetHighestSavedBlk(), floor)
+
+			// get the hightest block in the database at boot
+			b := list.State.GetDBHeightAtBoot()
+
+			// don't request states that are in the database at boot time
+			if b > floor {
+				return b
+			}
+			return floor
+		}
+
+		// get the height of the known blocks
+		hkf := func() (rval uint32) {
+			a := list.State.GetHighestAck()
+			k := list.State.GetHighestKnownBlock()
+			defer func() {
+				if hk != rval {
+					list.State.LogPrintf("dbstatecatchup", "HK = %d", rval)
+				}
+			}()
+			// check that known is more than 2 ahead of acknowledged to make
+			// sure not to ask for blocks that haven't finished
+			if k > a+2 {
+				return k - 2
+			}
+			if a < 2 {
+				return a
+			}
+			return a - 2 // Acks are for height + 1 (sometimes +2 in min 0)
+		}
+		hs = hsf()
+		hk = hkf()
+		list.State.LogPrintf("dbstatecatchup", "Start with hs = %d hk = %d", hs, hk)
+
 		for {
 			start := time.Now()
 			// get the height of the saved blocks
-			hs := func() uint32 {
-				// Sets the floor for what we will be requesting
-				// AKA : What we have. In reality the receivedlist should
-				// indicate that we have it, however, because a dbstate
-				// is not fully validated before we get it, we cannot
-				// assume that.
-				floor := uint32(0)
-				// Once it is in the db, we can assume it's all good.
-				if d, err := list.State.DB.FetchDBlockHead(); err == nil && d != nil {
-					floor = d.GetDatabaseHeight() // If it is in our db, let's make sure to stop asking
-				}
-
-				list.State.LogPrintf("dbstatecatchup", "Floor diff %d / %d", list.State.GetHighestSavedBlk(), floor)
-
-				// get the hightest block in the database at boot
-				b := list.State.GetDBHeightAtBoot()
-
-				// don't request states that are in the database at boot time
-				if b > floor {
-					return b
-				}
-				return floor
-			}()
-
-			// get the hight of the known blocks
-			hk := func() uint32 {
-				a := list.State.GetHighestAck()
-				k := list.State.GetHighestKnownBlock()
-				// check that known is more than 2 ahead of acknowledged to make
-				// sure not to ask for blocks that haven't finished
-				if k > a+2 {
-					return k
-				}
-				if a == 0 {
-					return a
-				}
-				return a - 1 // Acks are for height + 1 (sometimes +2 in min 0)
-			}()
-
+			hs = hsf()
+			hk = hkf()
 			// The base means anything below we can toss
 			base := received.Base()
 			if base < hs {
@@ -120,7 +139,7 @@ func (list *DBStateList) Catchup() {
 
 			// When we pull the slice, we might be able to trim the receivedSlice for the next loop
 			sliceKeep := 0
-			// TODO: Rewrite to stop redudundent looping over missing/waiting list
+			// TODO: Rewrite to stop redundant looping over missing/waiting list
 			// TODO: for each delete. It shouldn't be too bad atm, as most things are in order.
 			for i, h := range receivedSlice {
 				list.State.LogPrintf("dbstatecatchup", "missing & waiting delete %d", h)
@@ -167,7 +186,7 @@ func (list *DBStateList) Catchup() {
 				getHeightSafe(missing.GetFront()), missing.Len(),
 				getHeightSafe(waiting.GetEnd()), waiting.Len(),
 				received.Base(), received.Heighestreceived(), received.List.Len())
-			time.Sleep(5 * factomSecond)
+			time.Sleep(factomSecond)
 		}
 	}()
 
@@ -193,7 +212,7 @@ func (list *DBStateList) Catchup() {
 				}
 			}
 
-			time.Sleep(requestTimeout / 4)
+			time.Sleep(requestTimeout)
 		}
 	}()
 

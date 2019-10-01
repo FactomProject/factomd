@@ -4,12 +4,26 @@
 # AWK scripts                  #
 ################################
 read -d '' scriptVariable << 'EOF'
-func time2sec(t) {	
-  x = split(t,ary,":");
-  if(x!=3) {printf("time2sec(%s) bad split got %d fields. <%d>", t , x ,NR); print $0; exit;}
-  sec = (ary[1]*60+ary[2])*60+ary[3];
-  #printf("time2sec(%s) %02d:%02d:%02g= %d\\n",t, ary[1]+0, ary[2]+0,ary[3]+0,sec);
-  return sec;
+func time2sec(t) {    
+    x = split(t,ary,":");
+    if(x!=3) {
+        printf("time2sec(%s) bad split got %d fields.\\n",t, x)
+        printf("Line:  %s:%d\\n", FILENAME,FNR); 
+        print "<"$0">"; 
+        exit;
+    }
+    sec = (ary[1]*60+ary[2])*60+ary[3];
+    #printf("time2sec(%s) %02d:%02d:%02d= %d\\n",t, ary[1]+0, ary[2]+0,ary[3]+0,sec);
+    return sec;
+}
+
+func timeDiff(t1,t2){
+
+    tDiff = time2sec(t1)-time2sec(t2);
+    if(tDiff < 0) {
+        tDiff = tDiff+24*60*60;
+    }
+    return sprintf("%d seconds %2d:%02d:%02d.%03d H:M:S", tDiff, (tDiff/(60*60)),(tDiff/60)%60,tDiff%60,(tDiff - int(tDiff))*1000 );
 }
 
  { sub(/\\(standard input\\):/,"");
@@ -19,10 +33,10 @@ func time2sec(t) {
    if(NR%1000==0) {printf("\\r%7d",NR)>"/dev/stderr";}
 }
 
-NR == 1 {prev = time2sec($2);}
+NR == 1 {prev = $2;}
 
- { now = time2sec($2);
-   delay = now-prev;
+ { now = $2;
+   delay = timeDiff(now,prev);
    gap[delay]++;
    gapsrc[delay] = $0;
    printf("%7.2f %s\\n", delay, $0);

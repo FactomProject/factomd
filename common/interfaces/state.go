@@ -32,6 +32,7 @@ type IQueue interface {
 // accidentally
 type IState interface {
 	GetRunState() runstate.RunState
+	GetRunLeader() bool
 	// Server
 	GetFactomNodeName() string
 	GetSalt(Timestamp) uint32 // A secret number computed from a TS that tests if a message was issued from this server or not
@@ -328,7 +329,7 @@ type IState interface {
 	IsSyncingEOMs() bool
 	IsSyncingDBSigs() bool
 	DidCreateLastBlockFromDBState() bool
-	GetUnsyncedServers(dbheight uint32) []IHash
+	GetUnsyncedServers() (ids []IHash, vms []int)
 	Validate(msg IMsg) (validToSend int, validToExecute int)
 	GetIgnoreDone() bool
 
@@ -347,24 +348,26 @@ type IState interface {
 	SetHighestAck(uint32)
 	DebugExec() bool
 	CheckFileName(string) bool
+	// Filters
 	AddToReplayFilter(mask int, hash [32]byte, timestamp Timestamp, systemtime Timestamp) bool
 
 	// Activations -------------------------------------------------------
 	IsActive(id activations.ActivationType) bool
 
 	// Holding of dependent messages -------------------------------------
-	// Add a messsage to a dependent holding list
+	// Add a message to a dependent holding list
 	Add(h [32]byte, msg IMsg) int
-	// get and remove the list of dependent message for a hash
-	Get(h [32]byte) []IMsg
 	// expire any dependent messages that are in holding but are older than limit
+	// Execute messages when a dependency is met
 	ExecuteFromHolding(h [32]byte)
 	// create a hash to hold messages that depend on height
-	HoldForHeight(ht uint32, msg IMsg) int
+	HoldForHeight(ht uint32, minute int, msg IMsg) int
 
 	// test/debug filters
 	PassOutputRegEx(*regexp.Regexp, string)
 	GetOutputRegEx() (*regexp.Regexp, string)
 	PassInputRegEx(*regexp.Regexp, string)
 	GetInputRegEx() (*regexp.Regexp, string)
+	GotHeartbeat(heartbeatTS Timestamp, dbheight uint32)
+	GetDBFinished() bool
 }

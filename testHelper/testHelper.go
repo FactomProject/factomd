@@ -134,6 +134,7 @@ func CreateAndPopulateTestState() *state.State {
 		panic(err)
 	}*/
 	s.SetFactoshisPerEC(1)
+	s.MMRDummy() // Need to start MMR to ensure queues don't fill up
 	state.LoadDatabase(s)
 	s.Process()
 	s.UpdateState()

@@ -216,6 +216,7 @@ func (dbs *DBState) MarshalBinary() (rval []byte, err error) {
 	defer func(pe *error) {
 		if *pe != nil {
 			fmt.Fprintf(os.Stderr, "DBState.MarshalBinary err:%v", *pe)
+
 		}
 	}(&err)
 
@@ -351,7 +352,6 @@ func (dbs *DBState) UnmarshalBinary(p []byte) error {
 }
 
 type DBStateList struct {
-	// TODO: mjb: get rid of LastBegin LastEnd and TimeToAsk
 	LastEnd       int
 	LastBegin     int
 	TimeToAsk     interfaces.Timestamp
@@ -522,12 +522,12 @@ func (dbsl *DBStateList) UnmarshalBinaryData(p []byte) (newData []byte, err erro
 		return
 	}
 
-	l, err := buf.PopVarInt()
+	listLen, err := buf.PopVarInt()
 	if err != nil {
 		dbsl.State.LogPrintf("dbstateprocess", "DBStateList.UnmarshalBinaryData listLen err: %v", err)
 		return
 	}
-	for i := 0; i < int(l); i++ {
+	for i := 0; i < int(listLen); i++ {
 		dbs := new(DBState)
 		err = buf.PopBinaryMarshallable(dbs)
 		if dbs.SaveStruct.IdentityControl == nil {
@@ -562,13 +562,12 @@ func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 	_ = s
 	dirblk := next.DirectoryBlock
 	dbheight := dirblk.GetHeader().GetDBHeight()
-
 	// If we don't have the previous blocks processed yet, then let's wait on this one.
 	highestSavedBlk := state.GetHighestSavedBlk()
 
+	// The genesis block is valid by definition. So don't do any other tests.
 	if dbheight == 0 && highestSavedBlk == 0 {
 		//state.AddStatus(fmt.Sprintf("DBState.ValidNext: rtn 1 genesis block is valid dbht: %d", dbheight))
-		// The genesis block is valid by definition.
 		return 1
 	}
 
@@ -579,6 +578,12 @@ func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 		return -1
 	}
 
+	// Check if we have already process a block for this height and do not replace it if we have.
+	dbstate := s.DBStates.Get(int(dbheight))
+	if dbstate != nil && dbstate.Saved {
+		state.LogPrintf("dbstateprocess", "Invalid DBState because we have already saved a block at this height")
+		return -1
+	}
 	if dbheight > highestSavedBlk+1 {
 		state.LogPrintf("dbstateprocess", "Invalid DBState because dbheight %d > highestSavedBlk+1 %d",
 			dbheight, highestSavedBlk+1)
@@ -903,6 +908,7 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 		coinbaseTx := fblock.Transactions[0]
 		coinbaseTx.SetTimestamp(list.State.GetLeaderTimestamp())
 		fblock.Transactions[0] = coinbaseTx
+		list.State.LogPrintf("factoids_trans", "FixupLinks(%d) timestamp = %d, %s", currentDBHeight, coinbaseTx.GetTimestamp(), coinbaseTx.GetTimestamp().String())
 	}
 
 	d.FactoidBlock = fblock
@@ -956,6 +962,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	// its links patched, so we can't process it.  But if this is a repeat block (we have already processed
 	// at this height) then we simply return.
 	if d.Locked || d.IsNew || d.Repeat {
+
 		s.LogPrintf("dbstateprocess", "ProcessBlocks(%d) Skipping d.Locked(%v) || d.IsNew(%v) || d.Repeat(%v) : ", dbht, d.Locked, d.IsNew, d.Repeat)
 		return false
 	}
@@ -1218,16 +1225,6 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		s.MoveStateToHeight(dbht+1, 0)
 	}
 
-	// Note about dbsigs.... If we processed the previous minute, then we generate the DBSig for the next block.
-	// But if we didn't process the previous block, like we start from scratch, or we had to reset the entire
-	// network, then no dbsig exists.  This code doesn't execute, and so we have no dbsig.  In that case, on
-	// the next EOM, we see the block hasn't been signed, and we sign the block (That is the call to SendDBSig()
-	// above).
-	pldbs := s.ProcessLists.Get(s.LLeaderHeight)
-	if s.Leader && !pldbs.DBSigAlreadySent {
-		s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex) // ProcessBlocks()
-	}
-
 	return
 }
 
@@ -1324,6 +1321,7 @@ func (list *DBStateList) WriteDBStateToDebugFile(d *DBState) {
 		fmt.Printf("An error has occurred while writing the DBState to disk: %s\n", err.Error())
 		return
 	}
+	list.State.LogPrintf("saved_blocks", "Saved %s", path)
 
 	file.Write(data)
 	file.Close()
@@ -1433,7 +1431,6 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 			list.State.NumNewEntries++
 			list.State.ExecuteFromHolding(en.GetEntryHash().Fixed())
 		}
-
 	}
 
 	pl := list.State.ProcessLists.Get(uint32(dbheight))
@@ -1509,6 +1506,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	if err := list.State.DB.ProcessDBlockMultiBatch(d.DirectoryBlock); err != nil {
 		panic(err.Error())
 	}
+
 	if err := list.State.DB.ExecuteMultiBatch(); err != nil {
 		panic(err.Error())
 	}
@@ -1601,6 +1599,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 }
 
 func (list *DBStateList) UpdateState() (progress bool) {
+
 	s := list.State
 	_ = s
 	if len(list.DBStates) != 0 {

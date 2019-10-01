@@ -129,7 +129,7 @@ func (m *Heartbeat) GetMsgHash() (rval interfaces.IHash) {
 }
 
 func (m *Heartbeat) GetTimestamp() interfaces.Timestamp {
-	return m.Timestamp
+	return m.Timestamp.Clone()
 }
 
 func (m *Heartbeat) Type() byte {
@@ -339,8 +339,10 @@ func (m *Heartbeat) FollowerExecute(is interfaces.IState) {
 				}
 			}
 			auditServer.SetOnline(true)
+			is.GotHeartbeat(m.Timestamp, m.DBHeight)
 		}
 	}
+
 }
 
 func (e *Heartbeat) JSONByte() ([]byte, error) {
