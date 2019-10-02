@@ -2,92 +2,50 @@ package registry
 
 import (
 	"github.com/FactomProject/factomd/log"
-	"github.com/FactomProject/factomd/util/atomic"
 	"github.com/FactomProject/factomd/worker"
 	"sync"
 )
 
-
-// indexed by  goId
-type storeMgr struct {
+type globalRegistry struct {
+	// TODO: record parent
 	Mutex       sync.Mutex
-	Index map[string]*locals
+	Index       []*worker.Registry
 }
 
-// handle to invoke async/deferred behavior
-type callback struct {
-	call worker.Thread
-	args []interface{}
-}
 
-// thread local vars
-type locals struct {
-	Logger log.Log
-	OnStop callback
-}
+var threadMgr = &globalRegistry{}
 
-var StoreManager = storeMgr{Index: make(map[string]*locals) }
+func Exit() {
+	var wait sync.WaitGroup
 
-func getLocal(gid string) *locals {
-	StoreManager.Mutex.Lock()
-	defer StoreManager.Mutex.Unlock()
-	l, ok := StoreManager.Index[gid]
-	if ! ok {
-		panic("unregistered thread")
+	for _, r := range threadMgr.Index {
+		wait.Add(1)
+		go func(){
+			r.Call(worker.EXIT)
+			wait.Done()
+		}()
 	}
-	return l
+	wait.Wait()
 }
 
-func Locals() *locals{
-	return getLocal(atomic.Goid())
-}
-
-//var stop chan interface{}
-
-// signal all threads to start
-var start = make(chan interface{})
-
-func Logger() log.Log {
-	return getLocal(atomic.Goid()).Logger
-}
-
-// kick off all threads
-func Start() {
-	close(start)
-}
-
-// register a callback for global stop
-func OnStop(t worker.Thread, args ...interface{}) {
-	l := getLocal(atomic.Goid())
-	l.OnStop = callback{t, args}
-}
+var initWait sync.WaitGroup
 
 // Run a thread w/ coordinated start and callback hooks
-func Run(t worker.Thread, args ...interface{}) {
+func Init(initFunction worker.Thread, args ...interface{}) {
 
-	// set thread local data
+	r := &worker.Registry{}
 
-	// run the thread
+	initWait.Add(1)
 	go func() {
-		gid := atomic.Goid()
+		r.Log = log.ThreadLogger // inject global logging
+		threadMgr.Index = append(threadMgr.Index, r)
+		initFunction(r, args...)
+		initWait.Done()
+	}()
 
-		l := &locals{
-			Logger: log.ThreadLogger,
-		}
-
-		func() { // add locals to registry
-			StoreManager.Mutex.Lock()
-			defer StoreManager.Mutex.Unlock()
-			StoreManager.Index[gid] = l
-		}()
-
-		<- start // synchronize thread starts
-
-		t(args...) // run the Thread
-
-		// run onStop Behavior
-		if l.OnStop.call != nil {
-			l.OnStop.call(l.OnStop.args...)
-		}
+	go func() {
+		initWait.Wait()
+		r.Call(worker.RUN)
+		r.Call(worker.COMPLETE)
 	}()
 }

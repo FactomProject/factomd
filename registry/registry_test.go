@@ -1,46 +1,40 @@
 package registry_test
 
 import (
+	"fmt"
 	"github.com/FactomProject/factomd/registry"
-	"github.com/stretchr/testify/assert"
+	"github.com/FactomProject/factomd/worker"
 	"testing"
 )
 
-// syntactic sugar for register locals and callbacks
-var local =  registry.Locals
-var onStop = registry.OnStop
-var runThread = registry.Run
-var startAllThreads = registry.Start
+func registerStartThreadFunc(w *worker.Registry, args ...interface{}) {
 
-func registerStopThreadFunc(args ...interface{}) {
 	t := args[0].(*testing.T)
+	name := fmt.Sprintf("%s", args[1])
+	wait0 := args[2].(chan interface{})
+	wait1 := args[3].(chan interface{})
 
-	t.Logf("testing %v", args[1])
-	local().Logger.LogPrintf("testing", "formatter: %v", args[1])
+	t.Logf("initializing %s", name)
 
-	wait := args[2].(chan interface{})
-	close(wait) // let test resume
+	log := w.Log // get a logger handle
+	log.LogPrintf("testing logger %s", name)
+
+	w.Run(func() {
+		t.Logf("running %s", name)
+	}).Complete(func() {
+		t.Logf("complete %s", name)
+		close(wait0)
+	}).Exit(func() {
+		t.Logf("exit %s", name)
+		close(wait1)
+	})
 }
 
-func registerStartThreadFunc(args ...interface{}) {
-	t := args[0].(*testing.T)
-	name := args[1].(string)
-
-	// add a hook for stopping
-	onStop(registerStopThreadFunc, t, "bar", args[2])
-
-	t.Logf("testing %v", name)
-	local().Logger.LogPrintf("testing", "formatter: %v", name)
-}
-
-func TestRegisterThread(t *testing.T){
-	wait := make(chan interface{})
-	runThread(registerStartThreadFunc, t, "foo", wait)
-	startAllThreads()
-	<- wait // wait for execution
-
-	// cannot access locals outside of a registered thread
-	assert.Panics(t, func() {
-		local()
-	}, "Cannot access locals outside of a registered thread")
+func TestRegisterThread(t *testing.T) {
+	wait0 := make(chan interface{})
+	wait1 := make(chan interface{})
+	registry.Init(registerStartThreadFunc, t, "foo", wait0, wait1)
+	<- wait0 // wait for execution
+	registry.Exit()
+	<- wait1 // wait for execution
 }
