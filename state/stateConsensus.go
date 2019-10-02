@@ -471,7 +471,8 @@ emptyLoop:
 			s.LogMessage("msgQueue", "Execute", msg)
 		default:
 			break emptyLoop
-		}		progress = s.executeMsg(msg) || progress
+		}
+		progress = s.executeMsg(msg) || progress
 	}
 	emptyLoopTime := time.Since(preEmptyLoopTime)
 	TotalEmptyLoopTime.Add(float64(emptyLoopTime.Nanoseconds()))
