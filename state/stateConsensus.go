@@ -453,24 +453,25 @@ emptyLoop:
 	for i := 0; i < 100; i++ {
 		var msg interfaces.IMsg
 		select {
-		// We have prioritizedMsgQueue listed twice, meaning it has 2 chances to be
+		// We have multiple instances of a case give that channel priority because it has multiple chances to be
 		// randomly selected to unblock and execute.
 		case msg = <-s.prioritizedMsgQueue:
 			s.LogMessage("prioritizedMsgQueue", "Execute", msg)
 		case msg = <-s.prioritizedMsgQueue:
 			s.LogMessage("prioritizedMsgQueue", "Execute", msg)
+		case msg = <-s.prioritizedMsgQueue:
+			s.LogMessage("prioritizedMsgQueue", "Execute", msg)
+		case msg = <-s.prioritizedMsgQueue:
+			s.LogMessage("prioritizedMsgQueue", "Execute", msg)
+		case msg = <-s.ackQueue:
+			s.LogMessage("ackQueue", "Execute", msg)
+		case msg = <-s.ackQueue:
+			s.LogMessage("ackQueue", "Execute", msg)
 		case msg = <-s.msgQueue:
 			s.LogMessage("msgQueue", "Execute", msg)
-		case msg = <-s.ackQueue:
-			s.LogMessage("ackQueue", "Execute", msg)
-		case msg = <-s.ackQueue:
-			s.LogMessage("ackQueue", "Execute", msg)
-		case msg = <-s.ackQueue:
-			s.LogMessage("ackQueue", "Execute", msg)
 		default:
 			break emptyLoop
-		}
-		progress = s.executeMsg(msg) || progress
+		}		progress = s.executeMsg(msg) || progress
 	}
 	emptyLoopTime := time.Since(preEmptyLoopTime)
 	TotalEmptyLoopTime.Add(float64(emptyLoopTime.Nanoseconds()))
