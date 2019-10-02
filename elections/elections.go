@@ -6,10 +6,11 @@ import (
 
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util/atomic"
+
+	llog "github.com/FactomProject/factomd/log"
 )
 
 var _ = fmt.Print
@@ -312,7 +313,7 @@ func (e *Elections) LogMessage(logName string, comment string, msg interfaces.IM
 			t = "--:--"
 		}
 
-		messages.LogMessage(logFileName, t+comment, msg)
+		llog.LogMessage(logFileName, t+comment, msg)
 	}
 }
 
@@ -345,7 +346,7 @@ func (e *Elections) LogPrintf(logName string, format string, more ...interface{}
 			h = int(s.LeaderPL.DBHeight)
 		}
 		t := fmt.Sprintf("%d-:-%d ", h, s.CurrentMinute)
-		messages.LogPrintf(logFileName, t+format, more...)
+		llog.LogPrintf(logFileName, t+format, more...)
 	}
 }
 

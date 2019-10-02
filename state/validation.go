@@ -13,6 +13,8 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/util/atomic"
+
+	llog "github.com/FactomProject/factomd/log"
 )
 
 var ValidationDebug bool = false
@@ -72,6 +74,7 @@ func (s *State) ValidatorLoop() {
 	defer func() {
 		if r := recover(); r != nil {
 			fmt.Println("A panic state occurred in ValidatorLoop.", r)
+			llog.LogPrintf("recovery", "A panic state occurred in ValidatorLoop. %v", r)
 			shutdown(s)
 		}
 	}()
