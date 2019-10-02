@@ -3,9 +3,10 @@ package eventservices
 import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/globals"
-	"github.com/FactomProject/factomd/events/contentfiltermode"
+	"github.com/FactomProject/factomd/events/allowcontent"
 	"github.com/FactomProject/factomd/events/eventoutputformat"
 	"github.com/FactomProject/factomd/util"
+	"github.com/FactomProject/live-feed-api/EventRouter/log"
 )
 
 type EventServiceParams struct {
@@ -15,7 +16,7 @@ type EventServiceParams struct {
 	OutputFormat                     eventoutputformat.Format
 	MuteEventReplayDuringStartup     bool
 	ResendRegistrationsOnStateChange bool
-	ContentFilterMode                contentfiltermode.ContentFilterMode
+	AllowContent                     allowcontent.AllowContent
 }
 
 func selectParameters(factomParams *globals.FactomParams, config *util.FactomdConfig) *EventServiceParams {
@@ -45,14 +46,21 @@ func selectParameters(factomParams *globals.FactomParams, config *util.FactomdCo
 	params.EnableLiveFeedAPI = factomParams.EnableLiveFeedAPI || config.LiveFeedAPI.EnableLiveFeedAPI
 	params.MuteEventReplayDuringStartup = factomParams.MuteReplayDuringStartup || config.LiveFeedAPI.MuteReplayDuringStartup
 	params.ResendRegistrationsOnStateChange = factomParams.ResendRegistrationsOnStateChange || config.LiveFeedAPI.ResendRegistrationsOnStateChange
-	if len(factomParams.ContentFilterMode) > 0 {
-		params.ContentFilterMode = contentfiltermode.Parse(factomParams.ContentFilterMode)
-	}
-	if params.ContentFilterMode == contentfiltermode.Unknown && len(config.LiveFeedAPI.ContentFilterMode) > 0 {
-		params.ContentFilterMode = contentfiltermode.Parse(config.LiveFeedAPI.ContentFilterMode)
-	}
-	if params.ContentFilterMode == contentfiltermode.Unknown {
-		params.ContentFilterMode = contentfiltermode.SendOnRegistration
+	var err error
+	if len(factomParams.AllowContent) > 0 {
+		params.AllowContent, err = allowcontent.Parse(factomParams.AllowContent)
+		if err != nil {
+			log.Warn("Parameter AllowContent could not be parsed: %v", err)
+			params.AllowContent = allowcontent.OnRegistration
+		}
+	} else if len(config.LiveFeedAPI.AllowContent) > 0 {
+		params.AllowContent, err = allowcontent.Parse(config.LiveFeedAPI.AllowContent)
+		if err != nil {
+			log.Warn("Configuration property LiveFeedAPI.AllowContent could not be parsed: %v", err)
+			params.AllowContent = allowcontent.OnRegistration
+		}
+	} else {
+		params.AllowContent = allowcontent.OnRegistration
 	}
 	return params
 }

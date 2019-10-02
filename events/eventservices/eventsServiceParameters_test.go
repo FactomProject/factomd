@@ -18,7 +18,7 @@ func TestEventServiceParameters(t *testing.T) {
 		assert.Equal(t, "Json", testParams.OutputFormat.String())
 		assert.True(t, testParams.MuteEventReplayDuringStartup)
 		assert.True(t, testParams.ResendRegistrationsOnStateChange)
-		assert.Equal(t, "SendAlways", testParams.ContentFilterMode.String())
+		assert.Equal(t, "Always", testParams.AllowContent.String())
 	})
 }
 
@@ -31,7 +31,7 @@ func buildOverrideParams() *globals.FactomParams {
 		OutputFormat:                     "json",
 		MuteReplayDuringStartup:          true,
 		ResendRegistrationsOnStateChange: true,
-		ContentFilterMode:                "SendAlways",
+		AllowContent:                     "Always",
 	}
 }
 
@@ -45,7 +45,7 @@ func buildBaseConfig() *util.FactomdConfig {
 			OutputFormat                     string
 			MuteReplayDuringStartup          bool
 			ResendRegistrationsOnStateChange bool
-			ContentFilterMode                string
+			AllowContent                     string
 		}{
 			EnableLiveFeedAPI:                false,
 			EventReceiverProtocol:            "tcp",
@@ -54,7 +54,7 @@ func buildBaseConfig() *util.FactomdConfig {
 			OutputFormat:                     "protobuf",
 			MuteReplayDuringStartup:          false,
 			ResendRegistrationsOnStateChange: false,
-			ContentFilterMode:                "SendNever",
+			AllowContent:                     "Never",
 		},
 	}
 }

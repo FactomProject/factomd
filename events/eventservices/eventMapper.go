@@ -7,7 +7,7 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/events"
-	"github.com/FactomProject/factomd/events/contentfiltermode"
+	"github.com/FactomProject/factomd/events/allowcontent"
 	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 	graphqlproto_types "github.com/bi-foundation/protobuf-graphql-extension/graphqlproto/types"
 	"time"
@@ -41,7 +41,7 @@ func mapRegistrationEvent(registrationEvent *events.RegistrationEvent) (*eventme
 	event.EventSource = registrationEvent.GetStreamSource()
 	msg := registrationEvent.GetPayload()
 	if msg != nil {
-		shouldIncludeContent := eventServiceControl.GetContentFilterMode() > contentfiltermode.SendNever
+		shouldIncludeContent := eventServiceControl.GetAllowContent() > allowcontent.Never
 
 		switch msg.(type) {
 		case *messages.CommitChainMsg:
@@ -51,6 +51,8 @@ func mapRegistrationEvent(registrationEvent *events.RegistrationEvent) (*eventme
 		case *messages.RevealEntryMsg:
 			if shouldIncludeContent {
 				event.Value = mapRevealEntryEvent(eventmessages.EntityState_REQUESTED, msg)
+			} else {
+				return nil, nil
 			}
 		default:
 			return nil, errors.New("unknown message type")
@@ -64,7 +66,7 @@ func mapStateChangeEvent(stateChangeEvent *events.StateChangeEvent) (*eventmessa
 	event.EventSource = stateChangeEvent.GetStreamSource()
 	msg := stateChangeEvent.GetPayload()
 	if msg != nil {
-		shouldIncludeContent := eventServiceControl.GetContentFilterMode() > contentfiltermode.SendOnRegistration
+		shouldIncludeContent := eventServiceControl.GetAllowContent() > allowcontent.OnRegistration
 		resendRegistrations := eventServiceControl.IsResendRegistrationsOnStateChange()
 		switch msg.(type) {
 		case *messages.CommitChainMsg:

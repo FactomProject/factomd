@@ -10,7 +10,7 @@ import (
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/events"
-	"github.com/FactomProject/factomd/events/contentfiltermode"
+	"github.com/FactomProject/factomd/events/allowcontent"
 	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 	"github.com/FactomProject/factomd/events/eventoutputformat"
 	"github.com/FactomProject/factomd/p2p"
@@ -82,7 +82,6 @@ func (esi *eventServiceInstance) Send(event events.EventInput) error {
 
 	// Only send info messages when MuteReplayDuringStartup is enabled
 	if esi.params.MuteEventReplayDuringStartup && !esi.owningState.IsRunLeader() {
-
 		switch event.(type) {
 		case *events.ProcessMessageEvent:
 			return nil
@@ -95,6 +94,10 @@ func (esi *eventServiceInstance) Send(event events.EventInput) error {
 	if err != nil {
 		return fmt.Errorf("failed to map to factom event: %v\n", err)
 	}
+	if factomEvent == nil {
+		return nil
+	}
+
 	factomEvent.IdentityChainID = &eventmessages.Hash{
 		HashValue: esi.owningState.GetIdentityChainID().Bytes(),
 	}
@@ -103,7 +106,6 @@ func (esi *eventServiceInstance) Send(event events.EventInput) error {
 	default:
 		esi.droppedFromQueueCounter.Inc()
 	}
-
 	return nil
 }
 
@@ -239,8 +241,8 @@ func catchSendPanics() error {
 	return nil
 }
 
-func (esi *eventServiceInstance) GetContentFilterMode() contentfiltermode.ContentFilterMode {
-	return esi.params.ContentFilterMode
+func (esi *eventServiceInstance) GetAllowContent() allowcontent.AllowContent {
+	return esi.params.AllowContent
 }
 
 func (esi *eventServiceInstance) IsResendRegistrationsOnStateChange() bool {

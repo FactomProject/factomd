@@ -91,7 +91,7 @@ type FactomParams struct {
 	OutputFormat                     string
 	MuteReplayDuringStartup          bool
 	ResendRegistrationsOnStateChange bool
-	ContentFilterMode                string
+	AllowContent                     string
 }
 
 /****************************************************************

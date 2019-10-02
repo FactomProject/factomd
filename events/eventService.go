@@ -1,15 +1,13 @@
 package events
 
-import (
-	"github.com/FactomProject/factomd/events/contentfiltermode"
-)
+import "github.com/FactomProject/factomd/events/allowcontent"
 
 type EventService interface {
 	Send(event EventInput) error
 }
 
 type EventServiceControl interface {
-	GetContentFilterMode() contentfiltermode.ContentFilterMode
+	GetAllowContent() allowcontent.AllowContent
 	Shutdown()
 	IsResendRegistrationsOnStateChange() bool
 }

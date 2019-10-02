@@ -7,7 +7,7 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/events"
-	"github.com/FactomProject/factomd/events/contentfiltermode"
+	"github.com/FactomProject/factomd/events/allowcontent"
 	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 	"github.com/FactomProject/factomd/events/eventservices"
 	"github.com/FactomProject/factomd/state"
@@ -35,7 +35,7 @@ func TestEventMappers(t *testing.T) {
 
 func setup() {
 	params := &eventservices.EventServiceParams{
-		ContentFilterMode: contentfiltermode.SendAlways,
+		AllowContent: allowcontent.Always,
 	}
 	testState.EventsService, testState.EventsServiceControl = eventservices.NewEventServiceTo(testState, params)
 }
