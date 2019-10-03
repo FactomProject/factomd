@@ -84,8 +84,8 @@ func (esi *eventServiceInstance) Send(event events.EventInput) error {
 	if esi.params.MuteEventReplayDuringStartup && !esi.owningState.IsRunLeader() {
 		switch event.(type) {
 		case *events.ProcessMessageEvent:
-			return nil
 		case *events.NodeMessageEvent:
+		default:
 			return nil
 		}
 	}

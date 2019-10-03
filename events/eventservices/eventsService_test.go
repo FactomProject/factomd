@@ -66,7 +66,7 @@ func testSend(t *testing.T, msgs []interfaces.IMsg, outputFormat eventoutputform
 
 		// send messages
 		for _, msg := range msgs {
-			event := events.NewStateChangeEvent(eventmessages.EventSource_LIVE, eventmessages.EntityState_COMMITTED_TO_DIRECTORY_BLOCK, msg)
+			event := events.NewStateChangeEventFromMsg(eventmessages.EventSource_LIVE, eventmessages.EntityState_COMMITTED_TO_DIRECTORY_BLOCK, msg)
 			eventService.Send(event)
 		}
 
@@ -94,7 +94,7 @@ func testLateReceivingServer(t *testing.T, msgs []interfaces.IMsg, outputFormat 
 		defer eventServiceControl.Shutdown()
 
 		msg := msgs[0]
-		event := events.NewStateChangeEvent(eventmessages.EventSource_LIVE, eventmessages.EntityState_ACCEPTED, msg)
+		event := events.NewStateChangeEventFromMsg(eventmessages.EventSource_LIVE, eventmessages.EntityState_ACCEPTED, msg)
 		eventService.Send(event)
 
 		time.Sleep(2 * time.Second) // sleep less than the retry * redial sleep duration
@@ -125,7 +125,7 @@ func testReceivingServerRestart(t *testing.T, msgs []interfaces.IMsg, outputForm
 		defer eventServiceControl.Shutdown()
 
 		msg := msgs[0]
-		event := events.NewStateChangeEvent(eventmessages.EventSource_LIVE, eventmessages.EntityState_ACCEPTED, msg)
+		event := events.NewStateChangeEventFromMsg(eventmessages.EventSource_LIVE, eventmessages.EntityState_ACCEPTED, msg)
 		eventService.Send(event)
 
 		// Restart the simulator
@@ -214,7 +214,6 @@ func mockDirHeader() *eventmessages.DirectoryBlockHeader {
 		BlockCount:  456,
 	}
 	return result
-
 }
 
 func mockDirEntries() []*eventmessages.DirectoryBlockEntry {

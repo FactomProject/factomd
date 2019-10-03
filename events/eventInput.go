@@ -16,10 +16,16 @@ type RegistrationEvent struct {
 	payload     interfaces.IMsg
 }
 
-type StateChangeEvent struct {
+type StateChangeMsgEvent struct {
 	eventSource eventmessages.EventSource
 	entityState eventmessages.EntityState
 	payload     interfaces.IMsg
+}
+
+type StateChangeEvent struct {
+	eventSource eventmessages.EventSource
+	entityState eventmessages.EntityState
+	payload     interfaces.IDBState
 }
 
 type ProcessMessageEvent struct {
@@ -40,6 +46,18 @@ func (event RegistrationEvent) GetPayload() interfaces.IMsg {
 	return event.payload
 }
 
+func (event StateChangeMsgEvent) GetStreamSource() eventmessages.EventSource {
+	return event.eventSource
+}
+
+func (event StateChangeMsgEvent) GetEntityState() eventmessages.EntityState {
+	return event.entityState
+}
+
+func (event StateChangeMsgEvent) GetPayload() interfaces.IMsg {
+	return event.payload
+}
+
 func (event StateChangeEvent) GetStreamSource() eventmessages.EventSource {
 	return event.eventSource
 }
@@ -48,7 +66,7 @@ func (event StateChangeEvent) GetEntityState() eventmessages.EntityState {
 	return event.entityState
 }
 
-func (event StateChangeEvent) GetPayload() interfaces.IMsg {
+func (event StateChangeEvent) GetPayload() interfaces.IDBState {
 	return event.payload
 }
 
@@ -74,11 +92,18 @@ func NewRegistrationEvent(streamSource eventmessages.EventSource, msg interfaces
 		payload:     msg}
 }
 
-func NewStateChangeEvent(streamSource eventmessages.EventSource, entityState eventmessages.EntityState, msg interfaces.IMsg) *StateChangeEvent {
-	return &StateChangeEvent{
+func NewStateChangeEventFromMsg(streamSource eventmessages.EventSource, entityState eventmessages.EntityState, msg interfaces.IMsg) *StateChangeMsgEvent {
+	return &StateChangeMsgEvent{
 		eventSource: streamSource,
 		entityState: entityState,
 		payload:     msg}
+}
+
+func NewStateChangeEvent(streamSource eventmessages.EventSource, entityState eventmessages.EntityState, dbState interfaces.IDBState) *StateChangeEvent {
+	return &StateChangeEvent{
+		eventSource: streamSource,
+		entityState: entityState,
+		payload:     dbState}
 }
 
 func ProcessInfoMessage(streamSource eventmessages.EventSource, processCode eventmessages.ProcessCode, message string) *ProcessMessageEvent {

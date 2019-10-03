@@ -20,10 +20,17 @@ func EmitRegistrationEvent(msg interfaces.IMsg, state *State) {
 func EmitStateChangeEvent(msg interfaces.IMsg, entityState eventmessages.EntityState, state *State) {
 	if state.EventsService != nil {
 		switch msg.(type) {
-		case *messages.CommitChainMsg, *messages.CommitEntryMsg, *messages.RevealEntryMsg, *messages.DBStateMsg:
-			event := events.NewStateChangeEvent(GetStreamSource(state), entityState, msg)
+		case *messages.CommitChainMsg, *messages.CommitEntryMsg, *messages.RevealEntryMsg:
+			event := events.NewStateChangeEventFromMsg(GetStreamSource(state), entityState, msg)
 			state.EventsService.Send(event)
 		}
+	}
+}
+
+func EmitDBStateEvent(dbState interfaces.IDBState, entityState eventmessages.EntityState, state *State) {
+	if state.EventsService != nil {
+		event := events.NewStateChangeEvent(GetStreamSource(state), entityState, dbState)
+		state.EventsService.Send(event)
 	}
 }
 

@@ -22,9 +22,12 @@ func MapToFactomEvent(eventInput events.EventInput) (*eventmessages.FactomEvent,
 	case *events.RegistrationEvent:
 		registrationEvent := eventInput.(*events.RegistrationEvent)
 		return mapRegistrationEvent(registrationEvent)
+	case *events.StateChangeMsgEvent:
+		stateChangeEvent := eventInput.(*events.StateChangeMsgEvent)
+		return mapStateChangeEvent(stateChangeEvent)
 	case *events.StateChangeEvent:
 		stateChangeEvent := eventInput.(*events.StateChangeEvent)
-		return mapStateChangeEvent(stateChangeEvent)
+		return mapDBStateEvent(stateChangeEvent)
 	case *events.ProcessMessageEvent:
 		processMessageEvent := eventInput.(*events.ProcessMessageEvent)
 		return mapProcessMessageEvent(processMessageEvent)
@@ -61,7 +64,7 @@ func mapRegistrationEvent(registrationEvent *events.RegistrationEvent) (*eventme
 	return event, nil
 }
 
-func mapStateChangeEvent(stateChangeEvent *events.StateChangeEvent) (*eventmessages.FactomEvent, error) {
+func mapStateChangeEvent(stateChangeEvent *events.StateChangeMsgEvent) (*eventmessages.FactomEvent, error) {
 	event := &eventmessages.FactomEvent{}
 	event.EventSource = stateChangeEvent.GetStreamSource()
 	msg := stateChangeEvent.GetPayload()
@@ -88,10 +91,21 @@ func mapStateChangeEvent(stateChangeEvent *events.StateChangeEvent) (*eventmessa
 				event.Value = mapRevealEntryEventState(stateChangeEvent.GetEntityState(), msg)
 			}
 		case *messages.DBStateMsg:
-			event.Value = mapDBState(msg, shouldIncludeContent)
+			event.Value = mapDBStateFromMsg(msg, shouldIncludeContent)
 		default:
 			return nil, errors.New("unknown message type")
 		}
+	}
+	return event, nil
+}
+
+func mapDBStateEvent(stateChangeEvent *events.StateChangeEvent) (*eventmessages.FactomEvent, error) {
+	event := &eventmessages.FactomEvent{}
+	event.EventSource = stateChangeEvent.GetStreamSource()
+	state := stateChangeEvent.GetPayload()
+	if state != nil {
+		shouldIncludeContent := eventServiceControl.GetAllowContent() > allowcontent.OnRegistration
+		event.Value = mapDBState(state, shouldIncludeContent)
 	}
 	return event, nil
 }
@@ -116,13 +130,23 @@ func mapNodeMessageEvent(nodeMessageEvent *events.NodeMessageEvent) (*eventmessa
 	return event, nil
 }
 
-func mapDBState(msg interfaces.IMsg, shouldIncludeContent bool) *eventmessages.FactomEvent_DirectoryBlockCommit {
+func mapDBStateFromMsg(msg interfaces.IMsg, shouldIncludeContent bool) *eventmessages.FactomEvent_DirectoryBlockCommit {
 	dbStateMessage := msg.(*messages.DBStateMsg)
 	event := &eventmessages.FactomEvent_DirectoryBlockCommit{DirectoryBlockCommit: &eventmessages.DirectoryBlockCommit{
 		DirectoryBlock:    mapDirBlock(dbStateMessage.DirectoryBlock),
 		FactoidBlock:      mapFactoidBlock(dbStateMessage.FactoidBlock),
 		EntryBlocks:       mapEntryBlocks(dbStateMessage.EBlocks),
 		EntryBlockEntries: mapEntryBlockEntries(dbStateMessage.Entries, shouldIncludeContent),
+	}}
+	return event
+}
+
+func mapDBState(dbState interfaces.IDBState, shouldIncludeContent bool) *eventmessages.FactomEvent_DirectoryBlockCommit {
+	event := &eventmessages.FactomEvent_DirectoryBlockCommit{DirectoryBlockCommit: &eventmessages.DirectoryBlockCommit{
+		DirectoryBlock:    mapDirBlock(dbState.GetDirectoryBlock()),
+		FactoidBlock:      mapFactoidBlock(dbState.GetFactoidBlock()),
+		EntryBlocks:       mapEntryBlocks(dbState.GetEntryBlocks()),
+		EntryBlockEntries: mapEntryBlockEntries(dbState.GetEntries(), shouldIncludeContent),
 	}}
 	return event
 }

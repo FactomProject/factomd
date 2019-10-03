@@ -45,7 +45,7 @@ func testDBStateMapping(t *testing.T) {
 	data, _ := msg.MarshalBinary()
 	assert.Len(t, data, 2409, msgChangedMessage("DBStateMsg"))
 
-	inputEvent := events.NewStateChangeEvent(eventmessages.EventSource_LIVE, eventmessages.EntityState_COMMITTED_TO_DIRECTORY_BLOCK, msg)
+	inputEvent := events.NewStateChangeEventFromMsg(eventmessages.EventSource_LIVE, eventmessages.EntityState_COMMITTED_TO_DIRECTORY_BLOCK, msg)
 	event, err := eventservices.MapToFactomEvent(inputEvent)
 	if err != nil {
 		t.Error(err)
@@ -238,7 +238,7 @@ func testStateChangeMapping(t *testing.T) {
 	data, _ := msg.MarshalBinary()
 	assert.Len(t, data, 137, msgChangedMessage("CommitEntryMsg"))
 
-	inputEvent := events.NewStateChangeEvent(eventmessages.EventSource_LIVE, eventmessages.EntityState_ACCEPTED, msg)
+	inputEvent := events.NewStateChangeEventFromMsg(eventmessages.EventSource_LIVE, eventmessages.EntityState_ACCEPTED, msg)
 	event, err := eventservices.MapToFactomEvent(inputEvent)
 	if err != nil {
 		t.Error(err)
