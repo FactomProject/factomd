@@ -5,8 +5,8 @@ import (
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/events/allowcontent"
 	"github.com/FactomProject/factomd/events/eventoutputformat"
+	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/util"
-	"github.com/FactomProject/live-feed-api/EventRouter/log"
 )
 
 type EventServiceParams struct {
@@ -50,13 +50,13 @@ func selectParameters(factomParams *globals.FactomParams, config *util.FactomdCo
 	if len(factomParams.AllowContent) > 0 {
 		params.AllowContent, err = allowcontent.Parse(factomParams.AllowContent)
 		if err != nil {
-			log.Warn("Parameter AllowContent could not be parsed: %v", err)
+			log.Printf("Parameter AllowContent could not be parsed: %v", err)
 			params.AllowContent = allowcontent.OnRegistration
 		}
 	} else if len(config.LiveFeedAPI.AllowContent) > 0 {
 		params.AllowContent, err = allowcontent.Parse(config.LiveFeedAPI.AllowContent)
 		if err != nil {
-			log.Warn("Configuration property LiveFeedAPI.AllowContent could not be parsed: %v", err)
+			log.Printf("Configuration property LiveFeedAPI.AllowContent could not be parsed: %v", err)
 			params.AllowContent = allowcontent.OnRegistration
 		}
 	} else {
