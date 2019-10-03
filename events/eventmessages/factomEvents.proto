@@ -3,13 +3,10 @@ package eventmessages;
 option go_package = "eventmessages";
 option java_package = "com.factom.factomd.eventmessages";
 
-import "github.com/bi-foundation/protobuf-graphql-extension/graphqlproto/graphql.proto";
-import "github.com/bi-foundation/protobuf-graphql-extension/graphqlproto/types/timestamp.proto";
+import "google/protobuf/timestamp.proto";
 import "eventmessages/sharedTypes.proto";
 import "eventmessages/adminBlock.proto";
 import "eventmessages/factoidBlock.proto";
-
-option (graphqlproto.graphql) = true;
 
 // ====  ROOT EVENT =====
 message FactomEvent {
@@ -33,7 +30,7 @@ message ChainCommit {
     Hash chainIDHash = 2;
     Hash entryHash = 3;
     Hash weld = 4;
-    graphqlproto.types.Timestamp timestamp = 5;
+    google.protobuf.Timestamp timestamp = 5;
     uint32 credits = 6;
     bytes entryCreditPublicKey = 7;
     bytes signature = 8;
@@ -44,7 +41,7 @@ message ChainCommit {
 message EntryCommit {
     EntityState entityState = 1;
     Hash entryHash = 2;
-    graphqlproto.types.Timestamp timestamp = 3;
+    google.protobuf.Timestamp timestamp = 3;
     uint32 credits = 4;
     bytes entryCreditPublicKey = 5;
     bytes signature = 6;
@@ -55,7 +52,7 @@ message EntryCommit {
 message EntryReveal {
     EntityState entityState = 1;
     EntryBlockEntry entry = 2;
-    graphqlproto.types.Timestamp timestamp = 3;
+    google.protobuf.Timestamp timestamp = 3;
 }
 
 
@@ -85,7 +82,7 @@ message DirectoryBlockHeader {
     Hash bodyMerkleRoot = 1;
     Hash previousKeyMerkleRoot = 2;
     Hash previousFullHash = 3;
-    graphqlproto.types.Timestamp timestamp = 4;
+    google.protobuf.Timestamp timestamp = 4;
     uint32 blockHeight = 5;
     uint32 blockCount = 6;
     uint32 version = 7;
@@ -161,7 +158,7 @@ message ServerIndexNumber {
 
 // ====  MESSAGE EVENTS =====
 message ProcessMessage {
-    ProcessMessageCode messageCode = 1;
+    ProcessCode processCode = 1;
     Level level = 2;
     string messageText = 3;
 }
@@ -193,7 +190,7 @@ enum Level {
     ERROR = 2;
 }
 
-enum ProcessMessageCode {
+enum ProcessCode {
     NEW_BLOCK = 0;
     NEW_MINUTE = 1;
 }

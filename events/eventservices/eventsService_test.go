@@ -12,8 +12,8 @@ import (
 	"github.com/FactomProject/factomd/events/eventservices"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/testHelper"
-	graphqlproto_types "github.com/bi-foundation/protobuf-graphql-extension/graphqlproto/types"
 	"github.com/gogo/protobuf/proto"
+	"github.com/gogo/protobuf/types"
 	"github.com/stretchr/testify/assert"
 	"sync/atomic"
 	"testing"
@@ -209,11 +209,12 @@ func mockDirHeader() *eventmessages.DirectoryBlockHeader {
 		PreviousFullHash: &eventmessages.Hash{
 			HashValue: testHash,
 		},
-		Timestamp:   &graphqlproto_types.Timestamp{Seconds: int64(t.Second()), Nanos: int32(t.Nanosecond())},
+		Timestamp:   &types.Timestamp{Seconds: int64(t.Second()), Nanos: int32(t.Nanosecond())},
 		BlockHeight: 123,
 		BlockCount:  456,
 	}
 	return result
+
 }
 
 func mockDirEntries() []*eventmessages.DirectoryBlockEntry {

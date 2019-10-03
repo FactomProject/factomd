@@ -839,12 +839,12 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 			}
 			s.DBStates.UpdateState() // call to get the state signed now that the DBSigs have processed
 			if s.EventsService != nil {
-				event := events.ProcessInfoEventF(GetStreamSource(s), eventmessages.ProcessMessageCode_NEW_BLOCK, "New block %d", dbheight)
+				event := events.ProcessInfoEventF(GetStreamSource(s), eventmessages.ProcessCode_NEW_BLOCK, "New block %d", dbheight)
 				s.EventsService.Send(event)
 			}
 		} else {
 			if s.EventsService != nil {
-				event := events.ProcessInfoEventF(GetStreamSource(s), eventmessages.ProcessMessageCode_NEW_MINUTE, "New minute %d", newMinute)
+				event := events.ProcessInfoEventF(GetStreamSource(s), eventmessages.ProcessCode_NEW_MINUTE, "New minute %d", newMinute)
 				s.EventsService.Send(event)
 			}
 		}

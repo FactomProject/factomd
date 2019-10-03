@@ -5,8 +5,6 @@ package eventmessages
 
 import (
 	fmt "fmt"
-	_ "github.com/bi-foundation/protobuf-graphql-extension/graphqlproto"
-	_ "github.com/bi-foundation/protobuf-graphql-extension/graphqlproto/types"
 	proto "github.com/golang/protobuf/proto"
 	io "io"
 	math "math"
@@ -22,7 +20,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 // ====  SHARED STRUCTURES =====
 type Hash struct {
@@ -46,7 +44,7 @@ func (m *Hash) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_Hash.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -93,7 +91,7 @@ func (m *ExternalId) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_ExternalId.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -140,7 +138,7 @@ func (m *Content) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_Content.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -188,7 +186,7 @@ func (m *Signature) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_Signature.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -243,7 +241,7 @@ func (m *TransactionAddress) XXX_Marshal(b []byte, deterministic bool) ([]byte, 
 		return xxx_messageInfo_TransactionAddress.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -287,35 +285,30 @@ func init() {
 func init() { proto.RegisterFile("eventmessages/sharedTypes.proto", fileDescriptor_d0b97f284493f539) }
 
 var fileDescriptor_d0b97f284493f539 = []byte{
-	// 337 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xa4, 0x92, 0xc1, 0x4a, 0xc3, 0x40,
-	0x10, 0x86, 0x8d, 0x94, 0x96, 0x6e, 0xf5, 0x12, 0x41, 0x4a, 0x91, 0xb4, 0x04, 0x0f, 0x82, 0x24,
-	0x01, 0x7d, 0x02, 0x95, 0xa2, 0x22, 0x78, 0xa8, 0xa5, 0x07, 0x3d, 0x4d, 0x92, 0x69, 0x12, 0x48,
-	0x76, 0xe3, 0xee, 0xac, 0xb4, 0x6f, 0xe2, 0xd9, 0x27, 0xf1, 0xe8, 0xd1, 0x47, 0x90, 0xfa, 0x22,
-	0x92, 0xa4, 0xa9, 0xcd, 0x4d, 0xf0, 0x14, 0xe6, 0x9f, 0x8f, 0x8f, 0xe1, 0xcf, 0xb2, 0x21, 0xbe,
-	0x20, 0xa7, 0x0c, 0x95, 0x82, 0x08, 0x95, 0xa7, 0x62, 0x90, 0x18, 0x4e, 0x97, 0x39, 0x2a, 0x37,
-	0x97, 0x82, 0x84, 0xb9, 0xdf, 0x00, 0x06, 0xf7, 0x51, 0x42, 0xb1, 0xf6, 0xdd, 0x40, 0x64, 0x9e,
-	0x9f, 0x38, 0x73, 0xa1, 0x79, 0x08, 0x94, 0x08, 0xee, 0x95, 0xb8, 0xaf, 0xe7, 0x4e, 0x24, 0x21,
-	0x8f, 0x9f, 0x53, 0x07, 0x17, 0x84, 0x5c, 0x15, 0xab, 0x75, 0x52, 0x12, 0xf5, 0x50, 0xe9, 0x07,
-	0xb3, 0x7f, 0xfb, 0xa8, 0x38, 0xd6, 0xa3, 0x24, 0x43, 0x45, 0x90, 0xe5, 0x95, 0xd7, 0x3e, 0x66,
-	0xad, 0x1b, 0x50, 0xb1, 0x79, 0xc4, 0xba, 0x31, 0xa8, 0x78, 0x06, 0xa9, 0xc6, 0xbe, 0x31, 0x32,
-	0x4e, 0xf6, 0x26, 0xbf, 0x81, 0xed, 0x32, 0x36, 0x5e, 0x10, 0x4a, 0x0e, 0xe9, 0x6d, 0x68, 0x8e,
-	0x58, 0xcf, 0x4f, 0x38, 0xc8, 0xe5, 0x36, 0xbd, 0x1d, 0xd9, 0xa7, 0xac, 0x73, 0x25, 0x38, 0x21,
-	0xa7, 0x3f, 0xc0, 0xd7, 0xac, 0xfb, 0x90, 0x44, 0x1c, 0x48, 0x4b, 0x2c, 0xee, 0xc8, 0xb5, 0x9f,
-	0x26, 0xc1, 0x1d, 0x2e, 0xeb, 0x3b, 0x36, 0x41, 0xb1, 0x55, 0x35, 0xda, 0xdf, 0xad, 0xb6, 0x9b,
-	0xc0, 0x7e, 0x62, 0xe6, 0x54, 0x02, 0x57, 0x10, 0x14, 0xc5, 0x5c, 0x84, 0xa1, 0x44, 0xa5, 0xcc,
-	0x43, 0xd6, 0x86, 0x4c, 0x68, 0x4e, 0xa5, 0xae, 0x35, 0x59, 0x4f, 0xa6, 0xc3, 0x3a, 0x50, 0x21,
-	0xa5, 0xa9, 0x77, 0x76, 0xe0, 0x36, 0x7e, 0xa1, 0x5b, 0xf4, 0x32, 0xa9, 0x99, 0xcb, 0xf1, 0xc7,
-	0xca, 0x32, 0x3e, 0x57, 0x96, 0xf1, 0xb5, 0xb2, 0x8c, 0xd7, 0x6f, 0x6b, 0xe7, 0xfd, 0x6d, 0x68,
-	0xb0, 0x51, 0x20, 0x32, 0x77, 0x0e, 0x01, 0x6d, 0x3e, 0x61, 0xd3, 0xf2, 0xd8, 0x7c, 0x17, 0x7e,
-	0xbb, 0xac, 0xfd, 0xfc, 0x27, 0x00, 0x00, 0xff, 0xff, 0xf7, 0xc9, 0xbd, 0x81, 0x50, 0x02, 0x00,
-	0x00,
+	// 270 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x91, 0xc1, 0x4a, 0xc3, 0x40,
+	0x10, 0x86, 0x8d, 0x94, 0x96, 0x4e, 0xf5, 0xb2, 0x82, 0xf4, 0x20, 0x31, 0x04, 0x0f, 0x82, 0x18,
+	0x41, 0x9f, 0xa0, 0x8a, 0xa8, 0x78, 0x8b, 0xc5, 0x83, 0x9e, 0x26, 0xd9, 0xb1, 0x09, 0x24, 0xbb,
+	0x61, 0x67, 0x23, 0xe6, 0x4d, 0x7c, 0x24, 0x8f, 0x3e, 0x82, 0xc4, 0x17, 0x91, 0xa4, 0x26, 0x36,
+	0x37, 0x4f, 0xcb, 0x7e, 0xf3, 0xf1, 0x33, 0xfc, 0x03, 0x87, 0xf4, 0x4a, 0xca, 0xe6, 0xc4, 0x8c,
+	0x2b, 0xe2, 0x33, 0x4e, 0xd0, 0x90, 0x5c, 0x56, 0x05, 0x71, 0x50, 0x18, 0x6d, 0xb5, 0xd8, 0x1d,
+	0x08, 0xfe, 0x11, 0x8c, 0x6e, 0x91, 0x13, 0x71, 0x00, 0xd3, 0x04, 0x39, 0x79, 0xc4, 0xac, 0xa4,
+	0xb9, 0xe3, 0x39, 0xc7, 0x3b, 0xe1, 0x1f, 0xf0, 0x03, 0x80, 0xeb, 0x37, 0x4b, 0x46, 0x61, 0x76,
+	0x27, 0x85, 0x07, 0xb3, 0x28, 0x55, 0x68, 0xaa, 0x4d, 0x7b, 0x13, 0xf9, 0x27, 0x30, 0xb9, 0xd2,
+	0xca, 0x92, 0xb2, 0xff, 0x90, 0x6f, 0x60, 0xfa, 0x90, 0xae, 0x14, 0xda, 0xd2, 0x50, 0xb3, 0x47,
+	0x51, 0x46, 0x59, 0x1a, 0xdf, 0x53, 0xd5, 0xed, 0xd1, 0x83, 0x66, 0xca, 0x9d, 0x3a, 0xdf, 0x5e,
+	0x4f, 0x7b, 0xe0, 0x3f, 0x83, 0x58, 0x1a, 0x54, 0x8c, 0xb1, 0x4d, 0xb5, 0x5a, 0x48, 0x69, 0x88,
+	0x59, 0xec, 0xc3, 0x18, 0x73, 0x5d, 0x2a, 0xdb, 0xc6, 0x8d, 0xc2, 0xdf, 0x9f, 0x38, 0x85, 0x09,
+	0xae, 0x95, 0x36, 0x69, 0x76, 0xbe, 0x17, 0x0c, 0xaa, 0x09, 0x9a, 0x5e, 0xc2, 0xce, 0xb9, 0x5c,
+	0x7c, 0xd4, 0xae, 0xf3, 0x59, 0xbb, 0xce, 0x57, 0xed, 0x3a, 0xef, 0xdf, 0xee, 0x16, 0x78, 0xb1,
+	0xce, 0x83, 0x17, 0x8c, 0x6d, 0xff, 0xc8, 0x61, 0xc2, 0xd3, 0xb0, 0xeb, 0x68, 0xdc, 0x5e, 0xe0,
+	0xe2, 0x27, 0x00, 0x00, 0xff, 0xff, 0x75, 0x19, 0x5c, 0x4a, 0xa4, 0x01, 0x00, 0x00,
 }
 
 func (m *Hash) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -323,26 +316,33 @@ func (m *Hash) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Hash) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Hash) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if len(m.HashValue) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintSharedTypes(dAtA, i, uint64(len(m.HashValue)))
-		i += copy(dAtA[i:], m.HashValue)
-	}
 	if m.XXX_unrecognized != nil {
-		i += copy(dAtA[i:], m.XXX_unrecognized)
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
 	}
-	return i, nil
+	if len(m.HashValue) > 0 {
+		i -= len(m.HashValue)
+		copy(dAtA[i:], m.HashValue)
+		i = encodeVarintSharedTypes(dAtA, i, uint64(len(m.HashValue)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *ExternalId) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -350,26 +350,33 @@ func (m *ExternalId) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *ExternalId) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *ExternalId) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if len(m.BinaryValue) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintSharedTypes(dAtA, i, uint64(len(m.BinaryValue)))
-		i += copy(dAtA[i:], m.BinaryValue)
-	}
 	if m.XXX_unrecognized != nil {
-		i += copy(dAtA[i:], m.XXX_unrecognized)
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
 	}
-	return i, nil
+	if len(m.BinaryValue) > 0 {
+		i -= len(m.BinaryValue)
+		copy(dAtA[i:], m.BinaryValue)
+		i = encodeVarintSharedTypes(dAtA, i, uint64(len(m.BinaryValue)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *Content) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -377,26 +384,33 @@ func (m *Content) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Content) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Content) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if len(m.BinaryValue) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintSharedTypes(dAtA, i, uint64(len(m.BinaryValue)))
-		i += copy(dAtA[i:], m.BinaryValue)
-	}
 	if m.XXX_unrecognized != nil {
-		i += copy(dAtA[i:], m.XXX_unrecognized)
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
 	}
-	return i, nil
+	if len(m.BinaryValue) > 0 {
+		i -= len(m.BinaryValue)
+		copy(dAtA[i:], m.BinaryValue)
+		i = encodeVarintSharedTypes(dAtA, i, uint64(len(m.BinaryValue)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *Signature) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -404,32 +418,40 @@ func (m *Signature) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Signature) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Signature) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if len(m.PublicKey) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintSharedTypes(dAtA, i, uint64(len(m.PublicKey)))
-		i += copy(dAtA[i:], m.PublicKey)
+	if m.XXX_unrecognized != nil {
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
 	}
 	if len(m.Signature) > 0 {
-		dAtA[i] = 0x12
-		i++
+		i -= len(m.Signature)
+		copy(dAtA[i:], m.Signature)
 		i = encodeVarintSharedTypes(dAtA, i, uint64(len(m.Signature)))
-		i += copy(dAtA[i:], m.Signature)
+		i--
+		dAtA[i] = 0x12
 	}
-	if m.XXX_unrecognized != nil {
-		i += copy(dAtA[i:], m.XXX_unrecognized)
+	if len(m.PublicKey) > 0 {
+		i -= len(m.PublicKey)
+		copy(dAtA[i:], m.PublicKey)
+		i = encodeVarintSharedTypes(dAtA, i, uint64(len(m.PublicKey)))
+		i--
+		dAtA[i] = 0xa
 	}
-	return i, nil
+	return len(dAtA) - i, nil
 }
 
 func (m *TransactionAddress) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -437,39 +459,49 @@ func (m *TransactionAddress) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *TransactionAddress) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *TransactionAddress) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Amount != 0 {
-		dAtA[i] = 0x8
-		i++
-		i = encodeVarintSharedTypes(dAtA, i, uint64(m.Amount))
+	if m.XXX_unrecognized != nil {
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
 	}
 	if m.Address != nil {
-		dAtA[i] = 0x12
-		i++
-		i = encodeVarintSharedTypes(dAtA, i, uint64(m.Address.Size()))
-		n1, err1 := m.Address.MarshalTo(dAtA[i:])
-		if err1 != nil {
-			return 0, err1
+		{
+			size, err := m.Address.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintSharedTypes(dAtA, i, uint64(size))
 		}
-		i += n1
+		i--
+		dAtA[i] = 0x12
 	}
-	if m.XXX_unrecognized != nil {
-		i += copy(dAtA[i:], m.XXX_unrecognized)
+	if m.Amount != 0 {
+		i = encodeVarintSharedTypes(dAtA, i, uint64(m.Amount))
+		i--
+		dAtA[i] = 0x8
 	}
-	return i, nil
+	return len(dAtA) - i, nil
 }
 
 func encodeVarintSharedTypes(dAtA []byte, offset int, v uint64) int {
+	offset -= sovSharedTypes(v)
+	base := offset
 	for v >= 1<<7 {
 		dAtA[offset] = uint8(v&0x7f | 0x80)
 		v >>= 7
 		offset++
 	}
 	dAtA[offset] = uint8(v)
-	return offset + 1
+	return base
 }
 func (m *Hash) Size() (n int) {
 	if m == nil {

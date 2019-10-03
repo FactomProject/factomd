@@ -5,8 +5,7 @@ package eventmessages
 
 import (
 	fmt "fmt"
-	_ "github.com/bi-foundation/protobuf-graphql-extension/graphqlproto"
-	types "github.com/bi-foundation/protobuf-graphql-extension/graphqlproto/types"
+	types "github.com/gogo/protobuf/types"
 	proto "github.com/golang/protobuf/proto"
 	io "io"
 	math "math"
@@ -22,7 +21,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 // ====  FACTOID BLOCK STRUCTURES =====
 type FactoidBlock struct {
@@ -51,7 +50,7 @@ func (m *FactoidBlock) XXX_Marshal(b []byte, deterministic bool) ([]byte, error)
 		return xxx_messageInfo_FactoidBlock.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -140,7 +139,7 @@ func (m *Transaction) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) 
 		return xxx_messageInfo_Transaction.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -238,7 +237,7 @@ func (m *RCD) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_RCD.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -264,7 +263,7 @@ type isRCD_Value interface {
 }
 
 type RCD_Rcd1 struct {
-	Rcd1 *RCD1 `protobuf:"bytes,1,opt,name=rcd1,proto3,oneof"`
+	Rcd1 *RCD1 `protobuf:"bytes,1,opt,name=rcd1,proto3,oneof" json:"rcd1,omitempty"`
 }
 
 func (*RCD_Rcd1) isRCD_Value() {}
@@ -283,59 +282,11 @@ func (m *RCD) GetRcd1() *RCD1 {
 	return nil
 }
 
-// XXX_OneofFuncs is for the internal use of the proto package.
-func (*RCD) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
-	return _RCD_OneofMarshaler, _RCD_OneofUnmarshaler, _RCD_OneofSizer, []interface{}{
+// XXX_OneofWrappers is for the internal use of the proto package.
+func (*RCD) XXX_OneofWrappers() []interface{} {
+	return []interface{}{
 		(*RCD_Rcd1)(nil),
 	}
-}
-
-func _RCD_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
-	m := msg.(*RCD)
-	// value
-	switch x := m.Value.(type) {
-	case *RCD_Rcd1:
-		_ = b.EncodeVarint(1<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Rcd1); err != nil {
-			return err
-		}
-	case nil:
-	default:
-		return fmt.Errorf("RCD.Value has unexpected type %T", x)
-	}
-	return nil
-}
-
-func _RCD_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
-	m := msg.(*RCD)
-	switch tag {
-	case 1: // value.rcd1
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(RCD1)
-		err := b.DecodeMessage(msg)
-		m.Value = &RCD_Rcd1{msg}
-		return true, err
-	default:
-		return false, nil
-	}
-}
-
-func _RCD_OneofSizer(msg proto.Message) (n int) {
-	m := msg.(*RCD)
-	// value
-	switch x := m.Value.(type) {
-	case *RCD_Rcd1:
-		s := proto.Size(x.Rcd1)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case nil:
-	default:
-		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
-	}
-	return n
 }
 
 type RCD1 struct {
@@ -359,7 +310,7 @@ func (m *RCD1) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_RCD1.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -406,7 +357,7 @@ func (m *FactoidSignatureBlock) XXX_Marshal(b []byte, deterministic bool) ([]byt
 		return xxx_messageInfo_FactoidSignatureBlock.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -453,7 +404,7 @@ func (m *FactoidSignature) XXX_Marshal(b []byte, deterministic bool) ([]byte, er
 		return xxx_messageInfo_FactoidSignature.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -491,52 +442,49 @@ func init() {
 func init() { proto.RegisterFile("eventmessages/factoidBlock.proto", fileDescriptor_1291991795dfbb48) }
 
 var fileDescriptor_1291991795dfbb48 = []byte{
-	// 618 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xa4, 0x94, 0xd1, 0x4e, 0x13, 0x41,
-	0x14, 0x86, 0x59, 0x28, 0x20, 0xa7, 0x2d, 0x9a, 0x31, 0x24, 0x1b, 0x94, 0xb2, 0x6e, 0x88, 0xa9,
-	0x17, 0x6c, 0x03, 0x5e, 0x21, 0xd1, 0x44, 0x5a, 0x95, 0x06, 0xc5, 0x38, 0x20, 0x31, 0xde, 0xcd,
-	0xee, 0x1e, 0xb6, 0x1b, 0xda, 0x9d, 0x75, 0x66, 0x96, 0xd0, 0x37, 0xf1, 0xda, 0xa7, 0xf0, 0xd2,
-	0x4b, 0x2f, 0x7d, 0x04, 0x83, 0x8f, 0xe0, 0x0b, 0x98, 0x1d, 0xb6, 0x74, 0x77, 0xa5, 0x48, 0xe2,
-	0x55, 0xb3, 0xe7, 0xfc, 0xff, 0x97, 0xff, 0xcc, 0x9c, 0x29, 0x58, 0x78, 0x8a, 0x91, 0x1a, 0xa0,
-	0x94, 0x2c, 0x40, 0xd9, 0x3a, 0x66, 0x9e, 0xe2, 0xa1, 0xbf, 0xd3, 0xe7, 0xde, 0x89, 0x13, 0x0b,
-	0xae, 0x38, 0xa9, 0x17, 0x14, 0xcb, 0xab, 0x45, 0x83, 0xec, 0x31, 0x81, 0xfe, 0xe1, 0x30, 0x46,
-	0x79, 0xa1, 0x5f, 0xde, 0x0f, 0x42, 0xd5, 0x4b, 0x5c, 0xc7, 0xe3, 0x83, 0x96, 0x1b, 0xae, 0x1f,
-	0xf3, 0x24, 0xf2, 0x99, 0x0a, 0x79, 0xd4, 0xd2, 0x7d, 0x37, 0x39, 0x5e, 0x0f, 0x04, 0x8b, 0x7b,
-	0x9f, 0xfa, 0xeb, 0x78, 0xa6, 0x30, 0x92, 0x69, 0x2b, 0xab, 0x68, 0xc5, 0xe8, 0x23, 0xe3, 0x1d,
-	0xfd, 0x37, 0x4f, 0xa5, 0xe9, 0x5a, 0x2a, 0x1c, 0xa0, 0x54, 0x6c, 0x10, 0x5f, 0x70, 0xed, 0xdf,
-	0xd3, 0x50, 0x7b, 0x99, 0x1b, 0x97, 0x6c, 0xc3, 0xa2, 0xcb, 0xfd, 0xe1, 0x1b, 0x14, 0x27, 0x7d,
-	0xa4, 0x9c, 0x2b, 0xd3, 0xb0, 0x8c, 0x66, 0x75, 0xf3, 0xae, 0x53, 0x18, 0xd9, 0xd9, 0x65, 0xb2,
-	0x47, 0x4b, 0x52, 0xd2, 0x85, 0xa5, 0x58, 0xe0, 0x69, 0xc8, 0x13, 0xb9, 0x87, 0x79, 0xc6, 0xf4,
-	0x64, 0xc6, 0xd5, 0x0e, 0xf2, 0x1e, 0xee, 0x8d, 0x1a, 0xaf, 0xd1, 0x0f, 0x50, 0x14, 0x81, 0x33,
-	0x93, 0x81, 0xd7, 0xf9, 0x88, 0x0d, 0x35, 0x3c, 0xf3, 0x7a, 0x2c, 0x0a, 0x90, 0x32, 0x85, 0x66,
-	0xc5, 0x32, 0x9a, 0x15, 0x5a, 0xa8, 0x11, 0x0b, 0xaa, 0x6e, 0x7a, 0x16, 0xbb, 0x18, 0x06, 0x3d,
-	0x65, 0xce, 0x5a, 0x46, 0xb3, 0x4e, 0xf3, 0x25, 0xf2, 0x0c, 0x6a, 0x4a, 0xb0, 0x48, 0x32, 0x2f,
-	0xbd, 0x02, 0x69, 0xce, 0x59, 0x33, 0xcd, 0xea, 0xe6, 0x72, 0x29, 0xcd, 0xe1, 0x58, 0x42, 0x0b,
-	0x7a, 0xfb, 0x6b, 0x05, 0xaa, 0xb9, 0x2e, 0xd9, 0x82, 0x7a, 0xae, 0xdf, 0xed, 0x5c, 0x77, 0xe6,
-	0x45, 0x65, 0x39, 0xec, 0xf4, 0xdf, 0x61, 0xb7, 0x61, 0xe1, 0xf2, 0xd6, 0xb3, 0x73, 0x5b, 0x71,
-	0xf2, 0xab, 0xe1, 0xe8, 0xd5, 0x70, 0x0e, 0x47, 0x22, 0x3a, 0xd6, 0x93, 0x57, 0x50, 0xcf, 0x5e,
-	0x43, 0x37, 0x8a, 0x13, 0x25, 0xcd, 0x8a, 0x1e, 0xf5, 0xc1, 0xe4, 0x51, 0x9f, 0xfb, 0xbe, 0x40,
-	0x29, 0x69, 0xd1, 0x47, 0xba, 0xb0, 0x98, 0x15, 0xde, 0x26, 0x4a, 0x93, 0x66, 0x6f, 0x4a, 0x2a,
-	0x19, 0xc9, 0x3b, 0x20, 0x18, 0x29, 0x31, 0x6c, 0x0b, 0xf4, 0x43, 0x35, 0xc2, 0xcd, 0xdd, 0x14,
-	0x77, 0x85, 0x99, 0x7c, 0x80, 0x15, 0x81, 0x3e, 0xe2, 0xa0, 0xcd, 0x23, 0x3f, 0x4c, 0xd5, 0x1d,
-	0xa6, 0xd8, 0x81, 0x12, 0x89, 0xa7, 0x12, 0x81, 0xd2, 0x9c, 0xd7, 0x74, 0x52, 0xa2, 0xd3, 0x76,
-	0x87, 0x5e, 0x6f, 0x24, 0xfb, 0x70, 0x5b, 0x86, 0x41, 0xc4, 0xd2, 0x2f, 0xfd, 0xc2, 0xa4, 0x79,
-	0x4b, 0xb3, 0xd6, 0x4a, 0xac, 0xec, 0x15, 0x1e, 0x14, 0xc4, 0xb4, 0x6c, 0xb6, 0xb7, 0x60, 0x86,
-	0xb6, 0x3b, 0xe4, 0x11, 0x54, 0x84, 0xe7, 0x6f, 0x4c, 0x58, 0x14, 0xda, 0xee, 0x6c, 0xec, 0x4e,
-	0x51, 0x2d, 0xd9, 0x99, 0x87, 0xd9, 0x53, 0xd6, 0x4f, 0xd0, 0x5e, 0x83, 0x4a, 0xda, 0x20, 0xf7,
-	0x61, 0x21, 0x4e, 0xdc, 0x7e, 0xe8, 0xed, 0xe1, 0x50, 0x03, 0x6a, 0x74, 0x5c, 0xb0, 0x8f, 0x60,
-	0xe9, 0xca, 0x28, 0xe4, 0x29, 0x2c, 0x5c, 0x86, 0x31, 0x0d, 0x3d, 0xc3, 0xea, 0x3f, 0x66, 0xa0,
-	0x63, 0x87, 0xfd, 0x04, 0xee, 0x94, 0xdb, 0xe4, 0x21, 0x2c, 0x5e, 0x0a, 0x8e, 0xd2, 0x8c, 0x59,
-	0x9c, 0x52, 0x75, 0xe7, 0xc5, 0xf7, 0xf3, 0x86, 0xf1, 0xe3, 0xbc, 0x61, 0xfc, 0x3c, 0x6f, 0x18,
-	0x9f, 0x7f, 0x35, 0xa6, 0xbe, 0x7d, 0x59, 0x35, 0xc0, 0xf2, 0xf8, 0xc0, 0xd1, 0xbb, 0x31, 0xfa,
-	0xf1, 0x8b, 0x79, 0x3e, 0x16, 0xff, 0xb5, 0xdd, 0x39, 0xbd, 0xee, 0x8f, 0xff, 0x04, 0x00, 0x00,
-	0xff, 0xff, 0x98, 0x53, 0xa9, 0x34, 0xef, 0x05, 0x00, 0x00,
+	// 572 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x94, 0x5b, 0x6e, 0xd3, 0x4e,
+	0x14, 0xc6, 0xeb, 0xd6, 0x49, 0xff, 0x39, 0xb9, 0xfc, 0xd1, 0xa0, 0x4a, 0x56, 0x80, 0xc4, 0x58,
+	0x15, 0x0a, 0x2f, 0x8e, 0x5a, 0x5e, 0x28, 0x08, 0xa4, 0x26, 0x11, 0x24, 0x2a, 0x17, 0x31, 0x0d,
+	0x15, 0xe2, 0x6d, 0x62, 0x9f, 0x3a, 0x56, 0x13, 0x8f, 0x35, 0x33, 0x8e, 0xc8, 0x4e, 0xd8, 0x08,
+	0x7b, 0xe0, 0x91, 0x25, 0xa0, 0xb0, 0x04, 0x36, 0x80, 0xe2, 0x5c, 0x6d, 0x92, 0xd0, 0xa7, 0xc8,
+	0xe7, 0x7c, 0xdf, 0xcf, 0xdf, 0x99, 0x9c, 0x31, 0x98, 0x38, 0xc2, 0x40, 0x0d, 0x51, 0x4a, 0xe6,
+	0xa1, 0xac, 0x5f, 0x33, 0x47, 0x71, 0xdf, 0x6d, 0x0c, 0xb8, 0x73, 0x63, 0x87, 0x82, 0x2b, 0x4e,
+	0x8a, 0x09, 0x45, 0xb9, 0x9a, 0x34, 0xc8, 0x3e, 0x13, 0xe8, 0x76, 0xc7, 0x21, 0xca, 0x99, 0xbe,
+	0x5c, 0xf5, 0x38, 0xf7, 0x06, 0x58, 0x8f, 0x9f, 0x7a, 0xd1, 0x75, 0x5d, 0xf9, 0x43, 0x94, 0x8a,
+	0x0d, 0xc3, 0x99, 0xc0, 0xfa, 0xbd, 0x0f, 0x85, 0x57, 0x6b, 0xef, 0x21, 0xcf, 0xa1, 0xd4, 0xe3,
+	0xee, 0xf8, 0x2d, 0x8a, 0x9b, 0x01, 0x52, 0xce, 0x95, 0xa1, 0x99, 0x5a, 0x2d, 0x7f, 0x7a, 0xd7,
+	0x4e, 0xbc, 0xcb, 0x6e, 0x33, 0xd9, 0xa7, 0x29, 0x29, 0xe9, 0xc0, 0x51, 0x28, 0x70, 0xe4, 0xf3,
+	0x48, 0x5e, 0xe0, 0x3a, 0x63, 0x7f, 0x3b, 0x63, 0xb3, 0x83, 0x7c, 0x84, 0x7b, 0x8b, 0xc6, 0x1b,
+	0x74, 0x3d, 0x14, 0x49, 0xe0, 0xc1, 0x76, 0xe0, 0x2e, 0x1f, 0xb1, 0xa0, 0x80, 0x5f, 0x9c, 0x3e,
+	0x0b, 0x3c, 0xa4, 0x4c, 0xa1, 0xa1, 0x9b, 0x5a, 0x4d, 0xa7, 0x89, 0x1a, 0x31, 0x21, 0xdf, 0x9b,
+	0x9e, 0x45, 0x1b, 0x7d, 0xaf, 0xaf, 0x8c, 0x8c, 0xa9, 0xd5, 0x8a, 0x74, 0xbd, 0x44, 0x5e, 0x42,
+	0x41, 0x09, 0x16, 0x48, 0xe6, 0x28, 0x9f, 0x07, 0xd2, 0xc8, 0x9a, 0x07, 0xb5, 0xfc, 0x69, 0x39,
+	0x95, 0xa6, 0xbb, 0x92, 0xd0, 0x84, 0xde, 0xfa, 0xa6, 0x43, 0x7e, 0xad, 0x4b, 0xce, 0xa0, 0xb8,
+	0xd6, 0xef, 0xb4, 0x76, 0x9d, 0x79, 0x52, 0x99, 0x0e, 0xbb, 0xff, 0x77, 0xd8, 0xa7, 0x90, 0x5b,
+	0xfe, 0xeb, 0xf3, 0x73, 0x2b, 0xdb, 0xb3, 0xbd, 0xb0, 0x17, 0x7b, 0x61, 0x77, 0x17, 0x0a, 0xba,
+	0x12, 0x93, 0xd7, 0x50, 0x9c, 0xef, 0x60, 0x27, 0x08, 0x23, 0x25, 0x0d, 0x3d, 0x9e, 0xf3, 0xe1,
+	0xf6, 0x39, 0xcf, 0x5d, 0x57, 0xa0, 0x94, 0x34, 0xe9, 0x23, 0x1d, 0x28, 0xcd, 0x0b, 0xef, 0x23,
+	0x15, 0x93, 0x32, 0xb7, 0x25, 0xa5, 0x8c, 0xe4, 0x03, 0x10, 0x0c, 0x94, 0x18, 0x37, 0x05, 0xba,
+	0xbe, 0x5a, 0xe0, 0xb2, 0xb7, 0xc5, 0x6d, 0x30, 0x93, 0x4f, 0xf0, 0x40, 0xa0, 0x8b, 0x38, 0x6c,
+	0xf2, 0xc0, 0xf5, 0xa7, 0xea, 0x16, 0x53, 0xec, 0x52, 0x89, 0xc8, 0x51, 0x91, 0x40, 0x69, 0x1c,
+	0xc6, 0x74, 0x92, 0xa2, 0xd3, 0x66, 0x8b, 0xee, 0x36, 0x92, 0x77, 0xf0, 0xbf, 0xf4, 0xbd, 0x80,
+	0x4d, 0x9f, 0xe2, 0xeb, 0x25, 0x8d, 0xff, 0x62, 0xd6, 0x71, 0x8a, 0x35, 0xbf, 0x82, 0x97, 0x09,
+	0x31, 0x4d, 0x9b, 0xad, 0x33, 0x38, 0xa0, 0xcd, 0x16, 0x79, 0x0c, 0xba, 0x70, 0xdc, 0x93, 0x2d,
+	0x5b, 0x42, 0x9b, 0xad, 0x93, 0xf6, 0x1e, 0x8d, 0x25, 0x8d, 0x43, 0xc8, 0x8c, 0xd8, 0x20, 0x42,
+	0xeb, 0x18, 0xf4, 0x69, 0x83, 0xdc, 0x87, 0x5c, 0x18, 0xf5, 0x06, 0xbe, 0x73, 0x81, 0xe3, 0x18,
+	0x50, 0xa0, 0xab, 0x82, 0x75, 0x05, 0x47, 0x1b, 0xa3, 0x90, 0x17, 0x90, 0x5b, 0x86, 0x31, 0xb4,
+	0x78, 0x86, 0xea, 0x3f, 0x66, 0xa0, 0x2b, 0x87, 0xf5, 0x0c, 0xee, 0xa4, 0xdb, 0xe4, 0x11, 0x94,
+	0x96, 0x82, 0xab, 0x69, 0xc6, 0x79, 0x9c, 0x54, 0xb5, 0x71, 0xfe, 0x7d, 0x52, 0xd1, 0x7e, 0x4c,
+	0x2a, 0xda, 0xcf, 0x49, 0x45, 0xfb, 0xfa, 0xab, 0xb2, 0x07, 0xa6, 0xc3, 0x87, 0x76, 0xbc, 0x17,
+	0x8b, 0x1f, 0x37, 0x99, 0xe5, 0x73, 0xf2, 0x3b, 0xd9, 0xcb, 0xc6, 0x7b, 0xfe, 0xe4, 0x4f, 0x00,
+	0x00, 0x00, 0xff, 0xff, 0x2d, 0x76, 0x8e, 0x0d, 0x61, 0x05, 0x00, 0x00,
 }
 
 func (m *FactoidBlock) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -544,72 +492,86 @@ func (m *FactoidBlock) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *FactoidBlock) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *FactoidBlock) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.BodyMerkleRoot != nil {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintFactoidBlock(dAtA, i, uint64(m.BodyMerkleRoot.Size()))
-		n1, err1 := m.BodyMerkleRoot.MarshalTo(dAtA[i:])
-		if err1 != nil {
-			return 0, err1
-		}
-		i += n1
-	}
-	if m.PreviousKeyMerkleRoot != nil {
-		dAtA[i] = 0x12
-		i++
-		i = encodeVarintFactoidBlock(dAtA, i, uint64(m.PreviousKeyMerkleRoot.Size()))
-		n2, err2 := m.PreviousKeyMerkleRoot.MarshalTo(dAtA[i:])
-		if err2 != nil {
-			return 0, err2
-		}
-		i += n2
-	}
-	if m.PreviousLedgerKeyMerkleRoot != nil {
-		dAtA[i] = 0x1a
-		i++
-		i = encodeVarintFactoidBlock(dAtA, i, uint64(m.PreviousLedgerKeyMerkleRoot.Size()))
-		n3, err3 := m.PreviousLedgerKeyMerkleRoot.MarshalTo(dAtA[i:])
-		if err3 != nil {
-			return 0, err3
-		}
-		i += n3
-	}
-	if m.ExchangeRate != 0 {
-		dAtA[i] = 0x20
-		i++
-		i = encodeVarintFactoidBlock(dAtA, i, uint64(m.ExchangeRate))
-	}
-	if m.BlockHeight != 0 {
-		dAtA[i] = 0x28
-		i++
-		i = encodeVarintFactoidBlock(dAtA, i, uint64(m.BlockHeight))
+	if m.XXX_unrecognized != nil {
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
 	}
 	if len(m.Transactions) > 0 {
-		for _, msg := range m.Transactions {
+		for iNdEx := len(m.Transactions) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.Transactions[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintFactoidBlock(dAtA, i, uint64(size))
+			}
+			i--
 			dAtA[i] = 0x32
-			i++
-			i = encodeVarintFactoidBlock(dAtA, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(dAtA[i:])
+		}
+	}
+	if m.BlockHeight != 0 {
+		i = encodeVarintFactoidBlock(dAtA, i, uint64(m.BlockHeight))
+		i--
+		dAtA[i] = 0x28
+	}
+	if m.ExchangeRate != 0 {
+		i = encodeVarintFactoidBlock(dAtA, i, uint64(m.ExchangeRate))
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.PreviousLedgerKeyMerkleRoot != nil {
+		{
+			size, err := m.PreviousLedgerKeyMerkleRoot.MarshalToSizedBuffer(dAtA[:i])
 			if err != nil {
 				return 0, err
 			}
-			i += n
+			i -= size
+			i = encodeVarintFactoidBlock(dAtA, i, uint64(size))
 		}
+		i--
+		dAtA[i] = 0x1a
 	}
-	if m.XXX_unrecognized != nil {
-		i += copy(dAtA[i:], m.XXX_unrecognized)
+	if m.PreviousKeyMerkleRoot != nil {
+		{
+			size, err := m.PreviousKeyMerkleRoot.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintFactoidBlock(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x12
 	}
-	return i, nil
+	if m.BodyMerkleRoot != nil {
+		{
+			size, err := m.BodyMerkleRoot.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintFactoidBlock(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *Transaction) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -617,105 +579,125 @@ func (m *Transaction) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Transaction) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Transaction) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.TransactionID != nil {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintFactoidBlock(dAtA, i, uint64(m.TransactionID.Size()))
-		n4, err4 := m.TransactionID.MarshalTo(dAtA[i:])
-		if err4 != nil {
-			return 0, err4
-		}
-		i += n4
+	if m.XXX_unrecognized != nil {
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
 	}
-	if m.BlockHeight != 0 {
-		dAtA[i] = 0x10
-		i++
-		i = encodeVarintFactoidBlock(dAtA, i, uint64(m.BlockHeight))
-	}
-	if m.Timestamp != nil {
-		dAtA[i] = 0x1a
-		i++
-		i = encodeVarintFactoidBlock(dAtA, i, uint64(m.Timestamp.Size()))
-		n5, err5 := m.Timestamp.MarshalTo(dAtA[i:])
-		if err5 != nil {
-			return 0, err5
-		}
-		i += n5
-	}
-	if len(m.FactoidInputs) > 0 {
-		for _, msg := range m.FactoidInputs {
-			dAtA[i] = 0x22
-			i++
-			i = encodeVarintFactoidBlock(dAtA, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(dAtA[i:])
-			if err != nil {
-				return 0, err
+	if len(m.SignatureBlocks) > 0 {
+		for iNdEx := len(m.SignatureBlocks) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.SignatureBlocks[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintFactoidBlock(dAtA, i, uint64(size))
 			}
-			i += n
-		}
-	}
-	if len(m.FactoidOutputs) > 0 {
-		for _, msg := range m.FactoidOutputs {
-			dAtA[i] = 0x2a
-			i++
-			i = encodeVarintFactoidBlock(dAtA, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(dAtA[i:])
-			if err != nil {
-				return 0, err
-			}
-			i += n
-		}
-	}
-	if len(m.EntryCreditOutputs) > 0 {
-		for _, msg := range m.EntryCreditOutputs {
-			dAtA[i] = 0x32
-			i++
-			i = encodeVarintFactoidBlock(dAtA, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(dAtA[i:])
-			if err != nil {
-				return 0, err
-			}
-			i += n
+			i--
+			dAtA[i] = 0x42
 		}
 	}
 	if len(m.RedeemConditionDataStructures) > 0 {
-		for _, msg := range m.RedeemConditionDataStructures {
+		for iNdEx := len(m.RedeemConditionDataStructures) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.RedeemConditionDataStructures[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintFactoidBlock(dAtA, i, uint64(size))
+			}
+			i--
 			dAtA[i] = 0x3a
-			i++
-			i = encodeVarintFactoidBlock(dAtA, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(dAtA[i:])
+		}
+	}
+	if len(m.EntryCreditOutputs) > 0 {
+		for iNdEx := len(m.EntryCreditOutputs) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.EntryCreditOutputs[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintFactoidBlock(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x32
+		}
+	}
+	if len(m.FactoidOutputs) > 0 {
+		for iNdEx := len(m.FactoidOutputs) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.FactoidOutputs[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintFactoidBlock(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x2a
+		}
+	}
+	if len(m.FactoidInputs) > 0 {
+		for iNdEx := len(m.FactoidInputs) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.FactoidInputs[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintFactoidBlock(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x22
+		}
+	}
+	if m.Timestamp != nil {
+		{
+			size, err := m.Timestamp.MarshalToSizedBuffer(dAtA[:i])
 			if err != nil {
 				return 0, err
 			}
-			i += n
+			i -= size
+			i = encodeVarintFactoidBlock(dAtA, i, uint64(size))
 		}
+		i--
+		dAtA[i] = 0x1a
 	}
-	if len(m.SignatureBlocks) > 0 {
-		for _, msg := range m.SignatureBlocks {
-			dAtA[i] = 0x42
-			i++
-			i = encodeVarintFactoidBlock(dAtA, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(dAtA[i:])
+	if m.BlockHeight != 0 {
+		i = encodeVarintFactoidBlock(dAtA, i, uint64(m.BlockHeight))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.TransactionID != nil {
+		{
+			size, err := m.TransactionID.MarshalToSizedBuffer(dAtA[:i])
 			if err != nil {
 				return 0, err
 			}
-			i += n
+			i -= size
+			i = encodeVarintFactoidBlock(dAtA, i, uint64(size))
 		}
+		i--
+		dAtA[i] = 0xa
 	}
-	if m.XXX_unrecognized != nil {
-		i += copy(dAtA[i:], m.XXX_unrecognized)
-	}
-	return i, nil
+	return len(dAtA) - i, nil
 }
 
 func (m *RCD) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -723,41 +705,56 @@ func (m *RCD) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *RCD) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *RCD) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Value != nil {
-		nn6, err6 := m.Value.MarshalTo(dAtA[i:])
-		if err6 != nil {
-			return 0, err6
-		}
-		i += nn6
-	}
 	if m.XXX_unrecognized != nil {
-		i += copy(dAtA[i:], m.XXX_unrecognized)
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
 	}
-	return i, nil
+	if m.Value != nil {
+		{
+			size := m.Value.Size()
+			i -= size
+			if _, err := m.Value.MarshalTo(dAtA[i:]); err != nil {
+				return 0, err
+			}
+		}
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *RCD_Rcd1) MarshalTo(dAtA []byte) (int, error) {
-	i := 0
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *RCD_Rcd1) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	if m.Rcd1 != nil {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintFactoidBlock(dAtA, i, uint64(m.Rcd1.Size()))
-		n7, err7 := m.Rcd1.MarshalTo(dAtA[i:])
-		if err7 != nil {
-			return 0, err7
+		{
+			size, err := m.Rcd1.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintFactoidBlock(dAtA, i, uint64(size))
 		}
-		i += n7
+		i--
+		dAtA[i] = 0xa
 	}
-	return i, nil
+	return len(dAtA) - i, nil
 }
 func (m *RCD1) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -765,26 +762,33 @@ func (m *RCD1) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *RCD1) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *RCD1) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if len(m.PublicKey) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintFactoidBlock(dAtA, i, uint64(len(m.PublicKey)))
-		i += copy(dAtA[i:], m.PublicKey)
-	}
 	if m.XXX_unrecognized != nil {
-		i += copy(dAtA[i:], m.XXX_unrecognized)
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
 	}
-	return i, nil
+	if len(m.PublicKey) > 0 {
+		i -= len(m.PublicKey)
+		copy(dAtA[i:], m.PublicKey)
+		i = encodeVarintFactoidBlock(dAtA, i, uint64(len(m.PublicKey)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *FactoidSignatureBlock) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -792,32 +796,40 @@ func (m *FactoidSignatureBlock) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *FactoidSignatureBlock) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *FactoidSignatureBlock) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
+	if m.XXX_unrecognized != nil {
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
+	}
 	if len(m.Signature) > 0 {
-		for _, msg := range m.Signature {
-			dAtA[i] = 0xa
-			i++
-			i = encodeVarintFactoidBlock(dAtA, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(dAtA[i:])
-			if err != nil {
-				return 0, err
+		for iNdEx := len(m.Signature) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.Signature[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintFactoidBlock(dAtA, i, uint64(size))
 			}
-			i += n
+			i--
+			dAtA[i] = 0xa
 		}
 	}
-	if m.XXX_unrecognized != nil {
-		i += copy(dAtA[i:], m.XXX_unrecognized)
-	}
-	return i, nil
+	return len(dAtA) - i, nil
 }
 
 func (m *FactoidSignature) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -825,30 +837,39 @@ func (m *FactoidSignature) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *FactoidSignature) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *FactoidSignature) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if len(m.SignatureValue) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintFactoidBlock(dAtA, i, uint64(len(m.SignatureValue)))
-		i += copy(dAtA[i:], m.SignatureValue)
-	}
 	if m.XXX_unrecognized != nil {
-		i += copy(dAtA[i:], m.XXX_unrecognized)
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
 	}
-	return i, nil
+	if len(m.SignatureValue) > 0 {
+		i -= len(m.SignatureValue)
+		copy(dAtA[i:], m.SignatureValue)
+		i = encodeVarintFactoidBlock(dAtA, i, uint64(len(m.SignatureValue)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
 }
 
 func encodeVarintFactoidBlock(dAtA []byte, offset int, v uint64) int {
+	offset -= sovFactoidBlock(v)
+	base := offset
 	for v >= 1<<7 {
 		dAtA[offset] = uint8(v&0x7f | 0x80)
 		v >>= 7
 		offset++
 	}
 	dAtA[offset] = uint8(v)
-	return offset + 1
+	return base
 }
 func (m *FactoidBlock) Size() (n int) {
 	if m == nil {

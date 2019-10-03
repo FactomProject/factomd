@@ -4,17 +4,13 @@ option go_package = "eventmessages";
 option java_package = "com.factom.factomd.eventmessages";
 
 import "eventmessages/sharedTypes.proto";
-import "github.com/bi-foundation/protobuf-graphql-extension/graphqlproto/graphql.proto";
-import "github.com/bi-foundation/protobuf-graphql-extension/graphqlproto/types/timestamp.proto";
-
-option (graphqlproto.graphql) = true;
+import "google/protobuf/timestamp.proto";
 
 // ====  ADMIN BLOCK STRUCTURES =====
 message AdminBlock {
     AdminBlockHeader header = 1;
     repeated AdminBlockEntry entries = 2;
 }
-
 
 message AdminBlockHeader {
     Hash previousBackRefHash = 1;
@@ -121,7 +117,7 @@ message RevealMatryoshkaHash {
 }
 
 message ServerFault {
-    graphqlproto.types.Timestamp timestamp = 1;
+    google.protobuf.Timestamp timestamp = 1;
     Hash serverID = 2;
     Hash auditServerID = 3;
     uint32 vmIndex = 4;

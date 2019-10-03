@@ -9,7 +9,7 @@ import (
 	"github.com/FactomProject/factomd/events"
 	"github.com/FactomProject/factomd/events/allowcontent"
 	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
-	graphqlproto_types "github.com/bi-foundation/protobuf-graphql-extension/graphqlproto/types"
+	"github.com/gogo/protobuf/types"
 	"time"
 )
 
@@ -127,7 +127,7 @@ func mapDBState(msg interfaces.IMsg, shouldIncludeContent bool) *eventmessages.F
 	return event
 }
 
-func convertByteSlice6ToTimestamp(milliTime *primitives.ByteSlice6) *graphqlproto_types.Timestamp {
+func convertByteSlice6ToTimestamp(milliTime *primitives.ByteSlice6) *types.Timestamp {
 	// TODO Is there an easier way to do this?
 	slice8 := make([]byte, 8)
 	copy(slice8[2:], milliTime[:])
@@ -136,6 +136,6 @@ func convertByteSlice6ToTimestamp(milliTime *primitives.ByteSlice6) *graphqlprot
 	return convertTimeToTimestamp(t)
 }
 
-func convertTimeToTimestamp(time time.Time) *graphqlproto_types.Timestamp {
-	return &graphqlproto_types.Timestamp{Seconds: int64(time.Second()), Nanos: int32(time.Nanosecond())}
+func convertTimeToTimestamp(time time.Time) *types.Timestamp {
+	return &types.Timestamp{Seconds: int64(time.Second()), Nanos: int32(time.Nanosecond())}
 }

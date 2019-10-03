@@ -81,19 +81,19 @@ func NewStateChangeEvent(streamSource eventmessages.EventSource, entityState eve
 		payload:     msg}
 }
 
-func ProcessInfoMessage(streamSource eventmessages.EventSource, messageCode eventmessages.ProcessMessageCode, message string) *ProcessMessageEvent {
+func ProcessInfoMessage(streamSource eventmessages.EventSource, processCode eventmessages.ProcessCode, message string) *ProcessMessageEvent {
 	return &ProcessMessageEvent{
 		eventSource: streamSource,
 		processMessage: &eventmessages.ProcessMessage{
-			MessageCode: messageCode,
+			ProcessCode: processCode,
 			Level:       eventmessages.Level_INFO,
 			MessageText: message,
 		},
 	}
 }
 
-func ProcessInfoEventF(streamSource eventmessages.EventSource, messageCode eventmessages.ProcessMessageCode, format string, values ...interface{}) *ProcessMessageEvent {
-	return ProcessInfoMessage(streamSource, messageCode, fmt.Sprintf(format, values...))
+func ProcessInfoEventF(streamSource eventmessages.EventSource, processCode eventmessages.ProcessCode, format string, values ...interface{}) *ProcessMessageEvent {
+	return ProcessInfoMessage(streamSource, processCode, fmt.Sprintf(format, values...))
 }
 
 func NodeInfoMessage(messageCode eventmessages.NodeMessageCode, message string) *NodeMessageEvent {

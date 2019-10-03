@@ -4,10 +4,7 @@ option go_package = "eventmessages";
 option java_package = "com.factom.factomd.eventmessages";
 
 import "eventmessages/sharedTypes.proto";
-import "github.com/bi-foundation/protobuf-graphql-extension/graphqlproto/graphql.proto";
-import "github.com/bi-foundation/protobuf-graphql-extension/graphqlproto/types/timestamp.proto";
-
-option (graphqlproto.graphql) = true;
+import "google/protobuf/timestamp.proto";
 
 // ====  FACTOID BLOCK STRUCTURES =====
 message FactoidBlock {
@@ -22,7 +19,7 @@ message FactoidBlock {
 message Transaction {
     Hash transactionID = 1;
     uint32 blockHeight = 2;
-    graphqlproto.types.Timestamp timestamp = 3;
+    google.protobuf.Timestamp timestamp = 3;
     repeated TransactionAddress factoidInputs = 4;
     repeated TransactionAddress factoidOutputs = 5;
     repeated TransactionAddress entryCreditOutputs = 6;
