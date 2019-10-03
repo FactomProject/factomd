@@ -7,6 +7,7 @@ package state
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -1669,6 +1670,10 @@ func (list *DBStateList) UpdateState() (progress bool) {
 			saved = i
 		}
 
+		if progress && d.Saved && d.Signed {
+			EmitDBStateEvent(d, eventmessages.EntityState_COMMITTED_TO_DIRECTORY_BLOCK, s)
+		}
+
 		// only process one block past the last saved block
 		if i-saved > 1 {
 			break
@@ -1807,4 +1812,28 @@ func (list *DBStateList) NewDBState(isNew bool,
 
 	// Failed, so return nil
 	return nil
+}
+
+func (dbs *DBState) GetDirectoryBlock() interfaces.IDirectoryBlock {
+	return dbs.DirectoryBlock
+}
+
+func (dbs *DBState) GetAdminBlock() interfaces.IAdminBlock {
+	return dbs.AdminBlock
+}
+
+func (dbs *DBState) GetFactoidBlock() interfaces.IFBlock {
+	return dbs.FactoidBlock
+}
+
+func (dbs *DBState) GetEntryCreditBlock() interfaces.IEntryCreditBlock {
+	return dbs.EntryCreditBlock
+}
+
+func (dbs *DBState) GetEntryBlocks() []interfaces.IEntryBlock {
+	return dbs.EntryBlocks
+}
+
+func (dbs *DBState) GetEntries() []interfaces.IEBEntry {
+	return dbs.Entries
 }

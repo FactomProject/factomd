@@ -1216,7 +1216,6 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		s.StatesReceived.Notify <- msg.(*messages.DBStateMsg)
 	}
 	s.DBStates.UpdateState()
-	EmitStateChangeEvent(dbstatemsg, eventmessages.EntityState_COMMITTED_TO_DIRECTORY_BLOCK, s)
 }
 
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
