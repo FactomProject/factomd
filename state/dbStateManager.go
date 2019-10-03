@@ -66,7 +66,6 @@ type DBState struct {
 }
 
 var _ interfaces.BinaryMarshallable = (*DBState)(nil)
-var lastEmittedHeight uint32 = 0
 
 func (dbs *DBState) Init() {
 	if dbs.SaveStruct == nil {
@@ -1660,6 +1659,7 @@ func (list *DBStateList) UpdateState() (progress bool) {
 		p = list.SignDB(d)
 		progress = p || progress
 
+		wasSaved := d.Saved
 		p = list.SaveDBStateToDB(d)
 		progress = p || progress
 
@@ -1671,9 +1671,8 @@ func (list *DBStateList) UpdateState() (progress bool) {
 			saved = i
 		}
 
-		if progress && d.Saved && d.Signed && dbHeight != lastEmittedHeight {
+		if progress && d.Saved && d.Signed && !wasSaved {
 			EmitDBStateEvent(d, eventmessages.EntityState_COMMITTED_TO_DIRECTORY_BLOCK, s)
-			lastEmittedHeight = dbHeight
 		}
 
 		// only process one block past the last saved block

@@ -99,7 +99,7 @@ func init() {
 	flag.StringVar(&p.EventReceiverProtocol, "eventreceiverprotocol", "", "Transport protocol for the events receiver; default udp")
 	flag.StringVar(&p.EventReceiverAddress, "eventreceiveraddress", "", "Address for the events receiver; default 127.0.0.1")
 	flag.IntVar(&p.EventReceiverPort, "eventreceiverport", 0, "Port for the events receiver; default 8040")
-	flag.StringVar(&p.OutputFormat, "OutputFormat", "", "Event format for the events receiver, protobuf|json; default protobuf")
+	flag.StringVar(&p.OutputFormat, "outputformat", "", "Event format for the events receiver, protobuf|json; default protobuf")
 	flag.BoolVar(&p.MuteReplayDuringStartup, "mutereplayduringstartup", false, "Mute event replay; default false")
 	flag.BoolVar(&p.ResendRegistrationsOnStateChange, "muteeventsduringstartup", false, "Resend registrations for every state change; default false")
 	flag.StringVar(&p.AllowContent, "allowcontent", "", "Settings for including content in the event messages Always|OnRegistration|Never; default OnRegistration")
