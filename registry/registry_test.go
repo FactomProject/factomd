@@ -7,34 +7,46 @@ import (
 	"testing"
 )
 
-func registerStartThreadFunc(w *worker.Registry, args ...interface{}) {
+func subThreadFactory(t *testing.T, name string) worker.Thread {
+	return func(w *worker.Registry, args ...interface{}) {
+		t.Logf("initializing %s", name)
 
-	t := args[0].(*testing.T)
-	name := fmt.Sprintf("%s", args[1])
-	wait0 := args[2].(chan interface{})
-	wait1 := args[3].(chan interface{})
+		w.Run(func() {
+			t.Logf("running %v %s", w.Index, name)
+			//time.Sleep(50*time.Millisecond)
+		}).Complete(func() {
+			t.Logf("complete %v %s", w.Index, name)
+			//time.Sleep(50*time.Millisecond)
+		}).Exit(func() {
+			t.Logf("exit %v %s", w.Index, name)
+			//time.Sleep(50*time.Millisecond)
+		})
+	}
+}
 
-	t.Logf("initializing %s", name)
+func threadFactory(t *testing.T, name string) worker.Thread {
+	return func(w *worker.Registry, args ...interface{}) {
+		t.Logf("initializing %s", name)
 
-	log := w.Log // get a logger handle
-	log.LogPrintf("testing logger %s", name)
+		registry.Spawn(w, subThreadFactory(t, fmt.Sprintf("%v/%v", name, "sub")))
 
-	w.Run(func() {
-		t.Logf("running %s", name)
-	}).Complete(func() {
-		t.Logf("complete %s", name)
-		close(wait0)
-	}).Exit(func() {
-		t.Logf("exit %s", name)
-		close(wait1)
-	})
+		w.Run(func() {
+			t.Logf("running %v %s", w.Index, name)
+			//time.Sleep(50*time.Millisecond)
+		}).Complete(func() {
+			t.Logf("complete %v %s", w.Index, name)
+			//time.Sleep(50*time.Millisecond)
+		}).Exit(func() {
+			t.Logf("exit %v %s", w.Index, name)
+			//time.Sleep(50*time.Millisecond)
+		})
+	}
 }
 
 func TestRegisterThread(t *testing.T) {
-	wait0 := make(chan interface{})
-	wait1 := make(chan interface{})
-	registry.Init(registerStartThreadFunc, t, "foo", wait0, wait1)
-	<- wait0 // wait for execution
-	registry.Exit()
-	<- wait1 // wait for execution
+	reg := registry.New()
+	reg(threadFactory(t, "foo"))
+	reg(threadFactory(t, "bar"))
+	reg(threadFactory(t, "baz"))
+	reg.Run()
 }

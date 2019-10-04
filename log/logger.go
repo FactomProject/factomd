@@ -40,10 +40,10 @@ type tStateLogPrintf func(FactomNodeName string, DBHeight int, CurrentMinute int
 
 // logger handle
 type Log struct {
-	LogPrintf tLogPrintf
-	LogMessage tLogMessage
+	LogPrintf       tLogPrintf
+	LogMessage      tLogMessage
 	StateLogMessage tStateLogMessage
-	StateLogPrintf tStateLogPrintf
+	StateLogPrintf  tStateLogPrintf
 }
 
 /*

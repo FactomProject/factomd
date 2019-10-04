@@ -2,7 +2,6 @@ package worker
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/log"
 )
 
 /*
@@ -14,16 +13,17 @@ coordinated behavior for starting/stopping various parts of factomd
 type Thread func(r *Registry, args ...interface{})
 
 type Registry struct {
-	Log log.Log
-	onRun func()
+	Index      int
+	Parent     int
+	onRun      func()
 	onComplete func()
-	onExit func()
+	onExit     func()
 }
 
 type RunLevel int
 
 const (
-	RUN = iota+1
+	RUN = iota + 1
 	COMPLETE
 	EXIT
 )
@@ -31,15 +31,15 @@ const (
 func (r *Registry) Call(level RunLevel) {
 	switch level {
 	case RUN:
-		if r.onRun !=nil {
+		if r.onRun != nil {
 			r.onRun()
 		}
 	case COMPLETE:
-		if r.onComplete !=nil {
+		if r.onComplete != nil {
 			r.onComplete()
 		}
 	case EXIT:
-		if r.onExit !=nil {
+		if r.onExit != nil {
 			r.onExit()
 		}
 	default:
