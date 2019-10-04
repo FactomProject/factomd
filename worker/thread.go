@@ -7,12 +7,12 @@ import (
 /*
 Defines an interface that we can use to register
 coordinated behavior for starting/stopping various parts of factomd
-
-
 */
-type Thread func(r *Registry, args ...interface{})
+type Handle func(r *Thread, args ...interface{})
 
-type Registry struct {
+// worker process with structured callbacks
+// parent relation helps trace worker dependencies
+type Thread struct {
 	Index      int
 	Parent     int
 	onRun      func()
@@ -20,16 +20,19 @@ type Registry struct {
 	onExit     func()
 }
 
-type RunLevel int
+// indicates a specific thread callback
+type callback int
 
+// list of all thread callbacks
 const (
 	RUN = iota + 1
 	COMPLETE
 	EXIT
 )
 
-func (r *Registry) Call(level RunLevel) {
-	switch level {
+// Invoke specific callbacks synchronously
+func (r *Thread) Call(c callback) {
+	switch c {
 	case RUN:
 		if r.onRun != nil {
 			r.onRun()
@@ -43,21 +46,24 @@ func (r *Registry) Call(level RunLevel) {
 			r.onExit()
 		}
 	default:
-		panic(fmt.Sprintf("unknown runlevel %v", level))
+		panic(fmt.Sprintf("unknown callback %v", c))
 	}
 }
 
-func (r *Registry) Run(f func()) *Registry {
+// Add Run Callback
+func (r *Thread) Run(f func()) *Thread {
 	r.onRun = f
 	return r
 }
 
-func (r *Registry) Complete(f func()) *Registry {
+// Add Complete Callback
+func (r *Thread) Complete(f func()) *Thread {
 	r.onComplete = f
 	return r
 }
 
-func (r *Registry) Exit(f func()) *Registry {
+// Add Exit Callback
+func (r *Thread) Exit(f func()) *Thread {
 	r.onExit = f
 	return r
 }

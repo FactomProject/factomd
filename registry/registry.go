@@ -8,7 +8,7 @@ import (
 // Index of all top-level threads
 type globalRegistry struct {
 	Mutex sync.Mutex
-	Index []*worker.Registry
+	Index []*worker.Thread
 }
 
 // singleton thread registry
@@ -36,13 +36,13 @@ func Exit() {
 }
 
 // add a new thread to the global registry
-func addThread(args ...interface{}) *worker.Registry {
+func addThread(args ...interface{}) *worker.Thread {
 	initWait.Add(1)
 	runWait.Add(1)
 	doneWait.Add(1)
 	exitWatch.Add(1)
 
-	w := &worker.Registry{}
+	w := &worker.Thread{}
 	threadMgr.Mutex.Lock()
 	defer threadMgr.Mutex.Unlock()
 	w.Index = len(threadMgr.Index)
@@ -51,9 +51,11 @@ func addThread(args ...interface{}) *worker.Registry {
 }
 
 // Bind thread run-level callbacks to wait groups
-func bindCallbacks(r *worker.Registry, initFunction worker.Thread, args ...interface{}) {
+func bindCallbacks(r *worker.Thread, initHandler worker.Handle, args ...interface{}) {
 	go func() {
-		initFunction(r, args...)
+		// initHandler binds all other callbacks
+		// and can spawn child threads
+		initHandler(r, args...)
 		initWait.Done()
 	}()
 
@@ -73,14 +75,14 @@ func bindCallbacks(r *worker.Registry, initFunction worker.Thread, args ...inter
 
 }
 
-// Start a a new root thread w/ coordinated start and callback hooks
-func initializer(initFunction worker.Thread, args ...interface{}) {
+// Start a new root thread w/ coordinated start/stop callback hooks
+func initializer(initFunction worker.Handle, args ...interface{}) {
 	r := addThread()
 	bindCallbacks(r, initFunction, args...)
 }
 
 // Start a child process
-func Spawn(r *worker.Registry, initFunction worker.Thread, args ...interface{}) {
+func Spawn(r *worker.Thread, initFunction worker.Handle, args ...interface{}) {
 	t := addThread()
 	t.Parent = r.Index
 	bindCallbacks(t, initFunction, args...)
@@ -88,7 +90,7 @@ func Spawn(r *worker.Registry, initFunction worker.Thread, args ...interface{}) 
 
 // type used to to provide initializer function and
 // a hook to invoke top level threads to begin execution
-type process func(worker worker.Thread, args ...interface{})
+type process func(worker worker.Handle, args ...interface{})
 
 // top level call to begin a new process definition
 // a process has many sub-threads (goroutines)

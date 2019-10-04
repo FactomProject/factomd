@@ -7,8 +7,8 @@ import (
 	"testing"
 )
 
-func subThreadFactory(t *testing.T, name string) worker.Thread {
-	return func(w *worker.Registry, args ...interface{}) {
+func subThreadFactory(t *testing.T, name string) worker.Handle {
+	return func(w *worker.Thread, args ...interface{}) {
 		t.Logf("initializing %s", name)
 
 		w.Run(func() {
@@ -24,8 +24,8 @@ func subThreadFactory(t *testing.T, name string) worker.Thread {
 	}
 }
 
-func threadFactory(t *testing.T, name string) worker.Thread {
-	return func(w *worker.Registry, args ...interface{}) {
+func threadFactory(t *testing.T, name string) worker.Handle {
+	return func(w *worker.Thread, args ...interface{}) {
 		t.Logf("initializing %s", name)
 
 		registry.Spawn(w, subThreadFactory(t, fmt.Sprintf("%v/%v", name, "sub")))
