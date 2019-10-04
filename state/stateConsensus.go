@@ -179,7 +179,7 @@ func (s *State) Validate(msg interfaces.IMsg) (validToSend int, validToExec int)
 	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
 	if !ok {
 		consenLogger.WithFields(msg.LogFields()).Debug("executeMsg (Replay Invalid)")
-		s.LogMessage("executeMsg", "drop, INTERNAL_REPLAY", msg)
+		s.LogMessage("executeMsg", "drop, INTERNAL_REPLAY2", msg)
 		return -1, -1
 	}
 
@@ -776,6 +776,7 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		if s.LLeaderHeight != dbheight {
 			fmt.Fprintf(os.Stderr, "State move between non-sequential heights from %d to %d\n", s.LLeaderHeight, dbheight)
 		}
+
 		//force sync state to a rational  state for between minutes
 		s.Syncing = false    // movestatetoheight
 		s.EOM = false        // movestatetoheight

@@ -144,7 +144,7 @@ func checkForDuplicateSend(s interfaces.IState, msg interfaces.IMsg, whereAmI st
 }
 
 func (m *MessageBase) SendOut(s interfaces.IState, msg interfaces.IMsg) {
-	if msg.GetRepeatHash() == nil { // Do not send pokemon messages
+	if msg.GetRepeatHash() == nil || reflect.ValueOf(msg.GetRepeatHash()).IsNil() || msg.GetMsgHash() == nil || reflect.ValueOf(msg.GetMsgHash()).IsNil() { // Do not send pokemon messages
 		return
 	}
 
