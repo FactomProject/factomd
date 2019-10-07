@@ -77,7 +77,7 @@ func Factomd(w *worker.Thread, params *FactomParams, listenToStdin bool) interfa
 	state0.SetMessageFilterTimestamp(preBootTime)
 	state0.EFactory = new(electionMsgs.ElectionsFactory)
 
-	w.Init(func() { NetStart(w, state0, params, listenToStdin) })
+	NetStart(w, state0, params, listenToStdin)
 	return state0
 }
 

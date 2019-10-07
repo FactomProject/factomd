@@ -32,21 +32,18 @@ const (
 	COMPLETE
 	EXIT
 )
+
 // convenience wrapper starts a closure in a sub-thread
 // useful for situations where only Run callback is needed
+// can be thought of as 'leaves' of the thread runtime dependency graph
 func (r *Thread) Run(runFunc func()) {
 	r.Spawn(func(w *Thread, args ...interface{}) {
 		w.OnRun(runFunc)
 	})
 }
 
-func (r *Thread) Init(initFunc func()) {
-	r.Spawn(func(w *Thread, args ...interface{}) {
-		initFunc()
-	})
-}
-
-// Spawn a child thread
+// Spawn a child thread and register callbacks
+// this is useful to bind functions to Init/Run/Stop callbacks
 func (r *Thread) Spawn(initFunction Handle, args ...interface{}) {
 	r.RegisterNew(r, initFunction, args...)
 }
