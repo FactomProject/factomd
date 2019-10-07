@@ -1,6 +1,7 @@
 package longtest
 
 import (
+	"github.com/FactomProject/factomd/registry"
 	"testing"
 	"time"
 
@@ -26,6 +27,7 @@ func TestSetupLoadWith1pctDrop(t *testing.T) {
 	}
 	state0 := SetupSim(nodesLoadWith1pctDrop, params, 10, 0, 0, t)
 	WaitBlocks(state0, 1)
+	registry.PrintGraph()
 }
 
 /*

@@ -1,6 +1,7 @@
 package registry
 
 import (
+	"fmt"
 	"github.com/FactomProject/factomd/fnode"
 	"github.com/FactomProject/factomd/worker"
 	"sync"
@@ -34,6 +35,7 @@ var exitWatch sync.WaitGroup
 
 // trigger exit calls
 func Exit() {
+	defer func() { recover() }() // don't panic if exitWait is already Done
 	exitWait.Done()
 }
 
@@ -120,10 +122,26 @@ func (process) Run() {
 	threadMgr.initDone = true
 	runWait.Wait()
 	doneWait.Wait()
-	fnode.SendSigInt()
+	Exit()
 	exitWatch.Wait()
 }
 
 func (process) WaitForRunning() {
 	runWait.Wait()
+}
+
+var colors []string = []string{"95cde5", "b01700", "db8e3c", "ffe35f"}
+
+// print gaphviz representation of thread hierarchy
+func PrintGraph() {
+	for _, t := range threadMgr.Index {
+		if t.IsRoot() {
+			continue
+		}
+		fmt.Printf("%v -> %v\n", t.Parent, t.Index)
+	}
+
+	for i, t := range threadMgr.Index {
+		fmt.Printf("%d {color:#%v, shape:dot, label:%v}\n", t.Index, colors[i%len(colors)], t.Index)
+	}
 }

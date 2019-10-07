@@ -648,6 +648,7 @@ func startServers(w *worker.Thread, load bool) {
 }
 
 func startServer(w *worker.Thread, i int, fnode *FactomNode, load bool)  func() {
+	// TODO: bind to thread
 	return func() {
 		if i > 0 {
 			fnode.State.Init()

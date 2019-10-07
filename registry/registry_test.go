@@ -53,4 +53,6 @@ func TestRegisterThread(t *testing.T) {
 	reg(threadFactory(t, "bar"))
 	reg(threadFactory(t, "baz"))
 	reg.Run()
+
+	registry.PrintGraph()
 }

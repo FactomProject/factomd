@@ -88,3 +88,8 @@ func (r *Thread) OnExit(f func()) *Thread {
 	r.onExit = f
 	return r
 }
+
+// root level threads are their own parent
+func (r *Thread) IsRoot() bool {
+	return r.Index == r.Parent
+}
