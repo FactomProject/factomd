@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants/runstate"
 	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
-	"github.com/FactomProject/live-feed-api/EventRouter/log"
 	"github.com/gogo/protobuf/proto"
+	log "github.com/sirupsen/logrus"
 	"io"
 	"net"
 	"os"
@@ -46,18 +46,11 @@ func init() {
 	flag.StringVar(&sim.Address, "address", "", "Binding adress")
 	flag.IntVar(&sim.ExpectedEvents, "expectedevents", 0, "Expected events")
 	flag.Parse()
-	fmt.Println("Protocol:", sim.Protocol)
-	fmt.Println("Address:", sim.Address)
-	fmt.Println("ExpectedEvents:", sim.ExpectedEvents)
-
 	scanner = bufio.NewScanner(os.Stdin)
 }
 
 func (sim *EventServerSim) StartExternal() error {
 	sim.CorrectSendEvents = 0
-
-	dir, _ := os.Getwd()
-	fmt.Println(dir)
 	goPath := os.Getenv("GOROOT") + "/bin/go"
 	cmd = exec.Command(goPath, "test", "-v", "./", "-run", "TestRunExternal", "-protocol="+sim.Protocol,
 		"-address="+sim.Address, "-expectedevents="+strconv.Itoa(sim.ExpectedEvents))
@@ -78,8 +71,6 @@ func (sim *EventServerSim) StartExternal() error {
 func TestRunExternal(t *testing.T) {
 	defer func() { fmt.Println("exit") }()
 
-	fmt.Println("TestRunExternal")
-
 	sim.test = t
 	if sim.ExpectedEvents == 0 || len(sim.Address) == 0 {
 		fmt.Println("commandline parameters not set, ignoring test")
@@ -96,7 +87,6 @@ func TestRunExternal(t *testing.T) {
 func waitForResponse(response string) (string, error) {
 	for scanner.Scan() {
 		text := scanner.Text()
-		//		fmt.Println("####", text)
 		if strings.HasPrefix(text, response) {
 			return text, nil
 		} else if text == "exit" {
@@ -175,35 +165,35 @@ func (sim *EventServerSim) listenForEvents() {
 	reader := bufio.NewReader(sim.connection)
 
 	for i := atomic.LoadInt32(&sim.CorrectSendEvents); i < int32(sim.ExpectedEvents) && sim.runState < runstate.Stopping; i++ {
-		log.Info("read event: %d/%d\n", i, sim.ExpectedEvents)
+		log.Infof("read event: %d/%d\n", i, sim.ExpectedEvents)
 		protocolVersion, err := reader.ReadByte()
 		if err != nil {
-			log.Error("failed to read protocol version: %v\n", err)
+			log.Errorf("failed to read protocol version: %v\n", err)
 			return
 		}
 		if protocolVersion != supportedProtocolVersion {
-			log.Error("unsupported protocol version: %d\n", protocolVersion)
+			log.Errorf("unsupported protocol version: %d\n", protocolVersion)
 			return
 		}
 
 		var dataSize int32
 		if err := binary.Read(reader, binary.LittleEndian, &dataSize); err != nil {
-			log.Error("failed to read data size: %v\n", err)
+			log.Errorf("failed to read data size: %v\n", err)
 		}
 
 		if dataSize < 1 {
-			log.Error("data size incorrect: %d\n", dataSize)
+			log.Errorf("data size incorrect: %d\n", dataSize)
 		}
 		data := make([]byte, dataSize)
 		bytesRead, err := io.ReadFull(reader, data)
 		if err != nil {
-			log.Error("failed to read data: %v\n", err)
+			log.Errorf("failed to read data: %v\n", err)
 		}
 
 		factomEvent := &eventmessages.FactomEvent{}
 		err = proto.Unmarshal(data[0:bytesRead], factomEvent)
 		if err != nil {
-			log.Error("failed to unmarshal event: %v\n", err)
+			log.Errorf("failed to unmarshal event: %v\n", err)
 		}
 		atomic.AddInt32(&sim.CorrectSendEvents, 1)
 	}
