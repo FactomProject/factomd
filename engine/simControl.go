@@ -7,13 +7,13 @@ package engine
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/FactomProject/factomd/fnode"
 	"io"
 	"math/rand"
 	"os"
 	"runtime"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 	"unicode"
 
@@ -1060,7 +1060,7 @@ func SimControl(listenTo int, listenStdin bool) {
 				}
 			case 'C' == b[0]:
 				fmt.Println("Cleaning up")
-				interruptChannel <- syscall.SIGINT
+				fnode.SendSigInt()
 			case 'Q' == b[0]:
 				fmt.Println("Quiting forcefully")
 				os.Exit(0)

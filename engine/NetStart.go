@@ -9,6 +9,8 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"github.com/FactomProject/factomd/fnode"
+	"github.com/FactomProject/factomd/worker"
 	"io/ioutil"
 	"math"
 	"os"
@@ -16,7 +18,6 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/constants/runstate"
 	. "github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
@@ -63,7 +64,7 @@ func init() {
 	primitives.General = messages.General
 }
 
-func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
+func NetStart(w *worker.Thread, s *state.State, p *FactomParams, listenToStdin bool) {
 
 	s.PortNumber = 8088
 	s.ControlPanelPort = 8090
@@ -199,7 +200,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	fmt.Println(">>>>>>>>>>>>>>>> Listening to Node", p.ListenTo)
 	fmt.Println(">>>>>>>>>>>>>>>>")
 
-	AddInterruptHandler(func() {
+	fnode.AddInterruptHandler(func() {
 		fmt.Print("<Break>\n")
 		fmt.Print("Gracefully shutting down the server...\n")
 		for _, fnode := range fnodes {
@@ -420,7 +421,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
 		p2pProxy.StartProxy()
 
-		go networkHousekeeping() // This goroutine executes once a second to keep the proxy apprised of the network status.
+		w.Run(networkHousekeeping) // This goroutine executes once a second to keep the proxy apprised of the network status.
 	}
 
 	networkpattern = p.Net
@@ -556,9 +557,9 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 
 	if p.Journal != "" {
 		go LoadJournal(s, p.Journal)
-		startServers(false)
+		startServers(w, false)
 	} else {
-		startServers(true)
+		startServers(w,true)
 	}
 
 	// Anchoring related configurations
@@ -640,29 +641,30 @@ func makeServer(s *state.State) *FactomNode {
 	return fnode
 }
 
-func startServers(load bool) {
+func startServers(w *worker.Thread, load bool) {
 	for i, fnode := range fnodes {
-		startServer(i, fnode, load)
+		w.Run(startServer(w, i, fnode, load))
 	}
 }
 
-func startServer(i int, fnode *FactomNode, load bool) {
-	fnode.State.RunState = runstate.Booting
-	if i > 0 {
-		fnode.State.Init()
-	}
-	NetworkProcessorNet(fnode)
-	if load {
-		go state.LoadDatabase(fnode.State)
-	}
-	go fnode.State.GoSyncEntries()
-	go Timer(fnode.State)
-	go elections.Run(fnode.State)
-	go fnode.State.ValidatorLoop()
+func startServer(w *worker.Thread, i int, fnode *FactomNode, load bool)  func() {
+	return func() {
+		if i > 0 {
+			fnode.State.Init()
+		}
+		NetworkProcessorNet(fnode)
+		if load {
+			go state.LoadDatabase(fnode.State)
+		}
+		go fnode.State.GoSyncEntries()
+		go Timer(fnode.State)
+		go elections.Run(fnode.State)
+		go fnode.State.ValidatorLoop()
 
-	// moved StartMMR here to ensure Init goroutine only called once and not twice (removed from state.go)
-	go fnode.State.StartMMR()
-	go fnode.State.MissingMessageResponseHandler.Run()
+		// moved StartMMR here to ensure Init goroutine only called once and not twice (removed from state.go)
+		go fnode.State.StartMMR()
+		go fnode.State.MissingMessageResponseHandler.Run()
+	}
 }
 
 func setupFirstAuthority(s *state.State) {
@@ -695,5 +697,6 @@ func AddNode() {
 	fnodes[i].State.IntiateNetworkSkeletonIdentity()
 	fnodes[i].State.InitiateNetworkIdentityRegistration()
 	AddSimPeer(fnodes, i, i-1) // KLUDGE peer w/ only last node
-	startServer(i, fnodes[i], true)
+	// FIXME: make this work w/ thread registry
+	// startServer(i, fnodes[i], true)
 }

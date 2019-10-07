@@ -6,6 +6,8 @@ package engine
 
 import (
 	"fmt"
+	"github.com/FactomProject/factomd/registry"
+	"github.com/FactomProject/factomd/worker"
 	"runtime"
 
 	"github.com/FactomProject/factomd/common/constants/runstate"
@@ -38,8 +40,25 @@ var _ = fmt.Print
 // or create more context loggers off of this
 var packageLogger = log.WithFields(log.Fields{"package": "engine"})
 
-func Factomd(params *FactomParams, listenToStdin bool) interfaces.IState {
-	fmt.Printf("Go compiler version: %s\n", runtime.Version())
+// start the process
+func Run(params *FactomParams) {
+	proc := registry.New()
+	proc(func(w *worker.Thread, args ...interface{}) {
+		state := Factomd(w, params, params.Sim_Stdin)
+		w.OnRun(func(){
+			for state.GetRunState() != runstate.Stopped {
+				time.Sleep(time.Second)
+			}
+		}).OnComplete(func(){
+			fmt.Println("Waiting to Shut Down") // This may not be necessary anymore with the new run state method
+			time.Sleep(time.Second * 5)
+		})
+	})
+	proc.Run()
+}
+
+func Factomd(w *worker.Thread, params *FactomParams, listenToStdin bool) interfaces.IState {
+	fmt.Printf("SpawnRun compiler version: %s\n", runtime.Version())
 	fmt.Printf("Using build: %s\n", Build)
 	fmt.Printf("Version: %s\n", FactomdVersion)
 	StartTime = time.Now()
@@ -58,7 +77,7 @@ func Factomd(params *FactomParams, listenToStdin bool) interfaces.IState {
 	state0.SetMessageFilterTimestamp(preBootTime)
 	state0.EFactory = new(electionMsgs.ElectionsFactory)
 
-	NetStart(state0, params, listenToStdin)
+	w.Init(func() { NetStart(w, state0, params, listenToStdin) })
 	return state0
 }
 

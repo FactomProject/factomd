@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/FactomProject/factomd/registry"
 	"github.com/FactomProject/factomd/worker"
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
@@ -11,13 +12,13 @@ func subThreadFactory(t *testing.T, name string) worker.Handle {
 	return func(w *worker.Thread, args ...interface{}) {
 		t.Logf("initializing %s", name)
 
-		w.Run(func() {
+		w.OnRun(func() {
 			t.Logf("running %v %s", w.Index, name)
 			//time.Sleep(50*time.Millisecond)
-		}).Complete(func() {
+		}).OnComplete(func() {
 			t.Logf("complete %v %s", w.Index, name)
 			//time.Sleep(50*time.Millisecond)
-		}).Exit(func() {
+		}).OnExit(func() {
 			t.Logf("exit %v %s", w.Index, name)
 			//time.Sleep(50*time.Millisecond)
 		})
@@ -28,15 +29,18 @@ func threadFactory(t *testing.T, name string) worker.Handle {
 	return func(w *worker.Thread, args ...interface{}) {
 		t.Logf("initializing %s", name)
 
-		registry.Spawn(w, subThreadFactory(t, fmt.Sprintf("%v/%v", name, "sub")))
+		w.Spawn(subThreadFactory(t, fmt.Sprintf("%v/%v", name, "sub")))
 
-		w.Run(func() {
+		w.OnRun(func() {
 			t.Logf("running %v %s", w.Index, name)
 			//time.Sleep(50*time.Millisecond)
-		}).Complete(func() {
+			assert.Panics(t, func() {
+				w.Spawn(subThreadFactory(t, fmt.Sprintf("%v/%v", name, "sub")))
+			}, "should fail when trying to spawn outside of init phase")
+		}).OnComplete(func() {
 			t.Logf("complete %v %s", w.Index, name)
 			//time.Sleep(50*time.Millisecond)
-		}).Exit(func() {
+		}).OnExit(func() {
 			t.Logf("exit %v %s", w.Index, name)
 			//time.Sleep(50*time.Millisecond)
 		})

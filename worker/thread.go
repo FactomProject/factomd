@@ -10,14 +10,17 @@ coordinated behavior for starting/stopping various parts of factomd
 */
 type Handle func(r *Thread, args ...interface{})
 
+type RegistryHandler func(r *Thread, initFunction Handle, args ...interface{})
+
 // worker process with structured callbacks
 // parent relation helps trace worker dependencies
 type Thread struct {
-	Index      int
-	Parent     int
-	onRun      func()
-	onComplete func()
-	onExit     func()
+	RegisterNew RegistryHandler // RegistryCallback for sub-threads
+	Index       int
+	Parent      int
+	onRun       func()
+	onComplete  func()
+	onExit      func()
 }
 
 // indicates a specific thread callback
@@ -29,6 +32,24 @@ const (
 	COMPLETE
 	EXIT
 )
+// convenience wrapper starts a closure in a sub-thread
+// useful for situations where only Run callback is needed
+func (r *Thread) Run(runFunc func()) {
+	r.Spawn(func(w *Thread, args ...interface{}) {
+		w.OnRun(runFunc)
+	})
+}
+
+func (r *Thread) Init(initFunc func()) {
+	r.Spawn(func(w *Thread, args ...interface{}) {
+		initFunc()
+	})
+}
+
+// Spawn a child thread
+func (r *Thread) Spawn(initFunction Handle, args ...interface{}) {
+	r.RegisterNew(r, initFunction, args...)
+}
 
 // Invoke specific callbacks synchronously
 func (r *Thread) Call(c callback) {
@@ -51,19 +72,19 @@ func (r *Thread) Call(c callback) {
 }
 
 // Add Run Callback
-func (r *Thread) Run(f func()) *Thread {
+func (r *Thread) OnRun(f func()) *Thread {
 	r.onRun = f
 	return r
 }
 
 // Add Complete Callback
-func (r *Thread) Complete(f func()) *Thread {
+func (r *Thread) OnComplete(f func()) *Thread {
 	r.onComplete = f
 	return r
 }
 
 // Add Exit Callback
-func (r *Thread) Exit(f func()) *Thread {
+func (r *Thread) OnExit(f func()) *Thread {
 	r.onExit = f
 	return r
 }

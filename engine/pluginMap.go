@@ -4,6 +4,7 @@ package engine
 
 import (
 	"fmt"
+	"github.com/FactomProject/factomd/fnode"
 	"io/ioutil"
 	"log"
 	"os/exec"
@@ -51,7 +52,7 @@ func LaunchDBStateManagePlugin(path string, inQueue interfaces.IQueue, s *state.
 	stop := make(chan int, 10)
 
 	// Make sure we close our client on close
-	AddInterruptHandler(func() {
+	fnode.AddInterruptHandler(func() {
 		fmt.Println("Manager plugin is now closing...")
 		client.Kill()
 		stop <- 0
@@ -80,7 +81,7 @@ func LaunchDBStateManagePlugin(path string, inQueue interfaces.IQueue, s *state.
 	// Upload controller controls how quickly we upload things. Keeping our rate similar to
 	// the torrent prevents data being backed up in memory
 	s.Uploader = state.NewUploadController(manager)
-	AddInterruptHandler(func() {
+	fnode.AddInterruptHandler(func() {
 		fmt.Println("State's Upload controller is now closing...")
 		s.Uploader.Close()
 	})

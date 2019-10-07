@@ -1,14 +1,16 @@
 package registry
 
 import (
+	"github.com/FactomProject/factomd/fnode"
 	"github.com/FactomProject/factomd/worker"
 	"sync"
 )
 
 // Index of all top-level threads
 type globalRegistry struct {
-	Mutex sync.Mutex
-	Index []*worker.Thread
+	Mutex    sync.Mutex
+	Index    []*worker.Thread
+	initDone bool
 }
 
 // singleton thread registry
@@ -37,12 +39,19 @@ func Exit() {
 
 // add a new thread to the global registry
 func addThread(args ...interface{}) *worker.Thread {
+	if threadMgr.initDone {
+		panic("sub-threads must only spawn during initialization")
+	}
+
 	initWait.Add(1)
 	runWait.Add(1)
 	doneWait.Add(1)
 	exitWatch.Add(1)
 
-	w := &worker.Thread{}
+	w := &worker.Thread{
+		RegisterNew: spawn, // inject spawn callback
+	}
+
 	threadMgr.Mutex.Lock()
 	defer threadMgr.Mutex.Unlock()
 	w.Index = len(threadMgr.Index)
@@ -60,6 +69,8 @@ func bindCallbacks(r *worker.Thread, initHandler worker.Handle, args ...interfac
 	}()
 
 	go func() {
+		// runs actual thread logic - will likely be a pub/sub handler
+		// that binds to the subscription manager
 		initWait.Wait()
 		runWait.Done()
 		r.Call(worker.RUN)
@@ -68,6 +79,7 @@ func bindCallbacks(r *worker.Thread, initHandler worker.Handle, args ...interfac
 	}()
 
 	go func() {
+		// cleanup on exit
 		exitWait.Wait()
 		r.Call(worker.EXIT)
 		exitWatch.Done()
@@ -78,13 +90,14 @@ func bindCallbacks(r *worker.Thread, initHandler worker.Handle, args ...interfac
 // Start a new root thread w/ coordinated start/stop callback hooks
 func initializer(initFunction worker.Handle, args ...interface{}) {
 	r := addThread()
+	r.Parent = r.Index // root threads are their own parent
 	bindCallbacks(r, initFunction, args...)
 }
 
 // Start a child process
-func Spawn(r *worker.Thread, initFunction worker.Handle, args ...interface{}) {
+func spawn(r *worker.Thread, initFunction worker.Handle, args ...interface{}) {
 	t := addThread()
-	t.Parent = r.Index
+	t.Parent = r.Index // child threads have a different parent
 	bindCallbacks(t, initFunction, args...)
 }
 
@@ -95,6 +108,8 @@ type process func(worker worker.Handle, args ...interface{})
 // top level call to begin a new process definition
 // a process has many sub-threads (goroutines)
 func New() process {
+	// bind to global interrupt handler
+	fnode.AddInterruptHandler(Exit)
 	exitWait.Add(1)
 	return initializer
 }
@@ -102,8 +117,13 @@ func New() process {
 // execute all threads
 func (process) Run() {
 	initWait.Wait()
+	threadMgr.initDone = true
 	runWait.Wait()
 	doneWait.Wait()
-	Exit()
+	fnode.SendSigInt()
 	exitWatch.Wait()
+}
+
+func (process) WaitForRunning() {
+	runWait.Wait()
 }
