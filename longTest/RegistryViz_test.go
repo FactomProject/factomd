@@ -17,8 +17,22 @@ func TestRegistryViz(t *testing.T) {
 		"--factomhome": homeDir,
 	}
 	state0 := SetupSim("L", params, 10, 0, 0, t)
+	WaitBlocks(state0, 2)
 	_ = state0
 	t.Log("Graph of Thread Dependencies:")
 	t.Log(registry.Graph())
 }
 
+func TestRegistryVizExistingDB(t *testing.T) {
+	params := map[string]string{
+		"--db":           "LDB",
+		"--fastsaverate": "100",
+		"--net":          "alot+",
+		"--factomhome":   GetLongTestHome(t),
+	}
+	state0 := StartSim(1, params)
+	StatusEveryMinute(state0)
+	WaitBlocks(state0, 2)
+	t.Log("Graph of Thread Dependencies:")
+	t.Log(registry.Graph())
+}
