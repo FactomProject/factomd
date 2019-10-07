@@ -96,7 +96,7 @@ func initializer(initFunction worker.Handle, args ...interface{}) {
 	bindCallbacks(r, initFunction, args...)
 }
 
-// Start a child process
+// Start a child process and register callbacks
 func spawn(r *worker.Thread, initFunction worker.Handle, args ...interface{}) {
 	t := addThread()
 	t.Parent = r.Index // child threads have a different parent
@@ -130,18 +130,23 @@ func (process) WaitForRunning() {
 	runWait.Wait()
 }
 
-var colors []string = []string{"95cde5", "b01700", "db8e3c", "ffe35f"}
 
-// print gaphviz representation of thread hierarchy
-func PrintGraph() {
+// print graphviz representation of thread hierarchy
+func Graph() (out string) {
+
+	out = out + "\n\n"
+	var colors []string = []string{"95cde5", "b01700", "db8e3c", "ffe35f"}
+
 	for _, t := range threadMgr.Index {
 		if t.IsRoot() {
 			continue
 		}
-		fmt.Printf("%v -> %v\n", t.Parent, t.Index)
+		out = out+fmt.Sprintf("%v -> %v\n", t.Parent, t.Index)
 	}
 
 	for i, t := range threadMgr.Index {
-		fmt.Printf("%d {color:#%v, shape:dot, label:%v}\n", t.Index, colors[i%len(colors)], t.Index)
+		out = out+fmt.Sprintf("%d {color:#%v, shape:dot, label:%v}\n", t.Index, colors[i%len(colors)], t.Index)
 	}
+
+	return out
 }

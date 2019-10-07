@@ -8,9 +8,16 @@ import (
 	"testing"
 )
 
+// add a sub thread that uses all callbacks
+// and also spawn's a child that uses only 'Run' callback
 func subThreadFactory(t *testing.T, name string) worker.Handle {
 	return func(w *worker.Thread, args ...interface{}) {
 		t.Logf("initializing %s", name)
+
+		w.Run(func() {
+			// add a thread with no initialization behavior
+			t.Logf("running %v %s", w.Index, fmt.Sprintf("%s/%s", name, "qux"))
+		})
 
 		w.OnRun(func() {
 			t.Logf("running %v %s", w.Index, name)
@@ -25,6 +32,7 @@ func subThreadFactory(t *testing.T, name string) worker.Handle {
 	}
 }
 
+// spawn threads that in turn spawn children during initialization
 func threadFactory(t *testing.T, name string) worker.Handle {
 	return func(w *worker.Thread, args ...interface{}) {
 		t.Logf("initializing %s", name)
@@ -48,11 +56,11 @@ func threadFactory(t *testing.T, name string) worker.Handle {
 }
 
 func TestRegisterThread(t *testing.T) {
+	// create a process with 3 root nodes
 	reg := registry.New()
 	reg(threadFactory(t, "foo"))
 	reg(threadFactory(t, "bar"))
 	reg(threadFactory(t, "baz"))
 	reg.Run()
-
-	registry.PrintGraph()
+	t.Log(registry.Graph())
 }
