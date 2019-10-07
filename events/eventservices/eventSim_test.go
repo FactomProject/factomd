@@ -7,8 +7,6 @@ import (
 	"flag"
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants/runstate"
-	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
-	"github.com/gogo/protobuf/proto"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"net"
@@ -189,12 +187,7 @@ func (sim *EventServerSim) listenForEvents() {
 		if err != nil {
 			log.Errorf("failed to read data: %v\n", err)
 		}
-
-		factomEvent := &eventmessages.FactomEvent{}
-		err = proto.Unmarshal(data[0:bytesRead], factomEvent)
-		if err != nil {
-			log.Errorf("failed to unmarshal event: %v\n", err)
-		}
+		sim.test.Logf("%v", data[0:bytesRead])
 		atomic.AddInt32(&sim.CorrectSendEvents, 1)
 	}
 	return
