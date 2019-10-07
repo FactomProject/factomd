@@ -216,6 +216,7 @@ func (esi *eventServiceInstance) writeEvent(data []byte) (err error) {
 
 	writer := bufio.NewWriter(esi.connection)
 	writer.WriteByte(protocolVersion)
+	writer.Flush() // Flush this already to expedite a possible broken pipe which will only be detected in the second flush (unless there hasn't been any traffic for a few minutes)
 
 	dataSize := int32(len(data))
 	err = binary.Write(writer, binary.LittleEndian, dataSize)
@@ -254,6 +255,7 @@ func (esi *eventServiceInstance) Shutdown() {
 	for len(esi.eventsOutQueue) > 0 {
 		time.Sleep(25 * time.Millisecond)
 	}
+	close(esi.eventsOutQueue)
 	esi.disconnect()
 	eventService = nil
 	eventServiceControl = nil

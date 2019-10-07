@@ -21,7 +21,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
 // ====  ADMIN BLOCK STRUCTURES =====
 type AdminBlock struct {
@@ -46,7 +46,7 @@ func (m *AdminBlock) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_AdminBlock.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -101,7 +101,7 @@ func (m *AdminBlockHeader) XXX_Marshal(b []byte, deterministic bool) ([]byte, er
 		return xxx_messageInfo_AdminBlockHeader.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -172,7 +172,7 @@ func (m *AdminBlockEntry) XXX_Marshal(b []byte, deterministic bool) ([]byte, err
 		return xxx_messageInfo_AdminBlockEntry.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -198,52 +198,52 @@ type isAdminBlockEntry_Value interface {
 }
 
 type AdminBlockEntry_AddAuditServer struct {
-	AddAuditServer *AddAuditServer `protobuf:"bytes,1,opt,name=addAuditServer,proto3,oneof" json:"addAuditServer,omitempty"`
+	AddAuditServer *AddAuditServer `protobuf:"bytes,1,opt,name=addAuditServer,proto3,oneof"`
 }
 type AdminBlockEntry_AddEfficiency struct {
-	AddEfficiency *AddEfficiency `protobuf:"bytes,2,opt,name=addEfficiency,proto3,oneof" json:"addEfficiency,omitempty"`
+	AddEfficiency *AddEfficiency `protobuf:"bytes,2,opt,name=addEfficiency,proto3,oneof"`
 }
 type AdminBlockEntry_AddFactoidAddress struct {
-	AddFactoidAddress *AddFactoidAddress `protobuf:"bytes,3,opt,name=addFactoidAddress,proto3,oneof" json:"addFactoidAddress,omitempty"`
+	AddFactoidAddress *AddFactoidAddress `protobuf:"bytes,3,opt,name=addFactoidAddress,proto3,oneof"`
 }
 type AdminBlockEntry_AddFederatedServer struct {
-	AddFederatedServer *AddFederatedServer `protobuf:"bytes,4,opt,name=addFederatedServer,proto3,oneof" json:"addFederatedServer,omitempty"`
+	AddFederatedServer *AddFederatedServer `protobuf:"bytes,4,opt,name=addFederatedServer,proto3,oneof"`
 }
 type AdminBlockEntry_AddFederatedServerBitcoinAnchorKey struct {
-	AddFederatedServerBitcoinAnchorKey *AddFederatedServerBitcoinAnchorKey `protobuf:"bytes,5,opt,name=addFederatedServerBitcoinAnchorKey,proto3,oneof" json:"addFederatedServerBitcoinAnchorKey,omitempty"`
+	AddFederatedServerBitcoinAnchorKey *AddFederatedServerBitcoinAnchorKey `protobuf:"bytes,5,opt,name=addFederatedServerBitcoinAnchorKey,proto3,oneof"`
 }
 type AdminBlockEntry_AddFederatedServerSigningKey struct {
-	AddFederatedServerSigningKey *AddFederatedServerSigningKey `protobuf:"bytes,6,opt,name=addFederatedServerSigningKey,proto3,oneof" json:"addFederatedServerSigningKey,omitempty"`
+	AddFederatedServerSigningKey *AddFederatedServerSigningKey `protobuf:"bytes,6,opt,name=addFederatedServerSigningKey,proto3,oneof"`
 }
 type AdminBlockEntry_AddReplaceMatryoshkaHash struct {
-	AddReplaceMatryoshkaHash *AddReplaceMatryoshkaHash `protobuf:"bytes,7,opt,name=addReplaceMatryoshkaHash,proto3,oneof" json:"addReplaceMatryoshkaHash,omitempty"`
+	AddReplaceMatryoshkaHash *AddReplaceMatryoshkaHash `protobuf:"bytes,7,opt,name=addReplaceMatryoshkaHash,proto3,oneof"`
 }
 type AdminBlockEntry_CancelCoinbaseDescriptor struct {
-	CancelCoinbaseDescriptor *CancelCoinbaseDescriptor `protobuf:"bytes,8,opt,name=cancelCoinbaseDescriptor,proto3,oneof" json:"cancelCoinbaseDescriptor,omitempty"`
+	CancelCoinbaseDescriptor *CancelCoinbaseDescriptor `protobuf:"bytes,8,opt,name=cancelCoinbaseDescriptor,proto3,oneof"`
 }
 type AdminBlockEntry_CoinbaseDescriptor struct {
-	CoinbaseDescriptor *CoinbaseDescriptor `protobuf:"bytes,9,opt,name=coinbaseDescriptor,proto3,oneof" json:"coinbaseDescriptor,omitempty"`
+	CoinbaseDescriptor *CoinbaseDescriptor `protobuf:"bytes,9,opt,name=coinbaseDescriptor,proto3,oneof"`
 }
 type AdminBlockEntry_DirectoryBlockSignatureEntry struct {
-	DirectoryBlockSignatureEntry *DirectoryBlockSignatureEntry `protobuf:"bytes,10,opt,name=directoryBlockSignatureEntry,proto3,oneof" json:"directoryBlockSignatureEntry,omitempty"`
+	DirectoryBlockSignatureEntry *DirectoryBlockSignatureEntry `protobuf:"bytes,10,opt,name=directoryBlockSignatureEntry,proto3,oneof"`
 }
 type AdminBlockEntry_EndOfMinuteEntry struct {
-	EndOfMinuteEntry *EndOfMinuteEntry `protobuf:"bytes,11,opt,name=endOfMinuteEntry,proto3,oneof" json:"endOfMinuteEntry,omitempty"`
+	EndOfMinuteEntry *EndOfMinuteEntry `protobuf:"bytes,11,opt,name=endOfMinuteEntry,proto3,oneof"`
 }
 type AdminBlockEntry_ForwardCompatibleEntry struct {
-	ForwardCompatibleEntry *ForwardCompatibleEntry `protobuf:"bytes,12,opt,name=forwardCompatibleEntry,proto3,oneof" json:"forwardCompatibleEntry,omitempty"`
+	ForwardCompatibleEntry *ForwardCompatibleEntry `protobuf:"bytes,12,opt,name=forwardCompatibleEntry,proto3,oneof"`
 }
 type AdminBlockEntry_IncreaseServerCount struct {
-	IncreaseServerCount *IncreaseServerCount `protobuf:"bytes,13,opt,name=increaseServerCount,proto3,oneof" json:"increaseServerCount,omitempty"`
+	IncreaseServerCount *IncreaseServerCount `protobuf:"bytes,13,opt,name=increaseServerCount,proto3,oneof"`
 }
 type AdminBlockEntry_RemoveFederatedServer struct {
-	RemoveFederatedServer *RemoveFederatedServer `protobuf:"bytes,14,opt,name=removeFederatedServer,proto3,oneof" json:"removeFederatedServer,omitempty"`
+	RemoveFederatedServer *RemoveFederatedServer `protobuf:"bytes,14,opt,name=removeFederatedServer,proto3,oneof"`
 }
 type AdminBlockEntry_RevealMatryoshkaHash struct {
-	RevealMatryoshkaHash *RevealMatryoshkaHash `protobuf:"bytes,15,opt,name=revealMatryoshkaHash,proto3,oneof" json:"revealMatryoshkaHash,omitempty"`
+	RevealMatryoshkaHash *RevealMatryoshkaHash `protobuf:"bytes,15,opt,name=revealMatryoshkaHash,proto3,oneof"`
 }
 type AdminBlockEntry_ServerFault struct {
-	ServerFault *ServerFault `protobuf:"bytes,16,opt,name=serverFault,proto3,oneof" json:"serverFault,omitempty"`
+	ServerFault *ServerFault `protobuf:"bytes,16,opt,name=serverFault,proto3,oneof"`
 }
 
 func (*AdminBlockEntry_AddAuditServer) isAdminBlockEntry_Value()                     {}
@@ -382,9 +382,9 @@ func (m *AdminBlockEntry) GetServerFault() *ServerFault {
 	return nil
 }
 
-// XXX_OneofWrappers is for the internal use of the proto package.
-func (*AdminBlockEntry) XXX_OneofWrappers() []interface{} {
-	return []interface{}{
+// XXX_OneofFuncs is for the internal use of the proto package.
+func (*AdminBlockEntry) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
+	return _AdminBlockEntry_OneofMarshaler, _AdminBlockEntry_OneofUnmarshaler, _AdminBlockEntry_OneofSizer, []interface{}{
 		(*AdminBlockEntry_AddAuditServer)(nil),
 		(*AdminBlockEntry_AddEfficiency)(nil),
 		(*AdminBlockEntry_AddFactoidAddress)(nil),
@@ -402,6 +402,324 @@ func (*AdminBlockEntry) XXX_OneofWrappers() []interface{} {
 		(*AdminBlockEntry_RevealMatryoshkaHash)(nil),
 		(*AdminBlockEntry_ServerFault)(nil),
 	}
+}
+
+func _AdminBlockEntry_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
+	m := msg.(*AdminBlockEntry)
+	// value
+	switch x := m.Value.(type) {
+	case *AdminBlockEntry_AddAuditServer:
+		_ = b.EncodeVarint(1<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.AddAuditServer); err != nil {
+			return err
+		}
+	case *AdminBlockEntry_AddEfficiency:
+		_ = b.EncodeVarint(2<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.AddEfficiency); err != nil {
+			return err
+		}
+	case *AdminBlockEntry_AddFactoidAddress:
+		_ = b.EncodeVarint(3<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.AddFactoidAddress); err != nil {
+			return err
+		}
+	case *AdminBlockEntry_AddFederatedServer:
+		_ = b.EncodeVarint(4<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.AddFederatedServer); err != nil {
+			return err
+		}
+	case *AdminBlockEntry_AddFederatedServerBitcoinAnchorKey:
+		_ = b.EncodeVarint(5<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.AddFederatedServerBitcoinAnchorKey); err != nil {
+			return err
+		}
+	case *AdminBlockEntry_AddFederatedServerSigningKey:
+		_ = b.EncodeVarint(6<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.AddFederatedServerSigningKey); err != nil {
+			return err
+		}
+	case *AdminBlockEntry_AddReplaceMatryoshkaHash:
+		_ = b.EncodeVarint(7<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.AddReplaceMatryoshkaHash); err != nil {
+			return err
+		}
+	case *AdminBlockEntry_CancelCoinbaseDescriptor:
+		_ = b.EncodeVarint(8<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.CancelCoinbaseDescriptor); err != nil {
+			return err
+		}
+	case *AdminBlockEntry_CoinbaseDescriptor:
+		_ = b.EncodeVarint(9<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.CoinbaseDescriptor); err != nil {
+			return err
+		}
+	case *AdminBlockEntry_DirectoryBlockSignatureEntry:
+		_ = b.EncodeVarint(10<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.DirectoryBlockSignatureEntry); err != nil {
+			return err
+		}
+	case *AdminBlockEntry_EndOfMinuteEntry:
+		_ = b.EncodeVarint(11<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.EndOfMinuteEntry); err != nil {
+			return err
+		}
+	case *AdminBlockEntry_ForwardCompatibleEntry:
+		_ = b.EncodeVarint(12<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.ForwardCompatibleEntry); err != nil {
+			return err
+		}
+	case *AdminBlockEntry_IncreaseServerCount:
+		_ = b.EncodeVarint(13<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.IncreaseServerCount); err != nil {
+			return err
+		}
+	case *AdminBlockEntry_RemoveFederatedServer:
+		_ = b.EncodeVarint(14<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.RemoveFederatedServer); err != nil {
+			return err
+		}
+	case *AdminBlockEntry_RevealMatryoshkaHash:
+		_ = b.EncodeVarint(15<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.RevealMatryoshkaHash); err != nil {
+			return err
+		}
+	case *AdminBlockEntry_ServerFault:
+		_ = b.EncodeVarint(16<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.ServerFault); err != nil {
+			return err
+		}
+	case nil:
+	default:
+		return fmt.Errorf("AdminBlockEntry.Value has unexpected type %T", x)
+	}
+	return nil
+}
+
+func _AdminBlockEntry_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
+	m := msg.(*AdminBlockEntry)
+	switch tag {
+	case 1: // value.addAuditServer
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(AddAuditServer)
+		err := b.DecodeMessage(msg)
+		m.Value = &AdminBlockEntry_AddAuditServer{msg}
+		return true, err
+	case 2: // value.addEfficiency
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(AddEfficiency)
+		err := b.DecodeMessage(msg)
+		m.Value = &AdminBlockEntry_AddEfficiency{msg}
+		return true, err
+	case 3: // value.addFactoidAddress
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(AddFactoidAddress)
+		err := b.DecodeMessage(msg)
+		m.Value = &AdminBlockEntry_AddFactoidAddress{msg}
+		return true, err
+	case 4: // value.addFederatedServer
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(AddFederatedServer)
+		err := b.DecodeMessage(msg)
+		m.Value = &AdminBlockEntry_AddFederatedServer{msg}
+		return true, err
+	case 5: // value.addFederatedServerBitcoinAnchorKey
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(AddFederatedServerBitcoinAnchorKey)
+		err := b.DecodeMessage(msg)
+		m.Value = &AdminBlockEntry_AddFederatedServerBitcoinAnchorKey{msg}
+		return true, err
+	case 6: // value.addFederatedServerSigningKey
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(AddFederatedServerSigningKey)
+		err := b.DecodeMessage(msg)
+		m.Value = &AdminBlockEntry_AddFederatedServerSigningKey{msg}
+		return true, err
+	case 7: // value.addReplaceMatryoshkaHash
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(AddReplaceMatryoshkaHash)
+		err := b.DecodeMessage(msg)
+		m.Value = &AdminBlockEntry_AddReplaceMatryoshkaHash{msg}
+		return true, err
+	case 8: // value.cancelCoinbaseDescriptor
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(CancelCoinbaseDescriptor)
+		err := b.DecodeMessage(msg)
+		m.Value = &AdminBlockEntry_CancelCoinbaseDescriptor{msg}
+		return true, err
+	case 9: // value.coinbaseDescriptor
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(CoinbaseDescriptor)
+		err := b.DecodeMessage(msg)
+		m.Value = &AdminBlockEntry_CoinbaseDescriptor{msg}
+		return true, err
+	case 10: // value.directoryBlockSignatureEntry
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(DirectoryBlockSignatureEntry)
+		err := b.DecodeMessage(msg)
+		m.Value = &AdminBlockEntry_DirectoryBlockSignatureEntry{msg}
+		return true, err
+	case 11: // value.endOfMinuteEntry
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(EndOfMinuteEntry)
+		err := b.DecodeMessage(msg)
+		m.Value = &AdminBlockEntry_EndOfMinuteEntry{msg}
+		return true, err
+	case 12: // value.forwardCompatibleEntry
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(ForwardCompatibleEntry)
+		err := b.DecodeMessage(msg)
+		m.Value = &AdminBlockEntry_ForwardCompatibleEntry{msg}
+		return true, err
+	case 13: // value.increaseServerCount
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(IncreaseServerCount)
+		err := b.DecodeMessage(msg)
+		m.Value = &AdminBlockEntry_IncreaseServerCount{msg}
+		return true, err
+	case 14: // value.removeFederatedServer
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(RemoveFederatedServer)
+		err := b.DecodeMessage(msg)
+		m.Value = &AdminBlockEntry_RemoveFederatedServer{msg}
+		return true, err
+	case 15: // value.revealMatryoshkaHash
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(RevealMatryoshkaHash)
+		err := b.DecodeMessage(msg)
+		m.Value = &AdminBlockEntry_RevealMatryoshkaHash{msg}
+		return true, err
+	case 16: // value.serverFault
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(ServerFault)
+		err := b.DecodeMessage(msg)
+		m.Value = &AdminBlockEntry_ServerFault{msg}
+		return true, err
+	default:
+		return false, nil
+	}
+}
+
+func _AdminBlockEntry_OneofSizer(msg proto.Message) (n int) {
+	m := msg.(*AdminBlockEntry)
+	// value
+	switch x := m.Value.(type) {
+	case *AdminBlockEntry_AddAuditServer:
+		s := proto.Size(x.AddAuditServer)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *AdminBlockEntry_AddEfficiency:
+		s := proto.Size(x.AddEfficiency)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *AdminBlockEntry_AddFactoidAddress:
+		s := proto.Size(x.AddFactoidAddress)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *AdminBlockEntry_AddFederatedServer:
+		s := proto.Size(x.AddFederatedServer)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *AdminBlockEntry_AddFederatedServerBitcoinAnchorKey:
+		s := proto.Size(x.AddFederatedServerBitcoinAnchorKey)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *AdminBlockEntry_AddFederatedServerSigningKey:
+		s := proto.Size(x.AddFederatedServerSigningKey)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *AdminBlockEntry_AddReplaceMatryoshkaHash:
+		s := proto.Size(x.AddReplaceMatryoshkaHash)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *AdminBlockEntry_CancelCoinbaseDescriptor:
+		s := proto.Size(x.CancelCoinbaseDescriptor)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *AdminBlockEntry_CoinbaseDescriptor:
+		s := proto.Size(x.CoinbaseDescriptor)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *AdminBlockEntry_DirectoryBlockSignatureEntry:
+		s := proto.Size(x.DirectoryBlockSignatureEntry)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *AdminBlockEntry_EndOfMinuteEntry:
+		s := proto.Size(x.EndOfMinuteEntry)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *AdminBlockEntry_ForwardCompatibleEntry:
+		s := proto.Size(x.ForwardCompatibleEntry)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *AdminBlockEntry_IncreaseServerCount:
+		s := proto.Size(x.IncreaseServerCount)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *AdminBlockEntry_RemoveFederatedServer:
+		s := proto.Size(x.RemoveFederatedServer)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *AdminBlockEntry_RevealMatryoshkaHash:
+		s := proto.Size(x.RevealMatryoshkaHash)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *AdminBlockEntry_ServerFault:
+		s := proto.Size(x.ServerFault)
+		n += 2 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case nil:
+	default:
+		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
+	}
+	return n
 }
 
 type AddAuditServer struct {
@@ -426,7 +744,7 @@ func (m *AddAuditServer) XXX_Marshal(b []byte, deterministic bool) ([]byte, erro
 		return xxx_messageInfo_AddAuditServer.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -481,7 +799,7 @@ func (m *AddEfficiency) XXX_Marshal(b []byte, deterministic bool) ([]byte, error
 		return xxx_messageInfo_AddEfficiency.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -536,7 +854,7 @@ func (m *AddFactoidAddress) XXX_Marshal(b []byte, deterministic bool) ([]byte, e
 		return xxx_messageInfo_AddFactoidAddress.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -591,7 +909,7 @@ func (m *AddFederatedServer) XXX_Marshal(b []byte, deterministic bool) ([]byte, 
 		return xxx_messageInfo_AddFederatedServer.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -648,7 +966,7 @@ func (m *AddFederatedServerBitcoinAnchorKey) XXX_Marshal(b []byte, deterministic
 		return xxx_messageInfo_AddFederatedServerBitcoinAnchorKey.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -719,7 +1037,7 @@ func (m *AddFederatedServerSigningKey) XXX_Marshal(b []byte, deterministic bool)
 		return xxx_messageInfo_AddFederatedServerSigningKey.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -789,7 +1107,7 @@ func (m *AddReplaceMatryoshkaHash) XXX_Marshal(b []byte, deterministic bool) ([]
 		return xxx_messageInfo_AddReplaceMatryoshkaHash.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -851,7 +1169,7 @@ func (m *CancelCoinbaseDescriptor) XXX_Marshal(b []byte, deterministic bool) ([]
 		return xxx_messageInfo_CancelCoinbaseDescriptor.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -905,7 +1223,7 @@ func (m *CoinbaseDescriptor) XXX_Marshal(b []byte, deterministic bool) ([]byte, 
 		return xxx_messageInfo_CoinbaseDescriptor.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -953,7 +1271,7 @@ func (m *DirectoryBlockSignatureEntry) XXX_Marshal(b []byte, deterministic bool)
 		return xxx_messageInfo_DirectoryBlockSignatureEntry.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -1007,7 +1325,7 @@ func (m *EndOfMinuteEntry) XXX_Marshal(b []byte, deterministic bool) ([]byte, er
 		return xxx_messageInfo_EndOfMinuteEntry.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -1055,7 +1373,7 @@ func (m *ForwardCompatibleEntry) XXX_Marshal(b []byte, deterministic bool) ([]by
 		return xxx_messageInfo_ForwardCompatibleEntry.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -1109,7 +1427,7 @@ func (m *IncreaseServerCount) XXX_Marshal(b []byte, deterministic bool) ([]byte,
 		return xxx_messageInfo_IncreaseServerCount.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -1157,7 +1475,7 @@ func (m *RemoveFederatedServer) XXX_Marshal(b []byte, deterministic bool) ([]byt
 		return xxx_messageInfo_RemoveFederatedServer.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -1212,7 +1530,7 @@ func (m *RevealMatryoshkaHash) XXX_Marshal(b []byte, deterministic bool) ([]byte
 		return xxx_messageInfo_RevealMatryoshkaHash.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -1272,7 +1590,7 @@ func (m *ServerFault) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) 
 		return xxx_messageInfo_ServerFault.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -1446,7 +1764,7 @@ var fileDescriptor_974412be9cb81647 = []byte{
 func (m *AdminBlock) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -1454,52 +1772,42 @@ func (m *AdminBlock) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *AdminBlock) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *AdminBlock) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
+	if m.Header != nil {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.Header.Size()))
+		n1, err1 := m.Header.MarshalTo(dAtA[i:])
+		if err1 != nil {
+			return 0, err1
+		}
+		i += n1
 	}
 	if len(m.Entries) > 0 {
-		for iNdEx := len(m.Entries) - 1; iNdEx >= 0; iNdEx-- {
-			{
-				size, err := m.Entries[iNdEx].MarshalToSizedBuffer(dAtA[:i])
-				if err != nil {
-					return 0, err
-				}
-				i -= size
-				i = encodeVarintAdminBlock(dAtA, i, uint64(size))
-			}
-			i--
+		for _, msg := range m.Entries {
 			dAtA[i] = 0x12
-		}
-	}
-	if m.Header != nil {
-		{
-			size, err := m.Header.MarshalToSizedBuffer(dAtA[:i])
+			i++
+			i = encodeVarintAdminBlock(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
 			if err != nil {
 				return 0, err
 			}
-			i -= size
-			i = encodeVarintAdminBlock(dAtA, i, uint64(size))
+			i += n
 		}
-		i--
-		dAtA[i] = 0xa
 	}
-	return len(dAtA) - i, nil
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
 }
 
 func (m *AdminBlockHeader) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -1507,43 +1815,35 @@ func (m *AdminBlockHeader) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *AdminBlockHeader) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *AdminBlockHeader) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
+	if m.PreviousBackRefHash != nil {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.PreviousBackRefHash.Size()))
+		n2, err2 := m.PreviousBackRefHash.MarshalTo(dAtA[i:])
+		if err2 != nil {
+			return 0, err2
+		}
+		i += n2
 	}
 	if m.BlockHeight != 0 {
-		i = encodeVarintAdminBlock(dAtA, i, uint64(m.BlockHeight))
-		i--
 		dAtA[i] = 0x10
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.BlockHeight))
 	}
-	if m.PreviousBackRefHash != nil {
-		{
-			size, err := m.PreviousBackRefHash.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintAdminBlock(dAtA, i, uint64(size))
-		}
-		i--
-		dAtA[i] = 0xa
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
 	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 
 func (m *AdminBlockEntry) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -1551,373 +1851,253 @@ func (m *AdminBlockEntry) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *AdminBlockEntry) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *AdminBlockEntry) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
-	}
 	if m.Value != nil {
-		{
-			size := m.Value.Size()
-			i -= size
-			if _, err := m.Value.MarshalTo(dAtA[i:]); err != nil {
-				return 0, err
-			}
+		nn3, err3 := m.Value.MarshalTo(dAtA[i:])
+		if err3 != nil {
+			return 0, err3
 		}
+		i += nn3
 	}
-	return len(dAtA) - i, nil
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
 }
 
 func (m *AdminBlockEntry_AddAuditServer) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *AdminBlockEntry_AddAuditServer) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	i := 0
 	if m.AddAuditServer != nil {
-		{
-			size, err := m.AddAuditServer.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintAdminBlock(dAtA, i, uint64(size))
-		}
-		i--
 		dAtA[i] = 0xa
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.AddAuditServer.Size()))
+		n4, err4 := m.AddAuditServer.MarshalTo(dAtA[i:])
+		if err4 != nil {
+			return 0, err4
+		}
+		i += n4
 	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 func (m *AdminBlockEntry_AddEfficiency) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *AdminBlockEntry_AddEfficiency) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	i := 0
 	if m.AddEfficiency != nil {
-		{
-			size, err := m.AddEfficiency.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintAdminBlock(dAtA, i, uint64(size))
-		}
-		i--
 		dAtA[i] = 0x12
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.AddEfficiency.Size()))
+		n5, err5 := m.AddEfficiency.MarshalTo(dAtA[i:])
+		if err5 != nil {
+			return 0, err5
+		}
+		i += n5
 	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 func (m *AdminBlockEntry_AddFactoidAddress) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *AdminBlockEntry_AddFactoidAddress) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	i := 0
 	if m.AddFactoidAddress != nil {
-		{
-			size, err := m.AddFactoidAddress.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintAdminBlock(dAtA, i, uint64(size))
-		}
-		i--
 		dAtA[i] = 0x1a
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.AddFactoidAddress.Size()))
+		n6, err6 := m.AddFactoidAddress.MarshalTo(dAtA[i:])
+		if err6 != nil {
+			return 0, err6
+		}
+		i += n6
 	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 func (m *AdminBlockEntry_AddFederatedServer) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *AdminBlockEntry_AddFederatedServer) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	i := 0
 	if m.AddFederatedServer != nil {
-		{
-			size, err := m.AddFederatedServer.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintAdminBlock(dAtA, i, uint64(size))
-		}
-		i--
 		dAtA[i] = 0x22
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.AddFederatedServer.Size()))
+		n7, err7 := m.AddFederatedServer.MarshalTo(dAtA[i:])
+		if err7 != nil {
+			return 0, err7
+		}
+		i += n7
 	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 func (m *AdminBlockEntry_AddFederatedServerBitcoinAnchorKey) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *AdminBlockEntry_AddFederatedServerBitcoinAnchorKey) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	i := 0
 	if m.AddFederatedServerBitcoinAnchorKey != nil {
-		{
-			size, err := m.AddFederatedServerBitcoinAnchorKey.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintAdminBlock(dAtA, i, uint64(size))
-		}
-		i--
 		dAtA[i] = 0x2a
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.AddFederatedServerBitcoinAnchorKey.Size()))
+		n8, err8 := m.AddFederatedServerBitcoinAnchorKey.MarshalTo(dAtA[i:])
+		if err8 != nil {
+			return 0, err8
+		}
+		i += n8
 	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 func (m *AdminBlockEntry_AddFederatedServerSigningKey) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *AdminBlockEntry_AddFederatedServerSigningKey) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	i := 0
 	if m.AddFederatedServerSigningKey != nil {
-		{
-			size, err := m.AddFederatedServerSigningKey.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintAdminBlock(dAtA, i, uint64(size))
-		}
-		i--
 		dAtA[i] = 0x32
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.AddFederatedServerSigningKey.Size()))
+		n9, err9 := m.AddFederatedServerSigningKey.MarshalTo(dAtA[i:])
+		if err9 != nil {
+			return 0, err9
+		}
+		i += n9
 	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 func (m *AdminBlockEntry_AddReplaceMatryoshkaHash) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *AdminBlockEntry_AddReplaceMatryoshkaHash) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	i := 0
 	if m.AddReplaceMatryoshkaHash != nil {
-		{
-			size, err := m.AddReplaceMatryoshkaHash.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintAdminBlock(dAtA, i, uint64(size))
-		}
-		i--
 		dAtA[i] = 0x3a
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.AddReplaceMatryoshkaHash.Size()))
+		n10, err10 := m.AddReplaceMatryoshkaHash.MarshalTo(dAtA[i:])
+		if err10 != nil {
+			return 0, err10
+		}
+		i += n10
 	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 func (m *AdminBlockEntry_CancelCoinbaseDescriptor) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *AdminBlockEntry_CancelCoinbaseDescriptor) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	i := 0
 	if m.CancelCoinbaseDescriptor != nil {
-		{
-			size, err := m.CancelCoinbaseDescriptor.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintAdminBlock(dAtA, i, uint64(size))
-		}
-		i--
 		dAtA[i] = 0x42
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.CancelCoinbaseDescriptor.Size()))
+		n11, err11 := m.CancelCoinbaseDescriptor.MarshalTo(dAtA[i:])
+		if err11 != nil {
+			return 0, err11
+		}
+		i += n11
 	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 func (m *AdminBlockEntry_CoinbaseDescriptor) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *AdminBlockEntry_CoinbaseDescriptor) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	i := 0
 	if m.CoinbaseDescriptor != nil {
-		{
-			size, err := m.CoinbaseDescriptor.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintAdminBlock(dAtA, i, uint64(size))
-		}
-		i--
 		dAtA[i] = 0x4a
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.CoinbaseDescriptor.Size()))
+		n12, err12 := m.CoinbaseDescriptor.MarshalTo(dAtA[i:])
+		if err12 != nil {
+			return 0, err12
+		}
+		i += n12
 	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 func (m *AdminBlockEntry_DirectoryBlockSignatureEntry) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *AdminBlockEntry_DirectoryBlockSignatureEntry) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	i := 0
 	if m.DirectoryBlockSignatureEntry != nil {
-		{
-			size, err := m.DirectoryBlockSignatureEntry.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintAdminBlock(dAtA, i, uint64(size))
-		}
-		i--
 		dAtA[i] = 0x52
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.DirectoryBlockSignatureEntry.Size()))
+		n13, err13 := m.DirectoryBlockSignatureEntry.MarshalTo(dAtA[i:])
+		if err13 != nil {
+			return 0, err13
+		}
+		i += n13
 	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 func (m *AdminBlockEntry_EndOfMinuteEntry) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *AdminBlockEntry_EndOfMinuteEntry) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	i := 0
 	if m.EndOfMinuteEntry != nil {
-		{
-			size, err := m.EndOfMinuteEntry.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintAdminBlock(dAtA, i, uint64(size))
-		}
-		i--
 		dAtA[i] = 0x5a
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.EndOfMinuteEntry.Size()))
+		n14, err14 := m.EndOfMinuteEntry.MarshalTo(dAtA[i:])
+		if err14 != nil {
+			return 0, err14
+		}
+		i += n14
 	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 func (m *AdminBlockEntry_ForwardCompatibleEntry) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *AdminBlockEntry_ForwardCompatibleEntry) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	i := 0
 	if m.ForwardCompatibleEntry != nil {
-		{
-			size, err := m.ForwardCompatibleEntry.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintAdminBlock(dAtA, i, uint64(size))
-		}
-		i--
 		dAtA[i] = 0x62
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.ForwardCompatibleEntry.Size()))
+		n15, err15 := m.ForwardCompatibleEntry.MarshalTo(dAtA[i:])
+		if err15 != nil {
+			return 0, err15
+		}
+		i += n15
 	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 func (m *AdminBlockEntry_IncreaseServerCount) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *AdminBlockEntry_IncreaseServerCount) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	i := 0
 	if m.IncreaseServerCount != nil {
-		{
-			size, err := m.IncreaseServerCount.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintAdminBlock(dAtA, i, uint64(size))
-		}
-		i--
 		dAtA[i] = 0x6a
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.IncreaseServerCount.Size()))
+		n16, err16 := m.IncreaseServerCount.MarshalTo(dAtA[i:])
+		if err16 != nil {
+			return 0, err16
+		}
+		i += n16
 	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 func (m *AdminBlockEntry_RemoveFederatedServer) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *AdminBlockEntry_RemoveFederatedServer) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	i := 0
 	if m.RemoveFederatedServer != nil {
-		{
-			size, err := m.RemoveFederatedServer.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintAdminBlock(dAtA, i, uint64(size))
-		}
-		i--
 		dAtA[i] = 0x72
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.RemoveFederatedServer.Size()))
+		n17, err17 := m.RemoveFederatedServer.MarshalTo(dAtA[i:])
+		if err17 != nil {
+			return 0, err17
+		}
+		i += n17
 	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 func (m *AdminBlockEntry_RevealMatryoshkaHash) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *AdminBlockEntry_RevealMatryoshkaHash) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	i := 0
 	if m.RevealMatryoshkaHash != nil {
-		{
-			size, err := m.RevealMatryoshkaHash.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintAdminBlock(dAtA, i, uint64(size))
-		}
-		i--
 		dAtA[i] = 0x7a
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.RevealMatryoshkaHash.Size()))
+		n18, err18 := m.RevealMatryoshkaHash.MarshalTo(dAtA[i:])
+		if err18 != nil {
+			return 0, err18
+		}
+		i += n18
 	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 func (m *AdminBlockEntry_ServerFault) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *AdminBlockEntry_ServerFault) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	i := 0
 	if m.ServerFault != nil {
-		{
-			size, err := m.ServerFault.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintAdminBlock(dAtA, i, uint64(size))
-		}
-		i--
-		dAtA[i] = 0x1
-		i--
 		dAtA[i] = 0x82
+		i++
+		dAtA[i] = 0x1
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.ServerFault.Size()))
+		n19, err19 := m.ServerFault.MarshalTo(dAtA[i:])
+		if err19 != nil {
+			return 0, err19
+		}
+		i += n19
 	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 func (m *AddAuditServer) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -1925,43 +2105,35 @@ func (m *AddAuditServer) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *AddAuditServer) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *AddAuditServer) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
+	if m.IdentityChainID != nil {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.IdentityChainID.Size()))
+		n20, err20 := m.IdentityChainID.MarshalTo(dAtA[i:])
+		if err20 != nil {
+			return 0, err20
+		}
+		i += n20
 	}
 	if m.BlockHeight != 0 {
-		i = encodeVarintAdminBlock(dAtA, i, uint64(m.BlockHeight))
-		i--
 		dAtA[i] = 0x10
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.BlockHeight))
 	}
-	if m.IdentityChainID != nil {
-		{
-			size, err := m.IdentityChainID.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintAdminBlock(dAtA, i, uint64(size))
-		}
-		i--
-		dAtA[i] = 0xa
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
 	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 
 func (m *AddEfficiency) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -1969,43 +2141,35 @@ func (m *AddEfficiency) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *AddEfficiency) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *AddEfficiency) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
+	if m.IdentityChainID != nil {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.IdentityChainID.Size()))
+		n21, err21 := m.IdentityChainID.MarshalTo(dAtA[i:])
+		if err21 != nil {
+			return 0, err21
+		}
+		i += n21
 	}
 	if m.Efficiency != 0 {
-		i = encodeVarintAdminBlock(dAtA, i, uint64(m.Efficiency))
-		i--
 		dAtA[i] = 0x10
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.Efficiency))
 	}
-	if m.IdentityChainID != nil {
-		{
-			size, err := m.IdentityChainID.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintAdminBlock(dAtA, i, uint64(size))
-		}
-		i--
-		dAtA[i] = 0xa
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
 	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 
 func (m *AddFactoidAddress) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -2013,50 +2177,40 @@ func (m *AddFactoidAddress) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *AddFactoidAddress) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *AddFactoidAddress) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
+	if m.IdentityChainID != nil {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.IdentityChainID.Size()))
+		n22, err22 := m.IdentityChainID.MarshalTo(dAtA[i:])
+		if err22 != nil {
+			return 0, err22
+		}
+		i += n22
 	}
 	if m.Address != nil {
-		{
-			size, err := m.Address.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintAdminBlock(dAtA, i, uint64(size))
-		}
-		i--
 		dAtA[i] = 0x12
-	}
-	if m.IdentityChainID != nil {
-		{
-			size, err := m.IdentityChainID.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintAdminBlock(dAtA, i, uint64(size))
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.Address.Size()))
+		n23, err23 := m.Address.MarshalTo(dAtA[i:])
+		if err23 != nil {
+			return 0, err23
 		}
-		i--
-		dAtA[i] = 0xa
+		i += n23
 	}
-	return len(dAtA) - i, nil
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
 }
 
 func (m *AddFederatedServer) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -2064,43 +2218,35 @@ func (m *AddFederatedServer) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *AddFederatedServer) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *AddFederatedServer) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
+	if m.IdentityChainID != nil {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.IdentityChainID.Size()))
+		n24, err24 := m.IdentityChainID.MarshalTo(dAtA[i:])
+		if err24 != nil {
+			return 0, err24
+		}
+		i += n24
 	}
 	if m.BlockHeight != 0 {
-		i = encodeVarintAdminBlock(dAtA, i, uint64(m.BlockHeight))
-		i--
 		dAtA[i] = 0x10
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.BlockHeight))
 	}
-	if m.IdentityChainID != nil {
-		{
-			size, err := m.IdentityChainID.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintAdminBlock(dAtA, i, uint64(size))
-		}
-		i--
-		dAtA[i] = 0xa
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
 	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 
 func (m *AddFederatedServerBitcoinAnchorKey) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -2108,55 +2254,46 @@ func (m *AddFederatedServerBitcoinAnchorKey) Marshal() (dAtA []byte, err error) 
 }
 
 func (m *AddFederatedServerBitcoinAnchorKey) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *AddFederatedServerBitcoinAnchorKey) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
-	}
-	if len(m.EcdsaPublicKey) > 0 {
-		i -= len(m.EcdsaPublicKey)
-		copy(dAtA[i:], m.EcdsaPublicKey)
-		i = encodeVarintAdminBlock(dAtA, i, uint64(len(m.EcdsaPublicKey)))
-		i--
-		dAtA[i] = 0x22
-	}
-	if m.KeyType != 0 {
-		i = encodeVarintAdminBlock(dAtA, i, uint64(m.KeyType))
-		i--
-		dAtA[i] = 0x18
+	if m.IdentityChainID != nil {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.IdentityChainID.Size()))
+		n25, err25 := m.IdentityChainID.MarshalTo(dAtA[i:])
+		if err25 != nil {
+			return 0, err25
+		}
+		i += n25
 	}
 	if m.KeyPriority != 0 {
-		i = encodeVarintAdminBlock(dAtA, i, uint64(m.KeyPriority))
-		i--
 		dAtA[i] = 0x10
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.KeyPriority))
 	}
-	if m.IdentityChainID != nil {
-		{
-			size, err := m.IdentityChainID.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintAdminBlock(dAtA, i, uint64(size))
-		}
-		i--
-		dAtA[i] = 0xa
+	if m.KeyType != 0 {
+		dAtA[i] = 0x18
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.KeyType))
 	}
-	return len(dAtA) - i, nil
+	if len(m.EcdsaPublicKey) > 0 {
+		dAtA[i] = 0x22
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(len(m.EcdsaPublicKey)))
+		i += copy(dAtA[i:], m.EcdsaPublicKey)
+	}
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
 }
 
 func (m *AddFederatedServerSigningKey) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -2164,55 +2301,46 @@ func (m *AddFederatedServerSigningKey) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *AddFederatedServerSigningKey) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *AddFederatedServerSigningKey) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
-	}
-	if m.BlockHeight != 0 {
-		i = encodeVarintAdminBlock(dAtA, i, uint64(m.BlockHeight))
-		i--
-		dAtA[i] = 0x20
-	}
-	if len(m.PublicKey) > 0 {
-		i -= len(m.PublicKey)
-		copy(dAtA[i:], m.PublicKey)
-		i = encodeVarintAdminBlock(dAtA, i, uint64(len(m.PublicKey)))
-		i--
-		dAtA[i] = 0x1a
+	if m.IdentityChainID != nil {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.IdentityChainID.Size()))
+		n26, err26 := m.IdentityChainID.MarshalTo(dAtA[i:])
+		if err26 != nil {
+			return 0, err26
+		}
+		i += n26
 	}
 	if m.KeyPriority != 0 {
-		i = encodeVarintAdminBlock(dAtA, i, uint64(m.KeyPriority))
-		i--
 		dAtA[i] = 0x10
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.KeyPriority))
 	}
-	if m.IdentityChainID != nil {
-		{
-			size, err := m.IdentityChainID.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintAdminBlock(dAtA, i, uint64(size))
-		}
-		i--
-		dAtA[i] = 0xa
+	if len(m.PublicKey) > 0 {
+		dAtA[i] = 0x1a
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(len(m.PublicKey)))
+		i += copy(dAtA[i:], m.PublicKey)
 	}
-	return len(dAtA) - i, nil
+	if m.BlockHeight != 0 {
+		dAtA[i] = 0x20
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.BlockHeight))
+	}
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
 }
 
 func (m *AddReplaceMatryoshkaHash) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -2220,64 +2348,52 @@ func (m *AddReplaceMatryoshkaHash) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *AddReplaceMatryoshkaHash) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *AddReplaceMatryoshkaHash) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
-	}
-	if len(m.FactoidOutputs) > 0 {
-		for iNdEx := len(m.FactoidOutputs) - 1; iNdEx >= 0; iNdEx-- {
-			{
-				size, err := m.FactoidOutputs[iNdEx].MarshalToSizedBuffer(dAtA[:i])
-				if err != nil {
-					return 0, err
-				}
-				i -= size
-				i = encodeVarintAdminBlock(dAtA, i, uint64(size))
-			}
-			i--
-			dAtA[i] = 0x1a
+	if m.IdentityChainID != nil {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.IdentityChainID.Size()))
+		n27, err27 := m.IdentityChainID.MarshalTo(dAtA[i:])
+		if err27 != nil {
+			return 0, err27
 		}
+		i += n27
 	}
 	if m.MatryoshkaHash != nil {
-		{
-			size, err := m.MatryoshkaHash.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintAdminBlock(dAtA, i, uint64(size))
-		}
-		i--
 		dAtA[i] = 0x12
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.MatryoshkaHash.Size()))
+		n28, err28 := m.MatryoshkaHash.MarshalTo(dAtA[i:])
+		if err28 != nil {
+			return 0, err28
+		}
+		i += n28
 	}
-	if m.IdentityChainID != nil {
-		{
-			size, err := m.IdentityChainID.MarshalToSizedBuffer(dAtA[:i])
+	if len(m.FactoidOutputs) > 0 {
+		for _, msg := range m.FactoidOutputs {
+			dAtA[i] = 0x1a
+			i++
+			i = encodeVarintAdminBlock(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
 			if err != nil {
 				return 0, err
 			}
-			i -= size
-			i = encodeVarintAdminBlock(dAtA, i, uint64(size))
+			i += n
 		}
-		i--
-		dAtA[i] = 0xa
 	}
-	return len(dAtA) - i, nil
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
 }
 
 func (m *CancelCoinbaseDescriptor) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -2285,36 +2401,30 @@ func (m *CancelCoinbaseDescriptor) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *CancelCoinbaseDescriptor) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *CancelCoinbaseDescriptor) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
+	if m.DescriptorHeight != 0 {
+		dAtA[i] = 0x8
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.DescriptorHeight))
 	}
 	if m.DescriptorIndex != 0 {
-		i = encodeVarintAdminBlock(dAtA, i, uint64(m.DescriptorIndex))
-		i--
 		dAtA[i] = 0x10
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.DescriptorIndex))
 	}
-	if m.DescriptorHeight != 0 {
-		i = encodeVarintAdminBlock(dAtA, i, uint64(m.DescriptorHeight))
-		i--
-		dAtA[i] = 0x8
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
 	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 
 func (m *CoinbaseDescriptor) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -2322,40 +2432,32 @@ func (m *CoinbaseDescriptor) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *CoinbaseDescriptor) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *CoinbaseDescriptor) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
-	}
 	if len(m.FactoidOutputs) > 0 {
-		for iNdEx := len(m.FactoidOutputs) - 1; iNdEx >= 0; iNdEx-- {
-			{
-				size, err := m.FactoidOutputs[iNdEx].MarshalToSizedBuffer(dAtA[:i])
-				if err != nil {
-					return 0, err
-				}
-				i -= size
-				i = encodeVarintAdminBlock(dAtA, i, uint64(size))
-			}
-			i--
+		for _, msg := range m.FactoidOutputs {
 			dAtA[i] = 0xa
+			i++
+			i = encodeVarintAdminBlock(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n
 		}
 	}
-	return len(dAtA) - i, nil
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
 }
 
 func (m *DirectoryBlockSignatureEntry) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -2363,50 +2465,40 @@ func (m *DirectoryBlockSignatureEntry) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *DirectoryBlockSignatureEntry) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *DirectoryBlockSignatureEntry) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
+	if m.IdentityAdminChainID != nil {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.IdentityAdminChainID.Size()))
+		n29, err29 := m.IdentityAdminChainID.MarshalTo(dAtA[i:])
+		if err29 != nil {
+			return 0, err29
+		}
+		i += n29
 	}
 	if m.PreviousDirectoryBlockSignature != nil {
-		{
-			size, err := m.PreviousDirectoryBlockSignature.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintAdminBlock(dAtA, i, uint64(size))
-		}
-		i--
 		dAtA[i] = 0x12
-	}
-	if m.IdentityAdminChainID != nil {
-		{
-			size, err := m.IdentityAdminChainID.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintAdminBlock(dAtA, i, uint64(size))
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.PreviousDirectoryBlockSignature.Size()))
+		n30, err30 := m.PreviousDirectoryBlockSignature.MarshalTo(dAtA[i:])
+		if err30 != nil {
+			return 0, err30
 		}
-		i--
-		dAtA[i] = 0xa
+		i += n30
 	}
-	return len(dAtA) - i, nil
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
 }
 
 func (m *EndOfMinuteEntry) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -2414,31 +2506,25 @@ func (m *EndOfMinuteEntry) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *EndOfMinuteEntry) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *EndOfMinuteEntry) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
-	}
 	if m.MinuteNumber != 0 {
-		i = encodeVarintAdminBlock(dAtA, i, uint64(m.MinuteNumber))
-		i--
 		dAtA[i] = 0x8
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.MinuteNumber))
 	}
-	return len(dAtA) - i, nil
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
 }
 
 func (m *ForwardCompatibleEntry) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -2446,38 +2532,31 @@ func (m *ForwardCompatibleEntry) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *ForwardCompatibleEntry) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *ForwardCompatibleEntry) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
+	if m.Size_ != 0 {
+		dAtA[i] = 0x8
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.Size_))
 	}
 	if len(m.Data) > 0 {
-		i -= len(m.Data)
-		copy(dAtA[i:], m.Data)
-		i = encodeVarintAdminBlock(dAtA, i, uint64(len(m.Data)))
-		i--
 		dAtA[i] = 0x12
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(len(m.Data)))
+		i += copy(dAtA[i:], m.Data)
 	}
-	if m.Size_ != 0 {
-		i = encodeVarintAdminBlock(dAtA, i, uint64(m.Size_))
-		i--
-		dAtA[i] = 0x8
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
 	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 
 func (m *IncreaseServerCount) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -2485,31 +2564,25 @@ func (m *IncreaseServerCount) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *IncreaseServerCount) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *IncreaseServerCount) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
-	}
 	if m.Amount != 0 {
-		i = encodeVarintAdminBlock(dAtA, i, uint64(m.Amount))
-		i--
 		dAtA[i] = 0x8
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.Amount))
 	}
-	return len(dAtA) - i, nil
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
 }
 
 func (m *RemoveFederatedServer) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -2517,43 +2590,35 @@ func (m *RemoveFederatedServer) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *RemoveFederatedServer) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *RemoveFederatedServer) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
+	if m.IdentityChainID != nil {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.IdentityChainID.Size()))
+		n31, err31 := m.IdentityChainID.MarshalTo(dAtA[i:])
+		if err31 != nil {
+			return 0, err31
+		}
+		i += n31
 	}
 	if m.BlockHeight != 0 {
-		i = encodeVarintAdminBlock(dAtA, i, uint64(m.BlockHeight))
-		i--
 		dAtA[i] = 0x10
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.BlockHeight))
 	}
-	if m.IdentityChainID != nil {
-		{
-			size, err := m.IdentityChainID.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintAdminBlock(dAtA, i, uint64(size))
-		}
-		i--
-		dAtA[i] = 0xa
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
 	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 
 func (m *RevealMatryoshkaHash) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -2561,50 +2626,40 @@ func (m *RevealMatryoshkaHash) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *RevealMatryoshkaHash) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *RevealMatryoshkaHash) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
+	if m.IdentityChainID != nil {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.IdentityChainID.Size()))
+		n32, err32 := m.IdentityChainID.MarshalTo(dAtA[i:])
+		if err32 != nil {
+			return 0, err32
+		}
+		i += n32
 	}
 	if m.MatryoshkaHash != nil {
-		{
-			size, err := m.MatryoshkaHash.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintAdminBlock(dAtA, i, uint64(size))
-		}
-		i--
 		dAtA[i] = 0x12
-	}
-	if m.IdentityChainID != nil {
-		{
-			size, err := m.IdentityChainID.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintAdminBlock(dAtA, i, uint64(size))
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.MatryoshkaHash.Size()))
+		n33, err33 := m.MatryoshkaHash.MarshalTo(dAtA[i:])
+		if err33 != nil {
+			return 0, err33
 		}
-		i--
-		dAtA[i] = 0xa
+		i += n33
 	}
-	return len(dAtA) - i, nil
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
 }
 
 func (m *ServerFault) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -2612,97 +2667,81 @@ func (m *ServerFault) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *ServerFault) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *ServerFault) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
-	}
-	if len(m.SignatureList) > 0 {
-		for iNdEx := len(m.SignatureList) - 1; iNdEx >= 0; iNdEx-- {
-			{
-				size, err := m.SignatureList[iNdEx].MarshalToSizedBuffer(dAtA[:i])
-				if err != nil {
-					return 0, err
-				}
-				i -= size
-				i = encodeVarintAdminBlock(dAtA, i, uint64(size))
-			}
-			i--
-			dAtA[i] = 0x3a
+	if m.Timestamp != nil {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.Timestamp.Size()))
+		n34, err34 := m.Timestamp.MarshalTo(dAtA[i:])
+		if err34 != nil {
+			return 0, err34
 		}
-	}
-	if m.MessageEntryHeight != 0 {
-		i = encodeVarintAdminBlock(dAtA, i, uint64(m.MessageEntryHeight))
-		i--
-		dAtA[i] = 0x30
-	}
-	if m.BlockHeight != 0 {
-		i = encodeVarintAdminBlock(dAtA, i, uint64(m.BlockHeight))
-		i--
-		dAtA[i] = 0x28
-	}
-	if m.VmIndex != 0 {
-		i = encodeVarintAdminBlock(dAtA, i, uint64(m.VmIndex))
-		i--
-		dAtA[i] = 0x20
-	}
-	if m.AuditServerID != nil {
-		{
-			size, err := m.AuditServerID.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintAdminBlock(dAtA, i, uint64(size))
-		}
-		i--
-		dAtA[i] = 0x1a
+		i += n34
 	}
 	if m.ServerID != nil {
-		{
-			size, err := m.ServerID.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintAdminBlock(dAtA, i, uint64(size))
-		}
-		i--
 		dAtA[i] = 0x12
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.ServerID.Size()))
+		n35, err35 := m.ServerID.MarshalTo(dAtA[i:])
+		if err35 != nil {
+			return 0, err35
+		}
+		i += n35
 	}
-	if m.Timestamp != nil {
-		{
-			size, err := m.Timestamp.MarshalToSizedBuffer(dAtA[:i])
+	if m.AuditServerID != nil {
+		dAtA[i] = 0x1a
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.AuditServerID.Size()))
+		n36, err36 := m.AuditServerID.MarshalTo(dAtA[i:])
+		if err36 != nil {
+			return 0, err36
+		}
+		i += n36
+	}
+	if m.VmIndex != 0 {
+		dAtA[i] = 0x20
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.VmIndex))
+	}
+	if m.BlockHeight != 0 {
+		dAtA[i] = 0x28
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.BlockHeight))
+	}
+	if m.MessageEntryHeight != 0 {
+		dAtA[i] = 0x30
+		i++
+		i = encodeVarintAdminBlock(dAtA, i, uint64(m.MessageEntryHeight))
+	}
+	if len(m.SignatureList) > 0 {
+		for _, msg := range m.SignatureList {
+			dAtA[i] = 0x3a
+			i++
+			i = encodeVarintAdminBlock(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
 			if err != nil {
 				return 0, err
 			}
-			i -= size
-			i = encodeVarintAdminBlock(dAtA, i, uint64(size))
+			i += n
 		}
-		i--
-		dAtA[i] = 0xa
 	}
-	return len(dAtA) - i, nil
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
 }
 
 func encodeVarintAdminBlock(dAtA []byte, offset int, v uint64) int {
-	offset -= sovAdminBlock(v)
-	base := offset
 	for v >= 1<<7 {
 		dAtA[offset] = uint8(v&0x7f | 0x80)
 		v >>= 7
 		offset++
 	}
 	dAtA[offset] = uint8(v)
-	return base
+	return offset + 1
 }
 func (m *AdminBlock) Size() (n int) {
 	if m == nil {

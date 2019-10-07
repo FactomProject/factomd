@@ -3,10 +3,19 @@ package eventservices_test
 import (
 	"bufio"
 	"encoding/binary"
+	"errors"
+	"flag"
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants/runstate"
+	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
+	"github.com/FactomProject/live-feed-api/EventRouter/log"
+	"github.com/gogo/protobuf/proto"
 	"io"
 	"net"
+	"os"
+	"os/exec"
+	"strconv"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -25,6 +34,78 @@ type EventServerSim struct {
 	runState          runstate.RunState
 }
 
+var sim *EventServerSim
+var cmd *exec.Cmd
+var stdin io.Writer
+var scanner *bufio.Scanner
+
+func init() {
+	log.Info("Event server simulator")
+	sim = &EventServerSim{}
+	flag.StringVar(&sim.Protocol, "protocol", "tcp", "Protocol")
+	flag.StringVar(&sim.Address, "address", "", "Binding adress")
+	flag.IntVar(&sim.ExpectedEvents, "expectedevents", 0, "Expected events")
+	flag.Parse()
+	fmt.Println("Protocol:", sim.Protocol)
+	fmt.Println("Address:", sim.Address)
+	fmt.Println("ExpectedEvents:", sim.ExpectedEvents)
+
+	scanner = bufio.NewScanner(os.Stdin)
+}
+
+func (sim *EventServerSim) StartExternal() error {
+	sim.CorrectSendEvents = 0
+
+	dir, _ := os.Getwd()
+	fmt.Println(dir)
+	goPath := os.Getenv("GOROOT") + "/bin/go"
+	cmd = exec.Command(goPath, "test", "-v", "./", "-run", "TestRunExternal", "-protocol="+sim.Protocol,
+		"-address="+sim.Address, "-expectedevents="+strconv.Itoa(sim.ExpectedEvents))
+	cmd.Env = os.Environ()
+	cmd.Stderr = os.Stderr
+	reader, _ := cmd.StdoutPipe()
+	scanner = bufio.NewScanner(reader)
+	stdin, _ = cmd.StdinPipe()
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	if _, err := waitForResponse("running"); err != nil {
+		return err
+	}
+	return nil
+}
+
+func TestRunExternal(t *testing.T) {
+	defer func() { fmt.Println("exit") }()
+
+	fmt.Println("TestRunExternal")
+
+	sim.test = t
+	if sim.ExpectedEvents == 0 || len(sim.Address) == 0 {
+		fmt.Println("commandline parameters not set, ignoring test")
+	} else {
+		fmt.Println("Starting simulator on", sim.Address)
+		sim.Start()
+		fmt.Println("running")
+		sim.waitForExpectedEvents()
+		fmt.Println("CorrectSendEvents:", sim.CorrectSendEvents)
+		sim.Stop()
+	}
+}
+
+func waitForResponse(response string) (string, error) {
+	for scanner.Scan() {
+		text := scanner.Text()
+		//		fmt.Println("####", text)
+		if strings.HasPrefix(text, response) {
+			return text, nil
+		} else if text == "exit" {
+			return "", errors.New("sim process exited prematurely")
+		}
+	}
+	return "", errors.New("sim process disappeared")
+}
+
 func (sim *EventServerSim) Start() {
 	var err error
 	sim.runState = runstate.New
@@ -37,9 +118,32 @@ func (sim *EventServerSim) Start() {
 }
 
 func (sim *EventServerSim) Stop() {
-	sim.runState = runstate.Stopping
-	for sim.runState < runstate.Stopped {
-		time.Sleep(1 * time.Millisecond)
+	if cmd != nil {
+		response, err := waitForResponse("CorrectSendEvents")
+		if err == nil {
+			s := response[19:]
+			i, _ := strconv.Atoi(s)
+			sim.CorrectSendEvents = int32(i)
+		}
+	} else {
+		runState := sim.runState
+		sim.runState = runstate.Stopping
+		if runState >= runstate.Running {
+			for sim.runState < runstate.Stopped {
+				time.Sleep(1 * time.Millisecond)
+			}
+		}
+	}
+}
+
+func (sim *EventServerSim) waitForExpectedEvents() {
+	timeOut := 0
+	for {
+		if sim.CorrectSendEvents >= int32(sim.ExpectedEvents) || timeOut > sim.ExpectedEvents {
+			break
+		}
+		time.Sleep(2 * time.Second)
+		timeOut++
 	}
 }
 
@@ -47,9 +151,10 @@ func (sim *EventServerSim) waitForConnection() {
 	var err error
 	sim.runState = runstate.Booting
 	sim.connection, err = sim.listener.Accept()
-	if err != nil {
+	if err != nil && sim.runState < runstate.Stopping {
 		sim.test.Fatalf("failed to accept connection: %v\n", err)
 	}
+	log.Info("Accepted incoming connection")
 	sim.listenForEvents()
 }
 
@@ -70,32 +175,36 @@ func (sim *EventServerSim) listenForEvents() {
 	reader := bufio.NewReader(sim.connection)
 
 	for i := atomic.LoadInt32(&sim.CorrectSendEvents); i < int32(sim.ExpectedEvents) && sim.runState < runstate.Stopping; i++ {
-		fmt.Printf("read event: %d/%d\n", i, sim.ExpectedEvents)
+		log.Info("read event: %d/%d\n", i, sim.ExpectedEvents)
 		protocolVersion, err := reader.ReadByte()
 		if err != nil {
-			fmt.Printf("failed to read protocol version: %v\n", err)
+			log.Error("failed to read protocol version: %v\n", err)
 			return
 		}
 		if protocolVersion != supportedProtocolVersion {
-			fmt.Printf("unsupported protocol version: %d\n", protocolVersion)
+			log.Error("unsupported protocol version: %d\n", protocolVersion)
 			return
 		}
 
 		var dataSize int32
 		if err := binary.Read(reader, binary.LittleEndian, &dataSize); err != nil {
-			fmt.Printf("failed to read data size: %v\n", err)
+			log.Error("failed to read data size: %v\n", err)
 		}
 
 		if dataSize < 1 {
-			fmt.Printf("data size incorrect: %d\n", dataSize)
+			log.Error("data size incorrect: %d\n", dataSize)
 		}
 		data := make([]byte, dataSize)
 		bytesRead, err := io.ReadFull(reader, data)
 		if err != nil {
-			fmt.Printf("failed to read data: %v\n", err)
+			log.Error("failed to read data: %v\n", err)
 		}
 
-		sim.test.Logf("%v", data[0:bytesRead])
+		factomEvent := &eventmessages.FactomEvent{}
+		err = proto.Unmarshal(data[0:bytesRead], factomEvent)
+		if err != nil {
+			log.Error("failed to unmarshal event: %v\n", err)
+		}
 		atomic.AddInt32(&sim.CorrectSendEvents, 1)
 	}
 	return

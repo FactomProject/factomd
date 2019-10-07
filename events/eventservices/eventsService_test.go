@@ -15,6 +15,7 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/gogo/protobuf/types"
 	"github.com/stretchr/testify/assert"
+	"strconv"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -23,6 +24,7 @@ import (
 var (
 	entries  = 10000
 	testHash = []byte("12345678901234567890123456789012")
+	tcpPort  = 12408
 )
 
 func TestEventServiceProtobuf(t *testing.T) {
@@ -54,9 +56,10 @@ func testSend(t *testing.T, msgs []interfaces.IMsg, outputFormat eventoutputform
 			RunState:        runstate.Running,
 		}
 
+		tcpPort = tcpPort + 1
 		sim := &EventServerSim{
 			Protocol:       "tcp",
-			Address:        ":12409",
+			Address:        ":" + strconv.Itoa(tcpPort),
 			ExpectedEvents: len(msgs),
 			test:           t,
 		}
@@ -84,9 +87,10 @@ func testLateReceivingServer(t *testing.T, msgs []interfaces.IMsg, outputFormat 
 		}
 		msgs := testHelper.CreateTestBlockCommitList()
 
+		tcpPort = tcpPort + 1
 		sim := &EventServerSim{
 			Protocol:       "tcp",
-			Address:        ":12410",
+			Address:        ":" + strconv.Itoa(tcpPort),
 			ExpectedEvents: len(msgs),
 			test:           t,
 		}
@@ -114,13 +118,16 @@ func testReceivingServerRestart(t *testing.T, msgs []interfaces.IMsg, outputForm
 		}
 		msgs := testHelper.CreateTestBlockCommitList()
 
+		tcpPort = tcpPort + 1
 		sim := &EventServerSim{
 			Protocol:       "tcp",
-			Address:        ":12411",
-			ExpectedEvents: len(msgs),
+			Address:        ":" + strconv.Itoa(tcpPort),
+			ExpectedEvents: 1,
 			test:           t,
 		}
-		sim.Start()
+		if err := sim.StartExternal(); err != nil {
+			t.Fatal("Could not launch external eventservice sim", err)
+		}
 		eventService, eventServiceControl := eventservices.NewEventServiceTo(state, buildParams(sim, outputFormat))
 		defer eventServiceControl.Shutdown()
 
@@ -130,15 +137,21 @@ func testReceivingServerRestart(t *testing.T, msgs []interfaces.IMsg, outputForm
 
 		// Restart the simulator
 		sim.Stop()
+		time.Sleep(5 * time.Second)
 
-		// We have to wait quite some time for the listener to really die,
-		// if we open a new listener too early the client's messages will go into the endless void
-		// In real life when the process dies we won't see this issue
-		time.Sleep(122 * time.Second)
+		correctEventsFromFirstSession := sim.CorrectSendEvents
+		sim.CorrectSendEvents = 0
+		sim.ExpectedEvents = len(msgs) - 1
 		sim.Start()
+
+		msg = msgs[1]
+		event = events.NewStateChangeEventFromMsg(eventmessages.EventSource_LIVE, eventmessages.EntityState_ACCEPTED, msg)
 		eventService.Send(event)
-		waitOnEvents(&sim.CorrectSendEvents, 1, 25*time.Second)
-		assert.EqualValues(t, 1, sim.CorrectSendEvents,
+		msg = msgs[2]
+		event = events.NewStateChangeEventFromMsg(eventmessages.EventSource_LIVE, eventmessages.EntityState_ACCEPTED, msg)
+		eventService.Send(event)
+		waitOnEvents(&sim.CorrectSendEvents, 2, 25*time.Second)
+		assert.EqualValues(t, 3, sim.CorrectSendEvents+correctEventsFromFirstSession,
 			"failed to receive the correct number of events %d != %d", 1, sim.CorrectSendEvents)
 	})
 }
