@@ -55,7 +55,7 @@ jobs:
 
       - run:
           name: Run Tests!
-          no_output_timeout: 2400s
+          no_output_timeout: 2400
           command: |
             export PATH="/tmp/go/bin:$PATH"
             export GOPATH=/tmp/go
@@ -75,7 +75,7 @@ jobs:
 
       - run:
           name: Run Full Tests!
-          no_output_timeout: 2400s
+          no_output_timeout: 2400
           command: |
             export PATH="/tmp/go/bin:$PATH"
             export GOPATH=/tmp/go
@@ -93,7 +93,7 @@ jobs:
 
       - run:
           name: Go Test with Coverage
-          no_output_timeout: 2400s
+          no_output_timeout: 2400
           command: |
             export PATH="/tmp/go/bin:$PATH"
             export GOPATH=/tmp/go
@@ -112,7 +112,7 @@ jobs:
 
       - run:
           name: Gofmt test
-          no_output_timeout: 60s
+          no_output_timeout: 60
           command: |
             export PATH="/tmp/go/bin:$PATH"
             export GOPATH=/tmp/go
