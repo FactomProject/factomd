@@ -88,12 +88,14 @@ func LaunchDBStateManagePlugin(w *worker.Thread, path string, inQueue interfaces
 	})
 
 	// We need to drain messages returned by the plugin.
-	go manageDrain(inQueue, manager, s, stop)
+	w.Run(func() {
+		manageDrain(inQueue, manager, s, stop)
+	})
 	// RunUploadController controls our uploading to ensure not overloading queues and consuming too
 	// much memory
-	go s.RunUploadController()
+	w.Run(s.RunUploadController)
 	// StartTorrentSyncing will use torrents to sync past our current height if we are not synced up
-	go s.StartTorrentSyncing()
+	w.Run(func() { s.StartTorrentSyncing() })
 
 	return manager, nil
 }

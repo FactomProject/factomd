@@ -584,7 +584,7 @@ func NetStart(w *worker.Thread, s *state.State, p *FactomParams, listenToStdin b
 	}
 
 	// Start the webserver
-	wsapi.Start(fnodes[0].State)
+	wsapi.Start(w, fnodes[0].State)
 	if fnodes[0].State.DebugExec() && llog.CheckFileName("graphData.txt") {
 		go printGraphData("graphData.txt", 30)
 	}
@@ -597,10 +597,10 @@ func NetStart(w *worker.Thread, s *state.State, p *FactomParams, listenToStdin b
 	leveldb.RegisterPrometheus()
 	RegisterPrometheus()
 
-	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelChannel, fnodes[0].State, connectionMetricsChannel, p2pNetwork, Build, p.NodeName)
-
-	go SimControl(p.ListenTo, listenToStdin)
-
+	w.Run(func() {
+		controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelChannel, fnodes[0].State, connectionMetricsChannel, p2pNetwork, Build, p.NodeName)
+	})
+	SimControl(w, p.ListenTo, listenToStdin)
 }
 
 func printGraphData(filename string, period int) {
@@ -655,6 +655,8 @@ func startServer(w *worker.Thread, i int, fnode *FactomNode, load bool) {
 
 	NetworkProcessorNet(w, fnode)
 	fnode.State.ValidatorLoop(w)
+	elections.Run(w, fnode.State)
+	fnode.State.StartMMR(w)
 
 	if load {
 		// REVIEW initialization logic is now orchestrated
@@ -664,8 +666,6 @@ func startServer(w *worker.Thread, i int, fnode *FactomNode, load bool) {
 
 	w.Run(fnode.State.GoSyncEntries)
 	w.Run(func() { Timer(fnode.State) })
-	w.Run(func() { elections.Run(fnode.State) })
-	w.Run(fnode.State.StartMMR)
 	w.Run(fnode.State.MissingMessageResponseHandler.Run)
 }
 

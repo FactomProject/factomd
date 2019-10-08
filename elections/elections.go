@@ -2,6 +2,7 @@ package elections
 
 import (
 	"fmt"
+	"github.com/FactomProject/factomd/worker"
 	"time"
 
 	"github.com/FactomProject/factomd/common/globals"
@@ -441,7 +442,7 @@ func (e *Elections) ProcessWaiting() {
 }
 
 // Runs the main loop for elections for this instance of factomd
-func Run(s *state.State) {
+func Run(w *worker.Thread, s *state.State) {
 	e := new(Elections)
 	s.Elections = e
 	e.State = s
@@ -454,28 +455,30 @@ func Run(s *state.State) {
 	e.Waiting = make(chan interfaces.IElectionMsg, 500)
 
 	// Actually run the elections
-	for {
-		msg := e.Input.BlockingDequeue().(interfaces.IElectionMsg)
-		e.LogMessage("election", fmt.Sprintf("exec %d", e.Electing), msg.(interfaces.IMsg))
+	w.Run(func() {
+		for {
+			msg := e.Input.BlockingDequeue().(interfaces.IElectionMsg)
+			e.LogMessage("election", fmt.Sprintf("exec %d", e.Electing), msg.(interfaces.IMsg))
 
-		valid := msg.ElectionValidate(e)
-		switch valid {
-		case -1:
-			// Do not process
-			continue
-		case 0:
-			// Drop the oldest message if at capacity
-			if len(e.Waiting) > 9*cap(e.Waiting)/10 {
-				<-e.Waiting
+			valid := msg.ElectionValidate(e)
+			switch valid {
+			case -1:
+				// Do not process
+				continue
+			case 0:
+				// Drop the oldest message if at capacity
+				if len(e.Waiting) > 9*cap(e.Waiting)/10 {
+					<-e.Waiting
+				}
+				// Waiting will get drained when a new election begins, or we move forward
+				e.Waiting <- msg
+				continue
 			}
-			// Waiting will get drained when a new election begins, or we move forward
-			e.Waiting <- msg
-			continue
-		}
-		msg.ElectionProcess(s, e)
+			msg.ElectionProcess(s, e)
 
-		//if msg.(interfaces.IMsg).Type() != constants.INTERNALEOMSIG { // If it's not an EOM check the authority set
-		//	CheckAuthSetsMatch("election.Run", e, s)
-		//}
-	}
+			//if msg.(interfaces.IMsg).Type() != constants.INTERNALEOMSIG { // If it's not an EOM check the authority set
+			//	CheckAuthSetsMatch("election.Run", e, s)
+			//}
+		}
+	})
 }

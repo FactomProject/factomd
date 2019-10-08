@@ -174,7 +174,7 @@ func (c *DebugMutex) lockCAS() {
 			}
 			go c.timeStarvation(WhereAmIString(2))
 			defer func() { c.done <- struct{}{} }() // End the timer when I get the lock
-		} // end of starvation detection code
+		}     // end of starvation detection code
 		for { // blocking waiting on lock loop
 			b := atomic.CompareAndSwapInt32(&c.lock, 0, 1) // set lock to 1 iff it is 0
 			if b {
