@@ -59,6 +59,7 @@ jobs:
           command: |
             export PATH="/tmp/go/bin:$PATH"
             export GOPATH=/tmp/go
+            mkdir /tmp/test-results
             cd /tmp/go/src/github.com/FactomProject/factomd/
             ./test.sh short
   test_full:
@@ -363,7 +364,7 @@ workflows:
           requires:
             - build
       - store_test_results:
-         path: test-results
+         path: /tmp/test-results
       - gofmt:
           filters:
             tags:
