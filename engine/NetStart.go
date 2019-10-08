@@ -642,17 +642,18 @@ func makeServer(s *state.State) *FactomNode {
 }
 
 func startServers(w *worker.Thread, load bool) {
-	for i, fnode := range fnodes {
-		w.Run(startServer(w, i, fnode, load))
-	}
+	w.Fork(func(w *worker.Thread, args ...interface{}){
+		for i, fnode := range fnodes {
+			if i > 0 {
+				fnode.State.Init()
+			}
+			w.Run(startServer(w, i, fnode, load))
+		}
+	})
 }
 
 func startServer(w *worker.Thread, i int, fnode *FactomNode, load bool) func() {
-	// TODO: bind to thread
 	return func() {
-		if i > 0 {
-			fnode.State.Init()
-		}
 		NetworkProcessorNet(fnode)
 		if load {
 			go state.LoadDatabase(fnode.State)
