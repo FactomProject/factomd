@@ -1,3 +1,5 @@
+hash: e8f68120ce8168ee17fd0a8130ecd515859d2802744318f6257fb50c4bdd4574
+updated: 2018-11-16T15:27:25.808760421-06:00
 hash: ce27f0e344d4d4599ecc62347805adba82e502441511bc80fb77847d626b4489
 updated: 2019-09-10T12:45:51.754437475+02:00
 imports:
@@ -5,11 +7,6 @@ imports:
   version: 3a771d992973f24aa725d07868b467d1ddfceafb
   subpackages:
   - quantile
-- name: github.com/bi-foundation/protobuf-graphql-extension
-  version: 7a2b6e1a585c9f93ed782c53805229956549ae1d
-  subpackages:
-  - graphqlproto
-  - graphqlproto/types
 - name: github.com/btcsuitereleases/btcutil
   version: f2b1058a82554c0c7c3b8809c5956c38374604d8
   subpackages:
@@ -38,6 +35,7 @@ imports:
 - name: github.com/FactomProject/factoid
   version: 3ee9763f86849036723d1b059216e08a6d34b184
 - name: github.com/FactomProject/factom
+  version: 8be07008a81f6a2aef8c8049f84bbb451f43aa1b
   version: e7717c4ab0726249c9fb9be4c9a07f62611d8b2e
 - name: github.com/FactomProject/go-bip32
   version: 3b593af1c415abc1017648e4eb24a88c32fee0f3
@@ -79,6 +77,23 @@ imports:
   version: f2f83b22c29e5abc60e3a95062ce1491d3b95371
 - name: github.com/FactomProject/web
   version: 5bb394cc64239b77f571bbddc9a47c80c4d2283f
+- name: github.com/gogo/protobuf
+  version: 8a5ed79f688836cf007ca23aefe0299791e7bea5
+  subpackages:
+  - gogoproto
+  - jsonpb
+  - proto
+  - protoc-gen-gogo/descriptor
+  - sortkeys
+  - types
+- name: github.com/golang/protobuf
+  version: 6c65a5562fc06764971b7c5d05c76c75e84bdbf7
+  subpackages:
+  - proto
+  - ptypes
+  - ptypes/any
+  - ptypes/duration
+  - ptypes/timestamp
 - name: github.com/hashicorp/go-hclog
   version: 61d530d6c27f994fb6c83b80f99a69c54125ec8a
 - name: github.com/hashicorp/go-plugin
@@ -139,6 +154,7 @@ imports:
 - name: github.com/spf13/pflag
   version: 298182f68c66c05229eb03ac171abe6e309ee79a
 - name: github.com/stretchr/testify
+  version: f35b8ab0b5a2cef36673838d662e249dd9c94686
   version: 221dbe5ed46703ee255b1da0dec05086f5035f62
   subpackages:
   - assert
@@ -221,3 +237,18 @@ imports:
   version: ec4a0fea49c7b46c2aeb0b51aac55779c607e52b
 - name: gopkg.in/yaml.v2
   version: 5420a8b6744d3b0345ab293f6fcba19c978f1183
+testImports:
+- name: github.com/davecgh/go-spew
+  version: d8f796af33cc11cb798c1aaeb27a4ebc5099927d
+  subpackages:
+  - spew
+- name: github.com/FactomProject/go-spew
+  version: ddfaec9b42f58fc8172b0cbb03b21c6668dd0a46
+  subpackages:
+  - spew
+- name: github.com/pmezard/go-difflib
+  version: 792786c7400a136282c1664665ae0a8db921c6c2
+  subpackages:
+  - difflib
+
+
