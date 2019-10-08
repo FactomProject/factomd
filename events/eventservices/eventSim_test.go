@@ -38,7 +38,7 @@ var stdin io.Writer
 var scanner *bufio.Scanner
 
 func init() {
-	sim.test.Log("Event server simulator")
+	log.Info("Event server simulator")
 	sim = &EventServerSim{}
 	flag.StringVar(&sim.Protocol, "protocol", "tcp", "Protocol")
 	flag.StringVar(&sim.Address, "address", "", "Binding adress")
