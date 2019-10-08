@@ -59,7 +59,8 @@ jobs:
           command: |
             export PATH="/tmp/go/bin:$PATH"
             export GOPATH=/tmp/go
-
+            export GOROOT=/usr/local/go
+            mkdir /tmp/test-results
             cd /tmp/go/src/github.com/FactomProject/factomd/
             ./test.sh short
       - store_test_results:
