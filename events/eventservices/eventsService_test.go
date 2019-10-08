@@ -141,8 +141,9 @@ func testReceivingServerRestart(t *testing.T, msgs []interfaces.IMsg, outputForm
 
 		correctEventsFromFirstSession := sim.CorrectSendEvents
 		sim.CorrectSendEvents = 0
-		sim.ExpectedEvents = len(msgs) - 1
+		sim.ExpectedEvents = 2
 		sim.Start()
+		defer sim.Stop()
 
 		msg = msgs[1]
 		event = events.NewStateChangeEventFromMsg(eventmessages.EventSource_LIVE, eventmessages.EntityState_ACCEPTED, msg)
@@ -153,6 +154,7 @@ func testReceivingServerRestart(t *testing.T, msgs []interfaces.IMsg, outputForm
 		waitOnEvents(&sim.CorrectSendEvents, 2, 25*time.Second)
 		assert.EqualValues(t, 3, sim.CorrectSendEvents+correctEventsFromFirstSession,
 			"failed to receive the correct number of events %d != %d", 1, sim.CorrectSendEvents)
+
 	})
 }
 
