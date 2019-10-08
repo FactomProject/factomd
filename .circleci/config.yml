@@ -362,6 +362,8 @@ workflows:
               only: /.*/
           requires:
             - build
+      - store_test_results:
+         path: test-results
       - gofmt:
           filters:
             tags:

@@ -30,18 +30,16 @@ type EventServerSim struct {
 	listener          net.Listener
 	connection        net.Conn
 	runState          runstate.RunState
-	instance          int
 }
 
 var sim *EventServerSim
 var cmd *exec.Cmd
 var stdin io.Writer
 var scanner *bufio.Scanner
-var ctr = 0
 
 func init() {
-	log.Info("Event server simulator")
-	sim = &EventServerSim{instance: ctr}
+	sim.test.Log("Event server simulator")
+	sim = &EventServerSim{}
 	flag.StringVar(&sim.Protocol, "protocol", "tcp", "Protocol")
 	flag.StringVar(&sim.Address, "address", "", "Binding adress")
 	flag.IntVar(&sim.ExpectedEvents, "expectedevents", 0, "Expected events")
@@ -71,8 +69,6 @@ func (sim *EventServerSim) StartExternal() error {
 func TestRunExternal(t *testing.T) {
 	defer func() { fmt.Println("exit") }()
 
-	ctr++
-	sim.instance = ctr
 	sim.test = t
 	if sim.ExpectedEvents == 0 || len(sim.Address) == 0 {
 		fmt.Println("commandline parameters not set, ignoring test")
@@ -89,6 +85,8 @@ func TestRunExternal(t *testing.T) {
 func waitForResponse(response string) (string, error) {
 	for scanner.Scan() {
 		text := scanner.Text()
+		fmt.Println("####", text)
+
 		if strings.HasPrefix(text, response) {
 			return text, nil
 		} else if text == "exit" {
@@ -102,8 +100,6 @@ func (sim *EventServerSim) Start() {
 	var err error
 	sim.runState = runstate.New
 	sim.CorrectSendEvents = 0
-	ctr++
-	sim.instance = ctr
 	sim.listener, err = net.Listen(sim.Protocol, sim.Address)
 	if err != nil {
 		sim.test.Fatal(err)
@@ -174,7 +170,6 @@ func (sim *EventServerSim) disconnect() {
 }
 
 func (sim *EventServerSim) listenForEvents() {
-	log.Infof("listenForEvents instance %d", sim.instance)
 	defer sim.finalize()
 	sim.runState = runstate.Running
 	reader := bufio.NewReader(sim.connection)
@@ -211,14 +206,9 @@ func (sim *EventServerSim) listenForEvents() {
 }
 
 func (sim *EventServerSim) finalize() {
-	log.Infof("finalize instance %d", sim.instance)
-
 	if r := recover(); r != nil {
 		sim.test.Fatalf("Event simulator failed: %v", r)
 	}
-	log.Info(">disconnect")
 	sim.disconnect()
-
-	log.Infof(">runState to stopped instance %d", sim.instance)
 	sim.runState = runstate.Stopped
 }
