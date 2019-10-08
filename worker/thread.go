@@ -15,12 +15,14 @@ type RegistryHandler func(r *Thread, initFunction Handle, args ...interface{})
 // worker process with structured callbacks
 // parent relation helps trace worker dependencies
 type Thread struct {
-	RegisterNew RegistryHandler // RegistryCallback for sub-threads
-	Index       int
-	Parent      int
-	onRun       func()
-	onComplete  func()
-	onExit      func()
+	RegisterThread  RegistryHandler // RegistryCallback for sub-threads
+	RegisterProcess RegistryHandler // callback to fork a new process
+	PID             int
+	ID              int
+	Parent          int
+	onRun           func()
+	onComplete      func()
+	onExit          func()
 }
 
 // indicates a specific thread callback
@@ -45,7 +47,13 @@ func (r *Thread) Run(runFunc func()) {
 // Spawn a child thread and register callbacks
 // this is useful to bind functions to Init/Run/Stop callbacks
 func (r *Thread) Spawn(initFunction Handle, args ...interface{}) {
-	r.RegisterNew(r, initFunction, args...)
+	r.RegisterThread(r, initFunction, args...)
+}
+
+// Fork process with it's own thread lifecycle
+// NOTE: it's required to run the process
+func (r *Thread) Fork(initFunction Handle, args ...interface{}) {
+	r.RegisterProcess(r, initFunction, args...)
 }
 
 // Invoke specific callbacks synchronously
@@ -88,5 +96,5 @@ func (r *Thread) OnExit(f func()) *Thread {
 
 // root level threads are their own parent
 func (r *Thread) IsRoot() bool {
-	return r.Index == r.Parent
+	return r.ID == r.Parent
 }

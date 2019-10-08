@@ -42,19 +42,19 @@ var packageLogger = log.WithFields(log.Fields{"package": "engine"})
 
 // start the process
 func Run(params *FactomParams) {
-	proc := registry.New()
-	proc(func(w *worker.Thread, args ...interface{}) {
+	p := registry.New()
+	p.Register(func(w *worker.Thread, args ...interface{}) {
 		state := Factomd(w, params, params.Sim_Stdin)
-		w.OnRun(func(){
+		w.OnRun(func() {
 			for state.GetRunState() != runstate.Stopped {
 				time.Sleep(time.Second)
 			}
-		}).OnComplete(func(){
+		}).OnComplete(func() {
 			fmt.Println("Waiting to Shut Down") // This may not be necessary anymore with the new run state method
 			time.Sleep(time.Second * 5)
 		})
 	})
-	proc.Run()
+	p.Run()
 }
 
 func Factomd(w *worker.Thread, params *FactomParams, listenToStdin bool) interfaces.IState {

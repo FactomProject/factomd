@@ -1,7 +1,6 @@
 package longtest
 
 import (
-	"github.com/FactomProject/factomd/registry"
 	. "github.com/FactomProject/factomd/testHelper"
 	"testing"
 )
@@ -20,7 +19,8 @@ func TestRegistryViz(t *testing.T) {
 	WaitBlocks(state0, 2)
 	_ = state0
 	t.Log("Graph of Thread Dependencies:")
-	t.Log(registry.Graph())
+	// FIXME
+	//t.Log(registry.Graph())
 }
 
 func TestRegistryVizExistingDB(t *testing.T) {
@@ -34,5 +34,6 @@ func TestRegistryVizExistingDB(t *testing.T) {
 	StatusEveryMinute(state0)
 	WaitBlocks(state0, 2)
 	t.Log("Graph of Thread Dependencies:")
-	t.Log(registry.Graph())
+	// FIXME
+	//t.Log(registry.Graph())
 }

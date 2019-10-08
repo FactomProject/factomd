@@ -126,14 +126,14 @@ func StartSim(nodeCount int, UserAddedOptions map[string]string) *state.State {
 			typeOfT.Field(i).Name, f.Type(), f.Interface())
 	}
 	fmt.Println()
-	proc := registry.New()
-	proc(func(w *worker.Thread, args ...interface{}) {
+	p := registry.New()
+	p.Register(func(w *worker.Thread, args ...interface{}) {
 		engine.Factomd(w, params, false)
 	})
-	go proc.Run()
-	proc.WaitForRunning()
+	go p.Run()
+	p.WaitForRunning()
 	// KLUDGE: is there a better way to register this callback?
-	time.Sleep(50*time.Millisecond)
+	time.Sleep(50 * time.Millisecond)
 
 	return engine.GetFnodes()[0].State
 }

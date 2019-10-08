@@ -559,7 +559,7 @@ func NetStart(w *worker.Thread, s *state.State, p *FactomParams, listenToStdin b
 		go LoadJournal(s, p.Journal)
 		startServers(w, false)
 	} else {
-		startServers(w,true)
+		startServers(w, true)
 	}
 
 	// Anchoring related configurations
@@ -647,7 +647,7 @@ func startServers(w *worker.Thread, load bool) {
 	}
 }
 
-func startServer(w *worker.Thread, i int, fnode *FactomNode, load bool)  func() {
+func startServer(w *worker.Thread, i int, fnode *FactomNode, load bool) func() {
 	// TODO: bind to thread
 	return func() {
 		if i > 0 {

@@ -16,17 +16,17 @@ func subThreadFactory(t *testing.T, name string) worker.Handle {
 
 		w.Run(func() {
 			// add a thread with no initialization behavior
-			t.Logf("running %v %s", w.Index, fmt.Sprintf("%s/%s", name, "qux"))
+			t.Logf("running %v %s", w.ID, fmt.Sprintf("%s/%s", name, "qux"))
 		})
 
 		w.OnRun(func() {
-			t.Logf("running %v %s", w.Index, name)
+			t.Logf("running %v %s", w.ID, name)
 			//time.Sleep(50*time.Millisecond)
 		}).OnComplete(func() {
-			t.Logf("complete %v %s", w.Index, name)
+			t.Logf("complete %v %s", w.ID, name)
 			//time.Sleep(50*time.Millisecond)
 		}).OnExit(func() {
-			t.Logf("exit %v %s", w.Index, name)
+			t.Logf("exit %v %s", w.ID, name)
 			//time.Sleep(50*time.Millisecond)
 		})
 	}
@@ -37,19 +37,23 @@ func threadFactory(t *testing.T, name string) worker.Handle {
 	return func(w *worker.Thread, args ...interface{}) {
 		t.Logf("initializing %s", name)
 
+		// add sub-thread
 		w.Spawn(subThreadFactory(t, fmt.Sprintf("%v/%v", name, "sub")))
 
+		// add sub-process - entire thread lifecycle lives inside the 'running' lifecycle of parent thread
+		w.Fork(subThreadFactory(t, fmt.Sprintf("%v/%v", name, "subproc")))
+
 		w.OnRun(func() {
-			t.Logf("running %v %s", w.Index, name)
+			t.Logf("running %v %s", w.ID, name)
 			//time.Sleep(50*time.Millisecond)
 			assert.Panics(t, func() {
 				w.Spawn(subThreadFactory(t, fmt.Sprintf("%v/%v", name, "sub")))
 			}, "should fail when trying to spawn outside of init phase")
 		}).OnComplete(func() {
-			t.Logf("complete %v %s", w.Index, name)
+			t.Logf("complete %v %s", w.ID, name)
 			//time.Sleep(50*time.Millisecond)
 		}).OnExit(func() {
-			t.Logf("exit %v %s", w.Index, name)
+			t.Logf("exit %v %s", w.ID, name)
 			//time.Sleep(50*time.Millisecond)
 		})
 	}
@@ -57,10 +61,9 @@ func threadFactory(t *testing.T, name string) worker.Handle {
 
 func TestRegisterThread(t *testing.T) {
 	// create a process with 3 root nodes
-	reg := registry.New()
-	reg(threadFactory(t, "foo"))
-	reg(threadFactory(t, "bar"))
-	reg(threadFactory(t, "baz"))
-	reg.Run()
-	t.Log(registry.Graph())
+	p := registry.New()
+	p.Register(threadFactory(t, "foo"))
+	p.Register(threadFactory(t, "bar"))
+	p.Run()
+	//t.Log(p.Graph())
 }
