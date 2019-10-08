@@ -49,8 +49,9 @@ func (p *process) addThread(args ...interface{}) *worker.Thread {
 	p.exitWatch.Add(1)
 
 	w := &worker.Thread{
-		RegisterThread:  p.spawn, // inject spawn callback
-		RegisterProcess: p.fork,  // fork another process
+		RegisterThread:           p.spawn,                   // inject spawn callback
+		RegisterProcess:          p.fork,                    // fork another process
+		RegisterInterruptHandler: fnode.AddInterruptHandler, // add SIGINT behavior
 	}
 
 	p.Mutex.Lock()
@@ -115,20 +116,21 @@ func (p *process) fork(r *worker.Thread, initFunction worker.Handle, args ...int
 }
 
 // interface to avoid exposing registry internals
-type RegHook struct {
-	Register func(worker worker.Handle, args ...interface{})
-	Run      func()
-	Exit     func()
+type regHook struct {
+	Register       func(worker worker.Handle, args ...interface{})
+	Run            func()
+	Exit           func()
 	WaitForRunning func()
 }
 
-func New() RegHook {
+// create a new root process
+func New() regHook {
 	p := new()
 
-	return RegHook{
-		Register: p.register,
-		Run:      p.run,
-		Exit:     p.exit,
+	return regHook{
+		Register:       p.register,
+		Run:            p.run,
+		Exit:           p.exit,
 		WaitForRunning: func() { p.runWait.Wait() },
 	}
 }
@@ -144,7 +146,7 @@ func new() *process {
 	p.ID = len(globalRegistry.Index)
 	p.Parent = p.ID // root processes are their own parent
 	globalRegistry.Index = append(globalRegistry.Index, p)
-	fnode.AddInterruptHandler(p.exit)
+	fnode.AddInterruptHandler(p.exit) // trigger exit behavior in the case of SIGINT
 	p.exitWait.Add(1)
 	return p
 }

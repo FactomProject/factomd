@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/FactomProject/factomd/fnode"
 	"github.com/FactomProject/factomd/worker"
 	"io/ioutil"
 	"math"
@@ -200,7 +199,7 @@ func NetStart(w *worker.Thread, s *state.State, p *FactomParams, listenToStdin b
 	fmt.Println(">>>>>>>>>>>>>>>> Listening to Node", p.ListenTo)
 	fmt.Println(">>>>>>>>>>>>>>>>")
 
-	fnode.AddInterruptHandler(func() {
+	w.RegisterInterruptHandler(func() {
 		fmt.Print("<Break>\n")
 		fmt.Print("Gracefully shutting down the server...\n")
 		for _, fnode := range fnodes {
@@ -413,13 +412,13 @@ func NetStart(w *worker.Thread, s *state.State, p *FactomParams, listenToStdin b
 		}
 		p2pNetwork = new(p2p.Controller).Init(ci)
 		fnodes[0].State.NetworkController = p2pNetwork
-		p2pNetwork.StartNetwork()
+		p2pNetwork.StartNetwork(w)
 		p2pProxy = new(P2PProxy).Init(nodeName, "P2P Network").(*P2PProxy)
 		p2pProxy.FromNetwork = p2pNetwork.FromNetwork
 		p2pProxy.ToNetwork = p2pNetwork.ToNetwork
 
 		fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
-		p2pProxy.StartProxy()
+		p2pProxy.StartProxy(w)
 
 		w.Run(networkHousekeeping) // This goroutine executes once a second to keep the proxy apprised of the network status.
 	}
@@ -546,7 +545,7 @@ func NetStart(w *worker.Thread, s *state.State, p *FactomParams, listenToStdin b
 	fnodes[0].State.SetTorrentUploader(p.TorUpload)
 	if p.TorManage {
 		fnodes[0].State.SetUseTorrent(true)
-		manager, err := LaunchDBStateManagePlugin(p.PluginPath, fnodes[0].State.InMsgQueue(), fnodes[0].State, fnodes[0].State.GetServerPrivateKey(), p.MemProfileRate)
+		manager, err := LaunchDBStateManagePlugin(w, p.PluginPath, fnodes[0].State.InMsgQueue(), fnodes[0].State, fnodes[0].State.GetServerPrivateKey(), p.MemProfileRate)
 		if err != nil {
 			panic("Encountered an error while trying to use torrent DBState manager: " + err.Error())
 		}
@@ -642,31 +641,32 @@ func makeServer(s *state.State) *FactomNode {
 }
 
 func startServers(w *worker.Thread, load bool) {
-	w.Fork(func(w *worker.Thread, args ...interface{}){
+	w.Spawn(func(w *worker.Thread, args ...interface{}) {
 		for i, fnode := range fnodes {
 			if i > 0 {
 				fnode.State.Init()
 			}
-			w.Run(startServer(w, i, fnode, load))
+			startServer(w, i, fnode, load)
 		}
 	})
 }
 
-func startServer(w *worker.Thread, i int, fnode *FactomNode, load bool) func() {
-	return func() {
-		NetworkProcessorNet(fnode)
-		if load {
-			go state.LoadDatabase(fnode.State)
-		}
-		go fnode.State.GoSyncEntries()
-		go Timer(fnode.State)
-		go elections.Run(fnode.State)
-		go fnode.State.ValidatorLoop()
+func startServer(w *worker.Thread, i int, fnode *FactomNode, load bool) {
 
-		// moved StartMMR here to ensure Init goroutine only called once and not twice (removed from state.go)
-		go fnode.State.StartMMR()
-		go fnode.State.MissingMessageResponseHandler.Run()
+	NetworkProcessorNet(w, fnode)
+	fnode.State.ValidatorLoop(w)
+
+	if load {
+		// REVIEW initialization logic is now orchestrated
+		// so this doesn't need to be a goroutine
+		state.LoadDatabase(fnode.State)
 	}
+
+	w.Run(fnode.State.GoSyncEntries)
+	w.Run(func() { Timer(fnode.State) })
+	w.Run(func() { elections.Run(fnode.State) })
+	w.Run(fnode.State.StartMMR)
+	w.Run(fnode.State.MissingMessageResponseHandler.Run)
 }
 
 func setupFirstAuthority(s *state.State) {

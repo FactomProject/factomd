@@ -7,6 +7,7 @@ package engine
 import (
 	"bytes"
 	"fmt"
+	"github.com/FactomProject/factomd/worker"
 	"os"
 
 	// "github.com/FactomProject/factomd/common/constants"
@@ -196,10 +197,10 @@ func (f *P2PProxy) Len() int {
 //////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
-func (p *P2PProxy) StartProxy() {
+func (p *P2PProxy) StartProxy(w *worker.Thread) {
 	p.logger.Info("Starting P2PProxy")
-	go p.ManageOutChannel() // Bridges between network format Parcels and factomd messages (incl. addressing to peers)
-	go p.ManageInChannel()
+	w.Run(p.ManageOutChannel) // Bridges between network format Parcels and factomd messages (incl. addressing to peers)
+	w.Run(p.ManageInChannel)
 }
 
 func (p *P2PProxy) StopProxy() {

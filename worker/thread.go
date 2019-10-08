@@ -4,25 +4,27 @@ import (
 	"fmt"
 )
 
-/*
-Defines an interface that we can use to register
-coordinated behavior for starting/stopping various parts of factomd
-*/
+// callback handle
 type Handle func(r *Thread, args ...interface{})
 
+// interface to registry
 type RegistryHandler func(r *Thread, initFunction Handle, args ...interface{})
+
+// interface to catch SIGINT
+type InterruptHandler func(func())
 
 // worker process with structured callbacks
 // parent relation helps trace worker dependencies
 type Thread struct {
-	RegisterThread  RegistryHandler // RegistryCallback for sub-threads
-	RegisterProcess RegistryHandler // callback to fork a new process
-	PID             int
-	ID              int
-	Parent          int
-	onRun           func()
-	onComplete      func()
-	onExit          func()
+	RegisterThread           RegistryHandler  // RegistryCallback for sub-threads
+	RegisterProcess          RegistryHandler  // callback to fork a new process
+	RegisterInterruptHandler InterruptHandler // register w/ global SIGINT handler
+	PID                      int              // process ID that this thread belongs to
+	ID                       int              // thread id
+	Parent                   int              // parent thread
+	onRun                    func()           // execute during 'run' state
+	onComplete               func()           // execute after all run functions complete
+	onExit                   func()           // executes during SIGINT or after shutdown of run state
 }
 
 // indicates a specific thread callback

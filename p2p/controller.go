@@ -12,6 +12,7 @@ package p2p
 
 import (
 	"fmt"
+	"github.com/FactomProject/factomd/worker"
 	"math/rand"
 	"net"
 	"strings"
@@ -192,7 +193,7 @@ func (c *Controller) Init(ci ControllerInit) *Controller {
 }
 
 // StartNetwork configures the network, starts the runloop
-func (c *Controller) StartNetwork() {
+func (c *Controller) StartNetwork(w *worker.Thread) {
 	c.logger.Info("Starting network")
 	c.lastStatusReport = time.Now()
 	// start listening on port given
@@ -200,7 +201,7 @@ func (c *Controller) StartNetwork() {
 	// Dial all the gathered special peers
 	c.dialSpecialPeers()
 	// Start the runloop
-	go c.runloop()
+	w.Run(c.runloop)
 }
 
 func (c *Controller) DialPeer(peer Peer, persistent bool) {
