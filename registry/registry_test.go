@@ -65,5 +65,5 @@ func TestRegisterThread(t *testing.T) {
 	p.Register(threadFactory(t, "foo"))
 	p.Register(threadFactory(t, "bar"))
 	p.Run()
-	//t.Log(p.Graph())
+	t.Log(registry.Graph())
 }

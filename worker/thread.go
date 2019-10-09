@@ -2,6 +2,8 @@ package worker
 
 import (
 	"fmt"
+	"runtime"
+	"strings"
 )
 
 // callback handle
@@ -22,6 +24,7 @@ type Thread struct {
 	PID                      int              // process ID that this thread belongs to
 	ID                       int              // thread id
 	Parent                   int              // parent thread
+	Caller                   string           // runtime location where thread starts
 	onRun                    func()           // execute during 'run' state
 	onComplete               func()           // execute after all run functions complete
 	onExit                   func()           // executes during SIGINT or after shutdown of run state
@@ -37,11 +40,26 @@ const (
 	EXIT
 )
 
+// KLUDGE: duplicated from atomic
+var Prefix int // index to trim the file paths to just the interesting parts
+
+func init() {
+	_, fn, _, _ := runtime.Caller(0)
+	end := strings.Index(fn, "factomd/") + len("factomd")
+	s := fn[0:end]
+	_ = s
+	Prefix = end
+}
+
 // convenience wrapper starts a closure in a sub-thread
 // useful for situations where only Run callback is needed
 // can be thought of as 'leaves' of the thread runtime dependency graph
 func (r *Thread) Run(runFunc func()) {
+	_, file, line, _ := runtime.Caller(1)
+	caller := fmt.Sprintf("%s:%v", file[Prefix:], line)
+
 	r.Spawn(func(w *Thread, args ...interface{}) {
+		w.Caller = caller
 		w.OnRun(runFunc)
 	})
 }
@@ -49,7 +67,13 @@ func (r *Thread) Run(runFunc func()) {
 // Spawn a child thread and register callbacks
 // this is useful to bind functions to Init/Run/Stop callbacks
 func (r *Thread) Spawn(initFunction Handle, args ...interface{}) {
-	r.RegisterThread(r, initFunction, args...)
+	_, file, line, _ := runtime.Caller(1)
+	caller := fmt.Sprintf("%s:%v", file[Prefix:], line)
+
+	r.RegisterThread(r, func(w *Thread, args ...interface{}){
+		w.Caller = caller
+		initFunction(w, args...)
+	}, args...)
 }
 
 // Fork process with it's own thread lifecycle
