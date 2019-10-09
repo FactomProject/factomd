@@ -4,6 +4,7 @@ import (
 	"github.com/FactomProject/factomd/registry"
 	. "github.com/FactomProject/factomd/testHelper"
 	"testing"
+	"time"
 )
 
 // just load up and print out visualization of registered threads
@@ -32,7 +33,8 @@ func TestRegistryVizExistingDB(t *testing.T) {
 	}
 	state0 := StartSim(1, params)
 	StatusEveryMinute(state0)
-	WaitBlocks(state0, 2)
 	t.Log("Graph of Thread Dependencies:")
 	t.Log(registry.Graph())
+
+	time.Sleep(500*time.Minute)
 }

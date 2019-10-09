@@ -79,9 +79,7 @@ func (s *State) ValidatorLoop(w *worker.Thread) {
 
 	w.Run(s.DoProcessing)
 
-	// Look for pending messages, and get one if there is one.
 	w.Run(func() {
-
 		defer func() {
 			if r := recover(); r != nil {
 				fmt.Println("A panic state occurred in ValidatorLoop.", r)
@@ -90,6 +88,7 @@ func (s *State) ValidatorLoop(w *worker.Thread) {
 			}
 		}()
 
+		// Look for pending messages, and get one if there is one.
 		for { // this is the message sort
 			var msg interfaces.IMsg
 

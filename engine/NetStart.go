@@ -659,9 +659,7 @@ func startServer(w *worker.Thread, i int, fnode *FactomNode, load bool) {
 	fnode.State.StartMMR(w)
 
 	if load {
-		// REVIEW initialization logic is now orchestrated
-		// so this doesn't need to be a goroutine
-		state.LoadDatabase(fnode.State)
+		w.Run(func() { state.LoadDatabase(fnode.State) })
 	}
 
 	w.Run(fnode.State.GoSyncEntries)
