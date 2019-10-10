@@ -3,6 +3,8 @@ package wsapi_test
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/FactomProject/factomd/registry"
+	"github.com/FactomProject/factomd/worker"
 	"net/http"
 	"reflect"
 	"strings"
@@ -21,7 +23,12 @@ import (
 
 func TestHandleV2Requests(t *testing.T) {
 	state := testHelper.CreateAndPopulateTestState()
-	Start(state)
+	p := registry.New()
+	p.Register(func(w *worker.Thread, args ...interface{}) {
+		Start(w, state)
+	})
+	go p.Run()
+	p.WaitForRunning()
 
 	cases := map[string]struct {
 		Method     string
@@ -316,7 +323,12 @@ func TestHandleV2GetRaw(t *testing.T) {
 
 	//initializing server
 	state := testHelper.CreateAndPopulateTestState()
-	Start(state)
+	p := registry.New()
+	p.Register(func(w *worker.Thread, args ...interface{}) {
+		Start(w, state)
+	})
+	go p.Run()
+	p.WaitForRunning()
 
 	for i, v := range toTest {
 		data := new(HashRequest)

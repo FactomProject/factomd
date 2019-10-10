@@ -11,13 +11,12 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/common/primitives"
 
-	"github.com/FactomProject/factomd/common/messages/msgbase"
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
-
-var _ = log.Printf
 
 // eLogger is for EOM Messages and extends packageLogger
 var eLogger = packageLogger.WithFields(log.Fields{"message": "EOM"})
@@ -231,6 +230,7 @@ func (m *EOM) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling EOM message: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling EOM message: %v", r)
 		}
 	}()
 	newData = data
@@ -361,13 +361,15 @@ func (m *EOM) String() string {
 	if m.FactoidVM {
 		f = "F"
 	}
-	return fmt.Sprintf("%6s-%30s FF %2d %1s-Leader[%x] hash[%x] %s",
+	return fmt.Sprintf("%6s-%30s FF %2d %1s-Leader[%x] hash[%x] ts %d %s %s",
 		"EOM",
-		fmt.Sprintf("DBh/VMh/h %d/%d/-- minute %d", m.DBHeight, m.VMIndex, m.Minute),
+		fmt.Sprintf("DBh/VMh/h %d/%02d/-- minute %2d", m.DBHeight, m.VMIndex, m.Minute),
 		m.SysHeight,
 		f,
 		m.ChainID.Bytes()[3:6],
 		m.GetMsgHash().Bytes()[:3],
+		m.Timestamp.GetTimeMilli(),
+		m.Timestamp.String(),
 		local)
 }
 

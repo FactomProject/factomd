@@ -13,6 +13,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -49,6 +50,7 @@ func (fc *FaultCore) MarshalCore() (data []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error marshalling Server Fault Core: %v", r)
+			llog.LogPrintf("recovery", "Error marshalling Server Fault Core: %v", r)
 		}
 	}()
 

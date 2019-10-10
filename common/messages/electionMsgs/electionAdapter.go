@@ -17,6 +17,8 @@ import (
 	//"github.com/FactomProject/factomd/state"
 
 	"github.com/FactomProject/factomd/electionsCore/messages"
+
+	llog "github.com/FactomProject/factomd/log"
 )
 
 // ElectionAdapter is used to drive the election package, abstracting away factomd
@@ -48,6 +50,7 @@ type ElectionAdapter struct {
 func (ea *ElectionAdapter) VolunteerControlsStatus() (status string) {
 	defer func() {
 		if r := recover(); r != nil {
+			llog.LogPrintf("recovery", "Fail in VolunteerControlsStatus %v", r)
 			status = ""
 			return
 		}

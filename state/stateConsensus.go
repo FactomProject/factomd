@@ -24,6 +24,7 @@ import (
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/util/atomic"
 
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -41,7 +42,7 @@ var _ = (*hash.Hash32)(nil)
 //***************************************************************
 
 func (s *State) CheckFileName(name string) bool {
-	return messages.CheckFileName(name)
+	return llog.CheckFileName(name)
 }
 
 func (s *State) DebugExec() (ret bool) {
@@ -51,9 +52,9 @@ func (s *State) DebugExec() (ret bool) {
 func (s *State) LogMessage(logName string, comment string, msg interfaces.IMsg) {
 	if s.DebugExec() {
 		if s == nil {
-			messages.StateLogMessage("unknown", 0, 0, logName, comment, msg)
+			llog.StateLogMessage("unknown", 0, 0, logName, comment, msg)
 		} else {
-			messages.StateLogMessage(s.FactomNodeName, int(s.LLeaderHeight), int(s.CurrentMinute), logName, comment, msg)
+			llog.StateLogMessage(s.FactomNodeName, int(s.LLeaderHeight), int(s.CurrentMinute), logName, comment, msg)
 		}
 	}
 }
@@ -61,9 +62,9 @@ func (s *State) LogMessage(logName string, comment string, msg interfaces.IMsg) 
 func (s *State) LogPrintf(logName string, format string, more ...interface{}) {
 	if s.DebugExec() {
 		if s == nil {
-			messages.StateLogPrintf("unknown", 0, 0, logName, format, more...)
+			llog.StateLogPrintf("unknown", 0, 0, logName, format, more...)
 		} else {
-			messages.StateLogPrintf(s.FactomNodeName, int(s.LLeaderHeight), int(s.CurrentMinute), logName, format, more...)
+			llog.StateLogPrintf(s.FactomNodeName, int(s.LLeaderHeight), int(s.CurrentMinute), logName, format, more...)
 		}
 	}
 }
@@ -179,7 +180,7 @@ func (s *State) Validate(msg interfaces.IMsg) (validToSend int, validToExec int)
 	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
 	if !ok {
 		consenLogger.WithFields(msg.LogFields()).Debug("executeMsg (Replay Invalid)")
-		s.LogMessage("executeMsg", "drop, INTERNAL_REPLAY", msg)
+		s.LogMessage("executeMsg", "drop, INTERNAL_REPLAY2", msg)
 		return -1, -1
 	}
 
@@ -776,6 +777,7 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		if s.LLeaderHeight != dbheight {
 			fmt.Fprintf(os.Stderr, "State move between non-sequential heights from %d to %d\n", s.LLeaderHeight, dbheight)
 		}
+
 		//force sync state to a rational  state for between minutes
 		s.Syncing = false    // movestatetoheight
 		s.EOM = false        // movestatetoheight
@@ -2331,7 +2333,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		if dblk != nil {
 			hashes := dblk.GetEntryHashes()
 			if hashes != nil {
-				messages.LogPrintf("marshalsizes.txt", "DirectoryBlock unmarshaled entry count: %d", len(hashes))
+				llog.LogPrintf("marshalsizes.txt", "DirectoryBlock unmarshaled entry count: %d", len(hashes))
 			}
 		}
 		if err != nil || dblk == nil {

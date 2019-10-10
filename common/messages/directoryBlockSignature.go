@@ -16,6 +16,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 
 	"github.com/FactomProject/factomd/common/messages/msgbase"
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -289,6 +290,7 @@ func (m *DirectoryBlockSignature) UnmarshalBinaryData(data []byte) (newData []by
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling: %v", r)
 		}
 	}()
 
@@ -482,7 +484,7 @@ func (m *DirectoryBlockSignature) String() string {
 		m.DirectoryBlockHeader.GetPrevKeyMR().Bytes()[:3],
 		headerHash.Bytes()[:3],
 		m.DirectoryBlockHeader.GetBodyMR().Bytes()[:3],
-		m.Timestamp,
+		m.Timestamp.GetTimeMilli(),
 		m.Timestamp.String(),
 		m.GetHash().Bytes()[:3],
 		stringCompress(m.DirectoryBlockHeader.String()))

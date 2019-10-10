@@ -15,6 +15,7 @@ import (
 	"github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/common/primitives"
 
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -119,7 +120,8 @@ func (m *Ack) Validate(s interfaces.IState) int {
 		s.SetHighestAck(m.DBHeight)
 	}
 
-	if m.DBHeight-s.GetLLeaderHeight() > 5 {
+	// drop future acks that are far in the future and not near the block we expect to build as soon as the boot finishes.
+	if m.DBHeight-s.GetLLeaderHeight() > 5 && m.DBHeight != s.GetHighestKnownBlock() && m.DBHeight != s.GetHighestKnownBlock()+1 {
 		s.LogMessage("executeMsg", "drop, from far future", m)
 		return -1
 	}
@@ -217,6 +219,7 @@ func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling: %v", r)
 		}
 	}()
 

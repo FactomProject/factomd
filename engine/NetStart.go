@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"github.com/FactomProject/factomd/worker"
 	"io/ioutil"
 	"math"
 	"os"
@@ -16,7 +17,6 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/constants/runstate"
 	. "github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
@@ -31,6 +31,8 @@ import (
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
+
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -61,7 +63,7 @@ func init() {
 	primitives.General = messages.General
 }
 
-func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
+func NetStart(w *worker.Thread, s *state.State, p *FactomParams, listenToStdin bool) {
 
 	s.PortNumber = 8088
 	s.ControlPanelPort = 8090
@@ -197,7 +199,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	fmt.Println(">>>>>>>>>>>>>>>> Listening to Node", p.ListenTo)
 	fmt.Println(">>>>>>>>>>>>>>>>")
 
-	AddInterruptHandler(func() {
+	w.RegisterInterruptHandler(func() {
 		fmt.Print("<Break>\n")
 		fmt.Print("Gracefully shutting down the server...\n")
 		for _, fnode := range fnodes {
@@ -410,15 +412,15 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		}
 		p2pNetwork = new(p2p.Controller).Init(ci)
 		fnodes[0].State.NetworkController = p2pNetwork
-		p2pNetwork.StartNetwork()
+		p2pNetwork.StartNetwork(w)
 		p2pProxy = new(P2PProxy).Init(nodeName, "P2P Network").(*P2PProxy)
 		p2pProxy.FromNetwork = p2pNetwork.FromNetwork
 		p2pProxy.ToNetwork = p2pNetwork.ToNetwork
 
 		fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
-		p2pProxy.StartProxy()
+		p2pProxy.StartProxy(w)
 
-		go networkHousekeeping() // This goroutine executes once a second to keep the proxy apprised of the network status.
+		w.Run(networkHousekeeping) // This goroutine executes once a second to keep the proxy apprised of the network status.
 	}
 
 	networkpattern = p.Net
@@ -543,7 +545,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	fnodes[0].State.SetTorrentUploader(p.TorUpload)
 	if p.TorManage {
 		fnodes[0].State.SetUseTorrent(true)
-		manager, err := LaunchDBStateManagePlugin(p.PluginPath, fnodes[0].State.InMsgQueue(), fnodes[0].State, fnodes[0].State.GetServerPrivateKey(), p.MemProfileRate)
+		manager, err := LaunchDBStateManagePlugin(w, p.PluginPath, fnodes[0].State.InMsgQueue(), fnodes[0].State, fnodes[0].State.GetServerPrivateKey(), p.MemProfileRate)
 		if err != nil {
 			panic("Encountered an error while trying to use torrent DBState manager: " + err.Error())
 		}
@@ -554,9 +556,9 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 
 	if p.Journal != "" {
 		go LoadJournal(s, p.Journal)
-		startServers(false)
+		startServers(w, false)
 	} else {
-		startServers(true)
+		startServers(w, true)
 	}
 
 	// Anchoring related configurations
@@ -582,8 +584,8 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	}
 
 	// Start the webserver
-	wsapi.Start(fnodes[0].State)
-	if fnodes[0].State.DebugExec() && messages.CheckFileName("graphData.txt") {
+	wsapi.Start(w, fnodes[0].State)
+	if fnodes[0].State.DebugExec() && llog.CheckFileName("graphData.txt") {
 		go printGraphData("graphData.txt", 30)
 	}
 
@@ -595,19 +597,19 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	leveldb.RegisterPrometheus()
 	RegisterPrometheus()
 
-	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelChannel, fnodes[0].State, connectionMetricsChannel, p2pNetwork, Build, p.NodeName)
-
-	go SimControl(p.ListenTo, listenToStdin)
-
+	w.Run(func() {
+		controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelChannel, fnodes[0].State, connectionMetricsChannel, p2pNetwork, Build, p.NodeName)
+	})
+	SimControl(w, p.ListenTo, listenToStdin)
 }
 
 func printGraphData(filename string, period int) {
 	downscale := int64(1)
-	messages.LogPrintf(filename, "\t%9s\t%9s\t%9s\t%9s\t%9s\t%9s", "Dbh-:-min", "Node", "ProcessCnt", "ListPCnt", "UpdateState", "SleepCnt")
+	llog.LogPrintf(filename, "\t%9s\t%9s\t%9s\t%9s\t%9s\t%9s", "Dbh-:-min", "Node", "ProcessCnt", "ListPCnt", "UpdateState", "SleepCnt")
 	for {
 		for _, f := range fnodes {
 			s := f.State
-			messages.LogPrintf(filename, "\t%9s\t%9s\t%9d\t%9d\t%9d\t%9d", fmt.Sprintf("%d-:-%d", s.LLeaderHeight, s.CurrentMinute), s.FactomNodeName, s.StateProcessCnt/downscale, s.ProcessListProcessCnt/downscale, s.StateUpdateState/downscale, s.ValidatorLoopSleepCnt/downscale)
+			llog.LogPrintf(filename, "\t%9s\t%9s\t%9d\t%9d\t%9d\t%9d", fmt.Sprintf("%d-:-%d", s.LLeaderHeight, s.CurrentMinute), s.FactomNodeName, s.StateProcessCnt/downscale, s.ProcessListProcessCnt/downscale, s.StateUpdateState/downscale, s.ValidatorLoopSleepCnt/downscale)
 		}
 		time.Sleep(time.Duration(period) * time.Second)
 	} // for ever ...
@@ -638,29 +640,31 @@ func makeServer(s *state.State) *FactomNode {
 	return fnode
 }
 
-func startServers(load bool) {
-	for i, fnode := range fnodes {
-		startServer(i, fnode, load)
-	}
+func startServers(w *worker.Thread, load bool) {
+	w.Spawn(func(w *worker.Thread, args ...interface{}) {
+		for i, fnode := range fnodes {
+			if i > 0 {
+				fnode.State.Init()
+			}
+			startServer(w, i, fnode, load)
+		}
+	})
 }
 
-func startServer(i int, fnode *FactomNode, load bool) {
-	fnode.State.RunState = runstate.Booting
-	if i > 0 {
-		fnode.State.Init()
-	}
-	NetworkProcessorNet(fnode)
-	if load {
-		go state.LoadDatabase(fnode.State)
-	}
-	go fnode.State.GoSyncEntries()
-	go Timer(fnode.State)
-	go elections.Run(fnode.State)
-	go fnode.State.ValidatorLoop()
+func startServer(w *worker.Thread, i int, fnode *FactomNode, load bool) {
 
-	// moved StartMMR here to ensure Init goroutine only called once and not twice (removed from state.go)
-	go fnode.State.StartMMR()
-	go fnode.State.MissingMessageResponseHandler.Run()
+	NetworkProcessorNet(w, fnode)
+	fnode.State.ValidatorLoop(w)
+	elections.Run(w, fnode.State)
+	fnode.State.StartMMR(w)
+
+	if load {
+		w.Run(func() { state.LoadDatabase(fnode.State) })
+	}
+
+	w.Run(fnode.State.GoSyncEntries)
+	w.Run(func() { Timer(fnode.State) })
+	w.Run(fnode.State.MissingMessageResponseHandler.Run)
 }
 
 func setupFirstAuthority(s *state.State) {
@@ -693,5 +697,6 @@ func AddNode() {
 	fnodes[i].State.IntiateNetworkSkeletonIdentity()
 	fnodes[i].State.InitiateNetworkIdentityRegistration()
 	AddSimPeer(fnodes, i, i-1) // KLUDGE peer w/ only last node
-	startServer(i, fnodes[i], true)
+	// FIXME: make this work w/ thread registry
+	// startServer(i, fnodes[i], true)
 }

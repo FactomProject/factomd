@@ -12,6 +12,8 @@ import (
 	"github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives/random"
+
+	llog "github.com/FactomProject/factomd/log"
 )
 
 // AreBytesEqual returns true iff the lengths and byte values of the input []byte arrays are equal
@@ -56,6 +58,7 @@ func UnmarshalBinaryDataOfLength(dest []byte, source []byte, length int) (newDat
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling: %v", r)
 		}
 	}()
 	if (source == nil && length > 0) || len(source) < length {

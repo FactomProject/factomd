@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/FactomProject/factomd/registry"
+	"github.com/FactomProject/factomd/worker"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -124,8 +126,16 @@ func StartSim(nodeCount int, UserAddedOptions map[string]string) *state.State {
 			typeOfT.Field(i).Name, f.Type(), f.Interface())
 	}
 	fmt.Println()
-	return engine.Factomd(params, false).(*state.State)
+	p := registry.New()
+	p.Register(func(w *worker.Thread, args ...interface{}) {
+		engine.Factomd(w, params, false)
+	})
+	go p.Run()
+	p.WaitForRunning()
+	// KLUDGE: is there a better way to register this callback?
+	time.Sleep(50 * time.Millisecond)
 
+	return engine.GetFnodes()[0].State
 }
 
 func setTestTimeouts(state0 *state.State, calcTime time.Duration) {

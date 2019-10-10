@@ -15,6 +15,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/primitives"
 
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -399,6 +400,7 @@ func (c *Connection) processSends() {
 			// Just ignore the possible nil pointer error that can occur because
 			// we have cleared the pointer to the encoder or decoder outside this
 			// go routine.
+			llog.LogPrintf("recovery", "processSends Error %v", r)
 		}
 	}()
 
@@ -497,6 +499,7 @@ func (c *Connection) processReceives() {
 			// Just ignore the possible nil pointer error that can occur because
 			// we have cleared the pointer to the encoder or decoder outside this
 			// go routine.
+			llog.LogPrintf("recovery", "processReceives Error %v", r)
 		}
 	}()
 
@@ -561,6 +564,7 @@ func (c *Connection) handleParcel(parcel Parcel) {
 		if r := recover(); r != nil {
 			c.peer.demerit() /// so someone DDoS or just incompatible will eventually be cut off after 200+ panics
 			fmt.Fprintf(os.Stdout, "Caught Exception in connection %s: %v\n", c.peer.PeerFixedIdent(), r)
+			llog.LogPrintf("recovery", "Caught Exception in connection %s: %v\n", c.peer.PeerFixedIdent(), r)
 			return
 		}
 	}()

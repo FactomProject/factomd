@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/FactomProject/factomd/worker"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -28,7 +29,7 @@ import (
 var Servers map[string]*Server
 var ServersMutex sync.Mutex
 
-func Start(state interfaces.IState) {
+func Start(w *worker.Thread, state interfaces.IState) {
 	RegisterPrometheus()
 
 	ServersMutex.Lock()
@@ -54,7 +55,7 @@ func Start(state interfaces.IState) {
 		// TODO verify if there already runs a Server on the port, this code isn't executed, would change behavior.
 		state.SetRpcAuthHash(h.Sum(nil)) //set this in the beginning to prevent timing attacks
 
-		server.Start()
+		server.Start(w)
 	}
 }
 
@@ -66,12 +67,14 @@ func Stop(state interfaces.IState) {
 	Servers[port].Stop()
 }
 
+// REVIEW: may be simulation specific behavior
+// during refactor consider relocating
 func SetState(state interfaces.IState) {
-	wait := func() {
+	go func() {
 		port := strconv.Itoa(state.GetPort())
 		ServersMutex.Lock()
 		defer ServersMutex.Unlock()
-		//todo: Should wait() instead of sleep but that requires plumbing a wait group....
+		//TODO: Should wait() instead of sleep but that requires plumbing a wait group....
 		for Servers == nil && Servers[port] != nil && Servers[port].State != nil {
 			ServersMutex.Unlock()
 			time.Sleep(10 * time.Millisecond)
@@ -88,8 +91,7 @@ func SetState(state interfaces.IState) {
 		}
 
 		Servers[port].State = state
-	}
-	go wait()
+	}()
 }
 
 func GetState(r *http.Request) (state interfaces.IState, err error) {

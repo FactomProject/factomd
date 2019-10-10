@@ -19,6 +19,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
+	llog "github.com/FactomProject/factomd/log"
 )
 
 var _ = fmt.Print
@@ -122,7 +123,7 @@ func LoadDatabase(s *State) {
 		}
 		dblk, ablk, fblk, ecblk := GenerateGenesisBlocks(s.GetNetworkID(), customIdentity)
 
-		messages.LogPrintf("marshalsizes.txt", "FBlock unmarshaled transaction count: %d", len(fblk.GetTransactions()))
+		llog.LogPrintf("marshalsizes.txt", "FBlock unmarshaled transaction count: %d", len(fblk.GetTransactions()))
 
 		msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk, nil, nil, nil)
 		// last block, flag it.

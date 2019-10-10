@@ -8,6 +8,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/FactomProject/factomd/registry"
+	"github.com/FactomProject/factomd/worker"
 	"time"
 
 	ed "github.com/FactomProject/ed25519"
@@ -95,7 +97,12 @@ func CreateAndPopulateTestStateForFER(testEntries []FEREntryWithHeight, desiredH
 	state.LoadDatabase(s)
 	s.FERChainId = "111111118d918a8be684e0dac725493a75862ef96d2d3f43f84b26969329bf03"
 	s.UpdateState()
-	go s.ValidatorLoop()
+	p := registry.New()
+	p.Register(func(w *worker.Thread, args ...interface{}) {
+		s.ValidatorLoop(w)
+	})
+	go p.Run()
+
 	time.Sleep(20 * time.Millisecond)
 
 	return s

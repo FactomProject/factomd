@@ -9,11 +9,13 @@ import (
 	"os/exec"
 	"time"
 
+	"github.com/FactomProject/factomd/worker"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/state"
-	"github.com/hashicorp/go-plugin"
+	plugin "github.com/hashicorp/go-plugin"
 )
 
 // How often to check the plugin if it has messages ready
@@ -36,7 +38,7 @@ var managerHandshakeConfig = plugin.HandshakeConfig{
 // LaunchDBStateManagePlugin launches the plugin and returns an interface that
 // can be interacted with like a usual interface. The client returned must be
 // killed before we exit
-func LaunchDBStateManagePlugin(path string, inQueue interfaces.IQueue, s *state.State, sigKey *primitives.PrivateKey, memProfileRate int) (interfaces.IManagerController, error) {
+func LaunchDBStateManagePlugin(w *worker.Thread, path string, inQueue interfaces.IQueue, s *state.State, sigKey *primitives.PrivateKey, memProfileRate int) (interfaces.IManagerController, error) {
 	// So we don't get debug logs. Comment this out if you want to keep plugin
 	// logs
 	log.SetOutput(ioutil.Discard)
@@ -51,7 +53,7 @@ func LaunchDBStateManagePlugin(path string, inQueue interfaces.IQueue, s *state.
 	stop := make(chan int, 10)
 
 	// Make sure we close our client on close
-	AddInterruptHandler(func() {
+	w.RegisterInterruptHandler(func() {
 		fmt.Println("Manager plugin is now closing...")
 		client.Kill()
 		stop <- 0
@@ -80,18 +82,20 @@ func LaunchDBStateManagePlugin(path string, inQueue interfaces.IQueue, s *state.
 	// Upload controller controls how quickly we upload things. Keeping our rate similar to
 	// the torrent prevents data being backed up in memory
 	s.Uploader = state.NewUploadController(manager)
-	AddInterruptHandler(func() {
+	w.RegisterInterruptHandler(func() {
 		fmt.Println("State's Upload controller is now closing...")
 		s.Uploader.Close()
 	})
 
 	// We need to drain messages returned by the plugin.
-	go manageDrain(inQueue, manager, s, stop)
+	w.Run(func() {
+		manageDrain(inQueue, manager, s, stop)
+	})
 	// RunUploadController controls our uploading to ensure not overloading queues and consuming too
 	// much memory
-	go s.RunUploadController()
+	w.Run(s.RunUploadController)
 	// StartTorrentSyncing will use torrents to sync past our current height if we are not synced up
-	go s.StartTorrentSyncing()
+	w.Run(func() { s.StartTorrentSyncing() })
 
 	return manager, nil
 }

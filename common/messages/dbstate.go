@@ -22,6 +22,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 
 	"github.com/FactomProject/factomd/common/messages/msgbase"
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -54,6 +55,7 @@ var _ interfaces.IMsg = (*DBStateMsg)(nil)
 func (a *DBStateMsg) IsSameAs(b *DBStateMsg) bool {
 	defer func() {
 		if r := recover(); r != nil {
+			llog.LogPrintf("recovery", "DBState msg comparison failed %v", r)
 			return
 		}
 	}()
@@ -564,6 +566,7 @@ func (m *DBStateMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling Directory Block State Message: %v", r)
+			llog.LogPrintf("recovery", "DBState msg comparison failed %v", r)
 		}
 	}()
 
@@ -795,6 +798,7 @@ func (sl *SigList) UnmarshalBinaryData(data []byte) (newData []byte, err error) 
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling SigList in Full Server Fault: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling SigList in Full Server Fault: %v", r)
 		}
 	}()
 

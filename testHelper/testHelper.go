@@ -5,6 +5,8 @@ package testHelper
 import (
 	"bytes"
 	"encoding/binary"
+	"github.com/FactomProject/factomd/registry"
+	"github.com/FactomProject/factomd/worker"
 	"os/exec"
 	"regexp"
 	"runtime"
@@ -52,7 +54,12 @@ func CreateEmptyTestState() *state.State {
 
 func CreateAndPopulateTestStateAndStartValidator() *state.State {
 	s := CreateAndPopulateTestState()
-	go s.ValidatorLoop()
+	p := registry.New()
+	p.Register(func(w *worker.Thread, args ...interface{}) {
+		s.ValidatorLoop(w)
+	})
+	go p.Run()
+
 	time.Sleep(30 * time.Millisecond)
 
 	return s
@@ -61,7 +68,11 @@ func CreateAndPopulateTestStateAndStartValidator() *state.State {
 func CreatePopulateAndExecuteTestState() *state.State {
 	s := CreateAndPopulateTestState()
 	ExecuteAllBlocksFromDatabases(s)
-	go s.ValidatorLoop()
+	p := registry.New()
+	p.Register(func(w *worker.Thread, args ...interface{}) {
+		s.ValidatorLoop(w)
+	})
+	go p.Run()
 	time.Sleep(30 * time.Millisecond)
 
 	return s
