@@ -22,16 +22,6 @@ var (
 		"How many messages are dropped due to full queues",
 	)
 
-	// NetworkReplayFilter
-	TotalNetworkReplayFilter = counter(
-		"factomd_state_network_replay_filter_total",
-		"Tally of total messages gone into NetworkReplayFilter",
-	)
-	TotalNetworkAckReplayFilter = counter(
-		"factomd_state_network_ack_replay_filter_total",
-		"Tally of total messages gone into NetworkAckReplayFilter",
-	)
-
 	// Network Out Queue
 	NetworkOutTotalDequeue = counter(
 		"factomd_state_queue_netoutmsg_total_general",

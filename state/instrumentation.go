@@ -33,12 +33,12 @@ var (
 	)
 
 	// Torrent
-	StateTorrentSyncingLower = gauge(
+	TorrentSyncingLower = gauge(
 		"factomd_state_torrentsync_lower_gauge",
 		"The lower limit of torrent sync",
 	)
 
-	StateTorrentSyncingUpper = gauge(
+	TorrentSyncingUpper = gauge(
 		"factomd_state_torrentsync_upper_gauge",
 		"The upper limit of torrent sync",
 	)

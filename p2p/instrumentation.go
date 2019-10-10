@@ -27,11 +27,6 @@ var (
 		"Number of Peers to which we are broadcasting messages",
 	)
 
-	StartingPoint = gauge(
-		"factomd_StartingPoint_peers_broadcast",
-		"Number of msgs broadcasting",
-	)
-
 	//
 	// Connection Routines
 	p2pProcessSendsGauge = gauge(

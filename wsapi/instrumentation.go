@@ -81,11 +81,6 @@ var (
 		"Time it takes to compelete a heights",
 	)
 
-	HandleV2APICallCurrentMinute = summary(
-		"factomd_wsapi_v2_api_call_minute_ns",
-		"Time it takes to compelete a minute",
-	)
-
 	HandleV2APICallProp = summary(
 		"factomd_wsapi_v2_api_call_prop_ns",
 		"Time it takes to compelete a prop",
@@ -119,11 +114,6 @@ var (
 	HandleV2APICallEntryAck = summary(
 		"factomd_wsapi_v2_api_call_entryack_ns",
 		"Time it takes to compelete a entryack",
-	)
-
-	HandleV2APICall = summary(
-		"factomd_wsapi_v2_api_call__ns",
-		"Time it takes to compelete a ",
 	)
 
 	HandleV2APICallPendingEntries = summary(
@@ -174,11 +164,6 @@ var (
 	HandleV2APICallABlockByHeight = summary(
 		"factomd_wsapi_v2_api_call_ablockbyheight_ns",
 		"Time it takes to compelete a ablockbyheight",
-	)
-
-	HandleV2APICallAuthorities = summary(
-		"factomd_wsapi_v2_api_call_auths_ns",
-		"Time it takes to compelete an auths ",
 	)
 
 	HandleV2APICallTpsRate = summary(
