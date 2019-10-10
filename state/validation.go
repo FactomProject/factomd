@@ -100,22 +100,11 @@ func (s *State) ValidatorLoop() {
 				currentMinute = 9 // treat minute 10 as an extension of minute 9
 			}
 			if lastHeight == int(s.LLeaderHeight) && lastMinute == currentMinute && s.LeaderVMIndex == lastVM {
-				// This eom was already generated. We shouldn't generate it again.
-				// This does mean we missed an EOM boundary, and the next EOM won't occur for another
-				// "minute". This could cause some serious sliding, as minutes could be an addition 100%
-				// in length.
-				if c == -1 { // This means we received a normal eom cadence timer
-					c = 8 // Send 8 retries on a 1/10 of the normal minute period
-				}
-				if c > 0 {
-					go func() {
-						// We sleep for 1/10 of a minute, and try again
-						time.Sleep(s.GetMinuteDuration() / 10)
-						s.tickerQueue <- c - 1
-					}()
-				}
-				s.LogPrintf("timer", "retry %d", c)
-				s.LogPrintf("validator", "retry %d  %d-:-%d %d", c, s.LLeaderHeight, currentMinute, s.LeaderVMIndex)
+
+				// Drop ticker
+
+				s.LogPrintf("timer", "drop %d", c)
+				s.LogPrintf("validator", "drop %d  %d-:-%d %d", c, s.LLeaderHeight, currentMinute, s.LeaderVMIndex)
 				continue // Already generated this eom
 			}
 
