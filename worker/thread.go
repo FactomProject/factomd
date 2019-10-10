@@ -2,6 +2,7 @@ package worker
 
 import (
 	"fmt"
+	"github.com/FactomProject/factomd/telemetry"
 	"runtime"
 	"strings"
 )
@@ -18,16 +19,17 @@ type InterruptHandler func(func())
 // worker process with structured callbacks
 // parent relation helps trace worker dependencies
 type Thread struct {
-	RegisterThread           RegistryHandler  // RegistryCallback for sub-threads
-	RegisterProcess          RegistryHandler  // callback to fork a new process
-	RegisterInterruptHandler InterruptHandler // register w/ global SIGINT handler
-	PID                      int              // process ID that this thread belongs to
-	ID                       int              // thread id
-	Parent                   int              // parent thread
-	Caller                   string           // runtime location where thread starts
-	onRun                    func()           // execute during 'run' state
-	onComplete               func()           // execute after all run functions complete
-	onExit                   func()           // executes during SIGINT or after shutdown of run state
+	RegisterThread           RegistryHandler         // RegistryCallback for sub-threads
+	RegisterProcess          RegistryHandler         // callback to fork a new process
+	RegisterInterruptHandler InterruptHandler        // register w/ global SIGINT handler
+	RegisterMetric           telemetry.MetricHandler // register prometheus metrics
+	PID                      int                     // process ID that this thread belongs to
+	ID                       int                     // thread id
+	Parent                   int                     // parent thread
+	Caller                   string                  // runtime location where thread starts
+	onRun                    func()                  // execute during 'run' state
+	onComplete               func()                  // execute after all run functions complete
+	onExit                   func()                  // executes during SIGINT or after shutdown of run state
 }
 
 // indicates a specific thread callback
@@ -70,7 +72,7 @@ func (r *Thread) Spawn(initFunction Handle, args ...interface{}) {
 	_, file, line, _ := runtime.Caller(1)
 	caller := fmt.Sprintf("%s:%v", file[Prefix:], line)
 
-	r.RegisterThread(r, func(w *Thread, args ...interface{}){
+	r.RegisterThread(r, func(w *Thread, args ...interface{}) {
 		w.Caller = caller
 		initFunction(w, args...)
 	}, args...)
@@ -123,4 +125,14 @@ func (r *Thread) OnExit(f func()) *Thread {
 // root level threads are their own parent
 func (r *Thread) IsRoot() bool {
 	return r.ID == r.Parent
+}
+
+func (r *Thread) Gauge(name string, help string) telemetry.Gauge {
+	return r.RegisterMetric.Gauge(name, help)
+}
+func (r *Thread) Counter(name string, help string) telemetry.Counter {
+	return r.RegisterMetric.Counter(name, help)
+}
+func (r *Thread) GaugeVec(name string, help string, labels []string) *telemetry.GaugeVec {
+	return r.RegisterMetric.GaugeVec(name, help, labels)
 }

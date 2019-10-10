@@ -591,8 +591,7 @@ func NetStart(w *worker.Thread, s *state.State, p *FactomParams, listenToStdin b
 
 	// Start prometheus on port
 	launchPrometheus(9876)
-	// Start Package's prometheus
-	state.RegisterPrometheus()
+
 	p2p.RegisterPrometheus()
 	leveldb.RegisterPrometheus()
 	RegisterPrometheus()
