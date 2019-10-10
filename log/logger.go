@@ -30,20 +30,12 @@ var (
 	msgmap     map[[32]byte]interfaces.IMsg
 )
 
-/*
-types for logger functions
-*/
-type tLogPrintf func(name string, format string, more ...interface{})
-type tLogMessage func(name string, note string, msg interfaces.IMsg)
-type tStateLogMessage func(FactomNodeName string, DBHeight int, CurrentMinute int, logName string, comment string, msg interfaces.IMsg)
-type tStateLogPrintf func(FactomNodeName string, DBHeight int, CurrentMinute int, logName string, format string, more ...interface{})
-
 // logger handle
 type Log struct {
-	LogPrintf       tLogPrintf
-	LogMessage      tLogMessage
-	StateLogMessage tStateLogMessage
-	StateLogPrintf  tStateLogPrintf
+	LogPrintf func(name string, format string, more ...interface{})
+	LogMessage func(name string, note string, msg interfaces.IMsg)
+	StateLogMessage func(FactomNodeName string, DBHeight int, CurrentMinute int, logName string, comment string, msg interfaces.IMsg)
+	StateLogPrintf func(FactomNodeName string, DBHeight int, CurrentMinute int, logName string, format string, more ...interface{})
 }
 
 /*
