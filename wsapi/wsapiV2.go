@@ -76,6 +76,8 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 	params := j.Params
 	state.LogPrintf("apilog", "request %v", j.String())
 	switch j.Method {
+	case "replay-from-height":
+		resp, jsonError = HandleV2ReplayDBFromHeight(state, params)
 	case "anchors":
 		resp, jsonError = HandleV2Anchors(state, params)
 	case "chain-head":
@@ -168,6 +170,46 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 
 	state.LogPrintf("apilog", "response %v", jsonResp.String())
 	return jsonResp, nil
+}
+
+func HandleV2ReplayDBFromHeight(state interfaces.IState, params interface{}) (int32, *primitives.JSONError) {
+	n := time.Now()
+	defer HandleV2APICallReplayDBFromHeight.Observe(float64(time.Since(n).Nanoseconds()))
+
+	heightRequest := new(HeightRequest)
+	err := MapToObject(params, heightRequest)
+	if err != nil {
+		return 0, nil
+	}
+
+	end := uint32(state.GetDBHeightComplete())
+	beginning := uint32(heightRequest.Height)
+	// msg := messages.NewDBStateMissing(state, beginning, end)
+
+	// // debug output
+	fmt.Printf("Top height: %d\n", uint32(state.GetDBHeightComplete()))
+	fmt.Printf("Start height: %d\n", uint32(heightRequest.Height))
+	// fmt.Println("MSG:", msg)
+
+	// msg.SendOut(state, msg)
+	for i := beginning; i <= end; i++ {
+		// statePkg.EmitDBStateEvent(state.GetDBState(i), eventmessages.EntityState_COMMITTED_TO_DIRECTORY_BLOCK,state)
+
+		// Attempt 1
+		// fmt.Println(state.LoadDBState(i))
+		// msg, _ := state.LoadDBState(i)
+		state.EmitDBStateEvent(int(i))
+
+		// Attempt 2
+		// if state.EventsService != nil {
+		// 	event := events.NewStateChangeEventFromMsg(GetStreamSource(state), eventmessages.EntityState_COMMITTED_TO_DIRECTORY_BLOCK, state.LoadDBState(i))
+		// 	state.EventsService.Send(event)
+		// } else {
+		// 	fmt.Println('EventsService is nil')
+		// }
+	}
+
+	return 1, nil
 }
 
 func HandleV2DBlockByHeight(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
