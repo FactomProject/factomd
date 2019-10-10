@@ -30,8 +30,6 @@ var Servers map[string]*Server
 var ServersMutex sync.Mutex
 
 func Start(w *worker.Thread, state interfaces.IState) {
-	RegisterPrometheus()
-
 	ServersMutex.Lock()
 	defer ServersMutex.Unlock()
 

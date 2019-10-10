@@ -1,160 +1,127 @@
 package databaseOverlay
 
 import (
-	"github.com/prometheus/client_golang/prometheus"
+	"github.com/FactomProject/factomd/telemetry"
 )
+
+var counter = telemetry.RegisterMetric.Counter
 
 var (
-	OverlayDBGetsDblock = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_database_overlay_gets_dblock",
-		Help: "Counts gets from the database",
-	})
+	OverlayDBGetsDblock = counter(
+		"factomd_database_overlay_gets_dblock",
+		"Counts gets from the database",
+	)
 
-	OverlayDBGetsDblockNumber = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_database_overlay_gets_dblocknum",
-		Help: "Counts gets from the database",
-	})
+	OverlayDBGetsDblockNumber = counter(
+		"factomd_database_overlay_gets_dblocknum",
+		"Counts gets from the database",
+	)
 
-	OverlayDBGetsDBlockSecond = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_database_overlay_gets_dblocksecondart",
-		Help: "Counts gets from the database",
-	})
+	OverlayDBGetsDBlockSecond = counter(
+		"factomd_database_overlay_gets_dblocksecondart",
+		"Counts gets from the database",
+	)
 
-	OverlayDBGetsABlock = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_database_overlay_gets_ablock",
-		Help: "Counts gets from the database",
-	})
+	OverlayDBGetsABlock = counter(
+		"factomd_database_overlay_gets_ablock",
+		"Counts gets from the database",
+	)
 
-	OverlayDBGetsABlockNumber = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_database_overlay_gets_ablocknum",
-		Help: "Counts gets from the database",
-	})
+	OverlayDBGetsABlockNumber = counter(
+		"factomd_database_overlay_gets_ablocknum",
+		"Counts gets from the database",
+	)
 
-	OverlayDBGetsABlockSecondary = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_database_overlay_gets_ablocksecondary",
-		Help: "Counts gets from the database",
-	})
+	OverlayDBGetsABlockSecondary = counter(
+		"factomd_database_overlay_gets_ablocksecondary",
+		"Counts gets from the database",
+	)
 
-	OverlayDBGetsFBlock = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_database_overlay_gets_fblock",
-		Help: "Counts gets from the database",
-	})
+	OverlayDBGetsFBlock = counter(
+		"factomd_database_overlay_gets_fblock",
+		"Counts gets from the database",
+	)
 
-	OverlayDBGetsFBlockNumber = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_database_overlay_gets_fblocknumber",
-		Help: "Counts gets from the database",
-	})
+	OverlayDBGetsFBlockNumber = counter(
+		"factomd_database_overlay_gets_fblocknumber",
+		"Counts gets from the database",
+	)
 
-	OverlayDBGetsFBlockSecondary = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_database_overlay_gets_fblocksecondary",
-		Help: "Counts gets from the database",
-	})
+	OverlayDBGetsFBlockSecondary = counter(
+		"factomd_database_overlay_gets_fblocksecondary",
+		"Counts gets from the database",
+	)
 
-	OverlayDBGetsEC = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_database_overlay_gets_ec",
-		Help: "Counts gets from the database",
-	})
+	OverlayDBGetsEC = counter(
+		"factomd_database_overlay_gets_ec",
+		"Counts gets from the database",
+	)
 
-	OverlayDBGetsECNumber = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_database_overlay_gets_ecnumber",
-		Help: "Counts gets from the database",
-	})
+	OverlayDBGetsECNumber = counter(
+		"factomd_database_overlay_gets_ecnumber",
+		"Counts gets from the database",
+	)
 
-	OverlayDBGetsECSecondary = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_database_overlay_gets_ecsecondary",
-		Help: "Counts gets from the database",
-	})
+	OverlayDBGetsECSecondary = counter(
+		"factomd_database_overlay_gets_ecsecondary",
+		"Counts gets from the database",
+	)
 
-	OverlayDBGetsChainHead = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_database_overlay_gets_chainhead",
-		Help: "Counts gets from the database",
-	})
+	OverlayDBGetsChainHead = counter(
+		"factomd_database_overlay_gets_chainhead",
+		"Counts gets from the database",
+	)
 
-	OverlayDBGetsEBlock = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_database_overlay_gets_eblock",
-		Help: "Counts gets from the database",
-	})
+	OverlayDBGetsEBlock = counter(
+		"factomd_database_overlay_gets_eblock",
+		"Counts gets from the database",
+	)
 
-	OverlayDBGetsEBlockNumber = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_database_overlay_gets_eblocknumber",
-		Help: "Counts gets from the database",
-	})
+	OverlayDBGetsEBlockNumber = counter(
+		"factomd_database_overlay_gets_eblocknumber",
+		"Counts gets from the database",
+	)
 
-	OverlayDBGetsEBlockSecondary = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_database_overlay_gets_eblocksecondary",
-		Help: "Counts gets from the database",
-	})
+	OverlayDBGetsEBlockSecondary = counter(
+		"factomd_database_overlay_gets_eblocksecondary",
+		"Counts gets from the database",
+	)
 
-	OverlayDBGetsEntry = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_database_overlay_gets_entry",
-		Help: "Counts gets from the database",
-	})
+	OverlayDBGetsEntry = counter(
+		"factomd_database_overlay_gets_entry",
+		"Counts gets from the database",
+	)
 
-	OverlayDBGetsDirBlockInfo = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_database_overlay_gets_dirblockinfo",
-		Help: "Counts gets from the database",
-	})
+	OverlayDBGetsDirBlockInfo = counter(
+		"factomd_database_overlay_gets_dirblockinfo",
+		"Counts gets from the database",
+	)
 
-	OverlayDBGetsDirBlockUnconfirmed = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_database_overlay_gets_dirblockunconfirmed",
-		Help: "Counts gets from the database",
-	})
+	OverlayDBGetsDirBlockUnconfirmed = counter(
+		"factomd_database_overlay_gets_dirblockunconfirmed",
+		"Counts gets from the database",
+	)
 
-	OverlayDBGetsDirBlockInfoNumber = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_database_overlay_gets_dirblockinfonumber",
-		Help: "Counts gets from the database",
-	})
+	OverlayDBGetsDirBlockInfoNumber = counter(
+		"factomd_database_overlay_gets_dirblockinfonumber",
+		"Counts gets from the database",
+	)
 
-	OverlayDBGetsDirBlockInfoSecondary = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_database_overlay_gets_secondary",
-		Help: "Counts gets from the database",
-	})
+	OverlayDBGetsDirBlockInfoSecondary = counter(
+		"factomd_database_overlay_gets_secondary",
+		"Counts gets from the database",
+	)
 
-	OverlayDBGetsInvludeIn = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_database_overlay_gets_includein",
-		Help: "Counts gets from the database",
-	})
+	OverlayDBGetsInvludeIn = counter(
+		"factomd_database_overlay_gets_includein",
+		"Counts gets from the database",
+	)
 
-	OverlayDBGetsPaidFor = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_database_overlay_gets_paidfor",
-		Help: "Counts gets from the database",
-	})
+	OverlayDBGetsPaidFor = counter(
+		"factomd_database_overlay_gets_paidfor",
+		"Counts gets from the database",
+	)
 )
-
-var registered = false
-
-// RegisterPrometheus registers the variables to be exposed. This can only be run once, hence the
-// boolean flag to prevent panics if launched more than once. This is called in NetStart
-func RegisterPrometheus() {
-	if registered {
-		return
-	}
-	registered = true
-
-	prometheus.MustRegister(OverlayDBGetsDblock)
-	prometheus.MustRegister(OverlayDBGetsDblockNumber)
-	prometheus.MustRegister(OverlayDBGetsDBlockSecond)
-	prometheus.MustRegister(OverlayDBGetsABlock)
-	prometheus.MustRegister(OverlayDBGetsABlockNumber)
-	prometheus.MustRegister(OverlayDBGetsABlockSecondary)
-	prometheus.MustRegister(OverlayDBGetsFBlock)
-	prometheus.MustRegister(OverlayDBGetsFBlockNumber)
-	prometheus.MustRegister(OverlayDBGetsFBlockSecondary)
-	prometheus.MustRegister(OverlayDBGetsEC)
-	prometheus.MustRegister(OverlayDBGetsECNumber)
-	prometheus.MustRegister(OverlayDBGetsECSecondary)
-	prometheus.MustRegister(OverlayDBGetsChainHead)
-	prometheus.MustRegister(OverlayDBGetsEBlock)
-	prometheus.MustRegister(OverlayDBGetsEBlockNumber)
-	prometheus.MustRegister(OverlayDBGetsEBlockSecondary)
-	prometheus.MustRegister(OverlayDBGetsEntry)
-	prometheus.MustRegister(OverlayDBGetsDirBlockInfo)
-	prometheus.MustRegister(OverlayDBGetsDirBlockUnconfirmed)
-	prometheus.MustRegister(OverlayDBGetsDirBlockInfoNumber)
-	prometheus.MustRegister(OverlayDBGetsDirBlockInfoSecondary)
-	prometheus.MustRegister(OverlayDBGetsInvludeIn)
-	prometheus.MustRegister(OverlayDBGetsPaidFor)
-}
 
 func GetBucket(bucket []byte) {
 	switch string(bucket) {

@@ -11,11 +11,13 @@ var registeredMetrics = make(map[string]prometheus.Collector)
 type Counter = prometheus.Counter
 type Gauge = prometheus.Gauge
 type GaugeVec = prometheus.GaugeVec
+type Summary = prometheus.Summary
 
 type MetricHandler interface {
 	Counter(name string, help string) Counter
 	Gauge(name string, help string) Gauge
 	GaugeVec(name string, help string, labels []string) *GaugeVec
+	Summary(name string, help string) Summary
 }
 
 type metric struct {
@@ -52,6 +54,15 @@ func (metric) GaugeVec(name string, help string, labels []string) *prometheus.Ga
 	return v
 }
 
+func (metric) Summary(name string, help string) prometheus.Summary {
+	s := prometheus.NewSummary(prometheus.SummaryOpts{
+		Name: name,
+		Help: help,
+	})
+
+	registeredMetrics[name] = s
+	return s
+}
 
 var registered sync.Once
 

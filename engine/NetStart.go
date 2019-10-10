@@ -25,7 +25,6 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/controlPanel"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
-	"github.com/FactomProject/factomd/database/leveldb"
 	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/state"
@@ -591,10 +590,6 @@ func NetStart(w *worker.Thread, s *state.State, p *FactomParams, listenToStdin b
 
 	// Start prometheus on port
 	launchPrometheus(9876)
-
-	p2p.RegisterPrometheus()
-	leveldb.RegisterPrometheus()
-	RegisterPrometheus()
 
 	w.Run(func() {
 		controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelChannel, fnodes[0].State, connectionMetricsChannel, p2pNetwork, Build, p.NodeName)

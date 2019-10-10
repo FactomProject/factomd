@@ -12,24 +12,6 @@ import (
 
 var _ = fmt.Println
 
-func TestTimeSinceNegative(t *testing.T) {
-	RegisterPrometheus()
-	RegisterPrometheus()
-	var p time.Duration
-	defer func() {
-		if r := recover(); r != nil {
-			t.Error("Test paniced")
-		}
-	}()
-
-	for i := 0; i < 100000; i++ {
-		n := time.Now()
-		p = time.Since(n)
-
-		TotalExecuteMsgTime.Add(float64(p.Nanoseconds()))
-	}
-}
-
 func TestQueues(t *testing.T) {
 	var _, _ = NewInMsgQueue(0), NewNetOutMsgQueue(0)
 

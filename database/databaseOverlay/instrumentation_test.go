@@ -1,14 +1,14 @@
 package databaseOverlay_test
 
 import (
+	"github.com/FactomProject/factomd/telemetry"
 	"testing"
 
 	. "github.com/FactomProject/factomd/database/databaseOverlay"
 )
 
 func TestInstrumentation(t *testing.T) {
-	RegisterPrometheus()
-	RegisterPrometheus()
+	telemetry.RegisterPrometheus()
 
 	GetBucket(DIRECTORYBLOCK)
 	GetBucket(DIRECTORYBLOCK_NUMBER)
