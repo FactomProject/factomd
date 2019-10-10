@@ -93,8 +93,8 @@ func (s *State) StartTorrentSyncing() error {
 		}
 
 		// Prometheus
-		stateTorrentSyncingLower.Set(float64(lower))
-		stateTorrentSyncingUpper.Set(float64(upper))
+		StateTorrentSyncingLower.Set(float64(lower))
+		StateTorrentSyncingUpper.Set(float64(upper))
 
 		// What is the end height we request
 		max := lower + uint32(allowed)
