@@ -13,6 +13,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/FactomProject/factomd/events"
+	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -594,6 +595,10 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 		os.MkdirAll(path, 0775)
 	}
 	return newState
+}
+
+func (s *State) EmitDBStateEvent(ht int) {
+	EmitDBStateEvent(s.DBStates.Get(int(ht)), eventmessages.EntityState_COMMITTED_TO_DIRECTORY_BLOCK, s)
 }
 
 func (s *State) AddPrefix(prefix string) {
