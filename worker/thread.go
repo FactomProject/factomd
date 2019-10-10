@@ -2,6 +2,7 @@ package worker
 
 import (
 	"fmt"
+	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/telemetry"
 	"runtime"
 	"strings"
@@ -23,6 +24,7 @@ type Thread struct {
 	RegisterProcess          RegistryHandler         // callback to fork a new process
 	RegisterInterruptHandler InterruptHandler        // register w/ global SIGINT handler
 	RegisterMetric           telemetry.MetricHandler // register prometheus metrics
+	Log                      interfaces.Log          //
 	PID                      int                     // process ID that this thread belongs to
 	ID                       int                     // thread id
 	Parent                   int                     // parent thread

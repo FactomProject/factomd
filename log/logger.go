@@ -30,19 +30,8 @@ var (
 	msgmap     map[[32]byte]interfaces.IMsg
 )
 
-// logger handle
-type Log struct {
-	LogPrintf func(name string, format string, more ...interface{})
-	LogMessage func(name string, note string, msg interfaces.IMsg)
-	StateLogMessage func(FactomNodeName string, DBHeight int, CurrentMinute int, logName string, comment string, msg interfaces.IMsg)
-	StateLogPrintf func(FactomNodeName string, DBHeight int, CurrentMinute int, logName string, format string, more ...interface{})
-}
-
-/*
-KLUDGE: expose as a var we can re-use and export
-eventually this may be thread specific and/or use some locally scoped vars
-*/
-var ThreadLogger = Log{
+// TODO: invert this and expose global Thread Logger functions as package functions
+var ThreadLogger = interfaces.Log{
 	LogPrintf,
 	LogMessage,
 	StateLogMessage,

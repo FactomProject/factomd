@@ -3,6 +3,7 @@ package registry
 import (
 	"fmt"
 	"github.com/FactomProject/factomd/fnode"
+	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/telemetry"
 	"github.com/FactomProject/factomd/worker"
 	"runtime"
@@ -55,6 +56,7 @@ func (p *process) addThread(args ...interface{}) *worker.Thread {
 		RegisterProcess:          p.fork,                    // fork another process
 		RegisterInterruptHandler: fnode.AddInterruptHandler, // add SIGINT behavior
 		RegisterMetric:           telemetry.RegisterMetric,  // prometheus hook
+		Log:                      log.ThreadLogger,
 	}
 
 	p.Mutex.Lock()
