@@ -126,13 +126,3 @@ func (r *Thread) OnExit(f func()) *Thread {
 func (r *Thread) IsRoot() bool {
 	return r.ID == r.Parent
 }
-
-func (r *Thread) Gauge(name string, help string) telemetry.Gauge {
-	return r.RegisterMetric.Gauge(name, help)
-}
-func (r *Thread) Counter(name string, help string) telemetry.Counter {
-	return r.RegisterMetric.Counter(name, help)
-}
-func (r *Thread) GaugeVec(name string, help string, labels []string) *telemetry.GaugeVec {
-	return r.RegisterMetric.GaugeVec(name, help, labels)
-}

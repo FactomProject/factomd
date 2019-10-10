@@ -54,7 +54,7 @@ func (p *process) addThread(args ...interface{}) *worker.Thread {
 		RegisterThread:           p.spawn,                   // inject spawn callback
 		RegisterProcess:          p.fork,                    // fork another process
 		RegisterInterruptHandler: fnode.AddInterruptHandler, // add SIGINT behavior
-		RegisterMetric:           telemetry.RegisterMetric,
+		RegisterMetric:           telemetry.RegisterMetric,  // prometheus hook
 	}
 
 	p.Mutex.Lock()
@@ -161,7 +161,6 @@ func new() *process {
 func (p *process) run() {
 	p.initWait.Wait()
 	p.initDone = true
-	telemetry.RegisterPrometheus()
 	p.runWait.Wait()
 	p.doneWait.Wait()
 	p.exit()

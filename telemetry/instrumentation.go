@@ -2,22 +2,13 @@ package telemetry
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"sync"
 )
 
-var registeredMetrics = make(map[string]prometheus.Collector)
-
-// Don't let other packages reference prometheus directly
-type Counter = prometheus.Counter
-type Gauge = prometheus.Gauge
-type GaugeVec = prometheus.GaugeVec
-type Summary = prometheus.Summary
-
 type MetricHandler interface {
-	Counter(name string, help string) Counter
-	Gauge(name string, help string) Gauge
-	GaugeVec(name string, help string, labels []string) *GaugeVec
-	Summary(name string, help string) Summary
+	Counter(name string, help string) prometheus.Counter
+	Gauge(name string, help string) prometheus.Gauge
+	GaugeVec(name string, help string, labels []string) *prometheus.GaugeVec
+	Summary(name string, help string) prometheus.Summary
 }
 
 type metric struct {
@@ -31,7 +22,7 @@ func (metric) Counter(name string, help string) prometheus.Counter {
 		Name: name,
 		Help: help,
 	})
-	registeredMetrics[name] = c
+	prometheus.MustRegister(c)
 	return c
 }
 
@@ -40,7 +31,7 @@ func (metric) Gauge(name string, help string) prometheus.Gauge {
 		Name: name,
 		Help: help,
 	})
-	registeredMetrics[name] = g
+	prometheus.MustRegister(g)
 	return g
 }
 
@@ -50,7 +41,7 @@ func (metric) GaugeVec(name string, help string, labels []string) *prometheus.Ga
 		Help: help,
 	}, labels)
 
-	registeredMetrics[name] = v
+	prometheus.MustRegister(v)
 	return v
 }
 
@@ -60,16 +51,6 @@ func (metric) Summary(name string, help string) prometheus.Summary {
 		Help: help,
 	})
 
-	registeredMetrics[name] = s
+	prometheus.MustRegister(s)
 	return s
-}
-
-var registered sync.Once
-
-func RegisterPrometheus() {
-	registered.Do(func() {
-		for _, m := range registeredMetrics {
-			prometheus.MustRegister(m)
-		}
-	})
 }

@@ -36,5 +36,5 @@ func TestRegistryVizExistingDB(t *testing.T) {
 	t.Log("Graph of Thread Dependencies:")
 	t.Log(registry.Graph())
 
-	time.Sleep(500*time.Minute)
+	time.Sleep(500 * time.Minute)
 }
