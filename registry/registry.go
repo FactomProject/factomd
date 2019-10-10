@@ -51,17 +51,20 @@ func (p *process) addThread(args ...interface{}) *worker.Thread {
 	p.doneWait.Add(1)
 	p.exitWatch.Add(1)
 
+	p.Mutex.Lock()
+	defer p.Mutex.Unlock()
+	thread_id := len(p.Index)
+
 	w := &worker.Thread{
+		ID:                       thread_id,
 		RegisterThread:           p.spawn,                   // inject spawn callback
 		RegisterProcess:          p.fork,                    // fork another process
 		RegisterInterruptHandler: fnode.AddInterruptHandler, // add SIGINT behavior
 		RegisterMetric:           telemetry.RegisterMetric,  // prometheus hook
-		Log:                      log.ThreadLogger,
 	}
 
-	p.Mutex.Lock()
-	defer p.Mutex.Unlock()
-	w.ID = len(p.Index)
+	// inject logger
+    w.Log = log.New(thread_id, w.Caller)
 	p.Index = append(p.Index, w)
 	return w
 }
@@ -99,7 +102,7 @@ func (p *process) register(initFunction worker.Handle, args ...interface{}) {
 	_, file, line, _ := runtime.Caller(1)
 	caller := fmt.Sprintf("%s:%v", file[worker.Prefix:], line)
 	r := p.addThread()
-	r.Caller = caller
+	r.Caller = &caller
 	r.Parent = r.ID // root threads are their own parent
 	p.bindCallbacks(r, initFunction, args...)
 }

@@ -28,14 +28,17 @@ var (
 	history    *([16384][32]byte) // Last 16k messages logged
 	h          int                // head of history
 	msgmap     map[[32]byte]interfaces.IMsg
+
+	// KLUDGE: expose package logging for backward compatibility
+	packageLogger = &log{}
+	LogPrintf = packageLogger.LogPrintf
+	LogMessage = packageLogger.LogMessage
+	StateLogMessage = packageLogger.StateLogMessage
+	StateLogPrintf = packageLogger.StateLogPrintf
 )
 
-// TODO: invert this and expose global Thread Logger functions as package functions
-var ThreadLogger = interfaces.Log{
-	LogPrintf,
-	LogMessage,
-	StateLogMessage,
-	StateLogPrintf,
+type log struct {
+	interfaces.Log
 }
 
 // Check a filename and see if logging is on for that filename
@@ -152,16 +155,16 @@ func getmsg(hash [32]byte) interfaces.IMsg {
 	return rval
 }
 
-func LogMessage(name string, note string, msg interfaces.IMsg) {
+func (l *log) LogMessage(name string, note string, msg interfaces.IMsg) {
 	traceMutex.Lock()
 	defer traceMutex.Unlock()
-	logMessage(name, note, msg)
+	l.logMessage(name, note, msg)
 }
 
 var logWhere bool = false // log GoID() of the caller.
 
 // Assumes called managed the locks so we can recurse for multi part messages
-func logMessage(name string, note string, msg interfaces.IMsg) {
+func (l *log) logMessage(name string, note string, msg interfaces.IMsg) {
 	myfile := getTraceFile(name)
 	if myfile == nil {
 		return
@@ -250,7 +253,7 @@ func logMessage(name string, note string, msg interfaces.IMsg) {
 	}
 
 	if embeddedMsg != nil {
-		logMessage(name, note+" EmbeddedMsg:", embeddedMsg)
+		l.logMessage(name, note+" EmbeddedMsg:", embeddedMsg)
 	}
 }
 
@@ -298,7 +301,7 @@ func addNodeNames(s string) (rval string) {
 	return s
 }
 
-func LogPrintf(name string, format string, more ...interface{}) {
+func (*log) LogPrintf(name string, format string, more ...interface{}) {
 	traceMutex.Lock()
 	defer traceMutex.Unlock()
 	myfile := getTraceFile(name)
@@ -330,7 +333,7 @@ func LogPrintf(name string, format string, more ...interface{}) {
 }
 
 // stringify it in the caller to avoid having to deal with the import loop
-func LogParcel(name string, note string, msg string) {
+func (*log) LogParcel(name string, note string, msg string) {
 	traceMutex.Lock()
 	defer traceMutex.Unlock()
 	myfile := getTraceFile(name)
@@ -344,21 +347,21 @@ func LogParcel(name string, note string, msg string) {
 }
 
 // Log a message with a state timestamp
-func StateLogMessage(FactomNodeName string, DBHeight int, CurrentMinute int, logName string, comment string, msg interfaces.IMsg) {
+func (l *log) StateLogMessage(FactomNodeName string, DBHeight int, CurrentMinute int, logName string, comment string, msg interfaces.IMsg) {
 	logFileName := FactomNodeName + "_" + logName + ".txt"
 	t := fmt.Sprintf("%7d-:-%d ", DBHeight, CurrentMinute)
 	LogMessage(logFileName, t+comment, msg)
 }
 
 // Log a printf with a state timestamp
-func StateLogPrintf(FactomNodeName string, DBHeight int, CurrentMinute int, logName string, format string, more ...interface{}) {
+func (l *log) StateLogPrintf(FactomNodeName string, DBHeight int, CurrentMinute int, logName string, format string, more ...interface{}) {
 	logFileName := FactomNodeName + "_" + logName + ".txt"
 	t := fmt.Sprintf("%7d-:-%d ", DBHeight, CurrentMinute)
-	LogPrintf(logFileName, t+format, more...)
+	l.LogPrintf(logFileName, t+format, more...)
 }
 
 // unused -- of.File is written by direct calls to write and not buffered and the os closes the files on exit.
-func Cleanup() {
+func (*log) Cleanup() {
 	traceMutex.Lock()
 	defer traceMutex.Unlock()
 	for name, f := range files {

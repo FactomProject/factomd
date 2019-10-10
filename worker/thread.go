@@ -28,7 +28,7 @@ type Thread struct {
 	PID                      int                     // process ID that this thread belongs to
 	ID                       int                     // thread id
 	Parent                   int                     // parent thread
-	Caller                   string                  // runtime location where thread starts
+	Caller                   *string                  // runtime location where thread starts
 	onRun                    func()                  // execute during 'run' state
 	onComplete               func()                  // execute after all run functions complete
 	onExit                   func()                  // executes during SIGINT or after shutdown of run state
@@ -63,7 +63,7 @@ func (r *Thread) Run(runFunc func()) {
 	caller := fmt.Sprintf("%s:%v", file[Prefix:], line)
 
 	r.Spawn(func(w *Thread, args ...interface{}) {
-		w.Caller = caller
+		w.Caller = &caller
 		w.OnRun(runFunc)
 	})
 }
@@ -75,7 +75,7 @@ func (r *Thread) Spawn(initFunction Handle, args ...interface{}) {
 	caller := fmt.Sprintf("%s:%v", file[Prefix:], line)
 
 	r.RegisterThread(r, func(w *Thread, args ...interface{}) {
-		w.Caller = caller
+		w.Caller = &caller
 		initFunction(w, args...)
 	}, args...)
 }
