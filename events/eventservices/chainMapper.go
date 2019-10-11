@@ -7,7 +7,11 @@ import (
 )
 
 func mapCommitChain(entityState eventmessages.EntityState, msg interfaces.IMsg) *eventmessages.FactomEvent_ChainCommit {
-	commitChain := msg.(*messages.CommitChainMsg).CommitChain
+	commitChainMsg, ok := msg.(*messages.CommitChainMsg)
+	if !ok {
+		return nil
+	}
+	commitChain := commitChainMsg.CommitChain
 	ecPubKey := commitChain.ECPubKey.Fixed()
 	sig := commitChain.Sig
 
@@ -15,7 +19,8 @@ func mapCommitChain(entityState eventmessages.EntityState, msg interfaces.IMsg) 
 		ChainCommit: &eventmessages.ChainCommit{
 			EntityState: entityState,
 			ChainIDHash: &eventmessages.Hash{
-				HashValue: commitChain.ChainIDHash.Bytes()},
+				HashValue: commitChain.ChainIDHash.Bytes(),
+			},
 			EntryHash: &eventmessages.Hash{
 				HashValue: commitChain.EntryHash.Bytes(),
 			},
@@ -24,16 +29,22 @@ func mapCommitChain(entityState eventmessages.EntityState, msg interfaces.IMsg) 
 			EntryCreditPublicKey: ecPubKey[:],
 			Signature:            sig[:],
 			Version:              uint32(commitChain.Version),
+			Weld: &eventmessages.Hash{
+				HashValue: commitChain.Weld.Bytes(),
+			},
 		}}
 	return result
 }
 
 func mapCommitChainState(state eventmessages.EntityState, msg interfaces.IMsg) *eventmessages.FactomEvent_StateChange {
-	commitChain := msg.(*messages.CommitChainMsg).CommitChain
+	commitChainMsg, ok := msg.(*messages.CommitChainMsg)
+	if !ok {
+		return nil
+	}
 	result := &eventmessages.FactomEvent_StateChange{
 		StateChange: &eventmessages.StateChange{
 			EntityHash: &eventmessages.Hash{
-				HashValue: commitChain.ChainIDHash.Bytes()},
+				HashValue: commitChainMsg.CommitChain.ChainIDHash.Bytes()},
 			EntityState: state,
 		},
 	}
