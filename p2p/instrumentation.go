@@ -2,88 +2,85 @@ package p2p
 
 import "github.com/FactomProject/factomd/telemetry"
 
-var gauge = telemetry.RegisterMetric.Gauge
-var counter = telemetry.RegisterMetric.Counter
-
 var (
 	// Connection Controller
-	p2pControllerNumConnections = gauge(
+	p2pControllerNumConnections = telemetry.Gauge(
 		"factomd_p2p_controller_connections_current",
 		"Number of current connections",
 	)
 
-	p2pControllerNumMetrics = gauge(
+	p2pControllerNumMetrics = telemetry.Gauge(
 		"factomd_p2p_controller_metrics_current",
 		"Number of current connection metrics",
 	)
 
-	p2pControllerNumConnectionsByAddress = gauge(
+	p2pControllerNumConnectionsByAddress = telemetry.Gauge(
 		"factomd_p2p_controller_connectionsbyaddress_current",
 		"Number of current connections by address",
 	)
 
-	SentToPeers = gauge(
+	SentToPeers = telemetry.Gauge(
 		"factomd_state_number_of_peers_broadcast",
 		"Number of Peers to which we are broadcasting messages",
 	)
 
 	//
 	// Connection Routines
-	p2pProcessSendsGauge = gauge(
+	p2pProcessSendsGauge = telemetry.Gauge(
 		"factomd_p2p_connection_process_sends_routine_gauge",
 		"Number of current processSend routines",
 	)
 
-	p2pProcessReceivesGauge = gauge(
+	p2pProcessReceivesGauge = telemetry.Gauge(
 		"factomd_p2p_connection_process_receives_routine_gauge",
 		"Number of current processReceive routines",
 	)
 
-	p2pConnectionsRunLoop = gauge(
+	p2pConnectionsRunLoop = telemetry.Gauge(
 		"factomd_p2p_connection_runloop_routine_gauge",
 		"The number of connections in runloop",
 	)
 
-	p2pConnectionDialLoop = gauge(
+	p2pConnectionDialLoop = telemetry.Gauge(
 		"factomd_p2p_connection_dialloop_routine_gauge",
 		"The number of connections in dialloop",
 	)
 
 	//
 	// Runloops
-	p2pConnectionRunLoopInitialized = gauge(
+	p2pConnectionRunLoopInitialized = telemetry.Gauge(
 		"factomd_p2p_connection_runloop_initialized_counter",
 		"Numer of runloops that hit initialized",
 	)
 
-	p2pConnectionRunLoopOnline = gauge(
+	p2pConnectionRunLoopOnline = telemetry.Gauge(
 		"factomd_p2p_connection_runloop_online_counter",
 		"Numer of runloops that hit online",
 	)
 
-	p2pConnectionRunLoopOffline = gauge(
+	p2pConnectionRunLoopOffline = telemetry.Gauge(
 		"factomd_p2p_connection_runloop_offline_counter",
 		"Numer of runloops that hit offline",
 	)
 
-	p2pConnectionRunLoopShutdown = gauge(
+	p2pConnectionRunLoopShutdown = telemetry.Gauge(
 		"factomd_p2p_connection_runloop_shutdown_counter",
 		"Numer of runloops that hit shutdown",
 	)
 
 	//
 	// Connections
-	p2pConnectionCommonInit = counter(
+	p2pConnectionCommonInit = telemetry.Counter(
 		"factomd_p2p_connection_commonInit_calls_total",
 		"Number of times the commonInit() is called",
 	)
 
-	p2pConnectionOnlineCall = counter(
+	p2pConnectionOnlineCall = telemetry.Counter(
 		"factomd_p2p_goOnline_total",
 		"Number of times we call goOnline()",
 	)
 
-	p2pConnectionOfflineCall = counter(
+	p2pConnectionOfflineCall = telemetry.Counter(
 		"factomd_p2p_goOffline_total",
 		"Number of times we call goOffline()",
 	)

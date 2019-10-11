@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"github.com/FactomProject/factomd/registry"
 	"github.com/FactomProject/factomd/worker"
 	"io/ioutil"
 	"math"
@@ -691,6 +692,9 @@ func AddNode() {
 	fnodes[i].State.IntiateNetworkSkeletonIdentity()
 	fnodes[i].State.InitiateNetworkIdentityRegistration()
 	AddSimPeer(fnodes, i, i-1) // KLUDGE peer w/ only last node
-	// FIXME: make this work w/ thread registry
-	// startServer(i, fnodes[i], true)
+	p := registry.New()
+	p.Register(func(w *worker.Thread, args ...interface{}) {
+		startServer(w, i, fnodes[i], true)
+	})
+	go p.Run() // kick off independent process
 }

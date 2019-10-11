@@ -4,19 +4,16 @@ import (
 	"github.com/FactomProject/factomd/telemetry"
 )
 
-var counter = telemetry.RegisterMetric.Counter
-var guage = telemetry.RegisterMetric.Gauge
-
 var (
-	LevelDBGets = counter(
+	LevelDBGets = telemetry.Counter(
 		"factomd_database_leveldb_gets",
 		"Counts gets from the database",
 	)
-	LevelDBPuts = counter(
+	LevelDBPuts = telemetry.Counter(
 		"factomd_database_leveldb_puts",
 		"Count puts to the database",
 	)
-	LevelDBCacheblock = guage(
+	LevelDBCacheblock = telemetry.Gauge(
 		"factomd_database_leveldb_cacheblock",
 		"Memory used by Level DB for caching",
 	)

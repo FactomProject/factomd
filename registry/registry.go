@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/FactomProject/factomd/fnode"
 	"github.com/FactomProject/factomd/log"
-	"github.com/FactomProject/factomd/telemetry"
 	"github.com/FactomProject/factomd/worker"
 	"runtime"
 	"sync"
@@ -53,19 +52,18 @@ func (p *process) addThread(args ...interface{}) *worker.Thread {
 
 	p.Mutex.Lock()
 	defer p.Mutex.Unlock()
-	thread_id := len(p.Index)
+	threadId := len(p.Index)
 
 	w := &worker.Thread{
-		ID:                       thread_id,
+		ID:                       threadId,
 		RegisterThread:           p.spawn,                   // inject spawn callback
 		RegisterProcess:          p.fork,                    // fork another process
 		RegisterInterruptHandler: fnode.AddInterruptHandler, // add SIGINT behavior
-		RegisterMetric:           telemetry.RegisterMetric,  // prometheus hook
 	}
 
 	// inject logger
 	// REVIEW: maybe there is a more elegant way to return a reference to caller
-	w.Log = log.New(func() (int, string) { return w.ID, *w.Caller })
+	w.Log = log.New(func() (int, string) { return w.ID, w.Caller })
 	p.Index = append(p.Index, w)
 	return w
 }
@@ -103,7 +101,7 @@ func (p *process) register(initFunction worker.Handle, args ...interface{}) {
 	_, file, line, _ := runtime.Caller(1)
 	caller := fmt.Sprintf("%s:%v", file[worker.Prefix:], line)
 	r := p.addThread()
-	r.Caller = &caller
+	r.Caller = caller
 	r.Parent = r.ID // root threads are their own parent
 	p.bindCallbacks(r, initFunction, args...)
 }
