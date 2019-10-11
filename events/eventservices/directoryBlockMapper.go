@@ -5,13 +5,13 @@ import (
 	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 )
 
-func mapDirBlock(block interfaces.IDirectoryBlock) *eventmessages.DirectoryBlock {
-	result := &eventmessages.DirectoryBlock{Header: mapDirHeader(block.GetHeader()),
-		Entries: mapDirEntries(block.GetDBEntries())}
+func mapDirectoryBlock(block interfaces.IDirectoryBlock) *eventmessages.DirectoryBlock {
+	result := &eventmessages.DirectoryBlock{Header: mapDirectoryBlockHeader(block.GetHeader()),
+		Entries: mapDirectoryBlockEntries(block.GetDBEntries())}
 	return result
 }
 
-func mapDirHeader(header interfaces.IDirectoryBlockHeader) *eventmessages.DirectoryBlockHeader {
+func mapDirectoryBlockHeader(header interfaces.IDirectoryBlockHeader) *eventmessages.DirectoryBlockHeader {
 	result := &eventmessages.DirectoryBlockHeader{
 		BodyMerkleRoot: &eventmessages.Hash{
 			HashValue: header.GetBodyMR().Bytes(),
@@ -31,15 +31,15 @@ func mapDirHeader(header interfaces.IDirectoryBlockHeader) *eventmessages.Direct
 	return result
 }
 
-func mapDirEntries(entries []interfaces.IDBEntry) []*eventmessages.DirectoryBlockEntry {
+func mapDirectoryBlockEntries(entries []interfaces.IDBEntry) []*eventmessages.DirectoryBlockEntry {
 	result := make([]*eventmessages.DirectoryBlockEntry, len(entries))
 	for i, entry := range entries {
-		result[i] = mapDirEntry(entry)
+		result[i] = mapDirectoryBlockEntry(entry)
 	}
 	return result
 }
 
-func mapDirEntry(entry interfaces.IDBEntry) *eventmessages.DirectoryBlockEntry {
+func mapDirectoryBlockEntry(entry interfaces.IDBEntry) *eventmessages.DirectoryBlockEntry {
 	result := &eventmessages.DirectoryBlockEntry{
 		ChainID: &eventmessages.Hash{
 			HashValue: entry.GetChainID().Bytes(),

@@ -133,7 +133,7 @@ func mapNodeMessageEvent(nodeMessageEvent *events.NodeMessageEvent) (*eventmessa
 func mapDBStateFromMsg(msg interfaces.IMsg, shouldIncludeContent bool) *eventmessages.FactomEvent_DirectoryBlockCommit {
 	dbStateMessage := msg.(*messages.DBStateMsg)
 	event := &eventmessages.FactomEvent_DirectoryBlockCommit{DirectoryBlockCommit: &eventmessages.DirectoryBlockCommit{
-		DirectoryBlock:    mapDirBlock(dbStateMessage.DirectoryBlock),
+		DirectoryBlock:    mapDirectoryBlock(dbStateMessage.DirectoryBlock),
 		FactoidBlock:      mapFactoidBlock(dbStateMessage.FactoidBlock),
 		EntryBlocks:       mapEntryBlocks(dbStateMessage.EBlocks),
 		EntryBlockEntries: mapEntryBlockEntries(dbStateMessage.Entries, shouldIncludeContent),
@@ -143,7 +143,7 @@ func mapDBStateFromMsg(msg interfaces.IMsg, shouldIncludeContent bool) *eventmes
 
 func mapDBState(dbState interfaces.IDBState, shouldIncludeContent bool) *eventmessages.FactomEvent_DirectoryBlockCommit {
 	event := &eventmessages.FactomEvent_DirectoryBlockCommit{DirectoryBlockCommit: &eventmessages.DirectoryBlockCommit{
-		DirectoryBlock:    mapDirBlock(dbState.GetDirectoryBlock()),
+		DirectoryBlock:    mapDirectoryBlock(dbState.GetDirectoryBlock()),
 		FactoidBlock:      mapFactoidBlock(dbState.GetFactoidBlock()),
 		EntryBlocks:       mapEntryBlocks(dbState.GetEntryBlocks()),
 		EntryBlockEntries: mapEntryBlockEntries(dbState.GetEntries(), shouldIncludeContent),
