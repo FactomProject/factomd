@@ -64,7 +64,8 @@ func (p *process) addThread(args ...interface{}) *worker.Thread {
 	}
 
 	// inject logger
-    w.Log = log.New(thread_id, w.Caller)
+	// REVIEW: maybe there is a more elegant way to return a reference to caller
+	w.Log = log.New(func() (int, string) { return w.ID, *w.Caller })
 	p.Index = append(p.Index, w)
 	return w
 }
