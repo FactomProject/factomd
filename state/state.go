@@ -13,7 +13,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/FactomProject/factomd/events"
-	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -36,6 +35,7 @@ import (
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/leveldb"
 	"github.com/FactomProject/factomd/database/mapdb"
+	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/util/atomic"
@@ -597,8 +597,58 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 	return newState
 }
 
-func (s *State) EmitDBStateEvent(ht int) {
-	EmitDBStateEvent(s.DBStates.Get(int(ht)), eventmessages.EntityState_COMMITTED_TO_DIRECTORY_BLOCK, s)
+func (s *State) EmitDBStateEventsFromHeight(height uint32) {
+	msgs := s.GetAllDBStateMsgsFromDatabase(height)
+	for _, msg := range msgs {
+		EmitStateChangeEvent(msg, eventmessages.EntityState_COMMITTED_TO_DIRECTORY_BLOCK, s)
+	}
+}
+
+func (s *State) GetAllDBStateMsgsFromDatabase(height uint32) []interfaces.IMsg {
+	i := height
+	var msgs []interfaces.IMsg
+	for {
+
+		d, err := s.DB.FetchDBlockByHeight(i)
+		if err != nil || d == nil {
+			break
+		}
+
+		a, err := s.DB.FetchABlockByHeight(i)
+		if err != nil || a == nil {
+			break
+		}
+		f, err := s.DB.FetchFBlockByHeight(i)
+		if err != nil || f == nil {
+			break
+		}
+		ec, err := s.DB.FetchECBlockByHeight(i)
+		if err != nil || ec == nil {
+			break
+		}
+
+		var eblocks []interfaces.IEntryBlock
+		var entries []interfaces.IEBEntry
+
+		ebs := d.GetEBlockDBEntries()
+		for _, eb := range ebs {
+			eblock, _ := s.DB.FetchEBlock(eb.GetKeyMR())
+			if eblock != nil {
+				eblocks = append(eblocks, eblock)
+				for _, e := range eblock.GetEntryHashes() {
+					ent, _ := s.DB.FetchEntry(e)
+					if ent != nil {
+						entries = append(entries, ent)
+					}
+				}
+			}
+		}
+
+		dbs := messages.NewDBStateMsg(d.GetTimestamp(), d, a, f, ec, eblocks, entries, nil)
+		i++
+		msgs = append(msgs, dbs)
+	}
+	return msgs
 }
 
 func (s *State) AddPrefix(prefix string) {

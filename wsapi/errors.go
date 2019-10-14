@@ -74,6 +74,9 @@ func NewInvalidCommitEntryError() *primitives.JSONError {
 func NewInvalidDataPassedError() *primitives.JSONError {
 	return primitives.NewJSONError(-32602, "Invalid params", "Invalid data passed")
 }
+func NewInvalidHeightError() *primitives.JSONError {
+	return primitives.NewJSONError(-32602, "Invalid params", "Invalid Block Height passed")
+}
 func NewInternalDatabaseError() *primitives.JSONError {
 	return primitives.NewJSONError(-32603, "Internal error", "database error")
 }

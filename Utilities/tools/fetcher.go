@@ -104,7 +104,7 @@ func (a *APIReader) FetchDBlockHead() (interfaces.IDirectoryBlock, error) {
 }
 
 func (a *APIReader) FetchDBlockByHeight(height uint32) (interfaces.IDirectoryBlock, error) {
-	data, err := factom.GetDBlockByHeight(int64(height))
+	_, data, err := factom.GetDBlockByHeight(int64(height))
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +115,7 @@ func (a *APIReader) FetchDBlockByHeight(height uint32) (interfaces.IDirectoryBlo
 }
 
 func (a *APIReader) FetchFBlockByHeight(height uint32) (interfaces.IFBlock, error) {
-	data, err := factom.GetFBlockByHeight(int64(height))
+	_, data, err := factom.GetFBlockByHeight(int64(height))
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +126,7 @@ func (a *APIReader) FetchFBlockByHeight(height uint32) (interfaces.IFBlock, erro
 }
 
 func (a *APIReader) FetchABlockByHeight(height uint32) (interfaces.IAdminBlock, error) {
-	data, err := factom.GetABlockByHeight(int64(height))
+	_, data, err := factom.GetABlockByHeight(int64(height))
 	if err != nil {
 		return nil, err
 	}
@@ -148,7 +148,7 @@ func (a *APIReader) FetchECBlockByPrimary(keymr interfaces.IHash) (interfaces.IE
 }
 
 func (a *APIReader) FetchECBlockByHeight(height uint32) (interfaces.IEntryCreditBlock, error) {
-	data, err := factom.GetECBlockByHeight(int64(height))
+	_, data, err := factom.GetECBlockByHeight(int64(height))
 	if err != nil {
 		return nil, err
 	}
@@ -159,11 +159,11 @@ func (a *APIReader) FetchECBlockByHeight(height uint32) (interfaces.IEntryCredit
 }
 
 func (a *APIReader) FetchHeadIndexByChainID(chainID interfaces.IHash) (interfaces.IHash, error) {
-	resp, err := factom.GetChainHead(chainID.String())
+	data, _, err := factom.GetChainHead(chainID.String())
 	if err != nil {
 		return nil, err
 	}
-	return primitives.HexToHash(resp)
+	return primitives.HexToHash(data)
 }
 
 func UnmarshalGeneric(i interfaces.BinaryMarshallable, raw []byte) error {
