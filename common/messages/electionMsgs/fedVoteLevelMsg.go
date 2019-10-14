@@ -255,46 +255,46 @@ func (m *FedVoteLevelMsg) FollowerExecute(is interfaces.IState) {
 
 var _ interfaces.IMsg = (*FedVoteVolunteerMsg)(nil)
 
-func (a *FedVoteLevelMsg) IsSameAs(msg interfaces.IMsg) bool {
+func (m *FedVoteLevelMsg) IsSameAs(msg interfaces.IMsg) bool {
 	b, ok := msg.(*FedVoteLevelMsg)
 	if !ok {
 		return false
 	}
 
-	if !a.FedVoteMsg.IsSameAs(&b.FedVoteMsg) {
+	if !m.FedVoteMsg.IsSameAs(&b.FedVoteMsg) {
 		return false
 	}
 
-	if !a.Signer.IsSameAs(b.Signer) {
+	if !m.Signer.IsSameAs(b.Signer) {
 		return false
 	}
 
-	if !a.EOMFrom.IsSameAs(b.EOMFrom) {
+	if !m.EOMFrom.IsSameAs(b.EOMFrom) {
 		return false
 	}
 
-	if a.Committed != b.Committed {
+	if m.Committed != b.Committed {
 		return false
 	}
 
-	if a.Level != b.Level {
+	if m.Level != b.Level {
 		return false
 	}
 
-	if a.Rank != b.Rank {
+	if m.Rank != b.Rank {
 		return false
 	}
 
-	if !a.Volunteer.IsSameAs(&b.Volunteer) {
+	if !m.Volunteer.IsSameAs(&b.Volunteer) {
 		return false
 	}
 
-	if len(a.Justification) != len(b.Justification) {
+	if len(m.Justification) != len(b.Justification) {
 		return false
 	}
 
-	for i := range a.Justification {
-		data, err := a.Justification[i].MarshalBinary()
+	for i := range m.Justification {
+		data, err := m.Justification[i].MarshalBinary()
 		if err != nil {
 			return false
 		}
@@ -309,7 +309,7 @@ func (a *FedVoteLevelMsg) IsSameAs(msg interfaces.IMsg) bool {
 		}
 	}
 
-	if !a.Signature.IsSameAs(b.Signature) {
+	if !m.Signature.IsSameAs(b.Signature) {
 		return false
 	}
 
@@ -407,16 +407,16 @@ func (m *FedVoteLevelMsg) ComputeVMIndex(state interfaces.IState) {
 }
 
 // Acknowledgements do not go into the process list.
-func (e *FedVoteLevelMsg) Process(dbheight uint32, state interfaces.IState) bool {
+func (m *FedVoteLevelMsg) Process(dbheight uint32, state interfaces.IState) bool {
 	panic("Ack object should never have its Process() method called")
 }
 
-func (e *FedVoteLevelMsg) JSONByte() ([]byte, error) {
-	return primitives.EncodeJSON(e)
+func (m *FedVoteLevelMsg) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(m)
 }
 
-func (e *FedVoteLevelMsg) JSONString() (string, error) {
-	return primitives.EncodeJSONString(e)
+func (m *FedVoteLevelMsg) JSONString() (string, error) {
+	return primitives.EncodeJSONString(m)
 }
 
 func (m *FedVoteLevelMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
@@ -568,4 +568,8 @@ func (m *FedVoteLevelMsg) MarshalForSignature() (data []byte, err error) {
 
 	data = buf.DeepCopyBytes()
 	return data, nil
+}
+
+func (m *FedVoteVolunteerMsg) Label() string {
+	return msgbase.GetLabel(m)
 }

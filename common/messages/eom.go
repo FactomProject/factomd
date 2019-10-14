@@ -378,3 +378,7 @@ func (m *EOM) LogFields() log.Fields {
 		"minute": m.Minute, "chainid": m.ChainID.String(), "sysheight": m.SysHeight,
 		"hash": m.GetMsgHash().String()}
 }
+
+func (m *EOM) Label() string {
+	return msgbase.GetLabel(m)
+}

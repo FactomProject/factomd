@@ -289,3 +289,7 @@ func (e *CommitEntryMsg) JSONString() (string, error) {
 func NewCommitEntryMsg() *CommitEntryMsg {
 	return new(CommitEntryMsg)
 }
+
+func (a *CommitEntryMsg) Label() string {
+	return msgbase.GetLabel(a)
+}

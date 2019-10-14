@@ -31,19 +31,19 @@ type MissingData struct {
 
 var _ interfaces.IMsg = (*MissingData)(nil)
 
-func (a *MissingData) IsSameAs(b *MissingData) bool {
+func (m *MissingData) IsSameAs(b *MissingData) bool {
 	if b == nil {
 		return false
 	}
-	if a.Timestamp.GetTimeMilli() != b.Timestamp.GetTimeMilli() {
+	if m.Timestamp.GetTimeMilli() != b.Timestamp.GetTimeMilli() {
 		return false
 	}
 
-	if a.RequestHash == nil && b.RequestHash != nil {
+	if m.RequestHash == nil && b.RequestHash != nil {
 		return false
 	}
-	if a.RequestHash != nil {
-		if a.RequestHash.IsSameAs(b.RequestHash) == false {
+	if m.RequestHash != nil {
+		if m.RequestHash.IsSameAs(b.RequestHash) == false {
 			return false
 		}
 	}
@@ -211,12 +211,12 @@ func (m *MissingData) FollowerExecute(state interfaces.IState) {
 	return
 }
 
-func (e *MissingData) JSONByte() ([]byte, error) {
-	return primitives.EncodeJSON(e)
+func (m *MissingData) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(m)
 }
 
-func (e *MissingData) JSONString() (string, error) {
-	return primitives.EncodeJSONString(e)
+func (m *MissingData) JSONString() (string, error) {
+	return primitives.EncodeJSONString(m)
 }
 
 func NewMissingData(state interfaces.IState, requestHash interfaces.IHash) interfaces.IMsg {
@@ -227,4 +227,8 @@ func NewMissingData(state interfaces.IState, requestHash interfaces.IHash) inter
 	msg.RequestHash = requestHash
 
 	return msg
+}
+
+func (m *MissingData) Label() string {
+	return msgbase.GetLabel(m)
 }

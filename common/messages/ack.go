@@ -190,16 +190,16 @@ func (m *Ack) FollowerExecute(state interfaces.IState) {
 }
 
 // Acknowledgements do not go into the process list.
-func (e *Ack) Process(dbheight uint32, state interfaces.IState) bool {
+func (m *Ack) Process(dbheight uint32, state interfaces.IState) bool {
 	panic("Ack object should never have its Process() method called")
 }
 
-func (e *Ack) JSONByte() ([]byte, error) {
-	return primitives.EncodeJSON(e)
+func (m *Ack) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(m)
 }
 
-func (e *Ack) JSONString() (string, error) {
-	return primitives.EncodeJSONString(e)
+func (m *Ack) JSONString() (string, error) {
+	return primitives.EncodeJSONString(m)
 }
 
 func (m *Ack) Sign(key interfaces.Signer) error {
@@ -422,89 +422,93 @@ func (m *Ack) LogFields() log.Fields {
 		"hash": m.GetHash().String()}
 }
 
-func (a *Ack) IsSameAs(b *Ack) bool {
-	if a == nil && b == nil {
+func (m *Ack) IsSameAs(b *Ack) bool {
+	if m == nil && b == nil {
 		return true
 	}
 
-	if a == nil {
+	if m == nil {
 		return false
 	}
 
-	if a.VMIndex != b.VMIndex {
+	if m.VMIndex != b.VMIndex {
 		return false
 	}
 
-	if a.Minute != b.Minute {
+	if m.Minute != b.Minute {
 		return false
 	}
 
-	if a.DBHeight != b.DBHeight {
+	if m.DBHeight != b.DBHeight {
 		return false
 	}
 
-	if a.Height != b.Height {
+	if m.Height != b.Height {
 		return false
 	}
 
-	if a.Timestamp.GetTimeMilli() != b.Timestamp.GetTimeMilli() {
+	if m.Timestamp.GetTimeMilli() != b.Timestamp.GetTimeMilli() {
 		return false
 	}
 
-	if a.Salt != b.Salt {
+	if m.Salt != b.Salt {
 		return false
 	}
 
-	if a.SaltNumber != b.SaltNumber {
+	if m.SaltNumber != b.SaltNumber {
 		return false
 	}
 
-	if a.GetFullMsgHash().IsSameAs(b.GetFullMsgHash()) == false {
+	if m.GetFullMsgHash().IsSameAs(b.GetFullMsgHash()) == false {
 		return false
 	}
 
-	if a.MessageHash.IsSameAs(b.MessageHash) == false {
+	if m.MessageHash.IsSameAs(b.MessageHash) == false {
 		return false
 	}
 
-	if a.SerialHash.IsSameAs(b.SerialHash) == false {
+	if m.SerialHash.IsSameAs(b.SerialHash) == false {
 		return false
 	}
 
-	if a.DataAreaSize != b.DataAreaSize {
+	if m.DataAreaSize != b.DataAreaSize {
 		return false
 	}
 
-	if a.Signature != nil {
-		if a.Signature.IsSameAs(b.Signature) == false {
+	if m.Signature != nil {
+		if m.Signature.IsSameAs(b.Signature) == false {
 			return false
 		}
 	}
 
-	if a.LeaderChainID == nil && b.LeaderChainID != nil {
+	if m.LeaderChainID == nil && b.LeaderChainID != nil {
 		return false
 	}
-	if a.LeaderChainID != nil {
-		if a.LeaderChainID.IsSameAs(b.LeaderChainID) == false {
+	if m.LeaderChainID != nil {
+		if m.LeaderChainID.IsSameAs(b.LeaderChainID) == false {
 			return false
 		}
 	}
 
-	if a.BalanceHash == nil && b.BalanceHash != nil {
+	if m.BalanceHash == nil && b.BalanceHash != nil {
 		return false
 	}
 
-	if b.BalanceHash == nil && a.BalanceHash != nil {
+	if b.BalanceHash == nil && m.BalanceHash != nil {
 		return false
 	}
 
-	if a.BalanceHash == nil && b.BalanceHash == nil {
+	if m.BalanceHash == nil && b.BalanceHash == nil {
 		return true
 	}
 
-	if a.BalanceHash.Fixed() != b.BalanceHash.Fixed() {
+	if m.BalanceHash.Fixed() != b.BalanceHash.Fixed() {
 		return false
 	}
 
 	return true
+}
+
+func (m *Ack) Label() string {
+	return msgbase.GetLabel(m)
 }

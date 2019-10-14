@@ -304,16 +304,16 @@ func (m *TimeoutInternal) FollowerExecute(state interfaces.IState) {
 }
 
 // Acknowledgements do not go into the process list.
-func (e *TimeoutInternal) Process(dbheight uint32, state interfaces.IState) bool {
+func (m *TimeoutInternal) Process(dbheight uint32, state interfaces.IState) bool {
 	panic("Ack object should never have its Process() method called")
 }
 
-func (e *TimeoutInternal) JSONByte() ([]byte, error) {
-	return primitives.EncodeJSON(e)
+func (m *TimeoutInternal) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(m)
 }
 
-func (e *TimeoutInternal) JSONString() (string, error) {
-	return primitives.EncodeJSONString(e)
+func (m *TimeoutInternal) JSONString() (string, error) {
+	return primitives.EncodeJSONString(m)
 }
 
 func (m *TimeoutInternal) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
@@ -336,6 +336,10 @@ func (m *TimeoutInternal) String() string {
 		m.Minute)
 }
 
-func (a *TimeoutInternal) IsSameAs(b *TimeoutInternal) bool {
+func (m *TimeoutInternal) IsSameAs(b *TimeoutInternal) bool {
 	return true
+}
+
+func (m *TimeoutInternal) Label() string {
+	return msgbase.GetLabel(m)
 }

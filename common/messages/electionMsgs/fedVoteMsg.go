@@ -54,25 +54,25 @@ func (m *FedVoteMsg) ElectionProcess(is interfaces.IState, elect interfaces.IEle
 var _ interfaces.IMsg = (*FedVoteMsg)(nil)
 var _ interfaces.IElectionMsg = (*FedVoteMsg)(nil)
 
-func (a *FedVoteMsg) IsSameAs(msg interfaces.IMsg) bool {
+func (m *FedVoteMsg) IsSameAs(msg interfaces.IMsg) bool {
 	b, ok := msg.(*FedVoteMsg)
 	if !ok {
 		return false
 	}
-	if a.TS.GetTimeMilli() != b.TS.GetTimeMilli() {
+	if m.TS.GetTimeMilli() != b.TS.GetTimeMilli() {
 		return false
 	}
-	if a.DBHeight != b.DBHeight {
+	if m.DBHeight != b.DBHeight {
 		return false
 	}
-	if a.VMIndex != b.VMIndex {
+	if m.VMIndex != b.VMIndex {
 		return false
 	}
-	if a.Minute != b.Minute {
+	if m.Minute != b.Minute {
 		return false
 	}
-	binA, errA := a.MarshalBinary()
-	binB, errB := a.MarshalBinary()
+	binA, errA := m.MarshalBinary()
+	binB, errB := m.MarshalBinary()
 	if errA != nil || errB != nil || bytes.Compare(binA, binB) != 0 {
 		return false
 	}
@@ -258,16 +258,16 @@ func (m *FedVoteMsg) FollowerExecute(state interfaces.IState) {
 }
 
 // Acknowledgements do not go into the process list.
-func (e *FedVoteMsg) Process(dbheight uint32, state interfaces.IState) bool {
+func (m *FedVoteMsg) Process(dbheight uint32, state interfaces.IState) bool {
 	panic("Ack object should never have its Process() method called")
 }
 
-func (e *FedVoteMsg) JSONByte() ([]byte, error) {
-	return primitives.EncodeJSON(e)
+func (m *FedVoteMsg) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(m)
 }
 
-func (e *FedVoteMsg) JSONString() (string, error) {
-	return primitives.EncodeJSONString(e)
+func (m *FedVoteMsg) JSONString() (string, error) {
+	return primitives.EncodeJSONString(m)
 }
 
 func (m *FedVoteMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
@@ -337,4 +337,8 @@ func (m *FedVoteMsg) String() string {
 		m.LeaderChainID = primitives.NewZeroHash()
 	}
 	return fmt.Sprintf("%s DBHeight %d Minute %d", "FedVoteMsg ", m.DBHeight, m.Minute)
+}
+
+func (m *FedVoteMsg) Label() string {
+	return msgbase.GetLabel(m)
 }

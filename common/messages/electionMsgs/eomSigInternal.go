@@ -295,16 +295,16 @@ func (m *EomSigInternal) FollowerExecute(state interfaces.IState) {
 }
 
 // Acknowledgements do not go into the process list.
-func (e *EomSigInternal) Process(dbheight uint32, state interfaces.IState) bool {
+func (m *EomSigInternal) Process(dbheight uint32, state interfaces.IState) bool {
 	panic("Ack object should never have its Process() method called")
 }
 
-func (e *EomSigInternal) JSONByte() ([]byte, error) {
-	return primitives.EncodeJSON(e)
+func (m *EomSigInternal) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(m)
 }
 
-func (e *EomSigInternal) JSONString() (string, error) {
-	return primitives.EncodeJSONString(e)
+func (m *EomSigInternal) JSONString() (string, error) {
+	return primitives.EncodeJSONString(m)
 }
 
 func (m *EomSigInternal) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
@@ -335,10 +335,15 @@ func (m *EomSigInternal) String() string {
 		m.Minute)
 }
 
-func (a *EomSigInternal) IsSameAs(b *EomSigInternal) bool {
+func (m *EomSigInternal) IsSameAs(b *EomSigInternal) bool {
 	return true
 }
 
-func (a *EomSigInternal) GetDBHeight() uint32 {
-	return a.DBHeight
+func (m *EomSigInternal) GetDBHeight() uint32 {
+	return m.DBHeight
 }
+
+func (m *EomSigInternal) Label() string {
+	return msgbase.GetLabel(m)
+}
+

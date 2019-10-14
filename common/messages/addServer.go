@@ -302,3 +302,7 @@ func NewAddServerByHashMsg(state interfaces.IState, serverType int, newServerHas
 
 	return msg
 }
+
+func (m *AddServerMsg) Label() string {
+	return msgbase.GetLabel(m)
+}

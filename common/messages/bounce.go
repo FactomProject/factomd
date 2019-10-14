@@ -326,3 +326,7 @@ func (m *Bounce) LogFields() log.Fields {
 func (a *Bounce) IsSameAs(b *Bounce) bool {
 	return true
 }
+
+func (a *Bounce) Label() string {
+	return msgbase.GetLabel(a)
+}

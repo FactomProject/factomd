@@ -16,7 +16,6 @@ package state
 // 	BenchmarkCompetingQueues-4     	 1000000	      1302 ns/op
 
 import (
-	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -54,45 +53,6 @@ func (q GeneralMSGQueue) BlockingDequeue() interfaces.IMsg {
 	return <-q
 }
 
-func MsgTypeToLabel(msg interfaces.IMsg) string{
-	switch msg.Type() {
-	case constants.EOM_MSG: // 1
-		return "eom"
-	case constants.ACK_MSG: // 2
-		return "ack"
-	case constants.FULL_SERVER_FAULT_MSG: // 5
-		return "fault"
-	case constants.COMMIT_CHAIN_MSG: // 6
-		return "commitchain"
-	case constants.COMMIT_ENTRY_MSG: // 7
-		return "commitentry"
-	case constants.DIRECTORY_BLOCK_SIGNATURE_MSG: // 8
-		return "dbsig"
-	case constants.FACTOID_TRANSACTION_MSG: // 10
-		return "factoid"
-	case constants.HEARTBEAT_MSG: // 11
-		return "heartbeat"
-	case constants.MISSING_MSG: // 13
-		return "missingmsg"
-	case constants.MISSING_MSG_RESPONSE: // 14
-		return "missingmsgresp"
-	case constants.MISSING_DATA: // 15
-		return "missingdata"
-	case constants.DATA_RESPONSE: // 16
-		return "dataresp"
-	case constants.REVEAL_ENTRY_MSG: // 17
-		return "revealentry"
-	case constants.REQUEST_BLOCK_MSG: // 18
-		return "requestblock"
-	case constants.DBSTATE_MISSING_MSG: // 19
-		return "dbstatmissing"
-	case constants.DBSTATE_MSG: // 20
-		return "dbstate"
-	default: // 23
-		return "misc"
-	}
-}
-
 // measureMessage will increment/decrement prometheus based on type
 func measureMessage(counter *prometheus.GaugeVec, msg interfaces.IMsg, increment bool) {
 	if msg == nil {
@@ -104,6 +64,6 @@ func measureMessage(counter *prometheus.GaugeVec, msg interfaces.IMsg, increment
 	}
 
 	if counter != nil {
-		counter.WithLabelValues(MsgTypeToLabel(msg)).Add(amt)
+		counter.WithLabelValues(msg.Label()).Add(amt)
 	}
 }

@@ -315,3 +315,7 @@ func NewDBStateMissing(state interfaces.IState, dbheightStart uint32, dbheightEn
 
 	return msg
 }
+
+func (m *DBStateMissing) Label() string {
+	return msgbase.GetLabel(m)
+}

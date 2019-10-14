@@ -162,16 +162,16 @@ func (m *AddLeaderInternal) FollowerExecute(state interfaces.IState) {
 }
 
 // Acknowledgements do not go into the process list.
-func (e *AddLeaderInternal) Process(dbheight uint32, state interfaces.IState) bool {
+func (m *AddLeaderInternal) Process(dbheight uint32, state interfaces.IState) bool {
 	panic("Ack object should never have its Process() method called")
 }
 
-func (e *AddLeaderInternal) JSONByte() ([]byte, error) {
-	return primitives.EncodeJSON(e)
+func (m *AddLeaderInternal) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(m)
 }
 
-func (e *AddLeaderInternal) JSONString() (string, error) {
-	return primitives.EncodeJSONString(e)
+func (m *AddLeaderInternal) JSONString() (string, error) {
+	return primitives.EncodeJSONString(m)
 }
 
 func (m *AddLeaderInternal) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
@@ -196,6 +196,10 @@ func (m *AddLeaderInternal) String() string {
 	return fmt.Sprintf(" %10s %20s %x dbheight %5d", m.NName, "Add Leader Internal", m.ServerID.Bytes(), m.DBHeight)
 }
 
-func (a *AddLeaderInternal) IsSameAs(b *AddLeaderInternal) bool {
+func (m *AddLeaderInternal) IsSameAs(b *AddLeaderInternal) bool {
 	return true
+}
+
+func (m *AddLeaderInternal) Label() string {
+	return msgbase.GetLabel(m)
 }

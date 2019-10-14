@@ -326,3 +326,7 @@ func NewDataResponse(state interfaces.IState, dataObject interfaces.BinaryMarsha
 
 	return msg
 }
+
+func (m *DataResponse) Label() string {
+	return msgbase.GetLabel(m)
+}

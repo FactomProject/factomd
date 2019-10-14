@@ -48,41 +48,41 @@ type DirectoryBlockSignature struct {
 var _ interfaces.IMsg = (*DirectoryBlockSignature)(nil)
 var _ interfaces.Signable = (*DirectoryBlockSignature)(nil)
 
-func (a *DirectoryBlockSignature) IsSameAs(b *DirectoryBlockSignature) bool {
+func (m *DirectoryBlockSignature) IsSameAs(b *DirectoryBlockSignature) bool {
 	if b == nil {
 		return false
 	}
 
-	if a.Timestamp.GetTimeMilli() != b.Timestamp.GetTimeMilli() {
+	if m.Timestamp.GetTimeMilli() != b.Timestamp.GetTimeMilli() {
 		return false
 	}
-	if a.DBHeight != b.DBHeight {
+	if m.DBHeight != b.DBHeight {
 		return false
 	}
 
-	if a.DirectoryBlockHeader == nil && b.DirectoryBlockHeader != nil {
+	if m.DirectoryBlockHeader == nil && b.DirectoryBlockHeader != nil {
 		return false
 	}
-	if a.DirectoryBlockHeader != nil {
-		if a.DirectoryBlockHeader.GetPrevFullHash().IsSameAs(b.DirectoryBlockHeader.GetPrevFullHash()) == false {
+	if m.DirectoryBlockHeader != nil {
+		if m.DirectoryBlockHeader.GetPrevFullHash().IsSameAs(b.DirectoryBlockHeader.GetPrevFullHash()) == false {
 			return false
 		}
 	}
 
-	if a.ServerIdentityChainID == nil && b.ServerIdentityChainID != nil {
+	if m.ServerIdentityChainID == nil && b.ServerIdentityChainID != nil {
 		return false
 	}
-	if a.ServerIdentityChainID != nil {
-		if a.ServerIdentityChainID.IsSameAs(b.ServerIdentityChainID) == false {
+	if m.ServerIdentityChainID != nil {
+		if m.ServerIdentityChainID.IsSameAs(b.ServerIdentityChainID) == false {
 			return false
 		}
 	}
 
-	if a.Signature == nil && b.Signature != nil {
+	if m.Signature == nil && b.Signature != nil {
 		return false
 	}
-	if a.Signature != nil {
-		if a.Signature.IsSameAs(b.Signature) == false {
+	if m.Signature != nil {
+		if m.Signature.IsSameAs(b.Signature) == false {
 			return false
 		}
 	}
@@ -90,8 +90,8 @@ func (a *DirectoryBlockSignature) IsSameAs(b *DirectoryBlockSignature) bool {
 	return true
 }
 
-func (e *DirectoryBlockSignature) Process(dbheight uint32, state interfaces.IState) bool {
-	return state.ProcessDBSig(dbheight, e)
+func (m *DirectoryBlockSignature) Process(dbheight uint32, state interfaces.IState) bool {
+	return state.ProcessDBSig(dbheight, m)
 }
 
 func (m *DirectoryBlockSignature) GetRepeatHash() (rval interfaces.IHash) {
@@ -500,10 +500,14 @@ func (m *DirectoryBlockSignature) LogFields() log.Fields {
 		"hash":      m.GetHash().String()}
 }
 
-func (e *DirectoryBlockSignature) JSONByte() ([]byte, error) {
-	return primitives.EncodeJSON(e)
+func (m *DirectoryBlockSignature) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(m)
 }
 
-func (e *DirectoryBlockSignature) JSONString() (string, error) {
-	return primitives.EncodeJSONString(e)
+func (m *DirectoryBlockSignature) JSONString() (string, error) {
+	return primitives.EncodeJSONString(m)
+}
+
+func (m *DirectoryBlockSignature) Label() string {
+	return msgbase.GetLabel(m)
 }

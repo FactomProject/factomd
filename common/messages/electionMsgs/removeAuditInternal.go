@@ -158,16 +158,16 @@ func (m *RemoveAuditInternal) FollowerExecute(state interfaces.IState) {
 }
 
 // Acknowledgements do not go into the process list.
-func (e *RemoveAuditInternal) Process(dbheight uint32, state interfaces.IState) bool {
+func (m *RemoveAuditInternal) Process(dbheight uint32, state interfaces.IState) bool {
 	panic("Ack object should never have its Process() method called")
 }
 
-func (e *RemoveAuditInternal) JSONByte() ([]byte, error) {
-	return primitives.EncodeJSON(e)
+func (m *RemoveAuditInternal) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(m)
 }
 
-func (e *RemoveAuditInternal) JSONString() (string, error) {
-	return primitives.EncodeJSONString(e)
+func (m *RemoveAuditInternal) JSONString() (string, error) {
+	return primitives.EncodeJSONString(m)
 }
 
 func (m *RemoveAuditInternal) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
@@ -192,6 +192,10 @@ func (m *RemoveAuditInternal) String() string {
 	return fmt.Sprintf("%20s %x %10s dbheight %d", "Remove Audit Internal", m.ServerID.Bytes(), m.NName, m.DBHeight)
 }
 
-func (a *RemoveAuditInternal) IsSameAs(b *RemoveAuditInternal) bool {
+func (m *RemoveAuditInternal) IsSameAs(b *RemoveAuditInternal) bool {
 	return true
+}
+
+func (m *RemoveAuditInternal) Label() string {
+	return msgbase.GetLabel(m)
 }

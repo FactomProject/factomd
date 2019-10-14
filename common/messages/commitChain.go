@@ -287,3 +287,7 @@ func (m *CommitChainMsg) LogFields() log.Fields {
 		"commitchain": m.CommitChain.EntryHash.String(),
 		"hash":        m.GetHash().String()}
 }
+
+func (m *CommitChainMsg) Label() string {
+	return msgbase.GetLabel(m)
+}

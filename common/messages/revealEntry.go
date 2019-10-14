@@ -232,12 +232,12 @@ func (m *RevealEntryMsg) FollowerExecute(state interfaces.IState) {
 	state.FollowerExecuteRevealEntry(m)
 }
 
-func (e *RevealEntryMsg) JSONByte() ([]byte, error) {
-	return primitives.EncodeJSON(e)
+func (m *RevealEntryMsg) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(m)
 }
 
-func (e *RevealEntryMsg) JSONString() (string, error) {
-	return primitives.EncodeJSONString(e)
+func (m *RevealEntryMsg) JSONString() (string, error) {
+	return primitives.EncodeJSONString(m)
 }
 
 func NewRevealEntryMsg() *RevealEntryMsg {
@@ -332,4 +332,8 @@ func (m *RevealEntryMsg) LogFields() log.Fields {
 		"entryhash":  m.Entry.GetHash().String(),
 		"entrychain": m.Entry.GetChainID().String(),
 		"hash":       m.GetHash().String()}
+}
+
+func (m *RevealEntryMsg) Label() string {
+	return msgbase.GetLabel(m)
 }
