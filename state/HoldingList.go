@@ -4,9 +4,9 @@ import (
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/messages"
-
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/telemetry"
 )
 
 type heldMessage struct {
@@ -19,12 +19,14 @@ type HoldingList struct {
 	holding    map[[32]byte][]interfaces.IMsg
 	s          *State                   // for debug logging
 	dependents map[[32]byte]heldMessage // used to avoid duplicate entries & track position in holding
+	metric     telemetry.Gauge
 }
 
 func (l *HoldingList) Init(s *State) {
 	l.holding = make(map[[32]byte][]interfaces.IMsg)
 	l.s = s
 	l.dependents = make(map[[32]byte]heldMessage)
+	l.metric = telemetry.MapSize.WithLabelValues("state", "DependantHolding")
 }
 
 func (l *HoldingList) Messages() map[[32]byte][]interfaces.IMsg {
@@ -60,11 +62,11 @@ func (l *HoldingList) RemoveDependentMsg(h [32]byte, reason string) {
 
 // Add a message to a dependent holding list
 func (l *HoldingList) Add(h [32]byte, msg interfaces.IMsg) bool {
-
 	_, found := l.dependents[msg.GetMsgHash().Fixed()]
 	if found {
 		return false
 	}
+	telemetry.MapSize.WithLabelValues("state", "DependantHolding").Inc()
 	l.s.LogMessage("DependentHolding", fmt.Sprintf("add[%x]", h[:6]), msg)
 
 	if l.holding[h] == nil {
@@ -81,16 +83,19 @@ func (l *HoldingList) Add(h [32]byte, msg interfaces.IMsg) bool {
 func (l *HoldingList) Get(h [32]byte) []interfaces.IMsg {
 	rval := l.holding[h]
 	delete(l.holding, h)
+	var delta float64 = 0
 
 	// delete all the individual messages from the list
 	for _, msg := range rval {
 		if msg == nil {
 			continue
 		} else {
+			delta += 1
 			l.s.LogMessage("DependentHolding", fmt.Sprintf("delete[%x]", h[:6]), msg)
 			delete(l.dependents, msg.GetMsgHash().Fixed())
 		}
 	}
+	telemetry.MapSize.WithLabelValues("state", "DependantHolding").Sub(delta)
 	return rval
 }
 
@@ -220,10 +225,6 @@ func (s *State) ExecuteFromHolding(h [32]byte) {
 		}
 	}()
 }
-
-/*
-	REVIEW: Consider also including a way to wait for minute
-*/
 
 // put a height in the first 5 bytes of a hash so we can use it to look up dependent message in holding
 func HeightToHash(height uint32, minute int) [32]byte {

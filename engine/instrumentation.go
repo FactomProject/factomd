@@ -4,33 +4,33 @@ import "github.com/FactomProject/factomd/telemetry"
 
 var (
 	// Messages
-	RepeatMsgs = telemetry.Counter(
+	RepeatMsgs = telemetry.NewCounter(
 		"factomd_state_msg_replay_toss_total",
 		"Number of repeated msgs.",
 	)
 
-	BroadInCastQueue = telemetry.Gauge(
+	BroadInCastQueue = telemetry.NewGauge(
 		"factomd_state_broadcast_in_current",
 		"Number of msgs in broadcastin queue.",
 	)
 
-	BroadCastInQueueDrop = telemetry.Counter(
+	BroadCastInQueueDrop = telemetry.NewCounter(
 		"factomd_state_broadcast_in_drop_total",
 		"How many messages are dropped due to full queues",
 	)
 
 	// Network Out Queue
-	NetworkOutTotalDequeue = telemetry.Counter(
+	NetworkOutTotalDequeue = telemetry.NewCounter(
 		"factomd_state_queue_netoutmsg_total_general",
 		"Count of all messages being dequeued",
 	)
 
 	// Send/Receive Times
-	TotalSendTime = telemetry.Gauge(
+	TotalSendTime = telemetry.NewGauge(
 		"factomd_state_total_send_time",
 		"Time spent sending (nanoseconds)",
 	)
-	TotalReceiveTime = telemetry.Gauge(
+	TotalReceiveTime = telemetry.NewGauge(
 		"factomd_state_total_receive_time",
 		"Time spent receiving (nanoseconds)",
 	)

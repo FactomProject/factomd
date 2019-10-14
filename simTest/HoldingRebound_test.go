@@ -25,7 +25,7 @@ func TestHoldingRebound(t *testing.T) {
 	a := AccountFromFctSecret("Fs2zQ3egq2j99j37aYzaCddPq9AF3mgh64uG9gRaDAnrkjRx3eHs")
 
 	println(a.String())
-	state0 := SetupSim("LF", map[string]string{}, 12, 0, 0, t)
+	state0 := SetupSim("L", map[string]string{}, 120, 0, 0, t)
 
 	e := factom.Entry{
 		ChainID: id,
@@ -71,8 +71,8 @@ func GenerateCommitsAndRevealsInBatches(t *testing.T, state0 *state.State) {
 	id := "92475004e70f41b94750f4a77bf7b430551113b25d3d57169eadca5692bb043d"
 	a := AccountFromFctSecret("Fs2zQ3egq2j99j37aYzaCddPq9AF3mgh64uG9gRaDAnrkjRx3eHs")
 
-	batchCount := 1
-	setDelay := 0     // blocks to wait between sets of entries
+	batchCount := 10
+	setDelay := 1     // blocks to wait between sets of entries
 	numEntries := 250 // set the total number of entries to add
 
 	logName := "simTest"
@@ -106,6 +106,7 @@ func GenerateCommitsAndRevealsInBatches(t *testing.T, state0 *state.State) {
 			publish(x)
 		}
 
+		time.Sleep(10*time.Second)
 		{ // measure time it takes to process all messages by observing entry credit spend
 			tstart := time.Now()
 			a.FundEC(uint64(numEntries + 1))

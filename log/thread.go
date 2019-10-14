@@ -10,13 +10,13 @@ type CallerHandle func() (threadID int, threadCaller string)
 
 type ThreadLogger struct {
 	interfaces.Log
-	Caller   CallerHandle
+	Caller CallerHandle
 }
 
 // allow for thread-aware logging
 func New(caller CallerHandle) *ThreadLogger {
 	return &ThreadLogger{
-		Caller:   caller,
+		Caller: caller,
 	}
 }
 

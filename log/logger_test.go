@@ -9,7 +9,7 @@ import (
 )
 
 func TestLogPrintf(t *testing.T) {
-	assert.NotPanics(t, func(){
+	assert.NotPanics(t, func() {
 		log.LogPrintf("testing", "unittest %v", "FOO")
 	})
 }

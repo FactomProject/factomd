@@ -5,117 +5,117 @@ import (
 )
 
 var (
-	OverlayDBGetsDblock = telemetry.Counter(
+	OverlayDBGetsDblock = telemetry.NewCounter(
 		"factomd_database_overlay_gets_dblock",
 		"Counts gets from the database",
 	)
 
-	OverlayDBGetsDblockNumber = telemetry.Counter(
+	OverlayDBGetsDblockNumber = telemetry.NewCounter(
 		"factomd_database_overlay_gets_dblocknum",
 		"Counts gets from the database",
 	)
 
-	OverlayDBGetsDBlockSecond = telemetry.Counter(
+	OverlayDBGetsDBlockSecond = telemetry.NewCounter(
 		"factomd_database_overlay_gets_dblocksecondart",
 		"Counts gets from the database",
 	)
 
-	OverlayDBGetsABlock = telemetry.Counter(
+	OverlayDBGetsABlock = telemetry.NewCounter(
 		"factomd_database_overlay_gets_ablock",
 		"Counts gets from the database",
 	)
 
-	OverlayDBGetsABlockNumber = telemetry.Counter(
+	OverlayDBGetsABlockNumber = telemetry.NewCounter(
 		"factomd_database_overlay_gets_ablocknum",
 		"Counts gets from the database",
 	)
 
-	OverlayDBGetsABlockSecondary = telemetry.Counter(
+	OverlayDBGetsABlockSecondary = telemetry.NewCounter(
 		"factomd_database_overlay_gets_ablocksecondary",
 		"Counts gets from the database",
 	)
 
-	OverlayDBGetsFBlock = telemetry.Counter(
+	OverlayDBGetsFBlock = telemetry.NewCounter(
 		"factomd_database_overlay_gets_fblock",
 		"Counts gets from the database",
 	)
 
-	OverlayDBGetsFBlockNumber = telemetry.Counter(
+	OverlayDBGetsFBlockNumber = telemetry.NewCounter(
 		"factomd_database_overlay_gets_fblocknumber",
 		"Counts gets from the database",
 	)
 
-	OverlayDBGetsFBlockSecondary = telemetry.Counter(
+	OverlayDBGetsFBlockSecondary = telemetry.NewCounter(
 		"factomd_database_overlay_gets_fblocksecondary",
 		"Counts gets from the database",
 	)
 
-	OverlayDBGetsEC = telemetry.Counter(
+	OverlayDBGetsEC = telemetry.NewCounter(
 		"factomd_database_overlay_gets_ec",
 		"Counts gets from the database",
 	)
 
-	OverlayDBGetsECNumber = telemetry.Counter(
+	OverlayDBGetsECNumber = telemetry.NewCounter(
 		"factomd_database_overlay_gets_ecnumber",
 		"Counts gets from the database",
 	)
 
-	OverlayDBGetsECSecondary = telemetry.Counter(
+	OverlayDBGetsECSecondary = telemetry.NewCounter(
 		"factomd_database_overlay_gets_ecsecondary",
 		"Counts gets from the database",
 	)
 
-	OverlayDBGetsChainHead = telemetry.Counter(
+	OverlayDBGetsChainHead = telemetry.NewCounter(
 		"factomd_database_overlay_gets_chainhead",
 		"Counts gets from the database",
 	)
 
-	OverlayDBGetsEBlock = telemetry.Counter(
+	OverlayDBGetsEBlock = telemetry.NewCounter(
 		"factomd_database_overlay_gets_eblock",
 		"Counts gets from the database",
 	)
 
-	OverlayDBGetsEBlockNumber = telemetry.Counter(
+	OverlayDBGetsEBlockNumber = telemetry.NewCounter(
 		"factomd_database_overlay_gets_eblocknumber",
 		"Counts gets from the database",
 	)
 
-	OverlayDBGetsEBlockSecondary = telemetry.Counter(
+	OverlayDBGetsEBlockSecondary = telemetry.NewCounter(
 		"factomd_database_overlay_gets_eblocksecondary",
 		"Counts gets from the database",
 	)
 
-	OverlayDBGetsEntry = telemetry.Counter(
+	OverlayDBGetsEntry = telemetry.NewCounter(
 		"factomd_database_overlay_gets_entry",
 		"Counts gets from the database",
 	)
 
-	OverlayDBGetsDirBlockInfo = telemetry.Counter(
+	OverlayDBGetsDirBlockInfo = telemetry.NewCounter(
 		"factomd_database_overlay_gets_dirblockinfo",
 		"Counts gets from the database",
 	)
 
-	OverlayDBGetsDirBlockUnconfirmed = telemetry.Counter(
+	OverlayDBGetsDirBlockUnconfirmed = telemetry.NewCounter(
 		"factomd_database_overlay_gets_dirblockunconfirmed",
 		"Counts gets from the database",
 	)
 
-	OverlayDBGetsDirBlockInfoNumber = telemetry.Counter(
+	OverlayDBGetsDirBlockInfoNumber = telemetry.NewCounter(
 		"factomd_database_overlay_gets_dirblockinfonumber",
 		"Counts gets from the database",
 	)
 
-	OverlayDBGetsDirBlockInfoSecondary = telemetry.Counter(
+	OverlayDBGetsDirBlockInfoSecondary = telemetry.NewCounter(
 		"factomd_database_overlay_gets_secondary",
 		"Counts gets from the database",
 	)
 
-	OverlayDBGetsInvludeIn = telemetry.Counter(
+	OverlayDBGetsInvludeIn = telemetry.NewCounter(
 		"factomd_database_overlay_gets_includein",
 		"Counts gets from the database",
 	)
 
-	OverlayDBGetsPaidFor = telemetry.Counter(
+	OverlayDBGetsPaidFor = telemetry.NewCounter(
 		"factomd_database_overlay_gets_paidfor",
 		"Counts gets from the database",
 	)

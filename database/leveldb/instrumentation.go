@@ -5,15 +5,15 @@ import (
 )
 
 var (
-	LevelDBGets = telemetry.Counter(
+	LevelDBGets = telemetry.NewCounter(
 		"factomd_database_leveldb_gets",
 		"Counts gets from the database",
 	)
-	LevelDBPuts = telemetry.Counter(
+	LevelDBPuts = telemetry.NewCounter(
 		"factomd_database_leveldb_puts",
 		"Count puts to the database",
 	)
-	LevelDBCacheblock = telemetry.Gauge(
+	LevelDBCacheblock = telemetry.NewGauge(
 		"factomd_database_leveldb_cacheblock",
 		"Memory used by Level DB for caching",
 	)
