@@ -1001,11 +1001,11 @@ func (s *State) Init(w *worker.Thread) {
 	s.timerMsgQueue = make(chan interfaces.IMsg, 100) //incoming eom notifications, used by leaders
 	s.ControlPanelChannel = make(chan DisplayState, 20)
 	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 100)              //incoming message queue from the network messages
-	s.networkOutMsgQueue = NewNetOutMsgQueue(constants.INMSGQUEUE_MED)      //Messages to be broadcast to the network
-	s.inMsgQueue = NewInMsgQueue(constants.INMSGQUEUE_HIGH)                 //incoming message queue for Factom application messages
-	s.inMsgQueue2 = NewInMsgQueue(constants.INMSGQUEUE_HIGH)                //incoming message queue for Factom application messages
-	s.electionsQueue = NewElectionQueue(constants.INMSGQUEUE_HIGH)          //incoming message queue for Factom application messages
-	s.apiQueue = NewAPIQueue(constants.INMSGQUEUE_HIGH)                     //incoming message queue from the API
+	s.networkOutMsgQueue = NewNetOutMsgQueue(w, constants.INMSGQUEUE_MED)   //Messages to be broadcast to the network
+	s.inMsgQueue = NewInMsgQueue(w, constants.INMSGQUEUE_HIGH)              //incoming message queue for Factom application messages
+	s.inMsgQueue2 = NewInMsgQueue2(w, constants.INMSGQUEUE_HIGH)            //incoming message queue for Factom application messages
+	s.electionsQueue = NewElectionQueue(w, constants.INMSGQUEUE_HIGH)       //incoming message queue for Factom application messages
+	s.apiQueue = NewAPIQueue(w, constants.INMSGQUEUE_HIGH)                  //incoming message queue from the API
 	s.ackQueue = make(chan interfaces.IMsg, 50)                             //queue of Leadership messages
 	s.msgQueue = make(chan interfaces.IMsg, 50)                             //queue of Follower messages
 	s.prioritizedMsgQueue = make(chan interfaces.IMsg, 50)                  //a prioritized queue of Follower messages (from mmr.go)

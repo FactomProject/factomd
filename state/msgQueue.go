@@ -3,10 +3,18 @@ package state
 import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/telemetry"
+	"github.com/FactomProject/factomd/worker"
 )
 
 type MsgQueue struct {
-	q chan interfaces.IMsg
+	name string
+	q    chan interfaces.IMsg
+	w    *worker.Thread
+}
+
+// use gauge w/ proper labels
+func (mq *MsgQueue) Metric(msg interfaces.IMsg) telemetry.Gauge {
+	return telemetry.ChannelSize.WithLabelValues("state", mq.name, mq.w.Label(), msg.Label())
 }
 
 // Length of underlying channel
@@ -21,8 +29,9 @@ func (mq MsgQueue) Cap() int {
 
 // Enqueue adds item to channel and instruments based on type
 func (mq MsgQueue) Enqueue(m interfaces.IMsg) {
+	// REVIEW: do we want to record totals as prometheus metrics?
 	//measureMessage(TotalMessageQueueInMsgGeneralVec, m, true)
-	//measureMessage(CurrentMessageQueueInMsgGeneralVec, m, true)
+	mq.Metric(m).Inc()
 	mq.q <- m
 }
 
@@ -31,7 +40,7 @@ func (mq MsgQueue) Enqueue(m interfaces.IMsg) {
 func (mq MsgQueue) Dequeue() interfaces.IMsg {
 	select {
 	case v := <-mq.q:
-		//measureMessage(CurrentMessageQueueInMsgGeneralVec, v, false)
+		mq.Metric(v).Dec()
 		return v
 	default:
 		return nil
@@ -41,23 +50,6 @@ func (mq MsgQueue) Dequeue() interfaces.IMsg {
 // BlockingDequeue will block until it retrieves from queue
 func (mq MsgQueue) BlockingDequeue() interfaces.IMsg {
 	v := <-mq.q
-	//measureMessage(CurrentMessageQueueInMsgGeneralVec, v, false)
+	mq.Metric(v).Dec()
 	return v
-}
-
-// measureMessage will increment/decrement prometheus based on type
-func measureMessage(counter *telemetry.GaugeVec, msg interfaces.IMsg, increment bool) {
-	if msg == nil {
-		return
-	}
-	amt := float64(1)
-	if !increment {
-		amt = -1
-	}
-
-	if counter == nil {
-		panic("nil counter")
-	}
-
-	counter.WithLabelValues(msg.Label()).Add(amt)
 }

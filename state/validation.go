@@ -142,11 +142,11 @@ func (s *State) ValidatorLoop(w *worker.Thread) {
 				msg = eom
 				s.LogMessage("validator", fmt.Sprintf("generated c:%d  %d-:-%d %d", c, s.LLeaderHeight, s.CurrentMinute, s.LeaderVMIndex), eom)
 			case msg = <-s.inMsgQueue.q:
-				// TODO add metrics
 				s.LogMessage("InMsgQueue", "dequeue", msg)
+				s.inMsgQueue.Metric(msg).Dec()
 			case msg = <-s.inMsgQueue2.q:
-				// TODO add metrics
 				s.LogMessage("InMsgQueue2", "dequeue", msg)
+				s.inMsgQueue2.Metric(msg).Dec()
 			}
 
 			if t := msg.Type(); t == constants.ACK_MSG {

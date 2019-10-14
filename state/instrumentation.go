@@ -39,37 +39,6 @@ var (
 		"The upper limit of torrent sync",
 	)
 
-	// Queues
-	CurrentMessageQueueInMsgGeneralVec = telemetry.NewGaugeVec(
-		"factomd_state_queue_current_general_inmsg_vec",
-		"Instrumenting the current  inmsg queue ",
-		[]string{"message"},
-	)
-
-	TotalMessageQueueInMsgGeneralVec = telemetry.NewGaugeVec(
-		"factomd_state_queue_total_general_inmsg_vec",
-		"Instrumenting the inmsg queue ",
-		[]string{"message"},
-	)
-
-	CurrentMessageQueueApiGeneralVec = telemetry.NewGaugeVec(
-		"factomd_state_queue_current_general_api_vec",
-		"Instrumenting the current API queue ",
-		[]string{"message"},
-	)
-
-	TotalMessageQueueApiGeneralVec = telemetry.NewGaugeVec(
-		"factomd_state_queue_total_general_api_vec",
-		"Instrumenting the API queue ",
-		[]string{"message"},
-	)
-
-	TotalMessageQueueNetOutMsgGeneralVec = telemetry.NewGaugeVec(
-		"factomd_state_queue_total_general_netoutmsg_vec",
-		"Instrumenting the netoutmsg queue ",
-		[]string{"message"},
-	)
-
 	// Holding Queue
 	TotalHoldingQueueInputs = telemetry.NewCounter(
 		"factomd_state_holding_queue_total_inputs",
