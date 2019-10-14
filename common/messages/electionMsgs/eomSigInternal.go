@@ -346,4 +346,3 @@ func (m *EomSigInternal) GetDBHeight() uint32 {
 func (m *EomSigInternal) Label() string {
 	return msgbase.GetLabel(m)
 }
-

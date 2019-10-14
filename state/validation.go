@@ -141,9 +141,11 @@ func (s *State) ValidatorLoop(w *worker.Thread) {
 				eom.SetLocal(true) // local EOMs are really just timeout indicators that we need to generate an EOM
 				msg = eom
 				s.LogMessage("validator", fmt.Sprintf("generated c:%d  %d-:-%d %d", c, s.LLeaderHeight, s.CurrentMinute, s.LeaderVMIndex), eom)
-			case msg = <-s.inMsgQueue:
+			case msg = <-s.inMsgQueue.q:
+				// TODO add metrics
 				s.LogMessage("InMsgQueue", "dequeue", msg)
-			case msg = <-s.inMsgQueue2:
+			case msg = <-s.inMsgQueue2.q:
+				// TODO add metrics
 				s.LogMessage("InMsgQueue2", "dequeue", msg)
 			}
 

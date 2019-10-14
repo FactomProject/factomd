@@ -9,7 +9,6 @@ type GaugeVec = prometheus.GaugeVec
 type Counter = prometheus.Counter
 type Summary = prometheus.Summary
 
-
 func NewCounter(name string, help string) Counter {
 	c := prometheus.NewCounter(prometheus.CounterOpts{
 		Name: name,

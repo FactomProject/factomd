@@ -106,7 +106,7 @@ func GenerateCommitsAndRevealsInBatches(t *testing.T, state0 *state.State) {
 			publish(x)
 		}
 
-		time.Sleep(10*time.Second)
+		time.Sleep(10 * time.Second)
 		{ // measure time it takes to process all messages by observing entry credit spend
 			tstart := time.Now()
 			a.FundEC(uint64(numEntries + 1))
