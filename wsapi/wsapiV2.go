@@ -185,7 +185,7 @@ func HandleV2ReplayDBFromHeight(state interfaces.IState, params interface{}) (in
 	beginning := uint32(heightRequest.Height)
 	end := uint32(state.GetDBHeightComplete())
 
-	if beginning > end {
+	if beginning > end || beginning < 0 {
 		return nil, NewInvalidHeightError()
 	}
 
