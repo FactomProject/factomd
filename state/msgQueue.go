@@ -8,44 +8,54 @@ import (
 )
 
 type MsgQueue struct {
-	name string
-	q    chan interfaces.IMsg
-	w    *worker.Thread
+	Name    string
+	Channel chan interfaces.IMsg
+	Thread  *worker.Thread
 }
 
 // use gauge w/ proper labels
 func (mq *MsgQueue) Metric(msg interfaces.IMsg) telemetry.Gauge {
-	return telemetry.ChannelSize.WithLabelValues("state", mq.name, mq.w.Label(), msg.Label())
+	label := "nil"
+	if msg != nil {
+		label = msg.Label()
+	}
+
+	return telemetry.ChannelSize.WithLabelValues("state", mq.Name, mq.Thread.Label(), label)
 }
 
 func (mq *MsgQueue) TotalMetric(msg interfaces.IMsg) telemetry.Counter {
-	return telemetry.TotalCounter.WithLabelValues("state", mq.name, mq.w.Label(), msg.Label())
+	label := "nil"
+	if msg != nil {
+		label = msg.Label()
+	}
+
+	return telemetry.TotalCounter.WithLabelValues("state", mq.Name, mq.Thread.Label(), label)
 }
 
 type Counter = prometheus.Counter
 
 // Length of underlying channel
 func (mq MsgQueue) Length() int {
-	return len(mq.q)
+	return len(mq.Channel)
 }
 
 // Cap of underlying channel
 func (mq MsgQueue) Cap() int {
-	return cap(mq.q)
+	return cap(mq.Channel)
 }
 
 // Enqueue adds item to channel and instruments based on type
 func (mq MsgQueue) Enqueue(m interfaces.IMsg) {
 	mq.TotalMetric(m).Inc()
 	mq.Metric(m).Inc()
-	mq.q <- m
+	mq.Channel <- m
 }
 
 // Dequeue removes an item from channel and instruments based on type. Returns nil if nothing in
 // queue
 func (mq MsgQueue) Dequeue() interfaces.IMsg {
 	select {
-	case v := <-mq.q:
+	case v := <-mq.Channel:
 		mq.Metric(v).Dec()
 		return v
 	default:
@@ -55,7 +65,7 @@ func (mq MsgQueue) Dequeue() interfaces.IMsg {
 
 // BlockingDequeue will block until it retrieves from queue
 func (mq MsgQueue) BlockingDequeue() interfaces.IMsg {
-	v := <-mq.q
+	v := <-mq.Channel
 	mq.Metric(v).Dec()
 	return v
 }

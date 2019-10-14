@@ -2,6 +2,7 @@ package state_test
 
 import (
 	"fmt"
+	"github.com/FactomProject/factomd/worker"
 	"testing"
 	"time"
 
@@ -13,14 +14,15 @@ import (
 var _ = fmt.Println
 
 func TestQueues(t *testing.T) {
-	var _, _ = NewInMsgQueue(0), NewNetOutMsgQueue(0)
+	w := &worker.Thread{ID: 0, PID: 0, Caller :"testCaller"}
+	var _, _ = NewInMsgQueue(w, 0), NewNetOutMsgQueue(w,0)
 
 	channel := make(chan interfaces.IMsg, 1000)
-	general := GeneralMSGQueue(channel)
-	inmsg := InMsgMSGQueue(channel)
-	netOut := NetOutMsgQueue(channel)
+	general := MsgQueue{Name: "general", Channel: channel, Thread: w}
+	inmsg := InMsgMSGQueue{Name: "inmsg", Channel: channel, Thread: w}
+	netOut := NetOutMsgQueue{Name: "netOut", Channel: channel, Thread: w}
 
-	if !checkLensAndCap(channel, []interfaces.IQueue{general, inmsg, netOut}) {
+	if !checkLensAndCap(channel, []interfaces.IQueue{inmsg, netOut}) {
 		t.Error("Error: Lengths/Cap does not match")
 	}
 
@@ -32,7 +34,7 @@ func TestQueues(t *testing.T) {
 		case 1:
 			general.Enqueue(new(messages.DBStateMsg))
 		case 2:
-			inmsg.Enqueue(nil)
+			inmsg.Enqueue(nil) // REIVEW Unsure why we test support for nil messages
 		}
 		c++
 		if c == 3 {
@@ -167,7 +169,7 @@ func BenchmarkChannels(b *testing.B) {
 }
 
 func BenchmarkQueues(b *testing.B) {
-	c := NewInMsgQueue(1000)
+	c := NewInMsgQueue(&worker.Thread{ID: 0, PID: 0}, 1000)
 	for i := 0; i < b.N; i++ {
 		c.Enqueue(nil)
 		c.Dequeue()
@@ -192,7 +194,7 @@ func BenchmarkConcurentChannels(b *testing.B) {
 }
 
 func BenchmarkConcurrentQueues(b *testing.B) {
-	c := NewInMsgQueue(1000)
+	c := NewInMsgQueue(&worker.Thread{ID: 0, PID: 0, Caller: "testCaller"}, 1000)
 	go func() {
 		for true {
 			c.Enqueue(nil)
@@ -223,7 +225,7 @@ func BenchmarkCompetingChannels(b *testing.B) {
 }
 
 func BenchmarkCompetingQueues(b *testing.B) {
-	c := NewInMsgQueue(1000)
+	c := NewInMsgQueue(&worker.Thread{ID: 0, PID: 0, Caller: "testCaller"}, 1000)
 	go func() {
 		for true {
 			c.Enqueue(nil)

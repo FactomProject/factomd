@@ -10,17 +10,17 @@ type InMsgMSGQueue = MsgQueue
 
 func NewInMsgQueue(w *worker.Thread, capacity int) InMsgMSGQueue {
 	return InMsgMSGQueue{
-		name: "InMsgQueue",
-		q:    make(chan interfaces.IMsg, capacity),
-		w:    w,
+		Name:    "InMsgQueue",
+		Channel: make(chan interfaces.IMsg, capacity),
+		Thread:  w,
 	}
 }
 
 func NewInMsgQueue2(w *worker.Thread, capacity int) InMsgMSGQueue {
 	return InMsgMSGQueue{
-		name: "InMsgQueue2",
-		q:    make(chan interfaces.IMsg, capacity),
-		w:    w,
+		Name:    "InMsgQueue2",
+		Channel: make(chan interfaces.IMsg, capacity),
+		Thread:  w,
 	}
 }
 
@@ -29,9 +29,9 @@ type ElectionQueue = MsgQueue
 
 func NewElectionQueue(w *worker.Thread, capacity int) ElectionQueue {
 	return ElectionQueue{
-		name: "InMsgQueue",
-		q:    make(chan interfaces.IMsg, capacity),
-		w:    w,
+		Name:    "InMsgQueue",
+		Channel: make(chan interfaces.IMsg, capacity),
+		Thread:  w,
 	}
 }
 
@@ -40,9 +40,9 @@ type NetOutMsgQueue = MsgQueue
 
 func NewNetOutMsgQueue(w *worker.Thread, capacity int) NetOutMsgQueue {
 	return NetOutMsgQueue{
-		name: "InMsgQueue",
-		q:    make(chan interfaces.IMsg, capacity),
-		w:    w,
+		Name:    "InMsgQueue",
+		Channel: make(chan interfaces.IMsg, capacity),
+		Thread:  w,
 	}
 }
 
@@ -51,8 +51,8 @@ type APIMSGQueue = MsgQueue
 
 func NewAPIQueue(w *worker.Thread, capacity int) APIMSGQueue {
 	return APIMSGQueue{
-		name: "InMsgQueue",
-		q:    make(chan interfaces.IMsg, capacity),
-		w:    w,
+		Name:    "InMsgQueue",
+		Channel: make(chan interfaces.IMsg, capacity),
+		Thread:  w,
 	}
 }
