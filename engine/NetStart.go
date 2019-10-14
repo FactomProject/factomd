@@ -254,7 +254,7 @@ func NetStart(w *worker.Thread, s *state.State, p *FactomParams, listenToStdin b
 
 	s.AddPrefix(p.Prefix)
 	s.SetOut(false)
-	s.Init()
+	s.Init(w)
 	s.SetDropRate(p.DropRate)
 
 	if p.Sync2 >= 0 {
@@ -623,7 +623,6 @@ func makeServer(s *state.State) *FactomNode {
 		newState = s.Clone(len(fnodes)).(*state.State)
 		newState.EFactory = new(electionMsgs.ElectionsFactory) // not an elegant place but before we let the messages hit the state
 		time.Sleep(10 * time.Millisecond)
-		newState.Init()
 		newState.EFactory = new(electionMsgs.ElectionsFactory)
 	}
 
@@ -639,7 +638,7 @@ func startServers(w *worker.Thread, load bool) {
 	w.Spawn(func(w *worker.Thread, args ...interface{}) {
 		for i, fnode := range fnodes {
 			if i > 0 {
-				fnode.State.Init()
+				fnode.State.Init(w)
 			}
 			startServer(w, i, fnode, load)
 		}

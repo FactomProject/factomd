@@ -126,3 +126,7 @@ func (r *Thread) OnExit(f func()) *Thread {
 func (r *Thread) IsRoot() bool {
 	return r.ID == r.Parent
 }
+
+func (r *Thread) Label() string {
+	return fmt.Sprintf("%v", r.ID)
+}

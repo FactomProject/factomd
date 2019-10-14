@@ -17,8 +17,7 @@ package state
 
 import (
 	"github.com/FactomProject/factomd/common/interfaces"
-
-	"github.com/prometheus/client_golang/prometheus"
+	"github.com/FactomProject/factomd/telemetry"
 )
 
 // Returning this is non-instrumented way
@@ -54,7 +53,7 @@ func (q GeneralMSGQueue) BlockingDequeue() interfaces.IMsg {
 }
 
 // measureMessage will increment/decrement prometheus based on type
-func measureMessage(counter *prometheus.GaugeVec, msg interfaces.IMsg, increment bool) {
+func measureMessage(counter *telemetry.GaugeVec, msg interfaces.IMsg, increment bool) {
 	if msg == nil {
 		return
 	}
@@ -63,7 +62,9 @@ func measureMessage(counter *prometheus.GaugeVec, msg interfaces.IMsg, increment
 		amt = -1
 	}
 
-	if counter != nil {
-		counter.WithLabelValues(msg.Label()).Add(amt)
+	if counter == nil {
+		panic("nil counter")
 	}
+
+	counter.WithLabelValues(msg.Label()).Add(amt)
 }

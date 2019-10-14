@@ -5,7 +5,7 @@ var (
 	MapSize = NewGaugeVec(
 		"queue_size",
 		"common metric for all queues",
-		[]string{"package", "name", "message"}, // FIXME add msg type
+		[]string{"package", "name", "thread", "message"}, // FIXME add msg type
 	)
 
 	ChannelSize = NewGaugeVec(

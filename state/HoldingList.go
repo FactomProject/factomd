@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	"github.com/FactomProject/factomd/worker"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -19,17 +20,19 @@ type HoldingList struct {
 	holding    map[[32]byte][]interfaces.IMsg
 	s          *State                   // for debug logging
 	dependents map[[32]byte]heldMessage // used to avoid duplicate entries & track position in holding
+	w          *worker.Thread
 }
 
 // access gauge w/ proper labels
 func (l *HoldingList) metric(msg interfaces.IMsg) telemetry.Gauge {
-	return telemetry.MapSize.WithLabelValues("state", "DependentHolding", msg.Label())
+	return telemetry.MapSize.WithLabelValues("state", "DependentHolding", l.w.Label(), msg.Label())
 }
 
-func (l *HoldingList) Init(s *State) {
+func (l *HoldingList) Init(w *worker.Thread, s *State) {
 	l.holding = make(map[[32]byte][]interfaces.IMsg)
 	l.s = s
 	l.dependents = make(map[[32]byte]heldMessage)
+	l.w = w
 }
 
 func (l *HoldingList) Messages() map[[32]byte][]interfaces.IMsg {

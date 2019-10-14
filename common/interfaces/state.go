@@ -40,7 +40,6 @@ type IState interface {
 	GetCfg() IFactomConfig
 	GetConfigPath() string
 	LoadConfig(filename string, networkFlag string)
-	Init()
 	String() string
 	GetIdentityChainID() IHash
 	SetIdentityChainID(IHash)
