@@ -10,7 +10,6 @@ import (
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/events"
-	"github.com/FactomProject/factomd/events/allowcontent"
 	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 	"github.com/FactomProject/factomd/events/eventoutputformat"
 	"github.com/FactomProject/factomd/p2p"
@@ -23,8 +22,8 @@ import (
 	"time"
 )
 
-var eventService events.EventService
-var eventServiceControl events.EventServiceControl
+var eventService EventService
+var eventServiceControl EventServiceControl
 
 const (
 	defaultProtocol           = "tcp"
@@ -47,11 +46,11 @@ type eventServiceInstance struct {
 	notSentCounter          prometheus.Counter
 }
 
-func NewEventService(state interfaces.IState, config *util.FactomdConfig, factomParams *globals.FactomParams) (events.EventService, events.EventServiceControl) {
+func NewEventService(state interfaces.IState, config *util.FactomdConfig, factomParams *globals.FactomParams) (EventService, EventServiceControl) {
 	return NewEventServiceTo(state, selectParameters(factomParams, config))
 }
 
-func NewEventServiceTo(state interfaces.IState, params *EventServiceParams) (events.EventService, events.EventServiceControl) {
+func NewEventServiceTo(state interfaces.IState, params *EventServiceParams) (EventService, EventServiceControl) {
 	if eventService == nil {
 		eventServiceInstance := &eventServiceInstance{
 			eventsOutQueue: make(chan *eventmessages.FactomEvent, p2p.StandardChannelSize),
@@ -90,7 +89,9 @@ func (esi *eventServiceInstance) Send(event events.EventInput) error {
 		}
 	}
 
-	factomEvent, err := MapToFactomEvent(event)
+	broadcastContent := eventServiceControl.GetBroadcastContent()
+	resendRegistrations := eventServiceControl.IsResendRegistrationsOnStateChange()
+	factomEvent, err := MapToFactomEvent(event, broadcastContent, resendRegistrations)
 	if err != nil {
 		return fmt.Errorf("failed to map to factom event: %v\n", err)
 	}
@@ -242,8 +243,8 @@ func catchSendPanics() error {
 	return nil
 }
 
-func (esi *eventServiceInstance) GetAllowContent() allowcontent.AllowContent {
-	return esi.params.AllowContent
+func (esi *eventServiceInstance) GetBroadcastContent() BroadcastContent {
+	return esi.params.BroadcastContent
 }
 
 func (esi *eventServiceInstance) IsResendRegistrationsOnStateChange() bool {

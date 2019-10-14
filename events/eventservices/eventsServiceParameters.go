@@ -3,7 +3,6 @@ package eventservices
 import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/globals"
-	"github.com/FactomProject/factomd/events/allowcontent"
 	"github.com/FactomProject/factomd/events/eventoutputformat"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/util"
@@ -16,7 +15,7 @@ type EventServiceParams struct {
 	OutputFormat                     eventoutputformat.Format
 	MuteEventReplayDuringStartup     bool
 	ResendRegistrationsOnStateChange bool
-	AllowContent                     allowcontent.AllowContent
+	BroadcastContent                 BroadcastContent
 }
 
 func selectParameters(factomParams *globals.FactomParams, config *util.FactomdConfig) *EventServiceParams {
@@ -47,20 +46,20 @@ func selectParameters(factomParams *globals.FactomParams, config *util.FactomdCo
 	params.MuteEventReplayDuringStartup = factomParams.MuteReplayDuringStartup || config.LiveFeedAPI.MuteReplayDuringStartup
 	params.ResendRegistrationsOnStateChange = factomParams.ResendRegistrationsOnStateChange || config.LiveFeedAPI.ResendRegistrationsOnStateChange
 	var err error
-	if len(factomParams.AllowContent) > 0 {
-		params.AllowContent, err = allowcontent.Parse(factomParams.AllowContent)
+	if len(factomParams.BroadcastContent) > 0 {
+		params.BroadcastContent, err = Parse(factomParams.BroadcastContent)
 		if err != nil {
-			log.Printf("Parameter AllowContent could not be parsed: %v", err)
-			params.AllowContent = allowcontent.OnRegistration
+			log.Printf("Parameter BroadcastContent could not be parsed: %v", err)
+			params.BroadcastContent = BroadcastOnRegistration
 		}
-	} else if len(config.LiveFeedAPI.AllowContent) > 0 {
-		params.AllowContent, err = allowcontent.Parse(config.LiveFeedAPI.AllowContent)
+	} else if len(config.LiveFeedAPI.BroadcastContent) > 0 {
+		params.BroadcastContent, err = Parse(config.LiveFeedAPI.BroadcastContent)
 		if err != nil {
-			log.Printf("Configuration property LiveFeedAPI.AllowContent could not be parsed: %v", err)
-			params.AllowContent = allowcontent.OnRegistration
+			log.Printf("Configuration property LiveFeedAPI.BroadcastContent could not be parsed: %v", err)
+			params.BroadcastContent = BroadcastOnRegistration
 		}
 	} else {
-		params.AllowContent = allowcontent.OnRegistration
+		params.BroadcastContent = BroadcastOnRegistration
 	}
 	return params
 }

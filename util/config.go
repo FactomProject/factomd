@@ -114,7 +114,7 @@ type FactomdConfig struct {
 		OutputFormat                     string
 		MuteReplayDuringStartup          bool
 		ResendRegistrationsOnStateChange bool
-		AllowContent                     string
+		BroadcastContent                 string
 	}
 }
 
@@ -247,7 +247,7 @@ EventReceiverPort                     = 8040
 OutputFormat                          = protobuf
 MuteReplayDuringStartup               = false
 ResendRegistrationsOnStateChange      = false
-AllowContent                          = OnRegistration 
+BroadcastContent                          = OnRegistration 
 `
 
 func (s *FactomdConfig) String() string {

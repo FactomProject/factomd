@@ -12,7 +12,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/FactomProject/factomd/events"
+	"github.com/FactomProject/factomd/events/eventservices"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -435,8 +435,8 @@ type State struct {
 	InputRegExString          string
 	executeRecursionDetection map[[32]byte]interfaces.IMsg
 	Hold                      HoldingList
-	EventsService             events.EventService
-	EventsServiceControl      events.EventServiceControl
+	EventsService             eventservices.EventService
+	EventsServiceControl      eventservices.EventServiceControl
 
 	// MissingMessageResponse is a cache of the last 1000 msgs we receive such that when
 	// we send out a missing message, we can find that message locally before we ask the net

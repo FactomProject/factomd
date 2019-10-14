@@ -27,7 +27,7 @@ var (
 	tcpPort  = 12408
 )
 
-func TestEventServiceProtobuf(t *testing.T) {
+func testEventServiceProtobuf(t *testing.T) {
 	outputFormat := eventoutputformat.Protobuf
 	t.Run("Event service sim-tests protobuf", func(t *testing.T) {
 		blockCommitList := testHelper.CreateTestBlockCommitList()
@@ -38,7 +38,7 @@ func TestEventServiceProtobuf(t *testing.T) {
 	})
 }
 
-func TestEventServiceJson(t *testing.T) {
+func testEventServiceJson(t *testing.T) {
 	outputFormat := eventoutputformat.Json
 	t.Run("Event service sim-tests json", func(t *testing.T) {
 		blockCommitList := testHelper.CreateTestBlockCommitList()

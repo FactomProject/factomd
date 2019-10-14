@@ -30,7 +30,7 @@ EventReceiverPort                     = 8040
 OutputFormat                          = protobuf
 MuteReplayDuringStartup               = false
 ResendRegistrationsOnStateChange      = true
-AllowContent                          = OnRegistration 
+BroadcastContent                      = OnRegistration 
 ```
 
 Here is an overview of these options:
@@ -44,7 +44,7 @@ Here is an overview of these options:
 |  OutputFormat                     | The output format in which the event sent.                                      | protobuf &#124; json |
 |  MuteReplayDuringStartup          | At startup factomd can replay all the events that were stored since that last fastboot snapshot. Use this property to turn that on/off.   | true &#124; false |
 |  ResendRegistrationsOnStateChange | It’s possible to choose whether the chain and entry commit registrations should only be sent once, followed by state change events vs resending them for every state change. The first option reduces overhead & network traffic, but requires the implementer to track which state changes belong to which chain or entry.| true &#124; false |
-|  AllowContent                     | This option will determine whether the external ID’s and content will be included in the event stream. There are three level settings for this. Please note that the combination of ResendRegistrationsOnStateChange = true and AllowContent=Always will resend all data on every state change. The maximum content size per entry is only 10KB, however with a large number of transactions per second this may add up to an undesirable amount of data. | Always &#124; OnRegistration &#124; Never |
+|  BroadcastContent                 | This option will determine whether the external ID’s and content will be included in the event stream. There are three level settings for this. Please note that the combination of ResendRegistrationsOnStateChange = true and AllowContent=Always will resend all data on every state change. The maximum content size per entry is only 10KB, however with a large number of transactions per second this may add up to an undesirable amount of data. | Always &#124; OnRegistration &#124; Never |
 
 The same properties can be overridden by command line parameters which are the same as above but lowercase.
 The retry mechanism of the first layer is pretty strict. When a receiver is down or for some reason unresponsive it will retry to connect 3 times. If a receiver is not up by then, it will keep retrying to restore the connection every 5 minutes, but in the meantime it will start dropping the events until the receiver is back up. For mission critical use-cases there are prometheus counters in place:

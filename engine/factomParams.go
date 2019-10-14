@@ -102,7 +102,7 @@ func init() {
 	flag.StringVar(&p.OutputFormat, "outputformat", "", "Event format for the events receiver, protobuf|json; default protobuf")
 	flag.BoolVar(&p.MuteReplayDuringStartup, "mutereplayduringstartup", false, "Mute event replay; default false")
 	flag.BoolVar(&p.ResendRegistrationsOnStateChange, "muteeventsduringstartup", false, "Resend registrations for every state change; default false")
-	flag.StringVar(&p.AllowContent, "allowcontent", "", "Settings for including content in the event messages Always|OnRegistration|Never; default OnRegistration")
+	flag.StringVar(&p.BroadcastContent, "broadcastcontent", "", "Settings for including content in the event messages Always|OnRegistration|Never; default OnRegistration")
 
 }
 

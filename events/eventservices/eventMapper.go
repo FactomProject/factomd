@@ -7,27 +7,22 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/events"
-	"github.com/FactomProject/factomd/events/allowcontent"
 	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 	"github.com/gogo/protobuf/types"
 	"time"
 )
 
-type EventMapper interface {
-	MapToFactomEvent(eventInput events.EventInput) (*eventmessages.FactomEvent, error)
-}
-
-func MapToFactomEvent(eventInput events.EventInput) (*eventmessages.FactomEvent, error) {
+func MapToFactomEvent(eventInput events.EventInput, broadcastContent BroadcastContent, resendRegistrations bool) (*eventmessages.FactomEvent, error) {
 	switch eventInput.(type) {
 	case *events.RegistrationEvent:
 		registrationEvent := eventInput.(*events.RegistrationEvent)
-		return mapRegistrationEvent(registrationEvent)
+		return mapRegistrationEvent(registrationEvent, broadcastContent)
 	case *events.StateChangeMsgEvent:
 		stateChangeEvent := eventInput.(*events.StateChangeMsgEvent)
-		return mapStateChangeEvent(stateChangeEvent)
+		return mapStateChangeEvent(stateChangeEvent, broadcastContent, resendRegistrations)
 	case *events.StateChangeEvent:
 		stateChangeEvent := eventInput.(*events.StateChangeEvent)
-		return mapDBStateEvent(stateChangeEvent)
+		return mapDBStateEvent(stateChangeEvent, broadcastContent)
 	case *events.ProcessMessageEvent:
 		processMessageEvent := eventInput.(*events.ProcessMessageEvent)
 		return mapProcessMessageEvent(processMessageEvent)
@@ -39,12 +34,12 @@ func MapToFactomEvent(eventInput events.EventInput) (*eventmessages.FactomEvent,
 	}
 }
 
-func mapRegistrationEvent(registrationEvent *events.RegistrationEvent) (*eventmessages.FactomEvent, error) {
+func mapRegistrationEvent(registrationEvent *events.RegistrationEvent, broadcastContent BroadcastContent) (*eventmessages.FactomEvent, error) {
 	event := &eventmessages.FactomEvent{}
 	event.EventSource = registrationEvent.GetStreamSource()
 	msg := registrationEvent.GetPayload()
 	if msg != nil {
-		shouldIncludeContent := eventServiceControl.GetAllowContent() > allowcontent.Never
+		shouldIncludeContent := broadcastContent > BroadcastNever
 
 		switch msg.(type) {
 		case *messages.CommitChainMsg:
@@ -64,13 +59,12 @@ func mapRegistrationEvent(registrationEvent *events.RegistrationEvent) (*eventme
 	return event, nil
 }
 
-func mapStateChangeEvent(stateChangeEvent *events.StateChangeMsgEvent) (*eventmessages.FactomEvent, error) {
+func mapStateChangeEvent(stateChangeEvent *events.StateChangeMsgEvent, broadcastContent BroadcastContent, resendRegistrations bool) (*eventmessages.FactomEvent, error) {
 	event := &eventmessages.FactomEvent{}
 	event.EventSource = stateChangeEvent.GetStreamSource()
 	msg := stateChangeEvent.GetPayload()
 	if msg != nil {
-		shouldIncludeContent := eventServiceControl.GetAllowContent() > allowcontent.OnRegistration
-		resendRegistrations := eventServiceControl.IsResendRegistrationsOnStateChange()
+		shouldIncludeContent := broadcastContent > BroadcastOnRegistration
 		switch msg.(type) {
 		case *messages.CommitChainMsg:
 			if resendRegistrations {
@@ -99,12 +93,12 @@ func mapStateChangeEvent(stateChangeEvent *events.StateChangeMsgEvent) (*eventme
 	return event, nil
 }
 
-func mapDBStateEvent(stateChangeEvent *events.StateChangeEvent) (*eventmessages.FactomEvent, error) {
+func mapDBStateEvent(stateChangeEvent *events.StateChangeEvent, broadcastContent BroadcastContent) (*eventmessages.FactomEvent, error) {
 	event := &eventmessages.FactomEvent{}
 	event.EventSource = stateChangeEvent.GetStreamSource()
 	state := stateChangeEvent.GetPayload()
 	if state != nil {
-		shouldIncludeContent := eventServiceControl.GetAllowContent() > allowcontent.OnRegistration
+		shouldIncludeContent := broadcastContent > BroadcastOnRegistration
 		event.Value = mapDBState(state, shouldIncludeContent)
 	}
 	return event, nil
