@@ -339,11 +339,13 @@ func NetStart(w *worker.Thread, s *state.State, p *FactomParams, listenToStdin b
 		modifyLoadIdentities() // We clone s to make all of our servers
 	}
 
-	// Setup the Skeleton Identity & Registration
-	for i := range fnodes {
-		fnodes[i].State.IntiateNetworkSkeletonIdentity()
-		fnodes[i].State.InitiateNetworkIdentityRegistration()
-	}
+	w.Run(func(){
+		// Setup the Skeleton Identity & Registration
+		for i := range fnodes {
+			fnodes[i].State.IntiateNetworkSkeletonIdentity()
+			fnodes[i].State.InitiateNetworkIdentityRegistration()
+		}
+	})
 
 	// Start the P2P network
 	var networkID p2p.NetworkID
