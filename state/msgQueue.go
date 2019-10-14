@@ -4,6 +4,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/telemetry"
 	"github.com/FactomProject/factomd/worker"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 type MsgQueue struct {
@@ -17,6 +18,12 @@ func (mq *MsgQueue) Metric(msg interfaces.IMsg) telemetry.Gauge {
 	return telemetry.ChannelSize.WithLabelValues("state", mq.name, mq.w.Label(), msg.Label())
 }
 
+func (mq *MsgQueue) TotalMetric(msg interfaces.IMsg) telemetry.Counter {
+	return telemetry.TotalCounter.WithLabelValues("state", mq.name, mq.w.Label(), msg.Label())
+}
+
+type Counter = prometheus.Counter
+
 // Length of underlying channel
 func (mq MsgQueue) Length() int {
 	return len(mq.q)
@@ -29,8 +36,7 @@ func (mq MsgQueue) Cap() int {
 
 // Enqueue adds item to channel and instruments based on type
 func (mq MsgQueue) Enqueue(m interfaces.IMsg) {
-	// REVIEW: do we want to record totals as prometheus metrics?
-	//measureMessage(TotalMessageQueueInMsgGeneralVec, m, true)
+	mq.TotalMetric(m).Inc()
 	mq.Metric(m).Inc()
 	mq.q <- m
 }

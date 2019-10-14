@@ -7,6 +7,7 @@ import (
 type Gauge = prometheus.Gauge
 type GaugeVec = prometheus.GaugeVec
 type Counter = prometheus.Counter
+type CounterVec = prometheus.CounterVec
 type Summary = prometheus.Summary
 
 func NewCounter(name string, help string) Counter {
@@ -14,6 +15,15 @@ func NewCounter(name string, help string) Counter {
 		Name: name,
 		Help: help,
 	})
+	prometheus.MustRegister(c)
+	return c
+}
+
+func NewCounterVec(name string, help string, labels []string) *CounterVec {
+	c := prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: name,
+		Help: help,
+	}, labels)
 	prometheus.MustRegister(c)
 	return c
 }

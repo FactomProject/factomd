@@ -13,4 +13,10 @@ var (
 		"common metric for all channels",
 		[]string{"package", "name", "thread", "message"},
 	)
+
+	TotalCounter = NewCounterVec(
+		"total_count",
+		"common metric for counting totals",
+		[]string{"package", "name", "thread", "message"},
+	)
 )
