@@ -272,7 +272,7 @@ func (s *State) makeMMRs(w *worker.Thread, asks <-chan askRef, adds <-chan plRef
 
 			time.Sleep(askDelay)
 		}
-	})
+	}, "CheckMMR")
 
 	w.Run(func() {
 		lastAskDelay := int64(0)
@@ -370,7 +370,7 @@ func (s *State) makeMMRs(w *worker.Thread, asks <-chan askRef, adds <-chan plRef
 			s.LogPrintf("mmr", "done")
 		} // forever ...
 
-	})
+	}, "makeMMRs")
 } // func  makeMMRs() {...}
 
 // MissingMessageResponseCache will cache all processlist items from the last 2 blocks.

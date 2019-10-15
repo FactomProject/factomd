@@ -45,8 +45,8 @@ func (*Thread) RegisterMetric(handler telemetry.Handle) {
 }
 
 type IRegister interface {
-	Thread(*Thread, Handle)  // RegistryCallback for sub-threads
-	Process(*Thread, Handle) // callback to fork a new process
+	Thread(*Thread, Handle, string)  // RegistryCallback for sub-threads
+	Process(*Thread, Handle, string, string) // callback to fork a new process
 }
 
 // worker process with structured callbacks
@@ -59,6 +59,7 @@ type Thread struct {
 	ID          int            // thread id
 	Parent      int            // parent thread
 	Caller      string         // runtime location where thread starts
+	Name        string         // human readable name
 	onRun       func()         // execute during 'run' state
 	onComplete  func()         // execute after all run functions complete
 	onExit      func()         // executes during SIGINT or after shutdown of run state
@@ -88,32 +89,33 @@ func init() {
 // convenience wrapper starts a closure in a sub-thread
 // useful for situations where only Run callback is needed
 // can be thought of as 'leaves' of the thread runtime dependency graph
-func (r *Thread) Run(runFunc func()) {
+func (r *Thread) Run(runFunc func(), threadName string) {
 	_, file, line, _ := runtime.Caller(1)
 	caller := fmt.Sprintf("%s:%v", file[Prefix:], line)
 
 	r.Spawn(func(w *Thread) {
 		w.Caller = caller
 		w.OnRun(runFunc)
-	})
+	}, threadName)
 }
 
 // Spawn a child thread and register callbacks
 // this is useful to bind functions to Init/Run/Stop callbacks
-func (r *Thread) Spawn(initFunction Handle) {
+func (r *Thread) Spawn(initFunction Handle, threadName string) {
 	_, file, line, _ := runtime.Caller(1)
 	caller := fmt.Sprintf("%s:%v", file[Prefix:], line)
 
 	r.Register.Thread(r, func(w *Thread) {
 		w.Caller = caller
+		w.Name = threadName
 		initFunction(w)
-	})
+	}, threadName)
 }
 
 // Fork process with it's own thread lifecycle
 // NOTE: it's required to run the process
-func (r *Thread) Fork(initFunction Handle) {
-	r.Register.Process(r, initFunction)
+func (r *Thread) Fork(initFunction Handle, threadName string, processName string) {
+	r.Register.Process(r, initFunction, threadName, processName)
 }
 
 // Invoke specific callbacks synchronously

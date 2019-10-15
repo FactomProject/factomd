@@ -57,7 +57,7 @@ func CreateAndPopulateTestStateAndStartValidator() *state.State {
 	p := registry.New()
 	p.Register(func(w *worker.Thread) {
 		s.ValidatorLoop(w)
-	})
+	}, "MockState")
 	go p.Run()
 
 	time.Sleep(30 * time.Millisecond)
@@ -71,7 +71,7 @@ func CreatePopulateAndExecuteTestState() *state.State {
 	p := registry.New()
 	p.Register(func(w *worker.Thread) {
 		s.ValidatorLoop(w)
-	})
+	}, "MockState")
 	go p.Run()
 	time.Sleep(30 * time.Millisecond)
 

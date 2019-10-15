@@ -89,37 +89,39 @@ func (p *process) bindCallbacks(w *worker.Thread, initHandler worker.Handle) {
 }
 
 // Start a new root thread w/ coordinated start/stop callback hooks
-func (p *process) Register(initFunction worker.Handle) {
+func (p *process) Register(initFunction worker.Handle, name string) {
 	_, file, line, _ := runtime.Caller(1)
 	caller := fmt.Sprintf("%s:%v", file[worker.Prefix:], line)
 	r := p.addThread()
+	r.Name = name
 	r.Caller = caller
 	r.Parent = r.ID // root threads are their own parent
 	p.bindCallbacks(r, initFunction)
 }
 
 // Start a child process and register callbacks
-func (p *process) Thread(w *worker.Thread, initFunction worker.Handle) {
+func (p *process) Thread(w *worker.Thread, initFunction worker.Handle, threadName string) {
 	t := p.addThread()
+	t.Name = threadName
 	t.Parent = w.ID // child threads have a parent
 	t.PID = p.ID    // set process ID
 	p.bindCallbacks(t, initFunction)
 }
 
 // fork a new process with it's own lifecycle
-func (p *process) Process(w *worker.Thread, initFunction worker.Handle) {
+func (p *process) Process(w *worker.Thread, initFunction worker.Handle, threadName string, processName string) {
 	f := newProcess()
 	f.Parent = p.ID // keep relation to parent process
 	// break parent relation
-	f.Register(initFunction)
+	f.Register(initFunction, processName)
 
 	// cause this process to execute as part of the run lifecycle of the parent thread
-	w.Run(f.Run)
+	w.Run(f.Run, threadName)
 }
 
 // interface to avoid exposing registry internals
 type Process interface {
-	Register(worker worker.Handle)
+	Register(worker worker.Handle, name string)
 	Run()
 	Exit()
 	WaitForRunning()
@@ -165,9 +167,7 @@ func Graph() (out string) {
 	out = out + "\n\n"
 	var colors = []string{"95cde5", "b01700", "db8e3c", "ffe35f"}
 
-	// NOTE: we don't deal w/ relations between processes
-	// though the Fork() function does provide for that
-	// currently this feature is unused
+	// FIXME: this function needs to be updated to support graphing multiple processes
 	for _, p := range globalRegistry.Index {
 		for _, t := range p.Index {
 			if t.IsRoot() {
@@ -179,7 +179,7 @@ func Graph() (out string) {
 
 	for _, p := range globalRegistry.Index {
 		for i, t := range p.Index {
-			out = out + fmt.Sprintf("%d {color:#%v, shape:dot, label:%v}\n", t.ID, colors[i%len(colors)], t.Caller)
+			out = out + fmt.Sprintf("%d {color:#%v, shape:dot, label:%v}\n", t.ID, colors[i%len(colors)], t.Name)
 		}
 	}
 

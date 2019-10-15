@@ -26,7 +26,7 @@ func TestHandleV2Requests(t *testing.T) {
 	p := registry.New()
 	p.Register(func(w *worker.Thread) {
 		Start(w, state)
-	})
+	}, "MockState")
 	go p.Run()
 	p.WaitForRunning()
 
@@ -321,7 +321,7 @@ func TestHandleV2GetRaw(t *testing.T) {
 	p := registry.New()
 	p.Register(func(w *worker.Thread) {
 		Start(w, state)
-	})
+	}, "MockState")
 	go p.Run()
 	p.WaitForRunning()
 

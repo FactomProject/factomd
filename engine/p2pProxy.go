@@ -199,8 +199,8 @@ func (f *P2PProxy) Len() int {
 
 func (p *P2PProxy) StartProxy(w *worker.Thread) {
 	p.logger.Info("Starting P2PProxy")
-	w.Run(p.ManageOutChannel) // Bridges between network format Parcels and factomd messages (incl. addressing to peers)
-	w.Run(p.ManageInChannel)
+	w.Run(p.ManageOutChannel, "OutChannel") // Bridges between network format Parcels and factomd messages (incl. addressing to peers)
+	w.Run(p.ManageInChannel, "InChannel")
 }
 
 func (p *P2PProxy) StopProxy() {

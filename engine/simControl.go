@@ -107,7 +107,7 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 
 	if loadGenerator == nil {
 		loadGenerator = NewLoadGenerator(fnodes[0].State)
-		w.Run(loadGenerator.KeepUsFunded)
+		w.Run(loadGenerator.KeepUsFunded, "KeepUsFunded")
 	}
 
 	w.Run(func() {
@@ -1477,7 +1477,7 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 			}
 		}
 
-	})
+	}, "SimControl")
 }
 func returnStatString(i uint8) string {
 	var stat string

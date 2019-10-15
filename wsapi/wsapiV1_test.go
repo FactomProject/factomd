@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/FactomProject/factomd/registry"
+	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/worker"
 	"strings"
 	"testing"
@@ -21,15 +22,18 @@ import (
 	. "github.com/FactomProject/factomd/wsapi"
 )
 
-func TestHandleGetRaw(t *testing.T) {
-	state := testHelper.CreateAndPopulateTestState()
-
+func RunState(state *state.State) {
 	p := registry.New()
 	p.Register(func(w *worker.Thread) {
 		Start(w, state)
-	})
+	}, "RunState")
 	go p.Run()
 	p.WaitForRunning()
+}
+
+func TestHandleGetRaw(t *testing.T) {
+	state := testHelper.CreateAndPopulateTestState()
+	RunState(state)
 
 	type RawData struct {
 		Hash1 string
@@ -115,12 +119,7 @@ func TestHandleGetRaw(t *testing.T) {
 func TestHandleDirectoryBlock(t *testing.T) {
 	//initializing server
 	state := testHelper.CreateAndPopulateTestState()
-	p := registry.New()
-	p.Register(func(w *worker.Thread) {
-		Start(w, state)
-	})
-	go p.Run()
-	p.WaitForRunning()
+	RunState(state)
 
 	hash := testHelper.DBlockHeadPrimaryIndex
 	url := fmt.Sprintf("/v1/directory-block-by-keymr/%s", hash)
@@ -146,12 +145,7 @@ func TestHandleDirectoryBlock(t *testing.T) {
 
 func TestHandleEntryBlock(t *testing.T) {
 	state := testHelper.CreateAndPopulateTestState()
-	p := registry.New()
-	p.Register(func(w *worker.Thread) {
-		Start(w, state)
-	})
-	go p.Run()
-	p.WaitForRunning()
+	RunState(state)
 
 	chain, err := primitives.HexToHash("df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604")
 	assert.Nil(t, err)
@@ -187,11 +181,7 @@ func TestHandleEntryBlock(t *testing.T) {
 func TestHandleEntryBlockInvalidHash(t *testing.T) {
 	state := testHelper.CreateAndPopulateTestState()
 	p := registry.New()
-	p.Register(func(w *worker.Thread) {
-		Start(w, state)
-	})
-	go p.Run()
-	p.WaitForRunning()
+	RunState(state)
 
 	url := "/v1/entry-block-by-keymr/invalid-hash"
 
@@ -201,11 +191,7 @@ func TestHandleEntryBlockInvalidHash(t *testing.T) {
 func TestHandleGetFee(t *testing.T) {
 	state := testHelper.CreateAndPopulateTestState()
 	p := registry.New()
-	p.Register(func(w *worker.Thread) {
-		Start(w, state)
-	})
-	go p.Run()
-	p.WaitForRunning()
+	RunState(state)
 
 	url := "/v1/factoid-get-fee/"
 
@@ -221,11 +207,7 @@ func TestHandleGetFee(t *testing.T) {
 func TestDBlockList(t *testing.T) {
 	state := testHelper.CreateAndPopulateTestState()
 	p := registry.New()
-	p.Register(func(w *worker.Thread) {
-		Start(w, state)
-	})
-	go p.Run()
-	p.WaitForRunning()
+	RunState(state)
 
 	list := []string{
 		"508e19f65a7fc7e9cfa5a73281b5e08115ed25a1af5723350e5c21fc92c39b40", //9
@@ -260,12 +242,7 @@ func TestDBlockList(t *testing.T) {
 func TestBlockIteration(t *testing.T) {
 	//initializing server
 	state := testHelper.CreateAndPopulateTestState()
-	p := registry.New()
-	p.Register(func(w *worker.Thread) {
-		Start(w, state)
-	})
-	go p.Run()
-	p.WaitForRunning()
+	RunState(state)
 
 	hash := "000000000000000000000000000000000000000000000000000000000000000d"
 
@@ -294,12 +271,7 @@ func TestBlockIteration(t *testing.T) {
 
 func TestHandleGetReceipt(t *testing.T) {
 	state := testHelper.CreateAndPopulateTestState()
-	p := registry.New()
-	p.Register(func(w *worker.Thread) {
-		Start(w, state)
-	})
-	go p.Run()
-	p.WaitForRunning()
+	RunState(state)
 
 	hash := "be5fb8c3ba92c0436269fab394ff7277c67e9b2de4431b723ce5d89799c0b93a"
 
@@ -320,12 +292,7 @@ func TestHandleGetReceipt(t *testing.T) {
 
 func TestHandleGetUnanchoredReceipt(t *testing.T) {
 	state := testHelper.CreateAndPopulateTestState()
-	p := registry.New()
-	p.Register(func(w *worker.Thread) {
-		Start(w, state)
-	})
-	go p.Run()
-	p.WaitForRunning()
+	RunState(state)
 
 	hash := "68a503bd3d5b87d3a41a737e430d2ce78f5e556f6a9269859eeb1e053b7f92f7"
 
@@ -345,11 +312,7 @@ func TestHandleGetUnanchoredReceipt(t *testing.T) {
 func TestHandleFactoidBalanceUnknownAddress(t *testing.T) {
 	state := testHelper.CreateAndPopulateTestState()
 	p := registry.New()
-	p.Register(func(w *worker.Thread) {
-		Start(w, state)
-	})
-	go p.Run()
-	p.WaitForRunning()
+	RunState(state)
 
 	factoidBalanceResponse := new(FactoidBalanceResponse)
 	url := "/v1/factoid-balance/f1ba8879fcf63b596b60ccc4c69c7f6848475ac037fc63b080ba2d9502fe66a4"
@@ -361,12 +324,7 @@ func TestHandleFactoidBalanceUnknownAddress(t *testing.T) {
 
 func TestHandleProperties(t *testing.T) {
 	state := testHelper.CreateAndPopulateTestState()
-	p := registry.New()
-	p.Register(func(w *worker.Thread) {
-		Start(w, state)
-	})
-	go p.Run()
-	p.WaitForRunning()
+	RunState(state)
 
 	type V1Properties struct {
 		Protocol_Version string
@@ -383,12 +341,7 @@ func TestHandleProperties(t *testing.T) {
 
 func TestHandleHeights(t *testing.T) {
 	state := testHelper.CreateAndPopulateTestState()
-	p := registry.New()
-	p.Register(func(w *worker.Thread) {
-		Start(w, state)
-	})
-	go p.Run()
-	p.WaitForRunning()
+	RunState(state)
 
 	heightsResponse := new(HeightsResponse)
 	url := "/v1/heights/"

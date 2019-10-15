@@ -339,13 +339,14 @@ func NetStart(w *worker.Thread, s *state.State, p *FactomParams, listenToStdin b
 		modifyLoadIdentities() // We clone s to make all of our servers
 	}
 
+	//TODO: should this use w.OnComplete()
 	w.Run(func() {
 		// Setup the Skeleton Identity & Registration
 		for i := range fnodes {
 			fnodes[i].State.IntiateNetworkSkeletonIdentity()
 			fnodes[i].State.InitiateNetworkIdentityRegistration()
 		}
-	})
+	}, "RegisterSkeleton")
 
 	// Start the P2P network
 	var networkID p2p.NetworkID
@@ -422,7 +423,7 @@ func NetStart(w *worker.Thread, s *state.State, p *FactomParams, listenToStdin b
 		fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
 		p2pProxy.StartProxy(w)
 
-		w.Run(networkHousekeeping) // This goroutine executes once a second to keep the proxy apprised of the network status.
+		w.Run(networkHousekeeping, "NetworkHousekeeping") // This goroutine executes once a second to keep the proxy apprised of the network status.
 	}
 
 	networkpattern = p.Net
@@ -596,7 +597,7 @@ func NetStart(w *worker.Thread, s *state.State, p *FactomParams, listenToStdin b
 
 	w.Run(func() {
 		controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelChannel, fnodes[0].State, connectionMetricsChannel, p2pNetwork, Build, p.NodeName)
-	})
+	}, "ControlPanel")
 	SimControl(w, p.ListenTo, listenToStdin)
 }
 
@@ -644,7 +645,7 @@ func startServers(w *worker.Thread, load bool) {
 			}
 			startServer(w, i, fnode, load)
 		}
-	})
+	}, "StartServers")
 }
 
 func startServer(w *worker.Thread, i int, fnode *FactomNode, load bool) {
@@ -655,12 +656,12 @@ func startServer(w *worker.Thread, i int, fnode *FactomNode, load bool) {
 	fnode.State.StartMMR(w)
 
 	if load {
-		w.Run(func() { state.LoadDatabase(fnode.State) })
+		w.Run(func() { state.LoadDatabase(fnode.State) }, "LoadDatabase")
 	}
 
-	w.Run(fnode.State.GoSyncEntries)
-	w.Run(func() { Timer(fnode.State) })
-	w.Run(fnode.State.MissingMessageResponseHandler.Run)
+	w.Run(fnode.State.GoSyncEntries, "SyncEntries")
+	w.Run(func() { Timer(fnode.State) }, "Timer")
+	w.Run(fnode.State.MissingMessageResponseHandler.Run, "MMRHandler")
 }
 
 func setupFirstAuthority(s *state.State) {
@@ -696,6 +697,6 @@ func AddNode() {
 	p := registry.New()
 	p.Register(func(w *worker.Thread) {
 		startServer(w, i, fnodes[i], true)
-	})
+	}, "AddNode")
 	go p.Run() // kick off independent process
 }

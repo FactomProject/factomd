@@ -21,8 +21,8 @@ var _ = fmt.Print
 
 func NetworkProcessorNet(w *worker.Thread, fnode *FactomNode) {
 	Peers(w, fnode)
-	w.Run(func() { NetworkOutputs(fnode) })
-	w.Run(func() { InvalidOutputs(fnode) })
+	w.Run(func() { NetworkOutputs(fnode) }, "NetworkOutputs")
+	w.Run(func() { InvalidOutputs(fnode) }, "InvalidOutputs")
 }
 
 func Peers(w *worker.Thread, fnode *FactomNode) {
@@ -338,7 +338,7 @@ func Peers(w *worker.Thread, fnode *FactomNode) {
 				time.Sleep(50 * time.Millisecond) // handled no message, sleep a bit
 			}
 		} // forever {...}
-	})
+	}, "Peers")
 }
 
 func sendToExecute(msg interfaces.IMsg, fnode *FactomNode, source string) {

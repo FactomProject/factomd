@@ -72,7 +72,7 @@ func (server *Server) Start(w *worker.Thread) {
 				wsLog.Errorf("ListenAndServe %v", err)
 			}
 		}
-	})
+	}, "APIServer")
 }
 
 func (server *Server) Stop() {

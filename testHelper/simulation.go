@@ -129,7 +129,7 @@ func StartSim(nodeCount int, UserAddedOptions map[string]string) *state.State {
 	p := registry.New()
 	p.Register(func(w *worker.Thread) {
 		engine.Factomd(w, params, false)
-	})
+	}, "FactomdSim")
 	go p.Run()
 	p.WaitForRunning()
 	// KLUDGE: is there a better way to register this callback?
