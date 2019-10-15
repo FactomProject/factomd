@@ -26,14 +26,17 @@ var eventService EventService
 var eventServiceControl EventServiceControl
 
 const (
-	defaultProtocol           = "tcp"
-	defaultConnectionHost     = "127.0.0.1"
-	defaultConnectionPort     = 8040
-	defaultOutputFormat       = eventoutputformat.Protobuf
-	sendRetries               = 3
+	defaultProtocol       = "tcp"
+	defaultConnectionHost = "127.0.0.1"
+	defaultConnectionPort = 8040
+	defaultOutputFormat   = eventoutputformat.Protobuf
+	protocolVersion       = byte(1)
+)
+
+var (
 	dialRetryPostponeDuration = 5 * time.Minute
 	redialSleepDuration       = 10 * time.Second
-	protocolVersion           = byte(1)
+	sendRetries               = 3
 )
 
 type eventServiceInstance struct {
@@ -110,6 +113,7 @@ func (esi *eventServiceInstance) Send(event events.EventInput) error {
 	return nil
 }
 
+// TODO describe choice of dropping events.
 func (esi *eventServiceInstance) processEventsChannel() {
 	esi.connect()
 
@@ -144,16 +148,16 @@ func (esi *eventServiceInstance) sendEvent(event *eventmessages.FactomEvent) {
 			sendSuccessful = true
 		} else {
 			log.Errorf("An error occurred while sending a message to receiver %s: %v, retry %d", esi.params.Address, err, retry)
-			esi.notSentCounter.Inc()
 
 			// reset connection and retry
 			esi.disconnect()
-			time.Sleep(redialSleepDuration)
 			esi.connection = nil
+			time.Sleep(redialSleepDuration)
 		}
 	}
 
 	if !sendSuccessful {
+		esi.notSentCounter.Inc()
 		esi.postponeSendingUntil = time.Now().Add(dialRetryPostponeDuration)
 	}
 }
@@ -167,7 +171,7 @@ func (esi *eventServiceInstance) marshallMessage(event *eventmessages.FactomEven
 	case eventoutputformat.Json:
 		data, err = json.Marshal(event)
 	default:
-		return nil, errors.New("Unsupported event format " + esi.params.OutputFormat.String())
+		return nil, errors.New("unsupported event format: " + esi.params.OutputFormat.String())
 	}
 	return data, err
 }

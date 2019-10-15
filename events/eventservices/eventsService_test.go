@@ -1,264 +1,458 @@
-package eventservices_test
+package eventservices
 
 import (
-	"encoding/json"
+	"bufio"
+	"bytes"
 	"fmt"
-	"github.com/FactomProject/factomd/common/constants/runstate"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/events"
 	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 	"github.com/FactomProject/factomd/events/eventoutputformat"
-	"github.com/FactomProject/factomd/events/eventservices"
-	"github.com/FactomProject/factomd/state"
-	"github.com/FactomProject/factomd/testHelper"
-	"github.com/gogo/protobuf/proto"
-	"github.com/gogo/protobuf/types"
+	"github.com/FactomProject/factomd/p2p"
+	"github.com/FactomProject/factomd/util/atomic"
+	"github.com/prometheus/client_golang/prometheus"
+	dto "github.com/prometheus/client_model/go"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
-	"strconv"
-	"sync/atomic"
+	"io"
+	"net"
+	"os"
+	"strings"
 	"testing"
 	"time"
 )
 
-var (
-	entries  = 10000
-	testHash = []byte("12345678901234567890123456789012")
-	tcpPort  = 12408
-)
-
-func testEventServiceProtobuf(t *testing.T) {
-	outputFormat := eventoutputformat.Protobuf
-	t.Run("Event service sim-tests protobuf", func(t *testing.T) {
-		blockCommitList := testHelper.CreateTestBlockCommitList()
-
-		testSend(t, blockCommitList, outputFormat)
-		testLateReceivingServer(t, blockCommitList, outputFormat)
-		testReceivingServerRestart(t, blockCommitList, outputFormat)
-	})
+func init() {
+	logrus.SetOutput(os.Stdout)
+	logrus.SetLevel(logrus.DebugLevel)
 }
 
-func testEventServiceJson(t *testing.T) {
-	outputFormat := eventoutputformat.Json
-	t.Run("Event service sim-tests json", func(t *testing.T) {
-		blockCommitList := testHelper.CreateTestBlockCommitList()
+func TestEventsService_SendEvent(t *testing.T) {
+	server, client := net.Pipe()
+	defer server.Close()
+	defer client.Close()
 
-		testSend(t, blockCommitList, outputFormat)
-		testLateReceivingServer(t, blockCommitList, outputFormat)
-		testReceivingServerRestart(t, blockCommitList, outputFormat)
-	})
-}
+	eventService := &eventServiceInstance{
+		params: &EventServiceParams{
+			OutputFormat: eventoutputformat.Json,
+		},
+		connection:     client,
+		notSentCounter: prometheus.NewCounter(prometheus.CounterOpts{}),
+	}
 
-func testSend(t *testing.T, msgs []interfaces.IMsg, outputFormat eventoutputformat.Format) {
-	t.Run("Test receiving running normally", func(t *testing.T) {
-		state := &state.State{
-			IdentityChainID: primitives.NewZeroHash(),
-			RunState:        runstate.Running,
+	expectedMessage := `{"eventSource":1,"factomNodeName":"test","Value":null}`
+
+	// mock server by reading everything until stop byte is found
+	// use the stop byte to stop as soon as possible, note: don't use stop byte in test message before the end
+	receivingMessage := bytes.NewBufferString("")
+	var finished atomic.AtomicBool
+	finished.Store(false)
+	go func() {
+		reader := bufio.NewReader(server)
+		for {
+			b, err := reader.ReadByte()
+			if err == io.ErrClosedPipe || err == io.EOF {
+				// test finished, test stopped and probably closed the connection
+				break
+			}
+			if err != nil {
+				fmt.Println(err)
+			}
+			receivingMessage.WriteByte(b)
+
+			// stop if message received
+			if strings.HasSuffix(receivingMessage.String(), expectedMessage) {
+				break
+			}
 		}
+		finished.Store(true)
+	}()
 
-		tcpPort = tcpPort + 1
-		sim := &EventServerSim{
-			Protocol:       "tcp",
-			Address:        ":" + strconv.Itoa(tcpPort),
-			ExpectedEvents: len(msgs),
-			test:           t,
-		}
-		sim.Start()
-		eventService, eventServiceControl := eventservices.NewEventServiceTo(state, buildParams(sim, outputFormat))
-		defer eventServiceControl.Shutdown()
+	factomEvent := &eventmessages.FactomEvent{
+		EventSource:    eventmessages.EventSource_REPLAY_BOOT,
+		FactomNodeName: "test",
+	}
 
-		// send messages
-		for _, msg := range msgs {
-			event := events.NewStateChangeEventFromMsg(eventmessages.EventSource_LIVE, eventmessages.EntityState_COMMITTED_TO_DIRECTORY_BLOCK, msg)
-			eventService.Send(event)
-		}
+	// test send event
+	eventService.sendEvent(factomEvent)
 
-		waitOnEvents(&sim.CorrectSendEvents, len(msgs), 10*time.Second)
-		assert.EqualValues(t, len(msgs), sim.CorrectSendEvents,
-			"failed to receive the correct number of events %d != %d", len(msgs), sim.CorrectSendEvents)
-	})
-}
-
-func testLateReceivingServer(t *testing.T, msgs []interfaces.IMsg, outputFormat eventoutputformat.Format) {
-	t.Run("Test receiving late start", func(t *testing.T) {
-		state := &state.State{
-			IdentityChainID: primitives.NewZeroHash(),
-			RunState:        runstate.Running,
-		}
-		msgs := testHelper.CreateTestBlockCommitList()
-
-		tcpPort = tcpPort + 1
-		sim := &EventServerSim{
-			Protocol:       "tcp",
-			Address:        ":" + strconv.Itoa(tcpPort),
-			ExpectedEvents: len(msgs),
-			test:           t,
-		}
-		eventService, eventServiceControl := eventservices.NewEventServiceTo(state, buildParams(sim, outputFormat))
-		defer eventServiceControl.Shutdown()
-
-		msg := msgs[0]
-		event := events.NewStateChangeEventFromMsg(eventmessages.EventSource_LIVE, eventmessages.EntityState_ACCEPTED, msg)
-		eventService.Send(event)
-
-		time.Sleep(2 * time.Second) // sleep less than the retry * redial sleep duration
-		sim.Start()
-		waitOnEvents(&sim.CorrectSendEvents, 1, 25*time.Second)
-		assert.EqualValues(t, 1, sim.CorrectSendEvents,
-			"failed to receive the correct number of events %d != %d", 1, sim.CorrectSendEvents)
-	})
-}
-
-func testReceivingServerRestart(t *testing.T, msgs []interfaces.IMsg, outputFormat eventoutputformat.Format) {
-	t.Run("Test receiving server restart", func(t *testing.T) {
-
-		state := &state.State{
-			IdentityChainID: primitives.NewZeroHash(),
-			RunState:        runstate.Running,
-		}
-		msgs := testHelper.CreateTestBlockCommitList()
-
-		tcpPort = tcpPort + 1
-		sim := &EventServerSim{
-			Protocol:       "tcp",
-			Address:        ":" + strconv.Itoa(tcpPort),
-			ExpectedEvents: 1,
-			test:           t,
-		}
-		if err := sim.StartExternal(); err != nil {
-			t.Fatal("Could not launch external eventservice sim", err)
-		}
-		eventService, eventServiceControl := eventservices.NewEventServiceTo(state, buildParams(sim, outputFormat))
-		defer eventServiceControl.Shutdown()
-
-		msg := msgs[0]
-		event := events.NewStateChangeEventFromMsg(eventmessages.EventSource_LIVE, eventmessages.EntityState_ACCEPTED, msg)
-		eventService.Send(event)
-
-		// Restart the simulator
-		sim.Stop()
-		time.Sleep(5 * time.Second)
-
-		correctEventsFromFirstSession := sim.CorrectSendEvents
-		sim.CorrectSendEvents = 0
-		sim.ExpectedEvents = 2
-		sim.Start()
-		defer sim.Stop()
-
-		msg = msgs[1]
-		event = events.NewStateChangeEventFromMsg(eventmessages.EventSource_LIVE, eventmessages.EntityState_ACCEPTED, msg)
-		eventService.Send(event)
-		msg = msgs[2]
-		event = events.NewStateChangeEventFromMsg(eventmessages.EventSource_LIVE, eventmessages.EntityState_ACCEPTED, msg)
-		eventService.Send(event)
-		waitOnEvents(&sim.CorrectSendEvents, 2, 25*time.Second)
-		assert.EqualValues(t, 3, sim.CorrectSendEvents+correctEventsFromFirstSession,
-			"failed to receive the correct number of events %d != %d", 1, sim.CorrectSendEvents)
-
-	})
-}
-
-func waitOnEvents(correctSendEvents *int32, n int, timeLimit time.Duration) {
-	deadline := time.Now().Add(timeLimit)
-	for int(atomic.LoadInt32(correctSendEvents)) != n && time.Now().Before(deadline) {
+	// wait max 1 second until the server has read the bytes
+	for i := 0; !finished.Load() && i < 10; i++ {
 		time.Sleep(100 * time.Millisecond)
 	}
+
+	// read 1 byte of protocol version
+	_, _ = receivingMessage.ReadByte()
+	// read 4 bytes of data length: int32
+	_, _ = receivingMessage.ReadByte()
+	_, _ = receivingMessage.ReadByte()
+	_, _ = receivingMessage.ReadByte()
+	_, _ = receivingMessage.ReadByte()
+
+	assert.True(t, finished.Load())
+	assert.JSONEq(t, expectedMessage, receivingMessage.String(), "%s != %s", expectedMessage, receivingMessage.String())
+
+	counter := &dto.Metric{}
+	err := eventService.notSentCounter.Write(counter)
+	assert.NoError(t, err)
+	assert.Equal(t, float64(0), *counter.Counter.Value)
 }
 
-func BenchmarkMarshalAnchorEventToBinary(b *testing.B) {
-	b.StopTimer()
-	fmt.Println(fmt.Sprintf("Benchmarking AnchorEvent binary marshalling %d cycles with %d entries", b.N, entries))
-	event := mockBlockCommitEvent()
-	bytes, _ := proto.Marshal(event)
-	fmt.Println("Message size", len(bytes))
-	b.StartTimer()
-	for i := 0; i < b.N; i++ {
-		proto.Marshal(event)
+func TestEventsService_SendEventBreakdown(t *testing.T) {
+	server, client := net.Pipe()
+	defer server.Close()
+	defer client.Close()
+
+	redialSleepDuration = 10 * time.Millisecond
+
+	eventService := &eventServiceInstance{
+		params: &EventServiceParams{
+			OutputFormat: eventoutputformat.Json,
+		},
+		connection:     client,
+		notSentCounter: prometheus.NewCounter(prometheus.CounterOpts{}),
 	}
-}
 
-func BenchmarkMarshalAnchorEventToJSON(b *testing.B) {
-	b.StopTimer()
-	fmt.Println(fmt.Sprintf("Benchmarking AnchorEvent json marshalling %d cycles with %d entries", b.N, entries))
-	event := mockBlockCommitEvent()
-	msg, _ := json.Marshal(event)
-	fmt.Println("Message size", len(msg))
+	expectedMessage := `{"eventSource":1,"factomNodeName":"test","Value":null}`
 
-	b.StartTimer()
-	for i := 0; i < b.N; i++ {
-		_, err := json.Marshal(event)
-		if err != nil {
-			panic(err)
+	// mock server by reading everything until stop byte is found
+	// use the stop byte to stop as soon as possible, note: don't use stop byte in test message before the end
+	receivingMessage := bytes.NewBufferString("")
+	var finished atomic.AtomicBool
+	finished.Store(false)
+	go func() {
+		reader := bufio.NewReader(server)
+		for i := 0; i < 1; i++ {
+			b, err := reader.ReadByte()
+			if err == io.ErrClosedPipe || err == io.EOF {
+				// test finished, test stopped and probably closed the connection
+				break
+			}
+			if err != nil {
+				fmt.Println(err)
+				continue
+			}
+			receivingMessage.WriteByte(b)
+
+			// stop if message received
+			if strings.HasSuffix(receivingMessage.String(), expectedMessage) {
+				break
+			}
 		}
+
+		// this breaks the connection
+		_ = server.Close()
+		receivingMessage = bytes.NewBufferString("")
+
+		// wait until the other thread handles the broken connection
+		time.Sleep(1 * time.Millisecond)
+
+		// re-establish a connection, by setting the new connection
+		server, client = net.Pipe()
+		eventService.connection = client
+
+		// continue reading the messages
+		reader = bufio.NewReader(server)
+		for {
+			b, err := reader.ReadByte()
+			if err == io.ErrClosedPipe { //|| err == io.EOF {
+				fmt.Println(err)
+				continue
+			}
+			if err != nil {
+				fmt.Println(err)
+				time.Sleep(10 * time.Millisecond)
+				continue
+			}
+			receivingMessage.WriteByte(b)
+
+			// stop if message received
+			if strings.HasSuffix(receivingMessage.String(), expectedMessage) {
+				break
+			}
+		}
+		finished.Store(true)
+	}()
+
+	factomEvent := &eventmessages.FactomEvent{
+		EventSource:    eventmessages.EventSource_REPLAY_BOOT,
+		FactomNodeName: "test",
 	}
-}
 
-func BenchmarkMockAnchorEvents(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		mockBlockCommitEvent()
+	// test send event
+	eventService.sendEvent(factomEvent)
+
+	// wait max 1 second until the server has read the bytes
+	for i := 0; !finished.Load() && i < 10; i++ {
+		time.Sleep(100 * time.Millisecond)
 	}
+
+	// read 1 byte of protocol version
+	_, _ = receivingMessage.ReadByte()
+	// read 4 bytes of data length: int32
+	_, _ = receivingMessage.ReadByte()
+	_, _ = receivingMessage.ReadByte()
+	_, _ = receivingMessage.ReadByte()
+	_, _ = receivingMessage.ReadByte()
+
+	assert.True(t, finished.Load())
+	assert.JSONEq(t, expectedMessage, receivingMessage.String(), "%s != %s", expectedMessage, receivingMessage.String())
+
+	counter := &dto.Metric{}
+	err := eventService.notSentCounter.Write(counter)
+	assert.NoError(t, err)
+	assert.Equal(t, float64(0), *counter.Counter.Value)
 }
 
-func mockBlockCommitEvent() *eventmessages.DirectoryBlockCommit {
-	result := &eventmessages.DirectoryBlockCommit{}
-	result.DirectoryBlock = mockDirectoryBlock()
-	return result
+func TestEventsService_SendEventMarshallingError(t *testing.T) {
+	eventService := &eventServiceInstance{
+		params:         &EventServiceParams{},
+		notSentCounter: prometheus.NewCounter(prometheus.CounterOpts{}),
+	}
+	factomEvent := &eventmessages.FactomEvent{}
+	eventService.sendEvent(factomEvent)
+
+	counter := &dto.Metric{}
+	err := eventService.notSentCounter.Write(counter)
+	assert.NoError(t, err)
+	assert.Equal(t, float64(1), *counter.Counter.Value)
 }
 
-func mockDirectoryBlock() *eventmessages.DirectoryBlock {
-	result := &eventmessages.DirectoryBlock{}
-	result.Header = mockDirHeader()
-	result.Entries = mockDirEntries()
-	return result
-}
-
-func mockDirHeader() *eventmessages.DirectoryBlockHeader {
-	t := time.Now()
-	result := &eventmessages.DirectoryBlockHeader{
-		BodyMerkleRoot: &eventmessages.Hash{
-			HashValue: testHash,
+func TestEventsService_SendEventNoConnection(t *testing.T) {
+	redialSleepDuration = 1 * time.Millisecond
+	eventService := &eventServiceInstance{
+		params: &EventServiceParams{
+			OutputFormat: eventoutputformat.Json,
 		},
-		PreviousKeyMerkleRoot: &eventmessages.Hash{
-			HashValue: testHash,
-		},
-		PreviousFullHash: &eventmessages.Hash{
-			HashValue: testHash,
-		},
-		Timestamp:   &types.Timestamp{Seconds: int64(t.Second()), Nanos: int32(t.Nanosecond())},
-		BlockHeight: 123,
-		BlockCount:  456,
+		notSentCounter: prometheus.NewCounter(prometheus.CounterOpts{}),
 	}
-	return result
+	factomEvent := &eventmessages.FactomEvent{}
+	eventService.sendEvent(factomEvent)
+
+	counter := &dto.Metric{}
+	err := eventService.notSentCounter.Write(counter)
+	assert.NoError(t, err)
+	assert.Equal(t, float64(1), *counter.Counter.Value)
 }
 
-func mockDirEntries() []*eventmessages.DirectoryBlockEntry {
-	result := make([]*eventmessages.DirectoryBlockEntry, entries)
-	for i := 0; i < entries; i++ {
-		result[i] = mockDirEntry()
+func TestEventService_ConnectAndShutdown(t *testing.T) {
+	address := ":1444"
+	listener, err := net.Listen("tcp", address)
 
+	if err != nil {
+		t.Fatalf("setup test failed: %v", err)
 	}
-	return result
+	var finished atomic.AtomicBool
+	finished.Store(false)
+
+	go func() {
+		conn, _ := listener.Accept()
+		reader := bufio.NewReader(conn)
+		for {
+			b, err := reader.ReadByte()
+			// wait until there is an EOF, which means the connection is closed remotely.
+			if err == io.EOF {
+				finished.Store(true)
+				break
+			}
+			fmt.Print(b)
+		}
+	}()
+
+	eventService := &eventServiceInstance{
+		eventsOutQueue: make(chan *eventmessages.FactomEvent, p2p.StandardChannelSize),
+		params: &EventServiceParams{
+			Protocol: "tcp",
+			Address:  address,
+		},
+	}
+
+	err = eventService.connect()
+
+	assert.NoError(t, err)
+
+	eventService.Shutdown()
+
+	// wait max 1 second until disconnect
+	for i := 0; !finished.Load() && i < 10; i++ {
+		time.Sleep(100 * time.Millisecond)
+	}
+	assert.True(t, finished.Load())
 }
 
-func mockDirEntry() *eventmessages.DirectoryBlockEntry {
-	result := &eventmessages.DirectoryBlockEntry{
-		ChainID: &eventmessages.Hash{
-			HashValue: testHash,
-		},
-		KeyMerkleRoot: &eventmessages.Hash{
-			HashValue: testHash,
+func TestEventsService_ConnectNoConnection(t *testing.T) {
+	address := ":1445"
+	eventService := &eventServiceInstance{
+		params: &EventServiceParams{
+			Protocol: "tcp",
+			Address:  address,
 		},
 	}
-	return result
+	err := eventService.connect()
+
+	assert.EqualError(t, err, fmt.Sprintf("failed to connect: dial tcp %s: connect: connection refused", address))
 }
 
-func buildParams(sim *EventServerSim, format eventoutputformat.Format) *eventservices.EventServiceParams {
-	params := &eventservices.EventServiceParams{
-		EnableLiveFeedAPI:            true,
-		Protocol:                     sim.Protocol,
-		Address:                      sim.Address,
-		OutputFormat:                 format,
-		MuteEventReplayDuringStartup: false,
+func TestEventsService_MarshallMessage(t *testing.T) {
+	testCases := map[string]struct {
+		Event        *eventmessages.FactomEvent
+		OutputFormat eventoutputformat.Format
+		Assertion    func(*testing.T, []byte, error)
+	}{
+		"protobuf": {
+			Event: &eventmessages.FactomEvent{
+				EventSource:    eventmessages.EventSource_REPLAY_BOOT,
+				FactomNodeName: "test",
+			},
+			OutputFormat: eventoutputformat.Protobuf,
+			Assertion: func(t *testing.T, data []byte, err error) {
+				assert.NoError(t, err)
+				// the first byte is the indication of the eventSource following the eventSource
+				assert.Equal(t, byte(eventmessages.EventSource_REPLAY_BOOT), data[1])
+				// the third byte is the indication of the factomNodeName following the name
+				assert.Equal(t, []byte("test"), data[4:])
+			},
+		},
+		"json": {
+			Event: &eventmessages.FactomEvent{
+				EventSource:    eventmessages.EventSource_REPLAY_BOOT,
+				FactomNodeName: "test",
+			},
+			OutputFormat: eventoutputformat.Json,
+			Assertion: func(t *testing.T, data []byte, err error) {
+				assert.NoError(t, err)
+				assert.JSONEq(t, `{"eventSource":1,"factomNodeName":"test","Value":null}`, string(data))
+			},
+		},
+		"empty-protobuf": {
+			Event:        &eventmessages.FactomEvent{},
+			OutputFormat: eventoutputformat.Protobuf,
+			Assertion: func(t *testing.T, data []byte, err error) {
+				assert.NoError(t, err)
+				assert.Equal(t, []byte{}, data)
+			},
+		},
+		"empty-json": {
+			Event:        &eventmessages.FactomEvent{},
+			OutputFormat: eventoutputformat.Json,
+			Assertion: func(t *testing.T, data []byte, err error) {
+				assert.NoError(t, err)
+				assert.JSONEq(t, `{"Value": null}`, string(data))
+			},
+		},
+		"OutputFormat-issue": {
+			Event:        &eventmessages.FactomEvent{},
+			OutputFormat: 3,
+			Assertion: func(t *testing.T, data []byte, err error) {
+				assert.EqualError(t, err, "unsupported event format: unknown output format 3")
+				assert.Nil(t, data)
+			},
+		},
 	}
-	return params
+
+	for name, testCase := range testCases {
+		t.Run(name, func(t *testing.T) {
+			eventService := &eventServiceInstance{
+				params: &EventServiceParams{
+					OutputFormat: testCase.OutputFormat,
+				},
+			}
+			data, err := eventService.marshallMessage(testCase.Event)
+
+			testCase.Assertion(t, data, err)
+		})
+	}
+
+}
+
+func TestEventsService_MarshallEvent(t *testing.T) {
+	factomEvent := &eventmessages.FactomEvent{
+		EventSource:    eventmessages.EventSource_REPLAY_BOOT,
+		FactomNodeName: "test",
+	}
+
+	eventService := &eventServiceInstance{}
+	data, err := eventService.marshallEvent(factomEvent)
+
+	assert.NoError(t, err)
+	// the first byte is the indication of the eventSource following the eventSource
+	assert.Equal(t, byte(eventmessages.EventSource_REPLAY_BOOT), data[1])
+	// the third byte is the indication of the factomNodeName following the name
+	assert.Equal(t, []byte("test"), data[4:])
+}
+
+func TestEventsService_WriteEvent(t *testing.T) {
+	server, client := net.Pipe()
+	defer server.Close()
+	defer client.Close()
+
+	eventService := &eventServiceInstance{
+		connection: client,
+	}
+
+	stopByte := byte(0xFF)
+	testMessage := []byte("tests")
+	testMessage = append(testMessage, stopByte)
+
+	// mock server by reading everything until stop byte is found
+	// use the stop byte to stop as soon as possible, note: don't use stop byte in test message before the end
+	receivingMessage := bytes.NewBufferString("")
+	var finished atomic.AtomicBool
+	finished.Store(false)
+	go func() {
+		reader := bufio.NewReader(server)
+		for {
+			b, err := reader.ReadByte()
+			if err == io.ErrClosedPipe {
+				// test finished
+				break
+			}
+			if err != nil {
+				fmt.Println(err)
+				continue
+			}
+			receivingMessage.WriteByte(b)
+			if b == stopByte {
+				break
+			}
+		}
+		finished.Store(true)
+		_ = server.Close()
+	}()
+	// test write event
+	err := eventService.writeEvent(testMessage)
+
+	// wait max 1 second until the server has read the bytes
+	for i := 0; !finished.Load() && i < 10; i++ {
+		time.Sleep(100 * time.Millisecond)
+	}
+
+	// read 1 byte of protocol version
+	_, _ = receivingMessage.ReadByte()
+	// read 4 bytes of data length: int32
+	_, _ = receivingMessage.ReadByte()
+	_, _ = receivingMessage.ReadByte()
+	_, _ = receivingMessage.ReadByte()
+	_, _ = receivingMessage.ReadByte()
+
+	assert.NoError(t, err)
+	assert.Equalf(t, testMessage, receivingMessage.Bytes(), "expected: %s\n actual: %s", testMessage, receivingMessage.String())
+}
+
+func TestEventService_GetBroadcastContent(t *testing.T) {
+	eventService := &eventServiceInstance{
+		params: &EventServiceParams{
+			BroadcastContent: BroadcastNever,
+		},
+	}
+	broadcastContent := eventService.GetBroadcastContent()
+	assert.Equal(t, BroadcastNever, broadcastContent)
+}
+
+func TestEventService_IsResendRegistrationsOnStateChange(t *testing.T) {
+	eventService := &eventServiceInstance{
+		params: &EventServiceParams{
+			ResendRegistrationsOnStateChange: true,
+		},
+	}
+	resendRegistration := eventService.IsResendRegistrationsOnStateChange()
+	assert.True(t, resendRegistration)
 }

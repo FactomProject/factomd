@@ -19,7 +19,7 @@ func (outputFormat Format) String() string {
 	case Json:
 		return "Json"
 	default:
-		return fmt.Sprintf("Unknown output format %d", int(outputFormat))
+		return fmt.Sprintf("unknown output format %d", int(outputFormat))
 	}
 }
 
