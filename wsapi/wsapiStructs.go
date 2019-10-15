@@ -269,6 +269,11 @@ type HeightRequest struct {
 	Height int64 `json:"height"`
 }
 
+type ReplayRequest struct {
+	StartHeight int64 `json:"startheight"`
+	EndHeight   int64 `json:"endheight,omitempty"`
+}
+
 type HeightOrHashRequest struct {
 	Height *int64 `json:"height,omitempty"`
 	Hash   string `json:"hash,omitempty"`

@@ -176,20 +176,28 @@ func HandleV2ReplayDBFromHeight(state interfaces.IState, params interface{}) (in
 	n := time.Now()
 	defer HandleV2APICallReplayDBFromHeight.Observe(float64(time.Since(n).Nanoseconds()))
 
-	heightRequest := new(HeightRequest)
-	err := MapToObject(params, heightRequest)
+	replayRequest := new(ReplayRequest)
+	err := MapToObject(params, replayRequest)
 	if err != nil {
 		return nil, NewInvalidParamsError()
 	}
 
-	beginning := uint32(heightRequest.Height)
+	beginning := uint32(replayRequest.StartHeight)
 	end := uint32(state.GetDBHeightComplete())
+
+	if replayRequest.EndHeight != 0 {
+		end = uint32(replayRequest.EndHeight)
+	}
 
 	if beginning > end || beginning < 0 {
 		return nil, NewInvalidHeightError()
 	}
 
-	state.EmitDBStateEventsFromHeight(beginning)
+	if (end - beginning) > 1000 {
+		end = beginning + 1000
+	}
+
+	state.EmitDBStateEventsFromHeight(beginning, end)
 
 	resp := new(SendRawMessageResponse)
 	resp.Message = "Successfully initiated replay"

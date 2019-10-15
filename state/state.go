@@ -597,17 +597,18 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 	return newState
 }
 
-func (s *State) EmitDBStateEventsFromHeight(height uint32) {
-	msgs := s.GetAllDBStateMsgsFromDatabase(height)
+func (s *State) EmitDBStateEventsFromHeight(height uint32, end uint32) {
+	msgs := s.GetAllDBStateMsgsFromDatabase(height, end)
 	for _, msg := range msgs {
 		EmitStateChangeEvent(msg, eventmessages.EntityState_COMMITTED_TO_DIRECTORY_BLOCK, s)
 	}
 }
 
-func (s *State) GetAllDBStateMsgsFromDatabase(height uint32) []interfaces.IMsg {
+func (s *State) GetAllDBStateMsgsFromDatabase(height uint32, end uint32) []interfaces.IMsg {
 	i := height
+	msgCount := 0
 	var msgs []interfaces.IMsg
-	for {
+	for i <= end {
 
 		d, err := s.DB.FetchDBlockByHeight(i)
 		if err != nil || d == nil {
@@ -646,6 +647,7 @@ func (s *State) GetAllDBStateMsgsFromDatabase(height uint32) []interfaces.IMsg {
 
 		dbs := messages.NewDBStateMsg(d.GetTimestamp(), d, a, f, ec, eblocks, entries, nil)
 		i++
+		msgCount++
 		msgs = append(msgs, dbs)
 	}
 	return msgs
