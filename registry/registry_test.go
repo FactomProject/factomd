@@ -39,7 +39,7 @@ func threadFactory(t *testing.T, name string) worker.Handle {
 
 		// add sub-thread
 		sub := fmt.Sprintf("%v/%v", name, "sub")
-		w.Spawn(subThreadFactory(t,sub), sub)
+		w.Spawn(subThreadFactory(t, sub), sub)
 
 		// add sub-process - entire thread lifecycle lives inside the 'running' lifecycle of parent thread
 		subProc := fmt.Sprintf("%v/%v", name, "subproc")
@@ -50,7 +50,7 @@ func threadFactory(t *testing.T, name string) worker.Handle {
 			//time.Sleep(50*time.Millisecond)
 			assert.Panics(t, func() {
 				subSub := fmt.Sprintf("%v/%v", name, "sub")
-				w.Spawn(subThreadFactory(t,subSub), subSub)
+				w.Spawn(subThreadFactory(t, subSub), subSub)
 			}, "should fail when trying to spawn outside of init phase")
 		}).OnComplete(func() {
 			t.Logf("complete %v %s", w.ID, name)

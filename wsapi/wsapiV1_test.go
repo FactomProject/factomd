@@ -180,7 +180,6 @@ func TestHandleEntryBlock(t *testing.T) {
 
 func TestHandleEntryBlockInvalidHash(t *testing.T) {
 	state := testHelper.CreateAndPopulateTestState()
-	p := registry.New()
 	RunState(state)
 
 	url := "/v1/entry-block-by-keymr/invalid-hash"
@@ -190,7 +189,6 @@ func TestHandleEntryBlockInvalidHash(t *testing.T) {
 
 func TestHandleGetFee(t *testing.T) {
 	state := testHelper.CreateAndPopulateTestState()
-	p := registry.New()
 	RunState(state)
 
 	url := "/v1/factoid-get-fee/"
@@ -206,7 +204,6 @@ func TestHandleGetFee(t *testing.T) {
 
 func TestDBlockList(t *testing.T) {
 	state := testHelper.CreateAndPopulateTestState()
-	p := registry.New()
 	RunState(state)
 
 	list := []string{
@@ -311,7 +308,6 @@ func TestHandleGetUnanchoredReceipt(t *testing.T) {
 
 func TestHandleFactoidBalanceUnknownAddress(t *testing.T) {
 	state := testHelper.CreateAndPopulateTestState()
-	p := registry.New()
 	RunState(state)
 
 	factoidBalanceResponse := new(FactoidBalanceResponse)

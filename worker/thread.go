@@ -45,7 +45,7 @@ func (*Thread) RegisterMetric(handler telemetry.Handle) {
 }
 
 type IRegister interface {
-	Thread(*Thread, Handle, string)  // RegistryCallback for sub-threads
+	Thread(*Thread, Handle, string)          // RegistryCallback for sub-threads
 	Process(*Thread, Handle, string, string) // callback to fork a new process
 }
 
