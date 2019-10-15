@@ -190,7 +190,11 @@ func HandleV2ReplayDBFromHeight(state interfaces.IState, params interface{}) (in
 	}
 
 	state.EmitDBStateEventsFromHeight(beginning)
-	return 1, nil
+
+	resp := new(SendRawMessageResponse)
+	resp.Message = "Successfully initiated replay"
+
+	return resp, nil
 }
 
 func HandleV2DBlockByHeight(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
