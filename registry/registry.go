@@ -33,7 +33,7 @@ type processRegistry struct {
 var globalRegistry = &processRegistry{}
 
 // trigger exit calls
-func (p *process) exit() {
+func (p *process) Exit() {
 	defer func() { recover() }() // don't panic if exitWait is already Done
 	p.exitWait.Done()
 }
@@ -53,20 +53,19 @@ func (p *process) addThread(args ...interface{}) *worker.Thread {
 	defer p.Mutex.Unlock()
 	threadId := len(p.Index)
 
-	w := worker.NewThread()
+	w := worker.New()
 	w.ID = threadId
-	w.RegisterThread = p.spawn
-	w.RegisterProcess = p.fork
+	w.Register = p
 	p.Index = append(p.Index, w)
 	return w
 }
 
 // Bind thread run-level callbacks to wait groups
-func (p *process) bindCallbacks(r *worker.Thread, initHandler worker.Handle, args ...interface{}) {
+func (p *process) bindCallbacks(w *worker.Thread, initHandler worker.Handle) {
 	go func() {
 		// initHandler binds all other callbacks
 		// and can spawn child threads
-		initHandler(r, args...)
+		initHandler(w)
 		p.initWait.Done()
 	}()
 
@@ -75,67 +74,60 @@ func (p *process) bindCallbacks(r *worker.Thread, initHandler worker.Handle, arg
 		// that binds to the subscription manager
 		p.initWait.Wait()
 		p.runWait.Done()
-		r.Call(worker.RUN)
-		r.Call(worker.COMPLETE)
+		w.Call(worker.RUN)
+		w.Call(worker.COMPLETE)
 		p.doneWait.Done()
 	}()
 
 	go func() {
 		// cleanup on exit
 		p.exitWait.Wait()
-		r.Call(worker.EXIT)
+		w.Call(worker.EXIT)
 		p.exitWatch.Done()
 	}()
 
 }
 
 // Start a new root thread w/ coordinated start/stop callback hooks
-func (p *process) register(initFunction worker.Handle, args ...interface{}) {
+func (p *process) Register(initFunction worker.Handle) {
 	_, file, line, _ := runtime.Caller(1)
 	caller := fmt.Sprintf("%s:%v", file[worker.Prefix:], line)
 	r := p.addThread()
 	r.Caller = caller
 	r.Parent = r.ID // root threads are their own parent
-	p.bindCallbacks(r, initFunction, args...)
+	p.bindCallbacks(r, initFunction)
 }
 
 // Start a child process and register callbacks
-func (p *process) spawn(w *worker.Thread, initFunction worker.Handle, args ...interface{}) {
+func (p *process) Thread(w *worker.Thread, initFunction worker.Handle) {
 	t := p.addThread()
 	t.Parent = w.ID // child threads have a parent
 	t.PID = p.ID    // set process ID
-	p.bindCallbacks(t, initFunction, args...)
+	p.bindCallbacks(t, initFunction)
 }
 
 // fork a new process with it's own lifecycle
-func (p *process) fork(r *worker.Thread, initFunction worker.Handle, args ...interface{}) {
+func (p *process) Process(w *worker.Thread, initFunction worker.Handle) {
 	f := new()
 	f.Parent = p.ID // keep relation to parent process
 	// break parent relation
-	f.register(initFunction, args...)
+	f.Register(initFunction)
 
 	// cause this process to execute as part of the run lifecycle of the parent thread
-	r.Run(f.run)
+	w.Run(f.Run)
 }
 
 // interface to avoid exposing registry internals
-type regHook struct {
-	Register       func(worker worker.Handle, args ...interface{})
-	Run            func()
-	Exit           func()
-	WaitForRunning func()
+type Process interface {
+	Register(worker worker.Handle)
+	Run()
+	Exit()
+	WaitForRunning()
 }
 
 // create a new root process
-func New() regHook {
-	p := new()
-
-	return regHook{
-		Register:       p.register,
-		Run:            p.run,
-		Exit:           p.exit,
-		WaitForRunning: func() { p.runWait.Wait() },
-	}
+func New() Process {
+	return new()
 }
 
 // top level call to begin a new process definition
@@ -149,18 +141,22 @@ func new() *process {
 	p.ID = len(globalRegistry.Index)
 	p.Parent = p.ID // root processes are their own parent
 	globalRegistry.Index = append(globalRegistry.Index, p)
-	fnode.AddInterruptHandler(p.exit) // trigger exit behavior in the case of SIGINT
+	fnode.AddInterruptHandler(p.Exit) // trigger exit behavior in the case of SIGINT
 	p.exitWait.Add(1)
 	return p
 }
 
+func (p *process) WaitForRunning() {
+	p.runWait.Wait()
+}
+
 // execute all threads
-func (p *process) run() {
+func (p *process) Run() {
 	p.initWait.Wait()
 	p.initDone = true
 	p.runWait.Wait()
 	p.doneWait.Wait()
-	p.exit()
+	p.Exit()
 	p.exitWatch.Wait()
 }
 

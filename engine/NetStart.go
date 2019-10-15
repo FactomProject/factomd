@@ -637,7 +637,7 @@ func makeServer(s *state.State) *FactomNode {
 }
 
 func startServers(w *worker.Thread, load bool) {
-	w.Spawn(func(w *worker.Thread, args ...interface{}) {
+	w.Spawn(func(w *worker.Thread) {
 		for i, fnode := range fnodes {
 			if i > 0 {
 				fnode.State.Init(w)
@@ -694,7 +694,7 @@ func AddNode() {
 	fnodes[i].State.InitiateNetworkIdentityRegistration()
 	AddSimPeer(fnodes, i, i-1) // KLUDGE peer w/ only last node
 	p := registry.New()
-	p.Register(func(w *worker.Thread, args ...interface{}) {
+	p.Register(func(w *worker.Thread) {
 		startServer(w, i, fnodes[i], true)
 	})
 	go p.Run() // kick off independent process

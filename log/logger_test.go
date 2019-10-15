@@ -15,7 +15,7 @@ func TestLogPrintf(t *testing.T) {
 }
 func TestRegisterThread(t *testing.T) {
 
-	threadFactory := func(w *worker.Thread, args ...interface{}) {
+	threadFactory := func(w *worker.Thread) {
 		assert.NotPanics(t, func() {
 			w.Log.LogPrintf("testing", "%v", "foo")
 		})

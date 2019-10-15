@@ -93,7 +93,7 @@ func CreateAndPopulateTestStateForFER(testEntries []FEREntryWithHeight, desiredH
 		panic(err)
 	}*/
 	p := registry.New()
-	p.Register(func(w *worker.Thread, args ...interface{}) {
+	p.Register(func(w *worker.Thread) {
 		s.Init(w)
 		s.SetFactoshisPerEC(1)
 		state.LoadDatabase(s)

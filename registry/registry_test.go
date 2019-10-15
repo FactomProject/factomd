@@ -11,7 +11,7 @@ import (
 // add a sub thread that uses all callbacks
 // and also spawn's a child that uses only 'Run' callback
 func subThreadFactory(t *testing.T, name string) worker.Handle {
-	return func(w *worker.Thread, args ...interface{}) {
+	return func(w *worker.Thread) {
 		t.Logf("initializing %s", name)
 
 		w.Run(func() {
@@ -34,7 +34,7 @@ func subThreadFactory(t *testing.T, name string) worker.Handle {
 
 // spawn threads that in turn spawn children during initialization
 func threadFactory(t *testing.T, name string) worker.Handle {
-	return func(w *worker.Thread, args ...interface{}) {
+	return func(w *worker.Thread) {
 		t.Logf("initializing %s", name)
 
 		// add sub-thread

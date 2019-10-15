@@ -43,7 +43,7 @@ func CreateEmptyTestState() *state.State {
 	s.LoadConfig("", "")
 	s.Network = "LOCAL"
 	s.LogPath = "stdout"
-	s.Init(worker.NewThread())
+	s.Init(worker.New())
 	s.Network = "LOCAL"
 	s.CheckChainHeads.CheckChainHeads = false
 	state.LoadDatabase(s)
@@ -55,7 +55,7 @@ func CreateEmptyTestState() *state.State {
 func CreateAndPopulateTestStateAndStartValidator() *state.State {
 	s := CreateAndPopulateTestState()
 	p := registry.New()
-	p.Register(func(w *worker.Thread, args ...interface{}) {
+	p.Register(func(w *worker.Thread) {
 		s.ValidatorLoop(w)
 	})
 	go p.Run()
@@ -69,7 +69,7 @@ func CreatePopulateAndExecuteTestState() *state.State {
 	s := CreateAndPopulateTestState()
 	ExecuteAllBlocksFromDatabases(s)
 	p := registry.New()
-	p.Register(func(w *worker.Thread, args ...interface{}) {
+	p.Register(func(w *worker.Thread) {
 		s.ValidatorLoop(w)
 	})
 	go p.Run()
@@ -138,7 +138,7 @@ func CreateAndPopulateTestState() *state.State {
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "Network", s.Network))
 	s.LogPath = "stdout"
 
-	s.Init(worker.NewThread())
+	s.Init(worker.New())
 	s.Network = "LOCAL"
 	/*err := s.RecalculateBalances()
 	if err != nil {

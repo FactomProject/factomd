@@ -27,9 +27,7 @@ func New(caller ICaller) *ThreadLogger {
 // REVIEW: may want to design a different method of adding thread/caller to logs
 // add thread id/caller to message or formatter
 func extendFormat(caller ICaller, format string) string {
-	id := caller.GetID()
-	source := caller.GetCaller()
-	return fmt.Sprintf("%s %v/%v", format, id, source)
+	return fmt.Sprintf("%s %v/%v", format, caller.GetID(), caller.GetCaller())
 }
 
 func (l *ThreadLogger) LogPrintf(name string, format string, more ...interface{}) {

@@ -43,7 +43,7 @@ var packageLogger = log.WithFields(log.Fields{"package": "engine"})
 // start the process
 func Run(params *FactomParams) {
 	p := registry.New()
-	p.Register(func(w *worker.Thread, args ...interface{}) {
+	p.Register(func(w *worker.Thread) {
 		state := Factomd(w, params, params.Sim_Stdin)
 		w.OnRun(func() {
 			for state.GetRunState() != runstate.Stopped {

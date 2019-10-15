@@ -11,16 +11,13 @@ import (
 )
 
 // callback handle
-type Handle func(r *Thread, args ...interface{})
-
-// interface to registry
-type RegistryHandler func(r *Thread, initFunction Handle, args ...interface{})
+type Handle func(r *Thread)
 
 // interface to catch SIGINT
 type InterruptHandler func(func())
 
 // create new thread
-func NewThread() *Thread {
+func New() *Thread {
 	w := &Thread{}
 	w.Log = log.New(w)
 	return w
@@ -47,13 +44,17 @@ func (*Thread) RegisterMetric(handler telemetry.Handle) {
 	telemetry.RegisterMetric(handler)
 }
 
+type IRegister interface{
+	Thread(*Thread, Handle) // RegistryCallback for sub-threads
+    Process(*Thread, Handle) // callback to fork a new process
+}
+
 // worker process with structured callbacks
 // parent relation helps trace worker dependencies
 type Thread struct {
 	log.ICaller                     // interface to for some fields used by logger
-	RegisterThread  RegistryHandler // RegistryCallback for sub-threads
-	RegisterProcess RegistryHandler // callback to fork a new process
-	Log             interfaces.Log  //
+	Log             interfaces.Log  // threaded logger
+	Register        IRegister       // callbacks to register threads
 	PID             int             // process ID that this thread belongs to
 	ID              int             // thread id
 	Parent          int             // parent thread
@@ -91,7 +92,7 @@ func (r *Thread) Run(runFunc func()) {
 	_, file, line, _ := runtime.Caller(1)
 	caller := fmt.Sprintf("%s:%v", file[Prefix:], line)
 
-	r.Spawn(func(w *Thread, args ...interface{}) {
+	r.Spawn(func(w *Thread) {
 		w.Caller = caller
 		w.OnRun(runFunc)
 	})
@@ -99,20 +100,20 @@ func (r *Thread) Run(runFunc func()) {
 
 // Spawn a child thread and register callbacks
 // this is useful to bind functions to Init/Run/Stop callbacks
-func (r *Thread) Spawn(initFunction Handle, args ...interface{}) {
+func (r *Thread) Spawn(initFunction Handle) {
 	_, file, line, _ := runtime.Caller(1)
 	caller := fmt.Sprintf("%s:%v", file[Prefix:], line)
 
-	r.RegisterThread(r, func(w *Thread, args ...interface{}) {
+	r.Register.Thread(r, func(w *Thread) {
 		w.Caller = caller
-		initFunction(w, args...)
-	}, args...)
+		initFunction(w)
+	})
 }
 
 // Fork process with it's own thread lifecycle
 // NOTE: it's required to run the process
 func (r *Thread) Fork(initFunction Handle, args ...interface{}) {
-	r.RegisterProcess(r, initFunction, args...)
+	r.Register.Process(r, initFunction)
 }
 
 // Invoke specific callbacks synchronously
