@@ -39,8 +39,6 @@ var (
 		"The upper limit of torrent sync",
 	)
 
-	// TODO: Refactor all Queues to use thread-aware counters
-
 	// Holding Queue
 	TotalHoldingQueueInputs = telemetry.NewCounter(
 		"factomd_state_holding_queue_total_inputs",

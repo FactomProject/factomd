@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/FactomProject/factomd/fnode"
 	"github.com/FactomProject/factomd/log"
+	"github.com/FactomProject/factomd/telemetry"
 	"github.com/FactomProject/factomd/worker"
 	"runtime"
 	"sync"
@@ -59,6 +60,7 @@ func (p *process) addThread(args ...interface{}) *worker.Thread {
 		RegisterThread:           p.spawn,                   // inject spawn callback
 		RegisterProcess:          p.fork,                    // fork another process
 		RegisterInterruptHandler: fnode.AddInterruptHandler, // add SIGINT behavior
+		RegisterMetric:           telemetry.RegisterMetric,  // register metrics for polling
 	}
 
 	// inject logger

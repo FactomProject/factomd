@@ -14,8 +14,8 @@ import (
 var _ = fmt.Println
 
 func TestQueues(t *testing.T) {
-	w := &worker.Thread{ID: 0, PID: 0, Caller :"testCaller"}
-	var _, _ = NewInMsgQueue(w, 0), NewNetOutMsgQueue(w,0)
+	w := &worker.Thread{ID: 0, PID: 0, Caller: "testCaller"}
+	var _, _ = NewInMsgQueue(w, 0), NewNetOutMsgQueue(w, 0)
 
 	channel := make(chan interfaces.IMsg, 1000)
 	general := MsgQueue{Name: "general", Channel: channel, Thread: w}

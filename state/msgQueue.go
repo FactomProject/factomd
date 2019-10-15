@@ -5,6 +5,7 @@ import (
 	"github.com/FactomProject/factomd/telemetry"
 	"github.com/FactomProject/factomd/worker"
 	"github.com/prometheus/client_golang/prometheus"
+	"time"
 )
 
 type MsgQueue struct {
@@ -30,6 +31,26 @@ func (mq *MsgQueue) TotalMetric(msg interfaces.IMsg) telemetry.Counter {
 	}
 
 	return telemetry.TotalCounter.WithLabelValues("state", mq.Name, mq.Thread.Label(), label)
+}
+
+func (mq *MsgQueue) PollMetric() telemetry.Gauge {
+	return telemetry.ChannelSize.WithLabelValues("state", mq.Name, mq.Thread.Label(), "aggregate")
+}
+
+// add metric to poll size of queue
+func (mq *MsgQueue) RegisterPollMetric() {
+	mq.Thread.RegisterMetric(func(poll *time.Ticker, exit chan bool) {
+		gauge := mq.PollMetric()
+
+		for {
+			select {
+			case <- exit:
+				return
+			case <- poll.C:
+				gauge.Set(float64(mq.Length()))
+			}
+		}
+	})
 }
 
 type Counter = prometheus.Counter
