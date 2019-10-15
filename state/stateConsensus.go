@@ -1892,7 +1892,7 @@ func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
 	}
 	leader, lvm := pl.GetVirtualServers(vm.LeaderMinute, s.IdentityChainID)
 	if !leader || lvm != vmIndex {
-		s.LogPrintf("executeMsg", "SendDBSig(%d,%d) Caller lied to me about VMIndex @ %s", dbheight, vmIndex, atomic.WhereAmIString(1))
+		s.LogPrintf("executeMsg", "SendDBSig(%d,%d) ICaller lied to me about VMIndex @ %s", dbheight, vmIndex, atomic.WhereAmIString(1))
 		return // If I'm not a leader or this is not my VM then return
 	}
 

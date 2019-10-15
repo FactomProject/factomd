@@ -6,22 +6,19 @@ import (
 )
 
 // returns thread_id, <filename>:<line> where the thread was spawned
-type CallerHandle func() (threadID int, threadCaller string)
 
-type ThreadLogger struct {
-	interfaces.Log
-	Caller CallerHandle
-}
-
-// TODO: make this an arg to New instead of CallerHandle
-type ThreadHandle interface{
+type ICaller interface {
 	GetID() int
 	GetCaller() string
 }
 
+type ThreadLogger struct {
+	interfaces.Log
+	Caller ICaller
+}
+
 // allow for thread-aware logging
-func New(caller CallerHandle) *ThreadLogger {
-	// FIXME:: can we mak
+func New(caller ICaller) *ThreadLogger {
 	return &ThreadLogger{
 		Caller: caller,
 	}
@@ -29,9 +26,10 @@ func New(caller CallerHandle) *ThreadLogger {
 
 // REVIEW: may want to design a different method of adding thread/caller to logs
 // add thread id/caller to message or formatter
-func extendFormat(caller CallerHandle, format string) string {
-	t, c := caller()
-	return fmt.Sprintf("%s %v/%v", format, t, c)
+func extendFormat(caller ICaller, format string) string {
+	id := caller.GetID()
+	source := caller.GetCaller()
+	return fmt.Sprintf("%s %v/%v", format, id, source)
 }
 
 func (l *ThreadLogger) LogPrintf(name string, format string, more ...interface{}) {

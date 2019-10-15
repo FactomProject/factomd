@@ -44,9 +44,9 @@ func (mq *MsgQueue) RegisterPollMetric() {
 
 		for {
 			select {
-			case <- exit:
+			case <-exit:
 				return
-			case <- poll.C:
+			case <-poll.C:
 				gauge.Set(float64(mq.Length()))
 			}
 		}

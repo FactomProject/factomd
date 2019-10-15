@@ -54,9 +54,9 @@ func (p *process) addThread(args ...interface{}) *worker.Thread {
 	threadId := len(p.Index)
 
 	w := worker.NewThread()
-    w.ID = threadId
+	w.ID = threadId
 	w.RegisterThread = p.spawn
-    w.RegisterProcess =  p.fork
+	w.RegisterProcess = p.fork
 	p.Index = append(p.Index, w)
 	return w
 }

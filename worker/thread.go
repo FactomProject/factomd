@@ -22,10 +22,19 @@ type InterruptHandler func(func())
 // create new thread
 func NewThread() *Thread {
 	w := &Thread{}
-	// set default thread logger
-	// TODO: replace this w/ an interface
-	w.Log = log.New(func() (int, string) { return w.ID, w.Caller })
+	w.Log = log.New(w)
 	return w
+}
+
+// thread ID
+func (r *Thread) GetID() int {
+	return r.ID
+}
+
+// returns caller caller
+// which is a string containing source file and line where thread is spawned
+func (r *Thread) GetCaller() string {
+	return r.Caller
 }
 
 // register w/ global SIGINT handler
@@ -34,23 +43,24 @@ func (*Thread) RegisterInterruptHandler(handler func()) {
 }
 
 // add metric to polling
-func (*Thread) RegisterMetric( handler telemetry.Handle) {
+func (*Thread) RegisterMetric(handler telemetry.Handle) {
 	telemetry.RegisterMetric(handler)
 }
 
 // worker process with structured callbacks
 // parent relation helps trace worker dependencies
 type Thread struct {
-	RegisterThread           RegistryHandler         // RegistryCallback for sub-threads
-	RegisterProcess          RegistryHandler         // callback to fork a new process
-	Log                      interfaces.Log          //
-	PID                      int                     // process ID that this thread belongs to
-	ID                       int                     // thread id
-	Parent                   int                     // parent thread
-	Caller                   string                  // runtime location where thread starts
-	onRun                    func()                  // execute during 'run' state
-	onComplete               func()                  // execute after all run functions complete
-	onExit                   func()                  // executes during SIGINT or after shutdown of run state
+	log.ICaller                     // interface to for some fields used by logger
+	RegisterThread  RegistryHandler // RegistryCallback for sub-threads
+	RegisterProcess RegistryHandler // callback to fork a new process
+	Log             interfaces.Log  //
+	PID             int             // process ID that this thread belongs to
+	ID              int             // thread id
+	Parent          int             // parent thread
+	Caller          string          // runtime location where thread starts
+	onRun           func()          // execute during 'run' state
+	onComplete       func()         // execute after all run functions complete
+	onExit           func()         // executes during SIGINT or after shutdown of run state
 }
 
 // indicates a specific thread callback
