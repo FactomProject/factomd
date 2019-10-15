@@ -7,17 +7,8 @@ The API consists of a event emitter client which the is inside factomd, and the 
 an event receiver server. The (tcp/udp) client inside factomd dumps all the data into a network pipe, 
 with limited filtering capabilities (just a static setting whether to include the content and external id’s in the datastream or not.)
 
-
-A second layer should listen on a network port and consume the events.
-A sample project to read the events and just dumping them to console is hosted on [github.com/bi-foundation/factomd-sample-event-consumer](https://github.com/bi-foundation/factomd-sample-event-consumer)
-
-For certain use cases this functionality is sufficient, for others more fine-grained control is desired. 
-For this we’ve built a second layer daemon which is a second layer which receives the raw data dump, filters and routes a subset of the incoming events to remote systems using a subscriber mechanism. It is also responsible for the housekeeping involved when the receiver is temporarily or permanently unreachable and for some use cases it needs to make sure no events/blocks are skipped and missing blocks can be replayed from history.
-It's hosted on [github.com/bi-foundation/live-feed-api](https://github.com/bi-foundation/live-feed-api)
-
-
-## Getting started
-To enable and configure the first layer Live Feed API in factomd there is a new property section in factomd.conf:
+## How to enable live-feed
+To enable and configure the first layer Live Feed in factomd there is a new property section in factomd.conf:
 ```
 ; ------------------------------------------------------------------------------
 ; Configuration for live feed API
