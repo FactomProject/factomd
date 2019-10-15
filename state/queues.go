@@ -19,7 +19,6 @@ func NewInMsgQueue(w *worker.Thread, capacity int) InMsgMSGQueue {
 }
 
 func NewInMsgQueue2(w *worker.Thread, capacity int) InMsgMSGQueue {
-
 	mq := InMsgMSGQueue{
 		Name:    "InMsgQueue2",
 		Channel: make(chan interfaces.IMsg, capacity),

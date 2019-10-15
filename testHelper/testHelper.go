@@ -43,7 +43,7 @@ func CreateEmptyTestState() *state.State {
 	s.LoadConfig("", "")
 	s.Network = "LOCAL"
 	s.LogPath = "stdout"
-	s.Init(&worker.Thread{})
+	s.Init(worker.NewThread())
 	s.Network = "LOCAL"
 	s.CheckChainHeads.CheckChainHeads = false
 	state.LoadDatabase(s)
@@ -138,7 +138,7 @@ func CreateAndPopulateTestState() *state.State {
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "Network", s.Network))
 	s.LogPath = "stdout"
 
-	s.Init(&worker.Thread{})
+	s.Init(worker.NewThread())
 	s.Network = "LOCAL"
 	/*err := s.RecalculateBalances()
 	if err != nil {

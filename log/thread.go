@@ -13,8 +13,15 @@ type ThreadLogger struct {
 	Caller CallerHandle
 }
 
+// TODO: make this an arg to New instead of CallerHandle
+type ThreadHandle interface{
+	GetID() int
+	GetCaller() string
+}
+
 // allow for thread-aware logging
 func New(caller CallerHandle) *ThreadLogger {
+	// FIXME:: can we mak
 	return &ThreadLogger{
 		Caller: caller,
 	}
@@ -28,15 +35,15 @@ func extendFormat(caller CallerHandle, format string) string {
 }
 
 func (l *ThreadLogger) LogPrintf(name string, format string, more ...interface{}) {
-	packageLogger.LogPrintf(name, extendFormat(l.Caller, format), more...)
+	PackageLogger.LogPrintf(name, extendFormat(l.Caller, format), more...)
 }
 
 func (l *ThreadLogger) LogMessage(name string, note string, msg interfaces.IMsg) {
-	packageLogger.LogMessage(name, extendFormat(l.Caller, note), msg)
+	PackageLogger.LogMessage(name, extendFormat(l.Caller, note), msg)
 }
 
 func (l *ThreadLogger) StateLogMessage(FactomNodeName string, DBHeight int, CurrentMinute int, logName string, comment string, msg interfaces.IMsg) {
-	packageLogger.StateLogMessage(
+	PackageLogger.StateLogMessage(
 		FactomNodeName,
 		DBHeight,
 		CurrentMinute,
@@ -46,7 +53,7 @@ func (l *ThreadLogger) StateLogMessage(FactomNodeName string, DBHeight int, Curr
 }
 
 func (l *ThreadLogger) StateLogPrintf(FactomNodeName string, DBHeight int, CurrentMinute int, logName string, format string, more ...interface{}) {
-	packageLogger.StateLogPrintf(
+	PackageLogger.StateLogPrintf(
 		FactomNodeName,
 		DBHeight,
 		CurrentMinute,

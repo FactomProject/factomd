@@ -3,6 +3,8 @@ package worker
 import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/fnode"
+	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/telemetry"
 	"runtime"
 	"strings"
@@ -17,13 +19,30 @@ type RegistryHandler func(r *Thread, initFunction Handle, args ...interface{})
 // interface to catch SIGINT
 type InterruptHandler func(func())
 
+// create new thread
+func NewThread() *Thread {
+	w := &Thread{}
+	// set default thread logger
+	// TODO: replace this w/ an interface
+	w.Log = log.New(func() (int, string) { return w.ID, w.Caller })
+	return w
+}
+
+// register w/ global SIGINT handler
+func (*Thread) RegisterInterruptHandler(handler func()) {
+	fnode.AddInterruptHandler(handler)
+}
+
+// add metric to polling
+func (*Thread) RegisterMetric( handler telemetry.Handle) {
+	telemetry.RegisterMetric(handler)
+}
+
 // worker process with structured callbacks
 // parent relation helps trace worker dependencies
 type Thread struct {
 	RegisterThread           RegistryHandler         // RegistryCallback for sub-threads
 	RegisterProcess          RegistryHandler         // callback to fork a new process
-	RegisterInterruptHandler InterruptHandler        // register w/ global SIGINT handler
-	RegisterMetric           telemetry.MetricHandler // add metric to polling
 	Log                      interfaces.Log          //
 	PID                      int                     // process ID that this thread belongs to
 	ID                       int                     // thread id

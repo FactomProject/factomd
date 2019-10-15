@@ -23,7 +23,7 @@ func TestDisplay(t *testing.T) {
 	s.LoadConfig("", "LOCAL")
 	s.NodeMode = "SERVER"
 	s.DBType = "Map"
-	s.Init(&worker.Thread{ID: 0, PID: 0})
+	s.Init(worker.NewThread())
 
 	s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 	if s.CurrentMinute > 9 {

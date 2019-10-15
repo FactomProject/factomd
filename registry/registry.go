@@ -3,8 +3,6 @@ package registry
 import (
 	"fmt"
 	"github.com/FactomProject/factomd/fnode"
-	"github.com/FactomProject/factomd/log"
-	"github.com/FactomProject/factomd/telemetry"
 	"github.com/FactomProject/factomd/worker"
 	"runtime"
 	"sync"
@@ -55,17 +53,10 @@ func (p *process) addThread(args ...interface{}) *worker.Thread {
 	defer p.Mutex.Unlock()
 	threadId := len(p.Index)
 
-	w := &worker.Thread{
-		ID:                       threadId,
-		RegisterThread:           p.spawn,                   // inject spawn callback
-		RegisterProcess:          p.fork,                    // fork another process
-		RegisterInterruptHandler: fnode.AddInterruptHandler, // add SIGINT behavior
-		RegisterMetric:           telemetry.RegisterMetric,  // register metrics for polling
-	}
-
-	// inject logger
-	// REVIEW: maybe there is a more elegant way to return a reference to caller
-	w.Log = log.New(func() (int, string) { return w.ID, w.Caller })
+	w := worker.NewThread()
+    w.ID = threadId
+	w.RegisterThread = p.spawn
+    w.RegisterProcess =  p.fork
 	p.Index = append(p.Index, w)
 	return w
 }

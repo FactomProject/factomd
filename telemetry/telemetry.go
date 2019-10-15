@@ -22,7 +22,7 @@ func init() {
 	fnode.AddInterruptHandler(Exit) // trigger exit behavior in the case of SIGINT
 }
 
-// make all polling metrics exit
+// cause all polling metrics exit
 func Exit() {
 	close(exit)
 }

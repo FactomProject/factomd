@@ -17,11 +17,11 @@ type log struct {
 var (
 
 	// KLUDGE: expose package logging for backward compatibility
-	packageLogger   = &log{}
-	LogPrintf       = packageLogger.LogPrintf
-	LogMessage      = packageLogger.LogMessage
-	StateLogMessage = packageLogger.StateLogMessage
-	StateLogPrintf  = packageLogger.StateLogPrintf
+	PackageLogger   = &log{}
+	LogPrintf       = PackageLogger.LogPrintf
+	LogMessage      = PackageLogger.LogMessage
+	StateLogMessage = PackageLogger.StateLogMessage
+	StateLogPrintf  = PackageLogger.StateLogPrintf
 )
 
 func (*log) LogPrintf(name string, format string, more ...interface{}) {

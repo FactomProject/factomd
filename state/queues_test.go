@@ -14,7 +14,7 @@ import (
 var _ = fmt.Println
 
 func TestQueues(t *testing.T) {
-	w := &worker.Thread{ID: 0, PID: 0, Caller: "testCaller"}
+	w := worker.NewThread()
 	var _, _ = NewInMsgQueue(w, 0), NewNetOutMsgQueue(w, 0)
 
 	channel := make(chan interfaces.IMsg, 1000)
@@ -169,7 +169,7 @@ func BenchmarkChannels(b *testing.B) {
 }
 
 func BenchmarkQueues(b *testing.B) {
-	c := NewInMsgQueue(&worker.Thread{ID: 0, PID: 0}, 1000)
+	c := NewInMsgQueue(worker.NewThread(), 1000)
 	for i := 0; i < b.N; i++ {
 		c.Enqueue(nil)
 		c.Dequeue()
@@ -194,7 +194,7 @@ func BenchmarkConcurentChannels(b *testing.B) {
 }
 
 func BenchmarkConcurrentQueues(b *testing.B) {
-	c := NewInMsgQueue(&worker.Thread{ID: 0, PID: 0, Caller: "testCaller"}, 1000)
+	c := NewInMsgQueue(worker.NewThread(), 1000)
 	go func() {
 		for true {
 			c.Enqueue(nil)
@@ -225,7 +225,7 @@ func BenchmarkCompetingChannels(b *testing.B) {
 }
 
 func BenchmarkCompetingQueues(b *testing.B) {
-	c := NewInMsgQueue(&worker.Thread{ID: 0, PID: 0, Caller: "testCaller"}, 1000)
+	c := NewInMsgQueue(worker.NewThread(), 1000)
 	go func() {
 		for true {
 			c.Enqueue(nil)
