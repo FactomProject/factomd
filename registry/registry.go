@@ -39,7 +39,7 @@ func (p *process) Exit() {
 }
 
 // add a new thread to the global registry
-func (p *process) addThread(args ...interface{}) *worker.Thread {
+func (p *process) addThread() *worker.Thread {
 	if p.initDone {
 		panic("sub-threads must only spawn during initialization")
 	}
@@ -108,7 +108,7 @@ func (p *process) Thread(w *worker.Thread, initFunction worker.Handle) {
 
 // fork a new process with it's own lifecycle
 func (p *process) Process(w *worker.Thread, initFunction worker.Handle) {
-	f := new()
+	f := newProcess()
 	f.Parent = p.ID // keep relation to parent process
 	// break parent relation
 	f.Register(initFunction)
@@ -127,13 +127,13 @@ type Process interface {
 
 // create a new root process
 func New() Process {
-	return new()
+	return newProcess()
 }
 
 // top level call to begin a new process definition
 // a process has many sub-threads (goroutines)
 
-func new() *process {
+func newProcess() *process {
 	globalRegistry.Mutex.Lock()
 	defer globalRegistry.Mutex.Unlock()
 	// bind to global interrupt handler
@@ -160,14 +160,10 @@ func (p *process) Run() {
 	p.exitWatch.Wait()
 }
 
-func GetRegistry() *processRegistry {
-	return globalRegistry
-}
-
 func Graph() (out string) {
 
 	out = out + "\n\n"
-	var colors []string = []string{"95cde5", "b01700", "db8e3c", "ffe35f"}
+	var colors = []string{"95cde5", "b01700", "db8e3c", "ffe35f"}
 
 	// NOTE: we don't deal w/ relations between processes
 	// though the Fork() function does provide for that

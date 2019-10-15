@@ -23,7 +23,7 @@ import (
 func TestGetEndpoints(t *testing.T) {
 	state := testHelper.CreateAndPopulateTestState()
 	p := registry.New()
-	p.Register(func(w *worker.Thread, args ...interface{}) {
+	p.Register(func(w *worker.Thread) {
 		Start(w, state)
 	})
 	go p.Run()
@@ -68,7 +68,7 @@ func TestAuthenticatedUnauthorizedRequest(t *testing.T) {
 	state.RpcPass = password
 	state.SetPort(18088)
 	p := registry.New()
-	p.Register(func(w *worker.Thread, args ...interface{}) {
+	p.Register(func(w *worker.Thread) {
 		Start(w, state)
 	})
 	go p.Run()
@@ -129,7 +129,7 @@ func TestHTTPS(t *testing.T) {
 	defer cleanup()
 
 	p := registry.New()
-	p.Register(func(w *worker.Thread, args ...interface{}) {
+	p.Register(func(w *worker.Thread) {
 		state := testHelper.CreateAndPopulateTestState()
 		state.SetPort(10443)
 		mState := &MockState{

@@ -24,7 +24,7 @@ import (
 func TestHandleV2Requests(t *testing.T) {
 	state := testHelper.CreateAndPopulateTestState()
 	p := registry.New()
-	p.Register(func(w *worker.Thread, args ...interface{}) {
+	p.Register(func(w *worker.Thread) {
 		Start(w, state)
 	})
 	go p.Run()
@@ -319,7 +319,7 @@ func TestHandleV2GetRaw(t *testing.T) {
 	//initializing server
 	state := testHelper.CreateAndPopulateTestState()
 	p := registry.New()
-	p.Register(func(w *worker.Thread, args ...interface{}) {
+	p.Register(func(w *worker.Thread) {
 		Start(w, state)
 	})
 	go p.Run()

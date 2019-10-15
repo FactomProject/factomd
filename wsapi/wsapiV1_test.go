@@ -25,7 +25,7 @@ func TestHandleGetRaw(t *testing.T) {
 	state := testHelper.CreateAndPopulateTestState()
 
 	p := registry.New()
-	p.Register(func(w *worker.Thread, args ...interface{}) {
+	p.Register(func(w *worker.Thread) {
 		Start(w, state)
 	})
 	go p.Run()
@@ -116,7 +116,7 @@ func TestHandleDirectoryBlock(t *testing.T) {
 	//initializing server
 	state := testHelper.CreateAndPopulateTestState()
 	p := registry.New()
-	p.Register(func(w *worker.Thread, args ...interface{}) {
+	p.Register(func(w *worker.Thread) {
 		Start(w, state)
 	})
 	go p.Run()
@@ -147,7 +147,7 @@ func TestHandleDirectoryBlock(t *testing.T) {
 func TestHandleEntryBlock(t *testing.T) {
 	state := testHelper.CreateAndPopulateTestState()
 	p := registry.New()
-	p.Register(func(w *worker.Thread, args ...interface{}) {
+	p.Register(func(w *worker.Thread) {
 		Start(w, state)
 	})
 	go p.Run()
@@ -187,7 +187,7 @@ func TestHandleEntryBlock(t *testing.T) {
 func TestHandleEntryBlockInvalidHash(t *testing.T) {
 	state := testHelper.CreateAndPopulateTestState()
 	p := registry.New()
-	p.Register(func(w *worker.Thread, args ...interface{}) {
+	p.Register(func(w *worker.Thread) {
 		Start(w, state)
 	})
 	go p.Run()
@@ -201,7 +201,7 @@ func TestHandleEntryBlockInvalidHash(t *testing.T) {
 func TestHandleGetFee(t *testing.T) {
 	state := testHelper.CreateAndPopulateTestState()
 	p := registry.New()
-	p.Register(func(w *worker.Thread, args ...interface{}) {
+	p.Register(func(w *worker.Thread) {
 		Start(w, state)
 	})
 	go p.Run()
@@ -221,7 +221,7 @@ func TestHandleGetFee(t *testing.T) {
 func TestDBlockList(t *testing.T) {
 	state := testHelper.CreateAndPopulateTestState()
 	p := registry.New()
-	p.Register(func(w *worker.Thread, args ...interface{}) {
+	p.Register(func(w *worker.Thread) {
 		Start(w, state)
 	})
 	go p.Run()
@@ -261,7 +261,7 @@ func TestBlockIteration(t *testing.T) {
 	//initializing server
 	state := testHelper.CreateAndPopulateTestState()
 	p := registry.New()
-	p.Register(func(w *worker.Thread, args ...interface{}) {
+	p.Register(func(w *worker.Thread) {
 		Start(w, state)
 	})
 	go p.Run()
@@ -295,7 +295,7 @@ func TestBlockIteration(t *testing.T) {
 func TestHandleGetReceipt(t *testing.T) {
 	state := testHelper.CreateAndPopulateTestState()
 	p := registry.New()
-	p.Register(func(w *worker.Thread, args ...interface{}) {
+	p.Register(func(w *worker.Thread) {
 		Start(w, state)
 	})
 	go p.Run()
@@ -321,7 +321,7 @@ func TestHandleGetReceipt(t *testing.T) {
 func TestHandleGetUnanchoredReceipt(t *testing.T) {
 	state := testHelper.CreateAndPopulateTestState()
 	p := registry.New()
-	p.Register(func(w *worker.Thread, args ...interface{}) {
+	p.Register(func(w *worker.Thread) {
 		Start(w, state)
 	})
 	go p.Run()
@@ -345,7 +345,7 @@ func TestHandleGetUnanchoredReceipt(t *testing.T) {
 func TestHandleFactoidBalanceUnknownAddress(t *testing.T) {
 	state := testHelper.CreateAndPopulateTestState()
 	p := registry.New()
-	p.Register(func(w *worker.Thread, args ...interface{}) {
+	p.Register(func(w *worker.Thread) {
 		Start(w, state)
 	})
 	go p.Run()
@@ -362,7 +362,7 @@ func TestHandleFactoidBalanceUnknownAddress(t *testing.T) {
 func TestHandleProperties(t *testing.T) {
 	state := testHelper.CreateAndPopulateTestState()
 	p := registry.New()
-	p.Register(func(w *worker.Thread, args ...interface{}) {
+	p.Register(func(w *worker.Thread) {
 		Start(w, state)
 	})
 	go p.Run()
@@ -384,7 +384,7 @@ func TestHandleProperties(t *testing.T) {
 func TestHandleHeights(t *testing.T) {
 	state := testHelper.CreateAndPopulateTestState()
 	p := registry.New()
-	p.Register(func(w *worker.Thread, args ...interface{}) {
+	p.Register(func(w *worker.Thread) {
 		Start(w, state)
 	})
 	go p.Run()

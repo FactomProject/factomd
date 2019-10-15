@@ -34,7 +34,7 @@ func (*log) LogPrintf(name string, format string, more ...interface{}) {
 
 	var where string
 
-	if logWhere {
+	if logWhere { // global for debugging
 		where = fmt.Sprintf("<%s>", atomic.Goid())
 	}
 
