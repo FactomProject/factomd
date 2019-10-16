@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/FactomProject/factomd/queue"
 	"github.com/FactomProject/factomd/worker"
 	"os"
 	"path/filepath"
@@ -172,12 +173,12 @@ type State struct {
 	timerMsgQueue          chan interfaces.IMsg
 	TimeOffset             interfaces.Timestamp
 	MaxTimeOffset          interfaces.Timestamp
-	networkOutMsgQueue     NetOutMsgQueue
+	networkOutMsgQueue     queue.MsgQueue
 	networkInvalidMsgQueue chan interfaces.IMsg
-	inMsgQueue             InMsgMSGQueue
-	inMsgQueue2            InMsgMSGQueue
-	electionsQueue         ElectionQueue
-	apiQueue               APIMSGQueue
+	inMsgQueue             queue.MsgQueue
+	inMsgQueue2            queue.MsgQueue
+	electionsQueue         queue.MsgQueue
+	apiQueue               queue.MsgQueue
 	ackQueue               chan interfaces.IMsg
 	msgQueue               chan interfaces.IMsg
 	// prioritizedMsgQueue contains messages we know we need for consensus. (missing from processlist)

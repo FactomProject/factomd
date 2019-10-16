@@ -1,26 +1,26 @@
-package state_test
+package queue_test
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/worker"
 	"testing"
 	"time"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
-	. "github.com/FactomProject/factomd/state"
+	. "github.com/FactomProject/factomd/queue"
+	"github.com/FactomProject/factomd/worker"
 )
 
 var _ = fmt.Println
 
+
 func TestQueues(t *testing.T) {
 	w := worker.New()
-	var _, _ = NewInMsgQueue(w, 0), NewNetOutMsgQueue(w, 0)
 
 	channel := make(chan interfaces.IMsg, 1000)
 	general := MsgQueue{Name: "general", Channel: channel, Thread: w}
-	inmsg := InMsgMSGQueue{Name: "inmsg", Channel: channel, Thread: w}
-	netOut := NetOutMsgQueue{Name: "netOut", Channel: channel, Thread: w}
+	inmsg := MsgQueue{Name: "inmsg", Channel: channel, Thread: w}
+	netOut := MsgQueue{Name: "netOut", Channel: channel, Thread: w}
 
 	if !checkLensAndCap(channel, []interfaces.IQueue{inmsg, netOut}) {
 		t.Error("Error: Lengths/Cap does not match")
@@ -169,7 +169,13 @@ func BenchmarkChannels(b *testing.B) {
 }
 
 func BenchmarkQueues(b *testing.B) {
-	c := NewInMsgQueue(worker.New(), 1000)
+	c := &MsgQueue{
+		Name: "inmsg",
+		Package: "testing",
+		Channel: make(chan interfaces.IMsg, 1000),
+		Thread: worker.New(),
+	}
+
 	for i := 0; i < b.N; i++ {
 		c.Enqueue(nil)
 		c.Dequeue()
@@ -194,7 +200,12 @@ func BenchmarkConcurentChannels(b *testing.B) {
 }
 
 func BenchmarkConcurrentQueues(b *testing.B) {
-	c := NewInMsgQueue(worker.New(), 1000)
+	c := &MsgQueue{
+		Name: "inmsg",
+		Package: "testing",
+		Channel: make(chan interfaces.IMsg, 1000),
+		Thread: worker.New(),
+	}
 	go func() {
 		for true {
 			c.Enqueue(nil)
@@ -225,7 +236,12 @@ func BenchmarkCompetingChannels(b *testing.B) {
 }
 
 func BenchmarkCompetingQueues(b *testing.B) {
-	c := NewInMsgQueue(worker.New(), 1000)
+	c := &MsgQueue{
+		Name: "inmsg",
+		Package: "testing",
+		Channel: make(chan interfaces.IMsg, 1000),
+		Thread: worker.New(),
+	}
 	go func() {
 		for true {
 			c.Enqueue(nil)
