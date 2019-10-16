@@ -1720,7 +1720,7 @@ func (s *State) GetPendingTransactions(params interface{}) []interfaces.IPending
 			if pl.DBHeight > currentHeightComplete {
 				cb := pl.State.FactoidState.GetCurrentBlock()
 				ct := cb.GetTransactions()
-				for _, tran := range ct {
+				for i, tran := range ct {
 					var tmp interfaces.IPendingTransaction
 					tmp.TransactionID = tran.GetSigHash()
 					if tran.GetBlockHeight() > 0 {
@@ -1732,9 +1732,11 @@ func (s *State) GetPendingTransactions(params interface{}) []interfaces.IPending
 					tmp.Inputs = tran.GetInputs()
 					tmp.Outputs = tran.GetOutputs()
 					tmp.ECOutputs = tran.GetECOutputs()
-					ecrate := s.GetPredictiveFER()
-					ecrate, _ = tran.CalculateFee(ecrate)
-					tmp.Fees = ecrate
+					if i > 0 {
+						ecrate := s.GetPredictiveFER()
+						ecrate, _ = tran.CalculateFee(ecrate)
+						tmp.Fees = ecrate
+					}
 
 					if params.(string) == "" {
 						flgFound = true
