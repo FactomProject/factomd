@@ -25,7 +25,7 @@ func HandleDebug(writer http.ResponseWriter, request *http.Request) {
 	state, err := GetState(request)
 	if err != nil {
 		wsDebugLog.Errorf("failed to extract port from request: %s", err)
-		writer.WriteHeader(http.StatusBadRequest)
+		writer.WriteHeader(http.StatusOK)
 		return
 	}
 
