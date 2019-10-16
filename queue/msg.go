@@ -14,7 +14,7 @@ type MsgQueue struct {
 	Thread  *worker.Thread
 }
 
-// use gauge w/ proper labels
+// construct gauge w/ proper labels
 func (q *MsgQueue) Metric(msg interfaces.IMsg) telemetry.Gauge {
 	label := "nil"
 	if msg != nil {
@@ -24,6 +24,7 @@ func (q *MsgQueue) Metric(msg interfaces.IMsg) telemetry.Gauge {
 	return telemetry.ChannelSize.WithLabelValues(q.Package, q.Name, q.Thread.Label(), label)
 }
 
+// construct counter for tracking totals
 func (q *MsgQueue) TotalMetric(msg interfaces.IMsg) telemetry.Counter {
 	label := "nil"
 	if msg != nil {
@@ -33,6 +34,7 @@ func (q *MsgQueue) TotalMetric(msg interfaces.IMsg) telemetry.Counter {
 	return telemetry.TotalCounter.WithLabelValues(q.Package, q.Name, q.Thread.Label(), label)
 }
 
+// construct counter for intermittent polling of queue size
 func (q *MsgQueue) PollMetric() telemetry.Gauge {
 	return telemetry.ChannelSize.WithLabelValues(q.Package, q.Name, q.Thread.Label(), "aggregate")
 }
