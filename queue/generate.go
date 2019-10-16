@@ -5,8 +5,6 @@ import (
 	"text/template"
 )
 
-// TODO: refactor to use an interface where we can add comments
-
 var sourceFileFormat string = `package queue
 
 import (

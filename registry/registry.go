@@ -96,6 +96,7 @@ func (p *process) Register(initFunction worker.Handle, name string) {
 	r.Name = name
 	r.Caller = caller
 	r.Parent = r.ID // root threads are their own parent
+	r.PID = p.ID
 	p.bindCallbacks(r, initFunction)
 }
 
@@ -173,13 +174,13 @@ func Graph() (out string) {
 			if t.IsRoot() {
 				continue
 			}
-			out = out + fmt.Sprintf("%v -> %v\n", t.Parent, t.ID)
+			out = out + fmt.Sprintf("%v.%v -> %v.%v\n", t.PID, t.Parent, t.PID, t.ID)
 		}
 	}
 
 	for _, p := range globalRegistry.Index {
 		for i, t := range p.Index {
-			out = out + fmt.Sprintf("%d {color:#%v, shape:dot, label:%v}\n", t.ID, colors[i%len(colors)], t.Name)
+			out = out + fmt.Sprintf("%v.%v {color:#%v, shape:dot, label:%v}\n", t.PID, t.ID, colors[i%len(colors)], t.Name)
 		}
 	}
 
