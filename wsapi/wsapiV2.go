@@ -182,14 +182,14 @@ func HandleV2ReplayDBFromHeight(state interfaces.IState, params interface{}) (in
 		return nil, NewInvalidParamsError()
 	}
 
-	beginning := uint32(replayRequest.StartHeight)
-	end := uint32(state.GetDBHeightComplete())
+	beginning := replayRequest.StartHeight
+	end := state.GetDBHeightComplete()
 
 	if replayRequest.EndHeight != 0 {
 		end = uint32(replayRequest.EndHeight)
 	}
 
-	if beginning > end || beginning < 0 {
+	if beginning > end || beginning < 0 || end < 0 {
 		return nil, NewInvalidHeightError()
 	}
 
@@ -200,8 +200,7 @@ func HandleV2ReplayDBFromHeight(state interfaces.IState, params interface{}) (in
 	state.EmitDBStateEventsFromHeight(beginning, end)
 
 	resp := new(SendRawMessageResponse)
-	resp.Message = "Successfully initiated replay"
-
+	resp.Message = "Successfully initiated replay of blocks " + fmt.Sprint(beginning) + " through " + fmt.Sprint(end)
 	return resp, nil
 }
 
