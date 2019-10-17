@@ -1,13 +1,14 @@
 package engine_test
 
 import (
+	"github.com/FactomProject/factomd/fnode"
 	"math"
 	"testing"
 
 	. "github.com/FactomProject/factomd/engine"
 )
 
-var fnodes []*FactomNode
+var fnodes []*fnode.FactomNode
 
 func SimPeerTest(t *testing.T) {
 	cnt := 40

@@ -1,8 +1,9 @@
 package queue
 
 import (
-	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/common/interfaces"
+
+	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/telemetry"
 	"github.com/FactomProject/factomd/worker"
 	"time"
@@ -22,7 +23,7 @@ func (q *MsgQueue) Metric(msg interfaces.IMsg) telemetry.Gauge {
 		label = msg.Label()
 	}
 
-	return telemetry.ChannelSize.WithLabelValues(q.Package, q.Name, q.Thread.Label(), label)
+	return telemetry.ChannelSize.WithLabelValues(q.Package, q.GetName(), q.Thread.Label(), label)
 }
 
 // construct counter for tracking totals
@@ -32,12 +33,12 @@ func (q *MsgQueue) TotalMetric(msg interfaces.IMsg) telemetry.Counter {
 		label = msg.Label()
 	}
 
-	return telemetry.TotalCounter.WithLabelValues(q.Package, q.Name, q.Thread.Label(), label)
+	return telemetry.TotalCounter.WithLabelValues(q.Package, q.GetName(), q.Thread.Label(), label)
 }
 
 // construct counter for intermittent polling of queue size
 func (q *MsgQueue) PollMetric() telemetry.Gauge {
-	return telemetry.ChannelSize.WithLabelValues(q.Package, q.Name, q.Thread.Label(), "aggregate")
+	return telemetry.ChannelSize.WithLabelValues(q.Package, q.GetName(), q.Thread.Label(), "aggregate")
 }
 
 // add metric to poll size of queue
@@ -87,7 +88,7 @@ func (q MsgQueue) Dequeue() interfaces.IMsg {
 
 // BlockingDequeue will block until it retrieves from queue
 func (q MsgQueue) BlockingDequeue() interfaces.IMsg {
-	v := <-q.Channel
+	v := <- q.Channel
 	q.Metric(v).Dec()
 	return v
 }

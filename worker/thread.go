@@ -40,6 +40,9 @@ func (*Thread) RegisterInterruptHandler(handler func()) {
 
 // add metric to polling
 func (r *Thread) RegisterMetric(handler interfaces.PollMetricHandler) {
+	// KLUDGE: don't error during unit testing if process threads are not run
+	// r.PollMetricHandler is nil if the thread lifecycle isn't really executed (as in unit tests)
+	defer func(){ recover() }()
 	r.PollMetricHandler(handler)
 }
 

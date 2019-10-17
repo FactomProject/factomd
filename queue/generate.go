@@ -9,13 +9,15 @@ var sourceFileFormat string = `package queue
 
 import (
 	"{{ .Import }}"
+
+	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/telemetry"
 	"github.com/FactomProject/factomd/worker"
 	"time"
 )
 
 type {{ .Name }} struct {
-	Name    string
+	common.Name
 	Package string
 	Channel chan {{ .Type }}
 	Thread  *worker.Thread
@@ -28,7 +30,7 @@ func (q *{{ .Name }}) Metric(msg {{ .Type }}) telemetry.Gauge {
 		label = msg.Label()
 	}
 
-	return telemetry.ChannelSize.WithLabelValues(q.Package, q.Name, q.Thread.Label(), label)
+	return telemetry.ChannelSize.WithLabelValues(q.Package, q.GetName(), q.Thread.Label(), label)
 }
 
 // construct counter for tracking totals
@@ -38,12 +40,12 @@ func (q *{{ .Name }}) TotalMetric(msg {{ .Type }}) telemetry.Counter {
 		label = msg.Label()
 	}
 
-	return telemetry.TotalCounter.WithLabelValues(q.Package, q.Name, q.Thread.Label(), label)
+	return telemetry.TotalCounter.WithLabelValues(q.Package, q.GetName(), q.Thread.Label(), label)
 }
 
 // construct counter for intermittent polling of queue size
 func (q *{{ .Name }}) PollMetric() telemetry.Gauge {
-	return telemetry.ChannelSize.WithLabelValues(q.Package, q.Name, q.Thread.Label(), "aggregate")
+	return telemetry.ChannelSize.WithLabelValues(q.Package, q.GetName(), q.Thread.Label(), "aggregate")
 }
 
 // add metric to poll size of queue
