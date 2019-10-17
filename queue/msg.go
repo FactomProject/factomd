@@ -1,6 +1,7 @@
 package queue
 
 import (
+	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/telemetry"
 	"github.com/FactomProject/factomd/worker"
@@ -8,7 +9,7 @@ import (
 )
 
 type MsgQueue struct {
-	Name    string
+	common.Name
 	Package string
 	Channel chan interfaces.IMsg
 	Thread  *worker.Thread

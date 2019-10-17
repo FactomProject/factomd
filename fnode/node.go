@@ -1,11 +1,24 @@
 package fnode
 
 import (
+	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/state"
 )
 
+type root struct{
+	common.Name
+}
+
+// root of object heirarchy
+var Root = &root{}
+
+func init() {
+	Root.Init(Root, "")
+}
+
 type FactomNode struct {
+	common.Name
 	Index    int
 	State    *state.State
 	Peers    []interfaces.IPeer
@@ -19,6 +32,9 @@ func GetFnodes() []*FactomNode {
 }
 
 func AddFnode(node *FactomNode) {
+	node.Init(Root, "svc") // root of service
+	node.State.Init(node, node.State.FactomNodeName)
+	node.State.Hold.Init(node.State, "HoldingList")
 	fnodes = append(fnodes, node)
 }
 

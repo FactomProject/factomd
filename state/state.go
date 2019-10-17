@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/queue"
 	"github.com/FactomProject/factomd/worker"
 	"os"
@@ -53,6 +54,7 @@ var packageLogger = log.WithFields(log.Fields{"package": "state"})
 var _ = fmt.Print
 
 type State struct {
+	common.Name
 	Logger            *log.Entry
 	RunState          runstate.RunState
 	NetworkController *p2p.Controller
@@ -436,7 +438,7 @@ type State struct {
 	InputRegEx                *regexp.Regexp
 	InputRegExString          string
 	executeRecursionDetection map[[32]byte]interfaces.IMsg
-	Hold                      HoldingList
+	Hold                      *HoldingList
 
 	// MissingMessageResponse is a cache of the last 1000 msgs we receive such that when
 	// we send out a missing message, we can find that message locally before we ask the net
@@ -960,11 +962,10 @@ func (s *State) GetSalt(ts interfaces.Timestamp) uint32 {
 	return binary.BigEndian.Uint32(c.Bytes())
 }
 
-func (s *State) Init(w *worker.Thread) {
+func (s *State) Initialize(w *worker.Thread) {
 	if s.Salt == nil {
 		b := make([]byte, 32)
 		_, err := rand.Read(b)
-		// Note that err == nil only if we read len(b) bytes.
 		if err != nil {
 			panic("Random Number Failure")
 		}
@@ -992,7 +993,7 @@ func (s *State) Init(w *worker.Thread) {
 		//s.Logger = log.NewLogFromConfig(s.LogPath, s.LogLevel, "State")
 	}
 
-	s.Hold.Init(w, s)                        // setup the dependent holding map
+	s.Hold = NewHoldingList(w, s)                        // setup the dependent holding map
 	s.TimeOffset = new(primitives.Timestamp) //interfaces.Timestamp(int64(rand.Int63() % int64(time.Microsecond*10)))
 
 	s.InvalidMessages = make(map[[32]byte]interfaces.IMsg, 0)

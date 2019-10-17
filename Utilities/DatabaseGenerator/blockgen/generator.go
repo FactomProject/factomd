@@ -93,7 +93,7 @@ func NewGeneratorState(conf *DBGeneratorConfig, starttime interfaces.Timestamp) 
 	s.LoadConfig(conf.FactomdConfigPath, "CUSTOM")
 	s.StateSaverStruct.FastBoot = false
 	s.EFactory = new(electionMsgs.ElectionsFactory)
-	s.Init()
+	s.Initialize()
 	s.NetworkNumber = constants.NETWORK_CUSTOM
 
 	customnetname := conf.CustomNetID

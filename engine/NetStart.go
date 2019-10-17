@@ -240,7 +240,7 @@ func NetStart(w *worker.Thread, s *state.State, p *FactomParams, listenToStdin b
 
 	s.AddPrefix(p.Prefix)
 	s.SetOut(false)
-	s.Init(w)
+	s.Initialize(w)
 	s.SetDropRate(p.DropRate)
 
 	if p.Sync2 >= 0 {
@@ -628,7 +628,7 @@ func startServers(w *worker.Thread, load bool) {
 	w.Spawn(func(w *worker.Thread) {
 		for i, node := range fnode.GetFnodes() {
 			if i > 0 {
-				node.State.Init(w)
+				node.State.Initialize(w)
 			}
 			startServer(w, i, node, load)
 		}

@@ -94,7 +94,7 @@ func CreateAndPopulateTestStateForFER(testEntries []FEREntryWithHeight, desiredH
 	}*/
 	p := registry.New()
 	p.Register(func(w *worker.Thread) {
-		s.Init(w)
+		s.Initialize(w)
 		s.SetFactoshisPerEC(1)
 		state.LoadDatabase(s)
 		s.FERChainId = "111111118d918a8be684e0dac725493a75862ef96d2d3f43f84b26969329bf03"
