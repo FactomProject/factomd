@@ -160,6 +160,7 @@ func (r *Thread) IsRoot() bool {
 	return r.ID == r.ParentID
 }
 
+// use thread name as label
 func (r *Thread) Label() string {
-	return fmt.Sprintf("%v", r.ID)
+	return r.GetName()
 }
