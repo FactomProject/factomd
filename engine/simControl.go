@@ -83,9 +83,9 @@ func GetLine(listenToStdin bool) string {
 	return line
 }
 
-func GetFocus() *FactomNode {
-	if len(fnodes) > ListenTo && ListenTo >= 0 {
-		return fnodes[ListenTo]
+func GetFocus() *fnode.FactomNode {
+	if fnode.Len() > ListenTo && ListenTo >= 0 {
+		return fnode.Get(ListenTo)
 	}
 	return nil
 }
@@ -106,7 +106,7 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 	ListenTo = listenTo
 
 	if loadGenerator == nil {
-		loadGenerator = NewLoadGenerator(fnodes[0].State)
+		loadGenerator = NewLoadGenerator(fnode.Get(0).State)
 		w.Run(loadGenerator.KeepUsFunded, "KeepUsFunded")
 	}
 
@@ -134,21 +134,21 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 			//fmt.Printf("Parsing command, found %d elements.  The first element is: %+v / %s \n Full command: %+v\n", len(cmd), b[0], string(b), cmd)
 
 			v, err := strconv.Atoi(string(b))
-			if err == nil && v >= 0 && v < len(fnodes) && fnodes[ListenTo].State != nil {
+			if err == nil && v >= 0 && v < fnode.Len() && fnode.Get(ListenTo).State != nil {
 				ListenTo = v
 				os.Stderr.WriteString(fmt.Sprintf("Switching to Node %d\n", ListenTo))
 				// Update which node will be displayed on the controlPanel page
 				connectionMetricsChannel := make(chan interface{}, p2p.StandardChannelSize)
 				// REVIEW: to make this visible to thread registry
 				// would need to relocate outside of this worker.Thread.Run() block
-				go controlPanel.ServeControlPanel(fnodes[ListenTo].State.ControlPanelChannel, fnodes[ListenTo].State, connectionMetricsChannel, p2pNetwork, Build, "")
+				go controlPanel.ServeControlPanel(fnode.Get(ListenTo).State.ControlPanelChannel, fnode.Get(ListenTo).State, connectionMetricsChannel, p2pNetwork, Build, "")
 			} else {
 				switch {
 				case '!' == b[0]:
-					if ListenTo < 0 || ListenTo > len(fnodes) {
+					if ListenTo < 0 || ListenTo > fnode.Len() {
 						break
 					}
-					s := fnodes[ListenTo].State
+					s := fnode.Get(ListenTo).State
 					os.Stderr.WriteString("Reset Node: " + s.FactomNodeName + "\n")
 					s.Reset()
 
@@ -169,18 +169,18 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 					limitBuys = false
 					if len(b) > 1 {
 						if b[1] == 'c' {
-							copyOver(fnodes[ListenTo].State)
+							copyOver(fnode.Get(ListenTo).State)
 							break
 						}
 						if b[1] == 'f' {
 							break
 						}
 					}
-					if ListenTo < 0 || ListenTo > len(fnodes) {
+					if ListenTo < 0 || ListenTo > fnode.Len() {
 						break
 					}
 					wsapiNode = ListenTo
-					wsapi.SetState(fnodes[wsapiNode].State)
+					wsapi.SetState(fnode.Get(wsapiNode).State)
 
 					if nextAuthority == -1 {
 						//err, _ := FundWallet(fnodes[wsapiNode].State, 2e7)
@@ -188,7 +188,7 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 						//	os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
 						//	break
 						//}
-						setUpAuthorities(fnodes[wsapiNode].State, true)
+						setUpAuthorities(fnode.Get(wsapiNode).State, true)
 						os.Stderr.WriteString(fmt.Sprintf("%d Authorities added to the stack and funds are in wallet\n", len(authStack)))
 					}
 					if len(b) == 1 {
@@ -212,10 +212,10 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 							// Perfectly fund the g command
 							idcost := 13 + 15 + 1 // Cost for 1 ID : Root + Management + Register
 							need := (idcost * count) + initchainCost
-							FundWalletTOFF(fnodes[wsapiNode].State, 0, uint64(need)*fnodes[wsapiNode].State.GetFactoshisPerEC())
+							FundWalletTOFF(fnode.Get(wsapiNode).State, 0, uint64(need)*fnode.Get(wsapiNode).State.GetFactoshisPerEC())
 
 							initchainCost = 0 // Init only happens once. We set to 0 to not count it again
-							auths, skipped, err := authorityToBlockchain(count, fnodes[wsapiNode].State)
+							auths, skipped, err := authorityToBlockchain(count, fnode.Get(wsapiNode).State)
 							if err != nil {
 								os.Stderr.WriteString(fmt.Sprintf("Error making authorities, %s\n", err.Error()))
 							}
@@ -233,17 +233,17 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 						os.Stderr.WriteString("Sort Status by Node Name\n")
 					}
 				case 'w' == b[0]:
-					if ListenTo >= 0 && ListenTo < len(fnodes) {
+					if ListenTo >= 0 && ListenTo < fnode.Len() {
 						wsapiNode = ListenTo
-						wsapi.SetState(fnodes[wsapiNode].State)
-						os.Stderr.WriteString(fmt.Sprintf("--Listen to %s --\n", fnodes[wsapiNode].State.FactomNodeName))
+						wsapi.SetState(fnode.Get(wsapiNode).State)
+						os.Stderr.WriteString(fmt.Sprintf("--Listen to %s --\n", fnode.Get(wsapiNode).State.FactomNodeName))
 					}
 				case 'W' == b[0]:
-					if ListenTo < 0 || ListenTo > len(fnodes) {
+					if ListenTo < 0 || ListenTo > fnode.Len() {
 						break
 					}
-					fnodes[ListenTo].State.WaitForEntries = !fnodes[ListenTo].State.WaitForEntries
-					if fnodes[ListenTo].State.WaitForEntries {
+					fnode.Get(ListenTo).State.WaitForEntries = !fnode.Get(ListenTo).State.WaitForEntries
+					if fnode.Get(ListenTo).State.WaitForEntries {
 						os.Stderr.WriteString("Wait for all Entries\n")
 					} else {
 						os.Stderr.WriteString("Don't wait for all Entries\n")
@@ -257,12 +257,12 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 							break
 						}
 
-						if ListenTo < 0 || ListenTo > len(fnodes) {
+						if ListenTo < 0 || ListenTo > fnode.Len() {
 							os.Stderr.WriteString("Select a node first\n")
 							break
 						}
 
-						f := fnodes[ListenTo]
+						f := fnode.Get(ListenTo)
 						f.State.StatusMutex.Lock()
 						os.Stderr.WriteString("----------------------------- " + f.State.FactomNodeName + " -------------------------------------- " + string(b) + "\n")
 						l := len(f.State.StatusStrs)
@@ -287,8 +287,8 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 				case 'E' == b[0]:
 					if len(b) == 2 {
 						if b[1] == 's' {
-							if fnodes[listenTo].State.GetElections() != nil && fnodes[listenTo].State.GetElections().GetAdapter() != nil {
-								os.Stderr.WriteString(fnodes[listenTo].State.GetElections().GetAdapter().Status())
+							if fnode.Get(listenTo).State.GetElections() != nil && fnode.Get(listenTo).State.GetElections().GetAdapter() != nil {
+								os.Stderr.WriteString(fnode.Get(listenTo).State.GetElections().GetAdapter().Status())
 								break
 							}
 						}
@@ -316,12 +316,12 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 							break
 						}
 
-						if ListenTo < 0 || ListenTo > len(fnodes) {
+						if ListenTo < 0 || ListenTo > fnode.Len() {
 							os.Stderr.WriteString("Select a node first")
 							break
 						}
 
-						f := fnodes[ListenTo]
+						f := fnode.Get(ListenTo)
 
 						pl := f.State.ProcessLists.Get(uint32(ht))
 						if pl == nil {
@@ -348,18 +348,18 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 						go rotateWSAPI(&rotate, rotate, &wsapiNode)
 					} else {
 						os.Stderr.WriteString("--Stop Rotation of the WSAPI around the nodes.  Now --\n")
-						wsapi.SetState(fnodes[wsapiNode].State)
+						wsapi.SetState(fnode.Get(wsapiNode).State)
 					}
 				case 'a' == b[0]:
 					mLog.all = false
-					for _, fnode := range fnodes {
-						fnode.State.SetOut(false)
+					for _, f:= range fnode.GetFnodes() {
+						f.State.SetOut(false)
 					}
-					if ListenTo < 0 || ListenTo > len(fnodes) {
+					if ListenTo < 0 || ListenTo > fnode.Len() {
 						os.Stderr.WriteString(fmt.Sprintln("Select a node first"))
 						break
 					}
-					f := fnodes[ListenTo]
+					f := fnode.Get(ListenTo)
 					os.Stderr.WriteString(fmt.Sprintln("-----------------------------", f.State.FactomNodeName, "--------------------------------------", string(b[:len(b)])))
 					if len(b) < 2 {
 						break
@@ -384,14 +384,14 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 					}
 				case 'e' == b[0]:
 					mLog.all = false
-					for _, fnode := range fnodes {
-						fnode.State.SetOut(false)
+					for _, node := range fnode.GetFnodes() {
+						node.State.SetOut(false)
 					}
-					if ListenTo < 0 || ListenTo > len(fnodes) {
+					if ListenTo < 0 || ListenTo > fnode.Len() {
 						os.Stderr.WriteString(fmt.Sprintln("Select a node first"))
 						break
 					}
-					f := fnodes[ListenTo]
+					f := fnode.Get(ListenTo)
 					os.Stderr.WriteString(fmt.Sprintln("-----------------------------", f.State.FactomNodeName, "--------------------------------------", string(b[:len(b)])))
 					if len(b) < 2 {
 						break
@@ -416,14 +416,14 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 					}
 				case 'f' == b[0]:
 					mLog.all = false
-					for _, fnode := range fnodes {
-						fnode.State.SetOut(false)
+					for _, node := range fnode.GetFnodes() {
+						node.State.SetOut(false)
 					}
-					if ListenTo < 0 || ListenTo > len(fnodes) {
+					if ListenTo < 0 || ListenTo > fnode.Len() {
 						os.Stderr.WriteString(fmt.Sprintln("Select a node first"))
 						break
 					}
-					f := fnodes[ListenTo]
+					f := fnode.Get(ListenTo)
 					os.Stderr.WriteString(fmt.Sprintln("-----------------------------", f.State.FactomNodeName, "--------------------------------------", string(b[:len(b)])))
 					if len(b) < 2 {
 						break
@@ -448,14 +448,14 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 					}
 				case 'd' == b[0]:
 					mLog.all = false
-					for _, fnode := range fnodes {
-						fnode.State.SetOut(false)
+					for _, node := range fnode.GetFnodes() {
+						node.State.SetOut(false)
 					}
-					if ListenTo < 0 || ListenTo > len(fnodes) {
+					if ListenTo < 0 || ListenTo > fnode.Len() {
 						fmt.Println("Select a node first")
 						break
 					}
-					f := fnodes[ListenTo]
+					f := fnode.Get(ListenTo)
 					os.Stderr.WriteString(fmt.Sprintln("-----------------------------", f.State.FactomNodeName, "--------------------------------------", string(b[:len(b)])))
 					if len(b) < 2 {
 						break
@@ -485,7 +485,7 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 							os.Stderr.WriteString("Specify a FaultWait between 0 and 100\n")
 							break
 						}
-						for _, fn := range fnodes {
+						for _, fn := range fnode.GetFnodes() {
 							fn.State.SetFaultWait(nnn)
 							os.Stderr.WriteString(fmt.Sprintf("Setting FaultWait of %10s to %d\n", fn.State.FactomNodeName, nnn))
 						}
@@ -521,7 +521,7 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 					// Reset Everything
 					if b[1] == 'r' {
 						os.Stderr.WriteString("Reset all nodes in the simulation!\n")
-						for _, f := range fnodes {
+						for _, f := range fnode.GetFnodes() {
 							f.State.Reset()
 						}
 						break
@@ -554,21 +554,21 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 						os.Stderr.WriteString("Specify a FaultTimeout between 0 and 100\n")
 						break
 					}
-					for _, fn := range fnodes {
+					for _, fn := range fnode.GetFnodes() {
 						fn.State.FaultTimeout = nnn
 						os.Stderr.WriteString(fmt.Sprintf("Setting FaultTimeout of %10s to %d\n", fn.State.FactomNodeName, nnn))
 					}
 
 				case 'k' == b[0]:
 					mLog.all = false
-					for _, fnode := range fnodes {
+					for _, fnode := range fnode.GetFnodes() {
 						fnode.State.SetOut(false)
 					}
-					if ListenTo < 0 || ListenTo > len(fnodes) {
+					if ListenTo < 0 || ListenTo > fnode.Len() {
 						fmt.Println("Select a node first")
 						break
 					}
-					f := fnodes[ListenTo]
+					f := fnode.Get(ListenTo)
 					fmt.Println("-----------------------------", f.State.FactomNodeName, "--------------------------------------", string(b))
 					if len(b) < 2 {
 						fmt.Println("No Parms found.")
@@ -576,7 +576,7 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 					}
 					if 's' == b[1] {
 						getName := func(chainID interfaces.IHash) string {
-							for _, fn := range fnodes {
+							for _, fn := range fnode.GetFnodes() {
 								if fn.State.IdentityChainID.Fixed() == chainID.Fixed() {
 									return fn.State.FactomNodeName
 								}
@@ -585,14 +585,14 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 						}
 						// We return the hash of the private key because we just want to be able to compare it for debugging purposes, not actually expose it.
 						os.Stderr.WriteString(fmt.Sprintf("%20s %64s %64s %64s\n", "Node Name", "Chain ID", "Public Key", "Hash of Private Key"))
-						for _, fn := range fnodes {
+						for _, fn := range fnode.GetFnodes() {
 							os.Stderr.WriteString(fmt.Sprintf("%20s %s %s %s \n",
 								fn.State.FactomNodeName,
 								fn.State.IdentityChainID.String(),
 								fn.State.GetServerPublicKey().String(),
 								primitives.Sha((*fn.State.GetServerPrivateKey().Key)[:]).String()))
 						}
-						s := fnodes[ListenTo].State
+						s := fnode.Get(ListenTo).State
 						pl := s.ProcessLists.Get(s.GetDBHeightComplete() + 1)
 						if pl != nil {
 							os.Stderr.WriteString(fmt.Sprintf("%30s %s\n", "", "Federated Servers"))
@@ -643,8 +643,8 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 
 				case 'x' == b[0]:
 
-					if ListenTo >= 0 && ListenTo < len(fnodes) {
-						f := fnodes[ListenTo]
+					if ListenTo >= 0 && ListenTo < fnode.Len() {
+						f := fnode.Get(ListenTo)
 						v := f.State.GetNetStateOff() // Toggle his network on/off state
 						if v {
 							os.Stderr.WriteString("Bring " + f.State.FactomNodeName + " Back onto the network\n")
@@ -654,19 +654,19 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 						f.State.SetNetStateOff(!v)
 
 						// Advance to the next node. Makes taking a number of nodes off or on line easier
-						fnodes[ListenTo].State.SetOut(false)
+						fnode.Get(ListenTo).State.SetOut(false)
 						listenTo++
-						if listenTo >= len(fnodes) {
+						if listenTo >= fnode.Len() {
 							listenTo = 0
 						}
-						fnodes[ListenTo].State.SetOut(true)
+						fnode.Get(ListenTo).State.SetOut(true)
 						os.Stderr.WriteString(fmt.Sprint("\r\nSwitching to Node ", ListenTo, "\r\n"))
 					}
 
 				case 'y' == b[0]:
-					if ListenTo >= 0 && ListenTo < len(fnodes) {
+					if ListenTo >= 0 && ListenTo < fnode.Len() {
 						if len(b) == 1 || b[1] == 'h' {
-							f := fnodes[ListenTo]
+							f := fnode.Get(ListenTo)
 							fmt.Println("Holding:")
 							for k := range f.State.Holding {
 								v := f.State.Holding[k]
@@ -679,7 +679,7 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 								}
 							}
 						} else if b[1] == 'c' {
-							f := fnodes[ListenTo]
+							f := fnode.Get(ListenTo)
 							fmt.Println("Commits:")
 							for k, c := range f.State.Commits.GetRaw() {
 								if c != nil {
@@ -706,24 +706,25 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 					watchMessages++
 					if watchMessages%2 == 1 {
 						os.Stderr.WriteString("--Print Messages On--\n")
-						go printMessages(&watchMessages, watchMessages, &ListenTo)
+						// KLUDGE removed MLOG during refactor
+						//go printMessages(&watchMessages, watchMessages, &ListenTo)
 					} else {
 						os.Stderr.WriteString("--Print Messages Off--\n")
 					}
 				case 'M' == b[0]:
-					if !fnodes[ListenTo].State.MessageTally {
+					if !fnode.Get(ListenTo).State.MessageTally {
 						os.Stderr.WriteString("--Print Message Tallies On--\n")
-						fnodes[ListenTo].State.MessageTally = true
+						fnode.Get(ListenTo).State.MessageTally = true
 					} else {
 						os.Stderr.WriteString("--Print Message Tallies Off--\n")
-						fnodes[ListenTo].State.MessageTally = false
+						fnode.Get(ListenTo).State.MessageTally = false
 					}
 				case 'z' == b[0]: // Add Audit server, Remove server, and Add Leader fall through to 'n', switch to next node.
 					var msg interfaces.IMsg
 					if len(b) > 1 && b[1] == 'a' {
-						msg = messages.NewRemoveServerMsg(fnodes[ListenTo].State, fnodes[ListenTo].State.IdentityChainID, 1)
+						msg = messages.NewRemoveServerMsg(fnode.Get(ListenTo).State, fnode.Get(ListenTo).State.IdentityChainID, 1)
 					} else {
-						msg = messages.NewRemoveServerMsg(fnodes[ListenTo].State, fnodes[ListenTo].State.IdentityChainID, 0)
+						msg = messages.NewRemoveServerMsg(fnode.Get(ListenTo).State, fnode.Get(ListenTo).State.IdentityChainID, 0)
 					}
 
 					priv, err := primitives.NewPrivateKeyFromHex(LOCAL_NET_PRIV_KEY)
@@ -737,8 +738,8 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 						break
 					}
 
-					fnodes[listenTo].State.InMsgQueue().Enqueue(msg)
-					os.Stderr.WriteString(fmt.Sprintln("Attempting to remove", fnodes[ListenTo].State.GetFactomNodeName(), "as a server"))
+					fnode.Get(listenTo).State.InMsgQueue().Enqueue(msg)
+					os.Stderr.WriteString(fmt.Sprintln("Attempting to remove", fnode.Get(ListenTo).State.GetFactomNodeName(), "as a server"))
 
 					fallthrough
 				case 'o' == b[0]: // Add Audit server and Add Leader fall through to 'n', switch to next node.
@@ -748,18 +749,18 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 							for index < len(authKeyLibrary) {
 								if authKeyLibrary[index].Taken == false {
 									authKeyLibrary[index].Taken = true
-									fnodes[ListenTo].State.IdentityChainID = authKeyLibrary[index].ChainID
-									key, pKey, _ := authKeyLookup(fnodes[ListenTo].State.IdentityChainID)
-									fnodes[ListenTo].State.LocalServerPrivKey = key
-									fnodes[ListenTo].State.SimSetNewKeys(pKey)
-									os.Stderr.WriteString(fmt.Sprintf("Identity of " + fnodes[ListenTo].State.GetFactomNodeName() + " changed to [" + authKeyLibrary[index].ChainID.String()[:10] + "]\n"))
+									fnode.Get(ListenTo).State.IdentityChainID = authKeyLibrary[index].ChainID
+									key, pKey, _ := authKeyLookup(fnode.Get(ListenTo).State.IdentityChainID)
+									fnode.Get(ListenTo).State.LocalServerPrivKey = key
+									fnode.Get(ListenTo).State.SimSetNewKeys(pKey)
+									os.Stderr.WriteString(fmt.Sprintf("Identity of " + fnode.Get(ListenTo).State.GetFactomNodeName() + " changed to [" + authKeyLibrary[index].ChainID.String()[:10] + "]\n"))
 									break
 								}
 								index++
 							}
 						}
 
-						msg := messages.NewAddServerMsg(fnodes[ListenTo].State, 1)
+						msg := messages.NewAddServerMsg(fnode.Get(ListenTo).State, 1)
 						priv, err := primitives.NewPrivateKeyFromHex(LOCAL_NET_PRIV_KEY)
 						if err != nil {
 							os.Stderr.WriteString(fmt.Sprintln("Could not make an audit server,", err.Error()))
@@ -770,29 +771,29 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 							os.Stderr.WriteString(fmt.Sprintln("Could not make an audit server,", err.Error()))
 							break
 						}
-						fnodes[ListenTo].State.InMsgQueue().Enqueue(msg)
-						os.Stderr.WriteString(fmt.Sprintln("Attempting to make", fnodes[ListenTo].State.GetFactomNodeName(), "a Audit Server"))
+						fnode.Get(ListenTo).State.InMsgQueue().Enqueue(msg)
+						os.Stderr.WriteString(fmt.Sprintln("Attempting to make", fnode.Get(ListenTo).State.GetFactomNodeName(), "a Audit Server"))
 					}
 					fallthrough
 				case 'l' == b[0]: // Add Audit server, Remove server, and Add Leader fall through to 'n', switch to next node.
 					if b[0] == 'l' { // (Don't do anything if just passing along the audit server)
-						feds := fnodes[ListenTo].State.LeaderPL.FedServers
+						feds := fnode.Get(ListenTo).State.LeaderPL.FedServers
 						exists := false
 						for _, fed := range feds {
-							if fed.GetChainID().IsSameAs(fnodes[ListenTo].State.IdentityChainID) {
+							if fed.GetChainID().IsSameAs(fnode.Get(ListenTo).State.IdentityChainID) {
 								exists = true
 							}
 						}
-						if len(b) > 1 && b[1] == 't' && fnodes[ListenTo].State.IdentityChainID.String()[:6] != "888888" && !exists {
+						if len(b) > 1 && b[1] == 't' && fnode.Get(ListenTo).State.IdentityChainID.String()[:6] != "888888" && !exists {
 							index := 0
 							for index < len(authKeyLibrary) {
 								if authKeyLibrary[index].Taken == false {
 									authKeyLibrary[index].Taken = true
-									fnodes[ListenTo].State.IdentityChainID = authKeyLibrary[index].ChainID
-									key, pKey, _ := authKeyLookup(fnodes[ListenTo].State.IdentityChainID)
-									fnodes[ListenTo].State.LocalServerPrivKey = key
-									fnodes[ListenTo].State.SimSetNewKeys(pKey)
-									os.Stderr.WriteString(fmt.Sprintf("Identity of " + fnodes[ListenTo].State.GetFactomNodeName() + " changed to [" + authKeyLibrary[index].ChainID.String()[:10] + "]\n"))
+									fnode.Get(ListenTo).State.IdentityChainID = authKeyLibrary[index].ChainID
+									key, pKey, _ := authKeyLookup(fnode.Get(ListenTo).State.IdentityChainID)
+									fnode.Get(ListenTo).State.LocalServerPrivKey = key
+									fnode.Get(ListenTo).State.SimSetNewKeys(pKey)
+									os.Stderr.WriteString(fmt.Sprintf("Identity of " + fnode.Get(ListenTo).State.GetFactomNodeName() + " changed to [" + authKeyLibrary[index].ChainID.String()[:10] + "]\n"))
 									break
 								}
 								index++
@@ -803,7 +804,7 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 							}
 						}
 
-						msg := messages.NewAddServerMsg(fnodes[ListenTo].State, 0)
+						msg := messages.NewAddServerMsg(fnode.Get(ListenTo).State, 0)
 						priv, err := primitives.NewPrivateKeyFromHex(LOCAL_NET_PRIV_KEY)
 						if err != nil {
 							os.Stderr.WriteString(fmt.Sprintln("Could not make a leader,", err.Error()))
@@ -814,22 +815,22 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 							os.Stderr.WriteString(fmt.Sprintln("Could not make a leader,", err.Error()))
 							break
 						}
-						fnodes[listenTo].State.InMsgQueue().Enqueue(msg)
-						os.Stderr.WriteString(fmt.Sprintln("Attempting to make", fnodes[ListenTo].State.GetFactomNodeName(), "a Leader"))
+						fnode.Get(listenTo).State.InMsgQueue().Enqueue(msg)
+						os.Stderr.WriteString(fmt.Sprintln("Attempting to make", fnode.Get(ListenTo).State.GetFactomNodeName(), "a Leader"))
 					}
 					fallthrough
 				case 'n' == b[0]:
-					fnodes[ListenTo].State.SetOut(false)
+					fnode.Get(ListenTo).State.SetOut(false)
 					ListenTo++
-					if ListenTo >= len(fnodes) {
+					if ListenTo >= fnode.Len() {
 						ListenTo = 0
 					}
-					fnodes[ListenTo].State.SetOut(true)
+					fnode.Get(ListenTo).State.SetOut(true)
 					os.Stderr.WriteString(fmt.Sprint("\r\nSwitching to Node ", ListenTo, "\r\n"))
 				case 'c' == b[0]:
-					c := !fnodes[0].State.DebugConsensus
-					for _, n := range fnodes {
-						n.State.DebugConsensus = fnodes[0].State.DebugConsensus
+					c := !fnode.Get(0).State.DebugConsensus
+					for _, n := range fnode.GetFnodes() {
+						n.State.DebugConsensus = fnode.Get(0).State.DebugConsensus
 					}
 					if c {
 						os.Stderr.WriteString(fmt.Sprint("\r\nTrace Consensus\n"))
@@ -837,7 +838,7 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 						os.Stderr.WriteString(fmt.Sprint("\r\nTurn off Consensus Trace \n"))
 					}
 
-					for _, f := range fnodes {
+					for _, f := range fnode.GetFnodes() {
 						f.State.DebugConsensus = c
 					}
 				case 'i' == b[0]:
@@ -886,12 +887,12 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 							}
 						}
 						if amt == -1 {
-							os.Stderr.WriteString(fmt.Sprintf("=== Identity List === Total: %d Displaying: All\n", len(fnodes[ListenTo].State.IdentityControl.Identities)))
+							os.Stderr.WriteString(fmt.Sprintf("=== Identity List === Total: %d Displaying: All\n", len(fnode.Get(ListenTo).State.IdentityControl.Identities)))
 
 						} else if show == 5 {
-							os.Stderr.WriteString(fmt.Sprintf("=== Identity List === Total: %d Displaying Only: %d\n", len(fnodes[ListenTo].State.IdentityControl.Identities), amt))
+							os.Stderr.WriteString(fmt.Sprintf("=== Identity List === Total: %d Displaying Only: %d\n", len(fnode.Get(ListenTo).State.IdentityControl.Identities), amt))
 						} else {
-							os.Stderr.WriteString(fmt.Sprintf("=== Identity List === Total: %d Displaying: %d\n", len(fnodes[ListenTo].State.IdentityControl.Identities), amt))
+							os.Stderr.WriteString(fmt.Sprintf("=== Identity List === Total: %d Displaying: %d\n", len(fnode.Get(ListenTo).State.IdentityControl.Identities), amt))
 						}
 
 						printID := func(ident *identity.Identity, c int) bool {
@@ -945,7 +946,7 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 						//}
 
 						fmt.Print("\n\n\n\n")
-						for c, ident := range fnodes[ListenTo].State.IdentityControl.GetIdentities() {
+						for c, ident := range fnode.Get(ListenTo).State.IdentityControl.GetIdentities() {
 							if printID(ident, c) {
 								break
 							}
@@ -954,7 +955,7 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 
 				case 't' == b[0]:
 					if len(b) == 2 && b[1] == 'm' {
-						_, _, auth := authKeyLookup(fnodes[ListenTo].State.IdentityChainID)
+						_, _, auth := authKeyLookup(fnode.Get(ListenTo).State.IdentityChainID)
 						if auth == nil {
 							break
 						}
@@ -964,37 +965,37 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 						fullSk = append(fullSk[:], shadSk[:4]...)
 
 						os.Stderr.WriteString(fmt.Sprint("Identity of Current Node Information\n"))
-						os.Stderr.WriteString(fmt.Sprintf("Server Salt:   %s\n", fnodes[ListenTo].State.Salt.String()[:16]))
-						os.Stderr.WriteString(fmt.Sprintf("Root Chain ID: %s\n", fnodes[ListenTo].State.IdentityChainID.String()))
+						os.Stderr.WriteString(fmt.Sprintf("Server Salt:   %s\n", fnode.Get(ListenTo).State.Salt.String()[:16]))
+						os.Stderr.WriteString(fmt.Sprintf("Root Chain ID: %s\n", fnode.Get(ListenTo).State.IdentityChainID.String()))
 						os.Stderr.WriteString(fmt.Sprintf("Sub Chain ID : %s\n", auth.ManageChain))
 						os.Stderr.WriteString(fmt.Sprintf("Sk1 Key (hex): %x\n", fullSk))
-						os.Stderr.WriteString(fmt.Sprintf("Signing Key (hex): %s\n", fnodes[ListenTo].State.SimGetSigKey()))
-						p := fnodes[ListenTo].State.GetServerPrivateKey()
+						os.Stderr.WriteString(fmt.Sprintf("Signing Key (hex): %s\n", fnode.Get(ListenTo).State.SimGetSigKey()))
+						p := fnode.Get(ListenTo).State.GetServerPrivateKey()
 						str := hex.EncodeToString((p.Key)[:32])
 						os.Stderr.WriteString(fmt.Sprintf("Private Key (hex): %s\n", str))
 
 						break
 					} else if len(b) == 2 && b[1] == 'c' {
-						_, _, auth := authKeyLookup(fnodes[ListenTo].State.IdentityChainID)
+						_, _, auth := authKeyLookup(fnode.Get(ListenTo).State.IdentityChainID)
 						if auth == nil {
 							break
 						}
 						wsapiNode = ListenTo
-						wsapi.SetState(fnodes[wsapiNode].State)
+						wsapi.SetState(fnode.Get(wsapiNode).State)
 
 						//err, _ := FundWallet(fnodes[ListenTo].State, 1e8)
 						//if err != nil {
 						//	os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
 						//	break
 						//}
-						newKey, err := changeSigningKey(fnodes[ListenTo].State.IdentityChainID, fnodes[ListenTo].State)
+						newKey, err := changeSigningKey(fnode.Get(ListenTo).State.IdentityChainID, fnode.Get(ListenTo).State)
 						if err != nil {
 							os.Stderr.WriteString(fmt.Sprintf("Error: %s\n", err.Error()))
 							break
 						}
-						fnodes[ListenTo].State.LocalServerPrivKey = newKey.PrivateKeyString()
-						fnodes[ListenTo].State.SetPendingSigningKey(newKey)
-						os.Stderr.WriteString(fmt.Sprintf("New public key for [%s]: %s\n", fnodes[ListenTo].State.IdentityChainID.String()[:8], newKey.Pub.String()))
+						fnode.Get(ListenTo).State.LocalServerPrivKey = newKey.PrivateKeyString()
+						fnode.Get(ListenTo).State.SetPendingSigningKey(newKey)
+						os.Stderr.WriteString(fmt.Sprintf("New public key for [%s]: %s\n", fnode.Get(ListenTo).State.IdentityChainID.String()[:8], newKey.Pub.String()))
 						break
 					}
 					index := 0
@@ -1003,13 +1004,13 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 						if err != nil {
 							os.Stderr.WriteString(fmt.Sprintf("Error: %s\n", err.Error()))
 						} else {
-							fnodes[ListenTo].State.IdentityChainID = hash
-							key, pKey, _ := authKeyLookup(fnodes[ListenTo].State.IdentityChainID)
+							fnode.Get(ListenTo).State.IdentityChainID = hash
+							key, pKey, _ := authKeyLookup(fnode.Get(ListenTo).State.IdentityChainID)
 							if len(key) == 64 {
-								fnodes[ListenTo].State.LocalServerPrivKey = key
-								fnodes[ListenTo].State.SimSetNewKeys(pKey)
+								fnode.Get(ListenTo).State.LocalServerPrivKey = key
+								fnode.Get(ListenTo).State.SimSetNewKeys(pKey)
 							}
-							os.Stderr.WriteString(fmt.Sprintf("Identity of " + fnodes[ListenTo].State.GetFactomNodeName() + " changed to [" + hash.String()[:10] + "]\n"))
+							os.Stderr.WriteString(fmt.Sprintf("Identity of " + fnode.Get(ListenTo).State.GetFactomNodeName() + " changed to [" + hash.String()[:10] + "]\n"))
 						}
 						break
 					} else if len(authKeyLibrary) == 0 {
@@ -1032,11 +1033,11 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 					for index < len(authKeyLibrary) {
 						if authKeyLibrary[index].Taken == false {
 							authKeyLibrary[index].Taken = true
-							fnodes[ListenTo].State.IdentityChainID = authKeyLibrary[index].ChainID
-							key, pKey, _ := authKeyLookup(fnodes[ListenTo].State.IdentityChainID)
-							fnodes[ListenTo].State.LocalServerPrivKey = key
-							fnodes[ListenTo].State.SimSetNewKeys(pKey)
-							os.Stderr.WriteString(fmt.Sprintf("Identity of " + fnodes[ListenTo].State.GetFactomNodeName() + " changed to [" + authKeyLibrary[index].ChainID.String()[:10] + "]\n"))
+							fnode.Get(ListenTo).State.IdentityChainID = authKeyLibrary[index].ChainID
+							key, pKey, _ := authKeyLookup(fnode.Get(ListenTo).State.IdentityChainID)
+							fnode.Get(ListenTo).State.LocalServerPrivKey = key
+							fnode.Get(ListenTo).State.SimSetNewKeys(pKey)
+							os.Stderr.WriteString(fmt.Sprintf("Identity of " + fnode.Get(ListenTo).State.GetFactomNodeName() + " changed to [" + authKeyLibrary[index].ChainID.String()[:10] + "]\n"))
 							break
 						}
 						index++
@@ -1045,8 +1046,8 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 						os.Stderr.WriteString(fmt.Sprint("There are no more available identities in this node. Type 'g1' to claim another identity\n"))
 					}
 				case 'u' == b[0]:
-					os.Stderr.WriteString(fmt.Sprintf("=== Authority List ===  Total: %d Displaying: All\n", len(fnodes[ListenTo].State.IdentityControl.GetAuthorities())))
-					for _, iA := range fnodes[ListenTo].State.IdentityControl.GetAuthorities() {
+					os.Stderr.WriteString(fmt.Sprintf("=== Authority List ===  Total: %d Displaying: All\n", len(fnode.Get(ListenTo).State.IdentityControl.GetAuthorities())))
+					for _, iA := range fnode.Get(ListenTo).State.IdentityControl.GetAuthorities() {
 						os.Stderr.WriteString("-------------------------------------------------------------------------------\n")
 						var stat string
 						i := iA.(*identity.Authority)
@@ -1064,16 +1065,16 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 					}
 				case 'C' == b[0]:
 					fmt.Println("Cleaning up")
-					fnode.SendSigInt()
+					worker.SendSigInt()
 				case 'Q' == b[0]:
 					fmt.Println("Quiting forcefully")
 					os.Exit(0)
 				case 'q' == b[0]:
 					var eHashes interface{}
 					if len(b) > 1 {
-						eHashes = fnodes[ListenTo].State.GetPendingEntries(b[1])
+						eHashes = fnode.Get(ListenTo).State.GetPendingEntries(b[1])
 					} else {
-						eHashes = fnodes[ListenTo].State.GetPendingEntries("")
+						eHashes = fnode.Get(ListenTo).State.GetPendingEntries("")
 					}
 					os.Stderr.WriteString("Pending Entry Hash\n")
 					os.Stderr.WriteString("------------------\n")
@@ -1083,9 +1084,9 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 				case 'j' == b[0]:
 					var fpl []interfaces.IPendingTransaction
 					if len(b) > 1 {
-						fpl = fnodes[ListenTo].State.GetPendingTransactions(b[1])
+						fpl = fnode.Get(ListenTo).State.GetPendingTransactions(b[1])
 					} else {
-						fpl = fnodes[ListenTo].State.GetPendingTransactions("")
+						fpl = fnode.Get(ListenTo).State.GetPendingTransactions("")
 					}
 					fmt.Println(fpl)
 				case 'S' == b[0]:
@@ -1094,13 +1095,13 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 						os.Stderr.WriteString("Specify a drop amount between 0 and 1000\n")
 						break
 					}
-					for _, fn := range fnodes {
+					for _, fn := range fnode.GetFnodes() {
 						fn.State.DropRate = nnn
 						os.Stderr.WriteString(fmt.Sprintf("Setting drop rate of %10s to %2d.%01d\n", fn.State.FactomNodeName, nnn/10, nnn%10))
 					}
 
 				case 'O' == b[0]:
-					if ListenTo < 0 || ListenTo > len(fnodes) {
+					if ListenTo < 0 || ListenTo > fnode.Len() {
 						os.Stderr.WriteString("No Factom Node selected\n")
 						break
 					}
@@ -1110,9 +1111,9 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 						break
 					}
 
-					fnodes[ListenTo].State.DropRate = nnn
+					fnode.Get(ListenTo).State.DropRate = nnn
 					os.Stderr.WriteString(fmt.Sprintf("Setting drop rate of %10s to %2d.%01d percent\n",
-						fnodes[ListenTo].State.FactomNodeName, nnn/10, nnn%10))
+						fnode.Get(ListenTo).State.FactomNodeName, nnn/10, nnn%10))
 
 					// modify the blocktime or modify the effective clocks on leaders in a simulation
 				case 'T' == b[0]:
@@ -1127,7 +1128,7 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 							break
 						}
 						os.Stderr.WriteString(fmt.Sprint("Setting the block time for all nodes to ", nn, "\n"))
-						for _, f := range fnodes {
+						for _, f := range fnode.GetFnodes() {
 							f.State.SetDirectoryBlockInSeconds(nn)
 						}
 						break
@@ -1135,12 +1136,12 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 					switch left[0] {
 					case 's':
 						fmt.Fprintln(os.Stderr, "Start the Randomizing the clocks by 1 second (or re-randomize)")
-						for _, fn := range fnodes {
+						for _, fn := range fnode.GetFnodes() {
 							fn.State.TimeOffset = primitives.NewTimestampFromMilliseconds(uint64(rand.Intn(1000)))
 						}
 					case 'e':
 						fmt.Fprintln(os.Stderr, "End Randomizing the clocks by 1 second")
-						for _, fn := range fnodes {
+						for _, fn := range fnode.GetFnodes() {
 							fn.State.TimeOffset.SetTime(0)
 						}
 					default:
@@ -1156,13 +1157,13 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 						break
 					}
 
-					for _, fn := range fnodes {
+					for _, fn := range fnode.GetFnodes() {
 						fn.State.Delay = nnn
 						fmt.Fprintf(os.Stderr, "Setting Delay on communications from %10s to %2d.%03d Seconds\n",
 							fn.State.FactomNodeName, nnn/1000, nnn%1000)
 					}
 
-					for _, f := range fnodes {
+					for _, f := range fnode.GetFnodes() {
 						for _, p := range f.Peers {
 							sim, ok := p.(*SimPeer)
 							if ok {
@@ -1171,11 +1172,11 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 						}
 					}
 				case 'J' == b[0]:
-					elect := fnodes[listenTo].State.Elections.(*elections2.Elections)
+					elect := fnode.Get(listenTo).State.Elections.(*elections2.Elections)
 					flist := elect.Federated
 					alist := elect.Audit
-					os.Stderr.WriteString(fmt.Sprintf(fnodes[listenTo].State.Elections.String()))
-					for _, n := range fnodes {
+					os.Stderr.WriteString(fmt.Sprintf(fnode.Get(listenTo).State.Elections.String()))
+					for _, n := range fnode.GetFnodes() {
 						founddif := false
 						str := "\n - " + n.State.GetFactomNodeName()
 						ele2 := n.State.Elections.(*elections2.Elections)
@@ -1210,11 +1211,11 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 						}
 					}
 				case 'D' == b[0]:
-					if ListenTo < 0 || ListenTo > len(fnodes) {
+					if ListenTo < 0 || ListenTo > fnode.Len() {
 						os.Stderr.WriteString("No Factom Node selected\n")
 						break
 					}
-					s := fnodes[ListenTo].State
+					s := fnode.Get(ListenTo).State
 					for i, dbs := range s.DBStates.DBStates {
 						if dbs == nil {
 							os.Stderr.WriteString(fmt.Sprintf("%2d DBState            nil\n", i))
@@ -1295,26 +1296,26 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 						os.Stderr.WriteString(err.Error() + "\n")
 						break
 					}
-					_, _, auth := authKeyLookup(fnodes[ListenTo].State.IdentityChainID)
+					_, _, auth := authKeyLookup(fnode.Get(ListenTo).State.IdentityChainID)
 					if auth == nil {
 						break
 					}
 
 					wsapiNode = ListenTo
-					wsapi.SetState(fnodes[wsapiNode].State)
+					wsapi.SetState(fnode.Get(wsapiNode).State)
 					//err = fundWallet(fnodes[ListenTo].State, 1e8)
 					//if err != nil {
 					//	os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
 					//	break
 					//}
 
-					err = changeServerEfficiency(fnodes[ListenTo].State.IdentityChainID, fnodes[ListenTo].State, uint16(nn))
+					err = changeServerEfficiency(fnode.Get(ListenTo).State.IdentityChainID, fnode.Get(ListenTo).State, uint16(nn))
 					if err != nil {
 						os.Stderr.WriteString(fmt.Sprintf("Error: %s\n", err.Error()))
 						break
 					}
 
-					os.Stderr.WriteString(fmt.Sprintf("New efficiency for [%s]: %d\n", fnodes[ListenTo].State.IdentityChainID.String()[:8], nn))
+					os.Stderr.WriteString(fmt.Sprintf("New efficiency for [%s]: %d\n", fnode.Get(ListenTo).State.IdentityChainID.String()[:8], nn))
 					break
 
 				case 'B' == b[0]:
@@ -1324,20 +1325,20 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 						add = string(b[1:])
 					}
 
-					_, _, auth := authKeyLookup(fnodes[ListenTo].State.IdentityChainID)
+					_, _, auth := authKeyLookup(fnode.Get(ListenTo).State.IdentityChainID)
 					if auth == nil {
 						break
 					}
 
 					wsapiNode = ListenTo
-					wsapi.SetState(fnodes[wsapiNode].State)
+					wsapi.SetState(fnode.Get(wsapiNode).State)
 					//err = fundWallet(fnodes[ListenTo].State, 1e8)
 					//if err != nil {
 					//	os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
 					//	break
 					//}
 
-					err = changeServerCoinbaseAddress(fnodes[ListenTo].State.IdentityChainID, fnodes[ListenTo].State, add)
+					err = changeServerCoinbaseAddress(fnode.Get(ListenTo).State.IdentityChainID, fnode.Get(ListenTo).State, add)
 					if err != nil {
 						os.Stderr.WriteString(fmt.Sprintf("Error: %s\n", err.Error()))
 						break
@@ -1345,7 +1346,7 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 
 					h, _ := primitives.HexToHash(add)
 					address := factoid.NewAddress([]byte(h.Bytes()))
-					os.Stderr.WriteString(fmt.Sprintf("New Coinbase Address for [%s]: %s\n", fnodes[ListenTo].State.IdentityChainID.String()[:8], primitives.ConvertFctAddressToUserStr(address)))
+					os.Stderr.WriteString(fmt.Sprintf("New Coinbase Address for [%s]: %s\n", fnode.Get(ListenTo).State.IdentityChainID.String()[:8], primitives.ConvertFctAddressToUserStr(address)))
 					break
 
 				case 'L' == b[0]:
@@ -1357,11 +1358,11 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 
 						num := ListenTo + 1
 						if b[1] == 'a' {
-							num = len(fnodes)
+							num = fnode.Len()
 						}
 
 						for listenTo < num {
-							err = cancelCoinbase(fnodes[ListenTo].State.IdentityChainID, fnodes[ListenTo].State, uint32(cancelheight), uint32(cancelindex))
+							err = cancelCoinbase(fnode.Get(ListenTo).State.IdentityChainID, fnode.Get(ListenTo).State, uint32(cancelheight), uint32(cancelindex))
 							if err != nil {
 								os.Stderr.WriteString(fmt.Sprintf("%s\n", err.Error()))
 								break
@@ -1369,7 +1370,7 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 							os.Stderr.WriteString(fmt.Sprintf("Voting to cancel height %d, index %d\n", cancelheight, cancelindex))
 
 							ListenTo++
-							if ListenTo >= len(fnodes) {
+							if ListenTo >= fnode.Len() {
 								ListenTo = 0
 							}
 							os.Stderr.WriteString(fmt.Sprint("\r\nSwitching to Node ", ListenTo, "\r\n"))
@@ -1398,14 +1399,14 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 
 					cancelheight = height
 					cancelindex = index
-					err = cancelCoinbase(fnodes[ListenTo].State.IdentityChainID, fnodes[ListenTo].State, uint32(cancelheight), uint32(cancelindex))
+					err = cancelCoinbase(fnode.Get(ListenTo).State.IdentityChainID, fnode.Get(ListenTo).State, uint32(cancelheight), uint32(cancelindex))
 					if err != nil {
 						os.Stderr.WriteString(fmt.Sprintf("%s\n", err.Error()))
 						break
 					}
 
 					ListenTo++
-					if ListenTo >= len(fnodes) {
+					if ListenTo >= fnode.Len() {
 						ListenTo = 0
 					}
 					os.Stderr.WriteString(fmt.Sprintf("Voting to cancel height %d, index %d\n", cancelheight, cancelindex))
@@ -1506,9 +1507,9 @@ func returnStatString(i uint8) string {
 //
 func rotateWSAPI(rotate *int, value int, wsapiNode *int) {
 	for *rotate == value { // Only if true
-		*wsapiNode = rand.Int() % len(fnodes)
-		fnode := fnodes[*wsapiNode]
-		wsapi.SetState(fnode.State)
+		*wsapiNode = rand.Int() % fnode.Len()
+		f:= fnode.Get(*wsapiNode)
+		wsapi.SetState(f.State)
 		time.Sleep(3 * time.Second)
 	}
 }
@@ -1516,12 +1517,12 @@ func rotateWSAPI(rotate *int, value int, wsapiNode *int) {
 func printProcessList(watchPL *int, value int, listenTo *int) {
 	out := ""
 	for *watchPL == value {
-		fnode := fnodes[*listenTo]
-		nprt := fnode.State.DBStates.String()
-		b := fnode.State.GetHighestSavedBlk()
-		fnode.State.ProcessLists.SetString = true
-		nprt = nprt + fnode.State.ProcessLists.Str
-		pl := fnode.State.ProcessLists.Get(b)
+		node := fnode.Get(*listenTo)
+		nprt := node.State.DBStates.String()
+		b := node.State.GetHighestSavedBlk()
+		node.State.ProcessLists.SetString = true
+		nprt = nprt + node.State.ProcessLists.Str
+		pl := node.State.ProcessLists.Get(b)
 		if pl != nil {
 			nprt = nprt + pl.PrintMap()
 			if out != nprt {
@@ -1533,12 +1534,3 @@ func printProcessList(watchPL *int, value int, listenTo *int) {
 	}
 }
 
-func printMessages(Messages *int, value int, listenTo *int) {
-	fmt.Println("Printing Messages")
-	for *Messages == value {
-		fnode := fnodes[*listenTo]
-		fnode.MLog.PrtMsgs(fnode.State)
-
-		time.Sleep(2 * time.Second)
-	}
-}

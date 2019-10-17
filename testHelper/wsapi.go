@@ -3,10 +3,10 @@ package testHelper
 import (
 	"bytes"
 	"fmt"
+	"github.com/FactomProject/factomd/fnode"
 	"net/http"
 	"strconv"
 
-	"github.com/FactomProject/factomd/engine"
 	"github.com/FactomProject/factomd/wsapi"
 )
 
@@ -28,7 +28,7 @@ func InitTestState() {
 }
 
 func getAPIUrl() string {
-	return "http://localhost:" + fmt.Sprint(engine.GetFnodes()[0].State.GetPort()) + "/debug"
+	return "http://localhost:" + fmt.Sprint(fnode.Get(0).State.GetPort()) + "/debug"
 }
 
 func postRequest(jsonStr string) (*http.Response, error) {

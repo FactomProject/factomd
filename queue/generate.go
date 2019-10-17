@@ -104,9 +104,9 @@ var sourceTemplate *template.Template = template.Must(
 )
 
 type SourceFile struct {
-	File string
-	Name string
-    Type string
+	File   string
+	Name   string
+	Type   string
 	Import string
 }
 

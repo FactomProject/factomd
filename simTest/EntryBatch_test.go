@@ -100,7 +100,7 @@ func TestEntryBatch(t *testing.T) {
 		{ // check outputs
 			assert.Equal(t, int64(0), a.GetECBalance())
 
-			for _, fnode := range engine.GetFnodes() {
+			for _, fnode := range fnode.GetFnodes() {
 				s := fnode.State
 				for _, h := range state0.Hold.Messages() {
 					for _, m := range h {

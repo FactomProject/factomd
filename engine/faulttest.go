@@ -6,6 +6,7 @@ package engine
 
 import (
 	"fmt"
+	"github.com/FactomProject/factomd/fnode"
 	"time"
 
 	"math/rand"
@@ -28,7 +29,7 @@ func waitToKill(k *bool) {
 
 // Wait some random amount of time between 0 and 2 minutes, and bring the node back.  We might
 // come back before we are faulted, or we might not.
-func bringback(f *FactomNode) {
+func bringback(f *fnode.FactomNode) {
 	t := rand.Int()%120 + 60
 	for t > 0 {
 		if !f.State.GetNetStateOff() {
@@ -49,7 +50,7 @@ func offlineReport(faulting *bool) {
 	for *faulting {
 		// How many nodes are running.
 		stmt := "Offline: "
-		for _, f := range fnodes {
+		for _, f := range fnode.GetFnodes() {
 			if f.State.GetNetStateOff() {
 				stmt = stmt + fmt.Sprintf(" %s", f.State.FactomNodeName)
 			}
@@ -74,12 +75,12 @@ func faultTest(faulting *bool) {
 	go offlineReport(faulting)
 
 	for *faulting {
-		var leaders []*FactomNode
+		var leaders []*fnode.FactomNode
 
 		lastgood := goodleaders
 		goodleaders = 0
 		// How many of the running nodes are leaders
-		for _, f := range fnodes {
+		for _, f := range fnode.GetFnodes() {
 			if f.State.GetNetStateOff() {
 				continue
 			}
@@ -111,7 +112,7 @@ func faultTest(faulting *bool) {
 		lastdbht := currentdbht
 		lastminute := currentminute
 		// Look at their process lists.  How many leaders do we expect?  What is the dbheight?
-		for _, f := range fnodes {
+		for _, f := range fnode.GetFnodes() {
 			if int(f.State.LLeaderHeight) > currentdbht {
 				currentminute = 0
 				currentdbht = int(f.State.LLeaderHeight)

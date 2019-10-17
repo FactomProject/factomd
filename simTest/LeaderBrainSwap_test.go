@@ -22,7 +22,7 @@ func TestLeaderBrainSwap(t *testing.T) {
 
 	params := map[string]string{"--blktime": "10"}
 	state0 := SetupSim("LLLFFF", params, 30, 0, 0, t)
-	state3 := engine.GetFnodes()[3].State // Get node 2
+	state3 := fnode.Get(3).State // Get node 2
 
 	WaitForAllNodes(state0)
 	WaitForBlock(state0, 6)

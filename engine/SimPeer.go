@@ -7,6 +7,7 @@ package engine
 import (
 	"bytes"
 	"fmt"
+	"github.com/FactomProject/factomd/fnode"
 	"time"
 
 	"math/rand"
@@ -163,7 +164,7 @@ func (f *SimPeer) Receive() (interfaces.IMsg, error) {
 
 }
 
-func AddSimPeer(fnodes []*FactomNode, i1 int, i2 int) {
+func AddSimPeer(fnodes []*fnode.FactomNode, i1 int, i2 int) {
 	// Ignore out of range, and connections to self.
 	if i1 < 0 ||
 		i2 < 0 ||

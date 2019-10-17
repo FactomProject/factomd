@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"github.com/FactomProject/factomd/fnode"
 	"github.com/FactomProject/factomd/registry"
 	"github.com/FactomProject/factomd/worker"
 	"io/ioutil"
@@ -19,7 +20,6 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/globals"
-	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/messages/electionMsgs"
 	"github.com/FactomProject/factomd/common/messages/msgsupport"
@@ -38,25 +38,11 @@ import (
 
 var _ = fmt.Print
 
-type FactomNode struct {
-	Index    int
-	State    *state.State
-	Peers    []interfaces.IPeer
-	MLog     *MsgLog
-	P2PIndex int
-}
-
-var fnodes []*FactomNode
-
 var networkpattern string
 var mLog = new(MsgLog)
 var p2pProxy *P2PProxy
 var p2pNetwork *p2p.Controller
 var logPort string
-
-func GetFnodes() []*FactomNode {
-	return fnodes
-}
 
 func init() {
 	messages.General = new(msgsupport.GeneralFactory)
@@ -202,7 +188,7 @@ func NetStart(w *worker.Thread, s *state.State, p *FactomParams, listenToStdin b
 	w.RegisterInterruptHandler(func() {
 		fmt.Print("<Break>\n")
 		fmt.Print("Gracefully shutting down the server...\n")
-		for _, fnode := range fnodes {
+		for _, fnode := range fnode.GetFnodes() {
 			fnode.State.ShutdownNode(0)
 		}
 		if p.EnableNet {
@@ -335,13 +321,14 @@ func NetStart(w *worker.Thread, s *state.State, p *FactomParams, listenToStdin b
 	addFnodeName(0) // bootstrap id doesn't change
 
 	// Modify Identities of new nodes
-	if len(fnodes) > 1 && len(s.Prefix) == 0 {
+	if fnode.Len() > 1 && len(s.Prefix) == 0 {
 		modifyLoadIdentities() // We clone s to make all of our servers
 	}
 
 	//TODO: should this use w.OnComplete()
 	w.Run(func() {
 		// Setup the Skeleton Identity & Registration
+		fnodes := fnode.GetFnodes()
 		for i := range fnodes {
 			fnodes[i].State.IntiateNetworkSkeletonIdentity()
 			fnodes[i].State.InitiateNetworkIdentityRegistration()
@@ -378,8 +365,8 @@ func NetStart(w *worker.Thread, s *state.State, p *FactomParams, listenToStdin b
 		}
 		s.CustomNetworkID = p.CustomNet
 		networkID = p2p.NetworkID(binary.BigEndian.Uint32(p.CustomNet))
-		for i := range fnodes {
-			fnodes[i].State.CustomNetworkID = p.CustomNet
+		for _, node := range fnode.GetFnodes() {
+			node.State.CustomNetworkID = p.CustomNet
 		}
 		seedURL = s.CustomSeedURL
 		networkPort = s.CustomNetworkPort
@@ -395,6 +382,7 @@ func NetStart(w *worker.Thread, s *state.State, p *FactomParams, listenToStdin b
 	connectionMetricsChannel := make(chan interface{}, p2p.StandardChannelSize)
 	p2p.NetworkDeadline = time.Duration(p.Deadline) * time.Millisecond
 
+	fnodes := fnode.GetFnodes()
 	if p.EnableNet {
 		nodeName := fnodes[0].State.FactomNodeName
 		if 0 < p.NetworkPortOverride {
@@ -605,7 +593,7 @@ func printGraphData(filename string, period int) {
 	downscale := int64(1)
 	llog.LogPrintf(filename, "\t%9s\t%9s\t%9s\t%9s\t%9s\t%9s", "Dbh-:-min", "Node", "ProcessCnt", "ListPCnt", "UpdateState", "SleepCnt")
 	for {
-		for _, f := range fnodes {
+		for _, f := range fnode.GetFnodes() {
 			s := f.State
 			llog.LogPrintf(filename, "\t%9s\t%9s\t%9d\t%9d\t%9d\t%9d", fmt.Sprintf("%d-:-%d", s.LLeaderHeight, s.CurrentMinute), s.FactomNodeName, s.StateProcessCnt/downscale, s.ProcessListProcessCnt/downscale, s.StateUpdateState/downscale, s.ValidatorLoopSleepCnt/downscale)
 		}
@@ -617,38 +605,37 @@ func printGraphData(filename string, period int) {
 // Functions that access variables in this method to set up Factom Nodes
 // and start the servers.
 //**********************************************************************
-func makeServer(s *state.State) *FactomNode {
+func makeServer(s *state.State) *fnode.FactomNode {
 	// All other states are clones of the first state.  Which this routine
 	// gets passed to it.
 	newState := s
 
-	if len(fnodes) > 0 {
-		newState = s.Clone(len(fnodes)).(*state.State)
+	if fnode.Len() > 0 {
+		newState = s.Clone(len(fnode.GetFnodes())).(*state.State)
 		newState.EFactory = new(electionMsgs.ElectionsFactory) // not an elegant place but before we let the messages hit the state
 		time.Sleep(10 * time.Millisecond)
 		newState.EFactory = new(electionMsgs.ElectionsFactory)
 	}
 
-	fnode := new(FactomNode)
-	fnode.State = newState
-	fnodes = append(fnodes, fnode)
-	fnode.MLog = mLog
+	node := new(fnode.FactomNode)
+	node.State = newState
+	fnode.AddFnode(node)
 
-	return fnode
+	return node
 }
 
 func startServers(w *worker.Thread, load bool) {
 	w.Spawn(func(w *worker.Thread) {
-		for i, fnode := range fnodes {
+		for i, node := range fnode.GetFnodes() {
 			if i > 0 {
-				fnode.State.Init(w)
+				node.State.Init(w)
 			}
-			startServer(w, i, fnode, load)
+			startServer(w, i, node, load)
 		}
 	}, "StartServers")
 }
 
-func startServer(w *worker.Thread, i int, fnode *FactomNode, load bool) {
+func startServer(w *worker.Thread, i int, fnode *fnode.FactomNode, load bool) {
 
 	NetworkProcessorNet(w, fnode)
 	fnode.State.ValidatorLoop(w)
@@ -683,14 +670,14 @@ func networkHousekeeping() {
 
 func AddNode() {
 
-	fnodes := GetFnodes()
+	fnodes := fnode.GetFnodes()
 	s := fnodes[0].State
 	i := len(fnodes)
 
 	makeServer(s)
 	modifyLoadIdentities()
 
-	fnodes = GetFnodes()
+	fnodes = fnode.GetFnodes()
 	fnodes[i].State.IntiateNetworkSkeletonIdentity()
 	fnodes[i].State.InitiateNetworkIdentityRegistration()
 	AddSimPeer(fnodes, i, i-1) // KLUDGE peer w/ only last node

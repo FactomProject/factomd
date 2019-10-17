@@ -86,7 +86,7 @@ func (q MsgQueue) Dequeue() interfaces.IMsg {
 
 // BlockingDequeue will block until it retrieves from queue
 func (q MsgQueue) BlockingDequeue() interfaces.IMsg {
-	v := <- q.Channel
+	v := <-q.Channel
 	q.Metric(v).Dec()
 	return v
 }

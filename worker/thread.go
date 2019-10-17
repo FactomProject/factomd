@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/fnode"
 	"github.com/FactomProject/factomd/log"
-	"github.com/FactomProject/factomd/telemetry"
 	"runtime"
 	"strings"
 )
@@ -37,33 +35,34 @@ func (r *Thread) GetCaller() string {
 
 // register w/ global SIGINT handler
 func (*Thread) RegisterInterruptHandler(handler func()) {
-	fnode.AddInterruptHandler(handler)
+	AddInterruptHandler(handler)
 }
 
 // add metric to polling
-func (*Thread) RegisterMetric(handler telemetry.Handle) {
-	telemetry.RegisterMetric(handler)
+func (r *Thread) RegisterMetric(handler interfaces.PollMetricHandler) {
+	r.PollMetricHandler(handler)
 }
 
 type IRegister interface {
-	Thread(*Thread, Handle, string)          // RegistryCallback for sub-threads
+	Thread(*Thread, Handle, string)      // RegistryCallback for sub-threads
 	Process(*Thread, Handle, string, string) // callback to fork a new process
 }
 
 // worker process with structured callbacks
 // parent relation helps trace worker dependencies
 type Thread struct {
-	common.Name                // support hierarchical naming
-	log.ICaller                // interface to for some fields used by logger
-	Log         interfaces.Log // threaded logger
-	Register    IRegister      // callbacks to register threads
-	PID         int            // process ID that this thread belongs to
-	ID          int            // thread id
-	ParentID    int            // parent thread
-	Caller      string         // runtime location where thread starts
-	onRun       func()         // execute during 'run' state
-	onComplete  func()         // execute after all run functions complete
-	onExit      func()         // executes during SIGINT or after shutdown of run state
+	common.Name                                // support hierarchical naming
+	log.ICaller                                // interface to for some fields used by logger
+	Log               interfaces.Log           // threaded logger
+	PollMetricHandler interfaces.MetricHandler // callback to telemetry
+	Register          IRegister                // callbacks to register threads
+	PID               int                      // process ID that this thread belongs to
+	ID                int                      // thread id
+	ParentID          int                      // parent thread
+	Caller            string                   // runtime location where thread starts
+	onRun             func()                   // execute during 'run' state
+	onComplete        func()                   // execute after all run functions complete
+	onExit            func()                   // executes during SIGINT or after shutdown of run state
 }
 
 // indicates a specific thread callback

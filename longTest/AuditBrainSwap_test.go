@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/FactomProject/factomd/common/globals"
-	"github.com/FactomProject/factomd/engine"
+	"github.com/FactomProject/factomd/fnode"
 	. "github.com/FactomProject/factomd/testHelper"
 )
 
@@ -24,7 +24,7 @@ func TestAuditBrainSwap(t *testing.T) {
 
 	params := map[string]string{"--factomhome": globals.Params.FactomHome}
 	state0 := SetupSim("LLLAFF", params, 15, 0, 0, t)
-	state5 := engine.GetFnodes()[5].State // Get node 5
+	state5 := fnode.Get(5).State // Get node 5
 	_ = state5
 
 	WaitForBlock(state0, 6)

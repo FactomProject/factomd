@@ -13,7 +13,6 @@ import (
 
 var _ = fmt.Println
 
-
 func TestQueues(t *testing.T) {
 	w := worker.New()
 
@@ -170,10 +169,10 @@ func BenchmarkChannels(b *testing.B) {
 
 func BenchmarkQueues(b *testing.B) {
 	c := &MsgQueue{
-		Name: "inmsg",
+		Name:    "inmsg",
 		Package: "testing",
 		Channel: make(chan interfaces.IMsg, 1000),
-		Thread: worker.New(),
+		Thread:  worker.New(),
 	}
 
 	for i := 0; i < b.N; i++ {
@@ -201,10 +200,10 @@ func BenchmarkConcurentChannels(b *testing.B) {
 
 func BenchmarkConcurrentQueues(b *testing.B) {
 	c := &MsgQueue{
-		Name: "inmsg",
+		Name:    "inmsg",
 		Package: "testing",
 		Channel: make(chan interfaces.IMsg, 1000),
-		Thread: worker.New(),
+		Thread:  worker.New(),
 	}
 	go func() {
 		for true {
@@ -237,10 +236,10 @@ func BenchmarkCompetingChannels(b *testing.B) {
 
 func BenchmarkCompetingQueues(b *testing.B) {
 	c := &MsgQueue{
-		Name: "inmsg",
+		Name:    "inmsg",
 		Package: "testing",
 		Channel: make(chan interfaces.IMsg, 1000),
-		Thread: worker.New(),
+		Thread:  worker.New(),
 	}
 	go func() {
 		for true {

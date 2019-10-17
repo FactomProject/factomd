@@ -2,7 +2,7 @@ package registry
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/fnode"
+	"github.com/FactomProject/factomd/telemetry"
 	"github.com/FactomProject/factomd/worker"
 	"runtime"
 	"sync"
@@ -54,6 +54,7 @@ func (p *process) addThread() *worker.Thread {
 	threadId := len(p.Index)
 
 	w := worker.New()
+	w.PollMetricHandler = telemetry.RegisterMetric
 	w.ID = threadId
 	w.Register = p
 	p.Index = append(p.Index, w)
@@ -144,7 +145,7 @@ func newProcess() *process {
 	p.ID = len(globalRegistry.Index)
 	p.Parent = p.ID // root processes are their own parent
 	globalRegistry.Index = append(globalRegistry.Index, p)
-	fnode.AddInterruptHandler(p.Exit) // trigger exit behavior in the case of SIGINT
+	worker.AddInterruptHandler(p.Exit) // trigger exit behavior in the case of SIGINT
 	p.exitWait.Add(1)
 	return p
 }

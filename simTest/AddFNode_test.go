@@ -3,8 +3,7 @@ package simtest
 import (
 	"testing"
 
-	"github.com/FactomProject/factomd/engine"
-
+	"github.com/FactomProject/factomd/fnode"
 	. "github.com/FactomProject/factomd/testHelper"
 )
 
@@ -21,7 +20,7 @@ func TestAddFNode(t *testing.T) {
 	WaitForBlock(state0, 7)
 	CloneFnodeData(2, 7, t)
 	AddFNode()
-	state7 := engine.GetFnodes()[7].State // Get new node
+	state7 := fnode.Get(7).State // Get new node
 	WaitForBlock(state7, 7)
 	AssertAuthoritySet(t, "LLLLLAAF")
 	ShutDownEverything(t)

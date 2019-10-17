@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/FactomProject/factomd/fnode"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -851,6 +852,7 @@ func modifyLoadIdentities() {
 		fmt.Println("Error when loading up identities for fnodes")
 	}
 
+	fnodes := fnode.GetFnodes()
 	for i := 1; i < len(fnodes); i++ {
 		if i-1 >= len(list) {
 			break
@@ -892,13 +894,13 @@ func modifyLoadIdentities() {
 
 func addFnodeName(i int) {
 	// full name
-	name := fnodes[i].State.FactomNodeName
-	globals.FnodeNames[fnodes[i].State.IdentityChainID.String()] = name
+	name := fnode.Get(i).State.FactomNodeName
+	globals.FnodeNames[fnode.Get(i).State.IdentityChainID.String()] = name
 	// common short set
-	globals.FnodeNames[fmt.Sprintf("%x", fnodes[i].State.IdentityChainID.Bytes()[3:6])] = name
-	globals.FnodeNames[fmt.Sprintf("%x", fnodes[i].State.IdentityChainID.Bytes()[:5])] = name
-	globals.FnodeNames[fmt.Sprintf("%x", fnodes[i].State.IdentityChainID.Bytes()[:])] = name
-	globals.FnodeNames[fmt.Sprintf("%x", fnodes[i].State.IdentityChainID.Bytes()[:8])] = name
+	globals.FnodeNames[fmt.Sprintf("%x", fnode.Get(i).State.IdentityChainID.Bytes()[3:6])] = name
+	globals.FnodeNames[fmt.Sprintf("%x", fnode.Get(i).State.IdentityChainID.Bytes()[:5])] = name
+	globals.FnodeNames[fmt.Sprintf("%x", fnode.Get(i).State.IdentityChainID.Bytes()[:])] = name
+	globals.FnodeNames[fmt.Sprintf("%x", fnode.Get(i).State.IdentityChainID.Bytes()[:8])] = name
 }
 
 func shad(data []byte) []byte {
