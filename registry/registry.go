@@ -93,9 +93,9 @@ func (p *process) Register(initFunction worker.Handle, name string) {
 	_, file, line, _ := runtime.Caller(1)
 	caller := fmt.Sprintf("%s:%v", file[worker.Prefix:], line)
 	r := p.addThread()
-	r.Name = name
+	r.Init(r, name)
 	r.Caller = caller
-	r.Parent = r.ID // root threads are their own parent
+	r.ParentID = r.ID // root threads are their own parent
 	r.PID = p.ID
 	p.bindCallbacks(r, initFunction)
 }
@@ -103,9 +103,9 @@ func (p *process) Register(initFunction worker.Handle, name string) {
 // Start a child process and register callbacks
 func (p *process) Thread(w *worker.Thread, initFunction worker.Handle, threadName string) {
 	t := p.addThread()
-	t.Name = threadName
-	t.Parent = w.ID // child threads have a parent
-	t.PID = p.ID    // set process ID
+	t.Init(w, threadName)
+	t.ParentID = w.ID // child threads have a parent
+	t.PID = p.ID      // set process ID
 	p.bindCallbacks(t, initFunction)
 }
 
@@ -174,13 +174,13 @@ func Graph() (out string) {
 			if t.IsRoot() {
 				continue
 			}
-			out = out + fmt.Sprintf("%v.%v -> %v.%v\n", t.PID, t.Parent, t.PID, t.ID)
+			out = out + fmt.Sprintf("%v.%v -> %v.%v\n", t.PID, t.ParentID, t.PID, t.ID)
 		}
 	}
 
 	for _, p := range globalRegistry.Index {
 		for i, t := range p.Index {
-			out = out + fmt.Sprintf("%v.%v {color:#%v, shape:dot, label:%v}\n", t.PID, t.ID, colors[i%len(colors)], t.Name)
+			out = out + fmt.Sprintf("%v.%v {color:#%v, shape:dot, label:%v}\n", t.PID, t.ID, colors[i%len(colors)], t.GetName())
 		}
 	}
 

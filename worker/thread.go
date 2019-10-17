@@ -2,6 +2,7 @@ package worker
 
 import (
 	"fmt"
+	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/fnode"
 	"github.com/FactomProject/factomd/log"
@@ -52,14 +53,14 @@ type IRegister interface {
 // worker process with structured callbacks
 // parent relation helps trace worker dependencies
 type Thread struct {
+	common.Name                // support hierarchical naming
 	log.ICaller                // interface to for some fields used by logger
 	Log         interfaces.Log // threaded logger
 	Register    IRegister      // callbacks to register threads
 	PID         int            // process ID that this thread belongs to
 	ID          int            // thread id
-	Parent      int            // parent thread
+	ParentID    int            // parent thread
 	Caller      string         // runtime location where thread starts
-	Name        string         // human readable name
 	onRun       func()         // execute during 'run' state
 	onComplete  func()         // execute after all run functions complete
 	onExit      func()         // executes during SIGINT or after shutdown of run state
@@ -107,7 +108,6 @@ func (r *Thread) Spawn(initFunction Handle, threadName string) {
 
 	r.Register.Thread(r, func(w *Thread) {
 		w.Caller = caller
-		w.Name = threadName
 		initFunction(w)
 	}, threadName)
 }
@@ -158,7 +158,7 @@ func (r *Thread) OnExit(f func()) *Thread {
 
 // root level threads are their own parent
 func (r *Thread) IsRoot() bool {
-	return r.ID == r.Parent
+	return r.ID == r.ParentID
 }
 
 func (r *Thread) Label() string {
