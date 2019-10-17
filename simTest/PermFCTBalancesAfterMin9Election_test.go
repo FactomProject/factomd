@@ -2,6 +2,7 @@ package simtest
 
 import (
 	"fmt"
+	"github.com/FactomProject/factomd/fnode"
 	"testing"
 	"time"
 
@@ -40,7 +41,7 @@ func TestPermFCTBalancesAfterMin9Election(t *testing.T) {
 	StatusEveryMinute(state0)
 	CheckAuthoritySet(t)
 
-	state3 := GetFnodes()[3].State
+	state3 := fnode.Get(3).State
 	if !state3.IsLeader() {
 		panic("Can't kill a audit and cause an election")
 	}
@@ -59,7 +60,7 @@ func TestPermFCTBalancesAfterMin9Election(t *testing.T) {
 	WaitForAllNodes(state0)
 	ShutDownEverything(t)
 
-	for i, node := range GetFnodes() {
+	for i, node := range fnode.GetFnodes() {
 		for _, addr := range depositAddresses {
 			bal := GetBalance(node.State, addr)
 			msg := fmt.Sprintf("Node%v %v => balance: %v expected: %v \n", i, addr, bal, depositCount)

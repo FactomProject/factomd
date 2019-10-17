@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/FactomProject/factomd/fnode"
 	"github.com/FactomProject/factomd/log"
 	"io/ioutil"
 	"net/http"
@@ -125,7 +126,7 @@ func TestCatchup(t *testing.T) {
 
 	// use a tree so the messages get reordered
 	state0 := SetupSim("LF", map[string]string{}, 15, 0, 0, t)
-	state1 := GetFnodes()[1].State
+	state1 := fnode.Get(1).State
 
 	RunCmd("1") // select 1
 	RunCmd("x")
@@ -196,8 +197,8 @@ func TestLoad2(t *testing.T) {
 	WaitBlocks(state0, 3)
 	WaitMinutes(state0, 3)
 
-	ht1 := GetFnodes()[1].State.GetLLeaderHeight()
-	ht4 := GetFnodes()[4].State.GetLLeaderHeight()
+	ht1 := fnode.Get(1).State.GetLLeaderHeight()
+	ht4 := fnode.Get(4).State.GetLLeaderHeight()
 
 	if ht1 != ht4 {
 		t.Fatalf("Node 1 was at dbheight %d which didn't match Node 4 at dbheight %d", ht1, ht4)
@@ -244,7 +245,7 @@ func TestMinute9Election(t *testing.T) {
 
 	// use a tree so the messages get reordered
 	state0 := SetupSim("LLAL", map[string]string{"--net": "line"}, 10, 1, 1, t)
-	state3 := GetFnodes()[3].State
+	state3 := fnode.Get(3).State
 
 	WaitForMinute(state3, 9)
 	RunCmd("3")
@@ -394,10 +395,10 @@ func TestAnElection(t *testing.T) {
 	WaitForAllNodes(state0)
 
 	// PrintOneStatus(0, 0)
-	if GetFnodes()[2].State.Leader {
+	if fnode.Get(2).State.Leader {
 		t.Fatalf("Node 2 should not be a leader")
 	}
-	if !GetFnodes()[3].State.Leader && !GetFnodes()[4].State.Leader {
+	if !fnode.Get(3).State.Leader && !fnode.Get(4).State.Leader {
 		t.Fatalf("Node 3 or 4  should be a leader")
 	}
 
@@ -416,7 +417,7 @@ func TestDBsigEOMElection(t *testing.T) {
 	state0 := SetupSim("LLLLLAAF", map[string]string{}, 9, 4, 4, t)
 
 	// get status from FNode02 because he is not involved in the elections
-	state2 := GetFnodes()[2].State
+	state2 := fnode.Get(2).State
 	StatusEveryMinute(state2)
 
 	var wait sync.WaitGroup
@@ -424,7 +425,7 @@ func TestDBsigEOMElection(t *testing.T) {
 
 	// wait till after EOM 9 but before DBSIG
 	stop0 := func() {
-		s := GetFnodes()[0].State
+		s := fnode.Get(0).State
 		// wait till minute flips
 		for s.CurrentMinute != 0 {
 			runtime.Gosched()
@@ -436,7 +437,7 @@ func TestDBsigEOMElection(t *testing.T) {
 
 	// wait for after DBSIG is sent but before EOM0
 	stop1 := func() {
-		s := GetFnodes()[1].State
+		s := fnode.Get(1).State
 		for s.CurrentMinute != 0 {
 			runtime.Gosched()
 		}
@@ -998,7 +999,7 @@ func TestDBSigElection(t *testing.T) {
 
 	state0 := SetupSim("LLLAF", map[string]string{"--faulttimeout": "10"}, 8, 1, 1, t)
 
-	s := GetFnodes()[2].State
+	s := fnode.Get(2).State
 	if !s.IsLeader() {
 		panic("Can't kill a audit and cause an election")
 	}
@@ -1169,7 +1170,7 @@ func TestElection9(t *testing.T) {
 	StatusEveryMinute(state0)
 	CheckAuthoritySet(t)
 
-	state3 := GetFnodes()[3].State
+	state3 := fnode.Get(3).State
 	if !state3.IsLeader() {
 		panic("Can't kill a audit and cause an election")
 	}
@@ -1276,7 +1277,7 @@ func TestDBStateCatchup(t *testing.T) {
 
 	state0 := SetupSim("LFF", map[string]string{}, 100, 0, 0, t)
 	state.MMR_enable = false // turn off MMR processing
-	state1 := GetFnodes()[1].State
+	state1 := fnode.Get(1).State
 	StatusEveryMinute(state1)
 
 	WaitMinutes(state0, 2)
@@ -1304,8 +1305,8 @@ func TestDBState(t *testing.T) {
 	RanSimTest = true
 
 	state0 := SetupSim("LLLFFFF", map[string]string{"--net": "line"}, 100, 0, 0, t)
-	state1 := GetFnodes()[1].State
-	state6 := GetFnodes()[6].State // Get node 6
+	state1 := fnode.Get(1).State
+	state6 := fnode.Get(6).State // Get node 6
 	StatusEveryMinute(state1)
 
 	WaitForMinute(state0, 8)
@@ -1340,7 +1341,7 @@ func TestCatchupEveryMinute(t *testing.T) {
 
 	// knock followers off one per minute
 	for i := 0; i < 10; i++ {
-		s := GetFnodes()[i+1].State
+		s := fnode.Get(i+1).State
 		RunCmd(fmt.Sprintf("%d", i+1))
 		WaitForMinute(s, i)
 		RunCmd("x")

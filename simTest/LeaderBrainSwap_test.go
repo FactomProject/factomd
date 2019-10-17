@@ -2,9 +2,9 @@ package simtest
 
 import (
 	"fmt"
+	"github.com/FactomProject/factomd/fnode"
 	"testing"
 
-	"github.com/FactomProject/factomd/engine"
 	. "github.com/FactomProject/factomd/testHelper"
 )
 

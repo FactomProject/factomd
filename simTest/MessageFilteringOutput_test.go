@@ -1,10 +1,10 @@
 package simtest
 
 import (
+	"github.com/FactomProject/factomd/fnode"
 	"strings"
 	"testing"
 
-	. "github.com/FactomProject/factomd/engine"
 	. "github.com/FactomProject/factomd/testHelper"
 )
 
@@ -22,7 +22,7 @@ func TestFilterAPIOutput(t *testing.T) {
 	WaitBlocks(state0, 5)
 
 	// The message-filter call we did above should have caused an election and SO, Node01 should not be a leader anymore.
-	if GetFnodes()[1].State.Leader {
+	if fnode.Get(1).State.Leader {
 		t.Fatalf("Node01 should not be leader!")
 	}
 	CheckAuthoritySet(t)
