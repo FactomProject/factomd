@@ -44,16 +44,22 @@ type eventServiceInstance struct {
 	eventsOutQueue          chan *eventmessages.FactomEvent
 	postponeSendingUntil    time.Time
 	connection              net.Conn
-	owningState             interfaces.IState
+	owningState             ServiceOwnerState
 	droppedFromQueueCounter prometheus.Counter
 	notSentCounter          prometheus.Counter
 }
 
-func NewEventService(state interfaces.IState, config *util.FactomdConfig, factomParams *globals.FactomParams) (EventService, EventServiceControl) {
+type ServiceOwnerState interface {
+	GetRunState() runstate.RunState
+	GetIdentityChainID() interfaces.IHash
+	IsRunLeader() bool
+}
+
+func NewEventService(state ServiceOwnerState, config *util.FactomdConfig, factomParams *globals.FactomParams) (EventService, EventServiceControl) {
 	return NewEventServiceTo(state, selectParameters(factomParams, config))
 }
 
-func NewEventServiceTo(state interfaces.IState, params *EventServiceParams) (EventService, EventServiceControl) {
+func NewEventServiceTo(state ServiceOwnerState, params *EventServiceParams) (EventService, EventServiceControl) {
 	if eventService == nil {
 		eventServiceInstance := &eventServiceInstance{
 			eventsOutQueue: make(chan *eventmessages.FactomEvent, p2p.StandardChannelSize),
@@ -92,8 +98,8 @@ func (esi *eventServiceInstance) Send(event events.EventInput) error {
 		}
 	}
 
-	broadcastContent := eventServiceControl.GetBroadcastContent()
-	resendRegistrations := eventServiceControl.IsResendRegistrationsOnStateChange()
+	broadcastContent := esi.GetBroadcastContent()
+	resendRegistrations := esi.IsResendRegistrationsOnStateChange()
 	factomEvent, err := MapToFactomEvent(event, broadcastContent, resendRegistrations)
 	if err != nil {
 		return fmt.Errorf("failed to map to factom event: %v\n", err)
