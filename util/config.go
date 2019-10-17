@@ -107,14 +107,14 @@ type FactomdConfig struct {
 		WalletEncrypted     bool
 	}
 	LiveFeedAPI struct {
-		EnableLiveFeedAPI                bool
-		EventReceiverProtocol            string
-		EventReceiverAddress             string
-		EventReceiverPort                int
-		OutputFormat                     string
-		MuteReplayDuringStartup          bool
-		ResendRegistrationsOnStateChange bool
-		BroadcastContent                 string
+		EnableLiveFeedAPI        bool
+		EventReceiverProtocol    string
+		EventReceiverAddress     string
+		EventReceiverPort        int
+		EventFormat              string
+		EventReplayDuringStartup bool
+		EventSendStateChange     bool
+		EventBroadcastContent    string
 	}
 }
 
@@ -244,10 +244,10 @@ EnableLiveFeedAPI                     = false
 EventReceiverProtocol                 = tcp
 EventReceiverAddress                  = 127.0.0.1
 EventReceiverPort                     = 8040
-OutputFormat                          = protobuf
-MuteReplayDuringStartup               = false
-ResendRegistrationsOnStateChange      = false
-BroadcastContent                          = OnRegistration 
+EventFormat                           = protobuf
+EventReplayDuringStartup              = false
+EventSendStateChange                  = false
+EventBroadcastContent                 = once 
 `
 
 func (s *FactomdConfig) String() string {
@@ -317,12 +317,14 @@ func (s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\n    WalletEncryption        %v", s.Walletd.WalletEncrypted))
 
 	out.WriteString(fmt.Sprintf("\n  LiveFeedAPI"))
-	out.WriteString(fmt.Sprintf("\n    EnableLiveFeedAPI       %v", s.LiveFeedAPI.EnableLiveFeedAPI))
-	out.WriteString(fmt.Sprintf("\n    EventReceiverProtocol   %v", s.LiveFeedAPI.EventReceiverProtocol))
-	out.WriteString(fmt.Sprintf("\n    EventReceiverAddress    %v", s.LiveFeedAPI.EventReceiverAddress))
-	out.WriteString(fmt.Sprintf("\n    EventReceiverPort       %v", s.LiveFeedAPI.EventReceiverPort))
-	out.WriteString(fmt.Sprintf("\n    OutputFormat             %v", s.LiveFeedAPI.OutputFormat))
-	out.WriteString(fmt.Sprintf("\n    MuteReplayDuringStartup %v", s.LiveFeedAPI.MuteReplayDuringStartup))
+	out.WriteString(fmt.Sprintf("\n    EnableLiveFeedAPI        %v", s.LiveFeedAPI.EnableLiveFeedAPI))
+	out.WriteString(fmt.Sprintf("\n    EventReceiverProtocol    %v", s.LiveFeedAPI.EventReceiverProtocol))
+	out.WriteString(fmt.Sprintf("\n    EventReceiverAddress     %v", s.LiveFeedAPI.EventReceiverAddress))
+	out.WriteString(fmt.Sprintf("\n    EventReceiverPort        %v", s.LiveFeedAPI.EventReceiverPort))
+	out.WriteString(fmt.Sprintf("\n    EventFormat              %v", s.LiveFeedAPI.EventFormat))
+	out.WriteString(fmt.Sprintf("\n    EventBroadcastContent    %v", s.LiveFeedAPI.EventBroadcastContent))
+	out.WriteString(fmt.Sprintf("\n    EventSendStateChange     %v", s.LiveFeedAPI.EventSendStateChange))
+	out.WriteString(fmt.Sprintf("\n    EventReplayDuringStartup %v", s.LiveFeedAPI.EventReplayDuringStartup))
 
 	return out.String()
 }

@@ -9,13 +9,13 @@ import (
 )
 
 type EventServiceParams struct {
-	EnableLiveFeedAPI                bool
-	Protocol                         string
-	Address                          string
-	OutputFormat                     eventoutputformat.Format
-	MuteEventReplayDuringStartup     bool
-	ResendRegistrationsOnStateChange bool
-	BroadcastContent                 BroadcastContent
+	EnableLiveFeedAPI     bool
+	Protocol              string
+	Address               string
+	OutputFormat          eventoutputformat.Format
+	ReplayDuringStartup   bool
+	SendStateChangeEvents bool
+	BroadcastContent      BroadcastContent
 }
 
 func selectParameters(factomParams *globals.FactomParams, config *util.FactomdConfig) *EventServiceParams {
@@ -34,32 +34,32 @@ func selectParameters(factomParams *globals.FactomParams, config *util.FactomdCo
 	} else {
 		params.Address = fmt.Sprintf("%s:%d", defaultConnectionHost, defaultConnectionPort)
 	}
-	if len(factomParams.OutputFormat) > 0 {
-		params.OutputFormat = eventoutputformat.FormatFrom(factomParams.OutputFormat, defaultOutputFormat)
-	} else if len(config.LiveFeedAPI.OutputFormat) > 0 {
-		params.OutputFormat = eventoutputformat.FormatFrom(config.LiveFeedAPI.OutputFormat, defaultOutputFormat)
+	if len(factomParams.EventFormat) > 0 {
+		params.OutputFormat = eventoutputformat.FormatFrom(factomParams.EventFormat, defaultOutputFormat)
+	} else if len(config.LiveFeedAPI.EventFormat) > 0 {
+		params.OutputFormat = eventoutputformat.FormatFrom(config.LiveFeedAPI.EventFormat, defaultOutputFormat)
 	} else {
 		params.OutputFormat = defaultOutputFormat
 	}
 
 	params.EnableLiveFeedAPI = factomParams.EnableLiveFeedAPI || config.LiveFeedAPI.EnableLiveFeedAPI
-	params.MuteEventReplayDuringStartup = factomParams.MuteReplayDuringStartup || config.LiveFeedAPI.MuteReplayDuringStartup
-	params.ResendRegistrationsOnStateChange = factomParams.ResendRegistrationsOnStateChange || config.LiveFeedAPI.ResendRegistrationsOnStateChange
+	params.ReplayDuringStartup = factomParams.EventReplayDuringStartup || config.LiveFeedAPI.EventReplayDuringStartup
+	params.SendStateChangeEvents = factomParams.EventSendStateChange || config.LiveFeedAPI.EventSendStateChange
 	var err error
-	if len(factomParams.BroadcastContent) > 0 {
-		params.BroadcastContent, err = Parse(factomParams.BroadcastContent)
+	if len(factomParams.EventBroadcastContent) > 0 {
+		params.BroadcastContent, err = Parse(factomParams.EventBroadcastContent)
 		if err != nil {
-			log.Printf("Parameter BroadcastContent could not be parsed: %v", err)
-			params.BroadcastContent = BroadcastOnRegistration
+			log.Printf("Parameter EventBroadcastContent could not be parsed: %v", err)
+			params.BroadcastContent = BroadcastOnce
 		}
-	} else if len(config.LiveFeedAPI.BroadcastContent) > 0 {
-		params.BroadcastContent, err = Parse(config.LiveFeedAPI.BroadcastContent)
+	} else if len(config.LiveFeedAPI.EventBroadcastContent) > 0 {
+		params.BroadcastContent, err = Parse(config.LiveFeedAPI.EventBroadcastContent)
 		if err != nil {
-			log.Printf("Configuration property LiveFeedAPI.BroadcastContent could not be parsed: %v", err)
-			params.BroadcastContent = BroadcastOnRegistration
+			log.Printf("Configuration property LiveFeedAPI.EventBroadcastContent could not be parsed: %v", err)
+			params.BroadcastContent = BroadcastOnce
 		}
 	} else {
-		params.BroadcastContent = BroadcastOnRegistration
+		params.BroadcastContent = BroadcastOnce
 	}
 	return params
 }

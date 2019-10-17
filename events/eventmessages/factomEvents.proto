@@ -178,10 +178,9 @@ enum EventSource {
 
 enum EntityState {
     REQUESTED = 0;
-    HOLDING_QUEUE = 1;
-    ACCEPTED = 2;
-    REJECTED = 3;
-    COMMITTED_TO_DIRECTORY_BLOCK = 4;
+    ACCEPTED = 1;
+    REJECTED = 2;
+    COMMITTED_TO_DIRECTORY_BLOCK = 3;
 }
 
 enum Level {

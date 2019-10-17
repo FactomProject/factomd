@@ -9,5 +9,5 @@ type EventService interface {
 type EventServiceControl interface {
 	GetBroadcastContent() BroadcastContent
 	Shutdown()
-	IsResendRegistrationsOnStateChange() bool
+	IsSendStateChangeEvents() bool
 }

@@ -14,10 +14,10 @@ func TestBroadcastContent_Parse(t *testing.T) {
 		Error  error
 	}{
 
-		{"Always", BroadcastAlways, nil},
-		{"OnRegistration", BroadcastOnRegistration, nil},
-		{"Never", BroadcastNever, nil},
-		{"test", -1, errors.New("could not parse test to BroadcastContent")},
+		{"always", BroadcastAlways, nil},
+		{"once", BroadcastOnce, nil},
+		{"never", BroadcastNever, nil},
+		{"test", -1, errors.New("could not parse test to EventBroadcastContent")},
 	}
 
 	for _, testCase := range testCases {
@@ -35,9 +35,9 @@ func TestBroadcastContent_String(t *testing.T) {
 		Input  BroadcastContent
 		Output string
 	}{
-		{BroadcastAlways, "Always"},
-		{BroadcastOnRegistration, "OnRegistration"},
-		{BroadcastNever, "Never"},
+		{BroadcastAlways, "always"},
+		{BroadcastOnce, "once"},
+		{BroadcastNever, "never"},
 		{-1, "unknown value -1"},
 		{4, "unknown value 4"},
 	}

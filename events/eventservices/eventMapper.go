@@ -12,14 +12,14 @@ import (
 	"time"
 )
 
-func MapToFactomEvent(eventInput events.EventInput, broadcastContent BroadcastContent, resendRegistrations bool) (*eventmessages.FactomEvent, error) {
+func MapToFactomEvent(eventInput events.EventInput, broadcastContent BroadcastContent, sendStateChangeEvents bool) (*eventmessages.FactomEvent, error) {
 	switch eventInput.(type) {
 	case *events.RegistrationEvent:
 		registrationEvent := eventInput.(*events.RegistrationEvent)
 		return mapRegistrationEvent(registrationEvent, broadcastContent)
 	case *events.StateChangeMsgEvent:
 		stateChangeEvent := eventInput.(*events.StateChangeMsgEvent)
-		return mapStateChangeEvent(stateChangeEvent, broadcastContent, resendRegistrations)
+		return mapStateChangeEvent(stateChangeEvent, broadcastContent, sendStateChangeEvents)
 	case *events.StateChangeEvent:
 		stateChangeEvent := eventInput.(*events.StateChangeEvent)
 		return mapDBStateEvent(stateChangeEvent, broadcastContent)
@@ -59,30 +59,31 @@ func mapRegistrationEvent(registrationEvent *events.RegistrationEvent, broadcast
 	return event, nil
 }
 
-func mapStateChangeEvent(stateChangeEvent *events.StateChangeMsgEvent, broadcastContent BroadcastContent, resendRegistrations bool) (*eventmessages.FactomEvent, error) {
+func mapStateChangeEvent(stateChangeEvent *events.StateChangeMsgEvent, broadcastContent BroadcastContent, sendStateChangeEvents bool) (*eventmessages.FactomEvent, error) {
 	event := &eventmessages.FactomEvent{}
 	event.EventSource = stateChangeEvent.GetStreamSource()
 	msg := stateChangeEvent.GetPayload()
 	if msg != nil {
-		shouldIncludeContent := broadcastContent > BroadcastOnRegistration
+		shouldIncludeContent := broadcastContent > BroadcastOnce
+
 		switch msg.(type) {
 		case *messages.CommitChainMsg:
-			if resendRegistrations {
-				event.Value = mapCommitChain(stateChangeEvent.GetEntityState(), msg)
-			} else {
+			if sendStateChangeEvents {
 				event.Value = mapCommitChainState(stateChangeEvent.GetEntityState(), msg)
+			} else {
+				event.Value = mapCommitChain(stateChangeEvent.GetEntityState(), msg)
 			}
 		case *messages.CommitEntryMsg:
-			if resendRegistrations {
-				event.Value = mapCommitEntryEvent(stateChangeEvent.GetEntityState(), msg)
-			} else {
+			if sendStateChangeEvents {
 				event.Value = mapCommitEntryEventState(stateChangeEvent.GetEntityState(), msg)
+			} else {
+				event.Value = mapCommitEntryEvent(stateChangeEvent.GetEntityState(), msg)
 			}
 		case *messages.RevealEntryMsg:
-			if resendRegistrations {
-				event.Value = mapRevealEntryEvent(stateChangeEvent.GetEntityState(), msg)
-			} else {
+			if sendStateChangeEvents {
 				event.Value = mapRevealEntryEventState(stateChangeEvent.GetEntityState(), msg)
+			} else if shouldIncludeContent {
+				event.Value = mapRevealEntryEvent(stateChangeEvent.GetEntityState(), msg)
 			}
 		case *messages.DBStateMsg:
 			event.Value = mapDBStateFromMsg(msg, shouldIncludeContent)
@@ -97,8 +98,9 @@ func mapDBStateEvent(stateChangeEvent *events.StateChangeEvent, broadcastContent
 	event := &eventmessages.FactomEvent{}
 	event.EventSource = stateChangeEvent.GetStreamSource()
 	state := stateChangeEvent.GetPayload()
+	stateChangeEvent.GetEntityState()
 	if state != nil {
-		shouldIncludeContent := broadcastContent > BroadcastOnRegistration
+		shouldIncludeContent := broadcastContent > BroadcastOnce
 		event.Value = mapDBState(state, shouldIncludeContent)
 	}
 	return event, nil

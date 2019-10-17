@@ -84,14 +84,14 @@ type FactomParams struct {
 	ReparseAnchorChains      bool
 
 	// LiveFeed API params
-	EnableLiveFeedAPI                bool
-	EventReceiverProtocol            string
-	EventReceiverAddress             string
-	EventReceiverPort                int
-	OutputFormat                     string
-	MuteReplayDuringStartup          bool
-	ResendRegistrationsOnStateChange bool
-	BroadcastContent                 string
+	EnableLiveFeedAPI        bool
+	EventReceiverProtocol    string
+	EventReceiverAddress     string
+	EventReceiverPort        int
+	EventFormat              string
+	EventSendStateChange     bool
+	EventBroadcastContent    string
+	EventReplayDuringStartup bool
 }
 
 /****************************************************************

@@ -82,8 +82,8 @@ func (esi *eventServiceInstance) Send(event events.EventInput) error {
 		return nil
 	}
 
-	// Only send info messages when MuteReplayDuringStartup is enabled
-	if esi.params.MuteEventReplayDuringStartup && !esi.owningState.IsRunLeader() {
+	// Only send info messages when EventReplayDuringStartup is disabled
+	if !esi.params.ReplayDuringStartup && !esi.owningState.IsRunLeader() {
 		switch event.(type) {
 		case *events.ProcessMessageEvent:
 		case *events.NodeMessageEvent:
@@ -93,8 +93,8 @@ func (esi *eventServiceInstance) Send(event events.EventInput) error {
 	}
 
 	broadcastContent := eventServiceControl.GetBroadcastContent()
-	resendRegistrations := eventServiceControl.IsResendRegistrationsOnStateChange()
-	factomEvent, err := MapToFactomEvent(event, broadcastContent, resendRegistrations)
+	sendStateChangeEvents := eventServiceControl.IsSendStateChangeEvents()
+	factomEvent, err := MapToFactomEvent(event, broadcastContent, sendStateChangeEvents)
 	if err != nil {
 		return fmt.Errorf("failed to map to factom event: %v\n", err)
 	}
@@ -251,8 +251,8 @@ func (esi *eventServiceInstance) GetBroadcastContent() BroadcastContent {
 	return esi.params.BroadcastContent
 }
 
-func (esi *eventServiceInstance) IsResendRegistrationsOnStateChange() bool {
-	return esi.params.ResendRegistrationsOnStateChange
+func (esi *eventServiceInstance) IsSendStateChangeEvents() bool {
+	return esi.params.SendStateChangeEvents
 }
 
 func (esi *eventServiceInstance) Shutdown() {

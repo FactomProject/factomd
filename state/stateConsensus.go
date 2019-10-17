@@ -78,7 +78,7 @@ func (s *State) AddToHolding(hash [32]byte, msg interfaces.IMsg) {
 		s.Holding[hash] = msg
 		s.LogMessage("holding", "add", msg)
 		TotalHoldingQueueInputs.Inc()
-		EmitStateChangeEvent(msg, eventmessages.EntityState_HOLDING_QUEUE, s)
+		EmitRegistrationEvent(msg, s)
 	}
 }
 
@@ -256,7 +256,6 @@ func (s *State) executeMsg(msg interfaces.IMsg) (ret bool) {
 
 	if validToSend == 1 {
 		msg.SendOut(s, msg)
-		EmitRegistrationEvent(msg, s)
 	}
 
 	switch validToExecute {

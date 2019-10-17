@@ -338,7 +338,7 @@ func TestEventsService_MarshallMessage(t *testing.T) {
 				assert.JSONEq(t, `{"Value": null}`, string(data))
 			},
 		},
-		"OutputFormat-issue": {
+		"EventFormat-issue": {
 			Event:        &eventmessages.FactomEvent{},
 			OutputFormat: 3,
 			Assertion: func(t *testing.T, data []byte, err error) {
@@ -447,12 +447,12 @@ func TestEventService_GetBroadcastContent(t *testing.T) {
 	assert.Equal(t, BroadcastNever, broadcastContent)
 }
 
-func TestEventService_IsResendRegistrationsOnStateChange(t *testing.T) {
+func TestEventService_IsSendStateChangeEvents(t *testing.T) {
 	eventService := &eventServiceInstance{
 		params: &EventServiceParams{
-			ResendRegistrationsOnStateChange: true,
+			SendStateChangeEvents: true,
 		},
 	}
-	resendRegistration := eventService.IsResendRegistrationsOnStateChange()
-	assert.True(t, resendRegistration)
+	sendStateChangeEvents := eventService.IsSendStateChangeEvents()
+	assert.True(t, sendStateChangeEvents)
 }
