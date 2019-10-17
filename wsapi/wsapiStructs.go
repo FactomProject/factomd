@@ -270,8 +270,8 @@ type HeightRequest struct {
 }
 
 type ReplayRequest struct {
-	StartHeight uint32 `json:"startheight"`
-	EndHeight   uint32 `json:"endheight,omitempty"`
+	StartHeight int64 `json:"startheight"`
+	EndHeight   int64 `json:"endheight,omitempty"`
 }
 
 type HeightOrHashRequest struct {

@@ -597,33 +597,33 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 	return newState
 }
 
-func (s *State) EmitDBStateEventsFromHeight(height uint32, end uint32) {
+func (s *State) EmitDBStateEventsFromHeight(height int64, end int64) {
 	msgs := s.GetAllDBStateMsgsFromDatabase(height, end)
 	for _, msg := range msgs {
 		EmitStateChangeEvent(msg, eventmessages.EntityState_COMMITTED_TO_DIRECTORY_BLOCK, s)
 	}
 }
 
-func (s *State) GetAllDBStateMsgsFromDatabase(height uint32, end uint32) []interfaces.IMsg {
+func (s *State) GetAllDBStateMsgsFromDatabase(height int64, end int64) []interfaces.IMsg {
 	i := height
 	msgCount := 0
 	var msgs []interfaces.IMsg
 	for i <= end {
 
-		d, err := s.DB.FetchDBlockByHeight(i)
+		d, err := s.DB.FetchDBlockByHeight(uint32(i))
 		if err != nil || d == nil {
 			break
 		}
 
-		a, err := s.DB.FetchABlockByHeight(i)
+		a, err := s.DB.FetchABlockByHeight(uint32(i))
 		if err != nil || a == nil {
 			break
 		}
-		f, err := s.DB.FetchFBlockByHeight(i)
+		f, err := s.DB.FetchFBlockByHeight(uint32(i))
 		if err != nil || f == nil {
 			break
 		}
-		ec, err := s.DB.FetchECBlockByHeight(i)
+		ec, err := s.DB.FetchECBlockByHeight(uint32(i))
 		if err != nil || ec == nil {
 			break
 		}
