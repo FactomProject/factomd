@@ -29,7 +29,7 @@ const (
 	defaultProtocol       = "tcp"
 	defaultConnectionHost = "127.0.0.1"
 	defaultConnectionPort = 8040
-	defaultOutputFormat   = eventoutputformat.Protobuf
+	defaultOutputFormat   = Protobuf
 	protocolVersion       = byte(1)
 )
 
@@ -44,16 +44,22 @@ type eventServiceInstance struct {
 	eventsOutQueue          chan *eventmessages.FactomEvent
 	postponeSendingUntil    time.Time
 	connection              net.Conn
-	owningState             interfaces.IState
+	owningState             ServiceOwnerState
 	droppedFromQueueCounter prometheus.Counter
 	notSentCounter          prometheus.Counter
 }
 
-func NewEventService(state interfaces.IState, config *util.FactomdConfig, factomParams *globals.FactomParams) (EventService, EventServiceControl) {
+type ServiceOwnerState interface {
+	GetRunState() runstate.RunState
+	GetIdentityChainID() interfaces.IHash
+	IsRunLeader() bool
+}
+
+func NewEventService(state ServiceOwnerState, config *util.FactomdConfig, factomParams *globals.FactomParams) (EventService, EventServiceControl) {
 	return NewEventServiceTo(state, selectParameters(factomParams, config))
 }
 
-func NewEventServiceTo(state interfaces.IState, params *EventServiceParams) (EventService, EventServiceControl) {
+func NewEventServiceTo(state ServiceOwnerState, params *EventServiceParams) (EventService, EventServiceControl) {
 	if eventService == nil {
 		eventServiceInstance := &eventServiceInstance{
 			eventsOutQueue: make(chan *eventmessages.FactomEvent, p2p.StandardChannelSize),
@@ -166,9 +172,9 @@ func (esi *eventServiceInstance) marshallMessage(event *eventmessages.FactomEven
 	var data []byte
 	var err error
 	switch esi.params.OutputFormat {
-	case eventoutputformat.Protobuf:
+	case Protobuf:
 		data, err = esi.marshallEvent(event)
-	case eventoutputformat.Json:
+	case Json:
 		data, err = json.Marshal(event)
 	default:
 		return nil, errors.New("unsupported event format: " + esi.params.OutputFormat.String())
