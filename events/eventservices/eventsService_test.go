@@ -9,7 +9,6 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/events"
 	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
-	"github.com/FactomProject/factomd/events/eventoutputformat"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/util/atomic"
 	"github.com/prometheus/client_golang/prometheus"
@@ -69,7 +68,7 @@ func TestEventsService_Send(t *testing.T) {
 	}
 
 	params := &EventServiceParams{
-		OutputFormat: eventoutputformat.Json,
+		OutputFormat: Json,
 	}
 	eventService, _ := NewEventServiceTo(state, params)
 
@@ -200,7 +199,7 @@ func TestEventService_ProcessEventsChannelNoSent(t *testing.T) {
 	eventService := &eventServiceInstance{
 		eventsOutQueue: eventQueue,
 		params: &EventServiceParams{
-			OutputFormat: eventoutputformat.Json,
+			OutputFormat: Json,
 		},
 		notSentCounter: prometheus.NewCounter(prometheus.CounterOpts{}),
 	}
@@ -231,7 +230,7 @@ func TestEventsService_SendEvent(t *testing.T) {
 
 	eventService := &eventServiceInstance{
 		params: &EventServiceParams{
-			OutputFormat: eventoutputformat.Json,
+			OutputFormat: Json,
 		},
 		connection:     client,
 		notSentCounter: prometheus.NewCounter(prometheus.CounterOpts{}),
@@ -295,7 +294,7 @@ func TestEventsService_SendEventBreakdown(t *testing.T) {
 
 	eventService := &eventServiceInstance{
 		params: &EventServiceParams{
-			OutputFormat: eventoutputformat.Json,
+			OutputFormat: Json,
 		},
 		connection:     client,
 		notSentCounter: prometheus.NewCounter(prometheus.CounterOpts{}),
@@ -397,7 +396,7 @@ func TestEventsService_SendEventNoConnection(t *testing.T) {
 	redialSleepDuration = 1 * time.Millisecond
 	eventService := &eventServiceInstance{
 		params: &EventServiceParams{
-			OutputFormat: eventoutputformat.Json,
+			OutputFormat: Json,
 		},
 		notSentCounter: prometheus.NewCounter(prometheus.CounterOpts{}),
 	}
@@ -468,7 +467,7 @@ func TestEventsService_ConnectNoConnection(t *testing.T) {
 func TestEventsService_MarshallMessage(t *testing.T) {
 	testCases := map[string]struct {
 		Event        *eventmessages.FactomEvent
-		OutputFormat eventoutputformat.Format
+		OutputFormat EventFormat
 		Assertion    func(*testing.T, []byte, error)
 	}{
 		"protobuf": {
@@ -476,7 +475,7 @@ func TestEventsService_MarshallMessage(t *testing.T) {
 				EventSource:    eventmessages.EventSource_REPLAY_BOOT,
 				FactomNodeName: "test",
 			},
-			OutputFormat: eventoutputformat.Protobuf,
+			OutputFormat: Protobuf,
 			Assertion: func(t *testing.T, data []byte, err error) {
 				assert.NoError(t, err)
 				// the first byte is the indication of the eventSource following the eventSource
@@ -490,7 +489,7 @@ func TestEventsService_MarshallMessage(t *testing.T) {
 				EventSource:    eventmessages.EventSource_REPLAY_BOOT,
 				FactomNodeName: "test",
 			},
-			OutputFormat: eventoutputformat.Json,
+			OutputFormat: Json,
 			Assertion: func(t *testing.T, data []byte, err error) {
 				assert.NoError(t, err)
 				assert.JSONEq(t, `{"eventSource":1,"factomNodeName":"test","Value":null}`, string(data))
@@ -498,7 +497,7 @@ func TestEventsService_MarshallMessage(t *testing.T) {
 		},
 		"empty-protobuf": {
 			Event:        &eventmessages.FactomEvent{},
-			OutputFormat: eventoutputformat.Protobuf,
+			OutputFormat: Protobuf,
 			Assertion: func(t *testing.T, data []byte, err error) {
 				assert.NoError(t, err)
 				assert.Equal(t, []byte{}, data)
@@ -506,7 +505,7 @@ func TestEventsService_MarshallMessage(t *testing.T) {
 		},
 		"empty-json": {
 			Event:        &eventmessages.FactomEvent{},
-			OutputFormat: eventoutputformat.Json,
+			OutputFormat: Json,
 			Assertion: func(t *testing.T, data []byte, err error) {
 				assert.NoError(t, err)
 				assert.JSONEq(t, `{"Value": null}`, string(data))

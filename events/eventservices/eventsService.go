@@ -11,7 +11,6 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/events"
 	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
-	"github.com/FactomProject/factomd/events/eventoutputformat"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/util"
 	"github.com/gogo/protobuf/proto"
@@ -29,7 +28,7 @@ const (
 	defaultProtocol       = "tcp"
 	defaultConnectionHost = "127.0.0.1"
 	defaultConnectionPort = 8040
-	defaultOutputFormat   = eventoutputformat.Protobuf
+	defaultOutputFormat   = Protobuf
 	protocolVersion       = byte(1)
 )
 
@@ -172,9 +171,9 @@ func (esi *eventServiceInstance) marshallMessage(event *eventmessages.FactomEven
 	var data []byte
 	var err error
 	switch esi.params.OutputFormat {
-	case eventoutputformat.Protobuf:
+	case Protobuf:
 		data, err = esi.marshallEvent(event)
-	case eventoutputformat.Json:
+	case Json:
 		data, err = json.Marshal(event)
 	default:
 		return nil, errors.New("unsupported event format: " + esi.params.OutputFormat.String())

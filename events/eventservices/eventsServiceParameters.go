@@ -3,7 +3,6 @@ package eventservices
 import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/globals"
-	"github.com/FactomProject/factomd/events/eventoutputformat"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/util"
 )
@@ -12,7 +11,7 @@ type EventServiceParams struct {
 	EnableLiveFeedAPI                bool
 	Protocol                         string
 	Address                          string
-	OutputFormat                     eventoutputformat.Format
+	OutputFormat                     EventFormat
 	MuteEventReplayDuringStartup     bool
 	ResendRegistrationsOnStateChange bool
 	BroadcastContent                 BroadcastContent
@@ -35,9 +34,9 @@ func selectParameters(factomParams *globals.FactomParams, config *util.FactomdCo
 		params.Address = fmt.Sprintf("%s:%d", defaultConnectionHost, defaultConnectionPort)
 	}
 	if len(factomParams.OutputFormat) > 0 {
-		params.OutputFormat = eventoutputformat.FormatFrom(factomParams.OutputFormat, defaultOutputFormat)
+		params.OutputFormat = EventFormatFrom(factomParams.OutputFormat, defaultOutputFormat)
 	} else if len(config.LiveFeedAPI.OutputFormat) > 0 {
-		params.OutputFormat = eventoutputformat.FormatFrom(config.LiveFeedAPI.OutputFormat, defaultOutputFormat)
+		params.OutputFormat = EventFormatFrom(config.LiveFeedAPI.OutputFormat, defaultOutputFormat)
 	} else {
 		params.OutputFormat = defaultOutputFormat
 	}
