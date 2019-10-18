@@ -7,6 +7,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
+// TestIncreaseBalanceMarshalUnmarshal checks that an increase balance object can be marshalled and unmarshalled correctly
 func TestIncreaseBalanceMarshalUnmarshal(t *testing.T) {
 	ib1 := NewIncreaseBalance()
 	pub := new([32]byte)
@@ -31,6 +32,7 @@ func TestIncreaseBalanceMarshalUnmarshal(t *testing.T) {
 	}
 }
 
+// TestInvalidIncreaseBalanceUnmarshal checks that unmarshalling nil and the empty interface throw errors
 func TestInvalidIncreaseBalanceUnmarshal(t *testing.T) {
 	ib := NewIncreaseBalance()
 	_, err := ib.UnmarshalBinaryData(nil)

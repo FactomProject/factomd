@@ -14,11 +14,12 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
+// IncreaseBalance is an entry credit block entry type which increases the entry credit balance at an address
 type IncreaseBalance struct {
-	ECPubKey *primitives.ByteSlice32 `json:"ecpubkey"`
-	TXID     interfaces.IHash        `json:"txid"`
-	Index    uint64                  `json:"index"`
-	NumEC    uint64                  `json:"numec"`
+	ECPubKey *primitives.ByteSlice32 `json:"ecpubkey"` // EC public key that will have balanced increased
+	TXID     interfaces.IHash        `json:"txid"`     // The transaction id associated with this balance increase
+	Index    uint64                  `json:"index"`    // The index into the transaction's purchase field for this balance increase
+	NumEC    uint64                  `json:"numec"`    // The number of entry credits added to the address (based on current exchange rate)
 }
 
 var _ interfaces.Printable = (*IncreaseBalance)(nil)
@@ -27,6 +28,7 @@ var _ interfaces.BinaryMarshallable = (*IncreaseBalance)(nil)
 var _ interfaces.ShortInterpretable = (*IncreaseBalance)(nil)
 var _ interfaces.IECBlockEntry = (*IncreaseBalance)(nil)
 
+// Init initializes all nil objects
 func (e *IncreaseBalance) Init() {
 	if e.ECPubKey == nil {
 		e.ECPubKey = new(primitives.ByteSlice32)
@@ -36,14 +38,15 @@ func (e *IncreaseBalance) Init() {
 	}
 }
 
-func (a *IncreaseBalance) IsSameAs(b interfaces.IECBlockEntry) bool {
-	if a == nil || b == nil {
-		if a == nil && b == nil {
+// IsSameAs returns true iff the input object is identical to this object
+func (e *IncreaseBalance) IsSameAs(b interfaces.IECBlockEntry) bool {
+	if e == nil || b == nil {
+		if e == nil && b == nil {
 			return true
 		}
 		return false
 	}
-	if a.ECID() != b.ECID() {
+	if e.ECID() != b.ECID() {
 		return false
 	}
 
@@ -52,22 +55,23 @@ func (a *IncreaseBalance) IsSameAs(b interfaces.IECBlockEntry) bool {
 		return false
 	}
 
-	if a.ECPubKey.IsSameAs(bb.ECPubKey) == false {
+	if e.ECPubKey.IsSameAs(bb.ECPubKey) == false {
 		return false
 	}
-	if a.TXID.IsSameAs(bb.TXID) == false {
+	if e.TXID.IsSameAs(bb.TXID) == false {
 		return false
 	}
-	if a.Index != bb.Index {
+	if e.Index != bb.Index {
 		return false
 	}
-	if a.NumEC != bb.NumEC {
+	if e.NumEC != bb.NumEC {
 		return false
 	}
 
 	return true
 }
 
+// String returns this object as a string
 func (e *IncreaseBalance) String() string {
 	e.Init()
 	var out primitives.Buffer
@@ -80,13 +84,15 @@ func (e *IncreaseBalance) String() string {
 	return (string)(out.DeepCopyBytes())
 }
 
+// NewIncreaseBalance creates a newly initialized object
 func NewIncreaseBalance() *IncreaseBalance {
 	r := new(IncreaseBalance)
 	r.Init()
 	return r
 }
 
-func (a *IncreaseBalance) GetEntryHash() (rval interfaces.IHash) {
+// GetEntryHash always returns nil
+func (e *IncreaseBalance) GetEntryHash() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {
 			rval = nil // convert an interface that is nil to a nil interface
@@ -97,6 +103,7 @@ func (a *IncreaseBalance) GetEntryHash() (rval interfaces.IHash) {
 	return nil
 }
 
+// Hash marshals the object and computes its sha
 func (e *IncreaseBalance) Hash() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {
@@ -112,6 +119,7 @@ func (e *IncreaseBalance) Hash() (rval interfaces.IHash) {
 	return primitives.Sha(bin)
 }
 
+// GetHash marshals the object and computes its sha
 func (e *IncreaseBalance) GetHash() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {
@@ -123,6 +131,7 @@ func (e *IncreaseBalance) GetHash() (rval interfaces.IHash) {
 	return e.Hash()
 }
 
+// GetSigHash always returns nil
 func (e *IncreaseBalance) GetSigHash() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {
@@ -134,40 +143,44 @@ func (e *IncreaseBalance) GetSigHash() (rval interfaces.IHash) {
 	return nil
 }
 
-func (b *IncreaseBalance) ECID() byte {
+// ECID returns the hard coded entry credit id ECIDBalanceIncrease
+func (e *IncreaseBalance) ECID() byte {
 	return constants.ECIDBalanceIncrease
 }
 
-func (b *IncreaseBalance) IsInterpretable() bool {
+// IsInterpretable always returns false
+func (e *IncreaseBalance) IsInterpretable() bool {
 	return false
 }
 
-func (b *IncreaseBalance) Interpret() string {
+// Interpret always returns the empty string ""
+func (e *IncreaseBalance) Interpret() string {
 	return ""
 }
 
-func (b *IncreaseBalance) MarshalBinary() (rval []byte, err error) {
+// MarshalBinary marshals this object
+func (e *IncreaseBalance) MarshalBinary() (rval []byte, err error) {
 	defer func(pe *error) {
 		if *pe != nil {
 			fmt.Fprintf(os.Stderr, "IncreaseBalance.MarshalBinary err:%v", *pe)
 		}
 	}(&err)
-	b.Init()
+	e.Init()
 	buf := primitives.NewBuffer(nil)
 
-	err = buf.PushBinaryMarshallable(b.ECPubKey)
+	err = buf.PushBinaryMarshallable(e.ECPubKey)
 	if err != nil {
 		return nil, err
 	}
-	err = buf.PushBinaryMarshallable(b.TXID)
+	err = buf.PushBinaryMarshallable(e.TXID)
 	if err != nil {
 		return nil, err
 	}
-	err = buf.PushVarInt(b.Index)
+	err = buf.PushVarInt(e.Index)
 	if err != nil {
 		return nil, err
 	}
-	err = buf.PushVarInt(b.NumEC)
+	err = buf.PushVarInt(e.NumEC)
 	if err != nil {
 		return nil, err
 	}
@@ -175,23 +188,24 @@ func (b *IncreaseBalance) MarshalBinary() (rval []byte, err error) {
 	return buf.DeepCopyBytes(), nil
 }
 
-func (b *IncreaseBalance) UnmarshalBinaryData(data []byte) ([]byte, error) {
-	b.Init()
+// UnmarshalBinaryData unmarshals the input data into this object
+func (e *IncreaseBalance) UnmarshalBinaryData(data []byte) ([]byte, error) {
+	e.Init()
 	buf := primitives.NewBuffer(data)
 
-	err := buf.PopBinaryMarshallable(b.ECPubKey)
+	err := buf.PopBinaryMarshallable(e.ECPubKey)
 	if err != nil {
 		return nil, err
 	}
-	err = buf.PopBinaryMarshallable(b.TXID)
+	err = buf.PopBinaryMarshallable(e.TXID)
 	if err != nil {
 		return nil, err
 	}
-	b.Index, err = buf.PopVarInt()
+	e.Index, err = buf.PopVarInt()
 	if err != nil {
 		return nil, err
 	}
-	b.NumEC, err = buf.PopVarInt()
+	e.NumEC, err = buf.PopVarInt()
 	if err != nil {
 		return nil, err
 	}
@@ -199,19 +213,23 @@ func (b *IncreaseBalance) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	return buf.DeepCopyBytes(), nil
 }
 
-func (b *IncreaseBalance) UnmarshalBinary(data []byte) (err error) {
-	_, err = b.UnmarshalBinaryData(data)
+// UnmarshalBinary unmarshals the input data into this object
+func (e *IncreaseBalance) UnmarshalBinary(data []byte) (err error) {
+	_, err = e.UnmarshalBinaryData(data)
 	return
 }
 
+// JSONByte returns the json encoded byte array
 func (e *IncreaseBalance) JSONByte() ([]byte, error) {
 	return primitives.EncodeJSON(e)
 }
 
+// JSONString returns the json encoded string
 func (e *IncreaseBalance) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
 }
 
+// GetTimestamp always returns nil
 func (e *IncreaseBalance) GetTimestamp() interfaces.Timestamp {
 	return nil
 }
