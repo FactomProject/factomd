@@ -110,10 +110,18 @@ func Goid() string {
 	return idField
 }
 
+// don't try to remove prefix if caller func is shorter
+func truncate(fn string) string {
+	if len(fn) > prefix {
+		return fn[prefix:]
+	} else {
+		return fn
+	}
+}
+
 func WhereAmIString(depth int) string {
 	_, fn, line, _ := runtime.Caller(depth + 1)
-	fn = fn[prefix:]
-	return fmt.Sprintf("%v-%s:%d", Goid(), fn, line)
+	return fmt.Sprintf("%v-%s:%d", Goid(), truncate(fn), line)
 }
 
 func WhereAmIMsg(msg string) {
