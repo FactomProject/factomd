@@ -3070,6 +3070,7 @@ func (s *State) IsActive(id activations.ActivationType) bool {
 }
 
 func (s *State) PassOutputRegEx(RegEx *regexp.Regexp, RegExString string) {
+	s.LogPrintf("networkOutputs", "SetOutputRegEx to '%s'", RegExString)
 	s.OutputRegEx = RegEx
 	s.OutputRegExString = RegExString
 }
@@ -3079,6 +3080,7 @@ func (s *State) GetOutputRegEx() (*regexp.Regexp, string) {
 }
 
 func (s *State) PassInputRegEx(RegEx *regexp.Regexp, RegExString string) {
+	s.LogPrintf("networkInputs", "SetInputRegEx to '%s'", RegExString)
 	s.InputRegEx = RegEx
 	s.InputRegExString = RegExString
 }
