@@ -5,7 +5,10 @@ import (
 	"text/template"
 )
 
-var sourceFileFormat string = `package queue
+//go:generate go test -v ./generate_test.go
+
+var sourceFileFormat string =
+`package queue
 
 import (
 	"{{ .Import }}"
