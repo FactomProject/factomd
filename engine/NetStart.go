@@ -9,14 +9,15 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/FactomProject/factomd/fnode"
-	"github.com/FactomProject/factomd/registry"
-	"github.com/FactomProject/factomd/worker"
 	"io/ioutil"
 	"math"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/FactomProject/factomd/fnode"
+	"github.com/FactomProject/factomd/registry"
+	"github.com/FactomProject/factomd/worker"
 
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/globals"

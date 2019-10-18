@@ -3,9 +3,10 @@ package engine
 import (
 	"bytes"
 	"encoding/binary"
-	"github.com/FactomProject/factomd/fnode"
 	"math/rand"
 	"time"
+
+	"github.com/FactomProject/factomd/fnode"
 
 	"crypto/sha256"
 

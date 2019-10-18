@@ -2,8 +2,9 @@ package state
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/worker"
 	"time"
+
+	"github.com/FactomProject/factomd/worker"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"

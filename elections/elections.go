@@ -2,8 +2,9 @@ package elections
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/worker"
 	"time"
+
+	"github.com/FactomProject/factomd/worker"
 
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"

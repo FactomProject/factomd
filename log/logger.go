@@ -2,12 +2,13 @@ package log
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/util/atomic"
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/util/atomic"
 )
 
 type log struct {

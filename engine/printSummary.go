@@ -3,8 +3,9 @@ package engine
 import (
 	"bytes"
 	"fmt"
-	"github.com/FactomProject/factomd/fnode"
 	"time"
+
+	"github.com/FactomProject/factomd/fnode"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/globals"

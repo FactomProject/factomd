@@ -2,10 +2,11 @@ package registry
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/telemetry"
-	"github.com/FactomProject/factomd/worker"
 	"runtime"
 	"sync"
+
+	"github.com/FactomProject/factomd/telemetry"
+	"github.com/FactomProject/factomd/worker"
 )
 
 // Index of all top-level threads

@@ -1,8 +1,9 @@
 package telemetry_test
 
 import (
-	"github.com/FactomProject/factomd/testHelper"
 	"testing"
+
+	"github.com/FactomProject/factomd/testHelper"
 )
 
 func TestSimulation(t *testing.T) {

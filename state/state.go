@@ -12,9 +12,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/FactomProject/factomd/common"
-	"github.com/FactomProject/factomd/queue"
-	"github.com/FactomProject/factomd/worker"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -22,6 +19,10 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/FactomProject/factomd/common"
+	"github.com/FactomProject/factomd/queue"
+	"github.com/FactomProject/factomd/worker"
 
 	"github.com/FactomProject/factomd/common/constants/runstate"
 

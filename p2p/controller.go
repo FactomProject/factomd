@@ -12,12 +12,13 @@ package p2p
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/worker"
 	"math/rand"
 	"net"
 	"strings"
 	"time"
 	"unicode"
+
+	"github.com/FactomProject/factomd/worker"
 
 	"github.com/FactomProject/factomd/common/primitives"
 

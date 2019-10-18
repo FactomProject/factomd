@@ -1,11 +1,12 @@
 package log_test
 
 import (
+	"testing"
+
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/registry"
 	"github.com/FactomProject/factomd/worker"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestLogPrintf(t *testing.T) {

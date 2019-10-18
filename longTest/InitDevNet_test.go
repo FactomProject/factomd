@@ -1,8 +1,9 @@
 package longtest
 
 import (
-	. "github.com/FactomProject/factomd/testHelper"
 	"testing"
+
+	. "github.com/FactomProject/factomd/testHelper"
 )
 
 // create Stub DBs & configs for DevNet Testing

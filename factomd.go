@@ -6,10 +6,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/engine"
 	"os"
 	"reflect"
 	"runtime"
+
+	"github.com/FactomProject/factomd/engine"
 )
 
 //go:generate go run ./factomgenerate/generate.go

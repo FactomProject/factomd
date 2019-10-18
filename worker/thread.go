@@ -2,11 +2,12 @@ package worker
 
 import (
 	"fmt"
+	"runtime"
+	"strings"
+
 	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/log"
-	"runtime"
-	"strings"
 )
 
 // callback handle

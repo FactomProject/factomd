@@ -2,10 +2,11 @@ package registry_test
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/FactomProject/factomd/registry"
 	"github.com/FactomProject/factomd/worker"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 // add a sub thread that uses all callbacks

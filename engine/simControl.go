@@ -7,8 +7,6 @@ package engine
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/FactomProject/factomd/fnode"
-	"github.com/FactomProject/factomd/worker"
 	"io"
 	"math/rand"
 	"os"
@@ -17,6 +15,9 @@ import (
 	"strings"
 	"time"
 	"unicode"
+
+	"github.com/FactomProject/factomd/fnode"
+	"github.com/FactomProject/factomd/worker"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/factoid"

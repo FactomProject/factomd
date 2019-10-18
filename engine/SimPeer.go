@@ -7,8 +7,9 @@ package engine
 import (
 	"bytes"
 	"fmt"
-	"github.com/FactomProject/factomd/fnode"
 	"time"
+
+	"github.com/FactomProject/factomd/fnode"
 
 	"math/rand"
 

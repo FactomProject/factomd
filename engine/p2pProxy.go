@@ -7,8 +7,9 @@ package engine
 import (
 	"bytes"
 	"fmt"
-	"github.com/FactomProject/factomd/worker"
 	"os"
+
+	"github.com/FactomProject/factomd/worker"
 
 	// "github.com/FactomProject/factomd/common/constants"
 
