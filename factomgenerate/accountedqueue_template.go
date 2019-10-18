@@ -1,33 +1,24 @@
-package queue
+//+build ignore
 
-import (
-	"bytes"
-	"text/template"
-)
+var r map[string]string // dummy variable to make teh template delimiters work for gofmt...
 
-//go:generate go test -v ./generate_test.go
+r["/*
+This looks syntatically off because it is a template used to generate go code. Inorder to make the template be
+gofmt able the parse delimiters are set to 'r["'  and '"]' so r[" .typename "] will be replaced by the typename
+from the //FactomGenerate command
+*/"]
 
-var sourceFileFormat string =
-`package queue
+//r[" define "accountedqueue" "]
+// Start accountedqueue generated go code
 
-import (
-	"{{ .Import }}"
-
-	"github.com/FactomProject/factomd/common"
-	"github.com/FactomProject/factomd/telemetry"
-	"github.com/FactomProject/factomd/worker"
-	"time"
-)
-
-type {{ .Name }} struct {
+type r[" .typename "] struct {
 	common.Name
 	Package string
-	Channel chan {{ .Type }}
+	Channel chan r[" .type "]
 	Thread  *worker.Thread
 }
-
 // construct gauge w/ proper labels
-func (q *{{ .Name }}) Metric(msg {{ .Type }}) telemetry.Gauge {
+func (q *r[" .typename "]) Metric(msg r[" .type "]) telemetry.Gauge {
 	label := "nil"
 	if msg != nil {
 		label = msg.Label()
@@ -37,7 +28,7 @@ func (q *{{ .Name }}) Metric(msg {{ .Type }}) telemetry.Gauge {
 }
 
 // construct counter for tracking totals
-func (q *{{ .Name }}) TotalMetric(msg {{ .Type }}) telemetry.Counter {
+func (q *r[" .typename "]) TotalMetric(msg r[" .type "]) telemetry.Counter {
 	label := "nil"
 	if msg != nil {
 		label = msg.Label()
@@ -47,12 +38,12 @@ func (q *{{ .Name }}) TotalMetric(msg {{ .Type }}) telemetry.Counter {
 }
 
 // construct counter for intermittent polling of queue size
-func (q *{{ .Name }}) PollMetric() telemetry.Gauge {
+func (q *r[" .typename "]) PollMetric() telemetry.Gauge {
 	return telemetry.ChannelSize.WithLabelValues(q.Package, q.GetName(), q.Thread.Label(), "aggregate")
 }
 
 // add metric to poll size of queue
-func (q *{{ .Name }}) RegisterPollMetric() {
+func (q *r[" .typename "]) RegisterPollMetric() {
 	q.Thread.RegisterMetric(func(poll *time.Ticker, exit chan bool) {
 		gauge := q.PollMetric()
 
@@ -68,17 +59,17 @@ func (q *{{ .Name }}) RegisterPollMetric() {
 }
 
 // Length of underlying channel
-func (q {{ .Name }}) Length() int {
+func (q r[" .typename "]) Length() int {
 	return len(q.Channel)
 }
 
 // Cap of underlying channel
-func (q {{ .Name }}) Cap() int {
+func (q r[" .typename "]) Cap() int {
 	return cap(q.Channel)
 }
 
 // Enqueue adds item to channel and instruments based on type
-func (q {{ .Name }}) Enqueue(m {{ .Type }}) {
+func (q r[" .typename "]) Enqueue(m r[" .type "]) {
 	q.TotalMetric(m).Inc()
 	q.Metric(m).Inc()
 	q.Channel <- m
@@ -86,7 +77,7 @@ func (q {{ .Name }}) Enqueue(m {{ .Type }}) {
 
 // Dequeue removes an item from channel and instruments based on type.
 // Returns nil if nothing in // queue
-func (q {{ .Name }}) Dequeue() {{ .Type }} {
+func (q r[" .typename "]) Dequeue() r[" .type "] {
 	select {
 	case v := <-q.Channel:
 		q.Metric(v).Dec()
@@ -97,29 +88,10 @@ func (q {{ .Name }}) Dequeue() {{ .Type }} {
 }
 
 // BlockingDequeue will block until it retrieves from queue
-func (q {{ .Name }}) BlockingDequeue() {{ .Type }} {
+func (q r[" .typename "]) BlockingDequeue() r[" .type "] {
 	v := <- q.Channel
 	q.Metric(v).Dec()
 	return v
 }
-`
-
-var sourceTemplate *template.Template = template.Must(
-	template.New("").Parse(sourceFileFormat),
-)
-
-type SourceFile struct {
-	File   string
-	Name   string
-	Type   string
-	Import string
-}
-
-func (f SourceFile) Generate() *bytes.Buffer {
-	b := &bytes.Buffer{}
-	err := sourceTemplate.Execute(b, f)
-	if nil != err {
-		panic(err)
-	}
-	return b
-}
+// End accountedqueue generated go code
+r[" end "]"

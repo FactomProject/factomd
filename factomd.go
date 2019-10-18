@@ -12,6 +12,8 @@ import (
 	"runtime"
 )
 
+//go:generate go run ./factomgenerate/generate.go
+
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
@@ -22,7 +24,7 @@ func main() {
 	}
 
 	params := engine.ParseCmdLine(os.Args[1:])
-	fmt.Println()
+	fmt.Println("%v", params)
 
 	fmt.Println("Parameter:")
 	s := reflect.ValueOf(params).Elem()
