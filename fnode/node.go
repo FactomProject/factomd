@@ -6,7 +6,7 @@ import (
 	"github.com/FactomProject/factomd/state"
 )
 
-type root struct{
+type root struct {
 	common.Name
 }
 

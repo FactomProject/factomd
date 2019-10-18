@@ -42,12 +42,12 @@ func (*Thread) RegisterInterruptHandler(handler func()) {
 func (r *Thread) RegisterMetric(handler interfaces.PollMetricHandler) {
 	// KLUDGE: don't error during unit testing if process threads are not run
 	// r.PollMetricHandler is nil if the thread lifecycle isn't really executed (as in unit tests)
-	defer func(){ recover() }()
+	defer func() { recover() }()
 	r.PollMetricHandler(handler)
 }
 
 type IRegister interface {
-	Thread(*Thread, Handle, string)      // RegistryCallback for sub-threads
+	Thread(*Thread, Handle, string)          // RegistryCallback for sub-threads
 	Process(*Thread, Handle, string, string) // callback to fork a new process
 }
 

@@ -352,7 +352,7 @@ func SimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 					}
 				case 'a' == b[0]:
 					mLog.all = false
-					for _, f:= range fnode.GetFnodes() {
+					for _, f := range fnode.GetFnodes() {
 						f.State.SetOut(false)
 					}
 					if ListenTo < 0 || ListenTo > fnode.Len() {
@@ -1508,7 +1508,7 @@ func returnStatString(i uint8) string {
 func rotateWSAPI(rotate *int, value int, wsapiNode *int) {
 	for *rotate == value { // Only if true
 		*wsapiNode = rand.Int() % fnode.Len()
-		f:= fnode.Get(*wsapiNode)
+		f := fnode.Get(*wsapiNode)
 		wsapi.SetState(f.State)
 		time.Sleep(3 * time.Second)
 	}
@@ -1533,4 +1533,3 @@ func printProcessList(watchPL *int, value int, listenTo *int) {
 		time.Sleep(time.Second * 1)
 	}
 }
-

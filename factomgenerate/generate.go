@@ -18,7 +18,6 @@ import (
 	"time"
 )
 
-
 func main() {
 	// load the templates for files wrappers
 	templates := template.Must(template.ParseGlob("./factomgenerate/*.tmpl"))
@@ -28,7 +27,6 @@ func main() {
 	goFiles, err := filepath.Glob("./factomgenerate/*_template.go")
 	die(err)
 	goTemplates := template.Must(template.New("").Delims("r[\"", "\"]").ParseFiles(goFiles...))
-
 
 	// place to keep all the files
 	files := make(map[string]*os.File)
@@ -48,7 +46,7 @@ func main() {
 		fmt.Printf("ERR: %v", err)
 		log.Fatal(err)
 	}
-	 */
+	*/
 
 	now := time.Now().String()
 	// For each template request, split out the key value pairs ...

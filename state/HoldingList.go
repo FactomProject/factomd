@@ -30,7 +30,7 @@ func (l *HoldingList) metric(msg interfaces.IMsg) telemetry.Gauge {
 	return telemetry.MapSize.WithLabelValues("state", l.GetName(), l.w.Label(), msg.Label())
 }
 
-func NewHoldingList(w *worker.Thread, s *State) *HoldingList{
+func NewHoldingList(w *worker.Thread, s *State) *HoldingList {
 	l := HoldingList{}
 	l.holding = make(map[[32]byte][]interfaces.IMsg)
 	l.s = s
