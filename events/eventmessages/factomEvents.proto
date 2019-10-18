@@ -53,6 +53,7 @@ message EntryReveal {
     EntityState entityState = 1;
     EntryBlockEntry entry = 2;
     google.protobuf.Timestamp timestamp = 3;
+    Hash chainID = 4;
 }
 
 
