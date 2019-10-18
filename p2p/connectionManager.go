@@ -10,6 +10,8 @@ package p2p
 import (
 	"fmt"
 	"math/rand"
+
+	"github.com/FactomProject/factomd/common/messages"
 )
 
 type ConnectionManager struct {
@@ -50,6 +52,12 @@ func (cm *ConnectionManager) ConnectedTo(address string) bool {
 
 // Add a new connection.
 func (cm *ConnectionManager) Add(connection *Connection) {
+	if connection.IsOutGoing() {
+		messages.LogPrintf("fnode0_peers.txt", "CM.Add(%s) Outgoing", connection.peer.Hash)
+	} else {
+		messages.LogPrintf("fnode0_peers.txt", "CM.Add(%s) Incomming", connection.peer.Hash)
+	}
+
 	if _, present := cm.connections[connection.peer.Hash]; present {
 		// we should be checking whether we are already connected to this peer,
 		// so something went wrong
@@ -60,12 +68,14 @@ func (cm *ConnectionManager) Add(connection *Connection) {
 	} else {
 		cm.incomingCount++
 	}
+
 	cm.connections[connection.peer.Hash] = connection
 	cm.addToConnectionsByAddress(connection)
 }
 
 // Remove an existing connection.
 func (cm *ConnectionManager) Remove(connection *Connection) {
+	messages.LogPrintf("fnode0_peers.txt", "CM.Remove(%s)", connection.peer.Hash)
 	if _, present := cm.connections[connection.peer.Hash]; !present {
 		return
 	}
