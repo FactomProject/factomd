@@ -28,14 +28,6 @@ func TestMapCommitChain(t *testing.T) {
 	assert.Equal(t, eventmessages.EntityState_ACCEPTED, factomCommitChain.ChainCommit.EntityState)
 }
 
-func TestMapCommitChainWrongType(t *testing.T) {
-	msg := new(messages.CommitEntryMsg)
-
-	factomCommitChain := mapCommitChain(eventmessages.EntityState_REQUESTED, msg)
-
-	assert.Nil(t, factomCommitChain)
-}
-
 func TestMapCommitChainState(t *testing.T) {
 	msg := newTestCommitChainMsg()
 
@@ -46,14 +38,6 @@ func TestMapCommitChainState(t *testing.T) {
 	assert.NotNil(t, factomStateChange.StateChange.EntityState)
 	assert.NotNil(t, factomStateChange.StateChange.BlockHeight)
 	assert.NotNil(t, factomStateChange.StateChange.EntityHash)
-}
-
-func TestMapCommitChainStateWrongType(t *testing.T) {
-	msg := new(messages.CommitEntryMsg)
-
-	factomStateChange := mapCommitChainState(eventmessages.EntityState_REQUESTED, msg)
-
-	assert.Nil(t, factomStateChange)
 }
 
 func newTestCommitChainMsg() *messages.CommitChainMsg {

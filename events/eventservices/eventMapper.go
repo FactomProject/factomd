@@ -43,12 +43,15 @@ func mapRegistrationEvent(registrationEvent *events.RegistrationEvent, broadcast
 
 		switch msg.(type) {
 		case *messages.CommitChainMsg:
-			event.Value = mapCommitChain(eventmessages.EntityState_REQUESTED, msg)
+			commitChainMsg := msg.(*messages.CommitChainMsg)
+			event.Value = mapCommitChain(eventmessages.EntityState_REQUESTED, commitChainMsg)
 		case *messages.CommitEntryMsg:
-			event.Value = mapCommitEntryEvent(eventmessages.EntityState_REQUESTED, msg)
+			commitEntryMsg := msg.(*messages.CommitEntryMsg)
+			event.Value = mapCommitEntryEvent(eventmessages.EntityState_REQUESTED, commitEntryMsg)
 		case *messages.RevealEntryMsg:
+			revealEntryMsg := msg.(*messages.RevealEntryMsg)
 			if shouldIncludeContent {
-				event.Value = mapRevealEntryEvent(eventmessages.EntityState_REQUESTED, msg)
+				event.Value = mapRevealEntryEvent(eventmessages.EntityState_REQUESTED, revealEntryMsg)
 			} else {
 				return nil, nil
 			}
@@ -68,25 +71,29 @@ func mapStateChangeEvent(stateChangeEvent *events.StateChangeMsgEvent, broadcast
 
 		switch msg.(type) {
 		case *messages.CommitChainMsg:
+			commitChainMsg := msg.(*messages.CommitChainMsg)
 			if sendStateChangeEvents {
-				event.Value = mapCommitChainState(stateChangeEvent.GetEntityState(), msg)
+				event.Value = mapCommitChainState(stateChangeEvent.GetEntityState(), commitChainMsg)
 			} else {
-				event.Value = mapCommitChain(stateChangeEvent.GetEntityState(), msg)
+				event.Value = mapCommitChain(stateChangeEvent.GetEntityState(), commitChainMsg)
 			}
 		case *messages.CommitEntryMsg:
+			commitEntryMsg := msg.(*messages.CommitEntryMsg)
 			if sendStateChangeEvents {
-				event.Value = mapCommitEntryEventState(stateChangeEvent.GetEntityState(), msg)
+				event.Value = mapCommitEntryEventState(stateChangeEvent.GetEntityState(), commitEntryMsg)
 			} else {
-				event.Value = mapCommitEntryEvent(stateChangeEvent.GetEntityState(), msg)
+				event.Value = mapCommitEntryEvent(stateChangeEvent.GetEntityState(), commitEntryMsg)
 			}
 		case *messages.RevealEntryMsg:
+			revealEntryMsg := msg.(*messages.RevealEntryMsg)
 			if sendStateChangeEvents {
-				event.Value = mapRevealEntryEventState(stateChangeEvent.GetEntityState(), msg)
+				event.Value = mapRevealEntryEventState(stateChangeEvent.GetEntityState(), revealEntryMsg)
 			} else if shouldIncludeContent {
-				event.Value = mapRevealEntryEvent(stateChangeEvent.GetEntityState(), msg)
+				event.Value = mapRevealEntryEvent(stateChangeEvent.GetEntityState(), revealEntryMsg)
 			}
 		case *messages.DBStateMsg:
-			event.Value = mapDBStateFromMsg(msg, shouldIncludeContent)
+			dbStateMessage := msg.(*messages.DBStateMsg)
+			event.Value = mapDBStateFromMsg(dbStateMessage, shouldIncludeContent)
 		default:
 			return nil, errors.New("unknown message type")
 		}
