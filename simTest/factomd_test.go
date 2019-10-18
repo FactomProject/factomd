@@ -1341,7 +1341,7 @@ func TestCatchupEveryMinute(t *testing.T) {
 
 	// knock followers off one per minute
 	for i := 0; i < 10; i++ {
-		s := fnode.Get(i+1).State
+		s := fnode.Get(i + 1).State
 		RunCmd(fmt.Sprintf("%d", i+1))
 		WaitForMinute(s, i)
 		RunCmd("x")

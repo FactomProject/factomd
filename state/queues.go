@@ -8,7 +8,6 @@ import (
 
 func NewInMsgQueue(w *worker.Thread, capacity int) queue.MsgQueue {
 	mq := queue.MsgQueue{
-		Name:    "InMsgQueue",
 		Package: "state",
 		Channel: make(chan interfaces.IMsg, capacity),
 		Thread:  w,
@@ -19,7 +18,6 @@ func NewInMsgQueue(w *worker.Thread, capacity int) queue.MsgQueue {
 
 func NewInMsgQueue2(w *worker.Thread, capacity int) queue.MsgQueue {
 	mq := queue.MsgQueue{
-		Name:    "InMsgQueue2",
 		Package: "state",
 		Channel: make(chan interfaces.IMsg, capacity),
 		Thread:  w,
@@ -30,7 +28,6 @@ func NewInMsgQueue2(w *worker.Thread, capacity int) queue.MsgQueue {
 
 func NewElectionQueue(w *worker.Thread, capacity int) queue.MsgQueue {
 	mq := queue.MsgQueue{
-		Name:    "ElectionQueue",
 		Package: "state",
 		Channel: make(chan interfaces.IMsg, capacity),
 		Thread:  w,
@@ -41,7 +38,6 @@ func NewElectionQueue(w *worker.Thread, capacity int) queue.MsgQueue {
 
 func NewNetOutMsgQueue(w *worker.Thread, capacity int) queue.MsgQueue {
 	mq := queue.MsgQueue{
-		Name:    "NetOutMsgQueue",
 		Package: "state",
 		Channel: make(chan interfaces.IMsg, capacity),
 		Thread:  w,
@@ -52,7 +48,6 @@ func NewNetOutMsgQueue(w *worker.Thread, capacity int) queue.MsgQueue {
 
 func NewAPIQueue(w *worker.Thread, capacity int) queue.MsgQueue {
 	mq := queue.MsgQueue{
-		Name:    "APIMSGQueue",
 		Channel: make(chan interfaces.IMsg, capacity),
 		Thread:  w,
 	}

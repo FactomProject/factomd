@@ -6,11 +6,11 @@ import (
 	"github.com/FactomProject/factomd/state"
 )
 
-type root struct{
+type root struct {
 	common.Name
 }
 
-// root of object heirarchy
+// root of object hierarchy
 var Root = &root{}
 
 func init() {
@@ -34,7 +34,9 @@ func GetFnodes() []*FactomNode {
 func AddFnode(node *FactomNode) {
 	node.Init(Root, "svc") // root of service
 	node.State.Init(node, node.State.FactomNodeName)
-	node.State.Hold.Init(node.State, "HoldingList")
+
+	// FIXME relocate to state ? - this causes issues w/ multiple peers
+	//node.State.Hold.Init(node.State, "HoldingList")
 	fnodes = append(fnodes, node)
 }
 
