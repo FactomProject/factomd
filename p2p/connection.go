@@ -15,8 +15,8 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 
+	llog "github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/util/atomic"
-	llog "github.com/FactomProject/factomd/log"	
 	log "github.com/sirupsen/logrus"
 )
 

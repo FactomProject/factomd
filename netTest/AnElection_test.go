@@ -11,7 +11,7 @@ func TestAnElection(t *testing.T) {
 	target := 0
 
 	// Find Leader to demote
-	for i:= 0; i < 5; i++ {
+	for i := 0; i < 5; i++ {
 		if n.fnodes[i].NetworkInfo().Role == "Leader" {
 			target = i
 			break
@@ -29,7 +29,7 @@ func TestAnElection(t *testing.T) {
 	n.WaitBlocks(2) // wait for election & chain to progress
 
 	n.fnodes[target].RunCmd("x") //bring him back
-	n.WaitBlocks(2) // wait of leader to update via dbstate and become an audit
+	n.WaitBlocks(2)              // wait of leader to update via dbstate and become an audit
 
 	assert.Equal(t, "Audit", n.fnodes[target].NetworkInfo().Role)
 }

@@ -55,4 +55,3 @@ func randomIPendingEntry(nilSpot int) *interfaces.IPendingEntry {
 
 	return entry
 }
-

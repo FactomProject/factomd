@@ -4,7 +4,6 @@ import (
 	"fmt"
 )
 
-
 // Calculate the entry credits needed for the entry
 func EntryCost(b []byte) (uint8, error) {
 	// caulculaate the length exluding the header size 35 for Milestone 1
