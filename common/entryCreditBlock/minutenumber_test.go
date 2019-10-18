@@ -6,6 +6,7 @@ import (
 	. "github.com/FactomProject/factomd/common/entryCreditBlock"
 )
 
+// TestUnmarshalNilMinuteNumber checks that unmarshalling nil or the empty interface results in the appropriate errors
 func TestUnmarshalNilMinuteNumber(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -25,6 +26,8 @@ func TestUnmarshalNilMinuteNumber(t *testing.T) {
 	}
 }
 
+// TestMinuteNumberMarshalUnmarshal checks that a new minute number can be marshalled and unmarshalled, and residual
+// data is uncorrupted
 func TestMinuteNumberMarshalUnmarshal(t *testing.T) {
 	mn := NewMinuteNumber(5)
 	b, err := mn.MarshalBinary()
@@ -63,6 +66,7 @@ func TestMinuteNumberMarshalUnmarshal(t *testing.T) {
 	}
 }
 
+// TestInvalidMinuteNumberUnmarshal checks that unmarshalling nil and the empty interface results in errors
 func TestInvalidMinuteNumberUnmarshal(t *testing.T) {
 	mn := new(MinuteNumber)
 	_, err := mn.UnmarshalBinaryData(nil)
@@ -87,6 +91,7 @@ func TestInvalidMinuteNumberUnmarshal(t *testing.T) {
 	}
 }
 
+// TestMinuteNumberMisc checks the various member functions return their expected values.
 func TestMinuteNumberMisc(t *testing.T) {
 	si := new(MinuteNumber)
 	si.Number = 4

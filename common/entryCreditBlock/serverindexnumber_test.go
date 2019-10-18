@@ -10,6 +10,7 @@ import (
 	. "github.com/FactomProject/factomd/common/entryCreditBlock"
 )
 
+// TestUnmarshalNilServerIndexNumber checks that unmarshalling nil or the empty interface results in errors
 func TestUnmarshalNilServerIndexNumber(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -29,6 +30,7 @@ func TestUnmarshalNilServerIndexNumber(t *testing.T) {
 	}
 }
 
+// TestServerIndexMarshalUnmarshal checks that you can marshal and unmarshal a server index number object
 func TestServerIndexMarshalUnmarshal(t *testing.T) {
 	si1 := NewServerIndexNumber()
 	si1.ServerIndexNumber = 3
@@ -53,6 +55,7 @@ func TestServerIndexMarshalUnmarshal(t *testing.T) {
 	}
 }
 
+// TestServerIndexNumberMisc creates a new server index number and checks some member functions
 func TestServerIndexNumberMisc(t *testing.T) {
 	si := NewServerIndexNumber()
 	si.ServerIndexNumber = 4

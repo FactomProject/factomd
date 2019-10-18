@@ -29,6 +29,7 @@ func TestUnmarshal(t *testing.T) {
 	t.Log(e)
 }*/
 
+// TestUnmarshalNilEntry checks that attempting to unmarshal nil and empty interface throw the appropriate errors
 func TestUnmarshalNilEntry(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -48,6 +49,7 @@ func TestUnmarshalNilEntry(t *testing.T) {
 	}
 }
 
+// TestFirstEntry checks that a specific entry may be marshalled and unmarshalled appropriately
 func TestFirstEntry(t *testing.T) {
 	entry := new(Entry)
 
@@ -81,6 +83,7 @@ func TestFirstEntry(t *testing.T) {
 	}
 }
 
+// TestEntry checks that an Entry can be marshalled and unmarshalled appropriately
 func TestEntry(t *testing.T) {
 	entry := new(Entry)
 
@@ -125,6 +128,7 @@ func TestEntry(t *testing.T) {
 	}
 }
 
+// TestEntryMisc checks that various functions return their proper values on a specifically created Entry
 func TestEntryMisc(t *testing.T) {
 	e := newEntry()
 	if e.IsValid() == false {
@@ -173,6 +177,7 @@ func TestEntryMisc(t *testing.T) {
 	}
 }
 
+// TestKSize checks the return of KSize function
 func TestKSize(t *testing.T) {
 	e := NewEntry()
 	content := []byte{}
@@ -185,6 +190,7 @@ func TestKSize(t *testing.T) {
 	}
 }
 
+// newEntry creates a new entry for testing
 func newEntry() *Entry {
 	e := NewEntry()
 	entryStr := "00df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e60400130011466163746f6d416e63686f72436861696e546869732069732074686520466163746f6d20616e63686f7220636861696e2c207768696368207265636f7264732074686520616e63686f727320466163746f6d2070757473206f6e20426974636f696e20616e64206f74686572206e6574776f726b732e0a"
@@ -199,6 +205,8 @@ func newEntry() *Entry {
 	return e
 }
 
+// TestMarshalUnmarshalEntryList grows an entry list from 1 to 1000, and allng the way checks that the list is continuously marshallable
+// and unmarshallable, with the data integrity intact
 func TestMarshalUnmarshalEntryList(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		l := random.RandIntBetween(0, 30)
@@ -229,6 +237,8 @@ func TestMarshalUnmarshalEntryList(t *testing.T) {
 	}
 }
 
+// TestUnmashalBadEntryList creates a random entry list of length 100, marshals it, and corrupts the data. It then checks that unmarshalling
+// this corrupted list generates and appropriate error
 func TestUnmarshalBadEntryList(t *testing.T) {
 	el := make([]interfaces.IEBEntry, 0)
 
