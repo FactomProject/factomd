@@ -16,7 +16,7 @@ func TestFilterAPIOutput(t *testing.T) {
 	RunCmd("w")
 	RunCmd("s")
 
-	apiRegex := "EOM.*5/.*minute 1"
+	apiRegex := "EOM.*5.*minute +1" // It has two spaces.
 	SetOutputFilter(apiRegex)
 
 	WaitBlocks(state0, 5)
@@ -28,7 +28,7 @@ func TestFilterAPIOutput(t *testing.T) {
 	CheckAuthoritySet(t)
 
 	// Check Node01 Network Output logs to make sure there are no Dropped messaged besides the ones for our Regex
-	out := SystemCall(`grep "Drop, matched filter Regex" fnode01_networkoutputs.txt | grep -v "` + apiRegex + `" | wc -l`)
+	out := SystemCall(`grep "Drop, matched filter Regex" fnode01_networkoutputs.txt | grep -Ev "` + apiRegex + `" | wc -l`)
 
 	if strings.TrimSuffix(strings.Trim(string(out), " "), "\n") != string("0") {
 		t.Fatalf("Filter missed let a message pass 1.")
