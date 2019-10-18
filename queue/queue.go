@@ -40,7 +40,7 @@ func (q *MsgQueue) Metric(msg interfaces.IMsg) telemetry.Gauge {
 		label = msg.Label()
 	}
 
-	return telemetry.ChannelSize.WithLabelValues(q.Package, q.GetPath(), label)
+	return telemetry.ChannelSize.WithLabelValues(q.Package, q.GetPath()+label, "thread", "current")
 }
 
 // construct counter for tracking totals
@@ -49,12 +49,12 @@ func (q *MsgQueue) TotalMetric(msg interfaces.IMsg) telemetry.Counter {
 	if msg != nil {
 		label = msg.Label()
 	}
-	return telemetry.TotalCounter.WithLabelValues(q.Package, q.GetPath(), label, "total")
+	return telemetry.TotalCounter.WithLabelValues(q.Package, q.GetPath()+label, "thread", "total")
 }
 
 // construct counter for intermittent polling of queue size
 func (q *MsgQueue) PollMetric() telemetry.Gauge {
-	return telemetry.ChannelSize.WithLabelValues(q.Package, q.GetPath(), "aggregate")
+	return telemetry.ChannelSize.WithLabelValues(q.Package, q.GetPath(), "thread", "aggregate")
 }
 
 // add metric to poll size of queue

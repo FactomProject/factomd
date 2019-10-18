@@ -24,12 +24,12 @@ func  (q *r[" .typename "]) Init(parent common.NamedObject, name string, size in
 
 // construct gauge w/ proper labels
 func (q *r[" .typename "]) Metric() telemetry.Gauge {
-	return telemetry.ChannelSize.WithLabelValues(q.GetPath())
+	return telemetry.ChannelSize.WithLabelValues("state", q.GetPath(), "thread", "current")
 }
 
 // construct counter for tracking totals
 func (q *r[" .typename "]) TotalMetric() telemetry.Counter {
-	return telemetry.TotalCounter.WithLabelValues(q.GetPath(), "total")
+	return telemetry.TotalCounter.WithLabelValues("state", q.GetPath(), "thread", "total")
 }
 
 // Length of underlying channel
