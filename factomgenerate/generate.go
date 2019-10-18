@@ -78,24 +78,32 @@ func main() {
 	for templatename, requests := range instances {
 		filename := "./generated/" + templatename + ".go"
 
-		// make a list of the required imports...
+		// make a map of the required importsMap, this eliminates duplication...
 		// import are either a string or a []string
-		var imports []string
+		var importsMap map[string]string = make(map[string]string)
 		for _, details := range requests {
 			if value, ok := details["import"]; ok {
 				name, ok := value.(string)
 				if ok {
-					imports = append(imports, name)
+					importsMap[name] = "" // don't use the value just the name
 				} else {
-					imports = append(imports, value.([]string)...)
+					for _, name := range value.([]string) {
+						importsMap[name] = "" // don't use the value just the name
+					}
 				}
 				delete(details, "import")
 			}
 		}
+		//// convert the map to a slice
+		//var imports []string
+		//for name, _ := range importsMap {
+		//	imports = append(imports, name)
+		//}
+
 		// make the file header
 		details := make(map[string]interface{})
 		details["timestamp"] = now
-		details["imports"] = imports
+		details["importsMap"] = importsMap
 		fmt.Println("Creating", filename, "with", details)
 		f, err := os.Create(filename)
 		die(err)
