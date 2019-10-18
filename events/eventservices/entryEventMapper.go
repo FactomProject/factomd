@@ -7,8 +7,8 @@ import (
 	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 )
 
-func mapCommitEntryEvent(entityState eventmessages.EntityState, msg interfaces.IMsg) *eventmessages.FactomEvent_EntryCommit {
-	commitEntry := msg.(*messages.CommitEntryMsg).CommitEntry
+func mapCommitEntryEvent(entityState eventmessages.EntityState, commitEntryMsg *messages.CommitEntryMsg) *eventmessages.FactomEvent_EntryCommit {
+	commitEntry := commitEntryMsg.CommitEntry
 	ecPubKey := commitEntry.ECPubKey.Fixed()
 	sig := commitEntry.Sig
 
@@ -27,8 +27,8 @@ func mapCommitEntryEvent(entityState eventmessages.EntityState, msg interfaces.I
 	return result
 }
 
-func mapCommitEntryEventState(state eventmessages.EntityState, msg interfaces.IMsg) *eventmessages.FactomEvent_StateChange {
-	commitEntry := msg.(*messages.CommitEntryMsg).CommitEntry
+func mapCommitEntryEventState(state eventmessages.EntityState, commitEntryMsg *messages.CommitEntryMsg) *eventmessages.FactomEvent_StateChange {
+	commitEntry := commitEntryMsg.CommitEntry
 	result := &eventmessages.FactomEvent_StateChange{
 		StateChange: &eventmessages.StateChange{
 			EntityHash: &eventmessages.Hash{
@@ -39,8 +39,7 @@ func mapCommitEntryEventState(state eventmessages.EntityState, msg interfaces.IM
 	return result
 }
 
-func mapRevealEntryEvent(entityState eventmessages.EntityState, msg interfaces.IMsg) *eventmessages.FactomEvent_EntryReveal {
-	revealEntry := msg.(*messages.RevealEntryMsg)
+func mapRevealEntryEvent(entityState eventmessages.EntityState, revealEntry *messages.RevealEntryMsg) *eventmessages.FactomEvent_EntryReveal {
 	return &eventmessages.FactomEvent_EntryReveal{
 		EntryReveal: &eventmessages.EntryReveal{
 			EntityState: entityState,
@@ -50,8 +49,7 @@ func mapRevealEntryEvent(entityState eventmessages.EntityState, msg interfaces.I
 	}
 }
 
-func mapRevealEntryEventState(state eventmessages.EntityState, msg interfaces.IMsg) *eventmessages.FactomEvent_StateChange {
-	revealEntry := msg.(*messages.RevealEntryMsg)
+func mapRevealEntryEventState(state eventmessages.EntityState, revealEntry *messages.RevealEntryMsg) *eventmessages.FactomEvent_StateChange {
 	result := &eventmessages.FactomEvent_StateChange{
 		StateChange: &eventmessages.StateChange{
 			EntityHash: &eventmessages.Hash{
@@ -103,16 +101,17 @@ func mapEntryBlockEntries(entries []interfaces.IEBEntry, shouldIncludeContent bo
 	return result
 }
 
-func mapEntryBlockEntry(iEntry interfaces.IEBEntry, shouldIncludeContent bool) *eventmessages.EntryBlockEntry {
-	entry := iEntry.(*entryBlock.Entry)
-
+func mapEntryBlockEntry(entry interfaces.IEBEntry, shouldIncludeContent bool) *eventmessages.EntryBlockEntry {
 	blockEntry := &eventmessages.EntryBlockEntry{
 		Hash: &eventmessages.Hash{HashValue: entry.GetHash().Bytes()},
 	}
 	if shouldIncludeContent {
 		blockEntry.ExternalIDs = mapExternalIds(entry.ExternalIDs())
 		blockEntry.Content = &eventmessages.Content{BinaryValue: entry.GetContent()}
-		blockEntry.Version = uint32(entry.Version)
+
+		if e, ok := entry.(*entryBlock.Entry); ok {
+			blockEntry.Version = uint32(e.Version)
+		}
 	}
 	return blockEntry
 }

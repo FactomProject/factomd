@@ -1,16 +1,11 @@
 package eventservices
 
 import (
-	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 )
 
-func mapCommitChain(entityState eventmessages.EntityState, msg interfaces.IMsg) *eventmessages.FactomEvent_ChainCommit {
-	commitChainMsg, ok := msg.(*messages.CommitChainMsg)
-	if !ok {
-		return nil
-	}
+func mapCommitChain(entityState eventmessages.EntityState, commitChainMsg *messages.CommitChainMsg) *eventmessages.FactomEvent_ChainCommit {
 	commitChain := commitChainMsg.CommitChain
 	ecPubKey := commitChain.ECPubKey.Fixed()
 	sig := commitChain.Sig
@@ -36,11 +31,7 @@ func mapCommitChain(entityState eventmessages.EntityState, msg interfaces.IMsg) 
 	return result
 }
 
-func mapCommitChainState(state eventmessages.EntityState, msg interfaces.IMsg) *eventmessages.FactomEvent_StateChange {
-	commitChainMsg, ok := msg.(*messages.CommitChainMsg)
-	if !ok {
-		return nil
-	}
+func mapCommitChainState(state eventmessages.EntityState, commitChainMsg *messages.CommitChainMsg) *eventmessages.FactomEvent_StateChange {
 	result := &eventmessages.FactomEvent_StateChange{
 		StateChange: &eventmessages.StateChange{
 			EntityHash: &eventmessages.Hash{
