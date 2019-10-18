@@ -63,7 +63,7 @@ type IABlockHeader interface {
 
 	GetHeaderExpansionArea() []byte
 	SetHeaderExpansionArea([]byte)
-
+	GetHeaderExpansionSize() uint64
 	GetBodySize() uint32
 	GetMessageCount() uint32
 	SetBodySize(uint32)
