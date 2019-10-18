@@ -23,6 +23,8 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives/random"
 	"github.com/FactomProject/factomd/util/atomic"
+
+	llog "github.com/FactomProject/factomd/log"
 )
 
 // Hash is a convenient fixed []byte type created at the hash length
@@ -139,6 +141,7 @@ func (h *Hash) Bytes() (rval []byte) {
 	defer func() {
 		if r := recover(); r != nil {
 			fmt.Fprintf(os.Stderr, "nil hash")
+			llog.LogPrintf("recovery", "nil hash")
 			debug.PrintStack()
 			rval = constants.ZERO_HASH
 		}
@@ -181,6 +184,7 @@ func (h *Hash) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling: %v", r)
 		}
 	}()
 	copy(h[:], p)

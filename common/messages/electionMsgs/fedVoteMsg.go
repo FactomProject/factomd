@@ -18,6 +18,8 @@ import (
 	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/goleveldb/leveldb/errors"
+
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -272,6 +274,7 @@ func (m *FedVoteMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error
 	defer func() {
 		if r := recover(); r != nil {
 			os.Stderr.WriteString("Error UnmashalBinaryData FedVoteMsg")
+			llog.LogPrintf("recovery", "Error UnmashalBinaryData FedVoteMsg")
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
