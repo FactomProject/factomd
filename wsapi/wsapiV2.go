@@ -190,6 +190,9 @@ func HandleV2ReplayDBFromHeight(state interfaces.IState, params interface{}) (in
 	}
 
 	if beginning > end || beginning < 0 || end < 0 {
+		if beginning > end {
+			return nil, NewInvertedHeightError()
+		}
 		return nil, NewInvalidHeightError()
 	}
 
