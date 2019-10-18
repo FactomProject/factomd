@@ -103,7 +103,7 @@ func main() {
 		// make the file header
 		details := make(map[string]interface{})
 		details["timestamp"] = now
-		details["importsMap"] = importsMap
+		details["imports"] = importsMap
 		fmt.Println("Creating", filename, "with", details)
 		f, err := os.Create(filename)
 		die(err)

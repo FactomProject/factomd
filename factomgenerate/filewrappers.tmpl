@@ -12,10 +12,13 @@ This file contains the templates for framing generated go files.
 
 // Start Generated Code
 package generated
+//updated
 {{ if .imports }}
 import (
 {{ range $k, $v := .imports }} {{ printf "%q\n" $k }}{{ end -}}
 )
+{{ else }}
+// No Imqports
 {{ end }}
 // End fileheader template
 {{ end }}
