@@ -14,13 +14,7 @@ This file contains the templates for framing generated go files.
 package generated
 {{ if .imports }}
 import (
-{{range $i, $v := .imports}}{{printf "%q\n" $v}}{{end}}
-
-	"time"
-
-	"github.com/FactomProject/factomd/common"
-	"github.com/FactomProject/factomd/telemetry"
-	"github.com/FactomProject/factomd/worker"
+{{ range $i, $v := .imports }} {{ printf "%q\n" $v }}{{ end -}}
 )
 {{ end }}
 // End fileheader template

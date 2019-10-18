@@ -31,7 +31,7 @@ func main() {
 	// place to keep all the files
 	files := make(map[string]*os.File)
 	// need to parse all the instances before executing any so we can merge the imports
-	instances := make(map[string][]map[string]string) // map a templatename to a slice of requests
+	instances := make(map[string][]map[string]interface{}) // map a templatename to a slice of requests
 
 	// Find all comments in the form:
 	//FactomGenerate [<key:value>]...
@@ -53,7 +53,7 @@ func main() {
 	for _, m := range strings.Split(out.String(), "\n") {
 		// ignore blank lines
 		if len(m) > 0 {
-			details := make(map[string]string)
+			details := make(map[string]interface{})
 			// Add timestamp to Details, it's used in the fileheader template
 			fmt.Printf("t: %s\n", m)
 			s := strings.Split(m, " ")
@@ -61,10 +61,16 @@ func main() {
 				panic("odd number of strings in key:value list")
 			}
 			for i := 1; i < len(s); i += 2 { // skip //FactomGenerate
-				details[s[i]] = s[i+1]
+				key := s[i]
+				value := s[i+1]
+				if strings.Contains(value, ",") {
+					details[key] = strings.Split(value, ",")
+				} else {
+					details[key] = value
+				}
 			}
 			// Add this request to the slice of request for this template
-			instances[details["template"]] = append(instances[details["template"]], details)
+			instances[details["template"].(string)] = append(instances[details["template"].(string)], details)
 		}
 	}
 
@@ -72,45 +78,46 @@ func main() {
 	for templatename, requests := range instances {
 		filename := "./generated/" + templatename + ".go"
 
-		// make a list of the required imports... probably should sort/uniq it...
+		// make a list of the required imports...
+		// import are either a string or a []string
 		var imports []string
 		for _, details := range requests {
-			if name, ok := details["import"]; ok {
-				imports = append(imports, name)
+			if value, ok := details["import"]; ok {
+				name, ok := value.(string)
+				if ok {
+					imports = append(imports, name)
+				} else {
+					imports = append(imports, value.([]string)...)
+				}
+				delete(details, "import")
 			}
 		}
+		// make the file header
 		details := make(map[string]interface{})
 		details["timestamp"] = now
 		details["imports"] = imports
-		// open the file if it is a new file
-		var f *os.File
-		var err error
-		if files[filename] == nil {
-			fmt.Println("Creating", filename, "with", details)
-			f, err = os.Create(filename)
-			die(err)
-			files[filename] = f
-			// After we are done add the filetail to the file and close it.
-		} else {
-			f = files[filename]
-		}
+		fmt.Println("Creating", filename, "with", details)
+		f, err := os.Create(filename)
+		die(err)
+		files[filename] = f
 		// Add the file header to the file
 		die(templates.ExecuteTemplate(f, "fileheader", details))
 
 		// Loop thru the requests
 		for _, details := range requests {
-			fmt.Println("processing", templatename, "request ", filename, "with", details)
-			// Expand this instance of the template
-			die(goTemplates.ExecuteTemplate(f, templatename, details))
+			if len(details) > 1 { // skip empty details e.g. import only requests have just the templatename at this point
+				fmt.Println("processing", templatename, "request ", filename, "with", details)
+				// Expand this instance of the template
+				die(goTemplates.ExecuteTemplate(f, templatename, details))
+			}
 		}
-
+		// After we are done add the filetail to the file and close it.
 		die(templates.ExecuteTemplate(f, "filetail", details))
 		f.Close()
 		runcmd("gofmt -w " + filename)
 		runcmd("goimports -w " + filename)
 		catfile(filename)
 	}
-
 	fmt.Println("done")
 }
 
@@ -129,7 +136,7 @@ func catfile(filename string) {
 // for debug, cat the file
 func runcmd(commandline string) {
 	fmt.Println("Run: ", commandline)
-	cmd := exec.Command("/bin/bash", "-c", commandline)
+	cmd := exec.Command("/bin/bash", "-c", commandline+" 2>&1")
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	err := cmd.Run()

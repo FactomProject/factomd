@@ -1,6 +1,6 @@
 //+build ignore
 
-var r map[string]string // dummy variable to make teh template delimiters work for gofmt...
+var r map[string]string // dummy variable to make the template delimiters work for gofmt...
 
 r["/*
 This looks syntatically off because it is a template used to generate go code. Inorder to make the template be
