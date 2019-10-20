@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -19,6 +20,7 @@ type Server struct {
 	tlsEnabled bool
 	certFile   string
 	keyFile    string
+	Port       string
 }
 
 type Middleware func(http.HandlerFunc) http.HandlerFunc
@@ -28,7 +30,8 @@ func InitServer(state interfaces.IState) *Server {
 	address := fmt.Sprintf(":%d", state.GetPort())
 
 	router := mux.NewRouter()
-	server := Server{State: state, router: router, tlsEnabled: tlsIsEnabled, certFile: certFile, keyFile: keyFile}
+	port := strconv.Itoa(state.GetPort())
+	server := Server{State: state, router: router, tlsEnabled: tlsIsEnabled, certFile: certFile, keyFile: keyFile, Port: port}
 
 	if tlsIsEnabled {
 		router.Schemes("HTTPS")
@@ -95,9 +98,20 @@ func APILogger() Middleware {
 	}
 }
 
+// IDInjector injects the server's ID into every request as http header
+func IDInjector(server *Server) Middleware {
+	return func(f http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			r.Header.Set("factomd-port", server.Port)
+			f(w, r)
+		}
+	}
+}
+
 // add route and Chain applies middlewares to a http.HandlerFunc
 func (server *Server) addRoute(path string, f func(http.ResponseWriter, *http.Request), middlewares ...Middleware) *mux.Route {
 	middlewares = append(middlewares, APILogger())
+	middlewares = append(middlewares, IDInjector(server))
 	for _, m := range middlewares {
 		f = m(f)
 	}
