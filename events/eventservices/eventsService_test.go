@@ -623,6 +623,56 @@ func TestEventService_IsSendStateChangeEvents(t *testing.T) {
 	assert.True(t, sendStateChangeEvents)
 }
 
+func BenchmarkEventService_Send(b *testing.B) {
+	listener, _ := net.Listen("tcp", ":2135")
+	client, _ := net.Dial("tcp", "127.0.0.1:2135")
+
+	event := events.NodeInfoMessageF(eventmessages.NodeMessageCode_GENERAL, "benchmark message of node: %s", "node name")
+
+	state := &StateMock{
+		IdentityChainID: primitives.NewZeroHash(),
+		RunState:        runstate.Running,
+	}
+
+	params := &EventServiceParams{
+		OutputFormat:          Protobuf,
+		SendStateChangeEvents: false,
+		BroadcastContent:      BroadcastAlways,
+	}
+
+	eventService := &eventServiceInstance{
+		eventsOutQueue:          make(chan *eventmessages.FactomEvent, p2p.StandardChannelSize),
+		connection:              client,
+		params:                  params,
+		owningState:             state,
+		droppedFromQueueCounter: prometheus.NewCounter(prometheus.CounterOpts{}),
+		notSentCounter:          prometheus.NewCounter(prometheus.CounterOpts{}),
+	}
+
+	i := atomic.AtomicInt(0)
+	go func() {
+		server, _ := listener.Accept()
+		reader := bufio.NewReader(server)
+		for {
+			// consume every byte that is send
+			_, err := reader.ReadByte()
+			if err != nil {
+				fmt.Println(err)
+				continue
+			}
+			i++
+		}
+	}()
+	time.Sleep(10 * time.Millisecond)
+	go eventService.processEventsChannel()
+
+	for n := 0; n < b.N; n++ {
+		eventService.Send(event)
+	}
+
+	b.Logf("bytes received: %d", i.Load())
+}
+
 func discardReceivedMetadata(receivingMessage *bytes.Buffer) {
 	// read 1 byte of protocol version
 	_, _ = receivingMessage.ReadByte()

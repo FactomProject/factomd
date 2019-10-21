@@ -97,8 +97,8 @@ func (esi *eventServiceInstance) Send(event events.EventInput) error {
 		}
 	}
 
-	broadcastContent := eventServiceControl.GetBroadcastContent()
-	sendStateChangeEvents := eventServiceControl.IsSendStateChangeEvents()
+	broadcastContent := esi.GetBroadcastContent()
+	sendStateChangeEvents := esi.IsSendStateChangeEvents()
 	factomEvent, err := MapToFactomEvent(event, broadcastContent, sendStateChangeEvents)
 	if err != nil {
 		return fmt.Errorf("failed to map to factom event: %v\n", err)
