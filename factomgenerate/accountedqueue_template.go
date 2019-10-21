@@ -1,57 +1,78 @@
 //+build ignore
 
+//ᐸ/*
+//This looks syntatically off because it is a template used to generate go code. In order to make the template be
+//gofmt able the parse delimiters are set to 'ᐸ'  and ' ᐳ' so ᐸ.typename ᐳ will be replaced by the typename
+//from the //FactomGenerate command
+//*/ᐳ
+
+//ᐸif false  ᐳ
+package Dummy // this is only here to make gofmt happy and is never in the generated code
+//ᐸend ᐳ
+
+import (
+	"github.com/FactomProject/factomd/telemetry"
+)
+
 var r map[string]string // dummy variable to make the template delimiters work for gofmt...
 
-r["/*
-This looks syntatically off because it is a template used to generate go code. Inorder to make the template be
-gofmt able the parse delimiters are set to 'r["'  and '"]' so r[" .typename "] will be replaced by the typename
-from the //FactomGenerate command
-*/"]
-
-//r[" define "accountedqueue" "]
+//ᐸdefine "accountedqueue" ᐳ
 // Start accountedqueue generated go code
 
-type r[" .typename "] struct {
-	common.Name
-	Channel chan r[" .type "]
+type ᐸ.typename ᐳ struct {
+common.Name
+Channel chan ᐸ.type ᐳ
 }
 
-func  (q *r[" .typename "]) Init(parent common.NamedObject, name string, size int) *r[" .typename "]{
-    q.Name.Init(parent, name)
-    q.Channel = make(chan r[" .type "], size)
-    return q
+func (q *ᐸ.typename ᐳ) Init(parent common.NamedObject, name string, size int) *ᐸ.typename ᐳ {
+	q.Name.Init(parent, name)
+	q.Channel = make(chan ᐸ.type ᐳ, size)
+	return q
 }
 
 // construct gauge w/ proper labels
-func (q *r[" .typename "]) Metric() telemetry.Gauge {
+func (q *ᐸ.typename ᐳ) Metric() telemetry.Gauge {
 	return telemetry.ChannelSize.WithLabelValues("state", q.GetPath(), "thread", "current")
 }
 
 // construct counter for tracking totals
-func (q *r[" .typename "]) TotalMetric() telemetry.Counter {
+func (q *ᐸ.typename ᐳ) TotalMetric() telemetry.Counter {
 	return telemetry.TotalCounter.WithLabelValues("state", q.GetPath(), "thread", "total")
 }
 
 // Length of underlying channel
-func (q r[" .typename "]) Length() int {
+func (q ᐸ.typename ᐳ) Length() int {
 	return len(q.Channel)
 }
 
 // Cap of underlying channel
-func (q r[" .typename "]) Cap() int {
+func (q ᐸ.typename ᐳ) Cap() int {
 	return cap(q.Channel)
 }
 
 // Enqueue adds item to channel and instruments based on type
-func (q r[" .typename "]) Enqueue(m r[" .type "]) {
+func (q ᐸ.typename ᐳ) Enqueue(m ᐸ.type ᐳ) {
+	q.Channel <- m
 	q.TotalMetric().Inc()
 	q.Metric().Inc()
-	q.Channel <- m
 }
 
-// Dequeue removes an item from channel and instruments based on type.
+// Enqueue adds item to channel and instruments based on
+// returns true it it enqueues the data
+func (q ᐸ.typename ᐳ) EnqueueNonBlocking(m ᐸ.type ᐳ) bool {
+	select {
+	case q.Channel <- m:
+		q.TotalMetric().Inc()
+		q.Metric().Inc()
+		return true
+	default:
+		return false
+	}
+}
+
+// Dequeue removes an item from channel
 // Returns nil if nothing in // queue
-func (q r[" .typename "]) DequeueNonBlocking() r[" .type "] {
+func (q ᐸ.typename ᐳ) Dequeue() ᐸ.type ᐳ {
 	select {
 	case v := <-q.Channel:
 		q.Metric().Dec()
@@ -61,19 +82,12 @@ func (q r[" .typename "]) DequeueNonBlocking() r[" .type "] {
 	}
 }
 
-// Dequeue removes an item from channel and instruments based on type.
-// Returns nil if nothing in // queue
-func (q r[" .typename "]) Dequeue() r[" .type "] {
-        v := <-q.Channel
-		q.Metric().Dec()
-		return v
-}
-
-// BlockingDequeue will block until it retrieves from queue
-func (q r[" .typename "]) BlockingDequeue() r[" .type "] {
-	v := <- q.Channel
+// Dequeue removes an item from channel
+func (q ᐸ.typename ᐳ) BlockingDequeue() ᐸ.type ᐳ {
+	v := <-q.Channel
 	q.Metric().Dec()
 	return v
 }
+
 // End accountedqueue generated go code
-r[" end "]"
+// ᐸend  ᐳ

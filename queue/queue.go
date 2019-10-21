@@ -75,15 +75,15 @@ func (q *MsgQueue) RegisterPollMetric() {
 
 // Enqueue adds item to channel and instruments based on type
 func (q *MsgQueue) Enqueue(m interfaces.IMsg) {
+	q.Queue_IMsg.Enqueue(m)
 	q.TotalMetric(m).Inc()
 	q.Metric(m).Inc()
-	q.Enqueue(m)
 }
 
 // Dequeue removes an item from channel and instruments based on type.
 // Returns nil if nothing in // queue
-func (q *MsgQueue) DequeueNonBlocking() interfaces.IMsg {
-	v := q.Queue_IMsg.DequeueNonBlocking()
+func (q *MsgQueue) Dequeue() interfaces.IMsg {
+	v := q.Queue_IMsg.Dequeue()
 	if v != nil {
 		q.Metric(v).Dec()
 		return v
@@ -92,8 +92,8 @@ func (q *MsgQueue) DequeueNonBlocking() interfaces.IMsg {
 }
 
 // Dequeue removes an item from channel and instruments based on type.
-func (q *MsgQueue) Dequeue() interfaces.IMsg {
-	v := q.Dequeue()
+func (q *MsgQueue) BlockingDequeue() interfaces.IMsg {
+	v := q.Queue_IMsg.BlockingDequeue()
 	q.Metric(v).Dec()
 	return v
 }

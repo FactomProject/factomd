@@ -26,7 +26,7 @@ func main() {
 	// these templates use 'r["' and '"]' as the delimiter to make the template gofmt compatible
 	goFiles, err := filepath.Glob("./factomgenerate/*_template.go")
 	die(err)
-	goTemplates := template.Must(template.New("").Delims("r[\"", "\"]").ParseFiles(goFiles...))
+	goTemplates := template.Must(template.New("").Delims("ᐸ", "ᐳ").ParseFiles(goFiles...))
 
 	// place to keep all the files
 	files := make(map[string]*os.File)
