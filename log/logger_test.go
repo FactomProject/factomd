@@ -1,8 +1,9 @@
 package log_test
 
 import (
-	"github.com/FactomProject/factomd/log"
 	"testing"
+
+	"github.com/FactomProject/factomd/log"
 )
 
 func TestLogPrintf(t *testing.T) {

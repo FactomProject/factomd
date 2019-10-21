@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/FactomProject/factomd/p2p"
-	"github.com/FactomProject/factomd/state"
-	"github.com/FactomProject/factomd/testHelper"
 	"io/ioutil"
 	"net/http"
 	"testing"
+
+	"github.com/FactomProject/factomd/p2p"
+	"github.com/FactomProject/factomd/state"
+	"github.com/FactomProject/factomd/testHelper"
 )
 
 type remoteNode struct {

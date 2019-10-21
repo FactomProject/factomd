@@ -110,18 +110,12 @@ func Goid() string {
 	return idField
 }
 
-// don't try to remove prefix if caller func is shorter
-func truncate(fn string) string {
-	if len(fn) > prefix {
-		return fn[prefix:]
-	} else {
-		return fn
-	}
-}
-
 func WhereAmIString(depth int) string {
 	_, fn, line, _ := runtime.Caller(depth + 1)
-	return fmt.Sprintf("%v-%s:%d", Goid(), truncate(fn), line)
+	if len(fn) > prefix {
+		fn = fn[prefix:] // Chop off the /home/user/go/src...factomd/ part of the path.
+	}
+	return fmt.Sprintf("%v-%s:%d", Goid(), fn, line)
 }
 
 func WhereAmIMsg(msg string) {
