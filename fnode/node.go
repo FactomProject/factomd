@@ -33,10 +33,6 @@ func GetFnodes() []*FactomNode {
 
 func AddFnode(node *FactomNode) {
 	node.Init(Root, "svc") // root of service
-	node.State.Init(node, node.State.FactomNodeName)
-
-	// FIXME relocate to state ? - this causes issues w/ multiple peers
-	//node.State.Hold.Init(node.State, "HoldingList")
 	fnodes = append(fnodes, node)
 }
 

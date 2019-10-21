@@ -10,6 +10,8 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants/runstate"
+	"github.com/FactomProject/factomd/common/messages/electionMsgs"
+	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/fnode"
 	"github.com/FactomProject/factomd/registry"
 	"github.com/FactomProject/factomd/worker"
@@ -22,11 +24,9 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/common/messages/electionMsgs"
 	"github.com/FactomProject/factomd/common/messages/msgsupport"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/controlPanel"
-	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/state"
@@ -51,9 +51,10 @@ func init() {
 	primitives.General = messages.General
 }
 
-func NewStateTemplate(p *FactomParams) *state.StateTemplate {
+func NewState(p *FactomParams) *state.State {
 
-	s:= new(state.StateTemplate)
+	s := new(state.State)
+	makeServer(s) // add state0 to fnodes
 
 	s.TimestampAtBoot = primitives.NewTimestampNow()
 	preBootTime := new(primitives.Timestamp)
@@ -207,13 +208,17 @@ func NewStateTemplate(p *FactomParams) *state.StateTemplate {
 	s.SetOut(false)
 	s.SetDropRate(p.DropRate)
 
+	s.EFactory = new(electionMsgs.ElectionsFactory)
+
+	addFnodeName(0) // bootstrap id doesn't change
 	return s
 }
+
 func echo(s string, more ...interface{}) {
 	_, _ = os.Stderr.WriteString(fmt.Sprintf(s, more...))
 }
 
-func echoConfig(s *state.StateTemplate, p *FactomParams) {
+func echoConfig(s *state.State, p *FactomParams) {
 
 	fmt.Println(">>>>>>>>>>>>>>>>")
 	fmt.Println(">>>>>>>>>>>>>>>> Net Sim Start!")
@@ -301,7 +306,7 @@ func SetLogLevel(p *FactomParams) {
 	}
 }
 
-func interruptHandler(){
+func interruptHandler() {
 	fmt.Print("<Break>\n")
 	fmt.Print("Gracefully shutting down the server...\n")
 	for _, fnode := range fnode.GetFnodes() {
@@ -313,18 +318,13 @@ func interruptHandler(){
 	os.Exit(0)
 }
 
-func NetStart(w *worker.Thread, p *FactomParams, listenToStdin bool) *state.State {
-	w.RegisterInterruptHandler(interruptHandler)
-	SetLogLevel(p)
-
-	// init other modules
-	messages.AckBalanceHash = p.AckbalanceHash
-
-	s := NewStateTemplate(p)
-	s.EFactory = new(electionMsgs.ElectionsFactory)
+// creates a new state an initializes state0 params
+// state0 is the only state object when connecting to mainnet
+// during simulation state0 is used to spawn other simulated nodes
+func StateFactory(w *worker.Thread, p *FactomParams) *state.State {
+	s := NewState(p)
 	s.Initialize(w)
 	setupFirstAuthority(s)
-
 	if p.Sync2 >= 0 {
 		s.EntryDBHeightComplete = uint32(p.Sync2)
 		s.LogPrintf("EntrySync", "Force with Sync2 NetStart EntryDBHeightComplete = %d", s.EntryDBHeightComplete)
@@ -339,94 +339,68 @@ func NetStart(w *worker.Thread, p *FactomParams, listenToStdin bool) *state.Stat
 			s.LogPrintf("EntrySync", "NetStart EntryDBHeightComplete = %d", s.EntryDBHeightComplete)
 		}
 	}
-
 	echoConfig(s, p)
-
-	//************************************************
-	// Actually setup the Network
-	//************************************************
-
-	for i := 0; i < p.Cnt; i++ {
-		makeServer(s) // We clone s to make all of our servers
-	}
-
-	addFnodeName(0) // bootstrap id doesn't change
-
-	// Modify Identities of new nodes
-	if fnode.Len() > 1 && len(s.Prefix) == 0 {
-		modifyLoadIdentities() // We clone s to make all of our servers
-	}
-
-	// REVIEW: is there a better place for this?
-	w.Run(func() {
-		// Setup the Skeleton Identity & Registration
-		nodes := fnode.GetFnodes()
-		for i := range nodes {
-			nodes[i].State.IntiateNetworkSkeletonIdentity()
-			nodes[i].State.InitiateNetworkIdentityRegistration()
-		}
-	}, "RegisterSkeleton")
-
-	startNetwork(w, s, p)
 
 	// Initiate dbstate plugin if enabled. Only does so for first node,
 	// any more nodes on sim control will use default method
-	{
-		state0 := fnode.Get(0).State
-		state0.SetTorrentUploader(p.TorUpload)
-		if p.TorManage {
-			state0.SetUseTorrent(true)
-			manager, err := LaunchDBStateManagePlugin(w, p.PluginPath, state0.InMsgQueue(), state0, state0.GetServerPrivateKey(), p.MemProfileRate)
-			if err != nil {
-				panic("Encountered an error while trying to use torrent DBState manager: " + err.Error())
-			}
-			state0.DBStateManager = manager
-		} else {
-			state0.SetUseTorrent(false)
+	s.SetTorrentUploader(p.TorUpload)
+	if p.TorManage {
+		s.SetUseTorrent(true)
+		manager, err := LaunchDBStateManagePlugin(w, p.PluginPath, s.InMsgQueue(), s, s.GetServerPrivateKey(), p.MemProfileRate)
+		if err != nil {
+			panic("Encountered an error while trying to use torrent DBState manager: " + err.Error())
 		}
-	}
-
-
-	if p.Journal != "" {
-		go LoadJournal(s, p.Journal)
-		startServers(w, false)
+		s.DBStateManager = manager
 	} else {
-		startServers(w, true)
+		s.SetUseTorrent(false)
 	}
 
-	{
-		nodes := fnode.GetFnodes()
+	initAnchors(s, p.ReparseAnchorChains)
 
-		// Anchoring related configurations
-		config := s.Cfg.(*util.FactomdConfig)
-		if len(config.App.BitcoinAnchorRecordPublicKeys) > 0 {
-			err := s.GetDB().(*databaseOverlay.Overlay).SetBitcoinAnchorRecordPublicKeysFromHex(config.App.BitcoinAnchorRecordPublicKeys)
-			if err != nil {
-				panic("Encountered an error while trying to set custom Bitcoin anchor record keys from config")
-			}
-		}
-		if len(config.App.EthereumAnchorRecordPublicKeys) > 0 {
-			err := s.GetDB().(*databaseOverlay.Overlay).SetEthereumAnchorRecordPublicKeysFromHex(config.App.EthereumAnchorRecordPublicKeys)
-			if err != nil {
-				panic("Encountered an error while trying to set custom Ethereum anchor record keys from config")
-			}
-		}
-		if p.ReparseAnchorChains {
-			fmt.Println("Reparsing anchor chains...")
-			err := nodes[0].State.GetDB().(*databaseOverlay.Overlay).ReparseAnchorChains()
-			if err != nil {
-				panic("Encountered an error while trying to re-parse anchor chains: " + err.Error())
-			}
-		}
-
-	}
-
-	startWebserver(w)
-	simControl(w, p.ListenTo, listenToStdin)
-	return fnode.Get(0).State
+	return s
 }
 
-func startWebserver(w*worker.Thread) {
+func NetStart(w *worker.Thread, p *FactomParams, listenToStdin bool) *state.State {
+	messages.AckBalanceHash = p.AckbalanceHash
+	w.RegisterInterruptHandler(interruptHandler)
+	SetLogLevel(p)
+	s := StateFactory(w, p)
+	for i := 1; i < p.Cnt; i++ {
+		makeServer(s) // clone state0 to add simulated servers
+	}
+	startNetwork(w, s, p)
+	webserver(w)
+	simControl(w, p.ListenTo, listenToStdin)
+
+	return s
+}
+
+func initAnchors(s *state.State, reparse bool)  {
+
+	// Anchoring related configurations
+	config := s.Cfg.(*util.FactomdConfig)
+	if len(config.App.BitcoinAnchorRecordPublicKeys) > 0 {
+		err := s.GetDB().(*databaseOverlay.Overlay).SetBitcoinAnchorRecordPublicKeysFromHex(config.App.BitcoinAnchorRecordPublicKeys)
+		if err != nil {
+			panic("Encountered an error while trying to set custom Bitcoin anchor record keys from config")
+		}
+	}
+	if len(config.App.EthereumAnchorRecordPublicKeys) > 0 {
+		err := s.GetDB().(*databaseOverlay.Overlay).SetEthereumAnchorRecordPublicKeysFromHex(config.App.EthereumAnchorRecordPublicKeys)
+		if err != nil {
+			panic("Encountered an error while trying to set custom Ethereum anchor record keys from config")
+		}
+	}
+	if reparse {
+		fmt.Println("Reparsing anchor chains...")
+		err := s.GetDB().(*databaseOverlay.Overlay).ReparseAnchorChains()
+		if err != nil {
+			panic("Encountered an error while trying to re-parse anchor chains: " + err.Error())
+		}
+	}
+}
+
+func webserver(w *worker.Thread) {
 	state0 := fnode.Get(0).State
 	// Start the webserver
 	wsapi.Start(w, state0)
@@ -443,6 +417,10 @@ func startWebserver(w*worker.Thread) {
 }
 
 func startNetwork(w *worker.Thread, s *state.State, p *FactomParams) {
+	// Modify Identities of new nodes
+	if fnode.Len() > 1 && len(s.Prefix) == 0 {
+		modifyLoadIdentities() // We clone s to make all of our servers
+	}
 
 	// Start the P2P network
 	var networkID p2p.NetworkID
@@ -639,6 +617,15 @@ func startNetwork(w *worker.Thread, s *state.State, p *FactomParams) {
 		}
 		fmt.Printf("Paste the network info above into http://arborjs.org/halfviz to visualize the network\n")
 	}
+
+	if p.Journal != "" {
+		go LoadJournal(s, p.Journal)
+		// FIXME: refactor to remove journal
+		// and relocate startServers to NetStart
+		startServers(w, false)
+	} else {
+		startServers(w, true)
+	}
 }
 
 func printGraphData(filename string, period int) {
@@ -658,19 +645,16 @@ func printGraphData(filename string, period int) {
 // and start the servers.
 //**********************************************************************
 func makeServer(s *state.State) *fnode.FactomNode {
-	// All other states are clones of the first state.  Which this routine
-	// gets passed to it.
-	newState := s
+	node := new(fnode.FactomNode)
 
 	if fnode.Len() > 0 {
-		newState = s.Clone(len(fnode.GetFnodes())).(*state.State)
-		newState.EFactory = new(electionMsgs.ElectionsFactory) // not an elegant place but before we let the messages hit the state
+		node.State= s.Clone(len(fnode.GetFnodes())).(*state.State)
+		node.State.EFactory = new(electionMsgs.ElectionsFactory)
 		time.Sleep(10 * time.Millisecond)
-		newState.EFactory = new(electionMsgs.ElectionsFactory)
+	} else {
+		node.State = s
 	}
 
-	node := new(fnode.FactomNode)
-	node.State = newState
 	fnode.AddFnode(node)
 
 	return node

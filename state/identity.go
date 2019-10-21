@@ -341,6 +341,10 @@ func (st *State) AddIdentityEblocks(cid interfaces.IHash, rootChain bool) error 
 		return fmt.Errorf("[%s] identity not found", cid.String()[:10])
 	}
 
+	if st.DB == nil {
+		panic("DB is nil")
+	}
+
 	// A management chain was found. We need to add eblocks to it's synclist
 	eblocks, err := st.DB.FetchAllEBlocksByChain(cid)
 	if err != nil {

@@ -36,6 +36,7 @@ func NewHoldingList(w *worker.Thread, s *State) *HoldingList {
 	l.s = s
 	l.dependents = make(map[[32]byte]heldMessage)
 	l.w = w
+	l.Init(s, "DependentHolding")
 	return &l
 }
 

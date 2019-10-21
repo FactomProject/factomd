@@ -12,9 +12,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/FactomProject/factomd/common"
-	"github.com/FactomProject/factomd/queue"
-	"github.com/FactomProject/factomd/worker"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -22,6 +19,10 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/FactomProject/factomd/common"
+	"github.com/FactomProject/factomd/queue"
+	"github.com/FactomProject/factomd/worker"
 
 	"github.com/FactomProject/factomd/common/constants/runstate"
 
@@ -451,8 +452,6 @@ type State struct {
 	Reveals                       Last100
 }
 
-type StateTemplate = State
-
 var _ interfaces.IState = (*State)(nil)
 
 type EntryUpdate struct {
@@ -468,7 +467,7 @@ func (s *State) GetRunState() runstate.RunState {
 	return s.RunState
 }
 
-func (s *StateTemplate) Clone(cloneNumber int) interfaces.IState {
+func (s *State) Clone(cloneNumber int) interfaces.IState {
 	newState := new(State)
 	number := fmt.Sprintf("%02d", cloneNumber)
 
@@ -996,6 +995,7 @@ func (s *State) Initialize(w *worker.Thread) {
 	}
 
 	s.Hold = NewHoldingList(w, s)            // setup the dependent holding map
+
 	s.TimeOffset = new(primitives.Timestamp) //interfaces.Timestamp(int64(rand.Int63() % int64(time.Microsecond*10)))
 
 	s.InvalidMessages = make(map[[32]byte]interfaces.IMsg, 0)
@@ -1225,6 +1225,10 @@ func (s *State) Initialize(w *worker.Thread) {
 		path := filepath.Join(s.LdbPath, s.Network, "dbstates")
 		os.MkdirAll(path, 0775)
 	}
+
+	// Setup the Skeleton Identity & Registration
+	s.IntiateNetworkSkeletonIdentity()
+	s.InitiateNetworkIdentityRegistration()
 }
 
 func (s *State) HookLogstash() error {
