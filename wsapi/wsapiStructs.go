@@ -168,8 +168,8 @@ type SendRawMessageResponse struct {
 
 type SendReplayMessageResponse struct {
 	Message string `json:"message"`
-	Start   string `json:"startheight"`
-	End     string `json:"endheight"`
+	Start   int64  `json:"startheight"`
+	End     int64  `json:"endheight"`
 }
 
 type TransactionRateResponse struct {
