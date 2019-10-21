@@ -52,7 +52,6 @@ func init() {
 }
 
 func NewState(p *FactomParams) *state.State {
-
 	s := new(state.State)
 	makeServer(s) // add state0 to fnodes
 
@@ -84,7 +83,6 @@ func NewState(p *FactomParams) *state.State {
 	s.OneLeader = p.Rotate
 	s.TimeOffset = primitives.NewTimestampFromMilliseconds(uint64(p.TimeOffset))
 	s.StartDelayLimit = p.StartDelay * 1000
-	s.Journaling = p.Journaling
 	s.FactomdVersion = FactomdVersion
 
 	// Set the wait for entries flag
@@ -108,20 +106,6 @@ func NewState(p *FactomParams) *state.State {
 	}
 
 	s.FaultTimeout = 9999999 //todo: Old Fault Mechanism -- remove
-
-	if p.Follower {
-		p.Leader = false
-	}
-	if p.Leader {
-		p.Follower = false
-	}
-	if !p.Follower && !p.Leader {
-		panic("Not a leader or a follower")
-	}
-
-	if p.Journal != "" {
-		p.Cnt = 1
-	}
 
 	if p.RpcUser != "" {
 		s.RpcUser = p.RpcUser
@@ -175,20 +159,6 @@ func NewState(p *FactomParams) *state.State {
 
 	s.UseLogstash = p.UseLogstash
 	s.LogstashURL = p.LogstashURL
-
-	if p.Journal != "" {
-		if s.DBType != "Map" {
-			fmt.Println("Journal is ALWAYS a Map database")
-			s.DBType = "Map"
-		}
-	}
-	if p.Follower {
-		s.NodeMode = "FULL"
-		leadID := primitives.Sha([]byte(s.Prefix + "FNode0"))
-		if s.IdentityChainID.IsSameAs(leadID) {
-			s.SetIdentityChainID(primitives.Sha([]byte(time.Now().String()))) // Make sure this node is NOT a leader
-		}
-	}
 
 	s.KeepMismatch = p.KeepMismatch
 
@@ -246,7 +216,6 @@ func echoConfig(s *state.State, p *FactomParams) {
 	echo("%20s %d\n", "FastSaveRate", p.FastSaveRate)
 	echo("%20s \"%s\"\n", "net spec", pnet)
 	echo("%20s %d\n", "Msgs droped", p.DropRate)
-	echo("%20s \"%s\"\n", "journal", p.Journal)
 	echo("%20s \"%s\"\n", "database", p.Db)
 	echo("%20s \"%s\"\n", "database for clones", p.CloneDB)
 	echo("%20s \"%s\"\n", "peers", p.Peers)
@@ -339,7 +308,6 @@ func StateFactory(w *worker.Thread, p *FactomParams) *state.State {
 			s.LogPrintf("EntrySync", "NetStart EntryDBHeightComplete = %d", s.EntryDBHeightComplete)
 		}
 	}
-	echoConfig(s, p)
 
 	// Initiate dbstate plugin if enabled. Only does so for first node,
 	// any more nodes on sim control will use default method
@@ -365,17 +333,19 @@ func NetStart(w *worker.Thread, p *FactomParams, listenToStdin bool) *state.Stat
 	w.RegisterInterruptHandler(interruptHandler)
 	SetLogLevel(p)
 	s := StateFactory(w, p)
+	echoConfig(s, p)
 	for i := 1; i < p.Cnt; i++ {
 		makeServer(s) // clone state0 to add simulated servers
 	}
 	startNetwork(w, s, p)
+	startServers(w)
 	webserver(w)
 	simControl(w, p.ListenTo, listenToStdin)
 
 	return s
 }
 
-func initAnchors(s *state.State, reparse bool)  {
+func initAnchors(s *state.State, reparse bool) {
 
 	// Anchoring related configurations
 	config := s.Cfg.(*util.FactomdConfig)
@@ -617,15 +587,6 @@ func startNetwork(w *worker.Thread, s *state.State, p *FactomParams) {
 		}
 		fmt.Printf("Paste the network info above into http://arborjs.org/halfviz to visualize the network\n")
 	}
-
-	if p.Journal != "" {
-		go LoadJournal(s, p.Journal)
-		// FIXME: refactor to remove journal
-		// and relocate startServers to NetStart
-		startServers(w, false)
-	} else {
-		startServers(w, true)
-	}
 }
 
 func printGraphData(filename string, period int) {
@@ -648,7 +609,7 @@ func makeServer(s *state.State) *fnode.FactomNode {
 	node := new(fnode.FactomNode)
 
 	if fnode.Len() > 0 {
-		node.State= s.Clone(len(fnode.GetFnodes())).(*state.State)
+		node.State = s.Clone(len(fnode.GetFnodes())).(*state.State)
 		node.State.EFactory = new(electionMsgs.ElectionsFactory)
 		time.Sleep(10 * time.Millisecond)
 	} else {
@@ -660,28 +621,25 @@ func makeServer(s *state.State) *fnode.FactomNode {
 	return node
 }
 
-func startServers(w *worker.Thread, load bool) {
+func startServers(w *worker.Thread) {
 	w.Spawn(func(w *worker.Thread) {
 		for i, node := range fnode.GetFnodes() {
 			if i > 0 {
 				node.State.Initialize(w)
 			}
-			startServer(w, i, node, load)
+			startServer(w, i, node)
 		}
 	}, "StartServers")
 }
 
-func startServer(w *worker.Thread, i int, fnode *fnode.FactomNode, load bool) {
+func startServer(w *worker.Thread, i int, fnode *fnode.FactomNode) {
 
 	NetworkProcessorNet(w, fnode)
 	fnode.State.ValidatorLoop(w)
 	elections.Run(w, fnode.State)
 	fnode.State.StartMMR(w)
 
-	if load {
-		w.Run(func() { state.LoadDatabase(fnode.State) }, "LoadDatabase")
-	}
-
+	w.Run(func() { state.LoadDatabase(fnode.State) }, "LoadDatabase")
 	w.Run(fnode.State.GoSyncEntries, "SyncEntries")
 	w.Run(func() { Timer(fnode.State) }, "Timer")
 	w.Run(fnode.State.MissingMessageResponseHandler.Run, "MMRHandler")
@@ -719,7 +677,7 @@ func AddNode() {
 	AddSimPeer(fnodes, i, i-1) // KLUDGE peer w/ only last node
 	p := registry.New()
 	p.Register(func(w *worker.Thread) {
-		startServer(w, i, fnodes[i], true)
+		startServer(w, i, fnodes[i])
 	}, "AddNode")
 	go p.Run() // kick off independent process
 }
