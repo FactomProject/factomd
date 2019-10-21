@@ -24,7 +24,7 @@ var (
 
 	challenge = []byte("Challenge")
 
-	lockedError = fmt.Errorf("encrypted database is locked")
+	lockedError = fmt.Errorf("Wallet is locked")
 	TimeCheck   = time.Time{} // Used to Check if time has been initiated
 )
 
@@ -288,7 +288,7 @@ func (db *EncryptedDB) Init(filename string, dbtype string) {
 
 func (db *EncryptedDB) DoesKeyExist(bucket, key []byte) (bool, error) {
 	if db.isLocked() {
-		return false, fmt.Errorf("Encrypted database is locked")
+		return false, fmt.Errorf("Wallet is locked")
 	}
 
 	return db.db.DoesKeyExist(bucket, key)
