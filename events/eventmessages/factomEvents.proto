@@ -5,6 +5,8 @@ option java_package = "com.factom.factomd.eventmessages";
 
 import "google/protobuf/timestamp.proto";
 import "eventmessages/adminBlock.proto";
+import "eventmessages/directoryBlock.proto";
+import "eventmessages/entryBlock.proto";
 import "eventmessages/factoidBlock.proto";
 
 // ====  ROOT EVENT =====
@@ -68,50 +70,10 @@ message DirectoryBlockCommit {
     repeated EntryBlockEntry entryBlockEntries = 6;
 }
 
-// ====  DIRECTORY BLOCK DETAILS =====
-message DirectoryBlock {
-    DirectoryBlockHeader header = 1;
-    repeated DirectoryBlockEntry entries = 2;
-}
-
-message DirectoryBlockHeader {
-    bytes bodyMerkleRoot = 1;
-    bytes previousKeyMerkleRoot = 2;
-    bytes previousFullHash = 3;
-    google.protobuf.Timestamp timestamp = 4;
-    uint32 blockHeight = 5;
-    uint32 blockCount = 6;
-    uint32 version = 7;
-    uint32 networkID = 8;
-}
-
-message DirectoryBlockEntry {
-    bytes chainID = 1;
-    bytes keyMerkleRoot = 2;
-}
-
-message EntryBlock {
-    EntryBlockHeader header = 1;
-    repeated bytes entryHashes = 2;
-}
-
-message EntryBlockHeader {
-    bytes bodyMerkleRoot = 1;
-    bytes chainID = 2;
-    bytes previousFullHash = 3;
-    bytes previousKeyMerkleRoot = 4;
-    uint32 blockHeight = 5;
-    uint32 blockSequence = 6;
-    uint32 entryCount = 7;
-}
-
-message EntryBlockEntry {
-    bytes hash = 1;
-    repeated bytes externalIDs = 2;
-    bytes content = 3;
-    uint32 version = 4;
-}
-
+/* Although readability would increase when the entry credit block would have its own file. The oneof in
+ * EntryCreditBlockEntry prevents this. This is linked back to type that are defined in this file.
+ */
+// ====  ENTRY CREDIT BLOCK =====
 message EntryCreditBlock {
     EntryCreditBlockHeader header = 1;
     repeated EntryCreditBlockEntry entries = 2;

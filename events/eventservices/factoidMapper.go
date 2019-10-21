@@ -98,12 +98,10 @@ func mapSignatureBlock(block interfaces.ISignatureBlock) *eventmessages.FactoidS
 	return result
 }
 
-func mapFactoidSignatureBlockSingatures(signatures []interfaces.ISignature) []*eventmessages.FactoidSignature {
-	result := make([]*eventmessages.FactoidSignature, len(signatures))
+func mapFactoidSignatureBlockSingatures(signatures []interfaces.ISignature) [][]byte {
+	result := make([][]byte, len(signatures))
 	for i, signature := range signatures {
-		result[i] = &eventmessages.FactoidSignature{
-			SignatureValue: signature.Bytes(),
-		}
+		result[i] = signature.Bytes()
 	}
 	return result
 }
