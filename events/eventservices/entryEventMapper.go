@@ -42,7 +42,6 @@ func mapRevealEntryEvent(entityState eventmessages.EntityState, revealEntry *mes
 			EntityState: entityState,
 			Entry:       mapEntryBlockEntry(revealEntry.Entry, true),
 			Timestamp:   convertTimeToTimestamp(revealEntry.Timestamp.GetTime()),
-			ChainID:     revealEntry.GetChainIDHash().Bytes(),
 		},
 	}
 }
@@ -98,7 +97,8 @@ func mapEntryBlockEntries(entries []interfaces.IEBEntry, shouldIncludeContent bo
 
 func mapEntryBlockEntry(entry interfaces.IEBEntry, shouldIncludeContent bool) *eventmessages.EntryBlockEntry {
 	blockEntry := &eventmessages.EntryBlockEntry{
-		Hash: entry.GetHash().Bytes(),
+		Hash:    entry.GetHash().Bytes(),
+		ChainID: entry.GetChainIDHash().Bytes(),
 	}
 	if shouldIncludeContent {
 		blockEntry.ExternalIDs = entry.ExternalIDs()

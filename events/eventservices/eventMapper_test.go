@@ -201,7 +201,11 @@ func testEntryRevealMapping(t *testing.T) {
 	assert.NotNil(t, entryCommit.Entry)
 	assert.NotNil(t, entryCommit.Timestamp)
 	assert.True(t, entryCommit.Timestamp.Nanos > 0)
-	assert.NotNil(t, entryCommit.ChainID)
+	assert.NotNil(t, entryCommit.Entry.Version)
+	assert.NotNil(t, entryCommit.Entry.Hash)
+	assert.NotNil(t, entryCommit.Entry.ChainID)
+	assert.NotNil(t, entryCommit.Entry.Content)
+	assert.NotNil(t, entryCommit.Entry.ExternalIDs)
 
 	_, err = entryCommit.Marshal()
 	assert.Nil(t, err)

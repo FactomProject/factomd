@@ -133,8 +133,7 @@ func mapNodeMessageEvent(nodeMessageEvent *events.NodeMessageEvent) (*eventmessa
 	return event, nil
 }
 
-func mapDBStateFromMsg(msg interfaces.IMsg, shouldIncludeContent bool) *eventmessages.FactomEvent_DirectoryBlockCommit {
-	dbStateMessage := msg.(*messages.DBStateMsg)
+func mapDBStateFromMsg(dbStateMessage *messages.DBStateMsg, shouldIncludeContent bool) *eventmessages.FactomEvent_DirectoryBlockCommit {
 	event := &eventmessages.FactomEvent_DirectoryBlockCommit{DirectoryBlockCommit: &eventmessages.DirectoryBlockCommit{
 		DirectoryBlock:    mapDirectoryBlock(dbStateMessage.DirectoryBlock),
 		AdminBlock:        mapAdminBlock(dbStateMessage.AdminBlock),
