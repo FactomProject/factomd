@@ -291,8 +291,17 @@ func interruptHandler() {
 // state0 is the only state object when connecting to mainnet
 // during simulation state0 is used to spawn other simulated nodes
 func StateFactory(w *worker.Thread, p *FactomParams) *state.State {
+	if fnode.Len() != 0 {
+		panic("can only use factory for state0")
+	}
+
 	s := NewState(p)
-	s.Initialize(w)
+	{
+		// REVIEW: can this be refactored
+		node := fnode.Get(0)
+		s.Init(node, s.FactomNodeName)
+		s.Initialize(w)
+	}
 	setupFirstAuthority(s)
 	if p.Sync2 >= 0 {
 		s.EntryDBHeightComplete = uint32(p.Sync2)
@@ -324,7 +333,6 @@ func StateFactory(w *worker.Thread, p *FactomParams) *state.State {
 	}
 
 	initAnchors(s, p.ReparseAnchorChains)
-
 	return s
 }
 
@@ -345,9 +353,8 @@ func NetStart(w *worker.Thread, p *FactomParams, listenToStdin bool) *state.Stat
 	return s
 }
 
+// Anchoring related configurations
 func initAnchors(s *state.State, reparse bool) {
-
-	// Anchoring related configurations
 	config := s.Cfg.(*util.FactomdConfig)
 	if len(config.App.BitcoinAnchorRecordPublicKeys) > 0 {
 		err := s.GetDB().(*databaseOverlay.Overlay).SetBitcoinAnchorRecordPublicKeysFromHex(config.App.BitcoinAnchorRecordPublicKeys)
@@ -370,9 +377,9 @@ func initAnchors(s *state.State, reparse bool) {
 	}
 }
 
+// Start the webserver
 func webserver(w *worker.Thread) {
 	state0 := fnode.Get(0).State
-	// Start the webserver
 	wsapi.Start(w, state0)
 	if state0.DebugExec() && llog.CheckFileName("graphData.txt") {
 		go printGraphData("graphData.txt", 30)
@@ -609,14 +616,16 @@ func makeServer(s *state.State) *fnode.FactomNode {
 	node := new(fnode.FactomNode)
 
 	if fnode.Len() > 0 {
-		node.State = s.Clone(len(fnode.GetFnodes())).(*state.State)
-		node.State.EFactory = new(electionMsgs.ElectionsFactory)
+		newState := s.Clone(len(fnode.GetFnodes())).(*state.State)
+		newState.EFactory = new(electionMsgs.ElectionsFactory)
+		node.State = newState
+		fnode.AddFnode(node)
+		newState.Init(node, newState.FactomNodeName)
 		time.Sleep(10 * time.Millisecond)
 	} else {
 		node.State = s
+		fnode.AddFnode(node)
 	}
-
-	fnode.AddFnode(node)
 
 	return node
 }
