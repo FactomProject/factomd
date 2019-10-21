@@ -38,10 +38,6 @@ message RCD1 {
 }
 
 message FactoidSignatureBlock {
-    repeated FactoidSignature signature = 1;
-}
-
-message FactoidSignature {
-    bytes signatureValue = 1;
+    repeated bytes signature = 1;
 }
 

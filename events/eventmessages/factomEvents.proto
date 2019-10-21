@@ -36,7 +36,6 @@ message ChainCommit {
     uint32 version = 9;
 }
 
-
 message EntryCommit {
     EntityState entityState = 1;
     bytes entryHash = 2;
@@ -47,7 +46,6 @@ message EntryCommit {
     uint32 version = 7;
 }
 
-
 message EntryReveal {
     EntityState entityState = 1;
     EntryBlockEntry entry = 2;
@@ -55,13 +53,11 @@ message EntryReveal {
     bytes chainID = 4;
 }
 
-
 message StateChange {
     bytes entityHash = 1;
     EntityState entityState = 2;
     uint32 blockHeight = 3;
 }
-
 
 message DirectoryBlockCommit {
     DirectoryBlock directoryBlock = 1;
@@ -162,7 +158,6 @@ message ProcessMessage {
     Level level = 2;
     string messageText = 3;
 }
-
 
 message NodeMessage {
     NodeMessageCode messageCode = 1;
