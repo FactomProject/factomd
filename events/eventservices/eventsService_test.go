@@ -36,7 +36,7 @@ func TestEventsService_Send(t *testing.T) {
 	var finished atomic.AtomicBool
 	finished.Store(false)
 
-	expectedMessage := `{"identityChainID":{"hashValue":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="},"Value":{"nodeMessage":{"messageText":"test message of node: node name"}}}`
+	expectedMessage := `{"identityChainID":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=","Value":{"nodeMessage":{"messageText":"test message of node: node name"}}}`
 
 	// mock server by reading everything until stop byte is found
 	// use the stop byte to stop as soon as possible, note: don't use stop byte in test message before the end
@@ -153,18 +153,20 @@ func TestEventsService_SendNoStartupMessages(t *testing.T) {
 				assert.Equal(t, 0, len(eventService.eventsOutQueue))
 			},
 		},
-		/*"nil-event": { FIXME: this test fails now, possibly because of an incorrect branch merge
+		"nil-event": {
 			Service: &eventServiceInstance{
 				eventsOutQueue: make(chan *eventmessages.FactomEvent, p2p.StandardChannelSize),
 				owningState:    StateMock{},
-				params:         &EventServiceParams{},
+				params: &EventServiceParams{
+					ReplayDuringStartup: true,
+				},
 			},
 			Event: nil,
 			Assertion: func(t *testing.T, eventService *eventServiceInstance, err error) {
 				assert.Error(t, err)
 				assert.Equal(t, 0, len(eventService.eventsOutQueue))
 			},
-		},*/
+		},
 		"mute-replay-starting": {
 			Service: &eventServiceInstance{
 				eventsOutQueue: make(chan *eventmessages.FactomEvent, p2p.StandardChannelSize),

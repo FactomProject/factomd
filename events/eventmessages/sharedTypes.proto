@@ -4,24 +4,7 @@ option go_package = "eventmessages";
 option java_package = "com.factom.factomd.eventmessages";
 
 // ====  SHARED STRUCTURES =====
-message Hash {
-    bytes hashValue = 1;
-}
-
-message ExternalId {
-    bytes binaryValue = 1;
-}
-
-message Content {
-    bytes binaryValue = 1;
-}
-
-message Signature {
-    bytes publicKey = 1;
-    bytes signature = 2;
-}
-
 message TransactionAddress {
     uint64 amount = 1;
-    Hash address = 2;
+    bytes address = 2;
 }

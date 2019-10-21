@@ -12,21 +12,15 @@ func mapCommitChain(entityState eventmessages.EntityState, commitChainMsg *messa
 
 	result := &eventmessages.FactomEvent_ChainCommit{
 		ChainCommit: &eventmessages.ChainCommit{
-			EntityState: entityState,
-			ChainIDHash: &eventmessages.Hash{
-				HashValue: commitChain.ChainIDHash.Bytes(),
-			},
-			EntryHash: &eventmessages.Hash{
-				HashValue: commitChain.EntryHash.Bytes(),
-			},
+			EntityState:          entityState,
+			ChainIDHash:          commitChain.ChainIDHash.Bytes(),
+			EntryHash:            commitChain.EntryHash.Bytes(),
 			Timestamp:            convertByteSlice6ToTimestamp(commitChain.MilliTime),
 			Credits:              uint32(commitChain.Credits),
 			EntryCreditPublicKey: ecPubKey[:],
 			Signature:            sig[:],
 			Version:              uint32(commitChain.Version),
-			Weld: &eventmessages.Hash{
-				HashValue: commitChain.Weld.Bytes(),
-			},
+			Weld:                 commitChain.Weld.Bytes(),
 		}}
 	return result
 }
@@ -34,8 +28,7 @@ func mapCommitChain(entityState eventmessages.EntityState, commitChainMsg *messa
 func mapCommitChainState(state eventmessages.EntityState, commitChainMsg *messages.CommitChainMsg) *eventmessages.FactomEvent_StateChange {
 	result := &eventmessages.FactomEvent_StateChange{
 		StateChange: &eventmessages.StateChange{
-			EntityHash: &eventmessages.Hash{
-				HashValue: commitChainMsg.CommitChain.ChainIDHash.Bytes()},
+			EntityHash:  commitChainMsg.CommitChain.ChainIDHash.Bytes(),
 			EntityState: state,
 		},
 	}

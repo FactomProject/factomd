@@ -93,23 +93,14 @@ func assertEntryBlockEntries(t *testing.T, blockEntries []*eventmessages.EntryBl
 		assert.NotNil(t, blockEntry)
 		assert.NotNil(t, blockEntry.Content)
 		assert.NotNil(t, blockEntry.Hash)
-		assertExtIds(t, blockEntry.ExternalIDs)
+		assertHashes(t, blockEntry.ExternalIDs)
 	}
 }
 
-func assertHashes(t *testing.T, hashes []*eventmessages.Hash) {
+func assertHashes(t *testing.T, hashes [][]byte) {
 	assert.NotNil(t, hashes)
 	for _, hash := range hashes {
 		assert.NotNil(t, hash)
-		assert.NotNil(t, hash.HashValue)
-	}
-}
-
-func assertExtIds(t *testing.T, extIds []*eventmessages.ExternalId) {
-	assert.NotNil(t, extIds)
-	for _, extId := range extIds {
-		assert.NotNil(t, extId)
-		assert.NotNil(t, extId.BinaryValue)
 	}
 }
 
@@ -241,9 +232,7 @@ func testStateChangeMapping(t *testing.T) {
 	stateChangedEvent := event.Value.(*eventmessages.FactomEvent_StateChange).StateChange
 	assert.NotNil(t, stateChangedEvent)
 	assert.EqualValues(t, eventmessages.EntityState_ACCEPTED, stateChangedEvent.EntityState)
-	entityHash := &eventmessages.Hash{
-		HashValue: msg.CommitEntry.EntryHash.Bytes(),
-	}
+	entityHash := msg.CommitEntry.EntryHash.Bytes()
 	assert.EqualValues(t, entityHash, stateChangedEvent.EntityHash)
 }
 

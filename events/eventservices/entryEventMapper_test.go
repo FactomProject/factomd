@@ -81,7 +81,7 @@ func TestMapEntryBlockHashes(t *testing.T) {
 
 	assert.NotNil(t, entryBlockHashes)
 	assert.Equal(t, 1, len(entryBlockHashes))
-	assert.NotNil(t, entryBlockHashes[0].HashValue)
+	assert.NotNil(t, entryBlockHashes[0])
 }
 
 func TestMapEntryBlockHeader(t *testing.T) {
@@ -113,7 +113,8 @@ func TestMapEntryBlockEntries(t *testing.T) {
 }
 
 func TestMapEntryBlockEntriesWithContent(t *testing.T) {
-	entries := []interfaces.IEBEntry{new(entryBlock.Entry)}
+	entry := entryBlock.RandomEntry()
+	entries := []interfaces.IEBEntry{entry}
 	entryBlockEntries := mapEntryBlockEntries(entries, true)
 
 	assert.NotNil(t, entryBlockEntries)
@@ -139,8 +140,7 @@ func TestMapEntryBlockEntry(t *testing.T) {
 }
 
 func TestMapEntryBlockEntryWithContent(t *testing.T) {
-	entry := new(entryBlock.Entry)
-
+	entry := entryBlock.RandomEntry()
 	entryBlockEntry := mapEntryBlockEntry(entry, true)
 
 	assert.NotNil(t, entryBlockEntry)
@@ -148,16 +148,6 @@ func TestMapEntryBlockEntryWithContent(t *testing.T) {
 	assert.NotNil(t, entryBlockEntry.Hash)
 	assert.NotNil(t, entryBlockEntry.Content)
 	assert.NotNil(t, entryBlockEntry.ExternalIDs)
-}
-
-func TestMapExternalIds(t *testing.T) {
-	externalIds := [][]byte{[]byte("0"), []byte("1")}
-	ids := mapExternalIds(externalIds)
-
-	assert.NotNil(t, ids)
-	assert.Equal(t, 2, len(ids))
-	assert.Equal(t, []byte("0"), ids[0].BinaryValue)
-	assert.Equal(t, []byte("1"), ids[1].BinaryValue)
 }
 
 func newTestCommitEntryMsg() *messages.CommitEntryMsg {

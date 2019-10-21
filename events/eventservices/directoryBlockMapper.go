@@ -13,20 +13,14 @@ func mapDirectoryBlock(block interfaces.IDirectoryBlock) *eventmessages.Director
 
 func mapDirectoryBlockHeader(header interfaces.IDirectoryBlockHeader) *eventmessages.DirectoryBlockHeader {
 	result := &eventmessages.DirectoryBlockHeader{
-		BodyMerkleRoot: &eventmessages.Hash{
-			HashValue: header.GetBodyMR().Bytes(),
-		},
-		PreviousKeyMerkleRoot: &eventmessages.Hash{
-			HashValue: header.GetPrevKeyMR().Bytes(),
-		},
-		PreviousFullHash: &eventmessages.Hash{
-			HashValue: header.GetPrevFullHash().Bytes(),
-		},
-		Timestamp:   convertTimeToTimestamp(header.GetTimestamp().GetTime()),
-		BlockHeight: header.GetDBHeight(),
-		BlockCount:  header.GetBlockCount(),
-		Version:     uint32(header.GetVersion()),
-		NetworkID:   header.GetNetworkID(),
+		BodyMerkleRoot:        header.GetBodyMR().Bytes(),
+		PreviousKeyMerkleRoot: header.GetPrevKeyMR().Bytes(),
+		PreviousFullHash:      header.GetPrevFullHash().Bytes(),
+		Timestamp:             convertTimeToTimestamp(header.GetTimestamp().GetTime()),
+		BlockHeight:           header.GetDBHeight(),
+		BlockCount:            header.GetBlockCount(),
+		Version:               uint32(header.GetVersion()),
+		NetworkID:             header.GetNetworkID(),
 	}
 	return result
 }
@@ -41,12 +35,8 @@ func mapDirectoryBlockEntries(entries []interfaces.IDBEntry) []*eventmessages.Di
 
 func mapDirectoryBlockEntry(entry interfaces.IDBEntry) *eventmessages.DirectoryBlockEntry {
 	result := &eventmessages.DirectoryBlockEntry{
-		ChainID: &eventmessages.Hash{
-			HashValue: entry.GetChainID().Bytes(),
-		},
-		KeyMerkleRoot: &eventmessages.Hash{
-			HashValue: entry.GetKeyMR().Bytes(),
-		},
+		ChainID:       entry.GetChainID().Bytes(),
+		KeyMerkleRoot: entry.GetKeyMR().Bytes(),
 	}
 	return result
 }

@@ -15,15 +15,9 @@ func mapEntryCreditBlock(block interfaces.IEntryCreditBlock) *eventmessages.Entr
 
 func mapEntryCreditBlockHeader(header interfaces.IECBlockHeader) *eventmessages.EntryCreditBlockHeader {
 	return &eventmessages.EntryCreditBlockHeader{
-		BodyHash: &eventmessages.Hash{
-			HashValue: header.GetBodyHash().Bytes(),
-		},
-		PreviousHeaderHash: &eventmessages.Hash{
-			HashValue: header.GetPrevHeaderHash().Bytes(),
-		},
-		PreviousFullHash: &eventmessages.Hash{
-			HashValue: header.GetPrevFullHash().Bytes(),
-		},
+		BodyHash:            header.GetBodyHash().Bytes(),
+		PreviousHeaderHash:  header.GetPrevHeaderHash().Bytes(),
+		PreviousFullHash:    header.GetPrevFullHash().Bytes(),
 		BlockHeight:         header.GetDBHeight(),
 		HeaderExpansionArea: header.GetHeaderExpansionArea(),
 		ObjectCount:         header.GetObjectCount(),
@@ -60,16 +54,10 @@ func mapEntryCreditCommitChain(entry interfaces.IECBlockEntry) *eventmessages.En
 	commitChain, _ := entry.(*entryCreditBlock.CommitChain)
 	return &eventmessages.EntryCreditBlockEntry_ChainCommit{
 		ChainCommit: &eventmessages.ChainCommit{
-			EntityState: eventmessages.EntityState_COMMITTED_TO_DIRECTORY_BLOCK,
-			ChainIDHash: &eventmessages.Hash{
-				HashValue: commitChain.ChainIDHash.Bytes(),
-			},
-			EntryHash: &eventmessages.Hash{
-				HashValue: commitChain.EntryHash.Bytes(),
-			},
-			Weld: &eventmessages.Hash{
-				HashValue: commitChain.Weld.Bytes(),
-			},
+			EntityState:          eventmessages.EntityState_COMMITTED_TO_DIRECTORY_BLOCK,
+			ChainIDHash:          commitChain.ChainIDHash.Bytes(),
+			EntryHash:            commitChain.EntryHash.Bytes(),
+			Weld:                 commitChain.Weld.Bytes(),
 			Timestamp:            convertByteSlice6ToTimestamp(commitChain.MilliTime),
 			Credits:              uint32(commitChain.Credits),
 			EntryCreditPublicKey: commitChain.ECPubKey[:],
@@ -83,10 +71,8 @@ func mapEntryCreditCommitEntry(entry interfaces.IECBlockEntry) *eventmessages.En
 	commitEntry, _ := entry.(*entryCreditBlock.CommitEntry)
 	return &eventmessages.EntryCreditBlockEntry_EntryCommit{
 		EntryCommit: &eventmessages.EntryCommit{
-			EntityState: eventmessages.EntityState_COMMITTED_TO_DIRECTORY_BLOCK,
-			EntryHash: &eventmessages.Hash{
-				HashValue: commitEntry.EntryHash.Bytes(),
-			},
+			EntityState:          eventmessages.EntityState_COMMITTED_TO_DIRECTORY_BLOCK,
+			EntryHash:            commitEntry.EntryHash.Bytes(),
 			Timestamp:            convertByteSlice6ToTimestamp(commitEntry.MilliTime),
 			Credits:              uint32(commitEntry.Credits),
 			EntryCreditPublicKey: commitEntry.ECPubKey[:],
@@ -100,11 +86,9 @@ func mapEntryCreditIncreaseBalance(entry interfaces.IECBlockEntry) *eventmessage
 	return &eventmessages.EntryCreditBlockEntry_IncreaseBalance{
 		IncreaseBalance: &eventmessages.IncreaseBalance{
 			EntryCreditPublicKey: increaseBalance.ECPubKey[:],
-			TransactionID: &eventmessages.Hash{
-				HashValue: increaseBalance.TXID.Bytes(),
-			},
-			Index:  increaseBalance.Index,
-			Amount: increaseBalance.NumEC,
+			TransactionID:        increaseBalance.TXID.Bytes(),
+			Index:                increaseBalance.Index,
+			Amount:               increaseBalance.NumEC,
 		},
 	}
 }

@@ -13,7 +13,6 @@ func TestBroadcastContent_Parse(t *testing.T) {
 		Output BroadcastContent
 		Error  error
 	}{
-
 		{"always", BroadcastAlways, nil},
 		{"once", BroadcastOnce, nil},
 		{"never", BroadcastNever, nil},

@@ -4,7 +4,6 @@ option go_package = "eventmessages";
 option java_package = "com.factom.factomd.eventmessages";
 
 import "google/protobuf/timestamp.proto";
-import "eventmessages/sharedTypes.proto";
 import "eventmessages/adminBlock.proto";
 import "eventmessages/factoidBlock.proto";
 
@@ -12,7 +11,7 @@ import "eventmessages/factoidBlock.proto";
 message FactomEvent {
     EventSource eventSource = 1;
     string factomNodeName = 2;
-    Hash identityChainID = 3;
+    bytes identityChainID = 3;
     oneof value {
         ChainCommit chainCommit = 4;
         EntryCommit entryCommit = 5;
@@ -27,9 +26,9 @@ message FactomEvent {
 // ====  FACTOM EVENT VALUES =====
 message ChainCommit {
     EntityState entityState = 1;
-    Hash chainIDHash = 2;
-    Hash entryHash = 3;
-    Hash weld = 4;
+    bytes chainIDHash = 2;
+    bytes entryHash = 3;
+    bytes weld = 4;
     google.protobuf.Timestamp timestamp = 5;
     uint32 credits = 6;
     bytes entryCreditPublicKey = 7;
@@ -40,7 +39,7 @@ message ChainCommit {
 
 message EntryCommit {
     EntityState entityState = 1;
-    Hash entryHash = 2;
+    bytes entryHash = 2;
     google.protobuf.Timestamp timestamp = 3;
     uint32 credits = 4;
     bytes entryCreditPublicKey = 5;
@@ -53,12 +52,12 @@ message EntryReveal {
     EntityState entityState = 1;
     EntryBlockEntry entry = 2;
     google.protobuf.Timestamp timestamp = 3;
-    Hash chainID = 4;
+    bytes chainID = 4;
 }
 
 
 message StateChange {
-    Hash entityHash = 1;
+    bytes entityHash = 1;
     EntityState entityState = 2;
     uint32 blockHeight = 3;
 }
@@ -80,9 +79,9 @@ message DirectoryBlock {
 }
 
 message DirectoryBlockHeader {
-    Hash bodyMerkleRoot = 1;
-    Hash previousKeyMerkleRoot = 2;
-    Hash previousFullHash = 3;
+    bytes bodyMerkleRoot = 1;
+    bytes previousKeyMerkleRoot = 2;
+    bytes previousFullHash = 3;
     google.protobuf.Timestamp timestamp = 4;
     uint32 blockHeight = 5;
     uint32 blockCount = 6;
@@ -91,29 +90,29 @@ message DirectoryBlockHeader {
 }
 
 message DirectoryBlockEntry {
-    Hash chainID = 1;
-    Hash keyMerkleRoot = 2;
+    bytes chainID = 1;
+    bytes keyMerkleRoot = 2;
 }
 
 message EntryBlock {
     EntryBlockHeader header = 1;
-    repeated Hash entryHashes = 2;
+    repeated bytes entryHashes = 2;
 }
 
 message EntryBlockHeader {
-    Hash bodyMerkleRoot = 1;
-    Hash chainID = 2;
-    Hash previousFullHash = 3;
-    Hash previousKeyMerkleRoot = 4;
+    bytes bodyMerkleRoot = 1;
+    bytes chainID = 2;
+    bytes previousFullHash = 3;
+    bytes previousKeyMerkleRoot = 4;
     uint32 blockHeight = 5;
     uint32 blockSequence = 6;
     uint32 entryCount = 7;
 }
 
 message EntryBlockEntry {
-    Hash hash = 1;
-    repeated ExternalId externalIDs = 2;
-    Content content = 3;
+    bytes hash = 1;
+    repeated bytes externalIDs = 2;
+    bytes content = 3;
     uint32 version = 4;
 }
 
@@ -123,9 +122,9 @@ message EntryCreditBlock {
 }
 
 message EntryCreditBlockHeader {
-    Hash bodyHash = 1;
-    Hash previousHeaderHash = 2;
-    Hash previousFullHash = 3;
+    bytes bodyHash = 1;
+    bytes previousHeaderHash = 2;
+    bytes previousFullHash = 3;
     uint32 blockHeight = 4;
     bytes headerExpansionArea = 5;
     uint64 objectCount = 6;
@@ -144,7 +143,7 @@ message EntryCreditBlockEntry {
 
 message IncreaseBalance {
     bytes entryCreditPublicKey = 1;
-    Hash transactionID = 2;
+    bytes transactionID = 2;
     uint64 index = 3;
     uint64 amount = 4;
 }

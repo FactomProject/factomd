@@ -23,205 +23,9 @@ var _ = math.Inf
 const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 // ====  SHARED STRUCTURES =====
-type Hash struct {
-	HashValue            []byte   `protobuf:"bytes,1,opt,name=hashValue,proto3" json:"hashValue,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *Hash) Reset()         { *m = Hash{} }
-func (m *Hash) String() string { return proto.CompactTextString(m) }
-func (*Hash) ProtoMessage()    {}
-func (*Hash) Descriptor() ([]byte, []int) {
-	return fileDescriptor_d0b97f284493f539, []int{0}
-}
-func (m *Hash) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *Hash) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_Hash.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
-	}
-}
-func (m *Hash) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Hash.Merge(m, src)
-}
-func (m *Hash) XXX_Size() int {
-	return m.Size()
-}
-func (m *Hash) XXX_DiscardUnknown() {
-	xxx_messageInfo_Hash.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_Hash proto.InternalMessageInfo
-
-func (m *Hash) GetHashValue() []byte {
-	if m != nil {
-		return m.HashValue
-	}
-	return nil
-}
-
-type ExternalId struct {
-	BinaryValue          []byte   `protobuf:"bytes,1,opt,name=binaryValue,proto3" json:"binaryValue,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *ExternalId) Reset()         { *m = ExternalId{} }
-func (m *ExternalId) String() string { return proto.CompactTextString(m) }
-func (*ExternalId) ProtoMessage()    {}
-func (*ExternalId) Descriptor() ([]byte, []int) {
-	return fileDescriptor_d0b97f284493f539, []int{1}
-}
-func (m *ExternalId) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *ExternalId) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_ExternalId.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
-	}
-}
-func (m *ExternalId) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ExternalId.Merge(m, src)
-}
-func (m *ExternalId) XXX_Size() int {
-	return m.Size()
-}
-func (m *ExternalId) XXX_DiscardUnknown() {
-	xxx_messageInfo_ExternalId.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ExternalId proto.InternalMessageInfo
-
-func (m *ExternalId) GetBinaryValue() []byte {
-	if m != nil {
-		return m.BinaryValue
-	}
-	return nil
-}
-
-type Content struct {
-	BinaryValue          []byte   `protobuf:"bytes,1,opt,name=binaryValue,proto3" json:"binaryValue,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *Content) Reset()         { *m = Content{} }
-func (m *Content) String() string { return proto.CompactTextString(m) }
-func (*Content) ProtoMessage()    {}
-func (*Content) Descriptor() ([]byte, []int) {
-	return fileDescriptor_d0b97f284493f539, []int{2}
-}
-func (m *Content) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *Content) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_Content.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
-	}
-}
-func (m *Content) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Content.Merge(m, src)
-}
-func (m *Content) XXX_Size() int {
-	return m.Size()
-}
-func (m *Content) XXX_DiscardUnknown() {
-	xxx_messageInfo_Content.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_Content proto.InternalMessageInfo
-
-func (m *Content) GetBinaryValue() []byte {
-	if m != nil {
-		return m.BinaryValue
-	}
-	return nil
-}
-
-type Signature struct {
-	PublicKey            []byte   `protobuf:"bytes,1,opt,name=publicKey,proto3" json:"publicKey,omitempty"`
-	Signature            []byte   `protobuf:"bytes,2,opt,name=signature,proto3" json:"signature,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *Signature) Reset()         { *m = Signature{} }
-func (m *Signature) String() string { return proto.CompactTextString(m) }
-func (*Signature) ProtoMessage()    {}
-func (*Signature) Descriptor() ([]byte, []int) {
-	return fileDescriptor_d0b97f284493f539, []int{3}
-}
-func (m *Signature) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *Signature) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_Signature.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
-	}
-}
-func (m *Signature) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Signature.Merge(m, src)
-}
-func (m *Signature) XXX_Size() int {
-	return m.Size()
-}
-func (m *Signature) XXX_DiscardUnknown() {
-	xxx_messageInfo_Signature.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_Signature proto.InternalMessageInfo
-
-func (m *Signature) GetPublicKey() []byte {
-	if m != nil {
-		return m.PublicKey
-	}
-	return nil
-}
-
-func (m *Signature) GetSignature() []byte {
-	if m != nil {
-		return m.Signature
-	}
-	return nil
-}
-
 type TransactionAddress struct {
 	Amount               uint64   `protobuf:"varint,1,opt,name=amount,proto3" json:"amount,omitempty"`
-	Address              *Hash    `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
+	Address              []byte   `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -231,7 +35,7 @@ func (m *TransactionAddress) Reset()         { *m = TransactionAddress{} }
 func (m *TransactionAddress) String() string { return proto.CompactTextString(m) }
 func (*TransactionAddress) ProtoMessage()    {}
 func (*TransactionAddress) Descriptor() ([]byte, []int) {
-	return fileDescriptor_d0b97f284493f539, []int{4}
+	return fileDescriptor_d0b97f284493f539, []int{0}
 }
 func (m *TransactionAddress) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -267,7 +71,7 @@ func (m *TransactionAddress) GetAmount() uint64 {
 	return 0
 }
 
-func (m *TransactionAddress) GetAddress() *Hash {
+func (m *TransactionAddress) GetAddress() []byte {
 	if m != nil {
 		return m.Address
 	}
@@ -275,177 +79,24 @@ func (m *TransactionAddress) GetAddress() *Hash {
 }
 
 func init() {
-	proto.RegisterType((*Hash)(nil), "eventmessages.Hash")
-	proto.RegisterType((*ExternalId)(nil), "eventmessages.ExternalId")
-	proto.RegisterType((*Content)(nil), "eventmessages.Content")
-	proto.RegisterType((*Signature)(nil), "eventmessages.Signature")
 	proto.RegisterType((*TransactionAddress)(nil), "eventmessages.TransactionAddress")
 }
 
 func init() { proto.RegisterFile("eventmessages/sharedTypes.proto", fileDescriptor_d0b97f284493f539) }
 
 var fileDescriptor_d0b97f284493f539 = []byte{
-	// 270 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x91, 0xc1, 0x4a, 0xc3, 0x40,
-	0x10, 0x86, 0x8d, 0x94, 0x96, 0x4e, 0xf5, 0xb2, 0x82, 0xf4, 0x20, 0x31, 0x04, 0x0f, 0x82, 0x18,
-	0x41, 0x9f, 0xa0, 0x8a, 0xa8, 0x78, 0x8b, 0xc5, 0x83, 0x9e, 0x26, 0xd9, 0xb1, 0x09, 0x24, 0xbb,
-	0x61, 0x67, 0x23, 0xe6, 0x4d, 0x7c, 0x24, 0x8f, 0x3e, 0x82, 0xc4, 0x17, 0x91, 0xa4, 0x26, 0x36,
-	0x37, 0x4f, 0xcb, 0x7e, 0xf3, 0xf1, 0x33, 0xfc, 0x03, 0x87, 0xf4, 0x4a, 0xca, 0xe6, 0xc4, 0x8c,
-	0x2b, 0xe2, 0x33, 0x4e, 0xd0, 0x90, 0x5c, 0x56, 0x05, 0x71, 0x50, 0x18, 0x6d, 0xb5, 0xd8, 0x1d,
-	0x08, 0xfe, 0x11, 0x8c, 0x6e, 0x91, 0x13, 0x71, 0x00, 0xd3, 0x04, 0x39, 0x79, 0xc4, 0xac, 0xa4,
-	0xb9, 0xe3, 0x39, 0xc7, 0x3b, 0xe1, 0x1f, 0xf0, 0x03, 0x80, 0xeb, 0x37, 0x4b, 0x46, 0x61, 0x76,
-	0x27, 0x85, 0x07, 0xb3, 0x28, 0x55, 0x68, 0xaa, 0x4d, 0x7b, 0x13, 0xf9, 0x27, 0x30, 0xb9, 0xd2,
-	0xca, 0x92, 0xb2, 0xff, 0x90, 0x6f, 0x60, 0xfa, 0x90, 0xae, 0x14, 0xda, 0xd2, 0x50, 0xb3, 0x47,
-	0x51, 0x46, 0x59, 0x1a, 0xdf, 0x53, 0xd5, 0xed, 0xd1, 0x83, 0x66, 0xca, 0x9d, 0x3a, 0xdf, 0x5e,
-	0x4f, 0x7b, 0xe0, 0x3f, 0x83, 0x58, 0x1a, 0x54, 0x8c, 0xb1, 0x4d, 0xb5, 0x5a, 0x48, 0x69, 0x88,
-	0x59, 0xec, 0xc3, 0x18, 0x73, 0x5d, 0x2a, 0xdb, 0xc6, 0x8d, 0xc2, 0xdf, 0x9f, 0x38, 0x85, 0x09,
-	0xae, 0x95, 0x36, 0x69, 0x76, 0xbe, 0x17, 0x0c, 0xaa, 0x09, 0x9a, 0x5e, 0xc2, 0xce, 0xb9, 0x5c,
-	0x7c, 0xd4, 0xae, 0xf3, 0x59, 0xbb, 0xce, 0x57, 0xed, 0x3a, 0xef, 0xdf, 0xee, 0x16, 0x78, 0xb1,
-	0xce, 0x83, 0x17, 0x8c, 0x6d, 0xff, 0xc8, 0x61, 0xc2, 0xd3, 0xb0, 0xeb, 0x68, 0xdc, 0x5e, 0xe0,
-	0xe2, 0x27, 0x00, 0x00, 0xff, 0xff, 0x75, 0x19, 0x5c, 0x4a, 0xa4, 0x01, 0x00, 0x00,
-}
-
-func (m *Hash) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *Hash) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *Hash) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
-	}
-	if len(m.HashValue) > 0 {
-		i -= len(m.HashValue)
-		copy(dAtA[i:], m.HashValue)
-		i = encodeVarintSharedTypes(dAtA, i, uint64(len(m.HashValue)))
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *ExternalId) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *ExternalId) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *ExternalId) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
-	}
-	if len(m.BinaryValue) > 0 {
-		i -= len(m.BinaryValue)
-		copy(dAtA[i:], m.BinaryValue)
-		i = encodeVarintSharedTypes(dAtA, i, uint64(len(m.BinaryValue)))
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *Content) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *Content) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *Content) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
-	}
-	if len(m.BinaryValue) > 0 {
-		i -= len(m.BinaryValue)
-		copy(dAtA[i:], m.BinaryValue)
-		i = encodeVarintSharedTypes(dAtA, i, uint64(len(m.BinaryValue)))
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *Signature) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *Signature) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *Signature) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
-	}
-	if len(m.Signature) > 0 {
-		i -= len(m.Signature)
-		copy(dAtA[i:], m.Signature)
-		i = encodeVarintSharedTypes(dAtA, i, uint64(len(m.Signature)))
-		i--
-		dAtA[i] = 0x12
-	}
-	if len(m.PublicKey) > 0 {
-		i -= len(m.PublicKey)
-		copy(dAtA[i:], m.PublicKey)
-		i = encodeVarintSharedTypes(dAtA, i, uint64(len(m.PublicKey)))
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
+	// 161 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0x92, 0x4f, 0x2d, 0x4b, 0xcd,
+	0x2b, 0xc9, 0x4d, 0x2d, 0x2e, 0x4e, 0x4c, 0x4f, 0x2d, 0xd6, 0x2f, 0xce, 0x48, 0x2c, 0x4a, 0x4d,
+	0x09, 0xa9, 0x2c, 0x48, 0x2d, 0xd6, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0xe2, 0x45, 0x51, 0xa0,
+	0xe4, 0xc6, 0x25, 0x14, 0x52, 0x94, 0x98, 0x57, 0x9c, 0x98, 0x5c, 0x92, 0x99, 0x9f, 0xe7, 0x98,
+	0x92, 0x52, 0x94, 0x5a, 0x5c, 0x2c, 0x24, 0xc6, 0xc5, 0x96, 0x98, 0x9b, 0x5f, 0x9a, 0x57, 0x22,
+	0xc1, 0xa8, 0xc0, 0xa8, 0xc1, 0x12, 0x04, 0xe5, 0x09, 0x49, 0x70, 0xb1, 0x27, 0x42, 0x94, 0x48,
+	0x30, 0x29, 0x30, 0x6a, 0xf0, 0x04, 0xc1, 0xb8, 0x4e, 0x8e, 0x27, 0x1e, 0xc9, 0x31, 0x5e, 0x78,
+	0x24, 0xc7, 0xf8, 0xe0, 0x91, 0x1c, 0xe3, 0x8c, 0xc7, 0x72, 0x0c, 0x5c, 0x0a, 0xc9, 0xf9, 0xb9,
+	0x7a, 0x69, 0x89, 0xc9, 0x25, 0x70, 0x2a, 0x45, 0x0f, 0xc5, 0xee, 0x28, 0x54, 0xa7, 0x24, 0xb1,
+	0x81, 0x1d, 0x68, 0x0c, 0x08, 0x00, 0x00, 0xff, 0xff, 0xda, 0x4c, 0xa1, 0xf4, 0xc3, 0x00, 0x00,
+	0x00,
 }
 
 func (m *TransactionAddress) Marshal() (dAtA []byte, err error) {
@@ -472,15 +123,10 @@ func (m *TransactionAddress) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i -= len(m.XXX_unrecognized)
 		copy(dAtA[i:], m.XXX_unrecognized)
 	}
-	if m.Address != nil {
-		{
-			size, err := m.Address.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintSharedTypes(dAtA, i, uint64(size))
-		}
+	if len(m.Address) > 0 {
+		i -= len(m.Address)
+		copy(dAtA[i:], m.Address)
+		i = encodeVarintSharedTypes(dAtA, i, uint64(len(m.Address)))
 		i--
 		dAtA[i] = 0x12
 	}
@@ -503,74 +149,6 @@ func encodeVarintSharedTypes(dAtA []byte, offset int, v uint64) int {
 	dAtA[offset] = uint8(v)
 	return base
 }
-func (m *Hash) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	l = len(m.HashValue)
-	if l > 0 {
-		n += 1 + l + sovSharedTypes(uint64(l))
-	}
-	if m.XXX_unrecognized != nil {
-		n += len(m.XXX_unrecognized)
-	}
-	return n
-}
-
-func (m *ExternalId) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	l = len(m.BinaryValue)
-	if l > 0 {
-		n += 1 + l + sovSharedTypes(uint64(l))
-	}
-	if m.XXX_unrecognized != nil {
-		n += len(m.XXX_unrecognized)
-	}
-	return n
-}
-
-func (m *Content) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	l = len(m.BinaryValue)
-	if l > 0 {
-		n += 1 + l + sovSharedTypes(uint64(l))
-	}
-	if m.XXX_unrecognized != nil {
-		n += len(m.XXX_unrecognized)
-	}
-	return n
-}
-
-func (m *Signature) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	l = len(m.PublicKey)
-	if l > 0 {
-		n += 1 + l + sovSharedTypes(uint64(l))
-	}
-	l = len(m.Signature)
-	if l > 0 {
-		n += 1 + l + sovSharedTypes(uint64(l))
-	}
-	if m.XXX_unrecognized != nil {
-		n += len(m.XXX_unrecognized)
-	}
-	return n
-}
-
 func (m *TransactionAddress) Size() (n int) {
 	if m == nil {
 		return 0
@@ -580,8 +158,8 @@ func (m *TransactionAddress) Size() (n int) {
 	if m.Amount != 0 {
 		n += 1 + sovSharedTypes(uint64(m.Amount))
 	}
-	if m.Address != nil {
-		l = m.Address.Size()
+	l = len(m.Address)
+	if l > 0 {
 		n += 1 + l + sovSharedTypes(uint64(l))
 	}
 	if m.XXX_unrecognized != nil {
@@ -595,392 +173,6 @@ func sovSharedTypes(x uint64) (n int) {
 }
 func sozSharedTypes(x uint64) (n int) {
 	return sovSharedTypes(uint64((x << 1) ^ uint64((int64(x) >> 63))))
-}
-func (m *Hash) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowSharedTypes
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: Hash: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: Hash: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field HashValue", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowSharedTypes
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthSharedTypes
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthSharedTypes
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.HashValue = append(m.HashValue[:0], dAtA[iNdEx:postIndex]...)
-			if m.HashValue == nil {
-				m.HashValue = []byte{}
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipSharedTypes(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthSharedTypes
-			}
-			if (iNdEx + skippy) < 0 {
-				return ErrInvalidLengthSharedTypes
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *ExternalId) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowSharedTypes
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: ExternalId: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: ExternalId: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field BinaryValue", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowSharedTypes
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthSharedTypes
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthSharedTypes
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.BinaryValue = append(m.BinaryValue[:0], dAtA[iNdEx:postIndex]...)
-			if m.BinaryValue == nil {
-				m.BinaryValue = []byte{}
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipSharedTypes(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthSharedTypes
-			}
-			if (iNdEx + skippy) < 0 {
-				return ErrInvalidLengthSharedTypes
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *Content) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowSharedTypes
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: Content: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: Content: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field BinaryValue", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowSharedTypes
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthSharedTypes
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthSharedTypes
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.BinaryValue = append(m.BinaryValue[:0], dAtA[iNdEx:postIndex]...)
-			if m.BinaryValue == nil {
-				m.BinaryValue = []byte{}
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipSharedTypes(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthSharedTypes
-			}
-			if (iNdEx + skippy) < 0 {
-				return ErrInvalidLengthSharedTypes
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *Signature) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowSharedTypes
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: Signature: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: Signature: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PublicKey", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowSharedTypes
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthSharedTypes
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthSharedTypes
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.PublicKey = append(m.PublicKey[:0], dAtA[iNdEx:postIndex]...)
-			if m.PublicKey == nil {
-				m.PublicKey = []byte{}
-			}
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Signature", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowSharedTypes
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthSharedTypes
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthSharedTypes
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Signature = append(m.Signature[:0], dAtA[iNdEx:postIndex]...)
-			if m.Signature == nil {
-				m.Signature = []byte{}
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipSharedTypes(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthSharedTypes
-			}
-			if (iNdEx + skippy) < 0 {
-				return ErrInvalidLengthSharedTypes
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
 }
 func (m *TransactionAddress) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
@@ -1034,7 +226,7 @@ func (m *TransactionAddress) Unmarshal(dAtA []byte) error {
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Address", wireType)
 			}
-			var msglen int
+			var byteLen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowSharedTypes
@@ -1044,26 +236,24 @@ func (m *TransactionAddress) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= int(b&0x7F) << shift
+				byteLen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if msglen < 0 {
+			if byteLen < 0 {
 				return ErrInvalidLengthSharedTypes
 			}
-			postIndex := iNdEx + msglen
+			postIndex := iNdEx + byteLen
 			if postIndex < 0 {
 				return ErrInvalidLengthSharedTypes
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
+			m.Address = append(m.Address[:0], dAtA[iNdEx:postIndex]...)
 			if m.Address == nil {
-				m.Address = &Hash{}
-			}
-			if err := m.Address.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
+				m.Address = []byte{}
 			}
 			iNdEx = postIndex
 		default:

@@ -107,9 +107,7 @@ func (esi *eventServiceInstance) Send(event events.EventInput) error {
 		return nil
 	}
 
-	factomEvent.IdentityChainID = &eventmessages.Hash{
-		HashValue: esi.owningState.GetIdentityChainID().Bytes(),
-	}
+	factomEvent.IdentityChainID = esi.owningState.GetIdentityChainID().Bytes()
 	select {
 	case esi.eventsOutQueue <- factomEvent:
 	default:

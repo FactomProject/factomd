@@ -8,18 +8,12 @@ import (
 
 func mapFactoidBlock(block interfaces.IFBlock) *eventmessages.FactoidBlock {
 	result := &eventmessages.FactoidBlock{
-		BodyMerkleRoot: &eventmessages.Hash{
-			HashValue: block.GetBodyMR().Bytes(),
-		},
-		PreviousKeyMerkleRoot: &eventmessages.Hash{
-			HashValue: block.GetPrevKeyMR().Bytes(),
-		},
-		PreviousLedgerKeyMerkleRoot: &eventmessages.Hash{
-			HashValue: block.GetLedgerKeyMR().Bytes(),
-		},
-		ExchangeRate: block.GetExchRate(),
-		BlockHeight:  block.GetDBHeight(),
-		Transactions: mapTransactions(block.GetTransactions()),
+		BodyMerkleRoot:              block.GetBodyMR().Bytes(),
+		PreviousKeyMerkleRoot:       block.GetPrevKeyMR().Bytes(),
+		PreviousLedgerKeyMerkleRoot: block.GetLedgerKeyMR().Bytes(),
+		ExchangeRate:                block.GetExchRate(),
+		BlockHeight:                 block.GetDBHeight(),
+		Transactions:                mapTransactions(block.GetTransactions()),
 	}
 	return result
 }
@@ -37,9 +31,7 @@ func mapTransactions(transactions []interfaces.ITransaction) []*eventmessages.Tr
 
 func mapTransaction(transaction interfaces.ITransaction) *eventmessages.Transaction {
 	result := &eventmessages.Transaction{
-		TransactionID: &eventmessages.Hash{
-			HashValue: transaction.GetSigHash().Bytes(),
-		},
+		TransactionID:                 transaction.GetSigHash().Bytes(),
 		BlockHeight:                   transaction.GetBlockHeight(),
 		Timestamp:                     convertTimeToTimestamp(transaction.GetTimestamp().GetTime()),
 		FactoidInputs:                 mapTransactionAddresses(transaction.GetInputs()),
@@ -61,10 +53,8 @@ func mapTransactionAddresses(inputs []interfaces.ITransAddress) []*eventmessages
 
 func mapTransactionAddress(address interfaces.ITransAddress) *eventmessages.TransactionAddress {
 	result := &eventmessages.TransactionAddress{
-		Amount: address.GetAmount(),
-		Address: &eventmessages.Hash{
-			HashValue: address.GetAddress().Bytes(),
-		},
+		Amount:  address.GetAmount(),
+		Address: address.GetAddress().Bytes(),
 	}
 	return result
 }
@@ -88,16 +78,7 @@ func mapRCD(rcd interfaces.IRCD) *eventmessages.RCD {
 				PublicKey: rcd1.GetPublicKey(),
 			},
 		}
-
 	case factoid.IRCD:
-		/*		rcd2 := rcd.(factoid.IRCD)  rcd2 is not supported yet
-				evRcd2 := eventmessages.RCD2{
-					M:          rcd.M,
-					N:          rcd.NumberOfSignatures(),
-					NAddresses: rcd2.GetHash().Bytes(),
-				}
-				evRcd2Value := &eventmessages.RCD_Rcd2{Rcd2: evRcd2}
-				result.Value = evRcd2Value*/
 	}
 	return result
 }

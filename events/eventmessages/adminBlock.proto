@@ -13,7 +13,7 @@ message AdminBlock {
 }
 
 message AdminBlockHeader {
-    Hash previousBackRefHash = 1;
+    bytes previousBackRefHash = 1;
     uint32 blockHeight = 2;
     uint64 headerExpansionSize = 3;
     bytes headerExpansionArea = 4;
@@ -43,42 +43,43 @@ message AdminBlockEntry {
 }
 
 message AddAuditServer {
-    Hash identityChainID = 1;
+    bytes identityChainID = 1;
     uint32 blockHeight = 2;
 }
 
 message AddEfficiency {
-    Hash identityChainID = 1;
+    bytes identityChainID = 1;
     uint32 efficiency = 2;
 }
 
 message AddFactoidAddress {
-    Hash identityChainID = 1;
-    Hash address = 2;
+    bytes identityChainID = 1;
+    bytes address = 2;
 }
 
 message AddFederatedServer {
-    Hash identityChainID = 1;
+    bytes identityChainID = 1;
     uint32 blockHeight = 2;
 }
 
 message AddFederatedServerBitcoinAnchorKey {
-    Hash identityChainID = 1;
+    bytes identityChainID = 1;
     uint32 keyPriority = 2;
     uint32 keyType = 3;
     bytes ecdsaPublicKey = 4;
 }
 
 message AddFederatedServerSigningKey {
-    Hash identityChainID = 1;
+    bytes identityChainID = 1;
     uint32 keyPriority = 2;
     bytes publicKey = 3;
     uint32 blockHeight = 4;
 }
 
 message AddReplaceMatryoshkaHash {
-    Hash identityChainID = 1;
-    Hash matryoshkaHash = 2;
+    bytes identityChainID = 1;
+    bytes matryoshkaHash = 2;
+    repeated TransactionAddress factoidOutputs = 3;
 }
 
 message CancelCoinbaseDescriptor {
@@ -91,7 +92,7 @@ message CoinbaseDescriptor {
 }
 
 message DirectoryBlockSignatureEntry {
-    Hash identityAdminChainID = 1;
+    bytes identityAdminChainID = 1;
     Signature previousDirectoryBlockSignature = 2;
 }
 
@@ -109,21 +110,26 @@ message IncreaseServerCount {
 }
 
 message RemoveFederatedServer {
-    Hash identityChainID = 1;
+    bytes identityChainID = 1;
     uint32 blockHeight = 2;
 }
 
 message RevealMatryoshkaHash {
-    Hash identityChainID = 1;
-    Hash matryoshkaHash = 2;
+    bytes identityChainID = 1;
+    bytes matryoshkaHash = 2;
 }
 
 message ServerFault {
     google.protobuf.Timestamp timestamp = 1;
-    Hash serverID = 2;
-    Hash auditServerID = 3;
+    bytes serverID = 2;
+    bytes auditServerID = 3;
     uint32 vmIndex = 4;
     uint32 blockHeight = 5;
     uint32 messageEntryHeight = 6;
     repeated Signature signatureList = 7;
+}
+
+message Signature {
+    bytes publicKey = 1;
+    bytes signature = 2;
 }

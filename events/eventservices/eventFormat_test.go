@@ -11,7 +11,6 @@ func TestEventFormat_FormatFrom(t *testing.T) {
 		Input  string
 		Output EventFormat
 	}{
-
 		{"protobuf", Protobuf},
 		{"json", Json},
 		{"test", -1},

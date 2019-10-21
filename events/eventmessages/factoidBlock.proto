@@ -8,16 +8,16 @@ import "google/protobuf/timestamp.proto";
 
 // ====  FACTOID BLOCK STRUCTURES =====
 message FactoidBlock {
-    Hash bodyMerkleRoot = 1;
-    Hash previousKeyMerkleRoot = 2;
-    Hash previousLedgerKeyMerkleRoot = 3;
+    bytes bodyMerkleRoot = 1;
+    bytes previousKeyMerkleRoot = 2;
+    bytes previousLedgerKeyMerkleRoot = 3;
     uint64 exchangeRate = 4;
     uint32 blockHeight = 5;
     repeated Transaction transactions = 6;
 }
 
 message Transaction {
-    Hash transactionID = 1;
+    bytes transactionID = 1;
     uint32 blockHeight = 2;
     google.protobuf.Timestamp timestamp = 3;
     repeated TransactionAddress factoidInputs = 4;
@@ -26,7 +26,6 @@ message Transaction {
     repeated RCD redeemConditionDataStructures = 7;
     repeated FactoidSignatureBlock signatureBlocks = 8;
 }
-
 
 message RCD {
     oneof value {

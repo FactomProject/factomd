@@ -14,10 +14,8 @@ func mapCommitEntryEvent(entityState eventmessages.EntityState, commitEntryMsg *
 
 	result := &eventmessages.FactomEvent_EntryCommit{
 		EntryCommit: &eventmessages.EntryCommit{
-			EntityState: entityState,
-			EntryHash: &eventmessages.Hash{
-				HashValue: commitEntry.EntryHash.Bytes(),
-			},
+			EntityState:          entityState,
+			EntryHash:            commitEntry.EntryHash.Bytes(),
 			Timestamp:            convertByteSlice6ToTimestamp(commitEntry.MilliTime),
 			Credits:              uint32(commitEntry.Credits),
 			EntryCreditPublicKey: ecPubKey[:],
@@ -31,8 +29,7 @@ func mapCommitEntryEventState(state eventmessages.EntityState, commitEntryMsg *m
 	commitEntry := commitEntryMsg.CommitEntry
 	result := &eventmessages.FactomEvent_StateChange{
 		StateChange: &eventmessages.StateChange{
-			EntityHash: &eventmessages.Hash{
-				HashValue: commitEntry.EntryHash.Bytes()},
+			EntityHash:  commitEntry.EntryHash.Bytes(),
 			EntityState: state,
 		},
 	}
@@ -45,9 +42,7 @@ func mapRevealEntryEvent(entityState eventmessages.EntityState, revealEntry *mes
 			EntityState: entityState,
 			Entry:       mapEntryBlockEntry(revealEntry.Entry, true),
 			Timestamp:   convertTimeToTimestamp(revealEntry.Timestamp.GetTime()),
-			ChainID: &eventmessages.Hash{
-				HashValue: revealEntry.GetChainIDHash().Bytes(),
-			},
+			ChainID:     revealEntry.GetChainIDHash().Bytes(),
 		},
 	}
 }
@@ -55,8 +50,7 @@ func mapRevealEntryEvent(entityState eventmessages.EntityState, revealEntry *mes
 func mapRevealEntryEventState(state eventmessages.EntityState, revealEntry *messages.RevealEntryMsg) *eventmessages.FactomEvent_StateChange {
 	result := &eventmessages.FactomEvent_StateChange{
 		StateChange: &eventmessages.StateChange{
-			EntityHash: &eventmessages.Hash{
-				HashValue: revealEntry.Entry.GetHash().Bytes()},
+			EntityHash:  revealEntry.Entry.GetHash().Bytes(),
 			EntityState: state,
 		},
 	}
@@ -74,22 +68,20 @@ func mapEntryBlocks(blocks []interfaces.IEntryBlock) []*eventmessages.EntryBlock
 	return result
 }
 
-func mapEntryBlockHashes(entries []interfaces.IHash) []*eventmessages.Hash {
-	result := make([]*eventmessages.Hash, len(entries))
+func mapEntryBlockHashes(entries []interfaces.IHash) [][]byte {
+	result := make([][]byte, len(entries))
 	for i, entry := range entries {
-		result[i] = &eventmessages.Hash{
-			HashValue: entry.Bytes(),
-		}
+		result[i] = entry.Bytes()
 	}
 	return result
 }
 
 func mapEntryBlockHeader(header interfaces.IEntryBlockHeader) *eventmessages.EntryBlockHeader {
 	return &eventmessages.EntryBlockHeader{
-		BodyMerkleRoot:        &eventmessages.Hash{HashValue: header.GetBodyMR().Bytes()},
-		ChainID:               &eventmessages.Hash{HashValue: header.GetChainID().Bytes()},
-		PreviousFullHash:      &eventmessages.Hash{HashValue: header.GetPrevFullHash().Bytes()},
-		PreviousKeyMerkleRoot: &eventmessages.Hash{HashValue: header.GetPrevKeyMR().Bytes()},
+		BodyMerkleRoot:        header.GetBodyMR().Bytes(),
+		ChainID:               header.GetChainID().Bytes(),
+		PreviousFullHash:      header.GetPrevFullHash().Bytes(),
+		PreviousKeyMerkleRoot: header.GetPrevKeyMR().Bytes(),
 		BlockHeight:           header.GetDBHeight(),
 		BlockSequence:         header.GetEBSequence(),
 		EntryCount:            header.GetEntryCount(),
@@ -106,23 +98,15 @@ func mapEntryBlockEntries(entries []interfaces.IEBEntry, shouldIncludeContent bo
 
 func mapEntryBlockEntry(entry interfaces.IEBEntry, shouldIncludeContent bool) *eventmessages.EntryBlockEntry {
 	blockEntry := &eventmessages.EntryBlockEntry{
-		Hash: &eventmessages.Hash{HashValue: entry.GetHash().Bytes()},
+		Hash: entry.GetHash().Bytes(),
 	}
 	if shouldIncludeContent {
-		blockEntry.ExternalIDs = mapExternalIds(entry.ExternalIDs())
-		blockEntry.Content = &eventmessages.Content{BinaryValue: entry.GetContent()}
+		blockEntry.ExternalIDs = entry.ExternalIDs()
+		blockEntry.Content = entry.GetContent()
 
 		if e, ok := entry.(*entryBlock.Entry); ok {
 			blockEntry.Version = uint32(e.Version)
 		}
 	}
 	return blockEntry
-}
-
-func mapExternalIds(externalIds [][]byte) []*eventmessages.ExternalId {
-	result := make([]*eventmessages.ExternalId, len(externalIds))
-	for i, extId := range externalIds {
-		result[i] = &eventmessages.ExternalId{BinaryValue: extId}
-	}
-	return result
 }

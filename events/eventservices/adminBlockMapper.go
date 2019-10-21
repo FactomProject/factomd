@@ -16,9 +16,7 @@ func mapAdminBlock(block interfaces.IAdminBlock) *eventmessages.AdminBlock {
 
 func mapAdminBlockHeader(header interfaces.IABlockHeader) *eventmessages.AdminBlockHeader {
 	result := &eventmessages.AdminBlockHeader{
-		PreviousBackRefHash: &eventmessages.Hash{
-			HashValue: header.GetPrevBackRefHash().Bytes(),
-		},
+		PreviousBackRefHash: header.GetPrevBackRefHash().Bytes(),
 		BlockHeight:         header.GetDBHeight(),
 		HeaderExpansionSize: header.GetHeaderExpansionSize(),
 		HeaderExpansionArea: header.GetHeaderExpansionArea(),
@@ -74,10 +72,8 @@ func mapAddAuditServer(entry interfaces.IABEntry) *eventmessages.AdminBlockEntry
 	addAuditServer, _ := entry.(*adminBlock.AddAuditServer)
 	return &eventmessages.AdminBlockEntry_AddAuditServer{
 		AddAuditServer: &eventmessages.AddAuditServer{
-			IdentityChainID: &eventmessages.Hash{
-				HashValue: addAuditServer.IdentityChainID.Bytes(),
-			},
-			BlockHeight: addAuditServer.DBHeight,
+			IdentityChainID: addAuditServer.IdentityChainID.Bytes(),
+			BlockHeight:     addAuditServer.DBHeight,
 		},
 	}
 }
@@ -86,10 +82,8 @@ func mapAddEfficiency(entry interfaces.IABEntry) *eventmessages.AdminBlockEntry_
 	addEfficiency, _ := entry.(*adminBlock.AddEfficiency)
 	return &eventmessages.AdminBlockEntry_AddEfficiency{
 		AddEfficiency: &eventmessages.AddEfficiency{
-			IdentityChainID: &eventmessages.Hash{
-				HashValue: addEfficiency.IdentityChainID.Bytes(),
-			},
-			Efficiency: uint32(addEfficiency.Efficiency),
+			IdentityChainID: addEfficiency.IdentityChainID.Bytes(),
+			Efficiency:      uint32(addEfficiency.Efficiency),
 		},
 	}
 }
@@ -98,12 +92,8 @@ func mapAddFactoidAddress(entry interfaces.IABEntry) *eventmessages.AdminBlockEn
 	addFactoidAddress, _ := entry.(*adminBlock.AddFactoidAddress)
 	return &eventmessages.AdminBlockEntry_AddFactoidAddress{
 		AddFactoidAddress: &eventmessages.AddFactoidAddress{
-			IdentityChainID: &eventmessages.Hash{
-				HashValue: addFactoidAddress.IdentityChainID.Bytes(),
-			},
-			Address: &eventmessages.Hash{
-				HashValue: addFactoidAddress.FactoidAddress.Bytes(),
-			},
+			IdentityChainID: addFactoidAddress.IdentityChainID.Bytes(),
+			Address:         addFactoidAddress.FactoidAddress.Bytes(),
 		},
 	}
 }
@@ -112,9 +102,7 @@ func mapAddFederatedServer(entry interfaces.IABEntry) *eventmessages.AdminBlockE
 	addFederatedServer, _ := entry.(*adminBlock.AddFederatedServer)
 	return &eventmessages.AdminBlockEntry_AddFederatedServer{
 		AddFederatedServer: &eventmessages.AddFederatedServer{
-			IdentityChainID: &eventmessages.Hash{
-				HashValue: addFederatedServer.IdentityChainID.Bytes(),
-			},
+			IdentityChainID: addFederatedServer.IdentityChainID.Bytes(),
 		},
 	}
 }
@@ -123,12 +111,10 @@ func mapAddFederatedServerBitcoinAnchorKey(entry interfaces.IABEntry) *eventmess
 	addBitcoinAnchorKey, _ := entry.(*adminBlock.AddFederatedServerBitcoinAnchorKey)
 	return &eventmessages.AdminBlockEntry_AddFederatedServerBitcoinAnchorKey{
 		AddFederatedServerBitcoinAnchorKey: &eventmessages.AddFederatedServerBitcoinAnchorKey{
-			IdentityChainID: &eventmessages.Hash{
-				HashValue: addBitcoinAnchorKey.IdentityChainID.Bytes(),
-			},
-			KeyPriority:    uint32(addBitcoinAnchorKey.KeyPriority),
-			KeyType:        uint32(addBitcoinAnchorKey.KeyType),
-			EcdsaPublicKey: addBitcoinAnchorKey.ECDSAPublicKey[:],
+			IdentityChainID: addBitcoinAnchorKey.IdentityChainID.Bytes(),
+			KeyPriority:     uint32(addBitcoinAnchorKey.KeyPriority),
+			KeyType:         uint32(addBitcoinAnchorKey.KeyType),
+			EcdsaPublicKey:  addBitcoinAnchorKey.ECDSAPublicKey[:],
 		},
 	}
 }
@@ -137,12 +123,10 @@ func mapAddFederatedServerSigningKey(entry interfaces.IABEntry) *eventmessages.A
 	addSigningKey, _ := entry.(*adminBlock.AddFederatedServerSigningKey)
 	return &eventmessages.AdminBlockEntry_AddFederatedServerSigningKey{
 		AddFederatedServerSigningKey: &eventmessages.AddFederatedServerSigningKey{
-			IdentityChainID: &eventmessages.Hash{
-				HashValue: addSigningKey.IdentityChainID.Bytes(),
-			},
-			KeyPriority: uint32(addSigningKey.KeyPriority),
-			PublicKey:   addSigningKey.PublicKey[:],
-			BlockHeight: addSigningKey.DBHeight,
+			IdentityChainID: addSigningKey.IdentityChainID.Bytes(),
+			KeyPriority:     uint32(addSigningKey.KeyPriority),
+			PublicKey:       addSigningKey.PublicKey[:],
+			BlockHeight:     addSigningKey.DBHeight,
 		},
 	}
 }
@@ -151,12 +135,8 @@ func mapAddReplaceMatryoshkaHash(entry interfaces.IABEntry) *eventmessages.Admin
 	addReplaceMatryoshkaHash, _ := entry.(*adminBlock.AddReplaceMatryoshkaHash)
 	return &eventmessages.AdminBlockEntry_AddReplaceMatryoshkaHash{
 		AddReplaceMatryoshkaHash: &eventmessages.AddReplaceMatryoshkaHash{
-			IdentityChainID: &eventmessages.Hash{
-				HashValue: addReplaceMatryoshkaHash.IdentityChainID.Bytes(),
-			},
-			MatryoshkaHash: &eventmessages.Hash{
-				HashValue: addReplaceMatryoshkaHash.MHash.Bytes(),
-			},
+			IdentityChainID: addReplaceMatryoshkaHash.IdentityChainID.Bytes(),
+			MatryoshkaHash:  addReplaceMatryoshkaHash.MHash.Bytes(),
 		},
 	}
 }
@@ -184,9 +164,7 @@ func mapDBSignatureEntry(entry interfaces.IABEntry) *eventmessages.AdminBlockEnt
 	dBSignatureEntry, _ := entry.(*adminBlock.DBSignatureEntry)
 	return &eventmessages.AdminBlockEntry_DirectoryBlockSignatureEntry{
 		DirectoryBlockSignatureEntry: &eventmessages.DirectoryBlockSignatureEntry{
-			IdentityAdminChainID: &eventmessages.Hash{
-				HashValue: dBSignatureEntry.IdentityAdminChainID.Bytes(),
-			},
+			IdentityAdminChainID:            dBSignatureEntry.IdentityAdminChainID.Bytes(),
 			PreviousDirectoryBlockSignature: mapSignature(&dBSignatureEntry.PrevDBSig),
 		},
 	}
@@ -224,10 +202,8 @@ func mapRemoveFederatedServer(entry interfaces.IABEntry) *eventmessages.AdminBlo
 	removeFederatedServer, _ := entry.(*adminBlock.RemoveFederatedServer)
 	return &eventmessages.AdminBlockEntry_RemoveFederatedServer{
 		RemoveFederatedServer: &eventmessages.RemoveFederatedServer{
-			IdentityChainID: &eventmessages.Hash{
-				HashValue: removeFederatedServer.IdentityChainID.Bytes(),
-			},
-			BlockHeight: removeFederatedServer.DBHeight,
+			IdentityChainID: removeFederatedServer.IdentityChainID.Bytes(),
+			BlockHeight:     removeFederatedServer.DBHeight,
 		},
 	}
 }
@@ -236,12 +212,8 @@ func mapRevealMatryoshkaHash(entry interfaces.IABEntry) *eventmessages.AdminBloc
 	revealMatryoshkaHash, _ := entry.(*adminBlock.RevealMatryoshkaHash)
 	return &eventmessages.AdminBlockEntry_RevealMatryoshkaHash{
 		RevealMatryoshkaHash: &eventmessages.RevealMatryoshkaHash{
-			IdentityChainID: &eventmessages.Hash{
-				HashValue: revealMatryoshkaHash.IdentityChainID.Bytes(),
-			},
-			MatryoshkaHash: &eventmessages.Hash{
-				HashValue: revealMatryoshkaHash.MHash.Bytes(),
-			},
+			IdentityChainID: revealMatryoshkaHash.IdentityChainID.Bytes(),
+			MatryoshkaHash:  revealMatryoshkaHash.MHash.Bytes(),
 		},
 	}
 }
@@ -250,13 +222,9 @@ func mapServerFault(entry interfaces.IABEntry) *eventmessages.AdminBlockEntry_Se
 	serverFault, _ := entry.(*adminBlock.ServerFault)
 	return &eventmessages.AdminBlockEntry_ServerFault{
 		ServerFault: &eventmessages.ServerFault{
-			Timestamp: convertTimeToTimestamp(serverFault.Timestamp.GetTime()),
-			ServerID: &eventmessages.Hash{
-				HashValue: serverFault.ServerID.Bytes(),
-			},
-			AuditServerID: &eventmessages.Hash{
-				HashValue: serverFault.AuditServerID.Bytes(),
-			},
+			Timestamp:          convertTimeToTimestamp(serverFault.Timestamp.GetTime()),
+			ServerID:           serverFault.ServerID.Bytes(),
+			AuditServerID:      serverFault.AuditServerID.Bytes(),
 			VmIndex:            uint32(serverFault.VMIndex),
 			BlockHeight:        serverFault.DBHeight,
 			MessageEntryHeight: serverFault.Height,
