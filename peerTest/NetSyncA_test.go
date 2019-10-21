@@ -8,7 +8,7 @@ import (
 
 /*
 This test is the part A of a Network/Follower A/B pair of tests used to test
-Just boots to test that follower can sync
+Just boots to test that Leader can sync over a network
 */
 func TestNetSyncA(t *testing.T) {
 
@@ -18,6 +18,8 @@ func TestNetSyncA(t *testing.T) {
 	params := map[string]string{
 		"--db":               "LDB",
 		"--network":          "LOCAL",
+		"--debuglog":         "/tmp/test_a/|.",
+		"--nodename":         "TestA",
 		"--net":              "alot+",
 		"--enablenet":        "true",
 		"--blktime":          "15",
