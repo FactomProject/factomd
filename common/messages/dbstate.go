@@ -156,7 +156,7 @@ func (m *DBStateMsg) Type() byte {
 }
 
 func (m *DBStateMsg) GetTimestamp() interfaces.Timestamp {
-	return m.Timestamp
+	return m.Timestamp.Clone()
 }
 
 // Validate the message, given the state.  Three possible results:

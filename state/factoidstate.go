@@ -326,7 +326,7 @@ func (fs *FactoidState) UpdateTransaction(rt bool, trans interfaces.ITransaction
 		adr := output.GetAddress().Fixed()
 		oldv := fs.State.GetF(rt, adr)
 
-		//		fs.State.LogPrintf("newHolding", "process FCT Deposit %x %s", adr, trans.String())
+		//		fs.State.LogPrintf("dependentHolding", "process FCT Deposit %x %s", adr, trans.String())
 		fs.State.ExecuteFromHolding(adr) // Process deposit of FCT
 
 		fs.State.PutF(rt, adr, oldv+int64(output.GetAmount()))
@@ -340,7 +340,7 @@ func (fs *FactoidState) UpdateTransaction(rt bool, trans interfaces.ITransaction
 		fs.State.PutE(rt, adr, fs.State.GetE(rt, adr)+ecbal) // Add EC's from FCT
 
 		// execute any messages that were waiting on this EC address
-		//		fs.State.LogPrintf("newHolding", "process EC Deposit %x %s", adr, trans.String())
+		//		fs.State.LogPrintf("dependentHolding", "process EC Deposit %x %s", adr, trans.String())
 		fs.State.ExecuteFromHolding(adr) // Process deposit of EC
 	}
 	fs.State.NumTransactions++

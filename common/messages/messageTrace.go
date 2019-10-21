@@ -233,7 +233,7 @@ func logMessage(name string, note string, msg interfaces.IMsg) {
 			s = fmt.Sprintf("%9d %02d:%02d:%02d.%03d %-50s M-%v|R-%v|H-%v|%p %30s:%v\n", sequence, now.Hour()%24, now.Minute()%60, now.Second()%60, (now.Nanosecond()/1e6)%1000,
 				note, mhash, rhash, hash, msg, "continue:", text)
 		}
-		//s = addNodeNames(s)
+		s = addNodeNames(s)
 		myfile.WriteString(s)
 	}
 
@@ -312,7 +312,7 @@ func LogPrintf(name string, format string, more ...interface{}) {
 		default:
 			s = fmt.Sprintf("%9d %02d:%02d:%02d.%03d %s\n", sequence, now.Hour()%24, now.Minute()%60, now.Second()%60, (now.Nanosecond()/1e6)%1000, text)
 		}
-		//s = addNodeNames(s)
+		s = addNodeNames(s)
 		myfile.WriteString(s)
 	}
 }

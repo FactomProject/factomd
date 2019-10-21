@@ -369,6 +369,12 @@ func messageLists(fnodes []*State) string {
 
 	list = ""
 	for _, f := range fnodes {
+		list = list + fmt.Sprintf(" %3d", len(f.PrioritizedMsgQueue()))
+	}
+	prt = prt + fmt.Sprintf(fmtstr, "PrioritizedMsgQueue", list)
+
+	list = ""
+	for _, f := range fnodes {
 		list = list + fmt.Sprintf(" %3d", f.InMsgQueue().Length())
 	}
 	prt = prt + fmt.Sprintf(fmtstr, "InMsgQueue", list)

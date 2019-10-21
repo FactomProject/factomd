@@ -40,7 +40,7 @@ func init() {
 	flag.BoolVar(&p.WaitEntries, "waitentries", false, "Wait for Entries to be validated prior to execution of messages")
 	flag.IntVar(&p.ListenTo, "node", 0, "Node Number the simulator will set as the focus")
 	flag.IntVar(&p.Cnt, "count", 1, "The number of nodes to generate")
-	flag.StringVar(&p.Net, "net", "tree", "The default algorithm to build the network connections")
+	flag.StringVar(&p.Net, "net", "alot+", "The default algorithm to build the network connections")
 	flag.StringVar(&p.Fnet, "fnet", "", "Read the given file to build the network connections")
 	flag.IntVar(&p.DropRate, "drop", 0, "Number of messages to drop out of every thousand")
 	flag.StringVar(&p.Journal, "journal", "", "Rerun a Journal of messages")
@@ -164,6 +164,10 @@ func isCompilerVersionOK() bool {
 	}
 
 	if strings.Contains(runtime.Version(), "1.12") {
+		goodenough = true
+	}
+
+	if strings.Contains(runtime.Version(), "1.13") {
 		goodenough = true
 	}
 	return goodenough

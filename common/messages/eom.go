@@ -135,7 +135,7 @@ func (m *EOM) GetTimestamp() interfaces.Timestamp {
 	if m.Timestamp == nil {
 		m.Timestamp = new(primitives.Timestamp)
 	}
-	return m.Timestamp
+	return m.Timestamp.Clone()
 }
 
 func (m *EOM) Type() byte {
@@ -152,19 +152,18 @@ func (m *EOM) Validate(state interfaces.IState) int {
 	}
 
 	// Ignore old EOM
-	if m.DBHeight <= state.GetHighestSavedBlk() {
+	if uint32(m.DBHeight)*10+uint32(m.Minute) < state.GetLLeaderHeight()*10+uint32(state.GetCurrentMinute()) {
 		return -1
+	}
+
+	if uint32(m.DBHeight)*10+uint32(m.Minute) > state.GetLLeaderHeight()*10+uint32(state.GetCurrentMinute()) {
+		// msg from future may be a valid server when we get to this block
+		return state.HoldForHeight(m.DBHeight, int(m.Minute), m)
 	}
 
 	found, _ := state.GetVirtualServers(m.DBHeight, int(m.Minute), m.ChainID)
 	if !found {
-		if m.DBHeight > state.GetHighestSavedBlk() {
-			// msg from future may be a valid server when we get to this block
-			state.HoldForHeight(m.DBHeight, m)
-		} else {
-			// Only EOM from federated servers are valid.
-			return -1
-		}
+		return -1 // Only EOM from federated servers are valid.
 	}
 
 	// Check signature
@@ -362,13 +361,15 @@ func (m *EOM) String() string {
 	if m.FactoidVM {
 		f = "F"
 	}
-	return fmt.Sprintf("%6s-%30s FF %2d %1s-Leader[%x] hash[%x] %s",
+	return fmt.Sprintf("%6s-%30s FF %2d %1s-Leader[%x] hash[%x] ts %d %s %s",
 		"EOM",
-		fmt.Sprintf("DBh/VMh/h %d/%d/-- minute %d", m.DBHeight, m.VMIndex, m.Minute),
+		fmt.Sprintf("DBh/VMh/h %d/%02d/-- minute %2d", m.DBHeight, m.VMIndex, m.Minute),
 		m.SysHeight,
 		f,
 		m.ChainID.Bytes()[3:6],
 		m.GetMsgHash().Bytes()[:3],
+		m.Timestamp.GetTimeMilli(),
+		m.Timestamp.String(),
 		local)
 }
 

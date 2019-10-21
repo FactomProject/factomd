@@ -78,8 +78,10 @@ func (s *State) ValidatorLoop() {
 
 	CheckGrants()
 
-	go s.DoProcessing()
+	// We should only generate 1 EOM for each height/minute/vmindex
+	lastHeight, lastMinute, lastVM := -1, -1, -1
 
+	go s.DoProcessing()
 	// Look for pending messages, and get one if there is one.
 	for { // this is the message sort
 		var msg interfaces.IMsg
@@ -89,10 +91,25 @@ func (s *State) ValidatorLoop() {
 			shutdown(s)
 			time.Sleep(10 * time.Second) // wait till database close is complete
 			return
-		case <-s.tickerQueue: // Look for pending messages, and get one if there is one.
-			if !s.RunLeader || !s.DBFinished { // don't generate EOM if we are not a leader or are loading the DBState messages
+		case c := <-s.tickerQueue: // Look for pending messages, and get one if there is one.
+			if !s.RunLeader || !s.DBFinished { // don't generate EOM if we are not ready to execute as a leader or are loading the DBState messages
 				continue
 			}
+			currentMinute := s.CurrentMinute
+			if currentMinute == 10 { // if we are between blocks
+				currentMinute = 9 // treat minute 10 as an extension of minute 9
+			}
+			if lastHeight == int(s.LLeaderHeight) && lastMinute == currentMinute && s.LeaderVMIndex == lastVM {
+
+				// Drop ticker
+
+				s.LogPrintf("timer", "drop %d", c)
+				s.LogPrintf("validator", "drop %d  %d-:-%d %d", c, s.LLeaderHeight, currentMinute, s.LeaderVMIndex)
+				continue // Already generated this eom
+			}
+
+			lastHeight, lastMinute, lastVM = int(s.LLeaderHeight), currentMinute, s.LeaderVMIndex
+
 			eom := new(messages.EOM)
 			eom.Timestamp = s.GetTimestamp()
 			eom.ChainID = s.GetIdentityChainID()
@@ -100,12 +117,13 @@ func (s *State) ValidatorLoop() {
 				// best guess info... may be wrong -- just for debug
 				eom.DBHeight = s.LLeaderHeight
 				eom.VMIndex = s.LeaderVMIndex
-				eom.Minute = byte(s.CurrentMinute)
+				eom.Minute = byte(currentMinute)
 			}
 
 			eom.Sign(s)
 			eom.SetLocal(true) // local EOMs are really just timeout indicators that we need to generate an EOM
 			msg = eom
+			s.LogMessage("validator", fmt.Sprintf("generated c:%d  %d-:-%d %d", c, s.LLeaderHeight, s.CurrentMinute, s.LeaderVMIndex), eom)
 		case msg = <-s.inMsgQueue:
 			s.LogMessage("InMsgQueue", "dequeue", msg)
 		case msg = <-s.inMsgQueue2:
@@ -113,10 +131,10 @@ func (s *State) ValidatorLoop() {
 		}
 
 		if t := msg.Type(); t == constants.ACK_MSG {
-			s.LogMessage("ackQueue", "enqueue", msg)
+			s.LogMessage("ackQueue", "enqueue ValidatorLoop", msg)
 			s.ackQueue <- msg
 		} else {
-			s.LogMessage("msgQueue", "enqueue", msg)
+			s.LogMessage("msgQueue", "enqueue ValidatorLoop", msg)
 			s.msgQueue <- msg
 		}
 	}
