@@ -133,7 +133,7 @@ func returnV1Msg(writer http.ResponseWriter, msg string, success bool) {
 }
 
 func handleV1Error(writer http.ResponseWriter, err *primitives.JSONError) {
-	writer.WriteHeader(http.StatusBadRequest)
+	writer.WriteHeader(http.StatusOK)
 	return
 }
 
