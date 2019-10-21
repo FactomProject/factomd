@@ -12,7 +12,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"net"
 	"net/http"
 	"os"
 	"strconv"
@@ -93,15 +92,10 @@ func SetState(state interfaces.IState) {
 }
 
 func GetState(r *http.Request) (state interfaces.IState, err error) {
-	_, port, err := net.SplitHostPort(r.Host)
-	if err != nil {
-		return nil, errors.New(fmt.Sprintf("failed to extract port from request: %s", err))
-	}
-
+	ServersMutex.Lock()
+	defer ServersMutex.Unlock()
+	port := r.Header.Get("factomd-port")
 	if server, ok := Servers[port]; ok {
-		ServersMutex.Lock()
-		defer ServersMutex.Unlock()
-
 		return server.State, nil
 	} else {
 		return nil, errors.New(fmt.Sprintf("failed to get state, server initialization on port: %s failed", port))
