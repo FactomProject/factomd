@@ -15,6 +15,10 @@ message AdminBlock {
 message AdminBlockHeader {
     Hash previousBackRefHash = 1;
     uint32 blockHeight = 2;
+    uint64 headerExpansionSize = 3;
+    bytes headerExpansionArea = 4;
+    uint32 messageCount = 5;
+    uint32 bodySize = 6;
 }
 
 message AdminBlockEntry {
@@ -75,8 +79,6 @@ message AddFederatedServerSigningKey {
 message AddReplaceMatryoshkaHash {
     Hash identityChainID = 1;
     Hash matryoshkaHash = 2;
-    repeated TransactionAddress factoidOutputs = 3;
-
 }
 
 message CancelCoinbaseDescriptor {

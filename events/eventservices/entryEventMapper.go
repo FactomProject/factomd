@@ -45,6 +45,9 @@ func mapRevealEntryEvent(entityState eventmessages.EntityState, revealEntry *mes
 			EntityState: entityState,
 			Entry:       mapEntryBlockEntry(revealEntry.Entry, true),
 			Timestamp:   convertTimeToTimestamp(revealEntry.Timestamp.GetTime()),
+			ChainID: &eventmessages.Hash{
+				HashValue: revealEntry.GetChainIDHash().Bytes(),
+			},
 		},
 	}
 }
