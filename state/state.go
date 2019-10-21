@@ -451,6 +451,8 @@ type State struct {
 	Reveals                       Last100
 }
 
+type StateTemplate = State
+
 var _ interfaces.IState = (*State)(nil)
 
 type EntryUpdate struct {
@@ -466,7 +468,7 @@ func (s *State) GetRunState() runstate.RunState {
 	return s.RunState
 }
 
-func (s *State) Clone(cloneNumber int) interfaces.IState {
+func (s *StateTemplate) Clone(cloneNumber int) interfaces.IState {
 	newState := new(State)
 	number := fmt.Sprintf("%02d", cloneNumber)
 

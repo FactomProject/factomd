@@ -13,8 +13,6 @@ import (
 	"github.com/FactomProject/factomd/common/constants/runstate"
 	. "github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/state"
 
 	"bufio"
 	"io"
@@ -26,7 +24,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/FactomProject/factomd/common/messages/electionMsgs"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -64,21 +61,9 @@ func Factomd(w *worker.Thread, params *FactomParams, listenToStdin bool) interfa
 	StartTime = time.Now()
 	fmt.Printf("Start time: %s\n", StartTime.String())
 
-	state0 := new(state.State)
-	state0.RunState = runstate.New
+	go StartProfiler(params.MemProfileRate, params.ExposeProfiling)
 
-	// Setup the name to catch any early logging
-	state0.FactomNodeName = state0.Prefix + "FNode0"
-	state0.TimestampAtBoot = primitives.NewTimestampNow()
-	state0.SetLeaderTimestamp(state0.TimestampAtBoot)
-	// build a timestamp 20 minutes before boot so we will accept messages from nodes who booted before us.
-	preBootTime := new(primitives.Timestamp)
-	preBootTime.SetTimeMilli(state0.TimestampAtBoot.GetTimeMilli() - 20*60*1000)
-	state0.SetMessageFilterTimestamp(preBootTime)
-	state0.EFactory = new(electionMsgs.ElectionsFactory)
-
-	NetStart(w, state0, params, listenToStdin)
-	return state0
+	return NetStart(w, params, listenToStdin)
 }
 
 func HandleLogfiles(stdoutlog string, stderrlog string) {

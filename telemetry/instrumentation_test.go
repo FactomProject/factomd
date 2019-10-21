@@ -7,5 +7,5 @@ import (
 
 func TestSimulation(t *testing.T) {
 	// Just load simulator
-	testHelper.SetupSim("L", map[string]string{}, 10, 0, 0, t)
+	testHelper.SetupSim("LFF", map[string]string{}, 10, 0, 0, t)
 }
