@@ -166,6 +166,12 @@ type SendRawMessageResponse struct {
 	Message string `json:"message"`
 }
 
+type SendReplayMessageResponse struct {
+	Message string `json:"message"`
+	Start   string `json:"startheight"`
+	End     string `json:"endheight"`
+}
+
 type TransactionRateResponse struct {
 	TotalTransactionRate   float64 `json:"totaltxrate"`
 	InstantTransactionRate float64 `json:"instanttxrate"`

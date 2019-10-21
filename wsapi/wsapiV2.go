@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 
@@ -202,8 +203,10 @@ func HandleV2ReplayDBFromHeight(state interfaces.IState, params interface{}) (in
 
 	state.EmitDBStateEventsFromHeight(beginning, end)
 
-	resp := new(SendRawMessageResponse)
+	resp := new(SendReplayMessageResponse)
 	resp.Message = "Successfully initiated replay of blocks " + fmt.Sprint(beginning) + " through " + fmt.Sprint(end)
+	resp.Start = strconv.FormatInt(beginning, 10)
+	resp.End = strconv.FormatInt(end, 10)
 	return resp, nil
 }
 
