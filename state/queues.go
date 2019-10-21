@@ -5,7 +5,7 @@ import (
 	"github.com/FactomProject/factomd/worker"
 )
 
-// Now really sure the thread shodul be the parent but for now ...
+// Now really sure the thread should be the parent but for now ...
 func NewInMsgQueue(w *worker.Thread, capacity int) *queue.MsgQueue {
 	return new(queue.MsgQueue).Init(w, "state", w, "InMsgQueue", capacity)
 }

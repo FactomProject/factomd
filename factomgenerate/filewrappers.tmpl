@@ -11,8 +11,12 @@ This file contains the templates for framing generated go files.
 // at {{ .timestamp }}
 
 // Start Generated Code
+{{ if .test }}
+package generated_test
+{{ else }}
 package generated
-//updated
+{{ end }}
+
 {{ if .imports }}
 import (
 {{ range $k, $v := .imports }} {{ printf "%q\n" $k }}{{ end -}}

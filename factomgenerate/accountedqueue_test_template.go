@@ -20,31 +20,31 @@ import (
 // Start accountedqueue_test generated go code
 
 func TestAccountedQueue(t *testing.T) {
-	q := new(generated.Queue_IMsg).Init(NilName, "Test", 10)
+	q := new(generated.ᐸ.typename ᐳ).Init(common.NilName, "Test", 10)
 
 	if q.Dequeue() != nil {
-		t.Fail("empty dequeue return non-nil")
+		t.Fatal("empty dequeue return non-nil")
 	}
 
 	for i := 0; i < 10; i++ {
-		q.Enqueue(new(ᐸ.type ᐳ))
+		q.Enqueue(ᐸ.testelement ᐳ)
 	}
 
 	// commented out because it requires a modern prometheus package
 	//if testutil.ToFloat64(q.TotalMetric()) != float64(10) {
-	//	t.Fail("TotalMetric fail")
+	//	t.Fatal("TotalMetric fail")
 	//}
 
 	for i := 9; i >= 0; i-- {
 		q.Dequeue()
 		// commented out because it requires a modern prometheus package
 		//if testutil.ToFloat64(q.Metric()) != float64(i) {
-		//	t.Fail("Metric fail")
+		//	t.Fatal("Metric fail")
 		//}
 	}
 
 	if q.Dequeue() != nil {
-		t.Fail("empty dequeue return non-nil")
+		t.Fatal("empty dequeue return non-nil")
 	}
 }
 

@@ -104,6 +104,7 @@ func main() {
 		details := make(map[string]interface{})
 		details["timestamp"] = now
 		details["imports"] = importsMap
+		details["test"] = strings.Contains(templatename, "_test")
 		fmt.Println("Creating", filename, "with", details)
 		f, err := os.Create(filename)
 		die(err)
