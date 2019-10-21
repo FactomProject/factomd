@@ -50,4 +50,5 @@ func (t *Name) Init(p NamedObject, n string) {
 	t.name = n
 }
 
+var NilName *Name                // This is a nil of name type Do NOT write it!
 var _ NamedObject = (*Name)(nil) // Check that the interface is met

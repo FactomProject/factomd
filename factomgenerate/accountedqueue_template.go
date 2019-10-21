@@ -14,8 +14,6 @@ import (
 	"github.com/FactomProject/factomd/telemetry"
 )
 
-var r map[string]string // dummy variable to make the template delimiters work for gofmt...
-
 //ᐸdefine "accountedqueue" ᐳ
 // Start accountedqueue generated go code
 

@@ -75,3 +75,8 @@ func NewSummary(name string, help string) Summary {
 	prometheus.MustRegister(s)
 	return s
 }
+
+//
+//func ToFloat64(counter Counter) float64 {
+//	return prometheus.ToFLoat64(counter.(prometheus.Counter))
+//}
