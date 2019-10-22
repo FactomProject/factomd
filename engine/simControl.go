@@ -90,7 +90,7 @@ func GetFocus() *fnode.FactomNode {
 	return nil
 }
 
-func simControl(w *worker.Thread, listenTo int, listenStdin bool) {
+func startSimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 	var _ = time.Sleep
 	var summary int
 	var elections int

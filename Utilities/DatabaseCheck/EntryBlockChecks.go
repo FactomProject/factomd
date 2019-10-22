@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
-
+	"github.com/FactomProject/factomd/fnode"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/engine"
+	"github.com/FactomProject/factomd/worker"
 )
 
 const level string = "level"
@@ -21,9 +22,9 @@ func main() {
 		"-startdelay=100")
 
 	params := engine.ParseCmdLine(args)
-	state := engine.Factomd(params, true)
+	engine.Factomd(worker.New(), params, true)
 
-	CheckEntryBlocks(state.GetDB(), true)
+	CheckEntryBlocks(fnode.Get(0).State.GetDB(), true)
 
 }
 

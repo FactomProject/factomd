@@ -287,17 +287,33 @@ func interruptHandler() {
 	os.Exit(0)
 }
 
+// return a factory method for creating new nodes
+func nodeFactory(w *worker.Thread, p *FactomParams) func() *fnode.FactomNode {
+	return func() *fnode.FactomNode {
+		if fnode.Len() == 0 {
+			initState0(w, p)
+			return fnode.Get(0)
+		} else {
+			return makeServer(fnode.Get(0).State)
+		}
+	}
+}
+
 // creates a new state an initializes state0 params
-// state0 is the only state object when connecting to mainnet
+// state0 is the only state object used when connecting to mainnet
 // during simulation state0 is used to spawn other simulated nodes
-func StateFactory(w *worker.Thread, p *FactomParams) *state.State {
+func initState0(w *worker.Thread, p *FactomParams) {
 	if fnode.Len() != 0 {
-		panic("can only use factory for state0")
+		panic("only allowed for first initialized state")
 	}
 
 	s := NewState(p)
 	{
-		// REVIEW: can this be refactored
+	/*
+	REVIEW: refactor
+	this block is necessary because subsequent code relies on fields set in state.Initialize
+	however we need to Initialize the node name so that we get the proper hierarchy when child objects are created
+	*/
 		node := fnode.Get(0)
 		s.Init(node, s.FactomNodeName)
 		s.Initialize(w)
@@ -333,24 +349,21 @@ func StateFactory(w *worker.Thread, p *FactomParams) *state.State {
 	}
 
 	initAnchors(s, p.ReparseAnchorChains)
-	return s
+	echoConfig(s, p)
 }
 
-func NetStart(w *worker.Thread, p *FactomParams, listenToStdin bool) *state.State {
+func NetStart(w *worker.Thread, p *FactomParams, listenToStdin bool) {
 	messages.AckBalanceHash = p.AckbalanceHash
 	w.RegisterInterruptHandler(interruptHandler)
 	SetLogLevel(p)
-	s := StateFactory(w, p)
-	echoConfig(s, p)
-	for i := 1; i < p.Cnt; i++ {
-		makeServer(s) // clone state0 to add simulated servers
+	factory := nodeFactory(w, p)
+	for i := 0; i < p.Cnt; i++ {
+		factory()
 	}
-	startNetwork(w, s, p)
-	startServers(w)
-	webserver(w)
-	simControl(w, p.ListenTo, listenToStdin)
-
-	return s
+	startNetwork(w, p)
+	startFnodes(w)
+	startWebserver(w)
+	startSimControl(w, p.ListenTo, listenToStdin)
 }
 
 // Anchoring related configurations
@@ -377,8 +390,129 @@ func initAnchors(s *state.State, reparse bool) {
 	}
 }
 
-// Start the webserver
-func webserver(w *worker.Thread) {
+// construct a simulated network
+func buildNetTopology(p *FactomParams) {
+	networkpattern = p.Net
+	nodes := fnode.GetFnodes()
+
+	switch p.Net {
+	case "file":
+		file, err := os.Open(p.Fnet)
+		if err != nil {
+			panic(fmt.Sprintf("File network.txt failed to open: %s", err.Error()))
+		} else if file == nil {
+			panic(fmt.Sprint("File network.txt failed to open, and we got a file of <nil>"))
+		}
+		scanner := bufio.NewScanner(file)
+		for scanner.Scan() {
+			var a, b int
+			var s string
+			fmt.Sscanf(scanner.Text(), "%d %s %d", &a, &s, &b)
+			if s == "--" {
+				AddSimPeer(nodes, a, b)
+			}
+		}
+	case "square":
+		side := int(math.Sqrt(float64(p.Cnt)))
+
+		for i := 0; i < side; i++ {
+			AddSimPeer(nodes, i*side, (i+1)*side-1)
+			AddSimPeer(nodes, i, side*(side-1)+i)
+			for j := 0; j < side; j++ {
+				if j < side-1 {
+					AddSimPeer(nodes, i*side+j, i*side+j+1)
+				}
+				AddSimPeer(nodes, i*side+j, ((i+1)*side)+j)
+			}
+		}
+	case "long":
+		fmt.Println("Using long Network")
+		for i := 1; i < p.Cnt; i++ {
+			AddSimPeer(nodes, i-1, i)
+		}
+		// Make long into a circle
+	case "loops":
+		fmt.Println("Using loops Network")
+		for i := 1; i < p.Cnt; i++ {
+			AddSimPeer(nodes, i-1, i)
+		}
+		for i := 0; (i+17)*2 < p.Cnt; i += 17 {
+			AddSimPeer(nodes, i%p.Cnt, (i+5)%p.Cnt)
+		}
+		for i := 0; (i+13)*2 < p.Cnt; i += 13 {
+			AddSimPeer(nodes, i%p.Cnt, (i+7)%p.Cnt)
+		}
+	case "alot":
+		n := len(nodes)
+		for i := 0; i < n; i++ {
+			AddSimPeer(nodes, i, (i+1)%n)
+			AddSimPeer(nodes, i, (i+5)%n)
+			AddSimPeer(nodes, i, (i+7)%n)
+		}
+
+	case "alot+":
+		n := len(nodes)
+		for i := 0; i < n; i++ {
+			AddSimPeer(nodes, i, (i+1)%n)
+			AddSimPeer(nodes, i, (i+5)%n)
+			AddSimPeer(nodes, i, (i+7)%n)
+			AddSimPeer(nodes, i, (i+13)%n)
+		}
+
+	case "tree":
+		index := 0
+		row := 1
+	treeloop:
+		for i := 0; true; i++ {
+			for j := 0; j <= i; j++ {
+				AddSimPeer(nodes, index, row)
+				AddSimPeer(nodes, index, row+1)
+				row++
+				index++
+				if index >= len(nodes) {
+					break treeloop
+				}
+			}
+			row += 1
+		}
+	case "circles":
+		circleSize := 7
+		index := 0
+		for {
+			AddSimPeer(nodes, index, index+circleSize-1)
+			for i := index; i < index+circleSize-1; i++ {
+				AddSimPeer(nodes, i, i+1)
+			}
+			index += circleSize
+
+			AddSimPeer(nodes, index, index-circleSize/3)
+			AddSimPeer(nodes, index+2, index-circleSize-circleSize*2/3-1)
+			AddSimPeer(nodes, index+3, index-(2*circleSize)-circleSize*2/3)
+			AddSimPeer(nodes, index+5, index-(3*circleSize)-circleSize*2/3+1)
+
+			if index >= len(nodes) {
+				break
+			}
+		}
+	default:
+		fmt.Println("Didn't understand network type. Known types: mesh, long, circles, tree, loops.  Using a Long Network")
+		for i := 1; i < p.Cnt; i++ {
+			AddSimPeer(nodes, i-1, i)
+		}
+
+	}
+
+	var colors []string = []string{"95cde5", "b01700", "db8e3c", "ffe35f"}
+
+	if len(nodes) > 2 {
+		for i, s := range nodes {
+			fmt.Printf("%d {color:#%v, shape:dot, label:%v}\n", i, colors[i%len(colors)], s.State.FactomNodeName)
+		}
+		fmt.Printf("Paste the network info above into http://arborjs.org/halfviz to visualize the network\n")
+	}
+}
+
+func startWebserver(w *worker.Thread) {
 	state0 := fnode.Get(0).State
 	wsapi.Start(w, state0)
 	if state0.DebugExec() && llog.CheckFileName("graphData.txt") {
@@ -393,7 +527,8 @@ func webserver(w *worker.Thread) {
 	}, "ControlPanel")
 }
 
-func startNetwork(w *worker.Thread, s *state.State, p *FactomParams) {
+func startNetwork(w *worker.Thread, p *FactomParams) {
+	s := fnode.Get(0).State
 	// Modify Identities of new nodes
 	if fnode.Len() > 1 && len(s.Prefix) == 0 {
 		modifyLoadIdentities() // We clone s to make all of our servers
@@ -444,156 +579,36 @@ func startNetwork(w *worker.Thread, s *state.State, p *FactomParams) {
 	}
 
 	p2p.NetworkDeadline = time.Duration(p.Deadline) * time.Millisecond
+	buildNetTopology(p)
 
-	fnodes := fnode.GetFnodes()
-	if p.EnableNet {
-		nodeName := fnodes[0].State.FactomNodeName
-		if 0 < p.NetworkPortOverride {
-			networkPort = fmt.Sprintf("%d", p.NetworkPortOverride)
-		}
-
-		ci := p2p.ControllerInit{
-			NodeName:                 nodeName,
-			Port:                     networkPort,
-			PeersFile:                s.PeersFile,
-			Network:                  networkID,
-			Exclusive:                p.Exclusive,
-			ExclusiveIn:              p.ExclusiveIn,
-			SeedURL:                  seedURL,
-			ConfigPeers:              configPeers,
-			CmdLinePeers:             p.Peers,
-			ConnectionMetricsChannel: connectionMetricsChannel,
-		}
-		p2pNetwork = new(p2p.Controller).Init(ci)
-		fnodes[0].State.NetworkController = p2pNetwork
-		p2pNetwork.StartNetwork(w)
-		p2pProxy = new(P2PProxy).Init(nodeName, "P2P Network").(*P2PProxy)
-		p2pProxy.FromNetwork = p2pNetwork.FromNetwork
-		p2pProxy.ToNetwork = p2pNetwork.ToNetwork
-
-		fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
-		p2pProxy.StartProxy(w)
-
-		w.Run(networkHousekeeping, "NetworkHousekeeping") // This goroutine executes once a second to keep the proxy apprised of the network status.
+	if ! p.EnableNet {
+		return
 	}
 
-	networkpattern = p.Net
-
-	switch p.Net {
-	case "file":
-		file, err := os.Open(p.Fnet)
-		if err != nil {
-			panic(fmt.Sprintf("File network.txt failed to open: %s", err.Error()))
-		} else if file == nil {
-			panic(fmt.Sprint("File network.txt failed to open, and we got a file of <nil>"))
-		}
-		scanner := bufio.NewScanner(file)
-		for scanner.Scan() {
-			var a, b int
-			var s string
-			fmt.Sscanf(scanner.Text(), "%d %s %d", &a, &s, &b)
-			if s == "--" {
-				AddSimPeer(fnodes, a, b)
-			}
-		}
-	case "square":
-		side := int(math.Sqrt(float64(p.Cnt)))
-
-		for i := 0; i < side; i++ {
-			AddSimPeer(fnodes, i*side, (i+1)*side-1)
-			AddSimPeer(fnodes, i, side*(side-1)+i)
-			for j := 0; j < side; j++ {
-				if j < side-1 {
-					AddSimPeer(fnodes, i*side+j, i*side+j+1)
-				}
-				AddSimPeer(fnodes, i*side+j, ((i+1)*side)+j)
-			}
-		}
-	case "long":
-		fmt.Println("Using long Network")
-		for i := 1; i < p.Cnt; i++ {
-			AddSimPeer(fnodes, i-1, i)
-		}
-		// Make long into a circle
-	case "loops":
-		fmt.Println("Using loops Network")
-		for i := 1; i < p.Cnt; i++ {
-			AddSimPeer(fnodes, i-1, i)
-		}
-		for i := 0; (i+17)*2 < p.Cnt; i += 17 {
-			AddSimPeer(fnodes, i%p.Cnt, (i+5)%p.Cnt)
-		}
-		for i := 0; (i+13)*2 < p.Cnt; i += 13 {
-			AddSimPeer(fnodes, i%p.Cnt, (i+7)%p.Cnt)
-		}
-	case "alot":
-		n := len(fnodes)
-		for i := 0; i < n; i++ {
-			AddSimPeer(fnodes, i, (i+1)%n)
-			AddSimPeer(fnodes, i, (i+5)%n)
-			AddSimPeer(fnodes, i, (i+7)%n)
-		}
-
-	case "alot+":
-		n := len(fnodes)
-		for i := 0; i < n; i++ {
-			AddSimPeer(fnodes, i, (i+1)%n)
-			AddSimPeer(fnodes, i, (i+5)%n)
-			AddSimPeer(fnodes, i, (i+7)%n)
-			AddSimPeer(fnodes, i, (i+13)%n)
-		}
-
-	case "tree":
-		index := 0
-		row := 1
-	treeloop:
-		for i := 0; true; i++ {
-			for j := 0; j <= i; j++ {
-				AddSimPeer(fnodes, index, row)
-				AddSimPeer(fnodes, index, row+1)
-				row++
-				index++
-				if index >= len(fnodes) {
-					break treeloop
-				}
-			}
-			row += 1
-		}
-	case "circles":
-		circleSize := 7
-		index := 0
-		for {
-			AddSimPeer(fnodes, index, index+circleSize-1)
-			for i := index; i < index+circleSize-1; i++ {
-				AddSimPeer(fnodes, i, i+1)
-			}
-			index += circleSize
-
-			AddSimPeer(fnodes, index, index-circleSize/3)
-			AddSimPeer(fnodes, index+2, index-circleSize-circleSize*2/3-1)
-			AddSimPeer(fnodes, index+3, index-(2*circleSize)-circleSize*2/3)
-			AddSimPeer(fnodes, index+5, index-(3*circleSize)-circleSize*2/3+1)
-
-			if index >= len(fnodes) {
-				break
-			}
-		}
-	default:
-		fmt.Println("Didn't understand network type. Known types: mesh, long, circles, tree, loops.  Using a Long Network")
-		for i := 1; i < p.Cnt; i++ {
-			AddSimPeer(fnodes, i-1, i)
-		}
-
+	if 0 < p.NetworkPortOverride {
+		networkPort = fmt.Sprintf("%d", p.NetworkPortOverride)
 	}
 
-	var colors []string = []string{"95cde5", "b01700", "db8e3c", "ffe35f"}
-
-	if len(fnodes) > 2 {
-		for i, s := range fnodes {
-			fmt.Printf("%d {color:#%v, shape:dot, label:%v}\n", i, colors[i%len(colors)], s.State.FactomNodeName)
-		}
-		fmt.Printf("Paste the network info above into http://arborjs.org/halfviz to visualize the network\n")
+	ci := p2p.ControllerInit{
+		NodeName:                 s.FactomNodeName,
+		Port:                     networkPort,
+		PeersFile:                s.PeersFile,
+		Network:                  networkID,
+		Exclusive:                p.Exclusive,
+		ExclusiveIn:              p.ExclusiveIn,
+		SeedURL:                  seedURL,
+		ConfigPeers:              configPeers,
+		CmdLinePeers:             p.Peers,
+		ConnectionMetricsChannel: connectionMetricsChannel,
 	}
+
+	p2pNetwork = new(p2p.Controller).Init(ci)
+	s.NetworkController = p2pNetwork
+	p2pNetwork.StartNetwork(w)
+	p2pProxy = new(P2PProxy).Init(s.FactomNodeName, "P2P Network").(*P2PProxy)
+	p2pProxy.FromNetwork = p2pNetwork.FromNetwork
+	p2pProxy.ToNetwork = p2pNetwork.ToNetwork
+	p2pProxy.StartProxy(w)
 }
 
 func printGraphData(filename string, period int) {
@@ -630,7 +645,7 @@ func makeServer(s *state.State) *fnode.FactomNode {
 	return node
 }
 
-func startServers(w *worker.Thread) {
+func startFnodes(w *worker.Thread) {
 	w.Spawn(func(w *worker.Thread) {
 		for i, node := range fnode.GetFnodes() {
 			if i > 0 {
@@ -664,15 +679,7 @@ func setupFirstAuthority(s *state.State) {
 	s.IdentityControl.SetBootstrapIdentity(s.GetNetworkBootStrapIdentity(), s.GetNetworkBootStrapKey())
 }
 
-func networkHousekeeping() {
-	for {
-		time.Sleep(1 * time.Second)
-		p2pProxy.SetWeight(p2pNetwork.GetNumberOfConnections())
-	}
-}
-
 func AddNode() {
-
 	fnodes := fnode.GetFnodes()
 	s := fnodes[0].State
 	i := len(fnodes)

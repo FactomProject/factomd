@@ -10,11 +10,8 @@ import (
 	"github.com/FactomProject/factomd/worker"
 	"runtime"
 
-	"github.com/FactomProject/factomd/common/constants/runstate"
-	. "github.com/FactomProject/factomd/common/globals"
-	"github.com/FactomProject/factomd/common/interfaces"
-
 	"bufio"
+	. "github.com/FactomProject/factomd/common/globals"
 	"io"
 	"net"
 	"os"
@@ -41,29 +38,23 @@ var packageLogger = log.WithFields(log.Fields{"package": "engine"})
 func Run(params *FactomParams) {
 	p := registry.New()
 	p.Register(func(w *worker.Thread) {
-		state := Factomd(w, params, params.Sim_Stdin)
-		w.OnRun(func() {
-			for state.GetRunState() != runstate.Stopped {
-				time.Sleep(time.Second)
-			}
-		}).OnComplete(func() {
-			fmt.Println("Waiting to Shut Down") // This may not be necessary anymore with the new run state method
+		Factomd(w, params, params.Sim_Stdin)
+		w.OnComplete(func() {
+			fmt.Println("Waiting to Shut Down")
 			time.Sleep(time.Second * 5)
 		})
 	}, "Factomd")
 	p.Run()
 }
 
-func Factomd(w *worker.Thread, params *FactomParams, listenToStdin bool) interfaces.IState {
+func Factomd(w *worker.Thread, params *FactomParams, listenToStdin bool) {
 	fmt.Printf("SpawnRun compiler version: %s\n", runtime.Version())
 	fmt.Printf("Using build: %s\n", Build)
 	fmt.Printf("Version: %s\n", FactomdVersion)
 	StartTime = time.Now()
 	fmt.Printf("Start time: %s\n", StartTime.String())
-
 	go StartProfiler(params.MemProfileRate, params.ExposeProfiling)
-
-	return NetStart(w, params, listenToStdin)
+	NetStart(w, params, listenToStdin)
 }
 
 func HandleLogfiles(stdoutlog string, stderrlog string) {
