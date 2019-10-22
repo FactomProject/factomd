@@ -44,14 +44,14 @@ func mapRegistrationEvent(registrationEvent *events.RegistrationEvent, broadcast
 		switch msg.(type) {
 		case *messages.CommitChainMsg:
 			commitChainMsg := msg.(*messages.CommitChainMsg)
-			event.Value = mapCommitChain(eventmessages.EntityState_REQUESTED, commitChainMsg)
+			event.Event = mapCommitChain(eventmessages.EntityState_REQUESTED, commitChainMsg)
 		case *messages.CommitEntryMsg:
 			commitEntryMsg := msg.(*messages.CommitEntryMsg)
-			event.Value = mapCommitEntryEvent(eventmessages.EntityState_REQUESTED, commitEntryMsg)
+			event.Event = mapCommitEntryEvent(eventmessages.EntityState_REQUESTED, commitEntryMsg)
 		case *messages.RevealEntryMsg:
 			revealEntryMsg := msg.(*messages.RevealEntryMsg)
 			if shouldIncludeContent {
-				event.Value = mapRevealEntryEvent(eventmessages.EntityState_REQUESTED, revealEntryMsg)
+				event.Event = mapRevealEntryEvent(eventmessages.EntityState_REQUESTED, revealEntryMsg)
 			} else {
 				return nil, nil
 			}
@@ -73,27 +73,27 @@ func mapStateChangeEvent(stateChangeEvent *events.StateChangeMsgEvent, broadcast
 		case *messages.CommitChainMsg:
 			commitChainMsg := msg.(*messages.CommitChainMsg)
 			if sendStateChangeEvents {
-				event.Value = mapCommitChainState(stateChangeEvent.GetEntityState(), commitChainMsg)
+				event.Event = mapCommitChainState(stateChangeEvent.GetEntityState(), commitChainMsg)
 			} else {
-				event.Value = mapCommitChain(stateChangeEvent.GetEntityState(), commitChainMsg)
+				event.Event = mapCommitChain(stateChangeEvent.GetEntityState(), commitChainMsg)
 			}
 		case *messages.CommitEntryMsg:
 			commitEntryMsg := msg.(*messages.CommitEntryMsg)
 			if sendStateChangeEvents {
-				event.Value = mapCommitEntryEventState(stateChangeEvent.GetEntityState(), commitEntryMsg)
+				event.Event = mapCommitEntryEventState(stateChangeEvent.GetEntityState(), commitEntryMsg)
 			} else {
-				event.Value = mapCommitEntryEvent(stateChangeEvent.GetEntityState(), commitEntryMsg)
+				event.Event = mapCommitEntryEvent(stateChangeEvent.GetEntityState(), commitEntryMsg)
 			}
 		case *messages.RevealEntryMsg:
 			revealEntryMsg := msg.(*messages.RevealEntryMsg)
 			if sendStateChangeEvents {
-				event.Value = mapRevealEntryEventState(stateChangeEvent.GetEntityState(), revealEntryMsg)
+				event.Event = mapRevealEntryEventState(stateChangeEvent.GetEntityState(), revealEntryMsg)
 			} else if shouldIncludeContent {
-				event.Value = mapRevealEntryEvent(stateChangeEvent.GetEntityState(), revealEntryMsg)
+				event.Event = mapRevealEntryEvent(stateChangeEvent.GetEntityState(), revealEntryMsg)
 			}
 		case *messages.DBStateMsg:
 			dbStateMessage := msg.(*messages.DBStateMsg)
-			event.Value = mapDBStateFromMsg(dbStateMessage, shouldIncludeContent)
+			event.Event = mapDBStateFromMsg(dbStateMessage, shouldIncludeContent)
 		default:
 			return nil, errors.New("unknown message type")
 		}
@@ -108,7 +108,7 @@ func mapDBStateEvent(stateChangeEvent *events.StateChangeEvent, broadcastContent
 	stateChangeEvent.GetEntityState()
 	if state != nil {
 		shouldIncludeContent := broadcastContent > BroadcastOnce
-		event.Value = mapDBState(state, shouldIncludeContent)
+		event.Event = mapDBState(state, shouldIncludeContent)
 	}
 	return event, nil
 }
@@ -116,7 +116,7 @@ func mapDBStateEvent(stateChangeEvent *events.StateChangeEvent, broadcastContent
 func mapProcessMessageEvent(processMessageEvent *events.ProcessMessageEvent) (*eventmessages.FactomEvent, error) {
 	event := &eventmessages.FactomEvent{
 		EventSource: processMessageEvent.GetStreamSource(),
-		Value: &eventmessages.FactomEvent_ProcessMessage{
+		Event: &eventmessages.FactomEvent_ProcessMessage{
 			ProcessMessage: processMessageEvent.GetProcessMessage(),
 		},
 	}
@@ -126,7 +126,7 @@ func mapProcessMessageEvent(processMessageEvent *events.ProcessMessageEvent) (*e
 func mapNodeMessageEvent(nodeMessageEvent *events.NodeMessageEvent) (*eventmessages.FactomEvent, error) {
 	event := &eventmessages.FactomEvent{
 		EventSource: nodeMessageEvent.GetStreamSource(),
-		Value: &eventmessages.FactomEvent_NodeMessage{
+		Event: &eventmessages.FactomEvent_NodeMessage{
 			NodeMessage: nodeMessageEvent.GetNodeMessage(),
 		},
 	}

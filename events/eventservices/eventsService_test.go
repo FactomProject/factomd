@@ -36,7 +36,7 @@ func TestEventsService_Send(t *testing.T) {
 	var finished atomic.AtomicBool
 	finished.Store(false)
 
-	expectedMessage := `{"identityChainID":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=","Value":{"nodeMessage":{"messageText":"test message of node: node name"}}}`
+	expectedMessage := `{"identityChainID":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=","Event":{"nodeMessage":{"messageText":"test message of node: node name"}}}`
 
 	// mock server by reading everything until stop byte is found
 	// use the stop byte to stop as soon as possible, note: don't use stop byte in test message before the end
@@ -238,7 +238,7 @@ func TestEventsService_SendEvent(t *testing.T) {
 		notSentCounter: prometheus.NewCounter(prometheus.CounterOpts{}),
 	}
 
-	expectedMessage := `{"eventSource":1,"factomNodeName":"test","Value":null}`
+	expectedMessage := `{"eventSource":1,"factomNodeName":"test","Event":null}`
 
 	// mock server by reading everything until stop byte is found
 	// use the stop byte to stop as soon as possible, note: don't use stop byte in test message before the end
@@ -302,7 +302,7 @@ func TestEventsService_SendEventBreakdown(t *testing.T) {
 		notSentCounter: prometheus.NewCounter(prometheus.CounterOpts{}),
 	}
 
-	expectedMessage := `{"eventSource":1,"factomNodeName":"test","Value":null}`
+	expectedMessage := `{"eventSource":1,"factomNodeName":"test","Event":null}`
 
 	// mock server by reading everything until stop byte is found
 	// use the stop byte to stop as soon as possible, note: don't use stop byte in test message before the end
@@ -494,7 +494,7 @@ func TestEventsService_MarshallMessage(t *testing.T) {
 			OutputFormat: Json,
 			Assertion: func(t *testing.T, data []byte, err error) {
 				assert.NoError(t, err)
-				assert.JSONEq(t, `{"eventSource":1,"factomNodeName":"test","Value":null}`, string(data))
+				assert.JSONEq(t, `{"eventSource":1,"factomNodeName":"test","Event":null}`, string(data))
 			},
 		},
 		"empty-protobuf": {
@@ -510,7 +510,7 @@ func TestEventsService_MarshallMessage(t *testing.T) {
 			OutputFormat: Json,
 			Assertion: func(t *testing.T, data []byte, err error) {
 				assert.NoError(t, err)
-				assert.JSONEq(t, `{"Value": null}`, string(data))
+				assert.JSONEq(t, `{"Event": null}`, string(data))
 			},
 		},
 		"EventFormat-issue": {

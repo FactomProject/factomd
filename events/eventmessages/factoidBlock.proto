@@ -28,7 +28,7 @@ message Transaction {
 }
 
 message RCD {
-    oneof value {
+    oneof rcd {
         RCD1 rcd1 = 1;
     }
 }

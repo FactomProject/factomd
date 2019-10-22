@@ -22,7 +22,7 @@ message AdminBlockHeader {
 }
 
 message AdminBlockEntry {
-    oneof value {
+    oneof adminBlockEntry {
         AddAuditServer addAuditServer = 1;
         AddEfficiency addEfficiency = 2;
         AddFactoidAddress addFactoidAddress = 3;

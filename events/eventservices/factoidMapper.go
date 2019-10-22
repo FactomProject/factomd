@@ -73,7 +73,7 @@ func mapRCD(rcd interfaces.IRCD) *eventmessages.RCD {
 	switch rcd.(type) {
 	case factoid.IRCD_1:
 		rcd1 := rcd.(factoid.IRCD_1)
-		result.Value = &eventmessages.RCD_Rcd1{
+		result.Rcd = &eventmessages.RCD_Rcd1{
 			Rcd1: &eventmessages.RCD1{
 				PublicKey: rcd1.GetPublicKey(),
 			},

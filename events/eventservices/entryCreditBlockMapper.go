@@ -37,15 +37,15 @@ func mapEntryCreditBlockEntry(entry interfaces.IECBlockEntry) *eventmessages.Ent
 	result := &eventmessages.EntryCreditBlockEntry{}
 	switch entry.(type) {
 	case *entryCreditBlock.CommitChain:
-		result.Value = mapEntryCreditCommitChain(entry)
+		result.EntryCreditBlockEntry = mapEntryCreditCommitChain(entry)
 	case *entryCreditBlock.CommitEntry:
-		result.Value = mapEntryCreditCommitEntry(entry)
+		result.EntryCreditBlockEntry = mapEntryCreditCommitEntry(entry)
 	case *entryCreditBlock.IncreaseBalance:
-		result.Value = mapEntryCreditIncreaseBalance(entry)
+		result.EntryCreditBlockEntry = mapEntryCreditIncreaseBalance(entry)
 	case *entryCreditBlock.MinuteNumber:
-		result.Value = mapEntryCreditMinuteNumber(entry)
+		result.EntryCreditBlockEntry = mapEntryCreditMinuteNumber(entry)
 	case *entryCreditBlock.ServerIndexNumber:
-		result.Value = mapEntryCreditServerIndexNumber(entry)
+		result.EntryCreditBlockEntry = mapEntryCreditServerIndexNumber(entry)
 	}
 	return result
 }

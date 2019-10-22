@@ -32,37 +32,37 @@ func mapAdminBlockEntries(entries []interfaces.IABEntry) []*eventmessages.AdminB
 		result[i] = &eventmessages.AdminBlockEntry{}
 		switch entry.(type) {
 		case *adminBlock.AddAuditServer:
-			result[i].Value = mapAddAuditServer(entry)
+			result[i].AdminBlockEntry = mapAddAuditServer(entry)
 		case *adminBlock.AddEfficiency:
-			result[i].Value = mapAddEfficiency(entry)
+			result[i].AdminBlockEntry = mapAddEfficiency(entry)
 		case *adminBlock.AddFactoidAddress:
-			result[i].Value = mapAddFactoidAddress(entry)
+			result[i].AdminBlockEntry = mapAddFactoidAddress(entry)
 		case *adminBlock.AddFederatedServer:
-			result[i].Value = mapAddFederatedServer(entry)
+			result[i].AdminBlockEntry = mapAddFederatedServer(entry)
 		case *adminBlock.AddFederatedServerBitcoinAnchorKey:
-			result[i].Value = mapAddFederatedServerBitcoinAnchorKey(entry)
+			result[i].AdminBlockEntry = mapAddFederatedServerBitcoinAnchorKey(entry)
 		case *adminBlock.AddFederatedServerSigningKey:
-			result[i].Value = mapAddFederatedServerSigningKey(entry)
+			result[i].AdminBlockEntry = mapAddFederatedServerSigningKey(entry)
 		case *adminBlock.AddReplaceMatryoshkaHash:
-			result[i].Value = mapAddReplaceMatryoshkaHash(entry)
+			result[i].AdminBlockEntry = mapAddReplaceMatryoshkaHash(entry)
 		case *adminBlock.CancelCoinbaseDescriptor:
-			result[i].Value = mapCancelCoinbaseDescriptor(entry)
+			result[i].AdminBlockEntry = mapCancelCoinbaseDescriptor(entry)
 		case *adminBlock.CoinbaseDescriptor:
-			result[i].Value = mapCoinbaseDescriptor(entry)
+			result[i].AdminBlockEntry = mapCoinbaseDescriptor(entry)
 		case *adminBlock.DBSignatureEntry:
-			result[i].Value = mapDBSignatureEntry(entry)
+			result[i].AdminBlockEntry = mapDBSignatureEntry(entry)
 		case *adminBlock.EndOfMinuteEntry:
-			result[i].Value = mapEndOfMinuteEntry(entry)
+			result[i].AdminBlockEntry = mapEndOfMinuteEntry(entry)
 		case *adminBlock.ForwardCompatibleEntry:
-			result[i].Value = mapForwardCompatibleEntry(entry)
+			result[i].AdminBlockEntry = mapForwardCompatibleEntry(entry)
 		case *adminBlock.IncreaseServerCount:
-			result[i].Value = mapIncreaseServerCount(entry)
+			result[i].AdminBlockEntry = mapIncreaseServerCount(entry)
 		case *adminBlock.RemoveFederatedServer:
-			result[i].Value = mapRemoveFederatedServer(entry)
+			result[i].AdminBlockEntry = mapRemoveFederatedServer(entry)
 		case *adminBlock.RevealMatryoshkaHash:
-			result[i].Value = mapRevealMatryoshkaHash(entry)
+			result[i].AdminBlockEntry = mapRevealMatryoshkaHash(entry)
 		case *adminBlock.ServerFault:
-			result[i].Value = mapServerFault(entry)
+			result[i].AdminBlockEntry = mapServerFault(entry)
 		}
 	}
 	return result

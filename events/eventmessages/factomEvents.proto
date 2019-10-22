@@ -14,7 +14,7 @@ message FactomEvent {
     EventSource eventSource = 1;
     string factomNodeName = 2;
     bytes identityChainID = 3;
-    oneof value {
+    oneof event {
         ChainCommit chainCommit = 4;
         EntryCommit entryCommit = 5;
         EntryReveal entryReveal = 6;
@@ -89,7 +89,7 @@ message EntryCreditBlockHeader {
 }
 
 message EntryCreditBlockEntry {
-    oneof value {
+    oneof entryCreditBlockEntry {
         ChainCommit chainCommit = 1;
         EntryCommit entryCommit = 2;
         IncreaseBalance increaseBalance = 3;

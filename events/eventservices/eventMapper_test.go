@@ -43,8 +43,8 @@ func testDBStateMapping(t *testing.T) {
 		t.Error(err)
 	}
 
-	assert.IsType(t, &eventmessages.FactomEvent_DirectoryBlockCommit{}, event.Value)
-	anchorEvent := event.Value.(*eventmessages.FactomEvent_DirectoryBlockCommit).DirectoryBlockCommit
+	assert.IsType(t, &eventmessages.FactomEvent_DirectoryBlockCommit{}, event.Event)
+	anchorEvent := event.Event.(*eventmessages.FactomEvent_DirectoryBlockCommit).DirectoryBlockCommit
 	assert.NotNil(t, anchorEvent.DirectoryBlock)
 	assertFactoidBlock(t, anchorEvent.FactoidBlock)
 	assertEntryBlocks(t, anchorEvent.EntryBlocks)
@@ -133,8 +133,8 @@ func testCommitChainMapping(t *testing.T) {
 		t.Error(err)
 	}
 
-	assert.IsType(t, &eventmessages.FactomEvent_ChainCommit{}, event.Value)
-	commitChainEvent := event.Value.(*eventmessages.FactomEvent_ChainCommit).ChainCommit
+	assert.IsType(t, &eventmessages.FactomEvent_ChainCommit{}, event.Event)
+	commitChainEvent := event.Event.(*eventmessages.FactomEvent_ChainCommit).ChainCommit
 	assert.NotNil(t, commitChainEvent.ChainIDHash)
 	assert.NotNil(t, commitChainEvent.EntryCreditPublicKey)
 	assert.NotNil(t, commitChainEvent.Credits)
@@ -164,8 +164,8 @@ func testCommitEntryMapping(t *testing.T) {
 		t.Error(err)
 	}
 
-	assert.IsType(t, &eventmessages.FactomEvent_EntryCommit{}, event.Value)
-	commitEntryEvent := event.Value.(*eventmessages.FactomEvent_EntryCommit).EntryCommit
+	assert.IsType(t, &eventmessages.FactomEvent_EntryCommit{}, event.Event)
+	commitEntryEvent := event.Event.(*eventmessages.FactomEvent_EntryCommit).EntryCommit
 	assert.NotNil(t, commitEntryEvent.EntryHash)
 	assert.NotNil(t, commitEntryEvent.EntryCreditPublicKey)
 	assert.NotNil(t, commitEntryEvent.Credits)
@@ -196,8 +196,8 @@ func testEntryRevealMapping(t *testing.T) {
 		t.Error(err)
 	}
 
-	assert.IsType(t, &eventmessages.FactomEvent_EntryReveal{}, event.Value)
-	entryCommit := event.Value.(*eventmessages.FactomEvent_EntryReveal).EntryReveal
+	assert.IsType(t, &eventmessages.FactomEvent_EntryReveal{}, event.Event)
+	entryCommit := event.Event.(*eventmessages.FactomEvent_EntryReveal).EntryReveal
 	assert.NotNil(t, entryCommit.Entry)
 	assert.NotNil(t, entryCommit.Timestamp)
 	assert.True(t, entryCommit.Timestamp.Nanos > 0)
@@ -232,8 +232,8 @@ func testStateChangeMapping(t *testing.T) {
 		t.Error(err)
 	}
 
-	assert.IsType(t, &eventmessages.FactomEvent_StateChange{}, event.Value)
-	stateChangedEvent := event.Value.(*eventmessages.FactomEvent_StateChange).StateChange
+	assert.IsType(t, &eventmessages.FactomEvent_StateChange{}, event.Event)
+	stateChangedEvent := event.Event.(*eventmessages.FactomEvent_StateChange).StateChange
 	assert.NotNil(t, stateChangedEvent)
 	assert.EqualValues(t, eventmessages.EntityState_ACCEPTED, stateChangedEvent.EntityState)
 	entityHash := msg.CommitEntry.EntryHash.Bytes()
