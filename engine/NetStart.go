@@ -39,7 +39,6 @@ import (
 
 var _ = fmt.Print
 
-var networkpattern string
 var connectionMetricsChannel = make(chan interface{}, p2p.StandardChannelSize)
 var mLog = new(MsgLog)
 var p2pProxy *P2PProxy
@@ -53,8 +52,6 @@ func init() {
 
 func NewState(p *FactomParams) *state.State {
 	s := new(state.State)
-	makeServer(s) // add state0 to fnodes
-
 	s.TimestampAtBoot = primitives.NewTimestampNow()
 	preBootTime := new(primitives.Timestamp)
 	preBootTime.SetTimeMilli(s.TimestampAtBoot.GetTimeMilli() - 20*60*1000)
@@ -72,7 +69,6 @@ func NewState(p *FactomParams) *state.State {
 	s.ControlPanelPort = 8090
 	logPort = p.LogPort
 
-	// REVIEW: can this be refactored
 	FactomConfigFilename := util.GetConfigFilename("m2")
 	if p.ConfigPath != "" {
 		FactomConfigFilename = p.ConfigPath
@@ -179,8 +175,6 @@ func NewState(p *FactomParams) *state.State {
 	s.SetDropRate(p.DropRate)
 
 	s.EFactory = new(electionMsgs.ElectionsFactory)
-
-	addFnodeName(0) // bootstrap id doesn't change
 	return s
 }
 
@@ -278,8 +272,8 @@ func SetLogLevel(p *FactomParams) {
 func interruptHandler() {
 	fmt.Print("<Break>\n")
 	fmt.Print("Gracefully shutting down the server...\n")
-	for _, fnode := range fnode.GetFnodes() {
-		fnode.State.ShutdownNode(0)
+	for _, node := range fnode.GetFnodes() {
+		node.State.ShutdownNode(0)
 	}
 	p2pNetwork.NetworkStop()
 	fmt.Print("Waiting...\r\n")
@@ -287,42 +281,37 @@ func interruptHandler() {
 	os.Exit(0)
 }
 
-// return a factory method for creating new nodes
+// return a factory method for creating new FactomNodes
 func nodeFactory(w *worker.Thread, p *FactomParams) func() *fnode.FactomNode {
-	return func() *fnode.FactomNode {
+	return func() (n *fnode.FactomNode) {
 		if fnode.Len() == 0 {
-			initState0(w, p)
-			return fnode.Get(0)
+			n = makeNode0(w, p)
+			echoConfig(n.State, p)
 		} else {
-			return makeServer(fnode.Get(0).State)
+			n = makeServer(fnode.Get(0).State)
 		}
+		return n
 	}
 }
 
 // creates a new state an initializes state0 params
 // state0 is the only state object used when connecting to mainnet
 // during simulation state0 is used to spawn other simulated nodes
-func initState0(w *worker.Thread, p *FactomParams) {
+func makeNode0(w *worker.Thread, p *FactomParams) *fnode.FactomNode {
 	if fnode.Len() != 0 {
 		panic("only allowed for first initialized state")
 	}
 
 	s := NewState(p)
-	{
-	/*
-	REVIEW: refactor
-	this block is necessary because subsequent code relies on fields set in state.Initialize
-	however we need to Initialize the node name so that we get the proper hierarchy when child objects are created
-	*/
-		node := fnode.Get(0)
-		s.Init(node, s.FactomNodeName)
-		s.Initialize(w)
-	}
+	node := makeServer(s) // add state0 to fnodes
+	s.Init(node, s.FactomNodeName)
+	s.Initialize(w)
+	addFnodeName(0) // bootstrap id doesn't change
 	setupFirstAuthority(s)
+
 	if p.Sync2 >= 0 {
 		s.EntryDBHeightComplete = uint32(p.Sync2)
 		s.LogPrintf("EntrySync", "Force with Sync2 NetStart EntryDBHeightComplete = %d", s.EntryDBHeightComplete)
-
 	} else {
 		height, err := s.DB.FetchDatabaseEntryHeight()
 		if err != nil {
@@ -349,7 +338,7 @@ func initState0(w *worker.Thread, p *FactomParams) {
 	}
 
 	initAnchors(s, p.ReparseAnchorChains)
-	echoConfig(s, p)
+	return node
 }
 
 func NetStart(w *worker.Thread, p *FactomParams, listenToStdin bool) {
@@ -392,7 +381,6 @@ func initAnchors(s *state.State, reparse bool) {
 
 // construct a simulated network
 func buildNetTopology(p *FactomParams) {
-	networkpattern = p.Net
 	nodes := fnode.GetFnodes()
 
 	switch p.Net {
