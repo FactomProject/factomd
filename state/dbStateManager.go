@@ -32,7 +32,6 @@ var _ = hex.EncodeToString
 var _ = fmt.Print
 var _ = time.Now()
 
-
 type DBState struct {
 	IsNew bool
 
@@ -578,7 +577,7 @@ func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 	}
 
 	// Check if we have already process a block for this height and do not replace it if we have.
-	dbstate := s.DBStates.Get(int(dbheight))
+	dbstate := state.DBStates.Get(int(dbheight))
 	if dbstate != nil && dbstate.Saved {
 		state.LogPrintf("dbstateprocess", "Invalid DBState because we have already saved a block at this height")
 		return -1
