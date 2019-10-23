@@ -5,9 +5,11 @@
 package p2p
 
 import (
+	"bytes"
 	"fmt"
 	"hash/crc32"
 
+	"github.com/FactomProject/factomd/common/interfaces"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -18,6 +20,7 @@ var parcelLogger = packageLogger.WithField("subpack", "connection")
 type Parcel struct {
 	Header  ParcelHeader
 	Payload []byte
+	msg     interfaces.IMsg `json:"-"` // Keep the message for debugging
 }
 
 // ParcelHeaderSize is the number of bytes in a parcel header

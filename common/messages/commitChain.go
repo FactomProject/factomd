@@ -7,13 +7,16 @@ package messages
 import (
 	"encoding/binary"
 	"fmt"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
+	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
 	"github.com/FactomProject/factomd/common/messages/msgbase"
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -78,15 +81,36 @@ func (m *CommitChainMsg) Process(dbheight uint32, state interfaces.IState) bool 
 	return state.ProcessCommitChain(dbheight, m)
 }
 
-func (m *CommitChainMsg) GetRepeatHash() interfaces.IHash {
+func (m *CommitChainMsg) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("CommitChainMsg.GetRepeatHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.CommitChain.GetSigHash()
 }
 
-func (m *CommitChainMsg) GetHash() interfaces.IHash {
+func (m *CommitChainMsg) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("CommitChainMsg.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.CommitChain.EntryHash
 }
 
-func (m *CommitChainMsg) GetMsgHash() interfaces.IHash {
+func (m *CommitChainMsg) GetMsgHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("CommitChainMsg.GetMsgHash() saw an interface that was nil")
+		}
+	}()
+
 	if m.MsgHash == nil {
 		m.MsgHash = m.CommitChain.GetSigHash()
 	}
@@ -94,7 +118,7 @@ func (m *CommitChainMsg) GetMsgHash() interfaces.IHash {
 }
 
 func (m *CommitChainMsg) GetTimestamp() interfaces.Timestamp {
-	return m.CommitChain.GetTimestamp()
+	return m.CommitChain.GetTimestamp().Clone()
 }
 
 func (m *CommitChainMsg) Type() byte {
@@ -114,7 +138,9 @@ func (m *CommitChainMsg) Validate(state interfaces.IState) int {
 	ebal := state.GetFactoidState().GetECBalance(*m.CommitChain.ECPubKey)
 	v := int(ebal) - int(m.CommitChain.Credits)
 	if v < 0 {
-		return 0
+		// return 0  // old way add to scanned holding queue
+		// new holding mechanism added it to a list of messages dependent on the EC address
+		return state.Add(m.CommitChain.ECPubKey.Fixed(), m)
 	}
 
 	return 1
@@ -166,6 +192,7 @@ func (m *CommitChainMsg) UnmarshalBinaryData(data []byte) (newData []byte, err e
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling Commit Chain Message: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling Commit Chain Message: %v", r)
 		}
 	}()
 
@@ -240,12 +267,14 @@ func (m *CommitChainMsg) String() string {
 	if m.LeaderChainID == nil {
 		m.LeaderChainID = primitives.NewZeroHash()
 	}
-	str := fmt.Sprintf("%6s-VM%3d: entryhash[%x] hash[%x]",
+	fixed := m.CommitChain.ECPubKey.Fixed()
+	str := fmt.Sprintf("%6s-VM%3d: entryhash[%x] hash[%x] %s",
 		"CChain",
 		m.VMIndex,
 
 		m.CommitChain.EntryHash.Bytes()[:3],
-		m.GetHash().Bytes()[:3])
+		m.GetHash().Bytes()[:3],
+		primitives.ConvertECAddressToUserStr(factoid.CreateAddress(primitives.NewHash(fixed[:]))))
 	return str
 }
 

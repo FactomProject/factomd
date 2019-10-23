@@ -3,12 +3,10 @@ package adminBlock_test
 import (
 	"bytes"
 	"encoding/hex"
+	"math/rand"
+	"sort"
 	"strings"
 	"testing"
-
-	"sort"
-
-	"math/rand"
 	"time"
 
 	. "github.com/FactomProject/factomd/common/adminBlock"
@@ -431,10 +429,21 @@ func TestAdminBlockHash(t *testing.T) {
 	}
 }
 
+func TestAdminBlockSetHeader(t *testing.T) {
+	block := createTestAdminBlock()
+	h := createTestAdminHeader()
+	block.SetHeader(h)
+	if !h.IsSameAs(block.GetHeader()) {
+		t.Error("header is not equal to block.Header", h, block.GetHeader())
+	}
+}
+
 func TestAdminBlockMarshalUnmarshal(t *testing.T) {
-	blocks := []interfaces.IAdminBlock{}
-	blocks = append(blocks, createSmallTestAdminBlock())
-	blocks = append(blocks, createTestAdminBlock())
+	blocks := []interfaces.IAdminBlock{
+		createSmallTestAdminBlock(),
+		createTestAdminBlock(),
+	}
+
 	for b, block := range blocks {
 		binary, err := block.MarshalBinary()
 		if err != nil {
@@ -487,6 +496,26 @@ func TestAdminBlockMarshalUnmarshal(t *testing.T) {
 		if block.String() != block2.String() {
 			t.Errorf("String representation doesn't match %d", b)
 		}
+	}
+}
+
+func TestUnmarshalBadAblock(t *testing.T) {
+	block := createTestAdminBlock()
+
+	p, err := block.MarshalBinary()
+	if err != nil {
+		t.Error(err)
+	}
+
+	// overwrite the MessageCount with incorrect value
+	p[75] = 0xff
+
+	block2 := new(AdminBlock)
+	err = block2.UnmarshalBinary(p)
+	if err == nil {
+		t.Error("AdminBlock should have errored on unmarshal", block2)
+	} else {
+		t.Log(err)
 	}
 }
 

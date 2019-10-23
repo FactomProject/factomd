@@ -7,9 +7,36 @@ package identity_test
 import (
 	"testing"
 
+	"bytes"
+
 	. "github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/primitives"
 )
+
+func TestMarshalEntryBlockSync(t *testing.T) {
+	e := NewEntryBlockSync()
+	e.Target = *NewEntryBlockMarker()
+	e.Current = *NewEntryBlockMarker()
+	e.BlocksToBeParsed = []EntryBlockMarker{*NewEntryBlockMarker(), *NewEntryBlockMarker(), *NewEntryBlockMarker()}
+
+	data, err := e.MarshalBinary()
+	if err != nil {
+		t.Error(err)
+	}
+
+	e2 := NewEntryBlockSync()
+	data, err = e2.UnmarshalBinaryData(data)
+	if err != nil {
+		t.Error(err)
+	}
+	if len(data) != 0 {
+		t.Errorf("%d bytes left after unmarshal", len(data))
+	}
+
+	if len(e2.BlocksToBeParsed) != 3 {
+		t.Errorf("Should be 3 in blocks to be parsed, found %d", len(e2.BlocksToBeParsed))
+	}
+}
 
 func TestIdentityMarshalUnmarshal(t *testing.T) {
 	for i := 0; i < 1000; i++ {
@@ -25,6 +52,30 @@ func TestIdentityMarshalUnmarshal(t *testing.T) {
 		}
 		if id.IsSameAs(id2) == false {
 			t.Errorf("Identities are not the same")
+		}
+	}
+}
+
+func TestIdentityClone(t *testing.T) {
+	for i := 0; i < 1000; i++ {
+		id := RandomIdentity()
+		id2 := id.Clone()
+		if id.IsSameAs(id2) == false {
+			t.Errorf("Identities are not the same")
+		}
+
+		// Check their marshalled values
+		d1, err := id.MarshalBinary()
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+		d2, err := id2.MarshalBinary()
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+
+		if bytes.Compare(d1, d2) != 0 {
+			t.Errorf("Identities are not the same when marshalled")
 		}
 	}
 }

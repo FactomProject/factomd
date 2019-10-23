@@ -260,7 +260,7 @@ func (c *Controller) ReloadSpecialPeers(newPeersConfig string) {
 				)
 				continue
 			}
-			c.logger.Infof("Detected a peer removed from the config file: %s")
+			c.logger.Infof("Detected a peer removed from the config file: %s", address)
 			toBeRemoved = append(toBeRemoved, oldPeer)
 		}
 	}
@@ -664,6 +664,7 @@ func (c *Controller) shutdown() {
 // of regular peers (total max NumberPeersToBroadcast).
 func (c *Controller) broadcast(parcel Parcel, full bool) {
 	numSent := 0
+	msgHash := parcel.msg.GetMsgHash().Fixed()
 
 	// always broadcast to special peers
 	for _, peer := range c.specialPeers {
@@ -678,10 +679,11 @@ func (c *Controller) broadcast(parcel Parcel, full bool) {
 	// send also to a random selection of regular peers
 	var randomSelection []*Connection
 	if full {
-		randomSelection = c.connections.GetAllRegular()
+		randomSelection = c.connections.GetAllRegular(msgHash)
 	} else {
+		// todo: Do we really want to discount broadcast with by the special peer count?
 		numToSendTo := NumberPeersToBroadcast - len(c.specialPeers)
-		randomSelection = c.connections.GetRandomRegular(numToSendTo)
+		randomSelection = c.connections.GetRandomRegular(numToSendTo, msgHash)
 	}
 
 	if len(randomSelection) == 0 {
@@ -690,8 +692,8 @@ func (c *Controller) broadcast(parcel Parcel, full bool) {
 	}
 	for _, connection := range randomSelection {
 		BlockFreeChannelSend(connection.SendChannel, ConnectionParcel{Parcel: parcel})
+		connection.peer.PrevMsgs.Add(msgHash) // record that we know this peer has seen this message
 	}
-
 	SentToPeers.Set(float64(numSent))
 }
 
@@ -706,4 +708,8 @@ func (c *Controller) sendToRandomPeer(parcel Parcel) {
 
 	parcel.Header.TargetPeer = randomConn.peer.Hash
 	c.doDirectedSend(parcel)
+}
+
+func (c *Controller) GetKnownPeers() map[string]Peer {
+	return c.discovery.knownPeers
 }

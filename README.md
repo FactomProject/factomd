@@ -1,6 +1,5 @@
 # Factom
 
-[![Build Status](https://travis-ci.org/FactomProject/factomd.svg?branch=develop)](https://travis-ci.org/FactomProject/factomd)
 [![CircleCI](https://circleci.com/gh/FactomProject/factomd/tree/develop.svg?style=shield)](https://circleci.com/gh/FactomProject/factomd/tree/develop)
 
 Factom is an Open-Source project that provides a way to build applications on the Bitcoin blockchain. 
@@ -12,14 +11,14 @@ Factom leverages the Bitcoin Blockchain, but in a way that minimizes the amount 
 
 ## Getting Started
 
-You need to set up Go environment with golang 1.10 or higher. You also need git.  See the [Install from source](https://github.com/FactomProject/FactomDocs/blob/master/installFromSourceDirections.md) directions for more details and wallet installation instructions.
+You need to set up Go environment with golang 1.12 or higher (but not above the verion listed [here](https://github.com/FactomProject/factomd/blob/master/engine/factomParams.go#L140) ). You also need git.  See the [Install from source](https://github.com/FactomProject/FactomDocs/blob/master/installFromSourceDirections.md) directions for more details and wallet installation instructions.
 
 ### Install the dependency management program
 
-First check if golang 1.10 or higher is installed.  some operating systems install older versions.
+First check if golang 1.12 or higher is installed.  some operating systems install older versions.
 
 `go version` should return something like
-`go version go1.10.1 linux/amd64`
+`go version go1.12 linux/amd64`
 
 Next install Glide, which gets the dependencies for factomd and places them in the `$GOPATH/src/github/FactomProject/factomd/vendor` directory.
 
@@ -67,89 +66,186 @@ To get the current list of flags, type the command:
 
 Which will get you something like:
 	
-    //////////////////////// Copyright 2017 Factom Foundation
-    //////////////////////// Use of this source code is governed by the MIT
-    //////////////////////// license that can be found in the LICENSE file.
-    Go compiler version: go1.6.2
-    Using build: 
-    len(Args) 2
+    Command Line Arguments:
+        -h
     Usage of factomd:
+    -balancehash
+        If false, then don't pass around balance hashes (default true)
     -blktime int
-            Seconds per block.  Production is 600.
+        Seconds per block.  Production is 600.
+    -broadcastnum int
+        Number of peers to broadcast to in the peer to peer networking (default 16)
+    -checkheads
+        Enables checking chain heads on boot (default true)
     -clonedb string
-            Override the main node and use this database for the clones in a Network.
+        Override the main node and use this database for the clones in a Network.
+    -config string
+        Override the config file location (factomd.conf)
+    -controlpanelport int
+        Port for control panel webserver;  Default 8090
+    -controlpanelsetting string
+        Can set to 'disabled', 'readonly', or 'readwrite' to overwrite config file
     -count int
-            The number of nodes to generate (default 1)
+        The number of nodes to generate (default 1)
+    -customnet string
+        This string specifies a custom blockchain network ID.
     -db string
-            Override the Database in the Config file and use this Database implementation
+        Override the Database in the Config file and use this Database implementation. Options Map, LDB, or Bolt
+    -deadline int
+        Timeout Delay in milliseconds used on Reads and Writes to the network comm (default 1000)
+    -debugconsole string
+        Enable DebugConsole on port. localhost:8093 open 8093 and spawns a telnet console, remotehost:8093 open 8093
+    -debuglog string
+        regex to pick which logs to save
     -drop int
-            Number of messages to drop out of every thousand
+        Number of messages to drop out of every thousand
+    -enablenet
+        Enable or disable networking (default true)
     -exclusive
-            If true, we only dial out to special/trusted peers.
-    -folder string
-            Directory in .factom to store nodes. (eg: multiple nodes on one filesystem support)
+        If true, we only dial out to special/trusted peers.
+    -exclusive_in
+        If true, we only dial out to special/trusted peers and no incoming connections are accepted.
+    -exposeprofiler
+        Setting this exposes the profiling port to outside localhost.
+    -factomhome string
+        Set the Factom home directory. The .factom folder will be placed here if set, otherwise it will default to $HOME
+    -fast
+        If true, Factomd will fast-boot from a file. (default true)
+    -fastlocation string
+        Directory to put the Fast-boot file in.
+    -fastsaverate int
+        Save a fastboot file every so many blocks. Should be > 1000 for live systems. (default 1000)
+    -faulttimeout int
+        Seconds before considering Federated servers at-fault. Default is 120. (default 120)
+    -fixheads
+        If --checkheads is enabled, then this will also correct any errors reported (default true)
+    -fnet string
+        Read the given file to build the network connections
     -follower
-            If true, force node to be a follower.  Only used when replaying a journal.
+        If true, force node to be a follower.  Only used when replaying a journal.
+    -fullhasheslog
+        true create a log of all unique hashes seen during processing
     -journal string
-            Rerun a Journal of messages
+        Rerun a Journal of messages
+    -journaling
+        Write a journal of all messages received. Default is off.
+    -keepmismatch
+        If true, do not discard DBStates even when a majority of DBSignatures have a different hash
     -leader
-            If true, force node to be a leader.  Only used when replaying a journal. (default true)
+        If true, force node to be a leader.  Only used when replaying a journal. (default true)
+    -logPort string
+        Port for pprof logging (default "6060")
+    -logjson
+        Use to set logging to use a json formatting
+    -loglvl string
+        Set log level to either: none, debug, info, warning, error, fatal or panic (default "none")
+    -logstash
+        If true, use Logstash
+    -logurl string
+        Endpoint URL for Logstash (default "localhost:8345")
+    -mpr int
+        Set the Memory Profile Rate to update profiling per X bytes allocated. Default 512K, set to 1 to profile everything, 0 to disable. (default 524288)
     -net string
-            The default algorithm to build the network connections (default "tree")
+        The default algorithm to build the network connections (default "tree")
+    -network string
+        Network to join: MAIN, TEST or LOCAL
+    -networkport int
+        Port for p2p network; default 8110
     -node int
-            Node Number the simulator will set as the focus
-    -p2pPort string
-            Port to listen for peers on. (default "8108")
+        Node Number the simulator will set as the focus
+    -nodename string
+        Assign a name to the node
     -peers string
-            Array of peer addresses. 
+        Array of peer addresses. 
+    -plugin string
+        Input the path to any plugin binaries
     -port int
-            Address to serve WSAPI on
+        Port where we serve WSAPI;  default 8088
     -prefix string
-            Prefix the Factom Node Names with this value; used to create leaderless networks.
-    -profile string
-            If true, turn on the go Profiler to profile execution of Factomd
+        Prefix the Factom Node Names with this value; used to create leaderless networks.
+    -reparseanchorchains
+        If true, reparse bitcoin and ethereum anchor chains in the database
     -rotate
-            If true, responsiblity is owned by one leader, and rotated over the leaders.
+        If true, responsibility is owned by one leader, and Rotated over the leaders.
+    -roundtimeout int
+        Seconds before audit servers will increment rounds and volunteer. (default 30)
+    -rpcpass string
+        Password to protect factomd local API. Ignored if rpcuser is blank
+    -rpcuser string
+        Username to protect factomd local API with simple HTTP authentication
     -runtimeLog
-            If true, maintain runtime logs of messages passed.
-    -test.bench string
-            regular expression to select benchmarks to run
+        If true, maintain runtime logs of messages passed.
+    -selfaddr string
+        comma separated IPAddresses and DNS names of this factomd to use when creating a cert file
+    -sim_stdin
+        If true, sim control reads from stdin. (default true)
+    -startdelay int
+        Delay to start processing messages, in seconds (default 10)
+    -stderrlog string
+        Log stderr to a file, optionally the same file as stdout
+    -stdoutlog string
+        Log stdout to a file
+    -sync2 int
+        Set the initial blockheight for the second Sync pass. Used to force a total sync, or skip unnecessary syncing of entries. (default -1)
+    -test.bench regexp
+        run only benchmarks matching regexp
     -test.benchmem
-            print memory allocations for benchmarks
-    -test.benchtime duration
-            approximate run time for each benchmark (default 1s)
-    -test.blockprofile string
-            write a goroutine blocking profile to the named file after execution
-    -test.blockprofilerate int
-            if >= 0, calls runtime.SetBlockProfileRate() (default 1)
+        print memory allocations for benchmarks
+    -test.benchtime d
+        run each benchmark for duration d (default 1s)
+    -test.blockprofile file
+        write a goroutine blocking profile to file
+    -test.blockprofilerate rate
+        set blocking profile rate (see runtime.SetBlockProfileRate) (default 1)
     -test.count n
-            run tests and benchmarks n times (default 1)
-    -test.coverprofile string
-            write a coverage profile to the named file after execution
-    -test.cpu string
-            comma-separated list of number of CPUs to use for each test
-    -test.cpuprofile string
-            write a cpu profile to the named file during execution
-    -test.memprofile string
-            write a memory profile to the named file after execution
-    -test.memprofilerate int
-            if >=0, sets runtime.MemProfileRate
-    -test.outputdir string
-            directory in which to write profiles
-    -test.parallel int
-            maximum test parallelism (default 1)
-    -test.run string
-            regular expression to select tests and examples to run
+        run tests and benchmarks n times (default 1)
+    -test.coverprofile file
+        write a coverage profile to file
+    -test.cpu list
+        comma-separated list of cpu counts to run each test with
+    -test.cpuprofile file
+        write a cpu profile to file
+    -test.failfast
+        do not start new tests after the first test failure
+    -test.list regexp
+        list tests, examples, and benchmarks matching regexp then exit
+    -test.memprofile file
+        write an allocation profile to file
+    -test.memprofilerate rate
+        set memory allocation profiling rate (see runtime.MemProfileRate)
+    -test.mutexprofile string
+        write a mutex contention profile to the named file after execution
+    -test.mutexprofilefraction int
+        if >= 0, calls runtime.SetMutexProfileFraction() (default 1)
+    -test.outputdir dir
+        write profiles to dir
+    -test.parallel n
+        run at most n tests in parallel (default 8)
+    -test.run regexp
+        run only tests and examples matching regexp
     -test.short
-            run smaller test suite to save time
-    -test.timeout duration
-            if positive, sets an aggregate time limit for all tests
-    -test.trace string
-            write an execution trace to the named file after execution
+        run smaller test suite to save time
+    -test.testlogfile file
+        write test action log to file (for use only by cmd/go)
+    -test.timeout d
+        panic test binary after duration d (default 0, timeout disabled)
+    -test.trace file
+        write an execution trace to file
     -test.v
-            verbose: print additional output
+        verbose: print additional output
     -timedelta int
-            Maximum timeDelta in milliseconds to offset each node.  Simulates deltas in system clocks over a network.
+        Maximum timeDelta in milliseconds to offset each node.  Simulates deltas in system clocks over a network.
+    -tls
+        Set to true to require encrypted connections to factomd API and Control Panel
+    -tormanage
+        Use torrent dbstate manager. Must have plugin binary installed and in $PATH
+    -torupload
+        Be a torrent uploader
+    -waitentries
+        Wait for Entries to be validated prior to execution of messages
+    -wrproc
+        Write processed blocks to temporary debug file (default true)
+
 
 The flags that begin with "test." are supplied by the profiling package installed.  The flags that relate to running factomd and the simulator are the following, with a little more explaination.  That follows below.
 

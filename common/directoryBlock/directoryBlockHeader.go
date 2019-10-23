@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -115,7 +116,14 @@ func (h *DBlockHeader) SetNetworkID(networkID uint32) {
 	h.NetworkID = networkID
 }
 
-func (h *DBlockHeader) GetBodyMR() interfaces.IHash {
+func (h *DBlockHeader) GetBodyMR() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("DBlockHeader.GetBodyMR() saw an interface that was nil")
+		}
+	}()
+
 	return h.BodyMR
 }
 
@@ -123,7 +131,14 @@ func (h *DBlockHeader) SetBodyMR(bodyMR interfaces.IHash) {
 	h.BodyMR = bodyMR
 }
 
-func (h *DBlockHeader) GetPrevKeyMR() interfaces.IHash {
+func (h *DBlockHeader) GetPrevKeyMR() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("DBlockHeader.GetPrevKeyMR() saw an interface that was nil")
+		}
+	}()
+
 	return h.PrevKeyMR
 }
 
@@ -131,7 +146,14 @@ func (h *DBlockHeader) SetPrevKeyMR(prevKeyMR interfaces.IHash) {
 	h.PrevKeyMR = prevKeyMR
 }
 
-func (h *DBlockHeader) GetPrevFullHash() interfaces.IHash {
+func (h *DBlockHeader) GetPrevFullHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("DBlockHeader.GetPrevFullHash() saw an interface that was nil")
+		}
+	}()
+
 	return h.PrevFullHash
 }
 
@@ -176,9 +198,9 @@ func (e *DBlockHeader) String() string {
 	var out primitives.Buffer
 	out.WriteString(fmt.Sprintf("  version:         %v\n", e.Version))
 	out.WriteString(fmt.Sprintf("  networkid:       %x\n", e.NetworkID))
-	out.WriteString(fmt.Sprintf("  bodymr:          %s\n", e.BodyMR.String()))
-	out.WriteString(fmt.Sprintf("  prevkeymr:       %s\n", e.PrevKeyMR.String()))
-	out.WriteString(fmt.Sprintf("  prevfullhash:    %s\n", e.PrevFullHash.String()))
+	out.WriteString(fmt.Sprintf("  bodymr:          %s\n", e.BodyMR.String()[:6]))
+	out.WriteString(fmt.Sprintf("  prevkeymr:       %s\n", e.PrevKeyMR.String()[:6]))
+	out.WriteString(fmt.Sprintf("  prevfullhash:    %s\n", e.PrevFullHash.String()[:6]))
 	out.WriteString(fmt.Sprintf("  timestamp:       %d\n", e.Timestamp))
 	out.WriteString(fmt.Sprintf("  timestamp str:   %s\n", e.GetTimestamp().String()))
 	out.WriteString(fmt.Sprintf("  dbheight:        %d\n", e.DBHeight))

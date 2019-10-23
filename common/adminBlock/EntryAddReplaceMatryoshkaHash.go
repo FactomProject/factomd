@@ -3,6 +3,7 @@ package adminBlock
 import (
 	"fmt"
 	"os"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -56,7 +57,14 @@ func NewAddReplaceMatryoshkaHash(identityChainID interfaces.IHash, mHash interfa
 	return e
 }
 
-func (e *AddReplaceMatryoshkaHash) SortedIdentity() interfaces.IHash {
+func (e *AddReplaceMatryoshkaHash) SortedIdentity() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("AddReplaceMatryoshkaHash.SortedIdentity() saw an interface that was nil")
+		}
+	}()
+
 	return e.IdentityChainID
 }
 
@@ -132,7 +140,14 @@ func (e *AddReplaceMatryoshkaHash) Interpret() string {
 	return ""
 }
 
-func (e *AddReplaceMatryoshkaHash) Hash() interfaces.IHash {
+func (e *AddReplaceMatryoshkaHash) Hash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("AddReplaceMatryoshkaHash.Hash() saw an interface that was nil")
+		}
+	}()
+
 	bin, err := e.MarshalBinary()
 	if err != nil {
 		panic(err)

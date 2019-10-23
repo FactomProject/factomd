@@ -8,12 +8,14 @@ import (
 	"encoding/binary"
 	"fmt"
 	"os"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/common/primitives"
 
-	"github.com/FactomProject/factomd/common/messages/msgbase"
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -61,11 +63,25 @@ func (m *MissingMsgResponse) Process(uint32, interfaces.IState) bool {
 	return true
 }
 
-func (m *MissingMsgResponse) GetRepeatHash() interfaces.IHash {
+func (m *MissingMsgResponse) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("MissingMsgResponse.GetRepeatHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.GetMsgHash()
 }
 
-func (m *MissingMsgResponse) GetHash() interfaces.IHash {
+func (m *MissingMsgResponse) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("MissingMsgResponse.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	if m.hash == nil {
 		data, err := m.MarshalBinary()
 		if err != nil {
@@ -76,7 +92,14 @@ func (m *MissingMsgResponse) GetHash() interfaces.IHash {
 	return m.hash
 }
 
-func (m *MissingMsgResponse) GetMsgHash() interfaces.IHash {
+func (m *MissingMsgResponse) GetMsgHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("MissingMsgResponse.GetMsgHash() saw an interface that was nil")
+		}
+	}()
+
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()
 		if err != nil {
@@ -88,7 +111,7 @@ func (m *MissingMsgResponse) GetMsgHash() interfaces.IHash {
 }
 
 func (m *MissingMsgResponse) GetTimestamp() interfaces.Timestamp {
-	return m.Timestamp
+	return m.Timestamp.Clone()
 }
 
 func (m *MissingMsgResponse) Type() byte {
@@ -99,6 +122,7 @@ func (m *MissingMsgResponse) UnmarshalBinaryData(data []byte) (newData []byte, e
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling: %v", r)
 		}
 	}()
 
@@ -253,6 +277,13 @@ func (m *MissingMsgResponse) Validate(state interfaces.IState) int {
 		return -1
 	}
 	if m.MsgResponse == nil {
+		return -1
+	}
+	ack, ok := m.AckResponse.(*Ack)
+	if !ok {
+		return -1
+	}
+	if ack.DBHeight < state.GetLLeaderHeight() || ack.DBHeight == state.GetLLeaderHeight() && int(ack.Minute) < int(state.GetCurrentMinute()) {
 		return -1
 	}
 	return 1

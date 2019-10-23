@@ -6,6 +6,7 @@ package state
 
 import (
 	"fmt"
+	"math"
 	"time"
 
 	"os"
@@ -22,6 +23,17 @@ import (
 
 var _ = fmt.Print
 
+func humanizeDuration(duration time.Duration) string {
+	hours := int64(duration.Hours())
+	minutes := int64(math.Mod(duration.Minutes(), 60))
+	seconds := int64(math.Mod(duration.Seconds(), 60))
+
+	if hours > 0 {
+		return fmt.Sprintf("%d:%02d:%02d", hours, minutes, seconds)
+	}
+	return fmt.Sprintf("%d:%02d", minutes, seconds)
+}
+
 func LoadDatabase(s *State) {
 	var blkCnt uint32
 
@@ -31,53 +43,72 @@ func LoadDatabase(s *State) {
 	}
 	// prevent MMR processing from happening for blocks being loaded from the database
 	s.DBHeightAtBoot = blkCnt
+	fmt.Fprintf(os.Stderr, "%20s Loading blocks from disk. Database load going from %d (savestate) to %d (disk)\n", s.GetFactomNodeName(), s.GetDBHeightComplete(), s.DBHeightAtBoot)
 
-	last := time.Now()
+	first := time.Now()
+	last := first
+	time.Sleep(time.Second)
 
 	//msg, err := s.LoadDBState(blkCnt)
 	start := s.GetDBHeightComplete()
-	if start > 10 {
-		start = start - 10
+	s.LogPrintf("dbstatecatchup", "LoadDatabase1 DBHeightAtBoot: %d, DBHeightComplete: %d", s.DBHeightAtBoot, start)
+	numberOfBlocksLoaded := 0 // The number of blocks we load off disk
+
+	if start > 0 {
+		start++
 	}
 
 	for i := int(start); i <= int(blkCnt); i++ {
-		if i > 0 && i%1000 == 0 {
-			bps := float64(1000) / time.Since(last).Seconds()
-			os.Stderr.WriteString(fmt.Sprintf("%20s Loading Block %7d / %v. Blocks per second %8.2f\n", s.FactomNodeName, i, blkCnt, bps))
+		if i > int(start)+500 && i%1000 == 0 {
+			seconds := time.Since(last).Seconds()
+			bps := float64(1000) / seconds
+			f := time.Since(first).Seconds()
+			abps := float64(i-int(start)) / f
+			timeUsed := time.Since(first)
+
+			blocksRemaining := float64(blkCnt) - float64(i)
+			timeRemaining := time.Duration(blocksRemaining/abps) * time.Second
+
+			fmt.Fprintf(os.Stderr, "%20s Loading Block %7d / %v. Blocks per second %8.2f average bps %8.2f Progress %v remaining %v Estimated Total Time: %v \n", s.FactomNodeName, i, blkCnt, bps, abps,
+				humanizeDuration(timeUsed), humanizeDuration(timeRemaining), humanizeDuration(timeUsed+timeRemaining))
 			last = time.Now()
+			// height := s.GetLLeaderHeight()
+			// fmt.Fprintf(os.Stderr, "%20s Federated: DBH: %8d, Feds %d, audits: %d \n", s.FactomNodeName, height, len(s.GetFedServers(height)), len(s.GetAuditServers(height)))
 		}
 
 		msg, err := s.LoadDBState(uint32(i))
+		es := "loaded"
+		if err != nil {
+			es = err.Error()
+		}
+		s.LogMessage("dbstatecatchup", fmt.Sprintf("LoadDatabase1 %d : %s", i, es), msg)
 		if err != nil {
 			s.Println(err.Error())
 			os.Stderr.WriteString(fmt.Sprintf("%20s Error reading database at block %d: %s\n", s.FactomNodeName, i, err.Error()))
 			break
-		} else {
-			if msg != nil {
-				// We hold off EOM and other processing (s.Runleader) till the last DBStateMsg is executed.
-				if i == int(blkCnt) {
-					// last block, flag it.
-					dbstate, _ := msg.(*messages.DBStateMsg)
-					dbstate.IsLast = true // this is the last DBState in this load
-					// this will cause s.DBFinished to go true
-				}
-				s.InMsgQueue().Enqueue(msg)
-				msg.SetLocal(true)
-				if s.InMsgQueue().Length() > constants.INMSGQUEUE_MED {
-					for s.InMsgQueue().Length() > constants.INMSGQUEUE_LOW {
-						time.Sleep(10 * time.Millisecond)
-					}
-				}
-			} else {
-				// os.Stderr.WriteString(fmt.Sprintf("%20s Last Block in database: %d\n", s.FactomNodeName, i))
-				break
+		}
+		if msg != nil {
+			// We hold off EOM and other processing (s.Runleader) till the last DBStateMsg is executed.
+			if i == int(blkCnt) {
+				// last block, flag it.
+				dbstate, _ := msg.(*messages.DBStateMsg)
+				dbstate.IsLast = true // this is the last DBState in this load
+				// this will cause s.DBFinished to go true
 			}
+
+			numberOfBlocksLoaded++
+			s.LogMessage("InMsgQueue", "enqueue_LoadDatabase1", msg)
+			msg.SetLocal(true)
+			s.MsgQueue() <- msg
+		} else {
+			// os.Stderr.WriteString(fmt.Sprintf("%20s Last Block in database: %d\n", s.FactomNodeName, i))
+			break
 		}
 
 		s.Print("\r", "\\|/-"[i%4:i%4+1])
 	}
 
-	if blkCnt == 0 {
+	if numberOfBlocksLoaded == 0 { // No blocks loaded from disk, therefore generate the genesis
 		s.Println("\n***********************************")
 		s.Println("******* New Database **************")
 		s.Println("***********************************\n")
@@ -90,14 +121,19 @@ func LoadDatabase(s *State) {
 			}
 		}
 		dblk, ablk, fblk, ecblk := GenerateGenesisBlocks(s.GetNetworkID(), customIdentity)
+
+		messages.LogPrintf("marshalsizes.txt", "FBlock unmarshaled transaction count: %d", len(fblk.GetTransactions()))
+
 		msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk, nil, nil, nil)
 		// last block, flag it.
 		dbstate, _ := msg.(*messages.DBStateMsg)
 		dbstate.IsLast = true // this is the last DBState in this load
+		s.LogMessage("InMsgQueue", "enqueue_LoadDatabase1", msg)
 		// this will cause s.DBFinished to go true
 		s.InMsgQueue().Enqueue(msg)
 	}
 	s.Println(fmt.Sprintf("Loaded %d directory blocks on %s", blkCnt, s.FactomNodeName))
+	fmt.Fprintf(os.Stderr, "%20s Loading complete %v.\n", s.FactomNodeName, blkCnt)
 }
 
 func GenerateGenesisBlocks(networkID uint32, bootstrapIdentity interfaces.IHash) (interfaces.IDirectoryBlock, interfaces.IAdminBlock, interfaces.IFBlock, interfaces.IEntryCreditBlock) {

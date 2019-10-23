@@ -7,9 +7,9 @@ package electionMsgs
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"time"
 
-	"github.com/FactomProject/factomd/activations"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages/msgbase"
@@ -17,6 +17,8 @@ import (
 	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util/atomic"
+
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -69,7 +71,14 @@ func (m *EomSigInternal) MarshalBinary() (data []byte, err error) {
 	return data, nil
 }
 
-func (m *EomSigInternal) GetMsgHash() interfaces.IHash {
+func (m *EomSigInternal) GetMsgHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("EomSigInternal.GetMsgHash() saw an interface that was nil")
+		}
+	}()
+
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()
 		if err != nil {
@@ -118,18 +127,24 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 		return // EOM but not from a server, just ignore it.
 	}
 
-	// We start sorting here on 6/28/18 at 12pm ...
-	if is.IsActive(activations.ELECTION_NO_SORT) {
-		if int(m.DBHeight) > e.DBHeight {
-			// Sort leaders, on block boundries
-			changed := elections.Sort(e.Federated)
-			changed = elections.Sort(e.Audit) || changed
-			if changed {
-				e.LogPrintf("election", "Sort changed leaders")
-				e.LogPrintLeaders("election")
-			}
-		}
-	}
+	//// We start sorting here on 6/28/18 at 12pm ...
+	//if is.IsActive(activations.ELECTION_NO_SORT) {
+	//	if int(m.DBHeight) > e.DBHeight {
+	//		// Sort leaders, on block boundaries
+	//		s := e.State
+	//		s.LogPrintf("elections", "Election Sort FedServers EomSigInternal")
+	//		changed := e.Sort(e.Federated)
+	//		if changed {
+	//			e.LogPrintf("election", "Sort changed e.Federated in EomSigInternal.ElectionProcess")
+	//			e.LogPrintLeaders("election")
+	//		}
+	//		changed = e.Sort(e.Audit)
+	//		if changed {
+	//			e.LogPrintf("election", "Sort changed e.Audit in EomSigInternal.ElectionProcess")
+	//			e.LogPrintLeaders("election")
+	//		}
+	//	}
+	//}
 
 	// We only do this once, as we transition into a sync event.
 	// Either the height has incremented, or the minute has incremented.
@@ -144,15 +159,17 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 			e.Electing = -1
 		}
 
-		// We stop sorting on 6/28/18 at 12pm ...
-		if !is.IsActive(activations.ELECTION_NO_SORT) {
-			// Sort leaders every minute
-			changed := elections.Sort(e.Federated)
-			changed = elections.Sort(e.Audit) || changed
-			if changed {
-				e.LogPrintf("election", "Sort changed leaders")
-				e.LogPrintLeaders("election")
-			}
+		// Sort leaders, on block boundaries
+		s.LogPrintf("elections", "Election Sort FedServers EomSigInternal2")
+		changed := e.Sort(e.Federated)
+		if changed {
+			e.LogPrintf("election", "Sort changed e.Federated in EomSigInternal.ElectionProcess")
+			e.LogPrintLeaders("election")
+		}
+		changed = e.Sort(e.Audit)
+		if changed {
+			e.LogPrintf("election", "Sort changed e.Audit in EomSigInternal.ElectionProcess")
+			e.LogPrintLeaders("election")
 
 		}
 
@@ -208,7 +225,14 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 	e.Round = e.Round[:0] // Get rid of any previous round counting.
 }
 
-func (m *EomSigInternal) GetServerID() interfaces.IHash {
+func (m *EomSigInternal) GetServerID() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("EomSigInternal.GetServerID() saw an interface that was nil")
+		}
+	}()
+
 	return m.ServerID
 }
 
@@ -216,12 +240,26 @@ func (m *EomSigInternal) LogFields() log.Fields {
 	return log.Fields{"category": "message", "messagetype": "EomSigInternal", "dbheight": m.DBHeight, "newleader": m.ServerID.String()[4:12]}
 }
 
-func (m *EomSigInternal) GetRepeatHash() interfaces.IHash {
+func (m *EomSigInternal) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("EomSigInternal.GetRepeatHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.GetMsgHash()
 }
 
 // We have to return the hash of the underlying message.
-func (m *EomSigInternal) GetHash() interfaces.IHash {
+func (m *EomSigInternal) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("EomSigInternal.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.MessageHash
 }
 
@@ -273,6 +311,7 @@ func (m *EomSigInternal) UnmarshalBinaryData(data []byte) (newData []byte, err e
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling: %v", r)
 		}
 	}()
 	return

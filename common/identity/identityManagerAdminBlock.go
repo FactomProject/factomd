@@ -91,7 +91,7 @@ func (im *IdentityManager) ApplyAddReplaceMatryoshkaHash(entry interfaces.IABEnt
 
 func (im *IdentityManager) ApplyIncreaseServerCount(entry interfaces.IABEntry) error {
 	e := entry.(*adminBlock.IncreaseServerCount)
-	im.AuthorityServerCount = im.AuthorityServerCount + int(e.Amount)
+	im.MaxAuthorityServerCount = im.MaxAuthorityServerCount + int(e.Amount)
 	return nil
 }
 

@@ -333,13 +333,13 @@ func (r *Replay) IsHashUnique(mask int, hash [32]byte) bool {
 
 // Fixed conflicting lock path
 // Add a hash/mask at a specific time if it did not exist prior.
-func (r *Replay) SetHashNow(mask int, hash [32]byte, now interfaces.Timestamp) {
+func (r *Replay) SetHashNow(mask int, hash [32]byte, now interfaces.Timestamp) bool {
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
 	if r.IsHashUnique_internal(mask, hash) {
 		index := Minutes(now.GetTimeSeconds()) - r.Basetime
 		if index < 0 || index >= len(r.Buckets) {
-			return
+			return false
 		}
 
 		if r.Buckets[index] == nil {
@@ -347,7 +347,9 @@ func (r *Replay) SetHashNow(mask int, hash [32]byte, now interfaces.Timestamp) {
 		}
 		r.Buckets[index][hash] = mask | r.Buckets[index][hash]
 		//r.s.LogPrintf("replay", "Add2 %x (%s) to %s from %s", hash[:3], maskToString(mask), r.Name, atomic.WhereAmIString(1))
+		return true
 	}
+	return false
 }
 
 func (r *Replay) Clear(mask int, hash [32]byte) {
@@ -374,7 +376,6 @@ func PushBucketMap(b *primitives.Buffer, m map[[32]byte]int) error {
 	for k := range m {
 		keys = append(keys, k)
 	}
-
 	sort.Sort(ByKey(keys))
 
 	for _, k := range keys {

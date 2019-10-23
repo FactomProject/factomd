@@ -5,12 +5,12 @@
 package identity
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"math/rand"
 	"os"
-
-	"bytes"
+	"reflect"
 
 	ed "github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/constants"
@@ -34,16 +34,16 @@ func (p AuthoritySort) Less(i, j int) bool {
 }
 
 type Authority struct {
-	AuthorityChainID  interfaces.IHash     `json:"identity_chainid"`
-	ManagementChainID interfaces.IHash     `json:"management_chaind"`
-	MatryoshkaHash    interfaces.IHash     `json:"matryoshka_hash"`
-	SigningKey        primitives.PublicKey `json:"signing_key"`
+	AuthorityChainID  interfaces.IHash     `json:"chainid"`
+	ManagementChainID interfaces.IHash     `json:"manageid"`
+	MatryoshkaHash    interfaces.IHash     `json:"matroyshka"`
+	SigningKey        primitives.PublicKey `json:"signingkey"`
 	Status            uint8                `json:"status"`
-	AnchorKeys        []AnchorSigningKey   `json:"anchor_keys"`
+	AnchorKeys        []AnchorSigningKey   `json:"anchorkeys"`
 
 	KeyHistory      []HistoricKey       `json:"-"`
 	Efficiency      uint16              `json:"efficiency"`
-	CoinbaseAddress interfaces.IAddress `json:"coinbase_address"`
+	CoinbaseAddress interfaces.IAddress `json:"coinbaseaddress"`
 }
 
 func NewAuthority() *Authority {
@@ -317,7 +317,14 @@ func (e *Authority) UnmarshalBinary(p []byte) error {
 	return err
 }
 
-func (e *Authority) GetAuthorityChainID() interfaces.IHash {
+func (e *Authority) GetAuthorityChainID() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("Authority.GetAuthorityChainID() saw an interface that was nil")
+		}
+	}()
+
 	return e.AuthorityChainID
 }
 
@@ -378,6 +385,8 @@ func (auth *Authority) MarshalJSON() (rval []byte, err error) {
 		SigningKey        string             `json:"signingkey"`
 		Status            string             `json:"status"`
 		AnchorKeys        []AnchorSigningKey `json:"anchorkeys"`
+		Efficiency        int                `json:"efficiency"`
+		CoinbaseAddress   string             `json:"coinbaseaddress"`
 	}{
 		AuthorityChainID:  auth.AuthorityChainID,
 		ManagementChainID: auth.ManagementChainID,
@@ -385,6 +394,8 @@ func (auth *Authority) MarshalJSON() (rval []byte, err error) {
 		SigningKey:        auth.SigningKey.String(),
 		Status:            statusToJSONString(auth.Status),
 		AnchorKeys:        auth.AnchorKeys,
+		Efficiency:        int(auth.Efficiency),
+		CoinbaseAddress:   primitives.ConvertFctAddressToUserStr(auth.CoinbaseAddress),
 	})
 }
 

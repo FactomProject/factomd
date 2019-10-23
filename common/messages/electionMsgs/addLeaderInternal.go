@@ -6,6 +6,7 @@ package electionMsgs
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -13,6 +14,8 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/state"
+
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -51,7 +54,14 @@ func (m *AddLeaderInternal) MarshalBinary() (data []byte, err error) {
 	return data, nil
 }
 
-func (m *AddLeaderInternal) GetMsgHash() interfaces.IHash {
+func (m *AddLeaderInternal) GetMsgHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("AddLeaderInternal.GetMsgHash() saw an interface that was nil")
+		}
+	}()
+
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()
 		if err != nil {
@@ -71,16 +81,25 @@ func (m *AddLeaderInternal) ElectionProcess(s interfaces.IState, elect interface
 		e.Federated = append(e.Federated, &state.Server{ChainID: m.ServerID, Online: true})
 		e.Round = append(e.Round, 0)
 		// TODO: If we reorder Federated[] do we need to reorder Round[]?
-		changed := elections.Sort(e.Federated)
+		s := e.State
+		s.LogPrintf("elections", "Election Sort FedServers AddLeaderInternal")
+		changed := e.Sort(e.Federated)
 		if changed {
-			e.LogPrintf("election", "Sort changed leaders")
+			e.LogPrintf("election", "Sort changed e.Federated in AddLeaderInternal.ElectionProcess()")
 			e.LogPrintLeaders("election")
 		}
 
 	}
 }
 
-func (m *AddLeaderInternal) GetServerID() interfaces.IHash {
+func (m *AddLeaderInternal) GetServerID() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("AddLeaderInternal.GetServerID() saw an interface that was nil")
+		}
+	}()
+
 	return m.ServerID
 }
 
@@ -88,12 +107,26 @@ func (m *AddLeaderInternal) LogFields() log.Fields {
 	return log.Fields{"category": "message", "messagetype": "addleaderinternal", "dbheight": m.DBHeight, "newleader": m.ServerID.String()[4:12]}
 }
 
-func (m *AddLeaderInternal) GetRepeatHash() interfaces.IHash {
+func (m *AddLeaderInternal) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("AddLeaderInternal.GetRepeatHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.GetMsgHash()
 }
 
 // We have to return the hash of the underlying message.
-func (m *AddLeaderInternal) GetHash() interfaces.IHash {
+func (m *AddLeaderInternal) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("AddLeaderInternal.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.GetMsgHash()
 }
 
@@ -145,6 +178,7 @@ func (m *AddLeaderInternal) UnmarshalBinaryData(data []byte) (newData []byte, er
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling: %v", r)
 		}
 	}()
 	return

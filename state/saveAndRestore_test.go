@@ -46,14 +46,13 @@ func TestPushPopBalanceMap(t *testing.T) {
 
 func TestSaveRestore(t *testing.T) {
 
-	s := new(State)
 	ss := new(SaveState)
 	ss.LeaderTimestamp = primitives.NewTimestampNow()
-	ss.Init(s)
+	ss.Init()
 
 	ss2 := new(SaveState)
 	ss2.LeaderTimestamp = ss.LeaderTimestamp
-	ss2.Init(s)
+	ss2.Init()
 
 	snil := (*SaveState)(nil)
 	snil2 := snil

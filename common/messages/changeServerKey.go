@@ -8,12 +8,14 @@ import (
 	"encoding/binary"
 	"fmt"
 	"os"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
 	"github.com/FactomProject/factomd/common/messages/msgbase"
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -34,15 +36,36 @@ type ChangeServerKeyMsg struct {
 var _ interfaces.IMsg = (*ChangeServerKeyMsg)(nil)
 var _ interfaces.Signable = (*ChangeServerKeyMsg)(nil)
 
-func (m *ChangeServerKeyMsg) GetRepeatHash() interfaces.IHash {
+func (m *ChangeServerKeyMsg) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("ChangeServerKeyMsg.GetRepeatHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.GetMsgHash()
 }
 
-func (m *ChangeServerKeyMsg) GetHash() interfaces.IHash {
+func (m *ChangeServerKeyMsg) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("ChangeServerKeyMsg.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.GetMsgHash()
 }
 
-func (m *ChangeServerKeyMsg) GetMsgHash() interfaces.IHash {
+func (m *ChangeServerKeyMsg) GetMsgHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("ChangeServerKeyMsg.GetMsgHash() saw an interface that was nil")
+		}
+	}()
+
 	if m.MsgHash == nil {
 		data, err := m.MarshalForSignature()
 		if err != nil {
@@ -58,7 +81,7 @@ func (m *ChangeServerKeyMsg) Type() byte {
 }
 
 func (m *ChangeServerKeyMsg) GetTimestamp() interfaces.Timestamp {
-	return m.Timestamp
+	return m.Timestamp.Clone()
 }
 
 func (m *ChangeServerKeyMsg) Validate(state interfaces.IState) int {
@@ -148,6 +171,7 @@ func (m *ChangeServerKeyMsg) UnmarshalBinaryData(data []byte) (newData []byte, e
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling Add Server Message: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling Add Server Message: %v", r)
 		}
 	}()
 	newData = data

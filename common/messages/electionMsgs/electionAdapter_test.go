@@ -34,6 +34,24 @@ func TestElectionAdapterMajority(t *testing.T) {
 	}
 }
 
+func TestElectionAdapterRespondToProposal(t *testing.T) {
+	c := electionMsgTesting.NewController(5, 1)
+
+	// Pass volunteer message to fed 0
+	c.RouteVolunteerMessage(0, []int{0})
+
+	// Let's route the propose to the fed 1 and check the response
+
+	// Pass propose from 0 -> 1
+	c.RouteLeaderSetVoteMessage([]int{0}, 0, []int{1})
+
+	c.RouteVolunteerMessage(0, []int{1})
+
+	if !c.RouteLeaderVoteMessage(1, 0, []int{}) {
+		t.Errorf("This leader should have made a volunteer msg")
+	}
+}
+
 func TestElectionAuditOrder(t *testing.T) {
 	c := electionMsgTesting.NewController(6, 6)
 	fmt.Printf("%v\n", c.Elections[0].Audit[1].GetChainID())
@@ -44,7 +62,7 @@ func TestElectionAuditOrder(t *testing.T) {
 }
 
 func TestSimpleSigning(t *testing.T) {
-	s := CreateAndPopulateTestState()
+	s := CreateAndPopulateTestStateAndStartValidator()
 	e := NewTestElection()
 	v1 := NewTestVolunteerMessage(e, 2, 0)
 	err := v1.Sign(s)
@@ -60,7 +78,7 @@ func TestSimpleSigning(t *testing.T) {
 
 func TestElectionAdapterSimple(t *testing.T) {
 	e := NewTestElection()
-	e.State = CreateAndPopulateTestState()
+	e.State = CreateAndPopulateTestStateAndStartValidator()
 	e.State.SetIdentityChainID(primitives.NewZeroHash())
 
 	a := NewElectionAdapter(e, primitives.NewZeroHash())

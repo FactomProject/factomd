@@ -10,7 +10,7 @@ import (
 
 var _ = fmt.Print
 
-func Sort(serv []interfaces.IServer) bool {
+func (e *Elections) Sort(serv []interfaces.IServer) bool {
 	changed := false
 	for i := 0; i < len(serv)-1; i++ {
 		allgood := true

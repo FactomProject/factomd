@@ -105,12 +105,6 @@ func TestMessageNames(t *testing.T) {
 	if constants.MessageName(constants.ACK_MSG) != "Ack" {
 		t.Error("EOM MessageName incorrect")
 	}
-	if constants.MessageName(constants.AUDIT_SERVER_FAULT_MSG) != "Audit Server Fault" {
-		t.Error("EOM MessageName incorrect")
-	}
-	if constants.MessageName(constants.FED_SERVER_FAULT_MSG) != "Fed Server Fault" {
-		t.Error("EOM MessageName incorrect")
-	}
 	if constants.MessageName(constants.FULL_SERVER_FAULT_MSG) != "Full Server Fault" {
 		t.Error("EOM MessageName incorrect")
 	}

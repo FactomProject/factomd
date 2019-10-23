@@ -106,13 +106,15 @@ func Goid() string {
 	var buf [64]byte
 	n := runtime.Stack(buf[:], false)
 	s := string(buf[:n])
-	idField := s[:strings.Index(s, "[")]
+	idField := s[:strings.Index(s, "[")-1]
 	return idField
 }
 
 func WhereAmIString(depth int) string {
 	_, fn, line, _ := runtime.Caller(depth + 1)
-	fn = fn[prefix:]
+	if len(fn) > prefix {
+		fn = fn[prefix:] // Chop off the /home/user/go/src...factomd/ part of the path.
+	}
 	return fmt.Sprintf("%v-%s:%d", Goid(), fn, line)
 }
 

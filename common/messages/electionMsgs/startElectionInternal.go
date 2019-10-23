@@ -6,6 +6,7 @@ package electionMsgs
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -13,6 +14,8 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/state"
+
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -39,8 +42,8 @@ func (m *StartElectionInternal) ElectionProcess(s interfaces.IState, elect inter
 		go Fault(e, e.DBHeight, e.Minute, e.FaultId.Load(), &e.FaultId, m.SigType, e.RoundTimeout)
 		return
 	}
-
 	e.Adapter = NewElectionAdapter(e, m.PreviousDBHash)
+	s.LogPrintf("election", "Create Election Adapter")
 	// An election that finishes may make us a leader. We need to know that for the next election that
 	// takes place. So use the election's list of fed servers to determine if we are a leader
 	for _, id := range e.Federated {
@@ -66,7 +69,8 @@ func (m *StartElectionInternal) FollowerExecute(is interfaces.IState) {
 	// TODO: State related things about starting an election
 	pl := s.ProcessLists.Get(m.DBHeight)
 	if pl == nil {
-		s.Holding[m.GetHash().Fixed()] = m
+		//s.Holding[m.GetHash().Fixed()] = m
+		s.AddToHolding(m.GetMsgHash().Fixed(), m) // StartElectionInternal.FollowerExecute
 		return
 	}
 	vm := pl.VMs[m.VMIndex]
@@ -75,48 +79,10 @@ func (m *StartElectionInternal) FollowerExecute(is interfaces.IState) {
 	}
 
 	// Process all the messages that we can
-	for s.Process() {
+	for s.LeaderPL.Process(s) {
 	}
 
 	m.VMHeight = vm.Height
-
-	// TODO: Process all messages that we can. Then trim to the first non-processed message
-	// TODO: This is incase a leader sends out ack 10, but not 9. We need to trim back to 8 because 9 does not exist
-	// TODO: Do not trim EOMs or DBsigs, as they may not be processed until certain conditions.
-
-	//end := len(vm.List)
-	//if end > vm.Height {
-	//	for _, msg := range vm.List[vm.Height:] {
-	//		if msg != nil {
-	//			hash := msg.GetRepeatHash()
-	//			s.Replay.Clear(constants.INTERNAL_REPLAY, hash.Fixed())
-	//			s.Holding[msg.GetMsgHash().Fixed()] = msg
-	//		}
-	//	}
-	//}
-	//
-	//// Trim the height to the last processed message
-	//trimto := vm.Height
-	//pre := len(vm.List)
-	//if trimto < len(vm.List) {
-	//	// When trimming, we need to check if trimto+1 is an EOM or DBSig. In which case, do not trim
-	//	// the EOM or DBSig
-	//	if len(vm.List) > trimto {
-	//		// There exists an item at +1
-	//		if _, ok := vm.List[vm.Height].(*messages.EOM); ok {
-	//			trimto += 1
-	//		} else if _, ok := vm.List[vm.Height].(*messages.DirectoryBlockSignature); ok {
-	//			trimto += 1
-	//		}
-	//	}
-	//
-	//	vm.List = vm.List[:trimto]
-	//	vm.ListAck = vm.ListAck[:trimto]
-	//}
-	//post := len(vm.List)
-	//if pre != post {
-	//	fmt.Printf("Trimmed!, VM: %d %s from %d to %d\n", m.VMIndex, s.FactomNodeName, pre, post)
-	//}
 
 	// Send to elections
 	is.ElectionsQueue().Enqueue(m)
@@ -139,7 +105,14 @@ func (m *StartElectionInternal) MarshalBinary() (data []byte, err error) {
 	return nil, fmt.Errorf("Not implmented for StartElectionInternal")
 }
 
-func (m *StartElectionInternal) GetMsgHash() interfaces.IHash {
+func (m *StartElectionInternal) GetMsgHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("StartElectionInternal.GetMsgHash() saw an interface that was nil")
+		}
+	}()
+
 	// Internal messages don't have marshal code. Give them some hash to be happy
 	if m.MsgHash == nil {
 		m.MsgHash = primitives.RandomHash()
@@ -151,12 +124,26 @@ func (m *StartElectionInternal) LogFields() log.Fields {
 	return log.Fields{"category": "message", "messagetype": "StartElectionInternal", "dbheight": m.DBHeight}
 }
 
-func (m *StartElectionInternal) GetRepeatHash() interfaces.IHash {
+func (m *StartElectionInternal) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("StartElectionInternal.GetRepeatHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.GetMsgHash()
 }
 
 // We have to return the hash of the underlying message.
-func (m *StartElectionInternal) GetHash() interfaces.IHash {
+func (m *StartElectionInternal) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("StartElectionInternal.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.GetMsgHash()
 }
 
@@ -190,6 +177,7 @@ func (m *StartElectionInternal) UnmarshalBinaryData(data []byte) (newData []byte
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling: %v", r)
 		}
 	}()
 	return nil, fmt.Errorf("Not implmented for StartElectionInternal")

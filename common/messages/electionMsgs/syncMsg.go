@@ -6,6 +6,7 @@ package electionMsgs
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -13,7 +14,6 @@ import (
 	"github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/state"
-	"github.com/FactomProject/goleveldb/leveldb/errors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -87,7 +87,14 @@ func (a *SyncMsg) IsSameAs(msg interfaces.IMsg) bool {
 	return true
 }
 
-func (m *SyncMsg) GetServerID() interfaces.IHash {
+func (m *SyncMsg) GetServerID() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("SyncMsg.GetServerID() saw an interface that was nil")
+		}
+	}()
+
 	return m.ServerID
 }
 
@@ -95,20 +102,41 @@ func (m *SyncMsg) LogFields() log.Fields {
 	return log.Fields{"category": "message", "messagetype": "FedVoteMsg", "dbheight": m.DBHeight, "newleader": m.ServerID.String()[4:12]}
 }
 
-func (m *SyncMsg) GetRepeatHash() interfaces.IHash {
+func (m *SyncMsg) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("SyncMsg.GetRepeatHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.GetMsgHash()
 }
 
 // We have to return the hash of the underlying message.
-func (m *SyncMsg) GetHash() interfaces.IHash {
+func (m *SyncMsg) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("SyncMsg.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.GetMsgHash()
 }
 
 func (m *SyncMsg) GetTimestamp() interfaces.Timestamp {
-	return m.TS
+	return m.TS.Clone()
 }
 
-func (m *SyncMsg) GetMsgHash() interfaces.IHash {
+func (m *SyncMsg) GetMsgHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("SyncMsg.GetMsgHash() saw an interface that was nil")
+		}
+	}()
+
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()
 		if err != nil {
@@ -124,6 +152,9 @@ func (m *SyncMsg) Type() byte {
 }
 
 func (m *SyncMsg) Validate(state interfaces.IState) int {
+	if !m.IsLocal() { // FD-886, only accept local messages
+		return -1
+	}
 	//TODO: Must be validated
 	return 1
 }
@@ -155,10 +186,13 @@ func (m *SyncMsg) FollowerExecute(is interfaces.IState) {
 	} else {
 		msg, ack = s.CreateDBSig(m.DBHeight, m.VMIndex)
 	}
+
 	if msg == nil { // TODO: What does this mean? -- clay
-		s.Holding[m.GetMsgHash().Fixed()] = m
-		return // Maybe we are not yet prepared to create an SigType...
+		//s.Holding[m.GetMsgHash().Fixed()] = m
+		s.AddToHolding(m.GetMsgHash().Fixed(), m) // SyncMsg.FollowerExecute
+		return                                    // Maybe we are not yet prepared to create an SigType...
 	}
+
 	va := new(FedVoteVolunteerMsg)
 	va.Missing = msg
 	va.Ack = ack
@@ -199,53 +233,12 @@ func (e *SyncMsg) JSONString() (string, error) {
 }
 
 func (m *SyncMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
-		}
-	}()
-
-	buf := primitives.NewBuffer(data)
-
-	if t, e := buf.PopByte(); e != nil || t != constants.SYNC_MSG {
-		return nil, errors.New("Not a Sync Message Audit type")
-	}
-	if m.TS, err = buf.PopTimestamp(); err != nil {
-		return nil, err
-	}
-	if m.SigType, err = buf.PopBool(); err != nil {
-		return nil, err
-	}
-	if m.Name, err = buf.PopString(); err != nil {
-		return nil, err
-	}
-	if m.ServerIdx, err = buf.PopUInt32(); err != nil {
-		return nil, err
-	}
-	if m.ServerID, err = buf.PopIHash(); err != nil {
-		return nil, err
-	}
-	if m.Weight, err = buf.PopIHash(); err != nil {
-		return nil, err
-	}
-	if m.DBHeight, err = buf.PopUInt32(); err != nil {
-		return nil, err
-	}
-	if m.VMIndex, err = buf.PopInt(); err != nil {
-		return nil, err
-	}
-	if m.Round, err = buf.PopInt(); err != nil {
-		return nil, err
-	}
-	if m.Minute, err = buf.PopByte(); err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), err
+	err = fmt.Errorf("SyncMsg is an internal message only")
+	return
 }
 
 func (m *SyncMsg) UnmarshalBinary(data []byte) error {
-	_, err := m.UnmarshalBinaryData(data)
-	return err
+	return fmt.Errorf("SyncMsg is an internal message only")
 }
 
 func (m *SyncMsg) MarshalBinary() (data []byte, err error) {

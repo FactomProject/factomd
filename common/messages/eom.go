@@ -7,16 +7,16 @@ package messages
 import (
 	"encoding/binary"
 	"fmt"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/common/primitives"
 
-	"github.com/FactomProject/factomd/common/messages/msgbase"
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
-
-var _ = log.Printf
 
 // eLogger is for EOM Messages and extends packageLogger
 var eLogger = packageLogger.WithFields(log.Fields{"message": "EOM"})
@@ -83,7 +83,14 @@ func (e *EOM) Process(dbheight uint32, state interfaces.IState) bool {
 }
 
 // Fix EOM hash to match and not have the sig so duplicates are not generated.
-func (m *EOM) GetRepeatHash() interfaces.IHash {
+func (m *EOM) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("EOM.GetRepeatHash() saw an interface that was nil")
+		}
+	}()
+
 	if m.RepeatHash == nil {
 		data, err := m.MarshalBinary()
 		if err != nil {
@@ -94,11 +101,25 @@ func (m *EOM) GetRepeatHash() interfaces.IHash {
 	return m.RepeatHash
 }
 
-func (m *EOM) GetHash() interfaces.IHash {
+func (m *EOM) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("EOM.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.GetMsgHash()
 }
 
-func (m *EOM) GetMsgHash() interfaces.IHash {
+func (m *EOM) GetMsgHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("EOM.GetMsgHash() saw an interface that was nil")
+		}
+	}()
+
 	if m.MsgHash == nil {
 		data, err := m.MarshalForSignature()
 		if err != nil {
@@ -113,7 +134,7 @@ func (m *EOM) GetTimestamp() interfaces.Timestamp {
 	if m.Timestamp == nil {
 		m.Timestamp = new(primitives.Timestamp)
 	}
-	return m.Timestamp
+	return m.Timestamp.Clone()
 }
 
 func (m *EOM) Type() byte {
@@ -130,13 +151,18 @@ func (m *EOM) Validate(state interfaces.IState) int {
 	}
 
 	// Ignore old EOM
-	if m.DBHeight <= state.GetHighestSavedBlk() {
+	if uint32(m.DBHeight)*10+uint32(m.Minute) < state.GetLLeaderHeight()*10+uint32(state.GetCurrentMinute()) {
 		return -1
 	}
 
+	if uint32(m.DBHeight)*10+uint32(m.Minute) > state.GetLLeaderHeight()*10+uint32(state.GetCurrentMinute()) {
+		// msg from future may be a valid server when we get to this block
+		return state.HoldForHeight(m.DBHeight, int(m.Minute), m)
+	}
+
 	found, _ := state.GetVirtualServers(m.DBHeight, int(m.Minute), m.ChainID)
-	if !found { // Only EOM from federated servers are valid.
-		return -1
+	if !found {
+		return -1 // Only EOM from federated servers are valid.
 	}
 
 	// Check signature
@@ -204,6 +230,7 @@ func (m *EOM) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling EOM message: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling EOM message: %v", r)
 		}
 	}()
 	newData = data
@@ -334,13 +361,15 @@ func (m *EOM) String() string {
 	if m.FactoidVM {
 		f = "F"
 	}
-	return fmt.Sprintf("%6s-%30s FF %2d %1s-Leader[%x] hash[%x] %s",
+	return fmt.Sprintf("%6s-%30s FF %2d %1s-Leader[%x] hash[%x] ts %d %s %s",
 		"EOM",
-		fmt.Sprintf("DBh/VMh/h %d/%d/-- minute %d", m.DBHeight, m.VMIndex, m.Minute),
+		fmt.Sprintf("DBh/VMh/h %d/%02d/-- minute %2d", m.DBHeight, m.VMIndex, m.Minute),
 		m.SysHeight,
 		f,
 		m.ChainID.Bytes()[3:6],
 		m.GetMsgHash().Bytes()[:3],
+		m.Timestamp.GetTimeMilli(),
+		m.Timestamp.String(),
 		local)
 }
 
