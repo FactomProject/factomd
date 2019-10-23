@@ -4,6 +4,14 @@
 
 package constants
 
+const (
+	// MaxAckHeightDelta is the maximum number of blocks in the
+	//	future we will set our HighestAckHeight too. This means
+	// 	200 = max number of blocks to set the max height too on top
+	//	of our current block height.
+	MaxAckHeightDelta = 200
+)
+
 // Ack status levels
 const (
 	_ int = iota

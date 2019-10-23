@@ -13,8 +13,8 @@ import (
 const (
 	EOM_MSG                       byte = iota // 0
 	ACK_MSG                                   // 1
-	FED_SERVER_FAULT_MSG                      // 2
-	AUDIT_SERVER_FAULT_MSG                    // 3
+	unused1                                   // 2
+	unused2                                   // 3
 	FULL_SERVER_FAULT_MSG                     // 4
 	COMMIT_CHAIN_MSG                          // 5
 	COMMIT_ENTRY_MSG                          // 6
@@ -66,6 +66,15 @@ func NormallyFullBroadcast(t byte) bool {
 	return false
 }
 
+// Check is they type needs an ACK to be processed.
+func NeedsAck(t byte) bool {
+	switch t {
+	case EOM_MSG, COMMIT_CHAIN_MSG, COMMIT_ENTRY_MSG, REVEAL_ENTRY_MSG, DIRECTORY_BLOCK_SIGNATURE_MSG, FACTOID_TRANSACTION_MSG, ADDSERVER_MSG, CHANGESERVER_KEY_MSG, REMOVESERVER_MSG:
+		return true
+	}
+	return false
+}
+
 // Election related messages are full broadcast
 func NormallyPeer2Peer(t byte) bool {
 	switch t {
@@ -91,10 +100,6 @@ func MessageName(Type byte) string {
 		return "EOM"
 	case ACK_MSG:
 		return "Ack"
-	case AUDIT_SERVER_FAULT_MSG:
-		return "Audit Server Fault"
-	case FED_SERVER_FAULT_MSG:
-		return "Fed Server Fault"
 	case FULL_SERVER_FAULT_MSG:
 		return "Full Server Fault"
 	case COMMIT_CHAIN_MSG:
@@ -177,6 +182,94 @@ func MessageName(Type byte) string {
 	}
 }
 
+func ShortMessageName(Type byte) string {
+	switch Type {
+	case EOM_MSG:
+		return "EOM"
+	case ACK_MSG:
+		return "ACK"
+	case FULL_SERVER_FAULT_MSG:
+		return "SFault"
+	case COMMIT_CHAIN_MSG:
+		return "CC"
+	case COMMIT_ENTRY_MSG:
+		return "CE"
+	case DIRECTORY_BLOCK_SIGNATURE_MSG:
+		return "DBSig"
+	case EOM_TIMEOUT_MSG:
+		return "Timeout"
+	case FACTOID_TRANSACTION_MSG:
+		return "FCT"
+	case HEARTBEAT_MSG:
+		return "HBeat"
+	case INVALID_ACK_MSG:
+		return "InvalidA"
+	case INVALID_DIRECTORY_BLOCK_MSG:
+		return "InvalidDB"
+	case MISSING_MSG:
+		return "MMsg"
+	case MISSING_MSG_RESPONSE:
+		return "MMsgResp"
+	case MISSING_DATA:
+		return "MData"
+	case DATA_RESPONSE:
+		return "MDataRes"
+	case REVEAL_ENTRY_MSG:
+		return "REntry"
+	case REQUEST_BLOCK_MSG:
+		return "ReqBlk"
+	case SIGNATURE_TIMEOUT_MSG:
+		return "STimeout"
+	case DBSTATE_MISSING_MSG:
+		return "DMissing"
+	case ADDSERVER_MSG:
+		return "+SERVER"
+	case CHANGESERVER_KEY_MSG:
+		return "CHANGEKEY"
+	case REMOVESERVER_MSG:
+		return "-SERVER"
+	case DBSTATE_MSG:
+		return "DBState"
+	case BOUNCE_MSG:
+		return "Bounce"
+	case BOUNCEREPLY_MSG:
+		return "BncReply"
+	case MISSING_ENTRY_BLOCKS: // 27
+		return "MENTRY"
+	case ENTRY_BLOCK_RESPONSE: // 28
+		return "ME_RESP"
+	case VOLUNTEERAUDIT:
+		return "Volunteer"
+	case VOLUNTEERPROPOSAL:
+		return "Proposal"
+	case VOLUNTEERLEVELVOTE:
+		return "LevelVote"
+	case INTERNALADDLEADER:
+		return "I+LEADER"
+	case INTERNALREMOVELEADER:
+		return "I-LEADER"
+	case INTERNALADDAUDIT:
+		return "I+AUDIT"
+	case INTERNALAUTHLIST: // 35
+		return "IAUTHLIST"
+	case INTERNALREMOVEAUDIT:
+		return "I-AUDIT"
+	case INTERNALTIMEOUT:
+		return "ITIMEOUT"
+	case INTERNALEOMSIG:
+		return "IEOMSIG"
+	case FEDVOTE_MSG_BASE:
+		return "FEDVOTE"
+	case SYNC_MSG:
+		return "SyncMsg"
+	case INTERNALSTARTELECTION:
+		return "StartElec"
+
+	default:
+		return "Unk:" + fmt.Sprintf(" %d", Type)
+	}
+}
+
 // Not a constant because custom nets will modify these values
 var (
 	// Coinbase Related Constants
@@ -216,23 +309,25 @@ func SetCustomCoinBaseConstants() {
 
 const (
 	// Limits for keeping inputs from flooding our execution
-	INMSGQUEUE_HIGH = 100000
+	INMSGQUEUE_HIGH = 10000
 	INMSGQUEUE_MED  = 5000
 	INMSGQUEUE_LOW  = 1000
 
 	DBSTATE_REQUEST_LIM_HIGH = 200
 	DBSTATE_REQUEST_LIM_MED  = 50
+	ENTRY_REQUEST_LIMIT      = 100
 
+	///=============== The following are bit fields! ===================
 	// Replay -- Dynamic Replay filter based on messages as they are processed.
 	INTERNAL_REPLAY = 1
-	NETWORK_REPLAY  = 2
-	TIME_TEST       = 4 // Checks the time_stamp;  Don't put actual hashes into the map with this.
-	REVEAL_REPLAY   = 8 // Checks for Reveal Entry Replays ... No duplicate Entries within our 4 hours!
+	NETWORK_REPLAY  = 1 << 1
+	TIME_TEST       = 1 << 2 // Checks the time_stamp;  Don't put actual hashes into the map with this.
+	REVEAL_REPLAY   = 1 << 3 // Checks for Reveal Entry Replays ... No duplicate Entries within our 4 hours!
 
 	// FReplay -- Block based Replay filter constructed by processing the blocks, from the database
 	//            then from blocks either passed to a node, or constructed by messages.
-	BLOCK_REPLAY = 16 // Ensures we don't add the same transaction to multiple blocks.
-	//todo: Clay -- I changed this to not match in an experiment
+	BLOCK_REPLAY = 1 << 4 // Ensures we don't add the same transaction to multiple blocks.
+	//================ End of the bit fields ==========================
 
 	ADDRESS_LENGTH = 32 // Length of an Address or a Hash or Public Key
 	// length of a Private Key
@@ -385,3 +480,7 @@ const (
 	// Time window for identity to require registration: 24hours = 144 blocks
 	IDENTITY_REGISTRATION_BLOCK_WINDOW uint32 = 144
 )
+
+//Fast boot save state version (savestate)
+//To be increased whenever the data being saved changes from the last version
+const SaveStateVersion = 13

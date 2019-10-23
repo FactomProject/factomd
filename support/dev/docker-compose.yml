@@ -1,8 +1,8 @@
 version: "2"
 
 services:
-    factomd_1:
-        container_name: factomd_1
+    factomd_0:
+        container_name: factomd_0
         build: ../../
         depends_on:
             - logstash
@@ -14,13 +14,13 @@ services:
             - "8090:8090"
         volumes:
             - ./factom/factomd_1.conf:/root/.factom/m2/factomd.conf:ro
-        command: -sim_stdin=false -customnet=net -network=CUSTOM -startdelay=10 -logstash -logurl=logstash:8345
+        command: -sim_stdin=false -nodename=Fnode0 -customnet=net -network=CUSTOM -blktime=15 -logstash -logurl=logstash:8345
         networks:
             factomd:
                 ipv4_address: 10.7.0.1
 
-    factomd_2:
-        container_name: factomd_2
+    factomd_1:
+        container_name: factomd_1
         build: ../../
         depends_on:
             - logstash
@@ -32,13 +32,13 @@ services:
             - "8190:8090"
         volumes:
             - ./factom/factomd_2.conf:/root/.factom/m2/factomd.conf:ro
-        command: -sim_stdin=false -customnet=net -network=CUSTOM -startdelay=10 -logstash -logurl=logstash:8345
+        command: -sim_stdin=false -nodename=Fnode1 -customnet=net -network=CUSTOM -blktime=15 -logstash -logurl=logstash:8345
         networks:
             factomd:
                 ipv4_address: 10.7.0.2
 
-    factomd_3:
-        container_name: factomd_3
+    factomd_2:
+        container_name: factomd_2
         build: ../../
         depends_on:
             - logstash
@@ -50,7 +50,7 @@ services:
             - "8290:8090"
         volumes:
             - ./factom/factomd_3.conf:/root/.factom/m2/factomd.conf:ro
-        command: -sim_stdin=false -customnet=net -network=CUSTOM -startdelay=10 -logstash -logurl=logstash:8345
+        command: -sim_stdin=false -nodename=Fnode2 -customnet=net -network=CUSTOM -blktime=15 -logstash -logurl=logstash:8345
         networks:
             factomd:
                 ipv4_address: 10.7.0.3
@@ -112,9 +112,9 @@ services:
         networks:
             - factomd
         depends_on:
+            - factomd_0
             - factomd_1
             - factomd_2
-            - factomd_3
 
     nginx:
         container_name: nginx

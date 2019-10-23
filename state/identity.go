@@ -7,16 +7,15 @@ package state
 import (
 	"bytes"
 	"errors"
+	"fmt"
+	"reflect"
+	"sort"
 
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/identity"
 	. "github.com/FactomProject/factomd/common/identityEntries"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-
-	"sort"
-
-	"fmt"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -67,7 +66,14 @@ func (st *State) GetSigningKey(id interfaces.IHash) (interfaces.IHash, int) {
 	return nil, -1
 }
 
-func (st *State) GetNetworkSkeletonKey() interfaces.IHash {
+func (st *State) GetNetworkSkeletonKey() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("State.GetNetworkSkeletonKey() saw an interface that was nil")
+		}
+	}()
+
 	id := st.IdentityControl.GetIdentity(st.GetNetworkSkeletonIdentity())
 	if id == nil {
 		// There should always be a skeleton identity. It cannot be removed
@@ -155,26 +161,30 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 
 	err := st.AddIdentityFromChainID(chainID)
 	if err != nil {
-		flog.Errorf("Failed to process AddServerMessage for %s : %s", chainID.String()[:10], err.Error())
-		return true
+		flog.Errorf("Failed to process AddServerMessage AddIdentityFromChainID for %s : %s", chainID.String()[:10], err.Error())
+		st.LogPrintf("process", "Failed to process AddServerMessage for %s : %s", chainID.String()[:10], err.Error())
+		return false
 	}
 
 	id := st.IdentityControl.GetIdentity(chainID)
 
 	if id != nil {
 		if ok, err := id.IsPromteable(); !ok {
-			flog.Errorf("Failed to process AddServerMessage for %s : %s", chainID.String()[:10], err.Error())
-			return true
+			flog.Errorf("Failed to process AddServerMessage id.IsPromteable for %s : %s", chainID.String()[:10], err.Error())
+			st.LogPrintf("process", "Failed to process AddServerMessage for %s : %s", chainID.String()[:10], err.Error())
+			return false
 		}
 
 	} else {
-		flog.Errorf("Failed to process AddServerMessage: %s", "New Fed/Audit server ["+chainID.String()[:10]+"] does not have an identity associated to it")
-		return true
+		flog.Errorf("Failed to process AddServerMessage: IdentityControl.GetIdentity %s", "New Fed/Audit server ["+chainID.String()[:10]+"] does not have an identity associated to it")
+		st.LogPrintf("process", "Failed to process AddServerMessage: %s", "New Fed/Audit server ["+chainID.String()[:10]+"] does not have an identity associated to it")
+		return false
 	}
 
 	// Add to admin block
 	if servertype == 0 {
 		id.Status = constants.IDENTITY_PENDING_FEDERATED_SERVER
+		st.LogPrintf("executeMsg", "Add server 2 %x", chainID.Bytes()[3:6])
 		st.LeaderPL.AdminBlock.AddFedServer(chainID)
 	} else if servertype == 1 {
 		id.Status = constants.IDENTITY_PENDING_AUDIT_SERVER
@@ -192,6 +202,7 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 	}
 	st.LeaderPL.AdminBlock.AddEfficiency(chainID, id.Efficiency)
 
+	st.LogPrintf("executeMsg", "Added server %x", chainID.Bytes()[3:6])
 	return true
 }
 
@@ -260,7 +271,11 @@ SyncIdentitiesLoop:
 			// synced it's management chain
 			eb := id.IdentityChainSync.NextEBlock()
 			if eb == nil {
-				panic(fmt.Sprintf("NextEblock was nil, but the identity chain was not fully synced. ID: %s", id.IdentityChainID.String()))
+				// The registration chain might not have eblocks to be parsed yet, since it is added on bootstrap
+				// and the db might yet have these blocks.
+				if id.Status != constants.IDENTITY_REGISTRATION_CHAIN {
+					panic(fmt.Sprintf("NextEblock was nil, but the identity chain was not fully synced. ID: %s", id.IdentityChainID.String()))
+				}
 				continue SyncIdentitiesLoop
 			}
 
@@ -331,8 +346,11 @@ func (st *State) AddIdentityEblocks(cid interfaces.IHash, rootChain bool) error 
 	if err != nil {
 		return fmt.Errorf("This is a problem. Eblocks were not able to be fetched for %s", cid.String()[:10])
 	}
-	markers := make([]EntryBlockMarker, len(eblocks))
-	for i, eb := range eblocks {
+	markers := make([]EntryBlockMarker, 0)
+	for _, eb := range eblocks {
+		if eb.GetDatabaseHeight() > st.LLeaderHeight {
+			continue
+		}
 		keymr, err := eb.KeyMR()
 		if err != nil {
 			return fmt.Errorf("Keymr of eblock was unable to be computed")
@@ -341,7 +359,8 @@ func (st *State) AddIdentityEblocks(cid interfaces.IHash, rootChain bool) error 
 		if err != nil {
 			return fmt.Errorf("DBlock at %d not found on disk", eb.GetDatabaseHeight())
 		}
-		markers[i] = EntryBlockMarker{keymr, eb.GetHeader().GetEBSequence(), eb.GetDatabaseHeight(), dblock.GetTimestamp()}
+		markers = append(markers, EntryBlockMarker{keymr, eb.GetHeader().GetEBSequence(), eb.GetDatabaseHeight(), dblock.GetTimestamp()})
+		//markers[i] = EntryBlockMarker{keymr, eb.GetHeader().GetEBSequence(), eb.GetDatabaseHeight(), dblock.GetTimestamp()}
 	}
 
 	sort.Sort(EntryBlockMarkerList(markers))

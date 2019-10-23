@@ -7,7 +7,11 @@ package identity_test
 import (
 	"testing"
 
+	"bytes"
+	"encoding/json"
+
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/factoid"
 	. "github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
@@ -30,7 +34,6 @@ func TestAuthorityType(t *testing.T) {
 	if auth.Type() != 0 {
 		t.Errorf("Invalid type returned - %v", auth.Type())
 	}
-
 }
 
 //func TestAuthoritySignature(t *testing.T) {
@@ -103,6 +106,30 @@ func TestAuthorityMarshalUnmarshal(t *testing.T) {
 		}
 		if a.IsSameAs(a2) == false {
 			t.Errorf("Authorities are not identical")
+		}
+	}
+}
+
+func TestAuthorityClone(t *testing.T) {
+	for i := 0; i < 1000; i++ {
+		auth := RandomAuthority()
+		auth2 := auth.Clone()
+		if auth.IsSameAs(auth2) == false {
+			t.Errorf("Authorities are not the same")
+		}
+
+		// Check their marshalled values
+		d1, err := auth.MarshalBinary()
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+		d2, err := auth2.MarshalBinary()
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+
+		if bytes.Compare(d1, d2) != 0 {
+			t.Errorf("Authorities are not the same when marshalled")
 		}
 	}
 }
@@ -228,4 +255,34 @@ func newAck(id interfaces.IHash, ts interfaces.Timestamp) *messages.Ack {
 	ack.SerialHash = primitives.NewZeroHash()
 
 	return ack
+}
+
+func TestAuthorityJsonMarshal(t *testing.T) {
+	// Testing Human readable json marshal
+	a := NewAuthority()
+	a.CoinbaseAddress = factoid.NewAddress(make([]byte, 32))
+	a.Efficiency = 100
+
+	data, err := a.MarshalJSON()
+	if err != nil {
+		t.Error(err)
+	}
+
+	var dst bytes.Buffer
+	exp := `
+		{
+			"chainid": "0000000000000000000000000000000000000000000000000000000000000000",
+			"manageid": "0000000000000000000000000000000000000000000000000000000000000000",
+			"matroyshka": "0000000000000000000000000000000000000000000000000000000000000000",
+			"signingkey": "0000000000000000000000000000000000000000000000000000000000000000",
+			"status": "none",
+			"anchorkeys": null,
+			"efficiency": 100,
+			"coinbaseaddress": "FA1y5ZGuHSLmf2TqNf6hVMkPiNGyQpQDTFJvDLRkKQaoPo4bmbgu"
+		}
+	`
+	json.Compact(&dst, []byte(exp))
+	if bytes.Compare(dst.Bytes(), data) != 0 {
+		t.Errorf("Does not match expected")
+	}
 }

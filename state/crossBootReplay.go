@@ -54,7 +54,7 @@ type CrossReplayFilter struct {
 	// Indicates we have been running for awhile
 	// and should already have the salts
 	stopAddingSalts  bool
-	bootTime         time.Time
+	endTime          time.Time
 	currentSaltCache map[[8]byte]bool
 	oldSaltCache     map[[8]byte]bool
 	db               interfaces.IDatabase
@@ -74,7 +74,7 @@ func NewCrossReplayFilter(path string) *CrossReplayFilter {
 	c.oldSaltCache = make(map[[8]byte]bool)
 	// Load the old salts into the map
 	c.loadOldSalts()
-	c.bootTime = time.Now()
+	c.endTime = time.Now().Add(constants.CROSSBOOT_SALT_REPLAY_DURATION)
 
 	var m MarshalableUint32
 	c.db.Get(heightBucket, lowest, &m)
@@ -134,7 +134,7 @@ func (c *CrossReplayFilter) ExistSalt(salt [8]byte) (bool, error) {
 func (c *CrossReplayFilter) Run() {
 	for {
 		time.Sleep(time.Second * 5)
-		if time.Now().Before(c.bootTime.Add(constants.CROSSBOOT_SALT_REPLAY_DURATION * -1)) {
+		if c.endTime.Before(time.Now()) {
 			// We no longer need to add salts
 			c.stopAddingSalts = true
 			return

@@ -116,6 +116,7 @@ func (f *FullEntryGenerator) NewBlockSet(prev *state.DBState, newtime interfaces
 	fb := factoid.NewFBlock(prev.FactoidBlock)
 	coinbase := new(factoid.Transaction)
 	coinbase.MilliTimestamp = newtime.GetTimeMilliUInt64()
+
 	fb.AddCoinbase(coinbase)
 
 	// This will cover the ec needed for all our commits

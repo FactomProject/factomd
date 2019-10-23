@@ -3,6 +3,7 @@ package adminBlock
 import (
 	"fmt"
 	"os"
+	"reflect"
 
 	"bytes"
 
@@ -96,35 +97,43 @@ func (e *ForwardCompatibleEntry) UnmarshalBinaryData(data []byte) ([]byte, error
 	buf := primitives.NewBuffer(data)
 	e.Init()
 
-	b, err := buf.PopByte()
+	t, err := buf.PopByte()
 	if err != nil {
 		return nil, err
 	}
-	e.AdminIDType = uint32(b)
+	e.AdminIDType = uint32(t)
 
-	if b < 0x09 {
-		return nil, fmt.Errorf("Invalid Entry type, must be < 0x09")
+	if t < 0x09 {
+		return nil, fmt.Errorf("Invalid Entry type, must be > 0x09")
 	}
 
-	bl, err := buf.PopVarInt()
+	bodyLimit := uint64(buf.Len())
+	bodySize, err := buf.PopVarInt()
 	if err != nil {
 		return nil, err
 	}
-	e.Size = uint32(bl)
+	if bodySize > bodyLimit {
+		return nil, fmt.Errorf(
+			"Error: ForwardCompatibleEntry.UnmarshalBinary: body size %d is "+
+				"larger than binary size %d. (uint underflow?)",
+			bodySize, bodyLimit,
+		)
+	}
+	e.Size = uint32(bodySize)
 
-	body := make([]byte, bl)
+	body := make([]byte, bodySize)
 	n, err := buf.Read(body)
 	if err != nil {
 		return nil, err
 	}
 
-	if uint64(n) != bl {
-		return nil, fmt.Errorf("Expected to read %d bytes, but got %d", bl, n)
+	if uint64(n) != bodySize {
+		return nil, fmt.Errorf("Expected to read %d bytes, but got %d", bodySize, n)
 	}
 
 	bodyBuf := primitives.NewBuffer(body)
 
-	if uint64(n) != bl {
+	if uint64(n) != bodySize {
 		return nil, fmt.Errorf("Unable to unmarshal body")
 	}
 
@@ -156,7 +165,13 @@ func (e *ForwardCompatibleEntry) Interpret() string {
 	return ""
 }
 
-func (e *ForwardCompatibleEntry) Hash() interfaces.IHash {
+func (e *ForwardCompatibleEntry) Hash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("ForwardCompatibleEntry.Hash() saw an interface that was nil")
+		}
+	}()
 	bin, err := e.MarshalBinary()
 	if err != nil {
 		panic(err)

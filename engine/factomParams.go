@@ -30,6 +30,8 @@ func init() {
 	flag.IntVar(&p.FaultTimeout, "faulttimeout", 120, "Seconds before considering Federated servers at-fault. Default is 120.")
 	flag.IntVar(&p.RoundTimeout, "roundtimeout", 30, "Seconds before audit servers will increment rounds and volunteer.")
 	flag.IntVar(&p2p.NumberPeersToBroadcast, "broadcastnum", 16, "Number of peers to broadcast to in the peer to peer networking")
+	flag.IntVar(&p.P2PIncoming, "p2pIncoming", 0, "Override the maximum number of other peers dialing into this node that will be accepted; default 200")
+	flag.IntVar(&p.P2POutgoing, "p2pOutgoing", 0, "Override the maximum number of peers this node will attempt to dial into; default 32")
 	flag.StringVar(&p.ConfigPath, "config", "", "Override the config file location (factomd.conf)")
 	flag.BoolVar(&p.CheckChainHeads, "checkheads", true, "Enables checking chain heads on boot")
 	flag.BoolVar(&p.FixChainHeads, "fixheads", true, "If --checkheads is enabled, then this will also correct any errors reported")
@@ -38,7 +40,7 @@ func init() {
 	flag.BoolVar(&p.WaitEntries, "waitentries", false, "Wait for Entries to be validated prior to execution of messages")
 	flag.IntVar(&p.ListenTo, "node", 0, "Node Number the simulator will set as the focus")
 	flag.IntVar(&p.Cnt, "count", 1, "The number of nodes to generate")
-	flag.StringVar(&p.Net, "net", "tree", "The default algorithm to build the network connections")
+	flag.StringVar(&p.Net, "net", "alot+", "The default algorithm to build the network connections")
 	flag.StringVar(&p.Fnet, "fnet", "", "Read the given file to build the network connections")
 	flag.IntVar(&p.DropRate, "drop", 0, "Number of messages to drop out of every thousand")
 	flag.StringVar(&p.Journal, "journal", "", "Rerun a Journal of messages")
@@ -58,21 +60,19 @@ func init() {
 	flag.IntVar(&p.TimeOffset, "timedelta", 0, "Maximum timeDelta in milliseconds to offset each node.  Simulates deltas in system clocks over a network.")
 	flag.BoolVar(&p.KeepMismatch, "keepmismatch", false, "If true, do not discard DBStates even when a majority of DBSignatures have a different hash")
 	flag.Int64Var(&p.StartDelay, "startdelay", 10, "Delay to start processing messages, in seconds")
-	flag.IntVar(&p.Deadline, "deadline", 1000, "Timeout Delay in milliseconds used on Reads and Writes to the network comm")
-	//flag.StringVar(&p.CustomNetName,"customnet", "", "This string specifies a custom blockchain network ID.")
-	//p.CustomNet = primitives.Sha([]byte(*CustomNetPtr)).Bytes()[:4]
+	flag.IntVar(&p.Deadline, "deadline", 300000, "Timeout Delay in milliseconds used on Reads and Writes to the network comm")
 	flag.StringVar(&p.RpcUser, "rpcuser", "", "Username to protect factomd local API with simple HTTP authentication")
 	flag.StringVar(&p.RpcPassword, "rpcpass", "", "Password to protect factomd local API. Ignored if rpcuser is blank")
 	flag.BoolVar(&p.FactomdTLS, "tls", false, "Set to true to require encrypted connections to factomd API and Control Panel") //to get tls, run as "factomd -tls=true"
 	flag.StringVar(&p.FactomdLocations, "selfaddr", "", "comma separated IPAddresses and DNS names of this factomd to use when creating a cert file")
 	flag.IntVar(&p.MemProfileRate, "mpr", 512*1024, "Set the Memory Profile Rate to update profiling per X bytes allocated. Default 512K, set to 1 to profile everything, 0 to disable.")
 	flag.BoolVar(&p.ExposeProfiling, "exposeprofiler", false, "Setting this exposes the profiling port to outside localhost.")
-	//flag.StringVar(&,"factomhome", "", "Set the Factom home directory. The .factom folder will be placed here if set, otherwise it will default to $HOME")
 	flag.StringVar(&p.LogPort, "logPort", "6060", "Port for pprof logging")
 	flag.IntVar(&p.PortOverride, "port", 0, "Port where we serve WSAPI;  default 8088")
 	flag.IntVar(&p.ControlPanelPortOverride, "controlpanelport", 0, "Port for control panel webserver;  Default 8090")
 	flag.IntVar(&p.NetworkPortOverride, "networkport", 0, "Port for p2p network; default 8110")
 	flag.BoolVar(&p.Fast, "fast", true, "If true, Factomd will fast-boot from a file.")
+	flag.IntVar(&p.FastSaveRate, "fastsaverate", 1000, "Save a fastboot file every so many blocks. Should be > 1000 for live systems.")
 	flag.StringVar(&p.FastLocation, "fastlocation", "", "Directory to put the Fast-boot file in.")
 	flag.StringVar(&p.Loglvl, "loglvl", "none", "Set log level to either: none, debug, info, warning, error, fatal or panic")
 	flag.BoolVar(&p.Logjson, "logjson", false, "Use to set logging to use a json formatting")
@@ -86,25 +86,19 @@ func init() {
 	flag.BoolVar(&p.UseLogstash, "logstash", false, "If true, use Logstash")
 	flag.StringVar(&p.LogstashURL, "logurl", "localhost:8345", "Endpoint URL for Logstash")
 	flag.IntVar(&p.Sync2, "sync2", -1, "Set the initial blockheight for the second Sync pass. Used to force a total sync, or skip unnecessary syncing of entries.")
-
+	flag.BoolVar(&p.WriteProcessedDBStates, "wrproc", true, "Write processed blocks to temporary debug file")
+	flag.StringVar(&p.CustomNetName, "customnet", "", "This string specifies a custom blockchain network ID.")
+	flag.StringVar(&p.FactomHome, "factomhome", "", "Set the Factom home directory. The .factom folder will be placed here if set, otherwise it will default to $HOME")
+	flag.StringVar(&p.NodeName, "nodename", "", "Assign a name to the node")
+	flag.StringVar(&p.ControlPanelSetting, "controlpanelsetting", "", "Can set to 'disabled', 'readonly', or 'readwrite' to overwrite config file")
+	flag.BoolVar(&p.FullHashesLog, "fullhasheslog", false, "true create a log of all unique hashes seen during processing")
+	flag.BoolVar(&p.ReparseAnchorChains, "reparseanchorchains", false, "If true, reparse bitcoin and ethereum anchor chains in the database")
 }
 
 func ParseCmdLine(args []string) *FactomParams {
 	p := &Params // Global copy of decoded Params global.Params
 
-	CustomNetPtr := flag.String("customnet", "", "This string specifies a custom blockchain network ID.")
-	factomHomePtr := flag.String("factomhome", "", "Set the Factom home directory. The .factom folder will be placed here if set, otherwise it will default to $HOME")
-
 	flag.CommandLine.Parse(args)
-	elections.FaultTimeout = p.FaultTimeout
-	elections.RoundTimeout = p.RoundTimeout
-
-	p.CustomNetName = *CustomNetPtr
-	p.CustomNet = primitives.Sha([]byte(*CustomNetPtr)).Bytes()[:4]
-
-	if *factomHomePtr != "" {
-		os.Setenv("FACTOM_HOME", *factomHomePtr)
-	}
 
 	// Handle the global (not Factom server specific parameters
 	if p.StdoutLog != "" || p.StderrLog != "" {
@@ -115,6 +109,23 @@ func ParseCmdLine(args []string) *FactomParams {
 	fmt.Print("//////////////////////// Use of this source code is governed by the MIT\n")
 	fmt.Print("//////////////////////// license that can be found in the LICENSE file.\n")
 
+	elections.FaultTimeout = p.FaultTimeout
+	elections.RoundTimeout = p.RoundTimeout
+
+	p.CustomNet = primitives.Sha([]byte(p.CustomNetName)).Bytes()[:4]
+
+	s, set := os.LookupEnv("FACTOM_HOME")
+	if p.FactomHome != "" {
+		os.Setenv("FACTOM_HOME", p.FactomHome)
+		if set {
+			fmt.Fprintf(os.Stderr, "Overriding environment variable %s to be \"%s\"\n", "FACTOM_HOME", p.FactomHome)
+		}
+	} else {
+		if set {
+			p.FactomHome = s
+		}
+
+	}
 	if !isCompilerVersionOK() {
 		fmt.Println("!!! !!! !!! ERROR: unsupported compiler version !!! !!! !!!")
 		time.Sleep(3 * time.Second)
@@ -152,6 +163,13 @@ func isCompilerVersionOK() bool {
 		goodenough = true
 	}
 
+	if strings.Contains(runtime.Version(), "1.12") {
+		goodenough = true
+	}
+
+	if strings.Contains(runtime.Version(), "1.13") {
+		goodenough = true
+	}
 	return goodenough
 }
 
@@ -272,7 +290,7 @@ func launchDebugServer(service string) {
 
 			_, badPort := strconv.Atoi(port)
 			if (host != "localhost" && host != "remotehost") || badPort != nil {
-				panic("Malformed -debugconsole option. Should be localhost:[port] or remotehost:[port] where [port] is a port number")
+				panic("Malformed --debugconsole option. Should be localhost:[port] or remotehost:[port] where [port] is a port number")
 			}
 		}
 

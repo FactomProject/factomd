@@ -123,6 +123,9 @@ func RandomIdentity() *Identity {
 	id.CoinbaseAddress = primitives.RandomHash()
 	id.Efficiency = uint16(rand.Intn(10000))
 
+	id.IdentityChainSync = *RandomEntryBlockSync()
+	id.ManagementChainSync = *RandomEntryBlockSync()
+
 	return id
 }
 
@@ -198,31 +201,31 @@ func (id *Identity) IsComplete() (bool, error) {
 
 	// Required for Admin Block
 	if isNil(id.SigningKey) {
-		missing = append(missing, "block signing key")
+		missing = append(missing, "id.SigningKey block signing key, ")
 	}
 
 	if len(id.AnchorKeys) == 0 {
-		missing = append(missing, "block signing key")
+		missing = append(missing, "id.AnchorKeys block signing key, ")
 
 	}
 
 	if isNil(id.MatryoshkaHash) {
-		missing = append(missing, "block signing key")
+		missing = append(missing, "id.MatryoshkaHash block signing key, ")
 	}
 
 	// There are additional requirements we will enforce
 	for c := range id.Keys {
 		if isNil(id.Keys[c]) {
-			missing = append(missing, fmt.Sprintf("id key %d", c+1))
+			missing = append(missing, fmt.Sprintf("id key %d, ", c+1))
 		}
 	}
 
 	if isNil(id.IdentityChainID) {
-		missing = append(missing, "identity chain")
+		missing = append(missing, "id.IdentityChainID identity chain, ")
 	}
 
 	if isNil(id.ManagementChainID) {
-		missing = append(missing, "identity chain")
+		missing = append(missing, "id.ManagementChainID identity chain, ")
 	}
 
 	if len(missing) > 0 {
@@ -250,6 +253,7 @@ func (e *Identity) Clone() *Identity {
 	b.Efficiency = e.Efficiency
 	b.IdentityChainSync = *e.IdentityChainSync.Clone()
 	b.ManagementChainSync = *e.ManagementChainSync.Clone()
+	b.CoinbaseAddress = e.CoinbaseAddress.Copy()
 
 	b.AnchorKeys = make([]AnchorSigningKey, len(e.AnchorKeys))
 	for i := range e.AnchorKeys {
@@ -309,6 +313,12 @@ func (e *Identity) IsSameAs(b *Identity) bool {
 		if e.AnchorKeys[i].IsSameAs(&b.AnchorKeys[i]) == false {
 			return false
 		}
+	}
+	if !e.IdentityChainSync.IsSameAs(&b.IdentityChainSync) {
+		return false
+	}
+	if !e.ManagementChainSync.IsSameAs(&b.ManagementChainSync) {
+		return false
 	}
 	return true
 }

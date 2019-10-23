@@ -8,12 +8,15 @@ import (
 	"encoding/binary"
 	"fmt"
 	"os"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
 	"github.com/FactomProject/factomd/common/messages/msgbase"
+
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -67,11 +70,25 @@ func (m *MissingMsg) Process(uint32, interfaces.IState) bool {
 	panic("MissingMsg should not have its Process() method called")
 }
 
-func (m *MissingMsg) GetRepeatHash() interfaces.IHash {
+func (m *MissingMsg) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("MissingMsg.GetRepeatHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.GetMsgHash()
 }
 
-func (m *MissingMsg) GetHash() interfaces.IHash {
+func (m *MissingMsg) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("MissingMsg.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	if m.hash == nil {
 		data, err := m.MarshalBinary()
 		if err != nil {
@@ -82,7 +99,14 @@ func (m *MissingMsg) GetHash() interfaces.IHash {
 	return m.hash
 }
 
-func (m *MissingMsg) GetMsgHash() interfaces.IHash {
+func (m *MissingMsg) GetMsgHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("MissingMsg.GetMsgHash() saw an interface that was nil")
+		}
+	}()
+
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()
 		if err != nil {
@@ -94,7 +118,7 @@ func (m *MissingMsg) GetMsgHash() interfaces.IHash {
 }
 
 func (m *MissingMsg) GetTimestamp() interfaces.Timestamp {
-	return m.Timestamp
+	return m.Timestamp.Clone()
 }
 
 func (m *MissingMsg) Type() byte {
@@ -105,6 +129,8 @@ func (m *MissingMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling: %v", r)
+
 		}
 	}()
 	newData = data
@@ -224,7 +250,13 @@ func (m *MissingMsg) Validate(state interfaces.IState) int {
 	if m.Asking == nil {
 		return -1
 	}
-	if m.Asking.IsZero() {
+	// can't answer about the future
+	if m.DBHeight > state.GetLLeaderHeight() {
+		return -1
+	}
+	// can't answer about the past before our earliest pl
+	// use int so at height near 0 we can go negative
+	if int(m.DBHeight) < int(state.GetLLeaderHeight())-2 {
 		return -1
 	}
 	return 1

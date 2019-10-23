@@ -6,6 +6,7 @@ package electionMsgs
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -13,6 +14,8 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/state"
+
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -50,7 +53,14 @@ func (m *AddAuditInternal) MarshalBinary() (data []byte, err error) {
 	return data, nil
 }
 
-func (m *AddAuditInternal) GetMsgHash() interfaces.IHash {
+func (m *AddAuditInternal) GetMsgHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("AddAuditInternal.GetMsgHash() saw an interface that was nil")
+		}
+	}()
+
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()
 		if err != nil {
@@ -68,9 +78,9 @@ func (m *AddAuditInternal) ElectionProcess(is interfaces.IState, elect interface
 	}
 	if e.AuditIndex(m.ServerID) < 0 {
 		e.Audit = append(e.Audit, &state.Server{ChainID: m.ServerID, Online: true})
-		changed := elections.Sort(e.Audit)
+		changed := e.Sort(e.Audit)
 		if changed {
-			e.LogPrintf("election", "Sort changed leaders")
+			e.LogPrintf("election", "Sort changed e.Audit leaders in AddAuditInternal.ElectionProcess")
 			e.LogPrintLeaders("election")
 		}
 	}
@@ -80,12 +90,26 @@ func (m *AddAuditInternal) LogFields() log.Fields {
 	return log.Fields{"category": "message", "messagetype": "AddAuditInternal", "dbheight": m.DBHeight, "newleader": m.ServerID.String()[4:12]}
 }
 
-func (m *AddAuditInternal) GetRepeatHash() interfaces.IHash {
+func (m *AddAuditInternal) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("AddAuditInternal.GetRepeatHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.GetMsgHash()
 }
 
 // We have to return the hash of the underlying message.
-func (m *AddAuditInternal) GetHash() interfaces.IHash {
+func (m *AddAuditInternal) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("AddAuditInternal.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.GetMsgHash()
 }
 
@@ -137,6 +161,7 @@ func (m *AddAuditInternal) UnmarshalBinaryData(data []byte) (newData []byte, err
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling: %v", r)
 		}
 	}()
 	return

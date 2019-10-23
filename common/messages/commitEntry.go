@@ -7,6 +7,7 @@ package messages
 import (
 	"encoding/binary"
 	"fmt"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
@@ -14,6 +15,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 
 	"github.com/FactomProject/factomd/common/messages/msgbase"
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -82,15 +84,36 @@ func (m *CommitEntryMsg) Process(dbheight uint32, state interfaces.IState) bool 
 	return state.ProcessCommitEntry(dbheight, m)
 }
 
-func (m *CommitEntryMsg) GetRepeatHash() interfaces.IHash {
+func (m *CommitEntryMsg) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("CommitEntryMsg.GetRepeatHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.CommitEntry.GetSigHash()
 }
 
-func (m *CommitEntryMsg) GetHash() interfaces.IHash {
+func (m *CommitEntryMsg) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("CommitEntryMsg.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.CommitEntry.EntryHash
 }
 
-func (m *CommitEntryMsg) GetMsgHash() interfaces.IHash {
+func (m *CommitEntryMsg) GetMsgHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("CommitEntryMsg.GetMsgHash() saw an interface that was nil")
+		}
+	}()
+
 	if m.MsgHash == nil {
 		m.MsgHash = m.CommitEntry.GetSigHash()
 	}
@@ -98,7 +121,7 @@ func (m *CommitEntryMsg) GetMsgHash() interfaces.IHash {
 }
 
 func (m *CommitEntryMsg) GetTimestamp() interfaces.Timestamp {
-	return m.CommitEntry.GetTimestamp()
+	return m.CommitEntry.GetTimestamp().Clone()
 }
 
 func (m *CommitEntryMsg) Type() byte {
@@ -126,6 +149,7 @@ func (m *CommitEntryMsg) UnmarshalBinaryData(data []byte) (newData []byte, err e
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling Commit entry Message: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling Commit entry Message: %v", r)
 		}
 	}()
 	newData = data
@@ -231,7 +255,9 @@ func (m *CommitEntryMsg) Validate(state interfaces.IState) int {
 
 	ebal := state.GetFactoidState().GetECBalance(*m.CommitEntry.ECPubKey)
 	if int(m.CommitEntry.Credits) > int(ebal) {
-		return 0
+		// return 0  // old way add to scanned holding queue
+		// new holding mechanism added it to a list of messages dependent on the EC address
+		return state.Add(m.CommitEntry.ECPubKey.Fixed(), m)
 	}
 	return 1
 }

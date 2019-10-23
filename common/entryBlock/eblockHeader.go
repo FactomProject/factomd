@@ -3,6 +3,7 @@ package entryBlock
 import (
 	"fmt"
 	"os"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -105,7 +106,14 @@ func (e *EBlockHeader) String() string {
 	return (string)(out.DeepCopyBytes())
 }
 
-func (c *EBlockHeader) GetChainID() interfaces.IHash {
+func (c *EBlockHeader) GetChainID() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("EBlockHeader.GetChainID() saw an interface that was nil")
+		}
+	}()
+
 	return c.ChainID
 }
 
@@ -113,7 +121,14 @@ func (c *EBlockHeader) SetChainID(chainID interfaces.IHash) {
 	c.ChainID = chainID
 }
 
-func (c *EBlockHeader) GetBodyMR() interfaces.IHash {
+func (c *EBlockHeader) GetBodyMR() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("EBlockHeader.GetBodyMR() saw an interface that was nil")
+		}
+	}()
+
 	return c.BodyMR
 }
 
@@ -121,7 +136,14 @@ func (c *EBlockHeader) SetBodyMR(bodyMR interfaces.IHash) {
 	c.BodyMR = bodyMR
 }
 
-func (c *EBlockHeader) GetPrevKeyMR() interfaces.IHash {
+func (c *EBlockHeader) GetPrevKeyMR() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("EBlockHeader.GetPrevKeyMR() saw an interface that was nil")
+		}
+	}()
+
 	return c.PrevKeyMR
 }
 
@@ -129,7 +151,14 @@ func (c *EBlockHeader) SetPrevKeyMR(prevKeyMR interfaces.IHash) {
 	c.PrevKeyMR = prevKeyMR
 }
 
-func (c *EBlockHeader) GetPrevFullHash() interfaces.IHash {
+func (c *EBlockHeader) GetPrevFullHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("EBlockHeader.GetPrevFullHash() saw an interface that was nil")
+		}
+	}()
+
 	return c.PrevFullHash
 }
 

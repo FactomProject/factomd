@@ -138,9 +138,9 @@ func TestPrints(t *testing.T) {
 
 	expectedString1 := `  version:         0
   networkid:       0
-  bodymr:          0000000000000000000000000000000000000000000000000000000000000000
-  prevkeymr:       0000000000000000000000000000000000000000000000000000000000000000
-  prevfullhash:    0000000000000000000000000000000000000000000000000000000000000000
+  bodymr:          000000
+  prevkeymr:       000000
+  prevfullhash:    000000
   timestamp:       0
   timestamp str:   `
 

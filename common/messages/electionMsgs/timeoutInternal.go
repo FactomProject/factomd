@@ -6,6 +6,7 @@ package electionMsgs
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -49,7 +50,14 @@ func (m *TimeoutInternal) MarshalBinary() (data []byte, err error) {
 	return data, nil
 }
 
-func (m *TimeoutInternal) GetMsgHash() interfaces.IHash {
+func (m *TimeoutInternal) GetMsgHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("TimeoutInternal.GetMsgHash() saw an interface that was nil")
+		}
+	}()
+
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()
 		if err != nil {
@@ -73,7 +81,8 @@ func (m *TimeoutInternal) InitiateElectionAdapter(st interfaces.IState) bool {
 	msg.VMIndex = m.VMIndex
 	msg.Minute = m.Minute
 	msg.SigType = m.SigType
-	e.State.InMsgQueue().Enqueue(msg)
+	e.State.LogMessage("MsgQueue", "enqueue_InitiateElectionAdapter", msg)
+	e.State.MsgQueue() <- msg
 
 	// When we start a new election, we can process all messages that were being held
 	go e.ProcessWaiting()
@@ -156,8 +165,8 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 			sync = "eom"
 		}
 
-		e.LogPrintf("election", "**** Start an Election for %d[%x] missing %s ****", e.Electing, e.FedID.Bytes()[3:6], sync)
-		e.LogPrintf("faulting", "**** Start an Election for %d[%x] missing %s ****", e.Electing, e.FedID.Bytes()[3:6], sync)
+		e.LogPrintf("election", "**** Start an Election for %d[%x] missing %s %d/%d-:- min %d ****", e.Electing, e.FedID.Bytes()[3:6], sync, m.DBHeight, e.VMIndex, e.Minute)
+		e.LogPrintf("faulting", "**** Start an Election for %d[%x] missing %s %d/%d-:- min %d ****", e.Electing, e.FedID.Bytes()[3:6], sync, m.DBHeight, e.VMIndex, e.Minute)
 		e.LogPrintLeaders("election")
 
 		// Begin a new Election for a specific vm/min/height
@@ -225,7 +234,14 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 
 }
 
-func (m *TimeoutInternal) GetServerID() interfaces.IHash {
+func (m *TimeoutInternal) GetServerID() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("TimeoutInternal.GetServerID() saw an interface that was nil")
+		}
+	}()
+
 	return nil
 }
 
@@ -233,12 +249,26 @@ func (m *TimeoutInternal) LogFields() log.Fields {
 	return log.Fields{"category": "message", "messagetype": "TimeoutInternal", "dbheight": m.DBHeight}
 }
 
-func (m *TimeoutInternal) GetRepeatHash() interfaces.IHash {
+func (m *TimeoutInternal) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("TimeoutInternal.GetRepeatHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.GetMsgHash()
 }
 
 // We have to return the hash of the underlying message.
-func (m *TimeoutInternal) GetHash() interfaces.IHash {
+func (m *TimeoutInternal) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("TimeoutInternal.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.MessageHash
 }
 
@@ -287,17 +317,12 @@ func (e *TimeoutInternal) JSONString() (string, error) {
 }
 
 func (m *TimeoutInternal) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
-		}
-	}()
+	err = fmt.Errorf("TimeoutInternal is an internal message only")
 	return
 }
 
 func (m *TimeoutInternal) UnmarshalBinary(data []byte) error {
-	_, err := m.UnmarshalBinaryData(data)
-	return err
+	return fmt.Errorf("TimeoutInternal is an internal message only")
 }
 
 func (m *TimeoutInternal) String() string {

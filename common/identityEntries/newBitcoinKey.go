@@ -6,6 +6,7 @@ package identityEntries
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -136,7 +137,14 @@ func (nbks *NewBitcoinKeyStructure) ToExternalIDs() [][]byte {
 	return extIDs
 }
 
-func (nbks *NewBitcoinKeyStructure) GetChainID() interfaces.IHash {
+func (nbks *NewBitcoinKeyStructure) GetChainID() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("NewBitcoinKeyStructure.GetChainID() saw an interface that was nil")
+		}
+	}()
+
 	extIDs := nbks.ToExternalIDs()
 
 	return entryBlock.ExternalIDsToChainID(extIDs)

@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"os"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
@@ -15,6 +16,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 
 	"github.com/FactomProject/factomd/common/messages/msgbase"
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -72,15 +74,36 @@ func (a *DataResponse) IsSameAs(b *DataResponse) bool {
 	return true
 }
 
-func (m *DataResponse) GetRepeatHash() interfaces.IHash {
+func (m *DataResponse) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("DataResponse.GetRepeatHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.GetMsgHash()
 }
 
-func (m *DataResponse) GetHash() interfaces.IHash {
+func (m *DataResponse) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("DataResponse.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.GetMsgHash()
 }
 
-func (m *DataResponse) GetMsgHash() interfaces.IHash {
+func (m *DataResponse) GetMsgHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("DataResponse.GetMsgHash() saw an interface that was nil")
+		}
+	}()
+
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()
 		if err != nil {
@@ -96,7 +119,7 @@ func (m *DataResponse) Type() byte {
 }
 
 func (m *DataResponse) GetTimestamp() interfaces.Timestamp {
-	return m.Timestamp
+	return m.Timestamp.Clone()
 }
 
 // Validate the message, given the state.  Three possible results:
@@ -162,6 +185,7 @@ func (m *DataResponse) UnmarshalBinaryData(data []byte) (newData []byte, err err
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling: %v", r)
 		}
 	}()
 	newData = data
@@ -215,7 +239,8 @@ func (m *DataResponse) UnmarshalBinary(data []byte) error {
 func attemptEntryUnmarshal(data []byte) (entry interfaces.IEBEntry, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Bytes do not represent an entry")
+			err = fmt.Errorf("Bytes do not represent an entry %v", r)
+			llog.LogPrintf("recovery", "Bytes do not represent an entry %v", r)
 		}
 	}()
 
@@ -231,6 +256,7 @@ func attemptEBlockUnmarshal(data []byte) (eblock interfaces.IEntryBlock, err err
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Bytes do not represent an eblock: %v\n", r)
+			llog.LogPrintf("recovery", "Bytes do not represent an eblock: %v", r)
 		}
 	}()
 

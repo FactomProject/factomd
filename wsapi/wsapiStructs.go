@@ -83,6 +83,32 @@ type RawDataResponse struct {
 	//TODO: add
 }
 
+// For each chain: false or chain specific anchor response
+type AnchorsResponse struct {
+	Height   uint32      `json:"directoryblockheight"`
+	KeyMR    string      `json:"directoryblockkeymr"`
+	Bitcoin  interface{} `json:"bitcoin"`
+	Ethereum interface{} `json:"ethereum"`
+}
+
+type BitcoinAnchorResponse struct {
+	TransactionHash string `json:"transactionhash"`
+	BlockHash       string `json:"blockhash"`
+}
+
+type EthereumAnchorResponse struct {
+	RecordHeight int64                    `json:"recordheight"`
+	DBHeightMax  int64                    `json:"dbheightmax"`
+	DBHeightMin  int64                    `json:"dbheightmin"`
+	WindowMR     string                   `json:"windowmr"`
+	MerkleBranch []*primitives.MerkleNode `json:"merklebranch"`
+
+	ContractAddress string `json:"contractaddress"`
+	TxID            string `json:"txid"`
+	BlockHash       string `json:"blockhash"`
+	TxIndex         int64  `json:"txindex"`
+}
+
 type ReceiptResponse struct {
 	Receipt *receipts.Receipt `json:"receipt"`
 }
@@ -243,6 +269,11 @@ type HeightRequest struct {
 	Height int64 `json:"height"`
 }
 
+type HeightOrHashRequest struct {
+	Height *int64 `json:"height,omitempty"`
+	Hash   string `json:"hash,omitempty"`
+}
+
 type ChainIDRequest struct {
 	ChainID string `json:"chainid"`
 }
@@ -286,6 +317,13 @@ type SendRawMessageRequest struct {
 	Message string `json:"message"`
 }
 
+// TODO: kept as "hash" for backwards compatibility (receipt call used to use the HashRequest),
+//       but in API v3 this should specify that its an entry hash
+type ReceiptRequest struct {
+	EntryHash       string `json:"hash"`
+	IncludeRawEntry bool   `json:"includerawentry"`
+}
+
 type FactiodAccounts struct {
 	NumbOfAccounts string   `json:numberofacc`
 	Height         uint32   `json:"height"`
@@ -302,4 +340,60 @@ type MultipleECBalances struct {
 	CurrentHeight   uint32        `json:"currentheight"`
 	LastSavedHeight uint32        `json:"lastsavedheight"`
 	Balances        []interface{} `json:"balances"`
+}
+
+type DiagnosticsResponse struct {
+	Name      string `json:"name"`
+	ID        string `json:"id,omitempty"`
+	PublicKey string `json:"publickey,omitempty"`
+	Role      string `json:"role"`
+
+	LeaderHeight          uint32 `json:"leaderheight"`
+	CurrentMinute         int    `json:"currentminute"`
+	CurrentMinuteDuration int64  `json:"currentminuteduration"`
+	PrevMinuteDuration    int64  `json:"previousminuteduration"`
+	BalanceHash           string `json:"balancehash"`
+	TempBalanceHash       string `json:"tempbalancehash"`
+	LastBlockFromDBState  bool   `json:"lastblockfromdbstate"`
+
+	SyncInfo     *SyncInfo     `json:"syncing"`
+	AuthSet      *AuthSet      `json:"authset"`
+	ElectionInfo *ElectionInfo `json:"elections"`
+}
+
+type SyncInfo struct {
+	Status   string   `json:"status"`
+	Received *int     `json:"received,omitempty"`
+	Expected *int     `json:"expected,omitempty"`
+	Missing  []string `json:"missing,omitempty"`
+}
+
+type ElectionInfo struct {
+	InProgress bool   `json:"inprogress"`
+	VmIndex    *int   `json:"vmindex,omitempty"`
+	FedIndex   *int   `json:"fedindex,omitempty"`
+	FedID      string `json:"fedid,omitempty"`
+	Round      *int   `json:"round,omitempty"`
+}
+
+type AuthSet struct {
+	Leaders []LeaderStatus `json:"leaders"`
+	Audits  []AuditStatus  `json:"audits"`
+}
+
+type LeaderStatus struct {
+	ID                string `json:"id"`
+	VM                int    `json:"vm"`
+	ProcessListHeight int    `json:"listheight"`
+	ListLength        int    `json:"listlength"`
+	NextNil           int    `json:"nextnil"`
+}
+
+type AuditStatus struct {
+	ID     string `json:"id"`
+	Online bool   `json:"online"`
+}
+
+type MessageFilter struct {
+	Params string `json:"params"`
 }
