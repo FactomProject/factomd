@@ -2,6 +2,7 @@ package electionMsgTesting
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
@@ -42,8 +43,8 @@ type Controller struct {
 // NewController creates all the elections and initial volunteer messages
 func NewController(feds, auds int) *Controller {
 	c := new(Controller)
-	c.feds = make([]interfaces.IServer, 3)
-	c.auds = make([]interfaces.IServer, 3)
+	c.feds = make([]interfaces.IServer, feds)
+	c.auds = make([]interfaces.IServer, auds)
 	c.Elections = make([]*elections.Elections, len(c.feds))
 
 	for i := range c.feds {
@@ -73,7 +74,7 @@ func NewController(feds, auds int) *Controller {
 		for j := range c.feds {
 			e.Federated[j] = c.feds[j]
 		}
-		e.State.(*state.State).ProcessLists.Get(0).FedServers = e.Federated
+		e.State.(*state.State).ProcessLists.Get(1).FedServers = e.Federated
 	}
 
 	for _, e := range c.Elections {
@@ -81,12 +82,12 @@ func NewController(feds, auds int) *Controller {
 		for j := range c.auds {
 			e.Audit[j] = c.auds[j]
 		}
-		e.State.(*state.State).ProcessLists.Get(0).AuditServers = e.Audit
+		e.State.(*state.State).ProcessLists.Get(1).AuditServers = e.Audit
 	}
 
 	c.ElectionAdapters = make([]*electionMsgs.ElectionAdapter, len(c.Elections))
 	for i, e := range c.Elections {
-		c.ElectionAdapters[i] = electionMsgs.NewElectionAdapter(e, primitives.NewZeroHash())
+		c.ElectionAdapters[i] = electionMsgs.NewElectionAdapter(e, e.State.GetIdentityChainID())
 		c.ElectionAdapters[i].SimulatedElection.AddDisplay(nil)
 	}
 
@@ -204,7 +205,14 @@ func (c *Controller) routeSingleNode(msg interfaces.IMsg, node int) {
 }
 
 // indexToAudID will take the human legible "Audit 1" and get the correct identity.
-func (c *Controller) indexToAudID(index int) interfaces.IHash {
+func (c *Controller) indexToAudID(index int) (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("Controller.indexToAudID() saw an interface that was nil")
+		}
+	}()
+
 	// TODO: Actually implement some logic if this changes
 	return c.auds[index].GetChainID()
 
@@ -220,7 +228,14 @@ func (c *Controller) fedIDtoIndex(id interfaces.IHash) int {
 }
 
 // indexToFedID will take the human legible "Leader 1" and get the correct identity
-func (c *Controller) indexToFedID(index int) interfaces.IHash {
+func (c *Controller) indexToFedID(index int) (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("Controller.indexToFedID() saw an interface that was nil")
+		}
+	}()
+
 	// TODO: Actually implement some logic if this changes
 	return c.feds[index].GetChainID()
 }

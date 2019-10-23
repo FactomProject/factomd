@@ -58,7 +58,7 @@ func (k *Exposer) String() string {
 	return fmt.Sprintf("%f, %f, %f, %f, %f", k.AWA, k.ATA, k.ABU, k.CWA, k.CTA)
 }
 
-func close(a, b, tolerance float64) bool {
+func r_close(a, b, tolerance float64) bool {
 	diff := a - b
 	if diff < 0 {
 		diff = diff * -1
@@ -70,25 +70,25 @@ func close(a, b, tolerance float64) bool {
 }
 
 func shouldbe(awa, abu, cwa float64, e *Exposer) error {
-	if !close(awa, e.AWA, 0.2) {
+	if !r_close(awa, e.AWA, 0.2) {
 		return fmt.Errorf("AWA is %f, should be %f", awa, e.AWA)
 	}
 
 	// By Speeding up the tick time, these numbers are usually off
-	//if !close(ata, e.ATA, 15) {
+	//if !r_close(ata, e.ATA, 15) {
 	//return fmt.Errorf("ATA is %f, should be %f", ata, e.ATA)
 	//}
 
-	if !close(abu, e.ABU, 0.1) {
+	if !r_close(abu, e.ABU, 0.1) {
 		return fmt.Errorf("ABU is %f, should be %f", abu, e.ABU)
 	}
 
-	if !close(cwa, e.CWA, 0.2) {
+	if !r_close(cwa, e.CWA, 0.2) {
 		return fmt.Errorf("CWA is %f, should be %f", cwa, e.CWA)
 	}
 
 	// By Speeding up the tick time, these numbers are usually off
-	//if !close(cta, e.CTA, 15) {
+	//if !r_close(cta, e.CTA, 15) {
 	//return fmt.Errorf("CTA is %f, should be %f", cta, e.CTA)
 	//}
 

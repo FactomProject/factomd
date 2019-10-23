@@ -10,6 +10,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"os"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
@@ -21,6 +22,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 
 	"github.com/FactomProject/factomd/common/messages/msgbase"
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -53,6 +55,7 @@ var _ interfaces.IMsg = (*DBStateMsg)(nil)
 func (a *DBStateMsg) IsSameAs(b *DBStateMsg) bool {
 	defer func() {
 		if r := recover(); r != nil {
+			llog.LogPrintf("recovery", "DBState msg comparison failed %v", r)
 			return
 		}
 	}()
@@ -106,11 +109,25 @@ func (a *DBStateMsg) IsSameAs(b *DBStateMsg) bool {
 	return true
 }
 
-func (m *DBStateMsg) GetRepeatHash() interfaces.IHash {
+func (m *DBStateMsg) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("DBStateMsg.GetRepeatHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.DirectoryBlock.GetHash()
 }
 
-func (m *DBStateMsg) GetHash() interfaces.IHash {
+func (m *DBStateMsg) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("DBStateMsg.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	//	data, _ := m.MarshalBinary()
 	//	return primitives.Sha(data)
 
@@ -118,7 +135,14 @@ func (m *DBStateMsg) GetHash() interfaces.IHash {
 	return m.GetMsgHash()
 }
 
-func (m *DBStateMsg) GetMsgHash() interfaces.IHash {
+func (m *DBStateMsg) GetMsgHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("DBStateMsg.GetMsgHash() saw an interface that was nil")
+		}
+	}()
+
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()
 		if err != nil {
@@ -134,7 +158,7 @@ func (m *DBStateMsg) Type() byte {
 }
 
 func (m *DBStateMsg) GetTimestamp() interfaces.Timestamp {
-	return m.Timestamp
+	return m.Timestamp.Clone()
 }
 
 // Validate the message, given the state.  Three possible results:
@@ -162,12 +186,12 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 	}
 
 	if dbheight < state.GetDBHeightAtBoot() {
-		state.LogMessage("dbstatesloaded", "Drop, below database", m)
+		state.LogMessage("dbstatesloaded", "drop, below dbheight at boot", m)
 		return -1 // already have this one
 	}
 
 	if dbheight < state.GetHighestSavedBlk() {
-		state.LogMessage("dbstatesloaded", "Drop, already in database", m)
+		state.LogMessage("dbstatesloaded", "drop, already in database", m)
 		return -1 // already have this one
 	}
 
@@ -597,6 +621,7 @@ func (m *DBStateMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling Directory Block State Message: %v", r)
+			llog.LogPrintf("recovery", "DBState msg comparison failed %v", r)
 		}
 	}()
 
@@ -749,14 +774,16 @@ func (m *DBStateMsg) MarshalBinary() (rval []byte, err error) {
 
 func (m *DBStateMsg) String() string {
 	data, _ := m.MarshalBinary()
-	return fmt.Sprintf("DBState: dbht:%3d [size: %11s] dblock %6x admin %6x fb %6x ec %6x hash %6x InDB %v IsLast %v Sigs %d",
+	return fmt.Sprintf("DBState: dbht:%3d [size: %11s] dblock %6x admin %6x fb %6x ec %6x hash %6x ts:%s InDB %v IsLast %v Sigs %d",
+
 		m.DirectoryBlock.GetHeader().GetDBHeight(),
 		primitives.AddCommas(int64(len(data))),
 		m.DirectoryBlock.GetKeyMR().Bytes()[:3],
 		m.AdminBlock.GetHash().Bytes()[:3],
 		m.FactoidBlock.GetHash().Bytes()[:3],
 		m.EntryCreditBlock.GetHash().Bytes()[:3],
-		m.GetHash().Bytes()[:3], m.IsInDB, m.IsLast, m.SignatureList.Length)
+		m.GetHash().Bytes()[:3], m.DirectoryBlock.GetTimestamp().String(), m.IsInDB, m.IsLast, m.SignatureList.Length)
+
 }
 
 func (m *DBStateMsg) LogFields() log.Fields {
@@ -826,6 +853,7 @@ func (sl *SigList) UnmarshalBinaryData(data []byte) (newData []byte, err error) 
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling SigList in Full Server Fault: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling SigList in Full Server Fault: %v", r)
 		}
 	}()
 

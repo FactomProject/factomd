@@ -69,7 +69,7 @@ type SaveState struct {
 	Saving  bool // True if we are in the process of saving to the database
 	Syncing bool // Looking for messages from leaders to sync
 
-	Replay *Replay
+	//	Replay *Replay
 
 	LeaderTimestamp interfaces.Timestamp
 
@@ -111,7 +111,7 @@ type SaveState struct {
 var _ interfaces.BinaryMarshallable = (*SaveState)(nil)
 var _ interfaces.Printable = (*SaveState)(nil)
 
-func (ss *SaveState) Init(s *State) {
+func (ss *SaveState) Init() {
 	if ss.FactoidBalancesP == nil {
 		ss.FactoidBalancesP = map[[32]byte]int64{}
 	}
@@ -125,7 +125,7 @@ func (ss *SaveState) Init(s *State) {
 		ss.Acks = map[[32]byte]interfaces.IMsg{}
 	}
 	if ss.Commits == nil {
-		ss.Commits = NewSafeMsgMap("sscommits", s) // map[[32]byte]interfaces.IMsg{}
+		ss.Commits = NewSafeMsgMap("sscommits", nil) // map[[32]byte]interfaces.IMsg{}
 	}
 	if ss.InvalidMessages == nil {
 		ss.InvalidMessages = map[[32]byte]interfaces.IMsg{}
@@ -134,8 +134,15 @@ func (ss *SaveState) Init(s *State) {
 	if ss.IdentityControl == nil {
 		ss.IdentityControl = NewIdentityManager()
 	}
+	if ss.IdentityControl == nil {
+		atomic.WhereAmIMsg("no identity manager")
+	}
 
 	ss.IdentityControl.Init()
+
+	if ss.IdentityControl == nil {
+		atomic.WhereAmIMsg("no identity manager")
+	}
 
 }
 
@@ -301,35 +308,45 @@ func (a *SaveState) IsSameAs(b *SaveState) bool {
 }
 
 func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
-	ss = new(SaveState)
-	ss.DBHeight = d.DirectoryBlock.GetHeader().GetDBHeight()
-	pl := state.ProcessLists.Get(ss.DBHeight)
+	state.LogPrintf("dbstateprocess", "SaveFactomdState(%d) called from %s", d.DirectoryBlock.GetHeader().GetDBHeight(), atomic.WhereAmIString(1))
 
+	dbht := d.DirectoryBlock.GetHeader().GetDBHeight()
 	// Need to ensure the dbstate is at the same height as the state.
-	if ss.DBHeight != state.LLeaderHeight {
+	if dbht != state.LLeaderHeight {
 		//os.Stderr.WriteString(fmt.Sprintf("%10s dbht mismatch %d %d\n", state.GetFactomNodeName(), ss.DBHeight, state.LLeaderHeight))
-		return
-	}
-	if pl == nil {
+		state.LogPrintf("savestate", "LeaderHeight Mismatch %d vs %d", dbht, state.LLeaderHeight)
 		return nil
 	}
 
-	//Only check if we're not loading from the database
-	if state.DBFinished == true {
-		// If the timestamp is over a day old, then there is really no point in saving the state of
-		// historical data.
-		if int(state.GetHighestKnownBlock())-int(state.GetHighestSavedBlk()) > 144 {
-			return nil
-		}
+	pl := state.ProcessLists.Get(dbht)
+	pln := state.ProcessLists.Get(dbht + 1) // need the authorityset from the next block not this block
+	if pl == nil || pln == nil {
+		state.LogPrintf("savestate", "No processlist %p %p", pl, pln)
+		return nil
 	}
+
+	ss = new(SaveState)
+	ss.Init()
+	if ss.IdentityControl == nil {
+		atomic.WhereAmIMsg("no identity manager")
+	}
+
+	// clone the IdentityControl for this savestate
+	ss.IdentityControl = state.IdentityControl.Clone()
+	if ss.IdentityControl == nil {
+		atomic.WhereAmIMsg("no identity manager")
+	}
+
+	ss.DBHeight = dbht
 
 	// state.AddStatus(fmt.Sprintf("Save state at dbht: %d", ss.DBHeight))
 
-	ss.Replay = state.Replay.Save()
+	//	ss.Replay = state.Replay.Save()
 	ss.LeaderTimestamp = d.DirectoryBlock.GetTimestamp()
 
-	ss.FedServers = append(ss.FedServers, pl.FedServers...)
-	ss.AuditServers = append(ss.AuditServers, pl.AuditServers...)
+	ss.FedServers = append(ss.FedServers, pln.FedServers...)
+	ss.AuditServers = append(ss.AuditServers, pln.AuditServers...)
+	state.LogPrintf("dbstateprocess", "SaveFactomdState(%d) saving  %d/%d authset", d.DirectoryBlock.GetHeader().GetDBHeight(), len(ss.FedServers), len(ss.AuditServers))
 
 	state.FactoidBalancesPMutex.Lock()
 	ss.FactoidBalancesP = make(map[[32]byte]int64, len(state.FactoidBalancesP))
@@ -345,7 +362,11 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 	}
 	state.ECBalancesPMutex.Unlock()
 
-	ss.IdentityControl = state.IdentityControl
+	ss.IdentityControl = state.IdentityControl.Clone()
+	if ss.IdentityControl == nil {
+		atomic.WhereAmIMsg("no identity manager")
+	}
+
 	ss.AuthorityServerCount = state.AuthorityServerCount
 
 	ss.LLeaderHeight = state.LLeaderHeight
@@ -407,8 +428,11 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 			panic(err)
 		}
 	*/
+	if ss.IdentityControl == nil {
+		atomic.WhereAmIMsg("no identity manager")
+	}
 
-	return
+	return ss
 }
 
 func (ss *SaveState) TrimBack(s *State, d *DBState) {
@@ -468,9 +492,9 @@ func (ss *SaveState) TrimBack(s *State, d *DBState) {
 	s.Saving = pss.Saving
 	s.Syncing = pss.Syncing
 
-	s.Replay = pss.Replay.Save()
-	s.Replay.s = s
-	s.Replay.name = "Replay"
+	//s.Replay = pss.Replay.Save()
+	//s.Replay.s = s
+	//s.Replay.name = "Replay"
 
 	return
 	/*
@@ -590,13 +614,17 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 	// s.AddStatus(fmt.Sprintln("Index: ", index, "dbht:", ss.DBHeight, "lleaderheight", s.LLeaderHeight))
 
 	dindex := ss.DBHeight - s.DBStates.Base
-	s.DBStates.DBStates = s.DBStates.DBStates[:dindex] // Keep up to the state we are restoring too.
+
+	s.DBStates.DBStates = s.DBStates.DBStates[:dindex+1] // Keep up to the state we are restoring too.
+	s.DBStates.Complete = dindex                         // update the cached count of how many are complete
+	s.DBStates.ProcessHeight = ss.DBHeight               // Set the process height to where we are starting
+
 	//s.AddStatus(fmt.Sprintf("SAVESTATE Restoring the State to dbht: %d", ss.DBHeight))
 
-	s.LogPrintf("dbstatesProcess", "restoring to DBH %d", ss.DBHeight)
-	s.Replay = ss.Replay.Save()
-	s.Replay.s = s
-	s.Replay.name = "Replay"
+	s.LogPrintf("dbstateprocess", "restoring to DBH %d", ss.DBHeight)
+	//s.Replay = ss.Replay.Save()
+	//s.Replay.s = s
+	//s.Replay.name = "Replay"
 
 	s.SetLeaderTimestamp(ss.LeaderTimestamp)
 
@@ -624,31 +652,33 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 	s.ECBalancesPMutex.Unlock()
 
 	// Restore IDControl
+	// TODO: Should this clone?
 	s.IdentityControl = ss.IdentityControl
+	if s.IdentityControl == nil {
+		atomic.WhereAmIMsg("Missing IdentityControl")
+	}
 
 	s.AuthorityServerCount = ss.AuthorityServerCount
 
-	s.IdentityControl = ss.IdentityControl
-	s.CurrentMinute = ss.CurrentMinute
 	if ss.CurrentMinute != 0 {
-		s.LogPrintf("executeMsg", "unexpected %s", s.LLeaderHeight, s.LeaderTimestamp.String(), atomic.WhereAmIString(0))
+		s.LogPrintf("executeMsg", "unexpected ss.CurrentMinute=%d  %s", ss.CurrentMinute, atomic.WhereAmIString(0))
 	}
-	s.MoveStateToHeight(ss.LLeaderHeight)
 
-	//	s.LeaderTimestamp = dbstate.DirectoryBlock.GetTimestamp()
-	//      s.LogPrintf("executeMsg", "Set LeaderTimeStamp %d %v for %s", s.LLeaderHeight, s.LeaderTimestamp.String(), atomic.WhereAmIString(0))
+	ss.CurrentMinute = 0
+
+	s.MoveStateToHeight(ss.LLeaderHeight+1, ss.CurrentMinute) // RestoreFactomdState
 
 	if ss.Leader != s.Leader {
-		s.LogPrintf("executeMsg", "unexpected %s", s.LLeaderHeight, s.LeaderTimestamp.String(), atomic.WhereAmIString(0))
+		s.LogPrintf("executeMsg", "unexpected ss.Leader=%v %s", ss.Leader, atomic.WhereAmIString(0))
 	}
-	s.Leader = ss.Leader
+
 	if ss.LeaderVMIndex != s.LeaderVMIndex {
-		s.LogPrintf("executeMsg", "unexpected %s", s.LLeaderHeight, s.LeaderTimestamp.String(), atomic.WhereAmIString(0))
+		s.LogPrintf("executeMsg", "unexpected  ss.LeaderVMIndex=%v %s", ss.LeaderVMIndex, atomic.WhereAmIString(0))
 	}
-	s.LeaderVMIndex = ss.LeaderVMIndex
 
 	ss.EOMsyncing = s.EOMsyncing
 
+	s.CurrentMinute = 0
 	s.EOM = false
 	s.EOMLimit = ss.EOMLimit
 	s.EOMProcessed = ss.EOMProcessed
@@ -662,9 +692,11 @@ func (ss *SaveState) RestoreFactomdState(s *State) { //, d *DBState) {
 	s.DBSigSys = ss.DBSigSys
 	s.Saving = true
 	s.Syncing = false
-	s.HighestAck = ss.DBHeight + 1
-	s.HighestKnown = ss.DBHeight + 2
+	s.SetHighestAck(ss.DBHeight + 1)
+	s.SetHighestKnownBlock(ss.DBHeight + 2)
 	s.Holding = make(map[[32]byte]interfaces.IMsg)
+
+	//TODO: Rip all these maps and arrays out. they are not needed... famouus last words.
 	for k := range ss.Holding {
 		s.Holding[k] = ss.Holding[k]
 	}
@@ -702,7 +734,7 @@ func (ss *SaveState) MarshalBinary() (rval []byte, err error) {
 	}
 	defer func(pe *error) {
 		if *pe != nil {
-			fmt.Fprintf(os.Stderr, "SaveState.MarshalBinary err:%v", *pe)
+			fmt.Fprintf(os.Stderr, "SaveState.MarshalBinary err:%v\n", *pe)
 		}
 	}(&err)
 	buf := primitives.NewBuffer(nil)
@@ -838,10 +870,10 @@ func (ss *SaveState) MarshalBinary() (rval []byte, err error) {
 		return nil, err
 	}
 
-	err = buf.PushBinaryMarshallable(ss.Replay)
-	if err != nil {
-		return nil, err
-	}
+	//err = buf.PushBinaryMarshallable(ss.Replay)
+	//if err != nil {
+	//	return nil, err
+	//}
 
 	err = buf.PushBinaryMarshallable(ss.LeaderTimestamp)
 	if err != nil {
@@ -1098,11 +1130,11 @@ func (ss *SaveState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 		return
 	}
 
-	ss.Replay = new(Replay)
-	err = buf.PopBinaryMarshallable(ss.Replay)
-	if err != nil {
-		return
-	}
+	//ss.Replay = new(Replay)
+	//err = buf.PopBinaryMarshallable(ss.Replay)
+	//if err != nil {
+	//	return
+	//}
 
 	ss.LeaderTimestamp = primitives.NewTimestampFromMilliseconds(0)
 	err = buf.PopBinaryMarshallable(ss.LeaderTimestamp)

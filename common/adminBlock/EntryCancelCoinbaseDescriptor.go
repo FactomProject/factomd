@@ -2,6 +2,7 @@ package adminBlock
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -70,7 +71,14 @@ func (e *CancelCoinbaseDescriptor) Type() byte {
 }
 
 // SortedIdentity has no identity to sort by, so we will just use the hash of the cancel.
-func (e *CancelCoinbaseDescriptor) SortedIdentity() interfaces.IHash {
+func (e *CancelCoinbaseDescriptor) SortedIdentity() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("CancelCoinbaseDescriptor.SortedIdentity() saw an interface that was nil")
+		}
+	}()
+
 	return e.Hash()
 }
 
@@ -112,40 +120,41 @@ func (e *CancelCoinbaseDescriptor) UnmarshalBinaryData(data []byte) ([]byte, err
 	buf := primitives.NewBuffer(data)
 	e.Init()
 
-	b, err := buf.PopByte()
+	t, err := buf.PopByte()
 	if err != nil {
 		return nil, err
 	}
 
-	if b != e.Type() {
+	if t != e.Type() {
 		return nil, fmt.Errorf("Invalid Entry type")
 	}
 
-	bl, err := buf.PopVarInt()
+	bodyLimit := uint64(buf.Len())
+	bodySize, err := buf.PopVarInt()
 	if err != nil {
 		return nil, err
 	}
-	// TODO: remove printing unmarshal count numbers once we have good data on
-	// what they should be.
-	//log.Print("CancelCoinbaseDescriptor unmarshaled body length: ", bl)
-	if bl > 1000 {
-		// TODO: replace this message with a proper error
-		return nil, fmt.Errorf("Error: CancelCoinbaseDescriptor.UnmarshalBinary: body length too long (uint underflow?)")
+	if bodySize > bodyLimit {
+		return nil, fmt.Errorf(
+			"Error: CancelCoinbaseDescriptor.UnmarshalBinary: body size %d is "+
+				"larger than binary size %d. (uint underflow?)",
+			bodySize, bodyLimit,
+		)
 	}
 
-	body := make([]byte, bl)
+	body := make([]byte, bodySize)
 	n, err := buf.Read(body)
 	if err != nil {
 		return nil, err
 	}
 
-	if uint64(n) != bl {
-		return nil, fmt.Errorf("Expected to read %d bytes, but got %d", bl, n)
+	if uint64(n) != bodySize {
+		return nil, fmt.Errorf("Expected to read %d bytes, but got %d", bodySize, n)
 	}
 
 	bodyBuf := primitives.NewBuffer(body)
 
-	if uint64(n) != bl {
+	if uint64(n) != bodySize {
 		return nil, fmt.Errorf("Unable to unmarshal body")
 	}
 
@@ -192,7 +201,14 @@ func (e *CancelCoinbaseDescriptor) Interpret() string {
 	return ""
 }
 
-func (e *CancelCoinbaseDescriptor) Hash() interfaces.IHash {
+func (e *CancelCoinbaseDescriptor) Hash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("CancelCoinbaseDescriptor.Hash() saw an interface that was nil")
+		}
+	}()
+
 	if e.hash == nil {
 		bin, err := e.MarshalBinary()
 		if err != nil {

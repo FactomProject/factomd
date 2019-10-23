@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"reflect"
 
 	"errors"
 
@@ -176,7 +177,13 @@ func (c *DirectoryBlock) CheckDBEntries() error {
 	return nil
 }
 
-func (c *DirectoryBlock) GetKeyMR() interfaces.IHash {
+func (c *DirectoryBlock) GetKeyMR() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("DirectoryBlock.GetKeyMR() saw an interface that was nil")
+		}
+	}()
 	keyMR, err := c.BuildKeyMerkleRoot()
 	if err != nil {
 		panic("Failed to build the key MR")
@@ -223,15 +230,33 @@ func (c *DirectoryBlock) GetDatabaseHeight() uint32 {
 	return c.GetHeader().GetDBHeight()
 }
 
-func (c *DirectoryBlock) GetChainID() interfaces.IHash {
+func (c *DirectoryBlock) GetChainID() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("DirectoryBlock.GetChainID() saw an interface that was nil")
+		}
+	}()
 	return primitives.NewHash(constants.D_CHAINID)
 }
 
-func (c *DirectoryBlock) DatabasePrimaryIndex() interfaces.IHash {
+func (c *DirectoryBlock) DatabasePrimaryIndex() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("DirectoryBlock.DatabasePrimaryIndex() saw an interface that was nil")
+		}
+	}()
 	return c.GetKeyMR()
 }
 
-func (c *DirectoryBlock) DatabaseSecondaryIndex() interfaces.IHash {
+func (c *DirectoryBlock) DatabaseSecondaryIndex() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("DirectoryBlock.DatabaseSecondaryIndex() saw an interface that was nil")
+		}
+	}()
 	return c.GetHash()
 }
 
@@ -257,13 +282,12 @@ func (e *DirectoryBlock) String() string {
 	out.WriteString(fmt.Sprintf("%20s %v\n", "fullhash:", fh.String()))
 
 	out.WriteString(e.GetHeader().String())
-	out.WriteString("entries: \n")
+	out.WriteString("entries:\n")
 	for i, entry := range e.DBEntries {
 		out.WriteString(fmt.Sprintf("%5d %s", i, entry.String()))
 	}
 
 	return (string)(out.DeepCopyBytes())
-
 }
 
 func (b *DirectoryBlock) MarshalBinary() (rval []byte, err error) {
@@ -329,7 +353,13 @@ func (b *DirectoryBlock) GetHeaderHash() (interfaces.IHash, error) {
 	return b.Header.GetHeaderHash()
 }
 
-func (b *DirectoryBlock) BodyKeyMR() interfaces.IHash {
+func (b *DirectoryBlock) BodyKeyMR() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("DirectoryBlock.BodyKeyMR() saw an interface that was nil")
+		}
+	}()
 	key, _ := b.BuildBodyMR()
 	return key
 }
@@ -378,13 +408,15 @@ func (b *DirectoryBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	}
 	b.SetHeader(fbh)
 
+	// entryLimit is the maximum number of 32 byte entries that could fit in the body of the binary dblock
+	entryLimit := uint32(len(newData) / 32)
 	entryCount := b.GetHeader().GetBlockCount()
-	// TODO: remove printing unmarshal count numbers once we have good data on
-	// what they should be.
-	//log.Print("DirectoryBlock unmarshaled entry count: ", entryCount)
-	if entryCount > 1000 {
-		// TODO: replace this message with a proper error
-		return nil, fmt.Errorf("Error: DirectoryBlock.UnmarshalBinary: entry count too high (uint underflow?)")
+	if entryCount > entryLimit {
+		return nil, fmt.Errorf(
+			"Error: DirectoryBlock.UnmarshalBinary: Entry count %d is larger "+
+				"than body size %d. (uint underflow?)",
+			entryCount, entryLimit,
+		)
 	}
 
 	entries := make([]interfaces.IDBEntry, entryCount)
@@ -410,7 +442,7 @@ func (b *DirectoryBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 }
 
 func (h *DirectoryBlock) GetTimestamp() interfaces.Timestamp {
-	return h.GetHeader().GetTimestamp()
+	return h.GetHeader().GetTimestamp().Clone()
 }
 
 func (b *DirectoryBlock) UnmarshalBinary(data []byte) (err error) {
@@ -418,11 +450,23 @@ func (b *DirectoryBlock) UnmarshalBinary(data []byte) (err error) {
 	return
 }
 
-func (b *DirectoryBlock) GetHash() interfaces.IHash {
+func (b *DirectoryBlock) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("DirectoryBlock.GetHash() saw an interface that was nil")
+		}
+	}()
 	return b.GetFullHash()
 }
 
-func (b *DirectoryBlock) GetFullHash() interfaces.IHash {
+func (b *DirectoryBlock) GetFullHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("DirectoryBlock.GetFullHash() saw an interface that was nil")
+		}
+	}()
 	binaryDblock, err := b.MarshalBinary()
 	if err != nil {
 		return nil
@@ -453,6 +497,7 @@ func NewDirectoryBlock(prev interfaces.IDirectoryBlock) interfaces.IDirectoryBlo
 
 	newdb.Header = new(DBlockHeader)
 	newdb.GetHeader().SetVersion(constants.VERSION_0)
+
 	if prev != nil {
 		newdb.GetHeader().SetPrevFullHash(prev.GetFullHash())
 		newdb.GetHeader().SetPrevKeyMR(prev.GetKeyMR())

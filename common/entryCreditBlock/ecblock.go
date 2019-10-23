@@ -7,6 +7,7 @@ package entryCreditBlock
 import (
 	"fmt"
 	"os"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -140,16 +141,37 @@ func (c *ECBlock) GetDatabaseHeight() uint32 {
 	return c.GetHeader().GetDBHeight()
 }
 
-func (c *ECBlock) GetChainID() interfaces.IHash {
+func (c *ECBlock) GetChainID() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("ECBlock.GetChainID() saw an interface that was nil")
+		}
+	}()
+
 	return c.GetHeader().GetECChainID()
 }
 
-func (c *ECBlock) DatabasePrimaryIndex() interfaces.IHash {
+func (c *ECBlock) DatabasePrimaryIndex() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("ECBlock.DatabasePrimaryIndex() saw an interface that was nil")
+		}
+	}()
+
 	key, _ := c.HeaderHash()
 	return key
 }
 
-func (c *ECBlock) DatabaseSecondaryIndex() interfaces.IHash {
+func (c *ECBlock) DatabaseSecondaryIndex() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("ECBlock.DatabaseSecondaryIndex() saw an interface that was nil")
+		}
+	}()
+
 	key, _ := c.GetFullHash()
 	return key
 }
@@ -158,7 +180,14 @@ func (e *ECBlock) AddEntry(entries ...interfaces.IECBlockEntry) {
 	e.GetBody().SetEntries(append(e.GetBody().GetEntries(), entries...))
 }
 
-func (e *ECBlock) GetHash() interfaces.IHash {
+func (e *ECBlock) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("ECBlock.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	h, _ := e.GetFullHash()
 	return h
 }

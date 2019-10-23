@@ -10,14 +10,16 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"reflect"
 	"strings"
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/common/primitives"
 
-	"github.com/FactomProject/factomd/common/messages/msgbase"
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -47,12 +49,26 @@ func (m *Bounce) AddData(dataSize int) {
 	}
 }
 
-func (m *Bounce) GetRepeatHash() interfaces.IHash {
+func (m *Bounce) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("Bounce.GetRepeatHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.GetMsgHash()
 }
 
 // We have to return the hash of the underlying message.
-func (m *Bounce) GetHash() interfaces.IHash {
+func (m *Bounce) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("Bounce.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.GetMsgHash()
 }
 
@@ -61,7 +77,14 @@ func (m *Bounce) SizeOf() int {
 	return m.size
 }
 
-func (m *Bounce) GetMsgHash() interfaces.IHash {
+func (m *Bounce) GetMsgHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("Bounce.GetMsgHash() saw an interface that was nil")
+		}
+	}()
+
 	data, err := m.MarshalForSignature()
 
 	m.size = len(data)
@@ -78,7 +101,7 @@ func (m *Bounce) Type() byte {
 }
 
 func (m *Bounce) GetTimestamp() interfaces.Timestamp {
-	return m.Timestamp
+	return m.Timestamp.Clone()
 }
 
 func (m *Bounce) VerifySignature() (bool, error) {
@@ -146,6 +169,7 @@ func (m *Bounce) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling: %v", r)
 		}
 	}()
 	newData = data
@@ -176,18 +200,20 @@ func (m *Bounce) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 		m.Stamps = append(m.Stamps, ts)
 	}
 
-	lenData, newData := binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-	// TODO: remove printing unmarshal count numbers once we have good data on
-	// what they should be.
-	//log.Print("Bounce unmarshaled data length: ", lenData)
-	if lenData > 1000 {
-		// TODO: replace this message with a proper error
-		return nil, fmt.Errorf("Error: Bounce.UnmarshalBinary: data length too high (uint underflow?)")
+	dataLimit := uint32(len(data))
+	dataLen, newData := binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+	if dataLen > dataLimit {
+		return nil, fmt.Errorf(
+			"Error: Bounce.UnmarshalBinary: data length %d is greater than "+
+				"remaining space in buffer %d (uint underflow?)",
+			dataLen, dataLimit,
+		)
+
 	}
 
-	m.Data = make([]byte, lenData)
+	m.Data = make([]byte, dataLen)
 	copy(m.Data, newData)
-	newData = newData[lenData:]
+	newData = newData[dataLen:]
 
 	return
 }

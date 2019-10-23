@@ -6,6 +6,7 @@ package messages
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/factoid"
@@ -13,6 +14,8 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 
 	"github.com/FactomProject/factomd/common/messages/msgbase"
+
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -44,11 +47,25 @@ func (a *FactoidTransaction) IsSameAs(b *FactoidTransaction) bool {
 	return true
 }
 
-func (m *FactoidTransaction) GetRepeatHash() interfaces.IHash {
+func (m *FactoidTransaction) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("FactoidTransaction.GetRepeatHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.Transaction.GetSigHash()
 }
 
-func (m *FactoidTransaction) GetHash() interfaces.IHash {
+func (m *FactoidTransaction) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("FactoidTransaction.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	if m.hash == nil {
 		m.SetFullMsgHash(m.Transaction.GetFullHash())
 
@@ -62,7 +79,14 @@ func (m *FactoidTransaction) GetHash() interfaces.IHash {
 	return m.hash
 }
 
-func (m *FactoidTransaction) GetMsgHash() interfaces.IHash {
+func (m *FactoidTransaction) GetMsgHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("FactoidTransaction.GetMsgHash() saw an interface that was nil")
+		}
+	}()
+
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()
 		if err != nil {
@@ -74,7 +98,7 @@ func (m *FactoidTransaction) GetMsgHash() interfaces.IHash {
 }
 
 func (m *FactoidTransaction) GetTimestamp() interfaces.Timestamp {
-	return m.Transaction.GetTimestamp()
+	return m.Transaction.GetTimestamp().Clone()
 }
 
 func (m *FactoidTransaction) GetTransaction() interfaces.ITransaction {
@@ -107,10 +131,26 @@ func (m *FactoidTransaction) Validate(state interfaces.IState) int {
 	}
 
 	// Is the transaction valid at this point in time?
-	err = state.GetFactoidState().Validate(1, m.Transaction)
+	holdAddr := [32]byte{}
+	err, holdAddr = state.GetFactoidState().Validate(1, m.Transaction)
 	if err != nil {
-		return 0 // Well, mumble.  Might be out of order.
+		if holdAddr != [32]byte{} { // hold for an address that is short
+			state.Add(holdAddr, m)
+		} else {
+			return -1 // message was invalid for another reason
+		}
 	}
+
+	// First check all inputs are good.
+	for _, input := range m.Transaction.GetInputs() {
+		adr := input.GetAddress().Fixed()
+		oldv := state.GetFactoidState().GetFactoidBalance(adr)
+		v := oldv - int64(input.GetAmount())
+		if v < 0 {
+			return 0
+		}
+	}
+
 	return 1
 }
 
@@ -149,6 +189,7 @@ func (m *FactoidTransaction) UnmarshalTransData(datax []byte) (newData []byte, e
 		return
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling Transaction Factoid: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling Transaction Factoid: %v", r)
 		}
 	}()
 
@@ -164,6 +205,7 @@ func (m *FactoidTransaction) UnmarshalBinaryData(data []byte) (newData []byte, e
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling Factoid: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling Factoid: %v", r)
 		}
 	}()
 

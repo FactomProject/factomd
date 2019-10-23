@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"time"
 
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -74,6 +75,7 @@ func validateParcelPart(parcel Parcel, partial *PartialMessage) (isValid bool, e
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error in validateParcelPart")
+			llog.LogPrintf("recovery", "Error in validateParcelPart %v", r)
 			return
 		}
 	}()
@@ -110,7 +112,7 @@ func (assembler *PartsAssembler) cleanupOldPartialMessages() {
 		timeSinceFirst := time.Since(partial.firstPartReceived)
 		if timeWaiting > MaxTimeWaitingForReassembly {
 			delete(assembler.messages, appHash)
-			assembler.logger.Debugf("Dropping message %d after %s secs, time since first part: %s secs",
+			assembler.logger.Debugf("dropping message %s after %s secs, time since first part: %s secs",
 				appHash, timeWaiting/time.Second, timeSinceFirst/time.Second)
 		}
 	}

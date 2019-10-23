@@ -6,6 +6,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives/random"
 )
 
 // EntryBlockSync has the current eblock synced to, and the target Eblock
@@ -14,6 +15,19 @@ type EntryBlockSync struct {
 	Current          EntryBlockMarker
 	Target           EntryBlockMarker
 	BlocksToBeParsed []EntryBlockMarker
+}
+
+func RandomEntryBlockSync() *EntryBlockSync {
+	s := NewEntryBlockSync()
+
+	for i := 0; i < random.RandIntBetween(0, 10); i++ {
+		m := RandomEntryBlockMarker()
+		m.Sequence = uint32(i)
+		m.DBHeight = uint32(i)
+		s.AddNewHeadMarker(*m)
+	}
+
+	return s
 }
 
 func NewEntryBlockSync() *EntryBlockSync {
@@ -73,7 +87,7 @@ func (a *EntryBlockSync) IsSameAs(b *EntryBlockSync) bool {
 	}
 
 	for i := range a.BlocksToBeParsed {
-		if !a.BlocksToBeParsed[1].IsSameAs(&b.BlocksToBeParsed[i]) {
+		if !a.BlocksToBeParsed[i].IsSameAs(&b.BlocksToBeParsed[i]) {
 			return false
 		}
 	}
@@ -85,6 +99,12 @@ func (e *EntryBlockSync) Clone() *EntryBlockSync {
 	b := new(EntryBlockSync)
 	b.Current = *e.Current.Clone()
 	b.Target = *e.Target.Clone()
+
+	b.BlocksToBeParsed = make([]EntryBlockMarker, len(e.BlocksToBeParsed))
+	for i, eb := range e.BlocksToBeParsed {
+		b.BlocksToBeParsed[i] = *eb.Clone()
+	}
+
 	return b
 }
 
@@ -111,7 +131,10 @@ func (e *EntryBlockSync) MarshalBinary() (rval []byte, err error) {
 	}
 
 	for _, v := range e.BlocksToBeParsed {
-		buf.PushBinaryMarshallable(&v)
+		err = buf.PushBinaryMarshallable(&v)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return buf.DeepCopyBytes(), nil
@@ -136,21 +159,25 @@ func (e *EntryBlockSync) UnmarshalBinaryData(p []byte) (newData []byte, err erro
 		return
 	}
 
-	l, err := buf.PopInt()
+	// blockLimit is the maximum number of Entry Blocks that could fit in the
+	// buffer.
+	tmp := NewEntryBlockMarker()
+	blockLimit := buf.Len() / tmp.Size()
+	blockCount, err := buf.PopInt()
 	if err != nil {
 		return
 	}
-	// TODO: remove printing unmarshal count numbers once we have good data on
-	// what they should be.
-	//log.Print("EntryBlockSync unmarshaled EntryBlockMarker count: ", l)
-	if uint(l) > 1000 {
-		// TODO: replace this message with a proper error
-		return nil, fmt.Errorf("Error: EntryBlockSync.UnmarshalBinary: EntryBlockMarker count too high (uint underflow?)")
+	if blockCount > blockLimit {
+		return nil, fmt.Errorf(
+			"Error: EntryBlockSync.UnmarshalBinary: block count %d is greater "+
+				"than remaining space in buffer %d (uint underflow?)",
+			blockCount, blockLimit,
+		)
 	}
 
-	e.BlocksToBeParsed = make([]EntryBlockMarker, l)
+	e.BlocksToBeParsed = make([]EntryBlockMarker, blockCount)
 
-	for i := 0; i < l; i++ {
+	for i := 0; i < blockCount; i++ {
 		var b EntryBlockMarker
 		err = buf.PopBinaryMarshallable(&b)
 		if err != nil {
@@ -168,9 +195,11 @@ type EntryBlockMarkerList []EntryBlockMarker
 func (p EntryBlockMarkerList) Len() int {
 	return len(p)
 }
+
 func (p EntryBlockMarkerList) Swap(i, j int) {
 	p[i], p[j] = p[j], p[i]
 }
+
 func (p EntryBlockMarkerList) Less(i, j int) bool {
 	return p[i].Sequence < p[j].Sequence
 }
@@ -187,6 +216,13 @@ func NewEntryBlockMarker() *EntryBlockMarker {
 	e.KeyMr = primitives.NewZeroHash()
 	e.DblockTimestamp = new(primitives.Timestamp)
 	return e
+}
+
+func RandomEntryBlockMarker() *EntryBlockMarker {
+	m := NewEntryBlockMarker()
+	m.KeyMr = primitives.RandomHash()
+	m.DblockTimestamp = primitives.NewTimestampNow()
+	return m
 }
 
 func (a *EntryBlockMarker) IsSameAs(b *EntryBlockMarker) bool {
@@ -221,6 +257,7 @@ func (e *EntryBlockMarker) MarshalBinary() (rval []byte, err error) {
 		}
 	}(&err)
 	buf := primitives.NewBuffer(nil)
+
 	err = buf.PushIHash(e.KeyMr)
 	if err != nil {
 		return nil, err
@@ -242,6 +279,12 @@ func (e *EntryBlockMarker) MarshalBinary() (rval []byte, err error) {
 	}
 
 	return buf.DeepCopyBytes(), nil
+}
+
+// Returns the byte size when marshaled
+func (e *EntryBlockMarker) Size() int {
+	// If you count it, it's 46. However, PushIHash is actually 33 bytes. and PushTimestamp is actually 8, rather than 6.
+	return 49
 }
 
 func (e *EntryBlockMarker) UnmarshalBinary(p []byte) error {

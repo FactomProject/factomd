@@ -68,7 +68,7 @@ func TestControlPanel(t *testing.T) {
 		emptyState := CreateAndPopulateTestStateAndStartValidator()
 
 		gitBuild := "Test Is Running"
-		go ServeControlPanel(emptyState.ControlPanelChannel, emptyState, connections, nil, gitBuild)
+		go ServeControlPanel(emptyState.ControlPanelChannel, emptyState, connections, nil, gitBuild, "Fnode0")
 		emptyState.CopyStateToControlPanel()
 		for count := 0; count < 1000; count++ {
 			for i = 0; i < 5; i++ {

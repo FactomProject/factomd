@@ -18,7 +18,6 @@ import (
 	ed "github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factom"
 	"github.com/FactomProject/factomd/common/entryBlock"
-	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/identityEntries"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -115,75 +114,6 @@ func copyOver(st *state.State) {
 			log.Println("Error in making identities: " + err.Error())
 		}
 	}
-}
-
-// FundWallet()
-// Entry Point for no time offset on the transaction.
-func FundWallet(st *state.State, amt uint64) (error, string) {
-	return FundWalletTOFF(st, 0, amt)
-}
-
-// FundWalletTOFF()
-// Entry Point where test code allows the transaction to have a time offset from the current time.
-func FundWalletTOFF(st *state.State, timeOffsetInMilliseconds int64, amt uint64) (error, string) {
-	inSec, _ := primitives.HexToHash("FB3B471B1DCDADFEB856BD0B02D8BF49ACE0EDD372A3D9F2A95B78EC12A324D6") // private key or FCT Source
-	outEC, _ := primitives.HexToHash("c23ae8eec2beb181a0da926bd2344e988149fbe839fbc7489f2096e7d6110243") // EC address
-
-	var sec [64]byte
-	copy(sec[:32], inSec.Bytes()) // pass 32 byte key in a 64 byte field for the crypto library
-
-	pub := ed.GetPublicKey(&sec) // get the public key for our FCT source address
-
-	rcd := factoid.NewRCD_1(pub[:]) // build the an RCD "redeem condition data structure"
-
-	inAdd, err := rcd.GetAddress()
-	if err != nil {
-		panic(err)
-	}
-
-	outAdd := factoid.NewAddress(outEC.Bytes())
-
-	trans := new(factoid.Transaction)
-	trans.AddInput(inAdd, amt)
-	trans.AddECOutput(outAdd, amt)
-
-	trans.AddRCD(rcd)
-	trans.AddAuthorization(rcd)
-
-	// So what we are going to do is get the current time in ms, add to it the offset provided (usually zero, except
-	// for tests)
-	trans.SetTimestamp(primitives.NewTimestampFromMilliseconds(
-		uint64(primitives.NewTimestampNow().GetTimeMilli() + timeOffsetInMilliseconds)))
-
-	fee, err := trans.CalculateFee(st.GetFactoshisPerEC())
-	if err != nil {
-		return err, ""
-	}
-	input, err := trans.GetInput(0)
-	if err != nil {
-		return err, ""
-	}
-	input.SetAmount(amt + fee)
-
-	dataSig, err := trans.MarshalBinarySig()
-	if err != nil {
-		return err, ""
-	}
-	sig := factoid.NewSingleSignatureBlock(inSec.Bytes(), dataSig)
-	trans.SetSignatureBlock(0, sig)
-
-	t := new(wsapi.TransactionRequest)
-	data, _ := trans.MarshalBinary()
-	t.Transaction = hex.EncodeToString(data)
-	j := primitives.NewJSON2Request("factoid-submit", 0, t)
-	_, err = v2Request(j, st.GetPort())
-	//_, err = wsapi.HandleV2Request(st, j)
-	if err != nil {
-		return err, ""
-	}
-	_ = err
-
-	return nil, fmt.Sprintf("%v", trans.GetTxID())
 }
 
 func setUpAuthorities(st *state.State, buildMain bool) []hardCodedAuthority {
@@ -920,8 +850,6 @@ func modifyLoadIdentities() {
 	if len(list) == 0 {
 		fmt.Println("Error when loading up identities for fnodes")
 	}
-	// 0 is not modified here
-	addFnodeName(0)
 
 	for i := 1; i < len(fnodes); i++ {
 		if i-1 >= len(list) {
@@ -964,12 +892,13 @@ func modifyLoadIdentities() {
 
 func addFnodeName(i int) {
 	// full name
-	globals.FnodeNames[fnodes[i].State.IdentityChainID.String()] = fnodes[i].State.FactomNodeName
+	name := fnodes[i].State.FactomNodeName
+	globals.FnodeNames[fnodes[i].State.IdentityChainID.String()] = name
 	// common short set
-	globals.FnodeNames[fmt.Sprintf("%x", fnodes[i].State.IdentityChainID.Bytes()[3:6])] = fnodes[i].State.FactomNodeName
-	globals.FnodeNames[fmt.Sprintf("%x", fnodes[i].State.IdentityChainID.Bytes()[:5])] = fnodes[i].State.FactomNodeName
-	globals.FnodeNames[fmt.Sprintf("%x", fnodes[i].State.IdentityChainID.Bytes()[:])] = fnodes[i].State.FactomNodeName
-	globals.FnodeNames[fmt.Sprintf("%x", fnodes[i].State.IdentityChainID.Bytes()[:8])] = fnodes[i].State.FactomNodeName
+	globals.FnodeNames[fmt.Sprintf("%x", fnodes[i].State.IdentityChainID.Bytes()[3:6])] = name
+	globals.FnodeNames[fmt.Sprintf("%x", fnodes[i].State.IdentityChainID.Bytes()[:5])] = name
+	globals.FnodeNames[fmt.Sprintf("%x", fnodes[i].State.IdentityChainID.Bytes()[:])] = name
+	globals.FnodeNames[fmt.Sprintf("%x", fnodes[i].State.IdentityChainID.Bytes()[:8])] = name
 }
 
 func shad(data []byte) []byte {

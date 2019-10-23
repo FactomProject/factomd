@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -17,7 +18,6 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/state"
 	log "github.com/sirupsen/logrus"
-	//"github.com/FactomProject/factomd/state"
 
 	"github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/elections"
@@ -138,8 +138,8 @@ func (m *FedVoteLevelMsg) processIfCommitted(is interfaces.IState, elect interfa
 			m.Volunteer.ServerIdx, m.Volunteer.ServerID.Bytes()[3:6])
 
 		e.LogPrintf("election", "LeaderSwapState %d/%d/%d", m.DBHeight, m.VMIndex, m.Minute)
-		e.LogPrintf("election", "Demote  %x", e.Federated[m.Volunteer.FedIdx].GetChainID().Bytes()[3:6])
-		e.LogPrintf("election", "Promote %x", e.Audit[m.Volunteer.ServerIdx].GetChainID().Bytes()[3:6])
+		e.LogPrintf("election", "Demote  %x[%d]", e.Federated[m.Volunteer.FedIdx].GetChainID().Bytes()[3:6], m.Volunteer.FedIdx)
+		e.LogPrintf("election", "Promote %x[%d]", e.Audit[m.Volunteer.ServerIdx].GetChainID().Bytes()[3:6], m.Volunteer.ServerIdx)
 
 		e.Federated[m.Volunteer.FedIdx], e.Audit[m.Volunteer.ServerIdx] =
 			e.Audit[m.Volunteer.ServerIdx], e.Federated[m.Volunteer.FedIdx]
@@ -160,6 +160,7 @@ func (m *FedVoteLevelMsg) processIfCommitted(is interfaces.IState, elect interfa
 
 		// Send for the state to do the swap. It will only be sent with this
 		// flag ONCE
+		is.LogMessage("InMsgQueue", "enqueue_FedVoteLevelMsg", m)
 		is.InMsgQueue().Enqueue(m)
 		// End the election by setting this to '-1'
 		e.Electing = -1
@@ -203,7 +204,9 @@ func (m *FedVoteLevelMsg) FollowerExecute(is interfaces.IState) {
 	pl := s.ProcessLists.Get(m.DBHeight)
 	e := s.Elections.(*elections.Elections)
 	if pl == nil || e.Adapter == nil {
-		s.Holding[m.GetMsgHash().Fixed()] = m
+		//s.Holding[m.GetMsgHash().Fixed()] = m
+		s.AddToHolding(m.GetMsgHash().Fixed(), m) // FedVoteLevelMsg.FollowerExecute
+
 		return
 	}
 
@@ -220,22 +223,40 @@ func (m *FedVoteLevelMsg) FollowerExecute(is interfaces.IState) {
 			m.Volunteer.FedIdx, m.Volunteer.FedID.Bytes()[3:6],
 			m.Volunteer.ServerIdx, m.Volunteer.ServerID.Bytes()[3:6])
 
+		s.LogPrintf("executeMsg", "Pre  Election s.Leader=%v s.LeaderVMIndex to %v", s.Leader, s.LeaderVMIndex)
 		s.LogPrintf("executeMsg", "LeaderSwapState %d/%d/%d", m.DBHeight, m.VMIndex, m.Minute)
-		s.LogPrintf("executeMsg", "Demote  %x", pl.FedServers[m.Volunteer.FedIdx].GetChainID().Bytes()[3:6])
-		s.LogPrintf("executeMsg", "Promote %x", pl.AuditServers[m.Volunteer.ServerIdx].GetChainID().Bytes()[3:6])
+		s.LogPrintf("executeMsg", "Demote  %x[%d]", pl.FedServers[m.Volunteer.FedIdx].GetChainID().Bytes()[3:6], m.Volunteer.FedIdx)
+		s.LogPrintf("executeMsg", "Promote %x[%d]", pl.AuditServers[m.Volunteer.ServerIdx].GetChainID().Bytes()[3:6], m.Volunteer.ServerIdx)
 
 		pl.FedServers[m.Volunteer.FedIdx], pl.AuditServers[m.Volunteer.ServerIdx] =
 			pl.AuditServers[m.Volunteer.ServerIdx], pl.FedServers[m.Volunteer.FedIdx]
 
-		// Add to the process list and immediately process
+		s.LogPrintf("executeMsg", "Pre  Election s.Leader=%v s.LeaderVMIndex to %v", s.Leader, s.LeaderVMIndex)
+
+		// reset my leader variables, cause maybe we changed...
+		Leader, LeaderVMIndex := s.LeaderPL.GetVirtualServers(int(s.CurrentMinute), s.IdentityChainID)
+		{ // debug
+			if s.Leader != Leader {
+				s.LogPrintf("executeMsg", "FedVoteLevelMsg.FollowerExecute() changed s.Leader to %v", Leader)
+				s.Leader = Leader
+			}
+			if s.LeaderVMIndex != LeaderVMIndex {
+				s.LogPrintf("executeMsg", "FedVoteLevelMsg.FollowerExecute() changed s.LeaderVMIndex to %v", LeaderVMIndex)
+				s.LeaderVMIndex = LeaderVMIndex
+			}
+		}
+		s.LogPrintf("executeMsg", "Post Election s.Leader=%v s.LeaderVMIndex to %v", s.Leader, s.LeaderVMIndex)
+
+		// Trim the processlist for all messages above this height. They are signed by the old leader, and have
+		// not yet been processed.
+		pl.TrimVMList(m.Volunteer.Ack.(*messages.Ack).Height, m.VMIndex)
+
+		// Add to the process list (which will get immediately processed)
+		is.LogMessage("executeMsg", "add to pl", m.Volunteer.Ack)
 		pl.AddToProcessList(pl.State, m.Volunteer.Ack.(*messages.Ack), m.Volunteer.Missing)
-		is.UpdateState()
 	} else {
 		is.ElectionsQueue().Enqueue(m)
 	}
-
-	// reset my leader variables, cause maybe we changed...
-	s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(int(m.Minute), s.IdentityChainID)
 }
 
 var _ interfaces.IMsg = (*FedVoteVolunteerMsg)(nil)
@@ -301,7 +322,14 @@ func (a *FedVoteLevelMsg) IsSameAs(msg interfaces.IMsg) bool {
 	return true
 }
 
-func (m *FedVoteLevelMsg) GetServerID() interfaces.IHash {
+func (m *FedVoteLevelMsg) GetServerID() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("FedVoteLevelMsg.GetServerID() saw an interface that was nil")
+		}
+	}()
+
 	return m.Signer
 }
 
@@ -309,21 +337,42 @@ func (m *FedVoteLevelMsg) LogFields() log.Fields {
 	return log.Fields{"category": "message", "messagetype": "FedVoteVolunteerMsg", "dbheight": m.DBHeight, "newleader": m.Signer.String()[4:12]}
 }
 
-func (m *FedVoteLevelMsg) GetRepeatHash() interfaces.IHash {
+func (m *FedVoteLevelMsg) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("FedVoteLevelMsg.GetRepeatHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.GetMsgHash()
 }
 
 // We have to return the hash of the underlying message.
 
-func (m *FedVoteLevelMsg) GetHash() interfaces.IHash {
+func (m *FedVoteLevelMsg) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("FedVoteLevelMsg.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.GetMsgHash()
 }
 
 func (m *FedVoteLevelMsg) GetTimestamp() interfaces.Timestamp {
-	return m.TS
+	return m.TS.Clone()
 }
 
-func (m *FedVoteLevelMsg) GetMsgHash() interfaces.IHash {
+func (m *FedVoteLevelMsg) GetMsgHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("FedVoteLevelMsg.GetMsgHash() saw an interface that was nil")
+		}
+	}()
+
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()
 		if err != nil {

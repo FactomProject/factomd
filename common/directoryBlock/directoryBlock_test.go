@@ -82,6 +82,24 @@ func TestMarshalUnmarshalDirectoryBlock(t *testing.T) {
 	}
 }
 
+func TestMarshalUnmarshalBadDirectoryBlock(t *testing.T) {
+	dblock := createTestDirectoryBlock()
+	p, err := dblock.MarshalBinary()
+	if err != nil {
+		t.Error(err)
+	}
+
+	// set a bad Block Count in the dblock header
+	p[111] = 0xff
+
+	dblock2 := new(DirectoryBlock)
+	if err := dblock2.UnmarshalBinary(p); err == nil {
+		t.Error("DirectoryBlock should have errored on unmarshal", dblock2)
+	} else {
+		t.Log(err)
+	}
+}
+
 var WeDidPanic bool
 
 func CatchPanic() {
@@ -450,9 +468,9 @@ func TestBuildBlock(t *testing.T) {
            fullhash: 857d121b40c0763cd310c68963d23ebf6fa4241ef6ba26861d9b80aa71c9f3a9
   version:         0
   networkid:       0
-  bodymr:          01004ae2e96c0344a3c30a0704383c5c90ca2663921a9c1b8dc50658d52850a3
-  prevkeymr:       0000000000000000000000000000000000000000000000000000000000000000
-  prevfullhash:    0000000000000000000000000000000000000000000000000000000000000000
+  bodymr:          01004a
+  prevkeymr:       000000
+  prevfullhash:    000000
   timestamp:       0
   timestamp str:   `, k.String()) // Use KeyMR from above
 	epoch := time.Unix(0, 0)
@@ -461,7 +479,7 @@ func TestBuildBlock(t *testing.T) {
 	expectedString3 := `
   dbheight:        0
   blockcount:      5
-entries: 
+entries:
     0 chainid: 000000000000000000000000000000000000000000000000000000000000000a
       keymr:   4fb409d5369fad6aa7768dc620f11cd219f9b885956b631ad050962ca934052e
     1 chainid: 000000000000000000000000000000000000000000000000000000000000000c

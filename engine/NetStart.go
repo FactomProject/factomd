@@ -16,20 +16,21 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/constants/runstate"
 	. "github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/messages/electionMsgs"
+	"github.com/FactomProject/factomd/common/messages/msgsupport"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/controlPanel"
+	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/leveldb"
+	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
-
-	"github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/common/messages/msgsupport"
-	"github.com/FactomProject/factomd/elections"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -183,6 +184,13 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	s.CheckChainHeads.CheckChainHeads = p.CheckChainHeads
 	s.CheckChainHeads.Fix = p.FixChainHeads
 
+	if p.P2PIncoming > 0 {
+		p2p.MaxNumberIncomingConnections = p.P2PIncoming
+	}
+	if p.P2POutgoing > 0 {
+		p2p.NumberPeersToConnect = p.P2POutgoing
+	}
+
 	fmt.Println(">>>>>>>>>>>>>>>>")
 	fmt.Println(">>>>>>>>>>>>>>>> Net Sim Start!")
 	fmt.Println(">>>>>>>>>>>>>>>>")
@@ -193,8 +201,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		fmt.Print("<Break>\n")
 		fmt.Print("Gracefully shutting down the server...\n")
 		for _, fnode := range fnodes {
-			fmt.Print("Shutting Down: ", fnode.State.FactomNodeName, "\r\n")
-			fnode.State.ShutdownChan <- 0
+			fnode.State.ShutdownNode(0)
 		}
 		if p.EnableNet {
 			p2pNetwork.NetworkStop()
@@ -250,12 +257,16 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 
 	if p.Sync2 >= 0 {
 		s.EntryDBHeightComplete = uint32(p.Sync2)
+		s.LogPrintf("EntrySync", "Force with Sync2 NetStart EntryDBHeightComplete = %d", s.EntryDBHeightComplete)
+
 	} else {
 		height, err := s.DB.FetchDatabaseEntryHeight()
 		if err != nil {
-			os.Stderr.WriteString(fmt.Sprintf("ERROR: %v", err))
+			s.LogPrintf("EntrySync", "Error reading EntryDBHeightComplete NetStart EntryDBHeightComplete = %d", s.EntryDBHeightComplete)
+			os.Stderr.WriteString(fmt.Sprintf("ERROR reading Entry DBHeight Complete: %v\n", err))
 		} else {
 			s.EntryDBHeightComplete = height
+			s.LogPrintf("EntrySync", "NetStart EntryDBHeightComplete = %d", s.EntryDBHeightComplete)
 		}
 	}
 
@@ -264,9 +275,12 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	setupFirstAuthority(s)
 
 	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "Build", Build))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "Node name", p.NodeName))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "balancehash", messages.AckBalanceHash))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "FNode 0 Salt", s.Salt.String()[:16]))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", fmt.Sprintf("%s Salt", s.GetFactomNodeName()), s.Salt.String()[:16]))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "enablenet", p.EnableNet))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "net incoming", p2p.MaxNumberIncomingConnections))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "net outgoing", p2p.NumberPeersToConnect))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "waitentries", p.WaitEntries))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "node", p.ListenTo))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "prefix", p.Prefix))
@@ -315,6 +329,9 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	for i := 0; i < p.Cnt; i++ {
 		makeServer(s) // We clone s to make all of our servers
 	}
+
+	addFnodeName(0) // bootstrap id doesn't change
+
 	// Modify Identities of new nodes
 	if len(fnodes) > 1 && len(s.Prefix) == 0 {
 		modifyLoadIdentities() // We clone s to make all of our servers
@@ -542,8 +559,33 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		startServers(true)
 	}
 
+	// Anchoring related configurations
+	config := s.Cfg.(*util.FactomdConfig)
+	if len(config.App.BitcoinAnchorRecordPublicKeys) > 0 {
+		err := s.GetDB().(*databaseOverlay.Overlay).SetBitcoinAnchorRecordPublicKeysFromHex(config.App.BitcoinAnchorRecordPublicKeys)
+		if err != nil {
+			panic("Encountered an error while trying to set custom Bitcoin anchor record keys from config")
+		}
+	}
+	if len(config.App.EthereumAnchorRecordPublicKeys) > 0 {
+		err := s.GetDB().(*databaseOverlay.Overlay).SetEthereumAnchorRecordPublicKeysFromHex(config.App.EthereumAnchorRecordPublicKeys)
+		if err != nil {
+			panic("Encountered an error while trying to set custom Ethereum anchor record keys from config")
+		}
+	}
+	if p.ReparseAnchorChains {
+		fmt.Println("Reparsing anchor chains...")
+		err := fnodes[0].State.GetDB().(*databaseOverlay.Overlay).ReparseAnchorChains()
+		if err != nil {
+			panic("Encountered an error while trying to re-parse anchor chains: " + err.Error())
+		}
+	}
+
 	// Start the webserver
 	wsapi.Start(fnodes[0].State)
+	if fnodes[0].State.DebugExec() && messages.CheckFileName("graphData.txt") {
+		go printGraphData("graphData.txt", 30)
+	}
 
 	// Start prometheus on port
 	launchPrometheus(9876)
@@ -553,10 +595,22 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	leveldb.RegisterPrometheus()
 	RegisterPrometheus()
 
-	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelChannel, fnodes[0].State, connectionMetricsChannel, p2pNetwork, Build)
+	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelChannel, fnodes[0].State, connectionMetricsChannel, p2pNetwork, Build, p.NodeName)
 
 	go SimControl(p.ListenTo, listenToStdin)
 
+}
+
+func printGraphData(filename string, period int) {
+	downscale := int64(1)
+	messages.LogPrintf(filename, "\t%9s\t%9s\t%9s\t%9s\t%9s\t%9s", "Dbh-:-min", "Node", "ProcessCnt", "ListPCnt", "UpdateState", "SleepCnt")
+	for {
+		for _, f := range fnodes {
+			s := f.State
+			messages.LogPrintf(filename, "\t%9s\t%9s\t%9d\t%9d\t%9d\t%9d", fmt.Sprintf("%d-:-%d", s.LLeaderHeight, s.CurrentMinute), s.FactomNodeName, s.StateProcessCnt/downscale, s.ProcessListProcessCnt/downscale, s.StateUpdateState/downscale, s.ValidatorLoopSleepCnt/downscale)
+		}
+		time.Sleep(time.Duration(period) * time.Second)
+	} // for ever ...
 }
 
 //**********************************************************************
@@ -586,18 +640,27 @@ func makeServer(s *state.State) *FactomNode {
 
 func startServers(load bool) {
 	for i, fnode := range fnodes {
-		if i > 0 {
-			fnode.State.Init()
-		}
-		go NetworkProcessorNet(fnode)
-		if load {
-			go state.LoadDatabase(fnode.State)
-		}
-		go fnode.State.GoSyncEntries()
-		go Timer(fnode.State)
-		go fnode.State.ValidatorLoop()
-		go elections.Run(fnode.State)
+		startServer(i, fnode, load)
 	}
+}
+
+func startServer(i int, fnode *FactomNode, load bool) {
+	fnode.State.RunState = runstate.Booting
+	if i > 0 {
+		fnode.State.Init()
+	}
+	NetworkProcessorNet(fnode)
+	if load {
+		go state.LoadDatabase(fnode.State)
+	}
+	go fnode.State.GoSyncEntries()
+	go Timer(fnode.State)
+	go elections.Run(fnode.State)
+	go fnode.State.ValidatorLoop()
+
+	// moved StartMMR here to ensure Init goroutine only called once and not twice (removed from state.go)
+	go fnode.State.StartMMR()
+	go fnode.State.MissingMessageResponseHandler.Run()
 }
 
 func setupFirstAuthority(s *state.State) {
@@ -615,4 +678,20 @@ func networkHousekeeping() {
 		time.Sleep(1 * time.Second)
 		p2pProxy.SetWeight(p2pNetwork.GetNumberOfConnections())
 	}
+}
+
+func AddNode() {
+
+	fnodes := GetFnodes()
+	s := fnodes[0].State
+	i := len(fnodes)
+
+	makeServer(s)
+	modifyLoadIdentities()
+
+	fnodes = GetFnodes()
+	fnodes[i].State.IntiateNetworkSkeletonIdentity()
+	fnodes[i].State.InitiateNetworkIdentityRegistration()
+	AddSimPeer(fnodes, i, i-1) // KLUDGE peer w/ only last node
+	startServer(i, fnodes[i], true)
 }

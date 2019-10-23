@@ -4,7 +4,12 @@
 
 package interfaces
 
-import "github.com/FactomProject/factomd/activations"
+import (
+	"regexp"
+
+	"github.com/FactomProject/factomd/activations"
+	"github.com/FactomProject/factomd/common/constants/runstate"
+)
 
 type DBStateSent struct {
 	DBHeight uint32
@@ -26,7 +31,8 @@ type IQueue interface {
 // can be logged about the execution of Factom.  Also ensures that we do not
 // accidentally
 type IState interface {
-	Running() bool // Returns true as long as this Factomd instance is running.
+	GetRunState() runstate.RunState
+	GetRunLeader() bool
 	// Server
 	GetFactomNodeName() string
 	GetSalt(Timestamp) uint32 // A secret number computed from a TS that tests if a message was issued from this server or not
@@ -41,6 +47,7 @@ type IState interface {
 	Sign([]byte) IFullSignature
 	Log(level string, message string)
 	Logf(level string, format string, args ...interface{})
+	GetServerPublicKeyString() string
 
 	GetDBStatesSent() []*DBStateSent
 	SetDBStatesSent([]*DBStateSent)
@@ -118,8 +125,8 @@ type IState interface {
 	// Consensus
 	APIQueue() IQueue    // Input Queue from the API
 	InMsgQueue() IQueue  // Read by Validate
-	AckQueue() chan IMsg // Leader Queue
-	MsgQueue() chan IMsg // Follower Queue
+	AckQueue() chan IMsg // Ack Message Queue
+	MsgQueue() chan IMsg // Other Messages Queue
 	ElectionsQueue() IQueue
 
 	// Lists and Maps
@@ -298,6 +305,7 @@ type IState interface {
 
 	AddAuthorityDelta(changeString string)
 
+	GetElections() IElections
 	GetAuthorities() []IAuthority
 	GetAuthorityInterface(chainid IHash) IAuthority
 	GetLeaderPL() IProcessList
@@ -309,6 +317,7 @@ type IState interface {
 	GetCurrentBlockStartTime() int64
 	GetCurrentMinute() int
 	GetCurrentMinuteStartTime() int64
+	GetPreviousMinuteStartTime() int64
 	GetCurrentTime() int64
 	IsStalled() bool
 	GetDelay() int64
@@ -316,6 +325,13 @@ type IState interface {
 	GetDropRate() int
 	SetDropRate(int)
 	GetBootTime() int64
+	IsSyncing() bool
+	IsSyncingEOMs() bool
+	IsSyncingDBSigs() bool
+	DidCreateLastBlockFromDBState() bool
+	GetUnsyncedServers() (ids []IHash, vms []int)
+	Validate(msg IMsg) (validToSend int, validToExecute int)
+	GetIgnoreDone() bool
 
 	// Access to Holding Queue
 	LoadHoldingMap() map[[32]byte]IMsg
@@ -332,8 +348,26 @@ type IState interface {
 	SetHighestAck(uint32)
 	DebugExec() bool
 	CheckFileName(string) bool
+	// Filters
 	AddToReplayFilter(mask int, hash [32]byte, timestamp Timestamp, systemtime Timestamp) bool
 
-	// Activations
+	// Activations -------------------------------------------------------
 	IsActive(id activations.ActivationType) bool
+
+	// Holding of dependent messages -------------------------------------
+	// Add a message to a dependent holding list
+	Add(h [32]byte, msg IMsg) int
+	// expire any dependent messages that are in holding but are older than limit
+	// Execute messages when a dependency is met
+	ExecuteFromHolding(h [32]byte)
+	// create a hash to hold messages that depend on height
+	HoldForHeight(ht uint32, minute int, msg IMsg) int
+
+	// test/debug filters
+	PassOutputRegEx(*regexp.Regexp, string)
+	GetOutputRegEx() (*regexp.Regexp, string)
+	PassInputRegEx(*regexp.Regexp, string)
+	GetInputRegEx() (*regexp.Regexp, string)
+	GotHeartbeat(heartbeatTS Timestamp, dbheight uint32)
+	GetDBFinished() bool
 }

@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/FactomProject/factomd/common/primitives"
+	llog "github.com/FactomProject/factomd/log"
 )
 
 var _ = fmt.Sprint
@@ -42,6 +43,7 @@ func (m *SecureDBMetaData) UnmarshalBinaryData(data []byte) (newData []byte, err
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling: %v", r)
 		}
 	}()
 
@@ -51,16 +53,16 @@ func (m *SecureDBMetaData) UnmarshalBinaryData(data []byte) (newData []byte, err
 	if err != nil {
 		return nil, err
 	}
-	saltData := newData[4 : slen+4]
-	m.Salt.Bytes = saltData
+	m.Salt.Bytes = make([]byte, slen)
+	copy(m.Salt.Bytes, newData[4:slen+4])
 	newData = newData[slen+4:]
 
 	clen, err := bytesToUint32(newData[:4])
 	if err != nil {
 		return nil, err
 	}
-	challengeData := newData[4 : clen+4]
-	m.Challenge.Bytes = challengeData
+	m.Challenge.Bytes = make([]byte, clen)
+	copy(m.Challenge.Bytes, newData[4:clen+4])
 	newData = newData[clen+4:]
 
 	return

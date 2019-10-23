@@ -10,10 +10,12 @@ import (
 	"encoding/binary"
 	"fmt"
 	"os"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/primitives/random"
+	llog "github.com/FactomProject/factomd/log"
 )
 
 // An Entry is the element which carries user data
@@ -41,6 +43,21 @@ func RandomEntry() interfaces.IEBEntry {
 		e.ExtIDs = append(e.ExtIDs, *primitives.RandomByteSlice())
 	}
 	e.Content = *primitives.RandomByteSlice()
+	return e
+}
+
+func DeterministicEntry(i int) interfaces.IEBEntry {
+	e := NewEntry()
+	e.Version = 0
+	bs := fmt.Sprintf("%x", i)
+	if len(bs)%2 == 1 {
+		bs = "0" + bs
+	}
+
+	e.ExtIDs = []primitives.ByteSlice{*primitives.StringToByteSlice(bs)}
+	//e.ExtIDs = append(e.ExtIDs, *primitives.StringToByteSlice(fmt.Sprintf("%d", i)))
+	e.ChainID = ExternalIDsToChainID([][]byte{e.ExtIDs[0].Bytes})
+
 	return e
 }
 
@@ -96,21 +113,49 @@ func (e *Entry) GetWeld() []byte {
 	return primitives.DoubleSha(append(e.GetHash().Bytes(), e.GetChainID().Bytes()...))
 }
 
-func (e *Entry) GetWeldHash() interfaces.IHash {
+func (e *Entry) GetWeldHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("Entry.GetWeldHash() saw an interface that was nil")
+		}
+	}()
+
 	hash := primitives.NewZeroHash()
 	hash.SetBytes(e.GetWeld())
 	return hash
 }
 
-func (c *Entry) GetChainID() interfaces.IHash {
+func (c *Entry) GetChainID() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("Entry.GetChainID() saw an interface that was nil")
+		}
+	}()
+
 	return c.ChainID
 }
 
-func (c *Entry) DatabasePrimaryIndex() interfaces.IHash {
+func (c *Entry) DatabasePrimaryIndex() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("Entry.DatabasePrimaryIndex() saw an interface that was nil")
+		}
+	}()
+
 	return c.GetHash()
 }
 
-func (c *Entry) DatabaseSecondaryIndex() interfaces.IHash {
+func (c *Entry) DatabaseSecondaryIndex() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("Entry.DatabaseSecondaryIndex() saw an interface that was nil")
+		}
+	}()
+
 	return nil
 }
 
@@ -136,7 +181,14 @@ func (e *Entry) GetContent() []byte {
 	return e.Content.Bytes
 }
 
-func (e *Entry) GetChainIDHash() interfaces.IHash {
+func (e *Entry) GetChainIDHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("Entry.GetChainIDHash() saw an interface that was nil")
+		}
+	}()
+
 	return e.ChainID
 }
 
@@ -161,7 +213,14 @@ func (e *Entry) IsValid() bool {
 	return true
 }
 
-func (e *Entry) GetHash() interfaces.IHash {
+func (e *Entry) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("Entry.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	if e.hash == nil || e.hash.PFixed() == nil {
 		h := primitives.NewZeroHash()
 		entry, err := e.MarshalBinary()
@@ -252,11 +311,11 @@ func UnmarshalEntry(data []byte) (interfaces.IEBEntry, error) {
 	return entry, nil
 }
 
-func (e *Entry) UnmarshalBinaryData(data []byte) ([]byte, error) {
-	var err error
+func (e *Entry) UnmarshalBinaryData(data []byte) (_ []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling: %v", r)
 		}
 	}()
 
@@ -282,7 +341,7 @@ func (e *Entry) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	}
 
 	// ExtIDs
-	for i := int16(extSize); i > 0; {
+	for i := int(extSize); i > 0; {
 		var xsize int16
 		binary.Read(buf, binary.BigEndian, &xsize)
 		i -= 2
@@ -290,12 +349,15 @@ func (e *Entry) UnmarshalBinaryData(data []byte) ([]byte, error) {
 			err = fmt.Errorf("Error parsing external IDs")
 			return nil, err
 		}
-
 		// check that the payload size is not too big before we allocate the
-		// buffer.
+		// buffer. Max payload size is 10KB
 		if xsize > 10240 {
-			// TODO: replace this message with a proper error
-			return nil, fmt.Errorf("Error: entry.UnmarshalBinary: ExtIDs size too high (uint underflow?)")
+			return nil, fmt.Errorf(
+				"Error: entry.UnmarshalBinary: ExtIDs size %d too high (uint "+
+					" underflow?)",
+				xsize,
+			)
+
 		}
 		x := make([]byte, xsize)
 		if n, err := buf.Read(x); err != nil {
@@ -311,7 +373,7 @@ func (e *Entry) UnmarshalBinaryData(data []byte) ([]byte, error) {
 				return nil, err
 			}
 			e.ExtIDs = append(e.ExtIDs, ex)
-			i -= int16(n)
+			i -= n
 			if i < 0 {
 				err = fmt.Errorf("Error parsing external IDs")
 				return nil, err
@@ -359,42 +421,43 @@ func NewEntry() *Entry {
 }
 
 func MarshalEntryList(list []interfaces.IEBEntry) ([]byte, error) {
-	b := primitives.NewBuffer(nil)
+	buf := primitives.NewBuffer(nil)
 	l := len(list)
-	b.PushVarInt(uint64(l))
+	buf.PushVarInt(uint64(l))
 	for _, v := range list {
 		bin, err := v.MarshalBinary()
 		if err != nil {
 			return nil, err
 		}
-		err = b.PushBytes(bin)
+		err = buf.PushBytes(bin)
 		if err != nil {
 			return nil, err
 		}
 	}
-	return b.DeepCopyBytes(), nil
+	return buf.DeepCopyBytes(), nil
 }
 
-func UnmarshalEntryList(bin []byte) ([]interfaces.IEBEntry, []byte, error) {
-	b := primitives.NewBuffer(bin)
+func UnmarshalEntryList(data []byte) ([]interfaces.IEBEntry, []byte, error) {
+	buf := primitives.NewBuffer(data)
 
-	l, err := b.PopVarInt()
+	entryLimit := uint64(buf.Len())
+	entryCount, err := buf.PopVarInt()
 	if err != nil {
 		return nil, nil, err
 	}
-	e := int(l)
-	// TODO: remove printing unmarshal count numbers once we have good data on
-	// what they should be.
-	//log.Print("UnmarshalEntryList unmarshaled entry count: ", e)
-	if e > 1000 {
-		// TODO: replace this message with a proper error
-		return nil, nil, fmt.Errorf("Error: UnmarshalEntryList: entry count too high (uint underflow?)")
+	if entryCount > entryLimit {
+		return nil, nil, fmt.Errorf(
+			"Error: UnmarshalEntryList: entry count %d higher than space in "+
+				"body %d (uint underflow?)",
+			entryCount, entryLimit,
+		)
 	}
 
-	list := make([]interfaces.IEBEntry, e)
+	list := make([]interfaces.IEBEntry, int(entryCount))
+
 	for i := range list {
 		e := NewEntry()
-		x, err := b.PopBytes()
+		x, err := buf.PopBytes()
 		if err != nil {
 			return nil, nil, err
 		}
@@ -405,5 +468,5 @@ func UnmarshalEntryList(bin []byte) ([]interfaces.IEBEntry, []byte, error) {
 		list[i] = e
 	}
 
-	return list, b.DeepCopyBytes(), nil
+	return list, buf.DeepCopyBytes(), nil
 }

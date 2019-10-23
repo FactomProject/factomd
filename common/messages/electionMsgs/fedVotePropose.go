@@ -8,15 +8,17 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/state"
+
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
-	//"github.com/FactomProject/factomd/state"
-	"github.com/FactomProject/factomd/common/messages/msgbase"
 )
 
 var _ = fmt.Print
@@ -56,7 +58,12 @@ func (m *FedVoteProposalMsg) ElectionProcess(is interfaces.IState, elect interfa
 	/******  Election Adapter Control   ******/
 	/**	Controlling the inner election state**/
 
-	// Response from non-leader is nil
+	// When we get a propose, we should first execute the volunteer msg. Then execute the
+	// propose. This is because the embedded information may be new to us.
+	m.Volunteer.ElectionProcess(is, elect)
+
+	// Leaders will respond with a message,
+	// followers will respond with nil
 	resp := e.Adapter.Execute(m)
 	if resp == nil {
 		return
@@ -83,7 +90,14 @@ func (a *FedVoteProposalMsg) IsSameAs(msg interfaces.IMsg) bool {
 	return false
 }
 
-func (m *FedVoteProposalMsg) GetServerID() interfaces.IHash {
+func (m *FedVoteProposalMsg) GetServerID() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("FedVoteProposalMsg.GetServerID() saw an interface that was nil")
+		}
+	}()
+
 	return m.Signer
 }
 
@@ -91,21 +105,42 @@ func (m *FedVoteProposalMsg) LogFields() log.Fields {
 	return log.Fields{"category": "message", "messagetype": "FedVoteVolunteerMsg", "dbheight": m.DBHeight, "newleader": m.Signer.String()[4:12]}
 }
 
-func (m *FedVoteProposalMsg) GetRepeatHash() interfaces.IHash {
+func (m *FedVoteProposalMsg) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("FedVoteProposalMsg.GetRepeatHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.GetMsgHash()
 }
 
 // We have to return the hash of the underlying message.
 
-func (m *FedVoteProposalMsg) GetHash() interfaces.IHash {
+func (m *FedVoteProposalMsg) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("FedVoteProposalMsg.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.GetMsgHash()
 }
 
 func (m *FedVoteProposalMsg) GetTimestamp() interfaces.Timestamp {
-	return m.TS
+	return m.TS.Clone()
 }
 
-func (m *FedVoteProposalMsg) GetMsgHash() interfaces.IHash {
+func (m *FedVoteProposalMsg) GetMsgHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("FedVoteProposalMsg.GetMsgHash() saw an interface that was nil")
+		}
+	}()
+
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()
 		if err != nil {
@@ -150,7 +185,9 @@ func (m *FedVoteProposalMsg) LeaderExecute(state interfaces.IState) {
 func (m *FedVoteProposalMsg) FollowerExecute(is interfaces.IState) {
 	s := is.(*state.State)
 	if s.Elections.(*elections.Elections).Adapter == nil {
-		s.Holding[m.GetMsgHash().Fixed()] = m
+		//s.Holding[m.GetMsgHash().Fixed()] = m
+		s.AddToHolding(m.GetMsgHash().Fixed(), m) // FedVoteProposalMsg.FollowerExecute
+
 		return
 	}
 	is.ElectionsQueue().Enqueue(m)
@@ -173,6 +210,7 @@ func (m *FedVoteProposalMsg) UnmarshalBinaryData(data []byte) (newData []byte, e
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling: %v", r)
 		}
 	}()
 
@@ -274,5 +312,5 @@ func (m *FedVoteProposalMsg) MarshalForSignature() (data []byte, err error) {
 }
 
 func (m *FedVoteProposalMsg) String() string {
-	return "Fed Vote Proposal " + m.Volunteer.String()
+	return fmt.Sprintf("Fed Vote Proposal by %x, for %s", m.Signer.Bytes()[3:6], m.Volunteer.String())
 }

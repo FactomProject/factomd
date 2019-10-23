@@ -26,7 +26,7 @@ import (
 
 type RCD_2 struct {
 	M           int                   // Number signatures required
-	N           int                   // Total sigatures possible
+	N           int                   // Total signatures possible
 	N_Addresses []interfaces.IAddress // n addresses
 }
 
@@ -90,44 +90,6 @@ func (w RCD_2) Clone() interfaces.IRCD {
 	return c
 }
 
-func (t *RCD_2) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	if data == nil || len(data) < 5 {
-		return nil, fmt.Errorf("Not enough data to unmarshal")
-	}
-	typ := int8(data[0])
-	data = data[1:]
-	if typ != 2 {
-		return nil, fmt.Errorf("Bad data fed to RCD_2 UnmarshalBinaryData()")
-	}
-
-	t.N, data = int(binary.BigEndian.Uint16(data[0:2])), data[2:]
-	t.M, data = int(binary.BigEndian.Uint16(data[0:2])), data[2:]
-	// TODO: remove printing unmarshal count numbers once we have good data on
-	// what they should be.
-	//log.Print("RCD_2 unmarshaled signatures possible: ", t.N)
-	//log.Print("RCD_2 unmarshaled signatures required: ", t.M)
-	if t.N > 1000 {
-		// TODO: replace this message with a proper error
-		return nil, fmt.Errorf("Error: RCD_2.UnmarshalBinary: signatures possible too many (uint underflow?)")
-	}
-	if t.M > 1000 {
-		// TODO: replace this message with a proper error
-		return nil, fmt.Errorf("Error: RCD_2.UnmarshalBinary: signatures required too many (uint underflow?)")
-	}
-
-	t.N_Addresses = make([]interfaces.IAddress, t.M, t.M)
-
-	for i, _ := range t.N_Addresses {
-		t.N_Addresses[i] = new(Address)
-		data, err = t.N_Addresses[i].UnmarshalBinaryData(data)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return data, nil
-}
-
 func (a RCD_2) MarshalBinary() ([]byte, error) {
 	var out primitives.Buffer
 
@@ -143,6 +105,50 @@ func (a RCD_2) MarshalBinary() ([]byte, error) {
 	}
 
 	return out.DeepCopyBytes(), nil
+}
+
+func (t *RCD_2) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+	if data == nil || len(data) < 5 {
+		return nil, fmt.Errorf("Not enough data to unmarshal")
+	}
+	typ := int8(data[0])
+	data = data[1:]
+	if typ != 2 {
+		return nil, fmt.Errorf("Bad data fed to RCD_2 UnmarshalBinaryData()")
+	}
+
+	t.N, data = int(binary.BigEndian.Uint16(data[0:2])), data[2:]
+	t.M, data = int(binary.BigEndian.Uint16(data[0:2])), data[2:]
+	if t.N > t.M {
+		return nil, fmt.Errorf(
+			"Error: RCD_2.UnmarshalBinary: signatures possible %d is lower "+
+				"than signatures reqired %d",
+			t.M, t.N,
+		)
+	}
+
+	sigLimit := len(data) / 32
+	if t.M > sigLimit {
+		// TODO: replace this message with a proper error
+		return nil, fmt.Errorf(
+			"Error: RCD_2.UnmarshalBinary: signatures required %d is larger "+
+				"than space in binary %d (uint underflow?)",
+			t.M, sigLimit,
+		)
+
+	}
+
+	t.N_Addresses = make([]interfaces.IAddress, t.M, t.M)
+
+	for i, _ := range t.N_Addresses {
+		t.N_Addresses[i] = new(Address)
+		data, err = t.N_Addresses[i].UnmarshalBinaryData(data)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return data, nil
 }
 
 func (a RCD_2) CustomMarshalText() ([]byte, error) {

@@ -7,6 +7,7 @@ package factoid
 import (
 	"fmt"
 	"os"
+	"reflect"
 	"runtime/debug"
 	"time"
 
@@ -120,11 +121,25 @@ func (*Transaction) GetVersion() uint64 {
 	return 2
 }
 
-func (t *Transaction) GetTxID() interfaces.IHash {
+func (t *Transaction) GetTxID() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("Transaction.GetTxID() saw an interface that was nil")
+		}
+	}()
+
 	return t.GetSigHash()
 }
 
-func (t *Transaction) GetHash() interfaces.IHash {
+func (t *Transaction) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("Transaction.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	m, err := t.MarshalBinary()
 	if err != nil {
 		return nil
@@ -162,7 +177,12 @@ func (t *Transaction) GetTimestamp() interfaces.Timestamp {
 }
 
 func (t *Transaction) SetTimestamp(ts interfaces.Timestamp) {
-	t.MilliTimestamp = ts.GetTimeMilliUInt64()
+	milli := ts.GetTimeMilliUInt64()
+
+	if milli != t.MilliTimestamp {
+		//		messages.LogPrintf("timestamps.txt", "transaction %p changed from %d to %d @ %s", t, t.MilliTimestamp, milli, atomic.WhereAmIString(1))
+	}
+	t.MilliTimestamp = milli
 }
 
 func (t *Transaction) SetSignatureBlock(i int, sig interfaces.ISignatureBlock) {

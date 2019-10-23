@@ -5,16 +5,18 @@
 package messages
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
+	"reflect"
+	"strings"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/common/primitives"
 
-	"bytes"
-
-	"github.com/FactomProject/factomd/common/messages/msgbase"
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -80,11 +82,25 @@ func (m *Heartbeat) Process(uint32, interfaces.IState) bool {
 	return true
 }
 
-func (m *Heartbeat) GetRepeatHash() interfaces.IHash {
+func (m *Heartbeat) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("Heartbeat.GetRepeatHash() saw an interface that was nil")
+		}
+	}()
+
 	return m.GetMsgHash()
 }
 
-func (m *Heartbeat) GetHash() interfaces.IHash {
+func (m *Heartbeat) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("Heartbeat.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	if m.hash == nil {
 		data, err := m.MarshalForSignature()
 		if err != nil {
@@ -95,7 +111,14 @@ func (m *Heartbeat) GetHash() interfaces.IHash {
 	return m.hash
 }
 
-func (m *Heartbeat) GetMsgHash() interfaces.IHash {
+func (m *Heartbeat) GetMsgHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("Heartbeat.GetMsgHash() saw an interface that was nil")
+		}
+	}()
+
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()
 		if err != nil {
@@ -107,7 +130,7 @@ func (m *Heartbeat) GetMsgHash() interfaces.IHash {
 }
 
 func (m *Heartbeat) GetTimestamp() interfaces.Timestamp {
-	return m.Timestamp
+	return m.Timestamp.Clone()
 }
 
 func (m *Heartbeat) Type() byte {
@@ -118,6 +141,7 @@ func (m *Heartbeat) UnmarshalBinaryData(data []byte) (newData []byte, err error)
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling HeartBeat: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling HeartBeat: %v", r)
 		}
 	}()
 
@@ -305,12 +329,22 @@ func (m *Heartbeat) FollowerExecute(is interfaces.IState) {
 		if auditServer.GetChainID().IsSameAs(m.IdentityChainID) {
 			if m.IdentityChainID.IsSameAs(is.GetIdentityChainID()) {
 				if m.SecretNumber != is.GetSalt(m.Timestamp) {
-					panic("We have seen a heartbeat using our Identity that isn't ours")
+					lLeaderHeight := is.GetLLeaderHeight()
+					if m.DBHeight == lLeaderHeight {
+						var b strings.Builder
+						b.WriteString("We have seen a heartbeat using our Identity that isn't ours.")
+						b.WriteString(fmt.Sprintf("\n    Node: %s", is.GetFactomNodeName()))
+						b.WriteString(fmt.Sprintf("\n    LLeaderHeight: %d", lLeaderHeight))
+						b.WriteString(fmt.Sprintf("\n    Message dbHeight: %d", m.DBHeight))
+						panic(b.String())
+					}
 				}
 			}
 			auditServer.SetOnline(true)
+			is.GotHeartbeat(m.Timestamp, m.DBHeight)
 		}
 	}
+
 }
 
 func (e *Heartbeat) JSONByte() ([]byte, error) {

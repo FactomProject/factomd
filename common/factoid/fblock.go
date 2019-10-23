@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -99,11 +100,25 @@ func (c *FBlock) New() interfaces.BinaryMarshallableAndCopyable {
 	return new(FBlock)
 }
 
-func (c *FBlock) DatabasePrimaryIndex() interfaces.IHash {
+func (c *FBlock) DatabasePrimaryIndex() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("FBlock.DatabasePrimaryIndex() saw an interface that was nil")
+		}
+	}()
+
 	return c.GetKeyMR()
 }
 
-func (c *FBlock) DatabaseSecondaryIndex() interfaces.IHash {
+func (c *FBlock) DatabaseSecondaryIndex() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("FBlock.DatabaseSecondaryIndex() saw an interface that was nil")
+		}
+	}()
+
 	return c.GetLedgerKeyMR()
 }
 
@@ -116,7 +131,7 @@ func (b *FBlock) GetCoinbaseTimestamp() interfaces.Timestamp {
 	if len(b.Transactions) == 0 {
 		return nil
 	}
-	return b.Transactions[0].GetTimestamp()
+	return b.Transactions[0].GetTimestamp().Clone()
 }
 
 func (b *FBlock) EndOfPeriod(period int) {
@@ -325,18 +340,24 @@ func (b *FBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	// TODO: remove printing unmarshal count numbers once we have good data on
-	// what they should be.
-	//log.Print("FBlock unmarshaled transaction count: ", txCount)
-	if txCount > 1000 {
-		// TODO: replace this message with a proper error
-		return nil, fmt.Errorf("Error: fblock.UnmarshalBinary: transaction count too high (uint underflow?)")
-	}
-
 	// Just skip the size... We don't really need it.
 	_, err = buf.PopUInt32()
 	if err != nil {
 		return nil, err
+	}
+
+	// txLimit is the maximum number of transactions (min 20 bytes for an empty
+	// coinbase tx) that could fit into the unread portion of the buffer.
+	// This is a reasonable limit to the tx limit, not the hard math to compute that limit.
+	l := buf.Len()
+	txLimit := uint32(l / 20)
+
+	if txCount > txLimit {
+		return nil, fmt.Errorf(
+			"Error: FBlock.Unmarshal: transaction count %d higher than space "+
+				"in body %d (uint underflow?)",
+			txCount, txLimit,
+		)
 	}
 
 	b.Transactions = make([]interfaces.ITransaction, int(txCount), int(txCount))
@@ -391,12 +412,26 @@ func (b *FBlock) UnmarshalBinary(data []byte) (err error) {
 	return err
 }
 
-func (b *FBlock) GetChainID() interfaces.IHash {
+func (b *FBlock) GetChainID() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("FBlock.GetChainID() saw an interface that was nil")
+		}
+	}()
+
 	return primitives.NewHash(constants.FACTOID_CHAINID)
 }
 
 // Calculates the Key Merkle Root for this block and returns it.
-func (b *FBlock) GetKeyMR() interfaces.IHash {
+func (b *FBlock) GetKeyMR() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("FBlock.GetKeyMR() saw an interface that was nil")
+		}
+	}()
+
 	bodyMR := b.GetBodyMR()
 
 	data, err := b.MarshalHeader()
@@ -410,11 +445,25 @@ func (b *FBlock) GetKeyMR() interfaces.IHash {
 	return kmr
 }
 
-func (b *FBlock) GetHash() interfaces.IHash {
+func (b *FBlock) GetHash() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("FBlock.GetHash() saw an interface that was nil")
+		}
+	}()
+
 	return b.GetLedgerKeyMR()
 }
 
-func (b *FBlock) GetLedgerKeyMR() interfaces.IHash {
+func (b *FBlock) GetLedgerKeyMR() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("FBlock.GetLedgerKeyMR() saw an interface that was nil")
+		}
+	}()
+
 	ledgerMR := b.GetLedgerMR()
 
 	data, err := b.MarshalHeader()
@@ -429,7 +478,14 @@ func (b *FBlock) GetLedgerKeyMR() interfaces.IHash {
 }
 
 // Returns the LedgerMR for this block.
-func (b *FBlock) GetLedgerMR() interfaces.IHash {
+func (b *FBlock) GetLedgerMR() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("FBlock.GetLedgerMR() saw an interface that was nil")
+		}
+	}()
+
 	hashes := make([]interfaces.IHash, 0, len(b.Transactions))
 	marker := 0
 	for i, trans := range b.Transactions {
@@ -449,7 +505,14 @@ func (b *FBlock) GetLedgerMR() interfaces.IHash {
 	return lmr
 }
 
-func (b *FBlock) GetBodyMR() interfaces.IHash {
+func (b *FBlock) GetBodyMR() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("FBlock.GetBodyMR() saw an interface that was nil")
+		}
+	}()
+
 	hashes := make([]interfaces.IHash, 0, len(b.Transactions))
 	marker := 0
 	for i, trans := range b.Transactions {
@@ -470,7 +533,14 @@ func (b *FBlock) GetBodyMR() interfaces.IHash {
 	return b.BodyMR
 }
 
-func (b *FBlock) GetPrevKeyMR() interfaces.IHash {
+func (b *FBlock) GetPrevKeyMR() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("FBlock.GetPrevKeyMR() saw an interface that was nil")
+		}
+	}()
+
 	return b.PrevKeyMR
 }
 
@@ -478,7 +548,14 @@ func (b *FBlock) SetPrevKeyMR(hash interfaces.IHash) {
 	b.PrevKeyMR = hash
 }
 
-func (b *FBlock) GetPrevLedgerKeyMR() interfaces.IHash {
+func (b *FBlock) GetPrevLedgerKeyMR() (rval interfaces.IHash) {
+	defer func() {
+		if rval != nil && reflect.ValueOf(rval).IsNil() {
+			rval = nil // convert an interface that is nil to a nil interface
+			primitives.LogNilHashBug("FBlock.GetPrevLedgerKeyMR() saw an interface that was nil")
+		}
+	}()
+
 	return b.PrevLedgerKeyMR
 }
 
@@ -509,11 +586,9 @@ func (b *FBlock) GetExchRate() uint64 {
 
 func (b FBlock) ValidateTransaction(index int, trans interfaces.ITransaction) error {
 	// Calculate the fee due.
-	{
-		err := trans.Validate(index)
-		if err != nil {
-			return err
-		}
+	err := trans.Validate(index)
+	if err != nil {
+		return err
 	}
 
 	//Ignore coinbase transaction's signatures
