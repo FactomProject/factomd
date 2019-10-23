@@ -6,86 +6,57 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/FactomProject/factom"
-	"github.com/FactomProject/factomd/engine"
 	"github.com/FactomProject/factomd/state"
 	. "github.com/FactomProject/factomd/testHelper"
-	"github.com/stretchr/testify/assert"
 )
 
-func TestSendingCommitAndReveal(t *testing.T) {
+func TestHoldingRebound(t *testing.T) {
 	encode := func(s string) []byte {
 		b := bytes.Buffer{}
 		b.WriteString(s)
 		return b.Bytes()
 	}
 
-	logName := "simTest"
 	id := "92475004e70f41b94750f4a77bf7b430551113b25d3d57169eadca5692bb043d"
 	extids := [][]byte{encode("foo"), encode("bar")}
-	a := AccountFromFctSecret("Fs2Bz9DJn8ujMuD9BzL2bpXy3BFGakLucF2JDcLp8aguHE3JMoeH")
-	b := GetBankAccount()
+	a := AccountFromFctSecret("Fs2zQ3egq2j99j37aYzaCddPq9AF3mgh64uG9gRaDAnrkjRx3eHs")
 
-	t.Run("generate accounts", func(t *testing.T) {
-		println(b.String())
-		println(a.String())
-	})
+	println(a.String())
+	state0 := SetupSim("LF", map[string]string{}, 12, 0, 0, t)
 
-	t.Run("Run sim to create entries", func(t *testing.T) {
-		dropRate := 0
+	e := factom.Entry{
+		ChainID: id,
+		ExtIDs:  extids,
+		Content: encode("Hello World!"),
+	}
 
-		// FIXME: test times out w/ failure when providing "LAF"
-		state0 := SetupSim("L", map[string]string{"--debuglog": ""}, 200, 1, 1, t)
-		ticker := WatchMessageLists()
+	c := factom.NewChain(&e)
 
-		if dropRate > 0 {
-			state0.LogPrintf(logName, "DROP_RATE:%v", dropRate)
-			RunCmd(fmt.Sprintf("S%v", dropRate))
+	commit, _ := ComposeChainCommit(a.Priv, c)
+	reveal, _ := ComposeRevealEntryMsg(a.Priv, c.FirstEntry)
+
+	state0.APIQueue().Enqueue(commit)
+	state0.APIQueue().Enqueue(reveal)
+
+	a.FundEC(11)
+	GenerateCommitsAndRevealsInBatches(t, state0)
+
+	ht := state0.GetDBHeightComplete()
+	WaitBlocks(state0, 2)
+	newHt := state0.GetDBHeightComplete()
+	assert.True(t, ht < newHt, "block height should progress")
+
+	ShutDownEverything(t)
+	WaitForAllNodes(state0)
+
+	for _, ml := range state0.Hold.Messages() {
+		for _, m := range ml {
+			state0.LogMessage("simTest", "stuck", m)
 		}
-
-		stop := func() {
-			ShutDownEverything(t)
-			WaitForAllNodes(state0)
-			ticker.Stop()
-		}
-
-		t.Run("Create Chain", func(t *testing.T) {
-			e := factom.Entry{
-				ChainID: id,
-				ExtIDs:  extids,
-				Content: encode("Hello World!"),
-			}
-
-			c := factom.NewChain(&e)
-
-			commit, _ := ComposeChainCommit(a.Priv, c)
-			reveal, _ := ComposeRevealEntryMsg(a.Priv, c.FirstEntry)
-
-			state0.APIQueue().Enqueue(commit)
-			state0.APIQueue().Enqueue(reveal)
-
-			t.Run("Fund ChainCommit Address", func(t *testing.T) {
-				amt := uint64(11)
-				engine.FundECWallet(state0, b.FctPrivHash(), a.EcAddr(), amt*state0.GetFactoshisPerEC())
-				WaitForEntry(state0, reveal.GetHash())
-			})
-		})
-
-		t.Run("Generate Entries in Batches", func(t *testing.T) {
-			WaitForZero(state0, a.EcPub())
-			GenerateCommitsAndRevealsInBatches(t, state0)
-		})
-
-		t.Run("End simulation", func(t *testing.T) {
-			WaitForZero(state0, a.EcPub())
-			ht := state0.GetDBHeightComplete()
-			WaitBlocks(state0, 2)
-			newHt := state0.GetDBHeightComplete()
-			assert.True(t, ht < newHt, "block height should progress")
-			stop()
-		})
-
-	})
+	}
 }
 
 func GenerateCommitsAndRevealsInBatches(t *testing.T, state0 *state.State) {
@@ -99,7 +70,6 @@ func GenerateCommitsAndRevealsInBatches(t *testing.T, state0 *state.State) {
 	// KLUDGE vars duplicated from original test - should refactor
 	id := "92475004e70f41b94750f4a77bf7b430551113b25d3d57169eadca5692bb043d"
 	a := AccountFromFctSecret("Fs2zQ3egq2j99j37aYzaCddPq9AF3mgh64uG9gRaDAnrkjRx3eHs")
-	b := GetBankAccount()
 
 	batchCount := 1
 	setDelay := 0     // blocks to wait between sets of entries
@@ -110,7 +80,7 @@ func GenerateCommitsAndRevealsInBatches(t *testing.T, state0 *state.State) {
 	state0.LogPrintf(logName, "ENTRIES:%v", numEntries)
 	state0.LogPrintf(logName, "DELAY_BLOCKS:%v", setDelay)
 
-	var batchTimes map[int]time.Duration = map[int]time.Duration{}
+	var batchTimes = make(map[int]time.Duration)
 
 	for BatchID := 0; BatchID < int(batchCount); BatchID++ {
 
@@ -132,45 +102,21 @@ func GenerateCommitsAndRevealsInBatches(t *testing.T, state0 *state.State) {
 			state0.APIQueue().Enqueue(reveal)
 		}
 
-		t.Run(fmt.Sprintf("Create Entries Batch %v", BatchID), func(t *testing.T) {
+		for x := 0; x < numEntries; x++ {
+			publish(x)
+		}
 
-			tstart := WaitForEmptyHolding(state0, fmt.Sprintf("WAIT_HOLDING_START%v", BatchID))
-
-			for x := 0; x < numEntries; x++ {
-				publish(x)
-			}
-
-			t.Run("Fund EC Address", func(t *testing.T) {
-				amt := uint64(numEntries)
-				engine.FundECWallet(state0, b.FctPrivHash(), a.EcAddr(), amt*state0.GetFactoshisPerEC())
-				//waitForAnyDeposit(state0, a.EcPub())
-			})
-
-			tend := WaitForEmptyHolding(state0, fmt.Sprintf("WAIT_HOLDING_END%v", BatchID))
-
+		{ // measure time it takes to process all messages by observing entry credit spend
+			tstart := time.Now()
+			a.FundEC(uint64(numEntries + 1))
+			WaitForEcBalanceUnder(state0, a.EcPub(), int64(BatchID+2))
+			tend := time.Now()
 			batchTimes[BatchID] = tend.Sub(tstart)
-
 			state0.LogPrintf(logName, "BATCH %v RUNTIME %v", BatchID, batchTimes[BatchID])
+		}
 
-			t.Run("Verify Entries", func(t *testing.T) {
-
-				var sum time.Duration = 0
-
-				for _, t := range batchTimes {
-					sum = sum + t
-				}
-
-				if setDelay > 0 {
-					WaitBlocks(state0, int(setDelay)) // wait between batches
-				}
-
-				//tend := waitForEmptyHolding(state0, fmt.Sprintf("SLEEP", BatchID))
-				//bal := engine.GetBalanceEC(state0, a.EcPub())
-				//assert.Equal(t, bal, int64(0))
-				//assert.Equal(t, 0, len(state0.Holding), "messages stuck in holding")
-			})
-		})
-
+		if setDelay > 0 {
+			WaitBlocks(state0, int(setDelay)) // wait between batches
+		}
 	}
-
 }

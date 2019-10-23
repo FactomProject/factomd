@@ -6,6 +6,8 @@ import (
 	"os/exec"
 	"testing"
 
+	"path/filepath"
+
 	"github.com/FactomProject/factomd/util"
 )
 
@@ -93,17 +95,23 @@ func CloneFnodeData(fnode int, copyToNode int, t *testing.T) {
 }
 
 // Write an identity to a config file for an Fnode, optionally appending extra config data
+// NOTE: works only for simulation
 func WriteConfigFile(identityNumber int, fnode int, extra string, t *testing.T) {
 	var simConfigPath string
 	var configfile string
 
 	if fnode == 0 {
-		simConfigPath = util.GetHomeDir() + "/.factom/m2"
+		simConfigPath = filepath.Join(GetSimTestHome(t), "/.factom/m2")
 		configfile = fmt.Sprintf("%s/factomd.conf", simConfigPath)
 	} else {
-		simConfigPath = util.GetHomeDir() + "/.factom/m2/simConfig"
+		simConfigPath = filepath.Join(GetSimTestHome(t), "/.factom/m2/simConfig")
 		configfile = fmt.Sprintf("%s/factomd%03d.conf", simConfigPath, fnode)
 	}
+	err := os.MkdirAll(simConfigPath, 0755)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	if _, err := os.Stat(simConfigPath); os.IsNotExist(err) {
 		fmt.Fprintf(os.Stderr, "Creating directory"+simConfigPath+"\n")
 		os.MkdirAll(simConfigPath, 0775)
@@ -117,4 +125,8 @@ func WriteConfigFile(identityNumber int, fnode int, extra string, t *testing.T) 
 		t.Fatal(err)
 	}
 	return
+}
+
+func GetConfig(identityNumber int, extra string) string {
+	return nodeIDs[identityNumber] + extra
 }

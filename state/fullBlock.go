@@ -6,15 +6,16 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/common/primitives"
-
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/primitives"
+
+	llog "github.com/FactomProject/factomd/log"
 )
 
 // Can take a directory block and package all the data into a file to be torrented.
@@ -78,6 +79,7 @@ func (wb *WholeBlock) AddIEBEntry(e interfaces.IEBEntry) {
 func (a *WholeBlock) IsSameAs(b *WholeBlock) (resp bool) {
 	defer func() {
 		if r := recover(); r != nil {
+			llog.LogPrintf("recovery", "WholeBlock.IsSameAs failed %v", r)
 			resp = false
 			return
 		}
@@ -136,6 +138,7 @@ func (wb *WholeBlock) MarshalBinary() (b []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("A panic has occurred while marshaling: %s", r)
+			llog.LogPrintf("recovery", "A panic has occurred while marshaling: %s", r)
 			return
 		}
 	}()
@@ -250,6 +253,7 @@ func (wb *WholeBlock) UnmarshalBinaryDataBuffer(buffer io.ReadSeeker, whence int
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("A panic has occurred while unmarshaling: %s", r)
+			llog.LogPrintf("recovery", "A panic has occurred while unmarshaling: %s", r)
 			return
 		}
 	}()
@@ -354,6 +358,7 @@ func (wb *WholeBlock) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("A panic has occurred while unmarshaling: %s", r)
+			llog.LogPrintf("recovery", "A panic has occurred while unmarshaling: %s", r)
 			return
 		}
 	}()

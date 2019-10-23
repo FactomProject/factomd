@@ -8,7 +8,8 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/log"
+
+	llog "github.com/FactomProject/factomd/log"
 	gcfg "gopkg.in/gcfg.v1"
 )
 
@@ -40,6 +41,8 @@ type FactomdConfig struct {
 		ExchangeRateAuthorityPublicKeyMainNet  string
 		ExchangeRateAuthorityPublicKeyTestNet  string
 		ExchangeRateAuthorityPublicKeyLocalNet string
+		BitcoinAnchorRecordPublicKeys          []string
+		EthereumAnchorRecordPublicKeys         []string
 
 		// Network Configuration
 		Network                 string
@@ -178,7 +181,7 @@ FactomdRpcPass                        = ""
 ; RequestLimit is the maximum number of pending requests for missing states.
 ; factomd will stop making DBStateMissing requests until current requests are
 ; moved out of the waiting list
-RequestLimit						= 150
+RequestLimit						= 200
 
 ; This paramater allows Cross-Origin Resource Sharing (CORS) so web browsers will use data returned from the API when called from the listed URLs
 ; Example paramaters are "http://www.example.com, http://anotherexample.com, *"
@@ -273,6 +276,8 @@ func (s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\n    FactomdRpcUser          	%v", s.App.FactomdRpcUser))
 	out.WriteString(fmt.Sprintf("\n    FactomdRpcPass          	%v", s.App.FactomdRpcPass))
 	out.WriteString(fmt.Sprintf("\n    ChangeAcksHeight         %v", s.App.ChangeAcksHeight))
+	out.WriteString(fmt.Sprintf("\n    BitcoinAnchorRecordPublicKeys    %v", s.App.BitcoinAnchorRecordPublicKeys))
+	out.WriteString(fmt.Sprintf("\n    EthereumAnchorRecordPublicKeys    %v", s.App.EthereumAnchorRecordPublicKeys))
 
 	out.WriteString(fmt.Sprintf("\n  Log"))
 	out.WriteString(fmt.Sprintf("\n    LogPath                 %v", s.Log.LogPath))
@@ -304,6 +309,7 @@ func GetChangeAcksHeight(filename string) (change uint32, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error getting acks - %v\n", r)
+			llog.LogPrintf("recovery", "Error getting acks - %v", r)
 		}
 	}()
 
@@ -352,8 +358,8 @@ func ReadConfig(filename string) *FactomdConfig {
 	err = gcfg.FatalOnly(gcfg.ReadFileInto(cfg, filename))
 	if err != nil {
 		if reportedError[filename] != err.Error() {
-			log.Printfln("Reading from '%s'", filename)
-			log.Printfln("Cannot open custom config file,\nStarting with default settings.\n%v\n", err)
+			fmt.Printf("Reading from '%s'\n", filename)
+			fmt.Printf("Cannot open custom config file,\nStarting with default settings.\n%v\n", err)
 			// Remember the error reported for this filename
 			reportedError[filename] = err.Error()
 		}
@@ -388,6 +394,18 @@ func ReadConfig(filename string) *FactomdConfig {
 	case "LOCAL":
 		cfg.App.ExchangeRateAuthorityPublicKey = cfg.App.ExchangeRateAuthorityPublicKeyLocalNet
 		break
+	}
+
+	if len(cfg.App.BitcoinAnchorRecordPublicKeys) == 0 {
+		cfg.App.BitcoinAnchorRecordPublicKeys = []string{
+			"0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a", // m1 key
+			"d569419348ed7056ec2ba54f0ecd9eea02648b260b26e0474f8c07fe9ac6bf83", // m2 key
+		}
+	}
+	if len(cfg.App.EthereumAnchorRecordPublicKeys) == 0 {
+		cfg.App.EthereumAnchorRecordPublicKeys = []string{
+			"a4a7905ab2226f267c6b44e1d5db2c97638b7bbba72fd1823d053ccff2892455",
+		}
 	}
 
 	return cfg

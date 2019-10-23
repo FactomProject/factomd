@@ -193,6 +193,24 @@ func TestPushPopBytes(t *testing.T) {
 		if AreBytesEqual(b, r) == false {
 			t.Errorf("Received wrong byte slice - %x vs %x", b, r)
 		}
+		err = buf.Push(b)
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+		h := make([]byte, len(b))
+		err = buf.Pop(h)
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+		if AreBytesEqual(b, h) == false {
+			t.Errorf("Received wrong byte slice for push/pop - %x vs %x", b, h)
+		}
+		_ = buf.Push(b) // No error, already checked
+		h2, err := buf.PopLen(len(b))
+		if AreBytesEqual(b, h2) == false {
+			t.Errorf("Received wrong byte slice for PopLen - %x vs %x", b, h2)
+		}
+
 	}
 }
 
@@ -257,5 +275,60 @@ func TestPushPopBinaryMarshallable(t *testing.T) {
 		if h.IsSameAs(h2) == false {
 			t.Errorf("Received wrong hash - %v vs %v", h, h2)
 		}
+		err = b.PushIHash(h)
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+		h3, err := b.PopIHash()
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+		if h.IsSameAs(h3) == false {
+			t.Errorf("Received wrong hash - %v vcs %v", h, h3)
+		}
+	}
+}
+
+// TestRandomPushPop tests a host of push and pop functions
+func TestRandomPushPop(t *testing.T) {
+	b := NewBuffer(nil)
+
+	r8 := random.RandUInt8()
+	b.PushUInt8(r8)
+	b.PushUInt16(32)
+	rb := random.RandByte()
+	b.PushByte(rb)
+	rint := random.RandInt()
+	b.PushInt(rint)
+	b.PushBool(true)
+	b.PushBool(false)
+
+	nr8, err := b.PopUInt8()
+	if err != nil || nr8 != r8 {
+		t.Error("Unable to PopUInt8")
+	}
+	nr16, err := b.PopUInt16()
+	if err != nil || nr16 != 32 {
+		t.Error("Unable to PopUInt16")
+	}
+	mybyte, err := b.PeekByte() // Check the byte before popping for a test
+	if err != nil || mybyte != rb {
+		t.Error("Unable to PeekByte")
+	}
+	nrb, err := b.PopByte()
+	if err != nil || nrb != rb {
+		t.Error("Unable to PopByte")
+	}
+	nrint, err := b.PopInt()
+	if err != nil || nrint != rint {
+		t.Error("Unable to PopInt")
+	}
+	nboo, err := b.PopBool()
+	if err != nil || nboo != true {
+		t.Error("Unable to PopBool true")
+	}
+	nboo, err = b.PopBool()
+	if err != nil || nboo != false {
+		t.Error("Unable to PopBool false")
 	}
 }

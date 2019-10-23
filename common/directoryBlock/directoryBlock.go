@@ -442,7 +442,7 @@ func (b *DirectoryBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 }
 
 func (h *DirectoryBlock) GetTimestamp() interfaces.Timestamp {
-	return h.GetHeader().GetTimestamp()
+	return h.GetHeader().GetTimestamp().Clone()
 }
 
 func (b *DirectoryBlock) UnmarshalBinary(data []byte) (err error) {

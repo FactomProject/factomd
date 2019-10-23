@@ -15,6 +15,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 
 	"github.com/FactomProject/factomd/common/messages/msgbase"
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -94,7 +95,7 @@ func (m *DBStateMissing) Type() byte {
 }
 
 func (m *DBStateMissing) GetTimestamp() interfaces.Timestamp {
-	return m.Timestamp
+	return m.Timestamp.Clone()
 }
 
 // Validate the message, given the state.  Three possible results:
@@ -234,6 +235,7 @@ func (m *DBStateMissing) UnmarshalBinaryData(data []byte) (newData []byte, err e
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling Directory Block State Missing Message: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling Directory Block State Missing Message: %v", r)
 		}
 	}()
 	newData = data

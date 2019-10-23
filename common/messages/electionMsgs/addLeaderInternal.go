@@ -14,6 +14,8 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/state"
+
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -79,6 +81,8 @@ func (m *AddLeaderInternal) ElectionProcess(s interfaces.IState, elect interface
 		e.Federated = append(e.Federated, &state.Server{ChainID: m.ServerID, Online: true})
 		e.Round = append(e.Round, 0)
 		// TODO: If we reorder Federated[] do we need to reorder Round[]?
+		s := e.State
+		s.LogPrintf("elections", "Election Sort FedServers AddLeaderInternal")
 		changed := e.Sort(e.Federated)
 		if changed {
 			e.LogPrintf("election", "Sort changed e.Federated in AddLeaderInternal.ElectionProcess()")
@@ -174,6 +178,7 @@ func (m *AddLeaderInternal) UnmarshalBinaryData(data []byte) (newData []byte, er
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling: %v", r)
 		}
 	}()
 	return

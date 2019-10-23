@@ -40,7 +40,7 @@ func init() {
 	flag.BoolVar(&p.WaitEntries, "waitentries", false, "Wait for Entries to be validated prior to execution of messages")
 	flag.IntVar(&p.ListenTo, "node", 0, "Node Number the simulator will set as the focus")
 	flag.IntVar(&p.Cnt, "count", 1, "The number of nodes to generate")
-	flag.StringVar(&p.Net, "net", "tree", "The default algorithm to build the network connections")
+	flag.StringVar(&p.Net, "net", "alot+", "The default algorithm to build the network connections")
 	flag.StringVar(&p.Fnet, "fnet", "", "Read the given file to build the network connections")
 	flag.IntVar(&p.DropRate, "drop", 0, "Number of messages to drop out of every thousand")
 	flag.StringVar(&p.Journal, "journal", "", "Rerun a Journal of messages")
@@ -60,7 +60,7 @@ func init() {
 	flag.IntVar(&p.TimeOffset, "timedelta", 0, "Maximum timeDelta in milliseconds to offset each node.  Simulates deltas in system clocks over a network.")
 	flag.BoolVar(&p.KeepMismatch, "keepmismatch", false, "If true, do not discard DBStates even when a majority of DBSignatures have a different hash")
 	flag.Int64Var(&p.StartDelay, "startdelay", 10, "Delay to start processing messages, in seconds")
-	flag.IntVar(&p.Deadline, "deadline", 1000, "Timeout Delay in milliseconds used on Reads and Writes to the network comm")
+	flag.IntVar(&p.Deadline, "deadline", 300000, "Timeout Delay in milliseconds used on Reads and Writes to the network comm")
 	flag.StringVar(&p.RpcUser, "rpcuser", "", "Username to protect factomd local API with simple HTTP authentication")
 	flag.StringVar(&p.RpcPassword, "rpcpass", "", "Password to protect factomd local API. Ignored if rpcuser is blank")
 	flag.BoolVar(&p.FactomdTLS, "tls", false, "Set to true to require encrypted connections to factomd API and Control Panel") //to get tls, run as "factomd -tls=true"
@@ -92,6 +92,7 @@ func init() {
 	flag.StringVar(&p.NodeName, "nodename", "", "Assign a name to the node")
 	flag.StringVar(&p.ControlPanelSetting, "controlpanelsetting", "", "Can set to 'disabled', 'readonly', or 'readwrite' to overwrite config file")
 	flag.BoolVar(&p.FullHashesLog, "fullhasheslog", false, "true create a log of all unique hashes seen during processing")
+	flag.BoolVar(&p.ReparseAnchorChains, "reparseanchorchains", false, "If true, reparse bitcoin and ethereum anchor chains in the database")
 }
 
 func ParseCmdLine(args []string) *FactomParams {
@@ -163,6 +164,10 @@ func isCompilerVersionOK() bool {
 	}
 
 	if strings.Contains(runtime.Version(), "1.12") {
+		goodenough = true
+	}
+
+	if strings.Contains(runtime.Version(), "1.13") {
 		goodenough = true
 	}
 	return goodenough

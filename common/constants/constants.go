@@ -483,4 +483,4 @@ const (
 
 //Fast boot save state version (savestate)
 //To be increased whenever the data being saved changes from the last version
-const SaveStateVersion = 11
+const SaveStateVersion = 13

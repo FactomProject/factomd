@@ -8,47 +8,65 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strconv"
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/FactomProject/factomd/elections"
 
 	"github.com/FactomProject/factomd/common/globals"
+	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/engine"
 	"github.com/FactomProject/factomd/state"
+	"github.com/stretchr/testify/assert"
 )
 
 var par = globals.FactomParams{}
 
 var quit = make(chan struct{})
-
-// SetupSim takes care of your options, and setting up nodes
-// pass in a string for nodes: 4 Leaders, 3 Audit, 4 Followers: "LLLLAAAFFFF" as the first argument
-// Pass in the Network type ex. "LOCAL" as the second argument
-// It has default but if you want just add it like "map[string]string{"--Other" : "Option"}" as the third argument
-// Pass in t for the testing as the 4th argument
-
 var ExpectedHeight, Leaders, Audits, Followers int
 var startTime, endTime time.Time
-var RanSimTest = false // KLUDGE disables all sim tests during a group unit test run
-// NOTE: going forward breaking out a test into a file under ./simTest allows it to run on CI.
+var RanSimTest = false // only run 1 sim test at a time
 
-//EX. state0 := SetupSim("LLLLLLLLLLLLLLLAAAAAAAAAA",  map[string]string {"--controlpanelsetting" : "readwrite"}, t)
-func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int, electionsCnt int, RoundsCnt int, t *testing.T) *state.State {
-	fmt.Println("SetupSim(", GivenNodes, ",", UserAddedOptions, ",", height, ",", electionsCnt, ",", RoundsCnt, ")")
-	ExpectedHeight = height
-	l := len(GivenNodes)
+func optionsToCmdLine(CmdLineOptions map[string]string) (returningSlice []string) {
+	// default the fault time and round time based on the blk time out
+	blktime, err := strconv.Atoi(CmdLineOptions["--blktime"])
+	if err != nil {
+		panic(err)
+	}
+
+	if CmdLineOptions["--faulttimeout"] == "" {
+		CmdLineOptions["--faulttimeout"] = fmt.Sprintf("%d", blktime/5) // use 2 minutes ...
+	}
+
+	if CmdLineOptions["--roundtimeout"] == "" {
+		CmdLineOptions["--roundtimeout"] = fmt.Sprintf("%d", blktime/5)
+	}
+
+	// built the fake command line
+	for key, value := range CmdLineOptions {
+		returningSlice = append(returningSlice, key+"="+value)
+	}
+
+	fmt.Println("Command Line Arguments:")
+	for _, v := range returningSlice {
+		fmt.Printf("\t%s\n", v)
+	}
+
+	return returningSlice
+}
+
+// add sensible defaults for simtest
+func optionsToParams(UserAddedOptions map[string]string) *globals.FactomParams {
 	CmdLineOptions := map[string]string{
 		"--db":                  "Map",
 		"--network":             "LOCAL",
 		"--net":                 "alot+",
 		"--enablenet":           "false",
-		"--blktime":             "10",
-		"--count":               fmt.Sprintf("%v", l),
+		"--blktime":             "15",
 		"--startdelay":          "1",
 		"--stdoutlog":           "out.txt",
 		"--stderrlog":           "out.txt",
@@ -87,31 +105,7 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 		}
 	}
 
-	// default the fault time and round time based on the blk time out
-	blktime, err := strconv.Atoi(CmdLineOptions["--blktime"])
-	if err != nil {
-		panic(err)
-	}
-
-	if CmdLineOptions["--faulttimeout"] == "" {
-		CmdLineOptions["--faulttimeout"] = fmt.Sprintf("%d", blktime/5) // use 2 minutes ...
-	}
-
-	if CmdLineOptions["--roundtimeout"] == "" {
-		CmdLineOptions["--roundtimeout"] = fmt.Sprintf("%d", blktime/5)
-	}
-
-	// built the fake command line
-	returningSlice := []string{}
-	for key, value := range CmdLineOptions {
-		returningSlice = append(returningSlice, key+"="+value)
-	}
-
-	fmt.Println("Command Line Arguments:")
-	for _, v := range returningSlice {
-		fmt.Printf("\t%s\n", v)
-	}
-	params := engine.ParseCmdLine(returningSlice)
+	params := engine.ParseCmdLine(optionsToCmdLine(CmdLineOptions))
 	fmt.Println()
 
 	fmt.Println("Parameter:")
@@ -125,15 +119,31 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 	}
 	fmt.Println()
 
-	blkt := globals.Params.BlkTime
-	roundt := elections.RoundTimeout
-	et := elections.FaultTimeout
+	return params
+
+}
+
+// start a single node meant to connect to an existing network
+func StartPeer(CmdLineOptions map[string]string) *state.State {
+	params := engine.ParseCmdLine(optionsToCmdLine(CmdLineOptions))
+	return engine.Factomd(params, false).(*state.State)
+}
+
+// start simulation without promoting nodes to the authority set
+// this is useful for creating scripts that will start/stop a simulation outside of the context of a unit test
+// this allows for consistent tweaking of a simulation to induce load add message loss or adjust timing
+func StartSim(nodeCount int, UserAddedOptions map[string]string) *state.State {
+	UserAddedOptions["--count"] = fmt.Sprintf("%v", nodeCount)
+	params := optionsToParams(UserAddedOptions)
+	return engine.Factomd(params, false).(*state.State)
+}
+
+func setTestTimeouts(state0 *state.State, calcTime time.Duration) {
+	// init package vars
 	startTime = time.Now()
-	state0 := engine.Factomd(params, false).(*state.State)
-	//	statusState = state0
-	calctime := time.Duration(float64(((height+3)*blkt)+(electionsCnt*et)+(RoundsCnt*roundt))*1.1) * time.Second
-	endTime = time.Now().Add(calctime)
-	fmt.Println("endTime: ", endTime.String(), "duration:", calctime.String())
+	endTime = time.Now().Add(calcTime)
+
+	fmt.Println("endTime: ", endTime.String(), "duration:", calcTime.String())
 
 	go func() {
 		for {
@@ -141,42 +151,152 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 			case <-quit:
 				return
 			default:
-				if int(state0.GetLLeaderHeight())-3 > height { // always give us 3 extra block to finish
-					fmt.Printf("Test Timeout: Expected %d blocks (%s)\n", height, calctime.String())
-					panic(fmt.Sprintf("Test Timeout: Expected %d blocks (%s)\n", height, calctime.String()))
+				if int(state0.GetLLeaderHeight())-3 > ExpectedHeight { // always give us 3 extra block to finish
+					fmt.Printf("Test Timeout: Expected %d blocks (%s)\n", ExpectedHeight, calcTime.String())
+					panic(fmt.Sprintf("Test Timeout: Expected %d blocks (%s)\n", ExpectedHeight, calcTime.String()))
 				}
 				if time.Now().After(endTime) {
-					fmt.Printf("Test Timeout: Expected it to take %s (%d blocks)\n", calctime.String(), height)
-					panic(fmt.Sprintf("Test Timeout: Expected it to take %s (%d blocks)\n", calctime.String(), height))
+					fmt.Printf("Test Timeout: Expected it to take %s (%d blocks)\n", calcTime.String(), ExpectedHeight)
+					panic(fmt.Sprintf("Test Timeout: Expected it to take %s (%d blocks)\n", calcTime.String(), ExpectedHeight))
 				}
 				time.Sleep(1 * time.Second)
 			}
 		}
 	}()
+	fmt.Printf("Starting timeout timer:  Expected test to take %s or %d blocks\n", calcTime.String(), ExpectedHeight)
+}
+
+func isDefaultSim(givenNodes string) bool {
+	nodeList := []rune(givenNodes)
+
+	if nodeList[0] != 'L' {
+		return false
+	}
+
+	for x := 1; x < len(givenNodes); x++ {
+		if nodeList[x] != 'F' {
+			return false
+		}
+	}
+
+	return true
+}
+
+// SetupSim takes care of your options, and setting up nodes
+// pass in a string for nodes: 4 Leaders, 3 Audit, 4 Followers: "LLLLAAAFFFF" as the first argument
+// Pass in the Network type ex. "LOCAL" as the second argument
+// It has default but if you want just add it like "map[string]string{"--Other" : "Option"}" as the third argument
+// Pass in t for the testing as the 4th argument
+//EX. state0 := SetupSim("LLLLLLLLLLLLLLLAAAAAAAAAA",  map[string]string {"--controlpanelsetting" : "readwrite"}, t)
+func SetupSim(givenNodes string, userAddedOptions map[string]string, height int, electionsCnt int, roundsCnt int, t *testing.T) *state.State {
+	if userAddedOptions == nil {
+		userAddedOptions = make(map[string]string)
+	}
+
+	fmt.Println("SetupSim(", givenNodes, ",", userAddedOptions, ",", height, ",", electionsCnt, ",", roundsCnt, ")")
+
+	if userAddedOptions["--factomhome"] == "" {
+		// default to create a new home dir for each sim test if not specified
+		homeDir := GetSimTestHome(t)
+		err := os.MkdirAll(filepath.Join(homeDir, "/.factom/m2"), 0755)
+		if err != nil {
+			t.Fatal(err)
+		}
+		userAddedOptions["--factomhome"] = homeDir
+	}
+
+	ExpectedHeight = height
+	nodeLen := setNodeCounts(givenNodes)
+	state0 := StartSim(nodeLen, userAddedOptions)
 	state0.MessageTally = true
 
-	fmt.Printf("Starting timeout timer:  Expected test to take %s or %d blocks\n", calctime.String(), height)
+	{ // calculate & set test timeout
+		blkt := globals.Params.BlkTime
+		roundt := 2 * elections.RoundTimeout
+		et := 2 * elections.FaultTimeout
+		setTestTimeouts(state0, time.Duration(float64(((height+3)*blkt)+(electionsCnt*et)+(roundsCnt*roundt))*1.1)*time.Second)
+	}
 	StatusEveryMinute(state0)
 	WaitMinutes(state0, 1) // wait till initial DBState message for the genesis block is processed
-	creatingNodes(GivenNodes, state0, t)
-
-	t.Logf("Allocated %d nodes", l)
-	if len(engine.GetFnodes()) != l {
-		t.Fatalf("Should have allocated %d nodes", l)
-		t.Fail()
-	}
-	if Audits == 0 && Leaders == 0 {
-		// if no requested promotions then assume we loaded from a database and the test will check
+	if isDefaultSim(givenNodes) || state0.GetDBHeightAtBoot() != 0 {
+		t.Logf("Skip Node Promotion")
 	} else {
+		createAuthoritySet(givenNodes, state0, t)
+
+		if len(engine.GetFnodes()) != nodeLen {
+			t.Fail()
+		}
+		// swap identity if Fnode0 Should be a follower
+		if []rune(givenNodes)[0] == 'F' {
+			RunCmd(fmt.Sprintf("%d", 0))
+			RunCmd("z")
+			//WaitMinutes(state0, 2)
+			WaitBlocks(state0, 1)
+			RunCmd(fmt.Sprintf("%d", 0))
+			RunCmd(fmt.Sprintf("t%d", len(givenNodes)+1)) // attach the last generated Identity
+			WaitBlocks(state0, 1)
+		}
+		// REVIEW: should we swap node0 identity & promote if configured for 'L' ?
 		CheckAuthoritySet(t)
+	}
+	if len(engine.GetFnodes()) != nodeLen {
+		t.Fatalf("Should have allocated %d nodes", nodeLen)
+	} else {
+		t.Logf("Allocated %d nodes", nodeLen)
 	}
 	return state0
 }
 
-func creatingNodes(creatingNodes string, state0 *state.State, t *testing.T) {
-	RunCmd(fmt.Sprintf("g%d", len(creatingNodes)))
-	WaitBlocks(state0, 3) // Wait for 2 blocks because ID scans is for block N-1
+func promoteNodes(creatingNodes string) int {
+	for i, c := range []byte(creatingNodes) {
+		fmt.Println("it:", i, c)
+		switch c {
+		case 'L':
+			if i != 0 {
+				RunCmd(fmt.Sprintf("%d", i))
+				RunCmd("l")
+			}
+		case 'A':
+			if i == 0 {
+				panic("setting Fnode0 to audit not supported")
+			}
+			RunCmd(fmt.Sprintf("%d", i))
+			RunCmd("o")
+		case 'F':
+			break
+		default:
+			panic("NOT L, A or F")
+		}
+	}
+
+	return Leaders + Followers + Audits
+}
+
+func setNodeCounts(creatingNodes string) int {
+	Leaders = 0
+	Followers = 0
+	Audits = 0
+
+	for _, c := range []byte(creatingNodes) {
+		switch c {
+		case 'L':
+			Leaders++
+		case 'A':
+			Audits++
+		case 'F':
+			Followers++
+		default:
+			panic("NOT L, A or F")
+		}
+	}
+	return Leaders + Followers + Audits
+}
+
+func createAuthoritySet(creatingNodes string, state0 *state.State, t *testing.T) {
+	RunCmd(fmt.Sprintf("g%d", len(creatingNodes)+1)) // makes nodeLen +1 identities
+	WaitBlocks(state0, 3)                            // Wait for 2 blocks because ID scans is for block N-1
 	WaitMinutes(state0, 1)
+	promoteNodes(creatingNodes)
 	// Wait till all the entries from the g command are processed
 	simFnodes := engine.GetFnodes()
 	nodes := len(simFnodes)
@@ -184,26 +304,6 @@ func creatingNodes(creatingNodes string, state0 *state.State, t *testing.T) {
 		t.Fatalf("Should have allocated %d nodes", len(creatingNodes))
 	}
 	WaitForMinute(state0, 1)
-	for i, c := range []byte(creatingNodes) {
-		fmt.Println("it:", i, c)
-		switch c {
-		case 'L', 'l':
-			if i != 0 {
-				RunCmd(fmt.Sprintf("%d", i))
-				RunCmd("l")
-			}
-			Leaders++
-		case 'A', 'a':
-			RunCmd(fmt.Sprintf("%d", i))
-			RunCmd("o")
-			Audits++
-		case 'F', 'f':
-			Followers++
-			break
-		default:
-			panic("NOT L, A or F")
-		}
-	}
 	WaitBlocks(state0, 1) // Wait for 1 block
 	WaitForMinute(state0, 1)
 	WaitForAllNodes(state0) // make sure everyone is caught up
@@ -340,30 +440,30 @@ func WaitForMinute(s *state.State, newMinute int) {
 }
 
 func CountAuthoritySet() (int, int, int) {
-	leadercnt := 0
-	auditcnt := 0
-	followercnt := 0
+	foundLeaders := 0
+	foundAuditors := 0
+	foundFollowers := 0
 
 	for i, fn := range engine.GetFnodes() {
 		s := fn.State
 		if s.Leader {
 			fmt.Printf("Found Leader   %d %x\n", i, s.GetIdentityChainID().Bytes()[3:6])
-			leadercnt++
+			foundLeaders++
 		} else {
 			list := s.ProcessLists.Get(s.LLeaderHeight)
 			foundAudit, _ := list.GetAuditServerIndexHash(s.GetIdentityChainID())
 			if foundAudit {
 				fmt.Printf("Found Audit     %d %x\n", i, s.GetIdentityChainID().Bytes()[3:6])
-				auditcnt++
+				foundAuditors++
 			} else {
 				fmt.Printf("Found Follower %d %x\n", i, s.GetIdentityChainID().Bytes()[3:6])
 
-				followercnt++
+				foundFollowers++
 			}
 		}
 	}
 
-	return leadercnt, auditcnt, followercnt
+	return foundLeaders, foundAuditors, foundFollowers
 }
 
 func AdjustAuthoritySet(adjustingNodes string) {
@@ -415,7 +515,6 @@ func AssertAuthoritySet(t *testing.T, givenNodes string) {
 		}
 	}
 }
-
 func CheckAuthoritySet(t *testing.T) {
 
 	leadercnt, auditcnt, followercnt := CountAuthoritySet()
@@ -447,7 +546,7 @@ func Halt(t *testing.T) {
 	close(quit)
 	t.Log("Shutting down the network")
 	for _, fn := range engine.GetFnodes() {
-		fn.State.ShutdownChan <- 1
+		fn.State.ShutdownNode(1)
 	}
 	// sleep long enough for everyone to see the shutdown.
 	time.Sleep(time.Duration(globals.Params.BlkTime) * time.Second)
@@ -497,23 +596,57 @@ func v2Request(req *primitives.JSON2Request, port int) (*primitives.JSON2Respons
 	return nil, nil
 }
 
-// TODO: this doesn't seem to work - fix along w/ AddFNodeTest
-func ResetFactomHome(t *testing.T, subDir string) {
+// use a test specific dir for simTest
+func GetSimTestHome(t *testing.T) string {
 	dir, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	globals.Params.FactomHome = dir + "/.sim/" + subDir
-	os.Setenv("FACTOM_HOME", globals.Params.FactomHome)
+	return dir + "/.sim/" + GetTestName()
+}
 
-	t.Logf("Removing old run in %s", globals.Params.FactomHome)
-	if err := os.RemoveAll(globals.Params.FactomHome); err != nil {
+// re-use a common dir for longTest
+func GetLongTestHome(t *testing.T) string {
+	dir, err := os.Getwd()
+	if err != nil {
 		t.Fatal(err)
 	}
+	return dir + "/.sim"
+}
+
+// remove files from a home dir and remake .factom config dir
+func ResetTestHome(homeDir string, t *testing.T) {
+	t.Logf("Removing old test run in %s", homeDir)
+	os.RemoveAll(homeDir)
+	os.MkdirAll(homeDir+"/.factom/m2", 0755)
+}
+
+func ResetSimHome(t *testing.T) string {
+	h := GetSimTestHome(t)
+	ResetTestHome(h, t)
+	return h
 }
 
 func AddFNode() {
 	engine.AddNode()
 	Followers++
+}
+
+func WaitForEntry(s *state.State, hash interfaces.IHash) bool {
+	s.LogPrintf(logName, "WaitForEntry:  %s", hash.String())
+	//hash, _ := primitives.NewShaHashFromStr(entryhash)
+
+	for {
+		entry, err := s.FetchEntryByHash(hash)
+		if err != nil {
+			panic(err)
+		}
+		if entry != nil {
+			return true
+		}
+
+		time.Sleep(time.Millisecond * 200)
+	}
+	return false
 }

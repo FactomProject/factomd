@@ -5,7 +5,7 @@ jobs:
   build:
     working_directory: /go/src/github.com/FactomProject/factomd
     docker:
-      - image: circleci/golang:1.10
+      - image: circleci/golang:1.12
 
     steps:
       - checkout
@@ -45,7 +45,7 @@ jobs:
   test:
     working_directory: /tmp
     docker:
-      - image: circleci/golang:1.10
+      - image: circleci/golang:1.12
 
     parallelism: 8
 
@@ -60,12 +60,31 @@ jobs:
             export PATH="/tmp/go/bin:$PATH"
             export GOPATH=/tmp/go
             cd /tmp/go/src/github.com/FactomProject/factomd/
-            ./test.sh
+            ./test.sh short
+  test_full:
+    working_directory: /tmp
+    docker:
+      - image: circleci/golang:1.12
+
+    parallelism: 8
+
+    steps:
+      - attach_workspace:
+          at: /tmp
+
+      - run:
+          name: Run Full Tests!
+          no_output_timeout: 2400
+          command: |
+            export PATH="/tmp/go/bin:$PATH"
+            export GOPATH=/tmp/go
+            cd /tmp/go/src/github.com/FactomProject/factomd/
+            ./test.sh full
 
   coveralls:
     working_directory: /tmp
     docker:
-      - image: circleci/golang:1.10
+      - image: circleci/golang:1.12
 
     steps:
       - attach_workspace:
@@ -78,8 +97,26 @@ jobs:
             export PATH="/tmp/go/bin:$PATH"
             export GOPATH=/tmp/go
             cd /tmp/go/src/github.com/FactomProject/factomd/
-            go test $(glide nv | grep -v Utilities | grep -v longTest | grep -v peerTest | grep -v simTest) -vet=off -v -cover -coverprofile=coverage.out
+            go test $(glide nv | grep -v Utilities | grep -v longTest | grep -v peerTest | grep -v simTest | grep '...') -vet=off -v -cover -coverprofile=coverage.out
             goveralls -coverprofile=coverage.out -service=circle-ci -repotoken=$COVERALLS_TOKEN
+
+  gofmt:
+    working_directory: /tmp
+    docker:
+      - image: circleci/golang:1.12
+
+    steps:
+      - attach_workspace:
+          at: /tmp
+
+      - run:
+          name: Gofmt test
+          no_output_timeout: 60
+          command: |
+            export PATH="/tmp/go/bin:$PATH"
+            export GOPATH=/tmp/go
+            cd /tmp/go/src/github.com/FactomProject/factomd/
+            ./test.sh gofmt
 
 
   # Docker builds
@@ -303,9 +340,11 @@ jobs:
 #      |
 #      ---------- test
 #                   |
-#                   ---------- coveralls
+#                   ---------- gofmt
 #                   |
 #                   ---------- docker_build
+#                   |
+#                   ---------- test_full
 #
 #
 
@@ -323,7 +362,7 @@ workflows:
               only: /.*/
           requires:
             - build
-      - coveralls:
+      - gofmt:
           filters:
             tags:
               only: /.*/
@@ -343,21 +382,16 @@ workflows:
           cron: "20 5 * * *"
           filters:
             branches:
-              only: develop
+              only: /.*develop.*/
     jobs:
       - build
-      - test:
+      - gofmt:
           requires:
             - build
-      - coveralls:
+      - test_full:
           requires:
-            - test
+            - build
       - docker_build:
           context: org-global
           requires:
-            - test
-
-notify:
-  webhooks:
-    - url: https://hooks.zapier.com/hooks/catch/2398659/i8hgb6/
-
+            - test_full

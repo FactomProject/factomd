@@ -126,7 +126,7 @@ func (m *SyncMsg) GetHash() (rval interfaces.IHash) {
 }
 
 func (m *SyncMsg) GetTimestamp() interfaces.Timestamp {
-	return m.TS
+	return m.TS.Clone()
 }
 
 func (m *SyncMsg) GetMsgHash() (rval interfaces.IHash) {

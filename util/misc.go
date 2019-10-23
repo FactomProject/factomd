@@ -2,35 +2,7 @@ package util
 
 import (
 	"fmt"
-	"runtime"
-	"time"
-
-	"github.com/FactomProject/factomd/log"
 )
-
-// a simple file/line trace function, with optional comment(s)
-func Trace(params ...string) {
-	log.Printf("##")
-
-	if 0 < len(params) {
-		for i := range params {
-			log.Printf(" %s", params[i])
-		}
-		log.Printf(" #### ")
-	} else {
-		log.Printf(" ")
-	}
-
-	pc := make([]uintptr, 10) // at least 1 entry needed
-	runtime.Callers(2, pc)
-	f := runtime.FuncForPC(pc[0])
-	file, line := f.FileLine(pc[0])
-
-	tutc := time.Now().UTC()
-	timestamp := tutc.Format("2006-01-02.15:04:05")
-
-	log.Printf("TRACE: %s line %d %s file: %s\n", timestamp, line, f.Name(), file)
-}
 
 // Calculate the entry credits needed for the entry
 func EntryCost(b []byte) (uint8, error) {
