@@ -81,7 +81,8 @@ func (m *TimeoutInternal) InitiateElectionAdapter(st interfaces.IState) bool {
 	msg.VMIndex = m.VMIndex
 	msg.Minute = m.Minute
 	msg.SigType = m.SigType
-	e.State.InMsgQueue().Enqueue(msg)
+	e.State.LogMessage("MsgQueue", "enqueue_InitiateElectionAdapter", msg)
+	e.State.MsgQueue() <- msg
 
 	// When we start a new election, we can process all messages that were being held
 	go e.ProcessWaiting()
@@ -164,8 +165,8 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 			sync = "eom"
 		}
 
-		e.LogPrintf("election", "**** Start an Election for %d[%x] missing %s ****", e.Electing, e.FedID.Bytes()[3:6], sync)
-		e.LogPrintf("faulting", "**** Start an Election for %d[%x] missing %s ****", e.Electing, e.FedID.Bytes()[3:6], sync)
+		e.LogPrintf("election", "**** Start an Election for %d[%x] missing %s %d/%d-:- min %d ****", e.Electing, e.FedID.Bytes()[3:6], sync, m.DBHeight, e.VMIndex, e.Minute)
+		e.LogPrintf("faulting", "**** Start an Election for %d[%x] missing %s %d/%d-:- min %d ****", e.Electing, e.FedID.Bytes()[3:6], sync, m.DBHeight, e.VMIndex, e.Minute)
 		e.LogPrintLeaders("election")
 
 		// Begin a new Election for a specific vm/min/height
@@ -316,17 +317,12 @@ func (e *TimeoutInternal) JSONString() (string, error) {
 }
 
 func (m *TimeoutInternal) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
-		}
-	}()
+	err = fmt.Errorf("TimeoutInternal is an internal message only")
 	return
 }
 
 func (m *TimeoutInternal) UnmarshalBinary(data []byte) error {
-	_, err := m.UnmarshalBinaryData(data)
-	return err
+	return fmt.Errorf("TimeoutInternal is an internal message only")
 }
 
 func (m *TimeoutInternal) String() string {

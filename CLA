@@ -1,0 +1,48 @@
+
+Contributor License Agreement
+=============================
+
+Factom Inc. and the Factom community wish to encourage contributions to the software, documentation, and other
+materials. We also wish to maintain the most flexibility in how the development of the Factom protocol is organized and
+managed in the future.
+
+The purpose of this agreement is to provide to the Community, through Factom Inc., the flexibility to manage how Factom
+software, documents, etc. are licensed and distributed.
+
+In order for the core developers of the Factom protocol to be able to accept and approve your pull requests to any of
+the Factom repositories [found under github.com/FactomProject], contributors are required to agree to this Contributor
+License Agreement (CLA). The CLA applies to the pull request the agreement is made within, and any subsequent pull requests.
+You can agree to the CLA by adding your name to this file, and submitting the resulting updated CLA.txt as a pull request
+to the factomd repository.  This will indicate that you agree and attest:
+
+  * This agreement applies to all Factom Protocol repositories, found under [github.com/FactomProject]
+  * You agree to adhere to the github terms of service [https://help.github.com/articles/github-terms-of-service/]
+  * Additionally you agree that Factom Inc. has the right to change the software license under which any of your pull
+    requests past or future are distributed.
+  * This agreement can be updated to reflect changes in repository locations, URLs, and signing instructions without
+    invalidating the agreement.
+  * This agreement may be sub-licensed to other parties by Factom, Inc. which would extend all the rights granted by
+    by this agreement.
+
+
+Name                                       Github Account                               Optional: Organization                       Optional: Additional Info
+===================================        ======================================       =====================================        ================================
+Paul Snow                                  PaulSnow                                     Factom Inc.                                  Founder and Architect of Factom
+Brian Deery                                carryforward                                 Factom Inc.
+Paul Bernier                               PaulBernier                                  Luciap Technology Inc.
+Carl DiClementi                            Cahl-Dee                                     Factom Inc.                                       Product Management @ Factom
+Matt York                                  stackdump                                    Factom Inc.
+Sam Barnes                                 sambarnes                                    Factom Inc.
+Michael Beam                               michaelbeam                                  Factom Inc.
+Joshua Brigati                             JoshuaBrigati                                Factom Inc.
+Samuel Vanderwaal                          samuelvanderwaal                             Canonical Ledgers
+Adam S Levy                                AdamSLevy                                    Canonical Ledgers, LLC
+Who Soup                                   WhoSoup                                      Factomize LLC
+Thomas Meier                               ThomasMeier                                  LayerTech LLC
+Niels Klomp                                nklomp                                       Centis BV, Sphereon BV, BIF
+Clay Douglass                              factom-clay                                  Factom Inc.
+Sander Postma                              sanderPostma                                 AtomicVoid, Sphereon BV, BIF
+Tor Hogne Paulsen                          Tor Hogne                                    The 42nd Factoid AS, TFA                     Factom Protocol Guide
+Steven Masley                              Emyrk                                        Factom Inc.
+Michael Lam                                factablesolutions                            Factable Solutions LLC
+Valentin Ganev                             sanchopansa                                  Factomatic LLC

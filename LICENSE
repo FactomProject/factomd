@@ -78,6 +78,7 @@ golangcrypto, Copyright (c) 2009 The Go Authors. All rights reserved.
 netki-go-partner-client, Copyright (c) 2015, Netki, Inc.
 seelog, Copyright (c) 2012, Cloud Instruments Co., Ltd. info@cin.io All rights reserved.
 snappy-go, Copyright (c) 2011 The Snappy-Go Authors. All rights reserved.
+mux, Copyright (c) 2012-2018 The Gorilla Authors. All rights reserved.
 
 Use of any of this software is governed by the terms of the terms and conditions set forth below:
 

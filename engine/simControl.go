@@ -100,11 +100,13 @@ func SimControl(listenTo int, listenStdin bool) {
 	var faulting bool
 	var cancelheight int = -1
 	var cancelindex int = -1
+	var initchainCost = 11
 
 	ListenTo = listenTo
 
 	if loadGenerator == nil {
 		loadGenerator = NewLoadGenerator(fnodes[0].State)
+		go loadGenerator.KeepUsFunded()
 	}
 
 	for {
@@ -160,14 +162,13 @@ func SimControl(listenTo int, listenStdin bool) {
 				os.Stderr.WriteString(fmt.Sprintf("Recording delays due to blocked go routines longer than %d ns (%d ms)\n", delay, delay/1000000))
 
 			case 'g' == b[0]:
+				limitBuys = false
 				if len(b) > 1 {
 					if b[1] == 'c' {
 						copyOver(fnodes[ListenTo].State)
 						break
 					}
 					if b[1] == 'f' {
-						loadGenerator.GetECs(true, 1000)
-						//FundWallet(fnodes[wsapiNode].State, uint64(200*5e7))
 						break
 					}
 				}
@@ -178,7 +179,6 @@ func SimControl(listenTo int, listenStdin bool) {
 				wsapi.SetState(fnodes[wsapiNode].State)
 
 				if nextAuthority == -1 {
-					loadGenerator.GetECs(true, 1000)
 					//err, _ := FundWallet(fnodes[wsapiNode].State, 2e7)
 					//if err != nil {
 					//	os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
@@ -199,12 +199,18 @@ func SimControl(listenTo int, listenStdin bool) {
 							os.Stderr.WriteString(fmt.Sprint("You can only pop a max of 100 off the stack at a time."))
 							count = 100
 						}
-						loadGenerator.GetECs(true, 1000)
 						//err := fundWallet(fnodes[wsapiNode].State, uint64(count*5e7))
 						//if err != nil {
 						//	os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
 						//	break
 						//}
+
+						// Perfectly fund the g command
+						idcost := 13 + 15 + 1 // Cost for 1 ID : Root + Management + Register
+						need := (idcost * count) + initchainCost
+						FundWalletTOFF(fnodes[wsapiNode].State, 0, uint64(need)*fnodes[wsapiNode].State.GetFactoshisPerEC())
+
+						initchainCost = 0 // Init only happens once. We set to 0 to not count it again
 						auths, skipped, err := authorityToBlockchain(count, fnodes[wsapiNode].State)
 						if err != nil {
 							os.Stderr.WriteString(fmt.Sprintf("Error making authorities, %s\n", err.Error()))
@@ -275,6 +281,14 @@ func SimControl(listenTo int, listenStdin bool) {
 					os.Stderr.WriteString("--Print Summary Off--\n")
 				}
 			case 'E' == b[0]:
+				if len(b) == 2 {
+					if b[1] == 's' {
+						if fnodes[listenTo].State.GetElections() != nil && fnodes[listenTo].State.GetElections().GetAdapter() != nil {
+							os.Stderr.WriteString(fnodes[listenTo].State.GetElections().GetAdapter().Status())
+							break
+						}
+					}
+				}
 				elections++
 				if elections%2 == 1 {
 					os.Stderr.WriteString("--Print Elections On--\n")
@@ -655,7 +669,7 @@ func SimControl(listenTo int, listenStdin bool) {
 							vf := v.Validate(f.State)
 							if v != nil {
 								repeat := f.State.Replay.IsHashUnique(constants.REVEAL_REPLAY, v.GetHash().Fixed())
-								os.Stderr.WriteString(fmt.Sprintf("%s v %d cnt %d notYet: %v\n", v.String(), vf, v.GetResendCnt(), repeat))
+								os.Stderr.WriteString(fmt.Sprintf("%s v %d cnt %d notYet: %v holdingKey-%x\n", v.String(), vf, v.GetResendCnt(), repeat, k[:6]))
 							} else {
 								os.Stderr.WriteString("<nul>\n")
 							}
@@ -667,7 +681,7 @@ func SimControl(listenTo int, listenStdin bool) {
 							if c != nil {
 								vf := c.Validate(f.State)
 								repeat := f.State.Replay.IsHashUnique(constants.REVEAL_REPLAY, c.GetHash().Fixed())
-								os.Stderr.WriteString(fmt.Sprintf("%s v %d %x cnt %d notYet: %v\n", c.String(), vf, k, c.GetResendCnt(), repeat))
+								os.Stderr.WriteString(fmt.Sprintf("%s v %d %x cnt %d notYet: %v commitKey-%x \n", c.String(), vf, k, c.GetResendCnt(), repeat, k[:6]))
 								cc, ok1 := c.(*messages.CommitChainMsg)
 								cm, ok2 := c.(*messages.CommitEntryMsg)
 								if ok1 && f.State.Holding[cc.CommitChain.EntryHash.Fixed()] != nil {
@@ -963,7 +977,6 @@ func SimControl(listenTo int, listenStdin bool) {
 					}
 					wsapiNode = ListenTo
 					wsapi.SetState(fnodes[wsapiNode].State)
-					loadGenerator.GetECs(true, 1000)
 
 					//err, _ := FundWallet(fnodes[ListenTo].State, 1e8)
 					//if err != nil {
@@ -1094,18 +1107,43 @@ func SimControl(listenTo int, listenStdin bool) {
 				}
 
 				fnodes[ListenTo].State.DropRate = nnn
-				os.Stderr.WriteString(fmt.Sprintf("Setting drop rate of %10s to %2d.%01d percent\n", fnodes[ListenTo].State.FactomNodeName, nnn/10, nnn%10))
+				os.Stderr.WriteString(fmt.Sprintf("Setting drop rate of %10s to %2d.%01d percent\n",
+					fnodes[ListenTo].State.FactomNodeName, nnn/10, nnn%10))
 
+				// modify the blocktime or modify the effective clocks on leaders in a simulation
 			case 'T' == b[0]:
-				nn, err := strconv.Atoi(string(b[1:]))
-				if err != nil || nn < 5 || nn > 800 {
-					os.Stderr.WriteString("Specify a block time between 5 and 600 seconds\n")
+				left := " "
+				if len(b) >= 2 {
+					left = b[1:]
+				}
+				nn, err := strconv.Atoi(string(left))
+				if err == nil {
+					if nn < 5 || nn > 800 {
+						os.Stderr.WriteString("Specify a block time between 5 and 600 seconds\n")
+						break
+					}
+					os.Stderr.WriteString(fmt.Sprint("Setting the block time for all nodes to ", nn, "\n"))
+					for _, f := range fnodes {
+						f.State.SetDirectoryBlockInSeconds(nn)
+					}
 					break
 				}
-				os.Stderr.WriteString(fmt.Sprint("Setting the block time for all nodes to ", nn, "\n"))
-				for _, f := range fnodes {
-					f.State.SetDirectoryBlockInSeconds(nn)
+				switch left[0] {
+				case 's':
+					fmt.Fprintln(os.Stderr, "Start the Randomizing the clocks by 1 second (or re-randomize)")
+					for _, fn := range fnodes {
+						fn.State.TimeOffset = primitives.NewTimestampFromMilliseconds(uint64(rand.Intn(1000)))
+					}
+				case 'e':
+					fmt.Fprintln(os.Stderr, "End Randomizing the clocks by 1 second")
+					for _, fn := range fnodes {
+						fn.State.TimeOffset.SetTime(0)
+					}
+				default:
+					os.Stderr.WriteString("Must provide either a time to specify a block time, or " +
+						"other 's' specifier for spreading clocks over the simulator.\n")
 				}
+
 			case 'F' == b[0]:
 				nn, err := strconv.Atoi(string(b[1:]))
 				nnn := int64(nn)
@@ -1116,14 +1154,15 @@ func SimControl(listenTo int, listenStdin bool) {
 
 				for _, fn := range fnodes {
 					fn.State.Delay = nnn
-					os.Stderr.WriteString(fmt.Sprintf("Setting Delay on communications from %10s to %2d.%03d Seconds\n", fn.State.FactomNodeName, nnn/1000, nnn%1000))
+					fmt.Fprintf(os.Stderr, "Setting Delay on communications from %10s to %2d.%03d Seconds\n",
+						fn.State.FactomNodeName, nnn/1000, nnn%1000)
 				}
 
 				for _, f := range fnodes {
 					for _, p := range f.Peers {
 						sim, ok := p.(*SimPeer)
 						if ok {
-							sim.Delay = nnn
+							sim.Delay = nnn // Set the delay in milliseconds
 						}
 					}
 				}
@@ -1188,9 +1227,7 @@ func SimControl(listenTo int, listenStdin bool) {
 				}
 			case 'R' == b[0]:
 				// load generation
-				if loadGenerator == nil && len(fnodes) > ListenTo {
-					loadGenerator = NewLoadGenerator(fnodes[ListenTo].State)
-				} else if loadGenerator == nil {
+				if loadGenerator == nil {
 					os.Stderr.WriteString("Currently no default State we can use for the load generator\n")
 					continue
 				}
@@ -1261,7 +1298,6 @@ func SimControl(listenTo int, listenStdin bool) {
 
 				wsapiNode = ListenTo
 				wsapi.SetState(fnodes[wsapiNode].State)
-				loadGenerator.GetECs(true, 1000)
 				//err = fundWallet(fnodes[ListenTo].State, 1e8)
 				//if err != nil {
 				//	os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
@@ -1291,7 +1327,6 @@ func SimControl(listenTo int, listenStdin bool) {
 
 				wsapiNode = ListenTo
 				wsapi.SetState(fnodes[wsapiNode].State)
-				loadGenerator.GetECs(true, 1000)
 				//err = fundWallet(fnodes[ListenTo].State, 1e8)
 				//if err != nil {
 				//	os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
@@ -1390,6 +1425,8 @@ func SimControl(listenTo int, listenStdin bool) {
 				os.Stderr.WriteString("y             Dump what is in the Holding Map.  Can crash, but oh well.\n")
 				os.Stderr.WriteString("m             Show Messages as they are passed through the simulator.\n")
 				os.Stderr.WriteString("Tnnn          Set the block time to the given number of seconds.\n")
+				os.Stderr.WriteString("Ts            Set a random offset in the various machines in a simulation to vary the ticker timer for leaders\n")
+				os.Stderr.WriteString("Te            set the offset to zero in the various machines in a simulation to not vary the ticker timer for leaders\n")
 				os.Stderr.WriteString("c             Trace the Consensus Process\n")
 				os.Stderr.WriteString("s             Show the state of all nodes as their state changes in the simulator.\n")
 				os.Stderr.WriteString("Snnn          Print the last nnn status messages from the current node.\n")

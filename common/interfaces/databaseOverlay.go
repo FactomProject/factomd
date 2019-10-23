@@ -33,6 +33,7 @@ type DBOverlaySimple interface {
 	FetchPaidFor(hash IHash) (IHash, error)
 	FetchAllEBlocksByChain(IHash) ([]IEntryBlock, error)
 	InsertEntryMultiBatch(entry IEBEntry) error
+	InsertEntry(entry IEBEntry) error
 	ProcessABlockMultiBatch(block DatabaseBatchable) error
 	ProcessDBlockMultiBatch(block DatabaseBlockWithEntries) error
 	ProcessEBlockBatch(eblock DatabaseBlockWithEntries, checkForDuplicateEntries bool) error
@@ -250,7 +251,10 @@ type DBOverlay interface {
 	SaveIncludedInMultiFromBlock(block DatabaseBlockWithEntries, checkForDuplicateEntries bool) error
 	SaveIncludedInMulti(entries []IHash, block IHash, checkForDuplicateEntries bool) error
 	FetchIncludedIn(hash IHash) (IHash, error)
-	RebuildDirBlockInfo() error
+
+	ReparseAnchorChains() error
+	SetBitcoinAnchorRecordPublicKeysFromHex([]string) error
+	SetEthereumAnchorRecordPublicKeysFromHex([]string) error
 
 	FetchPaidFor(hash IHash) (IHash, error)
 

@@ -1,5 +1,5 @@
-hash: e8f68120ce8168ee17fd0a8130ecd515859d2802744318f6257fb50c4bdd4574
-updated: 2018-11-16T15:27:25.808760421-06:00
+hash: 69316cdb6a96be11003a45316ae6dc668c5b12aa76a59a3fe2036c39515cc331
+updated: 2019-08-14T15:47:12.374507909-05:00
 imports:
 - name: github.com/beorn7/perks
   version: 3a771d992973f24aa725d07868b467d1ddfceafb
@@ -9,6 +9,10 @@ imports:
   version: f2b1058a82554c0c7c3b8809c5956c38374604d8
   subpackages:
   - base58
+- name: github.com/davecgh/go-spew
+  version: d8f796af33cc11cb798c1aaeb27a4ebc5099927d
+  subpackages:
+  - spew
 - name: github.com/dustin/go-humanize
   version: 9f541cc9db5d55bce703bd99987c9d5cb8eea45e
 - name: github.com/FactomProject/basen
@@ -27,13 +31,13 @@ imports:
   subpackages:
   - edwards25519
 - name: github.com/FactomProject/factom
-  version: 92b9a9bb5aa25574d8b950bf4e9daec78c8980b2
+  version: e7717c4ab0726249c9fb9be4c9a07f62611d8b2e
 - name: github.com/FactomProject/go-bip32
   version: 3b593af1c415abc1017648e4eb24a88c32fee0f3
 - name: github.com/FactomProject/go-bip39
   version: d1007fb78d9a7ec65314dad412973e63caf4c527
 - name: github.com/FactomProject/go-bip44
-  version: fd672f46ddc35bb381f497f7b64c9cf34f9e0703
+  version: b541a96d8da98567af7610ef96105a834e6ed46c
 - name: github.com/FactomProject/go-simplejson
   version: aabad6e819789e569bd6aabf444c935aa9ba1e44
 - name: github.com/FactomProject/goleveldb
@@ -62,8 +66,6 @@ imports:
   - utils
 - name: github.com/FactomProject/snappy-go
   version: f2f83b22c29e5abc60e3a95062ce1491d3b95371
-- name: github.com/FactomProject/web
-  version: 5bb394cc64239b77f571bbddc9a47c80c4d2283f
 - name: github.com/golang/protobuf
   version: ddf22928ea3c56eb4292a0adbbf5001b1e8e7d0d
   subpackages:
@@ -72,6 +74,8 @@ imports:
   - ptypes/any
   - ptypes/duration
   - ptypes/timestamp
+- name: github.com/gorilla/mux
+  version: e67b3c02c7195c052acff13261f0c9fd1ba53011
 - name: github.com/hashicorp/go-hclog
   version: 61d530d6c27f994fb6c83b80f99a69c54125ec8a
 - name: github.com/hashicorp/go-plugin
@@ -98,6 +102,10 @@ imports:
   version: 6d0b8010fcc857872e42fc6c931227569016843c
 - name: github.com/oklog/run
   version: 6934b124db28979da51d3470dadfa34d73d72652
+- name: github.com/pmezard/go-difflib
+  version: 792786c7400a136282c1664665ae0a8db921c6c2
+  subpackages:
+  - difflib
 - name: github.com/prometheus/client_golang
   version: 1cafe34db7fdec6022e17e00e1c1ea501022f3e4
   subpackages:
@@ -128,7 +136,7 @@ imports:
 - name: github.com/spf13/pflag
   version: 298182f68c66c05229eb03ac171abe6e309ee79a
 - name: github.com/stretchr/testify
-  version: f35b8ab0b5a2cef36673838d662e249dd9c94686
+  version: ffdc059bfe9ce6a4e144ba849dbedead332c6053
   subpackages:
   - assert
 - name: golang.org/x/crypto
@@ -148,7 +156,6 @@ imports:
   - idna
   - internal/timeseries
   - trace
-  - websocket
 - name: golang.org/x/sys
   version: fa43e7bc11baaae89f3f902b2b4d832b68234844
   subpackages:
@@ -211,15 +218,7 @@ imports:
 - name: gopkg.in/yaml.v2
   version: 5420a8b6744d3b0345ab293f6fcba19c978f1183
 testImports:
-- name: github.com/davecgh/go-spew
-  version: d8f796af33cc11cb798c1aaeb27a4ebc5099927d
-  subpackages:
-  - spew
 - name: github.com/FactomProject/go-spew
   version: ddfaec9b42f58fc8172b0cbb03b21c6668dd0a46
   subpackages:
   - spew
-- name: github.com/pmezard/go-difflib
-  version: 792786c7400a136282c1664665ae0a8db921c6c2
-  subpackages:
-  - difflib

@@ -225,4 +225,48 @@ func TestNewPrivateKeyFromHex(t *testing.T) {
 	if AreBytesEqual(pk1.Pub[:], pubKeyBytes[:]) == false {
 		t.Errorf("Public keys are not equal - %x vs %x", pk1.Pub[:], pubKeyBytes[:])
 	}
+
+	priv2 := pk1.PrivateKeyString()
+	pub2 := pk1.PublicKeyString()
+	if priv != priv2 {
+		t.Error("Could not retrieve private key string")
+	}
+	if pub != pub2 {
+		t.Error("Could not retrieve public key string")
+	}
+
+	priv3 := RandomPrivateKey()
+	if priv3.PrivateKeyString() == priv {
+		// Note: in theory this COULD fail, if you randomly retrieve the same key, but we ignore this small probability
+		t.Error("Failed difference check")
+	}
+}
+
+// TestPublicKeyMarshalUnmarshalText tests that a public key can be marshalled/unmarshalled from to/from text properly
+func TestPublicKeyMarshalUnmarshalText(t *testing.T) {
+	pub := PubKeyFromString("my test string")
+
+	t1, err := pub.MarshalText()
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	pub2 := new(PublicKey)
+	err = pub2.UnmarshalText(t1)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	if pub.IsSameAs(pub2) == false {
+		t.Error("Marshal/Unmarshal Text failed")
+	}
+	if pub.IsSameAs(nil) == true {
+		t.Error("IsSameAs failed on nil input")
+	}
+	pub3, err := pub2.Copy()
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	if pub.IsSameAs(pub3) == false {
+		t.Error("Public key copy failed")
+	}
+
 }

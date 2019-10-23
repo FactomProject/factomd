@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"os"
 	"reflect"
-	//"github.com/FactomProject/factomd/state"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -18,6 +17,8 @@ import (
 	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/goleveldb/leveldb/errors"
+
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -104,7 +105,7 @@ func (m *FedVoteVolunteerMsg) FollowerExecute(is interfaces.IState) {
 	e := s.Elections.(*elections.Elections)
 	if e.Adapter == nil {
 		//s.Holding[m.GetMsgHash().Fixed()] = m
-		s.AddToHolding(m.GetMsgHash().Fixed(), m)
+		s.AddToHolding(m.GetMsgHash().Fixed(), m) // FedVoteVolunteerMsg.FollowerExecute
 		return
 	}
 
@@ -208,11 +209,11 @@ func (m *FedVoteVolunteerMsg) GetHash() (rval interfaces.IHash) {
 			primitives.LogNilHashBug("FedVoteVolunteerMsg.GetHash() saw an interface that was nil")
 		}
 	}()
-	return m.GetMsgHash()
+	return m.Missing.GetMsgHash()
 }
 
 func (m *FedVoteVolunteerMsg) GetTimestamp() interfaces.Timestamp {
-	return m.TS
+	return m.TS.Clone()
 }
 
 func (m *FedVoteVolunteerMsg) GetMsgHash() (rval interfaces.IHash) {
@@ -283,6 +284,7 @@ func (m *FedVoteVolunteerMsg) UnmarshalBinaryData(data []byte) (newData []byte, 
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling: %v", r)
 		}
 	}()
 
@@ -451,12 +453,14 @@ func (m *FedVoteVolunteerMsg) String() string {
 	if m.LeaderChainID == nil {
 		m.LeaderChainID = primitives.NewZeroHash()
 	}
-	return fmt.Sprintf("%19s %20s %20s ID: %x weight %x serverIdx: %d vmIdx: %d round %d dbheight: %d minute: %d ",
+	return fmt.Sprintf("%19s %20s %20s ID: %x weight %x fedID: %x fedIdx: %d serverIdx: %d vmIdx: %d round %d dbheight: %d minute: %d ",
 		m.Name,
 		"Volunteer Audit",
 		m.TS.String(),
 		m.ServerID.Bytes()[3:6],
 		m.Weight.Bytes()[:3],
+		m.FedID.Bytes()[3:6],
+		m.FedIdx,
 		m.ServerIdx,
 		m.VMIndex,
 		m.Round,

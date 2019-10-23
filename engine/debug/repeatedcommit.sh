@@ -1,4 +1,5 @@
-#/bin/bash
+#!/usr/bin/env bash
+
 #set -x
 # repeatedly attempt repeating identical commits
 

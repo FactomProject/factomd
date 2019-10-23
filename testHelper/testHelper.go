@@ -3,6 +3,13 @@ package testHelper
 //A package for functions used multiple times in tests that aren't useful in production code.
 
 import (
+	"bytes"
+	"encoding/binary"
+	"os/exec"
+	"regexp"
+	"runtime"
+
+	"github.com/FactomProject/factom"
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
@@ -12,14 +19,13 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/mapdb"
-	//"github.com/FactomProject/factomd/engine"
-	//"github.com/FactomProject/factomd/log"
+
 	"time"
 
-	"github.com/FactomProject/factomd/state"
-	//"fmt"
 	"fmt"
 	"os"
+
+	"github.com/FactomProject/factomd/state"
 
 	"github.com/FactomProject/factomd/common/messages/electionMsgs"
 )
@@ -39,6 +45,8 @@ func CreateEmptyTestState() *state.State {
 	s.Network = "LOCAL"
 	s.CheckChainHeads.CheckChainHeads = false
 	state.LoadDatabase(s)
+	s.Process()
+	s.DBFinished = true
 	return s
 }
 
@@ -55,6 +63,46 @@ func CreatePopulateAndExecuteTestState() *state.State {
 	ExecuteAllBlocksFromDatabases(s)
 	go s.ValidatorLoop()
 	time.Sleep(30 * time.Millisecond)
+
+	return s
+}
+
+func CreateAndPopulateStaleHolding() *state.State {
+	s := CreateAndPopulateTestState()
+
+	// TODO: refactor into test helpers
+	a := AccountFromFctSecret("Fs2zQ3egq2j99j37aYzaCddPq9AF3mgh64uG9gRaDAnrkjRx3eHs")
+
+	encode := func(s string) []byte {
+		b := bytes.Buffer{}
+		b.WriteString(s)
+		return b.Bytes()
+	}
+
+	id := "92475004e70f41b94750f4a77bf7b430551113b25d3d57169eadca5692bb043d"
+	extids := [][]byte{encode(fmt.Sprintf("makeStaleMessages"))}
+
+	e := factom.Entry{
+		ChainID: id,
+		ExtIDs:  extids,
+		Content: encode(fmt.Sprintf("this is a stale message")),
+	}
+
+	// create stale MilliTime
+	mockTime := func() (r []byte) {
+		buf := new(bytes.Buffer)
+		t := time.Now().UnixNano()
+		m := t/1e6 - state.FilterTimeLimit // make msg too old
+		binary.Write(buf, binary.BigEndian, m)
+		return buf.Bytes()[2:]
+	}
+
+	// adding a commit w/ no REVEAL
+	m, _ := ComposeCommitEntryMsg(a.Priv, e)
+	copy(m.CommitEntry.MilliTime[:], mockTime())
+
+	// add commit to holding
+	s.Hold.Add(m.GetMsgHash().Fixed(), m)
 
 	return s
 }
@@ -86,7 +134,9 @@ func CreateAndPopulateTestState() *state.State {
 		panic(err)
 	}*/
 	s.SetFactoshisPerEC(1)
+	s.MMRDummy() // Need to start MMR to ensure queues don't fill up
 	state.LoadDatabase(s)
+	s.Process()
 	s.UpdateState()
 
 	return s
@@ -145,6 +195,7 @@ func ExecuteAllBlocksFromDatabases(s *state.State) {
 	msgs := GetAllDBStateMsgsFromDatabase(s)
 	for _, dbs := range msgs {
 		dbs.(*messages.DBStateMsg).IgnoreSigs = true
+		dbs.(*messages.DBStateMsg).IsInDB = true
 
 		s.FollowerExecuteDBState(dbs)
 	}
@@ -165,19 +216,7 @@ func CreateTestDBStateList() []interfaces.IMsg {
 	return answer
 }
 
-func MakeSureAnchorValidationKeyIsPresent() {
-	priv := NewPrimitivesPrivateKey(0)
-	pub := priv.Pub
-	for _, v := range databaseOverlay.AnchorSigPublicKeys {
-		if v.String() == pub.String() {
-			return
-		}
-	}
-	databaseOverlay.AnchorSigPublicKeys = append(databaseOverlay.AnchorSigPublicKeys, pub)
-}
-
 func PopulateTestDatabaseOverlay(dbo *databaseOverlay.Overlay) {
-	MakeSureAnchorValidationKeyIsPresent()
 	var prev *BlockSet = nil
 	var err error
 
@@ -227,7 +266,7 @@ func PopulateTestDatabaseOverlay(dbo *databaseOverlay.Overlay) {
 		}
 	}
 	/*
-		err = dbo.RebuildDirBlockInfo()
+		err = dbo.ReparseAnchorChains()
 		if err != nil {
 			panic(err)
 		}
@@ -374,4 +413,40 @@ func PrintList(title string, list map[string]uint64) {
 	for addr, amt := range list {
 		fmt.Printf("%v - %v:%v\n", title, addr, amt)
 	}
+}
+
+func SystemCall(cmd string) []byte {
+	fmt.Println("SystemCall(\"", cmd, "\")")
+	out, err := exec.Command("sh", "-c", cmd).Output()
+	if err != nil {
+		foo := err.Error()
+		fmt.Println(foo)
+		os.Exit(1)
+		panic(err)
+	}
+	fmt.Print(string(out))
+	return out
+}
+
+var testNameRe = regexp.MustCompile(`\.Test\w+$`)
+
+// find Test Function name in stack
+func GetTestName() (name string) {
+	targetFrameIndex := 4 // limit caller frame depth to check for a test name
+
+	programCounters := make([]uintptr, targetFrameIndex+2)
+	n := runtime.Callers(0, programCounters)
+
+	if n > 0 {
+		frames := runtime.CallersFrames(programCounters[:n])
+		var frameCandidate runtime.Frame
+		for more, frameIndex := true, 0; more && frameIndex <= targetFrameIndex; frameIndex++ {
+			frameCandidate, more = frames.Next()
+			if testNameRe.MatchString(frameCandidate.Function) {
+				return testNameRe.FindString(frameCandidate.Function)[1:]
+			}
+		}
+	}
+
+	return name
 }

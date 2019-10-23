@@ -22,7 +22,7 @@ func main() {
 		loglvl     = flag.String("loglvl", "info", "Sets log level to 'debug', 'info', 'warning', or 'error'")
 		configfile = flag.String("config", "", "Generator config file location.")
 		genconfig  = flag.Bool("genconfig", false, "Does not run the program, but instead outputs the default config file")
-		profiling  = flag.Bool("profile", false, "Turn on profiling on :6060")
+		profiling  = flag.Bool("profile", true, "Turn on profiling on :6060")
 	)
 	flag.IntVar(&blockcount, "b", 1000, "Number of blocks to generate")
 
