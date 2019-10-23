@@ -5,7 +5,6 @@
 package p2p
 
 import (
-	"bytes"
 	"fmt"
 	"hash/crc32"
 
