@@ -22,6 +22,7 @@ func NetworkProcessorNet(fnode *FactomNode) {
 	go Peers(fnode)
 	go NetworkOutputs(fnode)
 	go InvalidOutputs(fnode)
+	go MissingData(fnode)
 }
 
 func Peers(fnode *FactomNode) {
@@ -100,9 +101,6 @@ func Peers(fnode *FactomNode) {
 				return true
 			case constants.MISSING_DATA:
 				if !fnode.State.DBFinished {
-					return true
-				} else if fnode.State.InMsgQueue().Length() > constants.INMSGQUEUE_HIGH {
-					// If > 4000, we won't get to this in time anyway. Just drop it since we are behind
 					return true
 				}
 			case constants.ACK_MSG:
@@ -365,6 +363,9 @@ func sendToExecute(msg interfaces.IMsg, fnode *FactomNode, source string) {
 	case constants.COMMIT_ENTRY_MSG:
 		Q2(fnode, source, msg) // slow track
 
+	case constants.MISSING_DATA:
+		DataQ(fnode, source, msg) // separated missing data queue
+
 	default:
 		//todo: Probably should send EOM/DBSig and their ACKs on a faster yet track
 		// in general this makes ACKs more likely to arrive first.
@@ -387,6 +388,12 @@ func Q2(fnode *FactomNode, source string, msg interfaces.IMsg) {
 	fnode.State.LogMessage("NetworkInputs", source+", enqueue2", msg)
 	fnode.State.LogMessage("InMsgQueue2", source+", enqueue2", msg)
 	fnode.State.InMsgQueue2().Enqueue(msg)
+}
+
+func DataQ(fnode *FactomNode, source string, msg interfaces.IMsg) {
+	q := fnode.State.DataMsgQueue()
+	fnode.State.LogMessage("DataQueue", fmt.Sprintf(source+", enqueue %v", len(q)), msg)
+	q <- msg
 }
 
 func NetworkOutputs(fnode *FactomNode) {
@@ -532,5 +539,17 @@ func InvalidOutputs(fnode *FactomNode) {
 		// if len(invalidMsg.GetNetworkOrigin()) > 0 {
 		// 	p2pNetwork.AdjustPeerQuality(invalidMsg.GetNetworkOrigin(), -2)
 		// }
+	}
+}
+
+// Handle requests for missing data
+func MissingData(fnode *FactomNode) {
+	q := fnode.State.DataMsgQueue()
+	for {
+		select {
+		case msg := <- q:
+			fnode.State.LogMessage("DataQueue", fmt.Sprintf("dequeue %v", len(q)), msg)
+			msg.(*messages.MissingData).SendResponse(fnode.State)
+		}
 	}
 }
