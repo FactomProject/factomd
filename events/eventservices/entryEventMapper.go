@@ -41,7 +41,7 @@ func mapRevealEntryEvent(entityState eventmessages.EntityState, revealEntry *mes
 		EntryReveal: &eventmessages.EntryReveal{
 			EntityState: entityState,
 			Entry:       mapEntryBlockEntry(revealEntry.Entry, true),
-			Timestamp:   convertTimeToTimestamp(revealEntry.Timestamp.GetTime()),
+			Timestamp:   ConvertTimeToTimestamp(revealEntry.Timestamp.GetTime()),
 		},
 	}
 }

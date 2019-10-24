@@ -163,9 +163,9 @@ func convertByteSlice6ToTimestamp(milliTime *primitives.ByteSlice6) *types.Times
 	copy(slice8[2:], milliTime[:])
 	millis := int64(binary.BigEndian.Uint64(slice8))
 	t := time.Unix(0, millis*1000000)
-	return convertTimeToTimestamp(t)
+	return ConvertTimeToTimestamp(t)
 }
 
-func convertTimeToTimestamp(time time.Time) *types.Timestamp {
-	return &types.Timestamp{Seconds: int64(time.Second()), Nanos: int32(time.Nanosecond())}
+func ConvertTimeToTimestamp(time time.Time) *types.Timestamp {
+	return &types.Timestamp{Seconds: time.Unix(), Nanos: int32(time.Nanosecond())}
 }

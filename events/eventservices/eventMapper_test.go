@@ -15,6 +15,7 @@ import (
 	"github.com/FactomProject/factomd/testHelper"
 	"github.com/stretchr/testify/assert"
 	"testing"
+	"time"
 )
 
 var testState = &state.State{
@@ -22,17 +23,7 @@ var testState = &state.State{
 	RunState:        runstate.Running,
 }
 
-func TestEventMappers(t *testing.T) {
-	t.Run("Run eventmapper tests", func(t *testing.T) {
-		t.Run("TestDBStateMapping", testDBStateMapping)
-		t.Run("TestCommitChainMapping", testCommitChainMapping)
-		t.Run("TestCommitEntryMapping", testCommitEntryMapping)
-		t.Run("TestStateChangeMapping", testStateChangeMapping)
-		t.Run("TestEntryRevealMapping", testEntryRevealMapping)
-	})
-}
-
-func testDBStateMapping(t *testing.T) {
+func TestDBStateMapping(t *testing.T) {
 	msg := newDBStateMsg()
 	data, _ := msg.MarshalBinary()
 	assert.Len(t, data, 2409, msgChangedMessage("DBStateMsg"))
@@ -122,7 +113,7 @@ func newDBStateMsg() *messages.DBStateMsg {
 	return msg
 }
 
-func testCommitChainMapping(t *testing.T) {
+func TestCommitChainMapping(t *testing.T) {
 	msg := newCommitChainMsg()
 	data, _ := msg.MarshalBinary()
 	assert.Len(t, data, 201, msgChangedMessage("CommitChainMsg"))
@@ -153,7 +144,7 @@ func newCommitChainMsg() *messages.CommitChainMsg {
 	return msg
 }
 
-func testCommitEntryMapping(t *testing.T) {
+func TestCommitEntryMapping(t *testing.T) {
 	msg := newCommitEntryMsg()
 	data, _ := msg.MarshalBinary()
 	assert.Len(t, data, 137, msgChangedMessage("CommitEntryMsg"))
@@ -185,7 +176,7 @@ func newCommitEntryMsg() *messages.CommitEntryMsg {
 	return msg
 }
 
-func testEntryRevealMapping(t *testing.T) {
+func TestEntryRevealMapping(t *testing.T) {
 	msg := newEntryRevealMsg()
 	data, _ := msg.MarshalBinary()
 	assert.Len(t, data, 60, msgChangedMessage("RevealEntryMsg"))
@@ -221,7 +212,7 @@ func newEntryRevealMsg() *messages.RevealEntryMsg {
 	return msg
 }
 
-func testStateChangeMapping(t *testing.T) {
+func TestStateChangeMapping(t *testing.T) {
 	msg := newCommitEntryMsg()
 	data, _ := msg.MarshalBinary()
 	assert.Len(t, data, 137, msgChangedMessage("CommitEntryMsg"))
@@ -458,6 +449,16 @@ func TestMapToFactomEventRevealNoContentRegistration(t *testing.T) {
 	event, err := eventservices.MapToFactomEvent(input, eventservices.BroadcastNever, true)
 	assert.Nil(t, err)
 	assert.Nil(t, event)
+}
+
+func TestConvertTimeToTimestamp(t *testing.T) {
+	// 2019-10-24 11:56:18.338002 = 1571910978 and 338001966 nanos
+	now := time.Date(2019, 10, 24, 11, 56, 18, 338001966, time.Now().Location())
+	timestamp := eventservices.ConvertTimeToTimestamp(now)
+
+	assert.NotNil(t, timestamp)
+	assert.Equal(t, int64(1571910978), timestamp.Seconds)
+	assert.Equal(t, int32(338001966), timestamp.Nanos)
 }
 
 func setServiceState(state eventservices.BroadcastContent) func(t *testing.T) {

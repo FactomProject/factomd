@@ -33,7 +33,7 @@ func mapTransaction(transaction interfaces.ITransaction) *eventmessages.Transact
 	result := &eventmessages.Transaction{
 		TransactionID:                 transaction.GetSigHash().Bytes(),
 		BlockHeight:                   transaction.GetBlockHeight(),
-		Timestamp:                     convertTimeToTimestamp(transaction.GetTimestamp().GetTime()),
+		Timestamp:                     ConvertTimeToTimestamp(transaction.GetTimestamp().GetTime()),
 		FactoidInputs:                 mapTransactionAddresses(transaction.GetInputs()),
 		FactoidOutputs:                mapTransactionAddresses(transaction.GetOutputs()),
 		EntryCreditOutputs:            mapTransactionAddresses(transaction.GetECOutputs()),
@@ -93,12 +93,12 @@ func mapSignatureBlocks(blocks []interfaces.ISignatureBlock) []*eventmessages.Fa
 
 func mapSignatureBlock(block interfaces.ISignatureBlock) *eventmessages.FactoidSignatureBlock {
 	result := &eventmessages.FactoidSignatureBlock{
-		Signature: mapFactoidSignatureBlockSingatures(block.GetSignatures()),
+		Signature: mapFactoidSignatureBlockSignatures(block.GetSignatures()),
 	}
 	return result
 }
 
-func mapFactoidSignatureBlockSingatures(signatures []interfaces.ISignature) [][]byte {
+func mapFactoidSignatureBlockSignatures(signatures []interfaces.ISignature) [][]byte {
 	result := make([][]byte, len(signatures))
 	for i, signature := range signatures {
 		result[i] = signature.Bytes()

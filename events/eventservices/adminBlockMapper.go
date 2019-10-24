@@ -222,7 +222,7 @@ func mapServerFault(entry interfaces.IABEntry) *eventmessages.AdminBlockEntry_Se
 	serverFault, _ := entry.(*adminBlock.ServerFault)
 	return &eventmessages.AdminBlockEntry_ServerFault{
 		ServerFault: &eventmessages.ServerFault{
-			Timestamp:          convertTimeToTimestamp(serverFault.Timestamp.GetTime()),
+			Timestamp:          ConvertTimeToTimestamp(serverFault.Timestamp.GetTime()),
 			ServerID:           serverFault.ServerID.Bytes(),
 			AuditServerID:      serverFault.AuditServerID.Bytes(),
 			VmIndex:            uint32(serverFault.VMIndex),
