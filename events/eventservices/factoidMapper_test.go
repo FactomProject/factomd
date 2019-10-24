@@ -26,9 +26,10 @@ func TestMapTransaction(t *testing.T) {
 	transaction := mapTransaction(factoidTransaction)
 
 	assert.NotNil(t, transaction)
-	assert.Equal(t, factoidTransaction.Txid.Bytes(), transaction.TransactionID)
+	assert.Equal(t, factoidTransaction.GetSigHash().Bytes(), transaction.TransactionID)
 	assert.Equal(t, factoidTransaction.BlockHeight, transaction.BlockHeight)
-	assert.Equal(t, factoidTransaction.MilliTimestamp, transaction.Timestamp.Nanos)
+	assert.Equal(t, int64(factoidTransaction.MilliTimestamp/1000), transaction.Timestamp.Seconds)
+	assert.Equal(t, int32(factoidTransaction.MilliTimestamp%1000), transaction.Timestamp.Nanos)
 }
 
 func TestMapTransactionAddresses(t *testing.T) {
@@ -57,15 +58,7 @@ func TestMapRCDs(t *testing.T) {
 }
 
 func TestMapRCD(t *testing.T) {
-	factoidRCD := &factoid.RCD_1{
-		PublicKey: [32]byte{},
-	}
 
-	rcd := mapRCD(factoidRCD)
-
-	assert.NotNil(t, rcd)
-	assert.NotNil(t, rcd.Rcd)
-	assert.EqualValues(t, make([]byte, 32), rcd.Rcd)
 }
 
 func TestMapSignatureBlocks(t *testing.T) {
