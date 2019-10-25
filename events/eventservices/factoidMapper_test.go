@@ -11,14 +11,15 @@ import (
 
 func TestMapFactoidBlock(t *testing.T) {
 	block := factoid.NewFBlock(nil)
-	block.AddTransaction(newTestTransaction())
 	factoidBlock := mapFactoidBlock(block)
 
 	assert.NotNil(t, factoidBlock)
-}
-
-func TestMapTransactions(t *testing.T) {
-
+	assert.NotNil(t, factoidBlock.BlockHeight)
+	assert.NotNil(t, factoidBlock.BodyMerkleRoot)
+	assert.NotNil(t, factoidBlock.PreviousKeyMerkleRoot)
+	assert.NotNil(t, factoidBlock.ExchangeRate)
+	assert.NotNil(t, factoidBlock.BlockHeight)
+	assert.NotNil(t, factoidBlock.Transactions)
 }
 
 func TestMapTransaction(t *testing.T) {
@@ -30,6 +31,20 @@ func TestMapTransaction(t *testing.T) {
 	assert.Equal(t, factoidTransaction.BlockHeight, transaction.BlockHeight)
 	assert.Equal(t, int64(factoidTransaction.MilliTimestamp/1000), transaction.Timestamp.Seconds)
 	assert.Equal(t, int32(factoidTransaction.MilliTimestamp%1000), transaction.Timestamp.Nanos)
+}
+
+func TestMapTransactions(t *testing.T) {
+	factoidTransaction := newTestTransaction()
+	factoidTransactions := []interfaces.ITransaction{factoidTransaction}
+	transactions := mapTransactions(factoidTransactions)
+
+	assert.NotNil(t, transactions)
+	if assert.Equal(t, 1, len(transactions)) {
+		assert.Equal(t, factoidTransaction.GetSigHash().Bytes(), transactions[0].TransactionID)
+		assert.Equal(t, factoidTransaction.BlockHeight, transactions[0].BlockHeight)
+		assert.Equal(t, int64(factoidTransaction.MilliTimestamp/1000), transactions[0].Timestamp.Seconds)
+		assert.Equal(t, int32(factoidTransaction.MilliTimestamp%1000), transactions[0].Timestamp.Nanos)
+	}
 }
 
 func TestMapTransactionAddresses(t *testing.T) {
@@ -54,11 +69,30 @@ func TestMapTransactionAddress(t *testing.T) {
 }
 
 func TestMapRCDs(t *testing.T) {
+	publicKey := [constants.ADDRESS_LENGTH]byte{}
+	rcd := factoid.NewRCD_1(publicKey[:])
+	rcds := []interfaces.IRCD{rcd}
+	mappedRCDs := mapRCDs(rcds)
 
+	assert.NotNil(t, mappedRCDs)
+	if assert.Equal(t, 1, len(mappedRCDs)) {
+		if assert.NotNil(t, mappedRCDs[0].Rcd) {
+			assert.Equal(t, constants.ADDRESS_LENGTH, len(mappedRCDs[0].GetRcd1().PublicKey))
+			assert.EqualValues(t, publicKey[:], mappedRCDs[0].GetRcd1().PublicKey)
+		}
+	}
 }
 
 func TestMapRCD(t *testing.T) {
+	publicKey := [constants.ADDRESS_LENGTH]byte{}
+	rcd := factoid.NewRCD_1(publicKey[:])
+	mappedRCD := mapRCD(rcd)
 
+	assert.NotNil(t, mappedRCD)
+	if assert.NotNil(t, mappedRCD.Rcd) {
+		assert.Equal(t, constants.ADDRESS_LENGTH, len(mappedRCD.GetRcd1().PublicKey))
+		assert.EqualValues(t, publicKey[:], mappedRCD.GetRcd1().PublicKey)
+	}
 }
 
 func TestMapSignatureBlocks(t *testing.T) {
@@ -106,8 +140,11 @@ func TestMapFactoidSignatureBlockSingatures(t *testing.T) {
 }
 
 func newTestTransaction() *factoid.Transaction {
+	address := factoid.NewAddress([]byte(""))
 	tx := new(factoid.Transaction)
-	tx.AddOutput(factoid.NewAddress([]byte("")), 1)
+	tx.AddInput(address, 2)
+	tx.AddOutput(address, 1)
+	tx.AddOutput(address, 1)
 	tx.SetTimestamp(primitives.NewTimestampFromSeconds(60 * 10 * uint32(1)))
 	return tx
 }

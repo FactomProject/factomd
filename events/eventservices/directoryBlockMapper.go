@@ -6,8 +6,10 @@ import (
 )
 
 func mapDirectoryBlock(block interfaces.IDirectoryBlock) *eventmessages.DirectoryBlock {
-	result := &eventmessages.DirectoryBlock{Header: mapDirectoryBlockHeader(block.GetHeader()),
-		Entries: mapDirectoryBlockEntries(block.GetDBEntries())}
+	result := &eventmessages.DirectoryBlock{
+		Header:  mapDirectoryBlockHeader(block.GetHeader()),
+		Entries: mapDirectoryBlockEntries(block.GetDBEntries()),
+	}
 	return result
 }
 

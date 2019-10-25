@@ -1,7 +1,6 @@
 package eventservices
 
 import (
-	"github.com/FactomProject/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 )
@@ -65,20 +64,21 @@ func mapRCDs(rcds []interfaces.IRCD) []*eventmessages.RCD {
 		result[i] = mapRCD(rcd)
 	}
 	return result
+}
 
+type RCD interface {
+	GetPublicKey() []byte
 }
 
 func mapRCD(rcd interfaces.IRCD) *eventmessages.RCD {
 	result := &eventmessages.RCD{}
-	switch rcd.(type) {
-	case factoid.IRCD_1:
-		rcd1 := rcd.(factoid.IRCD_1)
+
+	if rcd1, ok := rcd.(RCD); ok {
 		result.Rcd = &eventmessages.RCD_Rcd1{
 			Rcd1: &eventmessages.RCD1{
 				PublicKey: rcd1.GetPublicKey(),
 			},
 		}
-	case factoid.IRCD:
 	}
 	return result
 }
