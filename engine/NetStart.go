@@ -9,35 +9,33 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/FactomProject/factomd/common/constants/runstate"
-	"github.com/FactomProject/factomd/common/messages/electionMsgs"
-	"github.com/FactomProject/factomd/database/databaseOverlay"
-	"github.com/FactomProject/factomd/fnode"
 	"github.com/FactomProject/factomd/registry"
-	"github.com/FactomProject/factomd/worker"
 	"io/ioutil"
 	"math"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
-	. "github.com/FactomProject/factomd/common/globals"
+	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/messages/electionMsgs"
 	"github.com/FactomProject/factomd/common/messages/msgsupport"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/controlPanel"
+	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/elections"
+	"github.com/FactomProject/factomd/fnode"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
+	"github.com/FactomProject/factomd/worker"
 	"github.com/FactomProject/factomd/wsapi"
 
 	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
-
-var _ = fmt.Print
 
 var connectionMetricsChannel = make(chan interface{}, p2p.StandardChannelSize)
 var mLog = new(MsgLog)
@@ -50,139 +48,11 @@ func init() {
 	primitives.General = messages.General
 }
 
-func NewState(p *FactomParams) *state.State {
-	s := new(state.State)
-	s.TimestampAtBoot = primitives.NewTimestampNow()
-	preBootTime := new(primitives.Timestamp)
-	preBootTime.SetTimeMilli(s.TimestampAtBoot.GetTimeMilli() - 20*60*1000)
-	s.SetLeaderTimestamp(s.TimestampAtBoot)
-	s.SetMessageFilterTimestamp(preBootTime)
-	s.RunState = runstate.New
-
-	// Must add the prefix before loading the configuration.
-	s.AddPrefix(p.Prefix)
-	// Setup the name to catch any early logging
-	s.FactomNodeName = s.Prefix + "FNode0"
-
-	// build a timestamp 20 minutes before boot so we will accept messages from nodes who booted before us.
-	s.PortNumber = 8088
-	s.ControlPanelPort = 8090
-	logPort = p.LogPort
-
-	FactomConfigFilename := util.GetConfigFilename("m2")
-	if p.ConfigPath != "" {
-		FactomConfigFilename = p.ConfigPath
-	}
-	s.LoadConfig(FactomConfigFilename, p.NetworkName)
-	fmt.Println(fmt.Sprintf("factom config: %s", FactomConfigFilename))
-
-	s.OneLeader = p.Rotate
-	s.TimeOffset = primitives.NewTimestampFromMilliseconds(uint64(p.TimeOffset))
-	s.StartDelayLimit = p.StartDelay * 1000
-	s.FactomdVersion = FactomdVersion
-
-	// Set the wait for entries flag
-	s.WaitForEntries = p.WaitEntries
-
-	if 999 < p.PortOverride { // The command line flag exists and seems reasonable.
-		s.SetPort(p.PortOverride)
-	} else {
-		p.PortOverride = s.GetPort()
-	}
-	if 999 < p.ControlPanelPortOverride { // The command line flag exists and seems reasonable.
-		s.ControlPanelPort = p.ControlPanelPortOverride
-	} else {
-		p.ControlPanelPortOverride = s.ControlPanelPort
-	}
-
-	if p.BlkTime > 0 {
-		s.DirectoryBlockInSeconds = p.BlkTime
-	} else {
-		p.BlkTime = s.DirectoryBlockInSeconds
-	}
-
-	s.FaultTimeout = 9999999 //todo: Old Fault Mechanism -- remove
-
-	if p.RpcUser != "" {
-		s.RpcUser = p.RpcUser
-	}
-
-	if p.RpcPassword != "" {
-		s.RpcPass = p.RpcPassword
-	}
-
-	if p.FactomdTLS == true {
-		s.FactomdTLSEnable = true
-	}
-
-	if p.FactomdLocations != "" {
-		if len(s.FactomdLocations) > 0 {
-			s.FactomdLocations += ","
-		}
-		s.FactomdLocations += p.FactomdLocations
-	}
-
-	if p.Fast == false {
-		s.StateSaverStruct.FastBoot = false
-	}
-	if p.FastLocation != "" {
-		s.StateSaverStruct.FastBootLocation = p.FastLocation
-	}
-	if p.FastSaveRate < 2 || p.FastSaveRate > 5000 {
-		panic("FastSaveRate must be between 2 and 5000")
-	}
-	s.FastSaveRate = p.FastSaveRate
-
-	s.CheckChainHeads.CheckChainHeads = p.CheckChainHeads
-	s.CheckChainHeads.Fix = p.FixChainHeads
-
-	if p.P2PIncoming > 0 {
-		p2p.MaxNumberIncomingConnections = p.P2PIncoming
-	}
-	if p.P2POutgoing > 0 {
-		p2p.NumberPeersToConnect = p.P2POutgoing
-	}
-
-	// Command line override if provided
-	switch p.ControlPanelSetting {
-	case "disabled":
-		s.ControlPanelSetting = 0
-	case "readonly":
-		s.ControlPanelSetting = 1
-	case "readwrite":
-		s.ControlPanelSetting = 2
-	}
-
-	s.UseLogstash = p.UseLogstash
-	s.LogstashURL = p.LogstashURL
-
-	s.KeepMismatch = p.KeepMismatch
-
-	if len(p.Db) > 0 {
-		s.DBType = p.Db
-	} else {
-		p.Db = s.DBType
-	}
-
-	if len(p.CloneDB) > 0 {
-		s.CloneDBType = p.CloneDB
-	} else {
-		s.CloneDBType = p.Db
-	}
-
-	s.AddPrefix(p.Prefix)
-	s.SetOut(false)
-	s.SetDropRate(p.DropRate)
-
-	s.EFactory = new(electionMsgs.ElectionsFactory)
-	return s
-}
-
 func echo(s string, more ...interface{}) {
 	_, _ = os.Stderr.WriteString(fmt.Sprintf(s, more...))
 }
 
-func echoConfig(s *state.State, p *FactomParams) {
+func echoConfig(s *state.State, p *globals.FactomParams) {
 
 	fmt.Println(">>>>>>>>>>>>>>>>")
 	fmt.Println(">>>>>>>>>>>>>>>> Net Sim Start!")
@@ -243,7 +113,7 @@ func echoConfig(s *state.State, p *FactomParams) {
 }
 
 // init mlog & set log levels
-func SetLogLevel(p *FactomParams) {
+func SetLogLevel(p *globals.FactomParams) {
 	mLog.Init(p.RuntimeLog, p.Cnt)
 
 	log.SetOutput(os.Stdout)
@@ -269,6 +139,7 @@ func SetLogLevel(p *FactomParams) {
 	}
 }
 
+// shutdown factomd
 func interruptHandler() {
 	fmt.Print("<Break>\n")
 	fmt.Print("Gracefully shutting down the server...\n")
@@ -281,78 +152,42 @@ func interruptHandler() {
 	os.Exit(0)
 }
 
-// return a factory method for creating new FactomNodes
-func nodeFactory(w *worker.Thread, p *FactomParams) func() *fnode.FactomNode {
-	return func() (n *fnode.FactomNode) {
-		if fnode.Len() == 0 {
-			n = makeNode0(w, p)
-			echoConfig(n.State, p)
-		} else {
-			n = makeServer(fnode.Get(0).State)
-		}
-		return n
-	}
-}
-
-// creates a new state an initializes state0 params
-// state0 is the only state object used when connecting to mainnet
-// during simulation state0 is used to spawn other simulated nodes
-func makeNode0(w *worker.Thread, p *FactomParams) *fnode.FactomNode {
-	if fnode.Len() != 0 {
-		panic("only allowed for first initialized state")
-	}
-
-	s := NewState(p)
-	node := makeServer(s) // add state0 to fnodes
-	s.Init(node, s.FactomNodeName)
-	s.Initialize(w)
-	addFnodeName(0) // bootstrap id doesn't change
-	setupFirstAuthority(s)
-
-	if p.Sync2 >= 0 {
-		s.EntryDBHeightComplete = uint32(p.Sync2)
+func initEntryHeight(s *state.State, target int) {
+	if target >= 0 {
+		s.EntryDBHeightComplete = uint32(target)
 		s.LogPrintf("EntrySync", "Force with Sync2 NetStart EntryDBHeightComplete = %d", s.EntryDBHeightComplete)
 	} else {
 		height, err := s.DB.FetchDatabaseEntryHeight()
 		if err != nil {
 			s.LogPrintf("EntrySync", "Error reading EntryDBHeightComplete NetStart EntryDBHeightComplete = %d", s.EntryDBHeightComplete)
-			os.Stderr.WriteString(fmt.Sprintf("ERROR reading Entry DBHeight Complete: %v\n", err))
+			_, _ = os.Stderr.WriteString(fmt.Sprintf("ERROR reading Entry DBHeight Complete: %v\n", err))
 		} else {
 			s.EntryDBHeightComplete = height
 			s.LogPrintf("EntrySync", "NetStart EntryDBHeightComplete = %d", s.EntryDBHeightComplete)
 		}
 	}
-
-	// Initiate dbstate plugin if enabled. Only does so for first node,
-	// any more nodes on sim control will use default method
-	s.SetTorrentUploader(p.TorUpload)
-	if p.TorManage {
-		s.SetUseTorrent(true)
-		manager, err := LaunchDBStateManagePlugin(w, p.PluginPath, s.InMsgQueue(), s, s.GetServerPrivateKey(), p.MemProfileRate)
-		if err != nil {
-			panic("Encountered an error while trying to use torrent DBState manager: " + err.Error())
-		}
-		s.DBStateManager = manager
-	} else {
-		s.SetUseTorrent(false)
-	}
-
-	initAnchors(s, p.ReparseAnchorChains)
-	return node
 }
 
-func NetStart(w *worker.Thread, p *FactomParams, listenToStdin bool) {
-	messages.AckBalanceHash = p.AckbalanceHash
-	w.RegisterInterruptHandler(interruptHandler)
-	SetLogLevel(p)
-	factory := nodeFactory(w, p)
+func NetStart(w *worker.Thread, p *globals.FactomParams, listenToStdin bool) {
+	initEngine(w, p)
 	for i := 0; i < p.Cnt; i++ {
-		factory()
+		fnode.Factory(w)
 	}
 	startNetwork(w, p)
 	startFnodes(w)
 	startWebserver(w)
 	startSimControl(w, p.ListenTo, listenToStdin)
+}
+
+// initialize package-level vars
+func initEngine(w *worker.Thread, p *globals.FactomParams) {
+	messages.AckBalanceHash = p.AckbalanceHash
+	w.RegisterInterruptHandler(interruptHandler)
+
+	// nodes can spawn with a different thread lifecycle
+	fnode.Factory =  func(w *worker.Thread) {
+		makeServer(w, p)
+	}
 }
 
 // Anchoring related configurations
@@ -380,7 +215,7 @@ func initAnchors(s *state.State, reparse bool) {
 }
 
 // construct a simulated network
-func buildNetTopology(p *FactomParams) {
+func buildNetTopology(p *globals.FactomParams) {
 	nodes := fnode.GetFnodes()
 
 	switch p.Net {
@@ -395,7 +230,7 @@ func buildNetTopology(p *FactomParams) {
 		for scanner.Scan() {
 			var a, b int
 			var s string
-			fmt.Sscanf(scanner.Text(), "%d %s %d", &a, &s, &b)
+			_, _ = fmt.Sscanf(scanner.Text(), "%d %s %d", &a, &s, &b)
 			if s == "--" {
 				AddSimPeer(nodes, a, b)
 			}
@@ -490,7 +325,7 @@ func buildNetTopology(p *FactomParams) {
 
 	}
 
-	var colors []string = []string{"95cde5", "b01700", "db8e3c", "ffe35f"}
+	var colors = []string{"95cde5", "b01700", "db8e3c", "ffe35f"}
 
 	if len(nodes) > 2 {
 		for i, s := range nodes {
@@ -512,14 +347,15 @@ func startWebserver(w *worker.Thread) {
 
 	w.Run(func() {
 		controlPanel.ServeControlPanel(state0.ControlPanelChannel, state0, connectionMetricsChannel, p2pNetwork, Build, state0.FactomNodeName)
-	}, "ControlPanel")
+	})
 }
 
-func startNetwork(w *worker.Thread, p *FactomParams) {
+func startNetwork(w *worker.Thread, p *globals.FactomParams) {
 	s := fnode.Get(0).State
-	// Modify Identities of new nodes
+
+	// Modify Identities of simulated nodes
 	if fnode.Len() > 1 && len(s.Prefix) == 0 {
-		modifyLoadIdentities() // We clone s to make all of our servers
+		modifySimulatorIdentities() // set proper chain id & keys
 	}
 
 	// Start the P2P network
@@ -569,7 +405,7 @@ func startNetwork(w *worker.Thread, p *FactomParams) {
 	p2p.NetworkDeadline = time.Duration(p.Deadline) * time.Millisecond
 	buildNetTopology(p)
 
-	if ! p.EnableNet {
+	if !p.EnableNet {
 		return
 	}
 
@@ -590,10 +426,13 @@ func startNetwork(w *worker.Thread, p *FactomParams) {
 		ConnectionMetricsChannel: connectionMetricsChannel,
 	}
 
-	p2pNetwork = new(p2p.Controller).Init(ci)
+	p2pNetwork = new(p2p.Controller).Initialize(ci)
 	s.NetworkController = p2pNetwork
+	p2pNetwork.Init(s, "p2pNetwork")
 	p2pNetwork.StartNetwork(w)
-	p2pProxy = new(P2PProxy).Init(s.FactomNodeName, "P2P Network").(*P2PProxy)
+
+	p2pProxy = new(P2PProxy).Initialize(s.FactomNodeName, "P2P Network").(*P2PProxy)
+	p2pProxy.Init(s, "p2pProxy")
 	p2pProxy.FromNetwork = p2pNetwork.FromNetwork
 	p2pProxy.ToNetwork = p2pNetwork.ToNetwork
 	p2pProxy.StartProxy(w)
@@ -611,50 +450,53 @@ func printGraphData(filename string, period int) {
 	} // for ever ...
 }
 
+var state0Init sync.Once // we do some extra init for the first state
+
 //**********************************************************************
 // Functions that access variables in this method to set up Factom Nodes
 // and start the servers.
 //**********************************************************************
-func makeServer(s *state.State) *fnode.FactomNode {
-	node := new(fnode.FactomNode)
+func makeServer(w *worker.Thread, p *globals.FactomParams) (node *fnode.FactomNode) {
+	i := fnode.Len()
 
-	if fnode.Len() > 0 {
-		newState := s.Clone(len(fnode.GetFnodes())).(*state.State)
-		newState.EFactory = new(electionMsgs.ElectionsFactory)
-		node.State = newState
-		fnode.AddFnode(node)
-		newState.Init(node, newState.FactomNodeName)
-		time.Sleep(10 * time.Millisecond)
+	if i == 0 {
+		node = fnode.New(state.NewState(p, FactomdVersion))
 	} else {
-		node.State = s
-		fnode.AddFnode(node)
+		node = fnode.New(state.Clone(fnode.Get(0).State, i).(*state.State))
 	}
+	node.State.Initialize(w)
+
+	state0Init.Do(func() {
+		logPort = p.LogPort
+		SetLogLevel(p)
+		setupFirstAuthority(node.State)
+		initEntryHeight(node.State, p.Sync2)
+		initAnchors(node.State, p.ReparseAnchorChains)
+		echoConfig(node.State, p) // print the config only once
+	})
+
+	node.State.EFactory = new(electionMsgs.ElectionsFactory)
+	time.Sleep(10 * time.Millisecond)
 
 	return node
 }
 
 func startFnodes(w *worker.Thread) {
-	w.Spawn(func(w *worker.Thread) {
-		for i, node := range fnode.GetFnodes() {
-			if i > 0 {
-				node.State.Initialize(w)
-			}
-			startServer(w, i, node)
-		}
-	}, "StartServers")
+	for _, node := range fnode.GetFnodes() {
+		startServer(w, node)
+	}
 }
 
-func startServer(w *worker.Thread, i int, fnode *fnode.FactomNode) {
+func startServer(w *worker.Thread, node *fnode.FactomNode) {
+	NetworkProcessorNet(w, node)
+	node.State.ValidatorLoop(w)
+	elections.Run(w, node.State)
+	node.State.StartMMR(w)
 
-	NetworkProcessorNet(w, fnode)
-	fnode.State.ValidatorLoop(w)
-	elections.Run(w, fnode.State)
-	fnode.State.StartMMR(w)
-
-	w.Run(func() { state.LoadDatabase(fnode.State) }, "LoadDatabase")
-	w.Run(fnode.State.GoSyncEntries, "SyncEntries")
-	w.Run(func() { Timer(fnode.State) }, "Timer")
-	w.Run(fnode.State.MissingMessageResponseHandler.Run, "MMRHandler")
+	w.Run(func() { state.LoadDatabase(node.State) })
+	w.Run(node.State.GoSyncEntries)
+	w.Run(func() { Timer(node.State) })
+	w.Run(node.State.MissingMessageResponseHandler.Run)
 }
 
 func setupFirstAuthority(s *state.State) {
@@ -664,24 +506,20 @@ func setupFirstAuthority(s *state.State) {
 		return
 	}
 
-	s.IdentityControl.SetBootstrapIdentity(s.GetNetworkBootStrapIdentity(), s.GetNetworkBootStrapKey())
+	_ = s.IdentityControl.SetBootstrapIdentity(s.GetNetworkBootStrapIdentity(), s.GetNetworkBootStrapKey())
 }
 
+// create a new simulated fnode
 func AddNode() {
-	fnodes := fnode.GetFnodes()
-	s := fnodes[0].State
-	i := len(fnodes)
-
-	makeServer(s)
-	modifyLoadIdentities()
-
-	fnodes = fnode.GetFnodes()
-	fnodes[i].State.IntiateNetworkSkeletonIdentity()
-	fnodes[i].State.InitiateNetworkIdentityRegistration()
-	AddSimPeer(fnodes, i, i-1) // KLUDGE peer w/ only last node
 	p := registry.New()
-	p.Register(func(w *worker.Thread) {
-		startServer(w, i, fnodes[i])
-	}, "AddNode")
-	go p.Run() // kick off independent process
+	p.Register(func(w *worker.Thread){
+		i := fnode.Len()
+		fnode.Factory(w)
+		modifySimulatorIdentity(i)
+		AddSimPeer(fnode.GetFnodes(), i, i-1) // KLUDGE peer w/ only last node
+		n := fnode.Get(i)
+		startServer(w, n)
+	})
+	go p.Run()
+	p.WaitForRunning()
 }

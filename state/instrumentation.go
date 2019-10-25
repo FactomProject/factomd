@@ -28,17 +28,6 @@ var (
 		"Total transactions over life of node weighted for last 3 seconds",
 	)
 
-	// Torrent
-	TorrentSyncingLower = telemetry.NewGauge(
-		"factomd_state_torrentsync_lower_gauge",
-		"The lower limit of torrent sync",
-	)
-
-	TorrentSyncingUpper = telemetry.NewGauge(
-		"factomd_state_torrentsync_upper_gauge",
-		"The upper limit of torrent sync",
-	)
-
 	// Holding Queue
 	TotalHoldingQueueInputs = telemetry.NewCounter(
 		"factomd_state_holding_queue_total_inputs",

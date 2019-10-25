@@ -5,7 +5,7 @@
 package state_test
 
 import (
-	"github.com/FactomProject/factomd/worker"
+	"github.com/FactomProject/factomd/registry"
 	"testing"
 
 	//"github.com/FactomProject/factomd/common/constants"
@@ -23,7 +23,10 @@ func TestDisplay(t *testing.T) {
 	s.LoadConfig("", "LOCAL")
 	s.NodeMode = "SERVER"
 	s.DBType = "Map"
-	s.Initialize(worker.New())
+	p := registry.New()
+	p.Register(s.Initialize)
+	go p.Run()
+	p.WaitForRunning()
 
 	s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 	if s.CurrentMinute > 9 {

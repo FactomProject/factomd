@@ -28,6 +28,10 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 }
 
 func GetSystemStatus(listenTo int, wsapiNode int) string {
+	defer func() {
+		recover() // KLUDGE: may induce race/condition errors while adding a node
+	}()
+
 	fnodes := fnode.GetFnodes()
 	f := fnodes[listenTo]
 	s := f.State

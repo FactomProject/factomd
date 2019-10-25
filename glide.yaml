@@ -9,7 +9,7 @@ import:
   - certs
 - package: github.com/FactomProject/ed25519
 - package: github.com/FactomProject/factom
-  version: develop
+  version: e7717c4ab0726249c9fb9be4c9a07f62611d8b2e
 - package: github.com/FactomProject/go-bip32
 - package: github.com/FactomProject/go-bip39
 - package: github.com/FactomProject/goleveldb
@@ -27,7 +27,6 @@ import:
   subpackages:
   - base58
 - package: github.com/dustin/go-humanize
-- package: github.com/hashicorp/go-plugin
 - package: github.com/prometheus/client_golang
   subpackages:
   - prometheus

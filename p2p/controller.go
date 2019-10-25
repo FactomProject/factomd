@@ -12,6 +12,7 @@ package p2p
 
 import (
 	"fmt"
+	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/worker"
 	"math/rand"
 	"net"
@@ -34,31 +35,26 @@ var controllerLogger = packageLogger.WithField("subpack", "controller")
 
 // Controller manages the peer to peer network.
 type Controller struct {
-	keepRunning bool // Indicates its time to shut down when false.
-
+	common.Name
+	keepRunning bool               // Indicates its time to shut down when false.
 	listenPort  string             // port we listen on for new connections
 	connections *ConnectionManager // current connections
 
 	// After launching the network, the management is done via these channels.
-	commandChannel chan interface{} // Application use controller public API to send commands on this channel to controllers goroutines.
-
-	ToNetwork   chan interface{} // Parcels from the application for us to route
-	FromNetwork chan interface{} // Parcels from the network for the application
-
-	connectionMetricsChannel chan interface{} // Channel on which we put the connection metrics map, periodically.
-
+	commandChannel              chan interface{}             // Application use controller public API to send commands on this channel to controllers goroutines.
+	ToNetwork                   chan interface{}             // Parcels from the application for us to route
+	FromNetwork                 chan interface{}             // Parcels from the network for the application
+	connectionMetricsChannel    chan interface{}             // Channel on which we put the connection metrics map, periodically.
 	connectionMetrics           map[string]ConnectionMetrics // map of the metrics indexed by peer hash
 	lastConnectionMetricsUpdate time.Time                    // update once a second.
-
-	discovery Discovery // Our discovery structure
-
-	lastPeerManagement   time.Time // Last time we ran peer management.
-	lastDiscoveryRequest time.Time
-	NodeID               uint64
-	lastStatusReport     time.Time
-	lastPeerRequest      time.Time        // Last time we asked peers about the peers they know about.
-	specialPeers         map[string]*Peer // special peers (from config file and from the command line params) by peer address
-	partsAssembler       *PartsAssembler  // a data structure that assembles full messages from received message parts
+	discovery                   Discovery                    // Our discovery structure
+	lastPeerManagement          time.Time                    // Last time we ran peer management.
+	lastDiscoveryRequest        time.Time
+	NodeID                      uint64
+	lastStatusReport            time.Time
+	lastPeerRequest             time.Time        // Last time we asked peers about the peers they know about.
+	specialPeers                map[string]*Peer // special peers (from config file and from the command line params) by peer address
+	partsAssembler              *PartsAssembler  // a data structure that assembles full messages from received message parts
 
 	// logging
 	logger *log.Entry
@@ -160,7 +156,7 @@ func (e *CommandDisconnect) String() string {
 // command channel.
 //////////////////////////////////////////////////////////////////////
 
-func (c *Controller) Init(ci ControllerInit) *Controller {
+func (c *Controller) Initialize(ci ControllerInit) *Controller {
 	c.logger = controllerLogger.WithFields(log.Fields{
 		"node":    ci.NodeName,
 		"port":    ci.Port,
@@ -201,7 +197,7 @@ func (c *Controller) StartNetwork(w *worker.Thread) {
 	// Dial all the gathered special peers
 	c.dialSpecialPeers()
 	// Start the runloop
-	w.Run(c.runloop, "runloop")
+	w.Spawn(c.runloop)
 }
 
 func (c *Controller) DialPeer(peer Peer, persistent bool) {
@@ -394,7 +390,8 @@ func (c *Controller) parseSpecialPeers(peersString string, peerType uint8) []*Pe
 //////////////////////////////////////////////////////////////////////
 
 // runloop is a goroutine that does all the heavy lifting
-func (c *Controller) runloop() {
+func (c *Controller) runloop(w *worker.Thread) {
+	w.Init(c, "runloop")
 	// In long running processes it seems the runloop is exiting.
 	c.logger.Debugf("Controller.runloop() @@@@@@@@@@ starting up in %d seconds", 2)
 	time.Sleep(time.Second * time.Duration(2)) // Wait a few seconds to let the system come up.

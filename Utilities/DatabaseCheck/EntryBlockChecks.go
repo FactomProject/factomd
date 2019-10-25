@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/fnode"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/engine"
+	"github.com/FactomProject/factomd/fnode"
+	"github.com/FactomProject/factomd/registry"
 	"github.com/FactomProject/factomd/worker"
 )
 
@@ -22,7 +23,12 @@ func main() {
 		"-startdelay=100")
 
 	params := engine.ParseCmdLine(args)
-	engine.Factomd(worker.New(), params, true)
+	p := registry.New()
+	p.Register(func(w *worker.Thread) {
+		engine.Factomd(w, params, true)
+	})
+	go p.Run()
+	p.WaitForRunning()
 
 	CheckEntryBlocks(fnode.Get(0).State.GetDB(), true)
 

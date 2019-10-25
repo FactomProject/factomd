@@ -43,7 +43,7 @@ func Run(params *FactomParams) {
 			fmt.Println("Waiting to Shut Down")
 			time.Sleep(time.Second * 5)
 		})
-	}, "Factomd")
+	})
 	p.Run()
 }
 

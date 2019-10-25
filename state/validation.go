@@ -77,7 +77,7 @@ func (s *State) ValidatorLoop(w *worker.Thread) {
 	// We should only generate 1 EOM for each height/minute/vmindex
 	lastHeight, lastMinute, lastVM := -1, -1, -1
 
-	w.Run(s.DoProcessing, "DoProcessing")
+	w.Run(s.DoProcessing)
 
 	w.Run(func() {
 		defer func() {
@@ -157,7 +157,7 @@ func (s *State) ValidatorLoop(w *worker.Thread) {
 				s.msgQueue <- msg
 			}
 		}
-	}, "pendingMessages")
+	})
 }
 
 func shouldShutdown(state *State) bool {

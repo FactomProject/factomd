@@ -86,7 +86,7 @@ func (f *SimPeer) Len() int {
 	return len(f.BroadcastIn)
 }
 
-func (f *SimPeer) Init(fromName, toName string) interfaces.IPeer {
+func (f *SimPeer) Initialize(fromName, toName string) interfaces.IPeer {
 	f.ToName = toName
 	f.FromName = fromName
 	f.BroadcastOut = make(chan *SimPacket, 10000)
@@ -192,8 +192,8 @@ func AddSimPeer(fnodes []*fnode.FactomNode, i1 int, i2 int) {
 
 	fmt.Println(i1, " -- ", i2)
 
-	peer12 := new(SimPeer).Init(f1.State.FactomNodeName, f2.State.FactomNodeName).(*SimPeer)
-	peer21 := new(SimPeer).Init(f2.State.FactomNodeName, f1.State.FactomNodeName).(*SimPeer)
+	peer12 := new(SimPeer).Initialize(f1.State.FactomNodeName, f2.State.FactomNodeName).(*SimPeer)
+	peer21 := new(SimPeer).Initialize(f2.State.FactomNodeName, f1.State.FactomNodeName).(*SimPeer)
 	peer12.BroadcastIn = peer21.BroadcastOut
 	peer21.BroadcastIn = peer12.BroadcastOut
 

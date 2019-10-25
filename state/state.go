@@ -11,23 +11,18 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 	"reflect"
 	"regexp"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/FactomProject/factomd/common"
-	"github.com/FactomProject/factomd/queue"
-	"github.com/FactomProject/factomd/worker"
-
 	"github.com/FactomProject/factomd/common/constants/runstate"
+	"github.com/FactomProject/factomd/queue"
 
 	"github.com/FactomProject/factomd/activations"
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/globals"
 	. "github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
@@ -39,10 +34,7 @@ import (
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/util/atomic"
-	"github.com/FactomProject/factomd/wsapi"
 	"github.com/FactomProject/logrustash"
-
-	"github.com/FactomProject/factomd/Utilities/CorrectChainHeads/correctChainHeads"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -50,56 +42,41 @@ import (
 // or create more context loggers off of this
 var packageLogger = log.WithFields(log.Fields{"package": "state"})
 
-var _ = fmt.Print
-
-type State struct {
-	common.Name
-	Logger            *log.Entry
-	RunState          runstate.RunState
-	NetworkController *p2p.Controller
-	Salt              interfaces.IHash
-	Cfg               interfaces.IFactomConfig
-	ConfigFilePath    string // $HOME/.factom/m2/factomd.conf by default
-
-	Prefix          string
-	FactomNodeName  string
-	FactomdVersion  string
-	LogPath         string
-	LdbPath         string
-	BoltDBPath      string
-	LogLevel        string
-	ConsoleLogLevel string
-	NodeMode        string
-	DBType          string
+// loaded directly from factomParams
+type StateConfig struct {
 	CheckChainHeads struct {
 		CheckChainHeads bool
 		Fix             bool
 	}
-	CloneDBType       string
-	ExportData        bool
-	ExportDataSubpath string
-
-	LogBits int64 // Bit zero is for logging the Directory Block on DBSig [5]
-
-	DBStatesSent            []*interfaces.DBStateSent
-	DBStatesReceivedBase    int
-	DBStatesReceived        []*messages.DBStateMsg
-	LocalServerPrivKey      string
+	CloneDBType             string
+	ControlPanelPort        int
+	ControlPanelSetting     int
+	DBType                  string
 	DirectoryBlockInSeconds int
-	PortNumber              int
-	Replay                  *Replay
-	FReplay                 *Replay
-	CrossReplay             *CrossReplayFilter
 	DropRate                int
-	Delay                   int64 // Simulation delays sending messages this many milliseconds
-
-	ControlPanelPort    int
-	ControlPanelSetting int
-	// Keeping the last display state lets us know when to send over the new blocks
-	LastDisplayState        *DisplayState
-	ControlPanelChannel     chan DisplayState
-	ControlPanelDataRequest bool // If true, update Display state
-
+	FactomdLocations        string
+	FactomdTLSCertFile      string
+	FactomdTLSEnable        bool
+	FactomdTLSKeyFile       string
+	FactomNodeName          string
+	FastSaveRate            int
+	FaultTimeout            int
+	LeaderTimestamp         interfaces.Timestamp
+	OutputAllowed           bool
+	PortNumber              int
+	preBootTime             *primitives.Timestamp
+	Prefix                  string
+	RpcAuthHash             []byte
+	RpcPass                 string
+	RpcUser                 string
+	StartDelayLimit         int64
+	TimeOffset              interfaces.Timestamp
+	TimestampAtBoot         interfaces.Timestamp
+	WaitForEntries          bool
+	FactomdVersion          string
+	LogLevel                string
+	ConsoleLogLevel         string
+	ExportData              bool
 	// Network Configuration
 	Network                 string
 	MainNetworkPort         string
@@ -118,6 +95,45 @@ type State struct {
 	CustomNetworkID         []byte
 	CustomBootstrapIdentity string
 	CustomBootstrapKey      string
+	FaultWait               int
+	EOMfaultIndex           int
+	FactoshisPerEC          uint64
+	Port                    int
+	RequestTimeout          time.Duration
+	RequestLimit            int
+	CorsDomains             []string
+	NodeMode                string
+}
+
+type State struct {
+	common.Name
+	StateConfig
+	Logger            *log.Entry
+	RunState          runstate.RunState
+	NetworkController *p2p.Controller
+	Salt              interfaces.IHash
+	Cfg               interfaces.IFactomConfig
+	ConfigFilePath    string // $HOME/.factom/m2/factomd.conf by default
+	LogPath           string
+	LdbPath           string
+	BoltDBPath        string
+	ExportDataSubpath string
+
+	LogBits int64 // Bit zero is for logging the Directory Block on DBSig [5]
+
+	DBStatesSent         []*interfaces.DBStateSent
+	DBStatesReceivedBase int
+	DBStatesReceived     []*messages.DBStateMsg
+	LocalServerPrivKey   string
+	Replay               *Replay
+	FReplay              *Replay
+	CrossReplay          *CrossReplayFilter
+	Delay                int64 // Simulation delays sending messages this many milliseconds
+
+	// Keeping the last display state lets us know when to send over the new blocks
+	LastDisplayState        *DisplayState
+	ControlPanelChannel     chan DisplayState
+	ControlPanelDataRequest bool // If true, update Display state
 
 	IdentityChainID interfaces.IHash // If this node has an identity, this is it
 	//Identities      []*Identity      // Identities of all servers in management chain
@@ -172,7 +188,6 @@ type State struct {
 
 	tickerQueue            chan int
 	timerMsgQueue          chan interfaces.IMsg
-	TimeOffset             interfaces.Timestamp
 	MaxTimeOffset          interfaces.Timestamp
 	networkOutMsgQueue     queue.MsgQueue
 	networkInvalidMsgQueue chan interfaces.IMsg
@@ -195,31 +210,17 @@ type State struct {
 	serverPendingPubKeys  []*primitives.PublicKey
 
 	// RPC connection config
-	RpcUser     string
-	RpcPass     string
-	RpcAuthHash []byte
 
-	FactomdTLSEnable   bool
-	FactomdTLSKeyFile  string
-	FactomdTLSCertFile string
-	FactomdLocations   string
-
-	CorsDomains []string
 	// Server State
-	StartDelay      int64 // Time in Milliseconds since the last DBState was applied
-	StartDelayLimit int64
-	DBFinished      bool
-	RunLeader       bool
-	BootTime        int64 // Time in seconds that we last booted
+	StartDelay int64 // Time in Milliseconds since the last DBState was applied
+	DBFinished bool
+	RunLeader  bool
+	BootTime   int64 // Time in seconds that we last booted
 
 	// Ignore missing messages for a period to allow rebooting a network where your
 	// own messages from the previously executing network can confuse you.
 	IgnoreDone    bool
 	IgnoreMissing bool
-
-	// Timout and Limit for outstanding missing DBState requests
-	RequestTimeout time.Duration
-	RequestLimit   int
 
 	LLeaderHeight   uint32
 	Leader          bool
@@ -227,11 +228,8 @@ type State struct {
 	LeaderPL        *ProcessList
 	PLProcessHeight uint32
 	// Height cutoff where no missing messages below this height
-	DBHeightAtBoot  uint32
-	TimestampAtBoot interfaces.Timestamp
-	OneLeader       bool
-	OutputAllowed   bool
-	CurrentMinute   int
+	DBHeightAtBoot uint32
+	CurrentMinute  int
 
 	// These are the start times for blocks and minutes
 	PreviousMinuteStartTime int64
@@ -272,7 +270,6 @@ type State struct {
 	FCTSubmits             int
 	NewEntryChains         int
 	NewEntries             int
-	LeaderTimestamp        interfaces.Timestamp
 	messageFilterTimestamp interfaces.Timestamp
 	// Maps
 	// ====
@@ -290,10 +287,7 @@ type State struct {
 
 	AuditHeartBeats []interfaces.IMsg // The checklist of HeartBeats for this period
 
-	FaultTimeout  int
-	FaultWait     int
-	EOMfaultIndex int
-	LastTiebreak  int64
+	LastTiebreak int64
 
 	AuthoritySetString string
 	// Network MAIN = 0, TEST = 1, LOCAL = 2, CUSTOM = 3
@@ -341,9 +335,6 @@ type State struct {
 	TempBalanceHash       interfaces.IHash
 	Balancehash           interfaces.IHash
 
-	// Web Services
-	Port int
-
 	// State for the Entry Syncing process
 	EntrySyncState *EntrySync
 
@@ -365,9 +356,9 @@ type State struct {
 	MissingEntries chan *MissingEntry
 
 	// Holds leaders and followers up until all missing entries are processed, if true
-	WaitForEntries  bool
 	UpdateEntryHash chan *EntryUpdate // Channel for updating entry Hashes tracking (repeats and such)
 	WriteEntry      chan interfaces.IEBEntry
+
 	// MessageTally causes the node to keep track of (and display) running totals of each
 	// type of message received during the tally interval
 	MessageTally           bool
@@ -378,7 +369,6 @@ type State struct {
 	LastPrintCnt int
 
 	// FER section
-	FactoshisPerEC                 uint64
 	FERChainId                     string
 	ExchangeRateAuthorityPublicKey string
 
@@ -396,14 +386,8 @@ type State struct {
 	LogstashURL string
 
 	// Plugins
-	useTorrents             bool
-	torrentUploader         bool
-	Uploader                *UploadController // Controls the uploads of torrents. Prevents backups
-	DBStateManager          interfaces.IManagerController
-	HighestCompletedTorrent uint32
-	FastBoot                bool
-	FastBootLocation        string
-	FastSaveRate            int
+	FastBoot         bool
+	FastBootLocation string
 
 	// These stats are collected when we write the dbstate to the database.
 	NumNewChains   int // Number of new Chains in this block
@@ -413,7 +397,6 @@ type State struct {
 	NumFCTTrans    int // Number of Factoid Transactions in this block
 
 	// debug message about state status rolling queue for ControlPanel
-	pstate              string
 	SyncingState        [256]string
 	SyncingStateCurrent int
 
@@ -457,136 +440,6 @@ func (s *State) GetConfigPath() string {
 
 func (s *State) GetRunState() runstate.RunState {
 	return s.RunState
-}
-
-func (s *State) Clone(cloneNumber int) interfaces.IState {
-	newState := new(State)
-	number := fmt.Sprintf("%02d", cloneNumber)
-
-	simConfigPath := util.GetHomeDir() + "/.factom/m2/simConfig/"
-	configfile := fmt.Sprintf("%sfactomd%03d.conf", simConfigPath, cloneNumber)
-
-	if cloneNumber == 1 {
-		os.Stderr.WriteString(fmt.Sprintf("Looking for Config File %s\n", configfile))
-	}
-	if _, err := os.Stat(simConfigPath); os.IsNotExist(err) {
-		os.Stderr.WriteString("Creating simConfig directory\n")
-		os.MkdirAll(simConfigPath, 0775)
-	}
-
-	newState.FactomNodeName = s.Prefix + "FNode" + number
-	config := false
-	if _, err := os.Stat(configfile); !os.IsNotExist(err) {
-		os.Stderr.WriteString(fmt.Sprintf("   Using the %s config file.\n", configfile))
-		newState.LoadConfig(configfile, s.GetNetworkName())
-		config = true
-	}
-
-	if s.LogPath == "stdout" {
-		newState.LogPath = "stdout"
-	} else {
-		newState.LogPath = s.LogPath + "/Sim" + number
-	}
-
-	newState.FactomNodeName = s.Prefix + "FNode" + number
-	newState.FactomdVersion = s.FactomdVersion
-	newState.RunState = runstate.New // reset runstate since this clone will be started by sim node
-	newState.DropRate = s.DropRate
-	newState.LdbPath = s.LdbPath + "/Sim" + number
-	newState.BoltDBPath = s.BoltDBPath + "/Sim" + number
-	newState.LogLevel = s.LogLevel
-	newState.ConsoleLogLevel = s.ConsoleLogLevel
-	newState.NodeMode = "FULL"
-	newState.CloneDBType = s.CloneDBType
-	newState.DBType = s.CloneDBType
-	newState.CheckChainHeads = s.CheckChainHeads
-	newState.ExportData = s.ExportData
-	newState.ExportDataSubpath = s.ExportDataSubpath + "sim-" + number
-	newState.Network = s.Network
-	newState.MainNetworkPort = s.MainNetworkPort
-	newState.PeersFile = s.PeersFile
-	newState.MainSeedURL = s.MainSeedURL
-	newState.MainSpecialPeers = s.MainSpecialPeers
-	newState.TestNetworkPort = s.TestNetworkPort
-	newState.TestSeedURL = s.TestSeedURL
-	newState.TestSpecialPeers = s.TestSpecialPeers
-	newState.LocalNetworkPort = s.LocalNetworkPort
-	newState.LocalSeedURL = s.LocalSeedURL
-	newState.LocalSpecialPeers = s.LocalSpecialPeers
-	newState.CustomNetworkPort = s.CustomNetworkPort
-	newState.CustomSeedURL = s.CustomSeedURL
-	newState.CustomSpecialPeers = s.CustomSpecialPeers
-	newState.StartDelayLimit = s.StartDelayLimit
-	newState.CustomNetworkID = s.CustomNetworkID
-	newState.CustomBootstrapIdentity = s.CustomBootstrapIdentity
-	newState.CustomBootstrapKey = s.CustomBootstrapKey
-
-	newState.DirectoryBlockInSeconds = s.DirectoryBlockInSeconds
-	newState.PortNumber = s.PortNumber
-
-	newState.ControlPanelPort = s.ControlPanelPort
-	newState.ControlPanelSetting = s.ControlPanelSetting
-
-	//newState.Identities = s.Identities
-	//newState.Authorities = s.Authorities
-	newState.AuthorityServerCount = s.AuthorityServerCount
-
-	newState.IdentityControl = s.IdentityControl.Clone()
-
-	newState.FaultTimeout = s.FaultTimeout
-	newState.FaultWait = s.FaultWait
-	newState.EOMfaultIndex = s.EOMfaultIndex
-
-	if !config {
-		newState.IdentityChainID = primitives.Sha([]byte(newState.FactomNodeName))
-		s.LogPrintf("AckChange", "Default3 IdentityChainID %v", s.IdentityChainID.String())
-
-		//generate and use a new deterministic PrivateKey for this clone
-		shaHashOfNodeName := primitives.Sha([]byte(newState.FactomNodeName)) //seed the private key with node name
-		clonePrivateKey := primitives.NewPrivateKeyFromHexBytes(shaHashOfNodeName.Bytes())
-		newState.LocalServerPrivKey = clonePrivateKey.PrivateKeyString()
-		s.initServerKeys()
-	}
-
-	newState.TimestampAtBoot = primitives.NewTimestampFromMilliseconds(s.TimestampAtBoot.GetTimeMilliUInt64())
-	newState.LeaderTimestamp = primitives.NewTimestampFromMilliseconds(s.LeaderTimestamp.GetTimeMilliUInt64())
-	newState.SetMessageFilterTimestamp(s.GetMessageFilterTimestamp())
-
-	newState.FactoshisPerEC = s.FactoshisPerEC
-
-	newState.Port = s.Port
-
-	newState.OneLeader = s.OneLeader
-	newState.OneLeader = s.OneLeader
-
-	newState.RpcUser = s.RpcUser
-	newState.RpcPass = s.RpcPass
-	newState.RpcAuthHash = s.RpcAuthHash
-
-	newState.RequestTimeout = s.RequestTimeout
-	newState.RequestLimit = s.RequestLimit
-	newState.FactomdTLSEnable = s.FactomdTLSEnable
-	newState.FactomdTLSKeyFile = s.FactomdTLSKeyFile
-	newState.FactomdTLSCertFile = s.FactomdTLSCertFile
-	newState.FactomdLocations = s.FactomdLocations
-
-	newState.FastSaveRate = s.FastSaveRate
-	newState.CorsDomains = s.CorsDomains
-	switch newState.DBType {
-	case "LDB":
-		newState.StateSaverStruct.FastBoot = s.StateSaverStruct.FastBoot
-		newState.StateSaverStruct.FastBootLocation = newState.LdbPath
-		break
-	case "Bolt":
-		newState.StateSaverStruct.FastBoot = s.StateSaverStruct.FastBoot
-		newState.StateSaverStruct.FastBootLocation = newState.BoltDBPath
-		break
-	}
-	if globals.Params.WriteProcessedDBStates {
-		path := filepath.Join(newState.LdbPath, newState.Network, "dbstates")
-		os.MkdirAll(path, 0775)
-	}
-	return newState
 }
 
 func (s *State) AddPrefix(prefix string) {
@@ -744,196 +597,6 @@ func (s *State) GetAckChange() (bool, error) {
 	return flag, nil
 }
 
-func (s *State) LoadConfig(filename string, networkFlag string) {
-	//	s.FactomNodeName = s.Prefix + "FNode0" // Default Factom Node Name for Simulation
-
-	if len(filename) > 0 {
-		s.ConfigFilePath = filename
-		s.ReadCfg(filename)
-
-		// Get our factomd configuration information.
-		cfg := s.GetCfg().(*util.FactomdConfig)
-
-		s.Network = cfg.App.Network
-		if 0 < len(networkFlag) { // Command line overrides the config file.
-			s.Network = networkFlag
-			globals.Params.NetworkName = networkFlag // in case it did not come from there.
-		} else {
-			globals.Params.NetworkName = s.Network
-		}
-		fmt.Printf("\n\nNetwork : %s\n", s.Network)
-
-		networkName := strings.ToLower(s.Network) + "-"
-		// TODO: improve the paths after milestone 1
-		cfg.App.LdbPath = cfg.App.HomeDir + networkName + cfg.App.LdbPath
-		cfg.App.BoltDBPath = cfg.App.HomeDir + networkName + cfg.App.BoltDBPath
-		cfg.App.DataStorePath = cfg.App.HomeDir + networkName + cfg.App.DataStorePath
-		cfg.Log.LogPath = cfg.App.HomeDir + networkName + cfg.Log.LogPath
-		cfg.App.ExportDataSubpath = cfg.App.HomeDir + networkName + cfg.App.ExportDataSubpath
-		cfg.App.PeersFile = cfg.App.HomeDir + networkName + cfg.App.PeersFile
-		cfg.App.ControlPanelFilesPath = cfg.App.HomeDir + cfg.App.ControlPanelFilesPath
-
-		s.LogPath = cfg.Log.LogPath + s.Prefix
-		s.LdbPath = cfg.App.LdbPath + s.Prefix
-		s.BoltDBPath = cfg.App.BoltDBPath + s.Prefix
-		s.LogLevel = cfg.Log.LogLevel
-		s.ConsoleLogLevel = cfg.Log.ConsoleLogLevel
-		s.NodeMode = cfg.App.NodeMode
-		s.DBType = cfg.App.DBType
-		s.ExportData = cfg.App.ExportData // bool
-		s.ExportDataSubpath = cfg.App.ExportDataSubpath
-		s.MainNetworkPort = cfg.App.MainNetworkPort
-		s.PeersFile = cfg.App.PeersFile
-		s.MainSeedURL = cfg.App.MainSeedURL
-		s.MainSpecialPeers = cfg.App.MainSpecialPeers
-		s.TestNetworkPort = cfg.App.TestNetworkPort
-		s.TestSeedURL = cfg.App.TestSeedURL
-		s.TestSpecialPeers = cfg.App.TestSpecialPeers
-		s.CustomBootstrapIdentity = cfg.App.CustomBootstrapIdentity
-		s.CustomBootstrapKey = cfg.App.CustomBootstrapKey
-		s.LocalNetworkPort = cfg.App.LocalNetworkPort
-		s.LocalSeedURL = cfg.App.LocalSeedURL
-		s.LocalSpecialPeers = cfg.App.LocalSpecialPeers
-		s.LocalServerPrivKey = cfg.App.LocalServerPrivKey
-		s.CustomNetworkPort = cfg.App.CustomNetworkPort
-		s.CustomSeedURL = cfg.App.CustomSeedURL
-		s.CustomSpecialPeers = cfg.App.CustomSpecialPeers
-		s.FactoshisPerEC = cfg.App.ExchangeRate
-		s.DirectoryBlockInSeconds = cfg.App.DirectoryBlockInSeconds
-		s.PortNumber = cfg.App.PortNumber
-		s.ControlPanelPort = cfg.App.ControlPanelPort
-		s.RpcUser = cfg.App.FactomdRpcUser
-		s.RpcPass = cfg.App.FactomdRpcPass
-		// if RequestTimeout is not set by the configuration it will default to 0.
-		//		If it is 0, the loop that uses it will set it to the blocktime/20
-		//		We set it there, as blktime might change after this function (from mainnet selection)
-		s.RequestTimeout = time.Duration(cfg.App.RequestTimeout) * time.Second
-		s.RequestLimit = cfg.App.RequestLimit
-
-		s.StateSaverStruct.FastBoot = cfg.App.FastBoot
-		s.StateSaverStruct.FastBootLocation = cfg.App.FastBootLocation
-		s.FastBoot = cfg.App.FastBoot
-		s.FastBootLocation = cfg.App.FastBootLocation
-
-		// to test run curl -H "Origin: http://anotherexample.com" -H "Access-Control-Request-Method: POST" /
-		//     -H "Access-Control-Request-Headers: X-Requested-With" -X POST /
-		//     --data-binary '{"jsonrpc": "2.0", "id": 0, "method": "heights"}' -H 'content-type:text/plain;'  /
-		//     --verbose http://localhost:8088/v2
-
-		// while the config file has http://anotherexample.com in parameter CorsDomains the response should contain the string
-		// < Access-Control-Allow-Origin: http://anotherexample.com
-
-		if len(cfg.App.CorsDomains) > 0 {
-			domains := strings.Split(cfg.App.CorsDomains, ",")
-			s.CorsDomains = make([]string, len(domains))
-			for _, domain := range domains {
-				s.CorsDomains = append(s.CorsDomains, strings.Trim(domain, " "))
-			}
-		}
-		s.FactomdTLSEnable = cfg.App.FactomdTlsEnabled
-
-		FactomdTLSKeyFile := cfg.App.FactomdTlsPrivateKey
-		if cfg.App.FactomdTlsPrivateKey == "/full/path/to/factomdAPIpriv.key" {
-			FactomdTLSKeyFile = fmt.Sprint(cfg.App.HomeDir, "factomdAPIpriv.key")
-		}
-		if s.FactomdTLSKeyFile != FactomdTLSKeyFile {
-			if s.FactomdTLSEnable {
-				if _, err := os.Stat(FactomdTLSKeyFile); os.IsNotExist(err) {
-					fmt.Fprintf(os.Stderr, "Configured file does not exits: %s\n", FactomdTLSKeyFile)
-				}
-			}
-			s.FactomdTLSKeyFile = FactomdTLSKeyFile // set state
-		}
-
-		FactomdTLSCertFile := cfg.App.FactomdTlsPublicCert
-		if cfg.App.FactomdTlsPublicCert == "/full/path/to/factomdAPIpub.cert" {
-			s.FactomdTLSCertFile = fmt.Sprint(cfg.App.HomeDir, "factomdAPIpub.cert")
-		}
-		if s.FactomdTLSCertFile != FactomdTLSCertFile {
-			if s.FactomdTLSEnable {
-				if _, err := os.Stat(FactomdTLSCertFile); os.IsNotExist(err) {
-					fmt.Fprintf(os.Stderr, "Configured file does not exits: %s\n", FactomdTLSCertFile)
-				}
-			}
-			s.FactomdTLSCertFile = FactomdTLSCertFile // set state
-		}
-
-		s.FactomdTLSEnable = cfg.App.FactomdTlsEnabled
-		s.FactomdTLSKeyFile = cfg.App.FactomdTlsPrivateKey
-
-		externalIP := strings.Split(cfg.Walletd.FactomdLocation, ":")[0]
-		if externalIP != "localhost" {
-			s.FactomdLocations = externalIP
-		}
-
-		switch cfg.App.ControlPanelSetting {
-		case "disabled":
-			s.ControlPanelSetting = 0
-		case "readonly":
-			s.ControlPanelSetting = 1
-		case "readwrite":
-			s.ControlPanelSetting = 2
-		default:
-			s.ControlPanelSetting = 1
-		}
-		s.FERChainId = cfg.App.ExchangeRateChainId
-		s.ExchangeRateAuthorityPublicKey = cfg.App.ExchangeRateAuthorityPublicKey
-		identity, err := primitives.HexToHash(cfg.App.IdentityChainID)
-		if err != nil {
-			s.IdentityChainID = primitives.Sha([]byte(s.FactomNodeName))
-			s.LogPrintf("AckChange", "Bad IdentityChainID  in config \"%v\"", cfg.App.IdentityChainID)
-			s.LogPrintf("AckChange", "Default2 IdentityChainID \"%v\"", s.IdentityChainID.String())
-		} else {
-			s.IdentityChainID = identity
-			s.LogPrintf("AckChange", "Load IdentityChainID \"%v\"", s.IdentityChainID.String())
-		}
-
-		if cfg.App.P2PIncoming > 0 {
-			p2p.MaxNumberIncomingConnections = cfg.App.P2PIncoming
-		}
-		if cfg.App.P2POutgoing > 0 {
-			p2p.NumberPeersToConnect = cfg.App.P2POutgoing
-		}
-	} else {
-		s.LogPath = "database/"
-		s.LdbPath = "database/ldb"
-		s.BoltDBPath = "database/bolt"
-		s.LogLevel = "none"
-		s.ConsoleLogLevel = "standard"
-		s.NodeMode = "SERVER"
-		s.DBType = "Map"
-		s.ExportData = false
-		s.ExportDataSubpath = "data/export"
-		s.Network = "TEST"
-		s.MainNetworkPort = "8108"
-		s.PeersFile = "peers.json"
-		s.MainSeedURL = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/mainseed.txt"
-		s.MainSpecialPeers = ""
-		s.TestNetworkPort = "8109"
-		s.TestSeedURL = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/testseed.txt"
-		s.TestSpecialPeers = ""
-		s.LocalNetworkPort = "8110"
-		s.LocalSeedURL = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/localseed.txt"
-		s.LocalSpecialPeers = ""
-
-		s.LocalServerPrivKey = "4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d"
-		s.FactoshisPerEC = 006666
-		s.FERChainId = "111111118d918a8be684e0dac725493a75862ef96d2d3f43f84b26969329bf03"
-		s.ExchangeRateAuthorityPublicKey = "3b6a27bcceb6a42d62a3a8d02a6f0d73653215771de243a63ac048a18b59da29"
-		s.DirectoryBlockInSeconds = 6
-		s.PortNumber = 8088
-		s.ControlPanelPort = 8090
-		s.ControlPanelSetting = 1
-
-		// TODO:  Actually load the IdentityChainID from the config file
-		s.IdentityChainID = primitives.Sha([]byte(s.FactomNodeName))
-		s.LogPrintf("AckChange", "Default IdentityChainID %v", s.IdentityChainID.String())
-
-	}
-
-	s.updateNetworkControllerConfig()
-}
-
 func (s *State) GetSalt(ts interfaces.Timestamp) uint32 {
 	if s.Salt == nil {
 		b := make([]byte, 32)
@@ -950,266 +613,6 @@ func (s *State) GetSalt(ts interfaces.Timestamp) uint32 {
 	binary.BigEndian.PutUint64(b[:], uint64(ts.GetTimeMilli()))
 	c := primitives.Sha(b[:])
 	return binary.BigEndian.Uint32(c.Bytes())
-}
-
-func (s *State) Initialize(w *worker.Thread) {
-	if s.Salt == nil {
-		b := make([]byte, 32)
-		_, err := rand.Read(b)
-		if err != nil {
-			panic("Random Number Failure")
-		}
-		s.Salt = primitives.Sha(b)
-	}
-
-	salt := fmt.Sprintf("The Instance ID of this node is %s\n", s.Salt.String()[:16])
-	fmt.Print(salt)
-
-	s.StartDelay = s.GetTimestamp().GetTimeMilli() // We can't start as a leader until we know we are upto date
-	s.RunLeader = false
-	s.IgnoreMissing = true
-	s.BootTime = s.GetTimestamp().GetTimeSeconds()
-	s.TimestampAtBoot = primitives.NewTimestampNow()
-
-	if s.LogPath == "stdout" {
-		wsapi.InitLogs(s.LogPath, s.LogLevel)
-		//s.Logger = log.NewLogFromConfig(s.LogPath, s.LogLevel, "State")
-	} else {
-		er := os.MkdirAll(s.LogPath, 0775)
-		if er != nil {
-			// fmt.Println("Could not create " + s.LogPath + "\n error: " + er.Error())
-		}
-		wsapi.InitLogs(s.LogPath+s.FactomNodeName+".log", s.LogLevel)
-		//s.Logger = log.NewLogFromConfig(s.LogPath, s.LogLevel, "State")
-	}
-
-	s.Hold = NewHoldingList(w, s) // setup the dependent holding map
-
-	s.TimeOffset = new(primitives.Timestamp) //interfaces.Timestamp(int64(rand.Int63() % int64(time.Microsecond*10)))
-
-	s.InvalidMessages = make(map[[32]byte]interfaces.IMsg, 0)
-
-	s.ShutdownChan = make(chan int, 1)                //Channel to gracefully shut down.
-	s.tickerQueue = make(chan int, 100)               //ticks from a clock
-	s.timerMsgQueue = make(chan interfaces.IMsg, 100) //incoming eom notifications, used by leaders
-	s.ControlPanelChannel = make(chan DisplayState, 20)
-	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 100)              //incoming message queue from the network messages
-	s.networkOutMsgQueue = NewNetOutMsgQueue(w, constants.INMSGQUEUE_MED)   //Messages to be broadcast to the network
-	s.inMsgQueue = NewInMsgQueue(w, constants.INMSGQUEUE_HIGH)              //incoming message queue for Factom application messages
-	s.inMsgQueue2 = NewInMsgQueue2(w, constants.INMSGQUEUE_HIGH)            //incoming message queue for Factom application messages
-	s.electionsQueue = NewElectionQueue(w, constants.INMSGQUEUE_HIGH)       //incoming message queue for Factom application messages
-	s.apiQueue = NewAPIQueue(w, constants.INMSGQUEUE_HIGH)                  //incoming message queue from the API
-	s.ackQueue = make(chan interfaces.IMsg, 50)                             //queue of Leadership messages
-	s.msgQueue = make(chan interfaces.IMsg, 50)                             //queue of Follower messages
-	s.prioritizedMsgQueue = make(chan interfaces.IMsg, 50)                  //a prioritized queue of Follower messages (from mmr.go)
-	s.MissingEntries = make(chan *MissingEntry, constants.INMSGQUEUE_HIGH)  //Entries I discover are missing from the database
-	s.UpdateEntryHash = make(chan *EntryUpdate, constants.INMSGQUEUE_HIGH)  //Handles entry hashes and updating Commit maps.
-	s.WriteEntry = make(chan interfaces.IEBEntry, constants.INMSGQUEUE_LOW) //Entries to be written to the database
-	s.RecentMessage.NewMsgs = make(chan interfaces.IMsg, 100)
-
-	// Set up struct to stop replay attacks
-	s.Replay = new(Replay)
-	s.Replay.s = s
-	s.Replay.name = "Replay"
-
-	s.FReplay = new(Replay)
-	s.FReplay.s = s
-	s.FReplay.name = "FReplay"
-
-	// Set up maps for the followers
-	s.Holding = make(map[[32]byte]interfaces.IMsg)
-	s.HoldingList = make(chan [32]byte, 4000)
-	s.Acks = make(map[[32]byte]interfaces.IMsg)
-	s.Commits = NewSafeMsgMap("commits", s) //make(map[[32]byte]interfaces.IMsg)
-
-	// Setup the FactoidState and Validation Service that holds factoid and entry credit balances
-	s.FactoidBalancesP = map[[32]byte]int64{}
-	s.ECBalancesP = map[[32]byte]int64{}
-
-	fs := new(FactoidState)
-	fs.State = s
-	s.FactoidState = fs
-
-	// Allocate the original set of Process Lists
-	s.ProcessLists = NewProcessLists(s)
-	s.FaultWait = 3
-	s.LastTiebreak = 0
-	s.EOMfaultIndex = 0
-
-	s.DBStates = new(DBStateList)
-	s.DBStates.State = s
-	s.DBStates.DBStates = make([]*DBState, 0)
-
-	s.StatesMissing = NewStatesMissing()
-	s.StatesWaiting = NewStatesWaiting()
-	s.StatesReceived = NewStatesReceived()
-
-	switch s.NodeMode {
-	case "FULL":
-		s.Leader = false
-		s.Println("\n   +---------------------------+")
-		s.Println("   +------ Follower Only ------+")
-		s.Print("   +---------------------------+\n\n")
-	case "SERVER":
-		s.Println("\n   +-------------------------+")
-		s.Println("   |       Leader Node       |")
-		s.Print("   +-------------------------+\n\n")
-	default:
-		panic("Bad Node Mode (must be FULL or SERVER)")
-	}
-
-	//Database
-	switch s.DBType {
-	case "LDB":
-		if err := s.InitLevelDB(); err != nil {
-			panic(fmt.Sprintf("Error initializing the database: %v", err))
-		}
-	case "Bolt":
-		if err := s.InitBoltDB(); err != nil {
-			panic(fmt.Sprintf("Error initializing the database: %v", err))
-		}
-	case "Map":
-		if err := s.InitMapDB(); err != nil {
-			panic(fmt.Sprintf("Error initializing the database: %v", err))
-		}
-	default:
-		panic("No Database type specified")
-	}
-
-	if s.CheckChainHeads.CheckChainHeads {
-		if s.CheckChainHeads.Fix {
-			// Set dblock head to 184 if 184 is present and head is not 184
-			d, err := s.DB.FetchDBlockHead()
-			if err != nil {
-				// We should have a dblock head...
-				panic(fmt.Errorf("Error loading dblock head: %s\n", err.Error()))
-			}
-
-			if d != nil {
-				if d.GetDatabaseHeight() == 160183 {
-					// Our head is less than 160184, do we have 160184?
-					if d2, err := s.DB.FetchDBlockByHeight(160184); d2 != nil && err == nil {
-						err := s.DB.(*databaseOverlay.Overlay).SaveDirectoryBlockHead(d2)
-						if err != nil {
-							panic(err)
-						}
-					}
-				}
-			}
-		}
-		correctChainHeads.FindHeads(s.DB.(*databaseOverlay.Overlay), correctChainHeads.CorrectChainHeadConfig{
-			PrintFreq: 5000,
-			Fix:       s.CheckChainHeads.Fix,
-		})
-	}
-	if s.ExportData {
-		s.DB.SetExportData(s.ExportDataSubpath)
-	}
-
-	// Cross Boot Replay
-	switch s.DBType {
-	case "Map":
-		s.SetupCrossBootReplay("Map")
-	default:
-		s.SetupCrossBootReplay("Bolt")
-	}
-
-	//Network
-	switch s.Network {
-	case "MAIN":
-		s.NetworkNumber = constants.NETWORK_MAIN
-		s.DirectoryBlockInSeconds = 600
-	case "TEST":
-		s.NetworkNumber = constants.NETWORK_TEST
-	case "LOCAL":
-		s.NetworkNumber = constants.NETWORK_LOCAL
-	case "CUSTOM":
-		s.NetworkNumber = constants.NETWORK_CUSTOM
-	default:
-		panic("Bad value for Network in factomd.conf")
-	}
-
-	s.Println("\nRunning on the ", s.Network, "Network")
-	s.Println("\nExchange rate chain id set to ", s.FERChainId)
-	s.Println("\nExchange rate Authority Public Key set to ", s.ExchangeRateAuthorityPublicKey)
-
-	// We want this run after the network settings are configured
-	// REVIEW: should this be relocated?
-	go s.DBStates.Catchup() // Launch in go routine as it blocks until we are synced from disk
-
-	s.AuditHeartBeats = make([]interfaces.IMsg, 0)
-
-	// If we cloned the Identity control of another node, don't reset!
-	if s.IdentityControl == nil {
-		s.IdentityControl = NewIdentityManager()
-	}
-	s.initServerKeys()
-	s.AuthorityServerCount = 0
-
-	//LoadIdentityCache(s)
-	//StubIdentityCache(s)
-	//needed for multiple nodes with FER.  remove for singe node launch
-	if s.FERChainId == "" {
-		s.FERChainId = "111111118d918a8be684e0dac725493a75862ef96d2d3f43f84b26969329bf03"
-	}
-	if s.ExchangeRateAuthorityPublicKey == "" {
-		s.ExchangeRateAuthorityPublicKey = "3b6a27bcceb6a42d62a3a8d02a6f0d73653215771de243a63ac048a18b59da29"
-	}
-	// end of FER removal
-	s.Starttime = time.Now()
-	// Allocate the MMR queues
-	s.asks = make(chan askRef, 50) // Should be > than the number of VMs so each VM can have at least one outstanding ask.
-	s.adds = make(chan plRef, 50)  // No good rule of thumb on the size of this
-	s.dbheights = make(chan int, 1)
-	s.rejects = make(chan MsgPair, 1) // Messages rejected from process list
-
-	// Allocate the missing message handler
-	s.MissingMessageResponseHandler = NewMissingMessageReponseCache(s)
-
-	if s.StateSaverStruct.FastBoot {
-		d, err := s.DB.FetchDBlockHead()
-		if err != nil {
-			panic(err)
-		}
-
-		if d == nil || int(d.GetDatabaseHeight()) < s.FastSaveRate {
-			//If we have less than whatever our block rate is, we wipe SaveState
-			//This is to ensure we don't accidentally keep SaveState while deleting a database
-			s.StateSaverStruct.DeleteSaveState(s.Network)
-		} else {
-			err = s.StateSaverStruct.LoadDBStateList(s, s.DBStates, s.Network)
-			if err != nil {
-				s.StateSaverStruct.DeleteSaveState(s.Network)
-				s.LogPrintf("faulting", "Database load failed %v", err)
-			}
-			if err == nil {
-				for _, dbstate := range s.DBStates.DBStates {
-					if dbstate != nil {
-						dbstate.SaveStruct.Commits.s = s
-					}
-				}
-			}
-		}
-	}
-
-	s.Logger = log.WithFields(log.Fields{"node-name": s.GetFactomNodeName(), "identity": s.GetIdentityChainID().String()})
-
-	// Set up Logstash Hook for Logrus (if enabled)
-	if s.UseLogstash {
-		err := s.HookLogstash()
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
-
-	if globals.Params.WriteProcessedDBStates {
-		path := filepath.Join(s.LdbPath, s.Network, "dbstates")
-		os.MkdirAll(path, 0775)
-	}
-
-	// Setup the Skeleton Identity & Registration
-	s.IntiateNetworkSkeletonIdentity()
-	s.InitiateNetworkIdentityRegistration()
 }
 
 func (s *State) HookLogstash() error {
@@ -2189,7 +1592,9 @@ func (s *State) SetPort(port int) {
 	s.PortNumber = port
 }
 
-func (s *State) GetPort() int { return s.PortNumber }
+func (s *State) GetPort() int {
+	return s.PortNumber
+}
 
 func (s *State) TickerQueue() chan int {
 	return s.tickerQueue

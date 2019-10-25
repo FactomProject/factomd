@@ -38,34 +38,25 @@ func (*Thread) RegisterInterruptHandler(handler func()) {
 	AddInterruptHandler(handler)
 }
 
-// add metric to polling
-func (r *Thread) RegisterMetric(handler interfaces.PollMetricHandler) {
-	// KLUDGE: don't error during unit testing if process threads are not run
-	// r.PollMetricHandler is nil if the thread lifecycle isn't really executed (as in unit tests)
-	defer func() { recover() }()
-	r.PollMetricHandler(handler)
-}
-
 type IRegister interface {
-	Thread(*Thread, Handle, string)          // RegistryCallback for sub-threads
-	Process(*Thread, Handle, string, string) // callback to fork a new process
+	Thread(*Thread, Handle)  // RegistryCallback for sub-threads
+	Process(*Thread, Handle) // callback to fork a new process
 }
 
 // worker process with structured callbacks
 // parent relation helps trace worker dependencies
 type Thread struct {
-	common.Name                                // support hierarchical naming
-	log.ICaller                                // interface to for some fields used by logger
-	Log               interfaces.Log           // threaded logger
-	PollMetricHandler interfaces.MetricHandler // callback to telemetry
-	Register          IRegister                // callbacks to register threads
-	PID               int                      // process ID that this thread belongs to
-	ID                int                      // thread id
-	ParentID          int                      // parent thread
-	Caller            string                   // runtime location where thread starts
-	onRun             func()                   // execute during 'run' state
-	onComplete        func()                   // execute after all run functions complete
-	onExit            func()                   // executes during SIGINT or after shutdown of run state
+	common.Name                // support hierarchical naming
+	log.ICaller                // interface to for some fields used by logger
+	Log         interfaces.Log // threaded logger
+	Register    IRegister      // callbacks to register threads
+	PID         int            // process ID that this thread belongs to
+	ID          int            // thread id
+	ParentID    int            // parent thread
+	Caller      string         // runtime location where thread starts
+	onRun       func()         // execute during 'run' state
+	onComplete  func()         // execute after all run functions complete
+	onExit      func()         // executes during SIGINT or after shutdown of run state
 }
 
 // indicates a specific thread callback
@@ -92,32 +83,32 @@ func init() {
 // convenience wrapper starts a closure in a sub-thread
 // useful for situations where only Run callback is needed
 // can be thought of as 'leaves' of the thread runtime dependency graph
-func (r *Thread) Run(runFunc func(), threadName string) {
+func (r *Thread) Run(runFunc func()) {
 	_, file, line, _ := runtime.Caller(1)
 	caller := fmt.Sprintf("%s:%v", file[Prefix:], line)
 
 	r.Spawn(func(w *Thread) {
 		w.Caller = caller
 		w.OnRun(runFunc)
-	}, threadName)
+	})
 }
 
 // Spawn a child thread and register callbacks
 // this is useful to bind functions to Init/Run/Stop callbacks
-func (r *Thread) Spawn(initFunction Handle, threadName string) {
+func (r *Thread) Spawn(initFunction Handle) {
 	_, file, line, _ := runtime.Caller(1)
 	caller := fmt.Sprintf("%s:%v", file[Prefix:], line)
 
 	r.Register.Thread(r, func(w *Thread) {
 		w.Caller = caller
 		initFunction(w)
-	}, threadName)
+	})
 }
 
 // Fork process with it's own thread lifecycle
 // NOTE: it's required to run the process
-func (r *Thread) Fork(initFunction Handle, threadName string, processName string) {
-	r.Register.Process(r, initFunction, threadName, processName)
+func (r *Thread) Fork(initFunction Handle) {
+	r.Register.Process(r, initFunction)
 }
 
 // Invoke specific callbacks synchronously

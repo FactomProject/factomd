@@ -2,7 +2,6 @@ package registry
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/telemetry"
 	"github.com/FactomProject/factomd/worker"
 	"runtime"
 	"sync"
@@ -54,7 +53,6 @@ func (p *process) addThread() *worker.Thread {
 	threadId := len(p.Index)
 
 	w := worker.New()
-	w.PollMetricHandler = telemetry.RegisterMetric
 	w.ID = threadId
 	w.Register = p
 	p.Index = append(p.Index, w)
@@ -90,11 +88,10 @@ func (p *process) bindCallbacks(w *worker.Thread, initHandler worker.Handle) {
 }
 
 // Start a new root thread w/ coordinated start/stop callback hooks
-func (p *process) Register(initFunction worker.Handle, name string) {
+func (p *process) Register(initFunction worker.Handle) {
 	_, file, line, _ := runtime.Caller(1)
 	caller := fmt.Sprintf("%s:%v", file[worker.Prefix:], line)
 	r := p.addThread()
-	r.Init(r, name)
 	r.Caller = caller
 	r.ParentID = r.ID // root threads are their own parent
 	r.PID = p.ID
@@ -102,28 +99,27 @@ func (p *process) Register(initFunction worker.Handle, name string) {
 }
 
 // Start a child process and register callbacks
-func (p *process) Thread(w *worker.Thread, initFunction worker.Handle, threadName string) {
+func (p *process) Thread(w *worker.Thread, initFunction worker.Handle) {
 	t := p.addThread()
-	t.Init(w, threadName)
 	t.ParentID = w.ID // child threads have a parent
 	t.PID = p.ID      // set process ID
 	p.bindCallbacks(t, initFunction)
 }
 
 // fork a new process with it's own lifecycle
-func (p *process) Process(w *worker.Thread, initFunction worker.Handle, threadName string, processName string) {
+func (p *process) Process(w *worker.Thread, initFunction worker.Handle) {
 	f := newProcess()
 	f.Parent = p.ID // keep relation to parent process
 	// break parent relation
-	f.Register(initFunction, processName)
+	f.Register(initFunction)
 
 	// cause this process to execute as part of the run lifecycle of the parent thread
-	w.Run(f.Run, threadName)
+	w.Run(f.Run)
 }
 
 // interface to avoid exposing registry internals
 type Process interface {
-	Register(worker worker.Handle, name string)
+	Register(worker worker.Handle)
 	Run()
 	Exit()
 	WaitForRunning()

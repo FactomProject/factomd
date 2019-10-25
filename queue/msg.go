@@ -2,18 +2,15 @@ package queue
 
 import (
 	"github.com/FactomProject/factomd/common/interfaces"
+	"time"
 
 	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/telemetry"
-	"github.com/FactomProject/factomd/worker"
-	"time"
 )
 
 type MsgQueue struct {
 	common.Name
-	Package string
 	Channel chan interfaces.IMsg
-	Thread  *worker.Thread
 }
 
 // construct gauge w/ proper labels
@@ -23,7 +20,7 @@ func (q *MsgQueue) Metric(msg interfaces.IMsg) telemetry.Gauge {
 		label = msg.Label()
 	}
 
-	return telemetry.ChannelSize.WithLabelValues(q.Package, q.GetName(), q.Thread.Label(), label)
+	return telemetry.ChannelSize.WithLabelValues(q.GetName(), label)
 }
 
 // construct counter for tracking totals
@@ -33,17 +30,17 @@ func (q *MsgQueue) TotalMetric(msg interfaces.IMsg) telemetry.Counter {
 		label = msg.Label()
 	}
 
-	return telemetry.TotalCounter.WithLabelValues(q.Package, q.GetName(), q.Thread.Label(), label)
+	return telemetry.TotalCounter.WithLabelValues(q.GetName(), label)
 }
 
 // construct counter for intermittent polling of queue size
 func (q *MsgQueue) PollMetric() telemetry.Gauge {
-	return telemetry.ChannelSize.WithLabelValues(q.Package, q.GetName(), q.Thread.Label(), "aggregate")
+	return telemetry.ChannelSize.WithLabelValues(q.GetName(), "aggregate")
 }
 
 // add metric to poll size of queue
 func (q *MsgQueue) RegisterPollMetric() {
-	q.Thread.RegisterMetric(func(poll *time.Ticker, exit chan bool) {
+	telemetry.RegisterMetric(func(poll *time.Ticker, exit chan bool) {
 		gauge := q.PollMetric()
 
 		for {

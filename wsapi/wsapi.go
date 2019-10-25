@@ -29,13 +29,13 @@ import (
 var Servers map[string]*Server
 var ServersMutex sync.Mutex
 
+func init() {
+	Servers = make(map[string]*Server)
+}
+
 func Start(w *worker.Thread, state interfaces.IState) {
 	ServersMutex.Lock()
 	defer ServersMutex.Unlock()
-
-	if Servers == nil {
-		Servers = make(map[string]*Server)
-	}
 
 	port := strconv.Itoa(state.GetPort())
 	if Servers[port] == nil {

@@ -36,7 +36,6 @@ type IState interface {
 	// Server
 	GetFactomNodeName() string
 	GetSalt(Timestamp) uint32 // A secret number computed from a TS that tests if a message was issued from this server or not
-	Clone(number int) IState
 	GetCfg() IFactomConfig
 	GetConfigPath() string
 	LoadConfig(filename string, networkFlag string)
@@ -327,10 +326,6 @@ type IState interface {
 	// Access to Holding Queue
 	LoadHoldingMap() map[[32]byte]IMsg
 	LoadAcksMap() map[[32]byte]IMsg
-
-	// Plugins
-	UsingTorrent() bool
-	GetMissingDBState(height uint32) error
 
 	LogMessage(logName string, comment string, msg IMsg)
 	LogPrintf(logName string, format string, more ...interface{})

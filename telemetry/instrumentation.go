@@ -5,18 +5,18 @@ var (
 	MapSize = NewGaugeVec(
 		"map_size",
 		"common metric for all queues",
-		[]string{"package", "name", "thread", "message"},
+		[]string{"path", "message"},
 	)
 
 	ChannelSize = NewGaugeVec(
 		"channel_size",
 		"common metric for all channels",
-		[]string{"package", "name", "thread", "message"},
+		[]string{"path", "message"},
 	)
 
 	TotalCounter = NewCounterVec(
 		"total_count",
 		"common metric for counting totals",
-		[]string{"package", "name", "thread", "message"},
+		[]string{"path", "message"},
 	)
 )

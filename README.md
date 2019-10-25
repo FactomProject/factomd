@@ -221,10 +221,6 @@ Which will get you something like:
         Maximum timeDelta in milliseconds to offset each node.  Simulates deltas in system clocks over a network.
     -tls
         Set to true to require encrypted connections to factomd API and Control Panel
-    -tormanage
-        Use torrent dbstate manager. Must have plugin binary installed and in $PATH
-    -torupload
-        Be a torrent uploader
     -waitentries
         Wait for Entries to be validated prior to execution of messages
     -wrproc

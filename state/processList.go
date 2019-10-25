@@ -172,10 +172,6 @@ func (p *ProcessList) Complete() bool {
 // Returns the Virtual Server index for this hash for the given minute
 func (p *ProcessList) VMIndexFor(hash []byte) int {
 
-	if p == nil || p.State.OneLeader {
-		return 0
-	}
-
 	v := uint64(0)
 	for _, b := range hash {
 		v += uint64(b)
