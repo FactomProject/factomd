@@ -8,16 +8,21 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	. "github.com/FactomProject/factomd/queue"
-	"github.com/FactomProject/factomd/worker"
 )
 
 var _ = fmt.Println
 
 func TestQueues(t *testing.T) {
 	channel := make(chan interfaces.IMsg, 1000)
-	general := MsgQueue{Channel: channel}
-	inmsg := MsgQueue{Channel: channel}
-	netOut := MsgQueue{Channel: channel}
+	mkQ := func() *MsgQueue {
+		q := new(MsgQueue)
+		q.Channel = channel
+		return q
+	}
+	general := mkQ()
+	inmsg := mkQ()
+	netOut := mkQ()
+
 
 	if !checkLensAndCap(channel, []interfaces.IQueue{inmsg, netOut}) {
 		t.Error("Error: Lengths/Cap does not match")
@@ -166,9 +171,8 @@ func BenchmarkChannels(b *testing.B) {
 }
 
 func BenchmarkQueues(b *testing.B) {
-	c := &MsgQueue{
-		Channel: make(chan interfaces.IMsg, 1000),
-	}
+	c := new(MsgQueue)
+	c.Channel = make(chan interfaces.IMsg, 1000)
 
 	for i := 0; i < b.N; i++ {
 		c.Enqueue(nil)
@@ -180,10 +184,9 @@ func BenchmarkQueues(b *testing.B) {
 
 func BenchmarkConcurentChannels(b *testing.B) {
 	c := make(chan interfaces.IMsg, 1000)
+
 	go func() {
 		for true {
-			c <- nil
-			<-c
 			time.Sleep(10 * time.Nanosecond)
 		}
 	}()
@@ -194,9 +197,9 @@ func BenchmarkConcurentChannels(b *testing.B) {
 }
 
 func BenchmarkConcurrentQueues(b *testing.B) {
-	c := &MsgQueue{
-		Channel: make(chan interfaces.IMsg, 1000),
-	}
+	c := new(MsgQueue)
+	c.Channel = make(chan interfaces.IMsg, 1000)
+
 	go func() {
 		for true {
 			c.Enqueue(nil)
@@ -227,9 +230,9 @@ func BenchmarkCompetingChannels(b *testing.B) {
 }
 
 func BenchmarkCompetingQueues(b *testing.B) {
-	c := &MsgQueue{
-		Channel: make(chan interfaces.IMsg, 1000),
-	}
+	c := new(MsgQueue)
+	c.Channel = make(chan interfaces.IMsg, 1000)
+
 	go func() {
 		for true {
 			c.Enqueue(nil)
