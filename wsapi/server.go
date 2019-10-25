@@ -4,9 +4,10 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"github.com/FactomProject/factomd/worker"
 	"net/http"
 	"time"
+
+	"github.com/FactomProject/factomd/worker"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/gorilla/mux"

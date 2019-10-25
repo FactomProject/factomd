@@ -5,9 +5,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/FactomProject/factomd/fnode"
-	"github.com/FactomProject/factomd/registry"
-	"github.com/FactomProject/factomd/worker"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -16,6 +13,10 @@ import (
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/FactomProject/factomd/fnode"
+	"github.com/FactomProject/factomd/registry"
+	"github.com/FactomProject/factomd/worker"
 
 	"github.com/FactomProject/factomd/elections"
 

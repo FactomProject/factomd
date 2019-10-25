@@ -8,6 +8,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	. "github.com/FactomProject/factomd/queue"
+	"github.com/FactomProject/factomd/worker"
 )
 
 var _ = fmt.Println

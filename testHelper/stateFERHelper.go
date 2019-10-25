@@ -8,9 +8,10 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"time"
+
 	"github.com/FactomProject/factomd/registry"
 	"github.com/FactomProject/factomd/worker"
-	"time"
 
 	ed "github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factom"

@@ -1,10 +1,11 @@
 package longtest
 
 import (
-	"github.com/FactomProject/factomd/registry"
-	. "github.com/FactomProject/factomd/testHelper"
 	"testing"
 	"time"
+
+	"github.com/FactomProject/factomd/registry"
+	. "github.com/FactomProject/factomd/testHelper"
 )
 
 // just load up and print out visualization of registered threads

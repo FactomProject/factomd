@@ -47,6 +47,13 @@ func GetFnodes() []*FactomNode {
 	return fnodes
 }
 
+func AddFnode(node *FactomNode) {
+	node.Init(Root, "svc") // root of service
+	node.State.Init(node, node.State.FactomNodeName)
+	node.State.Hold.Init(node.State, "HoldingList")
+	fnodes = append(fnodes, node)
+}
+
 func Get(i int) *FactomNode {
 	return fnodes[i]
 }

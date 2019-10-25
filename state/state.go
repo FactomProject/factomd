@@ -10,13 +10,13 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/FactomProject/factomd/common"
 	"os"
 	"reflect"
 	"regexp"
 	"sync"
 	"time"
 
-	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/common/constants/runstate"
 	"github.com/FactomProject/factomd/queue"
 
@@ -189,12 +189,12 @@ type State struct {
 	tickerQueue            chan int
 	timerMsgQueue          chan interfaces.IMsg
 	MaxTimeOffset          interfaces.Timestamp
-	networkOutMsgQueue     queue.MsgQueue
+	networkOutMsgQueue     *queue.MsgQueue
 	networkInvalidMsgQueue chan interfaces.IMsg
-	inMsgQueue             queue.MsgQueue
-	inMsgQueue2            queue.MsgQueue
-	electionsQueue         queue.MsgQueue
-	apiQueue               queue.MsgQueue
+	inMsgQueue             *queue.MsgQueue
+	inMsgQueue2            *queue.MsgQueue
+	electionsQueue         *queue.MsgQueue
+	apiQueue               *queue.MsgQueue
 	ackQueue               chan interfaces.IMsg
 	msgQueue               chan interfaces.IMsg
 	// prioritizedMsgQueue contains messages we know we need for consensus. (missing from processlist)

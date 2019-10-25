@@ -6,11 +6,14 @@ package main
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/engine"
 	"os"
 	"reflect"
 	"runtime"
+
+	"github.com/FactomProject/factomd/engine"
 )
+
+//go:generate go run ./factomgenerate/generate.go
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
@@ -22,7 +25,7 @@ func main() {
 	}
 
 	params := engine.ParseCmdLine(os.Args[1:])
-	fmt.Println()
+	fmt.Println("%v", params)
 
 	fmt.Println("Parameter:")
 	s := reflect.ValueOf(params).Elem()

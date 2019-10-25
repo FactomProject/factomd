@@ -3,9 +3,10 @@ package testHelper
 import (
 	"bytes"
 	"fmt"
-	"github.com/FactomProject/factomd/fnode"
 	"net/http"
 	"strconv"
+
+	"github.com/FactomProject/factomd/fnode"
 
 	"github.com/FactomProject/factomd/wsapi"
 )

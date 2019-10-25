@@ -11,7 +11,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/FactomProject/factomd/worker"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -20,6 +19,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/FactomProject/factomd/worker"
 
 	"github.com/FactomProject/btcutil/certs"
 	"github.com/FactomProject/factomd/common/interfaces"

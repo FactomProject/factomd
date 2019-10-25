@@ -5,6 +5,8 @@ import (
 	"math"
 	"testing"
 
+	"github.com/FactomProject/factomd/fnode"
+
 	. "github.com/FactomProject/factomd/engine"
 )
 
