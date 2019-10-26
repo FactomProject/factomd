@@ -21,7 +21,7 @@ COPY . .
 ARG GOOS=linux
 
 # Build and install factomd
-RUN go install -ldflags "-X github.com/FactomProject/factomd/engine.Build=`git rev-parse HEAD` -X github.com/FactomProject/factomd/engine.FactomdVersion=`cat VERSION`"
+RUN ./build.sh
 
 # Setup the cache directory
 RUN mkdir -p /root/.factom/m2
