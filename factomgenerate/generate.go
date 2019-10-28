@@ -15,7 +15,6 @@ import (
 	"path/filepath"
 	"strings"
 	"text/template"
-	"time"
 )
 
 func main() {
@@ -48,7 +47,6 @@ func main() {
 	}
 	*/
 
-	now := time.Now().String()
 	// For each template request, split out the key value pairs ...
 	for _, m := range strings.Split(out.String(), "\n") {
 		// ignore blank lines
@@ -102,7 +100,6 @@ func main() {
 
 		// make the file header
 		details := make(map[string]interface{})
-		details["timestamp"] = now
 		details["imports"] = importsMap
 		details["test"] = strings.Contains(templatename, "_test")
 		fmt.Println("Creating", filename, "with", details)
