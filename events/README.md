@@ -16,10 +16,10 @@ To enable and configure the first layer Live Feed in factomd there is a new prop
 [LiveFeedAPI]
 EnableLiveFeedAPI                     = true
 EventReceiverProtocol                 = tcp
-EventReceiverAddress                  = 127.0.0.1
+EventReceiverHost                     = 127.0.0.1
 EventReceiverPort                     = 8040
 EventFormat                           = protobuf
-EventSendStateChange                  = true
+EventSendStateChange                  = false
 EventBroadcastContent                 = OnRegistration 
 EventReplayDuringStartup              = false
 ```
@@ -30,7 +30,7 @@ Here is an overview of these options:
 | --------------------------------- | ----------------------------------------------------------------------------------- | ----------- |
 |  EnableLiveFeedAPI                | Turn the Live Feed API on or off                                            | true &#124; false
 |  EventReceiverProtocol            | The network protocol that is used to send event messages over the network.     | tcp &#124; udp |
-|  EventReceiverAddress             | The receiver endpoint address.                                                | DNS name &#124; IP address |
+|  EventReceiverHost                | The receiver endpoint host.                                                | DNS name &#124; IP address |
 |  EventReceiverPort                | The receiver endpoint port.                                                  | port number |
 |  EventFormat                      | The output format in which the event sent.                                      | protobuf &#124; json |
 |  EventSendStateChange             | It’s possible to choose whether the chain and entry commit registrations should only be sent once, followed by state change events vs resending them for every state change. The first option reduces overhead & network traffic, but requires the implementer to track which state changes belong to which chain or entry.| true &#124; false |

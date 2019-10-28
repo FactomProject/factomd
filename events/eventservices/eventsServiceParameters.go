@@ -26,10 +26,10 @@ func selectParameters(factomParams *globals.FactomParams, config *util.FactomdCo
 	} else {
 		params.Protocol = defaultProtocol
 	}
-	if len(factomParams.EventReceiverAddress) > 0 && factomParams.EventReceiverPort > 0 {
-		params.Address = factomParams.EventReceiverAddress
-	} else if len(config.LiveFeedAPI.EventReceiverAddress) > 0 && config.LiveFeedAPI.EventReceiverPort > 0 {
-		params.Address = fmt.Sprintf("%s:%d", config.LiveFeedAPI.EventReceiverAddress, config.LiveFeedAPI.EventReceiverPort)
+	if len(factomParams.EventReceiverHost) > 0 && factomParams.EventReceiverPort > 0 {
+		params.Address = fmt.Sprintf("%s:%d", factomParams.EventReceiverHost, factomParams.EventReceiverPort)
+	} else if len(config.LiveFeedAPI.EventReceiverHost) > 0 && config.LiveFeedAPI.EventReceiverPort > 0 {
+		params.Address = fmt.Sprintf("%s:%d", config.LiveFeedAPI.EventReceiverHost, config.LiveFeedAPI.EventReceiverPort)
 	} else {
 		params.Address = fmt.Sprintf("%s:%d", defaultConnectionHost, defaultConnectionPort)
 	}
@@ -48,13 +48,13 @@ func selectParameters(factomParams *globals.FactomParams, config *util.FactomdCo
 	if len(factomParams.EventBroadcastContent) > 0 {
 		params.BroadcastContent, err = Parse(factomParams.EventBroadcastContent)
 		if err != nil {
-			log.Printf("Parameter EventBroadcastContent could not be parsed: %v", err)
+			log.Printfln("Parameter EventBroadcastContent could not be parsed: %v\n", err)
 			params.BroadcastContent = BroadcastOnce
 		}
 	} else if len(config.LiveFeedAPI.EventBroadcastContent) > 0 {
 		params.BroadcastContent, err = Parse(config.LiveFeedAPI.EventBroadcastContent)
 		if err != nil {
-			log.Printf("Configuration property LiveFeedAPI.EventBroadcastContent could not be parsed: %v", err)
+			log.Printfln("Configuration property LiveFeedAPI.EventBroadcastContent could not be parsed: %v", err)
 			params.BroadcastContent = BroadcastOnce
 		}
 	} else {

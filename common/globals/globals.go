@@ -86,7 +86,7 @@ type FactomParams struct {
 	// LiveFeed API params
 	EnableLiveFeedAPI        bool
 	EventReceiverProtocol    string
-	EventReceiverAddress     string
+	EventReceiverHost        string
 	EventReceiverPort        int
 	EventFormat              string
 	EventSendStateChange     bool
