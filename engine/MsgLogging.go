@@ -6,8 +6,9 @@ package engine
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/fnode"
 	"sync"
+
+	"github.com/FactomProject/factomd/fnode"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 )

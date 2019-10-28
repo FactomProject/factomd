@@ -1,11 +1,11 @@
 package engine_test
 
 import (
-	"github.com/FactomProject/factomd/fnode"
 	"math"
 	"testing"
 
 	. "github.com/FactomProject/factomd/engine"
+	"github.com/FactomProject/factomd/fnode"
 )
 
 var fnodes []*fnode.FactomNode

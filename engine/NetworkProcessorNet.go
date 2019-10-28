@@ -6,10 +6,11 @@ package engine
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/fnode"
-	"github.com/FactomProject/factomd/worker"
 	"math/rand"
 	"time"
+
+	"github.com/FactomProject/factomd/fnode"
+	"github.com/FactomProject/factomd/worker"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/globals"

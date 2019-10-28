@@ -2,6 +2,7 @@ package log
 
 import (
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 

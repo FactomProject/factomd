@@ -6,9 +6,10 @@ package engine
 
 import (
 	"fmt"
+	"runtime"
+
 	"github.com/FactomProject/factomd/registry"
 	"github.com/FactomProject/factomd/worker"
-	"runtime"
 
 	"bufio"
 	. "github.com/FactomProject/factomd/common/globals"

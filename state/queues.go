@@ -1,46 +1,27 @@
 package state
 
 import (
-	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/queue"
+	"github.com/FactomProject/factomd/worker"
 )
 
-func NewInMsgQueue(capacity int) queue.MsgQueue {
-	mq := queue.MsgQueue{
-		Channel: make(chan interfaces.IMsg, capacity),
-	}
-	mq.RegisterPollMetric()
-	return mq
+// Now really sure the thread should be the parent but for now ...
+func NewInMsgQueue(w *worker.Thread, capacity int) *queue.MsgQueue {
+	return new(queue.MsgQueue).Init(w,"InMsgQueue", capacity)
 }
 
-func NewInMsgQueue2(capacity int) queue.MsgQueue {
-	mq := queue.MsgQueue{
-		Channel: make(chan interfaces.IMsg, capacity),
-	}
-	mq.RegisterPollMetric()
-	return mq
+func NewInMsgQueue2(w *worker.Thread, capacity int) *queue.MsgQueue {
+	return new(queue.MsgQueue).Init(w, "InMsgQueue2", capacity)
 }
 
-func NewElectionQueue(capacity int) queue.MsgQueue {
-	mq := queue.MsgQueue{
-		Channel: make(chan interfaces.IMsg, capacity),
-	}
-	mq.RegisterPollMetric()
-	return mq
+func NewElectionQueue(w *worker.Thread, capacity int) *queue.MsgQueue {
+	return new(queue.MsgQueue).Init(w, "ElectionQueue", capacity)
 }
 
-func NewNetOutMsgQueue(capacity int) queue.MsgQueue {
-	mq := queue.MsgQueue{
-		Channel: make(chan interfaces.IMsg, capacity),
-	}
-	mq.RegisterPollMetric()
-	return mq
+func NewNetOutMsgQueue(w *worker.Thread, capacity int) *queue.MsgQueue {
+	return new(queue.MsgQueue).Init(w, "NetworkOutputQueue", capacity)
 }
 
-func NewAPIQueue(capacity int) queue.MsgQueue {
-	mq := queue.MsgQueue{
-		Channel: make(chan interfaces.IMsg, capacity),
-	}
-	mq.RegisterPollMetric()
-	return mq
+func NewAPIQueue(w *worker.Thread, capacity int) *queue.MsgQueue {
+	return new(queue.MsgQueue).Init(w, "APInQueue", capacity)
 }

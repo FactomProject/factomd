@@ -3,11 +3,12 @@ package wsapi_test
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
+	"testing"
+
 	"github.com/FactomProject/factomd/registry"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/worker"
-	"strings"
-	"testing"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/receipts"

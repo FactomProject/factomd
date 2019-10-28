@@ -1,10 +1,11 @@
 package telemetry
 
 import (
+	"time"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/worker"
 	"github.com/prometheus/client_golang/prometheus"
-	"time"
 )
 
 type Gauge = prometheus.Gauge
@@ -74,3 +75,8 @@ func NewSummary(name string, help string) Summary {
 	prometheus.MustRegister(s)
 	return s
 }
+
+//
+//func ToFloat64(counter Counter) float64 {
+//	return prometheus.ToFLoat64(counter.(prometheus.Counter))
+//}

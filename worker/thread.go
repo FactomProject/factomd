@@ -2,11 +2,12 @@ package worker
 
 import (
 	"fmt"
+	"runtime"
+	"strings"
+
 	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/log"
-	"runtime"
-	"strings"
 )
 
 // callback handle
@@ -39,7 +40,7 @@ func (*Thread) RegisterInterruptHandler(handler func()) {
 }
 
 type IRegister interface {
-	Thread(*Thread, Handle)  // RegistryCallback for sub-threads
+	Thread(*Thread, Handle)          // RegistryCallback for sub-threads
 	Process(*Thread, Handle) // callback to fork a new process
 }
 

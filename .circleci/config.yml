@@ -31,7 +31,7 @@ jobs:
             glide install
       - run:
           name: Build and install the executable
-          command: go install -v && cp -r $GOPATH/ /tmp
+          command: ./build.sh && cp -r $GOPATH/ /tmp
 
       - persist_to_workspace:
           root: /tmp

@@ -7,9 +7,10 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
-	"github.com/FactomProject/factomd/fnode"
 	"text/template"
 	"time"
+
+	"github.com/FactomProject/factomd/fnode"
 
 	"github.com/FactomProject/factom"
 	"github.com/FactomProject/factomd/common/entryBlock"

@@ -2,8 +2,9 @@ package engine
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/fnode"
 	"time"
+
+	"github.com/FactomProject/factomd/fnode"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/elections"

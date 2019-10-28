@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/FactomProject/factomd/registry"
 	"io/ioutil"
 	"math"
 	"os"
@@ -28,6 +27,7 @@ import (
 	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/fnode"
 	"github.com/FactomProject/factomd/p2p"
+	"github.com/FactomProject/factomd/registry"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/worker"
@@ -185,7 +185,7 @@ func initEngine(w *worker.Thread, p *globals.FactomParams) {
 	w.RegisterInterruptHandler(interruptHandler)
 
 	// nodes can spawn with a different thread lifecycle
-	fnode.Factory =  func(w *worker.Thread) {
+	fnode.Factory = func(w *worker.Thread) {
 		makeServer(w, p)
 	}
 }
@@ -512,7 +512,7 @@ func setupFirstAuthority(s *state.State) {
 // create a new simulated fnode
 func AddNode() {
 	p := registry.New()
-	p.Register(func(w *worker.Thread){
+	p.Register(func(w *worker.Thread) {
 		i := fnode.Len()
 		fnode.Factory(w)
 		modifySimulatorIdentity(i)

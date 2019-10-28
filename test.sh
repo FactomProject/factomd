@@ -108,7 +108,7 @@ function loadTestList() {
 }
 
 function testGoFmt() {
-	FILES=$(find . -name '*.go')
+	FILES=$(find . -name '*.go' ! -name '*_template.go')
 
 	for FILE in ${FILES[*]}; do
 		gofmt -w $FILE

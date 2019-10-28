@@ -3,12 +3,13 @@ package wsapi_test
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/FactomProject/factomd/registry"
-	"github.com/FactomProject/factomd/worker"
 	"net/http"
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/FactomProject/factomd/registry"
+	"github.com/FactomProject/factomd/worker"
 
 	"github.com/stretchr/testify/assert"
 
