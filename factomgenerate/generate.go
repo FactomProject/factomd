@@ -104,6 +104,7 @@ func main() {
 		details := make(map[string]interface{})
 		details["timestamp"] = now
 		details["imports"] = importsMap
+		details["template_imports"] = "." + templatename + ".imports"
 		details["test"] = strings.Contains(templatename, "_test")
 		fmt.Println("Creating", filename, "with", details)
 		f, err := os.Create(filename)
@@ -123,6 +124,8 @@ func main() {
 		// After we are done add the filetail to the file and close it.
 		die(templates.ExecuteTemplate(f, "filetail", details))
 		f.Close()
+		catfile(filename)
+
 		runcmd("gofmt -w " + filename)
 		runcmd("goimports -w " + filename)
 		catfile(filename)

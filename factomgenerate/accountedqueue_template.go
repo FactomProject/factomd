@@ -8,11 +8,9 @@
 
 //ᐸif false  ᐳ
 package Dummy // this is only here to make gofmt happy and is never in the generated code
-//ᐸend ᐳ
+import "github.com/FactomProject/factomd/telemetry"
 
-import (
-	"github.com/FactomProject/factomd/telemetry"
-)
+//ᐸend ᐳ
 
 //ᐸdefine "accountedqueue" ᐳ
 // Start accountedqueue generated go code
