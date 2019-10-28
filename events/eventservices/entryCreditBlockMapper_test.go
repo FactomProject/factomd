@@ -15,6 +15,10 @@ func TestMapEntryCreditBlock(t *testing.T) {
 	commitEntry := entryCreditBlock.NewCommitEntry()
 
 	block := entryCreditBlock.NewECBlock()
+	block.GetHeader().SetDBHeight(2)
+	block.GetHeader().SetBodySize(2)
+	block.GetHeader().SetObjectCount(2)
+
 	block.GetBody().AddEntry(serverIndexNumber)
 	block.GetBody().AddEntry(minuteNumber)
 	block.GetBody().AddEntry(commitChain)
