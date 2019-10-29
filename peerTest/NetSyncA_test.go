@@ -1,9 +1,8 @@
 package simtest
 
 import (
-	"testing"
-
 	. "github.com/FactomProject/factomd/testHelper"
+	"testing"
 )
 
 /*
@@ -18,7 +17,6 @@ func TestNetSyncA(t *testing.T) {
 	params := map[string]string{
 		"--db":               "LDB",
 		"--network":          "LOCAL",
-		"--debuglog":         "/tmp/test_a/|.",
 		"--nodename":         "TestA",
 		"--net":              "alot+",
 		"--enablenet":        "true",
@@ -30,8 +28,7 @@ func TestNetSyncA(t *testing.T) {
 		"--peers":            peers,
 	}
 
-	state0 := SetupSim("L", params, 7, 0, 0, t)
-
-	WaitForBlock(state0, 6)
+	state0 := SetupSim("L", params, 13, 0, 0, t)
+	WaitForBlock(state0, 13)
 	Halt(t)
 }
