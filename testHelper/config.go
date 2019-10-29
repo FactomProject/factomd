@@ -3,7 +3,9 @@ package testHelper
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"testing"
+	"path/filepath"
 
 	"github.com/FactomProject/factomd/util"
 )
@@ -98,10 +100,10 @@ func WriteConfigFile(identityNumber int, fnode int, extra string, t *testing.T) 
 	var configfile string
 
 	if fnode == 0 {
-		simConfigPath = GetSimTestHome(t) + "/.factom/m2"
+		simConfigPath = filepath.Join(GetSimTestHome(t), "/.factom/m2")
 		configfile = fmt.Sprintf("%s/factomd.conf", simConfigPath)
 	} else {
-		simConfigPath = GetSimTestHome(t) + "/.factom/m2/simConfig"
+		simConfigPath = filepath.Join(GetSimTestHome(t), "/.factom/m2/simConfig")
 		configfile = fmt.Sprintf("%s/factomd%03d.conf", simConfigPath, fnode)
 	}
 	err := os.MkdirAll(simConfigPath, 0755)
@@ -122,4 +124,8 @@ func WriteConfigFile(identityNumber int, fnode int, extra string, t *testing.T) 
 		t.Fatal(err)
 	}
 	return
+}
+
+func GetConfig(identityNumber int, extra string) string {
+	return nodeIDs[identityNumber] + extra
 }

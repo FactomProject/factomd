@@ -3,6 +3,16 @@ package testHelper
 //A package for functions used multiple times in tests that aren't useful in production code.
 
 import (
+	"bytes"
+	"encoding/binary"
+	"os/exec"
+	"regexp"
+	"runtime"
+	"time"
+	"fmt"
+	"os"
+
+	"github.com/FactomProject/factom"
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
@@ -12,16 +22,10 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/mapdb"
-	//"github.com/FactomProject/factomd/engine"
-	//"github.com/FactomProject/factomd/log"
-	"time"
-
 	"github.com/FactomProject/factomd/state"
-	//"fmt"
-	"fmt"
-	"os"
-
 	"github.com/FactomProject/factomd/common/messages/electionMsgs"
+
+
 )
 
 var BlockCount int = 10
@@ -61,6 +65,46 @@ func CreatePopulateAndExecuteTestState() *state.State {
 	return s
 }
 
+func CreateAndPopulateStaleHolding() *state.State {
+	s := CreateAndPopulateTestState()
+
+	// TODO: refactor into test helpers
+	a := AccountFromFctSecret("Fs2zQ3egq2j99j37aYzaCddPq9AF3mgh64uG9gRaDAnrkjRx3eHs")
+
+	encode := func(s string) []byte {
+		b := bytes.Buffer{}
+		b.WriteString(s)
+		return b.Bytes()
+	}
+
+	id := "92475004e70f41b94750f4a77bf7b430551113b25d3d57169eadca5692bb043d"
+	extids := [][]byte{encode(fmt.Sprintf("makeStaleMessages"))}
+
+	e := factom.Entry{
+		ChainID: id,
+		ExtIDs:  extids,
+		Content: encode(fmt.Sprintf("this is a stale message")),
+	}
+
+	// create stale MilliTime
+	mockTime := func() (r []byte) {
+		buf := new(bytes.Buffer)
+		t := time.Now().UnixNano()
+		m := t/1e6 - state.FilterTimeLimit // make msg too old
+		binary.Write(buf, binary.BigEndian, m)
+		return buf.Bytes()[2:]
+	}
+
+	// adding a commit w/ no REVEAL
+	m, _ := ComposeCommitEntryMsg(a.Priv, e)
+	copy(m.CommitEntry.MilliTime[:], mockTime())
+
+	// add commit to holding
+	s.Hold.Add(m.GetMsgHash().Fixed(), m)
+
+	return s
+}
+
 func CreateAndPopulateTestState() *state.State {
 	s := new(state.State)
 	s.TimestampAtBoot = new(primitives.Timestamp)
@@ -88,6 +132,7 @@ func CreateAndPopulateTestState() *state.State {
 		panic(err)
 	}*/
 	s.SetFactoshisPerEC(1)
+	s.MMRDummy() // Need to start MMR to ensure queues don't fill up
 	state.LoadDatabase(s)
 	s.Process()
 	s.UpdateState()
@@ -148,6 +193,7 @@ func ExecuteAllBlocksFromDatabases(s *state.State) {
 	msgs := GetAllDBStateMsgsFromDatabase(s)
 	for _, dbs := range msgs {
 		dbs.(*messages.DBStateMsg).IgnoreSigs = true
+		dbs.(*messages.DBStateMsg).IsInDB = true
 
 		s.FollowerExecuteDBState(dbs)
 	}
@@ -168,19 +214,7 @@ func CreateTestDBStateList() []interfaces.IMsg {
 	return answer
 }
 
-func MakeSureAnchorValidationKeyIsPresent() {
-	priv := NewPrimitivesPrivateKey(0)
-	pub := priv.Pub
-	for _, v := range databaseOverlay.AnchorSigPublicKeys {
-		if v.String() == pub.String() {
-			return
-		}
-	}
-	databaseOverlay.AnchorSigPublicKeys = append(databaseOverlay.AnchorSigPublicKeys, pub)
-}
-
 func PopulateTestDatabaseOverlay(dbo *databaseOverlay.Overlay) {
-	MakeSureAnchorValidationKeyIsPresent()
 	var prev *BlockSet = nil
 	var err error
 

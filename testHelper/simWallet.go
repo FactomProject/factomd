@@ -7,7 +7,6 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
-	"fmt"
 	"text/template"
 	"time"
 
@@ -28,7 +27,7 @@ type testAccount struct {
 	Priv *primitives.PrivateKey
 }
 
-var logName string = "simwallet"
+var logName string = "simTest"
 
 func (d *testAccount) FctPriv() string {
 	x, _ := primitives.PrivateKeyStringToHumanReadableFactoidPrivateKey(d.Priv.PrivateKeyString())
