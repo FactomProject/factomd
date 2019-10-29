@@ -137,7 +137,7 @@ func NodeInfoMessageF(messageCode eventmessages.NodeMessageCode, format string, 
 }
 
 func NodeErrorMessage(messageCode eventmessages.NodeMessageCode, message string, values interface{}) *NodeMessageEvent {
-	errorMsg := fmt.Sprint(message, values)
+	errorMsg := fmt.Sprintf(message, values)
 	event := &NodeMessageEvent{
 		nodeMessage: &eventmessages.NodeMessage{
 			MessageCode: messageCode,
