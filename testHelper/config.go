@@ -5,7 +5,6 @@ import (
 	"os"
 	"os/exec"
 	"testing"
-
 	"path/filepath"
 
 	"github.com/FactomProject/factomd/util"

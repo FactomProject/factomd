@@ -8,6 +8,9 @@ import (
 	"os/exec"
 	"regexp"
 	"runtime"
+	"time"
+	"fmt"
+	"os"
 
 	"github.com/FactomProject/factom"
 	"github.com/FactomProject/factomd/common/adminBlock"
@@ -19,15 +22,10 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/mapdb"
-
-	"time"
-
-	"fmt"
-	"os"
-
 	"github.com/FactomProject/factomd/state"
-
 	"github.com/FactomProject/factomd/common/messages/electionMsgs"
+
+
 )
 
 var BlockCount int = 10
@@ -266,7 +264,7 @@ func PopulateTestDatabaseOverlay(dbo *databaseOverlay.Overlay) {
 		}
 	}
 	/*
-		err = dbo.ReparseAnchorChains()
+		err = dbo.RebuildDirBlockInfo()
 		if err != nil {
 			panic(err)
 		}
