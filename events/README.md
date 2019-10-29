@@ -39,7 +39,7 @@ Here is an overview of these options:
 
 The same properties can be overridden by command line parameters which are the same as above but lowercase.
 The retry mechanism of the first layer is pretty strict. When a receiver is down or for some reason unresponsive it will retry to connect 3 times. If a receiver is not up by then, it will keep retrying to restore the connection every 5 minutes, but in the meantime it will start dropping the events until the receiver is back up. For mission critical use-cases there are prometheus counters in place:
-* **factomd_livefeed_not_send_counter** - the number of events that came out of the channel, but could delivered to the receiver.
-* **factomd_livefeed_dropped_from_queue**_counter - the number of events that could not be fed to the channel due to a full queue
+* **factomd_livefeed_not_send_counter** - the number of events that should be send, but couldn't be delivered to the receiver.
+* **factomd_livefeed_dropped_from_queue**_counter - the number of events that couldn't be send, because the queue is full.
 
 Along with the block height inside the events that are emitted, these are the tools with which the receiver can detect if the feed is complete. It’s the responsibility of the receiver to request missing entries/blocks when required.
