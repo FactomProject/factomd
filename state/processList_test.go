@@ -9,9 +9,7 @@ import (
 	"testing"
 
 	"github.com/FactomProject/factomd/common/interfaces"
-
 	"github.com/FactomProject/factomd/common/messages"
-
 	"github.com/FactomProject/factomd/common/primitives"
 	. "github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/testHelper"
@@ -119,4 +117,30 @@ func TestServerMap(t *testing.T) {
 	if vmIdx != 2 {
 		t.Error("Unexpected VM index in ServerMap")
 	}
+}
+
+/*
+ * A panic shouldn't occurs when a node receives a future ACK messages with the same ID.
+ * This can occurs during a brain swap.
+ */
+func TestBrainSwapAck(t *testing.T) {
+	state := testHelper.CreateAndPopulateTestState()
+
+	// init ack message
+	m := new(messages.Ack)
+	m.SetLeaderChainID(primitives.RandomHash())
+	m.DBHeight = state.GetLLeaderHeight() + 1
+	m.Timestamp = primitives.NewTimestampNow()
+	m.MessageHash = primitives.RandomHash()
+	m.SerialHash = primitives.RandomHash()
+
+	ack := state.NewAck(m, state.Balancehash).(*messages.Ack)
+
+	// Change the timestamp of the ack message so the SaltNumber if different, i.e. the secret number used to detect multiple servers with the same ID
+	ack.Timestamp = primitives.NewTimestampFromSeconds(primitives.NewTimestampNow().GetTimeSecondsUInt32() + 10)
+
+	// change the db height such that the ack of the brain swap will be processed in the wrong process list.
+	ack.DBHeight = state.LLeaderHeight + 1
+
+	state.ProcessLists.Get(ack.DBHeight).AddToProcessList(state, ack, m)
 }
