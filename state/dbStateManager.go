@@ -557,8 +557,7 @@ func (dbsl *DBStateList) UnmarshalBinary(p []byte) error {
 // Return a -1 on failure.
 //
 func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
-	s := state
-	_ = s
+
 	dirblk := next.DirectoryBlock
 	dbheight := dirblk.GetHeader().GetDBHeight()
 	// If we don't have the previous blocks processed yet, then let's wait on this one.
@@ -578,7 +577,7 @@ func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 	}
 
 	// Check if we have already process a block for this height and do not replace it if we have.
-	dbstate := s.DBStates.Get(int(dbheight))
+	dbstate := state.DBStates.Get(int(dbheight))
 	if dbstate != nil && dbstate.Saved {
 		state.LogPrintf("dbstateprocess", "Invalid DBState because we have already saved a block at this height")
 		return -1
@@ -759,6 +758,16 @@ func (list *DBStateList) GetHighestSavedBlk() uint32 {
 func containsServer(haystack []interfaces.IServer, needle interfaces.IServer) bool {
 	for _, hay := range haystack {
 		if needle.GetChainID().IsSameAs(hay.GetChainID()) {
+			return true
+		}
+	}
+	return false
+}
+
+// does a set of servers contain a server with a given chain id
+func containsServerWithChainID(haystack []interfaces.IServer, needle interfaces.IHash) bool {
+	for _, hay := range haystack {
+		if needle.IsSameAs(hay.GetChainID()) {
 			return true
 		}
 	}
@@ -956,7 +965,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	dbht := d.DirectoryBlock.GetHeader().GetDBHeight()
 
 	s := list.State
-
+	s.LogPrintf("dbstateprocess", "ProcessBlock %d", d.DirectoryBlock.GetHeader().GetDBHeight())
 	// If we are locked, the block has already been processed.  If the block IsNew then it has not yet had
 	// its links patched, so we can't process it.  But if this is a repeat block (we have already processed
 	// at this height) then we simply return.
