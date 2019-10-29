@@ -14,6 +14,8 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 
 	"github.com/FactomProject/factomd/common/messages/msgbase"
+
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -94,7 +96,7 @@ func (m *MissingData) GetMsgHash() (rval interfaces.IHash) {
 }
 
 func (m *MissingData) GetTimestamp() interfaces.Timestamp {
-	return m.Timestamp
+	return m.Timestamp.Clone()
 }
 
 func (m *MissingData) Type() byte {
@@ -105,6 +107,7 @@ func (m *MissingData) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling: %v", r)
 		}
 	}()
 	newData = data
@@ -183,6 +186,10 @@ func (m *MissingData) LeaderExecute(state interfaces.IState) {
 }
 
 func (m *MissingData) FollowerExecute(state interfaces.IState) {
+	panic("deprecated") // go routine in NetworkProcessorNet now handles this
+}
+
+func (m *MissingData) SendResponse(state interfaces.IState) {
 	var dataObject interfaces.BinaryMarshallable
 	//var dataHash interfaces.IHash
 	rawObject, dataType, err := state.LoadDataByHash(m.RequestHash)

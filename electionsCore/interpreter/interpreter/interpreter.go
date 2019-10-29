@@ -11,6 +11,8 @@ import (
 	. "github.com/FactomProject/factomd/electionsCore/interpreter/dictionary"
 	. "github.com/FactomProject/factomd/electionsCore/interpreter/names"
 	. "github.com/FactomProject/factomd/electionsCore/interpreter/stack"
+
+	llog "github.com/FactomProject/factomd/log"
 )
 
 type Interpreter struct {
@@ -237,9 +239,10 @@ func (i *Interpreter) InterpretLine(line string) {
 } // till EOF or error
 
 func (i *Interpreter) Interpret(source io.Reader) {
-	defer func() { i.Input = i.Input }() // Reset i.Input when we exit
+	defer func(old *bufio.Reader) { i.Input = old }(i.Input) // Reset i.Input when we exit
 	defer func() {
 		if r := recover(); r != nil {
+			llog.LogPrintf("recovery", "Error:", r)
 			fmt.Println("Error:", r)
 			i.Compiling = 0
 			i.Tracing = 0

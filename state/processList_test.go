@@ -8,6 +8,10 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/FactomProject/factomd/common/interfaces"
+
+	"github.com/FactomProject/factomd/common/messages"
+
 	"github.com/FactomProject/factomd/common/primitives"
 	. "github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/testHelper"
@@ -58,6 +62,34 @@ func TestProcessListMisc(t *testing.T) {
 	}
 
 	pl.TrimVMList(0, 0)
+}
+
+func TestProcessListTrim(t *testing.T) {
+	state := testHelper.CreateEmptyTestState()
+	pl := NewProcessList(state, nil, 0)
+
+	// Test various PL trim scenarios
+	//	We cannot trim below the processed height.
+	testPLListTrim(t, pl, 100, 50, 45, 100)
+	// Cannot trim above the total height
+	testPLListTrim(t, pl, 2, 0, 5, 2)
+
+	testPLListTrim(t, pl, 50, 35, 35, 35)
+	testPLListTrim(t, pl, 50, 0, 0, 0)
+	testPLListTrim(t, pl, 26, 25, 25, 25)
+}
+
+func testPLListTrim(t *testing.T, pl *ProcessList, total, processedHeight, trimHeight, expHeight int) {
+	pl.VMs[0].List = []interfaces.IMsg{}
+	for i := 0; i < total; i++ {
+		pl.VMs[0].List = append(pl.VMs[0].List, &messages.Bounce{})
+	}
+	pl.VMs[0].Height = processedHeight // Set a height that is "processed"
+
+	pl.TrimVMList(uint32(trimHeight), 0)
+	if len(pl.VMs[0].List) != expHeight {
+		t.Errorf("PLTrim left height of %d. Expected %d", len(pl.VMs[0].List), expHeight)
+	}
 }
 
 func TestServerMap(t *testing.T) {

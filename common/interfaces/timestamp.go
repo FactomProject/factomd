@@ -26,4 +26,5 @@ type Timestamp interface {
 	String() string
 	UTCString() string
 	IsSameAs(Timestamp) bool
+	Clone() Timestamp
 }

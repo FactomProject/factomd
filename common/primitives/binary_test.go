@@ -17,6 +17,7 @@ import (
 var testBytes []byte
 var testStr string = "00010203040506070809101112131415161718192021222324252627282930313233343536373839404142434445464748495051525354555657585960616263"
 
+// init initializes the testBytes variable above
 func init() {
 	h, err := hex.DecodeString(testStr)
 	if err != nil {
@@ -26,6 +27,7 @@ func init() {
 	testBytes = h
 }
 
+// TestUnmarshalNilByteSlice32 tests that unmarshaling catches inappropriate empty inputs
 func TestUnmarshalNilByteSlice32(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -45,6 +47,7 @@ func TestUnmarshalNilByteSlice32(t *testing.T) {
 	}
 }
 
+// TestUnmarshalNilByteSlice64 tests that unmarshaling catches inappropriate empty inputs
 func TestUnmarshalNilByteSlice64(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -64,6 +67,7 @@ func TestUnmarshalNilByteSlice64(t *testing.T) {
 	}
 }
 
+// TestUnmarshalNilByteSlice6 tests that unmarshaling catches inappropriate empty inputs
 func TestUnmarshalNilByteSlice6(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -83,6 +87,7 @@ func TestUnmarshalNilByteSlice6(t *testing.T) {
 	}
 }
 
+// TestUnmarshalNilByteSliceSig tests that unmarshaling catches inappropriate empty inputs
 func TestUnmarshalNilByteSliceSig(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -102,6 +107,7 @@ func TestUnmarshalNilByteSliceSig(t *testing.T) {
 	}
 }
 
+// TestUnmarshalNilByteSlice20 tests that unmarshaling catches inappropriate empty inputs
 func TestUnmarshalNilByteSlice20(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -121,6 +127,11 @@ func TestUnmarshalNilByteSlice20(t *testing.T) {
 	}
 }
 
+// TestAreBytesEqual checks the AreBytesEqual fuction with N random ByteSlices in a variety of ways:
+// 1) ByteSlice when copied and checked against each other, are in fact equal
+// 2) Small perturbations to the copied ByteSlice are correctly returned as not equal
+// 3) nil comparisons to the ByteSlice return not equal
+// Finally, checks nil to nil to ensure returns equal
 func TestAreBytesEqual(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		b1 := random.RandByteSlice()
@@ -162,6 +173,11 @@ func TestAreBytesEqual(t *testing.T) {
 	}
 }
 
+// TestAreBinaryMarshallablesEqual checks N random hashes in a variety of ways:
+// 1) hashes when copied and checked against each other and themselves, are in fact equal
+// 2) different random hashes are correctly returned as not equal
+// 3) nil comparisons to the hash return not equal
+// Finally, checks nil to nil to ensure returns equal
 func TestAreBinaryMarshallablesEqual(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		h1 := RandomHash()
@@ -224,6 +240,7 @@ func TestAreBinaryMarshallablesEqual(t *testing.T) {
 	}
 }
 
+// TestEncodeBinary checks N random []byte arrays can be encoded and decoded properly
 func TestEncodeBinary(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		h1 := random.RandByteSlice()
@@ -243,6 +260,7 @@ func TestEncodeBinary(t *testing.T) {
 	}
 }
 
+// TestStringToByteSlice32 checks that N random strings can be saved into the ByteSlice32 and recalled
 func TestStringToByteSlice32(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		h := random.RandByteSliceOfLen(32)
@@ -251,9 +269,17 @@ func TestStringToByteSlice32(t *testing.T) {
 		if b.String() != s {
 			t.Errorf("Invalid BS32 parsed")
 		}
+		b2 := b
+		if b.IsSameAs(b2) == false {
+			t.Errorf("ByteSlice32 IsSameAs could not detect same input")
+		}
+		if b.IsSameAs(nil) == true {
+			t.Errorf("ByteSlice32 IsSameAs error on nil input ")
+		}
 	}
 }
 
+// TestByte32ToByteSlice32 checks that N random []byte arrays can be converted to ByteSlice32
 func TestByte32ToByteSlice32(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		h := random.RandByteSliceOfLen(32)
@@ -266,6 +292,7 @@ func TestByte32ToByteSlice32(t *testing.T) {
 	}
 }
 
+// TestByteSliceSig checks that N random ByteSliceSigs can be marshalled and unmarshalled appropriately
 func TestByteSliceSig(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		bss := new(ByteSliceSig)
@@ -290,6 +317,15 @@ func TestByteSliceSig(t *testing.T) {
 		}
 		if AreBytesEqual(b1, f[:]) == false {
 			t.Errorf("Equal bytes are not equal")
+		}
+
+		bssame := new(ByteSliceSig)
+		_ = bssame.UnmarshalBinary(b1) // Shouldn't throw error because already proven unmarshalable above
+		if bssame.IsSameAs(bss) == false {
+			t.Errorf("ByteSliceSig IsSameAs could not detect same input")
+		}
+		if bssame.IsSameAs(nil) == true {
+			t.Errorf("ByteSliceSig IsSameAs error on nil input ")
 		}
 
 		extra := random.RandByteSlice()
@@ -320,6 +356,7 @@ func TestByteSliceSig(t *testing.T) {
 	}
 }
 
+// TestByteSlice20 checks that N random ByteSlice20 can be marshalled and unmarshalled appropriately
 func TestByteSlice20(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		bss := new(ByteSlice20)
@@ -346,6 +383,15 @@ func TestByteSlice20(t *testing.T) {
 			t.Errorf("Equal bytes are not equal")
 		}
 
+		bssame := new(ByteSlice20)
+		_ = bssame.UnmarshalBinary(b1) // Shouldn't throw error because already proven unmarshalable above
+		if bssame.IsSameAs(bss) == false {
+			t.Errorf("ByteSlice20 IsSameAs could not detect same input")
+		}
+		if bssame.IsSameAs(nil) == true {
+			t.Errorf("ByteSlice20 IsSameAs error on nil input ")
+		}
+
 		extra := random.RandByteSlice()
 		b3 := append(b1, extra...)
 
@@ -363,6 +409,7 @@ func TestByteSlice20(t *testing.T) {
 	}
 }
 
+// TestByteSlice checks that N random ByteSlice can be marshalled and unmarshalled appropriately
 func TestByteSlice(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		bss := new(ByteSlice)
@@ -379,6 +426,15 @@ func TestByteSlice(t *testing.T) {
 		}
 		if AreBytesEqual(b1, b2) == false {
 			t.Errorf("Equal bytes are not equal")
+		}
+
+		bssame := new(ByteSlice)
+		_ = bssame.UnmarshalBinary(b1) // Shouldn't throw error because already proven unmarshalable above
+		if bssame.IsSameAs(bss) == false {
+			t.Errorf("ByteSlice IsSameAs could not detect same input")
+		}
+		if bssame.IsSameAs(nil) == true {
+			t.Errorf("ByteSlice IsSameAs error on nil input ")
 		}
 
 		extra := random.RandByteSlice()
@@ -400,6 +456,7 @@ func TestByteSlice(t *testing.T) {
 	}
 }
 
+// TestBA64Misc checks that ByteSlice64 can be marshalled and unmarshalled appropriately
 func TestBA64Misc(t *testing.T) {
 	ba := new(ByteSlice64)
 
@@ -435,8 +492,16 @@ func TestBA64Misc(t *testing.T) {
 	if json != "\""+testStr+"\"" {
 		t.Errorf("Failed JSONString - %s", json)
 	}
+	ba2 := ba
+	if ba.IsSameAs(ba2) == false {
+		t.Errorf("ByteSlice64 IsSameAs could not detect same input")
+	}
+	if ba.IsSameAs(nil) == true {
+		t.Errorf("ByteSlice64 IsSameAs error on nil input ")
+	}
 }
 
+// TestBA32Misc checks that ByteSlice32 can be marshalled and unmarshalled appropriately
 func TestBA32Misc(t *testing.T) {
 	ba := new(ByteSlice32)
 	testStr32 := testStr[:64]
@@ -474,8 +539,16 @@ func TestBA32Misc(t *testing.T) {
 	if json != "\""+testStr32+"\"" {
 		t.Errorf("Failed JSONString - %s", json)
 	}
+	ba2 := ba
+	if ba.IsSameAs(ba2) == false {
+		t.Errorf("ByteSlice32 IsSameAs could not detect same input")
+	}
+	if ba.IsSameAs(nil) == true {
+		t.Errorf("ByteSlice32 IsSameAs error on nil input ")
+	}
 }
 
+// TestBA6Misc checks that ByteSlice6 can be marshalled and unmarshalled appropriately
 func TestBA6Misc(t *testing.T) {
 	ba := new(ByteSlice6)
 	testStr6 := testStr[:12]
@@ -512,5 +585,12 @@ func TestBA6Misc(t *testing.T) {
 	}
 	if json != "\""+testStr6+"\"" {
 		t.Errorf("Failed JSONString - %s", json)
+	}
+	ba2 := ba
+	if ba.IsSameAs(ba2) == false {
+		t.Errorf("ByteSlice6 IsSameAs could not detect same input")
+	}
+	if ba.IsSameAs(nil) == true {
+		t.Errorf("ByteSlice6 IsSameAs error on nil input ")
 	}
 }

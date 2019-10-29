@@ -110,6 +110,20 @@ func TestLoadHoldingMap(t *testing.T) {
 	}
 }
 
+func TestDependentHoldingReview(t *testing.T) {
+	state := testHelper.CreateAndPopulateStaleHolding()
+
+	if state.Hold.GetSize() == 0 {
+		t.Errorf("Error with Holding Map Length")
+	}
+
+	state.Hold.Review()
+
+	if state.Hold.GetSize() != 0 {
+		t.Errorf("Stale message should be dropped")
+	}
+}
+
 func TestLoadAcksMap(t *testing.T) {
 	state := testHelper.CreateAndPopulateTestStateAndStartValidator()
 

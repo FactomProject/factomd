@@ -38,7 +38,6 @@ type Elections struct {
 	VMIndex   int               // VMIndex of this election
 	Msgs      []interfaces.IMsg // Messages we are collecting in this election.  Look here for what's missing.
 	Input     interfaces.IQueue
-	Output    interfaces.IQueue
 	Round     []int
 	Electing  int // This is the federated Server index that we are looking to replace
 	State     interfaces.IState
@@ -103,6 +102,8 @@ func (e *Elections) AddFederatedServer(server interfaces.IServer) int {
 	e.RemoveAuditServer(server)
 
 	e.Federated = append(e.Federated, server)
+	s := e.State
+	s.LogPrintf("elections", "Election Sort FedServers AddFederatedServer")
 	changed := e.Sort(e.Federated)
 	if changed {
 		e.LogPrintf("election", "Sort changed e.Federated in Elections.AddFederatedServer")
@@ -445,7 +446,6 @@ func Run(s *state.State) {
 	e.State = s
 	e.Name = s.FactomNodeName
 	e.Input = s.ElectionsQueue()
-	e.Output = s.InMsgQueue()
 	e.Electing = -1
 
 	e.Timeout = time.Duration(FaultTimeout) * time.Second

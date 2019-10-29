@@ -850,8 +850,6 @@ func modifyLoadIdentities() {
 	if len(list) == 0 {
 		fmt.Println("Error when loading up identities for fnodes")
 	}
-	// 0 is not modified here
-	addFnodeName(0)
 
 	for i := 1; i < len(fnodes); i++ {
 		if i-1 >= len(list) {
@@ -894,12 +892,13 @@ func modifyLoadIdentities() {
 
 func addFnodeName(i int) {
 	// full name
-	globals.FnodeNames[fnodes[i].State.IdentityChainID.String()] = fnodes[i].State.FactomNodeName
+	name := fnodes[i].State.FactomNodeName
+	globals.FnodeNames[fnodes[i].State.IdentityChainID.String()] = name
 	// common short set
-	globals.FnodeNames[fmt.Sprintf("%x", fnodes[i].State.IdentityChainID.Bytes()[3:6])] = fnodes[i].State.FactomNodeName
-	globals.FnodeNames[fmt.Sprintf("%x", fnodes[i].State.IdentityChainID.Bytes()[:5])] = fnodes[i].State.FactomNodeName
-	globals.FnodeNames[fmt.Sprintf("%x", fnodes[i].State.IdentityChainID.Bytes()[:])] = fnodes[i].State.FactomNodeName
-	globals.FnodeNames[fmt.Sprintf("%x", fnodes[i].State.IdentityChainID.Bytes()[:8])] = fnodes[i].State.FactomNodeName
+	globals.FnodeNames[fmt.Sprintf("%x", fnodes[i].State.IdentityChainID.Bytes()[3:6])] = name
+	globals.FnodeNames[fmt.Sprintf("%x", fnodes[i].State.IdentityChainID.Bytes()[:5])] = name
+	globals.FnodeNames[fmt.Sprintf("%x", fnodes[i].State.IdentityChainID.Bytes()[:])] = name
+	globals.FnodeNames[fmt.Sprintf("%x", fnodes[i].State.IdentityChainID.Bytes()[:8])] = name
 }
 
 func shad(data []byte) []byte {

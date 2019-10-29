@@ -3,7 +3,6 @@ package testHelper
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"testing"
 
 	"github.com/FactomProject/factomd/util"

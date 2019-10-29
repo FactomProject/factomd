@@ -18,6 +18,8 @@ import (
 	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/goleveldb/leveldb/errors"
+
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -96,7 +98,7 @@ func (m *FedVoteMsg) ComparisonMinute() int {
 }
 
 func (m *FedVoteMsg) GetTimestamp() interfaces.Timestamp {
-	return m.TS
+	return m.TS.Clone()
 }
 
 func (m *FedVoteMsg) LogFields() log.Fields {
@@ -223,12 +225,8 @@ func (m *FedVoteMsg) Validate(is interfaces.IState) int {
 
 	// Check to make sure the volunteer message can be put in our process list
 	if validVolunteer := m.ValidateVolunteer(*vol, is); validVolunteer != 1 {
-		if validVolunteer == -1 {
-			return -1
-		}
-
-		// Volunteer is not valid because the volunteer has a higher process list height
-		return 0
+		// 0 means Volunteer is not valid because the volunteer has a higher process list height
+		return validVolunteer
 	}
 
 	signed, err := sm.MarshalForSignature()
@@ -276,6 +274,7 @@ func (m *FedVoteMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error
 	defer func() {
 		if r := recover(); r != nil {
 			os.Stderr.WriteString("Error UnmashalBinaryData FedVoteMsg")
+			llog.LogPrintf("recovery", "Error UnmashalBinaryData FedVoteMsg")
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()

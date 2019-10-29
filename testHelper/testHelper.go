@@ -3,10 +3,6 @@ package testHelper
 //A package for functions used multiple times in tests that aren't useful in production code.
 
 import (
-	"os/exec"
-	"regexp"
-	"runtime"
-
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
@@ -16,13 +12,14 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/mapdb"
-
+	//"github.com/FactomProject/factomd/engine"
+	//"github.com/FactomProject/factomd/log"
 	"time"
 
+	"github.com/FactomProject/factomd/state"
+	//"fmt"
 	"fmt"
 	"os"
-
-	"github.com/FactomProject/factomd/state"
 
 	"github.com/FactomProject/factomd/common/messages/electionMsgs"
 )
@@ -42,6 +39,7 @@ func CreateEmptyTestState() *state.State {
 	s.Network = "LOCAL"
 	s.CheckChainHeads.CheckChainHeads = false
 	state.LoadDatabase(s)
+	s.Process()
 	s.DBFinished = true
 	return s
 }
@@ -91,6 +89,7 @@ func CreateAndPopulateTestState() *state.State {
 	}*/
 	s.SetFactoshisPerEC(1)
 	state.LoadDatabase(s)
+	s.Process()
 	s.UpdateState()
 
 	return s

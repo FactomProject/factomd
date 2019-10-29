@@ -20,19 +20,15 @@ func TestLeaderBrainSwap(t *testing.T) {
 		WriteConfigFile(i, i, "", t) // just write the minimal config
 	}
 
-	// KLUDGE: this runs longer than default 10 min limit
-	// must inclucde something like -timeout=XXXm to get past
-	batches := 101 // use odd number to fulfill LFFFLL as end condition
-
-	params := map[string]string{"--blktime": "15"}
-	state0 := SetupSim("LLLFFF", params, batches+10, 0, 0, t)
+	params := map[string]string{"--blktime": "10"}
+	state0 := SetupSim("LLLFFF", params, 30, 0, 0, t)
 	state3 := engine.GetFnodes()[3].State // Get node 2
 
 	WaitForAllNodes(state0)
-	RunCmd("R10") // Load 10 msgs/sec
 	WaitForBlock(state0, 6)
 
 	// FIXME https://factom.atlassian.net/browse/FD-950 - setting batch > 1 can occasionally cause failure
+	batches := 1 // use odd number to fulfill LFFFLL as end condition
 
 	for batch := 0; batch < batches; batch++ {
 

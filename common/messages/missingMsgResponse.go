@@ -12,9 +12,10 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/common/primitives"
 
-	"github.com/FactomProject/factomd/common/messages/msgbase"
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -110,7 +111,7 @@ func (m *MissingMsgResponse) GetMsgHash() (rval interfaces.IHash) {
 }
 
 func (m *MissingMsgResponse) GetTimestamp() interfaces.Timestamp {
-	return m.Timestamp
+	return m.Timestamp.Clone()
 }
 
 func (m *MissingMsgResponse) Type() byte {
@@ -121,6 +122,7 @@ func (m *MissingMsgResponse) UnmarshalBinaryData(data []byte) (newData []byte, e
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling: %v", r)
 		}
 	}()
 
@@ -275,6 +277,13 @@ func (m *MissingMsgResponse) Validate(state interfaces.IState) int {
 		return -1
 	}
 	if m.MsgResponse == nil {
+		return -1
+	}
+	ack, ok := m.AckResponse.(*Ack)
+	if !ok {
+		return -1
+	}
+	if ack.DBHeight < state.GetLLeaderHeight() || ack.DBHeight == state.GetLLeaderHeight() && int(ack.Minute) < int(state.GetCurrentMinute()) {
 		return -1
 	}
 	return 1

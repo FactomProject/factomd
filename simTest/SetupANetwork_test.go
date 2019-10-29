@@ -11,7 +11,7 @@ import (
 
 func TestSetupANetwork(t *testing.T) {
 
-	state0 := SetupSim("LLLLAAAFFF", map[string]string{"--debuglog": "", "--blktime": "30"}, 14, 0, 0, t)
+	state0 := SetupSim("LLLLAAAFFF", map[string]string{"--debuglog": ""}, 20, 0, 0, t)
 
 	RunCmd("9")  // Puts the focus on node 9
 	RunCmd("x")  // Takes Node 9 Offline

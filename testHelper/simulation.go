@@ -13,8 +13,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/elections"
@@ -36,18 +34,18 @@ var ExpectedHeight, Leaders, Audits, Followers int
 var startTime, endTime time.Time
 var RanSimTest = false // only run 1 sim test at a time
 
-// start simulation without promoting nodes to the authority set
-// this is useful for creating scripts that will start/stop a simulation outside of the context of a unit test
-// this allows for consistent tweaking of a simulation to induce load add message loss or adjust timing
-func StartSim(GivenNodes string, UserAddedOptions map[string]string) *state.State {
-
+//EX. state0 := SetupSim("LLLLLLLLLLLLLLLAAAAAAAAAA",  map[string]string {"--controlpanelsetting" : "readwrite"}, t)
+func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int, electionsCnt int, RoundsCnt int, t *testing.T) *state.State {
+	fmt.Println("SetupSim(", GivenNodes, ",", UserAddedOptions, ",", height, ",", electionsCnt, ",", RoundsCnt, ")")
+	ExpectedHeight = height
+	l := len(GivenNodes)
 	CmdLineOptions := map[string]string{
 		"--db":                  "Map",
 		"--network":             "LOCAL",
 		"--net":                 "alot+",
 		"--enablenet":           "false",
 		"--blktime":             "10",
-		"--count":               fmt.Sprintf("%v", len(GivenNodes)),
+		"--count":               fmt.Sprintf("%v", l),
 		"--startdelay":          "1",
 		"--stdoutlog":           "out.txt",
 		"--stderrlog":           "out.txt",
@@ -123,30 +121,12 @@ func StartSim(GivenNodes string, UserAddedOptions map[string]string) *state.Stat
 			typeOfT.Field(i).Name, f.Type(), f.Interface())
 	}
 	fmt.Println()
-	return engine.Factomd(params, false).(*state.State)
 
-}
-
-//EX. state0 := SetupSim("LLLLLLLLLLLLLLLAAAAAAAAAA",  map[string]string {"--controlpanelsetting" : "readwrite"}, t)
-func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int, electionsCnt int, RoundsCnt int, t *testing.T) *state.State {
-	fmt.Println("SetupSim(", GivenNodes, ",", UserAddedOptions, ",", height, ",", electionsCnt, ",", RoundsCnt, ")")
-
-	if UserAddedOptions["--factomhome"] == "" {
-		// default to create a new home dir for each sim test if not specificed
-		homeDir := GetSimTestHome(t)
-		err := os.MkdirAll(homeDir+"/.factom/m2", 0755)
-		if err != nil {
-			t.Fatal(err)
-		}
-		UserAddedOptions["--factomhome"] = homeDir
-	}
-
-	state0 := StartSim(GivenNodes, UserAddedOptions)
-	ExpectedHeight = height
 	blkt := globals.Params.BlkTime
 	roundt := elections.RoundTimeout
 	et := elections.FaultTimeout
 	startTime = time.Now()
+	state0 := engine.Factomd(params, false).(*state.State)
 	//	statusState = state0
 	calctime := time.Duration(float64(((height+3)*blkt)+(electionsCnt*et)+(RoundsCnt*roundt))*1.1) * time.Second
 	endTime = time.Now().Add(calctime)
@@ -177,7 +157,6 @@ func SetupSim(GivenNodes string, UserAddedOptions map[string]string, height int,
 	WaitMinutes(state0, 1) // wait till initial DBState message for the genesis block is processed
 	creatingNodes(GivenNodes, state0, t)
 
-	l := len(GivenNodes)
 	t.Logf("Allocated %d nodes", l)
 	if len(engine.GetFnodes()) != l {
 		t.Fatalf("Should have allocated %d nodes", l)
@@ -265,22 +244,24 @@ func StatusEveryMinute(s *state.State) {
 		go func() {
 			for {
 				s := statusState
-				newMinute := (s.CurrentMinute + 1) % 10
-				timeout := 8 // timeout if a minutes takes twice as long as expected
-				for s.CurrentMinute != newMinute && timeout > 0 {
-					sleepTime := time.Duration(globals.Params.BlkTime) * 1000 / 40 // Figure out how long to sleep in milliseconds
-					time.Sleep(sleepTime * time.Millisecond)                       // wake up and about 4 times per minute
-					timeout--
-				}
-				if timeout <= 0 {
-					fmt.Println("Stalled !!!")
-				}
-				// Make all the nodes update their status
-				for _, n := range engine.GetFnodes() {
-					n.State.SetString()
-				}
+				if s != nil {
+					newMinute := (s.CurrentMinute + 1) % 10
+					timeout := 8 // timeout if a minutes takes twice as long as expected
+					for s.CurrentMinute != newMinute && timeout > 0 {
+						sleepTime := time.Duration(globals.Params.BlkTime) * 1000 / 40 // Figure out how long to sleep in milliseconds
+						time.Sleep(sleepTime * time.Millisecond)                       // wake up and about 4 times per minute
+						timeout--
+					}
+					if timeout <= 0 {
+						fmt.Println("Stalled !!!")
+					}
+					// Make all the nodes update their status
+					for _, n := range engine.GetFnodes() {
+						n.State.SetString()
+					}
 
-				engine.PrintOneStatus(0, 0)
+					engine.PrintOneStatus(0, 0)
+				}
 			}
 		}()
 	} else {
@@ -404,31 +385,6 @@ func AdjustAuthoritySet(adjustingNodes string) {
 	Followers = Followers - follow
 }
 
-func isAuditor(fnode int) bool {
-	nodes := engine.GetFnodes()
-	list := nodes[0].State.ProcessLists.Get(nodes[0].State.LLeaderHeight)
-	foundAudit, _ := list.GetAuditServerIndexHash(nodes[fnode].State.GetIdentityChainID())
-	return foundAudit
-}
-
-func isFollower(fnode int) bool {
-	return !(isAuditor(fnode) || engine.GetFnodes()[fnode].State.Leader)
-}
-
-func AssertAuthoritySet(t *testing.T, givenNodes string) {
-	nodes := engine.GetFnodes()
-	for i, c := range []byte(givenNodes) {
-		switch c {
-		case 'L':
-			assert.True(t, nodes[i].State.Leader, "Expected node %v to be a leader", i)
-		case 'A':
-			assert.True(t, isAuditor(i), "Expected node %v to be an auditor", i)
-		default:
-			assert.True(t, isFollower(i), "Expected node %v to be a follower", i)
-		}
-	}
-}
-
 func CheckAuthoritySet(t *testing.T) {
 
 	leadercnt, auditcnt, followercnt := CountAuthoritySet()
@@ -469,6 +425,7 @@ func Halt(t *testing.T) {
 func ShutDownEverything(t *testing.T) {
 	CheckAuthoritySet(t)
 	Halt(t)
+	statusState = nil // turn off status
 	fnodes := engine.GetFnodes()
 	currentHeight := fnodes[0].State.LLeaderHeight
 	// Sleep one block
@@ -525,7 +482,6 @@ func GetLongTestHome(t *testing.T) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	return dir + "/.sim"
 }
 
@@ -545,4 +501,22 @@ func ResetSimHome(t *testing.T) string {
 func AddFNode() {
 	engine.AddNode()
 	Followers++
+}
+
+func WaitForEntry(s *state.State, hash interfaces.IHash) bool {
+	s.LogPrintf(logName, "WaitForEntry:  %s", hash.String())
+	//hash, _ := primitives.NewShaHashFromStr(entryhash)
+
+	for {
+		entry, err := s.FetchEntryByHash(hash)
+		if err != nil {
+			panic(err)
+		}
+		if entry != nil {
+			return true
+		}
+
+		time.Sleep(time.Millisecond * 200)
+	}
+	return false
 }
