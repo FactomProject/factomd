@@ -131,6 +131,7 @@ type State struct {
 	transCnt    int
 	lasttime    time.Time
 	tps         float64
+	longTps     float64
 	ResetTryCnt int
 	ResetCnt    int
 
@@ -2708,12 +2709,13 @@ func (s *State) CalculateTransactionRate() (totalTPS float64, instantTPS float64
 	if shorttime >= time.Second*3 {
 		delta := (s.FactoidTrans + s.NewEntryChains + s.NewEntries) - s.transCnt
 		s.tps = ((float64(delta) / float64(shorttime.Seconds())) + 2*s.tps) / 3
+		s.longTps = ((float64(delta) / float64(shorttime.Seconds())) + 31*s.longTps) / 32
 		s.lasttime = time.Now()
 		s.transCnt = total                     // transactions accounted for
 		InstantTransactionPerSecond.Set(s.tps) // Prometheus
 	}
 
-	return tps, s.tps
+	return s.longTps, s.tps
 }
 
 func (s *State) SetStringQueues() {
