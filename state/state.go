@@ -10,12 +10,13 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/FactomProject/factomd/common"
 	"os"
 	"reflect"
 	"regexp"
 	"sync"
 	"time"
+
+	"github.com/FactomProject/factomd/common"
 
 	"github.com/FactomProject/factomd/common/constants/runstate"
 	"github.com/FactomProject/factomd/queue"

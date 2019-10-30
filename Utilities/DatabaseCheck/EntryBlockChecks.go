@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/engine"
 	"github.com/FactomProject/factomd/fnode"

@@ -2,6 +2,7 @@ package fnode
 
 import (
 	"fmt"
+
 	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"

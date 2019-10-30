@@ -1,9 +1,10 @@
 package telemetry_test
 
 import (
+	"testing"
+
 	"github.com/FactomProject/factomd/testHelper"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestSimulation(t *testing.T) {

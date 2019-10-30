@@ -12,7 +12,6 @@ import (
 	"github.com/FactomProject/factomd/worker"
 
 	"bufio"
-	. "github.com/FactomProject/factomd/common/globals"
 	"io"
 	"net"
 	"os"
@@ -21,6 +20,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	. "github.com/FactomProject/factomd/common/globals"
 
 	log "github.com/sirupsen/logrus"
 )
