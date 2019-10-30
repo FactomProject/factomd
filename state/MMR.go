@@ -71,9 +71,9 @@ func (vm *VM) ReportMissing(height int, delay int64) {
 	vm.p.State.LogPrintf("missing_messages", "ReportMissing %d/%d/%d, delay %d", vm.p.DBHeight, vm.VmIndex, height, delay)
 
 	now := vm.p.State.GetTimestamp().GetTimeMilli()
-	oneSeconds := vm.p.State.FactomSecond()
-	if delay < oneSeconds.Milliseconds() {
-		delay = oneSeconds.Milliseconds() // Floor for delays is 1 second so there is time to merge adjacent requests
+	oneSeconds := int64(vm.p.State.FactomSecond().Nanoseconds() / time.Millisecond.Nanoseconds())
+	if delay < oneSeconds {
+		delay = oneSeconds // Floor for delays is 1 second so there is time to merge adjacent requests
 	}
 	lenVMList := len(vm.List)
 	// ask for all missing messages
