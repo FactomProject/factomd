@@ -114,7 +114,6 @@ type VM struct {
 	FaultFlag       int                  // FaultFlag tracks what the VM was faulted for (0 = EOM missing, 1 = negotiation issue)
 	ProcessTime     interfaces.Timestamp // Last time we made progress on this VM
 	VmIndex         int                  // the index of this MV
-	HighestAsk      int                  // highest ask sent to MMR for this VM
 	HighestNil      int                  // Debug highest nil reported
 	p               *ProcessList         // processList this VM part of
 }
@@ -666,10 +665,6 @@ func (p *ProcessList) TrimVMList(h uint32, vmIndex int) {
 				p.VMs[vmIndex].HighestNil = height // Drag report limit back
 			}
 		}
-		// make sure we will ask again for nil's above this height
-		if p.VMs[vmIndex].HighestAsk > height {
-			p.VMs[vmIndex].HighestAsk = height // Drag Ask limit back
-		}
 	} else {
 		p.State.LogPrintf("processList", "Attempt to trim higher than list list=%d p=%d h=%d", len(p.VMs[vmIndex].List), p.VMs[vmIndex].Height, height)
 	}
@@ -881,9 +876,6 @@ func (p *ProcessList) RemoveFromPL(vm *VM, j int, reason string) {
 	vm.List[j] = nil
 	if vm.HighestNil > j {
 		vm.HighestNil = j // Drag report limit back
-	}
-	if vm.HighestAsk >= j {
-		vm.HighestAsk = j - 1 // Drag Ask limit back
 	}
 	vm.ReportMissing(j, 0)
 }
@@ -1294,7 +1286,6 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 		pl.VMs[i].ProcessTime = now
 		pl.VMs[i].VmIndex = i
 		pl.VMs[i].p = pl
-		pl.VMs[i].HighestAsk = -1
 	}
 
 	pl.DBHeight = dbheight
