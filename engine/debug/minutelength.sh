@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#grep "done.*EOM.*./0/" fnode0_processlist.txt  | ./minutelength.sh
+#grep "done.*EOM.*./0+/" fnode0_processlist.txt  | minutelength.sh
 ################################
 # AWK scripts                  #
 ################################
@@ -30,7 +30,7 @@ func timeDiff(t1,t2){
    
    #sub(/:/," ");
    fname = $1;
-   if(NR%1000==0) {printf("\\r%7d",NR)>"/dev/stderr";}
+   #if(NR%1000==0) {printf("\\r%7d",NR)>"/dev/stderr";}
 }
 
 NR == 1 {prev = $2;}

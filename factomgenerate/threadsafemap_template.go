@@ -13,19 +13,18 @@ package Dummy // this is only here to make gofmt happy and is never in the gener
 //ᐸdefine "threadsafemap" ᐳ
 // Start threadsafemap generated go code
 
-import (
 	"github.com/FactomProject/factomd/common"
 )
 
 
 type ᐸ.typename ᐳ struct {
 	sync.Mutex
-//	common.Name
+	common.Name
 	internalMap map[ᐸ.indextype ᐳ] ᐸ.valuetype ᐳ
 }
 
 func (q *ᐸ.typename ᐳ) Init(parent common.NamedObject, name string, size int) *ᐸ.typename ᐳ {
-//	q.Name.Init(parent, name)
+	q.Name.Init(parent, name)
 	q.internalMap = make(map[ᐸ.indextype ᐳ] ᐸ.valuetype ᐳ, size)
 	return q
 }
