@@ -13,11 +13,14 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"text/template"
 )
 
 func main() {
+	var out bytes.Buffer
+
 	// load the templates for files wrappers
 	templates := template.Must(template.ParseGlob("./factomgenerate/*.tmpl"))
 
@@ -25,30 +28,68 @@ func main() {
 	// these templates use 'r["' and '"]' as the delimiter to make the template gofmt compatible
 	goFiles, err := filepath.Glob("./factomgenerate/*_template.go")
 	die(err)
-	goTemplates := template.Must(template.New("").Delims("ᐸ", "ᐳ").ParseFiles(goFiles...))
+	templates = template.Must(templates.Delims("ᐸ", "ᐳ").ParseFiles(goFiles...))
+
+	// Find all requests in the form: //FactomGenerate [<key:value>]...
+	cmd := exec.Command("/bin/bash", "-c", "find .. -name \\*.go | xargs grep -Eh \"^//FactomGenerate\" || true")
+	//cmd := exec.Command("pwd")
+	cmd.Stdout = &out
+	err = cmd.Run()
+
+	fmt.Printf("CMD: %v", out.String())
+	if err != nil {
+		fmt.Printf("ERR: %v", err)
+		log.Fatal(err)
+	}
+
+	factomgeneraterequests := strings.Split(out.String(), "\n")
+
+	RunTemplates(err, templates, factomgeneraterequests)
+
+	// Find all requests in the form: Publish_<type> or Subscribe_<type>
+	// handle the pub/sun requests
+	cmdline := []string{"/bin/bash", "-c", "find .. -name \\*.go | xargs grep -Eh \"= *Publish_|= *Subscribe_\" || true"}
+	fmt.Println(cmdline)
+	cmd = exec.Command(cmdline[0], cmdline[1:]...)
+	//cmd := exec.Command("pwd")
+
+	cmd.Stdout = &out
+	err = cmd.Run()
+	fmt.Printf("CMD: %v", out.String())
+	if err != nil {
+		fmt.Printf("ERR: %v", err)
+		log.Fatal(err)
+	}
+
+	pubsubrequests := []string{}
+	re := regexp.MustCompile("Publish_[^ (]+|Subscribe_[^ (]+")
+	// For each template request, split out the key value pairs ...
+	for _, m := range strings.Split(out.String(), "\n") {
+		matches := re.FindStringSubmatch(m)
+
+		for _, x := range matches {
+			parts := strings.SplitN(x, "_", 2)
+			PorS, Type := parts[0], parts[1]
+			fmt.Println(PorS, Type)
+			pubsubrequests = append(pubsubrequests, fmt.Sprintf("//FactomGenerate template %s type %s", PorS, Type))
+		}
+	}
+	RunTemplates(err, templates, pubsubrequests)
+	fmt.Println("done")
+}
+
+// Create a file and run all the request for a template outputing the template results into the file
+func RunTemplates(err error, templates *template.Template, requests []string) {
+
+	fmt.Print("RunTemplates()", requests)
 
 	// place to keep all the files
 	files := make(map[string]*os.File)
 	// need to parse all the instances before executing any so we can merge the imports
 	instances := make(map[string][]map[string]interface{}) // map a templatename to a slice of requests
 
-	// Find all comments in the form:
-	//FactomGenerate [<key:value>]...
-	cmd := exec.Command("/bin/bash", "-c", "find .. -name \\*.go | xargs grep -Eh \"^//FactomGenerate\"")
-	//cmd := exec.Command("pwd")
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	err = cmd.Run()
-	/* KLUDGE: exits w/ status 123
-	fmt.Printf("CMD: %v", out.String())
-	if err != nil {
-		fmt.Printf("ERR: %v", err)
-		log.Fatal(err)
-	}
-	*/
-
 	// For each template request, split out the key value pairs ...
-	for _, m := range strings.Split(out.String(), "\n") {
+	for _, m := range requests {
 		// ignore blank lines
 		if len(m) > 0 {
 			details := make(map[string]interface{})
@@ -74,11 +115,32 @@ func main() {
 
 	// loop thru the templates and execute the requests for that template
 	for templatename, requests := range instances {
+		templatename = strings.ToLower(templatename)
 		filename := "./generated/" + templatename + ".go"
 
 		// make a map of the required importsMap, this eliminates duplication...
-		// import are either a string or a []string
 		var importsMap map[string]string = make(map[string]string)
+
+		// collect the imports required by the template
+		var out bytes.Buffer
+		s := templatename + "-imports"
+		templateimports := ""
+		t := templates.Lookup(s)
+		if t != nil {
+			die(t.Execute(&out, []interface{}{}))
+			templateimports = out.String()
+		} else {
+			fmt.Println("No template", s)
+		}
+
+		re := regexp.MustCompile("\".*?\"") // regex to extract the quoted strings from the imports statment
+		// Add the quoted strings from template imports to the imports list
+		for _, name := range re.FindStringSubmatch(templateimports) {
+			importsMap[name] = "" // Only the key is used not the value
+		}
+
+		// collect the imports from the requests
+		// import are either a string or a []string
 		for _, details := range requests {
 			if value, ok := details["import"]; ok {
 				name, ok := value.(string)
@@ -86,7 +148,9 @@ func main() {
 					importsMap[name] = "" // don't use the value just the name
 				} else {
 					for _, name := range value.([]string) {
-						importsMap[name] = "" // don't use the value just the name
+						if name != "" {
+							importsMap[name] = "" // Only the key is used not the value
+						}
 					}
 				}
 				delete(details, "import")
@@ -100,6 +164,7 @@ func main() {
 
 		// make the file header
 		details := make(map[string]interface{})
+		details["templatename"] = templatename
 		details["imports"] = importsMap
 		details["test"] = strings.Contains(templatename, "_test")
 		fmt.Println("Creating", filename, "with", details)
@@ -114,7 +179,7 @@ func main() {
 			if len(details) > 1 { // skip empty details e.g. import only requests have just the templatename at this point
 				fmt.Println("processing", templatename, "request ", filename, "with", details)
 				// Expand this instance of the template
-				die(goTemplates.ExecuteTemplate(f, templatename, details))
+				die(templates.ExecuteTemplate(f, templatename, details))
 			}
 		}
 		// After we are done add the filetail to the file and close it.
@@ -124,7 +189,6 @@ func main() {
 		runcmd("goimports -w " + filename)
 		catfile(filename)
 	}
-	fmt.Println("done")
 }
 
 func die(err error) {

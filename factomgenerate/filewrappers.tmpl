@@ -16,9 +16,13 @@ package generated_test
 package generated
 {{ end }}
 
+{{$templateimportname :=  printf "%s-%s" .templatename "imports" }}
+
+// {{ $templateimportname }}
+
 {{ if .imports }}
 import (
-{{ range $k, $v := .imports }} {{ printf "%q\n" $k }}{{ end -}}
+{{ range $k, $v := .imports }} {{ printf "%s\n" $k }}{{ end -}}
 )
 {{ else }}
 // No Imports

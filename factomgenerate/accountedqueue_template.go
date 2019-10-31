@@ -10,16 +10,18 @@
 package Dummy // this is only here to make gofmt happy and is never in the generated code
 //ᐸend ᐳ
 
+//ᐸdefine "accountedqueue-imports" ᐳ
 import (
 	"github.com/FactomProject/factomd/telemetry"
 )
+//ᐸend ᐳ
 
 //ᐸdefine "accountedqueue" ᐳ
 // Start accountedqueue generated go code
 
 type ᐸ.typename ᐳ struct {
-common.Name
-Channel chan ᐸ.type ᐳ
+   common.Name
+   Channel chan ᐸ.type ᐳ
 }
 
 func (q *ᐸ.typename ᐳ) Init(parent common.NamedObject, name string, size int) *ᐸ.typename ᐳ {

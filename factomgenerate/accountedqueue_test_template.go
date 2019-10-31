@@ -6,15 +6,19 @@
 //from the //FactomGenerate command
 //*/ᐳ
 
-//ᐸif false  ᐳ
 package generated_test // this is only here to make gofmt happy and is never in the generated code
-//ᐸend ᐳ
 
 //go:generate go run ./generate.go
 
+//ᐸdefine "accountedqueue_test-imports" ᐳ
 import (
+	"testing"
+
+	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/generated"
 )
+//ᐸend ᐳ
+
 
 //ᐸdefine "accountedqueue_test" ᐳ
 // Start accountedqueue_test generated go code
