@@ -23,7 +23,6 @@ func TestQueues(t *testing.T) {
 	inmsg := mkQ()
 	netOut := mkQ()
 
-
 	if !checkLensAndCap(channel, []interfaces.IQueue{inmsg, netOut}) {
 		t.Error("Error: Lengths/Cap does not match")
 	}

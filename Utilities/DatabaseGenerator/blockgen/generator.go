@@ -2,9 +2,10 @@ package blockgen
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/registry"
 	"strings"
 	"time"
+
+	"github.com/FactomProject/factomd/registry"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/identity"

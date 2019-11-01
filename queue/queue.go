@@ -9,17 +9,11 @@ import (
 	"github.com/FactomProject/factomd/telemetry"
 )
 
-//FactomGenerate template accountedqueue typename Queue_IMsg type interfaces.IMsg import github.com/FactomProject/factomd/common/interfaces
-//FactomGenerate template accountedqueue import github.com/FactomProject/factomd/common
-//FactomGenerate template accountedqueue import github.com/FactomProject/factomd/telemetry
-
-//FactomGenerate template accountedqueue_test typename Queue_IMsg type interfaces.IMsg testelement new(messages.Bounce) import github.com/FactomProject/factomd/common/interfaces
-//FactomGenerate template accountedqueue_test import github.com/FactomProject/factomd/common
-//FactomGenerate template accountedqueue_test import github.com/FactomProject/factomd/telemetry
-//FactomGenerate template accountedqueue_test import testing
+//FactomGenerate template accountedqueue typename Queue_IMsg type interfaces.IMsg import "github.com/FactomProject/factomd/common/interfaces"
+//FactomGenerate template accountedqueue_test typename Queue_IMsg type interfaces.IMsg testelement new(messages.Bounce) import "github.com/FactomProject/factomd/common/interfaces"
 
 //FactomGenerate template threadsafemap typename foo indextype int valuetype string
-//FactomGenerate template threadsafemap import github.com/FactomProject/factomd/common
+//FactomGenerate template threadsafemap import "github.com/FactomProject/factomd/common"
 
 type MsgQueue struct {
 	generated.Queue_IMsg

@@ -7,7 +7,7 @@ import (
 
 // Now really sure the thread should be the parent but for now ...
 func NewInMsgQueue(w *worker.Thread, capacity int) *queue.MsgQueue {
-	return new(queue.MsgQueue).Init(w,"InMsgQueue", capacity)
+	return new(queue.MsgQueue).Init(w, "InMsgQueue", capacity)
 }
 
 func NewInMsgQueue2(w *worker.Thread, capacity int) *queue.MsgQueue {

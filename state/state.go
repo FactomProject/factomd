@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common"
-
 	"github.com/FactomProject/factomd/common/constants/runstate"
 	"github.com/FactomProject/factomd/queue"
 
@@ -115,6 +114,7 @@ type State struct {
 	Salt              interfaces.IHash
 	Cfg               interfaces.IFactomConfig
 	ConfigFilePath    string // $HOME/.factom/m2/factomd.conf by default
+
 	LogPath           string
 	LdbPath           string
 	BoltDBPath        string
@@ -213,10 +213,12 @@ type State struct {
 	// RPC connection config
 
 	// Server State
-	StartDelay int64 // Time in Milliseconds since the last DBState was applied
-	DBFinished bool
-	RunLeader  bool
-	BootTime   int64 // Time in seconds that we last booted
+	StartDelay   int64 // Time in Milliseconds since the last DBState was applied
+	DBFinished   bool
+	RunLeader    bool
+	BootTime     int64 // Time in seconds that we last booted
+	EOMIssueTime int64
+	EOMSyncEnd   int64
 
 	// Ignore missing messages for a period to allow rebooting a network where your
 	// own messages from the previously executing network can confuse you.
@@ -359,7 +361,6 @@ type State struct {
 	// Holds leaders and followers up until all missing entries are processed, if true
 	UpdateEntryHash chan *EntryUpdate // Channel for updating entry Hashes tracking (repeats and such)
 	WriteEntry      chan interfaces.IEBEntry
-
 	// MessageTally causes the node to keep track of (and display) running totals of each
 	// type of message received during the tally interval
 	MessageTally           bool

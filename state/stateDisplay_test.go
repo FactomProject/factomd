@@ -5,8 +5,9 @@
 package state_test
 
 import (
-	"github.com/FactomProject/factomd/registry"
 	"testing"
+
+	"github.com/FactomProject/factomd/registry"
 
 	//"github.com/FactomProject/factomd/common/constants"
 	//"github.com/FactomProject/factomd/common/primitives"

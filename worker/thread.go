@@ -40,7 +40,7 @@ func (*Thread) RegisterInterruptHandler(handler func()) {
 }
 
 type IRegister interface {
-	Thread(*Thread, Handle)          // RegistryCallback for sub-threads
+	Thread(*Thread, Handle)  // RegistryCallback for sub-threads
 	Process(*Thread, Handle) // callback to fork a new process
 }
 
