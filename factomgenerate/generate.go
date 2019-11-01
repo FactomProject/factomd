@@ -9,6 +9,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -18,90 +19,108 @@ import (
 	"text/template"
 )
 
+// The FactomGenerate templates use Canadian Aboriginal syllabary characters using "ᐸ" U+1438, "ᐳ" U+1433 as the
+// delimiters. This is done so the template can be valid go code and goimports and gofmt will work correctly on the
+// code and it can be tested in unmodified form. There are a few accommodated to facilitate this.
+// 1 - the "ᐸ", "ᐳ" are replaced with the traditional {{ and }} delimiters prior to loading the templates. This avoid
+// an issue with parsing the templates caused by "ᐸ" and "ᐳ" are valid character in a template variable name.
+// 2 - go templates define a template names <templatname>-imports which list the packages use in the template body.
+// this is merges with the imports required by the instances of the template use to build the imports statment for
+// the generate file.
+// 3 - the manipulated text for the template is written to a temporary file instead of loading it from the string to
+// facilitate the template error reporting producing usable error messages
+//
+
 func main() {
+	// handle //FactomGenerate ... requests
+	templates := LoadTemplates()
+	factomgeneraterequests := CollectFactomGenerateRequests()
+	RunTemplates(templates, factomgeneraterequests)
+
+	// handle the pub/sub requests
+	pubsubrequests := CollectPubSubRequests()
+	RunTemplates(templates, pubsubrequests)
+	fmt.Println("done")
+}
+
+// Find all requests in the form: Publish_<type> or Subscribe_<type> in all the go files
+func CollectPubSubRequests() []string {
 	var out bytes.Buffer
-
-	// load the templates for files wrappers
-	templates := template.Must(template.ParseGlob("./factomgenerate/*.tmpl"))
-
-	// load the templates for go code
-	// these templates use 'r["' and '"]' as the delimiter to make the template gofmt compatible
-	goFiles, err := filepath.Glob("./factomgenerate/*_template.go")
-	die(err)
-
-	// because I am using "ᐸ", "ᐳ" as the delimiters and "ᐸ" and "ᐳ" are valid character in a template variable I need
-	// am replacing them with the normal {{ and }} before parsing the template. Originally I just changed the delimiter
-	// using template.Deleminter() but because "ᐸ", "ᐳ" are valid ina name "ᐸendᐳ" didn't parse correctly.
-
-	for _, filename := range goFiles {
-		filerc, err := os.Open(filename)
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer filerc.Close()
-
-		buf := new(bytes.Buffer)
-		buf.ReadFrom(filerc)
-		contents := buf.String()
-
-		updatedContents := strings.Replace(contents, "ᐸ_", "{{.", -1)
-		updatedContents = strings.Replace(updatedContents, "ᐸ", "{{", -1)
-		updatedContents = strings.Replace(updatedContents, "ᐳ", "}}", -1)
-
-		fmt.Print(updatedContents)
-		templates = template.Must(templates.Parse(updatedContents))
-	}
-
-	// Find all requests in the form: //FactomGenerate [<key:value>]...
-	cmd := exec.Command("/bin/bash", "-c", "find .. -name \\*.go | xargs grep -Eh \"^//FactomGenerate\" || true")
-	//cmd := exec.Command("pwd")
-	cmd.Stdout = &out
-	err = cmd.Run()
-
-	fmt.Printf("CMD: %v", out.String())
-	if err != nil {
-		fmt.Printf("ERR: %v", err)
-		log.Fatal(err)
-	}
-
-	factomgeneraterequests := strings.Split(out.String(), "\n")
-
-	RunTemplates(err, templates, factomgeneraterequests)
-
-	// Find all requests in the form: Publish_<type> or Subscribe_<type>
-	// handle the pub/sun requests
 	cmdline := []string{"/bin/bash", "-c", "find .. -name \\*.go | xargs grep -Eh \"= *Publish_|= *Subscribe_\" || true"}
-	fmt.Println(cmdline)
-	cmd = exec.Command(cmdline[0], cmdline[1:]...)
+	cmd := exec.Command(cmdline[0], cmdline[1:]...)
 	//cmd := exec.Command("pwd")
-
 	cmd.Stdout = &out
-	err = cmd.Run()
-	fmt.Printf("CMD: %v", out.String())
-	if err != nil {
-		fmt.Printf("ERR: %v", err)
-		log.Fatal(err)
-	}
-
+	err := cmd.Run()
+	die(err)
 	pubsubrequests := []string{}
 	re := regexp.MustCompile("Publish_[^ (]+|Subscribe_[^ (]+")
 	// For each template request, split out the key value pairs ...
 	for _, m := range strings.Split(out.String(), "\n") {
 		matches := re.FindStringSubmatch(m)
-
 		for _, x := range matches {
+			// Split the Publish_<type> or Subscribe_<type> into template and type
 			parts := strings.SplitN(x, "_", 2)
 			PorS, Type := parts[0], parts[1]
 			fmt.Println(PorS, Type)
+			// reformat these into the FactomGenerate form
 			pubsubrequests = append(pubsubrequests, fmt.Sprintf("//FactomGenerate template %s type %s", PorS, Type))
 		}
 	}
-	RunTemplates(err, templates, pubsubrequests)
-	fmt.Println("done")
+	return pubsubrequests
+}
+
+// Find all requests in the form: //FactomGenerate [<key:value>]... in all the go files
+func CollectFactomGenerateRequests() []string {
+	var out bytes.Buffer
+	cmdline := []string{"/bin/bash", "-c", "find .. -name \\*.go | xargs grep -Eh \"^//FactomGenerate\" || true"}
+	cmd := exec.Command(cmdline[0], cmdline[1:]...)
+	cmd.Stdout = &out
+	err := cmd.Run()
+	die(err)
+	factomgeneraterequests := strings.Split(out.String(), "\n")
+	return factomgeneraterequests
+}
+
+func LoadTemplates() *template.Template {
+	// load the templates for files wrappers
+	templates := template.Must(template.ParseGlob("./factomgenerate/*.tmpl"))
+	// load the templates for go code
+	// these templates use "ᐸ", "ᐳ" as the delimiter to make the template gofmt compatible
+	goFiles, err := filepath.Glob("./factomgenerate/*_template.go")
+	die(err)
+	for _, filename := range goFiles {
+		filename = ReformatTemplateFile(filename)
+		templates = template.Must(templates.ParseFiles(filename))
+		// os.Remove(filename) // clean up
+	}
+	return templates
+}
+
+func ReformatTemplateFile(filename string) string {
+	filerc, err := os.Open(filename)
+	die(err)
+	defer filerc.Close()
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(filerc)
+	contents := buf.String()
+
+	updatedContents := strings.Replace(contents, "ᐸ_", "{{.", -1)
+	updatedContents = strings.Replace(updatedContents, "ᐸ", "{{", -1)
+	updatedContents = strings.Replace(updatedContents, "ᐳ", "}}", -1)
+	dir := "/tmp/FactomGenerate"
+	die(os.MkdirAll(dir, 0755)) // create a temp directory
+	tmpfile, err := ioutil.TempFile(dir, filepath.Base(filename))
+	die(err)
+	_, err = tmpfile.Write([]byte(updatedContents))
+	die(err)
+	die(tmpfile.Close())
+	// fmt.Println(tmpfile.Name())
+	// fmt.Print(updatedContents)
+	return tmpfile.Name()
 }
 
 // Create a file and run all the request for a template outputting the template results into the file
-func RunTemplates(err error, templates *template.Template, requests []string) {
+func RunTemplates(templates *template.Template, requests []string) {
 
 	fmt.Print("RunTemplates()", requests)
 
@@ -235,8 +254,6 @@ func runcmd(commandline string) {
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	err := cmd.Run()
-	if err != nil {
-		log.Fatal(err)
-	}
+	die(err)
 	fmt.Println(out.String())
 }
