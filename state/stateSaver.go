@@ -108,6 +108,7 @@ func (sss *StateSaverStruct) LoadDBStateList(s *State, statelist *DBStateList, n
 			break
 		}
 	}
+
 	statelist.DBStates[i].SaveStruct.RestoreFactomdState(statelist.State)
 
 	return nil

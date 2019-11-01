@@ -408,7 +408,7 @@ func Clone(s *State, cloneNumber int) interfaces.IState {
 	return newState
 }
 
-func (s *State) Initialize(w *worker.Thread) {
+func (s *State) Initialize(w *worker.Thread, electionFactory interfaces.IElectionsFactory) {
 	if s.Salt == nil {
 		b := make([]byte, 32)
 		_, err := rand.Read(b)
@@ -426,7 +426,6 @@ func (s *State) Initialize(w *worker.Thread) {
 	s.IgnoreMissing = true
 	s.BootTime = s.GetTimestamp().GetTimeSeconds()
 	s.TimestampAtBoot = primitives.NewTimestampNow()
-
 	if s.LogPath == "stdout" {
 		wsapi.InitLogs(s.LogPath, s.LogLevel)
 	} else {
@@ -445,11 +444,11 @@ func (s *State) Initialize(w *worker.Thread) {
 	s.timerMsgQueue = make(chan interfaces.IMsg, 100)                       //incoming eom notifications, used by leaders
 	s.ControlPanelChannel = make(chan DisplayState, 20)                     //
 	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 100)              //incoming message queue from the network messages
-	s.networkOutMsgQueue = NewNetOutMsgQueue(w, constants.INMSGQUEUE_MED)      //Messages to be broadcast to the network
-	s.inMsgQueue = NewInMsgQueue(w, constants.INMSGQUEUE_HIGH)                 //incoming message queue for Factom application messages
-	s.inMsgQueue2 = NewInMsgQueue2(w, constants.INMSGQUEUE_HIGH)               //incoming message queue for Factom application messages
-	s.electionsQueue = NewElectionQueue(w, constants.INMSGQUEUE_HIGH)          //incoming message queue for Factom application messages
-	s.apiQueue = NewAPIQueue(w, constants.INMSGQUEUE_HIGH)                     //incoming message queue from the API
+	s.networkOutMsgQueue = NewNetOutMsgQueue(w, constants.INMSGQUEUE_MED)   //Messages to be broadcast to the network
+	s.inMsgQueue = NewInMsgQueue(w, constants.INMSGQUEUE_HIGH)              //incoming message queue for Factom application messages
+	s.inMsgQueue2 = NewInMsgQueue2(w, constants.INMSGQUEUE_HIGH)            //incoming message queue for Factom application messages
+	s.electionsQueue = NewElectionQueue(w, constants.INMSGQUEUE_HIGH)       //incoming message queue for Factom application messages
+	s.apiQueue = NewAPIQueue(w, constants.INMSGQUEUE_HIGH)                  //incoming message queue from the API
 	s.ackQueue = make(chan interfaces.IMsg, 50)                             //queue of Leadership messages
 	s.msgQueue = make(chan interfaces.IMsg, 50)                             //queue of Follower messages
 	s.prioritizedMsgQueue = make(chan interfaces.IMsg, 50)                  //a prioritized queue of Follower messages (from mmr.go)
@@ -613,6 +612,9 @@ func (s *State) Initialize(w *worker.Thread) {
 
 	// Allocate the missing message handler
 	s.MissingMessageResponseHandler = NewMissingMessageReponseCache(s)
+
+	// Election factory was created and passed int to avoid import loop
+	s.EFactory = electionFactory
 
 	if s.StateSaverStruct.FastBoot {
 		d, err := s.DB.FetchDBlockHead()
