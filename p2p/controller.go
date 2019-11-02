@@ -397,27 +397,30 @@ func (c *Controller) runloop(w *worker.Thread) {
 	c.logger.Debugf("Controller.runloop() @@@@@@@@@@ starting up in %d seconds", 2)
 	time.Sleep(time.Second * time.Duration(2)) // Wait a few seconds to let the system come up.
 
-	for c.keepRunning { // Run until we get the exit command
+	w.OnRun(func(){
+		for c.keepRunning { // Run until we get the exit command
 
-		c.connections.UpdatePrometheusMetrics()
-		p2pControllerNumMetrics.Set(float64(len(c.connectionMetrics)))
+			c.connections.UpdatePrometheusMetrics()
+			p2pControllerNumMetrics.Set(float64(len(c.connectionMetrics)))
 
-	commandloop:
-		for {
-			select {
-			case command := <-c.commandChannel:
-				c.handleCommand(command)
-			default:
-				time.Sleep(time.Millisecond * 20)
-				break commandloop
+		commandloop:
+			for {
+				select {
+				case command := <-c.commandChannel:
+					c.handleCommand(command)
+				default:
+					time.Sleep(time.Millisecond * 20)
+					break commandloop
+				}
 			}
+			// route messages to and from application
+			c.route() // Route messages
+			// Manage peers
+			c.managePeers()
+			c.updateMetrics()
 		}
-		// route messages to and from application
-		c.route() // Route messages
-		// Manage peers
-		c.managePeers()
-		c.updateMetrics()
-	}
+
+	})
 }
 
 // Route pulls all of the messages from the application and sends them to the appropriate
