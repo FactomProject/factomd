@@ -8,6 +8,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -19,11 +20,11 @@ import (
 	"text/template"
 )
 
-// The FactomGenerate templates use Canadian Aboriginal syllabary characters using "ᐸ" U+1438, "ᐳ" U+1433 as the
+// The FactomGenerate templates use Canadian Aboriginal syllabary characters using "Ͼ" U+1438, "ᐳ" U+1433 as the
 // delimiters. This is done so the template can be valid go code and goimports and gofmt will work correctly on the
 // code and it can be tested in unmodified form. There are a few accommodated to facilitate this.
-// 1 - the "ᐸ", "ᐳ" are replaced with the traditional {{ and }} delimiters prior to loading the templates. This avoid
-// an issue with parsing the templates caused by "ᐸ" and "ᐳ" are valid character in a template variable name.
+// 1 - the "Ͼ", "ᐳ" are replaced with the traditional {{ and }} delimiters prior to loading the templates. This avoid
+// an issue with parsing the templates caused by "Ͼ" and "ᐳ" are valid character in a template variable name.
 // 2 - go templates define a template names <templatname>-imports which list the packages use in the template body.
 // this is merges with the imports required by the instances of the template use to build the imports statment for
 // the generate file.
@@ -47,8 +48,8 @@ func main() {
 func CollectPubSubRequests() []string {
 	var out bytes.Buffer
 	cmdline := []string{"/bin/bash", "-c", "find .. -name \\*.go | xargs grep -Eh \"= *Publish_|= *Subscribe_\" || true"}
+	// the odd || true at the end avoid grep returning a bogus error code.
 	cmd := exec.Command(cmdline[0], cmdline[1:]...)
-	//cmd := exec.Command("pwd")
 	cmd.Stdout = &out
 	err := cmd.Run()
 	die(err)
@@ -73,6 +74,7 @@ func CollectPubSubRequests() []string {
 func CollectFactomGenerateRequests() []string {
 	var out bytes.Buffer
 	cmdline := []string{"/bin/bash", "-c", "find .. -name \\*.go | xargs grep -Eh \"^//FactomGenerate\" || true"}
+	// the odd || true at the end avoid grep returning a bogus error code.
 	cmd := exec.Command(cmdline[0], cmdline[1:]...)
 	cmd.Stdout = &out
 	err := cmd.Run()
@@ -83,10 +85,10 @@ func CollectFactomGenerateRequests() []string {
 
 func LoadTemplates() *template.Template {
 	// load the templates for files wrappers
-	templates := template.Must(template.ParseGlob("./factomgenerate/*.tmpl"))
+	templates := template.Must(template.ParseGlob("./factomgenerate/templates/*.tmpl"))
 	// load the templates for go code
-	// these templates use "ᐸ", "ᐳ" as the delimiter to make the template gofmt compatible
-	goFiles, err := filepath.Glob("./factomgenerate/*_template.go")
+	// these templates use "Ͼ", "ᐳ" as the delimiter to make the template gofmt compatible
+	goFiles, err := filepath.Glob("./factomgenerate/templates/*_template.go")
 	die(err)
 	for _, filename := range goFiles {
 		filename = ReformatTemplateFile(filename)
@@ -96,6 +98,7 @@ func LoadTemplates() *template.Template {
 	return templates
 }
 
+// Change the delimiters in the templates containing go code so the file works as a template and as go code
 func ReformatTemplateFile(filename string) string {
 	filerc, err := os.Open(filename)
 	die(err)
@@ -104,8 +107,8 @@ func ReformatTemplateFile(filename string) string {
 	buf.ReadFrom(filerc)
 	contents := buf.String()
 
-	updatedContents := strings.Replace(contents, "ᐸ_", "{{.", -1)
-	updatedContents = strings.Replace(updatedContents, "ᐸ", "{{", -1)
+	updatedContents := strings.Replace(contents, "Ͼ_", "{{.", -1)
+	updatedContents = strings.Replace(updatedContents, "Ͼ", "{{", -1)
 	updatedContents = strings.Replace(updatedContents, "ᐳ", "}}", -1)
 	dir := "/tmp/FactomGenerate"
 	die(os.MkdirAll(dir, 0755)) // create a temp directory
@@ -171,19 +174,27 @@ func RunTemplates(templates *template.Template, requests []string) {
 			die(t.Execute(&out, []interface{}{}))
 			templateimports = out.String()
 		} else {
-			fmt.Println("No template", s)
+			fmt.Println("Missing template", s)
 		}
 
-		re := regexp.MustCompile("\".*?\"") // regex to extract the quoted strings from the imports statment
+		re := regexp.MustCompile("\".*?\"") // regex to extract the quoted strings from the imports statement
 		// Add the quoted strings from template imports to the imports list
-		for _, name := range re.FindStringSubmatch(templateimports) {
-			importsMap[name] = "" // Only the key is used not the value
+		imports := re.FindAllStringSubmatch(templateimports, -1)
+		for _, l := range imports {
+			if len(l) != 1 {
+				panic(errors.New("nested quoted string in " + templateimports))
+			}
+			for _, name := range l {
+				importsMap[name] = "" // Only the key is used not the value
+			}
 		}
 
-		// collect the imports from the requests
+		// collect the imports from the requests for this template
 		// import are either a string or a []string
 		for _, details := range requests {
-			if value, ok := details["import"]; ok {
+			fmt.Println("request:", details)
+			value, ok := details["import"]
+			if ok && details["templatename"] == templatename {
 				name, ok := value.(string)
 				if ok {
 					importsMap[name] = "" // don't use the value just the name
@@ -227,11 +238,10 @@ func RunTemplates(templates *template.Template, requests []string) {
 		// After we are done add the filetail to the file and close it.
 		die(templates.ExecuteTemplate(f, "filetail", details))
 		f.Close()
-		catfile(filename)
 
 		runcmd("gofmt -s -w " + filename)
 		runcmd("goimports -w " + filename)
-		catfile(filename)
+		//catfile(filename)
 	}
 }
 

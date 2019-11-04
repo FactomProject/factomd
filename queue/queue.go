@@ -13,7 +13,6 @@ import (
 //FactomGenerate template accountedqueue_test typename Queue_IMsg type interfaces.IMsg testelement new(messages.Bounce) import "github.com/FactomProject/factomd/common/interfaces"
 
 //FactomGenerate template threadsafemap typename foo indextype int valuetype string
-//FactomGenerate template threadsafemap import "github.com/FactomProject/factomd/common"
 
 type MsgQueue struct {
 	generated.Queue_IMsg

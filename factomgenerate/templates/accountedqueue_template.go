@@ -1,59 +1,56 @@
-//+build ignore
-
-//ᐸ/*
-//This looks syntatically off because it is a template used to generate go code. In order to make the template be
-//gofmt able the parse delimiters are set to 'ᐸ'  and 'ᐳ' so ᐸ_typenameᐳ will be replaced by the typename
-//from the //FactomGenerate command
+//Ͼ/*
+// The FactomGenerate templates use Canadian Aboriginal syllabary characters using "Ͼ" U+1438, "ᐳ" U+1433 as the
+// delimiters. This is done so the template can be valid go code and goimports and gofmt will work correctly on the
+// code and it can be tested in unmodified form. For more information see factomgenerate/generate.go
 //*/ᐳ
 
-//ᐸif false ᐳ
-package Dummy // this is only here to make gofmt happy and is never in the generated code
-//ᐸendᐳ
+package templates // this is only here to make gofmt happy and is never in the generated code
 
-//ᐸdefine "accountedqueue-imports"ᐳ
+//Ͼdefine "accountedqueue-imports"ᐳ
+
 import (
 	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/telemetry"
 )
 
-//ᐸendᐳ
+//Ͼendᐳ
 
-//ᐸdefine "accountedqueue"ᐳ
+//Ͼdefine "accountedqueue"ᐳ
 // Start accountedqueue generated go code
 
-type ᐸ_typenameᐳ struct {
+type Ͼ_typenameᐳ struct {
 	common.Name
-	Channel chan ᐸ_typeᐳ
+	Channel chan Ͼ_typeᐳ
 }
 
-func (q *ᐸ_typenameᐳ) Init(parent common.NamedObject, name string, size int) *ᐸ_typenameᐳ {
+func (q *Ͼ_typenameᐳ) Init(parent common.NamedObject, name string, size int) *Ͼ_typenameᐳ {
 	q.Name.Init(parent, name)
-	q.Channel = make(chan ᐸ_typeᐳ, size)
+	q.Channel = make(chan Ͼ_typeᐳ, size)
 	return q
 }
 
 // construct gauge w/ proper labels
-func (q *ᐸ_typenameᐳ) Metric() telemetry.Gauge {
+func (q *Ͼ_typenameᐳ) Metric() telemetry.Gauge {
 	return telemetry.ChannelSize.WithLabelValues(q.GetPath(), "current")
 }
 
 // construct counter for tracking totals
-func (q *ᐸ_typenameᐳ) TotalMetric() telemetry.Counter {
+func (q *Ͼ_typenameᐳ) TotalMetric() telemetry.Counter {
 	return telemetry.TotalCounter.WithLabelValues(q.GetPath(), "total")
 }
 
 // Length of underlying channel
-func (q ᐸ_typenameᐳ) Length() int {
+func (q Ͼ_typenameᐳ) Length() int {
 	return len(q.Channel)
 }
 
 // Cap of underlying channel
-func (q ᐸ_typenameᐳ) Cap() int {
+func (q Ͼ_typenameᐳ) Cap() int {
 	return cap(q.Channel)
 }
 
 // Enqueue adds item to channel and instruments based on type
-func (q ᐸ_typenameᐳ) Enqueue(m ᐸ_typeᐳ) {
+func (q Ͼ_typenameᐳ) Enqueue(m Ͼ_typeᐳ) {
 	q.Channel <- m
 	q.TotalMetric().Inc()
 	q.Metric().Inc()
@@ -61,7 +58,7 @@ func (q ᐸ_typenameᐳ) Enqueue(m ᐸ_typeᐳ) {
 
 // Enqueue adds item to channel and instruments based on
 // returns true it it enqueues the data
-func (q ᐸ_typenameᐳ) EnqueueNonBlocking(m ᐸ_typeᐳ) bool {
+func (q Ͼ_typenameᐳ) EnqueueNonBlocking(m Ͼ_typeᐳ) bool {
 	select {
 	case q.Channel <- m:
 		q.TotalMetric().Inc()
@@ -74,7 +71,7 @@ func (q ᐸ_typenameᐳ) EnqueueNonBlocking(m ᐸ_typeᐳ) bool {
 
 // Dequeue removes an item from channel
 // Returns nil if nothing in // queue
-func (q ᐸ_typenameᐳ) Dequeue() ᐸ_typeᐳ {
+func (q Ͼ_typenameᐳ) Dequeue() Ͼ_typeᐳ {
 	select {
 	case v := <-q.Channel:
 		q.Metric().Dec()
@@ -85,11 +82,11 @@ func (q ᐸ_typenameᐳ) Dequeue() ᐸ_typeᐳ {
 }
 
 // Dequeue removes an item from channel
-func (q ᐸ_typenameᐳ) BlockingDequeue() ᐸ_typeᐳ {
+func (q Ͼ_typenameᐳ) BlockingDequeue() Ͼ_typeᐳ {
 	v := <-q.Channel
 	q.Metric().Dec()
 	return v
 }
 
 // End accountedqueue generated go code
-// ᐸend ᐳ
+// Ͼendᐳ

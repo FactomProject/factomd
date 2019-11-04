@@ -11,7 +11,6 @@ import (
 
 	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/generated"
 )
 
 // End fileheader template
@@ -19,7 +18,7 @@ import (
 // Start accountedqueue_test generated go code
 
 func TestAccountedQueue(t *testing.T) {
-	q := new(generated.Queue_IMsg).Init(common.NilName, "Test", 10)
+	q := new(Queue_IMsg).Init(common.NilName, "Test", 10)
 
 	if q.Dequeue() != nil {
 		t.Fatal("empty dequeue return non-nil")
