@@ -2,8 +2,7 @@
 
 // //+build ignore
 
-// This program generates contributors.go. It can be invoked by running
-// go generate
+// This program generates generated/*.  It can be invoked by running go generate
 package main
 
 import (
@@ -20,13 +19,15 @@ import (
 	"text/template"
 )
 
-// The FactomGenerate templates use Canadian Aboriginal syllabary characters using "Ͼ" U+1438, "ᐳ" U+1433 as the
-// delimiters. This is done so the template can be valid go code and goimports and gofmt will work correctly on the
-// code and it can be tested in unmodified form. There are a few accommodated to facilitate this.
-// 1 - the "Ͼ", "ᐳ" are replaced with the traditional {{ and }} delimiters prior to loading the templates. This avoid
-// an issue with parsing the templates caused by "Ͼ" and "ᐳ" are valid character in a template variable name.
+// The FactomGenerate templates use Greek Capitol  syllabary characters "Ͼ" U+03FE, "Ͽ" U+03FF as the delimiters. This
+// is done so the template can be valid go code and goimports and gofmt will work correctly on the code and it can be
+// tested in unmodified form. There are a few accommodated to facilitate this.
+// U+03FE	GREEK CAPITAL DOTTED LUNATE SIGMA SYMBOL			Ͼ
+// U+03FF	GREEK CAPITAL REVERSED DOTTED LUNATE SIGMA SYMBOL	Ͽ
+// 1 - the "Ͼ", "Ͽ" are replaced with the traditional {{ and }} delimiters prior to loading the templates. This avoid
+// an issue with parsing the templates caused by "Ͼ" and "Ͽ" are valid character in a template variable name.
 // 2 - go templates define a template names <templatname>-imports which list the packages use in the template body.
-// this is merges with the imports required by the instances of the template use to build the imports statment for
+// this is merges with the imports required by the instances of the template use to build the imports statement for
 // the generate file.
 // 3 - the manipulated text for the template is written to a temporary file instead of loading it from the string to
 // facilitate the template error reporting producing usable error messages
@@ -85,15 +86,17 @@ func CollectFactomGenerateRequests() []string {
 
 func LoadTemplates() *template.Template {
 	// load the templates for files wrappers
-	templates := template.Must(template.ParseGlob("./factomgenerate/templates/*.tmpl"))
+	templates := template.New("FactomGenerate")
+
+	template.Must(templates.ParseGlob("./factomgenerate/templates/*.tmpl"))
 	// load the templates for go code
-	// these templates use "Ͼ", "ᐳ" as the delimiter to make the template gofmt compatible
-	goFiles, err := filepath.Glob("./factomgenerate/templates/*_template.go")
+	// these templates use "Ͼ", "Ͽ" as the delimiter to make the template gofmt compatible
+	goTemplateFiles, err := filepath.Glob("./factomgenerate/templates/*_template*.go")
 	die(err)
-	for _, filename := range goFiles {
-		filename = ReformatTemplateFile(filename)
-		templates = template.Must(templates.ParseFiles(filename))
-		// os.Remove(filename) // clean up
+	for _, filename := range goTemplateFiles {
+		reformattedFilename := ReformatTemplateFile(filename)
+		template.Must(templates.ParseFiles(reformattedFilename))
+		// os.Remove(reformattedFilename) // clean up
 	}
 	return templates
 }
@@ -109,7 +112,7 @@ func ReformatTemplateFile(filename string) string {
 
 	updatedContents := strings.Replace(contents, "Ͼ_", "{{.", -1)
 	updatedContents = strings.Replace(updatedContents, "Ͼ", "{{", -1)
-	updatedContents = strings.Replace(updatedContents, "ᐳ", "}}", -1)
+	updatedContents = strings.Replace(updatedContents, "Ͽ", "}}", -1)
 	dir := "/tmp/FactomGenerate"
 	die(os.MkdirAll(dir, 0755)) // create a temp directory
 	tmpfile, err := ioutil.TempFile(dir, filepath.Base(filename))
@@ -127,8 +130,6 @@ func RunTemplates(templates *template.Template, requests []string) {
 
 	fmt.Print("RunTemplates()", requests)
 
-	// place to keep all the files
-	files := make(map[string]*os.File)
 	// need to parse all the instances before executing any so we can merge the imports
 	instances := make(map[string][]map[string]interface{}) // map a templatename to a slice of requests
 
@@ -159,90 +160,97 @@ func RunTemplates(templates *template.Template, requests []string) {
 
 	// loop thru the templates and execute the requests for that template
 	for templatename, requests := range instances {
-		templatename = strings.ToLower(templatename)
-		filename := "./generated/" + templatename + ".go"
+		ExpandRequest(templates, templatename, requests)
+	}
+}
 
-		// make a map of the required importsMap, this eliminates duplication...
-		var importsMap map[string]string = make(map[string]string)
+func ExpandRequest(templates *template.Template, templateName string, requests []map[string]interface{}) {
+	templateName = strings.ToLower(templateName)
+	filename := "./generated/" + templateName + ".go"
+	// place to keep all the files
 
-		// collect the imports required by the template
+	fmt.Printf("ExpandRequests(%s,...) in %s\n", templateName, filename)
+	for _, r := range requests {
+		fmt.Println(r)
+	}
+	fmt.Println()
+
+	// make a map of the required importsMap, this eliminates duplication...
+	var importsMap map[string]string = make(map[string]string)
+
+	// collect the imports required by the template
+	{
 		var out bytes.Buffer
-		s := templatename + "-imports"
-		templateimports := ""
-		t := templates.Lookup(s)
+		var templateimports string
+		templateImportsName := templateName + "-imports"
+		t := templates.Lookup(templateImportsName)
 		if t != nil {
 			die(t.Execute(&out, []interface{}{}))
 			templateimports = out.String()
+
+			re := regexp.MustCompile("\".*?\"") // regex to extract the quoted strings from the imports statement
+			// Add the quoted strings from template imports to the imports list
+			imports := re.FindAllStringSubmatch(templateimports, -1)
+			for _, l := range imports {
+				if len(l) != 1 {
+					panic(errors.New("nested quoted string in " + templateimports))
+				}
+				for _, name := range l {
+					importsMap[name] = "" // Only the key is used not the value
+				}
+			}
 		} else {
-			fmt.Println("Missing template", s)
+			fmt.Println("Missing template", templateImportsName)
 		}
-
-		re := regexp.MustCompile("\".*?\"") // regex to extract the quoted strings from the imports statement
-		// Add the quoted strings from template imports to the imports list
-		imports := re.FindAllStringSubmatch(templateimports, -1)
-		for _, l := range imports {
-			if len(l) != 1 {
-				panic(errors.New("nested quoted string in " + templateimports))
-			}
-			for _, name := range l {
+	}
+	// collect the imports from the requests for this template
+	// import are either a string or a []string
+	for _, details := range requests {
+		fmt.Println("request:", details)
+		value, ok := details["import"]
+		if ok && details["templateName"] == templateName {
+			name, ok := value.(string)
+			if ok {
 				importsMap[name] = "" // Only the key is used not the value
-			}
-		}
-
-		// collect the imports from the requests for this template
-		// import are either a string or a []string
-		for _, details := range requests {
-			fmt.Println("request:", details)
-			value, ok := details["import"]
-			if ok && details["templatename"] == templatename {
-				name, ok := value.(string)
-				if ok {
-					importsMap[name] = "" // don't use the value just the name
-				} else {
-					for _, name := range value.([]string) {
-						if name != "" {
-							importsMap[name] = "" // Only the key is used not the value
-						}
+			} else {
+				for _, name := range value.([]string) {
+					if name != "" {
+						importsMap[name] = "" // Only the key is used not the value
 					}
 				}
-				delete(details, "import")
 			}
+			delete(details, "import") // don't need this anymore
 		}
-		//// convert the map to a slice
-		//var imports []string
-		//for name, _ := range importsMap {
-		//	imports = append(imports, name)
-		//}
-
-		// make the file header
-		details := make(map[string]interface{})
-		details["templatename"] = templatename
-		details["imports"] = importsMap
-		details["template_imports"] = "." + templatename + ".imports"
-		details["test"] = strings.Contains(templatename, "_test")
-		fmt.Println("Creating", filename, "with", details)
-		f, err := os.Create(filename)
-		die(err)
-		files[filename] = f
-		// Add the file header to the file
-		die(templates.ExecuteTemplate(f, "fileheader", details))
-
-		// Loop thru the requests
-		for _, details := range requests {
-			if len(details) > 1 { // skip empty details e.g. import only requests have just the templatename at this point
-				fmt.Println("processing", templatename, "request ", filename, "with", details)
-				// Expand this instance of the template
-				die(templates.ExecuteTemplate(f, templatename, details))
-			}
-		}
-		// After we are done add the filetail to the file and close it.
-		die(templates.ExecuteTemplate(f, "filetail", details))
-		f.Close()
-
-		runcmd("gofmt -s -w " + filename)
-		runcmd("goimports -w " + filename)
-		//catfile(filename)
 	}
+
+	// make the file header
+
+	fileHeaderDetails := make(map[string]interface{})
+	fileHeaderDetails["templateName"] = templateName
+	fileHeaderDetails["imports"] = importsMap
+	fileHeaderDetails["template_imports"] = "." + templateName + ".imports"
+	fileHeaderDetails["test"] = strings.Contains(templateName, "_test")
+	fmt.Println("Creating", filename, "with", fileHeaderDetails)
+	f, err := os.Create(filename)
+	die(err)
+	// Add the file header to the file
+	die(templates.ExecuteTemplate(f, "fileheader", fileHeaderDetails))
+
+	// Loop thru the requests
+	for _, details := range requests {
+		if len(details) > 1 { // skip empty fileHeaderDetails e.g. import only requests have just the templateName at this point
+			fmt.Println("processing", templateName, "request ", filename, "with", details)
+			// Expand this instance of the template
+			die(templates.ExecuteTemplate(f, templateName, details))
+		}
+	}
+	// After we are done add the filetail to the file and close it.
+	die(templates.ExecuteTemplate(f, "filetail", fileHeaderDetails))
+	f.Close()
+
+	runcmd("gofmt -s -w " + filename)
+	runcmd("goimports -w " + filename)
+	//catfile(filename)
 }
 
 func die(err error) {
