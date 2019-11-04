@@ -90,9 +90,9 @@ func (vm *VM) ReportMissing(height int, delay int64) {
 		}
 	}
 
-	// if we are asking above the current list
-	if height >= lenVMList {
-		vm.p.State.Ask(int(vm.p.DBHeight), vm.VmIndex, height, now+delay) // send it to the MMR thread
+	// if we are asking above the current list so ask all the way to the height
+	for i = lenVMList; i <= height; i++ {
+		vm.p.State.Ask(int(vm.p.DBHeight), vm.VmIndex, i, now+delay) // send it to the MMR thread
 	}
 
 }
