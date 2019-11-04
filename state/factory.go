@@ -407,7 +407,7 @@ func Clone(s *State, cloneNumber int) interfaces.IState {
 	return newState
 }
 
-func (s *State) Initialize(w *worker.Thread, EFactory interfaces.IElectionsFactory) {
+func (s *State) Initialize(w *worker.Thread, electionFactory interfaces.IElectionsFactory) {
 	if s.Salt == nil {
 		b := make([]byte, 32)
 		_, err := rand.Read(b)
@@ -425,7 +425,6 @@ func (s *State) Initialize(w *worker.Thread, EFactory interfaces.IElectionsFacto
 	s.IgnoreMissing = true
 	s.BootTime = s.GetTimestamp().GetTimeSeconds()
 	s.TimestampAtBoot = primitives.NewTimestampNow()
-
 	if s.LogPath == "stdout" {
 		wsapi.InitLogs(s.LogPath, s.LogLevel)
 	} else {
@@ -613,7 +612,8 @@ func (s *State) Initialize(w *worker.Thread, EFactory interfaces.IElectionsFacto
 	// Allocate the missing message handler
 	s.MissingMessageResponseHandler = NewMissingMessageReponseCache(s)
 
-	s.EFactory = EFactory
+	// Election factory was created and passed int to avoid import loop
+	s.EFactory = electionFactory
 
 	if s.StateSaverStruct.FastBoot {
 		d, err := s.DB.FetchDBlockHead()

@@ -464,6 +464,8 @@ func makeServer(w *worker.Thread, p *globals.FactomParams) (node *fnode.FactomNo
 	} else {
 		node = fnode.New(state.Clone(fnode.Get(0).State, i).(*state.State))
 	}
+
+	// Election factory was created and passed int to avoid import loop
 	node.State.Initialize(w, new(electionMsgs.ElectionsFactory))
 
 	state0Init.Do(func() {

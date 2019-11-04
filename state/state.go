@@ -35,7 +35,6 @@ import (
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/util/atomic"
 	"github.com/FactomProject/logrustash"
-
 	log "github.com/sirupsen/logrus"
 )
 

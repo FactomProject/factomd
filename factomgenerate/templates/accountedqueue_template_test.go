@@ -1,37 +1,37 @@
-//+build ignore
+//Ͼ/*
+// The FactomGenerate templates use Greek Capitol syllabary characters "Ͼ" U+03FE, "Ͽ" U+03FF as the
+// delimiters. This is done so the template can be valid go code and goimports and gofmt will work correctly on the
+// code and it can be tested in unmodified form. For more information see factomgenerate/generate.go
+//*/Ͽ
 
-//ᐸ/*
-//This looks syntatically off because it is a template used to generate go code. In order to make the template be
-//gofmt able the parse delimiters are set to 'ᐸ'  and ' ᐳ' so ᐸ.typename ᐳ will be replaced by the typename
-//from the //FactomGenerate command
-//*/ᐳ
-
-package generated_test // this is only here to make gofmt happy and is never in the generated code
+package templates // this is only here to make gofmt happy and is never in the generated code
 
 //go:generate go run ./generate.go
 
-//ᐸdefine "accountedqueue_test-imports" ᐳ
+//Ͼdefine "accountedqueue_test-imports"Ͽ
+
 import (
 	"testing"
 
 	"github.com/FactomProject/factomd/common"
-	"github.com/FactomProject/factomd/generated"
 )
-//ᐸend ᐳ
 
+//ϾendϿ
 
-//ᐸdefine "accountedqueue_test" ᐳ
+var Ͼ_testelementϿ Ͼ_typeϿ // just use a zero value as the test element
+
+//Ͼdefine "accountedqueue_test"Ͽ
 // Start accountedqueue_test generated go code
 
 func TestAccountedQueue(t *testing.T) {
-	q := new(generated.ᐸ.typename ᐳ).Init(common.NilName, "Test", 10)
+	q := new(Ͼ_typenameϿ).Init(common.NilName, "Test", 10)
 
 	if q.Dequeue() != nil {
 		t.Fatal("empty dequeue return non-nil")
 	}
 
 	for i := 0; i < 10; i++ {
-		q.Enqueue(ᐸ.testelement ᐳ)
+		q.Enqueue(Ͼ_testelementϿ)
 	}
 
 	// commented out because it requires a modern prometheus package
@@ -52,4 +52,4 @@ func TestAccountedQueue(t *testing.T) {
 	}
 }
 
-//ᐸend ᐳ
+//ϾendϿ

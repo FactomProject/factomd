@@ -4,16 +4,13 @@
 
 // Start Generated Code
 
-package generated_test
-
-// accountedqueue_test-imports
+package generated
 
 import (
 	"testing"
 
 	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/generated"
 )
 
 // End fileheader template
@@ -21,7 +18,7 @@ import (
 // Start accountedqueue_test generated go code
 
 func TestAccountedQueue(t *testing.T) {
-	q := new(generated.Queue_IMsg).Init(common.NilName, "Test", 10)
+	q := new(Queue_IMsg).Init(common.NilName, "Test", 10)
 
 	if q.Dequeue() != nil {
 		t.Fatal("empty dequeue return non-nil")
@@ -29,6 +26,38 @@ func TestAccountedQueue(t *testing.T) {
 
 	for i := 0; i < 10; i++ {
 		q.Enqueue(new(messages.Bounce))
+	}
+
+	// commented out because it requires a modern prometheus package
+	//if testutil.ToFloat64(q.TotalMetric()) != float64(10) {
+	//	t.Fatal("TotalMetric fail")
+	//}
+
+	for i := 9; i >= 0; i-- {
+		q.Dequeue()
+		// commented out because it requires a modern prometheus package
+		//if testutil.ToFloat64(q.Metric()) != float64(i) {
+		//	t.Fatal("Metric fail")
+		//}
+	}
+
+	if q.Dequeue() != nil {
+		t.Fatal("empty dequeue return non-nil")
+	}
+}
+
+//
+// Start accountedqueue_test generated go code
+
+func TestAccountedQueue(t *testing.T) {
+	q := new(Queue_int).Init(common.NilName, "Test", 10)
+
+	if q.Dequeue() != nil {
+		t.Fatal("empty dequeue return non-nil")
+	}
+
+	for i := 0; i < 10; i++ {
+		q.Enqueue(new(int))
 	}
 
 	// commented out because it requires a modern prometheus package
