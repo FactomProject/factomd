@@ -14,8 +14,9 @@ package templates // this is only here to make gofmt happy and is never in the g
 //Ͼdefine "subscribe" ᐳ
 // Start Subscribe generated go code
 
-func Subscribe_Ͼ_typeᐳ(parent string, name string) *Ͼ_type ᐳ {
+func Subscribe_Ͼ_typeᐳ(parent string, name string) *Ͼ_typeᐳ {
 	return new(Ͼ_typeᐳ)
 }
+
 // End Subscribe generated code
 //Ͼend ᐳ
