@@ -9,6 +9,9 @@ import (
 	"regexp"
 	"runtime"
 
+	"github.com/FactomProject/factomd/registry"
+	"github.com/FactomProject/factomd/worker"
+
 	"github.com/FactomProject/factom"
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
@@ -41,7 +44,12 @@ func CreateEmptyTestState() *state.State {
 	s.LoadConfig("", "")
 	s.Network = "LOCAL"
 	s.LogPath = "stdout"
-	s.Init()
+
+	p := registry.New()
+	p.Register(s.Initialize)
+	go p.Run()
+	p.WaitForRunning()
+
 	s.Network = "LOCAL"
 	s.CheckChainHeads.CheckChainHeads = false
 	state.LoadDatabase(s)
@@ -52,7 +60,12 @@ func CreateEmptyTestState() *state.State {
 
 func CreateAndPopulateTestStateAndStartValidator() *state.State {
 	s := CreateAndPopulateTestState()
-	go s.ValidatorLoop()
+	p := registry.New()
+	p.Register(func(w *worker.Thread) {
+		s.ValidatorLoop(w)
+	})
+	go p.Run()
+
 	time.Sleep(30 * time.Millisecond)
 
 	return s
@@ -61,7 +74,11 @@ func CreateAndPopulateTestStateAndStartValidator() *state.State {
 func CreatePopulateAndExecuteTestState() *state.State {
 	s := CreateAndPopulateTestState()
 	ExecuteAllBlocksFromDatabases(s)
-	go s.ValidatorLoop()
+	p := registry.New()
+	p.Register(func(w *worker.Thread) {
+		s.ValidatorLoop(w)
+	})
+	go p.Run()
 	time.Sleep(30 * time.Millisecond)
 
 	return s
@@ -127,7 +144,11 @@ func CreateAndPopulateTestState() *state.State {
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "Network", s.Network))
 	s.LogPath = "stdout"
 
-	s.Init()
+	p := registry.New()
+	p.Register(s.Initialize)
+	go p.Run()
+	p.WaitForRunning()
+
 	s.Network = "LOCAL"
 	/*err := s.RecalculateBalances()
 	if err != nil {

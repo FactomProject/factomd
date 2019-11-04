@@ -5,17 +5,19 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/FactomProject/factomd/fnode"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/globals"
 )
 
 func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 
-	if *listenTo < 0 || *listenTo >= len(fnodes) {
+	if *listenTo < 0 || *listenTo >= fnode.Len() {
 		return
 	}
 	// set everyone's ID
-	for i, f := range fnodes {
+	for i, f := range fnode.GetFnodes() {
 		f.Index = i
 	}
 
@@ -27,7 +29,11 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 }
 
 func GetSystemStatus(listenTo int, wsapiNode int) string {
-	fnodes := GetFnodes()
+	defer func() {
+		recover() // KLUDGE: may induce race/condition errors while adding a node
+	}()
+
+	fnodes := fnode.GetFnodes()
 	f := fnodes[listenTo]
 	s := f.State
 	prt := "===SummaryStart===\n\n"
@@ -44,7 +50,7 @@ func GetSystemStatus(listenTo int, wsapiNode int) string {
 	downscale := int64(5000 * len(fnodes))
 	prt += fmt.Sprintf("P=%8d PL=%8d US=%8d Z=%8d", stateProcessCnt/downscale, processListProcessCnt/downscale, stateUpdateState/downscale, validatorLoopSleepCnt/downscale)
 
-	var pnodes []*FactomNode
+	var pnodes []*fnode.FactomNode
 	pnodes = append(pnodes, fnodes...)
 	if SortByID {
 		for i := 0; i < len(pnodes)-1; i++ {
@@ -367,7 +373,7 @@ func PrintOneStatus(listenTo int, wsapiNode int) {
 
 }
 
-func SystemFaults(f *FactomNode) string {
+func SystemFaults(f *fnode.FactomNode) string {
 	dbheight := f.State.LLeaderHeight
 	pl := f.State.ProcessLists.Get(dbheight)
 	if pl == nil {

@@ -13,75 +13,108 @@ import (
 	"math"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/constants/runstate"
-	. "github.com/FactomProject/factomd/common/globals"
-	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/messages/electionMsgs"
 	"github.com/FactomProject/factomd/common/messages/msgsupport"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/controlPanel"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
-	"github.com/FactomProject/factomd/database/leveldb"
 	"github.com/FactomProject/factomd/elections"
+	"github.com/FactomProject/factomd/fnode"
 	"github.com/FactomProject/factomd/p2p"
+	"github.com/FactomProject/factomd/registry"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
+	"github.com/FactomProject/factomd/worker"
 	"github.com/FactomProject/factomd/wsapi"
+
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
-var _ = fmt.Print
-
-type FactomNode struct {
-	Index    int
-	State    *state.State
-	Peers    []interfaces.IPeer
-	MLog     *MsgLog
-	P2PIndex int
-}
-
-var fnodes []*FactomNode
-
-var networkpattern string
+var connectionMetricsChannel = make(chan interface{}, p2p.StandardChannelSize)
 var mLog = new(MsgLog)
 var p2pProxy *P2PProxy
 var p2pNetwork *p2p.Controller
 var logPort string
-
-func GetFnodes() []*FactomNode {
-	return fnodes
-}
 
 func init() {
 	messages.General = new(msgsupport.GeneralFactory)
 	primitives.General = messages.General
 }
 
-func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
+func echo(s string, more ...interface{}) {
+	_, _ = os.Stderr.WriteString(fmt.Sprintf(s, more...))
+}
 
-	s.PortNumber = 8088
-	s.ControlPanelPort = 8090
-	logPort = p.LogPort
+func echoConfig(s *state.State, p *globals.FactomParams) {
 
-	messages.AckBalanceHash = p.AckbalanceHash
-	// Must add the prefix before loading the configuration.
-	s.AddPrefix(p.Prefix)
-	FactomConfigFilename := util.GetConfigFilename("m2")
-	if p.ConfigPath != "" {
-		FactomConfigFilename = p.ConfigPath
+	fmt.Println(">>>>>>>>>>>>>>>>")
+	fmt.Println(">>>>>>>>>>>>>>>> Net Sim Start!")
+	fmt.Println(">>>>>>>>>>>>>>>>")
+	fmt.Println(">>>>>>>>>>>>>>>> Listening to Node", p.ListenTo)
+	fmt.Println(">>>>>>>>>>>>>>>>")
+
+	pnet := p.Net
+	if len(p.Fnet) > 0 {
+		pnet = p.Fnet
+		p.Net = "file"
 	}
-	fmt.Println(fmt.Sprintf("factom config: %s", FactomConfigFilename))
-	s.LoadConfig(FactomConfigFilename, p.NetworkName)
-	s.OneLeader = p.Rotate
-	s.TimeOffset = primitives.NewTimestampFromMilliseconds(uint64(p.TimeOffset))
-	s.StartDelayLimit = p.StartDelay * 1000
-	s.Journaling = p.Journaling
-	s.FactomdVersion = FactomdVersion
-	s.EFactory = new(electionMsgs.ElectionsFactory)
+
+	echo("%20s %s\n", "Build", Build)
+	echo("%20s %s\n", "Node name", p.NodeName)
+	echo("%20s %v\n", "balancehash", messages.AckBalanceHash)
+	echo("%20s %s\n", fmt.Sprintf("%s Salt", s.GetFactomNodeName()), s.Salt.String()[:16])
+	echo("%20s %v\n", "enablenet", p.EnableNet)
+	echo("%20s %v\n", "net incoming", p2p.MaxNumberIncomingConnections)
+	echo("%20s %v\n", "net outgoing", p2p.NumberPeersToConnect)
+	echo("%20s %v\n", "waitentries", p.WaitEntries)
+	echo("%20s %d\n", "node", p.ListenTo)
+	echo("%20s %s\n", "prefix", p.Prefix)
+	echo("%20s %d\n", "node count", p.Cnt)
+	echo("%20s %d\n", "FastSaveRate", p.FastSaveRate)
+	echo("%20s \"%s\"\n", "net spec", pnet)
+	echo("%20s %d\n", "Msgs droped", p.DropRate)
+	echo("%20s \"%s\"\n", "database", p.Db)
+	echo("%20s \"%s\"\n", "database for clones", p.CloneDB)
+	echo("%20s \"%s\"\n", "peers", p.Peers)
+	echo("%20s \"%t\"\n", "exclusive", p.Exclusive)
+	echo("%20s \"%t\"\n", "exclusive_in", p.ExclusiveIn)
+	echo("%20s %d\n", "block time", p.BlkTime)
+	echo("%20s %v\n", "runtimeLog", p.RuntimeLog)
+	echo("%20s %v\n", "rotate", p.Rotate)
+	echo("%20s %v\n", "timeOffset", p.TimeOffset)
+	echo("%20s %v\n", "keepMismatch", p.KeepMismatch)
+	echo("%20s %v\n", "startDelay", p.StartDelay)
+	echo("%20s %v\n", "Network", s.Network)
+	echo("%20s %x (%s)\n", "customnet", p.CustomNet, p.CustomNetName)
+	echo("%20s %v\n", "deadline (ms)", p.Deadline)
+	echo("%20s %v\n", "tls", s.FactomdTLSEnable)
+	echo("%20s %v\n", "selfaddr", s.FactomdLocations)
+	echo("%20s \"%s\"\n", "rpcuser", s.RpcUser)
+	echo("%20s \"%s\"\n", "corsdomains", s.CorsDomains)
+	echo("%20s %d\n", "Start 2nd Sync at ht", s.EntryDBHeightComplete)
+
+	echo(fmt.Sprintf("%20s %d\n", "faultTimeout", elections.FaultTimeout))
+
+	if "" == s.RpcPass {
+		echo(fmt.Sprintf("%20s %s\n", "rpcpass", "is blank"))
+	} else {
+		echo(fmt.Sprintf("%20s %s\n", "rpcpass", "is set"))
+	}
+	echo("%20s \"%d\"\n", "TCP port", s.PortNumber)
+	echo("%20s \"%s\"\n", "pprof port", logPort)
+	echo("%20s \"%d\"\n", "Control Panel port", s.ControlPanelPort)
+}
+
+// init mlog & set log levels
+func SetLogLevel(p *globals.FactomParams) {
+	mLog.Init(p.RuntimeLog, p.Cnt)
 
 	log.SetOutput(os.Stdout)
 	switch strings.ToLower(p.Loglvl) {
@@ -101,246 +134,228 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		log.SetLevel(log.PanicLevel)
 	}
 
-	// Command line override if provided
-	switch p.ControlPanelSetting {
-	case "disabled":
-		s.ControlPanelSetting = 0
-	case "readonly":
-		s.ControlPanelSetting = 1
-	case "readwrite":
-		s.ControlPanelSetting = 2
-	}
-
 	if p.Logjson {
 		log.SetFormatter(&log.JSONFormatter{})
 	}
+}
 
-	// Set the wait for entries flag
-	s.WaitForEntries = p.WaitEntries
-
-	if 999 < p.PortOverride { // The command line flag exists and seems reasonable.
-		s.SetPort(p.PortOverride)
-	} else {
-		p.PortOverride = s.GetPort()
+// shutdown factomd
+func interruptHandler() {
+	fmt.Print("<Break>\n")
+	fmt.Print("Gracefully shutting down the server...\n")
+	for _, node := range fnode.GetFnodes() {
+		node.State.ShutdownNode(0)
 	}
-	if 999 < p.ControlPanelPortOverride { // The command line flag exists and seems reasonable.
-		s.ControlPanelPort = p.ControlPanelPortOverride
-	} else {
-		p.ControlPanelPortOverride = s.ControlPanelPort
-	}
+	p2pNetwork.NetworkStop()
+	fmt.Print("Waiting...\r\n")
+	time.Sleep(3 * time.Second)
+	os.Exit(0)
+}
 
-	if p.BlkTime > 0 {
-		s.DirectoryBlockInSeconds = p.BlkTime
-	} else {
-		p.BlkTime = s.DirectoryBlockInSeconds
-	}
-
-	s.FaultTimeout = 9999999 //todo: Old Fault Mechanism -- remove
-
-	if p.Follower {
-		p.Leader = false
-	}
-	if p.Leader {
-		p.Follower = false
-	}
-	if !p.Follower && !p.Leader {
-		panic("Not a leader or a follower")
-	}
-
-	if p.Journal != "" {
-		p.Cnt = 1
-	}
-
-	if p.RpcUser != "" {
-		s.RpcUser = p.RpcUser
-	}
-
-	if p.RpcPassword != "" {
-		s.RpcPass = p.RpcPassword
-	}
-
-	if p.FactomdTLS == true {
-		s.FactomdTLSEnable = true
-	}
-
-	if p.FactomdLocations != "" {
-		if len(s.FactomdLocations) > 0 {
-			s.FactomdLocations += ","
-		}
-		s.FactomdLocations += p.FactomdLocations
-	}
-
-	if p.Fast == false {
-		s.StateSaverStruct.FastBoot = false
-	}
-	if p.FastLocation != "" {
-		s.StateSaverStruct.FastBootLocation = p.FastLocation
-	}
-	if p.FastSaveRate < 2 || p.FastSaveRate > 5000 {
-		panic("FastSaveRate must be between 2 and 5000")
-	}
-	s.FastSaveRate = p.FastSaveRate
-
-	s.CheckChainHeads.CheckChainHeads = p.CheckChainHeads
-	s.CheckChainHeads.Fix = p.FixChainHeads
-
-	if p.P2PIncoming > 0 {
-		p2p.MaxNumberIncomingConnections = p.P2PIncoming
-	}
-	if p.P2POutgoing > 0 {
-		p2p.NumberPeersToConnect = p.P2POutgoing
-	}
-
-	fmt.Println(">>>>>>>>>>>>>>>>")
-	fmt.Println(">>>>>>>>>>>>>>>> Net Sim Start!")
-	fmt.Println(">>>>>>>>>>>>>>>>")
-	fmt.Println(">>>>>>>>>>>>>>>> Listening to Node", p.ListenTo)
-	fmt.Println(">>>>>>>>>>>>>>>>")
-
-	AddInterruptHandler(func() {
-		fmt.Print("<Break>\n")
-		fmt.Print("Gracefully shutting down the server...\n")
-		for _, fnode := range fnodes {
-			fnode.State.ShutdownNode(0)
-		}
-		if p.EnableNet {
-			p2pNetwork.NetworkStop()
-		}
-		fmt.Print("Waiting...\r\n")
-		time.Sleep(3 * time.Second)
-		os.Exit(0)
-	})
-
-	if p.Journal != "" {
-		if s.DBType != "Map" {
-			fmt.Println("Journal is ALWAYS a Map database")
-			s.DBType = "Map"
-		}
-	}
-	if p.Follower {
-		s.NodeMode = "FULL"
-		leadID := primitives.Sha([]byte(s.Prefix + "FNode0"))
-		if s.IdentityChainID.IsSameAs(leadID) {
-			s.SetIdentityChainID(primitives.Sha([]byte(time.Now().String()))) // Make sure this node is NOT a leader
-		}
-	}
-
-	s.KeepMismatch = p.KeepMismatch
-
-	if len(p.Db) > 0 {
-		s.DBType = p.Db
-	} else {
-		p.Db = s.DBType
-	}
-
-	if len(p.CloneDB) > 0 {
-		s.CloneDBType = p.CloneDB
-	} else {
-		s.CloneDBType = p.Db
-	}
-
-	pnet := p.Net
-	if len(p.Fnet) > 0 {
-		pnet = p.Fnet
-		p.Net = "file"
-	}
-
-	s.UseLogstash = p.UseLogstash
-	s.LogstashURL = p.LogstashURL
-
-	go StartProfiler(p.MemProfileRate, p.ExposeProfiling)
-
-	s.AddPrefix(p.Prefix)
-	s.SetOut(false)
-	s.Init()
-	s.SetDropRate(p.DropRate)
-
-	if p.Sync2 >= 0 {
-		s.EntryDBHeightComplete = uint32(p.Sync2)
+func initEntryHeight(s *state.State, target int) {
+	if target >= 0 {
+		s.EntryDBHeightComplete = uint32(target)
 		s.LogPrintf("EntrySync", "Force with Sync2 NetStart EntryDBHeightComplete = %d", s.EntryDBHeightComplete)
-
 	} else {
 		height, err := s.DB.FetchDatabaseEntryHeight()
 		if err != nil {
 			s.LogPrintf("EntrySync", "Error reading EntryDBHeightComplete NetStart EntryDBHeightComplete = %d", s.EntryDBHeightComplete)
-			os.Stderr.WriteString(fmt.Sprintf("ERROR reading Entry DBHeight Complete: %v\n", err))
+			_, _ = os.Stderr.WriteString(fmt.Sprintf("ERROR reading Entry DBHeight Complete: %v\n", err))
 		} else {
 			s.EntryDBHeightComplete = height
 			s.LogPrintf("EntrySync", "NetStart EntryDBHeightComplete = %d", s.EntryDBHeightComplete)
 		}
 	}
+}
 
-	mLog.Init(p.RuntimeLog, p.Cnt)
-
-	setupFirstAuthority(s)
-
-	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "Build", Build))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "Node name", p.NodeName))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "balancehash", messages.AckBalanceHash))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", fmt.Sprintf("%s Salt", s.GetFactomNodeName()), s.Salt.String()[:16]))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "enablenet", p.EnableNet))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "net incoming", p2p.MaxNumberIncomingConnections))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "net outgoing", p2p.NumberPeersToConnect))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "waitentries", p.WaitEntries))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "node", p.ListenTo))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "prefix", p.Prefix))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "node count", p.Cnt))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "FastSaveRate", p.FastSaveRate))
-	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "net spec", pnet))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "Msgs droped", p.DropRate))
-	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "journal", p.Journal))
-	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "database", p.Db))
-	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "database for clones", p.CloneDB))
-	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "peers", p.Peers))
-	os.Stderr.WriteString(fmt.Sprintf("%20s \"%t\"\n", "exclusive", p.Exclusive))
-	os.Stderr.WriteString(fmt.Sprintf("%20s \"%t\"\n", "exclusive_in", p.ExclusiveIn))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "block time", p.BlkTime))
-	//os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "faultTimeout", p.FaultTimeout)) // TODO old fault timeout mechanism to be removed
-	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "runtimeLog", p.RuntimeLog))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "rotate", p.Rotate))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "timeOffset", p.TimeOffset))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "keepMismatch", p.KeepMismatch))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "startDelay", p.StartDelay))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "Network", s.Network))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %x (%s)\n", "customnet", p.CustomNet, p.CustomNetName))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "deadline (ms)", p.Deadline))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "tls", s.FactomdTLSEnable))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "selfaddr", s.FactomdLocations))
-	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "rpcuser", s.RpcUser))
-	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "corsdomains", s.CorsDomains))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "Start 2nd Sync at ht", s.EntryDBHeightComplete))
-
-	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "faultTimeout", elections.FaultTimeout))
-
-	if "" == s.RpcPass {
-		os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "rpcpass", "is blank"))
-	} else {
-		os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "rpcpass", "is set"))
-	}
-	os.Stderr.WriteString(fmt.Sprintf("%20s \"%d\"\n", "TCP port", s.PortNumber))
-	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "pprof port", logPort))
-	os.Stderr.WriteString(fmt.Sprintf("%20s \"%d\"\n", "Control Panel port", s.ControlPanelPort))
-
-	//************************************************
-	// Actually setup the Network
-	//************************************************
-
-	// Make p.cnt Factom nodes
+func NetStart(w *worker.Thread, p *globals.FactomParams, listenToStdin bool) {
+	initEngine(w, p)
 	for i := 0; i < p.Cnt; i++ {
-		makeServer(s) // We clone s to make all of our servers
+		fnode.Factory(w)
+	}
+	startNetwork(w, p)
+	startFnodes(w)
+	startWebserver(w)
+	startSimControl(w, p.ListenTo, listenToStdin)
+}
+
+// initialize package-level vars
+func initEngine(w *worker.Thread, p *globals.FactomParams) {
+	messages.AckBalanceHash = p.AckbalanceHash
+	w.RegisterInterruptHandler(interruptHandler)
+
+	// nodes can spawn with a different thread lifecycle
+	fnode.Factory = func(w *worker.Thread) {
+		makeServer(w, p)
+	}
+}
+
+// Anchoring related configurations
+func initAnchors(s *state.State, reparse bool) {
+	config := s.Cfg.(*util.FactomdConfig)
+	if len(config.App.BitcoinAnchorRecordPublicKeys) > 0 {
+		err := s.GetDB().(*databaseOverlay.Overlay).SetBitcoinAnchorRecordPublicKeysFromHex(config.App.BitcoinAnchorRecordPublicKeys)
+		if err != nil {
+			panic("Encountered an error while trying to set custom Bitcoin anchor record keys from config")
+		}
+	}
+	if len(config.App.EthereumAnchorRecordPublicKeys) > 0 {
+		err := s.GetDB().(*databaseOverlay.Overlay).SetEthereumAnchorRecordPublicKeysFromHex(config.App.EthereumAnchorRecordPublicKeys)
+		if err != nil {
+			panic("Encountered an error while trying to set custom Ethereum anchor record keys from config")
+		}
+	}
+	if reparse {
+		fmt.Println("Reparsing anchor chains...")
+		err := s.GetDB().(*databaseOverlay.Overlay).ReparseAnchorChains()
+		if err != nil {
+			panic("Encountered an error while trying to re-parse anchor chains: " + err.Error())
+		}
+	}
+}
+
+// construct a simulated network
+func buildNetTopology(p *globals.FactomParams) {
+	nodes := fnode.GetFnodes()
+
+	switch p.Net {
+	case "file":
+		file, err := os.Open(p.Fnet)
+		if err != nil {
+			panic(fmt.Sprintf("File network.txt failed to open: %s", err.Error()))
+		} else if file == nil {
+			panic(fmt.Sprint("File network.txt failed to open, and we got a file of <nil>"))
+		}
+		scanner := bufio.NewScanner(file)
+		for scanner.Scan() {
+			var a, b int
+			var s string
+			_, _ = fmt.Sscanf(scanner.Text(), "%d %s %d", &a, &s, &b)
+			if s == "--" {
+				AddSimPeer(nodes, a, b)
+			}
+		}
+	case "square":
+		side := int(math.Sqrt(float64(p.Cnt)))
+
+		for i := 0; i < side; i++ {
+			AddSimPeer(nodes, i*side, (i+1)*side-1)
+			AddSimPeer(nodes, i, side*(side-1)+i)
+			for j := 0; j < side; j++ {
+				if j < side-1 {
+					AddSimPeer(nodes, i*side+j, i*side+j+1)
+				}
+				AddSimPeer(nodes, i*side+j, ((i+1)*side)+j)
+			}
+		}
+	case "long":
+		fmt.Println("Using long Network")
+		for i := 1; i < p.Cnt; i++ {
+			AddSimPeer(nodes, i-1, i)
+		}
+		// Make long into a circle
+	case "loops":
+		fmt.Println("Using loops Network")
+		for i := 1; i < p.Cnt; i++ {
+			AddSimPeer(nodes, i-1, i)
+		}
+		for i := 0; (i+17)*2 < p.Cnt; i += 17 {
+			AddSimPeer(nodes, i%p.Cnt, (i+5)%p.Cnt)
+		}
+		for i := 0; (i+13)*2 < p.Cnt; i += 13 {
+			AddSimPeer(nodes, i%p.Cnt, (i+7)%p.Cnt)
+		}
+	case "alot":
+		n := len(nodes)
+		for i := 0; i < n; i++ {
+			AddSimPeer(nodes, i, (i+1)%n)
+			AddSimPeer(nodes, i, (i+5)%n)
+			AddSimPeer(nodes, i, (i+7)%n)
+		}
+
+	case "alot+":
+		n := len(nodes)
+		for i := 0; i < n; i++ {
+			AddSimPeer(nodes, i, (i+1)%n)
+			AddSimPeer(nodes, i, (i+5)%n)
+			AddSimPeer(nodes, i, (i+7)%n)
+			AddSimPeer(nodes, i, (i+13)%n)
+		}
+
+	case "tree":
+		index := 0
+		row := 1
+	treeloop:
+		for i := 0; true; i++ {
+			for j := 0; j <= i; j++ {
+				AddSimPeer(nodes, index, row)
+				AddSimPeer(nodes, index, row+1)
+				row++
+				index++
+				if index >= len(nodes) {
+					break treeloop
+				}
+			}
+			row += 1
+		}
+	case "circles":
+		circleSize := 7
+		index := 0
+		for {
+			AddSimPeer(nodes, index, index+circleSize-1)
+			for i := index; i < index+circleSize-1; i++ {
+				AddSimPeer(nodes, i, i+1)
+			}
+			index += circleSize
+
+			AddSimPeer(nodes, index, index-circleSize/3)
+			AddSimPeer(nodes, index+2, index-circleSize-circleSize*2/3-1)
+			AddSimPeer(nodes, index+3, index-(2*circleSize)-circleSize*2/3)
+			AddSimPeer(nodes, index+5, index-(3*circleSize)-circleSize*2/3+1)
+
+			if index >= len(nodes) {
+				break
+			}
+		}
+	default:
+		fmt.Println("Didn't understand network type. Known types: mesh, long, circles, tree, loops.  Using a Long Network")
+		for i := 1; i < p.Cnt; i++ {
+			AddSimPeer(nodes, i-1, i)
+		}
+
 	}
 
-	addFnodeName(0) // bootstrap id doesn't change
+	var colors = []string{"95cde5", "b01700", "db8e3c", "ffe35f"}
 
-	// Modify Identities of new nodes
-	if len(fnodes) > 1 && len(s.Prefix) == 0 {
-		modifyLoadIdentities() // We clone s to make all of our servers
+	if len(nodes) > 2 {
+		for i, s := range nodes {
+			fmt.Printf("%d {color:#%v, shape:dot, label:%v}\n", i, colors[i%len(colors)], s.State.FactomNodeName)
+		}
+		fmt.Printf("Paste the network info above into http://arborjs.org/halfviz to visualize the network\n")
+	}
+}
+
+func startWebserver(w *worker.Thread) {
+	state0 := fnode.Get(0).State
+	wsapi.Start(w, state0)
+	if state0.DebugExec() && llog.CheckFileName("graphData.txt") {
+		go printGraphData("graphData.txt", 30)
 	}
 
-	// Setup the Skeleton Identity & Registration
-	for i := range fnodes {
-		fnodes[i].State.IntiateNetworkSkeletonIdentity()
-		fnodes[i].State.InitiateNetworkIdentityRegistration()
+	// Start prometheus on port
+	launchPrometheus(9876)
+
+	w.Run(func() {
+		controlPanel.ServeControlPanel(state0.ControlPanelChannel, state0, connectionMetricsChannel, p2pNetwork, Build, state0.FactomNodeName)
+	})
+}
+
+func startNetwork(w *worker.Thread, p *globals.FactomParams) {
+	s := fnode.Get(0).State
+
+	// Modify Identities of simulated nodes
+	if fnode.Len() > 1 && len(s.Prefix) == 0 {
+		modifySimulatorIdentities() // set proper chain id & keys
 	}
 
 	// Start the P2P network
@@ -373,8 +388,8 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		}
 		s.CustomNetworkID = p.CustomNet
 		networkID = p2p.NetworkID(binary.BigEndian.Uint32(p.CustomNet))
-		for i := range fnodes {
-			fnodes[i].State.CustomNetworkID = p.CustomNet
+		for _, node := range fnode.GetFnodes() {
+			node.State.CustomNetworkID = p.CustomNet
 		}
 		seedURL = s.CustomSeedURL
 		networkPort = s.CustomNetworkPort
@@ -387,280 +402,102 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		panic("Invalid Network choice in Config File or command line. Choose MAIN, TEST, LOCAL, or CUSTOM")
 	}
 
-	connectionMetricsChannel := make(chan interface{}, p2p.StandardChannelSize)
 	p2p.NetworkDeadline = time.Duration(p.Deadline) * time.Millisecond
+	buildNetTopology(p)
 
-	if p.EnableNet {
-		nodeName := fnodes[0].State.FactomNodeName
-		if 0 < p.NetworkPortOverride {
-			networkPort = fmt.Sprintf("%d", p.NetworkPortOverride)
-		}
-
-		ci := p2p.ControllerInit{
-			NodeName:                 nodeName,
-			Port:                     networkPort,
-			PeersFile:                s.PeersFile,
-			Network:                  networkID,
-			Exclusive:                p.Exclusive,
-			ExclusiveIn:              p.ExclusiveIn,
-			SeedURL:                  seedURL,
-			ConfigPeers:              configPeers,
-			CmdLinePeers:             p.Peers,
-			ConnectionMetricsChannel: connectionMetricsChannel,
-		}
-		p2pNetwork = new(p2p.Controller).Init(ci)
-		fnodes[0].State.NetworkController = p2pNetwork
-		p2pNetwork.StartNetwork()
-		p2pProxy = new(P2PProxy).Init(nodeName, "P2P Network").(*P2PProxy)
-		p2pProxy.FromNetwork = p2pNetwork.FromNetwork
-		p2pProxy.ToNetwork = p2pNetwork.ToNetwork
-
-		fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
-		p2pProxy.StartProxy()
-
-		go networkHousekeeping() // This goroutine executes once a second to keep the proxy apprised of the network status.
+	if !p.EnableNet {
+		return
 	}
 
-	networkpattern = p.Net
-
-	switch p.Net {
-	case "file":
-		file, err := os.Open(p.Fnet)
-		if err != nil {
-			panic(fmt.Sprintf("File network.txt failed to open: %s", err.Error()))
-		} else if file == nil {
-			panic(fmt.Sprint("File network.txt failed to open, and we got a file of <nil>"))
-		}
-		scanner := bufio.NewScanner(file)
-		for scanner.Scan() {
-			var a, b int
-			var s string
-			fmt.Sscanf(scanner.Text(), "%d %s %d", &a, &s, &b)
-			if s == "--" {
-				AddSimPeer(fnodes, a, b)
-			}
-		}
-	case "square":
-		side := int(math.Sqrt(float64(p.Cnt)))
-
-		for i := 0; i < side; i++ {
-			AddSimPeer(fnodes, i*side, (i+1)*side-1)
-			AddSimPeer(fnodes, i, side*(side-1)+i)
-			for j := 0; j < side; j++ {
-				if j < side-1 {
-					AddSimPeer(fnodes, i*side+j, i*side+j+1)
-				}
-				AddSimPeer(fnodes, i*side+j, ((i+1)*side)+j)
-			}
-		}
-	case "long":
-		fmt.Println("Using long Network")
-		for i := 1; i < p.Cnt; i++ {
-			AddSimPeer(fnodes, i-1, i)
-		}
-		// Make long into a circle
-	case "loops":
-		fmt.Println("Using loops Network")
-		for i := 1; i < p.Cnt; i++ {
-			AddSimPeer(fnodes, i-1, i)
-		}
-		for i := 0; (i+17)*2 < p.Cnt; i += 17 {
-			AddSimPeer(fnodes, i%p.Cnt, (i+5)%p.Cnt)
-		}
-		for i := 0; (i+13)*2 < p.Cnt; i += 13 {
-			AddSimPeer(fnodes, i%p.Cnt, (i+7)%p.Cnt)
-		}
-	case "alot":
-		n := len(fnodes)
-		for i := 0; i < n; i++ {
-			AddSimPeer(fnodes, i, (i+1)%n)
-			AddSimPeer(fnodes, i, (i+5)%n)
-			AddSimPeer(fnodes, i, (i+7)%n)
-		}
-
-	case "alot+":
-		n := len(fnodes)
-		for i := 0; i < n; i++ {
-			AddSimPeer(fnodes, i, (i+1)%n)
-			AddSimPeer(fnodes, i, (i+5)%n)
-			AddSimPeer(fnodes, i, (i+7)%n)
-			AddSimPeer(fnodes, i, (i+13)%n)
-		}
-
-	case "tree":
-		index := 0
-		row := 1
-	treeloop:
-		for i := 0; true; i++ {
-			for j := 0; j <= i; j++ {
-				AddSimPeer(fnodes, index, row)
-				AddSimPeer(fnodes, index, row+1)
-				row++
-				index++
-				if index >= len(fnodes) {
-					break treeloop
-				}
-			}
-			row += 1
-		}
-	case "circles":
-		circleSize := 7
-		index := 0
-		for {
-			AddSimPeer(fnodes, index, index+circleSize-1)
-			for i := index; i < index+circleSize-1; i++ {
-				AddSimPeer(fnodes, i, i+1)
-			}
-			index += circleSize
-
-			AddSimPeer(fnodes, index, index-circleSize/3)
-			AddSimPeer(fnodes, index+2, index-circleSize-circleSize*2/3-1)
-			AddSimPeer(fnodes, index+3, index-(2*circleSize)-circleSize*2/3)
-			AddSimPeer(fnodes, index+5, index-(3*circleSize)-circleSize*2/3+1)
-
-			if index >= len(fnodes) {
-				break
-			}
-		}
-	default:
-		fmt.Println("Didn't understand network type. Known types: mesh, long, circles, tree, loops.  Using a Long Network")
-		for i := 1; i < p.Cnt; i++ {
-			AddSimPeer(fnodes, i-1, i)
-		}
-
+	if 0 < p.NetworkPortOverride {
+		networkPort = fmt.Sprintf("%d", p.NetworkPortOverride)
 	}
 
-	var colors []string = []string{"95cde5", "b01700", "db8e3c", "ffe35f"}
-
-	if len(fnodes) > 2 {
-		for i, s := range fnodes {
-			fmt.Printf("%d {color:#%v, shape:dot, label:%v}\n", i, colors[i%len(colors)], s.State.FactomNodeName)
-		}
-		fmt.Printf("Paste the network info above into http://arborjs.org/halfviz to visualize the network\n")
-	}
-	// Initiate dbstate plugin if enabled. Only does so for first node,
-	// any more nodes on sim control will use default method
-	fnodes[0].State.SetTorrentUploader(p.TorUpload)
-	if p.TorManage {
-		fnodes[0].State.SetUseTorrent(true)
-		manager, err := LaunchDBStateManagePlugin(p.PluginPath, fnodes[0].State.InMsgQueue(), fnodes[0].State, fnodes[0].State.GetServerPrivateKey(), p.MemProfileRate)
-		if err != nil {
-			panic("Encountered an error while trying to use torrent DBState manager: " + err.Error())
-		}
-		fnodes[0].State.DBStateManager = manager
-	} else {
-		fnodes[0].State.SetUseTorrent(false)
+	ci := p2p.ControllerInit{
+		NodeName:                 s.FactomNodeName,
+		Port:                     networkPort,
+		PeersFile:                s.PeersFile,
+		Network:                  networkID,
+		Exclusive:                p.Exclusive,
+		ExclusiveIn:              p.ExclusiveIn,
+		SeedURL:                  seedURL,
+		ConfigPeers:              configPeers,
+		CmdLinePeers:             p.Peers,
+		ConnectionMetricsChannel: connectionMetricsChannel,
 	}
 
-	if p.Journal != "" {
-		go LoadJournal(s, p.Journal)
-		startServers(false)
-	} else {
-		startServers(true)
-	}
+	p2pNetwork = new(p2p.Controller).Initialize(ci)
+	s.NetworkController = p2pNetwork
+	p2pNetwork.Init(s, "p2pNetwork")
+	p2pNetwork.StartNetwork(w)
 
-	// Anchoring related configurations
-	config := s.Cfg.(*util.FactomdConfig)
-	if len(config.App.BitcoinAnchorRecordPublicKeys) > 0 {
-		err := s.GetDB().(*databaseOverlay.Overlay).SetBitcoinAnchorRecordPublicKeysFromHex(config.App.BitcoinAnchorRecordPublicKeys)
-		if err != nil {
-			panic("Encountered an error while trying to set custom Bitcoin anchor record keys from config")
-		}
-	}
-	if len(config.App.EthereumAnchorRecordPublicKeys) > 0 {
-		err := s.GetDB().(*databaseOverlay.Overlay).SetEthereumAnchorRecordPublicKeysFromHex(config.App.EthereumAnchorRecordPublicKeys)
-		if err != nil {
-			panic("Encountered an error while trying to set custom Ethereum anchor record keys from config")
-		}
-	}
-	if p.ReparseAnchorChains {
-		fmt.Println("Reparsing anchor chains...")
-		err := fnodes[0].State.GetDB().(*databaseOverlay.Overlay).ReparseAnchorChains()
-		if err != nil {
-			panic("Encountered an error while trying to re-parse anchor chains: " + err.Error())
-		}
-	}
-
-	// Start the webserver
-	wsapi.Start(fnodes[0].State)
-	if fnodes[0].State.DebugExec() && messages.CheckFileName("graphData.txt") {
-		go printGraphData("graphData.txt", 30)
-	}
-
-	// Start prometheus on port
-	launchPrometheus(9876)
-	// Start Package's prometheus
-	state.RegisterPrometheus()
-	p2p.RegisterPrometheus()
-	leveldb.RegisterPrometheus()
-	RegisterPrometheus()
-
-	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelChannel, fnodes[0].State, connectionMetricsChannel, p2pNetwork, Build, p.NodeName)
-
-	go SimControl(p.ListenTo, listenToStdin)
-
+	p2pProxy = new(P2PProxy).Initialize(s.FactomNodeName, "P2P Network").(*P2PProxy)
+	p2pProxy.Init(s, "p2pProxy")
+	p2pProxy.FromNetwork = p2pNetwork.FromNetwork
+	p2pProxy.ToNetwork = p2pNetwork.ToNetwork
+	p2pProxy.StartProxy(w)
 }
 
 func printGraphData(filename string, period int) {
 	downscale := int64(1)
-	messages.LogPrintf(filename, "\t%9s\t%9s\t%9s\t%9s\t%9s\t%9s", "Dbh-:-min", "Node", "ProcessCnt", "ListPCnt", "UpdateState", "SleepCnt")
+	llog.LogPrintf(filename, "\t%9s\t%9s\t%9s\t%9s\t%9s\t%9s", "Dbh-:-min", "Node", "ProcessCnt", "ListPCnt", "UpdateState", "SleepCnt")
 	for {
-		for _, f := range fnodes {
+		for _, f := range fnode.GetFnodes() {
 			s := f.State
-			messages.LogPrintf(filename, "\t%9s\t%9s\t%9d\t%9d\t%9d\t%9d", fmt.Sprintf("%d-:-%d", s.LLeaderHeight, s.CurrentMinute), s.FactomNodeName, s.StateProcessCnt/downscale, s.ProcessListProcessCnt/downscale, s.StateUpdateState/downscale, s.ValidatorLoopSleepCnt/downscale)
+			llog.LogPrintf(filename, "\t%9s\t%9s\t%9d\t%9d\t%9d\t%9d", fmt.Sprintf("%d-:-%d", s.LLeaderHeight, s.CurrentMinute), s.FactomNodeName, s.StateProcessCnt/downscale, s.ProcessListProcessCnt/downscale, s.StateUpdateState/downscale, s.ValidatorLoopSleepCnt/downscale)
 		}
 		time.Sleep(time.Duration(period) * time.Second)
 	} // for ever ...
 }
 
+var state0Init sync.Once // we do some extra init for the first state
+
 //**********************************************************************
 // Functions that access variables in this method to set up Factom Nodes
 // and start the servers.
 //**********************************************************************
-func makeServer(s *state.State) *FactomNode {
-	// All other states are clones of the first state.  Which this routine
-	// gets passed to it.
-	newState := s
+func makeServer(w *worker.Thread, p *globals.FactomParams) (node *fnode.FactomNode) {
+	i := fnode.Len()
 
-	if len(fnodes) > 0 {
-		newState = s.Clone(len(fnodes)).(*state.State)
-		newState.EFactory = new(electionMsgs.ElectionsFactory) // not an elegant place but before we let the messages hit the state
-		time.Sleep(10 * time.Millisecond)
-		newState.Init()
-		newState.EFactory = new(electionMsgs.ElectionsFactory)
+	if i == 0 {
+		node = fnode.New(state.NewState(p, FactomdVersion))
+	} else {
+		node = fnode.New(state.Clone(fnode.Get(0).State, i).(*state.State))
 	}
 
-	fnode := new(FactomNode)
-	fnode.State = newState
-	fnodes = append(fnodes, fnode)
-	fnode.MLog = mLog
+	// Election factory was created and passed int to avoid import loop
+	node.State.Initialize(w, new(electionMsgs.ElectionsFactory))
 
-	return fnode
+	state0Init.Do(func() {
+		logPort = p.LogPort
+		SetLogLevel(p)
+		setupFirstAuthority(node.State)
+		initEntryHeight(node.State, p.Sync2)
+		initAnchors(node.State, p.ReparseAnchorChains)
+		echoConfig(node.State, p) // print the config only once
+	})
+
+	time.Sleep(10 * time.Millisecond)
+
+	return node
 }
 
-func startServers(load bool) {
-	for i, fnode := range fnodes {
-		startServer(i, fnode, load)
+func startFnodes(w *worker.Thread) {
+	for _, node := range fnode.GetFnodes() {
+		startServer(w, node)
 	}
 }
 
-func startServer(i int, fnode *FactomNode, load bool) {
-	fnode.State.RunState = runstate.Booting
-	if i > 0 {
-		fnode.State.Init()
-	}
-	NetworkProcessorNet(fnode)
-	if load {
-		go state.LoadDatabase(fnode.State)
-	}
-	go fnode.State.GoSyncEntries()
-	go Timer(fnode.State)
-	go elections.Run(fnode.State)
-	go fnode.State.ValidatorLoop()
+func startServer(w *worker.Thread, node *fnode.FactomNode) {
+	NetworkProcessorNet(w, node)
+	node.State.ValidatorLoop(w)
+	elections.Run(w, node.State)
+	node.State.StartMMR(w)
 
-	// moved StartMMR here to ensure Init goroutine only called once and not twice (removed from state.go)
-	go fnode.State.StartMMR()
-	go fnode.State.MissingMessageResponseHandler.Run()
+	w.Run(func() { state.LoadDatabase(node.State) })
+	w.Run(node.State.GoSyncEntries)
+	w.Run(func() { Timer(node.State) })
+	w.Run(node.State.MissingMessageResponseHandler.Run)
 }
 
 func setupFirstAuthority(s *state.State) {
@@ -670,28 +507,20 @@ func setupFirstAuthority(s *state.State) {
 		return
 	}
 
-	s.IdentityControl.SetBootstrapIdentity(s.GetNetworkBootStrapIdentity(), s.GetNetworkBootStrapKey())
+	_ = s.IdentityControl.SetBootstrapIdentity(s.GetNetworkBootStrapIdentity(), s.GetNetworkBootStrapKey())
 }
 
-func networkHousekeeping() {
-	for {
-		time.Sleep(1 * time.Second)
-		p2pProxy.SetWeight(p2pNetwork.GetNumberOfConnections())
-	}
-}
-
+// create a new simulated fnode
 func AddNode() {
-
-	fnodes := GetFnodes()
-	s := fnodes[0].State
-	i := len(fnodes)
-
-	makeServer(s)
-	modifyLoadIdentities()
-
-	fnodes = GetFnodes()
-	fnodes[i].State.IntiateNetworkSkeletonIdentity()
-	fnodes[i].State.InitiateNetworkIdentityRegistration()
-	AddSimPeer(fnodes, i, i-1) // KLUDGE peer w/ only last node
-	startServer(i, fnodes[i], true)
+	p := registry.New()
+	p.Register(func(w *worker.Thread) {
+		i := fnode.Len()
+		fnode.Factory(w)
+		modifySimulatorIdentity(i)
+		AddSimPeer(fnode.GetFnodes(), i, i-1) // KLUDGE peer w/ only last node
+		n := fnode.Get(i)
+		startServer(w, n)
+	})
+	go p.Run()
+	p.WaitForRunning()
 }

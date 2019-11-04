@@ -7,20 +7,16 @@ package main
 import (
 	"fmt"
 	"os"
-
 	"reflect"
 	"runtime"
-	"time"
 
-	"github.com/FactomProject/factomd/common/constants/runstate"
-	. "github.com/FactomProject/factomd/engine"
+	"github.com/FactomProject/factomd/engine"
 )
 
-func main() {
-	// uncomment StartProfiler() to run the pprof tool (for testing)
+//go:generate go run ./factomgenerate/generate.go
 
-	//  Go Optimizations...
-	runtime.GOMAXPROCS(runtime.NumCPU()) // TODO: should be *2 to use hyperthreadding? -- clay
+func main() {
+	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	fmt.Println("Command Line Arguments:")
 
@@ -28,8 +24,8 @@ func main() {
 		fmt.Printf("\t%s\n", v)
 	}
 
-	params := ParseCmdLine(os.Args[1:])
-	fmt.Println()
+	params := engine.ParseCmdLine(os.Args[1:])
+	fmt.Println("%v", params)
 
 	fmt.Println("Parameter:")
 	s := reflect.ValueOf(params).Elem()
@@ -42,12 +38,5 @@ func main() {
 	}
 
 	fmt.Println()
-	sim_Stdin := params.Sim_Stdin
-
-	state := Factomd(params, sim_Stdin)
-	for state.GetRunState() != runstate.Stopped {
-		time.Sleep(time.Second)
-	}
-	fmt.Println("Waiting to Shut Down") // This may not be necessary anymore with the new run state method
-	time.Sleep(time.Second * 5)
+	engine.Run(params)
 }

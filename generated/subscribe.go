@@ -6,8 +6,6 @@
 
 package generated
 
-// subscribe-imports
-
 // No Imports
 
 // End fileheader template

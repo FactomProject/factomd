@@ -13,7 +13,7 @@ GO_TEST="go test -v -timeout=10m -vet=off"
 
 # list modules for CI testing
 function listModules() {
-	glide nv | grep -v Utilities | grep -v elections | grep -v longTest | grep -v peerTest | grep -v simTest | grep -v activations | grep -v netTest | grep "\.\.\."
+	glide nv | grep -v Utilities | grep -v elections | grep -v longTest | grep -v peerTest | grep -v simTest | grep -v activations | grep -v netTest | grep -v factomgenerate | grep "\.\.\."
 }
 
 # formatted list of simTest/<testname>
@@ -108,7 +108,7 @@ function loadTestList() {
 }
 
 function testGoFmt() {
-	FILES=$(find . -name '*.go')
+	FILES=$(find . -name '*.go' ! -name '*_template.go')
 
 	for FILE in ${FILES[*]}; do
 		gofmt -w $FILE

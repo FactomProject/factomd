@@ -50,14 +50,6 @@ go install -ldflags "-X github.com/FactomProject/factomd/engine.Build=`git rev-p
 
 factomd can run a simulated network via the commandline.  This allows testing of much more complicated networks than would be possible otherwise.   The  simulator is very extensible, so new features will be added as we go along.
 
-### Databases and Journaling
-
-When you run factomd, if no database directory exists in the m2 directory, one is created.  All databases are created under the ~/.factom/m2/database directory.  These databases are named "bolt" for the main factom node, and "blotSimNNN" where NNN is the node number for Simulation nodes cloned from the main factom node.  Inside each of these directories, a network folder is created.  LOCAL (for test networks built on your own machine), MAIN for the main network, and TEST for the test network.   This allows swapping between networks without concern for corupting the databases.
-
-As M2 runs, journal files are created in the database directory. All messages are journaled for all nodes in the simulator.  This gives the ability to "rerun" a message sequence to debug observed issues. When factomd is restarted, all journal files for those nodes are reset.
-
-Below is a discription of how to run journal files.
-
 ### Flags to control the simulator
 
 To get the current list of flags, type the command:
@@ -121,18 +113,10 @@ Which will get you something like:
         If --checkheads is enabled, then this will also correct any errors reported (default true)
     -fnet string
         Read the given file to build the network connections
-    -follower
-        If true, force node to be a follower.  Only used when replaying a journal.
     -fullhasheslog
         true create a log of all unique hashes seen during processing
-    -journal string
-        Rerun a Journal of messages
-    -journaling
-        Write a journal of all messages received. Default is off.
     -keepmismatch
         If true, do not discard DBStates even when a majority of DBSignatures have a different hash
-    -leader
-        If true, force node to be a leader.  Only used when replaying a journal. (default true)
     -logPort string
         Port for pprof logging (default "6060")
     -logjson
@@ -237,10 +221,6 @@ Which will get you something like:
         Maximum timeDelta in milliseconds to offset each node.  Simulates deltas in system clocks over a network.
     -tls
         Set to true to require encrypted connections to factomd API and Control Panel
-    -tormanage
-        Use torrent dbstate manager. Must have plugin binary installed and in $PATH
-    -torupload
-        Be a torrent uploader
     -waitentries
         Wait for Entries to be validated prior to execution of messages
     -wrproc
@@ -302,40 +282,9 @@ Will run the simulator with the configuration found in ~/.factom/m2/factom.conf 
 
 You can override the database implementation used to run the simulator.  The options are "Bolt", "LDB", and "Map".  "Bolt" will give you a bolt database, "LDB" will get you a LevelDB database, and "Map" will get you a hashtable based database (i.e. nothing stored to disk).  The most common use of -db is to specify a "Map" database for tests that can be easily rerun without concern for past runs of the tests, or of messing up the database state.
 
-Keep in mind that Map will still overwrite any journals.  For example, you can run a 10 node Factom network in memory with the following command:
+For example, you can run a 10 node Factom network in memory with the following command:
 
 	factoid -count=10 -db=Map
-	
-### -follower
-
-At times it is nice to force factomd to launch a follower rather than a leader (or the other way around).  Especially when playing back a journal of messages to investigate why a server got into a particular state.  So suppose we have a leader journal leader.log.  We could execute that log with this command:
-
-	factoid -journal=leader.log -follower=false -db=Map
-	
-Or if we had a follower log, follower.log, we could execute it with:
-
-	factoid -journal=follower.log -follower=true -db=Map
-
-##3 -journal
-
-Running factomd creates a journal file for every node in the ~/.factom/m2/database/ directory, of the form journalNNN.log where NNN is the node number.   So if there is a failure or a desire to rerun the same message stream as a test, this can be done by copying the journalNNN.log files, then running them.  For example, suppose we ran a 10 node network and did some testing:
-
-	factomd -count=10 
-	<testing done>
-	
-Now we can kill factomd, then copy the leader log and a follower log:
-
-	cp ~/.factom/m2/database/journal0.log ./leader.log
-	cp ~/.factom/m2/database/journal3.log ./follower.log
-	
-We can then replay these messages in factomd:
-
-	factoid -journal=leader.log -follower=false -db=Map
-	factoid -journal=follower.log -follower=true -db=Map
-
-Keep in mind, after the state has been replayed, the simulator continues to run.  So you can easily examine the resulting state, and (in the case of a leader) run more transactions and such.  And this is also journaled, so there is an ability to modify and rerun the modified states.
-
-The journal file can also be edited.  Only messages (lines that begin with 'MsgHex:' and the following hex) are interpreted.  So you can move these lines about, or even copy and paste from other files.
 	
 ### -net
 

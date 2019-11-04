@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/FactomProject/factomd/fnode"
+
 	"math/rand"
 
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -85,7 +87,7 @@ func (f *SimPeer) Len() int {
 	return len(f.BroadcastIn)
 }
 
-func (f *SimPeer) Init(fromName, toName string) interfaces.IPeer {
+func (f *SimPeer) Initialize(fromName, toName string) interfaces.IPeer {
 	f.ToName = toName
 	f.FromName = fromName
 	f.BroadcastOut = make(chan *SimPacket, 10000)
@@ -163,7 +165,7 @@ func (f *SimPeer) Receive() (interfaces.IMsg, error) {
 
 }
 
-func AddSimPeer(fnodes []*FactomNode, i1 int, i2 int) {
+func AddSimPeer(fnodes []*fnode.FactomNode, i1 int, i2 int) {
 	// Ignore out of range, and connections to self.
 	if i1 < 0 ||
 		i2 < 0 ||
@@ -191,8 +193,8 @@ func AddSimPeer(fnodes []*FactomNode, i1 int, i2 int) {
 
 	fmt.Println(i1, " -- ", i2)
 
-	peer12 := new(SimPeer).Init(f1.State.FactomNodeName, f2.State.FactomNodeName).(*SimPeer)
-	peer21 := new(SimPeer).Init(f2.State.FactomNodeName, f1.State.FactomNodeName).(*SimPeer)
+	peer12 := new(SimPeer).Initialize(f1.State.FactomNodeName, f2.State.FactomNodeName).(*SimPeer)
+	peer21 := new(SimPeer).Initialize(f2.State.FactomNodeName, f1.State.FactomNodeName).(*SimPeer)
 	peer12.BroadcastIn = peer21.BroadcastOut
 	peer21.BroadcastIn = peer12.BroadcastOut
 

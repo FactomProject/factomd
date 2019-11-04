@@ -58,7 +58,6 @@ func fix(bad,good) {
  fixes += fix("inital","initial");
  fixes += fix("initalize" , "initialize" )
  fixes += fix("initalizes" , "initializes" )
- fixes += fix("journalling","journaling");
  fixes += fix("markes" , "marks" )
  fixes += fix("marshaled","marshalled");
  fixes += fix("negotiationg" , "negotiating" )

@@ -6,12 +6,13 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package engine
+package worker
 
 import (
 	"fmt"
 	"os"
 	"os/signal"
+	"syscall"
 )
 
 // interruptChannel is used to receive SIGINT (Ctrl+C) signals.
@@ -77,4 +78,8 @@ func AddInterruptHandler(handler func()) {
 	}
 
 	addHandlerChannel <- handler
+}
+
+func SendSigInt() {
+	interruptChannel <- syscall.SIGINT
 }

@@ -4,13 +4,15 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/FactomProject/factomd/fnode"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/state"
 )
 
 func lookup(id interfaces.IHash) *state.State {
-	for _, fn := range fnodes {
+	for _, fn := range fnode.GetFnodes() {
 		if fn.State.IdentityChainID.Fixed() == id.Fixed() {
 			return fn.State
 		}
@@ -21,14 +23,14 @@ func lookup(id interfaces.IHash) *state.State {
 func printSimElections(elects *int, value int, listenTo *int, wsapiNode *int) {
 	out := ""
 
-	if *listenTo < 0 || *listenTo >= len(fnodes) {
+	if *listenTo < 0 || *listenTo >= fnode.Len() {
 		return
 	}
 
 	for *elects == value {
 		prt := "===SimElectionsStart===\n\n"
 		prt += "-------------------------\n"
-		if len(fnodes) == 0 {
+		if fnode.Len() == 0 {
 			return
 		}
 
@@ -36,7 +38,7 @@ func printSimElections(elects *int, value int, listenTo *int, wsapiNode *int) {
 		//eo := s.Elections.(*elections.Elections)
 
 		prt = prt + "\n"
-		for _, fn := range fnodes {
+		for _, fn := range fnode.GetFnodes() {
 			s := fn.State
 			e := s.Elections.(*elections.Elections)
 			if e.Adapter != nil {
@@ -65,17 +67,17 @@ func printSimElections(elects *int, value int, listenTo *int, wsapiNode *int) {
 func printElections(elects *int, value int, listenTo *int, wsapiNode *int) {
 	out := ""
 
-	if *listenTo < 0 || *listenTo >= len(fnodes) {
+	if *listenTo < 0 || *listenTo >= fnode.Len() {
 		return
 	}
 
 	for *elects == value {
 		prt := "===ElectionsStart===\n\n"
-		if len(fnodes) == 0 {
+		if fnode.Len() == 0 {
 			return
 		}
 
-		s := fnodes[*listenTo].State
+		s := fnode.Get(*listenTo).State
 		eo := s.Elections.(*elections.Elections)
 
 		prt = prt + fmt.Sprintf("%3s %15s %15s\n", "#", "Federated", "Audit")
@@ -102,7 +104,7 @@ func printElections(elects *int, value int, listenTo *int, wsapiNode *int) {
 			prt = prt + fmt.Sprintf("%3d %15s %15s\n", i, fed, aud)
 		}
 
-		prt = prt + "\n" + fnodes[0].State.Election0
+		prt = prt + "\n" + fnode.Get(0).State.Election0
 		for i, _ := range eo.Federated {
 			prt = prt + fmt.Sprintf("%4d ", i)
 		}
@@ -110,7 +112,7 @@ func printElections(elects *int, value int, listenTo *int, wsapiNode *int) {
 			prt = prt + fmt.Sprintf("%4d ", i)
 		}
 		prt = prt + "\n"
-		for _, fn := range fnodes {
+		for _, fn := range fnode.GetFnodes() {
 			s := fn.State
 			if s.Elections.(*elections.Elections).Adapter != nil {
 				e := s.Elections.(*elections.Elections).Electing

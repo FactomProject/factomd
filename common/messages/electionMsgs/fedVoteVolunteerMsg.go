@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"os"
 	"reflect"
-	//"github.com/FactomProject/factomd/state"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -18,6 +17,8 @@ import (
 	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/goleveldb/leveldb/errors"
+
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -134,41 +135,41 @@ func (m *FedVoteVolunteerMsg) FollowerExecute(is interfaces.IState) {
 
 var _ interfaces.IMsg = (*FedVoteVolunteerMsg)(nil)
 
-func (a *FedVoteVolunteerMsg) IsSameAs(msg interfaces.IMsg) bool {
+func (m *FedVoteVolunteerMsg) IsSameAs(msg interfaces.IMsg) bool {
 	b, ok := msg.(*FedVoteVolunteerMsg)
 	if !ok {
 		return false
 	}
-	if !a.FedVoteMsg.IsSameAs(&b.FedVoteMsg) {
+	if !m.FedVoteMsg.IsSameAs(&b.FedVoteMsg) {
 		return false
 	}
 
-	if a.Name != b.Name {
+	if m.Name != b.Name {
 		return false
 	}
-	if a.SigType != b.SigType {
+	if m.SigType != b.SigType {
 		return false
 	}
-	if a.ServerIdx != b.ServerIdx {
+	if m.ServerIdx != b.ServerIdx {
 		return false
 	}
-	if a.ServerID.Fixed() != b.ServerID.Fixed() {
+	if m.ServerID.Fixed() != b.ServerID.Fixed() {
 		return false
 	}
-	if a.FedIdx != b.FedIdx {
+	if m.FedIdx != b.FedIdx {
 		return false
 	}
-	if a.FedID.Fixed() != b.FedID.Fixed() {
+	if m.FedID.Fixed() != b.FedID.Fixed() {
 		return false
 	}
-	if a.VMIndex != b.VMIndex {
+	if m.VMIndex != b.VMIndex {
 		return false
 	}
-	if a.Minute != b.Minute {
+	if m.Minute != b.Minute {
 		return false
 	}
-	binA, errA := a.MarshalBinary()
-	binB, errB := a.MarshalBinary()
+	binA, errA := m.MarshalBinary()
+	binB, errB := m.MarshalBinary()
 	if errA != nil || errB != nil || bytes.Compare(binA, binB) != 0 {
 		return false
 	}
@@ -267,22 +268,23 @@ func (m *FedVoteVolunteerMsg) ComputeVMIndex(state interfaces.IState) {
 }
 
 // Acknowledgements do not go into the process list.
-func (e *FedVoteVolunteerMsg) Process(dbheight uint32, state interfaces.IState) bool {
+func (m *FedVoteVolunteerMsg) Process(dbheight uint32, state interfaces.IState) bool {
 	panic("Ack object should never have its Process() method called")
 }
 
-func (e *FedVoteVolunteerMsg) JSONByte() ([]byte, error) {
-	return primitives.EncodeJSON(e)
+func (m *FedVoteVolunteerMsg) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(m)
 }
 
-func (e *FedVoteVolunteerMsg) JSONString() (string, error) {
-	return primitives.EncodeJSONString(e)
+func (m *FedVoteVolunteerMsg) JSONString() (string, error) {
+	return primitives.EncodeJSONString(m)
 }
 
 func (m *FedVoteVolunteerMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling: %v", r)
 		}
 	}()
 

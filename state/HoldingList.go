@@ -3,10 +3,11 @@ package state
 import (
 	"fmt"
 
+	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/messages"
-
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/telemetry"
 )
 
 type heldMessage struct {
@@ -16,15 +17,24 @@ type heldMessage struct {
 
 // This hold a slice of messages dependent on a hash
 type HoldingList struct {
+	common.Name
 	holding    map[[32]byte][]interfaces.IMsg
 	s          *State                   // for debug logging
 	dependents map[[32]byte]heldMessage // used to avoid duplicate entries & track position in holding
 }
 
-func (l *HoldingList) Init(s *State) {
+// access gauge w/ proper labels
+func (l *HoldingList) metric(msg interfaces.IMsg) telemetry.Gauge {
+	return telemetry.MapSize.WithLabelValues(l.GetName(), msg.Label())
+}
+
+func NewHoldingList(s *State) *HoldingList {
+	l := HoldingList{}
+	l.Init(s, "DependentHolding")
 	l.holding = make(map[[32]byte][]interfaces.IMsg)
 	l.s = s
 	l.dependents = make(map[[32]byte]heldMessage)
+	return &l
 }
 
 func (l *HoldingList) Messages() map[[32]byte][]interfaces.IMsg {
@@ -60,11 +70,11 @@ func (l *HoldingList) RemoveDependentMsg(h [32]byte, reason string) {
 
 // Add a message to a dependent holding list
 func (l *HoldingList) Add(h [32]byte, msg interfaces.IMsg) bool {
-
 	_, found := l.dependents[msg.GetMsgHash().Fixed()]
 	if found {
 		return false
 	}
+	l.metric(msg).Inc()
 	l.s.LogMessage("DependentHolding", fmt.Sprintf("add[%x]", h[:6]), msg)
 
 	if l.holding[h] == nil {
@@ -88,6 +98,7 @@ func (l *HoldingList) Get(h [32]byte) []interfaces.IMsg {
 			continue
 		} else {
 			l.s.LogMessage("DependentHolding", fmt.Sprintf("delete[%x]", h[:6]), msg)
+			l.metric(msg).Dec()
 			delete(l.dependents, msg.GetMsgHash().Fixed())
 		}
 	}
@@ -197,10 +208,10 @@ func (s *State) ExecuteFromHolding(h [32]byte) {
 	// get and delete the list of messages waiting on this hash
 	l := s.Hold.Get(h)
 	if l == nil {
-		//		s.LogPrintf("DependentHolding", "ExecuteFromDependantHolding(%x) nothing waiting", h[:6])
+		//		s.LogPrintf("DependentHolding", "ExecuteFromDependentHolding(%x) nothing waiting", h[:6])
 		return
 	}
-	s.LogPrintf("DependentHolding", "ExecuteFromDependantHolding(%d)[%x]", len(l), h[:6])
+	s.LogPrintf("DependentHolding", "ExecuteFromDependentHolding(%d)[%x]", len(l), h[:6])
 
 	for _, m := range l {
 		if m == nil {
@@ -220,10 +231,6 @@ func (s *State) ExecuteFromHolding(h [32]byte) {
 		}
 	}()
 }
-
-/*
-	REVIEW: Consider also including a way to wait for minute
-*/
 
 // put a height in the first 5 bytes of a hash so we can use it to look up dependent message in holding
 func HeightToHash(height uint32, minute int) [32]byte {

@@ -13,9 +13,10 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/common/primitives"
 
-	"github.com/FactomProject/factomd/common/messages/msgbase"
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -122,16 +123,16 @@ func (m *RemoveServerMsg) FollowerExecute(state interfaces.IState) {
 }
 
 // Acknowledgements do not go into the process list.
-func (e *RemoveServerMsg) Process(dbheight uint32, state interfaces.IState) bool {
-	return state.ProcessRemoveServer(dbheight, e)
+func (m *RemoveServerMsg) Process(dbheight uint32, state interfaces.IState) bool {
+	return state.ProcessRemoveServer(dbheight, m)
 }
 
-func (e *RemoveServerMsg) JSONByte() ([]byte, error) {
-	return primitives.EncodeJSON(e)
+func (m *RemoveServerMsg) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(m)
 }
 
-func (e *RemoveServerMsg) JSONString() (string, error) {
-	return primitives.EncodeJSONString(e)
+func (m *RemoveServerMsg) JSONString() (string, error) {
+	return primitives.EncodeJSONString(m)
 }
 
 func (m *RemoveServerMsg) Sign(key interfaces.Signer) error {
@@ -153,10 +154,11 @@ func (m *RemoveServerMsg) VerifySignature() (bool, error) {
 
 func (m *RemoveServerMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
-		return
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling Add Server Message: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling Add Server Message: %v", r)
 		}
+		return
 	}()
 	newData = data
 	if newData[0] != m.Type() {
@@ -301,4 +303,8 @@ func NewRemoveServerMsg(state interfaces.IState, chainId interfaces.IHash, serve
 
 	return msg
 
+}
+
+func (m *RemoveServerMsg) Label() string {
+	return msgbase.GetLabel(m)
 }

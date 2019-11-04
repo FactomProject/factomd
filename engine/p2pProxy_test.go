@@ -23,7 +23,7 @@ func TestFactomMessage(t *testing.T) {
 }
 
 func TestMiscP2Pproxy(t *testing.T) {
-	p2pTestProxy := new(P2PProxy).Init("FNodeTest", "P2P Network").(*P2PProxy)
+	p2pTestProxy := new(P2PProxy).Initialize("FNodeTest", "P2P Network").(*P2PProxy)
 
 	if p2pTestProxy.Weight() != 0 {
 		t.Error("Weight should be 0 on newly-initialized p2pProxy instance")

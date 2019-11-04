@@ -104,7 +104,7 @@ func TestEntriesBeforeChain(t *testing.T) {
 	assert.Equal(t, int64(ecMargin), a.GetECBalance()) // should have 100 extra EC's
 
 	/*
-		for _, fnode := range engine.GetFnodes() {
+		for _, fnode := range fnode.GetFnodes() {
 			s := fnode.State
 			for _, h := range s.Hold.Messages() {
 				for _, m := range h {

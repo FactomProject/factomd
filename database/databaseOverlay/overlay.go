@@ -108,8 +108,6 @@ func init() {
 
 	ConstantNamesMap[string(PAID_FOR)] = "PaidFor"
 	ConstantNamesMap[string(KEY_VALUE_STORE)] = "KeyValueStore"
-
-	RegisterPrometheus()
 }
 
 type Overlay struct {

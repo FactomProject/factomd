@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/FactomProject/factomd/worker"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
@@ -58,9 +60,9 @@ func InitServer(state interfaces.IState) *Server {
 	return &server
 }
 
-func (server *Server) Start() {
+func (server *Server) Start(w *worker.Thread) {
 	wsLog.Info("Starting API server")
-	go func() {
+	w.Run(func() {
 		// returns ErrServerClosed on graceful close
 		if server.tlsEnabled {
 			if err := server.httpServer.ListenAndServeTLS(server.certFile, server.keyFile); err != http.ErrServerClosed {
@@ -71,7 +73,7 @@ func (server *Server) Start() {
 				wsLog.Errorf("ListenAndServe %v", err)
 			}
 		}
-	}()
+	})
 }
 
 func (server *Server) Stop() {

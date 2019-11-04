@@ -4,12 +4,15 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/FactomProject/factomd/worker"
+
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util/atomic"
+
+	llog "github.com/FactomProject/factomd/log"
 )
 
 var _ = fmt.Print
@@ -312,7 +315,7 @@ func (e *Elections) LogMessage(logName string, comment string, msg interfaces.IM
 			t = "--:--"
 		}
 
-		messages.LogMessage(logFileName, t+comment, msg)
+		llog.LogMessage(logFileName, t+comment, msg)
 	}
 }
 
@@ -345,7 +348,7 @@ func (e *Elections) LogPrintf(logName string, format string, more ...interface{}
 			h = int(s.LeaderPL.DBHeight)
 		}
 		t := fmt.Sprintf("%d-:-%d ", h, s.CurrentMinute)
-		messages.LogPrintf(logFileName, t+format, more...)
+		llog.LogPrintf(logFileName, t+format, more...)
 	}
 }
 
@@ -440,7 +443,7 @@ func (e *Elections) ProcessWaiting() {
 }
 
 // Runs the main loop for elections for this instance of factomd
-func Run(s *state.State) {
+func Run(w *worker.Thread, s *state.State) {
 	e := new(Elections)
 	s.Elections = e
 	e.State = s
@@ -453,28 +456,30 @@ func Run(s *state.State) {
 	e.Waiting = make(chan interfaces.IElectionMsg, 500)
 
 	// Actually run the elections
-	for {
-		msg := e.Input.BlockingDequeue().(interfaces.IElectionMsg)
-		e.LogMessage("election", fmt.Sprintf("exec %d", e.Electing), msg.(interfaces.IMsg))
+	w.Run(func() {
+		for {
+			msg := e.Input.BlockingDequeue().(interfaces.IElectionMsg)
+			e.LogMessage("election", fmt.Sprintf("exec %d", e.Electing), msg.(interfaces.IMsg))
 
-		valid := msg.ElectionValidate(e)
-		switch valid {
-		case -1:
-			// Do not process
-			continue
-		case 0:
-			// Drop the oldest message if at capacity
-			if len(e.Waiting) > 9*cap(e.Waiting)/10 {
-				<-e.Waiting
+			valid := msg.ElectionValidate(e)
+			switch valid {
+			case -1:
+				// Do not process
+				continue
+			case 0:
+				// Drop the oldest message if at capacity
+				if len(e.Waiting) > 9*cap(e.Waiting)/10 {
+					<-e.Waiting
+				}
+				// Waiting will get drained when a new election begins, or we move forward
+				e.Waiting <- msg
+				continue
 			}
-			// Waiting will get drained when a new election begins, or we move forward
-			e.Waiting <- msg
-			continue
-		}
-		msg.ElectionProcess(s, e)
+			msg.ElectionProcess(s, e)
 
-		//if msg.(interfaces.IMsg).Type() != constants.INTERNALEOMSIG { // If it's not an EOM check the authority set
-		//	CheckAuthSetsMatch("election.Run", e, s)
-		//}
-	}
+			//if msg.(interfaces.IMsg).Type() != constants.INTERNALEOMSIG { // If it's not an EOM check the authority set
+			//	CheckAuthSetsMatch("election.Run", e, s)
+			//}
+		}
+	})
 }

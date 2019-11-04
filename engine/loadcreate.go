@@ -6,6 +6,8 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/FactomProject/factomd/fnode"
+
 	"crypto/sha256"
 
 	"github.com/FactomProject/factomd/common/entryBlock"
@@ -80,7 +82,7 @@ func (lg *LoadGenerator) Run() {
 				c = lg.NewCommitEntry(e)
 			}
 			r := lg.NewRevealEntry(e)
-			s := fnodes[wsapiNode].State
+			s := fnode.Get(wsapiNode).State
 			s.APIQueue().Enqueue(c)
 			s.APIQueue().Enqueue(r)
 			time.Sleep(time.Duration(800/top) * time.Millisecond) // spread the load out over 800ms + overhead
@@ -128,7 +130,7 @@ var limitBuys = true // We limit buys only after one attempted purchase, so peop
 
 func (lg *LoadGenerator) KeepUsFunded() {
 
-	s := fnodes[wsapiNode].State
+	s := fnode.Get(wsapiNode).State
 
 	var level int64
 

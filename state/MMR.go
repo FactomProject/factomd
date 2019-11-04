@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/FactomProject/factomd/worker"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 )
@@ -44,9 +46,9 @@ type MMRInfo struct {
 }
 
 // starts the MMR processing for this state
-func (s *State) StartMMR() {
+func (s *State) StartMMR(w *worker.Thread) {
 	// Missing message request handling.
-	s.makeMMRs(s.asks, s.adds, s.dbheights, s.rejects)
+	s.makeMMRs(w, s.asks, s.adds, s.dbheights, s.rejects)
 }
 
 // MMRDummy is for unit tests that populate the various mmr queues.
@@ -68,20 +70,17 @@ func (s *State) MMRDummy() {
 // Ask VM for an MMR for this height with delay ms before asking the network
 // called from validation thread to notify MMR that we are missing a message
 func (vm *VM) ReportMissing(height int, delay int64) {
-	if height <= vm.HighestAsk { // Don't report the same height twice
-		return
-	}
-
 	vm.p.State.LogPrintf("missing_messages", "ReportMissing %d/%d/%d, delay %d", vm.p.DBHeight, vm.VmIndex, height, delay)
 
 	now := vm.p.State.GetTimestamp().GetTimeMilli()
-	if delay < 500 {
-		delay = 500 // Floor for delays is 500ms so there is time to merge adjacent requests
+	oneSeconds := int64(vm.p.State.FactomSecond().Nanoseconds() / time.Millisecond.Nanoseconds())
+	if delay < oneSeconds {
+		delay = oneSeconds // Floor for delays is 1 second so there is time to merge adjacent requests
 	}
 	lenVMList := len(vm.List)
 	// ask for all missing messages
 	var i int
-	for i = vm.HighestAsk; i < lenVMList; i++ {
+	for i = vm.Height; i < lenVMList; i++ {
 		if i < 0 { // -1 is the default highestask, as we have not asked yet. Obviously this index does not exist
 			continue
 		}
@@ -112,10 +111,6 @@ func (s *State) Ask(DBHeight int, vmIndex int, height int, when int64) bool {
 	}
 	vm := s.LeaderPL.VMs[vmIndex]
 
-	if height <= vm.HighestAsk { // Don't report the same height twice
-		return false
-	}
-
 	//	Currently if the asks are full, we'd rather just skip
 	//	than block the thread. We report missing multiple times, so if
 	//	we exit, we will come around and ask again.
@@ -127,7 +122,6 @@ func (s *State) Ask(DBHeight int, vmIndex int, height int, when int64) bool {
 		return false
 	}
 
-	vm.HighestAsk = height // We have asked for all nils up to this height
 	ask := askRef{plRef{DBHeight, vmIndex, height}, when}
 	s.asks <- ask
 	return true
@@ -138,7 +132,7 @@ var MMR_enable bool = true
 
 // Receive all asks and all process list adds and create missing message requests any ask that has expired
 // and still pending. Add 10 seconds to the ask.
-func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan int, rejects <-chan MsgPair) {
+func (s *State) makeMMRs(w *worker.Thread, asks <-chan askRef, adds <-chan plRef, dbheights <-chan int, rejects <-chan MsgPair) {
 	type dbhvm struct {
 		dbh int
 		vm  int
@@ -249,7 +243,7 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 	}
 
 	// tick every "factom second" to check the  pending MMRs
-	go func() {
+	w.Run(func() {
 		for {
 			if s.RunState.IsTerminating() {
 				return // Factomd is stopping/stopped
@@ -271,102 +265,105 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 
 			time.Sleep(askDelay)
 		}
-	}()
+	})
 
-	lastAskDelay := int64(0)
-	for {
-		// You have to compute this at every cycle as you can change the block time in sim control.
+	w.Run(func() {
+		lastAskDelay := int64(0)
+		for {
+			// You have to compute this at every cycle as you can change the block time in sim control.
 
-		// Take 1/6 of 1 minute boundary (DBlock is 10*min)
-		//		This means on 10min block, 10 second delay
-		//					  1min block, 1 second delay
-		askDelay := int64((s.FactomSecond() * 10).Seconds()) * 1000
+			// Take 1/6 of 1 minute boundary (DBlock is 10*min)
+			//		This means on 10min block, 10 second delay
+			//					  1min block, 1 second delay
+			askDelay := int64((s.FactomSecond() * 10).Seconds()) * 1000
 
-		if askDelay < 500 { // Don't go below 500ms. That is just too much
-			askDelay = 500
-		}
-
-		if askDelay != lastAskDelay {
-			s.LogPrintf(logname, "AskDelay %d BlockTime %d", askDelay, s.DirectoryBlockInSeconds)
-			lastAskDelay = askDelay
-		}
-
-		// process any incoming messages
-		select {
-		case msgPair := <-rejects:
-			s.LogMessage("mmr", "Reject", msgPair.Ack)
-			s.RecentMessage.HandleRejection(msgPair.Msg, msgPair.Ack)
-		case msg := <-s.RecentMessage.NewMsgs:
-			s.LogPrintf("mmr", "start msg handling")
-			s.RecentMessage.Add(msg) // adds messages to a message map for MMR
-
-		case dbheight = <-dbheights:
-			s.LogPrintf("mmr", "start dbheight handling")
-			// toss any old pending requests when the height moves up
-			// todo: Keep asks in a  list so cleanup is more efficient
-			for ask, _ := range pending {
-				if int(ask.DBH) < dbheight {
-					s.LogPrintf(logname, "Expire %d/%d/%d %d", ask.DBH, ask.VM, ask.H, len(pending))
-					delete(pending, ask)
-				}
+			if askDelay < 500 { // Don't go below 500ms. That is just too much
+				askDelay = 500
 			}
-		case ask := <-asks:
-			s.LogPrintf("mmr", "start ask handling")
-			addAsk(ask)  // add this ask
-			addAllAsks() // add all pending asks
 
-		case add := <-adds:
-			s.LogPrintf("mmr", "start add handling")
-			addAllAsks() // add all pending asks before any adds
-			s.LogPrintf("mmr", "asks done")
-			deletePendingAsk(add) // cancel any pending ask for the message just added to the process list
+			if askDelay != lastAskDelay {
+				s.LogPrintf(logname, "AskDelay %d BlockTime %d", askDelay, s.DirectoryBlockInSeconds)
+				lastAskDelay = askDelay
+			}
 
-		case now = <-ticker:
-			s.LogPrintf("mmr", "Ticker handling")
-			addAllAsks()     // process all pending asks before any adds
-			addAllAdds()     // process all pending add before any ticks
-			readAllTickers() // drain the ticker channel
+			// process any incoming messages
+			select {
+			case msgPair := <-rejects:
+				s.LogMessage("mmr", "Reject", msgPair.Ack)
+				s.RecentMessage.HandleRejection(msgPair.Msg, msgPair.Ack)
+			case msg := <-s.RecentMessage.NewMsgs:
+				s.LogPrintf("mmr", "start msg handling")
+				s.RecentMessage.Add(msg) // adds messages to a message map for MMR
 
-			//s.LogPrintf(logname, "tick [%v]", pending)
-
-			// time offset to pick asks to
-
-			//build MMRs with all the asks expired asks if we are not in ignore.
-			if !s.IgnoreMissing {
-				for ref, when := range pending {
-					var index dbhvm = dbhvm{ref.DBH, ref.VM}
-					// Drop any MMR request that are before the current height
-					if ref.DBH < int(s.LLeaderHeight) {
-						deletePendingAsk(ref)
-						continue
+			case dbheight = <-dbheights:
+				s.LogPrintf("mmr", "start dbheight handling")
+				// toss any old pending requests when the height moves up
+				// todo: Keep asks in a  list so cleanup is more efficient
+				for ask, _ := range pending {
+					if int(ask.DBH) < dbheight {
+						s.LogPrintf(logname, "Expire %d/%d/%d %d", ask.DBH, ask.VM, ask.H, len(pending))
+						delete(pending, ask)
 					}
-					// if ask is expired or we have an MMR for this DBH/VM and it's not a brand new ask
-					if now > *when {
+				}
+			case ask := <-asks:
+				s.LogPrintf("mmr", "start ask handling")
+				addAsk(ask)  // add this ask
+				addAllAsks() // add all pending asks
 
-						if mmrs[index] == nil { // If we don't have a message for this DBH/VM
-							mmrs[index] = messages.NewMissingMsg(s, ref.VM, uint32(ref.DBH), uint32(ref.H))
-						} else {
-							mmrs[index].ProcessListHeight = append(mmrs[index].ProcessListHeight, uint32(ref.H))
-							// Add an ask for each msg we ask for, even if we bundle the asks.
-							// This is so the accounting adds upp.
+			case add := <-adds:
+				s.LogPrintf("mmr", "start add handling")
+				addAllAsks() // add all pending asks before any adds
+				s.LogPrintf("mmr", "asks done")
+				deletePendingAsk(add) // cancel any pending ask for the message just added to the process list
+
+			case now = <-ticker:
+				s.LogPrintf("mmr", "Ticker handling")
+				addAllAsks()     // process all pending asks before any adds
+				addAllAdds()     // process all pending add before any ticks
+				readAllTickers() // drain the ticker channel
+
+				//s.LogPrintf(logname, "tick [%v]", pending)
+
+				// time offset to pick asks to
+
+				//build MMRs with all the asks expired asks if we are not in ignore.
+				if !s.IgnoreMissing {
+					for ref, when := range pending {
+						var index dbhvm = dbhvm{ref.DBH, ref.VM}
+						// Drop any MMR request that are before the current height
+						if ref.DBH < int(s.LLeaderHeight) {
+							deletePendingAsk(ref)
+							continue
 						}
-						s.MissingRequestAskCnt++
-						*when = now + askDelay // update when we asked
-						// Maybe when asking for past the end of the list we should not ask again?
-					}
-				} //build a MMRs with all the expired asks in that VM at that DBH.
+						// if ask is expired or we have an MMR for this DBH/VM and it's not a brand new ask
+						if now > *when {
 
-			}
-			for index, mmr := range mmrs {
-				s.LogMessage(logname, "sendout", mmr)
-				if MMR_enable {
-					mmr.SendOut(s, mmr)
+							if mmrs[index] == nil { // If we don't have a message for this DBH/VM
+								mmrs[index] = messages.NewMissingMsg(s, ref.VM, uint32(ref.DBH), uint32(ref.H))
+							} else {
+								mmrs[index].ProcessListHeight = append(mmrs[index].ProcessListHeight, uint32(ref.H))
+								// Add an ask for each msg we ask for, even if we bundle the asks.
+								// This is so the accounting adds upp.
+							}
+							s.MissingRequestAskCnt++
+							*when = now + askDelay // update when we asked
+							// Maybe when asking for past the end of the list we should not ask again?
+						}
+					} //build a MMRs with all the expired asks in that VM at that DBH.
+
 				}
-				delete(mmrs, index)
-			} // Send MMRs that were built
-		} // select across all the channels, block till something happens
-		s.LogPrintf("mmr", "done")
-	} // forever ...
+				for index, mmr := range mmrs {
+					s.LogMessage(logname, "sendout", mmr)
+					if MMR_enable {
+						mmr.SendOut(s, mmr)
+					}
+					delete(mmrs, index)
+				} // Send MMRs that were built
+			} // select across all the channels, block till something happens
+			s.LogPrintf("mmr", "done")
+		} // forever ...
+
+	})
 } // func  makeMMRs() {...}
 
 // MissingMessageResponseCache will cache all processlist items from the last 2 blocks.

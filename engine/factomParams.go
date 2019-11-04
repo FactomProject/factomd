@@ -43,10 +43,6 @@ func init() {
 	flag.StringVar(&p.Net, "net", "alot+", "The default algorithm to build the network connections")
 	flag.StringVar(&p.Fnet, "fnet", "", "Read the given file to build the network connections")
 	flag.IntVar(&p.DropRate, "drop", 0, "Number of messages to drop out of every thousand")
-	flag.StringVar(&p.Journal, "journal", "", "Rerun a Journal of messages")
-	flag.BoolVar(&p.Journaling, "journaling", false, "Write a journal of all messages received. Default is off.")
-	flag.BoolVar(&p.Follower, "follower", false, "If true, force node to be a follower.  Only used when replaying a journal.")
-	flag.BoolVar(&p.Leader, "leader", true, "If true, force node to be a leader.  Only used when replaying a journal.")
 	flag.StringVar(&p.Db, "db", "", "Override the Database in the Config file and use this Database implementation. Options Map, LDB, or Bolt")
 	flag.StringVar(&p.CloneDB, "clonedb", "", "Override the main node and use this database for the clones in a Network.")
 	flag.StringVar(&p.NetworkName, "network", "", "Network to join: MAIN, TEST or LOCAL")
@@ -79,9 +75,6 @@ func init() {
 	flag.BoolVar(&p.Sim_Stdin, "sim_stdin", true, "If true, sim control reads from stdin.")
 	// Plugins
 	flag.StringVar(&p.PluginPath, "plugin", "", "Input the path to any plugin binaries")
-	// 	Torrent Plugin
-	flag.BoolVar(&p.TorManage, "tormanage", false, "Use torrent dbstate manager. Must have plugin binary installed and in $PATH")
-	flag.BoolVar(&p.TorUpload, "torupload", false, "Be a torrent uploader")
 	// Logstash connection (if used)
 	flag.BoolVar(&p.UseLogstash, "logstash", false, "If true, use Logstash")
 	flag.StringVar(&p.LogstashURL, "logurl", "localhost:8345", "Endpoint URL for Logstash")

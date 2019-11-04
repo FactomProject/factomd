@@ -14,6 +14,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/FactomProject/factomd/fnode"
+	"github.com/FactomProject/factomd/registry"
+	"github.com/FactomProject/factomd/worker"
+
 	"github.com/FactomProject/factomd/elections"
 
 	"github.com/FactomProject/factomd/common/globals"
@@ -124,8 +128,16 @@ func StartSim(nodeCount int, UserAddedOptions map[string]string) *state.State {
 			typeOfT.Field(i).Name, f.Type(), f.Interface())
 	}
 	fmt.Println()
-	return engine.Factomd(params, false).(*state.State)
+	p := registry.New()
+	p.Register(func(w *worker.Thread) {
+		engine.Factomd(w, params, false)
+	})
+	go p.Run()
+	p.WaitForRunning()
+	// KLUDGE: is there a better way to register this callback?
+	time.Sleep(50 * time.Millisecond)
 
+	return fnode.GetFnodes()[0].State
 }
 
 func setTestTimeouts(state0 *state.State, calcTime time.Duration) {
@@ -208,7 +220,7 @@ func SetupSim(givenNodes string, userAddedOptions map[string]string, height int,
 	} else {
 		createAuthoritySet(givenNodes, state0, t)
 
-		if len(engine.GetFnodes()) != nodeLen {
+		if fnode.Len() != nodeLen {
 			t.Fail()
 		}
 		// swap identity if Fnode0 Should be a follower
@@ -223,7 +235,7 @@ func SetupSim(givenNodes string, userAddedOptions map[string]string, height int,
 		// REVIEW: should we swap node0 identity & promote if configured for 'L' ?
 		CheckAuthoritySet(t)
 	}
-	if len(engine.GetFnodes()) != nodeLen {
+	if fnode.Len() != nodeLen {
 		t.Fatalf("Should have allocated %d nodes", nodeLen)
 	} else {
 		t.Logf("Allocated %d nodes", nodeLen)
@@ -282,7 +294,7 @@ func createAuthoritySet(creatingNodes string, state0 *state.State, t *testing.T)
 	WaitMinutes(state0, 1)
 	promoteNodes(creatingNodes)
 	// Wait till all the entries from the g command are processed
-	simFnodes := engine.GetFnodes()
+	simFnodes := fnode.GetFnodes()
 	nodes := len(simFnodes)
 	if len(creatingNodes) > nodes {
 		t.Fatalf("Should have allocated %d nodes", len(creatingNodes))
@@ -295,7 +307,7 @@ func createAuthoritySet(creatingNodes string, state0 *state.State, t *testing.T)
 
 func WaitForAllNodes(state *state.State) {
 	height := ""
-	simFnodes := engine.GetFnodes()
+	simFnodes := fnode.GetFnodes()
 	engine.PrintOneStatus(0, 0) // Print a status
 	fmt.Printf("Wait for all nodes done\n%s", height)
 	block := state.LLeaderHeight
@@ -344,7 +356,7 @@ func StatusEveryMinute(s *state.State) {
 						fmt.Println("Stalled !!!")
 					}
 					// Make all the nodes update their status
-					for _, n := range engine.GetFnodes() {
+					for _, n := range fnode.GetFnodes() {
 						n.State.SetString()
 					}
 
@@ -428,7 +440,7 @@ func CountAuthoritySet() (int, int, int) {
 	foundAuditors := 0
 	foundFollowers := 0
 
-	for i, fn := range engine.GetFnodes() {
+	for i, fn := range fnode.GetFnodes() {
 		s := fn.State
 		if s.Leader {
 			fmt.Printf("Found Leader   %d %x\n", i, s.GetIdentityChainID().Bytes()[3:6])
@@ -475,19 +487,18 @@ func AdjustAuthoritySet(adjustingNodes string) {
 	Followers = Followers - follow
 }
 
-func isAuditor(fnode int) bool {
-	nodes := engine.GetFnodes()
-	list := nodes[0].State.ProcessLists.Get(nodes[0].State.LLeaderHeight)
-	foundAudit, _ := list.GetAuditServerIndexHash(nodes[fnode].State.GetIdentityChainID())
+func isAuditor(node int) bool {
+	list := fnode.Get(0).State.ProcessLists.Get(fnode.Get(0).State.LLeaderHeight)
+	foundAudit, _ := list.GetAuditServerIndexHash(fnode.Get(node).State.GetIdentityChainID())
 	return foundAudit
 }
 
-func isFollower(fnode int) bool {
-	return !(isAuditor(fnode) || engine.GetFnodes()[fnode].State.Leader)
+func isFollower(node int) bool {
+	return !(isAuditor(node) || fnode.Get(node).State.Leader)
 }
 
 func AssertAuthoritySet(t *testing.T, givenNodes string) {
-	nodes := engine.GetFnodes()
+	nodes := fnode.GetFnodes()
 	for i, c := range []byte(givenNodes) {
 		switch c {
 		case 'L':
@@ -529,7 +540,7 @@ func Halt(t *testing.T) {
 	quit <- struct{}{}
 	close(quit)
 	t.Log("Shutting down the network")
-	for _, fn := range engine.GetFnodes() {
+	for _, fn := range fnode.GetFnodes() {
 		fn.State.ShutdownNode(1)
 	}
 	// sleep long enough for everyone to see the shutdown.
@@ -540,7 +551,7 @@ func ShutDownEverything(t *testing.T) {
 	CheckAuthoritySet(t)
 	Halt(t)
 	statusState = nil // turn off status
-	fnodes := engine.GetFnodes()
+	fnodes := fnode.GetFnodes()
 	currentHeight := fnodes[0].State.LLeaderHeight
 	// Sleep one block
 	time.Sleep(time.Duration(globals.Params.BlkTime) * time.Second)
@@ -550,7 +561,7 @@ func ShutDownEverything(t *testing.T) {
 	}
 
 	engine.PrintOneStatus(0, 0) // Print a final status
-	fmt.Printf("Test took %d blocks and %s time\n", engine.GetFnodes()[0].State.LLeaderHeight, time.Now().Sub(startTime))
+	fmt.Printf("Test took %d blocks and %s time\n", fnode.GetFnodes()[0].State.LLeaderHeight, time.Now().Sub(startTime))
 }
 
 func v2Request(req *primitives.JSON2Request, port int) (*primitives.JSON2Response, error) {

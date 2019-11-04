@@ -15,6 +15,8 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 
 	"github.com/FactomProject/factomd/common/messages/msgbase"
+
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -36,26 +38,26 @@ type MissingMsg struct {
 
 var _ interfaces.IMsg = (*MissingMsg)(nil)
 
-func (a *MissingMsg) IsSameAs(b *MissingMsg) bool {
+func (m *MissingMsg) IsSameAs(b *MissingMsg) bool {
 	if b == nil {
 		return false
 	}
-	if a.Timestamp.GetTimeMilli() != b.Timestamp.GetTimeMilli() {
+	if m.Timestamp.GetTimeMilli() != b.Timestamp.GetTimeMilli() {
 		return false
 	}
 
-	if a.DBHeight != b.DBHeight {
+	if m.DBHeight != b.DBHeight {
 		return false
 	}
 
-	if a.VMIndex != b.VMIndex {
+	if m.VMIndex != b.VMIndex {
 		return false
 	}
 
-	if len(a.ProcessListHeight) != len(b.ProcessListHeight) {
+	if len(m.ProcessListHeight) != len(b.ProcessListHeight) {
 		return false
 	}
-	for i, v := range a.ProcessListHeight {
+	for i, v := range m.ProcessListHeight {
 		if v != b.ProcessListHeight[i] {
 			return false
 		}
@@ -127,6 +129,8 @@ func (m *MissingMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling: %v", r)
+
 		}
 	}()
 	newData = data
@@ -269,23 +273,23 @@ func (m *MissingMsg) FollowerExecute(state interfaces.IState) {
 	state.FollowerExecuteMissingMsg(m)
 }
 
-func (e *MissingMsg) JSONByte() ([]byte, error) {
-	return primitives.EncodeJSON(e)
+func (m *MissingMsg) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(m)
 }
 
-func (e *MissingMsg) JSONString() (string, error) {
-	return primitives.EncodeJSONString(e)
+func (m *MissingMsg) JSONString() (string, error) {
+	return primitives.EncodeJSONString(m)
 }
 
 // AddHeight: Add a Missing Message Height to the request
-func (e *MissingMsg) AddHeight(h uint32) {
+func (m *MissingMsg) AddHeight(h uint32) {
 	// search to see if the height is already there.
-	for _, ht := range e.ProcessListHeight {
+	for _, ht := range m.ProcessListHeight {
 		if ht == h {
 			return // if it's already there just return
 		}
 	}
-	e.ProcessListHeight = append(e.ProcessListHeight, h)
+	m.ProcessListHeight = append(m.ProcessListHeight, h)
 }
 
 // NewMissingMsg: Build a missing Message request, and add the first Height
@@ -300,4 +304,8 @@ func NewMissingMsg(state interfaces.IState, vm int, dbHeight uint32, processlist
 	msg.ProcessListHeight = append(msg.ProcessListHeight, processlistHeight)
 	msg.SystemHeight = uint32(state.GetSystemHeight(dbHeight))
 	return msg
+}
+
+func (m *MissingMsg) Label() string {
+	return msgbase.GetLabel(m)
 }

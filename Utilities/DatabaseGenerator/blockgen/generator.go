@@ -5,6 +5,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/FactomProject/factomd/registry"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -93,7 +95,10 @@ func NewGeneratorState(conf *DBGeneratorConfig, starttime interfaces.Timestamp) 
 	s.LoadConfig(conf.FactomdConfigPath, "CUSTOM")
 	s.StateSaverStruct.FastBoot = false
 	s.EFactory = new(electionMsgs.ElectionsFactory)
-	s.Init()
+	p := registry.New()
+	p.Register(s.Initialize)
+	go p.Run()
+	p.WaitForRunning()
 	s.NetworkNumber = constants.NETWORK_CUSTOM
 
 	customnetname := conf.CustomNetID

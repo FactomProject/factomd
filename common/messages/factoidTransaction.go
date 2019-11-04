@@ -14,6 +14,8 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 
 	"github.com/FactomProject/factomd/common/messages/msgbase"
+
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -32,12 +34,12 @@ type FactoidTransaction struct {
 
 var _ interfaces.IMsg = (*FactoidTransaction)(nil)
 
-func (a *FactoidTransaction) IsSameAs(b *FactoidTransaction) bool {
+func (m *FactoidTransaction) IsSameAs(b *FactoidTransaction) bool {
 	if b == nil {
 		return false
 	}
 
-	ok, err := primitives.AreBinaryMarshallablesEqual(a.Transaction, b.Transaction)
+	ok, err := primitives.AreBinaryMarshallablesEqual(m.Transaction, b.Transaction)
 	if err != nil || ok == false {
 		return false
 	}
@@ -187,6 +189,7 @@ func (m *FactoidTransaction) UnmarshalTransData(datax []byte) (newData []byte, e
 		return
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling Transaction Factoid: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling Transaction Factoid: %v", r)
 		}
 	}()
 
@@ -202,6 +205,7 @@ func (m *FactoidTransaction) UnmarshalBinaryData(data []byte) (newData []byte, e
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling Factoid: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling Factoid: %v", r)
 		}
 	}()
 
@@ -296,10 +300,14 @@ func (m *FactoidTransaction) LogFields() log.Fields {
 		"hash":    m.GetHash().String()}
 }
 
-func (e *FactoidTransaction) JSONByte() ([]byte, error) {
-	return primitives.EncodeJSON(e)
+func (m *FactoidTransaction) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(m)
 }
 
-func (e *FactoidTransaction) JSONString() (string, error) {
-	return primitives.EncodeJSONString(e)
+func (m *FactoidTransaction) JSONString() (string, error) {
+	return primitives.EncodeJSONString(m)
+}
+
+func (m *FactoidTransaction) Label() string {
+	return msgbase.GetLabel(m)
 }

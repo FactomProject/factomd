@@ -10,6 +10,8 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/FactomProject/factomd/fnode"
+
 	"github.com/FactomProject/factom"
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
@@ -75,19 +77,19 @@ func (d *testAccount) EcAddr() interfaces.IHash {
 
 // buy EC from coinbase 'bank'
 func (d *testAccount) FundEC(amt uint64) {
-	state0 := engine.GetFnodes()[0].State
+	state0 := fnode.GetFnodes()[0].State
 	engine.FundECWallet(state0, GetBankAccount().FctPrivHash(), d.EcAddr(), uint64(amt)*state0.GetFactoshisPerEC())
 }
 
 // buy EC from account
 func (d *testAccount) ConvertEC(amt uint64) {
-	state0 := engine.GetFnodes()[0].State
+	state0 := fnode.GetFnodes()[0].State
 	engine.FundECWallet(state0, d.FctPrivHash(), d.EcAddr(), uint64(amt)*state0.GetFactoshisPerEC())
 }
 
 // get FCT from coinbase 'bank'
 func (d *testAccount) FundFCT(amt uint64) {
-	state0 := engine.GetFnodes()[0].State
+	state0 := fnode.GetFnodes()[0].State
 	_, err := engine.SendTxn(state0, uint64(amt), GetBankAccount().FctPriv(), d.FctPub(), state0.GetFactoshisPerEC())
 	if err != nil {
 		panic(err)
@@ -96,13 +98,13 @@ func (d *testAccount) FundFCT(amt uint64) {
 
 // transfer FCT from account
 func (d *testAccount) SendFCT(a *testAccount, amt uint64) {
-	state0 := engine.GetFnodes()[0].State
+	state0 := fnode.GetFnodes()[0].State
 	engine.SendTxn(state0, uint64(amt), d.FctPriv(), a.FctPub(), state0.GetFactoshisPerEC())
 }
 
 // check EC balance
 func (d *testAccount) GetECBalance() int64 {
-	state0 := engine.GetFnodes()[0].State
+	state0 := fnode.GetFnodes()[0].State
 	return engine.GetBalanceEC(state0, d.EcPub())
 }
 

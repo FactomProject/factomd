@@ -13,6 +13,8 @@ import (
 	"github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/elections"
+
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -121,22 +123,23 @@ func (m *AuthorityListInternal) FollowerExecute(state interfaces.IState) {
 }
 
 // Acknowledgements do not go into the process list.
-func (e *AuthorityListInternal) Process(dbheight uint32, state interfaces.IState) bool {
+func (m *AuthorityListInternal) Process(dbheight uint32, state interfaces.IState) bool {
 	panic("Ack object should never have its Process() method called")
 }
 
-func (e *AuthorityListInternal) JSONByte() ([]byte, error) {
-	return primitives.EncodeJSON(e)
+func (m *AuthorityListInternal) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(m)
 }
 
-func (e *AuthorityListInternal) JSONString() (string, error) {
-	return primitives.EncodeJSONString(e)
+func (m *AuthorityListInternal) JSONString() (string, error) {
+	return primitives.EncodeJSONString(m)
 }
 
 func (m *AuthorityListInternal) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling: %v", r)
 		}
 	}()
 	return nil, fmt.Errorf("Not implmented for AuthorityListInternal")
@@ -168,6 +171,10 @@ func (m *AuthorityListInternal) String() string {
 	return fmt.Sprintf("AuthorityListInternal DBH %d fed [%s] aud[%s]", m.DBHeight, f_str, a_str)
 }
 
-func (a *AuthorityListInternal) IsSameAs(b *AuthorityListInternal) bool {
+func (m *AuthorityListInternal) IsSameAs(b *AuthorityListInternal) bool {
 	return true
+}
+
+func (m *AuthorityListInternal) Label() string {
+	return msgbase.GetLabel(m)
 }

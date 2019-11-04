@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/FactomProject/factomd/fnode"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -18,7 +19,6 @@ import (
 	ed "github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factom"
 	"github.com/FactomProject/factomd/common/entryBlock"
-	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/identityEntries"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -834,7 +834,8 @@ func v2Request(req *primitives.JSON2Request, port int) (*primitives.JSON2Respons
 	return nil, nil
 }
 
-func modifyLoadIdentities() {
+// Build table of identities to names
+func getSimChains() []interfaces.IHash {
 	chainIDList := strings.Split(chainIDs, "#")
 
 	list := make([]interfaces.IHash, 0)
@@ -844,61 +845,58 @@ func modifyLoadIdentities() {
 			continue
 		}
 		list = append(list, next)
-		//list = append([]interfaces.IHash{next}, list...)
 	}
+	return list
+}
+
+// set identity for one of the 99 pre-generated keys
+func fixSimIdent(node *fnode.FactomNode, chain interfaces.IHash) {
+	// Don't "fix" a simulator entry if it already has a good identity.
+	if binary.BigEndian.Uint32(node.State.IdentityChainID.Bytes()[:4])>>8 == 0x888888 {
+		return
+	}
+	node.State.IdentityChainID = chain
+
+	buf := new(bytes.Buffer)
+	buf.WriteString(chain.String())
+	_, private, err := ed.GenerateKey(buf)
+	if err != nil {
+		return
+	}
+
+	k := primitives.NewPrivateKeyFromHexBytes(private[:])
+	node.State.LocalServerPrivKey = k.PrivateKeyString()
+	node.State.SimSetNewKeys(k)
+}
+
+// set hardcoded identity to a single simulator node
+func modifySimulatorIdentity(i int) {
+	fixSimIdent(fnode.Get(i), getSimChains()[i-1])
+}
+
+// add hardcoded identities to all simulated nodes
+func modifySimulatorIdentities() {
+	list := getSimChains()
 
 	if len(list) == 0 {
-		fmt.Println("Error when loading up identities for fnodes")
+		panic("Error when loading up identities for fnodes")
 	}
 
-	for i := 1; i < len(fnodes); i++ {
+	nodes := fnode.GetFnodes()
+	for i := 1; i < len(nodes); i++ {
 		if i-1 >= len(list) {
 			break
 		} else {
-			if fnodes[i] == nil {
+			if nodes[i] == nil {
 				continue
 			}
 			index := i - 1
 			if list[index] == nil {
 				continue
 			}
-
-			// Don't "fix" a simulator entry if it already has a good identity.
-			if binary.BigEndian.Uint32(fnodes[i].State.IdentityChainID.Bytes()[:4])>>8 == 0x888888 {
-				continue
-			}
-
-			fnodes[i].State.IdentityChainID = list[index]
-			// Build table of identities to names
-			addFnodeName(i)
-
-			buf := new(bytes.Buffer)
-			buf.WriteString(list[index].String())
-			pub, priv, err := ed.GenerateKey(buf)
-			if err != nil {
-				continue
-			}
-			_ = pub
-
-			privkey := primitives.NewPrivateKeyFromHexBytes(priv[:])
-			if err != nil {
-				continue
-			}
-			fnodes[i].State.LocalServerPrivKey = privkey.PrivateKeyString()
-			fnodes[i].State.SimSetNewKeys(privkey)
+			fixSimIdent(nodes[i], list[index])
 		}
 	}
-}
-
-func addFnodeName(i int) {
-	// full name
-	name := fnodes[i].State.FactomNodeName
-	globals.FnodeNames[fnodes[i].State.IdentityChainID.String()] = name
-	// common short set
-	globals.FnodeNames[fmt.Sprintf("%x", fnodes[i].State.IdentityChainID.Bytes()[3:6])] = name
-	globals.FnodeNames[fmt.Sprintf("%x", fnodes[i].State.IdentityChainID.Bytes()[:5])] = name
-	globals.FnodeNames[fmt.Sprintf("%x", fnodes[i].State.IdentityChainID.Bytes()[:])] = name
-	globals.FnodeNames[fmt.Sprintf("%x", fnodes[i].State.IdentityChainID.Bytes()[:8])] = name
 }
 
 func shad(data []byte) []byte {

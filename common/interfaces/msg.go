@@ -21,6 +21,9 @@ type IMsg interface {
 	// Returns a byte indicating the type of message.
 	Type() byte
 
+	// Returns string label for type of message
+	Label() string
+
 	// A local message is never broadcast to the greater network.
 	IsLocal() bool
 	SetLocal(bool)

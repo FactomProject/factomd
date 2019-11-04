@@ -1,241 +1,171 @@
-// Copyright 2017 Factom Foundation
-// Use of this source code is governed by the MIT license
-// that can be found in the LICENSE file.
-
-// logger is based on github.com/alexcesaro/log and
-// github.com/alexcesaro/log/golog (MIT License)
-
 package log
 
 import (
 	"fmt"
-	"io"
-	"os"
+	"reflect"
+	"strings"
 	"time"
+
+	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/util/atomic"
 )
 
-// Level specifies a level of verbosity. The available levels are the eight
-// severities described in RFC 5424 and none.
-type Level int8
+type log struct {
+	interfaces.Log
+}
 
-// Levels
-const (
-	None         Level = iota - 1
-	EmergencyLvl       // 1
-	AlertLvl           // 2
-	CriticalLvl        // 3
-	ErrorLvl           // 4
-	WarningLvl         // 5
-	NoticeLvl          // 6
-	InfoLvl            // 7
-	DebugLvl           // 8
+var (
+
+	// KLUDGE: expose package logging for backward compatibility
+	PackageLogger   = &log{}
+	LogPrintf       = PackageLogger.LogPrintf
+	LogMessage      = PackageLogger.LogMessage
+	StateLogMessage = PackageLogger.StateLogMessage
+	StateLogPrintf  = PackageLogger.StateLogPrintf
 )
 
-// A FLogger represents an active logging object that generates lines of output
-// to an io.Writer.
-type FLogger struct {
-	out    io.Writer
-	level  Level
-	prefix string
-}
-
-// NewLogFromConfig outputs logs to a file given by logpath
-func NewLogFromConfig(logPath, logLevel, prefix string) *FLogger {
-	var logFile io.Writer
-	if logPath == "stdout" {
-		logFile = os.Stdout
-	} else {
-		logFile, _ = os.OpenFile(logPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0660)
-	}
-	return New(logFile, logLevel, prefix)
-}
-
-// New makes a new logger with a given level
-func New(w io.Writer, level, prefix string) *FLogger {
-	return &FLogger{
-		out:    w,
-		level:  levelFromString(level),
-		prefix: prefix,
-	}
-}
-
-// Level Get the current log level
-func (logger *FLogger) Level() (level Level) {
-	return logger.level
-}
-
-// Println is implemented so this logger shares the same functions as "log"
-func (logger *FLogger) Println(args ...interface{}) {
-	logger.write(InfoLvl, args...)
-}
-
-// Printf is implemented so this logger shares the same functions as "log"
-func (logger *FLogger) Printf(format string, args ...interface{}) {
-	logger.write(InfoLvl, fmt.Sprintf(format, args...))
-}
-
-// Emergency logs with an emergency level and exits the program.
-func (logger *FLogger) Emergency(args ...interface{}) {
-	logger.write(EmergencyLvl, args...)
-}
-
-// Emergencyf logs with an emergency level and exits the program.
-// Arguments are handled in the manner of fmt.Printf.
-func (logger *FLogger) Emergencyf(format string, args ...interface{}) {
-	logger.write(EmergencyLvl, fmt.Sprintf(format, args...))
-}
-
-// Alert logs with an alert level and exits the program.
-func (logger *FLogger) Alert(args ...interface{}) {
-	logger.write(AlertLvl, args...)
-}
-
-// Alertf logs with an alert level and exits the program.
-// Arguments are handled in the manner of fmt.Printf.
-func (logger *FLogger) Alertf(format string, args ...interface{}) {
-	logger.write(AlertLvl, fmt.Sprintf(format, args...))
-}
-
-// Critical logs with a critical level and exits the program.
-func (logger *FLogger) Critical(args ...interface{}) {
-	logger.write(CriticalLvl, args...)
-}
-
-// Criticalf logs with a critical level and exits the program.
-// Arguments are handled in the manner of fmt.Printf.
-func (logger *FLogger) Criticalf(format string, args ...interface{}) {
-	logger.write(CriticalLvl, fmt.Sprintf(format, args...))
-}
-
-// Error logs with an error level.
-func (logger *FLogger) Error(args ...interface{}) {
-	logger.write(ErrorLvl, args...)
-}
-
-// Errorf logs with an error level.
-// Arguments are handled in the manner of fmt.Printf.
-func (logger *FLogger) Errorf(format string, args ...interface{}) {
-	// Do not do overhead of formatting a string if not going to log
-	if ErrorLvl > logger.level {
-		return
-	}
-	logger.write(ErrorLvl, fmt.Sprintf(format, args...))
-}
-
-// Warning logs with a warning level.
-func (logger *FLogger) Warning(args ...interface{}) {
-	logger.write(WarningLvl, args...)
-}
-
-// Warningf logs with a warning level.
-// Arguments are handled in the manner of fmt.Printf.
-func (logger *FLogger) Warningf(format string, args ...interface{}) {
-	// Do not do overhead of formatting a string if not going to log
-	if WarningLvl > logger.level {
-		return
-	}
-	logger.write(WarningLvl, fmt.Sprintf(format, args...))
-}
-
-// Notice logs with a notice level.
-func (logger *FLogger) Notice(args ...interface{}) {
-	logger.write(NoticeLvl, args...)
-}
-
-// Noticef logs with a notice level.
-// Arguments are handled in the manner of fmt.Printf.
-func (logger *FLogger) Noticef(format string, args ...interface{}) {
-	// Do not do overhead of formatting a string if not going to log
-	if NoticeLvl > logger.level {
-		return
-	}
-	logger.write(NoticeLvl, fmt.Sprintf(format, args...))
-}
-
-// Info logs with an info level.
-func (logger *FLogger) Info(args ...interface{}) {
-	logger.write(InfoLvl, args...)
-}
-
-// Infof logs with an info level.
-// Arguments are handled in the manner of fmt.Printf.
-func (logger *FLogger) Infof(format string, args ...interface{}) {
-	// Do not do overhead of formatting a string if not going to log
-	if InfoLvl > logger.level {
-		return
-	}
-	logger.write(InfoLvl, fmt.Sprintf(format, args...))
-}
-
-// Debug logs with a debug level.
-func (logger *FLogger) Debug(args ...interface{}) {
-	logger.write(DebugLvl, args...)
-}
-
-// Debugf logs with a debug level.
-// Arguments are handled in the manner of fmt.Printf.
-func (logger *FLogger) Debugf(format string, args ...interface{}) {
-	// Do not do overhead of formatting a string if not going to log
-	if DebugLvl > logger.level {
-		return
-	}
-	logger.write(DebugLvl, fmt.Sprintf(format, args...))
-}
-
-// write outputs to the FLogger.out based on the FLogger.level and calls os.Exit
-// if the level is <= Error
-func (logger *FLogger) write(level Level, args ...interface{}) {
-	if level > logger.level {
+func (*log) LogPrintf(name string, format string, more ...interface{}) {
+	traceMutex.Lock()
+	defer traceMutex.Unlock()
+	myfile := getTraceFile(name)
+	if myfile == nil {
 		return
 	}
 
-	l := fmt.Sprint(args...) // get string for formatting
-	if level == DebugLvl {
-		fmt.Fprintf(logger.out, "%s [%s] %s: %s\n", debugPrefix(), levelPrefix[level], logger.prefix, l)
-	} else {
-		fmt.Fprintf(logger.out, "%s [%s] %s: %s\n", time.Now().Format(time.RFC3339), levelPrefix[level], logger.prefix, l)
+	var where string
+
+	if logWhere { // global for debugging
+		where = fmt.Sprintf("<%s>", atomic.Goid())
 	}
 
-	if level <= CriticalLvl {
-		os.Exit(1)
+	sequence++
+	// handle multi-line printf's
+	lines := strings.Split(fmt.Sprintf(format, more...), "\n")
+	now := time.Now().Local()
+	for i, text := range lines {
+		var s string
+		switch i {
+		case 0:
+			s = fmt.Sprintf("%9d %02d:%02d:%02d.%03d %s %s\n", sequence, now.Hour()%24, now.Minute()%60, now.Second()%60, (now.Nanosecond()/1e6)%1000, text, where)
+		default:
+			s = fmt.Sprintf("%9d %02d:%02d:%02d.%03d %s\n", sequence, now.Hour()%24, now.Minute()%60, now.Second()%60, (now.Nanosecond()/1e6)%1000, text)
+		}
+		s = addNodeNames(s)
+		myfile.WriteString(s)
 	}
 }
 
-var levelPrefix = map[Level]string{
-	EmergencyLvl: "EMERGENCY",
-	AlertLvl:     "ALERT",
-	CriticalLvl:  "CRITICAL",
-	ErrorLvl:     "ERROR",
-	WarningLvl:   "WARNING",
-	NoticeLvl:    "NOTICE",
-	InfoLvl:      "INFO",
-	DebugLvl:     "DEBUG",
+// Log a message with a state timestamp
+func (l *log) StateLogMessage(FactomNodeName string, DBHeight int, CurrentMinute int, logName string, comment string, msg interfaces.IMsg) {
+	logFileName := FactomNodeName + "_" + logName + ".txt"
+	t := fmt.Sprintf("%7d-:-%d ", DBHeight, CurrentMinute)
+	LogMessage(logFileName, t+comment, msg)
 }
 
-func levelFromString(levelName string) (level Level) {
-	switch levelName {
-	case "debug":
-		level = DebugLvl
-	case "info":
-		level = InfoLvl
-	case "notice":
-		level = NoticeLvl
-	case "warning":
-		level = WarningLvl
-	case "error":
-		level = ErrorLvl
-	case "critical":
-		level = CriticalLvl
-	case "alert":
-		level = AlertLvl
-	case "emergency":
-		level = EmergencyLvl
-	case "none":
-		level = None
-	default:
-		fmt.Fprintf(os.Stderr, "Invalid level value %q, allowed values are: debug, info, notice, warning, error, critical, alert, emergency and none\n", levelName)
-		fmt.Fprintln(os.Stderr, "Using log level of warning")
-		level = WarningLvl
+// Log a printf with a state timestamp
+func (l *log) StateLogPrintf(FactomNodeName string, DBHeight int, CurrentMinute int, logName string, format string, more ...interface{}) {
+	logFileName := FactomNodeName + "_" + logName + ".txt"
+	t := fmt.Sprintf("%7d-:-%d ", DBHeight, CurrentMinute)
+	l.LogPrintf(logFileName, t+format, more...)
+}
+
+func (l *log) LogMessage(name string, note string, msg interfaces.IMsg) {
+	traceMutex.Lock()
+	defer traceMutex.Unlock()
+	l.logMessage(name, note, msg)
+}
+
+// Assumes called managed the locks so we can recurse for multi part messages
+func (l *log) logMessage(name string, note string, msg interfaces.IMsg) {
+	myfile := getTraceFile(name)
+	if myfile == nil {
+		return
 	}
-	return
+
+	var where string
+
+	if logWhere {
+		where = fmt.Sprintf("<%s>", atomic.Goid())
+	}
+
+	sequence++
+	embeddedHash := ""
+	to := ""
+	hash := "??????"
+	mhash := "??????"
+	rhash := "??????"
+	messageType := ""
+	t := byte(0)
+	msgString := "-nil-"
+	var embeddedMsg interfaces.IMsg
+
+	if msg != nil {
+		t = msg.Type()
+		msgString = msg.String()
+
+		// work around message that don't have hashes yet ...
+		mh := msg.GetMsgHash()
+		if mh != nil && !reflect.ValueOf(mh).IsNil() {
+			mhash = mh.String()[:6]
+		}
+		h := msg.GetHash()
+		if h != nil && !reflect.ValueOf(h).IsNil() {
+			hash = h.String()[:6]
+		}
+		rh := msg.GetRepeatHash()
+		if rh != nil && !reflect.ValueOf(rh).IsNil() {
+			rhash = rh.String()[:6]
+		}
+
+		if msg.Type() != constants.ACK_MSG && msg.Type() != constants.MISSING_DATA {
+			addmsg(msg) // Keep message we have seen for a while
+		}
+
+		if msg.IsPeer2Peer() {
+			if 0 == msg.GetOrigin() {
+				to = "RandomPeer"
+			} else {
+				// right for sim... what about network ?
+				to = fmt.Sprintf("FNode%02d", msg.GetOrigin()-1)
+			}
+		} else {
+			//to = "broadcast"
+		}
+		switch t {
+		case constants.VOLUNTEERAUDIT, constants.ACK_MSG:
+			embeddedHash = fmt.Sprintf(" EmbeddedMsg: %x", msg.GetHash().Bytes()[:3])
+			fixed := msg.GetHash().Fixed()
+			embeddedMsg = getmsg(fixed)
+			if embeddedMsg == nil {
+				embeddedHash += "(unknown)"
+			}
+		}
+		messageType = constants.MessageName(byte(t))
+	}
+
+	// handle multi-line printf's
+	lines := strings.Split(msgString, "\n")
+
+	lines[0] = lines[0] + embeddedHash + " " + to
+
+	now := time.Now().Local()
+
+	for i, text := range lines {
+		var s string
+		switch i {
+		case 0:
+			s = fmt.Sprintf("%9d %02d:%02d:%02d.%03d %-50s M-%v|R-%v|H-%v|%p %26s[%2v]:%v %s\n", sequence, now.Hour()%24, now.Minute()%60, now.Second()%60, (now.Nanosecond()/1e6)%1000,
+				note, mhash, rhash, hash, msg, messageType, t, text, where)
+		default:
+			s = fmt.Sprintf("%9d %02d:%02d:%02d.%03d %-50s M-%v|R-%v|H-%v|%p %30s:%v\n", sequence, now.Hour()%24, now.Minute()%60, now.Second()%60, (now.Nanosecond()/1e6)%1000,
+				note, mhash, rhash, hash, msg, "continue:", text)
+		}
+		s = addNodeNames(s)
+		myfile.WriteString(s)
+	}
+
+	if embeddedMsg != nil {
+		l.logMessage(name, note+" EmbeddedMsg:", embeddedMsg)
+	}
 }

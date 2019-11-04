@@ -96,10 +96,10 @@ func InitNetwork() {
 		ConfigPeers:              peers,
 		ConnectionMetricsChannel: connectionMetricsChannel,
 	}
-	p2pNetwork := new(p2p.Controller).Init(ci)
+	p2pNetwork := new(p2p.Controller).Initialize(ci)
 	p2pNetwork.StartNetwork()
 	// Setup the proxy (Which translates from network parcels to Factom messages, handling addressing for directed messages)
-	p2pProxy = new(engine.P2PProxy).Init("testnode", "P2P Network").(*engine.P2PProxy)
+	p2pProxy = new(engine.P2PProxy).Initialize("testnode", "P2P Network").(*engine.P2PProxy)
 	p2pProxy.FromNetwork = p2pNetwork.FromNetwork
 	p2pProxy.ToNetwork = p2pNetwork.ToNetwork
 

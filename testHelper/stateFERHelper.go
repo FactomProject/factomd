@@ -10,6 +10,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/FactomProject/factomd/registry"
+	"github.com/FactomProject/factomd/worker"
+
 	ed "github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factom"
 	"github.com/FactomProject/factomd/common/directoryBlock"
@@ -86,16 +89,21 @@ func CreateAndPopulateTestStateForFER(testEntries []FEREntryWithHeight, desiredH
 	s := new(state.State)
 	s.DB = CreateAndPopulateTestDatabaseOverlayForFER(testEntries, desiredHeight)
 	s.LoadConfig("", "")
-	s.Init()
 	/*err := s.RecalculateBalances()
 	if err != nil {
 		panic(err)
 	}*/
-	s.SetFactoshisPerEC(1)
-	state.LoadDatabase(s)
-	s.FERChainId = "111111118d918a8be684e0dac725493a75862ef96d2d3f43f84b26969329bf03"
-	s.UpdateState()
-	go s.ValidatorLoop()
+	p := registry.New()
+	p.Register(func(w *worker.Thread) {
+		s.Initialize(w)
+		s.SetFactoshisPerEC(1)
+		state.LoadDatabase(s)
+		s.FERChainId = "111111118d918a8be684e0dac725493a75862ef96d2d3f43f84b26969329bf03"
+		s.UpdateState()
+		s.ValidatorLoop(w)
+	})
+	go p.Run()
+
 	time.Sleep(20 * time.Millisecond)
 
 	return s

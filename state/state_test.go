@@ -153,7 +153,7 @@ func TestCalculateTransactionRate(t *testing.T) {
 
 func TestClone(t *testing.T) {
 	s := testHelper.CreateAndPopulateTestStateAndStartValidator()
-	s2i := s.Clone(1)
+	s2i := state.Clone(s, 1)
 	s2, ok := s2i.(*State)
 	if !ok {
 		t.Error("Clone failed")
@@ -162,7 +162,7 @@ func TestClone(t *testing.T) {
 		t.Error("Factom Node Name incorrect")
 	}
 	s.AddPrefix("x")
-	s3i := s.Clone(2)
+	s3i := state.Clone(s, 2)
 	s3, ok := s3i.(*State)
 	if !ok {
 		t.Error("Clone failed")

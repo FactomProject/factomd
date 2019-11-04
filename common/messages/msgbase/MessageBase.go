@@ -388,3 +388,8 @@ func SignSignable(s interfaces.Signable, key interfaces.Signer) (interfaces.IFul
 func (m *MessageBase) InvalidateSignatures() {
 	m.Sigvalid = false
 }
+
+// use short message name as label
+func GetLabel(msg interfaces.IMsg) string {
+	return constants.ShortMessageName(msg.Type())
+}

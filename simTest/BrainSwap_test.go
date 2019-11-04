@@ -3,7 +3,7 @@ package simtest
 import (
 	"testing"
 
-	"github.com/FactomProject/factomd/engine"
+	"github.com/FactomProject/factomd/fnode"
 	. "github.com/FactomProject/factomd/testHelper"
 )
 
@@ -21,7 +21,7 @@ func TestBrainSwap(t *testing.T) {
 
 	params := map[string]string{"--blktime": "15"}
 	state0 := SetupSim("LLLAFF", params, 15, 0, 0, t)
-	state3 := engine.GetFnodes()[3].State // Get node 3
+	state3 := fnode.Get(3).State // Get node 3
 
 	WaitForBlock(state0, 6)
 	WaitForAllNodes(state0)

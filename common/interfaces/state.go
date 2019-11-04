@@ -6,6 +6,7 @@ package interfaces
 
 import (
 	"regexp"
+	"time"
 
 	"github.com/FactomProject/factomd/activations"
 	"github.com/FactomProject/factomd/common/constants/runstate"
@@ -36,11 +37,9 @@ type IState interface {
 	// Server
 	GetFactomNodeName() string
 	GetSalt(Timestamp) uint32 // A secret number computed from a TS that tests if a message was issued from this server or not
-	Clone(number int) IState
 	GetCfg() IFactomConfig
 	GetConfigPath() string
 	LoadConfig(filename string, networkFlag string)
-	Init()
 	String() string
 	GetIdentityChainID() IHash
 	SetIdentityChainID(IHash)
@@ -117,10 +116,6 @@ type IState interface {
 	TimerMsgQueue() chan IMsg
 	NetworkOutMsgQueue() IQueue
 	NetworkInvalidMsgQueue() chan IMsg
-
-	// Journaling
-	JournalMessage(IMsg)
-	GetJournalMessages() [][]byte
 
 	// Consensus
 	APIQueue() IQueue    // Input Queue from the API
@@ -252,11 +247,7 @@ type IState interface {
 	Print(a ...interface{}) (n int, err error)
 	Println(a ...interface{}) (n int, err error)
 
-	ValidatorLoop()
-
 	UpdateECs(IEntryCreditBlock)
-	SetIsReplaying()
-	SetIsDoneReplaying()
 
 	CrossReplayAddSalt(height uint32, salt [8]byte) error
 
@@ -337,10 +328,6 @@ type IState interface {
 	LoadHoldingMap() map[[32]byte]IMsg
 	LoadAcksMap() map[[32]byte]IMsg
 
-	// Plugins
-	UsingTorrent() bool
-	GetMissingDBState(height uint32) error
-
 	LogMessage(logName string, comment string, msg IMsg)
 	LogPrintf(logName string, format string, more ...interface{})
 
@@ -370,4 +357,5 @@ type IState interface {
 	GetInputRegEx() (*regexp.Regexp, string)
 	GotHeartbeat(heartbeatTS Timestamp, dbheight uint32)
 	GetDBFinished() bool
+	FactomSecond() time.Duration
 }

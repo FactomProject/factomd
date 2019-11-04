@@ -15,6 +15,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 
 	"github.com/FactomProject/factomd/common/messages/msgbase"
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -148,6 +149,7 @@ func (m *CommitEntryMsg) UnmarshalBinaryData(data []byte) (newData []byte, err e
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling Commit entry Message: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling Commit entry Message: %v", r)
 		}
 	}()
 	newData = data
@@ -286,4 +288,8 @@ func (e *CommitEntryMsg) JSONString() (string, error) {
 
 func NewCommitEntryMsg() *CommitEntryMsg {
 	return new(CommitEntryMsg)
+}
+
+func (a *CommitEntryMsg) Label() string {
+	return msgbase.GetLabel(a)
 }

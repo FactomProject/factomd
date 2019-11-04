@@ -1,4 +1,4 @@
-package state_test
+package queue_test
 
 import (
 	"fmt"
@@ -7,38 +7,23 @@ import (
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
-	. "github.com/FactomProject/factomd/state"
+	. "github.com/FactomProject/factomd/queue"
 )
 
 var _ = fmt.Println
 
-func TestTimeSinceNegative(t *testing.T) {
-	RegisterPrometheus()
-	RegisterPrometheus()
-	var p time.Duration
-	defer func() {
-		if r := recover(); r != nil {
-			t.Error("Test paniced")
-		}
-	}()
-
-	for i := 0; i < 100000; i++ {
-		n := time.Now()
-		p = time.Since(n)
-
-		TotalExecuteMsgTime.Add(float64(p.Nanoseconds()))
-	}
-}
-
 func TestQueues(t *testing.T) {
-	var _, _ = NewInMsgQueue(0), NewNetOutMsgQueue(0)
-
 	channel := make(chan interfaces.IMsg, 1000)
-	general := GeneralMSGQueue(channel)
-	inmsg := InMsgMSGQueue(channel)
-	netOut := NetOutMsgQueue(channel)
+	mkQ := func() *MsgQueue {
+		q := new(MsgQueue)
+		q.Channel = channel
+		return q
+	}
+	general := mkQ()
+	inmsg := mkQ()
+	netOut := mkQ()
 
-	if !checkLensAndCap(channel, []interfaces.IQueue{general, inmsg, netOut}) {
+	if !checkLensAndCap(channel, []interfaces.IQueue{inmsg, netOut}) {
 		t.Error("Error: Lengths/Cap does not match")
 	}
 
@@ -50,7 +35,7 @@ func TestQueues(t *testing.T) {
 		case 1:
 			general.Enqueue(new(messages.DBStateMsg))
 		case 2:
-			inmsg.Enqueue(nil)
+			inmsg.Enqueue(nil) // REIVEW Unsure why we test support for nil messages
 		}
 		c++
 		if c == 3 {
@@ -185,7 +170,9 @@ func BenchmarkChannels(b *testing.B) {
 }
 
 func BenchmarkQueues(b *testing.B) {
-	c := NewInMsgQueue(1000)
+	c := new(MsgQueue)
+	c.Channel = make(chan interfaces.IMsg, 1000)
+
 	for i := 0; i < b.N; i++ {
 		c.Enqueue(nil)
 		c.Dequeue()
@@ -196,10 +183,9 @@ func BenchmarkQueues(b *testing.B) {
 
 func BenchmarkConcurentChannels(b *testing.B) {
 	c := make(chan interfaces.IMsg, 1000)
+
 	go func() {
 		for true {
-			c <- nil
-			<-c
 			time.Sleep(10 * time.Nanosecond)
 		}
 	}()
@@ -210,7 +196,9 @@ func BenchmarkConcurentChannels(b *testing.B) {
 }
 
 func BenchmarkConcurrentQueues(b *testing.B) {
-	c := NewInMsgQueue(1000)
+	c := new(MsgQueue)
+	c.Channel = make(chan interfaces.IMsg, 1000)
+
 	go func() {
 		for true {
 			c.Enqueue(nil)
@@ -241,7 +229,9 @@ func BenchmarkCompetingChannels(b *testing.B) {
 }
 
 func BenchmarkCompetingQueues(b *testing.B) {
-	c := NewInMsgQueue(1000)
+	c := new(MsgQueue)
+	c.Channel = make(chan interfaces.IMsg, 1000)
+
 	go func() {
 		for true {
 			c.Enqueue(nil)

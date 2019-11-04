@@ -13,6 +13,8 @@ import (
 	"github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/elections"
+
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -157,22 +159,23 @@ func (m *RemoveLeaderInternal) FollowerExecute(state interfaces.IState) {
 }
 
 // Acknowledgements do not go into the process list.
-func (e *RemoveLeaderInternal) Process(dbheight uint32, state interfaces.IState) bool {
+func (m *RemoveLeaderInternal) Process(dbheight uint32, state interfaces.IState) bool {
 	panic("Ack object should never have its Process() method called")
 }
 
-func (e *RemoveLeaderInternal) JSONByte() ([]byte, error) {
-	return primitives.EncodeJSON(e)
+func (m *RemoveLeaderInternal) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(m)
 }
 
-func (e *RemoveLeaderInternal) JSONString() (string, error) {
-	return primitives.EncodeJSONString(e)
+func (m *RemoveLeaderInternal) JSONString() (string, error) {
+	return primitives.EncodeJSONString(m)
 }
 
 func (m *RemoveLeaderInternal) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling: %v", r)
 		}
 	}()
 	return
@@ -190,6 +193,6 @@ func (m *RemoveLeaderInternal) String() string {
 	return fmt.Sprintf(" %20s %x %10s dbheight %d", "Remove Leader Internal", m.ServerID.Bytes(), m.NName, m.DBHeight)
 }
 
-func (a *RemoveLeaderInternal) IsSameAs(b *RemoveLeaderInternal) bool {
+func (m *RemoveLeaderInternal) IsSameAs(b *RemoveLeaderInternal) bool {
 	return true
 }
