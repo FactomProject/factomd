@@ -757,7 +757,7 @@ func (p *ProcessList) processVM(vm *VM) (progress bool) {
 			// means that we are missing an EOM or DBSig
 			vm.ReportMissing(vm.Height, 0) // ask for it now
 		}
-		// If we haven't heard anything from a VM in 2 seconds, ask for a message at the last-known height
+		// If we haven't heard anything from a VM in 1 seconds, ask for a message at the last-known height
 		if now.GetTimeMilli()-vm.ProcessTime.GetTimeMilli() > int64(s.FactomSecond()/time.Millisecond) {
 			vm.ReportMissing(vm.Height, int64(2*s.FactomSecond()/time.Millisecond)) // Ask for one past the end of the list
 		}
@@ -906,7 +906,7 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 	//TODO: Why is this in the execution per message per VM when it's global to the processlist -- clay
 	if s.WaitForEntries {
 		s.LogPrintf("processList", "s.WaitForEntries %d-:-%d [%d] > %d + 2", p.DBHeight, s.CurrentMinute, s.EntryDBHeightComplete)
-		return progress // Don't process further in this list, go to the next.
+		return false // Don't process further in this list, go to the next.
 	}
 
 	// If the block is not yet being written to disk (22 minutes old...)
