@@ -68,22 +68,34 @@ func (q Queue_IMsg) EnqueueNonBlocking(m interfaces.IMsg) bool {
 }
 
 // Dequeue removes an item from channel
+// Returns zero value if nothing in queue
+func (q Queue_IMsg) DequeueNonBlocking() (rval interfaces.IMsg) {
+	rval, _, _ = q.DequeueFlags()
+}
+
+// Dequeue removes an item from channel
 // Returns nil if nothing in // queue
-func (q Queue_IMsg) Dequeue() interfaces.IMsg {
+//
+//
+func (q Queue_IMsg) DequeueFlags() (rval interfaces.IMsg, open bool, empty bool) {
 	select {
-	case v := <-q.Channel:
-		q.Metric().Dec()
-		return v
+	case rval, open = <-q.Channel:
+		if open {
+			q.Metric().Dec()
+		}
+		return rval, open, !open
 	default:
-		return nil
+		return rval, true, true
 	}
 }
 
 // Dequeue removes an item from channel
-func (q Queue_IMsg) BlockingDequeue() interfaces.IMsg {
-	v := <-q.Channel
-	q.Metric().Dec()
-	return v
+func (q Queue_IMsg) BlockingDequeue() (rval interfaces.IMsg, open bool) {
+	v, open := <-q.Channel
+	if open {
+		q.Metric().Dec()
+	}
+	return v, open
 }
 
 // End accountedqueue generated go code
