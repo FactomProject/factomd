@@ -122,16 +122,16 @@ message NodeMessage {
 // ====  PROCESS LIST EVENTS =====
 message ProcessListEvent {
     oneof processListEvent {
-        NewBlock newBlock = 1;
-        NewMinute newMinute = 2;
+        NewBlockEvent newBlock = 1;
+        NewMinuteEvent newMinute = 2;
     }
 }
 
-message NewBlock {
+message NewBlockEvent {
     uint32 newBlockHeight = 1;
 }
 
-message NewMinute {
+message NewMinuteEvent {
     uint32 newMinute = 1;
     uint32 blockHeight = 2;
 }
