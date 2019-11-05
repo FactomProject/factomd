@@ -12,7 +12,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/FactomProject/factomd/events/eventservices"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -22,7 +21,7 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants/runstate"
-
+	"github.com/FactomProject/factomd/events/eventservices"
 	"github.com/FactomProject/factomd/activations"
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"

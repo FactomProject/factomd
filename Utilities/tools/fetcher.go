@@ -159,11 +159,11 @@ func (a *APIReader) FetchECBlockByHeight(height uint32) (interfaces.IEntryCredit
 }
 
 func (a *APIReader) FetchHeadIndexByChainID(chainID interfaces.IHash) (interfaces.IHash, error) {
-	resp, _, err := factom.GetChainHead(chainID.String())
+	data, _, err := factom.GetChainHead(chainID.String())
 	if err != nil {
 		return nil, err
 	}
-	return primitives.HexToHash(resp)
+	return primitives.HexToHash(data)
 }
 
 func UnmarshalGeneric(i interfaces.BinaryMarshallable, raw []byte) error {

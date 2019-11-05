@@ -333,6 +333,12 @@ type IState interface {
 	Validate(msg IMsg) (validToSend int, validToExecute int)
 	GetIgnoreDone() bool
 
+	// Emit DBState events to the livefeed api from a specified height
+	EmitDBStateEventsFromHeight(height int64, end int64)
+
+	// Return all DBStateMsgs from a specified height
+	GetAllDBStateMsgsFromDatabase(height int64, end int64) []IMsg
+
 	// Access to Holding Queue
 	LoadHoldingMap() map[[32]byte]IMsg
 	LoadAcksMap() map[[32]byte]IMsg
