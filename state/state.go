@@ -131,6 +131,7 @@ type State struct {
 	transCnt    int
 	lasttime    time.Time
 	tps         float64
+	longTps     float64
 	ResetTryCnt int
 	ResetCnt    int
 
@@ -426,7 +427,8 @@ type State struct {
 	StateUpdateState      int64
 	ValidatorLoopSleepCnt int64
 	processCnt            int64 // count of attempts to process .. so we can see if the thread is running
-	MMRInfo                     // fields for MMR processing
+	ProcessTime           interfaces.Timestamp
+	MMRInfo               // fields for MMR processing
 
 	reportedActivations       [activations.ACTIVATION_TYPE_COUNT + 1]bool // flags about which activations we have reported (+1 because we don't use 0)
 	validatorLoopThreadID     string
@@ -978,6 +980,7 @@ func (s *State) Init() {
 	s.IgnoreMissing = true
 	s.BootTime = s.GetTimestamp().GetTimeSeconds()
 	s.TimestampAtBoot = primitives.NewTimestampNow()
+	s.ProcessTime = s.TimestampAtBoot
 
 	if s.LogPath == "stdout" {
 		wsapi.InitLogs(s.LogPath, s.LogLevel)
@@ -2708,12 +2711,13 @@ func (s *State) CalculateTransactionRate() (totalTPS float64, instantTPS float64
 	if shorttime >= time.Second*3 {
 		delta := (s.FactoidTrans + s.NewEntryChains + s.NewEntries) - s.transCnt
 		s.tps = ((float64(delta) / float64(shorttime.Seconds())) + 2*s.tps) / 3
+		s.longTps = ((float64(delta) / float64(shorttime.Seconds())) + 31*s.longTps) / 32
 		s.lasttime = time.Now()
 		s.transCnt = total                     // transactions accounted for
 		InstantTransactionPerSecond.Set(s.tps) // Prometheus
 	}
 
-	return tps, s.tps
+	return s.longTps, s.tps
 }
 
 func (s *State) SetStringQueues() {

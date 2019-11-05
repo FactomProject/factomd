@@ -48,7 +48,19 @@ func (s *State) DoProcessing() {
 		for i2 = 0; p2 && i2 < 20; i2++ {
 			p2 = s.UpdateState()
 		}
-		if !p1 && !p2 {
+		// Call process at least every second to insure MMR runs.
+		now := s.GetTimestamp()
+		p3 := false
+		// If we haven't process messages in over a seconds go process them now
+		if now.GetTimeMilli()-s.ProcessTime.GetTimeMilli() > int64(s.FactomSecond()/time.Millisecond) {
+			for s.LeaderPL.Process(s) {
+				p3 = true
+			}
+			s.ProcessTime = now
+		}
+
+		// if we were unable to accomplish any work sleep a bit.
+		if !p1 && !p2 && !p3 {
 			// No work? Sleep for a bit
 			time.Sleep(10 * time.Millisecond)
 			s.ValidatorLoopSleepCnt++
