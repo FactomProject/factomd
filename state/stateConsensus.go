@@ -2365,7 +2365,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			s.LogMessage("processList", "drop from pl", vm.ListAck[0])
 			vm.ListAck[0] = nil
 			vm.List[0] = nil
-			vm.HighestAsk = -1
 			vm.HighestNil = 0
 			return false
 		}
@@ -2382,7 +2381,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			s.LogMessage("processList", "drop from pl", vm.ListAck[0])
 			vm.ListAck[0] = nil
 			vm.List[0] = nil
-			vm.HighestAsk = -1
 			vm.HighestNil = 0
 			return false
 		}
@@ -2396,7 +2394,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			s.LogMessage("processList", "drop from pl", vm.ListAck[0])
 			vm.ListAck[0] = nil
 			vm.List[0] = nil
-			vm.HighestAsk = -1
 			vm.HighestNil = 0
 			return false
 		}
