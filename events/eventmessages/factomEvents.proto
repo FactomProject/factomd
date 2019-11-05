@@ -83,9 +83,7 @@ message EntryCreditBlockHeader {
     bytes previousHeaderHash = 2;
     bytes previousFullHash = 3;
     uint32 blockHeight = 4;
-    bytes headerExpansionArea = 5;
-    uint64 objectCount = 6;
-    uint64 bodySize = 7;
+    uint64 objectCount = 5;
 }
 
 message EntryCreditBlockEntry {

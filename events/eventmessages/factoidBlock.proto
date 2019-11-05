@@ -11,14 +11,17 @@ message FactoidBlock {
     bytes bodyMerkleRoot = 1;
     bytes previousKeyMerkleRoot = 2;
     bytes previousLedgerKeyMerkleRoot = 3;
-    uint64 exchangeRate = 4;
-    uint32 blockHeight = 5;
-    repeated Transaction transactions = 6;
+    bytes keyMerkleRoot = 4;
+    uint64 exchangeRate = 5;
+    uint32 blockHeight = 6;
+    uint32 transactionCount = 7;
+    repeated Transaction transactions = 8;
 }
 
 message Transaction {
     bytes transactionID = 1;
     uint32 blockHeight = 2;
+    uint32 minuteNumber = 9;
     google.protobuf.Timestamp timestamp = 3;
     repeated TransactionAddress factoidInputs = 4;
     repeated TransactionAddress factoidOutputs = 5;

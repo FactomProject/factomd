@@ -15,13 +15,11 @@ func mapEntryCreditBlock(block interfaces.IEntryCreditBlock) *eventmessages.Entr
 
 func mapEntryCreditBlockHeader(header interfaces.IECBlockHeader) *eventmessages.EntryCreditBlockHeader {
 	return &eventmessages.EntryCreditBlockHeader{
-		BodyHash:            header.GetBodyHash().Bytes(),
-		PreviousHeaderHash:  header.GetPrevHeaderHash().Bytes(),
-		PreviousFullHash:    header.GetPrevFullHash().Bytes(),
-		BlockHeight:         header.GetDBHeight(),
-		HeaderExpansionArea: header.GetHeaderExpansionArea(),
-		ObjectCount:         header.GetObjectCount(),
-		BodySize:            header.GetBodySize(),
+		BodyHash:           header.GetBodyHash().Bytes(),
+		PreviousHeaderHash: header.GetPrevHeaderHash().Bytes(),
+		PreviousFullHash:   header.GetPrevFullHash().Bytes(),
+		BlockHeight:        header.GetDBHeight(),
+		ObjectCount:        header.GetObjectCount(),
 	}
 }
 

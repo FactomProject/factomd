@@ -7,9 +7,15 @@ import (
 import "github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 
 func mapAdminBlock(block interfaces.IAdminBlock) *eventmessages.AdminBlock {
+	var keyMRBytes []byte = nil
+	if keyMR, _ := block.GetKeyMR(); keyMR != nil {
+		keyMRBytes = keyMR.Bytes()
+	}
+
 	result := &eventmessages.AdminBlock{
-		Header:  mapAdminBlockHeader(block.GetHeader()),
-		Entries: mapAdminBlockEntries(block.GetABEntries()),
+		Header:        mapAdminBlockHeader(block.GetHeader()),
+		Entries:       mapAdminBlockEntries(block.GetABEntries()),
+		KeyMerkleRoot: keyMRBytes,
 	}
 	return result
 }
@@ -18,10 +24,7 @@ func mapAdminBlockHeader(header interfaces.IABlockHeader) *eventmessages.AdminBl
 	result := &eventmessages.AdminBlockHeader{
 		PreviousBackRefHash: header.GetPrevBackRefHash().Bytes(),
 		BlockHeight:         header.GetDBHeight(),
-		HeaderExpansionSize: header.GetHeaderExpansionSize(),
-		HeaderExpansionArea: header.GetHeaderExpansionArea(),
 		MessageCount:        header.GetMessageCount(),
-		BodySize:            header.GetBodySize(),
 	}
 	return result
 }
@@ -64,6 +67,7 @@ func mapAdminBlockEntries(entries []interfaces.IABEntry) []*eventmessages.AdminB
 		case *adminBlock.ServerFault:
 			result[i].AdminBlockEntry = mapServerFault(entry)
 		}
+		result[i].AdminIdType = uint32(entry.Type())
 	}
 	return result
 }

@@ -10,15 +10,13 @@ import "google/protobuf/timestamp.proto";
 message AdminBlock {
     AdminBlockHeader header = 1;
     repeated AdminBlockEntry entries = 2;
+    bytes keyMerkleRoot = 3;
 }
 
 message AdminBlockHeader {
     bytes previousBackRefHash = 1;
     uint32 blockHeight = 2;
-    uint64 headerExpansionSize = 3;
-    bytes headerExpansionArea = 4;
-    uint32 messageCount = 5;
-    uint32 bodySize = 6;
+    uint32 messageCount = 3;
 }
 
 message AdminBlockEntry {
@@ -40,6 +38,7 @@ message AdminBlockEntry {
         RevealMatryoshkaHash revealMatryoshkaHash = 15;
         ServerFault serverFault = 16;
     }
+    uint32 adminIdType = 17;
 }
 
 message AddAuditServer {

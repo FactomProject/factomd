@@ -16,19 +16,22 @@ func TestMapFactoidBlock(t *testing.T) {
 	assert.NotNil(t, factoidBlock)
 	assert.NotNil(t, factoidBlock.BlockHeight)
 	assert.NotNil(t, factoidBlock.BodyMerkleRoot)
+	assert.NotNil(t, factoidBlock.KeyMerkleRoot)
 	assert.NotNil(t, factoidBlock.PreviousKeyMerkleRoot)
 	assert.NotNil(t, factoidBlock.ExchangeRate)
 	assert.NotNil(t, factoidBlock.BlockHeight)
+	assert.GreaterOrEqual(t, 1, factoidBlock.TransactionCount)
 	assert.NotNil(t, factoidBlock.Transactions)
 }
 
 func TestMapTransaction(t *testing.T) {
 	factoidTransaction := newTestTransaction()
-	transaction := mapTransaction(factoidTransaction)
+	transaction := mapTransaction(factoidTransaction, 1)
 
 	assert.NotNil(t, transaction)
 	assert.Equal(t, factoidTransaction.GetSigHash().Bytes(), transaction.TransactionID)
 	assert.Equal(t, factoidTransaction.BlockHeight, transaction.BlockHeight)
+	assert.Equal(t, 1, transaction.MinuteNumber)
 	assert.Equal(t, int64(factoidTransaction.MilliTimestamp/1000), transaction.Timestamp.Seconds)
 	assert.Equal(t, int32(factoidTransaction.MilliTimestamp%1000), transaction.Timestamp.Nanos)
 }
@@ -36,7 +39,11 @@ func TestMapTransaction(t *testing.T) {
 func TestMapTransactions(t *testing.T) {
 	factoidTransaction := newTestTransaction()
 	factoidTransactions := []interfaces.ITransaction{factoidTransaction}
-	transactions := mapTransactions(factoidTransactions)
+	var endOfPeriod [10]int
+	for i := 0; i < len(endOfPeriod); i++ {
+		endOfPeriod[i] = len(factoidTransactions)
+	}
+	transactions := mapTransactions(factoidTransactions, endOfPeriod)
 
 	assert.NotNil(t, transactions)
 	if assert.Equal(t, 1, len(transactions)) {

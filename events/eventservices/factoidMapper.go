@@ -8,30 +8,40 @@ import (
 func mapFactoidBlock(block interfaces.IFBlock) *eventmessages.FactoidBlock {
 	result := &eventmessages.FactoidBlock{
 		BodyMerkleRoot:              block.GetBodyMR().Bytes(),
+		KeyMerkleRoot:               block.GetKeyMR().Bytes(),
 		PreviousKeyMerkleRoot:       block.GetPrevKeyMR().Bytes(),
 		PreviousLedgerKeyMerkleRoot: block.GetLedgerKeyMR().Bytes(),
 		ExchangeRate:                block.GetExchRate(),
 		BlockHeight:                 block.GetDBHeight(),
-		Transactions:                mapTransactions(block.GetTransactions()),
+		TransactionCount:            uint32(len(block.GetTransactions())),
+		Transactions:                mapTransactions(block.GetTransactions(), block.GetEndOfPeriod()),
 	}
 	return result
 }
 
-func mapTransactions(transactions []interfaces.ITransaction) []*eventmessages.Transaction {
+func mapTransactions(transactions []interfaces.ITransaction, endOfPeriod [10]int) []*eventmessages.Transaction {
 	result := make([]*eventmessages.Transaction, 0)
-	for _, transaction := range transactions {
+	for i, transaction := range transactions {
 		err := transaction.ValidateSignatures()
 		if err == nil {
-			result = append(result, mapTransaction(transaction))
+			var minuteMark = 0
+			for ; minuteMark < len(endOfPeriod) && endOfPeriod[minuteMark] > 0; minuteMark++ {
+				if endOfPeriod[minuteMark] >= i {
+					minuteMark++
+					break
+				}
+			}
+			result = append(result, mapTransaction(transaction, minuteMark))
 		}
 	}
 	return result
 }
 
-func mapTransaction(transaction interfaces.ITransaction) *eventmessages.Transaction {
+func mapTransaction(transaction interfaces.ITransaction, minuteNumber int) *eventmessages.Transaction {
 	result := &eventmessages.Transaction{
 		TransactionID:                 transaction.GetSigHash().Bytes(),
 		BlockHeight:                   transaction.GetBlockHeight(),
+		MinuteNumber:                  uint32(minuteNumber),
 		Timestamp:                     ConvertTimeToTimestamp(transaction.GetTimestamp().GetTime()),
 		FactoidInputs:                 mapTransactionAddresses(transaction.GetInputs()),
 		FactoidOutputs:                mapTransactionAddresses(transaction.GetOutputs()),
