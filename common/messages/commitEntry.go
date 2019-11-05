@@ -243,6 +243,16 @@ func (m *CommitEntryMsg) LogFields() log.Fields {
 		"hash":        m.GetHash().String()}
 }
 
+func (m *CommitEntryMsg) WellFormed() bool {
+	// TODO: I don't think the signature is used on the msg?
+
+	if !m.CommitEntry.IsValid() {
+		return false
+	}
+
+	return true
+}
+
 // Validate the message, given the state.  Three possible results:
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid

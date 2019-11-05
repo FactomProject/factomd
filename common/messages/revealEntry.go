@@ -127,6 +127,12 @@ func CheckChainID(state interfaces.IState, ExternalIDs [][]byte, msg *RevealEntr
 	return true
 }
 
+func (m *RevealEntryMsg) WellFormed() bool {
+	// TODO: Flush this out
+
+	return true
+}
+
 // Validate the message, given the state.  Three possible results:
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid

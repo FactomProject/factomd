@@ -134,6 +134,11 @@ func (m *RemoveAuditInternal) Type() byte {
 	return constants.INTERNALREMOVEAUDIT
 }
 
+func (m *RemoveAuditInternal) WellFormed() bool {
+	// TODO: Flush this out
+	return true
+}
+
 func (m *RemoveAuditInternal) Validate(state interfaces.IState) int {
 	return 1
 }

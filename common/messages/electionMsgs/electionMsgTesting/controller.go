@@ -100,7 +100,7 @@ func NewController(feds, auds int) *Controller {
 
 	c.Volunteers = make([]*electionMsgs.FedVoteVolunteerMsg, len(c.auds))
 
-	for i, _ := range c.auds {
+	for i := range c.auds {
 		c.Volunteers[i] = NewTestVolunteerMessage(c.Elections[0], 2, 0)
 	}
 

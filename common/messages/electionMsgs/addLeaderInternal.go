@@ -142,6 +142,11 @@ func (m *AddLeaderInternal) ElectionValidate(ie interfaces.IElections) int {
 	return 1
 }
 
+func (m *AddLeaderInternal) WellFormed() bool {
+	// TODO: Flush this out
+	return true
+}
+
 func (m *AddLeaderInternal) Validate(state interfaces.IState) int {
 	return 1
 }

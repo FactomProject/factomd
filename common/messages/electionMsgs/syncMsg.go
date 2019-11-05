@@ -151,6 +151,11 @@ func (m *SyncMsg) Type() byte {
 	return constants.SYNC_MSG
 }
 
+func (m *SyncMsg) WellFormed() bool {
+	// TODO: Flush this out
+	return true
+}
+
 func (m *SyncMsg) Validate(state interfaces.IState) int {
 	if !m.IsLocal() { // FD-886, only accept local messages
 		return -1

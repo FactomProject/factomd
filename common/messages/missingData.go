@@ -170,6 +170,11 @@ func (m *MissingData) LogFields() log.Fields {
 		"hash": m.GetHash().String(), "requesthash": m.RequestHash.String()}
 }
 
+func (m *MissingData) WellFormed() bool {
+	// TODO: Flush this out
+	return true
+}
+
 // Validate the message, given the state.  Three possible results:
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid

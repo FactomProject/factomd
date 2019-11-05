@@ -391,6 +391,11 @@ func (m *FedVoteLevelMsg) ElectionValidate(ie interfaces.IElections) int {
 	return m.FedVoteMsg.ElectionValidate(ie)
 }
 
+func (m *FedVoteLevelMsg) WellFormed() bool {
+	// TODO: Flush this out
+	return true
+}
+
 func (m *FedVoteLevelMsg) Validate(is interfaces.IState) int {
 	if m.IsValid() {
 		return 1
