@@ -1,12 +1,13 @@
 package pubsub
 
-func Publish_Generic(name string, object interface {}) {
+func Publish_Generic(name string, object interface{}) {
 
 }
 
-func Subscribe_Generic(name string) interface {} {
+func Subscribe_Generic(name string) interface{} {
+	var x interface{}
 
-	return interface {}{}
+	return x
 }
 
 func dummy() {
