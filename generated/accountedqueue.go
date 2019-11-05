@@ -149,7 +149,7 @@ func (q Queue_int) Dequeue() int {
 		q.Metric().Dec()
 		return v
 	default:
-		return nil
+		return -1
 	}
 }
 

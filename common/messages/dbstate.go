@@ -161,6 +161,12 @@ func (m *DBStateMsg) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp.Clone()
 }
 
+func (m *DBStateMsg) WellFormed() bool {
+	// TODO: Flush this out
+
+	return true
+}
+
 // Validate the message, given the state.  Three possible results:
 //  < 0 -- Message is invalid.  Discard
 //  1   -- Message is valid

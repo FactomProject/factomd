@@ -76,6 +76,12 @@ type IMsg interface {
 	//  1   -- Message is valid
 	Validate(IState) int
 
+	// Phases out validations
+	// WellFormed is any check that can be done on a message regardless
+	// of any state information. This can include things like valid signatures,
+	// reasonable minute (between 0 and 10), etc.
+	WellFormed() bool
+
 	//Set the VMIndex for a message
 	ComputeVMIndex(IState)
 

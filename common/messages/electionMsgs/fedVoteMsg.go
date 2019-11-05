@@ -215,6 +215,11 @@ func (m *FedVoteMsg) ValidateVolunteer(v FedVoteVolunteerMsg, is interfaces.ISta
 	return 1
 }
 
+func (m *FedVoteMsg) WellFormed() bool {
+	// TODO: Flush this out
+	return true
+}
+
 func (m *FedVoteMsg) Validate(is interfaces.IState) int {
 	s := is.(*state.State)
 	if m.DBHeight < s.GetLeaderHeight() {

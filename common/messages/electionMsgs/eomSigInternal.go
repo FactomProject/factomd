@@ -271,6 +271,11 @@ func (m *EomSigInternal) Type() byte {
 	return constants.INTERNALEOMSIG
 }
 
+func (m *EomSigInternal) WellFormed() bool {
+	// TODO: Flush this out
+	return true
+}
+
 func (m *EomSigInternal) Validate(state interfaces.IState) int {
 	return 1
 }
