@@ -110,8 +110,8 @@ func ProcessListEventNewBlock(streamSource eventmessages.EventSource, newBlockHe
 	return &ProcessListEvent{
 		eventSource: streamSource,
 		processListEventInstance: &eventmessages.ProcessListEvent{
-			ProcessListEvent: &eventmessages.ProcessListEvent_NewBlock{
-				NewBlock: &eventmessages.NewBlockEvent{
+			ProcessListEvent: &eventmessages.ProcessListEvent_NewBlockEvent{
+				NewBlockEvent: &eventmessages.NewBlockEvent{
 					NewBlockHeight: newBlockHeight,
 				},
 			},
@@ -123,8 +123,8 @@ func ProcessListEventNewMinute(streamSource eventmessages.EventSource, newMinute
 	return &ProcessListEvent{
 		eventSource: streamSource,
 		processListEventInstance: &eventmessages.ProcessListEvent{
-			ProcessListEvent: &eventmessages.ProcessListEvent_NewMinute{
-				NewMinute: &eventmessages.NewMinuteEvent{
+			ProcessListEvent: &eventmessages.ProcessListEvent_NewMinuteEvent{
+				NewMinuteEvent: &eventmessages.NewMinuteEvent{
 					NewMinute:   uint32(newMinute),
 					BlockHeight: blockHeight,
 				},

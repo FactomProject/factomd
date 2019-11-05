@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -20,11 +21,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/FactomProject/factomd/common/constants/runstate"
-	"github.com/FactomProject/factomd/events/eventservices"
 	"github.com/FactomProject/factomd/activations"
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/constants/runstate"
 	"github.com/FactomProject/factomd/common/globals"
 	. "github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -34,6 +34,7 @@ import (
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/leveldb"
 	"github.com/FactomProject/factomd/database/mapdb"
+	"github.com/FactomProject/factomd/events/eventservices"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/util/atomic"
@@ -593,6 +594,62 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 		os.MkdirAll(path, 0775)
 	}
 	return newState
+}
+
+func (s *State) EmitDBStateEventsFromHeight(height int64, end int64) {
+	msgs := s.GetAllDBStateMsgsFromDatabase(height, end)
+	for _, msg := range msgs {
+		EmitStateChangeEvent(msg, eventmessages.EntityState_COMMITTED_TO_DIRECTORY_BLOCK, s)
+	}
+}
+
+func (s *State) GetAllDBStateMsgsFromDatabase(height int64, end int64) []interfaces.IMsg {
+	i := height
+	msgCount := 0
+	var msgs []interfaces.IMsg
+	for i <= end {
+
+		d, err := s.DB.FetchDBlockByHeight(uint32(i))
+		if err != nil || d == nil {
+			break
+		}
+
+		a, err := s.DB.FetchABlockByHeight(uint32(i))
+		if err != nil || a == nil {
+			break
+		}
+		f, err := s.DB.FetchFBlockByHeight(uint32(i))
+		if err != nil || f == nil {
+			break
+		}
+		ec, err := s.DB.FetchECBlockByHeight(uint32(i))
+		if err != nil || ec == nil {
+			break
+		}
+
+		var eblocks []interfaces.IEntryBlock
+		var entries []interfaces.IEBEntry
+
+		ebs := d.GetEBlockDBEntries()
+		for _, eb := range ebs {
+			eblock, _ := s.DB.FetchEBlock(eb.GetKeyMR())
+			if eblock != nil {
+				eblocks = append(eblocks, eblock)
+				for _, e := range eblock.GetEntryHashes() {
+					ent, _ := s.DB.FetchEntry(e)
+					if ent != nil {
+						entries = append(entries, ent)
+					}
+				}
+			}
+		}
+
+		dbs := messages.NewDBStateMsg(d.GetTimestamp(), d, a, f, ec, eblocks, entries, nil)
+		i++
+		msgCount++
+		msgs = append(msgs, dbs)
+	}
+	return msgs
 }
 
 func (s *State) AddPrefix(prefix string) {
