@@ -28,9 +28,9 @@ type StateChangeEvent struct {
 	payload     interfaces.IDBState
 }
 
-type ProcessMessageEvent struct {
-	eventSource    eventmessages.EventSource
-	processMessage *eventmessages.ProcessMessage
+type ProcessListEvent struct {
+	eventSource              eventmessages.EventSource
+	processListEventInstance *eventmessages.ProcessListEvent
 }
 
 type NodeMessageEvent struct {
@@ -70,12 +70,12 @@ func (event StateChangeEvent) GetPayload() interfaces.IDBState {
 	return event.payload
 }
 
-func (event ProcessMessageEvent) GetStreamSource() eventmessages.EventSource {
+func (event ProcessListEvent) GetStreamSource() eventmessages.EventSource {
 	return event.eventSource
 }
 
-func (event ProcessMessageEvent) GetProcessMessage() *eventmessages.ProcessMessage {
-	return event.processMessage
+func (event ProcessListEvent) GetProcessListEvent() *eventmessages.ProcessListEvent {
+	return event.processListEventInstance
 }
 
 func (event NodeMessageEvent) GetStreamSource() eventmessages.EventSource {
@@ -106,19 +106,31 @@ func NewStateChangeEvent(streamSource eventmessages.EventSource, entityState eve
 		payload:     dbState}
 }
 
-func ProcessInfoMessage(streamSource eventmessages.EventSource, processCode eventmessages.ProcessCode, message string) *ProcessMessageEvent {
-	return &ProcessMessageEvent{
+func ProcessListEventNewBlock(streamSource eventmessages.EventSource, newBlockHeight uint32) *ProcessListEvent {
+	return &ProcessListEvent{
 		eventSource: streamSource,
-		processMessage: &eventmessages.ProcessMessage{
-			ProcessCode: processCode,
-			Level:       eventmessages.Level_INFO,
-			MessageText: message,
+		processListEventInstance: &eventmessages.ProcessListEvent{
+			ProcessListEvent: &eventmessages.ProcessListEvent_NewBlock{
+				NewBlock: &eventmessages.NewBlock{
+					NewBlockHeight: newBlockHeight,
+				},
+			},
 		},
 	}
 }
 
-func ProcessInfoEventF(streamSource eventmessages.EventSource, processCode eventmessages.ProcessCode, format string, values ...interface{}) *ProcessMessageEvent {
-	return ProcessInfoMessage(streamSource, processCode, fmt.Sprintf(format, values...))
+func ProcessListEventNewMinute(streamSource eventmessages.EventSource, newMinute int, blockHeight uint32) *ProcessListEvent {
+	return &ProcessListEvent{
+		eventSource: streamSource,
+		processListEventInstance: &eventmessages.ProcessListEvent{
+			ProcessListEvent: &eventmessages.ProcessListEvent_NewMinute{
+				NewMinute: &eventmessages.NewMinute{
+					NewMinute:   uint32(newMinute),
+					BlockHeight: blockHeight,
+				},
+			},
+		},
+	}
 }
 
 func NodeInfoMessage(messageCode eventmessages.NodeMessageCode, message string) *NodeMessageEvent {

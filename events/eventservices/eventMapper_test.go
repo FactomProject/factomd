@@ -402,15 +402,14 @@ func TestMapToFactomEvent(t *testing.T) {
 				}
 			},
 		},
-		"ProcessMessage": {
-			Input:            events.ProcessInfoMessage(eventmessages.EventSource_REPLAY_BOOT, eventmessages.ProcessCode_NEW_MINUTE, "test message"),
+		"ProcessListEvent": {
+			Input:            events.ProcessListEventNewMinute(eventmessages.EventSource_REPLAY_BOOT, 2, 123),
 			BroadcastContent: eventservices.BroadcastAlways,
 			Assertion: func(t *testing.T, event *eventmessages.FactomEvent) {
 				assert.Equal(t, eventmessages.EventSource_REPLAY_BOOT, event.EventSource)
-				if assert.NotNil(t, event.GetProcessMessage()) {
-					assert.NotNil(t, event.GetProcessMessage().Level)
-					assert.Equal(t, eventmessages.ProcessCode_NEW_MINUTE, event.GetProcessMessage().ProcessCode)
-					assert.Equal(t, "test message", event.GetProcessMessage().MessageText)
+				if assert.NotNil(t, event.GetProcessListEvent()) {
+					assert.Equal(t, 2, event.GetProcessListEvent().GetNewMinute())
+					assert.Equal(t, 123, event.GetProcessListEvent().GetNewBlock())
 				}
 			},
 		},

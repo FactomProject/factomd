@@ -90,7 +90,7 @@ func (esi *eventServiceInstance) Send(event events.EventInput) error {
 	// Only send info messages when EventReplayDuringStartup is disabled
 	if !esi.params.ReplayDuringStartup && !esi.owningState.IsRunLeader() {
 		switch event.(type) {
-		case *events.ProcessMessageEvent:
+		case *events.ProcessListEvent:
 		case *events.NodeMessageEvent:
 		default:
 			return nil

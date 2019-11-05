@@ -23,8 +23,8 @@ func MapToFactomEvent(eventInput events.EventInput, broadcastContent BroadcastCo
 	case *events.StateChangeEvent:
 		stateChangeEvent := eventInput.(*events.StateChangeEvent)
 		return mapDBStateEvent(stateChangeEvent, broadcastContent)
-	case *events.ProcessMessageEvent:
-		processMessageEvent := eventInput.(*events.ProcessMessageEvent)
+	case *events.ProcessListEvent:
+		processMessageEvent := eventInput.(*events.ProcessListEvent)
 		return mapProcessMessageEvent(processMessageEvent)
 	case *events.NodeMessageEvent:
 		nodeMessageEvent := eventInput.(*events.NodeMessageEvent)
@@ -113,11 +113,11 @@ func mapDBStateEvent(stateChangeEvent *events.StateChangeEvent, broadcastContent
 	return event, nil
 }
 
-func mapProcessMessageEvent(processMessageEvent *events.ProcessMessageEvent) (*eventmessages.FactomEvent, error) {
+func mapProcessMessageEvent(processMessageEvent *events.ProcessListEvent) (*eventmessages.FactomEvent, error) {
 	event := &eventmessages.FactomEvent{
 		EventSource: processMessageEvent.GetStreamSource(),
-		Event: &eventmessages.FactomEvent_ProcessMessage{
-			ProcessMessage: processMessageEvent.GetProcessMessage(),
+		Event: &eventmessages.FactomEvent_ProcessListEvent{
+			ProcessListEvent: processMessageEvent.GetProcessListEvent(),
 		},
 	}
 	return event, nil

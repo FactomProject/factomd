@@ -24,6 +24,8 @@ func mapTransactions(transactions []interfaces.ITransaction, endOfPeriod [10]int
 	for i, transaction := range transactions {
 		err := transaction.ValidateSignatures()
 		if err == nil {
+			// The endOfPeriod array contains the transaction count at the new minute transition time
+			// The minuteMark will contain the value of during which minute the transaction took place which is one higher than the position within the array
 			var minuteMark = 0
 			for ; minuteMark < len(endOfPeriod) && endOfPeriod[minuteMark] > 0; minuteMark++ {
 				if endOfPeriod[minuteMark] >= i {
