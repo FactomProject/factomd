@@ -44,5 +44,17 @@ func (q *Ͼ_typenameᐳ) Get(index Ͼ_indextypeᐳ) Ͼ_valuetypeᐳ {
 	return q.internalMap[index]
 }
 
+func (q *Ͼ_typenameᐳ) Len() int {
+	q.Lock()
+	defer q.Unlock()
+	return len(q.internalMap)
+}
+
+func (q *Ͼ_typenameᐳ) Cap() int {
+	q.Lock()
+	defer q.Unlock()
+	return cap(q.internalMap)
+}
+
 // End threadsafemap generated go code
 //Ͼendᐳ
