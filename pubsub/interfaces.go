@@ -1,4 +1,4 @@
-package pubregistry
+package pubsub
 
 // IPublisher is a routine that handles all publishes for a given publisher.
 type IPublisher interface {
@@ -17,7 +17,8 @@ type IPublisher interface {
 	Unsubscribe(subscriber IPubSubscriber) bool
 
 	// Informational Methods
-	SetPath(name string)
+	// only called by the registry
+	setPath(path string)
 	Path() string
 }
 
@@ -37,4 +38,8 @@ type IPubSubscriber interface {
 
 type ISubscriber interface {
 	// Should we have some common functions for subscribers?
+}
+
+type ISubscriberWrapper interface {
+	Wrap(subscriber IPubSubscriber) IPubSubscriber
 }

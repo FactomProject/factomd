@@ -1,4 +1,4 @@
-package pubregistry_test
+package pubsub_test
 
 import (
 	"fmt"

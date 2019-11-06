@@ -512,7 +512,7 @@ func (dbsl *DBStateList) UnmarshalBinaryData(p []byte) (newData []byte, err erro
 	//TODO: handle State
 	dbsl.Base, err = buf.PopUInt32()
 	if err != nil {
-		dbsl.State.LogPrintf("dbstateprocess", "DBStateList.UnmarshalBinaryData Base err: %v", err)
+		dbsl.State.LogPrintf("dbstateprocess", "DBStateList.UnmarshalBinaryData SubBase err: %v", err)
 		return
 	}
 	dbsl.Complete, err = buf.PopUInt32()
@@ -634,7 +634,7 @@ func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 
 func (list *DBStateList) String() string {
 	str := "\n========DBStates Start=======\nddddd DBStates\n"
-	str = fmt.Sprintf("dddd %s  Base      = %d\n", str, list.Base)
+	str = fmt.Sprintf("dddd %s  SubBase      = %d\n", str, list.Base)
 	ts := "-nil-"
 	if list.TimeToAsk != nil {
 		ts = list.TimeToAsk.String()
@@ -1635,9 +1635,9 @@ func (list *DBStateList) UpdateState() (progress bool) {
 	saved := 0
 	for i, d := range list.DBStates {
 		// loop only thru this and future blocks
-		//for i := int(list.State.LLeaderHeight); i < int(list.Base)+len(list.DBStates); i++ {
+		//for i := int(list.State.LLeaderHeight); i < int(list.SubBase)+len(list.DBStates); i++ {
 		//	d := list.Get(i)
-		//	//fmt.Printf("dddd %20s %10s --- %10s %10v %10s %10v \n", "DBStateList Update", list.State.FactomNodeName, "Looking at", i, "DBHeight", list.Base+uint32(i))
+		//	//fmt.Printf("dddd %20s %10s --- %10s %10v %10s %10v \n", "DBStateList Update", list.State.FactomNodeName, "Looking at", i, "DBHeight", list.SubBase+uint32(i))
 
 		// Must process blocks in sequence.  Missing a block says we must stop.
 		if d == nil {

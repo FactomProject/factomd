@@ -286,7 +286,7 @@ func (m *FedVoteMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error
 
 	buf := primitives.NewBuffer(data)
 	if t, e := buf.PopByte(); e != nil || t != m.Type() {
-		return nil, errors.New("Not a Fed Vote Base")
+		return nil, errors.New("Not a Fed Vote SubBase")
 	}
 	if m.TS, err = buf.PopTimestamp(); err != nil {
 		return nil, err

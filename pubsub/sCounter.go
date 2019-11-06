@@ -1,4 +1,4 @@
-package subscribers
+package pubsub
 
 import (
 	"sync"
@@ -6,7 +6,7 @@ import (
 
 // Counts the total number of things written to the subscriber
 type Counter struct {
-	Base
+	SubBase
 
 	totalCount int64
 
@@ -32,4 +32,9 @@ func (s *Counter) Count() int64 {
 	defer s.RUnlock()
 
 	return s.totalCount
+}
+
+func (s *Counter) Subscribe(path string) *Counter {
+	globalSubscribe(path, s)
+	return s
 }

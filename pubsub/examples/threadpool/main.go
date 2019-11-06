@@ -5,27 +5,22 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/Emyrk/pubsub/publishers"
-	"github.com/Emyrk/pubsub/pubregistry"
-	"github.com/Emyrk/pubsub/subscribers"
+	"github.com/FactomProject/factomd/pubsub"
 )
 
 func main() {
 	// This code finds the total number of prime numbers <= max
 	max := int64(1e5)
 
-	reg := pubregistry.NewRegistry()
+	reg := pubsub.NewRegistry()
 
 	// One person publishes the work on a round robin basis
-	robinPub := publishers.NewRoundRobinPublisher(100)
+	robinPub := pubsub.NewRoundRobinPublisher(100).Publish("/source")
 	go robinPub.Run() // The writer is threaded
 
-	panicError(reg.Register("/source", robinPub))
-
 	// Agg is a publisher with many writers.
-	agg := publishers.NewSimpleMultiPublish(100)
+	agg := pubsub.NewSimpleMultiPublish(100).Publish("/aggregate")
 	go agg.Run() // Writes are threaded
-	panicError(reg.Register("/aggregate", agg))
 
 	workers := 5
 	for i := 0; i < workers; i++ {
@@ -33,7 +28,7 @@ func main() {
 		// to the agg publisher. When the source publisher is done, and the
 		// worker has no more tasks, it will close the agg publisher.
 		// The agg publisher will close when all writers are done.
-		go PrimeWorker(reg)
+		go PrimeWorker()
 	}
 
 	// Load the work
@@ -49,13 +44,12 @@ func main() {
 	fmt.Printf("%d primes found\n", Count(reg))
 }
 
-func PrimeWorker(reg *pubregistry.Registry) {
+func PrimeWorker() {
 	// Channel based subscription is just a channel written to by a publisher
-	sub := subscribers.NewChannelBasedSubscriber(5)
-	panicError(reg.SubscribeTo("/source", sub))
+	sub := pubsub.NewChannelBasedSubscriber(5).Subscribe("/source")
 
 	// agg is where we write our results.
-	agg := reg.FindPublisher("/aggregate").(*publishers.SimpleMultiPublish)
+	agg := pubsub.GlobalRegistry().FindPublisher("/aggregate").(*pubsub.SimpleMultiPublish)
 	agg = agg.NewPublisher()
 
 	for {
@@ -75,19 +69,15 @@ func PrimeWorker(reg *pubregistry.Registry) {
 	}
 }
 
-func Count(reg *pubregistry.Registry) int64 {
+func Count(reg *pubsub.Registry) int64 {
 	// We only care about the count, the count subscriber just tracks the number
 	// of items written to it.
-	sub := subscribers.NewCounterSubscriber()
+	sub := pubsub.NewCounterSubscriber()
 
 	// Add a context so we can externally bind to the Done().
 	// This is so we know when to read the value and exit.
-	ctx, cancel := context.W.ithCancel(context.Background())
-	csub := subscribers.NewContext(sub, cancel)
-	err := reg.SubscribeTo("/aggregate", csub)
-	if err != nil {
-		panic(err)
-	}
+	ctx, cancel := context.WithCancel(context.Background())
+	_ = pubsub.NewContext(sub, cancel).Subscribe("/aggregate")
 
 	// Wait for the subscriber to get called Done(), meaning all data is
 	// published.

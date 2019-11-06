@@ -1,4 +1,4 @@
-package publishers
+package pubsub
 
 // SimpleMultiPublish is a very basic idea of keeping track of multiple
 // writers. The close functionality only happens if ALL writers close
@@ -15,6 +15,11 @@ func NewSimpleMultiPublish(buffer int) *SimpleMultiPublish {
 	p.Threaded = NewThreadedPublisherPublisher(buffer)
 
 	return p
+}
+
+func (m *SimpleMultiPublish) Publish(path string) *SimpleMultiPublish {
+	globalPublish(path, m)
+	return m
 }
 
 func (m *SimpleMultiPublish) NewPublisher() *SimpleMultiPublish {

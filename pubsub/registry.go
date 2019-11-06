@@ -1,4 +1,4 @@
-package pubregistry
+package pubsub
 
 import (
 	"fmt"
@@ -6,6 +6,16 @@ import (
 
 	"github.com/DiSiqueira/GoTree"
 )
+
+var globalReg *Registry
+
+func init() {
+	globalReg = NewRegistry()
+}
+
+func GlobalRegistry() *Registry {
+	return globalReg
+}
 
 type Registry struct {
 	Publishers map[string]IPublisher
@@ -40,7 +50,7 @@ func (r *Registry) Register(path string, pub IPublisher) error {
 		return fmt.Errorf("publisher already exists at that path")
 	}
 
-	pub.SetPath(path)
+	pub.setPath(path)
 	r.Publishers[path] = pub
 	return nil
 }
@@ -68,4 +78,20 @@ func (r *Registry) SubscribeTo(path string, sub IPubSubscriber) error {
 	})
 
 	return nil
+}
+
+func globalPublish(path string, p IPublisher) IPublisher {
+	err := globalReg.Register(path, p)
+	if err != nil {
+		panic(fmt.Sprintf("failed to publish: %s", err.Error()))
+	}
+	return p
+}
+
+func globalSubscribe(path string, sub IPubSubscriber) IPubSubscriber {
+	err := globalReg.SubscribeTo(path, sub)
+	if err != nil {
+		panic(fmt.Sprintf("failed to subscribe: %s", err.Error()))
+	}
+	return sub
 }

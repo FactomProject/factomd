@@ -1,4 +1,4 @@
-package subscribers
+package pubsub
 
 import (
 	"runtime"
@@ -7,7 +7,7 @@ import (
 
 // AtomicValue handles a single atomic value of the last write.
 type AtomicValue struct {
-	Base
+	SubBase
 
 	value interface{}
 
@@ -33,4 +33,9 @@ func (s *AtomicValue) Value() interface{} {
 	s.RLock()
 	defer s.RUnlock()
 	return s.value
+}
+
+func (s *AtomicValue) Subscribe(path string) *AtomicValue {
+	globalSubscribe(path, s)
+	return s
 }

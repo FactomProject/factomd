@@ -1,43 +1,48 @@
-package subscribers
+package pubsub
 
 import (
 	"sync"
 )
 
 type Channel struct {
-	Base
-	updates chan interface{}
+	SubBase
+	Updates chan interface{}
 
 	sync.RWMutex
 }
 
 func NewChannelBasedSubscriber(buffer int) *Channel {
 	s := new(Channel)
-	s.updates = make(chan interface{}, buffer)
+	s.Updates = make(chan interface{}, buffer)
 
 	return s
 }
 
 func (s *Channel) Write(o interface{}) {
-	s.updates <- o
+	s.Updates <- o
 }
 
 func (s *Channel) Done() {
-	close(s.updates)
+	close(s.Updates)
 }
 
 // Sub side
 
 func (s *Channel) Channel() <-chan interface{} {
-	return s.updates
+	return s.Updates
 }
 
 func (s *Channel) Receive() interface{} {
-	v := <-s.updates
+	v := <-s.Updates
 	return v
 }
 
 func (s *Channel) ReceiveWithInfo() (interface{}, bool) {
-	v, ok := <-s.updates
+	v, ok := <-s.Updates
 	return v, ok
+}
+
+func (s *Channel) Subscribe(path string) *Channel {
+	globalSubscribe(path, s)
+	return s
 }
