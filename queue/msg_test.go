@@ -82,17 +82,17 @@ func TestQueues(t *testing.T) {
 	}()
 
 	b := time.Now().Unix()
-	general.BlockingDequeue()
+	general.Dequeue()
 	if time.Now().Unix()-b < 1 {
 		t.Error("Did not properly block")
 	}
 
-	inmsg.BlockingDequeue()
+	inmsg.Dequeue()
 	if time.Now().Unix()-b < 1 {
 		t.Error("Did not properly block")
 	}
 
-	netOut.BlockingDequeue()
+	netOut.Dequeue()
 	if time.Now().Unix()-b < 1 {
 		t.Error("Did not properly block")
 	}

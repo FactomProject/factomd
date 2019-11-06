@@ -47,7 +47,7 @@ func TestAccountedQueue_Ͼ_typenameϿ(t *testing.T) {
 		//}
 	}
 
-	if q.Dequeue() != nil {
+	if q.DequeueNonBlocking() != nil {
 		t.Fatal("empty dequeue return non-nil")
 	}
 }

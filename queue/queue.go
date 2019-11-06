@@ -77,9 +77,9 @@ func (q *MsgQueue) Enqueue(m interfaces.IMsg) {
 
 // Dequeue removes an item from channel and instruments based on type.
 // Returns nil if nothing in // queue
-func (q *MsgQueue) Dequeue() interfaces.IMsg {
-	v := q.Queue_IMsg.Dequeue()
-	if v != nil {
+func (q *MsgQueue) DequeueNonBlocking() interfaces.IMsg {
+	v, _, empty := q.Queue_IMsg.DequeueNonBlockingFlags()
+	if !empty {
 		q.Metric(v).Dec()
 		return v
 	}
@@ -87,8 +87,8 @@ func (q *MsgQueue) Dequeue() interfaces.IMsg {
 }
 
 // Dequeue removes an item from channel and instruments based on type.
-func (q *MsgQueue) BlockingDequeue() interfaces.IMsg {
-	v := q.Queue_IMsg.BlockingDequeue()
+func (q *MsgQueue) Dequeue() interfaces.IMsg {
+	v := q.Queue_IMsg.Dequeue()
 	q.Metric(v).Dec()
 	return v
 }

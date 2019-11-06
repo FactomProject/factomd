@@ -14,8 +14,8 @@ import (
 
 //ϾendϿ
 
-type Ͼ_subscribertypeϿ subscribers.AtomicValue // used when not generating for testing
-type Ͼ_valuetypeϿ int                          // used when not generating for testing
+type Ͼ_subscribertypeϿ subscribers.AtomicValue // not used when generating, only used for testing
+type Ͼ_valuetypeϿ int                          // not used when generating, only used for testing
 
 // Expects: typename <name> subscribertype <name> valuetype <type>
 

@@ -189,7 +189,7 @@ func (m *MessageBase) SendOut(s interfaces.IState, msg interfaces.IMsg) {
 		if q.Length() < q.Cap() {
 			q.Enqueue(msg)
 		} else {
-			popped := s.NetworkOutMsgQueue().BlockingDequeue()
+			popped := s.NetworkOutMsgQueue().Dequeue()
 			s.LogMessage("NetworkOutputs", "Popped & dropped", popped)
 			q.Enqueue(msg)
 		}

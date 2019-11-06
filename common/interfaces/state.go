@@ -22,8 +22,8 @@ type IQueue interface {
 	Length() int
 	Cap() int
 	Enqueue(msg IMsg)
+	DequeueNonBlocking() IMsg
 	Dequeue() IMsg
-	BlockingDequeue() IMsg
 }
 
 // Holds the state information for factomd.  This does imply that we will be

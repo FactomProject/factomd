@@ -401,7 +401,7 @@ func NetworkOutputs(fnode *fnode.FactomNode) {
 		// 	fmt.Print(fnode.State.GetFactomNodeName(), "-", len(fnode.State.NetworkOutMsgQueue()), " ")
 		// }
 		//msg := <-fnode.State.NetworkOutMsgQueue()
-		msg := fnode.State.NetworkOutMsgQueue().BlockingDequeue()
+		msg := fnode.State.NetworkOutMsgQueue().Dequeue()
 
 		NetworkOutTotalDequeue.Inc()
 		fnode.State.LogMessage("NetworkOutputs", "Dequeue", msg)

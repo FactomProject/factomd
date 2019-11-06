@@ -6,16 +6,16 @@
 
 package publishers
 
+//Ͼdefine "publisher-imports"Ͽ
+
 import (
 	"github.com/FactomProject/factomd/pubsub/publishers"
 )
 
-//Ͼdefine "publisher-imports"Ͽ
-
 //ϾendϿ
 
-type Ͼ_publishertypeϿ publishers.Base // used when not generating for testing
-type Ͼ_valuetypeϿ int                 // used when not generating for testing
+type Ͼ_publishertypeϿ struct{ publishers.Base } // not used when generating, only used for testing
+type Ͼ_valuetypeϿ int                           // not used when generating, only used for testing
 
 // Expects: typename <name> publishertype <name> valuetype <type>
 

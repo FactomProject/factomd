@@ -15,8 +15,8 @@ import (
 
 //ϾendϿ
 
-type Ͼ_indextypeϿ int // used when not generating for testing
-type Ͼ_valuetypeϿ int // used when not generating for testing
+type Ͼ_indextypeϿ int // not used when generating, only used for testing
+type Ͼ_valuetypeϿ int // not used when generating, only used for testing
 
 //Ͼdefine "threadsafemap"Ͽ
 // Start threadsafemap generated go code
