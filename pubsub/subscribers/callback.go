@@ -1,6 +1,6 @@
 package subscribers
 
-import "github.com/Emyrk/pubsub/pubregistry"
+import "github.com/FactomProject/factomd/pubsub/pubregistry"
 
 // Callback allows an external function call to be bound to the Write()
 // function of the subscriber.

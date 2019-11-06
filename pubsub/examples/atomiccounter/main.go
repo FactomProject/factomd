@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Emyrk/pubsub/publishers"
-	"github.com/Emyrk/pubsub/pubregistry"
-	"github.com/Emyrk/pubsub/subscribers"
+	"github.com/FactomProject/factomd/pubsub/publishers"
+	"github.com/FactomProject/factomd/pubsub/pubregistry"
+	"github.com/FactomProject/factomd/pubsub/subscribers"
 )
 
 // Atomic counter keeps all subscribers on the same level

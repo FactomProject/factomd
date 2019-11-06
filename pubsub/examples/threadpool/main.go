@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/Emyrk/pubsub/publishers"
-	"github.com/Emyrk/pubsub/pubregistry"
-	"github.com/Emyrk/pubsub/subscribers"
+	"github.com/FactomProject/factomd/pubsub/publishers"
+	"github.com/FactomProject/factomd/pubsub/pubregistry"
+	"github.com/FactomProject/factomd/pubsub/subscribers"
 )
 
 func main() {

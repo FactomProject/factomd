@@ -35,9 +35,27 @@ func (q *foo) Put(index int, value string) {
 }
 
 func (q *foo) Get(index int) string {
+	v, _ := q.GetWithFlag(index)
+	return v
+}
+
+func (q *foo) GetWithFlag(index int) (string, bool) {
 	q.Lock()
 	defer q.Unlock()
-	return q.internalMap[index]
+	v, ok := q.internalMap[index]
+	return v, ok
+}
+
+func (q *foo) Delete(index int) {
+	q.Lock()
+	defer q.Unlock()
+	delete(q.internalMap, index)
+}
+
+func (q *foo) Len() int {
+	q.Lock()
+	defer q.Unlock()
+	return len(q.internalMap)
 }
 
 // End threadsafemap generated go code

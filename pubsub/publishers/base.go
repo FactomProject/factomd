@@ -3,7 +3,7 @@ package publishers
 import (
 	"sync"
 
-	"github.com/Emyrk/pubsub/pubregistry"
+	"github.com/FactomProject/factomd/pubsub/pubregistry"
 )
 
 // Base publisher has the basic necessary function implementations.

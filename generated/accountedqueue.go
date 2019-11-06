@@ -129,7 +129,7 @@ func (q Queue_int) Enqueue(m int) {
 }
 
 // Enqueue adds item to channel and instruments based on
-// returns true it it enqueues the data
+// returns true if it enqueues the data
 func (q Queue_int) EnqueueNonBlocking(m int) bool {
 	select {
 	case q.Channel <- m:
@@ -149,7 +149,7 @@ func (q Queue_int) Dequeue() int {
 		q.Metric().Dec()
 		return v
 	default:
-		return -1
+		return nil
 	}
 }
 

@@ -1,10 +1,10 @@
 //Ͼ/*
-// The FactomGenerate templates use Greek Capitol  syllabary characters using "Ͼ" U+03FE, "Ͽ" U+03FF as the
+// The FactomGenerate templates use Greek Capitol syllabary characters using "Ͼ" U+03FE, "Ͽ" U+03FF as the
 // delimiters. This is done so the template can be valid go code and goimports and gofmt will work correctly on the
 // code and it can be tested in unmodified form. For more information see factomgenerate/generate.go
 //*/Ͽ
 
-package templates // this is only here to make gofmt happy and is never in the generated code
+package accountedqueues // this is only here to make gofmt happy and is never in the generated code
 
 //Ͼdefine "accountedqueue-imports"Ͽ
 
@@ -60,7 +60,7 @@ func (q Ͼ_typenameϿ) Enqueue(m Ͼ_typeϿ) {
 }
 
 // Enqueue adds item to channel and instruments based on
-// returns true it it enqueues the data
+// returns true if it enqueues the data
 func (q Ͼ_typenameϿ) EnqueueNonBlocking(m Ͼ_typeϿ) bool {
 	select {
 	case q.Channel <- m:
