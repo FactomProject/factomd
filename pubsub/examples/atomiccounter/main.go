@@ -31,7 +31,7 @@ func main() {
 
 func ValueWatcher(worker int, reg *pubregistry.Registry) {
 	// Channel based subscription is just a channel written to by a publisher
-	sub := subscribers.NewAtomicValueSubscriber()
+	sub := subscribers.NewValueSubscriber()
 
 	// Let's add callbacks
 	callbackSub := subscribers.NewCallback(sub)

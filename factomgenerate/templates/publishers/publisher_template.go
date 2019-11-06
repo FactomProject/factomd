@@ -6,30 +6,37 @@
 
 package publishers
 
-//Ͼdefine "publisher-imports"Ͽ
+//go:generate go run ../../generate.go
+
+//Ͼdefine "publish-imports"Ͽ
 
 import (
-	"github.com/FactomProject/factomd/pubsub/publishers"
+	. "github.com/FactomProject/factomd/common/pubsubtypes"
+	. "github.com/FactomProject/factomd/pubsub/publishers"
 )
 
 //ϾendϿ
 
-type Ͼ_publishertypeϿ struct{ publishers.Base } // not used when generating, only used for testing
-type Ͼ_valuetypeϿ int                           // not used when generating, only used for testing
+type Ͼ_publishertypeϿ struct{ Base } // not used when generating, only used for testing
+type Ͼ_valuetypeϿ DBHT               // not used when generating, only used for testing
 
-// Expects: typename <name> publishertype <name> valuetype <type>
+// Expects: publishertype <name> valuetype <type>
 
-//Ͼdefine "publisher"Ͽ
+//Ͼdefine "publish"Ͽ
 // Start publisher generated go code
 
-// Ͼ_typenameϿ subscriber has the basic necessary function implementations.
-type Ͼ_typenameϿ struct {
-	Ͼ_publishertypeϿ
+// Publish_Ͼ_publishertypeϿ_Ͼ_valuetypeϿ publisher has the basic necessary function implementations.
+type Publish_Ͼ_publishertypeϿ_Ͼ_valuetypeϿ_type struct {
+	*Ͼ_publishertypeϿ
 }
 
-// Receive the object of type and call the generic
-func (p *Ͼ_typenameϿ) Write(o Ͼ_valuetypeϿ) {
+// Receive the object of type and call the generic so the compiler can check the passed in type
+func (p *Publish_Ͼ_publishertypeϿ_Ͼ_valuetypeϿ_type) Write(o Ͼ_valuetypeϿ) {
 	p.Ͼ_publishertypeϿ.Write(o)
+}
+
+func Publish_Ͼ_publishertypeϿ_Ͼ_valuetypeϿ(p *Ͼ_publishertypeϿ) Publish_Ͼ_publishertypeϿ_Ͼ_valuetypeϿ_type {
+	return Publish_Ͼ_publishertypeϿ_Ͼ_valuetypeϿ_type{p}
 }
 
 // End publisher generated go code

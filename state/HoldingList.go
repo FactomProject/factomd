@@ -7,7 +7,10 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/pubsub/publishers"
+	"github.com/FactomProject/factomd/pubsub/subscribers"
 	"github.com/FactomProject/factomd/telemetry"
+	"github.com/FactomProject/factomd/worker"
 )
 
 type heldMessage struct {
@@ -15,12 +18,42 @@ type heldMessage struct {
 	offset        int
 }
 
+
 // This hold a slice of messages dependent on a hash
 type HoldingList struct {
 	common.Name
-	holding    map[[32]byte][]interfaces.IMsg
-	s          *State                   // for debug logging
-	dependents map[[32]byte]heldMessage // used to avoid duplicate entries & track position in holding
+	holding        map[[32]byte][]interfaces.IMsg
+	s              *State                   // for debug logging
+	dependents     map[[32]byte]heldMessage // used to avoid duplicate entries & track position in holding
+	messages       *Value
+	fctMessages    *Publish_Base_IMgs
+	gossipMessages *Publish_Base_IMgs
+	heights         *subscribers.Channel
+	ecDeposits      *subscribers.Channel
+	chainReveals    *subscribers.Channel
+	commits         *subscribers.Channel
+}
+
+func (l *HoldingList) doWork(w *worker.Thread, id int) {
+	l.messages = Publish_Base_IMgs(new(publishers.Base).Publish(w.GetParentName() + "/messages"))
+	l.fctMessages = Publish_Base_IMgs(new(publishers.Base).Publish(w.GetParentName() + "/fctMessages"))
+	l.gossipMessages = Publish_Base_IMgs(new(publishers.Base).Publish(w.GetParentName() + "/gossipMessages"))
+
+	l.heights = SubscribeByValue_DBHT(subscribers.NewChannelBasedSubscriber(10).Subscribe(w.GetParentName() + "/heights"))
+
+}
+
+func (l *HoldingList) Run(w *worker.Thread) {
+
+	w.Spawn(func(w *worker.Thread) {
+		w.Init(l, "even")
+		w.OnRun(l.doWork(w, 0)
+	}
+	w.Spawn(func(w *worker.Thread) {
+		w.Init(l, "odd")
+		w.OnRun(l.doWork(w, 1)
+	}
+
 }
 
 // access gauge w/ proper labels

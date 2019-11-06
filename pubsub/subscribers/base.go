@@ -20,3 +20,5 @@ func (b *Base) Unsubscribe() {
 func (b *Base) Done() {
 	// Noop by default
 }
+
+func (b *Base) Subscribe(name string) {}

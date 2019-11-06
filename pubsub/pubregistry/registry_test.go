@@ -47,7 +47,7 @@ func TestRegistry_ThreadedPublisher(t *testing.T) {
 		t.Error(err)
 	}
 
-	s := subscribers.NewAtomicValueSubscriber()
+	s := subscribers.NewValueSubscriber()
 	err = r.SubscribeTo("test", s)
 	if err != nil {
 		t.Error(err)
@@ -59,7 +59,7 @@ func TestRegistry_ThreadedPublisher(t *testing.T) {
 		p.Write(data)
 	}()
 
-	data2 := s.Value()
+	data2 := s.Read()
 
 	if !reflect.DeepEqual(data, data2) {
 		t.Error("Data published is wrong")

@@ -40,35 +40,75 @@ func main() {
 	RunTemplates(templates, factomgeneraterequests)
 
 	// handle the pub/sub requests
-	pubsubrequests := CollectPubSubRequests()
+	pubsubrequests := append(CollectPublishRequests(), CollectSubscribeRequests()...)
 	RunTemplates(templates, pubsubrequests)
 	fmt.Println("done")
 }
 
-// Find all requests in the form: Publish_<type> or Subscribe_<type> in all the go files
-func CollectPubSubRequests() []string {
+// Find all requests in the form: Publish_<PublisherType>_<ValueType> in all the go files
+func CollectPublishRequests() []string {
 	var out bytes.Buffer
-	cmdline := []string{"/bin/bash", "-c", "find .. -name \\*.go | xargs grep -Eh \"= *Publish_|= *Subscribe_\" || true"}
+	cmdline := []string{"/bin/bash", "-c", "find .. -name \\*.go | xargs grep -Eh \"= Publish_[^( []+\\(\" || true"}
 	// the odd || true at the end avoid grep returning a bogus error code.
 	cmd := exec.Command(cmdline[0], cmdline[1:]...)
 	cmd.Stdout = &out
 	err := cmd.Run()
 	die(err)
-	pubsubrequests := []string{}
-	re := regexp.MustCompile("Publish_[^ (]+|Subscribe_[^ (]+")
-	// For each template request, split out the key value pairs ...
+	pubsubrequests := make(map[string]interface{})
+	re := regexp.MustCompile("Publish_[^ (]+")
+	// For each template request, split out the key value pairs and deduplicate using a map...
+	for _, m := range strings.Split(out.String(), "\n") {
+		matches := re.FindStringSubmatch(m)
+		for _, x := range matches {
+			// Split the Publish_<type> or Subscribe_<type> into template and type
+			parts := strings.SplitN(x, "_", 3)
+			PublisherType, ValueType := parts[1], parts[2]
+			// reformat these into the FactomGenerate form
+			fg := fmt.Sprintf("//FactomGenerate template publish publishertype %s valuetype %s", PublisherType, ValueType)
+			pubsubrequests[fg] = nil // Only the key matters
+		}
+	}
+
+	// convert map to a slice of strings
+	pubsubrequestsstrings := []string{}
+	for k, _ := range pubsubrequests {
+		fmt.Println(k)
+		pubsubrequestsstrings = append(pubsubrequestsstrings, k)
+	}
+	return pubsubrequestsstrings
+}
+
+// Find all requests in the form: Subscribe<SubscriberType>_<type> in all the go files
+func CollectSubscribeRequests() []string {
+	var out bytes.Buffer
+	cmdline := []string{"/bin/bash", "-c", "find .. -name \\*.go | xargs grep -Eoh \"= *Subscribe[^_]+_[^(]+\\(\" || true"}
+	// the odd || true at the end avoid grep returning a bogus error code.
+	cmd := exec.Command(cmdline[0], cmdline[1:]...)
+	cmd.Stdout = &out
+	err := cmd.Run()
+	die(err)
+	requests := make(map[string]interface{})
+	re := regexp.MustCompile("Subscribe[^_]+_[^ (]+")
+	// For each template request, split out the key value pairs and deduplicate using a map...
 	for _, m := range strings.Split(out.String(), "\n") {
 		matches := re.FindStringSubmatch(m)
 		for _, x := range matches {
 			// Split the Publish_<type> or Subscribe_<type> into template and type
 			parts := strings.SplitN(x, "_", 2)
-			PorS, Type := parts[0], parts[1]
-			fmt.Println(PorS, Type)
+			subscriptionType, valueType := parts[0], parts[1]
 			// reformat these into the FactomGenerate form
-			pubsubrequests = append(pubsubrequests, fmt.Sprintf("//FactomGenerate template %s type %s", PorS, Type))
+			fg := fmt.Sprintf("//FactomGenerate template %s valuetype %s", subscriptionType, valueType)
+			requests[fg] = nil // Only the key matters
 		}
 	}
-	return pubsubrequests
+
+	// convert map to a slice of strings
+	subscriptionRequests := []string{}
+	for k, _ := range requests {
+		fmt.Println(k)
+		subscriptionRequests = append(subscriptionRequests, k)
+	}
+	return subscriptionRequests
 }
 
 // Find all requests in the form: //FactomGenerate [<key:value>]... in all the go files
@@ -87,7 +127,8 @@ func CollectFactomGenerateRequests() []string {
 func LoadTemplates() *template.Template {
 	// load the templates for files wrappers
 	templates := template.New("FactomGenerate")
-
+	cwd, _ := os.Getwd()
+	fmt.Println(cwd)
 	template.Must(templates.ParseGlob("./factomgenerate/templates/*.tmpl"))
 	// load the templates for go code
 	// these templates use "Ͼ", "Ͽ" as the delimiter to make the template gofmt compatible

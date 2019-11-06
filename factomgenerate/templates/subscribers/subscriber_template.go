@@ -14,22 +14,21 @@ import (
 
 //ϾendϿ
 
-type Ͼ_subscribertypeϿ subscribers.AtomicValue // not used when generating, only used for testing
-type Ͼ_valuetypeϿ int                          // not used when generating, only used for testing
+type Ͼ_valuetypeϿ int // not used when generating, only used for testing
 
-// Expects: typename <name> subscribertype <name> valuetype <type>
+// Expects: valuetype <type>
 
 //Ͼdefine "subscribebyvalue"Ͽ
-// Start subscribebyvalue generated go code
+// Start subscribeByValue generated go code
 
 // Ͼ_typenameϿ subscriber has the basic necessary function implementations.
-type Ͼ_typenameϿ struct {
-	Ͼ_subscribertypeϿ
+type Subscribe_ByValue_Ͼ_valuetypeϿ struct {
+	subscribers.Value
 }
 
-func (s *Ͼ_typenameϿ) Value() Ͼ_valuetypeϿ {
-	o := s.Ͼ_subscribertypeϿ.Value() // call the generic implementation
-	return Ͼ_valuetypeϿ(o)           // cast the return to the specific type
+func (s *Subscribe_ByValue_Ͼ_valuetypeϿ) Read() Ͼ_valuetypeϿ {
+	o := s.Value.Read()     // call the generic implementation
+	return o.(Ͼ_valuetypeϿ) // cast the return to the specific type
 }
 
 // End Subscribebyvalue generated code
