@@ -6,14 +6,12 @@
 
 package accountedqueues // this is only here to make gofmt happy and is never in the generated code
 
-//go:generate go run ./generate.go
+//go:generate go run ../../generate.go
 
 //Ͼdefine "accountedqueue_test-imports"Ͽ
 
 import (
 	"testing"
-
-	"github.com/FactomProject/factomd/factomgenerate/templates/publishers"
 
 	"github.com/FactomProject/factomd/common"
 )
@@ -25,8 +23,8 @@ var Ͼ_testelementϿ Ͼ_typeϿ // just use a zero value as the test element
 //Ͼdefine "accountedqueue_test"Ͽ
 // Start accountedqueue_test generated go code
 
-func TestAccountedQueue(t *testing.T) {
-	q := new(publishers.Ͼ_typenameϿ).Init(common.NilName, "Test", 10)
+func TestAccountedQueue_Ͼ_typenameϿ(t *testing.T) {
+	q := new(Ͼ_typenameϿ).Init(common.NilName, "TestϾ_typenameϿ", 10)
 
 	if q.Dequeue() != nil {
 		t.Fatal("empty dequeue return non-nil")

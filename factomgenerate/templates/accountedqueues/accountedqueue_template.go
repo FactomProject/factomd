@@ -6,6 +6,8 @@
 
 package accountedqueues // this is only here to make gofmt happy and is never in the generated code
 
+//go:generate go run ../../generate.go
+
 //Ͼdefine "accountedqueue-imports"Ͽ
 
 import (
@@ -73,22 +75,41 @@ func (q Ͼ_typenameϿ) EnqueueNonBlocking(m Ͼ_typeϿ) bool {
 }
 
 // Dequeue removes an item from channel
-// Returns nil if nothing in // queue
-func (q Ͼ_typenameϿ) Dequeue() Ͼ_typeϿ {
-	select {
-	case v := <-q.Channel:
+// Return value and true if open or zero and false if closed
+func (q Ͼ_typenameϿ) DequeueFlag() (rval Ͼ_typeϿ, open bool) {
+	v, open := <-q.Channel
+	if open {
 		q.Metric().Dec()
-		return v
+	}
+	return v, open
+}
+
+// Dequeue removes an item from channel
+func (q Ͼ_typenameϿ) Dequeue() (rval Ͼ_typeϿ) {
+	v, _ := q.DequeueFlag()
+	return v
+}
+
+// Dequeue removes an item from channel
+// Returns zero value if nothing in queue or closed
+// Returns open and empty flags
+func (q Ͼ_typenameϿ) DequeueNonBlockingFlags() (rval Ͼ_typeϿ, open bool, empty bool) {
+	select {
+	case rval, open = <-q.Channel:
+		if open {
+			q.Metric().Dec()
+		}
+		return rval, open, !open // if it is closed it is empty
 	default:
-		return nil
+		return rval, true, true
 	}
 }
 
 // Dequeue removes an item from channel
-func (q Ͼ_typenameϿ) BlockingDequeue() Ͼ_typeϿ {
-	v := <-q.Channel
-	q.Metric().Dec()
-	return v
+// Returns zero value if nothing in queue or closed
+func (q Ͼ_typenameϿ) DequeueNonBlocking() (rval Ͼ_typeϿ) {
+	rval, _, _ = q.DequeueNonBlockingFlags()
+	return rval
 }
 
 // End accountedqueue generated go code
