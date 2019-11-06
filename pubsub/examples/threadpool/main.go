@@ -82,7 +82,7 @@ func Count(reg *pubregistry.Registry) int64 {
 
 	// Add a context so we can externally bind to the Done().
 	// This is so we know when to read the value and exit.
-	ctx, cancel := context.W.ithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
 	csub := subscribers.NewContext(sub, cancel)
 	err := reg.SubscribeTo("/aggregate", csub)
 	if err != nil {
