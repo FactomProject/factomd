@@ -19,7 +19,7 @@ import (
 	"text/template"
 )
 
-// The FactomGenerate templates use Greek Capitol  syllabary characters "Ͼ" U+03FE, "Ͽ" U+03FF as the delimiters. This
+// The FactomGenerate templates use Greek Capitol syllabary characters "Ͼ" U+03FE, "Ͽ" U+03FF as the delimiters. This
 // is done so the template can be valid go code and goimports and gofmt will work correctly on the code and it can be
 // tested in unmodified form. There are a few accommodated to facilitate this.
 // U+03FE	GREEK CAPITAL DOTTED LUNATE SIGMA SYMBOL			Ͼ
@@ -91,7 +91,7 @@ func LoadTemplates() *template.Template {
 	template.Must(templates.ParseGlob("./factomgenerate/templates/*.tmpl"))
 	// load the templates for go code
 	// these templates use "Ͼ", "Ͽ" as the delimiter to make the template gofmt compatible
-	goTemplateFiles, err := filepath.Glob("./factomgenerate/templates/*_template*.go")
+	goTemplateFiles, err := filepath.Glob("./factomgenerate/templates/*/*_template*.go")
 	die(err)
 	for _, filename := range goTemplateFiles {
 		reformattedFilename := ReformatTemplateFile(filename)

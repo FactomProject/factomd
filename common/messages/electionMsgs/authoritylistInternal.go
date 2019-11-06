@@ -103,6 +103,11 @@ func (m *AuthorityListInternal) ElectionValidate(ie interfaces.IElections) int {
 	return 1
 }
 
+func (m *AuthorityListInternal) WellFormed() bool {
+	// TODO: Flush this out
+	return true
+}
+
 func (m *AuthorityListInternal) Validate(state interfaces.IState) int {
 	return 1
 }

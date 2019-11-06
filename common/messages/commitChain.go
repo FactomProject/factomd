@@ -125,6 +125,16 @@ func (m *CommitChainMsg) Type() byte {
 	return constants.COMMIT_CHAIN_MSG
 }
 
+func (m *CommitChainMsg) WellFormed() bool {
+	// TODO: I don't think the signature is used on the msg?
+
+	if !m.CommitChain.IsValid() {
+		return false
+	}
+
+	return true
+}
+
 // Validate the message, given the state.  Three possible results:
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid

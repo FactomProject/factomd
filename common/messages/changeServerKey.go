@@ -84,6 +84,29 @@ func (m *ChangeServerKeyMsg) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp.Clone()
 }
 
+func (m *ChangeServerKeyMsg) WellFormed() bool {
+	// TODO: Rejecting some obviously bad identities could be added.
+	//		We are checking all sigs, even if not an auth identity.
+	//		Should we keep some auth state?
+
+	// Should only be 20 bytes in the hash if btc key add
+	if m.AdminBlockChange == constants.TYPE_ADD_BTC_ANCHOR_KEY {
+		// The extra bytes are 0 padded
+		for _, b := range m.Key.Bytes()[21:] {
+			if b != 0 {
+				return false
+			}
+		}
+	}
+
+	// Check signature
+	if isVer, err := m.VerifySignature(); err != nil || !isVer {
+		return false
+	}
+
+	return true
+}
+
 func (m *ChangeServerKeyMsg) Validate(state interfaces.IState) int {
 	// Check to see if identity exists and is audit or fed server
 	if !state.VerifyIsAuthority(m.IdentityChainID) {

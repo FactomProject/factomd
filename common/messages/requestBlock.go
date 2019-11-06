@@ -176,6 +176,11 @@ func (m *RequestBlock) Signature() []byte {
 	return nil
 }
 
+func (m *RequestBlock) WellFormed() bool {
+	// TODO: Flush this out
+	return true
+}
+
 // Validate the message, given the state.  Three possible results:
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid

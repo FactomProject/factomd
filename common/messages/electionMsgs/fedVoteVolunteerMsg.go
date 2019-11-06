@@ -247,6 +247,11 @@ func (m *FedVoteVolunteerMsg) ElectionValidate(ie interfaces.IElections) int {
 	return m.FedVoteMsg.ElectionValidate(ie)
 }
 
+func (m *FedVoteVolunteerMsg) WellFormed() bool {
+	// TODO: Flush this out
+	return true
+}
+
 func (m *FedVoteVolunteerMsg) Validate(is interfaces.IState) int {
 	// Set the super and let the base validate
 	m.FedVoteMsg.Super = m

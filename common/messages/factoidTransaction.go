@@ -113,6 +113,12 @@ func (m *FactoidTransaction) Type() byte {
 	return constants.FACTOID_TRANSACTION_MSG
 }
 
+func (m *FactoidTransaction) WellFormed() bool {
+	// TODO: Flush this out
+
+	return true
+}
+
 // Validate the message, given the state.  Three possible results:
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid

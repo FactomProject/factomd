@@ -82,6 +82,17 @@ func (m *RemoveServerMsg) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp.Clone()
 }
 
+func (m *RemoveServerMsg) WellFormed() bool {
+	// Ensure it is the skeleton key
+	// TODO: Add global access to skeleton key to verify the right signer too
+	// Check signature
+	if isVer, err := m.VerifySignature(); err != nil || !isVer {
+		return false
+	}
+
+	return true
+}
+
 func (m *RemoveServerMsg) Validate(state interfaces.IState) int {
 	// Check to see if identity exists and is audit or fed server
 	if !state.VerifyIsAuthority(m.ServerChainID) {

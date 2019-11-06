@@ -125,6 +125,11 @@ func (m *AddAuditInternal) ElectionValidate(ie interfaces.IElections) int {
 	return 1
 }
 
+func (m *AddAuditInternal) WellFormed() bool {
+	// TODO: Flush this out
+	return true
+}
+
 func (m *AddAuditInternal) Validate(state interfaces.IState) int {
 	return 1
 }

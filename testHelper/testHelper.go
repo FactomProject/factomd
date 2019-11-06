@@ -40,13 +40,12 @@ func CreateEmptyTestState() *state.State {
 	s := new(state.State)
 	s.TimestampAtBoot = new(primitives.Timestamp)
 	s.TimestampAtBoot.SetTime(0)
-	s.EFactory = new(electionMsgs.ElectionsFactory)
 	s.LoadConfig("", "")
 	s.Network = "LOCAL"
 	s.LogPath = "stdout"
 
 	p := registry.New()
-	p.Register(s.Initialize)
+	p.Register(func(w *worker.Thread) { s.Initialize(w, new(electionMsgs.ElectionsFactory)) })
 	go p.Run()
 	p.WaitForRunning()
 
@@ -128,7 +127,6 @@ func CreateAndPopulateTestState() *state.State {
 	s := new(state.State)
 	s.TimestampAtBoot = new(primitives.Timestamp)
 	s.TimestampAtBoot.SetTime(0)
-	s.EFactory = new(electionMsgs.ElectionsFactory)
 	s.SetLeaderTimestamp(primitives.NewTimestampFromMilliseconds(0))
 	s.DB = CreateAndPopulateTestDatabaseOverlay()
 	s.LoadConfig("", "")
@@ -145,7 +143,7 @@ func CreateAndPopulateTestState() *state.State {
 	s.LogPath = "stdout"
 
 	p := registry.New()
-	p.Register(s.Initialize)
+	p.Register(func(w *worker.Thread) { s.Initialize(w, new(electionMsgs.ElectionsFactory)) })
 	go p.Run()
 	p.WaitForRunning()
 

@@ -103,6 +103,17 @@ func (m *Ack) VerifySignature() (bool, error) {
 	return msgbase.VerifyMessage(m)
 }
 
+func (m *Ack) WellFormed() bool {
+	// Check signature
+	if isVer, err := m.VerifySignature(); err != nil || !isVer {
+		return false
+	}
+
+	// TODO: Check minute is a reasonable number?
+
+	return true
+}
+
 // Validate the message, given the state.  Three possible results:
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid

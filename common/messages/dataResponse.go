@@ -122,6 +122,37 @@ func (m *DataResponse) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp.Clone()
 }
 
+func (m *DataResponse) WellFormed() bool {
+	var dataHash interfaces.IHash
+	var err error
+	switch m.DataType {
+	case 0: // DataType = entry
+		dataObject, ok := m.DataObject.(interfaces.IEBEntry)
+		if !ok {
+			return false
+		}
+		dataHash = dataObject.GetHash()
+	case 1: // DataType = eblock
+		dataObject, ok := m.DataObject.(interfaces.IEntryBlock)
+		if !ok {
+			return false
+		}
+		dataHash, err = dataObject.KeyMR()
+		if err != nil {
+			return false
+		}
+	default:
+		// DataType currently not supported, treat as invalid
+		return false
+	}
+
+	if dataHash.IsSameAs(m.DataHash) {
+		return true
+	}
+
+	return true
+}
+
 // Validate the message, given the state.  Three possible results:
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid

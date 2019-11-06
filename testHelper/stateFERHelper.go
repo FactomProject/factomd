@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/FactomProject/factomd/common/messages/electionMsgs"
+
 	"github.com/FactomProject/factomd/registry"
 	"github.com/FactomProject/factomd/worker"
 
@@ -95,7 +97,7 @@ func CreateAndPopulateTestStateForFER(testEntries []FEREntryWithHeight, desiredH
 	}*/
 	p := registry.New()
 	p.Register(func(w *worker.Thread) {
-		s.Initialize(w)
+		s.Initialize(w, new(electionMsgs.ElectionsFactory))
 		s.SetFactoshisPerEC(1)
 		state.LoadDatabase(s)
 		s.FERChainId = "111111118d918a8be684e0dac725493a75862ef96d2d3f43f84b26969329bf03"

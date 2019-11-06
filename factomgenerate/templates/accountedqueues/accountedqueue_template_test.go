@@ -4,7 +4,7 @@
 // code and it can be tested in unmodified form. For more information see factomgenerate/generate.go
 //*/Ͽ
 
-package templates // this is only here to make gofmt happy and is never in the generated code
+package accountedqueues // this is only here to make gofmt happy and is never in the generated code
 
 //go:generate go run ./generate.go
 
@@ -12,6 +12,8 @@ package templates // this is only here to make gofmt happy and is never in the g
 
 import (
 	"testing"
+
+	"github.com/FactomProject/factomd/factomgenerate/templates/publishers"
 
 	"github.com/FactomProject/factomd/common"
 )
@@ -24,7 +26,7 @@ var Ͼ_testelementϿ Ͼ_typeϿ // just use a zero value as the test element
 // Start accountedqueue_test generated go code
 
 func TestAccountedQueue(t *testing.T) {
-	q := new(Ͼ_typenameϿ).Init(common.NilName, "Test", 10)
+	q := new(publishers.Ͼ_typenameϿ).Init(common.NilName, "Test", 10)
 
 	if q.Dequeue() != nil {
 		t.Fatal("empty dequeue return non-nil")
