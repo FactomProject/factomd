@@ -31,6 +31,6 @@ func (s *Callback) Write(o interface{}) {
 	if s.BeforeWrite(o) != nil {
 		return
 	}
-	s.IPubSubscriber.Done()
+	s.IPubSubscriber.Write(o)
 	s.AfterWrite(o)
 }
