@@ -2,7 +2,7 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package engine
+package simulation
 
 import (
 	"encoding/hex"
@@ -16,9 +16,6 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/FactomProject/factomd/fnode"
-	"github.com/FactomProject/factomd/worker"
-
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/globals"
@@ -26,9 +23,9 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/controlPanel"
 	elections2 "github.com/FactomProject/factomd/elections"
-	"github.com/FactomProject/factomd/p2p"
+	"github.com/FactomProject/factomd/fnode"
+	"github.com/FactomProject/factomd/worker"
 	"github.com/FactomProject/factomd/wsapi"
 )
 
@@ -45,7 +42,6 @@ var loadGenerator *LoadGenerator
 
 // Used for signing messages
 var LOCAL_NET_PRIV_KEY string = "4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d"
-
 var once bool
 
 //var InputChan = make(chan string)
@@ -91,7 +87,7 @@ func GetFocus() *fnode.FactomNode {
 	return nil
 }
 
-func startSimControl(w *worker.Thread, listenTo int, listenStdin bool) {
+func StartSimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 	var _ = time.Sleep
 	var summary int
 	var elections int
@@ -139,10 +135,11 @@ func startSimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 				ListenTo = v
 				os.Stderr.WriteString(fmt.Sprintf("Switching to Node %d\n", ListenTo))
 				// Update which node will be displayed on the controlPanel page
-				connectionMetricsChannel := make(chan interface{}, p2p.StandardChannelSize)
+				//connectionMetricsChannel := make(chan interface{}, p2p.StandardChannelSize)
 				// REVIEW: to make this visible to thread registry
 				// would need to relocate outside of this worker.Thread.Run() block
-				go controlPanel.ServeControlPanel(fnode.Get(ListenTo).State.ControlPanelChannel, fnode.Get(ListenTo).State, connectionMetricsChannel, p2pNetwork, Build, "")
+				// KLUDGE: remove control panel
+				//go controlPanel.ServeControlPanel(fnode.Get(ListenTo).State.ControlPanelChannel, fnode.Get(ListenTo).State, connectionMetricsChannel, p2pNetwork, Build, "")
 			} else {
 				switch {
 				case '!' == b[0]:
@@ -352,7 +349,7 @@ func startSimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 						wsapi.SetState(fnode.Get(wsapiNode).State)
 					}
 				case 'a' == b[0]:
-					mLog.all = false
+					//mLog.all = false
 					for _, f := range fnode.GetFnodes() {
 						f.State.SetOut(false)
 					}
@@ -384,7 +381,7 @@ func startSimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 						}
 					}
 				case 'e' == b[0]:
-					mLog.all = false
+					//mLog.all = false
 					for _, node := range fnode.GetFnodes() {
 						node.State.SetOut(false)
 					}
@@ -416,7 +413,7 @@ func startSimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 						}
 					}
 				case 'f' == b[0]:
-					mLog.all = false
+					//mLog.all = false
 					for _, node := range fnode.GetFnodes() {
 						node.State.SetOut(false)
 					}
@@ -448,7 +445,7 @@ func startSimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 						}
 					}
 				case 'd' == b[0]:
-					mLog.all = false
+					//mLog.all = false
 					for _, node := range fnode.GetFnodes() {
 						node.State.SetOut(false)
 					}
@@ -561,7 +558,7 @@ func startSimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 					}
 
 				case 'k' == b[0]:
-					mLog.all = false
+					//mLog.all = false
 					for _, fnode := range fnode.GetFnodes() {
 						fnode.State.SetOut(false)
 					}

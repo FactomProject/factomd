@@ -1,4 +1,4 @@
-package engine
+package simulation
 
 import (
 	"bytes"
@@ -870,12 +870,12 @@ func fixSimIdent(node *fnode.FactomNode, chain interfaces.IHash) {
 }
 
 // set hardcoded identity to a single simulator node
-func modifySimulatorIdentity(i int) {
+func ModifySimulatorIdentity(i int) {
 	fixSimIdent(fnode.Get(i), getSimChains()[i-1])
 }
 
 // add hardcoded identities to all simulated nodes
-func modifySimulatorIdentities() {
+func ModifySimulatorIdentities() {
 	list := getSimChains()
 
 	if len(list) == 0 {
