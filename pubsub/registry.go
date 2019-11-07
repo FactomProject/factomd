@@ -73,11 +73,38 @@ func (r *Registry) SubscribeTo(path string, sub IPubSubscriber) error {
 	}
 
 	pub.Subscribe(sub)
-	sub.SetUnsubscribe(func() {
+	sub.setUnsubscribe(func() {
 		pub.Unsubscribe(sub)
 	})
 
 	return nil
+}
+
+func globalSubscribeWith(path string, sub IPubSubscriber, wrappers ...ISubscriberWrapper) IPubSubscriber {
+	newsub := sub
+	for _, wrap := range wrappers {
+		newsub = wrap.Wrap(newsub)
+	}
+
+	globalSubscribe(path, newsub)
+	return newsub
+}
+
+func globalPublishWith(path string, p IPublisher, wrappers ...IPublisherWrapper) IPublisher {
+	if len(wrappers) > 0 {
+		newpub := wrappers[0].Wrap(p)
+		for _, wrap := range wrappers[1:] {
+			newpub = wrap.Wrap(newpub)
+		}
+		return newpub.Publish(path)
+	}
+
+	// No wrappers
+	err := globalReg.Register(path, p)
+	if err != nil {
+		panic(fmt.Sprintf("failed to publish: %s", err.Error()))
+	}
+	return p
 }
 
 func globalPublish(path string, p IPublisher) IPublisher {

@@ -135,7 +135,7 @@ type DebugMutex struct {
 	lockBool AtomicBool    // lock for detecting starvation when not trusting the debug lock functionality
 	waiting  AtomicInt     // Count of routines waiting on this lock
 	owner    AtomicString  // owner of the lock at the moment
-	done     chan struct{} // Channel to signal success to starvation detector
+	done     chan struct{} // SubChannel to signal success to starvation detector
 }
 
 const yeaOfLittleFaith = true // true means mutex lock instead of CAS lock

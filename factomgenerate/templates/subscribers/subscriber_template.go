@@ -26,16 +26,16 @@ type Ͼ_valuetypeϿ DBHT // not used when generating, only used for testing. ins
 
 // Value subscriber has the basic necessary function implementations. All this does is add a wrapper with typing.
 type Subscribe_ByValue_Ͼ_valuetypeϿ_type struct {
-	*Value
+	*SubValue
 }
 
 // type the Read function
 func (s *Subscribe_ByValue_Ͼ_valuetypeϿ_type) Read() Ͼ_valuetypeϿ {
-	return s.Value.Read().(Ͼ_valuetypeϿ) // cast the return to the specific type
+	return s.SubValue.Read().(Ͼ_valuetypeϿ) // cast the return to the specific type
 }
 
 // Create a typed instance form a generic instance
-func Subscribe_ByValue_Ͼ_valuetypeϿ(p *Value) *Subscribe_ByValue_Ͼ_valuetypeϿ_type {
+func Subscribe_ByValue_Ͼ_valuetypeϿ(p *SubValue) *Subscribe_ByValue_Ͼ_valuetypeϿ_type {
 	return &Subscribe_ByValue_Ͼ_valuetypeϿ_type{p}
 }
 
@@ -46,14 +46,14 @@ func Subscribe_ByValue_Ͼ_valuetypeϿ(p *Value) *Subscribe_ByValue_Ͼ_valuetype�
 //Ͼdefine "subscribe_bychannel"Ͽ
 // Start subscribeBychannel generated go code
 
-// Channel subscriber has the basic necessary function implementations. All this does is add a wrapper with typing.
+// SubChannel subscriber has the basic necessary function implementations. All this does is add a wrapper with typing.
 type Subscribe_ByChannel_Ͼ_valuetypeϿ_type struct {
-	*Channel
+	*SubChannel
 }
 
 // type the Read function
 func (s *Subscribe_ByChannel_Ͼ_valuetypeϿ_type) Read() Ͼ_valuetypeϿ {
-	return s.Channel.Read().(Ͼ_valuetypeϿ) // cast the return to the specific type
+	return s.SubChannel.Read().(Ͼ_valuetypeϿ) // cast the return to the specific type
 }
 
 // type the ReadWithInfo function
@@ -63,7 +63,7 @@ func (s *Subscribe_ByChannel_Ͼ_valuetypeϿ_type) ReadWithInfo() (Ͼ_valuetypeϿ
 }
 
 // Create a typed instance form a generic instance
-func Subscribe_ByChannel_Ͼ_valuetypeϿ(p *Channel) *Subscribe_ByChannel_Ͼ_valuetypeϿ_type {
+func Subscribe_ByChannel_Ͼ_valuetypeϿ(p *SubChannel) *Subscribe_ByChannel_Ͼ_valuetypeϿ_type {
 	return &Subscribe_ByChannel_Ͼ_valuetypeϿ_type{p}
 }
 

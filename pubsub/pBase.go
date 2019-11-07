@@ -13,9 +13,8 @@ type PubBase struct {
 	path string
 }
 
-func (p *PubBase) Publish(path string) *PubBase {
-	globalPublish(path, p)
-	return p
+func (p *PubBase) Publish(path string, wrappers ...IPublisherWrapper) IPublisher {
+	return globalPublishWith(path, p, wrappers...)
 }
 
 func (p *PubBase) setPath(path string) { p.path = path }
@@ -24,7 +23,7 @@ func (p PubBase) Path() string         { return p.path }
 func (p *PubBase) Close() error {
 	p.Lock()
 	for i := range p.Subscribers {
-		p.Subscribers[i].Done()
+		p.Subscribers[i].done()
 	}
 	p.Unlock()
 	return nil
@@ -59,7 +58,10 @@ func (p *PubBase) Subscribe(subscriber IPubSubscriber) bool {
 func (p *PubBase) Write(o interface{}) {
 	p.RLock()
 	for i := range p.Subscribers {
-		p.Subscribers[i].Write(o)
+		p.Subscribers[i].write(o)
 	}
 	p.RUnlock()
+}
+
+func (PubBase) Start() {
 }

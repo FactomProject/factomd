@@ -66,7 +66,7 @@ func TestQueues(t *testing.T) {
 	}
 
 	if len(channel) != 0 {
-		t.Errorf("Channel should be 0, found %d", len(channel))
+		t.Errorf("SubChannel should be 0, found %d", len(channel))
 	}
 
 	// Check for blocking
@@ -114,7 +114,7 @@ func TestQueues(t *testing.T) {
 	tripAllMessages(netOut)
 
 	if len(channel) != 0 {
-		t.Errorf("Channel should be 0, found %d", len(channel))
+		t.Errorf("SubChannel should be 0, found %d", len(channel))
 	}
 	if !checkLensAndCap(channel, []interfaces.IQueue{general, inmsg, netOut}) {
 		t.Error("Error: Lengths/Cap does not match")

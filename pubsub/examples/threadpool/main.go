@@ -4,24 +4,26 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"time"
+
+	"github.com/FactomProject/factomd/pubsub"
 )
+
+const buffer int = 100
 
 func main() {
 	// This code finds the total number of prime numbers <= max
 	max := int64(1e5)
 
-	reg := pubregistry.NewRegistry()
+	reg := pubsub.NewRegistry()
 
 	// One person publishes the work on a round robin basis
-	robinPub := publishers.NewRoundRobinPublisher(100)
-	go robinPub.Run() // The writer is threaded
+	robinPub := pubsub.PubFactory.RoundRobin(buffer).Publish("/source")
+	go robinPub.Start() // The writer is threaded
 
-	panicError(reg.Register("/source", robinPub))
-
-	// Agg is a publisher with many writers.
-	agg := publishers.NewSimpleMultiPublish(100)
-	go agg.Run() // Writes are threaded
-	panicError(reg.Register("/aggregate", agg))
+	// Agg is a publisher with many writers. Need to publish so a subscriber
+	// can find it.
+	pubsub.PubFactory.Threaded(100).Publish("/aggregate", pubsub.PubMultiWrap())
 
 	workers := 5
 	for i := 0; i < workers; i++ {
@@ -29,11 +31,14 @@ func main() {
 		// to the agg publisher. When the source publisher is done, and the
 		// worker has no more tasks, it will close the agg publisher.
 		// The agg publisher will close when all writers are done.
-		go PrimeWorker(reg)
+		go PrimeWorker()
 	}
 
 	// Load the work
 	go func() {
+		for robinPub.NumberOfSubscribers() != workers {
+			time.Sleep(25 * time.Millisecond)
+		}
 		for i := int64(0); i < max; i++ {
 			robinPub.Write(i) // Write all numbers to the /source
 		}
@@ -45,18 +50,18 @@ func main() {
 	fmt.Printf("%d primes found\n", Count(reg))
 }
 
-func PrimeWorker(reg *pubregistry.Registry) {
-	// Channel based subscription is just a channel written to by a publisher
-	sub := subscribers.NewChannelBasedSubscriber(5)
-	panicError(reg.SubscribeTo("/source", sub))
+func PrimeWorker() {
+	// SubChannel based subscription is just a channel written to by a publisher
+	sub := pubsub.SubFactory.Channel(5).Subscribe("/source")
 
 	// agg is where we write our results.
-	agg := reg.FindPublisher("/aggregate").(*publishers.SimpleMultiPublish)
-	agg = agg.NewPublisher()
+	//agg := pubsub.PubFactory.Multi(buffer).Publish("/aggregate")
+	agg := pubsub.PubFactory.Threaded(100).Publish("/aggregate", pubsub.PubMultiWrap())
+	go agg.Start()
 
 	for {
 		// WithInfo to detect a close.
-		v, open := sub.ReadWithFlag()
+		v, open := sub.ReadWithInfo()
 		if !open {
 			fmt.Println("\tWorker closing....")
 			_ = agg.Close()
@@ -71,19 +76,14 @@ func PrimeWorker(reg *pubregistry.Registry) {
 	}
 }
 
-func Count(reg *pubregistry.Registry) int64 {
-	// We only care about the count, the count subscriber just tracks the number
-	// of items written to it.
-	sub := subscribers.NewCounterSubscriber()
-
+func Count(reg *pubsub.Registry) int64 {
 	// Add a context so we can externally bind to the Done().
 	// This is so we know when to read the value and exit.
 	ctx, cancel := context.WithCancel(context.Background())
-	csub := subscribers.NewContext(sub, cancel)
-	err := reg.SubscribeTo("/aggregate", csub)
-	if err != nil {
-		panic(err)
-	}
+
+	// We only care about the count, the count subscriber just tracks the number
+	// of items written to it.
+	sub := pubsub.SubFactory.Counter().Subscribe("/aggregate", pubsub.SubContextWrap(cancel))
 
 	// Wait for the subscriber to get called Done(), meaning all data is
 	// published.

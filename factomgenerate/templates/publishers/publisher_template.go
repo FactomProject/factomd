@@ -27,15 +27,15 @@ type Ͼ_valuetypeϿ DBHT                  // not used when generating, only used
 
 // Publish_Ͼ_publishertypeϿ_Ͼ_valuetypeϿ publisher has the basic necessary function implementations.
 type Publish_Ͼ_publishertypeϿ_Ͼ_valuetypeϿ_type struct {
-	*Ͼ_publishertypeϿ
+	IPublisher
 }
 
 // Read the object of type and call the generic so the compiler can check the passed in type
 func (p *Publish_Ͼ_publishertypeϿ_Ͼ_valuetypeϿ_type) Write(o Ͼ_valuetypeϿ) {
-	p.Ͼ_publishertypeϿ.Write(o)
+	p.IPublisher.Write(o)
 }
 
-func Publish_Ͼ_publishertypeϿ_Ͼ_valuetypeϿ(p *Ͼ_publishertypeϿ) *Publish_Ͼ_publishertypeϿ_Ͼ_valuetypeϿ_type {
+func Publish_Ͼ_publishertypeϿ_Ͼ_valuetypeϿ(p IPublisher) *Publish_Ͼ_publishertypeϿ_Ͼ_valuetypeϿ_type {
 	return &Publish_Ͼ_publishertypeϿ_Ͼ_valuetypeϿ_type{p}
 }
 

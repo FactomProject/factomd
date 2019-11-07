@@ -17,16 +17,16 @@ import (
 
 // Value subscriber has the basic necessary function implementations. All this does is add a wrapper with typing.
 type Subscribe_ByValue_DBHT_type struct {
-	*Value
+	*SubValue
 }
 
 // type the Read function
 func (s *Subscribe_ByValue_DBHT_type) Read() DBHT {
-	return s.Value.Read().(DBHT) // cast the return to the specific type
+	return s.SubValue.Read().(DBHT) // cast the return to the specific type
 }
 
 // Create a typed instance form a generic instance
-func Subscribe_ByValue_DBHT(p *Value) *Subscribe_ByValue_DBHT_type {
+func Subscribe_ByValue_DBHT(p *SubValue) *Subscribe_ByValue_DBHT_type {
 	return &Subscribe_ByValue_DBHT_type{p}
 }
 

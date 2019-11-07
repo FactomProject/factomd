@@ -45,7 +45,7 @@ type Controller struct {
 	commandChannel              chan interface{}             // Application use controller public API to send commands on this channel to controllers goroutines.
 	ToNetwork                   chan interface{}             // Parcels from the application for us to route
 	FromNetwork                 chan interface{}             // Parcels from the network for the application
-	connectionMetricsChannel    chan interface{}             // Channel on which we put the connection metrics map, periodically.
+	connectionMetricsChannel    chan interface{}             // SubChannel on which we put the connection metrics map, periodically.
 	connectionMetrics           map[string]ConnectionMetrics // map of the metrics indexed by peer hash
 	lastConnectionMetricsUpdate time.Time                    // update once a second.
 	discovery                   Discovery                    // Our discovery structure
@@ -71,7 +71,7 @@ type ControllerInit struct {
 	SeedURL                  string           // URL to a source of peer info
 	ConfigPeers              string           // Peers to always connect to at startup, and stay persistent, passed from the config file
 	CmdLinePeers             string           // Additional special peers passed from the command line
-	ConnectionMetricsChannel chan interface{} // Channel on which we put the connection metrics map, periodically.
+	ConnectionMetricsChannel chan interface{} // SubChannel on which we put the connection metrics map, periodically.
 	LogPath                  string           // Path for logs
 	LogLevel                 string           // Logging level
 }
@@ -167,7 +167,7 @@ func (c *Controller) Initialize(ci ControllerInit) *Controller {
 	NodeID = uint64(RandomGenerator.Int63()) // This is a global used by all connections
 	c.keepRunning = true
 	c.commandChannel = make(chan interface{}, StandardChannelSize) // Commands from App
-	c.FromNetwork = make(chan interface{}, StandardChannelSize)    // Channel to the app for network data
+	c.FromNetwork = make(chan interface{}, StandardChannelSize)    // SubChannel to the app for network data
 	c.ToNetwork = make(chan interface{}, StandardChannelSize)      // Parcels from the app for the network
 	c.connections = new(ConnectionManager).Init()
 	c.connectionMetrics = make(map[string]ConnectionMetrics)

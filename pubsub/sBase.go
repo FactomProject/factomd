@@ -6,7 +6,7 @@ type SubBase struct {
 	unsub func()
 }
 
-func (b *SubBase) SetUnsubscribe(unsub func()) {
+func (b *SubBase) setUnsubscribe(unsub func()) {
 	b.unsub = unsub
 }
 
@@ -17,15 +17,15 @@ func (b *SubBase) Unsubscribe() {
 
 // Done is a function that can be called by the publisher to tell
 // the subscriber the publisher is done executing, and will be closed.
-func (b *SubBase) Done() {
+func (b *SubBase) done() {
 	// Noop by default
 }
 
-func (b *SubBase) Write(o interface{}) {
+func (b *SubBase) write(o interface{}) {
 	// Noop by default
 }
 
-func (b *SubBase) Subscribe(path string) *SubBase {
-	globalSubscribe(path, b)
+func (b *SubBase) Subscribe(path string, wrappers ...ISubscriberWrapper) *SubBase {
+	globalSubscribeWith(path, b, wrappers...)
 	return b
 }

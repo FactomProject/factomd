@@ -48,7 +48,7 @@ CheckForBlockingLoop:
 			break CheckForBlockingLoop
 		default:
 		}
-		// Channel should never fill above 95%
+		// SubChannel should never fill above 95%
 		if len(c) > int(float64(cap(c))*0.95) {
 			didnotblock = false
 			break CheckForBlockingLoop
@@ -75,7 +75,7 @@ CheckForBlockingLoop:
 				t.Errorf("Read in channel is incorrect. Exp %d, found %d", i, v)
 			}
 		default:
-			t.Error("Channel is empty, but still expect elements")
+			t.Error("SubChannel is empty, but still expect elements")
 		}
 	}
 }

@@ -27,7 +27,7 @@ func BlockFreeChannelSend(channel chan interface{}, message interface{}) int {
 	switch {
 	case highWaterMark < clen:
 		str, _ := primitives.EncodeJSONString(message)
-		prLogger.Warnf("nonBlockingChanSend() - DROPPING MESSAGES. Channel is over 90 percent full! \n channel len: \n %d \n 90 percent: \n %d \n last message type: %v", len(channel), highWaterMark, str)
+		prLogger.Warnf("nonBlockingChanSend() - DROPPING MESSAGES. SubChannel is over 90 percent full! \n channel len: \n %d \n 90 percent: \n %d \n last message type: %v", len(channel), highWaterMark, str)
 		for highWaterMark <= len(channel) { // Clear out some messages
 			removed++
 			<-channel

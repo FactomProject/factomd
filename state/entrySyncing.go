@@ -30,9 +30,9 @@ type EntrySync struct {
 	DBHeightBase             int                        // This is the highest block with entries not yet checked or are missing
 	TotalEntries             int                        // Total Entries in the database
 	SyncingBlocks            map[int][]*ReCheck         // Map of Directory blocks by height
-	finishedDBlocks          chan int                   // Channel of finished Directory blocks
+	finishedDBlocks          chan int                   // SubChannel of finished Directory blocks
 	finishedEntries          chan int                   // We get a ping every time an entry is done
-	SendRequest              chan *messages.MissingData // Channel for inMessages being requested
+	SendRequest              chan *messages.MissingData // SubChannel for inMessages being requested
 	Processing               int                        // Directory block we are processing
 	EntriesProcessing        int                        // Total of Entries being processed
 	EntryRequests            int                        // Requests made

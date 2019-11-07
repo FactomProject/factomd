@@ -17,15 +17,15 @@ import (
 
 // Publish_PubBase_IMsg publisher has the basic necessary function implementations.
 type Publish_PubBase_IMsg_type struct {
-	*PubBase
+	IPublisher
 }
 
 // Read the object of type and call the generic so the compiler can check the passed in type
 func (p *Publish_PubBase_IMsg_type) Write(o IMsg) {
-	p.PubBase.Write(o)
+	p.IPublisher.Write(o)
 }
 
-func Publish_PubBase_IMsg(p *PubBase) *Publish_PubBase_IMsg_type {
+func Publish_PubBase_IMsg(p IPublisher) *Publish_PubBase_IMsg_type {
 	return &Publish_PubBase_IMsg_type{p}
 }
 

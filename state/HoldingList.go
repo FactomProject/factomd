@@ -26,25 +26,24 @@ type HoldingList struct {
 	dependents map[[32]byte]heldMessage // used to avoid duplicate entries & track position in holding
 
 	// New DependentHolding
-	outMessages    *generated.Publish_PubBase_IMsg_type
-	fctMessages    *generated.Publish_PubBase_IMsg_type
-	gossipMessages *generated.Publish_PubBase_IMsg_type
-
-	inMessages   *generated.Subscribe_ByChannel_IMsg_type
-	heights      *generated.Subscribe_ByValue_DBHT_type
-	ecDeposits   *generated.Subscribe_ByChannel_Hash_type
-	chainReveals *pubsub.Channel
-	commits      *pubsub.Channel
+	outMessages        *generated.Publish_PubBase_IMsg_type
+	fctMessages        *generated.Publish_PubBase_IMsg_type
+	gossipMessages     *generated.Publish_PubBase_IMsg_type
+	inMessages         *generated.Subscribe_ByChannel_IMsg_type
+	heights            *generated.Subscribe_ByChannel_DBHT_type
+	metDependencyHashs *generated.Subscribe_ByChannel_Hash_type
+	chainReveals       *pubsub.SubChannel
+	commits            *pubsub.SubChannel
 }
 
 func (l *HoldingList) doWork(w *worker.Thread, id int) {
-	l.outMessages = generated.Publish_PubBase_IMsg(new(pubsub.PubBase).Publish(w.GetParentName() + "/dependentHolding/messages"))
-	l.fctMessages = generated.Publish_PubBase_IMsg(new(pubsub.PubBase).Publish(w.GetParentName() + "/fctMessages"))
-	l.gossipMessages = generated.Publish_PubBase_IMsg(new(pubsub.PubBase).Publish(w.GetParentName() + "/gossipMessages"))
+	l.outMessages = generated.Publish_PubBase_IMsg(pubsub.PubFactory.Base().Publish(w.GetParentName()+"/dependentHolding/messages", pubsub.PubMultiWrap()))
+	l.fctMessages = generated.Publish_PubBase_IMsg(pubsub.PubFactory.Base().Publish(w.GetParentName()+"/fctMessages", pubsub.PubMultiWrap()))
+	l.gossipMessages = generated.Publish_PubBase_IMsg(pubsub.PubFactory.Base().Publish(w.GetParentName()+"/gossipMessages", pubsub.PubMultiWrap()))
 
-	l.inMessages = generated.Subscribe_ByChannel_IMsg(pubsub.NewChannelBasedSubscriber(10).Subscribe(w.GetParentName() + "/msgValidation/messages"))
-	l.heights = generated.Subscribe_ByValue_DBHT(pubsub.NewValueSubscriber().Subscribe(w.GetParentName() + "/heights"))
-	l.ecDeposits = generated.Subscribe_ByChannel_Hash(pubsub.NewChannelBasedSubscriber(10).Subscribe(w.GetParentName() + "/EcDeposits"))
+	l.inMessages = generated.Subscribe_ByChannel_IMsg(pubsub.SubFactory.Channel(10).Subscribe(w.GetParentName() + "/msgValidation/messages"))
+	l.heights = generated.Subscribe_ByChannel_DBHT(pubsub.SubFactory.Channel(10).Subscribe(w.GetParentName() + "/heights"))
+	l.metDependencyHashs = generated.Subscribe_ByChannel_Hash(pubsub.SubFactory.Channel(10).Subscribe(w.GetParentName() + "/dependencyHashs"))
 
 }
 
