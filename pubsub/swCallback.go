@@ -25,11 +25,11 @@ func NewCallback(subscriber IPubSubscriber) *SubWrapCallback {
 	return s
 }
 
-func (s *SubWrapCallback) Write(o interface{}) {
+func (s *SubWrapCallback) write(o interface{}) {
 	if s.BeforeWrite(o) != nil {
 		return
 	}
-	s.IPubSubscriber.Write(o)
+	s.IPubSubscriber.write(o)
 	s.AfterWrite(o)
 }
 

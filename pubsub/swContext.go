@@ -2,12 +2,12 @@ package pubsub
 
 type SubWrapContext struct {
 	IPubSubscriber
-	done func()
+	doneFunc func()
 }
 
 func NewContextWrap(done func()) *SubWrapContext {
 	s := new(SubWrapContext)
-	s.done = done
+	s.doneFunc = done
 
 	return s
 }
@@ -17,9 +17,9 @@ func (s *SubWrapContext) Wrap(sub IPubSubscriber) IPubSubscriber {
 	return s
 }
 
-func (s *SubWrapContext) Done() {
-	s.done()
-	s.IPubSubscriber.Done()
+func (s *SubWrapContext) done() {
+	s.doneFunc()
+	s.IPubSubscriber.done()
 }
 
 func (s *SubWrapContext) Subscribe(path string) *SubWrapContext {

@@ -18,11 +18,11 @@ func NewChannelBasedSubscriber(buffer int) *SubChannel {
 	return s
 }
 
-func (s *SubChannel) Write(o interface{}) {
+func (s *SubChannel) write(o interface{}) {
 	s.Updates <- o
 }
 
-func (s *SubChannel) Done() {
+func (s *SubChannel) done() {
 	close(s.Updates)
 }
 

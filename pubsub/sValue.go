@@ -22,7 +22,7 @@ func NewAtomicValueSubscriber() *SubValue {
 
 // Pub Side
 
-func (s *SubValue) Write(o interface{}) {
+func (s *SubValue) write(o interface{}) {
 	s.Lock()
 	s.value = o
 	s.Unlock()

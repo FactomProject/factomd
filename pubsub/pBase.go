@@ -24,7 +24,7 @@ func (p PubBase) Path() string         { return p.path }
 func (p *PubBase) Close() error {
 	p.Lock()
 	for i := range p.Subscribers {
-		p.Subscribers[i].Done()
+		p.Subscribers[i].done()
 	}
 	p.Unlock()
 	return nil
@@ -59,7 +59,7 @@ func (p *PubBase) Subscribe(subscriber IPubSubscriber) bool {
 func (p *PubBase) Write(o interface{}) {
 	p.RLock()
 	for i := range p.Subscribers {
-		p.Subscribers[i].Write(o)
+		p.Subscribers[i].write(o)
 	}
 	p.RUnlock()
 }

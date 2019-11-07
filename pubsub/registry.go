@@ -73,7 +73,7 @@ func (r *Registry) SubscribeTo(path string, sub IPubSubscriber) error {
 	}
 
 	pub.Subscribe(sub)
-	sub.SetUnsubscribe(func() {
+	sub.setUnsubscribe(func() {
 		pub.Unsubscribe(sub)
 	})
 

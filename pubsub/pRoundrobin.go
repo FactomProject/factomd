@@ -22,7 +22,7 @@ func (p *PubRoundRobin) Run() {
 			// 		Someone can unsub after we exit this for too.
 			time.Sleep(100 * time.Millisecond)
 		}
-		p.Subscribers[p.next%len(p.Subscribers)].Write(in)
+		p.Subscribers[p.next%len(p.Subscribers)].write(in)
 		p.next++
 	}
 	_ = p.PubThreaded.PubBase.Close()
