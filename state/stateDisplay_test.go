@@ -19,6 +19,7 @@ import (
 var _ = util.ReadConfig
 
 func TestDisplay(t *testing.T) {
+	t.Skip("control panel removed")
 	s := new(state.State)
 	s.EFactory = new(electionMsgs.ElectionsFactory)
 	s.LoadConfig("", "LOCAL")
@@ -36,6 +37,7 @@ func TestDisplay(t *testing.T) {
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
 	}
 
+	/*
 	s.ControlPanelDataRequest = false
 	err := s.CopyStateToControlPanel()
 	if err != nil {
@@ -46,5 +48,7 @@ func TestDisplay(t *testing.T) {
 	if err != nil {
 		t.Error("CopyState failed when requested")
 	}
+
+	 */
 
 }
