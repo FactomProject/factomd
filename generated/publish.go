@@ -20,7 +20,7 @@ type Publish_PubBase_IMsg_type struct {
 	*PubBase
 }
 
-// Receive the object of type and call the generic so the compiler can check the passed in type
+// Read the object of type and call the generic so the compiler can check the passed in type
 func (p *Publish_PubBase_IMsg_type) Write(o IMsg) {
 	p.PubBase.Write(o)
 }

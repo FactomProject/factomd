@@ -32,12 +32,12 @@ func (s *Channel) Channel() <-chan interface{} {
 	return s.Updates
 }
 
-func (s *Channel) Receive() interface{} {
+func (s *Channel) Read() interface{} {
 	v := <-s.Updates
 	return v
 }
 
-func (s *Channel) ReceiveWithInfo() (interface{}, bool) {
+func (s *Channel) ReadWithInfo() (interface{}, bool) {
 	v, ok := <-s.Updates
 	return v, ok
 }

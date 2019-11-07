@@ -30,7 +30,7 @@ type Publish_Ͼ_publishertypeϿ_Ͼ_valuetypeϿ_type struct {
 	*Ͼ_publishertypeϿ
 }
 
-// Receive the object of type and call the generic so the compiler can check the passed in type
+// Read the object of type and call the generic so the compiler can check the passed in type
 func (p *Publish_Ͼ_publishertypeϿ_Ͼ_valuetypeϿ_type) Write(o Ͼ_valuetypeϿ) {
 	p.Ͼ_publishertypeϿ.Write(o)
 }

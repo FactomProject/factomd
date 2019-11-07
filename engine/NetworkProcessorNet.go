@@ -200,7 +200,7 @@ func Peers(w *worker.Thread, fnode *fnode.FactomNode) {
 
 					msg, err = peer.Receive()
 					if msg == nil {
-						// Receive is not blocking; nothing to do, we get a nil.
+						// Read is not blocking; nothing to do, we get a nil.
 						break // move to next peer
 					}
 					if err != nil {

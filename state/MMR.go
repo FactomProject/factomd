@@ -129,7 +129,7 @@ func (s *State) Ask(DBHeight int, vmIndex int, height int, when int64) bool {
 // Used by debug code only
 var MMR_enable bool = true
 
-// Receive all asks and all process list adds and create missing message requests any ask that has expired
+// Read all asks and all process list adds and create missing message requests any ask that has expired
 // and still pending. Add 10 seconds to the ask.
 func (s *State) makeMMRs(w *worker.Thread, asks <-chan askRef, adds <-chan plRef, dbheights <-chan int, rejects <-chan MsgPair) {
 	type dbhvm struct {

@@ -25,7 +25,7 @@ var (
 		"Count of all messages being dequeued",
 	)
 
-	// Send/Receive Times
+	// Send/Read Times
 	TotalSendTime = telemetry.NewGauge(
 		"factomd_state_total_send_time",
 		"Time spent sending (nanoseconds)",

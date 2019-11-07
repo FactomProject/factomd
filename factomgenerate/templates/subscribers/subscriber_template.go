@@ -6,7 +6,8 @@
 
 package subscribers // this is only here to make gofmt happy and is never in the generated code
 
-//Ͼdefine "subscribe_byvalue-imports"Ͽ
+// THis defines the imports for all the subscription types
+//Ͼdefine "subscribe-imports"Ͽ
 
 import (
 	. "github.com/FactomProject/factomd/common/pubsubtypes"
@@ -14,27 +15,57 @@ import (
 )
 
 //ϾendϿ
+//Ͼdefine "subscribe_byvalue-imports"Ͽ Ͼtemplate "subscribe-imports"Ͽ ϾendϿ  // use the common imports list
+//Ͼdefine "subscribe_bychannel-imports"Ͽ Ͼtemplate "subscribe-imports"Ͽ ϾendϿ // use the common imports list
 
-type Ͼ_valuetypeϿ DBHT // not used when generating, only used for testing
+type Ͼ_valuetypeϿ DBHT // not used when generating, only used for testing. insures pubsubtypes in imported
 
 // Expects: valuetype <type>
-
 //Ͼdefine "subscribe_byvalue"Ͽ
 // Start subscribeByValue generated go code
 
-// Ͼ_typenameϿ subscriber has the basic necessary function implementations.
+// Value subscriber has the basic necessary function implementations. All this does is add a wrapper with typing.
 type Subscribe_ByValue_Ͼ_valuetypeϿ_type struct {
 	*Value
 }
 
+// type the Read function
 func (s *Subscribe_ByValue_Ͼ_valuetypeϿ_type) Read() Ͼ_valuetypeϿ {
-	o := s.Value.Read()     // call the generic implementation
-	return o.(Ͼ_valuetypeϿ) // cast the return to the specific type
+	return s.Value.Read().(Ͼ_valuetypeϿ) // cast the return to the specific type
 }
 
+// Create a typed instance form a generic instance
 func Subscribe_ByValue_Ͼ_valuetypeϿ(p *Value) *Subscribe_ByValue_Ͼ_valuetypeϿ_type {
 	return &Subscribe_ByValue_Ͼ_valuetypeϿ_type{p}
 }
 
-// End Subscribebyvalue generated code
+// End subscribe_byvalue generated code
+//Ͼend Ͽ
+
+// Expects: valuetype <type>
+//Ͼdefine "subscribe_bychannel"Ͽ
+// Start subscribeBychannel generated go code
+
+// Channel subscriber has the basic necessary function implementations. All this does is add a wrapper with typing.
+type Subscribe_Bychannel_Ͼ_valuetypeϿ_type struct {
+	*Channel
+}
+
+// type the Read function
+func (s *Subscribe_Bychannel_Ͼ_valuetypeϿ_type) Read() Ͼ_valuetypeϿ {
+	return s.Channel.Read().(Ͼ_valuetypeϿ) // cast the return to the specific type
+}
+
+// type the ReadWithInfo function
+func (s *Subscribe_Bychannel_Ͼ_valuetypeϿ_type) ReadWithInfo() (Ͼ_valuetypeϿ, bool) {
+	v, ok := <-s.Updates
+	return v.(Ͼ_valuetypeϿ), ok
+}
+
+// Create a typed instance form a generic instance
+func Subscribe_Bychannel_Ͼ_valuetypeϿ(p *Channel) *Subscribe_Bychannel_Ͼ_valuetypeϿ_type {
+	return &Subscribe_Bychannel_Ͼ_valuetypeϿ_type{p}
+}
+
+// End subscribe_bychannel generated code
 //Ͼend Ͽ

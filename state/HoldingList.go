@@ -28,7 +28,7 @@ type HoldingList struct {
 	fctMessages    *generated.Publish_PubBase_IMsg_type
 	gossipMessages *generated.Publish_PubBase_IMsg_type
 	heights        *generated.Subscribe_ByValue_DBHT_type
-	ecDeposits     *pubsub.Channel
+	ecDeposits     *generated.Subscribe_ByChannel_Hash_type
 	chainReveals   *pubsub.Channel
 	commits        *pubsub.Channel
 }
@@ -40,6 +40,7 @@ func (l *HoldingList) doWork(w *worker.Thread, id int) {
 
 	s := pubsub.NewValueSubscriber().Subscribe(w.GetParentName() + "/heights")
 	l.heights = generated.Subscribe_ByValue_DBHT(s)
+	l.ecDeposits = generated.Subscribe_ByChannel_Hash(pubsub.NewValueSubscriber().Subscribe(w.GetParentName() + "/EcDeposits"))
 
 }
 
