@@ -10,16 +10,28 @@ type PubSimpleMulti struct {
 }
 
 // TODO: Do this better. This doesn't keep track very well
-func NewSimpleMultiPublish(buffer int) *PubSimpleMulti {
+func NewPubMulti(buffer int) *PubSimpleMulti {
 	p := new(PubSimpleMulti)
-	p.PubThreaded = NewThreadedPublisherPublisher(buffer)
+	p.PubThreaded = NewPubThreaded(buffer)
 
 	return p
 }
 
 func (m *PubSimpleMulti) Publish(path string) *PubSimpleMulti {
-	globalPublish(path, m)
-	return m
+	// Multi might need to return the existing multi
+	pub := globalReg.FindPublisher(path)
+	if pub == nil {
+		// First multi, initiate the register
+		globalPublish(path, m)
+		return m
+	}
+	// Publisher already exists
+	multi, ok := pub.(*PubSimpleMulti)
+	if !ok {
+		panic("tried to register a multi on a path that another publisher type exists")
+	}
+
+	return multi.NewPublisher()
 }
 
 func (m *PubSimpleMulti) NewPublisher() *PubSimpleMulti {

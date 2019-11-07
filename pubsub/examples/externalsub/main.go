@@ -11,7 +11,7 @@ import (
 // Since the functions are unexported in the pubsub package, you must use a
 // SubEmbedded
 func main() {
-	pub := new(pubsub.PubBase).Publish("/source")
+	pub := pubsub.PubFactory.Base().Publish("/source")
 	s := NewExternalSub()
 	_ = pubsub.GlobalRegistry().SubscribeTo("/source", s)
 
@@ -22,6 +22,7 @@ func main() {
 		pub.Write(i)
 		i++
 	}
+
 }
 
 type ExternalSub struct {

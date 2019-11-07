@@ -8,9 +8,9 @@ type PubRoundRobin struct {
 	next int
 }
 
-func NewRoundRobinPublisher(buffer int) *PubRoundRobin {
+func NewPubRoundRobin(buffer int) *PubRoundRobin {
 	p := new(PubRoundRobin)
-	p.PubThreaded = NewThreadedPublisherPublisher(buffer)
+	p.PubThreaded = NewPubThreaded(buffer)
 
 	return p
 }

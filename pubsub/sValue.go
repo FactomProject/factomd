@@ -14,7 +14,7 @@ type SubValue struct {
 	sync.RWMutex
 }
 
-func NewAtomicValueSubscriber() *SubValue {
+func NewSubValue() *SubValue {
 	s := new(SubValue)
 
 	return s

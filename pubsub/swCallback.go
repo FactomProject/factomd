@@ -12,15 +12,19 @@ type SubWrapCallback struct {
 }
 
 // NewCallback
-//	Params:
-//		subscriber
-//		callback
-func NewCallback(subscriber IPubSubscriber) *SubWrapCallback {
+func NewCallback(before func(o interface{}) error, after func(o interface{})) *SubWrapCallback {
 	s := new(SubWrapCallback)
-	s.IPubSubscriber = subscriber
-	// Default to no ops
-	s.BeforeWrite = func(o interface{}) error { return nil }
-	s.AfterWrite = func(o interface{}) {}
+
+	if before == nil {
+		s.BeforeWrite = func(o interface{}) error { return nil }
+	} else {
+		s.BeforeWrite = before
+	}
+	if after == nil {
+		s.AfterWrite = func(o interface{}) {}
+	} else {
+		s.AfterWrite = after
+	}
 
 	return s
 }

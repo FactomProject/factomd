@@ -8,6 +8,8 @@ import (
 	"github.com/FactomProject/factomd/pubsub"
 )
 
+const buffer int = 100
+
 func main() {
 	// This code finds the total number of prime numbers <= max
 	max := int64(1e5)
@@ -15,11 +17,11 @@ func main() {
 	reg := pubsub.NewRegistry()
 
 	// One person publishes the work on a round robin basis
-	robinPub := pubsub.NewRoundRobinPublisher(100).Publish("/source")
+	robinPub := pubsub.PubFactory.RoundRobin(buffer).Publish("/source")
 	go robinPub.Run() // The writer is threaded
 
 	// Agg is a publisher with many writers.
-	agg := pubsub.NewSimpleMultiPublish(100).Publish("/aggregate")
+	agg := pubsub.PubFactory.Multi(buffer).Publish("/aggregate")
 	go agg.Run() // Writes are threaded
 
 	workers := 5
@@ -46,11 +48,10 @@ func main() {
 
 func PrimeWorker() {
 	// Channel based subscription is just a channel written to by a publisher
-	sub := pubsub.NewChannelBasedSubscriber(5).Subscribe("/source")
+	sub := pubsub.NewSubChannel(5).Subscribe("/source")
 
 	// agg is where we write our results.
-	agg := pubsub.GlobalRegistry().FindPublisher("/aggregate").(*pubsub.PubSimpleMulti)
-	agg = agg.NewPublisher()
+	agg := pubsub.PubFactory.Multi(buffer).Publish("/aggregate")
 
 	for {
 		// WithInfo to detect a close.
@@ -76,7 +77,7 @@ func Count(reg *pubsub.Registry) int64 {
 
 	// We only care about the count, the count subscriber just tracks the number
 	// of items written to it.
-	sub := pubsub.NewCounterSubscriber().Subscribe("/aggregate", pubsub.NewContextWrap(cancel))
+	sub := pubsub.NewSubCounter().Subscribe("/aggregate", pubsub.SubContextWrap(cancel))
 
 	// Wait for the subscriber to get called Done(), meaning all data is
 	// published.

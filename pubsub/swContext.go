@@ -5,7 +5,7 @@ type SubWrapContext struct {
 	doneFunc func()
 }
 
-func NewContextWrap(done func()) *SubWrapContext {
+func SubContextWrap(done func()) *SubWrapContext {
 	s := new(SubWrapContext)
 	s.doneFunc = done
 

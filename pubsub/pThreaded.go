@@ -7,7 +7,7 @@ type PubThreaded struct {
 	inputs chan interface{}
 }
 
-func NewThreadedPublisherPublisher(buffer int) *PubThreaded {
+func NewPubThreaded(buffer int) *PubThreaded {
 	p := new(PubThreaded)
 	p.inputs = make(chan interface{}, buffer)
 

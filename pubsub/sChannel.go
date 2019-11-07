@@ -11,7 +11,7 @@ type SubChannel struct {
 	sync.RWMutex
 }
 
-func NewChannelBasedSubscriber(buffer int) *SubChannel {
+func NewSubChannel(buffer int) *SubChannel {
 	s := new(SubChannel)
 	s.Updates = make(chan interface{}, buffer)
 

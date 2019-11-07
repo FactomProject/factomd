@@ -13,7 +13,7 @@ type SubCounter struct {
 	sync.RWMutex
 }
 
-func NewCounterSubscriber() *SubCounter {
+func NewSubCounter() *SubCounter {
 	s := new(SubCounter)
 
 	return s
