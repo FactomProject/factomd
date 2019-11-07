@@ -407,7 +407,7 @@ func Clone(s *State, cloneNumber int) interfaces.IState {
 	return newState
 }
 
-func (s *State) Initialize(w *worker.Thread, electionFactory interfaces.IElectionsFactory) {
+func (s *State) Initialize(w *worker.Thread) {
 	if s.Salt == nil {
 		b := make([]byte, 32)
 		_, err := rand.Read(b)
@@ -610,9 +610,6 @@ func (s *State) Initialize(w *worker.Thread, electionFactory interfaces.IElectio
 
 	// Allocate the missing message handler
 	s.MissingMessageResponseHandler = NewMissingMessageReponseCache(s)
-
-	// Election factory was created and passed int to avoid import loop
-	s.EFactory = electionFactory
 
 	if s.StateSaverStruct.FastBoot {
 		d, err := s.DB.FetchDBlockHead()

@@ -316,7 +316,7 @@ func makeServer(w *worker.Thread, p *globals.FactomParams) (node *fnode.FactomNo
 	}
 
 	// Election factory was created and passed int to avoid import loop
-	node.State.Initialize(w, new(electionMsgs.ElectionsFactory))
+	node.State.Initialize(w)
 
 	state0Init.Do(func() {
 		logPort = p.LogPort
@@ -326,6 +326,8 @@ func makeServer(w *worker.Thread, p *globals.FactomParams) (node *fnode.FactomNo
 		echoConfig(node.State, p) // print the config only once
 	})
 
+	// REVIEW: may need to refactor this
+	node.State.EFactory = new(electionMsgs.ElectionsFactory)
 	time.Sleep(10 * time.Millisecond)
 
 	return node
