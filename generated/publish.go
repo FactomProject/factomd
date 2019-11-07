@@ -6,22 +6,27 @@
 
 package generated
 
+import (
+	. "github.com/FactomProject/factomd/common/pubsubtypes"
+	. "github.com/FactomProject/factomd/pubsub/publishers"
+)
+
 // End fileheader template
 
 // Start publisher generated go code
 
-// Publish_Base_IMgs publisher has the basic necessary function implementations.
-type Publish_Base_IMgs_type struct {
+// Publish_Base_IMsg publisher has the basic necessary function implementations.
+type Publish_Base_IMsg_type struct {
 	*Base
 }
 
 // Receive the object of type and call the generic so the compiler can check the passed in type
-func (p *Publish_Base_IMgs_type) Write(o IMgs) {
+func (p *Publish_Base_IMsg_type) Write(o IMsg) {
 	p.Base.Write(o)
 }
 
-func Publish_Base_IMgs(p *Base) Publish_Base_IMgs_type {
-	return Publish_Base_IMgs_type{p}
+func Publish_Base_IMsg(p *Base) *Publish_Base_IMsg_type {
+	return &Publish_Base_IMsg_type{p}
 }
 
 // End publisher generated go code

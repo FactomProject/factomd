@@ -29,3 +29,5 @@ func (s *Value) Read() interface{} {
 	defer s.RUnlock()
 	return s.value
 }
+
+func (b *Value) Subscribe(name string) *Value { return b }

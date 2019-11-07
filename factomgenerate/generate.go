@@ -45,17 +45,49 @@ func main() {
 	fmt.Println("done")
 }
 
+func LoadTemplates() *template.Template {
+	// load the templates for files wrappers
+	templates := template.New("FactomGenerate")
+	cwd, _ := os.Getwd()
+	fmt.Println(cwd)
+	template.Must(templates.ParseGlob("./factomgenerate/templates/*.tmpl"))
+	// load the templates for go code
+	// these templates use "Ͼ", "Ͽ" as the delimiter to make the template gofmt compatible
+	goTemplateFiles, err := filepath.Glob("./factomgenerate/templates/*/*_template*.go")
+	die(err)
+	for _, filename := range goTemplateFiles {
+		reformattedFilename := ReformatTemplateFile(filename)
+		template.Must(templates.ParseFiles(reformattedFilename))
+		// os.Remove(reformattedFilename) // clean up
+	}
+	return templates
+}
+
+// Find all requests in the form: //FactomGenerate [<key:value>]... in all the go files
+func CollectFactomGenerateRequests() []string {
+	var out bytes.Buffer
+	cmdline := []string{"/bin/bash", "-c", "find .. -name \\*.go | xargs grep -Eh \"^//FactomGenerate\" || true"}
+	// the odd || true at the end avoid grep returning a bogus error code.
+	cmd := exec.Command(cmdline[0], cmdline[1:]...)
+	cmd.Stdout = &out
+	err := cmd.Run()
+	die(err)
+	factomgeneraterequests := strings.Split(out.String(), "\n")
+	return factomgeneraterequests
+}
+
 // Find all requests in the form: Publish_<PublisherType>_<ValueType> in all the go files
 func CollectPublishRequests() []string {
 	var out bytes.Buffer
-	cmdline := []string{"/bin/bash", "-c", "find .. -name \\*.go | xargs grep -Eh \"= Publish_[^( []+\\(\" || true"}
+	regexString := "Publish_[^ (]+"
+	cmdline := []string{"/bin/bash", "-c", "find .. -name \\*.go | xargs grep -Eh \"= *generated." + regexString + "\" || true"}
 	// the odd || true at the end avoid grep returning a bogus error code.
 	cmd := exec.Command(cmdline[0], cmdline[1:]...)
 	cmd.Stdout = &out
 	err := cmd.Run()
 	die(err)
 	pubsubrequests := make(map[string]interface{})
-	re := regexp.MustCompile("Publish_[^ (]+")
+	re := regexp.MustCompile(regexString)
 	// For each template request, split out the key value pairs and deduplicate using a map...
 	for _, m := range strings.Split(out.String(), "\n") {
 		matches := re.FindStringSubmatch(m)
@@ -78,24 +110,26 @@ func CollectPublishRequests() []string {
 	return pubsubrequestsstrings
 }
 
-// Find all requests in the form: Subscribe<SubscriberType>_<type> in all the go files
+// Find all requests in the form: Subscribe_<SubscriberType>_<type> in all the go files
 func CollectSubscribeRequests() []string {
 	var out bytes.Buffer
-	cmdline := []string{"/bin/bash", "-c", "find .. -name \\*.go | xargs grep -Eoh \"= *Subscribe[^_]+_[^(]+\\(\" || true"}
+	regex_string := "Subscribe_[^_]+_[^ (]+"
+	cmdline := []string{"/bin/bash", "-c", "find .. -name \\*.go | xargs grep -Eoh \"= *generated." + regex_string + "\\(\" || true"}
 	// the odd || true at the end avoid grep returning a bogus error code.
+	fmt.Println(cmdline)
 	cmd := exec.Command(cmdline[0], cmdline[1:]...)
 	cmd.Stdout = &out
 	err := cmd.Run()
 	die(err)
 	requests := make(map[string]interface{})
-	re := regexp.MustCompile("Subscribe[^_]+_[^ (]+")
+	re := regexp.MustCompile(regex_string)
 	// For each template request, split out the key value pairs and deduplicate using a map...
 	for _, m := range strings.Split(out.String(), "\n") {
 		matches := re.FindStringSubmatch(m)
 		for _, x := range matches {
 			// Split the Publish_<type> or Subscribe_<type> into template and type
-			parts := strings.SplitN(x, "_", 2)
-			subscriptionType, valueType := parts[0], parts[1]
+			parts := strings.SplitN(x, "_", 3)
+			subscriptionType, valueType := parts[0]+"_"+parts[1], parts[2]
 			// reformat these into the FactomGenerate form
 			fg := fmt.Sprintf("//FactomGenerate template %s valuetype %s", subscriptionType, valueType)
 			requests[fg] = nil // Only the key matters
@@ -109,37 +143,6 @@ func CollectSubscribeRequests() []string {
 		subscriptionRequests = append(subscriptionRequests, k)
 	}
 	return subscriptionRequests
-}
-
-// Find all requests in the form: //FactomGenerate [<key:value>]... in all the go files
-func CollectFactomGenerateRequests() []string {
-	var out bytes.Buffer
-	cmdline := []string{"/bin/bash", "-c", "find .. -name \\*.go | xargs grep -Eh \"^//FactomGenerate\" || true"}
-	// the odd || true at the end avoid grep returning a bogus error code.
-	cmd := exec.Command(cmdline[0], cmdline[1:]...)
-	cmd.Stdout = &out
-	err := cmd.Run()
-	die(err)
-	factomgeneraterequests := strings.Split(out.String(), "\n")
-	return factomgeneraterequests
-}
-
-func LoadTemplates() *template.Template {
-	// load the templates for files wrappers
-	templates := template.New("FactomGenerate")
-	cwd, _ := os.Getwd()
-	fmt.Println(cwd)
-	template.Must(templates.ParseGlob("./factomgenerate/templates/*.tmpl"))
-	// load the templates for go code
-	// these templates use "Ͼ", "Ͽ" as the delimiter to make the template gofmt compatible
-	goTemplateFiles, err := filepath.Glob("./factomgenerate/templates/*/*_template*.go")
-	die(err)
-	for _, filename := range goTemplateFiles {
-		reformattedFilename := ReformatTemplateFile(filename)
-		template.Must(templates.ParseFiles(reformattedFilename))
-		// os.Remove(reformattedFilename) // clean up
-	}
-	return templates
 }
 
 // Change the delimiters in the templates containing go code so the file works as a template and as go code
@@ -229,7 +232,7 @@ func ExpandRequest(templates *template.Template, templateName string, requests [
 			die(t.Execute(&out, []interface{}{}))
 			templateimports = out.String()
 
-			re := regexp.MustCompile("\".*?\"") // regex to extract the quoted strings from the imports statement
+			re := regexp.MustCompile(".*\".*?\"") // regex to extract the quoted strings from the imports statement
 			// Add the quoted strings from template imports to the imports list
 			imports := re.FindAllStringSubmatch(templateimports, -1)
 			for _, l := range imports {

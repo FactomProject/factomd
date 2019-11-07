@@ -61,6 +61,7 @@ func (p *Base) Write(o interface{}) {
 	p.RUnlock()
 }
 
-func (p *Base) Publish(name string) {
+func (p *Base) Publish(name string) *Base {
 	//todo: make this register the published object
+	return p
 }

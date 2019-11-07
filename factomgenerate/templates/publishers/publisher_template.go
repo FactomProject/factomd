@@ -35,8 +35,8 @@ func (p *Publish_Ͼ_publishertypeϿ_Ͼ_valuetypeϿ_type) Write(o Ͼ_valuetypeϿ)
 	p.Ͼ_publishertypeϿ.Write(o)
 }
 
-func Publish_Ͼ_publishertypeϿ_Ͼ_valuetypeϿ(p *Ͼ_publishertypeϿ) Publish_Ͼ_publishertypeϿ_Ͼ_valuetypeϿ_type {
-	return Publish_Ͼ_publishertypeϿ_Ͼ_valuetypeϿ_type{p}
+func Publish_Ͼ_publishertypeϿ_Ͼ_valuetypeϿ(p *Ͼ_publishertypeϿ) *Publish_Ͼ_publishertypeϿ_Ͼ_valuetypeϿ_type {
+	return &Publish_Ͼ_publishertypeϿ_Ͼ_valuetypeϿ_type{p}
 }
 
 // End publisher generated go code

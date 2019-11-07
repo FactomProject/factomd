@@ -6,29 +6,34 @@
 
 package subscribers // this is only here to make gofmt happy and is never in the generated code
 
-//Ͼdefine "subscribe-imports"Ͽ
+//Ͼdefine "subscribe_byvalue-imports"Ͽ
 
 import (
-	"github.com/FactomProject/factomd/pubsub/subscribers"
+	. "github.com/FactomProject/factomd/common/pubsubtypes"
+	. "github.com/FactomProject/factomd/pubsub/subscribers"
 )
 
 //ϾendϿ
 
-type Ͼ_valuetypeϿ int // not used when generating, only used for testing
+type Ͼ_valuetypeϿ DBHT // not used when generating, only used for testing
 
 // Expects: valuetype <type>
 
-//Ͼdefine "subscribebyvalue"Ͽ
+//Ͼdefine "subscribe_byvalue"Ͽ
 // Start subscribeByValue generated go code
 
 // Ͼ_typenameϿ subscriber has the basic necessary function implementations.
-type Subscribe_ByValue_Ͼ_valuetypeϿ struct {
-	subscribers.Value
+type Subscribe_ByValue_Ͼ_valuetypeϿ_type struct {
+	*Value
 }
 
-func (s *Subscribe_ByValue_Ͼ_valuetypeϿ) Read() Ͼ_valuetypeϿ {
+func (s *Subscribe_ByValue_Ͼ_valuetypeϿ_type) Read() Ͼ_valuetypeϿ {
 	o := s.Value.Read()     // call the generic implementation
 	return o.(Ͼ_valuetypeϿ) // cast the return to the specific type
+}
+
+func Subscribe_ByValue_Ͼ_valuetypeϿ(p *Value) *Subscribe_ByValue_Ͼ_valuetypeϿ_type {
+	return &Subscribe_ByValue_Ͼ_valuetypeϿ_type{p}
 }
 
 // End Subscribebyvalue generated code
