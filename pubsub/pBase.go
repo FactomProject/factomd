@@ -13,9 +13,8 @@ type PubBase struct {
 	path string
 }
 
-func (p *PubBase) Publish(path string) *PubBase {
-	globalPublish(path, p)
-	return p
+func (p *PubBase) Publish(path string, wrappers ...IPublisherWrapper) IPublisher {
+	return globalPublishWith(path, p, wrappers...)
 }
 
 func (p *PubBase) setPath(path string) { p.path = path }
@@ -62,4 +61,7 @@ func (p *PubBase) Write(o interface{}) {
 		p.Subscribers[i].write(o)
 	}
 	p.RUnlock()
+}
+
+func (PubBase) Start() {
 }

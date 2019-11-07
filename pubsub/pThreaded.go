@@ -78,7 +78,7 @@ func (p *PubThreaded) ChangeWriteHandle(handle func(o interface{})) {
 // All subscribe/unsubscribe changes are handled alongside writes to ensure
 // the writes can be handles in a threadsafe context with all publisher state
 // access.
-func (p *PubThreaded) Run() {
+func (p *PubThreaded) Start() {
 ThreadedRunLoop:
 	for {
 		select {
@@ -104,7 +104,6 @@ func (p *PubThreaded) write(o interface{}) {
 	p.PubBase.Write(o)
 }
 
-func (p *PubThreaded) Publish(path string) *PubThreaded {
-	globalPublish(path, p)
-	return p
+func (p *PubThreaded) Publish(path string, wrappers ...IPublisherWrapper) IPublisher {
+	return globalPublishWith(path, p, wrappers...)
 }

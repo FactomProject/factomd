@@ -2,6 +2,8 @@ package pubsub
 
 type SubWrapContext struct {
 	IPubSubscriber
+	SubWrapBase
+
 	doneFunc func()
 }
 
@@ -13,6 +15,7 @@ func SubContextWrap(done func()) *SubWrapContext {
 }
 
 func (s *SubWrapContext) Wrap(sub IPubSubscriber) IPubSubscriber {
+	s.SetBase(sub)
 	s.IPubSubscriber = sub
 	return s
 }

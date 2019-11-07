@@ -26,8 +26,8 @@ func (p *PubRoundRobin) write(o interface{}) {
 	p.next++
 }
 
-func (p *PubRoundRobin) Run() {
-	p.PubThreaded.Run()
+func (p *PubRoundRobin) Start() {
+	p.PubThreaded.Start()
 }
 
 func (p *PubRoundRobin) Publish(path string) *PubRoundRobin {

@@ -41,11 +41,11 @@ func (p *PubMsgSplit) write(o interface{}) {
 	p.Subscribers[index].write(o)
 }
 
-func (p *PubMsgSplit) Run() {
-	p.PubThreaded.Run()
+func (p *PubMsgSplit) Start() {
+	p.PubThreaded.Start()
 }
 
-func (p *PubMsgSplit) Publish(path string) *PubRoundRobin {
+func (p *PubMsgSplit) Publish(path string) *PubMsgSplit {
 	globalPublish(path, p)
 	return p
 }

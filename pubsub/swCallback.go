@@ -4,6 +4,7 @@ package pubsub
 // function of the subscriber.
 type SubWrapCallback struct {
 	IPubSubscriber
+	SubWrapBase
 
 	// BeforeWrite is called before a write. If an error is thrown, the
 	// value is rejected by the subscriber
@@ -43,6 +44,7 @@ func (s *SubWrapCallback) Subscribe(path string) *SubWrapCallback {
 }
 
 func (s *SubWrapCallback) Wrap(sub IPubSubscriber) IPubSubscriber {
+	s.SetBase(sub)
 	s.IPubSubscriber = sub
 	return s
 }

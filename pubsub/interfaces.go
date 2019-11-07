@@ -2,6 +2,8 @@ package pubsub
 
 // IPublisher is a routine that handles all publishes for a given publisher.
 type IPublisher interface {
+	Start()
+
 	// NumberOfSubscribers is a method mainly used for debugging to
 	// keep track of the size of a publisher.
 	NumberOfSubscribers() int
@@ -44,5 +46,16 @@ type ISubscriber interface {
 }
 
 type ISubscriberWrapper interface {
+	// Base returns the underlying subscriber
+	Base() IPubSubscriber
 	Wrap(subscriber IPubSubscriber) IPubSubscriber
+}
+
+type IPublisherWrapper interface {
+	IPublisher
+
+	// Base returns the underlying publisher
+	Base() IPublisher
+	Wrap(subscriber IPublisher) IPublisherWrapper
+	Publish(path string) IPublisherWrapper
 }
