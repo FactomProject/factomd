@@ -48,7 +48,7 @@ func main() {
 
 func PrimeWorker() {
 	// Channel based subscription is just a channel written to by a publisher
-	sub := pubsub.NewSubChannel(5).Subscribe("/source")
+	sub := pubsub.SubFactory.Channel(5).Subscribe("/source")
 
 	// agg is where we write our results.
 	agg := pubsub.PubFactory.Multi(buffer).Publish("/aggregate")
@@ -77,7 +77,7 @@ func Count(reg *pubsub.Registry) int64 {
 
 	// We only care about the count, the count subscriber just tracks the number
 	// of items written to it.
-	sub := pubsub.NewSubCounter().Subscribe("/aggregate", pubsub.SubContextWrap(cancel))
+	sub := pubsub.SubFactory.Counter().Subscribe("/aggregate", pubsub.SubContextWrap(cancel))
 
 	// Wait for the subscriber to get called Done(), meaning all data is
 	// published.
