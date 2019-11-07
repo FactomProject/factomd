@@ -1,6 +1,9 @@
 package pubsubtypes
 
-import "github.com/FactomProject/factomd/common/interfaces"
+import (
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
+)
 
 type DBHT struct {
 	DBHT   int64
@@ -8,3 +11,4 @@ type DBHT struct {
 }
 
 type IMsg struct{ interfaces.IMsg }
+type Hash primitives.Hash

@@ -8,7 +8,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/generated"
-	pubsub "github.com/FactomProject/factomd/pubsub"
+	"github.com/FactomProject/factomd/pubsub"
 	"github.com/FactomProject/factomd/telemetry"
 	"github.com/FactomProject/factomd/worker"
 )
@@ -18,29 +18,33 @@ type heldMessage struct {
 	offset        int
 }
 
-// This hold a slice of messages dependent on a hash
+// This hold a slice of inMessages dependent on a hash
 type HoldingList struct {
 	common.Name
-	holding        map[[32]byte][]interfaces.IMsg
-	s              *State                   // for debug logging
-	dependents     map[[32]byte]heldMessage // used to avoid duplicate entries & track position in holding
-	messages       *generated.Publish_PubBase_IMsg_type
+	holding    map[[32]byte][]interfaces.IMsg
+	s          *State                   // for debug logging
+	dependents map[[32]byte]heldMessage // used to avoid duplicate entries & track position in holding
+
+	// New DependentHolding
+	outMessages    *generated.Publish_PubBase_IMsg_type
 	fctMessages    *generated.Publish_PubBase_IMsg_type
 	gossipMessages *generated.Publish_PubBase_IMsg_type
-	heights        *generated.Subscribe_ByValue_DBHT_type
-	ecDeposits     *generated.Subscribe_ByChannel_Hash_type
-	chainReveals   *pubsub.Channel
-	commits        *pubsub.Channel
+
+	inMessages   *generated.Subscribe_ByChannel_IMsg_type
+	heights      *generated.Subscribe_ByValue_DBHT_type
+	ecDeposits   *generated.Subscribe_ByChannel_Hash_type
+	chainReveals *pubsub.Channel
+	commits      *pubsub.Channel
 }
 
 func (l *HoldingList) doWork(w *worker.Thread, id int) {
-	l.messages = generated.Publish_PubBase_IMsg(new(pubsub.PubBase).Publish(w.GetParentName() + "/messages"))
+	l.outMessages = generated.Publish_PubBase_IMsg(new(pubsub.PubBase).Publish(w.GetParentName() + "/dependentHolding/messages"))
 	l.fctMessages = generated.Publish_PubBase_IMsg(new(pubsub.PubBase).Publish(w.GetParentName() + "/fctMessages"))
 	l.gossipMessages = generated.Publish_PubBase_IMsg(new(pubsub.PubBase).Publish(w.GetParentName() + "/gossipMessages"))
 
-	s := pubsub.NewValueSubscriber().Subscribe(w.GetParentName() + "/heights")
-	l.heights = generated.Subscribe_ByValue_DBHT(s)
-	l.ecDeposits = generated.Subscribe_ByChannel_Hash(pubsub.NewValueSubscriber().Subscribe(w.GetParentName() + "/EcDeposits"))
+	l.inMessages = generated.Subscribe_ByChannel_IMsg(pubsub.NewChannelBasedSubscriber(10).Subscribe(w.GetParentName() + "/msgValidation/messages"))
+	l.heights = generated.Subscribe_ByValue_DBHT(pubsub.NewValueSubscriber().Subscribe(w.GetParentName() + "/heights"))
+	l.ecDeposits = generated.Subscribe_ByChannel_Hash(pubsub.NewChannelBasedSubscriber(10).Subscribe(w.GetParentName() + "/EcDeposits"))
 
 }
 
@@ -126,7 +130,7 @@ func (l *HoldingList) Get(h [32]byte) []interfaces.IMsg {
 	rval := l.holding[h]
 	delete(l.holding, h)
 
-	// delete all the individual messages from the list
+	// delete all the individual inMessages from the list
 	for _, msg := range rval {
 		if msg == nil {
 			continue
@@ -143,7 +147,7 @@ func (l *HoldingList) ExecuteForNewHeight(ht uint32, minute int) {
 	l.s.ExecuteFromHolding(HeightToHash(ht, minute))
 }
 
-// clean stale messages from holding
+// clean stale inMessages from holding
 func (l *HoldingList) Review() {
 
 	for h := range l.holding {
@@ -235,11 +239,11 @@ func (s *State) Add(h [32]byte, msg interfaces.IMsg) int {
 	return -2 // ensures message is not sent to old holding
 }
 
-// Execute a list of messages from holding that are dependent on a hash
+// Execute a list of inMessages from holding that are dependent on a hash
 // the hash may be a EC address or a ChainID or a height (ok heights are not really hashes but we cheat on that)
 func (s *State) ExecuteFromHolding(h [32]byte) {
 
-	// get and delete the list of messages waiting on this hash
+	// get and delete the list of inMessages waiting on this hash
 	l := s.Hold.Get(h)
 	if l == nil {
 		//		s.LogPrintf("DependentHolding", "ExecuteFromDependentHolding(%x) nothing waiting", h[:6])
@@ -255,7 +259,7 @@ func (s *State) ExecuteFromHolding(h [32]byte) {
 	}
 
 	go func() {
-		// add the messages to the msgQueue so they get executed as space is available
+		// add the inMessages to the msgQueue so they get executed as space is available
 		for _, m := range l {
 			if m == nil {
 				continue

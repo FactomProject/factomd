@@ -4,10 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math/big"
-
-	"github.com/FactomProject/factomd/pubsub/publishers"
-	"github.com/FactomProject/factomd/pubsub/pubregistry"
-	"github.com/FactomProject/factomd/pubsub/subscribers"
 )
 
 func main() {

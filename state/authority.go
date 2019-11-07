@@ -21,7 +21,7 @@ func (st *State) VerifyAuthoritySignature(msg []byte, sig *[constants.SIGNATURE_
 	//defer func() { // debug code
 	//	//st.LogMessage("executeMsg", "Signature Fail", msg)
 	//	if rval <= 0 {
-	//		m, err := messages.General.UnmarshalMessage(append(msg[:], make([]byte, 256)[:]...))
+	//		m, err := inMessages.General.UnmarshalMessage(append(msg[:], make([]byte, 256)[:]...))
 	//		if err != nil {
 	//			st.LogPrintf("executeMsg", "Unable to unmarshal message")
 	//		} else {
@@ -31,7 +31,7 @@ func (st *State) VerifyAuthoritySignature(msg []byte, sig *[constants.SIGNATURE_
 	//
 	//		feds := st.GetFedServers(dbheight)
 	//		for _, fed := range feds {
-	//			st.LogPrintf("executeMsg", "L %s:%s", messages.LookupName(fed.GetChainID().String()), fed.GetChainID().String()[6:12])
+	//			st.LogPrintf("executeMsg", "L %s:%s", inMessages.LookupName(fed.GetChainID().String()), fed.GetChainID().String()[6:12])
 	//		}
 	//
 	//		auds := st.GetAuditServers(dbheight)
@@ -39,7 +39,7 @@ func (st *State) VerifyAuthoritySignature(msg []byte, sig *[constants.SIGNATURE_
 	//			st.LogPrintf("executeMsg", "Audit Servers are unknown at directory block height %d", dbheight)
 	//		}
 	//		for _, aud := range auds {
-	//			st.LogPrintf("executeMsg", "A %s:%s", messages.LookupName(aud.GetChainID().String()), aud.GetChainID().String()[6:12])
+	//			st.LogPrintf("executeMsg", "A %s:%s", inMessages.LookupName(aud.GetChainID().String()), aud.GetChainID().String()[6:12])
 	//		}
 	//
 	//		st.LogPrintf("executeMsg", "auth.VerifySignature(msg:%x, sig:%x)", msg, sig)

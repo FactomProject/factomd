@@ -52,7 +52,7 @@ func (s *State) DoProcessing() {
 		// Call process at least every second to insure MMR runs.
 		now := s.GetTimestamp()
 		p3 := false
-		// If we haven't process messages in over a seconds go process them now
+		// If we haven't process inMessages in over a seconds go process them now
 		if now.GetTimeMilli()-s.ProcessTime.GetTimeMilli() > int64(s.FactomSecond()/time.Millisecond) {
 			for s.LeaderPL.Process(s) {
 				p3 = true
@@ -101,7 +101,7 @@ func (s *State) ValidatorLoop(w *worker.Thread) {
 			}
 		}()
 
-		// Look for pending messages, and get one if there is one.
+		// Look for pending inMessages, and get one if there is one.
 		for { // this is the message sort
 			var msg interfaces.IMsg
 
@@ -110,8 +110,8 @@ func (s *State) ValidatorLoop(w *worker.Thread) {
 				shutdown(s)
 				time.Sleep(10 * time.Second) // wait till database close is complete
 				return
-			case c := <-s.tickerQueue: // Look for pending messages, and get one if there is one.
-				if !s.RunLeader || !s.DBFinished { // don't generate EOM if we are not ready to execute as a leader or are loading the DBState messages
+			case c := <-s.tickerQueue: // Look for pending inMessages, and get one if there is one.
+				if !s.RunLeader || !s.DBFinished { // don't generate EOM if we are not ready to execute as a leader or are loading the DBState inMessages
 					continue
 				}
 				currentMinute := s.CurrentMinute

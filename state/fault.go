@@ -21,7 +21,7 @@ var faultLogger = packageLogger.WithFields(log.Fields{"subpack": "fault"})
 
 type FaultCore struct {
 	// The following 5 fields represent the "Core" of the message
-	// This should match the Core of FullServerFault messages
+	// This should match the Core of FullServerFault inMessages
 	ServerID      interfaces.IHash
 	AuditServerID interfaces.IHash
 	VMIndex       byte
@@ -166,7 +166,7 @@ func (s *State) Reset() {
 	// s.ResetRequest = true
 }
 
-// Set to reprocess all messages and states
+// Set to reprocess all inMessages and states
 func (s *State) DoReset() {
 	return
 }

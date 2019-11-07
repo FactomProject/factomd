@@ -92,7 +92,7 @@ func (s *State) DeleteFromHolding(hash [32]byte, msg interfaces.IMsg, reason str
 
 }
 
-var FilterTimeLimit = int64(Range * 60 * 2 * 1000000000) // Filter hold two hours of messages, one in the past one in the future
+var FilterTimeLimit = int64(Range * 60 * 2 * 1000000000) // Filter hold two hours of inMessages, one in the past one in the future
 
 func (s *State) GetFilterTimeNano() int64 {
 	t := s.GetMessageFilterTimestamp().GetTime().UnixNano() // this is the start of the filter
@@ -102,17 +102,17 @@ func (s *State) GetFilterTimeNano() int64 {
 	return t
 }
 
-// this is the common validation to all messages. they must not be a reply, they must not be out size the time window
+// this is the common validation to all inMessages. they must not be a reply, they must not be out size the time window
 // for the replay filter.
 func (s *State) Validate(msg interfaces.IMsg) (validToSend int, validToExec int) {
-	// check the time frame of messages with ACKs and reject any that are before the message filter time (before boot
+	// check the time frame of inMessages with ACKs and reject any that are before the message filter time (before boot
 	// or outside the replay filter time frame)
 
 	defer func() {
 		s.LogMessage("msgvalidation", fmt.Sprintf("send=%d execute=%d local=%v %s", *(&validToSend), *(&validToExec), msg.IsLocal(), atomic.WhereAmIString(1)), msg)
 	}()
 
-	// During boot ignore messages that are more than 15 minutes old...
+	// During boot ignore inMessages that are more than 15 minutes old...
 	if s.IgnoreMissing && msg.Type() != constants.DBSTATE_MSG {
 		now := s.GetTimestamp().GetTimeSeconds()
 		if now-msg.GetTimestamp().GetTimeSeconds() > 60*15 {
@@ -141,10 +141,10 @@ func (s *State) Validate(msg interfaces.IMsg) (validToSend int, validToExec int)
 				s.LogPrintf("executeMsg", "Message   %s", msg.GetTimestamp().GetTime().String())
 			}
 		}
-		// messages before message filter timestamp it's an old message
+		// inMessages before message filter timestamp it's an old message
 		if msgtime < filterTime {
 			s.LogMessage("executeMsg", "drop message, more than an hour in the past", msg)
-			return -1, -1 // Old messages are bad.
+			return -1, -1 // Old inMessages are bad.
 		} else if msgtime > (filterTime + FilterTimeLimit) {
 			s.LogMessage("executeMsg", "hold message from the future", msg)
 			return 0, 0 // Far Future (>1H) stuff I can hold for now.  It might be good later?
@@ -189,15 +189,15 @@ func (s *State) Validate(msg interfaces.IMsg) (validToSend int, validToExec int)
 		return 1, 1
 	}
 
-	// only valid to send messages past here
+	// only valid to send inMessages past here
 
 	msg.ComputeVMIndex(s)
 	vmIndex := msg.GetVMIndex()
 	// If we are not the leader, or this isn't the VM we are responsible for ...
 	if !s.Leader || (s.LeaderVMIndex != vmIndex) {
 		if constants.NeedsAck(msg.Type()) {
-			// don't need to check for a matching ack for ACKs or local messages
-			// for messages that get ACK make sure we can expect to process them
+			// don't need to check for a matching ack for ACKs or local inMessages
+			// for inMessages that get ACK make sure we can expect to process them
 			ack, _ := s.Acks[msg.GetMsgHash().Fixed()].(*messages.Ack)
 			if ack == nil {
 				s.LogPrintf("executeMsg", "LeaderVm = %d, msg vm = %d M-%x", s.LeaderVMIndex, vmIndex, msg.GetMsgHash().Bytes()[:3])
@@ -326,7 +326,7 @@ func (s *State) executeMsg(msg interfaces.IMsg) (ret bool) {
 		return true
 
 	case 0:
-		// Sometimes messages we have already processed are in the msgQueue from holding when we execute them
+		// Sometimes inMessages we have already processed are in the msgQueue from holding when we execute them
 		// this check makes sure we don't put them back in holding after just deleting them
 		s.LogMessage("executeMsg", "hold executeMsg", msg)
 		s.AddToHolding(msg.GetMsgHash().Fixed(), msg) // Add message where validToExecute==0
@@ -410,7 +410,7 @@ func (s *State) Process() (progress bool) {
 
 	hsb := s.GetHighestSavedBlk()
 
-	// trim any received DBStatesReceived messages that are fully processed
+	// trim any received DBStatesReceived inMessages that are fully processed
 	completed := s.GetHighestLockedSignedAndSavesBlk()
 
 	cut := int(completed) - s.DBStatesReceivedBase
@@ -441,14 +441,14 @@ func (s *State) Process() (progress bool) {
 				s.LogPrintf("dbstateprocess", "Trying to process DBStatesReceived %d, %t", s.DBStatesReceivedBase+ix, ret)
 			}
 
-			// if we can not process a DBStatesReceived then go process some messages
+			// if we can not process a DBStatesReceived then go process some inMessages
 			if hsb == s.GetHighestSavedBlk() {
 				break
 			}
 		}
 	}
 
-	// Process inbound messages
+	// Process inbound inMessages
 	preEmptyLoopTime := time.Now()
 emptyLoop:
 	for i := 0; i < 100; i++ {
@@ -477,7 +477,7 @@ emptyLoop:
 	TotalEmptyLoopTime.Add(float64(emptyLoopTime.Nanoseconds()))
 
 	preProcessXReviewTime := time.Now()
-	// Reprocess any stalled messages, but not so much compared inbound messages
+	// Reprocess any stalled inMessages, but not so much compared inbound inMessages
 	// Process last first
 
 	// Check for Ack'd items in holding
@@ -502,8 +502,8 @@ emptyLoop:
 			if msg == nil {
 				continue
 			}
-			// copy the messages we are responsible for and all msg that don't need ack
-			// messages that need ack will get processed when thier ack arrives
+			// copy the inMessages we are responsible for and all msg that don't need ack
+			// inMessages that need ack will get processed when thier ack arrives
 			if msg.GetVMIndex() == s.LeaderVMIndex || !constants.NeedsAck(msg.Type()) {
 				process = append(process, msg)
 			}
@@ -610,7 +610,7 @@ func (s *State) ExpireHolding() {
 }
 
 // Places the entries in the holding map back into the XReview list for
-// review if this is a leader, and those messages are that leader's
+// review if this is a leader, and those inMessages are that leader's
 // responsibility
 func (s *State) ReviewHolding() {
 
@@ -899,8 +899,8 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 	s.DBSigLimit = s.EOMLimit               // We add or remove server only on block boundaries
 	s.LogPrintf("dbstateprocess", "MoveStateToHeight(%d-:-%d) leader=%v leaderPL=%p, leaderVMIndex=%d", dbheight, newMinute, s.Leader, s.LeaderPL, s.LeaderVMIndex)
 
-	s.Hold.ExecuteForNewHeight(s.LLeaderHeight, s.CurrentMinute) // execute held messages
-	s.Hold.Review()                                              // cleanup old messages
+	s.Hold.ExecuteForNewHeight(s.LLeaderHeight, s.CurrentMinute) // execute held inMessages
+	s.Hold.Review()                                              // cleanup old inMessages
 }
 
 // Adds blocks that are either pulled locally from a database, or acquired from peers.
@@ -945,7 +945,7 @@ func (s *State) AddDBState(isNew bool,
 }
 
 // Messages that will go into the Process List must match an Acknowledgement.
-// The code for this is the same for all such messages, so we put it here.
+// The code for this is the same for all such inMessages, so we put it here.
 //
 // Returns true if it finds a match, puts the message in holding, or invalidates the message
 func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
@@ -999,7 +999,7 @@ func (s *State) FactomSecond() time.Duration {
 }
 
 // Messages that will go into the Process List must match an Acknowledgement.
-// The code for this is the same for all such messages, so we put it here.
+// The code for this is the same for all such inMessages, so we put it here.
 //
 // Returns true if it finds a match, puts the message in holding, or invalidates the message
 func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
@@ -1046,7 +1046,7 @@ func (s *State) getMsgFromHolding(h [32]byte) interfaces.IMsg {
 	}
 }
 
-// Ack messages always match some message in the Process List.   That is
+// Ack inMessages always match some message in the Process List.   That is
 // done here, though the only msg that should call this routine is the Ack
 // message.
 func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
@@ -1239,7 +1239,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 
-	// Just ignore missing messages for a period after going off line or starting up.
+	// Just ignore missing inMessages for a period after going off line or starting up.
 
 	if s.IgnoreMissing {
 		s.LogMessage("executeMsg", "drop IgnoreMissing", m)
@@ -1916,7 +1916,7 @@ func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
 	}
 }
 
-// TODO: Should fault the server if we don't have the proper sequence of EOM messages.
+// TODO: Should fault the server if we don't have the proper sequence of EOM inMessages.
 func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	TotalProcessEOMs.Inc()
 	e := msg.(*messages.EOM)
@@ -2622,7 +2622,7 @@ func (s *State) GetLeaderHeight() uint32 {
 }
 
 // The highest block for which we have received a message.  Sometimes the same as
-// BuildingBlock(), but can be different depending or the order messages are received.
+// BuildingBlock(), but can be different depending or the order inMessages are received.
 func (s *State) GetHighestKnownBlock() uint32 {
 	if s.ProcessLists == nil {
 		return 0

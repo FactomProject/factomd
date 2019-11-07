@@ -39,7 +39,7 @@ type MSgPair struct {
 
 type MMRInfo struct {
 	// Channels for managing the missing message requests
-	asks      chan askRef  // Requests to ask for missing messages
+	asks      chan askRef  // Requests to ask for missing inMessages
 	adds      chan plRef   // notices of slots filled in the process list
 	rejects   chan MsgPair // Messages rejected from process list
 	dbheights chan int     // Notice that this DBHeight is done
@@ -78,7 +78,7 @@ func (vm *VM) ReportMissing(height int, delay int64) {
 		delay = oneSeconds // Floor for delays is 1 second so there is time to merge adjacent requests
 	}
 	lenVMList := len(vm.List)
-	// ask for all missing messages
+	// ask for all missing inMessages
 	var i int
 	for i = vm.Height; i < lenVMList; i++ {
 		if i < 0 { // -1 is the default highestask, as we have not asked yet. Obviously this index does not exist
@@ -113,7 +113,7 @@ func (s *State) Ask(DBHeight int, vmIndex int, height int, when int64) bool {
 	//	Currently if the asks are full, we'd rather just skip
 	//	than block the thread. We report missing multiple times, so if
 	//	we exit, we will come around and ask again.
-	// We have to do this because MMR can provide messages from inmsgqueue by pushing them into msg queue
+	// We have to do this because MMR can provide inMessages from inmsgqueue by pushing them into msg queue
 	// if msgqueue is full then the two threads can deadlock
 
 	if len(vm.p.State.asks) == cap(vm.p.State.asks) {
@@ -285,14 +285,14 @@ func (s *State) makeMMRs(w *worker.Thread, asks <-chan askRef, adds <-chan plRef
 				lastAskDelay = askDelay
 			}
 
-			// process any incoming messages
+			// process any incoming inMessages
 			select {
 			case msgPair := <-rejects:
 				s.LogMessage("mmr", "Reject", msgPair.Ack)
 				s.RecentMessage.HandleRejection(msgPair.Msg, msgPair.Ack)
 			case msg := <-s.RecentMessage.NewMsgs:
 				s.LogPrintf("mmr", "start msg handling")
-				s.RecentMessage.Add(msg) // adds messages to a message map for MMR
+				s.RecentMessage.Add(msg) // adds inMessages to a message map for MMR
 
 			case dbheight = <-dbheights:
 				s.LogPrintf("mmr", "start dbheight handling")
@@ -369,7 +369,7 @@ func (s *State) makeMMRs(w *worker.Thread, asks <-chan askRef, adds <-chan plRef
 // It can create MissingMessageResponses to peer requests, and prevent us from asking the network
 // if we already have something locally.
 type MissingMessageResponseCache struct {
-	// MissingMsgRequests is the channel on which we receive acked messages to cache
+	// MissingMsgRequests is the channel on which we receive acked inMessages to cache
 	MissingMsgRequests chan interfaces.IMsg
 	// ProcessedPairs is all the ack+msg pairs that we processed
 	ProcessedPairs chan *MsgPair
@@ -442,7 +442,7 @@ func (mmrc *MissingMessageResponseCache) answerRequest(request *messages.Missing
 	}
 }
 
-// Run will start the loop to read messages from the channel and build
+// Run will start the loop to read inMessages from the channel and build
 // the cache to respond to missing message requests
 func (mmrc *MissingMessageResponseCache) Run() {
 	for {
@@ -468,7 +468,7 @@ func (mmrc *MissingMessageResponseCache) Run() {
 	}
 }
 
-// The pair of messages for a missing message response
+// The pair of inMessages for a missing message response
 type MsgPair struct {
 	Ack interfaces.IMsg
 	Msg interfaces.IMsg

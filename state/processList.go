@@ -43,11 +43,11 @@ type ProcessList struct {
 	State        *State
 	VMs          []*VM       // Process list for each server (up to 32)
 	ServerMap    [10][64]int // Map of FedServers to all Servers for each minute
-	System       VM          // System Faults and other system wide messages
+	System       VM          // System Faults and other system wide inMessages
 	diffSigTally int         /* Tally of how many VMs have provided different
 		                    					             Directory Block Signatures than what we have
 	                                            (discard DBlock if > 1/2 have sig differences) */
-	// messages processed in this list
+	// inMessages processed in this list
 	OldMsgs     map[[32]byte]interfaces.IMsg
 	oldmsgslock sync.Mutex
 
@@ -102,11 +102,11 @@ type DBSig struct {
 }
 
 type VM struct {
-	List            []interfaces.IMsg    // Lists of acknowledged messages
+	List            []interfaces.IMsg    // Lists of acknowledged inMessages
 	ListAck         []*messages.Ack      // Acknowledgements
-	Height          int                  // Height of first unprocessed message (count of messages processed)
+	Height          int                  // Height of first unprocessed message (count of inMessages processed)
 	EomMinuteIssued int                  // Last Minute Issued on this VM (from the leader, when we are the leader)
-	LeaderMinute    int                  // Where the leader is in acknowledging messages
+	LeaderMinute    int                  // Where the leader is in acknowledging inMessages
 	Synced          bool                 // Is this VM synced yet?
 	heartBeat       int64                // Just ping ever so often if we have heard nothing.
 	Signed          bool                 // We have signed the previous block.
@@ -771,7 +771,7 @@ func (p *ProcessList) processVM(vm *VM) (progress bool) {
 
 	defer p.UpdateStatus(s) // update the status after each VM
 
-	progress = false // assume we will not process any messages
+	progress = false // assume we will not process any inMessages
 
 	for j := vm.Height; j < len(vm.List); j++ {
 
@@ -889,7 +889,7 @@ func (p *ProcessList) UpdateStatus(s *State) {
 
 }
 
-// Process messages and update our state.
+// Process inMessages and update our state.
 func (p *ProcessList) Process(s *State) (progress bool) {
 	dbht := s.GetHighestSavedBlk()
 	if dbht >= p.DBHeight {

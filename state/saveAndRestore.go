@@ -67,14 +67,14 @@ type SaveState struct {
 
 	Newblk  bool // True if we are starting a new block, and a dbsig is needed.
 	Saving  bool // True if we are in the process of saving to the database
-	Syncing bool // Looking for messages from leaders to sync
+	Syncing bool // Looking for inMessages from leaders to sync
 
 	//	Replay *Replay
 
 	LeaderTimestamp interfaces.Timestamp
 
 	Holding map[[32]byte]interfaces.IMsg // Hold Messages
-	XReview []interfaces.IMsg            // After the EOM, we must review the messages in Holding
+	XReview []interfaces.IMsg            // After the EOM, we must review the inMessages in Holding
 	Acks    map[[32]byte]interfaces.IMsg // Hold Acknowledgements
 	Commits *SafeMsgMap                  // map[[32]byte]interfaces.IMsg // Commit Messages
 
@@ -881,7 +881,7 @@ func (ss *SaveState) MarshalBinary() (rval []byte, err error) {
 	}
 	/*
 		Holding map[[32]byte]interfaces.IMsg   // Hold Messages
-		XReview []interfaces.IMsg              // After the EOM, we must review the messages in Holding
+		XReview []interfaces.IMsg              // After the EOM, we must review the inMessages in Holding
 		Acks    map[[32]byte]interfaces.IMsg   // Hold Acknowledgements
 		Commits map[[32]byte][]interfaces.IMsg // Commit Messages
 
@@ -1144,7 +1144,7 @@ func (ss *SaveState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 
 	/*
 		Holding map[[32]byte]interfaces.IMsg   // Hold Messages
-		XReview []interfaces.IMsg              // After the EOM, we must review the messages in Holding
+		XReview []interfaces.IMsg              // After the EOM, we must review the inMessages in Holding
 		Acks    map[[32]byte]interfaces.IMsg   // Hold Acknowledgements
 		Commits map[[32]byte][]interfaces.IMsg // Commit Messages
 

@@ -47,24 +47,24 @@ func Subscribe_ByValue_Ͼ_valuetypeϿ(p *Value) *Subscribe_ByValue_Ͼ_valuetype�
 // Start subscribeBychannel generated go code
 
 // Channel subscriber has the basic necessary function implementations. All this does is add a wrapper with typing.
-type Subscribe_Bychannel_Ͼ_valuetypeϿ_type struct {
+type Subscribe_ByChannel_Ͼ_valuetypeϿ_type struct {
 	*Channel
 }
 
 // type the Read function
-func (s *Subscribe_Bychannel_Ͼ_valuetypeϿ_type) Read() Ͼ_valuetypeϿ {
+func (s *Subscribe_ByChannel_Ͼ_valuetypeϿ_type) Read() Ͼ_valuetypeϿ {
 	return s.Channel.Read().(Ͼ_valuetypeϿ) // cast the return to the specific type
 }
 
 // type the ReadWithInfo function
-func (s *Subscribe_Bychannel_Ͼ_valuetypeϿ_type) ReadWithInfo() (Ͼ_valuetypeϿ, bool) {
+func (s *Subscribe_ByChannel_Ͼ_valuetypeϿ_type) ReadWithInfo() (Ͼ_valuetypeϿ, bool) {
 	v, ok := <-s.Updates
 	return v.(Ͼ_valuetypeϿ), ok
 }
 
 // Create a typed instance form a generic instance
-func Subscribe_Bychannel_Ͼ_valuetypeϿ(p *Channel) *Subscribe_Bychannel_Ͼ_valuetypeϿ_type {
-	return &Subscribe_Bychannel_Ͼ_valuetypeϿ_type{p}
+func Subscribe_ByChannel_Ͼ_valuetypeϿ(p *Channel) *Subscribe_ByChannel_Ͼ_valuetypeϿ_type {
+	return &Subscribe_ByChannel_Ͼ_valuetypeϿ_type{p}
 }
 
 // End subscribe_bychannel generated code

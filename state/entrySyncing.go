@@ -32,7 +32,7 @@ type EntrySync struct {
 	SyncingBlocks            map[int][]*ReCheck         // Map of Directory blocks by height
 	finishedDBlocks          chan int                   // Channel of finished Directory blocks
 	finishedEntries          chan int                   // We get a ping every time an entry is done
-	SendRequest              chan *messages.MissingData // Channel for messages being requested
+	SendRequest              chan *messages.MissingData // Channel for inMessages being requested
 	Processing               int                        // Directory block we are processing
 	EntriesProcessing        int                        // Total of Entries being processed
 	EntryRequests            int                        // Requests made
@@ -94,7 +94,7 @@ func (s *State) SendManager() {
 		now := time.Now()
 		tenSeconds := s.FactomSecond() * 10
 
-		// Every 1000 messages or so, purge our hash map.
+		// Every 1000 inMessages or so, purge our hash map.
 		if purge <= 0 {
 			for k, v := range EntriesRequested {
 				delay := now.Sub(v)

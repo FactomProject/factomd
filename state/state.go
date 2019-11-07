@@ -129,7 +129,7 @@ type State struct {
 	Replay               *Replay
 	FReplay              *Replay
 	CrossReplay          *CrossReplayFilter
-	Delay                int64 // Simulation delays sending messages this many milliseconds
+	Delay                int64 // Simulation delays sending inMessages this many milliseconds
 
 	// Keeping the last display state lets us know when to send over the new blocks
 	LastDisplayState        *DisplayState
@@ -198,8 +198,8 @@ type State struct {
 	apiQueue               *queue.MsgQueue
 	ackQueue               chan interfaces.IMsg
 	msgQueue               chan interfaces.IMsg
-	// prioritizedMsgQueue contains messages we know we need for consensus. (missing from processlist)
-	//		Currently messages from MMR handling can be put in here to fast track
+	// prioritizedMsgQueue contains inMessages we know we need for consensus. (missing from processlist)
+	//		Currently inMessages from MMR handling can be put in here to fast track
 	//		them to the front.
 	prioritizedMsgQueue chan interfaces.IMsg
 
@@ -220,8 +220,8 @@ type State struct {
 	EOMIssueTime int64
 	EOMSyncEnd   int64
 
-	// Ignore missing messages for a period to allow rebooting a network where your
-	// own messages from the previously executing network can confuse you.
+	// Ignore missing inMessages for a period to allow rebooting a network where your
+	// own inMessages from the previously executing network can confuse you.
 	IgnoreDone    bool
 	IgnoreMissing bool
 
@@ -230,7 +230,7 @@ type State struct {
 	LeaderVMIndex   int
 	LeaderPL        *ProcessList
 	PLProcessHeight uint32
-	// Height cutoff where no missing messages below this height
+	// Height cutoff where no missing inMessages below this height
 	DBHeightAtBoot uint32
 	CurrentMinute  int
 
@@ -263,7 +263,7 @@ type State struct {
 	DBSigFails int // Keep track of how many blockhash mismatches we've had to correct
 
 	Saving  bool // True if we are in the process of saving to the database
-	Syncing bool // Looking for messages from leaders to sync
+	Syncing bool // Looking for inMessages from leaders to sync
 
 	NetStateOff            bool // Disable if true, Enable if false
 	DebugConsensus         bool // If true, dump consensus trace
@@ -281,7 +281,7 @@ type State struct {
 	HoldingList   chan [32]byte                // Queue to process Holding in order
 	HoldingVM     int                          // VM used to build current holding list
 	Holding       map[[32]byte]interfaces.IMsg // Hold Messages
-	XReview       []interfaces.IMsg            // After the EOM, we must review the messages in Holding
+	XReview       []interfaces.IMsg            // After the EOM, we must review the inMessages in Holding
 	Acks          map[[32]byte]interfaces.IMsg // Hold Acknowledgements
 	Commits       *SafeMsgMap                  //  map[[32]byte]interfaces.IMsg // Commit Messages
 
@@ -1345,7 +1345,7 @@ func (s *State) UpdateState() (progress bool) {
 		ProcessLists.Str = ProcessLists.String()
 	}
 
-	if plbase <= dbheight { // TODO: This is where we have to fix the fact that syncing with dbstates can fail to transition to messages
+	if plbase <= dbheight { // TODO: This is where we have to fix the fact that syncing with dbstates can fail to transition to inMessages
 		if !s.Leader || s.RunLeader {
 			progress = ProcessLists.UpdateState(dbheight)
 		}
@@ -1658,9 +1658,9 @@ func (s *State) GetMessageFilterTimestamp() interfaces.Timestamp {
 	return primitives.NewTimestampFromMilliseconds(s.messageFilterTimestamp.GetTimeMilliUInt64())
 }
 
-// the MessageFilterTimestamp  is used to filter messages from the past or before the replay filter.
+// the MessageFilterTimestamp  is used to filter inMessages from the past or before the replay filter.
 // We will not set it to a time that is before (20 minutes before) boot or more than one hour in the past.
-// this ensure messages from prior boot and messages that predate the current replay filter are
+// this ensure inMessages from prior boot and inMessages that predate the current replay filter are
 // are dropped.
 // It marks the start of the replay filter content
 func (s *State) SetMessageFilterTimestamp(leaderTS interfaces.Timestamp) {
@@ -1676,7 +1676,7 @@ func (s *State) SetMessageFilterTimestamp(leaderTS interfaces.Timestamp) {
 		requestedTS.SetTimestamp(onehourago)
 	}
 
-	// build a timestamp 20 minutes before boot so we will accept messages from nodes who booted before us.
+	// build a timestamp 20 minutes before boot so we will accept inMessages from nodes who booted before us.
 	preBootTime := new(primitives.Timestamp)
 	preBootTime.SetTimeMilli(s.TimestampAtBoot.GetTimeMilli() - 20*60*1000)
 
@@ -1860,7 +1860,7 @@ func (s *State) GetNetworkBootStrapIdentity() (rval interfaces.IHash) {
 	return primitives.NewZeroHash()
 }
 
-// The identity for validating messages
+// The identity for validating inMessages
 func (s *State) GetNetworkSkeletonIdentity() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {
@@ -2302,7 +2302,7 @@ func (s *State) ProcessInvalidMsgQueue() {
 	s.InvalidMessagesMutex.Lock()
 	defer s.InvalidMessagesMutex.Unlock()
 	if len(s.InvalidMessages)+len(s.networkInvalidMsgQueue) > 2048 {
-		//Clearing old invalid messages
+		//Clearing old invalid inMessages
 		s.InvalidMessages = map[[32]byte]interfaces.IMsg{}
 	}
 

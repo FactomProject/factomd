@@ -1173,13 +1173,13 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	// now := s.GetTimestamp()
 	// for k, msg := range s.Commits {
 	// 	{
-	// 		c, ok := msg.(*messages.CommitChainMsg)
+	// 		c, ok := msg.(*inMessages.CommitChainMsg)
 	// 		if ok && !s.NoEntryYet(c.CommitChain.EntryHash, now) {
 	// 			delete(s.Commits, k)
 	// 			continue
 	// 		}
 	// 	}
-	// 	c, ok := msg.(*messages.CommitEntryMsg)
+	// 	c, ok := msg.(*inMessages.CommitEntryMsg)
 	// 	if ok && !s.NoEntryYet(c.CommitEntry.EntryHash, now) {
 	// 		delete(s.Commits, k)
 	// 		continue

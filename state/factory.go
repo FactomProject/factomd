@@ -232,7 +232,7 @@ func NewState(p *globals.FactomParams, FactomdVersion string) *State {
 	// Setup the name to catch any early logging
 	s.FactomNodeName = s.Prefix + "FNode0"
 
-	// build a timestamp 20 minutes before boot so we will accept messages from nodes who booted before us.
+	// build a timestamp 20 minutes before boot so we will accept inMessages from nodes who booted before us.
 	s.PortNumber = 8088
 	s.ControlPanelPort = 8090
 
@@ -442,15 +442,15 @@ func (s *State) Initialize(w *worker.Thread, electionFactory interfaces.IElectio
 	s.tickerQueue = make(chan int, 100)                                     //ticks from a clock
 	s.timerMsgQueue = make(chan interfaces.IMsg, 100)                       //incoming eom notifications, used by leaders
 	s.ControlPanelChannel = make(chan DisplayState, 20)                     //
-	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 100)              //incoming message queue from the network messages
+	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 100)              //incoming message queue from the network inMessages
 	s.networkOutMsgQueue = NewNetOutMsgQueue(w, constants.INMSGQUEUE_MED)   //Messages to be broadcast to the network
-	s.inMsgQueue = NewInMsgQueue(w, constants.INMSGQUEUE_HIGH)              //incoming message queue for Factom application messages
-	s.inMsgQueue2 = NewInMsgQueue2(w, constants.INMSGQUEUE_HIGH)            //incoming message queue for Factom application messages
-	s.electionsQueue = NewElectionQueue(w, constants.INMSGQUEUE_HIGH)       //incoming message queue for Factom application messages
+	s.inMsgQueue = NewInMsgQueue(w, constants.INMSGQUEUE_HIGH)              //incoming message queue for Factom application inMessages
+	s.inMsgQueue2 = NewInMsgQueue2(w, constants.INMSGQUEUE_HIGH)            //incoming message queue for Factom application inMessages
+	s.electionsQueue = NewElectionQueue(w, constants.INMSGQUEUE_HIGH)       //incoming message queue for Factom application inMessages
 	s.apiQueue = NewAPIQueue(w, constants.INMSGQUEUE_HIGH)                  //incoming message queue from the API
-	s.ackQueue = make(chan interfaces.IMsg, 50)                             //queue of Leadership messages
-	s.msgQueue = make(chan interfaces.IMsg, 50)                             //queue of Follower messages
-	s.prioritizedMsgQueue = make(chan interfaces.IMsg, 50)                  //a prioritized queue of Follower messages (from mmr.go)
+	s.ackQueue = make(chan interfaces.IMsg, 50)                             //queue of Leadership inMessages
+	s.msgQueue = make(chan interfaces.IMsg, 50)                             //queue of Follower inMessages
+	s.prioritizedMsgQueue = make(chan interfaces.IMsg, 50)                  //a prioritized queue of Follower inMessages (from mmr.go)
 	s.MissingEntries = make(chan *MissingEntry, constants.INMSGQUEUE_HIGH)  //Entries I discover are missing from the database
 	s.UpdateEntryHash = make(chan *EntryUpdate, constants.INMSGQUEUE_HIGH)  //Handles entry hashes and updating Commit maps.
 	s.WriteEntry = make(chan interfaces.IEBEntry, constants.INMSGQUEUE_LOW) //Entries to be written to the database

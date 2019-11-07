@@ -339,7 +339,7 @@ func (fs *FactoidState) UpdateTransaction(rt bool, trans interfaces.ITransaction
 		adr := ecOut.GetAddress().Fixed()
 		fs.State.PutE(rt, adr, fs.State.GetE(rt, adr)+ecbal) // Add EC's from FCT
 
-		// execute any messages that were waiting on this EC address
+		// execute any inMessages that were waiting on this EC address
 		//		fs.State.LogPrintf("dependentHolding", "process EC Deposit %x %s", adr, trans.String())
 		fs.State.ExecuteFromHolding(adr) // Process deposit of EC
 	}
