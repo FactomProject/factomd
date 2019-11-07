@@ -4,13 +4,14 @@ import (
 	"math"
 	"testing"
 
-	. "github.com/FactomProject/factomd/engine"
 	"github.com/FactomProject/factomd/fnode"
+	. "github.com/FactomProject/factomd/simulation"
 )
 
 var fnodes []*fnode.FactomNode
 
-func SimPeerTest(t *testing.T) {
+func TestSimPeer(t *testing.T) {
+	t.Skip("deprecated test")
 	cnt := 40
 	side := int(math.Sqrt(float64(cnt)))
 
@@ -26,6 +27,6 @@ func SimPeerTest(t *testing.T) {
 	}
 
 	if len(fnodes) != cnt {
-		t.Errorf("Should have %d nodes", cnt)
+		t.Errorf("Should have %d nodes found %v", cnt, len(fnodes))
 	}
 }
