@@ -80,6 +80,16 @@ func (r *Registry) SubscribeTo(path string, sub IPubSubscriber) error {
 	return nil
 }
 
+func globalSubscribeWith(path string, sub IPubSubscriber, wrappers ...ISubscriberWrapper) IPubSubscriber {
+	newsub := sub
+	for _, wrap := range wrappers {
+		newsub = wrap.Wrap(newsub)
+	}
+
+	globalSubscribe(path, newsub)
+	return newsub
+}
+
 func globalPublish(path string, p IPublisher) IPublisher {
 	err := globalReg.Register(path, p)
 	if err != nil {

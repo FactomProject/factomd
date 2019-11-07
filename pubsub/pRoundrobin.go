@@ -2,20 +2,20 @@ package pubsub
 
 import "time"
 
-// RoundRobin only sends events to 1 subscriber on a round robin basis.
-type RoundRobin struct {
-	*Threaded
+// PubRoundRobin only sends events to 1 subscriber on a round robin basis.
+type PubRoundRobin struct {
+	*PubThreaded
 	next int
 }
 
-func NewRoundRobinPublisher(buffer int) *RoundRobin {
-	p := new(RoundRobin)
-	p.Threaded = NewThreadedPublisherPublisher(buffer)
+func NewRoundRobinPublisher(buffer int) *PubRoundRobin {
+	p := new(PubRoundRobin)
+	p.PubThreaded = NewThreadedPublisherPublisher(buffer)
 
 	return p
 }
 
-func (p *RoundRobin) Run() {
+func (p *PubRoundRobin) Run() {
 	for in := range p.inputs { // Run until close
 		for len(p.Subscribers) == 0 {
 			// TODO: This isn't the best way to handle this.
@@ -25,10 +25,10 @@ func (p *RoundRobin) Run() {
 		p.Subscribers[p.next%len(p.Subscribers)].Write(in)
 		p.next++
 	}
-	_ = p.Threaded.PubBase.Close()
+	_ = p.PubThreaded.PubBase.Close()
 }
 
-func (p *RoundRobin) Publish(path string) *RoundRobin {
+func (p *PubRoundRobin) Publish(path string) *PubRoundRobin {
 	globalPublish(path, p)
 	return p
 }

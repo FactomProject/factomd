@@ -1,8 +1,8 @@
 package pubsub
 
-// Callback allows an external function call to be bound to the Write()
+// SubWrapCallback allows an external function call to be bound to the Write()
 // function of the subscriber.
-type Callback struct {
+type SubWrapCallback struct {
 	IPubSubscriber
 
 	// BeforeWrite is called before a write. If an error is thrown, the
@@ -15,8 +15,8 @@ type Callback struct {
 //	Params:
 //		subscriber
 //		callback
-func NewCallback(subscriber IPubSubscriber) *Callback {
-	s := new(Callback)
+func NewCallback(subscriber IPubSubscriber) *SubWrapCallback {
+	s := new(SubWrapCallback)
 	s.IPubSubscriber = subscriber
 	// Default to no ops
 	s.BeforeWrite = func(o interface{}) error { return nil }
@@ -25,7 +25,7 @@ func NewCallback(subscriber IPubSubscriber) *Callback {
 	return s
 }
 
-func (s *Callback) Write(o interface{}) {
+func (s *SubWrapCallback) Write(o interface{}) {
 	if s.BeforeWrite(o) != nil {
 		return
 	}
@@ -33,7 +33,12 @@ func (s *Callback) Write(o interface{}) {
 	s.AfterWrite(o)
 }
 
-func (s *Callback) Subscribe(path string) *Callback {
+func (s *SubWrapCallback) Subscribe(path string) *SubWrapCallback {
 	globalSubscribe(path, s)
+	return s
+}
+
+func (s *SubWrapCallback) Wrap(sub IPubSubscriber) IPubSubscriber {
+	s.IPubSubscriber = sub
 	return s
 }

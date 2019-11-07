@@ -49,7 +49,7 @@ func PrimeWorker() {
 	sub := pubsub.NewChannelBasedSubscriber(5).Subscribe("/source")
 
 	// agg is where we write our results.
-	agg := pubsub.GlobalRegistry().FindPublisher("/aggregate").(*pubsub.SimpleMultiPublish)
+	agg := pubsub.GlobalRegistry().FindPublisher("/aggregate").(*pubsub.PubSimpleMulti)
 	agg = agg.NewPublisher()
 
 	for {
@@ -70,14 +70,13 @@ func PrimeWorker() {
 }
 
 func Count(reg *pubsub.Registry) int64 {
-	// We only care about the count, the count subscriber just tracks the number
-	// of items written to it.
-	sub := pubsub.NewCounterSubscriber()
-
 	// Add a context so we can externally bind to the Done().
 	// This is so we know when to read the value and exit.
 	ctx, cancel := context.WithCancel(context.Background())
-	_ = pubsub.NewContext(sub, cancel).Subscribe("/aggregate")
+
+	// We only care about the count, the count subscriber just tracks the number
+	// of items written to it.
+	sub := pubsub.NewCounterSubscriber().Subscribe("/aggregate", pubsub.NewContextWrap(cancel))
 
 	// Wait for the subscriber to get called Done(), meaning all data is
 	// published.

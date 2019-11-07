@@ -1,29 +1,29 @@
 package pubsub
 
-// Threaded handles all writes on a separate go routine.
-type Threaded struct {
+// PubThreaded handles all writes on a separate go routine.
+type PubThreaded struct {
 	PubBase
 
 	inputs chan interface{}
 }
 
-func NewThreadedPublisherPublisher(buffer int) *Threaded {
-	p := new(Threaded)
+func NewThreadedPublisherPublisher(buffer int) *PubThreaded {
+	p := new(PubThreaded)
 	p.inputs = make(chan interface{}, buffer)
 
 	return p
 }
 
-func (p *Threaded) Close() error {
+func (p *PubThreaded) Close() error {
 	close(p.inputs)
 	return nil
 }
 
-func (p *Threaded) Write(o interface{}) {
+func (p *PubThreaded) Write(o interface{}) {
 	p.inputs <- o
 }
 
-func (p *Threaded) Run() {
+func (p *PubThreaded) Run() {
 	for in := range p.inputs { // Run until close
 		p.write(in)
 	}
@@ -31,11 +31,11 @@ func (p *Threaded) Run() {
 	_ = p.PubBase.Close()
 }
 
-func (p *Threaded) write(o interface{}) {
+func (p *PubThreaded) write(o interface{}) {
 	p.PubBase.Write(o)
 }
 
-func (p *Threaded) Publish(path string) *Threaded {
+func (p *PubThreaded) Publish(path string) *PubThreaded {
 	globalPublish(path, p)
 	return p
 }

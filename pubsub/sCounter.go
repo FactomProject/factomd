@@ -4,8 +4,8 @@ import (
 	"sync"
 )
 
-// Counts the total number of things written to the subscriber
-type Counter struct {
+// SubCounter the total number of things written to the subscriber
+type SubCounter struct {
 	SubBase
 
 	totalCount int64
@@ -13,28 +13,28 @@ type Counter struct {
 	sync.RWMutex
 }
 
-func NewCounterSubscriber() *Counter {
-	s := new(Counter)
+func NewCounterSubscriber() *SubCounter {
+	s := new(SubCounter)
 
 	return s
 }
 
 // Pub Side
 
-func (s *Counter) Write(o interface{}) {
+func (s *SubCounter) Write(o interface{}) {
 	s.Lock()
 	s.totalCount++
 	s.Unlock()
 }
 
-func (s *Counter) Count() int64 {
+func (s *SubCounter) Count() int64 {
 	s.RLock()
 	defer s.RUnlock()
 
 	return s.totalCount
 }
 
-func (s *Counter) Subscribe(path string) *Counter {
-	globalSubscribe(path, s)
+func (s *SubCounter) Subscribe(path string, wrappers ...ISubscriberWrapper) *SubCounter {
+	globalSubscribeWith(path, s, wrappers...)
 	return s
 }

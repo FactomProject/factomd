@@ -1,23 +1,28 @@
 package pubsub
 
-//type ContextWrap struct {
-//	IPubSubscriber
-//	done func()
-//}
-//
-//func NewContextContextWrap(done func()) *ContextWrap {
-//	s := new(ContextWrap)
-//	s.done = done
-//
-//	return s
-//}
-//
-//func (s *ContextWrap) Wrap(sub IPubSubscriber) IPubSubscriber {
-//	s.IPubSubscriber = sub
-//	return s
-//}
-//
-//func (s *ContextWrap) Done() {
-//	s.done()
-//	s.IPubSubscriber.Done()
-//}
+type SubWrapContext struct {
+	IPubSubscriber
+	done func()
+}
+
+func NewContextWrap(done func()) *SubWrapContext {
+	s := new(SubWrapContext)
+	s.done = done
+
+	return s
+}
+
+func (s *SubWrapContext) Wrap(sub IPubSubscriber) IPubSubscriber {
+	s.IPubSubscriber = sub
+	return s
+}
+
+func (s *SubWrapContext) Done() {
+	s.done()
+	s.IPubSubscriber.Done()
+}
+
+func (s *SubWrapContext) Subscribe(path string) *SubWrapContext {
+	globalSubscribe(path, s)
+	return s
+}

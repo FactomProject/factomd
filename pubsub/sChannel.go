@@ -4,45 +4,45 @@ import (
 	"sync"
 )
 
-type Channel struct {
+type SubChannel struct {
 	SubBase
 	Updates chan interface{}
 
 	sync.RWMutex
 }
 
-func NewChannelBasedSubscriber(buffer int) *Channel {
-	s := new(Channel)
+func NewChannelBasedSubscriber(buffer int) *SubChannel {
+	s := new(SubChannel)
 	s.Updates = make(chan interface{}, buffer)
 
 	return s
 }
 
-func (s *Channel) Write(o interface{}) {
+func (s *SubChannel) Write(o interface{}) {
 	s.Updates <- o
 }
 
-func (s *Channel) Done() {
+func (s *SubChannel) Done() {
 	close(s.Updates)
 }
 
 // Sub side
 
-func (s *Channel) Channel() <-chan interface{} {
+func (s *SubChannel) Channel() <-chan interface{} {
 	return s.Updates
 }
 
-func (s *Channel) Receive() interface{} {
+func (s *SubChannel) Receive() interface{} {
 	v := <-s.Updates
 	return v
 }
 
-func (s *Channel) ReceiveWithInfo() (interface{}, bool) {
+func (s *SubChannel) ReceiveWithInfo() (interface{}, bool) {
 	v, ok := <-s.Updates
 	return v, ok
 }
 
-func (s *Channel) Subscribe(path string) *Channel {
-	globalSubscribe(path, s)
+func (s *SubChannel) Subscribe(path string, wrappers ...ISubscriberWrapper) *SubChannel {
+	globalSubscribeWith(path, s, wrappers...)
 	return s
 }

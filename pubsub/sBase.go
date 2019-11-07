@@ -25,7 +25,7 @@ func (b *SubBase) Write(o interface{}) {
 	// Noop by default
 }
 
-func (b *SubBase) Subscribe(path string) *SubBase {
-	globalSubscribe(path, b)
+func (b *SubBase) Subscribe(path string, wrappers ...ISubscriberWrapper) *SubBase {
+	globalSubscribeWith(path, b, wrappers...)
 	return b
 }
