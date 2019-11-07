@@ -8,8 +8,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/generated"
-	"github.com/FactomProject/factomd/pubsub/publishers"
-	"github.com/FactomProject/factomd/pubsub/subscribers"
+	pubsub "github.com/FactomProject/factomd/pubsub"
 	"github.com/FactomProject/factomd/telemetry"
 	"github.com/FactomProject/factomd/worker"
 )
@@ -25,21 +24,21 @@ type HoldingList struct {
 	holding        map[[32]byte][]interfaces.IMsg
 	s              *State                   // for debug logging
 	dependents     map[[32]byte]heldMessage // used to avoid duplicate entries & track position in holding
-	messages       *generated.Publish_Base_IMsg_type
-	fctMessages    *generated.Publish_Base_IMsg_type
-	gossipMessages *generated.Publish_Base_IMsg_type
+	messages       *generated.Publish_PubBase_IMsg_type
+	fctMessages    *generated.Publish_PubBase_IMsg_type
+	gossipMessages *generated.Publish_PubBase_IMsg_type
 	heights        *generated.Subscribe_ByValue_DBHT_type
-	ecDeposits     *subscribers.Channel
-	chainReveals   *subscribers.Channel
-	commits        *subscribers.Channel
+	ecDeposits     *pubsub.Channel
+	chainReveals   *pubsub.Channel
+	commits        *pubsub.Channel
 }
 
 func (l *HoldingList) doWork(w *worker.Thread, id int) {
-	l.messages = generated.Publish_Base_IMsg(new(publishers.Base).Publish(w.GetParentName() + "/messages"))
-	l.fctMessages = generated.Publish_Base_IMsg(new(publishers.Base).Publish(w.GetParentName() + "/fctMessages"))
-	l.gossipMessages = generated.Publish_Base_IMsg(new(publishers.Base).Publish(w.GetParentName() + "/gossipMessages"))
+	l.messages = generated.Publish_PubBase_IMsg(new(pubsub.PubBase).Publish(w.GetParentName() + "/messages"))
+	l.fctMessages = generated.Publish_PubBase_IMsg(new(pubsub.PubBase).Publish(w.GetParentName() + "/fctMessages"))
+	l.gossipMessages = generated.Publish_PubBase_IMsg(new(pubsub.PubBase).Publish(w.GetParentName() + "/gossipMessages"))
 
-	s := subscribers.NewValueSubscriber().Subscribe(w.GetParentName() + "/heights")
+	s := pubsub.NewValueSubscriber().Subscribe(w.GetParentName() + "/heights")
 	l.heights = generated.Subscribe_ByValue_DBHT(s)
 
 }

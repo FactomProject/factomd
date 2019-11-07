@@ -1,8 +1,14 @@
-package subscribers
+package pubsub
+
+import (
+	"sync"
+)
 
 type Channel struct {
-	Base
+	SubBase
 	Updates chan interface{}
+
+	sync.RWMutex
 }
 
 func NewChannelBasedSubscriber(buffer int) *Channel {
@@ -26,12 +32,17 @@ func (s *Channel) Channel() <-chan interface{} {
 	return s.Updates
 }
 
-func (s *Channel) Read() (v interface{}) {
-	v = <-s.Updates
+func (s *Channel) Receive() interface{} {
+	v := <-s.Updates
 	return v
 }
 
-func (s *Channel) ReadWithFlag() (v interface{}, open bool) {
-	v, open = <-s.Updates
-	return v, open
+func (s *Channel) ReceiveWithInfo() (interface{}, bool) {
+	v, ok := <-s.Updates
+	return v, ok
+}
+
+func (s *Channel) Subscribe(path string) *Channel {
+	globalSubscribe(path, s)
+	return s
 }

@@ -1,4 +1,4 @@
-package publishers
+package pubsub
 
 import "time"
 
@@ -25,5 +25,10 @@ func (p *RoundRobin) Run() {
 		p.Subscribers[p.next%len(p.Subscribers)].Write(in)
 		p.next++
 	}
-	_ = p.Threaded.Base.Close()
+	_ = p.Threaded.PubBase.Close()
+}
+
+func (p *RoundRobin) Publish(path string) *RoundRobin {
+	globalPublish(path, p)
+	return p
 }

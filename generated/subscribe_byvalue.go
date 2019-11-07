@@ -8,7 +8,7 @@ package generated
 
 import (
 	. "github.com/FactomProject/factomd/common/pubsubtypes"
-	. "github.com/FactomProject/factomd/pubsub/subscribers"
+	. "github.com/FactomProject/factomd/pubsub"
 )
 
 // End fileheader template

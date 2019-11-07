@@ -10,7 +10,7 @@ package subscribers // this is only here to make gofmt happy and is never in the
 
 import (
 	. "github.com/FactomProject/factomd/common/pubsubtypes"
-	. "github.com/FactomProject/factomd/pubsub/subscribers"
+	. "github.com/FactomProject/factomd/pubsub"
 )
 
 //ϾendϿ

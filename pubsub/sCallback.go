@@ -1,11 +1,9 @@
-package subscribers
-
-import "github.com/FactomProject/factomd/pubsub/pubregistry"
+package pubsub
 
 // Callback allows an external function call to be bound to the Write()
 // function of the subscriber.
 type Callback struct {
-	pubregistry.IPubSubscriber
+	IPubSubscriber
 
 	// BeforeWrite is called before a write. If an error is thrown, the
 	// value is rejected by the subscriber
@@ -17,7 +15,7 @@ type Callback struct {
 //	Params:
 //		subscriber
 //		callback
-func NewCallback(subscriber pubregistry.IPubSubscriber) *Callback {
+func NewCallback(subscriber IPubSubscriber) *Callback {
 	s := new(Callback)
 	s.IPubSubscriber = subscriber
 	// Default to no ops
@@ -33,4 +31,9 @@ func (s *Callback) Write(o interface{}) {
 	}
 	s.IPubSubscriber.Done()
 	s.AfterWrite(o)
+}
+
+func (s *Callback) Subscribe(path string) *Callback {
+	globalSubscribe(path, s)
+	return s
 }

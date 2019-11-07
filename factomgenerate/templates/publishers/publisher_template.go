@@ -12,13 +12,13 @@ package publishers
 
 import (
 	. "github.com/FactomProject/factomd/common/pubsubtypes"
-	. "github.com/FactomProject/factomd/pubsub/publishers"
+	. "github.com/FactomProject/factomd/pubsub"
 )
 
 //ϾendϿ
 
-type Ͼ_publishertypeϿ struct{ Base } // not used when generating, only used for testing
-type Ͼ_valuetypeϿ DBHT               // not used when generating, only used for testing
+type Ͼ_publishertypeϿ struct{ PubBase } // not used when generating, only used for testing
+type Ͼ_valuetypeϿ DBHT                  // not used when generating, only used for testing
 
 // Expects: publishertype <name> valuetype <type>
 

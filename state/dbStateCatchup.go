@@ -180,7 +180,7 @@ func (list *DBStateList) Catchup() {
 				list.State.LogPrintf("dbstatecatchup", "{hf (%d, %d)} notify missing %d [%t]", hk, max, n, r)
 			}
 
-			list.State.LogPrintf("dbstatecatchup", "height update took %s. Base:%d/%d/%d, Miss[v%d, ^_, T%d], Wait [v_, ^%d, T%d], Rec[v%d, ^%d, T%d]",
+			list.State.LogPrintf("dbstatecatchup", "height update took %s. SubBase:%d/%d/%d, Miss[v%d, ^_, T%d], Wait [v_, ^%d, T%d], Rec[v%d, ^%d, T%d]",
 				time.Since(start),
 				received.Base(), hs, list.State.GetDBHeightAtBoot(),
 				getHeightSafe(missing.GetFront()), missing.Len(),
@@ -612,7 +612,7 @@ func NewStatesReceived() *StatesReceived {
 	return l
 }
 
-// Base returns the base height of the StatesReceived list
+// SubBase returns the base height of the StatesReceived list
 func (l *StatesReceived) Base() uint32 {
 	return l.base
 }

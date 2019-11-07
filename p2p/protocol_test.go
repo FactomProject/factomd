@@ -72,7 +72,7 @@ CheckForBlockingLoop:
 				break
 			}
 			if v.(int) != i {
-				t.Errorf("Value in channel is incorrect. Exp %d, found %d", i, v)
+				t.Errorf("Read in channel is incorrect. Exp %d, found %d", i, v)
 			}
 		default:
 			t.Error("Channel is empty, but still expect elements")

@@ -1,12 +1,12 @@
-package subscribers
+package pubsub
 
 import (
 	"sync"
 )
 
-// Value handles a single atomic value of the last write.
+// Read handles a single atomic value of the last write.
 type Value struct {
-	Base
+	SubBase
 	value interface{}
 	sync.RWMutex
 }
@@ -30,4 +30,7 @@ func (s *Value) Read() interface{} {
 	return s.value
 }
 
-func (b *Value) Subscribe(name string) *Value { return b }
+func (s *Value) Subscribe(path string) *Value {
+	globalSubscribe(path, s)
+	return s
+}

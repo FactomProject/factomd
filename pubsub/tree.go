@@ -1,4 +1,4 @@
-package pubregistry
+package pubsub
 
 import (
 	"path/filepath"

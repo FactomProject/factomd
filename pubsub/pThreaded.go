@@ -1,8 +1,8 @@
-package publishers
+package pubsub
 
 // Threaded handles all writes on a separate go routine.
 type Threaded struct {
-	Base
+	PubBase
 
 	inputs chan interface{}
 }
@@ -28,9 +28,14 @@ func (p *Threaded) Run() {
 		p.write(in)
 	}
 	// Close when out of things to write and channel is closed
-	_ = p.Base.Close()
+	_ = p.PubBase.Close()
 }
 
 func (p *Threaded) write(o interface{}) {
-	p.Base.Write(o)
+	p.PubBase.Write(o)
+}
+
+func (p *Threaded) Publish(path string) *Threaded {
+	globalPublish(path, p)
+	return p
 }
