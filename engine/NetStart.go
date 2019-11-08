@@ -8,10 +8,11 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/FactomProject/factomd/simulation"
 	"os"
 	"sync"
 	"time"
+
+	"github.com/FactomProject/factomd/simulation"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/globals"
@@ -182,7 +183,6 @@ func initAnchors(s *state.State, reparse bool) {
 	}
 }
 
-
 func startWebserver(w *worker.Thread) {
 	state0 := fnode.Get(0).State
 	wsapi.Start(w, state0)
@@ -194,10 +194,10 @@ func startWebserver(w *worker.Thread) {
 	launchPrometheus(9876)
 
 	/*
-	w.Run(func() {
-		controlPanel.ServeControlPanel(state0.ControlPanelChannel, state0, connectionMetricsChannel, p2pNetwork, Build, state0.FactomNodeName)
-	})
-	 */
+		w.Run(func() {
+			controlPanel.ServeControlPanel(state0.ControlPanelChannel, state0, connectionMetricsChannel, p2pNetwork, Build, state0.FactomNodeName)
+		})
+	*/
 }
 
 func startNetwork(w *worker.Thread, p *globals.FactomParams) {
@@ -316,7 +316,7 @@ func makeServer(w *worker.Thread, p *globals.FactomParams) (node *fnode.FactomNo
 	}
 
 	// Election factory was created and passed int to avoid import loop
-	node.State.Initialize(w)
+	node.State.Initialize(w, new(electionMsgs.ElectionsFactory))
 
 	state0Init.Do(func() {
 		logPort = p.LogPort
@@ -326,8 +326,6 @@ func makeServer(w *worker.Thread, p *globals.FactomParams) (node *fnode.FactomNo
 		echoConfig(node.State, p) // print the config only once
 	})
 
-	// REVIEW: may need to refactor this
-	node.State.EFactory = new(electionMsgs.ElectionsFactory)
 	time.Sleep(10 * time.Millisecond)
 
 	return node

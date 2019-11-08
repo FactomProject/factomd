@@ -143,6 +143,7 @@ func assertNotBound(f func()) {
 		panic("already bound")
 	}
 }
+
 // Add Ready Callback to add subscribers
 func (r *Thread) OnReady(f func()) *Thread {
 	assertNotBound(r.onReady)

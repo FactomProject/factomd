@@ -407,7 +407,7 @@ func Clone(s *State, cloneNumber int) interfaces.IState {
 	return newState
 }
 
-func (s *State) Initialize(w *worker.Thread) {
+func (s *State) Initialize(w *worker.Thread, electionFactory interfaces.IElectionsFactory) {
 	if s.Salt == nil {
 		b := make([]byte, 32)
 		_, err := rand.Read(b)
@@ -425,6 +425,7 @@ func (s *State) Initialize(w *worker.Thread) {
 	s.IgnoreMissing = true
 	s.BootTime = s.GetTimestamp().GetTimeSeconds()
 	s.TimestampAtBoot = primitives.NewTimestampNow()
+	s.ProcessTime = s.TimestampAtBoot
 	if s.LogPath == "stdout" {
 		wsapi.InitLogs(s.LogPath, s.LogLevel)
 	} else {
@@ -435,18 +436,14 @@ func (s *State) Initialize(w *worker.Thread) {
 		wsapi.InitLogs(s.LogPath+s.FactomNodeName+".log", s.LogLevel)
 	}
 
-	s.Hold = NewHoldingList(s)                                              // setup the dependent holding map
-	s.TimeOffset = new(primitives.Timestamp)                                //interfaces.Timestamp(int64(rand.Int63() % int64(time.Microsecond*10)))
-	s.InvalidMessages = make(map[[32]byte]interfaces.IMsg, 0)               //
-	s.ShutdownChan = make(chan int, 1)                                      //SubChannel to gracefully shut down.
-	s.tickerQueue = make(chan int, 100)                                     //ticks from a clock
-	s.timerMsgQueue = make(chan interfaces.IMsg, 100)                       //incoming eom notifications, used by leaders
-<<<<<<< HEAD
-	s.ControlPanelChannel = make(chan DisplayState, 20)                     //
+	s.Hold = NewHoldingList(s)                                // setup the dependent holding map
+	s.TimeOffset = new(primitives.Timestamp)                  //interfaces.Timestamp(int64(rand.Int63() % int64(time.Microsecond*10)))
+	s.InvalidMessages = make(map[[32]byte]interfaces.IMsg, 0) //
+	s.ShutdownChan = make(chan int, 1)                        //SubChannel to gracefully shut down.
+	s.tickerQueue = make(chan int, 100)                       //ticks from a clock
+	s.timerMsgQueue = make(chan interfaces.IMsg, 100)         //incoming eom notifications, used by leaders
+	//	s.ControlPanelChannel = make(chan DisplayState, 20)                     //
 	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 100)              //incoming message queue from the network inMessages
-=======
-	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 100)              //incoming message queue from the network messages
->>>>>>> origin/FD-1225_wax_rollup
 	s.networkOutMsgQueue = NewNetOutMsgQueue(w, constants.INMSGQUEUE_MED)   //Messages to be broadcast to the network
 	s.inMsgQueue = NewInMsgQueue(w, constants.INMSGQUEUE_HIGH)              //incoming message queue for Factom application inMessages
 	s.inMsgQueue2 = NewInMsgQueue2(w, constants.INMSGQUEUE_HIGH)            //incoming message queue for Factom application inMessages
@@ -615,6 +612,8 @@ func (s *State) Initialize(w *worker.Thread) {
 
 	// Allocate the missing message handler
 	s.MissingMessageResponseHandler = NewMissingMessageReponseCache(s)
+	// Election factory was created and passed int to avoid import loop
+	s.EFactory = electionFactory
 
 	if s.StateSaverStruct.FastBoot {
 		d, err := s.DB.FetchDBlockHead()

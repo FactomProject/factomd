@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/wsapi"
 	"io/ioutil"
 	"net/http"
+
+	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/wsapi"
 )
 
 /*

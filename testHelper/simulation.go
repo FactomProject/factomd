@@ -3,14 +3,15 @@ package testHelper
 import (
 	"flag"
 	"fmt"
-	"github.com/FactomProject/factomd/engine"
-	"github.com/FactomProject/factomd/simulation"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/FactomProject/factomd/engine"
+	"github.com/FactomProject/factomd/simulation"
 
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"

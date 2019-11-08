@@ -38,17 +38,17 @@ func TestDisplay(t *testing.T) {
 	}
 
 	/*
-	s.ControlPanelDataRequest = false
-	err := s.CopyStateToControlPanel()
-	if err != nil {
-		t.Error("CopyState failed")
-	}
-	s.ControlPanelDataRequest = true
-	err = s.CopyStateToControlPanel()
-	if err != nil {
-		t.Error("CopyState failed when requested")
-	}
+		s.ControlPanelDataRequest = false
+		err := s.CopyStateToControlPanel()
+		if err != nil {
+			t.Error("CopyState failed")
+		}
+		s.ControlPanelDataRequest = true
+		err = s.CopyStateToControlPanel()
+		if err != nil {
+			t.Error("CopyState failed when requested")
+		}
 
-	 */
+	*/
 
 }

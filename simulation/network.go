@@ -3,10 +3,11 @@ package simulation
 import (
 	"bufio"
 	"fmt"
-	"github.com/FactomProject/factomd/common/globals"
-	"github.com/FactomProject/factomd/fnode"
 	"math"
 	"os"
+
+	"github.com/FactomProject/factomd/common/globals"
+	"github.com/FactomProject/factomd/fnode"
 )
 
 func SetupNetwork(p *globals.FactomParams) {

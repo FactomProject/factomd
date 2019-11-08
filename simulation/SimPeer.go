@@ -8,10 +8,11 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"github.com/FactomProject/factomd/common/globals"
 	"math"
 	"os"
 	"time"
+
+	"github.com/FactomProject/factomd/common/globals"
 
 	"github.com/FactomProject/factomd/fnode"
 
