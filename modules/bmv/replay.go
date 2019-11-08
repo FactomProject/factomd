@@ -7,18 +7,20 @@ import (
 )
 
 const (
-	MsgAdded = 1
-	MsgValid = iota * -1
-	TimestampExpired
-	TimestampTooFuture // We reject things too far in the future
-	ReplayMsg          // Msg already seen
+	MsgValid           = iota * -1 // +0 |
+	TimestampExpired               // -1 |
+	TimestampTooFuture             // -2 | We reject things too far in the future
+	ReplayMsg                      // -3 | Msg already seen
 
+	// If the msg is added to the filter
+	MsgAdded = 1
 )
 
 type MsgReplay struct {
-	Buckets    []map[[32]byte]int
+	Buckets    []map[[32]byte]time.Time
 	BlockTimes []time.Time
 	window     int
+	blocktime  time.Duration // Minimum block time
 }
 
 // MsgReplay is divided into blocks. The windows is the number of valid blocks.
@@ -29,13 +31,14 @@ type MsgReplay struct {
 // that fall outside the current block.
 func NewMsgReplay(window int) *MsgReplay {
 	m := new(MsgReplay)
-	m.Buckets = make([]map[[32]byte]int, window+2, window+2)
+	m.Buckets = make([]map[[32]byte]time.Time, window+2, window+2)
 	for i := range m.Buckets {
-		m.Buckets[i] = make(map[[32]byte]int)
+		m.Buckets[i] = make(map[[32]byte]time.Time)
 	}
 	// The future block time is unknown
 	m.BlockTimes = make([]time.Time, window+1, window+1)
 	m.window = window
+	m.blocktime = time.Minute * 10
 
 	return m
 }
@@ -53,9 +56,21 @@ func (m *MsgReplay) Recenter(stamp time.Time) {
 	m.BlockTimes[m.window] = stamp
 
 	copy(m.Buckets, m.Buckets[1:m.window])
-	m.Buckets[m.window] = make(map[[32]byte]int)
+	m.Buckets[m.window] = make(map[[32]byte]time.Time)
 
-	// TODO: Re-eval the future bucket
+	currentEnd := stamp.Add(m.blocktime)
+	for key, ts := range m.Buckets[m.window+1] {
+		if ts.Before(m.BlockTimes[m.window]) {
+			// The future msg falls behind the current block time.
+			// So shift it back into the prior block's.
+			m.Buckets[m.window-1][key] = ts
+			delete(m.Buckets[m.window+1], key)
+		} else if ts.Before(currentEnd) {
+			// The future msg falls into the current block
+			m.Buckets[m.window][key] = ts
+			delete(m.Buckets[m.window+1], key)
+		}
+	}
 }
 
 // UpdateReplay given a message will return 1 if the message is new, and add it
@@ -87,7 +102,7 @@ func (m *MsgReplay) checkReplay(msg interfaces.IMsg, update bool) int {
 	if index == -1 {
 		// Msg is from the future or the current
 		// TODO: We should not assume 10min blocks
-		if mTime.Before(m.BlockTimes[m.window].Add(time.Minute * 10)) {
+		if mTime.Before(m.BlockTimes[m.window].Add(m.blocktime)) {
 			// Current
 			index = m.window
 		} else {
@@ -104,7 +119,7 @@ func (m *MsgReplay) checkReplay(msg interfaces.IMsg, update bool) int {
 			return ReplayMsg
 		}
 		if update {
-			m.Buckets[index][msg.GetRepeatHash().Fixed()] += 1
+			m.Buckets[index][msg.GetRepeatHash().Fixed()] = mTime
 			return MsgAdded // Added
 		}
 	}
