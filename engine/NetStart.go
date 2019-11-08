@@ -5,16 +5,14 @@
 package engine
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"io/ioutil"
-	"math"
 	"os"
-	"strings"
 	"sync"
 	"time"
+
+	"github.com/FactomProject/factomd/simulation"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/globals"
@@ -22,7 +20,6 @@ import (
 	"github.com/FactomProject/factomd/common/messages/electionMsgs"
 	"github.com/FactomProject/factomd/common/messages/msgsupport"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/controlPanel"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/fnode"
@@ -34,7 +31,6 @@ import (
 	"github.com/FactomProject/factomd/wsapi"
 
 	llog "github.com/FactomProject/factomd/log"
-	log "github.com/sirupsen/logrus"
 )
 
 var connectionMetricsChannel = make(chan interface{}, p2p.StandardChannelSize)
@@ -112,33 +108,6 @@ func echoConfig(s *state.State, p *globals.FactomParams) {
 	echo("%20s \"%d\"\n", "Control Panel port", s.ControlPanelPort)
 }
 
-// init mlog & set log levels
-func SetLogLevel(p *globals.FactomParams) {
-	mLog.Init(p.RuntimeLog, p.Cnt)
-
-	log.SetOutput(os.Stdout)
-	switch strings.ToLower(p.Loglvl) {
-	case "none":
-		log.SetOutput(ioutil.Discard)
-	case "debug":
-		log.SetLevel(log.DebugLevel)
-	case "info":
-		log.SetLevel(log.InfoLevel)
-	case "warning", "warn":
-		log.SetLevel(log.WarnLevel)
-	case "error":
-		log.SetLevel(log.ErrorLevel)
-	case "fatal":
-		log.SetLevel(log.FatalLevel)
-	case "panic":
-		log.SetLevel(log.PanicLevel)
-	}
-
-	if p.Logjson {
-		log.SetFormatter(&log.JSONFormatter{})
-	}
-}
-
 // shutdown factomd
 func interruptHandler() {
 	fmt.Print("<Break>\n")
@@ -176,7 +145,7 @@ func NetStart(w *worker.Thread, p *globals.FactomParams, listenToStdin bool) {
 	startNetwork(w, p)
 	startFnodes(w)
 	startWebserver(w)
-	startSimControl(w, p.ListenTo, listenToStdin)
+	simulation.StartSimControl(w, p.ListenTo, listenToStdin)
 }
 
 // initialize package-level vars
@@ -214,127 +183,6 @@ func initAnchors(s *state.State, reparse bool) {
 	}
 }
 
-// construct a simulated network
-func buildNetTopology(p *globals.FactomParams) {
-	nodes := fnode.GetFnodes()
-
-	switch p.Net {
-	case "file":
-		file, err := os.Open(p.Fnet)
-		if err != nil {
-			panic(fmt.Sprintf("File network.txt failed to open: %s", err.Error()))
-		} else if file == nil {
-			panic(fmt.Sprint("File network.txt failed to open, and we got a file of <nil>"))
-		}
-		scanner := bufio.NewScanner(file)
-		for scanner.Scan() {
-			var a, b int
-			var s string
-			_, _ = fmt.Sscanf(scanner.Text(), "%d %s %d", &a, &s, &b)
-			if s == "--" {
-				AddSimPeer(nodes, a, b)
-			}
-		}
-	case "square":
-		side := int(math.Sqrt(float64(p.Cnt)))
-
-		for i := 0; i < side; i++ {
-			AddSimPeer(nodes, i*side, (i+1)*side-1)
-			AddSimPeer(nodes, i, side*(side-1)+i)
-			for j := 0; j < side; j++ {
-				if j < side-1 {
-					AddSimPeer(nodes, i*side+j, i*side+j+1)
-				}
-				AddSimPeer(nodes, i*side+j, ((i+1)*side)+j)
-			}
-		}
-	case "long":
-		fmt.Println("Using long Network")
-		for i := 1; i < p.Cnt; i++ {
-			AddSimPeer(nodes, i-1, i)
-		}
-		// Make long into a circle
-	case "loops":
-		fmt.Println("Using loops Network")
-		for i := 1; i < p.Cnt; i++ {
-			AddSimPeer(nodes, i-1, i)
-		}
-		for i := 0; (i+17)*2 < p.Cnt; i += 17 {
-			AddSimPeer(nodes, i%p.Cnt, (i+5)%p.Cnt)
-		}
-		for i := 0; (i+13)*2 < p.Cnt; i += 13 {
-			AddSimPeer(nodes, i%p.Cnt, (i+7)%p.Cnt)
-		}
-	case "alot":
-		n := len(nodes)
-		for i := 0; i < n; i++ {
-			AddSimPeer(nodes, i, (i+1)%n)
-			AddSimPeer(nodes, i, (i+5)%n)
-			AddSimPeer(nodes, i, (i+7)%n)
-		}
-
-	case "alot+":
-		n := len(nodes)
-		for i := 0; i < n; i++ {
-			AddSimPeer(nodes, i, (i+1)%n)
-			AddSimPeer(nodes, i, (i+5)%n)
-			AddSimPeer(nodes, i, (i+7)%n)
-			AddSimPeer(nodes, i, (i+13)%n)
-		}
-
-	case "tree":
-		index := 0
-		row := 1
-	treeloop:
-		for i := 0; true; i++ {
-			for j := 0; j <= i; j++ {
-				AddSimPeer(nodes, index, row)
-				AddSimPeer(nodes, index, row+1)
-				row++
-				index++
-				if index >= len(nodes) {
-					break treeloop
-				}
-			}
-			row += 1
-		}
-	case "circles":
-		circleSize := 7
-		index := 0
-		for {
-			AddSimPeer(nodes, index, index+circleSize-1)
-			for i := index; i < index+circleSize-1; i++ {
-				AddSimPeer(nodes, i, i+1)
-			}
-			index += circleSize
-
-			AddSimPeer(nodes, index, index-circleSize/3)
-			AddSimPeer(nodes, index+2, index-circleSize-circleSize*2/3-1)
-			AddSimPeer(nodes, index+3, index-(2*circleSize)-circleSize*2/3)
-			AddSimPeer(nodes, index+5, index-(3*circleSize)-circleSize*2/3+1)
-
-			if index >= len(nodes) {
-				break
-			}
-		}
-	default:
-		fmt.Println("Didn't understand network type. Known types: mesh, long, circles, tree, loops.  Using a Long Network")
-		for i := 1; i < p.Cnt; i++ {
-			AddSimPeer(nodes, i-1, i)
-		}
-
-	}
-
-	var colors = []string{"95cde5", "b01700", "db8e3c", "ffe35f"}
-
-	if len(nodes) > 2 {
-		for i, s := range nodes {
-			fmt.Printf("%d {color:#%v, shape:dot, label:%v}\n", i, colors[i%len(colors)], s.State.FactomNodeName)
-		}
-		fmt.Printf("Paste the network info above into http://arborjs.org/halfviz to visualize the network\n")
-	}
-}
-
 func startWebserver(w *worker.Thread) {
 	state0 := fnode.Get(0).State
 	wsapi.Start(w, state0)
@@ -345,9 +193,11 @@ func startWebserver(w *worker.Thread) {
 	// Start prometheus on port
 	launchPrometheus(9876)
 
-	w.Run(func() {
-		controlPanel.ServeControlPanel(state0.ControlPanelChannel, state0, connectionMetricsChannel, p2pNetwork, Build, state0.FactomNodeName)
-	})
+	/*
+		w.Run(func() {
+			controlPanel.ServeControlPanel(state0.ControlPanelChannel, state0, connectionMetricsChannel, p2pNetwork, Build, state0.FactomNodeName)
+		})
+	*/
 }
 
 func startNetwork(w *worker.Thread, p *globals.FactomParams) {
@@ -355,7 +205,7 @@ func startNetwork(w *worker.Thread, p *globals.FactomParams) {
 
 	// Modify Identities of simulated nodes
 	if fnode.Len() > 1 && len(s.Prefix) == 0 {
-		modifySimulatorIdentities() // set proper chain id & keys
+		simulation.ModifySimulatorIdentities() // set proper chain id & keys
 	}
 
 	// Start the P2P network
@@ -403,7 +253,7 @@ func startNetwork(w *worker.Thread, p *globals.FactomParams) {
 	}
 
 	p2p.NetworkDeadline = time.Duration(p.Deadline) * time.Millisecond
-	buildNetTopology(p)
+	simulation.BuildNetTopology(p)
 
 	if !p.EnableNet {
 		return
@@ -470,7 +320,6 @@ func makeServer(w *worker.Thread, p *globals.FactomParams) (node *fnode.FactomNo
 
 	state0Init.Do(func() {
 		logPort = p.LogPort
-		SetLogLevel(p)
 		setupFirstAuthority(node.State)
 		initEntryHeight(node.State, p.Sync2)
 		initAnchors(node.State, p.ReparseAnchorChains)
@@ -516,8 +365,8 @@ func AddNode() {
 	p.Register(func(w *worker.Thread) {
 		i := fnode.Len()
 		fnode.Factory(w)
-		modifySimulatorIdentity(i)
-		AddSimPeer(fnode.GetFnodes(), i, i-1) // KLUDGE peer w/ only last node
+		simulation.ModifySimulatorIdentity(i)
+		simulation.AddSimPeer(fnode.GetFnodes(), i, i-1) // KLUDGE peer w/ only last node
 		n := fnode.Get(i)
 		startServer(w, n)
 	})

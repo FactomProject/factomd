@@ -14,15 +14,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/FactomProject/factomd/fnode"
-	"github.com/FactomProject/factomd/log"
-
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/primitives/random"
-	. "github.com/FactomProject/factomd/engine"
+	"github.com/FactomProject/factomd/fnode"
+	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/state"
 	. "github.com/FactomProject/factomd/testHelper"
 	"github.com/FactomProject/factomd/util/atomic"

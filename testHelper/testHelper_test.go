@@ -3,21 +3,17 @@ package testHelper_test
 import (
 	"bytes"
 	"crypto/rand"
-
-	"github.com/FactomProject/factom"
-	"github.com/FactomProject/factomd/util"
-
-	"github.com/FactomProject/factomd/engine"
-
-	"github.com/FactomProject/ed25519"
-	//"github.com/FactomProject/factomd/common/factoid/wallet"
 	"encoding/hex"
 	"fmt"
 	"testing"
 
+	"github.com/FactomProject/ed25519"
+	"github.com/FactomProject/factom"
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/simulation"
 	. "github.com/FactomProject/factomd/testHelper"
+	"github.com/FactomProject/factomd/util"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -147,7 +143,7 @@ func TestFeeTxnCreate(t *testing.T) {
 	outAddress := "FA2s2SJ5Cxmv4MzpbGxVS9zbNCjpNRJoTX4Vy7EZaTwLq3YTur4u"
 
 	for i := 0; i < 10; i++ {
-		txn, _ := engine.NewTransaction(balance, inUser, outAddress, ecPrice)
+		txn, _ := simulation.NewTransaction(balance, inUser, outAddress, ecPrice)
 		fee, _ := txn.CalculateFee(ecPrice)
 		balance = balance - fee
 		assert.Equal(t, 12*ecPrice, fee)
@@ -162,7 +158,7 @@ func TestTxnCreate(t *testing.T) {
 	//outUser := "Fs2GCfAa2HBKaGEUWCtw8eGDkN1CfyS6HhdgLv8783shkrCgvcpJ" // FA2s2SJ5Cxmv4MzpbGxVS9zbNCjpNRJoTX4Vy7EZaTwLq3YTur4u
 	outAddress := "FA2s2SJ5Cxmv4MzpbGxVS9zbNCjpNRJoTX4Vy7EZaTwLq3YTur4u"
 
-	txn, err := engine.NewTransaction(amt, inUser, outAddress, ecPrice)
+	txn, err := simulation.NewTransaction(amt, inUser, outAddress, ecPrice)
 	assert.Nil(t, err)
 
 	err = txn.ValidateSignatures()
