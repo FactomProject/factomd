@@ -83,6 +83,7 @@ func (q Queue_IMsg) Dequeue() (rval interfaces.IMsg) {
 	return v
 }
 
+
 // Dequeue removes an item from channel
 // Returns zero value if nothing in queue or closed
 // Returns open and empty flags
@@ -90,7 +91,7 @@ func (q Queue_IMsg) DequeueNonBlockingFlags() (rval interfaces.IMsg, open bool, 
 	select {
 	case rval, open = <-q.Channel:
 		if open {
-			q.Metric().Dec()
+		q.Metric().Dec()
 		}
 		return rval, open, !open // if it is closed it is empty
 	default:

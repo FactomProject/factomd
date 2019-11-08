@@ -7,12 +7,11 @@ package engine
 import (
 	"bytes"
 	"fmt"
-	"os"
-	"time"
-
 	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/fnode"
 	"github.com/FactomProject/factomd/worker"
+	"os"
+	"time"
 
 	// "github.com/FactomProject/factomd/common/constants"
 
@@ -204,10 +203,13 @@ func (p *P2PProxy) Len() int {
 
 func (p *P2PProxy) networkHousekeeping(w *worker.Thread) {
 	w.Init(p, "networkHousekeeping")
-	for {
-		time.Sleep(1 * time.Second)
-		p2pProxy.SetWeight(p2pNetwork.GetNumberOfConnections())
-	}
+	w.OnRun(func() {
+		for {
+			time.Sleep(1 * time.Second)
+			p2pProxy.SetWeight(p2pNetwork.GetNumberOfConnections())
+		}
+
+	})
 }
 
 func (p *P2PProxy) StartProxy(w *worker.Thread) {
@@ -229,42 +231,45 @@ func (p *P2PProxy) StopProxy() {
 // manageOutChannel takes messages from the f.broadcastOut channel and sends them to the network.
 func (p *P2PProxy) ManageOutChannel(w *worker.Thread) {
 	w.Init(p, "ManageOutChannel")
-
-	for data := range p.BroadcastOut {
-		switch data.(type) {
-		case FactomMessage:
-			fmessage := data.(FactomMessage)
-			// Wrap it in a parcel and send it out channel ToNetwork.
-			parcels := p2p.ParcelsForPayload(p2p.CurrentNetwork, fmessage.Message)
-			for _, parcel := range parcels {
-				if parcel.Header.Type != p2p.TypeMessagePart {
-					parcel.Header.Type = p2p.TypeMessage
+	w.OnRun(func() {
+		for data := range p.BroadcastOut {
+			switch data.(type) {
+			case FactomMessage:
+				fmessage := data.(FactomMessage)
+				// Wrap it in a parcel and send it out channel ToNetwork.
+				parcels := p2p.ParcelsForPayload(p2p.CurrentNetwork, fmessage.Message)
+				for _, parcel := range parcels {
+					if parcel.Header.Type != p2p.TypeMessagePart {
+						parcel.Header.Type = p2p.TypeMessage
+					}
+					parcel.Header.TargetPeer = fmessage.PeerHash
+					parcel.Header.AppHash = fmessage.AppHash
+					parcel.Header.AppType = fmessage.AppType
+					p2p.BlockFreeChannelSend(p.ToNetwork, parcel)
 				}
-				parcel.Header.TargetPeer = fmessage.PeerHash
-				parcel.Header.AppHash = fmessage.AppHash
-				parcel.Header.AppType = fmessage.AppType
-				p2p.BlockFreeChannelSend(p.ToNetwork, parcel)
+			default:
+				p.logger.Errorf("Garbage on f.BrodcastOut. %+v", data)
 			}
-		default:
-			p.logger.Errorf("Garbage on f.BrodcastOut. %+v", data)
 		}
-	}
+	})
 }
 
 // manageInChannel takes messages from the network and stuffs it in the f.BroadcastIn channel
 func (p *P2PProxy) ManageInChannel(w *worker.Thread) {
 	w.Init(p, "ManageInChannel")
-	for data := range p.FromNetwork {
-		switch data.(type) {
-		case p2p.Parcel:
-			parcel := data.(p2p.Parcel)
-			message := FactomMessage{Message: parcel.Payload, PeerHash: parcel.Header.TargetPeer, AppHash: parcel.Header.AppHash, AppType: parcel.Header.AppType}
-			removed := p2p.BlockFreeChannelSend(p.BroadcastIn, message)
-			BroadInCastQueue.Inc()
-			BroadInCastQueue.Add(float64(-1 * removed))
-			BroadCastInQueueDrop.Add(float64(removed))
-		default:
-			p.logger.Errorf("Garbage on f.FromNetwork. %+v", data)
+	w.OnRun(func() {
+		for data := range p.FromNetwork {
+			switch data.(type) {
+			case p2p.Parcel:
+				parcel := data.(p2p.Parcel)
+				message := FactomMessage{Message: parcel.Payload, PeerHash: parcel.Header.TargetPeer, AppHash: parcel.Header.AppHash, AppType: parcel.Header.AppType}
+				removed := p2p.BlockFreeChannelSend(p.BroadcastIn, message)
+				BroadInCastQueue.Inc()
+				BroadInCastQueue.Add(float64(-1 * removed))
+				BroadCastInQueueDrop.Add(float64(removed))
+			default:
+				p.logger.Errorf("Garbage on f.FromNetwork. %+v", data)
+			}
 		}
-	}
+	})
 }

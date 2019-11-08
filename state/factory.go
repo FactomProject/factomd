@@ -407,7 +407,7 @@ func Clone(s *State, cloneNumber int) interfaces.IState {
 	return newState
 }
 
-func (s *State) Initialize(w *worker.Thread, electionFactory interfaces.IElectionsFactory) {
+func (s *State) Initialize(w *worker.Thread) {
 	if s.Salt == nil {
 		b := make([]byte, 32)
 		_, err := rand.Read(b)
@@ -441,8 +441,12 @@ func (s *State) Initialize(w *worker.Thread, electionFactory interfaces.IElectio
 	s.ShutdownChan = make(chan int, 1)                                      //SubChannel to gracefully shut down.
 	s.tickerQueue = make(chan int, 100)                                     //ticks from a clock
 	s.timerMsgQueue = make(chan interfaces.IMsg, 100)                       //incoming eom notifications, used by leaders
+<<<<<<< HEAD
 	s.ControlPanelChannel = make(chan DisplayState, 20)                     //
 	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 100)              //incoming message queue from the network inMessages
+=======
+	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 100)              //incoming message queue from the network messages
+>>>>>>> origin/FD-1225_wax_rollup
 	s.networkOutMsgQueue = NewNetOutMsgQueue(w, constants.INMSGQUEUE_MED)   //Messages to be broadcast to the network
 	s.inMsgQueue = NewInMsgQueue(w, constants.INMSGQUEUE_HIGH)              //incoming message queue for Factom application inMessages
 	s.inMsgQueue2 = NewInMsgQueue2(w, constants.INMSGQUEUE_HIGH)            //incoming message queue for Factom application inMessages
@@ -611,9 +615,6 @@ func (s *State) Initialize(w *worker.Thread, electionFactory interfaces.IElectio
 
 	// Allocate the missing message handler
 	s.MissingMessageResponseHandler = NewMissingMessageReponseCache(s)
-
-	// Election factory was created and passed int to avoid import loop
-	s.EFactory = electionFactory
 
 	if s.StateSaverStruct.FastBoot {
 		d, err := s.DB.FetchDBlockHead()
