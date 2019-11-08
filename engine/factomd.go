@@ -41,6 +41,7 @@ func Run(params *FactomParams) {
 	p := registry.New()
 	p.Register(func(w *worker.Thread) {
 		Factomd(w, params, params.Sim_Stdin)
+		w.OnRun(func(){ fmt.Print("Running")})
 		w.OnComplete(func() {
 			fmt.Println("Waiting to Shut Down")
 			time.Sleep(time.Second * 5)
