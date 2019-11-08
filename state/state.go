@@ -210,6 +210,8 @@ type State struct {
 	DBFinished      bool
 	RunLeader       bool
 	BootTime        int64 // Time in seconds that we last booted
+	EOMIssueTime    int64
+	EOMSyncEnd      int64
 
 	// Ignore missing messages for a period to allow rebooting a network where your
 	// own messages from the previously executing network can confuse you.
@@ -238,7 +240,6 @@ type State struct {
 	CurrentBlockStartTime   int64
 
 	EOMsyncing   bool
-	EOMSyncTime  int64
 	EOM          bool // Set to true when the first EOM is encountered
 	EOMLimit     int
 	EOMProcessed int
@@ -2372,7 +2373,8 @@ func (s *State) GotHeartbeat(heartbeatTS interfaces.Timestamp, dbheight uint32) 
 		newTS = leaderTime
 	}
 
-	s.LogPrintf("executeMsg", "GotHeartbeat(%s, %s)", heartbeatTS, dbheight)
+	s.LogPrintf("executeMsg", "GotHeartbeat(%s, dbht:"+
+		"%d)", heartbeatTS, dbheight)
 
 	// set filter to one hour before target
 	s.SetMessageFilterTimestamp(primitives.NewTimestampFromMilliseconds(uint64(newTS - 60*60*1000)))

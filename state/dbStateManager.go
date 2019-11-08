@@ -908,6 +908,7 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 		coinbaseTx := fblock.Transactions[0]
 		coinbaseTx.SetTimestamp(list.State.GetLeaderTimestamp())
 		fblock.Transactions[0] = coinbaseTx
+		list.State.LogPrintf("factoids_trans", "FixupLinks(%d) timestamp = %d, %s", currentDBHeight, coinbaseTx.GetTimestamp(), coinbaseTx.GetTimestamp().String())
 	}
 
 	d.FactoidBlock = fblock

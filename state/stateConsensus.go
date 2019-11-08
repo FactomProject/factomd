@@ -179,7 +179,7 @@ func (s *State) Validate(msg interfaces.IMsg) (validToSend int, validToExec int)
 	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
 	if !ok {
 		consenLogger.WithFields(msg.LogFields()).Debug("executeMsg (Replay Invalid)")
-		s.LogMessage("executeMsg", "drop, INTERNAL_REPLAY", msg)
+		s.LogMessage("executeMsg", "drop, INTERNAL_REPLAY2", msg)
 		return -1, -1
 	}
 
@@ -977,7 +977,7 @@ func (s *State) repost(m interfaces.IMsg, delay int) {
 			time.Sleep(time.Duration(delay) * s.FactomSecond()) // delay in Factom seconds
 		}
 		//s.LogMessage("MsgQueue", fmt.Sprintf("enqueue_%s(%d)", whereAmI, len(s.msgQueue)), m)
-		s.LogMessage("MsgQueue", fmt.Sprintf("enqueue (%d)", len(s.msgQueue)), m)
+		s.LogMessage("MsgQueue", fmt.Sprintf("repost enqueue (%d)", len(s.msgQueue)), m)
 		s.msgQueue <- m // Goes in the "do this really fast" queue so we are prompt about EOM's while syncing
 	}()
 }
@@ -1505,6 +1505,8 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 		fix = true
 	}
 
+	s.EOMIssueTime = time.Now().UnixNano() // Time we issue the EOM
+
 	// make sure EOM has the right data
 	eom.DBHeight = s.LLeaderHeight
 	eom.VMIndex = s.LeaderVMIndex
@@ -1527,6 +1529,7 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	ack.SendOut(s, ack)
 	eom.SendOut(s, eom)
 	s.FollowerExecuteEOM(eom)
+	s.LogMessage("executeMsg", "issue EOM", eom)
 	s.UpdateState()
 }
 
@@ -1991,6 +1994,9 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			s.EOM = false      // ProcessEOM (EOM complete)
 			s.EOMDone = false  // ProcessEOM (EOM complete)
 			s.EOMProcessed = 0 // ProcessEOM (EOM complete)
+
+			s.EOMSyncEnd = time.Now().UnixNano()
+
 			for _, vm := range pl.VMs {
 				vm.Synced = false // ProcessEOM (EOM complete)
 			}
@@ -2128,7 +2134,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		//	e.VMIndex, allfaults, s.EOMProcessed, s.EOMLimit, s.EOMDone))
 
 		s.EOMDone = true // ProcessEOM
-		s.EOMSyncTime = time.Now().UnixNano()
 		for _, eb := range pl.NewEBlocks {
 			eb.AddEndOfMinuteMarker(byte(e.Minute + 1))
 		}

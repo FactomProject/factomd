@@ -30,7 +30,7 @@ func waitForLoaded(s *State) {
 		time.Sleep(1 * time.Second)
 	}
 	if s.highestKnown < s.DBHeightAtBoot {
-		s.highestKnown = s.DBHeightAtBoot
+		s.highestKnown = s.DBHeightAtBoot + 1 // Make sure we ask for the next block after the database at startup.
 	}
 }
 
