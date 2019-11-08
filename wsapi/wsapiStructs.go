@@ -40,7 +40,6 @@ type RevealEntryResponse struct {
 type DirectoryBlockResponse struct {
 	Header struct {
 		PrevBlockKeyMR string `json:"prevblockkeymr"`
-		HeaderHash     string `json:"headerhash"`
 		SequenceNumber int64  `json:"sequencenumber"`
 		Timestamp      int64  `json:"timestamp"`
 	} `json:"header"`
@@ -349,14 +348,13 @@ type DiagnosticsResponse struct {
 	PublicKey string `json:"publickey,omitempty"`
 	Role      string `json:"role"`
 
-	LeaderHeight          uint32 `json:"leaderheight"`
-	LeaderHeightInProgress uint32 `json:"leaderheightinprogress"`
-	CurrentMinute         int    `json:"currentminute"`
-	CurrentMinuteDuration int64  `json:"currentminuteduration"`
-	PrevMinuteDuration    int64  `json:"previousminuteduration"`
-	BalanceHash           string `json:"balancehash"`
-	TempBalanceHash       string `json:"tempbalancehash"`
-	LastBlockFromDBState  bool   `json:"lastblockfromdbstate"`
+	LeaderHeight           uint32 `json:"leaderheight"`
+	CurrentMinute          int    `json:"currentminute"`
+	CurrentMinuteDuration  int64  `json:"currentminuteduration"`
+	PrevMinuteDuration     int64  `json:"previousminuteduration"`
+	BalanceHash            string `json:"balancehash"`
+	TempBalanceHash        string `json:"tempbalancehash"`
+	LastBlockFromDBState   bool   `json:"lastblockfromdbstate"`
 
 	SyncInfo     *SyncInfo     `json:"syncing"`
 	AuthSet      *AuthSet      `json:"authset"`
