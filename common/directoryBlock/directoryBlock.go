@@ -373,6 +373,7 @@ func (b *DirectoryBlock) BuildKeyMerkleRoot() (keyMR interfaces.IHash, err error
 	if err != nil {
 		return nil, err
 	}
+	b.HeaderHash = headerHash
 	hashes = append(hashes, headerHash)
 	hashes = append(hashes, bodyKeyMR)
 	merkle := primitives.BuildMerkleTreeStore(hashes)
