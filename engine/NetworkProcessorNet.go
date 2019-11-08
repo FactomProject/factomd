@@ -27,6 +27,32 @@ func NetworkProcessorNet(w *worker.Thread, fnode *fnode.FactomNode) {
 	w.Run(func() { InvalidOutputs(fnode) })
 }
 
+func NetworkIn(w *worker.Thread, node *fnode.FactomNode) {
+	// The number of validating threads to filter incoming msgs from the
+	// network
+	numValidators := 2
+
+	for i := 0; i < numValidators; i++ {
+		w.Spawn(func(w *worker.Thread) {
+			// w.Name is my parent?
+			// Init my name object?
+			w.Init(&w.Name, "bmv")
+
+			// Run init conditions. Setup publishers
+			// code...
+			// code...
+
+			w.OnReady(func() {
+				// Subscribe to publishers
+			})
+
+			w.OnRun(func() {
+				// do work
+			})
+		})
+	}
+}
+
 func Peers(w *worker.Thread, fnode *fnode.FactomNode) {
 	// FIXME: bind to
 	saltReplayFilterOn := true

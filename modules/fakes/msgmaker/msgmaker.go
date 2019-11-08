@@ -23,10 +23,10 @@ type FakeMsgMaker struct {
 	replayLimit ratelimit.Limiter
 }
 
-func NewFakeMsgMaker(path string, rate int) *FakeMsgMaker {
+func NewFakeMsgMaker(pub pubsub.IPublisher, rate int) *FakeMsgMaker {
 	f := new(FakeMsgMaker)
-	f.pubpath = path
-	f.pub = pubsub.PubFactory.Base().Publish(path)
+	f.pubpath = pub.Path()
+	f.pub = pub
 	f.rateLimiter = ratelimit.New(rate)
 	f.replayLimit = ratelimit.New(rate)
 

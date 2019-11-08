@@ -15,7 +15,7 @@ import (
 func TestBasicMessageValidator_SingleRun(t *testing.T) {
 	bmv := NewBasicMessageValidator()
 	blocks := blockmaker.NewFakeBlockMaker()
-	msgs := msgmaker.NewFakeMsgMaker("/msgs", 10)
+	msgs := msgmaker.NewFakeMsgMaker(pubsub.PubFactory.Base().Publish("/msgs"), 10)
 	bmv.Subscribe()
 
 	// Bootstrap the bmv replay filter
@@ -47,5 +47,4 @@ func TestBasicMessageValidator_SingleRun(t *testing.T) {
 		}
 	}
 	cancel()
-
 }
