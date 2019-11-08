@@ -119,13 +119,12 @@ type VM struct {
 }
 
 func (p *ProcessList) GetKeysNewEntries() (keys [][32]byte) {
-	keys = make([][32]byte, p.LenNewEntries())
-
 	if p == nil {
 		return
 	}
 	p.NewEntriesMutex.RLock()
 	defer p.NewEntriesMutex.RUnlock()
+	keys = make([][32]byte, len(p.NewEntries))
 	i := 0
 	for k := range p.NewEntries {
 		keys[i] = k
@@ -135,6 +134,9 @@ func (p *ProcessList) GetKeysNewEntries() (keys [][32]byte) {
 }
 
 func (p *ProcessList) GetNewEntry(key [32]byte) interfaces.IEntry {
+	if p == nil {
+		return nil
+	}
 	p.NewEntriesMutex.RLock()
 	defer p.NewEntriesMutex.RUnlock()
 	return p.NewEntries[key]
