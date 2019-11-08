@@ -1,8 +1,9 @@
 package bmv
 
 import (
-	"github.com/FactomProject/factomd/common/interfaces"
 	"time"
+
+	"github.com/FactomProject/factomd/common/interfaces"
 )
 
 const (
@@ -29,6 +30,9 @@ type MsgReplay struct {
 func NewMsgReplay(window int) *MsgReplay {
 	m := new(MsgReplay)
 	m.Buckets = make([]map[[32]byte]int, window+2, window+2)
+	for i := range m.Buckets {
+		m.Buckets[i] = make(map[[32]byte]int)
+	}
 	// The future block time is unknown
 	m.BlockTimes = make([]time.Time, window+1, window+1)
 	m.window = window
@@ -43,7 +47,7 @@ func (m *MsgReplay) Recenter(stamp time.Time) {
 	}
 
 	// [0:window] == past
-	// [window]   == previous current
+	// [window]   == current
 	// [window+1] == future messages to be re-evaluated
 	copy(m.BlockTimes, m.BlockTimes[1:m.window+1])
 	m.BlockTimes[m.window] = stamp
@@ -62,29 +66,50 @@ func (m *MsgReplay) UpdateReplay(msg interfaces.IMsg) int {
 }
 
 func (m *MsgReplay) checkReplay(msg interfaces.IMsg, update bool) int {
+	var index int = -1 // Index of the bucket to check against
+
+	// TODO: .GetTime() might be expensive? We should switch to time.Time in the msg so
+	//		this conversion is free.
+	mTime := msg.GetTimestamp().GetTime()
+
+	// First see if the this msg is from the past
 	for i := range m.BlockTimes {
-		// TODO: This might be expensive? We should switch to time.Time in the msg so
-		//		this conversion is free.
-		if msg.GetTimestamp().GetTime().Before(m.BlockTimes[i]) {
+		if mTime.Before(m.BlockTimes[i]) {
 			if i == 0 { // Too far in the past
 				return TimestampExpired
 			}
 			// Place the msg into the correct bucket
-			_, ok := m.Buckets[i][msg.GetRepeatHash().Fixed()]
-			if ok {
-				return ReplayMsg
-			}
-			if update {
-				m.Buckets[i][msg.GetRepeatHash().Fixed()] += 1
-				return MsgAdded // Added
-			}
-			return MsgValid // Found, but not updated
+			index = i - 1 // Bucket[i-1] is the right bucket
+			break
 		}
 	}
 
-	// Msg is from the future
-	// TODO: Handle future messages
-	return TimestampTooFuture
+	if index == -1 {
+		// Msg is from the future or the current
+		// TODO: We should not assume 10min blocks
+		if mTime.Before(m.BlockTimes[m.window].Add(time.Minute * 10)) {
+			// Current
+			index = m.window
+		} else {
+			// Future
+			// TODO: Handle future messages
+			index = m.window + 1
+			// return TimestampTooFuture
+		}
+	}
+
+	if index != -1 {
+		_, ok := m.Buckets[index][msg.GetRepeatHash().Fixed()]
+		if ok {
+			return ReplayMsg
+		}
+		if update {
+			m.Buckets[index][msg.GetRepeatHash().Fixed()] += 1
+			return MsgAdded // Added
+		}
+	}
+
+	return MsgValid // Found, but not updated
 }
 
 // IsReplay returns the same error codes as UpdateReplay, but will return a 0 if the

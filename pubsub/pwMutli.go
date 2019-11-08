@@ -5,6 +5,8 @@ import "sync"
 // PubMultiWrapper is a very basic idea of keeping track of multiple
 // writers. The close functionality only happens if ALL writers close
 // the publish.
+//
+// The multi overwrites the Start, Close, and Publish behavior.
 type PubMultiWrapper struct {
 	IPublisher
 	PubWrapBase
