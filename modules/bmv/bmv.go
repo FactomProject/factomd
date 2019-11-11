@@ -9,6 +9,11 @@ import (
 )
 
 type BasicMessageValidator struct {
+	// bootTime is used to set the
+	bootTime time.Time
+	// Anything before this timestamp is ignored
+	msgFilterTimestamp time.Time
+
 	// msgs is where all the incoming messages com from.
 	msgs  *pubsub.SubChannel
 	times *pubsub.SubChannel
@@ -36,6 +41,9 @@ func NewBasicMessageValidator(nodeName string) *BasicMessageValidator {
 	b.NodeName = nodeName
 	b.msgs = pubsub.SubFactory.Channel(100)  //.Subscribe("path?")
 	b.times = pubsub.SubFactory.Channel(100) //.Subscribe("path?")
+	b.bootTime = time.Now()
+	// 20min grace period
+	b.msgFilterTimestamp = b.bootTime.Add(-20 * time.Minute)
 
 	// b.groups = []msgPub{
 	// 	// Each group is a publisher
@@ -85,6 +93,16 @@ func (b *BasicMessageValidator) Run(ctx context.Context) {
 		case data := <-b.msgs.Updates:
 			msg, ok := data.(interfaces.IMsg)
 			if !ok {
+				continue
+			}
+
+			if msg.GetTimestamp().GetTime().Before(b.msgFilterTimestamp) {
+				continue // Prior to our boot
+			}
+
+			// Pre-Checks
+			if msg.GetHash().IsHashNil() {
+				// fnode.State.LogMessage("badEvents", "Nil hash from APIQueue", msg)
 				continue
 			}
 
