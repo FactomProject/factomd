@@ -10,17 +10,16 @@ import (
 
 // Index of all top-level threads
 type process struct {
-	Mutex     sync.Mutex
-	ID        int
-	Parent    int
-	Index     []*worker.Thread
-	initDone  bool
-	initWait  sync.WaitGroup // init code + publishers created
-	readyWait sync.WaitGroup // subscribers setup
-	runWait   sync.WaitGroup // completes when all threads are running
-	doneWait  sync.WaitGroup // completes when all threads are complete
-	exitWait  sync.WaitGroup // used to trigger exit logic
-	exitWatch sync.WaitGroup // completes when all exit functions have completed
+	Mutex      sync.Mutex
+	ID         int
+	Parent     int
+	Index      []*worker.Thread
+	initDone   bool
+	initWait   sync.WaitGroup // init code + publishers created
+	readyWait  sync.WaitGroup // subscribers setup
+	doneWait   sync.WaitGroup // completes when all threads are complete
+	exitWait   sync.WaitGroup // used to trigger exit logic
+	exitSignal sync.WaitGroup // completes when all exit functions have completed
 }
 
 // type used to to provide initializer function and
@@ -35,8 +34,8 @@ var globalRegistry = &processRegistry{}
 
 // trigger exit calls
 func (p *process) Exit() {
-	defer func() { recover() }() // don't panic if exitWait is already Done
-	p.exitWait.Done()
+	defer func() { recover() }() // don't panic if exitSignal is already Done
+	p.exitSignal.Done()
 }
 
 // add a new thread to the global registry
@@ -47,9 +46,8 @@ func (p *process) addThread() *worker.Thread {
 
 	p.initWait.Add(1)
 	p.readyWait.Add(1)
-	p.runWait.Add(1)
 	p.doneWait.Add(1)
-	p.exitWatch.Add(1)
+	p.exitWait.Add(1)
 
 	p.Mutex.Lock()
 	defer p.Mutex.Unlock()
@@ -64,36 +62,33 @@ func (p *process) addThread() *worker.Thread {
 
 // Bind thread run-level callbacks to wait groups
 func (p *process) bindCallbacks(w *worker.Thread, initHandler worker.Handle) {
+	// initHandler binds all other callbacks
+	// and can spawn child threads
+	// publishers are instantiated here
 	go func() {
-		// initHandler binds all other callbacks
-		// and can spawn child threads
-		// publishers are instantiated here
-		initHandler(w)
-		p.initWait.Done()
+		{ // Init
+			initHandler(w)
+			p.initWait.Done()
+			p.initWait.Wait()
+		}
+		{ // Ready
+			w.Call(worker.READY)
+			p.readyWait.Done()
+			p.readyWait.Wait()
+		}
+		{ // Running
+			w.Call(worker.RUN)
+			p.doneWait.Done()
+		}
 	}()
 
-	go func() {
-		// subscribers are bound here
-		p.initWait.Wait()
-		w.Call(worker.READY)
-		p.readyWait.Done()
-	}()
-
-	go func() {
-		// runs actual thread logic - will likely be a pub/sub handler
-		// that binds to the subscription manager
-		p.readyWait.Wait()
-		p.runWait.Done() // External hook for other processes to know this thread group is running
-		w.Call(worker.RUN)
-		w.Call(worker.COMPLETE)
-		p.doneWait.Done()
-	}()
-
-	go func() {
-		// cleanup on exit
-		p.exitWait.Wait()
+	go func() { // exit
+		p.exitSignal.Wait()
 		w.Call(worker.EXIT)
-		p.exitWatch.Done()
+		p.doneWait.Wait()
+		w.Call(worker.COMPLETE)
+		p.exitWait.Done()
+		p.exitWait.Wait()
 	}()
 
 }
@@ -134,6 +129,7 @@ type Process interface {
 	Run()
 	Exit()
 	WaitForRunning()
+	WaitForExit()
 }
 
 // create a new root process
@@ -153,12 +149,16 @@ func newProcess() *process {
 	p.Parent = p.ID // root processes are their own parent
 	globalRegistry.Index = append(globalRegistry.Index, p)
 	worker.AddInterruptHandler(p.Exit) // trigger exit behavior in the case of SIGINT
-	p.exitWait.Add(1)
+	p.exitSignal.Add(1)
 	return p
 }
 
 func (p *process) WaitForRunning() {
-	p.runWait.Wait()
+	p.readyWait.Wait()
+}
+
+func (p *process) WaitForExit() {
+	p.exitWait.Wait()
 }
 
 // execute all threads
@@ -166,10 +166,8 @@ func (p *process) Run() {
 	p.initWait.Wait()
 	p.initDone = true
 	p.readyWait.Wait()
-	p.runWait.Wait()
 	p.doneWait.Wait()
-	p.Exit()
-	p.exitWatch.Wait()
+	p.exitSignal.Wait()
 }
 
 func Graph() (out string) {
