@@ -2,6 +2,7 @@ package pubsub
 
 import (
 	"fmt"
+	"path/filepath"
 	"sync"
 
 	"github.com/DiSiqueira/GoTree"
@@ -135,4 +136,8 @@ func globalSubscribe(path string, sub IPubSubscriber) IPubSubscriber {
 		panic(fmt.Sprintf("failed to subscribe: %s", err.Error()))
 	}
 	return sub
+}
+
+func GetPath(dirs ...string) string {
+	return filepath.Join(dirs...)
 }

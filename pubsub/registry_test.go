@@ -52,6 +52,6 @@ func TestRegistry_AddPath(t *testing.T) {
 	r.AddPath(filepath.Join("root", "a", "c"))
 	r.AddPath("root/a/d")
 	r.AddPath("root/a/f")
-	r.AddPath("home/two/f")
+	r.AddPath(GetPath("home/two/f"))
 	fmt.Println(r.PrintTree())
 }

@@ -2,8 +2,6 @@ package bmv
 
 import (
 	"context"
-	"fmt"
-	"github.com/FactomProject/factomd/common/constants"
 	"time"
 
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -19,9 +17,9 @@ type BasicMessageValidator struct {
 	groups []msgPub
 
 	// The rest of the messages
-	pubList []pubsub.IPublisher
-	pubs    map[byte]pubsub.IPublisher
-	rest    pubsub.IPublisher
+	// pubList []pubsub.IPublisher
+	// pubs    map[byte]pubsub.IPublisher
+	rest pubsub.IPublisher
 
 	replay *MsgReplay
 
@@ -39,25 +37,25 @@ func NewBasicMessageValidator(nodeName string) *BasicMessageValidator {
 	b.msgs = pubsub.SubFactory.Channel(100)  //.Subscribe("path?")
 	b.times = pubsub.SubFactory.Channel(100) //.Subscribe("path?")
 
-	b.groups = []msgPub{
-		// Each group is a publisher
-		{Name: "missing_messages", Types: []byte{constants.MISSING_MSG}},
-		{Name: "missing_dbstates", Types: []byte{constants.DBSTATE_MISSING_MSG}},
-	}
+	// b.groups = []msgPub{
+	// 	// Each group is a publisher
+	// 	{Name: "missing_messages", Types: []byte{constants.MISSING_MSG}},
+	// 	{Name: "missing_dbstates", Types: []byte{constants.DBSTATE_MISSING_MSG}},
+	// }
+	//
+	// // TODO: Remove this next line to keep the multiple publishers
+	// b.groups = []msgPub{}
 
-	// TODO: Remove this next line to keep the multiple publishers
-	b.groups = []msgPub{}
+	// for _, g := range b.groups {
+	// 	publisher := pubsub.PubFactory.Threaded(100).Publish(
+	// 		pubsub.GetPath(b.NodeName, "bmv", g.Name), pubsub.PubMultiWrap())
+	// 	for _, t := range g.Types {
+	// 		b.pubs[t] = publisher
+	// 	}
+	// 	b.pubList = append(b.pubList, publisher)
+	// }
 
-	for _, g := range b.groups {
-		publisher := pubsub.PubFactory.Threaded(100).Publish(
-			fmt.Sprintf(b.NodeName+"/bmv/%s", g.Name), pubsub.PubMultiWrap())
-		for _, t := range g.Types {
-			b.pubs[t] = publisher
-		}
-		b.pubList = append(b.pubList, publisher)
-	}
-
-	b.rest = pubsub.PubFactory.Threaded(100).Publish(b.NodeName+"/bmv/rest", pubsub.PubMultiWrap())
+	b.rest = pubsub.PubFactory.Threaded(100).Publish(pubsub.GetPath(b.NodeName, "bmv", "rest"), pubsub.PubMultiWrap())
 
 	b.replay = NewMsgReplay(6)
 	return b
@@ -65,14 +63,14 @@ func NewBasicMessageValidator(nodeName string) *BasicMessageValidator {
 
 func (b *BasicMessageValidator) Subscribe() {
 	// TODO: Find actual paths
-	b.msgs = b.msgs.Subscribe(b.NodeName + "/msgs")
-	b.times = b.times.Subscribe(b.NodeName + "/blocktime")
+	b.msgs = b.msgs.Subscribe(pubsub.GetPath(b.NodeName, "msgs"))
+	b.times = b.times.Subscribe(pubsub.GetPath(b.NodeName, "blocktime"))
 }
 
 func (b *BasicMessageValidator) ClosePublishing() {
-	for _, pub := range b.pubList {
-		_ = pub.Close()
-	}
+	// for _, pub := range b.pubList {
+	// 	_ = pub.Close()
+	// }
 	_ = b.rest.Close()
 }
 
@@ -102,10 +100,10 @@ func (b *BasicMessageValidator) Run(ctx context.Context) {
 }
 
 func (b *BasicMessageValidator) Write(msg interfaces.IMsg) {
-	if p, ok := b.pubs[msg.Type()]; ok {
-		p.Write(msg)
-		return
-	}
+	// if p, ok := b.pubs[msg.Type()]; ok {
+	// 	p.Write(msg)
+	// 	return
+	// }
 	// Write to all pubs we are managing
 	b.rest.Write(msg)
 }

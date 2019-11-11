@@ -64,6 +64,7 @@ func MsgInputs(parent *worker.Thread, fnode *fnode.FactomNode) {
 			w.Init(&parent.Name, "bmv")
 
 			// Run init conditions. Setup publishers
+			fmt.Println(w.Name)
 			msgIn := bmv.NewBasicMessageValidator(fnode.State.GetFactomNodeName())
 
 			w.OnReady(func() {
@@ -74,7 +75,7 @@ func MsgInputs(parent *worker.Thread, fnode *fnode.FactomNode) {
 			w.OnRun(func() {
 				// TODO: Temporary print all messages out of bmv. We need to actually use them...
 				go func() {
-					sub := pubsub.SubFactory.Channel(100).Subscribe(fnode.State.GetFactomNodeName() + "/bmv/rest")
+					sub := pubsub.SubFactory.Channel(100).Subscribe(pubsub.GetPath(fnode.State.GetFactomNodeName(), "bmv", "rest"))
 					for v := range sub.Channel() {
 						fmt.Println("MESSAGE -> ", v)
 					}
