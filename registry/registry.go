@@ -88,7 +88,6 @@ func (p *process) bindCallbacks(w *worker.Thread, initHandler worker.Handle) {
 		p.doneWait.Wait()
 		w.Call(worker.COMPLETE)
 		p.exitWait.Done()
-		p.exitWait.Wait()
 	}()
 
 }
