@@ -407,9 +407,9 @@ func TestMapToFactomEvent(t *testing.T) {
 			BroadcastContent: eventservices.BroadcastAlways,
 			Assertion: func(t *testing.T, event *eventmessages.FactomEvent) {
 				assert.Equal(t, eventmessages.EventSource_REPLAY_BOOT, event.EventSource)
-				if assert.NotNil(t, event.GetProcessListEvent()) {
-					assert.Equal(t, 2, event.GetProcessListEvent().GetNewMinute())
-					assert.Equal(t, 123, event.GetProcessListEvent().GetNewBlock())
+				if assert.NotNil(t, event.GetProcessListEvent()) && assert.NotNil(t, event.GetProcessListEvent().GetNewMinuteEvent()) {
+					assert.Equal(t, uint32(2), event.GetProcessListEvent().GetNewMinuteEvent().GetNewMinute())
+					assert.Equal(t, uint32(123), event.GetProcessListEvent().GetNewMinuteEvent().GetBlockHeight())
 				}
 			},
 		},

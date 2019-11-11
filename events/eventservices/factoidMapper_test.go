@@ -20,7 +20,7 @@ func TestMapFactoidBlock(t *testing.T) {
 	assert.NotNil(t, factoidBlock.PreviousKeyMerkleRoot)
 	assert.NotNil(t, factoidBlock.ExchangeRate)
 	assert.NotNil(t, factoidBlock.BlockHeight)
-	assert.GreaterOrEqual(t, 1, factoidBlock.TransactionCount)
+	assert.GreaterOrEqual(t, uint32(1), factoidBlock.TransactionCount)
 	assert.NotNil(t, factoidBlock.Transactions)
 }
 
@@ -31,7 +31,7 @@ func TestMapTransaction(t *testing.T) {
 	assert.NotNil(t, transaction)
 	assert.Equal(t, factoidTransaction.GetSigHash().Bytes(), transaction.TransactionID)
 	assert.Equal(t, factoidTransaction.BlockHeight, transaction.BlockHeight)
-	assert.Equal(t, 1, transaction.MinuteNumber)
+	assert.Equal(t, uint32(1), transaction.MinuteNumber)
 	assert.Equal(t, int64(factoidTransaction.MilliTimestamp/1000), transaction.Timestamp.Seconds)
 	assert.Equal(t, int32(factoidTransaction.MilliTimestamp%1000), transaction.Timestamp.Nanos)
 }

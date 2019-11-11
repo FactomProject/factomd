@@ -41,15 +41,24 @@ func TestEventInput_StateChangeEvent(t *testing.T) {
 	assert.Equal(t, dbState, stateChangeEvent.GetPayload())
 }
 
-func TestEventInput_ProcessInfoMessage(t *testing.T) {
-	processInfoEvent := ProcessInfoEventF(eventmessages.EventSource_LIVE, eventmessages.ProcessCode_NEW_MINUTE, "test: %s", "the process info")
+func TestEventInput_ProcessListEventNewBlock(t *testing.T) {
+	processListEvent := ProcessListEventNewBlock(eventmessages.EventSource_LIVE, 2)
 
-	assert.NotNil(t, processInfoEvent)
-	assert.Equal(t, eventmessages.EventSource_LIVE, processInfoEvent.GetStreamSource())
-	if assert.NotNil(t, processInfoEvent.GetProcessMessage()) {
-		assert.Equal(t, eventmessages.Level_INFO, processInfoEvent.GetProcessMessage().Level)
-		assert.Equal(t, eventmessages.ProcessCode_NEW_MINUTE, processInfoEvent.GetProcessMessage().ProcessCode)
-		assert.Equal(t, "test: the process info", processInfoEvent.GetProcessMessage().MessageText)
+	assert.NotNil(t, processListEvent)
+	assert.Equal(t, eventmessages.EventSource_LIVE, processListEvent.GetStreamSource())
+	if assert.NotNil(t, processListEvent.GetProcessListEvent()) && assert.NotNil(t, processListEvent.GetProcessListEvent().GetNewBlockEvent()) {
+		assert.Equal(t, uint32(2), processListEvent.GetProcessListEvent().GetNewBlockEvent().NewBlockHeight)
+	}
+}
+
+func TestEventInput_ProcessListEventNewMinute(t *testing.T) {
+	processListEvent := ProcessListEventNewMinute(eventmessages.EventSource_LIVE, 2, 3)
+
+	assert.NotNil(t, processListEvent)
+	assert.Equal(t, eventmessages.EventSource_LIVE, processListEvent.GetStreamSource())
+	if assert.NotNil(t, processListEvent.GetProcessListEvent()) && assert.NotNil(t, processListEvent.GetProcessListEvent().GetNewMinuteEvent()) {
+		assert.Equal(t, uint32(2), processListEvent.GetProcessListEvent().GetNewMinuteEvent().NewMinute)
+		assert.Equal(t, uint32(3), processListEvent.GetProcessListEvent().GetNewMinuteEvent().BlockHeight)
 	}
 }
 
