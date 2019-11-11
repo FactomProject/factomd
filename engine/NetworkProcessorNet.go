@@ -5,7 +5,10 @@
 package engine
 
 import (
+	"context"
 	"fmt"
+	"github.com/FactomProject/factomd/modules/bmv"
+	"github.com/FactomProject/factomd/pubsub"
 	"math/rand"
 	"time"
 
@@ -23,11 +26,83 @@ var _ = fmt.Print
 
 func NetworkProcessorNet(w *worker.Thread, fnode *fnode.FactomNode) {
 	Peers(w, fnode)
+	stubs(w, fnode)
+	MsgInputs(w, fnode)
 	w.Run(func() { NetworkOutputs(fnode) })
 	w.Run(func() { InvalidOutputs(fnode) })
 }
 
+// stubs are things we need to implement
+func stubs(parent *worker.Thread, fnode *fnode.FactomNode) {
+	parent.Spawn(func(w *worker.Thread) {
+		w.Init(&parent.Name, "stubs")
+
+		// Run init conditions. Setup publishers
+		pub := pubsub.PubFactory.Base().Publish(fnode.State.GetFactomNodeName() + "/blocktime")
+
+		w.OnReady(func() {
+		})
+
+		w.OnRun(func() {
+		})
+
+		w.OnExit(func() {
+			_ = pub.Close()
+		})
+
+		w.OnComplete(func() {
+		})
+	})
+}
+
+func MsgInputs(parent *worker.Thread, fnode *fnode.FactomNode) {
+	for i := 0; i < 2; i++ { // 2 Basic message validators
+		parent.Spawn(func(w *worker.Thread) {
+			ctx, cancel := context.WithCancel(context.Background())
+			// w.Name is my parent?
+			// Init my name object?
+			w.Init(&parent.Name, "bmv")
+
+			// Run init conditions. Setup publishers
+			msgIn := bmv.NewBasicMessageValidator(fnode.State.GetFactomNodeName())
+
+			w.OnReady(func() {
+				// Subscribe to publishers
+				msgIn.Subscribe()
+			})
+
+			w.OnRun(func() {
+				// TODO: Temporary print all messages out of bmv. We need to actually use them...
+				go func() {
+					sub := pubsub.SubFactory.Channel(100).Subscribe(fnode.State.GetFactomNodeName() + "/bmv/rest")
+					for v := range sub.Channel() {
+						fmt.Println("MESSAGE -> ", v)
+					}
+				}()
+
+				// do work
+				msgIn.Run(ctx)
+				cancel() // If run is over, we can end the ctx
+			})
+
+			w.OnExit(func() {
+				cancel()
+			})
+
+			w.OnComplete(func() {
+				msgIn.ClosePublishing()
+			})
+		})
+	}
+}
+
 func Peers(w *worker.Thread, fnode *fnode.FactomNode) {
+	// TODO: All this logic should be removed. All messages should get filtered and sorted by the basic message
+	// 		validators.
+	// TODO: Construct the proper setup and teardown of this publisher.
+	msgPub := pubsub.PubFactory.MsgSplit(100).Publish(fnode.State.GetFactomNodeName() + "/msgs")
+	go msgPub.Start()
+
 	// FIXME: bind to
 	saltReplayFilterOn := true
 
@@ -185,7 +260,7 @@ func Peers(w *worker.Thread, fnode *fnode.FactomNode) {
 				}
 
 				//fnode.MLog.add2(fnode, false, fnode.State.FactomNodeName, "API", true, msg)
-				sendToExecute(msg, fnode, "from API")
+				sendToExecute(msg, fnode, "from API", msgPub)
 
 			} // for the api queue read up to 100 messages {...}
 
@@ -332,7 +407,7 @@ func Peers(w *worker.Thread, fnode *fnode.FactomNode) {
 
 					msg.SetNetwork(true)
 					if !crossBootIgnore(msg) {
-						sendToExecute(msg, fnode, fromPeer)
+						sendToExecute(msg, fnode, fromPeer, msgPub)
 					}
 				} // For a peer read up to 100 messages {...}
 			} // for each peer {...}
@@ -343,7 +418,10 @@ func Peers(w *worker.Thread, fnode *fnode.FactomNode) {
 	})
 }
 
-func sendToExecute(msg interfaces.IMsg, fnode *fnode.FactomNode, source string) {
+func sendToExecute(msg interfaces.IMsg, fnode *fnode.FactomNode, source string, pub pubsub.IPublisher) {
+	// TODO: Replace all the sorting below with just the pubsub write
+	pub.Write(msg)
+
 	t := msg.Type()
 	switch t {
 	case constants.MISSING_MSG:

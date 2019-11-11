@@ -46,6 +46,8 @@ func (m *PubMultiWrapper) Start() {
 }
 
 func (m *PubMultiWrapper) Publish(path string) IPublisherWrapper {
+	globalReg.useLock.Lock()
+	defer globalReg.useLock.Unlock()
 	// Multi might need to return the existing multi
 	pub := globalReg.FindPublisher(path)
 	if pub == nil {

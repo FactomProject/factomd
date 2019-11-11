@@ -13,13 +13,22 @@ func init() {
 	globalReg = NewRegistry()
 }
 
+func ResetGlobalRegistry() {
+	globalReg = NewRegistry()
+}
+
 func GlobalRegistry() *Registry {
 	return globalReg
 }
 
 type Registry struct {
 	Publishers map[string]IPublisher
-	publock    sync.RWMutex
+	// pubLock guards the map access
+	publock sync.RWMutex
+
+	// useLock guards the registry. Some publishers need
+	// further coordination ontop of just a safe map
+	useLock sync.RWMutex
 
 	// Add indexing
 	// TODO: Should we keep the tree ok.
@@ -47,11 +56,12 @@ func (r *Registry) Register(path string, pub IPublisher) error {
 
 	_, ok := r.Publishers[path]
 	if ok {
-		return fmt.Errorf("publisher already exists at that path")
+		return fmt.Errorf("publisher already exists at that path (%s)", path)
 	}
 
 	pub.setPath(path)
 	r.Publishers[path] = pub
+	r.AddPath(path)
 	return nil
 }
 
@@ -102,6 +112,8 @@ func globalPublishWith(path string, p IPublisher, wrappers ...IPublisherWrapper)
 	// No wrappers
 	err := globalReg.Register(path, p)
 	if err != nil {
+		tree := globalReg.PrintTree()
+		fmt.Printf("Publish Tree\n%s\n", tree)
 		panic(fmt.Sprintf("failed to publish: %s", err.Error()))
 	}
 	return p
@@ -110,6 +122,8 @@ func globalPublishWith(path string, p IPublisher, wrappers ...IPublisherWrapper)
 func globalPublish(path string, p IPublisher) IPublisher {
 	err := globalReg.Register(path, p)
 	if err != nil {
+		tree := globalReg.PrintTree()
+		fmt.Printf("Publish Tree\n%s\n", tree)
 		panic(fmt.Sprintf("failed to publish: %s", err.Error()))
 	}
 	return p

@@ -2,6 +2,8 @@ package bmv
 
 import (
 	"context"
+	"fmt"
+	"github.com/FactomProject/factomd/common/constants"
 	"time"
 
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -13,17 +15,49 @@ type BasicMessageValidator struct {
 	msgs  *pubsub.SubChannel
 	times *pubsub.SubChannel
 
-	pub pubsub.IPublisher
+	// The various publishers for various messages sorted by type
+	groups []msgPub
+
+	// The rest of the messages
+	pubList []pubsub.IPublisher
+	pubs    map[byte]pubsub.IPublisher
+	rest    pubsub.IPublisher
 
 	replay *MsgReplay
+
+	NodeName string
 }
 
-func NewBasicMessageValidator() *BasicMessageValidator {
+type msgPub struct {
+	Name  string
+	Types []byte
+}
+
+func NewBasicMessageValidator(nodeName string) *BasicMessageValidator {
 	b := new(BasicMessageValidator)
+	b.NodeName = nodeName
 	b.msgs = pubsub.SubFactory.Channel(100)  //.Subscribe("path?")
 	b.times = pubsub.SubFactory.Channel(100) //.Subscribe("path?")
 
-	b.pub = pubsub.PubFactory.Threaded(100).Publish("/bmv", pubsub.PubMultiWrap())
+	b.groups = []msgPub{
+		// Each group is a publisher
+		{Name: "missing_messages", Types: []byte{constants.MISSING_MSG}},
+		{Name: "missing_dbstates", Types: []byte{constants.DBSTATE_MISSING_MSG}},
+	}
+
+	// TODO: Remove this next line to keep the multiple publishers
+	b.groups = []msgPub{}
+
+	for _, g := range b.groups {
+		publisher := pubsub.PubFactory.Threaded(100).Publish(
+			fmt.Sprintf(b.NodeName+"/bmv/%s", g.Name), pubsub.PubMultiWrap())
+		for _, t := range g.Types {
+			b.pubs[t] = publisher
+		}
+		b.pubList = append(b.pubList, publisher)
+	}
+
+	b.rest = pubsub.PubFactory.Threaded(100).Publish(b.NodeName+"/bmv/rest", pubsub.PubMultiWrap())
 
 	b.replay = NewMsgReplay(6)
 	return b
@@ -31,12 +65,19 @@ func NewBasicMessageValidator() *BasicMessageValidator {
 
 func (b *BasicMessageValidator) Subscribe() {
 	// TODO: Find actual paths
-	b.msgs = b.msgs.Subscribe("/msgs")
-	b.times = b.times.Subscribe("/blocktime")
+	b.msgs = b.msgs.Subscribe(b.NodeName + "/msgs")
+	b.times = b.times.Subscribe(b.NodeName + "/blocktime")
+}
+
+func (b *BasicMessageValidator) ClosePublishing() {
+	for _, pub := range b.pubList {
+		_ = pub.Close()
+	}
+	_ = b.rest.Close()
 }
 
 func (b *BasicMessageValidator) Run(ctx context.Context) {
-	go b.pub.Start()
+	go b.rest.Start()
 	for {
 		select {
 		case <-ctx.Done():
@@ -61,6 +102,10 @@ func (b *BasicMessageValidator) Run(ctx context.Context) {
 }
 
 func (b *BasicMessageValidator) Write(msg interfaces.IMsg) {
+	if p, ok := b.pubs[msg.Type()]; ok {
+		p.Write(msg)
+		return
+	}
 	// Write to all pubs we are managing
-	b.pub.Write(msg)
+	b.rest.Write(msg)
 }

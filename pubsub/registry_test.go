@@ -6,24 +6,15 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/FactomProject/factomd/pubsub/publishers"
-	. "github.com/FactomProject/factomd/pubsub/pubregistry"
-	"github.com/FactomProject/factomd/pubsub/subscribers"
+	. "github.com/FactomProject/factomd/pubsub"
 )
 
 func TestRegistry_Subscribe(t *testing.T) {
-	r := NewRegistry()
-	p := publishers.NewSimpleMultiPublish(5)
-	err := r.Register("test", p)
-	if err != nil {
-		t.Error(err)
-	}
+	ResetGlobalRegistry()
+	p := PubFactory.Threaded(5).Publish("test")
+	go p.Start()
 
-	s := subscribers.NewChannelBasedSubscriber(5)
-	err = r.SubscribeTo("test", s)
-	if err != nil {
-		t.Error(err)
-	}
+	s := SubFactory.Channel(5).Subscribe("test")
 
 	data := "random-data"
 
@@ -31,34 +22,23 @@ func TestRegistry_Subscribe(t *testing.T) {
 		p.Write(data)
 	}()
 
-	data2 := s.Receive()
-
-	if !reflect.DeepEqual(data, data2) {
-		t.Error("Data published is wrong")
+	for data2 := range s.Channel() {
+		if !reflect.DeepEqual(data, data2) {
+			t.Error("Data published is wrong")
+		}
+		p.Close() // Only 1 read
 	}
 }
 
-func TestRegistry_ThreadedPublisher(t *testing.T) {
-	r := NewRegistry()
-	p := publishers.NewThreadedPublisherPublisher(5)
-	go p.Run()
-	err := r.Register("test", p)
-	if err != nil {
-		t.Error(err)
-	}
+func TestRegistry_BasePublisher(t *testing.T) {
+	ResetGlobalRegistry()
 
-	s := subscribers.NewValueSubscriber()
-	err = r.SubscribeTo("test", s)
-	if err != nil {
-		t.Error(err)
-	}
+	p := PubFactory.Base().Publish("test")
+	s := SubFactory.Value().Subscribe("test")
 
 	data := "random-data"
 
-	go func() {
-		p.Write(data)
-	}()
-
+	p.Write(data)
 	data2 := s.Read()
 
 	if !reflect.DeepEqual(data, data2) {
