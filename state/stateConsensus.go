@@ -132,7 +132,13 @@ func (s *State) Validate(msg interfaces.IMsg) (validToSend int, validToExec int)
 			panic("got 0 time")
 		}
 		msgtime := msg.GetTimestamp().GetTime().UnixNano()
+		/*
+		   10049677 18:18:18.938  217793-:-1 MsgFilter 2019-11-07 17:36:33.000092 -0600 CST
+		   10049678 18:18:18.938  217793-:-1 Leader    2019-11-07 17:59:00.00051 -0600 CST
+		   10049679 18:18:18.938  217793-:-1 Message   2019-11-07 17:27:57.000869 -0600 CST
+		   10049680 18:18:18.938  217793-:-1 drop message, more than an hour in the past M-d81e48|R-d81e48|H-1e5463|0xc0148b6900               Commit Entry[ 6]:CEntry-VM 12: ehash[1e5463] Credits[1] PublicKey[fb314b] Sig[c9f6b9] -- EntryHash[1e5463] Hash[1e5463] base=origin 3.16.5.205:54982 1fd18ff67de34688(1), LChain=000000 resendCnt=0
 
+		*/
 		// Make sure we don't put in an old msg (outside our repeat range)
 		{ // debug
 			if msgtime < filterTime || msgtime > (filterTime+FilterTimeLimit) {
