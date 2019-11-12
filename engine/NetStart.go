@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"github.com/FactomProject/factomd/modules/debugsettings"
 	"os"
 	"sync"
 	"time"
@@ -324,6 +325,9 @@ func makeServer(w *worker.Thread, p *globals.FactomParams) (node *fnode.FactomNo
 		initEntryHeight(node.State, p.Sync2)
 		initAnchors(node.State, p.ReparseAnchorChains)
 		echoConfig(node.State, p) // print the config only once
+		// Init settings
+		// TODO: Init any settings from the config
+		debugsettings.NewNode(node.State.GetFactomNodeName())
 	})
 
 	time.Sleep(10 * time.Millisecond)

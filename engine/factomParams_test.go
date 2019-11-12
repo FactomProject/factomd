@@ -5,5 +5,4 @@ import (
 )
 
 func TestParamHandling(t *testing.T) {
-
 }
