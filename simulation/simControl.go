@@ -16,6 +16,8 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/FactomProject/factomd/pubsub"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/globals"
@@ -700,6 +702,8 @@ func StartSimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 						}
 					}
 
+				case 'Z' == b[0]:
+					fmt.Println(pubsub.GlobalRegistry().PrintTree())
 				case 'm' == b[0]:
 					watchMessages++
 					if watchMessages%2 == 1 {
