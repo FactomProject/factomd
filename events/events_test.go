@@ -2,7 +2,6 @@ package events_test
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -16,6 +15,26 @@ import (
 	"testing"
 	"time"
 )
+
+func TestEmitDBStateEventsFromHeight(t *testing.T) {
+	s := testHelper.CreateAndPopulateTestState()
+
+	mockService := &mockEventService{}
+	s.EventsService = mockService
+
+	s.EmitDBStateEventsFromHeight(0, 9)
+
+	if assert.Equal(t, int32(10), mockService.EventsReceived) {
+		for _, event := range mockService.Events {
+			assert.Equal(t, eventmessages.EventSource_REPLAY_BOOT, event.GetStreamSource())
+
+			if stateChangeEvent, ok := event.(*events.StateChangeMsgEvent); assert.True(t, ok, "event received has wrong type: %s event: %+v", reflect.TypeOf(event), event) {
+				assert.NotNil(t, stateChangeEvent)
+				assert.NotNil(t, stateChangeEvent.GetPayload())
+			}
+		}
+	}
+}
 
 func TestEmitRegistrationEvents(t *testing.T) {
 	testCases := map[string]struct {
@@ -39,17 +58,13 @@ func TestEmitRegistrationEvents(t *testing.T) {
 			testCase.Message.FollowerExecute(s)
 
 			// assertions
-			waitOnReceivedEvents(&mockService.EventsReceived, 1, 1*time.Minute)
-
 			if assert.Equal(t, int32(1), mockService.EventsReceived) {
-				fmt.Println(mockService.Events[0])
-
 				event := mockService.Events[0]
 				assert.Equal(t, eventmessages.EventSource_LIVE, event.GetStreamSource())
 
-				if registrionEvent, ok := event.(*events.RegistrationEvent); assert.True(t, ok, "event received has wrong type: %s event: %+v", reflect.TypeOf(event), event) {
-					assert.NotNil(t, registrionEvent)
-					assert.EqualValues(t, testCase.Message, registrionEvent.GetPayload())
+				if registrationEvent, ok := event.(*events.RegistrationEvent); assert.True(t, ok, "event received has wrong type: %s event: %+v", reflect.TypeOf(event), event) {
+					assert.NotNil(t, registrationEvent)
+					assert.EqualValues(t, testCase.Message, registrationEvent.GetPayload())
 				}
 			}
 		})
