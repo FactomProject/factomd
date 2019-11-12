@@ -7,10 +7,11 @@ package engine
 import (
 	"context"
 	"fmt"
-	"github.com/FactomProject/factomd/modules/bmv"
-	"github.com/FactomProject/factomd/pubsub"
 	"math/rand"
 	"time"
+
+	"github.com/FactomProject/factomd/modules/bmv"
+	"github.com/FactomProject/factomd/pubsub"
 
 	"github.com/FactomProject/factomd/fnode"
 	"github.com/FactomProject/factomd/worker"
@@ -25,11 +26,45 @@ import (
 var _ = fmt.Print
 
 func NetworkProcessorNet(w *worker.Thread, fnode *fnode.FactomNode) {
-	Peers(w, fnode)
+	//Peers(w, fnode)
+	FromPeerToPeer(w, fnode)
 	stubs(w, fnode)
 	BasicMessageValidation(w, fnode)
+	sort(w, fnode) // TODO: Replace this service entirely
 	w.Run(func() { NetworkOutputs(fnode) })
 	w.Run(func() { InvalidOutputs(fnode) })
+}
+
+// TODO: sort should not exist, we should have each module subscribing to the
+//		msgs, rather than this one.
+func sort(parent *worker.Thread, fnode *fnode.FactomNode) {
+	parent.Spawn(func(w *worker.Thread) {
+		w.Init(&parent.Name, "msgSort")
+
+		// Run init conditions. Setup publishers
+		sub := pubsub.SubFactory.Channel(50)
+
+		w.OnReady(func() {
+			sub.Subscribe(pubsub.GetPath(fnode.State.GetFactomNodeName(), "bmv", "rest"))
+		})
+
+		w.OnRun(func() {
+			for v := range sub.Channel() {
+				msg, ok := v.(interfaces.IMsg)
+				if !ok {
+					continue
+				}
+				//fmt.Println("sorted ->", msg)
+				sortMsg(msg, fnode, "pubsub")
+			}
+		})
+
+		w.OnExit(func() {
+		})
+
+		w.OnComplete(func() {
+		})
+	})
 }
 
 // stubs are things we need to implement
@@ -214,7 +249,6 @@ func BasicMessageValidation(parent *worker.Thread, fnode *fnode.FactomNode) {
 			w.Init(&parent.Name, "bmv")
 
 			// Run init conditions. Setup publishers
-			fmt.Println(w.Name)
 			msgIn := bmv.NewBasicMessageValidator(fnode.State.GetFactomNodeName())
 
 			w.OnReady(func() {
@@ -224,12 +258,12 @@ func BasicMessageValidation(parent *worker.Thread, fnode *fnode.FactomNode) {
 
 			w.OnRun(func() {
 				// TODO: Temporary print all messages out of bmv. We need to actually use them...
-				go func() {
-					sub := pubsub.SubFactory.Channel(100).Subscribe(pubsub.GetPath(fnode.State.GetFactomNodeName(), "bmv", "rest"))
-					for v := range sub.Channel() {
-						fmt.Println("MESSAGE -> ", v)
-					}
-				}()
+				//go func() {
+				//	sub := pubsub.SubFactory.Channel(100).Subscribe(pubsub.GetPath(fnode.State.GetFactomNodeName(), "bmv", "rest"))
+				//	for v := range sub.Channel() {
+				//		fmt.Println("MESSAGE -> ", v)
+				//	}
+				//}()
 
 				// do work
 				msgIn.Run(ctx)
@@ -570,10 +604,11 @@ func Peers(w *worker.Thread, fnode *fnode.FactomNode) {
 	})
 }
 
-func sendToExecute(msg interfaces.IMsg, fnode *fnode.FactomNode, source string, pub pubsub.IPublisher) {
-	// TODO: Replace all the sorting below with just the pubsub write
+func sendToExecute(msg interfaces.IMsg, _ *fnode.FactomNode, _ string, pub pubsub.IPublisher) {
 	pub.Write(msg)
+}
 
+func sortMsg(msg interfaces.IMsg, fnode *fnode.FactomNode, source string) {
 	// TODO: These state updates need to be moved to their modules
 	t := msg.Type()
 	switch t {

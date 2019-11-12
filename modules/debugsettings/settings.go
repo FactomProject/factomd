@@ -1,9 +1,10 @@
 package debugsettings
 
 import (
-	"github.com/FactomProject/factomd/pubsub"
 	"regexp"
 	"sync"
+
+	"github.com/FactomProject/factomd/pubsub"
 )
 
 var (
@@ -11,6 +12,10 @@ var (
 	GlobalSettings map[string]*Settings
 	setLock        sync.Mutex
 )
+
+func init() {
+	GlobalSettings = make(map[string]*Settings)
+}
 
 // Settings are all the various settings accessible by pub/sub
 // All settings are a Mutli Publisher, so they are always accessible.

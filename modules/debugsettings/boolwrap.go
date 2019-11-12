@@ -11,8 +11,9 @@ type Subscribe_ByValue_Bool_type struct {
 
 // type the Read function
 func (s *Subscribe_ByValue_Bool_type) Read() bool {
-	s.UnsafeSubValue.Read()
-	return s.UnsafeSubValue.Read().(bool) // cast the return to the specific type
+	v := s.UnsafeSubValue.Read()
+	b, _ := v.(bool) // A nil will return false. Which is the default value
+	return b         // cast the return to the specific type
 }
 
 // Create a typed instance form a generic instance
