@@ -430,7 +430,7 @@ func TestAdminBlockHash(t *testing.T) {
 }
 
 func TestAdminBlockSetHeader(t *testing.T) {
-	block := createTestAdminBlock()
+	block := CreateTestAdminBlock()
 	h := createTestAdminHeader()
 	block.SetHeader(h)
 	if !h.IsSameAs(block.GetHeader()) {
@@ -441,7 +441,7 @@ func TestAdminBlockSetHeader(t *testing.T) {
 func TestAdminBlockMarshalUnmarshal(t *testing.T) {
 	blocks := []interfaces.IAdminBlock{
 		createSmallTestAdminBlock(),
-		createTestAdminBlock(),
+		CreateTestAdminBlock(),
 	}
 
 	for b, block := range blocks {
@@ -500,7 +500,7 @@ func TestAdminBlockMarshalUnmarshal(t *testing.T) {
 }
 
 func TestUnmarshalBadAblock(t *testing.T) {
-	block := createTestAdminBlock()
+	block := CreateTestAdminBlock()
 
 	p, err := block.MarshalBinary()
 	if err != nil {
@@ -697,7 +697,7 @@ func TestInvalidAdminBlockUnmarshal(t *testing.T) {
 		defer CatchPanic()
 	}
 
-	block2 := createTestAdminBlock()
+	block2 := CreateTestAdminBlock()
 
 	binary, err := block2.MarshalBinary()
 	if err != nil {
@@ -717,7 +717,7 @@ func TestInvalidAdminBlockUnmarshal(t *testing.T) {
 }
 
 func TestExpandedABlockHeader(t *testing.T) {
-	block := createTestAdminBlock()
+	block := CreateTestAdminBlock()
 	j, err := block.JSONString()
 	if err != nil {
 		t.Error(err)
@@ -732,7 +732,7 @@ func TestExpandedABlockHeader(t *testing.T) {
 }
 
 func TestAddServerFault(t *testing.T) {
-	block := createTestAdminBlock().(*AdminBlock)
+	block := CreateTestAdminBlock().(*AdminBlock)
 
 	for i := 0; i < 5; i++ {
 		block.ABEntries = append(block.ABEntries, new(AddFederatedServer))
@@ -821,7 +821,7 @@ func TestAddServerFault(t *testing.T) {
 	}
 }
 
-func createTestAdminBlock() (block interfaces.IAdminBlock) {
+func CreateTestAdminBlock() (block interfaces.IAdminBlock) {
 	block = new(AdminBlock)
 	block.(*AdminBlock).Init()
 	block.SetHeader(createTestAdminHeader())
