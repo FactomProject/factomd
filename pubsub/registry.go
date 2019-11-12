@@ -52,6 +52,8 @@ func (r *Registry) FindPublisher(path string) IPublisher {
 }
 
 func (r *Registry) Register(path string, pub IPublisher) error {
+	// TODO: Create a logger for the publisher file
+
 	r.publock.Lock()
 	defer r.publock.Unlock()
 
@@ -87,6 +89,7 @@ func (r *Registry) SubscribeTo(path string, sub IPubSubscriber) error {
 	sub.setUnsubscribe(func() {
 		pub.Unsubscribe(sub)
 	})
+	sub.setPublisher(pub)
 
 	return nil
 }
