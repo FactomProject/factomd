@@ -35,3 +35,30 @@ func (s *SubValue) Subscribe(path string, wrappers ...ISubscriberWrapper) *SubVa
 	globalSubscribeWith(path, s, wrappers...)
 	return s
 }
+
+// UnsafeSubValue handles a single value of the last write.
+type UnsafeSubValue struct {
+	SubBase
+	value interface{}
+}
+
+func NewUnsafeSubValue() *UnsafeSubValue {
+	s := new(UnsafeSubValue)
+
+	return s
+}
+
+// Pub Side
+
+func (s *UnsafeSubValue) write(o interface{}) {
+	s.value = o
+}
+
+func (s *UnsafeSubValue) Read() interface{} {
+	return s.value
+}
+
+func (s *UnsafeSubValue) Subscribe(path string, wrappers ...ISubscriberWrapper) *UnsafeSubValue {
+	globalSubscribeWith(path, s, wrappers...)
+	return s
+}

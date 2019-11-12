@@ -1,12 +1,8 @@
 package testHelper
 
 import (
-	"bytes"
-	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -14,23 +10,29 @@ import (
 	"testing"
 	"time"
 
-	"github.com/FactomProject/factomd/fnode"
-	"github.com/FactomProject/factomd/registry"
-	"github.com/FactomProject/factomd/worker"
-
-	"github.com/FactomProject/factomd/elections"
+	"github.com/FactomProject/factomd/engine"
+	"github.com/FactomProject/factomd/simulation"
 
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/engine"
+	"github.com/FactomProject/factomd/elections"
+	"github.com/FactomProject/factomd/fnode"
+	"github.com/FactomProject/factomd/registry"
 	"github.com/FactomProject/factomd/state"
+	"github.com/FactomProject/factomd/worker"
 	"github.com/stretchr/testify/assert"
 )
 
 var par = globals.FactomParams{}
-
 var quit = make(chan struct{})
+
+// expose simulation functions
+var GetFocus = simulation.GetFocus
+var PrintOneStatus = simulation.PrintOneStatus
+var FundWallet = simulation.FundWallet
+var RandomFctAddressPair = simulation.RandomFctAddressPair
+var SendTxn = simulation.SendTxn
+var GetBalance = simulation.GetBalance
 
 // SetupSim takes care of your options, and setting up nodes
 // pass in a string for nodes: 4 Leaders, 3 Audit, 4 Followers: "LLLLAAAFFFF" as the first argument
@@ -308,7 +310,7 @@ func createAuthoritySet(creatingNodes string, state0 *state.State, t *testing.T)
 func WaitForAllNodes(state *state.State) {
 	height := ""
 	simFnodes := fnode.GetFnodes()
-	engine.PrintOneStatus(0, 0) // Print a status
+	simulation.PrintOneStatus(0, 0) // Print a status
 	fmt.Printf("Wait for all nodes done\n%s", height)
 	block := state.LLeaderHeight
 	minute := state.CurrentMinute
@@ -360,7 +362,7 @@ func StatusEveryMinute(s *state.State) {
 						n.State.SetString()
 					}
 
-					engine.PrintOneStatus(0, 0)
+					simulation.PrintOneStatus(0, 0)
 				} else {
 					return
 				}
@@ -515,16 +517,16 @@ func CheckAuthoritySet(t *testing.T) {
 	leadercnt, auditcnt, followercnt := CountAuthoritySet()
 
 	if leadercnt != Leaders {
-		engine.PrintOneStatus(0, 0)
+		simulation.PrintOneStatus(0, 0)
 		t.Fatalf("found %d leaders, expected %d", leadercnt, Leaders)
 	}
 	if auditcnt != Audits {
-		engine.PrintOneStatus(0, 0)
+		simulation.PrintOneStatus(0, 0)
 		t.Fatalf("found %d audit servers, expected %d", auditcnt, Audits)
 		t.Fail()
 	}
 	if followercnt != Followers {
-		engine.PrintOneStatus(0, 0)
+		simulation.PrintOneStatus(0, 0)
 		t.Fatalf("found %d followers, expected %d", followercnt, Followers)
 		t.Fail()
 	}
@@ -560,35 +562,8 @@ func ShutDownEverything(t *testing.T) {
 		t.Fatal("Failed to shut down factomd via ShutdownChan")
 	}
 
-	engine.PrintOneStatus(0, 0) // Print a final status
+	simulation.PrintOneStatus(0, 0) // Print a final status
 	fmt.Printf("Test took %d blocks and %s time\n", fnode.GetFnodes()[0].State.LLeaderHeight, time.Now().Sub(startTime))
-}
-
-func v2Request(req *primitives.JSON2Request, port int) (*primitives.JSON2Response, error) {
-	j, err := json.Marshal(req)
-	if err != nil {
-		return nil, err
-	}
-
-	portStr := fmt.Sprintf("%d", port)
-	resp, err := http.Post(
-		"http://localhost:"+portStr+"/v2",
-		"application/json",
-		bytes.NewBuffer(j))
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	r := primitives.NewJSON2Response()
-	if err := json.Unmarshal(body, r); err != nil {
-		return nil, err
-	}
-	return nil, nil
 }
 
 // use a test specific dir for simTest

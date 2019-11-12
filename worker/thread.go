@@ -55,6 +55,7 @@ type Thread struct {
 	ID          int            // thread id
 	ParentID    int            // parent thread
 	Caller      string         // runtime location where thread starts
+	onReady     func()         // execute just after init - this is where subscriptions should happen
 	onRun       func()         // execute during 'run' state
 	onComplete  func()         // execute after all run functions complete
 	onExit      func()         // executes during SIGINT or after shutdown of run state
@@ -65,7 +66,8 @@ type callback int
 
 // list of all thread callbacks
 const (
-	RUN = iota + 1
+	READY = iota + 1
+	RUN
 	COMPLETE
 	EXIT
 )
@@ -115,6 +117,10 @@ func (r *Thread) Fork(initFunction Handle) {
 // Invoke specific callbacks synchronously
 func (r *Thread) Call(c callback) {
 	switch c {
+	case READY:
+		if r.onReady != nil {
+			r.onReady()
+		}
 	case RUN:
 		if r.onRun != nil {
 			r.onRun()
@@ -132,20 +138,36 @@ func (r *Thread) Call(c callback) {
 	}
 }
 
+func assertNotBound(f func()) {
+	if f != nil {
+		panic("already bound")
+	}
+}
+
+// Add Ready Callback to add subscribers
+func (r *Thread) OnReady(f func()) *Thread {
+	assertNotBound(r.onReady)
+	r.onReady = f
+	return r
+}
+
 // Add Run Callback
 func (r *Thread) OnRun(f func()) *Thread {
+	assertNotBound(r.onRun)
 	r.onRun = f
 	return r
 }
 
 // Add Complete Callback
 func (r *Thread) OnComplete(f func()) *Thread {
+	assertNotBound(r.onComplete)
 	r.onComplete = f
 	return r
 }
 
 // Add Exit Callback
 func (r *Thread) OnExit(f func()) *Thread {
+	assertNotBound(r.onExit)
 	r.onExit = f
 	return r
 }

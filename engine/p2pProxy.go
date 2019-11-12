@@ -7,11 +7,12 @@ package engine
 import (
 	"bytes"
 	"fmt"
+	"os"
+	"time"
+
 	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/fnode"
 	"github.com/FactomProject/factomd/worker"
-	"os"
-	"time"
 
 	// "github.com/FactomProject/factomd/common/constants"
 
@@ -203,7 +204,7 @@ func (p *P2PProxy) Len() int {
 
 func (p *P2PProxy) networkHousekeeping(w *worker.Thread) {
 	w.Init(p, "networkHousekeeping")
-	w.OnRun(func(){
+	w.OnRun(func() {
 		for {
 			time.Sleep(1 * time.Second)
 			p2pProxy.SetWeight(p2pNetwork.GetNumberOfConnections())
@@ -231,7 +232,7 @@ func (p *P2PProxy) StopProxy() {
 // manageOutChannel takes messages from the f.broadcastOut channel and sends them to the network.
 func (p *P2PProxy) ManageOutChannel(w *worker.Thread) {
 	w.Init(p, "ManageOutChannel")
-	w.OnRun(func(){
+	w.OnRun(func() {
 		for data := range p.BroadcastOut {
 			switch data.(type) {
 			case FactomMessage:
@@ -257,7 +258,7 @@ func (p *P2PProxy) ManageOutChannel(w *worker.Thread) {
 // manageInChannel takes messages from the network and stuffs it in the f.BroadcastIn channel
 func (p *P2PProxy) ManageInChannel(w *worker.Thread) {
 	w.Init(p, "ManageInChannel")
-	w.OnRun(func(){
+	w.OnRun(func() {
 		for data := range p.FromNetwork {
 			switch data.(type) {
 			case p2p.Parcel:

@@ -15,6 +15,11 @@ func subThreadFactory(t *testing.T, name string) worker.Handle {
 	return func(w *worker.Thread) {
 		t.Logf("initializing %s", name)
 
+		w.OnReady(func() {
+			// add a thread with no initialization behavior
+			t.Logf("Ready %v %s", w.ID, fmt.Sprintf("%s/%s", name, "qux"))
+		})
+
 		w.Run(func() {
 			// add a thread with no initialization behavior
 			t.Logf("running %v %s", w.ID, fmt.Sprintf("%s/%s", name, "qux"))
@@ -45,6 +50,10 @@ func threadFactory(t *testing.T, name string) worker.Handle {
 		// add sub-process - entire thread lifecycle lives inside the 'running' lifecycle of parent thread
 		subProc := fmt.Sprintf("%v/%v", name, "subproc")
 		w.Fork(subThreadFactory(t, subProc))
+
+		w.OnReady(func() {
+			t.Logf("Ready %v %s", w.ID, name)
+		})
 
 		w.OnRun(func() {
 			t.Logf("running %v %s", w.ID, name)

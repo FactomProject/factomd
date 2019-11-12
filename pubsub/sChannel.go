@@ -8,6 +8,7 @@ type SubChannel struct {
 	SubBase
 	Updates chan interface{}
 
+	bestEffort bool
 	sync.RWMutex
 }
 
@@ -18,8 +19,21 @@ func NewSubChannel(buffer int) *SubChannel {
 	return s
 }
 
+func NewBestEffortSubChannel(buffer int) *SubChannel {
+	s := NewSubChannel(buffer)
+	s.bestEffort = true
+	return s
+}
+
 func (s *SubChannel) write(o interface{}) {
-	s.Updates <- o
+	if s.bestEffort {
+		select {
+		case s.Updates <- o:
+		default:
+		}
+	} else {
+		s.Updates <- o
+	}
 }
 
 func (s *SubChannel) done() {

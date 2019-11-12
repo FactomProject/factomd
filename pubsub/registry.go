@@ -2,6 +2,7 @@ package pubsub
 
 import (
 	"fmt"
+	"path/filepath"
 	"sync"
 
 	"github.com/DiSiqueira/GoTree"
@@ -13,13 +14,22 @@ func init() {
 	globalReg = NewRegistry()
 }
 
+func ResetGlobalRegistry() {
+	globalReg = NewRegistry()
+}
+
 func GlobalRegistry() *Registry {
 	return globalReg
 }
 
 type Registry struct {
 	Publishers map[string]IPublisher
-	publock    sync.RWMutex
+	// pubLock guards the map access
+	publock sync.RWMutex
+
+	// useLock guards the registry. Some publishers need
+	// further coordination ontop of just a safe map
+	useLock sync.RWMutex
 
 	// Add indexing
 	// TODO: Should we keep the tree ok.
@@ -42,16 +52,19 @@ func (r *Registry) FindPublisher(path string) IPublisher {
 }
 
 func (r *Registry) Register(path string, pub IPublisher) error {
+	// TODO: Create a logger for the publisher file
+
 	r.publock.Lock()
 	defer r.publock.Unlock()
 
 	_, ok := r.Publishers[path]
 	if ok {
-		return fmt.Errorf("publisher already exists at that path")
+		return fmt.Errorf("publisher already exists at that path (%s)", path)
 	}
 
 	pub.setPath(path)
 	r.Publishers[path] = pub
+	r.AddPath(path)
 	return nil
 }
 
@@ -76,6 +89,7 @@ func (r *Registry) SubscribeTo(path string, sub IPubSubscriber) error {
 	sub.setUnsubscribe(func() {
 		pub.Unsubscribe(sub)
 	})
+	sub.setPublisher(pub)
 
 	return nil
 }
@@ -102,6 +116,8 @@ func globalPublishWith(path string, p IPublisher, wrappers ...IPublisherWrapper)
 	// No wrappers
 	err := globalReg.Register(path, p)
 	if err != nil {
+		tree := globalReg.PrintTree()
+		fmt.Printf("Publish Tree\n%s\n", tree)
 		panic(fmt.Sprintf("failed to publish: %s", err.Error()))
 	}
 	return p
@@ -110,6 +126,8 @@ func globalPublishWith(path string, p IPublisher, wrappers ...IPublisherWrapper)
 func globalPublish(path string, p IPublisher) IPublisher {
 	err := globalReg.Register(path, p)
 	if err != nil {
+		tree := globalReg.PrintTree()
+		fmt.Printf("Publish Tree\n%s\n", tree)
 		panic(fmt.Sprintf("failed to publish: %s", err.Error()))
 	}
 	return p
@@ -121,4 +139,8 @@ func globalSubscribe(path string, sub IPubSubscriber) IPubSubscriber {
 		panic(fmt.Sprintf("failed to subscribe: %s", err.Error()))
 	}
 	return sub
+}
+
+func GetPath(dirs ...string) string {
+	return filepath.Join(dirs...)
 }

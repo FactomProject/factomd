@@ -7,7 +7,6 @@ import (
 
 	"github.com/FactomProject/factomd/fnode"
 
-	. "github.com/FactomProject/factomd/engine"
 	. "github.com/FactomProject/factomd/testHelper"
 	"github.com/stretchr/testify/assert"
 )

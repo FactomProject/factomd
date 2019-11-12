@@ -3,7 +3,16 @@ package pubsub
 // SubBase implements some primitive subscriber behavior that is likely to
 // be used by all subscribers.
 type SubBase struct {
+	pub   IReadOnlyPublisher
 	unsub func()
+}
+
+func (b *SubBase) Publisher() IReadOnlyPublisher {
+	return b.pub
+}
+
+func (b *SubBase) setPublisher(pub IReadOnlyPublisher) {
+	b.pub = pub
 }
 
 func (b *SubBase) setUnsubscribe(unsub func()) {
