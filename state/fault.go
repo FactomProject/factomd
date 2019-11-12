@@ -21,7 +21,7 @@ var faultLogger = packageLogger.WithFields(log.Fields{"subpack": "fault"})
 
 type FaultCore struct {
 	// The following 5 fields represent the "Core" of the message
-	// This should match the Core of FullServerFault inMessages
+	// This should match the Core of FullServerFault messages
 	ServerID      interfaces.IHash
 	AuditServerID interfaces.IHash
 	VMIndex       byte
