@@ -12,8 +12,8 @@ type SubWrapCallback struct {
 	AfterWrite  func(o interface{})
 }
 
-// NewCallback
-func NewCallback(before func(o interface{}) error, after func(o interface{})) *SubWrapCallback {
+// SubCallbackWrap
+func SubCallbackWrap(before func(o interface{}) error, after func(o interface{})) *SubWrapCallback {
 	s := new(SubWrapCallback)
 
 	if before == nil {

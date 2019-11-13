@@ -30,8 +30,4 @@ var (
 		"factomd_state_total_send_time",
 		"Time spent sending (nanoseconds)",
 	)
-	TotalReceiveTime = telemetry.NewGauge(
-		"factomd_state_total_receive_time",
-		"Time spent receiving (nanoseconds)",
-	)
 )

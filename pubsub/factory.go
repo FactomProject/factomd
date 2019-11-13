@@ -4,9 +4,11 @@ var SubFactory subFactory
 
 type subFactory struct{}
 
-func (subFactory) Channel(buffer int) *SubChannel { return NewSubChannel(buffer) }
-func (subFactory) Value() *SubValue               { return NewSubValue() }
-func (subFactory) Counter() *SubCounter           { return NewSubCounter() }
+func (subFactory) BEChannel(buffer int) *SubChannel { return NewBestEffortSubChannel(buffer) }
+func (subFactory) Channel(buffer int) *SubChannel   { return NewSubChannel(buffer) }
+func (subFactory) Value() *SubValue                 { return NewSubValue() }
+func (subFactory) UnsafeValue() *UnsafeSubValue     { return NewUnsafeSubValue() }
+func (subFactory) Counter() *SubCounter             { return NewSubCounter() }
 
 var PubFactory pubFactory
 

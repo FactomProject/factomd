@@ -1,82 +1,59 @@
 package registry_test
 
 import (
+	"context"
 	"fmt"
-	"testing"
-
 	"github.com/FactomProject/factomd/registry"
 	"github.com/FactomProject/factomd/worker"
-	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 // add a sub thread that uses all callbacks
 // and also spawn's a child that uses only 'Run' callback
-func subThreadFactory(t *testing.T, name string) worker.Handle {
-	return func(w *worker.Thread) {
-		t.Logf("initializing %s", name)
-
-		w.OnReady(func() {
-			// add a thread with no initialization behavior
-			t.Logf("Ready %v %s", w.ID, fmt.Sprintf("%s/%s", name, "qux"))
-		})
-
-		w.Run(func() {
-			// add a thread with no initialization behavior
-			t.Logf("running %v %s", w.ID, fmt.Sprintf("%s/%s", name, "qux"))
-		})
-
-		w.OnRun(func() {
-			t.Logf("running %v %s", w.ID, name)
-			//time.Sleep(50*time.Millisecond)
-		}).OnComplete(func() {
-			t.Logf("complete %v %s", w.ID, name)
-			//time.Sleep(50*time.Millisecond)
-		}).OnExit(func() {
-			t.Logf("exit %v %s", w.ID, name)
-			//time.Sleep(50*time.Millisecond)
-		})
-	}
-}
-
-// spawn threads that in turn spawn children during initialization
 func threadFactory(t *testing.T, name string) worker.Handle {
 	return func(w *worker.Thread) {
 		t.Logf("initializing %s", name)
+		ctx, cancel := context.WithCancel(context.Background())
 
-		// add sub-thread
-		sub := fmt.Sprintf("%v/%v", name, "sub")
-		w.Spawn(subThreadFactory(t, sub))
-
-		// add sub-process - entire thread lifecycle lives inside the 'running' lifecycle of parent thread
-		subProc := fmt.Sprintf("%v/%v", name, "subproc")
-		w.Fork(subThreadFactory(t, subProc))
-
-		w.OnReady(func() {
-			t.Logf("Ready %v %s", w.ID, name)
+		// Launch another sub-thread
+		w.Run(func() {
+			name := fmt.Sprintf("%s/%s", name, "bar")
+			// this thread that only uses OnRun group
+			t.Logf("running %v %s", w.ID, name)
+			select {
+			case <- ctx.Done():
+				t.Logf("context.Done() %v %s", w.ID, name)
+			}
 		})
 
-		w.OnRun(func() {
+		// bind functions to thread lifecycle
+		w.OnReady(func() {
+			t.Logf("Ready %v %s", w.ID, name)
+		}).OnRun(func() {
 			t.Logf("running %v %s", w.ID, name)
-			//time.Sleep(50*time.Millisecond)
-			assert.Panics(t, func() {
-				subSub := fmt.Sprintf("%v/%v", name, "sub")
-				w.Spawn(subThreadFactory(t, subSub))
-			}, "should fail when trying to spawn outside of init phase")
-		}).OnComplete(func() {
-			t.Logf("complete %v %s", w.ID, name)
-			//time.Sleep(50*time.Millisecond)
+			select {
+			case <- ctx.Done():
+				t.Logf("context.Done() %v %s", w.ID, name)
+			}
 		}).OnExit(func() {
 			t.Logf("exit %v %s", w.ID, name)
+			cancel()
+		}).OnComplete(func() {
+			t.Logf("complete %v %s", w.ID, name)
 			//time.Sleep(50*time.Millisecond)
 		})
 	}
 }
 
 func TestRegisterThread(t *testing.T) {
-	// create a process with 3 root nodes
+	// create a process with 1 root process
 	p := registry.New()
 	p.Register(threadFactory(t, "foo"))
-	p.Register(threadFactory(t, "bar"))
-	p.Run()
+	go func(){
+		p.WaitForRunning()
+		go p.Exit() // normally invoked via SIGINT
+	}()
+	go p.Run()
+	p.WaitForExit()
 	t.Log(registry.Graph())
 }

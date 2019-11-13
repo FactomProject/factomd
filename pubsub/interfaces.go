@@ -1,12 +1,13 @@
 package pubsub
 
+import (
+	"github.com/FactomProject/factomd/common/interfaces"
+)
+
 // IPublisher is a routine that handles all publishes for a given publisher.
 type IPublisher interface {
+	IReadOnlyPublisher
 	Start()
-
-	// NumberOfSubscribers is a method mainly used for debugging to
-	// keep track of the size of a publisher.
-	NumberOfSubscribers() int
 
 	// Publish will publish the event to all subscribers
 	Write(o interface{})
@@ -18,10 +19,21 @@ type IPublisher interface {
 	Subscribe(subscriber IPubSubscriber) bool
 	Unsubscribe(subscriber IPubSubscriber) bool
 
+	// Allow setting of the logger
+	SetLogger(log interfaces.Log)
+
 	// Informational Methods
 	// only called by the registry
 	setPath(path string)
+}
+
+type IReadOnlyPublisher interface {
+	// NumberOfSubscribers is a method mainly used for debugging to
+	// keep track of the size of a publisher.
+	NumberOfSubscribers() int
+
 	Path() string
+	Logger() interfaces.Log
 }
 
 // TODO: Should we have some Quality of Service common params?
@@ -29,8 +41,13 @@ type IPublisher interface {
 //		Data ownership (allow/disallow modification?)
 
 type IPubSubscriber interface {
+	// Publisher allows some access to the publisher for logging/debugging
+	Publisher() IReadOnlyPublisher
+
 	// setUnsubscribe is only called by a publisher
 	setUnsubscribe(unsub func())
+	// setPublisher is only called by a publisher
+	setPublisher(pub IReadOnlyPublisher)
 
 	// write is only called by a publisher
 	write(o interface{})

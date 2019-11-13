@@ -5,6 +5,8 @@ import "sync"
 // PubMultiWrapper is a very basic idea of keeping track of multiple
 // writers. The close functionality only happens if ALL writers close
 // the publish.
+//
+// The multi overwrites the Start, Close, and Publish behavior.
 type PubMultiWrapper struct {
 	IPublisher
 	PubWrapBase
@@ -44,6 +46,8 @@ func (m *PubMultiWrapper) Start() {
 }
 
 func (m *PubMultiWrapper) Publish(path string) IPublisherWrapper {
+	globalReg.useLock.Lock()
+	defer globalReg.useLock.Unlock()
 	// Multi might need to return the existing multi
 	pub := globalReg.FindPublisher(path)
 	if pub == nil {
