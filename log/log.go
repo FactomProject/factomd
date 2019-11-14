@@ -78,19 +78,19 @@ func SplitUpDebugLogRegEx(DebugLogRegEx string) (string, string) {
 }
 
 // assumes traceMutex is locked already
-func getTraceFile(name string) (f *os.File) {
+func getTraceFile(filename string) (f *os.File) {
 	checkForChangesInDebugRegex()
 	//traceMutex.Lock()	defer traceMutex.Unlock()
-	name = globals.Params.DebugLogLocation + strings.ToLower(name)
-	if !checkFileName(name) {
+	filename = globals.Params.DebugLogLocation + strings.ToLower(filename)
+	if !checkFileName(filename) {
 		return nil
 	}
 	if files == nil {
 		files = make(map[string]*os.File)
 	}
-	f, _ = files[name]
+	f, _ = files[filename]
 	if f != nil {
-		_, err := os.Stat(name)
+		_, err := os.Stat(filename)
 		if os.IsNotExist(err) {
 			// The file was deleted out from under us
 			f.Close() // close the old log
@@ -98,13 +98,13 @@ func getTraceFile(name string) (f *os.File) {
 		}
 	}
 	if f == nil {
-		fmt.Println("Creating " + (name))
+		fmt.Println("Creating " + (filename))
 		var err error
-		f, err = os.Create(name)
+		f, err = os.Create(filename)
 		if err != nil {
 			panic(err)
 		}
-		files[name] = f
+		files[filename] = f
 		f.WriteString(time.Now().String() + "\n")
 	}
 	return f
