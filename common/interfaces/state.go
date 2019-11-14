@@ -6,6 +6,7 @@ package interfaces
 
 import (
 	"regexp"
+	"time"
 
 	"github.com/FactomProject/factomd/activations"
 	"github.com/FactomProject/factomd/common/constants/runstate"
@@ -370,4 +371,5 @@ type IState interface {
 	GetInputRegEx() (*regexp.Regexp, string)
 	GotHeartbeat(heartbeatTS Timestamp, dbheight uint32)
 	GetDBFinished() bool
+	FactomSecond() time.Duration
 }
