@@ -57,8 +57,6 @@ func (l *HoldingList) Run(w *worker.Thread) {
 	l.heights = generated.Subscribe_ByChannel_DBHT(pubsub.SubFactory.Channel(10).Subscribe(w.GetParentName() + "/heights"))
 	l.metDependencyHashs = generated.Subscribe_ByChannel_Hash(pubsub.SubFactory.Channel(10).Subscribe(w.GetParentName() + "/dependencyHashs"))
 
-	w.Log.StateLogMessage()
-
 }
 
 // access gauge w/ proper labels
