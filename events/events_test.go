@@ -1,11 +1,14 @@
 package events_test
 
 import (
+	"bytes"
+	"encoding/binary"
 	"encoding/json"
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/events"
 	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 	"github.com/FactomProject/factomd/testHelper"
@@ -15,6 +18,40 @@ import (
 	"testing"
 	"time"
 )
+
+func TestEmitStateChangeEventAccepted(t *testing.T) {
+	mockService := &mockEventService{}
+
+	s := testHelper.CreateAndPopulateTestState()
+	s.SetLeaderTimestamp(primitives.NewTimestampNow())
+	s.EventsService = mockService
+
+	msg := &messages.CommitChainMsg{CommitChain: entryCreditBlock.NewCommitChain()}
+	msg.CommitChain.MilliTime = createByteSlice6Timestamp(-2 * 1e3)
+
+	ack := new(messages.Ack)
+	ack.Timestamp = msg.GetTimestamp()
+	ack.LeaderChainID = msg.GetLeaderChainID()
+	ack.MessageHash = msg.GetMsgHash()
+	ack.SerialHash = primitives.RandomHash() //primitives.NewHash([]byte("serial"))
+	ack.Timestamp.SetTimeNow()
+
+	for _, processList := range s.ProcessLists.Lists {
+		processList.AddToProcessList(s, ack, msg)
+	}
+
+	// assertions
+	if assert.Equal(t, int32(1), mockService.EventsReceived) {
+		event := mockService.Events[0]
+		assert.Equal(t, eventmessages.EventSource_REPLAY_BOOT, event.GetStreamSource())
+
+		if stateChangeEvent, ok := event.(*events.StateChangeMsgEvent); assert.True(t, ok, "event received has wrong type: %s event: %+v", reflect.TypeOf(event), event) {
+			assert.NotNil(t, stateChangeEvent)
+			assert.Equal(t, eventmessages.EntityState_ACCEPTED, stateChangeEvent.GetEntityState())
+			assert.NotNil(t, stateChangeEvent.GetPayload())
+		}
+	}
+}
 
 func TestEmitDBStateEventsFromHeight(t *testing.T) {
 	s := testHelper.CreateAndPopulateTestState()
@@ -30,6 +67,7 @@ func TestEmitDBStateEventsFromHeight(t *testing.T) {
 
 			if stateChangeEvent, ok := event.(*events.StateChangeMsgEvent); assert.True(t, ok, "event received has wrong type: %s event: %+v", reflect.TypeOf(event), event) {
 				assert.NotNil(t, stateChangeEvent)
+				assert.Equal(t, eventmessages.EntityState_COMMITTED_TO_DIRECTORY_BLOCK, stateChangeEvent.GetEntityState())
 				assert.NotNil(t, stateChangeEvent.GetPayload())
 			}
 		}
@@ -71,13 +109,6 @@ func TestEmitRegistrationEvents(t *testing.T) {
 	}
 }
 
-func waitOnReceivedEvents(eventsReceived *int32, maxEvents int, duration time.Duration) {
-	deadline := time.Now().Add(duration)
-	for int(atomic.LoadInt32(eventsReceived)) != maxEvents && time.Now().Before(deadline) {
-		time.Sleep(100 * time.Millisecond)
-	}
-}
-
 type mockEventService struct {
 	t              *testing.T
 	Events         []events.EventInput
@@ -107,4 +138,16 @@ func (m *mockEventService) Send(event events.EventInput) error {
 		m.t.Logf("incomming event: " + string(data))
 	}
 	return err
+}
+
+func createByteSlice6Timestamp(offset int64) *primitives.ByteSlice6 {
+	buf := new(bytes.Buffer)
+	t := time.Now().UnixNano()
+	m := t/1e6 + offset
+	binary.Write(buf, binary.BigEndian, m)
+
+	var b6 primitives.ByteSlice6
+	copy(b6[:], buf.Bytes()[2:])
+
+	return &b6
 }
