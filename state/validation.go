@@ -6,6 +6,8 @@ package state
 
 import (
 	"fmt"
+	"github.com/FactomProject/factomd/events"
+	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -20,6 +22,11 @@ var ValidationDebug bool = false
 // This is the tread with access to state. It does process and update state
 func (s *State) DoProcessing() {
 	s.validatorLoopThreadID = atomic.Goid()
+
+	if s.EventsService != nil {
+		event := events.NodeInfoMessageF(eventmessages.NodeMessageCode_STARTED, "Node %s startup complete", s.GetFactomNodeName())
+		s.EventsService.Send(event)
+	}
 	s.RunState = runstate.Running
 
 	slp := false
@@ -71,7 +78,12 @@ func (s *State) DoProcessing() {
 func (s *State) ValidatorLoop() {
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Println("A panic state occurred in ValidatorLoop.", r)
+			if s.EventsService != nil {
+				event := events.NodeErrorMessage(eventmessages.NodeMessageCode_GENERAL,
+					"A panic state occurred in ValidatorLoop.", r)
+				s.EventsService.Send(event)
+			}
+
 			shutdown(s)
 		}
 	}()
@@ -162,6 +174,12 @@ func shouldShutdown(state *State) bool {
 }
 
 func shutdown(state *State) {
+	if state.EventsService != nil {
+		event := events.NodeInfoMessageF(eventmessages.NodeMessageCode_SHUTDOWN,
+			"Node %s is shutting down", state.GetFactomNodeName())
+		state.EventsService.Send(event)
+	}
+
 	state.RunState = runstate.Stopping
 	fmt.Println("Closing the Database on", state.GetFactomNodeName())
 	state.StateSaverStruct.StopSaving()

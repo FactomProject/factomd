@@ -7,6 +7,7 @@ package state
 import (
 	"bytes"
 	"fmt"
+	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 	"os"
 	"strings"
 	"sync"
@@ -1135,6 +1136,8 @@ func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces
 
 	// also add the msg and ack to our missing msg request handler
 	s.MissingMessageResponseHandler.NotifyNewMsgPair(ack, m)
+
+	EmitStateChangeEvent(m, eventmessages.EntityState_ACCEPTED, s)
 }
 
 func (p *ProcessList) ContainsDBSig(serverID interfaces.IHash) bool {

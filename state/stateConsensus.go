@@ -7,6 +7,8 @@ package state
 import (
 	"errors"
 	"fmt"
+	"github.com/FactomProject/factomd/events"
+	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 	"hash"
 	"os"
 	"reflect"
@@ -76,6 +78,7 @@ func (s *State) AddToHolding(hash [32]byte, msg interfaces.IMsg) {
 		s.Holding[hash] = msg
 		s.LogMessage("holding", "add", msg)
 		TotalHoldingQueueInputs.Inc()
+		EmitRegistrationEvent(msg, s)
 	}
 }
 
@@ -85,6 +88,9 @@ func (s *State) DeleteFromHolding(hash [32]byte, msg interfaces.IMsg, reason str
 		delete(s.Holding, hash)
 		s.LogMessage("holding", "delete "+reason, msg)
 		TotalHoldingQueueOutputs.Inc()
+		if reason != "Process()" {
+			EmitStateChangeEvent(msg, eventmessages.EntityState_REJECTED, s)
+		}
 	}
 }
 
@@ -385,6 +391,11 @@ func (s *State) Process() (progress bool) {
 				if !s.IgnoreDone {
 					s.StartDelay = now // Reset StartDelay for Ignore Missing
 					s.IgnoreDone = true
+				}
+				if s.EventsService != nil {
+					event := events.NodeInfoMessageF(eventmessages.NodeMessageCode_SYNCED,
+						"Node %s has finished syncing up it's database", s.GetFactomNodeName())
+					s.EventsService.Send(event)
 				}
 			}
 		}
@@ -826,6 +837,15 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 				dbstate.ReadyToSave = true
 			}
 			s.DBStates.UpdateState() // call to get the state signed now that the DBSigs have processed
+			if s.EventsService != nil {
+				event := events.ProcessListEventNewBlock(GetStreamSource(s), dbheight)
+				s.EventsService.Send(event)
+			}
+		} else {
+			if s.EventsService != nil {
+				event := events.ProcessListEventNewMinute(GetStreamSource(s), newMinute, dbheight)
+				s.EventsService.Send(event)
+			}
 		}
 		s.CurrentMinute = newMinute                                                            // Update just the minute
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(newMinute, s.IdentityChainID) // MoveStateToHeight minute
@@ -1195,7 +1215,6 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		s.StatesReceived.Notify <- msg.(*messages.DBStateMsg)
 	}
 	s.DBStates.UpdateState()
-
 }
 
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {

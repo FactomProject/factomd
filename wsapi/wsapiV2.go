@@ -76,6 +76,8 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 	params := j.Params
 	state.LogPrintf("apilog", "request %v", j.String())
 	switch j.Method {
+	case "replay-from-height":
+		resp, jsonError = HandleV2ReplayDBFromHeight(state, params)
 	case "anchors":
 		resp, jsonError = HandleV2Anchors(state, params)
 	case "chain-head":
@@ -168,6 +170,43 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 
 	state.LogPrintf("apilog", "response %v", jsonResp.String())
 	return jsonResp, nil
+}
+
+func HandleV2ReplayDBFromHeight(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	n := time.Now()
+	defer HandleV2APICallReplayDBFromHeight.Observe(float64(time.Since(n).Nanoseconds()))
+
+	replayRequest := new(ReplayRequest)
+	err := MapToObject(params, replayRequest)
+	if err != nil {
+		return nil, NewInvalidParamsError()
+	}
+
+	beginning := replayRequest.StartHeight
+	end := int64(state.GetDBHeightComplete())
+
+	if replayRequest.EndHeight != 0 && replayRequest.EndHeight < end {
+		end = replayRequest.EndHeight
+	}
+
+	if beginning > end || beginning < 0 || end < 0 {
+		if beginning > end {
+			return nil, NewInvertedHeightError()
+		}
+		return nil, NewInvalidHeightError()
+	}
+
+	if (end - beginning) > 1000 {
+		end = beginning + 1000
+	}
+
+	state.EmitDBStateEventsFromHeight(beginning, end)
+
+	resp := new(SendReplayMessageResponse)
+	resp.Message = "Successfully initiated replay of blocks " + fmt.Sprint(beginning) + " through " + fmt.Sprint(end)
+	resp.Start = beginning
+	resp.End = end
+	return resp, nil
 }
 
 func HandleV2DBlockByHeight(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
@@ -709,9 +748,9 @@ func HandleV2RawData(state interfaces.IState, params interface{}) (interface{}, 
 }
 
 func HandleV2Anchors(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	fmt.Println("Anchors called!")
 	n := time.Now()
 	defer HandleV2APICallAnchors.Observe(float64(time.Since(n).Nanoseconds()))
-
 	request := new(HeightOrHashRequest)
 	err := MapToObject(params, request)
 	if err != nil {

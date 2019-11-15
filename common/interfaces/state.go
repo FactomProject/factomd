@@ -172,6 +172,7 @@ type IState interface {
 	// and what lists they are responsible for.
 	ComputeVMIndex(hash []byte) int // Returns the VMIndex determined by some hash (usually) for the current processlist
 	IsLeader() bool                 // Returns true if this is the leader in the current minute
+	IsRunLeader() bool              // Returns true if the node is finished syncing up it's database
 	GetLeaderVM() int               // Get the Leader VM (only good within a minute)
 	// Returns the list of VirtualServers at a given directory block height and minute
 	GetVirtualServers(dbheight uint32, minute int, identityChainID IHash) (found bool, index int)
@@ -331,6 +332,12 @@ type IState interface {
 	GetUnsyncedServers(dbheight uint32) []IHash
 	Validate(msg IMsg) (validToSend int, validToExecute int)
 	GetIgnoreDone() bool
+
+	// Emit DBState events to the livefeed api from a specified height
+	EmitDBStateEventsFromHeight(height int64, end int64)
+
+	// Return all DBStateMsgs from a specified height
+	GetAllDBStateMsgsFromDatabase(height int64, end int64) []IMsg
 
 	// Access to Holding Queue
 	LoadHoldingMap() map[[32]byte]IMsg
