@@ -19,7 +19,41 @@ import (
 	"time"
 )
 
-func TestEmitStateChangeEventAccepted(t *testing.T) {
+func TestAddToAndDeleteFromHolding(t *testing.T) {
+	mockService := &mockEventService{}
+
+	s := testHelper.CreateAndPopulateTestState()
+	s.SetLeaderTimestamp(primitives.NewTimestampNow())
+	s.EventsService = mockService
+
+	msg := &messages.CommitChainMsg{CommitChain: entryCreditBlock.NewCommitChain()}
+	msg.CommitChain.MilliTime = createByteSlice6Timestamp(-2 * 1e3)
+
+	s.AddToHolding(msg.GetMsgHash().Fixed(), msg)
+	s.DeleteFromHolding(msg.GetMsgHash().Fixed(), msg, "to unit test")
+
+	// assertions
+	if assert.Equal(t, int32(2), mockService.EventsReceived) {
+		addToHoldingEvent := mockService.Events[0]
+		assert.Equal(t, eventmessages.EventSource_REPLAY_BOOT, addToHoldingEvent.GetStreamSource())
+
+		if registrationEvent, ok := addToHoldingEvent.(*events.RegistrationEvent); assert.True(t, ok, "event received has wrong type: %s event: %+v", reflect.TypeOf(addToHoldingEvent), addToHoldingEvent) {
+			assert.NotNil(t, registrationEvent)
+			assert.EqualValues(t, msg, registrationEvent.GetPayload())
+		}
+
+		deleteFromHoldingEvent := mockService.Events[1]
+		assert.Equal(t, eventmessages.EventSource_REPLAY_BOOT, deleteFromHoldingEvent.GetStreamSource())
+
+		if stateChangeEvent, ok := deleteFromHoldingEvent.(*events.StateChangeMsgEvent); assert.True(t, ok, "event received has wrong type: %s event: %+v", reflect.TypeOf(deleteFromHoldingEvent), deleteFromHoldingEvent) {
+			assert.NotNil(t, stateChangeEvent)
+			assert.Equal(t, eventmessages.EntityState_REJECTED, stateChangeEvent.GetEntityState())
+			assert.EqualValues(t, msg, stateChangeEvent.GetPayload())
+		}
+	}
+}
+
+func TestAddToProcessList(t *testing.T) {
 	mockService := &mockEventService{}
 
 	s := testHelper.CreateAndPopulateTestState()
@@ -48,7 +82,7 @@ func TestEmitStateChangeEventAccepted(t *testing.T) {
 		if stateChangeEvent, ok := event.(*events.StateChangeMsgEvent); assert.True(t, ok, "event received has wrong type: %s event: %+v", reflect.TypeOf(event), event) {
 			assert.NotNil(t, stateChangeEvent)
 			assert.Equal(t, eventmessages.EntityState_ACCEPTED, stateChangeEvent.GetEntityState())
-			assert.NotNil(t, stateChangeEvent.GetPayload())
+			assert.EqualValues(t, msg, stateChangeEvent.GetPayload())
 		}
 	}
 }
@@ -74,7 +108,7 @@ func TestEmitDBStateEventsFromHeight(t *testing.T) {
 	}
 }
 
-func TestEmitRegistrationEvents(t *testing.T) {
+func TestExecuteMessage(t *testing.T) {
 	testCases := map[string]struct {
 		Message interfaces.IMsg
 	}{
