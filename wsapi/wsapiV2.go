@@ -40,7 +40,7 @@ func HandleV2(writer http.ResponseWriter, request *http.Request) {
 
 	state, err := GetState(request)
 	if err != nil {
-		wsLog.Errorf("failed to extract port from request: %s", err)
+		//wsLog.Errorf("failed to extract port from request: %s", err)
 		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -70,7 +70,7 @@ func HandleV2(writer http.ResponseWriter, request *http.Request) {
 
 	_, err = writer.Write([]byte(jsonResp.String()))
 	if err != nil {
-		wsLog.Errorf("failed to write response: %v", err)
+		//wsLog.Errorf("failed to write response: %v", err)
 		HandleV2Error(writer, nil, NewInternalError())
 		return
 	}
@@ -79,7 +79,7 @@ func HandleV2(writer http.ResponseWriter, request *http.Request) {
 func HandleV2Request(_ http.ResponseWriter, request *http.Request, j *primitives.JSON2Request) (*primitives.JSON2Response, *primitives.JSONError) {
 	state, err := GetState(request)
 	if err != nil {
-		wsLog.Errorf("failed to extract port from request: %s", err)
+		//wsLog.Errorf("failed to extract port from request: %s", err)
 		return nil, NewParseError()
 	}
 	return HandleV2JSONRequest(state, j)
@@ -89,7 +89,7 @@ func HandleV2JSONRequest(state interfaces.IState, j *primitives.JSON2Request) (*
 	var resp interface{}
 	var jsonError *primitives.JSONError
 	params := j.Params
-	wsLog.Infof("request %v", j.String())
+	//wsLog.Infof("request %v", j.String())
 	switch j.Method {
 	case "anchors":
 		resp, jsonError = HandleV2Anchors(state, params)
@@ -173,7 +173,7 @@ func HandleV2JSONRequest(state interfaces.IState, j *primitives.JSON2Request) (*
 		jsonError = NewMethodNotFoundError()
 	}
 	if jsonError != nil {
-		wsLog.Errorf("error %v", jsonError)
+		//wsLog.Errorf("error %v", jsonError)
 		return nil, jsonError
 	}
 
@@ -181,7 +181,7 @@ func HandleV2JSONRequest(state interfaces.IState, j *primitives.JSON2Request) (*
 	jsonResp.ID = j.ID
 	jsonResp.Result = resp
 
-	wsLog.Infof("response %v", jsonResp.String())
+	//wsLog.Infof("response %v", jsonResp.String())
 	return jsonResp, nil
 }
 
@@ -484,7 +484,7 @@ func HandleV2Error(writer http.ResponseWriter, j *primitives.JSON2Request, jErr 
 	writer.WriteHeader(http.StatusBadRequest)
 	_, err := writer.Write([]byte(resp.String()))
 	if err != nil {
-		wsLog.Errorf("failed to write error response: %v", err)
+		//wsLog.Errorf("failed to write error response: %v", err)
 	}
 }
 

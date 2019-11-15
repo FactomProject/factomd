@@ -16,15 +16,13 @@ import (
 	. "github.com/FactomProject/factomd/common/identityEntries"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-
-	log "github.com/sirupsen/logrus"
 )
 
 var _ = DecodeIdentityChainStructureFromExtIDs
 
 // identLogger is the general logger for all identity related logs. You can add additional fields,
 // or create more context loggers off of this
-var identLogger = packageLogger.WithFields(log.Fields{"subpack": "identity"})
+//var identLogger = packageLogger.WithFields(log.Fields{"subpack": "identity"})
 
 var (
 	// Time window for identity to require registration: 24hours = 144 blocks
@@ -127,7 +125,7 @@ type IdentityEntry struct {
 // in an identity that corresponds to an authority. If initial is true, then calling ProcessIdentityEntry directly will
 // have the same result.
 func (st *State) LoadIdentityByEntry(ent interfaces.IEBEntry, height uint32, dblockTimestamp interfaces.Timestamp, d *DBState) {
-	flog := identLogger.WithFields(st.Logger.Data).WithField("func", "LoadIdentityByEntry")
+	//	//	flog := identLogger.WithFields(st.Logger.Data).WithField("func", "LoadIdentityByEntry")
 	if ent == nil {
 		return
 	}
@@ -151,17 +149,17 @@ func (st *State) LoadIdentityByEntry(ent interfaces.IEBEntry, height uint32, dbl
 
 	_, err := st.IdentityControl.ProcessIdentityEntryWithABlockUpdate(ent, height, dblockTimestamp, a, true)
 	if err != nil {
-		flog.Errorf(err.Error())
+		//flog.Errorf(err.Error())
 	}
 }
 
 // Called by AddServer Message
 func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype int) bool {
-	flog := identLogger.WithFields(st.Logger.Data).WithField("func", "ProcessIdentityToAdminBlock")
+	//	//	flog := identLogger.WithFields(st.Logger.Data).WithField("func", "ProcessIdentityToAdminBlock")
 
 	err := st.AddIdentityFromChainID(chainID)
 	if err != nil {
-		flog.Errorf("Failed to process AddServerMessage AddIdentityFromChainID for %s : %s", chainID.String()[:10], err.Error())
+		//flog.Errorf("Failed to process AddServerMessage AddIdentityFromChainID for %s : %s", chainID.String()[:10], err.Error())
 		st.LogPrintf("process", "Failed to process AddServerMessage for %s : %s", chainID.String()[:10], err.Error())
 		return false
 	}
@@ -170,13 +168,13 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 
 	if id != nil {
 		if ok, err := id.IsPromteable(); !ok {
-			flog.Errorf("Failed to process AddServerMessage id.IsPromteable for %s : %s", chainID.String()[:10], err.Error())
+			//flog.Errorf("Failed to process AddServerMessage id.IsPromteable for %s : %s", chainID.String()[:10], err.Error())
 			st.LogPrintf("process", "Failed to process AddServerMessage for %s : %s", chainID.String()[:10], err.Error())
 			return false
 		}
 
 	} else {
-		flog.Errorf("Failed to process AddServerMessage: IdentityControl.GetIdentity %s", "New Fed/Audit server ["+chainID.String()[:10]+"] does not have an identity associated to it")
+		//flog.Errorf("Failed to process AddServerMessage: IdentityControl.GetIdentity %s", "New Fed/Audit server ["+chainID.String()[:10]+"] does not have an identity associated to it")
 		st.LogPrintf("process", "Failed to process AddServerMessage: %s", "New Fed/Audit server ["+chainID.String()[:10]+"] does not have an identity associated to it")
 		return false
 	}

@@ -22,8 +22,6 @@ import (
 	"time"
 
 	. "github.com/FactomProject/factomd/common/globals"
-
-	log "github.com/sirupsen/logrus"
 )
 
 var _ = fmt.Print
@@ -34,7 +32,7 @@ var _ = fmt.Print
 
 // packageLogger is the general logger for all engine related logs. You can add additional fields,
 // or create more context loggers off of this
-var packageLogger = log.WithFields(log.Fields{"package": "engine"})
+//var packageLogger = log.WithFields(log.Fields{"package": "engine"})
 
 // start the process
 func Run(params *FactomParams) {

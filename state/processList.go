@@ -29,7 +29,8 @@ import (
 var _ = fmt.Print
 var _ = log.Print
 
-var plLogger = packageLogger.WithFields(log.Fields{"subpack": "process-list"})
+//
+//var plLogger = packageLogger.WithFields(log.Fields{"subpack": "process-list"})
 
 type ProcessList struct {
 	DBHeight uint32 // The directory block height for these lists
