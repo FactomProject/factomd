@@ -216,7 +216,7 @@ func (m *MissingMsg) MarshalBinary() (rval []byte, err error) {
 func (m *MissingMsg) String() string {
 	str := ""
 	for _, n := range m.ProcessListHeight {
-		str += fmt.Sprintf("%d/%d/%d, ", m.DBHeight, m.VMIndex, n)
+		str += fmt.Sprintf("%7d/%02d/%-5d, ", m.DBHeight, m.VMIndex, n)
 	}
 	return fmt.Sprintf("MissingMsg --> %x asking for DBh/VMh/h[%s] Sys: %d msgHash[%x] from peer-%d %s",
 		m.Asking.Bytes()[3:6],

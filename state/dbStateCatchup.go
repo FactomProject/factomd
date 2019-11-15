@@ -254,7 +254,7 @@ func (list *DBStateList) Catchup() {
 				msg.SendOut(list.State, msg)
 				list.State.DBStateAskCnt += 1 // Total number of dbstates requests
 				for i := b; i <= e; i++ {
-					list.State.LogPrintf("dbstatecatchup", "\tdbstate requested : missing -> waiting %d", i)
+					list.State.LogPrintf("dbstatecatchup", "dbstate requested : missing -> waiting %d", i)
 					missing.LockAndDelete(i)
 					waiting.Add(i)
 				}

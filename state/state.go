@@ -16,6 +16,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/FactomProject/logrustash"
+
 	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/common/constants/runstate"
 	"github.com/FactomProject/factomd/queue"
@@ -31,16 +33,11 @@ import (
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/leveldb"
 	"github.com/FactomProject/factomd/database/mapdb"
+	"github.com/FactomProject/factomd/modules/logging"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/util/atomic"
-	"github.com/FactomProject/logrustash"
-	log "github.com/sirupsen/logrus"
 )
-
-// packageLogger is the general logger for all package related logs. You can add additional fields,
-// or create more context loggers off of this
-var packageLogger = log.WithFields(log.Fields{"package": "state"})
 
 // loaded directly from factomParams
 type StateConfig struct {
@@ -108,7 +105,7 @@ type StateConfig struct {
 type State struct {
 	common.Name
 	StateConfig
-	Logger            *log.Entry
+	logging           *logging.LayerLogger
 	RunState          runstate.RunState
 	NetworkController *p2p.Controller
 	Salt              interfaces.IHash

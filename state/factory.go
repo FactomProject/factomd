@@ -8,6 +8,9 @@ import (
 	"strings"
 	"time"
 
+	log2 "github.com/FactomProject/factomd/log"
+	"github.com/FactomProject/factomd/modules/logging"
+
 	"github.com/FactomProject/factomd/Utilities/CorrectChainHeads/correctChainHeads"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/constants/runstate"
@@ -220,17 +223,25 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 // original constructor
 func NewState(p *globals.FactomParams, FactomdVersion string) *State {
 	s := new(State)
+	// Must add the prefix before loading the configuration.
+	s.AddPrefix(p.Prefix)
+	// Setup the name to catch any early logging
+	s.FactomNodeName = p.Prefix + "FNode0"
+
+	s.logging = logging.NewLayerLogger(log2.GlobalLogger, nil)
+	s.logging.AddNameField("fnode", logging.Formatter("%s_"), s.FactomNodeName)
+
+	// print current dbht-:-minute
+	s.logging.AddPrintField("dbht",
+		func(interface{}) string { return fmt.Sprintf("%7d-:-%-2d", *&s.LLeaderHeight, *&s.CurrentMinute) },
+		"")
+
 	s.TimestampAtBoot = primitives.NewTimestampNow()
 	preBootTime := new(primitives.Timestamp)
 	preBootTime.SetTimeMilli(s.TimestampAtBoot.GetTimeMilli() - 20*60*1000)
 	s.SetLeaderTimestamp(s.TimestampAtBoot)
 	s.SetMessageFilterTimestamp(preBootTime)
 	s.RunState = runstate.New
-
-	// Must add the prefix before loading the configuration.
-	s.AddPrefix(p.Prefix)
-	// Setup the name to catch any early logging
-	s.FactomNodeName = s.Prefix + "FNode0"
 
 	// build a timestamp 20 minutes before boot so we will accept inMessages from nodes who booted before us.
 	s.PortNumber = 8088
@@ -344,6 +355,7 @@ func Clone(s *State, cloneNumber int) interfaces.IState {
 	newState := new(State)
 	newState.StateConfig = s.StateConfig
 	number := fmt.Sprintf("%02d", cloneNumber)
+	newState.FactomNodeName = s.Prefix + "FNode" + number
 	simConfigPath := util.GetHomeDir() + "/.factom/m2/simConfig/"
 	configfile := fmt.Sprintf("%sfactomd%03d.conf", simConfigPath, cloneNumber)
 
@@ -355,7 +367,6 @@ func Clone(s *State, cloneNumber int) interfaces.IState {
 		os.MkdirAll(simConfigPath, 0775)
 	}
 
-	newState.FactomNodeName = s.Prefix + "FNode" + number
 	config := false
 	if _, err := os.Stat(configfile); !os.IsNotExist(err) {
 		os.Stderr.WriteString(fmt.Sprintf("   Using the %s config file.\n", configfile))
@@ -369,7 +380,6 @@ func Clone(s *State, cloneNumber int) interfaces.IState {
 		newState.LogPath = s.LogPath + "/Sim" + number
 	}
 
-	newState.FactomNodeName = s.Prefix + "FNode" + number
 	newState.RunState = runstate.New // reset runstate since this clone will be started by sim node
 	newState.LdbPath = s.LdbPath + "/Sim" + number
 	newState.BoltDBPath = s.BoltDBPath + "/Sim" + number
@@ -417,8 +427,7 @@ func (s *State) Initialize(w *worker.Thread, electionFactory interfaces.IElectio
 		s.Salt = primitives.Sha(b)
 	}
 
-	salt := fmt.Sprintf("The Instance ID of this node is %s\n", s.Salt.String()[:16])
-	fmt.Print(salt)
+	fmt.Printf("The Instance ID of this node is %s\n", s.Salt.String()[:16])
 
 	s.StartDelay = s.GetTimestamp().GetTimeMilli() // We can't start as a leader until we know we are upto date
 	s.RunLeader = false
@@ -605,8 +614,8 @@ func (s *State) Initialize(w *worker.Thread, electionFactory interfaces.IElectio
 	// end of FER removal
 	s.Starttime = time.Now()
 	// Allocate the MMR queues
-	s.asks = make(chan askRef, 50) // Should be > than the number of VMs so each VM can have at least one outstanding ask.
-	s.adds = make(chan plRef, 50)  // No good rule of thumb on the size of this
+	s.asks = make(chan askRef, 100) // Should be > than the number of VMs so each VM can have at least one outstanding ask.
+	s.adds = make(chan plRef, 50)   // No good rule of thumb on the size of this
 	s.dbheights = make(chan int, 1)
 	s.rejects = make(chan MsgPair, 1) // Messages rejected from process list
 

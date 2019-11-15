@@ -28,11 +28,13 @@ import (
 
 // packageLogger is the general logger for all p2p related logs. You can add additional fields,
 // or create more context loggers off of this
-var packageLogger = log.WithFields(log.Fields{
-	"package":   "p2p",
-	"component": "networking"})
+var packageLogger = log.WithFields(log.Fields{"package": "p2p", "component": "networking"})
 
 var controllerLogger = packageLogger.WithField("subpack", "controller")
+
+func init() {
+	packageLogger.Logger.SetLevel(log.PanicLevel)
+}
 
 // Controller manages the peer to peer network.
 type Controller struct {

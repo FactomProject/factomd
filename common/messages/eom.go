@@ -369,7 +369,7 @@ func (m *EOM) String() string {
 	}
 	return fmt.Sprintf("%6s-%30s FF %2d %1s-Leader[%x] hash[%x] ts %d %s %s",
 		"EOM",
-		fmt.Sprintf("DBh/VMh/h %d/%02d/-- minute %2d", m.DBHeight, m.VMIndex, m.Minute),
+		fmt.Sprintf("DBh/VMh/h %7d/%02d/-- minute %2d", m.DBHeight, m.VMIndex, m.Minute),
 		m.SysHeight,
 		f,
 		m.ChainID.Bytes()[3:6],

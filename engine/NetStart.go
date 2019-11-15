@@ -292,11 +292,11 @@ func startNetwork(w *worker.Thread, p *globals.FactomParams) {
 
 func printGraphData(filename string, period int) {
 	downscale := int64(1)
-	llog.LogPrintf(filename, "\t%9s\t%9s\t%9s\t%9s\t%9s\t%9s", "Dbh-:-min", "Node", "ProcessCnt", "ListPCnt", "UpdateState", "SleepCnt")
+	llog.LogPrintf(filename, "%10s%10s%10s%10s%10s%10s", "Dbh-:-min", "Node", "ProcessCnt", "ListPCnt", "UpdateState", "SleepCnt")
 	for {
 		for _, f := range fnode.GetFnodes() {
 			s := f.State
-			llog.LogPrintf(filename, "\t%9s\t%9s\t%9d\t%9d\t%9d\t%9d", fmt.Sprintf("%d-:-%d", s.LLeaderHeight, s.CurrentMinute), s.FactomNodeName, s.StateProcessCnt/downscale, s.ProcessListProcessCnt/downscale, s.StateUpdateState/downscale, s.ValidatorLoopSleepCnt/downscale)
+			llog.LogPrintf(filename, "%10s%10s%10d%10d%10d%10d", fmt.Sprintf("%d-:-%d", s.LLeaderHeight, s.CurrentMinute), s.FactomNodeName, s.StateProcessCnt/downscale, s.ProcessListProcessCnt/downscale, s.StateUpdateState/downscale, s.ValidatorLoopSleepCnt/downscale)
 		}
 		time.Sleep(time.Duration(period) * time.Second)
 	} // for ever ...
@@ -310,7 +310,6 @@ var state0Init sync.Once // we do some extra init for the first state
 //**********************************************************************
 func makeServer(w *worker.Thread, p *globals.FactomParams) (node *fnode.FactomNode) {
 	i := fnode.Len()
-
 	if i == 0 {
 		node = fnode.New(state.NewState(p, FactomdVersion))
 	} else {

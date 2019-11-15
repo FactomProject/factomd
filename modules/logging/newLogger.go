@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"regexp"
+	"strings"
 	"sync"
 	"time"
 
@@ -30,7 +32,8 @@ func Formatter(format string) func(interface{}) string {
 }
 
 func main() {
-	foo := NewModuleLoggerLogger(NewLayerLogger(NewSequenceLogger(NewFileLogger(".", []string{"thread", "filename"})), map[string]string{"thread": "fnode0"}), "test.txt")
+	foo := NewModuleLoggerLogger(NewLayerLogger(NewSequenceLogger(NewFileLogger(".")), map[string]string{"thread": "fnode0"}), "test.txt")
+	foo.AddNameField("thread", Formatter("%s"), "unknown_thread").AddNameField("logname", Formatter("%s"), "unknown_log")
 	foo.AddPrintField("foo", Formatter("%6v"), "FOO").AddPrintField("bar", Formatter("|%6s|"), "BAR")
 
 	foo.Log(LogData{"foo": 1, "bar": "bar", "baz": 5.0})
@@ -41,6 +44,7 @@ type Ilogger interface {
 	Log(LogData) bool // return true if logging of specified log data is enabled
 	GetPrintFieldOrder() []string
 	AddPrintField(name string, format FormatFunc, defaultValue string) Ilogger
+	AddNameField(name string, format FormatFunc, defaultValue string) Ilogger
 }
 
 type FileLogger struct {
@@ -57,7 +61,7 @@ type FileLogger struct {
 
 // Create a new FileLogger
 // regexString is a combination of both the path to the log directory and the regex that decides if the data is logged
-func NewFileLogger(regexString string, filekeys []string) *FileLogger {
+func NewFileLogger(regexString string) *FileLogger {
 	var logDir string
 	var testRegex *regexp.Regexp
 	var err error
@@ -86,7 +90,7 @@ func NewFileLogger(regexString string, filekeys []string) *FileLogger {
 		files:         make(map[string]*os.File),
 		enabled:       make(map[string]bool),
 		testRegex:     testRegex,
-		nameFields:    filekeys,
+		nameFields:    nil,
 		printFields:   nil,
 		formats:       make(map[string]FormatFunc),
 		defaultValues: make(map[string]string),
@@ -99,10 +103,24 @@ func (f *FileLogger) GetPrintFieldOrder() []string {
 	return append([]string(nil), f.printFields...)
 }
 
+// Get the list of key in the order they are used to build the name.
+func (f *FileLogger) GetNameFieldOrder() []string {
+	return append([]string(nil), f.nameFields...)
+}
+
+// prepend a field, define it's format and it's default value to the list of fields used to build the log name
+// the default value is defined as a string and can be the empty string or a string equal to the formatted value length
+func (f *FileLogger) AddNameField(name string, format FormatFunc, defaultValue string) Ilogger {
+	f.nameFields = append([]string{name}, f.nameFields...) // prepend name fields
+	f.formats[name] = format
+	f.defaultValues[name] = defaultValue
+	return f
+}
+
 // append a field, define it's format and it's default value to the list of fields printed
 // the default value is defined as a string and can be the empty string or a string equal to the formatted value length
 func (f *FileLogger) AddPrintField(name string, format FormatFunc, defaultValue string) Ilogger {
-	f.printFields = append(f.printFields, name)
+	f.printFields = append(f.printFields, name) // append print fields
 	f.formats[name] = format
 	f.defaultValues[name] = defaultValue
 	return f
@@ -180,6 +198,12 @@ func (f *FileLogger) Log(m LogData) bool {
 	f.traceMutex.Lock()
 	defer f.traceMutex.Unlock()
 
+	// make a local copy of the map
+	var x LogData = make(LogData)
+	for k, v := range m {
+		x[k] = v
+	}
+
 	filename := ""
 	// loop thru the nameFields and concatenate them all together
 	for _, n := range f.nameFields {
@@ -192,23 +216,48 @@ func (f *FileLogger) Log(m LogData) bool {
 		}
 		delete(m, n)
 	}
-
+	filename = strings.ToLower(filename)
 	file := f.getFile(filename)
 	if file == nil {
 		return false
 	}
 
+	if false {
+		s := ""
+		for n, v := range m {
+			s = s + "--" + n + ":" + f.getValue(n, v, true) + "-- "
+		}
+		file.WriteString(s + "\n")
+
+		var v string
+		t := reflect.TypeOf(m["comment"]).String()
+		if t == "string" {
+			v = m["comment"].(string)
+		}
+		if t == "logging.delay_format" {
+			v = m["comment"].(delay_format).String()
+			if strings.Contains(v, "SignDB") {
+				fmt.Println("?")
+			}
+		}
+		fmt.Println(v)
+	}
 	s := ""
 	// loop thru the printFields and concatenate them all together
 	for _, n := range f.printFields {
 		v, ok := m[n]
 		value := f.getValue(n, v, ok)
-		s = s + value
+		if s == "" {
+			s = value
+		} else if value != "" {
+			s = s + " " + value
+		}
 		delete(m, n)
 	}
+
 	// loop thru any unhandled fields and print them
 	for n, v := range m {
-		s = s + n + ":" + fmt.Sprintf("%v", v)
+		s = s + "--" + n + ":" + fmt.Sprintf("%v", v) + "-- "
 	}
 	file.WriteString(s + "\n")
 	return true
@@ -232,9 +281,21 @@ type SequenceLogger struct {
 }
 
 func (f *SequenceLogger) Log(m LogData) bool {
-	m["sequence"] = f.sequence.Load()
+	m["sequence"] = f.sequence.Add(1)
 	m["timestamp"] = time.Now().Local()
 	return f.Ilogger.Log(m)
+}
+
+// just letting the call fall info the underlying logger changed the return type to be the underlying logger type
+func (f *SequenceLogger) AddPrintField(name string, format FormatFunc, defaultValue string) Ilogger {
+	f.Ilogger.AddPrintField(name, format, defaultValue)
+	return f
+}
+
+// just letting the call fall info the underlying logger changed the return type to be the underlying logger type
+func (f *SequenceLogger) AddNameField(name string, format FormatFunc, defaultValue string) Ilogger {
+	f.Ilogger.AddNameField(name, format, defaultValue)
+	return f
 }
 
 func NewSequenceLogger(logger Ilogger) *SequenceLogger {
@@ -242,7 +303,7 @@ func NewSequenceLogger(logger Ilogger) *SequenceLogger {
 	sequenceLogger.AddPrintField("sequence",
 		func(v interface{}) string {
 			i := v.(uint32)
-			return fmt.Sprintf("%7d", i)
+			return fmt.Sprintf("%9d", i)
 		},
 		"unset_seq")
 	sequenceLogger.AddPrintField("timestamp",
@@ -265,6 +326,18 @@ func NewLayerLogger(logger Ilogger, fields map[string]string) *LayerLogger {
 	return &LayerLogger{logger, fields}
 }
 
+// just letting the call fall info the underlying logger changed the return type to be the underlying logger type
+func (f *LayerLogger) AddPrintField(name string, format FormatFunc, defaultValue string) Ilogger {
+	f.Ilogger.AddPrintField(name, format, defaultValue)
+	return f
+}
+
+// just letting the call fall info the underlying logger changed the return type to be the underlying logger type
+func (f *LayerLogger) AddNameField(name string, format FormatFunc, defaultValue string) Ilogger {
+	f.Ilogger.AddNameField(name, format, defaultValue)
+	return f
+}
+
 func (f *LayerLogger) Log(m LogData) bool {
 	// Copy the layers fields into the instance
 	for k, v := range f.fields {
@@ -281,14 +354,26 @@ type ModuleLogger struct {
 	enabled  bool // cache log enabled status for a filename
 }
 
+func NewModuleLoggerLogger(logger Ilogger, filename string) *ModuleLogger {
+	return &ModuleLogger{logger, filename, true}
+}
+
+// just letting the call fall info the underlying logger changed the return type to be the underlying logger type
+func (f *ModuleLogger) AddPrintField(name string, format FormatFunc, defaultValue string) Ilogger {
+	f.Ilogger.AddPrintField(name, format, defaultValue)
+	return f
+}
+
+// just letting the call fall info the underlying logger changed the return type to be the underlying logger type
+func (f *ModuleLogger) AddNameField(name string, format FormatFunc, defaultValue string) Ilogger {
+	f.Ilogger.AddNameField(name, format, defaultValue)
+	return f
+}
+
 func (f *ModuleLogger) Log(m LogData) bool {
 	if f.enabled {
 		m["logname"] = f.filename // add the filename this module is logging to
 		f.enabled = f.Ilogger.Log(m)
 	}
 	return f.enabled
-}
-
-func NewModuleLoggerLogger(logger Ilogger, filename string) *ModuleLogger {
-	return &ModuleLogger{logger, filename, true}
 }

@@ -31,7 +31,9 @@ func timeDiff(t1,t2){
     if(tDiff < 0) {
         tDiff = tDiff+24*60*60;
     }
-    return sprintf("%d seconds %2d:%02d:%02d.%03d H:M:S", tDiff, (tDiff/(60*60)),(tDiff/60)%60,tDiff%60,(tDiff - int(tDiff))*1000 );
+    diff = sprintf("%d seconds %2d:%02d:%02d.%03d H:M:S", tDiff, (tDiff/(60*60)),(tDiff/60)%60,tDiff%60,(tDiff - int(tDiff))*1000 );
+    print t1,"-",t2,"=",diff
+    return diff
 }
 
 BEGIN {
@@ -107,6 +109,7 @@ END {
     if(checkunset(topOfDataBaseTime,saveStateBlockTime)) {
        print "saveStateBlock   ","DBHT:", saveStateBlock, saveStateBlockTime;
        print "topOfDataBase    ","DBHT:", topOfDataBase, topOfDataBaseTime, timeDiff(topOfDataBaseTime, saveStateBlockTime);
+       print topOfDataBase, saveStateBlock
        rate = (topOfDataBase - saveStateBlock)/timeDiff(topOfDataBaseTime, saveStateBlockTime)
        print "Rate = ", rate, "blocks per second or", 1/rate, " seconds per block";
     }
