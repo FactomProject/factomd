@@ -22,19 +22,10 @@ import (
 	"github.com/FactomProject/factomd/worker"
 
 	"github.com/FactomProject/factomd/common/primitives"
-
-	log "github.com/sirupsen/logrus"
 )
 
 // packageLogger is the general logger for all p2p related logs. You can add additional fields,
 // or create more context loggers off of this
-var packageLogger = log.WithFields(log.Fields{"package": "p2p", "component": "networking"})
-
-var controllerLogger = packageLogger.WithField("subpack", "controller")
-
-func init() {
-	packageLogger.Logger.SetLevel(log.PanicLevel)
-}
 
 // Controller manages the peer to peer network.
 type Controller struct {
@@ -59,8 +50,6 @@ type Controller struct {
 	specialPeers                map[string]*Peer // special peers (from config file and from the command line params) by peer address
 	partsAssembler              *PartsAssembler  // a data structure that assembles full messages from received message parts
 
-	// logging
-	logger *log.Entry
 }
 
 type ControllerInit struct {
@@ -160,11 +149,8 @@ func (e *CommandDisconnect) String() string {
 //////////////////////////////////////////////////////////////////////
 
 func (c *Controller) Initialize(ci ControllerInit) *Controller {
-	c.logger = controllerLogger.WithFields(log.Fields{
-		"node":    ci.NodeName,
-		"port":    ci.Port,
-		"network": fmt.Sprintf("%#x", ci.Network)})
-	c.logger.WithField("controller_init", ci).Debugf("Initializing network controller")
+	//	//	//c.logger = controllerLogger.WithFields(log.Fields{		"node":    ci.NodeName,		"port":    ci.Port,		"network": fmt.Sprintf("%#x", ci.Network)})
+	//	//	//c.logger.WithField("controller_init", ci).Debugf("Initializing network controller")
 	RandomGenerator = rand.New(rand.NewSource(time.Now().UnixNano()))
 	NodeID = uint64(RandomGenerator.Int63()) // This is a global used by all connections
 	c.keepRunning = true
@@ -193,7 +179,7 @@ func (c *Controller) Initialize(ci ControllerInit) *Controller {
 
 // StartNetwork configures the network, starts the runloop
 func (c *Controller) StartNetwork(w *worker.Thread) {
-	c.logger.Info("Starting network")
+	////c.logger.Info("Starting network")
 	c.lastStatusReport = time.Now()
 	// start listening on port given
 	c.listen()
@@ -234,7 +220,7 @@ func (c *Controller) GetNumberOfConnections() int {
 }
 
 func (c *Controller) ReloadSpecialPeers(newPeersConfig string) {
-	c.logger.Info("Reloading special peers after config file change")
+	//c.logger.Info("Reloading special peers after config file change")
 	newPeers := make(map[string]*Peer)
 	for _, newPeer := range c.parseSpecialPeers(newPeersConfig, SpecialPeerConfig) {
 		newPeers[newPeer.Address] = newPeer
@@ -246,7 +232,7 @@ func (c *Controller) ReloadSpecialPeers(newPeersConfig string) {
 	for address, newPeer := range newPeers {
 		_, exists := c.specialPeers[address]
 		if !exists {
-			c.logger.Infof("Detected a new peer in the config file: %s", address)
+			//c.logger.Infof("Detected a new peer in the config file: %s", address)
 			toBeAdded = append(toBeAdded, newPeer)
 		}
 	}
@@ -255,14 +241,14 @@ func (c *Controller) ReloadSpecialPeers(newPeersConfig string) {
 		_, exists := newPeers[address]
 		if exists {
 			if oldPeer.Type == SpecialPeerCmdLine {
-				c.logger.Warnf(
-					"Detected a peer removed from the config file,"+
-						" but it was earlier defined in the command line, ignoring: %s",
-					address,
-				)
+				//				//c.logger.Warnf(
+				//					"Detected a peer removed from the config file,"+
+				//						" but it was earlier defined in the command line, ignoring: %s",
+				//					address,
+				//				)
 				continue
 			}
-			c.logger.Infof("Detected a peer removed from the config file: %s", address)
+			//c.logger.Infof("Detected a peer removed from the config file: %s", address)
 			toBeRemoved = append(toBeRemoved, oldPeer)
 		}
 	}
@@ -299,11 +285,11 @@ func (c *Controller) dialSpecialPeers() {
 
 func (c *Controller) listen() {
 	address := fmt.Sprintf(":%s", c.listenPort)
-	c.logger.WithFields(log.Fields{"address": address, "port": c.listenPort}).Infof("Listening for new connections")
+	//	//	//c.logger.WithFields(log.Fields{"address": address, "port": c.listenPort}).Infof("Listening for new connections")
 	listener, err := net.Listen("tcp", address)
 	listener = LimitListenerSources(listener)
 	if nil != err {
-		c.logger.Errorf("Controller.listen() Error: %+v", err)
+		//c.logger.Errorf("Controller.listen() Error: %+v", err)
 	} else {
 		go c.acceptLoop(listener)
 	}
@@ -312,24 +298,25 @@ func (c *Controller) listen() {
 // Since this runs in its own goroutine we need to send a command when
 // when we get a new connection.
 func (c *Controller) acceptLoop(listener net.Listener) {
-	c.logger.Debug("Controller.acceptLoop() starting up")
+	//	//c.logger.Debug("Controller.acceptLoop() starting up")
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
-			c.logger.Warnf("Controller.acceptLoop() Error: %+v", err)
+			//			//c.logger.Warnf("Controller.acceptLoop() Error: %+v", err)
 			continue
 		}
-
-		connLogger := c.logger.WithField("remote_address", conn.RemoteAddr())
+		//
+		//connLogger := c.logger.WithField("remote_address", conn.RemoteAddr())
 
 		if ok, reason := c.canConnectTo(conn); !ok {
-			connLogger.Infof("Rejecting new connection request: %s", reason)
+			_ = reason
+			//connLogger.Infof("Rejecting new connection request: %s", reason)
 			_ = conn.Close()
 			continue
 		}
 
 		c.AddPeer(conn) // Sends command to add the peer to the peers list
-		connLogger.Infof("Accepting new incoming connection")
+		//connLogger.Infof("Accepting new incoming connection")
 	}
 }
 
@@ -377,7 +364,7 @@ func (c *Controller) parseSpecialPeers(peersString string, peerType uint8) []*Pe
 	for _, peerAddress := range peerAddresses {
 		address, port, err := net.SplitHostPort(peerAddress)
 		if err != nil {
-			c.logger.Errorf("%s is not a valid peer (%v), use format: 127.0.0.1:8999", peersString, err)
+			//c.logger.Errorf("%s is not a valid peer (%v), use format: 127.0.0.1:8999", peersString, err)
 		} else {
 			peer := new(Peer).Init(address, port, 0, peerType, 0)
 			peer.Source["Local-Configuration"] = time.Now()
@@ -396,7 +383,7 @@ func (c *Controller) parseSpecialPeers(peersString string, peerType uint8) []*Pe
 func (c *Controller) runloop(w *worker.Thread) {
 	w.Init(c, "runloop")
 	// In long running processes it seems the runloop is exiting.
-	c.logger.Debugf("Controller.runloop() @@@@@@@@@@ starting up in %d seconds", 2)
+	//	//c.logger.Debugf("Controller.runloop() @@@@@@@@@@ starting up in %d seconds", 2)
 	time.Sleep(time.Second * time.Duration(2)) // Wait a few seconds to let the system come up.
 
 	w.OnRun(func() {
@@ -440,7 +427,7 @@ func (c *Controller) route() {
 			case ConnectionParcel:
 				c.handleParcelReceive(message, peerHash, connection)
 			default:
-				c.logger.Warnf("route() unknown message?: %+v ", message)
+				//				//c.logger.Warnf("route() unknown message?: %+v ", message)
 			}
 		}
 	}
@@ -461,7 +448,7 @@ func (c *Controller) route() {
 		case RandomPeerFlag: // Find a random peer, send to that peer.
 			c.sendToRandomPeer(parcel)
 		default: // Check if we're connected to the peer, if not drop message.
-			c.logger.Debugf("Controller.route() Directed Neither Random nor Broadcast: %s Type: %s ", parcel.Header.TargetPeer, parcel.Header.AppType)
+			//			//c.logger.Debugf("Controller.route() Directed Neither Random nor Broadcast: %s Type: %s ", parcel.Header.TargetPeer, parcel.Header.AppType)
 			c.doDirectedSend(parcel)
 		}
 	}
@@ -500,7 +487,7 @@ func (c *Controller) handleParcelReceive(message interface{}, peerHash string, c
 		// Add these peers to our known peers
 		c.discovery.LearnPeers(parcel)
 	default:
-		c.logger.Warnf("handleParcelReceive() unknown parcel.Header.Type?: %+v ", parcel)
+		//		//c.logger.Warnf("handleParcelReceive() unknown parcel.Header.Type?: %+v ", parcel)
 	}
 
 }
@@ -516,7 +503,7 @@ func (c *Controller) handleConnectionCommand(command ConnectionCommand, connecti
 	case ConnectionUpdatingPeer:
 		c.discovery.updatePeer(command.Peer)
 	default:
-		c.logger.Errorf("handleParcelReceive() unknown command.command?: %+v ", command.Command)
+		//c.logger.Errorf("handleParcelReceive() unknown command.command?: %+v ", command.Command)
 	}
 }
 
@@ -553,7 +540,8 @@ func (c *Controller) handleCommand(command interface{}) {
 			BlockFreeChannelSend(connection.SendChannel, ConnectionCommand{Command: ConnectionShutdownNow})
 		}
 	default:
-		c.logger.Errorf("Unknown p2p.Controller command received: %+v", commandType)
+		_ = commandType
+		//c.logger.Errorf("Unknown p2p.Controller command received: %+v", commandType)
 	}
 }
 
@@ -584,16 +572,16 @@ func (c *Controller) managePeers() {
 	managementDuration := time.Since(c.lastPeerManagement)
 	if PeerSaveInterval < managementDuration {
 		c.lastPeerManagement = time.Now()
-		c.logger.Debugf("managePeers() time since last peer management: %s", managementDuration.String())
+		//		//c.logger.Debugf("managePeers() time since last peer management: %s", managementDuration.String())
 		// If it's been awhile, update peers from the DNS seed.
 		discoveryDuration := time.Since(c.lastDiscoveryRequest)
 		if PeerDiscoveryInterval < discoveryDuration {
-			c.logger.Debug("calling c.discovery.DiscoverPeersFromSeed()")
+			//			//c.logger.Debug("calling c.discovery.DiscoverPeersFromSeed()")
 			c.discovery.DiscoverPeersFromSeed()
-			c.logger.Debug("back from c.discovery.DiscoverPeersFromSeed()")
+			//			//c.logger.Debug("back from c.discovery.DiscoverPeersFromSeed()")
 		}
 		outgoingCount := c.connections.outgoingCount
-		c.logger.Debugf("managePeers() NumberPeersToConnect: %d outgoing: %d", NumberPeersToConnect, outgoingCount)
+		//		//c.logger.Debugf("managePeers() NumberPeersToConnect: %d outgoing: %d", NumberPeersToConnect, outgoingCount)
 		if NumberPeersToConnect > outgoingCount {
 			// Get list of peers ordered by quality from discovery
 			c.fillOutgoingSlots(NumberPeersToConnect - outgoingCount)
@@ -601,7 +589,7 @@ func (c *Controller) managePeers() {
 		duration := time.Since(c.discovery.lastPeerSave)
 		// Every so often, tell the discovery service to save peers.
 		if PeerSaveInterval < duration {
-			c.logger.Debug("Saving peers")
+			//			//c.logger.Debug("Saving peers")
 			c.discovery.SavePeers()
 		}
 		duration = time.Since(c.lastPeerRequest)
@@ -622,7 +610,7 @@ func (c *Controller) fillOutgoingSlots(openSlots int) {
 	newPeers := 0
 	for _, peer := range peers {
 		if !c.connections.ConnectedTo(peer.Address) && newPeers < openSlots {
-			c.logger.Debugf("newPeers: %d < openSlots: %d We think we are not already connected to: %s so dialing.", newPeers, openSlots, peer.AddressPort())
+			//			//c.logger.Debugf("newPeers: %d < openSlots: %d We think we are not already connected to: %s so dialing.", newPeers, openSlots, peer.AddressPort())
 			newPeers = newPeers + 1
 			c.DialPeer(peer, false)
 		}
@@ -656,7 +644,7 @@ func (c *Controller) updateMetrics() {
 }
 
 func (c *Controller) shutdown() {
-	c.logger.Debug("Controller.shutdown()")
+	//	//c.logger.Debug("Controller.shutdown()")
 	c.connections.SendToAll(ConnectionCommand{Command: ConnectionShutdownNow})
 	c.keepRunning = false
 }
@@ -686,7 +674,7 @@ func (c *Controller) broadcast(parcel Parcel, full bool) {
 	}
 
 	if len(randomSelection) == 0 {
-		c.logger.Warn("Broadcast to random hosts failed: we don't have any peers to broadcast to")
+		//		//c.logger.Warn("Broadcast to random hosts failed: we don't have any peers to broadcast to")
 		return
 	}
 	for _, connection := range randomSelection {
@@ -697,11 +685,11 @@ func (c *Controller) broadcast(parcel Parcel, full bool) {
 }
 
 func (c *Controller) sendToRandomPeer(parcel Parcel) {
-	c.logger.Debugf("Controller.route() Directed FINDING RANDOM Target: %s Type: %s #Number Connections: %d", parcel.Header.TargetPeer, parcel.Header.AppType, c.connections.Count())
+	//	//c.logger.Debugf("Controller.route() Directed FINDING RANDOM Target: %s Type: %s #Number Connections: %d", parcel.Header.TargetPeer, parcel.Header.AppType, c.connections.Count())
 	randomConn := c.connections.GetRandom()
 
 	if randomConn == nil {
-		c.logger.Warn("Sending a parcel to a random peer failed: we don't have any peers to send to")
+		//		//c.logger.Warn("Sending a parcel to a random peer failed: we don't have any peers to send to")
 		return
 	}
 

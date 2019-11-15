@@ -312,7 +312,7 @@ func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{},
 			if eTxID == "" {
 				eHash, err := state.FetchEntryHashFromProcessListsByTxID(ackReq.TxID)
 				if err != nil {
-					wsLog.Println("FetchEntryHashFromProcessListsByTxID:", err)
+					//wsLog.Println("FetchEntryHashFromProcessListsByTxID:", err)
 				} else {
 					eTxID = eHash.String()
 				}

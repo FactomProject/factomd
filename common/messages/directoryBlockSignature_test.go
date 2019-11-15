@@ -205,7 +205,7 @@ func BenchmarkValidateMakingFunctionNoUse(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		//m.Validate(s)
 		vlog := func(format string, args ...interface{}) {
-			log.WithFields(log.Fields{"msgheight": m.DBHeight, "lheight": s.GetLeaderHeight()}).Errorf(format, args...)
+			//			log.WithFields(log.Fields{"msgheight": m.DBHeight, "lheight": s.GetLeaderHeight()}).Errorf(format, args...)
 		}
 		var _ = vlog
 	}
@@ -219,7 +219,7 @@ func BenchmarkValidateMakingInstantiateNoUse(b *testing.B) {
 	m, _, _ := newSignedDirectoryBlockSignature()
 	for i := 0; i < b.N; i++ {
 		//m.Validate(s)
-		vlog := log.WithFields(log.Fields{"msgheight": m.DBHeight, "lheight": s.GetLeaderHeight()})
+		//		vlog := log.WithFields(log.Fields{"msgheight": m.DBHeight, "lheight": s.GetLeaderHeight()})
 		var _ = vlog
 	}
 }
@@ -239,7 +239,7 @@ func BenchmarkValidateMakingFunctionUse(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		//m.Validate(s)
 		vlog := func(format string, args ...interface{}) {
-			log.WithFields(log.Fields{"msgheight": m.DBHeight, "lheight": s.GetLeaderHeight()}).Errorf(format, args...)
+			//			log.WithFields(log.Fields{"msgheight": m.DBHeight, "lheight": s.GetLeaderHeight()}).Errorf(format, args...)
 		}
 		vlog("%s", "hello")
 	}

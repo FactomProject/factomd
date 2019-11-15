@@ -19,7 +19,7 @@ import (
 )
 
 // eLogger is for EOM Messages and extends packageLogger
-var eLogger = packageLogger.WithFields(log.Fields{"message": "EOM"})
+//var eLogger = packageLogger.WithFields(log.Fields{"message": "EOM"})
 
 type EOM struct {
 	msgbase.MessageBase
@@ -175,7 +175,7 @@ func (m *EOM) Validate(state interfaces.IState) int {
 	eomSigned, err := m.VerifySignature()
 	if err != nil || !eomSigned {
 		vlog := func(format string, args ...interface{}) {
-			eLogger.WithFields(log.Fields{"func": "Validate", "lheight": state.GetLeaderHeight()}).WithFields(m.LogFields()).Errorf(format, args...)
+			//			//			eLogger.WithFields(log.Fields{"func": "Validate", "lheight": state.GetLeaderHeight()}).WithFields(m.LogFields()).Errorf(format, args...)
 		}
 
 		if err != nil {
