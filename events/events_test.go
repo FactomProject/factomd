@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/json"
+	"github.com/FactomProject/factomd/common/adminBlock"
+	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -19,11 +21,44 @@ import (
 	"time"
 )
 
+func TestUpdateState(t *testing.T) {
+	mockService := &mockEventService{}
+
+	s := testHelper.CreateAndPopulateTestState()
+	s.EventsService = mockService
+
+	eBlocks := []interfaces.IEntryBlock{}
+	entries := []interfaces.IEBEntry{}
+	dBlock := directoryBlock.NewDirectoryBlock(s.LeaderPL.DirectoryBlock)
+	aBlock := adminBlock.NewAdminBlock(s.LeaderPL.AdminBlock)
+	ecBlock := entryCreditBlock.NewECBlock()
+
+	dbState := s.AddDBState(true, dBlock, aBlock, s.GetFactoidState().GetCurrentBlock(), ecBlock, eBlocks, entries)
+	dbState.ReadyToSave = true
+	dbState.Signed = true
+	dbState.Repeat = true
+
+	s.DBStates.SavedHeight = dbState.DirectoryBlock.GetHeader().GetDBHeight()
+
+	progress := s.DBStates.UpdateState()
+
+	assert.True(t, progress)
+	if assert.Equal(t, int32(1), mockService.EventsReceived) {
+		event := mockService.Events[0]
+		assert.Equal(t, eventmessages.EventSource_REPLAY_BOOT, event.GetStreamSource())
+
+		if stateChangeEvent, ok := event.(*events.StateChangeEvent); assert.True(t, ok, "event received has wrong type: %s event: %+v", reflect.TypeOf(event), event) {
+			assert.NotNil(t, stateChangeEvent)
+			assert.NotNil(t, stateChangeEvent.GetPayload())
+			assert.Equal(t, eventmessages.EntityState_COMMITTED_TO_DIRECTORY_BLOCK, stateChangeEvent.GetEntityState())
+		}
+	}
+}
+
 func TestAddToAndDeleteFromHolding(t *testing.T) {
 	mockService := &mockEventService{}
 
 	s := testHelper.CreateAndPopulateTestState()
-	s.SetLeaderTimestamp(primitives.NewTimestampNow())
 	s.EventsService = mockService
 
 	msg := &messages.CommitChainMsg{CommitChain: entryCreditBlock.NewCommitChain()}
