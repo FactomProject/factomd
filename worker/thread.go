@@ -28,6 +28,8 @@ func (r *Thread) GetID() int {
 	return r.ID
 }
 
+// loggin someday .AddNameField("thread", Formatter("%s"), "unknown_thread")
+
 // returns caller caller
 // which is a string containing source file and line where thread is spawned
 func (r *Thread) GetCaller() string {

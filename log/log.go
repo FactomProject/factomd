@@ -28,7 +28,7 @@ var (
 func init() {
 	// Create a global FileLogger that assigned the filenames based on thread and logname
 	var fileLogger *FileLogger = NewFileLogger("./.")
-	fileLogger.AddNameField("thread", Formatter("%s"), "").AddNameField("logname", Formatter("%s"), "unknown_log")
+	fileLogger.AddNameField("logname", Formatter("%s.txt"), "unknown_log")
 	// Create a global logger that adds sequence numbers and timestamps
 	GlobalLogger = NewSequenceLogger(fileLogger)
 	//Add the default print fields comment then message
@@ -64,78 +64,21 @@ func LogMessage(name string, note string, msg interfaces.IMsg) {
 
 	if msg == nil {
 		// include nonempty hash to get spacing right
-		GlobalLogger.Log(LogData{"logname": name, "comment": note, "hash": " ", "message": "-nil-"})
+		GlobalLogger.Log(LogData{"logname": name, "comment": note, "message": "-nil-"})
 		return
 	}
 
-	hash := "??????"
-	mhash := "??????"
-	rhash := "??????"
-	t := byte(0)
-	var embeddedMsg interfaces.IMsg
-
-	t = msg.Type()
-	// work around message that don't have hashes yet ...
-	mh := msg.GetMsgHash()
-	if mh != nil && !reflect.ValueOf(mh).IsNil() {
-		mhash = mh.String()[:6]
-	}
-	h := msg.GetHash()
-	if h != nil && !reflect.ValueOf(h).IsNil() {
-		hash = h.String()[:6]
-	}
-	rh := msg.GetRepeatHash()
-	if rh != nil && !reflect.ValueOf(rh).IsNil() {
-		rhash = rh.String()[:6]
-	}
-
-	if msg.Type() != constants.ACK_MSG && msg.Type() != constants.MISSING_DATA {
-		addmsg(msg) // Keep message we have seen for a while
-	}
-
-	// to := ""
-	//if msg.IsPeer2Peer() {
-	//	if 0 == msg.GetOrigin() {
-	//		to = "RandomPeer"
-	//	} else {
-	//		// right for sim... what about network ?
-	//		to = fmt.Sprintf("FNode%02d", msg.GetOrigin()-1)
-	//	}
-	//} else {
-	//	//to = "broadcast"
-	//}
-
-	embeddedHash := ""
-	switch t {
-	case constants.VOLUNTEERAUDIT, constants.ACK_MSG:
-		embeddedHash = fmt.Sprintf(" EmbeddedMsg: %x", msg.GetHash().Bytes()[:3])
-		fixed := msg.GetHash().Fixed()
-		embeddedMsg = getmsg(fixed)
-		if embeddedMsg == nil {
-			embeddedHash += "(unknown)"
-		}
-	}
-
-	if embeddedHash == "" {
-		GlobalLogger.Log(LogData{"logname": name, "comment": note, "hash": Delay_formater("M-%v|R-%v|H-%v|%p", mhash, rhash, hash, msg), "message": msg})
-	} else {
-		GlobalLogger.Log(LogData{"logname": name, "comment": note, "hash": Delay_formater("M-%v|R-%v|H-%v|%p", mhash, rhash, hash, msg), "message": msg, "embeddedhash": embeddedHash})
-	}
-
-	if embeddedMsg != nil {
-		LogMessage(name, note+" EmbeddedMsg:", embeddedMsg)
-	}
-
+	GlobalLogger.Log(LogData{"logname": name, "comment": note, "message": msg})
 }
 
 // Log a message with a state timestamp
 func StateLogMessage(FactomNodeName string, DBHeight int, CurrentMinute int, logName string, comment string, msg interfaces.IMsg) {
-	GlobalLogger.Log(LogData{"logname": FactomNodeName + "_" + logName + ".txt", "dbht": Delay_formater("%07d-:-%-2d ", DBHeight, CurrentMinute), "comment": comment})
+	GlobalLogger.Log(LogData{"logname": FactomNodeName + "_" + logName ", "dbht": Delay_formater("%07d-:-%-2d ", DBHeight, CurrentMinute), "comment": comment, "message": MsgFormatter(msg)})
 }
 
 // Log a printf with a state timestamp
 func StateLogPrintf(FactomNodeName string, DBHeight int, CurrentMinute int, logName string, format string, more ...interface{}) {
-	GlobalLogger.Log(LogData{"logname": FactomNodeName + "_" + logName + ".txt",
+	GlobalLogger.Log(LogData{"logname": FactomNodeName + "_" + logName,
 		"dbht":    Delay_formater("%07d-:-%-2d ", DBHeight, CurrentMinute),
 		"comment": Delay_formater(format, more...)})
 }
@@ -226,5 +169,62 @@ func addNodeNames(s string) (rval string) {
 // this is where eventually we will handle the addname and message history stuff we used to do
 func MsgFormatter(v interface{}) string {
 	msg := v.(interfaces.IMsg)
-	return addNodeNames(msg.String())
+
+	if msg == nil {
+		// include nonempty hash to get spacing right
+		return "-nil-"
+	}
+
+	hash := "??????"
+	mhash := "??????"
+	rhash := "??????"
+	t := byte(0)
+	var embeddedMsg interfaces.IMsg
+
+	t = msg.Type()
+	// work around message that don't have hashes yet ...
+	mh := msg.GetMsgHash()
+	if mh != nil && !reflect.ValueOf(mh).IsNil() {
+		mhash = mh.String()[:6]
+	}
+	h := msg.GetHash()
+	if h != nil && !reflect.ValueOf(h).IsNil() {
+		hash = h.String()[:6]
+	}
+	rh := msg.GetRepeatHash()
+	if rh != nil && !reflect.ValueOf(rh).IsNil() {
+		rhash = rh.String()[:6]
+	}
+
+	if msg.Type() != constants.ACK_MSG && msg.Type() != constants.MISSING_DATA {
+		addmsg(msg) // Keep message we have seen for a while
+	}
+
+	// to := ""
+	//if msg.IsPeer2Peer() {
+	//	if 0 == msg.GetOrigin() {
+	//		to = "RandomPeer"
+	//	} else {
+	//		// right for sim... what about network ?
+	//		to = fmt.Sprintf("FNode%02d", msg.GetOrigin()-1)
+	//	}
+	//} else {
+	//	//to = "broadcast"
+	//}
+
+	embeddedHash := ""
+	switch t {
+	case constants.VOLUNTEERAUDIT, constants.ACK_MSG:
+		embeddedHash = fmt.Sprintf(" EmbeddedMsg: m-%x", msg.GetHash().Bytes()[:3])
+		fixed := msg.GetHash().Fixed()
+		embeddedMsg = getmsg(fixed)
+		if embeddedMsg == nil {
+			embeddedHash += "(unknown)"
+		}
+	}
+	if embeddedMsg == nil {
+		return addNodeNames(fmt.Sprintf("M-%v|R-%v|H-%v|%p %s EmbeddedMsg:%s", mhash, rhash, hash, msg, msg.String(), embeddedHash))
+	}
+	return addNodeNames(fmt.Sprintf("M-%v|R-%v|H-%v|%p %s %s\nEmbeddedMsg:%s", mhash, rhash, hash, msg, msg.String(), embeddedHash, MsgFormatter(embeddedMsg)))
+
 }

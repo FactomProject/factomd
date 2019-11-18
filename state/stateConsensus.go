@@ -13,6 +13,9 @@ import (
 	"sort"
 	"time"
 
+	"github.com/FactomProject/factomd/log"
+	"github.com/FactomProject/factomd/modules/logging"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
@@ -24,7 +27,7 @@ import (
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/util/atomic"
 
-	llog "github.com/FactomProject/factomd/log"
+	. "github.com/FactomProject/factomd/modules/logging"
 )
 
 // consenLogger is the general logger for all consensus related logs. You can add additional fields,
@@ -41,7 +44,7 @@ var _ = (*hash.Hash32)(nil)
 //***************************************************************
 
 func (s *State) CheckFileName(name string) bool {
-	return llog.CheckFileName(name)
+	return true
 }
 
 func (s *State) DebugExec() (ret bool) {
@@ -50,20 +53,22 @@ func (s *State) DebugExec() (ret bool) {
 
 func (s *State) LogMessage(logName string, comment string, msg interfaces.IMsg) {
 	if s.DebugExec() {
-		if s == nil {
-			llog.StateLogMessage("unknown", 0, 0, logName, comment, msg)
+		if s == nil || s.logging == nil {
+			log.GlobalLogger.Log(LogData{"logname": "unknown" + "_" + logName + ".txt", "dbht": "unknown", "comment": comment, "message": msg})
 		} else {
-			llog.StateLogMessage(s.FactomNodeName, int(s.LLeaderHeight), int(s.CurrentMinute), logName, comment, msg)
+			s.logging.Log(LogData{"logname": logName, "comment": comment, "message": msg})
 		}
 	}
 }
 
 func (s *State) LogPrintf(logName string, format string, more ...interface{}) {
 	if s.DebugExec() {
-		if s == nil {
-			llog.StateLogPrintf("unknown", 0, 0, logName, format, more...)
+		if s == nil || s.logging != nil {
+			log.GlobalLogger.Log(LogData{"logname": "unknown" + "_" + logName,
+				"dbht":    "unknown",
+				"comment": Delay_formater(format, more...)})
 		} else {
-			llog.StateLogPrintf(s.FactomNodeName, int(s.LLeaderHeight), int(s.CurrentMinute), logName, format, more...)
+			s.logging.Log(logging.LogData{"comment": logging.Delay_formater(format, more...)})
 		}
 	}
 }
@@ -2331,12 +2336,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		}
 
 		dblk, err := s.DB.FetchDBlockByHeight(dbheight - 1)
-		if dblk != nil {
-			hashes := dblk.GetEntryHashes()
-			if hashes != nil {
-				llog.LogPrintf("marshalsizes.txt", "DirectoryBlock unmarshaled entry count: %d", len(hashes))
-			}
-		}
+
 		if err != nil || dblk == nil {
 			dbstate := s.GetDBState(dbheight - 1)
 			if dbstate == nil || !(!dbstate.IsNew || dbstate.Locked || dbstate.Saved) {
