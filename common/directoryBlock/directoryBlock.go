@@ -373,6 +373,7 @@ func (b *DirectoryBlock) BuildKeyMerkleRoot() (keyMR interfaces.IHash, err error
 	if err != nil {
 		return nil, err
 	}
+	b.HeaderHash = headerHash
 	hashes = append(hashes, headerHash)
 	hashes = append(hashes, bodyKeyMR)
 	merkle := primitives.BuildMerkleTreeStore(hashes)
@@ -442,7 +443,7 @@ func (b *DirectoryBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 }
 
 func (h *DirectoryBlock) GetTimestamp() interfaces.Timestamp {
-	return h.GetHeader().GetTimestamp()
+	return h.GetHeader().GetTimestamp().Clone()
 }
 
 func (b *DirectoryBlock) UnmarshalBinary(data []byte) (err error) {

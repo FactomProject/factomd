@@ -11,6 +11,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	llog "github.com/FactomProject/factomd/log"
 )
 
 // EBlock is the Entry Block. It holds the hashes of the Entries and its Merkle
@@ -319,6 +320,7 @@ func (e *EBlock) unmarshalBodyBinaryData(data []byte) (newData []byte, err error
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling: %v", r)
 		}
 	}()
 	e.Init()

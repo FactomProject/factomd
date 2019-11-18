@@ -1,4 +1,4 @@
-package simtest
+package longtest
 
 import (
 	"testing"

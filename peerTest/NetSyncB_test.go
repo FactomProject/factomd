@@ -1,14 +1,13 @@
 package simtest
 
 import (
-	"testing"
-
 	. "github.com/FactomProject/factomd/testHelper"
+	"testing"
 )
 
 /*
 This test is the part B of a Network/Follower A/B pair of tests used to test
-Just boots to test that follower can sync
+Just boots to test that follower can sync over a network
 */
 func TestSyncB(t *testing.T) {
 
@@ -21,6 +20,7 @@ func TestSyncB(t *testing.T) {
 	params := map[string]string{
 		"--db":               "LDB",
 		"--network":          "LOCAL",
+		"--nodename":         "TestB",
 		"--net":              "alot+",
 		"--enablenet":        "true",
 		"--blktime":          "30",
@@ -31,7 +31,7 @@ func TestSyncB(t *testing.T) {
 		"--peers":            peers,
 	}
 
-	state0 := SetupSim("F", params, 7, 0, 0, t)
-	WaitForBlock(state0, 6)
+	state0 := SetupSim("F", params, 10, 0, 0, t)
+	WaitForBlock(state0, 9)
 	Halt(t)
 }

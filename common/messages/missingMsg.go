@@ -15,6 +15,8 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 
 	"github.com/FactomProject/factomd/common/messages/msgbase"
+
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -116,7 +118,7 @@ func (m *MissingMsg) GetMsgHash() (rval interfaces.IHash) {
 }
 
 func (m *MissingMsg) GetTimestamp() interfaces.Timestamp {
-	return m.Timestamp
+	return m.Timestamp.Clone()
 }
 
 func (m *MissingMsg) Type() byte {
@@ -127,6 +129,8 @@ func (m *MissingMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling: %v", r)
+
 		}
 	}()
 	newData = data

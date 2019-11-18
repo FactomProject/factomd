@@ -15,6 +15,8 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/util/atomic"
+
+	llog "github.com/FactomProject/factomd/log"
 )
 
 var ValidationDebug bool = false
@@ -53,7 +55,19 @@ func (s *State) DoProcessing() {
 		for i2 = 0; p2 && i2 < 20; i2++ {
 			p2 = s.UpdateState()
 		}
-		if !p1 && !p2 {
+		// Call process at least every second to insure MMR runs.
+		now := s.GetTimestamp()
+		p3 := false
+		// If we haven't process messages in over a seconds go process them now
+		if now.GetTimeMilli()-s.ProcessTime.GetTimeMilli() > int64(s.FactomSecond()/time.Millisecond) {
+			for s.LeaderPL.Process(s) {
+				p3 = true
+			}
+			s.ProcessTime = now
+		}
+
+		// if we were unable to accomplish any work sleep a bit.
+		if !p1 && !p2 && !p3 {
 			// No work? Sleep for a bit
 			time.Sleep(10 * time.Millisecond)
 			s.ValidatorLoopSleepCnt++
@@ -78,6 +92,8 @@ func (s *State) DoProcessing() {
 func (s *State) ValidatorLoop() {
 	defer func() {
 		if r := recover(); r != nil {
+			fmt.Println("A panic state occurred in ValidatorLoop.", r)
+			llog.LogPrintf("recovery", "A panic state occurred in ValidatorLoop. %v", r)
 			if s.EventsService != nil {
 				event := events.NodeErrorMessage(eventmessages.NodeMessageCode_GENERAL,
 					"A panic state occurred in ValidatorLoop.", r)
@@ -112,22 +128,11 @@ func (s *State) ValidatorLoop() {
 				currentMinute = 9 // treat minute 10 as an extension of minute 9
 			}
 			if lastHeight == int(s.LLeaderHeight) && lastMinute == currentMinute && s.LeaderVMIndex == lastVM {
-				// This eom was already generated. We shouldn't generate it again.
-				// This does mean we missed an EOM boundary, and the next EOM won't occur for another
-				// "minute". This could cause some serious sliding, as minutes could be an addition 100%
-				// in length.
-				if c == -1 { // This means we received a normal eom cadence timer
-					c = 8 // Send 8 retries on a 1/10 of the normal minute period
-				}
-				if c > 0 {
-					go func() {
-						// We sleep for 1/10 of a minute, and try again
-						time.Sleep(s.GetMinuteDuration() / 10)
-						s.tickerQueue <- c - 1
-					}()
-				}
-				s.LogPrintf("timer", "retry %d", c)
-				s.LogPrintf("validator", "retry %d  %d-:-%d %d", c, s.LLeaderHeight, currentMinute, s.LeaderVMIndex)
+
+				// Drop ticker
+
+				s.LogPrintf("timer", "drop %d", c)
+				s.LogPrintf("validator", "drop %d  %d-:-%d %d", c, s.LLeaderHeight, currentMinute, s.LeaderVMIndex)
 				continue // Already generated this eom
 			}
 

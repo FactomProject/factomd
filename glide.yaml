@@ -22,7 +22,7 @@ import:
 - package: github.com/FactomProject/serveridentity
   subpackages:
   - identity
-- package: github.com/FactomProject/web
+- package: github.com/gorilla/mux
 - package: github.com/btcsuitereleases/btcutil
   subpackages:
   - base58

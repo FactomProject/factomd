@@ -6,7 +6,6 @@ package wsapi
 
 import (
 	"encoding/hex"
-	"fmt"
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -186,6 +185,16 @@ func handleAckByEntryHash(hash interfaces.IHash, state interfaces.IState) (inter
 			answer.CommitTxID = txid.String()
 			answer.CommitData.Status = constants.AckStatusString(constants.AckStatusDBlockConfirmed)
 		}
+		_, _, txTime, _, err := state.GetSpecificACKStatus(txid)
+		if err != nil {
+			return nil, NewInternalError()
+		}
+		if txTime != nil {
+			answer.CommitData.TransactionDate = txTime.GetTimeMilli()
+			if txTime.GetTimeMilli() > 0 {
+				answer.CommitData.TransactionDateString = txTime.String()
+			}
+		}
 
 		// Now we will exit, as any commit found below will be less than dblock confirmed.
 		return answer, nil
@@ -313,7 +322,7 @@ func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{},
 			if eTxID == "" {
 				eHash, err := state.FetchEntryHashFromProcessListsByTxID(ackReq.TxID)
 				if err != nil {
-					fmt.Println("FetchEntryHashFromProcessListsByTxID:", err)
+					wsLog.Println("FetchEntryHashFromProcessListsByTxID:", err)
 				} else {
 					eTxID = eHash.String()
 				}
@@ -576,7 +585,6 @@ func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{},
 			break
 		default:
 			return nil, NewInternalError()
-			break
 		}
 	}
 

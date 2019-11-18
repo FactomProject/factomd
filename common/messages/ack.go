@@ -15,6 +15,7 @@ import (
 	"github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/common/primitives"
 
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -95,7 +96,7 @@ func (m *Ack) Type() byte {
 }
 
 func (m *Ack) GetTimestamp() interfaces.Timestamp {
-	return m.Timestamp
+	return m.Timestamp.Clone()
 }
 
 func (m *Ack) VerifySignature() (bool, error) {
@@ -107,41 +108,32 @@ func (m *Ack) VerifySignature() (bool, error) {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *Ack) Validate(s interfaces.IState) int {
-	//	atomic.WhereAmI2("Ack.Validate()", 1)
 	// If too old, it isn't valid.
-	if m.DBHeight <= s.GetHighestSavedBlk() {
-
-		s.LogMessage("ackQueue", "drop, from past", m)
+	if m.DBHeight < s.GetLLeaderHeight() {
+		s.LogMessage("executeMsg", "drop, from past", m)
 		return -1
 	}
-
-	delta := (int(m.DBHeight)-int(s.GetLeaderPL().GetDBHeight()))*10 + (int(m.Minute) - int(s.GetCurrentMinute()))
 
 	// Update the highest known ack to start requesting
 	// DBState blocks if necessary
 	if s.GetHighestAck() < m.DBHeight {
-		if delta > constants.MaxAckHeightMinuteDelta { // cap at a relative 200 blks due to fd-850
-			s.SetHighestAck(s.GetLeaderPL().GetDBHeight() + constants.MaxAckHeightMinuteDelta/10)
-		} else {
-			s.SetHighestAck(m.DBHeight)
-		}
+		s.SetHighestAck(m.DBHeight)
 	}
 
-	if delta > 50 {
-		s.LogMessage("ackQueue", "drop ack from future", m)
-		// when we get caught up we will either get a DBState with this message or we will missing message it.
-		// but if it was malicious then we don't want to keep it around filling up queues.
+	// drop future acks that are far in the future and not near the block we expect to build as soon as the boot finishes.
+	if m.DBHeight-s.GetLLeaderHeight() > 5 && m.DBHeight != s.GetHighestKnownBlock() && m.DBHeight != s.GetHighestKnownBlock()+1 {
+		s.LogMessage("executeMsg", "drop, from far future", m)
 		return -1
 	}
 
-	if delta > 30 { // REVIEW: should we decrease this limit since msg goes to dependentHolding ?
-		return s.HoldForHeight(m.DBHeight, m)
+	if m.DBHeight > s.GetLLeaderHeight() {
+		return s.HoldForHeight(m.DBHeight, 0, m) // release the ACKs at the start of minute 0 of their block
 	}
 
 	// Only new acks are valid. Of course, the VMIndex has to be valid too.
 	msg, _ := s.GetMsg(m.VMIndex, int(m.DBHeight), int(m.Height))
 	if msg != nil {
-		if msg == m {
+		if !msg.GetMsgHash().IsSameAs(m.GetHash()) {
 			s.LogMessage("executeMsg", "Ack slot taken", m)
 			s.LogMessage("executeMsg", "found:", msg)
 		} else {
@@ -165,12 +157,12 @@ func (m *Ack) Validate(s interfaces.IState) int {
 			s.LogPrintf("executeMsg", "VerifyAuthoritySignature Failed %v", err)
 			// Don't return fail here because the message might be a future message and thus become valid in the future.
 		}
-		if ackSigned <= 0 {
-			if m.DBHeight > s.GetLLeaderHeight() {
-				s.LogPrintf("executeMsg", "Hold, Not signed by a leader")
-				return s.HoldForHeight(m.DBHeight, m)
-			} else {
 
+		if ackSigned <= 0 {
+			if m.DBHeight == s.GetLLeaderHeight() && m.Minute < byte(s.GetCurrentMinute()) {
+				s.LogPrintf("executeMsg", "Hold, Not signed by a leader")
+				return 0
+			} else {
 				s.LogPrintf("executeMsg", "Drop, Not signed by a leader")
 				return -1
 			}
@@ -227,6 +219,7 @@ func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling: %v", r)
 		}
 	}()
 

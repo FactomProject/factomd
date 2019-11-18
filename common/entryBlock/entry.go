@@ -15,6 +15,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/primitives/random"
+	llog "github.com/FactomProject/factomd/log"
 )
 
 // An Entry is the element which carries user data
@@ -314,6 +315,7 @@ func (e *Entry) UnmarshalBinaryData(data []byte) (_ []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling: %v", r)
 		}
 	}()
 

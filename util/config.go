@@ -8,8 +8,9 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/log"
-	"gopkg.in/gcfg.v1"
+
+	llog "github.com/FactomProject/factomd/log"
+	gcfg "gopkg.in/gcfg.v1"
 )
 
 var _ = fmt.Print
@@ -341,6 +342,7 @@ func GetChangeAcksHeight(filename string) (change uint32, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error getting acks - %v\n", r)
+			llog.LogPrintf("recovery", "Error getting acks - %v", r)
 		}
 	}()
 
@@ -389,8 +391,8 @@ func ReadConfig(filename string) *FactomdConfig {
 	err = gcfg.FatalOnly(gcfg.ReadFileInto(cfg, filename))
 	if err != nil {
 		if reportedError[filename] != err.Error() {
-			log.Printfln("Reading from '%s'", filename)
-			log.Printfln("Cannot open custom config file,\nStarting with default settings.\n%v\n", err)
+			fmt.Printf("Reading from '%s'\n", filename)
+			fmt.Printf("Cannot open custom config file,\nStarting with default settings.\n%v\n", err)
 			// Remember the error reported for this filename
 			reportedError[filename] = err.Error()
 		}

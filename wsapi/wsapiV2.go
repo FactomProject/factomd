@@ -26,55 +26,70 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/receipts"
-	"github.com/FactomProject/web"
 )
 
 const API_VERSION string = "2.0"
 
-func HandleV2(ctx *web.Context) {
+func (server *Server) AddV2Endpoints() {
+	server.addRoute("/v2", HandleV2)
+}
+
+func HandleV2(writer http.ResponseWriter, request *http.Request) {
 	n := time.Now()
 	defer HandleV2APICallGeneral.Observe(float64(time.Since(n).Nanoseconds()))
-	ServersMutex.Lock()
-	state := ctx.Server.Env["state"].(interfaces.IState)
-	ServersMutex.Unlock()
 
-	if err := checkAuthHeader(state, ctx.Request); err != nil {
-		remoteIP := ""
-		remoteIP += strings.Split(ctx.Request.RemoteAddr, ":")[0]
-		fmt.Printf("Unauthorized V2 API client connection attempt from %s\n", remoteIP)
-		ctx.ResponseWriter.Header().Add("WWW-Authenticate", `Basic realm="factomd RPC"`)
-		http.Error(ctx.ResponseWriter, "401 Unauthorized.", http.StatusUnauthorized)
-
+	state, err := GetState(request)
+	if err != nil {
+		wsLog.Errorf("failed to extract port from request: %s", err)
+		writer.WriteHeader(http.StatusOK)
 		return
 	}
 
-	body, err := ioutil.ReadAll(ctx.Request.Body)
+	if err := checkAuthHeader(state, request); err != nil {
+		handleUnauthorized(request, writer)
+		return
+	}
+
+	body, err := ioutil.ReadAll(request.Body)
 	if err != nil {
-		HandleV2Error(ctx, nil, NewInvalidRequestError())
+		HandleV2Error(writer, nil, NewInvalidRequestError())
 		return
 	}
 
 	j, err := primitives.ParseJSON2Request(string(body))
 	if err != nil {
-		HandleV2Error(ctx, nil, NewInvalidRequestError())
+		HandleV2Error(writer, nil, NewInvalidRequestError())
 		return
 	}
 
-	jsonResp, jsonError := HandleV2Request(state, j)
-
+	jsonResp, jsonError := HandleV2JSONRequest(state, j)
 	if jsonError != nil {
-		HandleV2Error(ctx, j, jsonError)
+		HandleV2Error(writer, j, jsonError)
 		return
 	}
 
-	ctx.Write([]byte(jsonResp.String()))
+	_, err = writer.Write([]byte(jsonResp.String()))
+	if err != nil {
+		wsLog.Errorf("failed to write response: %v", err)
+		HandleV2Error(writer, nil, NewInternalError())
+		return
+	}
 }
 
-func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*primitives.JSON2Response, *primitives.JSONError) {
+func HandleV2Request(_ http.ResponseWriter, request *http.Request, j *primitives.JSON2Request) (*primitives.JSON2Response, *primitives.JSONError) {
+	state, err := GetState(request)
+	if err != nil {
+		wsLog.Errorf("failed to extract port from request: %s", err)
+		return nil, NewParseError()
+	}
+	return HandleV2JSONRequest(state, j)
+}
+
+func HandleV2JSONRequest(state interfaces.IState, j *primitives.JSON2Request) (*primitives.JSON2Response, *primitives.JSONError) {
 	var resp interface{}
 	var jsonError *primitives.JSONError
 	params := j.Params
-	state.LogPrintf("apilog", "request %v", j.String())
+	wsLog.Infof("request %v", j.String())
 	switch j.Method {
 	case "replay-from-height":
 		resp, jsonError = HandleV2ReplayDBFromHeight(state, params)
@@ -160,7 +175,7 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 		jsonError = NewMethodNotFoundError()
 	}
 	if jsonError != nil {
-		state.LogPrintf("apilog", "error %v", jsonError)
+		wsLog.Errorf("error %v", jsonError)
 		return nil, jsonError
 	}
 
@@ -168,7 +183,7 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 	jsonResp.ID = j.ID
 	jsonResp.Result = resp
 
-	state.LogPrintf("apilog", "response %v", jsonResp.String())
+	wsLog.Infof("response %v", jsonResp.String())
 	return jsonResp, nil
 }
 
@@ -303,10 +318,6 @@ func ECBlockToResp(block interfaces.IEntryCreditBlock) (interface{}, *primitives
 	}
 
 	resp := new(EntryCreditBlockResponse)
-
-	if err != nil {
-		return nil, NewInternalError()
-	}
 	resp.ECBlock.Body = block.GetBody()
 	resp.ECBlock.Header = block.GetHeader()
 	resp.RawData = hex.EncodeToString(raw)
@@ -384,7 +395,7 @@ func HandleV2FBlockByHeight(state interfaces.IState, params interface{}) (interf
 	}
 
 	resp, jerr := fBlockToResp(block)
-	if err != nil {
+	if jerr != nil {
 		return nil, jerr
 	}
 
@@ -500,17 +511,20 @@ func aBlockToResp(block interfaces.IAdminBlock) (interface{}, *primitives.JSONEr
 	return resp, nil
 }
 
-func HandleV2Error(ctx *web.Context, j *primitives.JSON2Request, err *primitives.JSONError) {
+func HandleV2Error(writer http.ResponseWriter, j *primitives.JSON2Request, jErr *primitives.JSONError) {
 	resp := primitives.NewJSON2Response()
 	if j != nil {
 		resp.ID = j.ID
 	} else {
 		resp.ID = nil
 	}
-	resp.Error = err
+	resp.Error = jErr
 
-	ctx.WriteHeader(httpBad)
-	ctx.Write([]byte(resp.String()))
+	writer.WriteHeader(http.StatusOK)
+	_, err := writer.Write([]byte(resp.String()))
+	if err != nil {
+		wsLog.Errorf("failed to write error response: %v", err)
+	}
 }
 
 func MapToObject(source interface{}, dst interface{}) error {
@@ -932,6 +946,7 @@ func HandleV2DirectoryBlock(state interfaces.IState, params interface{}) (interf
 
 	d := new(DirectoryBlockResponse)
 	d.Header.PrevBlockKeyMR = block.GetHeader().GetPrevKeyMR().String()
+
 	d.Header.SequenceNumber = int64(block.GetHeader().GetDBHeight())
 	d.Header.Timestamp = block.GetHeader().GetTimestamp().GetTimeSeconds()
 	for _, v := range block.GetDBEntries() {
@@ -1589,7 +1604,7 @@ func HandleV2Diagnostics(state interfaces.IState, params interface{}) (interface
 		if state.IsSyncingDBSigs() {
 			syncInfo.Status = "Syncing DBSigs"
 		}
-		missing := state.GetUnsyncedServers(resp.LeaderHeight)
+		missing, _ := state.GetUnsyncedServers()
 		numberReceived := fedCount - len(missing)
 		syncInfo.Received = &numberReceived
 		syncInfo.Expected = &fedCount
@@ -1603,15 +1618,15 @@ func HandleV2Diagnostics(state interfaces.IState, params interface{}) (interface
 
 	// Elections information
 	eInfo := new(ElectionInfo)
-	e := state.GetElections()
-	electing := e.GetElecting()
-	if electing != -1 {
-		eInfo.InProgress = true
-		vm := e.GetVMIndex()
-		eInfo.VmIndex = &vm
-		eInfo.FedIndex = &electing
-		eInfo.FedID = e.GetFedID().String()
-		eInfo.Round = &e.GetRound()[electing]
+	if e := state.GetElections(); e != nil {
+		if electing := e.GetElecting(); electing != -1 {
+			eInfo.InProgress = true
+			vm := e.GetVMIndex()
+			eInfo.VmIndex = &vm
+			eInfo.FedIndex = &electing
+			eInfo.FedID = e.GetFedID().String()
+			eInfo.Round = &e.GetRound()[electing]
+		}
 	}
 	resp.ElectionInfo = eInfo
 

@@ -177,7 +177,12 @@ func (t *Transaction) GetTimestamp() interfaces.Timestamp {
 }
 
 func (t *Transaction) SetTimestamp(ts interfaces.Timestamp) {
-	t.MilliTimestamp = ts.GetTimeMilliUInt64()
+	milli := ts.GetTimeMilliUInt64()
+
+	if milli != t.MilliTimestamp {
+		//		messages.LogPrintf("timestamps.txt", "transaction %p changed from %d to %d @ %s", t, t.MilliTimestamp, milli, atomic.WhereAmIString(1))
+	}
+	t.MilliTimestamp = milli
 }
 
 func (t *Transaction) SetSignatureBlock(i int, sig interfaces.ISignatureBlock) {

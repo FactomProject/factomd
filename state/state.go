@@ -21,10 +21,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/FactomProject/factomd/common/constants/runstate"
+
 	"github.com/FactomProject/factomd/activations"
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/constants/runstate"
 	"github.com/FactomProject/factomd/common/globals"
 	. "github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -132,6 +133,7 @@ type State struct {
 	transCnt    int
 	lasttime    time.Time
 	tps         float64
+	longTps     float64
 	ResetTryCnt int
 	ResetCnt    int
 
@@ -180,6 +182,7 @@ type State struct {
 	apiQueue               APIMSGQueue
 	ackQueue               chan interfaces.IMsg
 	msgQueue               chan interfaces.IMsg
+	dataQueue              chan interfaces.IMsg
 	// prioritizedMsgQueue contains messages we know we need for consensus. (missing from processlist)
 	//		Currently messages from MMR handling can be put in here to fast track
 	//		them to the front.
@@ -273,12 +276,13 @@ type State struct {
 	NewEntryChains         int
 	NewEntries             int
 	LeaderTimestamp        interfaces.Timestamp
-	MessageFilterTimestamp interfaces.Timestamp
+	messageFilterTimestamp interfaces.Timestamp
 	// Maps
 	// ====
 	// For Follower
 	ResendHolding interfaces.Timestamp         // Timestamp to gate resending holding to neighbors
 	HoldingList   chan [32]byte                // Queue to process Holding in order
+	HoldingVM     int                          // VM used to build current holding list
 	Holding       map[[32]byte]interfaces.IMsg // Hold Messages
 	XReview       []interfaces.IMsg            // After the EOM, we must review the messages in Holding
 	Acks          map[[32]byte]interfaces.IMsg // Hold Acknowledgements
@@ -320,8 +324,8 @@ type State struct {
 
 	ResetRequest    bool // Set to true to trigger a reset
 	ProcessLists    *ProcessLists
-	HighestKnown    uint32
-	HighestAck      uint32
+	highestKnown    uint32
+	highestAck      uint32
 	AuthorityDeltas string
 
 	// Factom State
@@ -425,7 +429,8 @@ type State struct {
 	StateUpdateState      int64
 	ValidatorLoopSleepCnt int64
 	processCnt            int64 // count of attempts to process .. so we can see if the thread is running
-	MMRInfo                     // fields for MMR processing
+	ProcessTime           interfaces.Timestamp
+	MMRInfo               // fields for MMR processing
 
 	reportedActivations       [activations.ACTIVATION_TYPE_COUNT + 1]bool // flags about which activations we have reported (+1 because we don't use 0)
 	validatorLoopThreadID     string
@@ -557,7 +562,7 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 
 	newState.TimestampAtBoot = primitives.NewTimestampFromMilliseconds(s.TimestampAtBoot.GetTimeMilliUInt64())
 	newState.LeaderTimestamp = primitives.NewTimestampFromMilliseconds(s.LeaderTimestamp.GetTimeMilliUInt64())
-	newState.SetMessageFilterTimestamp(s.MessageFilterTimestamp)
+	newState.SetMessageFilterTimestamp(s.GetMessageFilterTimestamp())
 
 	newState.FactoshisPerEC = s.FactoshisPerEC
 
@@ -594,62 +599,6 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 		os.MkdirAll(path, 0775)
 	}
 	return newState
-}
-
-func (s *State) EmitDBStateEventsFromHeight(height int64, end int64) {
-	msgs := s.GetAllDBStateMsgsFromDatabase(height, end)
-	for _, msg := range msgs {
-		EmitStateChangeEvent(msg, eventmessages.EntityState_COMMITTED_TO_DIRECTORY_BLOCK, s)
-	}
-}
-
-func (s *State) GetAllDBStateMsgsFromDatabase(height int64, end int64) []interfaces.IMsg {
-	i := height
-	msgCount := 0
-	var msgs []interfaces.IMsg
-	for i <= end {
-
-		d, err := s.DB.FetchDBlockByHeight(uint32(i))
-		if err != nil || d == nil {
-			break
-		}
-
-		a, err := s.DB.FetchABlockByHeight(uint32(i))
-		if err != nil || a == nil {
-			break
-		}
-		f, err := s.DB.FetchFBlockByHeight(uint32(i))
-		if err != nil || f == nil {
-			break
-		}
-		ec, err := s.DB.FetchECBlockByHeight(uint32(i))
-		if err != nil || ec == nil {
-			break
-		}
-
-		var eblocks []interfaces.IEntryBlock
-		var entries []interfaces.IEBEntry
-
-		ebs := d.GetEBlockDBEntries()
-		for _, eb := range ebs {
-			eblock, _ := s.DB.FetchEBlock(eb.GetKeyMR())
-			if eblock != nil {
-				eblocks = append(eblocks, eblock)
-				for _, e := range eblock.GetEntryHashes() {
-					ent, _ := s.DB.FetchEntry(e)
-					if ent != nil {
-						entries = append(entries, ent)
-					}
-				}
-			}
-		}
-
-		dbs := messages.NewDBStateMsg(d.GetTimestamp(), d, a, f, ec, eblocks, entries, nil)
-		i++
-		msgCount++
-		msgs = append(msgs, dbs)
-	}
-	return msgs
 }
 
 func (s *State) AddPrefix(prefix string) {
@@ -3121,8 +3070,4 @@ func (s *State) ShutdownNode(exitCode int) {
 	fmt.Println(fmt.Sprintf("Initiating a graceful shutdown of node %s. The exit code is %v.", s.FactomNodeName, exitCode))
 	s.RunState = runstate.Stopping
 	s.ShutdownChan <- exitCode
-}
-
-func (s *State) IsRunLeader() bool {
-	return s.RunLeader
 }

@@ -13,9 +13,10 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/common/primitives"
 
-	"github.com/FactomProject/factomd/common/messages/msgbase"
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -129,7 +130,7 @@ func (m *Heartbeat) GetMsgHash() (rval interfaces.IHash) {
 }
 
 func (m *Heartbeat) GetTimestamp() interfaces.Timestamp {
-	return m.Timestamp
+	return m.Timestamp.Clone()
 }
 
 func (m *Heartbeat) Type() byte {
@@ -140,6 +141,7 @@ func (m *Heartbeat) UnmarshalBinaryData(data []byte) (newData []byte, err error)
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling HeartBeat: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling HeartBeat: %v", r)
 		}
 	}()
 
@@ -339,8 +341,10 @@ func (m *Heartbeat) FollowerExecute(is interfaces.IState) {
 				}
 			}
 			auditServer.SetOnline(true)
+			is.GotHeartbeat(m.Timestamp, m.DBHeight)
 		}
 	}
+
 }
 
 func (e *Heartbeat) JSONByte() ([]byte, error) {

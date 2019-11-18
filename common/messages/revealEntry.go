@@ -13,9 +13,10 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/common/primitives"
 
-	"github.com/FactomProject/factomd/common/messages/msgbase"
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -103,7 +104,7 @@ func (m *RevealEntryMsg) GetTimestamp() interfaces.Timestamp {
 	if m.Timestamp == nil {
 		m.Timestamp = new(primitives.Timestamp)
 	}
-	return m.Timestamp
+	return m.Timestamp.Clone()
 }
 
 func (m *RevealEntryMsg) Type() byte {
@@ -192,7 +193,7 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 			state.LogMessage("executeMsg", "Hold, no chain", m)
 			// No chain, we have to leave it be and maybe one will be made.
 			//old holding .., return 0
-			state.LogPrintf("dependentHolding", "Hold, No Chain M-%x is waiting on chain %x", m.GetMsgHash().Bytes()[:3], m.Entry.GetChainID().Bytes()[:3])
+			state.LogPrintf("dependentHolding", "Hold, No Chain M-%x is waiting on chain %x", m.GetMsgHash().Bytes()[:3], m.Entry.GetChainID().Bytes()[:6])
 			return state.Add(m.Entry.GetChainID().Fixed(), m) // hold for a new commit
 
 		}
@@ -247,6 +248,7 @@ func (m *RevealEntryMsg) UnmarshalBinaryData(data []byte) (newData []byte, err e
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling: %v", r)
 		}
 	}()
 

@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"os"
 	"reflect"
-	//"github.com/FactomProject/factomd/state"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -18,6 +17,8 @@ import (
 	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/goleveldb/leveldb/errors"
+
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -212,7 +213,7 @@ func (m *FedVoteVolunteerMsg) GetHash() (rval interfaces.IHash) {
 }
 
 func (m *FedVoteVolunteerMsg) GetTimestamp() interfaces.Timestamp {
-	return m.TS
+	return m.TS.Clone()
 }
 
 func (m *FedVoteVolunteerMsg) GetMsgHash() (rval interfaces.IHash) {
@@ -283,6 +284,7 @@ func (m *FedVoteVolunteerMsg) UnmarshalBinaryData(data []byte) (newData []byte, 
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling: %v", r)
 		}
 	}()
 

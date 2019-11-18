@@ -14,6 +14,8 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 
 	"github.com/FactomProject/factomd/common/messages/msgbase"
+
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -96,7 +98,7 @@ func (m *FactoidTransaction) GetMsgHash() (rval interfaces.IHash) {
 }
 
 func (m *FactoidTransaction) GetTimestamp() interfaces.Timestamp {
-	return m.Transaction.GetTimestamp()
+	return m.Transaction.GetTimestamp().Clone()
 }
 
 func (m *FactoidTransaction) GetTransaction() interfaces.ITransaction {
@@ -187,6 +189,7 @@ func (m *FactoidTransaction) UnmarshalTransData(datax []byte) (newData []byte, e
 		return
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling Transaction Factoid: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling Transaction Factoid: %v", r)
 		}
 	}()
 
@@ -202,6 +205,7 @@ func (m *FactoidTransaction) UnmarshalBinaryData(data []byte) (newData []byte, e
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling Factoid: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling Factoid: %v", r)
 		}
 	}()
 

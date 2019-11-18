@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"time"
 
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -74,6 +75,7 @@ func validateParcelPart(parcel Parcel, partial *PartialMessage) (isValid bool, e
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error in validateParcelPart")
+			llog.LogPrintf("recovery", "Error in validateParcelPart %v", r)
 			return
 		}
 	}()

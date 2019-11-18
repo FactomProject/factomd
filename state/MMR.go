@@ -68,57 +68,61 @@ func (s *State) MMRDummy() {
 // Ask VM for an MMR for this height with delay ms before asking the network
 // called from validation thread to notify MMR that we are missing a message
 func (vm *VM) ReportMissing(height int, delay int64) {
-	if height <= vm.HighestAsk { // Don't report the same height twice
-		return
-	}
-
-	//	Currently if the asks are full, we'd rather just skip
-	//	than block the thread. We report missing multiple times, so if
-	//	we exit, we will come around and ask again.
-	if len(vm.p.State.asks) == cap(vm.p.State.asks) {
-		return
-	}
-
-	vm.p.State.LogPrintf("mmr", "ReportMissing %d/%d/%d, delay %d", vm.p.DBHeight, vm.VmIndex, height, delay)
+	vm.p.State.LogPrintf("missing_messages", "ReportMissing %d/%d/%d, delay %d", vm.p.DBHeight, vm.VmIndex, height, delay)
 
 	now := vm.p.State.GetTimestamp().GetTimeMilli()
-	if delay < 500 {
-		delay = 500 // Floor for delays is 500ms so there is time to merge adjacent requests
+	oneSeconds := int64(vm.p.State.FactomSecond().Nanoseconds() / time.Millisecond.Nanoseconds())
+	if delay < oneSeconds {
+		delay = oneSeconds // Floor for delays is 1 second so there is time to merge adjacent requests
 	}
 	lenVMList := len(vm.List)
 	// ask for all missing messages
 	var i int
-	for i = vm.HighestAsk; i < lenVMList; i++ {
+	for i = vm.Height; i < lenVMList; i++ {
 		if i < 0 { // -1 is the default highestask, as we have not asked yet. Obviously this index does not exist
 			continue
 		}
 		if vm.List[i] == nil {
-			vm.p.State.Ask(int(vm.p.DBHeight), vm.VmIndex, i, now+delay) // send it to the MMR thread
-			vm.HighestAsk = i                                            // We have asked for all nils up to this height
+			ok := vm.p.State.Ask(int(vm.p.DBHeight), vm.VmIndex, i, now+delay) // send it to the MMR thread
+			if !ok {
+				return // If we can't ask for one then don't try the next or highest ask might be set wrong
+			}
 		}
 	}
 
-	// if we are asking above the current list
-	if height >= lenVMList {
-		vm.p.State.Ask(int(vm.p.DBHeight), vm.VmIndex, height, now+delay) // send it to the MMR thread
-		vm.HighestAsk = height                                            // We have asked for all nils up to this height
+	// if we are asking above the current list so ask all the way to the height
+	for i = lenVMList; i <= height; i++ {
+		vm.p.State.Ask(int(vm.p.DBHeight), vm.VmIndex, i, now+delay) // send it to the MMR thread
 	}
 
 }
 
 // Ask is called from ReportMissing which comes from validation thread to notify MMR that we are missing a message
-func (s *State) Ask(DBHeight int, vmIndex int, height int, when int64) {
+// return false if we are unable to ask
+func (s *State) Ask(DBHeight int, vmIndex int, height int, when int64) bool {
 	if s.asks == nil { // If it is nil, there is no makemmrs
-		return
+		return false
 	}
 	// do not ask for things in the past or very far into the future
 	if DBHeight < int(s.LLeaderHeight) || DBHeight > int(s.LLeaderHeight)+1 || DBHeight < int(s.DBHeightAtBoot) {
-		return
+		return false
+	}
+	vm := s.LeaderPL.VMs[vmIndex]
+
+	//	Currently if the asks are full, we'd rather just skip
+	//	than block the thread. We report missing multiple times, so if
+	//	we exit, we will come around and ask again.
+	// We have to do this because MMR can provide messages from inmsgqueue by pushing them into msg queue
+	// if msgqueue is full then the two threads can deadlock
+
+	if len(vm.p.State.asks) == cap(vm.p.State.asks) {
+		vm.p.State.LogPrintf("missing_messages", "drop, asks full %d/%d/%d", vm.p.DBHeight, vm.VmIndex, height)
+		return false
 	}
 
 	ask := askRef{plRef{DBHeight, vmIndex, height}, when}
 	s.asks <- ask
-	return
+	return true
 }
 
 // Used by debug code only
@@ -319,25 +323,32 @@ func (s *State) makeMMRs(asks <-chan askRef, adds <-chan plRef, dbheights <-chan
 
 			// time offset to pick asks to
 
-			//build MMRs with all the asks expired asks.
-			for ref, when := range pending {
-				var index dbhvm = dbhvm{ref.DBH, ref.VM}
-				// if ask is expired or we have an MMR for this DBH/VM and it's not a brand new ask
-				if now > *when {
-
-					if mmrs[index] == nil { // If we don't have a message for this DBH/VM
-						mmrs[index] = messages.NewMissingMsg(s, ref.VM, uint32(ref.DBH), uint32(ref.H))
-					} else {
-						mmrs[index].ProcessListHeight = append(mmrs[index].ProcessListHeight, uint32(ref.H))
-						// Add an ask for each msg we ask for, even if we bundle the asks.
-						// This is so the accounting adds upp.
+			//build MMRs with all the asks expired asks if we are not in ignore.
+			if !s.IgnoreMissing {
+				for ref, when := range pending {
+					var index dbhvm = dbhvm{ref.DBH, ref.VM}
+					// Drop any MMR request that are before the current height
+					if ref.DBH < int(s.LLeaderHeight) {
+						deletePendingAsk(ref)
+						continue
 					}
-					s.MissingRequestAskCnt++
-					*when = now + askDelay // update when we asked
-					// Maybe when asking for past the end of the list we should not ask again?
-				}
-			} //build a MMRs with all the expired asks in that VM at that DBH.
+					// if ask is expired or we have an MMR for this DBH/VM and it's not a brand new ask
+					if now > *when {
 
+						if mmrs[index] == nil { // If we don't have a message for this DBH/VM
+							mmrs[index] = messages.NewMissingMsg(s, ref.VM, uint32(ref.DBH), uint32(ref.H))
+						} else {
+							mmrs[index].ProcessListHeight = append(mmrs[index].ProcessListHeight, uint32(ref.H))
+							// Add an ask for each msg we ask for, even if we bundle the asks.
+							// This is so the accounting adds upp.
+						}
+						s.MissingRequestAskCnt++
+						*when = now + askDelay // update when we asked
+						// Maybe when asking for past the end of the list we should not ask again?
+					}
+				} //build a MMRs with all the expired asks in that VM at that DBH.
+
+			}
 			for index, mmr := range mmrs {
 				s.LogMessage(logname, "sendout", mmr)
 				if MMR_enable {

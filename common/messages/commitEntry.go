@@ -15,6 +15,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 
 	"github.com/FactomProject/factomd/common/messages/msgbase"
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -120,7 +121,7 @@ func (m *CommitEntryMsg) GetMsgHash() (rval interfaces.IHash) {
 }
 
 func (m *CommitEntryMsg) GetTimestamp() interfaces.Timestamp {
-	return m.CommitEntry.GetTimestamp()
+	return m.CommitEntry.GetTimestamp().Clone()
 }
 
 func (m *CommitEntryMsg) Type() byte {
@@ -148,6 +149,7 @@ func (m *CommitEntryMsg) UnmarshalBinaryData(data []byte) (newData []byte, err e
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling Commit entry Message: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling Commit entry Message: %v", r)
 		}
 	}()
 	newData = data
