@@ -348,10 +348,10 @@ func startServer(w *worker.Thread, node *fnode.FactomNode) {
 	elections.Run(w, node.State)
 	node.State.StartMMR(w)
 
-	w.Run(func() { state.LoadDatabase(node.State) })
-	w.Run(node.State.GoSyncEntries)
-	w.Run(func() { Timer(node.State) })
-	w.Run(node.State.MissingMessageResponseHandler.Run)
+	w.Run("LoadDatabase", func() { state.LoadDatabase(node.State) })
+	w.Run("SyncEntries", node.State.GoSyncEntries)
+	w.Run("Ticker", func() { Timer(node.State) })
+	w.Run("MMResponceHandler", node.State.MissingMessageResponseHandler.Run)
 }
 
 func setupFirstAuthority(s *state.State) {

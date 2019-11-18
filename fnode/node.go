@@ -42,7 +42,7 @@ func New(s *state.State) *FactomNode {
 	n.Init(Root, "svc") // root of service
 	fnodes = append(fnodes, n)
 	n.addFnodeName()
-	n.State.Init(n, n.State.FactomNodeName)
+	//	n.State.Init(n, n.State.FactomNodeName)
 	n.outMessages = generated.Publish_PubBase_IMsg(pubsub.PubFactory.Base().Publish(n.GetParentName()+"/msgValidation/messages", pubsub.PubMultiWrap()))
 
 	return n

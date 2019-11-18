@@ -196,7 +196,7 @@ func (p *P2PProxy) Len() int {
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
 func (p *P2PProxy) networkHousekeeping(w *worker.Thread) {
-	w.Init(p, "networkHousekeeping")
+	//	w.Init(p, "networkHousekeeping")
 	w.OnRun(func() {
 		for {
 			time.Sleep(1 * time.Second)
@@ -213,9 +213,9 @@ func (p *P2PProxy) StartProxy(w *worker.Thread) {
 	}
 
 	//p.logger.Info("Starting P2PProxy")
-	w.Spawn(p.ManageOutChannel) // Bridges between network format Parcels and factomd messages (incl. addressing to peers)
-	w.Spawn(p.ManageInChannel)
-	w.Spawn(p.networkHousekeeping) // This goroutine executes once a second to keep the proxy apprised of the network status.
+	w.Spawn("ManageOut", p.ManageOutChannel) // Bridges between network format Parcels and factomd messages (incl. addressing to peers)
+	w.Spawn("ManageIn", p.ManageInChannel)
+	w.Spawn("Housekeeping", p.networkHousekeeping) // This goroutine executes once a second to keep the proxy apprised of the network status.
 }
 
 func (p *P2PProxy) StopProxy() {
@@ -224,7 +224,7 @@ func (p *P2PProxy) StopProxy() {
 
 // manageOutChannel takes messages from the f.broadcastOut channel and sends them to the network.
 func (p *P2PProxy) ManageOutChannel(w *worker.Thread) {
-	w.Init(p, "ManageOutChannel")
+	//	w.Init(p, "ManageOutChannel")
 	w.OnRun(func() {
 		for data := range p.BroadcastOut {
 			switch data.(type) {
@@ -250,7 +250,7 @@ func (p *P2PProxy) ManageOutChannel(w *worker.Thread) {
 
 // manageInChannel takes messages from the network and stuffs it in the f.BroadcastIn channel
 func (p *P2PProxy) ManageInChannel(w *worker.Thread) {
-	w.Init(p, "ManageInChannel")
+	//	w.Init(p, "ManageInChannel")
 	w.OnRun(func() {
 		for data := range p.FromNetwork {
 			switch data.(type) {

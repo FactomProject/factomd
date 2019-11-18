@@ -73,7 +73,7 @@ func LogMessage(name string, note string, msg interfaces.IMsg) {
 
 // Log a message with a state timestamp
 func StateLogMessage(FactomNodeName string, DBHeight int, CurrentMinute int, logName string, comment string, msg interfaces.IMsg) {
-	GlobalLogger.Log(LogData{"logname": FactomNodeName + "_" + logName ", "dbht": Delay_formater("%07d-:-%-2d ", DBHeight, CurrentMinute), "comment": comment, "message": MsgFormatter(msg)})
+	GlobalLogger.Log(LogData{"logname": FactomNodeName + "_" + logName, "dbht": Delay_formater("%07d-:-%-2d ", DBHeight, CurrentMinute), "comment": comment, "message": MsgFormatter(msg)})
 }
 
 // Log a printf with a state timestamp

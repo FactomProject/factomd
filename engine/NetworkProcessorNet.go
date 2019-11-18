@@ -31,15 +31,14 @@ func NetworkProcessorNet(w *worker.Thread, fnode *fnode.FactomNode) {
 	stubs(w, fnode)
 	BasicMessageValidation(w, fnode)
 	sort(w, fnode) // TODO: Replace this service entirely
-	w.Run(func() { NetworkOutputs(fnode) })
-	w.Run(func() { InvalidOutputs(fnode) })
+	w.Run("NetworkOutputs", func() { NetworkOutputs(fnode) })
+	w.Run("InvalidOutputs", func() { InvalidOutputs(fnode) })
 }
 
 // TODO: sort should not exist, we should have each module subscribing to the
 //		msgs, rather than this one.
 func sort(parent *worker.Thread, fnode *fnode.FactomNode) {
-	parent.Spawn(func(w *worker.Thread) {
-		w.Init(&parent.Name, "msgSort")
+	parent.Spawn("MsgSort", func(w *worker.Thread) {
 
 		// Run init conditions. Setup publishers
 		sub := pubsub.SubFactory.Channel(50)
@@ -69,9 +68,7 @@ func sort(parent *worker.Thread, fnode *fnode.FactomNode) {
 
 // stubs are things we need to implement
 func stubs(parent *worker.Thread, fnode *fnode.FactomNode) {
-	parent.Spawn(func(w *worker.Thread) {
-		w.Init(&parent.Name, "stubs")
-
+	parent.Spawn("stubs", func(w *worker.Thread) {
 		// Run init conditions. Setup publishers
 		pub := pubsub.PubFactory.Base().Publish(fnode.State.GetFactomNodeName() + "/blocktime")
 
@@ -154,7 +151,7 @@ func FromPeerToPeer(parent *worker.Thread, fnode *fnode.FactomNode) {
 		return false
 	} // func ignoreMsg(){...}
 
-	parent.Run(func() {
+	parent.Run("FromPeer", func() {
 		for {
 			// now := fnode.State.GetTimestamp()
 			cnt := 0
@@ -242,11 +239,11 @@ func FromPeerToPeer(parent *worker.Thread, fnode *fnode.FactomNode) {
 
 func BasicMessageValidation(parent *worker.Thread, fnode *fnode.FactomNode) {
 	for i := 0; i < 2; i++ { // 2 Basic message validators
-		parent.Spawn(func(w *worker.Thread) {
+		parent.Spawn("BMV", func(w *worker.Thread) {
 			ctx, cancel := context.WithCancel(context.Background())
 			// w.Name is my parent?
 			// Init my name object?
-			w.Init(&parent.Name, "bmv")
+			//			w.Init(&parent.Name, "bmv")
 
 			// Run init conditions. Setup publishers
 			msgIn := bmv.NewBasicMessageValidator(fnode.State.GetFactomNodeName())
@@ -380,7 +377,7 @@ func Peers(w *worker.Thread, fnode *fnode.FactomNode) {
 		return false
 	} // func ignoreMsg(){...}
 
-	w.Run(func() {
+	w.Run("FromAPI", func() {
 		for {
 			now := fnode.State.GetTimestamp()
 			if now.GetTimeSeconds()-fnode.State.BootTime > int64(constants.CROSSBOOT_SALT_REPLAY_DURATION.Seconds()) {

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/FactomProject/factomd/common"
 	log2 "github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/modules/logging"
 
@@ -225,7 +226,7 @@ func NewState(p *globals.FactomParams, FactomdVersion string) *State {
 	s.AddPrefix(p.Prefix)
 	// Setup the name to catch any early logging
 	s.FactomNodeName = p.Prefix + "FNode0"
-
+	s.Init(common.NilName, s.FactomNodeName)
 	s.logging = logging.NewLayerLogger(log2.GlobalLogger, nil)
 	s.logging.AddNameField("fnode", logging.Formatter("%s_"), s.FactomNodeName)
 
@@ -496,7 +497,7 @@ func (s *State) Initialize(w *worker.Thread, electionFactory interfaces.IElectio
 	s.DBStates = new(DBStateList)
 	s.DBStates.State = s
 	s.DBStates.DBStates = make([]*DBState, 0)
-	w.Run(s.DBStates.Catchup)
+	w.Run(s.GetPath()+"DBStateCatchup", s.DBStates.Catchup)
 
 	s.StatesMissing = NewStatesMissing()
 	s.StatesWaiting = NewStatesWaiting()

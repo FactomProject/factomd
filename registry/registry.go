@@ -5,6 +5,7 @@ import (
 	"runtime"
 	"sync"
 
+	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/worker"
 )
 
@@ -39,7 +40,7 @@ func (p *process) Exit() {
 }
 
 // add a new thread to the global registry
-func (p *process) addThread() *worker.Thread {
+func (p *process) addThread(parent *common.Name, name string) *worker.Thread {
 	if p.initDone {
 		panic("sub-threads must only spawn during initialization")
 	}
@@ -53,7 +54,7 @@ func (p *process) addThread() *worker.Thread {
 	defer p.Mutex.Unlock()
 	threadId := len(p.Index)
 
-	w := worker.New()
+	w := worker.New(parent, name)
 	w.ID = threadId
 	w.Register = p
 	p.Index = append(p.Index, w)
@@ -96,7 +97,7 @@ func (p *process) bindCallbacks(w *worker.Thread, initHandler worker.Handle) {
 func (p *process) Register(initFunction worker.Handle) {
 	_, file, line, _ := runtime.Caller(1)
 	caller := fmt.Sprintf("%s:%v", file[worker.Prefix:], line)
-	r := p.addThread()
+	r := p.addThread(common.NilName, "rootThread")
 	r.Caller = caller
 	r.ParentID = r.ID // root threads are their own parent
 	r.PID = p.ID
@@ -104,22 +105,22 @@ func (p *process) Register(initFunction worker.Handle) {
 }
 
 // Start a child process and register callbacks
-func (p *process) Thread(w *worker.Thread, initFunction worker.Handle) {
-	t := p.addThread()
+func (p *process) Thread(w *worker.Thread, name string, initFunction worker.Handle) {
+	t := p.addThread(&w.Name, name)
 	t.ParentID = w.ID // child threads have a parent
 	t.PID = p.ID      // set process ID
 	p.bindCallbacks(t, initFunction)
 }
 
 // fork a new process with it's own lifecycle
-func (p *process) Process(w *worker.Thread, initFunction worker.Handle) {
+func (p *process) Process(w *worker.Thread, name string, initFunction worker.Handle) {
 	f := newProcess()
 	f.Parent = p.ID // keep relation to parent process
 	// break parent relation
 	f.Register(initFunction)
 
 	// cause this process to execute as part of the run lifecycle of the parent thread
-	w.Run(f.Run)
+	w.Run(name, f.Run)
 }
 
 // interface to avoid exposing registry internals

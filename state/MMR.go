@@ -242,7 +242,7 @@ func (s *State) makeMMRs(w *worker.Thread, asks <-chan askRef, adds <-chan plRef
 	}
 
 	// tick every "factom second" to check the  pending MMRs
-	w.Run(func() {
+	w.Run("Ticker", func() {
 		for {
 			if s.RunState.IsTerminating() {
 				return // Factomd is stopping/stopped
@@ -266,7 +266,7 @@ func (s *State) makeMMRs(w *worker.Thread, asks <-chan askRef, adds <-chan plRef
 		}
 	})
 
-	w.Run(func() {
+	w.Run("MMRProcess", func() {
 		lastAskDelay := int64(0)
 		for {
 			// You have to compute this at every cycle as you can change the block time in sim control.

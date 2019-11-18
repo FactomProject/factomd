@@ -106,10 +106,10 @@ func StartSimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 
 	if loadGenerator == nil {
 		loadGenerator = NewLoadGenerator(fnode.Get(0).State)
-		w.Run(loadGenerator.KeepUsFunded)
+		w.Run("LoadGenerator", loadGenerator.KeepUsFunded)
 	}
 
-	w.Run(func() {
+	w.Run("SimControl", func() {
 		for {
 			// This splits up the command at anycodepoint that is not a letter, number or punctuation, so usually by spaces.
 			parseFunc := func(c rune) bool {

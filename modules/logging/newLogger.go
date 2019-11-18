@@ -47,6 +47,8 @@ type Ilogger interface {
 	AddNameField(name string, format FormatFunc, defaultValue string) Ilogger
 }
 
+//todo: separate logging enabling to a separate layer from filelogger
+
 type FileLogger struct {
 	traceMutex    sync.Mutex
 	files         map[string]*os.File   // cache of file handles

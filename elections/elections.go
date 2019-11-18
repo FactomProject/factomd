@@ -456,7 +456,7 @@ func Run(w *worker.Thread, s *state.State) {
 	e.Waiting = make(chan interfaces.IElectionMsg, 500)
 
 	// Actually run the elections
-	w.Run(func() {
+	w.Run("Elections", func() {
 		for {
 			msg := e.Input.Dequeue().(interfaces.IElectionMsg)
 			e.LogMessage("election", fmt.Sprintf("exec %d", e.Electing), msg.(interfaces.IMsg))

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/constants/runstate"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -90,9 +91,9 @@ func (s *State) ValidatorLoop(w *worker.Thread) {
 	// We should only generate 1 EOM for each height/minute/vmindex
 	lastHeight, lastMinute, lastVM := -1, -1, -1
 
-	w.Run(s.DoProcessing)
+	w.Run("DoProcess", s.DoProcessing)
 
-	w.Run(func() {
+	w.Run("MsgProcess", func() {
 		defer func() {
 			if r := recover(); r != nil {
 				fmt.Println("A panic state occurred in ValidatorLoop.", r)
@@ -100,6 +101,8 @@ func (s *State) ValidatorLoop(w *worker.Thread) {
 				shutdown(s)
 			}
 		}()
+		time.Sleep(10 * time.Second)
+		common.PrintAllNames()
 
 		// Look for pending inMessages, and get one if there is one.
 		for { // this is the message sort

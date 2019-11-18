@@ -186,7 +186,7 @@ func (c *Controller) StartNetwork(w *worker.Thread) {
 	// Dial all the gathered special peers
 	c.dialSpecialPeers()
 	// Start the runloop
-	w.Spawn(c.runloop)
+	w.Spawn("P2pController", c.runloop)
 }
 
 func (c *Controller) DialPeer(peer Peer, persistent bool) {
@@ -381,7 +381,7 @@ func (c *Controller) parseSpecialPeers(peersString string, peerType uint8) []*Pe
 
 // runloop is a goroutine that does all the heavy lifting
 func (c *Controller) runloop(w *worker.Thread) {
-	w.Init(c, "runloop")
+	//	w.Init(c, "runloop")
 	// In long running processes it seems the runloop is exiting.
 	//	//c.logger.Debugf("Controller.runloop() @@@@@@@@@@ starting up in %d seconds", 2)
 	time.Sleep(time.Second * time.Duration(2)) // Wait a few seconds to let the system come up.

@@ -61,7 +61,7 @@ func InitServer(state interfaces.IState) *Server {
 
 func (server *Server) Start(w *worker.Thread) {
 	//wsLog.Info("Starting API server")
-	w.Run(func() {
+	w.Run("APIServer", func() {
 		// returns ErrServerClosed on graceful close
 		if server.tlsEnabled {
 			if err := server.httpServer.ListenAndServeTLS(server.certFile, server.keyFile); err != http.ErrServerClosed {
