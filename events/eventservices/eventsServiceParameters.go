@@ -3,7 +3,6 @@ package eventservices
 import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/globals"
-	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/util"
 )
 
@@ -48,13 +47,13 @@ func selectParameters(factomParams *globals.FactomParams, config *util.FactomdCo
 	if len(factomParams.EventBroadcastContent) > 0 {
 		params.BroadcastContent, err = Parse(factomParams.EventBroadcastContent)
 		if err != nil {
-			log.Printfln("Parameter EventBroadcastContent could not be parsed: %v\n", err)
+			//log.Printfln("Parameter EventBroadcastContent could not be parsed: %v\n", err)
 			params.BroadcastContent = BroadcastOnce
 		}
 	} else if len(config.LiveFeedAPI.EventBroadcastContent) > 0 {
 		params.BroadcastContent, err = Parse(config.LiveFeedAPI.EventBroadcastContent)
 		if err != nil {
-			log.Printfln("Configuration property LiveFeedAPI.EventBroadcastContent could not be parsed: %v", err)
+			//log.Printfln("Configuration property LiveFeedAPI.EventBroadcastContent could not be parsed: %v", err)
 			params.BroadcastContent = BroadcastOnce
 		}
 	} else {

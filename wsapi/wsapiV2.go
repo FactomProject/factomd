@@ -762,7 +762,6 @@ func HandleV2RawData(state interfaces.IState, params interface{}) (interface{}, 
 }
 
 func HandleV2Anchors(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	fmt.Println("Anchors called!")
 	n := time.Now()
 	defer HandleV2APICallAnchors.Observe(float64(time.Since(n).Nanoseconds()))
 	request := new(HeightOrHashRequest)
