@@ -1,6 +1,8 @@
 package longtest
 
 import (
+	"github.com/FactomProject/factomd/common"
+	"github.com/FactomProject/factomd/pubsub"
 	"testing"
 	"time"
 
@@ -18,11 +20,13 @@ func TestRegistryViz(t *testing.T) {
 		"--net":        "alot+",
 		"--factomhome": homeDir,
 	}
-	state0 := SetupSim("L", params, 10, 0, 0, t)
+	state0 := SetupSim("LFFF", params, 10, 0, 0, t)
 	WaitBlocks(state0, 2)
 	_ = state0
-	t.Log("Graph of Thread Dependencies:")
 	t.Log(registry.Graph())
+	t.Log(pubsub.GlobalRegistry().PrintTree())
+	common.PrintAllNames()
+
 }
 
 func TestRegistryVizExistingDB(t *testing.T) {
