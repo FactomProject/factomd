@@ -795,9 +795,9 @@ func GetHardCodedGrants() []HardGrant {
 
 			// --------------------------------------------------------
 			// Samuel Vanderwaal-Brian Deery-Nolan Bauer-Nic R-The 42nd Factoid AS-Centis BV -- 9000 FCT
-			// Guide Compensation 2019-10-20 - 2019-11-15
+			// Guide Compensation 2019-09-07 to 2019-12-07
 
-			// Brian Deery total: 1800 FCT
+			// Factom, Inc. total: 1800 FCT
 			HardGrant{220201, 1800e8, validateAddress("FA2teRURMYTdYAA97zdh7rZDkxNtR1nhjryo34aaskjYqsqRSwZq")},
 
 			// Nolan Bauer total: 1800 FCT
@@ -814,16 +814,16 @@ func GetHardCodedGrants() []HardGrant {
 			// --------------------------------------------------------
 
 			// --------------------------------------------------------
-			// Brian Deery-Factom Inc. -- 900 FCT
-			// Oracle Master 2019-10-20 - 2019-11-15
+			// Factom Inc. -- 900 FCT
+			// Oracle Master Dec 9 2019 - March 9, 2020
 
 			// Factom Inc. total: 900 FCT
 			HardGrant{220201, 900e8, validateAddress("FA3fpiZ91MCRRFjVGfNXK4pg7vx3BT3aSRyoVqgptZCX7N5BNR8P")},
 			// --------------------------------------------------------
 
 			// --------------------------------------------------------
-			// Brian Deery-Factom Inc. -- 660 FCT
-			// Anchor Master 2019-10-20 - 2019-11-15
+			// Factom Inc. -- 660 FCT
+			// Anchor Master Dec 9 2019 - March 9, 2020
 
 			// Factom Inc. total: 660 FCT
 			HardGrant{220201, 660e8, validateAddress("FA3jySUFtLXb1VdAJJ5NRVNYEtZ4EBSkDB7yn6LuKGQ4P1ntARhx")},
@@ -831,7 +831,7 @@ func GetHardCodedGrants() []HardGrant {
 
 			// --------------------------------------------------------
 			// David Chapman-Factomize -- 15769 FCT
-			// Core and General Development 2019-10-20 - 2019-11-15
+			// Core and General Development 2019-12-01 - 2020-02-29
 
 			// Factomize total: 15769 FCT
 			HardGrant{220201, 15769e8, validateAddress("FA3nsSjUy5uSkqMEug8t3VcehZn5w2ciSMpgqFEEsMRwMrHoa9k3")},
@@ -839,7 +839,7 @@ func GetHardCodedGrants() []HardGrant {
 
 			// --------------------------------------------------------
 			// CryptoLogic-The Factoid Authority-Crypto Logic-Bedrock Solutions-De Facto -- 1956 FCT
-			// Factom Open Node Continuity 2019-10-20 - 2019-11-15
+			// Factom Open Node Continuity 2019-12-01 - 2020-02-29
 
 			// The Factoid Authority total: 326 FCT
 			HardGrant{220201, 326e8, validateAddress("FA2LV4s7LKA9BTgWaJNvcr9Yq8rpiH2XD3vEPY3nwSiNSrnRgkpK")},
@@ -855,8 +855,8 @@ func GetHardCodedGrants() []HardGrant {
 			// --------------------------------------------------------
 
 			// --------------------------------------------------------
-			// Brian Deery-Nolan Bauer-factomatic-David Kuiper-Factom Inc. -- 34740 FCT
-			// Protocol Development 2019-10-20 - 2019-11-15
+			// Nolan Bauer-factomatic-David Kuiper-Factom Inc. -- 34740 FCT
+			// Protocol Development Dec 9 2019 - March 9, 2020
 
 			// Nolan Bauer total: 300 FCT
 			HardGrant{220201, 300e8, validateAddress("FA2oecgJW3XWnXzHhQQoULmMeKC97uAgHcPd4kEowTb3csVkbDc9")},
@@ -873,7 +873,7 @@ func GetHardCodedGrants() []HardGrant {
 
 			// --------------------------------------------------------
 			// Samuel Vanderwaal-Exchange Committee -- 5000 FCT
-			// Legal Fees Reimbursement 2019-10-20 - 2019-11-15
+			// Legal Fees Reimbursement
 
 			// Exchange Committee total: 5000 FCT
 			HardGrant{220201, 5000e8, validateAddress("FA2fVnbYw3Hr1MCJWktLnGDrYiLnW2HwDBDVRpp3Q355jJRDwvCs")},
@@ -881,7 +881,7 @@ func GetHardCodedGrants() []HardGrant {
 
 			// --------------------------------------------------------
 			// David Chapman-Factomize -- 12069 FCT
-			// ANO Promotion / Demotion System 2019-10-20 - 2019-11-15
+			// ANO Promotion / Demotion System 2019-12-01 - 2020-02-29
 
 			// Factomize total: 12069 FCT
 			HardGrant{220201, 12069e8, validateAddress("FA3nsSjUy5uSkqMEug8t3VcehZn5w2ciSMpgqFEEsMRwMrHoa9k3")},
@@ -889,7 +889,7 @@ func GetHardCodedGrants() []HardGrant {
 
 			// --------------------------------------------------------
 			// mboender-Sphereon -- 14909 FCT
-			// Core Development Continuation 2019-10-20 - 2019-11-15
+			// Core Development Continuation 2019-12-02 - 2020-02-28
 
 			// Sphereon total: 14909 FCT
 			HardGrant{220201, 14909e8, validateAddress("FA3igxrULYqL5w4oq9vXwWzWURtvejfYh64iPZaeRqZfLpFdkFgD")},
@@ -897,7 +897,7 @@ func GetHardCodedGrants() []HardGrant {
 
 			// --------------------------------------------------------
 			// Samuel Vanderwaal-Exchange Committee -- 175 FCT
-			// G Suite Service 2019-10-20 - 2019-11-15
+			// G Suite Service
 
 			// Exchange Committee total: 175 FCT
 			HardGrant{220201, 175e8, validateAddress("FA2kd7iAuCrR2GTV39UMaBTphzvQZYVYmvLJYGsjoJRjEGoVNQFd")},
@@ -905,7 +905,7 @@ func GetHardCodedGrants() []HardGrant {
 
 			// --------------------------------------------------------
 			// Devon Katz-Canonical Ledgers-DBGrow -- 5448 FCT
-			// FAT Development 4 - Continuation 2019-10-20 - 2019-11-15
+			// FAT Development 4 - Continuation 2019-12-01 - 2020-02-01
 
 			// Canonical Ledgers total: 2980 FCT
 			HardGrant{220201, 2980e8, validateAddress("FA2xccSAfhGm5k4tPaXF9741xkQ52drWjoJodQhpPxDxepdqasMM")},
@@ -916,7 +916,7 @@ func GetHardCodedGrants() []HardGrant {
 
 			// --------------------------------------------------------
 			// David Chapman-Motion Factory-Factomize -- 800 FCT
-			// PegNet Explainer Video Backpay Grant 2019-10-20 - 2019-11-15
+			// PegNet Explainer Video Backpay Grant
 
 			// Motion Factory total: 800 FCT
 			HardGrant{220201, 800e8, validateAddress("FA3cRbg1CAzBvXpp8v3AfGuxzjePDbwqGr71MvLNanTX2QKDF1Cz")},
@@ -924,7 +924,7 @@ func GetHardCodedGrants() []HardGrant {
 
 			// --------------------------------------------------------
 			// Valentin Ganev-Factomatic -- 5500 FCT
-			// Python DID library 2019-10-20 - 2019-11-15
+			// Python DID library
 
 			// Factomatic total: 5500 FCT
 			HardGrant{220201, 5500e8, validateAddress("FA2QuNHNxgJBZyPggxkU8C16YReA4xFFxUvAGpu9azF3TaZg46SF")},
@@ -932,7 +932,7 @@ func GetHardCodedGrants() []HardGrant {
 
 			// --------------------------------------------------------
 			// Cody B -- 950 FCT
-			// Discord Daily Digest Screenshot (Continuation) 2019-10-20 - 2019-11-15
+			// Discord Daily Digest Screenshot (Continuation) 2019-11-01 - 2020-01-31
 
 			// Cody B total: 950 FCT
 			HardGrant{220201, 950e8, validateAddress("FA2WvyDhuKerk3RyVeSiTUonmcn7RuPRJGFQB6oCfroSys7NW3q2")},
@@ -940,7 +940,7 @@ func GetHardCodedGrants() []HardGrant {
 
 			// --------------------------------------------------------
 			// Jason Gregoire-Kompendium -- 730 FCT
-			// [Back-pay] Further Development of Open API – Client Library & Server Expansion 2019-10-20 - 2019-11-15
+			// [Back-pay] Further Development of Open API – Client Library & Server Expansion
 
 			// Kompendium total: 730 FCT
 			HardGrant{220201, 730e8, validateAddress("FA3KMPNX8AKdY3tjyKMzZ5cAkqUv97d3QqkJeQnVXk6PXSVgArnr")},
