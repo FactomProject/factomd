@@ -1,10 +1,11 @@
 package longtest
 
 import (
-	"github.com/FactomProject/factomd/common"
-	"github.com/FactomProject/factomd/pubsub"
 	"testing"
 	"time"
+
+	"github.com/FactomProject/factomd/common"
+	"github.com/FactomProject/factomd/pubsub"
 
 	"github.com/FactomProject/factomd/registry"
 	. "github.com/FactomProject/factomd/testHelper"

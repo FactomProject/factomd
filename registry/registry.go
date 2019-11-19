@@ -190,6 +190,6 @@ func Graph() (out string) {
 			out = out + fmt.Sprintf("%v.%v {color:#%v, shape:dot, label:%v}\n", t.PID, t.ID, colors[i%len(colors)], t.GetName())
 		}
 	}
-
+	out = out + "Paste the network info above into http://arborjs.org/halfviz to visualize the network\n"
 	return out
 }

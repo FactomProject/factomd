@@ -2,6 +2,7 @@ package worker
 
 import (
 	"fmt"
+	"reflect"
 	"runtime"
 	"strings"
 
@@ -20,7 +21,7 @@ type InterruptHandler func(func())
 // create new thread
 func New(parent *common.Name, name string) *Thread {
 	w := &Thread{}
-	w.Name.Init(parent, name)
+	w.Name.NameInit(parent, name, reflect.TypeOf(w).String())
 	w.Log = log.New(w)
 
 	w.logging = logging.NewLayerLogger(log.GlobalLogger, map[string]string{"fnode": w.GetPath()})

@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/common/constants"
@@ -66,7 +67,7 @@ func (l *HoldingList) metric(msg interfaces.IMsg) telemetry.Gauge {
 
 func NewHoldingList(s *State) *HoldingList {
 	l := HoldingList{}
-	l.Init(s, "DependentHolding")
+	l.NameInit(s, "DependentHolding", reflect.TypeOf(l).String())
 	l.holding = make(map[[32]byte][]interfaces.IMsg)
 	l.s = s
 	l.dependents = make(map[[32]byte]heldMessage)

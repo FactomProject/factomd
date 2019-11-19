@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"time"
 
@@ -226,7 +227,7 @@ func NewState(p *globals.FactomParams, FactomdVersion string) *State {
 	s.AddPrefix(p.Prefix)
 	// Setup the name to catch any early logging
 	s.FactomNodeName = p.Prefix + "FNode0"
-	s.Init(common.NilName, s.FactomNodeName)
+	s.NameInit(common.NilName, s.FactomNodeName, reflect.TypeOf(s).String())
 	// the DBHT value is replaced by the result of running the formatter for dbht which has the current value
 	s.logging = logging.NewLayerLogger(log2.GlobalLogger, map[string]string{"fnode": s.FactomNodeName, "dbht": "unused"})
 

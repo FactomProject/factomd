@@ -2,6 +2,7 @@ package fnode
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/FactomProject/factomd/generated"
 	"github.com/FactomProject/factomd/pubsub"
@@ -32,7 +33,7 @@ type FactomNode struct {
 func New(s *state.State) *FactomNode {
 	n := new(FactomNode)
 	n.State = s
-	n.Init(common.NilName, s.GetFactomNodeName()) // All Fnodes are off the root
+	n.NameInit(common.NilName, s.GetFactomNodeName(), reflect.TypeOf(n).String()) // All Fnodes are off the root
 	fnodes = append(fnodes, n)
 	n.addFnodeName()
 	//	n.State.Init(n, n.State.FactomNodeName)
@@ -45,13 +46,6 @@ var fnodes []*FactomNode
 
 func GetFnodes() []*FactomNode {
 	return fnodes
-}
-
-func AddFnode(node *FactomNode) {
-	node.Init(common.NilName, node.State.FactomNodeName) // root of service
-	node.State.Init(node, node.State.FactomNodeName+"State")
-	node.State.Hold.Init(node.State, "HoldingList")
-	fnodes = append(fnodes, node)
 }
 
 func Get(i int) *FactomNode {

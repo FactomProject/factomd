@@ -2,8 +2,9 @@ package longtest
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/fnode"
 	"testing"
+
+	"github.com/FactomProject/factomd/fnode"
 
 	. "github.com/FactomProject/factomd/testHelper"
 )
@@ -18,7 +19,7 @@ func TestElectionEveryMinute(t *testing.T) {
 	// knock followers off one per minute
 	start := s.CurrentMinute
 	for i := 0; i < 10; i++ {
-		s := fnode.Get(i+1).State
+		s := fnode.Get(i + 1).State
 		RunCmd(fmt.Sprintf("%d", i+1))
 		WaitForMinute(s, (start+i+1)%10) // wait for selected minute
 		RunCmd("x")

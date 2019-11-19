@@ -9,6 +9,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"os"
+	"reflect"
 	"sync"
 	"time"
 
@@ -285,11 +286,11 @@ func startNetwork(w *worker.Thread, p *globals.FactomParams) {
 
 	p2pNetwork = new(p2p.Controller).Initialize(ci)
 	s.NetworkController = p2pNetwork
-	p2pNetwork.Init(s, "p2pNetwork")
+	p2pNetwork.NameInit(s, "p2pNetwork", reflect.TypeOf(p2pNetwork).String())
 	p2pNetwork.StartNetwork(w)
 
 	p2pProxy = new(P2PProxy).Initialize(s.FactomNodeName, "P2P Network").(*P2PProxy)
-	p2pProxy.Init(s, "p2pProxy")
+	p2pProxy.NameInit(s, "p2pProxy", reflect.TypeOf(p2pProxy).String())
 	p2pProxy.FromNetwork = p2pNetwork.FromNetwork
 	p2pProxy.ToNetwork = p2pNetwork.ToNetwork
 	p2pProxy.StartProxy(w)
@@ -367,7 +368,7 @@ func startServer(w *worker.Thread, node *fnode.FactomNode) {
 	w.Run("DBStateCatchup", s.DBStates.Catchup)
 	w.Run("LoadDatabase", s.LoadDatabase)
 	w.Run("SyncEntries", s.GoSyncEntries)
-	w.Run("Ticker", s.Timer)
+	w.Run("EOMTicker", s.Timer)
 	w.Run("MMResponseHandler", s.MissingMessageResponseHandler.Run)
 }
 

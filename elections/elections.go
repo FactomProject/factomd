@@ -2,6 +2,7 @@ package elections
 
 import (
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/FactomProject/factomd/common"
@@ -432,7 +433,7 @@ func (e *Elections) ProcessWaiting() {
 // Runs the main loop for elections for this instance of factomd
 func Run(w *worker.Thread, s *state.State) {
 	e := new(Elections)
-	e.Init(s, s.FactomNodeName+"Election")
+	e.NameInit(s, s.FactomNodeName+"Election", reflect.TypeOf(e).String())
 	s.Elections = e
 	e.State = s
 	e.Input = s.ElectionsQueue()
