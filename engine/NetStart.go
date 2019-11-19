@@ -312,13 +312,14 @@ var state0Init sync.Once // we do some extra init for the first state
 func makeServer(w *worker.Thread, p *globals.FactomParams) (node *fnode.FactomNode) {
 	i := fnode.Len()
 	if i == 0 {
-		node = fnode.New(state.NewState(p, FactomdVersion))
+		node = fnode.New(w, state.NewState(p, FactomdVersion))
 	} else {
-		node = fnode.New(state.Clone(fnode.Get(0).State, i).(*state.State))
+		node = fnode.New(w, state.Clone(fnode.Get(0).State, i).(*state.State))
 	}
 
 	// Election factory was created and passed int to avoid import loop
 	node.State.Initialize(w, new(electionMsgs.ElectionsFactory))
+	node.State.Init(node, node.State.GetFactomNodeName()+"STATE")
 
 	state0Init.Do(func() {
 		logPort = p.LogPort
@@ -342,7 +343,9 @@ func startFnodes(w *worker.Thread) {
 
 	for i, _ := range fnode.GetFnodes() {
 		node := fnode.Get(i)
-		w.Spawn(node.GetName()+"Thread", func(w *worker.Thread) { startServer(w, node) })
+		w.Spawn(node.GetName()+"Thread", func(w *worker.Thread) {
+			startServer(w, node)
+		})
 	}
 	time.Sleep(10 * time.Second)
 	common.PrintAllNames()

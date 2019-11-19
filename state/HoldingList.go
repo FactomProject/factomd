@@ -65,12 +65,12 @@ func (l *HoldingList) metric(msg interfaces.IMsg) telemetry.Gauge {
 }
 
 func NewHoldingList(s *State) *HoldingList {
-	l := HoldingList{}
+	l := new(HoldingList)
 	l.Init(s, "DependentHolding")
 	l.holding = make(map[[32]byte][]interfaces.IMsg)
 	l.s = s
 	l.dependents = make(map[[32]byte]heldMessage)
-	return &l
+	return l
 }
 
 func (l *HoldingList) Messages() map[[32]byte][]interfaces.IMsg {

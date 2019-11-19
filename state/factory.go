@@ -225,7 +225,7 @@ func NewState(p *globals.FactomParams, FactomdVersion string) *State {
 	s.AddPrefix(p.Prefix)
 	// Setup the name to catch any early logging
 	s.FactomNodeName = p.Prefix + "FNode0"
-	s.Init(common.NilName, s.FactomNodeName)
+	//s.Init(common.NilName, s.FactomNodeName)
 	s.logging = logging.NewLayerLogger(log2.GlobalLogger, map[string]string{"fnode": s.FactomNodeName})
 
 	// print current dbht-:-minute
@@ -381,9 +381,10 @@ func Clone(s *State, cloneNumber int) interfaces.IState {
 	newState.LdbPath = s.LdbPath + "/Sim" + number
 	newState.BoltDBPath = s.BoltDBPath + "/Sim" + number
 	newState.ExportDataSubpath = s.ExportDataSubpath + "sim-" + number
-	newState.IdentityControl = s.IdentityControl.Clone()
+	newState.IdentityControl = s.IdentityControl.Clone() // FIXME relocate
 
 	if !config {
+		// FIXME: add hack so wew can do Fnode00, Fnode01, ...
 		newState.IdentityChainID = primitives.Sha([]byte(newState.FactomNodeName))
 		s.LogPrintf("AckChange", "Default3 IdentityChainID %v", s.IdentityChainID.String())
 
@@ -394,6 +395,7 @@ func Clone(s *State, cloneNumber int) interfaces.IState {
 		s.initServerKeys()
 	}
 
+	// FIXME change to use timestamp.Clone
 	newState.TimestampAtBoot = primitives.NewTimestampFromMilliseconds(s.TimestampAtBoot.GetTimeMilliUInt64())
 	newState.LeaderTimestamp = primitives.NewTimestampFromMilliseconds(s.LeaderTimestamp.GetTimeMilliUInt64())
 	newState.SetMessageFilterTimestamp(s.GetMessageFilterTimestamp())
@@ -415,6 +417,7 @@ func Clone(s *State, cloneNumber int) interfaces.IState {
 }
 
 func (s *State) Initialize(o common.NamedObject, electionFactory interfaces.IElectionsFactory) {
+
 	if s.Salt == nil {
 		b := make([]byte, 32)
 		_, err := rand.Read(b)
