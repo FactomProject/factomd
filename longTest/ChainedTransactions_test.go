@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/FactomProject/factom"
-	. "github.com/FactomProject/factomd/engine"
 	. "github.com/FactomProject/factomd/testHelper"
 )
 

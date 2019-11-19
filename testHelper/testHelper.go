@@ -51,7 +51,7 @@ func CreateEmptyTestState() *state.State {
 
 	s.Network = "LOCAL"
 	s.CheckChainHeads.CheckChainHeads = false
-	state.LoadDatabase(s)
+	s.LoadDatabase()
 	s.Process()
 	s.DBFinished = true
 	return s
@@ -61,7 +61,7 @@ func CreateAndPopulateTestStateAndStartValidator() *state.State {
 	s := CreateAndPopulateTestState()
 	p := registry.New()
 	p.Register(func(w *worker.Thread) {
-		s.ValidatorLoop(w)
+		s.MsgSort()
 	})
 	go p.Run()
 
@@ -75,7 +75,7 @@ func CreatePopulateAndExecuteTestState() *state.State {
 	ExecuteAllBlocksFromDatabases(s)
 	p := registry.New()
 	p.Register(func(w *worker.Thread) {
-		s.ValidatorLoop(w)
+		s.MsgSort()
 	})
 	go p.Run()
 	time.Sleep(30 * time.Millisecond)
@@ -154,7 +154,7 @@ func CreateAndPopulateTestState() *state.State {
 	}*/
 	s.SetFactoshisPerEC(1)
 	s.MMRDummy() // Need to start MMR to ensure queues don't fill up
-	state.LoadDatabase(s)
+	s.LoadDatabase()
 	s.Process()
 	s.UpdateState()
 
