@@ -242,7 +242,7 @@ func (s *State) makeMMRs(w *worker.Thread, asks <-chan askRef, adds <-chan plRef
 	}
 
 	// tick every "factom second" to check the  pending MMRs
-	w.Run("Ticker", func() {
+	w.Run("MMRTicker", func() {
 		for {
 			if s.RunState.IsTerminating() {
 				return // Factomd is stopping/stopped

@@ -22,7 +22,6 @@ import (
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/util"
-	"github.com/FactomProject/factomd/worker"
 )
 
 func (s *State) LoadConfigFromFile(filename string, networkFlag string) {
@@ -415,7 +414,7 @@ func Clone(s *State, cloneNumber int) interfaces.IState {
 	return newState
 }
 
-func (s *State) Initialize(w *worker.Thread, electionFactory interfaces.IElectionsFactory) {
+func (s *State) Initialize(o common.NamedObject, electionFactory interfaces.IElectionsFactory) {
 	if s.Salt == nil {
 		b := make([]byte, 32)
 		_, err := rand.Read(b)
@@ -451,7 +450,7 @@ func (s *State) Initialize(w *worker.Thread, electionFactory interfaces.IElectio
 	s.timerMsgQueue = make(chan interfaces.IMsg, 100)         //incoming eom notifications, used by leaders
 	//	s.ControlPanelChannel = make(chan DisplayState, 20)                     //
 	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 100)              //incoming message queue from the network inMessages
-	s.networkOutMsgQueue = NewNetOutMsgQueue(w, constants.INMSGQUEUE_MED)   //Messages to be broadcast to the network
+	s.networkOutMsgQueue = NewNetOutMsgQueue(s, constants.INMSGQUEUE_MED)   //Messages to be broadcast to the network
 	s.inMsgQueue = NewInMsgQueue(s, constants.INMSGQUEUE_HIGH)              //incoming message queue for Factom application inMessages
 	s.inMsgQueue2 = NewInMsgQueue2(s, constants.INMSGQUEUE_HIGH)            //incoming message queue for Factom application inMessages
 	s.electionsQueue = NewElectionQueue(s, constants.INMSGQUEUE_HIGH)       //incoming message queue for Factom application inMessages
