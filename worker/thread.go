@@ -23,8 +23,7 @@ func New(parent *common.Name, name string) *Thread {
 	w.Name.Init(parent, name)
 	w.Log = log.New(w)
 
-	w.logging = logging.NewLayerLogger(log.GlobalLogger, nil)
-	w.logging.AddNameField("fnode", logging.Formatter("%s_"), w.GetPath())
+	w.logging = logging.NewLayerLogger(log.GlobalLogger, map[string]string{"fnode": w.GetPath()})
 
 	return w
 }

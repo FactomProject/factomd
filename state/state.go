@@ -16,10 +16,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/FactomProject/factomd/modules/logging"
-
 	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/common/constants/runstate"
+	"github.com/FactomProject/factomd/modules/logging"
 	"github.com/FactomProject/factomd/queue"
 
 	"github.com/FactomProject/factomd/activations"
@@ -44,7 +43,6 @@ type StateConfig struct {
 		CheckChainHeads bool
 		Fix             bool
 	}
-	logging                 *logging.LayerLogger
 	CloneDBType             string
 	ControlPanelPort        int
 	ControlPanelSetting     int
@@ -105,6 +103,8 @@ type StateConfig struct {
 type State struct {
 	common.Name
 	StateConfig
+
+	logging           *logging.LayerLogger
 	RunState          runstate.RunState
 	NetworkController *p2p.Controller
 	Salt              interfaces.IHash

@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/modules/debugsettings"
 
 	"github.com/FactomProject/factomd/simulation"
@@ -337,21 +338,33 @@ func makeServer(w *worker.Thread, p *globals.FactomParams) (node *fnode.FactomNo
 }
 
 func startFnodes(w *worker.Thread) {
-	for _, node := range fnode.GetFnodes() {
-		startServer(w, node)
+	state.CheckGrants() // check the grants table hard coded into the build is well formed.
+
+	for i, _ := range fnode.GetFnodes() {
+		node := fnode.Get(i)
+		w.Spawn(node.GetName()+"Thread", func(w *worker.Thread) { startServer(w, node) })
 	}
+	time.Sleep(10 * time.Second)
+	common.PrintAllNames()
+	fmt.Println(registry.Graph())
+
 }
 
 func startServer(w *worker.Thread, node *fnode.FactomNode) {
-	NetworkProcessorNet(w, node)
-	node.State.ValidatorLoop(w)
-	elections.Run(w, node.State)
-	node.State.StartMMR(w)
 
-	w.Run("LoadDatabase", func() { state.LoadDatabase(node.State) })
-	w.Run("SyncEntries", node.State.GoSyncEntries)
-	w.Run("Ticker", func() { Timer(node.State) })
-	w.Run("MMResponceHandler", node.State.MissingMessageResponseHandler.Run)
+	NetworkProcessorNet(w, node)
+	s := node.State
+	w.Run("MsgSort", s.MsgSort)
+	w.Run("MsgExecute", s.MsgExecute)
+
+	elections.Run(w, s)
+	s.StartMMR(w)
+
+	w.Run("DBStateCatchup", s.DBStates.Catchup)
+	w.Run("LoadDatabase", s.LoadDatabase)
+	w.Run("SyncEntries", s.GoSyncEntries)
+	w.Run("Ticker", s.Timer)
+	w.Run("MMResponseHandler", s.MissingMessageResponseHandler.Run)
 }
 
 func setupFirstAuthority(s *state.State) {

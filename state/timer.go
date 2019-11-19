@@ -2,20 +2,16 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package engine
+package state
 
 import (
 	"time"
-
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/state"
 )
 
 // Timer
 // Provides a tick add inserts it into the TickerQueue to trigger EOM generation by
 // leaders.
-func Timer(stateI interfaces.IState) {
-	s := stateI.(*state.State)
+func (s *State) Timer() {
 
 	var last int64
 	for {

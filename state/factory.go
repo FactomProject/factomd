@@ -227,8 +227,7 @@ func NewState(p *globals.FactomParams, FactomdVersion string) *State {
 	// Setup the name to catch any early logging
 	s.FactomNodeName = p.Prefix + "FNode0"
 	s.Init(common.NilName, s.FactomNodeName)
-	s.logging = logging.NewLayerLogger(log2.GlobalLogger, nil)
-	s.logging.AddNameField("fnode", logging.Formatter("%s_"), s.FactomNodeName)
+	s.logging = logging.NewLayerLogger(log2.GlobalLogger, map[string]string{"fnode": s.FactomNodeName})
 
 	// print current dbht-:-minute
 	s.logging.AddPrintField("dbht",
@@ -497,7 +496,6 @@ func (s *State) Initialize(w *worker.Thread, electionFactory interfaces.IElectio
 	s.DBStates = new(DBStateList)
 	s.DBStates.State = s
 	s.DBStates.DBStates = make([]*DBState, 0)
-	w.Run(s.GetPath()+"DBStateCatchup", s.DBStates.Catchup)
 
 	s.StatesMissing = NewStatesMissing()
 	s.StatesWaiting = NewStatesWaiting()

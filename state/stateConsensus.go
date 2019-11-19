@@ -63,12 +63,12 @@ func (s *State) LogMessage(logName string, comment string, msg interfaces.IMsg) 
 
 func (s *State) LogPrintf(logName string, format string, more ...interface{}) {
 	if s.DebugExec() {
-		if s == nil || s.logging != nil {
+		if s == nil || s.logging == nil {
 			log.GlobalLogger.Log(LogData{"logname": "unknown" + "_" + logName,
 				"dbht":    "unknown",
 				"comment": Delay_formater(format, more...)})
 		} else {
-			s.logging.Log(logging.LogData{"comment": logging.Delay_formater(format, more...)})
+			s.logging.Log(logging.LogData{"fnode": s.FactomNodeName, "logname": logName, "comment": logging.Delay_formater(format, more...)})
 		}
 	}
 }

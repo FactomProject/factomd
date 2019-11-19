@@ -27,10 +27,11 @@ var (
 
 func init() {
 	// Create a global FileLogger that assigned the filenames based on thread and logname
-	var fileLogger *FileLogger = NewFileLogger("./.")
-	fileLogger.AddNameField("logname", Formatter("%s.txt"), "unknown_log")
+
 	// Create a global logger that adds sequence numbers and timestamps
-	GlobalLogger = NewSequenceLogger(fileLogger)
+	GlobalLogger = NewSequenceLogger(NewFileLogger("./."))
+	GlobalLogger.AddNameField("fnode", Formatter("%s_"), "unknown_fnode")
+	GlobalLogger.AddNameField("logname", Formatter("%s.txt"), "unknown_log")
 	//Add the default print fields comment then message
 	GlobalLogger.AddPrintField("dbht", Formatter("%12s"), "")
 	GlobalLogger.AddPrintField("comment", Formatter("[%-45v]"), "")
@@ -69,18 +70,6 @@ func LogMessage(name string, note string, msg interfaces.IMsg) {
 	}
 
 	GlobalLogger.Log(LogData{"logname": name, "comment": note, "message": msg})
-}
-
-// Log a message with a state timestamp
-func StateLogMessage(FactomNodeName string, DBHeight int, CurrentMinute int, logName string, comment string, msg interfaces.IMsg) {
-	GlobalLogger.Log(LogData{"logname": FactomNodeName + "_" + logName, "dbht": Delay_formater("%07d-:-%-2d ", DBHeight, CurrentMinute), "comment": comment, "message": MsgFormatter(msg)})
-}
-
-// Log a printf with a state timestamp
-func StateLogPrintf(FactomNodeName string, DBHeight int, CurrentMinute int, logName string, format string, more ...interface{}) {
-	GlobalLogger.Log(LogData{"logname": FactomNodeName + "_" + logName,
-		"dbht":    Delay_formater("%07d-:-%-2d ", DBHeight, CurrentMinute),
-		"comment": Delay_formater(format, more...)})
 }
 
 // Check a filename and see if logging is on for that filename

@@ -70,6 +70,7 @@ func (t *Name) AddChild(kid NamedObject) {
 func (t *Name) Init(p NamedObject, n string) {
 	if t.parent != nil {
 		panic("Already Inited by " + t.by)
+
 	}
 	t.parent = p
 	t.path = t.parent.GetName() + "/" + n
@@ -84,7 +85,7 @@ var NilName *Name                // This is a nil of name type Do NOT write it!
 var _ NamedObject = (*Name)(nil) // Check that the interface is met
 
 func PrintNames(i int, n NamedObject) {
-	fmt.Printf("%*s %s\n", 10*i, "", n.GetPath())
+	fmt.Printf("%*s %s\n", 3*i, "", n.GetPath())
 	for _, kid := range n.GetChildren() {
 		PrintNames(i+1, kid)
 	}
