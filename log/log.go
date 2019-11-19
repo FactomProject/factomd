@@ -157,7 +157,7 @@ func addNodeNames(s string) (rval string) {
 
 // this is where eventually we will handle the addname and message history stuff we used to do
 func MsgFormatter(v interface{}) string {
-	msg := v.(interfaces.IMsg)
+	msg, _ := v.(interfaces.IMsg)
 
 	if msg == nil {
 		// include nonempty hash to get spacing right
