@@ -788,11 +788,10 @@ func GetHardCodedGrants() []HardGrant {
 			// Kompendium total: 2400 FCT
 			HardGrant{207326, 2400e8, validateAddress("FA3KMPNX8AKdY3tjyKMzZ5cAkqUv97d3QqkJeQnVXk6PXSVgArnr")},
 			// --------------------------------------------------------
-			
+
 			// ********************************
 			// **** Grant Round 2019-04 ****
 			// ********************************
-
 
 			// --------------------------------------------------------
 			// Samuel Vanderwaal-Brian Deery-Nolan Bauer-Nic R-The 42nd Factoid AS-Centis BV -- 9000 FCT
