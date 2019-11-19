@@ -156,6 +156,10 @@ func initEngine(w *worker.Thread, p *globals.FactomParams) {
 	messages.AckBalanceHash = p.AckbalanceHash
 	w.RegisterInterruptHandler(interruptHandler)
 
+	// add these to the name substitution table in logs so election dumps of the authority set look better
+	globals.FnodeNames["Fed"] = "erated "
+	globals.FnodeNames["Aud"] = "id     "
+
 	// nodes can spawn with a different thread lifecycle
 	fnode.Factory = func(w *worker.Thread) {
 		makeServer(w, p)

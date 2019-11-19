@@ -227,7 +227,8 @@ func NewState(p *globals.FactomParams, FactomdVersion string) *State {
 	// Setup the name to catch any early logging
 	s.FactomNodeName = p.Prefix + "FNode0"
 	s.Init(common.NilName, s.FactomNodeName)
-	s.logging = logging.NewLayerLogger(log2.GlobalLogger, map[string]string{"fnode": s.FactomNodeName})
+	// the DBHT value is replaced by the result of running the formatter for dbht which has the current value
+	s.logging = logging.NewLayerLogger(log2.GlobalLogger, map[string]string{"fnode": s.FactomNodeName, "dbht": "unused"})
 
 	// print current dbht-:-minute
 	s.logging.AddPrintField("dbht",
@@ -354,6 +355,12 @@ func Clone(s *State, cloneNumber int) interfaces.IState {
 	newState.StateConfig = s.StateConfig
 	number := fmt.Sprintf("%02d", cloneNumber)
 	newState.FactomNodeName = s.Prefix + "FNode" + number
+	// the DBHT value is replaced by the result of running the formatter for dbht which has the current value
+	newState.logging = logging.NewLayerLogger(log2.GlobalLogger, map[string]string{"fnode": newState.FactomNodeName, "dbht": "unused"})
+	newState.logging.AddPrintField("dbht",
+		func(interface{}) string { return fmt.Sprintf("%7d-:-%-2d", *&s.LLeaderHeight, *&s.CurrentMinute) },
+		"") // the
+
 	simConfigPath := util.GetHomeDir() + "/.factom/m2/simConfig/"
 	configfile := fmt.Sprintf("%sfactomd%03d.conf", simConfigPath, cloneNumber)
 

@@ -68,10 +68,11 @@ func (s *State) LogPrintf(logName string, format string, more ...interface{}) {
 				"dbht":    "unknown",
 				"comment": Delay_formater(format, more...)})
 		} else {
-			s.logging.Log(logging.LogData{"fnode": s.FactomNodeName, "logname": logName, "comment": logging.Delay_formater(format, more...)})
+			s.logging.Log(logging.LogData{"logname": logName, "comment": logging.Delay_formater(format, more...)})
 		}
 	}
 }
+
 func (s *State) AddToHolding(hash [32]byte, msg interfaces.IMsg) {
 	if !constants.NeedsAck(msg.Type()) {
 		s.LogMessage("holding", "add non-ack'd", msg)

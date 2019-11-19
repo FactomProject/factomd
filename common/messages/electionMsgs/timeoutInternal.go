@@ -208,7 +208,7 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 			Sync.SetLocal(true)
 			Sync.VMIndex = vm
 			Sync.TS = primitives.NewTimestampNow()
-			Sync.Name = e.Name
+			Sync.Name = e.GetName()
 
 			Sync.FedIdx = uint32(e.Electing)
 			Sync.FedID = e.FedID

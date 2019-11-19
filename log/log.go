@@ -30,8 +30,8 @@ func init() {
 
 	// Create a global logger that adds sequence numbers and timestamps
 	GlobalLogger = NewSequenceLogger(NewFileLogger("./."))
-	GlobalLogger.AddNameField("fnode", Formatter("%s_"), "unknown_fnode")
-	GlobalLogger.AddNameField("logname", Formatter("%s.txt"), "unknown_log")
+	GlobalLogger.AddNameField("fnode", Formatter("%s"), "")
+	GlobalLogger.AddNameField("logname", Formatter("%s.txt"), "unknown-log")
 	//Add the default print fields comment then message
 	GlobalLogger.AddPrintField("dbht", Formatter("%12s"), "")
 	GlobalLogger.AddPrintField("comment", Formatter("[%-45v]"), "")
@@ -123,7 +123,9 @@ var findHex *regexp.Regexp
 
 func init() {
 	var err error
-	findHex, err = regexp.Compile("[A-Fa-f0-9]{6,}")
+	// regex to find 6 hex digit strings, used t add names to hex ID in logs
+	// or Fed or Aud so the columns in authority set listing looks right in logs
+	findHex, err = regexp.Compile("(Fed)|(Aud)|([A-Fa-f0-9]{6,})")
 	if err != nil {
 		panic(err)
 	}

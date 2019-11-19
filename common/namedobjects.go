@@ -85,7 +85,7 @@ var NilName *Name                // This is a nil of name type Do NOT write it!
 var _ NamedObject = (*Name)(nil) // Check that the interface is met
 
 func PrintNames(i int, n NamedObject) {
-	fmt.Printf("%*s %s\n", 3*i, "", n.GetPath())
+	fmt.Printf("%*s %s-%T\n", 3*i, "", n.GetPath(), n)
 	for _, kid := range n.GetChildren() {
 		PrintNames(i+1, kid)
 	}
