@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"reflect"
 	"strings"
 	"time"
 
@@ -23,7 +22,6 @@ import (
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/util"
-	"github.com/FactomProject/factomd/worker"
 )
 
 func (s *State) LoadConfigFromFile(filename string, networkFlag string) {
@@ -227,9 +225,8 @@ func NewState(p *globals.FactomParams, FactomdVersion string) *State {
 	s.AddPrefix(p.Prefix)
 	// Setup the name to catch any early logging
 	s.FactomNodeName = p.Prefix + "FNode0"
-	s.NameInit(common.NilName, s.FactomNodeName, reflect.TypeOf(s).String())
-	// the DBHT value is replaced by the result of running the formatter for dbht which has the current value
-	s.logging = logging.NewLayerLogger(log2.GlobalLogger, map[string]string{"fnode": s.FactomNodeName, "dbht": "unused"})
+	//s.NameInit(common.NilName, s.FactomNodeName+"State", reflect.TypeOf(s).String())
+	s.logging = logging.NewLayerLogger(log2.GlobalLogger, map[string]string{"fnode": s.FactomNodeName})
 
 	// print current dbht-:-minute
 	s.logging.AddPrintField("dbht",
@@ -361,7 +358,6 @@ func Clone(s *State, cloneNumber int) interfaces.IState {
 	newState.logging.AddPrintField("dbht",
 		func(interface{}) string { return fmt.Sprintf("%7d-:-%-2d", *&s.LLeaderHeight, *&s.CurrentMinute) },
 		"") // the
-
 	simConfigPath := util.GetHomeDir() + "/.factom/m2/simConfig/"
 	configfile := fmt.Sprintf("%sfactomd%03d.conf", simConfigPath, cloneNumber)
 
@@ -390,9 +386,10 @@ func Clone(s *State, cloneNumber int) interfaces.IState {
 	newState.LdbPath = s.LdbPath + "/Sim" + number
 	newState.BoltDBPath = s.BoltDBPath + "/Sim" + number
 	newState.ExportDataSubpath = s.ExportDataSubpath + "sim-" + number
-	newState.IdentityControl = s.IdentityControl.Clone()
+	newState.IdentityControl = s.IdentityControl.Clone() // FIXME relocate
 
 	if !config {
+		// FIXME: add hack so wew can do Fnode00, Fnode01, ...
 		newState.IdentityChainID = primitives.Sha([]byte(newState.FactomNodeName))
 		s.LogPrintf("AckChange", "Default3 IdentityChainID %v", s.IdentityChainID.String())
 
@@ -403,6 +400,7 @@ func Clone(s *State, cloneNumber int) interfaces.IState {
 		s.initServerKeys()
 	}
 
+	// FIXME change to use timestamp.Clone
 	newState.TimestampAtBoot = primitives.NewTimestampFromMilliseconds(s.TimestampAtBoot.GetTimeMilliUInt64())
 	newState.LeaderTimestamp = primitives.NewTimestampFromMilliseconds(s.LeaderTimestamp.GetTimeMilliUInt64())
 	newState.SetMessageFilterTimestamp(s.GetMessageFilterTimestamp())
@@ -423,7 +421,7 @@ func Clone(s *State, cloneNumber int) interfaces.IState {
 	return newState
 }
 
-func (s *State) Initialize(w *worker.Thread, electionFactory interfaces.IElectionsFactory) {
+func (s *State) Initialize(o common.NamedObject, electionFactory interfaces.IElectionsFactory) {
 	if s.Salt == nil {
 		b := make([]byte, 32)
 		_, err := rand.Read(b)
@@ -459,7 +457,7 @@ func (s *State) Initialize(w *worker.Thread, electionFactory interfaces.IElectio
 	s.timerMsgQueue = make(chan interfaces.IMsg, 100)         //incoming eom notifications, used by leaders
 	//	s.ControlPanelChannel = make(chan DisplayState, 20)                     //
 	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 100)              //incoming message queue from the network inMessages
-	s.networkOutMsgQueue = NewNetOutMsgQueue(w, constants.INMSGQUEUE_MED)   //Messages to be broadcast to the network
+	s.networkOutMsgQueue = NewNetOutMsgQueue(s, constants.INMSGQUEUE_MED)   //Messages to be broadcast to the network
 	s.inMsgQueue = NewInMsgQueue(s, constants.INMSGQUEUE_HIGH)              //incoming message queue for Factom application inMessages
 	s.inMsgQueue2 = NewInMsgQueue2(s, constants.INMSGQUEUE_HIGH)            //incoming message queue for Factom application inMessages
 	s.electionsQueue = NewElectionQueue(s, constants.INMSGQUEUE_HIGH)       //incoming message queue for Factom application inMessages

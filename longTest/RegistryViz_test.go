@@ -24,6 +24,8 @@ func TestRegistryViz(t *testing.T) {
 	state0 := SetupSim("LFFF", params, 10, 0, 0, t)
 	WaitBlocks(state0, 2)
 	_ = state0
+
+	// echo thread/pubsub/named obj hierarchies
 	t.Log(registry.Graph())
 	t.Log(pubsub.GlobalRegistry().PrintTree())
 	common.PrintAllNames()

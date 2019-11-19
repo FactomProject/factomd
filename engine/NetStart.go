@@ -160,7 +160,6 @@ func initEngine(w *worker.Thread, p *globals.FactomParams) {
 	// add these to the name substitution table in logs so election dumps of the authority set look better
 	globals.FnodeNames["Fed"] = "erated "
 	globals.FnodeNames["Aud"] = "id     "
-
 	// nodes can spawn with a different thread lifecycle
 	fnode.Factory = func(w *worker.Thread) {
 		makeServer(w, p)
@@ -324,6 +323,7 @@ func makeServer(w *worker.Thread, p *globals.FactomParams) (node *fnode.FactomNo
 
 	// Election factory was created and passed int to avoid import loop
 	node.State.Initialize(w, new(electionMsgs.ElectionsFactory))
+	node.State.NameInit(node, node.State.GetFactomNodeName()+"STATE", reflect.TypeOf(node.State).String())
 
 	state0Init.Do(func() {
 		logPort = p.LogPort
@@ -368,7 +368,7 @@ func startServer(w *worker.Thread, node *fnode.FactomNode) {
 	w.Run("DBStateCatchup", s.DBStates.Catchup)
 	w.Run("LoadDatabase", s.LoadDatabase)
 	w.Run("SyncEntries", s.GoSyncEntries)
-	w.Run("EOMTicker", s.Timer)
+	w.Run("EOMTicker", s.EOMTicker)
 	w.Run("MMResponseHandler", s.MissingMessageResponseHandler.Run)
 }
 

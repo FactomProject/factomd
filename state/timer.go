@@ -11,7 +11,7 @@ import (
 // Timer
 // Provides a tick add inserts it into the TickerQueue to trigger EOM generation by
 // leaders.
-func (s *State) Timer() {
+func (s *State) EOMTicker() {
 
 	var last int64
 	for {
