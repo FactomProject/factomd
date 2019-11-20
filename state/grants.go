@@ -946,7 +946,6 @@ func GetHardCodedGrants() []HardGrant {
 			HardGrant{220201, 730e8, validateAddress("FA3KMPNX8AKdY3tjyKMzZ5cAkqUv97d3QqkJeQnVXk6PXSVgArnr")},
 			// --------------------------------------------------------
 
-
 			// ********************************
 			// ** BUG Bounty payout 2019-04  **
 			// ********************************
@@ -966,7 +965,7 @@ func GetHardCodedGrants() []HardGrant {
 			// Bug bounty total: 205 FCT, remaining funds: 795 FCT
 			HardGrant{220201, 205e8, validateAddress("FA22J4Age2aLKRw1cKQckTPzK6Wpb6GCKKdYv6dp7SVsxzGyNqy4")},
 			// --------------------------------------------------------
-			
+
 		}
 
 	default:
