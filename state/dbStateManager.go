@@ -512,7 +512,7 @@ func (dbsl *DBStateList) UnmarshalBinaryData(p []byte) (newData []byte, err erro
 	//TODO: handle State
 	dbsl.Base, err = buf.PopUInt32()
 	if err != nil {
-		dbsl.State.LogPrintf("dbstateprocess", "DBStateList.UnmarshalBinaryData SubBase err: %v", err)
+		dbsl.State.LogPrintf("dbstateprocess", "DBStateList.UnmarshalBinaryData Base err: %v", err)
 		return
 	}
 	dbsl.Complete, err = buf.PopUInt32()
