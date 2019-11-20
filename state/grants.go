@@ -945,6 +945,28 @@ func GetHardCodedGrants() []HardGrant {
 			// Kompendium total: 730 FCT
 			HardGrant{220201, 730e8, validateAddress("FA3KMPNX8AKdY3tjyKMzZ5cAkqUv97d3QqkJeQnVXk6PXSVgArnr")},
 			// --------------------------------------------------------
+
+
+			// ********************************
+			// ** BUG Bounty payout 2019-04  **
+			// ********************************
+			// --------------------------------------------------------
+			// Niels Klomp -- Core committee -- 205 FCT
+			// This grant is for the Bug Bounty program and pays out 3 submissions, BB-001, BB-002 and BB-003
+			// Payout will go to the following addresses, with a managed intermediary address.
+			// (Not all exchanges support coinbase transactions)
+			//
+			// BB-001 -- 17 FCT  -- FA3ShvrkkVrCWGGiGqmAPykhLHhuZZtetUYBTYEss4KPsm5c7G6c
+			// BB-002 -- 17 FCT  -- FA29JkXWYzwgLpQcrqSPsouy23AMgbrQcr6PTbAu6Q2tGXNveL4P
+			// BB-003 -- 171 FCT -- FA23fEJadueuxf8SsohpnDj3QYmZQ7mpMjWrFb1GHTQhByyDYMxe
+			//
+			// Full details for core committee:
+			// https://docs.google.com/spreadsheets/d/15fo9PCNt4meJGSd-V9iZENAiPTUx7dLpd990tH1dADY/edit#gid=0
+
+			// Bug bounty total: 205 FCT, remaining funds: 795 FCT
+			HardGrant{220201, 205e8, validateAddress("FA22J4Age2aLKRw1cKQckTPzK6Wpb6GCKKdYv6dp7SVsxzGyNqy4")},
+			// --------------------------------------------------------
+			
 		}
 
 	default:
