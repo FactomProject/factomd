@@ -1263,7 +1263,10 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 	}
 
 	// Only new acks are valid. Of course, the VMIndex has to be valid too.
-	msgslot, _ := s.GetMsg(ack.VMIndex, int(ack.DBHeight), int(ack.Height))
+	msgslot, err := s.GetMsg(ack.VMIndex, int(ack.DBHeight), int(ack.Height))
+	if err != nil {
+		panic(err)
+	}
 	if msgslot != nil {
 		if !msg.GetMsgHash().IsSameAs(msgslot.GetHash()) {
 			s.LogMessage("executeMsg", "MMR Ack slot taken", m)
@@ -2457,7 +2460,7 @@ func (s *State) GetMsg(vmIndex int, dbheight int, height int) (interfaces.IMsg, 
 		return nil, errors.New("No Process List")
 	}
 	vms := pl.VMs
-	if len(vms) <= vmIndex {
+	if len(vms) < vmIndex {
 		return nil, errors.New("Bad VM Index")
 	}
 	vm := vms[vmIndex]
