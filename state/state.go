@@ -597,9 +597,11 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 }
 
 func (s *State) EmitDBStateEventsFromHeight(height int64, end int64) {
-	msgs := s.GetAllDBStateMsgsFromDatabase(height, end)
-	for _, msg := range msgs {
-		EmitStateChangeEvent(msg, eventmessages.EntityState_COMMITTED_TO_DIRECTORY_BLOCK, s)
+	if s.EventsService != nil {
+		msgs := s.GetAllDBStateMsgsFromDatabase(height, end)
+		for _, msg := range msgs {
+			EmitStateChangeEvent(msg, eventmessages.EntityState_COMMITTED_TO_DIRECTORY_BLOCK, s)
+		}
 	}
 }
 
