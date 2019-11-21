@@ -303,7 +303,7 @@ func LogPrintf(name string, format string, more ...interface{}) {
 	sequence++
 	// handle multi-line printf's
 	lines := strings.Split(fmt.Sprintf(format, more...), "\n")
-	now := time.Now().Local()
+	now := time.Now()
 	for i, text := range lines {
 		var s string
 		switch i {

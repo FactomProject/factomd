@@ -2333,34 +2333,39 @@ func (s *State) GetMessageFilterTimestamp() interfaces.Timestamp {
 // this ensure messages from prior boot and messages that predate the current replay filter are
 // are dropped.
 // It marks the start of the replay filter content
-func (s *State) SetMessageFilterTimestamp(leaderTS interfaces.Timestamp) {
+func (s *State) SetMessageFilterTimestamp(requestedTS interfaces.Timestamp) {
+	s.LogPrintf("executeMsg", "SetMessageFilterTimestamp(%s) from %s", requestedTS.String(), atomic.WhereAmIString(1))
 
-	// make a copy of the time stamp so we don't change the source
-	requestedTS := new(primitives.Timestamp)
-	requestedTS.SetTimestamp(leaderTS)
+	// create a new timestamp
+	appliedTimestamp := primitives.NewTimestampFromMilliseconds(requestedTS.GetTimeMilliUInt64())
 
-	onehourago := new(primitives.Timestamp)
-	onehourago.SetTimeMilli(primitives.NewTimestampNow().GetTimeMilli() - 60*60*1000) // now() - one hour
+	// It's ok for the follower to be working on a block that is two behind the network, the block two back could be
+	// 20 before now and it accepts commits from up to an hour before it plus we gave messages 10 minutes to transit
+	// gossip network so 20 + 60 + 10 = 90 minutes ago is ok.
+	historicallimit := new(primitives.Timestamp)
+	historicallimit.SetTimeMilli(primitives.NewTimestampNow().GetTimeMilli() - 90*60*1000) // now() - 90 minutes
 
-	if requestedTS.GetTimeMilli() < onehourago.GetTimeMilli() {
-		requestedTS.SetTimestamp(onehourago)
+	if appliedTimestamp.GetTimeMilli() < historicallimit.GetTimeMilli() {
+		s.LogPrintf("executeMsg", "SetMessageFilterTimestamp(%s) -> %s moving to historical limit %s", requestedTS.String(), appliedTimestamp.String(), historicallimit.String())
+		appliedTimestamp.SetTimestamp(historicallimit)
 	}
 
 	// build a timestamp 20 minutes before boot so we will accept messages from nodes who booted before us.
 	preBootTime := new(primitives.Timestamp)
-	preBootTime.SetTimeMilli(s.TimestampAtBoot.GetTimeMilli() - 20*60*1000)
+	preBootTime.SetTimeMilli(s.TimestampAtBoot.GetTimeMilli() - constants.PreBootWindow*60*1000)
 
-	if requestedTS.GetTimeMilli() < preBootTime.GetTimeMilli() {
-		requestedTS.SetTimestamp(preBootTime)
+	if appliedTimestamp.GetTimeMilli() < preBootTime.GetTimeMilli() {
+		s.LogPrintf("executeMsg", "SetMessageFilterTimestamp(%s) -> %s moving to preboot limit    %s", requestedTS.String(), appliedTimestamp.String(), preBootTime.String())
+		appliedTimestamp.SetTimestamp(preBootTime)
 	}
 
-	if s.messageFilterTimestamp != nil && requestedTS.GetTimeMilli() < s.messageFilterTimestamp.GetTimeMilli() {
-		s.LogPrintf("executeMsg", "Set MessageFilterTimestamp attempt to move backward in time from %s", atomic.WhereAmIString(1))
-		return
+	if s.messageFilterTimestamp != nil && appliedTimestamp.GetTimeMilli() < s.messageFilterTimestamp.GetTimeMilli() {
+		s.LogPrintf("executeMsg", "SetMessageFilterTimestamp(%s) -> %s moving to current limit    %s", requestedTS.String(), appliedTimestamp.String(), s.messageFilterTimestamp.String())
+		appliedTimestamp.SetTimestamp(s.messageFilterTimestamp)
 	}
 
-	s.LogPrintf("executeMsg", "SetMessageFilterTimestamp(%s) using %s ", leaderTS, requestedTS.String())
-	s.messageFilterTimestamp = primitives.NewTimestampFromMilliseconds(requestedTS.GetTimeMilliUInt64())
+	s.LogPrintf("executeMsg", "SetMessageFilterTimestamp(%s) using %s ", requestedTS.String(), appliedTimestamp.String())
+	s.messageFilterTimestamp = appliedTimestamp
 }
 
 func (s *State) GotHeartbeat(heartbeatTS interfaces.Timestamp, dbheight uint32) {
@@ -2380,14 +2385,14 @@ func (s *State) GotHeartbeat(heartbeatTS interfaces.Timestamp, dbheight uint32) 
 		"%d)", heartbeatTS, dbheight)
 
 	// set filter to one hour before target
-	s.SetMessageFilterTimestamp(primitives.NewTimestampFromMilliseconds(uint64(newTS - 60*60*1000)))
+	//	s.SetMessageFilterTimestamp(primitives.NewTimestampFromMilliseconds(uint64(newTS - 60*60*1000)))
 
 	// set Highest Ack & Known blocks
 	s.SetHighestAck(dbheight)
 	s.SetHighestKnownBlock(dbheight)
 
 	// re-center replay filter
-	s.Replay.Recenter(primitives.NewTimestampFromMilliseconds(uint64(newTS)))
+	//	s.Replay.Recenter(primitives.NewTimestampFromMilliseconds(uint64(newTS)))
 }
 
 func (s *State) SetLeaderTimestamp(ts interfaces.Timestamp) {

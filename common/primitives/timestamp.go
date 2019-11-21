@@ -23,7 +23,7 @@ func GetTime() uint64 {
 }
 
 //A structure for handling timestamps for messages
-type Timestamp uint64 //in miliseconds
+type Timestamp uint64 //in milliseconds
 var _ interfaces.BinaryMarshallable = (*Timestamp)(nil)
 var _ interfaces.Timestamp = (*Timestamp)(nil)
 
