@@ -127,6 +127,7 @@ func TestEmitDBStateEventsFromHeightRange(t *testing.T) {
 
 	mockService := &mockEventService{}
 	s.EventsService = mockService
+	s.RunLeader = true
 
 	s.EmitDBStateEventsFromHeight(0, 7)
 
@@ -148,6 +149,7 @@ func TestEmitDBStateEventsFromHeight(t *testing.T) {
 
 	mockService := &mockEventService{}
 	s.EventsService = mockService
+	s.RunLeader = true
 
 	s.EmitDBStateEventsFromHeight(3, 100)
 

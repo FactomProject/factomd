@@ -600,7 +600,7 @@ func (s *State) EmitDBStateEventsFromHeight(height uint32, end uint32) {
 	if s.EventsService != nil {
 		msgs := s.GetAllDBStateMsgsFromDatabase(height, end)
 		for _, msg := range msgs {
-			EmitStateChangeEvent(msg, eventmessages.EntityState_COMMITTED_TO_DIRECTORY_BLOCK, s)
+			EmitReplayStateChangeEvent(msg, eventmessages.EntityState_COMMITTED_TO_DIRECTORY_BLOCK, s)
 		}
 	}
 }
