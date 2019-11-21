@@ -17,7 +17,6 @@ func mapEntryCreditBlockHeader(header interfaces.IECBlockHeader) *eventmessages.
 	return &eventmessages.EntryCreditBlockHeader{
 		BodyHash:           header.GetBodyHash().Bytes(),
 		PreviousHeaderHash: header.GetPrevHeaderHash().Bytes(),
-		PreviousFullHash:   header.GetPrevFullHash().Bytes(),
 		BlockHeight:        header.GetDBHeight(),
 		ObjectCount:        header.GetObjectCount(),
 	}

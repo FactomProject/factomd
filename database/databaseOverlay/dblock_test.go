@@ -22,7 +22,7 @@ func TestSaveLoadDBlockHead(t *testing.T) {
 	blocks := testHelper.CreateTestBlockSet(nil)
 	b1 := blocks.DBlock
 
-	dbo := NewOverlay(new(mapdb.MapDB))
+	dbo := NewOverlay(new(mapdb.MapDB), nil)
 	defer dbo.Close()
 
 	err := dbo.SaveDirectoryBlockHead(b1)
@@ -84,7 +84,7 @@ func TestSaveLoadDBlockChain(t *testing.T) {
 	blocks := []*DirectoryBlock{}
 	max := 10
 	var prev *testHelper.BlockSet = nil
-	dbo := NewOverlay(new(mapdb.MapDB))
+	dbo := NewOverlay(new(mapdb.MapDB), nil)
 	defer dbo.Close()
 
 	for i := 0; i < max; i++ {
@@ -153,7 +153,7 @@ func TestSaveLoadDBlockChain(t *testing.T) {
 }
 
 func TestLoadUnknownDBlocks(t *testing.T) {
-	dbo := NewOverlay(new(mapdb.MapDB))
+	dbo := NewOverlay(new(mapdb.MapDB), nil)
 	defer dbo.Close()
 	for i := 0; i < 10; i++ {
 		b := testHelper.IntToByteSlice(i)

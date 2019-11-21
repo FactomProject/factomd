@@ -406,7 +406,7 @@ func CreateTestBlockSetWithNetworkID(prev *BlockSet, networkID uint32, transacti
 }
 
 func CreateEmptyTestDatabaseOverlay() *databaseOverlay.Overlay {
-	return databaseOverlay.NewOverlay(new(mapdb.MapDB))
+	return databaseOverlay.NewOverlay(new(mapdb.MapDB), nil)
 }
 
 func PrintList(title string, list map[string]uint64) {

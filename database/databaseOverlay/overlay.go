@@ -11,6 +11,7 @@ package databaseOverlay
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/FactomProject/factomd/state"
 	"os"
 	"sync"
 
@@ -124,6 +125,7 @@ type Overlay struct {
 
 	BitcoinAnchorRecordPublicKeys  []interfaces.Verifier
 	EthereumAnchorRecordPublicKeys []interfaces.Verifier
+	ownerState                     *state.State
 }
 
 var _ interfaces.IDatabase = (*Overlay)(nil)
@@ -196,9 +198,10 @@ func (db *Overlay) Delete(bucket, key []byte) error {
 	return db.DB.Delete(bucket, key)
 }
 
-func NewOverlay(db interfaces.IDatabase) *Overlay {
+func NewOverlay(db interfaces.IDatabase, owningState *state.State) *Overlay {
 	answer := new(Overlay)
 	answer.DB = db
+	answer.ownerState = owningState
 	return answer
 }
 

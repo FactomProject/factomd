@@ -232,7 +232,7 @@ func TestDoesKeyExist(t *testing.T) {
 func TestGetAll(t *testing.T) {
 	m := new(MapDB)
 
-	dbo := databaseOverlay.NewOverlay(m)
+	dbo := databaseOverlay.NewOverlay(m, nil)
 	testHelper.PopulateTestDatabaseOverlay(dbo)
 
 	_, keys, err := dbo.GetAll(databaseOverlay.INCLUDED_IN, primitives.NewZeroHash())

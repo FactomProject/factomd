@@ -9,7 +9,7 @@ import (
 )
 
 func TestSaveLoadDatabaseEntryHeight(t *testing.T) {
-	dbo := NewOverlay(new(mapdb.MapDB))
+	dbo := NewOverlay(new(mapdb.MapDB), nil)
 	defer dbo.Close()
 
 	for i := 0; i < 10; i++ {

@@ -19,7 +19,7 @@ import (
 )
 
 func TestSaveLoadEntries(t *testing.T) {
-	dbo := NewOverlay(new(mapdb.MapDB))
+	dbo := NewOverlay(new(mapdb.MapDB), nil)
 	defer dbo.Close()
 
 	entries := []*entryBlock.Entry{}
@@ -102,7 +102,7 @@ func TestSaveLoadEntries(t *testing.T) {
 }
 
 func TestLoadUnknownEntries(t *testing.T) {
-	dbo := NewOverlay(new(mapdb.MapDB))
+	dbo := NewOverlay(new(mapdb.MapDB), nil)
 	defer dbo.Close()
 	for i := 0; i < 10; i++ {
 		b := testHelper.IntToByteSlice(i)

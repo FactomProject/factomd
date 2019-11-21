@@ -34,6 +34,13 @@ func EmitDBStateEvent(dbState interfaces.IDBState, entityState eventmessages.Ent
 	}
 }
 
+func EmitDBAnchorEvent(dirBlockInfo interfaces.IDirBlockInfo, state *State) {
+	if state.EventsService != nil {
+		event := events.NewAnchorEvent(GetStreamSource(state), dirBlockInfo)
+		state.EventsService.Send(event)
+	}
+}
+
 func GetStreamSource(state *State) eventmessages.EventSource {
 	if state.IsRunLeader() {
 		return eventmessages.EventSource_LIVE

@@ -295,7 +295,7 @@ func testDoesKeyExist(t *testing.T, m interfaces.IDatabase) {
 func testGetAll(t *testing.T, m interfaces.IDatabase) {
 	defer CleanupTest(t, m)
 
-	dbo := databaseOverlay.NewOverlay(m)
+	dbo := databaseOverlay.NewOverlay(m, nil)
 	testHelper.PopulateTestDatabaseOverlay(dbo)
 
 	_, keys, err := dbo.GetAll(databaseOverlay.INCLUDED_IN, primitives.NewZeroHash())
@@ -318,7 +318,7 @@ func testGetAll(t *testing.T, m interfaces.IDatabase) {
 }
 
 func testNilRetreive(t *testing.T, m interfaces.IDatabase) {
-	o := databaseOverlay.NewOverlay(m)
+	o := databaseOverlay.NewOverlay(m, nil)
 	//totalEntries := 10000
 
 	g := sync.WaitGroup{}

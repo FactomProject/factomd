@@ -22,6 +22,7 @@ message FactomEvent {
         DirectoryBlockCommit directoryBlockCommit = 8;
         ProcessListEvent processListEvent = 9;
         NodeMessage nodeMessage = 10;
+        DirectoryBlockAnchor directoryBlockAnchor = 11;
     }
 }
 
@@ -69,6 +70,7 @@ message DirectoryBlockCommit {
     repeated EntryBlockEntry entryBlockEntries = 6;
 }
 
+
 /* Although readability would increase when the entry credit block would have its own file. The oneof in
  * EntryCreditBlockEntry prevents this. This is linked back to type that are defined in this file.
  */
@@ -81,9 +83,8 @@ message EntryCreditBlock {
 message EntryCreditBlockHeader {
     bytes bodyHash = 1;
     bytes previousHeaderHash = 2;
-    bytes previousFullHash = 3;
-    uint32 blockHeight = 4;
-    uint64 objectCount = 5;
+    uint32 blockHeight = 3;
+    uint64 objectCount = 4;
 }
 
 message EntryCreditBlockEntry {

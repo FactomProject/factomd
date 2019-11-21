@@ -89,7 +89,7 @@ func NewGeneratorState(conf *DBGeneratorConfig, starttime interfaces.Timestamp) 
 		panic(err)
 	}
 
-	s.DB = databaseOverlay.NewOverlay(db)
+	s.DB = databaseOverlay.NewOverlay(db, nil)
 	s.LoadConfig(conf.FactomdConfigPath, "CUSTOM")
 	s.StateSaverStruct.FastBoot = false
 	s.EFactory = new(electionMsgs.ElectionsFactory)

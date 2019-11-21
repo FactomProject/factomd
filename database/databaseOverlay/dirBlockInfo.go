@@ -1,6 +1,7 @@
 package databaseOverlay
 
 import (
+	"github.com/FactomProject/factomd/state"
 	"sort"
 
 	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
@@ -10,6 +11,7 @@ import (
 
 // ProcessDirBlockInfoBatch inserts the dirblock info block
 func (db *Overlay) ProcessDirBlockInfoBatch(block interfaces.IDirBlockInfo) error {
+	z
 	if block.GetBTCConfirmed() == true {
 		err := db.Delete(DIRBLOCKINFO_UNCONFIRMED, block.DatabasePrimaryIndex().Bytes())
 		if err != nil {
@@ -22,15 +24,20 @@ func (db *Overlay) ProcessDirBlockInfoBatch(block interfaces.IDirBlockInfo) erro
 }
 
 func (db *Overlay) ProcessDirBlockInfoMultiBatch(block interfaces.IDirBlockInfo) error {
+	var err error = nil
 	if block.GetBTCConfirmed() == true {
-		err := db.Delete(DIRBLOCKINFO_UNCONFIRMED, block.DatabasePrimaryIndex().Bytes())
+		err = db.Delete(DIRBLOCKINFO_UNCONFIRMED, block.DatabasePrimaryIndex().Bytes())
 		if err != nil {
 			return err
 		}
-		return db.ProcessBlockMultiBatchWithoutHead(DIRBLOCKINFO, DIRBLOCKINFO_NUMBER, DIRBLOCKINFO_SECONDARYINDEX, block)
+		err = db.ProcessBlockMultiBatchWithoutHead(DIRBLOCKINFO, DIRBLOCKINFO_NUMBER, DIRBLOCKINFO_SECONDARYINDEX, block)
 	} else {
-		return db.ProcessBlockMultiBatchWithoutHead(DIRBLOCKINFO_UNCONFIRMED, DIRBLOCKINFO_NUMBER, DIRBLOCKINFO_SECONDARYINDEX, block)
+		err = db.ProcessBlockMultiBatchWithoutHead(DIRBLOCKINFO_UNCONFIRMED, DIRBLOCKINFO_NUMBER, DIRBLOCKINFO_SECONDARYINDEX, block)
 	}
+	if err != nil {
+		state.EmitDBAnchorEvent(block, db.ownerState)
+	}
+	return err
 }
 
 // FetchDirBlockInfoByHash gets a dirblock info block by hash from the database.

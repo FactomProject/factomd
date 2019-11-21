@@ -2619,7 +2619,7 @@ func (s *State) InitLevelDB() error {
 		}
 	}
 
-	s.DB = databaseOverlay.NewOverlay(dbase)
+	s.DB = databaseOverlay.NewOverlay(dbase, s)
 	return nil
 }
 
@@ -2635,7 +2635,7 @@ func (s *State) InitBoltDB() error {
 
 	dbase := new(boltdb.BoltDB)
 	dbase.Init(nil, path+"FactomBolt.db")
-	s.DB = databaseOverlay.NewOverlay(dbase)
+	s.DB = databaseOverlay.NewOverlay(dbase, s)
 	return nil
 }
 
@@ -2646,7 +2646,7 @@ func (s *State) InitMapDB() error {
 
 	dbase := new(mapdb.MapDB)
 	dbase.Init(nil)
-	s.DB = databaseOverlay.NewOverlay(dbase)
+	s.DB = databaseOverlay.NewOverlay(dbase, s)
 	return nil
 }
 

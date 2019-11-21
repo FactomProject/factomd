@@ -28,6 +28,11 @@ type StateChangeEvent struct {
 	payload     interfaces.IDBState
 }
 
+type AnchorEvent struct {
+	eventSource eventmessages.EventSource
+	payload     interfaces.IDirBlockInfo
+}
+
 type ProcessListEvent struct {
 	eventSource              eventmessages.EventSource
 	processListEventInstance *eventmessages.ProcessListEvent
@@ -70,6 +75,14 @@ func (event StateChangeEvent) GetPayload() interfaces.IDBState {
 	return event.payload
 }
 
+func (event AnchorEvent) GetStreamSource() eventmessages.EventSource {
+	return event.eventSource
+}
+
+func (event AnchorEvent) GetPayload() interfaces.IDirBlockInfo {
+	return event.payload
+}
+
 func (event ProcessListEvent) GetStreamSource() eventmessages.EventSource {
 	return event.eventSource
 }
@@ -104,6 +117,13 @@ func NewStateChangeEvent(streamSource eventmessages.EventSource, entityState eve
 		eventSource: streamSource,
 		entityState: entityState,
 		payload:     dbState}
+}
+
+func NewAnchorEvent(streamSource eventmessages.EventSource, dbDirBlockInfo interfaces.IDirBlockInfo) *AnchorEvent {
+	return &AnchorEvent{
+		eventSource: streamSource,
+		payload:     dbDirBlockInfo,
+	}
 }
 
 func ProcessListEventNewBlock(streamSource eventmessages.EventSource, newBlockHeight uint32) *ProcessListEvent {

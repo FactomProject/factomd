@@ -27,6 +27,9 @@ const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 type DirectoryBlock struct {
 	Header               *DirectoryBlockHeader  `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
 	Entries              []*DirectoryBlockEntry `protobuf:"bytes,2,rep,name=entries,proto3" json:"entries,omitempty"`
+	Hash                 []byte                 `protobuf:"bytes,3,opt,name=hash,proto3" json:"hash,omitempty"`
+	ChainID              []byte                 `protobuf:"bytes,4,opt,name=chainID,proto3" json:"chainID,omitempty"`
+	KeyMerkleRoot        []byte                 `protobuf:"bytes,5,opt,name=keyMerkleRoot,proto3" json:"keyMerkleRoot,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}               `json:"-"`
 	XXX_unrecognized     []byte                 `json:"-"`
 	XXX_sizecache        int32                  `json:"-"`
@@ -79,15 +82,35 @@ func (m *DirectoryBlock) GetEntries() []*DirectoryBlockEntry {
 	return nil
 }
 
+func (m *DirectoryBlock) GetHash() []byte {
+	if m != nil {
+		return m.Hash
+	}
+	return nil
+}
+
+func (m *DirectoryBlock) GetChainID() []byte {
+	if m != nil {
+		return m.ChainID
+	}
+	return nil
+}
+
+func (m *DirectoryBlock) GetKeyMerkleRoot() []byte {
+	if m != nil {
+		return m.KeyMerkleRoot
+	}
+	return nil
+}
+
 type DirectoryBlockHeader struct {
 	BodyMerkleRoot        []byte           `protobuf:"bytes,1,opt,name=bodyMerkleRoot,proto3" json:"bodyMerkleRoot,omitempty"`
 	PreviousKeyMerkleRoot []byte           `protobuf:"bytes,2,opt,name=previousKeyMerkleRoot,proto3" json:"previousKeyMerkleRoot,omitempty"`
-	PreviousFullHash      []byte           `protobuf:"bytes,3,opt,name=previousFullHash,proto3" json:"previousFullHash,omitempty"`
-	Timestamp             *types.Timestamp `protobuf:"bytes,4,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
-	BlockHeight           uint32           `protobuf:"varint,5,opt,name=blockHeight,proto3" json:"blockHeight,omitempty"`
-	BlockCount            uint32           `protobuf:"varint,6,opt,name=blockCount,proto3" json:"blockCount,omitempty"`
-	Version               uint32           `protobuf:"varint,7,opt,name=version,proto3" json:"version,omitempty"`
-	NetworkID             uint32           `protobuf:"varint,8,opt,name=networkID,proto3" json:"networkID,omitempty"`
+	Timestamp             *types.Timestamp `protobuf:"bytes,3,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	BlockHeight           uint32           `protobuf:"varint,4,opt,name=blockHeight,proto3" json:"blockHeight,omitempty"`
+	BlockCount            uint32           `protobuf:"varint,5,opt,name=blockCount,proto3" json:"blockCount,omitempty"`
+	Version               uint32           `protobuf:"varint,6,opt,name=version,proto3" json:"version,omitempty"`
+	NetworkID             uint32           `protobuf:"varint,7,opt,name=networkID,proto3" json:"networkID,omitempty"`
 	XXX_NoUnkeyedLiteral  struct{}         `json:"-"`
 	XXX_unrecognized      []byte           `json:"-"`
 	XXX_sizecache         int32            `json:"-"`
@@ -136,13 +159,6 @@ func (m *DirectoryBlockHeader) GetBodyMerkleRoot() []byte {
 func (m *DirectoryBlockHeader) GetPreviousKeyMerkleRoot() []byte {
 	if m != nil {
 		return m.PreviousKeyMerkleRoot
-	}
-	return nil
-}
-
-func (m *DirectoryBlockHeader) GetPreviousFullHash() []byte {
-	if m != nil {
-		return m.PreviousFullHash
 	}
 	return nil
 }
@@ -237,41 +253,178 @@ func (m *DirectoryBlockEntry) GetKeyMerkleRoot() []byte {
 	return nil
 }
 
+type DirectoryBlockAnchor struct {
+	DirectoryBlockHash            []byte           `protobuf:"bytes,1,opt,name=directoryBlockHash,proto3" json:"directoryBlockHash,omitempty"`
+	DirectoryBlockMerkleRoot      []byte           `protobuf:"bytes,2,opt,name=directoryBlockMerkleRoot,proto3" json:"directoryBlockMerkleRoot,omitempty"`
+	BlockHeight                   uint32           `protobuf:"varint,3,opt,name=blockHeight,proto3" json:"blockHeight,omitempty"`
+	Timestamp                     *types.Timestamp `protobuf:"bytes,4,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	BtcTxHash                     []byte           `protobuf:"bytes,5,opt,name=btcTxHash,proto3" json:"btcTxHash,omitempty"`
+	BtcTxOffset                   uint32           `protobuf:"varint,6,opt,name=btcTxOffset,proto3" json:"btcTxOffset,omitempty"`
+	BtcBlockHeight                uint32           `protobuf:"varint,7,opt,name=btcBlockHeight,proto3" json:"btcBlockHeight,omitempty"`
+	BtcBlockHash                  []byte           `protobuf:"bytes,8,opt,name=btcBlockHash,proto3" json:"btcBlockHash,omitempty"`
+	BtcConfirmed                  bool             `protobuf:"varint,9,opt,name=btcConfirmed,proto3" json:"btcConfirmed,omitempty"`
+	EthereumAnchorRecordEntryHash []byte           `protobuf:"bytes,10,opt,name=ethereumAnchorRecordEntryHash,proto3" json:"ethereumAnchorRecordEntryHash,omitempty"`
+	EthereumConfirmed             bool             `protobuf:"varint,11,opt,name=ethereumConfirmed,proto3" json:"ethereumConfirmed,omitempty"`
+	XXX_NoUnkeyedLiteral          struct{}         `json:"-"`
+	XXX_unrecognized              []byte           `json:"-"`
+	XXX_sizecache                 int32            `json:"-"`
+}
+
+func (m *DirectoryBlockAnchor) Reset()         { *m = DirectoryBlockAnchor{} }
+func (m *DirectoryBlockAnchor) String() string { return proto.CompactTextString(m) }
+func (*DirectoryBlockAnchor) ProtoMessage()    {}
+func (*DirectoryBlockAnchor) Descriptor() ([]byte, []int) {
+	return fileDescriptor_470a6f1df5755130, []int{3}
+}
+func (m *DirectoryBlockAnchor) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *DirectoryBlockAnchor) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_DirectoryBlockAnchor.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *DirectoryBlockAnchor) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DirectoryBlockAnchor.Merge(m, src)
+}
+func (m *DirectoryBlockAnchor) XXX_Size() int {
+	return m.Size()
+}
+func (m *DirectoryBlockAnchor) XXX_DiscardUnknown() {
+	xxx_messageInfo_DirectoryBlockAnchor.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_DirectoryBlockAnchor proto.InternalMessageInfo
+
+func (m *DirectoryBlockAnchor) GetDirectoryBlockHash() []byte {
+	if m != nil {
+		return m.DirectoryBlockHash
+	}
+	return nil
+}
+
+func (m *DirectoryBlockAnchor) GetDirectoryBlockMerkleRoot() []byte {
+	if m != nil {
+		return m.DirectoryBlockMerkleRoot
+	}
+	return nil
+}
+
+func (m *DirectoryBlockAnchor) GetBlockHeight() uint32 {
+	if m != nil {
+		return m.BlockHeight
+	}
+	return 0
+}
+
+func (m *DirectoryBlockAnchor) GetTimestamp() *types.Timestamp {
+	if m != nil {
+		return m.Timestamp
+	}
+	return nil
+}
+
+func (m *DirectoryBlockAnchor) GetBtcTxHash() []byte {
+	if m != nil {
+		return m.BtcTxHash
+	}
+	return nil
+}
+
+func (m *DirectoryBlockAnchor) GetBtcTxOffset() uint32 {
+	if m != nil {
+		return m.BtcTxOffset
+	}
+	return 0
+}
+
+func (m *DirectoryBlockAnchor) GetBtcBlockHeight() uint32 {
+	if m != nil {
+		return m.BtcBlockHeight
+	}
+	return 0
+}
+
+func (m *DirectoryBlockAnchor) GetBtcBlockHash() []byte {
+	if m != nil {
+		return m.BtcBlockHash
+	}
+	return nil
+}
+
+func (m *DirectoryBlockAnchor) GetBtcConfirmed() bool {
+	if m != nil {
+		return m.BtcConfirmed
+	}
+	return false
+}
+
+func (m *DirectoryBlockAnchor) GetEthereumAnchorRecordEntryHash() []byte {
+	if m != nil {
+		return m.EthereumAnchorRecordEntryHash
+	}
+	return nil
+}
+
+func (m *DirectoryBlockAnchor) GetEthereumConfirmed() bool {
+	if m != nil {
+		return m.EthereumConfirmed
+	}
+	return false
+}
+
 func init() {
 	proto.RegisterType((*DirectoryBlock)(nil), "eventmessages.DirectoryBlock")
 	proto.RegisterType((*DirectoryBlockHeader)(nil), "eventmessages.DirectoryBlockHeader")
 	proto.RegisterType((*DirectoryBlockEntry)(nil), "eventmessages.DirectoryBlockEntry")
+	proto.RegisterType((*DirectoryBlockAnchor)(nil), "eventmessages.DirectoryBlockAnchor")
 }
 
 func init() { proto.RegisterFile("eventmessages/directoryBlock.proto", fileDescriptor_470a6f1df5755130) }
 
 var fileDescriptor_470a6f1df5755130 = []byte{
-	// 392 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x7c, 0x92, 0xcd, 0x6a, 0xdb, 0x40,
-	0x14, 0x85, 0x2b, 0xbb, 0xb5, 0xeb, 0xeb, 0xda, 0x94, 0x69, 0x0b, 0x83, 0x29, 0xaa, 0x50, 0x4b,
-	0x31, 0x5d, 0xc8, 0xe0, 0x76, 0x51, 0x68, 0x37, 0x71, 0x9c, 0x60, 0x13, 0xb2, 0x11, 0xc9, 0x26,
-	0x3b, 0xfd, 0x5c, 0x4b, 0x42, 0x3f, 0x63, 0x66, 0x46, 0x0e, 0x7e, 0x86, 0xbc, 0x40, 0x1e, 0x29,
-	0xcb, 0x2c, 0xf2, 0x00, 0xc1, 0x79, 0x91, 0x90, 0xb1, 0x65, 0x5b, 0x89, 0xc8, 0x4a, 0xdc, 0x73,
-	0xbe, 0x7b, 0xd0, 0x9c, 0x19, 0x30, 0x71, 0x81, 0x99, 0x4c, 0x51, 0x08, 0x27, 0x40, 0x31, 0xf0,
-	0x23, 0x8e, 0x9e, 0x64, 0x7c, 0x39, 0x4a, 0x98, 0x17, 0x5b, 0x73, 0xce, 0x24, 0x23, 0x9d, 0x12,
-	0xd3, 0xfb, 0x16, 0x30, 0x16, 0x24, 0x38, 0x50, 0xa6, 0x9b, 0xcf, 0x06, 0x32, 0x4a, 0x51, 0x48,
-	0x27, 0x9d, 0xaf, 0x79, 0xf3, 0x4a, 0x83, 0xee, 0xb8, 0x14, 0x44, 0xfe, 0x41, 0x23, 0x44, 0xc7,
-	0x47, 0x4e, 0x35, 0x43, 0xeb, 0xb7, 0x87, 0xdf, 0xad, 0x52, 0xa6, 0x55, 0xc6, 0x27, 0x0a, 0xb5,
-	0x37, 0x2b, 0xe4, 0x3f, 0x34, 0x31, 0x93, 0x3c, 0x42, 0x41, 0x6b, 0x46, 0xbd, 0xdf, 0x1e, 0x9a,
-	0xaf, 0x6e, 0x1f, 0x65, 0x92, 0x2f, 0xed, 0x62, 0xc5, 0xbc, 0xab, 0xc1, 0xe7, 0xaa, 0x78, 0xf2,
-	0x13, 0xba, 0x2e, 0xf3, 0x97, 0xa7, 0xc8, 0xe3, 0x04, 0x6d, 0xc6, 0xa4, 0xfa, 0xb7, 0x0f, 0xf6,
-	0x33, 0x95, 0xfc, 0x81, 0x2f, 0x73, 0x8e, 0x8b, 0x88, 0xe5, 0xe2, 0x04, 0xf7, 0xf1, 0x9a, 0xc2,
-	0xab, 0x4d, 0xf2, 0x0b, 0x3e, 0x16, 0xc6, 0x71, 0x9e, 0x24, 0x13, 0x47, 0x84, 0xb4, 0xae, 0x16,
-	0x5e, 0xe8, 0xe4, 0x2f, 0xb4, 0xb6, 0x1d, 0xd2, 0xb7, 0xaa, 0xa0, 0x9e, 0xb5, 0x6e, 0xd9, 0x2a,
-	0x5a, 0xb6, 0xce, 0x0a, 0xc2, 0xde, 0xc1, 0xc4, 0x80, 0xb6, 0xbb, 0x3e, 0x52, 0x14, 0x84, 0x92,
-	0xbe, 0x33, 0xb4, 0x7e, 0xc7, 0xde, 0x97, 0x88, 0x0e, 0xa0, 0xc6, 0x43, 0x96, 0x67, 0x92, 0x36,
-	0x14, 0xb0, 0xa7, 0x10, 0x0a, 0xcd, 0x05, 0x72, 0x11, 0xb1, 0x8c, 0x36, 0x95, 0x59, 0x8c, 0xe4,
-	0x2b, 0xb4, 0x32, 0x94, 0x97, 0x8c, 0xc7, 0xd3, 0x31, 0x7d, 0xaf, 0xbc, 0x9d, 0x60, 0x9e, 0xc3,
-	0xa7, 0x8a, 0xda, 0x9f, 0xe2, 0xbc, 0xd0, 0x89, 0xb2, 0xe9, 0x78, 0xd3, 0x66, 0x31, 0x92, 0x1f,
-	0xd0, 0x89, 0x2b, 0xea, 0x2b, 0x8b, 0xa3, 0x83, 0x9b, 0x95, 0xae, 0xdd, 0xae, 0x74, 0xed, 0x7e,
-	0xa5, 0x6b, 0xd7, 0x0f, 0xfa, 0x1b, 0x30, 0x3c, 0x96, 0x5a, 0x33, 0xc7, 0x93, 0xdb, 0x8f, 0x5f,
-	0xbe, 0xfe, 0x8b, 0xf2, 0xfb, 0x74, 0x1b, 0xaa, 0xb2, 0xdf, 0x8f, 0x01, 0x00, 0x00, 0xff, 0xff,
-	0xd7, 0x1c, 0xad, 0x7e, 0xdb, 0x02, 0x00, 0x00,
+	// 535 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x54, 0xd1, 0x8e, 0xd2, 0x40,
+	0x14, 0x75, 0x00, 0x61, 0xb9, 0x2c, 0x9b, 0x38, 0x6a, 0x32, 0xd9, 0xac, 0xd8, 0x54, 0x63, 0x78,
+	0x30, 0x25, 0x41, 0x1f, 0x8c, 0xfa, 0xb2, 0x2c, 0x26, 0xbb, 0x31, 0xc6, 0xa4, 0x59, 0x5f, 0x7c,
+	0x2b, 0xed, 0x85, 0x36, 0xd0, 0x0e, 0x99, 0x0e, 0x28, 0xaf, 0x7e, 0x85, 0x9f, 0xe0, 0xa7, 0xf8,
+	0xe8, 0x1f, 0x68, 0xf0, 0x47, 0x0c, 0xb7, 0x14, 0x3a, 0x80, 0x6b, 0x7c, 0x82, 0x39, 0xe7, 0xdc,
+	0x7b, 0xee, 0xdc, 0x33, 0x29, 0xd8, 0x38, 0xc7, 0x44, 0xc7, 0x98, 0xa6, 0xde, 0x08, 0xd3, 0x4e,
+	0x10, 0x29, 0xf4, 0xb5, 0x54, 0x8b, 0xde, 0x44, 0xfa, 0x63, 0x67, 0xaa, 0xa4, 0x96, 0xbc, 0x69,
+	0x68, 0x4e, 0x1f, 0x8e, 0xa4, 0x1c, 0x4d, 0xb0, 0x43, 0xe4, 0x60, 0x36, 0xec, 0xe8, 0x28, 0xc6,
+	0x54, 0x7b, 0xf1, 0x34, 0xd3, 0xdb, 0x3f, 0x19, 0x9c, 0xf4, 0x8d, 0x46, 0xfc, 0x15, 0x54, 0x43,
+	0xf4, 0x02, 0x54, 0x82, 0x59, 0xac, 0xdd, 0xe8, 0x3e, 0x72, 0x8c, 0x9e, 0x8e, 0x29, 0xbf, 0x24,
+	0xa9, 0xbb, 0x2e, 0xe1, 0xaf, 0xa1, 0x86, 0x89, 0x56, 0x11, 0xa6, 0xa2, 0x64, 0x95, 0xdb, 0x8d,
+	0xae, 0x7d, 0x63, 0xf5, 0x9b, 0x44, 0xab, 0x85, 0x9b, 0x97, 0x70, 0x0e, 0x95, 0xd0, 0x4b, 0x43,
+	0x51, 0xb6, 0x58, 0xfb, 0xd8, 0xa5, 0xff, 0x5c, 0x40, 0xcd, 0x0f, 0xbd, 0x28, 0xb9, 0xea, 0x8b,
+	0x0a, 0xc1, 0xf9, 0x91, 0x3f, 0x86, 0xe6, 0x18, 0x17, 0xef, 0x50, 0x8d, 0x27, 0xe8, 0x4a, 0xa9,
+	0xc5, 0x6d, 0xe2, 0x4d, 0xd0, 0xfe, 0x56, 0x82, 0x7b, 0x87, 0x46, 0xe6, 0x4f, 0xe0, 0x64, 0x20,
+	0x83, 0x62, 0x3d, 0xa3, 0xfa, 0x1d, 0x94, 0x3f, 0x87, 0xfb, 0x53, 0x85, 0xf3, 0x48, 0xce, 0xd2,
+	0xb7, 0x86, 0x5d, 0x89, 0xe4, 0x87, 0x49, 0xfe, 0x02, 0xea, 0x9b, 0x5d, 0xd3, 0x7d, 0x1a, 0xdd,
+	0x53, 0x27, 0x4b, 0xc3, 0xc9, 0xd3, 0x70, 0xae, 0x73, 0x85, 0xbb, 0x15, 0x73, 0x0b, 0x1a, 0x83,
+	0x6c, 0xcc, 0x68, 0x14, 0x6a, 0xba, 0x74, 0xd3, 0x2d, 0x42, 0xbc, 0x05, 0x40, 0xc7, 0x0b, 0x39,
+	0x4b, 0xb2, 0x5b, 0x37, 0xdd, 0x02, 0xb2, 0x5a, 0xd9, 0x1c, 0x55, 0x1a, 0xc9, 0x44, 0x54, 0x89,
+	0xcc, 0x8f, 0xfc, 0x0c, 0xea, 0x09, 0xea, 0x4f, 0x52, 0x8d, 0xaf, 0xfa, 0xa2, 0x46, 0xdc, 0x16,
+	0xb0, 0x3f, 0xc0, 0xdd, 0x03, 0xf1, 0x14, 0x13, 0x60, 0xff, 0x48, 0xa0, 0x74, 0x28, 0x81, 0x2f,
+	0x95, 0xdd, 0x04, 0xce, 0x13, 0x3f, 0x94, 0x8a, 0x3b, 0xc0, 0xcd, 0x47, 0x7c, 0xb9, 0x0a, 0x3f,
+	0xf3, 0x38, 0xc0, 0xf0, 0x97, 0x20, 0x4c, 0x74, 0xcf, 0xf9, 0xaf, 0xfc, 0xee, 0x56, 0xcb, 0xfb,
+	0x5b, 0x35, 0x12, 0xab, 0xfc, 0x4f, 0x62, 0x67, 0x50, 0x1f, 0x68, 0xff, 0xfa, 0x33, 0x8d, 0x9f,
+	0x3d, 0xc2, 0x2d, 0x40, 0xce, 0xab, 0xc3, 0xfb, 0xe1, 0x30, 0x45, 0xbd, 0x4e, 0xa4, 0x08, 0xd1,
+	0x4b, 0xd4, 0x7e, 0xaf, 0x30, 0x5e, 0x16, 0xcd, 0x0e, 0xca, 0x6d, 0x38, 0xde, 0x20, 0x2b, 0xab,
+	0x23, 0xb2, 0x32, 0xb0, 0xb5, 0xe6, 0x42, 0x26, 0xc3, 0x48, 0xc5, 0x18, 0x88, 0xba, 0xc5, 0xda,
+	0x47, 0xae, 0x81, 0xf1, 0x3e, 0x3c, 0x40, 0x1d, 0xa2, 0xc2, 0x59, 0x9c, 0x25, 0xe1, 0xa2, 0x2f,
+	0x55, 0x40, 0x69, 0x53, 0x63, 0xa0, 0xc6, 0x37, 0x8b, 0xf8, 0x53, 0xb8, 0x93, 0x0b, 0xb6, 0x76,
+	0x0d, 0xb2, 0xdb, 0x27, 0x7a, 0xe7, 0xdf, 0x97, 0x2d, 0xf6, 0x63, 0xd9, 0x62, 0xbf, 0x96, 0x2d,
+	0xf6, 0xf5, 0x77, 0xeb, 0x16, 0x58, 0xbe, 0x8c, 0x9d, 0xa1, 0xe7, 0xeb, 0xcd, 0x4f, 0x60, 0x7e,
+	0x2b, 0x3e, 0x9a, 0x1f, 0xb3, 0x41, 0x95, 0x52, 0x78, 0xf6, 0x27, 0x00, 0x00, 0xff, 0xff, 0xf1,
+	0x38, 0xd1, 0xe1, 0x08, 0x05, 0x00, 0x00,
 }
 
 func (m *DirectoryBlock) Marshal() (dAtA []byte, err error) {
@@ -297,6 +450,27 @@ func (m *DirectoryBlock) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	if m.XXX_unrecognized != nil {
 		i -= len(m.XXX_unrecognized)
 		copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	if len(m.KeyMerkleRoot) > 0 {
+		i -= len(m.KeyMerkleRoot)
+		copy(dAtA[i:], m.KeyMerkleRoot)
+		i = encodeVarintDirectoryBlock(dAtA, i, uint64(len(m.KeyMerkleRoot)))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.ChainID) > 0 {
+		i -= len(m.ChainID)
+		copy(dAtA[i:], m.ChainID)
+		i = encodeVarintDirectoryBlock(dAtA, i, uint64(len(m.ChainID)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.Hash) > 0 {
+		i -= len(m.Hash)
+		copy(dAtA[i:], m.Hash)
+		i = encodeVarintDirectoryBlock(dAtA, i, uint64(len(m.Hash)))
+		i--
+		dAtA[i] = 0x1a
 	}
 	if len(m.Entries) > 0 {
 		for iNdEx := len(m.Entries) - 1; iNdEx >= 0; iNdEx-- {
@@ -354,22 +528,22 @@ func (m *DirectoryBlockHeader) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	if m.NetworkID != 0 {
 		i = encodeVarintDirectoryBlock(dAtA, i, uint64(m.NetworkID))
 		i--
-		dAtA[i] = 0x40
+		dAtA[i] = 0x38
 	}
 	if m.Version != 0 {
 		i = encodeVarintDirectoryBlock(dAtA, i, uint64(m.Version))
 		i--
-		dAtA[i] = 0x38
+		dAtA[i] = 0x30
 	}
 	if m.BlockCount != 0 {
 		i = encodeVarintDirectoryBlock(dAtA, i, uint64(m.BlockCount))
 		i--
-		dAtA[i] = 0x30
+		dAtA[i] = 0x28
 	}
 	if m.BlockHeight != 0 {
 		i = encodeVarintDirectoryBlock(dAtA, i, uint64(m.BlockHeight))
 		i--
-		dAtA[i] = 0x28
+		dAtA[i] = 0x20
 	}
 	if m.Timestamp != nil {
 		{
@@ -380,13 +554,6 @@ func (m *DirectoryBlockHeader) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 			i -= size
 			i = encodeVarintDirectoryBlock(dAtA, i, uint64(size))
 		}
-		i--
-		dAtA[i] = 0x22
-	}
-	if len(m.PreviousFullHash) > 0 {
-		i -= len(m.PreviousFullHash)
-		copy(dAtA[i:], m.PreviousFullHash)
-		i = encodeVarintDirectoryBlock(dAtA, i, uint64(len(m.PreviousFullHash)))
 		i--
 		dAtA[i] = 0x1a
 	}
@@ -448,6 +615,115 @@ func (m *DirectoryBlockEntry) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *DirectoryBlockAnchor) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DirectoryBlockAnchor) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *DirectoryBlockAnchor) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.XXX_unrecognized != nil {
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	if m.EthereumConfirmed {
+		i--
+		if m.EthereumConfirmed {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x58
+	}
+	if len(m.EthereumAnchorRecordEntryHash) > 0 {
+		i -= len(m.EthereumAnchorRecordEntryHash)
+		copy(dAtA[i:], m.EthereumAnchorRecordEntryHash)
+		i = encodeVarintDirectoryBlock(dAtA, i, uint64(len(m.EthereumAnchorRecordEntryHash)))
+		i--
+		dAtA[i] = 0x52
+	}
+	if m.BtcConfirmed {
+		i--
+		if m.BtcConfirmed {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x48
+	}
+	if len(m.BtcBlockHash) > 0 {
+		i -= len(m.BtcBlockHash)
+		copy(dAtA[i:], m.BtcBlockHash)
+		i = encodeVarintDirectoryBlock(dAtA, i, uint64(len(m.BtcBlockHash)))
+		i--
+		dAtA[i] = 0x42
+	}
+	if m.BtcBlockHeight != 0 {
+		i = encodeVarintDirectoryBlock(dAtA, i, uint64(m.BtcBlockHeight))
+		i--
+		dAtA[i] = 0x38
+	}
+	if m.BtcTxOffset != 0 {
+		i = encodeVarintDirectoryBlock(dAtA, i, uint64(m.BtcTxOffset))
+		i--
+		dAtA[i] = 0x30
+	}
+	if len(m.BtcTxHash) > 0 {
+		i -= len(m.BtcTxHash)
+		copy(dAtA[i:], m.BtcTxHash)
+		i = encodeVarintDirectoryBlock(dAtA, i, uint64(len(m.BtcTxHash)))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if m.Timestamp != nil {
+		{
+			size, err := m.Timestamp.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintDirectoryBlock(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x22
+	}
+	if m.BlockHeight != 0 {
+		i = encodeVarintDirectoryBlock(dAtA, i, uint64(m.BlockHeight))
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.DirectoryBlockMerkleRoot) > 0 {
+		i -= len(m.DirectoryBlockMerkleRoot)
+		copy(dAtA[i:], m.DirectoryBlockMerkleRoot)
+		i = encodeVarintDirectoryBlock(dAtA, i, uint64(len(m.DirectoryBlockMerkleRoot)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.DirectoryBlockHash) > 0 {
+		i -= len(m.DirectoryBlockHash)
+		copy(dAtA[i:], m.DirectoryBlockHash)
+		i = encodeVarintDirectoryBlock(dAtA, i, uint64(len(m.DirectoryBlockHash)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func encodeVarintDirectoryBlock(dAtA []byte, offset int, v uint64) int {
 	offset -= sovDirectoryBlock(v)
 	base := offset
@@ -475,6 +751,18 @@ func (m *DirectoryBlock) Size() (n int) {
 			n += 1 + l + sovDirectoryBlock(uint64(l))
 		}
 	}
+	l = len(m.Hash)
+	if l > 0 {
+		n += 1 + l + sovDirectoryBlock(uint64(l))
+	}
+	l = len(m.ChainID)
+	if l > 0 {
+		n += 1 + l + sovDirectoryBlock(uint64(l))
+	}
+	l = len(m.KeyMerkleRoot)
+	if l > 0 {
+		n += 1 + l + sovDirectoryBlock(uint64(l))
+	}
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
 	}
@@ -492,10 +780,6 @@ func (m *DirectoryBlockHeader) Size() (n int) {
 		n += 1 + l + sovDirectoryBlock(uint64(l))
 	}
 	l = len(m.PreviousKeyMerkleRoot)
-	if l > 0 {
-		n += 1 + l + sovDirectoryBlock(uint64(l))
-	}
-	l = len(m.PreviousFullHash)
 	if l > 0 {
 		n += 1 + l + sovDirectoryBlock(uint64(l))
 	}
@@ -534,6 +818,57 @@ func (m *DirectoryBlockEntry) Size() (n int) {
 	l = len(m.KeyMerkleRoot)
 	if l > 0 {
 		n += 1 + l + sovDirectoryBlock(uint64(l))
+	}
+	if m.XXX_unrecognized != nil {
+		n += len(m.XXX_unrecognized)
+	}
+	return n
+}
+
+func (m *DirectoryBlockAnchor) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.DirectoryBlockHash)
+	if l > 0 {
+		n += 1 + l + sovDirectoryBlock(uint64(l))
+	}
+	l = len(m.DirectoryBlockMerkleRoot)
+	if l > 0 {
+		n += 1 + l + sovDirectoryBlock(uint64(l))
+	}
+	if m.BlockHeight != 0 {
+		n += 1 + sovDirectoryBlock(uint64(m.BlockHeight))
+	}
+	if m.Timestamp != nil {
+		l = m.Timestamp.Size()
+		n += 1 + l + sovDirectoryBlock(uint64(l))
+	}
+	l = len(m.BtcTxHash)
+	if l > 0 {
+		n += 1 + l + sovDirectoryBlock(uint64(l))
+	}
+	if m.BtcTxOffset != 0 {
+		n += 1 + sovDirectoryBlock(uint64(m.BtcTxOffset))
+	}
+	if m.BtcBlockHeight != 0 {
+		n += 1 + sovDirectoryBlock(uint64(m.BtcBlockHeight))
+	}
+	l = len(m.BtcBlockHash)
+	if l > 0 {
+		n += 1 + l + sovDirectoryBlock(uint64(l))
+	}
+	if m.BtcConfirmed {
+		n += 2
+	}
+	l = len(m.EthereumAnchorRecordEntryHash)
+	if l > 0 {
+		n += 1 + l + sovDirectoryBlock(uint64(l))
+	}
+	if m.EthereumConfirmed {
+		n += 2
 	}
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
@@ -644,6 +979,108 @@ func (m *DirectoryBlock) Unmarshal(dAtA []byte) error {
 			m.Entries = append(m.Entries, &DirectoryBlockEntry{})
 			if err := m.Entries[len(m.Entries)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Hash", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDirectoryBlock
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthDirectoryBlock
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthDirectoryBlock
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Hash = append(m.Hash[:0], dAtA[iNdEx:postIndex]...)
+			if m.Hash == nil {
+				m.Hash = []byte{}
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ChainID", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDirectoryBlock
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthDirectoryBlock
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthDirectoryBlock
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ChainID = append(m.ChainID[:0], dAtA[iNdEx:postIndex]...)
+			if m.ChainID == nil {
+				m.ChainID = []byte{}
+			}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field KeyMerkleRoot", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDirectoryBlock
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthDirectoryBlock
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthDirectoryBlock
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.KeyMerkleRoot = append(m.KeyMerkleRoot[:0], dAtA[iNdEx:postIndex]...)
+			if m.KeyMerkleRoot == nil {
+				m.KeyMerkleRoot = []byte{}
 			}
 			iNdEx = postIndex
 		default:
@@ -770,40 +1207,6 @@ func (m *DirectoryBlockHeader) Unmarshal(dAtA []byte) error {
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PreviousFullHash", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDirectoryBlock
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthDirectoryBlock
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthDirectoryBlock
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.PreviousFullHash = append(m.PreviousFullHash[:0], dAtA[iNdEx:postIndex]...)
-			if m.PreviousFullHash == nil {
-				m.PreviousFullHash = []byte{}
-			}
-			iNdEx = postIndex
-		case 4:
-			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Timestamp", wireType)
 			}
 			var msglen int
@@ -838,7 +1241,7 @@ func (m *DirectoryBlockHeader) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 5:
+		case 4:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field BlockHeight", wireType)
 			}
@@ -857,7 +1260,7 @@ func (m *DirectoryBlockHeader) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 6:
+		case 5:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field BlockCount", wireType)
 			}
@@ -876,7 +1279,7 @@ func (m *DirectoryBlockHeader) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 7:
+		case 6:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Version", wireType)
 			}
@@ -895,7 +1298,7 @@ func (m *DirectoryBlockHeader) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 8:
+		case 7:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field NetworkID", wireType)
 			}
@@ -1036,6 +1439,363 @@ func (m *DirectoryBlockEntry) Unmarshal(dAtA []byte) error {
 				m.KeyMerkleRoot = []byte{}
 			}
 			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipDirectoryBlock(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthDirectoryBlock
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthDirectoryBlock
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *DirectoryBlockAnchor) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowDirectoryBlock
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DirectoryBlockAnchor: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DirectoryBlockAnchor: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DirectoryBlockHash", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDirectoryBlock
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthDirectoryBlock
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthDirectoryBlock
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.DirectoryBlockHash = append(m.DirectoryBlockHash[:0], dAtA[iNdEx:postIndex]...)
+			if m.DirectoryBlockHash == nil {
+				m.DirectoryBlockHash = []byte{}
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DirectoryBlockMerkleRoot", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDirectoryBlock
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthDirectoryBlock
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthDirectoryBlock
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.DirectoryBlockMerkleRoot = append(m.DirectoryBlockMerkleRoot[:0], dAtA[iNdEx:postIndex]...)
+			if m.DirectoryBlockMerkleRoot == nil {
+				m.DirectoryBlockMerkleRoot = []byte{}
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BlockHeight", wireType)
+			}
+			m.BlockHeight = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDirectoryBlock
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.BlockHeight |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Timestamp", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDirectoryBlock
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthDirectoryBlock
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthDirectoryBlock
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Timestamp == nil {
+				m.Timestamp = &types.Timestamp{}
+			}
+			if err := m.Timestamp.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BtcTxHash", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDirectoryBlock
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthDirectoryBlock
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthDirectoryBlock
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.BtcTxHash = append(m.BtcTxHash[:0], dAtA[iNdEx:postIndex]...)
+			if m.BtcTxHash == nil {
+				m.BtcTxHash = []byte{}
+			}
+			iNdEx = postIndex
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BtcTxOffset", wireType)
+			}
+			m.BtcTxOffset = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDirectoryBlock
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.BtcTxOffset |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BtcBlockHeight", wireType)
+			}
+			m.BtcBlockHeight = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDirectoryBlock
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.BtcBlockHeight |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BtcBlockHash", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDirectoryBlock
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthDirectoryBlock
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthDirectoryBlock
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.BtcBlockHash = append(m.BtcBlockHash[:0], dAtA[iNdEx:postIndex]...)
+			if m.BtcBlockHash == nil {
+				m.BtcBlockHash = []byte{}
+			}
+			iNdEx = postIndex
+		case 9:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BtcConfirmed", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDirectoryBlock
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.BtcConfirmed = bool(v != 0)
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EthereumAnchorRecordEntryHash", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDirectoryBlock
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthDirectoryBlock
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthDirectoryBlock
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.EthereumAnchorRecordEntryHash = append(m.EthereumAnchorRecordEntryHash[:0], dAtA[iNdEx:postIndex]...)
+			if m.EthereumAnchorRecordEntryHash == nil {
+				m.EthereumAnchorRecordEntryHash = []byte{}
+			}
+			iNdEx = postIndex
+		case 11:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EthereumConfirmed", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDirectoryBlock
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.EthereumConfirmed = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := skipDirectoryBlock(dAtA[iNdEx:])

@@ -217,7 +217,7 @@ func TestGetAll(t *testing.T) {
 	}
 	defer CleanupTest(t, m)
 
-	dbo := databaseOverlay.NewOverlay(m)
+	dbo := databaseOverlay.NewOverlay(m, nil)
 	testHelper.PopulateTestDatabaseOverlay(dbo)
 
 	_, keys, err := dbo.GetAll(databaseOverlay.INCLUDED_IN, primitives.NewZeroHash())

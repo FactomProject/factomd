@@ -19,7 +19,7 @@ func InitBolt(cfg *util.FactomdConfig) interfaces.DBOverlay {
 
 	os.MkdirAll(path, 0777)
 	dbase := hybridDB.NewBoltMapHybridDB(nil, path+"FactomBolt-Import.db")
-	return databaseOverlay.NewOverlay(dbase)
+	return databaseOverlay.NewOverlay(dbase, nil)
 }
 
 func InitLevelDB(cfg *util.FactomdConfig) interfaces.DBOverlay {
@@ -35,12 +35,12 @@ func InitLevelDB(cfg *util.FactomdConfig) interfaces.DBOverlay {
 		}
 	}
 
-	return databaseOverlay.NewOverlay(dbase)
+	return databaseOverlay.NewOverlay(dbase, nil)
 }
 
 func InitMapDB(cfg *util.FactomdConfig) interfaces.DBOverlay {
 	//fmt.Println("InitMapDB")
 	dbase := new(mapdb.MapDB)
 	dbase.Init(nil)
-	return databaseOverlay.NewOverlay(dbase)
+	return databaseOverlay.NewOverlay(dbase, nil)
 }

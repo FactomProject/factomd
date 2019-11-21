@@ -57,7 +57,7 @@ func main() {
 		}
 	}
 
-	dbo := databaseOverlay.NewOverlay(dbase)
+	dbo := databaseOverlay.NewOverlay(dbase, nil)
 	err = SetDirectoryBlockHead(dbo, newHeight)
 	if err != nil {
 		fmt.Errorf("ERROR: %v", err)

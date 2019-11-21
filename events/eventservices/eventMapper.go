@@ -23,6 +23,9 @@ func MapToFactomEvent(eventInput events.EventInput, broadcastContent BroadcastCo
 	case *events.StateChangeEvent:
 		stateChangeEvent := eventInput.(*events.StateChangeEvent)
 		return mapDBStateEvent(stateChangeEvent, broadcastContent)
+	case *events.AnchorEvent:
+		anchorEvent := eventInput.(*events.AnchorEvent)
+		return mapAnchorEvent(anchorEvent)
 	case *events.ProcessListEvent:
 		processMessageEvent := eventInput.(*events.ProcessListEvent)
 		return mapProcessMessageEvent(processMessageEvent)
@@ -109,6 +112,16 @@ func mapDBStateEvent(stateChangeEvent *events.StateChangeEvent, broadcastContent
 	if state != nil {
 		shouldIncludeContent := broadcastContent > BroadcastOnce
 		event.Event = mapDBState(state, shouldIncludeContent)
+	}
+	return event, nil
+}
+
+func mapAnchorEvent(anchorEvent *events.AnchorEvent) (*eventmessages.FactomEvent, error) {
+	event := &eventmessages.FactomEvent{}
+	event.EventSource = anchorEvent.GetStreamSource()
+	dirBlockInfo := anchorEvent.GetPayload()
+	if dirBlockInfo != nil {
+		event.Event = mapDirectoryBlockInfo(dirBlockInfo)
 	}
 	return event, nil
 }

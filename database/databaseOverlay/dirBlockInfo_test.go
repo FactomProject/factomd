@@ -21,7 +21,7 @@ import (
 func TestSaveLoadDirBlockInfo(t *testing.T) {
 	b1 := testHelper.CreateTestDirBlockInfo(nil)
 
-	dbo := NewOverlay(new(mapdb.MapDB))
+	dbo := NewOverlay(new(mapdb.MapDB), nil)
 	defer dbo.Close()
 
 	err := dbo.SaveDirBlockInfo(b1)
@@ -119,7 +119,7 @@ func TestSaveLoadDirBlockInfo(t *testing.T) {
 }
 
 func TestFetchDirBlockInfoBatches(t *testing.T) {
-	dbo := NewOverlay(new(mapdb.MapDB))
+	dbo := NewOverlay(new(mapdb.MapDB), nil)
 	defer dbo.Close()
 
 	blocks := []*dbInfo.DirBlockInfo{}
@@ -201,7 +201,7 @@ func TestFetchDirBlockInfoBatches(t *testing.T) {
 }
 
 func TestLoadUnknownDirBlockEntries(t *testing.T) {
-	dbo := NewOverlay(new(mapdb.MapDB))
+	dbo := NewOverlay(new(mapdb.MapDB), nil)
 	defer dbo.Close()
 	for i := 0; i < 10; i++ {
 		b := testHelper.IntToByteSlice(i)

@@ -51,7 +51,7 @@ func main() {
 		}
 	}
 
-	dbo := databaseOverlay.NewOverlay(dbase)
+	dbo := databaseOverlay.NewOverlay(dbase, nil)
 	CheckDatabase(dbo)
 	//CheckMinuteNumbers(dbo)
 	fmt.Println("")
