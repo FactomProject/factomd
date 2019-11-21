@@ -596,7 +596,7 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 	return newState
 }
 
-func (s *State) EmitDBStateEventsFromHeight(height int64, end int64) {
+func (s *State) EmitDBStateEventsFromHeight(height uint32, end uint32) {
 	if s.EventsService != nil {
 		msgs := s.GetAllDBStateMsgsFromDatabase(height, end)
 		for _, msg := range msgs {
@@ -605,26 +605,26 @@ func (s *State) EmitDBStateEventsFromHeight(height int64, end int64) {
 	}
 }
 
-func (s *State) GetAllDBStateMsgsFromDatabase(height int64, end int64) []interfaces.IMsg {
+func (s *State) GetAllDBStateMsgsFromDatabase(height uint32, end uint32) []interfaces.IMsg {
 	i := height
 	msgCount := 0
 	var msgs []interfaces.IMsg
 	for i <= end {
 
-		d, err := s.DB.FetchDBlockByHeight(uint32(i))
+		d, err := s.DB.FetchDBlockByHeight(i)
 		if err != nil || d == nil {
 			break
 		}
 
-		a, err := s.DB.FetchABlockByHeight(uint32(i))
+		a, err := s.DB.FetchABlockByHeight(i)
 		if err != nil || a == nil {
 			break
 		}
-		f, err := s.DB.FetchFBlockByHeight(uint32(i))
+		f, err := s.DB.FetchFBlockByHeight(i)
 		if err != nil || f == nil {
 			break
 		}
-		ec, err := s.DB.FetchECBlockByHeight(uint32(i))
+		ec, err := s.DB.FetchECBlockByHeight(i)
 		if err != nil || ec == nil {
 			break
 		}

@@ -183,7 +183,7 @@ func HandleV2ReplayDBFromHeight(state interfaces.IState, params interface{}) (in
 	}
 
 	beginning := replayRequest.StartHeight
-	end := int64(state.GetDBHeightComplete())
+	end := state.GetDBHeightComplete()
 
 	if replayRequest.EndHeight != 0 && replayRequest.EndHeight < end {
 		end = replayRequest.EndHeight
