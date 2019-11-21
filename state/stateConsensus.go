@@ -1262,6 +1262,18 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 		return
 	}
 
+	// Only new acks are valid. Of course, the VMIndex has to be valid too.
+	msgslot, _ := s.GetMsg(ack.VMIndex, int(ack.DBHeight), int(ack.Height))
+	if msgslot != nil {
+		if !msg.GetMsgHash().IsSameAs(msgslot.GetHash()) {
+			s.LogMessage("executeMsg", "MMR Ack slot taken", m)
+			s.LogMessage("executeMsg", "MMR found:", msg)
+		} else {
+			s.LogPrintf("executeMsg", "MMR of duplicate at %d/%d/%d", int(ack.DBHeight), ack.VMIndex, int(ack.Height))
+		}
+		return
+	}
+
 	_, validToExecute := s.Validate(ack)
 	if validToExecute == -1 {
 		s.LogMessage("executeMsg", "drop MMR ack invalid", ack)

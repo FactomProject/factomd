@@ -92,12 +92,12 @@ func (m *SafeMsgMap) Reset() {
 // Cleanup will clean old elements out from the commit map.
 func (m *SafeMsgMap) Cleanup(s *State) {
 	m.Lock()
-	// Time out commits every now and again. Also check for entries that have been revealed
-	now := s.GetTimestamp()
+	// Time out commits every leaderTimestamp and again. Also check for entries that have been revealed
+	leaderTimestamp := s.GetLeaderTimestamp()
 	for k, msg := range m.msgmap {
 
 		cc, ok := msg.(*messages.CommitChainMsg)
-		if ok && !s.NoEntryYet(cc.CommitChain.EntryHash, now) {
+		if ok && !s.NoEntryYet(cc.CommitChain.EntryHash, leaderTimestamp) {
 			msg, ok := m.msgmap[k]
 			if ok {
 				defer m.s.LogMessage(m.name, "cleanup_chain", msg)
@@ -107,7 +107,7 @@ func (m *SafeMsgMap) Cleanup(s *State) {
 		}
 
 		c, ok := msg.(*messages.CommitEntryMsg)
-		if ok && !s.NoEntryYet(c.CommitEntry.EntryHash, now) {
+		if ok && !s.NoEntryYet(c.CommitEntry.EntryHash, leaderTimestamp) {
 			msg, ok := m.msgmap[k]
 			if ok {
 				defer m.s.LogMessage(m.name, "cleanup_entry", msg)
@@ -116,7 +116,7 @@ func (m *SafeMsgMap) Cleanup(s *State) {
 			continue
 		}
 
-		_, ok = s.Replay.Valid(constants.TIME_TEST, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), now)
+		_, ok = s.Replay.Valid(constants.TIME_TEST, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), leaderTimestamp)
 		if !ok {
 			msg, ok := m.msgmap[k]
 			if ok {
