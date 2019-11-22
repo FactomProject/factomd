@@ -155,7 +155,7 @@ func TestEmitDBStateEventsFromHeight(t *testing.T) {
 
 	if assert.Equal(t, int32(7), mockService.EventsReceived) {
 		for _, event := range mockService.Events {
-			//assert.Equal(t, eventmessages.EventSource_REPLAY_BOOT, event.GetStreamSource())
+			assert.Equal(t, eventmessages.EventSource_REPLAY_BOOT, event.GetStreamSource())
 
 			if stateChangeEvent, ok := event.(*events.StateChangeMsgEvent); assert.True(t, ok, "event received has wrong type: %s event: %+v", reflect.TypeOf(event), event) {
 				assert.NotNil(t, stateChangeEvent)

@@ -336,9 +336,6 @@ type IState interface {
 	// Emit DBState events to the livefeed api from a specified height
 	EmitDBStateEventsFromHeight(height uint32, end uint32)
 
-	// Return all DBStateMsgs from a specified height
-	GetAllDBStateMsgsFromDatabase(height uint32, end uint32) []IMsg
-
 	// Access to Holding Queue
 	LoadHoldingMap() map[[32]byte]IMsg
 	LoadAcksMap() map[[32]byte]IMsg
