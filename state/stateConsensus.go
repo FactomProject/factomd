@@ -54,7 +54,7 @@ func (s *State) DebugExec() (ret bool) {
 func (s *State) LogMessage(logName string, comment string, msg interfaces.IMsg) {
 	if s.DebugExec() {
 		if s == nil || s.logging == nil {
-			log.GlobalLogger.Log(LogData{"logname": "unknown" + "_" + logName + ".txt", "dbht": "unknown", "comment": comment, "message": msg})
+			log.GlobalLogger.Log(LogData{"logname": "unknown" + "_" + logName, "dbht": "unknown", "comment": comment, "message": msg})
 		} else {
 			s.logging.Log(LogData{"logname": logName, "comment": comment, "message": msg})
 		}
