@@ -7,7 +7,6 @@ import (
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/events"
 	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -15,7 +14,7 @@ import (
 
 func TestEventInput_RegistrationEvent(t *testing.T) {
 	payload := new(messages.CommitChainMsg)
-	registrationEvent := events.NewRegistrationEvent(eventmessages.EventSource_LIVE, payload)
+	registrationEvent := NewRegistrationEvent(eventmessages.EventSource_LIVE, payload)
 
 	assert.NotNil(t, registrationEvent)
 	assert.Equal(t, eventmessages.EventSource_LIVE, registrationEvent.GetStreamSource())
@@ -24,7 +23,7 @@ func TestEventInput_RegistrationEvent(t *testing.T) {
 
 func TestEventInput_StateChangeEventMsg(t *testing.T) {
 	payload := new(messages.CommitChainMsg)
-	stateChangeEvent := events.NewStateChangeEventFromMsg(eventmessages.EventSource_LIVE, eventmessages.EntityState_ACCEPTED, payload)
+	stateChangeEvent := NewStateChangeEventFromMsg(eventmessages.EventSource_LIVE, eventmessages.EntityState_ACCEPTED, payload)
 
 	assert.NotNil(t, stateChangeEvent)
 	assert.Equal(t, eventmessages.EventSource_LIVE, stateChangeEvent.GetStreamSource())
@@ -34,7 +33,7 @@ func TestEventInput_StateChangeEventMsg(t *testing.T) {
 
 func TestEventInput_StateChangeEvent(t *testing.T) {
 	dbState := new(mockDBState)
-	stateChangeEvent := events.NewStateChangeEvent(eventmessages.EventSource_LIVE, eventmessages.EntityState_ACCEPTED, dbState)
+	stateChangeEvent := NewStateChangeEvent(eventmessages.EventSource_LIVE, eventmessages.EntityState_ACCEPTED, dbState)
 
 	assert.NotNil(t, stateChangeEvent)
 	assert.Equal(t, eventmessages.EventSource_LIVE, stateChangeEvent.GetStreamSource())
@@ -43,7 +42,7 @@ func TestEventInput_StateChangeEvent(t *testing.T) {
 }
 
 func TestEventInput_ProcessListEventNewBlock(t *testing.T) {
-	processListEvent := events.ProcessListEventNewBlock(eventmessages.EventSource_LIVE, 2)
+	processListEvent := ProcessListEventNewBlock(eventmessages.EventSource_LIVE, 2)
 
 	assert.NotNil(t, processListEvent)
 	assert.Equal(t, eventmessages.EventSource_LIVE, processListEvent.GetStreamSource())
@@ -53,7 +52,7 @@ func TestEventInput_ProcessListEventNewBlock(t *testing.T) {
 }
 
 func TestEventInput_ProcessListEventNewMinute(t *testing.T) {
-	processListEvent := events.ProcessListEventNewMinute(eventmessages.EventSource_LIVE, 2, 3)
+	processListEvent := ProcessListEventNewMinute(eventmessages.EventSource_LIVE, 2, 3)
 
 	assert.NotNil(t, processListEvent)
 	assert.Equal(t, eventmessages.EventSource_LIVE, processListEvent.GetStreamSource())
@@ -64,7 +63,7 @@ func TestEventInput_ProcessListEventNewMinute(t *testing.T) {
 }
 
 func TestEventInput_NodeInfoMessage(t *testing.T) {
-	nodeInfoEvent := events.NodeInfoMessageF(eventmessages.NodeMessageCode_STARTED, "test: %s", "the node info")
+	nodeInfoEvent := NodeInfoMessageF(eventmessages.NodeMessageCode_STARTED, "test: %s", "the node info")
 
 	assert.NotNil(t, nodeInfoEvent)
 	assert.Equal(t, eventmessages.EventSource_LIVE, nodeInfoEvent.GetStreamSource())
@@ -76,7 +75,7 @@ func TestEventInput_NodeInfoMessage(t *testing.T) {
 }
 
 func TestEventInput_NodeErrorMessage(t *testing.T) {
-	nodeInfoEvent := events.NodeErrorMessage(eventmessages.NodeMessageCode_SHUTDOWN, "test: %s", "the node error")
+	nodeInfoEvent := NodeErrorMessage(eventmessages.NodeMessageCode_SHUTDOWN, "test: %s", "the node error")
 
 	assert.NotNil(t, nodeInfoEvent)
 	assert.Equal(t, eventmessages.EventSource_LIVE, nodeInfoEvent.GetStreamSource())

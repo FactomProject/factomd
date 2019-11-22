@@ -1,7 +1,6 @@
 package databaseOverlay
 
 import (
-	"github.com/FactomProject/factomd/events"
 	"sort"
 
 	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
@@ -34,7 +33,7 @@ func (db *Overlay) ProcessDirBlockInfoMultiBatch(block interfaces.IDirBlockInfo)
 		err = db.ProcessBlockMultiBatchWithoutHead(DIRBLOCKINFO_UNCONFIRMED, DIRBLOCKINFO_NUMBER, DIRBLOCKINFO_SECONDARYINDEX, block)
 	}
 	if err != nil {
-		events.EmitDBAnchorEvent(block, db.ownerState)
+		db.ownerState.GetEvents().EmitDBAnchorEvent(block)
 	}
 	return err
 }

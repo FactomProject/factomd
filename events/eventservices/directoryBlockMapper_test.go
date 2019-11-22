@@ -10,7 +10,7 @@ import (
 )
 
 func TestMapDirectoryBlock(t *testing.T) {
-	block := newDirectoryblock()
+	block := newDirectoryBlock()
 	directoryBlock := mapDirectoryBlock(block)
 
 	assert.NotNil(t, directoryBlock.Header)
@@ -20,9 +20,13 @@ func TestMapDirectoryBlock(t *testing.T) {
 	assert.NotNil(t, directoryBlock.Hash)
 }
 
-func newDirectoryblock() *directoryBlock.DirectoryBlock {
+func newDirectoryBlock() *directoryBlock.DirectoryBlock {
 	block := new(directoryBlock.DirectoryBlock)
-	//block.DBEntries =
+	dbEntries := make([]interfaces.IDBEntry, 1)
+	dbEntries[0] = &directoryBlock.DBEntry{
+		ChainID: primitives.NewZeroHash(),
+		KeyMR:   primitives.NewZeroHash()}
+	block.DBEntries = dbEntries
 	return block
 }
 

@@ -436,7 +436,7 @@ type State struct {
 	InputRegExString          string
 	executeRecursionDetection map[[32]byte]interfaces.IMsg
 	Hold                      HoldingList
-	EventsService             eventservices.EventService
+	Events                    events.Events
 	EventsServiceControl      eventservices.EventServiceControl
 
 	// MissingMessageResponse is a cache of the last 1000 msgs we receive such that when
@@ -534,6 +534,8 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 
 	newState.ControlPanelPort = s.ControlPanelPort
 	newState.ControlPanelSetting = s.ControlPanelSetting
+	newState.EventsServiceControl = s.EventsServiceControl
+	newState.Events = events.NewEventEmitter(newState)
 
 	//newState.Identities = s.Identities
 	//newState.Authorities = s.Authorities
@@ -600,12 +602,12 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 func (s *State) EmitDBStateEventsFromHeight(height int64, end int64) {
 	msgs := s.GetAllDBStateMsgsFromDatabase(height, end)
 	for _, msg := range msgs {
-		events.EmitStateChangeEvent(msg, eventmessages.EntityState_COMMITTED_TO_DIRECTORY_BLOCK, s)
+		s.Events.EmitStateChangeEvent(msg, eventmessages.EntityState_COMMITTED_TO_DIRECTORY_BLOCK)
 	}
 }
 
-func (s *State) GetEventsService() eventservices.EventService {
-	return s.EventsService
+func (s *State) GetEvents() events.Events {
+	return s.Events
 }
 
 func (s *State) GetAllDBStateMsgsFromDatabase(height int64, end int64) []interfaces.IMsg {

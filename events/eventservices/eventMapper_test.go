@@ -118,7 +118,7 @@ func TestCommitChainMapping(t *testing.T) {
 	data, _ := msg.MarshalBinary()
 	assert.Len(t, data, 201, msgChangedMessage("CommitChainMsg"))
 
-	inputEvent := events.NewRegistrationEvent(eventmessages.EventSource_LIVE, msg)
+	inputEvent := eventinput.NewRegistrationEvent(eventmessages.EventSource_LIVE, msg)
 	event, err := eventservices.MapToFactomEvent(inputEvent, eventservices.BroadcastAlways, true)
 	if err != nil {
 		t.Error(err)
@@ -149,7 +149,7 @@ func TestCommitEntryMapping(t *testing.T) {
 	data, _ := msg.MarshalBinary()
 	assert.Len(t, data, 137, msgChangedMessage("CommitEntryMsg"))
 
-	inputEvent := events.NewRegistrationEvent(eventmessages.EventSource_LIVE, msg)
+	inputEvent := eventinput.NewRegistrationEvent(eventmessages.EventSource_LIVE, msg)
 	event, err := eventservices.MapToFactomEvent(inputEvent, eventservices.BroadcastAlways, true)
 	if err != nil {
 		t.Error(err)
@@ -181,7 +181,7 @@ func TestEntryRevealMapping(t *testing.T) {
 	data, _ := msg.MarshalBinary()
 	assert.Len(t, data, 60, msgChangedMessage("RevealEntryMsg"))
 
-	inputEvent := events.NewRegistrationEvent(eventmessages.EventSource_LIVE, msg)
+	inputEvent := eventinput.NewRegistrationEvent(eventmessages.EventSource_LIVE, msg)
 	event, err := eventservices.MapToFactomEvent(inputEvent, eventservices.BroadcastAlways, true)
 	if err != nil {
 		t.Error(err)
@@ -217,7 +217,7 @@ func TestStateChangeMapping(t *testing.T) {
 	data, _ := msg.MarshalBinary()
 	assert.Len(t, data, 137, msgChangedMessage("CommitEntryMsg"))
 
-	inputEvent := events.NewStateChangeEventFromMsg(eventmessages.EventSource_LIVE, eventmessages.EntityState_ACCEPTED, msg)
+	inputEvent := eventinput.NewStateChangeEventFromMsg(eventmessages.EventSource_LIVE, eventmessages.EntityState_ACCEPTED, msg)
 	event, err := eventservices.MapToFactomEvent(inputEvent, eventservices.BroadcastAlways, true)
 	if err != nil {
 		t.Error(err)
@@ -237,13 +237,13 @@ func msgChangedMessage(msgName string) string {
 
 func TestMapToFactomEvent(t *testing.T) {
 	testCases := map[string]struct {
-		Input                    events.EventInput
+		Input                    eventinput.EventInput
 		BroadcastContent         eventservices.BroadcastContent
 		EventReplayDuringStartup bool
 		Assertion                func(t *testing.T, event *eventmessages.FactomEvent)
 	}{
 		"RegistrationEvent": {
-			Input:            events.NewRegistrationEvent(eventmessages.EventSource_REPLAY_BOOT, newTestCommitChain()),
+			Input:            eventinput.NewRegistrationEvent(eventmessages.EventSource_REPLAY_BOOT, newTestCommitChain()),
 			BroadcastContent: eventservices.BroadcastAlways,
 			Assertion: func(t *testing.T, event *eventmessages.FactomEvent) {
 				assert.Equal(t, eventmessages.EventSource_REPLAY_BOOT, event.EventSource)
@@ -261,7 +261,7 @@ func TestMapToFactomEvent(t *testing.T) {
 			},
 		},
 		"RegistrationEventWithRevealContent": {
-			Input:            events.NewRegistrationEvent(eventmessages.EventSource_REPLAY_BOOT, newTestEntryReveal()),
+			Input:            eventinput.NewRegistrationEvent(eventmessages.EventSource_REPLAY_BOOT, newTestEntryReveal()),
 			BroadcastContent: eventservices.BroadcastAlways,
 			Assertion: func(t *testing.T, event *eventmessages.FactomEvent) {
 				assert.Equal(t, eventmessages.EventSource_REPLAY_BOOT, event.EventSource)
@@ -273,7 +273,7 @@ func TestMapToFactomEvent(t *testing.T) {
 			},
 		},
 		"StateChangeEventFromDirectoryBlock": {
-			Input:                    events.NewStateChangeEventFromMsg(eventmessages.EventSource_REPLAY_BOOT, eventmessages.EntityState_ACCEPTED, newDBStateMsg()),
+			Input:                    eventinput.NewStateChangeEventFromMsg(eventmessages.EventSource_REPLAY_BOOT, eventmessages.EntityState_ACCEPTED, newDBStateMsg()),
 			BroadcastContent:         eventservices.BroadcastOnce,
 			EventReplayDuringStartup: true,
 			Assertion: func(t *testing.T, event *eventmessages.FactomEvent) {
@@ -287,7 +287,7 @@ func TestMapToFactomEvent(t *testing.T) {
 			},
 		},
 		"StateChangeEventFromCommitChain": {
-			Input:                    events.NewStateChangeEventFromMsg(eventmessages.EventSource_REPLAY_BOOT, eventmessages.EntityState_REJECTED, newTestCommitChain()),
+			Input:                    eventinput.NewStateChangeEventFromMsg(eventmessages.EventSource_REPLAY_BOOT, eventmessages.EntityState_REJECTED, newTestCommitChain()),
 			BroadcastContent:         eventservices.BroadcastOnce,
 			EventReplayDuringStartup: true,
 			Assertion: func(t *testing.T, event *eventmessages.FactomEvent) {
@@ -300,7 +300,7 @@ func TestMapToFactomEvent(t *testing.T) {
 			},
 		},
 		"StateChangeEventFromCommitEntry": {
-			Input:                    events.NewStateChangeEventFromMsg(eventmessages.EventSource_REPLAY_BOOT, eventmessages.EntityState_REJECTED, newTestCommitEntry()),
+			Input:                    eventinput.NewStateChangeEventFromMsg(eventmessages.EventSource_REPLAY_BOOT, eventmessages.EntityState_REJECTED, newTestCommitEntry()),
 			BroadcastContent:         eventservices.BroadcastOnce,
 			EventReplayDuringStartup: true,
 			Assertion: func(t *testing.T, event *eventmessages.FactomEvent) {
@@ -313,7 +313,7 @@ func TestMapToFactomEvent(t *testing.T) {
 			},
 		},
 		"StateChangeEventEntryReveal": {
-			Input:                    events.NewStateChangeEventFromMsg(eventmessages.EventSource_REPLAY_BOOT, eventmessages.EntityState_REJECTED, newTestEntryReveal()),
+			Input:                    eventinput.NewStateChangeEventFromMsg(eventmessages.EventSource_REPLAY_BOOT, eventmessages.EntityState_REJECTED, newTestEntryReveal()),
 			BroadcastContent:         eventservices.BroadcastOnce,
 			EventReplayDuringStartup: true,
 			Assertion: func(t *testing.T, event *eventmessages.FactomEvent) {
@@ -328,7 +328,7 @@ func TestMapToFactomEvent(t *testing.T) {
 		"StateChangeEventFromCommitChainResend": {
 			BroadcastContent:         eventservices.BroadcastAlways,
 			EventReplayDuringStartup: false,
-			Input:                    events.NewStateChangeEventFromMsg(eventmessages.EventSource_REPLAY_BOOT, eventmessages.EntityState_REJECTED, newTestCommitChain()),
+			Input:                    eventinput.NewStateChangeEventFromMsg(eventmessages.EventSource_REPLAY_BOOT, eventmessages.EntityState_REJECTED, newTestCommitChain()),
 			Assertion: func(t *testing.T, event *eventmessages.FactomEvent) {
 				assert.Equal(t, eventmessages.EventSource_REPLAY_BOOT, event.EventSource)
 				if assert.NotNil(t, event.GetChainCommit()) {
@@ -345,7 +345,7 @@ func TestMapToFactomEvent(t *testing.T) {
 			},
 		},
 		"StateChangeEventFromCommitEntryResend": {
-			Input:                    events.NewStateChangeEventFromMsg(eventmessages.EventSource_REPLAY_BOOT, eventmessages.EntityState_REJECTED, newTestCommitEntry()),
+			Input:                    eventinput.NewStateChangeEventFromMsg(eventmessages.EventSource_REPLAY_BOOT, eventmessages.EntityState_REJECTED, newTestCommitEntry()),
 			BroadcastContent:         eventservices.BroadcastAlways,
 			EventReplayDuringStartup: false,
 			Assertion: func(t *testing.T, event *eventmessages.FactomEvent) {
@@ -362,7 +362,7 @@ func TestMapToFactomEvent(t *testing.T) {
 			},
 		},
 		"StateChangeEventEntryRevealResend": {
-			Input:                    events.NewStateChangeEventFromMsg(eventmessages.EventSource_REPLAY_BOOT, eventmessages.EntityState_REJECTED, newTestEntryReveal()),
+			Input:                    eventinput.NewStateChangeEventFromMsg(eventmessages.EventSource_REPLAY_BOOT, eventmessages.EntityState_REJECTED, newTestEntryReveal()),
 			BroadcastContent:         eventservices.BroadcastAlways,
 			EventReplayDuringStartup: false,
 			Assertion: func(t *testing.T, event *eventmessages.FactomEvent) {
@@ -375,7 +375,7 @@ func TestMapToFactomEvent(t *testing.T) {
 			},
 		},
 		"StateChangeEventDirectoryBlock": {
-			Input:                    events.NewStateChangeEvent(eventmessages.EventSource_REPLAY_BOOT, eventmessages.EntityState_REJECTED, newTestDBState()),
+			Input:                    eventinput.NewStateChangeEvent(eventmessages.EventSource_REPLAY_BOOT, eventmessages.EntityState_REJECTED, newTestDBState()),
 			BroadcastContent:         eventservices.BroadcastAlways,
 			EventReplayDuringStartup: true,
 			Assertion: func(t *testing.T, event *eventmessages.FactomEvent) {
@@ -389,7 +389,7 @@ func TestMapToFactomEvent(t *testing.T) {
 			},
 		},
 		"StateChangeEventDirectoryBlockContent": {
-			Input:                    events.NewStateChangeEvent(eventmessages.EventSource_REPLAY_BOOT, eventmessages.EntityState_REJECTED, newTestDBState()),
+			Input:                    eventinput.NewStateChangeEvent(eventmessages.EventSource_REPLAY_BOOT, eventmessages.EntityState_REJECTED, newTestDBState()),
 			BroadcastContent:         eventservices.BroadcastAlways,
 			EventReplayDuringStartup: true,
 			Assertion: func(t *testing.T, event *eventmessages.FactomEvent) {
@@ -403,7 +403,7 @@ func TestMapToFactomEvent(t *testing.T) {
 			},
 		},
 		"ProcessListEvent": {
-			Input:            events.ProcessListEventNewMinute(eventmessages.EventSource_REPLAY_BOOT, 2, 123),
+			Input:            eventinput.ProcessListEventNewMinute(eventmessages.EventSource_REPLAY_BOOT, 2, 123),
 			BroadcastContent: eventservices.BroadcastAlways,
 			Assertion: func(t *testing.T, event *eventmessages.FactomEvent) {
 				assert.Equal(t, eventmessages.EventSource_REPLAY_BOOT, event.EventSource)
@@ -414,7 +414,7 @@ func TestMapToFactomEvent(t *testing.T) {
 			},
 		},
 		"NodeMessage": {
-			Input:            events.NodeInfoMessage(eventmessages.NodeMessageCode_STARTED, "test message"),
+			Input:            eventinput.NodeInfoMessage(eventmessages.NodeMessageCode_STARTED, "test message"),
 			BroadcastContent: eventservices.BroadcastAlways,
 			Assertion: func(t *testing.T, event *eventmessages.FactomEvent) {
 				if assert.NotNil(t, event.GetNodeMessage()) {
@@ -444,7 +444,7 @@ func TestMapToFactomEvent(t *testing.T) {
 func TestMapToFactomEventRevealNoContentRegistration(t *testing.T) {
 	// same test as TestMapToFactomEvent, except for a registration event with an EntryReveal registration
 	// then no value will be set
-	input := events.NewRegistrationEvent(eventmessages.EventSource_REPLAY_BOOT, newTestEntryReveal())
+	input := eventinput.NewRegistrationEvent(eventmessages.EventSource_REPLAY_BOOT, newTestEntryReveal())
 	event, err := eventservices.MapToFactomEvent(input, eventservices.BroadcastNever, true)
 	assert.Nil(t, err)
 	assert.Nil(t, event)
@@ -465,7 +465,7 @@ func setServiceState(state eventservices.BroadcastContent) func(t *testing.T) {
 		params := &eventservices.EventServiceParams{
 			BroadcastContent: state,
 		}
-		testState.EventsService, testState.EventsServiceControl = eventservices.NewEventServiceTo(testState, params)
+		_, testState.EventsServiceControl = eventservices.NewEventServiceTo(testState, params)
 	}
 }
 

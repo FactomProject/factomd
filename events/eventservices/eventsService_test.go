@@ -1,4 +1,4 @@
-package eventservices_test
+package eventservices
 
 import (
 	"bufio"
@@ -7,7 +7,6 @@ import (
 	"github.com/FactomProject/factomd/common/constants/runstate"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/events"
 	"github.com/FactomProject/factomd/events/eventinput"
 	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 	"github.com/FactomProject/factomd/p2p"
@@ -74,6 +73,7 @@ func TestEventsService_Send(t *testing.T) {
 	eventService, _ := NewEventServiceTo(state, params)
 
 	// set connection
+
 	eventServiceInstance, ok := eventService.(*eventServiceInstance)
 	if !ok {
 		t.Fatal("failed to cast event service instance")
@@ -81,7 +81,7 @@ func TestEventsService_Send(t *testing.T) {
 	eventServiceInstance.connection = client
 
 	// create test factom event
-	event := events.NodeInfoMessageF(eventmessages.NodeMessageCode_GENERAL, "test message of node: %s", "node name")
+	event := eventinput.NodeInfoMessageF(eventmessages.NodeMessageCode_GENERAL, "test message of node: %s", "node name")
 
 	// test send
 	err := eventService.Send(event)
@@ -111,7 +111,7 @@ func TestEventsService_SendFillupQueue(t *testing.T) {
 		droppedFromQueueCounter: prometheus.NewCounter(prometheus.CounterOpts{}),
 	}
 
-	event := events.NodeInfoMessageF(eventmessages.NodeMessageCode_GENERAL, "test message of node: %s", "node name")
+	event := eventinput.NodeInfoMessageF(eventmessages.NodeMessageCode_GENERAL, "test message of node: %s", "node name")
 	for i := 0; i < n+1; i++ {
 		eventService.Send(event)
 	}
@@ -134,7 +134,7 @@ func TestEventsService_SendNoStartupMessages(t *testing.T) {
 				params:                  &EventServiceParams{},
 				droppedFromQueueCounter: prometheus.NewCounter(prometheus.CounterOpts{}),
 			},
-			Event: events.NodeInfoMessageF(eventmessages.NodeMessageCode_GENERAL, "test message of node: %s", "node name"),
+			Event: eventinput.NodeInfoMessageF(eventmessages.NodeMessageCode_GENERAL, "test message of node: %s", "node name"),
 			Assertion: func(t *testing.T, eventService *eventServiceInstance, err error) {
 				assert.NoError(t, err)
 				assert.Equal(t, 0, len(eventService.eventsOutQueue))
@@ -178,7 +178,7 @@ func TestEventsService_SendNoStartupMessages(t *testing.T) {
 					ReplayDuringStartup: false,
 				},
 			},
-			Event: events.NewStateChangeEvent(eventmessages.EventSource_REPLAY_BOOT, eventmessages.EntityState_REJECTED, nil),
+			Event: eventinput.NewStateChangeEvent(eventmessages.EventSource_REPLAY_BOOT, eventmessages.EntityState_REJECTED, nil),
 			Assertion: func(t *testing.T, eventService *eventServiceInstance, err error) {
 				assert.NoError(t, err)
 				assert.Equal(t, 0, len(eventService.eventsOutQueue))
@@ -630,7 +630,7 @@ func BenchmarkEventService_Send(b *testing.B) {
 	listener, _ := net.Listen("tcp", ":2135")
 	client, _ := net.Dial("tcp", "127.0.0.1:2135")
 
-	event := events.NodeInfoMessageF(eventmessages.NodeMessageCode_GENERAL, "benchmark message of node: %s", "node name")
+	event := eventinput.NodeInfoMessageF(eventmessages.NodeMessageCode_GENERAL, "benchmark message of node: %s", "node name")
 
 	state := &StateMock{
 		IdentityChainID: primitives.NewZeroHash(),
