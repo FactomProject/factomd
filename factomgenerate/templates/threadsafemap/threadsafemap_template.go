@@ -8,6 +8,7 @@ package threadsafemap // this is only here to make gofmt happy and is never in t
 //Ͼdefine "threadsafemap-imports"Ͽ
 
 import (
+	"reflect"
 	"sync"
 
 	"github.com/FactomProject/factomd/common"
@@ -28,7 +29,7 @@ type Ͼ_typenameϿ struct {
 }
 
 func (q *Ͼ_typenameϿ) Init(parent common.NamedObject, name string, size int) *Ͼ_typenameϿ {
-	q.Name.Init(parent, name)
+	q.Name.NameInit(parent, name, reflect.TypeOf(q).String())
 	q.internalMap = make(map[Ͼ_indextypeϿ]Ͼ_valuetypeϿ, size)
 	return q
 }

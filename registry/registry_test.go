@@ -3,9 +3,10 @@ package registry_test
 import (
 	"context"
 	"fmt"
+	"testing"
+
 	"github.com/FactomProject/factomd/registry"
 	"github.com/FactomProject/factomd/worker"
-	"testing"
 )
 
 // add a sub thread that uses all callbacks
@@ -16,12 +17,12 @@ func threadFactory(t *testing.T, name string) worker.Handle {
 		ctx, cancel := context.WithCancel(context.Background())
 
 		// Launch another sub-thread
-		w.Run(func() {
+		w.Run("TestRegisterThread", func() {
 			name := fmt.Sprintf("%s/%s", name, "bar")
 			// this thread that only uses OnRun group
 			t.Logf("running %v %s", w.ID, name)
 			select {
-			case <- ctx.Done():
+			case <-ctx.Done():
 				t.Logf("context.Done() %v %s", w.ID, name)
 			}
 		})
@@ -32,7 +33,7 @@ func threadFactory(t *testing.T, name string) worker.Handle {
 		}).OnRun(func() {
 			t.Logf("running %v %s", w.ID, name)
 			select {
-			case <- ctx.Done():
+			case <-ctx.Done():
 				t.Logf("context.Done() %v %s", w.ID, name)
 			}
 		}).OnExit(func() {
@@ -49,7 +50,7 @@ func TestRegisterThread(t *testing.T) {
 	// create a process with 1 root process
 	p := registry.New()
 	p.Register(threadFactory(t, "foo"))
-	go func(){
+	go func() {
 		p.WaitForRunning()
 		go p.Exit() // normally invoked via SIGINT
 	}()

@@ -27,10 +27,11 @@ var (
 
 func init() {
 	// Create a global FileLogger that assigned the filenames based on thread and logname
-	var fileLogger *FileLogger = NewFileLogger("./.")
-	fileLogger.AddNameField("logname", Formatter("%s.txt"), "unknown_log")
+
 	// Create a global logger that adds sequence numbers and timestamps
-	GlobalLogger = NewSequenceLogger(fileLogger)
+	GlobalLogger = NewSequenceLogger(NewFileLogger("./."))
+	GlobalLogger.AddNameField("fnode", Formatter("%s"), "")
+	GlobalLogger.AddNameField("logname", Formatter("%s.txt"), "unknown-log")
 	//Add the default print fields comment then message
 	GlobalLogger.AddPrintField("dbht", Formatter("%12s"), "")
 	GlobalLogger.AddPrintField("comment", Formatter("[%-45v]"), "")
@@ -69,18 +70,6 @@ func LogMessage(name string, note string, msg interfaces.IMsg) {
 	}
 
 	GlobalLogger.Log(LogData{"logname": name, "comment": note, "message": msg})
-}
-
-// Log a message with a state timestamp
-func StateLogMessage(FactomNodeName string, DBHeight int, CurrentMinute int, logName string, comment string, msg interfaces.IMsg) {
-	GlobalLogger.Log(LogData{"logname": FactomNodeName + "_" + logName ", "dbht": Delay_formater("%07d-:-%-2d ", DBHeight, CurrentMinute), "comment": comment, "message": MsgFormatter(msg)})
-}
-
-// Log a printf with a state timestamp
-func StateLogPrintf(FactomNodeName string, DBHeight int, CurrentMinute int, logName string, format string, more ...interface{}) {
-	GlobalLogger.Log(LogData{"logname": FactomNodeName + "_" + logName,
-		"dbht":    Delay_formater("%07d-:-%-2d ", DBHeight, CurrentMinute),
-		"comment": Delay_formater(format, more...)})
 }
 
 // Check a filename and see if logging is on for that filename
@@ -134,7 +123,9 @@ var findHex *regexp.Regexp
 
 func init() {
 	var err error
-	findHex, err = regexp.Compile("[A-Fa-f0-9]{6,}")
+	// regex to find 6 hex digit strings, used t add names to hex ID in logs
+	// or Fed or Aud so the columns in authority set listing looks right in logs
+	findHex, err = regexp.Compile("(Fed)|(Aud)|([A-Fa-f0-9]{6,})")
 	if err != nil {
 		panic(err)
 	}
@@ -168,7 +159,7 @@ func addNodeNames(s string) (rval string) {
 
 // this is where eventually we will handle the addname and message history stuff we used to do
 func MsgFormatter(v interface{}) string {
-	msg := v.(interfaces.IMsg)
+	msg, _ := v.(interfaces.IMsg)
 
 	if msg == nil {
 		// include nonempty hash to get spacing right

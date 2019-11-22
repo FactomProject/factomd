@@ -34,7 +34,7 @@ func humanizeDuration(duration time.Duration) string {
 	return fmt.Sprintf("%d:%02d", minutes, seconds)
 }
 
-func LoadDatabase(s *State) {
+func (s *State) LoadDatabase() {
 	var blkCnt uint32
 
 	head, err := s.DB.FetchDBlockHead()

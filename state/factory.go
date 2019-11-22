@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/FactomProject/factomd/common"
 	log2 "github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/modules/logging"
 
@@ -21,7 +22,6 @@ import (
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/util"
-	"github.com/FactomProject/factomd/worker"
 )
 
 func (s *State) LoadConfigFromFile(filename string, networkFlag string) {
@@ -225,9 +225,8 @@ func NewState(p *globals.FactomParams, FactomdVersion string) *State {
 	s.AddPrefix(p.Prefix)
 	// Setup the name to catch any early logging
 	s.FactomNodeName = p.Prefix + "FNode0"
-
-	s.logging = logging.NewLayerLogger(log2.GlobalLogger, nil)
-	s.logging.AddNameField("fnode", logging.Formatter("%s_"), s.FactomNodeName)
+	//s.NameInit(common.NilName, s.FactomNodeName+"State", reflect.TypeOf(s).String())
+	s.logging = logging.NewLayerLogger(log2.GlobalLogger, map[string]string{"fnode": s.FactomNodeName})
 
 	// print current dbht-:-minute
 	s.logging.AddPrintField("dbht",
@@ -354,6 +353,11 @@ func Clone(s *State, cloneNumber int) interfaces.IState {
 	newState.StateConfig = s.StateConfig
 	number := fmt.Sprintf("%02d", cloneNumber)
 	newState.FactomNodeName = s.Prefix + "FNode" + number
+	// the DBHT value is replaced by the result of running the formatter for dbht which has the current value
+	newState.logging = logging.NewLayerLogger(log2.GlobalLogger, map[string]string{"fnode": newState.FactomNodeName, "dbht": "unused"})
+	newState.logging.AddPrintField("dbht",
+		func(interface{}) string { return fmt.Sprintf("%7d-:-%-2d", *&s.LLeaderHeight, *&s.CurrentMinute) },
+		"") // the
 	simConfigPath := util.GetHomeDir() + "/.factom/m2/simConfig/"
 	configfile := fmt.Sprintf("%sfactomd%03d.conf", simConfigPath, cloneNumber)
 
@@ -382,9 +386,10 @@ func Clone(s *State, cloneNumber int) interfaces.IState {
 	newState.LdbPath = s.LdbPath + "/Sim" + number
 	newState.BoltDBPath = s.BoltDBPath + "/Sim" + number
 	newState.ExportDataSubpath = s.ExportDataSubpath + "sim-" + number
-	newState.IdentityControl = s.IdentityControl.Clone()
+	newState.IdentityControl = s.IdentityControl.Clone() // FIXME relocate
 
 	if !config {
+		// FIXME: add hack so wew can do Fnode00, Fnode01, ...
 		newState.IdentityChainID = primitives.Sha([]byte(newState.FactomNodeName))
 		s.LogPrintf("AckChange", "Default3 IdentityChainID %v", s.IdentityChainID.String())
 
@@ -395,6 +400,7 @@ func Clone(s *State, cloneNumber int) interfaces.IState {
 		s.initServerKeys()
 	}
 
+	// FIXME change to use timestamp.Clone
 	newState.TimestampAtBoot = primitives.NewTimestampFromMilliseconds(s.TimestampAtBoot.GetTimeMilliUInt64())
 	newState.LeaderTimestamp = primitives.NewTimestampFromMilliseconds(s.LeaderTimestamp.GetTimeMilliUInt64())
 	newState.SetMessageFilterTimestamp(s.GetMessageFilterTimestamp())
@@ -415,7 +421,7 @@ func Clone(s *State, cloneNumber int) interfaces.IState {
 	return newState
 }
 
-func (s *State) Initialize(w *worker.Thread, electionFactory interfaces.IElectionsFactory) {
+func (s *State) Initialize(o common.NamedObject, electionFactory interfaces.IElectionsFactory) {
 	if s.Salt == nil {
 		b := make([]byte, 32)
 		_, err := rand.Read(b)
@@ -451,11 +457,11 @@ func (s *State) Initialize(w *worker.Thread, electionFactory interfaces.IElectio
 	s.timerMsgQueue = make(chan interfaces.IMsg, 100)         //incoming eom notifications, used by leaders
 	//	s.ControlPanelChannel = make(chan DisplayState, 20)                     //
 	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 100)              //incoming message queue from the network inMessages
-	s.networkOutMsgQueue = NewNetOutMsgQueue(w, constants.INMSGQUEUE_MED)   //Messages to be broadcast to the network
-	s.inMsgQueue = NewInMsgQueue(w, constants.INMSGQUEUE_HIGH)              //incoming message queue for Factom application inMessages
-	s.inMsgQueue2 = NewInMsgQueue2(w, constants.INMSGQUEUE_HIGH)            //incoming message queue for Factom application inMessages
-	s.electionsQueue = NewElectionQueue(w, constants.INMSGQUEUE_HIGH)       //incoming message queue for Factom application inMessages
-	s.apiQueue = NewAPIQueue(w, constants.INMSGQUEUE_HIGH)                  //incoming message queue from the API
+	s.networkOutMsgQueue = NewNetOutMsgQueue(s, constants.INMSGQUEUE_MED)   //Messages to be broadcast to the network
+	s.inMsgQueue = NewInMsgQueue(s, constants.INMSGQUEUE_HIGH)              //incoming message queue for Factom application inMessages
+	s.inMsgQueue2 = NewInMsgQueue2(s, constants.INMSGQUEUE_HIGH)            //incoming message queue for Factom application inMessages
+	s.electionsQueue = NewElectionQueue(s, constants.INMSGQUEUE_HIGH)       //incoming message queue for Factom application inMessages
+	s.apiQueue = NewAPIQueue(s, constants.INMSGQUEUE_HIGH)                  //incoming message queue from the API
 	s.ackQueue = make(chan interfaces.IMsg, 50)                             //queue of Leadership inMessages
 	s.msgQueue = make(chan interfaces.IMsg, 50)                             //queue of Follower inMessages
 	s.prioritizedMsgQueue = make(chan interfaces.IMsg, 50)                  //a prioritized queue of Follower inMessages (from mmr.go)
@@ -496,7 +502,6 @@ func (s *State) Initialize(w *worker.Thread, electionFactory interfaces.IElectio
 	s.DBStates = new(DBStateList)
 	s.DBStates.State = s
 	s.DBStates.DBStates = make([]*DBState, 0)
-	w.Run(s.DBStates.Catchup)
 
 	s.StatesMissing = NewStatesMissing()
 	s.StatesWaiting = NewStatesWaiting()

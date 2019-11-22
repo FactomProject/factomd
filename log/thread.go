@@ -38,24 +38,3 @@ func (l *ThreadLogger) LogPrintf(name string, format string, more ...interface{}
 func (l *ThreadLogger) LogMessage(name string, note string, msg interfaces.IMsg) {
 	LogMessage(name, extendFormat(l.Caller, note), msg)
 }
-
-//
-//func (l *ThreadLogger) StateLogMessage(FactomNodeName string, DBHeight int, CurrentMinute int, logName string, comment string, msg interfaces.IMsg) {
-//	PackageLogger.StateLogMessage(
-//		FactomNodeName,
-//		DBHeight,
-//		CurrentMinute,
-//		logName,
-//		extendFormat(l.Caller, comment),
-//		msg)
-//}
-//
-//func (l *ThreadLogger) StateLogPrintf(FactomNodeName string, DBHeight int, CurrentMinute int, logName string, format string, more ...interface{}) {
-//	PackageLogger.StateLogPrintf(
-//		FactomNodeName,
-//		DBHeight,
-//		CurrentMinute,
-//		logName,
-//		extendFormat(l.Caller, format),
-//		more...)
-//}

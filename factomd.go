@@ -25,7 +25,6 @@ func main() {
 	}
 
 	params := engine.ParseCmdLine(os.Args[1:])
-	fmt.Println("%v", params)
 
 	fmt.Println("Parameter:")
 	s := reflect.ValueOf(params).Elem()
@@ -33,8 +32,7 @@ func main() {
 
 	for i := 0; i < s.NumField(); i++ {
 		f := s.Field(i)
-		fmt.Printf("%d: %25s %s = %v\n", i,
-			typeOfT.Field(i).Name, f.Type(), f.Interface())
+		fmt.Printf("%30s %s = %v\n", typeOfT.Field(i).Name, f.Type(), f.Interface())
 	}
 
 	fmt.Println()

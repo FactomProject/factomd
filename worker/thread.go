@@ -2,12 +2,14 @@ package worker
 
 import (
 	"fmt"
+	"reflect"
 	"runtime"
 	"strings"
 
 	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/log"
+	"github.com/FactomProject/factomd/modules/logging"
 )
 
 // callback handle
@@ -17,9 +19,13 @@ type Handle func(r *Thread)
 type InterruptHandler func(func())
 
 // create new thread
-func New() *Thread {
+func New(parent *common.Name, name string) *Thread {
 	w := &Thread{}
+	w.Name.NameInit(parent, name, reflect.TypeOf(w).String())
 	w.Log = log.New(w)
+
+	w.logging = logging.NewLayerLogger(log.GlobalLogger, map[string]string{"fnode": w.GetPath()})
+
 	return w
 }
 
@@ -42,8 +48,8 @@ func (*Thread) RegisterInterruptHandler(handler func()) {
 }
 
 type IRegister interface {
-	Thread(*Thread, Handle)  // RegistryCallback for sub-threads
-	Process(*Thread, Handle) // callback to fork a new process
+	Thread(*Thread, string, Handle)  // RegistryCallback for sub-threads
+	Process(*Thread, string, Handle) // callback to fork a new process
 }
 
 // worker process with structured callbacks
@@ -52,15 +58,17 @@ type Thread struct {
 	common.Name                // support hierarchical naming
 	log.ICaller                // interface to for some fields used by logger
 	Log         interfaces.Log // threaded logger
-	Register    IRegister      // callbacks to register threads
-	PID         int            // process ID that this thread belongs to
-	ID          int            // thread id
-	ParentID    int            // parent thread
-	Caller      string         // runtime location where thread starts
-	onReady     func()         // execute just after init - this is where subscriptions should happen
-	onRun       func()         // execute during 'run' state
-	onComplete  func()         // execute after all run functions complete
-	onExit      func()         // executes during SIGINT or after shutdown of run state
+	logging     *logging.LayerLogger
+
+	Register   IRegister // callbacks to register threads
+	PID        int       // process ID that this thread belongs to
+	ID         int       // thread id
+	ParentID   int       // parent thread
+	Caller     string    // runtime location where thread starts
+	onReady    func()    // execute just after init - this is where subscriptions should happen
+	onRun      func()    // execute during 'run' state
+	onComplete func()    // execute after all run functions complete
+	onExit     func()    // executes during SIGINT or after shutdown of run state
 }
 
 // indicates a specific thread callback
@@ -88,11 +96,11 @@ func init() {
 // convenience wrapper starts a closure in a sub-thread
 // useful for situations where only Run callback is needed
 // can be thought of as 'leaves' of the thread runtime dependency graph
-func (r *Thread) Run(runFunc func()) {
+func (r *Thread) Run(name string, runFunc func()) {
 	_, file, line, _ := runtime.Caller(1)
 	caller := fmt.Sprintf("%s:%v", file[Prefix:], line)
 
-	r.Spawn(func(w *Thread) {
+	r.Spawn(name, func(w *Thread) {
 		w.Caller = caller
 		w.OnRun(runFunc)
 	})
@@ -100,11 +108,11 @@ func (r *Thread) Run(runFunc func()) {
 
 // Spawn a child thread and register callbacks
 // this is useful to bind functions to Init/Run/Stop callbacks
-func (r *Thread) Spawn(initFunction Handle) {
+func (r *Thread) Spawn(name string, initFunction Handle) {
 	_, file, line, _ := runtime.Caller(1)
 	caller := fmt.Sprintf("%s:%v", file[Prefix:], line)
 
-	r.Register.Thread(r, func(w *Thread) {
+	r.Register.Thread(r, name, func(w *Thread) {
 		w.Caller = caller
 		initFunction(w)
 	})
@@ -112,8 +120,8 @@ func (r *Thread) Spawn(initFunction Handle) {
 
 // Fork process with it's own thread lifecycle
 // NOTE: it's required to run the process
-func (r *Thread) Fork(initFunction Handle) {
-	r.Register.Process(r, initFunction)
+func (r *Thread) Fork(name string, initFunction Handle) {
+	r.Register.Process(r, name, initFunction)
 }
 
 // Invoke specific callbacks synchronously

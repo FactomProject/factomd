@@ -47,6 +47,8 @@ type Ilogger interface {
 	AddNameField(name string, format FormatFunc, defaultValue string) Ilogger
 }
 
+//todo: separate logging enabling to a separate layer from filelogger
+
 type FileLogger struct {
 	traceMutex    sync.Mutex
 	files         map[string]*os.File   // cache of file handles
@@ -108,10 +110,15 @@ func (f *FileLogger) GetNameFieldOrder() []string {
 	return append([]string(nil), f.nameFields...)
 }
 
-// prepend a field, define it's format and it's default value to the list of fields used to build the log name
+// Append a field, define it's format and it's default value to the list of fields used to build the log name
 // the default value is defined as a string and can be the empty string or a string equal to the formatted value length
 func (f *FileLogger) AddNameField(name string, format FormatFunc, defaultValue string) Ilogger {
-	f.nameFields = append([]string{name}, f.nameFields...) // prepend name fields
+	for _, k := range f.nameFields {
+		if k == name {
+			panic("duplicate name field added")
+		}
+	}
+	f.nameFields = append(f.nameFields, name) // prepend name fields
 	f.formats[name] = format
 	f.defaultValues[name] = defaultValue
 	return f
