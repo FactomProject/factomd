@@ -6,7 +6,6 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/util/atomic"
 )
 
@@ -95,34 +94,14 @@ func (m *SafeMsgMap) Cleanup(s *State) {
 	// Time out commits every leaderTimestamp and again. Also check for entries that have been revealed
 	leaderTimestamp := s.GetLeaderTimestamp()
 	for k, msg := range m.msgmap {
-
-		cc, ok := msg.(*messages.CommitChainMsg)
-		if ok && !s.NoEntryYet(cc.CommitChain.EntryHash, leaderTimestamp) {
-			msg, ok := m.msgmap[k]
-			if ok {
-				defer m.s.LogMessage(m.name, "cleanup_chain", msg)
-			}
-			delete(m.msgmap, k)
-			continue
-		}
-
-		c, ok := msg.(*messages.CommitEntryMsg)
-		if ok && !s.NoEntryYet(c.CommitEntry.EntryHash, leaderTimestamp) {
-			msg, ok := m.msgmap[k]
-			if ok {
-				defer m.s.LogMessage(m.name, "cleanup_entry", msg)
-			}
-			delete(m.msgmap, k)
-			continue
-		}
-
-		_, ok = s.Replay.Valid(constants.TIME_TEST, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), leaderTimestamp)
+		_, ok := s.Replay.Valid(constants.TIME_TEST, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), leaderTimestamp)
 		if !ok {
 			msg, ok := m.msgmap[k]
 			if ok {
 				defer m.s.LogMessage(m.name, "cleanup_timeout", msg)
 			}
 			delete(m.msgmap, k)
+			continue
 		}
 		ok = s.Replay.IsHashUnique(constants.REVEAL_REPLAY, k)
 		if !ok {
@@ -131,6 +110,7 @@ func (m *SafeMsgMap) Cleanup(s *State) {
 				defer m.s.LogMessage(m.name, "cleanup_replay", msg)
 			}
 			delete(m.msgmap, k)
+			continue
 		}
 	}
 	m.Unlock()

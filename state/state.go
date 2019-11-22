@@ -2346,7 +2346,7 @@ func (s *State) SetMessageFilterTimestamp(requestedTS interfaces.Timestamp) {
 	historicallimit.SetTimeMilli(primitives.NewTimestampNow().GetTimeMilli() - 90*60*1000) // now() - 90 minutes
 
 	if appliedTimestamp.GetTimeMilli() < historicallimit.GetTimeMilli() {
-		s.LogPrintf("executeMsg", "SetMessageFilterTimestamp(%s) -> %s moving to historical limit %s", requestedTS.String(), appliedTimestamp.String(), historicallimit.String())
+		//		s.LogPrintf("executeMsg", "SetMessageFilterTimestamp(%s) -> %s moving to historical limit %s", requestedTS.String(), appliedTimestamp.String(), historicallimit.String())
 		appliedTimestamp.SetTimestamp(historicallimit)
 	}
 
@@ -2355,16 +2355,16 @@ func (s *State) SetMessageFilterTimestamp(requestedTS interfaces.Timestamp) {
 	preBootTime.SetTimeMilli(s.TimestampAtBoot.GetTimeMilli() - constants.PreBootWindow*60*1000)
 
 	if appliedTimestamp.GetTimeMilli() < preBootTime.GetTimeMilli() {
-		s.LogPrintf("executeMsg", "SetMessageFilterTimestamp(%s) -> %s moving to preboot limit    %s", requestedTS.String(), appliedTimestamp.String(), preBootTime.String())
+		//		s.LogPrintf("executeMsg", "SetMessageFilterTimestamp(%s) -> %s moving to preboot limit    %s", requestedTS.String(), appliedTimestamp.String(), preBootTime.String())
 		appliedTimestamp.SetTimestamp(preBootTime)
 	}
 
 	if s.messageFilterTimestamp != nil && appliedTimestamp.GetTimeMilli() < s.messageFilterTimestamp.GetTimeMilli() {
-		s.LogPrintf("executeMsg", "SetMessageFilterTimestamp(%s) -> %s moving to current limit    %s", requestedTS.String(), appliedTimestamp.String(), s.messageFilterTimestamp.String())
+		//		s.LogPrintf("executeMsg", "SetMessageFilterTimestamp(%s) -> %s moving to current limit    %s", requestedTS.String(), appliedTimestamp.String(), s.messageFilterTimestamp.String())
 		appliedTimestamp.SetTimestamp(s.messageFilterTimestamp)
 	}
 
-	s.LogPrintf("executeMsg", "SetMessageFilterTimestamp(%s) using %s ", requestedTS.String(), appliedTimestamp.String())
+	//	s.LogPrintf("executeMsg", "SetMessageFilterTimestamp(%s) using %s ", requestedTS.String(), appliedTimestamp.String())
 	s.messageFilterTimestamp = appliedTimestamp
 }
 
