@@ -212,12 +212,6 @@ func Peers(fnode *FactomNode) {
 				hash := repeatHash.Fixed()
 				timestamp := msg.GetTimestamp()
 
-				tsv := fnode.State.Replay.IsTSValidAndUpdateState(constants.TIME_TEST, hash, timestamp, now)
-				if !tsv {
-					fnode.State.LogMessage("NetworkInputs", fromPeer+" Drop, TS invalid", msg)
-					continue
-				}
-
 				ignore := ignoreMsg(msg)
 				if ignore {
 					fnode.State.LogMessage("NetworkInputs", fromPeer+" Drop, ignoreMsg()", msg)
