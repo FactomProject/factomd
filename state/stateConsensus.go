@@ -78,7 +78,7 @@ func (s *State) AddToHolding(hash [32]byte, msg interfaces.IMsg) {
 		s.Holding[hash] = msg
 		s.LogMessage("holding", "add", msg)
 		TotalHoldingQueueInputs.Inc()
-		EmitRegistrationEvent(msg, s)
+		events.EmitRegistrationEvent(msg, s)
 	}
 }
 
@@ -89,7 +89,7 @@ func (s *State) DeleteFromHolding(hash [32]byte, msg interfaces.IMsg, reason str
 		s.LogMessage("holding", "delete "+reason, msg)
 		TotalHoldingQueueOutputs.Inc()
 		if reason != "Process()" {
-			EmitStateChangeEvent(msg, eventmessages.EntityState_REJECTED, s)
+			events.EmitStateChangeEvent(msg, eventmessages.EntityState_REJECTED, s)
 		}
 	}
 }
@@ -838,12 +838,12 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 			}
 			s.DBStates.UpdateState() // call to get the state signed now that the DBSigs have processed
 			if s.EventsService != nil {
-				event := events.ProcessListEventNewBlock(GetStreamSource(s), dbheight)
+				event := events.ProcessListEventNewBlock(events.GetStreamSource(s), dbheight)
 				s.EventsService.Send(event)
 			}
 		} else {
 			if s.EventsService != nil {
-				event := events.ProcessListEventNewMinute(GetStreamSource(s), newMinute, dbheight)
+				event := events.ProcessListEventNewMinute(events.GetStreamSource(s), newMinute, dbheight)
 				s.EventsService.Send(event)
 			}
 		}

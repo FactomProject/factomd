@@ -1,9 +1,11 @@
 package eventservices
 
-import "github.com/FactomProject/factomd/events"
+import (
+	"github.com/FactomProject/factomd/events/eventinput"
+)
 
 type EventService interface {
-	Send(event events.EventInput) error
+	Send(event eventinput.EventInput) error
 }
 
 type EventServiceControl interface {

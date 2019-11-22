@@ -9,7 +9,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants/runstate"
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/events"
+	"github.com/FactomProject/factomd/events/eventinput"
 	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/util"
@@ -82,7 +82,7 @@ func NewEventServiceTo(state ServiceOwnerState, params *EventServiceParams) (Eve
 	return eventService, eventServiceControl
 }
 
-func (esi *eventServiceInstance) Send(event events.EventInput) error {
+func (esi *eventServiceInstance) Send(event eventinput.EventInput) error {
 	if esi.owningState.GetRunState() > runstate.Running { // Stop queuing messages to the events channel when shutting down
 		return nil
 	}
@@ -90,8 +90,8 @@ func (esi *eventServiceInstance) Send(event events.EventInput) error {
 	// Only send info messages when EventReplayDuringStartup is disabled
 	if !esi.params.ReplayDuringStartup && !esi.owningState.IsRunLeader() {
 		switch event.(type) {
-		case *events.ProcessListEvent:
-		case *events.NodeMessageEvent:
+		case *eventinput.ProcessListEvent:
+		case *eventinput.NodeMessageEvent:
 		default:
 			return nil
 		}

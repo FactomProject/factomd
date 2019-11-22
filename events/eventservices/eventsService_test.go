@@ -1,4 +1,4 @@
-package eventservices
+package eventservices_test
 
 import (
 	"bufio"
@@ -8,6 +8,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/events"
+	"github.com/FactomProject/factomd/events/eventinput"
 	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/util/atomic"
@@ -121,7 +122,7 @@ func TestEventsService_SendFillupQueue(t *testing.T) {
 func TestEventsService_SendNoStartupMessages(t *testing.T) {
 	testCases := map[string]struct {
 		Service   *eventServiceInstance
-		Event     events.EventInput
+		Event     eventinput.EventInput
 		Assertion func(*testing.T, *eventServiceInstance, error)
 	}{
 		"queue-filled": {

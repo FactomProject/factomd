@@ -1,7 +1,7 @@
 package databaseOverlay
 
 import (
-	"github.com/FactomProject/factomd/state"
+	"github.com/FactomProject/factomd/events"
 	"sort"
 
 	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
@@ -11,7 +11,6 @@ import (
 
 // ProcessDirBlockInfoBatch inserts the dirblock info block
 func (db *Overlay) ProcessDirBlockInfoBatch(block interfaces.IDirBlockInfo) error {
-	z
 	if block.GetBTCConfirmed() == true {
 		err := db.Delete(DIRBLOCKINFO_UNCONFIRMED, block.DatabasePrimaryIndex().Bytes())
 		if err != nil {
@@ -35,7 +34,7 @@ func (db *Overlay) ProcessDirBlockInfoMultiBatch(block interfaces.IDirBlockInfo)
 		err = db.ProcessBlockMultiBatchWithoutHead(DIRBLOCKINFO_UNCONFIRMED, DIRBLOCKINFO_NUMBER, DIRBLOCKINFO_SECONDARYINDEX, block)
 	}
 	if err != nil {
-		state.EmitDBAnchorEvent(block, db.ownerState)
+		events.EmitDBAnchorEvent(block, db.ownerState)
 	}
 	return err
 }

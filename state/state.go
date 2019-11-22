@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/FactomProject/factomd/events"
 	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 	"os"
 	"path/filepath"
@@ -599,8 +600,12 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 func (s *State) EmitDBStateEventsFromHeight(height int64, end int64) {
 	msgs := s.GetAllDBStateMsgsFromDatabase(height, end)
 	for _, msg := range msgs {
-		EmitStateChangeEvent(msg, eventmessages.EntityState_COMMITTED_TO_DIRECTORY_BLOCK, s)
+		events.EmitStateChangeEvent(msg, eventmessages.EntityState_COMMITTED_TO_DIRECTORY_BLOCK, s)
 	}
+}
+
+func (s *State) GetEventsService() eventservices.EventService {
+	return s.EventsService
 }
 
 func (s *State) GetAllDBStateMsgsFromDatabase(height int64, end int64) []interfaces.IMsg {
