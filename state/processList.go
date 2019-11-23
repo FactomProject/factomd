@@ -119,7 +119,6 @@ type VM struct {
 }
 
 func (p *ProcessList) GetKeysNewEntries() (keys [][32]byte) {
-
 	if p == nil {
 		return
 	}
