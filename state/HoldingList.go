@@ -155,7 +155,7 @@ func (l *HoldingList) isMsgStale(msg interfaces.IMsg) (res bool) {
 		//		l.s.LogMessage("DependentHolding", "SKIP_DBHT_REVIEW", msg)
 	}
 
-	if msg.GetTimestamp().GetTime().UnixNano() < l.s.GetFilterTimeNano() {
+	if msg.GetTimestamp().GetTime().UnixNano() < l.s.GetMessageFilterTimestamp().GetTime().UnixNano() {
 		res = true
 	}
 
