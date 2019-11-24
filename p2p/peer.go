@@ -389,7 +389,7 @@ func (p *Peer) GetMetrics() PeerMetrics {
 		MPSUp:            p.mpsUp,
 		BPSDown:          p.bpsDown,
 		BPSUp:            p.bpsUp,
-		ConnectionState:  fmt.Sprintf("v%s", p.prot.Version()),
+		ConnectionState:  fmt.Sprintf("v%s|%.1f/%.1f", p.prot.Version(), p.bpsDown/1000, p.bpsUp/1000),
 		Capacity:         p.Capacity(),
 		Dropped:          p.dropped,
 	}

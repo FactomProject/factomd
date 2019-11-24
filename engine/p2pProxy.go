@@ -5,11 +5,12 @@
 package engine
 
 import (
+
+	// "github.com/FactomProject/factomd/common/constants"
+
 	"bytes"
 	"fmt"
 	"os"
-
-	// "github.com/FactomProject/factomd/common/constants"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -118,24 +119,24 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 		fmt.Fprintf(os.Stderr, "nil hash message in p2pProxy.Send() %s\n", msg.String())
 		fmt.Fprintf(os.Stderr, "nil hash message in p2pProxy.Send() %+v\n", msg)
 	} else {
-		origin := msg.GetNetworkOrigin()
-		var to string
+		hash := fmt.Sprintf("%x", msg.GetMsgHash().Bytes())
+		appType := fmt.Sprintf("%d", msg.Type())
+		//fmt.Println("PROXY SEND:", msg.String())
+		message := FactomMessage{Message: data, PeerHash: msg.GetNetworkOrigin(), AppHash: hash, AppType: appType}
 		switch {
 		case !msg.IsPeer2Peer() && msg.IsFullBroadcast():
 			msgLogger.Debug("Sending full broadcast message")
-			to = p2p.FullBroadcast
+			message.PeerHash = p2p.FullBroadcast
 		case !msg.IsPeer2Peer() && !msg.IsFullBroadcast():
 			msgLogger.Debug("Sending broadcast message")
-			to = p2p.Broadcast
-		case msg.IsPeer2Peer() && 0 == len(origin): // directed, with no direction of who to send it to
+			message.PeerHash = p2p.Broadcast
+		case msg.IsPeer2Peer() && 0 == len(message.PeerHash): // directed, with no direction of who to send it to
 			msgLogger.Debug("Sending directed message to a random peer")
-			to = p2p.RandomPeer
+			message.PeerHash = p2p.RandomPeer
 		default:
-			msgLogger.Debugf("Sending directed message to: %s", origin)
-			to = origin
+			msgLogger.Debugf("Sending directed message to: %s", message.PeerHash)
 		}
-		parcel := p2p.NewParcel(to, data)
-		f.Network.ToNetwork.Send(parcel)
+		BlockFreeChannelSend(f.BroadcastOut, message)
 	}
 
 	return nil
@@ -152,6 +153,7 @@ func (f *P2PProxy) Receive() (interfaces.IMsg, error) {
 			case FactomMessage:
 				fmessage := data.(FactomMessage)
 				msg, err := msgsupport.UnmarshalMessage(fmessage.Message)
+				//fmt.Println("PROXY RECEIVE:", msg.String())
 
 				if err != nil {
 					proxyLogger.WithField("receive-error", err).Error()

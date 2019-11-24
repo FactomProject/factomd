@@ -395,8 +395,8 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	p2pconf.Special = configPeers
 
 	connectionMetricsChannel := make(chan map[string]p2p.PeerMetrics, 50)
-	p2pconf.ReadDeadline = time.Duration(p.Deadline) * time.Millisecond
-	p2pconf.WriteDeadline = time.Duration(p.Deadline) * time.Millisecond
+	p2pconf.ReadDeadline = time.Minute * 5
+	p2pconf.WriteDeadline = time.Minute * 5
 
 	if p.EnableNet {
 		nodeName := fnodes[0].State.FactomNodeName
