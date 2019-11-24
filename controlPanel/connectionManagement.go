@@ -14,10 +14,10 @@ var AllConnections *ConnectionsMap
 
 type AllConnectionsTotals struct {
 	PeerQualityAvg     int32
-	BytesSentTotal     uint32
-	BytesReceivedTotal uint32
-	MessagesSent       uint32
-	MessagesReceived   uint32
+	BytesSentTotal     uint64
+	BytesReceivedTotal uint64
+	MessagesSent       uint64
+	MessagesReceived   uint64
 }
 
 func NewAllConnectionTotals() *AllConnectionsTotals {
@@ -32,8 +32,8 @@ func NewAllConnectionTotals() *AllConnectionsTotals {
 }
 
 type ConnectionsMap struct {
-	connected    map[string]p2p.ConnectionMetrics
-	disconnected map[string]p2p.ConnectionMetrics
+	connected    map[string]p2p.PeerMetrics
+	disconnected map[string]p2p.PeerMetrics
 
 	Totals AllConnectionsTotals
 	Lock   sync.Mutex
@@ -43,8 +43,8 @@ func NewConnectionsMap() *ConnectionsMap {
 	newCM := new(ConnectionsMap)
 	newCM.Lock.Lock()
 	defer newCM.Lock.Unlock()
-	newCM.connected = map[string]p2p.ConnectionMetrics{}
-	newCM.disconnected = map[string]p2p.ConnectionMetrics{}
+	newCM.connected = map[string]p2p.PeerMetrics{}
+	newCM.disconnected = map[string]p2p.PeerMetrics{}
 	newCM.Totals = *(NewAllConnectionTotals())
 	return newCM
 }
@@ -82,7 +82,7 @@ func (cm *ConnectionsMap) TallyTotals() {
 	cm.Lock.Unlock()
 }
 
-func (cm *ConnectionsMap) UpdateConnections(connections map[string]p2p.ConnectionMetrics) {
+func (cm *ConnectionsMap) UpdateConnections(connections map[string]p2p.PeerMetrics) {
 	cm.Lock.Lock()
 	defer cm.Lock.Unlock()
 	cm.connected = connections
@@ -94,7 +94,7 @@ func hashPeerAddress(addr string) string {
 	return hashStr
 }
 
-func (cm *ConnectionsMap) AddConnection(key string, val p2p.ConnectionMetrics) {
+func (cm *ConnectionsMap) AddConnection(key string, val p2p.PeerMetrics) {
 	cm.Lock.Lock()
 	defer cm.Lock.Unlock()
 	if _, ok := cm.disconnected[key]; ok {
@@ -110,7 +110,7 @@ func (cm *ConnectionsMap) RemoveConnection(key string) {
 	delete(cm.connected, key)
 }
 
-func (cm *ConnectionsMap) Connect(key string, val *p2p.ConnectionMetrics) bool {
+func (cm *ConnectionsMap) Connect(key string, val *p2p.PeerMetrics) bool {
 	cm.Lock.Lock()
 	defer cm.Lock.Unlock()
 	disVal, ok := cm.disconnected[key]
@@ -125,11 +125,11 @@ func (cm *ConnectionsMap) Connect(key string, val *p2p.ConnectionMetrics) bool {
 	return true
 }
 
-func (cm *ConnectionsMap) GetConnection(key string) *p2p.ConnectionMetrics {
+func (cm *ConnectionsMap) GetConnection(key string) *p2p.PeerMetrics {
 	cm.Lock.Lock()
 	defer cm.Lock.Unlock()
 	var ok bool
-	var ret p2p.ConnectionMetrics
+	var ret p2p.PeerMetrics
 	ret, ok = cm.connected[key]
 	if !ok {
 		ret, ok = cm.disconnected[key]
@@ -141,27 +141,27 @@ func (cm *ConnectionsMap) GetConnection(key string) *p2p.ConnectionMetrics {
 	return &ret
 }
 
-func (cm *ConnectionsMap) GetConnectedCopy() map[string]p2p.ConnectionMetrics {
+func (cm *ConnectionsMap) GetConnectedCopy() map[string]p2p.PeerMetrics {
 	cm.Lock.Lock()
 	defer cm.Lock.Unlock()
-	newMap := map[string]p2p.ConnectionMetrics{}
+	newMap := map[string]p2p.PeerMetrics{}
 	for k, v := range cm.connected {
 		newMap[k] = v
 	}
 	return newMap
 }
 
-func (cm *ConnectionsMap) GetDisconnectedCopy() map[string]p2p.ConnectionMetrics {
+func (cm *ConnectionsMap) GetDisconnectedCopy() map[string]p2p.PeerMetrics {
 	cm.Lock.Lock()
 	defer cm.Lock.Unlock()
-	newMap := map[string]p2p.ConnectionMetrics{}
+	newMap := map[string]p2p.PeerMetrics{}
 	for k, v := range cm.disconnected {
 		newMap[k] = v
 	}
 	return newMap
 }
 
-func (cm *ConnectionsMap) Disconnect(key string, val *p2p.ConnectionMetrics) bool {
+func (cm *ConnectionsMap) Disconnect(key string, val *p2p.PeerMetrics) bool {
 	cm.Lock.Lock()
 	defer cm.Lock.Unlock()
 	conVal, ok := cm.connected[key]
@@ -208,7 +208,7 @@ func (slice ConnectionInfoArray) Swap(i, j int) {
 type ConnectionInfo struct {
 	Connected               bool
 	Hash                    string // Hash of PeerHash (Peerhash contains illegal characters for html ID)
-	Connection              p2p.ConnectionMetrics
+	Connection              p2p.PeerMetrics
 	ConnectionTimeFormatted string
 	PeerHash                string
 }
@@ -275,20 +275,13 @@ func FormatDuration(initial time.Time) string {
 	}
 }
 
-// map[string]p2p.ConnectionMetrics
-func manageConnections(connections chan interface{}) {
+// map[string]p2p.PeerMetrics
+func manageConnections(connections chan map[string]p2p.PeerMetrics) {
 	for {
 		select {
 		case connectionsMessage := <-connections:
-			switch connectionsMessage.(type) {
-			case map[string]p2p.ConnectionMetrics:
-				newConnections := connectionsMessage.(map[string]p2p.ConnectionMetrics)
-				AllConnections.UpdateConnections(newConnections)
-				AllConnections.TallyTotals()
-
-			default: // drop that garbage
-				fmt.Printf("Got garbage data on metrics channel: %+v", connectionsMessage)
-			}
+			AllConnections.UpdateConnections(connectionsMessage)
+			AllConnections.TallyTotals()
 		default:
 			time.Sleep(400 * time.Millisecond)
 		}

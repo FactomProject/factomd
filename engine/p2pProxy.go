@@ -34,6 +34,7 @@ type P2PProxy struct {
 	BroadcastOut chan interface{} // FactomMessage ToNetwork from factomd
 	BroadcastIn  chan interface{} // FactomMessage FromNetwork for Factomd
 
+	Network     *p2p.Network
 	ToNetwork   chan interface{} // p2p.Parcel From p2pProxy to the p2p Controller
 	FromNetwork chan interface{} // p2p.Parcel Parcels from the network for the application
 
@@ -89,8 +90,8 @@ func (f *P2PProxy) Init(fromName, toName string) interfaces.IPeer {
 	f.ToName = toName
 	f.FromName = fromName
 	f.logger = proxyLogger.WithField("node", fromName)
-	f.BroadcastOut = make(chan interface{}, p2p.StandardChannelSize)
-	f.BroadcastIn = make(chan interface{}, p2p.StandardChannelSize)
+	f.BroadcastOut = make(chan interface{}, 5000)
+	f.BroadcastIn = make(chan interface{}, 5000)
 
 	return f
 }
@@ -117,23 +118,24 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 		fmt.Fprintf(os.Stderr, "nil hash message in p2pProxy.Send() %s\n", msg.String())
 		fmt.Fprintf(os.Stderr, "nil hash message in p2pProxy.Send() %+v\n", msg)
 	} else {
-		hash := fmt.Sprintf("%x", msg.GetMsgHash().Bytes())
-		appType := fmt.Sprintf("%d", msg.Type())
-		message := FactomMessage{Message: data, PeerHash: msg.GetNetworkOrigin(), AppHash: hash, AppType: appType}
+		origin := msg.GetNetworkOrigin()
+		var to string
 		switch {
 		case !msg.IsPeer2Peer() && msg.IsFullBroadcast():
 			msgLogger.Debug("Sending full broadcast message")
-			message.PeerHash = p2p.FullBroadcastFlag
+			to = p2p.FullBroadcast
 		case !msg.IsPeer2Peer() && !msg.IsFullBroadcast():
 			msgLogger.Debug("Sending broadcast message")
-			message.PeerHash = p2p.BroadcastFlag
-		case msg.IsPeer2Peer() && 0 == len(message.PeerHash): // directed, with no direction of who to send it to
+			to = p2p.Broadcast
+		case msg.IsPeer2Peer() && 0 == len(origin): // directed, with no direction of who to send it to
 			msgLogger.Debug("Sending directed message to a random peer")
-			message.PeerHash = p2p.RandomPeerFlag
+			to = p2p.RandomPeer
 		default:
-			msgLogger.Debugf("Sending directed message to: %s", message.PeerHash)
+			msgLogger.Debugf("Sending directed message to: %s", origin)
+			to = origin
 		}
-		p2p.BlockFreeChannelSend(f.BroadcastOut, message)
+		parcel := p2p.NewParcel(to, data)
+		f.Network.ToNetwork.Send(parcel)
 	}
 
 	return nil
@@ -213,16 +215,8 @@ func (f *P2PProxy) ManageOutChannel() {
 		case FactomMessage:
 			fmessage := data.(FactomMessage)
 			// Wrap it in a parcel and send it out channel ToNetwork.
-			parcels := p2p.ParcelsForPayload(p2p.CurrentNetwork, fmessage.Message)
-			for _, parcel := range parcels {
-				if parcel.Header.Type != p2p.TypeMessagePart {
-					parcel.Header.Type = p2p.TypeMessage
-				}
-				parcel.Header.TargetPeer = fmessage.PeerHash
-				parcel.Header.AppHash = fmessage.AppHash
-				parcel.Header.AppType = fmessage.AppType
-				p2p.BlockFreeChannelSend(f.ToNetwork, parcel)
-			}
+			parcel := p2p.NewParcel(fmessage.PeerHash, fmessage.Message)
+			f.Network.ToNetwork.Send(parcel)
 		default:
 			f.logger.Errorf("Garbage on f.BrodcastOut. %+v", data)
 		}
@@ -231,17 +225,35 @@ func (f *P2PProxy) ManageOutChannel() {
 
 // manageInChannel takes messages from the network and stuffs it in the f.BroadcastIn channel
 func (f *P2PProxy) ManageInChannel() {
-	for data := range f.FromNetwork {
-		switch data.(type) {
-		case p2p.Parcel:
-			parcel := data.(p2p.Parcel)
-			message := FactomMessage{Message: parcel.Payload, PeerHash: parcel.Header.TargetPeer, AppHash: parcel.Header.AppHash, AppType: parcel.Header.AppType}
-			removed := p2p.BlockFreeChannelSend(f.BroadcastIn, message)
-			BroadInCastQueue.Inc()
-			BroadInCastQueue.Add(float64(-1 * removed))
-			BroadCastInQueueDrop.Add(float64(removed))
+	for parcel := range f.Network.FromNetwork.Reader() {
+		message := FactomMessage{Message: parcel.Payload, PeerHash: parcel.Address, AppHash: "", AppType: ""}
+		removed := BlockFreeChannelSend(f.BroadcastIn, message)
+		BroadInCastQueue.Add(float64(-1 * removed))
+		BroadCastInQueueDrop.Add(float64(removed))
+	}
+}
+
+// BlockFreeChannelSend will remove things from the queue to make room for new messages if the queue is full.
+// This prevents channel blocking on full.
+//		Returns: The number of elements cleared from the channel to make room
+func BlockFreeChannelSend(channel chan interface{}, message interface{}) int {
+	removed := 0
+	highWaterMark := int(float64(cap(channel)) * 0.95)
+	clen := len(channel)
+	switch {
+	case highWaterMark < clen:
+		str, _ := primitives.EncodeJSONString(message)
+		proxyLogger.Warnf("nonBlockingChanSend() - DROPPING MESSAGES. Channel is over 90 percent full! \n channel len: \n %d \n 90 percent: \n %d \n last message type: %v", len(channel), highWaterMark, str)
+		for highWaterMark <= len(channel) { // Clear out some messages
+			removed++
+			<-channel
+		}
+		fallthrough
+	default:
+		select { // hits default if sending message would block.
+		case channel <- message:
 		default:
-			f.logger.Errorf("Garbage on f.FromNetwork. %+v", data)
 		}
 	}
+	return removed
 }
