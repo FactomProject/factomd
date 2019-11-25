@@ -21,7 +21,7 @@ func threadFactory(t *testing.T, name string) worker.Handle {
 			// this thread that only uses OnRun group
 			t.Logf("running %v %s", w.ID, name)
 			select {
-			case <- ctx.Done():
+			case <-ctx.Done():
 				t.Logf("context.Done() %v %s", w.ID, name)
 			}
 		})
@@ -32,7 +32,7 @@ func threadFactory(t *testing.T, name string) worker.Handle {
 		}).OnRun(func() {
 			t.Logf("running %v %s", w.ID, name)
 			select {
-			case <- ctx.Done():
+			case <-ctx.Done():
 				t.Logf("context.Done() %v %s", w.ID, name)
 			}
 		}).OnExit(func() {
@@ -49,7 +49,7 @@ func TestRegisterThread(t *testing.T) {
 	// create a process with 1 root process
 	p := registry.New()
 	p.Register(threadFactory(t, "foo"))
-	go func(){
+	go func() {
 		p.WaitForRunning()
 		go p.Exit() // normally invoked via SIGINT
 	}()

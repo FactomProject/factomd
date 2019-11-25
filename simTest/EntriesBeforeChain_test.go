@@ -3,6 +3,7 @@ package simtest
 import (
 	"bytes"
 	"fmt"
+	"github.com/FactomProject/factomd/fnode"
 	"testing"
 
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -29,7 +30,7 @@ func TestEntriesBeforeChain(t *testing.T) {
 
 	numEntries := 9 // set the total number of entries to add
 
-	state0 := SetupSim("LLAAFF", nil, 10, 0, 0, t)
+	state0 := SetupSim("LF", map[string]string{"--debuglog": "."}, 10, 0, 0, t)
 
 	var entries []interfaces.IMsg
 	var oneFct uint64 = factom.FactoidToFactoshi("1")
@@ -76,7 +77,6 @@ func TestEntriesBeforeChain(t *testing.T) {
 		state0.APIQueue().Enqueue(commit)
 		state0.APIQueue().Enqueue(reveal)
 		lastentry = reveal.Entry.GetHash()
-
 	}
 
 	// REVIEW is this a good enough test for holding
@@ -94,25 +94,14 @@ func TestEntriesBeforeChain(t *testing.T) {
 		WaitForEcBalanceOver(state0, a.EcPub(), int64(ecMargin-1))
 	}
 
-	WaitBlocks(state0, 1) // give time for holding to clear
+	WaitBlocks(state0, 2) // give time for holding to clear
 	WaitForEcBalanceUnder(state0, a.EcPub(), int64(ecMargin+1))
 	WaitForEntry(state0, lastentry)
 
-	ShutDownEverything(t)
-	WaitForAllNodes(state0)
+	Halt(t)
+	//ShutDownEverything(t)
+	//WaitForAllNodes(state0)
 
-	assert.Equal(t, int64(ecMargin), a.GetECBalance()) // should have 100 extra EC's
-
-	/*
-		for _, fnode := range fnode.GetFnodes() {
-			s := fnode.State
-			for _, h := range s.Hold.Messages() {
-				for _, m := range h {
-					s.LogMessage("dependentHolding", "stuck", m)
-				}
-			}
-			assert.Equal(t, 0, len(s.Holding), "messages stuck in holding")
-			assert.Equal(t, 0, s.Hold.GetSize(), "messages stuck in New Holding")
-		}
-	*/
+	assert.Equal(t, int64(ecMargin), a.GetECBalance())              // should have 100 extra EC's
+	assert.Equal(t, a.GetECBalance(fnode.Get(1)), a.GetECBalance()) // both nodes should report the same values
 }
