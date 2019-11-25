@@ -18,10 +18,18 @@ func EmitRegistrationEvent(msg interfaces.IMsg, state *State) {
 }
 
 func EmitStateChangeEvent(msg interfaces.IMsg, entityState eventmessages.EntityState, state *State) {
+	emitStateChangeEvent(msg, entityState, state, GetStreamSource(state))
+}
+
+func EmitReplayStateChangeEvent(msg interfaces.IMsg, entityState eventmessages.EntityState, state *State) {
+	emitStateChangeEvent(msg, entityState, state, eventmessages.EventSource_REPLAY_BOOT)
+}
+
+func emitStateChangeEvent(msg interfaces.IMsg, entityState eventmessages.EntityState, state *State, eventSource eventmessages.EventSource) {
 	if state.EventsService != nil {
 		switch msg.(type) {
 		case *messages.CommitChainMsg, *messages.CommitEntryMsg, *messages.RevealEntryMsg, *messages.DBStateMsg:
-			event := events.NewStateChangeEventFromMsg(GetStreamSource(state), entityState, msg)
+			event := events.NewStateChangeEventFromMsg(eventSource, entityState, msg)
 			state.EventsService.Send(event)
 		}
 	}

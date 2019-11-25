@@ -452,11 +452,12 @@ func TestMapToFactomEventRevealNoContentRegistration(t *testing.T) {
 
 func TestConvertTimeToTimestamp(t *testing.T) {
 	// 2019-10-24 11:56:18.338002 = 1571910978 and 338001966 nanos
-	now := time.Date(2019, 10, 24, 11, 56, 18, 338001966, time.Now().Location())
+	loc := time.FixedZone("UTC-8", -8*60*60)
+	now := time.Date(2019, 10, 24, 11, 56, 18, 338001966, loc)
 	timestamp := eventservices.ConvertTimeToTimestamp(now)
 
 	assert.NotNil(t, timestamp)
-	assert.Equal(t, int64(1571910978), timestamp.Seconds)
+	assert.Equal(t, int64(1571946978), timestamp.Seconds)
 	assert.Equal(t, int32(338001966), timestamp.Nanos)
 }
 

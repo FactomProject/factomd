@@ -334,10 +334,7 @@ type IState interface {
 	GetIgnoreDone() bool
 
 	// Emit DBState events to the livefeed api from a specified height
-	EmitDBStateEventsFromHeight(height int64, end int64)
-
-	// Return all DBStateMsgs from a specified height
-	GetAllDBStateMsgsFromDatabase(height int64, end int64) []IMsg
+	EmitDBStateEventsFromHeight(height uint32, end uint32)
 
 	// Access to Holding Queue
 	LoadHoldingMap() map[[32]byte]IMsg
