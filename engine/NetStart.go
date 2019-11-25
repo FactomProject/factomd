@@ -8,7 +8,9 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"github.com/FactomProject/factomd/modules/leader"
 	"os"
+	"regexp"
 	"sync"
 	"time"
 
@@ -319,6 +321,7 @@ func makeServer(w *worker.Thread, p *globals.FactomParams) (node *fnode.FactomNo
 
 	// Election factory was created and passed int to avoid import loop
 	node.State.Initialize(w, new(electionMsgs.ElectionsFactory))
+	node.State.BindPublishers()
 
 	state0Init.Do(func() {
 		logPort = p.LogPort
@@ -326,7 +329,15 @@ func makeServer(w *worker.Thread, p *globals.FactomParams) (node *fnode.FactomNo
 		initEntryHeight(node.State, p.Sync2)
 		initAnchors(node.State, p.ReparseAnchorChains)
 		echoConfig(node.State, p) // print the config only once
-		// Init settings
+
+		{ // Leader thread
+			l := leader.New(node.State)
+			l.Start(w)              // KLUDGE: only running leader on state0
+			OutputString := "ACK.*" // KLUDGE filter acks while developing leader thread
+			OutputRegEx := regexp.MustCompile(OutputString)
+			node.State.PassOutputRegEx(OutputRegEx, OutputString)
+		}
+
 	})
 
 	// TODO: Init any settings from the config

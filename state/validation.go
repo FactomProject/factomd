@@ -6,6 +6,7 @@ package state
 
 import (
 	"fmt"
+	"github.com/FactomProject/factomd/modules/event"
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -84,7 +85,6 @@ func (s *State) DoProcessing() {
 }
 
 func (s *State) ValidatorLoop(w *worker.Thread) {
-
 	CheckGrants()
 
 	// We should only generate 1 EOM for each height/minute/vmindex
@@ -150,8 +150,21 @@ func (s *State) ValidatorLoop(w *worker.Thread) {
 					eom.Minute = byte(currentMinute)
 				}
 
+				{ // hook into internal events
+					pl := s.ProcessLists.Get(s.LLeaderHeight)
+
+					s.Pub.EOMTicker.Write(&event.EOM{
+						Timestamp:     s.GetTimestamp(),
+						LLeaderHeight: s.LLeaderHeight,
+						SysHeight:     uint32(pl.System.Height),
+						VMIndex:       s.LeaderVMIndex,
+						Minute:        byte(currentMinute),
+					})
+				}
+
 				eom.Sign(s)
 				eom.SetLocal(true) // local EOMs are really just timeout indicators that we need to generate an EOM
+				// TODO: continue here to keep from sending EOM's
 				msg = eom
 				s.LogMessage("validator", fmt.Sprintf("generated c:%d  %d-:-%d %d", c, s.LLeaderHeight, s.CurrentMinute, s.LeaderVMIndex), eom)
 			case msg = <-s.inMsgQueue.Channel:

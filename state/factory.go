@@ -408,6 +408,7 @@ func Clone(s *State, cloneNumber int) interfaces.IState {
 }
 
 func (s *State) Initialize(w *worker.Thread, electionFactory interfaces.IElectionsFactory) {
+
 	if s.Salt == nil {
 		b := make([]byte, 32)
 		_, err := rand.Read(b)

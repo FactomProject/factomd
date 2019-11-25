@@ -46,7 +46,13 @@ func (lists *ProcessLists) UpdateState(dbheight uint32) (progress bool) {
 	for pl.Complete() || (dbstate != nil && dbstate.Locked && dbstate.Signed) {
 		dbheight++
 		pl = lists.Get(dbheight)
-		lists.State.MoveStateToHeight(dbheight, 0)
+
+		// KLUDGE: add extra flag to avoid sending a pub/sub event
+		// because  MoveStateToHeight is called in two places
+		//1-:-10 goroutine 189-/state/processListManager.go:49
+		//1-:-10 goroutine 189-/state/dbStateManager.go:1224
+		lists.State.MoveStateToHeight(dbheight, 0, false)
+
 		dbstate = lists.State.DBStates.Get(int(dbheight))
 	}
 	if pl == nil {

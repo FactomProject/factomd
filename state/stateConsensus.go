@@ -13,6 +13,8 @@ import (
 	"sort"
 	"time"
 
+	"github.com/FactomProject/factomd/modules/event"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
@@ -766,12 +768,19 @@ processholdinglist:
 	TotalReviewHoldingTime.Add(float64(reviewHoldingTime.Nanoseconds()))
 }
 
-func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
+func (s *State) MoveStateToHeight(dbheight uint32, newMinute int, flags ...bool) {
 	//	s.LogPrintf("dbstateprocess", "MoveStateToHeight(%d-:-%d) called from %s", dbheight, newMinute, atomic.WhereAmIString(1))
 	s.LogPrintf("dbstateprocess", "MoveStateToHeight(%d-:-%d)", dbheight, newMinute)
 
 	if (s.LLeaderHeight+1 == dbheight && newMinute == 0) || (s.LLeaderHeight == dbheight && s.CurrentMinute+1 == newMinute) {
-		// these are the allowed cases; move to nextblock-:-0 or move to next minute
+
+		// KLUDGE State is moved in two places
+		//1-:-10 goroutine 189-/state/processListManager.go:49
+		//1-:-10 goroutine 189-/state/dbStateManager.go:1224
+		if len(flags) == 0 {
+			// added flag to only trigger after dbstateChange
+			s.Pub.BlkSeq.Write(&event.DBHT{dbheight, newMinute})
+		}
 	} else {
 		s.LogPrintf("dbstateprocess", "State move between non-sequential heights from %d to %d", s.LLeaderHeight, dbheight)
 		if s.LLeaderHeight != dbheight {
@@ -1875,6 +1884,7 @@ func (s *State) CreateDBSig(dbheight uint32, vmIndex int) (interfaces.IMsg, inte
 // that is missing the DBSig.  If the DBSig isn't our responsibility, then
 // this call will do nothing.  Assumes the state for the leader is set properly
 func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
+
 	s.LogPrintf("executeMsg", "SendDBSig(dbht=%d,vm=%d)", dbheight, vmIndex)
 	dbslog := consenLogger.WithFields(log.Fields{"func": "SendDBSig"})
 
@@ -1905,6 +1915,18 @@ func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
 			dbs, _ := s.CreateDBSig(dbheight, vmIndex)
 			if dbs == nil {
 				return
+			}
+
+			{ // KLUDGE dispatch params to leader thread can send dbsig
+				v := dbs.(*messages.DirectoryBlockSignature)
+
+				s.Pub.Directory.Write(&event.Directory{
+					DBHeight:             dbheight,
+					VMIndex:              vmIndex,
+					DirectoryBlockHeader: v.DirectoryBlockHeader,
+					Timestamp:            s.GetTimestamp(),
+				})
+
 			}
 
 			dbslog.WithFields(dbs.LogFields()).WithFields(log.Fields{"lheight": s.GetLeaderHeight(), "node-name": s.GetFactomNodeName()}).Infof("Generate DBSig")
@@ -2200,6 +2222,13 @@ func (s *State) CheckForIDChange() {
 		s.LocalServerPrivKey = config.App.LocalServerPrivKey
 		s.initServerKeys()
 		s.LogPrintf("AckChange", "ReloadIdentity new local_priv: %v ident_chain: %v, prev local_priv: %v ident_chain: %v", s.LocalServerPrivKey, s.IdentityChainID, prev_LocalServerPrivKey, prev_ChainID)
+
+		s.Pub.LeaderConfig.Write(&event.LeaderConfig{
+			IdentityChainID: s.IdentityChainID,
+			Salt:            s.Salt,
+			ServerPrivKey:   s.ServerPrivKey,
+			FactomSecond:    s.FactomSecond(),
+		})
 	}
 }
 

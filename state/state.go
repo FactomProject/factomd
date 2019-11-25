@@ -108,6 +108,7 @@ type StateConfig struct {
 type State struct {
 	common.Name
 	StateConfig
+	Pub               // Publisher hooks
 	Logger            *log.Entry
 	RunState          runstate.RunState
 	NetworkController *p2p.Controller
