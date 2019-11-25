@@ -13,18 +13,18 @@ type eventEmitter struct {
 	eventsService eventservices.EventService
 }
 
-func NewEventEmitter(owningState IStateEventServices) *eventEmitter {
-	return &eventEmitter{owningState: owningState}
+func NewInactiveEventEmitter() *eventEmitter {
+	return new(eventEmitter)
 }
 
-func NewEventEmitterWithEventService(owningState IStateEventServices, eventsService eventservices.EventService) *eventEmitter {
+func NewActiveEventEmitter(owningState IStateEventServices, eventsService eventservices.EventService) *eventEmitter {
 	return &eventEmitter{owningState: owningState,
 		eventsService: eventsService}
 }
 
 func (eventEmitter *eventEmitter) EmitRegistrationEvent(msg interfaces.IMsg) {
 	if eventEmitter.eventsService != nil {
-		switch msg.(type) { // Do not fill the channel with message we don't want anyway (like EOM's)
+		switch msg.(type) { // Do not fill the channel with message we don't need (like EOM's)
 		case *messages.CommitChainMsg, *messages.CommitEntryMsg, *messages.RevealEntryMsg:
 			event := eventinput.NewRegistrationEvent(eventEmitter.GetStreamSource(), msg)
 			eventEmitter.eventsService.Send(event)

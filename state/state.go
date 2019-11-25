@@ -534,8 +534,8 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 
 	newState.ControlPanelPort = s.ControlPanelPort
 	newState.ControlPanelSetting = s.ControlPanelSetting
+	newState.Events = s.Events
 	newState.EventsServiceControl = s.EventsServiceControl
-	newState.Events = events.NewEventEmitter(newState)
 
 	//newState.Identities = s.Identities
 	//newState.Authorities = s.Authorities

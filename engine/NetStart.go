@@ -428,7 +428,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	if config.LiveFeedAPI.EnableLiveFeedAPI || p.EnableLiveFeedAPI {
 		var eventsService eventservices.EventService
 		eventsService, s.EventsServiceControl = eventservices.NewEventService(s, config, p)
-		emitter := events.NewEventEmitterWithEventService(s, eventsService)
+		emitter := events.NewActiveEventEmitter(s, eventsService)
 		s.Events = emitter
 	}
 
