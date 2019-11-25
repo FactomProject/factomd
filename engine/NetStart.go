@@ -336,6 +336,7 @@ func makeServer(w *worker.Thread, p *globals.FactomParams) (node *fnode.FactomNo
 			OutputString := "ACK.*" // KLUDGE filter acks while developing leader thread
 			OutputRegEx := regexp.MustCompile(OutputString)
 			node.State.PassOutputRegEx(OutputRegEx, OutputString)
+			w.Run(func() { leader.Timer(node.State) })
 		}
 
 	})
@@ -362,7 +363,6 @@ func startServer(w *worker.Thread, node *fnode.FactomNode) {
 
 	w.Run(func() { state.LoadDatabase(node.State) })
 	w.Run(node.State.GoSyncEntries)
-	w.Run(func() { Timer(node.State) })
 	w.Run(node.State.MissingMessageResponseHandler.Run)
 }
 
