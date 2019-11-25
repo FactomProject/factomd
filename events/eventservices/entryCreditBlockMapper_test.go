@@ -1,7 +1,6 @@
 package eventservices
 
 import (
-	"encoding/json"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -25,10 +24,6 @@ func TestMapEntryCreditBlock(t *testing.T) {
 	block.GetBody().AddEntry(commitEntry)
 
 	mappedBlock := mapEntryCreditBlock(block)
-
-	j, _ := json.MarshalIndent(mappedBlock, "", "  ")
-	t.Logf("%s", j)
-	t.Log(mappedBlock)
 
 	assert.NotNil(t, mappedBlock)
 	if assert.NotNil(t, mappedBlock.Header) {
