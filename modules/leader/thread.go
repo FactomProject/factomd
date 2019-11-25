@@ -106,7 +106,7 @@ func (l *Leader) Run() {
 		case v := <-l.MsgInput.Updates:
 			msg := v.(interfaces.IMsg)
 			if !constants.NeedsAck(msg.Type()) {
-				continue
+				panic("got message that doesn't need ACK")
 			}
 			//log.LogMessage("leader.txt", "MsgToAck", msg)
 			l.LeaderExecute(msg)

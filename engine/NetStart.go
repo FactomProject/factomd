@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"github.com/FactomProject/factomd/modules/leader"
 	"os"
-	"regexp"
 	"sync"
 	"time"
 
@@ -333,9 +332,11 @@ func makeServer(w *worker.Thread, p *globals.FactomParams) (node *fnode.FactomNo
 		{ // Leader thread
 			l := leader.New(node.State)
 			l.Start(w)              // KLUDGE: only running leader on state0
+			/*
 			OutputString := "ACK.*" // KLUDGE filter acks while developing leader thread
 			OutputRegEx := regexp.MustCompile(OutputString)
 			node.State.PassOutputRegEx(OutputRegEx, OutputString)
+			 */
 			w.Run(func() { leader.Timer(node.State) })
 		}
 

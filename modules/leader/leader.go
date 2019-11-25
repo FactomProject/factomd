@@ -2,6 +2,8 @@ package leader
 
 import (
 	"encoding/binary"
+	"fmt"
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -73,6 +75,12 @@ func (l *Leader) GetSalt(ts interfaces.Timestamp) uint32 {
 }
 
 func (l *Leader) LeaderExecute(m interfaces.IMsg) {
+	switch m.Type() {
+	case constants.DIRECTORY_BLOCK_SIGNATURE_MSG:
+	default:
+		panic(fmt.Sprintf("Unsupported msg %v", m.Type()))
+	}
+
 	ack := l.NewAck(m, l.BalanceHash).(*messages.Ack) // LeaderExecute
 	m.SetLeaderChainID(ack.GetLeaderChainID())        //  REVIEW: this seems starnge
 	m.SetMinute(ack.Minute)
