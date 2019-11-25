@@ -27,13 +27,7 @@ func (eventEmitter *eventEmitter) EmitRegistrationEvent(msg interfaces.IMsg) {
 }
 
 func (eventEmitter *eventEmitter) EmitStateChangeEvent(msg interfaces.IMsg, entityState eventmessages.EntityState) {
-	if eventEmitter.eventsService != nil {
-		switch msg.(type) {
-		case *messages.CommitChainMsg, *messages.CommitEntryMsg, *messages.RevealEntryMsg, *messages.DBStateMsg:
-			event := eventinput.NewStateChangeEventFromMsg(eventEmitter.GetStreamSource(), entityState, msg)
-			eventEmitter.eventsService.Send(event)
-		}
-	}
+	eventEmitter.emitStateChangeEvent(msg, entityState, eventEmitter.GetStreamSource())
 }
 
 func (eventEmitter *eventEmitter) EmitDBStateEvent(dbState interfaces.IDBState, entityState eventmessages.EntityState) {
@@ -43,14 +37,21 @@ func (eventEmitter *eventEmitter) EmitDBStateEvent(dbState interfaces.IDBState, 
 	}
 }
 
-func (eventEmitter *eventEmitter) EmitDBAnchorEvent(dirBlockInfo interfaces.IDirBlockInfo) {
+func (eventEmitter *eventEmitter) EmitReplayStateChangeEvent(msg interfaces.IMsg, entityState eventmessages.EntityState) {
+	eventEmitter.emitStateChangeEvent(msg, entityState, eventmessages.EventSource_REPLAY_BOOT)
+}
+
+func (eventEmitter *eventEmitter) emitStateChangeEvent(msg interfaces.IMsg, entityState eventmessages.EntityState, streamSource eventmessages.EventSource) {
 	if eventEmitter.eventsService != nil {
-		event := eventinput.NewAnchorEvent(eventEmitter.GetStreamSource(), dirBlockInfo)
-		eventEmitter.eventsService.Send(event)
+		switch msg.(type) {
+		case *messages.CommitChainMsg, *messages.CommitEntryMsg, *messages.RevealEntryMsg, *messages.DBStateMsg:
+			event := eventinput.NewStateChangeEventFromMsg(streamSource, entityState, msg)
+			eventEmitter.eventsService.Send(event)
+		}
 	}
 }
 
-func (eventEmitter *eventEmitter) EmitReplayStateChangeEvent(msg interfaces.IMsg, state eventmessages.EntityState) {
+func (eventEmitter *eventEmitter) EmitDBAnchorEvent(dirBlockInfo interfaces.IDirBlockInfo) {
 	if eventEmitter.eventsService != nil {
 		event := eventinput.NewAnchorEvent(eventEmitter.GetStreamSource(), dirBlockInfo)
 		eventEmitter.eventsService.Send(event)

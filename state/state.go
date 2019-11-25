@@ -598,6 +598,10 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 	return newState
 }
 
+func (s *State) GetEvents() events.Events {
+	return s.Events
+}
+
 func (s *State) EmitDBStateEventsFromHeight(height uint32, end uint32) {
 	i := height
 	msgCount := 0

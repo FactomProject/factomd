@@ -12,6 +12,7 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/events"
+	"github.com/FactomProject/factomd/events/eventinput"
 	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 	"github.com/FactomProject/factomd/testHelper"
 	"github.com/stretchr/testify/assert"
@@ -25,7 +26,7 @@ func TestUpdateState(t *testing.T) {
 	mockService := &mockEventService{}
 
 	s := testHelper.CreateAndPopulateTestState()
-	s.EventsService = mockService
+	events.AttachEventServiceToEventEmitter(s, mockService)
 
 	eBlocks := []interfaces.IEntryBlock{}
 	entries := []interfaces.IEBEntry{}
@@ -47,7 +48,7 @@ func TestUpdateState(t *testing.T) {
 		event := mockService.Events[0]
 		assert.Equal(t, eventmessages.EventSource_REPLAY_BOOT, event.GetStreamSource())
 
-		if stateChangeEvent, ok := event.(*events.StateChangeEvent); assert.True(t, ok, "event received has wrong type: %s event: %+v", reflect.TypeOf(event), event) {
+		if stateChangeEvent, ok := event.(*eventinput.StateChangeEvent); assert.True(t, ok, "event received has wrong type: %s event: %+v", reflect.TypeOf(event), event) {
 			assert.NotNil(t, stateChangeEvent)
 			assert.NotNil(t, stateChangeEvent.GetPayload())
 			assert.Equal(t, eventmessages.EntityState_COMMITTED_TO_DIRECTORY_BLOCK, stateChangeEvent.GetEntityState())
@@ -59,7 +60,7 @@ func TestAddToAndDeleteFromHolding(t *testing.T) {
 	mockService := &mockEventService{}
 
 	s := testHelper.CreateAndPopulateTestState()
-	s.EventsService = mockService
+	events.AttachEventServiceToEventEmitter(s, mockService)
 
 	msg := &messages.CommitChainMsg{CommitChain: entryCreditBlock.NewCommitChain()}
 	msg.CommitChain.MilliTime = createByteSlice6Timestamp(-2 * 1e3)
@@ -72,7 +73,7 @@ func TestAddToAndDeleteFromHolding(t *testing.T) {
 		addToHoldingEvent := mockService.Events[0]
 		assert.Equal(t, eventmessages.EventSource_REPLAY_BOOT, addToHoldingEvent.GetStreamSource())
 
-		if registrationEvent, ok := addToHoldingEvent.(*events.RegistrationEvent); assert.True(t, ok, "event received has wrong type: %s event: %+v", reflect.TypeOf(addToHoldingEvent), addToHoldingEvent) {
+		if registrationEvent, ok := addToHoldingEvent.(*eventinput.RegistrationEvent); assert.True(t, ok, "event received has wrong type: %s event: %+v", reflect.TypeOf(addToHoldingEvent), addToHoldingEvent) {
 			assert.NotNil(t, registrationEvent)
 			assert.EqualValues(t, msg, registrationEvent.GetPayload())
 		}
@@ -80,7 +81,7 @@ func TestAddToAndDeleteFromHolding(t *testing.T) {
 		deleteFromHoldingEvent := mockService.Events[1]
 		assert.Equal(t, eventmessages.EventSource_REPLAY_BOOT, deleteFromHoldingEvent.GetStreamSource())
 
-		if stateChangeEvent, ok := deleteFromHoldingEvent.(*events.StateChangeMsgEvent); assert.True(t, ok, "event received has wrong type: %s event: %+v", reflect.TypeOf(deleteFromHoldingEvent), deleteFromHoldingEvent) {
+		if stateChangeEvent, ok := deleteFromHoldingEvent.(*eventinput.StateChangeMsgEvent); assert.True(t, ok, "event received has wrong type: %s event: %+v", reflect.TypeOf(deleteFromHoldingEvent), deleteFromHoldingEvent) {
 			assert.NotNil(t, stateChangeEvent)
 			assert.Equal(t, eventmessages.EntityState_REJECTED, stateChangeEvent.GetEntityState())
 			assert.EqualValues(t, msg, stateChangeEvent.GetPayload())
@@ -93,7 +94,7 @@ func TestAddToProcessList(t *testing.T) {
 
 	s := testHelper.CreateAndPopulateTestState()
 	s.SetLeaderTimestamp(primitives.NewTimestampNow())
-	s.EventsService = mockService
+	events.AttachEventServiceToEventEmitter(s, mockService)
 
 	msg := &messages.CommitChainMsg{CommitChain: entryCreditBlock.NewCommitChain()}
 	msg.CommitChain.MilliTime = createByteSlice6Timestamp(-2 * 1e3)
@@ -114,7 +115,7 @@ func TestAddToProcessList(t *testing.T) {
 		event := mockService.Events[0]
 		assert.Equal(t, eventmessages.EventSource_REPLAY_BOOT, event.GetStreamSource())
 
-		if stateChangeEvent, ok := event.(*events.StateChangeMsgEvent); assert.True(t, ok, "event received has wrong type: %s event: %+v", reflect.TypeOf(event), event) {
+		if stateChangeEvent, ok := event.(*eventinput.StateChangeMsgEvent); assert.True(t, ok, "event received has wrong type: %s event: %+v", reflect.TypeOf(event), event) {
 			assert.NotNil(t, stateChangeEvent)
 			assert.Equal(t, eventmessages.EntityState_ACCEPTED, stateChangeEvent.GetEntityState())
 			assert.EqualValues(t, msg, stateChangeEvent.GetPayload())
@@ -126,7 +127,7 @@ func TestEmitDBStateEventsFromHeightRange(t *testing.T) {
 	s := testHelper.CreateAndPopulateTestState()
 
 	mockService := &mockEventService{}
-	s.EventsService = mockService
+	events.AttachEventServiceToEventEmitter(s, mockService)
 	s.RunLeader = true
 
 	s.EmitDBStateEventsFromHeight(0, 7)
@@ -135,7 +136,7 @@ func TestEmitDBStateEventsFromHeightRange(t *testing.T) {
 		for _, event := range mockService.Events {
 			assert.Equal(t, eventmessages.EventSource_REPLAY_BOOT, event.GetStreamSource())
 
-			if stateChangeEvent, ok := event.(*events.StateChangeMsgEvent); assert.True(t, ok, "event received has wrong type: %s event: %+v", reflect.TypeOf(event), event) {
+			if stateChangeEvent, ok := event.(*eventinput.StateChangeMsgEvent); assert.True(t, ok, "event received has wrong type: %s event: %+v", reflect.TypeOf(event), event) {
 				assert.NotNil(t, stateChangeEvent)
 				assert.Equal(t, eventmessages.EntityState_COMMITTED_TO_DIRECTORY_BLOCK, stateChangeEvent.GetEntityState())
 				assert.NotNil(t, stateChangeEvent.GetPayload())
@@ -148,7 +149,7 @@ func TestEmitDBStateEventsFromHeight(t *testing.T) {
 	s := testHelper.CreateAndPopulateTestState()
 
 	mockService := &mockEventService{}
-	s.EventsService = mockService
+	events.AttachEventServiceToEventEmitter(s, mockService)
 	s.RunLeader = true
 
 	s.EmitDBStateEventsFromHeight(3, 100)
@@ -157,7 +158,7 @@ func TestEmitDBStateEventsFromHeight(t *testing.T) {
 		for _, event := range mockService.Events {
 			assert.Equal(t, eventmessages.EventSource_REPLAY_BOOT, event.GetStreamSource())
 
-			if stateChangeEvent, ok := event.(*events.StateChangeMsgEvent); assert.True(t, ok, "event received has wrong type: %s event: %+v", reflect.TypeOf(event), event) {
+			if stateChangeEvent, ok := event.(*eventinput.StateChangeMsgEvent); assert.True(t, ok, "event received has wrong type: %s event: %+v", reflect.TypeOf(event), event) {
 				assert.NotNil(t, stateChangeEvent)
 				assert.Equal(t, eventmessages.EntityState_COMMITTED_TO_DIRECTORY_BLOCK, stateChangeEvent.GetEntityState())
 				assert.NotNil(t, stateChangeEvent.GetPayload())
@@ -182,7 +183,7 @@ func TestExecuteMessage(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			// set mock service to receive events
 			mockService := &mockEventService{}
-			s.EventsService = mockService
+			events.AttachEventServiceToEventEmitter(s, mockService)
 
 			// test
 			testCase.Message.FollowerExecute(s)
@@ -192,7 +193,7 @@ func TestExecuteMessage(t *testing.T) {
 				event := mockService.Events[0]
 				assert.Equal(t, eventmessages.EventSource_LIVE, event.GetStreamSource())
 
-				if registrationEvent, ok := event.(*events.RegistrationEvent); assert.True(t, ok, "event received has wrong type: %s event: %+v", reflect.TypeOf(event), event) {
+				if registrationEvent, ok := event.(*eventinput.RegistrationEvent); assert.True(t, ok, "event received has wrong type: %s event: %+v", reflect.TypeOf(event), event) {
 					assert.NotNil(t, registrationEvent)
 					assert.EqualValues(t, testCase.Message, registrationEvent.GetPayload())
 				}
@@ -203,11 +204,11 @@ func TestExecuteMessage(t *testing.T) {
 
 type mockEventService struct {
 	t              *testing.T
-	Events         []events.EventInput
+	Events         []eventinput.EventInput
 	EventsReceived int32
 }
 
-func (m *mockEventService) Send(event events.EventInput) error {
+func (m *mockEventService) Send(event eventinput.EventInput) error {
 	m.Events = append(m.Events, event)
 	atomic.AddInt32(&m.EventsReceived, 1)
 
@@ -215,16 +216,16 @@ func (m *mockEventService) Send(event events.EventInput) error {
 	if m.t != nil {
 		var data []byte
 		switch event.(type) {
-		case *events.RegistrationEvent:
-			data, err = json.Marshal(event.(*events.RegistrationEvent).GetPayload())
-		case *events.StateChangeEvent:
-			data, err = json.Marshal(event.(*events.StateChangeEvent).GetPayload())
-		case *events.StateChangeMsgEvent:
-			data, err = json.Marshal(event.(*events.StateChangeMsgEvent).GetPayload())
-		case *events.ProcessListEvent:
-			data, err = json.Marshal(event.(*events.ProcessListEvent).GetProcessListEvent())
-		case *events.NodeMessageEvent:
-			data, err = json.Marshal(event.(*events.NodeMessageEvent).GetNodeMessage())
+		case *eventinput.RegistrationEvent:
+			data, err = json.Marshal(event.(*eventinput.RegistrationEvent).GetPayload())
+		case *eventinput.StateChangeEvent:
+			data, err = json.Marshal(event.(*eventinput.StateChangeEvent).GetPayload())
+		case *eventinput.StateChangeMsgEvent:
+			data, err = json.Marshal(event.(*eventinput.StateChangeMsgEvent).GetPayload())
+		case *eventinput.ProcessListEvent:
+			data, err = json.Marshal(event.(*eventinput.ProcessListEvent).GetProcessListEvent())
+		case *eventinput.NodeMessageEvent:
+			data, err = json.Marshal(event.(*eventinput.NodeMessageEvent).GetNodeMessage())
 		}
 
 		m.t.Logf("incomming event: " + string(data))

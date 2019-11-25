@@ -5,6 +5,7 @@ package testHelper
 import (
 	"bytes"
 	"encoding/binary"
+	"github.com/FactomProject/factomd/events"
 	"os/exec"
 	"regexp"
 	"runtime"
@@ -109,6 +110,7 @@ func CreateAndPopulateStaleHolding() *state.State {
 
 func CreateAndPopulateTestState() *state.State {
 	s := new(state.State)
+	s.Events = events.NewEventEmitter()
 	s.TimestampAtBoot = new(primitives.Timestamp)
 	s.TimestampAtBoot.SetTime(0)
 	s.EFactory = new(electionMsgs.ElectionsFactory)
