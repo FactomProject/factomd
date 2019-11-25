@@ -599,51 +599,49 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 }
 
 func (s *State) EmitDBStateEventsFromHeight(height uint32, end uint32) {
-	if s.EventsService != nil {
-		i := height
-		msgCount := 0
-		for i <= end {
-			d, err := s.DB.FetchDBlockByHeight(i)
-			if err != nil || d == nil {
-				break
-			}
+	i := height
+	msgCount := 0
+	for i <= end {
+		d, err := s.DB.FetchDBlockByHeight(i)
+		if err != nil || d == nil {
+			break
+		}
 
-			a, err := s.DB.FetchABlockByHeight(i)
-			if err != nil || a == nil {
-				break
-			}
-			f, err := s.DB.FetchFBlockByHeight(i)
-			if err != nil || f == nil {
-				break
-			}
-			ec, err := s.DB.FetchECBlockByHeight(i)
-			if err != nil || ec == nil {
-				break
-			}
+		a, err := s.DB.FetchABlockByHeight(i)
+		if err != nil || a == nil {
+			break
+		}
+		f, err := s.DB.FetchFBlockByHeight(i)
+		if err != nil || f == nil {
+			break
+		}
+		ec, err := s.DB.FetchECBlockByHeight(i)
+		if err != nil || ec == nil {
+			break
+		}
 
-			var eblocks []interfaces.IEntryBlock
-			var entries []interfaces.IEBEntry
+		var eblocks []interfaces.IEntryBlock
+		var entries []interfaces.IEBEntry
 
-			ebs := d.GetEBlockDBEntries()
-			for _, eb := range ebs {
-				eblock, _ := s.DB.FetchEBlock(eb.GetKeyMR())
-				if eblock != nil {
-					eblocks = append(eblocks, eblock)
-					for _, e := range eblock.GetEntryHashes() {
-						ent, _ := s.DB.FetchEntry(e)
-						if ent != nil {
-							entries = append(entries, ent)
-						}
+		ebs := d.GetEBlockDBEntries()
+		for _, eb := range ebs {
+			eblock, _ := s.DB.FetchEBlock(eb.GetKeyMR())
+			if eblock != nil {
+				eblocks = append(eblocks, eblock)
+				for _, e := range eblock.GetEntryHashes() {
+					ent, _ := s.DB.FetchEntry(e)
+					if ent != nil {
+						entries = append(entries, ent)
 					}
 				}
 			}
-
-			msg := messages.NewDBStateMsg(d.GetTimestamp(), d, a, f, ec, eblocks, entries, nil)
-			i++
-			msgCount++
-
-			EmitReplayStateChangeEvent(msg, eventmessages.EntityState_COMMITTED_TO_DIRECTORY_BLOCK, s)
 		}
+
+		msg := messages.NewDBStateMsg(d.GetTimestamp(), d, a, f, ec, eblocks, entries, nil)
+		i++
+		msgCount++
+
+		s.Events.EmitReplayStateChangeEvent(msg, eventmessages.EntityState_COMMITTED_TO_DIRECTORY_BLOCK)
 	}
 }
 

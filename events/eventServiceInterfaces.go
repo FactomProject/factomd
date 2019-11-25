@@ -13,6 +13,7 @@ type Events interface {
 	EmitStateChangeEvent(msg interfaces.IMsg, entityState eventmessages.EntityState)
 	EmitDBStateEvent(dbState interfaces.IDBState, entityState eventmessages.EntityState)
 	EmitDBAnchorEvent(dirBlockInfo interfaces.IDirBlockInfo)
+	EmitReplayStateChangeEvent(msg interfaces.IMsg, state eventmessages.EntityState)
 	EmitProcessListEventNewBlock(newBlockHeight uint32)
 	EmitProcessListEventNewMinute(newMinute int, blockHeight uint32)
 	EmitNodeInfoMessage(messageCode eventmessages.NodeMessageCode, message string)

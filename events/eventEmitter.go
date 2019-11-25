@@ -50,6 +50,13 @@ func (eventEmitter *eventEmitter) EmitDBAnchorEvent(dirBlockInfo interfaces.IDir
 	}
 }
 
+func (eventEmitter *eventEmitter) EmitReplayStateChangeEvent(msg interfaces.IMsg, state eventmessages.EntityState) {
+	if eventEmitter.eventsService != nil {
+		event := eventinput.NewAnchorEvent(eventEmitter.GetStreamSource(), dirBlockInfo)
+		eventEmitter.eventsService.Send(event)
+	}
+}
+
 func (eventEmitter *eventEmitter) EmitProcessListEventNewBlock(newBlockHeight uint32) {
 	if eventEmitter.eventsService != nil {
 		event := eventinput.ProcessListEventNewBlock(eventEmitter.GetStreamSource(), newBlockHeight)
