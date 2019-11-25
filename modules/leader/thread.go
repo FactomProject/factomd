@@ -66,7 +66,7 @@ func (l *Leader) Ready() {
 		)
 
 		// snoop on valid message inputs
-		l.Sub.MsgInput.Subscribe(pubsub.GetPath(node0, "bmv", "rest"))
+		l.Sub.MsgInput.Subscribe(pubsub.GetPath(node0, event.Path.LeaderMsgIn))
 	}
 
 	// subscribe to internal events

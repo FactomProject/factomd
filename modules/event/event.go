@@ -12,6 +12,7 @@ type pubSubPaths struct {
 	Directory    string
 	Bank         string
 	LeaderConfig string
+	LeaderMsgIn string
 }
 
 var Path = pubSubPaths{
@@ -20,6 +21,7 @@ var Path = pubSubPaths{
 	Directory:    "directory",
 	Bank:         "bank",
 	LeaderConfig: "leader-config",
+	LeaderMsgIn: "leader-msg-in",
 }
 
 type Balance struct {
