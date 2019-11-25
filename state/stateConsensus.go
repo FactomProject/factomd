@@ -1442,107 +1442,126 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 	pl.PendingChainHeads.Put(msg.Entry.GetChainID().Fixed(), msg)
 }
 
+var UseNewLeaderThread = false
+
+func (s *State) SendToLeader(m interfaces.IMsg, execute func()) {
+	if UseNewLeaderThread {
+		s.Pub.LeaderMsgIn.Write(m)
+		m.FollowerExecute(s)
+	} else {
+		// run old behavior
+		execute()
+	}
+}
+
 func (s *State) LeaderExecute(m interfaces.IMsg) {
-	vm := s.LeaderPL.VMs[s.LeaderVMIndex]
-	if len(vm.List) != vm.Height {
-		s.repost(m, 1) // Goes in the "do this really fast" queue so we are prompt about EOM's while syncing
-		return
-	}
-	LeaderExecutions.Inc()
-	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, m.GetRepeatHash().Fixed(), m.GetTimestamp(), s.GetTimestamp())
-	if !ok {
-		TotalHoldingQueueOutputs.Inc()
-		//delete(s.Holding, m.GetMsgHash().Fixed())
-		s.DeleteFromHolding(m.GetMsgHash().Fixed(), m, "INTERNAL_REPLAY")
-		if s.DebugExec() {
-			s.LogMessage("executeMsg", "drop replay", m)
+	s.SendToLeader(m, func() {
+		vm := s.LeaderPL.VMs[s.LeaderVMIndex]
+		if len(vm.List) != vm.Height {
+			s.repost(m, 1) // Goes in the "do this really fast" queue so we are prompt about EOM's while syncing
+			return
 		}
-		return
-	}
+		LeaderExecutions.Inc()
+		_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, m.GetRepeatHash().Fixed(), m.GetTimestamp(), s.GetTimestamp())
+		if !ok {
+			TotalHoldingQueueOutputs.Inc()
+			//delete(s.Holding, m.GetMsgHash().Fixed())
+			s.DeleteFromHolding(m.GetMsgHash().Fixed(), m, "INTERNAL_REPLAY")
+			if s.DebugExec() {
+				s.LogMessage("executeMsg", "drop replay", m)
+			}
+			return
+		}
 
-	ack := s.NewAck(m, nil).(*messages.Ack) // LeaderExecute
-	m.SetLeaderChainID(ack.GetLeaderChainID())
-	m.SetMinute(ack.Minute)
+		ack := s.NewAck(m, nil).(*messages.Ack) // LeaderExecute
+		m.SetLeaderChainID(ack.GetLeaderChainID())
+		m.SetMinute(ack.Minute)
 
-	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(s, ack, m)
+		s.ProcessLists.Get(ack.DBHeight).AddToProcessList(s, ack, m)
+	})
 }
 
 func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
-	LeaderEOMExecutions.Inc()
-	if !m.IsLocal() {
-		s.FollowerExecuteEOM(m)
-		return
-	}
+	s.SendToLeader(m, func() {
+		LeaderEOMExecutions.Inc()
+		if !m.IsLocal() {
+			s.FollowerExecuteEOM(m)
+			return
+		}
 
-	pl := s.ProcessLists.Get(s.LLeaderHeight)
-	vm := pl.VMs[s.LeaderVMIndex]
+		pl := s.ProcessLists.Get(s.LLeaderHeight)
+		vm := pl.VMs[s.LeaderVMIndex]
 
-	// If we have already issued an EOM for the minute being sync'd
-	// then this should be the next EOM but we can't do that just yet.
-	if vm.EomMinuteIssued == s.CurrentMinute+1 {
-		s.LogMessage("executeMsg", fmt.Sprintf("repost, eomminute issued != s.CurrentMinute+1 : %d - %d", vm.EomMinuteIssued, s.CurrentMinute+1), m)
-		s.repost(m, 1) // Do not drop the message, we only generate 1 local eom per height/min, let validate drop it
-		return
-	}
-	// The zero based minute for the message is equal to
-	// the one based "LastMinute".  This way we know we are
-	// generating minutes in order.
+		// If we have already issued an EOM for the minute being sync'd
+		// then this should be the next EOM but we can't do that just yet.
+		if vm.EomMinuteIssued == s.CurrentMinute+1 {
+			s.LogMessage("executeMsg", fmt.Sprintf("repost, eomminute issued != s.CurrentMinute+1 : %d - %d", vm.EomMinuteIssued, s.CurrentMinute+1), m)
+			s.repost(m, 1) // Do not drop the message, we only generate 1 local eom per height/min, let validate drop it
+			return
+		}
+		// The zero based minute for the message is equal to
+		// the one based "LastMinute".  This way we know we are
+		// generating minutes in order.
 
-	if len(vm.List) != vm.Height {
-		s.LogMessage("executeMsg", "repost, not pl synced", m)
-		s.repost(m, 1) // Do not drop the message, we only generate 1 local eom per height/min, let validate drop it
-		return
-	}
-	eom := m.(*messages.EOM)
+		if len(vm.List) != vm.Height {
+			s.LogMessage("executeMsg", "repost, not pl synced", m)
+			s.repost(m, 1) // Do not drop the message, we only generate 1 local eom per height/min, let validate drop it
+			return
+		}
+		eom := m.(*messages.EOM)
 
-	// Put the System Height and Serial Hash into the EOM
-	eom.SysHeight = uint32(pl.System.Height)
+		// Put the System Height and Serial Hash into the EOM
+		eom.SysHeight = uint32(pl.System.Height)
 
-	if vm.Synced {
-		s.LogMessage("executeMsg", "drop, already sync'd", m)
-		s.repost(m, 1) // Do not drop the message, we only generate 1 local eom per height/min, let validate drop it
-		return
-	}
+		if vm.Synced {
+			s.LogMessage("executeMsg", "drop, already sync'd", m)
+			s.repost(m, 1) // Do not drop the message, we only generate 1 local eom per height/min, let validate drop it
+			return
+		}
 
-	// Committed to sending an EOM now
-	vm.EomMinuteIssued = s.CurrentMinute + 1
+		// Committed to sending an EOM now
+		vm.EomMinuteIssued = s.CurrentMinute + 1
 
-	fix := false
+		fix := false
 
-	if eom.DBHeight != s.LLeaderHeight || eom.VMIndex != s.LeaderVMIndex || eom.Minute != byte(s.CurrentMinute) {
-		s.LogPrintf("executeMsg", "EOM has wrong data expected DBH/VM/M %d/%d/%d", s.LLeaderHeight, s.LeaderVMIndex, s.CurrentMinute)
-		fix = true
-	}
+		if eom.DBHeight != s.LLeaderHeight || eom.VMIndex != s.LeaderVMIndex || eom.Minute != byte(s.CurrentMinute) {
+			s.LogPrintf("executeMsg", "EOM has wrong data expected DBH/VM/M %d/%d/%d", s.LLeaderHeight, s.LeaderVMIndex, s.CurrentMinute)
+			fix = true
+		}
 
-	s.EOMIssueTime = time.Now().UnixNano() // Time we issue the EOM
+		s.EOMIssueTime = time.Now().UnixNano() // Time we issue the EOM
 
-	// make sure EOM has the right data
-	eom.DBHeight = s.LLeaderHeight
-	eom.VMIndex = s.LeaderVMIndex
-	// eom.Minute is zerobased, while LeaderMinute is 1 based.  So
-	// a simple assignment works.
-	eom.Minute = byte(s.CurrentMinute)
-	eom.Sign(s)
-	eom.MsgHash = nil                       // delete any existing hash so it will be recomputed
-	eom.RepeatHash = nil                    // delete any existing hash so it will be recomputed
-	ack := s.NewAck(m, nil).(*messages.Ack) // LeaderExecuteEOM()
-	eom.SetLocal(false)
+		// make sure EOM has the right data
+		eom.DBHeight = s.LLeaderHeight
+		eom.VMIndex = s.LeaderVMIndex
+		// eom.Minute is zerobased, while LeaderMinute is 1 based.  So
+		// a simple assignment works.
+		eom.Minute = byte(s.CurrentMinute)
+		eom.Sign(s)
+		eom.MsgHash = nil                       // delete any existing hash so it will be recomputed
+		eom.RepeatHash = nil                    // delete any existing hash so it will be recomputed
+		ack := s.NewAck(m, nil).(*messages.Ack) // LeaderExecuteEOM()
+		eom.SetLocal(false)
 
-	if fix {
-		s.LogMessage("executeMsg", "fixed EOM", eom)
-		s.LogMessage("executeMsg", "matching ACK", ack)
-	}
+		if fix {
+			s.LogMessage("executeMsg", "fixed EOM", eom)
+			s.LogMessage("executeMsg", "matching ACK", ack)
+		}
 
-	TotalAcksInputs.Inc()
-	s.Acks[eom.GetMsgHash().Fixed()] = ack
-	ack.SendOut(s, ack)
-	eom.SendOut(s, eom)
-	s.FollowerExecuteEOM(eom)
-	s.LogMessage("executeMsg", "issue EOM", eom)
-	s.UpdateState()
+		TotalAcksInputs.Inc()
+		s.Acks[eom.GetMsgHash().Fixed()] = ack
+		ack.SendOut(s, ack)
+		eom.SendOut(s, eom)
+		s.FollowerExecuteEOM(eom)
+		s.LogMessage("executeMsg", "issue EOM", eom)
+		s.UpdateState()
+
+	})
 }
 
 func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
+	s.SendToLeader(m, func() {
+
 	LeaderExecutions.Inc()
 	dbs := m.(*messages.DirectoryBlockSignature)
 	pl := s.ProcessLists.Get(dbs.DBHeight)
@@ -1591,9 +1610,12 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
 	m.SetMinute(ack.Minute)
 
 	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(s, ack, m)
+	})
 }
 
 func (s *State) LeaderExecuteCommitChain(m interfaces.IMsg) {
+	s.SendToLeader(m, func() {
+
 	vm := s.LeaderPL.VMs[s.LeaderVMIndex]
 	if len(vm.List) != vm.Height {
 		s.repost(m, 1)
@@ -1611,9 +1633,12 @@ func (s *State) LeaderExecuteCommitChain(m interfaces.IMsg) {
 	if re := s.Holding[cc.GetHash().Fixed()]; re != nil {
 		re.SendOut(s, re) // If I was waiting on the commit, go ahead and send out the reveal
 	}
+	})
 }
 
 func (s *State) LeaderExecuteCommitEntry(m interfaces.IMsg) {
+	s.SendToLeader(m, func() {
+
 	vm := s.LeaderPL.VMs[s.LeaderVMIndex]
 	if len(vm.List) != vm.Height {
 		s.repost(m, 1)
@@ -1632,9 +1657,12 @@ func (s *State) LeaderExecuteCommitEntry(m interfaces.IMsg) {
 	if re := s.Holding[ce.GetHash().Fixed()]; re != nil {
 		re.SendOut(s, re) // If I was waiting on the commit, go ahead and send out the reveal
 	}
+	})
 }
 
 func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
+	s.SendToLeader(m, func() {
+
 	LeaderExecutions.Inc()
 	vm := s.LeaderPL.VMs[s.LeaderVMIndex]
 	if len(vm.List) != vm.Height {
@@ -1660,6 +1688,7 @@ func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 	}
 
 	TotalCommitsOutputs.Inc()
+	})
 }
 
 func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) bool {
