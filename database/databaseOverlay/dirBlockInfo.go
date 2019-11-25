@@ -33,7 +33,7 @@ func (db *Overlay) ProcessDirBlockInfoMultiBatch(block interfaces.IDirBlockInfo)
 		err = db.ProcessBlockMultiBatchWithoutHead(DIRBLOCKINFO_UNCONFIRMED, DIRBLOCKINFO_NUMBER, DIRBLOCKINFO_SECONDARYINDEX, block)
 	}
 	if err != nil {
-		db.ownerState.GetEvents().EmitDBAnchorEvent(block)
+		db.parentState.GetEvents().EmitDBAnchorEvent(block)
 	}
 	return err
 }

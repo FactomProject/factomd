@@ -7,8 +7,10 @@ import (
 	"github.com/FactomProject/factomd/common/constants/runstate"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/events"
 	"github.com/FactomProject/factomd/events/eventinput"
 	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
+	"github.com/FactomProject/factomd/events/events_config"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/util/atomic"
 	"github.com/prometheus/client_golang/prometheus"
@@ -65,12 +67,13 @@ func TestEventsService_Send(t *testing.T) {
 	state := &StateMock{
 		IdentityChainID: primitives.NewZeroHash(),
 		RunState:        runstate.Running,
+		Events:          events.NewEventEmitter(),
 	}
 
 	params := &EventServiceParams{
-		OutputFormat: Json,
+		OutputFormat: events_config.Json,
 	}
-	eventService, _ := NewEventServiceTo(state, params)
+	NewEventServiceTo(state, params)
 
 	// set connection
 
@@ -104,7 +107,7 @@ func TestEventsService_SendFillupQueue(t *testing.T) {
 	n := 3
 	eventService := &eventServiceInstance{
 		eventsOutQueue: make(chan *eventmessages.FactomEvent, n),
-		owningState: StateMock{
+		parentState: StateMock{
 			IdentityChainID: primitives.NewZeroHash(),
 		},
 		params:                  &EventServiceParams{},
@@ -128,7 +131,7 @@ func TestEventsService_SendNoStartupMessages(t *testing.T) {
 		"queue-filled": {
 			Service: &eventServiceInstance{
 				eventsOutQueue: make(chan *eventmessages.FactomEvent, 0),
-				owningState: StateMock{
+				parentState: StateMock{
 					IdentityChainID: primitives.NewZeroHash(),
 				},
 				params:                  &EventServiceParams{},
@@ -144,7 +147,7 @@ func TestEventsService_SendNoStartupMessages(t *testing.T) {
 		"not-running": {
 			Service: &eventServiceInstance{
 				eventsOutQueue: make(chan *eventmessages.FactomEvent, p2p.StandardChannelSize),
-				owningState: StateMock{
+				parentState: StateMock{
 					RunState: runstate.Stopping,
 				},
 			},
@@ -157,7 +160,7 @@ func TestEventsService_SendNoStartupMessages(t *testing.T) {
 		"nil-event": {
 			Service: &eventServiceInstance{
 				eventsOutQueue: make(chan *eventmessages.FactomEvent, p2p.StandardChannelSize),
-				owningState:    StateMock{},
+				parentState:    StateMock{},
 				params: &EventServiceParams{
 					ReplayDuringStartup: true,
 				},
@@ -171,7 +174,7 @@ func TestEventsService_SendNoStartupMessages(t *testing.T) {
 		"mute-replay-starting": {
 			Service: &eventServiceInstance{
 				eventsOutQueue: make(chan *eventmessages.FactomEvent, p2p.StandardChannelSize),
-				owningState: StateMock{
+				parentState: StateMock{
 					RunLeader: false,
 				},
 				params: &EventServiceParams{
@@ -202,7 +205,7 @@ func TestEventService_ProcessEventsChannelNoSent(t *testing.T) {
 	eventService := &eventServiceInstance{
 		eventsOutQueue: eventQueue,
 		params: &EventServiceParams{
-			OutputFormat: Json,
+			OutputFormat: events_config.Json,
 		},
 		notSentCounter: prometheus.NewCounter(prometheus.CounterOpts{}),
 	}
@@ -233,7 +236,7 @@ func TestEventsService_SendEvent(t *testing.T) {
 
 	eventService := &eventServiceInstance{
 		params: &EventServiceParams{
-			OutputFormat: Json,
+			OutputFormat: events_config.Json,
 		},
 		connection:     client,
 		notSentCounter: prometheus.NewCounter(prometheus.CounterOpts{}),
@@ -297,7 +300,7 @@ func TestEventsService_SendEventBreakdown(t *testing.T) {
 
 	eventService := &eventServiceInstance{
 		params: &EventServiceParams{
-			OutputFormat: Json,
+			OutputFormat: events_config.Json,
 		},
 		connection:     client,
 		notSentCounter: prometheus.NewCounter(prometheus.CounterOpts{}),
@@ -399,7 +402,7 @@ func TestEventsService_SendEventNoConnection(t *testing.T) {
 	redialSleepDuration = 1 * time.Millisecond
 	eventService := &eventServiceInstance{
 		params: &EventServiceParams{
-			OutputFormat: Json,
+			OutputFormat: events_config.Json,
 		},
 		notSentCounter: prometheus.NewCounter(prometheus.CounterOpts{}),
 	}
@@ -470,7 +473,7 @@ func TestEventsService_ConnectNoConnection(t *testing.T) {
 func TestEventsService_MarshallMessage(t *testing.T) {
 	testCases := map[string]struct {
 		Event        *eventmessages.FactomEvent
-		OutputFormat EventFormat
+		OutputFormat events_config.EventFormat
 		Assertion    func(*testing.T, []byte, error)
 	}{
 		"protobuf": {
@@ -478,7 +481,7 @@ func TestEventsService_MarshallMessage(t *testing.T) {
 				EventSource:    eventmessages.EventSource_REPLAY_BOOT,
 				FactomNodeName: "test",
 			},
-			OutputFormat: Protobuf,
+			OutputFormat: events_config.Protobuf,
 			Assertion: func(t *testing.T, data []byte, err error) {
 				assert.NoError(t, err)
 				// the first byte is the indication of the eventSource following the eventSource
@@ -492,7 +495,7 @@ func TestEventsService_MarshallMessage(t *testing.T) {
 				EventSource:    eventmessages.EventSource_REPLAY_BOOT,
 				FactomNodeName: "test",
 			},
-			OutputFormat: Json,
+			OutputFormat: events_config.Json,
 			Assertion: func(t *testing.T, data []byte, err error) {
 				assert.NoError(t, err)
 				assert.JSONEq(t, `{"eventSource":1,"factomNodeName":"test","Event":null}`, string(data))
@@ -500,7 +503,7 @@ func TestEventsService_MarshallMessage(t *testing.T) {
 		},
 		"empty-protobuf": {
 			Event:        &eventmessages.FactomEvent{},
-			OutputFormat: Protobuf,
+			OutputFormat: events_config.Protobuf,
 			Assertion: func(t *testing.T, data []byte, err error) {
 				assert.NoError(t, err)
 				assert.Equal(t, []byte{}, data)
@@ -508,7 +511,7 @@ func TestEventsService_MarshallMessage(t *testing.T) {
 		},
 		"empty-json": {
 			Event:        &eventmessages.FactomEvent{},
-			OutputFormat: Json,
+			OutputFormat: events_config.Json,
 			Assertion: func(t *testing.T, data []byte, err error) {
 				assert.NoError(t, err)
 				assert.JSONEq(t, `{"Event": null}`, string(data))
@@ -609,11 +612,11 @@ func TestEventsService_WriteEvent(t *testing.T) {
 func TestEventService_GetBroadcastContent(t *testing.T) {
 	eventService := &eventServiceInstance{
 		params: &EventServiceParams{
-			BroadcastContent: BroadcastNever,
+			BroadcastContent: events_config.BroadcastNever,
 		},
 	}
 	broadcastContent := eventService.GetBroadcastContent()
-	assert.Equal(t, BroadcastNever, broadcastContent)
+	assert.Equal(t, events_config.BroadcastNever, broadcastContent)
 }
 
 func TestEventService_IsSendStateChangeEvents(t *testing.T) {
@@ -638,16 +641,16 @@ func BenchmarkEventService_Send(b *testing.B) {
 	}
 
 	params := &EventServiceParams{
-		OutputFormat:          Protobuf,
+		OutputFormat:          events_config.Protobuf,
 		SendStateChangeEvents: false,
-		BroadcastContent:      BroadcastAlways,
+		BroadcastContent:      events_config.BroadcastAlways,
 	}
 
 	eventService := &eventServiceInstance{
 		eventsOutQueue:          make(chan *eventmessages.FactomEvent, p2p.StandardChannelSize),
 		connection:              client,
 		params:                  params,
-		owningState:             state,
+		parentState:             state,
 		droppedFromQueueCounter: prometheus.NewCounter(prometheus.CounterOpts{}),
 		notSentCounter:          prometheus.NewCounter(prometheus.CounterOpts{}),
 	}
@@ -699,6 +702,7 @@ type StateMock struct {
 	IdentityChainID interfaces.IHash
 	RunState        runstate.RunState
 	RunLeader       bool
+	Events          events.Events
 }
 
 func (s StateMock) GetRunState() runstate.RunState {
@@ -711,4 +715,8 @@ func (s StateMock) GetIdentityChainID() interfaces.IHash {
 
 func (s StateMock) IsRunLeader() bool {
 	return s.RunLeader
+}
+
+func (s StateMock) GetEvents() events.Events {
+	return s.Events
 }

@@ -8,11 +8,12 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/events/eventinput"
 	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
+	"github.com/FactomProject/factomd/events/events_config"
 	"github.com/gogo/protobuf/types"
 	"time"
 )
 
-func MapToFactomEvent(eventInput eventinput.EventInput, broadcastContent BroadcastContent, sendStateChangeEvents bool) (*eventmessages.FactomEvent, error) {
+func MapToFactomEvent(eventInput eventinput.EventInput, broadcastContent events_config.BroadcastContent, sendStateChangeEvents bool) (*eventmessages.FactomEvent, error) {
 	switch eventInput.(type) {
 	case *eventinput.RegistrationEvent:
 		registrationEvent := eventInput.(*eventinput.RegistrationEvent)
@@ -37,12 +38,12 @@ func MapToFactomEvent(eventInput eventinput.EventInput, broadcastContent Broadca
 	}
 }
 
-func mapRegistrationEvent(registrationEvent *eventinput.RegistrationEvent, broadcastContent BroadcastContent) (*eventmessages.FactomEvent, error) {
+func mapRegistrationEvent(registrationEvent *eventinput.RegistrationEvent, broadcastContent events_config.BroadcastContent) (*eventmessages.FactomEvent, error) {
 	event := &eventmessages.FactomEvent{}
 	event.EventSource = registrationEvent.GetStreamSource()
 	msg := registrationEvent.GetPayload()
 	if msg != nil {
-		shouldIncludeContent := broadcastContent > BroadcastNever
+		shouldIncludeContent := broadcastContent > events_config.BroadcastNever
 
 		switch msg.(type) {
 		case *messages.CommitChainMsg:
@@ -65,12 +66,12 @@ func mapRegistrationEvent(registrationEvent *eventinput.RegistrationEvent, broad
 	return event, nil
 }
 
-func mapStateChangeEvent(stateChangeEvent *eventinput.StateChangeMsgEvent, broadcastContent BroadcastContent, sendStateChangeEvents bool) (*eventmessages.FactomEvent, error) {
+func mapStateChangeEvent(stateChangeEvent *eventinput.StateChangeMsgEvent, broadcastContent events_config.BroadcastContent, sendStateChangeEvents bool) (*eventmessages.FactomEvent, error) {
 	event := &eventmessages.FactomEvent{}
 	event.EventSource = stateChangeEvent.GetStreamSource()
 	msg := stateChangeEvent.GetPayload()
 	if msg != nil {
-		shouldIncludeContent := broadcastContent > BroadcastOnce
+		shouldIncludeContent := broadcastContent > events_config.BroadcastOnce
 
 		switch msg.(type) {
 		case *messages.CommitChainMsg:
@@ -104,13 +105,13 @@ func mapStateChangeEvent(stateChangeEvent *eventinput.StateChangeMsgEvent, broad
 	return event, nil
 }
 
-func mapDBStateEvent(stateChangeEvent *eventinput.StateChangeEvent, broadcastContent BroadcastContent) (*eventmessages.FactomEvent, error) {
+func mapDBStateEvent(stateChangeEvent *eventinput.StateChangeEvent, broadcastContent events_config.BroadcastContent) (*eventmessages.FactomEvent, error) {
 	event := &eventmessages.FactomEvent{}
 	event.EventSource = stateChangeEvent.GetStreamSource()
 	state := stateChangeEvent.GetPayload()
 	stateChangeEvent.GetEntityState()
 	if state != nil {
-		shouldIncludeContent := broadcastContent > BroadcastOnce
+		shouldIncludeContent := broadcastContent > events_config.BroadcastOnce
 		event.Event = mapDBState(state, shouldIncludeContent)
 	}
 	return event, nil

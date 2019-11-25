@@ -1,4 +1,4 @@
-package eventservices
+package events_config
 
 import (
 	"errors"
@@ -14,7 +14,7 @@ const (
 	BroadcastAlways BroadcastContent = 2
 )
 
-func Parse(value string) (BroadcastContent, error) {
+func ParseBroadcastContent(value string) (BroadcastContent, error) {
 	switch strings.ToLower(value) {
 	case "always":
 		return BroadcastAlways, nil

@@ -125,7 +125,9 @@ type Overlay struct {
 
 	BitcoinAnchorRecordPublicKeys  []interfaces.Verifier
 	EthereumAnchorRecordPublicKeys []interfaces.Verifier
-	ownerState                     events.IStateEventServices
+
+	// We need access to the state to be able emit anchor events
+	parentState events.StateEventServices
 }
 
 var _ interfaces.IDatabase = (*Overlay)(nil)
@@ -198,10 +200,10 @@ func (db *Overlay) Delete(bucket, key []byte) error {
 	return db.DB.Delete(bucket, key)
 }
 
-func NewOverlay(db interfaces.IDatabase, owningState events.IStateEventServices) *Overlay {
+func NewOverlay(db interfaces.IDatabase, parentState events.StateEventServices) *Overlay {
 	answer := new(Overlay)
 	answer.DB = db
-	answer.ownerState = owningState
+	answer.parentState = parentState
 	return answer
 }
 

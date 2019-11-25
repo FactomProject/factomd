@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/FactomProject/factomd/events"
 	"github.com/FactomProject/factomd/events/eventservices"
 	"io/ioutil"
 	"math"
@@ -426,10 +425,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	// Start live feed service
 	config := s.Cfg.(*util.FactomdConfig)
 	if config.LiveFeedAPI.EnableLiveFeedAPI || p.EnableLiveFeedAPI {
-		var eventsService eventservices.EventService
-		eventsService, s.EventsServiceControl = eventservices.NewEventService(s, config, p)
-		emitter := events.NewActiveEventEmitter(s, eventsService)
-		s.Events = emitter
+		s.EventsServiceControl = eventservices.NewEventService(s, config, p)
 	}
 
 	networkpattern = p.Net

@@ -5,21 +5,15 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/events/eventinput"
 	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
-	"github.com/FactomProject/factomd/events/eventservices"
 )
 
 type eventEmitter struct {
-	owningState   IStateEventServices
-	eventsService eventservices.EventService
+	parentState   StateEventServices
+	eventsService EventService
 }
 
-func NewInactiveEventEmitter() *eventEmitter {
+func NewEventEmitter() *eventEmitter {
 	return new(eventEmitter)
-}
-
-func NewActiveEventEmitter(owningState IStateEventServices, eventsService eventservices.EventService) *eventEmitter {
-	return &eventEmitter{owningState: owningState,
-		eventsService: eventsService}
 }
 
 func (eventEmitter *eventEmitter) EmitRegistrationEvent(msg interfaces.IMsg) {
@@ -92,9 +86,15 @@ func (eventEmitter *eventEmitter) EmitNodeErrorMessage(messageCode eventmessages
 }
 
 func (eventEmitter *eventEmitter) GetStreamSource() eventmessages.EventSource {
-	if eventEmitter.owningState.IsRunLeader() {
+	if eventEmitter.parentState.IsRunLeader() {
 		return eventmessages.EventSource_LIVE
 	} else {
 		return eventmessages.EventSource_REPLAY_BOOT
 	}
+}
+
+func AttachEventServiceToEventEmitter(parentState StateEventServices, eventsService EventService) {
+	eventEmitter := parentState.GetEvents().(*eventEmitter)
+	eventEmitter.parentState = parentState
+	eventEmitter.eventsService = eventsService
 }

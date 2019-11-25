@@ -3,6 +3,7 @@ package eventservices
 import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/globals"
+	"github.com/FactomProject/factomd/events/events_config"
 	"github.com/FactomProject/factomd/util"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -21,7 +22,7 @@ func TestEventServiceParameters_DefaultParameters(t *testing.T) {
 	assert.False(t, params.EnableLiveFeedAPI)
 	assert.False(t, params.SendStateChangeEvents)
 	assert.False(t, params.ReplayDuringStartup)
-	assert.Equal(t, BroadcastOnce, params.BroadcastContent)
+	assert.Equal(t, events_config.BroadcastOnce, params.BroadcastContent)
 }
 
 func TestEventServiceParameters_OverrideParameters(t *testing.T) {
@@ -51,10 +52,10 @@ func TestEventServiceParameters_OverrideParameters(t *testing.T) {
 	assert.True(t, testParams.EnableLiveFeedAPI)
 	assert.Equal(t, "udp", testParams.Protocol)
 	assert.Equal(t, "0.0.0.0:8888", testParams.Address)
-	assert.Equal(t, Json, testParams.OutputFormat)
+	assert.Equal(t, events_config.Json, testParams.OutputFormat)
 	assert.True(t, testParams.ReplayDuringStartup)
 	assert.True(t, testParams.SendStateChangeEvents)
-	assert.Equal(t, BroadcastAlways, testParams.BroadcastContent)
+	assert.Equal(t, events_config.BroadcastAlways, testParams.BroadcastContent)
 }
 
 func TestEventServiceParameters_ConfigParameters(t *testing.T) {
@@ -75,10 +76,10 @@ func TestEventServiceParameters_ConfigParameters(t *testing.T) {
 	assert.True(t, testParams.EnableLiveFeedAPI)
 	assert.Equal(t, "tcp", testParams.Protocol)
 	assert.Equal(t, "127.0.0.1:8444", testParams.Address)
-	assert.Equal(t, Protobuf, testParams.OutputFormat)
+	assert.Equal(t, events_config.Protobuf, testParams.OutputFormat)
 	assert.True(t, testParams.ReplayDuringStartup)
 	assert.True(t, testParams.SendStateChangeEvents)
-	assert.Equal(t, BroadcastNever, testParams.BroadcastContent)
+	assert.Equal(t, events_config.BroadcastNever, testParams.BroadcastContent)
 }
 
 func TestEventServiceParameters_ParseBroadcastError(t *testing.T) {
@@ -94,7 +95,7 @@ func TestEventServiceParameters_ParseBroadcastError(t *testing.T) {
 		EventBroadcastContent:    "alwayss",
 	}
 	params := selectParameters(factomParams, config)
-	assert.Equal(t, BroadcastOnce, params.BroadcastContent)
+	assert.Equal(t, events_config.BroadcastOnce, params.BroadcastContent)
 }
 
 func TestEventServiceParameters_ParseBroadcastErrorOverride(t *testing.T) {
@@ -110,7 +111,7 @@ func TestEventServiceParameters_ParseBroadcastErrorOverride(t *testing.T) {
 	)
 	factomParams := &globals.Params
 	params := selectParameters(factomParams, config)
-	assert.Equal(t, BroadcastOnce, params.BroadcastContent)
+	assert.Equal(t, events_config.BroadcastOnce, params.BroadcastContent)
 }
 
 func buildBaseConfig(enable bool, protocol string, address string, port int, format string, replay bool, stateChange bool, broadcast string) *util.FactomdConfig {

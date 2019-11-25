@@ -3,6 +3,7 @@ package eventservices
 import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/globals"
+	"github.com/FactomProject/factomd/events/events_config"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/util"
 )
@@ -11,10 +12,10 @@ type EventServiceParams struct {
 	EnableLiveFeedAPI     bool
 	Protocol              string
 	Address               string
-	OutputFormat          EventFormat
+	OutputFormat          events_config.EventFormat
 	ReplayDuringStartup   bool
 	SendStateChangeEvents bool
-	BroadcastContent      BroadcastContent
+	BroadcastContent      events_config.BroadcastContent
 }
 
 func selectParameters(factomParams *globals.FactomParams, config *util.FactomdConfig) *EventServiceParams {
@@ -34,9 +35,9 @@ func selectParameters(factomParams *globals.FactomParams, config *util.FactomdCo
 		params.Address = fmt.Sprintf("%s:%d", defaultConnectionHost, defaultConnectionPort)
 	}
 	if len(factomParams.EventFormat) > 0 {
-		params.OutputFormat = EventFormatFrom(factomParams.EventFormat, defaultOutputFormat)
+		params.OutputFormat = events_config.EventFormatFrom(factomParams.EventFormat, defaultOutputFormat)
 	} else if len(config.LiveFeedAPI.EventFormat) > 0 {
-		params.OutputFormat = EventFormatFrom(config.LiveFeedAPI.EventFormat, defaultOutputFormat)
+		params.OutputFormat = events_config.EventFormatFrom(config.LiveFeedAPI.EventFormat, defaultOutputFormat)
 	} else {
 		params.OutputFormat = defaultOutputFormat
 	}
@@ -46,19 +47,19 @@ func selectParameters(factomParams *globals.FactomParams, config *util.FactomdCo
 	params.SendStateChangeEvents = factomParams.EventSendStateChange || config.LiveFeedAPI.EventSendStateChange
 	var err error
 	if len(factomParams.EventBroadcastContent) > 0 {
-		params.BroadcastContent, err = Parse(factomParams.EventBroadcastContent)
+		params.BroadcastContent, err = events_config.ParseBroadcastContent(factomParams.EventBroadcastContent)
 		if err != nil {
 			log.Printfln("Parameter EventBroadcastContent could not be parsed: %v\n", err)
-			params.BroadcastContent = BroadcastOnce
+			params.BroadcastContent = events_config.BroadcastOnce
 		}
 	} else if len(config.LiveFeedAPI.EventBroadcastContent) > 0 {
-		params.BroadcastContent, err = Parse(config.LiveFeedAPI.EventBroadcastContent)
+		params.BroadcastContent, err = events_config.ParseBroadcastContent(config.LiveFeedAPI.EventBroadcastContent)
 		if err != nil {
 			log.Printfln("Configuration property LiveFeedAPI.EventBroadcastContent could not be parsed: %v", err)
-			params.BroadcastContent = BroadcastOnce
+			params.BroadcastContent = events_config.BroadcastOnce
 		}
 	} else {
-		params.BroadcastContent = BroadcastOnce
+		params.BroadcastContent = events_config.BroadcastOnce
 	}
 	return params
 }
