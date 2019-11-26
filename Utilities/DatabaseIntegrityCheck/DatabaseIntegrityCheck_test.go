@@ -37,7 +37,7 @@ func TestCheckDatabaseForLevelDB(t *testing.T) {
 	}
 	defer CleanupLevelDB(t, m)
 
-	dbo := databaseOverlay.NewOverlay(m, nil)
+	dbo := databaseOverlay.NewOverlay(m)
 	testHelper.PopulateTestDatabaseOverlay(dbo)
 
 	CheckDatabase(dbo)

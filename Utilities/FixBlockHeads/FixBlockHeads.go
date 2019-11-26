@@ -49,7 +49,7 @@ func main() {
 		}
 	}
 
-	dbo := databaseOverlay.NewOverlay(dbase, nil)
+	dbo := databaseOverlay.NewOverlay(dbase)
 	err = FixBlockHeads(dbo)
 	if err != nil {
 		fmt.Errorf("ERROR: %v", err)

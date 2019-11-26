@@ -53,8 +53,8 @@ func main() {
 		}
 	}
 
-	dbo1 := databaseOverlay.NewOverlay(dbase1, nil)
-	dbo2 := databaseOverlay.NewOverlay(dbase2, nil)
+	dbo1 := databaseOverlay.NewOverlay(dbase1)
+	dbo2 := databaseOverlay.NewOverlay(dbase2)
 
 	CopyDB(dbo1, dbo2)
 

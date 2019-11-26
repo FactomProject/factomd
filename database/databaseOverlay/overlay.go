@@ -200,9 +200,14 @@ func (db *Overlay) Delete(bucket, key []byte) error {
 	return db.DB.Delete(bucket, key)
 }
 
-func NewOverlay(db interfaces.IDatabase, parentState events.StateEventServices) *Overlay {
+func NewOverlay(db interfaces.IDatabase) *Overlay {
 	answer := new(Overlay)
 	answer.DB = db
+	return answer
+}
+
+func NewOverlayWithState(db interfaces.IDatabase, parentState events.StateEventServices) *Overlay {
+	answer := NewOverlay(db)
 	answer.parentState = parentState
 	return answer
 }
