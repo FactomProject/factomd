@@ -1,6 +1,7 @@
 package databaseOverlay
 
 import (
+	"fmt"
 	"sort"
 
 	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
@@ -20,7 +21,9 @@ func (db *Overlay) ProcessDirBlockInfoBatch(block interfaces.IDirBlockInfo) erro
 	} else {
 		err = db.ProcessBlockBatchWithoutHead(DIRBLOCKINFO_UNCONFIRMED, DIRBLOCKINFO_NUMBER, DIRBLOCKINFO_SECONDARYINDEX, block)
 	}
+	fmt.Println("ProcessDirBlockInfoBatch", err, db.parentState) // REMOVE ME
 	if err != nil && db.parentState != nil {
+		fmt.Println("SaveAnchorInfoFromEntry", block.GetChainID(), block.GetBTCBlockHash()) // REMOVE ME
 		db.parentState.GetEvents().EmitDBAnchorEvent(block)
 	}
 	return err
@@ -37,7 +40,10 @@ func (db *Overlay) ProcessDirBlockInfoMultiBatch(block interfaces.IDirBlockInfo)
 	} else {
 		err = db.ProcessBlockMultiBatchWithoutHead(DIRBLOCKINFO_UNCONFIRMED, DIRBLOCKINFO_NUMBER, DIRBLOCKINFO_SECONDARYINDEX, block)
 	}
+	fmt.Println("ProcessDirBlockInfoMultiBatch", err, db.parentState) // REMOVE ME
+
 	if err != nil && db.parentState != nil {
+		fmt.Println("SaveAnchorInfoFromEntry", block.GetChainID(), block.GetBTCBlockHash()) // REMOVE ME
 		db.parentState.GetEvents().EmitDBAnchorEvent(block)
 	}
 	return err

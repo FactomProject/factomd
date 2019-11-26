@@ -3,6 +3,7 @@ package eventservices_test
 import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants/runstate"
+	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
@@ -169,10 +170,6 @@ func TestCommitEntryMapping(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestAnchorEventMapping(t *testing.T) {
-
-}
-
 func newCommitEntryMsg() *messages.CommitEntryMsg {
 	msg := new(messages.CommitEntryMsg)
 	eBlock, _ := testHelper.CreateTestEntryBlock(nil)
@@ -238,6 +235,26 @@ func TestStateChangeMapping(t *testing.T) {
 
 func msgChangedMessage(msgName string) string {
 	return fmt.Sprintf("%s changed, please reevalate properties used by this event and adjust the expected message length.", msgName)
+}
+
+func TestAnchorEventMapping(t *testing.T) {
+	dirBlockInfo := testHelper.CreateTestDirBlockInfo(&dbInfo.DirBlockInfo{DBHeight: 100})
+	inputEvent := eventinput.NewAnchorEvent(eventmessages.EventSource_LIVE, dirBlockInfo)
+	event, err := eventservices.MapToFactomEvent(inputEvent, eventconfig.BroadcastAlways, true)
+	if err != nil {
+		t.Error(err)
+	}
+	assert.IsType(t, &eventmessages.FactomEvent_DirectoryBlockAnchor{}, event.Event)
+	dirBlockAnchorEvent := event.Event.(*eventmessages.FactomEvent_DirectoryBlockAnchor).DirectoryBlockAnchor
+	assert.NotNil(t, dirBlockAnchorEvent)
+	assert.EqualValues(t, int32(101000), dirBlockAnchorEvent.Timestamp.Nanos)
+	assert.NotNil(t, dirBlockAnchorEvent.BtcTxHash)
+	assert.NotNil(t, dirBlockAnchorEvent.BtcBlockHash)
+	assert.EqualValues(t, 101, dirBlockAnchorEvent.BtcBlockHeight)
+	assert.EqualValues(t, 101, dirBlockAnchorEvent.BtcTxOffset)
+	assert.True(t, dirBlockAnchorEvent.BtcConfirmed)
+	assert.NotNil(t, 101, dirBlockAnchorEvent.EthereumAnchorRecordEntryHash)
+	assert.True(t, dirBlockAnchorEvent.EthereumConfirmed)
 }
 
 func TestMapToFactomEvent(t *testing.T) {
