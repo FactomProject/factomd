@@ -25,7 +25,7 @@ func (l *Leader) CreateEOM() (eom *messages.EOM, ack interfaces.IMsg) {
 	eom.Minute = byte(l.Minute)
 
 	// REVIEW: do we need to record this?
-	//vm.EomMinuteIssued = l.DBHT.Min + 1
+	//vm.EomMinuteIssued = l.DBHT.Minute + 1
 
 	eom.Sign(l)
 	eom.MsgHash = nil

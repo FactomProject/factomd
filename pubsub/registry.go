@@ -124,19 +124,22 @@ func globalPublishWith(path string, p IPublisher, wrappers ...IPublisherWrapper)
 }
 
 func globalPublish(path string, p IPublisher) IPublisher {
+	fmt.Printf("globalPublish: %v\n", path)
 	err := globalReg.Register(path, p)
 	if err != nil {
 		tree := globalReg.PrintTree()
 		fmt.Printf("Publish Tree\n%s\n", tree)
-		panic(fmt.Sprintf("failed to publish: %s", err.Error()))
+		panic(fmt.Sprintf("failed to publish: %s %s", path, err.Error()))
 	}
 	return p
 }
 
 func globalSubscribe(path string, sub IPubSubscriber) IPubSubscriber {
+	fmt.Printf("globalSubscribe: %v\n", path)
+
 	err := globalReg.SubscribeTo(path, sub)
 	if err != nil {
-		panic(fmt.Sprintf("failed to subscribe: %s", err.Error()))
+		panic(fmt.Sprintf("failed to subscribe: %s %s", path, err.Error()))
 	}
 	return sub
 }

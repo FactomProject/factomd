@@ -852,7 +852,18 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int, flags ...bool)
 
 		// Do not send out dbsigs while loading from disk
 		if s.Leader && !s.LeaderPL.DBSigAlreadySent && s.LLeaderHeight > s.DBHeightAtBoot {
-			s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex) // MoveStateToHeight()
+			//s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex) // MoveStateToHeight()
+			{
+				dbstate := s.DBStates.Get(int(dbheight - 1))
+
+				s.Pub.Directory.Write(&event.Directory{
+					DBHeight:             dbheight,
+					VMIndex:              s.LeaderVMIndex,
+					DirectoryBlockHeader: dbstate.DirectoryBlock.GetHeader(),
+					Timestamp:            s.GetTimestamp(),
+				})
+
+			}
 		}
 		s.DBStates.UpdateState() // go process the DBSigs
 
@@ -1088,6 +1099,7 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 	if m != nil {
 		// We have an ack and a matching message go execute the message!
 		s.LogMessage("executeMsg", "FollowerExecuteAck ", m)
+		// REVIEW: change this to follower execute
 		s.executeMsg(m) // Try executing the message, if dependencies are met then it will execute
 	} else {
 		s.LogMessage("executeMsg", "No Msg, keep", ack)
@@ -1442,16 +1454,20 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 	pl.PendingChainHeads.Put(msg.Entry.GetChainID().Fixed(), msg)
 }
 
-var UseNewLeaderThread = false
 
 func (s *State) SendToLeader(m interfaces.IMsg, execute func()) {
-	if UseNewLeaderThread {
-		s.Pub.LeaderMsgIn.Write(m)
-		m.FollowerExecute(s)
-	} else {
-		// run old behavior
-		execute()
-	}
+	s.FollowerExecuteMsg(m)
+
+	//s.Pub.LeaderMsgIn.Write(m) // TODO: continue to refactor
+	//switch m.Type() {
+	//case constants.DIRECTORY_BLOCK_SIGNATURE_MSG:
+	//	//execute()
+	//case constants.EOM_MSG, constants.FACTOID_TRANSACTION_MSG, constants.COMMIT_CHAIN_MSG, constants.REVEAL_ENTRY_MSG:
+	//	execute()
+	//default:
+	//	panic(fmt.Sprintf("Unsupported msg %v", m.Type()))
+	//}
+
 }
 
 func (s *State) LeaderExecute(m interfaces.IMsg) {
@@ -1946,15 +1962,18 @@ func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
 				return
 			}
 
+			panic("still used")
 			{ // KLUDGE dispatch params to leader thread can send dbsig
-				v := dbs.(*messages.DirectoryBlockSignature)
+				//v := dbs.(*messages.DirectoryBlockSignature)
 
+				/*
 				s.Pub.Directory.Write(&event.Directory{
 					DBHeight:             dbheight,
 					VMIndex:              vmIndex,
 					DirectoryBlockHeader: v.DirectoryBlockHeader,
 					Timestamp:            s.GetTimestamp(),
 				})
+				 */
 
 			}
 

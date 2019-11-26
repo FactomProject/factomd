@@ -2,8 +2,6 @@ package leader
 
 import (
 	"encoding/binary"
-	"fmt"
-	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -52,6 +50,7 @@ func New(s *state.State) *Leader {
 	return l
 }
 
+// FIXME: make this actually broadcast to network
 func (l *Leader) SendOut(msg interfaces.IMsg) {
 	log.LogMessage("leader.txt", "sendout", msg)
 	l.Pub.MsgOut.Write(msg)
@@ -74,15 +73,18 @@ func (l *Leader) GetSalt(ts interfaces.Timestamp) uint32 {
 	return binary.BigEndian.Uint32(c.Bytes())
 }
 
+func (l *Leader) sendAck(m interfaces.IMsg) {
+	ack := l.NewAck(m, l.BalanceHash).(*messages.Ack) // LeaderExecute
+	l.SendOut(ack)
+}
+
 func (l *Leader) LeaderExecute(m interfaces.IMsg) {
+	l.sendAck(m)
+	/*
 	switch m.Type() {
 	case constants.DIRECTORY_BLOCK_SIGNATURE_MSG:
-	default:
+	case constants.EOM_MSG, constants.FACTOID_TRANSACTION_MSG, constants.COMMIT_CHAIN_MSG, constants.REVEAL_ENTRY_MSG:
 		panic(fmt.Sprintf("Unsupported msg %v", m.Type()))
 	}
-
-	ack := l.NewAck(m, l.BalanceHash).(*messages.Ack) // LeaderExecute
-	m.SetLeaderChainID(ack.GetLeaderChainID())        //  REVIEW: this seems starnge
-	m.SetMinute(ack.Minute)
-	l.SendOut(m)
+	 */
 }

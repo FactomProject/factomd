@@ -2002,7 +2002,7 @@ func (s *State) SummaryHeader() string {
 		"DB ",
 		"PL  ",
 		" ",
-		"Min",
+		"Minute",
 		"DBState(ask/rply/drop/apply)",
 		"Msg",
 		"   Resend",

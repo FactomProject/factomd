@@ -13,6 +13,7 @@ type pubSubPaths struct {
 	Bank         string
 	LeaderConfig string
 	LeaderMsgIn string
+	LeaderMsgOut string
 }
 
 var Path = pubSubPaths{
@@ -22,6 +23,7 @@ var Path = pubSubPaths{
 	Bank:         "bank",
 	LeaderConfig: "leader-config",
 	LeaderMsgIn: "leader-msg-in",
+	LeaderMsgOut: "leader-msg-out",
 }
 
 type Balance struct {
@@ -38,7 +40,7 @@ type Directory struct {
 
 type DBHT struct {
 	DBHeight uint32
-	Min      int
+	Minute   int
 }
 
 // event created when Ack is actually sent out
