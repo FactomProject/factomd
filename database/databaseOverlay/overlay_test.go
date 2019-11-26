@@ -125,7 +125,7 @@ func TestGetEntryType(t *testing.T) {
 }
 
 func TestMultiBatch(t *testing.T) {
-	dbo := NewOverlay(new(mapdb.MapDB), nil)
+	dbo := NewOverlay(new(mapdb.MapDB))
 
 	var prev *testHelper.BlockSet = nil
 

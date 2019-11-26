@@ -21,7 +21,7 @@ import (
 func TestSaveLoadFBlockHead(t *testing.T) {
 	b1 := testHelper.CreateTestFactoidBlock(nil)
 
-	dbo := NewOverlay(new(mapdb.MapDB), nil)
+	dbo := NewOverlay(new(mapdb.MapDB))
 	defer dbo.Close()
 
 	err := dbo.SaveFactoidBlockHead(b1)
@@ -82,7 +82,7 @@ func TestSaveLoadFBlockChain(t *testing.T) {
 	blocks := []interfaces.IFBlock{}
 	max := 10
 	var prev interfaces.IFBlock = nil
-	dbo := NewOverlay(new(mapdb.MapDB), nil)
+	dbo := NewOverlay(new(mapdb.MapDB))
 	defer dbo.Close()
 
 	for i := 0; i < max; i++ {
@@ -153,7 +153,7 @@ func TestSaveLoadFBlockChain(t *testing.T) {
 }
 
 func TestLoadUnknownFBlocks(t *testing.T) {
-	dbo := NewOverlay(new(mapdb.MapDB), nil)
+	dbo := NewOverlay(new(mapdb.MapDB))
 	defer dbo.Close()
 	for i := 0; i < 10; i++ {
 		b := testHelper.IntToByteSlice(i)

@@ -21,7 +21,7 @@ import (
 func TestSaveLoadECBlockHead(t *testing.T) {
 	b1 := testHelper.CreateTestEntryCreditBlock(nil)
 
-	dbo := NewOverlay(new(mapdb.MapDB), nil)
+	dbo := NewOverlay(new(mapdb.MapDB))
 	defer dbo.Close()
 
 	err := dbo.SaveECBlockHead(b1, false)
@@ -82,7 +82,7 @@ func TestSaveLoadECBlockChain(t *testing.T) {
 	blocks := []interfaces.IEntryCreditBlock{}
 	max := 10
 	var prev interfaces.IEntryCreditBlock = nil
-	dbo := NewOverlay(new(mapdb.MapDB), nil)
+	dbo := NewOverlay(new(mapdb.MapDB))
 	defer dbo.Close()
 
 	for i := 0; i < max; i++ {
@@ -152,7 +152,7 @@ func TestSaveLoadECBlockChain(t *testing.T) {
 }
 
 func TestLoadUnknownECBlocks(t *testing.T) {
-	dbo := NewOverlay(new(mapdb.MapDB), nil)
+	dbo := NewOverlay(new(mapdb.MapDB))
 	defer dbo.Close()
 	for i := 0; i < 10; i++ {
 		b := testHelper.IntToByteSlice(i)

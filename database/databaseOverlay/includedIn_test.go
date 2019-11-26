@@ -23,7 +23,7 @@ func TestIncludedIn(t *testing.T) {
 	blocks := []*EBlock{}
 	max := 10
 	var prev *EBlock = nil
-	dbo := NewOverlay(new(mapdb.MapDB), nil)
+	dbo := NewOverlay(new(mapdb.MapDB))
 	defer dbo.Close()
 
 	for i := 0; i < max; i++ {
@@ -55,7 +55,7 @@ func TestIncludedInOverwriting(t *testing.T) {
 	blocks := []*EBlock{}
 	max := 10
 	var prev *EBlock = nil
-	dbo := NewOverlay(new(mapdb.MapDB), nil)
+	dbo := NewOverlay(new(mapdb.MapDB))
 	defer dbo.Close()
 
 	for i := 0; i < max; i++ {
@@ -91,7 +91,7 @@ func TestIncludedInOverwriting(t *testing.T) {
 	blocks = []*EBlock{}
 	prev = nil
 	dbo.Close()
-	dbo = NewOverlay(new(mapdb.MapDB), nil)
+	dbo = NewOverlay(new(mapdb.MapDB))
 
 	for i := 0; i < max; i++ {
 		prev, _ = testHelper.CreateTestEntryBlockWithContentN(prev, 1)
