@@ -9,9 +9,9 @@ import (
 	"github.com/FactomProject/factomd/common/constants/runstate"
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/events"
+	"github.com/FactomProject/factomd/events/eventconfig"
 	"github.com/FactomProject/factomd/events/eventinput"
 	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
-	"github.com/FactomProject/factomd/events/events_config"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/util"
 	"github.com/gogo/protobuf/proto"
@@ -22,14 +22,13 @@ import (
 	"time"
 )
 
-var eventService events.EventService
-var eventServiceControl events.EventServiceControl
+var serviceInstance *eventServiceInstance
 
 const (
 	defaultProtocol       = "tcp"
 	defaultConnectionHost = "127.0.0.1"
 	defaultConnectionPort = 8040
-	defaultOutputFormat   = events_config.Protobuf
+	defaultOutputFormat   = eventconfig.Protobuf
 	protocolVersion       = byte(1)
 )
 
@@ -54,28 +53,26 @@ func NewEventService(state events.StateEventServices, config *util.FactomdConfig
 }
 
 func NewEventServiceTo(state events.StateEventServices, params *EventServiceParams) events.EventServiceControl {
-	if eventService == nil {
-		eventServiceInstance := &eventServiceInstance{
+	if serviceInstance == nil {
+		serviceInstance = &eventServiceInstance{
 			eventsOutQueue: make(chan *eventmessages.FactomEvent, p2p.StandardChannelSize),
 			params:         params,
 			parentState:    state,
 		}
-		eventService = eventServiceInstance
-		eventServiceControl = eventServiceInstance
-		events.AttachEventServiceToEventEmitter(state, eventServiceInstance)
+		events.AttachEventServiceToEventEmitter(state, serviceInstance)
 
-		eventServiceInstance.droppedFromQueueCounter = prometheus.NewCounter(prometheus.CounterOpts{
+		serviceInstance.droppedFromQueueCounter = prometheus.NewCounter(prometheus.CounterOpts{
 			Name: "factomd_livefeed_dropped_from_queue_counter",
 			Help: "Number of times we dropped events due of a full the event queue",
 		})
-		eventServiceInstance.notSentCounter = prometheus.NewCounter(prometheus.CounterOpts{
+		serviceInstance.notSentCounter = prometheus.NewCounter(prometheus.CounterOpts{
 			Name: "factomd_livefeed_not_send_counter",
 			Help: "Number of times we couldn't send out an event",
 		})
 
-		go eventServiceInstance.processEventsChannel()
+		go serviceInstance.processEventsChannel()
 	}
-	return eventServiceControl
+	return serviceInstance
 }
 
 func (esi *eventServiceInstance) Send(event eventinput.EventInput) error {
@@ -165,9 +162,9 @@ func (esi *eventServiceInstance) marshallMessage(event *eventmessages.FactomEven
 	var data []byte
 	var err error
 	switch esi.params.OutputFormat {
-	case events_config.Protobuf:
+	case eventconfig.Protobuf:
 		data, err = esi.marshallEvent(event)
-	case events_config.Json:
+	case eventconfig.Json:
 		data, err = json.Marshal(event)
 	default:
 		return nil, errors.New("unsupported event format: " + esi.params.OutputFormat.String())
@@ -246,7 +243,7 @@ func catchSendPanics() error {
 	return nil
 }
 
-func (esi *eventServiceInstance) GetBroadcastContent() events_config.BroadcastContent {
+func (esi *eventServiceInstance) GetBroadcastContent() eventconfig.BroadcastContent {
 	return esi.params.BroadcastContent
 }
 
@@ -261,6 +258,5 @@ func (esi *eventServiceInstance) Shutdown() {
 	}
 	close(esi.eventsOutQueue)
 	esi.disconnect()
-	eventService = nil
-	eventServiceControl = nil
+	serviceInstance = nil
 }

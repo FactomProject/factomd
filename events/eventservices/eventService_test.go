@@ -8,9 +8,9 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/events"
+	"github.com/FactomProject/factomd/events/eventconfig"
 	"github.com/FactomProject/factomd/events/eventinput"
 	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
-	"github.com/FactomProject/factomd/events/events_config"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/util/atomic"
 	"github.com/prometheus/client_golang/prometheus"
@@ -71,23 +71,19 @@ func TestEventsService_Send(t *testing.T) {
 	}
 
 	params := &EventServiceParams{
-		OutputFormat: events_config.Json,
+		OutputFormat: eventconfig.Json,
 	}
 	NewEventServiceTo(state, params)
 
 	// set connection
 
-	eventServiceInstance, ok := eventService.(*eventServiceInstance)
-	if !ok {
-		t.Fatal("failed to cast event service instance")
-	}
-	eventServiceInstance.connection = client
+	serviceInstance.connection = client
 
 	// create test factom event
 	event := eventinput.NodeInfoMessageF(eventmessages.NodeMessageCode_GENERAL, "test message of node: %s", "node name")
 
 	// test send
-	err := eventService.Send(event)
+	err := serviceInstance.Send(event)
 
 	assert.NoError(t, err)
 
@@ -100,7 +96,7 @@ func TestEventsService_Send(t *testing.T) {
 
 	discardReceivedMetadata(receivingMessage)
 	assert.JSONEq(t, expectedMessage, receivingMessage.String(), "%s != %s", expectedMessage, receivingMessage.String())
-	assert.Equal(t, float64(0), getCounterValue(t, eventServiceInstance.notSentCounter))
+	assert.Equal(t, float64(0), getCounterValue(t, serviceInstance.notSentCounter))
 }
 
 func TestEventsService_SendFillupQueue(t *testing.T) {
@@ -205,7 +201,7 @@ func TestEventService_ProcessEventsChannelNoSent(t *testing.T) {
 	eventService := &eventServiceInstance{
 		eventsOutQueue: eventQueue,
 		params: &EventServiceParams{
-			OutputFormat: events_config.Json,
+			OutputFormat: eventconfig.Json,
 		},
 		notSentCounter: prometheus.NewCounter(prometheus.CounterOpts{}),
 	}
@@ -236,7 +232,7 @@ func TestEventsService_SendEvent(t *testing.T) {
 
 	eventService := &eventServiceInstance{
 		params: &EventServiceParams{
-			OutputFormat: events_config.Json,
+			OutputFormat: eventconfig.Json,
 		},
 		connection:     client,
 		notSentCounter: prometheus.NewCounter(prometheus.CounterOpts{}),
@@ -300,7 +296,7 @@ func TestEventsService_SendEventBreakdown(t *testing.T) {
 
 	eventService := &eventServiceInstance{
 		params: &EventServiceParams{
-			OutputFormat: events_config.Json,
+			OutputFormat: eventconfig.Json,
 		},
 		connection:     client,
 		notSentCounter: prometheus.NewCounter(prometheus.CounterOpts{}),
@@ -402,7 +398,7 @@ func TestEventsService_SendEventNoConnection(t *testing.T) {
 	redialSleepDuration = 1 * time.Millisecond
 	eventService := &eventServiceInstance{
 		params: &EventServiceParams{
-			OutputFormat: events_config.Json,
+			OutputFormat: eventconfig.Json,
 		},
 		notSentCounter: prometheus.NewCounter(prometheus.CounterOpts{}),
 	}
@@ -473,7 +469,7 @@ func TestEventsService_ConnectNoConnection(t *testing.T) {
 func TestEventsService_MarshallMessage(t *testing.T) {
 	testCases := map[string]struct {
 		Event        *eventmessages.FactomEvent
-		OutputFormat events_config.EventFormat
+		OutputFormat eventconfig.EventFormat
 		Assertion    func(*testing.T, []byte, error)
 	}{
 		"protobuf": {
@@ -481,7 +477,7 @@ func TestEventsService_MarshallMessage(t *testing.T) {
 				EventSource:    eventmessages.EventSource_REPLAY_BOOT,
 				FactomNodeName: "test",
 			},
-			OutputFormat: events_config.Protobuf,
+			OutputFormat: eventconfig.Protobuf,
 			Assertion: func(t *testing.T, data []byte, err error) {
 				assert.NoError(t, err)
 				// the first byte is the indication of the eventSource following the eventSource
@@ -495,7 +491,7 @@ func TestEventsService_MarshallMessage(t *testing.T) {
 				EventSource:    eventmessages.EventSource_REPLAY_BOOT,
 				FactomNodeName: "test",
 			},
-			OutputFormat: events_config.Json,
+			OutputFormat: eventconfig.Json,
 			Assertion: func(t *testing.T, data []byte, err error) {
 				assert.NoError(t, err)
 				assert.JSONEq(t, `{"eventSource":1,"factomNodeName":"test","Event":null}`, string(data))
@@ -503,7 +499,7 @@ func TestEventsService_MarshallMessage(t *testing.T) {
 		},
 		"empty-protobuf": {
 			Event:        &eventmessages.FactomEvent{},
-			OutputFormat: events_config.Protobuf,
+			OutputFormat: eventconfig.Protobuf,
 			Assertion: func(t *testing.T, data []byte, err error) {
 				assert.NoError(t, err)
 				assert.Equal(t, []byte{}, data)
@@ -511,7 +507,7 @@ func TestEventsService_MarshallMessage(t *testing.T) {
 		},
 		"empty-json": {
 			Event:        &eventmessages.FactomEvent{},
-			OutputFormat: events_config.Json,
+			OutputFormat: eventconfig.Json,
 			Assertion: func(t *testing.T, data []byte, err error) {
 				assert.NoError(t, err)
 				assert.JSONEq(t, `{"Event": null}`, string(data))
@@ -612,11 +608,11 @@ func TestEventsService_WriteEvent(t *testing.T) {
 func TestEventService_GetBroadcastContent(t *testing.T) {
 	eventService := &eventServiceInstance{
 		params: &EventServiceParams{
-			BroadcastContent: events_config.BroadcastNever,
+			BroadcastContent: eventconfig.BroadcastNever,
 		},
 	}
 	broadcastContent := eventService.GetBroadcastContent()
-	assert.Equal(t, events_config.BroadcastNever, broadcastContent)
+	assert.Equal(t, eventconfig.BroadcastNever, broadcastContent)
 }
 
 func TestEventService_IsSendStateChangeEvents(t *testing.T) {
@@ -641,9 +637,9 @@ func BenchmarkEventService_Send(b *testing.B) {
 	}
 
 	params := &EventServiceParams{
-		OutputFormat:          events_config.Protobuf,
+		OutputFormat:          eventconfig.Protobuf,
 		SendStateChangeEvents: false,
-		BroadcastContent:      events_config.BroadcastAlways,
+		BroadcastContent:      eventconfig.BroadcastAlways,
 	}
 
 	eventService := &eventServiceInstance{

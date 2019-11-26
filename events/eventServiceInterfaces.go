@@ -3,9 +3,9 @@ package events
 import (
 	"github.com/FactomProject/factomd/common/constants/runstate"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/events/eventconfig"
 	"github.com/FactomProject/factomd/events/eventinput"
 	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
-	"github.com/FactomProject/factomd/events/events_config"
 )
 
 type Events interface {
@@ -33,7 +33,7 @@ type EventService interface {
 }
 
 type EventServiceControl interface {
-	GetBroadcastContent() events_config.BroadcastContent
+	GetBroadcastContent() eventconfig.BroadcastContent
 	Shutdown()
 	IsSendStateChangeEvents() bool
 }

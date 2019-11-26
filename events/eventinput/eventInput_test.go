@@ -3,10 +3,12 @@ package eventinput
 import (
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/directoryBlock"
+	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -39,6 +41,20 @@ func TestEventInput_StateChangeEvent(t *testing.T) {
 	assert.Equal(t, eventmessages.EventSource_LIVE, stateChangeEvent.GetStreamSource())
 	assert.Equal(t, eventmessages.EntityState_ACCEPTED, stateChangeEvent.GetEntityState())
 	assert.Equal(t, dbState, stateChangeEvent.GetPayload())
+}
+
+func TestEventInput_AnchorEvent(t *testing.T) {
+	dirBlockInfo := dbInfo.NewDirBlockInfo()
+	dirBlockInfo.BTCTxHash = primitives.NewZeroHash()
+	dirBlockInfo.BTCBlockHeight = 123
+	dirBlockInfo.BTCTxOffset = 456
+	dirBlockInfo.BTCConfirmed = true
+	dirBlockInfo.EthereumAnchorRecordEntryHash = primitives.NewZeroHash()
+	dirBlockInfo.EthereumConfirmed = true
+	anchorEvent := NewAnchorEvent(eventmessages.EventSource_LIVE, dirBlockInfo)
+	assert.NotNil(t, anchorEvent)
+	assert.Equal(t, eventmessages.EventSource_LIVE, anchorEvent.GetStreamSource())
+	assert.Equal(t, dirBlockInfo, anchorEvent.GetPayload())
 }
 
 func TestEventInput_ProcessListEventNewBlock(t *testing.T) {

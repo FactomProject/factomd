@@ -1,4 +1,4 @@
-package events_config
+package eventconfig
 
 import (
 	"fmt"
