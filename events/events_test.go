@@ -23,9 +23,8 @@ import (
 )
 
 func TestUpdateState(t *testing.T) {
-	mockService := &mockEventService{}
-
 	s := testHelper.CreateAndPopulateTestState()
+	mockService := &mockEventService{parentState: s}
 	events.AttachEventServiceToEventEmitter(s, mockService)
 
 	eBlocks := []interfaces.IEntryBlock{}
@@ -57,9 +56,8 @@ func TestUpdateState(t *testing.T) {
 }
 
 func TestAddToAndDeleteFromHolding(t *testing.T) {
-	mockService := &mockEventService{}
-
 	s := testHelper.CreateAndPopulateTestState()
+	mockService := &mockEventService{parentState: s}
 	events.AttachEventServiceToEventEmitter(s, mockService)
 
 	msg := &messages.CommitChainMsg{CommitChain: entryCreditBlock.NewCommitChain()}
@@ -90,9 +88,8 @@ func TestAddToAndDeleteFromHolding(t *testing.T) {
 }
 
 func TestAddToProcessList(t *testing.T) {
-	mockService := &mockEventService{}
-
 	s := testHelper.CreateAndPopulateTestState()
+	mockService := &mockEventService{parentState: s}
 	s.SetLeaderTimestamp(primitives.NewTimestampNow())
 	events.AttachEventServiceToEventEmitter(s, mockService)
 
@@ -126,7 +123,7 @@ func TestAddToProcessList(t *testing.T) {
 func TestEmitDBStateEventsFromHeightRange(t *testing.T) {
 	s := testHelper.CreateAndPopulateTestState()
 
-	mockService := &mockEventService{}
+	mockService := &mockEventService{parentState: s}
 	events.AttachEventServiceToEventEmitter(s, mockService)
 	s.RunLeader = true
 
@@ -148,7 +145,7 @@ func TestEmitDBStateEventsFromHeightRange(t *testing.T) {
 func TestEmitDBStateEventsFromHeight(t *testing.T) {
 	s := testHelper.CreateAndPopulateTestState()
 
-	mockService := &mockEventService{}
+	mockService := &mockEventService{parentState: s}
 	events.AttachEventServiceToEventEmitter(s, mockService)
 	s.RunLeader = true
 
@@ -182,7 +179,7 @@ func TestExecuteMessage(t *testing.T) {
 	for name, testCase := range testCases {
 		t.Run(name, func(t *testing.T) {
 			// set mock service to receive events
-			mockService := &mockEventService{}
+			mockService := &mockEventService{parentState: s}
 			events.AttachEventServiceToEventEmitter(s, mockService)
 
 			// test
@@ -206,6 +203,7 @@ type mockEventService struct {
 	t              *testing.T
 	Events         []eventinput.EventInput
 	EventsReceived int32
+	parentState    events.StateEventServices
 }
 
 func (m *mockEventService) Send(event eventinput.EventInput) error {

@@ -22,7 +22,7 @@ import (
 func TestSaveLoadABlockHead(t *testing.T) {
 	b1 := testHelper.CreateTestAdminBlock(nil)
 
-	dbo := NewOverlay(new(mapdb.MapDB), nil)
+	dbo := NewOverlay(new(mapdb.MapDB))
 	defer dbo.Close()
 
 	err := dbo.SaveABlockHead(b1)
@@ -84,7 +84,7 @@ func TestSaveLoadABlockChain(t *testing.T) {
 	blocks := []*AdminBlock{}
 	max := 10
 	var prev *AdminBlock = nil
-	dbo := NewOverlay(new(mapdb.MapDB), nil)
+	dbo := NewOverlay(new(mapdb.MapDB))
 	defer dbo.Close()
 
 	for i := 0; i < max; i++ {
@@ -156,7 +156,7 @@ func TestSaveLoadABlockChain(t *testing.T) {
 }
 
 func TestLoadUnknownABlocks(t *testing.T) {
-	dbo := NewOverlay(new(mapdb.MapDB), nil)
+	dbo := NewOverlay(new(mapdb.MapDB))
 	defer dbo.Close()
 	for i := 0; i < 10; i++ {
 		b := testHelper.IntToByteSlice(i)

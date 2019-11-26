@@ -38,6 +38,7 @@ func CreateEmptyTestState() *state.State {
 	s := new(state.State)
 	s.TimestampAtBoot = new(primitives.Timestamp)
 	s.TimestampAtBoot.SetTime(0)
+	s.Events = events.NewEventEmitter()
 	s.EFactory = new(electionMsgs.ElectionsFactory)
 	s.LoadConfig("", "")
 	s.Network = "LOCAL"
