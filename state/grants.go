@@ -24,9 +24,9 @@ func GetHardCodedGrants() []HardGrant {
 	case "LOCAL":
 		hardcodegrants = []HardGrant{
 			// waiting for "real-ish" data from brian
-			HardGrant{21, 2, validateAddress("FA3oajkmHMfqkNMMShmqpwDThzMCuVrSsBwiXM2kYFVRz3MzxNAJ")}, // Pay Clay 2
-			HardGrant{31, 4, validateAddress("FA3Ga2XcaheS5NgQ3q22gBpLgE6tXmPu1GhjdU2FsdN2QPMzKJET")}, // Pay Bob 4
-			HardGrant{21, 3, validateAddress("FA3Ga2XcaheS5NgQ3q22gBpLgE6tXmPu1GhjdU2FsdN2QPMzKJET")}, // Pay Bob 3
+			HardGrant{41, 2, validateAddress("FA3oajkmHMfqkNMMShmqpwDThzMCuVrSsBwiXM2kYFVRz3MzxNAJ")}, // Pay Clay 2
+			HardGrant{51, 4, validateAddress("FA3Ga2XcaheS5NgQ3q22gBpLgE6tXmPu1GhjdU2FsdN2QPMzKJET")}, // Pay Bob 4
+			HardGrant{41, 3, validateAddress("FA3Ga2XcaheS5NgQ3q22gBpLgE6tXmPu1GhjdU2FsdN2QPMzKJET")}, // Pay Bob 3
 
 			// Note to future grant implementers.  To test the grants that you have coded up on mainnet before deployment on your local machine use this procedure.
 			// - Code all the grants and add them to the MAIN section. Use the correct activation height, where Height % 25 = 1
@@ -43,17 +43,24 @@ func GetHardCodedGrants() []HardGrant {
 			// - Check you are on the second node by pressing s <enter> to print out the summary.  It should show "1 f FNode01" to indicate focus is on the new simnode.  This means you are viewing that control panel now.
 			// - Refersh the control panel and make sure that it downloads the blockchain and is keeping up with the first simnode and is not stalled on either of the grant blocks.
 
+			// - Note, if set to 11, then there may be an extra payout at block 151
+			//   the TESTNET_COINBASE_PERIOD has a activation height of 25 for local net instead of maxint so after block 25 the
+			//   COINBASE_DECLARATION is changed to 140 so at height 151 we look back 140 blocks and get the grants at height 11
+			//   and pay them out a second time. Perhaps we should handle that differently somehow on any future activation
+			//   heights that change the COINBASE constants. The bug is TESTNET_COINBASE_PERIOD should never activate for local
+			//   networks since it is intended to only apply to test nets.
+
 			// Copy (and replace) the new grants to be tested here:
 			// Centis BV total: 1200 FCT (300 FCT * 2 months) + (600 FCT * 1 month) = 1200 FCT lowered upon request
-			HardGrant{11, 1200e8, validateAddress("FA2hvRaci9Kks9cLNkEUFcxzUJuUFaaAE1eWYLqa2qk1k9pVFVBp")},
+			HardGrant{31, 1200e8, validateAddress("FA2hvRaci9Kks9cLNkEUFcxzUJuUFaaAE1eWYLqa2qk1k9pVFVBp")},
 			// The 42nd Factoid total: 1800 FCT
-			HardGrant{11, 1800e8, validateAddress("FA3AEL2H9XZy3n199USs2poCEJBkK1Egy6JXhLehfLJjUYMKh1zS")},
+			HardGrant{31, 1800e8, validateAddress("FA3AEL2H9XZy3n199USs2poCEJBkK1Egy6JXhLehfLJjUYMKh1zS")},
 			// Factom, Inc. total: 1800 FCT
-			HardGrant{11, 1800e8, validateAddress("FA2teRURMYTdYAA97zdh7rZDkxNtR1nhjryo34aaskjYqsqRSwZq")},
+			HardGrant{31, 1800e8, validateAddress("FA2teRURMYTdYAA97zdh7rZDkxNtR1nhjryo34aaskjYqsqRSwZq")},
 			// Canonical Ledgers total: 1800 FCT
-			HardGrant{11, 1800e8, validateAddress("FA2PEXgRiPd14NzUP47XfVTgEnvjtLSebBZvnM8gM7cJAMuqWs89")},
+			HardGrant{31, 1800e8, validateAddress("FA2PEXgRiPd14NzUP47XfVTgEnvjtLSebBZvnM8gM7cJAMuqWs89")},
 			// DBGrow total: 1800 FCT
-			HardGrant{11, 1800e8, validateAddress("FA3HSuFo9Soa5ZnG82JHqyKiRi4Pw17LxPTo9AsCaFNLCGkXkgsu")},
+			HardGrant{31, 1800e8, validateAddress("FA3HSuFo9Soa5ZnG82JHqyKiRi4Pw17LxPTo9AsCaFNLCGkXkgsu")},
 		}
 	case "CUSTOM":
 		hardcodegrants = []HardGrant{}
