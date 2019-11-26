@@ -20,7 +20,7 @@ func (db *Overlay) ProcessDirBlockInfoBatch(block interfaces.IDirBlockInfo) erro
 	} else {
 		err = db.ProcessBlockBatchWithoutHead(DIRBLOCKINFO_UNCONFIRMED, DIRBLOCKINFO_NUMBER, DIRBLOCKINFO_SECONDARYINDEX, block)
 	}
-	if err != nil {
+	if err != nil && db.parentState != nil {
 		db.parentState.GetEvents().EmitDBAnchorEvent(block)
 	}
 	return err
@@ -37,7 +37,7 @@ func (db *Overlay) ProcessDirBlockInfoMultiBatch(block interfaces.IDirBlockInfo)
 	} else {
 		err = db.ProcessBlockMultiBatchWithoutHead(DIRBLOCKINFO_UNCONFIRMED, DIRBLOCKINFO_NUMBER, DIRBLOCKINFO_SECONDARYINDEX, block)
 	}
-	if err != nil {
+	if err != nil && db.parentState != nil {
 		db.parentState.GetEvents().EmitDBAnchorEvent(block)
 	}
 	return err
