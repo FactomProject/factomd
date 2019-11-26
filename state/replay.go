@@ -242,6 +242,9 @@ func (r *Replay) validate(mask int, hash [32]byte, timestamp interfaces.Timestam
 	// Check the timestamp to see if within 12 hours of the system time.  That not valid, we are
 	// just done without any added concerns.
 	if diff > Range || diff < -Range {
+		if mask == constants.INTERNAL_REPLAY {
+			return -1, true // if it's outside the replay bounds it is allowed.
+		}
 		//fmt.Println("Time in hours, range:", hours(timeSeconds-systemTimeSeconds), HourRange)
 		return -1, false
 	}
@@ -296,7 +299,7 @@ func (r *Replay) IsTSValidAndUpdateState(mask int, hash [32]byte, timestamp inte
 	index, rval := r.validate(mask, hash, timestamp, systemtime)
 	if rval {
 		// Mark this hash as seen
-		if mask != constants.TIME_TEST {
+		if mask != constants.TIME_TEST && index != -1 { // INTERNAL_REPLAY that are outside the time window are ok
 			r.Buckets[index][hash] = r.Buckets[index][hash] | mask
 			r.Mutex.Unlock()
 			//r.s.LogPrintf("replay", "Add %x (%s) to %s from %s", hash[:3], maskToString(mask), r.Name, atomic.WhereAmIString(1))
