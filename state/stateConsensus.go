@@ -768,19 +768,17 @@ processholdinglist:
 	TotalReviewHoldingTime.Add(float64(reviewHoldingTime.Nanoseconds()))
 }
 
-func (s *State) MoveStateToHeight(dbheight uint32, newMinute int, flags ...bool) {
+func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 	//	s.LogPrintf("dbstateprocess", "MoveStateToHeight(%d-:-%d) called from %s", dbheight, newMinute, atomic.WhereAmIString(1))
 	s.LogPrintf("dbstateprocess", "MoveStateToHeight(%d-:-%d)", dbheight, newMinute)
+	s.LogPrintf("executemsg", "MoveStateToHeight(%d-:-%d)", dbheight, newMinute)
+
+	if s.LLeaderHeight == dbheight && newMinute == s.CurrentMinute {
+		return
+	}
 
 	if (s.LLeaderHeight+1 == dbheight && newMinute == 0) || (s.LLeaderHeight == dbheight && s.CurrentMinute+1 == newMinute) {
-
-		// KLUDGE State is moved in two places
-		//1-:-10 goroutine 189-/state/processListManager.go:49
-		//1-:-10 goroutine 189-/state/dbStateManager.go:1224
-		if len(flags) == 0 {
-			// added flag to only trigger after dbstateChange
-			s.Pub.BlkSeq.Write(&event.DBHT{dbheight, newMinute})
-		}
+		// valid move
 	} else {
 		s.LogPrintf("dbstateprocess", "State move between non-sequential heights from %d to %d", s.LLeaderHeight, dbheight)
 		if s.LLeaderHeight != dbheight {
@@ -918,6 +916,12 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int, flags ...bool)
 	s.EOMLimit = len(s.LeaderPL.FedServers) // We add or remove server only on block boundaries
 	s.DBSigLimit = s.EOMLimit               // We add or remove server only on block boundaries
 	s.LogPrintf("dbstateprocess", "MoveStateToHeight(%d-:-%d) leader=%v leaderPL=%p, leaderVMIndex=%d", dbheight, newMinute, s.Leader, s.LeaderPL, s.LeaderVMIndex)
+
+	s.Pub.BlkSeq.Write(&event.DBHT{
+		DBHeight: s.LLeaderHeight,
+		VMIndex: s.LeaderVMIndex,
+		Minute: s.CurrentMinute,
+	})
 
 	s.Hold.ExecuteForNewHeight(s.LLeaderHeight, s.CurrentMinute) // execute held inMessages
 	s.Hold.Review()                                              // cleanup old inMessages
@@ -1100,7 +1104,8 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 		// We have an ack and a matching message go execute the message!
 		s.LogMessage("executeMsg", "FollowerExecuteAck ", m)
 		// REVIEW: change this to follower execute
-		s.executeMsg(m) // Try executing the message, if dependencies are met then it will execute
+		//s.executeMsg(m) // Try executing the message, if dependencies are met then it will execute
+		m.FollowerExecute(s)
 	} else {
 		s.LogMessage("executeMsg", "No Msg, keep", ack)
 		pl.VMs[ack.VMIndex].ReportMissing(int(ack.Height), 0) // Ask for it now
@@ -2853,7 +2858,7 @@ func (s *State) NewAck(msg interfaces.IMsg, balanceHash interfaces.IHash) interf
 	} else {
 		last := s.LeaderPL.GetAckAt(vmIndex, listlen-1)
 		ack.Height = last.Height + 1
-		ack.SerialHash, _ = primitives.CreateHash(last.MessageHash, ack.MessageHash)
+		ack.SerialHash, _ = primitives.CreateHash(last.MessageHash, ack.MessageHash) // REVIEW ? bug here? should be last.GetMsgHash() ?
 	}
 
 	ack.Sign(s)

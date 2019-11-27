@@ -17,9 +17,6 @@ type Leader struct {
 	Sub
 	*Events          // events indexed by VM
 	VMIndex   int    // vm this leader is responsible fore
-	SysHeight uint32 // KLUDGE don't need this but here for legacy reasons
-	Height    uint32 // height leader should next ack
-	Minute    int    // current minute
 }
 
 // initialize the leader event aggregate
@@ -27,11 +24,6 @@ func New(s *state.State) *Leader {
 	// TODO: track Db Height so we can decide whether to send out dbsigs
 	l := new(Leader)
 	l.VMIndex = s.LeaderVMIndex
-	{
-		pl := s.ProcessLists.Get(s.LLeaderHeight)
-		l.SysHeight = uint32(pl.System.Height)
-	}
-	l.Minute = s.CurrentMinute
 
 	l.Events = &Events{
 		Config: &event.LeaderConfig{

@@ -24,6 +24,7 @@ func (l *Leader) NewAck(msg interfaces.IMsg, balanceHash interfaces.IHash) inter
 	ack.LeaderChainID = l.Config.IdentityChainID
 	ack.BalanceHash = balanceHash
 
+	// FIX - should check for
 	if l.Ack != nil {
 		ack.Height = l.Ack.Height
 		ack.SerialHash, _ = primitives.CreateHash(l.Ack.MessageHash, ack.MessageHash)
@@ -35,7 +36,7 @@ func (l *Leader) NewAck(msg interfaces.IMsg, balanceHash interfaces.IHash) inter
 	// keep height and hash from latest ack
 	l.Ack = &event.Ack{
 		Height:      ack.Height + 1,
-		MessageHash: ack.MessageHash,
+		MessageHash: ack.GetHash(),
 	}
 
 	ack.Sign(l)

@@ -16,13 +16,13 @@ func (l *Leader) CreateEOM() (eom *messages.EOM, ack interfaces.IMsg) {
 	eom.SetLocal(true)
 
 	// Put the System Height and Serial Hash into the EOM
-	eom.SysHeight = uint32(l.SysHeight)
+	eom.SysHeight = 0
 
 	eom.DBHeight = l.DBHT.DBHeight
 	eom.VMIndex = l.VMIndex
 	// EOM.Minute is zerobased, while LeaderMinute is 1 based.  So
 	// a simple assignment works.
-	eom.Minute = byte(l.Minute)
+	eom.Minute = byte(l.DBHT.Minute)
 
 	// REVIEW: do we need to record this?
 	//vm.EomMinuteIssued = l.DBHT.Minute + 1

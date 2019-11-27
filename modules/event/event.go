@@ -40,6 +40,7 @@ type Directory struct {
 
 type DBHT struct {
 	DBHeight uint32
+	VMIndex  int
 	Minute   int
 }
 

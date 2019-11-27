@@ -51,7 +51,7 @@ func (lists *ProcessLists) UpdateState(dbheight uint32) (progress bool) {
 		// because  MoveStateToHeight is called in two places
 		//1-:-10 goroutine 189-/state/processListManager.go:49
 		//1-:-10 goroutine 189-/state/dbStateManager.go:1224
-		lists.State.MoveStateToHeight(dbheight, 0, false)
+		lists.State.MoveStateToHeight(dbheight, 0)
 
 		dbstate = lists.State.DBStates.Get(int(dbheight))
 	}
