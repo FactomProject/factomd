@@ -3,6 +3,9 @@ package fnode
 import (
 	"fmt"
 
+	"github.com/FactomProject/factomd/generated"
+	"github.com/FactomProject/factomd/pubsub"
+
 	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -26,10 +29,11 @@ func init() {
 
 type FactomNode struct {
 	common.Name
-	Index    int
-	State    *state.State
-	Peers    []interfaces.IPeer
-	P2PIndex int
+	Index       int
+	State       *state.State
+	Peers       []interfaces.IPeer
+	P2PIndex    int
+	outMessages *generated.Publish_PubBase_IMsg_type
 }
 
 func New(s *state.State) *FactomNode {
@@ -39,6 +43,8 @@ func New(s *state.State) *FactomNode {
 	fnodes = append(fnodes, n)
 	n.addFnodeName()
 	n.State.Init(n, n.State.FactomNodeName)
+	n.outMessages = generated.Publish_PubBase_IMsg(pubsub.PubFactory.Base().Publish(n.GetParentName()+"/msgValidation/messages", pubsub.PubMultiWrap()))
+
 	return n
 }
 
