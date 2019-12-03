@@ -1103,9 +1103,7 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 	if m != nil {
 		// We have an ack and a matching message go execute the message!
 		s.LogMessage("executeMsg", "FollowerExecuteAck ", m)
-		// REVIEW: change this to follower execute
-		//s.executeMsg(m) // Try executing the message, if dependencies are met then it will execute
-		m.FollowerExecute(s)
+		s.executeMsg(m) // Try executing the message, if dependencies are met then it will execute
 	} else {
 		s.LogMessage("executeMsg", "No Msg, keep", ack)
 		pl.VMs[ack.VMIndex].ReportMissing(int(ack.Height), 0) // Ask for it now

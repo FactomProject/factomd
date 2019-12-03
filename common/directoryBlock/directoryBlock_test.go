@@ -234,7 +234,7 @@ func TestMakeSureBlockCountIsNotDuplicates(t *testing.T) {
 			t.Errorf("Error: %v", err)
 		}
 	}
-	t.Logf("Minute count - %v, max count - %v", min, max)
+	t.Logf("Min count - %v, max count - %v", min, max)
 	if min != 1 {
 		t.Errorf("Invalid number of BlockCount occurrences")
 	}

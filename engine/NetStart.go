@@ -332,11 +332,6 @@ func makeServer(w *worker.Thread, p *globals.FactomParams) (node *fnode.FactomNo
 		{ // Leader thread
 			l := leader.New(node.State)
 			l.Start(w) // KLUDGE: only running leader on state0
-			/*
-				OutputString := "ACK.*" // KLUDGE filter acks while developing leader thread
-				OutputRegEx := regexp.MustCompile(OutputString)
-				node.State.PassOutputRegEx(OutputRegEx, OutputString)
-			*/
 		}
 
 	})
