@@ -21,9 +21,7 @@ func (db *Overlay) ProcessDirBlockInfoBatch(block interfaces.IDirBlockInfo) erro
 	} else {
 		err = db.ProcessBlockBatchWithoutHead(DIRBLOCKINFO_UNCONFIRMED, DIRBLOCKINFO_NUMBER, DIRBLOCKINFO_SECONDARYINDEX, block)
 	}
-	fmt.Println("ProcessDirBlockInfoBatch", err, db.parentState) // REMOVE ME
-	if err != nil && db.parentState != nil {
-		fmt.Println("SaveAnchorInfoFromEntry", block.GetChainID(), block.GetBTCBlockHash()) // REMOVE ME
+	if err == nil && db.parentState != nil {
 		db.parentState.GetEvents().EmitDBAnchorEvent(block)
 	}
 	return err
