@@ -5,11 +5,16 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/modules/event"
+	"sync"
 )
+
+var heightLock sync.Mutex
 
 // Create a new Acknowledgement.  Must be called by a leader.  This
 // call assumes all the pieces are in place to create a new acknowledgement
 func (l *Leader) NewAck(msg interfaces.IMsg, balanceHash interfaces.IHash) interfaces.IMsg {
+	defer heightLock.Unlock()
+	heightLock.Lock()
 
 	// these don't affect the msg hash, just for local use...
 	msg.SetLeaderChainID(l.Config.IdentityChainID)
@@ -24,9 +29,8 @@ func (l *Leader) NewAck(msg interfaces.IMsg, balanceHash interfaces.IHash) inter
 	ack.LeaderChainID = l.Config.IdentityChainID
 	ack.BalanceHash = balanceHash
 
-	// FIX - should check for
 	if l.Ack != nil {
-		ack.Height = l.Ack.Height
+		ack.Height = l.Ack.Height + 1
 		ack.SerialHash, _ = primitives.CreateHash(l.Ack.MessageHash, ack.MessageHash)
 	} else {
 		ack.Height = 0
@@ -35,8 +39,8 @@ func (l *Leader) NewAck(msg interfaces.IMsg, balanceHash interfaces.IHash) inter
 
 	// keep height and hash from latest ack
 	l.Ack = &event.Ack{
-		Height:      ack.Height + 1,
-		MessageHash: ack.GetHash(),
+		Height:      ack.Height,
+		MessageHash: ack.MessageHash,
 	}
 
 	ack.Sign(l)

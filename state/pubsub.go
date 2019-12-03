@@ -31,6 +31,5 @@ func (s *State) BindPublishers() {
 	s.Pub.BlkSeq = s.newPublisher(event.Path.Seq)
 	s.Pub.Bank = s.newPublisher(event.Path.Bank)
 	s.Pub.Directory = s.newPublisher(event.Path.Directory)
-	s.Pub.EOMTicker = s.newPublisher(event.Path.EOM)
 	s.Pub.LeaderConfig = s.newPublisher(event.Path.LeaderConfig)
 }

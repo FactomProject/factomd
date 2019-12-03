@@ -12,7 +12,7 @@ type pubSubPaths struct {
 	Directory    string
 	Bank         string
 	LeaderConfig string
-	LeaderMsgIn string
+	LeaderMsgIn  string
 	LeaderMsgOut string
 }
 
@@ -22,7 +22,7 @@ var Path = pubSubPaths{
 	Directory:    "directory",
 	Bank:         "bank",
 	LeaderConfig: "leader-config",
-	LeaderMsgIn: "leader-msg-in",
+	LeaderMsgIn:  "leader-msg-in",
 	LeaderMsgOut: "leader-msg-out",
 }
 
@@ -58,9 +58,5 @@ type LeaderConfig struct {
 }
 
 type EOM struct {
-	Timestamp     interfaces.Timestamp
-	LLeaderHeight uint32
-	SysHeight     uint32
-	VMIndex       int
-	Minute        byte
+	Timestamp interfaces.Timestamp
 }

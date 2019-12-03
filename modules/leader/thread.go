@@ -32,7 +32,6 @@ type Events struct {
 	*event.DBHT                        // from move-to-ht
 	*event.Balance                     // REVIEW: does this relate to a specific VM
 	*event.Directory
-	*event.EOM
 	*event.Ack // record of last sent ack by leader
 	*event.LeaderConfig
 }
@@ -42,10 +41,13 @@ func mkChan() *pubsub.SubChannel {
 }
 
 func (l *Leader) Start(w *worker.Thread) {
-	w.Spawn(func(w *worker.Thread){
+
+	w.Run(l.EOMTimer)
+
+	w.Spawn(func(w *worker.Thread) {
 		w.Init(&w.Name, "LeaderThread")
-		w.OnRun(l.Run)
 		w.OnReady(l.Ready)
+		w.OnRun(l.Run)
 
 		l.Pub.MsgOut = pubsub.PubFactory.Threaded(100).Publish(
 			pubsub.GetPath("FNode0", event.Path.LeaderMsgOut),
@@ -74,49 +76,48 @@ func (l *Leader) Ready() {
 	l.Sub.MovedToHeight.Subscribe(pubsub.GetPath(node0, event.Path.Seq))
 	l.Sub.DBlockCreated.Subscribe(pubsub.GetPath(node0, event.Path.Directory))
 	l.Sub.BalanceChanged.Subscribe(pubsub.GetPath(node0, event.Path.Bank))
-	l.Sub.EomTicker.Subscribe(pubsub.GetPath(node0, event.Path.EOM))
 }
 
 func (l *Leader) Run() {
 	for {
 		select {
-		//case v := <-l.NewAuthoritySet
-		case v := <-l.Sub.LeaderConfig.Updates:
-			l.Config = v.(*event.LeaderConfig)
-		// TODO: handle demotion/brainswap
-		//  possibly shut down this leader thread or maybe unsubscribe to events
-
+		case v := <-l.MsgInput.Updates:
+			m := v.(interfaces.IMsg)
+			if constants.NeedsAck(m.Type()) {
+				l.sendAck(m)
+			}
 		case v := <-l.MovedToHeight.Updates:
 			l.DBHT = v.(*event.DBHT)
 			log.LogPrintf("leader.txt", "SeqChange: %v", v)
-			if l.DBHT.Minute == 0 {
-				{
-					v := <-l.Sub.BalanceChanged.Updates
-					l.Balance = v.(*event.Balance)
-					log.LogPrintf("leader.txt", "BalChange: %v", v)
-				}
-				{
-					v := <-l.Sub.DBlockCreated.Updates
-					l.Directory = v.(*event.Directory)
-					log.LogPrintf("leader.txt", "Directory: %v", v)
-				}
-
-				l.SendDBSig()
-				// TODO: set vm index
-				l.VMIndex = 0 // KLUDGE hard coded for single leader
-			}
-		case v := <-l.Sub.EomTicker.Updates:
-			e := v.(*event.EOM)
-			l.Height = e.LLeaderHeight
-			l.SendEOM()
-			log.LogPrintf("leader.txt", "EOM: %v", v)
-		case v := <-l.MsgInput.Updates:
-			msg := v.(interfaces.IMsg)
-			if !constants.NeedsAck(msg.Type()) {
-				continue
-			}
-			//log.LogMessage("leader.txt", "MsgToAck", msg)
-			l.LeaderExecute(msg)
+			l.seqChanged()
 		}
 	}
 }
+
+func (l*Leader) seqChanged() {
+	if l.DBHT.Minute != 0 {
+		return
+	}
+	{ // possibly shut down this leader thread or maybe unsubscribe to events
+		select {
+		//case v := <-l.NewAuthoritySet
+		case v := <-l.Sub.LeaderConfig.Updates:
+			l.Config = v.(*event.LeaderConfig)
+			// TODO: handle demotion/brainswap
+		default:
+		}
+	}
+	{
+		v := <-l.Sub.BalanceChanged.Updates
+		l.Balance = v.(*event.Balance)
+		log.LogPrintf("leader.txt", "BalChange: %v", v)
+	}
+	{
+		v := <-l.Sub.DBlockCreated.Updates
+		l.Directory = v.(*event.Directory)
+		log.LogPrintf("leader.txt", "Directory: %v", v)
+	}
+	l.VMIndex = 0 // KLUDGE hard coded for single leader
+	l.SendDBSig()
+}
+

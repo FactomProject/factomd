@@ -10,6 +10,6 @@ func TestLeaderModule(t *testing.T) {
 	params := map[string]string{"--debuglog": "."}
 	state0 := SetupSim("LF", params, 7, 0, 0, t)
 
-	RunCmd("R1")
+	//RunCmd("R1")
 	WaitForBlock(state0, 4)
 }

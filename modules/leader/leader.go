@@ -16,7 +16,9 @@ type Leader struct {
 	Pub
 	Sub
 	*Events          // events indexed by VM
-	VMIndex   int    // vm this leader is responsible fore
+	VMIndex      int // vm this leader is responsible fore
+	EOMSyncEnd   int64
+	EOMIssueTime int64
 }
 
 // initialize the leader event aggregate
@@ -35,14 +37,12 @@ func New(s *state.State) *Leader {
 		DBHT:      nil,
 		Balance:   nil,
 		Directory: nil,
-		EOM:       nil,
 		Ack:       nil,
 	}
 
 	return l
 }
 
-// FIXME: make this actually broadcast to network
 func (l *Leader) SendOut(msg interfaces.IMsg) {
 	log.LogMessage("leader.txt", "sendout", msg)
 	l.Pub.MsgOut.Write(msg)
@@ -68,15 +68,4 @@ func (l *Leader) GetSalt(ts interfaces.Timestamp) uint32 {
 func (l *Leader) sendAck(m interfaces.IMsg) {
 	ack := l.NewAck(m, l.BalanceHash).(*messages.Ack) // LeaderExecute
 	l.SendOut(ack)
-}
-
-func (l *Leader) LeaderExecute(m interfaces.IMsg) {
-	l.sendAck(m)
-	/*
-	switch m.Type() {
-	case constants.DIRECTORY_BLOCK_SIGNATURE_MSG:
-	case constants.EOM_MSG, constants.FACTOID_TRANSACTION_MSG, constants.COMMIT_CHAIN_MSG, constants.REVEAL_ENTRY_MSG:
-		panic(fmt.Sprintf("Unsupported msg %v", m.Type()))
-	}
-	 */
 }
