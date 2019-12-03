@@ -8,6 +8,7 @@ import (
 	llog "github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/modules/event"
 	"github.com/FactomProject/factomd/state"
+	"sync"
 )
 
 var log = llog.PackageLogger
@@ -19,12 +20,14 @@ type Leader struct {
 	VMIndex      int // vm this leader is responsible fore
 	EOMSyncEnd   int64
 	EOMIssueTime int64
+	loaded sync.WaitGroup
 }
 
 // initialize the leader event aggregate
 func New(s *state.State) *Leader {
 	// TODO: track Db Height so we can decide whether to send out dbsigs
 	l := new(Leader)
+	l.loaded.Add(1)
 	l.VMIndex = s.LeaderVMIndex
 
 	l.Events = &Events{

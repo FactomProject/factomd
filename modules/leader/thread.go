@@ -7,6 +7,7 @@ import (
 	"github.com/FactomProject/factomd/modules/event"
 	"github.com/FactomProject/factomd/pubsub"
 	"github.com/FactomProject/factomd/worker"
+	"sync"
 )
 
 type Pub struct {
@@ -93,11 +94,16 @@ func (l *Leader) Run() {
 		}
 	}
 }
+var loadedEnd sync.Once
 
 func (l*Leader) seqChanged() {
 	if l.DBHT.Minute != 0 {
 		return
 	}
+	loadedEnd.Do(func(){
+		l.loaded.Done()
+	})
+
 	{ // possibly shut down this leader thread or maybe unsubscribe to events
 		select {
 		//case v := <-l.NewAuthoritySet
