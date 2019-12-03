@@ -34,10 +34,14 @@ func New(s *state.State) *Leader {
 			ServerPrivKey:   s.ServerPrivKey,
 			FactomSecond:    s.FactomSecond(),
 		},
-		DBHT:      nil,
-		Balance:   nil,
-		Directory: nil,
-		Ack:       nil,
+		DBHT: &event.DBHT{
+			DBHeight: s.DBHeightAtBoot,
+			VMIndex:  s.LeaderVMIndex,
+			Minute:   0,
+		},
+		Balance:   nil, // last perm balance computed
+		Directory: nil, // last dblock created
+		Ack:       nil, // last ack
 	}
 
 	return l
