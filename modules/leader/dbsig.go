@@ -27,9 +27,12 @@ func (l *Leader) CreateDBSig() (interfaces.IMsg, interfaces.IMsg) {
 }
 
 func (l *Leader) SendDBSig() {
-	if l.Ack != nil {
-		l.Ack.Height = 0 // reset only pl height
-	}
+	l.Ack = nil // this allows the DBState for block 1 to be written, but then stalls at 2-:-0
+	/*
+		if l.Ack != nil {
+			l.Ack.Height = 0 // reset only pl height
+		}
+	*/
 	dbs, ack := l.CreateDBSig()
 	l.SendOut(dbs)
 	l.SendOut(ack)

@@ -13,7 +13,7 @@ func (l *Leader) CreateEOM() (eom *messages.EOM, ack interfaces.IMsg) {
 	eom.Timestamp = l.GetTimestamp()
 	eom.ChainID = l.Config.IdentityChainID
 	eom.Sign(l)
-	eom.SetLocal(true)
+	eom.SetLocal(false)
 
 	// Put the System Height and Serial Hash into the EOM
 	eom.SysHeight = 0

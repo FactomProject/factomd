@@ -111,7 +111,6 @@ func (l *Leader) seqChanged() {
 		//case v := <-l.NewAuthoritySet
 		case v := <-l.Sub.LeaderConfig.Updates:
 			l.Config = v.(*event.LeaderConfig)
-			// TODO: handle demotion/brainswap
 		default:
 		}
 	}
