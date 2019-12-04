@@ -122,15 +122,38 @@ func TestAddToProcessList(t *testing.T) {
 	}
 }
 
+func TestEmitDBStateEventsFromHeightRange(t *testing.T) {
+	s := testHelper.CreateAndPopulateTestState()
+
+	mockService := &mockEventService{}
+	s.EventsService = mockService
+	s.RunLeader = true
+
+	s.EmitDBStateEventsFromHeight(0, 7)
+
+	if assert.Equal(t, int32(8), mockService.EventsReceived) {
+		for _, event := range mockService.Events {
+			assert.Equal(t, eventmessages.EventSource_REPLAY_BOOT, event.GetStreamSource())
+
+			if stateChangeEvent, ok := event.(*events.StateChangeMsgEvent); assert.True(t, ok, "event received has wrong type: %s event: %+v", reflect.TypeOf(event), event) {
+				assert.NotNil(t, stateChangeEvent)
+				assert.Equal(t, eventmessages.EntityState_COMMITTED_TO_DIRECTORY_BLOCK, stateChangeEvent.GetEntityState())
+				assert.NotNil(t, stateChangeEvent.GetPayload())
+			}
+		}
+	}
+}
+
 func TestEmitDBStateEventsFromHeight(t *testing.T) {
 	s := testHelper.CreateAndPopulateTestState()
 
 	mockService := &mockEventService{}
 	s.EventsService = mockService
+	s.RunLeader = true
 
-	s.EmitDBStateEventsFromHeight(0, 9)
+	s.EmitDBStateEventsFromHeight(3, 100)
 
-	if assert.Equal(t, int32(10), mockService.EventsReceived) {
+	if assert.Equal(t, int32(7), mockService.EventsReceived) {
 		for _, event := range mockService.Events {
 			assert.Equal(t, eventmessages.EventSource_REPLAY_BOOT, event.GetStreamSource())
 
