@@ -80,7 +80,7 @@ func newTestEntry() interfaces.IDBEntry {
 }
 
 func TestMapDirectoryBlockInfo(t *testing.T) {
-	block := newDirectoryblockInfo()
+	block := newDirectoryBlockInfo()
 	directoryBlockInfo := mapDirectoryBlockInfo(block)
 	dirBlockAnchor := directoryBlockInfo.DirectoryBlockAnchor
 	assert.NotNil(t, dirBlockAnchor)
@@ -97,7 +97,7 @@ func TestMapDirectoryBlockInfo(t *testing.T) {
 	assert.NotNil(t, dirBlockAnchor.EthereumConfirmed)
 }
 
-func newDirectoryblockInfo() *dbInfo.DirBlockInfo {
+func newDirectoryBlockInfo() *dbInfo.DirBlockInfo {
 	info := new(dbInfo.DirBlockInfo)
 	info.DBHeight = 123
 	info.DBHash = primitives.NewZeroHash()

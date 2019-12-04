@@ -424,6 +424,28 @@ func TestMapToFactomEvent(t *testing.T) {
 				}
 			},
 		},
+		"DirectoryBlockAnchor": {
+			Input:                    eventinput.NewAnchorEvent(eventmessages.EventSource_REPLAY_BOOT, newTestDirBlockInfo()),
+			BroadcastContent:         eventconfig.BroadcastAlways,
+			EventReplayDuringStartup: true,
+			Assertion: func(t *testing.T, event *eventmessages.FactomEvent) {
+				assert.Equal(t, eventmessages.EventSource_REPLAY_BOOT, event.EventSource)
+				if assert.NotNil(t, event.GetDirectoryBlockAnchor()) {
+					assert.NotNil(t, event.GetDirectoryBlockAnchor().GetDirectoryBlockHash())
+					assert.NotNil(t, event.GetDirectoryBlockAnchor().GetDirectoryBlockMerkleRoot())
+					assert.NotNil(t, event.GetDirectoryBlockAnchor().GetBlockHeight())
+					assert.NotNil(t, event.GetDirectoryBlockAnchor().GetBtcBlockHash())
+					assert.NotNil(t, event.GetDirectoryBlockAnchor().GetBtcBlockHeight())
+					assert.NotNil(t, event.GetDirectoryBlockAnchor().GetBtcBlockHash())
+					assert.NotNil(t, event.GetDirectoryBlockAnchor().GetBtcConfirmed())
+					assert.NotNil(t, event.GetDirectoryBlockAnchor().GetBtcTxHash())
+					assert.NotNil(t, event.GetDirectoryBlockAnchor().GetBtcTxOffset())
+					assert.NotNil(t, event.GetDirectoryBlockAnchor().GetEthereumAnchorRecordEntryHash())
+					assert.NotNil(t, event.GetDirectoryBlockAnchor().GetEthereumConfirmed())
+					assert.NotNil(t, event.GetDirectoryBlockAnchor().GetTimestamp())
+				}
+			},
+		},
 		"ProcessListEvent": {
 			Input:            eventinput.ProcessListEventNewMinute(eventmessages.EventSource_REPLAY_BOOT, 2, 123),
 			BroadcastContent: eventconfig.BroadcastAlways,
@@ -528,4 +550,8 @@ func newTestDBState() interfaces.IDBState {
 	msg.EntryCreditBlock = set.ECBlock
 
 	return msg
+}
+
+func newTestDirBlockInfo() interfaces.IDirBlockInfo {
+	return testHelper.CreateTestDirBlockInfo(&dbInfo.DirBlockInfo{DBHeight: 910})
 }
