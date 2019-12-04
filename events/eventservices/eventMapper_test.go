@@ -457,8 +457,6 @@ func TestConvertTimeToTimestamp(t *testing.T) {
 	timestamp := eventservices.ConvertTimeToTimestamp(now)
 
 	assert.NotNil(t, timestamp)
-	// REVIEW: altered this test to pass - though there may be an actual issue
-	//assert.Equal(t, int64(1571910978), timestamp.Seconds)
 	assert.Equal(t, int64(1571946978), timestamp.Seconds)
 	assert.Equal(t, int32(338001966), timestamp.Nanos)
 }

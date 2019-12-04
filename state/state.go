@@ -603,60 +603,53 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 	return newState
 }
 
-func (s *State) EmitDBStateEventsFromHeight(height int64, end int64) {
-	msgs := s.GetAllDBStateMsgsFromDatabase(height, end)
-	for _, msg := range msgs {
-		EmitStateChangeEvent(msg, eventmessages.EntityState_COMMITTED_TO_DIRECTORY_BLOCK, s)
-	}
-}
+func (s *State) EmitDBStateEventsFromHeight(height uint32, end uint32) {
+	if s.EventsService != nil {
+		i := height
+		msgCount := 0
+		for i <= end {
+			d, err := s.DB.FetchDBlockByHeight(i)
+			if err != nil || d == nil {
+				break
+			}
 
-func (s *State) GetAllDBStateMsgsFromDatabase(height int64, end int64) []interfaces.IMsg {
-	i := height
-	msgCount := 0
-	var msgs []interfaces.IMsg
-	for i <= end {
+			a, err := s.DB.FetchABlockByHeight(i)
+			if err != nil || a == nil {
+				break
+			}
+			f, err := s.DB.FetchFBlockByHeight(i)
+			if err != nil || f == nil {
+				break
+			}
+			ec, err := s.DB.FetchECBlockByHeight(i)
+			if err != nil || ec == nil {
+				break
+			}
 
-		d, err := s.DB.FetchDBlockByHeight(uint32(i))
-		if err != nil || d == nil {
-			break
-		}
+			var eblocks []interfaces.IEntryBlock
+			var entries []interfaces.IEBEntry
 
-		a, err := s.DB.FetchABlockByHeight(uint32(i))
-		if err != nil || a == nil {
-			break
-		}
-		f, err := s.DB.FetchFBlockByHeight(uint32(i))
-		if err != nil || f == nil {
-			break
-		}
-		ec, err := s.DB.FetchECBlockByHeight(uint32(i))
-		if err != nil || ec == nil {
-			break
-		}
-
-		var eblocks []interfaces.IEntryBlock
-		var entries []interfaces.IEBEntry
-
-		ebs := d.GetEBlockDBEntries()
-		for _, eb := range ebs {
-			eblock, _ := s.DB.FetchEBlock(eb.GetKeyMR())
-			if eblock != nil {
-				eblocks = append(eblocks, eblock)
-				for _, e := range eblock.GetEntryHashes() {
-					ent, _ := s.DB.FetchEntry(e)
-					if ent != nil {
-						entries = append(entries, ent)
+			ebs := d.GetEBlockDBEntries()
+			for _, eb := range ebs {
+				eblock, _ := s.DB.FetchEBlock(eb.GetKeyMR())
+				if eblock != nil {
+					eblocks = append(eblocks, eblock)
+					for _, e := range eblock.GetEntryHashes() {
+						ent, _ := s.DB.FetchEntry(e)
+						if ent != nil {
+							entries = append(entries, ent)
+						}
 					}
 				}
 			}
-		}
 
-		dbs := messages.NewDBStateMsg(d.GetTimestamp(), d, a, f, ec, eblocks, entries, nil)
-		i++
-		msgCount++
-		msgs = append(msgs, dbs)
+			msg := messages.NewDBStateMsg(d.GetTimestamp(), d, a, f, ec, eblocks, entries, nil)
+			i++
+			msgCount++
+
+			EmitReplayStateChangeEvent(msg, eventmessages.EntityState_COMMITTED_TO_DIRECTORY_BLOCK, s)
+		}
 	}
-	return msgs
 }
 
 func (s *State) AddPrefix(prefix string) {
