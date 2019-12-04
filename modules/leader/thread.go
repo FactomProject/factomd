@@ -38,13 +38,13 @@ type Events struct {
 	*event.LeaderConfig
 }
 
-func mkChan() *pubsub.SubChannel {
+func (*Leader) mkChan() *pubsub.SubChannel {
 	return pubsub.SubFactory.Channel(50)
 }
 
 func (l *Leader) Start(w *worker.Thread) {
 
-	w.Run(l.EOMTimer)
+	w.Spawn(l.EOMTimer)
 
 	w.Spawn(func(w *worker.Thread) {
 		w.Init(&w.Name, "LeaderThread")
@@ -56,12 +56,12 @@ func (l *Leader) Start(w *worker.Thread) {
 		)
 		go l.Pub.MsgOut.Start()
 
-		l.Sub.MovedToHeight = mkChan()
-		l.Sub.MsgInput = mkChan()
-		l.Sub.BalanceChanged = mkChan()
-		l.Sub.DBlockCreated = mkChan()
-		l.Sub.EomTicker = mkChan()
-		l.Sub.LeaderConfig = mkChan()
+		l.Sub.MovedToHeight = l.mkChan()
+		l.Sub.MsgInput = l.mkChan()
+		l.Sub.BalanceChanged = l.mkChan()
+		l.Sub.DBlockCreated = l.mkChan()
+		l.Sub.EomTicker = l.mkChan()
+		l.Sub.LeaderConfig = l.mkChan()
 	})
 }
 
