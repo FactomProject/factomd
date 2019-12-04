@@ -93,6 +93,17 @@ func init() {
 	flag.StringVar(&p.ControlPanelSetting, "controlpanelsetting", "", "Can set to 'disabled', 'readonly', or 'readwrite' to overwrite config file")
 	flag.BoolVar(&p.FullHashesLog, "fullhasheslog", false, "true create a log of all unique hashes seen during processing")
 	flag.BoolVar(&p.ReparseAnchorChains, "reparseanchorchains", false, "If true, reparse bitcoin and ethereum anchor chains in the database")
+
+	// Live feed API params
+	flag.BoolVar(&p.EnableLiveFeedAPI, "enablelivefeedapi", false, "Enable life feed events service; default false")
+	flag.StringVar(&p.EventReceiverProtocol, "eventreceiverprotocol", "", "Transport protocol for the events receiver; default udp")
+	flag.StringVar(&p.EventReceiverHost, "eventreceiverhost", "", "Host address for the events receiver; default 127.0.0.1")
+	flag.IntVar(&p.EventReceiverPort, "eventreceiverport", 0, "Port for the events receiver; default 8040")
+	flag.StringVar(&p.EventFormat, "eventformat", "", "Event output format for the events receiver, protobuf|json; default protobuf")
+	flag.BoolVar(&p.EventSendStateChange, "eventsendstatechange", false, "Send only StateChange events when the state of an entity changes instead of the full entity; default false")
+	flag.StringVar(&p.EventBroadcastContent, "eventbroadcastcontent", "", "Settings for including content in the event messages always|once|never; default once")
+	flag.BoolVar(&p.EventReplayDuringStartup, "eventreplayduringstartup", false, "Replay events since the last save state during startup; default false")
+
 }
 
 func ParseCmdLine(args []string) *FactomParams {

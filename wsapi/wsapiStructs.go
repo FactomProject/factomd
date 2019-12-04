@@ -166,6 +166,12 @@ type SendRawMessageResponse struct {
 	Message string `json:"message"`
 }
 
+type SendReplayMessageResponse struct {
+	Message string `json:"message"`
+	Start   uint32 `json:"startheight"`
+	End     uint32 `json:"endheight"`
+}
+
 type TransactionRateResponse struct {
 	TotalTransactionRate   float64 `json:"totaltxrate"`
 	InstantTransactionRate float64 `json:"instanttxrate"`
@@ -267,6 +273,11 @@ type AddressRequest struct {
 
 type HeightRequest struct {
 	Height int64 `json:"height"`
+}
+
+type ReplayRequest struct {
+	StartHeight uint32 `json:"startheight"`
+	EndHeight   uint32 `json:"endheight,omitempty"`
 }
 
 type HeightOrHashRequest struct {

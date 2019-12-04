@@ -107,6 +107,16 @@ type FactomdConfig struct {
 		WalletdLocation     string
 		WalletEncrypted     bool
 	}
+	LiveFeedAPI struct {
+		EnableLiveFeedAPI        bool
+		EventReceiverProtocol    string
+		EventReceiverHost        string
+		EventReceiverPort        int
+		EventFormat              string
+		EventReplayDuringStartup bool
+		EventSendStateChange     bool
+		EventBroadcastContent    string
+	}
 }
 
 // defaultConfig
@@ -226,6 +236,19 @@ WalletdLocation                       = "localhost:8089"
 ; Enables wallet database encryption on factom-walletd. If this option is enabled, an unencrypted database
 ; cannot exist. If an unencrypted database exists, the wallet will exit.
 WalletEncrypted                       = false
+
+; ------------------------------------------------------------------------------
+; Configuration options for the live feed API
+; ------------------------------------------------------------------------------
+[LiveFeedAPI]
+EnableLiveFeedAPI                     = false
+EventReceiverProtocol                 = tcp
+EventReceiverHost                     = 127.0.0.1
+EventReceiverPort                     = 8040
+EventFormat                           = protobuf
+EventReplayDuringStartup              = false
+EventSendStateChange                  = false
+EventBroadcastContent                 = once 
 `
 
 func (s *FactomdConfig) String() string {
@@ -293,6 +316,16 @@ func (s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\n    FactomdLocation         %v", s.Walletd.FactomdLocation))
 	out.WriteString(fmt.Sprintf("\n    WalletdLocation         %v", s.Walletd.WalletdLocation))
 	out.WriteString(fmt.Sprintf("\n    WalletEncryption        %v", s.Walletd.WalletEncrypted))
+
+	out.WriteString(fmt.Sprintf("\n  LiveFeedAPI"))
+	out.WriteString(fmt.Sprintf("\n    EnableLiveFeedAPI        %v", s.LiveFeedAPI.EnableLiveFeedAPI))
+	out.WriteString(fmt.Sprintf("\n    EventReceiverProtocol    %v", s.LiveFeedAPI.EventReceiverProtocol))
+	out.WriteString(fmt.Sprintf("\n    EventReceiverHost        %v", s.LiveFeedAPI.EventReceiverHost))
+	out.WriteString(fmt.Sprintf("\n    EventReceiverPort        %v", s.LiveFeedAPI.EventReceiverPort))
+	out.WriteString(fmt.Sprintf("\n    EventFormat              %v", s.LiveFeedAPI.EventFormat))
+	out.WriteString(fmt.Sprintf("\n    EventBroadcastContent    %v", s.LiveFeedAPI.EventBroadcastContent))
+	out.WriteString(fmt.Sprintf("\n    EventSendStateChange     %v", s.LiveFeedAPI.EventSendStateChange))
+	out.WriteString(fmt.Sprintf("\n    EventReplayDuringStartup %v", s.LiveFeedAPI.EventReplayDuringStartup))
 
 	return out.String()
 }

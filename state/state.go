@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -34,6 +35,7 @@ import (
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/leveldb"
 	"github.com/FactomProject/factomd/database/mapdb"
+	"github.com/FactomProject/factomd/events/eventservices"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/util/atomic"
@@ -242,6 +244,7 @@ type State struct {
 	CurrentBlockStartTime   int64
 
 	EOMsyncing   bool
+	EOMSyncTime  int64
 	EOM          bool // Set to true when the first EOM is encountered
 	EOMLimit     int
 	EOMProcessed int
@@ -439,6 +442,8 @@ type State struct {
 	InputRegExString          string
 	executeRecursionDetection map[[32]byte]interfaces.IMsg
 	Hold                      HoldingList
+	EventsService             eventservices.EventService
+	EventsServiceControl      eventservices.EventServiceControl
 
 	// MissingMessageResponse is a cache of the last 1000 msgs we receive such that when
 	// we send out a missing message, we can find that message locally before we ask the net
@@ -596,6 +601,55 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 		os.MkdirAll(path, 0775)
 	}
 	return newState
+}
+
+func (s *State) EmitDBStateEventsFromHeight(height uint32, end uint32) {
+	if s.EventsService != nil {
+		i := height
+		msgCount := 0
+		for i <= end {
+			d, err := s.DB.FetchDBlockByHeight(i)
+			if err != nil || d == nil {
+				break
+			}
+
+			a, err := s.DB.FetchABlockByHeight(i)
+			if err != nil || a == nil {
+				break
+			}
+			f, err := s.DB.FetchFBlockByHeight(i)
+			if err != nil || f == nil {
+				break
+			}
+			ec, err := s.DB.FetchECBlockByHeight(i)
+			if err != nil || ec == nil {
+				break
+			}
+
+			var eblocks []interfaces.IEntryBlock
+			var entries []interfaces.IEBEntry
+
+			ebs := d.GetEBlockDBEntries()
+			for _, eb := range ebs {
+				eblock, _ := s.DB.FetchEBlock(eb.GetKeyMR())
+				if eblock != nil {
+					eblocks = append(eblocks, eblock)
+					for _, e := range eblock.GetEntryHashes() {
+						ent, _ := s.DB.FetchEntry(e)
+						if ent != nil {
+							entries = append(entries, ent)
+						}
+					}
+				}
+			}
+
+			msg := messages.NewDBStateMsg(d.GetTimestamp(), d, a, f, ec, eblocks, entries, nil)
+			i++
+			msgCount++
+
+			EmitReplayStateChangeEvent(msg, eventmessages.EntityState_COMMITTED_TO_DIRECTORY_BLOCK, s)
+		}
+	}
 }
 
 func (s *State) AddPrefix(prefix string) {
@@ -3116,6 +3170,6 @@ func (s *State) GetDBFinished() bool {
 	return s.DBFinished
 }
 
-func (s *State) GetRunLeader() bool {
+func (s *State) IsRunLeader() bool {
 	return s.RunLeader
 }
