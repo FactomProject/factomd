@@ -208,7 +208,7 @@ func SetupSim(givenNodes string, userAddedOptions map[string]string, height int,
 	ExpectedHeight = height
 	nodeLen := setNodeCounts(givenNodes)
 	state0 := StartSim(nodeLen, userAddedOptions)
-	state0.MessageTally = true
+	state0.MessageTally = false
 
 	{ // calculate & set test timeout
 		blkt := globals.Params.BlkTime

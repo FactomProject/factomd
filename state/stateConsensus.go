@@ -99,14 +99,6 @@ func (s *State) DeleteFromHolding(hash [32]byte, msg interfaces.IMsg, reason str
 
 var FilterTimeLimit = int64(Range * 60 * 2 * 1000000000) // Filter hold two hours of messages, one in the past one in the future
 
-func (s *State) GetFilterTimeNano() int64 {
-	t := s.GetMessageFilterTimestamp().GetTime().UnixNano() // this is the start of the filter
-	if t == 0 {
-		panic("got 0 time")
-	}
-	return t
-}
-
 // this is the common validation to all messages. they must not be a reply, they must not be out size the time window
 // for the replay filter.
 func (s *State) Validate(msg interfaces.IMsg) (validToSend int, validToExec int) {
@@ -132,7 +124,7 @@ func (s *State) Validate(msg interfaces.IMsg) (validToSend int, validToExec int)
 
 	if constants.NeedsAck(msg.Type()) {
 		// Make sure we don't put in an old ack'd message (outside our repeat filter range)
-		filterTime := s.GetFilterTimeNano()
+		filterTime := s.GetMessageFilterTimestamp().GetTime().UnixNano()
 		if filterTime == 0 {
 			panic("got 0 time")
 		}
