@@ -80,13 +80,13 @@ func TestLoad(t *testing.T) {
 	RanSimTest = true
 
 	// use a tree so the messages get reordered
-	state0 := SetupSim("LLLLFFFF", map[string]string{"--debuglog": ".", "--blktime": "30"}, 15, 0, 0, t)
+	state0 := SetupSim("LLLLFFFF", map[string]string{"--debuglog": ".", "--blktime": "15"}, 15, 0, 0, t)
 
 	RunCmd("2")    // select 2
 	RunCmd("w")    // feed load into follower
 	RunCmd("F200") // delay messages
 	RunCmd("R25")  // Feed load
-	WaitBlocks(state0, 3)
+	WaitBlocks(state0, 1)
 	RunCmd("R0") // Stop load
 	for state0.Hold.GetSize() > 10 || len(state0.Holding) > 10 {
 		WaitBlocks(state0, 1)
