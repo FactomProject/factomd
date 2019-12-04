@@ -15,37 +15,40 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
+// ECBlockHeader contains information related to this EC block as well as the previous EC block
 type ECBlockHeader struct {
-	BodyHash            interfaces.IHash `json:"bodyhash"`
-	PrevHeaderHash      interfaces.IHash `json:"prevheaderhash"`
-	PrevFullHash        interfaces.IHash `json:"prevfullhash"`
-	DBHeight            uint32           `json:"dbheight"`
-	HeaderExpansionArea []byte           `json:"headerexpansionarea"`
-	ObjectCount         uint64           `json:"objectcount"`
-	BodySize            uint64           `json:"bodysize"`
+	BodyHash            interfaces.IHash `json:"bodyhash"`            // The hash of the EC block's body
+	PrevHeaderHash      interfaces.IHash `json:"prevheaderhash"`      // The hash of the previous EC block's header
+	PrevFullHash        interfaces.IHash `json:"prevfullhash"`        // The full hash of the previous EC block
+	DBHeight            uint32           `json:"dbheight"`            // The directory block height this EC block is in
+	HeaderExpansionArea []byte           `json:"headerexpansionarea"` // Future expansion area for data
+	ObjectCount         uint64           `json:"objectcount"`         // The number of entries in the EC block
+	BodySize            uint64           `json:"bodysize"`            // The length of the marshalled body
 }
 
 var _ interfaces.Printable = (*ECBlockHeader)(nil)
 var _ interfaces.IECBlockHeader = (*ECBlockHeader)(nil)
 
-func (c *ECBlockHeader) Init() {
-	if c.BodyHash == nil {
-		c.BodyHash = primitives.NewZeroHash()
+// Init initializes all nil hashes to the zero hash
+func (e *ECBlockHeader) Init() {
+	if e.BodyHash == nil {
+		e.BodyHash = primitives.NewZeroHash()
 	}
-	if c.PrevHeaderHash == nil {
-		c.PrevHeaderHash = primitives.NewZeroHash()
+	if e.PrevHeaderHash == nil {
+		e.PrevHeaderHash = primitives.NewZeroHash()
 	}
-	if c.PrevFullHash == nil {
-		c.PrevFullHash = primitives.NewZeroHash()
+	if e.PrevFullHash == nil {
+		e.PrevFullHash = primitives.NewZeroHash()
 	}
-	if c.HeaderExpansionArea == nil {
-		c.HeaderExpansionArea = make([]byte, 0)
+	if e.HeaderExpansionArea == nil {
+		e.HeaderExpansionArea = make([]byte, 0)
 	}
 }
 
-func (a *ECBlockHeader) IsSameAs(b interfaces.IECBlockHeader) bool {
-	if a == nil || b == nil {
-		if a == nil && b == nil {
+// IsSameAs returns true iff the input object is identical to this object
+func (e *ECBlockHeader) IsSameAs(b interfaces.IECBlockHeader) bool {
+	if e == nil || b == nil {
+		if e == nil && b == nil {
 			return true
 		}
 		return false
@@ -56,31 +59,32 @@ func (a *ECBlockHeader) IsSameAs(b interfaces.IECBlockHeader) bool {
 		return false
 	}
 
-	if a.BodyHash.IsSameAs(bb.BodyHash) {
+	if e.BodyHash.IsSameAs(bb.BodyHash) {
 		return false
 	}
-	if a.PrevHeaderHash.IsSameAs(bb.PrevHeaderHash) {
+	if e.PrevHeaderHash.IsSameAs(bb.PrevHeaderHash) {
 		return false
 	}
-	if a.PrevFullHash.IsSameAs(bb.PrevFullHash) {
+	if e.PrevFullHash.IsSameAs(bb.PrevFullHash) {
 		return false
 	}
-	if a.DBHeight != bb.DBHeight {
+	if e.DBHeight != bb.DBHeight {
 		return false
 	}
-	if primitives.AreBytesEqual(a.HeaderExpansionArea, bb.HeaderExpansionArea) == false {
+	if primitives.AreBytesEqual(e.HeaderExpansionArea, bb.HeaderExpansionArea) == false {
 		return false
 	}
-	if a.ObjectCount != bb.ObjectCount {
+	if e.ObjectCount != bb.ObjectCount {
 		return false
 	}
-	if a.BodySize != bb.BodySize {
+	if e.BodySize != bb.BodySize {
 		return false
 	}
 
 	return true
 }
 
+// String returns this object as a string
 func (e *ECBlockHeader) String() string {
 	e.Init()
 	var out primitives.Buffer
@@ -96,34 +100,42 @@ func (e *ECBlockHeader) String() string {
 	return (string)(out.DeepCopyBytes())
 }
 
+// SetBodySize sets the body size to the input
 func (e *ECBlockHeader) SetBodySize(cnt uint64) {
 	e.BodySize = cnt
 }
 
+// GetBodySize returns the body size
 func (e *ECBlockHeader) GetBodySize() uint64 {
 	return e.BodySize
 }
 
+// SetObjectCount sets the object count to the input
 func (e *ECBlockHeader) SetObjectCount(cnt uint64) {
 	e.ObjectCount = cnt
 }
 
+// GetObjectCount returns the object count
 func (e *ECBlockHeader) GetObjectCount() uint64 {
 	return e.ObjectCount
 }
 
+// SetHeaderExpansionArea sets the header expansion area to the input array
 func (e *ECBlockHeader) SetHeaderExpansionArea(area []byte) {
 	e.HeaderExpansionArea = area
 }
 
+// GetHeaderExpansionArea returns the header expansion area array
 func (e *ECBlockHeader) GetHeaderExpansionArea() (area []byte) {
 	return e.HeaderExpansionArea
 }
 
-func (e *ECBlockHeader) SetBodyHash(prev interfaces.IHash) {
-	e.BodyHash = prev
+// SetBodyHash sets the body hash to the input value
+func (e *ECBlockHeader) SetBodyHash(hash interfaces.IHash) {
+	e.BodyHash = hash
 }
 
+// GetBodyHash returns the body hash
 func (e *ECBlockHeader) GetBodyHash() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {
@@ -135,6 +147,7 @@ func (e *ECBlockHeader) GetBodyHash() (rval interfaces.IHash) {
 	return e.BodyHash
 }
 
+// GetECChainID returns the EC chain id (see constants.EC_CHAINID)
 func (e *ECBlockHeader) GetECChainID() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {
@@ -148,10 +161,12 @@ func (e *ECBlockHeader) GetECChainID() (rval interfaces.IHash) {
 	return h
 }
 
+// SetPrevHeaderHash sets the previous header hash to the input value
 func (e *ECBlockHeader) SetPrevHeaderHash(prev interfaces.IHash) {
 	e.PrevHeaderHash = prev
 }
 
+// GetPrevHeaderHash returns the previous header hash
 func (e *ECBlockHeader) GetPrevHeaderHash() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {
@@ -163,10 +178,12 @@ func (e *ECBlockHeader) GetPrevHeaderHash() (rval interfaces.IHash) {
 	return e.PrevHeaderHash
 }
 
+// SetPrevFullHash sets the previous full hash to the input
 func (e *ECBlockHeader) SetPrevFullHash(prev interfaces.IHash) {
 	e.PrevFullHash = prev
 }
 
+// GetPrevFullHash returns the previous full hash
 func (e *ECBlockHeader) GetPrevFullHash() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {
@@ -178,28 +195,34 @@ func (e *ECBlockHeader) GetPrevFullHash() (rval interfaces.IHash) {
 	return e.PrevFullHash
 }
 
+// SetDBHeight sets the directory block height for this EC block to the input value
 func (e *ECBlockHeader) SetDBHeight(height uint32) {
 	e.DBHeight = height
 }
 
+// GetDBHeight returns the directory block height for this EC block
 func (e *ECBlockHeader) GetDBHeight() (height uint32) {
 	return e.DBHeight
 }
 
+// NewECBlockHeader creates a new initialized EC block header
 func NewECBlockHeader() *ECBlockHeader {
 	h := new(ECBlockHeader)
 	h.Init()
 	return h
 }
 
+// JSONByte returns the json encoded byte array
 func (e *ECBlockHeader) JSONByte() ([]byte, error) {
 	return primitives.EncodeJSON(e)
 }
 
+// JSONString returns the json encoded string
 func (e *ECBlockHeader) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
 }
 
+// MarshalBinary marshals the object
 func (e *ECBlockHeader) MarshalBinary() (rval []byte, err error) {
 	defer func(pe *error) {
 		if *pe != nil {
@@ -266,6 +289,7 @@ func (e *ECBlockHeader) MarshalBinary() (rval []byte, err error) {
 	return buf.DeepCopyBytes(), nil
 }
 
+// UnmarshalBinaryData unmarshals the input data into this object
 func (e *ECBlockHeader) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	e.Init()
 	buf := primitives.NewBuffer(data)
@@ -275,7 +299,7 @@ func (e *ECBlockHeader) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if h.String() != "000000000000000000000000000000000000000000000000000000000000000c" {
+	if h.String() != constants.EC_CHAINID_STRING {
 		return nil, fmt.Errorf("Invalid ChainID - %s", h)
 	}
 
@@ -316,13 +340,16 @@ func (e *ECBlockHeader) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	return buf.DeepCopyBytes(), nil
 }
 
+// UnmarshalBinary unmarshals the input data into this object
 func (e *ECBlockHeader) UnmarshalBinary(data []byte) error {
 	_, err := e.UnmarshalBinaryData(data)
 	return err
 }
 
+// ExpandedECBlockHeader is used to help in the function below
 type ExpandedECBlockHeader ECBlockHeader
 
+// MarshalJSON marshals the object into an expansed ec block header
 func (e ECBlockHeader) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
 		ExpandedECBlockHeader
@@ -330,7 +357,7 @@ func (e ECBlockHeader) MarshalJSON() ([]byte, error) {
 		ECChainID string `json:"ecchainid"`
 	}{
 		ExpandedECBlockHeader: ExpandedECBlockHeader(e),
-		ChainID:               "000000000000000000000000000000000000000000000000000000000000000c",
-		ECChainID:             "000000000000000000000000000000000000000000000000000000000000000c",
+		ChainID:               constants.EC_CHAINID_STRING,
+		ECChainID:             constants.EC_CHAINID_STRING,
 	})
 }

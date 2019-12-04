@@ -9,6 +9,9 @@ import (
 	"time"
 )
 
+// MaxEntrySizeInBytes is the maximum entry size in bytes, here 10k
+const MaxEntrySizeInBytes = 10240
+
 // Messages
 const (
 	EOM_MSG                       byte = iota // 0
@@ -411,6 +414,9 @@ var FACTOID_CHAINID = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
 // Zero Hash
 var ZERO_HASH = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 var ZERO = []byte{0}
+
+// The Entry Credit (EC) chain id string
+var EC_CHAINID_STRING = "000000000000000000000000000000000000000000000000000000000000000c"
 
 //---------------------------------------------------------------
 // Types of entries (transactions) for Admin Block

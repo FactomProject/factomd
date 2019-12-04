@@ -15,11 +15,13 @@ import (
 )
 
 const (
+	// ServerIndexNumberSize is the size of the object below (1 uint8 member)
 	ServerIndexNumberSize = 1
 )
 
+// ServerIndexNumber is an entry credit block entry. Data after this type of entry was acknowledged by the server with the stored index
 type ServerIndexNumber struct {
-	ServerIndexNumber uint8 `json:"serverindexnumber"`
+	ServerIndexNumber uint8 `json:"serverindexnumber"` // the server index number
 }
 
 var _ interfaces.Printable = (*ServerIndexNumber)(nil)
@@ -27,14 +29,15 @@ var _ interfaces.BinaryMarshallable = (*ServerIndexNumber)(nil)
 var _ interfaces.ShortInterpretable = (*ServerIndexNumber)(nil)
 var _ interfaces.IECBlockEntry = (*ServerIndexNumber)(nil)
 
-func (a *ServerIndexNumber) IsSameAs(b interfaces.IECBlockEntry) bool {
-	if a == nil || b == nil {
-		if a == nil && b == nil {
+// IsSameAs checks that the input object is identical to this object
+func (e *ServerIndexNumber) IsSameAs(b interfaces.IECBlockEntry) bool {
+	if e == nil || b == nil {
+		if e == nil && b == nil {
 			return true
 		}
 		return false
 	}
-	if a.ECID() != b.ECID() {
+	if e.ECID() != b.ECID() {
 		return false
 	}
 
@@ -42,13 +45,14 @@ func (a *ServerIndexNumber) IsSameAs(b interfaces.IECBlockEntry) bool {
 	if ok == false {
 		return false
 	}
-	if a.ServerIndexNumber != bb.ServerIndexNumber {
+	if e.ServerIndexNumber != bb.ServerIndexNumber {
 		return false
 	}
 
 	return true
 }
 
+// String returns this object as a string
 func (e *ServerIndexNumber) String() string {
 	var out primitives.Buffer
 	out.WriteString(fmt.Sprintf(" %-20s\n", "ServerIndexNumber"))
@@ -56,6 +60,7 @@ func (e *ServerIndexNumber) String() string {
 	return (string)(out.DeepCopyBytes())
 }
 
+// Hash marshals this object and computes its sha
 func (e *ServerIndexNumber) Hash() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {
@@ -71,6 +76,7 @@ func (e *ServerIndexNumber) Hash() (rval interfaces.IHash) {
 	return primitives.Sha(bin)
 }
 
+// GetHash returns the hash of this object
 func (e *ServerIndexNumber) GetHash() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {
@@ -82,7 +88,8 @@ func (e *ServerIndexNumber) GetHash() (rval interfaces.IHash) {
 	return e.Hash()
 }
 
-func (a *ServerIndexNumber) GetEntryHash() (rval interfaces.IHash) {
+// GetEntryHash always returns nil
+func (e *ServerIndexNumber) GetEntryHash() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {
 			rval = nil // convert an interface that is nil to a nil interface
@@ -93,6 +100,7 @@ func (a *ServerIndexNumber) GetEntryHash() (rval interfaces.IHash) {
 	return nil
 }
 
+// GetSigHash always returns nil
 func (e *ServerIndexNumber) GetSigHash() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {
@@ -104,65 +112,76 @@ func (e *ServerIndexNumber) GetSigHash() (rval interfaces.IHash) {
 	return nil
 }
 
-func (b *ServerIndexNumber) IsInterpretable() bool {
+// IsInterpretable always returns true
+func (e *ServerIndexNumber) IsInterpretable() bool {
 	return true
 }
 
-func (b *ServerIndexNumber) Interpret() string {
-	return fmt.Sprintf("ServerIndexNumber %v", b.ServerIndexNumber)
+// Interpret returns the ServerIndexNumber as a string
+func (e *ServerIndexNumber) Interpret() string {
+	return fmt.Sprintf("ServerIndexNumber %v", e.ServerIndexNumber)
 }
 
+// NewServerIndexNumber creates a new server index number object
 func NewServerIndexNumber() *ServerIndexNumber {
 	return new(ServerIndexNumber)
 }
 
+// NewServerIndexNumber2 creates a new server index number object, with the ServerIndexNumber set to the input
 func NewServerIndexNumber2(number uint8) *ServerIndexNumber {
 	sin := new(ServerIndexNumber)
 	sin.ServerIndexNumber = number
 	return sin
 }
 
-func (s *ServerIndexNumber) ECID() byte {
+// ECID returns the entry credit id ECIDServerIndexNumber
+func (e *ServerIndexNumber) ECID() byte {
 	return constants.ECIDServerIndexNumber
 }
 
-func (s *ServerIndexNumber) MarshalBinary() (rval []byte, err error) {
+// MarshalBinary marshals this object
+func (e *ServerIndexNumber) MarshalBinary() (rval []byte, err error) {
 	defer func(pe *error) {
 		if *pe != nil {
 			fmt.Fprintf(os.Stderr, "ServerIndexNumber.MarshalBinary err:%v", *pe)
 		}
 	}(&err)
 	buf := primitives.NewBuffer(nil)
-	err = buf.PushByte(s.ServerIndexNumber)
+	err = buf.PushByte(e.ServerIndexNumber)
 	if err != nil {
 		return nil, err
 	}
 	return buf.DeepCopyBytes(), nil
 }
 
-func (s *ServerIndexNumber) UnmarshalBinaryData(data []byte) ([]byte, error) {
+// UnmarshalBinaryData unmarshals the input data into this object
+func (e *ServerIndexNumber) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	buf := primitives.NewBuffer(data)
 	var err error
-	s.ServerIndexNumber, err = buf.PopByte()
+	e.ServerIndexNumber, err = buf.PopByte()
 	if err != nil {
 		return nil, err
 	}
 	return buf.DeepCopyBytes(), nil
 }
 
-func (s *ServerIndexNumber) UnmarshalBinary(data []byte) (err error) {
-	_, err = s.UnmarshalBinaryData(data)
+// UnmarshalBinary unmarshals the input data into this object
+func (e *ServerIndexNumber) UnmarshalBinary(data []byte) (err error) {
+	_, err = e.UnmarshalBinaryData(data)
 	return
 }
 
+// JSONByte returns the json encoded byte array
 func (e *ServerIndexNumber) JSONByte() ([]byte, error) {
 	return primitives.EncodeJSON(e)
 }
 
+// JSONString returns the json encoded string
 func (e *ServerIndexNumber) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
 }
 
+// GetTimestamp always returns nil
 func (e *ServerIndexNumber) GetTimestamp() interfaces.Timestamp {
 	return nil
 }

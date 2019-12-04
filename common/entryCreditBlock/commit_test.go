@@ -18,6 +18,7 @@ var (
 	_ = fmt.Sprint("testing")
 )
 
+// TestCommitEntryMarshal checks that a new commit entry can be marshalled and unmarshalled appropriately
 func TestCommitEntryMarshal(t *testing.T) {
 	ce := NewCommitEntry()
 
@@ -57,6 +58,7 @@ func TestCommitEntryMarshal(t *testing.T) {
 	}
 }
 
+// TestCommitMarshalUnmarshal checks that the full ec block entry types can be marshalled and unmarshalled properly
 func TestCommitMarshalUnmarshal(t *testing.T) {
 	blocks := testHelper.CreateFullTestBlockSet()
 	for _, block := range blocks {
