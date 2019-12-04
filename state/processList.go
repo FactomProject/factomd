@@ -29,7 +29,8 @@ import (
 var _ = fmt.Print
 var _ = log.Print
 
-var plLogger = packageLogger.WithFields(log.Fields{"subpack": "process-list"})
+//
+//var plLogger = packageLogger.WithFields(log.Fields{"subpack": "process-list"})
 
 type ProcessList struct {
 	DBHeight uint32 // The directory block height for these lists
@@ -651,7 +652,7 @@ func (p *ProcessList) TrimVMList(h uint32, vmIndex int) {
 			p.State.LogPrintf("processList", "Attempt to trim higher than processed list=%d p=%d h=%d", len(p.VMs[vmIndex].List), p.VMs[vmIndex].Height, height)
 			return
 		}
-		p.State.LogPrintf("processList", "TrimVMList() %d/%d/%d, trimmed %d", p.DBHeight, vmIndex, height, len(p.VMs[vmIndex].List)-height)
+		p.State.LogPrintf("processList", "TrimVMList() %7d/%02d/%-5d, trimmed %d", p.DBHeight, vmIndex, height, len(p.VMs[vmIndex].List)-height)
 		p.VMs[vmIndex].List = p.VMs[vmIndex].List[:height]
 		if len(p.VMs[vmIndex].ListAck) > height { // Also trim ListAck
 			p.VMs[vmIndex].ListAck = p.VMs[vmIndex].ListAck[:height]
@@ -756,17 +757,16 @@ func (p *ProcessList) processVM(vm *VM) (progress bool) {
 		if s.EOM || s.DBSig {
 			// means that we are missing an EOM or DBSig
 			vm.ReportMissing(vm.Height, 0) // ask for it now
-		}
-		// If we haven't heard anything from a VM in 1 seconds, ask for a message at the last-known height
-		if now.GetTimeMilli()-vm.ProcessTime.GetTimeMilli() > int64(s.FactomSecond()/time.Millisecond) {
+		} else if now.GetTimeMilli()-vm.ProcessTime.GetTimeMilli() > int64(s.FactomSecond()/time.Millisecond) {
+			// If we haven't heard anything from a VM in 2 seconds, ask for a message at the last-known height
 			vm.ReportMissing(vm.Height, int64(2*s.FactomSecond()/time.Millisecond)) // Ask for one past the end of the list
 		}
 		return false
 	}
 
 	if ValidationDebug {
-		s.LogPrintf("process", "start process for VM %d/%d/%d", vm.p.DBHeight, vm.VmIndex, vm.Height)
-		defer s.LogPrintf("process", "stop  process for VM %d/%d/%d", vm.p.DBHeight, vm.VmIndex, vm.Height)
+		s.LogPrintf("process", "start process for VM %7d/%02d/%d", vm.p.DBHeight, vm.VmIndex, vm.Height)
+		defer s.LogPrintf("process", "stop  process for VM %7d/%02d/%d", vm.p.DBHeight, vm.VmIndex, vm.Height)
 	}
 
 	defer p.UpdateStatus(s) // update the status after each VM
@@ -803,7 +803,7 @@ func (p *ProcessList) processVM(vm *VM) (progress bool) {
 				p.RemoveFromPL(vm, j, "Error making hash "+err.Error())
 				return progress
 			}
-			s.LogPrintf("serialhashs", "%d/%d/%d\t%x %x", ack.DBHeight, ack.VMIndex, ack.Height, ack.SerialHash.Fixed(), expectedSerialHash.Fixed())
+			s.LogPrintf("serialhashs", "%7d/%02d/%-5d\t%x %x", ack.DBHeight, ack.VMIndex, ack.Height, ack.SerialHash.Fixed(), expectedSerialHash.Fixed())
 
 			// compare the SerialHash of this acknowledgement with the
 			// expected serialHash (generated above)
@@ -1087,7 +1087,7 @@ func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces
 		s.adds <- plRef{int(p.DBHeight), ack.VMIndex, int(ack.Height)}
 	}
 
-	s.LogMessage("processList", fmt.Sprintf("Added %d/%d/%d", ack.DBHeight, ack.VMIndex, ack.Height), m)
+	s.LogMessage("processList", fmt.Sprintf("Added %7d/%02d/%-5d", ack.DBHeight, ack.VMIndex, ack.Height), m)
 
 	// If we add the message to the process list, ensure we actually process that
 	// message, so the next msg will be able to added without going into holding.

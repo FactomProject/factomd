@@ -22,14 +22,9 @@ import (
 	"github.com/FactomProject/factomd/p2p"
 
 	"github.com/FactomProject/factomd/common/messages/msgsupport"
-	log "github.com/sirupsen/logrus"
 )
 
-var (
-	proxyLogger = packageLogger.WithFields(log.Fields{
-		"subpack":   "p2p-proxy",
-		"component": "networking"})
-)
+//var (proxyLogger = packageLogger.WithFields(log.Fields{		"subpack":   "p2p-proxy",		"component": "networking"}))
 
 type P2PProxy struct {
 	common.Name
@@ -47,8 +42,6 @@ type P2PProxy struct {
 	bytesOut int // bandwidth used by application without network fan out
 	bytesIn  int // bandwidth received by application from network
 
-	// logging
-	logger *log.Entry
 }
 
 type FactomMessage struct {
@@ -94,7 +87,7 @@ func (p *P2PProxy) BytesIn() int {
 func (p *P2PProxy) Initialize(fromName, toName string) interfaces.IPeer {
 	p.ToName = toName
 	p.FromName = fromName
-	p.logger = proxyLogger.WithField("node", fromName)
+	//	p.logger = proxyLogger.WithField("node", fromName)
 	p.BroadcastOut = make(chan interface{}, p2p.StandardChannelSize)
 	p.BroadcastIn = make(chan interface{}, p2p.StandardChannelSize)
 
@@ -112,11 +105,11 @@ func (p *P2PProxy) GetNameTo() string {
 func (p *P2PProxy) Send(msg interfaces.IMsg) error {
 	data, err := msg.MarshalBinary()
 	if err != nil {
-		p.logger.WithField("send-error", err).Error()
+		//		p.logger.WithField("send-error", err).Error()
 		return err
 	}
-
-	msgLogger := p.logger.WithFields(msg.LogFields())
+	//
+	//	msgLogger := p.logger.WithFields(msg.LogFields())
 
 	p.bytesOut += len(data)
 	if msg.GetMsgHash() == nil || bytes.Equal(msg.GetMsgHash().Bytes(), constants.ZERO_HASH) {
@@ -128,16 +121,16 @@ func (p *P2PProxy) Send(msg interfaces.IMsg) error {
 		message := FactomMessage{Message: data, PeerHash: msg.GetNetworkOrigin(), AppHash: hash, AppType: appType}
 		switch {
 		case !msg.IsPeer2Peer() && msg.IsFullBroadcast():
-			msgLogger.Debug("Sending full broadcast message")
+			//			msgLogger.Debug("Sending full broadcast message")
 			message.PeerHash = p2p.FullBroadcastFlag
 		case !msg.IsPeer2Peer() && !msg.IsFullBroadcast():
-			msgLogger.Debug("Sending broadcast message")
+			//			msgLogger.Debug("Sending broadcast message")
 			message.PeerHash = p2p.BroadcastFlag
 		case msg.IsPeer2Peer() && 0 == len(message.PeerHash): // directed, with no direction of who to send it to
-			msgLogger.Debug("Sending directed message to a random peer")
+			//			msgLogger.Debug("Sending directed message to a random peer")
 			message.PeerHash = p2p.RandomPeerFlag
 		default:
-			msgLogger.Debugf("Sending directed message to: %s", message.PeerHash)
+			//			msgLogger.Debugf("Sending directed message to: %s", message.PeerHash)
 		}
 		p2p.BlockFreeChannelSend(p.BroadcastOut, message)
 	}
@@ -158,9 +151,9 @@ func (p *P2PProxy) Receive() (interfaces.IMsg, error) {
 				msg, err := msgsupport.UnmarshalMessage(fmessage.Message)
 
 				if err != nil {
-					proxyLogger.WithField("receive-error", err).Error()
+					//					proxyLogger.WithField("receive-error", err).Error()
 				} else {
-					proxyLogger.WithFields(msg.LogFields()).Debug("Received Message")
+					//					proxyLogger.WithFields(msg.LogFields()).Debug("Received Message")
 				}
 
 				if nil == err {
@@ -169,7 +162,7 @@ func (p *P2PProxy) Receive() (interfaces.IMsg, error) {
 				p.bytesIn += len(fmessage.Message)
 				return msg, err
 			default:
-				p.logger.Errorf("Garbage on f.BroadcastIn. %+v", data)
+				//p.logger.Errorf("Garbage on f.BroadcastIn. %+v", data)
 			}
 		}
 	default:
@@ -203,7 +196,7 @@ func (p *P2PProxy) Len() int {
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
 func (p *P2PProxy) networkHousekeeping(w *worker.Thread) {
-	w.Init(p, "networkHousekeeping")
+	//	w.Init(p, "networkHousekeeping")
 	w.OnRun(func() {
 		for {
 			time.Sleep(1 * time.Second)
@@ -219,19 +212,19 @@ func (p *P2PProxy) StartProxy(w *worker.Thread) {
 		node0.Peers = append(node0.Peers, p2pProxy)
 	}
 
-	p.logger.Info("Starting P2PProxy")
-	w.Spawn(p.ManageOutChannel) // Bridges between network format Parcels and factomd messages (incl. addressing to peers)
-	w.Spawn(p.ManageInChannel)
-	w.Spawn(p.networkHousekeeping) // This goroutine executes once a second to keep the proxy apprised of the network status.
+	//p.logger.Info("Starting P2PProxy")
+	w.Spawn("ManageOut", p.ManageOutChannel) // Bridges between network format Parcels and factomd messages (incl. addressing to peers)
+	w.Spawn("ManageIn", p.ManageInChannel)
+	w.Spawn("Housekeeping", p.networkHousekeeping) // This goroutine executes once a second to keep the proxy apprised of the network status.
 }
 
 func (p *P2PProxy) StopProxy() {
-	p.logger.Info("Stopped P2PProxy")
+	//p.logger.Info("Stopped P2PProxy")
 }
 
 // manageOutChannel takes messages from the f.broadcastOut channel and sends them to the network.
 func (p *P2PProxy) ManageOutChannel(w *worker.Thread) {
-	w.Init(p, "ManageOutChannel")
+	//	w.Init(p, "ManageOutChannel")
 	w.OnRun(func() {
 		for data := range p.BroadcastOut {
 			switch data.(type) {
@@ -249,7 +242,7 @@ func (p *P2PProxy) ManageOutChannel(w *worker.Thread) {
 					p2p.BlockFreeChannelSend(p.ToNetwork, parcel)
 				}
 			default:
-				p.logger.Errorf("Garbage on f.BrodcastOut. %+v", data)
+				//p.logger.Errorf("Garbage on f.BrodcastOut. %+v", data)
 			}
 		}
 	})
@@ -257,7 +250,7 @@ func (p *P2PProxy) ManageOutChannel(w *worker.Thread) {
 
 // manageInChannel takes messages from the network and stuffs it in the f.BroadcastIn channel
 func (p *P2PProxy) ManageInChannel(w *worker.Thread) {
-	w.Init(p, "ManageInChannel")
+	//	w.Init(p, "ManageInChannel")
 	w.OnRun(func() {
 		for data := range p.FromNetwork {
 			switch data.(type) {
@@ -269,7 +262,7 @@ func (p *P2PProxy) ManageInChannel(w *worker.Thread) {
 				BroadInCastQueue.Add(float64(-1 * removed))
 				BroadCastInQueueDrop.Add(float64(removed))
 			default:
-				p.logger.Errorf("Garbage on f.FromNetwork. %+v", data)
+				//p.logger.Errorf("Garbage on f.FromNetwork. %+v", data)
 			}
 		}
 	})

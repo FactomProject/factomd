@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
@@ -20,7 +21,6 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/primitives/random"
 	"github.com/FactomProject/factomd/fnode"
-	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/state"
 	. "github.com/FactomProject/factomd/testHelper"
 	"github.com/FactomProject/factomd/util/atomic"
@@ -1354,7 +1354,7 @@ func TestCatchupEveryMinute(t *testing.T) {
 	RunCmd("T25") // switch to 25 second blocks because dbstate catchup code fails at 6 second blocks
 	// bring them all back
 	for i := 0; i < 10; i++ {
-		state0.LogPrintf("test", "%s %d %s", atomic.WhereAmIString(0), i)
+		state0.LogPrintf("test", "%s %d", atomic.WhereAmIString(0), i)
 		RunCmd(fmt.Sprintf("%d", i+1))
 		WaitMinutes(state0, 1)
 		RunCmd("x")
@@ -1410,7 +1410,7 @@ func TestDebugLocationParse(t *testing.T) {
 
 	for i := 0; i < len(stringsToCheck); i++ {
 		// Checks that the SplitUpDebugLogRegEx function works as expected
-		dirlocation, regex := log.SplitUpDebugLogRegEx(stringsToCheck[i])
+		dirlocation, regex := filepath.Split(stringsToCheck[i])
 		if dirlocation != tempdir {
 			t.Fatalf("Error SplitUpDebugLogRegEx() did not return the correct directory location.")
 		}

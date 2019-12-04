@@ -2,6 +2,7 @@ package fnode
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/FactomProject/factomd/generated"
 	"github.com/FactomProject/factomd/pubsub"
@@ -20,13 +21,6 @@ type root struct {
 // factory method to spawn new nodes
 var Factory func(w *worker.Thread)
 
-// root of object hierarchy
-var Root = &root{}
-
-func init() {
-	Root.Init(Root, "")
-}
-
 type FactomNode struct {
 	common.Name
 	Index       int
@@ -39,10 +33,10 @@ type FactomNode struct {
 func New(s *state.State) *FactomNode {
 	n := new(FactomNode)
 	n.State = s
-	n.Init(Root, "svc") // root of service
+	n.NameInit(common.NilName, s.GetFactomNodeName(), reflect.TypeOf(n).String()) // All Fnodes are off the root
 	fnodes = append(fnodes, n)
 	n.addFnodeName()
-	n.State.Init(n, n.State.FactomNodeName)
+	//	n.State.Init(n, n.State.FactomNodeName)
 	n.outMessages = generated.Publish_PubBase_IMsg(pubsub.PubFactory.Base().Publish(n.GetParentName()+"/msgValidation/messages", pubsub.PubMultiWrap()))
 
 	return n
@@ -52,13 +46,6 @@ var fnodes []*FactomNode
 
 func GetFnodes() []*FactomNode {
 	return fnodes
-}
-
-func AddFnode(node *FactomNode) {
-	node.Init(Root, "svc") // root of service
-	node.State.Init(node, node.State.FactomNodeName)
-	node.State.Hold.Init(node.State, "HoldingList")
-	fnodes = append(fnodes, node)
 }
 
 func Get(i int) *FactomNode {
@@ -77,7 +64,4 @@ func (node *FactomNode) addFnodeName() {
 
 	// common short set
 	globals.FnodeNames[fmt.Sprintf("%x", node.State.IdentityChainID.Bytes()[3:6])] = name
-	globals.FnodeNames[fmt.Sprintf("%x", node.State.IdentityChainID.Bytes()[:5])] = name
-	globals.FnodeNames[fmt.Sprintf("%x", node.State.IdentityChainID.Bytes()[:])] = name
-	globals.FnodeNames[fmt.Sprintf("%x", node.State.IdentityChainID.Bytes()[:8])] = name
 }

@@ -45,7 +45,6 @@ BEGIN {
     lastBuiltBlockTime = "unset";
     firstExecBlockTime = "unset";
     lastExecBlockTime = "unset";
-    
 }
 
 func checkunset(a,b,c,d,e,f){
@@ -128,13 +127,13 @@ END {
 
 
     if(checkunset(saveStateBlockTime)) {
-        print "LoadFromDisk";
-        print "saveStateBlock   ","DBHT:", saveStateBlock, saveStateBlockTime;
+    print "LoadFromDisk";
+       print "saveStateBlock   ","DBHT:", saveStateBlock, saveStateBlockTime;
         if(checkunset(topOfDataBaseTime)) {
-            print "topOfDataBase    ","DBHT:", topOfDataBase, topOfDataBaseTime, timeDiff(topOfDataBaseTime, saveStateBlockTime);
-            rate = (topOfDataBase - saveStateBlock)/timeDiff(topOfDataBaseTime, saveStateBlockTime)
-            print "Rate = ", rate, "blocks per second or", 1/rate, " seconds per block";
-        }
+       print "topOfDataBase    ","DBHT:", topOfDataBase, topOfDataBaseTime, timeDiff(topOfDataBaseTime, saveStateBlockTime);
+       rate = (topOfDataBase - saveStateBlock)/timeDiff(topOfDataBaseTime, saveStateBlockTime)
+       print "Rate = ", rate, "blocks per second or", 1/rate, " seconds per block";
+    }
     }  else {
         print "Load from disk never started"
     }
@@ -143,9 +142,9 @@ END {
         print "firstBlockFromNet","DBHT:", firstBlockFromNet, firstBlockFromNetTime;
         if(checkunset(lastBlockFromNetTime)) {
             print "lastBlockFromNet ","DBHT:", lastBlockFromNet, "First Network Height", firstNetworkHeight, "Network Height", networkHeight, lastBlockFromNetTime, timeDiff(lastBlockFromNetTime, firstBlockFromNetTime);
-            rate = (lastBlockFromNet - firstBlockFromNet)/timeDiff(lastBlockFromNetTime, firstBlockFromNetTime);
-            print "Rate = ", rate, "blocks per second or", 1/rate, " seconds per block";
-        }
+        rate = (lastBlockFromNet - firstBlockFromNet)/timeDiff(lastBlockFromNetTime, firstBlockFromNetTime);
+        print "Rate = ", rate, "blocks per second or", 1/rate, " seconds per block";
+    }
     } else {
         print "First pass never started"
     }
@@ -153,10 +152,10 @@ END {
         print "SecondPassSync";
         print "firstMissingDataTime:", firstMissingDataTime;
         if(checkunset(lastMissingDataTime)) {
-            print "lastMissingDataTime: ", lastMissingDataTime, timeDiff(lastMissingDataTime, firstMissingDataTime);
-            rate = (lastBlockFromNet - firstBlockFromNet)/timeDiff(lastMissingDataTime, firstMissingDataTime);
-            print "Rate = ", rate, "blocks per second or", 1/rate, " seconds per block";
-        }
+        print "lastMissingDataTime: ", lastMissingDataTime, timeDiff(lastMissingDataTime, firstMissingDataTime);
+        rate = (lastBlockFromNet - firstBlockFromNet)/timeDiff(lastMissingDataTime, firstMissingDataTime);
+        print "Rate = ", rate, "blocks per second or", 1/rate, " seconds per block";
+    }
     } else {
         print "Second pass never started"
     }
@@ -175,10 +174,10 @@ END {
         print "FollowByMinutes";    
         print "firstBuiltBlock  ","DBHT:", firstBuiltBlock, firstBuiltBlockTime;
         if(checkunset(lastBuiltBlockTime)) {
-            print "lastBuiltBlock   ","DBHT:", lastBuiltBlock, lastBuiltBlockTime, timeDiff(lastBuiltBlockTime, firstBuiltBlockTime);
-            rate = (lastBuiltBlock - firstBuiltBlock)/timeDiff(lastBuiltBlockTime, firstBuiltBlockTime);
-            print "Rate = ", rate, "blocks per second or", 1/rate, " seconds per block";
-        }
+        print "lastBuiltBlock   ","DBHT:", lastBuiltBlock, lastBuiltBlockTime, timeDiff(lastBuiltBlockTime, firstBuiltBlockTime);
+        rate = (lastBuiltBlock - firstBuiltBlock)/timeDiff(lastBuiltBlockTime, firstBuiltBlockTime);
+        print "Rate = ", rate, "blocks per second or", 1/rate, " seconds per block";
+    } 
     } else {
         print "Follow(save) by minutes never started"
     }

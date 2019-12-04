@@ -70,7 +70,7 @@ func (s *State) MMRDummy() {
 // Ask VM for an MMR for this height with delay ms before asking the network
 // called from validation thread to notify MMR that we are missing a message
 func (vm *VM) ReportMissing(height int, delay int64) {
-	vm.p.State.LogPrintf("missing_messages", "ReportMissing %d/%d/%d, delay %d", vm.p.DBHeight, vm.VmIndex, height, delay)
+	//vm.p.State.LogPrintf("missing_messages", "ReportMissing %7d/%02d/%d, delay %d", vm.p.DBHeight, vm.VmIndex, height, delay)
 
 	now := vm.p.State.GetTimestamp().GetTimeMilli()
 	oneSeconds := int64(vm.p.State.FactomSecond().Nanoseconds() / time.Millisecond.Nanoseconds())
@@ -117,7 +117,7 @@ func (s *State) Ask(DBHeight int, vmIndex int, height int, when int64) bool {
 	// if msgqueue is full then the two threads can deadlock
 
 	if len(vm.p.State.asks) == cap(vm.p.State.asks) {
-		vm.p.State.LogPrintf("missing_messages", "drop, asks full %d/%d/%d", vm.p.DBHeight, vm.VmIndex, height)
+		vm.p.State.LogPrintf("missing_messages", "drop, asks full %7d/%02d/%-5d", vm.p.DBHeight, vm.VmIndex, height)
 		return false
 	}
 
@@ -152,7 +152,7 @@ func (s *State) makeMMRs(w *worker.Thread, asks <-chan askRef, adds <-chan plRef
 	// Delete any pending ask for a message that was just added to the processlist
 	deletePendingAsk := func(add plRef) {
 		delete(pending, add) // Delete request that was just added to the process list in the map
-		s.LogPrintf(logname, "Add %d/%d/%d %d", add.DBH, add.VM, add.H, len(pending))
+		s.LogPrintf(logname, "Add %7d/%02d/%d %d", add.DBH, add.VM, add.H, len(pending))
 	}
 
 	s.LogPrintf(logname, "Start MMR Process")
@@ -164,13 +164,13 @@ func (s *State) makeMMRs(w *worker.Thread, asks <-chan askRef, adds <-chan plRef
 			//fmt.Println("pending[ask.plRef]: ", ok)
 			when := ask.When
 			pending[ask.plRef] = &when // add the requests to the map
-			s.LogPrintf(logname, "Ask %d/%d/%d %d", ask.DBH, ask.VM, ask.H, len(pending))
+			s.LogPrintf(logname, "Ask %7d/%02d/%d %d", ask.DBH, ask.VM, ask.H, len(pending))
 
 			// checking if we already have the "missing" message in our maps
 			ack, msg := s.RecentMessage.GetAckAndMsg(ask.DBH, ask.VM, ask.H, s)
 			if msg != nil && ack != nil {
 				// send them to be executed
-				s.LogPrintf("mmr", "Found Ask %d/%d/%d. Adding to queues: Msg %d:%d Ack %d:%d Add %d:%d Ask %d:%d", ask.DBH, ask.VM, ask.H, len(s.msgQueue), cap(s.msgQueue), len(s.ackQueue), cap(s.ackQueue), len(s.adds), cap(s.adds), len(s.asks), cap(s.asks))
+				//				s.LogPrintf("mmr", "Found Ask %7d/%02d/%d. Adding to queues: Msg %d:%d Ack %d:%d Add %d:%d Ask %d:%d", ask.DBH, ask.VM, ask.H, len(s.msgQueue), cap(s.msgQueue), len(s.ackQueue), cap(s.ackQueue), len(s.adds), cap(s.adds), len(s.asks), cap(s.asks))
 
 				// Attempt to add the msg and ack to the prioritized message queue without blocking.
 				// If we end up dropping this message, there isn't much we can do without potentially blocking
@@ -205,7 +205,7 @@ func (s *State) makeMMRs(w *worker.Thread, asks <-chan askRef, adds <-chan plRef
 
 	// process all pending asks
 	addAllAsks := func() {
-		s.LogPrintf("mmr", "AddAllAsks %d asks", len(asks))
+		//		s.LogPrintf("mmr", "AddAllAsks %d asks", len(asks))
 	readasks:
 		for {
 			select {
@@ -242,7 +242,7 @@ func (s *State) makeMMRs(w *worker.Thread, asks <-chan askRef, adds <-chan plRef
 	}
 
 	// tick every "factom second" to check the  pending MMRs
-	w.Run(func() {
+	w.Run("MMRTicker", func() {
 		for {
 			if s.RunState.IsTerminating() {
 				return // Factomd is stopping/stopped
@@ -252,7 +252,7 @@ func (s *State) makeMMRs(w *worker.Thread, asks <-chan askRef, adds <-chan plRef
 				// If we add to the ticker, we will block forever, so just sleep
 				// and continue. If factomd is stopped, we will catch this on the continue
 				time.Sleep(1 * time.Second)
-				s.LogPrintf("mmr", "Ticker queue maxed, %d/%d", len(ticker), cap(ticker))
+				//				s.LogPrintf("mmr", "Ticker queue maxed, %d/%d", len(ticker), cap(ticker))
 				continue
 			}
 
@@ -266,7 +266,7 @@ func (s *State) makeMMRs(w *worker.Thread, asks <-chan askRef, adds <-chan plRef
 		}
 	})
 
-	w.Run(func() {
+	w.Run("MMRProcess", func() {
 		lastAskDelay := int64(0)
 		for {
 			// You have to compute this at every cycle as you can change the block time in sim control.
@@ -288,35 +288,35 @@ func (s *State) makeMMRs(w *worker.Thread, asks <-chan askRef, adds <-chan plRef
 			// process any incoming inMessages
 			select {
 			case msgPair := <-rejects:
-				s.LogMessage("mmr", "Reject", msgPair.Ack)
+				//				s.LogMessage("mmr", "Reject", msgPair.Ack)
 				s.RecentMessage.HandleRejection(msgPair.Msg, msgPair.Ack)
 			case msg := <-s.RecentMessage.NewMsgs:
-				s.LogPrintf("mmr", "start msg handling")
+				//				s.LogPrintf("mmr", "start msg handling")
 				s.RecentMessage.Add(msg) // adds inMessages to a message map for MMR
 
 			case dbheight = <-dbheights:
-				s.LogPrintf("mmr", "start dbheight handling")
+				//				s.LogPrintf("mmr", "start dbheight handling")
 				// toss any old pending requests when the height moves up
 				// todo: Keep asks in a  list so cleanup is more efficient
 				for ask, _ := range pending {
 					if int(ask.DBH) < dbheight {
-						s.LogPrintf(logname, "Expire %d/%d/%d %d", ask.DBH, ask.VM, ask.H, len(pending))
+						s.LogPrintf(logname, "Expire %7d/%02d/%-5d %d", ask.DBH, ask.VM, ask.H, len(pending))
 						delete(pending, ask)
 					}
 				}
 			case ask := <-asks:
-				s.LogPrintf("mmr", "start ask handling")
+				//				s.LogPrintf("mmr", "start ask handling")
 				addAsk(ask)  // add this ask
 				addAllAsks() // add all pending asks
 
 			case add := <-adds:
-				s.LogPrintf("mmr", "start add handling")
+				//				s.LogPrintf("mmr", "start add handling")
 				addAllAsks() // add all pending asks before any adds
-				s.LogPrintf("mmr", "asks done")
+				//				s.LogPrintf("mmr", "asks done")
 				deletePendingAsk(add) // cancel any pending ask for the message just added to the process list
 
 			case now = <-ticker:
-				s.LogPrintf("mmr", "Ticker handling")
+				//				s.LogPrintf("mmr", "Ticker handling")
 				addAllAsks()     // process all pending asks before any adds
 				addAllAdds()     // process all pending add before any ticks
 				readAllTickers() // drain the ticker channel
@@ -359,7 +359,7 @@ func (s *State) makeMMRs(w *worker.Thread, asks <-chan askRef, adds <-chan plRef
 					delete(mmrs, index)
 				} // Send MMRs that were built
 			} // select across all the channels, block till something happens
-			s.LogPrintf("mmr", "done")
+			//			s.LogPrintf("mmr", "done")
 		} // forever ...
 
 	})
@@ -432,12 +432,12 @@ func (mmrc *MissingMessageResponseCache) answerRequest(request *messages.Missing
 			response.SetNetworkOrigin(request.GetNetworkOrigin())
 			response.SendOut(mmrc.localState, response)
 			mmrc.localState.MissingRequestReplyCnt++
-			mmrc.localState.LogMessage("mmr_response", fmt.Sprintf("request_fufilled %d/%d/%d", ack.DBHeight, ack.VMIndex, ack.Height), response)
+			mmrc.localState.LogMessage("mmr_response", fmt.Sprintf("request_fufilled %7d/%02d/%-5d", ack.DBHeight, ack.VMIndex, ack.Height), response)
 		} else {
 			// If we are missing the plheight, we increment the ignore count as we don't have what
 			// the peer wanted.
 			mmrc.localState.MissingRequestIgnoreCnt++
-			mmrc.localState.LogPrintf("mmr_response", "pair_not_found %d/%d/%d", request.DBHeight, request.VMIndex, plHeight)
+			mmrc.localState.LogPrintf("mmr_response", "pair_not_found %7d/%02d/%-5d", request.DBHeight, request.VMIndex, plHeight)
 		}
 	}
 }
@@ -450,7 +450,7 @@ func (mmrc *MissingMessageResponseCache) Run() {
 		case processedPair := <-mmrc.ProcessedPairs:
 			// A new ack/msg pair is processed and ready to respond to missing message requests
 			ack := processedPair.Ack.(*messages.Ack)
-			mmrc.localState.LogMessage("mmr_response", fmt.Sprintf("add_pair %d/%d/%d", ack.DBHeight, ack.VMIndex, ack.Height), processedPair.Ack)
+			mmrc.localState.LogMessage("mmr_response", fmt.Sprintf("add_pair %7d/%02d/%-5d", ack.DBHeight, ack.VMIndex, ack.Height), processedPair.Ack)
 			mmrc.AckMessageCache.AddMsgPair(processedPair)
 		case requestI := <-mmrc.MissingMsgRequests:
 			// A missing msg request from a peer

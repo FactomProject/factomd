@@ -17,7 +17,7 @@ func threadFactory(t *testing.T, name string) worker.Handle {
 		ctx, cancel := context.WithCancel(context.Background())
 
 		// Launch another sub-thread
-		w.Run(func() {
+		w.Run("TestRegisterThread", func() {
 			name := fmt.Sprintf("%s/%s", name, "bar")
 			// this thread that only uses OnRun group
 			t.Logf("running %v %s", w.ID, name)

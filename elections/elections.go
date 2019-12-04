@@ -2,8 +2,10 @@ package elections
 
 import (
 	"fmt"
+	"reflect"
 	"time"
 
+	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/worker"
 
 	"github.com/FactomProject/factomd/common/globals"
@@ -11,8 +13,6 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util/atomic"
-
-	llog "github.com/FactomProject/factomd/log"
 )
 
 var _ = fmt.Print
@@ -28,8 +28,10 @@ type FaultId struct {
 }
 
 type Elections struct {
-	FedID     interfaces.IHash
-	Name      string
+	common.Name
+
+	FedID interfaces.IHash
+	//	Name      string
 	Sync      []bool // List of servers that have Synced
 	Federated []interfaces.IServer
 	Audit     []interfaces.IServer
@@ -304,23 +306,8 @@ func (e *Elections) debugExec() (ret bool) {
 	return globals.Params.DebugLogRegEx != ""
 }
 
-func (e *Elections) LogMessage(logName string, comment string, msg interfaces.IMsg) {
-	s := e.State.(*state.State)
-	if e.debugExec() {
-		logFileName := s.FactomNodeName + "_" + logName + ".txt"
-		var t string
-		if s.LeaderPL != nil {
-			t = fmt.Sprintf("%d-:-%d ", s.LeaderPL.DBHeight, s.CurrentMinute)
-		} else {
-			t = "--:--"
-		}
-
-		llog.LogMessage(logFileName, t+comment, msg)
-	}
-}
-
 func (e *Elections) LogPrintLeaders(log string) {
-	e.LogPrintf(log, "%20s | %20s", "Fed", "Aud")
+	e.LogPrintf(log, "%6s | %6s", "Fed", "Aud")
 	limit := len(e.Federated)
 	if limit < len(e.Audit) {
 		limit = len(e.Audit)
@@ -329,12 +316,12 @@ func (e *Elections) LogPrintLeaders(log string) {
 		f := ""
 		a := ""
 		if i < len(e.Federated) {
-			f = fmt.Sprintf("%x", e.Federated[i].GetChainID().Bytes()[3:6])
+			f = fmt.Sprintf("%6x", e.Federated[i].GetChainID().Bytes()[3:6])
 		}
 		if i < len(e.Audit) {
-			a = fmt.Sprintf("%x", e.Audit[i].GetChainID().Bytes()[3:6])
+			a = fmt.Sprintf("%6x", e.Audit[i].GetChainID().Bytes()[3:6])
 		}
-		e.LogPrintf(log, "%s | %s", f, a)
+		e.LogPrintf(log, "%6s | %6s", f, a)
 	}
 
 }
@@ -342,13 +329,14 @@ func (e *Elections) LogPrintLeaders(log string) {
 func (e *Elections) LogPrintf(logName string, format string, more ...interface{}) {
 	s := e.State.(*state.State)
 	if e.debugExec() {
-		logFileName := s.FactomNodeName + "_" + logName + ".txt"
-		h := 0
-		if s.LeaderPL != nil {
-			h = int(s.LeaderPL.DBHeight)
-		}
-		t := fmt.Sprintf("%d-:-%d ", h, s.CurrentMinute)
-		llog.LogPrintf(logFileName, t+format, more...)
+		s.LogPrintf(logName, format, more...)
+	}
+}
+
+func (e *Elections) LogMessage(logName string, comment string, msg interfaces.IMsg) {
+	s := e.State.(*state.State)
+	if e.debugExec() {
+		s.LogMessage(logName, comment, msg)
 	}
 }
 
@@ -445,9 +433,9 @@ func (e *Elections) ProcessWaiting() {
 // Runs the main loop for elections for this instance of factomd
 func Run(w *worker.Thread, s *state.State) {
 	e := new(Elections)
+	e.NameInit(s, s.FactomNodeName+"Election", reflect.TypeOf(e).String())
 	s.Elections = e
 	e.State = s
-	e.Name = s.FactomNodeName
 	e.Input = s.ElectionsQueue()
 	e.Electing = -1
 
@@ -456,7 +444,7 @@ func Run(w *worker.Thread, s *state.State) {
 	e.Waiting = make(chan interfaces.IElectionMsg, 500)
 
 	// Actually run the elections
-	w.Run(func() {
+	w.Run("Elections", func() {
 		for {
 			msg := e.Input.Dequeue().(interfaces.IElectionMsg)
 			e.LogMessage("election", fmt.Sprintf("exec %d", e.Electing), msg.(interfaces.IMsg))

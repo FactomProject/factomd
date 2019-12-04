@@ -7,6 +7,7 @@
 package generated
 
 import (
+	"reflect"
 	"sync"
 
 	"github.com/FactomProject/factomd/common"
@@ -23,7 +24,7 @@ type foo struct {
 }
 
 func (q *foo) Init(parent common.NamedObject, name string, size int) *foo {
-	q.Name.Init(parent, name)
+	q.Name.NameInit(parent, name, reflect.TypeOf(q).String())
 	q.internalMap = make(map[int]string, size)
 	return q
 }

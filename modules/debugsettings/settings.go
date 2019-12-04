@@ -18,7 +18,7 @@ func init() {
 }
 
 // Settings are all the various settings accessible by pub/sub
-// All settings are a Mutli Publisher, so they are always accessible.
+// All settings are a Multi Publisher, so they are always accessible.
 type Settings struct {
 	InputRegEx  pubsub.IPublisher
 	OutputRegEx pubsub.IPublisher

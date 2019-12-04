@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#grep "done.*EOM.*./0/" fnode0_processlist.txt  | ./minutelength.sh
+#grep "done.*EOM.*./00?/" fnode0_processlist.txt  | minutelength.sh
 ################################
 # AWK scripts                  #
 ################################

@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/common/constants"
@@ -57,8 +58,6 @@ func (l *HoldingList) Run(w *worker.Thread) {
 	l.heights = generated.Subscribe_ByChannel_DBHT(pubsub.SubFactory.Channel(10).Subscribe(w.GetParentName() + "/heights"))
 	l.metDependencyHashs = generated.Subscribe_ByChannel_Hash(pubsub.SubFactory.Channel(10).Subscribe(w.GetParentName() + "/dependencyHashs"))
 
-	w.Log.StateLogMessage()
-
 }
 
 // access gauge w/ proper labels
@@ -67,12 +66,12 @@ func (l *HoldingList) metric(msg interfaces.IMsg) telemetry.Gauge {
 }
 
 func NewHoldingList(s *State) *HoldingList {
-	l := HoldingList{}
-	l.Init(s, "DependentHolding")
+	l := new(HoldingList)
+	l.NameInit(s, "DependentHolding", reflect.TypeOf(l).String())
 	l.holding = make(map[[32]byte][]interfaces.IMsg)
 	l.s = s
 	l.dependents = make(map[[32]byte]heldMessage)
-	return &l
+	return l
 }
 
 func (l *HoldingList) Messages() map[[32]byte][]interfaces.IMsg {
