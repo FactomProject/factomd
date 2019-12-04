@@ -3,9 +3,10 @@ package registry_test
 import (
 	"context"
 	"fmt"
+	"testing"
+
 	"github.com/FactomProject/factomd/registry"
 	"github.com/FactomProject/factomd/worker"
-	"testing"
 )
 
 // add a sub thread that uses all callbacks

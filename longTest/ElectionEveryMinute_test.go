@@ -2,8 +2,9 @@ package longtest
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/fnode"
 	"testing"
+
+	"github.com/FactomProject/factomd/fnode"
 
 	. "github.com/FactomProject/factomd/testHelper"
 )

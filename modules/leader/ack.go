@@ -1,11 +1,12 @@
 package leader
 
 import (
+	"sync"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/modules/event"
-	"sync"
 )
 
 var heightLock sync.Mutex

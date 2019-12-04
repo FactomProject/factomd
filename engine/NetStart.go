@@ -8,10 +8,11 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/FactomProject/factomd/modules/leader"
 	"os"
 	"sync"
 	"time"
+
+	"github.com/FactomProject/factomd/modules/leader"
 
 	"github.com/FactomProject/factomd/modules/debugsettings"
 

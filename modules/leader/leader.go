@@ -2,13 +2,14 @@ package leader
 
 import (
 	"encoding/binary"
+	"sync"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	llog "github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/modules/event"
 	"github.com/FactomProject/factomd/state"
-	"sync"
 )
 
 var log = llog.PackageLogger
@@ -20,7 +21,7 @@ type Leader struct {
 	VMIndex      int // vm this leader is responsible fore
 	EOMSyncEnd   int64
 	EOMIssueTime int64
-	loaded sync.WaitGroup
+	loaded       sync.WaitGroup
 }
 
 // initialize the leader event aggregate

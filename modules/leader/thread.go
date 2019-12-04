@@ -1,13 +1,14 @@
 package leader
 
 import (
+	"sync"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/fnode"
 	"github.com/FactomProject/factomd/modules/event"
 	"github.com/FactomProject/factomd/pubsub"
 	"github.com/FactomProject/factomd/worker"
-	"sync"
 )
 
 type Pub struct {
@@ -94,13 +95,14 @@ func (l *Leader) Run() {
 		}
 	}
 }
+
 var loadedEnd sync.Once
 
-func (l*Leader) seqChanged() {
+func (l *Leader) seqChanged() {
 	if l.DBHT.Minute != 0 {
 		return
 	}
-	loadedEnd.Do(func(){
+	loadedEnd.Do(func() {
 		l.loaded.Done()
 	})
 
@@ -126,4 +128,3 @@ func (l*Leader) seqChanged() {
 	l.VMIndex = 0 // KLUDGE hard coded for single leader
 	l.SendDBSig()
 }
-

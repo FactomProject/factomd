@@ -7,11 +7,12 @@ package state
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/FactomProject/factomd/modules/event"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/FactomProject/factomd/modules/event"
 
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"

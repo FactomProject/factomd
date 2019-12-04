@@ -1,8 +1,9 @@
 package log_test
 
 import (
-	"github.com/FactomProject/factomd/registry"
 	"testing"
+
+	"github.com/FactomProject/factomd/registry"
 
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/worker"

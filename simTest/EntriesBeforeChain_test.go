@@ -3,8 +3,9 @@ package simtest
 import (
 	"bytes"
 	"fmt"
-	"github.com/FactomProject/factomd/fnode"
 	"testing"
+
+	"github.com/FactomProject/factomd/fnode"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 
