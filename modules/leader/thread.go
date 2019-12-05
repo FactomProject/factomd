@@ -91,6 +91,7 @@ func (l *Leader) ProcessMin() {
 			l.Config = v.(*event.LeaderConfig)
 		case v := <-l.MsgInput.Updates:
 			m := v.(interfaces.IMsg)
+			// TODO: do leader work - actually validate the message
 			if constants.NeedsAck(m.Type()) {
 				log.LogMessage("leader.txt", "msgIn ", m)
 				l.sendAck(m)
@@ -106,7 +107,6 @@ func (l *Leader) WaitForMoveToHt() int {
 	for { // could be counted 0..9 to account for min
 		// possibly shut down this leader thread or maybe unsubscribe to events
 		select {
-		//case v := <-l.NewAuthoritySet
 		case v := <-l.MovedToHeight.Updates:
 			evt := v.(*event.DBHT)
 			log.LogPrintf("leader.txt", "DBHT: %v", evt)
@@ -126,16 +126,17 @@ func (l *Leader) WaitForMoveToHt() int {
 }
 
 func (l *Leader) Run() {
+	// TODO: wait until after boot height
+	// ignore these events during DB loading
 	l.WaitForMoveToHt()
 
 blockLoop:
 	for {
 
-		//case v := <-l.NewAuthoritySet
-		// if got a new Auth & no longer leader - break the block look
-		l.VMIndex = 0 // KLUDGE hard coded for single leader
-
-		if false {
+		if false { // TODO: deal w/ new auth set
+			//case v := <-l.NewAuthoritySet
+			// if got a new Auth & no longer leader - break the block look
+			l.VMIndex = 0 // KLUDGE hard coded for single leader
 			break blockLoop
 		}
 
@@ -144,7 +145,8 @@ blockLoop:
 			l.Balance = v.(*event.Balance)
 			log.LogPrintf("leader.txt", "BalChange: %v", v)
 		}
-		for {
+		// TODO: refactor to only get a single Directory event
+		for { // wait on a new (unique) directory event
 			v := <-l.Sub.DBlockCreated.Updates
 			evt := v.(*event.Directory)
 			if l.Directory != nil && evt.DBHeight == l.Directory.DBHeight {
