@@ -1,7 +1,7 @@
 package leader
 
 import (
-	"sync"
+	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -44,8 +44,6 @@ func (*Leader) mkChan() *pubsub.SubChannel {
 
 func (l *Leader) Start(w *worker.Thread) {
 
-	w.Spawn(l.EOMTimer)
-
 	w.Spawn(func(w *worker.Thread) {
 		w.Init(&w.Name, "LeaderThread")
 		w.OnReady(l.Ready)
@@ -80,50 +78,97 @@ func (l *Leader) Ready() {
 	l.Sub.BalanceChanged.Subscribe(pubsub.GetPath(node0, event.Path.Bank))
 }
 
-func (l *Leader) Run() {
+func (l *Leader) ProcessMin() {
+	go func() {
+		time.Sleep(time.Second * 3 / 2) // FIXME add min alignment
+		l.ticker <- true
+	}()
+
 	for {
+
 		select {
+		case v := <-l.Sub.LeaderConfig.Updates:
+			l.Config = v.(*event.LeaderConfig)
 		case v := <-l.MsgInput.Updates:
 			m := v.(interfaces.IMsg)
 			if constants.NeedsAck(m.Type()) {
+				log.LogMessage("leader.txt", "msgIn ", m)
 				l.sendAck(m)
 			}
-		case v := <-l.MovedToHeight.Updates:
-			l.DBHT = v.(*event.DBHT)
-			log.LogPrintf("leader.txt", "SeqChange: %v", v)
-			l.seqChanged()
+		case <-l.ticker:
+			log.LogPrintf("leader.txt", "Ticker:")
+			return
 		}
 	}
 }
 
-var loadedEnd sync.Once
-
-func (l *Leader) seqChanged() {
-	if l.DBHT.Minute != 0 {
-		return
-	}
-	loadedEnd.Do(func() {
-		l.loaded.Done()
-	})
-
-	{ // possibly shut down this leader thread or maybe unsubscribe to events
+func (l *Leader) WaitForMoveToHt() int {
+	for { // could be counted 0..9 to account for min
+		// possibly shut down this leader thread or maybe unsubscribe to events
 		select {
 		//case v := <-l.NewAuthoritySet
-		case v := <-l.Sub.LeaderConfig.Updates:
-			l.Config = v.(*event.LeaderConfig)
-		default:
+		case v := <-l.MovedToHeight.Updates:
+			evt := v.(*event.DBHT)
+			log.LogPrintf("leader.txt", "DBHT: %v", evt)
+
+			if evt.Minute == 10 {
+				continue
+			}
+			if l.DBHT.Minute == evt.Minute && l.DBHT.DBHeight == evt.DBHeight {
+				continue
+			}
+
+			l.DBHT = evt
+			return l.DBHT.Minute
 		}
 	}
-	{
-		v := <-l.Sub.BalanceChanged.Updates
-		l.Balance = v.(*event.Balance)
-		log.LogPrintf("leader.txt", "BalChange: %v", v)
+
+}
+
+func (l *Leader) Run() {
+	l.WaitForMoveToHt()
+
+blockLoop:
+	for {
+
+		//case v := <-l.NewAuthoritySet
+		// if got a new Auth & no longer leader - break the block look
+		l.VMIndex = 0 // KLUDGE hard coded for single leader
+
+		if false {
+			break blockLoop
+		}
+
+		{
+			v := <-l.Sub.BalanceChanged.Updates
+			l.Balance = v.(*event.Balance)
+			log.LogPrintf("leader.txt", "BalChange: %v", v)
+		}
+		for {
+			v := <-l.Sub.DBlockCreated.Updates
+			evt := v.(*event.Directory)
+			if l.Directory != nil && evt.DBHeight == l.Directory.DBHeight {
+				log.LogPrintf("leader.txt", "DUP Directory: %v", v)
+				continue
+			} else {
+				log.LogPrintf("leader.txt", "Directory: %v", v)
+			}
+			l.Directory = v.(*event.Directory)
+			break
+		}
+
+		l.SendDBSig()
+
+		log.LogPrintf("leader.txt", "MinLoopStart: %v", true)
+	minLoop:
+		for { // could be counted 1..9 to account for min
+			l.ProcessMin()
+			l.SendEOM()
+			min := l.WaitForMoveToHt()
+			if min == 0 {
+				break minLoop
+			}
+		}
+		log.LogPrintf("leader.txt", "MinLoopEnd: %v", true)
 	}
-	{
-		v := <-l.Sub.DBlockCreated.Updates
-		l.Directory = v.(*event.Directory)
-		log.LogPrintf("leader.txt", "Directory: %v", v)
-	}
-	l.VMIndex = 0 // KLUDGE hard coded for single leader
-	l.SendDBSig()
 }

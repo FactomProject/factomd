@@ -772,10 +772,14 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 	//	s.LogPrintf("dbstateprocess", "MoveStateToHeight(%d-:-%d) called from %s", dbheight, newMinute, atomic.WhereAmIString(1))
 	s.LogPrintf("dbstateprocess", "MoveStateToHeight(%d-:-%d)", dbheight, newMinute)
 	s.LogPrintf("executemsg", "MoveStateToHeight(%d-:-%d)", dbheight, newMinute)
+	s.LogPrintf("leader", "MoveStateToHeight(%d-:-%d)", dbheight, newMinute)
 
 	if s.LLeaderHeight == dbheight && newMinute == s.CurrentMinute {
+		s.LogPrintf("leader", "early return - MoveStateToHeight(%d-:-%d)", dbheight, newMinute)
 		return
 	}
+
+	callUpdateState := false
 
 	if (s.LLeaderHeight+1 == dbheight && newMinute == 0) || (s.LLeaderHeight == dbheight && s.CurrentMinute+1 == newMinute) {
 		// valid move
@@ -854,16 +858,18 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 			{
 				dbstate := s.DBStates.Get(int(dbheight - 1))
 
-				s.Pub.Directory.Write(&event.Directory{
+				directory := event.Directory{
 					DBHeight:             dbheight,
 					VMIndex:              s.LeaderVMIndex,
 					DirectoryBlockHeader: dbstate.DirectoryBlock.GetHeader(),
 					Timestamp:            s.GetTimestamp(),
-				})
+				}
+				s.Pub.Directory.Write(&directory)
+				s.LogPrintf("leader", "%v", directory)
 
 			}
 		}
-		s.DBStates.UpdateState() // go process the DBSigs
+		callUpdateState = true
 
 		// Expire old commits and stuff ...
 		s.Commits.Cleanup(s)
@@ -877,7 +883,7 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 				s.LogPrintf("dbstateprocess", "Set ReadyToSave %d", dbstate.DirectoryBlock.GetHeader().GetDBHeight())
 				dbstate.ReadyToSave = true
 			}
-			s.DBStates.UpdateState() // call to get the state signed now that the DBSigs have processed
+			callUpdateState = true
 		case 2:
 			s.ExpireHolding() // expire anything in holding that is old.
 		}
@@ -887,14 +893,18 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		// there might be a circumstance where we get here in a weird state
 		// so make it the normal starting state
 
-		s.CurrentMinuteStartTime = time.Now().UnixNano()
-		// If an election took place, our lists will be unsorted. Fix that
-		s.LeaderPL.SortAuditServers()
-		s.LeaderPL.SortFedServers()
-
-		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(newMinute, s.IdentityChainID) // MoveStateToHeight minute
-		s.LogPrintf("executeMsg", "MoveStateToHeight new minute set leader=%v, vmIndex = %v", s.Leader, s.LeaderVMIndex)
 	}
+
+	if callUpdateState {
+		s.DBStates.UpdateState() // call to get the state signed now that the DBSigs have processed
+	}
+	s.CurrentMinuteStartTime = time.Now().UnixNano()
+	// If an election took place, our lists will be unsorted. Fix that
+	s.LeaderPL.SortAuditServers()
+	s.LeaderPL.SortFedServers()
+
+	s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(newMinute, s.IdentityChainID) // MoveStateToHeight minute
+	s.LogPrintf("executeMsg", "MoveStateToHeight new minute set leader=%v, vmIndex = %v", s.Leader, s.LeaderVMIndex)
 
 	{ // debug
 		vmSync := false

@@ -13,6 +13,7 @@ import (
 )
 
 var log = llog.PackageLogger
+var logfile = "fnode0_leader.txt"
 
 type Leader struct {
 	Pub
@@ -22,6 +23,7 @@ type Leader struct {
 	EOMSyncEnd   int64
 	EOMIssueTime int64
 	loaded       sync.WaitGroup
+	ticker       chan interface{}
 }
 
 // initialize the leader event aggregate
@@ -30,6 +32,7 @@ func New(s *state.State) *Leader {
 	l := new(Leader)
 	l.loaded.Add(1)
 	l.VMIndex = s.LeaderVMIndex
+	l.ticker = make(chan interface{})
 
 	l.Events = &Events{
 		Config: &event.LeaderConfig{
@@ -52,7 +55,7 @@ func New(s *state.State) *Leader {
 }
 
 func (l *Leader) SendOut(msg interfaces.IMsg) {
-	log.LogMessage("leader.txt", "sendout", msg)
+	log.LogMessage(logfile, "sendout", msg)
 	l.Pub.MsgOut.Write(msg)
 }
 

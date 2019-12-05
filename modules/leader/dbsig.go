@@ -10,7 +10,7 @@ func (l *Leader) CreateDBSig() (interfaces.IMsg, interfaces.IMsg) {
 	dbs := new(messages.DirectoryBlockSignature)
 	dbs.DirectoryBlockHeader = l.Directory.DirectoryBlockHeader
 	dbs.ServerIdentityChainID = l.Config.IdentityChainID
-	dbs.DBHeight = l.Directory.DBHeight
+	dbs.DBHeight = l.DBHT.DBHeight
 	dbs.Timestamp = l.GetTimestamp()
 	dbs.SetVMHash(nil)
 	dbs.SetVMIndex(l.VMIndex)
@@ -28,11 +28,6 @@ func (l *Leader) CreateDBSig() (interfaces.IMsg, interfaces.IMsg) {
 
 func (l *Leader) SendDBSig() {
 	l.Ack = nil // this allows the DBState for block 1 to be written, but then stalls at 2-:-0
-	/*
-		if l.Ack != nil {
-			l.Ack.Height = 0 // reset only pl height
-		}
-	*/
 	dbs, ack := l.CreateDBSig()
 	l.SendOut(dbs)
 	l.SendOut(ack)
