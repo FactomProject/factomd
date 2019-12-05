@@ -8,11 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/FactomProject/factomd/common"
-	log2 "github.com/FactomProject/factomd/log"
-	"github.com/FactomProject/factomd/modules/logging"
-
 	"github.com/FactomProject/factomd/Utilities/CorrectChainHeads/correctChainHeads"
+	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/constants/runstate"
 	"github.com/FactomProject/factomd/common/globals"
@@ -20,6 +17,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
+	"github.com/FactomProject/factomd/modules/logging"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/util"
 )
@@ -232,7 +230,6 @@ func NewState(p *globals.FactomParams, FactomdVersion string) *State {
 	s.logging.AddPrintField("dbht",
 		func(interface{}) string { return fmt.Sprintf("%7d-:-%-2d", *&s.LLeaderHeight, *&s.CurrentMinute) },
 		"")
-
 	s.TimestampAtBoot = primitives.NewTimestampNow()
 	preBootTime := new(primitives.Timestamp)
 	preBootTime.SetTimeMilli(s.TimestampAtBoot.GetTimeMilli() - 20*60*1000)
@@ -453,8 +450,6 @@ func (s *State) Initialize(o common.NamedObject, electionFactory interfaces.IEle
 	s.TimeOffset = new(primitives.Timestamp)                  //interfaces.Timestamp(int64(rand.Int63() % int64(time.Microsecond*10)))
 	s.InvalidMessages = make(map[[32]byte]interfaces.IMsg, 0) //
 	s.ShutdownChan = make(chan int, 1)                        //SubChannel to gracefully shut down.
-	s.tickerQueue = make(chan int, 100)                       //ticks from a clock
-	s.timerMsgQueue = make(chan interfaces.IMsg, 100)         //incoming eom notifications, used by leaders
 	//	s.ControlPanelChannel = make(chan DisplayState, 20)                     //
 	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 100)              //incoming message queue from the network inMessages
 	s.networkOutMsgQueue = NewNetOutMsgQueue(s, constants.INMSGQUEUE_MED)   //Messages to be broadcast to the network
@@ -652,16 +647,6 @@ func (s *State) Initialize(o common.NamedObject, electionFactory interfaces.IEle
 			}
 		}
 	}
-	//
-	//	s.Logger = log.WithFields(log.Fields{"node-name": s.GetFactomNodeName(), "identity": s.GetIdentityChainID().String()})
-
-	// Set up Logstash Hook for Logrus (if enabled)
-	//if s.UseLogstash {
-	//	err := s.HookLogstash()
-	//	if err != nil {
-	//		log.Fatal(err)
-	//	}
-	//}
 
 	if globals.Params.WriteProcessedDBStates {
 		path := filepath.Join(s.LdbPath, s.Network, "dbstates")

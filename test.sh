@@ -57,8 +57,11 @@ function loadTestList() {
 		# run on circle
 		if [[ "${CI}x" != "x" ]]; then
 			TESTS=$({
-				listModules
-				echo "simTest/TestAnElection"
+				#listModules
+				#echo "simTest/TestAnElection"
+
+                # KLUDGE Only testing leader thread in this branch
+				echo "simTest/TestEntriesBeforeChain"
 			} | circleci tests split) # circleci helper spreads tests across containers
 
 		else # run locally

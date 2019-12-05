@@ -103,8 +103,8 @@ type StateConfig struct {
 type State struct {
 	common.Name
 	StateConfig
-
 	logging           *logging.LayerLogger
+	Pub               // Publisher hooks
 	RunState          runstate.RunState
 	NetworkController *p2p.Controller
 	Salt              interfaces.IHash
@@ -178,7 +178,6 @@ type State struct {
 	ResendCnt int
 	ExpireCnt int
 
-	tickerQueue            chan int
 	timerMsgQueue          chan interfaces.IMsg
 	MaxTimeOffset          interfaces.Timestamp
 	networkOutMsgQueue     *queue.MsgQueue
@@ -204,12 +203,10 @@ type State struct {
 	// RPC connection config
 
 	// Server State
-	StartDelay   int64 // Time in Milliseconds since the last DBState was applied
-	DBFinished   bool
-	RunLeader    bool
-	BootTime     int64 // Time in seconds that we last booted
-	EOMIssueTime int64
-	EOMSyncEnd   int64
+	StartDelay int64 // Time in Milliseconds since the last DBState was applied
+	DBFinished bool
+	RunLeader  bool
+	BootTime   int64 // Time in seconds that we last booted
 
 	// Ignore missing inMessages for a period to allow rebooting a network where your
 	// own inMessages from the previously executing network can confuse you.
@@ -609,20 +606,6 @@ func (s *State) GetSalt(ts interfaces.Timestamp) uint32 {
 	c := primitives.Sha(b[:])
 	return binary.BigEndian.Uint32(c.Bytes())
 }
-
-//func (s *State) HookLogstash() error {
-//	hook, err := logrustash.NewAsyncHook("tcp", s.LogstashURL, "factomdLogs")
-//	if err != nil {
-//		return err
-//	}
-//
-//	hook.ReconnectBaseDelay = time.Second // Wait for one second before first reconnect.
-//	hook.ReconnectDelayMultiplier = 2
-//	hook.MaxReconnectRetries = 10
-//
-//	s.Logger.Logger.Hooks.Add(hook)
-//	return nil
-//}
 
 func (s *State) GetEntryBlockDBHeightComplete() uint32 {
 	return s.EntryBlockDBHeightComplete
@@ -1528,32 +1511,6 @@ func (s *State) initServerKeys() {
 	s.ServerPubKey = s.ServerPrivKey.Pub
 }
 
-func (s *State) Log(level string, message string) {
-	//	//	packageLogger.WithFields(s.Logger.Data).Info(message)
-}
-
-func (s *State) Logf(level string, format string, args ...interface{}) {
-	//	//	llog := packageLogger.WithFields(s.Logger.Data)
-	//switch level {
-	//case "emergency":
-	//	llog.Panicf(format, args...)
-	//case "alert":
-	//	llog.Panicf(format, args...)
-	//case "critical":
-	//	llog.Panicf(format, args...)
-	//case "error":
-	//	llog.Errorf(format, args...)
-	//case "llog":
-	//	llog.Warningf(format, args...)
-	//case "info":
-	//	llog.Infof(format, args...)
-	//case "debug":
-	//	llog.Debugf(format, args...)
-	//default:
-	//	llog.Infof(format, args...)
-	//}
-}
-
 func (s *State) GetAuditHeartBeats() []interfaces.IMsg {
 	return s.AuditHeartBeats
 }
@@ -1586,10 +1543,6 @@ func (s *State) SetPort(port int) {
 
 func (s *State) GetPort() int {
 	return s.PortNumber
-}
-
-func (s *State) TickerQueue() chan int {
-	return s.tickerQueue
 }
 
 func (s *State) TimerMsgQueue() chan interfaces.IMsg {

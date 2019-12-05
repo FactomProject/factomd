@@ -112,7 +112,6 @@ type IState interface {
 	//==========
 
 	// Network Processor
-	TickerQueue() chan int
 	TimerMsgQueue() chan IMsg
 	NetworkOutMsgQueue() IQueue
 	NetworkInvalidMsgQueue() chan IMsg
