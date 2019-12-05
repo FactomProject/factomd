@@ -12,6 +12,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants/runstate"
 	"github.com/FactomProject/factomd/common/interfaces"
 	llog "github.com/FactomProject/factomd/log"
+	"github.com/FactomProject/factomd/modules/event"
 	"github.com/FactomProject/factomd/pubsub"
 	"github.com/FactomProject/factomd/util/atomic"
 )
@@ -91,6 +92,9 @@ func (s *State) MsgSort() {
 		}
 	}()
 	leaderOut := pubsub.SubFactory.Channel(50)
+	if s.GetFactomNodeName() == "FNode0" {
+		leaderOut.Subscribe(pubsub.GetPath(s.GetFactomNodeName(), event.Path.LeaderMsgOut))
+	}
 
 	// Look for pending inMessages, and get one if there is one.
 	for { // this is the message sort

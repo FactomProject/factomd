@@ -310,7 +310,7 @@ func (s *State) executeMsg(msg interfaces.IMsg) (ret bool) {
 			(!s.Syncing || !vms) && // if not syncing or this VM is not yet synced
 			(local || vmi == s.LeaderVMIndex) && // if it's a local message or it a message for our VM
 			s.LeaderPL.DBHeight+1 >= hkb {
-			panic("not lold leader")
+			//			panic("not old leader")
 			if vml == 0 { // if we have not generated a DBSig ...
 				//				s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex) // ExecuteMsg()
 				TotalXReviewQueueInputs.Inc()

@@ -93,11 +93,11 @@ func (l *Leader) ProcessMin() {
 			m := v.(interfaces.IMsg)
 			// TODO: do leader work - actually validate the message
 			if constants.NeedsAck(m.Type()) {
-				log.LogMessage("leader.txt", "msgIn ", m)
+				log.LogMessage(logfile, "msgIn ", m)
 				l.sendAck(m)
 			}
 		case <-l.ticker:
-			log.LogPrintf("leader.txt", "Ticker:")
+			log.LogPrintf(logfile, "Ticker:")
 			return
 		}
 	}
@@ -109,7 +109,7 @@ func (l *Leader) WaitForMoveToHt() int {
 		select {
 		case v := <-l.MovedToHeight.Updates:
 			evt := v.(*event.DBHT)
-			log.LogPrintf("leader.txt", "DBHT: %v", evt)
+			log.LogPrintf(logfile, "DBHT: %v", evt)
 
 			if evt.Minute == 10 {
 				continue
@@ -143,17 +143,17 @@ blockLoop:
 		{
 			v := <-l.Sub.BalanceChanged.Updates
 			l.Balance = v.(*event.Balance)
-			log.LogPrintf("leader.txt", "BalChange: %v", v)
+			log.LogPrintf(logfile, "BalChange: %v", v)
 		}
 		// TODO: refactor to only get a single Directory event
 		for { // wait on a new (unique) directory event
 			v := <-l.Sub.DBlockCreated.Updates
 			evt := v.(*event.Directory)
 			if l.Directory != nil && evt.DBHeight == l.Directory.DBHeight {
-				log.LogPrintf("leader.txt", "DUP Directory: %v", v)
+				log.LogPrintf(logfile, "DUP Directory: %v", v)
 				continue
 			} else {
-				log.LogPrintf("leader.txt", "Directory: %v", v)
+				log.LogPrintf(logfile, "Directory: %v", v)
 			}
 			l.Directory = v.(*event.Directory)
 			break
@@ -161,7 +161,7 @@ blockLoop:
 
 		l.SendDBSig()
 
-		log.LogPrintf("leader.txt", "MinLoopStart: %v", true)
+		log.LogPrintf(logfile, "MinLoopStart: %v", true)
 	minLoop:
 		for { // could be counted 1..9 to account for min
 			l.ProcessMin()
@@ -171,6 +171,6 @@ blockLoop:
 				break minLoop
 			}
 		}
-		log.LogPrintf("leader.txt", "MinLoopEnd: %v", true)
+		log.LogPrintf(logfile, "MinLoopEnd: %v", true)
 	}
 }

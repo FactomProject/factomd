@@ -12,7 +12,7 @@ import (
 	"github.com/FactomProject/factomd/state"
 )
 
-var logfile = "fnode0_leader.txt"
+var logfile = "fnode0_leader"
 
 type Leader struct {
 	Pub

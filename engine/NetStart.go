@@ -16,7 +16,6 @@ import (
 	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/modules/debugsettings"
 	"github.com/FactomProject/factomd/modules/leader"
-
 	"github.com/FactomProject/factomd/simulation"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -364,6 +363,7 @@ func startServer(w *worker.Thread, node *fnode.FactomNode) {
 	NetworkProcessorNet(w, node)
 	s := node.State
 	w.Run("MsgSort", s.MsgSort)
+
 	w.Run("MsgExecute", s.MsgExecute)
 
 	elections.Run(w, s)
