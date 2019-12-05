@@ -7,12 +7,11 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
-	llog "github.com/FactomProject/factomd/log"
+	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/modules/event"
 	"github.com/FactomProject/factomd/state"
 )
 
-var log = llog.PackageLogger
 var logfile = "fnode0_leader.txt"
 
 type Leader struct {

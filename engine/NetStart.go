@@ -372,7 +372,6 @@ func startServer(w *worker.Thread, node *fnode.FactomNode) {
 	w.Run("DBStateCatchup", s.DBStates.Catchup)
 	w.Run("LoadDatabase", s.LoadDatabase)
 	w.Run("SyncEntries", s.GoSyncEntries)
-	w.Run("EOMTicker", s.EOMTicker)
 	w.Run("MMResponseHandler", s.MissingMessageResponseHandler.Run)
 }
 

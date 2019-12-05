@@ -44,8 +44,6 @@ type IState interface {
 	GetIdentityChainID() IHash
 	SetIdentityChainID(IHash)
 	Sign([]byte) IFullSignature
-	Log(level string, message string)
-	Logf(level string, format string, args ...interface{})
 	GetServerPublicKeyString() string
 
 	GetDBStatesSent() []*DBStateSent
@@ -204,7 +202,6 @@ type IState interface {
 	// ====
 
 	GetSystemMsg(dbheight, height uint32) IMsg // Return the system message at the given height.
-	SendDBSig(dbheight uint32, vmIndex int)    // If a Leader, we have to send a DBSig out for the previous block
 
 	FollowerExecuteMsg(IMsg)          // Messages that go into the process list
 	FollowerExecuteEOM(IMsg)          // Messages that go into the process list

@@ -23,7 +23,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/modules/event"
-	"github.com/FactomProject/factomd/modules/logging"
+	. "github.com/FactomProject/factomd/modules/logging"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/util/atomic"
 )
@@ -72,7 +72,7 @@ func (s *State) LogPrintf(logName string, format string, more ...interface{}) {
 				"dbht":    "unknown", // don't know the height is we don't have a state
 				"comment": Delay_formater(format, more...)})
 		} else {
-			s.logging.Log(logging.LogData{"logname": logName, "comment": logging.Delay_formater(format, more...)})
+			s.logging.Log(LogData{"logname": logName, "comment": Delay_formater(format, more...)})
 		}
 	}
 }
@@ -310,8 +310,9 @@ func (s *State) executeMsg(msg interfaces.IMsg) (ret bool) {
 			(!s.Syncing || !vms) && // if not syncing or this VM is not yet synced
 			(local || vmi == s.LeaderVMIndex) && // if it's a local message or it a message for our VM
 			s.LeaderPL.DBHeight+1 >= hkb {
+			panic("not lold leader")
 			if vml == 0 { // if we have not generated a DBSig ...
-				s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex) // ExecuteMsg()
+				//				s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex) // ExecuteMsg()
 				TotalXReviewQueueInputs.Inc()
 				s.XReview = append(s.XReview, msg)
 				s.LogMessage("executeMsg", "Missing DBSig use XReview", msg)

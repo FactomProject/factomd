@@ -6,6 +6,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/fnode"
+	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/modules/event"
 	"github.com/FactomProject/factomd/pubsub"
 	"github.com/FactomProject/factomd/worker"
@@ -44,8 +45,7 @@ func (*Leader) mkChan() *pubsub.SubChannel {
 
 func (l *Leader) Start(w *worker.Thread) {
 
-	w.Spawn(func(w *worker.Thread) {
-		w.Init(&w.Name, "LeaderThread")
+	w.Spawn("LeaderThread", func(w *worker.Thread) {
 		w.OnReady(l.Ready)
 		w.OnRun(l.Run)
 

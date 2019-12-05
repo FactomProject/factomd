@@ -17,6 +17,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
+	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/modules/logging"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/util"
@@ -224,7 +225,7 @@ func NewState(p *globals.FactomParams, FactomdVersion string) *State {
 	// Setup the name to catch any early logging
 	s.FactomNodeName = p.Prefix + "FNode0"
 	//s.NameInit(common.NilName, s.FactomNodeName+"State", reflect.TypeOf(s).String())
-	s.logging = logging.NewLayerLogger(log2.GlobalLogger, map[string]string{"fnode": s.FactomNodeName})
+	s.logging = logging.NewLayerLogger(log.GlobalLogger, map[string]string{"fnode": s.FactomNodeName})
 
 	// print current dbht-:-minute
 	s.logging.AddPrintField("dbht",
@@ -351,7 +352,7 @@ func Clone(s *State, cloneNumber int) interfaces.IState {
 	number := fmt.Sprintf("%02d", cloneNumber)
 	newState.FactomNodeName = s.Prefix + "FNode" + number
 	// the DBHT value is replaced by the result of running the formatter for dbht which has the current value
-	newState.logging = logging.NewLayerLogger(log2.GlobalLogger, map[string]string{"fnode": newState.FactomNodeName, "dbht": "unused"})
+	newState.logging = logging.NewLayerLogger(log.GlobalLogger, map[string]string{"fnode": newState.FactomNodeName, "dbht": "unused"})
 	newState.logging.AddPrintField("dbht",
 		func(interface{}) string { return fmt.Sprintf("%7d-:-%-2d", *&s.LLeaderHeight, *&s.CurrentMinute) },
 		"") // the
