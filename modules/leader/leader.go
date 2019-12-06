@@ -2,8 +2,6 @@ package leader
 
 import (
 	"encoding/binary"
-	"sync"
-
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -17,19 +15,15 @@ var logfile = "fnode0_leader"
 type Leader struct {
 	Pub
 	Sub
-	*Events          // events indexed by VM
-	VMIndex      int // vm this leader is responsible fore
-	EOMSyncEnd   int64
-	EOMIssueTime int64
-	loaded       sync.WaitGroup
-	ticker       chan interface{}
+	*Events     // events indexed by VM
+	VMIndex int // vm this leader is responsible fore
+	ticker  chan interface{}
 }
 
 // initialize the leader event aggregate
 func New(s *state.State) *Leader {
 	// TODO: track Db Height so we can decide whether to send out dbsigs
 	l := new(Leader)
-	l.loaded.Add(1)
 	l.VMIndex = s.LeaderVMIndex
 	l.ticker = make(chan interface{})
 
