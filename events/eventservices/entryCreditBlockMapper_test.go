@@ -30,6 +30,7 @@ func TestMapEntryCreditBlock(t *testing.T) {
 		assert.Equal(t, block.GetHeader().GetDBHeight(), mappedBlock.Header.BlockHeight)
 		assert.Equal(t, block.GetHeader().GetBodyHash().Bytes(), mappedBlock.Header.BodyHash)
 		assert.Equal(t, block.GetHeader().GetPrevHeaderHash().Bytes(), mappedBlock.Header.PreviousHeaderHash)
+		assert.Equal(t, block.GetHeader().GetPrevHeaderHash().Bytes(), mappedBlock.Header.PreviousFullHash)
 		assert.Equal(t, block.GetHeader().GetObjectCount(), mappedBlock.Header.ObjectCount)
 	}
 	assert.NotNil(t, mappedBlock.Entries)

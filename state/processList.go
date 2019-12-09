@@ -1137,7 +1137,7 @@ func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces
 	// also add the msg and ack to our missing msg request handler
 	s.MissingMessageResponseHandler.NotifyNewMsgPair(ack, m)
 
-	s.Events.EmitStateChangeEvent(m, eventmessages.EntityState_ACCEPTED)
+	s.EventService.EmitStateChangeEvent(m, eventmessages.EntityState_ACCEPTED)
 }
 
 func (p *ProcessList) ContainsDBSig(serverID interfaces.IHash) bool {

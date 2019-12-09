@@ -17,11 +17,12 @@ message DirectoryBlock {
 message DirectoryBlockHeader {
     bytes bodyMerkleRoot = 1;
     bytes previousKeyMerkleRoot = 2;
-    google.protobuf.Timestamp timestamp = 3;
-    uint32 blockHeight = 4;
-    uint32 blockCount = 5;
-    uint32 version = 6;
-    uint32 networkID = 7;
+    bytes previousFullHash = 3;
+    google.protobuf.Timestamp timestamp = 4;
+    uint32 blockHeight = 5;
+    uint32 blockCount = 6;
+    uint32 version = 7;
+    uint32 networkID = 8;
 }
 
 message DirectoryBlockEntry {

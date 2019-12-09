@@ -16,16 +16,20 @@ type RegistrationEvent struct {
 	Payload     interfaces.IMsg
 }
 
-type StateChangeMsgEvent struct {
+type StateChangeEvent struct {
 	EventSource eventmessages.EventSource
 	EntityState eventmessages.EntityState
 	Payload     interfaces.IMsg
 }
 
-type StateChangeEvent struct {
+type DirectoryBlockEvent struct {
 	EventSource eventmessages.EventSource
-	EntityState eventmessages.EntityState
 	Payload     interfaces.IDBState
+}
+
+type ReplayDirectoryBlockEvent struct {
+	EventSource eventmessages.EventSource
+	Payload     interfaces.IMsg
 }
 
 type AnchorEvent struct {
@@ -51,18 +55,6 @@ func (event RegistrationEvent) GetPayload() interfaces.IMsg {
 	return event.Payload
 }
 
-func (event StateChangeMsgEvent) GetStreamSource() eventmessages.EventSource {
-	return event.EventSource
-}
-
-func (event StateChangeMsgEvent) GetEntityState() eventmessages.EntityState {
-	return event.EntityState
-}
-
-func (event StateChangeMsgEvent) GetPayload() interfaces.IMsg {
-	return event.Payload
-}
-
 func (event StateChangeEvent) GetStreamSource() eventmessages.EventSource {
 	return event.EventSource
 }
@@ -71,7 +63,23 @@ func (event StateChangeEvent) GetEntityState() eventmessages.EntityState {
 	return event.EntityState
 }
 
-func (event StateChangeEvent) GetPayload() interfaces.IDBState {
+func (event StateChangeEvent) GetPayload() interfaces.IMsg {
+	return event.Payload
+}
+
+func (event DirectoryBlockEvent) GetStreamSource() eventmessages.EventSource {
+	return event.EventSource
+}
+
+func (event DirectoryBlockEvent) GetPayload() interfaces.IDBState {
+	return event.Payload
+}
+
+func (event ReplayDirectoryBlockEvent) GetStreamSource() eventmessages.EventSource {
+	return event.EventSource
+}
+
+func (event ReplayDirectoryBlockEvent) GetPayload() interfaces.IMsg {
 	return event.Payload
 }
 
@@ -102,21 +110,30 @@ func (event NodeMessageEvent) GetNodeMessage() *eventmessages.NodeMessage {
 func NewRegistrationEvent(streamSource eventmessages.EventSource, msg interfaces.IMsg) *RegistrationEvent {
 	return &RegistrationEvent{
 		EventSource: streamSource,
-		Payload:     msg}
+		Payload:     msg,
+	}
 }
 
-func NewStateChangeEventFromMsg(streamSource eventmessages.EventSource, entityState eventmessages.EntityState, msg interfaces.IMsg) *StateChangeMsgEvent {
-	return &StateChangeMsgEvent{
-		EventSource: streamSource,
-		EntityState: entityState,
-		Payload:     msg}
-}
-
-func NewStateChangeEvent(streamSource eventmessages.EventSource, entityState eventmessages.EntityState, dbState interfaces.IDBState) *StateChangeEvent {
+func NewStateChangeEvent(streamSource eventmessages.EventSource, entityState eventmessages.EntityState, msg interfaces.IMsg) *StateChangeEvent {
 	return &StateChangeEvent{
 		EventSource: streamSource,
 		EntityState: entityState,
-		Payload:     dbState}
+		Payload:     msg,
+	}
+}
+
+func NewDirectoryBlockEvent(streamSource eventmessages.EventSource, dbState interfaces.IDBState) *DirectoryBlockEvent {
+	return &DirectoryBlockEvent{
+		EventSource: streamSource,
+		Payload:     dbState,
+	}
+}
+
+func NewReplayDirectoryBlockEvent(streamSource eventmessages.EventSource, dbStateMsg interfaces.IMsg) *ReplayDirectoryBlockEvent {
+	return &ReplayDirectoryBlockEvent{
+		EventSource: streamSource,
+		Payload:     dbStateMsg,
+	}
 }
 
 func NewAnchorEvent(streamSource eventmessages.EventSource, dbDirBlockInfo interfaces.IDirBlockInfo) *AnchorEvent {

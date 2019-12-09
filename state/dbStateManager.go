@@ -7,7 +7,6 @@ package state
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -1672,7 +1671,7 @@ func (list *DBStateList) UpdateState() (progress bool) {
 		}
 
 		if progress && d.Saved && d.Signed && !wasSaved {
-			s.Events.EmitDBStateEvent(d, eventmessages.EntityState_COMMITTED_TO_DIRECTORY_BLOCK)
+			s.EventService.EmitDirectoryBlockCommitEvent(d)
 		}
 
 		// only process one block past the last saved block

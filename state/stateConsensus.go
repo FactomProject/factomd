@@ -77,7 +77,7 @@ func (s *State) AddToHolding(hash [32]byte, msg interfaces.IMsg) {
 		s.Holding[hash] = msg
 		s.LogMessage("holding", "add", msg)
 		TotalHoldingQueueInputs.Inc()
-		s.Events.EmitRegistrationEvent(msg)
+		s.EventService.EmitRegistrationEvent(msg)
 	}
 }
 
@@ -88,7 +88,7 @@ func (s *State) DeleteFromHolding(hash [32]byte, msg interfaces.IMsg, reason str
 		s.LogMessage("holding", "delete "+reason, msg)
 		TotalHoldingQueueOutputs.Inc()
 		if reason != "Process()" {
-			s.Events.EmitStateChangeEvent(msg, eventmessages.EntityState_REJECTED)
+			s.EventService.EmitStateChangeEvent(msg, eventmessages.EntityState_REJECTED)
 		}
 	}
 }
@@ -391,7 +391,7 @@ func (s *State) Process() (progress bool) {
 					s.StartDelay = now // Reset StartDelay for Ignore Missing
 					s.IgnoreDone = true
 				}
-				s.Events.EmitNodeInfoMessageF(eventmessages.NodeMessageCode_SYNCED,
+				s.EventService.EmitNodeInfoMessageF(eventmessages.NodeMessageCode_SYNCED,
 					"Node %s has finished syncing up it's database", s.GetFactomNodeName())
 			}
 		}
@@ -833,9 +833,9 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 				dbstate.ReadyToSave = true
 			}
 			s.DBStates.UpdateState() // call to get the state signed now that the DBSigs have processed
-			s.Events.EmitProcessListEventNewBlock(dbheight)
+			s.EventService.EmitProcessListEventNewBlock(dbheight)
 		} else {
-			s.Events.EmitProcessListEventNewMinute(newMinute, dbheight)
+			s.EventService.EmitProcessListEventNewMinute(newMinute, dbheight)
 		}
 		s.CurrentMinute = newMinute                                                            // Update just the minute
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(newMinute, s.IdentityChainID) // MoveStateToHeight minute

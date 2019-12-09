@@ -11,10 +11,11 @@ message EntryBlock {
 message EntryBlockHeader {
     bytes bodyMerkleRoot = 1;
     bytes chainID = 2;
-    bytes previousKeyMerkleRoot = 3;
-    uint32 blockHeight = 4;
-    uint32 blockSequence = 5;
-    uint32 entryCount = 6;
+    bytes previousFullHash = 3;
+    bytes previousKeyMerkleRoot = 4;
+    uint32 blockHeight = 5;
+    uint32 blockSequence = 6;
+    uint32 entryCount = 7;
 }
 
 message EntryBlockEntry {

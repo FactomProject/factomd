@@ -20,6 +20,7 @@ func mapDirectoryBlockHeader(header interfaces.IDirectoryBlockHeader) *eventmess
 	result := &eventmessages.DirectoryBlockHeader{
 		BodyMerkleRoot:        header.GetBodyMR().Bytes(),
 		PreviousKeyMerkleRoot: header.GetPrevKeyMR().Bytes(),
+		PreviousFullHash:      header.GetPrevFullHash().Bytes(),
 		Timestamp:             ConvertTimeToTimestamp(header.GetTimestamp().GetTime()),
 		BlockHeight:           header.GetDBHeight(),
 		BlockCount:            header.GetBlockCount(),

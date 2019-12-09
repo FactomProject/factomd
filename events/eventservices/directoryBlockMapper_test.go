@@ -41,6 +41,7 @@ func TestMapDirHeader(t *testing.T) {
 	assert.NotNil(t, directoryBlockHeader.BlockCount)
 	assert.NotNil(t, directoryBlockHeader.BodyMerkleRoot)
 	assert.NotNil(t, directoryBlockHeader.PreviousKeyMerkleRoot)
+	assert.NotNil(t, directoryBlockHeader.PreviousFullHash)
 }
 
 func TestMapDirectoryBlockEntries(t *testing.T) {

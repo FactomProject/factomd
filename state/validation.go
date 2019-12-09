@@ -22,7 +22,7 @@ var ValidationDebug bool = false
 func (s *State) DoProcessing() {
 	s.validatorLoopThreadID = atomic.Goid()
 
-	s.Events.EmitNodeInfoMessageF(eventmessages.NodeMessageCode_STARTED, "Node %s startup complete", s.GetFactomNodeName())
+	s.EventService.EmitNodeInfoMessageF(eventmessages.NodeMessageCode_STARTED, "Node %s startup complete", s.GetFactomNodeName())
 	s.RunState = runstate.Running
 
 	slp := false
@@ -74,7 +74,7 @@ func (s *State) DoProcessing() {
 func (s *State) ValidatorLoop() {
 	defer func() {
 		if r := recover(); r != nil {
-			s.Events.EmitNodeErrorMessage(eventmessages.NodeMessageCode_GENERAL,
+			s.EventService.EmitNodeErrorMessage(eventmessages.NodeMessageCode_GENERAL,
 				"A panic state occurred in ValidatorLoop.", r)
 
 			shutdown(s)
@@ -167,7 +167,7 @@ func shouldShutdown(state *State) bool {
 }
 
 func shutdown(state *State) {
-	state.Events.EmitNodeInfoMessageF(eventmessages.NodeMessageCode_SHUTDOWN,
+	state.EventService.EmitNodeInfoMessageF(eventmessages.NodeMessageCode_SHUTDOWN,
 		"Node %s is shutting down", state.GetFactomNodeName())
 
 	state.RunState = runstate.Stopping

@@ -80,6 +80,7 @@ func mapEntryBlockHeader(header interfaces.IEntryBlockHeader) *eventmessages.Ent
 		BodyMerkleRoot:        header.GetBodyMR().Bytes(),
 		ChainID:               header.GetChainID().Bytes(),
 		PreviousKeyMerkleRoot: header.GetPrevKeyMR().Bytes(),
+		PreviousFullHash:      header.GetPrevFullHash().Bytes(),
 		BlockHeight:           header.GetDBHeight(),
 		BlockSequence:         header.GetEBSequence(),
 		EntryCount:            header.GetEntryCount(),

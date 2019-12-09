@@ -26,7 +26,7 @@ func TestEventInput_RegistrationEvent(t *testing.T) {
 
 func TestEventInput_StateChangeEventMsg(t *testing.T) {
 	payload := new(messages.CommitChainMsg)
-	stateChangeEvent := eventinput.NewStateChangeEventFromMsg(eventmessages.EventSource_LIVE, eventmessages.EntityState_ACCEPTED, payload)
+	stateChangeEvent := eventinput.NewStateChangeEvent(eventmessages.EventSource_LIVE, eventmessages.EntityState_ACCEPTED, payload)
 
 	assert.NotNil(t, stateChangeEvent)
 	assert.Equal(t, eventmessages.EventSource_LIVE, stateChangeEvent.GetStreamSource())
@@ -34,14 +34,22 @@ func TestEventInput_StateChangeEventMsg(t *testing.T) {
 	assert.Equal(t, payload, stateChangeEvent.GetPayload())
 }
 
-func TestEventInput_StateChangeEvent(t *testing.T) {
+func TestEventInput_DirectoryBlockEvent(t *testing.T) {
 	dbState := new(mockDBState)
-	stateChangeEvent := eventinput.NewStateChangeEvent(eventmessages.EventSource_LIVE, eventmessages.EntityState_ACCEPTED, dbState)
+	directoryBlockEvent := eventinput.NewDirectoryBlockEvent(eventmessages.EventSource_LIVE, dbState)
 
-	assert.NotNil(t, stateChangeEvent)
-	assert.Equal(t, eventmessages.EventSource_LIVE, stateChangeEvent.GetStreamSource())
-	assert.Equal(t, eventmessages.EntityState_ACCEPTED, stateChangeEvent.GetEntityState())
-	assert.Equal(t, dbState, stateChangeEvent.GetPayload())
+	assert.NotNil(t, directoryBlockEvent)
+	assert.Equal(t, eventmessages.EventSource_LIVE, directoryBlockEvent.GetStreamSource())
+	assert.Equal(t, dbState, directoryBlockEvent.GetPayload())
+}
+
+func TestEventInput_ReplayDirectoryBlockEvent(t *testing.T) {
+	payload := new(messages.DBStateMsg)
+	directoryBlockEvent := eventinput.NewReplayDirectoryBlockEvent(eventmessages.EventSource_LIVE, payload)
+
+	assert.NotNil(t, directoryBlockEvent)
+	assert.Equal(t, eventmessages.EventSource_LIVE, directoryBlockEvent.GetStreamSource())
+	assert.Equal(t, payload, directoryBlockEvent.GetPayload())
 }
 
 func TestEventInput_AnchorEvent(t *testing.T) {

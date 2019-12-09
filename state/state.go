@@ -13,7 +13,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/FactomProject/factomd/events"
-	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -435,8 +434,7 @@ type State struct {
 	InputRegExString          string
 	executeRecursionDetection map[[32]byte]interfaces.IMsg
 	Hold                      HoldingList
-	Events                    events.Events
-	EventsServiceControl      events.EventServiceControl
+	EventService              events.EventService
 
 	// MissingMessageResponse is a cache of the last 1000 msgs we receive such that when
 	// we send out a missing message, we can find that message locally before we ask the net
@@ -533,8 +531,7 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 
 	newState.ControlPanelPort = s.ControlPanelPort
 	newState.ControlPanelSetting = s.ControlPanelSetting
-	newState.Events = s.Events
-	newState.EventsServiceControl = s.EventsServiceControl
+	newState.EventService = s.EventService
 
 	//newState.Identities = s.Identities
 	//newState.Authorities = s.Authorities
@@ -598,11 +595,11 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 	return newState
 }
 
-func (s *State) GetEvents() events.Events {
-	return s.Events
+func (s *State) GetEventService() events.EventService {
+	return s.EventService
 }
 
-func (s *State) EmitDBStateEventsFromHeight(height uint32, end uint32) {
+func (s *State) EmitDirectoryBlockEventsFromHeight(height uint32, end uint32) {
 	i := height
 	msgCount := 0
 	for i <= end {
@@ -645,7 +642,7 @@ func (s *State) EmitDBStateEventsFromHeight(height uint32, end uint32) {
 		i++
 		msgCount++
 
-		s.Events.EmitReplayStateChangeEvent(msg, eventmessages.EntityState_COMMITTED_TO_DIRECTORY_BLOCK)
+		s.EventService.EmitReplayDirectoryBlockCommit(msg)
 	}
 }
 
