@@ -5,11 +5,13 @@ import (
 	"encoding/binary"
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/directoryBlock"
+	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/events/eventconfig"
 	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 	"github.com/FactomProject/factomd/p2p"
@@ -148,7 +150,7 @@ func TestAddToProcessList(t *testing.T) {
 	}
 }
 
-func TestEmitDBStateEventsFromHeightRange(t *testing.T) {
+func TestEmitDirectoryBlockEventsFromHeightRange(t *testing.T) {
 	eventQueue := make(chan *eventmessages.FactomEvent, p2p.StandardChannelSize)
 	mockSender := &mockEventSender{
 		eventsOutQueue:      eventQueue,
@@ -181,7 +183,7 @@ func TestEmitDBStateEventsFromHeightRange(t *testing.T) {
 	}
 }
 
-func TestEmitDBStateEventsFromHeight(t *testing.T) {
+func TestEmitDirectoryBlockStateEventsFromHeight(t *testing.T) {
 	eventQueue := make(chan *eventmessages.FactomEvent, p2p.StandardChannelSize)
 	mockSender := &mockEventSender{
 		eventsOutQueue:      eventQueue,
@@ -209,6 +211,37 @@ func TestEmitDBStateEventsFromHeight(t *testing.T) {
 				assert.NotNil(t, directoryBlockCommit.GetFactoidBlock())
 				assert.NotNil(t, directoryBlockCommit.GetEntryBlocks())
 				assert.NotNil(t, directoryBlockCommit.GetEntryBlockEntries())
+			}
+		}
+	}
+}
+
+func TestEmitDirectoryBlockAnchorEvent(t *testing.T) {
+	eventQueue := make(chan *eventmessages.FactomEvent, p2p.StandardChannelSize)
+	mockSender := &mockEventSender{
+		eventsOutQueue:      eventQueue,
+		replayDuringStartup: true,
+		sendStateChange:     true,
+	}
+
+	s := testHelper.CreateAndPopulateTestState()
+	s.EventService.ConfigSender(s, mockSender)
+
+	directoryBlockInfo := dbInfo.NewDirBlockInfo()
+
+	db := databaseOverlay.NewOverlayWithState(s.DB.(*databaseOverlay.Overlay), s)
+	db.ProcessDirBlockInfoMultiBatch(directoryBlockInfo)
+	db.ProcessDirBlockInfoBatch(directoryBlockInfo)
+
+	if assert.Equal(t, 2, len(eventQueue)) {
+		for i := 0; i < 2; i++ {
+			event := <-eventQueue
+			assert.Equal(t, eventmessages.EventSource_REPLAY_BOOT, event.GetEventSource())
+			assert.Equal(t, s.IdentityChainID.Bytes(), event.IdentityChainID)
+
+			directoryBlockAnchorEvent := event.GetDirectoryBlockAnchor()
+			if assert.NotNil(t, directoryBlockAnchorEvent, "event received has wrong type: %s event: %+v", reflect.TypeOf(event.GetEvent()), event) {
+				assert.NotNil(t, directoryBlockAnchorEvent.GetDirectoryBlockHash())
 			}
 		}
 	}
@@ -266,6 +299,50 @@ func TestExecuteMessage(t *testing.T) {
 				testCase.Assertion(t, event)
 			}
 		})
+	}
+}
+
+func TestEmitProcessListEvent(t *testing.T) {
+	eventQueue := make(chan *eventmessages.FactomEvent, p2p.StandardChannelSize)
+	mockSender := &mockEventSender{
+		eventsOutQueue:      eventQueue,
+		replayDuringStartup: true,
+		sendStateChange:     true,
+	}
+
+	s := testHelper.CreateAndPopulateTestState()
+	s.EventService.ConfigSender(s, mockSender)
+
+	blockHeight := s.LLeaderHeight
+
+	s.MoveStateToHeight(blockHeight, 1)
+
+	currentMinute := s.CurrentMinute + 1
+	s.MoveStateToHeight(s.LLeaderHeight, currentMinute)
+
+	if assert.Equal(t, 2, len(eventQueue)) {
+		event := <-eventQueue
+		assert.Equal(t, eventmessages.EventSource_REPLAY_BOOT, event.GetEventSource())
+		assert.Equal(t, s.IdentityChainID.Bytes(), event.IdentityChainID)
+
+		processNewBlockEvent := event.GetProcessListEvent()
+		if assert.NotNil(t, processNewBlockEvent, "event received has wrong type: %s event: %+v", reflect.TypeOf(event.GetEvent()), event) {
+			if assert.NotNil(t, processNewBlockEvent.GetNewBlockEvent(), "%v", processNewBlockEvent) {
+				assert.Equal(t, blockHeight, processNewBlockEvent.GetNewBlockEvent().GetNewBlockHeight())
+			}
+		}
+
+		event = <-eventQueue
+		assert.Equal(t, eventmessages.EventSource_REPLAY_BOOT, event.GetEventSource())
+		assert.Equal(t, s.IdentityChainID.Bytes(), event.IdentityChainID)
+
+		processNewMinuteEvent := event.GetProcessListEvent()
+		if assert.NotNil(t, processNewMinuteEvent, "event received has wrong type: %s event: %+v", reflect.TypeOf(event.GetEvent()), event) {
+			if assert.NotNil(t, processNewMinuteEvent.GetNewMinuteEvent(), "%v", processNewMinuteEvent) {
+				assert.EqualValues(t, currentMinute, processNewMinuteEvent.GetNewMinuteEvent().GetNewMinute())
+				assert.Equal(t, s.LLeaderHeight, processNewMinuteEvent.GetNewMinuteEvent().GetBlockHeight())
+			}
+		}
 	}
 }
 
