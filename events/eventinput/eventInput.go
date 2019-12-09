@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
-	"github.com/prometheus/common/log"
+	"github.com/sirupsen/logrus"
 )
 
 type EventInput interface {
@@ -194,6 +194,6 @@ func NodeErrorMessage(messageCode eventmessages.NodeMessageCode, message string,
 			MessageText: errorMsg,
 		},
 	}
-	log.Errorln(errorMsg)
+	logrus.Errorln(errorMsg)
 	return event
 }

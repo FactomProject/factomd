@@ -7,7 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants/runstate"
-	"github.com/prometheus/common/log"
+	log "github.com/sirupsen/logrus"
 	"io"
 	"net"
 	"os"
