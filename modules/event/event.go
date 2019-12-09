@@ -1,8 +1,6 @@
 package event
 
 import (
-	"time"
-
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -41,7 +39,6 @@ type Directory struct {
 
 type DBHT struct {
 	DBHeight uint32
-	VMIndex  int
 	Minute   int
 }
 
@@ -52,10 +49,10 @@ type Ack struct {
 }
 
 type LeaderConfig struct {
-	IdentityChainID interfaces.IHash
-	Salt            interfaces.IHash // only change on boot
-	ServerPrivKey   *primitives.PrivateKey
-	FactomSecond    time.Duration // only change in simulator
+	IdentityChainID    interfaces.IHash
+	Salt               interfaces.IHash // only change on boot
+	ServerPrivKey      *primitives.PrivateKey
+	BlocktimeInSeconds int
 }
 
 type EOM struct {

@@ -17,26 +17,26 @@ type Leader struct {
 	Sub
 	*Events     // events indexed by VM
 	VMIndex int // vm this leader is responsible fore
+	exit    chan interface{}
 	ticker  chan interface{}
 }
 
 // initialize the leader event aggregate
 func New(s *state.State) *Leader {
-	// TODO: track Db Height so we can decide whether to send out dbsigs
 	l := new(Leader)
 	l.VMIndex = s.LeaderVMIndex
 	l.ticker = make(chan interface{})
+	l.exit = make(chan interface{})
 
 	l.Events = &Events{
 		Config: &event.LeaderConfig{
-			Salt:            s.Salt,
-			IdentityChainID: s.IdentityChainID,
-			ServerPrivKey:   s.ServerPrivKey,
-			FactomSecond:    s.FactomSecond(),
+			Salt:               s.Salt,
+			IdentityChainID:    s.IdentityChainID,
+			ServerPrivKey:      s.ServerPrivKey,
+			BlocktimeInSeconds: s.DirectoryBlockInSeconds,
 		},
-		DBHT: &event.DBHT{
+		DBHT: &event.DBHT{ // moved to new height/min
 			DBHeight: s.DBHeightAtBoot,
-			VMIndex:  s.LeaderVMIndex,
 			Minute:   0,
 		},
 		Balance:   nil, // last perm balance computed
@@ -47,21 +47,21 @@ func New(s *state.State) *Leader {
 	return l
 }
 
-func (l *Leader) SendOut(msg interfaces.IMsg) {
-	log.LogMessage(logfile, "sendout", msg)
-	l.Pub.MsgOut.Write(msg)
-}
-
 func (l *Leader) Sign(b []byte) interfaces.IFullSignature {
 	return l.Config.ServerPrivKey.Sign(b)
 }
 
+func (l *Leader) sendOut(msg interfaces.IMsg) {
+	log.LogMessage(logfile, "sendout", msg)
+	l.Pub.MsgOut.Write(msg)
+}
+
 // Returns a millisecond timestamp
-func (l *Leader) GetTimestamp() interfaces.Timestamp {
+func (l *Leader) getTimestamp() interfaces.Timestamp {
 	return primitives.NewTimestampNow()
 }
 
-func (l *Leader) GetSalt(ts interfaces.Timestamp) uint32 {
+func (l *Leader) getSalt(ts interfaces.Timestamp) uint32 {
 	var b [32]byte
 	copy(b[:], l.Config.Salt.Bytes())
 	binary.BigEndian.PutUint64(b[:], uint64(ts.GetTimeMilli()))
@@ -71,5 +71,5 @@ func (l *Leader) GetSalt(ts interfaces.Timestamp) uint32 {
 
 func (l *Leader) sendAck(m interfaces.IMsg) {
 	ack := l.NewAck(m, l.BalanceHash).(*messages.Ack) // LeaderExecute
-	l.SendOut(ack)
+	l.sendOut(ack)
 }

@@ -927,11 +927,7 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 	s.EOMLimit = len(s.LeaderPL.FedServers) // We add or remove server only on block boundaries
 	s.DBSigLimit = s.EOMLimit               // We add or remove server only on block boundaries
 	s.LogPrintf("dbstateprocess", "MoveStateToHeight(%d-:-%d) leader=%v leaderPL=%p, leaderVMIndex=%d", dbheight, newMinute, s.Leader, s.LeaderPL, s.LeaderVMIndex)
-	s.Pub.BlkSeq.Write(&event.DBHT{
-		DBHeight: s.LLeaderHeight,
-		VMIndex:  s.LeaderVMIndex,
-		Minute:   s.CurrentMinute,
-	})
+	s.Pub.BlkSeq.Write(&event.DBHT{DBHeight: s.LLeaderHeight, Minute: s.CurrentMinute})
 
 	s.Hold.ExecuteForNewHeight(s.LLeaderHeight, s.CurrentMinute) // execute held inMessages
 	s.Hold.Review()                                              // cleanup old inMessages
@@ -1016,7 +1012,7 @@ func (s *State) repost(m interfaces.IMsg, delay int) {
 	}()
 }
 
-// FactomSecond finds the time duration of 1 second relative to 10min blocks.
+// DirectoryBlocktimeInSeconds finds the time duration of 1 second relative to 10min blocks.
 //		Blktime			EOMs		Second
 //		600s			60s			1s
 //		300s			30s			0.5s
@@ -1994,10 +1990,10 @@ func (s *State) CheckForIDChange() {
 		s.initServerKeys()
 		s.LogPrintf("AckChange", "ReloadIdentity new local_priv: %v ident_chain: %v, prev local_priv: %v ident_chain: %v", s.LocalServerPrivKey, s.IdentityChainID, prev_LocalServerPrivKey, prev_ChainID)
 		s.Pub.LeaderConfig.Write(&event.LeaderConfig{
-			IdentityChainID: s.IdentityChainID,
-			Salt:            s.Salt,
-			ServerPrivKey:   s.ServerPrivKey,
-			FactomSecond:    s.FactomSecond(),
+			IdentityChainID:    s.IdentityChainID,
+			Salt:               s.Salt,
+			ServerPrivKey:      s.ServerPrivKey,
+			BlocktimeInSeconds: s.DirectoryBlockInSeconds,
 		})
 	}
 }

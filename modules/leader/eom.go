@@ -7,10 +7,10 @@ import (
 
 // REVIEW: there may be another method needed to create eom
 // when reporting a dropped message that triggers an election
-func (l *Leader) CreateEOM() (eom *messages.EOM, ack interfaces.IMsg) {
+func (l *Leader) createEOM() (eom *messages.EOM, ack interfaces.IMsg) {
 	eom = new(messages.EOM)
 
-	eom.Timestamp = l.GetTimestamp()
+	eom.Timestamp = l.getTimestamp()
 	eom.ChainID = l.Config.IdentityChainID
 	eom.Sign(l)
 	eom.SetLocal(false)
@@ -35,8 +35,8 @@ func (l *Leader) CreateEOM() (eom *messages.EOM, ack interfaces.IMsg) {
 	return eom, ack
 }
 
-func (l *Leader) SendEOM() {
-	ack, eom := l.CreateEOM()
-	l.SendOut(ack)
-	l.SendOut(eom)
+func (l *Leader) sendEOM() {
+	ack, eom := l.createEOM()
+	l.sendOut(ack)
+	l.sendOut(eom)
 }

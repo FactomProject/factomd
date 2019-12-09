@@ -1,30 +1,23 @@
 package leader
 
 import (
-	"sync"
-
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/modules/event"
 )
 
-var heightLock sync.Mutex
-
 // Create a new Acknowledgement.  Must be called by a leader.  This
 // call assumes all the pieces are in place to create a new acknowledgement
 func (l *Leader) NewAck(msg interfaces.IMsg, balanceHash interfaces.IHash) interfaces.IMsg {
-	defer heightLock.Unlock()
-	heightLock.Lock()
-
 	// these don't affect the msg hash, just for local use...
 	msg.SetLeaderChainID(l.Config.IdentityChainID)
 	ack := new(messages.Ack)
 	ack.DBHeight = l.DBHT.DBHeight
 	ack.VMIndex = l.VMIndex
 	ack.Minute = byte(l.DBHT.Minute)
-	ack.Timestamp = l.GetTimestamp()
-	ack.SaltNumber = l.GetSalt(ack.Timestamp)
+	ack.Timestamp = l.getTimestamp()
+	ack.SaltNumber = l.getSalt(ack.Timestamp)
 	copy(ack.Salt[:8], l.Config.Salt.Bytes()[:8])
 	ack.MessageHash = msg.GetMsgHash()
 	ack.LeaderChainID = l.Config.IdentityChainID
