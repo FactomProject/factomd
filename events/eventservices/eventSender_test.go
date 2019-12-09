@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/events/eventconfig"
 	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 	"github.com/FactomProject/factomd/p2p"
@@ -25,7 +26,6 @@ func init() {
 	logrus.SetLevel(logrus.DebugLevel)
 }
 
-/*
 func TestEventsService_Send(t *testing.T) {
 	server, client := net.Pipe()
 	defer server.Close()
@@ -60,12 +60,6 @@ func TestEventsService_Send(t *testing.T) {
 		finished.Store(true)
 	}()
 
-	//state := &StateMock{
-	//	IdentityChainID: primitives.NewZeroHash(),
-	//	RunState:        runstate.Running,
-	//	Events:          events.NewEventEmitter(),
-	//}
-
 	params := &EventServiceParams{
 		OutputFormat: eventconfig.Json,
 	}
@@ -75,12 +69,18 @@ func TestEventsService_Send(t *testing.T) {
 	eventSenderInstance.connection = client
 
 	// create test factom event
-	event := eventinput.NodeInfoMessageF(eventmessages.NodeMessageCode_GENERAL, "test message of node: %s", "node name")
+	event := &eventmessages.FactomEvent{
+		EventSource:     eventmessages.EventSource_LIVE,
+		IdentityChainID: primitives.NewZeroHash().Bytes(),
+		Event: &eventmessages.FactomEvent_NodeMessage{
+			NodeMessage: &eventmessages.NodeMessage{
+				MessageText: "test message of node: node name",
+			},
+		},
+	}
 
 	// test send
-	err := eventSenderInstance.Send(event, runstate.Running, true)
-
-	assert.NoError(t, err)
+	eventSenderInstance.GetEventQueue() <- event
 
 	// wait max 1 second until the server has read the bytes
 	for i := 0; !finished.Load() && i < 10; i++ {
@@ -91,26 +91,10 @@ func TestEventsService_Send(t *testing.T) {
 
 	discardReceivedMetadata(receivingMessage)
 	assert.JSONEq(t, expectedMessage, receivingMessage.String(), "%s != %s", expectedMessage, receivingMessage.String())
-	assert.Equal(t, float64(0), getCounterValue(t, serviceInstance.notSentCounter))
+	assert.Equal(t, float64(0), getCounterValue(t, eventSenderInstance.notSentCounter))
+	assert.Equal(t, float64(0), getCounterValue(t, eventSenderInstance.droppedFromQueueCounter))
 }
 
-func TestEventsService_SendFillupQueue(t *testing.T) {
-	n := 3
-	eventService := &eventSender{
-		eventsOutQueue: make(chan *eventmessages.FactomEvent, n),
-		params:                  &EventServiceParams{},
-		droppedFromQueueCounter: prometheus.NewCounter(prometheus.CounterOpts{}),
-	}
-
-	event := eventinput.NodeInfoMessageF(eventmessages.NodeMessageCode_GENERAL, "test message of node: %s", "node name")
-	for i := 0; i < n+1; i++ {
-		eventService.Send(event)
-	}
-
-	assert.Equal(t, float64(1), getCounterValue(t, eventService.droppedFromQueueCounter))
-}
-
-*/
 func TestEventService_ProcessEventsChannelNoSent(t *testing.T) {
 	redialSleepDuration = 1 * time.Millisecond
 	sendRetries = 1
