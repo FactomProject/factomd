@@ -13,7 +13,7 @@ import (
 	"github.com/FactomProject/factomd/util"
 	"github.com/gogo/protobuf/proto"
 	"github.com/prometheus/client_golang/prometheus"
-	log "github.com/sirupsen/logrus"
+	"github.com/prometheus/common/log"
 	"net"
 	"reflect"
 	"time"

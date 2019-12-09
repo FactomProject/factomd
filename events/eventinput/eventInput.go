@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
-	log "github.com/sirupsen/logrus"
+	"github.com/prometheus/common/log"
 )
 
 type EventInput interface {

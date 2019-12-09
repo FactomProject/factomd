@@ -92,6 +92,29 @@ func TestEventEmitter_Send(t *testing.T) {
 	}
 }
 
+func TestEventsService_SendFillupQueue(t *testing.T) {
+	n := 3
+
+	eventSender := &mockEventSender{
+		eventsOutQueue:          make(chan *eventmessages.FactomEvent, n),
+		droppedFromQueueCounter: prometheus.NewCounter(prometheus.CounterOpts{}),
+	}
+	eventEmitter := &eventEmitter{
+		parentState: StateMock{
+			IdentityChainID: primitives.NewZeroHash(),
+		},
+		eventSender: eventSender,
+	}
+
+	event := eventinput.NodeInfoMessageF(eventmessages.NodeMessageCode_GENERAL, "test message of node: %s", "node name")
+	for i := 0; i < n+1; i++ {
+		err := eventEmitter.Send(event)
+		assert.Nil(t, err)
+	}
+
+	assert.Equal(t, float64(1), getCounterValue(t, eventSender.droppedFromQueueCounter))
+}
+
 func getCounterValue(t *testing.T, counter prometheus.Counter) float64 {
 	metric := &dto.Metric{}
 	err := counter.Write(metric)
