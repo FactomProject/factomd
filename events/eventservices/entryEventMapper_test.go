@@ -70,9 +70,9 @@ func TestMapEntryBlocks(t *testing.T) {
 	assert.NotNil(t, entryBlocks[0].Header.EntryCount)
 	assert.NotNil(t, entryBlocks[0].Header.BlockHeight)
 	assert.NotNil(t, entryBlocks[0].Header.BlockSequence)
-	assert.NotNil(t, entryBlocks[0].Header.PreviousFullHash)
 	assert.NotNil(t, entryBlocks[0].Header.BodyMerkleRoot)
 	assert.NotNil(t, entryBlocks[0].Header.PreviousKeyMerkleRoot)
+	assert.NotNil(t, entryBlocks[0].Header.PreviousFullHash)
 }
 
 func TestMapEntryBlockHashes(t *testing.T) {
@@ -93,7 +93,6 @@ func TestMapEntryBlockHeader(t *testing.T) {
 	assert.NotNil(t, entryBlockHeader.EntryCount)
 	assert.NotNil(t, entryBlockHeader.BlockHeight)
 	assert.NotNil(t, entryBlockHeader.BlockSequence)
-	assert.NotNil(t, entryBlockHeader.PreviousFullHash)
 	assert.NotNil(t, entryBlockHeader.BodyMerkleRoot)
 	assert.NotNil(t, entryBlockHeader.PreviousKeyMerkleRoot)
 }
