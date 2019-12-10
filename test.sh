@@ -61,7 +61,7 @@ function loadTestList() {
 				#echo "simTest/TestAnElection"
 
                 # KLUDGE Only testing leader thread in this branch
-				echo "simTest/TestEntriesBeforeChain"
+				echo "longTest/TestLeaderModule"
 			} | circleci tests split) # circleci helper spreads tests across containers
 
 		else # run locally

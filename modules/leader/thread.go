@@ -40,7 +40,7 @@ type Events struct {
 }
 
 func (*Leader) mkChan() *pubsub.SubChannel {
-	return pubsub.SubFactory.Channel(0)
+	return pubsub.SubFactory.Channel(1000) // FIXME: should calibrate channel depths
 }
 
 func (l *Leader) Start(w *worker.Thread) {
