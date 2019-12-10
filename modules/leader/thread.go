@@ -48,7 +48,7 @@ func (l *Leader) Start(w *worker.Thread) {
 	w.Spawn("LeaderThread", func(w *worker.Thread) {
 		w.OnReady(l.Ready)
 		w.OnRun(l.Run)
-		w.OnExit(func() { close(l.exit) })
+		w.OnExit(l.Exit)
 
 		l.Pub.MsgOut = pubsub.PubFactory.Threaded(100).Publish(
 			pubsub.GetPath("FNode0", event.Path.LeaderMsgOut),
@@ -62,6 +62,11 @@ func (l *Leader) Start(w *worker.Thread) {
 		l.Sub.EomTicker = l.mkChan()
 		l.Sub.LeaderConfig = l.mkChan()
 	})
+}
+
+func (l *Leader) Exit() {
+	close(l.exit)
+	l.Pub.MsgOut.Close()
 }
 
 func (l *Leader) Ready() {

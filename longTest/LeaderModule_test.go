@@ -2,14 +2,13 @@ package longtest
 
 import (
 	"bytes"
-	"github.com/FactomProject/factomd/fnode"
-	"testing"
-
 	"github.com/FactomProject/factom"
+	"github.com/FactomProject/factomd/fnode"
 	. "github.com/FactomProject/factomd/testHelper"
+	"testing"
 )
 
-// this applies chain & entry creation in 'proper' chronological order
+//  Currently just tests FCT/EC Commit/Reveal messages to make sure leader is working
 func TestLeaderModule(t *testing.T) {
 
 	encode := func(s string) []byte {
@@ -34,12 +33,14 @@ func TestLeaderModule(t *testing.T) {
 	var oneFct uint64 = factom.FactoidToFactoshi("1")
 	var ecMargin = 100 // amount of ec to have left
 
+	WaitBlocks(state0, 1)
 	state1 := fnode.Get(1).State
 
 	{ // fund entries & chain create
 		//WaitForZeroEC(state0, a.EcPub()) // assert we are starting from zero
 
-		b.FundFCT(oneFct * 20)                          // transfer coinbase funds to b
+		b.FundFCT(oneFct * 20) // transfer coinbase funds to b
+		WaitBlocks(state0, 1)
 		b.ConvertEC(uint64(numEntries + 11 + ecMargin)) // Chain costs 10 + 1 per k so our chain head costs 11
 		WaitForEcBalanceOver(state0, b.EcPub(), 1)      // wait for all entries to process
 	}
@@ -57,42 +58,19 @@ func TestLeaderModule(t *testing.T) {
 		reveal, _ := ComposeRevealEntryMsg(b.Priv, c.FirstEntry)
 
 		state0.APIQueue().Enqueue(commit)
+		WaitBlocks(state0, 1) // make sure commit is in holding when reveal goes through
+		// since old leader behavior would execute commit/reveal matches
 		state0.APIQueue().Enqueue(reveal)
-		WaitForEntry(state1, commit.MsgHash)
+
+		state0.LogMessage("simtest", "pushing into API", commit)
+		state0.LogPrintf("simtest", "pushing into API hash : %v", commit.GetHash())
+		state0.LogPrintf("simtest", "pushing into API hash : %v", reveal.GetHash())
+		WaitForEntry(state0, commit.GetHash())
 	}
 
 	{ // KLUDGE debug
 		WaitForBlock(state1, 4)
-		Halt(t)
-		return // quit
+		ShutDownEverything(t)
 	}
-
-	/*
-		WaitMinutes(state0, 1)
-
-		{ // write entries
-
-			for i := 0; i < numEntries; i++ {
-				e := factom.Entry{
-					ChainID: id,
-					ExtIDs:  extids,
-					Content: encode(fmt.Sprintf("hello@%v", i)), // ensure no duplicate msg hashes
-				}
-				commit, _ := ComposeCommitEntryMsg(a.Priv, e)
-				reveal, _ := ComposeRevealEntryMsg(a.Priv, &e)
-
-				state0.LogMessage("simtest", "commit", commit)
-				state0.LogMessage("simtest", "reveal", reveal)
-
-				entries = append(entries, commit)
-				entries = append(entries, reveal)
-
-				state0.APIQueue().Enqueue(commit)
-				state0.APIQueue().Enqueue(reveal)
-			}
-
-		}
-
-	*/
 
 }

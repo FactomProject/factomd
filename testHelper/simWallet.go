@@ -346,12 +346,13 @@ func WaitForEcBalanceUnder(s *state.State, ecPub string, target int64) int64 {
 // loop until balance is >= target
 func WaitForEcBalanceOver(s *state.State, ecPub string, target int64) int64 {
 
-	s.LogPrintf(logName, "WaitForEcBalanceOver%v:  %v", target, ecPub)
+	s.LogPrintf(logName, "WaitForEcBalanceOver %v:  %v", target, ecPub)
 
 	for {
 		bal := simulation.GetBalanceEC(s, ecPub)
 		time.Sleep(balanceWaitInterval)
 
+		s.LogPrintf(logName, "FoundEcBalance(%v): %v", target, bal)
 		if bal > target {
 			s.LogPrintf(logName, "FoundEcBalancerOver%v: %v", target, bal)
 			return bal
