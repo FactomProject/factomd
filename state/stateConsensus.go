@@ -7,13 +7,13 @@ package state
 import (
 	"errors"
 	"fmt"
-	"github.com/FactomProject/factomd/events"
-	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 	"hash"
 	"os"
 	"reflect"
 	"sort"
 	"time"
+
+	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"

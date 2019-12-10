@@ -50,13 +50,13 @@ func selectParameters(factomParams *globals.FactomParams, config *util.FactomdCo
 	if factomParams != nil && len(factomParams.EventBroadcastContent) > 0 {
 		params.BroadcastContent, err = eventconfig.ParseBroadcastContent(factomParams.EventBroadcastContent)
 		if err != nil {
-			log.Printfln("Parameter EventBroadcastContent could not be parsed: %v\n", err)
+			log.LogPrintf("livefeed", "Parameter EventBroadcastContent could not be parsed: %v\n", err)
 			params.BroadcastContent = eventconfig.BroadcastOnce
 		}
 	} else if config != nil && len(config.LiveFeedAPI.EventBroadcastContent) > 0 {
 		params.BroadcastContent, err = eventconfig.ParseBroadcastContent(config.LiveFeedAPI.EventBroadcastContent)
 		if err != nil {
-			log.Printfln("Configuration property LiveFeedAPI.EventBroadcastContent could not be parsed: %v", err)
+			log.LogPrintf("livefeed", "Configuration property LiveFeedAPI.EventBroadcastContent could not be parsed: %v", err)
 			params.BroadcastContent = eventconfig.BroadcastOnce
 		}
 	} else {

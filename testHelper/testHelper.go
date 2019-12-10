@@ -5,13 +5,13 @@ package testHelper
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"github.com/FactomProject/factomd/events"
+	"os"
 	"os/exec"
 	"regexp"
 	"runtime"
 	"time"
-	"fmt"
-	"os"
 
 	"github.com/FactomProject/factom"
 	"github.com/FactomProject/factomd/common/adminBlock"
@@ -20,13 +20,11 @@ import (
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/messages/electionMsgs"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/mapdb"
 	"github.com/FactomProject/factomd/state"
-	"github.com/FactomProject/factomd/common/messages/electionMsgs"
-
-
 )
 
 var BlockCount int = 10
