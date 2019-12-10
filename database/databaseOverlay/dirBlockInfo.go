@@ -11,7 +11,7 @@ import (
 // ProcessDirBlockInfoBatch inserts the dirblock info block
 func (db *Overlay) ProcessDirBlockInfoBatch(block interfaces.IDirBlockInfo) (err error) {
 	if block.GetBTCConfirmed() == true {
-		err := db.Delete(DIRBLOCKINFO_UNCONFIRMED, block.DatabasePrimaryIndex().Bytes())
+		err = db.Delete(DIRBLOCKINFO_UNCONFIRMED, block.DatabasePrimaryIndex().Bytes())
 		if err != nil {
 			return err
 		}
