@@ -1,4 +1,4 @@
-package eventservices
+package eventconfig
 
 import (
 	"errors"
@@ -21,7 +21,7 @@ func TestBroadcastContent_Parse(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.Input, func(t *testing.T) {
-			content, err := Parse(testCase.Input)
+			content, err := ParseBroadcastContent(testCase.Input)
 
 			assert.Equal(t, testCase.Error, err)
 			assert.Equal(t, testCase.Output, content)

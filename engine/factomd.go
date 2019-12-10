@@ -6,6 +6,7 @@ package engine
 
 import (
 	"fmt"
+	"github.com/FactomProject/factomd/events"
 	"runtime"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -58,6 +59,7 @@ func Factomd(params *FactomParams, listenToStdin bool) interfaces.IState {
 	preBootTime.SetTimeMilli(state0.TimestampAtBoot.GetTimeMilli() - constants.PreBootWindow*60*1000)
 	state0.SetMessageFilterTimestamp(preBootTime)
 	state0.EFactory = new(electionMsgs.ElectionsFactory)
+	state0.EventService = events.NewEventService()
 
 	NetStart(state0, params, listenToStdin)
 	return state0

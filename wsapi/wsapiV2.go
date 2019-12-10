@@ -215,7 +215,7 @@ func HandleV2ReplayDBFromHeight(state interfaces.IState, params interface{}) (in
 		end = beginning + 1000
 	}
 
-	state.EmitDBStateEventsFromHeight(beginning, end)
+	state.EmitDirectoryBlockEventsFromHeight(beginning, end)
 
 	resp := new(SendReplayMessageResponse)
 	resp.Message = "Successfully initiated replay of blocks " + fmt.Sprint(beginning) + " through " + fmt.Sprint(end)

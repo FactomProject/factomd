@@ -9,6 +9,9 @@ import "google/protobuf/timestamp.proto";
 message DirectoryBlock {
     DirectoryBlockHeader header = 1;
     repeated DirectoryBlockEntry entries = 2;
+    bytes hash = 3;
+    bytes chainID = 4;
+    bytes keyMerkleRoot = 5;
 }
 
 message DirectoryBlockHeader {
@@ -25,4 +28,19 @@ message DirectoryBlockHeader {
 message DirectoryBlockEntry {
     bytes chainID = 1;
     bytes keyMerkleRoot = 2;
+}
+
+
+message DirectoryBlockAnchor {
+    bytes directoryBlockHash = 1;
+    bytes directoryBlockMerkleRoot = 2;
+    uint32 blockHeight = 3;
+    google.protobuf.Timestamp timestamp = 4;
+    bytes btcTxHash = 5;
+    uint32 btcTxOffset = 6;
+    uint32 btcBlockHeight = 7;
+    bytes btcBlockHash = 8;
+    bool btcConfirmed = 9;
+    bytes ethereumAnchorRecordEntryHash = 10;
+    bool ethereumConfirmed = 11;
 }

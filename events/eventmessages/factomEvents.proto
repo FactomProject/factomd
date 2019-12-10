@@ -22,6 +22,7 @@ message FactomEvent {
         DirectoryBlockCommit directoryBlockCommit = 8;
         ProcessListEvent processListEvent = 9;
         NodeMessage nodeMessage = 10;
+        DirectoryBlockAnchor directoryBlockAnchor = 11;
     }
 }
 
