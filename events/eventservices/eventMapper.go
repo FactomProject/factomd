@@ -3,43 +3,51 @@ package eventservices
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/events"
+	"github.com/FactomProject/factomd/events/eventconfig"
+	"github.com/FactomProject/factomd/events/eventinput"
 	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 	"github.com/gogo/protobuf/types"
 	"time"
 )
 
-func MapToFactomEvent(eventInput events.EventInput, broadcastContent BroadcastContent, sendStateChangeEvents bool) (*eventmessages.FactomEvent, error) {
+func MapToFactomEvent(eventInput eventinput.EventInput, broadcastContent eventconfig.BroadcastContent, sendStateChangeEvents bool) (*eventmessages.FactomEvent, error) {
 	switch eventInput.(type) {
-	case *events.RegistrationEvent:
-		registrationEvent := eventInput.(*events.RegistrationEvent)
+	case *eventinput.RegistrationEvent:
+		registrationEvent := eventInput.(*eventinput.RegistrationEvent)
 		return mapRegistrationEvent(registrationEvent, broadcastContent)
-	case *events.StateChangeMsgEvent:
-		stateChangeEvent := eventInput.(*events.StateChangeMsgEvent)
+	case *eventinput.StateChangeEvent:
+		stateChangeEvent := eventInput.(*eventinput.StateChangeEvent)
 		return mapStateChangeEvent(stateChangeEvent, broadcastContent, sendStateChangeEvents)
-	case *events.StateChangeEvent:
-		stateChangeEvent := eventInput.(*events.StateChangeEvent)
-		return mapDBStateEvent(stateChangeEvent, broadcastContent)
-	case *events.ProcessListEvent:
-		processMessageEvent := eventInput.(*events.ProcessListEvent)
+	case *eventinput.DirectoryBlockEvent:
+		directoryBlockEvent := eventInput.(*eventinput.DirectoryBlockEvent)
+		return mapDirectoryBlockEvent(directoryBlockEvent, broadcastContent)
+	case *eventinput.ReplayDirectoryBlockEvent:
+		directoryBlockEvent := eventInput.(*eventinput.ReplayDirectoryBlockEvent)
+		return mapReplayDirectoryBlockEvent(directoryBlockEvent, broadcastContent)
+	case *eventinput.AnchorEvent:
+		anchorEvent := eventInput.(*eventinput.AnchorEvent)
+		return mapAnchorEvent(anchorEvent)
+	case *eventinput.ProcessListEvent:
+		processMessageEvent := eventInput.(*eventinput.ProcessListEvent)
 		return mapProcessMessageEvent(processMessageEvent)
-	case *events.NodeMessageEvent:
-		nodeMessageEvent := eventInput.(*events.NodeMessageEvent)
+	case *eventinput.NodeMessageEvent:
+		nodeMessageEvent := eventInput.(*eventinput.NodeMessageEvent)
 		return mapNodeMessageEvent(nodeMessageEvent)
 	default:
 		return nil, errors.New("no payload found in source event")
 	}
 }
 
-func mapRegistrationEvent(registrationEvent *events.RegistrationEvent, broadcastContent BroadcastContent) (*eventmessages.FactomEvent, error) {
+func mapRegistrationEvent(registrationEvent *eventinput.RegistrationEvent, broadcastContent eventconfig.BroadcastContent) (*eventmessages.FactomEvent, error) {
 	event := &eventmessages.FactomEvent{}
 	event.EventSource = registrationEvent.GetStreamSource()
 	msg := registrationEvent.GetPayload()
 	if msg != nil {
-		shouldIncludeContent := broadcastContent > BroadcastNever
+		shouldIncludeContent := broadcastContent > eventconfig.BroadcastNever
 
 		switch msg.(type) {
 		case *messages.CommitChainMsg:
@@ -62,12 +70,12 @@ func mapRegistrationEvent(registrationEvent *events.RegistrationEvent, broadcast
 	return event, nil
 }
 
-func mapStateChangeEvent(stateChangeEvent *events.StateChangeMsgEvent, broadcastContent BroadcastContent, sendStateChangeEvents bool) (*eventmessages.FactomEvent, error) {
+func mapStateChangeEvent(stateChangeEvent *eventinput.StateChangeEvent, broadcastContent eventconfig.BroadcastContent, sendStateChangeEvents bool) (*eventmessages.FactomEvent, error) {
 	event := &eventmessages.FactomEvent{}
 	event.EventSource = stateChangeEvent.GetStreamSource()
 	msg := stateChangeEvent.GetPayload()
 	if msg != nil {
-		shouldIncludeContent := broadcastContent > BroadcastOnce
+		shouldIncludeContent := broadcastContent > eventconfig.BroadcastOnce
 
 		switch msg.(type) {
 		case *messages.CommitChainMsg:
@@ -91,9 +99,6 @@ func mapStateChangeEvent(stateChangeEvent *events.StateChangeMsgEvent, broadcast
 			} else if shouldIncludeContent {
 				event.Event = mapRevealEntryEvent(stateChangeEvent.GetEntityState(), revealEntryMsg)
 			}
-		case *messages.DBStateMsg:
-			dbStateMessage := msg.(*messages.DBStateMsg)
-			event.Event = mapDBStateFromMsg(dbStateMessage, shouldIncludeContent)
 		default:
 			return nil, errors.New("unknown message type")
 		}
@@ -101,19 +106,43 @@ func mapStateChangeEvent(stateChangeEvent *events.StateChangeMsgEvent, broadcast
 	return event, nil
 }
 
-func mapDBStateEvent(stateChangeEvent *events.StateChangeEvent, broadcastContent BroadcastContent) (*eventmessages.FactomEvent, error) {
+func mapReplayDirectoryBlockEvent(directoryBlockEvent *eventinput.ReplayDirectoryBlockEvent, broadcastContent eventconfig.BroadcastContent) (*eventmessages.FactomEvent, error) {
+	msg := directoryBlockEvent.GetPayload()
+	dbStateMessage, ok := msg.(*messages.DBStateMsg)
+	if !ok {
+		return nil, fmt.Errorf("unknown message type of replay directory block event: %v", directoryBlockEvent)
+	}
+
+	shouldIncludeContent := broadcastContent > eventconfig.BroadcastOnce
 	event := &eventmessages.FactomEvent{}
-	event.EventSource = stateChangeEvent.GetStreamSource()
-	state := stateChangeEvent.GetPayload()
-	stateChangeEvent.GetEntityState()
-	if state != nil {
-		shouldIncludeContent := broadcastContent > BroadcastOnce
-		event.Event = mapDBState(state, shouldIncludeContent)
+	event.EventSource = directoryBlockEvent.GetStreamSource()
+	event.Event = mapDBStateFromMsg(dbStateMessage, shouldIncludeContent)
+	return event, nil
+}
+
+func mapDirectoryBlockEvent(directoryBlockEvent *eventinput.DirectoryBlockEvent, broadcastContent eventconfig.BroadcastContent) (*eventmessages.FactomEvent, error) {
+	event := &eventmessages.FactomEvent{}
+	event.EventSource = directoryBlockEvent.GetStreamSource()
+	directoryBlock := directoryBlockEvent.GetPayload()
+
+	if directoryBlock != nil {
+		shouldIncludeContent := broadcastContent > eventconfig.BroadcastOnce
+		event.Event = mapDirectoryBlockState(directoryBlock, shouldIncludeContent)
 	}
 	return event, nil
 }
 
-func mapProcessMessageEvent(processMessageEvent *events.ProcessListEvent) (*eventmessages.FactomEvent, error) {
+func mapAnchorEvent(anchorEvent *eventinput.AnchorEvent) (*eventmessages.FactomEvent, error) {
+	event := &eventmessages.FactomEvent{}
+	event.EventSource = anchorEvent.GetStreamSource()
+	dirBlockInfo := anchorEvent.GetPayload()
+	if dirBlockInfo != nil {
+		event.Event = mapDirectoryBlockInfo(dirBlockInfo)
+	}
+	return event, nil
+}
+
+func mapProcessMessageEvent(processMessageEvent *eventinput.ProcessListEvent) (*eventmessages.FactomEvent, error) {
 	event := &eventmessages.FactomEvent{
 		EventSource: processMessageEvent.GetStreamSource(),
 		Event: &eventmessages.FactomEvent_ProcessListEvent{
@@ -123,7 +152,7 @@ func mapProcessMessageEvent(processMessageEvent *events.ProcessListEvent) (*even
 	return event, nil
 }
 
-func mapNodeMessageEvent(nodeMessageEvent *events.NodeMessageEvent) (*eventmessages.FactomEvent, error) {
+func mapNodeMessageEvent(nodeMessageEvent *eventinput.NodeMessageEvent) (*eventmessages.FactomEvent, error) {
 	event := &eventmessages.FactomEvent{
 		EventSource: nodeMessageEvent.GetStreamSource(),
 		Event: &eventmessages.FactomEvent_NodeMessage{
@@ -136,7 +165,7 @@ func mapNodeMessageEvent(nodeMessageEvent *events.NodeMessageEvent) (*eventmessa
 func mapDBStateFromMsg(dbStateMessage *messages.DBStateMsg, shouldIncludeContent bool) *eventmessages.FactomEvent_DirectoryBlockCommit {
 	event := &eventmessages.FactomEvent_DirectoryBlockCommit{DirectoryBlockCommit: &eventmessages.DirectoryBlockCommit{
 		DirectoryBlock:    mapDirectoryBlock(dbStateMessage.DirectoryBlock),
-		AdminBlock:        mapAdminBlock(dbStateMessage.AdminBlock),
+		AdminBlock:        MapAdminBlock(dbStateMessage.AdminBlock),
 		FactoidBlock:      mapFactoidBlock(dbStateMessage.FactoidBlock),
 		EntryCreditBlock:  mapEntryCreditBlock(dbStateMessage.EntryCreditBlock),
 		EntryBlocks:       mapEntryBlocks(dbStateMessage.EBlocks),
@@ -145,10 +174,10 @@ func mapDBStateFromMsg(dbStateMessage *messages.DBStateMsg, shouldIncludeContent
 	return event
 }
 
-func mapDBState(dbState interfaces.IDBState, shouldIncludeContent bool) *eventmessages.FactomEvent_DirectoryBlockCommit {
+func mapDirectoryBlockState(dbState interfaces.IDBState, shouldIncludeContent bool) *eventmessages.FactomEvent_DirectoryBlockCommit {
 	event := &eventmessages.FactomEvent_DirectoryBlockCommit{DirectoryBlockCommit: &eventmessages.DirectoryBlockCommit{
 		DirectoryBlock:    mapDirectoryBlock(dbState.GetDirectoryBlock()),
-		AdminBlock:        mapAdminBlock(dbState.GetAdminBlock()),
+		AdminBlock:        MapAdminBlock(dbState.GetAdminBlock()),
 		FactoidBlock:      mapFactoidBlock(dbState.GetFactoidBlock()),
 		EntryCreditBlock:  mapEntryCreditBlock(dbState.GetEntryCreditBlock()),
 		EntryBlocks:       mapEntryBlocks(dbState.GetEntryBlocks()),
