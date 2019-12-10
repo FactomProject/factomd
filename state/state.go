@@ -12,7 +12,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
+	"github.com/FactomProject/factomd/events"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -35,7 +35,6 @@ import (
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/leveldb"
 	"github.com/FactomProject/factomd/database/mapdb"
-	"github.com/FactomProject/factomd/events/eventservices"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/util/atomic"
@@ -442,8 +441,7 @@ type State struct {
 	InputRegExString          string
 	executeRecursionDetection map[[32]byte]interfaces.IMsg
 	Hold                      HoldingList
-	EventsService             eventservices.EventService
-	EventsServiceControl      eventservices.EventServiceControl
+	EventService              events.EventService
 
 	// MissingMessageResponse is a cache of the last 1000 msgs we receive such that when
 	// we send out a missing message, we can find that message locally before we ask the net
@@ -540,6 +538,7 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 
 	newState.ControlPanelPort = s.ControlPanelPort
 	newState.ControlPanelSetting = s.ControlPanelSetting
+	newState.EventService = s.EventService
 
 	//newState.Identities = s.Identities
 	//newState.Authorities = s.Authorities
@@ -603,52 +602,54 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 	return newState
 }
 
-func (s *State) EmitDBStateEventsFromHeight(height uint32, end uint32) {
-	if s.EventsService != nil {
-		i := height
-		msgCount := 0
-		for i <= end {
-			d, err := s.DB.FetchDBlockByHeight(i)
-			if err != nil || d == nil {
-				break
-			}
+func (s *State) GetEventService() events.EventService {
+	return s.EventService
+}
 
-			a, err := s.DB.FetchABlockByHeight(i)
-			if err != nil || a == nil {
-				break
-			}
-			f, err := s.DB.FetchFBlockByHeight(i)
-			if err != nil || f == nil {
-				break
-			}
-			ec, err := s.DB.FetchECBlockByHeight(i)
-			if err != nil || ec == nil {
-				break
-			}
+func (s *State) EmitDirectoryBlockEventsFromHeight(height uint32, end uint32) {
+	i := height
+	msgCount := 0
+	for i <= end {
+		d, err := s.DB.FetchDBlockByHeight(i)
+		if err != nil || d == nil {
+			break
+		}
 
-			var eblocks []interfaces.IEntryBlock
-			var entries []interfaces.IEBEntry
+		a, err := s.DB.FetchABlockByHeight(i)
+		if err != nil || a == nil {
+			break
+		}
+		f, err := s.DB.FetchFBlockByHeight(i)
+		if err != nil || f == nil {
+			break
+		}
+		ec, err := s.DB.FetchECBlockByHeight(i)
+		if err != nil || ec == nil {
+			break
+		}
 
-			ebs := d.GetEBlockDBEntries()
-			for _, eb := range ebs {
-				eblock, _ := s.DB.FetchEBlock(eb.GetKeyMR())
-				if eblock != nil {
-					eblocks = append(eblocks, eblock)
-					for _, e := range eblock.GetEntryHashes() {
-						ent, _ := s.DB.FetchEntry(e)
-						if ent != nil {
-							entries = append(entries, ent)
-						}
+		var eblocks []interfaces.IEntryBlock
+		var entries []interfaces.IEBEntry
+
+		ebs := d.GetEBlockDBEntries()
+		for _, eb := range ebs {
+			eblock, _ := s.DB.FetchEBlock(eb.GetKeyMR())
+			if eblock != nil {
+				eblocks = append(eblocks, eblock)
+				for _, e := range eblock.GetEntryHashes() {
+					ent, _ := s.DB.FetchEntry(e)
+					if ent != nil {
+						entries = append(entries, ent)
 					}
 				}
 			}
-
-			msg := messages.NewDBStateMsg(d.GetTimestamp(), d, a, f, ec, eblocks, entries, nil)
-			i++
-			msgCount++
-
-			EmitReplayStateChangeEvent(msg, eventmessages.EntityState_COMMITTED_TO_DIRECTORY_BLOCK, s)
 		}
+
+		msg := messages.NewDBStateMsg(d.GetTimestamp(), d, a, f, ec, eblocks, entries, nil)
+		i++
+		msgCount++
+
+		s.EventService.EmitReplayDirectoryBlockCommit(msg)
 	}
 }
 
@@ -2659,7 +2660,7 @@ func (s *State) InitLevelDB() error {
 		}
 	}
 
-	s.DB = databaseOverlay.NewOverlay(dbase)
+	s.DB = databaseOverlay.NewOverlayWithState(dbase, s)
 	return nil
 }
 
@@ -2675,7 +2676,7 @@ func (s *State) InitBoltDB() error {
 
 	dbase := new(boltdb.BoltDB)
 	dbase.Init(nil, path+"FactomBolt.db")
-	s.DB = databaseOverlay.NewOverlay(dbase)
+	s.DB = databaseOverlay.NewOverlayWithState(dbase, s)
 	return nil
 }
 
@@ -2686,7 +2687,7 @@ func (s *State) InitMapDB() error {
 
 	dbase := new(mapdb.MapDB)
 	dbase.Init(nil)
-	s.DB = databaseOverlay.NewOverlay(dbase)
+	s.DB = databaseOverlay.NewOverlayWithState(dbase, s)
 	return nil
 }
 

@@ -6,7 +6,6 @@ package databaseOverlay
 
 import (
 	"errors"
-
 	"github.com/FactomProject/factomd/anchor"
 	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -100,7 +99,6 @@ func (dbo *Overlay) SaveAnchorInfoFromEntry(entry interfaces.IEBEntry, multiBatc
 	var anchorRecord *anchor.AnchorRecord
 	var ok bool
 	var err error
-
 	switch entry.GetChainID().String() {
 	case BitcoinAnchorChainID:
 		// Bitcoin has mixed v1 and v2 AnchorRecords

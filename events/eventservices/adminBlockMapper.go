@@ -6,7 +6,7 @@ import (
 )
 import "github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 
-func mapAdminBlock(block interfaces.IAdminBlock) *eventmessages.AdminBlock {
+func MapAdminBlock(block interfaces.IAdminBlock) *eventmessages.AdminBlock {
 	var keyMRBytes []byte = nil
 	if keyMR, _ := block.GetKeyMR(); keyMR != nil {
 		keyMRBytes = keyMR.Bytes()

@@ -25,10 +25,7 @@ var ValidationDebug bool = false
 func (s *State) DoProcessing() {
 	s.validatorLoopThreadID = atomic.Goid()
 
-	if s.EventsService != nil {
-		event := events.NodeInfoMessageF(eventmessages.NodeMessageCode_STARTED, "Node %s startup complete", s.GetFactomNodeName())
-		s.EventsService.Send(event)
-	}
+	s.EventService.EmitNodeInfoMessageF(eventmessages.NodeMessageCode_STARTED, "Node %s startup complete", s.GetFactomNodeName())
 	s.RunState = runstate.Running
 
 	slp := false
@@ -92,13 +89,8 @@ func (s *State) DoProcessing() {
 func (s *State) ValidatorLoop() {
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Println("A panic state occurred in ValidatorLoop.", r)
-			llog.LogPrintf("recovery", "A panic state occurred in ValidatorLoop. %v", r)
-			if s.EventsService != nil {
-				event := events.NodeErrorMessage(eventmessages.NodeMessageCode_GENERAL,
-					"A panic state occurred in ValidatorLoop.", r)
-				s.EventsService.Send(event)
-			}
+			s.EventService.EmitNodeErrorMessage(eventmessages.NodeMessageCode_GENERAL,
+				"A panic state occurred in ValidatorLoop.", r)
 
 			shutdown(s)
 		}
@@ -128,11 +120,22 @@ func (s *State) ValidatorLoop() {
 				currentMinute = 9 // treat minute 10 as an extension of minute 9
 			}
 			if lastHeight == int(s.LLeaderHeight) && lastMinute == currentMinute && s.LeaderVMIndex == lastVM {
-
-				// Drop ticker
-
-				s.LogPrintf("timer", "drop %d", c)
-				s.LogPrintf("validator", "drop %d  %d-:-%d %d", c, s.LLeaderHeight, currentMinute, s.LeaderVMIndex)
+				// This eom was already generated. We shouldn't generate it again.
+				// This does mean we missed an EOM boundary, and the next EOM won't occur for another
+				// "minute". This could cause some serious sliding, as minutes could be an addition 100%
+				// in length.
+				if c == -1 { // This means we received a normal eom cadence timer
+					c = 8 // Send 8 retries on a 1/10 of the normal minute period
+				}
+				if c > 0 {
+					go func() {
+						// We sleep for 1/10 of a minute, and try again
+						time.Sleep(s.GetMinuteDuration() / 10)
+						s.tickerQueue <- c - 1
+					}()
+				}
+				s.LogPrintf("timer", "retry %d", c)
+				s.LogPrintf("validator", "retry %d  %d-:-%d %d", c, s.LLeaderHeight, currentMinute, s.LeaderVMIndex)
 				continue // Already generated this eom
 			}
 
@@ -179,11 +182,8 @@ func shouldShutdown(state *State) bool {
 }
 
 func shutdown(state *State) {
-	if state.EventsService != nil {
-		event := events.NodeInfoMessageF(eventmessages.NodeMessageCode_SHUTDOWN,
-			"Node %s is shutting down", state.GetFactomNodeName())
-		state.EventsService.Send(event)
-	}
+	state.EventService.EmitNodeInfoMessageF(eventmessages.NodeMessageCode_SHUTDOWN,
+		"Node %s is shutting down", state.GetFactomNodeName())
 
 	state.RunState = runstate.Stopping
 	fmt.Println("Closing the Database on", state.GetFactomNodeName())

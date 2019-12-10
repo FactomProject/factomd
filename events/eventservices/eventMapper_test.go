@@ -2,13 +2,14 @@ package eventservices_test
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/common/constants/runstate"
+	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/engine"
-	"github.com/FactomProject/factomd/events"
+	"github.com/FactomProject/factomd/events/eventconfig"
+	"github.com/FactomProject/factomd/events/eventinput"
 	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 	"github.com/FactomProject/factomd/events/eventservices"
 	"github.com/FactomProject/factomd/state"
@@ -18,18 +19,13 @@ import (
 	"time"
 )
 
-var testState = &state.State{
-	IdentityChainID: primitives.NewZeroHash(),
-	RunState:        runstate.Running,
-}
-
-func TestDBStateMapping(t *testing.T) {
+func TestDirectoryBlockMapping(t *testing.T) {
 	msg := newDBStateMsg()
 	data, _ := msg.MarshalBinary()
 	assert.Len(t, data, 2409, msgChangedMessage("DBStateMsg"))
 
-	inputEvent := events.NewStateChangeEventFromMsg(eventmessages.EventSource_LIVE, eventmessages.EntityState_COMMITTED_TO_DIRECTORY_BLOCK, msg)
-	event, err := eventservices.MapToFactomEvent(inputEvent, eventservices.BroadcastAlways, true)
+	inputEvent := eventinput.NewReplayDirectoryBlockEvent(eventmessages.EventSource_LIVE, msg)
+	event, err := eventservices.MapToFactomEvent(inputEvent, eventconfig.BroadcastAlways, true)
 	if err != nil {
 		t.Error(err)
 	}
@@ -118,8 +114,8 @@ func TestCommitChainMapping(t *testing.T) {
 	data, _ := msg.MarshalBinary()
 	assert.Len(t, data, 201, msgChangedMessage("CommitChainMsg"))
 
-	inputEvent := events.NewRegistrationEvent(eventmessages.EventSource_LIVE, msg)
-	event, err := eventservices.MapToFactomEvent(inputEvent, eventservices.BroadcastAlways, true)
+	inputEvent := eventinput.NewRegistrationEvent(eventmessages.EventSource_LIVE, msg)
+	event, err := eventservices.MapToFactomEvent(inputEvent, eventconfig.BroadcastAlways, true)
 	if err != nil {
 		t.Error(err)
 	}
@@ -149,8 +145,8 @@ func TestCommitEntryMapping(t *testing.T) {
 	data, _ := msg.MarshalBinary()
 	assert.Len(t, data, 137, msgChangedMessage("CommitEntryMsg"))
 
-	inputEvent := events.NewRegistrationEvent(eventmessages.EventSource_LIVE, msg)
-	event, err := eventservices.MapToFactomEvent(inputEvent, eventservices.BroadcastAlways, true)
+	inputEvent := eventinput.NewRegistrationEvent(eventmessages.EventSource_LIVE, msg)
+	event, err := eventservices.MapToFactomEvent(inputEvent, eventconfig.BroadcastAlways, true)
 	if err != nil {
 		t.Error(err)
 	}
@@ -181,8 +177,8 @@ func TestEntryRevealMapping(t *testing.T) {
 	data, _ := msg.MarshalBinary()
 	assert.Len(t, data, 60, msgChangedMessage("RevealEntryMsg"))
 
-	inputEvent := events.NewRegistrationEvent(eventmessages.EventSource_LIVE, msg)
-	event, err := eventservices.MapToFactomEvent(inputEvent, eventservices.BroadcastAlways, true)
+	inputEvent := eventinput.NewRegistrationEvent(eventmessages.EventSource_LIVE, msg)
+	event, err := eventservices.MapToFactomEvent(inputEvent, eventconfig.BroadcastAlways, true)
 	if err != nil {
 		t.Error(err)
 	}
@@ -217,8 +213,8 @@ func TestStateChangeMapping(t *testing.T) {
 	data, _ := msg.MarshalBinary()
 	assert.Len(t, data, 137, msgChangedMessage("CommitEntryMsg"))
 
-	inputEvent := events.NewStateChangeEventFromMsg(eventmessages.EventSource_LIVE, eventmessages.EntityState_ACCEPTED, msg)
-	event, err := eventservices.MapToFactomEvent(inputEvent, eventservices.BroadcastAlways, true)
+	inputEvent := eventinput.NewStateChangeEvent(eventmessages.EventSource_LIVE, eventmessages.EntityState_ACCEPTED, msg)
+	event, err := eventservices.MapToFactomEvent(inputEvent, eventconfig.BroadcastAlways, true)
 	if err != nil {
 		t.Error(err)
 	}
@@ -235,16 +231,36 @@ func msgChangedMessage(msgName string) string {
 	return fmt.Sprintf("%s changed, please reevalate properties used by this event and adjust the expected message length.", msgName)
 }
 
+func TestAnchorEventMapping(t *testing.T) {
+	dirBlockInfo := testHelper.CreateTestDirBlockInfo(&dbInfo.DirBlockInfo{DBHeight: 100})
+	inputEvent := eventinput.NewAnchorEvent(eventmessages.EventSource_LIVE, dirBlockInfo)
+	event, err := eventservices.MapToFactomEvent(inputEvent, eventconfig.BroadcastAlways, true)
+	if err != nil {
+		t.Error(err)
+	}
+	assert.IsType(t, &eventmessages.FactomEvent_DirectoryBlockAnchor{}, event.Event)
+	dirBlockAnchorEvent := event.Event.(*eventmessages.FactomEvent_DirectoryBlockAnchor).DirectoryBlockAnchor
+	assert.NotNil(t, dirBlockAnchorEvent)
+	assert.EqualValues(t, int32(101000), dirBlockAnchorEvent.Timestamp.Nanos)
+	assert.NotNil(t, dirBlockAnchorEvent.BtcTxHash)
+	assert.NotNil(t, dirBlockAnchorEvent.BtcBlockHash)
+	assert.EqualValues(t, 101, dirBlockAnchorEvent.BtcBlockHeight)
+	assert.EqualValues(t, 101, dirBlockAnchorEvent.BtcTxOffset)
+	assert.True(t, dirBlockAnchorEvent.BtcConfirmed)
+	assert.NotNil(t, 101, dirBlockAnchorEvent.EthereumAnchorRecordEntryHash)
+	assert.True(t, dirBlockAnchorEvent.EthereumConfirmed)
+}
+
 func TestMapToFactomEvent(t *testing.T) {
 	testCases := map[string]struct {
-		Input                    events.EventInput
-		BroadcastContent         eventservices.BroadcastContent
+		Input                    eventinput.EventInput
+		BroadcastContent         eventconfig.BroadcastContent
 		EventReplayDuringStartup bool
 		Assertion                func(t *testing.T, event *eventmessages.FactomEvent)
 	}{
 		"RegistrationEvent": {
-			Input:            events.NewRegistrationEvent(eventmessages.EventSource_REPLAY_BOOT, newTestCommitChain()),
-			BroadcastContent: eventservices.BroadcastAlways,
+			Input:            eventinput.NewRegistrationEvent(eventmessages.EventSource_REPLAY_BOOT, newTestCommitChain()),
+			BroadcastContent: eventconfig.BroadcastAlways,
 			Assertion: func(t *testing.T, event *eventmessages.FactomEvent) {
 				assert.Equal(t, eventmessages.EventSource_REPLAY_BOOT, event.EventSource)
 				if assert.NotNil(t, event.GetChainCommit()) {
@@ -261,8 +277,8 @@ func TestMapToFactomEvent(t *testing.T) {
 			},
 		},
 		"RegistrationEventWithRevealContent": {
-			Input:            events.NewRegistrationEvent(eventmessages.EventSource_REPLAY_BOOT, newTestEntryReveal()),
-			BroadcastContent: eventservices.BroadcastAlways,
+			Input:            eventinput.NewRegistrationEvent(eventmessages.EventSource_REPLAY_BOOT, newTestEntryReveal()),
+			BroadcastContent: eventconfig.BroadcastAlways,
 			Assertion: func(t *testing.T, event *eventmessages.FactomEvent) {
 				assert.Equal(t, eventmessages.EventSource_REPLAY_BOOT, event.EventSource)
 				if assert.NotNil(t, event.GetEntryReveal()) {
@@ -272,23 +288,9 @@ func TestMapToFactomEvent(t *testing.T) {
 				}
 			},
 		},
-		"StateChangeEventFromDirectoryBlock": {
-			Input:                    events.NewStateChangeEventFromMsg(eventmessages.EventSource_REPLAY_BOOT, eventmessages.EntityState_ACCEPTED, newDBStateMsg()),
-			BroadcastContent:         eventservices.BroadcastOnce,
-			EventReplayDuringStartup: true,
-			Assertion: func(t *testing.T, event *eventmessages.FactomEvent) {
-				assert.Equal(t, eventmessages.EventSource_REPLAY_BOOT, event.EventSource)
-				if assert.NotNil(t, event.GetDirectoryBlockCommit()) {
-					assert.NotNil(t, event.GetDirectoryBlockCommit().GetDirectoryBlock())
-					assert.NotNil(t, event.GetDirectoryBlockCommit().GetEntryBlockEntries())
-					assert.NotNil(t, event.GetDirectoryBlockCommit().GetEntryBlocks())
-					assert.NotNil(t, event.GetDirectoryBlockCommit().GetFactoidBlock())
-				}
-			},
-		},
 		"StateChangeEventFromCommitChain": {
-			Input:                    events.NewStateChangeEventFromMsg(eventmessages.EventSource_REPLAY_BOOT, eventmessages.EntityState_REJECTED, newTestCommitChain()),
-			BroadcastContent:         eventservices.BroadcastOnce,
+			Input:                    eventinput.NewStateChangeEvent(eventmessages.EventSource_REPLAY_BOOT, eventmessages.EntityState_REJECTED, newTestCommitChain()),
+			BroadcastContent:         eventconfig.BroadcastOnce,
 			EventReplayDuringStartup: true,
 			Assertion: func(t *testing.T, event *eventmessages.FactomEvent) {
 				assert.Equal(t, eventmessages.EventSource_REPLAY_BOOT, event.EventSource)
@@ -300,8 +302,8 @@ func TestMapToFactomEvent(t *testing.T) {
 			},
 		},
 		"StateChangeEventFromCommitEntry": {
-			Input:                    events.NewStateChangeEventFromMsg(eventmessages.EventSource_REPLAY_BOOT, eventmessages.EntityState_REJECTED, newTestCommitEntry()),
-			BroadcastContent:         eventservices.BroadcastOnce,
+			Input:                    eventinput.NewStateChangeEvent(eventmessages.EventSource_REPLAY_BOOT, eventmessages.EntityState_REJECTED, newTestCommitEntry()),
+			BroadcastContent:         eventconfig.BroadcastOnce,
 			EventReplayDuringStartup: true,
 			Assertion: func(t *testing.T, event *eventmessages.FactomEvent) {
 				assert.Equal(t, eventmessages.EventSource_REPLAY_BOOT, event.EventSource)
@@ -313,8 +315,8 @@ func TestMapToFactomEvent(t *testing.T) {
 			},
 		},
 		"StateChangeEventEntryReveal": {
-			Input:                    events.NewStateChangeEventFromMsg(eventmessages.EventSource_REPLAY_BOOT, eventmessages.EntityState_REJECTED, newTestEntryReveal()),
-			BroadcastContent:         eventservices.BroadcastOnce,
+			Input:                    eventinput.NewStateChangeEvent(eventmessages.EventSource_REPLAY_BOOT, eventmessages.EntityState_REJECTED, newTestEntryReveal()),
+			BroadcastContent:         eventconfig.BroadcastOnce,
 			EventReplayDuringStartup: true,
 			Assertion: func(t *testing.T, event *eventmessages.FactomEvent) {
 				assert.Equal(t, eventmessages.EventSource_REPLAY_BOOT, event.EventSource)
@@ -326,9 +328,9 @@ func TestMapToFactomEvent(t *testing.T) {
 			},
 		},
 		"StateChangeEventFromCommitChainResend": {
-			BroadcastContent:         eventservices.BroadcastAlways,
+			BroadcastContent:         eventconfig.BroadcastAlways,
 			EventReplayDuringStartup: false,
-			Input:                    events.NewStateChangeEventFromMsg(eventmessages.EventSource_REPLAY_BOOT, eventmessages.EntityState_REJECTED, newTestCommitChain()),
+			Input:                    eventinput.NewStateChangeEvent(eventmessages.EventSource_REPLAY_BOOT, eventmessages.EntityState_REJECTED, newTestCommitChain()),
 			Assertion: func(t *testing.T, event *eventmessages.FactomEvent) {
 				assert.Equal(t, eventmessages.EventSource_REPLAY_BOOT, event.EventSource)
 				if assert.NotNil(t, event.GetChainCommit()) {
@@ -345,8 +347,8 @@ func TestMapToFactomEvent(t *testing.T) {
 			},
 		},
 		"StateChangeEventFromCommitEntryResend": {
-			Input:                    events.NewStateChangeEventFromMsg(eventmessages.EventSource_REPLAY_BOOT, eventmessages.EntityState_REJECTED, newTestCommitEntry()),
-			BroadcastContent:         eventservices.BroadcastAlways,
+			Input:                    eventinput.NewStateChangeEvent(eventmessages.EventSource_REPLAY_BOOT, eventmessages.EntityState_REJECTED, newTestCommitEntry()),
+			BroadcastContent:         eventconfig.BroadcastAlways,
 			EventReplayDuringStartup: false,
 			Assertion: func(t *testing.T, event *eventmessages.FactomEvent) {
 				assert.Equal(t, eventmessages.EventSource_REPLAY_BOOT, event.EventSource)
@@ -362,8 +364,8 @@ func TestMapToFactomEvent(t *testing.T) {
 			},
 		},
 		"StateChangeEventEntryRevealResend": {
-			Input:                    events.NewStateChangeEventFromMsg(eventmessages.EventSource_REPLAY_BOOT, eventmessages.EntityState_REJECTED, newTestEntryReveal()),
-			BroadcastContent:         eventservices.BroadcastAlways,
+			Input:                    eventinput.NewStateChangeEvent(eventmessages.EventSource_REPLAY_BOOT, eventmessages.EntityState_REJECTED, newTestEntryReveal()),
+			BroadcastContent:         eventconfig.BroadcastAlways,
 			EventReplayDuringStartup: false,
 			Assertion: func(t *testing.T, event *eventmessages.FactomEvent) {
 				assert.Equal(t, eventmessages.EventSource_REPLAY_BOOT, event.EventSource)
@@ -374,9 +376,9 @@ func TestMapToFactomEvent(t *testing.T) {
 				}
 			},
 		},
-		"StateChangeEventDirectoryBlock": {
-			Input:                    events.NewStateChangeEvent(eventmessages.EventSource_REPLAY_BOOT, eventmessages.EntityState_REJECTED, newTestDBState()),
-			BroadcastContent:         eventservices.BroadcastAlways,
+		"DirectoryBlockEvent": {
+			Input:                    eventinput.NewDirectoryBlockEvent(eventmessages.EventSource_REPLAY_BOOT, newTestDirectoryBlockState()),
+			BroadcastContent:         eventconfig.BroadcastNever,
 			EventReplayDuringStartup: true,
 			Assertion: func(t *testing.T, event *eventmessages.FactomEvent) {
 				assert.Equal(t, eventmessages.EventSource_REPLAY_BOOT, event.EventSource)
@@ -388,9 +390,45 @@ func TestMapToFactomEvent(t *testing.T) {
 				}
 			},
 		},
-		"StateChangeEventDirectoryBlockContent": {
-			Input:                    events.NewStateChangeEvent(eventmessages.EventSource_REPLAY_BOOT, eventmessages.EntityState_REJECTED, newTestDBState()),
-			BroadcastContent:         eventservices.BroadcastAlways,
+		"DirectoryBlockContent": {
+			Input:                    eventinput.NewDirectoryBlockEvent(eventmessages.EventSource_REPLAY_BOOT, newTestDirectoryBlockState()),
+			BroadcastContent:         eventconfig.BroadcastAlways,
+			EventReplayDuringStartup: true,
+			Assertion: func(t *testing.T, event *eventmessages.FactomEvent) {
+				assert.Equal(t, eventmessages.EventSource_REPLAY_BOOT, event.EventSource)
+				if assert.NotNil(t, event.GetDirectoryBlockCommit()) {
+					assert.NotNil(t, event.GetDirectoryBlockCommit().GetDirectoryBlock())
+					assert.NotNil(t, event.GetDirectoryBlockCommit().GetEntryBlockEntries())
+					assert.NotNil(t, event.GetDirectoryBlockCommit().GetEntryBlocks())
+					assert.NotNil(t, event.GetDirectoryBlockCommit().GetFactoidBlock())
+				}
+			},
+		},
+		"DirectoryBlockAnchor": {
+			Input:                    eventinput.NewAnchorEvent(eventmessages.EventSource_REPLAY_BOOT, newTestDirectoryBlockInfo()),
+			BroadcastContent:         eventconfig.BroadcastAlways,
+			EventReplayDuringStartup: true,
+			Assertion: func(t *testing.T, event *eventmessages.FactomEvent) {
+				assert.Equal(t, eventmessages.EventSource_REPLAY_BOOT, event.EventSource)
+				if assert.NotNil(t, event.GetDirectoryBlockAnchor()) {
+					assert.NotNil(t, event.GetDirectoryBlockAnchor().GetDirectoryBlockHash())
+					assert.NotNil(t, event.GetDirectoryBlockAnchor().GetDirectoryBlockMerkleRoot())
+					assert.NotNil(t, event.GetDirectoryBlockAnchor().GetBlockHeight())
+					assert.NotNil(t, event.GetDirectoryBlockAnchor().GetBtcBlockHash())
+					assert.NotNil(t, event.GetDirectoryBlockAnchor().GetBtcBlockHeight())
+					assert.NotNil(t, event.GetDirectoryBlockAnchor().GetBtcBlockHash())
+					assert.NotNil(t, event.GetDirectoryBlockAnchor().GetBtcConfirmed())
+					assert.NotNil(t, event.GetDirectoryBlockAnchor().GetBtcTxHash())
+					assert.NotNil(t, event.GetDirectoryBlockAnchor().GetBtcTxOffset())
+					assert.NotNil(t, event.GetDirectoryBlockAnchor().GetEthereumAnchorRecordEntryHash())
+					assert.NotNil(t, event.GetDirectoryBlockAnchor().GetEthereumConfirmed())
+					assert.NotNil(t, event.GetDirectoryBlockAnchor().GetTimestamp())
+				}
+			},
+		},
+		"ReplayDirectoryBlock": {
+			Input:                    eventinput.NewReplayDirectoryBlockEvent(eventmessages.EventSource_REPLAY_BOOT, newDBStateMsg()),
+			BroadcastContent:         eventconfig.BroadcastOnce,
 			EventReplayDuringStartup: true,
 			Assertion: func(t *testing.T, event *eventmessages.FactomEvent) {
 				assert.Equal(t, eventmessages.EventSource_REPLAY_BOOT, event.EventSource)
@@ -403,8 +441,8 @@ func TestMapToFactomEvent(t *testing.T) {
 			},
 		},
 		"ProcessListEvent": {
-			Input:            events.ProcessListEventNewMinute(eventmessages.EventSource_REPLAY_BOOT, 2, 123),
-			BroadcastContent: eventservices.BroadcastAlways,
+			Input:            eventinput.ProcessListEventNewMinute(eventmessages.EventSource_REPLAY_BOOT, 2, 123),
+			BroadcastContent: eventconfig.BroadcastAlways,
 			Assertion: func(t *testing.T, event *eventmessages.FactomEvent) {
 				assert.Equal(t, eventmessages.EventSource_REPLAY_BOOT, event.EventSource)
 				if assert.NotNil(t, event.GetProcessListEvent()) && assert.NotNil(t, event.GetProcessListEvent().GetNewMinuteEvent()) {
@@ -414,8 +452,8 @@ func TestMapToFactomEvent(t *testing.T) {
 			},
 		},
 		"NodeMessage": {
-			Input:            events.NodeInfoMessage(eventmessages.NodeMessageCode_STARTED, "test message"),
-			BroadcastContent: eventservices.BroadcastAlways,
+			Input:            eventinput.NodeInfoMessage(eventmessages.NodeMessageCode_STARTED, "test message"),
+			BroadcastContent: eventconfig.BroadcastAlways,
 			Assertion: func(t *testing.T, event *eventmessages.FactomEvent) {
 				if assert.NotNil(t, event.GetNodeMessage()) {
 					assert.NotNil(t, event.GetNodeMessage().Level)
@@ -444,8 +482,8 @@ func TestMapToFactomEvent(t *testing.T) {
 func TestMapToFactomEventRevealNoContentRegistration(t *testing.T) {
 	// same test as TestMapToFactomEvent, except for a registration event with an EntryReveal registration
 	// then no value will be set
-	input := events.NewRegistrationEvent(eventmessages.EventSource_REPLAY_BOOT, newTestEntryReveal())
-	event, err := eventservices.MapToFactomEvent(input, eventservices.BroadcastNever, true)
+	input := eventinput.NewRegistrationEvent(eventmessages.EventSource_REPLAY_BOOT, newTestEntryReveal())
+	event, err := eventservices.MapToFactomEvent(input, eventconfig.BroadcastNever, true)
 	assert.Nil(t, err)
 	assert.Nil(t, event)
 }
@@ -459,15 +497,6 @@ func TestConvertTimeToTimestamp(t *testing.T) {
 	assert.NotNil(t, timestamp)
 	assert.Equal(t, int64(1571946978), timestamp.Seconds)
 	assert.Equal(t, int32(338001966), timestamp.Nanos)
-}
-
-func setServiceState(state eventservices.BroadcastContent) func(t *testing.T) {
-	return func(t *testing.T) {
-		params := &eventservices.EventServiceParams{
-			BroadcastContent: state,
-		}
-		testState.EventsService, testState.EventsServiceControl = eventservices.NewEventServiceTo(testState, params)
-	}
 }
 
 func newTestCommitChain() interfaces.IMsg {
@@ -495,7 +524,7 @@ func newTestEntryReveal() interfaces.IMsg {
 	return msg
 }
 
-func newTestDBState() interfaces.IDBState {
+func newTestDirectoryBlockState() interfaces.IDBState {
 	set := testHelper.CreateTestBlockSet(nil)
 	set = testHelper.CreateTestBlockSet(set)
 
@@ -506,4 +535,8 @@ func newTestDBState() interfaces.IDBState {
 	msg.EntryCreditBlock = set.ECBlock
 
 	return msg
+}
+
+func newTestDirectoryBlockInfo() interfaces.IDirBlockInfo {
+	return testHelper.CreateTestDirBlockInfo(&dbInfo.DirBlockInfo{DBHeight: 910})
 }
